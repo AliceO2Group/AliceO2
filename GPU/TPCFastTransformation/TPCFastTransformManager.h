@@ -41,13 +41,13 @@ class TPCFastTransformManager
   TPCFastTransformManager();
 
   /// Copy constructor: disabled
-  TPCFastTransformManager(const TPCFastTransformManager& ) = delete;
+  TPCFastTransformManager(const TPCFastTransformManager& ) CON_DELETE;
  
   /// Assignment operator: disabled 
-  TPCFastTransformManager &operator=(const TPCFastTransformManager &)  = delete;    
+  TPCFastTransformManager &operator=(const TPCFastTransformManager &) CON_DELETE;
      
   /// Destructor
-  ~TPCFastTransformManager() = default;
+  ~TPCFastTransformManager() CON_DEFAULT;
 
   /// _______________  Main functionality  ________________________
 

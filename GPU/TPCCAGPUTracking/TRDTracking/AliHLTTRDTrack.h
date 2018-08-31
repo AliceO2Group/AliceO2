@@ -4,13 +4,17 @@
  * See cxx source for full Copyright notice                               */
 
 #include "AliHLTTRDDef.h"
-#include "AliHLTTRDInterfaces.h"
 #include "AliHLTTPCCADef.h"
 
 class AliHLTTRDTrackDataRecord;
 class AliHLTExternalTrackParam;
 
 //_____________________________________________________________________________
+#if defined(__CINT__) || defined(__ROOTCINT__)
+template <typename T> class AliHLTTRDTrack;
+#else
+#include "AliHLTTRDInterfaces.h"
+
 template <typename T>
 class AliHLTTRDTrack : public T
 {
@@ -74,4 +78,5 @@ class AliHLTTRDTrack : public T
 
 };
 
+#endif
 #endif

@@ -16,6 +16,7 @@
 #include "AliHLTTPCCAGPUTracker.h"
 #include "AliHLTTPCGMPolynomialField.h"
 #include "AliHLTTPCGMMergedTrack.h"
+#include "AliTPCCommonDef.h"
 
 #if !defined(HLTCA_GPUCODE)
 #include <iostream>
@@ -71,10 +72,9 @@ public:
   enum attachTypes {attachAttached = 0x40000000, attachGood = 0x20000000, attachGoodLeg = 0x10000000, attachTube = 0x08000000, attachTrackMask = 0x07FFFFFF, attachFlagMask = 0xF8000000};
 
 private:
-  
-  AliHLTTPCGMMerger( const AliHLTTPCGMMerger& ) = delete;
-  const AliHLTTPCGMMerger &operator=( const AliHLTTPCGMMerger& ) const = delete;
-  
+  AliHLTTPCGMMerger( const AliHLTTPCGMMerger& ) CON_DELETE;
+  const AliHLTTPCGMMerger &operator=( const AliHLTTPCGMMerger& ) const CON_DELETE;
+
   void MakeBorderTracks( int iSlice, int iBorder, AliHLTTPCGMBorderTrack B[], int &nB, bool fromOrig = false );
 
   void MergeBorderTracks( int iSlice1, AliHLTTPCGMBorderTrack B1[], int N1, int iSlice2, AliHLTTPCGMBorderTrack B2[], int N2, int crossCE = 0 );
