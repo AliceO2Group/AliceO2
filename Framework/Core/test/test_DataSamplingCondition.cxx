@@ -27,23 +27,47 @@ BOOST_AUTO_TEST_CASE(DataSamplingConditionRandom)
   auto conditionRandom = DataSamplingConditionFactory::create("random");
   BOOST_REQUIRE(conditionRandom);
 
-  // PRNG should behave the same every time and on every machine.
-  // Of course, the test does not cover full range of timesliceIDs.
-  std::vector<bool> correctDecision{
-    false, true, false, true, true, false, true, false, false, true, false, true, false, false, false, false, false,
-    true, false, false, true, true, false, false, true, true, false, false, false, false, true, true, false, false,
-    true, true, false, false, false, false, false, true, false, false, false, false, false, true, false
-  };
   boost::property_tree::ptree config;
   config.put("fraction", 0.5);
   config.put("seed", 943753948);
   conditionRandom->configure(config);
 
-  for (DataProcessingHeader::StartTime id = 1; id < 50; id++) {
-    DataProcessingHeader dph{ id, 0 };
-    o2::header::Stack headerStack{ dph };
-    DataRef dr{ nullptr, reinterpret_cast<const char*>(headerStack.data()), nullptr };
-    BOOST_CHECK_EQUAL(correctDecision[id - 1], conditionRandom->decide(dr));
+  // PRNG should behave the same every time and on every machine.
+  // Of course, the test does not cover full range of timesliceIDs, but at least gives an idea about its determinism.
+  {
+    std::vector<bool> correctDecision{
+      true, false, true, false, true, false, false, true, false, false, true, true, false, false, true, false, false,
+      true, false, false, true, true, true, false, false, false, true, false, true, true, true, false, false, true,
+      false, false, false, false, false, false, true, false, false, true, false, false, true, false, false
+    };
+    for (DataProcessingHeader::StartTime id = 1; id < 50; id++) {
+      DataProcessingHeader dph{ id, 0 };
+      o2::header::Stack headerStack{ dph };
+      DataRef dr{ nullptr, reinterpret_cast<const char*>(headerStack.data()), nullptr };
+      BOOST_CHECK_EQUAL(correctDecision[id - 1], conditionRandom->decide(dr));
+    }
+  }
+
+  // random access check
+  {
+    std::vector<std::pair<DataProcessingHeader::StartTime, bool>> correctDecision{
+      { 222, true },
+      { 222, true },
+      { 222, true },
+      { 230, false },
+      { 210, true },
+      { 230, false },
+      { 250, false },
+      { 251, false },
+      { 222, true },
+      { 230, false }
+    };
+    for (const auto& check : correctDecision) {
+      DataProcessingHeader dph{ check.first, 0 };
+      o2::header::Stack headerStack{ dph };
+      DataRef dr{ nullptr, reinterpret_cast<const char*>(headerStack.data()), nullptr };
+      BOOST_CHECK_EQUAL(check.second, conditionRandom->decide(dr));
+    }
   }
 }
 
