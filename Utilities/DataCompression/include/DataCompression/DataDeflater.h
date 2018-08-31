@@ -182,7 +182,7 @@ class DataDeflater
   Codec mCodec;
 };
 
-}; // namespace data_compression
-}; // namespace o2
+} // namespace data_compression
+} // namespace o2
 
 #endif

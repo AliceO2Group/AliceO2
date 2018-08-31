@@ -34,6 +34,8 @@
 
 namespace o2
 {
+namespace data_compression
+{
 
 /**
  * @class HuffmanNode
@@ -602,6 +604,7 @@ class HuffmanModel : public _BASE
   std::multiset<std::shared_ptr<node_type>, isless<std::shared_ptr<node_type>>> mTreeNodes;
 };
 
-}; // namespace o2
+} // namespace data_compression
+} // namespace o2
 
 #endif

@@ -63,6 +63,6 @@ class TruncatedPrecisionConverter
   /// parameter model defines the conversion to the register type for writing bit pattern
   ParameterModelT mParameterModel;
 };
-}; // namespace data_compression
-}; // namespace o2
+} // namespace data_compression
+} // namespace o2
 #endif

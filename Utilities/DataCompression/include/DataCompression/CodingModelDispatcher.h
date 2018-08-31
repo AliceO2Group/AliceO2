@@ -31,6 +31,8 @@ using namespace gNeric;
 
 namespace o2
 {
+namespace data_compression
+{
 
 /**
  * @class CodingModelDispatcher Runtime dispatcher interface
@@ -371,6 +373,7 @@ class CodingModelDispatcher
   container_type mContainer;
 };
 
-}; // namespace o2
+} // namespace data_compression
+} // namespace o2
 
 #endif

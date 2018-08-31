@@ -28,6 +28,11 @@
 #include <iomanip>
 #include <vector>
 
+namespace o2
+{
+namespace data_compression
+{
+
 /**
  * TODO: would like to have a general Tester for different kinds
  * of meta programs, but did not succeed so far to define a templated
@@ -104,3 +109,6 @@ BOOST_AUTO_TEST_CASE(test_dc_primitives)
   using ParameterSet = boost::mpl::vector<TestAlphabet, TenBitAlphabet>;
   boost::mpl::for_each<ParameterSet>(AlphabetTester<std::vector<int16_t>>(values));
 }
+
+} // namespace data_compression
+} // namespace o2
