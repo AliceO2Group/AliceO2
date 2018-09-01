@@ -225,7 +225,7 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
   GPUhd() GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow)& Row( int rowIndex ) const { return fData.Row( rowIndex ); }
   
   GPUhd() int NHitsTotal() const { return fData.NumberOfHits(); }
-  GPUh() int NMaxTracks() const { return fNMaxTracks; }
+  GPUhd() int NMaxTracks() const { return fNMaxTracks; }
   
   MEM_TEMPLATE() GPUd() void SetHitLinkUpData( const MEM_TYPE( AliHLTTPCCARow)&row, int hitIndex, calink v ) { fData.SetHitLinkUpData( row, hitIndex, v ); }
   MEM_TEMPLATE() GPUd() void SetHitLinkDownData( const MEM_TYPE( AliHLTTPCCARow)&row, int hitIndex, calink v ) { fData.SetHitLinkDownData( row, hitIndex, v ); }

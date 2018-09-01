@@ -58,7 +58,7 @@
     #define GPUg() __kernel
     #define GPUshared() __local
     #define GPUsync() barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE)
-  #else //No comes CUDA
+  #else //Now comes CUDA
     #define GPUdi() __device__ inline
     #define GPUhdi() __host__ __device__ inline
     #define GPUd() __device__
