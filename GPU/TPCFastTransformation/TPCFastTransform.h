@@ -78,13 +78,13 @@ class TPCFastTransform :public FlatObject
   TPCFastTransform();
 
   /// Copy constructor: disabled to avoid ambiguity. Use cloneFromObject() instead
-  TPCFastTransform(const TPCFastTransform& ) = delete;
+  TPCFastTransform(const TPCFastTransform& ) CON_DELETE;
  
   /// Assignment operator: disabled to avoid ambiguity. Use cloneFromObject() instead
-  TPCFastTransform &operator=(const TPCFastTransform &)  = delete;
+  TPCFastTransform &operator=(const TPCFastTransform &)  CON_DELETE;
    
   /// Destructor
-  ~TPCFastTransform() = default;
+  ~TPCFastTransform() CON_DEFAULT;
 
   
   /// _____________  FlatObject functionality, see FlatObject class for description  ____________

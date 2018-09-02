@@ -16,6 +16,10 @@ set(SRCS
     TPCFastTransform.cxx
 )
 
+set (HDRS
+    ../Common/AliTPCCommonDef.h
+)
+
 #Some extra files / includes / settings needed for the build for AliRoot
 if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
     set (SRCS ${SRCS}
@@ -25,6 +29,7 @@ if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
         ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCLog.cxx
     )
     set (HDRS
+        ${HDRS}
         TPCFastTransformManager.h
         TPCFastTransformQA.h
     )
@@ -39,6 +44,16 @@ if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
         ${AliRoot_SOURCE_DIR}/STEER/STEERBase
     )
 
+endif()
+
+if (NOT ROOT_VERSION_MAJOR EQUAL 5)
+    set (HDRS ${HDRS}
+        ../Common/FlatObject.h
+        IrregularSpline1D.h	
+        IrregularSpline2D3D.h
+        TPCFastTransform.h
+        TPCDistortionIRS.h
+    )
 endif()
 
 #Default cmake build script for AliRoot

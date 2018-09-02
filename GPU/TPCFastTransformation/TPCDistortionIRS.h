@@ -55,13 +55,13 @@ class TPCDistortionIRS :public FlatObject
   TPCDistortionIRS();
 
   /// Copy constructor: disabled to avoid ambiguity. Use cloneTo[In/Ex]ternalBuffer() instead
-  TPCDistortionIRS(const TPCDistortionIRS& ) = delete;
+  TPCDistortionIRS(const TPCDistortionIRS& ) CON_DELETE;
  
   /// Assignment operator: disabled to avoid ambiguity. Use cloneTo[In/Ex]ternalBuffer() instead
-  TPCDistortionIRS &operator=(const TPCDistortionIRS &)  = delete;
+  TPCDistortionIRS &operator=(const TPCDistortionIRS &)  CON_DELETE;
 
   /// Destructor
-  ~TPCDistortionIRS() = default;
+  ~TPCDistortionIRS() CON_DEFAULT;
 
   /// _____________  FlatObject functionality, see FlatObject class for description  ____________
 

@@ -117,6 +117,8 @@ int TPCFastTransformQA::doQA( Long_t TimeStamp )
       }
     }
     timer2.Stop();
+    cout<<"nCalls1 = "<<nCalls1<<endl;
+    cout<<"nCalls2 = "<<nCalls2<<endl;
     cout<<"Orig transformation    : "<< timer1.RealTime()*1.e9/nCalls1<<" ns / call"<<endl;
     cout<<"Fast transformation    : "<< timer2.RealTime()*1.e9/nCalls2<<" ns / call"<<endl;
  
