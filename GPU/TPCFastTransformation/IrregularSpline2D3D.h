@@ -20,7 +20,7 @@
 #include "IrregularSpline1D.h"
 #include "FlatObject.h"
 
-#if !defined(__CINT__) 
+#if !defined(__CINT__) && !defined(__ROOTCINT__) 
 //&& !defined(__CLING__)
 
 #include <Vc/Vc>
@@ -70,13 +70,13 @@ class IrregularSpline2D3D :public FlatObject
   IrregularSpline2D3D();
 
   /// Copy constructor: disabled to avoid ambiguity. Use cloneFromObject() instead
-  IrregularSpline2D3D(const IrregularSpline2D3D& ) = delete;
+  IrregularSpline2D3D(const IrregularSpline2D3D& ) CON_DELETE;
  
   /// Assignment operator: disabled to avoid ambiguity. Use cloneFromObject() instead
-  IrregularSpline2D3D &operator=(const IrregularSpline2D3D &)  = delete;
+  IrregularSpline2D3D &operator=(const IrregularSpline2D3D &)  CON_DELETE;
 
   /// Destructor
-  ~IrregularSpline2D3D() = default;
+  ~IrregularSpline2D3D() CON_DEFAULT;
 
   
   /// _____________  FlatObject functionality, see FlatObject class for description  ____________
@@ -330,7 +330,7 @@ inline void IrregularSpline2D3D::getSpline( const T *correctedData, float u, flo
 }
 
  
-#if !defined(__CINT__) 
+#if !defined(__CINT__) && !defined(__ROOTCINT__) 
 //&& !defined(__CLING__)
 
 inline void IrregularSpline2D3D::getSplineVec( const float *correctedData, float u, float v, float &x, float &y, float &z ) const

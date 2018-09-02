@@ -131,6 +131,7 @@ set(HDRS2
     TRDTracking/AliHLTTRDGeometry.h
     TRDTracking/AliHLTTRDTrackerDebug.h
     TRDTracking/AliHLTTRDInterfaces.h
+    ../Common/AliTPCCommonDef.h
 )
 
 #Extra cpp files, whose headers we don't pass to CINT

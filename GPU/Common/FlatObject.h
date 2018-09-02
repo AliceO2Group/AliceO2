@@ -23,6 +23,7 @@
 #include <memory>
 #include <cstring>
 #include <cassert>
+#include "AliTPCCommonDef.h"
 
 namespace ali_tpc_common {
 namespace tpc_fast_transformation {
@@ -118,13 +119,13 @@ class FlatObject
   FlatObject();
 
   /// Copy constructor: disabled to avoid ambiguity. Use cloneFromObject instead
-  FlatObject(const FlatObject& ) = delete;
+  FlatObject(const FlatObject& ) CON_DELETE;
  
   /// Assignment operator: disabled to avoid ambiguity. Use cloneFromObject instead
-  FlatObject &operator=(const FlatObject &)  = delete;
+  FlatObject &operator=(const FlatObject &)  CON_DELETE;
 
   /// Destructor
-  ~FlatObject() = default;
+  ~FlatObject() CON_DEFAULT;
 
   
   /// _____________  Memory alignment  __________________________
