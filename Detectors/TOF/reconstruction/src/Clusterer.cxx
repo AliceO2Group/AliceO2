@@ -185,7 +185,7 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
       int digitLabel = mContributingDigit[i]->getLabel();
       gsl::span<const o2::MCCompLabel> mcArray = digitMCTruth->getLabels(digitLabel);
       for (int j = 0; j < static_cast<int>(mcArray.size()); ++j) {
-	auto label = digitMCTruth->getElement(digitMCTruth->getMCTruthHeader(digitLabel).index + j);
+        auto label = digitMCTruth->getElement(digitMCTruth->getMCTruthHeader(digitLabel).index + j);
         mClsLabels->addElement(lbl, label);
       }
     }
