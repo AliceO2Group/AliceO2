@@ -8,6 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <Common/DataBlock.h>
+
 #include "Framework/DataSamplingReadoutAdapter.h"
 #include "Headers/DataHeader.h"
 #include "Framework/DataProcessingHeader.h"
@@ -21,17 +23,6 @@ using DataHeader = o2::header::DataHeader;
 
 InjectorFunction dataSamplingReadoutAdapter(OutputSpec const& spec)
 {
-
-  // copied from Common/DataBlock.h
-  using DataBlockId = uint64_t;
-  struct DataBlockHeaderBase {
-    uint32_t blockType;  ///< ID to identify structure type
-    uint32_t headerSize; ///< header size in bytes
-    uint32_t dataSize;   ///< data size following this structure (until next header, if this is not a toplevel block header)
-    DataBlockId id;      ///< id of the block (monotonic increasing sequence)
-    uint32_t linkId;     ///< id of link
-  };
-
   return [spec](FairMQDevice& device, FairMQParts& parts, int index) {
     for (size_t i = 0; i < parts.Size() / 2; ++i) {
 
