@@ -67,6 +67,7 @@ find_package(Protobuf REQUIRED)
 find_package(InfoLogger REQUIRED)
 find_package(Configuration REQUIRED)
 find_package(Monitoring REQUIRED)
+find_package(Common REQUIRED)
 find_package(RapidJSON REQUIRED)
 find_package(GLFW)
 find_package(benchmark QUIET)
@@ -273,6 +274,7 @@ o2_define_bucket(
     SYSTEMINCLUDE_DIRECTORIES
     ${Monitoring_INCLUDE_DIRS}
     ${Configuration_INCLUDE_DIRS}
+    ${COMMON_INCLUDE_DIR}/include
 )
 
 o2_define_bucket(
