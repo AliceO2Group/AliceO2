@@ -67,5 +67,5 @@ std::ostream& operator<<(std::ostream& os, const Cluster& c)
 {
   os << (o2::BaseCluster<float>&)c;
   os << " TOF cluster: raw time = " << std::scientific << c.getTimeRaw() << ", time = " << std::scientific << c.getTime() << ", Tot = " << std::scientific << c.getTot() << ", L0L1Latency = " << c.getL0L1Latency() << ", deltaBC = " << c.getDeltaBC() << ", R = " << c.getR() << ", mPhi = " << c.getPhi() << ", ContributingChannels = " << c.getNumOfContributingChannels() << "\n";
-  return os;  
+  return os;
 }
