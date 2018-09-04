@@ -20,9 +20,8 @@
 #include "IrregularSpline1D.h"
 #include "FlatObject.h"
 
-#if !defined(__CINT__) && !defined(__ROOTCINT__) 
+#if !defined(__CINT__) && !defined(__ROOTCINT__) && !defined(HLTCA_GPUCODE)
 //&& !defined(__CLING__)
-
 #include <Vc/Vc>
 #endif
 
@@ -329,15 +328,15 @@ inline void IrregularSpline2D3D::getSpline( const T *correctedData, float u, flo
   z = res[2];
 }
 
- 
-#if !defined(__CINT__) && !defined(__ROOTCINT__) 
-//&& !defined(__CLING__)
+
 
 inline void IrregularSpline2D3D::getSplineVec( const float *correctedData, float u, float v, float &x, float &y, float &z ) const
 {
   // Same as getSpline, but using vectorized calculation. 
   // \param correctedData should be at least 128-bit aligned
 
+#if !defined(__CINT__) && !defined(__ROOTCINT__) && !defined(HLTCA_GPUCODE)
+//&& !defined(__CLING__)
   const IrregularSpline1D &gridU = getGridU();
   const IrregularSpline1D &gridV = getGridV();
   int nu = gridU.getNumberOfKnots();
@@ -372,8 +371,10 @@ inline void IrregularSpline2D3D::getSplineVec( const float *correctedData, float
   x = res[0];
   y = res[1];
   z = res[2];  
-}
+#else 
+  getSpline( correctedData, u,  v, x, y, z );
 #endif
+}
 
 
 }// namespace
