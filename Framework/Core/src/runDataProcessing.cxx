@@ -75,6 +75,9 @@
 #include <Monitoring/MonitoringFactory.h>
 using namespace o2::monitoring;
 
+#include <InfoLogger/InfoLogger.hxx>
+using namespace AliceO2::InfoLogger;
+
 /// Helper class to find a free port.
 class FreePortFinder
 {
@@ -595,7 +598,8 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
     runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec](fair::mq::DeviceRunner& r) {
       boost::program_options::options_description optsDesc;
       ConfigParamsHelper::populateBoostProgramOptions(optsDesc, spec.options, gHiddenDeviceOptions);
-      optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("infologger://"), "monitoring backend info");
+      optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("infologger://"), "monitoring backend info") //
+                            ("infologger-mode", bpo::value<std::string>()->default_value(""), "INFOLOGGER_MODE override");
       r.fConfig.AddToCmdLineOptions(optsDesc, true);
     });
 
@@ -611,6 +615,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
     std::unique_ptr<SimpleRawDeviceService> simpleRawDeviceService;
     std::unique_ptr<CallbackService> callbackService;
     std::unique_ptr<Monitoring> monitoringService;
+    std::unique_ptr<InfoLogger> infoLoggerService;
 
     auto afterConfigParsingCallback = [&localRootFileService,
                                        &textControlService,
@@ -618,6 +623,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
                                        &simpleRawDeviceService,
                                        &callbackService,
                                        &monitoringService,
+                                       &infoLoggerService,
                                        &spec,
                                        &serviceRegistry](fair::mq::DeviceRunner& r) {
       localRootFileService = std::make_unique<LocalRootFileService>();
@@ -626,8 +632,13 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
       simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr);
       callbackService = std::make_unique<CallbackService>();
       monitoringService = MonitoringFactory::Get(r.fConfig.GetStringValue("monitoring-backend"));
+      if (r.fConfig.GetStringValue("infologger-mode") != "") {
+        setenv("INFOLOGGER_MODE", r.fConfig.GetStringValue("infologger-mode").c_str(), 1);
+      }
+      infoLoggerService = std::make_unique<InfoLogger>();
 
       serviceRegistry.registerService<Monitoring>(monitoringService.get());
+      serviceRegistry.registerService<InfoLogger>(infoLoggerService.get());
       serviceRegistry.registerService<RootFileService>(localRootFileService.get());
       serviceRegistry.registerService<ControlService>(textControlService.get());
       serviceRegistry.registerService<ParallelContext>(parallelContext.get());
