@@ -79,10 +79,11 @@ static TPad* ppull[7][5];
 static TLegend* legendpull[6];
 
 #define N_CLS_HIST 6
-static TH1F* clusters[3 * N_CLS_HIST - 1]; //attached, fakeAttached, tracks, all, attachedRel, fakeAttachedRel, treaksRel, attachedInt, fakeAttachedInt, treaksInt, AllInt
-static TCanvas* cclust[3];
-static TPad* pclust[3];
-static TLegend* legendclust[3];
+#define N_CLS_TYPE 3
+static TH1F* clusters[N_CLS_TYPE * N_CLS_HIST - 1]; //attached, fakeAttached, attach+adjacent, fakeAdjacent, tracks, all / count, rel, integral
+static TCanvas* cclust[N_CLS_TYPE];
+static TPad* pclust[N_CLS_TYPE];
+static TLegend* legendclust[N_CLS_TYPE];
 
 long long int recClustersPhysics = 0, recClustersRejected = 0,  recClustersTube = 0, recClustersTube200 = 0, recClustersLoopers = 0, recClustersLowPt = 0, recClustersUnattached = 0, recClusters200MeV = 0;
 
@@ -123,6 +124,8 @@ bool MCComp(const AliHLTTPCClusterMCWeight& a, const AliHLTTPCClusterMCWeight& b
 
 #define MC_LABEL_INVALID -1e9
 
+#define CLUST_HIST_INT_REL 1
+
 static const int ColorCount = 12;
 static Color_t colorNums[ColorCount];
 
@@ -141,9 +144,9 @@ static const constexpr char* AxisTitles[5] = {"y-y_{mc} (mm) (Resolution)", "z-z
 static const constexpr char* AxisTitlesNative[5] = {"y-y_{mc} (mm) (Resolution)", "z-z_{mc} (mm) (Resolution)", "sin(#phi)-sin(#phi_{mc}) (Resolution)", "tan(#lambda)-tan(#lambda_{mc}) (Resolution)", "q*(q/p_{T} - q/p_{Tmc}) (Resolution)"};
 static const constexpr char* AxisTitlesPull[5] = {"y-y_{mc}/#sigma_{y} (Pull)", "z-z_{mc}/#sigma_{z} (Pull)", "sin(#phi)-sin(#phi_{mc})/#sigma_{sin(#phi)} (Pull)", "tan(#lambda)-tan(#lambda_{mc})/#sigma_{tan(#lambda)} (Pull)", "q*(q/p_{T} - q/p_{Tmc})/#sigma_{q/p_{T}} (Pull)"};
 static const constexpr char* ClustersNames[N_CLS_HIST] = {"Correctly attached clusters", "Fake attached clusters", "Attached + adjacent clusters", "Fake adjacent clusters", "Clusters of reconstructed tracks", "All clusters"};
-static const constexpr char* ClusterTitles[3] = {"Clusters Pt Distribution / Attachment", "Clusters Pt Distribution / Attachment (relative to all clusters)", "Clusters Pt Distribution / Attachment (integrated)"};
-static const constexpr char* ClusterNamesShort[4] = {"Attached", "Fake", "FoundTracks", "All"};
-static const constexpr char* ClusterTypes[3] = {"", "Ratio", "Integral"};
+static const constexpr char* ClusterTitles[N_CLS_TYPE] = {"Clusters Pt Distribution / Attachment", "Clusters Pt Distribution / Attachment (relative to all clusters)", "Clusters Pt Distribution / Attachment (integrated)"};
+static const constexpr char* ClusterNamesShort[N_CLS_HIST] = {"Attached", "Fake", "AttachAdjacent", "FakeAdjacent", "FoundTracks", "All"};
+static const constexpr char* ClusterTypes[N_CLS_TYPE] = {"", "Ratio", "Integral"};
 static const constexpr int colorsHex[ColorCount] = {0xB03030, 0x00A000, 0x0000C0, 0x9400D3, 0x19BBBF, 0xF25900, 0x7F7F7F, 0xFFD700, 0x07F707, 0x07F7F7, 0xF08080, 0x000000};
 
 static int ConfigDashedMarkers = 0;
@@ -359,7 +362,7 @@ void InitQA()
 	}
 	
 	//Create Cluster Histograms
-	for (int i = 0;i < 3 * N_CLS_HIST - 1;i++)
+	for (int i = 0;i < N_CLS_TYPE * N_CLS_HIST - 1;i++)
 	{
 		int ioffset = i >= (2 * N_CLS_HIST - 1) ? (2 * N_CLS_HIST - 1) : i >= N_CLS_HIST ? N_CLS_HIST : 0;
 		int itype   = i >= (2 * N_CLS_HIST - 1) ? 2 : i >= N_CLS_HIST ? 1 : 0;
@@ -1533,9 +1536,9 @@ int DrawQAHistograms()
 	{
 		if (config.inputHistogramsOnly == 0)
 		{
-			for (int i = N_CLS_HIST;i < 3 * N_CLS_HIST - 1;i++) clusters[i]->Sumw2(true);
+			for (int i = N_CLS_HIST;i < N_CLS_TYPE * N_CLS_HIST - 1;i++) clusters[i]->Sumw2(true);
 			double totalVal = 0;
-			for (int j = 0;j < clusters[N_CLS_HIST - 1]->GetXaxis()->GetNbins() + 2;j++) totalVal += clusters[N_CLS_HIST - 1]->GetBinContent(j);
+			if (!CLUST_HIST_INT_REL) for (int j = 0;j < clusters[N_CLS_HIST - 1]->GetXaxis()->GetNbins() + 2;j++) totalVal += clusters[N_CLS_HIST - 1]->GetBinContent(j);
 			if (totalVal == 0.) totalVal = 1.;
 			for (int i = 0;i < N_CLS_HIST;i++)
 			{
@@ -1546,10 +1549,13 @@ int DrawQAHistograms()
 					clusters[2 * N_CLS_HIST - 1 + i]->SetBinContent(j, val / totalVal);
 				}
 			}
-			for (int i = 0;i < N_CLS_HIST;i++)
+			if (!CLUST_HIST_INT_REL)
 			{
-				clusters[2 * N_CLS_HIST - 1 + i]->SetMaximum(1.02);
-				clusters[2 * N_CLS_HIST - 1 + i]->SetMinimum(-0.02);
+				for (int i = 0;i < N_CLS_HIST;i++)
+				{
+					clusters[2 * N_CLS_HIST - 1 + i]->SetMaximum(1.02);
+					clusters[2 * N_CLS_HIST - 1 + i]->SetMinimum(-0.02);
+				}
 			}
 			
 			for (int i = 0;i < N_CLS_HIST - 1;i++)
@@ -1560,29 +1566,32 @@ int DrawQAHistograms()
 			}
 		}
 		
-		float tmpMax = 0, tmpMin = 0;
-		for (int k = 0;k < ConfigNumInputs;k++)
+		float tmpMax[2] = {0, 0}, tmpMin[2] = {0, 0};
+		for (int l = 0;l <= CLUST_HIST_INT_REL;l++)
 		{
-			TH1F* e = clusters[N_CLS_HIST - 1];
-			if (GetHist(e, tin, k, nNewInput) == NULL) continue;
-			e->SetMinimum(-1111);
-			e->SetMaximum(-1111);
-			e->GetXaxis()->SetRange(2, axis_bins[4]);
-			if (e->GetMaximum() > tmpMax) tmpMax = e->GetMaximum();
-			if (e->GetMinimum() < tmpMin) tmpMin = e->GetMinimum();
-		}
-		for (int k = 0;k < ConfigNumInputs;k++)
-		{
-			for (int i = 0;i < N_CLS_HIST;i++)
+			for (int k = 0;k < ConfigNumInputs;k++)
 			{
-				TH1F* e = clusters[i];
+				TH1F* e = clusters[l ? (N_CLS_TYPE * N_CLS_HIST - 2) : (N_CLS_HIST - 1)];
 				if (GetHist(e, tin, k, nNewInput) == NULL) continue;
-				e->SetMaximum(tmpMax * 1.02);
-				e->SetMinimum(tmpMax * -0.02);
+				e->SetMinimum(-1111);
+				e->SetMaximum(-1111);
+				e->GetXaxis()->SetRange(2, axis_bins[4]);
+				if (e->GetMaximum() > tmpMax[l]) tmpMax[l] = e->GetMaximum();
+				if (e->GetMinimum() < tmpMin[l]) tmpMin[l] = e->GetMinimum();
+			}
+			for (int k = 0;k < ConfigNumInputs;k++)
+			{
+				for (int i = 0;i < N_CLS_HIST;i++)
+				{
+					TH1F* e = clusters[l ? (2 * N_CLS_HIST - 1 + i) : i];
+					if (GetHist(e, tin, k, nNewInput) == NULL) continue;
+					e->SetMaximum(tmpMax[l] * 1.02);
+					e->SetMinimum(tmpMax[l] * -0.02);
+				}
 			}
 		}
 		
-		for (int i = 0;i < 3;i++)
+		for (int i = 0;i < N_CLS_TYPE;i++)
 		{
 			pclust[i]->cd();
 			pclust[i]->SetLogx();
