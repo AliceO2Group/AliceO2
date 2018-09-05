@@ -14,6 +14,8 @@
 #include <string>
 #include <vector>
 
+class FairMQDevice;
+
 namespace o2
 {
 namespace framework
