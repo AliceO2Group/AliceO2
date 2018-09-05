@@ -104,7 +104,7 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
     auto snapshotLabels = [&sector, &pc, &channel](o2::dataformats::MCTruthContainer<o2::MCCompLabel> const& labels) {
       o2::tpc::TPCSectorHeader header{ sector };
       pc.outputs().snapshot(Output{ "TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(channel),
-                                    Lifetime::Timeframe /*, header */ },
+                                    Lifetime::Timeframe, header },
                             const_cast<o2::dataformats::MCTruthContainer<o2::MCCompLabel>&>(labels));
     };
 
