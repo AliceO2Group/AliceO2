@@ -10,6 +10,8 @@
 
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/DeviceSpec.h"
 #include "SimReaderSpec.h"
 #include "CollisionTimePrinter.h"
 
@@ -29,6 +31,26 @@
 #include <cmath>
 
 using namespace o2::framework;
+
+// customize the completion policy
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  using o2::framework::CompletionPolicy;
+  // we customize the completion policy for the writer since it should stream immediately
+  auto matcher = [](DeviceSpec const& device) {
+    bool matched = device.name == "TPCDigitWriter";
+    if (matched) {
+      LOG(INFO) << "DPL completion policy for " << device.name << " customized";
+    }
+    return matched;
+  };
+
+  auto policy = [](gsl::span<o2::framework::PartRef const> const& inputs) {
+    return CompletionPolicy::CompletionOp::Consume;
+  };
+
+  policies.push_back({ CompletionPolicy{ "process-any", matcher, policy } });
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
