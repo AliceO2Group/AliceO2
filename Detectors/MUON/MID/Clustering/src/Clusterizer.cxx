@@ -15,7 +15,7 @@
 #include "MIDClustering/Clusterizer.h"
 #include <cassert>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 namespace o2
 {
@@ -24,37 +24,99 @@ namespace mid
 
 //______________________________________________________________________________
 Clusterizer::Clusterizer()
-  : mMapping(), mMpDEs(), mNPreClusters(), mPreClusters(), mActiveDEs(), mClusters(), mNClusters(0)
+  : mClusters()
 {
   /// Default constructor
 }
 
 //______________________________________________________________________________
-bool Clusterizer::process(const std::vector<ColumnData>& stripPatterns)
+bool Clusterizer::process(std::vector<PreClusters>& preClusters)
 {
-  /// Main function: runs on a data containing the strip patterns
-  /// and builds the clusters
-  /// @param stripPatterns Vector of strip patterns per column
-
-  // Reset fired DEs and cluster information
+  /// Main function: runs on the preclusters and builds the clusters
+  /// @param preClusters Vector of PreClusters objects
+  // Reset cluster information
   reset();
+  for (auto& pcs : preClusters) {
+    makeClusters(pcs);
+  }
+  return true;
+}
 
-  // Load the stripPatterns to get the fired strips
-  if (loadPatterns(stripPatterns)) {
-    // Loop only on fired detection elements
-    for (auto& pair : mActiveDEs) {
-      // loop on active DEs
-      int deIndex = pair.first;
+//______________________________________________________________________________
+bool Clusterizer::makeClusters(PreClusters& pcs)
+{
+  /// Makes the clusters and stores it
+  int deIndex = pcs.getDEId();
 
-      // reset number of preclusters
-      mNPreClusters.fill(0);
-      PatternStruct& de = mMpDEs[deIndex];
+  LOG(DEBUG) << "Clusterizing " << deIndex;
 
-      preClusterizeNBP(de);
-      preClusterizeBP(de);
+  // loop over pre-clusters in the non-bending plane
+  for (int inb = 0; inb < pcs.getNPreClustersNBP(); ++inb) {
+    PreClusters::PreClusterNBP& pcNB = pcs.getPreClusterNBP(inb);
+    // Try to find matching pre-clusters in the bending plane
+    int icolumn = pcNB.firstColumn;
+    if (pcNB.firstColumn == pcNB.lastColumn) {
+      // This is the most simple and common case: the NBP pre-cluster is on
+      // one single column. So it can be easily matched with the BP
+      // since the corresponding contours are both rectangles
+      for (int ib = 0; ib < pcs.getNPreClustersBP(icolumn); ++ib) {
+        makeCluster(pcs.getPreClusterBP(icolumn, ib), pcNB, deIndex);
+      }
+    } else {
+      // The NBP pre-cluster spans different columns.
+      // The BP contour is therefore a serie of neighbour rectangles
+      // Here we could build a giant cluster with all neighbour pre-clusters
+      // in the bending plane.
+      // However, the a pre-cluster in the BP might be close to more than one pre-clusters
+      // in the BP of the close column, thus leading to a pattern with non-contiguous
+      // pre-clusters along the y axis...which are treated as separate clusters
+      // in the standard configuration.
+      // All in all, since the strips are huge, we decided to pair the clusters only between
+      // two adjacent columns.
+      // In this way, a huge cluster spanning three columns will be transformed in
+      // two clusters centered at the border between two columns.
+      // This leads to a redundancy. Still, the sigma of the resulting cluster will be so large
+      // to have no impact whatsoever in the track reconstruction.
+      LOG(DEBUG) << "Spanning non-bend: " << icolumn << " -> " << pcNB.lastColumn;
+      int pairId = 10 + inb;
+      for (; icolumn <= pcNB.lastColumn; ++icolumn) {
+        for (int ib = 0; ib < pcs.getNPreClustersBP(icolumn); ++ib) {
+          PreClusters::PreClusterBP& pcB = pcs.getPreClusterBP(icolumn, ib);
+          // This function checks for the neighbours only on icolumn+1
+          std::vector<int> neighbours = pcs.getNeighbours(icolumn, ib);
+          // It can happen that the NBP spans two columns...but there are fired strips only on
+          // one column of the BP. In this case we only consider the column with a hit in the BP.
+          // Of course, we need to check that the current pre-cluster was not already paired
+          // with the pre-cluster in the previous column.
+          if (neighbours.empty() && pcB.paired != pairId) {
+            makeCluster(pcB, pcNB, deIndex);
+          } else {
+            for (auto& jb : neighbours) {
+              PreClusters::PreClusterBP& pcBneigh = pcs.getPreClusterBP(icolumn + 1, jb);
+              makeCluster(pcB, pcBneigh, pcNB, deIndex);
+              // Here we set the paired flag to a custom ID of the pre-cluster in the NBP
+              // So that, when we move to the next column, we do not add it twice.
+              pcBneigh.paired = pairId;
+            }
+          }
+        } // loop on pre-clusters in the BP
+      }   // loop on columns
+    }
 
-      makeClusters(deIndex);
-      de.firedColumns = 0; // Reset fired columns
+    if (pcNB.paired == 0) {
+      // If it is not paired, it means that we have
+      // a monocathodic cluster in the NBP
+      makeCluster(pcNB, deIndex);
+    }
+  } // loop on pre-clusters in the NBP
+
+  /// Search for monocathodic clusters in the BP
+  for (int icolumn = 0; icolumn <= 6; ++icolumn) {
+    for (int ib = 0; ib < pcs.getNPreClustersBP(icolumn); ++ib) {
+      PreClusters::PreClusterBP& pcB = pcs.getPreClusterBP(icolumn, ib);
+      if (pcB.paired == 0) {
+        makeCluster(pcB, deIndex);
+      }
     }
   }
 
@@ -67,183 +129,9 @@ bool Clusterizer::init()
   /// Initializes the class
 
   // prepare storage of clusters and PreClusters
-  for (int iPlane = 0; iPlane < 2; ++iPlane) {
-    mPreClusters[iPlane].reserve(100);
-    mClusters.reserve(100);
-  }
+  mClusters.reserve(100);
 
   return true;
-}
-
-//______________________________________________________________________________
-bool Clusterizer::loadPatterns(const std::vector<ColumnData>& stripPatterns)
-{
-  /// Fills the mpDE structure with fired pads
-
-  // Loop on stripPatterns
-  for (auto col : stripPatterns) {
-    int deIndex = col.deId;
-    assert(deIndex < 72);
-
-    auto search = mMpDEs.find(deIndex);
-    PatternStruct* de = nullptr;
-    if (search == mMpDEs.end()) {
-      de = &mMpDEs[deIndex];
-      de->deId = col.deId;
-    } else {
-      de = &(search->second);
-    }
-
-    mActiveDEs[deIndex] = 1;
-
-    de->firedColumns |= (1 << col.columnId);
-    de->columns[col.columnId] = col;
-  }
-
-  return (stripPatterns.size() > 0);
-}
-
-//______________________________________________________________________________
-Clusterizer::PreCluster* Clusterizer::nextPreCluster(int icolumn)
-{
-  /// Iterates on pre-clusters
-  if (mNPreClusters[icolumn] >= static_cast<int>(mPreClusters[icolumn].size())) {
-    mPreClusters[icolumn].emplace_back(PreCluster());
-  }
-  PreCluster* pc = &(mPreClusters[icolumn][mNPreClusters[icolumn]]);
-  ++mNPreClusters[icolumn];
-  return pc;
-}
-
-//______________________________________________________________________________
-void Clusterizer::preClusterizeNBP(PatternStruct& de)
-{
-  /// PreClusterizes non-bending plane
-  PreCluster* pc = nullptr;
-  double limit = 0;
-  for (int icolumn = 0; icolumn < 7; ++icolumn) {
-    if (de.columns[icolumn].getNonBendPattern() == 0) {
-      continue;
-    }
-    int nStripsNBP = mMapping.getNStripsNBP(icolumn, de.deId);
-    for (int istrip = 0; istrip < nStripsNBP; ++istrip) {
-      if (de.columns[icolumn].isNBPStripFired(istrip)) {
-        if (pc) {
-          if (istrip == 0) {
-            // We're changing column
-            // In principle we could simply add the pitch, but for the cut RPCs
-            // the y dimension changes as well in column 0
-            pc->area[icolumn] = mMapping.stripByLocation(istrip, 1, 0, icolumn, de.deId);
-            limit = pc->area[icolumn].getXmax();
-          } else {
-            limit += mMapping.getStripSize(istrip, 1, icolumn, de.deId);
-          }
-        } else {
-          pc = nextPreCluster(7);
-          pc->paired = 0;
-          pc->firstColumn = icolumn;
-          pc->area[icolumn] = mMapping.stripByLocation(istrip, 1, 0, icolumn, de.deId);
-          limit = pc->area[icolumn].getXmax();
-          LOG(DEBUG) << "New precluster NBP: DE  " << de.deId;
-        }
-        pc->lastColumn = icolumn;
-        pc->area[icolumn].setXmax(limit);
-        LOG(DEBUG) << "  adding col " << icolumn << "  strip " << istrip << "  (" << pc->area[icolumn].getXmin() << ", "
-                   << pc->area[icolumn].getXmax() << ") (" << pc->area[icolumn].getYmin() << ", "
-                   << pc->area[icolumn].getYmax() << ")";
-      } else {
-        pc = nullptr;
-      }
-    }
-    de.columns[icolumn].setNonBendPattern(0); // Reset pattern
-  }
-}
-
-//______________________________________________________________________________
-void Clusterizer::preClusterizeBP(PatternStruct& de)
-{
-  /// PreClusterizes bending plane
-  double limit = 0;
-  for (int icolumn = mMapping.getFirstColumn(de.deId); icolumn < 7; ++icolumn) {
-    if ((de.firedColumns & (1 << icolumn)) == 0) {
-      continue;
-    }
-    PreCluster* pc = nullptr;
-    int firstLine = mMapping.getFirstBoardBP(icolumn, de.deId);
-    int lastLine = mMapping.getLastBoardBP(icolumn, de.deId);
-    for (int iline = firstLine; iline <= lastLine; ++iline) {
-      if (de.columns[icolumn].getBendPattern(iline) == 0) {
-        continue;
-      }
-      for (int istrip = 0; istrip < 16; ++istrip) {
-        if (de.columns[icolumn].isBPStripFired(istrip, iline)) {
-          if (pc) {
-            limit += mMapping.getStripSize(istrip, 0, icolumn, de.deId);
-          } else {
-            pc = nextPreCluster(icolumn);
-            pc->paired = 0;
-            pc->firstColumn = icolumn;
-            pc->lastColumn = icolumn;
-            pc->area[icolumn] = mMapping.stripByLocation(istrip, 0, iline, icolumn, de.deId);
-            limit = pc->area[icolumn].getYmax();
-            LOG(DEBUG) << "New precluster BP: DE  " << de.deId << "  icolumn " << icolumn;
-          }
-          pc->area[icolumn].setYmax(limit);
-          LOG(DEBUG) << "  adding line " << iline << "  strip " << istrip << "  (" << pc->area[icolumn].getXmin()
-                     << ", " << pc->area[icolumn].getXmax() << ") (" << pc->area[icolumn].getYmin() << ", "
-                     << pc->area[icolumn].getYmax() << ")";
-        } else {
-          pc = nullptr;
-        }
-      }
-      de.columns[icolumn].setBendPattern(0, iline); // Reset pattern
-    }                                               // loop on lines
-  }                                                 // loop on columns
-}
-
-//______________________________________________________________________________
-void Clusterizer::makeClusters(const int& deIndex)
-{
-  /// Makes the clusters and stores it
-  LOG(DEBUG) << "Clusterizing " << deIndex;
-
-  // loop over pre-clusters in the non-bending plane
-  for (int inb = 0; inb < mNPreClusters[7]; ++inb) {
-    PreCluster& pcNB = mPreClusters[7][inb];
-    int icolumn = pcNB.firstColumn;
-    if (icolumn == pcNB.lastColumn) {
-      // This is the most simple and common case: the NBP pre-cluster is on
-      // one single column. So it can be easily matched with the BP
-      // since the corresponding contours are both rectangles
-      for (int ib = 0; ib < mNPreClusters[icolumn]; ++ib) {
-        PreCluster& pcB = mPreClusters[icolumn][ib];
-        makeCluster(pcB, pcNB, deIndex);
-      }
-    } else {
-      // The NBP pre-cluster spans different columns.
-      // The BP contour is therefore a serie of neighbour rectangles
-      std::vector<std::vector<PreCluster*>> pcBneighbours;
-      LOG(DEBUG) << "Spanning non-bend: " << icolumn << " -> " << pcNB.lastColumn;
-      buildListOfNeighbours(icolumn, pcNB.lastColumn, pcBneighbours);
-      for (auto& pcBlist : pcBneighbours) {
-        makeCluster(pcBlist, deIndex, &pcNB);
-      }
-    }
-
-    if (pcNB.paired > 0) {
-      continue;
-    }
-    // If it is not paired, it means that we have
-    // a monocathodic cluster in the NBP
-    makeCluster(pcNB, pcNB, deIndex);
-  } // loop over pre-clusters in the NBP
-
-  /// Search for monocathodic clusters in the BP
-  std::vector<std::vector<PreCluster*>> pcBneighbours;
-  buildListOfNeighbours(0, 6, pcBneighbours, true);
-  for (auto& pcBlist : pcBneighbours) {
-    makeCluster(pcBlist, deIndex);
-  }
 }
 
 //______________________________________________________________________________
@@ -259,16 +147,16 @@ Cluster2D& Clusterizer::nextCluster()
 }
 
 //______________________________________________________________________________
-void Clusterizer::makeCluster(PreCluster& clBend, PreCluster& clNonBend, const int& deIndex)
+void Clusterizer::makeCluster(PreClusters::PreClusterBP& clBend, PreClusters::PreClusterNBP& clNonBend, const int& deIndex)
 {
   /// Makes the cluster from pre-clusters
   Cluster2D& cl = nextCluster();
-  int icolumn = clBend.firstColumn;
+  int icolumn = clBend.column;
   cl.deId = (uint8_t)deIndex;
   cl.xCoor = 0.5 * (clNonBend.area[icolumn].getXmax() + clNonBend.area[icolumn].getXmin());
-  cl.yCoor = 0.5 * (clBend.area[icolumn].getYmax() + clBend.area[icolumn].getYmin());
+  cl.yCoor = 0.5 * (clBend.area.getYmax() + clBend.area.getYmin());
   double deltaX = clNonBend.area[icolumn].getXmax() - clNonBend.area[icolumn].getXmin();
-  double deltaY = clBend.area[icolumn].getYmax() - clBend.area[icolumn].getYmin();
+  double deltaY = clBend.area.getYmax() - clBend.area.getYmin();
   cl.sigmaX2 = deltaX * deltaX / 12;
   cl.sigmaY2 = deltaY * deltaY / 12;
   clBend.paired = 1;
@@ -278,19 +166,31 @@ void Clusterizer::makeCluster(PreCluster& clBend, PreCluster& clNonBend, const i
 }
 
 //______________________________________________________________________________
-void Clusterizer::makeCluster(std::vector<PreCluster*>& pcBlist, const int& deIndex, PreCluster* clNonBend)
+void Clusterizer::makeCluster(PreClusters::PreClusterNBP& clNonBend, const int& deIndex)
+{
+  /// Makes the cluster from pre-clusters
+  PreClusters::PreClusterBP clBend;
+  clBend.column = clNonBend.lastColumn;
+  clBend.area = clNonBend.area[clBend.column];
+  makeCluster(clBend, clNonBend, deIndex);
+}
+
+//______________________________________________________________________________
+void Clusterizer::makeCluster(PreClusters::PreClusterBP& clBend, const int& deIndex)
+{
+  /// Makes the cluster from pre-clusters
+  PreClusters::PreClusterNBP clNonBend;
+  clNonBend.firstColumn = clNonBend.lastColumn = clBend.column;
+  clNonBend.area[clBend.column] = clBend.area;
+  makeCluster(clBend, clNonBend, deIndex);
+}
+
+//______________________________________________________________________________
+void Clusterizer::makeCluster(PreClusters::PreClusterBP& clBend, PreClusters::PreClusterBP& clBendNeigh, PreClusters::PreClusterNBP& clNonBend, const int& deIndex)
 {
   /// Makes the cluster from pre-clusters
   // This is the general case:
   // perform the full calculation assuming a uniform charge distribution
-
-  if (pcBlist.size() == 1) {
-    // We fall back to the simple case:
-    PreCluster* pcBP = pcBlist[0];
-    PreCluster* pcNBP = clNonBend ? clNonBend : pcBP;
-    makeCluster(*pcBP, *pcNBP, deIndex);
-    return;
-  }
 
   Cluster2D& cl = nextCluster();
   cl.deId = (uint8_t)deIndex;
@@ -301,13 +201,14 @@ void Clusterizer::makeCluster(std::vector<PreCluster*>& pcBlist, const int& deIn
   double delta[2];
   double sumArea = 0.;
 
+  std::vector<PreClusters::PreClusterBP*> pcBlist = { &clBend, &clBendNeigh };
+
   for (auto* pcBP : pcBlist) {
-    PreCluster* pcNBP = clNonBend ? clNonBend : pcBP;
-    int icolumn = pcBP->firstColumn;
-    dim[0][0] = pcNBP->area[icolumn].getXmin();
-    dim[0][1] = pcNBP->area[icolumn].getXmax();
-    dim[1][0] = pcBP->area[icolumn].getYmin();
-    dim[1][1] = pcBP->area[icolumn].getYmax();
+    int icolumn = pcBP->column;
+    dim[0][0] = clNonBend.area[icolumn].getXmin();
+    dim[0][1] = clNonBend.area[icolumn].getXmax();
+    dim[1][0] = pcBP->area.getYmin();
+    dim[1][1] = pcBP->area.getYmax();
     for (int iplane = 0; iplane < 2; ++iplane) {
       delta[iplane] = dim[iplane][1] - dim[iplane][0];
     }
@@ -326,7 +227,7 @@ void Clusterizer::makeCluster(std::vector<PreCluster*>& pcBlist, const int& deIn
       }
     }
     pcBP->paired = 1;
-    pcNBP->paired = 1;
+    clNonBend.paired = 1;
   } // loop on column
 
   double coor[2], sigma2[2];
@@ -343,56 +244,54 @@ void Clusterizer::makeCluster(std::vector<PreCluster*>& pcBlist, const int& deIn
   LOG(DEBUG) << "pos: (" << cl.xCoor << ", " << cl.yCoor << ") err2: (" << cl.sigmaX2 << ", " << cl.sigmaY2 << ")";
 }
 
-//______________________________________________________________________________
-bool Clusterizer::buildListOfNeighbours(int icolumn, int lastColumn, std::vector<std::vector<PreCluster*>>& neighbours,
-                                        bool skipPaired, int currentList)
-{
-  /// Build list of neighbours
-  LOG(DEBUG) << "Building list of neighbours in (" << icolumn << ", " << lastColumn << ")";
-  for (int jcolumn = icolumn; jcolumn <= lastColumn; ++jcolumn) {
-    for (int ib = 0; ib < mNPreClusters[jcolumn]; ++ib) {
-      PreCluster* pcB = &mPreClusters[jcolumn][ib];
-      if (skipPaired && pcB->paired > 0) {
-        LOG(DEBUG) << "Column " << jcolumn << "  ib " << ib << "  is already paired => skipPaired";
-        continue;
-      }
-      if (currentList >= neighbours.size()) {
-        // We are starting a new series of neighbour
-        // Let's make sure the pre-cluster is not already part of another list
-        if (pcB->paired == 2) {
-          LOG(DEBUG) << "Column " << jcolumn << "  ib " << ib << "  is already in a list";
-          continue;
-        }
-        LOG(DEBUG) << "New list " << currentList;
-        neighbours.emplace_back(std::vector<PreCluster*>());
-      }
-      std::vector<PreCluster*>& neighList = neighbours[currentList];
-      if (!neighList.empty()) {
-        auto* neigh = neighList.back();
-        if (neigh->area[jcolumn - 1].getYmin() > pcB->area[jcolumn].getYmax())
-          continue;
-        if (neigh->area[jcolumn - 1].getYmax() < pcB->area[jcolumn].getYmin())
-          continue;
-      }
-      pcB->paired = 2;
-      LOG(DEBUG) << "  adding column " << jcolumn << "  ib " << ib << "  to " << currentList;
-      neighList.push_back(pcB);
-      buildListOfNeighbours(jcolumn + 1, lastColumn, neighbours, skipPaired, currentList);
-      ++currentList;
-    }
-  }
+// //______________________________________________________________________________
+// bool Clusterizer::buildListOfNeighbours(int icolumn, int lastColumn, std::vector<std::vector<PreCluster*>>& neighbours,
+//                                         bool skipPaired, int currentList)
+// {
+//   /// Build list of neighbours
+//   LOG(DEBUG) << "Building list of neighbours in (" << icolumn << ", " << lastColumn << ")";
+//   for (int jcolumn = icolumn; jcolumn <= lastColumn; ++jcolumn) {
+//     for (int ib = 0; ib < mNPreClusters[jcolumn]; ++ib) {
+//       PreCluster* pcB = &mPreClusters[jcolumn][ib];
+//       if (skipPaired && pcB->paired > 0) {
+//         LOG(DEBUG) << "Column " << jcolumn << "  ib " << ib << "  is already paired => skipPaired";
+//         continue;
+//       }
+//       if (currentList >= neighbours.size()) {
+//         // We are starting a new series of neighbour
+//         // Let's make sure the pre-cluster is not already part of another list
+//         if (pcB->paired == 2) {
+//           LOG(DEBUG) << "Column " << jcolumn << "  ib " << ib << "  is already in a list";
+//           continue;
+//         }
+//         LOG(DEBUG) << "New list " << currentList;
+//         neighbours.emplace_back(std::vector<PreCluster*>());
+//       }
+//       std::vector<PreCluster*>& neighList = neighbours[currentList];
+//       if (!neighList.empty()) {
+//         auto* neigh = neighList.back();
+//         // Check if the pre-cluster in this column
+//         // touches the pre-cluster in the neighbour column
+//         if (neigh->area[jcolumn - 1].getYmin() > pcB->area[jcolumn].getYmax())
+//           continue;
+//         if (neigh->area[jcolumn - 1].getYmax() < pcB->area[jcolumn].getYmin())
+//           continue;
+//       }
+//       pcB->paired = 2;
+//       LOG(DEBUG) << "  adding column " << jcolumn << "  ib " << ib << "  to " << currentList;
+//       neighList.push_back(pcB);
+//       buildListOfNeighbours(jcolumn + 1, lastColumn, neighbours, skipPaired, currentList);
+//       ++currentList;
+//     }
+//   }
 
-  return (neighbours.size() > 0);
-}
+//   return (neighbours.size() > 0);
+// }
 
 //______________________________________________________________________________
 void Clusterizer::reset()
 {
-  /// Resets fired DEs and clusters
-
-  // No need to reset the strip patterns here:
-  // it is done while the patterns are processed to spare a loop
-  mActiveDEs.clear();
+  /// Resets the clusters
   mNClusters = 0;
 }
 } // namespace mid

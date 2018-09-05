@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MID/Clustering/src/Clusterizer.h
+/// \file   MIDClustering/Clusterizer.h
 /// \brief  Cluster reconstruction algorithm for MID
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   24 October 2016
@@ -21,6 +21,7 @@
 #include "MIDBase/Mapping.h"
 #include "DataFormatsMID/Cluster2D.h"
 #include "DataFormatsMID/ColumnData.h"
+#include "MIDClustering/PreClusters.h"
 
 namespace o2
 {
@@ -39,7 +40,7 @@ class Clusterizer
   Clusterizer& operator=(Clusterizer&&) = delete;
 
   bool init();
-  bool process(const std::vector<ColumnData>& stripPatterns);
+  bool process(std::vector<PreClusters>& preClusters);
 
   /// Gets the array of reconstructes clusters
   const std::vector<Cluster2D>& getClusters() { return mClusters; }
@@ -48,44 +49,19 @@ class Clusterizer
   unsigned long int getNClusters() { return mNClusters; }
 
  private:
-  struct PatternStruct {
-    int deId;                          ///< Detection element ID
-    int firedColumns;                  ///< Fired columns
-    std::array<ColumnData, 7> columns; ///< Array of strip patterns
-  };
-
-  struct PreCluster {
-    int firstColumn;            ///< First fired column
-    int lastColumn;             ///< Last fired column
-    int paired;                 ///< Flag to check if PreCliuster was paired
-    std::array<MpArea, 7> area; ///< 2D area containing the PreCluster per column
-  };
-
-  bool loadPatterns(const std::vector<ColumnData>& stripPatterns);
   void reset();
 
-  void preClusterizeBP(PatternStruct& de);
-  void preClusterizeNBP(PatternStruct& de);
-  PreCluster* nextPreCluster(int icolumn);
-
-  bool buildListOfNeighbours(int icolumn, int lastColumn, std::vector<std::vector<PreCluster*>>& neighbours,
-                             bool skipPaired = false, int currentList = 0);
+  PreClusters::PreClusterBP getNeighbour(int icolumn, bool skipPaired);
 
   Cluster2D& nextCluster();
-  void makeClusters(const int& deIndex);
-  void makeCluster(PreCluster& clBend, PreCluster& clNonBend, const int& deIndex);
-  void makeCluster(std::vector<PreCluster*>& pcBlist, const int& deIndex, PreCluster* clNonBend = nullptr);
+  bool makeClusters(PreClusters& pcs);
+  void makeCluster(PreClusters::PreClusterBP& clBend, PreClusters::PreClusterNBP& clNonBend, const int& deIndex);
+  void makeCluster(PreClusters::PreClusterNBP& clNonBend, const int& deIndex);
+  void makeCluster(PreClusters::PreClusterBP& clBend, const int& deIndex);
+  void makeCluster(PreClusters::PreClusterBP& clBend, PreClusters::PreClusterBP& clBendNeigh, PreClusters::PreClusterNBP& clNonBend, const int& deIndex);
 
-  Mapping mMapping;                              ///< Mapping
-  std::unordered_map<int, PatternStruct> mMpDEs; ///< internal mapping
-
-  std::array<int, 8> mNPreClusters; ///< number of PreClusters in each DE per column (last column is the NBP)
-  std::array<std::vector<PreCluster>, 8>
-    mPreClusters; ///< list of PreClusters in each DE per column (last column is the NBP)
-
-  std::unordered_map<int, bool> mActiveDEs; ///< List of active detection elements for event
-  std::vector<Cluster2D> mClusters;         ///< list of clusters
-  unsigned long int mNClusters;             ///< Number of clusters
+  std::vector<Cluster2D> mClusters; ///< list of clusters
+  unsigned long int mNClusters = 0; ///< Number of clusters
 };
 } // namespace mid
 } // namespace o2
