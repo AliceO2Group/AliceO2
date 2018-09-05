@@ -25,6 +25,7 @@
 #include <iostream>
 #include <vector>
 #include <random>
+#include "MIDClustering/PreClusterizer.h"
 #include "MIDClustering/Clusterizer.h"
 
 #include "FairLogger.h"
@@ -213,11 +214,13 @@ bool areClustersEqual(Cluster2D& cl1, Cluster2D& cl2)
 class MyFixture
 {
  public:
-  MyFixture() : clusterizer(), mapping()
+  MyFixture() : preClusterizer(), clusterizer(), mapping()
   {
+    preClusterizer.init();
     clusterizer.init();
     // fair::Logger::SetConsoleSeverity(fair::Severity::debug);
   }
+  PreClusterizer preClusterizer;
   Clusterizer clusterizer;
   Mapping mapping;
 };
@@ -226,7 +229,8 @@ BOOST_DATA_TEST_CASE_F(MyFixture, MID_Clustering_Fixed, boost::unit_test::data::
 {
   // std::vector<ColumnData> columns = LegacyUtility::digitsToPattern(getDigits(sample));
   // clusterizer.process(columns);
-  clusterizer.process(getColumnsFixed(sample));
+  preClusterizer.process(getColumnsFixed(sample));
+  clusterizer.process(preClusterizer.getPreClusters());
   std::vector<Cluster2D> clusters = getClusters(sample);
   BOOST_TEST(clusters.size() == clusterizer.getNClusters());
   unsigned long minNcl = clusters.size();
@@ -312,7 +316,8 @@ BOOST_DATA_TEST_CASE_F(MyFixture, MID_Clustering_Random, boost::unit_test::data:
       // Position was outside detection element
       continue;
     }
-    clusterizer.process(columns);
+    preClusterizer.process(columns);
+    clusterizer.process(preClusterizer.getPreClusters());
     BOOST_TEST(clusterizer.getNClusters() == 1);
 
     std::vector<Cluster2D> recoClusters = clusterizer.getClusters();

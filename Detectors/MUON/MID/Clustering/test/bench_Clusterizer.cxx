@@ -18,6 +18,8 @@
 #include <random>
 #include "MIDBase/Mapping.h"
 #include "DataFormatsMID/ColumnData.h"
+#include "MIDClustering/PreClusters.h"
+#include "MIDClustering/PreClusterizer.h"
 #include "MIDClustering/Clusterizer.h"
 
 o2::mid::ColumnData& getColumn(std::vector<o2::mid::ColumnData>& patterns, uint8_t icolumn, uint8_t deId)
@@ -100,8 +102,13 @@ std::vector<o2::mid::ColumnData> generateTestData(int deId, int nClusters, int c
 class BenchClustering : public benchmark::Fixture
 {
  public:
-  BenchClustering() : midMapping(), clusterizer() { clusterizer.init(); }
+  BenchClustering() : midMapping(), preClusterizer(), clusterizer()
+  {
+    preClusterizer.init();
+    clusterizer.init();
+  }
   o2::mid::Mapping midMapping;
+  o2::mid::PreClusterizer preClusterizer;
   o2::mid::Clusterizer clusterizer;
 };
 
@@ -120,7 +127,8 @@ BENCHMARK_DEFINE_F(BenchClustering, clustering)
     state.PauseTiming();
     inputData = generateTestData(deId, nClusters, clusterSize, midMapping);
     state.ResumeTiming();
-    clusterizer.process(inputData);
+    preClusterizer.process(inputData);
+    clusterizer.process(preClusterizer.getPreClusters());
     ++num;
   }
 

@@ -2277,9 +2277,6 @@ o2_define_bucket(
     $<IF:$<BOOL:${benchmark_FOUND}>,benchmark::benchmark,$<0:"">>
     mid_clustering_bucket
     MIDClustering
-
-    INCLUDE_DIRECTORIES
-    ${CMAKE_SOURCE_DIR}/Detectors/MUON/MID/Clustering/src
 )
 
 o2_define_bucket(
