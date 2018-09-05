@@ -125,6 +125,15 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
       }
 
       static int finishchecksum = 0;
+      static int invocation = 0;
+      invocation++;
+      // need to record which channel has completed in order to decide when we can shutdown
+      static std::vector<bool> digitsdone;
+      static std::vector<bool> labelsdone;
+      if (invocation == 1) {
+        digitsdone.resize(numberofsourcedevices, false);
+        labelsdone.resize(numberofsourcedevices, false);
+      }
 
       auto isComplete = [numberofsourcedevices](int i) {
         if (i == numberofsourcedevices * (numberofsourcedevices - 1) / 2) {
@@ -133,50 +142,78 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
         return false;
       };
 
+      // extracts the sector from header of an input
+      auto extractSector = [&pc](const char* inputname) {
+        auto sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(pc.inputs().get(inputname));
+        if (!sectorHeader) {
+          LOG(FATAL) << "Missing sector header in TPC data";
+        }
+        return sectorHeader->sector;
+      };
+
+      int sector = -1; // TPC sector for which data was received
       for (int d = 0; d < numberofsourcedevices; ++d) {
-        const auto cname = digitchannelname->operator[](d);
+        const auto dname = digitchannelname->operator[](d);
         const auto lname = labelchannelname->operator[](d);
 
-        auto sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(pc.inputs().get(cname.c_str()));
-        if (!sectorHeader) {
-          LOG(FATAL) << "Missing sector header in TPC Digit data";
-        }
-        const int sector = sectorHeader->sector;
-        LOG(INFO) << "GOT DIGITS FOR SECTOR " << sector;
+        // probe which channel has data and of what kind
+        // a) probe for digits:
+        if (pc.inputs().isValid(dname.c_str())) {
+          sector = extractSector(dname.c_str());
+          LOG(INFO) << "HAVE DIGIT DATA FOR SECTOR " << sector << " ON CHANNEL " << d;
+          if (sector == -1) {
+            digitsdone[d] = true;
+          } else {
+            // have to do work ...
+            // the digits
+            auto indata = pc.inputs().get<std::vector<o2::TPC::Digit>>(dname.c_str());
+            LOG(INFO) << "DIGIT SIZE " << indata.size();
+            *digits.get() = std::move(indata);
+            {
+              // connect this to a particular branch
+              auto br = getOrMakeBranch(*outputtree.get(), "TPCDigit", sector, digits.get());
+              br->Fill();
+              br->ResetAddress();
+            }
+          }
+        } // end digit case
 
-        if (sector < 0) {
+        // b) probe for labels
+        if (pc.inputs().isValid(lname.c_str())) {
+          sector = extractSector(lname.c_str());
+          LOG(INFO) << "HAVE LABEL DATA FOR SECTOR " << sector << " ON CHANNEL " << d;
+          if (sector == -1) {
+            labelsdone[d] = true;
+          } else {
+            // the labels
+            auto labeldata = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>(lname.c_str());
+            auto labeldataRaw = labeldata.get();
+            LOG(INFO) << "MCTRUTH ELEMENTS " << labeldataRaw->getNElements();
+            if (labeldataRaw->getNElements() != digits->size()) {
+              LOG(WARNING) << "Inconsistent number of label slots "
+                           << labeldataRaw->getNElements() << " versus digits " << digits->size();
+            }
+            {
+              auto br = getOrMakeBranch(*outputtree.get(), "TPCDigitMCTruth", sector, &labeldataRaw);
+              br->Fill();
+              br->ResetAddress();
+            }
+          }
+        } // end label case
+
+        if (labelsdone[d] && digitsdone[d]) {
+          LOG(INFO) << "CHANNEL " << d << " DONE ";
+
+          // we must increase the checksum only once
+          // prevent this by invalidating ...
+          labelsdone[d] = false;
+          digitsdone[d] = false;
+
           finishchecksum += d;
           if (isComplete(finishchecksum)) {
             finished = true;
             pc.services().get<ControlService>().readyToQuit(false);
             return;
-          }
-        } else {
-          // have to do work ...
-          // the digits
-          auto indata = pc.inputs().get<std::vector<o2::TPC::Digit>>(cname.c_str());
-          LOG(INFO) << "DIGIT SIZE " << indata.size();
-          *digits.get() = std::move(indata);
-          {
-            // connect this to a particular branch
-            auto br = getOrMakeBranch(*outputtree.get(), "TPCDigit", sector, digits.get());
-            br->Fill();
-            br->ResetAddress();
-          }
-
-          // the labels
-          auto labeldata = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>(lname.c_str());
-          auto labeldataRaw = labeldata.get();
-          LOG(INFO) << "MCTRUTH ELEMENTS " << labeldataRaw->getNElements();
-          if (labeldataRaw->getNElements() != digits->size()) {
-            LOG(WARNING) << "Inconsistent number of label slots "
-                         << labeldataRaw->getNElements() << " versus digits " << digits->size();
-          }
-
-          {
-            auto br = getOrMakeBranch(*outputtree.get(), "TPCDigitMCTruth", sector, &labeldataRaw);
-            br->Fill();
-            br->ResetAddress();
           }
         }
       }
