@@ -1016,6 +1016,16 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    AliTPCCommonBase_bucket
+
+    DEPENDENCIES
+
+    INCLUDE_DIRECTORIES
+    ${ALITPCCOMMON_DIR}/sources/Common
+)
+
+o2_define_bucket(
+    NAME
     TPCFastTransformation_bucket
 
     DEPENDENCIES
@@ -1023,11 +1033,11 @@ o2_define_bucket(
     pthread
     root_base_bucket
     common_vc_bucket
+    AliTPCCommonBase_bucket
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
     ${ALITPCCOMMON_DIR}/sources/TPCFastTransformation
-    ${ALITPCCOMMON_DIR}/sources/Common
 )
 
 o2_define_bucket(
@@ -1039,6 +1049,7 @@ o2_define_bucket(
     pthread
     root_base_bucket
     common_vc_bucket
+    AliTPCCommonBase_bucket
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
@@ -1049,7 +1060,6 @@ o2_define_bucket(
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/HLTHeaders
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone/cmodules
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone/include
-    ${ALITPCCOMMON_DIR}/sources/Common
 )
 
 o2_define_bucket(
@@ -1057,12 +1067,11 @@ o2_define_bucket(
     TPCSpaceChargeBase_bucket
 
     DEPENDENCIES
-    root_base_bucket Hist MathCore Matrix Physics
+    root_base_bucket Hist MathCore Matrix Physics AliTPCCommonBase_bucket
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
     ${ALITPCCOMMON_DIR}/sources/TPCSpaceChargeBase
-    ${ALITPCCOMMON_DIR}/sources/Common
 )
 
 o2_define_bucket(
