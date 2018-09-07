@@ -839,7 +839,9 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
       case DriverState::MATERIALISE_WORKFLOW:
         try {
           std::vector<ComputingResource> resources = resourceManager->getAvailableResources();
-          DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, driverInfo.channelPolicies, driverInfo.completionPolicies, deviceSpecs, resources);
+          auto physicalWorkflow = workflow;
+          WorkflowHelpers::injectServiceDevices(physicalWorkflow);
+          DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(physicalWorkflow, driverInfo.channelPolicies, driverInfo.completionPolicies, deviceSpecs, resources);
           // This should expand nodes so that we can build a consistent DAG.
         } catch (std::runtime_error& e) {
           std::cerr << "Invalid workflow: " << e.what() << std::endl;

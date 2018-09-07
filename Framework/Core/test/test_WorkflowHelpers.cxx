@@ -120,6 +120,7 @@ BOOST_AUTO_TEST_CASE(TestSimpleConnection)
   std::vector<LogicalForwardInfo> availableForwardsInfo;
 
   WorkflowHelpers::verifyWorkflow(workflow);
+  WorkflowHelpers::injectServiceDevices(workflow);
   WorkflowHelpers::constructGraph(workflow, logicalEdges,
                                   outputs,
                                   availableForwardsInfo);
@@ -160,6 +161,7 @@ BOOST_AUTO_TEST_CASE(TestSimpleForward)
   std::vector<LogicalForwardInfo> availableForwardsInfo;
 
   WorkflowHelpers::verifyWorkflow(workflow);
+  WorkflowHelpers::injectServiceDevices(workflow);
   WorkflowHelpers::constructGraph(workflow, logicalEdges,
                                   outputs,
                                   availableForwardsInfo);
@@ -215,6 +217,7 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction)
   std::vector<OutputSpec> outputs;
 
   WorkflowHelpers::verifyWorkflow(workflow);
+  WorkflowHelpers::injectServiceDevices(workflow);
   WorkflowHelpers::constructGraph(workflow, logicalEdges,
                                   outputs,
                                   availableForwardsInfo);
@@ -303,4 +306,35 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction)
 
     BOOST_CHECK_EQUAL_MESSAGE(expectedValue, actualValue, i << " " << j);
   }
+}
+
+// This is to test a workflow where the input is not of type Timeframe and
+// therefore requires a dangling channel.
+// The topology is
+//
+// TST/A     TST/B
+// ----> (A) ---->
+//
+BOOST_AUTO_TEST_CASE(TestExternalInput)
+{
+  WorkflowSpec workflow{
+    { "A",
+      Inputs{
+        InputSpec{ "external", "TST", "A", 0, Lifetime::Timer } },
+      Outputs{
+        OutputSpec{ "TST", "B" } } }
+  };
+  WorkflowHelpers::verifyWorkflow(workflow);
+  std::vector<DeviceConnectionEdge> logicalEdges;
+  std::vector<OutputSpec> outputs;
+  std::vector<LogicalForwardInfo> availableForwardsInfo;
+
+  BOOST_CHECK_EQUAL(workflow.size(), 1);
+  WorkflowHelpers::injectServiceDevices(workflow);
+  // The added device is the one which should connect to
+  // the condition DB.
+  BOOST_CHECK_EQUAL(workflow.size(), 2);
+  WorkflowHelpers::constructGraph(workflow, logicalEdges,
+                                  outputs,
+                                  availableForwardsInfo);
 }
