@@ -27,6 +27,9 @@
 #include "ITSDigitizerSpec.h"
 #include "ITSDigitWriterSpec.h"
 
+// for TOF
+#include "TOFDigitizerSpec.h"
+
 #include <cstdlib>
 // this is somewhat assuming that a DPL workflow will run on one node
 #include <thread> // to detect number of hardware threads
@@ -166,6 +169,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // connect ITS digit writer
   specs.emplace_back(o2::ITS::getITSDigitWriterSpec());
 
+  // connect the TOF digitization
+  specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++));
+
+  // The SIM Reader. NEEDS TO BE LAST
   specs.emplace_back(o2::steer::getSimReaderSpec(fanoutsize, tpcsectors, tpclanes));
 
   return specs;
