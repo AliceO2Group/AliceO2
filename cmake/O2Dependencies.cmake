@@ -1738,6 +1738,7 @@ o2_define_bucket(
     TPCSimulation
     ITSSimulation
     ITSMFTBase
+    TOFSimulation
 )
 
 o2_define_bucket(
