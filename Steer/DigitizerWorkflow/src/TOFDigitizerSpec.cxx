@@ -18,6 +18,8 @@
 #include "Steer/HitProcessingManager.h" // for RunContext
 #include "TChain.h"
 
+#include "TOFSimulation/Digitizer.h"
+
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
@@ -26,6 +28,23 @@ namespace o2
 namespace tof
 {
 
+// helper function which will be offered as a service
+template <typename T>
+void retrieveHits(std::vector<TChain*> const& chains,
+                  const char* brname,
+                  int sourceID,
+                  int entryID,
+                  std::vector<T>* hits)
+{
+  auto br = chains[sourceID]->GetBranch(brname);
+  if (!br) {
+    LOG(ERROR) << "No branch found";
+    return;
+  }
+  br->SetAddress(&hits);
+  br->GetEntry(entryID);
+}
+
 DataProcessorSpec getTOFDigitizerSpec(int channel)
 {
   // setup of some data structures shared between init and processing functions
@@ -33,8 +52,15 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
   //  one process call)
   auto simChains = std::make_shared<std::vector<TChain*>>();
 
+  // the instance of the actual digitizer
+  auto digitizer = std::make_shared<o2::tof::Digitizer>();
+
+  // containers for digits and labels
+  auto digits = std::make_shared<std::vector<o2::tof::Digit>>();
+  auto labels = std::make_shared<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
+
   // the actual processing function which get called whenever new data is incoming
-  auto process = [simChains, channel](ProcessingContext& pc) {
+  auto process = [simChains, digitizer, digits, labels, channel](ProcessingContext& pc) {
     static bool finished = false;
     if (finished) {
       return;
@@ -54,7 +80,36 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
     timer.Start();
 
     LOG(INFO) << " CALLING TOF DIGITIZATION ";
-    // call digitizer here
+
+    static std::vector<o2::tof::HitType> hits;
+
+    auto& eventParts = context->getEventParts();
+    // loop over all composite collisions given from context
+    // (aka loop over all the interaction records)
+    for (int collID = 0; collID < timesview.size(); ++collID) {
+      digitizer->setEventTime(timesview[collID].timeNS);
+
+      // for each collision, loop over the constituents event and source IDs
+      // (background signal merging is basically taking place here)
+      for (auto& part : eventParts[collID]) {
+        digitizer->setEventID(part.entryID);
+        digitizer->setSrcID(part.sourceID);
+
+        // get the hits for this event and this source
+        hits.clear();
+        retrieveHits(*simChains.get(), "TOFHit", part.sourceID, part.entryID, &hits);
+
+        LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found " << hits.size() << " hits ";
+
+        // call actual digitization procedure
+        labels->clear();
+        digits->clear();
+        digitizer->process(&hits, digits.get());
+        LOG(INFO) << "Have " << digits->size() << " digits ";
+      }
+    }
+
+    // TODO: finish digitization ... stream any remaining digits/labels
 
     timer.Stop();
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
@@ -65,7 +120,7 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
   };
 
   // init function returning the lambda taking a ProcessingContext
-  auto initIt = [simChains, process](InitContext& ctx) {
+  auto initIt = [simChains, process, digitizer, labels](InitContext& ctx) {
     // setup the input chain for the hits
     simChains->emplace_back(new TChain("o2sim"));
 
@@ -78,6 +133,11 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
       simChains->emplace_back(new TChain("o2sim"));
       simChains->back()->AddFile(signalfilename.c_str());
     }
+
+    // init digitizer
+    digitizer->init();
+    digitizer->setContinuous(true);
+    digitizer->setMCTruthContainer(labels.get());
 
     // return the actual processing function which is now setup/configured
     return process;
