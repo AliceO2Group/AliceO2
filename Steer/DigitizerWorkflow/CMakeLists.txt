@@ -30,6 +30,7 @@ O2_GENERATE_EXECUTABLE(
   src/ITSDigitizerSpec.cxx
   src/ITSDigitWriterSpec.cxx
   src/TOFDigitizerSpec.cxx
+  src/TOFDigitWriterSpec.cxx
 
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )

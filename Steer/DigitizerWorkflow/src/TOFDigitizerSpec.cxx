@@ -57,10 +57,11 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
 
   // containers for digits and labels
   auto digits = std::make_shared<std::vector<o2::tof::Digit>>();
+  auto digitsAccum = std::make_shared<std::vector<o2::tof::Digit>>(); // accumulator for all digits
   auto labels = std::make_shared<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
   // the actual processing function which get called whenever new data is incoming
-  auto process = [simChains, digitizer, digits, labels, channel](ProcessingContext& pc) {
+  auto process = [simChains, digitizer, digits, digitsAccum, labels, channel](ProcessingContext& pc) {
     static bool finished = false;
     if (finished) {
       return;
@@ -105,11 +106,17 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
         labels->clear();
         digits->clear();
         digitizer->process(&hits, digits.get());
+        // copy digits into accumulator
+        std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
+
         LOG(INFO) << "Have " << digits->size() << " digits ";
       }
     }
 
     // TODO: finish digitization ... stream any remaining digits/labels
+
+    // here we have all digits and we can send them to consumer (aka snapshot it onto output)
+    pc.outputs().snapshot(Output{ "TOF", "DIGITS", 0, Lifetime::Timeframe }, *digitsAccum.get());
 
     timer.Stop();
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
@@ -151,7 +158,7 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
   return DataProcessorSpec{
     "TOFDigitizer", Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT",
                                        static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
-    Outputs{},
+    Outputs{ OutputSpec{ "TOF", "DIGITS", 0, Lifetime::Timeframe } },
     AlgorithmSpec{ initIt },
     Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
              { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } } }
