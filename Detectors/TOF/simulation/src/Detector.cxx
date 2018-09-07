@@ -1848,7 +1848,7 @@ void Detector::addAlignableVolumes() const
   for (Int_t isect = 0; isect < Geo::NSECTORS; isect++) {
     for (Int_t istr = 1; istr <= Geo::NSTRIPXSECTOR; istr++) {
       modUID = o2::Base::GeometryManager::getSensID(idTOF, modnum++);
-      LOG(DEBUG) << "modUID: " << modUID;
+      LOG(INFO) << "modUID: " << modUID << "\n";
 
       if (mTOFSectors[isect] == -1)
         continue;
@@ -1889,15 +1889,15 @@ void Detector::addAlignableVolumes() const
       LOG(DEBUG) << "--------------------------------------------"
                  << "\n";
 
-      LOG(DEBUG) << "Check for alignable entry: " << symName;
+      LOG(INFO) << "Check for alignable entry: " << symName << "\n";
 
       if (!gGeoManager->SetAlignableEntry(symName.Data(), volPath.Data(), modUID))
-        LOG(ERROR) << "Alignable entry " << symName << " NOT set";
-      LOG(DEBUG) << "Alignable entry " << symName << " set";
+        LOG(ERROR) << "Alignable entry " << symName << " NOT set\n";
+      LOG(INFO) << "Alignable entry " << symName << " set\n";
 
       // T2L matrices for alignment
       TGeoPNEntry* e = gGeoManager->GetAlignableEntryByUID(modUID);
-      LOG(DEBUG) << "Got TGeoPNEntry " << e;
+      LOG(INFO) << "Got TGeoPNEntry " << e << "\n";
 
       if (e) {
         TGeoHMatrix* globMatrix = e->GetGlobalOrig();

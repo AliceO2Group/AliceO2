@@ -25,20 +25,101 @@ using namespace o2::tof;
 
 ClassImp(Digitizer);
 
-void Digitizer::process(const std::vector<HitType>* hits,std::vector<Digit>* digits){
-  // hits array of TOF hits for a given simulated event
-  mDigits = digits;
+void Digitizer::init()
+{
 
-  for (auto& hit : *hits) {
-    Int_t timeframe =
-      Int_t((mEventTime + hit.GetTime()) * Geo::TIMEFRAMEWINDOW_INV); // to be replaced with uncalibrated time
-    //TODO: put timeframe counting/selection
-    //if (timeframe == mTimeFrameCurrent) {
-      processHit(hit, mEventTime);
-    //}
-  } // end loop over hits
+  // method to initialize the parameters neede to digitize and the array of strip objects containing
+  // the digits belonging to a strip
+
+  initParameters();
+
+  for (Int_t i = 0; i < Geo::NSTRIPS; i++) {
+    for (Int_t j = 0; j < MAXWINDOWS; j++) {
+      mStrips[j].emplace_back(i);
+      if (j < MAXWINDOWS - 1) {
+        mMCTruthContainerNext[j] = &(mMCTruthContainer[j + 1]);
+        mStripsNext[j] = &(mStrips[j + 1]);
+      }
+    }
+  }
 }
 
+//______________________________________________________________________
+
+void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* digits)
+{
+  // hits array of TOF hits for a given simulated event
+  //mDigits = digits;
+
+  Int_t readoutwindow = Int_t((mEventTime)*Geo::READOUTWINDOW_INV); // to be replaced with uncalibrated time
+  //while(mContinuous && readoutwindow > mReadoutWindowCurrent){
+  if (mContinuous && readoutwindow > mReadoutWindowCurrent) {
+    digits->clear();
+    //fillOutputContainer(*digits);
+    // waiting for the new framework to store previous readout window
+
+    for (Int_t i = mReadoutWindowCurrent; i < readoutwindow; i++) { // temporary loop because current framework doesn't allow to store outputs in digitizer class
+      fillOutputContainer(*digits);
+    }
+    //mReadoutWindowCurrent++;
+    mReadoutWindowCurrent = readoutwindow;
+
+    // check if digits stored for future match the new readout windows available
+    int idigit = 0;
+    for (auto& digit : mFutureDigits) {
+      int isnext = Int_t(digit.getTimeStamp() * Geo::READOUTWINDOW_INV) - mReadoutWindowCurrent; // to be replaced with uncalibrated time
+
+      if (isnext < 0) // we jump too ahead in future, digit will be not stored
+        LOG(INFO) << "Digit lost because we jump too ahead in future. Current RO window=" << isnext << "\n";
+
+      if (isnext < MAXWINDOWS - 1) { // move from digit buffer array to the proper window
+        if (isnext >= 0) {
+          std::vector<Strip>* strips = mStripsCurrent;
+          o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer = mMCTruthContainerCurrent;
+
+          if (isnext) {
+            strips = mStripsNext[isnext - 1];
+            mcTruthContainer = mMCTruthContainerNext[isnext - 1];
+          }
+
+          int trackID = mFutureItrackID[digit.getLabel()];
+          int sourceID = mFutureIsource[digit.getLabel()];
+          int eventID = mFutureIevent[digit.getLabel()];
+          fillDigitsInStrip(strips, mcTruthContainer, digit.getTimeStamp(), digit.getChannel(), digit.getTDC(), digit.getTOT(), digit.getBC(), digit.getChannel() / Geo::NPADS, trackID, eventID, sourceID);
+        }
+
+        // remove the element from the buffers
+        mFutureItrackID.erase(mFutureItrackID.begin() + digit.getLabel());
+        mFutureIsource.erase(mFutureIsource.begin() + digit.getLabel());
+        mFutureIevent.erase(mFutureIevent.begin() + digit.getLabel());
+
+        int labelremoved = digit.getLabel();
+        // adjust labels
+        for (auto& digit2 : mFutureDigits) {
+          if (digit2.getLabel() > labelremoved)
+            digit2.setLabel(digit2.getLabel() - 1);
+        }
+        // remove also digit from buffer
+        mFutureDigits.erase(mFutureDigits.begin() + idigit);
+      } else {
+        idigit++; // increment when moving to the next only if the current is not removed from the buffer
+      }
+    }
+  }
+
+  for (auto& hit : *hits) {
+    //TODO: put readout window counting/selection
+
+    processHit(hit, mEventTime);
+  } // end loop over hits
+
+  if (!mContinuous) { // fill output container per event
+    digits->clear();
+    fillOutputContainer(*digits);
+  }
+}
+
+//______________________________________________________________________
 
 Int_t Digitizer::processHit(const HitType &hit,Double_t event_time)
 {
@@ -77,10 +158,12 @@ Int_t Digitizer::processHit(const HitType &hit,Double_t event_time)
 
   Int_t ndigits = 0;//Number of digits added
 
+  UInt_t istrip = channel / Geo::NPADS;
+
   // check the fired PAD 1 (A)
   if (isFired(xLocal, zLocal, charge)){
     ndigits++;
-    addDigit(channel, time, xLocal, zLocal, charge, 0, 0, detInd[3], trackID);
+    addDigit(channel, istrip, time, xLocal, zLocal, charge, 0, 0, detInd[3], trackID);
   }
 
   // check PAD 2
@@ -94,7 +177,7 @@ Int_t Digitizer::processHit(const HitType &hit,Double_t event_time)
     zLocal = deltapos[2] + Geo::ZPAD;
   if (isFired(xLocal, zLocal, charge)) {
       ndigits++;
-      addDigit(channel, time, xLocal, zLocal, charge, 0, iZshift, detInd[3], trackID);
+      addDigit(channel, istrip, time, xLocal, zLocal, charge, 0, iZshift, detInd[3], trackID);
   }
 
   // check PAD 3
@@ -106,7 +189,7 @@ Int_t Digitizer::processHit(const HitType &hit,Double_t event_time)
     zLocal = deltapos[2];             // recompute local coordinates
     if (isFired(xLocal, zLocal, charge)) {
       ndigits++;
-      addDigit(channel, time, xLocal, zLocal, charge, -1, 0, detInd[3], trackID);
+      addDigit(channel, istrip, time, xLocal, zLocal, charge, -1, 0, detInd[3], trackID);
     }
   }
 
@@ -119,7 +202,7 @@ Int_t Digitizer::processHit(const HitType &hit,Double_t event_time)
     zLocal = deltapos[2];             // recompute local coordinates
     if (isFired(xLocal, zLocal, charge)) {
       ndigits++;
-      addDigit(channel, time, xLocal, zLocal, charge, 1, 0, detInd[3], trackID);
+      addDigit(channel, istrip, time, xLocal, zLocal, charge, 1, 0, detInd[3], trackID);
     }
   }
 
@@ -135,7 +218,7 @@ Int_t Digitizer::processHit(const HitType &hit,Double_t event_time)
       zLocal = deltapos[2] + Geo::ZPAD;
     if (isFired(xLocal, zLocal, charge)) {
       ndigits++;
-      addDigit(channel, time, xLocal, zLocal, charge, -1, iZshift, detInd[3], trackID);
+      addDigit(channel, istrip, time, xLocal, zLocal, charge, -1, iZshift, detInd[3], trackID);
     }
   }
 
@@ -151,14 +234,15 @@ Int_t Digitizer::processHit(const HitType &hit,Double_t event_time)
       zLocal = deltapos[2] + Geo::ZPAD;
     if (isFired(xLocal, zLocal, charge)) {
       ndigits++;
-      addDigit(channel, time, xLocal, zLocal, charge, 1, iZshift, detInd[3], trackID);
+      addDigit(channel, istrip, time, xLocal, zLocal, charge, 1, iZshift, detInd[3], trackID);
     }
   }
   return ndigits;
 
 }
 
-void Digitizer::addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Float_t charge, Int_t iX, Int_t iZ,
+//______________________________________________________________________
+void Digitizer::addDigit(Int_t channel, UInt_t istrip, Float_t time, Float_t x, Float_t z, Float_t charge, Int_t iX, Int_t iZ,
                          Int_t padZfired, Int_t trackID)
 {
   // TOF digit requires: channel, time and time-over-threshold
@@ -189,63 +273,82 @@ void Digitizer::addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Floa
   }
   time += TMath::Sqrt(timewalkX * timewalkX + timewalkZ * timewalkZ) - mTimeDelayCorr - mTimeWalkeSlope * 2;
 
-  bool merged = false;
-
   Int_t nbc = Int_t(time * Geo::BC_TIME_INPS_INV); // time elapsed in number of bunch crossing
-  Digit newdigit(time, channel, (time - Geo::BC_TIME_INPS * nbc) * Geo::NTDCBIN_PER_PS, tot * Geo::NTOTBIN_PER_NS, nbc);
+  //Digit newdigit(time, channel, (time - Geo::BC_TIME_INPS * nbc) * Geo::NTDCBIN_PER_PS, tot * Geo::NTOTBIN_PER_NS, nbc);
 
-  // check if such mergeable digit already exists
-  int digitindex = 0;
-  for (auto& digit : *mDigits) {
-    if (isMergable(digit, newdigit)) {
-      LOG(INFO) << "MERGING DIGITS " << digitindex << "\n";
-      merged = true;
-      // merge it
-      if (newdigit.getTDC() < digit.getTDC()) {
-        // adjust TOT
-        digit.setTDC(newdigit.getTDC());
-        digit.setTimeStamp(newdigit.getTimeStamp());
-      } else {
-        // adjust TOT
-      }
-      // adjust truth information
-      if (mMCTruthContainer) {
-        o2::tof::MCLabel label(trackID, mEventID, mSrcID, newdigit.getTDC());
-        mMCTruthContainer->addElementRandomAccess(digitindex, label);
+  auto tdc = (time - Geo::BC_TIME_INPS * nbc) * Geo::NTDCBIN_PER_PS;
 
-        // sort the labels according to increasing tdc value
-        auto labels = mMCTruthContainer->getLabels(digitindex);
-        std::sort(labels.begin(), labels.end(),
-                  [](o2::tof::MCLabel a, o2::tof::MCLabel b) { return a.getTDC() < b.getTDC(); });
-        //for (auto& e : labels) {
-        //  LOG(INFO) << e.getEventID() << " " << e.getTrackID() << " " << e.getTDC() << "\n";
-        //}
-        // assert(labels[0].getTDC() <= labels[1].getTDC());
-      }
-      break;
+  int lblCurrent = 0;
+
+  bool iscurrent = true; // if we are in the current readout window
+  Int_t isnext = -1;
+
+  if (mContinuous) {
+    isnext = Int_t(time * 1E-3 * Geo::READOUTWINDOW_INV) - mReadoutWindowCurrent; // to be replaced with uncalibrated time
+
+    if (isnext < 0 || isnext >= MAXWINDOWS - 1) {
+
+      lblCurrent = mFutureIevent.size(); // this is the size of mHeaderArray;
+      mFutureIevent.push_back(mEventID);
+      mFutureIsource.push_back(mSrcID);
+      mFutureItrackID.push_back(trackID);
+
+      // fill temporary digits array
+      mFutureDigits.emplace_back(time, channel, tdc, tot * Geo::NTOTBIN_PER_NS, nbc, lblCurrent);
+
+      return; // don't fill if doesn't match any available readout window
     }
-    digitindex++;
+
+    if (isnext)
+      iscurrent = false;
   }
 
-  if (!merged) {
-    // note that tdc calculation is done in [ps]; whereas the tot is done in [ns]
-    auto tdc = (time - Geo::BC_TIME_INPS * nbc) * Geo::NTDCBIN_PER_PS;
-    mDigits->emplace_back(time, channel, tdc, tot * Geo::NTOTBIN_PER_NS, nbc);
+  std::vector<Strip>* strips;
+  o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer;
 
-    if (mMCTruthContainer) {
-      auto ndigits = mDigits->size() - 1;
-      o2::tof::MCLabel label(trackID, mEventID, mSrcID, tdc);
-      mMCTruthContainer->addElement(ndigits, label);
+  if (iscurrent) {
+    strips = mStripsCurrent;
+    mcTruthContainer = mMCTruthContainerCurrent;
+  } else {
+    strips = mStripsNext[isnext - 1];
+    mcTruthContainer = mMCTruthContainerNext[isnext - 1];
+  }
+
+  fillDigitsInStrip(strips, mcTruthContainer, time, channel, tdc, tot, nbc, istrip, trackID, mEventID, mSrcID);
+}
+//______________________________________________________________________
+void Digitizer::fillDigitsInStrip(std::vector<Strip>* strips, o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer, double time, int channel, int tdc, int tot, int nbc, UInt_t istrip, Int_t trackID, Int_t eventID, Int_t sourceID)
+{
+  int lblCurrent;
+  if (mcTruthContainer) {
+    lblCurrent = mcTruthContainer->getIndexedSize(); // this is the size of mHeaderArray;
+  }
+
+  Int_t lbl = (*strips)[istrip].addDigit(time, channel, tdc, tot * Geo::NTOTBIN_PER_NS, nbc, lblCurrent);
+
+  if (mcTruthContainer) {
+    if (lbl == lblCurrent) { // it means that the digit was a new one --> we have to add the info in the MC container
+      o2::tof::MCLabel label(trackID, eventID, sourceID, tdc);
+      mcTruthContainer->addElement(lbl, label);
+    } else {
+      o2::tof::MCLabel label(trackID, eventID, sourceID, tdc);
+      mcTruthContainer->addElementRandomAccess(lbl, label);
+
+      // sort the labels according to increasing tdc value
+      auto labels = mcTruthContainer->getLabels(lbl);
+      std::sort(labels.begin(), labels.end(),
+                [](o2::tof::MCLabel a, o2::tof::MCLabel b) { return a.getTDC() < b.getTDC(); });
     }
   }
 }
-
+//______________________________________________________________________
 Float_t Digitizer::getShowerTimeSmeared(Float_t time, Float_t charge)
 {
   // add the smearing common to all the digits belongin to the same shower
   return time + gRandom->Gaus(0, mShowerResolution);
 }
 
+//______________________________________________________________________
 Float_t Digitizer::getDigitTimeSmeared(Float_t time, Float_t x, Float_t z, Float_t charge)
 {
   // add the smearing component which is indepedent for any digit even if belonging to the same shower (in case of
@@ -253,6 +356,7 @@ Float_t Digitizer::getDigitTimeSmeared(Float_t time, Float_t x, Float_t z, Float
   return time + gRandom->Gaus(0, mDigitResolution); // sqrt(33**2 + 50**2) ps = 60 ps
 }
 
+//______________________________________________________________________
 Float_t Digitizer::getCharge(Float_t eDep)
 {
   // transform deposited energy in collected charge
@@ -262,6 +366,7 @@ Float_t Digitizer::getCharge(Float_t eDep)
   return gRandom->Landau(adcMean, adcRms);
 }
 
+//______________________________________________________________________
 Bool_t Digitizer::isFired(Float_t x, Float_t z, Float_t charge)
 {
   if (TMath::Abs(x) > Geo::XPAD * 0.5 + 0.3)
@@ -280,6 +385,7 @@ Bool_t Digitizer::isFired(Float_t x, Float_t z, Float_t charge)
   return kTRUE;
 }
 
+//______________________________________________________________________
 Float_t Digitizer::getEffX(Float_t x)
 {
   Float_t xborder = Geo::XPAD * 0.5 - TMath::Abs(x);
@@ -304,6 +410,7 @@ Float_t Digitizer::getEffX(Float_t x)
   return 0;
 }
 
+//______________________________________________________________________
 Float_t Digitizer::getEffZ(Float_t z)
 {
   Float_t zborder = Geo::ZPAD * 0.5 - TMath::Abs(z);
@@ -328,8 +435,10 @@ Float_t Digitizer::getEffZ(Float_t z)
   return 0;
 }
 
+//______________________________________________________________________
 Float_t Digitizer::getFractionOfCharge(Float_t x, Float_t z) { return 1; }
 
+//______________________________________________________________________
 void Digitizer::initParameters()
 {
   // boundary references for interpolation of efficiency and resolution
@@ -377,6 +486,7 @@ void Digitizer::initParameters()
   mEffBoundary3 = 0.1;   // efficiency in mBound3
 }
 
+//______________________________________________________________________
 void Digitizer::printParameters()
 {
   printf("Efficiency in the pad center = %f\n", mEffCenter);
@@ -390,6 +500,7 @@ void Digitizer::printParameters()
     printf("Time walk ON = %f ps/cm\n", mTimeWalkeSlope);
 }
 
+//______________________________________________________________________
 void Digitizer::test(const char* geo)
 {
   Int_t nhit = 1000000;
@@ -559,6 +670,7 @@ void Digitizer::test(const char* geo)
          (h3->GetEntries() - h3->GetBinContent(1) - h3->GetBinContent(2)) / (h3->GetEntries() - h3->GetBinContent(1)));
 }
 
+//______________________________________________________________________
 void Digitizer::testFromHits(const char* geo, const char* hits)
 {
   TFile* fgeo = new TFile(geo);
@@ -605,4 +717,46 @@ void Digitizer::testFromHits(const char* geo, const char* hits)
   h2->Draw();
   new TCanvas();
   h3->Draw();
+}
+//______________________________________________________________________
+void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
+{
+
+  // filling the digit container doing a loop on all strips
+  for (auto& strip : *mStripsCurrent) {
+    strip.fillOutputContainer(digits);
+  }
+
+  // if(! digits.size()) return;
+
+  // copying the transient labels to the output labels (stripping the tdc information)
+  if (mMCTruthOutputContainer) {
+    // copy from transientTruthContainer to mMCTruthAray
+    // a brute force solution for the moment; should be handled by a dedicated API
+    for (int index = 0; index < mMCTruthContainerCurrent->getIndexedSize(); ++index) {
+      mMCTruthOutputContainer->addElements(index, mMCTruthContainerCurrent->getLabels(index));
+    }
+  }
+
+  mMCTruthContainerCurrent->clear();
+
+  // switch to next mStrip after flushing current readout window data
+  mIcurrentReadoutWindow++;
+  if (mIcurrentReadoutWindow >= MAXWINDOWS)
+    mIcurrentReadoutWindow = 0;
+
+  int k = mIcurrentReadoutWindow + 1;
+  for (Int_t i = 0; i < MAXWINDOWS - 1; i++) {
+    if (k >= MAXWINDOWS)
+      k = 0;
+    mMCTruthContainerNext[i] = &(mMCTruthContainer[k]);
+    mStripsNext[i] = &(mStrips[k]);
+    k++;
+  }
+}
+//______________________________________________________________________
+void Digitizer::flushOutputContainer(std::vector<Digit>& digits)
+{ // flush all residual buffered data
+  // TO be implemented
+  fillOutputContainer(digits);
 }
