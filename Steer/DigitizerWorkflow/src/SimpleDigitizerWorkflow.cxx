@@ -29,6 +29,7 @@
 
 // for TOF
 #include "TOFDigitizerSpec.h"
+#include "TOFDigitWriterSpec.h"
 
 #include <cstdlib>
 // this is somewhat assuming that a DPL workflow will run on one node
@@ -171,6 +172,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // connect the TOF digitization
   specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++));
+  // add TOF digit writer
+  specs.emplace_back(o2::tof::getTOFDigitWriterSpec());
 
   // The SIM Reader. NEEDS TO BE LAST
   specs.emplace_back(o2::steer::getSimReaderSpec(fanoutsize, tpcsectors, tpclanes));
