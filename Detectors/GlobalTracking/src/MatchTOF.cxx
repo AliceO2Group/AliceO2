@@ -220,10 +220,10 @@ bool MatchTOF::prepareTracks()
     // create working copy of track param
     mTracksWork.emplace_back(trcOrig);//, mCurrTracksTreeEntry, it);
     // make a copy of the TPC track that we have to propagate
-    o2::TPC::TrackTPC* trc = new o2::TPC::TrackTPC(trcTPCOrig);
-    //    auto& trc = mTracksWork.back();
+    //o2::TPC::TrackTPC* trc = new o2::TPC::TrackTPC(trcTPCOrig); // this would take the TPCout track
+    auto& trc = mTracksWork.back(); // with this we take the TPCITS track propagated to the vertex
     // propagate to matching Xref
-    if (!propagateToRefX(*trc, mXRef, 2)) {
+    if (!propagateToRefX(trc, mXRef, 2)) {
       mTracksWork.pop_back(); // discard track whose propagation to mXRef failed
       continue;
     }
@@ -231,8 +231,8 @@ bool MatchTOF::prepareTracks()
     //      mTracksLblWork.emplace_back(mTracksLabels->getLabels(it)[0]);
     //    }
     // cache work track index
-    mTracksSectIndexCache[o2::utils::Angle2Sector(trc->getAlpha())].push_back(mTracksWork.size() - 1);
-    delete trc; // Check: is this needed?
+    mTracksSectIndexCache[o2::utils::Angle2Sector(trc.getAlpha())].push_back(mTracksWork.size() - 1);
+    //delete trc; // Check: is this needed?
   }
 
   // sort tracks in each sector according to their time (increasing in time) 
