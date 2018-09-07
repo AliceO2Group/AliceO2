@@ -200,43 +200,44 @@ target_compile_options(test_SimpleDataProcessingDevice01 PUBLIC -O0 -g -fno-omit
 Install(FILES test/test_DataSamplingDPL.json test/test_DataSamplingFairMQ.json DESTINATION share/tests/)
 
 set(TEST_SRCS
-      test/test_SimpleStatefulProcessing01.cxx
-      test/test_SimpleStringProcessing.cxx
       test/test_AlgorithmSpec.cxx
       test/test_BoostOptionsRetriever.cxx
-      test/test_CompletionPolicy.cxx
+      test/test_CallbackRegistry.cxx
       test/test_ChannelSpecHelpers.cxx
+      test/test_CompletionPolicy.cxx
+      test/test_DanglingInputs.cxx
+      test/test_DataAllocator.cxx
+      test/test_DataProcessorSpec.cxx
+      test/test_DataRefUtils.cxx
       test/test_DataRelayer.cxx
       test/test_DataSampling.cxx
       test/test_DataSamplingCondition.cxx
-      test/test_DataRefUtils.cxx
-      test/test_DataProcessorSpec.cxx
       test/test_DeviceMetricsInfo.cxx
       test/test_DeviceSpec.cxx
+      test/test_ExternalFairMQDeviceProxy.cxx
       test/test_FairMQResizableBuffer.cxx
       test/test_Forwarding.cxx
       test/test_FrameworkDataFlowToDDS.cxx
-      test/test_Graphviz.cxx
       test/test_GUITests.cxx
+      test/test_Graphviz.cxx
+      test/test_InfoLogger.cxx
       test/test_InputRecord.cxx
+      test/test_LogParsingHelpers.cxx
       test/test_ParallelProducer.cxx
       test/test_PtrHelpers.cxx
-      test/test_LogParsingHelpers.cxx
-      test/test_ExternalFairMQDeviceProxy.cxx
       test/test_Services.cxx
       test/test_SimpleRDataFrameProcessing.cxx
+      test/test_SimpleStatefulProcessing01.cxx
+      test/test_SimpleStringProcessing.cxx
       test/test_SingleDataSource.cxx
       test/test_SuppressionGenerator.cxx
+      test/test_TMessageSerializer.cxx
+      test/test_TableBuilder.cxx
+      test/test_Task.cxx
       test/test_TimeParallelPipelining.cxx
       test/test_TypeTraits.cxx
       test/test_Variants.cxx
       test/test_WorkflowHelpers.cxx
-      test/test_TMessageSerializer.cxx
-      test/test_DataAllocator.cxx
-      test/test_CallbackRegistry.cxx
-      test/test_Task.cxx
-      test/test_TableBuilder.cxx
-      test/test_InfoLogger.cxx
    )
 
 O2_GENERATE_TESTS(

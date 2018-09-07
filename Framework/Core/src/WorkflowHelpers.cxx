@@ -10,12 +10,14 @@
 #include "WorkflowHelpers.h"
 #include "Framework/ChannelMatching.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/AlgorithmSpec.h"
 #include <algorithm>
 #include <list>
 #include <set>
 #include <utility>
 #include <vector>
 #include <climits>
+#include <thread>
 
 namespace o2
 {
@@ -89,6 +91,67 @@ WorkflowHelpers::topologicalSort(size_t nodeCount,
     std::copy(withPredecessor.begin(), withPredecessor.end(), std::back_inserter(L));
   }
   return S;
+}
+
+void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
+{
+  auto fakeCallback = AlgorithmSpec{ [](InitContext&) {
+    LOG(INFO) << "This is not a real device, merely a placeholder for external inputs";
+    LOG(INFO) << "To be hidden / removed at some point.";
+    return [](ProcessingContext& ctx) {
+      std::this_thread::sleep_for(std::chrono::seconds(2));
+    };
+  } };
+  DataProcessorSpec ccdbBackend{ "internal-dpl-ccdb-backend",
+                                 {},
+                                 {},
+                                 fakeCallback };
+  DataProcessorSpec transientStore{ "internal-dpl-transient-store",
+                                    {},
+                                    {},
+                                    fakeCallback };
+  DataProcessorSpec qaStore{ "internal-dpl-qa-store",
+                             {},
+                             {},
+                             fakeCallback };
+  DataProcessorSpec timer{ "internal-dpl-clock",
+                           {},
+                           {},
+                           fakeCallback };
+
+  for (size_t wi = 0; wi < workflow.size(); ++wi) {
+    auto& consumer = workflow[wi];
+    for (size_t ii = 0; ii < consumer.inputs.size(); ++ii) {
+      auto& input = consumer.inputs[ii];
+      OutputSpec output{ input.origin,
+                         input.description,
+                         input.subSpec,
+                         input.lifetime };
+      switch (input.lifetime) {
+        case Lifetime::Timer:
+          timer.outputs.push_back(output);
+          break;
+        case Lifetime::Condition:
+        case Lifetime::QA:
+        case Lifetime::Transient:
+        case Lifetime::Timeframe:
+          break;
+      }
+    }
+  }
+
+  if (ccdbBackend.outputs.empty() == false) {
+    workflow.push_back(ccdbBackend);
+  }
+  if (transientStore.outputs.empty() == false) {
+    workflow.push_back(transientStore);
+  }
+  if (qaStore.outputs.empty() == false) {
+    workflow.push_back(qaStore);
+  }
+  if (timer.outputs.empty() == false) {
+    workflow.push_back(timer);
+  }
 }
 
 void

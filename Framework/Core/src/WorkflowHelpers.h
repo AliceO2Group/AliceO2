@@ -123,6 +123,11 @@ struct WorkflowHelpers {
   // it contains no empty labels.
   static void verifyWorkflow(const WorkflowSpec &workflow);
 
+  // Depending on the workflow and the dangling inputs inside it, inject "fake"
+  // devices to mark the fact we might need some extra action to make sure
+  // dangling inputs are satisfied.
+  static void injectServiceDevices(WorkflowSpec& workflow);
+
   static void constructGraph(const WorkflowSpec &workflow,
                              std::vector<DeviceConnectionEdge> &logicalEdges,
                              std::vector<OutputSpec> &outputs,
