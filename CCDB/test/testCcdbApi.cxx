@@ -137,7 +137,7 @@ void countItems(const string& s, int& countObjects, int& countSubfolders)
       }
     }
 
-    if (line.find("\"path\"") == 0) {
+    if (line.find(R"("path")") == 0) {
       countObjects++;
     }
   }
