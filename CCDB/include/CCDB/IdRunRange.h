@@ -63,11 +63,11 @@ class IdRunRange : public TObject
     return mFirstRun < 0 && mLastRun < 0;
   };
 
-  Bool_t isOverlappingWith(const IdRunRange &other) const;
+  Bool_t isOverlappingWith(const IdRunRange& other) const;
 
-  Bool_t isSupersetOf(const IdRunRange &other) const;
+  Bool_t isSupersetOf(const IdRunRange& other) const;
 
-  virtual Bool_t isEqual(const TObject *obj) const;
+  virtual Bool_t isEqual(const TObject* obj) const;
 
   static Int_t Infinity()
   {
@@ -80,7 +80,7 @@ class IdRunRange : public TObject
 
   static const Int_t sInfinity = 999999999; //! Flag for "infinity"
 
- ClassDefOverride(IdRunRange, 1)
+  ClassDefOverride(IdRunRange, 1)
 };
 }
 }

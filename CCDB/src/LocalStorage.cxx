@@ -1125,7 +1125,8 @@ void LocalStorage::setRetry(Int_t /* nretry */, Int_t /* initsec */)
   // Function to set the exponential retry for putting entries in the OCDB
 
   LOG(INFO) << "This function sets the exponential retry for putting entries in the OCDB - to be "
-               "used ONLY for  GridStorage --> returning without doing anything" << FairLogger::endl;
+               "used ONLY for  GridStorage --> returning without doing anything"
+            << FairLogger::endl;
   return;
 }
 

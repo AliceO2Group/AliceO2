@@ -26,8 +26,7 @@ class ObjectHandler
   virtual ~ObjectHandler();
 
   /// Returns the binary payload of a ROOT file as an std::string
-  static void GetObject(const std::string &path, std::string &object);
-
+  static void GetObject(const std::string& path, std::string& object);
 };
 }
 }

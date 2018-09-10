@@ -36,32 +36,32 @@ class XmlHandler : public TObject
 
   XmlHandler(Int_t run);
 
-  XmlHandler(const XmlHandler &sh);
+  XmlHandler(const XmlHandler& sh);
 
   ~XmlHandler() override;
 
-  XmlHandler &operator=(const XmlHandler &sh);
+  XmlHandler& operator=(const XmlHandler& sh);
 
   // functions to interface to TSAXHandler
   void OnStartDocument();
 
   void OnEndDocument();
 
-  void OnStartElement(const char *name, const TList *attributes);
+  void OnStartElement(const char* name, const TList* attributes);
 
-  void OnEndElement(const char *name);
+  void OnEndElement(const char* name);
 
-  void OnCharacters(const char *name);
+  void OnCharacters(const char* name);
 
-  void OnComment(const char *name);
+  void OnComment(const char* name);
 
-  void OnWarning(const char *name);
+  void OnWarning(const char* name);
 
-  void OnError(const char *name);
+  void OnError(const char* name);
 
-  void OnFatalError(const char *name);
+  void OnFatalError(const char* name);
 
-  void OnCdataBlock(const char *name, Int_t len);
+  void OnCdataBlock(const char* name, Int_t len);
 
   Int_t getStartIdRunRange() const
   {
@@ -84,12 +84,12 @@ class XmlHandler : public TObject
   }
 
  private:
-  Int_t mRun;           // run for which the LHC Period Folder has to be found
+  Int_t mRun;             // run for which the LHC Period Folder has to be found
   Int_t mStartIdRunRange; // start run corresponding to the request
   Int_t mEndIdRunRange;   // end run corresponding to the request
-  TString mOCDBFolder;  // OCDB folder corresponding to the request
+  TString mOCDBFolder;    // OCDB folder corresponding to the request
 
- ClassDefOverride(XmlHandler, 0) // The XML file handler for the OCDB
+  ClassDefOverride(XmlHandler, 0) // The XML file handler for the OCDB
 };
 }
 }

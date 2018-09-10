@@ -34,10 +34,10 @@ class BackendOCDB : public Backend
   ~BackendOCDB() override = default;
 
   /// Prepares an object before transmission to CCDB server
-  void Pack(const std::string &path, const std::string &key, std::string *&messageString) override;
+  void Pack(const std::string& path, const std::string& key, std::string*& messageString) override;
 
   /// Parses an incoming message from the CCDB server and prints the metadata of the included object
-  Condition *UnPack(std::unique_ptr<FairMQMessage> msg) override;
+  Condition* UnPack(std::unique_ptr<FairMQMessage> msg) override;
 };
 }
 }

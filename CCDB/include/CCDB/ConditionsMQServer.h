@@ -40,15 +40,15 @@ class ConditionsMQServer : public ParameterMQServer
   void InitTask() override;
 
  private:
-  Manager *mCdbManager;
+  Manager* mCdbManager;
 
   void getFromOCDB(std::string key);
 
   /// Parses a serialized message for a data source entry
-  void ParseDataSource(std::string &dataSource, const std::string &data);
+  void ParseDataSource(std::string& dataSource, const std::string& data);
 
   /// Deserializes a message and stores the value to an std::string using Protocol Buffers
-  void Deserialize(const std::string &messageString, std::string &key);
+  void Deserialize(const std::string& messageString, std::string& key);
 };
 }
 }

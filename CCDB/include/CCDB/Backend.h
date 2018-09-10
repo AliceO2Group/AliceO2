@@ -36,14 +36,14 @@ class Backend
   virtual ~Backend() = default;
 
   /// Pack
-  virtual void Pack(const std::string &path, const std::string &key, std::string *&messageString) = 0;
+  virtual void Pack(const std::string& path, const std::string& key, std::string*& messageString) = 0;
 
   /// UnPack
-  virtual Condition *UnPack(std::unique_ptr<FairMQMessage> msg) = 0;
+  virtual Condition* UnPack(std::unique_ptr<FairMQMessage> msg) = 0;
 
   /// Serializes a key (and optionally value) to an std::string using Protocol Buffers
-  void Serialize(std::string *&messageString, const std::string &key, const std::string &operationType,
-                 const std::string &dataSource, const std::string &object = std::string());
+  void Serialize(std::string*& messageString, const std::string& key, const std::string& operationType,
+                 const std::string& dataSource, const std::string& object = std::string());
 };
 }
 }

@@ -30,22 +30,25 @@ using namespace std;
 class WrapTMessage : public TMessage
 {
  public:
-  WrapTMessage(void *buf, Int_t len) : TMessage(buf, len)
-  { ResetBit(kIsOwner); }
+  WrapTMessage(void* buf, Int_t len) : TMessage(buf, len)
+  {
+    ResetBit(kIsOwner);
+  }
 };
 
 BackendOCDB::BackendOCDB()
-{}
+{
+}
 
-void BackendOCDB::Pack(const std::string &path, const std::string &key, std::string *&messageString)
+void BackendOCDB::Pack(const std::string& path, const std::string& key, std::string*& messageString)
 {
   LOG(ERROR) << "The PUT operation is not supported for the OCDB backend yet";
 }
 
-Condition *BackendOCDB::UnPack(std::unique_ptr<FairMQMessage> msg)
+Condition* BackendOCDB::UnPack(std::unique_ptr<FairMQMessage> msg)
 {
   WrapTMessage tmsg(msg->GetData(), msg->GetSize());
-  Condition *aCondition = (Condition *) (tmsg.ReadObject(tmsg.GetClass()));
+  Condition* aCondition = (Condition*)(tmsg.ReadObject(tmsg.GetClass()));
   LOG(DEBUG) << "Received a condition from the server:";
   aCondition->printConditionMetaData();
   return aCondition;

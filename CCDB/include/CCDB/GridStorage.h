@@ -50,61 +50,61 @@ class GridStorage : public Storage
     return kFALSE;
   }
 
-  Bool_t hasConditionType(const char *path) const override;
+  Bool_t hasConditionType(const char* path) const override;
 
-  Bool_t idToFilename(const ConditionId &id, TString &filename) const override;
+  Bool_t idToFilename(const ConditionId& id, TString& filename) const override;
 
   void setRetry(Int_t nretry, Int_t initsec) override;
 
-  void setMirrorSEs(const char *mirrors) override
+  void setMirrorSEs(const char* mirrors) override
   {
     mMirrorSEs = mirrors;
   }
 
-  const char *getMirrorSEs() const override
+  const char* getMirrorSEs() const override
   {
     return mMirrorSEs;
   }
 
  protected:
-  Condition *getCondition(const ConditionId &queryId) override;
+  Condition* getCondition(const ConditionId& queryId) override;
 
-  ConditionId *getConditionId(const ConditionId &queryId) override;
+  ConditionId* getConditionId(const ConditionId& queryId) override;
 
-  TList *getAllEntries(const ConditionId &queryId) override;
+  TList* getAllEntries(const ConditionId& queryId) override;
 
-  Bool_t putCondition(Condition *entry, const char *mirrors = "") override;
+  Bool_t putCondition(Condition* entry, const char* mirrors = "") override;
 
-  TList *getIdListFromFile(const char *fileName) override;
+  TList* getIdListFromFile(const char* fileName) override;
 
  private:
-  GridStorage(const char *gridUrl, const char *user, const char *dbFolder, const char *se, const char *cacheFolder,
+  GridStorage(const char* gridUrl, const char* user, const char* dbFolder, const char* se, const char* cacheFolder,
               Bool_t operateDisconnected, Long64_t cacheSize, Long_t cleanupInterval);
 
   ~GridStorage() override;
 
-  GridStorage(const GridStorage &db);
+  GridStorage(const GridStorage& db);
 
-  GridStorage &operator=(const GridStorage &db);
+  GridStorage& operator=(const GridStorage& db);
 
-  Bool_t filenameToId(TString &filename, ConditionId &id);
+  Bool_t filenameToId(TString& filename, ConditionId& id);
 
-  Bool_t prepareId(ConditionId &id);
+  Bool_t prepareId(ConditionId& id);
 
-  ConditionId *getId(const TObjArray &validFileIds, const ConditionId &query);
+  ConditionId* getId(const TObjArray& validFileIds, const ConditionId& query);
 
-  Condition *getConditionFromFile(TString &filename, ConditionId *dataId);
+  Condition* getConditionFromFile(TString& filename, ConditionId* dataId);
 
-  Bool_t putInCvmfs(TString &fullFilename, TFile *cdbFile) const;
+  Bool_t putInCvmfs(TString& fullFilename, TFile* cdbFile) const;
 
   // TODO  use AliEnTag classes!
-  Bool_t addTag(TString &foldername, const char *tagname);
+  Bool_t addTag(TString& foldername, const char* tagname);
 
-  Bool_t tagFileId(TString &filename, const ConditionId *id);
+  Bool_t tagFileId(TString& filename, const ConditionId* id);
 
-  Bool_t tagFileConditionMetaData(TString &filename, const ConditionMetaData *md);
+  Bool_t tagFileConditionMetaData(TString& filename, const ConditionMetaData* md);
 
-  void makeQueryFilter(Int_t firstRun, Int_t lastRun, const ConditionMetaData *md, TString &result) const;
+  void makeQueryFilter(Int_t firstRun, Int_t lastRun, const ConditionMetaData* md, TString& result) const;
 
   void queryValidFiles() override;
 
@@ -118,7 +118,7 @@ class GridStorage : public Storage
   Long64_t mCacheSize;         // local cache size (in bytes)
   Long_t mCleanupInterval;     // local cache cleanup interval
 
- ClassDefOverride(GridStorage, 0) // access class to a DataBase in an AliEn storage
+  ClassDefOverride(GridStorage, 0) // access class to a DataBase in an AliEn storage
 };
 
 /////////////////////////////////////////////////////////////////////
@@ -131,17 +131,17 @@ class GridStorageFactory : public StorageFactory
 {
 
  public:
-  Bool_t validateStorageUri(const char *gridString) override;
+  Bool_t validateStorageUri(const char* gridString) override;
 
-  StorageParameters *createStorageParameter(const char *gridString) override;
+  StorageParameters* createStorageParameter(const char* gridString) override;
 
   ~GridStorageFactory()
-  override = default;
+    override = default;
 
  protected:
-  Storage *createStorage(const StorageParameters *param) override;
+  Storage* createStorage(const StorageParameters* param) override;
 
- ClassDefOverride(GridStorageFactory, 0)
+  ClassDefOverride(GridStorageFactory, 0)
 };
 
 /////////////////////////////////////////////////////////////////////
@@ -156,33 +156,33 @@ class GridStorageParameters : public StorageParameters
  public:
   GridStorageParameters();
 
-  GridStorageParameters(const char *gridUrl, const char *user, const char *dbFolder, const char *se,
-                        const char *cacheFolder,
+  GridStorageParameters(const char* gridUrl, const char* user, const char* dbFolder, const char* se,
+                        const char* cacheFolder,
                         Bool_t operateDisconnected, Long64_t cacheSize, Long_t cleanupInterval);
 
   ~GridStorageParameters() override;
 
-  const TString &GridUrl() const
+  const TString& GridUrl() const
   {
     return mGridUrl;
   }
 
-  const TString &getUser() const
+  const TString& getUser() const
   {
     return mUser;
   }
 
-  const TString &getDBFolder() const
+  const TString& getDBFolder() const
   {
     return mDBFolder;
   }
 
-  const TString &getSE() const
+  const TString& getSE() const
   {
     return mSE;
   }
 
-  const TString &getCacheFolder() const
+  const TString& getCacheFolder() const
   {
     return mCacheFolder;
   }
@@ -202,11 +202,11 @@ class GridStorageParameters : public StorageParameters
     return mCleanupInterval;
   }
 
-  StorageParameters *cloneParam() const override;
+  StorageParameters* cloneParam() const override;
 
   virtual ULong_t getHash() const;
 
-  virtual Bool_t isEqual(const TObject *obj) const;
+  virtual Bool_t isEqual(const TObject* obj) const;
 
  private:
   TString mGridUrl;            // GridStorage url "Host:port"
@@ -218,7 +218,7 @@ class GridStorageParameters : public StorageParameters
   Long64_t mCacheSize;         // local cache size (in bytes)
   Long_t mCleanupInterval;     // local cache cleanup interval
 
- ClassDefOverride(GridStorageParameters, 0)
+  ClassDefOverride(GridStorageParameters, 0)
 };
 }
 }

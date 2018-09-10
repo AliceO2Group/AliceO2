@@ -215,7 +215,8 @@ void GridStorage::setRetry(Int_t nretry, Int_t initsec)
   // Function to set the exponential retry for putting entries in the OCDB
 
   LOG(WARNING) << "WARNING!!! You are changing the exponential retry times and delay: this "
-                  "function should be used by experts!" << FairLogger::endl;
+                  "function should be used by experts!"
+               << FairLogger::endl;
   mNretry = nretry;
   mInitRetrySeconds = initsec;
   LOG(DEBUG) << "mNretry = " << mNretry << ", mInitRetrySeconds = " << mInitRetrySeconds << FairLogger::endl;
@@ -1410,10 +1411,11 @@ GridStorageParameters::GridStorageParameters(const char *gridUrl, const char *us
 {
   // constructor
   setType("alien");
-  TString uri = Form("%s?User=%s?DBFolder=%s?SE=%s?CacheFolder=%s"
-                     "?OperateDisconnected=%d?CacheSize=%lld?CleanupInterval=%ld",
-                     mGridUrl.Data(), mUser.Data(), mDBFolder.Data(), mSE.Data(), mCacheFolder.Data(),
-                     mOperateDisconnected, mCacheSize, mCleanupInterval);
+  TString uri = Form(
+    "%s?User=%s?DBFolder=%s?SE=%s?CacheFolder=%s"
+    "?OperateDisconnected=%d?CacheSize=%lld?CleanupInterval=%ld",
+    mGridUrl.Data(), mUser.Data(), mDBFolder.Data(), mSE.Data(), mCacheFolder.Data(),
+    mOperateDisconnected, mCacheSize, mCleanupInterval);
   setUri(uri.Data());
 }
 

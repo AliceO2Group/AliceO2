@@ -30,7 +30,6 @@ class IdRunRange;
 }
 }
 
-
 namespace o2
 {
 namespace ccdb
@@ -48,51 +47,51 @@ class Condition : public TObject
   Condition();
 
   /// Constructor
-  Condition(TObject *object, const ConditionId &id, ConditionMetaData *metaData, Bool_t owner = kFALSE);
+  Condition(TObject* object, const ConditionId& id, ConditionMetaData* metaData, Bool_t owner = kFALSE);
 
   /// Constructor
-  Condition(TObject *object, const IdPath &path, const IdRunRange &runRange, ConditionMetaData *metaData,
+  Condition(TObject* object, const IdPath& path, const IdRunRange& runRange, ConditionMetaData* metaData,
             Bool_t owner = kFALSE);
 
   /// Constructor
-  Condition(TObject *object, const IdPath &path, const IdRunRange &runRange, Int_t version,
-            ConditionMetaData *metaData,
+  Condition(TObject* object, const IdPath& path, const IdRunRange& runRange, Int_t version,
+            ConditionMetaData* metaData,
             Bool_t owner = kFALSE);
 
   /// Constructor
-  Condition(TObject *object, const IdPath &path, const IdRunRange &runRange, Int_t version, Int_t subVersion,
-            ConditionMetaData *metaData, Bool_t owner = kFALSE);
+  Condition(TObject* object, const IdPath& path, const IdRunRange& runRange, Int_t version, Int_t subVersion,
+            ConditionMetaData* metaData, Bool_t owner = kFALSE);
 
   /// Constructor
-  Condition(TObject *object, const IdPath &path, Int_t firstRun, Int_t lastRun, ConditionMetaData *metaData,
+  Condition(TObject* object, const IdPath& path, Int_t firstRun, Int_t lastRun, ConditionMetaData* metaData,
             Bool_t owner = kFALSE);
 
   /// Constructor
-  Condition(TObject *object, const IdPath &path, Int_t firstRun, Int_t lastRun, Int_t version,
-            ConditionMetaData *metaData,
+  Condition(TObject* object, const IdPath& path, Int_t firstRun, Int_t lastRun, Int_t version,
+            ConditionMetaData* metaData,
             Bool_t owner = kFALSE);
 
   /// Constructor
-  Condition(TObject *object, const IdPath &path, Int_t firstRun, Int_t lastRun, Int_t version, Int_t subVersion,
-            ConditionMetaData *metaData, Bool_t owner = kFALSE);
+  Condition(TObject* object, const IdPath& path, Int_t firstRun, Int_t lastRun, Int_t version, Int_t subVersion,
+            ConditionMetaData* metaData, Bool_t owner = kFALSE);
 
   /// Default destructor
   ~Condition() override;
 
   /// Set the object identity from an ConditionId
-  void setId(const ConditionId &id)
+  void setId(const ConditionId& id)
   {
     mId = id;
   };
 
   /// ConditionId accessor
-  ConditionId &getId()
+  ConditionId& getId()
   {
     return mId;
   };
 
   /// ConditionId accessor
-  const ConditionId &getId() const
+  const ConditionId& getId() const
   {
     return mId;
   };
@@ -101,48 +100,48 @@ class Condition : public TObject
   void printId() const;
 
   /// Setter of the TObject data member
-  void setObject(TObject *object)
+  void setObject(TObject* object)
   {
     mObject = object;
   };
 
   /// Getter of the TObject data member
-  TObject *getObject()
+  TObject* getObject()
   {
     return mObject;
   };
 
   /// Getter of the TObject data member
-  const TObject *getObject() const
+  const TObject* getObject() const
   {
     return mObject;
   };
 
   /// retrieve object as specified type
   /// return false if failed/true otherwise
-  template<typename T>
-  bool getObjectAs(T *&obj)
+  template <typename T>
+  bool getObjectAs(T*& obj)
   {
     obj = nullptr;
     // test if saved object was a wrapped object
-    if (auto wrapped = dynamic_cast<TObjectWrapper<T> *>(mObject)) {
+    if (auto wrapped = dynamic_cast<TObjectWrapper<T>*>(mObject)) {
       obj = wrapped->getObj();
       return true;
     }
     return false;
   }
 
-  void setConditionMetaData(ConditionMetaData *metaData)
+  void setConditionMetaData(ConditionMetaData* metaData)
   {
     mConditionMetaData = metaData;
   };
 
-  ConditionMetaData *getConditionMetaData()
+  ConditionMetaData* getConditionMetaData()
   {
     return mConditionMetaData;
   };
 
-  const ConditionMetaData *getConditionMetaData() const
+  const ConditionMetaData* getConditionMetaData() const
   {
     return mConditionMetaData;
   };
@@ -189,21 +188,21 @@ class Condition : public TObject
   };
 
   /// Method to compare two CDB objects, used for sorting in ROOT ordered containers
-  Int_t Compare(const TObject *obj) const override;
+  Int_t Compare(const TObject* obj) const override;
 
   /// Define this class sortable (via the Compare method) for ROOT ordered containers
   Bool_t IsSortable() const override;
 
  private:
-  Condition(const Condition &other);          // no copy ctor
-  void operator=(const Condition &other); // no assignment op
+  Condition(const Condition& other);      // no copy ctor
+  void operator=(const Condition& other); // no assignment op
 
-  TObject *mObject;    ///< The actual condition, a ROOT TObject
-  ConditionId mId;        ///< The condition identifier
-  ConditionMetaData *mConditionMetaData; ///< metaData
-  Bool_t mOwner;     ///< Ownership flag
+  TObject* mObject;                      ///< The actual condition, a ROOT TObject
+  ConditionId mId;                       ///< The condition identifier
+  ConditionMetaData* mConditionMetaData; ///< metaData
+  Bool_t mOwner;                         ///< Ownership flag
 
- ClassDefOverride(Condition, 1)
+  ClassDefOverride(Condition, 1)
 };
 }
 }

@@ -29,28 +29,28 @@ class IdPath : public TObject
  public:
   IdPath();
 
-  IdPath(const IdPath &other);
+  IdPath(const IdPath& other);
 
-  IdPath(const char *level0, const char *level1, const char *level2);
+  IdPath(const char* level0, const char* level1, const char* level2);
 
-  IdPath(const char *path);
+  IdPath(const char* path);
 
-  IdPath(const TString &path);
+  IdPath(const TString& path);
 
   ~IdPath() override;
 
-  const TString &getPathString() const
+  const TString& getPathString() const
   {
     return mPath;
   }
 
-  void setPath(const char *path)
+  void setPath(const char* path)
   {
     mPath = path;
     InitPath();
   }
 
-  const char *getLevel(Int_t i) const;
+  const char* getLevel(Int_t i) const;
 
   Bool_t isValid() const
   {
@@ -62,16 +62,16 @@ class IdPath : public TObject
     return mWildcard;
   }
 
-  Bool_t doesLevel0Contain(const TString &str) const;
+  Bool_t doesLevel0Contain(const TString& str) const;
 
-  Bool_t doesLevel1Contain(const TString &str) const;
+  Bool_t doesLevel1Contain(const TString& str) const;
 
-  Bool_t doesLevel2Contain(const TString &str) const;
+  Bool_t doesLevel2Contain(const TString& str) const;
 
-  Bool_t isSupersetOf(const IdPath &other) const;
+  Bool_t isSupersetOf(const IdPath& other) const;
 
  private:
-  Bool_t isWord(const TString &str);
+  Bool_t isWord(const TString& str);
 
   void InitPath();
 
@@ -85,7 +85,7 @@ class IdPath : public TObject
   Bool_t mValid;    // validity flag
   Bool_t mWildcard; // wildcard flag
 
- ClassDefOverride(IdPath, 1)
+  ClassDefOverride(IdPath, 1)
 };
 }
 }

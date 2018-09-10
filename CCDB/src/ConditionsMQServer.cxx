@@ -36,7 +36,8 @@ using std::cout;
 using std::string;
 
 ConditionsMQServer::ConditionsMQServer() : ParameterMQServer(), mCdbManager(o2::ccdb::Manager::Instance())
-{}
+{
+}
 
 void ConditionsMQServer::InitTask()
 {
@@ -59,12 +60,14 @@ void ConditionsMQServer::InitTask()
   }
 }
 
-void free_tmessage(void *data, void *hint)
-{ delete static_cast<TMessage *>(hint); }
-
-void ConditionsMQServer::ParseDataSource(std::string &dataSource, const std::string &data)
+void free_tmessage(void* data, void* hint)
 {
-  messaging::RequestMessage *msgReply = new messaging::RequestMessage;
+  delete static_cast<TMessage*>(hint);
+}
+
+void ConditionsMQServer::ParseDataSource(std::string& dataSource, const std::string& data)
+{
+  messaging::RequestMessage* msgReply = new messaging::RequestMessage;
   msgReply->ParseFromString(data);
 
   LOG(DEBUG) << "Data source: " << msgReply->datasource();
@@ -74,9 +77,9 @@ void ConditionsMQServer::ParseDataSource(std::string &dataSource, const std::str
   delete msgReply;
 }
 
-void ConditionsMQServer::Deserialize(const std::string &messageString, std::string &object)
+void ConditionsMQServer::Deserialize(const std::string& messageString, std::string& object)
 {
-  messaging::RequestMessage *requestMessage = new messaging::RequestMessage;
+  messaging::RequestMessage* requestMessage = new messaging::RequestMessage;
   requestMessage->ParseFromString(messageString);
 
   object.assign(requestMessage->key());
@@ -87,7 +90,7 @@ void ConditionsMQServer::Deserialize(const std::string &messageString, std::stri
 void ConditionsMQServer::Run()
 {
   std::unique_ptr<FairMQPoller> poller(
-    fTransportFactory->CreatePoller(fChannels, {"data-put", "data-get", "broker-get"}));
+    fTransportFactory->CreatePoller(fChannels, { "data-put", "data-get", "broker-get" }));
 
   while (CheckCurrentState(RUNNING)) {
 
@@ -97,7 +100,7 @@ void ConditionsMQServer::Run()
       std::unique_ptr<FairMQMessage> input(fTransportFactory->CreateMessage());
 
       if (Receive(input, "data-get") > 0) {
-        std::string serialString(static_cast<char *>(input->GetData()), input->GetSize());
+        std::string serialString(static_cast<char*>(input->GetData()), input->GetSize());
 
         //LOG(DEBUG) << "Received a GET client message: " << serialString;
 
@@ -121,7 +124,7 @@ void ConditionsMQServer::Run()
       std::unique_ptr<FairMQMessage> input(fTransportFactory->CreateMessage());
 
       if (Receive(input, "data-put") > 0) {
-        std::string serialString(static_cast<char *>(input->GetData()), input->GetSize());
+        std::string serialString(static_cast<char*>(input->GetData()), input->GetSize());
 
         // LOG(DEBUG) << "Received a PUT client message: " << serialString;
         LOG(DEBUG) << "Message size: " << input->GetSize();
@@ -160,7 +163,7 @@ void ConditionsMQServer::getFromOCDB(std::string key)
   std::size_t pos2 = key.find("_");
   int runId = atoi(key.substr(0, pos2).c_str());
 
-  Condition *aCondition = nullptr;
+  Condition* aCondition = nullptr;
 
   mCdbManager->setRun(runId);
   aCondition = mCdbManager->getCondition(IdPath(identifier), runId);
@@ -168,7 +171,7 @@ void ConditionsMQServer::getFromOCDB(std::string key)
   if (aCondition) {
     LOG(DEBUG) << "Sending following parameter to the client:";
     aCondition->printConditionMetaData();
-    TMessage *tmsg = new TMessage(kMESS_OBJECT);
+    TMessage* tmsg = new TMessage(kMESS_OBJECT);
     tmsg->WriteObject(aCondition);
 
     std::unique_ptr<FairMQMessage> message(
@@ -181,4 +184,6 @@ void ConditionsMQServer::getFromOCDB(std::string key)
 }
 
 ConditionsMQServer::~ConditionsMQServer()
-{ delete mCdbManager; }
+{
+  delete mCdbManager;
+}

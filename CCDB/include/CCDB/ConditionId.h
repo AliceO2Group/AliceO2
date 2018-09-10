@@ -30,22 +30,22 @@ class ConditionId : public TObject
  public:
   ConditionId();
 
-  ConditionId(const ConditionId &other);
+  ConditionId(const ConditionId& other);
 
-  ConditionId(const IdPath &path, const IdRunRange &runRange, Int_t version = -1, Int_t subVersion = -1);
+  ConditionId(const IdPath& path, const IdRunRange& runRange, Int_t version = -1, Int_t subVersion = -1);
 
-  ConditionId(const IdPath &path, Int_t firstRun, Int_t lastRun, Int_t verison = -1, Int_t subVersion = -1);
+  ConditionId(const IdPath& path, Int_t firstRun, Int_t lastRun, Int_t verison = -1, Int_t subVersion = -1);
 
-  static ConditionId *makeFromString(const TString &idString);
+  static ConditionId* makeFromString(const TString& idString);
 
   ~ConditionId() override;
 
-  const IdPath &getPath() const
+  const IdPath& getPath() const
   {
     return mPath;
   }
 
-  const TString &getPathString() const
+  const TString& getPathString() const
   {
     return mPath.getPathString();
   }
@@ -60,17 +60,17 @@ class ConditionId : public TObject
     return mPath.isWildcard();
   }
 
-  void setPath(const char *path)
+  void setPath(const char* path)
   {
     mPath.setPath(path);
   }
 
-  const IdRunRange &getIdRunRange() const
+  const IdRunRange& getIdRunRange() const
   {
     return mIdRunRange;
   }
 
-  IdRunRange &getIdRunRange()
+  IdRunRange& getIdRunRange()
   {
     return mIdRunRange;
   }
@@ -125,12 +125,12 @@ class ConditionId : public TObject
     mSubVersion = subVersion;
   }
 
-  const TString &getLastStorage() const
+  const TString& getLastStorage() const
   {
     return mLastStorage;
   }
 
-  void setLastStorage(TString &lastStorage)
+  void setLastStorage(TString& lastStorage)
   {
     mLastStorage = lastStorage;
   }
@@ -152,34 +152,34 @@ class ConditionId : public TObject
     return mSubVersion >= 0;
   }
 
-  Bool_t isSupersetOf(const ConditionId &other) const
+  Bool_t isSupersetOf(const ConditionId& other) const
   {
     return mPath.isSupersetOf(other.mPath) && mIdRunRange.isSupersetOf(other.mIdRunRange);
   }
 
-  virtual Bool_t isEqual(const TObject *obj) const;
+  virtual Bool_t isEqual(const TObject* obj) const;
 
   TString ToString() const;
 
-  void print(Option_t *option = "") const;
+  void print(Option_t* option = "") const;
 
-  Int_t Compare(const TObject *obj) const override;
+  Int_t Compare(const TObject* obj) const override;
 
   Bool_t IsSortable() const override;
 
-  const char *GetName() const override
+  const char* GetName() const override
   {
     return mPath.getPathString().Data();
   }
 
  private:
   IdPath mPath;           // path
-  IdRunRange mIdRunRange;   // run range
-  Int_t mVersion;       // version
-  Int_t mSubVersion;    // subversion
-  TString mLastStorage; // previous storage place (new, grid, local, dump)
+  IdRunRange mIdRunRange; // run range
+  Int_t mVersion;         // version
+  Int_t mSubVersion;      // subversion
+  TString mLastStorage;   // previous storage place (new, grid, local, dump)
 
- ClassDefOverride(ConditionId, 1)
+  ClassDefOverride(ConditionId, 1)
 };
 }
 }

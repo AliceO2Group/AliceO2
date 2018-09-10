@@ -54,31 +54,31 @@ class Manager : public TObject
 {
 
  public:
-  void registerFactory(StorageFactory *factory);
+  void registerFactory(StorageFactory* factory);
 
-  Bool_t hasStorage(const char *dbString) const;
+  Bool_t hasStorage(const char* dbString) const;
 
-  StorageParameters *createStorageParameter(const char *dbString) const;
+  StorageParameters* createStorageParameter(const char* dbString) const;
 
-  Storage *getStorage(const char *dbString);
+  Storage* getStorage(const char* dbString);
 
-  TList *getActiveStorages();
+  TList* getActiveStorages();
 
-  const TMap *getStorageMap() const
+  const TMap* getStorageMap() const
   {
     return mStorageMap;
   }
 
-  const TList *getRetrievedIds() const
+  const TList* getRetrievedIds() const
   {
     return mIds;
   }
 
-  void setDefaultStorage(const char *dbString);
+  void setDefaultStorage(const char* dbString);
 
-  void setDefaultStorage(const StorageParameters *param);
+  void setDefaultStorage(const StorageParameters* param);
 
-  void setDefaultStorage(Storage *storage);
+  void setDefaultStorage(Storage* storage);
 
   void setDefaultStorageFromRun(Int_t run);
 
@@ -87,22 +87,22 @@ class Manager : public TObject
     return mDefaultStorage != nullptr;
   }
 
-  Storage *getDefaultStorage() const
+  Storage* getDefaultStorage() const
   {
     return mDefaultStorage;
   }
 
   void unsetDefaultStorage();
 
-  void setSpecificStorage(const char *calibType, const char *dbString, Int_t version = -1, Int_t subVersion = -1);
+  void setSpecificStorage(const char* calibType, const char* dbString, Int_t version = -1, Int_t subVersion = -1);
 
-  Storage *getSpecificStorage(const char *calibType);
+  Storage* getSpecificStorage(const char* calibType);
 
-  void setdrainMode(const char *dbString);
+  void setdrainMode(const char* dbString);
 
-  void setdrainMode(const StorageParameters *param);
+  void setdrainMode(const StorageParameters* param);
 
-  void setdrainMode(Storage *storage);
+  void setdrainMode(Storage* storage);
 
   void unsetdrainMode()
   {
@@ -114,7 +114,7 @@ class Manager : public TObject
     return mdrainStorage != nullptr;
   }
 
-  Bool_t drain(Condition *entry);
+  Bool_t drain(Condition* entry);
 
   Bool_t setOcdbUploadMode();
 
@@ -128,32 +128,32 @@ class Manager : public TObject
     return mOcdbUploadMode;
   }
 
-  Condition *getCondition(const ConditionId &query, Bool_t forceCaching = kFALSE);
+  Condition* getCondition(const ConditionId& query, Bool_t forceCaching = kFALSE);
 
-  Condition *getCondition(const IdPath &path, Int_t runNumber = -1, Int_t version = -1, Int_t subVersion = -1);
+  Condition* getCondition(const IdPath& path, Int_t runNumber = -1, Int_t version = -1, Int_t subVersion = -1);
 
-  Condition *getCondition(const IdPath &path, const IdRunRange &runRange, Int_t version = -1, Int_t subVersion = -1);
+  Condition* getCondition(const IdPath& path, const IdRunRange& runRange, Int_t version = -1, Int_t subVersion = -1);
 
-  Condition *getConditionFromSnapshot(const char *path);
+  Condition* getConditionFromSnapshot(const char* path);
 
-  const char *getUri(const char *path);
+  const char* getUri(const char* path);
 
-  TList *getAllObjects(const ConditionId &query);
+  TList* getAllObjects(const ConditionId& query);
 
-  TList *getAllObjects(const IdPath &path, Int_t runNumber = -1, Int_t version = -1, Int_t subVersion = -1);
+  TList* getAllObjects(const IdPath& path, Int_t runNumber = -1, Int_t version = -1, Int_t subVersion = -1);
 
-  TList *getAllObjects(const IdPath &path, const IdRunRange &runRange, Int_t version = -1, Int_t subVersion = -1);
+  TList* getAllObjects(const IdPath& path, const IdRunRange& runRange, Int_t version = -1, Int_t subVersion = -1);
 
-  Bool_t putObject(TObject *object, const ConditionId &id, ConditionMetaData *metaData, const char *mirrors = "");
+  Bool_t putObject(TObject* object, const ConditionId& id, ConditionMetaData* metaData, const char* mirrors = "");
 
-  template<typename T>
-  Bool_t putObjectAny(T *ptr, const ConditionId &id, ConditionMetaData *metaData, const char *mirrors = "")
+  template <typename T>
+  Bool_t putObjectAny(T* ptr, const ConditionId& id, ConditionMetaData* metaData, const char* mirrors = "")
   {
     TObjectWrapper<T> local(ptr);
     return putObject(&local, id, metaData, mirrors);
   }
 
-  Bool_t putCondition(Condition *entry, const char *mirrors = "");
+  Bool_t putCondition(Condition* entry, const char* mirrors = "");
 
   void setCacheFlag(Bool_t cacheFlag)
   {
@@ -189,17 +189,17 @@ class Manager : public TObject
     return mRun;
   }
 
-  void setMirrorSEs(const char *mirrors);
+  void setMirrorSEs(const char* mirrors);
 
-  const char *getMirrorSEs() const;
+  const char* getMirrorSEs() const;
 
   void destroyActiveStorages();
 
-  void destroyActiveStorage(Storage *storage);
+  void destroyActiveStorage(Storage* storage);
 
   void queryStorages();
 
-  void print(Option_t *option = "") const;
+  void print(Option_t* option = "") const;
 
   static void destroy();
 
@@ -207,31 +207,31 @@ class Manager : public TObject
 
   void clearCache();
 
-  void unloadFromCache(const char *path);
+  void unloadFromCache(const char* path);
 
-  const TMap *getConditionCache() const
+  const TMap* getConditionCache() const
   {
     return &mConditionCache;
   }
 
-  static Manager *Instance(TMap *entryCache = nullptr, Int_t run = -1);
+  static Manager* Instance(TMap* entryCache = nullptr, Int_t run = -1);
 
   void init();
 
-  void initFromCache(TMap *entryCache, Int_t run);
+  void initFromCache(TMap* entryCache, Int_t run);
 
-  Bool_t initFromSnapshot(const char *snapshotFileName, Bool_t overwrite = kTRUE);
+  Bool_t initFromSnapshot(const char* snapshotFileName, Bool_t overwrite = kTRUE);
 
-  Bool_t setSnapshotMode(const char *snapshotFileName = "OCDB.root");
+  Bool_t setSnapshotMode(const char* snapshotFileName = "OCDB.root");
 
   void unsetSnapshotMode()
   {
     mSnapshotMode = kFALSE;
   }
 
-  void dumpToSnapshotFile(const char *snapshotFileName, Bool_t singleKeys) const;
+  void dumpToSnapshotFile(const char* snapshotFileName, Bool_t singleKeys) const;
 
-  void dumpToLightSnapshotFile(const char *lightSnapshotFileName) const;
+  void dumpToLightSnapshotFile(const char* lightSnapshotFileName) const;
 
   Int_t getStartRunLHCPeriod();
 
@@ -244,68 +244,68 @@ class Manager : public TObject
     return mCvmfsOcdb;
   }
 
-  Bool_t diffObjects(const char *cdbFile1, const char *cdbFile2) const;
+  Bool_t diffObjects(const char* cdbFile1, const char* cdbFile2) const;
 
-  void extractBaseFolder(TString &url); // remove everything but the url from OCDB path
+  void extractBaseFolder(TString& url); // remove everything but the url from OCDB path
 
  protected:
   static TString sOcdbFolderXmlFile; // alien path of the XML file for OCDB folder <--> Run range correspondance
 
   Manager();
 
-  Manager(const Manager &source);
+  Manager(const Manager& source);
 
-  Manager &operator=(const Manager &source);
+  Manager& operator=(const Manager& source);
 
-  static Manager *sInstance; // Manager instance
+  static Manager* sInstance; // Manager instance
 
-  Storage *getStorage(const StorageParameters *param);
+  Storage* getStorage(const StorageParameters* param);
 
-  Storage *getActiveStorage(const StorageParameters *param);
+  Storage* getActiveStorage(const StorageParameters* param);
 
-  void putActiveStorage(StorageParameters *param, Storage *storage);
+  void putActiveStorage(StorageParameters* param, Storage* storage);
 
-  void setSpecificStorage(const char *calibType, const StorageParameters *param, Int_t version = -1,
+  void setSpecificStorage(const char* calibType, const StorageParameters* param, Int_t version = -1,
                           Int_t subVersion = -1);
 
-  void alienToCvmfsUri(TString &uriString) const;
+  void alienToCvmfsUri(TString& uriString) const;
 
   void validateCvmfsCase() const;
 
-  void getLHCPeriodAgainstAlienFile(Int_t run, TString &lhcPeriod, Int_t &startRun, Int_t &endRun);
+  void getLHCPeriodAgainstAlienFile(Int_t run, TString& lhcPeriod, Int_t& startRun, Int_t& endRun);
 
-  void getLHCPeriodAgainstCvmfsFile(Int_t run, TString &lhcPeriod, Int_t &startRun, Int_t &endRun);
+  void getLHCPeriodAgainstCvmfsFile(Int_t run, TString& lhcPeriod, Int_t& startRun, Int_t& endRun);
 
-  void cacheCondition(const char *path, Condition *entry);
+  void cacheCondition(const char* path, Condition* entry);
 
-  StorageParameters *selectSpecificStorage(const TString &path);
+  StorageParameters* selectSpecificStorage(const TString& path);
 
-  ConditionId *getId(const ConditionId &query);
+  ConditionId* getId(const ConditionId& query);
 
-  ConditionId *getId(const IdPath &path, Int_t runNumber = -1, Int_t version = -1, Int_t subVersion = -1);
+  ConditionId* getId(const IdPath& path, Int_t runNumber = -1, Int_t version = -1, Int_t subVersion = -1);
 
-  ConditionId *getId(const IdPath &path, const IdRunRange &runRange, Int_t version = -1, Int_t subVersion = -1);
+  ConditionId* getId(const IdPath& path, const IdRunRange& runRange, Int_t version = -1, Int_t subVersion = -1);
 
   TList mFactories;       //! list of registered storage factories
   TMap mActiveStorages;   //! list of active storages
   TMap mSpecificStorages; //! list of detector-specific storages
-  TMap mConditionCache;       //! cache of the retrieved objects
+  TMap mConditionCache;   //! cache of the retrieved objects
 
-  TList *mIds;       //! List of the retrieved object ConditionId's (to be streamed to file)
-  TMap *mStorageMap; //! list of storages (to be streamed to file)
+  TList* mIds;       //! List of the retrieved object ConditionId's (to be streamed to file)
+  TMap* mStorageMap; //! list of storages (to be streamed to file)
 
-  Storage *mDefaultStorage; //! pointer to default storage
-  Storage *mdrainStorage;   //! pointer to drain storage
+  Storage* mDefaultStorage; //! pointer to default storage
+  Storage* mdrainStorage;   //! pointer to drain storage
 
-  StorageParameters *mOfficialStorageParameters;  // Conditions data storage parameters
-  StorageParameters *mReferenceStorageParameters; // Reference data storage parameters
+  StorageParameters* mOfficialStorageParameters;  // Conditions data storage parameters
+  StorageParameters* mReferenceStorageParameters; // Reference data storage parameters
 
   Int_t mRun;    //! The run number
   Bool_t mCache; //! The cache flag
   Bool_t mLock;  //! Lock flag, if ON default storage and run number cannot be reset
 
   Bool_t mSnapshotMode; //! flag saying if we are in snapshot mode
-  TFile *mSnapshotFile;
+  TFile* mSnapshotFile;
   Bool_t mOcdbUploadMode; //! flag for uploads to Official CDBs (upload to cvmfs must follow upload
   // to AliEn)
 
@@ -318,7 +318,7 @@ class Manager : public TObject
  private:
   ULong64_t mKey; //! Key for locking/unlocking
 
- ClassDefOverride(Manager, 0)
+  ClassDefOverride(Manager, 0)
 };
 
 /////////////////////////////////////////////////////////////////////
@@ -335,16 +335,16 @@ class StorageFactory : public TObject
 
  public:
   ~StorageFactory()
-  override = default;
+    override = default;
 
-  virtual Bool_t validateStorageUri(const char *dbString) = 0;
+  virtual Bool_t validateStorageUri(const char* dbString) = 0;
 
-  virtual StorageParameters *createStorageParameter(const char *dbString) = 0;
+  virtual StorageParameters* createStorageParameter(const char* dbString) = 0;
 
  protected:
-  virtual Storage *createStorage(const StorageParameters *param) = 0;
+  virtual Storage* createStorage(const StorageParameters* param) = 0;
 
- ClassDefOverride(StorageFactory, 0)
+  ClassDefOverride(StorageFactory, 0)
 };
 
 /////////////////////////////////////////////////////////////////////
@@ -361,25 +361,25 @@ class StorageParameters : public TObject
 
   ~StorageParameters() override;
 
-  const TString &getStorageType() const
+  const TString& getStorageType() const
   {
     return mType;
   };
 
-  const TString &getUri() const
+  const TString& getUri() const
   {
     return mURI;
   };
 
-  virtual StorageParameters *cloneParam() const = 0;
+  virtual StorageParameters* cloneParam() const = 0;
 
  protected:
-  void setType(const char *type)
+  void setType(const char* type)
   {
     mType = type;
   };
 
-  void setUri(const char *uri)
+  void setUri(const char* uri)
   {
     mURI = uri;
   };
@@ -388,7 +388,7 @@ class StorageParameters : public TObject
   TString mType; //! CDB type
   TString mURI;  //! CDB URI
 
- ClassDefOverride(StorageParameters, 0)
+  ClassDefOverride(StorageParameters, 0)
 };
 
 }

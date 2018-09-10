@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE(ReadWriteTest1)
 
   auto condread = cdb->getCondition("TestParam/Test/Test", run);
 
-  TestClass *readbackparameter = nullptr;
+  TestClass* readbackparameter = nullptr;
   condread->getObjectAs(readbackparameter);
   BOOST_CHECK(readbackparameter);
   BOOST_CHECK_CLOSE(readbackparameter->mD, TESTVALUE, 1E-6);

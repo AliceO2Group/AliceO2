@@ -29,27 +29,27 @@ class ConditionMetaData : public TObject
  public:
   ConditionMetaData();
 
-  ConditionMetaData(const char *responsible, UInt_t beamPeriod = 0, const char *alirootVersion = "",
-                    const char *comment = "");
+  ConditionMetaData(const char* responsible, UInt_t beamPeriod = 0, const char* alirootVersion = "",
+                    const char* comment = "");
 
   ~ConditionMetaData() override;
 
-  void setObjectClassName(const char *name)
+  void setObjectClassName(const char* name)
   {
     mObjectClassName = name;
   };
 
-  const char *getObjectClassName() const
+  const char* getObjectClassName() const
   {
     return mObjectClassName.Data();
   };
 
-  void setResponsible(const char *yourName)
+  void setResponsible(const char* yourName)
   {
     mResponsible = yourName;
   };
 
-  const char *getResponsible() const
+  const char* getResponsible() const
   {
     return mResponsible.Data();
   };
@@ -64,33 +64,33 @@ class ConditionMetaData : public TObject
     return mBeamPeriod;
   };
 
-  void setAliRootVersion(const char *version)
+  void setAliRootVersion(const char* version)
   {
     mAliRootVersion = version;
   };
 
-  const char *getAliRootVersion() const
+  const char* getAliRootVersion() const
   {
     return mAliRootVersion.Data();
   };
 
-  void setComment(const char *comment)
+  void setComment(const char* comment)
   {
     mComment = comment;
   };
 
-  const char *getComment() const
+  const char* getComment() const
   {
     return mComment.Data();
   };
 
   void addDateToComment();
 
-  void setProperty(const char *property, TObject *object);
+  void setProperty(const char* property, TObject* object);
 
-  TObject *getProperty(const char *property) const;
+  TObject* getProperty(const char* property) const;
 
-  Bool_t removeProperty(const char *property);
+  Bool_t removeProperty(const char* property);
 
   void printConditionMetaData();
 
@@ -104,7 +104,7 @@ class ConditionMetaData : public TObject
 
   TMap mProperties; // list of object specific properties
 
- ClassDefOverride(ConditionMetaData, 1)
+  ClassDefOverride(ConditionMetaData, 1)
 };
 }
 }

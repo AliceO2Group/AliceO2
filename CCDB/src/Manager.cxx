@@ -492,7 +492,8 @@ Storage *Manager::getStorage(const StorageParameters *param)
   if (mLock) {
     if (mDefaultStorage) {
       LOG(FATAL) << "Lock is ON, and default storage is already set: cannot reset it or activate "
-                    "more storages!" << FairLogger::endl;
+                    "more storages!"
+                 << FairLogger::endl;
     }
   }
 
@@ -658,7 +659,8 @@ void Manager::setDefaultStorage(Storage *storage)
   if (mLock) {
     if (mDefaultStorage) {
       LOG(FATAL) << "Lock is ON, and default storage is already set: cannot reset it or activate "
-                    "more storages!" << FairLogger::endl;
+                    "more storages!"
+                 << FairLogger::endl;
     }
   }
 
@@ -718,7 +720,8 @@ void Manager::setDefaultStorageFromRun(Int_t run)
   if (mLock) {
     if (mDefaultStorage) {
       LOG(FATAL) << "Lock is ON, and default storage is already set: cannot activate default "
-                    "storage from run number" << FairLogger::endl;
+                    "storage from run number"
+                 << FairLogger::endl;
     }
   }
 

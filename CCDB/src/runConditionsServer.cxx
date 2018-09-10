@@ -17,7 +17,7 @@ using namespace std;
 
 namespace bpo = boost::program_options;
 
-void addCustomOptions(bpo::options_description &options)
+void addCustomOptions(bpo::options_description& options)
 {
   options.add_options()("first-input-name", bpo::value<std::string>()->default_value("first_input.root"),
                         "First input file name")("first-input-type", bpo::value<std::string>()->default_value("ROOT"),
@@ -29,5 +29,7 @@ void addCustomOptions(bpo::options_description &options)
     "channel-name", bpo::value<std::string>()->default_value("ROOT"), "Output channel name");
 }
 
-FairMQDevice *getDevice(const FairMQProgOptions &config)
-{ return new ConditionsMQServer(); }
+FairMQDevice* getDevice(const FairMQProgOptions& config)
+{
+  return new ConditionsMQServer();
+}
