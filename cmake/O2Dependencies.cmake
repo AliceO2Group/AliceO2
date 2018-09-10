@@ -1711,6 +1711,8 @@ o2_define_bucket(
     Steer
     Framework
     TPCSimulation
+    ITSSimulation
+    ITSMFTBase
 )
 
 o2_define_bucket(

@@ -175,6 +175,7 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
     Options{
       { "simFile", VariantType::String, "o2sim.root", { "Sim input filename" } },
       { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
+      { "simFileQED", VariantType::String, "", { "Sim (QED) input filename" } },
       { "outcontext", VariantType::String, "collisioncontext.root", { "Output file for collision context" } },
       { "incontext", VariantType::String, "", { "Take collision context from this file" } },
       { "ncollisions,n",
