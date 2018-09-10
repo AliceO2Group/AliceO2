@@ -276,7 +276,7 @@ std::string CcdbApi::list(std::string path, bool latestOnly, std::string returnF
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWrite_CallbackFunc_StdString2);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
 
-    struct curl_slist* headers = NULL;
+    struct curl_slist* headers = nullptr;
     headers = curl_slist_append(headers, (string("Accept: ") + returnFormat).c_str());
     headers = curl_slist_append(headers, (string("Content-Type: ") + returnFormat).c_str());
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
