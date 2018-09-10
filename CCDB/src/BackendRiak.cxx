@@ -20,10 +20,12 @@
 
 #include <FairMQLogger.h>
 
-using namespace o2::CDB;
+using namespace o2::ccdb;
 using namespace std;
 
-BackendRiak::BackendRiak() {}
+BackendRiak::BackendRiak()
+{
+}
 
 // Compression/decompression code taken from https://panthema.net/2007/0328-ZLibString.html
 
@@ -139,7 +141,7 @@ Condition* BackendRiak::UnPack(std::unique_ptr<FairMQMessage> msg)
   // Decompress the compressed object
   std::string object;
   Decompress(object, compressedObject);
-  
+
   // nullptr since no other possibility at moment
   return nullptr;
 }

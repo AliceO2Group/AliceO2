@@ -8,31 +8,31 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CINT__
+#ifdef __CLING__
 
 #pragma link off all globals;
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::CDB::IdPath+;
-#pragma link C++ class o2::CDB::IdRunRange+;
-#pragma link C++ class o2::CDB::ConditionId+;
-#pragma link C++ class o2::CDB::ConditionMetaData+;
-#pragma link C++ class o2::CDB::Condition+;
-#pragma link C++ class o2::CDB::Storage+;
-#pragma link C++ class o2::CDB::StorageFactory+;
-#pragma link C++ class o2::CDB::Manager+;
-#pragma link C++ class o2::CDB::StorageParameters+;
-#pragma link C++ class o2::CDB::LocalStorage+;
-#pragma link C++ class o2::CDB::LocalStorageFactory+;
-#pragma link C++ class o2::CDB::LocalStorageParameters+;
-#pragma link C++ class o2::CDB::FileStorage+;
-#pragma link C++ class o2::CDB::FileStorageFactory+;
-#pragma link C++ class o2::CDB::FileStorageParameters+;
-#pragma link C++ class o2::CDB::GridStorage+;
-#pragma link C++ class o2::CDB::GridStorageFactory+;
-#pragma link C++ class o2::CDB::GridStorageParameters+;
-#pragma link C++ class o2::CDB::XmlHandler+;
+#pragma link C++ class o2::ccdb::IdPath + ;
+#pragma link C++ class o2::ccdb::IdRunRange + ;
+#pragma link C++ class o2::ccdb::ConditionId + ;
+#pragma link C++ class o2::ccdb::ConditionMetaData + ;
+#pragma link C++ class o2::ccdb::Condition + ;
+#pragma link C++ class o2::ccdb::Storage + ;
+#pragma link C++ class o2::ccdb::StorageFactory + ;
+#pragma link C++ class o2::ccdb::Manager + ;
+#pragma link C++ class o2::ccdb::StorageParameters + ;
+#pragma link C++ class o2::ccdb::LocalStorage + ;
+#pragma link C++ class o2::ccdb::LocalStorageFactory + ;
+#pragma link C++ class o2::ccdb::LocalStorageParameters + ;
+#pragma link C++ class o2::ccdb::FileStorage + ;
+#pragma link C++ class o2::ccdb::FileStorageFactory + ;
+#pragma link C++ class o2::ccdb::FileStorageParameters + ;
+#pragma link C++ class o2::ccdb::GridStorage + ;
+#pragma link C++ class o2::ccdb::GridStorageFactory + ;
+#pragma link C++ class o2::ccdb::GridStorageParameters + ;
+#pragma link C++ class o2::ccdb::XmlHandler + ;
 /// for the unit test
 #pragma link C++ class TestClass+;
 #pragma link C++ class o2::TObjectWrapper<TestClass>+;

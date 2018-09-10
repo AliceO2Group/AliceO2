@@ -10,6 +10,7 @@
 
 #ifndef O2_TOBJECTWRAPPER_H
 #define O2_TOBJECTWRAPPER_H
+
 #include <TClass.h>
 #include <TObject.h>
 #include <cxxabi.h>
@@ -53,13 +54,25 @@ class TObjectWrapper : public TObject
     }
   }
 
-  TObjectWrapper() : TObjectWrapper(nullptr) {}
-  void setObj(T* obj) { mObj = obj; }
-  T* getObj() const { return mObj; }
+  TObjectWrapper() : TObjectWrapper(nullptr)
+  {
+  }
+
+  void setObj(T* obj)
+  {
+    mObj = obj;
+  }
+
+  T* getObj() const
+  {
+    return mObj;
+  }
+
   ~TObjectWrapper() override = default;
 
  private:
   T* mObj;
+
   ClassDefOverride(TObjectWrapper, 1);
 };
 }

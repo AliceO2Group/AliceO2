@@ -157,13 +157,13 @@ class CDBInterface
   void createDefaultGainMap();         ///< creation of default gain map if requested
 
   template <typename T>
-  T& getObjectFromCDB(const o2::CDB::IdPath& path);
+  T& getObjectFromCDB(const o2::ccdb::IdPath& path);
 };
 
 template <typename T>
-inline T& CDBInterface::getObjectFromCDB(const o2::CDB::IdPath& path)
+inline T& CDBInterface::getObjectFromCDB(const o2::ccdb::IdPath& path)
 {
-  static auto cdb = o2::CDB::Manager::Instance();
+  static auto cdb = o2::ccdb::Manager::Instance();
   auto condread = cdb->getCondition(path);
   T* object{ nullptr };
   condread->getObjectAs(object);

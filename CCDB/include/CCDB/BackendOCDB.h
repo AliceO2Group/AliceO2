@@ -20,13 +20,16 @@
 #include <iosfwd>
 #include <memory>
 
-namespace o2 {
-namespace CDB {
+namespace o2
+{
+namespace ccdb
+{
 
-class BackendOCDB : public Backend {
+class BackendOCDB : public Backend
+{
 
-private:
-public:
+ private:
+ public:
   BackendOCDB();
   ~BackendOCDB() override = default;
 

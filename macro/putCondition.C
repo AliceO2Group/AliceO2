@@ -1,4 +1,4 @@
-using namespace o2::CDB;
+using namespace o2::ccdb;
 void putCondition()
 {
   Manager *cdb = Manager::Instance();

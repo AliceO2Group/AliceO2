@@ -22,19 +22,22 @@
 
 #include <FairMQDevice.h>
 
-namespace o2 {
-namespace CDB {
+namespace o2
+{
+namespace ccdb
+{
 
-class ConditionsMQClient : public FairMQDevice {
-public:
+class ConditionsMQClient : public FairMQDevice
+{
+ public:
   ConditionsMQClient();
   ~ConditionsMQClient() override;
 
-protected:
+ protected:
   void InitTask() override;
   void Run() override;
 
-private:
+ private:
   int mRunId;
   std::string mParameterName;
   std::string mOperationType;

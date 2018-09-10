@@ -13,7 +13,7 @@
 #include "CCDB/IdRunRange.h"
 #include <FairLogger.h>  // for LOG
 
-using namespace o2::CDB;
+using namespace o2::ccdb;
 
 ClassImp(IdRunRange)
 

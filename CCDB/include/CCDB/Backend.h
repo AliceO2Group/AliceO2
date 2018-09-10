@@ -23,15 +23,17 @@
 // Google protocol buffers headers
 #include <google/protobuf/stubs/common.h>
 
-
-namespace o2 {
-namespace CDB {
+namespace o2
+{
+namespace ccdb
+{
 
 class Condition;
 
-class Backend {
-public:
-  virtual ~Backend()= default;
+class Backend
+{
+ public:
+  virtual ~Backend() = default;
 
   /// Pack
   virtual void Pack(const std::string& path, const std::string& key, std::string*& messageString) = 0;

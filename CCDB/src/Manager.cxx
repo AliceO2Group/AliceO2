@@ -25,7 +25,7 @@
 #include "TSystem.h"       // for TSystem, gSystem
 #include "CCDB/XmlHandler.h"    // for XmlHandler
 
-using namespace o2::CDB;
+using namespace o2::ccdb;
 
 ClassImp(StorageParameters)
 
@@ -492,7 +492,8 @@ Storage *Manager::getStorage(const StorageParameters *param)
   if (mLock) {
     if (mDefaultStorage) {
       LOG(FATAL) << "Lock is ON, and default storage is already set: cannot reset it or activate "
-        "more storages!" << FairLogger::endl;
+                    "more storages!"
+                 << FairLogger::endl;
     }
   }
 
@@ -658,7 +659,8 @@ void Manager::setDefaultStorage(Storage *storage)
   if (mLock) {
     if (mDefaultStorage) {
       LOG(FATAL) << "Lock is ON, and default storage is already set: cannot reset it or activate "
-        "more storages!" << FairLogger::endl;
+                    "more storages!"
+                 << FairLogger::endl;
     }
   }
 
@@ -718,7 +720,8 @@ void Manager::setDefaultStorageFromRun(Int_t run)
   if (mLock) {
     if (mDefaultStorage) {
       LOG(FATAL) << "Lock is ON, and default storage is already set: cannot activate default "
-        "storage from run number" << FairLogger::endl;
+                    "storage from run number"
+                 << FairLogger::endl;
     }
   }
 
@@ -1473,7 +1476,9 @@ void Manager::setMirrorSEs(const char *mirrors)
 {
   // set mirror Storage Elements for the default storage, if it is of type "alien"
   if (mDefaultStorage->getStorageType() != "alien") {
-    LOG(INFO) << R"(The default storage is not of type "alien". Settings for Storage Elements are not taken into account!)" << FairLogger::endl;
+    LOG(INFO)
+      << R"(The default storage is not of type "alien". Settings for Storage Elements are not taken into account!)"
+      << FairLogger::endl;
     return;
   }
   mDefaultStorage->setMirrorSEs(mirrors);
@@ -1483,7 +1488,9 @@ const char *Manager::getMirrorSEs() const
 {
   // get mirror Storage Elements for the default storage, if it is of type "alien"
   if (mDefaultStorage->getStorageType() != "alien") {
-    LOG(INFO) << R"(The default storage is not of type "alien". Settings for Storage Elements are not taken into account!)" << FairLogger::endl;
+    LOG(INFO)
+      << R"(The default storage is not of type "alien". Settings for Storage Elements are not taken into account!)"
+      << FairLogger::endl;
     return "";
   }
   return mDefaultStorage->getMirrorSEs();
@@ -1634,7 +1641,8 @@ void Manager::unloadFromCache(const char *path)
   while ((pair = dynamic_cast<TPair *>(iter.Next()))) {
     IdPath entryPath = pair->Key()->GetName();
     if (queryPath.isSupersetOf(entryPath)) {
-      LOG(DEBUG) << R"(Unloading object ")" << entryPath.getPathString().Data() << R"(" from cache and from list of ids)"
+      LOG(DEBUG) << R"(Unloading object ")" << entryPath.getPathString().Data()
+                 << R"(" from cache and from list of ids)"
                  << FairLogger::endl;
       TObjString pathStr(entryPath.getPathString());
       delete mConditionCache.Remove(&pathStr);
