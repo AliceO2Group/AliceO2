@@ -19,6 +19,8 @@
 #include "TChain.h"
 
 #include "TOFSimulation/Digitizer.h"
+#include <SimulationDataFormat/MCCompLabel.h>
+#include <SimulationDataFormat/MCTruthContainer.h>
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -83,6 +85,7 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
     LOG(INFO) << " CALLING TOF DIGITIZATION ";
 
     static std::vector<o2::tof::HitType> hits;
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum;
 
     auto& eventParts = context->getEventParts();
     // loop over all composite collisions given from context
@@ -108,15 +111,16 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
         digitizer->process(&hits, digits.get());
         // copy digits into accumulator
         std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
-
+        labelAccum.mergeAtBack(*labels);
         LOG(INFO) << "Have " << digits->size() << " digits ";
       }
     }
 
     // TODO: finish digitization ... stream any remaining digits/labels
-
+    LOG(INFO) << "Have " << labelAccum.getNElements() << " TOF labels ";
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
     pc.outputs().snapshot(Output{ "TOF", "DIGITS", 0, Lifetime::Timeframe }, *digitsAccum.get());
+    pc.outputs().snapshot(Output{ "TOF", "DIGITSMCTR", 0, Lifetime::Timeframe }, labelAccum);
 
     timer.Stop();
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
@@ -158,7 +162,8 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
   return DataProcessorSpec{
     "TOFDigitizer", Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT",
                                        static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
-    Outputs{ OutputSpec{ "TOF", "DIGITS", 0, Lifetime::Timeframe } },
+    Outputs{ OutputSpec{ "TOF", "DIGITS", 0, Lifetime::Timeframe },
+             OutputSpec{ "TOF", "DIGITSMCTR", 0, Lifetime::Timeframe } },
     AlgorithmSpec{ initIt },
     Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
              { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } } }
