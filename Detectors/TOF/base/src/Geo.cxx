@@ -29,7 +29,7 @@ Float_t Geo::mRotationMatrixPlateStrip[NPLATES][NMAXNSTRIP][3][3];
 
 void Geo::Init()
 {
-  Info("tof::Geo::Init", "Initialization of TOF rotation parameters");
+  LOG(INFO) << "tof::Geo: Initialization of TOF rotation parameters";
 
   Double_t rotationAngles[6] =
     { 90., 90. /*+ (isector + 0.5) * PHISEC*/, 0., 0., 90., 0 /* + (isector + 0.5) * PHISEC*/ };
