@@ -23,8 +23,10 @@
 #include <curl/curl.h>
 #include <TObject.h>
 
-namespace o2 {
-namespace ccdb {
+namespace o2
+{
+namespace ccdb
+{
 
 /**
  * Interface to the CCDB.
@@ -58,7 +60,7 @@ class CcdbApi //: public DatabaseInterface
    * @param startValidityTimestamp Start of validity. If omitted, current timestamp is used.
    * @param endValidityTimestamp End of validity. If omitted, current timestamp + 1 year is used.
    */
-  void store(TObject *rootObject, std::string path, std::map<std::string, std::string> metadata,
+  void store(TObject* rootObject, std::string path, std::map<std::string, std::string> metadata,
              long startValidityTimestamp = -1, long endValidityTimestamp = -1);
 
   /**
@@ -69,11 +71,11 @@ class CcdbApi //: public DatabaseInterface
    * @param timestamp Timestamp of the object to retrieve. If omitted, current timestamp is used.
    * @return the object, or nullptr if none were found.
    */
-  TObject *retrieve(std::string path, std::map<std::string, std::string> metadata,
+  TObject* retrieve(std::string path, std::map<std::string, std::string> metadata,
                     long timestamp = -1);
 
-//    std::vector<std::string> getListOfTasksWithPublications();
-//    std::vector<std::string> getPublishedObjectNames(std::string taskName);
+  //    std::vector<std::string> getListOfTasksWithPublications();
+  //    std::vector<std::string> getPublishedObjectNames(std::string taskName);
 
   /**
    * Delete all versions of the object at this path.
@@ -146,7 +148,7 @@ class CcdbApi //: public DatabaseInterface
    * @param endValidityTimestamp End of validity. If omitted or negative, current timestamp + 1 year is used.
    * @return The full url to store an object (url / startValidity / endValidity / [metadata &]* )
    */
-  std::string getFullUrlForStorage(const std::string &path, const std::map<std::string, std::string> &metadata,
+  std::string getFullUrlForStorage(const std::string& path, const std::map<std::string, std::string>& metadata,
                                    long startValidityTimestamp = -1, long endValidityTimestamp = -1);
 
   /**
@@ -156,7 +158,7 @@ class CcdbApi //: public DatabaseInterface
    * @param timestamp When the object we retrieve must be valid. If omitted or negative, the current timestamp is used.
    * @return The full url to store an object (url / startValidity / endValidity / [metadata &]* )
    */
-  std::string getFullUrlForRetrieval(const std::string &path, const std::map<std::string, std::string> &metadata,
+  std::string getFullUrlForRetrieval(const std::string& path, const std::map<std::string, std::string>& metadata,
                                      long timestamp = -1);
 
   /**
@@ -166,9 +168,7 @@ class CcdbApi //: public DatabaseInterface
 
   /// Base URL of the CCDB (with port)
   std::string mUrl;
-
 };
-
 }
 }
 

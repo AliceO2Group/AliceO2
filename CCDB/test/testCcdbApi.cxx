@@ -23,19 +23,18 @@
 using namespace std;
 using namespace o2::ccdb;
 
-struct test_fixture
-{
-    test_fixture()
-    {
-      api.init("http://ccdb-test.cern.ch:8080");
-    }
+struct test_fixture {
+  test_fixture()
+  {
+    api.init("http://ccdb-test.cern.ch:8080");
+  }
 
-    ~test_fixture()
-    {
-    }
+  ~test_fixture()
+  {
+  }
 
-    CcdbApi api;
-    map<string, string> metadata;
+  CcdbApi api;
+  map<string, string> metadata;
 };
 
 BOOST_AUTO_TEST_CASE(store_test)
@@ -82,26 +81,26 @@ BOOST_AUTO_TEST_CASE(delete_test)
   BOOST_CHECK(h2 == nullptr);
 }
 
-
 /// trim from start (in place)
 /// https://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring
-static inline void ltrim(std::string &s)
+static inline void ltrim(std::string& s)
 {
   s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {
-    return !std::isspace(ch);
-  }));
+            return !std::isspace(ch);
+          }));
 }
 
 /// trim from end (in place)
 /// https://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring
-static inline void rtrim(std::string &s)
+static inline void rtrim(std::string& s)
 {
   s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) {
-    return !std::isspace(ch);
-  }).base(), s.end());
+            return !std::isspace(ch);
+          }).base(),
+          s.end());
 }
 
-void countItems(const string &s, int &countObjects, int &countSubfolders)
+void countItems(const string& s, int& countObjects, int& countSubfolders)
 {
   countObjects = 0;
   countSubfolders = 0;
@@ -162,13 +161,13 @@ BOOST_AUTO_TEST_CASE(list_test)
   s = f.api.list("Test/Detector", false, "application/json");
   countItems(s, countObjects, countSubfolders);
   BOOST_CHECK_EQUAL(countObjects, 3);
-//  BOOST_CHECK_EQUAL(countSubfolders, 1);
+  //  BOOST_CHECK_EQUAL(countSubfolders, 1);
 
   s = f.api.list("Test/Detector*", false, "application/json");
   countItems(s, countObjects, countSubfolders);
   cout << "s : " << s << endl;
   BOOST_CHECK_EQUAL(countObjects, 4);
-//  BOOST_CHECK_EQUAL(countSubfolders, 0);
+  //  BOOST_CHECK_EQUAL(countSubfolders, 0);
 
   s = f.api.list("Test/Detector", true, "application/json");
   countItems(s, countObjects, countSubfolders);

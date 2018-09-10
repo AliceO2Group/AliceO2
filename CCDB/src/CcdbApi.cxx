@@ -18,13 +18,16 @@
 #include <chrono>
 #include <TMessage.h>
 
-namespace o2 {
-namespace ccdb {
+namespace o2
+{
+namespace ccdb
+{
 
 using namespace std;
 
 CcdbApi::CcdbApi() : mUrl("")
-{}
+{
+}
 
 CcdbApi::~CcdbApi()
 {
@@ -43,7 +46,7 @@ void CcdbApi::init(std::string host)
   curlInit();
 }
 
-void CcdbApi::store(TObject *rootObject, std::string path, std::map<std::string, std::string> metadata,
+void CcdbApi::store(TObject* rootObject, std::string path, std::map<std::string, std::string> metadata,
                     long startValidityTimestamp, long endValidityTimestamp)
 {
   // Serialize the object
@@ -54,10 +57,10 @@ void CcdbApi::store(TObject *rootObject, std::string path, std::map<std::string,
   string fullUrl = getFullUrlForStorage(path, metadata, startValidityTimestamp, endValidityTimestamp);
 
   // Curl preparation
-  CURL *curl;
-  struct curl_httppost *formpost = nullptr;
-  struct curl_httppost *lastptr = nullptr;
-  struct curl_slist *headerlist = nullptr;
+  CURL* curl;
+  struct curl_httppost* formpost = nullptr;
+  struct curl_httppost* lastptr = nullptr;
+  struct curl_slist* headerlist = nullptr;
   static const char buf[] = "Expect:";
   // todo : what is the correct file name ?
   string tmpFileName = string(rootObject->GetName()) + "_" + getTimestampString(getCurrentTimestamp()) + ".root";
@@ -95,36 +98,30 @@ void CcdbApi::store(TObject *rootObject, std::string path, std::map<std::string,
   }
 }
 
-string CcdbApi::getFullUrlForStorage(const string &path, const map<string, string> &metadata,
+string CcdbApi::getFullUrlForStorage(const string& path, const map<string, string>& metadata,
                                      long startValidityTimestamp, long endValidityTimestamp)
 {
   // Prepare timestamps
-  string startValidityString = getTimestampString(startValidityTimestamp < 0 ?
-                                                  getCurrentTimestamp() :
-                                                  startValidityTimestamp);
-  string endValidityString = getTimestampString(endValidityTimestamp < 0 ?
-                                                getFutureTimestamp(60 * 60 * 24 * 365) :
-                                                endValidityTimestamp);
+  string startValidityString = getTimestampString(startValidityTimestamp < 0 ? getCurrentTimestamp() : startValidityTimestamp);
+  string endValidityString = getTimestampString(endValidityTimestamp < 0 ? getFutureTimestamp(60 * 60 * 24 * 365) : endValidityTimestamp);
   // Build URL
   string fullUrl = mUrl + "/" + path + "/" + startValidityString + "/" + endValidityString + "/";
   // Add metadata
-  for (auto &kv : metadata) {
+  for (auto& kv : metadata) {
     fullUrl += kv.first + "=" + kv.second + "&";
   }
   return fullUrl;
 }
 
 // todo make a single method of the one above and below
-string CcdbApi::getFullUrlForRetrieval(const string &path, const map<string, string> &metadata, long timestamp)
+string CcdbApi::getFullUrlForRetrieval(const string& path, const map<string, string>& metadata, long timestamp)
 {
   // Prepare timestamps
-  string validityString = getTimestampString(timestamp < 0 ?
-                                             getCurrentTimestamp() :
-                                             timestamp);
+  string validityString = getTimestampString(timestamp < 0 ? getCurrentTimestamp() : timestamp);
   // Build URL
   string fullUrl = mUrl + "/" + path + "/" + validityString + "/";
   // Add metadata
-  for (auto &kv : metadata) {
+  for (auto& kv : metadata) {
     fullUrl += kv.first + "=" + kv.second + "/";
   }
   return fullUrl;
@@ -133,9 +130,8 @@ string CcdbApi::getFullUrlForRetrieval(const string &path, const map<string, str
 /**
  * Struct to store the data we will receive from the CCDB with CURL.
  */
-struct MemoryStruct
-{
-  char *memory;
+struct MemoryStruct {
+  char* memory;
   unsigned int size;
 };
 
@@ -148,12 +144,12 @@ struct MemoryStruct
  * @param userp a MemoryStruct where data is stored.
  * @return the size of the data we received and stored at userp.
  */
-static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
+static size_t WriteMemoryCallback(void* contents, size_t size, size_t nmemb, void* userp)
 {
   size_t realsize = size * nmemb;
-  auto *mem = (struct MemoryStruct *) userp;
+  auto* mem = (struct MemoryStruct*)userp;
 
-  mem->memory = (char *) realloc(mem->memory, mem->size + realsize + 1);
+  mem->memory = (char*)realloc(mem->memory, mem->size + realsize + 1);
   if (mem->memory == nullptr) {
     printf("not enough memory (realloc returned NULL)\n");
     return 0;
@@ -166,7 +162,7 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
   return realsize;
 }
 
-TObject *CcdbApi::retrieve(std::string path, std::map<std::string, std::string> metadata,
+TObject* CcdbApi::retrieve(std::string path, std::map<std::string, std::string> metadata,
                            long timestamp)
 {
   // Note : based on https://curl.haxx.se/libcurl/c/getinmemory.html
@@ -175,10 +171,12 @@ TObject *CcdbApi::retrieve(std::string path, std::map<std::string, std::string> 
   string fullUrl = getFullUrlForRetrieval(path, metadata, timestamp);
 
   // Prepare CURL
-  CURL *curl_handle;
+  CURL* curl_handle;
   CURLcode res;
-  struct MemoryStruct chunk{(char *) malloc(1)/*memory*/, 0/*size*/};
-  TObject *result = nullptr;
+  struct MemoryStruct chunk {
+    (char*)malloc(1) /*memory*/, 0 /*size*/
+  };
+  TObject* result = nullptr;
 
   /* init the curl session */
   curl_handle = curl_easy_init();
@@ -190,7 +188,7 @@ TObject *CcdbApi::retrieve(std::string path, std::map<std::string, std::string> 
   curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
 
   /* we pass our 'chunk' struct to the callback function */
-  curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *) &chunk);
+  curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void*)&chunk);
 
   /* some servers don't like requests that are made without a user-agent
      field, so we provide one */
@@ -212,7 +210,7 @@ TObject *CcdbApi::retrieve(std::string path, std::map<std::string, std::string> 
      * bytes big and contains the remote file.
      */
 
-//    printf("%lu bytes retrieved\n", (long) chunk.size);
+    //    printf("%lu bytes retrieved\n", (long) chunk.size);
 
     long response_code;
     res = curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
@@ -221,7 +219,7 @@ TObject *CcdbApi::retrieve(std::string path, std::map<std::string, std::string> 
       mess.SetBuffer(chunk.memory, chunk.size, kFALSE);
       mess.SetReadMode();
       mess.Reset();
-      result = (TObject *) (mess.ReadObjectAny(mess.GetClass()));
+      result = (TObject*)(mess.ReadObjectAny(mess.GetClass()));
       if (result == nullptr) {
         cerr << "couldn't retrieve the object " << path << endl;
       }
@@ -230,13 +228,13 @@ TObject *CcdbApi::retrieve(std::string path, std::map<std::string, std::string> 
     }
 
     // Print data
-//    cout << "size : " << chunk.size << endl;
-//    cout << "data : " << endl;
-//    char* mem = (char*)chunk.memory;
-//    for (int i = 0 ; i < chunk.size/4 ; i++)  {
-//      cout << mem;
-//      mem += 4;
-//    }
+    //    cout << "size : " << chunk.size << endl;
+    //    cout << "data : " << endl;
+    //    char* mem = (char*)chunk.memory;
+    //    for (int i = 0 ; i < chunk.size/4 ; i++)  {
+    //      cout << mem;
+    //      mem += 4;
+    //    }
   }
 
   /* cleanup curl stuff */
@@ -247,25 +245,24 @@ TObject *CcdbApi::retrieve(std::string path, std::map<std::string, std::string> 
   return result;
 }
 
-size_t CurlWrite_CallbackFunc_StdString2(void *contents, size_t size, size_t nmemb, std::string *s)
+size_t CurlWrite_CallbackFunc_StdString2(void* contents, size_t size, size_t nmemb, std::string* s)
 {
   size_t newLength = size * nmemb;
   size_t oldLength = s->size();
   try {
     s->resize(oldLength + newLength);
-  }
-  catch (std::bad_alloc &e) {
+  } catch (std::bad_alloc& e) {
     cerr << "memory error when getting data from CCDB" << endl;
     return 0;
   }
 
-  std::copy((char *) contents, (char *) contents + newLength, s->begin() + oldLength);
+  std::copy((char*)contents, (char*)contents + newLength, s->begin() + oldLength);
   return size * nmemb;
 }
 
 std::string CcdbApi::list(std::string path, bool latestOnly, std::string returnFormat)
 {
-  CURL *curl;
+  CURL* curl;
   CURLcode res;
   string fullUrl = mUrl;
   fullUrl += latestOnly ? "/latest/" : "/browse/";
@@ -279,7 +276,7 @@ std::string CcdbApi::list(std::string path, bool latestOnly, std::string returnF
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWrite_CallbackFunc_StdString2);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
 
-    struct curl_slist *headers = NULL;
+    struct curl_slist* headers = NULL;
     headers = curl_slist_append(headers, (string("Accept: ") + returnFormat).c_str());
     headers = curl_slist_append(headers, (string("Content-Type: ") + returnFormat).c_str());
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -324,7 +321,7 @@ std::string CcdbApi::getTimestampString(long timestamp)
 
 void CcdbApi::deleteObject(std::string path, long timestamp)
 {
-  CURL *curl;
+  CURL* curl;
   CURLcode res;
   stringstream fullUrl;
   long timestampLocal = timestamp == -1 ? getCurrentTimestamp() : timestamp;
@@ -347,7 +344,7 @@ void CcdbApi::deleteObject(std::string path, long timestamp)
 
 void CcdbApi::truncate(std::string path)
 {
-  CURL *curl;
+  CURL* curl;
   CURLcode res;
   stringstream fullUrl;
   fullUrl << mUrl << "/truncate/" << path;
@@ -364,7 +361,5 @@ void CcdbApi::truncate(std::string path)
     curl_easy_cleanup(curl);
   }
 }
-
 }
 }
-
