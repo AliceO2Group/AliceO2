@@ -30,6 +30,8 @@
 // for TOF
 #include "TOFDigitizerSpec.h"
 #include "TOFDigitWriterSpec.h"
+#include "TOFClusterizerSpec.h"
+#include "TOFClusterWriterSpec.h"
 
 #include <cstdlib>
 // this is somewhat assuming that a DPL workflow will run on one node
@@ -174,6 +176,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++));
   // add TOF digit writer
   specs.emplace_back(o2::tof::getTOFDigitWriterSpec());
+  // add TOF clusterer
+  specs.emplace_back(o2::tof::getTOFClusterizerSpec());
+  // add TOF cluster writer
+  specs.emplace_back(o2::tof::getTOFClusterWriterSpec());
 
   // The SIM Reader. NEEDS TO BE LAST
   specs.emplace_back(o2::steer::getSimReaderSpec(fanoutsize, tpcsectors, tpclanes));
