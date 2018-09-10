@@ -13,6 +13,8 @@
 #include "TOFDigitWriterSpec.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
+#include <SimulationDataFormat/MCCompLabel.h>
+#include <SimulationDataFormat/MCTruthContainer.h>
 #include "TTree.h"
 #include "TBranch.h"
 #include "TFile.h"
@@ -82,6 +84,14 @@ DataProcessorSpec getTOFDigitWriterSpec()
       auto br = getOrMakeBranch(*outputtree.get(), "TOFDigit", digits.get());
       br->Fill();
 
+      // retrieve labels from the input
+      auto labeldata = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("tofdigitlabels");
+      LOG(INFO) << "TOF GOT " << labeldata->getNElements() << " LABELS ";
+      auto labeldataraw = labeldata.get();
+      // connect this to a particular branch
+      auto labelbr = getOrMakeBranch(*outputtree.get(), "TOFDigitMCTruth", &labeldataraw);
+      labelbr->Fill();
+
       finished = true;
       pc.services().get<ControlService>().readyToQuit(false);
     };
@@ -93,7 +103,8 @@ DataProcessorSpec getTOFDigitWriterSpec()
 
   return DataProcessorSpec{
     "TOFDigitWriter",
-    Inputs{ InputSpec{ "tofdigits", "TOF", "DIGITS", 0, Lifetime::Timeframe } },
+    Inputs{ InputSpec{ "tofdigits", "TOF", "DIGITS", 0, Lifetime::Timeframe },
+            InputSpec{ "tofdigitlabels", "TOF", "DIGITSMCTR", 0, Lifetime::Timeframe } },
     {}, // no output
     AlgorithmSpec(initFunction),
     Options{

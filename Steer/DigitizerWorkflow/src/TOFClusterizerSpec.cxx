@@ -42,20 +42,31 @@ class TOFDPLClustererTask
 
   void run(framework::ProcessingContext& pc)
   {
+    static bool finished = false;
+    if (finished) {
+      return;
+    }
     // get digit data
     auto digits = pc.inputs().get<std::vector<o2::tof::Digit>*>("tofdigits");
+    auto digitlabels = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("tofdigitlabels");
     mReader.setDigitArray(digits.get());
+    mClusterer.setMCTruthContainer(&mClsLabels);
 
     // call actual clustering routine
     mClustersArray.clear();
-    mClusterer.process(mReader, mClustersArray, nullptr /*digit labels*/);
+    mClsLabels.clear();
+    mClusterer.process(mReader, mClustersArray, digitlabels.get());
 
     LOG(INFO) << "TOF CLUSTERER : TRANSFORMED " << digits->size()
               << " DIGITS TO " << mClustersArray.size() << " CLUSTERS";
 
     // send clusters
     pc.outputs().snapshot(Output{ "TOF", "CLUSTERS", 0, Lifetime::Timeframe }, mClustersArray);
+    // send labels
+    pc.outputs().snapshot(Output{ "TOF", "CLUSTERSMCTR", 0, Lifetime::Timeframe }, mClsLabels);
+
     // declare done
+    finished = true;
     pc.services().get<ControlService>().readyToQuit(false);
   }
 
@@ -64,14 +75,17 @@ class TOFDPLClustererTask
   Clusterer mClusterer;    ///< Cluster finder
 
   std::vector<Cluster> mClustersArray; ///< Array of clusters
+  MCLabelContainer mClsLabels;
 };
 
 o2::framework::DataProcessorSpec getTOFClusterizerSpec()
 {
   return DataProcessorSpec{
     "TOFClusterer",
-    Inputs{ InputSpec{ "tofdigits", "TOF", "DIGITS", 0, Lifetime::Timeframe } },
-    Outputs{ OutputSpec{ "TOF", "CLUSTERS", 0, Lifetime::Timeframe } },
+    Inputs{ InputSpec{ "tofdigits", "TOF", "DIGITS", 0, Lifetime::Timeframe },
+            InputSpec{ "tofdigitlabels", "TOF", "DIGITSMCTR", 0, Lifetime::Timeframe } },
+    Outputs{ OutputSpec{ "TOF", "CLUSTERS", 0, Lifetime::Timeframe },
+             OutputSpec{ "TOF", "CLUSTERSMCTR", 0, Lifetime::Timeframe } },
     AlgorithmSpec{ adaptFromTask<TOFDPLClustererTask>() },
     Options{ /* for the moment no options */ }
   };
