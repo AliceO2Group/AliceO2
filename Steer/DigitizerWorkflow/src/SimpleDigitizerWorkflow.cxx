@@ -23,6 +23,10 @@
 // needed in order to init the **SHARED** polyadist file (to be done before the digitizers initialize)
 #include "TPCSimulation/GEMAmplification.h"
 
+// for ITS
+#include "ITSDigitizerSpec.h"
+#include "ITSDigitWriterSpec.h"
+
 #include <cstdlib>
 // this is somewhat assuming that a DPL workflow will run on one node
 #include <thread> // to detect number of hardware threads
@@ -156,6 +160,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // for writing digits to disc
   specs.emplace_back(o2::TPC::getTPCDigitRootWriterSpec(lanes));
+
+  // connect the ITS digitization
+  specs.emplace_back(o2::ITS::getITSDigitizerSpec(fanoutsize++));
+  // connect ITS digit writer
+  specs.emplace_back(o2::ITS::getITSDigitWriterSpec());
+
   specs.emplace_back(o2::steer::getSimReaderSpec(fanoutsize, tpcsectors, tpclanes));
+
   return specs;
 }

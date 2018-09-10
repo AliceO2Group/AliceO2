@@ -27,6 +27,8 @@ O2_GENERATE_EXECUTABLE(
   src/TPCDriftTimeDigitizerSpec.cxx
   src/TPCDigitRootWriterSpec.cxx
   src/TPCSectorHeader.cxx
+  src/ITSDigitizerSpec.cxx
+  src/ITSDigitWriterSpec.cxx
 
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
