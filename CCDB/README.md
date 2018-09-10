@@ -1,3 +1,22 @@
+## CCDB API
+
+The CCDB API class (`CcdbApi`) is implemented using libcurl and gives
+access to the CCDB via its REST api.
+
+Usage :
+```
+// init
+CcdbApi api;
+map<string, string> metadata; // can be empty
+api.init("http://ccdb-test.cern.ch:8080");
+// store
+auto h1 = new TH1F("object1", "object1", 100, 0, 99);
+api.store(h1, "Test/Detector", metadata);
+// retrieve
+auto h1back = api.retrieve("Test/Detector", metadata);
+
+```
+
 ## Conditions MQ
 
 Conditions MQ is a client/server CCDB implementation for O2. Currently the implementation supports two backends, an OCDB and a Riak one.
