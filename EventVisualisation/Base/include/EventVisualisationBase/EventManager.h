@@ -53,7 +53,7 @@ class EventManager : public TEveEventManager, public TQObject
       o2::ccdb::Manager::Instance()->setDefaultStorage(path.c_str());
     }
 
-  private:
+   private:
     EDataSource mCurrentDataSourceType; ///< enum type of the current data source
 
     /// Default constructor

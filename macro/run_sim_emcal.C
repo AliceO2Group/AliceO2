@@ -58,7 +58,6 @@ void run_sim_emcal(Int_t nEvents = 1, TString mcEngine = "TGeant3")
   //   cdbManager->setDefaultStorage("local://$ALICEO2/tpc/dirty/o2cdb");
   //   cdbManager->setRun(0);
 
-
   // Create simulation run
   FairRunSim* run = new FairRunSim();
   run->SetName(mcEngine);      // Transport engine
