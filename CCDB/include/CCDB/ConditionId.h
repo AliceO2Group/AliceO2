@@ -19,8 +19,10 @@
 #include "Rtypes.h"      // for Int_t, Bool_t, ConditionId::Class, ClassDef, etc
 #include "TString.h"     // for TString
 
-namespace o2 {
-namespace ccdb {
+namespace o2
+{
+namespace ccdb
+{
 
 class ConditionId : public TObject
 {

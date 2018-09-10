@@ -20,8 +20,10 @@
 #include <iosfwd>
 #include <memory>
 
-namespace o2 {
-namespace ccdb {
+namespace o2
+{
+namespace ccdb
+{
 
 class BackendOCDB : public Backend
 {

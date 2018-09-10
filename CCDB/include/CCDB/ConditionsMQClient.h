@@ -22,8 +22,10 @@
 
 #include <FairMQDevice.h>
 
-namespace o2 {
-namespace ccdb {
+namespace o2
+{
+namespace ccdb
+{
 
 class ConditionsMQClient : public FairMQDevice
 {

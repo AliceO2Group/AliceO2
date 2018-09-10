@@ -19,9 +19,11 @@
 #include <stdexcept>
 #include <typeinfo>
 
-namespace o2 {
+namespace o2
+{
 // anonymous namespace to prevent usage outside of this file
-namespace {
+namespace
+{
 /// utility function to demangle cxx type names
 std::string demangle(const char *name)
 {

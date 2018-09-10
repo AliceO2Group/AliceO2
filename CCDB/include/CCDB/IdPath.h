@@ -18,8 +18,10 @@
 #include <TString.h>  // for TString
 #include "Rtypes.h"   // for Bool_t, IdPath::Class, ClassDef, etc
 
-namespace o2 {
-namespace ccdb {
+namespace o2
+{
+namespace ccdb
+{
 
 class IdPath : public TObject
 {

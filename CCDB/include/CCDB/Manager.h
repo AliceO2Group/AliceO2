@@ -25,8 +25,10 @@ class TFile;
 ///  @author Raffaele Grosso
 ///  @since  2014-12-02
 ///  @brief  Adapted to o2 from the original AliCDBManager.h in AliRoot
-namespace o2 {
-namespace ccdb {
+namespace o2
+{
+namespace ccdb
+{
 
 class Condition;
 

@@ -27,9 +27,11 @@ using namespace o2::ccdb;
 using namespace std;
 
 // special class to expose protected TMessage constructor
-class WrapTMessage : public TMessage {
+class WrapTMessage : public TMessage
+{
  public:
-  WrapTMessage(void* buf, Int_t len) : TMessage(buf, len) { ResetBit(kIsOwner); }
+  WrapTMessage(void *buf, Int_t len) : TMessage(buf, len)
+  { ResetBit(kIsOwner); }
 };
 
 BackendOCDB::BackendOCDB()

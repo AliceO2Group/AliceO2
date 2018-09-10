@@ -26,13 +26,13 @@ void CustomCleanup(void* data, void* hint) { delete static_cast<std::string*>(hi
 void queryConditionServer(string transport, string address)
 {
   auto factory = FairMQTransportFactory::CreateTransportFactory(transport);
-  auto channel = FairMQChannel{ "data-get", "req", factory };
+  auto channel = FairMQChannel{"data-get", "req", factory};
   channel.Connect(address);
   channel.ValidateChannel();
 
   auto backend = new o2::ccdb::BackendOCDB();
 
-  std::string* messageString = new string();
+  std::string *messageString = new string();
   std::string operationType("GET");
   // FIXME: how to setup the key?
   // just a test key -- corresponding to example from unit test testWriteReadAny.cxx
@@ -41,7 +41,7 @@ void queryConditionServer(string transport, string address)
   backend->Serialize(messageString, key, operationType, source);
 
   std::cerr << messageString->c_str() << "\n";
-  unique_ptr<FairMQMessage> request(factory->CreateMessage(const_cast<char*>(messageString->c_str()),
+  unique_ptr<FairMQMessage> request(factory->CreateMessage(const_cast<char *>(messageString->c_str()),
                                                            messageString->length(), CustomCleanup, messageString));
 
   unique_ptr<FairMQMessage> reply(factory->CreateMessage());
@@ -53,7 +53,7 @@ void queryConditionServer(string transport, string address)
     LOG(DEBUG) << "TYPE " << condition->getObject()->IsA()->GetName() << "\n";
 
     // retrieve concrete type
-    TestClass* c = nullptr;
+    TestClass *c = nullptr;
     condition->getObjectAs(c);
     if (c) {
       LOG(DEBUG) << "RECEIVED parameter value is " << c->mD << "\n";

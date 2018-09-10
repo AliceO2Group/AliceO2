@@ -14,8 +14,10 @@
 #include <string>
 #include <vector>
 
-namespace o2 {
-namespace ccdb {
+namespace o2
+{
+namespace ccdb
+{
 
 class ObjectHandler
 {

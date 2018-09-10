@@ -24,8 +24,10 @@ class TObjArray;
 
 class TObject;
 
-namespace o2 {
-namespace ccdb {
+namespace o2
+{
+namespace ccdb
+{
 
 class Condition;
 

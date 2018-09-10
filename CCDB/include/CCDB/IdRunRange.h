@@ -16,8 +16,10 @@
 #include <TObject.h>  // for TObject
 #include "Rtypes.h"   // for Int_t, Bool_t, IdRunRange::Class, ClassDef, etc
 
-namespace o2 {
-namespace ccdb {
+namespace o2
+{
+namespace ccdb
+{
 class IdRunRange : public TObject
 {
 

@@ -23,8 +23,10 @@
 #include "CCDB/Manager.h"
 #include "ParameterMQServer.h"
 
-namespace o2 {
-namespace ccdb {
+namespace o2
+{
+namespace ccdb
+{
 
 class ConditionsMQServer : public ParameterMQServer
 {

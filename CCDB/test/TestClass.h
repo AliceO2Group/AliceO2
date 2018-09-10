@@ -13,7 +13,8 @@
 
 // a private test class to be stored inside the CCDB; just used in a unit test
 // the header is not public
-struct TestClass {
+struct TestClass
+{
   double mD = 1.;
 };
 

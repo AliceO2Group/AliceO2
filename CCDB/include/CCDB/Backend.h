@@ -23,8 +23,10 @@
 // Google protocol buffers headers
 #include <google/protobuf/stubs/common.h>
 
-namespace o2 {
-namespace ccdb {
+namespace o2
+{
+namespace ccdb
+{
 
 class Condition;
 

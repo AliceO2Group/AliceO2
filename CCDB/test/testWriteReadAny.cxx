@@ -11,6 +11,7 @@
 #define BOOST_TEST_MODULE Test CCDB TestReadWriteAny
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
+
 #include <CCDB/TObjectWrapper.h>
 #include <boost/test/unit_test.hpp>
 #include "CCDB/Condition.h"
@@ -39,7 +40,7 @@ BOOST_AUTO_TEST_CASE(ReadWriteTest1)
 
   auto condread = cdb->getCondition("TestParam/Test/Test", run);
 
-  TestClass* readbackparameter = nullptr;
+  TestClass *readbackparameter = nullptr;
   condread->getObjectAs(readbackparameter);
   BOOST_CHECK(readbackparameter);
   BOOST_CHECK_CLOSE(readbackparameter->mD, TESTVALUE, 1E-6);
