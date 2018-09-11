@@ -33,7 +33,7 @@ GEMAmplification::GEMAmplification()
   watch.Start();
   const float sigmaOverMu = mGasParam->getSigmaOverMu();
   const float kappa = 1 / (sigmaOverMu * sigmaOverMu);
-  boost::format polya("1/(TMath::Gamma(%1%)*%2%) *std::pow(x/%3%, %4%) *std::exp(-x/%5%)");
+  boost::format polya("1/(TMath::Gamma(%1%)*%2%) * TMath::Power(x/%3%, %4%) * TMath::Exp(-x/%5%)");
 
   bool cacheexists = false;
   // FIXME: this should come from the CCDB (just as the other parameters)
