@@ -465,7 +465,7 @@ void Geometry::DefineEMC(std::string_view mcname, std::string_view mctitle)
   // Init EMCal/DCal SMs type array
   mEMCSMSystem.clear();
   mEMCSMSystem.resize(mNumberOfSuperModules);
-    
+
   for (Int_t i = 0; i < mNumberOfSuperModules; i++)
     mEMCSMSystem[i] = NOT_EXISTENT;
 
@@ -733,15 +733,14 @@ Int_t Geometry::GetAbsCellId(Int_t nSupMod, Int_t nModule, Int_t nIphi, Int_t nI
   return id;
 }
 
-void Geometry::GetModuleIndexesFromCellIndexesInSModule(Int_t nSupMod, Int_t iphi, Int_t ieta, Int_t& iphim,
-                                                        Int_t& ietam, Int_t& nModule) const
+std::tuple<Int_t, Int_t, Int_t> Geometry::GetModuleIndexesFromCellIndexesInSModule(Int_t nSupMod, Int_t iphi, Int_t ieta) const
 {
-  Int_t nphi = -1;
-  nphi = GetNumberOfModuleInPhiDirection(nSupMod);
+  Int_t nphi = GetNumberOfModuleInPhiDirection(nSupMod);
 
-  ietam = ieta / mNETAdiv;
-  iphim = iphi / mNPHIdiv;
-  nModule = ietam * nphi + iphim;
+  Int_t ietam = ieta / mNETAdiv,
+        iphim = iphi / mNPHIdiv,
+        nModule = ietam * nphi + iphim;
+  return std::make_tuple(iphim, ietam, nModule);
 }
 
 Int_t Geometry::GetAbsCellIdFromCellIndexes(Int_t nSupMod, Int_t iphi, Int_t ieta) const
@@ -754,29 +753,24 @@ Int_t Geometry::GetAbsCellIdFromCellIndexes(Int_t nSupMod, Int_t iphi, Int_t iet
     return -1;
   }
 
-  static Int_t ietam = -1, iphim = -1, nModule = -1;
-  static Int_t nIeta = -1, nIphi = -1; // cell indexes in module
+  auto indexmod = GetModuleIndexesFromCellIndexesInSModule(nSupMod, iphi, ieta);
 
-  GetModuleIndexesFromCellIndexesInSModule(nSupMod, iphi, ieta, ietam, iphim, nModule);
-
-  nIeta = ieta % mNETAdiv;
+  Int_t nIeta = ieta % mNETAdiv,
+        nIphi = iphi % mNPHIdiv;
   nIeta = mNETAdiv - 1 - nIeta;
-  nIphi = iphi % mNPHIdiv;
-
-  return GetAbsCellId(nSupMod, nModule, nIphi, nIeta);
+  return GetAbsCellId(nSupMod, std::get<2>(indexmod), nIphi, nIeta);
 }
 
 Int_t Geometry::SuperModuleNumberFromEtaPhi(Double_t eta, Double_t phi) const
 {
-  Int_t i = 0;
-
   if (TMath::Abs(eta) > mEtaMaxOfTRD1)
     throw InvalidPositionException(eta, phi);
 
   phi = TVector2::Phi_0_2pi(phi); // move phi to (0,2pi) boundaries
   Int_t nphism = mNumberOfSuperModules / 2;
   Int_t nSupMod = 0;
-  for (i = 0; i < nphism; i++) {
+  for (Int_t i = 0; i < nphism; i++) {
+    LOG(DEBUG) << "Sec " << i << ": Min " << mPhiBoundariesOfSM[2 * i] << ", Max " << mPhiBoundariesOfSM[2 * i + 1] << FairLogger::endl;
     if (phi >= mPhiBoundariesOfSM[2 * i] && phi <= mPhiBoundariesOfSM[2 * i + 1]) {
       nSupMod = 2 * i;
       if (eta < 0.0)
@@ -797,14 +791,12 @@ Int_t Geometry::SuperModuleNumberFromEtaPhi(Double_t eta, Double_t phi) const
 
 Int_t Geometry::GetAbsCellIdFromEtaPhi(Double_t eta, Double_t phi) const
 {
-  Int_t i = 0, ieta = -1, iphi = -1, etaShift = 0, neta = -1, nphi = -1;
-  Double_t absEta = 0.0, d = 0.0, dmin = 0.0, phiLoc = 0;
   Int_t nSupMod = SuperModuleNumberFromEtaPhi(eta, phi);
 
   // phi index first
   phi = TVector2::Phi_0_2pi(phi);
-  phiLoc = phi - mPhiCentersOfSMSec[nSupMod / 2];
-  nphi = mPhiCentersOfCells.size();
+  Double_t phiLoc = phi - mPhiCentersOfSMSec[nSupMod / 2];
+  Int_t nphi = mPhiCentersOfCells.size();
   if (GetSMType(nSupMod) == EMCAL_HALF)
     nphi /= 2;
   else if (GetSMType(nSupMod) == EMCAL_THIRD)
@@ -812,9 +804,10 @@ Int_t Geometry::GetAbsCellIdFromEtaPhi(Double_t eta, Double_t phi) const
   else if (GetSMType(nSupMod) == DCAL_EXT)
     nphi /= 3;
 
-  dmin = TMath::Abs(mPhiCentersOfCells[0] - phiLoc);
-  iphi = 0;
-  for (i = 1; i < nphi; i++) {
+  Double_t dmin = TMath::Abs(mPhiCentersOfCells[0] - phiLoc),
+           d = 0.;
+  Int_t iphi = 0;
+  for (Int_t i = 1; i < nphi; i++) {
     d = TMath::Abs(mPhiCentersOfCells[i] - phiLoc);
     if (d < dmin) {
       dmin = d;
@@ -826,14 +819,14 @@ Int_t Geometry::GetAbsCellIdFromEtaPhi(Double_t eta, Double_t phi) const
   LOG(DEBUG2) << " iphi " << iphi << " : dmin " << dmin << " (phi " << phi << ", phiLoc " << phiLoc << ")\n";
 
   // eta index
-  absEta = TMath::Abs(eta);
-  neta = mCentersOfCellsEtaDir.size();
-  etaShift = iphi * neta;
-  ieta = 0;
+  Double_t absEta = TMath::Abs(eta);
+  Int_t neta = mCentersOfCellsEtaDir.size(),
+        etaShift = iphi * neta,
+        ieta = 0;
   if (GetSMType(nSupMod) == DCAL_STANDARD)
     ieta += 16; // jump 16 cells for DCSM
   dmin = TMath::Abs(mEtaCentersOfCells[etaShift + ieta] - absEta);
-  for (i = ieta + 1; i < neta; i++) {
+  for (Int_t i = ieta + 1; i < neta; i++) {
     d = TMath::Abs(mEtaCentersOfCells[i + etaShift] - absEta);
     if (d < dmin) {
       dmin = d;
@@ -905,7 +898,7 @@ std::tuple<int, int> Geometry::GetModulePhiEtaIndexInSModule(Int_t nSupMod, Int_
   else
     nphi = mNPhi; // full SM
 
-  return std::make_tuple(int(nModule / nphi), int(nModule % nphi));
+  return std::make_tuple(int(nModule % nphi), int(nModule / nphi));
 }
 
 std::tuple<double, double> Geometry::GetCellPhiEtaIndexInSModule(Int_t nSupMod, Int_t nModule, Int_t nIphi,
@@ -1032,7 +1025,7 @@ Point3D<double> Geometry::RelPosCellInSModule(Int_t absId, Double_t distEff) con
   } else if (GetSMType(nSupMod) == EMCAL_HALF) {
     if (nSupMod % 2 != 0)
       iphi2 = (nphiIndex / 2 - 1) - iphi; // 11-iphi [1/2SM], revert the ordering on C side in order to keep
-                                           // convention.
+                                          // convention.
     yr = mCentersOfCellsPhiDir[iphi2 + nphiIndex / 2];
   } else if (GetSMType(nSupMod) == EMCAL_THIRD) {
     if (nSupMod % 2 != 0)
@@ -1173,9 +1166,9 @@ Bool_t Geometry::Impact(const TParticle* particle) const
 {
   Bool_t in = kFALSE;
   Int_t absID = 0;
-  Point3D<double> vimpact = {0, 0, 0};
+  Point3D<double> vimpact = { 0, 0, 0 };
 
-  ImpactOnEmcal({particle->Vx(), particle->Vy(), particle->Vz()}, particle->Theta(), particle->Phi(), absID, vimpact);
+  ImpactOnEmcal({ particle->Vx(), particle->Vy(), particle->Vz() }, particle->Theta(), particle->Phi(), absID, vimpact);
 
   if (absID >= 0)
     in = kTRUE;
@@ -1183,116 +1176,116 @@ Bool_t Geometry::Impact(const TParticle* particle) const
   return in;
 }
 
-void Geometry::ImpactOnEmcal(const Point3D<double> &vtx, Double_t theta, Double_t phi, Int_t& absId, Point3D<double>& vimpact) const
+void Geometry::ImpactOnEmcal(const Point3D<double>& vtx, Double_t theta, Double_t phi, Int_t& absId, Point3D<double>& vimpact) const
 {
-    Vector3D<double> p(TMath::Sin(theta) * TMath::Cos(phi), TMath::Sin(theta) * TMath::Sin(phi), TMath::Cos(theta));
-    
-    vimpact.SetXYZ(0, 0, 0);
-    absId = -1;
-    if (phi == 0 || theta == 0)
-        return;
-    
-    Vector3D<double> direction;
-    Double_t factor = (mIPDistance - vtx.Y()) / p.Y();
-    direction = vtx + factor * p;
-    
-    // from particle direction -> tower hitted
-    absId = GetAbsCellIdFromEtaPhi(direction.Eta(), direction.Phi());
-    
-    // tower absID hitted -> tower/module plane (evaluated at the center of the tower)
-    
-    Double_t loc[3], loc2[3], loc3[3];
-    Double_t glob[3] = {}, glob2[3] = {}, glob3[3] = {};
-    
-    try {
-        RelPosCellInSModule(absId).GetCoordinates(loc[0], loc[1], loc[2]);
-    } catch (InvalidCellIDException& e) {
-        LOG(ERROR) << e.what() << FairLogger::endl;
-        return;
-    }
-    
-    // loc is cell center of tower
-    auto cellindex = GetCellIndex(absId);
-    Int_t nSupMod = std::get<0>(cellindex), nModule = std::get<1>(cellindex), nIphi = std::get<2>(cellindex),
-    nIeta = std::get<3>(cellindex);
-    // look at 2 neighbours-s cell using nIphi={0,1} and nIeta={0,1}
-    Int_t nIphi2 = -1, nIeta2 = -1, absId2 = -1, absId3 = -1;
-    if (nIeta == 0)
-        nIeta2 = 1;
-    else
-        nIeta2 = 0;
-    absId2 = GetAbsCellId(nSupMod, nModule, nIphi, nIeta2);
-    if (nIphi == 0)
-        nIphi2 = 1;
-    else
-        nIphi2 = 0;
-    absId3 = GetAbsCellId(nSupMod, nModule, nIphi2, nIeta);
-    
-    // 2nd point on emcal cell plane
-    try {
-        RelPosCellInSModule(absId2).GetCoordinates(loc2[0], loc2[1], loc2[2]);
-    } catch (InvalidCellIDException& e) {
-        LOG(ERROR) << e.what() << FairLogger::endl;
-        return;
-    }
-    
-    // 3rd point on emcal cell plane
-    try {
-        RelPosCellInSModule(absId3).GetCoordinates(loc3[0], loc3[1], loc3[2]);
-    } catch (InvalidCellIDException& e) {
-        LOG(ERROR) << e.what() << FairLogger::endl;
-        return;
-    }
-    
-    // Get Matrix
-    const TGeoHMatrix* m = GetMatrixForSuperModule(nSupMod);
-    if (m) {
-        m->LocalToMaster(loc, glob);
-        m->LocalToMaster(loc2, glob2);
-        m->LocalToMaster(loc3, glob3);
-    } else {
-        LOG(FATAL) << "Geo matrixes are not loaded \n";
-    }
-    
-    // Equation of Plane from glob,glob2,glob3 (Ax+By+Cz+D=0)
-    Double_t a = glob[1] * (glob2[2] - glob3[2]) + glob2[1] * (glob3[2] - glob[2]) + glob3[1] * (glob[2] - glob2[2]);
-    Double_t b = glob[2] * (glob2[0] - glob3[0]) + glob2[2] * (glob3[0] - glob[0]) + glob3[2] * (glob[0] - glob2[0]);
-    Double_t c = glob[0] * (glob2[1] - glob3[1]) + glob2[0] * (glob3[1] - glob[1]) + glob3[0] * (glob[1] - glob2[1]);
-    Double_t d = glob[0] * (glob2[1] * glob3[2] - glob3[1] * glob2[2]) +
-    glob2[0] * (glob3[1] * glob[2] - glob[1] * glob3[2]) +
-    glob3[0] * (glob[1] * glob2[2] - glob2[1] * glob[2]);
-    d = -d;
-    
-    // shift equation of plane from tower/module center to surface along vector (A,B,C) normal to tower/module plane
-    Double_t dist = mLongModuleSize / 2.;
-    Double_t norm = TMath::Sqrt(a * a + b * b + c * c);
-    Double_t glob4[3] = {};
-    Vector3D<double> dir = {a, b, c};
-    Point3D<double> point = {glob[0], glob[1], glob[2]};
-    if (point.Dot(dir) < 0)
-        dist *= -1;
-    glob4[0] = glob[0] - dist * a / norm;
-    glob4[1] = glob[1] - dist * b / norm;
-    glob4[2] = glob[2] - dist * c / norm;
-    d = glob4[0] * a + glob4[1] * b + glob4[2] * c;
-    d = -d;
-    
-    // Line determination (2 points for equation of line : vtx and direction)
-    // impact between line (particle) and plane (module/tower plane)
-    Double_t den = a * (vtx.X() - direction.X()) + b * (vtx.Y() - direction.Y()) + c * (vtx.Z() - direction.Z());
-    if (den == 0) {
-        LOG(ERROR) << "ImpactOnEmcal() No solution :\n";
-        return;
-    }
-    
-    Double_t length = a * vtx.X() + b * vtx.Y() + c * vtx.Z() + d;
-    length /= den;
-    
-    vimpact.SetXYZ(vtx.X() + length * (direction.X() - vtx.X()), vtx.Y() + length * (direction.Y() - vtx.Y()),
-                   vtx.Z() + length * (direction.Z() - vtx.Z()));
-    
-    // shift vimpact from tower/module surface to center along vector (A,B,C) normal to tower/module plane
-    vimpact.SetXYZ(vimpact.Z() + dist * a / norm, vimpact.Y() + dist * b / norm, vimpact.Z() + dist * c / norm);
+  Vector3D<double> p(TMath::Sin(theta) * TMath::Cos(phi), TMath::Sin(theta) * TMath::Sin(phi), TMath::Cos(theta));
+
+  vimpact.SetXYZ(0, 0, 0);
+  absId = -1;
+  if (phi == 0 || theta == 0)
+    return;
+
+  Vector3D<double> direction;
+  Double_t factor = (mIPDistance - vtx.Y()) / p.Y();
+  direction = vtx + factor * p;
+
+  // from particle direction -> tower hitted
+  absId = GetAbsCellIdFromEtaPhi(direction.Eta(), direction.Phi());
+
+  // tower absID hitted -> tower/module plane (evaluated at the center of the tower)
+
+  Double_t loc[3], loc2[3], loc3[3];
+  Double_t glob[3] = {}, glob2[3] = {}, glob3[3] = {};
+
+  try {
+    RelPosCellInSModule(absId).GetCoordinates(loc[0], loc[1], loc[2]);
+  } catch (InvalidCellIDException& e) {
+    LOG(ERROR) << e.what() << FairLogger::endl;
+    return;
+  }
+
+  // loc is cell center of tower
+  auto cellindex = GetCellIndex(absId);
+  Int_t nSupMod = std::get<0>(cellindex), nModule = std::get<1>(cellindex), nIphi = std::get<2>(cellindex),
+        nIeta = std::get<3>(cellindex);
+  // look at 2 neighbours-s cell using nIphi={0,1} and nIeta={0,1}
+  Int_t nIphi2 = -1, nIeta2 = -1, absId2 = -1, absId3 = -1;
+  if (nIeta == 0)
+    nIeta2 = 1;
+  else
+    nIeta2 = 0;
+  absId2 = GetAbsCellId(nSupMod, nModule, nIphi, nIeta2);
+  if (nIphi == 0)
+    nIphi2 = 1;
+  else
+    nIphi2 = 0;
+  absId3 = GetAbsCellId(nSupMod, nModule, nIphi2, nIeta);
+
+  // 2nd point on emcal cell plane
+  try {
+    RelPosCellInSModule(absId2).GetCoordinates(loc2[0], loc2[1], loc2[2]);
+  } catch (InvalidCellIDException& e) {
+    LOG(ERROR) << e.what() << FairLogger::endl;
+    return;
+  }
+
+  // 3rd point on emcal cell plane
+  try {
+    RelPosCellInSModule(absId3).GetCoordinates(loc3[0], loc3[1], loc3[2]);
+  } catch (InvalidCellIDException& e) {
+    LOG(ERROR) << e.what() << FairLogger::endl;
+    return;
+  }
+
+  // Get Matrix
+  const TGeoHMatrix* m = GetMatrixForSuperModule(nSupMod);
+  if (m) {
+    m->LocalToMaster(loc, glob);
+    m->LocalToMaster(loc2, glob2);
+    m->LocalToMaster(loc3, glob3);
+  } else {
+    LOG(FATAL) << "Geo matrixes are not loaded \n";
+  }
+
+  // Equation of Plane from glob,glob2,glob3 (Ax+By+Cz+D=0)
+  Double_t a = glob[1] * (glob2[2] - glob3[2]) + glob2[1] * (glob3[2] - glob[2]) + glob3[1] * (glob[2] - glob2[2]);
+  Double_t b = glob[2] * (glob2[0] - glob3[0]) + glob2[2] * (glob3[0] - glob[0]) + glob3[2] * (glob[0] - glob2[0]);
+  Double_t c = glob[0] * (glob2[1] - glob3[1]) + glob2[0] * (glob3[1] - glob[1]) + glob3[0] * (glob[1] - glob2[1]);
+  Double_t d = glob[0] * (glob2[1] * glob3[2] - glob3[1] * glob2[2]) +
+               glob2[0] * (glob3[1] * glob[2] - glob[1] * glob3[2]) +
+               glob3[0] * (glob[1] * glob2[2] - glob2[1] * glob[2]);
+  d = -d;
+
+  // shift equation of plane from tower/module center to surface along vector (A,B,C) normal to tower/module plane
+  Double_t dist = mLongModuleSize / 2.;
+  Double_t norm = TMath::Sqrt(a * a + b * b + c * c);
+  Double_t glob4[3] = {};
+  Vector3D<double> dir = { a, b, c };
+  Point3D<double> point = { glob[0], glob[1], glob[2] };
+  if (point.Dot(dir) < 0)
+    dist *= -1;
+  glob4[0] = glob[0] - dist * a / norm;
+  glob4[1] = glob[1] - dist * b / norm;
+  glob4[2] = glob[2] - dist * c / norm;
+  d = glob4[0] * a + glob4[1] * b + glob4[2] * c;
+  d = -d;
+
+  // Line determination (2 points for equation of line : vtx and direction)
+  // impact between line (particle) and plane (module/tower plane)
+  Double_t den = a * (vtx.X() - direction.X()) + b * (vtx.Y() - direction.Y()) + c * (vtx.Z() - direction.Z());
+  if (den == 0) {
+    LOG(ERROR) << "ImpactOnEmcal() No solution :\n";
+    return;
+  }
+
+  Double_t length = a * vtx.X() + b * vtx.Y() + c * vtx.Z() + d;
+  length /= den;
+
+  vimpact.SetXYZ(vtx.X() + length * (direction.X() - vtx.X()), vtx.Y() + length * (direction.Y() - vtx.Y()),
+                 vtx.Z() + length * (direction.Z() - vtx.Z()));
+
+  // shift vimpact from tower/module surface to center along vector (A,B,C) normal to tower/module plane
+  vimpact.SetXYZ(vimpact.Z() + dist * a / norm, vimpact.Y() + dist * b / norm, vimpact.Z() + dist * c / norm);
 }
 
 Bool_t Geometry::IsInEMCAL(const Point3D<double>& pnt) const

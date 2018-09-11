@@ -37,12 +37,10 @@ Detector::Detector(const Detector& rhs)
 {
 }
 
-void Detector::Initialize()
+void Detector::InitializeO2Detector()
 {
   // register the sensitive volumes with FairRoot
   defineSensitiveVolumes();
-
-  o2::Base::Detector::Initialize();
 }
 
 bool Detector::ProcessHits(FairVolume* v)

@@ -103,10 +103,10 @@ void ClustererTask::attachFairManagerIO()
     LOG(WARNING) << "MFT clusters storage is not requested, suppressing MCTruth storage" << FairLogger::endl;
   }
 
-  const auto arrDigLbl = mUseMCTruth ? mgr->InitObjectAs<const MCTruth*>("ITSDigitMCTruth") : nullptr;
+  const auto arrDigLbl = mUseMCTruth ? mgr->InitObjectAs<const MCTruth*>("MFTDigitMCTruth") : nullptr;
 
   if (!arrDigLbl && mUseMCTruth) {
-    LOG(WARNING) << "MFT digits labeals are not registered in the FairRootManager. Continue w/o MC truth ..."
+    LOG(WARNING) << "MFT digits labels are not registered in the FairRootManager. Continue w/o MC truth ..."
                  << FairLogger::endl;
   }
   mReaderMC->setDigitsMCTruth(arrDigLbl);

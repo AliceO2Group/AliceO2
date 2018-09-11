@@ -46,10 +46,9 @@ void Detector::defineSensitiveVolumes()
   }
 }
 
-void Detector::Initialize()
+void Detector::InitializeO2Detector()
 {
   defineSensitiveVolumes();
-  o2::Base::Detector::Initialize();
 }
 
 void Detector::ConstructGeometry()

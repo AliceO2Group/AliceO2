@@ -7,6 +7,10 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include "Framework/ContextRegistry.h"
+#include "Framework/MessageContext.h"
+#include "Framework/RootObjectContext.h"
+#include "Framework/ArrowContext.h"
 #include "Framework/DataSourceDevice.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/DataProcessor.h"
@@ -31,17 +35,22 @@ namespace o2
 namespace framework
 {
 
-DataSourceDevice::DataSourceDevice(const DeviceSpec &spec, ServiceRegistry &registry)
-: mInit{spec.algorithm.onInit},
-  mStatefulProcess{nullptr},
-  mStatelessProcess{spec.algorithm.onProcess},
-  mError{spec.algorithm.onError},
-  mConfigRegistry{nullptr},
-  mAllocator{FairMQDeviceProxy{this},&mContext, &mRootContext, spec.outputs},
-  mServiceRegistry{registry},
-  mCurrentTimeslice{0},
-  mRate{0.},
-  mLastTime{0}
+DataSourceDevice::DataSourceDevice(const DeviceSpec& spec, ServiceRegistry& registry)
+  : mInit{ spec.algorithm.onInit },
+    mStatefulProcess{ nullptr },
+    mStatelessProcess{ spec.algorithm.onProcess },
+    mError{ spec.algorithm.onError },
+    mConfigRegistry{ nullptr },
+    mFairMQContext{ this },
+    mRootContext{ this },
+    mStringContext{ this },
+    mDataFrameContext{ this },
+    mContextRegistry{ { &mFairMQContext, &mRootContext, &mStringContext, &mDataFrameContext } },
+    mAllocator{ &mTimingInfo, &mContextRegistry, spec.outputs },
+    mServiceRegistry{ registry },
+    mCurrentTimeslice{ 0 },
+    mRate{ 0. },
+    mLastTime{ 0 }
 {
 }
 
@@ -91,8 +100,11 @@ bool DataSourceDevice::ConditionalRun() {
   // processing code, we still specify it.
   InputRecord dummyInputs{ {}, { [](size_t) { return nullptr; }, 0 } };
   try {
-    mContext.prepareForTimeslice(mCurrentTimeslice);
-    mRootContext.prepareForTimeslice(mCurrentTimeslice);
+    mTimingInfo.timeslice = mCurrentTimeslice;
+    mContextRegistry.get<MessageContext>()->clear();
+    mContextRegistry.get<RootObjectContext>()->clear();
+    mContextRegistry.get<StringContext>()->clear();
+    mContextRegistry.get<ArrowContext>()->clear();
     mCurrentTimeslice += 1;
 
     // Avoid runaway process in case we have nothing to do.
@@ -110,19 +122,25 @@ bool DataSourceDevice::ConditionalRun() {
       LOG(DEBUG) << "Has stateful process callback";
       mStatefulProcess(processingContext);
     }
-    size_t nMsg = mContext.size() + mRootContext.size();
+    size_t nMsg = mContextRegistry.get<MessageContext>()->size();
+    nMsg += mContextRegistry.get<RootObjectContext>()->size();
+    nMsg += mContextRegistry.get<StringContext>()->size();
+    nMsg += mContextRegistry.get<ArrowContext>()->size();
+    monitoring.send({ (int)nMsg, "dpl/output_messages" });
     LOG(DEBUG) << "Process produced " << nMsg << " messages";
-    DataProcessor::doSend(*this, mContext);
-    DataProcessor::doSend(*this, mRootContext);
+    DataProcessor::doSend(*this, *mContextRegistry.get<MessageContext>());
+    DataProcessor::doSend(*this, *mContextRegistry.get<RootObjectContext>());
+    DataProcessor::doSend(*this, *mContextRegistry.get<StringContext>());
+    DataProcessor::doSend(*this, *mContextRegistry.get<ArrowContext>());
   } catch(std::exception &e) {
     if (mError) {
       ErrorContext errorContext{dummyInputs, mServiceRegistry, e};
       mError(errorContext);
     } else {
-      LOG(DEBUG) << "Uncaught exception: " << e.what();
+      LOG(ERROR) << "Uncaught exception: " << e.what();
     }
   } catch(...) {
-    LOG(DEBUG) << "Unknown exception type.";
+    LOG(ERROR) << "Unknown exception type.";
     LOG(DEBUG) << "DataSourceDevice::Processing::END";
     return false;
   }

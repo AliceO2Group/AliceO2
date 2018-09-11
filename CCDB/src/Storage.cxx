@@ -16,9 +16,7 @@
 #include "CCDB/Condition.h"          // for Condition
 #include "CCDB/Manager.h"            // for Manager
 
-namespace o2 { namespace CDB { class IdRunRange; }}
-
-using namespace o2::CDB;
+using namespace o2::ccdb;
 
 ClassImp(Storage)
 
@@ -461,7 +459,8 @@ void Storage::setMirrorSEs(const char *mirrors)
 
   TString storageType = getStorageType();
   if (storageType != "alien") {
-    LOG(WARNING) << R"(The current storage is of type ")" << storageType.Data() << R"(". Setting of SEs to ")" << mirrors
+    LOG(WARNING) << R"(The current storage is of type ")" << storageType.Data() << R"(". Setting of SEs to ")"
+                 << mirrors
                  << R"(" skipped!)" << FairLogger::endl;
     return;
   }

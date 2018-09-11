@@ -40,7 +40,7 @@ class Detector : public o2::Base::DetImpl<Detector>
     return nullptr;
   }
 
-  void Initialize() override;
+  void InitializeO2Detector() override;
   bool ProcessHits(FairVolume* v) override;
   HitType* AddHit(float x, float y, float z, float time, float energy, Int_t trackId, Int_t detId);
   void GenFee(float qtot);

@@ -58,12 +58,12 @@ void run_sim(Int_t nEvents = 2, TString mcEngine = "TGeant3")
   timer.Start();
 
   // CDB manager
-//   o2::CDB::Manager *cdbManager = o2::CDB::Manager::Instance();
-//   cdbManager->setDefaultStorage("local://$ALICEO2/tpc/dirty/o2cdb");
-//   cdbManager->setRun(0);
+  //   o2::ccdb::Manager *cdbManager = o2::ccdb::Manager::Instance();
+  //   cdbManager->setDefaultStorage("local://$ALICEO2/tpc/dirty/o2cdb");
+  //   cdbManager->setRun(0);
 
- // gSystem->Load("libAliceO2Base");
- // gSystem->Load("libAliceO2its");
+  // gSystem->Load("libAliceO2Base");
+  // gSystem->Load("libAliceO2its");
 
   // Create simulation run
   FairRunSim* run = new FairRunSim();

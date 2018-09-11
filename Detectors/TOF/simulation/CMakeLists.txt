@@ -6,12 +6,14 @@ set(SRCS
   src/Detector.cxx
   src/Digitizer.cxx
   src/DigitizerTask.cxx
+  src/Strip.cxx
 )
 
 set(HEADERS
   include/TOFSimulation/Detector.h
   include/TOFSimulation/Digitizer.h
   include/TOFSimulation/DigitizerTask.h
+  include/TOFSimulation/Strip.h
 )
 
 SET(LINKDEF src/TOFSimulationLinkDef.h)

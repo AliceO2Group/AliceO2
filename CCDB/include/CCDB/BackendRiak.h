@@ -17,12 +17,15 @@
 
 #include "CCDB/Backend.h"
 
-namespace o2 {
-namespace CDB {
+namespace o2
+{
+namespace ccdb
+{
 
-class BackendRiak : public Backend {
+class BackendRiak : public Backend
+{
 
-private:
+ private:
   /// Deserializes a message and stores the value to an std::string using Protocol Buffers
   void Deserialize(const std::string& messageString, std::string& object);
 
@@ -32,7 +35,7 @@ private:
   /// Decompresses compressed_string to uncompressed_string using zlib
   void Decompress(std::string& uncompressed_string, const std::string& compressed_string);
 
-public:
+ public:
   BackendRiak();
   ~BackendRiak() override = default;
 

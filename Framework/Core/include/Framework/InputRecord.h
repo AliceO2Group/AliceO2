@@ -15,6 +15,7 @@
 #include "Framework/InputRoute.h"
 #include "Framework/TypeTraits.h"
 #include "Framework/InputSpan.h"
+#include "Framework/TableConsumer.h"
 
 #include <iterator>
 #include <string>
@@ -217,7 +218,25 @@ class InputRecord
   template <typename T>
   typename std::enable_if<std::is_same<T, std::string>::value, T>::type
   get(char const *binding) const {
-    return std::move(std::string(get<DataRef>(binding).payload));
+    auto&& ref = get<DataRef>(binding);
+    auto header = header::get<const header::DataHeader*>(ref.header);
+    assert(header);
+    return std::move(std::string(ref.payload, header->payloadSize));
+  }
+
+  /// substitution for TableConsumer
+  /// For the moment this is dummy, as it requires proper support to
+  /// create the RDataSource from the arrow buffer.
+  template <typename T>
+  typename std::enable_if<std::is_same<T, TableConsumer>::value, std::unique_ptr<TableConsumer>>::type
+  get(char const *binding) const
+  {
+
+    auto&& ref = get<DataRef>(binding);
+    auto header = header::get<const header::DataHeader*>(ref.header);
+    assert(header);
+    auto data = reinterpret_cast<uint8_t const *>(ref.payload);
+    return std::move(std::make_unique<TableConsumer>(data, header->payloadSize));
   }
 
   /// substitution for DataRef
@@ -337,9 +356,12 @@ class InputRecord
   // will be unified in a later refactoring
   // FIXME: request a pointer where you get a pointer
   template <typename T>
-  typename std::enable_if<is_messageable<T>::value == false && std::is_pointer<T>::value == false &&
-                            std::is_same<T, DataRef>::value == false && has_root_dictionary<T>::value == false,
-                          std::unique_ptr<T const, Deleter<T const>>>::type
+  typename std::enable_if_t<is_messageable<T>::value == false
+                              && std::is_pointer<T>::value == false
+                              && std::is_same<T, DataRef>::value == false
+                              && std::is_same<T, std::string>::value == false
+                              && has_root_dictionary<T>::value == false,
+                            std::unique_ptr<T const, Deleter<T const>>>::type
     get(char const* binding) const
   {
     using DataHeader = o2::header::DataHeader;

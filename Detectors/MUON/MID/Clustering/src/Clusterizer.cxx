@@ -12,7 +12,7 @@
 /// \brief  Implementation of the cluster reconstruction algorithm for MID
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   24 October 2016
-#include "Clusterizer.h"
+#include "MIDClustering/Clusterizer.h"
 #include <cassert>
 
 #include "FairLogger.h"
@@ -97,7 +97,7 @@ bool Clusterizer::loadPatterns(const std::vector<ColumnData>& stripPatterns)
     mActiveDEs[deIndex] = 1;
 
     de->firedColumns |= (1 << col.columnId);
-    de->columns[col.columnId] = col.patterns;
+    de->columns[col.columnId] = col;
   }
 
   return (stripPatterns.size() > 0);

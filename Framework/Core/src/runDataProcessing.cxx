@@ -75,6 +75,9 @@
 #include <Monitoring/MonitoringFactory.h>
 using namespace o2::monitoring;
 
+#include <InfoLogger/InfoLogger.hxx>
+using namespace AliceO2::InfoLogger;
+
 /// Helper class to find a free port.
 class FreePortFinder
 {
@@ -582,6 +585,62 @@ struct TurnOffColors {
   }
 };
 
+// Creates the sink for FairLogger / InfoLogger integration
+auto createInfoLoggerSinkHelper(std::unique_ptr<InfoLogger>& logger, std::unique_ptr<InfoLoggerContext>& ctx)
+{
+  return [&logger,
+          &ctx](const std::string& content, const fair::LogMetaData& metadata) {
+    // translate FMQ metadata
+    InfoLogger::InfoLogger::Severity severity = InfoLogger::Severity::Undefined;
+    int level = InfoLogger::undefinedMessageOption.level;
+
+    if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::nolog)) {
+      // discard
+      return;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::fatal)) {
+      severity = InfoLogger::Severity::Fatal;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::error)) {
+      severity = InfoLogger::Severity::Error;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::warn)) {
+      severity = InfoLogger::Severity::Warning;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::state)) {
+      severity = InfoLogger::Severity::Info;
+      level = 10;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::info)) {
+      severity = InfoLogger::Severity::Info;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug)) {
+      severity = InfoLogger::Severity::Debug;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug1)) {
+      severity = InfoLogger::Severity::Debug;
+      level = 10;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug2)) {
+      severity = InfoLogger::Severity::Debug;
+      level = 20;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug3)) {
+      severity = InfoLogger::Severity::Debug;
+      level = 30;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug4)) {
+      severity = InfoLogger::Severity::Debug;
+      level = 40;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::trace)) {
+      severity = InfoLogger::Severity::Debug;
+      level = 50;
+    }
+
+    InfoLogger::InfoLoggerMessageOption opt = {
+      severity,
+      level,
+      InfoLogger::undefinedMessageOption.errorCode,
+      metadata.file.c_str(),
+      atoi(metadata.line.c_str())
+    };
+
+    if (logger) {
+      logger->log(opt, *ctx, "DPL: %s", content.c_str());
+    }
+  };
+};
+
 int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
 {
   TurnOffColors::apply(false, 0);
@@ -595,7 +654,9 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
     runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec](fair::mq::DeviceRunner& r) {
       boost::program_options::options_description optsDesc;
       ConfigParamsHelper::populateBoostProgramOptions(optsDesc, spec.options, gHiddenDeviceOptions);
-      optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("infologger://"), "monitoring backend info");
+      optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("infologger://"), "monitoring backend info") //
+        ("infologger-severity", bpo::value<std::string>()->default_value(""), "minimum FairLogger severity to send to InfoLogger")       //
+        ("infologger-mode", bpo::value<std::string>()->default_value(""), "INFOLOGGER_MODE override");
       r.fConfig.AddToCmdLineOptions(optsDesc, true);
     });
 
@@ -611,6 +672,8 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
     std::unique_ptr<SimpleRawDeviceService> simpleRawDeviceService;
     std::unique_ptr<CallbackService> callbackService;
     std::unique_ptr<Monitoring> monitoringService;
+    std::unique_ptr<InfoLogger> infoLoggerService;
+    std::unique_ptr<InfoLoggerContext> infoLoggerContext;
 
     auto afterConfigParsingCallback = [&localRootFileService,
                                        &textControlService,
@@ -618,16 +681,30 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
                                        &simpleRawDeviceService,
                                        &callbackService,
                                        &monitoringService,
+                                       &infoLoggerService,
                                        &spec,
-                                       &serviceRegistry](fair::mq::DeviceRunner& r) {
+                                       &serviceRegistry,
+                                       &infoLoggerContext](fair::mq::DeviceRunner& r) {
       localRootFileService = std::make_unique<LocalRootFileService>();
       textControlService = std::make_unique<TextControlService>();
       parallelContext = std::make_unique<ParallelContext>(spec.rank, spec.nSlots);
       simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr);
       callbackService = std::make_unique<CallbackService>();
       monitoringService = MonitoringFactory::Get(r.fConfig.GetStringValue("monitoring-backend"));
+      auto infoLoggerMode = r.fConfig.GetStringValue("infologger-mode");
+      if (infoLoggerMode != "") {
+        setenv("INFOLOGGER_MODE", r.fConfig.GetStringValue("infologger-mode").c_str(), 1);
+      }
+      infoLoggerService = std::make_unique<InfoLogger>();
+      infoLoggerContext = std::make_unique<InfoLoggerContext>();
+
+      auto infoLoggerSeverity = r.fConfig.GetStringValue("infologger-severity");
+      if (infoLoggerSeverity != "") {
+        fair::Logger::AddCustomSink("infologger", infoLoggerSeverity, createInfoLoggerSinkHelper(infoLoggerService, infoLoggerContext));
+      }
 
       serviceRegistry.registerService<Monitoring>(monitoringService.get());
+      serviceRegistry.registerService<InfoLogger>(infoLoggerService.get());
       serviceRegistry.registerService<RootFileService>(localRootFileService.get());
       serviceRegistry.registerService<ControlService>(textControlService.get());
       serviceRegistry.registerService<ParallelContext>(parallelContext.get());

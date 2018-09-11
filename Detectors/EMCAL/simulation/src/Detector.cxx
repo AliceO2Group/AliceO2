@@ -88,7 +88,7 @@ Detector::Detector(const Detector& rhs)
   }
 }
 
-void Detector::Initialize()
+void Detector::InitializeO2Detector()
 {
   // Define sensitive volume
   TGeoVolume* vsense = gGeoManager->GetVolume("SCMX");
@@ -96,8 +96,6 @@ void Detector::Initialize()
     AddSensitiveVolume(vsense);
   else
     LOG(ERROR) << "EMCAL Sensitive volume SCMX not found ... No hit creation!\n";
-
-  o2::Base::Detector::Initialize();
 }
 
 void Detector::EndOfEvent() { Reset(); }

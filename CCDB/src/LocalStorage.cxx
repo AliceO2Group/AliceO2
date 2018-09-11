@@ -18,7 +18,7 @@
 #include <TSystem.h>            // for TSystem, gSystem
 #include "CCDB/Condition.h"          // for Condition
 
-using namespace o2::CDB;
+using namespace o2::ccdb;
 
 ClassImp(LocalStorage)
 
@@ -593,13 +593,15 @@ void LocalStorage::getEntriesForLevel1(const char *level0, const char *level1, c
             break;
           }
         }
-        if (alreadyLoaded)
+        if (alreadyLoaded) {
           continue;
+        }
 
         // skip filenames not matching the regex below
         TRegexp re("^Run[0-9]+_[0-9]+_");
-        if (!fileName.Contains(re))
+        if (!fileName.Contains(re)) {
           continue;
+        }
         // Extract first- and last-run and version and subversion.
         // This allows to avoid quering for a calibration path if we did not find a filename with
         // run-range including the one specified in the query and
@@ -620,10 +622,12 @@ void LocalStorage::getEntriesForLevel1(const char *level0, const char *level1, c
 
         Condition *anCondition = nullptr;
         Bool_t versionOK = kTRUE, subVersionOK = kTRUE;
-        if (queryId.hasVersion() && version != queryId.getVersion())
+        if (queryId.hasVersion() && version != queryId.getVersion()) {
           versionOK = kFALSE;
-        if (queryId.hasSubVersion() && subVersion != queryId.getSubVersion())
+        }
+        if (queryId.hasSubVersion() && subVersion != queryId.getSubVersion()) {
           subVersionOK = kFALSE;
+        }
         if (rr.isSupersetOf(queryId.getIdRunRange()) && versionOK && subVersionOK) {
           anCondition = getCondition(entryId);
           result->Add(anCondition);
@@ -1019,7 +1023,8 @@ void LocalStorage::queryValidCVMFSFiles(TString &cvmfsOcdbTag)
     // extract three-level path and basename
     TObjArray *tokens = filepath.Tokenize('/');
     if (tokens->GetEntries() < 5) {
-      LOG(ERROR) << R"(")" << filepath.Data() << R"(" is not a valid cvmfs path for an OCDB object)" << FairLogger::endl;
+      LOG(ERROR) << R"(")" << filepath.Data() << R"(" is not a valid cvmfs path for an OCDB object)"
+                 << FairLogger::endl;
       continue;
     }
     TObjString *baseNameOstr = (TObjString *) tokens->At(tokens->GetEntries() - 1);
@@ -1120,7 +1125,8 @@ void LocalStorage::setRetry(Int_t /* nretry */, Int_t /* initsec */)
   // Function to set the exponential retry for putting entries in the OCDB
 
   LOG(INFO) << "This function sets the exponential retry for putting entries in the OCDB - to be "
-    "used ONLY for  GridStorage --> returning without doing anything" << FairLogger::endl;
+               "used ONLY for  GridStorage --> returning without doing anything"
+            << FairLogger::endl;
   return;
 }
 

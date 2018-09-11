@@ -8,15 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/********************************************************************************
- *    Copyright (C) 2014 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH    *
- *                                                                              *
- *              This software is distributed under the terms of the             *
- *         GNU Lesser General Public Licence version 3 (LGPL) version 3,        *
- *                  copied verbatim in the file "LICENSE"                       *
- ********************************************************************************/
 /**
- * ConditionsMQClient.cpp
+ * @file ConditionsMQClient.cpp
  *
  * @since 2016-01-11
  * @author R. Grosso, C. Kouzinopoulos from examples/MQ/7-parameters/FairMQExample7Client.cxx
@@ -33,14 +26,19 @@
 
 #include "boost/filesystem.hpp"
 
-using namespace o2::CDB;
+using namespace o2::ccdb;
 using namespace std;
 
-ConditionsMQClient::ConditionsMQClient() : mRunId(0), mParameterName() {}
+ConditionsMQClient::ConditionsMQClient() : mRunId(0), mParameterName()
+{
+}
 
 ConditionsMQClient::~ConditionsMQClient() = default;
 
-void CustomCleanup(void* data, void* hint) { delete static_cast<std::string*>(hint); }
+void CustomCleanup(void* data, void* hint)
+{
+  delete static_cast<std::string*>(hint);
+}
 
 void ConditionsMQClient::InitTask()
 {

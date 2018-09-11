@@ -433,17 +433,17 @@ class Geometry
   }
 
   ///
-  /// Transition from cell indexes (ieta,iphi) to module indexes (ietam, iphim, nModule)
+  /// Transition from cell indexes (iphi, ieta) to module indexes (iphim, ietam, nModule)
   //
   /// \param nSupMod: super module number
   /// \param iphi: index of cell in phi direction inside super module
   /// \param ieta: index of cell in eta direction inside super module
-  /// \param iphim: index of cell in module in phi direction 0 or 1
-  /// \param ietam: index of cell in module in eta direction 0 or 1
-  /// \param nModule: module number
+  /// \return tuple:
+  ///               iphim: index of cell in module in phi direction: 0 or 1
+  ///               ietam: index of cell in module in eta direction: 0 or 1
+  ///               nModule: module number
   ///
-  void GetModuleIndexesFromCellIndexesInSModule(Int_t nSupMod, Int_t iphi, Int_t ieta, Int_t& iphim, Int_t& ietam,
-                                                Int_t& nModule) const;
+  std::tuple<Int_t, Int_t, Int_t> GetModuleIndexesFromCellIndexesInSModule(Int_t nSupMod, Int_t iphi, Int_t ieta) const;
 
   ///
   /// Transition from super module number (nSupMod) and cell indexes (ieta,iphi) to cell absolute ID number.

@@ -22,6 +22,19 @@ namespace o2
 namespace ITSMFT
 {
 
+struct MFTChipMappingData {
+  UShort_t module = 0;      // global module ID
+  UChar_t chipInModule = 0; // chip within the module
+  ClassDefNV(MFTChipMappingData, 1);
+};
+
+struct MFTModuleMappingData {
+  UChar_t layer = 0;        // layer id
+  UChar_t nChips = 0;       // number of chips
+  UShort_t firstChipID = 0; // global id of 1st chip
+  ClassDefNV(MFTModuleMappingData, 1);
+};
+
 class ChipMappingMFT
 {
  public:
@@ -30,39 +43,42 @@ class ChipMappingMFT
 
   int chipID2Module(int chipID, int& chipInModule) const
   {
-    chipInModule = -1;
-    return invalid();
+    chipInModule = ChipMappingData[chipID].chipInModule;
+    return ChipMappingData[chipID].module;
   }
 
   int chipID2Module(int chipID) const
   {
-    return invalid();
+    return ChipMappingData[chipID].module;
   }
 
   int getNChipsInModule(int modID) const
   {
-    return invalid();
+    return ModuleMappingData[modID].nChips;
   }
 
   int module2ChipID(int modID, int chipInModule) const
   {
-    return invalid();
+    return ModuleMappingData[modID].firstChipID + chipInModule;
   }
 
   int module2Layer(int modID) const
   {
-    return invalid();
+    return ModuleMappingData[modID].layer;
   }
 
   int chip2Layer(int chipID) const
   {
-    return invalid();
+    return ModuleMappingData[ChipMappingData[chipID].module].layer;
   }
 
  private:
   int invalid() const;
-  static constexpr int NModules = -1;
+  static constexpr int NModules = 280;
   static constexpr int NChips = 920;
+
+  static const std::array<MFTChipMappingData, NChips> ChipMappingData;
+  static const std::array<MFTModuleMappingData, NModules> ModuleMappingData;
 
   ClassDefNV(ChipMappingMFT, 1)
 };

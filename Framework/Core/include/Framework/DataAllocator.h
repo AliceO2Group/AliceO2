@@ -11,16 +11,21 @@
 #define FRAMEWORK_DATAALLOCATOR_H
 
 #include "Headers/DataHeader.h"
+#include "Framework/ContextRegistry.h"
+#include "Framework/MessageContext.h"
+#include "Framework/RootObjectContext.h"
+#include "Framework/StringContext.h"
+#include "Framework/ArrowContext.h"
 #include "Framework/Output.h"
 #include "Framework/OutputRef.h"
 #include "Framework/OutputRoute.h"
 #include "Framework/DataChunk.h"
 #include "Framework/FairMQDeviceProxy.h"
-#include "Framework/MessageContext.h"
-#include "Framework/RootObjectContext.h"
+#include "Framework/TimingInfo.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/TypeTraits.h"
 #include "Framework/SerializationMethods.h"
+#include "Framework/TableBuilder.h"
 
 #include <vector>
 #include <map>
@@ -41,6 +46,8 @@ namespace o2
 namespace framework
 {
 
+class ContextRegistry;
+
 /// This allocator is responsible to make sure that the messages created match
 /// the provided spec and that depending on how many pipelined reader we
 /// have, messages get created on the channel for the reader of the current
@@ -54,13 +61,13 @@ public:
   using DataDescription = o2::header::DataDescription;
   using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
 
-  DataAllocator(FairMQDeviceProxy device,
-                MessageContext *context,
-                RootObjectContext *rootContext,
-                const AllowedOutputRoutes &routes);
+  DataAllocator(TimingInfo* timingInfo,
+                ContextRegistry* contextes,
+                const AllowedOutputRoutes& routes);
 
   DataChunk newChunk(const Output&, size_t);
-  DataChunk newChunk(OutputRef&& ref, size_t size) { return newChunk(getOutputByBind(std::move(ref)), size); }
+
+  inline DataChunk newChunk(OutputRef&& ref, size_t size) { return newChunk(getOutputByBind(std::move(ref)), size); }
 
   DataChunk adoptChunk(const Output&, char *, size_t, fairmq_free_fn*, void *);
 
@@ -101,18 +108,41 @@ public:
     return *obj;
   }
 
+  /// Helper to create an std::string which will be owned by the framework
+  /// and transmitted when the processing finishes.
+  template <typename T, typename... Args>
+  typename std::enable_if<std::is_base_of<std::string, T>::value == true, T&>::type
+    make(const Output& spec, Args... args)
+  {
+    std::string* s = new std::string(args...);
+    adopt(spec, s);
+    return *s;
+  }
+
+  /// Helper to create a TableBuilder which will be owned by the framework
+  /// FIXME: perfect forwarding?
+  template <typename T, typename... Args>
+  typename std::enable_if<std::is_base_of<TableBuilder, T>::value == true, T &>::type
+    make(const Output& spec, Args... args)
+  {
+    TableBuilder *tb = new TableBuilder(args...);
+    adopt(spec, tb);
+    return *tb;
+  }
+
   /// catching unsupported type for case without additional arguments
   /// have to add three specializations because of the different role of
   /// the arguments and the different return types
   template <typename T>
   typename std::enable_if<
-    std::is_base_of<TObject, T>::value == false &&
-    is_messageable<T>::value == false,
+    std::is_base_of<TObject, T>::value == false
+    && std::is_base_of<TableBuilder, T>::value == false
+    && is_messageable<T>::value == false
+    && std::is_same<std::string, T>::value == false,
     T&>::type
-  make(const Output&)
+    make(const Output&)
   {
-    static_assert(is_messageable<T>::value == true ||
-                  std::is_base_of<TObject, T>::value == true,
+    static_assert(sizeof(T) == -1,
                   "data type T not supported by API, \n specializations available for"
                   "\n - trivially copyable, non-polymorphic structures"
                   "\n - arrays of those"
@@ -122,10 +152,11 @@ public:
   /// catching unsupported type for case of span of objects
   template <typename T>
   typename std::enable_if<
-    std::is_base_of<TObject, T>::value == false &&
-    is_messageable<T>::value == false,
+    std::is_base_of<TObject, T>::value == false
+    && is_messageable<T>::value == false
+    && std::is_same<std::string, T>::value == false,
     gsl::span<T>>::type
-  make(const Output&, size_t)
+    make(const Output&, size_t)
   {
     static_assert(is_messageable<T>::value == true,
                   "data type T not supported by API, \n specializations available for"
@@ -137,10 +168,11 @@ public:
   /// catching unsupported type for case of at least two additional arguments
   template <typename T, typename U, typename V, typename... Args>
   typename std::enable_if<
-    std::is_base_of<TObject, T>::value == false &&
-    is_messageable<T>::value == false,
+    std::is_base_of<TObject, T>::value == false
+    && is_messageable<T>::value == false
+    && std::is_same<std::string, T>::value == false,
     T&>::type
-  make(const Output&, U, V, Args...)
+    make(const Output&, U, V, Args...)
   {
     static_assert(is_messageable<T>::value == true || std::is_base_of<TObject, T>::value == true,
                   "data type T not supported by API, \n specializations available for"
@@ -154,6 +186,16 @@ public:
   void
   adopt(const Output& spec, TObject*obj);
 
+  /// Adopt a string in the framework and serialize / send
+  /// it to the consumers of @a spec once done.
+  void
+    adopt(const Output& spec, std::string*);
+
+  /// Adopt a TableBuilder in the framework and serialise / send
+  /// it as an Arrow table to all consumers of @a spec once done
+  void
+    adopt(const Output& spec, TableBuilder *);
+
   /// Serialize a snapshot of an object with root dictionary when called,
   /// will then be sent once the computation ends.
   /// Framework does not take ownership of the @a object. Changes to @a object
@@ -166,7 +208,8 @@ public:
   typename std::enable_if<has_root_dictionary<T>::value == true && is_messageable<T>::value == false, void>::type
   snapshot(const Output& spec, T& object)
   {
-    FairMQMessagePtr payloadMessage(mProxy.createMessage());
+    auto proxy = mContextRegistry->get<RootObjectContext>()->proxy();
+    FairMQMessagePtr payloadMessage(proxy.createMessage());
     auto* cl = TClass::GetClass(typeid(T));
     TMessageSerializer().Serialize(*payloadMessage, &object, cl);
 
@@ -190,7 +233,8 @@ public:
                     std::is_void<typename W::hint_type>::value,             //
                   "class hint must be of type TClass or const char");
 
-    FairMQMessagePtr payloadMessage(mProxy.createMessage());
+    auto proxy = mContextRegistry->get<RootObjectContext>()->proxy();
+    FairMQMessagePtr payloadMessage(proxy.createMessage());
     const TClass* cl = nullptr;
     if (wrapper.getHint() == nullptr) {
       // get TClass info by wrapped type
@@ -225,7 +269,8 @@ public:
   typename std::enable_if<is_messageable<T>::value == true, void>::type
   snapshot(const Output& spec, T const& object)
   {
-    FairMQMessagePtr payloadMessage(mProxy.createMessage(sizeof(T)));
+    auto proxy = mContextRegistry->get<MessageContext>()->proxy();
+    FairMQMessagePtr payloadMessage(proxy.createMessage(sizeof(T)));
     memcpy(payloadMessage->GetData(), &object, sizeof(T));
 
     addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodNone);
@@ -241,8 +286,9 @@ public:
                           is_messageable<typename C::value_type>::value == true>::type
   snapshot(const Output& spec, C const& v)
   {
+    auto proxy = mContextRegistry->get<MessageContext>()->proxy();
     auto sizeInBytes = sizeof(typename C::value_type) * v.size();
-    FairMQMessagePtr payloadMessage(mProxy.createMessage(sizeInBytes));
+    FairMQMessagePtr payloadMessage(proxy.createMessage(sizeInBytes));
 
     typename C::value_type *tmp = const_cast<typename C::value_type*>(v.data());
     memcpy(payloadMessage->GetData(), reinterpret_cast<void*>(tmp), sizeInBytes);
@@ -264,7 +310,8 @@ public:
     using ElementType = typename std::remove_pointer<typename C::value_type>::type;
     constexpr auto elementSizeInBytes = sizeof(ElementType);
     auto sizeInBytes = elementSizeInBytes * v.size();
-    FairMQMessagePtr payloadMessage(mProxy.createMessage(sizeInBytes));
+    auto proxy = mContextRegistry->get<MessageContext>()->proxy();
+    FairMQMessagePtr payloadMessage(proxy.createMessage(sizeInBytes));
 
     auto target = reinterpret_cast<unsigned char*>(payloadMessage->GetData());
     for (auto const & pointer : v) {
@@ -337,7 +384,11 @@ public:
   ///
   /// OutputRef descriptors are expected to be passed as rvalue, i.e. a temporary object in the
   /// function call
-  void adopt(OutputRef&& ref, TObject* obj) { return adopt(getOutputByBind(std::move(ref)), obj); }
+  template <typename T>
+  void adopt(OutputRef&& ref, T* obj)
+  {
+    return adopt(getOutputByBind(std::move(ref)), obj);
+  }
 
   /// snapshot object and route to output specified by OutputRef
   /// Framework makes a (serialized) copy of object content.
@@ -351,11 +402,9 @@ public:
   }
 
  private:
-  FairMQDeviceProxy mProxy;
-  FairMQDevice *mDevice;
   AllowedOutputRoutes mAllowedOutputRoutes;
-  MessageContext* mContext;
-  RootObjectContext* mRootContext;
+  TimingInfo *mTimingInfo;
+  ContextRegistry* mContextRegistry;
 
   std::string matchDataHeader(const Output &spec, size_t timeframeId);
   FairMQMessagePtr headerMessageFromOutput(Output const& spec,                                  //

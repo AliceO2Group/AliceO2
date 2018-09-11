@@ -16,67 +16,69 @@
 #include <TObject.h>  // for TObject
 #include "Rtypes.h"   // for Int_t, Bool_t, IdRunRange::Class, ClassDef, etc
 
-namespace o2 {
-namespace CDB {
+namespace o2
+{
+namespace ccdb
+{
 class IdRunRange : public TObject
 {
 
-  public:
-    IdRunRange();
+ public:
+  IdRunRange();
 
-    IdRunRange(Int_t firstRun, Int_t lastRun);
+  IdRunRange(Int_t firstRun, Int_t lastRun);
 
-    ~IdRunRange() override;
+  ~IdRunRange() override;
 
-    Int_t getFirstRun() const
-    {
-      return mFirstRun;
-    };
+  Int_t getFirstRun() const
+  {
+    return mFirstRun;
+  };
 
-    Int_t getLastRun() const
-    {
-      return mLastRun;
-    };
+  Int_t getLastRun() const
+  {
+    return mLastRun;
+  };
 
-    void setFirstRun(Int_t firstRun)
-    {
-      mFirstRun = firstRun;
-    };
+  void setFirstRun(Int_t firstRun)
+  {
+    mFirstRun = firstRun;
+  };
 
-    void setLastRun(Int_t lastRun)
-    {
-      mLastRun = lastRun;
-    };
+  void setLastRun(Int_t lastRun)
+  {
+    mLastRun = lastRun;
+  };
 
-    void setIdRunRange(Int_t firstRun, Int_t lastRun)
-    {
-      mFirstRun = firstRun;
-      mLastRun = lastRun;
-    };
+  void setIdRunRange(Int_t firstRun, Int_t lastRun)
+  {
+    mFirstRun = firstRun;
+    mLastRun = lastRun;
+  };
 
-    Bool_t isValid() const;
+  Bool_t isValid() const;
 
-    Bool_t isAnyRange() const
-    {
-      return mFirstRun < 0 && mLastRun < 0;
-    };
+  Bool_t isAnyRange() const
+  {
+    return mFirstRun < 0 && mLastRun < 0;
+  };
 
-    Bool_t isOverlappingWith(const IdRunRange &other) const;
+  Bool_t isOverlappingWith(const IdRunRange& other) const;
 
-    Bool_t isSupersetOf(const IdRunRange &other) const;
+  Bool_t isSupersetOf(const IdRunRange& other) const;
 
-    virtual Bool_t isEqual(const TObject *obj) const;
+  virtual Bool_t isEqual(const TObject* obj) const;
 
-    static Int_t Infinity()
-    {
-      return sInfinity;
-    }
+  static Int_t Infinity()
+  {
+    return sInfinity;
+  }
 
-  private:
-    Int_t mFirstRun; // first valid run
-    Int_t mLastRun;  // last valid run
+ private:
+  Int_t mFirstRun; // first valid run
+  Int_t mLastRun;  // last valid run
 
-    static const Int_t sInfinity = 999999999; //! Flag for "infinity"
+  static const Int_t sInfinity = 999999999; //! Flag for "infinity"
 
   ClassDefOverride(IdRunRange, 1)
 };

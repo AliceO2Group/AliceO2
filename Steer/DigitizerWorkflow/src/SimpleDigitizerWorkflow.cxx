@@ -10,6 +10,8 @@
 
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/DeviceSpec.h"
 #include "SimReaderSpec.h"
 #include "CollisionTimePrinter.h"
 
@@ -21,6 +23,10 @@
 // needed in order to init the **SHARED** polyadist file (to be done before the digitizers initialize)
 #include "TPCSimulation/GEMAmplification.h"
 
+// for ITS
+#include "ITSDigitizerSpec.h"
+#include "ITSDigitWriterSpec.h"
+
 #include <cstdlib>
 // this is somewhat assuming that a DPL workflow will run on one node
 #include <thread> // to detect number of hardware threads
@@ -29,6 +35,26 @@
 #include <cmath>
 
 using namespace o2::framework;
+
+// customize the completion policy
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  using o2::framework::CompletionPolicy;
+  // we customize the completion policy for the writer since it should stream immediately
+  auto matcher = [](DeviceSpec const& device) {
+    bool matched = device.name == "TPCDigitWriter";
+    if (matched) {
+      LOG(INFO) << "DPL completion policy for " << device.name << " customized";
+    }
+    return matched;
+  };
+
+  auto policy = [](gsl::span<o2::framework::PartRef const> const& inputs) {
+    return CompletionPolicy::CompletionOp::Consume;
+  };
+
+  policies.push_back({ CompletionPolicy{ "process-any", matcher, policy } });
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
@@ -134,6 +160,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // for writing digits to disc
   specs.emplace_back(o2::TPC::getTPCDigitRootWriterSpec(lanes));
+
+  // connect the ITS digitization
+  specs.emplace_back(o2::ITS::getITSDigitizerSpec(fanoutsize++));
+  // connect ITS digit writer
+  specs.emplace_back(o2::ITS::getITSDigitWriterSpec());
+
   specs.emplace_back(o2::steer::getSimReaderSpec(fanoutsize, tpcsectors, tpclanes));
+
   return specs;
 }

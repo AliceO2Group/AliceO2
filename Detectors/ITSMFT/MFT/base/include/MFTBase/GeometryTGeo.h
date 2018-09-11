@@ -89,6 +89,23 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   /// get layer index (0:9) from the chip index
   Int_t getLayer(Int_t index) const;
 
+  /// This routine computes the half, disk, ladder and sensor number
+  /// given the sensor index number
+  /// \param int index The sensor index number, starting from zero.
+  /// \param int half The half number. Starting from 0
+  /// \param int disk The disk number in a half. Starting from 0
+  /// \param int ladder The ladder number in a disk. Starting from 0
+  /// \param int sensor The sensor number in a ladder. Starting from 0
+  Bool_t getSensorID(Int_t index, Int_t& half, Int_t& disk, Int_t& ladder, Int_t& sensor) const;
+
+  /// Returns the number of sensors in each ladder of each disk of each half
+  /// ladder is the matrix ID and is converted to geometry ID
+  Int_t getNumberOfSensorsPerLadder(Int_t half, Int_t disk, Int_t ladder) const
+  {
+    Int_t ladderID = mLadderIndex2Id[disk][ladder];
+    return extractNumberOfSensorsPerLadder(half, disk, ladderID);
+  }
+
  protected:
   /// Determines the number of detector halves in the Geometry
   Int_t extractNumberOfHalves();
@@ -119,22 +136,13 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   /// intersects the sensor surface
   void extractSensorXAlpha(int index, float& x, float& alp);
 
-  /// This routine computes the half, disk, ladder and sensor number
-  /// given the sensor index number
-  /// \param int index The sensor index number, starting from zero.
-  /// \param int half The half number. Starting from 0
-  /// \param int disk The disk number in a half. Starting from 0
-  /// \param int ladder The ladder number in a disk. Starting from 0
-  /// \param int sensor The sensor number in a ladder. Starting from 0
-  Bool_t getSensorID(Int_t index, Int_t& half, Int_t& disk, Int_t& ladder, Int_t& sensor) const;
-
   /// From matrix index to half ID
   Int_t getHalf(Int_t index) const;
 
   /// From matrix index to disk ID
   Int_t getDisk(Int_t index) const;
 
-  /// From matrix index to ladder ID
+  /// From matrix index to ladder ID (matrix)
   Int_t getLadder(Int_t index) const;
 
   /// In a disk start numbering the sensors from zero

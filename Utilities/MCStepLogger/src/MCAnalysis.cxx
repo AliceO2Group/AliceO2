@@ -7,19 +7,19 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include <functional>
 
-namespace o2
+#include "MCStepLogger/MCAnalysis.h"
+#include "MCStepLogger/MCAnalysisManager.h"
+
+ClassImp(o2::mcstepanalysis::MCAnalysis);
+
+using namespace o2::mcstepanalysis;
+
+MCAnalysis::MCAnalysis(const std::string& name)
+  : mName(name), mIsInitialized(false), mAnalysisFile(nullptr)
 {
-namespace framework
-{
-
-void *initGUI(const char *) {return nullptr;}
-bool pollGUI(void *context, std::function<void(void)> guiCallback) {
-  return true;
+  // Automatically register to manager
+  auto& anamgr = MCAnalysisManager::Instance();
+  anamgr.registerAnalysis(this);
+  mAnalysisManager = &anamgr;
 }
-void disposeGUI() {
-}
-
-} // namespace framework
-} // namespace o2

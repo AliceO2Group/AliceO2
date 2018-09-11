@@ -19,10 +19,16 @@ namespace framework
 
 class RootObjectContext;
 class MessageContext;
+class StringContext;
+class ArrowContext;
 
+/// Helper class to send messages from a contex at the end
+/// of a computation.
 struct DataProcessor {
-  static void doSend(FairMQDevice &device, RootObjectContext &);
-  static void doSend(FairMQDevice &device, MessageContext &);
+  static void doSend(FairMQDevice&, RootObjectContext&);
+  static void doSend(FairMQDevice&, MessageContext&);
+  static void doSend(FairMQDevice&, StringContext&);
+  static void doSend(FairMQDevice&, ArrowContext&);
 };
 
 } // namespace framework

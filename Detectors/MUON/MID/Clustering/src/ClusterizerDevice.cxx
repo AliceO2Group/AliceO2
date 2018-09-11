@@ -17,7 +17,7 @@
 #include <vector>
 #include "FairMQLogger.h"
 #include "MIDBase/Serializer.h"
-#include "DataFormatsMID/StripPattern.h"
+#include "DataFormatsMID/ColumnData.h"
 
 #include "MIDBase/LegacyUtility.h" // FOR TESTING
 

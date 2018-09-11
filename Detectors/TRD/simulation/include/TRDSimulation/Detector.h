@@ -33,7 +33,7 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   ~Detector() override = default;
 
-  void Initialize() override;
+  void InitializeO2Detector() override;
 
   bool ProcessHits(FairVolume* v = nullptr) override;
 

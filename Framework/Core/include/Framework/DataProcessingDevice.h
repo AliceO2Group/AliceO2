@@ -15,14 +15,18 @@
 
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/ContextRegistry.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/DataRelayer.h"
 #include "Framework/DeviceSpec.h"
-#include "Framework/ServiceRegistry.h"
 #include "Framework/MessageContext.h"
 #include "Framework/RootObjectContext.h"
+#include "Framework/ArrowContext.h"
+#include "Framework/StringContext.h"
+#include "Framework/ServiceRegistry.h"
 #include "Framework/InputRoute.h"
 #include "Framework/ForwardRoute.h"
+#include "Framework/TimingInfo.h"
 
 #include <memory>
 
@@ -31,26 +35,33 @@ namespace o2
 namespace framework
 {
 
-class DataProcessingDevice : public FairMQDevice {
-public:
-  DataProcessingDevice(const DeviceSpec &spec, ServiceRegistry &);
+class DataProcessingDevice : public FairMQDevice
+{
+ public:
+  DataProcessingDevice(const DeviceSpec& spec, ServiceRegistry&);
   void Init() final;
   void PreRun() final;
   void PostRun() final;
   void Reset() final;
+  bool ConditionalRun() final;
 
  protected:
-  bool HandleData(FairMQParts &parts, int index);
-  void error(const char *msg);
-private:
+  bool handleData(FairMQParts&);
+  void error(const char* msg);
+
+ private:
   AlgorithmSpec::InitCallback mInit;
   AlgorithmSpec::ProcessCallback mStatefulProcess;
   AlgorithmSpec::ProcessCallback mStatelessProcess;
   AlgorithmSpec::ErrorCallback mError;
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
   ServiceRegistry& mServiceRegistry;
-  MessageContext mContext;
+  TimingInfo mTimingInfo;
+  MessageContext mFairMQContext;
   RootObjectContext mRootContext;
+  StringContext mStringContext;
+  ArrowContext mDataFrameContext;
+  ContextRegistry mContextRegistry;
   DataAllocator mAllocator;
   DataRelayer mRelayer;
 

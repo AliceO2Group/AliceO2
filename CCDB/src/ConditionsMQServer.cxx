@@ -8,15 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/********************************************************************************
- *    Copyright (C) 2014 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH    *
- *                                                                              *
- *              This software is distributed under the terms of the             *
- *         GNU Lesser General Public Licence version 3 (LGPL) version 3,        *
- *                  copied verbatim in the file "LICENSE"                       *
- ********************************************************************************/
 /**
- * ConditionsMQServer.cxx
+ * @file ConditionsMQServer.cxx
  *
  * @since 2016-01-11
  * @author R. Grosso, C. Kouzinopoulos from parmq/ParameterMQServer.cxx
@@ -37,12 +30,14 @@
 
 #include <boost/algorithm/string.hpp>
 
-using namespace o2::CDB;
+using namespace o2::ccdb;
 using std::endl;
 using std::cout;
 using std::string;
 
-ConditionsMQServer::ConditionsMQServer() : ParameterMQServer(), mCdbManager(o2::CDB::Manager::Instance()) {}
+ConditionsMQServer::ConditionsMQServer() : ParameterMQServer(), mCdbManager(o2::ccdb::Manager::Instance())
+{
+}
 
 void ConditionsMQServer::InitTask()
 {
@@ -65,7 +60,10 @@ void ConditionsMQServer::InitTask()
   }
 }
 
-void free_tmessage(void* data, void* hint) { delete static_cast<TMessage*>(hint); }
+void free_tmessage(void* data, void* hint)
+{
+  delete static_cast<TMessage*>(hint);
+}
 
 void ConditionsMQServer::ParseDataSource(std::string& dataSource, const std::string& data)
 {
@@ -185,4 +183,7 @@ void ConditionsMQServer::getFromOCDB(std::string key)
   }
 }
 
-ConditionsMQServer::~ConditionsMQServer() { delete mCdbManager; }
+ConditionsMQServer::~ConditionsMQServer()
+{
+  delete mCdbManager;
+}

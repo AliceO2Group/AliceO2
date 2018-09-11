@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "DeviceSpecHelpers.h"
+#include "ChannelSpecHelpers.h"
 #include <wordexp.h>
 #include <algorithm>
 #include <boost/program_options.hpp>
@@ -36,31 +37,17 @@ namespace o2
 namespace framework
 {
 
-char const* channelTypeFromEnum(enum ChannelType type)
-{
-  switch (type) {
-    case Pub:
-      return "pub";
-    case Sub:
-      return "sub";
-    case Push:
-      return "push";
-    case Pull:
-      return "pull";
-  }
-}
-
 /// This creates a string to configure channels of a FairMQDevice
 /// FIXME: support shared memory
 std::string inputChannel2String(const InputChannelSpec& channel)
 {
   std::string result;
   char buffer[32];
-  auto addressFormat = (channel.method == Bind ? "tcp://*:%d" : "tcp://127.0.0.1:%d");
+  auto addressFormat = ChannelSpecHelpers::methodAsUrl(channel.method);
 
   result += "name=" + channel.name + ",";
-  result += std::string("type=") + channelTypeFromEnum(channel.type) + ",";
-  result += std::string("method=") + (channel.method == Bind ? "bind" : "connect") + ",";
+  result += std::string("type=") + ChannelSpecHelpers::typeAsString(channel.type) + ",";
+  result += std::string("method=") + ChannelSpecHelpers::methodAsString(channel.method) + ",";
   result += std::string("address=") + (snprintf(buffer, 32, addressFormat, channel.port), buffer);
 
   return result;
@@ -70,11 +57,11 @@ std::string outputChannel2String(const OutputChannelSpec& channel)
 {
   std::string result;
   char buffer[32];
-  auto addressFormat = (channel.method == Bind ? "tcp://*:%d" : "tcp://127.0.0.1:%d");
+  auto addressFormat = ChannelSpecHelpers::methodAsUrl(channel.method);
 
   result += "name=" + channel.name + ",";
-  result += std::string("type=") + channelTypeFromEnum(channel.type) + ",";
-  result += std::string("method=") + (channel.method == Bind ? "bind" : "connect") + ",";
+  result += std::string("type=") + ChannelSpecHelpers::typeAsString(channel.type) + ",";
+  result += std::string("method=") + ChannelSpecHelpers::methodAsString(channel.method) + ",";
   result += std::string("address=") + (snprintf(buffer, 32, addressFormat, channel.port), buffer);
 
   return result;
@@ -605,10 +592,12 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
   // - rate is an option of FairMQ device for ConditionalRun
   // - child-driver is not a FairMQ device option but used per device to start to process
   bpo::options_description forwardedDeviceOptions;
-  forwardedDeviceOptions.add_options()                                                                   //
-    ("rate", bpo::value<std::string>(), "rate for a data source device (Hz)")                            //
-    ("monitoring-backend", bpo::value<std::string>(), "monitoring connection string")                    //
-    ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)"); //
+  forwardedDeviceOptions.add_options()                                                                          //
+    ("rate", bpo::value<std::string>(), "rate for a data source device (Hz)")                                   //
+    ("monitoring-backend", bpo::value<std::string>(), "monitoring connection string")                           //
+    ("infologger-mode", bpo::value<std::string>(), "INFOLOGGER_MODE override")                                  //
+    ("infologger-severity", bpo::value<std::string>(), "minimun FairLogger severity which goes to info logger") //
+    ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)");        //
 
   return forwardedDeviceOptions;
 }

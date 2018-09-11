@@ -724,7 +724,8 @@ TGeoHMatrix& GeometryTGeo::createT2LMatrix(int isn)
   t2l.Clear();
   t2l.RotateZ(alp * RadToDeg()); // rotate in direction of normal to the sensor plane
   const TGeoHMatrix* matL2G = extractMatrixSensor(isn);
-  t2l.MultiplyLeft(&matL2G->Inverse());
+  const TGeoHMatrix& matL2Gi = matL2G->Inverse();
+  t2l.MultiplyLeft(&matL2Gi);
   return t2l;
 }
 

@@ -31,6 +31,7 @@
 #include <sstream>
 #include <algorithm>
 #include "TPCBase/CDBInterface.h"
+#include "TPCSectorHeader.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -91,20 +92,33 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
     auto digitArrayRaw = digitArray.get();
     auto mcTruthArrayRaw = mcTruthArray.get();
 
+    // lambda that snapshots digits to be sent out; prepares and attaches header with sector information
+    auto snapshotDigits = [sector, &pc, channel](std::vector<o2::TPC::Digit> const& digits) {
+      o2::tpc::TPCSectorHeader header{ sector };
+      // note that snapshoting only works with non-const references (to be fixed?)
+      pc.outputs().snapshot(Output{ "TPC", "DIGITS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe,
+                                    header },
+                            const_cast<std::vector<o2::TPC::Digit>&>(digits));
+    };
+    // lambda that snapshots labels to be sent out; prepares and attaches header with sector information
+    auto snapshotLabels = [&sector, &pc, &channel](o2::dataformats::MCTruthContainer<o2::MCCompLabel> const& labels) {
+      o2::tpc::TPCSectorHeader header{ sector };
+      pc.outputs().snapshot(Output{ "TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(channel),
+                                    Lifetime::Timeframe, header },
+                            const_cast<o2::dataformats::MCTruthContainer<o2::MCCompLabel>&>(labels));
+    };
+
     // no more tasks can be marked with a negative sector
     if (sector < 0) {
       // we are ready to quit or we received a NOP
 
       // notify channels further down the road that we are done (why do I have to send digitArray here????)
+      // (we are essentially sending empty messages with a header containing the stop signal)
       digitArrayRaw->clear();
       mcTruthArrayRaw->clear();
-      pc.outputs().snapshot(Output{ "TPC", "DIGITS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe },
-                            *digitArrayRaw);
-      pc.outputs().snapshot(
-        Output{ "TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe },
-        *mcTruthArrayRaw);
-      pc.outputs().snapshot(Output{ "TPC", "SECTOR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe },
-                            sector);
+
+      snapshotDigits(*digitArrayRaw);
+      snapshotLabels(*mcTruthArrayRaw);
       if (sector == -1) {
         pc.services().get<ControlService>().readyToQuit(false);
         finished = true;
@@ -189,16 +203,10 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
         // NOTE: we would like to send it here in order to avoid copying/accumulating !!
       }
     }
-    // write digits + MC truth
-    pc.outputs().snapshot(Output{ "TPC", "DIGITS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe },
-                          digitAccum);
-    pc.outputs().snapshot(
-      Output{ "TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe }, labelAccum);
-    pc.outputs().snapshot(Output{ "TPC", "SECTOR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe },
-                          sector);
+    // snapshot / "send" digits + MC truth
+    snapshotDigits(digitAccum);
+    snapshotLabels(labelAccum);
 
-    //# outtree->SetDirectory(file.get());
-    //# file->Write();
     timer.Stop();
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
   };
@@ -231,8 +239,7 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
                                          static_cast<SubSpecificationType>(channel), Lifetime::Condition } },
     Outputs{ // define channel by triple of (origin, type id of data to be sent on this channel, subspecification)
              OutputSpec{ "TPC", "DIGITS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe },
-             OutputSpec{ "TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe },
-             OutputSpec{ "TPC", "SECTOR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
+             OutputSpec{ "TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
     AlgorithmSpec{ initIt },
     Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
              { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } } }

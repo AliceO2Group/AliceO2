@@ -30,7 +30,7 @@ void queryConditionServer(string transport, string address)
   channel.Connect(address);
   channel.ValidateChannel();
 
-  auto backend = new o2::CDB::BackendOCDB();
+  auto backend = new o2::ccdb::BackendOCDB();
 
   std::string* messageString = new string();
   std::string operationType("GET");

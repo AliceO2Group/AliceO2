@@ -44,7 +44,12 @@ DataProcessingDevice::DataProcessingDevice(const DeviceSpec& spec, ServiceRegist
     mStatelessProcess{ spec.algorithm.onProcess },
     mError{ spec.algorithm.onError },
     mConfigRegistry{ nullptr },
-    mAllocator{ this, &mContext, &mRootContext, spec.outputs },
+    mFairMQContext{ FairMQDeviceProxy{ this } },
+    mRootContext{ FairMQDeviceProxy{ this } },
+    mStringContext{ FairMQDeviceProxy{ this } },
+    mDataFrameContext{ FairMQDeviceProxy{ this } },
+    mContextRegistry{ { &mFairMQContext, &mRootContext, &mStringContext, &mDataFrameContext } },
+    mAllocator{ &mTimingInfo, &mContextRegistry, spec.outputs },
     mRelayer{ spec.completionPolicy, spec.inputs, spec.forwards, registry.get<Monitoring>() },
     mInputChannels{ spec.inputChannels },
     mOutputChannels{ spec.outputChannels },
@@ -65,15 +70,10 @@ void DataProcessingDevice::Init() {
   LOG(DEBUG) << "DataProcessingDevice::InitTask::START";
   auto optionsRetriever(std::make_unique<FairOptionsRetriever>(GetConfig()));
   mConfigRegistry = std::move(std::make_unique<ConfigParamRegistry>(std::move(optionsRetriever)));
-  if (mInputChannels.empty()) {
-    LOG(ERROR) << "DataProcessingDevice should have at least one input channel";
-  }
-  for (auto &channel : mInputChannels) {
-    OnData(channel.name.c_str(), &DataProcessingDevice::HandleData);
-  }
 
   auto& monitoring = mServiceRegistry.get<Monitoring>();
   monitoring.enableBuffering(MONITORING_QUEUE_SIZE);
+
   if (mInit) {
     InitContext initContext{*mConfigRegistry,mServiceRegistry};
     mStatefulProcess = mInit(initContext);
@@ -87,13 +87,29 @@ void DataProcessingDevice::PostRun() { mServiceRegistry.get<CallbackService>()(C
 
 void DataProcessingDevice::Reset() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Reset); }
 
+/// We drive the state loop ourself so that we will be able to support
+/// non-data triggers like those which are time based.
+bool DataProcessingDevice::ConditionalRun()
+{
+  for (auto& channel : mInputChannels) {
+    FairMQParts parts;
+    auto result = this->ReceiveAsync(parts, channel.name);
+    if (result > 0) {
+      this->handleData(parts);
+    }
+  }
+  return true;
+}
+
 /// This is the inner loop of our framework. The actual implementation
 /// is divided in two parts. In the first one we define a set of lambdas
 /// which describe what is actually going to happen, hiding all the state
 /// boilerplate which the user does not need to care about at top level.
-/// In the second part 
-bool
-DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
+bool DataProcessingDevice::handleData(FairMQParts& parts)
+{
+  assert(mInputChannels.empty() == false);
+  assert(parts.Size() > 0);
+
   static const std::string handleDataMetricName = "dpl/in_handle_data";
   // Initial part. Let's hide all the unnecessary and have
   // simple lambdas for each of the steps I am planning to have.
@@ -116,8 +132,11 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   auto &processingCount = mProcessingCount;
   auto &relayer = mRelayer;
   auto &device = *this;
-  auto &context = mContext;
+  auto &timingInfo = mTimingInfo;
+  auto& context = mFairMQContext;
   auto &rootContext = mRootContext;
+  auto& stringContext = mStringContext;
+  auto& rdfContext = mDataFrameContext;
   auto &forwards = mForwards;
   auto &inputsSchema = mInputs;
   auto &errorCount = mErrorCount;
@@ -128,9 +147,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // want to support multithreaded dispatching of operations, I can simply
   // move these to some thread local store and the rest of the lambdas
   // should work just fine.
-  FairMQParts &parts = iParts;
   std::vector<DataRelayer::RecordAction> completed;
-
 
   // This is how we validate inputs. I.e. we try to enforce the O2 Data model
   // and we do a few stats. We bind parts as a lambda captured variable, rather
@@ -222,7 +239,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   auto fillInputs = [&relayer, &inputsSchema, &currentSetOfInputs](int timeslice) -> InputRecord {
     currentSetOfInputs = std::move(relayer.getInputsForTimeslice(timeslice));
     InputSpan span{ [&currentSetOfInputs](size_t i) -> char const* {
-                     return static_cast<char const*>(currentSetOfInputs.at(i)->GetData());
+                     return currentSetOfInputs.at(i) ? static_cast<char const*>(currentSetOfInputs.at(i)->GetData()) : nullptr;
                    },
                     currentSetOfInputs.size() };
     return InputRecord{ inputsSchema, std::move(span) };
@@ -233,7 +250,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // PROCESSING:{START,END} is done so that we can trigger on begin / end of processing
   // in the GUI.
   auto dispatchProcessing = [&processingCount, &allocator, &statefulProcess, &statelessProcess, &monitoringService,
-                             &context, &rootContext, &serviceRegistry, &device](int i, InputRecord& record) {
+                             &context, &rootContext, &stringContext, &rdfContext, &serviceRegistry, &device](int i, InputRecord& record) {
     if (statefulProcess) {
       LOG(DEBUG) << "PROCESSING:START:" << i;
       monitoringService.send({ processingCount++, "dpl/stateful_process_count" });
@@ -252,8 +269,11 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
       monitoringService.send({ 1, "dpl/in_handle_data" });
       LOG(DEBUG) << "PROCESSING:END:" << i;
     }
+
     DataProcessor::doSend(device, context);
     DataProcessor::doSend(device, rootContext);
+    DataProcessor::doSend(device, stringContext);
+    DataProcessor::doSend(device, rdfContext);
   };
 
   // Error handling means printing the error and updating the metric
@@ -272,11 +292,13 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // propagates it to the various contextes (i.e. the actual entities which
   // create messages) because the messages need to have the timeslice id into
   // it.
-  auto prepareAllocatorForCurrentTimeSlice = [&rootContext, &context, &relayer](int i) {
+  auto prepareAllocatorForCurrentTimeSlice = [&timingInfo, &rootContext, &stringContext, &context, &relayer](int i) {
     size_t timeslice = relayer.getTimesliceForCacheline(i);
     LOG(DEBUG) << "Timeslice for cacheline is " << timeslice;
-    rootContext.prepareForTimeslice(timeslice);
-    context.prepareForTimeslice(timeslice);
+    timingInfo.timeslice = timeslice;
+    rootContext.clear();
+    context.clear();
+    stringContext.clear();
   };
 
   // This is how we do the forwarding, i.e. we push 

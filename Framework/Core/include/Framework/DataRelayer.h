@@ -99,6 +99,7 @@ private:
 
   std::vector<bool> mForwardingMask;
   CompletionPolicy mCompletionPolicy;
+  std::vector<size_t> mDistinctRoutesIndex;
 };
 
 } // namespace framework

@@ -19,13 +19,13 @@ namespace framework
 
 /// These map to zeromq connection
 /// methods.
-enum ChannelMethod {
+enum struct ChannelMethod {
   Bind,
   Connect
 };
 
 /// These map to zeromq types for the channels.
-enum ChannelType {
+enum struct ChannelType {
   Pub,
   Sub,
   Push,

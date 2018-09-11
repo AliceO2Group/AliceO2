@@ -64,13 +64,14 @@ if(NOT FairMQInFairRoot_FOUND) # DEPRECATED: Remove this condition, once we requ
 endif()
 find_package(DDS)
 find_package(Protobuf REQUIRED)
+find_package(InfoLogger REQUIRED)
 find_package(Configuration REQUIRED)
 find_package(Monitoring REQUIRED)
+find_package(Common REQUIRED)
 find_package(RapidJSON REQUIRED)
-
 find_package(GLFW)
-
 find_package(benchmark QUIET)
+find_package(Arrow)
 
 if (DDS_FOUND)
   add_definitions(-DENABLE_DDS)
@@ -135,6 +136,11 @@ o2_define_bucket(
 
   INCLUDE_DIRECTORIES
   ${GLFW_INCLUDE_DIR}
+)
+
+o2_define_bucket(
+  NAME
+  headless_bucket
 )
 
 o2_define_bucket(
@@ -222,12 +228,6 @@ o2_define_bucket(
     ${Monitoring_INCLUDE_DIRS}
 )
 
-# a common bucket for the implementation of devices inherited
-# from O2device
-if(GLFW_FOUND)
-    set(GUI_LIBRARIES DebugGUI)
-endif()
-
 o2_define_bucket(
     NAME
     O2DeviceApplication_bucket
@@ -242,21 +242,39 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    InfoLogger_bucket
+
+    DEPENDENCIES
+    ${InfoLogger_LIBRARIES}
+
+    SYSTEMINCLUDE_DIRECTORIES
+    ${InfoLogger_INCLUDE_DIRS}
+)
+
+o2_define_bucket(
+    NAME
     O2FrameworkCore_bucket
 
     DEPENDENCIES
+    arrow_bucket
     O2DeviceApplication_bucket
     common_utils_bucket
+    ROOTDataFrame
+    ROOTVecOps
     Core
+    Tree
+    TreePlayer
     Net
     MathUtils
-    ${GUI_LIBRARIES}
+    DebugGUI
     ${Monitoring_LIBRARIES}
     ${Configuration_LIBRARIES}
+    InfoLogger_bucket
 
     SYSTEMINCLUDE_DIRECTORIES
     ${Monitoring_INCLUDE_DIRS}
     ${Configuration_INCLUDE_DIRS}
+    ${COMMON_INCLUDE_DIR}/include
 )
 
 o2_define_bucket(
@@ -301,6 +319,19 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Reconstruction/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include
+)
+
+o2_define_bucket(
+    NAME
+    data_format_TOF_bucket
+
+    DEPENDENCIES
+    data_format_reconstruction_bucket
+    ReconstructionDataFormats
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/DataFormats/Reconstruction/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TOF/include
 )
 
 o2_define_bucket(
@@ -646,9 +677,19 @@ o2_define_bucket(
     VMC
     EG
     Tree
+    Hist
+    Graf
+    Gpad
     Geom
+    common_boost_bucket
+    Boost::unit_test_framework
+    ${FairLogger_DEP}
+    RapidJSON
 
     INCLUDE_DIRECTORIES
+    ${FairLogger_INCDIR}
+    ${FAIRROOT_INCLUDE_DIR}
+    ${RAPIDJSON_INCLUDEDIR}/include
 )
 
 o2_define_bucket(
@@ -914,6 +955,7 @@ o2_define_bucket(
     TPCBase
     SimulationDataFormat
     DataFormatsTPC
+    TPCSpaceChargeBase_bucket
     Geom
     MathCore
     MathUtils
@@ -987,14 +1029,41 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
-    TPCCAGPUTracking_bucket
-    
+    AliTPCCommonBase_bucket
+
+    DEPENDENCIES
+
+    INCLUDE_DIRECTORIES
+    ${ALITPCCOMMON_DIR}/sources/Common
+)
+
+o2_define_bucket(
+    NAME
+    TPCFastTransformation_bucket
+
     DEPENDENCIES
     dl
     pthread
     root_base_bucket
     common_vc_bucket
-    
+    AliTPCCommonBase_bucket
+
+    INCLUDE_DIRECTORIES
+    ${ROOT_INCLUDE_DIR}
+    ${ALITPCCOMMON_DIR}/sources/TPCFastTransformation
+)
+
+o2_define_bucket(
+    NAME
+    TPCCAGPUTracking_bucket
+
+    DEPENDENCIES
+    dl
+    pthread
+    root_base_bucket
+    common_vc_bucket
+    AliTPCCommonBase_bucket
+
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/SliceTracker
@@ -1004,6 +1073,18 @@ o2_define_bucket(
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/HLTHeaders
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone/cmodules
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone/include
+)
+
+o2_define_bucket(
+    NAME
+    TPCSpaceChargeBase_bucket
+
+    DEPENDENCIES
+    root_base_bucket Hist MathCore Matrix Physics AliTPCCommonBase_bucket
+
+    INCLUDE_DIRECTORIES
+    ${ROOT_INCLUDE_DIR}
+    ${ALITPCCOMMON_DIR}/sources/TPCSpaceChargeBase
 )
 
 o2_define_bucket(
@@ -1303,6 +1384,57 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    tof_reconstruction_bucket
+
+    DEPENDENCIES
+    tof_base_bucket
+    root_base_bucket
+    fairroot_geom
+    RIO
+    Graf
+    Gpad
+    Matrix
+    Physics
+    TOFBase
+    DetectorsBase
+    SimulationDataFormat
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/TOF/base/include
+    ${MS_GSL_INCLUDE_DIR}
+)
+
+o2_define_bucket(
+    NAME
+    tof_reconstruction_bucket
+
+    DEPENDENCIES
+    tof_base_bucket
+    root_base_bucket
+    data_format_TOF_bucket
+    fairroot_geom
+    RIO
+    Graf
+    Gpad
+    Matrix
+    Physics
+    TOFBase
+    DetectorsBase
+    SimulationDataFormat
+    DataFormatsTOF
+    
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/TOF/base/include
+#    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TOF/include
+    ${MS_GSL_INCLUDE_DIR}
+)
+
+o2_define_bucket(
+    NAME
     fit_base_bucket
 
     DEPENDENCIES # library names
@@ -1351,7 +1483,7 @@ o2_define_bucket(
     Core Hist # ROOT
     CommonDataFormat
     detectors_base_bucket
- 
+
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${ROOT_INCLUDE_DIR}
@@ -1604,6 +1736,8 @@ o2_define_bucket(
     Steer
     Framework
     TPCSimulation
+    ITSSimulation
+    ITSMFTBase
 )
 
 o2_define_bucket(
@@ -2003,9 +2137,6 @@ o2_define_bucket(
     DEPENDENCIES
     fairroot_base_bucket
     MIDBase
-
-    INCLUDE_DIRECTORIES
-    ${CMAKE_SOURCE_DIR}/Detectors/MUON/MID/TestingSimTools/include
 )
 
 o2_define_bucket(
@@ -2021,7 +2152,7 @@ o2_define_bucket(
     MIDTestingSimTools
 
     INCLUDE_DIRECTORIES
-    ${CMAKE_SOURCE_DIR}/Detectors/MUON/MID/Tracking/src
+    ${CMAKE_SOURCE_DIR}/Detectors/MUON/MID/TestingSimTools/include
 )
 
 

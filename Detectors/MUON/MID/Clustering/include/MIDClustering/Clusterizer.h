@@ -20,7 +20,7 @@
 #include <vector>
 #include "MIDBase/Mapping.h"
 #include "DataFormatsMID/Cluster2D.h"
-#include "DataFormatsMID/StripPattern.h"
+#include "DataFormatsMID/ColumnData.h"
 
 namespace o2
 {
@@ -49,9 +49,9 @@ class Clusterizer
 
  private:
   struct PatternStruct {
-    int deId;                            ///< Detection element ID
-    int firedColumns;                    ///< Fired columns
-    std::array<StripPattern, 7> columns; ///< Array of strip patterns
+    int deId;                          ///< Detection element ID
+    int firedColumns;                  ///< Fired columns
+    std::array<ColumnData, 7> columns; ///< Array of strip patterns
   };
 
   struct PreCluster {

@@ -10,8 +10,11 @@
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/DeviceSpec.h"
+#include <InfoLogger/InfoLogger.hxx>
 #include <vector>
 using namespace o2::framework;
+using namespace AliceO2::InfoLogger;
+
 void customize(std::vector<ConfigParamSpec> &options) {
   options.push_back(ConfigParamSpec{"anInt", VariantType::Int, 1, {"an int option"}});
   options.push_back(ConfigParamSpec{"aFloat", VariantType::Float, 2.0f, {"a float option"}});
@@ -57,6 +60,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&specs) {
           sleep(rand() % 2);
           auto aData = ctx.outputs().make<int>(OutputRef{ "a1" }, 1);
           auto bData = ctx.outputs().make<int>(OutputRef{ "a2" }, 1);
+          ctx.services().get<InfoLogger>().log("This goes to infologger");
         } } },
     { "B",
       { InputSpec{ "x", "TST", "A1" } },

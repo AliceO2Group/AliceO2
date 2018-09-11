@@ -151,8 +151,8 @@ void LegacyUtility::boardToPattern(int boardId, int detElemId, int cathode, int&
   }
 
   std::vector<int> lines[3];
-  lines[0] = { 3,  19,  41, 63, 79, 95, 5,  21,  43, 65, 81, 97, 7,  23,  45, 67, 83, 99, 27, 49, 69,
-               85, 101, 9,  31, 53, 71, 87, 103, 13, 35, 57, 73, 89, 105, 15, 37, 59, 75, 91, 107 };
+  lines[0] = { 3, 19, 41, 63, 79, 95, 5, 21, 43, 65, 81, 97, 7, 23, 45, 67, 83, 99, 27, 49, 69,
+               85, 101, 9, 31, 53, 71, 87, 103, 13, 35, 57, 73, 89, 105, 15, 37, 59, 75, 91, 107 };
   lines[1] = { 8, 24, 46, 28, 50, 10, 32, 54 };
   lines[2] = { 25, 47, 29, 51, 11, 33, 55 };
   for (int il = 0; il < 3; ++il) {
@@ -187,19 +187,10 @@ std::vector<ColumnData> LegacyUtility::digitsToPattern(std::vector<uint32_t> dig
       break;
     }
     if (!currentColumn) {
-      columns.emplace_back(ColumnData());
+      columns.emplace_back(ColumnData{ (uint8_t)deId, (uint8_t)icolumn });
       currentColumn = &columns.back();
-      currentColumn->deId = deId;
-      currentColumn->columnId = icolumn;
     }
-    uint16_t pattern =
-      (cathode == 0) ? currentColumn->patterns.getBendPattern(iline) : currentColumn->patterns.getNonBendPattern();
-    pattern |= (1 << channel);
-    if (cathode == 0) {
-      currentColumn->patterns.setBendPattern(pattern, iline);
-    } else {
-      currentColumn->patterns.setNonBendPattern(pattern);
-    }
+    currentColumn->addStrip(channel, cathode, iline);
   }
   return columns;
 }

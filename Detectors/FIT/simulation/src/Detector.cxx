@@ -46,22 +46,15 @@ Detector::Detector(const Detector& rhs)
 {
 }
 
-FairModule* Detector::CloneModule() const
-{
-  return new Detector(*this);
-}
-
-void Detector::Initialize()
+void Detector::InitializeO2Detector()
 {
   // FIXME: we need to register the sensitive volumes with FairRoot
   TGeoVolume* v = gGeoManager->GetVolume("0REG");
   if (v == nullptr)
-    printf("Sensitive volume 0REG not found!!!!!!!!");
+    printf("@@@@ Sensitive volume 0REG not found!!!!!!!!");
   else {
     AddSensitiveVolume(v);
   }
-
-  o2::Base::Detector::Initialize();
 }
 
 void Detector::ConstructGeometry()
@@ -286,7 +279,6 @@ void Detector::SetOneMCP(TGeoVolume* ins)
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
   Int_t quadrant, mcp;
-
   if (fMC->IsTrackEntering()) {
     float x, y, z;
     fMC->TrackPosition(x, y, z);
@@ -330,7 +322,6 @@ void Detector::Register()
 
 void Detector::Reset() {
   mHits->clear();
-  std::cout<<"@@@@ !!!! Reset Hits "<<std::endl;
 }
 void Detector::CreateMaterials()
 {

@@ -17,7 +17,7 @@
 
 #include <zlib.h>
 
-using namespace o2::CDB;
+using namespace o2::ccdb;
 
 ObjectHandler::ObjectHandler() = default;
 

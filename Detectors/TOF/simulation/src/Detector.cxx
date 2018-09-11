@@ -43,7 +43,7 @@ Detector::Detector(const Detector& rhs)
     mTOFSectors[i] = rhs.mTOFSectors[i];
 }
 
-void Detector::Initialize()
+void Detector::InitializeO2Detector()
 {
   TGeoVolume* v = gGeoManager->GetVolume("FPAD");
   if (v == nullptr)
@@ -51,8 +51,6 @@ void Detector::Initialize()
   else {
     AddSensitiveVolume(v);
   }
-
-  o2::Base::Detector::Initialize();
 }
 
 Bool_t Detector::ProcessHits(FairVolume* v)
@@ -1850,7 +1848,7 @@ void Detector::addAlignableVolumes() const
   for (Int_t isect = 0; isect < Geo::NSECTORS; isect++) {
     for (Int_t istr = 1; istr <= Geo::NSTRIPXSECTOR; istr++) {
       modUID = o2::Base::GeometryManager::getSensID(idTOF, modnum++);
-      LOG(DEBUG) << "modUID: " << modUID;
+      LOG(INFO) << "modUID: " << modUID << "\n";
 
       if (mTOFSectors[isect] == -1)
         continue;
@@ -1891,22 +1889,23 @@ void Detector::addAlignableVolumes() const
       LOG(DEBUG) << "--------------------------------------------"
                  << "\n";
 
-      LOG(DEBUG) << "Check for alignable entry: " << symName;
+      LOG(INFO) << "Check for alignable entry: " << symName << "\n";
 
       if (!gGeoManager->SetAlignableEntry(symName.Data(), volPath.Data(), modUID))
-        LOG(ERROR) << "Alignable entry " << symName << " NOT set";
-      LOG(DEBUG) << "Alignable entry " << symName << " set";
+        LOG(ERROR) << "Alignable entry " << symName << " NOT set\n";
+      LOG(INFO) << "Alignable entry " << symName << " set\n";
 
       // T2L matrices for alignment
       TGeoPNEntry* e = gGeoManager->GetAlignableEntryByUID(modUID);
-      LOG(DEBUG) << "Got TGeoPNEntry " << e;
+      LOG(INFO) << "Got TGeoPNEntry " << e << "\n";
 
       if (e) {
         TGeoHMatrix* globMatrix = e->GetGlobalOrig();
         Double_t phi = Geo::PHISEC * (isect % Geo::NSECTORS) + Geo::PHISEC * 0.5;
         TGeoHMatrix* t2l = new TGeoHMatrix();
         t2l->RotateZ(phi);
-        t2l->MultiplyLeft(&(globMatrix->Inverse()));
+        const TGeoHMatrix& globMatrixi = globMatrix->Inverse();
+        t2l->MultiplyLeft(&globMatrixi);
         e->SetMatrix(t2l);
       } else {
         // AliError(Form("Alignable entry %s is not valid!",symName.Data()));
