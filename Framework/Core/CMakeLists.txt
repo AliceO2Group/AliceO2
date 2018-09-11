@@ -215,6 +215,7 @@ set(TEST_SRCS
       test/test_GUITests.cxx
       test/test_InputRecord.cxx
       test/test_ParallelProducer.cxx
+      test/test_PtrHelpers.cxx
       test/test_LogParsingHelpers.cxx
       test/test_ExternalFairMQDeviceProxy.cxx
       test/test_Services.cxx

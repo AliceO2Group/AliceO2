@@ -711,13 +711,15 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
       serviceRegistry.registerService<RawDeviceService>(simpleRawDeviceService.get());
       serviceRegistry.registerService<CallbackService>(callbackService.get());
 
-      std::shared_ptr<FairMQDevice> device;
+      // The decltype stuff is to be able to compile with both new and old
+      // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
+      decltype(r.fDevice) device;
       if (spec.inputs.empty()) {
         LOG(DEBUG) << spec.id << " is a source\n";
-        device = std::make_shared<DataSourceDevice>(spec, serviceRegistry);
+        device = make_matching<decltype(device), DataSourceDevice>(spec, serviceRegistry);
       } else {
         LOG(DEBUG) << spec.id << " is a processor\n";
-        device = std::make_shared<DataProcessingDevice>(spec, serviceRegistry);
+        device = make_matching<decltype(device), DataProcessingDevice>(spec, serviceRegistry);
       }
 
       serviceRegistry.get<RawDeviceService>().setDevice(device.get());

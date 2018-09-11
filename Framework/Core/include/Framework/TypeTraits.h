@@ -12,6 +12,7 @@
 
 #include <type_traits>
 #include <vector>
+#include <memory>
 
 namespace o2
 {
@@ -122,6 +123,33 @@ class has_root_dictionary<T, typename std::enable_if<is_container<T>::value>::ty
   : public has_root_dictionary<typename T::value_type>
 {
 };
+
+/// Helper class to deal with the case we are creating the first instance of a
+/// (possibly) shared resource.
+///
+/// works for both:
+///
+/// std::shared_ptr<Base> storage = make_matching<decltype(storage), Concrete1>(args...);
+///
+/// or
+///
+/// std::unique_ptr<Base> storage = make_matching<decltype(storage), Concrete1>(args...);
+///
+/// Useful to deal with those who cannot make up their mind about ownership.
+/// ;-)
+template <typename HOLDER, typename T, typename... ARGS>
+static std::enable_if_t<sizeof(std::declval<HOLDER>().unique()) != 0, HOLDER>
+  make_matching(ARGS&&... args)
+{
+  return std::make_shared<T>(std::forward<ARGS>(args)...);
+}
+
+template <typename HOLDER, typename T, typename... ARGS>
+static std::enable_if_t<sizeof(std::declval<HOLDER>().get_deleter()) != 0, HOLDER>
+  make_matching(ARGS&&... args)
+{
+  return std::make_unique<T>(std::forward<ARGS>(args)...);
+}
 
 } // namespace framework
 } // namespace o2
