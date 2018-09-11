@@ -2199,8 +2199,7 @@ TGeoVolume* V3Layer::createOBPowerBiasBuses(const Double_t zcable, const TGeoMan
 
   // Finally the volume containing both the Power Bus and the Bias Bus
   xcable = sOBPowerBusXWidth / 2;
-  ytot = 2 * kapPB->GetDY() + topPB->GetDY() + dielPB->GetDY() + gndPB->GetDY()
-       + 2 * kapBB->GetDY() + topBB->GetDY() + dielBB->GetDY() + botBB->GetDY();
+  ytot = 2 * kapPB->GetDY() + topPB->GetDY() + dielPB->GetDY() + gndPB->GetDY() + 2 * kapBB->GetDY() + topBB->GetDY() + dielBB->GetDY() + botBB->GetDY();
 
   TGeoBBox* pnbBus = new TGeoBBox(xcable, ytot, zcable);
 
