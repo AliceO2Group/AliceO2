@@ -53,7 +53,9 @@ void MatchTOF::run()
   prepareTracks();
   prepareTOFClusters();
   for (int sec = o2::constants::math::NSectors; sec--;) {
+    printf("doing matching...\n");
     doMatching(sec);
+    printf("...done. Now check the best matches\n");
     selectBestMatches();
   }
   if (0) { // enabling this creates very verbose output
@@ -211,12 +213,15 @@ bool MatchTOF::prepareTracks()
   
 
   for (int it = 0; it < mNumOfTracks; it++) {
-    o2::dataformats::TrackTPCITS& trcOrig = (*mTracksArrayInp)[it]; // TODO: check if we cannot directly use the o2::track::TrackParCov class instead of o2::dataformats::TrackTPCITS, and then avoid the casting below; this is the track at the vertex
+    //o2::dataformats::TrackTPCITS& trcOrig = (*mTracksArrayInp)[it]; // TODO: check if we cannot directly use the o2::track::TrackParCov class instead of o2::dataformats::TrackTPCITS, and then avoid the casting below; this is the track at the vertex
+    o2::track::TrackParCov& trcOrig = (*mTracksArrayInp)[it]; // TODO: check if we cannot directly use the o2::track::TrackParCov class instead of o2::dataformats::TrackTPCITS, and then avoid the casting below; this is the track at the vertex
 
+    /*
     evIdx evIdxTPC = trcOrig.getRefTPC();
     int indTPC = evIdxTPC.getIndex();
     o2::TPC::TrackTPC& trcTPCOrig = (*mTPCTracksArrayInp)[indTPC]; // we take the track when it is propagated out
-
+    */
+    
     // create working copy of track param
     mTracksWork.emplace_back(trcOrig);//, mCurrTracksTreeEntry, it);
     // make a copy of the TPC track that we have to propagate
@@ -255,43 +260,42 @@ bool MatchTOF::prepareTOFClusters()
 {
   ///< prepare the tracks that we want to match to TOF
 
-  if (!loadTOFClustersNextChunk())
-  {
-    return false;
-  }
-
-  mNumOfClusters = mTOFClustersArrayInp->size();
-  if (mNumOfClusters == 0) return false; // no clusters to be matched
-  if (mMatchedClustersIndex) delete[] mMatchedClustersIndex;
-  mMatchedClustersIndex = new int[mNumOfClusters];
-  std::fill_n(mMatchedClustersIndex, mNumOfClusters, -1); // initializing all to -1
-
   // copy the track params, propagate to reference X and build sector tables
   mTOFClusWork.clear();
-  mTOFClusWork.reserve(mNumOfClusters);
+  //  mTOFClusWork.reserve(mNumOfClusters); // we cannot do this, we don't have mNumOfClusters yet
   //  if (mMCTruthON) {
   //    mTOFClusLblWork.clear();
   //    mTOFClusLblWork.reserve(mNumOfClusters);
   //  }
+
+
   for (int sec = o2::constants::math::NSectors; sec--;) {
     mTOFClusSectIndexCache[sec].clear();
-    mTOFClusSectIndexCache[sec].reserve(100 + 1.2 * mNumOfClusters / o2::constants::math::NSectors);
+    //mTOFClusSectIndexCache[sec].reserve(100 + 1.2 * mNumOfClusters / o2::constants::math::NSectors);
   }
   
-  for (int it = 0; it < mNumOfClusters; it++) {
-    Cluster& clOrig = (*mTOFClustersArrayInp)[it];
-
-    // create working copy of track param
-    mTOFClusWork.emplace_back(clOrig);//, mCurrTOFClustersTreeEntry, it);
-    auto& cl = mTOFClusWork.back();
-    //   if (mMCTruthON) {
-    //      mTOFClusLblWork.emplace_back(mTOFClusLabels->getLabels(it)[0]);
-    //    }
-    // cache work track index
-    mTOFClusSectIndexCache[o2::utils::Angle2Sector(cl.getPhi())].push_back(mTOFClusWork.size() - 1);
+  mNumOfClusters = 0; 
+  while (loadTOFClustersNextChunk())
+  {
+    int nClusterInCurrentChunk = mTOFClustersArrayInp->size();
+    printf("nClusterInCurrentChunk = %d\n", nClusterInCurrentChunk);
+    mNumOfClusters += nClusterInCurrentChunk;
+    for (int it = 0; it < nClusterInCurrentChunk; it++) {
+      Cluster& clOrig = (*mTOFClustersArrayInp)[it];
+      
+      // create working copy of track param
+      mTOFClusWork.emplace_back(clOrig);//, mCurrTOFClustersTreeEntry, it);
+      auto& cl = mTOFClusWork.back();
+      //   if (mMCTruthON) {
+      //      mTOFClusLblWork.emplace_back(mTOFClusLabels->getLabels(it)[0]);
+      //    }
+      // cache work track index
+      mTOFClusSectIndexCache[o2::utils::Angle2Sector(cl.getPhi())].push_back(mTOFClusWork.size() - 1);
+    }
+    
   }
 
-  // sort tracks in each sector according to their time (increasing in time)
+  // sort clusters in each sector according to their time (increasing in time)
   for (int sec = o2::constants::math::NSectors; sec--;) {
     auto& indexCache = mTOFClusSectIndexCache[sec];
     LOG(INFO) << "Sorting sector" << sec << " | " << indexCache.size() << " TOF clusters" << FairLogger::endl;
@@ -302,7 +306,11 @@ bool MatchTOF::prepareTOFClusters()
 	auto& clB = mTOFClusWork[b];
 	return (clA.getTime() - clB.getTime()) < 0.;
       });
-  } // loop over tracks of single sector
+  } // loop over TOF clusters of single sector
+
+  if (mMatchedClustersIndex) delete[] mMatchedClustersIndex;
+  mMatchedClustersIndex = new int[mNumOfClusters];
+  std::fill_n(mMatchedClustersIndex, mNumOfClusters, -1); // initializing all to -1
 
   return true;
 }
@@ -338,10 +346,13 @@ void MatchTOF::loadTracksChunk(int chunk)
 bool MatchTOF::loadTOFClustersNextChunk()
 {
   ///< load next chunk of clusters to be matched to TOF
+  printf("Loading TOF clusters: number of entries in tree = %d\n", mTreeTOFClusters->GetEntries());
   while (++mCurrTOFClustersTreeEntry < mTreeTOFClusters->GetEntries()) {
     mTreeTOFClusters->GetEntry(mCurrTOFClustersTreeEntry);
     LOG(DEBUG) << "Loading TOF clusters entry " << mCurrTOFClustersTreeEntry << " -> " << mTOFClustersArrayInp->size()
-               << " tracks" << FairLogger::endl;
+               << " clusters" << FairLogger::endl;
+    LOG(INFO) << "Loading TOF clusters entry " << mCurrTOFClustersTreeEntry << " -> " << mTOFClustersArrayInp->size()
+               << " clusters" << FairLogger::endl;
     if (!mTOFClustersArrayInp->size()) {
       continue;
     }
@@ -370,9 +381,8 @@ void MatchTOF::doMatching(int sec)
   auto& cacheTOF = mTOFClusSectIndexCache[sec];   // array of cached TOF cluster indices for this sector; reminder: they are ordered in time!
   auto& cacheTrk = mTracksSectIndexCache[sec];   // array of cached tracks indices for this sector; reminder: they are ordered in time!
   int nTracks = cacheTrk.size(), nTOFCls = cacheTOF.size();
+  LOG(INFO) << "Matching sector " << sec << ": number of tracks: " << nTracks << ", number of TOF clusters: " << nTOFCls << FairLogger::endl;
   if (!nTracks || !nTOFCls) {
-    LOG(INFO) << "Matching sector " << sec << " : N tracks:" << nTracks << " TOF:" << nTOFCls << " in sector "
-              << sec << FairLogger::endl;
     return;
   }
   int itof0 = 0; // starting index in TOF clusters for matching of the track
@@ -389,8 +399,12 @@ void MatchTOF::doMatching(int sec)
     int istep = 1; // number of steps
     float step = 0.1; // step size in cm
     while (propagateToRefX(trefTrk, mXRef+istep*step, step) && nPropagatedInStrip <2 && mXRef+istep*step < Geo::RMAX){
+      istep++;
+      //      printf("istep = %d, currentPosition = %f \n", istep, mXRef+istep*step);
       float pos[3] = {trefTrk.getX(), trefTrk.getY(), trefTrk.getZ()};
+      //printf("getPadDxDyDz:\n");
       Geo::getPadDxDyDz(pos, detIdTemp, deltaPosTemp);
+      //printf("getPadDxDyDz done\n");
       // check if after the propagation we are in a TOF strip
       if (detId[nPropagatedInStrip][2] != -1) { // we ended in a TOF strip
 	if(nPropagatedInStrip && nmatchStrip[nPropagatedInStrip]){ // check if we are in new strip
@@ -421,8 +435,9 @@ void MatchTOF::doMatching(int sec)
 	}
       }
     }
-
+    //printf("while done\n");
     for(Int_t imatch=0;imatch<nPropagatedInStrip;imatch++){
+      //printf("imatch = %d\n", imatch);
       deltaPos[nPropagatedInStrip][0] /= nmatchStrip[nPropagatedInStrip];
       deltaPos[nPropagatedInStrip][1] /= nmatchStrip[nPropagatedInStrip];
       deltaPos[nPropagatedInStrip][2] /= nmatchStrip[nPropagatedInStrip];
@@ -431,6 +446,7 @@ void MatchTOF::doMatching(int sec)
 
     if (nPropagatedInStrip == 0) continue; // the track never hit a TOF strip during the propagation
     for (auto itof = itof0; itof < nTOFCls; itof++) {
+      printf("itof = %d\n", itof);
       auto& trefTOF = mTOFClusWork[cacheTOF[itof]];
       // compare the times of the track and the TOF clusters - remember that they both are ordered in time!
       if (trefTOF.getTime() < minTrkTime) {
@@ -444,6 +460,7 @@ void MatchTOF::doMatching(int sec)
       int indices[5];
       Geo::getVolumeIndices(mainChannel, indices);
       for (auto iPropagation = 0; iPropagation < nPropagatedInStrip; iPropagation++){
+	printf("iPropagation = %d\n", iPropagation);
 	if (indices[0] != detId[iPropagation][0]) continue;
 	if (indices[1] != detId[iPropagation][1]) continue;
 	if (indices[2] != detId[iPropagation][2]) continue;
@@ -485,9 +502,12 @@ void MatchTOF::selectBestMatches()
 //______________________________________________
 bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float stepInCm)
 {
+  //  printf("in propagateToRefX\n");
   // propagate track to matching reference X
-  bool refReached = false;
-  
+  bool refReached = o2::Base::Propagator::Instance()->PropagateToXBxByBz(trc, xRef, o2::constants::physics::MassPionCharged, MaxSnp, stepInCm, 0.);;
+  //printf("refReached = %d\n", (int)refReached);
+  return refReached;
+  /*
   while (o2::Base::Propagator::Instance()->PropagateToXBxByBz(trc, xRef, o2::constants::physics::MassPionCharged, MaxSnp, stepInCm, 0.)) {
     if (refReached)
       break; // RS: tmp
@@ -501,5 +521,7 @@ bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float st
       break; // failed (RS: check effect on matching tracks to neighbouring sector)
     }
   }
+  printf("returning from propagateToRefX\n");
   return refReached && std::abs(trc.getSnp()) < MaxSnp;
+  */
 }

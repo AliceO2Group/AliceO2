@@ -16,6 +16,10 @@
 
 #include "ReconstructionDataFormats/BaseCluster.h"
 #include <boost/serialization/base_object.hpp> // for base_object
+#include <TMath.h>
+#include <cstdlib>
+
+
 
 namespace o2
 {
@@ -57,8 +61,9 @@ class Cluster : public o2::BaseCluster<float>
   int getDeltaBC() const { return mDeltaBC; };              // deltaBC
   void setDeltaBC(int value) { mDeltaBC = value; };         // deltaBC
   //float  getZ()   const   {return mZ;}   // Cluster Z - already in the definition of the cluster
-  float getR() const { return mR; }     // Cluster Radius
-  float getPhi() const { return mPhi; } // Cluster Phi
+  float getR() const { return TMath::Sqrt(getX()*getX() + getY()*getY() + getZ()*getZ()); }     // Cluster Radius
+  float getPhi() const { return TMath::ATan2(getY(), getX()); } // Cluster Phi
+  int getSector() const { return int((TMath::ATan2(-getY(), -getX())+TMath::Pi())*TMath::RadToDeg()*0.05);} // Cluster Sector
 
   int getContributingChannels() const { return mContributingChannels; }
   void setContributingChannels(int contributingChannels) { mContributingChannels = contributingChannels; }

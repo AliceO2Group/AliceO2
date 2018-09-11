@@ -14,7 +14,6 @@
 #include "DataFormatsTOF/Cluster.h"
 #include "FairLogger.h"
 
-#include <TMath.h>
 #include <TString.h>
 
 #include <cstdlib>

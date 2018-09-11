@@ -192,7 +192,7 @@ class MatchTOF
   int* mMatchedClustersIndex = nullptr;  //[mNumOfClusters]
 
   std::string mTracksBranchName = "TPCITS";                ///< name of branch containing input matched tracks
-  std::string mTPCTracksBranchName = "TPC";                ///< name of branch containing actual TPC tracks
+  std::string mTPCTracksBranchName = "Tracks";                ///< name of branch containing actual TPC tracks
   std::string mTOFClusterBranchName = "TOFCluster";        ///< name of branch containing input ITS clusters
   std::string mTOFMCTruthBranchName = "TOFClusterMCTruth"; ///< name of branch containing ITS MC labels
   std::string mOutTracksBranchName = "TOFMatchInfo";       ///< name of branch containing output matched tracks
