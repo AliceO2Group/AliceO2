@@ -21,6 +21,7 @@ set(SRCS
   src/ObjectHandler.cxx
   src/Storage.cxx
   src/XmlHandler.cxx
+  src/CcdbApi.cxx
 )
 
 set(HEADERS
@@ -91,6 +92,7 @@ install(
 
 set(TEST_SRCS
    test/testWriteReadAny.cxx
+   test/testCcdbApi.cxx
 )
 
 O2_GENERATE_TESTS(
