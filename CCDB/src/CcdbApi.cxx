@@ -17,6 +17,7 @@
 #include <regex>
 #include <chrono>
 #include <TMessage.h>
+#include <sstream>
 
 namespace o2
 {

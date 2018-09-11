@@ -13,17 +13,14 @@
 /// \author Barthelemy von Haller
 ///
 
-#include "CCDB/CcdbApi.h"
-
-#define BOOST_TEST_MODULE Quality test
+#define BOOST_TEST_MODULE CCDB
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include "CCDB/CcdbApi.h"
 #include <boost/test/unit_test.hpp>
 #include <cassert>
 #include <iostream>
-#include "curl/curl.h"
-
 #include <cstdio>
 #include <curl/curl.h>
 #include <sys/stat.h>
@@ -64,7 +61,7 @@ BOOST_AUTO_TEST_CASE(retrieve_test)
   BOOST_CHECK_EQUAL(h1->GetName(), "object1");
 
   auto h2 = f.api.retrieve("asdf/asdf", f.metadata);
-  BOOST_CHECK_EQUAL(h2, nullptr);
+  BOOST_CHECK(h2 == nullptr);
 }
 
 BOOST_AUTO_TEST_CASE(truncate_test)
