@@ -74,7 +74,7 @@ int initAndRunDevice(int argc, char* argv[])
     });
 
     runner.AddHook<InstantiateDevice>([](DeviceRunner& r) {
-      r.fDevice = std::shared_ptr<FairMQDevice>{ getDevice(r.fConfig) };
+      r.fDevice = std::move(decltype(r.fDevice){ getDevice(r.fConfig) });
     });
 
     return runner.Run();
