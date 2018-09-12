@@ -93,7 +93,7 @@ install(
 set(TEST_SRCS
    test/testWriteReadAny.cxx
    test/testCcdbApi.cxx
-)
+) 
 
 O2_GENERATE_TESTS(
   BUCKET_NAME ${BUCKET_NAME}

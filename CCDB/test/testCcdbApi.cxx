@@ -44,6 +44,26 @@ struct test_fixture {
   map<string, string> metadata;
 };
 
+
+long getFutureTimestamp(int secondsInFuture)
+{
+  std::chrono::seconds sec(secondsInFuture);
+  auto future = std::chrono::system_clock::now() + sec;
+  auto future_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(future);
+  auto epoch = future_ms.time_since_epoch();
+  auto value = std::chrono::duration_cast<std::chrono::milliseconds>(epoch);
+  return value.count();
+}
+
+long getCurrentTimestamp()
+{
+  auto now = std::chrono::system_clock::now();
+  auto now_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
+  auto epoch = now_ms.time_since_epoch();
+  auto value = std::chrono::duration_cast<std::chrono::milliseconds>(epoch);
+  return value.count();
+}
+
 BOOST_AUTO_TEST_CASE(store_test)
 {
   test_fixture f;
@@ -80,7 +100,9 @@ BOOST_AUTO_TEST_CASE(delete_test)
   test_fixture f;
 
   auto h1 = new TH1F("object1", "object1", 100, 0, 99);
-  f.api.store(h1, "Test/Detector", f.metadata);
+  long from = getCurrentTimestamp();
+  long to = getFutureTimestamp(60 * 60 * 24 * 365 * 10);
+  f.api.store(h1, "Test/Detector", f.metadata, from, to); // test with explicit dates
   auto h2 = f.api.retrieve("Test/Detector", f.metadata);
   BOOST_CHECK(h2 != nullptr);
   f.api.deleteObject("Test/Detector");
@@ -127,10 +149,9 @@ void countItems(const string& s, int& countObjects, int& countSubfolders)
     }
 
     if (subfolderMode) {
-      if (line.find(']') == 0) {
+      countSubfolders++;
+      if (line.find(']') != std::string::npos) {
         break;
-      } else {
-        countSubfolders++;
       }
     }
 
@@ -159,22 +180,26 @@ BOOST_AUTO_TEST_CASE(list_test)
 
   // more complex tree
   auto h1 = new TH1F("object1", "object1", 100, 0, 99);
+  cout << "storing object 1 in Test" << endl;
   f.api.store(h1, "Test", f.metadata);
+  cout << "storing object 2 in Test/Detector" << endl;
   f.api.store(h1, "Test/Detector", f.metadata);
+  cout << "storing object 3 in Test/Detector" << endl;
   f.api.store(h1, "Test/Detector", f.metadata);
+  cout << "storing object 4 in Test/Detector" << endl;
   f.api.store(h1, "Test/Detector", f.metadata);
+  cout << "storing object 5 in Test/Detector/Sub/abc" << endl;
   f.api.store(h1, "Test/Detector/Sub/abc", f.metadata);
 
   s = f.api.list("Test/Detector", false, "application/json");
   countItems(s, countObjects, countSubfolders);
   BOOST_CHECK_EQUAL(countObjects, 3);
-  //  BOOST_CHECK_EQUAL(countSubfolders, 1);
+  BOOST_CHECK_EQUAL(countSubfolders, 1);
 
   s = f.api.list("Test/Detector*", false, "application/json");
   countItems(s, countObjects, countSubfolders);
-  cout << "s : " << s << endl;
   BOOST_CHECK_EQUAL(countObjects, 4);
-  //  BOOST_CHECK_EQUAL(countSubfolders, 0);
+  BOOST_CHECK_EQUAL(countSubfolders, 0);
 
   s = f.api.list("Test/Detector", true, "application/json");
   countItems(s, countObjects, countSubfolders);
