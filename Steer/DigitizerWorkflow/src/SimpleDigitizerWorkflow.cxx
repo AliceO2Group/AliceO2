@@ -77,6 +77,10 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::string sectorshelp("Comma separated string of tpc sectors to treat. (Default is all)");
   workflowOptions.push_back(
     ConfigParamSpec{ "tpc-sectors", VariantType::String, "all", { sectorshelp } });
+
+  std::string skiphelp("Comma separated list of detectors to skip/ignore. (Default is none)");
+  workflowOptions.push_back(
+    ConfigParamSpec{ "skipDet", VariantType::String, "none", { skiphelp } });
 }
 
 #include "Framework/runDataProcessing.h"
@@ -142,13 +146,13 @@ bool wantCollisionTimePrinter()
   return false;
 }
 
-o2::parameters::GRPObject* readGRP(std::string inputGRP = "o2sim_grp.root")
+std::shared_ptr<o2::parameters::GRPObject> readGRP(std::string inputGRP = "o2sim_grp.root")
 {
-  const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
+  auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
   if (!grp) {
     LOG(ERROR) << "This workflow needs a valid GRP file to start";
   }
-  return grp;
+  return std::shared_ptr<o2::parameters::GRPObject>(grp);
 }
 
 /// This function is required to be implemented to define the workflow
@@ -165,19 +169,51 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     return specs;
   }
 
+  // lambda to extract detectors which are enabled in the workflow
+  // will complain if user gave wrong input in construction of DetID
+  auto isEnabled = [&configcontext, grp](o2::detectors::DetID id) {
+    auto extractIgnored = [&configcontext]() {
+      auto skipString = configcontext.options().get<std::string>("skipDet");
+      std::vector<o2::detectors::DetID> skipped;
+      if (skipString.compare("none") != 0) {
+        // we expect them to be , separated
+        std::stringstream ss(skipString);
+        std::vector<std::string> stringtokens;
+        while (ss.good()) {
+          std::string substr;
+          getline(ss, substr, ',');
+          stringtokens.push_back(substr);
+        }
+
+        // now try to convert each token to o2::detectors::DetID
+        for (auto& token : stringtokens) {
+          skipped.emplace_back(token.c_str());
+        }
+      }
+      return skipped;
+    };
+
+    static auto skipped = extractIgnored();
+    bool is_skipped = std::find(skipped.begin(), skipped.end(), id) != skipped.end();
+    LOG(INFO) << id.getName() << " is skipped " << is_skipped;
+    bool is_ingrp = grp->isDetReadOut(id);
+    LOG(INFO) << id.getName() << " is in grp " << is_ingrp;
+    return !is_skipped && is_ingrp;
+  };
+
   int fanoutsize = 0;
   if (wantCollisionTimePrinter()) {
     specs.emplace_back(o2::steer::getCollisionTimePrinter(fanoutsize++));
   }
 
   // the TPC part
-  // we need to instantiate this anyway since TPC is treated a bit special (for the moment)
+  // we need to init this anyway since TPC is treated a bit special (for the moment)
   initTPC();
   // keeps track of which subchannels correspond to tpc channels
   auto tpclanes = std::make_shared<std::vector<int>>();
   // keeps track of which tpc sectors to process
   auto tpcsectors = std::make_shared<std::vector<int>>();
-  if (grp->isDetReadOut(o2::detectors::DetID::TPC)) {
+  if (isEnabled(o2::detectors::DetID::TPC)) {
 
     extractTPCSectors(*tpcsectors.get(), configcontext);
     auto lanes = getNumTPCLanes(*tpcsectors.get(), configcontext);
@@ -193,7 +229,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
 
   // the ITS part
-  if (grp->isDetReadOut(o2::detectors::DetID::ITS)) {
+  if (isEnabled(o2::detectors::DetID::ITS)) {
     // connect the ITS digitization
     specs.emplace_back(o2::ITS::getITSDigitizerSpec(fanoutsize++));
     // connect ITS digit writer
@@ -201,7 +237,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
 
   // the TOF part
-  if (grp->isDetReadOut(o2::detectors::DetID::TOF)) {
+  if (isEnabled(o2::detectors::DetID::TOF)) {
     // connect the TOF digitization
     specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++));
     // add TOF digit writer
