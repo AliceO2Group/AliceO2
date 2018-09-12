@@ -716,14 +716,14 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
       decltype(r.fDevice) device;
       if (spec.inputs.empty()) {
         LOG(DEBUG) << spec.id << " is a source\n";
-        device = make_matching<decltype(device), DataSourceDevice>(spec, serviceRegistry);
+        device = std::move(make_matching<decltype(device), DataSourceDevice>(spec, serviceRegistry));
       } else {
         LOG(DEBUG) << spec.id << " is a processor\n";
-        device = make_matching<decltype(device), DataProcessingDevice>(spec, serviceRegistry);
+        device = std::move(make_matching<decltype(device), DataProcessingDevice>(spec, serviceRegistry));
       }
 
       serviceRegistry.get<RawDeviceService>().setDevice(device.get());
-      r.fDevice = device;
+      r.fDevice = std::move(device);
       TurnOffColors::apply(false, 0);
     };
 
