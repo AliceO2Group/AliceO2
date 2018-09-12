@@ -35,8 +35,8 @@ namespace steer
 DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<int>> tpcsectors,
                                    std::shared_ptr<std::vector<int>> tpcsubchannels)
 {
-  // this container will contain the TPC sector assignment per subchannel per invokation
-  // it will allow that we snapshot/send exactly one sector assignement per algorithm invokation
+  // this container will contain the TPC sector assignment per subchannel per invocation
+  // it will allow that we snapshot/send exactly one sector assignment per algorithm invocation
   // to ensure that they all have different timeslice ids
   auto tpcsectormessages = std::make_shared<std::vector<std::vector<int>>>();
   tpcsectormessages->resize(tpcsubchannels->size());
@@ -120,7 +120,7 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
         context);
     }
     counter++;
-    if (counter == tpcinvocations) {
+    if (tpcinvocations == 0 || counter == tpcinvocations) {
       finished = true;
     }
   };
