@@ -57,12 +57,12 @@ void CcdbApi::store(TObject* rootObject, std::string path, std::map<std::string,
 
   // Prepare
   long sanitizedStartValidityTimestamp = startValidityTimestamp;
-  if(startValidityTimestamp == -1) {
+  if (startValidityTimestamp == -1) {
     cout << "Start of Validity not set, current timestamp used." << endl;
     sanitizedStartValidityTimestamp = getCurrentTimestamp();
   }
   long sanitizedEndValidityTimestamp = endValidityTimestamp;
-  if(endValidityTimestamp == -1) {
+  if (endValidityTimestamp == -1) {
     cout << "End of Validity not set, start of validity plus 1 year used." << endl;
     sanitizedEndValidityTimestamp = getFutureTimestamp(60 * 60 * 24 * 365);
   }
@@ -373,5 +373,5 @@ void CcdbApi::truncate(std::string path)
     curl_easy_cleanup(curl);
   }
 }
-}
-}
+} // namespace ccdb
+} // namespace o2
