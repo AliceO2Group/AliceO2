@@ -14,6 +14,8 @@
 #include <boost/test/unit_test.hpp>
 #include "DebugGUI/imgui.h"
 #include "Framework/FrameworkGUIDataRelayerUsage.h"
+#include "Framework/FrameworkGUIDevicesGraph.h"
+#include "Framework/FrameworkGUIState.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceInfo.h"
 #include "Framework/DeviceMetricsInfo.h"
@@ -120,6 +122,67 @@ BOOST_AUTO_TEST_CASE(DeviceInspector)
     io.DeltaTime = 1.0f / 60.0f;
     ImGui::NewFrame();
     gui::displayDeviceInspector(spec, info, control);
+    ImGui::Render();
+  }
+  ImGui::DestroyContext();
+}
+
+BOOST_AUTO_TEST_CASE(DevicesGraph)
+{
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  ImGuiIO& io = ImGui::GetIO();
+
+  // Build atlas
+  unsigned char* tex_pixels = nullptr;
+  int tex_w, tex_h;
+  io.Fonts->GetTexDataAsRGBA32(&tex_pixels, &tex_w, &tex_h);
+
+  using namespace o2::framework;
+  gui::WorkspaceGUIState state;
+  std::vector<DeviceSpec> specs;
+  specs.push_back(
+    DeviceSpec{
+      "foo",
+      "foo",
+      {},
+      {},
+      {},
+      {},
+      AlgorithmSpec{},
+      {},
+      {},
+      {},
+      0,
+      1,
+      0,
+      CompletionPolicy{} });
+
+  std::vector<DeviceInfo> infos;
+  infos.push_back(
+    DeviceInfo{
+      1000,
+      0,
+      1024,
+      LogParsingHelpers::LogLevel::Error,
+      std::vector<std::string>(1024, ""),
+      std::vector<LogParsingHelpers::LogLevel>(1024, LogParsingHelpers::LogLevel::Info),
+      "some error",
+      {},
+      true,
+      false,
+      0 });
+
+  std::vector<DeviceControl> controls;
+  controls.push_back(
+    DeviceControl{});
+  std::vector<DeviceMetricsInfo> metrics;
+
+  for (int n = 0; n < 50; n++) {
+    io.DisplaySize = ImVec2(1920, 1080);
+    io.DeltaTime = 1.0f / 60.0f;
+    ImGui::NewFrame();
+    gui::showTopologyNodeGraph(state, infos, specs, controls, metrics);
     ImGui::Render();
   }
   ImGui::DestroyContext();
