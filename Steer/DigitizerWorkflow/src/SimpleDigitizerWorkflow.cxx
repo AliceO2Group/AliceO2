@@ -33,6 +33,9 @@
 #include "TOFClusterizerSpec.h"
 #include "TOFClusterWriterSpec.h"
 
+// GRP
+#include "DataFormatsParameters/GRPObject.h"
+
 #include <cstdlib>
 // this is somewhat assuming that a DPL workflow will run on one node
 #include <thread> // to detect number of hardware threads
@@ -139,47 +142,75 @@ bool wantCollisionTimePrinter()
   return false;
 }
 
+o2::parameters::GRPObject* readGRP(std::string inputGRP = "o2sim_grp.root")
+{
+  const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
+  if (!grp) {
+    LOG(ERROR) << "This workflow needs a valid GRP file to start";
+  }
+  return grp;
+}
+
 /// This function is required to be implemented to define the workflow
 /// specifications
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
 
+  // we will first of all read the GRP to detect which components need
+  // instantiations
+  // (for the moment this assumes the file o2sim_grp.root to be in the current directory)
+  const auto grp = readGRP();
+  if (!grp) {
+    return specs;
+  }
+
   int fanoutsize = 0;
   if (wantCollisionTimePrinter()) {
     specs.emplace_back(o2::steer::getCollisionTimePrinter(fanoutsize++));
   }
 
+  // the TPC part
+  // we need to instantiate this anyway since TPC is treated a bit special (for the moment)
   initTPC();
   // keeps track of which subchannels correspond to tpc channels
   auto tpclanes = std::make_shared<std::vector<int>>();
   // keeps track of which tpc sectors to process
   auto tpcsectors = std::make_shared<std::vector<int>>();
-  extractTPCSectors(*tpcsectors.get(), configcontext);
-  auto lanes = getNumTPCLanes(*tpcsectors.get(), configcontext);
+  if (grp->isDetReadOut(o2::detectors::DetID::TPC)) {
 
-  for (int l = 0; l < lanes; ++l) {
-    specs.emplace_back(o2::steer::getTPCDriftTimeDigitizer(fanoutsize));
-    tpclanes->emplace_back(fanoutsize); // this records that TPC is "listening under this subchannel"
-    fanoutsize++;
+    extractTPCSectors(*tpcsectors.get(), configcontext);
+    auto lanes = getNumTPCLanes(*tpcsectors.get(), configcontext);
+
+    for (int l = 0; l < lanes; ++l) {
+      specs.emplace_back(o2::steer::getTPCDriftTimeDigitizer(fanoutsize));
+      tpclanes->emplace_back(fanoutsize); // this records that TPC is "listening under this subchannel"
+      fanoutsize++;
+    }
+
+    // for writing digits to disc
+    specs.emplace_back(o2::TPC::getTPCDigitRootWriterSpec(lanes));
   }
 
-  // for writing digits to disc
-  specs.emplace_back(o2::TPC::getTPCDigitRootWriterSpec(lanes));
+  // the ITS part
+  if (grp->isDetReadOut(o2::detectors::DetID::ITS)) {
+    // connect the ITS digitization
+    specs.emplace_back(o2::ITS::getITSDigitizerSpec(fanoutsize++));
+    // connect ITS digit writer
+    specs.emplace_back(o2::ITS::getITSDigitWriterSpec());
+  }
 
-  // connect the ITS digitization
-  specs.emplace_back(o2::ITS::getITSDigitizerSpec(fanoutsize++));
-  // connect ITS digit writer
-  specs.emplace_back(o2::ITS::getITSDigitWriterSpec());
-
-  // connect the TOF digitization
-  specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++));
-  // add TOF digit writer
-  specs.emplace_back(o2::tof::getTOFDigitWriterSpec());
-  // add TOF clusterer
-  specs.emplace_back(o2::tof::getTOFClusterizerSpec());
-  // add TOF cluster writer
-  specs.emplace_back(o2::tof::getTOFClusterWriterSpec());
+  // the TOF part
+  if (grp->isDetReadOut(o2::detectors::DetID::TOF)) {
+    // connect the TOF digitization
+    specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++));
+    // add TOF digit writer
+    specs.emplace_back(o2::tof::getTOFDigitWriterSpec());
+    // add TOF clusterer
+    specs.emplace_back(o2::tof::getTOFClusterizerSpec());
+    // add TOF cluster writer
+    specs.emplace_back(o2::tof::getTOFClusterWriterSpec());
+  }
 
   // The SIM Reader. NEEDS TO BE LAST
   specs.emplace_back(o2::steer::getSimReaderSpec(fanoutsize, tpcsectors, tpclanes));
