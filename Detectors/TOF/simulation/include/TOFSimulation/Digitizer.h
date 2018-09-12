@@ -64,6 +64,7 @@ class Digitizer
   void flushOutputContainer(std::vector<Digit>& digits); // flush all residual buffered data
 
   void setContinuous(bool val) { mContinuous = val; }
+  bool isContinuous() const { return mContinuous; }
 
  private:
   // parameters

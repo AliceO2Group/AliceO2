@@ -115,8 +115,16 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
         LOG(INFO) << "Have " << digits->size() << " digits ";
       }
     }
+    if (digitizer->isContinuous()) {
+      digits->clear();
+      labels->clear();
+      digitizer->flushOutputContainer(*digits.get());
+      LOG(INFO) << "FLUSHING LEFTOVER STUFF " << digits->size();
+      // copy digits into accumulator
+      std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
+      labelAccum.mergeAtBack(*labels);
+    }
 
-    // TODO: finish digitization ... stream any remaining digits/labels
     LOG(INFO) << "Have " << labelAccum.getNElements() << " TOF labels ";
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
     pc.outputs().snapshot(Output{ "TOF", "DIGITS", 0, Lifetime::Timeframe }, *digitsAccum.get());
@@ -147,7 +155,9 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
 
     // init digitizer
     digitizer->init();
-    digitizer->setContinuous(true);
+    const bool isContinuous = ctx.options().get<int>("pileup");
+    LOG(INFO) << "CONTINUOUS " << isContinuous;
+    digitizer->setContinuous(isContinuous);
     digitizer->setMCTruthContainer(labels.get());
 
     // return the actual processing function which is now setup/configured
@@ -157,7 +167,7 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
   // create the full data processor spec using
   //  a name identifier
   //  input description
-  //  algorithmic description (here a lambda getting called once to setup the actuall processing function)
+  //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
   return DataProcessorSpec{
     "TOFDigitizer", Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT",
@@ -166,7 +176,9 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
              OutputSpec{ "TOF", "DIGITSMCTR", 0, Lifetime::Timeframe } },
     AlgorithmSpec{ initIt },
     Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
-             { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } } }
+             { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
+             { "pileup", VariantType::Int, 1, { "whether to run in continuous time mode" } } }
+    // I can't use VariantType::Bool as it seems to have a problem
   };
 }
 } // end namespace tof
