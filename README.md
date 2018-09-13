@@ -50,8 +50,8 @@ used to integrate the formatting into `git` and suggest formatting only for
 changed lines.
 
 ##### Install `clang-format`
-Use alienv to load `clang` which includes `clang-format` : `alienv load Clang/latest`
-If Clang is not yet build, use alibuild : `aliBuild build --defaults o2 Clang`
+Use alienv to load `clang` which includes `clang-format`: `alienv load Clang/latest`
+If Clang is not yet build, use alibuild: `aliBuild build --defaults o2 Clang`
 If you use your own clang installation, make sure you have at least version 3.9.
 
 ##### Install `clang-format` git integration
@@ -67,8 +67,15 @@ chmod u+x git-clang-format
 
 Note: installation of the script will be added to build of AliceO2 software stack.
 
-##### Checking formatting
-Now, `git clang-format` will invoke `clang-format` on the changes in current files
+##### Install formatting configuration
+```
+cd <O2 source directory>
+curl -O https://raw.githubusercontent.com/AliceO2Group/CodingGuidelines/master/.clang-format
+```
+
+##### Checking formatting on modified/committed files
+
+`git clang-format` invokes `clang-format` on the changes in current files
 or a specific commit. E.g. for the last commit
 ```
 git clang-format HEAD~1
@@ -79,7 +86,7 @@ Or for all commits done with respect to the remote branch state
 git clang-format origin/dev
 ```
 
-##### Checking files
+##### Checking formatting of specific files
 Show updated version of complete file :
 ```
 clang-format -style=file SOURCEFILE
