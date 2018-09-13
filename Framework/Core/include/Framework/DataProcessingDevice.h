@@ -47,6 +47,7 @@ class DataProcessingDevice : public FairMQDevice
 
  protected:
   bool handleData(FairMQParts&);
+  bool tryDispatchComputation();
   void error(const char* msg);
 
  private:
