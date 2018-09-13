@@ -200,6 +200,15 @@ ENDIF (NOT ALICEO2_MODULAR_BUILD)
 set(CheckCXX14SrcDir "${CMAKE_SOURCE_DIR}/cmake/checks")
 include(CheckCXX14Features)
 
+# Download the .clang-format from CodingGuidelines.
+file(DOWNLOAD https://raw.githubusercontent.com/AliceO2Group/CodingGuidelines/master/.clang-format
+     ${CMAKE_SOURCE_DIR}/.clang-format
+     INACTIVITY_TIMEOUT 2
+     TIMEOUT 2 STATUS status SHOW_PROGRESS)
+if(NOT "${status}" EQUAL "0")
+  MESSAGE(WARNING "Problem downloading .clang-format.")
+ENDIF()
+
 # Recurse into the given subdirectories.  This does not actually
 # cause another cmake executable to run.  The same process will walk through
 # the project's entire directory structure.

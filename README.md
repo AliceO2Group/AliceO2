@@ -68,10 +68,10 @@ chmod u+x git-clang-format
 Note: installation of the script will be added to build of AliceO2 software stack.
 
 ##### Install formatting configuration
-```
-cd <O2 source directory>
-curl -O https://raw.githubusercontent.com/AliceO2Group/CodingGuidelines/master/.clang-format
-```
+
+The formatting configuration file (.clang-format) is in the repository CodingGuidelines.
+It is downloaded when running cmake and thus nothing has to be done
+except running cmake.
 
 ##### Checking formatting on modified/committed files
 
