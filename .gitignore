@@ -67,3 +67,6 @@ gphysi.dat
 
 # rbenv files
 .ruby-version
+
+# clang-format
+.clang-format
