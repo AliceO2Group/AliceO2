@@ -33,6 +33,10 @@
 #include "TOFClusterizerSpec.h"
 #include "TOFClusterWriterSpec.h"
 
+// for FIT
+#include "FITDigitizerSpec.h"
+#include "FITDigitWriterSpec.h"
+
 // GRP
 #include "DataFormatsParameters/GRPObject.h"
 
@@ -246,6 +250,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::tof::getTOFClusterizerSpec());
     // add TOF cluster writer
     specs.emplace_back(o2::tof::getTOFClusterWriterSpec());
+  }
+
+  // the FIT part
+  if (isEnabled(o2::detectors::DetID::FIT)) {
+    // connect the FIT digitization
+    specs.emplace_back(o2::fit::getFITDigitizerSpec(fanoutsize++));
+    // connect the FIT digit writer
+    specs.emplace_back(o2::fit::getFITDigitWriterSpec());
   }
 
   // The SIM Reader. NEEDS TO BE LAST

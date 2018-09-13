@@ -1743,6 +1743,7 @@ o2_define_bucket(
     ITSMFTBase
     TOFSimulation
     TOFReconstruction
+    FITSimulation
 )
 
 o2_define_bucket(
