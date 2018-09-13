@@ -64,7 +64,7 @@ set(SRCS
     Merger/AliHLTTPCGMPhysicalTrackModel.cxx
     Merger/AliHLTTPCGMPropagator.cxx
     Merger/AliHLTTPCGMPolynomialField.cxx
-    Merger/AliHLTTPCGMPolynomialFieldCreator.cxx
+    Merger/AliHLTTPCGMPolynomialFieldManager.cxx
     GlobalTracker/AliHLTTPCCAGPUTrackerBase.cxx
     TRDTracking/AliHLTTRDTrack.cxx
     TRDTracking/AliHLTTRDTracker.cxx

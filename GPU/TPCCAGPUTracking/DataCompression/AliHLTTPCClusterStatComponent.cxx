@@ -35,7 +35,7 @@
 #include "AliHLTTPCDefinitions.h"
 #include "AliHLTTPCGMPropagator.h"
 #include "AliHLTTPCGMPolynomialField.h"
-#include "AliHLTTPCGMPolynomialFieldCreator.h"
+#include "AliHLTTPCGMPolynomialFieldManager.h"
 #include "AliHLTTPCGMTrackParam.h"
 #include "AliHLTTPCCAGeometry.h"
 #include "AliHLTTPCRawCluster.h"
@@ -359,7 +359,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 	  prop.SetMaxSinPhi( .999 );
  	  prop.SetMaterial( kRadLen, kRho );
 	  AliHLTTPCGMPolynomialField field;
-	  int err = AliHLTTPCGMPolynomialFieldCreator::GetPolynomialField( field );
+	  int err = AliHLTTPCGMPolynomialFieldManager::GetPolynomialField( field );
 	  if( err!=0 ){
 	    HLTError("Can not initialize polynomial magnetic field" );
 	    return -1;

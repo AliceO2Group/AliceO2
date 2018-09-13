@@ -7,24 +7,24 @@
 //*************************************************************************
 
 
-#ifndef AliHLTTPCGMPolynomialFieldCreator_H
-#define AliHLTTPCGMPolynomialFieldCreator_H
+#ifndef AliHLTTPCGMPolynomialFieldManager_H
+#define AliHLTTPCGMPolynomialFieldManager_H
 
 class AliMagF;
 class AliHLTTPCGMPolynomialField;
 
 /**
- * @class AliHLTTPCGMPolynomialFieldCreator
+ * @class AliHLTTPCGMPolynomialFieldManager
  *
  */
 
-class AliHLTTPCGMPolynomialFieldCreator
+class AliHLTTPCGMPolynomialFieldManager
 {
 public:
 
   enum StoredField_t  {kUnknown, kUniform, k2kG, k5kG }; // known fitted polynomial fields, stored in constants
 
-  AliHLTTPCGMPolynomialFieldCreator(){}
+  AliHLTTPCGMPolynomialFieldManager(){}
   
   /* Get appropriate pre-calculated polynomial field for the given field value nominalFieldkG
    */
@@ -34,12 +34,16 @@ public:
 #if !defined(HLTCA_STANDALONE) & !defined(HLTCA_GPUCODE)
 
   /* Get pre-calculated polynomial field for the current ALICE field (if exists)
-   */  
+   */
   static int GetPolynomialField( AliHLTTPCGMPolynomialField &field );
 
-  /* Fit given field
+  /* Fit given field for TPC
    */
-  static int FitField( AliMagF* fld, AliHLTTPCGMPolynomialField &field ); 
+  static int FitFieldTPC( AliMagF* fld, AliHLTTPCGMPolynomialField &field, double step=1. );
+
+  /* Fit given field for TRD
+   */
+  static int FitFieldTRD( AliMagF* fld, AliHLTTPCGMPolynomialField &field, double step=1. );
 
 #endif
   
