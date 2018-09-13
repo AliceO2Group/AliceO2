@@ -28,7 +28,7 @@ namespace fit
 {
 class Geometry;
 }
-} // namespace o2
+}
 
 namespace o2
 {
@@ -57,9 +57,12 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   /// Default constructor
   Detector() = default;
- 
+<<<<<<< HEAD
+
+=======
+>>>>>>> Digits are correct now
   /// Initialization of the detector is done here
-  void InitializeO2Detector() override;
+  void Initialize() override;
 
   /// This method is called for each step during simulation (see FairMCApplication::Stepping())
   Bool_t ProcessHits(FairVolume* v) override;
@@ -76,7 +79,6 @@ class Detector : public o2::Base::DetImpl<Detector>
   }
 
   void Reset() override;
-  void EndOfEvent() override { Reset(); }
 
   /// Base class to create the detector geometry
   void CreateMaterials();
@@ -99,8 +101,11 @@ class Detector : public o2::Base::DetImpl<Detector>
   /// \param istream *is The input stream
   void Read(std::istream* is);
 
+  /// Clone this object (used in MT mode only)
+  // FairModule *CloneModule() const override;
+
  private:
-  Int_t mIdSens1;            // Sensetive volume  in T0
+  Int_t mIdSens1;  // Sensetive volume  in T0
   TGraph* mPMTeff = nullptr; // pmt registration effeicincy
 
   // Optical properties to be extracted from file
@@ -119,7 +124,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   std::vector<Double_t> mReflMet;
 
   /// Container for data points
-  std::vector<HitType>* mHits = nullptr;
+  std::vector<HitType>* mHits = nullptr;;
 
   /// Define the sensitive volumes of the geometry
   void defineSensitiveVolumes();
@@ -128,7 +133,7 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   Detector& operator=(const Detector&);
 
-  Geometry* mGeometry = nullptr; //! Geometry
+  Geometry* mGeometry; //! Geometry
 
   template <typename Det>
   friend class o2::Base::DetImpl;
@@ -139,7 +144,7 @@ class Detector : public o2::Base::DetImpl<Detector>
 std::ostream& operator<<(std::ostream& os, Detector& source);
 
 std::istream& operator>>(std::istream& os, Detector& source);
-} // namespace fit
-} // namespace o2
+}
+}
 
 #endif

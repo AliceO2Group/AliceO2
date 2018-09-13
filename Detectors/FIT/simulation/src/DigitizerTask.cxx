@@ -24,10 +24,8 @@ using namespace o2::fit;
 DigitizerTask::DigitizerTask() : FairTask("FITDigitizerTask"), mDigitizer() {}
 DigitizerTask::~DigitizerTask()
 {
-  if (mDigitsArray) {
-    mDigitsArray->clear();
-    delete mDigitsArray;
-  }
+    if(mEventDigit)
+	delete mEventDigit;
 }
 
 /// Inititializes the digitizer and connects input and output container
@@ -39,9 +37,6 @@ InitStatus DigitizerTask::Init()
     return kERROR;
   }
 
-  // TList * brlist = mgr->GetBranchNameList ();
-  //  brlist->Print();
-
   mHitsArray = mgr->InitObjectAs<const std::vector<o2::fit::HitType>*>("FITHit");
 
   if (!mHitsArray) {
@@ -50,8 +45,8 @@ InitStatus DigitizerTask::Init()
   }
 
   // Register output container
-  mgr->RegisterAny("FITDigit", mDigitsArray, kTRUE);
-  //  mDigitizer.init();
+  mgr->RegisterAny("FITDigit", mEventDigit, kTRUE);
+  mDigitizer.init();
   return kSUCCESS;
 }
 
@@ -59,19 +54,20 @@ InitStatus DigitizerTask::Init()
 void DigitizerTask::Exec(Option_t* option)
 {
   FairRootManager* mgr = FairRootManager::Instance();
-  mDigitizer.setEventTime(mgr->GetEventTime());
 
-  mDigitsArray->clear();
+  Float_t EventTime = mgr->GetEventTime();
+  mDigitizer.setEventTime(EventTime);
 
   // the type of digitization is steered by the DigiParams object of the Digitizer
   LOG(DEBUG) << "Running digitization on new event " << mEventID << " from source " << mSourceID
-             << FairLogger::endl;
+             << " Event time " << EventTime << FairLogger::endl;
+
 
   /// RS: ATTENTION: this is just a trick until we clarify how the hits from different source are
   /// provided and identified.
   mDigitizer.setEventID(mEventID);
 
-  mDigitizer.process(mHitsArray, mDigitsArray);
+  mDigitizer.process(mHitsArray, mEventDigit);
 
   mEventID++;
 }
@@ -85,8 +81,7 @@ void DigitizerTask::FinishTask()
 
   FairRootManager* mgr = FairRootManager::Instance();
   mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
-  if (mDigitsArray)
-    mDigitsArray->clear();
+
   mDigitizer.finish();
 
   // TODO: reenable this
