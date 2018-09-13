@@ -50,6 +50,7 @@ class DataProcessingDevice : public FairMQDevice
   void error(const char* msg);
 
  private:
+  DeviceSpec const& mSpec;
   AlgorithmSpec::InitCallback mInit;
   AlgorithmSpec::ProcessCallback mStatefulProcess;
   AlgorithmSpec::ProcessCallback mStatelessProcess;
@@ -65,11 +66,6 @@ class DataProcessingDevice : public FairMQDevice
   DataAllocator mAllocator;
   DataRelayer mRelayer;
 
-  std::vector<InputChannelSpec> mInputChannels;
-  std::vector<OutputChannelSpec> mOutputChannels;
-
-  std::vector<InputRoute> mInputs;
-  std::vector<ForwardRoute> mForwards;
   int mErrorCount;
   int mProcessingCount;
 };

@@ -38,8 +38,9 @@ namespace o2
 namespace framework
 {
 
-DataProcessingDevice::DataProcessingDevice(const DeviceSpec& spec, ServiceRegistry& registry)
-  : mInit{ spec.algorithm.onInit },
+DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegistry& registry)
+  : mSpec{ spec },
+    mInit{ spec.algorithm.onInit },
     mStatefulProcess{ nullptr },
     mStatelessProcess{ spec.algorithm.onProcess },
     mError{ spec.algorithm.onError },
@@ -51,10 +52,6 @@ DataProcessingDevice::DataProcessingDevice(const DeviceSpec& spec, ServiceRegist
     mContextRegistry{ { &mFairMQContext, &mRootContext, &mStringContext, &mDataFrameContext } },
     mAllocator{ &mTimingInfo, &mContextRegistry, spec.outputs },
     mRelayer{ spec.completionPolicy, spec.inputs, spec.forwards, registry.get<Monitoring>() },
-    mInputChannels{ spec.inputChannels },
-    mOutputChannels{ spec.outputChannels },
-    mInputs{ spec.inputs },
-    mForwards{ spec.forwards },
     mServiceRegistry{ registry },
     mErrorCount{ 0 },
     mProcessingCount{ 0 }
@@ -91,7 +88,7 @@ void DataProcessingDevice::Reset() { mServiceRegistry.get<CallbackService>()(Cal
 /// non-data triggers like those which are time based.
 bool DataProcessingDevice::ConditionalRun()
 {
-  for (auto& channel : mInputChannels) {
+  for (auto& channel : mSpec.inputChannels) {
     FairMQParts parts;
     auto result = this->ReceiveAsync(parts, channel.name);
     if (result > 0) {
@@ -107,13 +104,13 @@ bool DataProcessingDevice::ConditionalRun()
 /// boilerplate which the user does not need to care about at top level.
 bool DataProcessingDevice::handleData(FairMQParts& parts)
 {
-  assert(mInputChannels.empty() == false);
+  assert(mSpec.inputChannels.empty() == false);
   assert(parts.Size() > 0);
 
   static const std::string handleDataMetricName = "dpl/in_handle_data";
   // Initial part. Let's hide all the unnecessary and have
   // simple lambdas for each of the steps I am planning to have.
-  assert(!mInputs.empty());
+  assert(!mSpec.inputs.empty());
 
   // These duplicate references are created so that each function
   // does not need to know about the whole class state, but I can 
@@ -137,8 +134,8 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
   auto &rootContext = mRootContext;
   auto& stringContext = mStringContext;
   auto& rdfContext = mDataFrameContext;
-  auto &forwards = mForwards;
-  auto &inputsSchema = mInputs;
+  auto& forwards = mSpec.forwards;
+  auto& inputsSchema = mSpec.inputs;
   auto &errorCount = mErrorCount;
 
   std::vector<std::unique_ptr<FairMQMessage>> currentSetOfInputs;
