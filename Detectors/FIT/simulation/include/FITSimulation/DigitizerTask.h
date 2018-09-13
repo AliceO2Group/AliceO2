@@ -51,7 +51,9 @@ class DigitizerTask : public FairTask
   Int_t mEventID = 0;                                        ///< current event id from the source
   Digitizer mDigitizer;                                      ///< Digitizer
   const std::vector<o2::fit::HitType>* mHitsArray = nullptr; ///< Array of MC hits
-  std::vector<o2::fit::Digit>* mDigitsArray = nullptr;       ///< Array of digits
+
+  Digit* mEventDigit = nullptr; ///< one digit for one event
+  //std::vector<o2::fit::Digit>* mDigitsArray = nullptr;       ///< Array of digits
 
   ClassDefOverride(DigitizerTask, 1);
 };

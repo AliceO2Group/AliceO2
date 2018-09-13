@@ -25,15 +25,16 @@ class CollisionTimeRecoTask : public FairTask
  public:
   CollisionTimeRecoTask();
   ~CollisionTimeRecoTask() override;
-
   InitStatus Init() override;
   void Exec(Option_t* option) override;
   void FinishTask() override;
 
  private:
-  const std::vector<Digit>* mDigitsArray = nullptr; ///< Array of digits
-  Bool_t mContinuous = kFALSE;                      ///< flag to do continuous simulation
+  //const std::vector<Digit>* mDigitsArray = nullptr; ///< Array of digits
+  const Digit* mEventDigit = nullptr; ///<
+  Bool_t mContinuous = kFALSE;        ///< flag to do continuous simulation
   RecPoints* mRecPoints = nullptr;
+  Int_t mEventID = 0; ///< current event id from the source
 
   ClassDefOverride(CollisionTimeRecoTask, 1);
 };

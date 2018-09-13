@@ -51,7 +51,7 @@ void Detector::InitializeO2Detector()
   // FIXME: we need to register the sensitive volumes with FairRoot
   TGeoVolume* v = gGeoManager->GetVolume("0REG");
   if (v == nullptr)
-    printf("Sensitive volume 0REG not found!!!!!!!!");
+    printf("@@@@ Sensitive volume 0REG not found!!!!!!!!");
   else {
     AddSensitiveVolume(v);
   }
@@ -279,13 +279,12 @@ void Detector::SetOneMCP(TGeoVolume* ins)
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
   Int_t quadrant, mcp;
-
   if (fMC->IsTrackEntering()) {
     float x, y, z;
     fMC->TrackPosition(x, y, z);
     fMC->CurrentVolID(quadrant);
     fMC->CurrentVolOffID(1, mcp);
-    float time = fMC->TrackTime() * 1.0e12;
+    float time = fMC->TrackTime() * 1.0e9; //time from seconds to ns
     int trackID = fMC->GetStack()->GetCurrentTrackNumber();
     int detID = 4 * mcp + quadrant - 1;
     float etot = fMC->Etot();
@@ -322,7 +321,10 @@ void Detector::Register()
   }
 }
 
-void Detector::Reset() { mHits->clear(); }
+void Detector::Reset()
+{
+  mHits->clear();
+}
 void Detector::CreateMaterials()
 {
   Int_t isxfld = 2;     // magneticField->Integ();
