@@ -72,6 +72,7 @@ find_package(RapidJSON REQUIRED)
 find_package(GLFW)
 find_package(benchmark QUIET)
 find_package(Arrow)
+find_package(CURL REQUIRED)
 
 if (DDS_FOUND)
   add_definitions(-DENABLE_DDS)
@@ -447,6 +448,7 @@ o2_define_bucket(
     ParMQ
     fairmq_bucket
     pthread Core Tree XMLParser Hist Net RIO z
+    ${CURL_LIBRARIES}
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -454,6 +456,7 @@ o2_define_bucket(
 
     SYSTEMINCLUDE_DIRECTORIES
     ${PROTOBUF_INCLUDE_DIR}
+    ${CURL_INCLUDE_DIRS}
 )
 
 o2_define_bucket(
