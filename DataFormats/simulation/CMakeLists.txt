@@ -6,6 +6,11 @@ set(SRCS
   src/Stack.cxx
   src/MCTrack.cxx
   src/MCCompLabel.cxx
+  src/MCEventHeader.cxx
+  src/GeneratorHeader.cxx
+  src/GeneratorInfo.cxx
+  src/HeavyIonInfo.cxx
+  src/CrossSectionInfo.cxx
   src/MCInteractionRecord.cxx
 )
 
@@ -17,6 +22,11 @@ Set(HEADERS
     include/${MODULE_NAME}/MCCompLabel.h
     include/${MODULE_NAME}/MCInteractionRecord.h
     include/${MODULE_NAME}/TrackReference.h
+    include/${MODULE_NAME}/MCEventHeader.h
+    include/${MODULE_NAME}/GeneratorHeader.h
+    include/${MODULE_NAME}/GeneratorInfo.h
+    include/${MODULE_NAME}/HeavyIonInfo.h
+    include/${MODULE_NAME}/CrossSectionInfo.h
     include/${MODULE_NAME}/PrimaryChunk.h
 )
 

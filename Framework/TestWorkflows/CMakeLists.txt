@@ -123,7 +123,6 @@ if (PYTHIA8_INCLUDE_DIR)
     DETECTOR_BUCKETS its_simulation_bucket
                      its_reconstruction_bucket
                      passive_detector_bucket
-                     generators_base_bucket
                      generators_bucket
                      run_bucket
     SOURCES src/test_o2ITSCluserizer.cxx src/o2_sim_its_ALP3.cxx
@@ -134,7 +133,6 @@ if (PYTHIA8_INCLUDE_DIR)
     DETECTOR_BUCKETS tpc_simulation_bucket
                      tpc_reconstruction_bucket
                      passive_detector_bucket
-                     generators_base_bucket
                      generators_bucket
                      run_bucket
     SOURCES src/test_o2TPCSimulation.cxx src/o2_sim_tpc.cxx
