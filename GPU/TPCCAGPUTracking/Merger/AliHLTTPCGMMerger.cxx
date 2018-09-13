@@ -25,7 +25,7 @@
 #include "AliHLTTPCCATrackParam.h"
 #include "AliHLTTPCGMCluster.h"
 #include "AliHLTTPCGMPolynomialField.h"
-#include "AliHLTTPCGMPolynomialFieldCreator.h"
+#include "AliHLTTPCGMPolynomialFieldManager.h"
 #include "AliHLTTPCGMMerger.h"
 
 #include "AliTPCCommonMath.h"
@@ -211,8 +211,8 @@ void AliHLTTPCGMMerger::SetSliceParam( const AliGPUCAParam *v, long int TimeStam
 {
   fSliceParam = v;
   if (setParamOnly) return;
-  if (fSliceParam->AssumeConstantBz) AliHLTTPCGMPolynomialFieldCreator::GetPolynomialField( AliHLTTPCGMPolynomialFieldCreator::kUniform, v->BzkG, fField );
-  else AliHLTTPCGMPolynomialFieldCreator::GetPolynomialField( v->BzkG, fField );
+  if (fSliceParam->AssumeConstantBz) AliHLTTPCGMPolynomialFieldManager::GetPolynomialField( AliHLTTPCGMPolynomialFieldManager::kUniform, v->BzkG, fField );
+  else AliHLTTPCGMPolynomialFieldManager::GetPolynomialField( v->BzkG, fField );
 
 #if ( defined(OFFLINE_FITTER) )
   gOfflineFitter.Initialize( *fSliceParam, TimeStamp, isMC );

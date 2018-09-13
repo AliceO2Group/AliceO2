@@ -28,6 +28,12 @@ class AliHLTTPCGMPropagator
 {
 public:
 
+   /// Enumeration of field regions
+  enum  FieldRegion : int { 
+    TPC = 0,    ///< TPC
+    TRD = 1,    ///< outer TPC -> outer TRD
+   };
+
   GPUd() AliHLTTPCGMPropagator();
 
   struct MaterialCorrection {
@@ -41,6 +47,8 @@ public:
   GPUd() void SetMaterial( float radLen, float rho );
 
   GPUd() void SetPolynomialField( const AliHLTTPCGMPolynomialField* field ){ fField = field; }
+
+  GPUd() void SelectFieldRegion( FieldRegion region ){ fFieldRegion = region; }
 
   GPUd() void SetFitInProjections( bool Flag ){ fFitInProjections = Flag; }
   GPUd() void SetToyMCEventsFlag( bool Flag ){ fToyMCEvents = Flag; }
@@ -95,6 +103,8 @@ private:
   GPUd() static float ApproximateBetheBloch( float beta2 );
 
   const AliHLTTPCGMPolynomialField* fField;
+  FieldRegion fFieldRegion;
+
   AliHLTTPCGMTrackParam *fT;
   float fAlpha; // rotation angle of the track coordinate system
   AliHLTTPCGMPhysicalTrackModel fT0;
@@ -108,7 +118,7 @@ private:
 };
 
 GPUd() inline AliHLTTPCGMPropagator::AliHLTTPCGMPropagator()
-: fField(0), fT(0), fAlpha(0), fT0(), fMaterial(),
+: fField(0), fFieldRegion(TPC), fT(0), fAlpha(0), fT0(), fMaterial(),
   fSpecialErrors(0), fFitInProjections(1), fToyMCEvents(0), fMaxSinPhi(HLTCA_MAX_SIN_PHI), fStatErrors()
 {
 }

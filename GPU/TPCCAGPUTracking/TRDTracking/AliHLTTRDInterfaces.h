@@ -209,6 +209,7 @@ template <> class propagatorInterface<AliHLTTPCGMPropagator> : public AliHLTTPCG
       this->SetMaxSinPhi( HLTCA_MAX_SIN_PHI );
       this->SetToyMCEventsFlag(0);
       this->SetFitInProjections(0);
+      this->SelectFieldRegion(AliHLTTPCGMPropagator::FieldRegion::TRD);
     };
     propagatorInterface<AliHLTTPCGMPropagator>(const propagatorInterface<AliHLTTPCGMPropagator>&) CON_DELETE;
     propagatorInterface<AliHLTTPCGMPropagator>& operator=(const propagatorInterface<AliHLTTPCGMPropagator>&) CON_DELETE;

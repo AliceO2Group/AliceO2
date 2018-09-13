@@ -30,9 +30,9 @@ using namespace std;
 void AliHLTTPCGMPolynomialField::Print() const
 {
   const double kCLight = 0.000299792458;
-  typedef std::numeric_limits< float > flt;  
+  typedef std::numeric_limits< float > flt;
   cout<<std::scientific;
-#if __cplusplus >= 201103L  
+#if __cplusplus >= 201103L
   cout<<std::setprecision( flt::max_digits10+2 );
 #endif
   cout<<" nominal field "<< fNominalBz <<" [kG * (2.99792458E-4 GeV/c/kG/cm)]"
@@ -56,6 +56,29 @@ void AliHLTTPCGMPolynomialField::Print() const
   for( int i=0; i<fkM; i++){
     cout<<fBz[i];
     if( i<fkM-1 ) cout<<", ";
+    else cout<<" };"<<endl;
+  }
+  
+  cout<<"TRD field: \n"<<endl;
+  
+  cout<<" TrdBx[fkTrdM] = { ";
+  for( int i=0; i<fkTrdM; i++){
+    cout<<fTrdBx[i];
+    if( i<fkTrdM-1 ) cout<<", ";
+    else cout<<" };"<<endl;
+  }
+
+  cout<<" TrdBy[fkTrdM] = { ";
+  for( int i=0; i<fkTrdM; i++){
+    cout<<fTrdBy[i];
+    if( i<fkTrdM-1 ) cout<<", ";
+    else cout<<" };"<<endl;
+  }
+
+  cout<<" TrdBz[fkTrdM] = { ";
+  for( int i=0; i<fkTrdM; i++){
+    cout<<fTrdBz[i];
+    if( i<fkTrdM-1 ) cout<<", ";
     else cout<<" };"<<endl;
   }
 }
