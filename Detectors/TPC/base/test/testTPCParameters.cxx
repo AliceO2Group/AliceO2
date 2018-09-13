@@ -143,18 +143,32 @@ BOOST_AUTO_TEST_CASE(ParameterGas_test2)
 BOOST_AUTO_TEST_CASE(ParameterGEM_test1)
 {
   const static ParameterGEM& gemParam = ParameterGEM::defaultInstance();
+  BOOST_CHECK(gemParam.getGeometry(1) == 1);
+  BOOST_CHECK(gemParam.getGeometry(2) == 3);
+  BOOST_CHECK(gemParam.getGeometry(3) == 3);
+  BOOST_CHECK(gemParam.getGeometry(4) == 1);
+  BOOST_CHECK_CLOSE(gemParam.getPotential(1), 270.f, 1e-3);
+  BOOST_CHECK_CLOSE(gemParam.getPotential(2), 250.f, 1e-3);
+  BOOST_CHECK_CLOSE(gemParam.getPotential(3), 270.f, 1e-3);
+  BOOST_CHECK_CLOSE(gemParam.getPotential(4), 340.f, 1e-3);
+  BOOST_CHECK_CLOSE(gemParam.getElectricField(1), 0.4f, 1e-3);
+  BOOST_CHECK_CLOSE(gemParam.getElectricField(2), 4.f, 1e-3);
+  BOOST_CHECK_CLOSE(gemParam.getElectricField(3), 2.f, 1e-3);
+  BOOST_CHECK_CLOSE(gemParam.getElectricField(4), 0.1f, 1e-3);
+  BOOST_CHECK_CLOSE(gemParam.getElectricField(5), 4.f, 1e-3);
   BOOST_CHECK_CLOSE(gemParam.getAbsoluteGain(1), 14.f, 1e-3);
   BOOST_CHECK_CLOSE(gemParam.getAbsoluteGain(2), 8.f, 1e-3);
   BOOST_CHECK_CLOSE(gemParam.getAbsoluteGain(3), 53.f, 1e-3);
   BOOST_CHECK_CLOSE(gemParam.getAbsoluteGain(4), 240.f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(1), 1.f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(2), 0.2f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(3), 0.25f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(4), 1.f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(1), 0.65f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(2), 0.55f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(3), 0.12f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(4), 0.6f, 1e-3);
+  // For fixed values
+  // BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(1), 1.f, 1e-3);
+  // BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(2), 0.2f, 1e-3);
+  // BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(3), 0.25f, 1e-3);
+  // BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(4), 1.f, 1e-3);
+  // BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(1), 0.65f, 1e-3);
+  // BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(2), 0.55f, 1e-3);
+  // BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(3), 0.12f, 1e-3);
+  // BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(4), 0.6f, 1e-3);
 
   for (int i = 1; i < 5; ++i) {
     BOOST_CHECK_CLOSE(
@@ -168,21 +182,37 @@ BOOST_AUTO_TEST_CASE(ParameterGEM_test1)
 BOOST_AUTO_TEST_CASE(ParameterGEM_test2)
 {
   ParameterGEM gemParam;
-  gemParam.setAbsoluteGain(1.f, 2.f, 3.f, 4.f);
-  gemParam.setCollectionEfficiency(5.f, 6.f, 7.f, 8.f);
-  gemParam.setExtractionEfficiency(9.f, 10.f, 11.f, 12.f);
-  BOOST_CHECK_CLOSE(gemParam.getAbsoluteGain(1), 1.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getAbsoluteGain(2), 2.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getAbsoluteGain(3), 3.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getAbsoluteGain(4), 4.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(1), 5.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(2), 6.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(3), 7.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(4), 8.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(1), 9.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(2), 10.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(3), 11.f, 1e-12);
-  BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(4), 12.f, 1e-12);
+  gemParam.setGeometry(1, 1, 2, 3);
+  gemParam.setPotential(4.f, 5.f, 6.f, 7.f);
+  gemParam.setElectricField(8.f, 9.f, 10.f, 11.f, 12.f);
+  gemParam.setAbsoluteGain(13.f, 14.f, 15.f, 16.f);
+  gemParam.setCollectionEfficiency(17.f, 18.f, 19.f, 20.f);
+  gemParam.setExtractionEfficiency(21.f, 22.f, 23.f, 24.f);
+  BOOST_CHECK(gemParam.getGeometry(1) == 1);
+  BOOST_CHECK(gemParam.getGeometry(2) == 1);
+  BOOST_CHECK(gemParam.getGeometry(3) == 2);
+  BOOST_CHECK(gemParam.getGeometry(4) == 3);
+  BOOST_CHECK_CLOSE(gemParam.getPotential(1), 4.f, 1e-12);
+  BOOST_CHECK_CLOSE(gemParam.getPotential(2), 5.f, 1e-12);
+  BOOST_CHECK_CLOSE(gemParam.getPotential(3), 6.f, 1e-12);
+  BOOST_CHECK_CLOSE(gemParam.getPotential(4), 7.f, 1e-12);
+  BOOST_CHECK_CLOSE(gemParam.getElectricField(1), 8.f, 1e-12);
+  BOOST_CHECK_CLOSE(gemParam.getElectricField(2), 9.f, 1e-12);
+  BOOST_CHECK_CLOSE(gemParam.getElectricField(3), 10.f, 1e-12);
+  BOOST_CHECK_CLOSE(gemParam.getElectricField(4), 11.f, 1e-12);
+  BOOST_CHECK_CLOSE(gemParam.getElectricField(5), 12.f, 1e-12);
+  BOOST_CHECK_CLOSE(gemParam.getAbsoluteGain(1), 13.f, 1e-12);
+  BOOST_CHECK_CLOSE(gemParam.getAbsoluteGain(2), 14.f, 1e-12);
+  BOOST_CHECK_CLOSE(gemParam.getAbsoluteGain(3), 15.f, 1e-12);
+  BOOST_CHECK_CLOSE(gemParam.getAbsoluteGain(4), 16.f, 1e-12);
+  BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(1), 17.f, 1e-12);
+  BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(2), 18.f, 1e-12);
+  BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(3), 19.f, 1e-12);
+  BOOST_CHECK_CLOSE(gemParam.getCollectionEfficiency(4), 20.f, 1e-12);
+  BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(1), 21.f, 1e-12);
+  BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(2), 22.f, 1e-12);
+  BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(3), 23.f, 1e-12);
+  BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(4), 24.f, 1e-12);
 
   for (int i = 1; i < 5; ++i) {
     gemParam.setAbsoluteGain(i, i);
