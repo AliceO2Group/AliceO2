@@ -93,6 +93,7 @@ bool DataProcessingDevice::ConditionalRun()
     auto result = this->ReceiveAsync(parts, channel.name);
     if (result > 0) {
       this->handleData(parts);
+      this->tryDispatchComputation();
     }
   }
   return true;
@@ -121,30 +122,11 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
       monitoringService.send({ 1, "dpl/in_handle_data"});
       monitoringService.send({ 0, "dpl/in_handle_data"});
       monitoringService.flushBuffer(); });
-  auto &statefulProcess = mStatefulProcess;
-  auto &statelessProcess = mStatelessProcess;
-  auto &errorCallback = mError;
-  auto &serviceRegistry = mServiceRegistry;
-  auto &allocator = mAllocator;
-  auto &processingCount = mProcessingCount;
-  auto &relayer = mRelayer;
-  auto &device = *this;
-  auto &timingInfo = mTimingInfo;
-  auto& context = mFairMQContext;
-  auto &rootContext = mRootContext;
-  auto& stringContext = mStringContext;
-  auto& rdfContext = mDataFrameContext;
-  auto& forwards = mSpec.forwards;
-  auto& inputsSchema = mSpec.inputs;
-  auto &errorCount = mErrorCount;
 
-  std::vector<std::unique_ptr<FairMQMessage>> currentSetOfInputs;
-
-  // This is the actual hidden state for the outer loop. In case we decide we
-  // want to support multithreaded dispatching of operations, I can simply
-  // move these to some thread local store and the rest of the lambdas
-  // should work just fine.
-  std::vector<DataRelayer::RecordAction> completed;
+  auto& device = *this;
+  auto& errorCount = mErrorCount;
+  auto& relayer = mRelayer;
+  auto& serviceRegistry = mServiceRegistry;
 
   // This is how we validate inputs. I.e. we try to enforce the O2 Data model
   // and we do a few stats. We bind parts as a lambda captured variable, rather
@@ -183,11 +165,8 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
     return true;
   };
 
-  //
-  auto reportError = [&errorCount, &monitoringService](const char* message) {
-    LOG(ERROR) << message;
-    errorCount++;
-    monitoringService.send({ errorCount, "dpl/errors" });
+  auto reportError = [&device](const char* message) {
+    device.error(message);
   };
 
   auto putIncomingMessageIntoCache = [&parts,&relayer,&reportError]() {
@@ -205,6 +184,63 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
       }
       LOG(DEBUG) << "Relaying part idx: " << headerIndex;
     }
+  };
+
+  // Second part. This is the actual outer loop we want to obtain, with
+  // implementation details which can be read. Notice how most of the state
+  // is actually hidden. For example we do not expose what "input" is. This
+  // will allow us to keep the same toplevel logic even if the actual meaning
+  // of input is changed (for example we might move away from multipart
+  // messages). Notice also that we need to act diffently depending on the
+  // actual CompletionOp we want to perform. In particular forwarding inputs
+  // also gets rid of them from the cache.
+  if (isValidInput() == false) {
+    reportError("Parts should come in couples. Dropping it.");
+    return true;
+  }
+  putIncomingMessageIntoCache();
+  return true;
+}
+
+bool DataProcessingDevice::tryDispatchComputation()
+{
+  // This is the actual hidden state for the outer loop. In case we decide we
+  // want to support multithreaded dispatching of operations, I can simply
+  // move these to some thread local store and the rest of the lambdas
+  // should work just fine.
+  std::vector<DataRelayer::RecordAction> completed;
+  std::vector<std::unique_ptr<FairMQMessage>> currentSetOfInputs;
+
+  auto& allocator = mAllocator;
+  auto& context = mFairMQContext;
+  auto& device = *this;
+  auto& errorCallback = mError;
+  auto& errorCount = mErrorCount;
+  auto& forwards = mSpec.forwards;
+  auto& inputsSchema = mSpec.inputs;
+  auto& processingCount = mProcessingCount;
+  auto& rdfContext = mDataFrameContext;
+  auto& relayer = mRelayer;
+  auto& rootContext = mRootContext;
+  auto& serviceRegistry = mServiceRegistry;
+  auto& statefulProcess = mStatefulProcess;
+  auto& statelessProcess = mStatelessProcess;
+  auto& stringContext = mStringContext;
+  auto& timingInfo = mTimingInfo;
+
+  // These duplicate references are created so that each function
+  // does not need to know about the whole class state, but I can
+  // fine grain control what is exposed at each state.
+  // FIXME: I should use a different id for this state.
+  auto& monitoringService = mServiceRegistry.get<Monitoring>();
+  monitoringService.send({ 1, "dpl/in_handle_data" });
+  ScopedExit metricFlusher([&monitoringService] {
+      monitoringService.send({ 1, "dpl/in_handle_data"});
+      monitoringService.send({ 0, "dpl/in_handle_data"});
+      monitoringService.flushBuffer(); });
+
+  auto reportError = [&device](const char* message) {
+    device.error(message);
   };
 
   // For the moment we have a simple "immediately dispatch" policy for stuff
@@ -302,8 +338,7 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
   // the inputs which are shared between this device and others
   // to the next one in the daisy chain.
   // FIXME: do it in a smarter way than O(N^2)
-  auto forwardInputs = [&reportError, &forwards, &device, &currentSetOfInputs]
-                       (int timeslice, InputRecord &record) {
+  auto forwardInputs = [&reportError, &forwards, &device, &currentSetOfInputs](int timeslice, InputRecord& record) {
     assert(record.size()*2 == currentSetOfInputs.size());
     LOG(DEBUG) << "FORWARDING:START:" << timeslice;
     for (size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
@@ -371,19 +406,6 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
     LOG(DEBUG) << "FORWARDING:END";
   };
 
-  // Second part. This is the actual outer loop we want to obtain, with
-  // implementation details which can be read. Notice how most of the state
-  // is actually hidden. For example we do not expose what "input" is. This
-  // will allow us to keep the same toplevel logic even if the actual meaning
-  // of input is changed (for example we might move away from multipart
-  // messages). Notice also that we need to act diffently depending on the
-  // actual CompletionOp we want to perform. In particular forwarding inputs
-  // also gets rid of them from the cache.
-  if (isValidInput() == false) {
-    reportError("Parts should come in couples. Dropping it.");
-    return true;
-  }
-  putIncomingMessageIntoCache();
   if (canDispatchSomeComputation() == false) {
     return true;
   }
