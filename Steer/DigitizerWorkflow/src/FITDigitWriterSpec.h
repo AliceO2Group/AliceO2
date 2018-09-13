@@ -8,16 +8,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#ifndef STEER_DIGITIZERWORKFLOW_FITDIGITWRITER_H_
+#define STEER_DIGITIZERWORKFLOW_FITDIGITWRITER_H_
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "Framework/DataProcessorSpec.h"
 
-#pragma link C++ class o2::fit::Geometry+;
-#pragma link C++ class o2::fit::Digit+;
-#pragma link C++ class o2::fit::ChannelData + ;
-#pragma link C++ class vector < o2::fit::ChannelData > +;
-#pragma link C++ class vector < o2::fit::Digit > +;
+namespace o2
+{
+namespace fit
+{
 
-#endif
+o2::framework::DataProcessorSpec getFITDigitWriterSpec();
+
+} // end namespace tof
+} // end namespace o2
+
+#endif /* STEER_DIGITIZERWORKFLOW_FITDIGITWRITER_H_ */

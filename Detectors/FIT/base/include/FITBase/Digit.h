@@ -35,7 +35,8 @@ class Digit : public DigitBase
  public:
   Digit() = default;
 
-  Digit(std::vector<ChannelData> ChDgDataArr, Double_t time, Int_t bc, Bool_t isA, Bool_t isC, Bool_t isCnt, Bool_t isSCnt, Bool_t isVrtx)
+  Digit(std::vector<ChannelData> ChDgDataArr, Double_t time, Int_t bc, Bool_t isA,
+        Bool_t isC, Bool_t isCnt, Bool_t isSCnt, Bool_t isVrtx)
   {
     setChDgData(std::move(ChDgDataArr));
     setTime(time);
