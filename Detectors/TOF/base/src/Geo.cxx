@@ -12,6 +12,7 @@
 #include "TGeoManager.h"
 #include "TMath.h"
 #include "FairLogger.h"
+#include "DetectorsBase/GeometryManager.h"
 
 ClassImp(o2::tof::Geo);
 
@@ -157,8 +158,12 @@ void Geo::getPos(Int_t* det, Float_t* pos)
   Char_t path[200];
   getVolumePath(det, path);
   if (!gGeoManager) {
-    LOG(ERROR) << " no TGeo!" << "\n"; 
+    LOG(ERROR) << " no TGeo! Loading it" << "\n"; 
+    o2::Base::GeometryManager::loadGeometry();
   }
+  FILE* ciccio = fopen("TOF_geo.txt", "w");
+  fprintf(ciccio, "path = %s, gGeoManager = %p", path, gGeoManager);
+  fclose(ciccio);
   gGeoManager->cd(path);
   TGeoHMatrix global;
   global = *gGeoManager->GetCurrentMatrix();
