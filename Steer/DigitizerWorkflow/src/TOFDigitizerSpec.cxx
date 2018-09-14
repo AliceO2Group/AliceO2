@@ -17,6 +17,7 @@
 #include "TStopwatch.h"
 #include "Steer/HitProcessingManager.h" // for RunContext
 #include "TChain.h"
+#include "DetectorsBase/GeometryManager.h"
 
 #include "TOFSimulation/Digitizer.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -156,6 +157,11 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
     if (signalfilename.size() > 0) {
       simChains->emplace_back(new TChain("o2sim"));
       simChains->back()->AddFile(signalfilename.c_str());
+    }
+
+    // make sure that the geometry is loaded (TODO will this be done centrally?)
+    if (!gGeoManager) {
+      o2::Base::GeometryManager::loadGeometry();
     }
 
     // init digitizer
