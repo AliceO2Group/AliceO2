@@ -26,6 +26,7 @@
 #include "ITSMFTSimulation/Hit.h"
 #include "ITSMFTBase/GeometryTGeo.h"
 #include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
 namespace o2
@@ -51,6 +52,7 @@ class Digitizer : public TObject
 
   void setDigits(std::vector<o2::ITSMFT::Digit>* dig) { mDigits = dig; }
   void setMCLabels(o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mclb) { mMCLabels = mclb; }
+  void setROFRecords(std::vector<o2::ITSMFT::ROFRecord>* rec) { mROFRecords = rec; }
 
   o2::ITSMFT::DigiParams& getParams() { return (o2::ITSMFT::DigiParams&)mParams; }
   const o2::ITSMFT::DigiParams& getParams() const { return mParams; }
@@ -77,6 +79,14 @@ class Digitizer : public TObject
   // provide the common ITSMFT::GeometryTGeo to access matrices and segmentation
   void setGeometry(const o2::ITSMFT::GeometryTGeo* gm) { mGeometry = gm; }
 
+  UInt_t getEventROFrameMin() const { return mEventROFrameMin; }
+  UInt_t getEventROFrameMax() const { return mEventROFrameMax; }
+  void resetEventROFrames()
+  {
+    mEventROFrameMin = 0xffffffff;
+    mEventROFrameMax = 0;
+  }
+
  private:
   void processHit(const o2::ITSMFT::Hit& hit, UInt_t& maxFr, int evID, int srcID);
   void registerDigits(ChipDigitsContainer& chip, UInt_t roFrame, float tInROF, int nROF,
@@ -101,6 +111,9 @@ class Digitizer : public TObject
   UInt_t mROFrameMax = 0;          ///< highest RO frame of current digits
   UInt_t mNewROFrame = 0;          ///< ROFrame corresponding to provided time
 
+  UInt_t mEventROFrameMin = 0xffffffff; ///< lowest RO frame for processed events (w/o automatic noise ROFs)
+  UInt_t mEventROFrameMax = 0;          ///< highest RO frame forfor processed events (w/o automatic noise ROFs)
+
   std::unique_ptr<o2::ITSMFT::AlpideSimResponse> mAlpSimResp; // simulated response
 
   const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr; ///< ITS OR MFT upgrade geometry
@@ -109,6 +122,7 @@ class Digitizer : public TObject
   std::deque<std::unique_ptr<ExtraDig>> mExtraBuff;    ///< burrer (per roFrame) for extra digits
 
   std::vector<o2::ITSMFT::Digit>* mDigits = nullptr;                       //! output digits
+  std::vector<o2::ITSMFT::ROFRecord>* mROFRecords = nullptr;               //! output ROF records
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mMCLabels = nullptr; //! output labels
 
   ClassDefOverride(Digitizer, 2);

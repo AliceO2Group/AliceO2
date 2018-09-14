@@ -14,6 +14,7 @@
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
 #include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include <TTree.h>
@@ -78,8 +79,11 @@ DataProcessorSpec getITSDigitWriterSpec()
 
       // retrieve the digits from the input
       auto inDigits = pc.inputs().get<std::vector<o2::ITSMFT::Digit>>("itsdigits");
+      auto inROFs = pc.inputs().get<std::vector<o2::ITSMFT::ROFRecord>>("itsdigitsROF");
+      auto inMC2ROFs = pc.inputs().get<std::vector<o2::ITSMFT::MC2ROFRecord>>("itsdigitsMC2ROF");
       auto inLabels = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("itsdigitsMCTR");
       LOG(INFO) << "RECEIVED DIGITS SIZE " << inDigits.size();
+
       *digits.get() = std::move(inDigits);
       auto labelsRaw = inLabels.get();
       // connect this to a particular branch
@@ -88,6 +92,9 @@ DataProcessorSpec getITSDigitWriterSpec()
       auto brLbl = getOrMakeBranch(*outputtree.get(), "ITSDigitMCTruth", &labelsRaw);
       brLbl->Fill();
 
+      outputfile->cd();
+      outputfile->WriteObjectAny(&inROFs, "std::vector<o2::ITSMFT::ROFRecord>", "ITSDigitROF");
+      outputfile->WriteObjectAny(&inMC2ROFs, "std::vector<o2::ITSMFT::MC2ROFRecord>", "ITSDigitMC2ROF");
       finished = true;
       pc.services().get<ControlService>().readyToQuit(false);
     };
@@ -99,6 +106,8 @@ DataProcessorSpec getITSDigitWriterSpec()
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back(InputSpec{ "itsdigits", "ITS", "DIGITS", 0, Lifetime::Timeframe });
+  inputs.emplace_back(InputSpec{ "itsdigitsROF", "ITS", "DIGITSROF", 0, Lifetime::Timeframe });
+  inputs.emplace_back(InputSpec{ "itsdigitsMC2ROF", "ITS", "DIGITSMC2ROF", 0, Lifetime::Timeframe });
   inputs.emplace_back(InputSpec{ "itsdigitsMCTR", "ITS", "DIGITSMCTR", 0, Lifetime::Timeframe });
   return DataProcessorSpec{
     "ITSDigitWriter",

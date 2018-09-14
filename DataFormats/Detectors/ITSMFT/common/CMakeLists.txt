@@ -3,6 +3,7 @@ set(MODULE_NAME "DataFormatsITSMFT")
 O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
+  src/ROFRecord.cxx
   src/Cluster.cxx
   src/CompCluster.cxx
   src/ClusterPattern.cxx
@@ -11,6 +12,7 @@ set(SRCS
 )
 
 Set(HEADERS
+  include/${MODULE_NAME}/ROFRecord.h
   include/${MODULE_NAME}/Cluster.h
   include/${MODULE_NAME}/CompCluster.h
   include/${MODULE_NAME}/ClusterPattern.h
