@@ -181,11 +181,16 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
   // filling the MC labels of this cluster; the first will be those of the main digit; then the others
   if (digitMCTruth != nullptr) {
     int lbl = mClsLabels->getIndexedSize(); // this should correspond to the number of digits also;
+    printf("lbl = %d\n", lbl);
     for (int i = 0; i < mNumberOfContributingDigits; i++) {
+      printf("contributing digit = %d\n", i);
       int digitLabel = mContributingDigit[i]->getLabel();
+      printf("digitLabel = %d\n", digitLabel);
       gsl::span<const o2::MCCompLabel> mcArray = digitMCTruth->getLabels(digitLabel);
-      for (int j = 0; j < static_cast<int>(mcArray.size()); ++j) {
+      for (int j = 0; j < static_cast<int>(mcArray.size()); j++) {
+	printf("checking element %d in the array of labels\n", j);
         auto label = digitMCTruth->getElement(digitMCTruth->getMCTruthHeader(digitLabel).index + j);
+	printf("EventID = %d\n", label.getEventID());
         mClsLabels->addElement(lbl, label);
       }
     }
@@ -194,6 +199,8 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
   // set geometrical variables
   int det[5];
   Geo::getVolumeIndices(c.getMainContributingChannel(),det);
+  printf("mainContributingChannel = %d, det[0] = %d, det[1] = %d, det[2] = %d, det[3] = %d, det[4] = %d\n", c.getMainContributingChannel(), det[0], det[1], det[2], det[3], det[4]);
+  LOG(ERROR) << "mainContributingChannel" <<  c.getMainContributingChannel() << ", det[0] = " << det[0] << ", det[1] = " << det[1] << ", det[2] = " << det[2] << ", det[3] = " << det[3] << ", det[4] = " << det[4] << FairLogger::endl;
   float pos[3];
   Geo::getPos(det, pos);
   c.SetBaseData(c.getMainContributingChannel(),pos[0],pos[1],pos[2],0,0,0); // error on position set to zero

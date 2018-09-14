@@ -283,9 +283,10 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Float_t time, Float_t x, 
   bool iscurrent = true; // if we are in the current readout window
   Int_t isnext = -1;
 
-  if (mContinuous) {
+  if (mContinuous && 0) {
     isnext = Int_t(time * 1E-3 * Geo::READOUTWINDOW_INV) - mReadoutWindowCurrent; // to be replaced with uncalibrated time
 
+    
     if (isnext < 0 || isnext >= MAXWINDOWS - 1) {
 
       lblCurrent = mFutureIevent.size(); // this is the size of mHeaderArray;
