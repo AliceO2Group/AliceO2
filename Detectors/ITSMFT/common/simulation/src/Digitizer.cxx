@@ -102,7 +102,7 @@ void Digitizer::setEventTime(double t)
   mEventTime -= mParams.getTimeOffset(); // subtract common offset
   if (mEventTime < 0.) {
     mEventTime = 0.;
-  } else if (mEventTime > UINT_MAX) {
+  } else if (mEventTime > UINT_MAX * mParams.getROFrameLength()) {
     LOG(FATAL) << "ROFrame for event time " << t << " exceeds allowe maximum " << UINT_MAX << FairLogger::endl;
   }
 
@@ -130,8 +130,13 @@ void Digitizer::fillOutputContainer(UInt_t frameLast)
 
   LOG(INFO) << "Filling ITS digits output for RO frames " << mROFrameMin << ":" << frameLast << FairLogger::endl;
 
+  o2::ITSMFT::ROFRecord rcROF;
+
   // we have to write chips in RO increasing order, therefore have to loop over the frames here
   for (; mROFrameMin <= frameLast; mROFrameMin++) {
+    rcROF.setROFrame(mROFrameMin);
+    rcROF.getROFEntry().setIndex(mDigits->size()); // start of current ROF in digits
+
     auto& extra = *(mExtraBuff.front().get());
     for (auto& chip : mChips) {
       chip.addNoise(mROFrameMin, mROFrameMin, &mParams);
@@ -159,6 +164,12 @@ void Digitizer::fillOutputContainer(UInt_t frameLast)
         }
       }
       buffer.erase(itBeg, iter);
+    }
+    // finalize ROF record
+    rcROF.setNROFEntries(mDigits->size() - rcROF.getROFEntry().getIndex()); // number of digits
+    rcROF.getBCData().setFromNS(mROFrameMin * mParams.getROFrameLength() + mParams.getTimeOffset());
+    if (mROFRecords) {
+      mROFRecords->push_back(rcROF);
     }
     extra.clear(); // clear container for extra digits of the mROFrameMin ROFrame
     // and move it as a new slot in the end
@@ -299,6 +310,7 @@ void Digitizer::processHit(const o2::ITSMFT::Hit& hit, UInt_t& maxFr, int evID, 
   // fire the pixels assuming Poisson(n_response_electrons)
   o2::MCCompLabel lbl(hit.GetTrackID(), evID, srcID);
   auto& chip = mChips[hit.GetDetectorID()];
+
   for (int irow = rowSpan; irow--;) {
     UShort_t rowIS = irow + rowS;
     for (int icol = colSpan; icol--;) {
@@ -323,7 +335,7 @@ void Digitizer::registerDigits(ChipDigitsContainer& chip, UInt_t roFrame, float 
                                UShort_t row, UShort_t col, int nEle, o2::MCCompLabel& lbl)
 {
   // Register digits for given pixel, accounting for the possible signal contribution to
-  // multiple ROFrame. The signal starts at tume tInROF wrt the start of provided roFrame
+  // multiple ROFrame. The signal starts at time tInROF wrt the start of provided roFrame
   // In every ROFrame we check the collected signal during strobe
 
   float tStrobe = mParams.getStrobeDelay() - tInROF; // strobe start wrt signal start
@@ -336,7 +348,10 @@ void Digitizer::registerDigits(ChipDigitsContainer& chip, UInt_t roFrame, float 
     if (nEleROF < mParams.getMinChargeToAccount()) {
       continue;
     }
-
+    if (roFr > mEventROFrameMax)
+      mEventROFrameMax = roFr;
+    if (roFr < mEventROFrameMin)
+      mEventROFrameMin = roFr;
     auto key = chip.getOrderingKey(roFr, row, col);
     PreDigit* pd = chip.findDigit(key);
     if (!pd) {

@@ -18,6 +18,7 @@
 #include "ITSMFTBase/Digit.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTSimulation/Digitizer.h"
 #include "ITSBase/GeometryTGeo.h"
 #include <TGeoManager.h>
@@ -63,15 +64,58 @@ DataProcessorSpec getITSDigitizerSpec(int channel)
   // containers for digits and labels
   auto digits = std::make_shared<std::vector<o2::ITSMFT::Digit>>();
   auto digitsAccum = std::make_shared<std::vector<o2::ITSMFT::Digit>>(); // accumulator for all digits
+  auto rofRecords = std::make_shared<std::vector<o2::ITSMFT::ROFRecord>>();
+  auto rofRecordsAccum = std::make_shared<std::vector<o2::ITSMFT::ROFRecord>>();
   auto labels = std::make_shared<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
   auto labelsAccum = std::make_shared<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
+  auto mc2rofRecordsAccum = std::make_shared<std::vector<o2::ITSMFT::MC2ROFRecord>>();
 
   // the actual processing function which get called whenever new data is incoming
-  auto process = [simChains, qedChain, digitizer, digits, digitsAccum, labels, labelsAccum, channel](ProcessingContext& pc) {
+  auto process = [simChains, qedChain, digitizer, digits, digitsAccum, rofRecords, rofRecordsAccum,
+                  mc2rofRecordsAccum, labels, labelsAccum, channel](ProcessingContext& pc) {
     static bool finished = false;
     if (finished) {
       return;
     }
+
+    auto accumulate = [digits, digitsAccum, rofRecords, rofRecordsAccum, mc2rofRecordsAccum, labels, labelsAccum]() {
+      // accumulate result of single event processing, called after processing every event supplied
+      // AND after the final flushing via digitizer::fillOutputContainer
+      if (!digits->size()) {
+        return; // no digits were flushed, nothing to accumulate
+      }
+      static int fixMC2ROF = 0; // 1st entry in mc2rofRecordsAccum to be fixed for ROFRecordID
+      auto ndigAcc = digitsAccum->size();
+      std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
+
+      // fix ROFrecords references on ROF entries
+      auto nROFRecsOld = rofRecordsAccum->size();
+
+      for (int i = 0; i < rofRecords->size(); i++) {
+        auto& rof = (*rofRecords.get())[i];
+        rof.getROFEntry().shiftIndex(ndigAcc);
+        rof.print();
+
+        if (fixMC2ROF < mc2rofRecordsAccum->size()) { // fix ROFRecord entry in MC2ROF records
+          for (int m2rid = fixMC2ROF; m2rid < mc2rofRecordsAccum->size(); m2rid++) {
+            // need to register the ROFRecors entry for MC event starting from this entry
+            auto& mc2rof = (*mc2rofRecordsAccum.get())[m2rid];
+            if (rof.getROFrame() == mc2rof.minROF) {
+              fixMC2ROF++;
+              mc2rof.rofRecordID = nROFRecsOld + i;
+              mc2rof.print();
+            }
+          }
+        }
+      }
+      std::copy(rofRecords->begin(), rofRecords->end(), std::back_inserter(*rofRecordsAccum.get()));
+      labelsAccum->mergeAtBack(*labels);
+      LOG(INFO) << "Added " << digits->size() << " digits " << FairLogger::endl;
+      // clean containers from already accumulated stuff
+      labels->clear();
+      digits->clear();
+      rofRecords->clear();
+    };
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
@@ -92,6 +136,7 @@ DataProcessorSpec getITSDigitizerSpec(int channel)
     static std::vector<o2::ITSMFT::Hit> hitsQED;
 
     digitizer->setDigits(digits.get());
+    digitizer->setROFRecords(rofRecords.get());
     digitizer->setMCLabels(labels.get());
 
     // attach optional QED digits branch
@@ -133,15 +178,13 @@ DataProcessorSpec getITSDigitizerSpec(int channel)
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < timesview.size(); ++collID) {
       auto eventTime = timesview[collID].timeNS;
-      labels->clear();
-      digits->clear();
 
       if (qedBranch) { // QED must be processed before other inputs since done in small time steps
         processQED(eventTime);
       }
 
       digitizer->setEventTime(eventTime);
-
+      digitizer->resetEventROFrames(); // to estimate min/max ROF for this collID
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
@@ -154,29 +197,24 @@ DataProcessorSpec getITSDigitizerSpec(int channel)
                   << " found " << hits.size() << " hits " << FairLogger::endl;
 
         // call actual digitization procedure
-        digitizer->process(&hits, collID, part.sourceID);
+        digitizer->process(&hits, part.entryID, part.sourceID);
         // copy digits into accumulator
       }
-
-      std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
-      labelsAccum->mergeAtBack(*labels);
-      LOG(INFO) << "Have " << digits->size() << " digits " << FairLogger::endl;
+      mc2rofRecordsAccum->emplace_back(collID, -1, digitizer->getEventROFrameMin(), digitizer->getEventROFrameMax());
+      accumulate();
     }
 
     // finish digitization ... stream any remaining digits/labels
-    labels->clear();
-    digits->clear();
-
     if (qedBranch) { // fill last slots from QED input
       processQED(digitizer->getEndTimeOfROFMax());
     }
     digitizer->fillOutputContainer();
-    std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
-    labelsAccum->mergeAtBack(*labels);
-    LOG(INFO) << "Afterburner: Have " << digits->size() << " digits " << FairLogger::endl;
+    accumulate();
 
     // here we have all digits and labels and we can send them to consumer (aka snapshot it onto output)
     pc.outputs().snapshot(Output{ "ITS", "DIGITS", 0, Lifetime::Timeframe }, *digitsAccum.get());
+    pc.outputs().snapshot(Output{ "ITS", "DIGITSROF", 0, Lifetime::Timeframe }, *rofRecordsAccum.get());
+    pc.outputs().snapshot(Output{ "ITS", "DIGITSMC2ROF", 0, Lifetime::Timeframe }, *mc2rofRecordsAccum.get());
     pc.outputs().snapshot(Output{ "ITS", "DIGITSMCTR", 0, Lifetime::Timeframe }, *labelsAccum.get());
 
     timer.Stop();
@@ -244,6 +282,8 @@ DataProcessorSpec getITSDigitizerSpec(int channel)
                                        static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
     Outputs{
       OutputSpec{ "ITS", "DIGITS", 0, Lifetime::Timeframe },
+      OutputSpec{ "ITS", "DIGITSROF", 0, Lifetime::Timeframe },
+      OutputSpec{ "ITS", "DIGITSMC2ROF", 0, Lifetime::Timeframe },
       OutputSpec{ "ITS", "DIGITSMCTR", 0, Lifetime::Timeframe } },
     AlgorithmSpec{ initIt },
     Options{

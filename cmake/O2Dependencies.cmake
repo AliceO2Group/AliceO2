@@ -726,6 +726,7 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/common/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
@@ -777,6 +778,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     its_base_bucket
+    itsmft_simulation_bucket
     Graf
     Gpad
     ITSMFTBase
@@ -784,11 +786,9 @@ o2_define_bucket(
     ITSBase
     DetectorsBase
     SimulationDataFormat
-    Steer
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
-    ${CMAKE_SOURCE_DIR}/Steer/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/simulation/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
@@ -1228,6 +1228,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     mft_base_bucket
+    itsmft_simulation_bucket
     ITSMFTBase
     ITSMFTSimulation
     MFTBase
