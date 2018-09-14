@@ -513,12 +513,6 @@ class HuffmanModel : public _BASE
       treeNodeConfiguration(int _index, int _left, int _right) : index(_index), left(_left), right(_right) {}
       int index, left, right;
       bool operator<(const treeNodeConfiguration& other) const { return index < other.index; }
-      struct less {
-        bool operator()(const treeNodeConfiguration& a, const treeNodeConfiguration& b) const
-        {
-          return a.index < b.index;
-        }
-      };
     };
     std::set<treeNodeConfiguration> treeNodeConfigurations;
     char firstChar = 0;
@@ -643,7 +637,7 @@ class HuffmanModel : public _BASE
     const _BASE& model = *this;
     NodeType* left = node->getLeftChild();
     NodeType* right = node->getRightChild();
-    if (left == NULL) {
+    if (left == nullptr) {
       typename _BASE::value_type value = _BASE::alphabet_type::getSymbol(node->getIndex());
       out << nodeIndex << " " << value << " " << model[value] << " " << node->getBinaryCodeLength() << " "
           << node->getBinaryCode() << std::endl;
