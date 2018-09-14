@@ -3,11 +3,13 @@ set(MODULE_NAME "CommonDataFormat")
 O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
+  src/InteractionRecord.cxx
 )
 
 Set(HEADERS
   include/${MODULE_NAME}/TimeStamp.h
   include/${MODULE_NAME}/EvIndex.h
+  include/${MODULE_NAME}/InteractionRecord.h
 )
 
 Set(LINKDEF src/CommonDataFormatLinkDef.h)

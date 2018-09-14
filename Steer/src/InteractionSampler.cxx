@@ -33,17 +33,17 @@ void InteractionSampler::init()
   }
 
   if (mMuBC > 0.) {
-    mIntRate = mMuBC * nBCSet * LHCRevFreq;
+    mIntRate = mMuBC * nBCSet * o2::constants::lhc::LHCRevFreq;
     LOG(INFO) << "Deducing IR=" << mIntRate << "Hz from " << nBCSet << " BCs at mu=" << mMuBC << FairLogger::endl;
   } else {
-    mMuBC = mIntRate / (nBCSet * LHCRevFreq);
+    mMuBC = mIntRate / (nBCSet * o2::constants::lhc::LHCRevFreq);
     LOG(INFO) << "Deducing mu=" << mMuBC << " per BC from IR=" << mIntRate << " with " << nBCSet << " BCs"
               << FairLogger::endl;
   }
 
   mBCMin = 0;
   mBCMax = -1;
-  for (int i = 0; i < LHCBCSlots; i++) {
+  for (int i = 0; i < o2::constants::lhc::LHCMaxBunches; i++) {
     if (!mBCFilling[i])
       continue;
     if (mBCMin > i)
@@ -77,7 +77,7 @@ void InteractionSampler::print() const
 void InteractionSampler::printBunchFilling(int bcPerLine) const
 {
   bool endlOK = false;
-  for (int i = 0; i < LHCBCSlots; i++) {
+  for (int i = 0; i < o2::constants::lhc::LHCMaxBunches; i++) {
     printf("%c", mBCFilling[i] ? '+' : '-');
     if (((i + 1) % bcPerLine) == 0) {
       printf("\n");
@@ -93,7 +93,7 @@ void InteractionSampler::printBunchFilling(int bcPerLine) const
 void InteractionSampler::setBC(int bcID, bool active)
 {
   // add interacting BC slot
-  if (bcID >= LHCBCSlots) {
+  if (bcID >= o2::constants::lhc::LHCMaxBunches) {
     LOG(FATAL) << "BCid is limited to " << mBCMin << '-' << mBCMax << FairLogger::endl;
   }
   mBCFilling.set(bcID, active);
@@ -129,7 +129,7 @@ void InteractionSampler::setDefaultBunchFilling()
   setBCTrains(12, 96, 48, 2, 0);
 }
 //_________________________________________________
-o2::MCInteractionRecord InteractionSampler::generateCollisionTime()
+o2::InteractionRecord InteractionSampler::generateCollisionTime()
 {
   // generate single interaction record
   if (mIntRate < 0)
@@ -138,13 +138,13 @@ o2::MCInteractionRecord InteractionSampler::generateCollisionTime()
   if (mIntBCCache < 1) {                   // do we still have interaction in current BC?
     mIntBCCache = simulateInteractingBC(); // decide which BC interacts and N collisions
   }
-  double timeInt = mTimeInBC.back();
-  timeInt += mBCCurrent * BCSpacingLHC + mOrbit * OrbitDuration;
-  if (mPeriod)
-    timeInt += mPeriod * PeriodDuration;
+  double timeInt = mTimeInBC.back() + o2::InteractionRecord::bc2ns(mBCCurrent, mOrbit, mPeriod);
   mTimeInBC.pop_back();
   mIntBCCache--;
-  return o2::MCInteractionRecord(timeInt, mBCCurrent, mOrbit, mPeriod);
+
+  o2::InteractionRecord tmp(timeInt);
+
+  return o2::InteractionRecord(timeInt);
 }
 
 //_________________________________________________
@@ -162,7 +162,11 @@ int InteractionSampler::simulateInteractingBC()
   int ncoll = genPoissonZT();
   // assign random time withing a bunch
   for (int i = ncoll; i--;) {
-    mTimeInBC.push_back(gRandom->Gaus(mBCTimeRMS));
+    double tInBC = 0; // tInBC should be in the vicinity of the BC
+    do {
+      tInBC = gRandom->Gaus(mBCTimeRMS);
+    } while (std::abs(tInBC) > o2::constants::lhc::LHCBunchSpacingNS / 2.1);
+    mTimeInBC.push_back(tInBC);
   }
   if (ncoll > 1) { // sort in DECREASING time order (we are reading vector from the end)
     std::sort(mTimeInBC.begin(), mTimeInBC.end(), [](const double a, const double b) { return a > b; });

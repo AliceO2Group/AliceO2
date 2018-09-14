@@ -58,7 +58,7 @@ class RunContext
   void setMaxNumberParts(int maxp) { mMaxPartNumber = maxp; }
   int getMaxNumberParts() const { return mMaxPartNumber; }
 
-  const std::vector<o2::MCInteractionRecord>& getEventRecords() const { return mEventRecords; }
+  const std::vector<o2::InteractionRecord>& getEventRecords() const { return mEventRecords; }
   const std::vector<std::vector<EventPart>>& getEventParts() const { return mEventParts; }
   const std::vector<TChain*>& getChains() const { return mChains; }
 
@@ -67,7 +67,7 @@ class RunContext
  private:
   int mNofEntries = 0;
   int mMaxPartNumber = 0; // max number of parts in any given collision
-  std::vector<o2::MCInteractionRecord> mEventRecords;
+  std::vector<o2::InteractionRecord> mEventRecords;
   // for each collision we record the constituents (which shall not exceed mMaxPartNumber)
   std::vector<std::vector<EventPart>> mEventParts;
   std::vector<TChain*> mChains; //! pointers to input chains
