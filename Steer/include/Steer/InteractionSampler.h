@@ -18,7 +18,8 @@
 #include <TRandom.h>
 #include <bitset>
 #include <vector>
-#include "SimulationDataFormat/MCInteractionRecord.h"
+#include "CommonDataFormat/InteractionRecord.h"
+#include "CommonConstants/LHCConstants.h"
 
 namespace o2
 {
@@ -28,20 +29,11 @@ class InteractionSampler
 {
  public:
   static constexpr double Sec2NanoSec = 1.e9;   // s->ns conversion
-  static constexpr double LHCRevFreq = 11245.5; // LHC revolution frequenct in Hz
-  static constexpr int LHCBCSlots = 3564;       // Max N BC slots on LHC (including abort gap)
-  static constexpr int MaxNOrbits = 0x1 << 24;  // above this (~24min) period is incremented
-  static constexpr int MaxNPeriods = 0x1 << 28; // above this period is incremented
-  //
-  static constexpr double OrbitDuration = Sec2NanoSec / LHCRevFreq; // min spacing between BCs in ns
-  static constexpr double PeriodDuration =
-    OrbitDuration * MaxNOrbits; // duration of period in ns (Prec.loss for periods>1)
-  static constexpr double BCSpacingLHC = OrbitDuration / LHCBCSlots; // min spacing between BCs in ns
 
-  using BunchFilling = std::bitset<LHCBCSlots>;
+  using BunchFilling = std::bitset<o2::constants::lhc::LHCMaxBunches>;
 
-  o2::MCInteractionRecord generateCollisionTime();
-  void generateCollisionTimes(std::vector<o2::MCInteractionRecord>& dest);
+  o2::InteractionRecord generateCollisionTime();
+  void generateCollisionTimes(std::vector<o2::InteractionRecord>& dest);
 
   void init();
 
@@ -91,7 +83,7 @@ class InteractionSampler
 };
 
 //_________________________________________________
-inline void InteractionSampler::generateCollisionTimes(std::vector<o2::MCInteractionRecord>& dest)
+inline void InteractionSampler::generateCollisionTimes(std::vector<o2::InteractionRecord>& dest)
 {
   // fill vector with interaction records
   dest.clear();
@@ -107,7 +99,7 @@ inline void InteractionSampler::nextCollidingBC()
   do {
     if (++mBCCurrent > mBCMax) { // did we exhaust full orbit?
       mBCCurrent = mBCMin;
-      if (++mOrbit >= MaxNOrbits) { // did we exhaust full period?
+      if (++mOrbit >= o2::constants::lhc::MaxNOrbits) { // did we exhaust full period?
         mOrbit = 0;
         mPeriod++;
       }

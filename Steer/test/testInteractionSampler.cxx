@@ -13,7 +13,7 @@
 #define BOOST_TEST_DYN_LINK
 #include <algorithm>
 #include <boost/test/unit_test.hpp>
-#include "SimulationDataFormat/MCInteractionRecord.h"
+#include "CommonDataFormat/InteractionRecord.h"
 #include "Steer/InteractionSampler.h"
 
 namespace o2
@@ -23,7 +23,7 @@ BOOST_AUTO_TEST_CASE(InteractionSampler)
   using Sampler = o2::steer::InteractionSampler;
 
   const int ntest = 100;
-  std::vector<o2::MCInteractionRecord> records; // destination for records
+  std::vector<o2::InteractionRecord> records; // destination for records
   records.reserve(ntest);
 
   printf("Testing sampler with default settings\n");

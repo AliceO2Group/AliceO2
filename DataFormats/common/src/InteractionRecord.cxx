@@ -7,12 +7,12 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "SimulationDataFormat/MCInteractionRecord.h"
+#include "CommonDataFormat/InteractionRecord.h"
 #include <iostream>
 
 namespace o2
 {
-void MCInteractionRecord::print()
+void InteractionRecord::print() const
 {
   std::cout << "BCid: " << bc << " Orbit: " << orbit << " Period: " << period << " T(ns): " << timeNS << std::endl;
 }

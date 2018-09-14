@@ -23,6 +23,18 @@ namespace lhc
 {
 // LHC Beam1 and Beam2 definitions
 enum BeamDirection : int { BeamClockWise, BeamAntiClockWise, NBeamDirections };
+static constexpr int LHCMaxBunches = 3564;                              // max N bunches
+static constexpr double LHCRFFreq = 400.789e6;                          // LHC RF frequency in Hz
+static constexpr double LHCBunchSpacingNS = 10 * 1.e9 / LHCRFFreq;      // bunch spacing in ns (10 RFbuckets)
+static constexpr double LHCOrbitNS = LHCMaxBunches * LHCBunchSpacingNS; // orbit duration in ns
+static constexpr double LHCRevFreq = 1.e9 / LHCOrbitNS;                 // revolution frequency
+
+// ALICE conventions
+static constexpr int MaxNOrbits = 0x1 << 24; // above this (~24min) period is incremented
+static constexpr int OrbitMask = MaxNOrbits - 1;
+static constexpr int MaxNPeriods = 0x1 << 28;
+static constexpr int PreioidMask = MaxNPeriods - 1;
+static constexpr double PeriodDurationNS = MaxNOrbits * LHCOrbitNS;
 }
 }
 }
