@@ -45,10 +45,11 @@ std::string inputChannel2String(const InputChannelSpec& channel)
   char buffer[32];
   auto addressFormat = ChannelSpecHelpers::methodAsUrl(channel.method);
 
-  result += "name=" + channel.name + ",";
-  result += std::string("type=") + ChannelSpecHelpers::typeAsString(channel.type) + ",";
-  result += std::string("method=") + ChannelSpecHelpers::methodAsString(channel.method) + ",";
-  result += std::string("address=") + (snprintf(buffer, 32, addressFormat, channel.port), buffer);
+  result += "name=" + channel.name;
+  result += std::string(",type=") + ChannelSpecHelpers::typeAsString(channel.type);
+  result += std::string(",method=") + ChannelSpecHelpers::methodAsString(channel.method);
+  result += std::string(",address=") + (snprintf(buffer, 32, addressFormat, channel.port), buffer);
+  result += std::string(",rateLogging=60");
 
   return result;
 }
@@ -59,10 +60,11 @@ std::string outputChannel2String(const OutputChannelSpec& channel)
   char buffer[32];
   auto addressFormat = ChannelSpecHelpers::methodAsUrl(channel.method);
 
-  result += "name=" + channel.name + ",";
-  result += std::string("type=") + ChannelSpecHelpers::typeAsString(channel.type) + ",";
-  result += std::string("method=") + ChannelSpecHelpers::methodAsString(channel.method) + ",";
-  result += std::string("address=") + (snprintf(buffer, 32, addressFormat, channel.port), buffer);
+  result += "name=" + channel.name;
+  result += std::string(",type=") + ChannelSpecHelpers::typeAsString(channel.type);
+  result += std::string(",method=") + ChannelSpecHelpers::methodAsString(channel.method);
+  result += std::string(",address=") + (snprintf(buffer, 32, addressFormat, channel.port), buffer);
+  result += std::string(",rateLogging=60");
 
   return result;
 }
