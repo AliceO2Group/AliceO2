@@ -49,4 +49,9 @@
 #pragma link C++ class std::vector<o2::Data::SubEventInfo>+;
 #pragma link C++ struct o2::Data::PrimaryChunk+;
 
+#pragma link C++ class o2::steer::RunContext + ;
+#pragma link C++ class o2::steer::EventPart + ;
+#pragma link C++ class vector < o2::steer::EventPart > +;
+#pragma link C++ class vector < vector < o2::steer::EventPart >> +;
+
 #endif

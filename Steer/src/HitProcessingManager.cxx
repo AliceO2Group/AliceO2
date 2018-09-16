@@ -68,7 +68,7 @@ bool HitProcessingManager::setupChain()
 
   // print out entries in each chain
   for (int i = 0; i < mSimChains.size(); ++i) {
-    mRunContext.mChains.emplace_back(mSimChains[i]);
+    mRunContext.getChains().emplace_back(mSimChains[i]);
     LOG(INFO) << "CHAIN " << i << " has " << mSimChains[i]->GetEntries() << " entries ";
   }
   return true;
@@ -92,7 +92,7 @@ void HitProcessingManager::setupRun(int ncollisions)
     LOG(INFO) << "Automatic deduction of number of collisions ... will just take number of background entries "
               << mNumberOfCollisions;
   }
-  mRunContext.mNofEntries = mNumberOfCollisions;
+  mRunContext.setNCollisions(mNumberOfCollisions);
   sampleCollisionTimes();
 
   // sample collision (background-signal) constituents
