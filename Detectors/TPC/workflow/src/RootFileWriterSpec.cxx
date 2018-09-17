@@ -14,6 +14,7 @@
 /// @brief  Processor spec for a ROOT file writer
 
 #include "RootFileWriterSpec.h"
+#include "Framework/ControlService.h"
 #include "Framework/CallbackService.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include <TFile.h>
@@ -35,6 +36,7 @@ DataProcessorSpec getRootFileWriterSpec()
     // get the option from the init context
     auto filename = ic.options().get<std::string>("outfile");
     auto treename = ic.options().get<std::string>("treename");
+    auto nevents = ic.options().get<int>("nevents");
 
     auto outputfile = std::make_shared<TFile>(filename.c_str(), "RECREATE");
     auto outputtree = std::make_shared<TTree>(treename.c_str(), treename.c_str());
@@ -52,12 +54,17 @@ DataProcessorSpec getRootFileWriterSpec()
     // using by-copy capture of the worker instance shared pointer
     // the shared pointer makes sure to clean up the instance when the processing
     // function gets out of scope
-    auto processingFct = [outputfile, outputtree, tracks](ProcessingContext& pc) {
+    auto processingFct = [outputfile, outputtree, tracks, nevents](ProcessingContext& pc) {
+      static int eventCount = 0;
       auto indata = pc.inputs().get<std::vector<o2::TPC::TrackTPC>>("input");
       LOG(INFO) << "RootFileWriter: get " << indata.size() << " track(s)";
       *tracks.get() = std::move(indata);
       LOG(INFO) << "RootFileWriter: write " << tracks->size() << " track(s)";
       outputtree->Fill();
+
+      if (++eventCount >= nevents) {
+        pc.services().get<ControlService>().readyToQuit(true);
+      }
     };
 
     // return the actual processing function as a lambda function using variables
@@ -72,6 +79,7 @@ DataProcessorSpec getRootFileWriterSpec()
                             Options{
                               { "outfile", VariantType::String, "tpctracks.root", { "Name of the input file" } },
                               { "treename", VariantType::String, "Tracks", { "Name of tree for tracks" } },
+                              { "nevents", VariantType::Int, 1, { "terminate after n events" } },
                             } };
 }
 } // end namespace TPC

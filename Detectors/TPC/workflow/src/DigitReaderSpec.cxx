@@ -64,7 +64,7 @@ DataProcessorSpec getDigitReaderSpec()
     return processingFct;
   };
 
-  return DataProcessorSpec{ "producer",
+  return DataProcessorSpec{ "digit-reader",
                             Inputs{}, // no inputs
                             { OutputSpec{ gDataOriginTPC, "DIGIT", 0, Lifetime::Timeframe },
                               OutputSpec{ gDataOriginTPC, "DIGITMCLBL", 0, Lifetime::Timeframe } },

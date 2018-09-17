@@ -36,7 +36,8 @@ using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
 /// create a processor spec
 /// convert incoming TPC clusters to HW clusters
-DataProcessorSpec getClusterConverterSpec()
+/// Note: This processor does not touch the MC, see below
+DataProcessorSpec getClusterConverterSpec(bool sendMC)
 {
   auto initFunction = [](InitContext& ic) {
     // there is nothing to init at the moment
@@ -111,10 +112,41 @@ DataProcessorSpec getClusterConverterSpec()
     return processingFct;
   };
 
+  // FIXME: treatment of the MC data
+  // the definition of the MC input and output won't work since the In/OutputSpec are the
+  // same. DPL does the routing only on the basis of the specs. Furthermore, we also need
+  // forwarding functionality in the DPL I/O API
+  // as we do not expect any further sorting of clusters during the conversion, we do not
+  // need to define the MC data at all, it is just routed directly to the final consumer.
+  // Whether or not to have MC data is thus a feature of the initial producer.
+  auto createInputSpecs = [](bool makeMcInput) {
+    std::vector<InputSpec> inputSpecs{
+      InputSpec{ { "clusterin" }, gDataOriginTPC, "CLUSTERSIM", 0, Lifetime::Timeframe },
+    };
+    if (makeMcInput) {
+      // FIXME: define common data type specifiers
+      constexpr o2::header::DataDescription datadesc("CLUSTERMCLBL");
+      inputSpecs.emplace_back(InputSpec{ "mclblin", gDataOriginTPC, datadesc, 0, Lifetime::Timeframe });
+    }
+    return std::move(inputSpecs);
+  };
+
+  auto createOutputSpecs = [](bool makeMcOutput) {
+    std::vector<OutputSpec> outputSpecs{
+      OutputSpec{ { "clusterout" }, gDataOriginTPC, "CLUSTERHW", 0, Lifetime::Timeframe },
+    };
+    if (makeMcOutput) {
+      OutputLabel label{ "mclblout" };
+      // FIXME: define common data type specifiers
+      constexpr o2::header::DataDescription datadesc("CLUSTERMCLBL");
+      outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
+    }
+    return std::move(outputSpecs);
+  };
+
   return DataProcessorSpec{ "converter",
-                            { InputSpec{ "clusterin", gDataOriginTPC, "CLUSTERSIM", 0, Lifetime::Timeframe },
-                              InputSpec{ "mclblin", gDataOriginTPC, "CLUSTERMCLBL", 0, Lifetime::Timeframe } },
-                            { OutputSpec{ { "clusterout" }, gDataOriginTPC, "CLUSTERHW", 0, Lifetime::Timeframe } },
+                            { createInputSpecs(false) },
+                            { createOutputSpecs(false) },
                             AlgorithmSpec(initFunction) };
 }
 } // end namespace TPC
