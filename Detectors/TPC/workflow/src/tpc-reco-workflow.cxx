@@ -13,8 +13,8 @@
 /// @since  2018-03-15
 /// @brief  Basic DPL workflow for TPC reconstruction starting from digits
 
-#include "Framework/runDataProcessing.h" // the main driver
 #include "Framework/WorkflowSpec.h"
+#include "Framework/ConfigParamSpec.h"
 
 #include "DigitReaderSpec.h"
 #include "ClusterReaderSpec.h"
@@ -32,6 +32,22 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <unordered_map>
+#include <stdexcept>
+
+// add workflow options, note that customization needs to be declared before
+// including Framework/runDataProcessing
+void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+{
+  std::vector<o2::framework::ConfigParamSpec> options{
+    { "input-type", o2::framework::VariantType::String, "digits", { "digits, clusters, raw" } },
+    { "output-type", o2::framework::VariantType::String, "tracks", { "clusters, raw, tracks" } },
+    { "disable-mc", o2::framework::VariantType::Bool, false, { "disable sending of MC information" } },
+  };
+  std::swap(workflowOptions, options);
+}
+
+#include "Framework/runDataProcessing.h" // the main driver
 
 using namespace o2::framework;
 
@@ -44,29 +60,75 @@ using namespace o2::framework;
 ///
 /// Digit reader and clusterer can be replaced by the cluster reader.
 ///
+/// MC info is always sent by the digit reader and clusterer processes, the
+/// cluster converter process creating the raw format can be configured to forward MC.
+///
 /// FIXME:
-/// - need to add propagation of command line parameters to this function, this
-///   is a feature request in the DPL
 /// - add propagation of MC information
 /// - add writing of the CA Tracker output to ROOT file
 /// This function is required to be implemented to define the workflow specifications
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec specs;
 
-  // choose whether to start from the digits or from the clusters
-  // these are just temporary switches
-  bool publishDigits = true;
-  bool doDecoding = true;
+  /// extract the workflow options and configure workflow
+  enum struct InputType { Digits,
+                          Clusters,
+                          Raw };
+  enum struct OutputType { Clusters,
+                           Raw,
+                           DecodedClusters,
+                           Tracks };
 
-  if (publishDigits) {
-    specs.emplace_back(o2::TPC::getDigitReaderSpec());
-    specs.emplace_back(o2::TPC::getClustererSpec());
-  } else {
-    specs.emplace_back(o2::TPC::getClusterReaderSpec());
+  const std::unordered_map<std::string, InputType> InputMap{
+    { "digits", InputType::Digits },
+    { "clusters", InputType::Clusters },
+    { "raw", InputType::Raw },
+  };
+
+  const std::unordered_map<std::string, OutputType> OutputMap{
+    { "clusters", OutputType::Clusters },
+    { "raw", OutputType::Raw },
+    { "decoded-clusters", OutputType::DecodedClusters },
+    { "tracks", OutputType::Tracks },
+  };
+
+  InputType inputType;
+  OutputType outputType;
+  bool propagateMC = not cfgc.options().get<bool>("disable-mc");
+  try {
+    inputType = InputMap.at(cfgc.options().get<std::string>("input-type"));
+  } catch (std::out_of_range&) {
+    throw std::runtime_error(std::string("invalid input type: ") + cfgc.options().get<std::string>("input-type"));
   }
-  specs.emplace_back(o2::TPC::getClusterConverterSpec());
+  try {
+    outputType = OutputMap.at(cfgc.options().get<std::string>("output-type"));
+  } catch (std::out_of_range&) {
+    throw std::runtime_error(std::string("invalid output type: ") + cfgc.options().get<std::string>("output-type"));
+  }
 
+  // there is no MC info when starting from raw data
+  // but maybe the warning can be dropped
+  if (propagateMC && outputType == OutputType::Raw) {
+    LOG(WARNING) << "input type 'raw' selected, switch off MC propagation";
+    propagateMC = false;
+  }
+
+  // note: converter does not touch MC, this is routed directly to downstream consumer
+  if (inputType == InputType::Digits) {
+    specs.emplace_back(o2::TPC::getDigitReaderSpec());
+    specs.emplace_back(o2::TPC::getClustererSpec(propagateMC));
+    specs.emplace_back(o2::TPC::getClusterConverterSpec(false));
+  } else if (inputType == InputType::Clusters) {
+    specs.emplace_back(o2::TPC::getClusterReaderSpec(/*propagateMC*/));
+    specs.emplace_back(o2::TPC::getClusterConverterSpec(false));
+  } else if (inputType == InputType::Raw) {
+    throw std::runtime_error(std::string("input type 'raw' not yet implemented"));
+  }
+
+  if (outputType == OutputType::Clusters || outputType == OutputType::Raw) {
+    throw std::runtime_error(std::string("output types 'clusters' and 'raw' not yet implemented"));
+  }
   // also add a binary writer
   auto writerFunction = [](InitContext& ic) {
     auto filename = ic.options().get<std::string>("outfile");
@@ -101,10 +163,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     return std::move(inputs);
   };
 
-  if (true) {
+  if (outputType == OutputType::Tracks) {
     specs.emplace_back(o2::TPC::getCATrackerSpec());
     specs.emplace_back(o2::TPC::getRootFileWriterSpec());
-  } else {
+  } else if (outputType == OutputType::DecodedClusters) {
     specs.emplace_back(DataProcessorSpec{ "writer",
                                           { createInputSpec() },
                                           {},

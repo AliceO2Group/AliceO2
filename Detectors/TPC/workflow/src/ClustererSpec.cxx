@@ -36,14 +36,16 @@ using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
 /// create a processor spec
 /// runs the TPC HwClusterer in a DPL process with digits and mc as input
-DataProcessorSpec getClustererSpec()
+DataProcessorSpec getClustererSpec(bool sendMC)
 {
-  auto initFunction = [](InitContext& ic) {
+  auto initFunction = [sendMC](InitContext& ic) {
     auto clusterArray = std::make_shared<std::vector<o2::TPC::Cluster>>();
     auto mctruthArray = std::make_shared<MCLabelContainer>();
-    auto clusterer = std::make_shared<o2::TPC::HwClusterer>(clusterArray.get(), 0, mctruthArray.get()); // correct sector needs to be set!!
+    // FIXME: correct sector needs to be set!! Do we need a set of clusterers if we want to process
+    // multiple sectors?
+    auto clusterer = std::make_shared<o2::TPC::HwClusterer>(clusterArray.get(), 0, mctruthArray.get());
 
-    auto processingFct = [clusterer, clusterArray, mctruthArray](ProcessingContext& pc) {
+    auto processingFct = [clusterer, clusterArray, mctruthArray, sendMC](ProcessingContext& pc) {
       auto inDigits = pc.inputs().get<const std::vector<o2::TPC::Digit>>("digits");
       auto inMCLabels = pc.inputs().get<const MCLabelContainer*>("mclabels");
 
@@ -53,17 +55,31 @@ DataProcessorSpec getClustererSpec()
       clusterer->process(inDigits, inMCLabels.get());
       LOG(INFO) << "clusterer produced " << clusterArray->size() << " cluster container";
       pc.outputs().snapshot(OutputRef{ "clusters" }, *clusterArray.get());
-      pc.outputs().snapshot(OutputRef{ "clusterlbl" }, *mctruthArray.get());
+      if (sendMC) {
+        pc.outputs().snapshot(OutputRef{ "clusterlbl" }, *mctruthArray.get());
+      }
     };
 
     return processingFct;
   };
 
+  auto createOutputSpecs = [](bool makeMcOutput) {
+    std::vector<OutputSpec> outputSpecs{
+      OutputSpec{ { "clusters" }, gDataOriginTPC, "CLUSTERSIM", 0, Lifetime::Timeframe },
+    };
+    if (makeMcOutput) {
+      OutputLabel label{ "clusterlbl" };
+      // FIXME: define common data type specifiers
+      constexpr o2::header::DataDescription datadesc("CLUSTERMCLBL");
+      outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
+    }
+    return std::move(outputSpecs);
+  };
+
   return DataProcessorSpec{ "tpc-clusterer",
                             { InputSpec{ "digits", gDataOriginTPC, "DIGIT", 0, Lifetime::Timeframe },
                               InputSpec{ "mclabels", gDataOriginTPC, "DIGITMCLBL", 0, Lifetime::Timeframe } },
-                            { OutputSpec{ { "clusters" }, gDataOriginTPC, "CLUSTERSIM", 0, Lifetime::Timeframe },
-                              OutputSpec{ { "clusterlbl" }, gDataOriginTPC, "CLUSTERMCLBL", 0, Lifetime::Timeframe } },
+                            { createOutputSpecs(sendMC) },
                             AlgorithmSpec(initFunction) };
 }
 
