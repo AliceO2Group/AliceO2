@@ -67,11 +67,19 @@ void DispatcherFairMQ::processCallback(ProcessingContext& ctx, Dispatcher::Berno
     for (auto& input : inputs) {
       const auto* header = header::get<header::DataHeader*>(input.header);
 
+      char* headerCopy = new char[header->headerSize];
+      memcpy(headerCopy, input.header, header->headerSize);
+      FairMQMessagePtr msgHeader(device->NewMessage(headerCopy, header->headerSize, cleanupFcn, headerCopy));
+
       char* payloadCopy = new char[header->payloadSize];
       memcpy(payloadCopy, input.payload, header->payloadSize);
       FairMQMessagePtr msgPayload(device->NewMessage(payloadCopy, header->payloadSize, cleanupFcn, payloadCopy));
 
-      int bytesSent = device->Send(msgPayload, channel);
+      FairMQParts message;
+      message.AddPart(std::move(msgHeader));
+      message.AddPart(std::move(msgPayload));
+
+      int bytesSent = device->Send(message, channel);
       LOG(DEBUG) << "Payload bytes sent: " << bytesSent;
     }
   }
