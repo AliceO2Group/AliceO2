@@ -11,6 +11,8 @@
 #define FRAMEWORK_CONFIGPARAMREGISTRY_H
 
 #include "Framework/ParamRetriever.h"
+#include "Framework/TypeTraits.h"
+#include "Algorithm/RangeTokenizer.h"
 #include <memory>
 #include <string>
 #include <cassert>
@@ -30,16 +32,28 @@ namespace framework
 ///        Use options? YES! OptionsRegistry...
 class ConfigParamRegistry
 {
-public:
+ public:
   ConfigParamRegistry(std::unique_ptr<ParamRetriever> retriever)
   : mRetriever{std::move(retriever)} {
   }
 
-  template <class T>
-  T get(const char *key) const {
+  /// default method
+  template <class T, typename std::enable_if_t<!is_specialization<T, std::vector>::value, int> = 0>
+  T get(const char *key) const
+  {
     throw std::runtime_error("parameter type not implemented");
   };
-private:
+
+  /// specialization for vectors of some type
+  template <class T, typename std::enable_if_t<is_specialization<T, std::vector>::value, int> = 0>
+  T get(const char *key) const
+  {
+    using value_type = typename T::value_type;
+    std::string option = get<std::string>(key);
+    return o2::RangeTokenizer::tokenize<value_type>(option);
+  };
+
+ private:
   std::unique_ptr<ParamRetriever> mRetriever;
 };
 

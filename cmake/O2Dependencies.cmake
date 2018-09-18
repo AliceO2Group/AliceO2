@@ -311,6 +311,7 @@ o2_define_bucket(
 
     SYSTEMINCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Utilities/PCG/include
+    ${CMAKE_SOURCE_DIR}/Algorithm/include
 )
 
 o2_define_bucket(
