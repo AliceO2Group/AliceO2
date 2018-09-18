@@ -8,6 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "TPCSectorHeader.h"
+#include "DataFormatsTPC/TPCSectorHeader.h"
 
-constexpr o2::header::HeaderType o2::tpc::TPCSectorHeader::sHeaderType = "TPCSectH";
+constexpr o2::header::HeaderType o2::TPC::TPCSectorHeader::sHeaderType = "TPCSectH";

@@ -31,7 +31,7 @@
 #include <sstream>
 #include <algorithm>
 #include "TPCBase/CDBInterface.h"
-#include "TPCSectorHeader.h"
+#include "DataFormatsTPC/TPCSectorHeader.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -94,7 +94,7 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
 
     // lambda that snapshots digits to be sent out; prepares and attaches header with sector information
     auto snapshotDigits = [sector, &pc, channel](std::vector<o2::TPC::Digit> const& digits) {
-      o2::tpc::TPCSectorHeader header{ sector };
+      o2::TPC::TPCSectorHeader header{ sector };
       // note that snapshoting only works with non-const references (to be fixed?)
       pc.outputs().snapshot(Output{ "TPC", "DIGITS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe,
                                     header },
@@ -102,7 +102,7 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
     };
     // lambda that snapshots labels to be sent out; prepares and attaches header with sector information
     auto snapshotLabels = [&sector, &pc, &channel](o2::dataformats::MCTruthContainer<o2::MCCompLabel> const& labels) {
-      o2::tpc::TPCSectorHeader header{ sector };
+      o2::TPC::TPCSectorHeader header{ sector };
       pc.outputs().snapshot(Output{ "TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(channel),
                                     Lifetime::Timeframe, header },
                             const_cast<o2::dataformats::MCTruthContainer<o2::MCCompLabel>&>(labels));

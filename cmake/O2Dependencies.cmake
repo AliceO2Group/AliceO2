@@ -328,8 +328,10 @@ o2_define_bucket(
     data_format_TPC_bucket
 
     DEPENDENCIES
+    data_format_headers_bucket
     data_format_reconstruction_bucket
     ReconstructionDataFormats
+    Headers
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
@@ -1754,6 +1756,7 @@ o2_define_bucket(
     Steer
     Framework
     TPCSimulation
+    DataFormatsTPC
     ITSSimulation
     ITSMFTBase
     TOFSimulation
