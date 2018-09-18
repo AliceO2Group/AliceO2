@@ -12,12 +12,15 @@
 #define O2_TPCSECTORHEADER_H
 
 #include "Headers/DataHeader.h"
+#include "DataFormatsTPC/Constants.h"
 
 namespace o2
 {
-namespace tpc
+namespace TPC
 {
 
+/// @struct TPCSectorHeader
+/// TPC specific header to be transported on the header stack
 struct TPCSectorHeader : public o2::header::BaseHeader {
   // Required to do the lookup
   static const o2::header::HeaderType sHeaderType;
@@ -28,9 +31,18 @@ struct TPCSectorHeader : public o2::header::BaseHeader {
   {
   }
 
+  static constexpr int NSectors = o2::TPC::Constants::MAXSECTOR;
   int sector;
+  union {
+    uint64_t activeSectorsFlags = 0;
+    struct {
+      uint64_t activeSectors : NSectors;
+      uint64_t unused : 12;
+      uint64_t flags : 16;
+    };
+  };
 };
-} // namespace tpc
+} // namespace TPC
 } // namespace o2
 
 #endif // O2_TPCSECTORHEADER_H

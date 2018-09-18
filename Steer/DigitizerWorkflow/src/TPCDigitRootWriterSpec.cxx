@@ -14,7 +14,7 @@
 /// @brief  Processor spec for a ROOT file writer for TPC digits
 
 #include "TPCDigitRootWriterSpec.h"
-#include "TPCSectorHeader.h"
+#include "DataFormatsTPC/TPCSectorHeader.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
 #include "TPCBase/Sector.h"
@@ -144,7 +144,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
 
       // extracts the sector from header of an input
       auto extractSector = [&pc](const char* inputname) {
-        auto sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(pc.inputs().get(inputname));
+        auto sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(pc.inputs().get(inputname));
         if (!sectorHeader) {
           LOG(FATAL) << "Missing sector header in TPC data";
         }
