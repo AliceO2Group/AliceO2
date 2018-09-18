@@ -44,25 +44,25 @@ BOOST_AUTO_TEST_CASE(test_rdh)
 
   // do not set anything in words 1,2, and 3
 
-  buffer[32] = 0x23;
-  buffer[33] = 0x71;
-  buffer[34] = 0x98;
-  buffer[35] = 0xba;
-  buffer[36] = 0xdc;
-  buffer[37] = 0x0e;
-  buffer[38] = 0x12;
-  buffer[39] = 0x0a;
+  buffer[32] = 0xdc;
+  buffer[33] = 0x0e;
+  buffer[34] = 0x12;
+  buffer[35] = 0x0a;
+  buffer[36] = 0x23;
+  buffer[37] = 0x71;
+  buffer[38] = 0x98;
+  buffer[39] = 0xba;
 
   // do not set anything in word 5
 
-  buffer[48] = 0x00;
-  buffer[49] = 0x0f;
-  buffer[50] = 0xd0;
-  buffer[51] = 0x00;
-  buffer[52] = 0xad;
-  buffer[53] = 0xde;
-  buffer[54] = 0;
-  buffer[55] = 0;
+  buffer[48] = 0xad;
+  buffer[49] = 0xde;
+  buffer[50] = 0;
+  buffer[51] = 0;
+  buffer[52] = 0x00;
+  buffer[53] = 0x0f;
+  buffer[54] = 0xd0;
+  buffer[55] = 0x00;
 
   // do not set anything in word 7
 

@@ -33,8 +33,10 @@ namespace header {
 /// RDH v3 consists of 4 64 bit words, each of the words is extended to 128 bits
 /// by the CRU
 /// https://docs.google.com/document/d/1otkSDYasqpVBDnxplBI7dWNxaZohctA-bvhyrzvtLoQ
-/// accessed on Sep 12 2018, a pdf version is available under this link
+/// accessed on Sep 18 2018, a pdf version is available under this link
 /// https://alice-o2-project.web.cern.ch/_webdav/files/pdf/RDH%20V3_2.pdf
+/// Note: there has been a failure in the document regarding the order of the
+/// 32 bit words of Field 4 and 6. Fixed on Sep 17 in the document.
 ///
 ///
 ///       63     56      48      40      32      24      16       8       0
@@ -49,38 +51,38 @@ namespace header {
 ///
 /// 3     |                          reserved                             |
 ///
-/// 4     |res|   HB BC   |res|trigger BC |      trigger type             |
+/// 4     |      trigger type             |res|   HB BC   |res|trigger BC |
 ///
 /// 5     |                          reserved                             |
 ///
-/// 6     | detector par  |detector field |res|    page count     | stop  |
+/// 6     |res|    page count     | stop  | detector par  |detector field |
 ///
 /// 5     |                          reserved                             |
 ///
-/// Field 1,3,5,7 are reserved fields and added to extend each word to 128 bit,
-/// marked grey in the documentation to indicate that those fields must be zero.
-/// In contrast to the description, word 1 has some labeled fields, so this
-/// has to be clarifid.
+/// Field 1,3,5,7 are reserved fields and added to extend each word to 128 bit, marked
+/// grey in the documentation to indicate that those fields are added by the CRU
+/// Field 1 contains additional information added by the CRU, like actual data size
+/// and offset to the next page.
 ///
 /// Field description:
 /// -  8 header version: the header version number
-/// -  8 header size:    the header size, number of 64 bit words
+/// -  8 header size:    the header size in byte(s)
 /// - 16 block length:   assumed to be in byte, but discussion not yet finalized
 /// - 16 FEE ID:         unique id of the Frontend equipment
 /// -  8 priority bit:   indicates packet packet transport of higher priority
-/// - 16 next package:   not documented (offset of next package?)
-/// - 16 memory size:    not documented
-/// -  8 Link ID:        not documented
+/// - 16 next package:   offset to next page
+/// - 16 memory size:    actual data size in bytes, filled by CRU
+/// -  8 Link ID:        set by the CRU
 /// - 32 trigger orbit:  trigger timing
 /// - 32 heartbeat orbit: heartbeat timing
-/// - 32 trigger type:   bit fiels for the trigger type yet to be decided
 /// - 12 trigger BC:     bunch crossing parameter for trigger
 /// - 12 beartbeat BC:   bunch crossing parameter for heartbeat
+/// - 32 trigger type:   bit fiels for the trigger type yet to be decided
+/// - 16 detector field: detector specific field
+/// - 16 detector par:   detector specific field
 /// -  8 stop:           bit 0 of the stop field is set if this is the last page
 /// - 16 page count:     incremented if data is bigger than the page size, pages are
 ///                      incremented starting from 0
-/// - 16 detector field: detector specific field
-/// - 16 detector par:   detector specific field
 struct RAWDataHeaderV3 {
   union {
     // default value
@@ -115,11 +117,11 @@ struct RAWDataHeaderV3 {
   union {                          ///
     uint64_t word4 = 0x0;          ///
     struct {                       ///
-      uint64_t triggerType : 32;   /// bit  0 to 31: trigger type
       uint64_t triggerBC : 12;     /// bit 32 to 43: trigger BC ID
       uint64_t zero41 : 4;         /// bit 44 to 47: zeroed
       uint64_t heartbeatBC : 12;   /// bit 48 to 59: heartbeat BC ID
       uint64_t zero42 : 4;         /// bit 60 to 63: zeroed
+      uint64_t triggerType : 32;   /// bit  0 to 31: trigger type
     };                             ///
   };                               ///
   union {                          ///
@@ -128,11 +130,11 @@ struct RAWDataHeaderV3 {
   union {                          ///
     uint64_t word6 = 0x0;          ///
     struct {                       ///
+      uint64_t detectorField : 16; /// bit 32 to 47: detector field
+      uint64_t par : 16;           /// bit 48 to 63: par
       uint64_t stop : 8;           /// bit  0 to  7: stop code
       uint64_t pageCnt : 16;       /// bit  8 to 23: pages counter
       uint64_t zero6 : 8;          /// bit 24 to 31: zeroed
-      uint64_t detectorField : 16; /// bit 32 to 47: detector field
-      uint64_t par : 16;           /// bit 48 to 63: par
     };
   };
   union {
