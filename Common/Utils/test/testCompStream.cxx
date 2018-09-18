@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE(test_compstream_methods)
   BOOST_REQUIRE(checker(o2::io::CompressionMethod::Gzip));
   BOOST_REQUIRE(checker(o2::io::CompressionMethod::Zlib));
   BOOST_REQUIRE(checker(o2::io::CompressionMethod::Bzip2));
-  BOOST_REQUIRE(checker(o2::io::CompressionMethod::Lzma));
+  //BOOST_REQUIRE(checker(o2::io::CompressionMethod::Lzma));
 }
 
 BOOST_AUTO_TEST_CASE(test_compstream_methods_mapper)
@@ -126,5 +126,5 @@ BOOST_AUTO_TEST_CASE(test_compstream_methods_mapper)
   BOOST_REQUIRE(checker(o2::io::CompressionMethod::Gzip, "gzip"));
   BOOST_REQUIRE(checker(o2::io::CompressionMethod::Zlib, "zlib"));
   BOOST_REQUIRE(checker(o2::io::CompressionMethod::Bzip2, "bzip2"));
-  BOOST_REQUIRE(checker(o2::io::CompressionMethod::Lzma, "lzma"));
+  //BOOST_REQUIRE(checker(o2::io::CompressionMethod::Lzma, "lzma"));
 }

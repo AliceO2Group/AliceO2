@@ -20,7 +20,7 @@
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filter/zlib.hpp>
 #include <boost/iostreams/filter/bzip2.hpp>
-#include <boost/iostreams/filter/lzma.hpp>
+//#include <boost/iostreams/filter/lzma.hpp>
 #include <map>
 #include <stdexcept>
 
@@ -42,7 +42,8 @@ void pushDecompressor(T& stream, CompressionMethod method)
       stream.push(boost::iostreams::zlib_decompressor());
       break;
     case CompressionMethod::Lzma:
-      stream.push(boost::iostreams::lzma_decompressor());
+      throw std::runtime_error("lzma support not enabled");
+      //stream.push(boost::iostreams::lzma_decompressor());
       break;
     case CompressionMethod::Bzip2:
       stream.push(boost::iostreams::bzip2_decompressor());
@@ -65,7 +66,8 @@ void pushCompressor(T& stream, CompressionMethod method)
       stream.push(boost::iostreams::zlib_compressor());
       break;
     case CompressionMethod::Lzma:
-      stream.push(boost::iostreams::lzma_compressor());
+      throw std::runtime_error("lzma support not enabled");
+      //stream.push(boost::iostreams::lzma_compressor());
       break;
     case CompressionMethod::Bzip2:
       stream.push(boost::iostreams::bzip2_compressor());
