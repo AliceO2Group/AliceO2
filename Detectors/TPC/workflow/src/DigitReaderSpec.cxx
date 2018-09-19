@@ -16,7 +16,10 @@
 #include "DigitReaderSpec.h"
 #include "Headers/DataHeader.h"
 #include "Utils/RootTreeReader.h"
+#include "TPCBase/Sector.h"
+#include "DataFormatsTPC/TPCSectorHeader.h"
 #include <memory> // for make_shared, make_unique, unique_ptr
+#include <algorithm>
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -29,6 +32,13 @@ namespace TPC
 /// read simulated TPC digits from file and publish
 DataProcessorSpec getDigitReaderSpec()
 {
+  constexpr static size_t NSectors = o2::TPC::Sector::MAXSECTOR;
+  struct ProcessAttributes {
+    std::vector<size_t> sectors;
+    uint64_t activeSectors = 0;
+    std::array<std::shared_ptr<RootTreeReader>, NSectors> readers;
+  };
+
   auto initFunction = [](InitContext& ic) {
     // get the option from the init context
     auto filename = ic.options().get<std::string>("infile");
@@ -37,26 +47,75 @@ DataProcessorSpec getDigitReaderSpec()
     auto mcbrName = ic.options().get<std::string>("mcbranch");
     auto nofEvents = ic.options().get<int>("nevents");
 
-    // set up the tree interface
-    // TODO: parallelism on sectors needs to be implemented as selector in the reader
-    constexpr auto persistency = Lifetime::Timeframe;
-    auto reader = std::make_shared<RootTreeReader>(treename.c_str(), // tree name
-                                                   nofEvents,        // number of entries to publish
-                                                   filename.c_str(), // input file name
-                                                   Output{ gDataOriginTPC, "DIGIT", 0, persistency },
-                                                   clbrName.c_str(), // name of digit branch
-                                                   Output{ gDataOriginTPC, "DIGITMCLBL", 0, persistency },
-                                                   mcbrName.c_str() // name of mc label branch
-                                                   );
+    auto processAttributes = std::make_shared<ProcessAttributes>();
+    {
+      auto& sectors = processAttributes->sectors;
+      auto& activeSectors = processAttributes->activeSectors;
+      auto& readers = processAttributes->readers;
+
+      // FIXME: read from options
+      sectors.resize(NSectors);
+      std::generate(sectors.begin(), sectors.end(), [counter = std::make_shared<int>(0)]() { return (*counter)++; });
+      for (auto const& s : sectors) {
+        // set the mask of active sectors
+        activeSectors |= 0x1 << s;
+      }
+
+      // set up the tree interface
+      // TODO: parallelism on sectors needs to be implemented as selector in the reader
+      // the data is now in parallel branches, as first attempt use an array of readers
+      constexpr auto persistency = Lifetime::Timeframe;
+      for (const auto& sector : sectors) {
+        std::string clusterbranchname = clbrName + "_" + std::to_string(sector);
+        std::string mcbranchname = mcbrName + "_" + std::to_string(sector);
+        readers[sector] = std::make_shared<RootTreeReader>(treename.c_str(), // tree name
+                                                           nofEvents,        // number of entries to publish
+                                                           filename.c_str(), // input file name
+                                                           Output{ gDataOriginTPC, "DIGIT", 0, persistency },
+                                                           clusterbranchname.c_str(), // name of digit branch
+                                                           Output{ gDataOriginTPC, "DIGITMCLBL", 0, persistency },
+                                                           mcbranchname.c_str() // name of mc label branch
+                                                           );
+      }
+    }
 
     // set up the processing function
     // using by-copy capture of the worker instance shared pointer
     // the shared pointer makes sure to clean up the instance when the processing
     // function gets out of scope
-    auto processingFct = [reader](ProcessingContext& pc) {
+    // FIXME: wanted to use it = sectors.begin() in the variable capture but the iterator
+    // is const and can not be incremented
+    auto processingFct = [ processAttributes, index = std::make_shared<int>(0) ](ProcessingContext & pc)
+    {
+      auto& sectors = processAttributes->sectors;
+      auto& activeSectors = processAttributes->activeSectors;
+      auto& readers = processAttributes->readers;
+      if (*index >= sectors.size()) {
+        *index = 0;
+      }
+      while (*index < sectors.size() && !readers[*index]) {
+        // probably more efficient to use a vector of valid readers instead of the fixed array with
+        // possibly invalid entries
+        ++(*index);
+      }
+      if (*index == sectors.size()) {
+        // there is no valid reader at all
+        return;
+      }
+      o2::TPC::TPCSectorHeader header{ *index };
+      header.activeSectors = activeSectors;
+      auto& r = *(readers[*index].get());
+
       // increment the reader and invoke it for the processing context
-      auto& r = *reader;
-      (++r)(pc);
+      if (r.next()) {
+        // there is data, run the reader
+        r(pc, header);
+      } else {
+        // no more data, delete the reader
+        readers[*index].reset();
+      }
+
+      ++(*index);
     };
 
     // return the actual processing function as a lambda function using variables
