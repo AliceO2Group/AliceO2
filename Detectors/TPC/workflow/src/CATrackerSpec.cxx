@@ -16,6 +16,7 @@
 #include "CATrackerSpec.h"
 #include "Headers/DataHeader.h"
 #include "Framework/DataRefUtils.h"
+#include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "TPCReconstruction/TPCCATracking.h"
@@ -48,6 +49,10 @@ DataProcessorSpec getCATrackerSpec()
     auto processingFct = [parser, tracker](ProcessingContext& pc) {
       ClusterNativeAccessFullTPC clusterIndex;
       memset(&clusterIndex, 0, sizeof(clusterIndex));
+      auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(pc.inputs().get("input"));
+      if (sectorHeader) {
+        std::cout << "received data for sector " << sectorHeader->sector << std::endl;
+      }
 
       for (const auto& ref : pc.inputs()) {
         auto size = o2::framework::DataRefUtils::getPayloadSize(ref);

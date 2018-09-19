@@ -16,6 +16,7 @@
 #include "ClusterDecoderRawSpec.h"
 #include "Headers/DataHeader.h"
 #include "Framework/DataRefUtils.h"
+#include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/ClusterHardware.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "TPCReconstruction/HardwareClusterDecoder.h"
@@ -50,6 +51,12 @@ DataProcessorSpec getClusterDecoderRawSpec()
       if (ref.payload == nullptr) {
         return;
       }
+      auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(pc.inputs().get("rawin"));
+      o2::header::Stack headerStack;
+      if (sectorHeader) {
+        o2::header::Stack actual{ *sectorHeader };
+        std::swap(headerStack, actual);
+      }
 
       std::vector<std::pair<const ClusterHardwareContainer*, std::size_t>> inputList = {
         { reinterpret_cast<const ClusterHardwareContainer*>(ref.payload), size / 8192 }
@@ -67,7 +74,7 @@ DataProcessorSpec getClusterDecoderRawSpec()
         totalSize += coll.getFlatSize() + sizeof(ClusterGroupHeader) - sizeof(ClusterGroupAttribute);
       }
 
-      auto* target = pc.outputs().newChunk(OutputRef{ "clout" }, totalSize).data;
+      auto* target = pc.outputs().newChunk(OutputRef{ "clout", 0, std::move(headerStack) }, totalSize).data;
 
       for (const auto& coll : cont) {
         ClusterGroupHeader groupHeader(coll, coll.clusters.size());
