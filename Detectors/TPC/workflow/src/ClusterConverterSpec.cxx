@@ -15,6 +15,7 @@
 
 #include "ClusterConverterSpec.h"
 #include "Headers/DataHeader.h"
+#include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/Cluster.h"
 #include "DataFormatsTPC/ClusterHardware.h"
 #include "DataFormatsTPC/Helpers.h"
@@ -45,6 +46,12 @@ DataProcessorSpec getClusterConverterSpec(bool sendMC)
     auto processingFct = [](ProcessingContext& pc) {
       // this will return a span of TPC clusters
       auto inClusters = pc.inputs().get<std::vector<o2::TPC::Cluster>>("clusterin");
+      auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(pc.inputs().get("clusterin"));
+      o2::header::Stack headerStack;
+      if (sectorHeader) {
+        o2::header::Stack actual{ *sectorHeader };
+        std::swap(headerStack, actual);
+      }
       int nClusters = inClusters.size();
       LOG(INFO) << "got clusters from input: " << nClusters;
 
@@ -73,7 +80,7 @@ DataProcessorSpec getClusterConverterSpec(bool sendMC)
         nPages += (m.numberOfClusters - 1) / maxClustersPerContainer + 1;
       }
       LOG(DEBUG) << "allocating " << nPages << " output page(s), " << nPages * sizeof(ClusterHardwareContainer8kb);
-      auto outputPages = pc.outputs().make<ClusterHardwareContainer8kb>(OutputRef{ "clusterout" }, nPages);
+      auto outputPages = pc.outputs().make<ClusterHardwareContainer8kb>(OutputRef{ "clusterout", 0, std::move(headerStack) }, nPages);
 
       auto containerMetricsIterator = containerMetrics.begin();
       auto outputPageIterator = outputPages.begin();
