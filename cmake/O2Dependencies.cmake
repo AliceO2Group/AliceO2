@@ -282,7 +282,6 @@ o2_define_bucket(
 o2_define_bucket(
     NAME
     InfoLogger_bucket
-
     DEPENDENCIES
     ${InfoLogger_LIBRARIES}
 
@@ -872,6 +871,39 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/simulation/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/ITS/include
+)
+
+o2_define_bucket(
+    NAME
+    its_tracking_bucket
+
+    DEPENDENCIES
+    data_format_its_bucket
+    #
+    DataFormatsITS
+    DetectorsBase
+    ITSBase
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/ITS/include
+)
+
+o2_define_bucket(
+    NAME
+    its_tracking_CUDA_bucket
+
+    DEPENDENCIES
+    #
+    cuda
+    cudart
+    cudadevrt
+    ITStracking
+
+    INCLUDE_DIRECTORIES
+    ${CUB_ROOT}
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/tracking/include
 )
 
 o2_define_bucket(

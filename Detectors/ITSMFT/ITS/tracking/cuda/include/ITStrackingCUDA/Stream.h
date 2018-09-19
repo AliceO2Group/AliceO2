@@ -7,16 +7,40 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \file Stream.h
+/// \brief
+///
 
-#ifdef __CLING__
+#ifndef TRAKINGITSU_INCLUDE_GPU_STREAM_H_
+#define TRAKINGITSU_INCLUDE_GPU_STREAM_H_
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "ITStracking/Definitions.h"
 
-//#pragma link C++ class o2::ITS::TrivialClustererTask+;
-#pragma link C++ class o2::ITS::ClustererTask+;
-#pragma link C++ class o2::ITS::CookedTrackerTask+;
-#pragma link C++ class o2::ITS::CookedTracker + ;
+namespace o2
+{
+namespace ITS
+{
+namespace GPU
+{
 
-#endif
+class Stream final
+{
+
+ public:
+  Stream();
+  ~Stream();
+
+  Stream(const Stream&) = delete;
+  Stream& operator=(const Stream&) = delete;
+
+  const GPUStream& get() const;
+
+ private:
+  GPUStream mStream;
+};
+}
+}
+}
+
+#endif /* TRAKINGITSU_INCLUDE_GPU_STREAM_H_ */
