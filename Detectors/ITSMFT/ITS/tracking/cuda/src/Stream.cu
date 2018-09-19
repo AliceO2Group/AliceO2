@@ -7,16 +7,37 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \file Stream.cu
+/// \brief
+///
 
-#ifdef __CLING__
+#include "ITStrackingCUDA/Stream.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include <cuda_runtime.h>
 
-//#pragma link C++ class o2::ITS::TrivialClustererTask+;
-#pragma link C++ class o2::ITS::ClustererTask+;
-#pragma link C++ class o2::ITS::CookedTrackerTask+;
-#pragma link C++ class o2::ITS::CookedTracker + ;
+namespace o2
+{
+namespace ITS
+{
+namespace GPU
+{
 
-#endif
+Stream::Stream()
+{
+  cudaStreamCreateWithFlags(&mStream, cudaStreamNonBlocking);
+}
+
+Stream::~Stream()
+{
+  cudaStreamDestroy(mStream);
+}
+
+const GPUStream& Stream::get() const
+{
+  return mStream;
+}
+
+}
+}
+}
