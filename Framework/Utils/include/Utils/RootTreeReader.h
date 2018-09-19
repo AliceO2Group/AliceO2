@@ -16,6 +16,7 @@
 /// @brief  A generic reader for ROOT TTrees
 
 #include "Framework/Output.h"
+#include "Headers/DataHeader.h"
 #include <TChain.h>
 #include <TTree.h>
 #include <TBranch.h>
@@ -136,11 +137,15 @@ class GenericRootTreeReader
     if ((mEntry + 1) >= mNEntries || mNEntries == 0) {
       // TODO: decide what to do, maybe different modes can be supported
       // e.g. loop or single shot mode
-      ++mEntry;
+      if (mEntry < mNEntries) {
+        ++mEntry;
+      }
       return false;
     }
     if (mMaxEntries > 0 && (mEntry + 1) >= mMaxEntries) {
-      ++mEntry;
+      if (mEntry < mNEntries) {
+        ++mEntry;
+      }
       return false;
     }
     mInput.GetEntry(++mEntry);
@@ -167,20 +172,19 @@ class GenericRootTreeReader
   ///
   /// Note: For future extension we probably get rid of the context and want to use
   /// o2::snapshot, can be easily adjusted by exchanging the lambda.
-  template <typename ContextType>
+  template <typename ContextType, typename... HeaderTypes>
   bool operator()(ContextType& context,
-                  std::function<void(const KeyType&, const ROOTSerializedByClass&)> snapshot = nullptr)
+                  HeaderTypes&&... headers) const
   {
-    if (!snapshot) {
-      snapshot = [&context](const KeyType& key, const ROOTSerializedByClass& object) {
-        context.outputs().snapshot(static_cast<Output>(key), object);
-      };
-    }
+    auto snapshot = [&context, &headers...](const KeyType& key, const ROOTSerializedByClass& object) {
+      o2::header::Stack stack{ std::forward<HeaderTypes>(headers)... };
+      context.outputs().snapshot(Output{ key.origin, key.description, key.subSpec, key.lifetime, std::move(stack) }, object);
+    };
 
     return process(snapshot);
   }
 
-  bool process(std::function<void(const KeyType&, const ROOTSerializedByClass&)> snapshot = nullptr)
+  bool process(std::function<void(const KeyType&, const ROOTSerializedByClass&)> snapshot) const
   {
     if (!snapshot) {
       return false;
@@ -198,6 +202,12 @@ class GenericRootTreeReader
       snapshot(spec.first, ROOTSerializedByClass(*spec.second->data, spec.second->classinfo));
     }
     return true;
+  }
+
+  /// return the number of published entries
+  int getCount() const
+  {
+    return mEntry + 1;
   }
 
  private:

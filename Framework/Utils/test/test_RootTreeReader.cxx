@@ -18,6 +18,7 @@
 #include "Framework/ControlService.h"
 #include "Utils/RootTreeReader.h"
 #include "Headers/DataHeader.h"
+#include "Headers/NameHeader.h"
 #include "../../Core/test/TestClasses.h"
 #include "FairMQLogger.h"
 #include <TSystem.h>
@@ -66,7 +67,17 @@ DataProcessorSpec getSourceSpec()
                                                    "dataarray" // name of cluster branch
                                                    );
 
-    auto processingFct = [reader](ProcessingContext& pc) { (++(*reader))(pc); };
+    auto processingFct = [reader](ProcessingContext& pc) {
+      if (reader->getCount() == 0) {
+        // add two additional headers on the stack in the first entry
+        o2::header::NameHeader<16> auxHeader("extended_info");
+        o2::header::DataHeader dummyheader;
+        (++(*reader))(pc, auxHeader, dummyheader);
+      } else {
+        // test signature without headers for the rest of the entries
+        (++(*reader))(pc);
+      }
+    };
 
     return processingFct;
   };
@@ -87,6 +98,17 @@ DataProcessorSpec getSinkSpec()
       LOG(INFO) << dh->dataOrigin.str << " " << dh->dataDescription.str << " " << dh->payloadSize;
     }
     auto data = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input");
+    if (counter == 0) {
+      // the first entry comes together with additional headers on the stack, test those ...
+      auto auxHeader = DataRefUtils::getHeader<o2::header::NameHeader<16>*>(pc.inputs().get("input"));
+      ASSERT_ERROR(auxHeader != nullptr);
+      if (auxHeader != nullptr) {
+        ASSERT_ERROR(std::string("extended_info") == auxHeader->getName());
+        o2::header::hexDump("", auxHeader, auxHeader->headerSize);
+        auto dummyheader = auxHeader->next();
+        ASSERT_ERROR(dummyheader != nullptr && dummyheader->size() == 80);
+      }
+    }
 
     LOG(INFO) << "count: " << counter << "  data elements:" << data.size();
     ASSERT_ERROR(counter + 1 == data.size());
