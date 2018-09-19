@@ -22,9 +22,9 @@
 
 #include "ITSBase/GeometryTGeo.h"
 
-#include "ITSReconstruction/CA/Event.h"
-#include "ITSReconstruction/CA/IOUtils.h"
-#include "ITSReconstruction/CA/Tracker.h"
+#include "ITStracking/Event.h"
+#include "ITStracking/IOUtils.h"
+#include "ITStracking/Tracker.h"
 
 #include "MathUtils/Utils.h"
 
