@@ -188,6 +188,22 @@ class Stack : public FairGenericStack
 
   void setExternalMode(bool m) { mIsExternalMode = m; }
 
+  /// Allow to query the **direct** mother track ID of an arbitrary trackID managed by stack
+  int getMotherTrackId(int /*trackid*/) const;
+
+  /// query if a track is a direct **or** indirect daughter of a parentID
+  /// if trackid is same as parentid it returns true
+  bool isTrackDaughterOf(int /*trackid*/, int /*parentid*/) const;
+
+  bool isCurrentTrackDaughterOf(int parentid) const;
+
+  // returns the index of the currently transported primary
+  int getCurrentPrimaryIndex() const;
+
+  // Fill container with all parent ids for current track
+  // The resulting ids will be in strictly monotonously decreasing order
+  void fillParentIDs(std::vector<int>& ids) const;
+
  private:
   /// STL stack (FILO) used to handle the TParticles for tracking
   /// stack entries refer to
@@ -198,6 +214,9 @@ class Stack : public FairGenericStack
   std::vector<o2::MCTrack> mParticles; //!
   std::vector<int> mTransportedIDs;    //! prim + sec trackIDs transported for "current" primary
   std::vector<int> mIndexOfPrimaries;  //! index of primaries in mParticles
+
+  std::vector<int> mTrackIDtoParticlesEntry; //! an O(1) mapping of trackID to the entry of mParticles
+                                             //! where this track is stored
 
   /// the current TParticle object
   TParticle mCurrentParticle;
@@ -255,7 +274,7 @@ class Stack : public FairGenericStack
   /// function called after each primary
   /// and all its secondaries where transported
   /// this allows applying selection criteria at a much finer granularity
-  /// than donw with FillTrackArray which is only called once per event
+  /// than done with FillTrackArray which is only called once per event
   void finishCurrentPrimary();
 
   /// Increment number of hits for an arbitrary track in a given detector
@@ -267,6 +286,25 @@ class Stack : public FairGenericStack
 };
 
 inline void Stack::addTrackReference(const o2::TrackReference& ref) { mTrackRefs->push_back(ref); }
+
+inline int Stack::getCurrentPrimaryIndex() const { return mPrimaryParticles.size() - 1 - mPrimariesDone; }
+
+inline int Stack::getMotherTrackId(int trackid) const
+{
+  const auto entryinParticles = mTrackIDtoParticlesEntry[trackid];
+  return mParticles[entryinParticles].getMotherTrackId();
+}
+
+inline bool Stack::isCurrentTrackDaughterOf(int parentid) const
+{
+  // if parentid is current primary the answer is certainly yes
+  if (parentid == getCurrentPrimaryIndex()) {
+    return true;
+  }
+
+  // otherwise ...
+  return isTrackDaughterOf(mIndexOfCurrentTrack, parentid);
+}
 }
 }
 
