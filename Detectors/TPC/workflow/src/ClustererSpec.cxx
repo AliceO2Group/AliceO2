@@ -89,8 +89,11 @@ DataProcessorSpec getClustererSpec(bool sendMC)
       clusterArray.clear();
       mctruthArray.clear();
       clusterer->process(inDigits, inMCLabels.get());
-      const std::vector<o2::TPC::Digit> emptyDigits;
-      clusterer->finishProcess(emptyDigits, nullptr);
+      // FIXME: not clear whether we need to call this and how
+      // currently it makes all clusters being removed in the Tracker
+      // maybe the problem is the empty digit array
+      //const std::vector<o2::TPC::Digit> emptyDigits;
+      //clusterer->finishProcess(emptyDigits, nullptr);
       if (verbosity > 0) {
         LOG(INFO) << "clusterer produced " << clusterArray.size() << " cluster container";
       }
