@@ -20,6 +20,7 @@
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "TPCReconstruction/TPCCATracking.h"
+#include "TPCBase/Sector.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "Algorithm/Parser.h"
@@ -38,26 +39,92 @@ namespace TPC
 
 DataProcessorSpec getCATrackerSpec()
 {
+  constexpr static size_t NSectors = o2::TPC::Sector::MAXSECTOR;
+  using ClusterGroupParser = o2::algorithm::ForwardParser<o2::TPC::ClusterGroupHeader>;
+  struct ProcessAttributes {
+    // the input comes in individual calls and we need to buffer until
+    // data set is complete, have to think about a DPL feature to take
+    // ownership of an input
+    std::array<std::vector<unsigned char>, NSectors> inputs;
+    std::bitset<NSectors> validInputs = 0;
+    std::unique_ptr<ClusterGroupParser> parser;
+    std::unique_ptr<o2::TPC::TPCCATracking> tracker;
+    int verbosity = 1;
+  };
+
   auto initFunction = [](InitContext& ic) {
     auto options = ic.options().get<std::string>("tracker-options");
 
-    using ClusterGroupParser = o2::algorithm::ForwardParser<o2::TPC::ClusterGroupHeader>;
-    auto parser = std::make_shared<ClusterGroupParser>();
-    auto tracker = std::make_shared<o2::TPC::TPCCATracking>();
-    tracker->initialize(options.c_str());
+    auto processAttributes = std::make_shared<ProcessAttributes>();
+    {
+      auto& parser = processAttributes->parser;
+      auto& tracker = processAttributes->tracker;
+      parser = std::make_unique<ClusterGroupParser>();
+      tracker = std::make_unique<o2::TPC::TPCCATracking>();
+      tracker->initialize(options.c_str());
+      processAttributes->validInputs.reset();
+    }
 
-    auto processingFct = [parser, tracker](ProcessingContext& pc) {
-      ClusterNativeAccessFullTPC clusterIndex;
-      memset(&clusterIndex, 0, sizeof(clusterIndex));
-      auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(pc.inputs().get("input"));
-      if (sectorHeader) {
-        std::cout << "received data for sector " << sectorHeader->sector << std::endl;
+    auto processingFct = [processAttributes](ProcessingContext& pc) {
+      auto& parser = processAttributes->parser;
+      auto& tracker = processAttributes->tracker;
+      auto& validInputs = processAttributes->validInputs;
+      auto& inputs = processAttributes->inputs;
+      uint64_t activeSectors = 0;
+      auto& verbosity = processAttributes->verbosity;
+
+      // we can later extend this to multiple inputs
+      std::vector<std::string> inputLabels = { "input" };
+      for (auto& inputLabel : inputLabels) {
+        auto ref = pc.inputs().get(inputLabel);
+        auto payploadSize = DataRefUtils::getPayloadSize(ref);
+        auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(ref);
+        if (sectorHeader == nullptr) {
+          // FIXME: think about error policy
+          LOG(ERROR) << "sector header missing on header stack";
+          return;
+        }
+        const int& sector = sectorHeader->sector;
+        if (sector < 0) {
+          // FIXME: this we have to sort out once the steering is implemented
+          continue;
+        }
+        if (validInputs.test(sector)) {
+          // have already data for this sector, this should not happen in the current
+          // sequential implementation, for parallel path merged at the tracker stage
+          // multiple buffers need to be handled
+          throw std::runtime_error("can only have one data set per sector");
+        }
+        inputs[sector].resize(payploadSize);
+        std::copy(ref.payload, ref.payload + payploadSize, inputs[sector].begin());
+        validInputs.set(sector);
+        activeSectors |= sectorHeader->activeSectors;
+        if (verbosity > 1) {
+          LOG(INFO) << "received " << *(ref.spec) << ", size " << inputs[sector].size() //
+                    << " for sector " << sector                                         //
+                    << std::endl                                                        //
+                    << "  input status:   " << validInputs                              //
+                    << std::endl                                                        //
+                    << "  active sectors: " << std::bitset<NSectors>(activeSectors);    //
+        }
       }
 
-      for (const auto& ref : pc.inputs()) {
-        auto size = o2::framework::DataRefUtils::getPayloadSize(ref);
-        LOG(INFO) << "  " << *(ref.spec) << ", size " << size;
-        parser->parse(ref.payload, size,
+      if (activeSectors == 0 || (activeSectors & validInputs.to_ulong()) != activeSectors) {
+        // not all sectors available
+        // FIXME: do we need to send something
+        return;
+      }
+      if (verbosity > 0) {
+        LOG(INFO) << "running tracking for sectors " << validInputs;
+      }
+      ClusterNativeAccessFullTPC clusterIndex;
+      memset(&clusterIndex, 0, sizeof(clusterIndex));
+      for (size_t index = 0; index < NSectors; index++) {
+        if (!validInputs.test(index)) {
+          continue;
+        }
+        const auto& input = inputs[index];
+        parser->parse(&input.front(), input.size(),
                       [](const typename ClusterGroupParser::HeaderType& h) {
                         // check the header, but in this case there is no validity check
                         return true;
