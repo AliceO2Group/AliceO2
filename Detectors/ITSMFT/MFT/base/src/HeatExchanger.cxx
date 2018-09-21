@@ -125,8 +125,7 @@ HeatExchanger::HeatExchanger(Double_t rWater, Double_t dRPipe, Double_t heatExch
 //_____________________________________________________________________________
 TGeoVolumeAssembly* HeatExchanger::create(Int_t half, Int_t disk)
 {
-
-  Info("Create", Form("Creating HeatExchanger_%d_%d", disk, half), 0, 0);
+  LOG(DEBUG) << "Create" << Form("Creating HeatExchanger_%d_%d", disk, half);
 
   mHalfDisk = new TGeoVolumeAssembly(Form("HeatExchanger_%d_%d", disk, half));
   switch (disk) {
@@ -147,7 +146,7 @@ TGeoVolumeAssembly* HeatExchanger::create(Int_t half, Int_t disk)
       break;
   }
 
-  Info("Create", Form("... done HeatExchanger_%d_%d", disk, half), 0, 0);
+  LOG(DEBUG) << "Create", Form("... done HeatExchanger_%d_%d", disk, half);
 
   return mHalfDisk;
 }
@@ -207,12 +206,13 @@ void HeatExchanger::createHalfDisk0(Int_t half)
 
   Int_t disk = 0;
 
-  if (half == Top)
-    printf("Creating MFT heat exchanger for disk0 top\n");
-  else if (half == Bottom)
-    printf("Creating MFT heat exchanger for disk0 bottom\n");
-  else
-    printf("No valid option for MFT heat exchanger on disk0\n");
+  if (half == Top) {
+    LOG(DEBUG) << "Creating MFT heat exchanger for disk0 top";
+  } else if (half == Bottom) {
+    LOG(DEBUG) << "Creating MFT heat exchanger for disk0 bottom";
+  } else {
+    LOG(DEBUG) << "No valid option for MFT heat exchanger on disk0";
+  }
 
   // mCarbon   = gGeoManager->GetMedium("MFT_Carbon$");
   mCarbon = gGeoManager->GetMedium("MFT_CarbonFiber$");
@@ -677,12 +677,13 @@ void HeatExchanger::createHalfDisk1(Int_t half)
 
   Int_t disk = 1;
 
-  if (half == Top)
-    printf("Creating MFT heat exchanger for disk1 top\n");
-  else if (half == Bottom)
-    printf("Creating MFT heat exchanger for disk1 bottom\n");
-  else
-    printf("No valid option for MFT heat exchanger on disk1\n");
+  if (half == Top) {
+    LOG(DEBUG) << "Creating MFT heat exchanger for disk1 top";
+  } else if (half == Bottom) {
+    LOG(DEBUG) << "Creating MFT heat exchanger for disk1 bottom";
+  } else {
+    LOG(DEBUG) << "No valid option for MFT heat exchanger on disk1";
+  }
 
   // mCarbon   = gGeoManager->GetMedium("MFT_Carbon$");
   mCarbon = gGeoManager->GetMedium("MFT_CarbonFiber$");
@@ -1142,12 +1143,13 @@ void HeatExchanger::createHalfDisk2(Int_t half)
 
   Int_t disk = 2;
 
-  if (half == Top)
-    printf("Creating MFT heat exchanger for disk2 top\n");
-  else if (half == Bottom)
-    printf("Creating MFT heat exchanger for disk2 bottom\n");
-  else
-    printf("No valid option for MFT heat exchanger on disk2\n");
+  if (half == Top) {
+    LOG(DEBUG) << "Creating MFT heat exchanger for disk2 top";
+  } else if (half == Bottom) {
+    LOG(DEBUG) << "Creating MFT heat exchanger for disk2 bottom";
+  } else {
+    LOG(DEBUG) << "No valid option for MFT heat exchanger on disk2";
+  }
 
   // mCarbon   = gGeoManager->GetMedium("MFT_Carbon$");
   mCarbon = gGeoManager->GetMedium("MFT_CarbonFiber$");
@@ -1609,12 +1611,13 @@ void HeatExchanger::createHalfDisk3(Int_t half)
 
   Int_t disk = 3;
 
-  if (half == Top)
-    printf("Creating MFT heat exchanger for disk3 top\n");
-  else if (half == Bottom)
-    printf("Creating MFT heat exchanger for disk3 bottom\n");
-  else
-    printf("No valid option for MFT heat exchanger on disk3\n");
+  if (half == Top) {
+    LOG(DEBUG) << "Creating MFT heat exchanger for disk3 top";
+  } else if (half == Bottom) {
+    LOG(DEBUG) << "Creating MFT heat exchanger for disk3 bottom";
+  } else {
+    LOG(DEBUG) << "No valid option for MFT heat exchanger on disk3";
+  }
 
   // mCarbon   = gGeoManager->GetMedium("MFT_Carbon$");
   mCarbon = gGeoManager->GetMedium("MFT_CarbonFiber$");
@@ -2108,12 +2111,13 @@ void HeatExchanger::createHalfDisk4(Int_t half)
 
   Int_t disk = 4;
 
-  if (half == Top)
-    printf("Creating MFT heat exchanger for disk4 top\n");
-  else if (half == Bottom)
-    printf("Creating MFT heat exchanger for disk4 bottom\n");
-  else
-    printf("No valid option for MFT heat exchanger on disk4\n");
+  if (half == Top) {
+    LOG(DEBUG) << "Creating MFT heat exchanger for disk4 top";
+  } else if (half == Bottom) {
+    LOG(DEBUG) << "Creating MFT heat exchanger for disk4 bottom";
+  } else {
+    LOG(DEBUG) << "No valid option for MFT heat exchanger on disk4";
+  }
 
   // mCarbon   = gGeoManager->GetMedium("MFT_Carbon$");
   mCarbon = gGeoManager->GetMedium("MFT_CarbonFiber$");

@@ -47,7 +47,7 @@ bool isActivated(std::string s)
   auto& modulelist = o2::conf::SimConfig::Instance().getActiveDetectors();
   auto active = std::find(modulelist.begin(), modulelist.end(), s) != modulelist.end();
   if (active) {
-    std::cout << "Activating " << s << " module \n";
+    LOG(INFO) << "Activating " << s << " module";
   }
   return active;
 }

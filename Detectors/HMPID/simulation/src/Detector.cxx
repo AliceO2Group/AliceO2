@@ -45,7 +45,7 @@ Detector::Detector(const Detector& other) : mSensitiveVolumes(other.mSensitiveVo
 void Detector::InitializeO2Detector()
 {
   for (auto sensitiveHpad : mSensitiveVolumes) {
-    LOG(INFO) << "HMPID: registering sensitive " << sensitiveHpad->GetName();
+    LOG(DEBUG) << "HMPID: registering sensitive " << sensitiveHpad->GetName();
     AddSensitiveVolume(sensitiveHpad);
   }
 }
