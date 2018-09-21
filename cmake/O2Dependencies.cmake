@@ -308,6 +308,21 @@ o2_define_bucket(
     O2Device
 )
 
+# module DataFormats/Headers
+o2_define_bucket(
+    NAME
+    data_format_headers_bucket
+
+    DEPENDENCIES
+    pmr_bucket
+    Boost::container
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/DataFormats/Headers/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/MemoryResources/include
+)
+
+# module DataFormats/Detectors/TPC
 o2_define_bucket(
     NAME
     data_format_TPC_bucket
@@ -476,6 +491,7 @@ if(FairLogger_FOUND)
   set(FairLogger_DEP FairLogger::FairLogger)
 endif()
 
+# module DataFormats/MemoryResources
 o2_define_bucket(
     NAME
     pmr_bucket
@@ -514,7 +530,6 @@ o2_define_bucket(
     common_boost_bucket
     Boost::thread
     Boost::serialization
-    Boost::container
     pthread
     MemoryResources
     ${FairLogger_DEP}

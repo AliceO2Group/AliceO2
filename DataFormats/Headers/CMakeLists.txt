@@ -20,7 +20,7 @@ set(HEADERS
 )
 
 set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME fairroot_base_bucket)
+set(BUCKET_NAME data_format_headers_bucket)
 
 O2_GENERATE_LIBRARY()
 
