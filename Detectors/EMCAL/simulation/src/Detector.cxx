@@ -56,7 +56,7 @@ Detector::Detector(Bool_t active)
 
   Geometry* geo = GetGeometry();
   if (!geo)
-    LOG(FATAL) << "Geometry is nullptr" << std::endl;
+    LOG(FATAL) << "Geometry is nullptr";
   std::string gn = geo->GetName();
   std::transform(gn.begin(), gn.end(), gn.begin(), ::toupper);
 
@@ -95,7 +95,7 @@ void Detector::InitializeO2Detector()
   if (vsense)
     AddSensitiveVolume(vsense);
   else
-    LOG(ERROR) << "EMCAL Sensitive volume SCMX not found ... No hit creation!\n";
+    LOG(ERROR) << "EMCAL Sensitive volume SCMX not found ... No hit creation!";
 }
 
 void Detector::EndOfEvent() { Reset(); }
@@ -103,11 +103,11 @@ void Detector::EndOfEvent() { Reset(); }
 void Detector::ConstructGeometry()
 {
   using boost::algorithm::contains;
-  LOG(DEBUG) << "Creating EMCAL geometry\n";
+  LOG(DEBUG) << "Creating EMCAL geometry";
 
   Geometry* geom = GetGeometry();
   if (!(geom->IsInitialized())) {
-    LOG(ERROR) << "ConstructGeometry: EMCAL Geometry class has not been set up.\n";
+    LOG(ERROR) << "ConstructGeometry: EMCAL Geometry class has not been set up.";
   }
 
   CreateMaterials();
@@ -118,7 +118,7 @@ void Detector::ConstructGeometry()
   CreateEmcalEnvelope();
 
   // COMPACT, TRD1
-  LOG(DEBUG2) << "Shish-Kebab geometry : " << GetTitle() << FairLogger::endl;
+  LOG(DEBUG2) << "Shish-Kebab geometry : " << GetTitle();
   CreateShiskebabGeometry();
 
   gGeoManager->CheckGeometry();
@@ -153,10 +153,10 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     offset = 18;
   }
   LOG(DEBUG3) << "Supermodule copy " << copySmod << ", module copy " << copyMod << ", y-dir " << copyPhi << ", x-dir "
-              << copyEta << ", supermodule ID " << copySmod + offset - 1 << std::endl;
-  LOG(DEBUG3) << "path " << fMC->CurrentVolPath() << std::endl;
+              << copyEta << ", supermodule ID " << copySmod + offset - 1;
+  LOG(DEBUG3) << "path " << fMC->CurrentVolPath();
   LOG(DEBUG3) << "Name of the supermodule type " << fMC->CurrentVolOffName(4) << ", Module name "
-              << fMC->CurrentVolOffName(3) << std::endl;
+              << fMC->CurrentVolOffName(3);
 
   Int_t partID = fMC->GetStack()->GetCurrentTrackNumber(),
         parent = fMC->GetStack()->GetCurrentTrack()->GetMother(0),
@@ -174,7 +174,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     // - Processing different track
     // - Inside different cell
     // - First track of the event
-    // std::cout << "New track / cell started\n";
+    // std::cout << "New track / cell started";
     Float_t posX, posY, posZ, momX, momY, momZ, energy;
     fMC->TrackPosition(posX, posY, posZ);
     fMC->TrackMomentum(momX, momY, momZ, energy);
@@ -188,7 +188,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     mCurrentCellID = detID;
 
   } else {
-    // std::cout << "Adding energy to the current hit\n";
+    // std::cout << "Adding energy to the current hit";
     mCurrentHit->SetEnergyLoss(mCurrentHit->GetEnergyLoss() + lightyield);
   }
 
@@ -200,7 +200,7 @@ Hit* Detector::AddHit(Int_t trackID, Int_t parentID, Int_t primary, Double_t ini
 {
   LOG(DEBUG4) << "Adding hit for track " << trackID << " (mother " << parentID << ") with position (" << pos.X() << ", "
               << pos.Y() << ", " << pos.Z() << ") and momentum (" << mom.X() << ", " << mom.Y() << ", " << mom.Z()
-              << ")  with energy " << initialEnergy << " loosing " << eLoss << std::endl;
+              << ")  with energy " << initialEnergy << " loosing " << eLoss;
   mHits->emplace_back(primary, trackID, parentID, detID, initialEnergy, pos, mom, time, eLoss);
   return &(mHits->back());
 }
@@ -235,7 +235,7 @@ void Detector::Register()
 
 void Detector::Reset()
 {
-  LOG(DEBUG) << "Cleaning EMCAL hits ...\n";
+  LOG(DEBUG) << "Cleaning EMCAL hits ...";
   mHits->clear();
   mCurrentTrackID = -1;
   mCurrentCellID = -1;
@@ -248,7 +248,7 @@ Geometry* Detector::GetGeometry()
     mGeometry = Geometry::GetInstanceFromRunNumber(223409);
   }
   if (!mGeometry)
-    LOG(ERROR) << "Failure accessing geometry" << std::endl;
+    LOG(ERROR) << "Failure accessing geometry";
   return mGeometry;
 }
 
@@ -295,8 +295,8 @@ void Detector::CreateEmcalEnvelope()
                                 10); // Polygone filled with air
 
     LOG(DEBUG2) << "ConstructGeometry: " << geom->GetNameOfEMCALEnvelope() << " = " << envelopA[5] << ", "
-                << envelopA[6] << FairLogger::endl;
-    LOG(DEBUG2) << "ConstructGeometry: XU0 = " << envelopA[5] << ", " << envelopA[6] << FairLogger::endl;
+                << envelopA[6];
+    LOG(DEBUG2) << "ConstructGeometry: XU0 = " << envelopA[5] << ", " << envelopA[6];
 
     // Position the EMCAL Mother Volume (XEN1) in Alice (ALIC)
     TVirtualMC::GetMC()->Gspos(geom->GetNameOfEMCALEnvelope(), 1, "cave", 0.0, 0.0, 0.0, rotMatrixID, "ONLY");
@@ -318,7 +318,7 @@ void Detector::CreateShiskebabGeometry()
   //  idAL = 1602;
   Double_t par[10], xpos = 0., ypos = 0., zpos = 0.;
 
-  LOG(DEBUG2) << "Name of mother volume: " << g->GetNameOfEMCALEnvelope() << FairLogger::endl;
+  LOG(DEBUG2) << "Name of mother volume: " << g->GetNameOfEMCALEnvelope();
   CreateSupermoduleGeometry(g->GetNameOfEMCALEnvelope());
 
   auto SMTypeList = g->GetEMCSystem();
@@ -340,7 +340,7 @@ void Detector::CreateShiskebabGeometry()
     else if (tmpType == DCAL_EXT)
       CreateEmcalModuleGeometry("DCEXT", "EMOD"); // Mar 13, 2012, DCAL extension SM
     else
-      LOG(ERROR) << "Unkown SM Type!!\n";
+      LOG(ERROR) << "Unkown SM Type!!";
   }
 
   // Sensitive SC  (2x2 tiles)
@@ -367,7 +367,7 @@ void Detector::CreateShiskebabGeometry()
 
   if (g->GetNPHIdiv() == 2 && g->GetNETAdiv() == 2) {
     // Division to tile size - 1-oct-04
-    LOG(DEBUG2) << " Divide SCM0 on y-axis " << g->GetNETAdiv() << FairLogger::endl;
+    LOG(DEBUG2) << " Divide SCM0 on y-axis " << g->GetNETAdiv();
     TVirtualMC::GetMC()->Gsdvn("SCMY", "SCM0", g->GetNETAdiv(), 2); // y-axis
 
     // Trapesoid 2x2
@@ -387,10 +387,10 @@ void Detector::CreateShiskebabGeometry()
     parTRAP[9] = parTRAP[8];      // TL2
     parTRAP[10] = 0.0;            // ALP2
 
-    LOG(DEBUG2) << " ** TRAP ** \n";
+    LOG(DEBUG2) << " ** TRAP ** ";
     for (Int_t i = 0; i < 11; i++)
       LOG(DEBUG3) << " par[" << std::setw(2) << std::setprecision(2) << i << "] " << std::setw(9)
-                  << std::setprecision(4) << parTRAP[i] << FairLogger::endl;
+                  << std::setprecision(4) << parTRAP[i];
 
     TVirtualMC::GetMC()->Gsvolu("SCMX", "TRAP", getMediumID(ID_SC), parTRAP, 11);
     xpos = +(parSCM0[1] + parSCM0[0]) / 4.;
@@ -415,17 +415,17 @@ void Detector::CreateShiskebabGeometry()
       TVirtualMC::GetMC()->Gsvolu("PBTI", "BOX", getMediumID(ID_PB), dummy, 0);
 
       zpos = -mSampleWidth * g->GetNECLayers() / 2. + g->GetECPbRadThick() / 2.;
-      LOG(DEBUG2) << " Pb tiles \n";
+      LOG(DEBUG2) << " Pb tiles ";
 
       for (Int_t iz = 0; iz < g->GetNECLayers(); iz++) {
         par[0] = (parSCM0[0] + tanBetta * mSampleWidth * iz) / 2.;
         xpos = par[0] - xCenterSCMX;
         TVirtualMC::GetMC()->Gsposp("PBTI", ++nr, "SCMX", xpos, ypos, zpos, 0, "ONLY", par, 3);
-        LOG(DEBUG3) << iz + 1 << " xpos " << xpos << " zpos " << zpos << " par[0] " << par[0] << FairLogger::endl;
+        LOG(DEBUG3) << iz + 1 << " xpos " << xpos << " zpos " << zpos << " par[0] " << par[0];
         zpos += mSampleWidth;
       }
 
-      LOG(DEBUG2) << " Number of Pb tiles in SCMX " << nr << FairLogger::endl;
+      LOG(DEBUG2) << " Number of Pb tiles in SCMX " << nr;
     } else {
       // Oct 26, 2010
       // First sheet of paper
@@ -558,7 +558,7 @@ void Detector::CreateSupermoduleGeometry(const std::string_view mother)
 
   //  ===== define Super Module from air - 14x30 module ==== ;
   LOG(DEBUG2) << "\n ## Super Module | fSampleWidth " << std::setw(5) << std::setprecision(3) << mSampleWidth << " ## "
-              << gn << FairLogger::endl;
+              << gn;
   par[0] = g->GetShellThickness() / 2.;               // radial
   par[1] = g->GetPhiModuleSize() * g->GetNPhi() / 2.; // phi
   par[2] = g->GetEtaModuleSize() * g->GetNEta() / 2.; // eta
@@ -569,7 +569,7 @@ void Detector::CreateSupermoduleGeometry(const std::string_view mother)
     dphi = g->GetPhiSuperModule();
     rpos = (g->GetEnvelop(0) + g->GetEnvelop(1)) / 2.;
     LOG(DEBUG2) << " rpos " << std::setw(8) << std::setprecision(2) << rpos << " : dphi " << std::setw(6)
-                << std::setprecision(1) << dphi << " degree \n";
+                << std::setprecision(1) << dphi << " degree ";
   }
 
   if (contains(gn, "WSUC")) {
@@ -582,7 +582,7 @@ void Detector::CreateSupermoduleGeometry(const std::string_view mother)
 
     LOG(DEBUG2) << "SMOD in WSUC : tmed " << getMediumID(ID_AIR) << " | dx " << std::setw(7) << std::setprecision(2)
                 << par[0] << " dy " << std::setw(7) << std::setprecision(2) << par[1] << " dz " << std::setw(7)
-                << std::setprecision(2) << par[2] << " (SMOD, BOX)\n";
+                << std::setprecision(2) << par[2] << " (SMOD, BOX)";
     mSmodPar0 = par[0];
     mSmodPar1 = par[1];
     mSmodPar2 = par[2];
@@ -594,12 +594,12 @@ void Detector::CreateSupermoduleGeometry(const std::string_view mother)
       LOG(DEBUG2) << " fIdRotm " << std::setw(3) << 0 << " phi " << std::setw(7) << std::setprecision(1) << phi << "("
                   << std::setw(5) << std::setprecision(3) << phiRad << ") xpos " << std::setw(7) << std::setprecision(2)
                   << xpos << " ypos " << std::setw(7) << std::setprecision(2) << ypos << " zpos " << std::setw(7)
-                  << std::setprecision(2) << zpos << FairLogger::endl;
+                  << std::setprecision(2) << zpos;
 
       nr++;
     }
   } else { // ALICE
-    LOG(DEBUG2) << " par[0] " << std::setw(7) << std::setprecision(2) << par[0] << " (old) \n";
+    LOG(DEBUG2) << " par[0] " << std::setw(7) << std::setprecision(2) << par[0] << " (old) ";
     for (Int_t i = 0; i < 3; i++)
       par[i] = g->GetSuperModulesPar(i);
     mSmodPar0 = par[0];
@@ -646,13 +646,13 @@ void Detector::CreateSupermoduleGeometry(const std::string_view mother)
         xpos += (2. * par[1] / 3. * TMath::Sin(phiRad));
         ypos -= (2. * par[1] / 3. * TMath::Cos(phiRad));
       } else
-        LOG(ERROR) << "Unkown SM Type!!\n";
+        LOG(ERROR) << "Unkown SM Type!!";
 
       if (SMOrder == 1) { // first time, create the SM
         TVirtualMC::GetMC()->Gsvolu(smName.Data(), "BOX", getMediumID(ID_AIR), parC, 3);
 
         LOG(DEBUG2) << R"( Super module with name \")" << smName << R"(\" was created in \"box\" with: par[0] = )"
-                    << parC[0] << ", par[1] = " << parC[1] << ", par[2] = " << parC[2] << FairLogger::endl;
+                    << parC[0] << ", par[1] = " << parC[1] << ", par[2] = " << parC[2];
       }
 
       if (smodnum % 2 == 1) {
@@ -671,11 +671,11 @@ void Detector::CreateSupermoduleGeometry(const std::string_view mother)
                   << " phi " << std::setw(6) << std::setprecision(1) << phi << "(" << std::setw(5)
                   << std::setprecision(3) << phiRad << ") xpos " << std::setw(7) << std::setprecision(2) << xpos
                   << " ypos " << std::setw(7) << std::setprecision(2) << ypos << " zpos " << std::setw(7)
-                  << std::setprecision(2) << zpos << " : i " << smodnum << FairLogger::endl;
+                  << std::setprecision(2) << zpos << " : i " << smodnum;
     }
   }
 
-  LOG(DEBUG2) << " Number of Super Modules " << nSMod << FairLogger::endl;
+  LOG(DEBUG2) << " Number of Super Modules " << nSMod;
 
   // Steel plate
   if (g->GetSteelFrontThickness() > 0.0) { // 28-mar-05
@@ -684,7 +684,7 @@ void Detector::CreateSupermoduleGeometry(const std::string_view mother)
 
     LOG(DEBUG1) << "tmed " << getMediumID(ID_STEEL) << " | dx " << std::setw(7) << std::setprecision(2) << par[0]
                 << " dy " << std::setw(7) << std::setprecision(2) << par[1] << " dz " << std::setw(7)
-                << std::setprecision(2) << par[2] << " (STPL) \n";
+                << std::setprecision(2) << par[2] << " (STPL) ";
 
     xpos = -(g->GetShellThickness() - g->GetSteelFrontThickness()) / 2.;
     TVirtualMC::GetMC()->Gspos("STPL", 1, "SMOD", xpos, 0.0, 0.0, 0, "ONLY");
@@ -726,7 +726,7 @@ void Detector::CreateEmcalModuleGeometry(const std::string_view mother, const st
       LOG(DEBUG4) << std::setw(2) << iz + 1 << " | angle | " << std::setw(6) << std::setprecision(3) << angle << " - "
                   << std::setw(6) << std::setprecision(3) << phiOK << " = " << std::setw(6) << std::setprecision(3)
                   << angle - phiOK << "(eta " << std::setw(5) << std::setprecision(3) << mod.GetEtaOfCenterOfModule()
-                  << ")\n";
+                  << ")";
       xpos = mod.GetPosXfromR() + g->GetSteelFrontThickness() - mSmodPar0;
       zpos = mod.GetPosZ() - mSmodPar2;
 
@@ -742,7 +742,7 @@ void Detector::CreateEmcalModuleGeometry(const std::string_view mother, const st
           continue; //!!!DCSM from 8th to 23th
         zpos = mod.GetPosZ() - mSmodPar2 - g->GetDCALInnerEdge() / 2.;
       } else if (mother.compare("SMOD"))
-        LOG(ERROR) << "Unknown super module Type!!\n";
+        LOG(ERROR) << "Unknown super module Type!!";
 
       for (auto iy : boost::irange(0, iyMax)) { // flat in phi
         ypos = g->GetPhiModuleSize() * (2 * iy + 1 - iyMax) / 2.;
@@ -750,7 +750,7 @@ void Detector::CreateEmcalModuleGeometry(const std::string_view mother, const st
 
         // printf(" %2i xpos %7.2f ypos %7.2f zpos %7.2f fIdRotm %i\n", nr, xpos, ypos, zpos, fIdRotm);
         LOG(DEBUG3) << std::setw(3) << std::setprecision(3) << nr << "(" << std::setw(2) << std::setprecision(2)
-                    << iy + 1 << "," << std::setw(2) << std::setprecision(2) << iz + 1 << ")\n";
+                    << iy + 1 << "," << std::setw(2) << std::setprecision(2) << iz + 1 << ")";
       }
       // PH          printf("\n");
     } else { // WSUC
@@ -764,7 +764,7 @@ void Detector::CreateEmcalModuleGeometry(const std::string_view mother, const st
       LOG(DEBUG4) << std::setw(2) << iz + 1 << " | angle -phiOK | " << std::setw(6) << std::setprecision(3) << angle
                   << " - " << std::setw(6) << std::setprecision(3) << phiOK << " = " << std::setw(6)
                   << std::setprecision(3) << angle - phiOK << "(eta " << std::setw(5) << std::setprecision(3)
-                  << mod.GetEtaOfCenterOfModule() << ")\n";
+                  << mod.GetEtaOfCenterOfModule() << ")";
 
       zpos = mod.GetPosZ() - mSmodPar2;
       ypos = mod.GetPosXfromR() - mSmodPar1;
@@ -776,11 +776,11 @@ void Detector::CreateEmcalModuleGeometry(const std::string_view mother, const st
         TVirtualMC::GetMC()->Gspos(child.data(), ++nr, mother.data(), xpos, ypos, zpos, rotMatrixID, "ONLY");
         // printf(" %7.2f ", xpos);
       }
-      // printf("\n");
+      // printf("");
     }
   }
 
-  LOG(DEBUG2) << " Number of modules in Super Module(" << mother << ") " << nr << FairLogger::endl;
+  LOG(DEBUG2) << " Number of modules in Super Module(" << mother << ") " << nr;
 }
 
 void Detector::CreateAlFrontPlate(const std::string_view mother, const std::string_view child)

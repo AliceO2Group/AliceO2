@@ -30,6 +30,8 @@ struct SimConfigData {
   float mBMax;                               // maximum for impact parameter sampling
   bool mIsMT;                                // chosen MT mode (Geant4 only)
   std::string mOutputPrefix;                 // prefix to be used for output files
+  std::string mLogSeverity;                  // severity for FairLogger
+  std::string mLogVerbosity;                 // loglevel for FairLogger
   ClassDefNV(SimConfigData, 1);
 };
 
@@ -80,6 +82,8 @@ class SimConfig
   float getBMax() const { return mConfigData.mBMax; }
   bool getIsMT() const { return mConfigData.mIsMT; }
   std::string getOutPrefix() const { return mConfigData.mOutputPrefix; }
+  std::string getLogVerbosity() const { return mConfigData.mLogVerbosity; }
+  std::string getLogSeverity() const { return mConfigData.mLogSeverity; }
 
  private:
   SimConfigData mConfigData; //!

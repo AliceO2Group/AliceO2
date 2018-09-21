@@ -22,6 +22,10 @@ int main(int argc, char* argv[])
     return 1;
   }
 
+  // customize the level of output
+  FairLogger::GetLogger()->SetLogScreenLevel(conf.getLogSeverity().c_str());
+  FairLogger::GetLogger()->SetLogVerbosityLevel(conf.getLogVerbosity().c_str());
+
   // call o2sim "macro"
   o2sim(false);
 

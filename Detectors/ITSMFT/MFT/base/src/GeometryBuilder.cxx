@@ -50,15 +50,15 @@ void GeometryBuilder::buildGeometry()
 
   TGeoVolume* volMFT = new TGeoVolumeAssembly(GeometryTGeo::getMFTVolPattern());
 
-  LOG(INFO) << "GeometryBuilder::buildGeometry volume name = " << GeometryTGeo::getMFTVolPattern() << FairLogger::endl;
+  LOG(INFO) << "GeometryBuilder::buildGeometry volume name = " << GeometryTGeo::getMFTVolPattern();
 
   TGeoVolume* vALIC = gGeoManager->GetVolume("cave");
   if (!vALIC) {
-    LOG(FATAL) << "Could not find the top volume" << FairLogger::endl;
+    LOG(FATAL) << "Could not find the top volume";
   }
 
-  Info("buildGeometry", Form("gGeoManager name is %s title is %s \n", gGeoManager->GetName(), gGeoManager->GetTitle()),
-       0, 0);
+  LOG(DEBUG) << "buildGeometry: "
+             << Form("gGeoManager name is %s title is %s", gGeoManager->GetName(), gGeoManager->GetTitle());
 
   Segmentation* seg = mftGeo->getSegmentation();
 

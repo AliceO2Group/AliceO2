@@ -35,7 +35,7 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
   auto genconfig = conf.getGenerator();
   if (genconfig.compare("boxgen") == 0) {
     // a simple "box" generator
-    std::cout << "Init box generator\n";
+    LOG(INFO) << "Init box generator";
     auto boxGen = new FairBoxGenerator(211, 10); /*protons*/
     boxGen->SetEtaRange(-0.9, 0.9);
     boxGen->SetPRange(0.1, 5);
@@ -44,7 +44,7 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     primGen->AddGenerator(boxGen);
   } else if (genconfig.compare("fwmugen") == 0) {
     // a simple "box" generator for forward muons
-    std::cout << "Init box forward muons generator\n";
+    LOG(INFO) << "Init box forward muons generator";
     auto boxGen = new FairBoxGenerator(13, 1); /* mu- */
     boxGen->SetEtaRange(-2.5, -4.0);
     boxGen->SetPRange(100.0, 100.0);
@@ -52,7 +52,7 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     primGen->AddGenerator(boxGen);
   } else if (genconfig.compare("fwpigen") == 0) {
     // a simple "box" generator for forward pions
-    std::cout << "Init box forward muons generator\n";
+    LOG(INFO) << "Init box forward muons generator";
     auto boxGen = new FairBoxGenerator(-211, 1); /* pi- */
     boxGen->SetEtaRange(-2.5, -4.0);
     boxGen->SetPRange(7.0, 7.0);
@@ -60,7 +60,7 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     primGen->AddGenerator(boxGen);
   } else if (genconfig.compare("fwrootino") == 0) {
     // a simple "box" generator for forward rootinos
-    std::cout << "Init box forward rootinos generator\n";
+    LOG(INFO) << "Init box forward rootinos generator";
     auto boxGen = new FairBoxGenerator(0, 1); /* mu- */
     boxGen->SetEtaRange(-2.5, -4.0);
     boxGen->SetPRange(1, 5);
@@ -73,7 +73,7 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     auto extGen = new o2::eventgen::GeneratorFromFile(conf.getExtKinematicsFileName().c_str());
     extGen->SetStartEvent(conf.getStartEvent());
     primGen->AddGenerator(extGen);
-    std::cout << "using external kinematics\n";
+    LOG(INFO) << "using external kinematics";
   } else if (genconfig.compare("pythia8") == 0) {
     // pythia8 pp
     // configures pythia for min.bias pp collisions at 14 TeV
@@ -105,7 +105,7 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     py8Gen->SetParameters("ParticleDecays:limitCylinder on");
     primGen->AddGenerator(py8Gen);
   } else {
-    LOG(FATAL) << "Invalid generator" << FairLogger::endl;
+    LOG(FATAL) << "Invalid generator";
   }
 }
 

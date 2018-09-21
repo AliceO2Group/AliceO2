@@ -63,8 +63,7 @@ Segmentation::~Segmentation()
 //_____________________________________________________________________________
 HalfSegmentation* Segmentation::getHalf(Int_t iHalf) const
 {
-
-  Info("GetHalf", Form("Ask for half %d (of %d and %d)", iHalf, Bottom, Top), 0, 0);
+  LOG(DEBUG) << Form("Ask for half %d (of %d and %d)", iHalf, Bottom, Top);
 
   return ((iHalf == Top || iHalf == Bottom) ? ((HalfSegmentation*)mHalves->At(iHalf)) : nullptr);
 }
@@ -74,11 +73,11 @@ HalfSegmentation* Segmentation::getHalf(Int_t iHalf) const
 //_____________________________________________________________________________
 void Segmentation::Clear(const Option_t* /*opt*/)
 {
-
-  if (mHalves)
+  if (mHalves) {
     mHalves->Delete();
-  delete mHalves;
-  mHalves = nullptr;
+    delete mHalves;
+    mHalves = nullptr;
+  }
 }
 
 /// Returns the local ID of the sensor on the entire disk specified
