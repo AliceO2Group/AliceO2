@@ -167,7 +167,9 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     lightyield = CalculateLightYield(eloss, fMC->TrackStep(), fMC->TrackCharge());
   lightyield /= geom->GetSampling();
 
-  if (partID != mCurrentTrackID || detID != mCurrentCellID || !mCurrentHit) {
+  auto o2stack = static_cast<o2::Data::Stack*>(fMC->GetStack());
+  const bool isDaughterOfSeenTrack = o2stack->isTrackDaughterOf(partID, mCurrentTrackID);
+  if (!isDaughterOfSeenTrack || detID != mCurrentCellID || !mCurrentHit) {
     // Condition for new hit:
     // - Processing different track
     // - Inside different cell
@@ -181,10 +183,10 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     /// check handling of primary particles
     mCurrentHit = AddHit(partID, parent, 0, estart, detID, Point3D<float>(posX, posY, posZ),
                          Vector3D<float>(momX, momY, momZ), time, lightyield);
-    static_cast<o2::Data::Stack*>(fMC->GetStack())->addHit(GetDetId());
+    o2stack->addHit(GetDetId());
     mCurrentTrackID = partID;
     mCurrentCellID = detID;
-    
+
   } else {
     // std::cout << "Adding energy to the current hit\n";
     mCurrentHit->SetEnergyLoss(mCurrentHit->GetEnergyLoss() + lightyield);
