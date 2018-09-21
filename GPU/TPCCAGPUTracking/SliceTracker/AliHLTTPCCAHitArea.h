@@ -33,7 +33,7 @@ class AliHLTTPCCAHitArea
      * look up the next hit in the requested area.
      * Sets h to the coordinates and returns the index for the hit data
      */
-    MEM_TEMPLATE() GPUd() int GetNext( register GPUconstant() const MEM_CONSTANT(AliHLTTPCCATracker) &tracker, const MEM_TYPE( AliHLTTPCCARow) &row,
+    MEM_TEMPLATE() GPUd() int GetNext(GPUconstant() const MEM_CONSTANT(AliHLTTPCCATracker) &tracker, const MEM_TYPE( AliHLTTPCCARow) &row,
                  GPUglobalref() const MEM_GLOBAL(AliHLTTPCCASliceData) &slice, AliHLTTPCCAHit *h );
 
     float Y() const { return fY; }
