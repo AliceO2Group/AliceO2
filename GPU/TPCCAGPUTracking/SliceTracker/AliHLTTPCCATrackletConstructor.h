@@ -81,7 +81,7 @@ public:
 #endif //HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 	};
 
-	MEM_CLASS_PRE2() GPUd() static void InitTracklet( register MEM_LG2(AliHLTTPCCATrackParam) &tParam );
+	MEM_CLASS_PRE2() GPUd() static void InitTracklet( MEM_LG2(AliHLTTPCCATrackParam) &tParam );
 
 	MEM_CLASS_PRE2() GPUd() static void UpdateTracklet
 		( int nBlocks, int nThreads, int iBlock, int iThread,
@@ -91,7 +91,7 @@ public:
 		( int nBlocks, int nThreads, int iBlock, int iThread,
 		  MEM_LOCAL(GPUsharedref() AliHLTTPCCASharedMemory) &s, AliHLTTPCCAThreadMemory &r, GPUconstant() MEM_LG2(AliHLTTPCCATracker) &tracker, MEM_LG3(AliHLTTPCCATrackParam) &tParam );
 
-	MEM_CLASS_PRE2() GPUd() static bool CheckCov(register MEM_LG2(AliHLTTPCCATrackParam) &tParam);
+	MEM_CLASS_PRE2() GPUd() static bool CheckCov( MEM_LG2(AliHLTTPCCATrackParam) &tParam );
 
 	GPUd() static void DoTracklet(GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker)& tracker, GPUsharedref() AliHLTTPCCATrackletConstructor::MEM_LOCAL(AliHLTTPCCASharedMemory)& sMem, AliHLTTPCCAThreadMemory& rMem);
 
