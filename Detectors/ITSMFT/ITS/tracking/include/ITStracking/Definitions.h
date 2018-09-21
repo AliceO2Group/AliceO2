@@ -28,7 +28,7 @@
 #endif
 #endif
 
-#if defined(TRACKINGITSU_CUDA_COMPILE)
+#if defined(ENABLE_CUDA)
 #define TRACKINGITSU_GPU_MODE true
 #else
 #define TRACKINGITSU_GPU_MODE false
