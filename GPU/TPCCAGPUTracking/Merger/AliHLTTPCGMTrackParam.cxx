@@ -205,7 +205,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
       
       if (rejectChi2) AttachClusters(merger, clusters[ihit].fSlice, clusters[ihit].fRow, iTrk, clusters[ihit].fLeg == clusters[maxN - 1].fLeg);
 
-      const int err2 = fNDF > 0 && CAMath::Abs(prop.GetSinPhi0())>=maxSinForUpdate;
+      const int err2 = fNDF > 0 && CAMath::Abs(prop.GetSinPhi0()) >= maxSinForUpdate;
       if ( err || err2 )
       {
         MarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, AliHLTTPCGMMergedTrackHit::flagNotFit);

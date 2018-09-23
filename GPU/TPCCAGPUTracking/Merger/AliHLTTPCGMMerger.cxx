@@ -691,12 +691,12 @@ void AliHLTTPCGMMerger::ResolveMergeSlices(bool fromOrig, bool mergeAll)
                 }
                 track1 = tmp;
             }
-            
+
             float z1min = track1->MinClusterZ(), z1max = track1->MaxClusterZ();
             float z2min = track2->MinClusterZ(), z2max = track2->MaxClusterZ();
             if (track1 != track1Base) {z1min = std::min(z1min, track1Base->MinClusterZ()); z1max = std::max(z1max, track1Base->MaxClusterZ());}
             if (track2 != track2Base) {z2min = std::min(z2min, track2Base->MinClusterZ()); z2max = std::max(z2max, track2Base->MaxClusterZ());}
-            
+
             bool goUp = z2max - z1min > z1max - z2min;
             if (track1->Neighbour(goUp) < 0 && track2->Neighbour(!goUp) < 0)
             {
@@ -773,7 +773,7 @@ void AliHLTTPCGMMerger::MergeCEInit()
 
 void AliHLTTPCGMMerger::MergeCEFill(const AliHLTTPCGMSliceTrack* track, const AliHLTTPCGMMergedTrackHit& cls, int itr)
 {
-#if defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE) && !defined(HLTCA_BUILD_O2_LIB)  
+#if defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE) && !defined(HLTCA_BUILD_O2_LIB)
   if (cls.fRow < MERGE_CE_ROWLIMIT || cls.fRow >= HLTCA_ROW_COUNT - MERGE_CE_ROWLIMIT) return;
   if (!fSliceParam.GetContinuousTracking() && fabs(cls.fZ) > 10) return;
   int slice = track->Slice();
@@ -836,15 +836,15 @@ void AliHLTTPCGMMerger::MergeCE()
             if (needswap)
             {
                 std::swap(trk[0], trk[1]);
-            }                
-            
+            }
+
             bool reverse[2] = {false, false};
             if (looper)
             {
                 reverse[0] = fabs(fClusters[trk[0]->FirstClusterRef()].fZ) > fabs(fClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].fZ);
                 reverse[1] = fabs(fClusters[trk[1]->FirstClusterRef()].fZ) < fabs(fClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].fZ);
             }
-            
+
             if (fSliceParam.GetContinuousTracking())
             {
                 const float z0min = std::min(fabs(fClusters[trk[0]->FirstClusterRef()].fZ), fabs(fClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].fZ));
@@ -854,7 +854,7 @@ void AliHLTTPCGMMerger::MergeCE()
                 trk[0]->Param().Z() += trk[0]->Param().ZOffset() - offset;
                 trk[0]->Param().ZOffset() = offset;
             }
-            
+
             int newRef = fNOutputTrackClusters;
             for (int k = 1;k >= 0;k--)
             {
@@ -873,27 +873,22 @@ void AliHLTTPCGMMerger::MergeCE()
 
 struct AliHLTTPCGMMerger_CompareClusterIdsLooper
 {
-  struct clcomparestruct {int i; float q;};
+  struct clcomparestruct {unsigned char leg;};
 
-  const float fQPt, fDzDs;
-  float fThresh;
+  const unsigned char fLeg;
+  const bool fOutwards;
   const AliHLTTPCCASliceOutCluster* const fCmp1;
   const clcomparestruct* const fCmp2;
-  AliHLTTPCGMMerger_CompareClusterIdsLooper(float q, float z, const AliHLTTPCCASliceOutCluster* cmp1, const clcomparestruct* cmp2) : fQPt(q), fDzDs(z), fThresh(fabs(0.1f * 3.14f * 666.f * z / q)), fCmp1(cmp1), fCmp2(cmp2)
-  {
-    if (fThresh < 1.) fThresh = 1.;
-    if (fThresh > 4.) fThresh = 4.;
-  }
+  AliHLTTPCGMMerger_CompareClusterIdsLooper(unsigned char leg, bool outwards, const AliHLTTPCCASliceOutCluster* cmp1, const clcomparestruct* cmp2) : fLeg(leg), fOutwards(outwards), fCmp1(cmp1), fCmp2(cmp2) {}
   bool operator()(const int aa, const int bb)
   {
     const clcomparestruct& a = fCmp2[aa];
     const clcomparestruct& b = fCmp2[bb];
     const AliHLTTPCCASliceOutCluster& a1 = fCmp1[aa];
     const AliHLTTPCCASliceOutCluster& b1 = fCmp1[bb];
-    float dz = a1.GetZ() - b1.GetZ();
-    if (a.q * b.q < 0) return(dz * fDzDs > 0);
-    if (fabs(dz) > fThresh) return(dz * fDzDs > 0);
-    return((a1.GetX() - b1.GetX()) * a.q * fQPt > 0);
+    if (a.leg != b.leg) return ((fLeg > 0) ^ (a.leg > b.leg));
+    if (a1.GetX() != b1.GetX()) return((a1.GetX() > b1.GetX()) ^ ((a.leg - fLeg) & 1) ^ fOutwards);
+    return false;
   }
 };
 
@@ -945,29 +940,31 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
   const int kMaxParts = 400;
   const int kMaxClusters = 1000;
 
-  const AliHLTTPCGMSliceTrack *trackParts[kMaxParts];
+  AliHLTTPCGMSliceTrack *trackParts[kMaxParts];
 
   for ( int itr = 0; itr < SliceTrackInfoLocalTotal(); itr++ ) {
 
       AliHLTTPCGMSliceTrack &track = fSliceTrackInfos[itr];
-      
+
       if ( track.PrevSegmentNeighbour() >= 0 ) continue;
       if ( track.PrevNeighbour() >= 0 ) continue;
       int nParts = 0;
       int nHits = 0;
-      bool looper = false;
-      float looperQPt = 0.f;
+      int leg = 0;
       AliHLTTPCGMSliceTrack *trbase = &track, *tr = &track;
       tr->SetPrevSegmentNeighbour(1000000000);
       do {
         if( nParts >= kMaxParts ) break;
         if (nHits + tr->NClusters() >= kMaxClusters) break;
         nHits += tr->NClusters();
-        
-        if (!looper && nParts && fabs(tr->QPt()) > 2 && tr->QPt() * looperQPt < 0) looper = true;
-        looperQPt = tr->QPt();
+
+        tr->SetLeg(leg);
         trackParts[nParts++] = tr;
-        for (int i = 0;i < 2;i++) if (tr->GlobalTrackId(i) != -1) trackParts[nParts++] = &fSliceTrackInfos[tr->GlobalTrackId(i)];
+        for (int i = 0;i < 2;i++) if (tr->GlobalTrackId(i) != -1)
+        {
+            trackParts[nParts] = &fSliceTrackInfos[tr->GlobalTrackId(i)];
+            trackParts[nParts++]->SetLeg(leg);
+        }
 
         int jtr = tr->NextSegmentNeighbour();
         if( jtr >= 0 ) {
@@ -981,22 +978,24 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
           tr = trbase;
           if( tr->PrevSegmentNeighbour() >= 0 ) break;
           tr->SetPrevSegmentNeighbour(1000000001);
+          leg++;
           continue;
         }
         break;
       } while(1);
 
+      //if (nParts == 1 || fabs(trackParts[0]->QPt()) > 0.1) continue;
+
       // unpack and sort clusters
-      
-      if (nParts > 1 && !looper)
+
+      if (nParts > 1 && leg == 0)
       {
         std::sort(trackParts, trackParts + nParts, AliHLTTPCGMMerger_CompareParts);
       }
-      
+
       AliHLTTPCCASliceOutCluster trackClusters[kMaxClusters];
       uchar2 clA[kMaxClusters];
       nHits = 0;
-      int yBase = 0;
       for( int ipart=0; ipart<nParts; ipart++ )
       {
         const AliHLTTPCGMSliceTrack *t = trackParts[ipart];
@@ -1004,18 +1003,17 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
         int nTrackHits = t->NClusters();
         const AliHLTTPCCASliceOutCluster *c= t->OrigTrack()->Clusters();
         AliHLTTPCCASliceOutCluster *c2 = trackClusters + nHits + nTrackHits-1;
-        if (ipart && t->Slice() != trackParts[ipart - 1]->Slice()) yBase += 2;
         for( int i=0; i<nTrackHits; i++, c++, c2-- )
         {
           *c2 = *c;
           clA[nHits].x = t->Slice();
-          clA[nHits++].y = yBase + (t->QPt() > 0);
+          clA[nHits++].y = t->Leg();
         }
       }
       if ( nHits < TRACKLET_SELECTOR_MIN_HITS(track.QPt()) ) continue;
 
-      int ordered = !looper;
-      if (!looper)
+      int ordered = leg == 0;
+      if (ordered)
       {
         for( int i=1; i<nHits; i++ )
         {
@@ -1040,25 +1038,36 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
             clAUnsorted[i] = clA[i];
             clusterIndices[i] = i;
         }
-        
-        if (looper)
+
+        if (leg > 0)
         {
             //Find QPt and DzDs for the segment closest to the vertex, if low/mid Pt
-            float baseQPt = trackParts[0]->QPt() > 0 ? 1.f : -1.0;
-            float baseZ = trackParts[0]->DzDs() > 0 ? 1.0 : -1.0;
-            if (fabs(trackParts[0]->QPt()) > 2)
+            float baseZ = 1e9;
+            unsigned char baseLeg = 0;
+            for (int i = 0;i < nParts;i++)
             {
-              float minZ = 1000.f;
-              for (int i = 0;i < nParts;i++)
+              if(trackParts[i]->Leg() == 0 || trackParts[i]->Leg() == leg)
               {
-                if (fabs(trackParts[i]->Z()) < minZ)
+                float z = std::min(fabs(trackParts[i]->OrigTrack()->Clusters()[0].GetZ()), fabs(trackParts[i]->OrigTrack()->Clusters()[trackParts[i]->OrigTrack()->NClusters() - 1].GetZ()));
+                if (z < baseZ)
                 {
-                  baseQPt = trackParts[i]->QPt();
-                  baseZ = trackParts[i]->DzDs();
-                  minZ = fabs(trackParts[i]->Z());
+                    baseZ = z;
+                    baseLeg = trackParts[i]->Leg();
                 }
               }
             }
+            int iLongest = 1e9;
+            int length = 0;
+            for (int i = baseLeg ? (nParts - 1) : 0;baseLeg ? (i >= 0) : (i < nParts);baseLeg ? i-- : i++)
+            {
+                if (trackParts[i]->Leg() != baseLeg) break;
+                if (trackParts[i]->OrigTrack()->NClusters() > length)
+                {
+                    iLongest = i;
+                    length = trackParts[i]->OrigTrack()->NClusters();
+                }
+            }
+            bool outwards = (trackParts[iLongest]->OrigTrack()->Clusters()[0].GetZ() > trackParts[iLongest]->OrigTrack()->Clusters()[trackParts[iLongest]->OrigTrack()->NClusters() - 1].GetZ()) ^ trackParts[iLongest]->CSide();
 
             AliHLTTPCGMMerger_CompareClusterIdsLooper::clcomparestruct clusterSort[kMaxClusters];
             for (int iPart = 0;iPart < nParts;iPart++)
@@ -1068,12 +1077,12 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
               for (int j = 0;j < nTrackHits;j++)
               {
                 int i = nTmpHits + j;
-                clusterSort[i].q = t->QPt();
+                clusterSort[i].leg = t->Leg();
               }
               nTmpHits += nTrackHits;
             }
-            
-            std::sort(clusterIndices, clusterIndices + nHits, AliHLTTPCGMMerger_CompareClusterIdsLooper(baseQPt, baseZ, trackClusters, clusterSort));
+
+            std::sort(clusterIndices, clusterIndices + nHits, AliHLTTPCGMMerger_CompareClusterIdsLooper(baseLeg, outwards, trackClusters, clusterSort));
         }
         else
         {
@@ -1101,7 +1110,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
         }
         nHits = nFilteredHits;
       }
-      
+
       AliHLTTPCGMMergedTrackHit *cl = fClusters + nOutTrackClusters;
       int* clid = fGlobalClusterIDs + nOutTrackClusters;
       for( int i=0; i<nHits; i++ )
@@ -1131,7 +1140,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 
       AliHLTTPCGMMergedTrack &mergedTrack = fOutputTracks[fNOutputTracks];
       mergedTrack.SetOK(1);
-      mergedTrack.SetLooper(looper);
+      mergedTrack.SetLooper(leg > 0);
       mergedTrack.SetNClusters( nHits );
       mergedTrack.SetFirstClusterRef( nOutTrackClusters );
       AliHLTTPCGMTrackParam &p1 = mergedTrack.Param();
@@ -1157,7 +1166,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
       p1.DzDs()  = p2.DzDs();
       p1.QPt()  = p2.QPt();
       mergedTrack.SetAlpha( p2.Alpha() );
-      
+
       //if (nParts > 1) printf("Merged %d: QPt %f %d parts %d hits\n", fNOutputTracks, p1.QPt(), nParts, nHits);
 
 #if defined(BUILD_QA) && defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE)
@@ -1197,8 +1206,8 @@ void AliHLTTPCGMMerger::PrepareClustersForFit()
   maxId++;
   unsigned char* sharedCount = new unsigned char[maxId];
   unsigned int* trackSort = new unsigned int[fNOutputTracks];
-  
-#if defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE) && !defined(HLTCA_BUILD_O2_LIB)  
+
+#if defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE) && !defined(HLTCA_BUILD_O2_LIB)
   if (fTrackOrder) delete[] fTrackOrder;
   if (fClusterAttachment) delete[] fClusterAttachment;
   fTrackOrder = new unsigned int[fNOutputTracks];
@@ -1210,7 +1219,7 @@ void AliHLTTPCGMMerger::PrepareClustersForFit()
   for (int i = 0;i < fNOutputTracks;i++) fTrackOrder[trackSort[i]] = i;
   for (int i = 0;i < fNOutputTrackClusters;i++) fClusterAttachment[fClusters[i].fNum] = attachAttached | attachGood;
 #endif
-  
+
   for (unsigned int k = 0;k < maxId;k++) sharedCount[k] = 0;
   for (int k = 0;k < fNOutputTrackClusters;k++)
   {
@@ -1263,7 +1272,9 @@ void AliHLTTPCGMMerger::Finalize()
       {
           int id = fClusters[trk.FirstClusterRef() + j].fNum;
           int weight = fTrackOrder[i] | attachAttached;
-          if (!(fClusters[trk.FirstClusterRef() + j].fState & AliHLTTPCGMMergedTrackHit::flagReject)) weight |= attachGood;
+          unsigned char clusterState = fClusters[trk.FirstClusterRef() + j].fState;
+          if (!(clusterState & AliHLTTPCGMMergedTrackHit::flagReject)) weight |= attachGood;
+          else if (clusterState & AliHLTTPCGMMergedTrackHit::flagNotFit) weight |= attachHighIncl;
           if (fClusters[trk.FirstClusterRef() + j].fLeg == goodLeg) weight |= attachGoodLeg;
           CAMath::AtomicMax(&fClusterAttachment[id], weight);
       }
