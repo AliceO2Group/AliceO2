@@ -69,7 +69,7 @@ public:
   int MaxId() const {return(fMaxID);}
   unsigned int* TrackOrder() const {return(fTrackOrder);}
   
-  enum attachTypes {attachAttached = 0x40000000, attachGood = 0x20000000, attachGoodLeg = 0x10000000, attachTube = 0x08000000, attachTrackMask = 0x07FFFFFF, attachFlagMask = 0xF8000000};
+  enum attachTypes {attachAttached = 0x40000000, attachGood = 0x20000000, attachGoodLeg = 0x10000000, attachTube = 0x08000000, attachHighIncl = 0x04000000, attachTrackMask = 0x03FFFFFF, attachFlagMask = 0xFC000000};
 
 private:
   AliHLTTPCGMMerger( const AliHLTTPCGMMerger& ) CON_DELETE;

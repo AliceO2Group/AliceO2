@@ -78,14 +78,16 @@ static TCanvas *cpull[7];
 static TPad* ppull[7][5];
 static TLegend* legendpull[6];
 
-#define N_CLS_HIST 6
+#define N_CLS_HIST 8
 #define N_CLS_TYPE 3
-static TH1F* clusters[N_CLS_TYPE * N_CLS_HIST - 1]; //attached, fakeAttached, attach+adjacent, fakeAdjacent, tracks, all / count, rel, integral
+enum CL_types {CL_attached = 0, CL_fake = 1, CL_att_adj = 2, CL_fakeAdj = 3, CL_tracks = 4, CL_physics = 5, CL_prot = 6, CL_all = 7};
+static TH1F* clusters[N_CLS_TYPE * N_CLS_HIST - 1]; //attached, fakeAttached, attach+adjacent, fakeAdjacent, physics, protected, tracks, all / count, rel, integral
 static TCanvas* cclust[N_CLS_TYPE];
 static TPad* pclust[N_CLS_TYPE];
 static TLegend* legendclust[N_CLS_TYPE];
 
-long long int recClustersPhysics = 0, recClustersRejected = 0,  recClustersTube = 0, recClustersTube200 = 0, recClustersLoopers = 0, recClustersLowPt = 0, recClustersUnattached = 0, recClusters200MeV = 0;
+long long int recClustersPhysics = 0, recClustersRejected = 0,  recClustersTube = 0, recClustersTube200 = 0, recClustersLoopers = 0, recClustersLowPt = 0, recClustersUnattached = 0, recClusters200MeV = 0,
+	recClustersUnaccessible = 0, recClustersHighIncl = 0, recClustersAbove400 = 0, recClustersFakeRemove400 = 0;
 
 TH1F* tracks;
 TCanvas* ctracks;
@@ -124,7 +126,7 @@ bool MCComp(const AliHLTTPCClusterMCWeight& a, const AliHLTTPCClusterMCWeight& b
 
 #define MC_LABEL_INVALID -1e9
 
-#define CLUST_HIST_INT_REL 1
+#define CLUST_HIST_INT_SUM 0
 
 static const int ColorCount = 12;
 static Color_t colorNums[ColorCount];
@@ -143,9 +145,9 @@ static const constexpr char* XAxisTitles[5] = {"y_{mc} (cm)", "z_{mc} (cm)", "#P
 static const constexpr char* AxisTitles[5] = {"y-y_{mc} (mm) (Resolution)", "z-z_{mc} (mm) (Resolution)", "#phi-#phi_{mc} (mrad) (Resolution)", "#lambda-#lambda_{mc} (mrad) (Resolution)", "(p_{T} - p_{Tmc}) / p_{Tmc} (%) (Resolution)"};
 static const constexpr char* AxisTitlesNative[5] = {"y-y_{mc} (mm) (Resolution)", "z-z_{mc} (mm) (Resolution)", "sin(#phi)-sin(#phi_{mc}) (Resolution)", "tan(#lambda)-tan(#lambda_{mc}) (Resolution)", "q*(q/p_{T} - q/p_{Tmc}) (Resolution)"};
 static const constexpr char* AxisTitlesPull[5] = {"y-y_{mc}/#sigma_{y} (Pull)", "z-z_{mc}/#sigma_{z} (Pull)", "sin(#phi)-sin(#phi_{mc})/#sigma_{sin(#phi)} (Pull)", "tan(#lambda)-tan(#lambda_{mc})/#sigma_{tan(#lambda)} (Pull)", "q*(q/p_{T} - q/p_{Tmc})/#sigma_{q/p_{T}} (Pull)"};
-static const constexpr char* ClustersNames[N_CLS_HIST] = {"Correctly attached clusters", "Fake attached clusters", "Attached + adjacent clusters", "Fake adjacent clusters", "Clusters of reconstructed tracks", "All clusters"};
+static const constexpr char* ClustersNames[N_CLS_HIST] = {"Correctly attached clusters", "Fake attached clusters", "Attached + adjacent clusters", "Fake adjacent clusters", "Clusters of reconstructed tracks", "Used in Physics", "Protected", "All clusters"};
 static const constexpr char* ClusterTitles[N_CLS_TYPE] = {"Clusters Pt Distribution / Attachment", "Clusters Pt Distribution / Attachment (relative to all clusters)", "Clusters Pt Distribution / Attachment (integrated)"};
-static const constexpr char* ClusterNamesShort[N_CLS_HIST] = {"Attached", "Fake", "AttachAdjacent", "FakeAdjacent", "FoundTracks", "All"};
+static const constexpr char* ClusterNamesShort[N_CLS_HIST] = {"Attached", "Fake", "AttachAdjacent", "FakeAdjacent", "FoundTracks", "Physics", "Protected", "All"};
 static const constexpr char* ClusterTypes[N_CLS_TYPE] = {"", "Ratio", "Integral"};
 static const constexpr int colorsHex[ColorCount] = {0xB03030, 0x00A000, 0x0000C0, 0x9400D3, 0x19BBBF, 0xF25900, 0x7F7F7F, 0xFFD700, 0x07F707, 0x07F7F7, 0xF08080, 0x000000};
 
@@ -197,7 +199,7 @@ static double* CreateLogAxis(int nbins, float xmin, float xmax)
 static void ChangePadTitleSize(TPad* p, float size)
 {
 	p->Update();
-	TPaveText *pt = (TPaveText*)(p->GetPrimitive("title")); 
+	TPaveText *pt = (TPaveText*)(p->GetPrimitive("title"));
 	if (pt == NULL)
 	{
 		printf("Error changing title\n");
@@ -205,7 +207,7 @@ static void ChangePadTitleSize(TPad* p, float size)
 	else
 	{
 		pt->SetTextSize(size);
-		p->Modified(); 
+		p->Modified();
 	}
 }
 
@@ -263,7 +265,7 @@ void InitQA()
 		TColor* c = new TColor(10000 + i, f1, f2, f3);
 		colorNums[i] = c->GetNumber();
 	}
-	
+
 	//Create Efficiency Histograms
 	for (int i = 0;i < 4;i++)
 	{
@@ -292,7 +294,7 @@ void InitQA()
 			}
 		}
 	}
-	
+
 	//Create Resolution Histograms
 	for (int i = 0;i < 5;i++)
 	{
@@ -360,7 +362,7 @@ void InitQA()
 			}
 		}
 	}
-	
+
 	//Create Cluster Histograms
 	for (int i = 0;i < N_CLS_TYPE * N_CLS_HIST - 1;i++)
 	{
@@ -375,16 +377,16 @@ void InitQA()
 		sprintf(name, "nclusters");
 		ncl = new TH1F(name, name, 160, 0, 159);
 	}
-	
+
 	//Create Tracks Histograms
 	{
 		sprintf(name, "tracks");
 		double* binsPt = CreateLogAxis(axis_bins[4], PT_MIN_CLUST, PT_MAX);
 		tracks = new TH1F(name, name, axis_bins[4], binsPt);
 	}
-	
+
 	mkdir("plots", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-	
+
 	if (config.matchMCLabels.size())
 	{
 		unsigned int nFiles = config.matchMCLabels.size();
@@ -402,7 +404,7 @@ void InitQA()
 				exit(1);
 			}
 		}
-		
+
 		goodTracks.resize(labelsBuffer[0]->size());
 		goodHits.resize(labelsBuffer[0]->size());
 		for (unsigned int iEvent = 0;iEvent < labelsBuffer[0]->size();iEvent++)
@@ -427,7 +429,7 @@ void InitQA()
 				goodTracks[iEvent][k] = labelsOK[abs((*labelsBuffer[0])[iEvent][k])];
 			}
 		}
-		
+
 		for (unsigned int i = 0;i < nFiles;i++)
 		{
 			delete files[i];
@@ -451,9 +453,9 @@ void RunQA(bool matchOnly)
 	clusterParam.resize(hlt.GetNMCLabels());
 	memset(clusterParam.data(), 0, clusterParam.size() * sizeof(clusterParam[0]));
 	totalFakes = 0;
-	structConfigQA& config = configStandalone.configQA;	
+	structConfigQA& config = configStandalone.configQA;
 	HighResTimer timer;
-	
+
 	nEvents++;
 	if (config.writeMCLabels)
 	{
@@ -464,7 +466,7 @@ void RunQA(bool matchOnly)
 	}
 	std::vector<int> &effBuffer = mcEffBuffer[nEvents - 1];
 	std::vector<int> &labelBuffer = mcLabelBuffer[nEvents - 1];
-	
+
 	if (hlt.GetNMCInfo() && hlt.GetNMCLabels())
 	{
 		//Assign Track MC Labels
@@ -504,7 +506,7 @@ void RunQA(bool matchOnly)
 				continue;
 			}
 			std::sort(labels.data(), labels.data() + labels.size(), MCComp);
-			
+
 			AliHLTTPCClusterMCWeight maxLabel;
 			AliHLTTPCClusterMCWeight cur = labels[0];
 			float sumweight = 0.f;
@@ -532,7 +534,7 @@ void RunQA(bool matchOnly)
 					curcount++;
 				}
 			}
-			
+
 			if (maxcount < config.recThreshold * nClusters) maxLabel.fMCID = -2 - maxLabel.fMCID;
 			trackMCLabels[i] = maxLabel.fMCID;
 			if (DEBUG && track.OK() && hlt.GetNMCInfo() > maxLabel.fMCID)
@@ -639,12 +641,12 @@ void RunQA(bool matchOnly)
 				}
 			}
 		}
-		
+
 		if (matchOnly) return;
-		
+
 		if (TIMING) printf("QA Time: Assign Track Labels:\t\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
 		timer.ResetStart();
-		
+
 		//Recompute fNWeightCls (might have changed after merging events into timeframes)
 		for (int i = 0;i < hlt.GetNMCInfo();i++) mcParam[i].nWeightCls = 0.;
 		for (int i = 0;i < hlt.GetNMCLabels();i++)
@@ -659,7 +661,7 @@ void RunQA(bool matchOnly)
 		}
 		if (TIMING) printf("QA Time: Compute cluster label weights:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
 		timer.ResetStart();
-		
+
 #pragma omp parallel for
 		for (int i = 0;i < hlt.GetNMCInfo();i++)
 		{
@@ -679,7 +681,7 @@ void RunQA(bool matchOnly)
 			}
 			if (config.writeMCLabels) effBuffer[i] = recTracks[i] * 1000 + fakeTracks[i];
 		}
-		
+
 		//Compute MC Track Parameters for MC Tracks
 		//Fill Efficiency Histograms
 		for (int i = 0;i < hlt.GetNMCInfo();i++)
@@ -699,36 +701,36 @@ void RunQA(bool matchOnly)
 			if (info.fCharge == 0.f) continue;
 			if (config.filterCharge && info.fCharge * config.filterCharge < 0) continue;
 			if (config.filterPID >= 0 && info.fPID != config.filterPID) continue;
-			
+
 			if (fabs(mceta) > ETA_MAX || mcpt < PT_MIN || mcpt > PT_MAX) continue;
-			
+
 			float alpha = std::atan2(info.fY, info.fX);
 			alpha /= kPi / 9.f;
 			alpha = std::floor(alpha);
 			alpha *= kPi / 9.f;
 			alpha += kPi / 18.f;
-			
+
 			float c = std::cos(alpha);
 			float s = std::sin(alpha);
 			float localY = -info.fX * s + info.fY * c;
-			
+
 			for (int j = 0;j < 4;j++)
 			{
 				for (int k = 0;k < 2;k++)
 				{
 					if (k == 0 && findable == 0) continue;
-					
+
 					int val = (j == 0) ? (recTracks[i] ? 1 : 0) :
 						(j == 1) ? (recTracks[i] ? recTracks[i] - 1 : 0) :
 						(j == 2) ? fakeTracks[i] :
 						1;
-					
+
 					for (int l = 0;l < 5;l++)
 					{
 						if (info.fPrim && mcpt < PT_MIN_PRIM) continue;
 						if (l != 3 && fabs(mceta) > ETA_MAX2) continue;
 						if (l < 4 && mcpt < 1.f / config.qpt) continue;
-						
+
 						float pos = l == 0 ? localY : l == 1 ? info.fZ : l == 2 ? mcphi : l == 3 ? mceta : mcpt;
 
 						eff[j][k][!info.fPrim][l][0]->Fill(pos, val);
@@ -745,7 +747,7 @@ void RunQA(bool matchOnly)
 		const float kRadLen = 29.532;//28.94;
 		prop.SetMaxSinPhi( .999 );
 		prop.SetMaterial( kRadLen, kRho );
-		prop.SetPolynomialField( merger.pField() );		
+		prop.SetPolynomialField( merger.pField() );
 		prop.SetToyMCEventsFlag( merger.SliceParam().ToyMCEventsFlag());
 
 		for (int i = 0; i < merger.NOutputTracks(); i++)
@@ -755,9 +757,9 @@ void RunQA(bool matchOnly)
 			const AliHLTTPCCAMCInfo& mc1 = hlt.GetMCInfo()[trackMCLabels[i]];
 			const additionalMCParameters& mc2 = mcParam[trackMCLabels[i]];
 			const AliHLTTPCGMMergedTrack& track = merger.OutputTracks()[i];
-			
+
 			if ((mcTrackMin != -1 && trackMCLabels[i] < mcTrackMin) || (mcTrackMax != -1 && trackMCLabels[i] >= mcTrackMax)) continue;
-			
+
 			if (!track.OK()) continue;
 			if (fabs(mc2.eta) > ETA_MAX || mc2.pt < PT_MIN || mc2.pt > PT_MAX) continue;
 			if (mc1.fCharge == 0.f) continue;
@@ -768,7 +770,7 @@ void RunQA(bool matchOnly)
 			if (config.resPrimaries == 1 && (!mc1.fPrim || mc1.fPrimDaughters)) continue;
 			else if (config.resPrimaries == 2 && (mc1.fPrim || mc1.fPrimDaughters)) continue;
 			if (trackMCLabelsReverse[trackMCLabels[i]] != i) continue;
-			
+
 			float mclocal[4]; //Rotated x,y,Px,Py mc-coordinates - the MC data should be rotated since the track is propagated best along x
 			float c = std::cos(track.GetAlpha());
 			float s = std::sin(track.GetAlpha());
@@ -780,23 +782,23 @@ void RunQA(bool matchOnly)
 			float py = mc1.fPy;
 			mclocal[2] = px*c + py*s;
 			mclocal[3] =-px*s + py*c;
-			
+
 			AliHLTTPCGMTrackParam param = track.GetParam();
-			
+
 			if (mclocal[0] < 80) continue;
 			if (mclocal[0] > param.GetX() + 20) continue;
 			if (param.GetX() > config.maxResX) continue;
 
-			float alpha = track.GetAlpha();		
-			prop.SetTrack(&param, alpha);	
+			float alpha = track.GetAlpha();
+			prop.SetTrack(&param, alpha);
 			bool inFlyDirection = 0;
 			if (config.strict && (param.X() - mclocal[0]) * (param.X() - mclocal[0]) + (param.Y() - mclocal[1]) * (param.Y() - mclocal[1]) + (param.Z() + param.ZOffset() - mc1.fZ) * (param.Z() + param.ZOffset() - mc1.fZ) > 25) continue;
-			
+
 			if (prop.PropagateToXAlpha( mclocal[0], alpha, inFlyDirection ) ) continue;
 			if (fabs(param.Y() - mclocal[1]) > (config.strict ? 1.f : 4.f) || fabs(param.Z() + param.ZOffset() - mc1.fZ) > (config.strict ? 1.f : 4.f)) continue;
-			
+
 			float charge = mc1.fCharge > 0 ? 1.f : -1.f;
-			
+
 			float deltaY = param.GetY() - mclocal[1];
 			float deltaZ = param.GetZ() + param.ZOffset() - mc1.fZ;
 			float deltaPhiNative = param.GetSinPhi() - mclocal[3] / mc2.pt;
@@ -805,11 +807,11 @@ void RunQA(bool matchOnly)
 			float deltaLambda = std::atan(param.GetDzDs()) - std::atan2(mc1.fPz, mc2.pt);
 			float deltaPtNative = (param.GetQPt() - charge / mc2.pt) * charge;
 			float deltaPt = (fabs(1.f / param.GetQPt()) - mc2.pt) / mc2.pt;
-			
+
 			float paramval[5] = {mclocal[1], mc1.fZ, mc2.phi, mc2.eta, mc2.pt};
 			float resval[5] = {deltaY, deltaZ, config.nativeFitResolutions ? deltaPhiNative : deltaPhi, config.nativeFitResolutions ? deltaLambdaNative : deltaLambda, config.nativeFitResolutions ? deltaPtNative : deltaPt};
 			float pullval[5] = {deltaY / std::sqrt(param.GetErr2Y()), deltaZ / std::sqrt(param.GetErr2Z()), deltaPhiNative / std::sqrt(param.GetErr2SinPhi()), deltaLambdaNative / std::sqrt(param.GetErr2DzDs()), deltaPtNative / std::sqrt(param.GetErr2QPt())};
-			
+
 			for (int j = 0;j < 5;j++)
 			{
 				for (int k = 0;k < 5;k++)
@@ -823,7 +825,7 @@ void RunQA(bool matchOnly)
 		}
 		if (TIMING) printf("QA Time: Fill resolution histograms:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
 		timer.ResetStart();
-		
+
 		//Fill cluster histograms
 		for (int iTrk = 0;iTrk < merger.NOutputTracks();iTrk++)
 		{
@@ -836,22 +838,34 @@ void RunQA(bool matchOnly)
 					if (merger.Clusters()[track.FirstClusterRef() + k].fState & AliHLTTPCGMMergedTrackHit::flagReject) continue;
 					int hitId = merger.Clusters()[track.FirstClusterRef() + k].fNum;
 					float totalWeight = 0.;
-					for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID >= 0) totalWeight += hlt.GetMCLabels()[hitId].fClusterID[j].fWeight;
-					float weight = 1.f / (totalWeight * (clusterParam[hitId].attached + clusterParam[hitId].fakeAttached));
+					for (int j = 0;j < 3;j++)
+					{
+						if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID >= 0 && mcParam[hlt.GetMCLabels()[hitId].fClusterID[j].fMCID].pt > MIN_TRACK_PT_DEFAULT) totalWeight += hlt.GetMCLabels()[hitId].fClusterID[j].fWeight;
+					}
 					if (totalWeight > 0)
 					{
+						float weight = 1.f / (totalWeight * (clusterParam[hitId].attached + clusterParam[hitId].fakeAttached));
 						for (int j = 0;j < 3;j++)
 						{
 							int label = hlt.GetMCLabels()[hitId].fClusterID[j].fMCID;
-							if (label >= 0)
+							if (label >= 0 && mcParam[label].pt > MIN_TRACK_PT_DEFAULT)
 							{
 								float pt = mcParam[label].pt;
 								if (pt < PT_MIN_CLUST) pt = PT_MIN_CLUST;
-								clusters[1]->Fill(pt, hlt.GetMCLabels()[hitId].fClusterID[j].fWeight * weight);
-								if (recTracks[label]) clusters[4]->Fill(pt, hlt.GetMCLabels()[hitId].fClusterID[j].fWeight * weight);
-								clusters[5]->Fill(pt, hlt.GetMCLabels()[hitId].fClusterID[j].fWeight * weight);
+								clusters[CL_fake]->Fill(pt, hlt.GetMCLabels()[hitId].fClusterID[j].fWeight * weight);
+								clusters[CL_att_adj]->Fill(pt, hlt.GetMCLabels()[hitId].fClusterID[j].fWeight * weight);
+								if (recTracks[label]) clusters[CL_tracks]->Fill(pt, hlt.GetMCLabels()[hitId].fClusterID[j].fWeight * weight);
+								clusters[CL_all]->Fill(pt, hlt.GetMCLabels()[hitId].fClusterID[j].fWeight * weight);
 							}
 						}
+					}
+					else
+					{
+						float weight = 1.f / (clusterParam[hitId].attached + clusterParam[hitId].fakeAttached);
+						clusters[CL_fake]->Fill(0.f, weight);
+						clusters[CL_att_adj]->Fill(0.f, weight);
+						clusters[CL_all]->Fill(0.f, weight);
+						recClustersUnaccessible++;
 					}
 				}
 				continue;
@@ -869,15 +883,15 @@ void RunQA(bool matchOnly)
 				for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID == label) {correct=true; break;}
 				if (correct)
 				{
-					clusters[0]->Fill(pt, weight);
-					clusters[2]->Fill(pt, weight);
-					clusters[4]->Fill(pt, weight);
+					clusters[CL_attached]->Fill(pt, weight);
+					clusters[CL_tracks]->Fill(pt, weight);
 				}
 				else
 				{
-					clusters[1]->Fill(pt, weight);
+					clusters[CL_fake]->Fill(pt, weight);
 				}
-				clusters[5]->Fill(pt, weight);
+				clusters[CL_att_adj]->Fill(pt, weight);
+				clusters[CL_all]->Fill(pt, weight);
 			}
 		}
 		for (int i = 0;i < hlt.GetNMCLabels();i++)
@@ -890,22 +904,33 @@ void RunQA(bool matchOnly)
 				if (trackMCLabels[label] == -1e9)
 				{
 					float totalWeight = 0.;
-					for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[i].fClusterID[j].fMCID >= 0) totalWeight += hlt.GetMCLabels()[i].fClusterID[j].fWeight;
-					float weight = 1.f / (totalWeight * (clusterParam[i].attached + clusterParam[i].fakeAttached));
+					for (int j = 0;j < 3;j++)
+					{
+						if (hlt.GetMCLabels()[i].fClusterID[j].fMCID >= 0 && mcParam[hlt.GetMCLabels()[i].fClusterID[j].fMCID].pt > MIN_TRACK_PT_DEFAULT) totalWeight += hlt.GetMCLabels()[i].fClusterID[j].fWeight;
+					}
+					float weight = 1.f / totalWeight;
 					if (totalWeight > 0)
 					{
 						for (int j = 0;j < 3;j++)
 						{
 							label = hlt.GetMCLabels()[i].fClusterID[j].fMCID;
-							if (label >= 0)
+							if (label >= 0 && mcParam[label].pt > MIN_TRACK_PT_DEFAULT)
 							{
 								float pt = mcParam[label].pt;
 								if (pt < PT_MIN_CLUST) pt = PT_MIN_CLUST;
-								if (recTracks[label]) clusters[4]->Fill(pt, hlt.GetMCLabels()[i].fClusterID[j].fWeight * weight);
-								clusters[3]->Fill(pt, hlt.GetMCLabels()[i].fClusterID[j].fWeight * weight);
-								clusters[5]->Fill(pt, hlt.GetMCLabels()[i].fClusterID[j].fWeight * weight);
+								if (recTracks[label]) clusters[CL_tracks]->Fill(pt, hlt.GetMCLabels()[i].fClusterID[j].fWeight * weight);
+								clusters[CL_att_adj]->Fill(pt, hlt.GetMCLabels()[i].fClusterID[j].fWeight * weight);
+								clusters[CL_fakeAdj]->Fill(pt, hlt.GetMCLabels()[i].fClusterID[j].fWeight * weight);
+								clusters[CL_all]->Fill(pt, hlt.GetMCLabels()[i].fClusterID[j].fWeight * weight);
 							}
 						}
+					}
+					else
+					{
+						clusters[CL_att_adj]->Fill(0.f, 1.f);
+						clusters[CL_fakeAdj]->Fill(0.f, 1.f);
+						clusters[CL_all]->Fill(0.f, 1.f);
+						recClustersUnaccessible++;
 					}
 				}
 				else
@@ -913,34 +938,45 @@ void RunQA(bool matchOnly)
 					label = trackMCLabels[label] < 0 ? (-trackMCLabels[label] - 2) : trackMCLabels[label];
 					float pt = mcParam[label].pt;
 					if (pt < PT_MIN_CLUST) pt = PT_MIN_CLUST;
-					clusters[2]->Fill(pt, 1.f);
-					clusters[4]->Fill(pt, 1.f);
-					clusters[5]->Fill(pt, 1.f);
+					clusters[CL_att_adj]->Fill(pt, 1.f);
+					clusters[CL_tracks]->Fill(pt, 1.f);
+					clusters[CL_all]->Fill(pt, 1.f);
 				}
 			}
 			else
 			{
 				float totalWeight = 0.;
-				for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[i].fClusterID[j].fMCID >= 0) totalWeight += hlt.GetMCLabels()[i].fClusterID[j].fWeight;
+				for (int j = 0;j < 3;j++)
+				{
+					if (hlt.GetMCLabels()[i].fClusterID[j].fMCID >= 0 && mcParam[hlt.GetMCLabels()[i].fClusterID[j].fMCID].pt > MIN_TRACK_PT_DEFAULT) totalWeight += hlt.GetMCLabels()[i].fClusterID[j].fWeight;
+				}
 				if (totalWeight > 0)
 				{
 					for (int j = 0;j < 3;j++)
 					{
 						int label = hlt.GetMCLabels()[i].fClusterID[j].fMCID;
-						if (label >= 0)
+						if (label >= 0 && mcParam[label].pt > MIN_TRACK_PT_DEFAULT)
 						{
 							float pt = mcParam[hlt.GetMCLabels()[i].fClusterID[j].fMCID].pt;
 							if (pt < PT_MIN_CLUST) pt = PT_MIN_CLUST;
 							float weight = hlt.GetMCLabels()[i].fClusterID[j].fWeight / totalWeight;
-							if (clusterParam[i].fakeAdjacent) clusters[3]->Fill(pt, weight);
-							if (recTracks[label]) clusters[4]->Fill(pt, weight);
-							clusters[5]->Fill(pt, weight);
+							if (clusterParam[i].fakeAdjacent) clusters[CL_fakeAdj]->Fill(pt, weight);
+							if (clusterParam[i].fakeAdjacent) clusters[CL_att_adj]->Fill(pt, weight);
+							if (recTracks[label]) clusters[CL_tracks]->Fill(pt, weight);
+							clusters[CL_all]->Fill(pt, weight);
 						}
 					}
 				}
+				else
+				{
+					if (clusterParam[i].fakeAdjacent) clusters[CL_fakeAdj]->Fill(0.f, 1.f);
+					if (clusterParam[i].fakeAdjacent) clusters[CL_att_adj]->Fill(0.f, 1.f);
+					clusters[CL_all]->Fill(0.f, 1.f);
+					recClustersUnaccessible++;
+				}
 			}
 		}
-		
+
 		if (TIMING) printf("QA Time: Fill cluster histograms:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
 		timer.ResetStart();
 	}
@@ -948,7 +984,7 @@ void RunQA(bool matchOnly)
 	{
 		printf("No MC information available, cannot run QA!\n");
 	}
-	
+
 	//Fill other histograms
 	for (int i = 0;i < merger.NOutputTracks(); i++)
 	{
@@ -957,38 +993,75 @@ void RunQA(bool matchOnly)
 		tracks->Fill(1.f / fabs(track.GetParam().GetQPt()));
 		ncl->Fill(track.NClustersFitted());
 	}
-	
+
 	for (int i = 0;i < merger.MaxId();i++)
 	{
 		int attach = merger.ClusterAttachment()[i];
 		bool unattached = attach == 0;
-		int id = attach & AliHLTTPCGMMerger::attachTrackMask;
+		float qpt = 0;
 		bool lowPt = false;
 		bool mev200 = false;
 		if (!unattached)
 		{
+			int id = attach & AliHLTTPCGMMerger::attachTrackMask;
 			const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[id];
-			lowPt = fabs(track.GetParam().GetQPt()) > 20;
-			mev200 = fabs(track.GetParam().GetQPt()) > 5;
+			qpt = fabs(track.GetParam().GetQPt());
+			lowPt = qpt > 20;
+			mev200 = qpt > 5;
 			if (mev200) recClusters200MeV++;
 		}
+		bool physics = false, protect = false;
 		if (unattached) recClustersUnattached++;
 		else if (lowPt) recClustersLowPt++;
 		else if ((attach & AliHLTTPCGMMerger::attachGoodLeg) == 0) recClustersLoopers++;
 		else if ((attach & AliHLTTPCGMMerger::attachTube) && mev200) recClustersTube200++;
-		else if (attach & AliHLTTPCGMMerger::attachTube) recClustersTube++;
-		else if ((attach & AliHLTTPCGMMerger::attachGood) == 0) recClustersRejected++;
-		else recClustersPhysics++;
+		else if (attach & AliHLTTPCGMMerger::attachHighIncl) recClustersHighIncl++;
+		else if (attach & AliHLTTPCGMMerger::attachTube) {protect = true; recClustersTube++;}
+		else if ((attach & AliHLTTPCGMMerger::attachGood) == 0) {protect = true; recClustersRejected++;}
+		else {physics = true; recClustersPhysics++;}
+
+		if (protect || physics) clusters[CL_prot]->Fill(1.f / qpt);
+		if (physics) clusters[CL_physics]->Fill(1.f / qpt);
+
+		float totalWeight = 0, weight400 = 0;
+		for (int j = 0;j < 3;j++)
+		{
+			auto& label = hlt.GetMCLabels()[i].fClusterID[j];
+			if (label.fMCID >= 0)
+			{
+				totalWeight += label.fWeight;
+				if (mcParam[label.fMCID].pt >= 0.4) weight400 += label.fWeight;
+			}
+		}
+		if (totalWeight > 0 && 10.f * weight400 >= totalWeight)
+		{
+			if (!unattached && !protect && !physics)
+			{
+				recClustersFakeRemove400++;
+				/*printf("Fake removal: Hit %d, attached %d lowPt %d looper %d tube200 %d highIncl %d tube %d bad %d ", i, (int) (clusterParam[i].attached || clusterParam[i].fakeAttached),
+					(int) lowPt, (int) ((attach & AliHLTTPCGMMerger::attachGoodLeg) == 0), (int) ((attach & AliHLTTPCGMMerger::attachTube) && mev200),
+					(int) ((attach & AliHLTTPCGMMerger::attachHighIncl) != 0), (int) ((attach & AliHLTTPCGMMerger::attachTube) != 0), (int) ((attach & AliHLTTPCGMMerger::attachGood) == 0));
+				for (int j = 0;j < 3;j++)
+				{
+					//if (hlt.GetMCLabels()[i].fClusterID[j].fMCID < 0) break;
+					printf(" - label %7d weight %5d", hlt.GetMCLabels()[i].fClusterID[j].fMCID, (int) hlt.GetMCLabels()[i].fClusterID[j].fWeight);
+					if (hlt.GetMCLabels()[i].fClusterID[j].fMCID >= 0) printf(" - pt %7.2f", mcParam[hlt.GetMCLabels()[i].fClusterID[j].fMCID].pt);
+					else printf("             ");
+				}
+				printf("\n");*/
+			}
+			recClustersAbove400++;
+		}
 	}
-	
+
 	if (TIMING) printf("QA Time: Others:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
-	
+
 	//Create CSV DumpTrackHits
 	if (config.csvDump)
 	{
 		int totalNCls = hlt.GetNMCLabels();
 		if (totalNCls == 0) for (int iSlice = 0; iSlice < 36; iSlice++) totalNCls += hlt.ClusterData(iSlice).NumberOfClusters();
-			
+
 		std::vector<float> clusterInfo(totalNCls);
 		memset(clusterInfo.data(), 0, clusterInfo.size() * sizeof(clusterInfo[0]));
 		for (int i = 0; i < merger.NOutputTracks(); i++)
@@ -1022,7 +1095,7 @@ void RunQA(bool matchOnly)
 					for (int j = 0;j < 3;j++)
 						if (hlt.GetMCLabels()[cid].fClusterID[j].fMCID >= 0)
 							totalWeight += hlt.GetMCLabels()[cid].fClusterID[j].fWeight;
-				
+
 				float maxPt = 0.;
 				float p = 0.;
 
@@ -1066,7 +1139,7 @@ void RunQA(bool matchOnly)
 			fclose(fp);
 		}
 		printf("Wrote %s, %d out of %lu clusters attached (%6.2f%%)\n", fname, clustersAttached, clusterInfo.size(), 100.f * clustersAttached / clusterInfo.size());
-	} 
+	}
 }
 
 void GetName(char* fname, int k)
@@ -1103,11 +1176,11 @@ template <class T> T* GetHist(T* &ee, std::vector<TFile*>& tin, int k, int nNewI
 int DrawQAHistograms()
 {
 	char name[1024], fname[1024];
-	
+
 	const structConfigQA& config = configStandalone.configQA;
 	const int nNewInput = config.inputHistogramsOnly ? 0 : 1;
 	const int ConfigNumInputs = nNewInput + config.compareInputs.size();
-	
+
 	std::vector<TFile*> tin(config.compareInputs.size());
 	for (unsigned int i = 0;i < config.compareInputs.size();i++)
 	{
@@ -1115,7 +1188,7 @@ int DrawQAHistograms()
 	}
 	TFile* tout = NULL;
 	if (config.output) tout = new TFile(config.output, "RECREATE");
-	
+
 	float legendSpacingString = 0.025;
 	for (int i = 0;i < ConfigNumInputs;i++)
 	{
@@ -1158,7 +1231,7 @@ int DrawQAHistograms()
 		pres[ii][2] = new TPad( "p4","",2./3.,dy*1,1.0,dy*2-.001); pres[ii][2]->Draw();pres[ii][2]->SetRightMargin(0.06);pres[ii][2]->SetLeftMargin(0.135);
 		if (ii < 6) {legendres[ii] = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float) ConfigNumInputs, 0.98, 0.949); SetLegend(legendres[ii]);}
 	}
-	
+
 	//Create Canvas / Pads for Pull Histograms
 	for (int ii = 0;ii < 7;ii++)
 	{
@@ -1185,7 +1258,7 @@ int DrawQAHistograms()
 		sprintf(fname, "cclust_%d", i);
 		cclust[i] = new TCanvas(fname,ClusterTitles[i],0,0,700,700.*2./3.); cclust[i]->cd();
 		pclust[i] = new TPad( "p0","",0.0,0.0,1.0,1.0); pclust[i]->Draw();
-		float y1 = i != 1 ? 0.8 : 0.48, y2 = i != 1 ? 0.9 : 0.58;
+		float y1 = i != 1 ? 0.77 : 0.27, y2 = i != 1 ? 0.9 : 0.42;
 		legendclust[i] = new TLegend(i == 2 ? 0.1 : (0.65 - legendSpacingString * 1.45), y2 - (y2 - y1) * (ConfigNumInputs + (i != 1) / 2.) + 0.005, i == 2 ? (0.3 + legendSpacingString * 1.45) : 0.9, y2);SetLegend(legendclust[i]);
 	}
 
@@ -1199,7 +1272,7 @@ int DrawQAHistograms()
 		pncl = new TPad( "p0","",0.0,0.0,1.0,1.0); pncl->Draw();
 		legendncl = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float) ConfigNumInputs, 0.98, 0.949); SetLegend(legendncl);
 	}
-	
+
 	if (!config.inputHistogramsOnly) printf("QA Stats: Eff: Tracks Prim %d (Eta %d, Pt %d) %f%% (%f%%) Sec %d (Eta %d, Pt %d) %f%% (%f%%) -  Res: Tracks %d (Eta %d, Pt %d)\n",
 		(int) eff[3][1][0][0][0]->GetEntries(), (int) eff[3][1][0][3][0]->GetEntries(), (int) eff[3][1][0][4][0]->GetEntries(),
 		eff[0][0][0][0][0]->GetSumOfWeights() / std::max(1., eff[3][0][0][0][0]->GetSumOfWeights()), eff[0][1][0][0][0]->GetSumOfWeights() / std::max(1., eff[3][1][0][0][0]->GetSumOfWeights()),
@@ -1207,7 +1280,7 @@ int DrawQAHistograms()
 		eff[0][0][1][0][0]->GetSumOfWeights() / std::max(1., eff[3][0][1][0][0]->GetSumOfWeights()), eff[0][1][1][0][0]->GetSumOfWeights() / std::max(1., eff[3][1][1][0][0]->GetSumOfWeights()),
 		(int) res2[0][0]->GetEntries(), (int) res2[0][3]->GetEntries(), (int) res2[0][4]->GetEntries()
 	);
-	
+
 	//Process / Draw Efficiency Histograms
 	for (int ii = 0;ii < 6;ii++)
 	{
@@ -1236,9 +1309,9 @@ int DrawQAHistograms()
 							eff[l][j / 2][j % 2][i][1]->Divide(eff[l][j / 2][j % 2][i][0], eff[3][j / 2][j % 2][i][1], 1, 1, "B");
 						}
 					}
-				
+
 					TH1F* e = eff[l][j / 2][j % 2][i][1];
-						
+
 					e->SetStats(kFALSE);
 					e->SetMaximum(1.02);
 					e->SetMinimum(-0.02);
@@ -1275,9 +1348,9 @@ int DrawQAHistograms()
 			}
 		}
 		legendeff[ii]->Draw();
-		
+
 		doPerfFigure(0.2, 0.295, 0.025);
-				
+
 		sprintf(fname, "plots/eff_vs_%s.pdf", VSParameterNames[ii]);
 		ceff[ii]->Print(fname);
 	}
@@ -1303,7 +1376,7 @@ int DrawQAHistograms()
 				{
 					TCanvas cfit;
 					cfit.cd();
-					
+
 					TAxis* axis = src->GetYaxis();
 					int nBins = axis->GetNbins();
 					int integ = 1;
@@ -1321,7 +1394,7 @@ int DrawQAHistograms()
 								proj->Rebin(res_axis_bins[rebin - 1]/res_axis_bins[rebin]);
 								rebin++;
 							}
-							
+
 							if (proj->GetEntries() < 20 || proj->GetRMS() < 0.00001)
 							{
 								dst[0]->SetBinContent(bin, proj->GetRMS());
@@ -1338,14 +1411,14 @@ int DrawQAHistograms()
 								{
 									proj->Fit("gaus", forceLogLike || k == 2 ? "sQl" : k ? "sQww" : "sQ");
 									TF1* fitFunc = proj->GetFunction("gaus");
-									
+
 									if (k && !forceLogLike)
 									{
 										customGaus->SetParameters(fitFunc->GetParameter(0), fitFunc->GetParameter(1), fitFunc->GetParameter(2));
 										proj->Fit(customGaus, "sQ");
 										fitFunc = customGaus;
 									}
-									
+
 									const float sigma = fabs(fitFunc->GetParameter(2));
 									dst[0]->SetBinContent(bin, sigma);
 									dst[1]->SetBinContent(bin, fitFunc->GetParameter(1));
@@ -1404,7 +1477,7 @@ int DrawQAHistograms()
 				int numColor = 0;
 				float tmpMax = -1000.;
 				float tmpMin = 1000.;
-				
+
 				for (int l = 0;l < 2;l++)
 				{
 					for (int k = 0;k < ConfigNumInputs;k++)
@@ -1420,7 +1493,7 @@ int DrawQAHistograms()
 						else if (ii == 5) e->GetXaxis()->SetRange(1, 0);
 						e->SetMinimum(-1111);
 						e->SetMaximum(-1111);
-						
+
 						if (e->GetMaximum() > tmpMax) tmpMax = e->GetMaximum();
 						if (e->GetMinimum() < tmpMin) tmpMin = e->GetMinimum();
 					}
@@ -1463,7 +1536,7 @@ int DrawQAHistograms()
 						e->GetYaxis()->SetTitle(p ? AxisTitlesPull[j] : config.nativeFitResolutions ? AxisTitlesNative[j] : AxisTitles[j]);
 						e->GetXaxis()->SetTitle(XAxisTitles[i]);
 						if (logPtMin > 0 && ii == 5) e->GetXaxis()->SetRangeUser(logPtMin, PT_MAX);
-						
+
 						if (j == 0) e->GetYaxis()->SetTitleOffset(1.5);
 						else if (j < 3) e->GetYaxis()->SetTitleOffset(1.4);
 						e->Draw(k || l ? "same" : "");
@@ -1481,7 +1554,7 @@ int DrawQAHistograms()
 				if (j == 4) ChangePadTitleSize(pad, 0.056);
 			}
 			leg->Draw();
-			
+
 			doPerfFigure(0.2, 0.295, 0.025);
 
 			sprintf(fname, p ? "plots/pull_vs_%s.pdf" : "plots/res_vs_%s.pdf", VSParameterNames[ii]);
@@ -1489,7 +1562,7 @@ int DrawQAHistograms()
 		}
 	}
 	delete customGaus;
-	
+
 	//Process Integral Resolution Histogreams
 	for (int p = 0;p < 2;p++)
 	{
@@ -1506,7 +1579,7 @@ int DrawQAHistograms()
 				e->GetEntries();
 				e->Fit("gaus","sQ");
 			}
-			
+
 			float tmpMax = 0;
 			for (int k = 0;k < ConfigNumInputs;k++)
 			{
@@ -1515,7 +1588,7 @@ int DrawQAHistograms()
 				e->SetMaximum(-1111);
 				if (e->GetMaximum() > tmpMax) tmpMax = e->GetMaximum();
 			}
-			
+
 			for (int k = 0;k < ConfigNumInputs;k++)
 			{
 				TH1D* e = hist;
@@ -1531,15 +1604,16 @@ int DrawQAHistograms()
 		can->Print(p ? "plots/pull_integral.pdf" : "plots/res_integral.pdf");
 		if (!config.inputHistogramsOnly) for (int i = 0;i < 5;i++) delete (p ? pullIntegral : resIntegral)[i];
 	}
-	
+
 	//Process Cluster Histograms
 	{
 		if (config.inputHistogramsOnly == 0)
 		{
 			for (int i = N_CLS_HIST;i < N_CLS_TYPE * N_CLS_HIST - 1;i++) clusters[i]->Sumw2(true);
 			double totalVal = 0;
-			if (!CLUST_HIST_INT_REL) for (int j = 0;j < clusters[N_CLS_HIST - 1]->GetXaxis()->GetNbins() + 2;j++) totalVal += clusters[N_CLS_HIST - 1]->GetBinContent(j);
+			if (!CLUST_HIST_INT_SUM) for (int j = 0;j < clusters[N_CLS_HIST - 1]->GetXaxis()->GetNbins() + 2;j++) totalVal += clusters[N_CLS_HIST - 1]->GetBinContent(j);
 			if (totalVal == 0.) totalVal = 1.;
+			unsigned long long int counts[N_CLS_HIST];
 			for (int i = 0;i < N_CLS_HIST;i++)
 			{
 				double val = 0;
@@ -1548,8 +1622,29 @@ int DrawQAHistograms()
 					val += clusters[i]->GetBinContent(j);
 					clusters[2 * N_CLS_HIST - 1 + i]->SetBinContent(j, val / totalVal);
 				}
+				counts[i] = val;
 			}
-			if (!CLUST_HIST_INT_REL)
+			recClustersRejected += recClustersHighIncl;
+			if (counts[N_CLS_HIST - 1])
+			{
+				for (int i = 0;i < N_CLS_HIST;i++) printf("\t%35s: %'12llu (%6.2f%%)\n", ClustersNames[i], counts[i], 100.f * counts[i] / counts[N_CLS_HIST - 1]);
+				printf("\t%35s: %'12llu (%6.2f%%)\n", "Unattached", counts[N_CLS_HIST - 1] - counts[2], 100.f * (counts[N_CLS_HIST - 1] - counts[2]) / counts[N_CLS_HIST - 1]);
+				printf("\t%35s: %'12llu (%6.2f%%)\n", "Removable", counts[2] - counts[6], 100.f * (counts[2] - counts[6]) / counts[N_CLS_HIST - 1]); //Attached + Adjacent (also fake) - protected
+				printf("\t%35s: %'12llu (%6.2f%%)\n", "Unaccessible", recClustersUnaccessible, 100.f * recClustersUnaccessible / counts[N_CLS_HIST - 1]); //No contribution from track >= 10 MeV, unattached or fake-attached/adjacent
+
+				printf("\t%35s: %'12llu (%6.2f%%)\n", "High Inclination Angle", recClustersHighIncl, 100.f * recClustersHighIncl / counts[N_CLS_HIST - 1]);
+				printf("\t%35s: %'12llu (%6.2f%%)\n", "Rejected", recClustersRejected, 100.f * recClustersRejected / counts[N_CLS_HIST - 1]);
+				printf("\t%35s: %'12llu (%6.2f%%)\n", "Tube (> 200 MeV)", recClustersTube, 100.f * recClustersTube / counts[N_CLS_HIST - 1]);
+				printf("\t%35s: %'12llu (%6.2f%%)\n", "Tube (< 200 MeV)", recClustersTube200, 100.f * recClustersTube200 / counts[N_CLS_HIST - 1]);
+				printf("\t%35s: %'12llu (%6.2f%%)\n", "Looping Legs", recClustersLoopers, 100.f * recClustersLoopers / counts[N_CLS_HIST - 1]);
+				printf("\t%35s: %'12llu (%6.2f%%)\n", "Low Pt < 50 MeV", recClustersLowPt, 100.f * recClustersLowPt / counts[N_CLS_HIST - 1]);
+				printf("\t%35s: %'12llu (%6.2f%%)\n", "Low Pt < 200 MeV", recClusters200MeV, 100.f * recClusters200MeV / counts[N_CLS_HIST - 1]);
+
+				printf("\t%35s: %'12llu (%6.2f%%)\n", "Tracks > 400 MeV", recClustersAbove400, 100.f * recClustersAbove400 / counts[N_CLS_HIST - 1]);
+				printf("\t%35s: %'12llu (%6.2f%%)\n", "Fake Removed (> 400 MeV)", recClustersFakeRemove400, 100.f * recClustersFakeRemove400 / std::max(recClustersAbove400, 1ll));
+			}
+
+			if (!CLUST_HIST_INT_SUM)
 			{
 				for (int i = 0;i < N_CLS_HIST;i++)
 				{
@@ -1557,7 +1652,7 @@ int DrawQAHistograms()
 					clusters[2 * N_CLS_HIST - 1 + i]->SetMinimum(-0.02);
 				}
 			}
-			
+
 			for (int i = 0;i < N_CLS_HIST - 1;i++)
 			{
 				clusters[N_CLS_HIST + i]->Divide(clusters[i], clusters[N_CLS_HIST - 1], 1, 1, "B");
@@ -1565,9 +1660,9 @@ int DrawQAHistograms()
 				clusters[N_CLS_HIST + i]->SetMaximum(1.02);
 			}
 		}
-		
+
 		float tmpMax[2] = {0, 0}, tmpMin[2] = {0, 0};
-		for (int l = 0;l <= CLUST_HIST_INT_REL;l++)
+		for (int l = 0;l <= CLUST_HIST_INT_SUM;l++)
 		{
 			for (int k = 0;k < ConfigNumInputs;k++)
 			{
@@ -1575,7 +1670,7 @@ int DrawQAHistograms()
 				if (GetHist(e, tin, k, nNewInput) == NULL) continue;
 				e->SetMinimum(-1111);
 				e->SetMaximum(-1111);
-				e->GetXaxis()->SetRange(2, axis_bins[4]);
+				if (l == 0) e->GetXaxis()->SetRange(2, axis_bins[4]);
 				if (e->GetMaximum() > tmpMax[l]) tmpMax[l] = e->GetMaximum();
 				if (e->GetMinimum() < tmpMin[l]) tmpMin[l] = e->GetMinimum();
 			}
@@ -1590,7 +1685,7 @@ int DrawQAHistograms()
 				}
 			}
 		}
-		
+
 		for (int i = 0;i < N_CLS_TYPE;i++)
 		{
 			pclust[i]->cd();
@@ -1600,13 +1695,13 @@ int DrawQAHistograms()
 			int numColor = 0;
 			for (int k = 0;k < ConfigNumInputs;k++)
 			{
-				for (int j = begin;j < end;j++)
+				for (int j = end -1;j >= begin;j--)
 				{
 					TH1F* e = clusters[j];
 					if (GetHist(e, tin, k, nNewInput) == NULL) continue;
 
 					e->SetTitle(ClusterTitles[i]);
-					e->GetYaxis()->SetTitle(i == 0 ? "Number of TPC clusters" : i == 1 ? "Fraction of TPC clusters" : "Fraction of TPC clusters (integrated)");
+					e->GetYaxis()->SetTitle(i == 0 ? "Number of TPC clusters" : i == 1 ? "Fraction of TPC clusters" : CLUST_HIST_INT_SUM ? "Total TPC clusters (integrated)" : "Fraction of TPC clusters (integrated)");
 					e->GetXaxis()->SetTitle("p_{Tmc} (GeV/#it{c})");
 					e->GetXaxis()->SetTitleOffset(1.1);
 					e->GetXaxis()->SetLabelOffset(-0.005);
@@ -1617,21 +1712,21 @@ int DrawQAHistograms()
 					e->SetLineColor(colorNums[numColor++ % ColorCount]);
 					e->SetLineStyle(ConfigDashedMarkers ? j + 1 : 1);
 					if (i == 0) e->GetXaxis()->SetRange(2, axis_bins[4]);
-					e->Draw(j == begin && k == 0 ? "" : "same");
+					e->Draw(j == end - 1 && k == 0 ? "" : "same");
 					GetName(fname, k);
 					sprintf(name, "%s%s", fname, ClustersNames[j - begin]);
 					legendclust[i]->AddEntry(e, name, "l");
 				}
 			}
 			legendclust[i]->Draw();
-			
+
 			doPerfFigure(i != 2 ? 0.37 : 0.6, 0.295, 0.030);
 
 			cclust[i]->cd();
 			cclust[i]->Print(i == 2 ? "plots/clusters_integral.pdf" : i == 1 ? "plots/clusters_relative.pdf" : "plots/clusters.pdf");
 		}
 	}
-	
+
 	//Process track histograms
 	{
 		float tmpMax = 0.;
@@ -1696,25 +1791,19 @@ int DrawQAHistograms()
 		cncl->cd();
 		cncl->Print("plots/nClusters.pdf");
 	}
-	
+
 	//Cluster rejection statistics
 	{
 		long long int clustersTotal = recClustersUnattached + recClustersLowPt + recClustersLoopers + recClustersTube200 + recClustersTube + recClustersRejected + recClustersPhysics;
 		if (clustersTotal > 0)
 		{
 			float fracPhysics = 100.f * recClustersPhysics / clustersTotal;
-			float fracRejected = 100.f * recClustersRejected / clustersTotal;
-			float fracTube = 100.f * recClustersTube / clustersTotal;
-			float fracTube200 = 100.f * recClustersTube200 / clustersTotal;
-			float fracLoopers = 100.f * recClustersLoopers / clustersTotal;
-			float fracLowPt = 100.f * recClustersLowPt / clustersTotal;
 			float fracUnattached = 100.f * recClustersUnattached / clustersTotal;
-			float frac200MeV = 100.f * recClusters200MeV / clustersTotal;
-			printf("Cluster statistics: Total %'lld - Physics %'lld (%1.2f%%) - Physics (not in fit) %'lld (%1.2f%%) - Tube: < 200 MeV %'lld (%1.2f%%), > 200 MeV %'lld (%1.2f%%) - Looping legs %'lld (%1.2f%%) - low Pt < 50 MeV %'lld (%1.2f%%) - Unattached %'lld (%1.2f%%)   -   < 200 MeV %'lld (%1.2f%%)\n",
-				clustersTotal, recClustersPhysics, fracPhysics, recClustersRejected, fracRejected, recClustersTube200, fracTube200, recClustersTube, fracTube, recClustersLoopers, fracLoopers, recClustersLowPt, fracLowPt, recClustersUnattached, fracUnattached, recClusters200MeV, frac200MeV);
+			printf("Cluster statistics: Total %'lld - Physics %'lld (%1.2f%%) - Unattached %'lld (%1.2f%%)\n",
+				clustersTotal, recClustersPhysics, fracPhysics, recClustersUnattached, fracUnattached);
 		}
 	}
-	
+
 	if (tout && !config.inputHistogramsOnly && config.writeMCLabels)
 	{
 		gInterpreter->GenerateDictionary("vector<vector<int>>","");
