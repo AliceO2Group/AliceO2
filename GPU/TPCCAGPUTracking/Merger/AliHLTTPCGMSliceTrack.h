@@ -45,6 +45,7 @@ class AliHLTTPCGMSliceTrack
   float DzDs()                       const { return fDzDs;   }
   float QPt()                        const { return fQPt;    }
   float ZOffset()                    const { return fZOffset;}
+  float Leg()                        const { return fLeg;    }
 
   int  LocalTrackId()             const { return fLocalTrackId; }
   void SetLocalTrackId( int v )         { fLocalTrackId = v; }
@@ -90,7 +91,7 @@ class AliHLTTPCGMSliceTrack
   void SetNeighbor( int v, int i )                   { fNeighbour[i]    = v;}
   void SetPrevSegmentNeighbour( int v )              { fSegmentNeighbour[0] = v;}
   void SetNextSegmentNeighbour( int v )              { fSegmentNeighbour[1] = v;}
-
+  void SetLeg (unsigned char v)                      { fLeg = v;}
 
   void CopyParamFrom( const AliHLTTPCGMSliceTrack &t ){
     fX=t.fX; fY=t.fY; fZ=t.fZ;
@@ -117,6 +118,7 @@ class AliHLTTPCGMSliceTrack
   int fSegmentNeighbour[2]; //
   int fLocalTrackId;	  // Corrected local track id in terms of GMSliceTracks array
   int fGlobalTrackIds[2]; // IDs of associated global tracks
+  unsigned char fLeg;     //Leg of this track segment
 };
 
 #endif
