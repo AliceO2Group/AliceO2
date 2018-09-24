@@ -22,7 +22,7 @@ namespace TPC
 
 /// create a processor spec
 /// read simulated TPC clusters from file and publish
-framework::DataProcessorSpec getCATrackerSpec();
+framework::DataProcessorSpec getCATrackerSpec(bool processMC = false);
 
 } // end namespace TPC
 } // end namespace o2

@@ -146,7 +146,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     };
   };
 
-  specs.emplace_back(o2::TPC::getClusterDecoderRawSpec());
+  specs.emplace_back(o2::TPC::getClusterDecoderRawSpec(propagateMC));
 
   auto createInputSpec = []() {
     o2::framework::Inputs inputs;
@@ -164,7 +164,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   };
 
   if (outputType == OutputType::Tracks) {
-    specs.emplace_back(o2::TPC::getCATrackerSpec());
+    specs.emplace_back(o2::TPC::getCATrackerSpec(propagateMC));
     specs.emplace_back(o2::TPC::getRootFileWriterSpec());
   } else if (outputType == OutputType::DecodedClusters) {
     specs.emplace_back(DataProcessorSpec{ "writer",
