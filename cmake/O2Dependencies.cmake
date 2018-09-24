@@ -22,25 +22,18 @@ find_package(ROOT 6.06.00 REQUIRED)
 find_package(Vc REQUIRED)
 find_package(Pythia8)
 find_package(Pythia6)
-if (ALICEO2_MODULAR_BUILD)
-  # Installed via CMake. Note: we work around hardcoded full paths in the CMake
-  # config files not being relocated properly by appending library paths.
-  guess_append_libpath(geant321 "${Geant3_DIR}")
-  find_package(Geant3 NO_MODULE)
-  guess_append_libpath(G4run "${Geant4_DIR}")
-  find_package(Geant4 NO_MODULE)
-  guess_append_libpath(geant4vmc "${GEANT4_VMC_DIR}")
-  find_package(Geant4VMC NO_MODULE)
-  guess_append_libpath(BaseVGM "${VGM_DIR}")
-  find_package(VGM NO_MODULE)
-else (ALICEO2_MODULAR_BUILD)
-  # For old versions of VMC packages (to be removed)
-  find_package(GEANT3)
-  find_package(GEANT4)
-  find_package(GEANT4DATA)
-  find_package(GEANT4VMC)
-  find_package(CLHEP)
-endif (ALICEO2_MODULAR_BUILD)
+
+# Installed via CMake. Note: we work around hardcoded full paths in the CMake
+# config files not being relocated properly by appending library paths.
+guess_append_libpath(geant321 "${Geant3_DIR}")
+find_package(Geant3 NO_MODULE)
+guess_append_libpath(G4run "${Geant4_DIR}")
+find_package(Geant4 NO_MODULE)
+guess_append_libpath(geant4vmc "${GEANT4_VMC_DIR}")
+find_package(Geant4VMC NO_MODULE)
+guess_append_libpath(BaseVGM "${VGM_DIR}")
+
+find_package(VGM NO_MODULE)
 find_package(CERNLIB)
 find_package(HEPMC)
 # FIXME: the way, iwyu is integrated now conflicts with the possibility to add
