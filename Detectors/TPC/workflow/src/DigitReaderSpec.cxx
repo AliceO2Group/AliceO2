@@ -14,6 +14,7 @@
 /// @brief  Processor spec for a reader of TPC data from ROOT file
 
 #include "DigitReaderSpec.h"
+#include "RangeTokenizer.h"
 #include "Headers/DataHeader.h"
 #include "Utils/RootTreeReader.h"
 #include "TPCBase/Sector.h"
@@ -34,7 +35,7 @@ DataProcessorSpec getDigitReaderSpec()
 {
   constexpr static size_t NSectors = o2::TPC::Sector::MAXSECTOR;
   struct ProcessAttributes {
-    std::vector<size_t> sectors;
+    std::vector<int> sectors;
     uint64_t activeSectors = 0;
     std::array<std::shared_ptr<RootTreeReader>, NSectors> readers;
   };
@@ -53,19 +54,27 @@ DataProcessorSpec getDigitReaderSpec()
       auto& activeSectors = processAttributes->activeSectors;
       auto& readers = processAttributes->readers;
 
-      // FIXME: read from options
-      sectors.resize(NSectors);
-      std::generate(sectors.begin(), sectors.end(), [counter = std::make_shared<int>(0)]() { return (*counter)++; });
+      sectors = std::move(o2::RangeTokenizer::tokenize<int>(ic.options().get<std::string>("tpc-sectors")));
       for (auto const& s : sectors) {
         // set the mask of active sectors
-        activeSectors |= 0x1 << s;
+        if (s >= NSectors) {
+          std::string message = std::string("invalid sector range specified, allowed 0-") + std::to_string(NSectors - 1);
+          // FIXME should probably be FATAL, but this doesn't seem to be handled in the DPL control flow
+          // at least the process is not marked dead in the DebugGUI
+          LOG(ERROR) << message;
+          throw std::invalid_argument(message);
+        }
+        activeSectors |= (uint64_t)0x1 << s;
       }
 
       // set up the tree interface
       // TODO: parallelism on sectors needs to be implemented as selector in the reader
       // the data is now in parallel branches, as first attempt use an array of readers
       constexpr auto persistency = Lifetime::Timeframe;
-      for (const auto& sector : sectors) {
+      for (size_t sector = 0; sector < NSectors; ++sector) {
+        if ((activeSectors & ((uint64_t)0x1 << sector)) == 0) {
+          continue;
+        }
         std::string clusterbranchname = clbrName + "_" + std::to_string(sector);
         std::string mcbranchname = mcbrName + "_" + std::to_string(sector);
         readers[sector] = std::make_shared<RootTreeReader>(treename.c_str(), // tree name
@@ -93,7 +102,7 @@ DataProcessorSpec getDigitReaderSpec()
       if (*index >= sectors.size()) {
         *index = 0;
       }
-      while (*index < sectors.size() && !readers[*index]) {
+      while (*index < sectors.size() && !readers[sectors[*index]]) {
         // probably more efficient to use a vector of valid readers instead of the fixed array with
         // possibly invalid entries
         ++(*index);
@@ -102,9 +111,10 @@ DataProcessorSpec getDigitReaderSpec()
         // there is no valid reader at all
         return;
       }
-      o2::TPC::TPCSectorHeader header{ *index };
+      auto sector = sectors[*index];
+      o2::TPC::TPCSectorHeader header{ sector };
       header.activeSectors = activeSectors;
-      auto& r = *(readers[*index].get());
+      auto& r = *(readers[sector].get());
 
       // increment the reader and invoke it for the processing context
       if (r.next()) {
@@ -112,7 +122,7 @@ DataProcessorSpec getDigitReaderSpec()
         r(pc, header);
       } else {
         // no more data, delete the reader
-        readers[*index].reset();
+        readers[sector].reset();
       }
 
       ++(*index);
@@ -133,6 +143,7 @@ DataProcessorSpec getDigitReaderSpec()
                               { "treename", VariantType::String, "o2sim", { "Name of the input tree" } },
                               { "digitbranch", VariantType::String, "TPCDigit", { "Digit branch" } },
                               { "mcbranch", VariantType::String, "TPCDigitMCTruth", { "MC info branch" } },
+                              { "tpc-sectors", VariantType::String, "0-35", { "TPC sector range, e.g. 5-7,8,9" } },
                               { "nevents", VariantType::Int, -1, { "number of events to run" } },
                             } };
 }
