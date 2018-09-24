@@ -201,15 +201,15 @@ DataProcessorSpec getClusterConverterSpec(bool sendMC)
     if (makeMcOutput) {
       OutputLabel label{ "mclblout" };
       // FIXME: define common data type specifiers
-      constexpr o2::header::DataDescription datadesc("CLUSTERMCLBL");
+      constexpr o2::header::DataDescription datadesc("CLUSTERHWMCLBL");
       outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
     }
     return std::move(outputSpecs);
   };
 
   return DataProcessorSpec{ "converter",
-                            { createInputSpecs(false) },
-                            { createOutputSpecs(false) },
+                            { createInputSpecs(sendMC) },
+                            { createOutputSpecs(sendMC) },
                             AlgorithmSpec(initFunction) };
 }
 } // end namespace TPC

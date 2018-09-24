@@ -25,6 +25,8 @@
 #include <FairMQLogger.h>
 #include <memory> // for make_shared
 #include <vector>
+#include <cassert>
+#include <iomanip>
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -78,25 +80,50 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       // input to the decoder is a vector of raw pages description ClusterHardwareContainer,
       // each specified as a pair of pointer to ClusterHardwareContainer and the number
       // of pages in that buffer
-      std::vector<std::pair<const ClusterHardwareContainer*, std::size_t>> inputList = {
-        { reinterpret_cast<const ClusterHardwareContainer*>(ref.payload), size / 8192 }
-      };
+      // FIXME: better description of the raw page
+      size_t nPages = size / 8192;
+      std::vector<std::pair<const ClusterHardwareContainer*, std::size_t>> inputList;
+
       // MC labels are received as one container of labels in the sequence matching clusters
       // in the raw pages
-      std::vector<MCLabelContainer> mcinList;
-      std::vector<MCLabelContainer>* mcinListPointer = nullptr;
+      std::vector<MCLabelContainer> mcinCopies;
+      std::unique_ptr<const MCLabelContainer> mcin;
       if (sendMC) {
-        auto mcin = pc.inputs().get<MCLabelContainer*>("mclblin");
-        // FIXME: the decoder takes vector of MCLabelContainers as input and the retreived
-        // input can not be moved because the input is const, so we have to copy
-        mcinList.emplace_back(*mcin.get());
-        mcinListPointer = &mcinList;
+        mcin = std::move(pc.inputs().get<MCLabelContainer*>("mclblin"));
+        mcinCopies.resize(nPages);
+        if (verbosity > 0) {
+          LOG(INFO) << "Decoder input: " << size << ", " << nPages << " pages, " << mcin->getIndexedSize() << " MC label sets";
+        }
       }
+
+      // FIXME: the decoder takes vector of MCLabelContainers as input and the retreived
+      // input can not be moved because the input is const, so we have to copy
+      // Furthermore, the current decoder implementation supports handling of MC labels
+      // only for single 8kb pages. So we have to add the raw pages individually and create
+      // MC label containers for the corresponding clusters.
+      size_t mcinPos = 0;
+      for (size_t page = 0; page < nPages; page++) {
+        inputList.emplace_back(reinterpret_cast<const ClusterHardwareContainer*>(ref.payload + page * 8192), 1);
+        const ClusterHardwareContainer& container = *(inputList.back().first);
+        if (verbosity > 0) {
+          LOG(INFO) << "Decoder input in page " << std::setw(2) << page << ": "     //
+                    << "CRU " << std::setw(3) << container.CRU << " "               //
+                    << std::setw(3) << container.numberOfClusters << " cluster(s)"; //
+        }
+        if (mcin) {
+          for (size_t mccopyPos = 0; mccopyPos < container.numberOfClusters; mccopyPos++, mcinPos++) {
+            for (auto const& label : mcin->getLabels(mcinPos)) {
+              mcinCopies[page].addElement(mccopyPos, label);
+            }
+          }
+        }
+      }
+      assert(!mcin || mcinPos == mcin->getIndexedSize());
       // output of the decoder is sorted in (sector,globalPadRow) coordinates, individual
       // containers are created for clusters and MC labels per (sector,globalPadRow) address
       std::vector<ClusterNativeContainer> cont;
       std::vector<MCLabelContainer> mcoutList;
-      decoder->decodeClusters(inputList, cont, mcinListPointer, &mcoutList);
+      decoder->decodeClusters(inputList, cont, (mcin ? &mcinCopies : nullptr), &mcoutList);
 
       // The output of clusters involves a copy to flatten the list of buffers and extend the
       // ClusterGroupAttribute struct containing sector and globalPadRow by the size of the collection.
@@ -143,7 +170,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
     };
     if (makeMcInput) {
       // FIXME: define common data type specifiers
-      constexpr o2::header::DataDescription datadesc("CLUSTERMCLBL");
+      constexpr o2::header::DataDescription datadesc("CLUSTERHWMCLBL");
       inputSpecs.emplace_back(InputSpec{ "mclblin", gDataOriginTPC, datadesc, 0, Lifetime::Timeframe });
     }
     return std::move(inputSpecs);
