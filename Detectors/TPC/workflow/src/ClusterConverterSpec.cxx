@@ -24,6 +24,8 @@
 #include <FairMQLogger.h>
 #include <memory> // for make_shared
 #include <vector>
+#include <map>
+#include <iomanip>
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -42,8 +44,9 @@ DataProcessorSpec getClusterConverterSpec(bool sendMC)
 {
   auto initFunction = [](InitContext& ic) {
     // there is nothing to init at the moment
+    auto verbosity = 0;
 
-    auto processingFct = [](ProcessingContext& pc) {
+    auto processingFct = [verbosity](ProcessingContext& pc) {
       // this will return a span of TPC clusters
       auto inClusters = pc.inputs().get<std::vector<o2::TPC::Cluster>>("clusterin");
       auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(pc.inputs().get("clusterin"));
@@ -55,48 +58,60 @@ DataProcessorSpec getClusterConverterSpec(bool sendMC)
       int nClusters = inClusters.size();
       LOG(INFO) << "got clusters from input: " << nClusters;
 
-      std::vector<ClusterHardwareContainer> containerMetrics;
+      std::map<uint16_t, ClusterHardwareContainer> containerMetrics;
       unsigned clusterIndex = 0;
       for (; clusterIndex < nClusters; clusterIndex++) {
         // clusters are supposed to be sorted in CRU number, start a new entry
         // for every new CRU, a map is needed if the clusters are not ordered
         auto inputcluster = inClusters[clusterIndex];
         uint16_t CRU = inputcluster.getCRU();
-        if (containerMetrics.size() == 0 || containerMetrics.back().CRU != CRU) {
-          containerMetrics.emplace_back(ClusterHardwareContainer{ 0, 0, 0, 0, 0, 0, 0, 0, 0xFFFFFFFF, 0, CRU });
+        if (containerMetrics.find(CRU) == containerMetrics.end()) {
+          if (verbosity > 0) {
+            LOG(INFO) << "Inserting cluster set for CRU " << CRU;
+          }
+          containerMetrics[CRU] = ClusterHardwareContainer{ 0, 0, 0, 0, 0, 0, 0, 0, 0xFFFFFFFF, 0, CRU };
         }
-        containerMetrics.back().numberOfClusters++;
-        if (inputcluster.getTimeMean() < containerMetrics.back().timeBinOffset) {
-          containerMetrics.back().timeBinOffset = inputcluster.getTimeMean();
+        containerMetrics[CRU].numberOfClusters++;
+        if (inputcluster.getTimeMean() < containerMetrics[CRU].timeBinOffset) {
+          containerMetrics[CRU].timeBinOffset = inputcluster.getTimeMean();
         }
       }
 
       ClusterHardwareContainer8kb clusterContainerMemory;
       auto maxClustersPerContainer = clusterContainerMemory.getMaxNumberOfClusters();
-      unsigned nPages = 0;
+      unsigned nTotalPages = 0;
       // at this point there is at least one cluster per record
       for (const auto& m : containerMetrics) {
-        LOG(DEBUG) << "CRU " << m.CRU << " " << m.numberOfClusters << " cluster(s)";
-        nPages += (m.numberOfClusters - 1) / maxClustersPerContainer + 1;
+        auto nPages = (m.second.numberOfClusters - 1) / maxClustersPerContainer + 1;
+        if (verbosity > 0) {
+          LOG(INFO) << "CRU " << std::setw(3) << m.first << " "                                //
+                    << std::setw(3) << m.second.numberOfClusters << " cluster(s)"              //
+                    << " in " << nPages << " page(s) of capacity " << maxClustersPerContainer; //
+        }
+        nTotalPages += nPages;
       }
-      LOG(DEBUG) << "allocating " << nPages << " output page(s), " << nPages * sizeof(ClusterHardwareContainer8kb);
-      auto outputPages = pc.outputs().make<ClusterHardwareContainer8kb>(OutputRef{ "clusterout", 0, std::move(headerStack) }, nPages);
+      if (verbosity > 0) {
+        LOG(INFO) << "allocating " << nTotalPages << " output page(s), " << nTotalPages * sizeof(ClusterHardwareContainer8kb);
+      }
+      auto outputPages = pc.outputs().make<ClusterHardwareContainer8kb>(OutputRef{ "clusterout", 0, std::move(headerStack) }, nTotalPages);
 
       auto containerMetricsIterator = containerMetrics.begin();
       auto outputPageIterator = outputPages.begin();
       clusterIndex = 0;
       while (clusterIndex < nClusters) {
-        LOG(DEBUG) << "processing CRU " << containerMetricsIterator->CRU;
-        while (containerMetricsIterator->numberOfClusters > 0) {
+        LOG(DEBUG) << "processing CRU " << containerMetricsIterator->second.CRU;
+        while (containerMetricsIterator->second.numberOfClusters > 0) {
           ClusterHardwareContainer* clusterContainer = outputPageIterator->getContainer();
-          *clusterContainer = *containerMetricsIterator;
+          *clusterContainer = containerMetricsIterator->second;
           if (clusterContainer->numberOfClusters > maxClustersPerContainer) {
             clusterContainer->numberOfClusters = maxClustersPerContainer;
           }
 
           // write clusters of the page
-          LOG(DEBUG) << "writing " << clusterContainer->numberOfClusters << " cluster(s) of CRU "
-                     << clusterContainer->CRU;
+          if (verbosity > 0) {
+            LOG(INFO) << "writing " << std::setw(3) << clusterContainer->numberOfClusters << " cluster(s) of CRU "
+                      << std::setw(3) << clusterContainer->CRU;
+          }
           for (unsigned int clusterInPage = 0; clusterInPage < clusterContainer->numberOfClusters; clusterInPage++) {
             const auto& inputCluster = inClusters[clusterIndex + clusterInPage];
             auto& outputCluster = clusterContainer->clusters[clusterInPage];
@@ -107,7 +122,7 @@ DataProcessorSpec getClusterConverterSpec(bool sendMC)
                                      inputCluster.getQ(), inputCluster.getRow(), 0);
           }
           clusterIndex += clusterContainer->numberOfClusters;
-          containerMetricsIterator->numberOfClusters -= clusterContainer->numberOfClusters;
+          containerMetricsIterator->second.numberOfClusters -= clusterContainer->numberOfClusters;
           ++outputPageIterator;
         }
         ++containerMetricsIterator;
