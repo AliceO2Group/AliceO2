@@ -21,7 +21,7 @@ namespace conf
 
 // configuration struct (which can be passed around)
 struct SimConfigData {
-  std::vector<std::string> mActiveDetectors; // list active detectord
+  std::vector<std::string> mActiveDetectors; // list of active detectors
   std::string mMCEngine;                     // chosen VMC engine
   std::string mGenerator;                    // chosen VMC generator
   unsigned int mNEvents;                     // number of events to be simulated
