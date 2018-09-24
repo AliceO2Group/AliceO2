@@ -10,4 +10,4 @@
 
 #include "DataFormatsTPC/TPCSectorHeader.h"
 
-constexpr o2::header::HeaderType o2::TPC::TPCSectorHeader::sHeaderType = "TPCSectH";
+constexpr o2::header::HeaderType o2::TPC::TPCSectorHeader::sHeaderType;
