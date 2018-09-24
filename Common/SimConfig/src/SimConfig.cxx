@@ -21,8 +21,8 @@ void SimConfig::initOptions(boost::program_options::options_description& options
   options.add_options()(
     "mcEngine,e", bpo::value<std::string>()->default_value("TGeant3"), "VMC backend to be used.")(
     "generator,g", bpo::value<std::string>()->default_value("boxgen"), "Event generator to be used.")(
-    "modules,m", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>({ "all" }), "all modules"),
-    "list of detectors")("nEvents,n", bpo::value<unsigned int>()->default_value(1), "number of events")(
+    "modules,m", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>({ "all" }), "all modules"), "list of detectors")(
+    "skipModules", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>({ "" }), ""), "list of detectors to skip (precendence over -m")("nEvents,n", bpo::value<unsigned int>()->default_value(1), "number of events")(
     "startEvent", bpo::value<unsigned int>()->default_value(0), "index of first event to be used (when applicable)")(
     "extKinFile", bpo::value<std::string>()->default_value("Kinematics.root"),
     "name of kinematics file for event generator from file (when applicable)")(
@@ -38,12 +38,23 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   using o2::detectors::DetID;
   mConfigData.mMCEngine = vm["mcEngine"].as<std::string>();
   mConfigData.mActiveDetectors = vm["modules"].as<std::vector<std::string>>();
-  if (mConfigData.mActiveDetectors.size() == 1 && mConfigData.mActiveDetectors[0] == "all") {
-    mConfigData.mActiveDetectors.clear();
+  auto& active = mConfigData.mActiveDetectors;
+  if (active.size() == 1 && active[0] == "all") {
+    active.clear();
     for (int d = DetID::First; d <= DetID::Last; ++d) {
-      mConfigData.mActiveDetectors.emplace_back(DetID::getName(d));
+      active.emplace_back(DetID::getName(d));
     }
   }
+  // now we take out detectors listed as skipped
+  auto& skipped = vm["skipModules"].as<std::vector<std::string>>();
+  for (auto& s : skipped) {
+    auto iter = std::find(active.begin(), active.end(), s);
+    if (iter != active.end()) {
+      // take it out
+      active.erase(iter);
+    }
+  }
+
   mConfigData.mGenerator = vm["generator"].as<std::string>();
   mConfigData.mNEvents = vm["nEvents"].as<unsigned int>();
   mConfigData.mExtKinFileName = vm["extKinFile"].as<std::string>();
