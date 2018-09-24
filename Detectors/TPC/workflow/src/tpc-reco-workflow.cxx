@@ -118,10 +118,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   if (inputType == InputType::Digits) {
     specs.emplace_back(o2::TPC::getDigitReaderSpec());
     specs.emplace_back(o2::TPC::getClustererSpec(propagateMC));
-    specs.emplace_back(o2::TPC::getClusterConverterSpec(false));
+    specs.emplace_back(o2::TPC::getClusterConverterSpec(propagateMC));
   } else if (inputType == InputType::Clusters) {
     specs.emplace_back(o2::TPC::getClusterReaderSpec(/*propagateMC*/));
-    specs.emplace_back(o2::TPC::getClusterConverterSpec(false));
+    specs.emplace_back(o2::TPC::getClusterConverterSpec(propagateMC));
   } else if (inputType == InputType::Raw) {
     throw std::runtime_error(std::string("input type 'raw' not yet implemented"));
   }
