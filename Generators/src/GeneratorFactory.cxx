@@ -66,6 +66,14 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     boxGen->SetPRange(1, 5);
     boxGen->SetPhiRange(0., 360.);
     primGen->AddGenerator(boxGen);
+  } else if (genconfig.compare("zdcgen") == 0) {
+    // a simple "box" generator for forward neutrons
+    LOG(INFO) << "Init box forward rootinos generator";
+    auto boxGen = new FairBoxGenerator(2212, 10); /* neutrons */
+    boxGen->SetEtaRange(8.0, 9999);
+    boxGen->SetPRange(1, 5);
+    boxGen->SetPhiRange(0., 360.);
+    primGen->AddGenerator(boxGen);
   } else if (genconfig.compare("extkin") == 0) {
     // external kinematics
     // needs precense of a kinematics file "Kinematics.root"

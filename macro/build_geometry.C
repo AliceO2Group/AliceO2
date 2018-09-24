@@ -31,6 +31,7 @@
 #include <FITSimulation/Detector.h>
 #include <HMPIDSimulation/Detector.h>
 #include <PHOSSimulation/Detector.h>
+#include <ZDCSimulation/Detector.h>
 #include <DetectorsPassive/Cave.h>
 #include <DetectorsPassive/FrameStructure.h>
 #include <SimConfig/SimConfig.h>
@@ -184,6 +185,11 @@ void build_geometry(FairRunSim* run = nullptr)
   if (isActivated("HMP")) {
     // HMP
     run->AddModule(new o2::hmpid::Detector(true));
+  }
+
+  if (isActivated("ZDC")) {
+    // ZDC
+    run->AddModule(new o2::zdc::Detector(true));
   }
 
   if (geomonly) {
