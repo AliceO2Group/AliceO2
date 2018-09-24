@@ -16,7 +16,7 @@ namespace o2
 namespace framework
 {
 
-constexpr o2::header::HeaderType DataProcessingHeader::sHeaderType = "DataFlow";
+constexpr o2::header::HeaderType DataProcessingHeader::sHeaderType;
 
 } // namespace framework
 } // namespace o2
