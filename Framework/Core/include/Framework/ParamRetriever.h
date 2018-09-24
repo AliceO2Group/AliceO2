@@ -30,6 +30,7 @@ public:
   virtual bool getBool(const char *name) const = 0;
   virtual std::string getString(const char *name) const = 0;
   virtual std::vector<std::string> getVString(const char *name) const = 0;
+  virtual ~ParamRetriever() = default;
 };
 
 } // namespace framework
