@@ -26,6 +26,8 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
+#pragma link C++ class o2::eventgen::Generator + ;
+#pragma link C++ class o2::eventgen::GeneratorTGenerator + ;
 #pragma link C++ class  o2::eventgen::Pythia6Generator+;
 #pragma link C++ class  o2::eventgen::Pythia8Generator+;
 #pragma link C++ class  o2::eventgen::GeneratorFromFile+;

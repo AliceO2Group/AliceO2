@@ -26,6 +26,8 @@ struct SimConfigData {
   std::string mGenerator;                    // chosen VMC generator
   unsigned int mNEvents;                     // number of events to be simulated
   std::string mExtKinFileName;               // file name of external kinematics file (needed for ext kinematics generator)
+  std::string mExtGenFileName;               // file name containing the external generator configuration
+  std::string mExtGenFuncName;               // function call to retrieve the external generator configuration
   unsigned int mStartEvent;                  // index of first event to be taken
   float mBMax;                               // maximum for impact parameter sampling
   bool mIsMT;                                // chosen MT mode (Geant4 only)
@@ -82,6 +84,8 @@ class SimConfig
   unsigned int getNEvents() const { return mConfigData.mNEvents; }
 
   std::string getExtKinematicsFileName() const { return mConfigData.mExtKinFileName; }
+  std::string getExtGeneratorFileName() const { return mConfigData.mExtGenFileName; }
+  std::string getExtGeneratorFuncName() const { return mConfigData.mExtGenFuncName; }
   unsigned int getStartEvent() const { return mConfigData.mStartEvent; }
   float getBMax() const { return mConfigData.mBMax; }
   bool getIsMT() const { return mConfigData.mIsMT; }
