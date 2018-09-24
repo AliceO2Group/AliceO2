@@ -37,7 +37,7 @@ namespace o2
 namespace TPC
 {
 
-DataProcessorSpec getCATrackerSpec()
+DataProcessorSpec getCATrackerSpec(bool processMC)
 {
   constexpr static size_t NSectors = o2::TPC::Sector::MAXSECTOR;
   using ClusterGroupParser = o2::algorithm::ForwardParser<o2::TPC::ClusterGroupHeader>;
@@ -162,8 +162,19 @@ DataProcessorSpec getCATrackerSpec()
     return processingFct;
   };
 
+  auto createInputSpecs = [](bool makeMcInput) {
+    std::vector<InputSpec> inputSpecs{
+      InputSpec{ { "input" }, gDataOriginTPC, "CLUSTERNATIVE", 0, Lifetime::Timeframe },
+    };
+    if (makeMcInput) {
+      constexpr o2::header::DataDescription datadesc("CLNATIVEMCLBL");
+      inputSpecs.emplace_back(InputSpec{ "mclblin", gDataOriginTPC, datadesc, 0, Lifetime::Timeframe });
+    }
+    return std::move(inputSpecs);
+  };
+
   return DataProcessorSpec{ "tracker", // process id
-                            { InputSpec{ "input", "TPC", "CLUSTERNATIVE", 0, Lifetime::Timeframe } },
+                            { createInputSpecs(processMC) },
                             { OutputSpec{ { "output" }, gDataOriginTPC, "TRACKS", 0, Lifetime::Timeframe } },
                             AlgorithmSpec(initFunction) };
 }
