@@ -18,6 +18,11 @@
 #include <SimConfig/SimConfig.h>
 #include <Generators/GeneratorFromFile.h>
 #include <Generators/Pythia8Generator.h>
+#include <Generators/GeneratorTGenerator.h>
+#include "TROOT.h"
+#include "TSystem.h"
+#include "TGlobal.h"
+#include "TFunction.h"
 
 namespace o2
 {
@@ -113,6 +118,64 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     py8Gen->SetParameters("ParticleDecays:zMax 1.");
     py8Gen->SetParameters("ParticleDecays:limitCylinder on");
     primGen->AddGenerator(py8Gen);
+  } else if (genconfig.compare("extgen") == 0) {
+    // external generator via TGenerator interface
+    auto tgen = new o2::eventgen::GeneratorTGenerator();
+    auto extgen_filename = conf.getExtGeneratorFileName();
+    auto extgen_func = conf.getExtGeneratorFuncName();
+    if (extgen_func.empty()) {
+      auto size = extgen_filename.size();
+      auto firstindex = extgen_filename.find_last_of("/") + 1;
+      auto lastindex = extgen_filename.find_last_of(".");
+      extgen_func = extgen_filename.substr(firstindex < size ? firstindex : 0,
+                                           lastindex < size ? lastindex - firstindex : size - firstindex) +
+                    "()";
+    }
+    if (gROOT->LoadMacro(extgen_filename.c_str()) != 0) {
+      LOG(FATAL) << "Cannot find " << extgen_filename << FairLogger::endl;
+      return;
+    }
+    /** setup convertion units **/
+    if (gROOT->GetGlobal("momentumUnit")) {
+      auto ptr = (double*)gROOT->GetGlobal("momentumUnit")->GetAddress();
+      tgen->setMomentumUnit(*ptr);
+    } else {
+      LOG(FATAL) << "Mandatory global variable \'momentumUnit\' not defined";
+    }
+    if (gROOT->GetGlobal("energyUnit")) {
+      auto ptr = (double*)gROOT->GetGlobal("energyUnit")->GetAddress();
+      tgen->setEnergyUnit(*ptr);
+    } else {
+      LOG(FATAL) << "Mandatory global variable \'energyUnit\' not defined";
+    }
+    if (gROOT->GetGlobal("positionUnit")) {
+      auto ptr = (double*)gROOT->GetGlobal("positionUnit")->GetAddress();
+      tgen->setPositionUnit(*ptr);
+    } else {
+      LOG(FATAL) << "Mandatory global variable \'positionUnit\' not defined";
+    }
+    if (gROOT->GetGlobal("timeUnit")) {
+      auto ptr = (double*)gROOT->GetGlobal("timeUnit")->GetAddress();
+      tgen->setMomentumUnit(*ptr);
+    } else {
+      LOG(FATAL) << "Mandatory global variable \'timeUnit\' not defined";
+    }
+    /** retrieve TGenerator **/
+    auto extgen_gfunc = extgen_func.substr(0, extgen_func.find_first_of('('));
+    if (!gROOT->GetGlobalFunction(extgen_gfunc.c_str())) {
+      LOG(FATAL) << "Global function \'"
+                 << extgen_gfunc
+                 << "\' not defined";
+    }
+    if (strcmp(gROOT->GetGlobalFunction(extgen_gfunc.c_str())->GetReturnTypeName(), "TGenerator*")) {
+      LOG(FATAL) << "Global function \'"
+                 << extgen_gfunc
+                 << "\' does not return a \'TGenerator*\' type";
+    }
+    gROOT->ProcessLine(Form("TGenerator *__extgen = dynamic_cast<TGenerator *>(%s);", extgen_func.c_str()));
+    auto extgen_ptr = (TGenerator**)gROOT->GetGlobal("__extgen")->GetAddress();
+    tgen->setTGenerator(*extgen_ptr);
+    primGen->AddGenerator(tgen);
   } else {
     LOG(FATAL) << "Invalid generator";
   }

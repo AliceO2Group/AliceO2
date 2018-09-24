@@ -27,6 +27,10 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "startEvent", bpo::value<unsigned int>()->default_value(0), "index of first event to be used (when applicable)")(
     "extKinFile", bpo::value<std::string>()->default_value("Kinematics.root"),
     "name of kinematics file for event generator from file (when applicable)")(
+    "extGenFile", bpo::value<std::string>()->default_value("extgen.C"),
+    "name of .C file with definition of external event generator")(
+    "extGenFunc", bpo::value<std::string>()->default_value(""),
+    "function call to load the definition of external event generator")(
     "bMax,b", bpo::value<float>()->default_value(0.), "maximum value for impact parameter sampling (when applicable)")(
     "isMT", bpo::value<bool>()->default_value(false), "multi-threaded mode (Geant4 only")(
     "outPrefix,o", bpo::value<std::string>()->default_value("o2sim"), "prefix of output files")(
@@ -60,6 +64,8 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mGenerator = vm["generator"].as<std::string>();
   mConfigData.mNEvents = vm["nEvents"].as<unsigned int>();
   mConfigData.mExtKinFileName = vm["extKinFile"].as<std::string>();
+  mConfigData.mExtGenFileName = vm["extGenFile"].as<std::string>();
+  mConfigData.mExtGenFuncName = vm["extGenFunc"].as<std::string>();
   mConfigData.mStartEvent = vm["startEvent"].as<unsigned int>();
   mConfigData.mBMax = vm["bMax"].as<float>();
   mConfigData.mIsMT = vm["isMT"].as<bool>();
