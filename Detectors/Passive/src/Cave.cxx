@@ -56,10 +56,18 @@ void Cave::ConstructGeometry()
   auto& matmgr = o2::Base::MaterialManager::Instance();
   Float_t dALIC[3];
 
-  // TODO: add various options depending on whether ZDC is present or not
-  dALIC[0] = 2000;
-  dALIC[1] = 2000;
-  dALIC[2] = 3000;
+  if (mHasZDC) {
+    LOG(INFO) << "Setting up CAVE to host ZDC";
+    // dimensions taken from ALIROOT
+    dALIC[0] = 2500;
+    dALIC[1] = 2500;
+    dALIC[2] = 15000;
+  } else {
+    LOG(INFO) << "Setting up CAVE without ZDC";
+    dALIC[0] = 2000;
+    dALIC[1] = 2000;
+    dALIC[2] = 3000;
+  }
   auto cavevol = gGeoManager->MakeBox("cave", gGeoManager->GetMedium("CAVE_Air"), dALIC[0], dALIC[1], dALIC[2]);
   gGeoManager->SetTopVolume(cavevol);
 }
