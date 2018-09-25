@@ -27,6 +27,7 @@
 #include <vector>
 #include <cassert>
 #include <iomanip>
+#include <string>
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -44,14 +45,25 @@ using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 /// (sector,globalPadRow)-address, the output is flattend in one single binary buffer
 ///
 /// MC labels are received as MCLabelContainers
-DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
+DataProcessorSpec getClusterDecoderRawSpec(bool sendMC, int fanNumber)
 {
-  auto initFunction = [sendMC](InitContext& ic) {
+  std::string processorName = "tpc-cluster-decoder";
+  o2::header::DataHeader::SubSpecificationType fanSpec = 0;
+  if (fanNumber < 0) {
+    // only one instance; set to 0, it is used as subspecification
+    fanNumber = 0;
+  } else {
+    // multiple instances, add number to name
+    processorName += std::to_string(fanNumber);
+    fanSpec = fanNumber;
+  }
+
+  auto initFunction = [sendMC, fanSpec](InitContext& ic) {
     // there is nothing to init at the moment
     auto verbosity = 0;
     auto decoder = std::make_shared<HardwareClusterDecoder>();
 
-    auto processingFct = [verbosity, decoder, sendMC](ProcessingContext& pc) {
+    auto processingFct = [verbosity, decoder, sendMC, fanSpec](ProcessingContext& pc) {
       // this will return a span of TPC clusters
       const auto& ref = pc.inputs().get("rawin");
       auto size = o2::framework::DataRefUtils::getPayloadSize(ref);
@@ -64,18 +76,27 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       // FIXME make one function
       o2::header::Stack rawHeaderStack;
       o2::header::Stack mcHeaderStack;
+      o2::TPC::TPCSectorHeader const* sectorHeaderMC = nullptr;
       if (sendMC) {
-        auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(pc.inputs().get("mclblin"));
-        if (sectorHeader) {
-          o2::header::Stack actual{ *sectorHeader };
+        sectorHeaderMC = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(pc.inputs().get("mclblin"));
+        if (sectorHeaderMC) {
+          o2::header::Stack actual{ *sectorHeaderMC };
           std::swap(mcHeaderStack, actual);
+          if (sectorHeaderMC->sector < 0) {
+            pc.outputs().snapshot(OutputRef{ "mclblout", fanSpec, std::move(mcHeaderStack) }, fanSpec);
+          }
         }
       }
       auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(pc.inputs().get("rawin"));
       if (sectorHeader) {
         o2::header::Stack actual{ *sectorHeader };
         std::swap(rawHeaderStack, actual);
+        if (sectorHeader->sector < 0) {
+          pc.outputs().snapshot(OutputRef{ "clusterout", fanSpec, std::move(rawHeaderStack) }, fanSpec);
+          return;
+        }
       }
+      assert(sectorHeaderMC == nullptr || sectorHeader->sector == sectorHeaderMC->sector);
 
       // input to the decoder is a vector of raw pages description ClusterHardwareContainer,
       // each specified as a pair of pointer to ClusterHardwareContainer and the number
@@ -136,7 +157,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
         totalSize += coll.getFlatSize() + sizeof(ClusterGroupHeader) - sizeof(ClusterGroupAttribute);
       }
 
-      auto* target = pc.outputs().newChunk(OutputRef{ "clusterout", 0, std::move(rawHeaderStack) }, totalSize).data;
+      auto* target = pc.outputs().newChunk(OutputRef{ "clusterout", fanSpec, std::move(rawHeaderStack) }, totalSize).data;
 
       for (const auto& coll : cont) {
         if (verbosity > 0) {
@@ -155,7 +176,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
           LOG(INFO) << "sending " << mcoutList.size() << " MC label containers" << std::endl;
         }
         // serialize the complete list of MC label containers
-        pc.outputs().snapshot(OutputRef{ "mclblout", 0, std::move(mcHeaderStack) }, mcoutList);
+        pc.outputs().snapshot(OutputRef{ "mclblout", fanSpec, std::move(mcHeaderStack) }, mcoutList);
       }
     };
 
@@ -164,32 +185,32 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
     return processingFct;
   };
 
-  auto createInputSpecs = [](bool makeMcInput) {
+  auto createInputSpecs = [fanSpec](bool makeMcInput) {
     std::vector<InputSpec> inputSpecs{
-      InputSpec{ { "rawin" }, gDataOriginTPC, "CLUSTERHW", 0, Lifetime::Timeframe },
+      InputSpec{ { "rawin" }, gDataOriginTPC, "CLUSTERHW", fanSpec, Lifetime::Timeframe },
     };
     if (makeMcInput) {
       // FIXME: define common data type specifiers
       constexpr o2::header::DataDescription datadesc("CLUSTERHWMCLBL");
-      inputSpecs.emplace_back(InputSpec{ "mclblin", gDataOriginTPC, datadesc, 0, Lifetime::Timeframe });
+      inputSpecs.emplace_back(InputSpec{ "mclblin", gDataOriginTPC, datadesc, fanSpec, Lifetime::Timeframe });
     }
     return std::move(inputSpecs);
   };
 
-  auto createOutputSpecs = [](bool makeMcOutput) {
+  auto createOutputSpecs = [fanSpec](bool makeMcOutput) {
     std::vector<OutputSpec> outputSpecs{
-      OutputSpec{ { "clusterout" }, gDataOriginTPC, "CLUSTERNATIVE", 0, Lifetime::Timeframe },
+      OutputSpec{ { "clusterout" }, gDataOriginTPC, "CLUSTERNATIVE", fanSpec, Lifetime::Timeframe },
     };
     if (makeMcOutput) {
       OutputLabel label{ "mclblout" };
       // have to use a new data description, routing is only based on origin and decsription
       constexpr o2::header::DataDescription datadesc("CLNATIVEMCLBL");
-      outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
+      outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, fanSpec, Lifetime::Timeframe);
     }
     return std::move(outputSpecs);
   };
 
-  return DataProcessorSpec{ "decoder",
+  return DataProcessorSpec{ processorName,
                             { createInputSpecs(sendMC) },
                             { createOutputSpecs(sendMC) },
                             AlgorithmSpec(initFunction) };

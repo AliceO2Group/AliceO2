@@ -39,7 +39,7 @@ namespace TPC
 
 using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
-DataProcessorSpec getCATrackerSpec(bool processMC)
+DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
 {
   constexpr static size_t NSectors = o2::TPC::Sector::MAXSECTOR;
   using ClusterGroupParser = o2::algorithm::ForwardParser<o2::TPC::ClusterGroupHeader>;
@@ -54,13 +54,15 @@ DataProcessorSpec getCATrackerSpec(bool processMC)
     std::unique_ptr<ClusterGroupParser> parser;
     std::unique_ptr<o2::TPC::TPCCATracking> tracker;
     int verbosity = 1;
+    size_t nParallelInputs = 1;
   };
 
-  auto initFunction = [processMC](InitContext& ic) {
+  auto initFunction = [processMC, fanIn](InitContext& ic) {
     auto options = ic.options().get<std::string>("tracker-options");
 
     auto processAttributes = std::make_shared<ProcessAttributes>();
     {
+      processAttributes->nParallelInputs = fanIn;
       auto& parser = processAttributes->parser;
       auto& tracker = processAttributes->tracker;
       parser = std::make_unique<ClusterGroupParser>();
@@ -81,7 +83,8 @@ DataProcessorSpec getCATrackerSpec(bool processMC)
       auto& mcInputs = processAttributes->mcInputs;
       if (processMC) {
         // we can later extend this to multiple inputs
-        std::vector<std::string> inputLabels = { "mclblin" };
+        std::vector<std::string> inputLabels(processAttributes->nParallelInputs);
+        std::generate(inputLabels.begin(), inputLabels.end(), [counter = std::make_shared<int>(0)]() { return "mclblin" + std::to_string((*counter)++); });
         for (auto& inputLabel : inputLabels) {
           auto ref = pc.inputs().get(inputLabel);
           auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(ref);
@@ -115,8 +118,8 @@ DataProcessorSpec getCATrackerSpec(bool processMC)
         }
       }
 
-      // we can later extend this to multiple inputs
-      std::vector<std::string> inputLabels = { "input" };
+      std::vector<std::string> inputLabels(processAttributes->nParallelInputs);
+      std::generate(inputLabels.begin(), inputLabels.end(), [counter = std::make_shared<int>(0)]() { return "input" + std::to_string((*counter)++); });
       auto& validInputs = processAttributes->validInputs;
       auto& inputs = processAttributes->inputs;
       for (auto& inputLabel : inputLabels) {
@@ -229,13 +232,17 @@ DataProcessorSpec getCATrackerSpec(bool processMC)
     return processingFct;
   };
 
-  auto createInputSpecs = [](bool makeMcInput) {
-    std::vector<InputSpec> inputSpecs{
-      InputSpec{ { "input" }, gDataOriginTPC, "CLUSTERNATIVE", 0, Lifetime::Timeframe },
-    };
-    if (makeMcInput) {
-      constexpr o2::header::DataDescription datadesc("CLNATIVEMCLBL");
-      inputSpecs.emplace_back(InputSpec{ "mclblin", gDataOriginTPC, datadesc, 0, Lifetime::Timeframe });
+  auto createInputSpecs = [fanIn](bool makeMcInput) {
+    std::vector<InputSpec> inputSpecs;
+    for (size_t n = 0; n < fanIn; ++n) {
+      std::string label = "input" + std::to_string(n);
+      inputSpecs.emplace_back(InputSpec{ label, gDataOriginTPC, "CLUSTERNATIVE", n, Lifetime::Timeframe });
+
+      if (makeMcInput) {
+        label = "mclblin" + std::to_string(n);
+        constexpr o2::header::DataDescription datadesc("CLNATIVEMCLBL");
+        inputSpecs.emplace_back(InputSpec{ label, gDataOriginTPC, datadesc, n, Lifetime::Timeframe });
+      }
     }
     return std::move(inputSpecs);
   };
@@ -252,7 +259,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC)
     return std::move(outputSpecs);
   };
 
-  return DataProcessorSpec{ "tracker", // process id
+  return DataProcessorSpec{ "tpc-tracker", // process id
                             { createInputSpecs(processMC) },
                             { createOutputSpecs(false /*create onece writer process has been changed*/) },
                             AlgorithmSpec(initFunction),
