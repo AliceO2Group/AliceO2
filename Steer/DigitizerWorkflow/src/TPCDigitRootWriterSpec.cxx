@@ -188,10 +188,11 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
             // the labels
             auto labeldata = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>(lname.c_str());
             auto labeldataRaw = labeldata.get();
-            LOG(INFO) << "MCTRUTH ELEMENTS " << labeldataRaw->getNElements();
-            if (labeldataRaw->getNElements() != digits->size()) {
-              LOG(WARNING) << "Inconsistent number of label slots "
-                           << labeldataRaw->getNElements() << " versus digits " << digits->size();
+            LOG(INFO) << "MCTRUTH ELEMENTS " << labeldataRaw->getIndexedSize()
+                      << " WITH " << labeldataRaw->getNElements() << " LABELS ";
+            if (labeldataRaw->getIndexedSize() != digits->size()) {
+              LOG(WARNING) << "Inconsistent number of indexed (label) slots "
+                           << labeldataRaw->getIndexedSize() << " versus digits " << digits->size();
             }
             {
               auto br = getOrMakeBranch(*outputtree.get(), "TPCDigitMCTruth", sector, &labeldataRaw);
