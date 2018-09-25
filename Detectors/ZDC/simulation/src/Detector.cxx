@@ -195,6 +195,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 
   // HitType* p = addHit(curTrackn, pdgCode, parent, sFlag, p[3], mZDCdetID, x, p, mTrackTof, mXImpact, mTotDepEnergy, mTotLight);
   // stack->addHit(GetDetId());
+  return false;
 }
 
 //_____________________________________________________________________________
@@ -237,7 +238,7 @@ void Detector::CreateMaterials()
   Float_t dCu = 8.96;
   Float_t radCu = 12.86/dCu;
   Float_t absCu = 137.3/dCu;
-  Int_t nCu = 1.10;
+  // Int_t nCu = 1.10;
 
   // --- Iron -> beam pipe
   Float_t aFe = 55.845;
@@ -1443,10 +1444,10 @@ void Detector::CreateSupports()
 
   // Bottom foot between 2 basements (A and C sides)
   TVirtualMC::GetMC()->Gsvolu("ZPFOOT","BOX ", getMediumID(kAl), const_cast<double*>(Geometry::ZPSUPPORTBASE3), 3);
-  TVirtualMC::GetMC()->Gspos("ZPFOOT", 1, "cave", Geometry::ZPCPOSITION[0]+Geometry::ZPSUPPORTBASE1POS[0]-Geometry::ZPSUPPORTBASE1[0]+Geometry::ZPSUPPORTBASE3[0],  Geometry::ZPCPOSITION[1]-Geometry::ZPSUPPORTBASE1POS[1]+Geometry::ZPSUPPORTBASE1[1]+Geometry::ZPSUPPORTBASE3[1], Geometry::ZPCPOSITION[2]-Geometry::ZPSUPPORTBASE3[3], 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZPFOOT", 2, "cave", Geometry::ZPCPOSITION[0]+Geometry::ZPSUPPORTBASE1POS[0]+Geometry::ZPSUPPORTBASE1[0]-Geometry::ZPSUPPORTBASE3[0],  Geometry::ZPCPOSITION[1]-Geometry::ZPSUPPORTBASE1POS[1]+Geometry::ZPSUPPORTBASE1[1]+Geometry::ZPSUPPORTBASE3[1], Geometry::ZPCPOSITION[2]-Geometry::ZPSUPPORTBASE3[3], 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZPFOOT", 3, "cave", Geometry::ZPAPOSITION[0]+Geometry::ZPSUPPORTBASE1POS[0]-Geometry::ZPSUPPORTBASE1[0]+Geometry::ZPSUPPORTBASE3[0],  Geometry::ZPAPOSITION[1]-Geometry::ZPSUPPORTBASE1POS[1]+Geometry::ZPSUPPORTBASE1[1]+Geometry::ZPSUPPORTBASE3[1], Geometry::ZPAPOSITION[2]+Geometry::ZPSUPPORTBASE3[3], 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZPFOOT", 4, "cave", Geometry::ZPAPOSITION[0]+Geometry::ZPSUPPORTBASE1POS[0]+Geometry::ZPSUPPORTBASE1[0]-Geometry::ZPSUPPORTBASE3[0],  Geometry::ZPAPOSITION[1]-Geometry::ZPSUPPORTBASE1POS[1]+Geometry::ZPSUPPORTBASE1[1]+Geometry::ZPSUPPORTBASE3[1], Geometry::ZPAPOSITION[2]+Geometry::ZPSUPPORTBASE3[3], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZPFOOT", 1, "cave", Geometry::ZPCPOSITION[0]+Geometry::ZPSUPPORTBASE1POS[0]-Geometry::ZPSUPPORTBASE1[0]+Geometry::ZPSUPPORTBASE3[0],  Geometry::ZPCPOSITION[1]-Geometry::ZPSUPPORTBASE1POS[1]+Geometry::ZPSUPPORTBASE1[1]+Geometry::ZPSUPPORTBASE3[1], Geometry::ZPCPOSITION[2]-Geometry::ZPSUPPORTBASE3[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZPFOOT", 2, "cave", Geometry::ZPCPOSITION[0]+Geometry::ZPSUPPORTBASE1POS[0]+Geometry::ZPSUPPORTBASE1[0]-Geometry::ZPSUPPORTBASE3[0],  Geometry::ZPCPOSITION[1]-Geometry::ZPSUPPORTBASE1POS[1]+Geometry::ZPSUPPORTBASE1[1]+Geometry::ZPSUPPORTBASE3[1], Geometry::ZPCPOSITION[2]-Geometry::ZPSUPPORTBASE3[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZPFOOT", 3, "cave", Geometry::ZPAPOSITION[0]+Geometry::ZPSUPPORTBASE1POS[0]-Geometry::ZPSUPPORTBASE1[0]+Geometry::ZPSUPPORTBASE3[0],  Geometry::ZPAPOSITION[1]-Geometry::ZPSUPPORTBASE1POS[1]+Geometry::ZPSUPPORTBASE1[1]+Geometry::ZPSUPPORTBASE3[1], Geometry::ZPAPOSITION[2]+Geometry::ZPSUPPORTBASE3[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZPFOOT", 4, "cave", Geometry::ZPAPOSITION[0]+Geometry::ZPSUPPORTBASE1POS[0]+Geometry::ZPSUPPORTBASE1[0]-Geometry::ZPSUPPORTBASE3[0],  Geometry::ZPAPOSITION[1]-Geometry::ZPSUPPORTBASE1POS[1]+Geometry::ZPSUPPORTBASE1[1]+Geometry::ZPSUPPORTBASE3[1], Geometry::ZPAPOSITION[2]+Geometry::ZPSUPPORTBASE3[2], 0, "ONLY");
 
   // Upper basements (A and C sides)
   TVirtualMC::GetMC()->Gsvolu("ZPBASE2","BOX ", getMediumID(kAl), const_cast<double*>(Geometry::ZPSUPPORTBASE2), 3);
