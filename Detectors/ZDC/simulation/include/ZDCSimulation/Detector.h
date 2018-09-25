@@ -78,7 +78,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   void CreateMaterials();
   void addAlignableVolumes() const override {}
 
-  HitType* AddHit(Int_t trackID, Int_t trackPDG, Int_t parentID, Int_t sFlag, Double_t primaryEnergy, Int_t& detID,
+  HitType* AddHit(Int_t trackID, Int_t parentID, Int_t sFlag, Double_t primaryEnergy, Int_t& detID,
               Double_t& pos, Double_t& mom, Double_t tof, Double_t& xImpact, Double_t energyloss, Int_t nphe);
 
    private:
@@ -92,35 +92,27 @@ class Detector : public o2::Base::DetImpl<Detector>
     /// Define sensitive volumes
     void defineSensitiveVolumes();
 
-    bool isMergeable(HitType const& hit1, HitType const& hit2)
-    {
-      if (hit1.GetTrackID() != hit2.GetTrackID()) {
-        return false;
-      }
-
-      return true;
-    }
+    void CalculateTableIndexes(int& ibeta, int& iangle, int& iradius);
 
     Int_t mZDCdetID[2]; //detector|tower in ZDC
     Int_t mPcMother; // track mother 0
-    Int_t mSecondaryFlag;
+    Int_t mCurrentTrackID;
+    HitType* mCurrentHit;
+    Float_t mTrackEta;
+    Int_t   mSecondaryFlag;
     Float_t mPrimaryEnergy;
     Float_t mXImpact[3];
     Float_t mTrackTOF;
     Float_t mTotDepEnergy;
     Float_t mTotLight[2]; //[0]PMC [1]sumPMQi
+    //
     Float_t mLumiLength = 0; //TODO: make part of configurable params
     Float_t mTCLIAAPERTURE = 3.5; //TODO: make part of configurable params
     Float_t mTCLIAAPERTURENEG = 3.5; //TODO: make part of configurable params
-	Float_t mVCollSideCCentreY = 0.; //TODO: make part of configurable params
+	  Float_t mVCollSideCCentreY = 0.; //TODO: make part of configurable params
 
     /// container for data points
     std::vector<HitType>* mHits; //!
-
-    Int_t mCurrentTrackID;
-    HitType* mCurrentHit;
-    Float_t mTrackEta;
-    Int_t mPDGc;
 
   template <typename Det>
   friend class o2::Base::DetImpl;
