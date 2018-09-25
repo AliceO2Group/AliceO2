@@ -37,6 +37,8 @@ namespace o2
 namespace TPC
 {
 
+using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+
 DataProcessorSpec getCATrackerSpec(bool processMC)
 {
   constexpr static size_t NSectors = o2::TPC::Sector::MAXSECTOR;
@@ -46,13 +48,15 @@ DataProcessorSpec getCATrackerSpec(bool processMC)
     // data set is complete, have to think about a DPL feature to take
     // ownership of an input
     std::array<std::vector<unsigned char>, NSectors> inputs;
+    std::array<std::vector<MCLabelContainer>, NSectors> mcInputs;
     std::bitset<NSectors> validInputs = 0;
+    std::bitset<NSectors> validMcInputs = 0;
     std::unique_ptr<ClusterGroupParser> parser;
     std::unique_ptr<o2::TPC::TPCCATracking> tracker;
     int verbosity = 1;
   };
 
-  auto initFunction = [](InitContext& ic) {
+  auto initFunction = [processMC](InitContext& ic) {
     auto options = ic.options().get<std::string>("tracker-options");
 
     auto processAttributes = std::make_shared<ProcessAttributes>();
@@ -63,18 +67,58 @@ DataProcessorSpec getCATrackerSpec(bool processMC)
       tracker = std::make_unique<o2::TPC::TPCCATracking>();
       tracker->initialize(options.c_str());
       processAttributes->validInputs.reset();
+      processAttributes->validMcInputs.reset();
     }
 
-    auto processingFct = [processAttributes](ProcessingContext& pc) {
+    auto processingFct = [processAttributes, processMC](ProcessingContext& pc) {
       auto& parser = processAttributes->parser;
       auto& tracker = processAttributes->tracker;
-      auto& validInputs = processAttributes->validInputs;
-      auto& inputs = processAttributes->inputs;
       uint64_t activeSectors = 0;
       auto& verbosity = processAttributes->verbosity;
 
+      // FIXME cleanup almost duplicated code
+      auto& validMcInputs = processAttributes->validMcInputs;
+      auto& mcInputs = processAttributes->mcInputs;
+      if (processMC) {
+        // we can later extend this to multiple inputs
+        std::vector<std::string> inputLabels = { "mclblin" };
+        for (auto& inputLabel : inputLabels) {
+          auto ref = pc.inputs().get(inputLabel);
+          auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(ref);
+          if (sectorHeader == nullptr) {
+            // FIXME: think about error policy
+            LOG(ERROR) << "sector header missing on header stack";
+            return;
+          }
+          const int& sector = sectorHeader->sector;
+          if (sector < 0) {
+            // FIXME: this we have to sort out once the steering is implemented
+            continue;
+          }
+          if (validMcInputs.test(sector)) {
+            // have already data for this sector, this should not happen in the current
+            // sequential implementation, for parallel path merged at the tracker stage
+            // multiple buffers need to be handled
+            throw std::runtime_error("can only have one data set per sector");
+          }
+          mcInputs[sector] = std::move(pc.inputs().get<std::vector<MCLabelContainer>>(inputLabel.c_str()));
+          validMcInputs.set(sector);
+          activeSectors |= sectorHeader->activeSectors;
+          if (verbosity > 1) {
+            LOG(INFO) << "received " << *(ref.spec) << " MC label containers"
+                      << " for sector " << sector                                      //
+                      << std::endl                                                     //
+                      << "  mc input status:   " << validMcInputs                      //
+                      << std::endl                                                     //
+                      << "  active sectors: " << std::bitset<NSectors>(activeSectors); //
+          }
+        }
+      }
+
       // we can later extend this to multiple inputs
       std::vector<std::string> inputLabels = { "input" };
+      auto& validInputs = processAttributes->validInputs;
+      auto& inputs = processAttributes->inputs;
       for (auto& inputLabel : inputLabels) {
         auto ref = pc.inputs().get(inputLabel);
         auto payploadSize = DataRefUtils::getPayloadSize(ref);
@@ -109,11 +153,13 @@ DataProcessorSpec getCATrackerSpec(bool processMC)
         }
       }
 
-      if (activeSectors == 0 || (activeSectors & validInputs.to_ulong()) != activeSectors) {
+      if (activeSectors == 0 || (activeSectors & validInputs.to_ulong()) != activeSectors ||
+          (processMC && (activeSectors & validMcInputs.to_ulong()) != activeSectors)) {
         // not all sectors available
         // FIXME: do we need to send something
         return;
       }
+      assert(processMC == false || validMcInputs == validInputs);
       if (verbosity > 0) {
         LOG(INFO) << "running tracking for sectors " << validInputs;
       }
@@ -124,6 +170,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC)
           continue;
         }
         const auto& input = inputs[index];
+        auto mcIterator = mcInputs[index].begin();
         parser->parse(&input.front(), input.size(),
                       [](const typename ClusterGroupParser::HeaderType& h) {
                         // check the header, but in this case there is no validity check
@@ -144,19 +191,39 @@ DataProcessorSpec getCATrackerSpec(bool processMC)
                                    << std::setfill(' ') << nClusters;
                         clusterIndex.clusters[sector][padrow] = reinterpret_cast<const ClusterNative*>(frame.payload);
                         clusterIndex.nClusters[sector][padrow] = nClusters;
+                        assert(processMC == false || mcIterator != mcInputs[index].end());
+                        if (processMC && mcIterator != mcInputs[index].end()) {
+                          clusterIndex.clustersMCTruth[sector][padrow] = &(*mcIterator);
+                          ++mcIterator;
+                        }
 
                         return true;
                       });
       }
 
       std::vector<TrackTPC> tracks;
-      int retVal = tracker->runTracking(clusterIndex, &tracks, nullptr);
+      MCLabelContainer tracksMCTruth;
+      int retVal = tracker->runTracking(clusterIndex, &tracks, (processMC ? &tracksMCTruth : nullptr));
       if (retVal != 0) {
         // FIXME: error policy
         LOG(ERROR) << "tracker returned error code " << retVal;
       }
       LOG(INFO) << "found " << tracks.size() << " track(s)";
       pc.outputs().snapshot(OutputRef{ "output" }, tracks);
+      if (processMC) {
+        LOG(INFO) << "have " << tracksMCTruth.getIndexedSize() << " track label(s)";
+        // have to change the writer process as well but want to convert to the RootTreeWriter tool
+        // at this occasion so we skip sending the labels for the moment
+        //pc.outputs().snapshot(OutputRef{ "mclblout" }, tracksMCTruth);
+      }
+
+      validInputs.reset();
+      if (processMC) {
+        validMcInputs.reset();
+        for (auto& mcInput : mcInputs) {
+          mcInput.clear();
+        }
+      }
     };
 
     return processingFct;
@@ -173,9 +240,21 @@ DataProcessorSpec getCATrackerSpec(bool processMC)
     return std::move(inputSpecs);
   };
 
+  auto createOutputSpecs = [](bool makeMcOutput) {
+    std::vector<OutputSpec> outputSpecs{
+      OutputSpec{ { "output" }, gDataOriginTPC, "TRACKS", 0, Lifetime::Timeframe },
+    };
+    if (makeMcOutput) {
+      OutputLabel label{ "mclblout" };
+      constexpr o2::header::DataDescription datadesc("TRACKMCLBL");
+      outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
+    }
+    return std::move(outputSpecs);
+  };
+
   return DataProcessorSpec{ "tracker", // process id
                             { createInputSpecs(processMC) },
-                            { OutputSpec{ { "output" }, gDataOriginTPC, "TRACKS", 0, Lifetime::Timeframe } },
+                            { createOutputSpecs(false /*create onece writer process has been changed*/) },
                             AlgorithmSpec(initFunction) };
 }
 
