@@ -203,6 +203,7 @@ set(TEST_SRCS
       test/test_AlgorithmSpec.cxx
       test/test_BoostOptionsRetriever.cxx
       test/test_CallbackRegistry.cxx
+      test/test_CallbackService.cxx
       test/test_ChannelSpecHelpers.cxx
       test/test_CompletionPolicy.cxx
       test/test_DanglingInputs.cxx

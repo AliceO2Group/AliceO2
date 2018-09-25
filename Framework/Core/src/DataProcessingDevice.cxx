@@ -99,13 +99,18 @@ void DataProcessingDevice::Reset() { mServiceRegistry.get<CallbackService>()(Cal
 /// non-data triggers like those which are time based.
 bool DataProcessingDevice::ConditionalRun()
 {
+  mServiceRegistry.get<CallbackService>()(CallbackService::Id::ClockTick);
+  bool active = false;
   for (auto& channel : mSpec.inputChannels) {
     FairMQParts parts;
     auto result = this->ReceiveAsync(parts, channel.name);
     if (result > 0) {
       this->handleData(parts);
-      this->tryDispatchComputation();
+      active |= this->tryDispatchComputation();
     }
+  }
+  if (active == false) {
+    mServiceRegistry.get<CallbackService>()(CallbackService::Id::Idle);
   }
   mRelayer.processDanglingInputs(mExpirationHandlers, mServiceRegistry);
   this->tryDispatchComputation();
@@ -420,7 +425,7 @@ bool DataProcessingDevice::tryDispatchComputation()
   };
 
   if (canDispatchSomeComputation() == false) {
-    return true;
+    return false;
   }
 
   for (auto action: getReadyActions()) {
