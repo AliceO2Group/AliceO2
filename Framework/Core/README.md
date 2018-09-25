@@ -360,6 +360,10 @@ A service that data processors can register callback functions invoked by the fr
 * `CallbackService::Id::Stop`: before exiting the running state.
 * `CallbackService::Id::Reset`: before resetting the device.
 
+Moreover in case you want to process events which are not coming from `FairMQ`, there is a `CallbackService::Id::ClockTick` which is called according to the rate specified for the backing FairMQ device.
+
+Similarly the `CallbackService::Id::Idle` callback is fired whenever there
+was nothing to process.
 
 ## Expressing parallelism
 
