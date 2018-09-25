@@ -42,38 +42,63 @@ using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 /// Note: This processor does not touch the MC, see below
 DataProcessorSpec getClusterConverterSpec(bool sendMC)
 {
-  auto initFunction = [](InitContext& ic) {
+  auto initFunction = [sendMC](InitContext& ic) {
     // there is nothing to init at the moment
     auto verbosity = 0;
 
-    auto processingFct = [verbosity](ProcessingContext& pc) {
+    auto processingFct = [verbosity, sendMC](ProcessingContext& pc) {
       // this will return a span of TPC clusters
       auto inClusters = pc.inputs().get<std::vector<o2::TPC::Cluster>>("clusterin");
+
+      // init the stacks for forwarding the sector header
+      // FIXME check if there is functionality in the DPL to forward the stack
+      // FIXME make one function
+      o2::header::Stack rawHeaderStack;
+      o2::header::Stack mcHeaderStack;
+      if (sendMC) {
+        auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(pc.inputs().get("mclblin"));
+        if (sectorHeader) {
+          o2::header::Stack actual{ *sectorHeader };
+          std::swap(mcHeaderStack, actual);
+        }
+      }
       auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(pc.inputs().get("clusterin"));
-      o2::header::Stack headerStack;
       if (sectorHeader) {
         o2::header::Stack actual{ *sectorHeader };
-        std::swap(headerStack, actual);
+        std::swap(rawHeaderStack, actual);
       }
       int nClusters = inClusters.size();
       LOG(INFO) << "got clusters from input: " << nClusters;
 
-      std::map<uint16_t, ClusterHardwareContainer> containerMetrics;
-      unsigned clusterIndex = 0;
-      for (; clusterIndex < nClusters; clusterIndex++) {
+      // MC labels are received as one container of labels in the sequence matching clusters
+      // in the input
+      std::unique_ptr<const MCLabelContainer> mcin;
+      MCLabelContainer mcout;
+      if (sendMC) {
+        mcin = std::move(pc.inputs().get<MCLabelContainer*>("mclblin"));
+      }
+
+      // clusters need to be sorted to write clusters of one CRU to raw pages
+      struct ClusterMapper {
+        std::vector<unsigned> clusterIds;
+        ClusterHardwareContainer metrics;
+      };
+      std::map<uint16_t, ClusterMapper> mapper;
+      for (unsigned clusterIndex = 0; clusterIndex < nClusters; clusterIndex++) {
         // clusters are supposed to be sorted in CRU number, start a new entry
         // for every new CRU, a map is needed if the clusters are not ordered
         auto inputcluster = inClusters[clusterIndex];
         uint16_t CRU = inputcluster.getCRU();
-        if (containerMetrics.find(CRU) == containerMetrics.end()) {
+        if (mapper.find(CRU) == mapper.end()) {
           if (verbosity > 0) {
             LOG(INFO) << "Inserting cluster set for CRU " << CRU;
           }
-          containerMetrics[CRU] = ClusterHardwareContainer{ 0, 0, 0, 0, 0, 0, 0, 0, 0xFFFFFFFF, 0, CRU };
+          mapper[CRU] = ClusterMapper{ {}, ClusterHardwareContainer{ 0, 0, 0, 0, 0, 0, 0, 0, 0xFFFFFFFF, 0, CRU } };
         }
-        containerMetrics[CRU].numberOfClusters++;
-        if (inputcluster.getTimeMean() < containerMetrics[CRU].timeBinOffset) {
-          containerMetrics[CRU].timeBinOffset = inputcluster.getTimeMean();
+        mapper[CRU].clusterIds.emplace_back(clusterIndex);
+        mapper[CRU].metrics.numberOfClusters++;
+        if (inputcluster.getTimeMean() < mapper[CRU].metrics.timeBinOffset) {
+          mapper[CRU].metrics.timeBinOffset = inputcluster.getTimeMean();
         }
       }
 
@@ -81,11 +106,11 @@ DataProcessorSpec getClusterConverterSpec(bool sendMC)
       auto maxClustersPerContainer = clusterContainerMemory.getMaxNumberOfClusters();
       unsigned nTotalPages = 0;
       // at this point there is at least one cluster per record
-      for (const auto& m : containerMetrics) {
-        auto nPages = (m.second.numberOfClusters - 1) / maxClustersPerContainer + 1;
+      for (const auto& m : mapper) {
+        auto nPages = (m.second.metrics.numberOfClusters - 1) / maxClustersPerContainer + 1;
         if (verbosity > 0) {
           LOG(INFO) << "CRU " << std::setw(3) << m.first << " "                                //
-                    << std::setw(3) << m.second.numberOfClusters << " cluster(s)"              //
+                    << std::setw(3) << m.second.metrics.numberOfClusters << " cluster(s)"      //
                     << " in " << nPages << " page(s) of capacity " << maxClustersPerContainer; //
         }
         nTotalPages += nPages;
@@ -93,16 +118,18 @@ DataProcessorSpec getClusterConverterSpec(bool sendMC)
       if (verbosity > 0) {
         LOG(INFO) << "allocating " << nTotalPages << " output page(s), " << nTotalPages * sizeof(ClusterHardwareContainer8kb);
       }
-      auto outputPages = pc.outputs().make<ClusterHardwareContainer8kb>(OutputRef{ "clusterout", 0, std::move(headerStack) }, nTotalPages);
+      auto outputPages = pc.outputs().make<ClusterHardwareContainer8kb>(OutputRef{ "clusterout", 0, std::move(rawHeaderStack) }, nTotalPages);
 
-      auto containerMetricsIterator = containerMetrics.begin();
       auto outputPageIterator = outputPages.begin();
-      clusterIndex = 0;
-      while (clusterIndex < nClusters) {
-        LOG(DEBUG) << "processing CRU " << containerMetricsIterator->second.CRU;
-        while (containerMetricsIterator->second.numberOfClusters > 0) {
+      unsigned mcoutIndex = 0;
+      for (auto& cruClusters : mapper) {
+        LOG(DEBUG) << "processing CRU " << cruClusters.first;
+        auto clusterIndex = cruClusters.second.clusterIds.begin();
+        auto clusterIndexEnd = cruClusters.second.clusterIds.end();
+        while (clusterIndex != clusterIndexEnd && outputPageIterator != outputPages.end()) {
+          assert(cruClusters.second.metrics.numberOfClusters > 0);
           ClusterHardwareContainer* clusterContainer = outputPageIterator->getContainer();
-          *clusterContainer = containerMetricsIterator->second;
+          *clusterContainer = cruClusters.second.metrics;
           if (clusterContainer->numberOfClusters > maxClustersPerContainer) {
             clusterContainer->numberOfClusters = maxClustersPerContainer;
           }
@@ -112,20 +139,34 @@ DataProcessorSpec getClusterConverterSpec(bool sendMC)
             LOG(INFO) << "writing " << std::setw(3) << clusterContainer->numberOfClusters << " cluster(s) of CRU "
                       << std::setw(3) << clusterContainer->CRU;
           }
-          for (unsigned int clusterInPage = 0; clusterInPage < clusterContainer->numberOfClusters; clusterInPage++) {
-            const auto& inputCluster = inClusters[clusterIndex + clusterInPage];
+          for (unsigned int clusterInPage = 0;
+               clusterInPage < clusterContainer->numberOfClusters && clusterIndex != clusterIndexEnd;
+               clusterInPage++, ++clusterIndex) {
+            const auto& inputCluster = inClusters[*clusterIndex];
             auto& outputCluster = clusterContainer->clusters[clusterInPage];
             outputCluster.setCluster(inputCluster.getPadMean(),
                                      inputCluster.getTimeMean() - clusterContainer->timeBinOffset,
                                      inputCluster.getPadSigma() * inputCluster.getPadSigma(),
                                      inputCluster.getTimeSigma() * inputCluster.getTimeSigma(), inputCluster.getQmax(),
                                      inputCluster.getQ(), inputCluster.getRow(), 0);
+            if (mcin) {
+              // write the new sequence of MC labels
+              for (auto const& label : mcin->getLabels(*clusterIndex)) {
+                mcout.addElement(mcoutIndex, label);
+              }
+              ++mcoutIndex;
+            }
           }
-          clusterIndex += clusterContainer->numberOfClusters;
-          containerMetricsIterator->second.numberOfClusters -= clusterContainer->numberOfClusters;
+          cruClusters.second.metrics.numberOfClusters -= clusterContainer->numberOfClusters;
           ++outputPageIterator;
         }
-        ++containerMetricsIterator;
+        assert(cruClusters.second.metrics.numberOfClusters == 0);
+      }
+      if (mcin) {
+        if (verbosity > 0) {
+          LOG(INFO) << "writing MC labels for " << mcoutIndex << " cluster(s), index size " << mcout.getIndexedSize();
+        }
+        pc.outputs().snapshot(OutputRef{ "mclblout", 0, std::move(mcHeaderStack) }, mcout);
       }
     };
 
