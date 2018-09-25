@@ -205,6 +205,7 @@ set(TEST_SRCS
       test/test_CallbackRegistry.cxx
       test/test_CallbackService.cxx
       test/test_ChannelSpecHelpers.cxx
+      test/test_CustomGUI.cxx
       test/test_CompletionPolicy.cxx
       test/test_DanglingInputs.cxx
       test/test_DataAllocator.cxx
