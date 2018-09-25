@@ -22,7 +22,7 @@ namespace TPC
 
 /// create a processor spec
 /// read simulated TPC clusters from file and publish
-framework::DataProcessorSpec getClusterDecoderRawSpec(bool sendMC = false);
+framework::DataProcessorSpec getClusterDecoderRawSpec(bool sendMC = false, int fanNumber = -1);
 
 } // end namespace TPC
 } // end namespace o2

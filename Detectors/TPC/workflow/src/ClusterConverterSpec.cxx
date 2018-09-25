@@ -40,33 +40,53 @@ using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 /// create a processor spec
 /// convert incoming TPC clusters to HW clusters
 /// Note: This processor does not touch the MC, see below
-DataProcessorSpec getClusterConverterSpec(bool sendMC)
+DataProcessorSpec getClusterConverterSpec(bool sendMC, int fanNumber)
 {
-  auto initFunction = [sendMC](InitContext& ic) {
+  std::string processorName = "tpc-cluster-converter";
+  o2::header::DataHeader::SubSpecificationType fanSpec = 0;
+  if (fanNumber < 0) {
+    // only one instance
+    fanNumber = 0;
+  } else {
+    // multiple instances, add number to name
+    processorName += std::to_string(fanNumber);
+    fanSpec = fanNumber;
+  }
+
+  auto initFunction = [sendMC, fanSpec](InitContext& ic) {
     // there is nothing to init at the moment
     auto verbosity = 0;
 
-    auto processingFct = [verbosity, sendMC](ProcessingContext& pc) {
-      // this will return a span of TPC clusters
-      auto inClusters = pc.inputs().get<std::vector<o2::TPC::Cluster>>("clusterin");
-
+    auto processingFct = [verbosity, sendMC, fanSpec](ProcessingContext& pc) {
       // init the stacks for forwarding the sector header
       // FIXME check if there is functionality in the DPL to forward the stack
       // FIXME make one function
       o2::header::Stack rawHeaderStack;
       o2::header::Stack mcHeaderStack;
+      o2::TPC::TPCSectorHeader const* sectorHeaderMC = nullptr;
       if (sendMC) {
-        auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(pc.inputs().get("mclblin"));
-        if (sectorHeader) {
-          o2::header::Stack actual{ *sectorHeader };
+        sectorHeaderMC = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(pc.inputs().get("mclblin"));
+        if (sectorHeaderMC) {
+          o2::header::Stack actual{ *sectorHeaderMC };
           std::swap(mcHeaderStack, actual);
+          if (sectorHeaderMC->sector < 0) {
+            pc.outputs().snapshot(OutputRef{ "mclblout", fanSpec, std::move(mcHeaderStack) }, fanSpec);
+          }
         }
       }
       auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(pc.inputs().get("clusterin"));
       if (sectorHeader) {
         o2::header::Stack actual{ *sectorHeader };
         std::swap(rawHeaderStack, actual);
+        if (sectorHeader->sector < 0) {
+          pc.outputs().snapshot(OutputRef{ "clusterout", fanSpec, std::move(rawHeaderStack) }, fanSpec);
+          return;
+        }
       }
+      assert(sectorHeaderMC == nullptr || sectorHeader->sector == sectorHeaderMC->sector);
+
+      // this will return a span of TPC clusters
+      auto inClusters = pc.inputs().get<std::vector<o2::TPC::Cluster>>("clusterin");
       int nClusters = inClusters.size();
       LOG(INFO) << "got clusters from input: " << nClusters;
 
@@ -118,7 +138,7 @@ DataProcessorSpec getClusterConverterSpec(bool sendMC)
       if (verbosity > 0) {
         LOG(INFO) << "allocating " << nTotalPages << " output page(s), " << nTotalPages * sizeof(ClusterHardwareContainer8kb);
       }
-      auto outputPages = pc.outputs().make<ClusterHardwareContainer8kb>(OutputRef{ "clusterout", 0, std::move(rawHeaderStack) }, nTotalPages);
+      auto outputPages = pc.outputs().make<ClusterHardwareContainer8kb>(OutputRef{ "clusterout", fanSpec, std::move(rawHeaderStack) }, nTotalPages);
 
       auto outputPageIterator = outputPages.begin();
       unsigned mcoutIndex = 0;
@@ -166,7 +186,7 @@ DataProcessorSpec getClusterConverterSpec(bool sendMC)
         if (verbosity > 0) {
           LOG(INFO) << "writing MC labels for " << mcoutIndex << " cluster(s), index size " << mcout.getIndexedSize();
         }
-        pc.outputs().snapshot(OutputRef{ "mclblout", 0, std::move(mcHeaderStack) }, mcout);
+        pc.outputs().snapshot(OutputRef{ "mclblout", fanSpec, std::move(mcHeaderStack) }, mcout);
       }
     };
 
@@ -182,32 +202,32 @@ DataProcessorSpec getClusterConverterSpec(bool sendMC)
   // as we do not expect any further sorting of clusters during the conversion, we do not
   // need to define the MC data at all, it is just routed directly to the final consumer.
   // Whether or not to have MC data is thus a feature of the initial producer.
-  auto createInputSpecs = [](bool makeMcInput) {
+  auto createInputSpecs = [fanSpec](bool makeMcInput) {
     std::vector<InputSpec> inputSpecs{
-      InputSpec{ { "clusterin" }, gDataOriginTPC, "CLUSTERSIM", 0, Lifetime::Timeframe },
+      InputSpec{ { "clusterin" }, gDataOriginTPC, "CLUSTERSIM", fanSpec, Lifetime::Timeframe },
     };
     if (makeMcInput) {
       // FIXME: define common data type specifiers
       constexpr o2::header::DataDescription datadesc("CLUSTERMCLBL");
-      inputSpecs.emplace_back(InputSpec{ "mclblin", gDataOriginTPC, datadesc, 0, Lifetime::Timeframe });
+      inputSpecs.emplace_back(InputSpec{ "mclblin", gDataOriginTPC, datadesc, fanSpec, Lifetime::Timeframe });
     }
     return std::move(inputSpecs);
   };
 
-  auto createOutputSpecs = [](bool makeMcOutput) {
+  auto createOutputSpecs = [fanSpec](bool makeMcOutput) {
     std::vector<OutputSpec> outputSpecs{
-      OutputSpec{ { "clusterout" }, gDataOriginTPC, "CLUSTERHW", 0, Lifetime::Timeframe },
+      OutputSpec{ { "clusterout" }, gDataOriginTPC, "CLUSTERHW", fanSpec, Lifetime::Timeframe },
     };
     if (makeMcOutput) {
       OutputLabel label{ "mclblout" };
       // FIXME: define common data type specifiers
       constexpr o2::header::DataDescription datadesc("CLUSTERHWMCLBL");
-      outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
+      outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, fanSpec, Lifetime::Timeframe);
     }
     return std::move(outputSpecs);
   };
 
-  return DataProcessorSpec{ "converter",
+  return DataProcessorSpec{ processorName,
                             { createInputSpecs(sendMC) },
                             { createOutputSpecs(sendMC) },
                             AlgorithmSpec(initFunction) };

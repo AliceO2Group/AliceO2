@@ -13,6 +13,7 @@
 /// @since  2018-03-23
 /// @brief  Processor spec for a reader of TPC data from ROOT file
 
+#include "Framework/ControlService.h"
 #include "DigitReaderSpec.h"
 #include "RangeTokenizer.h"
 #include "Headers/DataHeader.h"
@@ -31,16 +32,19 @@ namespace TPC
 {
 /// create a processor spec
 /// read simulated TPC digits from file and publish
-DataProcessorSpec getDigitReaderSpec()
+DataProcessorSpec getDigitReaderSpec(size_t fanOut)
 {
   constexpr static size_t NSectors = o2::TPC::Sector::MAXSECTOR;
   struct ProcessAttributes {
+    size_t nParallelReaders = 1;
     std::vector<int> sectors;
     uint64_t activeSectors = 0;
     std::array<std::shared_ptr<RootTreeReader>, NSectors> readers;
+    bool terminateOnEod = false;
+    bool finished = false;
   };
 
-  auto initFunction = [](InitContext& ic) {
+  auto initFunction = [fanOut](InitContext& ic) {
     // get the option from the init context
     auto filename = ic.options().get<std::string>("infile");
     auto treename = ic.options().get<std::string>("treename");
@@ -50,6 +54,8 @@ DataProcessorSpec getDigitReaderSpec()
 
     auto processAttributes = std::make_shared<ProcessAttributes>();
     {
+      processAttributes->nParallelReaders = fanOut;
+      processAttributes->terminateOnEod = ic.options().get<bool>("terminate-on-eod");
       auto& sectors = processAttributes->sectors;
       auto& activeSectors = processAttributes->activeSectors;
       auto& readers = processAttributes->readers;
@@ -71,6 +77,7 @@ DataProcessorSpec getDigitReaderSpec()
       // TODO: parallelism on sectors needs to be implemented as selector in the reader
       // the data is now in parallel branches, as first attempt use an array of readers
       constexpr auto persistency = Lifetime::Timeframe;
+      o2::header::DataHeader::SubSpecificationType lane = 0;
       for (size_t sector = 0; sector < NSectors; ++sector) {
         if ((activeSectors & ((uint64_t)0x1 << sector)) == 0) {
           continue;
@@ -80,11 +87,14 @@ DataProcessorSpec getDigitReaderSpec()
         readers[sector] = std::make_shared<RootTreeReader>(treename.c_str(), // tree name
                                                            nofEvents,        // number of entries to publish
                                                            filename.c_str(), // input file name
-                                                           Output{ gDataOriginTPC, "DIGIT", 0, persistency },
+                                                           Output{ gDataOriginTPC, "DIGITS", lane, persistency },
                                                            clusterbranchname.c_str(), // name of digit branch
-                                                           Output{ gDataOriginTPC, "DIGITMCLBL", 0, persistency },
+                                                           Output{ gDataOriginTPC, "DIGITSMCTR", lane, persistency },
                                                            mcbranchname.c_str() // name of mc label branch
                                                            );
+        if (++lane >= processAttributes->nParallelReaders) {
+          lane = 0;
+        }
       }
     }
 
@@ -96,36 +106,62 @@ DataProcessorSpec getDigitReaderSpec()
     // is const and can not be incremented
     auto processingFct = [ processAttributes, index = std::make_shared<int>(0) ](ProcessingContext & pc)
     {
-      auto& sectors = processAttributes->sectors;
-      auto& activeSectors = processAttributes->activeSectors;
-      auto& readers = processAttributes->readers;
-      if (*index >= sectors.size()) {
-        *index = 0;
-      }
-      while (*index < sectors.size() && !readers[sectors[*index]]) {
-        // probably more efficient to use a vector of valid readers instead of the fixed array with
-        // possibly invalid entries
-        ++(*index);
-      }
-      if (*index == sectors.size()) {
-        // there is no valid reader at all
+      if (processAttributes->finished) {
         return;
       }
-      auto sector = sectors[*index];
-      o2::TPC::TPCSectorHeader header{ sector };
-      header.activeSectors = activeSectors;
-      auto& r = *(readers[sector].get());
 
-      // increment the reader and invoke it for the processing context
-      if (r.next()) {
-        // there is data, run the reader
-        r(pc, header);
-      } else {
-        // no more data, delete the reader
-        readers[sector].reset();
+      auto publish = [&processAttributes, &index, &pc]() {
+        auto& sectors = processAttributes->sectors;
+        auto& activeSectors = processAttributes->activeSectors;
+        auto& readers = processAttributes->readers;
+        if (*index >= sectors.size()) {
+          *index = 0;
+        }
+        while (*index < sectors.size() && !readers[sectors[*index]]) {
+          // probably more efficient to use a vector of valid readers instead of the fixed array with
+          // possibly invalid entries
+          ++(*index);
+        }
+        if (*index == sectors.size()) {
+          // there is no valid reader at all
+          return false;
+        }
+        auto sector = sectors[*index];
+        o2::TPC::TPCSectorHeader header{ sector };
+        header.activeSectors = activeSectors;
+        auto& r = *(readers[sector].get());
+
+        // increment the reader and invoke it for the processing context
+        if (r.next()) {
+          // there is data, run the reader
+          r(pc, header);
+        } else {
+          // no more data, delete the reader
+          readers[sector].reset();
+          return false;
+        }
+        ++(*index);
+        return true;
+      };
+
+      int operation = -2;
+      for (size_t lane = 0; lane < processAttributes->nParallelReaders; ++lane) {
+        if (!publish()) {
+          // need to publish a dummy packet
+          // FIXME define and use flags in the TPCSectorHeader, for now using the same schema as
+          // in digitizer workflow, -1 -> end of data, -2 noop
+          if (lane == 0) {
+            operation = -1;
+          }
+          o2::TPC::TPCSectorHeader header{ operation };
+          pc.outputs().snapshot(OutputRef{ "output", lane, { header } }, lane);
+          pc.outputs().snapshot(OutputRef{ "outputMC", lane, { header } }, lane);
+        }
       }
 
-      ++(*index);
+      if ((processAttributes->finished = (operation == -1)) && processAttributes->terminateOnEod) {
+        pc.services().get<ControlService>().readyToQuit(false);
+      }
     };
 
     // return the actual processing function as a lambda function using variables
@@ -133,10 +169,20 @@ DataProcessorSpec getDigitReaderSpec()
     return processingFct;
   };
 
-  return DataProcessorSpec{ "digit-reader",
+  auto createOutputSpecs = [fanOut]() {
+    std::vector<OutputSpec> outputSpecs;
+    for (size_t n = 0; n < fanOut; ++n) {
+      constexpr o2::header::DataDescription datadesc("DIGITS");
+      outputSpecs.emplace_back(OutputSpec{ { "output" }, gDataOriginTPC, datadesc, n, Lifetime::Timeframe });
+      constexpr o2::header::DataDescription datadescMC("DIGITSMCTR");
+      outputSpecs.emplace_back(OutputSpec{ { "outputMC" }, gDataOriginTPC, datadescMC, n, Lifetime::Timeframe });
+    }
+    return std::move(outputSpecs);
+  };
+
+  return DataProcessorSpec{ "tpc-digit-reader",
                             Inputs{}, // no inputs
-                            { OutputSpec{ gDataOriginTPC, "DIGIT", 0, Lifetime::Timeframe },
-                              OutputSpec{ gDataOriginTPC, "DIGITMCLBL", 0, Lifetime::Timeframe } },
+                            { createOutputSpecs() },
                             AlgorithmSpec(initFunction),
                             Options{
                               { "infile", VariantType::String, "", { "Name of the input file" } },
@@ -145,6 +191,7 @@ DataProcessorSpec getDigitReaderSpec()
                               { "mcbranch", VariantType::String, "TPCDigitMCTruth", { "MC info branch" } },
                               { "tpc-sectors", VariantType::String, "0-35", { "TPC sector range, e.g. 5-7,8,9" } },
                               { "nevents", VariantType::Int, -1, { "number of events to run" } },
+                              { "terminate-on-eod", VariantType::Bool, false, { "terminate on end-of-data" } },
                             } };
 }
 } // end namespace TPC

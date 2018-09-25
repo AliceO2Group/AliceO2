@@ -53,9 +53,14 @@ tpc-reco-workflow --infile tpcdigits.root --tpc-sectors 0-15 --disable-mc 1
 --input-type arg (=digits)            digits, clusters, raw
 --output-type arg (=tracks)           clusters, raw, tracks
 --disable-mc arg (=0)                 disable sending of MC information
+--tpc-lanes arg (=1)                  number of parallel lanes up to the tracker
 ```
 Support for all other output types than `tracks` is going to be implemented soon, multiple outputs
 will be supported in order to keep the data at intermediate steps.
+
+#### Parallel processing
+Parallel processing is controlled by the option `--tpc-lanes n`. The digit reader will fan out to n processing
+lanes, each with clusterer, converter and decoder. The tracker will fan in from the parallel lanes.
 
 ### Processor options
 
