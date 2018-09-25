@@ -82,9 +82,16 @@ void Detector::ConstructGeometry()
 //_____________________________________________________________________________
 void Detector::defineSensitiveVolumes()
 {
+  LOG(INFO) << "defining sensitive for ZDC";
   auto vol = gGeoManager->GetVolume("ZNEU");
   if (vol) {
     AddSensitiveVolume(vol);
+    AddSensitiveVolume(gGeoManager->GetVolume("ZNTX"));
+    AddSensitiveVolume(gGeoManager->GetVolume("ZN1"));
+    AddSensitiveVolume(gGeoManager->GetVolume("ZNF1"));
+    AddSensitiveVolume(gGeoManager->GetVolume("ZNF2"));
+    AddSensitiveVolume(gGeoManager->GetVolume("ZNF3"));
+    AddSensitiveVolume(gGeoManager->GetVolume("ZNF4"));
   } else {
     LOG(FATAL) << "can't find volume ZNEU";
   }
@@ -99,7 +106,7 @@ void Detector::defineSensitiveVolumes()
 //_____________________________________________________________________________
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
-	LOG(INFO) << "ZDC sensitive seen";
+  LOG(INFO) << "ZDC sensitive seen";
 
   // Method called from MC stepping for the sensitive volumes
   TString volname = fMC->CurrentVolName();
