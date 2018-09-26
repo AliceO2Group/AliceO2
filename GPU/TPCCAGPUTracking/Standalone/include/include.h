@@ -33,6 +33,7 @@ extern void SetMCTrackRange(int min, int max);
 extern bool SuppressTrack(int iTrack);
 extern bool SuppressHit(int iHit);
 extern int GetMCLabel(unsigned int trackId);
+extern bool clusterRemovable(int cid, bool prot);
 #else
 static void InitQA() {}
 static void RunQA(bool matchOnly = false) {}
@@ -41,6 +42,7 @@ static void SetMCTrackRange(int min, int max) {}
 static bool SuppressTrack(int iTrack) {return false;}
 static bool SuppressHit(int iHit) {return false;}
 static int GetMCLabel(unsigned int trackId) {return(-1);}
+static bool clusterRemovable(int cid, bool prot) {return false;}
 #endif
 
 //QA - Event Generator

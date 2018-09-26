@@ -72,7 +72,7 @@ inline void drawVertices(const vboList& v, const GLenum t)
 		CHKERR(glBindBuffer(GL_ARRAY_BUFFER, vbo_id[iSlice]))
 		CHKERR(glVertexPointer(3, GL_FLOAT, 0, 0));
 	}
-	
+
 	if (useGLIndirectDraw)
 	{
 		CHKERR(glMultiDrawArraysIndirect(t, (void*) (size_t) ((indirectSliceOffset[iSlice] + first) * sizeof(DrawArraysIndirectCommand)), count, 0));
@@ -148,7 +148,7 @@ void calcXYZ()
 	xyz[0] = -(currentMatrix[0] * currentMatrix[12] + currentMatrix[1] * currentMatrix[13] + currentMatrix[2] * currentMatrix[14]);
 	xyz[1] = -(currentMatrix[4] * currentMatrix[12] + currentMatrix[5] * currentMatrix[13] + currentMatrix[6] * currentMatrix[14]);
 	xyz[2] = -(currentMatrix[8] * currentMatrix[12] + currentMatrix[9] * currentMatrix[13] + currentMatrix[10] * currentMatrix[14]);
-	
+
 	angle[0] = -asinf(currentMatrix[6]); //Invert rotY*rotX*rotZ
 	float A = cosf(angle[0]);
 	if (fabs(A) > 0.005)
@@ -161,13 +161,13 @@ void calcXYZ()
 		angle[1] = 0;
 		angle[2] = atan2f(-currentMatrix[1], -currentMatrix[0]);
 	}
-	
+
 	rphitheta[0] = sqrtf(xyz[0] * xyz[0] + xyz[1] * xyz[1] + xyz[2] * xyz[2]);
 	rphitheta[1] = atan2f(xyz[0], xyz[2]);
 	rphitheta[2] = atan2f(xyz[1], sqrtf(xyz[0] * xyz[0] + xyz[2] * xyz[2]));
-	
+
 	createQuaternionFromMatrix(quat, currentMatrix);
-	
+
 	/*float angle[1] = -asinf(currentMatrix[2]); //Calculate Y-axis angle - for rotX*rotY*rotZ
 	float C = cosf( angle_y );
 	if (fabs(C) > 0.005) //Gimball lock?
@@ -227,7 +227,7 @@ opengl_spline animationSplines[8];
 void animationCloseAngle(float& newangle, float lastAngle)
 {
 	const float delta = lastAngle > newangle ? (2 * M_PI) : (-2 * M_PI);
-	while (fabs(newangle + delta - lastAngle) < fabs(newangle - lastAngle)) newangle += delta;	
+	while (fabs(newangle + delta - lastAngle) < fabs(newangle - lastAngle)) newangle += delta;
 }
 void animateCloseQuaternion(float* v, float lastx, float lasty, float lastz, float lastw)
 {
@@ -413,13 +413,13 @@ void createFB(GLfb& fb, bool tex, bool withDepth, bool msaa)
 
 	if (tex) createFB_texture(fb.fbCol_id, fb.msaa, GL_RGBA, GL_COLOR_ATTACHMENT0);
 	else createFB_renderbuffer(fb.fbCol_id, fb.msaa, GL_RGBA, GL_COLOR_ATTACHMENT0);
-	
+
 	if (withDepth)
 	{
 		if (tex && fb.msaa) createFB_texture(fb.fbDepth_id, fb.msaa, GL_DEPTH_COMPONENT24, GL_DEPTH_ATTACHMENT);
 		else createFB_renderbuffer(fb.fbDepth_id, fb.msaa, GL_DEPTH_COMPONENT24, GL_DEPTH_ATTACHMENT);
 	}
-	
+
 	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if (status != GL_FRAMEBUFFER_COMPLETE)
 	{
@@ -471,7 +471,7 @@ void UpdateOffscreenBuffers(bool clean = false)
 	if (offscreenBuffer.created) deleteFB(offscreenBuffer);
 	if (offscreenBufferNoMSAA.created) deleteFB(offscreenBufferNoMSAA);
 	if (clean) return;
-	
+
 	if (drawQualityDownsampleFSAA > 1)
 	{
 		render_width = screen_width * drawQualityDownsampleFSAA;
@@ -548,7 +548,7 @@ void updateConfig()
 int InitGL()
 {
 	CHKERR(glewInit());
-	
+
 	int glVersion[2] = {0, 0};
 	glGetIntegerv(GL_MAJOR_VERSION, &glVersion[0]);
 	glGetIntegerv(GL_MINOR_VERSION, &glVersion[1]);
@@ -557,12 +557,12 @@ int InitGL()
 		printf("Unsupported OpenGL runtime %d.%d < 4.6\n", glVersion[0], glVersion[1]);
 		return(0);
 	}
-	
+
 	CHKERR(glCreateBuffers(36, vbo_id));
 	CHKERR(glBindBuffer(GL_ARRAY_BUFFER, vbo_id[0]));
 	CHKERR(glGenBuffers(1, &indirect_id));
 	CHKERR(glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirect_id));
-	
+
 	CHKERR(glShadeModel(GL_SMOOTH));                           // Enable Smooth Shading
 	CHKERR(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));                      // Black Background
 	setDepthBuffer();
@@ -605,7 +605,11 @@ vboList DrawClusters(AliHLTTPCCATracker &tracker, int select, int iCol)
 			const int attach = merger.ClusterAttachment()[cid];
 			if (attach)
 			{
-				if ((markAdjacentClusters & 2) && (attach & AliHLTTPCGMMerger::attachTube)) draw = select == 8;
+				if (markAdjacentClusters >= 16)
+				{
+					if (clusterRemovable(cid, markAdjacentClusters == 17)) draw = select == 8;
+				}
+				else if ((markAdjacentClusters & 2) && (attach & AliHLTTPCGMMerger::attachTube)) draw = select == 8;
 				else if ((markAdjacentClusters & 1) && (attach & (AliHLTTPCGMMerger::attachGood | AliHLTTPCGMMerger::attachTube)) == 0) draw = select == 8;
 				else if ((markAdjacentClusters & 4) && (attach & AliHLTTPCGMMerger::attachGoodLeg) == 0) draw = select == 8;
 				else if (markAdjacentClusters & 8)
@@ -837,7 +841,7 @@ void DrawFinal(int iSlice, int /*iCol*/, AliHLTTPCGMPropagator* prop, std::array
 					mclocal[2] = px*c + py*s;
 					mclocal[3] =-px*s + py*c;
 					float charge = mc.fCharge > 0 ? 1.f : -1.f;
-					
+
 					x = mclocal[0];
 					if (fabs(mc.fZ) > 250) ZOffset = mc.fZ > 0 ? (mc.fZ - 250) : (mc.fZ + 250);
 					param.Set(mclocal[0], mclocal[1], mc.fZ - ZOffset, mclocal[2], mclocal[3], mc.fPz, charge);
@@ -851,7 +855,7 @@ void DrawFinal(int iSlice, int /*iCol*/, AliHLTTPCGMPropagator* prop, std::array
 				alpha = hlt.Param().Alpha(slice);
 				vecpod<GLvertex>& useBuffer = iMC && inFlyDirection == 0 ? buffer : vertexBuffer[iSlice];
 				int nPoints = 0;
-				
+
 				while (nPoints++ < 5000)
 				{
 					if ((inFlyDirection == 0 && x < 0) || (inFlyDirection && x * x + param.Y() * param.Y() > (iMC ? (450 * 450) : (300 * 300)))) break;
@@ -882,7 +886,7 @@ void DrawFinal(int iSlice, int /*iCol*/, AliHLTTPCGMPropagator* prop, std::array
 					useBuffer.emplace_back((ca * param.X() - sa * param.Y()) / GL_SCALE_FACTOR, (ca * param.Y() + sa * param.X()) / GL_SCALE_FACTOR, projectxy ? 0 : (param.Z() + ZOffset) / GL_SCALE_FACTOR);
 					x += inFlyDirection ? 1 : -1;
 				}
-				
+
 				if (inFlyDirection == 0)
 				{
 					if (iMC)
@@ -981,14 +985,14 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			WaitForSingleObject(semLockDisplay, INFINITE);
 		#else
 			pthread_mutex_lock(&semLockDisplay);
-		#endif	
+		#endif
 	}
-	
+
 	if (!mixAnimation && offscreenBuffer.created)
 	{
 		setFrameBuffer(1, offscreenBuffer.fb_id);
 	}
-	
+
 	//Initialize
 	if (!mixAnimation)
 	{
@@ -1020,7 +1024,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 	{
 		if (animateScreenshot) time = animationFrame / 30.f;
 		else time = animationTimer.GetCurrentElapsedTime();
-		
+
 		float maxTime = animateVectors[0].back();
 		animationFrame++;
 		if (time >= maxTime)
@@ -1048,7 +1052,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			int k = animateVectors[0].size() - 1;
 			while (base < k && time > animateVectors[0][base]) base++;
 			if (base > animationLastBase + 1) animationLastBase = base - 1;
-			
+
 			if (base != animationLastBase && animateVectors[0][animationLastBase] != animateVectors[0][base] && memcmp(&animateConfig[base], &animateConfig[animationLastBase], sizeof(animateConfig[base])))
 			{
 				cfg = animateConfig[animationLastBase];
@@ -1070,14 +1074,14 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 				glLoadIdentity();                                   //Reset The Current Modelview Matrix
 				mixSlaveImage = 1.f - (time - animateVectors[0][animationLastBase]) / (animateVectors[0][base] - animateVectors[0][animationLastBase]);
 			}
-			
+
 			if (memcmp(&animateConfig[base], &cfg, sizeof(cfg)))
 			{
 				cfg = animateConfig[base];
 				updateConfig();
 			}
 		}
-		
+
 		if (cfg.animationMode != 6)
 		{
 			if (cfg.animationMode & 1) //Rotation from euler angles
@@ -1157,7 +1161,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			rotYaw += rotatescalefactor * ((float) mouseMvX - (float) mouseDnX);
 			rotPitch += rotatescalefactor * ((float) mouseMvY - (float) mouseDnY);
 		}
-		
+
 		if (keys['<'] && !keysShift['<'])
 		{
 			animationDelay += moveX;
@@ -1180,7 +1184,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 				moveX = tmpX * cosf(angle[2]) - tmpY * sinf(angle[2]);
 				moveY = tmpX * sinf(angle[2]) + tmpY * cosf(angle[2]);
 			}
-			
+
 			const float x = xyz[0], y = xyz[1], z = xyz[2];
 			float r = sqrtf(x * x + + y * y + z * z);
 			float r2 = sqrtf(x * x + z * z);
@@ -1197,7 +1201,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			xyz[0] = r2 * cosf(phi);
 			xyz[2] = r2 * sinf(phi);
 			xyz[1] = r * sinf(theta);
-			
+
 			gluLookAt(xyz[0], xyz[1], xyz[2], 0, 0, 0, 0, 1, 0);
 		}
 		else
@@ -1207,7 +1211,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			if (rotPitch != 0.f) glRotatef(rotPitch, 1, 0, 0);
 			if (!yUp && rotRoll != 0.f) glRotatef(rotRoll, 0, 0, 1);
 			glMultMatrixf(currentMatrix); //Apply previous translation / rotation
-			
+
 			if (yUp)
 			{
 				glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrix);
@@ -1230,19 +1234,19 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		if (cfg.pointSize < minSize) cfg.pointSize = minSize;
 		if (deltaPoint) SetInfo("%s point size: %f", deltaPoint > 0 ? "Increasing" : "Decreasing", cfg.pointSize);
 	}
-	
+
 	//Store position
 	if (animateTime < 0)
 	{
 		glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrix);
 		calcXYZ();
 	}
-	
+
 	if (mouseDn || mouseDnR)
 	{
 		mouseDnX = mouseMvX;
 		mouseDnY = mouseMvY;
-	}	
+	}
 
 	//Open GL Default Values
 	if (cfg.smoothPoints) CHKERR(glEnable(GL_POINT_SMOOTH))
@@ -1357,7 +1361,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			const float kRadLen = 29.532;//28.94;
 			prop.SetMaxSinPhi(.999);
 			prop.SetMaterial(kRadLen, kRho);
-			prop.SetPolynomialField(merger.pField());		
+			prop.SetPolynomialField(merger.pField());
 			prop.SetToyMCEventsFlag(merger.SliceParam().ToyMCEventsFlag());
 
 #pragma omp barrier
@@ -1406,7 +1410,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 				const AliHLTTPCCAMCInfo& mc = hlt.GetMCInfo()[i];
 				if (mc.fCharge == 0.f) continue;
 				if (mc.fPID < 0) continue;
-				
+
 				float alpha = atan2f(mc.fY, mc.fX);
 				if (alpha < 0) alpha += 2 * M_PI;
 				int slice = alpha / (2 * M_PI) * 18;
@@ -1462,7 +1466,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		glDLrecent = 1;
 		size_t totalVertizes = 0;
 		for (int i = 0;i < fgkNSlices;i++) totalVertizes += vertexBuffer[i].size();
-		
+
 		useMultiVBO = (totalVertizes * sizeof(vertexBuffer[0][0]) >= 0x100000000ll);
 		if (useMultiVBO)
 		{
@@ -1490,7 +1494,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			CHKERR(glNamedBufferData(vbo_id[0], totalVertizes * sizeof(vertexBuffer[0][0]), vertexBuffer[0].data(), GL_STATIC_DRAW));
 			vertexBuffer[0].clear();
 		}
-		
+
 		if (useGLIndirectDraw)
 		{
 			static vecpod<DrawArraysIndirectCommand> cmds;
@@ -1511,16 +1515,16 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			printf("Draw time: %'d us (vertices %'lld / %'lld bytes)\n", (int) (timerDraw.GetCurrentElapsedTime() * 1000000.), (long long int) totalVertizes, (long long int) (totalVertizes * sizeof(vertexBuffer[0][0])));
 		}
 	}
-	
+
 	//Draw Event
 	drawCalls = 0;
 	CHKERR(glEnableClientState(GL_VERTEX_ARRAY));
 	CHKERR(glVertexPointer(3, GL_FLOAT, 0, 0));
-	
+
 	#define LOOP_SLICE for (int iSlice = (cfg.drawSlice == -1 ? 0 : cfg.drawRelatedSlices ? (cfg.drawSlice % 9) : cfg.drawSlice);iSlice < fgkNSlices;iSlice += (cfg.drawSlice == -1 ? 1 : cfg.drawRelatedSlices ? 9 : fgkNSlices))
 	#define LOOP_COLLISION for (int iCol = (cfg.showCollision == -1 ? 0 : cfg.showCollision);iCol < nCollisions;iCol += (cfg.showCollision == -1 ? 1 : nCollisions))
 	#define LOOP_COLLISION_COL(cmd) LOOP_COLLISION {if (cfg.colorCollisions) SetCollisionColor(iCol); cmd;}
-	
+
 	if (cfg.drawGrid)
 	{
 		SetColorGrid();
@@ -1646,7 +1650,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 	}
 
 	CHKERR(glDisableClientState(GL_VERTEX_ARRAY));
-	
+
 	if (mixSlaveImage > 0)
 	{
 		glMatrixMode(GL_MODELVIEW);
@@ -1674,7 +1678,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		setDepthBuffer();
 		glPopMatrix();
 	}
-	
+
 	if (mixAnimation)
 	{
 		glColorMask(false, false, false, true);
@@ -1692,7 +1696,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		}
 		CHKERR(glBlitNamedFramebuffer(srcid, mainBufferStack.back(), 0, 0, render_width, render_height, 0, 0, screen_width, screen_height, GL_COLOR_BUFFER_BIT, GL_LINEAR));
 	}
-	
+
 	if (animate && animateScreenshot && animateTime < 0)
 	{
 		char animateScreenshotFile[32];
@@ -1717,8 +1721,8 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			if (fpsscaleadjust++) fpsscale = 60 / fps;
 			timerFPS.ResetStart();
 			framesDoneFPS = 0;
-		}		
-		
+		}
+
 		if (printInfoText & 1)
 		{
 			setFrameBuffer(0, 0);
@@ -1726,7 +1730,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			setFrameBuffer(-2);
 		}
 	}
-	
+
 //Free event
 #ifdef WIN32
 	ReleaseSemaphore(semLockDisplay, 1, NULL);
@@ -1745,10 +1749,10 @@ void DoScreenshot(char *filename, float animateTime)
 	float tmpLineWidth = cfg.lineWidth;
 	cfg.pointSize *= (float) (SCALE_X + SCALE_Y) / 2.;
 	cfg.lineWidth *= (float) (SCALE_X + SCALE_Y) / 2.;
-	
+
 	int oldWidth = screen_width, oldHeight = screen_height;
 	GLfb screenshotBuffer;
-	
+
 	bool needBuffer = SCALE_X != 1 || SCALE_Y != 1;
 
 	if (needBuffer)
@@ -1874,7 +1878,7 @@ void PrintHelp()
 void HandleKeyRelease(int wParam, char key)
 {
 	keys[wParam] = false;
-	
+
 	if (wParam >= 'A' && wParam <= 'Z')
 	{
 		if (keysShift[wParam]) wParam &= ~(int) ('a' ^ 'A');
@@ -2018,8 +2022,10 @@ void HandleKeyRelease(int wParam, char key)
 		markAdjacentClusters++;
 		if (markAdjacentClusters == 5) markAdjacentClusters = 7;
 		if (markAdjacentClusters == 9) markAdjacentClusters = 15;
-		if (markAdjacentClusters == 16) markAdjacentClusters = 0;
-		SetInfo("Marking adjacent clusters (%d): rejected %s, tube %s, looper leg %s, low Pt %s", markAdjacentClusters, markAdjacentClusters & 1 ? "yes" : " no", markAdjacentClusters & 2 ? "yes" : " no", markAdjacentClusters & 4 ? "yes" : " no", markAdjacentClusters & 8 ? "yes" : " no");
+		if (markAdjacentClusters == 18) markAdjacentClusters = 0;
+		if (markAdjacentClusters == 17) SetInfo("Marking protected clusters (%d)", markAdjacentClusters);
+		else if (markAdjacentClusters == 16) SetInfo("Marking removable clusters (%d)", markAdjacentClusters);
+		else SetInfo("Marking adjacent clusters (%d): rejected %s, tube %s, looper leg %s, low Pt %s", markAdjacentClusters, markAdjacentClusters & 1 ? "yes" : " no", markAdjacentClusters & 2 ? "yes" : " no", markAdjacentClusters & 4 ? "yes" : " no", markAdjacentClusters & 8 ? "yes" : " no");
 		updateDLList = true;
 	}
 	else if (wParam == 'C')
@@ -2377,7 +2383,7 @@ void showInfo(const char* info)
 	glColor4f(colorValue, colorValue, colorValue, 0);
 	glViewport(0, 0, render_width, render_height);
 	glPopMatrix();
-}	
+}
 
 void HandleSendKey()
 {
