@@ -86,8 +86,8 @@ static TCanvas* cclust[N_CLS_TYPE];
 static TPad* pclust[N_CLS_TYPE];
 static TLegend* legendclust[N_CLS_TYPE];
 
-long long int recClustersPhysics = 0, recClustersRejected = 0,  recClustersTube = 0, recClustersTube200 = 0, recClustersLoopers = 0, recClustersLowPt = 0, recClustersUnattached = 0, recClusters200MeV = 0,
-	recClustersUnaccessible = 0, recClustersHighIncl = 0, recClustersAbove400 = 0, recClustersFakeRemove400 = 0;
+long long int recClustersRejected = 0,  recClustersTube = 0, recClustersTube200 = 0, recClustersLoopers = 0, recClustersLowPt = 0, recClusters200MeV = 0, recClustersPhysics = 0, recClustersProt = 0, recClustersUnattached = 0, recClustersTotal = 0,
+	recClustersUnaccessible = 0, recClustersHighIncl = 0, recClustersAbove400 = 0, recClustersFakeRemove400 = 0, recClustersFullFakeRemove400 = 0, recClustersBelow40 = 0, recClustersFakeProtect40 = 0;
 
 TH1F* tracks;
 TCanvas* ctracks;
@@ -161,6 +161,54 @@ static const constexpr int res_axis_bins[] = {1017, 113}; //Consecutive bin size
 static const constexpr float res_axes[5] = {1., 1., 0.03, 0.03, 1.0};
 static const constexpr float res_axes_native[5] = {1., 1., 0.1, 0.1, 5.0};
 static const constexpr float pull_axis = 10.f;
+
+#define CHECK_CLUSTER_STATE_INIT() \
+	bool unattached = attach == 0; \
+	float qpt = 0; \
+	bool lowPt = false; \
+	bool mev200 = false; \
+	int id = attach & AliHLTTPCGMMerger::attachTrackMask; \
+	if (!unattached) \
+	{ \
+		qpt = fabs(merger.OutputTracks()[id].GetParam().GetQPt()); \
+		lowPt = qpt > 20;  \
+		mev200 = qpt > 5; \
+		if (mev200) recClusters200MeV++; \
+	} \
+	bool physics = false, protect = false;
+
+#define CHECK_CLUSTER_STATE_CHK_COUNT() \
+	if (unattached) {} \
+	else if (lowPt) recClustersLowPt++; \
+	else if ((attach & AliHLTTPCGMMerger::attachGoodLeg) == 0) recClustersLoopers++; \
+	else if ((attach & AliHLTTPCGMMerger::attachTube) && mev200) recClustersTube200++; \
+	else if (attach & AliHLTTPCGMMerger::attachHighIncl) recClustersHighIncl++; \
+	else if (attach & AliHLTTPCGMMerger::attachTube) {protect = true; recClustersTube++;} \
+	else if ((attach & AliHLTTPCGMMerger::attachGood) == 0) {protect = true; recClustersRejected++;} \
+	else {physics = true;} \
+
+#define CHECK_CLUSTER_STATE_CHK_NOCOUNT() \
+	if (unattached) {} \
+	else if (lowPt) recClustersLowPt++; \
+	else if ((attach & AliHLTTPCGMMerger::attachGoodLeg) == 0) {} \
+	else if ((attach & AliHLTTPCGMMerger::attachTube) && mev200) {} \
+	else if (attach & AliHLTTPCGMMerger::attachHighIncl) {} \
+	else if (attach & AliHLTTPCGMMerger::attachTube) {protect = true;} \
+	else if ((attach & AliHLTTPCGMMerger::attachGood) == 0) {protect = true;} \
+	else {physics = true;} \
+
+#define CHECK_CLUSTER_STATE() CHECK_CLUSTER_STATE_INIT() CHECK_CLUSTER_STATE_CHK_COUNT()
+#define CHECK_CLUSTER_STATE_NOCOUNT() CHECK_CLUSTER_STATE_INIT() CHECK_CLUSTER_STATE_CHK_NOCOUNT()
+
+bool clusterRemovable(int cid, bool prot)
+{
+	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
+	const AliHLTTPCGMMerger &merger = hlt.Merger();
+	int attach = merger.ClusterAttachment()[cid];
+	CHECK_CLUSTER_STATE_NOCOUNT();
+	if (prot) return protect || physics;
+	return(!unattached && !physics && !protect);
+}
 
 static void SetAxisSize(TH1F* e)
 {
@@ -467,7 +515,9 @@ void RunQA(bool matchOnly)
 	std::vector<int> &effBuffer = mcEffBuffer[nEvents - 1];
 	std::vector<int> &labelBuffer = mcLabelBuffer[nEvents - 1];
 
-	if (hlt.GetNMCInfo() && hlt.GetNMCLabels())
+	bool mcAvail = hlt.GetNMCInfo() && hlt.GetNMCLabels();
+
+	if (mcAvail)
 	{
 		//Assign Track MC Labels
 		timer.Start();
@@ -842,6 +892,8 @@ void RunQA(bool matchOnly)
 					{
 						if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID >= 0 && mcParam[hlt.GetMCLabels()[hitId].fClusterID[j].fMCID].pt > MIN_TRACK_PT_DEFAULT) totalWeight += hlt.GetMCLabels()[hitId].fClusterID[j].fWeight;
 					}
+					int attach = merger.ClusterAttachment()[hitId];
+					CHECK_CLUSTER_STATE_NOCOUNT();
 					if (totalWeight > 0)
 					{
 						float weight = 1.f / (totalWeight * (clusterParam[hitId].attached + clusterParam[hitId].fakeAttached));
@@ -856,6 +908,8 @@ void RunQA(bool matchOnly)
 								clusters[CL_att_adj]->Fill(pt, hlt.GetMCLabels()[hitId].fClusterID[j].fWeight * weight);
 								if (recTracks[label]) clusters[CL_tracks]->Fill(pt, hlt.GetMCLabels()[hitId].fClusterID[j].fWeight * weight);
 								clusters[CL_all]->Fill(pt, hlt.GetMCLabels()[hitId].fClusterID[j].fWeight * weight);
+								if (protect || physics) clusters[CL_prot]->Fill(pt, hlt.GetMCLabels()[hitId].fClusterID[j].fWeight * weight);
+								if (physics) clusters[CL_physics]->Fill(pt, hlt.GetMCLabels()[hitId].fClusterID[j].fWeight * weight);
 							}
 						}
 					}
@@ -866,6 +920,8 @@ void RunQA(bool matchOnly)
 						clusters[CL_att_adj]->Fill(0.f, weight);
 						clusters[CL_all]->Fill(0.f, weight);
 						recClustersUnaccessible++;
+						if (protect || physics) clusters[CL_prot]->Fill(0.f, weight);
+						if (physics) clusters[CL_physics]->Fill(0.f, weight);
 					}
 				}
 				continue;
@@ -892,12 +948,18 @@ void RunQA(bool matchOnly)
 				}
 				clusters[CL_att_adj]->Fill(pt, weight);
 				clusters[CL_all]->Fill(pt, weight);
+				int attach = merger.ClusterAttachment()[hitId];
+				CHECK_CLUSTER_STATE_NOCOUNT();
+				if (protect || physics) clusters[CL_prot]->Fill(pt, weight);
+				if (physics) clusters[CL_physics]->Fill(pt, weight);
 			}
 		}
 		for (int i = 0;i < hlt.GetNMCLabels();i++)
 	 	{
 			if ((mcTrackMin != -1 && hlt.GetMCLabels()[i].fClusterID[0].fMCID < mcTrackMin) || (mcTrackMax != -1 && hlt.GetMCLabels()[i].fClusterID[0].fMCID >= mcTrackMax)) continue;
 			if (clusterParam[i].attached || clusterParam[i].fakeAttached) continue;
+			int attach = merger.ClusterAttachment()[i];
+			CHECK_CLUSTER_STATE_NOCOUNT();
 			if (clusterParam[i].adjacent)
 			{
 				int label = merger.ClusterAttachment()[i] & AliHLTTPCGMMerger::attachTrackMask;
@@ -922,6 +984,8 @@ void RunQA(bool matchOnly)
 								clusters[CL_att_adj]->Fill(pt, hlt.GetMCLabels()[i].fClusterID[j].fWeight * weight);
 								clusters[CL_fakeAdj]->Fill(pt, hlt.GetMCLabels()[i].fClusterID[j].fWeight * weight);
 								clusters[CL_all]->Fill(pt, hlt.GetMCLabels()[i].fClusterID[j].fWeight * weight);
+								if (protect || physics) clusters[CL_prot]->Fill(pt, hlt.GetMCLabels()[i].fClusterID[j].fWeight * weight);
+								if (physics) clusters[CL_physics]->Fill(pt, hlt.GetMCLabels()[i].fClusterID[j].fWeight * weight);
 							}
 						}
 					}
@@ -931,6 +995,8 @@ void RunQA(bool matchOnly)
 						clusters[CL_fakeAdj]->Fill(0.f, 1.f);
 						clusters[CL_all]->Fill(0.f, 1.f);
 						recClustersUnaccessible++;
+						if (protect || physics) clusters[CL_prot]->Fill(0.f, 1.f);
+						if (physics) clusters[CL_physics]->Fill(0.f, 1.f);
 					}
 				}
 				else
@@ -941,6 +1007,8 @@ void RunQA(bool matchOnly)
 					clusters[CL_att_adj]->Fill(pt, 1.f);
 					clusters[CL_tracks]->Fill(pt, 1.f);
 					clusters[CL_all]->Fill(pt, 1.f);
+					if (protect || physics) clusters[CL_prot]->Fill(pt, 1.f);
+					if (physics) clusters[CL_physics]->Fill(pt, 1.f);
 				}
 			}
 			else
@@ -964,6 +1032,8 @@ void RunQA(bool matchOnly)
 							if (clusterParam[i].fakeAdjacent) clusters[CL_att_adj]->Fill(pt, weight);
 							if (recTracks[label]) clusters[CL_tracks]->Fill(pt, weight);
 							clusters[CL_all]->Fill(pt, weight);
+							if (protect || physics) clusters[CL_prot]->Fill(pt, weight);
+							if (physics) clusters[CL_physics]->Fill(pt, weight);
 						}
 					}
 				}
@@ -973,6 +1043,8 @@ void RunQA(bool matchOnly)
 					if (clusterParam[i].fakeAdjacent) clusters[CL_att_adj]->Fill(0.f, 1.f);
 					clusters[CL_all]->Fill(0.f, 1.f);
 					recClustersUnaccessible++;
+					if (protect || physics) clusters[CL_prot]->Fill(0.f, 1.f);
+					if (physics) clusters[CL_physics]->Fill(0.f, 1.f);
 				}
 			}
 		}
@@ -997,60 +1069,55 @@ void RunQA(bool matchOnly)
 	for (int i = 0;i < merger.MaxId();i++)
 	{
 		int attach = merger.ClusterAttachment()[i];
-		bool unattached = attach == 0;
-		float qpt = 0;
-		bool lowPt = false;
-		bool mev200 = false;
-		if (!unattached)
-		{
-			int id = attach & AliHLTTPCGMMerger::attachTrackMask;
-			const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[id];
-			qpt = fabs(track.GetParam().GetQPt());
-			lowPt = qpt > 20;
-			mev200 = qpt > 5;
-			if (mev200) recClusters200MeV++;
-		}
-		bool physics = false, protect = false;
-		if (unattached) recClustersUnattached++;
-		else if (lowPt) recClustersLowPt++;
-		else if ((attach & AliHLTTPCGMMerger::attachGoodLeg) == 0) recClustersLoopers++;
-		else if ((attach & AliHLTTPCGMMerger::attachTube) && mev200) recClustersTube200++;
-		else if (attach & AliHLTTPCGMMerger::attachHighIncl) recClustersHighIncl++;
-		else if (attach & AliHLTTPCGMMerger::attachTube) {protect = true; recClustersTube++;}
-		else if ((attach & AliHLTTPCGMMerger::attachGood) == 0) {protect = true; recClustersRejected++;}
-		else {physics = true; recClustersPhysics++;}
+		CHECK_CLUSTER_STATE();
 
-		if (protect || physics) clusters[CL_prot]->Fill(1.f / qpt);
-		if (physics) clusters[CL_physics]->Fill(1.f / qpt);
-
-		float totalWeight = 0, weight400 = 0;
-		for (int j = 0;j < 3;j++)
+		if (mcAvail)
 		{
-			auto& label = hlt.GetMCLabels()[i].fClusterID[j];
-			if (label.fMCID >= 0)
+			float totalWeight = 0, weight400 = 0, weight40 = 0;
+			for (int j = 0;j < 3;j++)
 			{
-				totalWeight += label.fWeight;
-				if (mcParam[label.fMCID].pt >= 0.4) weight400 += label.fWeight;
-			}
-		}
-		if (totalWeight > 0 && 10.f * weight400 >= totalWeight)
-		{
-			if (!unattached && !protect && !physics)
-			{
-				recClustersFakeRemove400++;
-				/*printf("Fake removal: Hit %d, attached %d lowPt %d looper %d tube200 %d highIncl %d tube %d bad %d ", i, (int) (clusterParam[i].attached || clusterParam[i].fakeAttached),
-					(int) lowPt, (int) ((attach & AliHLTTPCGMMerger::attachGoodLeg) == 0), (int) ((attach & AliHLTTPCGMMerger::attachTube) && mev200),
-					(int) ((attach & AliHLTTPCGMMerger::attachHighIncl) != 0), (int) ((attach & AliHLTTPCGMMerger::attachTube) != 0), (int) ((attach & AliHLTTPCGMMerger::attachGood) == 0));
-				for (int j = 0;j < 3;j++)
+				auto& label = hlt.GetMCLabels()[i].fClusterID[j];
+				if (label.fMCID >= 0)
 				{
-					//if (hlt.GetMCLabels()[i].fClusterID[j].fMCID < 0) break;
-					printf(" - label %7d weight %5d", hlt.GetMCLabels()[i].fClusterID[j].fMCID, (int) hlt.GetMCLabels()[i].fClusterID[j].fWeight);
-					if (hlt.GetMCLabels()[i].fClusterID[j].fMCID >= 0) printf(" - pt %7.2f", mcParam[hlt.GetMCLabels()[i].fClusterID[j].fMCID].pt);
-					else printf("             ");
+					totalWeight += label.fWeight;
+					if (mcParam[label.fMCID].pt >= 0.4) weight400 += label.fWeight;
+					if (mcParam[label.fMCID].pt <= 0.04) weight40 += label.fWeight;
 				}
-				printf("\n");*/
 			}
-			recClustersAbove400++;
+			if (totalWeight > 0 && 10.f * weight400 >= totalWeight)
+			{
+				if (!unattached && !protect && !physics)
+				{
+					recClustersFakeRemove400++;
+					int totalFake = weight400 < 0.9f * totalWeight;
+					if (totalFake) recClustersFullFakeRemove400++;
+					/*printf("Fake removal (%d): Hit %7d, attached %d lowPt %d looper %d tube200 %d highIncl %d tube %d bad %d recPt %7.2f recLabel %6d", totalFake, i, (int) (clusterParam[i].attached || clusterParam[i].fakeAttached),
+						(int) lowPt, (int) ((attach & AliHLTTPCGMMerger::attachGoodLeg) == 0), (int) ((attach & AliHLTTPCGMMerger::attachTube) && mev200),
+						(int) ((attach & AliHLTTPCGMMerger::attachHighIncl) != 0), (int) ((attach & AliHLTTPCGMMerger::attachTube) != 0), (int) ((attach & AliHLTTPCGMMerger::attachGood) == 0),
+						fabs(qpt) > 0 ? 1.f / qpt : 0.f, id);
+					for (int j = 0;j < 3;j++)
+					{
+						//if (hlt.GetMCLabels()[i].fClusterID[j].fMCID < 0) break;
+						printf(" - label%d %6d weight %5d", j, hlt.GetMCLabels()[i].fClusterID[j].fMCID, (int) hlt.GetMCLabels()[i].fClusterID[j].fWeight);
+						if (hlt.GetMCLabels()[i].fClusterID[j].fMCID >= 0) printf(" - pt %7.2f", mcParam[hlt.GetMCLabels()[i].fClusterID[j].fMCID].pt);
+						else printf("             ");
+					}
+					printf("\n");*/
+				}
+				recClustersAbove400++;
+			}
+			if (totalWeight == 0 && weight40 >= 0.9 * totalWeight)
+			{
+				recClustersBelow40++;
+				if (protect || physics) recClustersFakeProtect40++;
+			}
+		}
+		else
+		{
+			recClustersTotal++;
+			if (physics) recClustersPhysics++;
+			if (physics || protect) recClustersProt++;
+			if (unattached) recClustersUnattached++;
 		}
 	}
 
@@ -1175,6 +1242,8 @@ template <class T> T* GetHist(T* &ee, std::vector<TFile*>& tin, int k, int nNewI
 
 int DrawQAHistograms()
 {
+	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
+	bool mcAvail = hlt.GetNMCInfo() && hlt.GetNMCLabels();
 	char name[1024], fname[1024];
 
 	const structConfigQA& config = configStandalone.configQA;
@@ -1573,7 +1642,7 @@ int DrawQAHistograms()
 			TH1D* hist = p ? pullIntegral[i] : resIntegral[i];
 			int numColor = 0;
 			pad->cd();
-			if (!config.inputHistogramsOnly)
+			if (!config.inputHistogramsOnly && mcAvail)
 			{
 				TH1D* e = hist;
 				e->GetEntries();
@@ -1625,12 +1694,24 @@ int DrawQAHistograms()
 				counts[i] = val;
 			}
 			recClustersRejected += recClustersHighIncl;
+			if (!mcAvail) counts[N_CLS_HIST - 1] = recClustersTotal;
 			if (counts[N_CLS_HIST - 1])
 			{
-				for (int i = 0;i < N_CLS_HIST;i++) printf("\t%35s: %'12llu (%6.2f%%)\n", ClustersNames[i], counts[i], 100.f * counts[i] / counts[N_CLS_HIST - 1]);
-				printf("\t%35s: %'12llu (%6.2f%%)\n", "Unattached", counts[N_CLS_HIST - 1] - counts[2], 100.f * (counts[N_CLS_HIST - 1] - counts[2]) / counts[N_CLS_HIST - 1]);
-				printf("\t%35s: %'12llu (%6.2f%%)\n", "Removable", counts[2] - counts[6], 100.f * (counts[2] - counts[6]) / counts[N_CLS_HIST - 1]); //Attached + Adjacent (also fake) - protected
-				printf("\t%35s: %'12llu (%6.2f%%)\n", "Unaccessible", recClustersUnaccessible, 100.f * recClustersUnaccessible / counts[N_CLS_HIST - 1]); //No contribution from track >= 10 MeV, unattached or fake-attached/adjacent
+				if (mcAvail)
+				{
+					for (int i = 0;i < N_CLS_HIST;i++) printf("\t%35s: %'12llu (%6.2f%%)\n", ClustersNames[i], counts[i], 100.f * counts[i] / counts[N_CLS_HIST - 1]);
+					printf("\t%35s: %'12llu (%6.2f%%)\n", "Unattached", counts[N_CLS_HIST - 1] - counts[CL_att_adj], 100.f * (counts[N_CLS_HIST - 1] - counts[CL_att_adj]) / counts[N_CLS_HIST - 1]);
+					printf("\t%35s: %'12llu (%6.2f%%)\n", "Removed", counts[CL_att_adj] - counts[CL_prot], 100.f * (counts[CL_att_adj] - counts[CL_prot]) / counts[N_CLS_HIST - 1]); //Attached + Adjacent (also fake) - protected
+					printf("\t%35s: %'12llu (%6.2f%%)\n", "Unaccessible", recClustersUnaccessible, 100.f * recClustersUnaccessible / counts[N_CLS_HIST - 1]); //No contribution from track >= 10 MeV, unattached or fake-attached/adjacent
+				}
+				else
+				{
+					printf("\t%35s: %'12llu (%6.2f%%)\n", "All Clusters", counts[N_CLS_HIST - 1], 100.f);
+					printf("\t%35s: %'12llu (%6.2f%%)\n", "Used in Physics", recClustersPhysics, 100.f * recClustersPhysics / counts[N_CLS_HIST - 1]);
+					printf("\t%35s: %'12llu (%6.2f%%)\n", "Protected", recClustersProt, 100.f * recClustersProt / counts[N_CLS_HIST - 1]);
+					printf("\t%35s: %'12llu (%6.2f%%)\n", "Unattached", recClustersUnattached, 100.f * recClustersUnattached / counts[N_CLS_HIST - 1]);
+					printf("\t%35s: %'12llu (%6.2f%%)\n", "Removed", recClustersTotal - recClustersUnattached - recClustersProt, 100.f * (recClustersTotal - recClustersUnattached - recClustersProt) / counts[N_CLS_HIST - 1]);
+				}
 
 				printf("\t%35s: %'12llu (%6.2f%%)\n", "High Inclination Angle", recClustersHighIncl, 100.f * recClustersHighIncl / counts[N_CLS_HIST - 1]);
 				printf("\t%35s: %'12llu (%6.2f%%)\n", "Rejected", recClustersRejected, 100.f * recClustersRejected / counts[N_CLS_HIST - 1]);
@@ -1640,8 +1721,15 @@ int DrawQAHistograms()
 				printf("\t%35s: %'12llu (%6.2f%%)\n", "Low Pt < 50 MeV", recClustersLowPt, 100.f * recClustersLowPt / counts[N_CLS_HIST - 1]);
 				printf("\t%35s: %'12llu (%6.2f%%)\n", "Low Pt < 200 MeV", recClusters200MeV, 100.f * recClusters200MeV / counts[N_CLS_HIST - 1]);
 
-				printf("\t%35s: %'12llu (%6.2f%%)\n", "Tracks > 400 MeV", recClustersAbove400, 100.f * recClustersAbove400 / counts[N_CLS_HIST - 1]);
-				printf("\t%35s: %'12llu (%6.2f%%)\n", "Fake Removed (> 400 MeV)", recClustersFakeRemove400, 100.f * recClustersFakeRemove400 / std::max(recClustersAbove400, 1ll));
+				if (mcAvail)
+				{
+					printf("\t%35s: %'12llu (%6.2f%%)\n", "Tracks > 400 MeV", recClustersAbove400, 100.f * recClustersAbove400 / counts[N_CLS_HIST - 1]);
+					printf("\t%35s: %'12llu (%6.2f%%)\n", "Fake Removed (> 400 MeV)", recClustersFakeRemove400, 100.f * recClustersFakeRemove400 / std::max(recClustersAbove400, 1ll));
+					printf("\t%35s: %'12llu (%6.2f%%)\n", "Full Fake Removed (> 400 MeV)", recClustersFullFakeRemove400, 100.f * recClustersFullFakeRemove400 / std::max(recClustersAbove400, 1ll));
+
+					printf("\t%35s: %'12llu (%6.2f%%)\n", "Tracks < 40 MeV", recClustersBelow40, 100.f * recClustersBelow40 / counts[N_CLS_HIST - 1]);
+					printf("\t%35s: %'12llu (%6.2f%%)\n", "Fake Protect (< 40 MeV)", recClustersFakeProtect40, 100.f * recClustersFakeProtect40 / std::max(recClustersBelow40, 1ll));
+				}
 			}
 
 			if (!CLUST_HIST_INT_SUM)
@@ -1718,6 +1806,14 @@ int DrawQAHistograms()
 					legendclust[i]->AddEntry(e, name, "l");
 				}
 			}
+			if (ConfigNumInputs == 1)
+			{
+				TH1F* e = (TH1F*) clusters[begin + CL_att_adj]->Clone();
+				e->Add(clusters[begin + CL_prot], -1);
+				e->SetLineColor(colorNums[numColor++ % ColorCount]);
+				e->Draw("same");
+				legendclust[i]->AddEntry(e, "Removed", "l");
+			}
 			legendclust[i]->Draw();
 
 			doPerfFigure(i != 2 ? 0.37 : 0.6, 0.295, 0.030);
@@ -1790,18 +1886,6 @@ int DrawQAHistograms()
 		legendncl->Draw();
 		cncl->cd();
 		cncl->Print("plots/nClusters.pdf");
-	}
-
-	//Cluster rejection statistics
-	{
-		long long int clustersTotal = recClustersUnattached + recClustersLowPt + recClustersLoopers + recClustersTube200 + recClustersTube + recClustersRejected + recClustersPhysics;
-		if (clustersTotal > 0)
-		{
-			float fracPhysics = 100.f * recClustersPhysics / clustersTotal;
-			float fracUnattached = 100.f * recClustersUnattached / clustersTotal;
-			printf("Cluster statistics: Total %'lld - Physics %'lld (%1.2f%%) - Unattached %'lld (%1.2f%%)\n",
-				clustersTotal, recClustersPhysics, fracPhysics, recClustersUnattached, fracUnattached);
-		}
 	}
 
 	if (tout && !config.inputHistogramsOnly && config.writeMCLabels)
