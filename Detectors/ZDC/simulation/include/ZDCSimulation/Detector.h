@@ -18,8 +18,7 @@
 #include "DetectorsBase/Detector.h"           // for Detector
 #include "DetectorsCommonDataFormats/DetID.h" // for Detector
 #include "ZDCBase/Geometry.h"
-
-#include "SimulationDataFormat/BaseHits.h"
+#include "ZDCSimulation/Hit.h"
 
 class FairVolume;
 class FairModule;
@@ -30,7 +29,8 @@ namespace o2
 {
 namespace zdc
 {
-using HitType = o2::BasicXYZEHit<float>;
+class Hit;
+
 
 class Detector : public o2::Base::DetImpl<Detector>
 {
@@ -62,7 +62,8 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   void Register() override;
 
-  std::vector<HitType>* getHits(int iColl) const
+  /// Gets the produced collections
+  std::vector<o2::zdc::Hit>* getHits(Int_t iColl) const
   {
     if (iColl == 0) {
       return mHits;
@@ -78,41 +79,52 @@ class Detector : public o2::Base::DetImpl<Detector>
   void CreateMaterials();
   void addAlignableVolumes() const override {}
 
-  HitType* AddHit(Int_t trackID, Int_t parentID, Int_t sFlag, Double_t primaryEnergy, Int_t& detID,
-              Double_t& pos, Double_t& mom, Double_t tof, Double_t& xImpact, Double_t energyloss, Int_t nphe);
+  o2::zdc::Hit* addHit(Int_t trackID, Int_t parentID, Int_t sFlag, Float_t primaryEnergy, Int_t detID, Int_t secID,
+    Vector3D<float> pos, Vector3D<float>  mom, Float_t tof, Float_t *xImpact, Double_t energyloss, Int_t nphePMC, Int_t nphePMQ);
 
    private:
     /// copy constructor
     Detector(const Detector& rhs);
+
     void CreateAsideBeamLine();
     void CreateCsideBeamLine();
-    void CreateSupports();
     void CreateMagnets();
     void CreateDetectors();
-    /// Define sensitive volumes
+
+    // Define sensitive volumes
     void defineSensitiveVolumes();
 
+    // Methods to calculate the light outpu
     void CalculateTableIndexes(int& ibeta, int& iangle, int& iradius);
+    void ReadLightTable();
 
-    Int_t mZDCdetID[2]; //detector|tower in ZDC
+
+    Int_t mZDCdetectorID; //detector in ZDC
+    Int_t mZDCsectorID; //tower in ZDC
     Int_t mPcMother; // track mother 0
     Int_t mCurrentTrackID;
-    HitType* mCurrentHit;
     Float_t mTrackEta;
-    Int_t   mSecondaryFlag;
+    Bool_t  mSecondaryFlag;
     Float_t mPrimaryEnergy;
     Float_t mXImpact[3];
     Float_t mTrackTOF;
     Float_t mTotDepEnergy;
-    Float_t mTotLight[2]; //[0]PMC [1]sumPMQi
+    Float_t mTotLightPMC;
+    Float_t mTotLightPMQ;
+    Int_t   mMediumPMCid;
+    Int_t   mMediumPMQid;
+    o2::zdc::Hit* mCurrentHit;
     //
+    /// Container for hit data
+    std::vector<o2::zdc::Hit>* mHits;
+
     Float_t mLumiLength = 0; //TODO: make part of configurable params
     Float_t mTCLIAAPERTURE = 3.5; //TODO: make part of configurable params
     Float_t mTCLIAAPERTURENEG = 3.5; //TODO: make part of configurable params
 	  Float_t mVCollSideCCentreY = 0.; //TODO: make part of configurable params
 
-    /// container for data points
-    std::vector<HitType>* mHits; //!
+    float mLightTableZN[4][18][90]; //!
+    float mLightTableZP[4][28][90]; //!
 
   template <typename Det>
   friend class o2::Base::DetImpl;
@@ -120,4 +132,5 @@ class Detector : public o2::Base::DetImpl<Detector>
 };
 }
 }
+
 #endif

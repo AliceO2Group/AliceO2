@@ -12,9 +12,10 @@
 #include "FairLogger.h"      // for LOG, LOG_IF
 #include "FairRootManager.h" // for FairRootManager
 #include "FairVolume.h"      // for FairVolume
-#include "ZDCSimulation/Detector.h"
 #include "DetectorsBase/MaterialManager.h"
 #include "SimulationDataFormat/Stack.h"
+#include "ZDCSimulation/Detector.h"
+#include "ZDCSimulation/Hit.h"
 
 #include "TMath.h"
 #include "TGeoManager.h"     // for TGeoManager, gGeoManager
@@ -28,21 +29,22 @@
 
 using namespace o2::zdc;
 
-ClassImp(Detector);
+ClassImp(o2::zdc::Detector);
 #define kRaddeg TMath::RadToDeg()
 
 //_____________________________________________________________________________
 Detector::Detector(Bool_t active)
   : o2::Base::DetImpl<Detector>("ZDC", active),
-    mHits(new std::vector<HitType>),
+    mHits(new std::vector<o2::zdc::Hit>),
     mCurrentTrackID(-1),
-    mCurrentHit(nullptr)
+    mCurrentHit(nullptr),
+    mZDCdetectorID(0),
+    mZDCsectorID(-1)
 {
   for (Int_t i = 0; i<2; i++){
-      mZDCdetID[i] = -1;
       mXImpact[i] = -999.;
   }
-  mSecondaryFlag=-1;
+  mSecondaryFlag=kFALSE;
   mPrimaryEnergy=0;
   mTrackTOF=0;
   mTrackEta=999;
@@ -51,7 +53,7 @@ Detector::Detector(Bool_t active)
 //_____________________________________________________________________________
 Detector::Detector(const Detector& rhs)
   : o2::Base::DetImpl<Detector>(rhs),
-    mHits(new std::vector<HitType>),
+    mHits(new std::vector<o2::zdc::Hit>),
     mCurrentTrackID(-1),
     mCurrentHit(nullptr)
 {
@@ -73,7 +75,6 @@ void Detector::ConstructGeometry()
 
   CreateAsideBeamLine();
   CreateCsideBeamLine();
-  CreateSupports();
   CreateMagnets();
   CreateDetectors();
 }
@@ -87,17 +88,35 @@ void Detector::defineSensitiveVolumes()
   if (vol) {
     AddSensitiveVolume(vol);
     AddSensitiveVolume(gGeoManager->GetVolume("ZNTX"));
+    AddSensitiveVolume(gGeoManager->GetVolume("ZNSL"));
+    AddSensitiveVolume(gGeoManager->GetVolume("ZNST"));
     AddSensitiveVolume(gGeoManager->GetVolume("ZN1"));
     AddSensitiveVolume(gGeoManager->GetVolume("ZNF1"));
     AddSensitiveVolume(gGeoManager->GetVolume("ZNF2"));
     AddSensitiveVolume(gGeoManager->GetVolume("ZNF3"));
     AddSensitiveVolume(gGeoManager->GetVolume("ZNF4"));
+    AddSensitiveVolume(gGeoManager->GetVolume("ZNG1"));
+    AddSensitiveVolume(gGeoManager->GetVolume("ZNG2"));
+    AddSensitiveVolume(gGeoManager->GetVolume("ZNG3"));
+    AddSensitiveVolume(gGeoManager->GetVolume("ZNG4"));
   } else {
     LOG(FATAL) << "can't find volume ZNEU";
   }
   vol = gGeoManager->GetVolume("ZPRO");
   if (vol) {
     AddSensitiveVolume(vol);
+    AddSensitiveVolume(gGeoManager->GetVolume("ZPTX"));
+    AddSensitiveVolume(gGeoManager->GetVolume("ZPSL"));
+    AddSensitiveVolume(gGeoManager->GetVolume("ZPST"));
+    AddSensitiveVolume(gGeoManager->GetVolume("ZP1"));
+    AddSensitiveVolume(gGeoManager->GetVolume("ZPF1"));
+    AddSensitiveVolume(gGeoManager->GetVolume("ZPF2"));
+    AddSensitiveVolume(gGeoManager->GetVolume("ZPF3"));
+    AddSensitiveVolume(gGeoManager->GetVolume("ZPF4"));
+    AddSensitiveVolume(gGeoManager->GetVolume("ZPG1"));
+    AddSensitiveVolume(gGeoManager->GetVolume("ZPG2"));
+    AddSensitiveVolume(gGeoManager->GetVolume("ZPG3"));
+    AddSensitiveVolume(gGeoManager->GetVolume("ZPG4"));
   } else {
     LOG(FATAL) << "can't find volume ZPRO";
   }
@@ -110,10 +129,8 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 
   // Method called from MC stepping for the sensitive volumes
   TString volname = fMC->CurrentVolName();
-  Float_t xDet[3]={0.,0.,0.}, p[3]={0.,0.,0.}, energy=0.;
-  float x0, x1, x2;
-  fMC->TrackPosition(x0,x1,x2);
-  float x[3]={x0,x1,x2};
+  Float_t x[3]={0.,0.,0.}, xDet[3]={0.,0.,0.}, p[3]={0.,0.,0.}, energy=0.;
+  fMC->TrackPosition(x[0], x[1], x[2]);
   fMC->TrackMomentum(p[0], p[1], p[2], energy);
 
   // determine detector and tower
@@ -176,18 +193,20 @@ Bool_t Detector::ProcessHits(FairVolume* v)
      else  cZDCdetID[1]=2;
   }
 
+  Vector3D<float> xImp(xDet[0], xDet[1], xDet[2]);
+
   auto stack = (o2::Data::Stack*)fMC->GetStack();
   int trackn = stack->GetCurrentTrackNumber();
   int trackparent = stack->GetCurrentTrack()->GetMother(0);
   const bool isDaughterOfSeenTrack = stack->isTrackDaughterOf(trackn, mCurrentTrackID);
 
   Bool_t kIsTrackInsideSameSector = kFALSE;
-  if(cZDCdetID[0]==mZDCdetID[0] && cZDCdetID[1]==mZDCdetID[1]) kIsTrackInsideSameSector=kTRUE;
+  if(cZDCdetID[0]==mZDCdetectorID && cZDCdetID[1]==mZDCsectorID) kIsTrackInsideSameSector=kTRUE;
 
-  mZDCdetID[0] = cZDCdetID[0];
-  mZDCdetID[1] = cZDCdetID[1];
+  mZDCdetectorID = cZDCdetID[0];
+  mZDCsectorID = cZDCdetID[1];
 
-  // A new hit is created for a new track NOT daughter of a known particle (shower product)
+  // A new hit is created for a new track NOT daughter of a seen particle (shower product)
   // OR if the track is NOT in the same volume (detector, sector)
   // OR if it is a new hit
   if((!isDaughterOfSeenTrack && !kIsTrackInsideSameSector) || !mCurrentHit) {
@@ -195,11 +214,13 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     mTrackTOF = 1.e09*fMC->TrackTime(); //TOF in ns
     mPcMother = stack->GetCurrentTrack()->GetMother(0);
 
+    if(stack->getCurrentPrimaryIndex() != trackn) mSecondaryFlag=kTRUE;
     Float_t eDep = fMC->Edep();
 
     //Track entering the fibres
     int sensID = v->getMCid();
     int pdgCode = fMC->TrackPid();
+    float lightoutput = 0.;
     int ibeta=99, iangle=99, iradius=99, nphe=0;
     if(eDep>1e-04) CalculateTableIndexes(ibeta, iangle, iradius);
     if(ibeta!=99 && iangle!=99 && iangle!=99){
@@ -207,26 +228,54 @@ Bool_t Detector::ProcessHits(FairVolume* v)
       if(pdgCode<10000) charge = fMC->TrackCharge();
       else charge = TMath::Abs(pdgCode/10000-100000);
       //look into the light tables
-      if(mZDCdetID[0]==1 || mZDCdetID[0]==4){
+      if(mZDCdetectorID==1 || mZDCdetectorID==4){
         if(iradius>Geometry::ZNFIBREDIAMETER) iradius=Geometry::ZNFIBREDIAMETER;
-        //lightoutput = charge*charge*lightTableZN(ibeta, iangle, iradius);
-        //nphe = gRandom->Poisson(lightoutput);
+        lightoutput = charge*charge*mLightTableZN[ibeta][iangle][iradius];
       }
       else{
         if(iradius>Geometry::ZPFIBREDIAMETER) iradius=Geometry::ZPFIBREDIAMETER;
-        //lightoutput = charge*charge*lightTableZP(ibeta, iangle, iradius);
-        //nphe = gRandom->Poisson(lightoutput);
+        lightoutput = charge*charge*mLightTableZP[ibeta][iangle][iradius];
       }
+      if(lightoutput>0) nphe = gRandom->Poisson(lightoutput);
     }
 
-    // HitType* p = addHit(curTrackn, pdgCode, parent, sFlag, p[3], mZDCdetID, x, p, mTrackTof, mXImpact, mTotDepEnergy, mTotLight);
-    // stack->addHit(GetDetId());
+    mTotDepEnergy = eDep;
+
+    auto currentMediumid = fMC->CurrentMedium();
+    if(currentMediumid==mMediumPMCid){
+      mTotLightPMC = nphe;
+    }
+    else if(currentMediumid==mMediumPMQid){
+       mTotLightPMQ = nphe;
+    }
+
+    Vector3D<float> pos(x[0], x[1], x[2]);
+    Vector3D<float> mom(p[0], p[1], p[2]);
+    o2::zdc::Hit* hit = addHit(trackn, trackparent, mSecondaryFlag, energy, mZDCdetectorID, mZDCsectorID,
+        pos, mom, mTrackTOF, xDet, mTotDepEnergy, mTotLightPMC, mTotLightPMQ);
+    mCurrentHit = hit;
+    mCurrentTrackID = trackn;
+    for(int i=0; i<3; i++) mXImpact[i] = xDet[i];
+    mPrimaryEnergy = energy;
+    stack->addHit(GetDetId());
 
   }
   else{
 
   }
   return false;
+}
+
+//_____________________________________________________________________________
+o2::zdc::Hit*  Detector::addHit(Int_t trackID, Int_t parentID, Int_t sFlag, Float_t primaryEnergy, Int_t detID,
+  Int_t secID, Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Float_t *xImpact, Double_t energyloss, Int_t nphePMC, Int_t nphePMQ)
+{
+  LOG(DEBUG4) << "Adding hit for track " << trackID << " X (" << pos.X() << ", " << pos.Y() << ", "
+              << pos.Z() << ") P (" << mom.X() << ", " << mom.Y() << ", " << mom.Z() << ")  Ekin "
+              << primaryEnergy << " lightPMC  " << nphePMC << " lightPMQ  " << nphePMQ<< std::endl;
+  //mHits->emplace_back(trackID, detID, pos, mom, totE, time, eLoss);
+  return &(mHits->back());
+
 }
 
 //_____________________________________________________________________________
@@ -1401,14 +1450,6 @@ void Detector::CreateCsideBeamLine()
 }
 
 //_____________________________________________________________________________
-void Detector::CreateSupports()
-{
-
-  // -------------------------------------------------------------------------------
-
-}
-
-//_____________________________________________________________________________
 void Detector::CreateMagnets()
 {
   Float_t tubpar[3]={0.,0.,0.};
@@ -1689,11 +1730,13 @@ void Detector::CreateDetectors()
 
   // -------------------------------------------------------------------------------
   //--> Neutron calorimeter (ZN)
+  mMediumPMCid = getMediumID(kSiO2pmc);
+  mMediumPMQid = getMediumID(kSiO2pmq);
   TVirtualMC::GetMC()->Gsvolu("ZNEU", "BOX ", getMediumID(kWalloy),  const_cast<double*>(Geometry::ZNDIMENSION), 3); // Passive material
-  TVirtualMC::GetMC()->Gsvolu("ZNF1", "TUBE", getMediumID(kSiO2pmc), const_cast<double*>(Geometry::ZNFIBRE), 3); // Active material
-  TVirtualMC::GetMC()->Gsvolu("ZNF2", "TUBE", getMediumID(kSiO2pmq), const_cast<double*>(Geometry::ZNFIBRE), 3);
-  TVirtualMC::GetMC()->Gsvolu("ZNF3", "TUBE", getMediumID(kSiO2pmq), const_cast<double*>(Geometry::ZNFIBRE), 3);
-  TVirtualMC::GetMC()->Gsvolu("ZNF4", "TUBE", getMediumID(kSiO2pmc), const_cast<double*>(Geometry::ZNFIBRE), 3);
+  TVirtualMC::GetMC()->Gsvolu("ZNF1", "TUBE", mMediumPMCid, const_cast<double*>(Geometry::ZNFIBRE), 3); // Active material
+  TVirtualMC::GetMC()->Gsvolu("ZNF2", "TUBE", mMediumPMQid, const_cast<double*>(Geometry::ZNFIBRE), 3);
+  TVirtualMC::GetMC()->Gsvolu("ZNF3", "TUBE", mMediumPMQid, const_cast<double*>(Geometry::ZNFIBRE), 3);
+  TVirtualMC::GetMC()->Gsvolu("ZNF4", "TUBE", mMediumPMCid, const_cast<double*>(Geometry::ZNFIBRE), 3);
   TVirtualMC::GetMC()->Gsvolu("ZNG1", "BOX ", getMediumID(kAir), const_cast<double*>(Geometry::ZNGROOVES), 3); // Empty grooves
   TVirtualMC::GetMC()->Gsvolu("ZNG2", "BOX ", getMediumID(kAir), const_cast<double*>(Geometry::ZNGROOVES), 3);
   TVirtualMC::GetMC()->Gsvolu("ZNG3", "BOX ", getMediumID(kAir), const_cast<double*>(Geometry::ZNGROOVES), 3);

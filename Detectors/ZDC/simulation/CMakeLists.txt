@@ -6,6 +6,7 @@ set(SRCS
     src/Detector.cxx
     )
 set(HEADERS
+    include/${MODULE_NAME}/Hit.h
     include/${MODULE_NAME}/Detector.h
     )
 
