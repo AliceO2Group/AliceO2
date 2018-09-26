@@ -841,8 +841,8 @@ void AliHLTTPCGMMerger::MergeCE()
             bool reverse[2] = {false, false};
             if (looper)
             {
-                reverse[0] = fabs(fClusters[trk[0]->FirstClusterRef()].fZ) > fabs(fClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].fZ);
-                reverse[1] = fabs(fClusters[trk[1]->FirstClusterRef()].fZ) < fabs(fClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].fZ);
+                reverse[0] = (fClusters[trk[0]->FirstClusterRef()].fZ > fClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].fZ) ^ (trk[0]->CSide() > 0);
+                reverse[1] = (fClusters[trk[1]->FirstClusterRef()].fZ < fClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].fZ) ^ (trk[1]->CSide() > 0);
             }
 
             if (fSliceParam.GetContinuousTracking())
@@ -987,7 +987,6 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
       //if (nParts == 1 || fabs(trackParts[0]->QPt()) > 0.1) continue;
 
       // unpack and sort clusters
-
       if (nParts > 1 && leg == 0)
       {
         std::sort(trackParts, trackParts + nParts, AliHLTTPCGMMerger_CompareParts);
@@ -1044,11 +1043,12 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
             //Find QPt and DzDs for the segment closest to the vertex, if low/mid Pt
             float baseZ = 1e9;
             unsigned char baseLeg = 0;
+            const float factor = trackParts[0]->CSide() ? -1.f : 1.f;
             for (int i = 0;i < nParts;i++)
             {
               if(trackParts[i]->Leg() == 0 || trackParts[i]->Leg() == leg)
               {
-                float z = std::min(fabs(trackParts[i]->OrigTrack()->Clusters()[0].GetZ()), fabs(trackParts[i]->OrigTrack()->Clusters()[trackParts[i]->OrigTrack()->NClusters() - 1].GetZ()));
+                float z = std::min(trackParts[i]->OrigTrack()->Clusters()[0].GetZ() * factor, trackParts[i]->OrigTrack()->Clusters()[trackParts[i]->OrigTrack()->NClusters() - 1].GetZ() * factor);
                 if (z < baseZ)
                 {
                     baseZ = z;
