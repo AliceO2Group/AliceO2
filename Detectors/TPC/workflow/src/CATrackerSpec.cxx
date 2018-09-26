@@ -255,7 +255,10 @@ DataProcessorSpec getCATrackerSpec(bool processMC)
   return DataProcessorSpec{ "tracker", // process id
                             { createInputSpecs(processMC) },
                             { createOutputSpecs(false /*create onece writer process has been changed*/) },
-                            AlgorithmSpec(initFunction) };
+                            AlgorithmSpec(initFunction),
+                            Options{
+                              { "tracker-options", VariantType::String, "", { "Option string passed to tracker" } },
+                            } };
 }
 
 } // namespace TPC
