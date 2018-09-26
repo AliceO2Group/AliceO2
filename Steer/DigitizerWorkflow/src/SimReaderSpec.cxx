@@ -16,6 +16,7 @@
 #include "Framework/Lifetime.h"
 #include "Headers/DataHeader.h"
 #include "Steer/HitProcessingManager.h"
+#include "DataFormatsTPC/TPCSectorHeader.h"
 #include <FairMQLogger.h>
 #include <TMessage.h> // object serialization
 #include <memory>     // std::unique_ptr
@@ -41,7 +42,9 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
   auto tpcsectormessages = std::make_shared<std::vector<std::vector<int>>>();
   tpcsectormessages->resize(tpcsubchannels->size());
   int tpcchannelcounter = 0;
+  uint64_t activeSectors = 0;
   for (const auto& tpcsector : *tpcsectors.get()) {
+    activeSectors |= (uint64_t)0x1 << tpcsector;
     auto actualchannel = (*tpcsubchannels.get())[tpcchannelcounter % tpcsubchannels->size()];
     LOG(DEBUG) << " WILL ASSIGN SECTOR " << tpcsector << " to subchannel " << actualchannel;
     tpcsectormessages->operator[](actualchannel).emplace_back(tpcsector);
@@ -67,7 +70,7 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
   }
   // at this moment all tpc digitizers should receive the exact same number of messages/invocations
 
-  auto doit = [fanoutsize, tpcsectormessages, tpcinvocations, tpcsubchannels](ProcessingContext& pc) {
+  auto doit = [fanoutsize, tpcsectormessages, tpcinvocations, tpcsubchannels, activeSectors](ProcessingContext& pc) {
     auto& mgr = steer::HitProcessingManager::instance();
     auto eventrecords = mgr.getRunContext().getEventRecords();
     const auto& context = mgr.getRunContext();
@@ -81,11 +84,10 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
       // send message telling tpc workers that they can terminate
       for (const auto& channel : *tpcsubchannels.get()) {
         // -1 is marker for end of work
+        o2::TPC::TPCSectorHeader header{ -1 };
+        header.activeSectors = activeSectors;
         pc.outputs().snapshot(
-          Output{ "SIM", "TPCSECTORASSIGN", static_cast<SubSpecificationType>(channel), Lifetime::Condition }, -1);
-        // not sure if I have to resend this as well? Seems not necessary
-        pc.outputs().snapshot(
-          Output{ "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe },
+          OutputRef{ "collisioncontext", static_cast<SubSpecificationType>(channel), { header } },
           context);
       }
       // do this only one
@@ -97,12 +99,11 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
       auto& sectors = tpcsectormessages->operator[](tpcchannel);
       if (counter < sectors.size()) {
         auto sector = sectors[counter];
+        // send the sectorassign as header with the collision context data
+        o2::TPC::TPCSectorHeader header{ sector };
+        header.activeSectors = activeSectors;
         pc.outputs().snapshot(
-          Output{ "SIM", "TPCSECTORASSIGN", static_cast<SubSpecificationType>(tpcchannel), Lifetime::Condition },
-          sector);
-
-        pc.outputs().snapshot(
-          Output{ "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(tpcchannel), Lifetime::Timeframe },
+          OutputRef{ "collisioncontext", static_cast<SubSpecificationType>(tpcchannel), { header } },
           context);
       }
     }
@@ -116,7 +117,7 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
       }
       LOG(INFO) << "SENDING SOMETHING TO OTHERS";
       pc.outputs().snapshot(
-        Output{ "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(subchannel), Lifetime::Timeframe },
+        OutputRef{ "collisioncontext", static_cast<SubSpecificationType>(subchannel) },
         context);
     }
     counter++;
@@ -161,9 +162,7 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
   std::vector<OutputSpec> outputs;
   for (int subchannel = 0; subchannel < fanoutsize; ++subchannel) {
     outputs.emplace_back(
-      OutputSpec{ "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(subchannel), Lifetime::Timeframe });
-    outputs.emplace_back(
-      OutputSpec{ "SIM", "TPCSECTORASSIGN", static_cast<SubSpecificationType>(subchannel), Lifetime::Condition });
+      OutputSpec{ { "collisioncontext" }, "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(subchannel), Lifetime::Timeframe });
   }
 
   return DataProcessorSpec{

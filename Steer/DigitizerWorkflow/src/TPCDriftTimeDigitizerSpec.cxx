@@ -82,9 +82,18 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
       return;
     }
 
-    // extract which sector to treat (strangely this is a unique pointer)
-    auto sector = pc.inputs().get<int>("sectorassign");
+    // extract which sector to treat
+    using TPCSectorHeader = o2::TPC::TPCSectorHeader;
+    auto const* sectorHeader = DataRefUtils::getHeader<TPCSectorHeader*>(pc.inputs().get("collisioncontext"));
+    if (sectorHeader == nullptr) {
+      LOG(ERROR) << "TPC sector header missing, skipping processing";
+      return;
+    }
+    auto sector = sectorHeader->sector;
     LOG(INFO) << "GOT ASSIGNED SECTOR " << sector;
+    // the active sectors need to be propagated
+    uint64_t activeSectors = 0;
+    activeSectors = sectorHeader->activeSectors;
 
     // ===| open file and register branches |=====================================
     // this is done at the moment for each worker function invocation
@@ -93,16 +102,18 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
     auto mcTruthArrayRaw = mcTruthArray.get();
 
     // lambda that snapshots digits to be sent out; prepares and attaches header with sector information
-    auto snapshotDigits = [sector, &pc, channel](std::vector<o2::TPC::Digit> const& digits) {
+    auto snapshotDigits = [sector, &pc, channel, activeSectors](std::vector<o2::TPC::Digit> const& digits) {
       o2::TPC::TPCSectorHeader header{ sector };
+      header.activeSectors = activeSectors;
       // note that snapshoting only works with non-const references (to be fixed?)
       pc.outputs().snapshot(Output{ "TPC", "DIGITS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe,
                                     header },
                             const_cast<std::vector<o2::TPC::Digit>&>(digits));
     };
     // lambda that snapshots labels to be sent out; prepares and attaches header with sector information
-    auto snapshotLabels = [&sector, &pc, &channel](o2::dataformats::MCTruthContainer<o2::MCCompLabel> const& labels) {
+    auto snapshotLabels = [&sector, &pc, &channel, activeSectors](o2::dataformats::MCTruthContainer<o2::MCCompLabel> const& labels) {
       o2::TPC::TPCSectorHeader header{ sector };
+      header.activeSectors = activeSectors;
       pc.outputs().snapshot(Output{ "TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(channel),
                                     Lifetime::Timeframe, header },
                             const_cast<o2::dataformats::MCTruthContainer<o2::MCCompLabel>&>(labels));
@@ -234,9 +245,7 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
   id << "TPCDigitizer" << channel;
   return DataProcessorSpec{
     id.str().c_str(), Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT",
-                                         static_cast<SubSpecificationType>(channel), Lifetime::Timeframe },
-                              InputSpec{ "sectorassign", "SIM", "TPCSECTORASSIGN",
-                                         static_cast<SubSpecificationType>(channel), Lifetime::Condition } },
+                                         static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
     Outputs{ // define channel by triple of (origin, type id of data to be sent on this channel, subspecification)
              OutputSpec{ "TPC", "DIGITS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe },
              OutputSpec{ "TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
