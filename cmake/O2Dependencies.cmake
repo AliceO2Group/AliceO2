@@ -1761,6 +1761,7 @@ o2_define_bucket(
     TPCSimulation
     DataFormatsTPC
     ITSSimulation
+    MFTSimulation
     ITSMFTBase
     TOFSimulation
     TOFReconstruction

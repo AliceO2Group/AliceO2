@@ -27,6 +27,10 @@
 #include "ITSDigitizerSpec.h"
 #include "ITSDigitWriterSpec.h"
 
+// for ITS
+#include "MFTDigitizerSpec.h"
+#include "MFTDigitWriterSpec.h"
+
 // for TOF
 #include "TOFDigitizerSpec.h"
 #include "TOFDigitWriterSpec.h"
@@ -238,6 +242,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::ITS::getITSDigitizerSpec(fanoutsize++));
     // connect ITS digit writer
     specs.emplace_back(o2::ITS::getITSDigitWriterSpec());
+  }
+
+  // the MFT part
+  if (isEnabled(o2::detectors::DetID::MFT)) {
+    // connect the MFT digitization
+    specs.emplace_back(o2::MFT::getMFTDigitizerSpec(fanoutsize++));
+    // connect MFT digit writer
+    specs.emplace_back(o2::MFT::getMFTDigitWriterSpec());
   }
 
   // the TOF part

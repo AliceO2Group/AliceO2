@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file Digitizer.cxx
-/// \brief Implementation of the ITS digitizer
+/// \brief Implementation of the ITS/MFT digitizer
 
 #include "ITSMFTBase/Digit.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
@@ -23,9 +23,7 @@
 #include <numeric>
 #include "FairLogger.h" // for LOG
 
-ClassImp(o2::ITSMFT::Digitizer)
-
-  using o2::ITSMFT::Hit;
+using o2::ITSMFT::Hit;
 using o2::ITSMFT::Digit;
 using Segmentation = o2::ITSMFT::SegmentationAlpide;
 
@@ -53,9 +51,9 @@ void Digitizer::process(const std::vector<Hit>* hits, int evID, int srcID)
 {
   // digitize single event, the time must have been set beforehand
 
-  LOG(INFO) << "Digitizing ITS hits of entry " << evID << " from source " << srcID << " at time "
-            << mEventTime + mParams.getTimeOffset() << " (TOff.= " << mParams.getTimeOffset()
-            << " ROFrame= " << mNewROFrame << ")"
+  LOG(INFO) << "Digitizing " << mGeometry->getName() << " hits of entry " << evID << " from source "
+            << srcID << " at time " << mEventTime + mParams.getTimeOffset() << " (TOff.= "
+            << mParams.getTimeOffset() << " ROFrame= " << mNewROFrame << ")"
             << " cont.mode: " << isContinuous()
             << " Min/Max ROFrames " << mROFrameMin << "/" << mROFrameMax << FairLogger::endl;
 
@@ -128,7 +126,8 @@ void Digitizer::fillOutputContainer(UInt_t frameLast)
   // make sure all buffers for extra digits are created up to the maxFrame
   getExtraDigBuffer(mROFrameMax);
 
-  LOG(INFO) << "Filling ITS digits output for RO frames " << mROFrameMin << ":" << frameLast << FairLogger::endl;
+  LOG(INFO) << "Filling " << mGeometry->getName() << " digits output for RO frames " << mROFrameMin << ":"
+            << frameLast << FairLogger::endl;
 
   o2::ITSMFT::ROFRecord rcROF;
 
