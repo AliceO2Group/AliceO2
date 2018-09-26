@@ -26,6 +26,8 @@
 #include "TVirtualMC.h"      // for gMC, TVirtualMC
 #include "TString.h"         // for TString, operator+
 #include <TRandom.h>
+#include <cassert>
+#include <fstream>
 
 using namespace o2::zdc;
 
@@ -60,11 +62,62 @@ Detector::Detector(const Detector& rhs)
 }
 
 //_____________________________________________________________________________
+template<typename T>
+int loadLightTable(T& table, int beta, int NRADBINS, std::string filename)
+{
+  // Retrieve the light yield table
+  std::string data;
+  std::ifstream input(filename);
+  int radiusbin = 0;
+  int anglebin = 0;
+  int counter = 0;
+  float value;
+  if(input.is_open()){
+    while(input >> value){
+      counter++;
+      table[beta][radiusbin][anglebin] = value;
+      radiusbin++;
+      if(radiusbin % NRADBINS == 0) {
+        radiusbin = 0;
+        anglebin++;
+      }
+    }
+    LOG(DEBUG) << "Read " << counter << " values from ZDC data file " << filename;
+    input.close();
+    return counter;
+  }
+  else {
+    LOG(ERROR) << "Could not open file " << filename;
+    return 0;
+  }
+}
+
+//_____________________________________________________________________________
 void Detector::InitializeO2Detector()
 {
   // Define the list of sensitive volumes
   defineSensitiveVolumes();
+
+  std::string inputDir;
+  const char* aliceO2env=std::getenv("O2_ROOT");
+  if(aliceO2env) inputDir=std::string(aliceO2env);
+  inputDir+="/share/Detectors/ZDC/simulation/data/";
+  //ZN case
+  loadLightTable(mLightTableZN, 0, ZNRADIUSBINS, inputDir + "light22620362207s");
+  loadLightTable(mLightTableZN, 1, ZNRADIUSBINS, inputDir + "light22620362208s");
+  loadLightTable(mLightTableZN, 2, ZNRADIUSBINS, inputDir + "light22620362209s");
+  auto elements = loadLightTable(mLightTableZN, 3, ZNRADIUSBINS, inputDir + "light22620362210s");
+  assert(elements == ZNRADIUSBINS * ANGLEBINS);
+
+  //ZP case
+  loadLightTable(mLightTableZP, 0, ZPRADIUSBINS, inputDir + "light22620552207s");
+  loadLightTable(mLightTableZP, 1, ZPRADIUSBINS, inputDir + "light22620552208s");
+  loadLightTable(mLightTableZP, 2, ZPRADIUSBINS, inputDir + "light22620552209s");
+  elements = loadLightTable(mLightTableZP, 3, ZPRADIUSBINS, inputDir + "light22620552210s");
+  assert(elements == ZPRADIUSBINS * ANGLEBINS);
 }
+
+
 
 //_____________________________________________________________________________
 void Detector::ConstructGeometry()
@@ -206,44 +259,47 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   mZDCdetectorID = cZDCdetID[0];
   mZDCsectorID = cZDCdetID[1];
 
-  // A new hit is created for a new track NOT daughter of a seen particle (shower product)
-  // OR if the track is NOT in the same volume (detector, sector)
-  // OR if it is a new hit
-  if((!isDaughterOfSeenTrack && !kIsTrackInsideSameSector) || !mCurrentHit) {
-
-    mTrackTOF = 1.e09*fMC->TrackTime(); //TOF in ns
-    mPcMother = stack->GetCurrentTrack()->GetMother(0);
-
-    if(stack->getCurrentPrimaryIndex() != trackn) mSecondaryFlag=kTRUE;
     Float_t eDep = fMC->Edep();
 
     //Track entering the fibres
     int sensID = v->getMCid();
     int pdgCode = fMC->TrackPid();
     float lightoutput = 0.;
+    auto currentMediumid = fMC->CurrentMedium();
     int ibeta=99, iangle=99, iradius=99, nphe=0;
-    if(eDep>1e-04) CalculateTableIndexes(ibeta, iangle, iradius);
-    if(ibeta!=99 && iangle!=99 && iangle!=99){
-      int charge=0;
-      if(pdgCode<10000) charge = fMC->TrackCharge();
-      else charge = TMath::Abs(pdgCode/10000-100000);
-      //look into the light tables
-      if(mZDCdetectorID==1 || mZDCdetectorID==4){
-        if(iradius>Geometry::ZNFIBREDIAMETER) iradius=Geometry::ZNFIBREDIAMETER;
-        lightoutput = charge*charge*mLightTableZN[ibeta][iangle][iradius];
+    if((currentMediumid==mMediumPMCid) || (currentMediumid==mMediumPMQid)){
+      CalculateTableIndexes(ibeta, iangle, iradius);
+      if(ibeta!=99 && iangle!=99 && iangle!=99){
+        int charge=0;
+        if(pdgCode<10000) charge = fMC->TrackCharge();
+        else charge = TMath::Abs(pdgCode/10000-100000);
+        //look into the light tables
+        if(mZDCdetectorID==1 || mZDCdetectorID==4){
+          if(iradius>Geometry::ZNFIBREDIAMETER) iradius=Geometry::ZNFIBREDIAMETER;
+          lightoutput = charge*charge*mLightTableZN[ibeta][iangle][iradius];
+        }
+        else{
+          if(iradius>Geometry::ZPFIBREDIAMETER) iradius=Geometry::ZPFIBREDIAMETER;
+          lightoutput = charge*charge*mLightTableZP[ibeta][iangle][iradius];
+        }
+        if(lightoutput>0) nphe = gRandom->Poisson(lightoutput);
       }
-      else{
-        if(iradius>Geometry::ZPFIBREDIAMETER) iradius=Geometry::ZPFIBREDIAMETER;
-        lightoutput = charge*charge*mLightTableZP[ibeta][iangle][iradius];
-      }
-      if(lightoutput>0) nphe = gRandom->Poisson(lightoutput);
     }
 
+
+  // A new hit is created for a new track NOT daughter of a seen particle (shower product)
+  // OR if the track is NOT in the same volume (detector, sector)
+  // OR if it is a new hit
+  if((fMC->IsTrackEntering()) && (!isDaughterOfSeenTrack) && (!kIsTrackInsideSameSector) || (!mCurrentHit)) {
+
+    mTrackTOF = 1.e09*fMC->TrackTime(); //TOF in ns
+    mPcMother = stack->GetCurrentTrack()->GetMother(0);
+
+    if(stack->getCurrentPrimaryIndex() != trackn) mSecondaryFlag=kTRUE;
     mTotDepEnergy = eDep;
 
-    auto currentMediumid = fMC->CurrentMedium();
     if(currentMediumid==mMediumPMCid){
-      mTotLightPMC = nphe;
+       mTotLightPMC = nphe;
     }
     else if(currentMediumid==mMediumPMQid){
        mTotLightPMQ = nphe;
@@ -251,17 +307,31 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 
     Vector3D<float> pos(x[0], x[1], x[2]);
     Vector3D<float> mom(p[0], p[1], p[2]);
-    o2::zdc::Hit* hit = addHit(trackn, trackparent, mSecondaryFlag, energy, mZDCdetectorID, mZDCsectorID,
+    mCurrentHit = addHit(trackn, trackparent, mSecondaryFlag, energy, mZDCdetectorID, mZDCsectorID,
         pos, mom, mTrackTOF, xDet, mTotDepEnergy, mTotLightPMC, mTotLightPMQ);
-    mCurrentHit = hit;
+    stack->addHit(GetDetId());
+
     mCurrentTrackID = trackn;
     for(int i=0; i<3; i++) mXImpact[i] = xDet[i];
     mPrimaryEnergy = energy;
-    stack->addHit(GetDetId());
+
+    return true;
 
   }
   else{
-
+     // summing varibles that needs to be updated (Eloss and light yield)
+     mCurrentHit->setNoNumContributingSteps(mCurrentHit->getNumContributingSteps()+1);
+     mTotDepEnergy += eDep;
+     if(currentMediumid==mMediumPMCid){
+       mTotLightPMC += nphe;
+     }
+     else if(currentMediumid==mMediumPMQid){
+        mTotLightPMQ += nphe;
+     }
+     mCurrentHit->SetEnergyLoss(mTotDepEnergy);
+     mCurrentHit->setPMCLightYield(mTotLightPMC);
+     mCurrentHit->setPMQLightYield(mTotLightPMQ);
+     return true;
   }
   return false;
 }
@@ -273,7 +343,8 @@ o2::zdc::Hit*  Detector::addHit(Int_t trackID, Int_t parentID, Int_t sFlag, Floa
   LOG(DEBUG4) << "Adding hit for track " << trackID << " X (" << pos.X() << ", " << pos.Y() << ", "
               << pos.Z() << ") P (" << mom.X() << ", " << mom.Y() << ", " << mom.Z() << ")  Ekin "
               << primaryEnergy << " lightPMC  " << nphePMC << " lightPMQ  " << nphePMQ<< std::endl;
-  //mHits->emplace_back(trackID, detID, pos, mom, totE, time, eLoss);
+  mHits->emplace_back(trackID, parentID, sFlag, primaryEnergy, detID, secID, pos, mom,
+    tof, xImpact, energyloss, nphePMC, nphePMQ);
   return &(mHits->back());
 
 }
@@ -1433,7 +1504,6 @@ void Detector::CreateCsideBeamLine()
   TVirtualMC::GetMC()->Gsvolu("QT13", "TUBE", getMediumID(kVoidNoField), tubpar, 3);
   TVirtualMC::GetMC()->Gspos("QT13", 1, "ZDCC", -16.5/2., 0., -tubpar[2]-zC, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("QT13", 2, "ZDCC",  16.5/2., 0., -tubpar[2]-zC, 0, "ONLY");
-  //printf("	QT13 TUBE from z = %1.2f to z = %1.2f (separate beam pipes)\n",-zC,-2*tubpar[2]-zC);
 
   zC += 2.*tubpar[2];
 
@@ -1817,17 +1887,25 @@ void Detector::CreateDetectors()
   // ZNC Box (A and C sides)
   // Top & bottom walls
   TVirtualMC::GetMC()->Gsvolu("ZNBH","BOX ", getMediumID(kAl), const_cast<double*>(znSupportWallsud), 3);
-  TVirtualMC::GetMC()->Gspos("ZNBH", 1, "ZDCC", Geometry::ZNCPOSITION[0]+znSupportBasePos[0], Geometry::ZNCPOSITION[1]+znSupportBasePos[1]+znSupportScintillV[1]+znSupportWallsud[1], Geometry::ZNCPOSITION[2]-znSupportWallsud[2], 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZNBH", 2, "ZDCC", Geometry::ZNCPOSITION[0]+znSupportBasePos[0], Geometry::ZNCPOSITION[1]+znSupportBasePos[1]+znSupportScintillV[1]+znSupportWallsud[1]+2.*Geometry::ZNDIMENSION[1], Geometry::ZNCPOSITION[2]-znSupportWallsud[2], 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZNBH", 3, "ZDCA", Geometry::ZNAPOSITION[0]+znSupportBasePos[0], Geometry::ZNAPOSITION[1]+znSupportBasePos[1]+znSupportScintillV[1]+znSupportWallsud[1], Geometry::ZNAPOSITION[2]+znSupportWallsud[2], 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZNBH", 4, "ZDCA", Geometry::ZNAPOSITION[0]+znSupportBasePos[0], Geometry::ZNAPOSITION[1]+znSupportBasePos[1]+znSupportScintillV[1]+znSupportWallsud[1]+2.*Geometry::ZNDIMENSION[1], Geometry::ZNAPOSITION[2]+znSupportWallsud[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZNBH", 1, "ZDCC", Geometry::ZNCPOSITION[0]+znSupportBasePos[0],
+    Geometry::ZNCPOSITION[1]-Geometry::ZNDIMENSION[1]-znSupportWallsud[1], Geometry::ZNCPOSITION[2]-znSupportWallsud[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZNBH", 2, "ZDCC", Geometry::ZNCPOSITION[0]+znSupportBasePos[0],
+    Geometry::ZNCPOSITION[1]+Geometry::ZNDIMENSION[1]+znSupportWallsud[1], Geometry::ZNCPOSITION[2]-znSupportWallsud[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZNBH", 3, "ZDCA", Geometry::ZNAPOSITION[0]+znSupportBasePos[0],
+    Geometry::ZNAPOSITION[1]-Geometry::ZNDIMENSION[1]-znSupportWallsud[1], Geometry::ZNAPOSITION[2]+znSupportWallsud[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZNBH", 4, "ZDCA", Geometry::ZNAPOSITION[0]+znSupportBasePos[0],
+    Geometry::ZNAPOSITION[1]+Geometry::ZNDIMENSION[1]+znSupportWallsud[1], Geometry::ZNAPOSITION[2]+znSupportWallsud[2], 0, "ONLY");
 
   // Side walls
   TVirtualMC::GetMC()->Gsvolu("ZNBS","BOX ", getMediumID(kAl), const_cast<double*>(znSupportWallside), 3);
-  TVirtualMC::GetMC()->Gspos("ZNBS", 1, "ZDCC", Geometry::ZNCPOSITION[0]+Geometry::ZNDIMENSION[0]+znSupportWallside[0], Geometry::ZNCPOSITION[1], Geometry::ZNCPOSITION[2]-znSupportWallside[2], 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZNBS", 2, "ZDCC", Geometry::ZNCPOSITION[0]-Geometry::ZNDIMENSION[0]-znSupportWallside[0], Geometry::ZNCPOSITION[1], Geometry::ZNCPOSITION[2]-znSupportWallsud[2], 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZNBS", 3, "ZDCA", Geometry::ZNAPOSITION[0]+Geometry::ZNDIMENSION[0]+znSupportWallside[0], Geometry::ZNAPOSITION[1], Geometry::ZNAPOSITION[2]+znSupportWallside[2], 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZNBS", 4, "ZDCA", Geometry::ZNAPOSITION[0]-Geometry::ZNDIMENSION[0]-znSupportWallside[0], Geometry::ZNAPOSITION[1], Geometry::ZNAPOSITION[2]+znSupportWallsud[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZNBS", 1, "ZDCC", Geometry::ZNCPOSITION[0]+Geometry::ZNDIMENSION[0]+znSupportWallside[0],
+    Geometry::ZNCPOSITION[1], Geometry::ZNCPOSITION[2]-znSupportWallside[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZNBS", 2, "ZDCC", Geometry::ZNCPOSITION[0]-Geometry::ZNDIMENSION[0]-znSupportWallside[0],
+    Geometry::ZNCPOSITION[1], Geometry::ZNCPOSITION[2]-znSupportWallsud[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZNBS", 3, "ZDCA", Geometry::ZNAPOSITION[0]+Geometry::ZNDIMENSION[0]+znSupportWallside[0],
+    Geometry::ZNAPOSITION[1], Geometry::ZNAPOSITION[2]+znSupportWallside[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZNBS", 4, "ZDCA", Geometry::ZNAPOSITION[0]-Geometry::ZNDIMENSION[0]-znSupportWallside[0],
+    Geometry::ZNAPOSITION[1], Geometry::ZNAPOSITION[2]+znSupportWallsud[2], 0, "ONLY");
 
 
   // -------------------------------------------------------------------------------
@@ -1889,46 +1967,46 @@ void Detector::CreateDetectors()
 
   // Bottom basements (A and C sides)
   TVirtualMC::GetMC()->Gsvolu("ZPBASE1","BOX ", getMediumID(kAl), const_cast<double*>(zpSupportBase1), 3);
-  TVirtualMC::GetMC()->Gspos("ZPBASE1", 1, "cave", Geometry::ZPCPOSITION[0]+zpSupportBase1Pos[0],
+  TVirtualMC::GetMC()->Gspos("ZPBASE1", 1, "ZDCC", Geometry::ZPCPOSITION[0]+zpSupportBase1Pos[0],
    Geometry::ZPCPOSITION[1]+zpSupportBase1Pos[1], Geometry::ZPCPOSITION[2]-zpSupportBase1[2], 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZPBASE1", 2, "cave", Geometry::ZPAPOSITION[0]+zpSupportBase1Pos[0],
+  TVirtualMC::GetMC()->Gspos("ZPBASE1", 2, "ZDCA", Geometry::ZPAPOSITION[0]+zpSupportBase1Pos[0],
    Geometry::ZPAPOSITION[1]+zpSupportBase1Pos[1], Geometry::ZPAPOSITION[2]+zpSupportBase1[2], 0, "ONLY");
 
   // Bottom foot between 2 basements (A and C sides)
   TVirtualMC::GetMC()->Gsvolu("ZPFOOT","BOX ", getMediumID(kAl), const_cast<double*>(zpSupportBase3), 3);
-  TVirtualMC::GetMC()->Gspos("ZPFOOT", 1, "cave", Geometry::ZPCPOSITION[0]+zpSupportBase1Pos[0]-zpSupportBase1[0]+zpSupportBase3[0],  Geometry::ZPCPOSITION[1]+zpSupportBase1Pos[1]+zpSupportBase1[1]+zpSupportBase3[1], Geometry::ZPCPOSITION[2]-zpSupportBase3[2], 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZPFOOT", 2, "cave", Geometry::ZPCPOSITION[0]+zpSupportBase1Pos[0]+zpSupportBase1[0]-zpSupportBase3[0],  Geometry::ZPCPOSITION[1]+zpSupportBase1Pos[1]+zpSupportBase1[1]+zpSupportBase3[1], Geometry::ZPCPOSITION[2]-zpSupportBase3[2], 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZPFOOT", 3, "cave", Geometry::ZPAPOSITION[0]+zpSupportBase1Pos[0]-zpSupportBase1[0]+zpSupportBase3[0],  Geometry::ZPAPOSITION[1]+zpSupportBase1Pos[1]+zpSupportBase1[1]+zpSupportBase3[1], Geometry::ZPAPOSITION[2]+zpSupportBase3[2], 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZPFOOT", 4, "cave", Geometry::ZPAPOSITION[0]+zpSupportBase1Pos[0]+zpSupportBase1[0]-zpSupportBase3[0],  Geometry::ZPAPOSITION[1]+zpSupportBase1Pos[1]+zpSupportBase1[1]+zpSupportBase3[1], Geometry::ZPAPOSITION[2]+zpSupportBase3[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZPFOOT", 1, "ZDCC", Geometry::ZPCPOSITION[0]+zpSupportBase1Pos[0]-zpSupportBase1[0]+zpSupportBase3[0],  Geometry::ZPCPOSITION[1]+zpSupportBase1Pos[1]+zpSupportBase1[1]+zpSupportBase3[1], Geometry::ZPCPOSITION[2]-zpSupportBase3[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZPFOOT", 2, "ZDCC", Geometry::ZPCPOSITION[0]+zpSupportBase1Pos[0]+zpSupportBase1[0]-zpSupportBase3[0],  Geometry::ZPCPOSITION[1]+zpSupportBase1Pos[1]+zpSupportBase1[1]+zpSupportBase3[1], Geometry::ZPCPOSITION[2]-zpSupportBase3[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZPFOOT", 3, "ZDCA", Geometry::ZPAPOSITION[0]+zpSupportBase1Pos[0]-zpSupportBase1[0]+zpSupportBase3[0],  Geometry::ZPAPOSITION[1]+zpSupportBase1Pos[1]+zpSupportBase1[1]+zpSupportBase3[1], Geometry::ZPAPOSITION[2]+zpSupportBase3[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZPFOOT", 4, "ZDCA", Geometry::ZPAPOSITION[0]+zpSupportBase1Pos[0]+zpSupportBase1[0]-zpSupportBase3[0],  Geometry::ZPAPOSITION[1]+zpSupportBase1Pos[1]+zpSupportBase1[1]+zpSupportBase3[1], Geometry::ZPAPOSITION[2]+zpSupportBase3[2], 0, "ONLY");
 
   // Upper basements (A and C sides)
   TVirtualMC::GetMC()->Gsvolu("ZPBASE2","BOX ", getMediumID(kAl), const_cast<double*>(zpSupportBase2), 3);
-  TVirtualMC::GetMC()->Gspos("ZPBASE2", 1, "cave", Geometry::ZPCPOSITION[0]+zpSupportBase2Pos[0],
+  TVirtualMC::GetMC()->Gspos("ZPBASE2", 1, "ZDCC", Geometry::ZPCPOSITION[0]+zpSupportBase2Pos[0],
    Geometry::ZPCPOSITION[1]+zpSupportBase2Pos[1], Geometry::ZPCPOSITION[2]-zpSupportBase2[2], 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZPBASE2", 2, "cave", Geometry::ZPAPOSITION[0]+zpSupportBase2Pos[0],
+  TVirtualMC::GetMC()->Gspos("ZPBASE2", 2, "ZDCA", Geometry::ZPAPOSITION[0]+zpSupportBase2Pos[0],
    Geometry::ZPAPOSITION[1]+zpSupportBase2Pos[1], Geometry::ZPAPOSITION[2]+zpSupportBase2[2], 0, "ONLY");
 
   // ZPC Box (A and C sides)
   // Bottom walls
   TVirtualMC::GetMC()->Gsvolu("ZPBB","BOX ", getMediumID(kAl), const_cast<double*>(zpSupportWallBottom), 3);
-  TVirtualMC::GetMC()->Gspos("ZPBB", 1, "cave", Geometry::ZPCPOSITION[0],
+  TVirtualMC::GetMC()->Gspos("ZPBB", 1, "ZDCC", Geometry::ZPCPOSITION[0],
    Geometry::ZPCPOSITION[1]-Geometry::ZPDIMENSION[1]-zpSupportWallBottom[1], Geometry::ZPCPOSITION[2]-zpSupportWallBottom[2], 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZPBB", 2, "cave", Geometry::ZPAPOSITION[0],
+  TVirtualMC::GetMC()->Gspos("ZPBB", 2, "ZDCA", Geometry::ZPAPOSITION[0],
    Geometry::ZPAPOSITION[1]-Geometry::ZPDIMENSION[1]-zpSupportWallBottom[1], Geometry::ZPAPOSITION[2]+zpSupportWallBottom[2], 0, "ONLY");
 
   // Top walls
   TVirtualMC::GetMC()->Gsvolu("ZPBT","BOX ", getMediumID(kAl), const_cast<double*>(zpSupportWallup), 3);
-  TVirtualMC::GetMC()->Gspos("ZPBT", 1, "cave", Geometry::ZPCPOSITION[0],
+  TVirtualMC::GetMC()->Gspos("ZPBT", 1, "ZDCC", Geometry::ZPCPOSITION[0],
    Geometry::ZPCPOSITION[1]+Geometry::ZPDIMENSION[1]+zpSupportWallup[1], Geometry::ZPCPOSITION[2]-zpSupportWallup[2], 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZPBT", 2, "cave", Geometry::ZPAPOSITION[0],
+  TVirtualMC::GetMC()->Gspos("ZPBT", 2, "ZDCA", Geometry::ZPAPOSITION[0],
    Geometry::ZPAPOSITION[1]+Geometry::ZPDIMENSION[1]+zpSupportWallup[1], Geometry::ZPAPOSITION[2]+zpSupportWallup[2], 0, "ONLY");
 
   // Side walls
   TVirtualMC::GetMC()->Gsvolu("ZPBS","BOX ", getMediumID(kAl), const_cast<double*>(zpSupportWallside), 3);
-  TVirtualMC::GetMC()->Gspos("ZPBS", 1, "cave", Geometry::ZPCPOSITION[0]+Geometry::ZPDIMENSION[0]+zpSupportWallside[0], Geometry::ZPCPOSITION[1]+0.75, Geometry::ZPCPOSITION[2]-zpSupportWallside[2], 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZPBS", 2, "cave", Geometry::ZPCPOSITION[0]-Geometry::ZPDIMENSION[0]-zpSupportWallside[0], Geometry::ZPCPOSITION[1]+0.75, Geometry::ZPCPOSITION[2]-zpSupportWallside[2], 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZPBS", 3, "cave", Geometry::ZPAPOSITION[0]+Geometry::ZPDIMENSION[0]+zpSupportWallside[0], Geometry::ZPAPOSITION[1]+0.75, Geometry::ZPAPOSITION[2]+zpSupportWallside[2], 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZPBS", 4, "cave", Geometry::ZPAPOSITION[0]-Geometry::ZPDIMENSION[0]-zpSupportWallside[0], Geometry::ZPAPOSITION[1]+0.75, Geometry::ZPAPOSITION[2]+zpSupportWallside[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZPBS", 1, "ZDCC", Geometry::ZPCPOSITION[0]+Geometry::ZPDIMENSION[0]+zpSupportWallside[0], Geometry::ZPCPOSITION[1]+0.75, Geometry::ZPCPOSITION[2]-zpSupportWallside[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZPBS", 2, "ZDCC", Geometry::ZPCPOSITION[0]-Geometry::ZPDIMENSION[0]-zpSupportWallside[0], Geometry::ZPCPOSITION[1]+0.75, Geometry::ZPCPOSITION[2]-zpSupportWallside[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZPBS", 3, "ZDCA", Geometry::ZPAPOSITION[0]+Geometry::ZPDIMENSION[0]+zpSupportWallside[0], Geometry::ZPAPOSITION[1]+0.75, Geometry::ZPAPOSITION[2]+zpSupportWallside[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZPBS", 4, "ZDCA", Geometry::ZPAPOSITION[0]-Geometry::ZPDIMENSION[0]-zpSupportWallside[0], Geometry::ZPAPOSITION[1]+0.75, Geometry::ZPAPOSITION[2]+zpSupportWallside[2], 0, "ONLY");
 
   // -------------------------------------------------------------------------------
   // -> EM calorimeter (ZEM)
@@ -1982,14 +2060,14 @@ void Detector::CreateDetectors()
 
   // --- Positioning the ZEM into the ZDC - rotation for 90 degrees
   // NB -> ZEM is positioned in cave volume
-  TVirtualMC::GetMC()->Gspos("ZEM ", 1,"cave", -Geometry::ZEMPOSITION[0], Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2]+Geometry::ZEMDIMENSION[0], irotzem1, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEM ", 1,"ZDCA", -Geometry::ZEMPOSITION[0], Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2]+Geometry::ZEMDIMENSION[0], irotzem1, "ONLY");
 
   // Second EM ZDC (same side w.r.t. IP, just on the other side w.r.t. beam pipe)
-  TVirtualMC::GetMC()->Gspos("ZEM ", 2,"cave", Geometry::ZEMPOSITION[0], Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2]+Geometry::ZEMDIMENSION[0], irotzem1, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEM ", 2,"ZDCA", Geometry::ZEMPOSITION[0], Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2]+Geometry::ZEMDIMENSION[0], irotzem1, "ONLY");
 
   // --- Adding last slice at the end of the EM calorimeter
   Float_t zLastSlice = Geometry::ZEMPOSITION[2]+zemPbSlice[0]+2*Geometry::ZEMDIMENSION[0];
-  TVirtualMC::GetMC()->Gspos("ZEL2", 1,"cave",  Geometry::ZEMPOSITION[0], Geometry::ZEMPOSITION[1], zLastSlice, irotzem1, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEL2", 1,"ZDCA",  Geometry::ZEMPOSITION[0], Geometry::ZEMPOSITION[1], zLastSlice, irotzem1, "ONLY");
 
   // -------------------------------------------------------------------------------
   // -> ZEM supports
@@ -2002,31 +2080,31 @@ void Detector::CreateDetectors()
   // Bridge
   TVirtualMC::GetMC()->Gsvolu("ZESH","BOX ", getMediumID(kAl), const_cast<double*>(zemSupport1), 3);
   Float_t ybridge = Geometry::ZEMPOSITION[1]-Geometry::ZEMDIMENSION[1]-2.*2.*zemSupportBox[3+1]-5.-zemSupport1[1];
-  TVirtualMC::GetMC()->Gspos("ZESH", 1, "cave", Geometry::ZEMPOSITION[0], ybridge, zbox, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZESH", 2, "cave", -Geometry::ZEMPOSITION[0], ybridge, zbox, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZESH", 1, "ZDCA", Geometry::ZEMPOSITION[0], ybridge, zbox, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZESH", 2, "ZDCA", -Geometry::ZEMPOSITION[0], ybridge, zbox, 0, "ONLY");
   //
   TVirtualMC::GetMC()->Gsvolu("ZESV","BOX ", getMediumID(kAl), const_cast<double*>(zemSupport2), 3);
-  TVirtualMC::GetMC()->Gspos("ZESV", 1, "cave", Geometry::ZEMPOSITION[0]-zemSupportBox[0]+zemSupport2[0], ybox-zemSupportBox[1]-zemSupport2[1], zbox, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZESV", 2, "cave", Geometry::ZEMPOSITION[0]+zemSupportBox[0]-zemSupport2[0], ybox-zemSupportBox[1]-zemSupport2[1], zbox, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZESV", 3, "cave", -(Geometry::ZEMPOSITION[0]-zemSupportBox[0]+zemSupport2[0]), ybox-zemSupportBox[1]-zemSupport2[1], zbox, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZESV", 4, "cave", -(Geometry::ZEMPOSITION[0]+zemSupportBox[0]-zemSupport2[0]), ybox-zemSupportBox[1]-zemSupport2[1], zbox, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZESV", 1, "ZDCA", Geometry::ZEMPOSITION[0]-zemSupportBox[0]+zemSupport2[0], ybox-zemSupportBox[1]-zemSupport2[1], zbox, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZESV", 2, "ZDCA", Geometry::ZEMPOSITION[0]+zemSupportBox[0]-zemSupport2[0], ybox-zemSupportBox[1]-zemSupport2[1], zbox, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZESV", 3, "ZDCA", -(Geometry::ZEMPOSITION[0]-zemSupportBox[0]+zemSupport2[0]), ybox-zemSupportBox[1]-zemSupport2[1], zbox, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZESV", 4, "ZDCA", -(Geometry::ZEMPOSITION[0]+zemSupportBox[0]-zemSupport2[0]), ybox-zemSupportBox[1]-zemSupport2[1], zbox, 0, "ONLY");
 
   // Table
   TVirtualMC::GetMC()->Gsvolu("ZETA","BOX ", getMediumID(kAl), const_cast<double*>(zemSupportTable), 3);
   Float_t ytable = ybridge-zemSupport1[1]-zemSupportTable[1];
-  TVirtualMC::GetMC()->Gspos("ZETA", 1, "cave", 0.0, ytable, zbox, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZETA", 2, "cave", 0.0, ytable-13.+2.*zemSupportTable[1], zbox, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZETA", 1, "ZDCA", 0.0, ytable, zbox, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZETA", 2, "ZDCA", 0.0, ytable-13.+2.*zemSupportTable[1], zbox, 0, "ONLY");
 
   //Screens around ZEM
   TVirtualMC::GetMC()->Gsvolu("ZEFL","BOX ", getMediumID(kAl), const_cast<double*>(zemSupport3), 3);
-  TVirtualMC::GetMC()->Gspos("ZEFL", 1, "cave", Geometry::ZEMPOSITION[0], -Geometry::ZEMDIMENSION[1]-zemSupport3[1], zSupport+zemSupport3[2], 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZEFL", 2, "cave", -Geometry::ZEMPOSITION[0], -Geometry::ZEMDIMENSION[1]-zemSupport3[1], zSupport+zemSupport3[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEFL", 1, "ZDCA", Geometry::ZEMPOSITION[0], -Geometry::ZEMDIMENSION[1]-zemSupport3[1], zSupport+zemSupport3[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEFL", 2, "ZDCA", -Geometry::ZEMPOSITION[0], -Geometry::ZEMDIMENSION[1]-zemSupport3[1], zSupport+zemSupport3[2], 0, "ONLY");
 
   TVirtualMC::GetMC()->Gsvolu("ZELA", "PARA", getMediumID(kAl), const_cast<double*>(zemSupport4), 6);
-  TVirtualMC::GetMC()->Gspos("ZELA", 1, "cave", Geometry::ZEMPOSITION[0]-Geometry::ZEMDIMENSION[2]-zemSupport4[2], Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2]+zemSupport4[0], irotzem1, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZELA", 2, "cave", Geometry::ZEMPOSITION[0]+Geometry::ZEMDIMENSION[2]+zemSupport4[2], Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2]+zemSupport4[0], irotzem1, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZELA", 3, "cave", -(Geometry::ZEMPOSITION[0]-Geometry::ZEMDIMENSION[2]-zemSupport4[2]), Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2]+zemSupport4[0], irotzem1, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZELA", 4, "cave", -(Geometry::ZEMPOSITION[0]+Geometry::ZEMDIMENSION[2]+zemSupport4[2]), Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2]+zemSupport4[0], irotzem1, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZELA", 1, "ZDCA", Geometry::ZEMPOSITION[0]-Geometry::ZEMDIMENSION[2]-zemSupport4[2], Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2]+zemSupport4[0], irotzem1, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZELA", 2, "ZDCA", Geometry::ZEMPOSITION[0]+Geometry::ZEMDIMENSION[2]+zemSupport4[2], Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2]+zemSupport4[0], irotzem1, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZELA", 3, "ZDCA", -(Geometry::ZEMPOSITION[0]-Geometry::ZEMDIMENSION[2]-zemSupport4[2]), Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2]+zemSupport4[0], irotzem1, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZELA", 4, "ZDCA", -(Geometry::ZEMPOSITION[0]+Geometry::ZEMDIMENSION[2]+zemSupport4[2]), Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2]+zemSupport4[0], irotzem1, "ONLY");
 
   // Containers for ZEM calorimeters
   TVirtualMC::GetMC()->Gsvolu("ZEW1","BOX ", getMediumID(kAl), const_cast<double*>(zemWallH), 3);
@@ -2036,26 +2114,24 @@ void Detector::CreateDetectors()
   //
   Float_t yh1 = Geometry::ZEMPOSITION[1]-Geometry::ZEMDIMENSION[1]-2*zemSupport3[1]-zemWallH[1];
   Float_t zh1 = zSupport+zemWallH[2];
-  TVirtualMC::GetMC()->Gspos("ZEW1", 1, "cave", Geometry::ZEMPOSITION[0], yh1, zh1, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZEW1", 2, "cave", Geometry::ZEMPOSITION[0], yh1+2*zemSupportBox[1], zh1, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZEW1", 3, "cave", -Geometry::ZEMPOSITION[0], yh1, zh1, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZEW1", 4, "cave", -Geometry::ZEMPOSITION[0], yh1+2*zemSupportBox[1], zh1, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEW1", 1, "ZDCA", Geometry::ZEMPOSITION[0], yh1, zh1, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEW1", 2, "ZDCA", Geometry::ZEMPOSITION[0], yh1+2*zemSupportBox[1], zh1, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEW1", 3, "ZDCA", -Geometry::ZEMPOSITION[0], yh1, zh1, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEW1", 4, "ZDCA", -Geometry::ZEMPOSITION[0], yh1+2*zemSupportBox[1], zh1, 0, "ONLY");
   //
-  TVirtualMC::GetMC()->Gspos("ZEW2", 1, "cave", Geometry::ZEMPOSITION[0], yh1+zemSupportBox[1], zSupport-zemWallVfwd[2], 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZEW3", 1, "cave", Geometry::ZEMPOSITION[0], yh1+zemSupportBox[1], zSupport+2*zemWallH[2], 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZEW2", 2, "cave", -Geometry::ZEMPOSITION[0], yh1+zemSupportBox[1], zSupport-zemWallVfwd[2], 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZEW3", 2, "cave", -Geometry::ZEMPOSITION[0], yh1+zemSupportBox[1], zSupport+2*zemWallH[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEW2", 1, "ZDCA", Geometry::ZEMPOSITION[0], yh1+zemSupportBox[1], zSupport-zemWallVfwd[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEW3", 1, "ZDCA", Geometry::ZEMPOSITION[0], yh1+zemSupportBox[1], zSupport+2*zemWallH[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEW2", 2, "ZDCA", -Geometry::ZEMPOSITION[0], yh1+zemSupportBox[1], zSupport-zemWallVfwd[2], 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEW3", 2, "ZDCA", -Geometry::ZEMPOSITION[0], yh1+zemSupportBox[1], zSupport+2*zemWallH[2], 0, "ONLY");
   //
   Float_t xl1= Geometry::ZEMPOSITION[0]-Geometry::ZEMDIMENSION[2]-2.*zemSupport4[2]-zemWallVside[0];
   Float_t xl2= Geometry::ZEMPOSITION[0]+Geometry::ZEMDIMENSION[2]+2.*zemSupport4[2]+zemWallVside[0];
-  TVirtualMC::GetMC()->Gspos("ZEW4", 1, "cave", xl1, yh1+zemSupportBox[1], zh1, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZEW4", 2, "cave", xl2, yh1+zemSupportBox[1], zh1, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZEW4", 3, "cave", -xl1, yh1+zemSupportBox[1], zh1, 0, "ONLY");
-  TVirtualMC::GetMC()->Gspos("ZEW4", 4, "cave", -xl2, yh1+zemSupportBox[1], zh1, 0, "ONLY");
-
+  TVirtualMC::GetMC()->Gspos("ZEW4", 1, "ZDCA", xl1, yh1+zemSupportBox[1], zh1, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEW4", 2, "ZDCA", xl2, yh1+zemSupportBox[1], zh1, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEW4", 3, "ZDCA", -xl1, yh1+zemSupportBox[1], zh1, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos("ZEW4", 4, "ZDCA", -xl2, yh1+zemSupportBox[1], zh1, 0, "ONLY");
 
 }
-
 
 //_____________________________________________________________________________
 void Detector::CalculateTableIndexes(int& ibeta, int& iangle, int& iradius)

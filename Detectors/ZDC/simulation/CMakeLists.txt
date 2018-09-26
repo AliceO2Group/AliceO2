@@ -15,3 +15,5 @@ Set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME zdc_simulation_bucket)
 
 O2_GENERATE_LIBRARY()
+
+INSTALL(DIRECTORY data DESTINATION share/Detectors/ZDC/simulation)

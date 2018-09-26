@@ -46,10 +46,20 @@ public:
     inline Hit(int trackID, int parent, Bool_t sFlag, Float_t primaryEnergy, Int_t detID, Int_t sectorID,
           Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Float_t *xImpact, Float_t energyloss, Int_t nphePMC, Int_t nphePMQ);
 
+    void setPMCLightYield(float val) {mNphePMC=val;}
+    void setPMQLightYield(float val) {mNphePMQ=val;}
+    void setNoNumContributingSteps(int val) {mNoContributingSteps=val;}
+
+    int getSector() {return mSectorID;}
+    float getPMCLightYield() {return mNphePMC;}
+    float getPMQLightYield() {return mNphePMQ;}
+    int getNumContributingSteps() {return mNoContributingSteps;}
+
 private:
   Int_t  mParentID;
   Bool_t  mSecFlag;
   Float_t mPrimaryEnergy;
+  Int_t mNoContributingSteps=1;
   Int_t mSectorID;
   Vector3D<float> mMomentum;
   Vector3D<float> mXImpact;

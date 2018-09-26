@@ -123,13 +123,18 @@ class Detector : public o2::Base::DetImpl<Detector>
     Float_t mTCLIAAPERTURENEG = 3.5; //TODO: make part of configurable params
 	  Float_t mVCollSideCCentreY = 0.; //TODO: make part of configurable params
 
-    float mLightTableZN[4][18][90]; //!
-    float mLightTableZP[4][28][90]; //!
+    static constexpr int ZNRADIUSBINS = 18;
+    static constexpr int ZPRADIUSBINS = 28;
+    static constexpr int ANGLEBINS = 90;
+
+    float mLightTableZN[4][ZNRADIUSBINS][ANGLEBINS]={1.}; //!
+    float mLightTableZP[4][ZPRADIUSBINS][ANGLEBINS]={1.}; //!
 
   template <typename Det>
   friend class o2::Base::DetImpl;
   ClassDefOverride(Detector, 1);
 };
+
 }
 }
 
