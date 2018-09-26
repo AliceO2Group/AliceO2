@@ -57,6 +57,14 @@ tpc-reco-workflow --infile tpcdigits.root --tpc-sectors 0-15 --disable-mc 1
 Support for all other output types than `tracks` is going to be implemented soon, multiple outputs
 will be supported in order to keep the data at intermediate steps.
 
+### Processor options
+
+#### TPC CA tracker
+The [tracker spec](src/CATrackerSpec.cxx) interfaces the [o2::TPC::TPCCATracking](reconstruction/include/TPCReconstruction/TPCCATracking.h) worker class which can be initialized using an option string. The processor spec defines the option `--tracker-option`, e.g.
+```
+--tracker-option ""refX=83""
+```
+
 ### Current limitations
 * track labels not yet written to file
 * only the full workflow with input type `digits` and output type `tracks` has been tested so far
