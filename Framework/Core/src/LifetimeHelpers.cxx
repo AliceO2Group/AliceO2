@@ -76,8 +76,10 @@ ExpirationHandler::Handler LifetimeHelpers::doNothing()
 /// FIXME: provide a way to customize the namespace from the ProcessingContext
 ExpirationHandler::Handler LifetimeHelpers::fetchFromCCDBCache(std::string const& prefix)
 {
-  throw std::runtime_error("fetchFromCCDBCache: Not yet implemented");
-  return [](ServiceRegistry&, PartRef& ref, uint64_t) -> void { return; };
+  return [](ServiceRegistry&, PartRef& ref, uint64_t) -> void {
+    throw std::runtime_error("fetchFromCCDBCache: Not yet implemented");
+    return;
+  };
 }
 
 /// Create an entry in the registry for histograms on the first
@@ -85,8 +87,10 @@ ExpirationHandler::Handler LifetimeHelpers::fetchFromCCDBCache(std::string const
 /// FIXME: provide a way to customise the histogram from the configuration.
 ExpirationHandler::Handler LifetimeHelpers::fetchFromQARegistry()
 {
-  throw std::runtime_error("fetchFromQARegistry: Not yet implemented");
-  return [](ServiceRegistry&, PartRef& ref, uint64_t) -> void { return; };
+  return [](ServiceRegistry&, PartRef& ref, uint64_t) -> void {
+    throw std::runtime_error("fetchFromQARegistry: Not yet implemented");
+    return;
+  };
 }
 
 /// Create an entry in the registry for histograms on the first
@@ -94,8 +98,10 @@ ExpirationHandler::Handler LifetimeHelpers::fetchFromQARegistry()
 /// FIXME: provide a way to customise the histogram from the configuration.
 ExpirationHandler::Handler LifetimeHelpers::fetchFromObjectRegistry()
 {
-  throw std::runtime_error("fetchFromObjectRegistry: Not yet implemented");
-  return [](ServiceRegistry&, PartRef& ref, uint64_t) -> void { return; };
+  return [](ServiceRegistry&, PartRef& ref, uint64_t) -> void {
+    throw std::runtime_error("fetchFromObjectRegistry: Not yet implemented");
+    return;
+  };
 }
 
 /// Enumerate entries on every invokation.
