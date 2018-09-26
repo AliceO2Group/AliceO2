@@ -14,52 +14,53 @@
 #ifndef ALICEO2_ZDC_HIT_H_
 #define ALICEO2_ZDC_HIT_H_
 
-#include "SimulationDataFormat/BaseHits.h"     // for BasicXYZEHit
-#include "TVector3.h"     // for TVector3
-#include <iosfwd>
+#include "SimulationDataFormat/BaseHits.h" // for BasicXYZEHit
 
-namespace o2 {
-namespace zdc {
-
-class Hit : public o2::BasicXYZEHit<Float_t,Float_t>
+namespace o2
+{
+namespace zdc
 {
 
-public:
-    // Default constructor
-    Hit() = default;
+class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
+{
 
-    /// Class Constructor
-    /// \param trackID Index of MCTrack
-    /// \param detID Detector ID
-    /// \param parent mother of the track
-    /// \param sflag true if it is a secondary
-    /// \param primaryEnergy energy of the  primary [GeV]
-    /// \param detID detector ID (1-ZNA, 2-ZPA, 3-ZEM, 4-ZNC, 5-ZPC)
-    /// \param sectorID sector ID
-    /// \param pos track position
-    /// \param mom track momentum
-    /// \param tof track TOF
-    /// \param xImpact x,y,z of the impact of the 1st particle
-    /// \param energyloss deposited energy
-    /// \param nphePMC light output on common PMT
-    /// \param nphePMQ light output on sector PMT
-    inline Hit(int trackID, int parent, Bool_t sFlag, Float_t primaryEnergy, Int_t detID, Int_t sectorID,
-          Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Float_t *xImpact, Float_t energyloss, Int_t nphePMC, Int_t nphePMQ);
+ public:
+  // Default constructor
+  Hit() = default;
 
-    void setPMCLightYield(float val) {mNphePMC=val;}
-    void setPMQLightYield(float val) {mNphePMQ=val;}
-    void setNoNumContributingSteps(int val) {mNoContributingSteps=val;}
+  /// Class Constructor
+  /// \param trackID Index of MCTrack
+  /// \param detID Detector ID
+  /// \param parent mother of the track
+  /// \param sflag true if it is a secondary
+  /// \param primaryEnergy energy of the  primary [GeV]
+  /// \param detID detector ID (1-ZNA, 2-ZPA, 3-ZEM, 4-ZNC, 5-ZPC)
+  /// \param sectorID sector ID
+  /// \param pos track position
+  /// \param mom track momentum
+  /// \param tof track TOF
+  /// \param xImpact x,y,z of the impact of the 1st particle
+  /// \param energyloss deposited energy
+  /// \param nphePMC light output on common PMT
+  /// \param nphePMQ light output on sector PMT
+  Hit(int trackID, int parent, Bool_t sFlag, Float_t primaryEnergy, Int_t detID, Int_t sectorID,
+      Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Float_t* xImpact, Float_t energyloss, Int_t nphePMC,
+      Int_t nphePMQ);
 
-    int getSector() {return mSectorID;}
-    float getPMCLightYield() {return mNphePMC;}
-    float getPMQLightYield() {return mNphePMQ;}
-    int getNumContributingSteps() {return mNoContributingSteps;}
+  void setPMCLightYield(float val) { mNphePMC = val; }
+  void setPMQLightYield(float val) { mNphePMQ = val; }
+  void setNoNumContributingSteps(int val) { mNoContributingSteps = val; }
 
-private:
-  Int_t  mParentID;
-  Bool_t  mSecFlag;
+  int getSector() { return mSectorID; }
+  float getPMCLightYield() { return mNphePMC; }
+  float getPMQLightYield() { return mNphePMQ; }
+  int getNumContributingSteps() { return mNoContributingSteps; }
+
+ private:
+  Int_t mParentID;
+  Bool_t mSecFlag;
   Float_t mPrimaryEnergy;
-  Int_t mNoContributingSteps=1;
+  Int_t mNoContributingSteps = 1;
   Int_t mSectorID;
   Vector3D<float> mMomentum;
   Vector3D<float> mXImpact;
@@ -69,18 +70,20 @@ private:
   ClassDefNV(Hit, 1)
 };
 
-Hit::Hit(int trackID, int parent, Bool_t sFlag, Float_t primaryEnergy, Int_t detID, Int_t sectorID,
-      Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Float_t *xImpact, Float_t energyloss, Int_t nphePMC, Int_t nphePMQ)
-  : BasicXYZEHit(pos.X(),pos.Y(),pos.Z(),tof,energyloss,trackID,detID),
+inline Hit::Hit(int trackID, int parent, Bool_t sFlag, Float_t primaryEnergy, Int_t detID, Int_t sectorID,
+                Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Float_t* xImpact, Float_t energyloss,
+                Int_t nphePMC, Int_t nphePMQ)
+  : BasicXYZEHit(pos.X(), pos.Y(), pos.Z(), tof, energyloss, trackID, detID),
     mParentID(parent),
     mSecFlag(sFlag),
     mPrimaryEnergy(primaryEnergy),
     mSectorID(sectorID),
-    mMomentum(mom.X(),mom.Y(),mom.Z()),
-    mXImpact(xImpact[0],xImpact[1],xImpact[2]),
+    mMomentum(mom.X(), mom.Y(), mom.Z()),
+    mXImpact(xImpact[0], xImpact[1], xImpact[2]),
     mNphePMC(nphePMC),
     mNphePMQ(nphePMQ)
-  {}
+{
+}
 }
 }
 

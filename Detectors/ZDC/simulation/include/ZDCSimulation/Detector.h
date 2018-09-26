@@ -21,16 +21,12 @@
 #include "ZDCSimulation/Hit.h"
 
 class FairVolume;
-class FairModule;
-
-class TParticle;
 
 namespace o2
 {
 namespace zdc
 {
 class Hit;
-
 
 class Detector : public o2::Base::DetImpl<Detector>
 {
@@ -74,67 +70,64 @@ class Detector : public o2::Base::DetImpl<Detector>
   void Reset() final;
   void EndOfEvent() final;
 
-
   void ConstructGeometry() final;
-  void CreateMaterials();
+  void createMaterials();
   void addAlignableVolumes() const override {}
 
   o2::zdc::Hit* addHit(Int_t trackID, Int_t parentID, Int_t sFlag, Float_t primaryEnergy, Int_t detID, Int_t secID,
-    Vector3D<float> pos, Vector3D<float>  mom, Float_t tof, Float_t *xImpact, Double_t energyloss, Int_t nphePMC, Int_t nphePMQ);
+                       Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Float_t* xImpact, Double_t energyloss,
+                       Int_t nphePMC, Int_t nphePMQ);
 
-   private:
-    /// copy constructor
-    Detector(const Detector& rhs);
+ private:
+  /// copy constructor
+  Detector(const Detector& rhs);
 
-    void CreateAsideBeamLine();
-    void CreateCsideBeamLine();
-    void CreateMagnets();
-    void CreateDetectors();
+  void createAsideBeamLine();
+  void createCsideBeamLine();
+  void createMagnets();
+  void createDetectors();
 
-    // Define sensitive volumes
-    void defineSensitiveVolumes();
+  // Define sensitive volumes
+  void defineSensitiveVolumes();
 
-    // Methods to calculate the light outpu
-    void CalculateTableIndexes(int& ibeta, int& iangle, int& iradius);
-    void ReadLightTable();
+  // Methods to calculate the light outpu
+  void calculateTableIndexes(int& ibeta, int& iangle, int& iradius);
 
+  Int_t mZDCdetectorID; //detector in ZDC
+  Int_t mZDCsectorID;   //tower in ZDC
+  Int_t mPcMother;      // track mother 0
+  Int_t mCurrentTrackID;
+  Float_t mTrackEta;
+  Bool_t mSecondaryFlag;
+  Float_t mPrimaryEnergy;
+  Float_t mXImpact[3];
+  Float_t mTrackTOF;
+  Float_t mTotDepEnergy;
+  Float_t mTotLightPMC;
+  Float_t mTotLightPMQ;
+  Int_t mMediumPMCid;
+  Int_t mMediumPMQid;
+  o2::zdc::Hit* mCurrentHit;
+  //
+  /// Container for hit data
+  std::vector<o2::zdc::Hit>* mHits;
 
-    Int_t mZDCdetectorID; //detector in ZDC
-    Int_t mZDCsectorID; //tower in ZDC
-    Int_t mPcMother; // track mother 0
-    Int_t mCurrentTrackID;
-    Float_t mTrackEta;
-    Bool_t  mSecondaryFlag;
-    Float_t mPrimaryEnergy;
-    Float_t mXImpact[3];
-    Float_t mTrackTOF;
-    Float_t mTotDepEnergy;
-    Float_t mTotLightPMC;
-    Float_t mTotLightPMQ;
-    Int_t   mMediumPMCid;
-    Int_t   mMediumPMQid;
-    o2::zdc::Hit* mCurrentHit;
-    //
-    /// Container for hit data
-    std::vector<o2::zdc::Hit>* mHits;
+  Float_t mLumiLength = 0;         //TODO: make part of configurable params
+  Float_t mTCLIAAPERTURE = 3.5;    //TODO: make part of configurable params
+  Float_t mTCLIAAPERTURENEG = 3.5; //TODO: make part of configurable params
+  Float_t mVCollSideCCentreY = 0.; //TODO: make part of configurable params
 
-    Float_t mLumiLength = 0; //TODO: make part of configurable params
-    Float_t mTCLIAAPERTURE = 3.5; //TODO: make part of configurable params
-    Float_t mTCLIAAPERTURENEG = 3.5; //TODO: make part of configurable params
-	  Float_t mVCollSideCCentreY = 0.; //TODO: make part of configurable params
+  static constexpr int ZNRADIUSBINS = 18;
+  static constexpr int ZPRADIUSBINS = 28;
+  static constexpr int ANGLEBINS = 90;
 
-    static constexpr int ZNRADIUSBINS = 18;
-    static constexpr int ZPRADIUSBINS = 28;
-    static constexpr int ANGLEBINS = 90;
-
-    float mLightTableZN[4][ZNRADIUSBINS][ANGLEBINS]={1.}; //!
-    float mLightTableZP[4][ZPRADIUSBINS][ANGLEBINS]={1.}; //!
+  float mLightTableZN[4][ZNRADIUSBINS][ANGLEBINS] = { 1. }; //!
+  float mLightTableZP[4][ZPRADIUSBINS][ANGLEBINS] = { 1. }; //!
 
   template <typename Det>
   friend class o2::Base::DetImpl;
   ClassDefOverride(Detector, 1);
 };
-
 }
 }
 
