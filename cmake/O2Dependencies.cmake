@@ -1805,6 +1805,7 @@ o2_define_bucket(
     Steer
     Framework
     TPCSimulation
+    TPCWorkflow
     DataFormatsTPC
     ITSSimulation
     MFTSimulation

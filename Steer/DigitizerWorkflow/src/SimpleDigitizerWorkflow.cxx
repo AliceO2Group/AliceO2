@@ -20,6 +20,7 @@
 #include "TPCDigitRootWriterSpec.h"
 #include "TPCBase/Sector.h"
 #include "TPCBase/CDBInterface.h"
+#include "TPCWorkflow/RecoWorkflow.h"
 // needed in order to init the **SHARED** polyadist file (to be done before the digitizers initialize)
 #include "TPCSimulation/GEMAmplification.h"
 
@@ -89,6 +90,11 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::string skiphelp("Comma separated list of detectors to skip/ignore. (Default is none)");
   workflowOptions.push_back(
     ConfigParamSpec{ "skipDet", VariantType::String, "none", { skiphelp } });
+
+  // we support only output type 'tracks' for the moment
+  std::string tpcrthelp("Run TPC reco workflow to specified output type, currently supported: 'tracks'");
+  workflowOptions.push_back(
+    ConfigParamSpec{ "tpc-reco-type", VariantType::String, "", { tpcrthelp } });
 }
 
 #include "Framework/runDataProcessing.h"
@@ -167,7 +173,9 @@ std::shared_ptr<o2::parameters::GRPObject> readGRP(std::string inputGRP = "o2sim
 /// specifications
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
-  WorkflowSpec specs;
+  // reserve one entry which fill be filled with the SimReaderSpec at the end
+  // this places the processor at the beginning of the workflow in the upper left corner of the GUI
+  WorkflowSpec specs(1);
 
   // we will first of all read the GRP to detect which components need
   // instantiations
@@ -232,8 +240,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       fanoutsize++;
     }
 
-    // for writing digits to disc
-    specs.emplace_back(o2::TPC::getTPCDigitRootWriterSpec(lanes));
+    auto tpcRecoOutputType = configcontext.options().get<std::string>("tpc-reco-type");
+    if (tpcRecoOutputType.empty()) {
+      // for writing digits to disc
+      specs.emplace_back(o2::TPC::getTPCDigitRootWriterSpec(lanes));
+    } else {
+      // attach the TPC reco workflow
+      auto tpcRecoWorkflow = o2::TPC::RecoWorkflow::getWorkflow(true, lanes, "digitizer", tpcRecoOutputType.c_str());
+      specs.insert(specs.end(), tpcRecoWorkflow.begin(), tpcRecoWorkflow.end());
+    }
   }
 
   // the ITS part
@@ -273,7 +288,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
 
   // The SIM Reader. NEEDS TO BE LAST
-  specs.emplace_back(o2::steer::getSimReaderSpec(fanoutsize, tpcsectors, tpclanes));
+  specs[0] = o2::steer::getSimReaderSpec(fanoutsize, tpcsectors, tpclanes);
 
   return specs;
 }
