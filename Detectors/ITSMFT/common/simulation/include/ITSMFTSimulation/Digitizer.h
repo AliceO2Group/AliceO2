@@ -10,8 +10,8 @@
 
 /// \file Digitizer.h
 /// \brief Definition of the ITS digitizer
-#ifndef ALICEO2_ITS_DIGITIZER_H
-#define ALICEO2_ITS_DIGITIZER_H
+#ifndef ALICEO2_ITSMFT_DIGITIZER_H
+#define ALICEO2_ITSMFT_DIGITIZER_H
 
 #include <vector>
 #include <deque>
@@ -130,4 +130,4 @@ class Digitizer : public TObject
 }
 }
 
-#endif /* ALICEO2_ITS_DIGITIZER_H */
+#endif /* ALICEO2_ITSMFT_DIGITIZER_H */

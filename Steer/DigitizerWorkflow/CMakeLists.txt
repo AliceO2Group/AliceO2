@@ -28,6 +28,8 @@ O2_GENERATE_EXECUTABLE(
   src/TPCDigitRootWriterSpec.cxx
   src/ITSDigitizerSpec.cxx
   src/ITSDigitWriterSpec.cxx
+  src/MFTDigitizerSpec.cxx
+  src/MFTDigitWriterSpec.cxx
   src/TOFDigitizerSpec.cxx
   src/TOFDigitWriterSpec.cxx
   src/TOFClusterizerSpec.cxx
