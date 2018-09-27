@@ -1545,6 +1545,27 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    zdc_base_bucket
+
+    DEPENDENCIES
+    root_base_bucket
+    fairroot_base_bucket
+    Geom
+    VMC
+    SimulationDataFormat
+    CommonDataFormat
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/common/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ZDC/base/include
+)
+
+
+o2_define_bucket(
+    NAME
     fit_reconstruction_bucket
 
     DEPENDENCIES
@@ -1586,6 +1607,30 @@ o2_define_bucket(
     ${ROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/HMPID/simulation/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+)
+
+
+o2_define_bucket(
+    NAME
+    zdc_simulation_bucket
+
+    DEPENDENCIES # library names
+    zdc_base_bucket
+    ZDCBase
+    detectors_base_bucket
+    fairroot_geom
+    RIO
+    DetectorsBase
+    SimulationDataFormat
+    Core 
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${ROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ZDC/simulation/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
 )
@@ -1740,6 +1785,7 @@ o2_define_bucket(
     HMPIDSimulation
     PHOSSimulation
     PHOSReconstruction
+    ZDCSimulation
     Field
     Generators
     DataFormatsParameters
