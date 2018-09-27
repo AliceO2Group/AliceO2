@@ -41,7 +41,7 @@ class ClustererTask : public FairTask{
    ClustererTask(int sectorid = -1);
 
    /// Destructor
-   ~ClustererTask() = default;
+   ~ClustererTask() override = default;
 
    /// Initializes the clusterer and connects input and output container
    InitStatus Init() override;
