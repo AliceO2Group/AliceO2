@@ -233,6 +233,7 @@ set(TEST_SRCS
       test/test_SimpleStringProcessing.cxx
       test/test_SingleDataSource.cxx
       test/test_SuppressionGenerator.cxx
+      test/test_TimesliceIndex.cxx
       test/test_TMessageSerializer.cxx
       test/test_TableBuilder.cxx
       test/test_Task.cxx

@@ -47,9 +47,10 @@ BOOST_AUTO_TEST_CASE(TestNoWait) {
     route
   };
   std::vector<ForwardRoute> forwards;
+  TimesliceIndex index;
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, forwards, metrics);
+  DataRelayer relayer(policy, inputs, forwards, metrics, index);
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -68,9 +69,9 @@ BOOST_AUTO_TEST_CASE(TestNoWait) {
   relayer.relay(std::move(header),std::move(payload));
   auto ready = relayer.getReadyToProcess();
   BOOST_REQUIRE_EQUAL(ready.size(), 1);
-  BOOST_CHECK_EQUAL(ready[0].cacheLineIdx, 0);
+  BOOST_CHECK_EQUAL(ready[0].slot.index, 0);
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
-  auto result = relayer.getInputsForTimeslice(ready[0].cacheLineIdx);
+  auto result = relayer.getInputsForTimeslice(ready[0].slot);
   // One for the header, one for the payload
   BOOST_REQUIRE_EQUAL(result.size(),2);
 }
@@ -106,8 +107,10 @@ BOOST_AUTO_TEST_CASE(TestRelay) {
   std::vector<InputRoute> inputs = { route1, route2 };
   std::vector<ForwardRoute> forwards;
 
+  TimesliceIndex index;
+
   auto policy = CompletionPolicyHelpers::consumeWhenAll();
-  DataRelayer relayer(policy, inputs, forwards, metrics);
+  DataRelayer relayer(policy, inputs, forwards, metrics, index);
   relayer.setPipelineLength(4);
 
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
@@ -141,10 +144,10 @@ BOOST_AUTO_TEST_CASE(TestRelay) {
   createMessage(dh2);
   ready = relayer.getReadyToProcess();
   BOOST_REQUIRE_EQUAL(ready.size(), 1);
-  BOOST_CHECK_EQUAL(ready[0].cacheLineIdx, 0);
+  BOOST_CHECK_EQUAL(ready[0].slot.index, 0);
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
 
-  auto result = relayer.getInputsForTimeslice(ready[0].cacheLineIdx);
+  auto result = relayer.getInputsForTimeslice(ready[0].slot);
   // One for the header, one for the payload, for two inputs.
   BOOST_REQUIRE_EQUAL(result.size(),4);
 }
@@ -171,7 +174,8 @@ BOOST_AUTO_TEST_CASE(TestCache) {
   std::vector<ForwardRoute> forwards;
 
   auto policy = CompletionPolicyHelpers::consumeWhenAll();
-  DataRelayer relayer(policy, inputs, forwards, metrics);
+  TimesliceIndex index;
+  DataRelayer relayer(policy, inputs, forwards, metrics, index);
   // Only two messages to fill the cache.
   relayer.setPipelineLength(2);
 
@@ -200,12 +204,12 @@ BOOST_AUTO_TEST_CASE(TestCache) {
   createMessage(DataProcessingHeader{1,1});
   auto ready = relayer.getReadyToProcess();
   BOOST_REQUIRE_EQUAL(ready.size(), 2);
-  BOOST_CHECK_EQUAL(ready[0].cacheLineIdx, 0);
-  BOOST_CHECK_EQUAL(ready[1].cacheLineIdx, 1);
+  BOOST_CHECK_EQUAL(ready[0].slot.index, 0);
+  BOOST_CHECK_EQUAL(ready[1].slot.index, 1);
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
   BOOST_CHECK_EQUAL(ready[1].op, CompletionPolicy::CompletionOp::Consume);
   for (size_t i = 0; i < ready.size(); ++i) {
-    auto result = relayer.getInputsForTimeslice(ready[i].cacheLineIdx);
+    auto result = relayer.getInputsForTimeslice(ready[i].slot);
   }
 
   // This fills the cache and makes 2 obsolete.
@@ -215,8 +219,8 @@ BOOST_AUTO_TEST_CASE(TestCache) {
   ready = relayer.getReadyToProcess();
   BOOST_REQUIRE_EQUAL(ready.size(), 2);
 
-  auto result1 = relayer.getInputsForTimeslice(ready[0].cacheLineIdx);
-  auto result2 = relayer.getInputsForTimeslice(ready[1].cacheLineIdx);
+  auto result1 = relayer.getInputsForTimeslice(ready[0].slot);
+  auto result2 = relayer.getInputsForTimeslice(ready[1].slot);
   // One for the header, one for the payload
   BOOST_REQUIRE_EQUAL(result1.size(),2);
   BOOST_REQUIRE_EQUAL(result2.size(),2);
@@ -255,9 +259,10 @@ BOOST_AUTO_TEST_CASE(TestPolicies) {
     route2
   };
   std::vector<ForwardRoute> forwards;
+  TimesliceIndex index;
 
   auto policy = CompletionPolicyHelpers::processWhenAny();
-  DataRelayer relayer(policy, inputs, forwards, metrics);
+  DataRelayer relayer(policy, inputs, forwards, metrics, index);
   // Only two messages to fill the cache.
   relayer.setPipelineLength(2);
 
@@ -287,18 +292,18 @@ BOOST_AUTO_TEST_CASE(TestPolicies) {
   auto actions1 = createMessage(dh1, DataProcessingHeader{0,1});
   auto ready1 = relayer.getReadyToProcess();
   BOOST_REQUIRE_EQUAL(ready1.size(), 1);
-  BOOST_CHECK_EQUAL(ready1[0].cacheLineIdx, 0);
+  BOOST_CHECK_EQUAL(ready1[0].slot.index, 0);
   BOOST_CHECK_EQUAL(ready1[0].op, CompletionPolicy::CompletionOp::Process);
 
   auto actions2 = createMessage(dh1, DataProcessingHeader{1,1});
   auto ready2 = relayer.getReadyToProcess();
   BOOST_REQUIRE_EQUAL(ready2.size(), 1);
-  BOOST_CHECK_EQUAL(ready2[0].cacheLineIdx, 1);
+  BOOST_CHECK_EQUAL(ready2[0].slot.index, 1);
   BOOST_CHECK_EQUAL(ready2[0].op, CompletionPolicy::CompletionOp::Process);
 
   auto actions3 = createMessage(dh2, DataProcessingHeader{1,1});
   auto ready3 = relayer.getReadyToProcess();
   BOOST_REQUIRE_EQUAL(ready3.size(), 1);
-  BOOST_CHECK_EQUAL(ready3[0].cacheLineIdx, 1);
+  BOOST_CHECK_EQUAL(ready3[0].slot.index, 1);
   BOOST_CHECK_EQUAL(ready3[0].op, CompletionPolicy::CompletionOp::Consume);
 }
