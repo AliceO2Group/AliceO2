@@ -35,44 +35,44 @@ GPUdi() AliHLTTPCCAParam::AliHLTTPCCAParam()
     fZMin( 0.0529937 ), fZMax( 249.778 ), fErrX( 0 ), fErrY( 0 ), fErrZ( 0.228808 ), fPadPitch( 0.4 ), fBzkG( -5.00668 ),
     fConstBz( -5.00668*0.000299792458 ), fHitPickUpFactor( 1. ),
       fMaxTrackMatchDRow( 4 ), fNeighboursSearchArea(3.), fTrackConnectionFactor( 3.5 ), fTrackChiCut( 3.5 ), fTrackChi2Cut( 10 ), fClusterError2CorrectionY(1.), fClusterError2CorrectionZ(1.),
-  fMinNTrackClusters( -1 ), fMaxTrackQPt(1./MIN_TRACK_PT_DEFAULT), fNWays(1), fNWaysOuter(0), fAssumeConstantBz(false), fToyMCEventsFlag(false), fContinuousTracking(false), fSearchWindowDZDR(0.), fTrackReferenceX(1000.)
+  fMinNTrackClusters( -1 ), fMaxTrackQPt(1./MIN_TRACK_PT_DEFAULT), fNWays(1), fNWaysOuter(0), fAssumeConstantBz(false), fToyMCEventsFlag(false), fContinuousTracking(false), fRejectMode(5), fSearchWindowDZDR(0.), fTrackReferenceX(1000.)
 {
   // constructor
 
   float const kParamS0Par[2][3][6]=
-    { 
-      {  { 6.45913474727e-04, 2.51547407970e-05, 1.57551113516e-02, 1.99872811635e-08, -5.86769729853e-03, 9.16301505640e-05 }, 
-	 { 9.71546804067e-04, 1.70938055817e-05, 2.17084009200e-02, 3.90275758377e-08, -1.68631039560e-03, 8.40498323669e-05 }, 
+    {
+      {  { 6.45913474727e-04, 2.51547407970e-05, 1.57551113516e-02, 1.99872811635e-08, -5.86769729853e-03, 9.16301505640e-05 },
+	 { 9.71546804067e-04, 1.70938055817e-05, 2.17084009200e-02, 3.90275758377e-08, -1.68631039560e-03, 8.40498323669e-05 },
 	 { 7.27469159756e-05, 2.63869314949e-05, 3.29690799117e-02, -2.19274429725e-08, 1.77378822118e-02, 3.26595727529e-05 }
-      }, 
-      {  { 1.46874145139e-03, 6.36232061879e-06, 1.28665426746e-02, 1.19409449439e-07, 1.15883778781e-02, 1.32179644424e-04 }, 
-	 { 1.15970033221e-03, 1.30452335725e-05, 1.87015570700e-02, 5.39766737973e-08, 1.64790824056e-02, 1.44115634612e-04 }, 
+      },
+      {  { 1.46874145139e-03, 6.36232061879e-06, 1.28665426746e-02, 1.19409449439e-07, 1.15883778781e-02, 1.32179644424e-04 },
+	 { 1.15970033221e-03, 1.30452335725e-05, 1.87015570700e-02, 5.39766737973e-08, 1.64790824056e-02, 1.44115634612e-04 },
 	 { 6.27940462437e-04, 1.78520094778e-05, 2.83537860960e-02, 1.16867742150e-08, 5.02607785165e-02, 1.88510020962e-04 }
-      } 
-    }; 
-  
+      }
+    };
+
   float const kParamRMS0[2][3][4] =
     {
-      {  { 4.17516864836e-02, 1.87623649254e-04, 5.63788712025e-02, 5.38373768330e-01,  }, 
-	 { 8.29434990883e-02, 2.03291710932e-04, 6.81538805366e-02, 9.70965325832e-01,  }, 
+      {  { 4.17516864836e-02, 1.87623649254e-04, 5.63788712025e-02, 5.38373768330e-01,  },
+	 { 8.29434990883e-02, 2.03291710932e-04, 6.81538805366e-02, 9.70965325832e-01,  },
 	 { 8.67543518543e-02, 2.10733342101e-04, 1.38366967440e-01, 2.55089461803e-01,  }
-      }, 
-      {  { 5.96254616976e-02, 8.62886518007e-05, 3.61776389182e-02, 4.79704320431e-01,  }, 
-	 { 6.12571723759e-02, 7.23929333617e-05, 3.93057651818e-02, 9.29222583771e-01,  }, 
+      },
+      {  { 5.96254616976e-02, 8.62886518007e-05, 3.61776389182e-02, 4.79704320431e-01,  },
+	 { 6.12571723759e-02, 7.23929333617e-05, 3.93057651818e-02, 9.29222583771e-01,  },
 	 { 6.58465921879e-02, 1.03639606095e-04, 6.07583411038e-02, 9.90289509296e-01,  }
       }
-    }; 
+    };
 
   for( int i=0; i<2; i++){
-    for( int j=0; j<3; j++){  
+    for( int j=0; j<3; j++){
       for( int k=0; k<6; k++){
 	fParamS0Par[i][j][k] = kParamS0Par[i][j][k];
       }
     }
   }
- 
+
   for( int i=0; i<2; i++){
-    for( int j=0; j<3; j++){  
+    for( int j=0; j<3; j++){
       for( int k=0; k<4; k++){
 	fParamRMS0[i][j][k] = kParamRMS0[i][j][k];
       }
@@ -147,7 +147,7 @@ void AliHLTTPCCAParam::LoadClusterErrors( bool Print )
      }
    }
  }
-   
+
  for( int i=0; i<2; i++ ){
    for( int j=0; j<3; j++){
      for( int k=0; k<4; k++){
@@ -155,23 +155,23 @@ void AliHLTTPCCAParam::LoadClusterErrors( bool Print )
      }
    }
  }
-  
+
  if( Print ){
    typedef std::numeric_limits< float > flt;
    std::cout<<std::scientific;
-#if __cplusplus >= 201103L  
+#if __cplusplus >= 201103L
    std::cout<<std::setprecision( flt::max_digits10+2 );
 #endif
    std::cout<<"fParamS0Par[2][3][7]="<<std::endl;
    std::cout<<" { "<<std::endl;
    for( int i=0; i<2; i++ ){
-     std::cout<<"   { "<<std::endl;   
+     std::cout<<"   { "<<std::endl;
      for( int j=0; j<3; j++){
-       std::cout<<" { ";   
+       std::cout<<" { ";
        for( int k=0; k<6; k++){
-         std::cout<<fParamS0Par[i][j][k]<<", "; 
+         std::cout<<fParamS0Par[i][j][k]<<", ";
        }
-       std::cout<<" }, "<<std::endl;   
+       std::cout<<" }, "<<std::endl;
      }
      std::cout<<"   }, "<<std::endl;
    }
@@ -180,18 +180,18 @@ void AliHLTTPCCAParam::LoadClusterErrors( bool Print )
   std::cout<<"fParamRMS0[2][3][4]="<<std::endl;
   std::cout<<" { "<<std::endl;
   for( int i=0; i<2; i++ ){
-    std::cout<<"   { "<<std::endl;   
+    std::cout<<"   { "<<std::endl;
     for( int j=0; j<3; j++){
-      std::cout<<" { ";   
+      std::cout<<" { ";
       for( int k=0; k<4; k++){
-        std::cout<<fParamRMS0[i][j][k]<<", "; 
+        std::cout<<fParamRMS0[i][j][k]<<", ";
       }
-      std::cout<<" }, "<<std::endl;   
+      std::cout<<" }, "<<std::endl;
     }
     std::cout<<"   }, "<<std::endl;
   }
   std::cout<<" }; "<<std::endl;
-  
+
 
   const THnBase *waveMap = clparam->GetWaveCorrectionMap();
   const THnBase *resYMap = clparam->GetResolutionYMap();
@@ -239,13 +239,13 @@ MEM_CLASS_PRE() GPUdi() float MEM_LG(AliHLTTPCCAParam)::GetClusterRMS( int yz, i
 MEM_CLASS_PRE() GPUdi() void MEM_LG(AliHLTTPCCAParam)::GetClusterRMS2( int iRow, float z, float sinPhi, float DzDs, float &ErrY2, float &ErrZ2 ) const
 {
   int    rowType = ( iRow < 63 ) ? 0 : ( ( iRow > 126 ) ? 1 : 2 );
-  z = CAMath::Abs( ( 250. - 0.275 ) - CAMath::Abs( z ) );  
+  z = CAMath::Abs( ( 250. - 0.275 ) - CAMath::Abs( z ) );
   float s2 = sinPhi*sinPhi;
   if( s2>0.95f*0.95f ) s2 = 0.95f*0.95f;
   float sec2 = 1.f/(1.f-s2);
   float angleY2 = s2 * sec2; // dy/dx
   float angleZ2 = DzDs * DzDs * sec2; // dz/dx
-  
+
   ErrY2 = GetClusterRMS( 0, rowType, z, angleY2 );
   ErrZ2 = GetClusterRMS( 1, rowType, z, angleZ2 );
   ErrY2 *= ErrY2;
@@ -269,89 +269,13 @@ MEM_CLASS_PRE() GPUdi() void MEM_LG(AliHLTTPCCAParam)::GetClusterErrors2( int iR
 {
   // Calibrated cluster error from OCDB for Y and Z
   int    rowType = ( iRow < 63 ) ? 0 : ( ( iRow > 126 ) ? 1 : 2 );
-  z = CAMath::Abs( ( 250. - 0.275 ) - CAMath::Abs( z ) );  
+  z = CAMath::Abs( ( 250. - 0.275 ) - CAMath::Abs( z ) );
   float s2 = sinPhi*sinPhi;
   if( s2>0.95f*0.95f ) s2 = 0.95f*0.95f;
   float sec2 = 1.f/(1.f-s2);
   float angleY2 = s2 * sec2; // dy/dx
   float angleZ2 = DzDs * DzDs * sec2; // dz/dx
-  
+
   ErrY2 = GetClusterError2( 0, rowType, z, angleY2 );
   ErrZ2 = GetClusterError2( 1, rowType, z, angleZ2 );
 }
-
-#ifndef HLTCA_GPUCODE
-GPUh() void AliHLTTPCCAParam::WriteSettings( std::ostream &out ) const
-{
-  // write settings to the file
-  out << fISlice << std::endl;
-  out << fNRows << std::endl;
-  out << fAlpha << std::endl;
-  out << fDAlpha << std::endl;
-  out << fCosAlpha << std::endl;
-  out << fSinAlpha << std::endl;
-  out << fAngleMin << std::endl;
-  out << fAngleMax << std::endl;
-  out << fRMin << std::endl;
-  out << fRMax << std::endl;
-  out << fZMin << std::endl;
-  out << fZMax << std::endl;
-  out << fErrX << std::endl;
-  out << fErrY << std::endl;
-  out << fErrZ << std::endl;
-  out << fPadPitch << std::endl;
-  out << fBzkG << std::endl;
-  out << fHitPickUpFactor << std::endl;
-  out << fMaxTrackMatchDRow << std::endl;
-  out << fTrackConnectionFactor << std::endl;
-  out << fTrackChiCut << std::endl;
-  out << fTrackChi2Cut << std::endl;
-  for ( int iRow = 0; iRow < fNRows; iRow++ ) {
-    out << fRowX[iRow] << std::endl;
-  }
-  out << std::endl;
-  for ( int i = 0; i < 2; i++ )
-    for ( int j = 0; j < 3; j++ )
-      for ( int k = 0; k < 4; k++ )
-        out << fParamRMS0[i][j][k] << std::endl;
-  out << std::endl;
-}
-
-GPUh() void AliHLTTPCCAParam::ReadSettings( std::istream &in )
-{
-  // Read settings from the file
-
-  in >> fISlice;
-  in >> fNRows;
-  in >> fAlpha;
-  in >> fDAlpha;
-  in >> fCosAlpha;
-  in >> fSinAlpha;
-  in >> fAngleMin;
-  in >> fAngleMax;
-  in >> fRMin;
-  in >> fRMax;
-  in >> fZMin;
-  in >> fZMax;
-  in >> fErrX;
-  in >> fErrY;
-  in >> fErrZ;
-  in >> fPadPitch;
-  in >> fBzkG;
-  in >> fHitPickUpFactor;
-  in >> fMaxTrackMatchDRow;
-  in >> fTrackConnectionFactor;
-  in >> fTrackChiCut;
-  in >> fTrackChi2Cut;
-
-  if( fNRows<0 || fNRows > HLTCA_ROW_COUNT ) fNRows = 0;
-
-  for ( int iRow = 0; iRow < fNRows; iRow++ ) {
-    in >> fRowX[iRow];
-  }
-  for ( int i = 0; i < 2; i++ )
-    for ( int j = 0; j < 3; j++ )
-      for ( int k = 0; k < 4; k++ )
-        in >> fParamRMS0[i][j][k];
-}
-#endif

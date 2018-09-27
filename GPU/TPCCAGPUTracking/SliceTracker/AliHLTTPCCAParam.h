@@ -88,6 +88,7 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     GPUd() int GetNWaysOuter() const { return fNWaysOuter; }
     GPUd() float GetSearchWindowDZDR() const { return fSearchWindowDZDR; }
     GPUd() bool GetContinuousTracking() const { return fContinuousTracking; }
+    GPUd() char GetRejectMode() const { return fRejectMode; }
     GPUd() float GetTrackReferenceX() const { return fTrackReferenceX;}
 
     GPUhd() void SetISlice( int v ) {  fISlice = v;}
@@ -123,6 +124,7 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     GPUd() void SetNWaysOuter( bool v ){ fNWaysOuter = v; }
     GPUd() void SetSearchWindowDZDR( float v ){ fSearchWindowDZDR = v; }
     GPUd() void SetContinuousTracking( bool v ){ fContinuousTracking = v; }
+    GPUd() void SetRejectMode( char v ){ fRejectMode = v; }
     GPUd() void SetTrackReferenceX( float v) { fTrackReferenceX = v; }
 
     GPUd() float GetClusterRMS( int yz, int type, float z, float angle2 ) const;
@@ -131,21 +133,16 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     GPUd() float GetClusterError2( int yz, int type, float z, float angle2 ) const;
     GPUd() void GetClusterErrors2( int row, float z, float sinPhi, float DzDs, float &ErrY2, float &ErrZ2 ) const;
 
-#if !defined(__OPENCL__)
-    void WriteSettings( std::ostream &out ) const;
-    void ReadSettings( std::istream &in );
-#endif
-
     GPUd() void SetParamRMS0( int i, int j, int k, float val ) {
       fParamRMS0[i][j][k] = val;
     }
-  
+
     GPUd() const MakeType(float*) GetParamRMS0(int i, int j) const { return fParamRMS0[i][j]; }
- 
+
     GPUd() void SetParamS0Par( int i, int j, int k, float val ) {
       fParamS0Par[i][j][k] = val;
     }
-  
+
     GPUd() const MakeType(float*) GetParamS0Par(int i, int j) const { return fParamS0Par[i][j]; }
 
     GPUd() float GetBzkG() const { return fBzkG;}
@@ -178,16 +175,17 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     float fClusterError2CorrectionZ; // correction for the squared cluster error during tracking
     int fMinNTrackClusters; //* required min number of clusters on the track
     float fMaxTrackQPt;    //* required max Q/Pt (==min Pt) of tracks
-    int fNWays;          //Do N fit passes in final fit of merger
+    char fNWays;          //Do N fit passes in final fit of merger
     char fNWaysOuter;    //Store outer param
     char fAssumeConstantBz; //Assume a constant magnetic field
     char fToyMCEventsFlag; //events were build with home-made event generator
     char fContinuousTracking; //Continuous tracking, estimate bz and errors for abs(z) = 125cm during seeding
+    char fRejectMode; //0: no limit on rejection or missed hits, >0: break after n rejected hits, <0: reject at max -n hits
     float fSearchWindowDZDR; //Use DZDR window for seeding instead of vertex window
     float fTrackReferenceX; //Transport all tracks to this X after tracking (disabled if > 500)
 
-    float fRowX[HLTCA_ROW_COUNT];// X-coordinate of rows    
-    float fParamRMS0[2][3][4]; // cluster shape parameterization coeficients 
+    float fRowX[HLTCA_ROW_COUNT];// X-coordinate of rows
+    float fParamRMS0[2][3][4]; // cluster shape parameterization coeficients
     float fParamS0Par[2][3][6]; // cluster error parameterization coeficients
 };
 
