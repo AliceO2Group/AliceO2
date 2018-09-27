@@ -135,8 +135,10 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
         labelsdone.resize(numberofsourcedevices, false);
       }
 
+      // find out if all source devices (channels) are done
+      // by means of a simple checksum
       auto isComplete = [numberofsourcedevices](int i) {
-        if (i == numberofsourcedevices * (numberofsourcedevices - 1) / 2) {
+        if (i == numberofsourcedevices * (numberofsourcedevices + 1) / 2) {
           return true;
         }
         return false;
@@ -210,7 +212,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
           labelsdone[d] = false;
           digitsdone[d] = false;
 
-          finishchecksum += d;
+          finishchecksum += (d + 1); // + 1 since d starts at 0 ... important for the checksum test
           if (isComplete(finishchecksum)) {
             finished = true;
             pc.services().get<ControlService>().readyToQuit(false);
