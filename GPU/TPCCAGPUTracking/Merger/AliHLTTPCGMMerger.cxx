@@ -52,6 +52,9 @@
 
 #define DEBUG 0
 
+static constexpr int kMaxParts = 400;
+static constexpr int kMaxClusters = 1000;
+
 //#define OFFLINE_FITTER
 
 #if ( defined(HLTCA_STANDALONE) || defined(HLTCA_GPUCODE) )
@@ -921,6 +924,61 @@ bool AliHLTTPCGMMerger_CompareParts(const AliHLTTPCGMSliceTrack* a, const AliHLT
   return(a->X() > b->X());
 }
 
+/*void AliHLTTPCGMMerger::CheckMergedTracks()
+{
+    std::vector<bool> trkUsed(SliceTrackInfoLocalTotal());
+    for (int i = 0;i < SliceTrackInfoLocalTotal();i++) trkUsed[i] = false;
+
+    for ( int itr = 0; itr < SliceTrackInfoLocalTotal(); itr++ )
+    {
+        AliHLTTPCGMSliceTrack &track = fSliceTrackInfos[itr];
+        if ( track.PrevSegmentNeighbour() >= 0 ) continue;
+        if ( track.PrevNeighbour() >= 0 ) continue;
+        int nParts = 0;
+        int nHits = 0;
+        int leg = 0;
+        AliHLTTPCGMSliceTrack *trbase = &track, *tr = &track;
+        tr->SetPrevSegmentNeighbour(1000000000);
+        while (true)
+        {
+          if( nParts >= kMaxParts ) break;
+          if (nHits + tr->NClusters() >= kMaxClusters) break;
+          nHits += tr->NClusters();
+
+          int iTrk = tr - fSliceTrackInfos;
+          if (trkUsed[iTrk])
+          {
+              printf("FAILURE: double use\n");
+          }
+          trkUsed[iTrk] = true;
+
+          int jtr = tr->NextSegmentNeighbour();
+          if( jtr >= 0 ) {
+            tr = &(fSliceTrackInfos[jtr]);
+            tr->SetPrevSegmentNeighbour(1000000002);
+            continue;
+          }
+          jtr = trbase->NextNeighbour();
+          if( jtr>=0 ){
+            trbase = &(fSliceTrackInfos[jtr]);
+            tr = trbase;
+            if( tr->PrevSegmentNeighbour() >= 0 ) break;
+            tr->SetPrevSegmentNeighbour(1000000001);
+            leg++;
+            continue;
+          }
+          break;
+        }
+    }
+    for (int i = 0;i < SliceTrackInfoLocalTotal();i++)
+    {
+        if (trkUsed[i] == false)
+        {
+            printf("FAILURE: trk missed\n");
+        }
+    }
+}*/
+
 void AliHLTTPCGMMerger::CollectMergedTracks()
 {
   //Resolve connections for global tracks first
@@ -937,8 +995,6 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
   //Now collect the merged tracks
   fNOutputTracks = 0;
   int nOutTrackClusters = 0;
-  const int kMaxParts = 400;
-  const int kMaxClusters = 1000;
 
   AliHLTTPCGMSliceTrack *trackParts[kMaxParts];
 
@@ -953,7 +1009,8 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
       int leg = 0;
       AliHLTTPCGMSliceTrack *trbase = &track, *tr = &track;
       tr->SetPrevSegmentNeighbour(1000000000);
-      do {
+      while (true)
+      {
         if( nParts >= kMaxParts ) break;
         if (nHits + tr->NClusters() >= kMaxClusters) break;
         nHits += tr->NClusters();
@@ -982,7 +1039,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
           continue;
         }
         break;
-      } while(1);
+      }
 
       //if (nParts == 1 || fabs(trackParts[0]->QPt()) > 0.1) continue;
 
