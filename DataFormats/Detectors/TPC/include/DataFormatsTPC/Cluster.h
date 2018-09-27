@@ -15,7 +15,6 @@
 
 #include <Rtypes.h>
 #include <CommonDataFormat/TimeStamp.h>
-#include <boost/serialization/base_object.hpp> // for base_object
 
 namespace boost
 {
