@@ -175,8 +175,6 @@ void Detector::defineSensitiveVolumes()
 //_____________________________________________________________________________
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
-  LOG(INFO) << "ZDC sensitive seen";
-
   // Method called from MC stepping for the sensitive volumes
   TString volname = fMC->CurrentVolName();
   Float_t x[3] = { 0., 0., 0. }, xDet[3] = { 0., 0., 0. }, p[3] = { 0., 0., 0. }, energy = 0.;
@@ -304,7 +302,8 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   // A new hit is created for a new track NOT daughter of a seen particle (shower product)
   // OR if the track is NOT in the same volume (detector, sector)
   // OR if it is a new hit
-  if ((fMC->IsTrackEntering()) && (!isDaughterOfSeenTrack) && (!kIsTrackInsideSameSector) || (!mCurrentHit)) {
+  // TODO: needs check
+  if ((fMC->IsTrackEntering() && (!isDaughterOfSeenTrack) && (!kIsTrackInsideSameSector)) || (!mCurrentHit)) {
 
     mTrackTOF = 1.e09 * fMC->TrackTime(); //TOF in ns
     mPcMother = stack->GetCurrentTrack()->GetMother(0);
