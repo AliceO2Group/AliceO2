@@ -48,7 +48,7 @@ int main(int argc, char** argv)
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	int iEventInTimeframe = 0, nEventsInDirectory = 0;
 	hltca_event_dump_settings eventSettings;
-	
+
 #ifdef FE_DFL_DISABLE_SSE_DENORMS_ENV //Flush and load denormals to zero in any case
 	fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
 #else
@@ -66,7 +66,7 @@ int main(int argc, char** argv)
 		printf("No GPU Available, restricting to CPU\n");
 		configStandalone.runGPU = 0;
 	}
-	
+
 	int qcRet = qConfigParse(argc, (const char**) argv);
 	if (qcRet)
 	{
@@ -74,7 +74,7 @@ int main(int argc, char** argv)
 		return(1);
 	}
 	if (configStandalone.printSettings) qConfigPrint();
-	
+
 	if (configStandalone.runGPU && hlt.GetGPUStatus() == 0) {printf("Cannot enable GPU\n"); configStandalone.runGPU = 0;}
 	if (configStandalone.runGPU == 0 || configStandalone.eventDisplay) hlt.ExitGPU();
 #ifndef WIN32
@@ -123,7 +123,7 @@ int main(int argc, char** argv)
 	if ((configStandalone.nways & 1) == 0) {printf("nWay setting musst be odd number!\n"); return(1);}
 
 	if (configStandalone.OMPThreads != -1) omp_set_num_threads(configStandalone.OMPThreads);
-	
+
 	std::ofstream CPUOut, GPUOut;
 	FILE* fpBinaryOutput = NULL;
 
@@ -152,7 +152,7 @@ int main(int argc, char** argv)
 			exit(1);
 		}
 	}
-	
+
 	eventSettings.setDefaults();
 	if (!configStandalone.eventGenerator)
 	{
@@ -165,11 +165,11 @@ int main(int argc, char** argv)
 			printf("Read event settings from file %s (%d bytes, solenoidBz: %f, home-made events %d, constBz %d)\n", filename, n, eventSettings.solenoidBz, (int) eventSettings.homemadeEvents, (int) eventSettings.constBz);
 			fclose(fp);
 		}
-	} 
+	}
 	if (configStandalone.eventGenerator) eventSettings.homemadeEvents = true;
 	if (configStandalone.solenoidBz != -1e6f) eventSettings.solenoidBz = configStandalone.solenoidBz;
 	if (configStandalone.constBz) eventSettings.constBz = true;
-	
+
 	hlt.SetGPUDebugLevel(configStandalone.DebugLevel, &CPUOut, &GPUOut);
 	hlt.SetEventDisplay(configStandalone.eventDisplay);
 	hlt.SetRunQA(configStandalone.qa);
@@ -192,12 +192,13 @@ int main(int argc, char** argv)
 	hlt.SetSettings(eventSettings.solenoidBz, eventSettings.homemadeEvents, eventSettings.constBz);
 	hlt.SetNWays(configStandalone.nways);
 	hlt.SetNWaysOuter(configStandalone.nwaysouter);
+	hlt.SetRejectMode(configStandalone.rejectMode);
 	if (configStandalone.cont) hlt.SetContinuousTracking(configStandalone.cont);
 	if (configStandalone.dzdr != 0.) hlt.SetSearchWindowDZDR(configStandalone.dzdr);
 	if (configStandalone.referenceX < 500.) hlt.SetTrackReferenceX(configStandalone.referenceX);
 	hlt.UpdateGPUSliceParam();
 	hlt.SetGPUTrackerOption("GlobalTracking", 1);
-	
+
 	for (unsigned int i = 0;i < configStandalone.gpuOptions.size();i++)
 	{
 		printf("Setting GPU Option %s to %d\n", std::get<0>(configStandalone.gpuOptions[i]), std::get<1>(configStandalone.gpuOptions[i]));
@@ -216,7 +217,7 @@ int main(int argc, char** argv)
 	std::uniform_int_distribution<unsigned long long int> disUniInt;
 	std::mt19937_64 rndGen1(configStandalone.seed);
 	std::mt19937_64 rndGen2(disUniInt(rndGen1));
-	
+
 	int trainDist = 0;
 	float collisionProbability = 0.;
 	const int orbitRate = 11245;
@@ -246,14 +247,14 @@ int main(int argc, char** argv)
 		printf("Timeframe settings: %d trains of %d bunches, bunch spacing: %d, train spacing: %dx%d, filled bunches %d / %d (%d), collision probability %f, mixing %d events\n",
 			configStandalone.configTF.bunchTrainCount, configStandalone.configTF.bunchCount, configStandalone.configTF.bunchSpacing, trainDist, configStandalone.configTF.bunchSpacing, configStandalone.configTF.bunchCount * configStandalone.configTF.bunchTrainCount, maxBunches, maxBunchesFull, collisionProbability, nEventsInDirectory);
 	}
-	
+
 #ifdef BUILD_QA
 	if (configStandalone.qa)
 	{
 		InitQA();
 	}
 #endif
-	
+
 	if (configStandalone.eventGenerator)
 	{
 #ifdef BUILD_QA
@@ -295,7 +296,7 @@ int main(int argc, char** argv)
 			int simBunchNoRepeatEvent = configStandalone.StartEvent;
 			std::vector<char> eventUsed(nEventsInDirectory);
 			if (config.noEventRepeat == 2) memset(eventUsed.data(), 0, nEventsInDirectory * sizeof(eventUsed[0]));
-		
+
 			for (int i = configStandalone.StartEvent;i < configStandalone.NEvents || configStandalone.NEvents == -1;i++)
 			{
 				if (config.nTotalInTFEvents && nTotalCollisions >= config.nTotalInTFEvents) break;
@@ -423,7 +424,7 @@ int main(int argc, char** argv)
 								std::sort(hwClusters.data(), hwClusters.data() + nClustersInCRU, [](const auto& a, const auto& b){
 									return a[4] < b[4];
 								});
-								
+
 								int nPacked = 0;
 								do
 								{
@@ -467,7 +468,7 @@ int main(int argc, char** argv)
 						return(1);
 					}
 					printf("Loading Event %d\n", i);
-					
+
 					float shift;
 					if (config.nMerge && (config.shiftFirstEvent || iEventInTimeframe))
 					{
@@ -505,10 +506,10 @@ int main(int argc, char** argv)
 					if (config.nMerge == 0 || iEventInTimeframe == 0) hlt.StartDataReading(0);
 					hlt.ReadEvent(in, configStandalone.resetids, config.nMerge > 0, shift);
 					in.close();
-					
+
 					for (int sl = 0;sl < 36;sl++) SetCollisionFirstCluster(iEventInTimeframe, sl, hlt.ClusterData(sl).NumberOfClusters());
 					SetCollisionFirstCluster(iEventInTimeframe, 36, hlt.GetNMCInfo());
-					
+
 					if (config.nMerge)
 					{
 						iEventInTimeframe++;
@@ -529,7 +530,7 @@ int main(int argc, char** argv)
 				for (int j = 0;j < configStandalone.runs;j++)
 				{
 					if (configStandalone.runs > 1) printf("Run %d\n", j + 1);
-					
+
 					if (configStandalone.DebugLevel >= 4 && configStandalone.cleardebugout)
 					{
 						GPUOut.close();
@@ -603,7 +604,7 @@ int main(int argc, char** argv)
 							}
 							fclose(foutput);
 						}
-						
+
 						if (configStandalone.writebinary)
 						{
 							int numTracks = merger.NOutputTracks();
@@ -613,7 +614,7 @@ int main(int argc, char** argv)
 								OutputTrack tmpTrack;
 								const AliHLTTPCGMMergedTrack& track = merger.OutputTracks()[k];
 								const AliHLTTPCGMTrackParam& param = track.GetParam();
-								
+
 								tmpTrack.Alpha = track.GetAlpha();
 								tmpTrack.X = param.GetX();
 								tmpTrack.Y = param.GetY();
@@ -631,7 +632,7 @@ int main(int argc, char** argv)
 								}
 							}
 						}
-						
+
 					}
 				}
 			}
