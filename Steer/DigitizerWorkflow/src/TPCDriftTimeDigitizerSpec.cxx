@@ -65,14 +65,10 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
   //
   auto simChains = std::make_shared<std::vector<TChain*>>();
   auto digitizertask = std::make_shared<o2::TPC::DigitizerTask>();
-  digitizertask->Init2();
 
   auto digitArray = std::make_shared<std::vector<o2::TPC::Digit>>();
 
   auto mcTruthArray = std::make_shared<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
-  // the task takes the ownership of digit array + mc truth array
-  // TODO: make this clear in the API
-  digitizertask->setOutputData(digitArray.get(), mcTruthArray.get());
 
   auto doit = [simChain, simChains, digitizertask, digitArray, mcTruthArray, channel](ProcessingContext& pc) {
     static int callcounter = 0;
@@ -223,9 +219,13 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
   };
 
   // init function return a lambda taking a ProcessingContext
-  auto initIt = [simChain, simChains, doit](InitContext& ctx) {
-    // setup the input chain
+  auto initIt = [digitizertask, digitArray, mcTruthArray, simChain, simChains, doit](InitContext& ctx) {
+    digitizertask->Init2();
+    // the task takes the ownership of digit array + mc truth array
+    // TODO: make this clear in the API
+    digitizertask->setOutputData(digitArray.get(), mcTruthArray.get());
 
+    // setup the input chain
     simChains->emplace_back(new TChain("o2sim"));
     // add the background chain
     simChains->back()->AddFile(ctx.options().get<std::string>("simFile").c_str());
