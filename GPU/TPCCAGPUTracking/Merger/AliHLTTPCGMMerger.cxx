@@ -113,6 +113,105 @@ AliHLTTPCGMMerger::~AliHLTTPCGMMerger()
   ClearMemory();
 }
 
+#if DEBUG == 1
+#include "AliHLTTPCCAStandaloneFramework.h"
+
+void AliHLTTPCGMMerger::CheckMergedTracks()
+{
+    std::vector<bool> trkUsed(SliceTrackInfoLocalTotal());
+    for (int i = 0;i < SliceTrackInfoLocalTotal();i++) trkUsed[i] = false;
+
+    for ( int itr = 0; itr < SliceTrackInfoLocalTotal(); itr++ )
+    {
+        AliHLTTPCGMSliceTrack &track = fSliceTrackInfos[itr];
+        if ( track.PrevSegmentNeighbour() >= 0 ) continue;
+        if ( track.PrevNeighbour() >= 0 ) continue;
+        int nParts = 0;
+        int nHits = 0;
+        int leg = 0;
+        AliHLTTPCGMSliceTrack *trbase = &track, *tr = &track;
+        tr->SetPrevSegmentNeighbour(1000000000);
+        while (true)
+        {
+          if( nParts >= kMaxParts ) break;
+          if (nHits + tr->NClusters() >= kMaxClusters) break;
+          nHits += tr->NClusters();
+
+          int iTrk = tr - fSliceTrackInfos;
+          if (trkUsed[iTrk])
+          {
+              printf("FAILURE: double use\n");
+          }
+          trkUsed[iTrk] = true;
+
+          int jtr = tr->NextSegmentNeighbour();
+          if( jtr >= 0 ) {
+            tr = &(fSliceTrackInfos[jtr]);
+            tr->SetPrevSegmentNeighbour(1000000002);
+            continue;
+          }
+          jtr = trbase->NextNeighbour();
+          if( jtr>=0 ){
+            trbase = &(fSliceTrackInfos[jtr]);
+            tr = trbase;
+            if( tr->PrevSegmentNeighbour() >= 0 ) break;
+            tr->SetPrevSegmentNeighbour(1000000001);
+            leg++;
+            continue;
+          }
+          break;
+        }
+    }
+    for (int i = 0;i < SliceTrackInfoLocalTotal();i++)
+    {
+        if (trkUsed[i] == false)
+        {
+            printf("FAILURE: trk missed\n");
+        }
+    }
+}
+
+int AliHLTTPCGMMerger::GetTrackLabel(AliHLTTPCGMBorderTrack& trk)
+{
+    AliHLTTPCGMSliceTrack* track = &fSliceTrackInfos[trk.TrackID()];
+    const AliHLTTPCCASliceOutCluster* clusters = track->OrigTrack()->Clusters();
+    int nClusters = track->OrigTrack()->NClusters();
+    std::vector<int> labels;
+    AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
+    for (int i = 0;i < nClusters;i++)
+    {
+        for (int j = 0;j < 3;j++)
+        {
+            int label = hlt.GetMCLabels()[clusters[i].GetId()].fClusterID[j].fMCID;
+            if (label >= 0) labels.push_back(label);
+        }
+    }
+    if (labels.size() == 0) return(-1);
+    labels.push_back(-1);
+    std::sort(labels.begin(), labels.end());
+    int bestLabel = -1, bestLabelCount = 0;
+    int curLabel = labels[0], curCount = 1;
+    for (unsigned int i = 1;i < labels.size();i++)
+    {
+        if (labels[i] == curLabel)
+        {
+            curCount++;
+        }
+        else
+        {
+            if (curCount > bestLabelCount)
+            {
+                bestLabelCount = curCount;
+                bestLabel = curLabel;
+            }
+            curLabel = labels[i];
+            curCount = 1;
+        }
+    }
+    return bestLabel;
+}
+#endif
+
 void AliHLTTPCGMMerger::SetSliceParam( const AliHLTTPCCAParam &v, long int TimeStamp, bool isMC  )
 {
   fSliceParam = v;
@@ -515,9 +614,9 @@ void AliHLTTPCGMMerger::MergeBorderTracks ( int iSlice1, AliHLTTPCGMBorderTrack 
       // do check
       AliHLTTPCGMBorderTrack &b2 = B2[r2.fId];
       if (DEBUG) {printf("Comparing track %3d to %3d: ", r1.fId, r2.fId);for (int i = 0;i < 5;i++) {printf("%8.3f ", b1.Par()[i]);}printf(" - ");for (int i = 0;i < 5;i++) {printf("%8.3f ", b1.Cov()[i]);}printf("\n%28s", "");
-        for (int i = 0;i < 5;i++) {printf("%8.3f ", b2.Par()[i]);}printf(" - ");for (int i = 0;i < 5;i++) {printf("%8.3f ", b2.Cov()[i]);}printf("   -   ");}
+        for (int i = 0;i < 5;i++) {printf("%8.3f ", b2.Par()[i]);}printf(" - ");for (int i = 0;i < 5;i++) {printf("%8.3f ", b2.Cov()[i]);}printf("   -   %5s   -   ", GetTrackLabel(b1) == GetTrackLabel(b2) ? "CLONE" : "FAKE");}
       if ( b2.NClusters() < lBest2 ) {if (DEBUG) {printf("!NCl1\n");}continue;}
-      if (crossCE >= 2 && abs(b1.Row() - b2.Row()) > 1) continue;
+      if (crossCE >= 2 && abs(b1.Row() - b2.Row()) > 1) {printf("!ROW\n");continue;}
       if( !b1.CheckChi2Y(b2, factor2ys ) ) {if (DEBUG) {printf("!Y\n");}continue;}
       //if( !b1.CheckChi2Z(b2, factor2zt ) ) {if (DEBUG) {printf("!NCl1\n");}continue;}
       if( !b1.CheckChi2QPt(b2, factor2k ) ) {if (DEBUG) {printf("!QPt\n");}continue;}
@@ -923,61 +1022,6 @@ bool AliHLTTPCGMMerger_CompareParts(const AliHLTTPCGMSliceTrack* a, const AliHLT
 {
   return(a->X() > b->X());
 }
-
-/*void AliHLTTPCGMMerger::CheckMergedTracks()
-{
-    std::vector<bool> trkUsed(SliceTrackInfoLocalTotal());
-    for (int i = 0;i < SliceTrackInfoLocalTotal();i++) trkUsed[i] = false;
-
-    for ( int itr = 0; itr < SliceTrackInfoLocalTotal(); itr++ )
-    {
-        AliHLTTPCGMSliceTrack &track = fSliceTrackInfos[itr];
-        if ( track.PrevSegmentNeighbour() >= 0 ) continue;
-        if ( track.PrevNeighbour() >= 0 ) continue;
-        int nParts = 0;
-        int nHits = 0;
-        int leg = 0;
-        AliHLTTPCGMSliceTrack *trbase = &track, *tr = &track;
-        tr->SetPrevSegmentNeighbour(1000000000);
-        while (true)
-        {
-          if( nParts >= kMaxParts ) break;
-          if (nHits + tr->NClusters() >= kMaxClusters) break;
-          nHits += tr->NClusters();
-
-          int iTrk = tr - fSliceTrackInfos;
-          if (trkUsed[iTrk])
-          {
-              printf("FAILURE: double use\n");
-          }
-          trkUsed[iTrk] = true;
-
-          int jtr = tr->NextSegmentNeighbour();
-          if( jtr >= 0 ) {
-            tr = &(fSliceTrackInfos[jtr]);
-            tr->SetPrevSegmentNeighbour(1000000002);
-            continue;
-          }
-          jtr = trbase->NextNeighbour();
-          if( jtr>=0 ){
-            trbase = &(fSliceTrackInfos[jtr]);
-            tr = trbase;
-            if( tr->PrevSegmentNeighbour() >= 0 ) break;
-            tr->SetPrevSegmentNeighbour(1000000001);
-            leg++;
-            continue;
-          }
-          break;
-        }
-    }
-    for (int i = 0;i < SliceTrackInfoLocalTotal();i++)
-    {
-        if (trkUsed[i] == false)
-        {
-            printf("FAILURE: trk missed\n");
-        }
-    }
-}*/
 
 void AliHLTTPCGMMerger::CollectMergedTracks()
 {
