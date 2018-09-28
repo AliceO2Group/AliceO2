@@ -15,6 +15,8 @@
 #include "Framework/RootObjectContext.h"
 #include "Framework/StringContext.h"
 #include "Framework/ArrowContext.h"
+#include "Framework/RawBufferContext.h"
+#include "CommonUtils/BoostSerializer.h"
 #include "Framework/Output.h"
 #include "Framework/OutputRef.h"
 #include "Framework/OutputRoute.h"
@@ -36,6 +38,7 @@
 #include <utility>
 #include <type_traits>
 #include <utility>
+#include <cstddef>
 
 // Do not change this for a full inclusion of FairMQDevice.
 class FairMQDevice;
@@ -54,7 +57,7 @@ class ContextRegistry;
 /// timeframe.
 class DataAllocator
 {
-public:
+ public:
   using AllowedOutputRoutes = std::vector<OutputRoute>;
   using DataHeader = o2::header::DataHeader;
   using DataOrigin = o2::header::DataOrigin;
@@ -69,26 +72,26 @@ public:
 
   inline DataChunk newChunk(OutputRef&& ref, size_t size) { return newChunk(getOutputByBind(std::move(ref)), size); }
 
-  DataChunk adoptChunk(const Output&, char *, size_t, fairmq_free_fn*, void *);
+  DataChunk adoptChunk(const Output&, char*, size_t, fairmq_free_fn*, void*);
 
   // In case no extra argument is provided and the passed type is trivially
   // copyable and non polymorphic, the most likely wanted behavior is to create
   // a message with that type, and so we do.
   template <typename T>
   typename std::enable_if<is_messageable<T>::value == true, T&>::type
-  make(const Output& spec)
+    make(const Output& spec)
   {
     DataChunk chunk = newChunk(spec, sizeof(T));
     return *reinterpret_cast<T*>(chunk.data);
   }
 
-  // In case an extra argument is provided, we consider this an array / 
+  // In case an extra argument is provided, we consider this an array /
   // collection elements of that type
   template <typename T>
   typename std::enable_if<is_messageable<T>::value == true, gsl::span<T>>::type
-  make(const Output& spec, size_t nElements)
+    make(const Output& spec, size_t nElements)
   {
-    auto size = nElements*sizeof(T);
+    auto size = nElements * sizeof(T);
     DataChunk chunk = newChunk(spec, size);
     return gsl::span<T>(reinterpret_cast<T*>(chunk.data), nElements);
   }
@@ -102,7 +105,8 @@ public:
   /// once the processing callback completes.
   template <typename T, typename... Args>
   typename std::enable_if<std::is_base_of<TObject, T>::value == true, T&>::type
-  make(const Output& spec, Args... args) {
+    make(const Output& spec, Args... args)
+  {
     auto obj = new T(args...);
     adopt(spec, obj);
     return *obj;
@@ -122,12 +126,39 @@ public:
   /// Helper to create a TableBuilder which will be owned by the framework
   /// FIXME: perfect forwarding?
   template <typename T, typename... Args>
-  typename std::enable_if<std::is_base_of<TableBuilder, T>::value == true, T &>::type
+  typename std::enable_if<std::is_base_of<TableBuilder, T>::value == true, T&>::type
     make(const Output& spec, Args... args)
   {
-    TableBuilder *tb = new TableBuilder(args...);
+    TableBuilder* tb = new TableBuilder(args...);
     adopt(spec, tb);
     return *tb;
+  }
+
+  /// Helper to create an byte stream buffer using boost serialization, which will be owned by the framework
+  /// and transmitted when the processing finishes.
+  template <typename T, typename WT = typename T::wrapped_type>
+  typename std::enable_if<is_specialization<T, BoostSerialized>::value == true, WT&>::type
+    make(const Output& specs)
+  {
+    return make_boost<WT>(std::move(specs));
+  }
+
+  template<typename T>
+  typename std::enable_if<is_specialization<T,BoostSerialized>::value == false 
+                        && is_messageable<T>::value == false
+                        && o2::utils::check::is_boost_serializable<T>::value == true 
+                        && std::is_base_of<std::string, T>::value == false, T&>::type 
+    make(const Output& spec)
+  {
+    return make_boost<T>(std::move(spec));
+  }
+
+  template <typename T>
+  T& make_boost(const Output& spec)
+  {
+    auto buff = new T{};
+    adopt_boost(spec, buff);
+    return *buff;
   }
 
   /// catching unsupported type for case without additional arguments
@@ -135,10 +166,12 @@ public:
   /// the arguments and the different return types
   template <typename T>
   typename std::enable_if<
-    std::is_base_of<TObject, T>::value == false
+    is_specialization<T,BoostSerialized>::value == false 
+    && std::is_base_of<TObject, T>::value == false
     && std::is_base_of<TableBuilder, T>::value == false
     && is_messageable<T>::value == false
-    && std::is_same<std::string, T>::value == false,
+    && std::is_same<std::string, T>::value == false
+    && o2::utils::check::is_boost_serializable<T>::value == false,
     T&>::type
     make(const Output&)
   {
@@ -146,7 +179,9 @@ public:
                   "data type T not supported by API, \n specializations available for"
                   "\n - trivially copyable, non-polymorphic structures"
                   "\n - arrays of those"
-                  "\n - TObject with additional constructor arguments");
+                  "\n - TObject with additional constructor arguments"
+                  "\n - Classes and structs with boost serialization support"
+                  "\n - std containers of those");
   }
 
   /// catching unsupported type for case of span of objects
@@ -154,7 +189,8 @@ public:
   typename std::enable_if<
     std::is_base_of<TObject, T>::value == false
     && is_messageable<T>::value == false
-    && std::is_same<std::string, T>::value == false,
+    && std::is_same<std::string, T>::value == false
+    && o2::utils::check::is_boost_serializable<T>::value == false,
     gsl::span<T>>::type
     make(const Output&, size_t)
   {
@@ -162,7 +198,9 @@ public:
                   "data type T not supported by API, \n specializations available for"
                   "\n - trivially copyable, non-polymorphic structures"
                   "\n - arrays of those"
-                  "\n - TObject with additional constructor arguments");
+                  "\n - TObject with additional constructor arguments"
+                  "\n - Classes and structs with boost serialization support"
+                  "\n - std containers of those");
   }
 
   /// catching unsupported type for case of at least two additional arguments
@@ -170,7 +208,8 @@ public:
   typename std::enable_if<
     std::is_base_of<TObject, T>::value == false
     && is_messageable<T>::value == false
-    && std::is_same<std::string, T>::value == false,
+    && std::is_same<std::string, T>::value == false
+    && o2::utils::check::is_boost_serializable<T>::value == false,
     T&>::type
     make(const Output&, U, V, Args...)
   {
@@ -178,13 +217,15 @@ public:
                   "data type T not supported by API, \n specializations available for"
                   "\n - trivially copyable, non-polymorphic structures"
                   "\n - arrays of those"
-                  "\n - TObject with additional constructor arguments");
+                  "\n - TObject with additional constructor arguments"
+                  "\n - Classes and structs with boost serialization support"
+                  "\n - std containers of those");
   }
 
   /// Adopt a TObject in the framework and serialize / send
   /// it to the consumers of @a spec once done.
   void
-  adopt(const Output& spec, TObject*obj);
+    adopt(const Output& spec, TObject* obj);
 
   /// Adopt a string in the framework and serialize / send
   /// it to the consumers of @a spec once done.
@@ -194,7 +235,42 @@ public:
   /// Adopt a TableBuilder in the framework and serialise / send
   /// it as an Arrow table to all consumers of @a spec once done
   void
-    adopt(const Output& spec, TableBuilder *);
+    adopt(const Output& spec, TableBuilder*);
+
+  /// Adopt a raw buffer in the framework and serialize / send
+  /// it to the consumers of @a spec once done.
+  template <typename T>
+  typename std::enable_if<is_specialization<T, BoostSerialized>::value == true, void>::type
+    adopt(const Output& spec, T* ptr)
+  {
+    adopt_boost(std::move(spec), std::move(ptr()));
+  }
+
+  template <typename T>
+  void adopt_boost(const Output& spec, T* ptr)
+  {
+
+    using type = T;
+
+    char* payload = reinterpret_cast<char*>(ptr);
+    std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+    // the correct payload size is set later when sending the
+    // RawBufferContext, see DataProcessor::doSend
+    auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodNone, 0);
+
+    auto lambdaSerialize = [voidPtr = payload]()
+    {
+      return o2::utils::BoostSerialize<type>(*(reinterpret_cast<type*>(voidPtr)));
+    };
+
+    auto lambdaDestructor = [voidPtr = payload]()
+    {
+      auto tmpPtr = reinterpret_cast<type*>(voidPtr);
+      delete tmpPtr;
+    };
+
+    mContextRegistry->get<RawBufferContext>()->addRawBuffer(std::move(header), std::move(payload), std::move(channel), std::move(lambdaSerialize), std::move(lambdaDestructor));
+  }
 
   /// Serialize a snapshot of an object with root dictionary when called,
   /// will then be sent once the computation ends.
@@ -206,7 +282,7 @@ public:
   /// explicitely otherwise by using ROOTSerialized wrapper type.
   template <typename T>
   typename std::enable_if<has_root_dictionary<T>::value == true && is_messageable<T>::value == false, void>::type
-  snapshot(const Output& spec, T& object)
+    snapshot(const Output& spec, T& object)
   {
     auto proxy = mContextRegistry->get<RootObjectContext>()->proxy();
     FairMQMessagePtr payloadMessage(proxy.createMessage());
@@ -225,7 +301,7 @@ public:
   /// after the call will not be sent.
   template <typename W>
   typename std::enable_if<is_specialization<W, ROOTSerialized>::value == true, void>::type
-  snapshot(const Output& spec, W wrapper)
+    snapshot(const Output& spec, W wrapper)
   {
     using T = typename W::wrapped_type;
     static_assert(std::is_same<typename W::hint_type, const char>::value || //
@@ -267,7 +343,7 @@ public:
   /// unserialized. Use @a ROOTSerialized type wrapper to force ROOT serialization.
   template <typename T>
   typename std::enable_if<is_messageable<T>::value == true, void>::type
-  snapshot(const Output& spec, T const& object)
+    snapshot(const Output& spec, T const& object)
   {
     auto proxy = mContextRegistry->get<MessageContext>()->proxy();
     FairMQMessagePtr payloadMessage(proxy.createMessage(sizeof(T)));
@@ -284,13 +360,13 @@ public:
   typename std::enable_if<is_specialization<C, std::vector>::value == true &&
                           std::is_pointer<typename C::value_type>::value == false &&
                           is_messageable<typename C::value_type>::value == true>::type
-  snapshot(const Output& spec, C const& v)
+    snapshot(const Output& spec, C const& v)
   {
     auto proxy = mContextRegistry->get<MessageContext>()->proxy();
     auto sizeInBytes = sizeof(typename C::value_type) * v.size();
     FairMQMessagePtr payloadMessage(proxy.createMessage(sizeInBytes));
 
-    typename C::value_type *tmp = const_cast<typename C::value_type*>(v.data());
+    typename C::value_type* tmp = const_cast<typename C::value_type*>(v.data());
     memcpy(payloadMessage->GetData(), reinterpret_cast<void*>(tmp), sizeInBytes);
 
     addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodNone);
@@ -305,7 +381,7 @@ public:
     is_specialization<C, std::vector>::value == true &&
     std::is_pointer<typename C::value_type>::value == true &&
     is_messageable<typename std::remove_pointer<typename C::value_type>::type>::value == true>::type
-  snapshot(const Output& spec, C const& v)
+    snapshot(const Output& spec, C const& v)
   {
     using ElementType = typename std::remove_pointer<typename C::value_type>::type;
     constexpr auto elementSizeInBytes = sizeof(ElementType);
@@ -314,7 +390,7 @@ public:
     FairMQMessagePtr payloadMessage(proxy.createMessage(sizeInBytes));
 
     auto target = reinterpret_cast<unsigned char*>(payloadMessage->GetData());
-    for (auto const & pointer : v) {
+    for (auto const& pointer : v) {
       memcpy(target, pointer, elementSizeInBytes);
       target += elementSizeInBytes;
     }
@@ -347,10 +423,8 @@ public:
   typename std::enable_if<
     is_specialization<T, std::vector>::value == true &&
     is_messageable<
-      typename std::remove_pointer<typename T::value_type>::type
-      >::value == false
-    >::type
-  snapshot(const Output& spec, T const&)
+      typename std::remove_pointer<typename T::value_type>::type>::value == false>::type
+    snapshot(const Output& spec, T const&)
   {
     static_assert(is_messageable<typename std::remove_pointer<typename T::value_type>::type>::value == true,
                   "data type T not supported by API, \n specializations available for"
@@ -403,10 +477,10 @@ public:
 
  private:
   AllowedOutputRoutes mAllowedOutputRoutes;
-  TimingInfo *mTimingInfo;
+  TimingInfo* mTimingInfo;
   ContextRegistry* mContextRegistry;
 
-  std::string matchDataHeader(const Output &spec, size_t timeframeId);
+  std::string matchDataHeader(const Output& spec, size_t timeframeId);
   FairMQMessagePtr headerMessageFromOutput(Output const& spec,                                  //
                                            std::string const& channel,                          //
                                            o2::header::SerializationMethod serializationMethod, //
@@ -414,9 +488,8 @@ public:
 
   Output getOutputByBind(OutputRef&& ref);
   void addPartToContext(FairMQMessagePtr&& payload,
-                        const Output &spec,
+                        const Output& spec,
                         o2::header::SerializationMethod serializationMethod);
-
 };
 
 } // namespace framework

@@ -21,6 +21,7 @@
 #include "Framework/RootObjectContext.h"
 #include "Framework/ArrowContext.h"
 #include "Framework/StringContext.h"
+#include "Framework/RawBufferContext.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/InputRoute.h"
 #include "Framework/ForwardRoute.h"
@@ -64,6 +65,7 @@ class DataProcessingDevice : public FairMQDevice
   RootObjectContext mRootContext;
   StringContext mStringContext;
   ArrowContext mDataFrameContext;
+  RawBufferContext mRawBufferContext;
   ContextRegistry mContextRegistry;
   DataAllocator mAllocator;
   DataRelayer mRelayer;

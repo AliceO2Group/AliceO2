@@ -17,6 +17,8 @@
 #include "Framework/InputSpan.h"
 #include "Framework/TableConsumer.h"
 
+#include "CommonUtils/BoostSerializer.h"
+
 #include <iterator>
 #include <string>
 #include <vector>
@@ -160,7 +162,7 @@ class InputRecord
   /// Note: is_messagable also checks that T is not a pointer
   /// @return const ref to specified type
   template <typename T>
-  typename std::enable_if<is_messageable<T>::value && std::is_same<T, DataRef>::value == false, //
+  typename std::enable_if<is_messageable<T>::value && std::is_same<T, DataRef>::value == false && o2::utils::check::is_boost_serializable<T>::value == false, //
                           T>::type const&
     get(char const* binding) const
   {
@@ -237,6 +239,47 @@ class InputRecord
     assert(header);
     auto data = reinterpret_cast<uint8_t const *>(ref.payload);
     return std::move(std::make_unique<TableConsumer>(data, header->payloadSize));
+  }
+
+  /// substitution for boost-serialized entities
+  /// We have to deserialize the ostringstream.
+  /// FIXME: check that the string is null terminated.
+  /// @return deserialized copy of payload
+  template <typename T>
+  typename std::enable_if<o2::utils::check::is_boost_serializable<T>::value == true
+                          && std::is_same<T, std::string>::value == false
+                          && has_root_dictionary<T>::value == false, T>::type
+  get(char const *binding) const {
+    auto&& ref = get<DataRef>(binding);
+    auto header = header::get<const header::DataHeader*>(ref.header);
+    assert(header);
+    auto str = std::string(ref.payload, header->payloadSize);
+    assert(header->payloadSize == sizeof(T));
+    auto desData = o2::utils::BoostDeserialize<T>(str);
+    return std::move(desData);
+  }
+
+  template <typename T, typename WT = typename T::wrapped_type>
+  typename std::enable_if<is_specialization<T, BoostSerialized>::value == true, WT>::type
+    get(char const* binding) const
+  {
+    auto&& ref = get<DataRef>(binding);
+    auto header = header::get<const header::DataHeader*>(ref.header);
+    assert(header);
+    auto str = std::string(ref.payload, header->payloadSize);
+    auto desData = o2::utils::BoostDeserialize<WT>(str);
+    return std::move(desData);
+  }
+
+  template <typename T>
+  T get_boost(char const* binding) const
+  {
+    auto&& ref = get<DataRef>(binding);
+    auto header = header::get<const header::DataHeader*>(ref.header);
+    assert(header);
+    auto str = std::string(ref.payload, header->payloadSize);
+    auto desData = o2::utils::BoostDeserialize<T>(str);
+    return std::move(desData);
   }
 
   /// substitution for DataRef
@@ -360,7 +403,8 @@ class InputRecord
                               && std::is_pointer<T>::value == false
                               && std::is_same<T, DataRef>::value == false
                               && std::is_same<T, std::string>::value == false
-                              && has_root_dictionary<T>::value == false,
+                              && has_root_dictionary<T>::value == false
+                              && o2::utils::check::is_boost_serializable<T>::value == false,
                             std::unique_ptr<T const, Deleter<T const>>>::type
     get(char const* binding) const
   {
