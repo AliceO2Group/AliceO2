@@ -16,6 +16,10 @@ endif()
 
 if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
     set(MODULE O2TPCCAGPUTracking)
+    if(OpenMP_CXX_FOUND)
+        message(STATUS "AliTPCCommon: Using OpenMP: ${OpenMP_CXX_SPEC_DATE}")
+        add_definitions(-DHLTCA_HAVE_OPENMP)
+    endif()
 elseif(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     set(MODULE AliTPCCAGPUTracking)
 endif()
@@ -194,4 +198,7 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
       BUCKET_NAME ${BUCKET_NAME}
       TEST_SRCS ${TEST_SRCS}
     )
+    if (OpenMP_CXX_FOUND)
+        target_link_libraries(${MODULE} OpenMP::OpenMP_CXX)
+    endif()
 endif()

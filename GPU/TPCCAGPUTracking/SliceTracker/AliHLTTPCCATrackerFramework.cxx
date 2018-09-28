@@ -36,7 +36,7 @@
 #undef HLTCA_STANDALONE //We disable the standalone application features for the O2 lib. This is a hack since the HLTCA_STANDALONE setting is ambigious... In this file it affects standalone application features, in the other files it means independence from aliroot
 #endif
 
-#ifdef HLTCA_STANDALONE
+#ifdef HLTCA_HAVE_OPENMP
 #include <omp.h>
 #endif
 
@@ -128,13 +128,14 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 	{
 		bool error = false;
 #ifdef HLTCA_STANDALONE
+		int nLocalTracks = 0, nGlobalTracks = 0, nOutputTracks = 0, nLocalHits = 0, nGlobalHits = 0;
+#endif
+#ifdef HLTCA_HAVE_OPENMP
 		if (fOutputControl->fOutputPtr && omp_get_max_threads() > 1)
 		{
 			HLTError("fOutputPtr must not be used with OpenMP\n");
 			return(1);
 		}
-		int nLocalTracks = 0, nGlobalTracks = 0, nOutputTracks = 0, nLocalHits = 0, nGlobalHits = 0;
-
 #pragma omp parallel for
 #endif
 		for (int iSlice = 0;iSlice < CAMath::Min(sliceCount, fgkNSlices - firstSlice);iSlice++)
@@ -212,7 +213,7 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 		}*/
 #endif
 	}
-	
+
 	if (fGPUDebugLevel >= 6 && fUseGPUTracker)
 	{
 	    fUseGPUTracker = 0;
@@ -272,7 +273,7 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU, const cha
 	{
 		hGPULib = NULL;
 	}
-	
+
 	if (hGPULib == NULL)
 	{
 		if (allowGPU > 0)

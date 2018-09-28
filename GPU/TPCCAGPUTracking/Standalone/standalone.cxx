@@ -6,11 +6,13 @@
 #include <fstream>
 #include <stdio.h>
 #include <string.h>
-#include <omp.h>
 #include <chrono>
 #include <tuple>
 #include <algorithm>
 #include <random>
+#ifdef HLTCA_HAVE_OPENMP
+#include <omp.h>
+#endif
 
 #ifndef WIN32
 #include <unistd.h>
@@ -122,8 +124,6 @@ int main(int argc, char** argv)
 	if (configStandalone.configQA.inputHistogramsOnly && configStandalone.configQA.compareInputs.size() == 0) {printf("Can only produce QA pdf output when input files are specified!\n"); return(1);}
 	if ((configStandalone.nways & 1) == 0) {printf("nWay setting musst be odd number!\n"); return(1);}
 
-	if (configStandalone.OMPThreads != -1) omp_set_num_threads(configStandalone.OMPThreads);
-
 	std::ofstream CPUOut, GPUOut;
 	FILE* fpBinaryOutput = NULL;
 
@@ -132,8 +132,11 @@ int main(int argc, char** argv)
 	{
 		CPUOut.open("CPU.out");
 		GPUOut.open("GPU.out");
-		omp_set_num_threads(1);
+		configStandalone.OMPThreads = 1;
 	}
+#ifdef HLTCA_HAVE_OPENMP
+	if (configStandalone.OMPThreads != -1) omp_set_num_threads(configStandalone.OMPThreads);
+#endif
 	if (configStandalone.writebinary)
 	{
 		if ((fpBinaryOutput = fopen("output.bin", "w+b")) == NULL)
