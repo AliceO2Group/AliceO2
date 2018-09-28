@@ -96,6 +96,8 @@ private:
   void ClearTrackLinks(int n);
 
   void PrintMergeGraph(AliHLTTPCGMSliceTrack* trk);
+  void CheckMergedTracks();
+  int GetTrackLabel(AliHLTTPCGMBorderTrack& trk);
 
   int SliceTrackInfoFirst(int iSlice) {return fSliceTrackInfoIndex[iSlice];}
   int SliceTrackInfoLast(int iSlice) {return fSliceTrackInfoIndex[iSlice + 1];}
