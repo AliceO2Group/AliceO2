@@ -7,12 +7,7 @@
 #define ESC_SEQ_START "\e["
 #define ESC_SEQ_END "m"
 
-#define CATCH(glCall) do { \
-        int err = glCall; \
-        if (err) { \
-            log::Fatal() << __FILE__ << ":" << __LINE__ << ": Error!";
-        }
-    } while (false)
+
 
 namespace log {
 
@@ -22,7 +17,7 @@ enum class Level {
     Error,
 };
 
-const char *levelToStr(Level lvl) {
+const char *levelToStr(const Level &lvl) {
     switch (lvl) {
     case Level::Debug: return "[Debug]";
     case Level::Info:  return "[Info]";
@@ -30,7 +25,7 @@ const char *levelToStr(Level lvl) {
     }
 }
 
-std::ostream &operator<<(std::ostream &o, Level lvl) {
+std::ostream &operator<<(std::ostream &o, const Level &lvl) {
     return o << levelToStr(lvl);
 }
 
@@ -51,12 +46,12 @@ template<Format... F>
 class Formatter {
     
 public:
-    std::string str() {
+    std::string str() const {
         return makeEscSeq();
     }
     
 private:
-    std::string makeEscSeq() {
+    std::string makeEscSeq() const {
         std::stringstream ss;
         ss << ESC_SEQ_START;
         for (fmt in {F...}) {
@@ -67,7 +62,12 @@ private:
     }
     
 };
-    
+
+template<Format... F>
+std::ostream &operator<<(std::ostream &o, const Formatter<F...> &fmt) {
+    return o << fmt.str();
+}
+
 
 template<Level L, Format... F>
 class Logger {
@@ -84,6 +84,7 @@ public:
     template<typename T>
     Logger &operator<<(const T &msg) {
         std::cout << msg;
+        return *this;
     }
 
 };
@@ -104,3 +105,11 @@ public:
 
 
 }; // namespace log
+
+
+#define CATCH(glCall) do { \
+        int err = glCall; \
+        if (err) { \
+            log::Fatal() << __FILE__ << ":" << __LINE__ << ": Error!"; \
+        } \
+    } while (false)
