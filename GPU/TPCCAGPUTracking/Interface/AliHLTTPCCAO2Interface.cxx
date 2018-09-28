@@ -21,6 +21,9 @@
 #include "standaloneSettings.h"
 #include <iostream>
 #include <fstream>
+#ifdef HLTCA_HAVE_OPENMP
+#include <omp.h>
+#endif
 
 AliHLTTPCCAO2Interface::AliHLTTPCCAO2Interface() : fInitialized(false), fDumpEvents(false), fContinuous(false), fHLT(NULL)
 {
@@ -38,6 +41,7 @@ int AliHLTTPCCAO2Interface::Initialize(const char* options)
 	if (fHLT == NULL) return(1);
 	float solenoidBz = -5.00668;
 	float refX = 1000.;
+	int nThreads = 1;
 
 	if (options && *options)
 	{
@@ -68,14 +72,25 @@ int AliHLTTPCCAO2Interface::Initialize(const char* options)
 				sscanf(optPtr + 5, "%f", &refX);
 				printf("Propagating to reference X %f\n", refX);
 			}
+			else if (optLen > 8 && strncmp(optPtr, "threads=", 8) == 0)
+			{
+				sscanf(optPtr + 8, "%d", &nThreads);
+				printf("Using %d threads\n", nThreads);
+			}
 			else
 			{
 				printf("Unknown option: %s\n", optPtr);
+				return 1;
 			}
 			optPtr = nextPtr;
 		}
 	}
 
+#ifdef HLTCA_HAVE_OPENMP
+	omp_set_num_threads(nThreads);
+#else
+	if (nThreads != 1) printf("ERROR: Compiled without OpenMP. Cannot set number of threads!\n");
+#endif
 	fHLT->SetSettings(solenoidBz, false, false);
 	fHLT->SetNWays(3);
 	fHLT->SetNWaysOuter(true);

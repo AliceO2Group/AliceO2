@@ -522,7 +522,7 @@ void RunQA(bool matchOnly)
 		//Assign Track MC Labels
 		timer.Start();
 		bool ompError = false;
-#if DEBUG == 0
+#if defined(HLTCA_HAVE_OPENMP) && DEBUG == 0
 #pragma omp parallel for
 #endif
 		for (int i = 0; i < merger.NOutputTracks(); i++)
@@ -712,7 +712,9 @@ void RunQA(bool matchOnly)
 		if (TIMING) printf("QA Time: Compute cluster label weights:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
 		timer.ResetStart();
 
+#ifdef HLTCA_HAVE_OPENMP
 #pragma omp parallel for
+#endif
 		for (int i = 0;i < hlt.GetNMCInfo();i++)
 		{
 			const AliHLTTPCCAMCInfo& info = hlt.GetMCInfo()[i];

@@ -1345,7 +1345,7 @@ void AliHLTTPCGMMerger::Refit(bool resetTimers)
   else
 #endif
   {
-#ifdef HLTCA_STANDALONE
+#ifdef HLTCA_HAVE_OPENMP
 #pragma omp parallel for
 #endif
     for ( int itr = 0; itr < fNOutputTracks; itr++ )

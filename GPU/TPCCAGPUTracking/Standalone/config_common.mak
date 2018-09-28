@@ -8,8 +8,6 @@ ARCHBITS					= 64
 
 HIDEECHO					= @
 
-CONFIG_OPENMP				= 1
-
 CC_x86_64-pc-linux-gnu		= GCC
 CC_i686-pc-cygwin			= ICC
 
@@ -66,6 +64,10 @@ CONFIG_CPP					= gnu++14
 ifeq ($(ARCH_CYGWIN), 1)
 CONFIG_O2DIR				=
 BUILD_QA					= 0
+endif
+
+ifeq ($(CONFIG_OPENMP), 1)
+DEFINES						+= HLTCA_HAVE_OPENMP
 endif
 
 ifneq (${CONFIG_O2DIR}, )

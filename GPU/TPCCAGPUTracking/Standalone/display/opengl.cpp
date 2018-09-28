@@ -9,6 +9,9 @@
 #ifndef WIN32
 #include "bitmapfile.h"
 #endif
+#ifdef HLTCA_HAVE_OPENMP
+#include <omp.h>
+#endif
 
 #include "AliHLTTPCCASliceData.h"
 #include "AliHLTTPCCAStandaloneFramework.h"
@@ -20,8 +23,6 @@
 #include "include.h"
 #include "../cmodules/timer.h"
 #include "../cmodules/qconfig.h"
-
-#include <omp.h>
 
 //#define CHKERR(cmd) {cmd;}
 #define CHKERR(cmd) {(cmd); GLenum err = glGetError(); while (err != GL_NO_ERROR) {printf("OpenGL Error %d: %s (%s: %d)\n", err, gluErrorString(err), __FILE__, __LINE__);exit(1);}}
@@ -568,9 +569,14 @@ int InitGL()
 	setDepthBuffer();
 	setQuality();
 	ReSizeGLScene(init_width, init_height, true);
+#ifdef HLTCA_HAVE_OPENMP
 	if (configStandalone.OMPThreads != -1) omp_set_num_threads(configStandalone.OMPThreads);
-	threadBuffers.resize(omp_get_max_threads());
-	threadTracks.resize(omp_get_max_threads());
+	int maxThreads = omp_get_max_threads();
+#else
+	int maxThreads = 1;
+#endif
+	threadBuffers.resize(maxThreads);
+	threadTracks.resize(maxThreads);
 	return(1);                                     // Initialization Went OK
 }
 
@@ -1335,11 +1341,16 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			for (int i = 0;i < N_POINTS_TYPE;i++) GLpoints[iSlice][i].resize(nCollisions);
 			for (int i = 0;i < N_FINAL_TYPE;i++) glDLfinal[iSlice].resize(nCollisions);
 		}
+#ifdef HLTCA_HAVE_OPENMP
 #pragma omp parallel
 		{
 			int numThread = omp_get_thread_num();
 			int numThreads = omp_get_num_threads();
 #pragma omp for
+#else
+		{
+			int numThread = 0, numThreads = 1;
+#endif
 			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
 				AliHLTTPCCATracker &tracker = hlt.Tracker().CPUTracker(iSlice);
@@ -1364,8 +1375,10 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			prop.SetPolynomialField(merger.pField());
 			prop.SetToyMCEventsFlag(merger.SliceParam().ToyMCEventsFlag());
 
+#ifdef HLTCA_HAVE_OPENMP
 #pragma omp barrier
 #pragma omp for
+#endif
 			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
 				AliHLTTPCCATracker &tracker = hlt.Tracker().CPUTracker(iSlice);
@@ -1377,18 +1390,24 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 				glDLgrid[iSlice] = DrawGrid(tracker);
 			}
 
+#ifdef HLTCA_HAVE_OPENMP
 #pragma omp barrier
 #pragma omp for
+#endif
 			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
 				AliHLTTPCCATracker &tracker = hlt.Tracker().CPUTracker(iSlice);
 				glDLlines[iSlice][5] = DrawTracks(tracker, 1);
 			}
 
+#ifdef HLTCA_HAVE_OPENMP
 #pragma omp barrier
+#endif
 			threadTracks[numThread].resize(nCollisions);
 			for (int i = 0;i < nCollisions;i++) for (int j = 0;j < fgkNSlices;j++) for (int k = 0;k < 2;k++) threadTracks[numThread][i][j][k].clear();
+#ifdef HLTCA_HAVE_OPENMP
 #pragma omp for
+#endif
 			for (int i = 0;i < merger.NOutputTracks();i++)
 			{
 				const AliHLTTPCGMMergedTrack* track = &merger.OutputTracks()[i];
@@ -1404,7 +1423,9 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 				}
 				threadTracks[numThread][col][slice][0].emplace_back(i);
 			}
+#ifdef HLTCA_HAVE_OPENMP
 #pragma omp for
+#endif
 			for (int i = 0;i < hlt.GetNMCInfo();i++)
 			{
 				const AliHLTTPCCAMCInfo& mc = hlt.GetMCInfo()[i];
@@ -1422,8 +1443,10 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 				}
 				threadTracks[numThread][col][slice][1].emplace_back(i);
 			}
+#ifdef HLTCA_HAVE_OPENMP
 #pragma omp barrier
 #pragma omp for
+#endif
 			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
 				for (int iCol = 0;iCol < nCollisions;iCol++)
@@ -1447,8 +1470,10 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 				}
 			}
 
+#ifdef HLTCA_HAVE_OPENMP
 #pragma omp barrier
 #pragma omp for
+#endif
 			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
 				AliHLTTPCCATracker &tracker = hlt.Tracker().CPUTracker(iSlice);
