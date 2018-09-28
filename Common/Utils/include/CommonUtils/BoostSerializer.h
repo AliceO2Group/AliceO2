@@ -16,6 +16,14 @@
 #ifndef ALICEO2_BOOSTSERIALIZER_H
 #define ALICEO2_BOOSTSERIALIZER_H
 
+#include <utility>
+#include <type_traits>
+#include <array>
+#include <vector>
+#include <list>
+#include <map>
+#include <set>
+
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/serialization/is_bitwise_serializable.hpp>
@@ -33,61 +41,46 @@ namespace utils
 {
 namespace check
 {
-///A set of classes and struct to be sure the serialised object is either trivial or implementing custom serialize
-template <class Type, class Archive, typename = typename std::enable_if<std::is_class<Type>::value>::type>
-class is_boost_serializable
-{
- private:
-  struct TypeOverloader {
-    void serialize(Archive& ar, const unsigned int version) {}
-  };
-  struct TypeExt : public Type, public TypeOverloader {
-  };
-  template <typename T, T t>
-  class DeductionHelper
-  {
-  };
+// template <class Type, class Archive, typename = typename std::enable_if<std::is_class<Type>::value>::type>
+template <typename...>
+using void_t = void;
 
-  class True
-  {
-    char m;
-  };
-  class False
-  {
-    True m[2];
-  };
+template <typename Type, typename Archive = boost::archive::binary_oarchive, typename = void_t<>>
+struct is_boost_serializable_base : std::false_type {
+};
 
-  template <typename TestType>
-  static False deduce(TestType*, DeductionHelper<void (TypeOverloader::*)(), &TestType::serialize>* = 0);
-  static True deduce(...);
+template <class Type, typename Archive>
+struct is_boost_serializable_base<Type, Archive,
+                                  void_t<decltype(std::declval<Type &>().serialize(std::declval<Archive &>(), 0))>>
+  : std::true_type {
+};
 
- public:
-  static const bool value = (sizeof(True) == sizeof(deduce((TypeExt*)(0))));
+template <typename Type, typename Archive>
+struct is_boost_serializable_base<Type, Archive,
+                                  typename std::enable_if<boost::serialization::is_bitwise_serializable<Type>::value>::type>
+  : std::true_type {
+};
+
+template <typename Type, typename Archive = boost::archive::binary_oarchive, typename = void_t<>>
+struct is_boost_serializable
+  : is_boost_serializable_base<Type, Archive> {
+};
+
+template <typename Type, typename Archive>
+struct is_boost_serializable<Type, Archive, void_t<typename Type::value_type>>
+  : is_boost_serializable<typename Type::value_type, Archive> {
+};
+
+template <typename Type>
+struct is_boost_serializable<Type, boost::archive::binary_oarchive, void_t<typename Type::value_type>>
+  : is_boost_serializable<typename Type::value_type, boost::archive::binary_oarchive> {
 };
 } // namespace check
 
 template <typename ContT>
-typename std::enable_if<check::is_boost_serializable<ContT, boost::archive::binary_oarchive>::value
-                        && std::is_class<typename ContT::value_type>::value, std::ostringstream>::type
-  BoostSerialize(const ContT &dataSet)
+typename std::enable_if<check::is_boost_serializable<ContT, boost::archive::binary_oarchive>::value, std::ostringstream>::type
+  BoostSerialize(const ContT& dataSet)
 {
-  static_assert(check::is_boost_serializable<typename ContT::value_type, boost::archive::binary_oarchive>::value,
-                "This class doesn't provide a boost serializer.");
-  /// Serialises a container (vector, array or list) using boost serialisation routines.
-  /// Requires the contained type to be either trivial or provided with an overried of boost::serialise method.
-  std::ostringstream buffer;
-  boost::archive::binary_oarchive outputArchive(buffer);
-  outputArchive << dataSet;
-  return buffer;
-}
-
-template <typename ContT, typename ContentT = typename ContT::value_type>
-typename std::enable_if<check::is_boost_serializable<ContT, boost::archive::binary_oarchive>::value
-                        && !(std::is_class<ContentT>::value), std::ostringstream>::type
-  BoostSerialize(const ContT &dataSet)
-{
-  static_assert(boost::serialization::is_bitwise_serializable<typename ContT::value_type>::value,
-                "This type doesn't provide a boost serializer.");
   /// Serialises a container (vector, array or list) using boost serialisation routines.
   /// Requires the contained type to be either trivial or provided with an overried of boost::serialise method.
   std::ostringstream buffer;
@@ -97,12 +90,9 @@ typename std::enable_if<check::is_boost_serializable<ContT, boost::archive::bina
 }
 
 template <typename ContT>
-typename std::enable_if<check::is_boost_serializable<ContT, boost::archive::binary_iarchive>::value
-                        && std::is_class<typename ContT::value_type>::value, ContT>::type
-  BoostDeserialize(std::string &msgStr)
+typename std::enable_if<check::is_boost_serializable<ContT, boost::archive::binary_iarchive>::value, ContT>::type
+  BoostDeserialize(std::string& msgStr)
 {
-  static_assert(check::is_boost_serializable<typename ContT::value_type, boost::archive::binary_oarchive>::value,
-                "This class doesn't provide a boost deserializer.");
   /// Deserialises a msg contained in a string in a container type (vector, array or list) of the provided type.
   ContT output;
   std::istringstream buffer(msgStr);
@@ -110,36 +100,6 @@ typename std::enable_if<check::is_boost_serializable<ContT, boost::archive::bina
   inputArchive >> output;
   return std::move(output);
 }
-
-template <typename ContT, typename ContentT = typename ContT::value_type>
-typename std::enable_if<check::is_boost_serializable<ContT, boost::archive::binary_iarchive>::value
-                        && !(std::is_class<ContentT>::value), ContT>::type
-  BoostDeserialize(std::string &msgStr)
-{
-  static_assert(boost::serialization::is_bitwise_serializable<typename ContT::value_type>::value,
-                "This type doesn't provide a boost serializer.");
-  /// Deserialises a msg contained in a string in a container type (vector, array or list) of the provided type.
-  ContT output;
-  std::istringstream buffer(msgStr);
-  boost::archive::binary_iarchive inputArchive(buffer);
-  inputArchive >> output;
-  return std::move(output);
-}
-
-template <typename T>
-struct has_serializer
-{
-  template <class, class> class checker;
-
-  template <typename C>
-  static std::true_type test(checker<C, decltype(&o2::utils::BoostSerialize<C>)> *);
-
-  template <typename C>
-  static std::false_type test(...);
-
-  typedef decltype(test<T>(nullptr)) type;
-  static const bool value = std::is_same<std::true_type, decltype(test<T>(nullptr))>::value;
-};
 } // namespace utils
 } // namespace o2
 

@@ -151,6 +151,7 @@ set(HEADERS
       include/Framework/TableBuilder.h
       include/Framework/FairMQResizableBuffer.h
       include/Framework/Metric2DViewIndex.h
+      include/Framework/RawBufferContext.h
       src/ComputingResource.h
       src/DDSConfigHelpers.h
       src/DeviceSpecHelpers.h
@@ -205,6 +206,7 @@ target_compile_options(test_SimpleDataProcessingDevice01 PUBLIC -O0 -g -fno-omit
 Install(FILES test/test_DataSampling.json DESTINATION share/tests/)
 
 set(TEST_SRCS
+      test/test_BoostSerializedProcessing.cxx
       test/test_AlgorithmSpec.cxx
       test/test_BoostOptionsRetriever.cxx
       test/test_CallbackRegistry.cxx

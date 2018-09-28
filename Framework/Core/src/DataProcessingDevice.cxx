@@ -71,9 +71,10 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
     mRootContext{ FairMQDeviceProxy{ this } },
     mStringContext{ FairMQDeviceProxy{ this } },
     mDataFrameContext{ FairMQDeviceProxy{ this } },
-    mContextRegistry{ { &mFairMQContext, &mRootContext, &mStringContext, &mDataFrameContext } },
+    mRawBufferContext{ FairMQDeviceProxy{ this } },
+    mContextRegistry{ { &mFairMQContext, &mRootContext, &mStringContext, &mDataFrameContext, &mRawBufferContext } },
     mAllocator{ &mTimingInfo, &mContextRegistry, spec.outputs },
-    mRelayer{ spec.completionPolicy, spec.inputs, spec.forwards, registry.get<Monitoring>(), registry.get<TimesliceIndex>()},
+    mRelayer{ spec.completionPolicy, spec.inputs, spec.forwards, registry.get<Monitoring>(), registry.get<TimesliceIndex>() },
     mServiceRegistry{ registry },
     mErrorCount{ 0 },
     mProcessingCount{ 0 }
@@ -268,6 +269,7 @@ bool DataProcessingDevice::tryDispatchComputation()
   auto& stringContext = mStringContext;
   auto& timingInfo = mTimingInfo;
   auto& timesliceIndex = mServiceRegistry.get<TimesliceIndex>();
+  auto& rawContext = mRawBufferContext;
 
   // These duplicate references are created so that each function
   // does not need to know about the whole class state, but I can
@@ -324,7 +326,7 @@ bool DataProcessingDevice::tryDispatchComputation()
   // PROCESSING:{START,END} is done so that we can trigger on begin / end of processing
   // in the GUI.
   auto dispatchProcessing = [&processingCount, &allocator, &statefulProcess, &statelessProcess, &monitoringService,
-                             &context, &rootContext, &stringContext, &rdfContext, &serviceRegistry, &device](TimesliceSlot slot, InputRecord& record) {
+                             &context, &rootContext, &stringContext, &rdfContext, &rawContext, &serviceRegistry, &device](int i, InputRecord& record) {
     if (statefulProcess) {
       LOG(DEBUG) << "PROCESSING:START:" << slot.index;
       monitoringService.send({ processingCount++, "dpl/stateful_process_count" });
@@ -348,6 +350,7 @@ bool DataProcessingDevice::tryDispatchComputation()
     DataProcessor::doSend(device, rootContext);
     DataProcessor::doSend(device, stringContext);
     DataProcessor::doSend(device, rdfContext);
+    DataProcessor::doSend(device, rawContext);
   };
 
   // Error handling means printing the error and updating the metric
@@ -370,9 +373,14 @@ bool DataProcessingDevice::tryDispatchComputation()
     auto timeslice = timesliceIndex.getTimesliceForSlot(i);
     LOG(DEBUG) << "Timeslice for cacheline is " << timeslice.value;
     timingInfo.timeslice = timeslice.value;
+  auto prepareAllocatorForCurrentTimeSlice = [&timingInfo, &rootContext, &stringContext, &rawContext, &context, &relayer](int i) {
+    size_t timeslice = relayer.getTimesliceForCacheline(i);
+    LOG(DEBUG) << "Timeslice for cacheline is " << timeslice;
+    timingInfo.timeslice = timeslice;
     rootContext.clear();
     context.clear();
     stringContext.clear();
+    rawContext.clear();
   };
 
   // This is how we do the forwarding, i.e. we push
