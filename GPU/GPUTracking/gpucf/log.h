@@ -1,12 +1,8 @@
 #pragma once
 
-#include <ostream>
+#include <iostream>
 #include <sstream>
-
-
-#define ESC_SEQ_START "\e["
-#define ESC_SEQ_END "m"
-
+#include <vector>
 
 
 namespace log {
@@ -20,7 +16,7 @@ enum class Level {
 const char *levelToStr(const Level &lvl) {
     switch (lvl) {
     case Level::Debug: return "[Debug]";
-    case Level::Info:  return "[Info]";
+    case Level::Info:  return "[Info ]";
     case Level::Error: return "[Error]";
     }
 }
@@ -39,11 +35,14 @@ enum class Format {
     DefaultColor = 39,
     Red = 31,
     Green = 32,
+    Blue = 34,
 };
 
 
+class FormatterBase {};
+
 template<Format... F>
-class Formatter {
+class Formatter : FormatterBase {
     
 public:
     std::string str() const {
@@ -51,13 +50,19 @@ public:
     }
     
 private:
+    static constexpr const char *ESC_SEQ_START = "\e[";
+    static constexpr const char *ESC_SEQ_END   = "m";
+
     std::string makeEscSeq() const {
+        const std::vector<Format> fmts = {F...};
         std::stringstream ss;
+
         ss << ESC_SEQ_START;
-        for (fmt in {F...}) {
-            ss << static_cast<int>(fmt);
+        for (size_t i = 0; i < fmts.size(); i++) {
+            ss << static_cast<int>(fmts[i]) << ((i < fmts.size()-1) ? ";" : "");
         }
         ss << ESC_SEQ_END;
+
         return ss.str();
     }
     
@@ -69,16 +74,28 @@ std::ostream &operator<<(std::ostream &o, const Formatter<F...> &fmt) {
 }
 
 
-template<Level L, Format... F>
+template<Level L, class F1, class F2>
 class Logger {
+
+    static_assert(std::is_base_of<FormatterBase, F1>::value, "F1 must be a formatter!");
+    static_assert(std::is_base_of<FormatterBase, F2>::value, "F2 must be a formatter!");
 
 public:
     Logger() {
-        *this << Formatter<F...>() << L;      
+        *this << F1() << L << Formatter<Format::ResetAll>() << " " << F2();
     }
     
     ~Logger() {
         *this << Formatter<Format::ResetAll>() << std::endl;
+    }
+
+    /* operator std::ostream() { */
+    /*     return std::cout; */
+    /* } */
+
+    Logger &operator<<(std::ostream &(*f)(std::ostream &)) {
+        f(std::cout);
+        return *this;
     }
     
     template<typename T>
@@ -90,25 +107,40 @@ public:
 };
 
 
-using Debug   = Logger<Level::Debug, Format::DefaultColor>;
-using Info    = Logger<Level::Info, Format::DefaultColor>;
-using Success = Logger<Level::Info, Format::Green, Format::Bold>;
-
-class Fatal : Logger<Level::Error, Format::Red, Format::Bold> {
+class ErrorShutdown {
 
 public:
-    ~Fatal() {
+    ~ErrorShutdown() {
         std::exit(1);
     }
-    
+
+};
+
+
+using Debug   = Logger<Level::Debug,
+                       Formatter<Format::Blue>,
+                       Formatter<Format::DefaultColor>>;
+
+using Info    = Logger<Level::Info,
+                       Formatter<Format::DefaultColor>,
+                       Formatter<Format::DefaultColor>>;
+
+using Success = Logger<Level::Info,
+                       Formatter<Format::Green, Format::Bold>,
+                       Formatter<Format::Green, Format::Bold>>;
+
+class Fail : public ErrorShutdown
+           , public Logger<Level::Error,
+                           Formatter<Format::Red, Format::Bold>,
+                           Formatter<Format::DefaultColor>> {
 };
 
 
 }; // namespace log
 
 
-#define CATCH(glCall) do { \
-        int err = glCall; \
+#define CATCH(openclCall) do { \
+        int err = openclCall; \
         if (err) { \
             log::Fatal() << __FILE__ << ":" << __LINE__ << ": Error!"; \
         } \
