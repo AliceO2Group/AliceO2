@@ -39,22 +39,15 @@
 #endif
 #endif
 
-AliHLTTPCCAStandaloneFramework &AliHLTTPCCAStandaloneFramework::Instance(int allowGPU, const char* GPULibrary)
+AliHLTTPCCAStandaloneFramework &AliHLTTPCCAStandaloneFramework::Instance()
 {
   // reference to static object
-  static AliHLTTPCCAStandaloneFramework gAliHLTTPCCAStandaloneFramework(allowGPU, GPULibrary);
+  static AliHLTTPCCAStandaloneFramework gAliHLTTPCCAStandaloneFramework;
   return gAliHLTTPCCAStandaloneFramework;
 }
 
-AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework(int allowGPU, const char* GPULibrary)
-: fMerger(), fClusterData(fInternalClusterData), fOutputControl(),
-  fTracker(allowGPU, GPULibrary ? GPULibrary : 
-#ifdef HLTCA_STANDALONE
-    getenv("HLTCA_GPUTRACKER_LIBRARY")
-#else
-    NULL
-#endif
-  ), fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0), fRunQA(0), fRunMerger(1), fMCLabels(0), fMCInfo(0)
+AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework()
+: fMerger(), fClusterData(fInternalClusterData), fOutputControl(), fTracker(NULL), fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0), fRunQA(0), fRunMerger(1), fMCLabels(0), fMCInfo(0)
 {
   //* constructor
 
@@ -63,7 +56,6 @@ AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework(int allowGPU, con
     fStatTime[i] = 0;
   }
   for ( int i = 0;i < fgkNSlices;i++) fSliceOutput[i] = NULL;
-  fTracker.SetOutputControl(&fOutputControl);
 }
 
 AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework( const AliHLTTPCCAStandaloneFramework& )
@@ -93,8 +85,27 @@ AliHLTTPCCAStandaloneFramework::~AliHLTTPCCAStandaloneFramework()
             if (fSliceOutput[i]) free(fSliceOutput[i]);
         }
     }
+    delete fTracker;
 }
 
+int AliHLTTPCCAStandaloneFramework::Initialize(const char* gpuLibrary, int deviceNum)
+{
+  fTracker = new AliHLTTPCCATrackerFramework(gpuLibrary ? 1 : 0, gpuLibrary, deviceNum);
+  if (gpuLibrary && GetGPUStatus() == 0)
+  {
+    delete fTracker;
+    printf("Error initializing GPU tracker\n");
+    return 1;
+  }
+  fTracker->SetOutputControl(&fOutputControl);
+  return 0;
+}
+
+void AliHLTTPCCAStandaloneFramework::Uninitialize()
+{
+    delete fTracker;
+    fTracker = NULL;
+}
 
 void AliHLTTPCCAStandaloneFramework::StartDataReading( int guessForNumberOfClusters )
 {
@@ -135,19 +146,19 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool rese
 
   if (fEventDisplay)
   {
-	fTracker.SetKeepData(1);
+	fTracker->SetKeepData(1);
   }
 #endif
 
   if (forceSingleSlice != -1)
   {
-	if (fTracker.ProcessSlices(forceSingleSlice, 1, &fClusterData[forceSingleSlice], &fSliceOutput[forceSingleSlice])) return (1);
+	if (fTracker->ProcessSlices(forceSingleSlice, 1, &fClusterData[forceSingleSlice], &fSliceOutput[forceSingleSlice])) return (1);
   }
   else
   {
-	for (int iSlice = 0;iSlice < fgkNSlices;iSlice += fTracker.MaxSliceCount())
+	for (int iSlice = 0;iSlice < fgkNSlices;iSlice += fTracker->MaxSliceCount())
 	{
-		if (fTracker.ProcessSlices(iSlice, CAMath::Min(fTracker.MaxSliceCount(), fgkNSlices - iSlice), &fClusterData[iSlice], &fSliceOutput[iSlice])) return (1);
+		if (fTracker->ProcessSlices(iSlice, CAMath::Min(fTracker->MaxSliceCount(), fgkNSlices - iSlice), &fClusterData[iSlice], &fSliceOutput[iSlice])) return (1);
 	}
   }
 
@@ -168,9 +179,9 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool rese
 	  }
 
 #ifdef HLTCA_GPU_MERGER
-	  if (fTracker.GetGPUTracker()->GPUMergerAvailable()) fMerger.SetGPUTracker(fTracker.GetGPUTracker());
+	  if (fTracker->GetGPUTracker()->GPUMergerAvailable()) fMerger.SetGPUTracker(fTracker->GetGPUTracker());
 #endif
-      fMerger.SetSliceTrackers(&fTracker.CPUTracker(0));
+      fMerger.SetSliceTrackers(&fTracker->CPUTracker(0));
 	  fMerger.Reconstruct(resetTimers);
 #ifdef HLTCA_STANDALONE
       timerMerger.Stop();
@@ -206,15 +217,15 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool rese
 			for ( int iSlice = 0; iSlice < fgkNSlices;iSlice++)
 			{
 				if (forceSingleSlice != -1) iSlice = forceSingleSlice;
-				time += fTracker.GetTimer(iSlice, i);
-                if (!HLTCA_TIMING_SUM) fTracker.ResetTimer(iSlice, i);
+				time += fTracker->GetTimer(iSlice, i);
+                if (!HLTCA_TIMING_SUM) fTracker->ResetTimer(iSlice, i);
 				if (forceSingleSlice != -1) break;
 			}
 			if (forceSingleSlice == -1)
 			{
 				time /= fgkNSlices;
 			}
-			if (fTracker.GetGPUStatus() < 2) time /= omp_get_max_threads();
+			if (fTracker->GetGPUStatus() < 2) time /= omp_get_max_threads();
 
 			printf("Execution Time: Task: %20s ", tmpNames[i]);
 			printf("Time: %1.0f us", time * 1000000 / nCount);
@@ -229,7 +240,7 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool rese
             nCount = 0;
         }
   }
-  
+
 #ifdef BUILD_EVENT_DISPLAY
   if (fEventDisplay)
   {
@@ -281,7 +292,7 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool rese
                 		Sleep(1);
                 #else
                 		usleep(1000);
-                #endif                
+                #endif
             }
             sendKey = iKey;
         }
@@ -302,7 +313,7 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool rese
 
 	displayEventNr++;
   }
-#endif  
+#endif
 #endif
 
   for ( int i = 0; i < 3; i++ ) fStatTime[i] += fLastTime[i];
@@ -350,7 +361,7 @@ void AliHLTTPCCAStandaloneFramework::SetSettings(float solenoidBz, bool toyMCEve
       param.SetMinTrackPt( MIN_TRACK_PT_DEFAULT );
 
       param.Update();
-      fTracker.InitializeSliceParam( slice, param );
+      fTracker->InitializeSliceParam( slice, param );
       delete[] rowX;
     }
 
@@ -382,7 +393,7 @@ void AliHLTTPCCAStandaloneFramework::SetSettings(float solenoidBz, bool toyMCEve
 	  param.Update();
 
 	  delete[] rowX;
-	  
+
 	  fMerger.SetSliceParam(param);
 	}
 
@@ -402,7 +413,7 @@ int AliHLTTPCCAStandaloneFramework::ReadEvent( std::istream &in, bool resetIds, 
   int nClusters = 0, nCurrentClusters = 0;
   if (addData) for (int i = 0;i < fgkNSlices;i++) nCurrentClusters += fClusterData[i].NumberOfClusters();
   int nCurrentMCTracks = addData ? fMCInfo.size() : 0;
-  
+
   int sliceOldClusters[36];
   int sliceNewClusters[36];
   int removed = 0;

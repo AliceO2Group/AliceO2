@@ -37,11 +37,13 @@ AliHLTTPCCAO2Interface::~AliHLTTPCCAO2Interface()
 int AliHLTTPCCAO2Interface::Initialize(const char* options)
 {
 	if (fInitialized) return(1);
-	fHLT = &AliHLTTPCCAStandaloneFramework::Instance(-1);
+	fHLT = &AliHLTTPCCAStandaloneFramework::Instance();
 	if (fHLT == NULL) return(1);
 	float solenoidBz = -5.00668;
 	float refX = 1000.;
 	int nThreads = 1;
+	bool useGPU = false;
+	char gpuLibName[1024];
 
 	if (options && *options)
 	{
@@ -77,6 +79,14 @@ int AliHLTTPCCAO2Interface::Initialize(const char* options)
 				sscanf(optPtr + 8, "%d", &nThreads);
 				printf("Using %d threads\n", nThreads);
 			}
+			else if (optLen > 7 && strncmp(optPtr, "gpuLib=", 7) == 0)
+			{
+				int len = std::min(optLen - 7, 1023);
+				memcpy(gpuLibName, optPtr + 7, len);
+				gpuLibName[len] = 0;
+				useGPU = true;
+				printf("Using GPU library %s\n", gpuLibName);
+			}
 			else
 			{
 				printf("Unknown option: %s\n", optPtr);
@@ -91,6 +101,7 @@ int AliHLTTPCCAO2Interface::Initialize(const char* options)
 #else
 	if (nThreads != 1) printf("ERROR: Compiled without OpenMP. Cannot set number of threads!\n");
 #endif
+	if (fHLT->Initialize(useGPU ? gpuLibName : NULL, -1)) return 1;
 	fHLT->SetSettings(solenoidBz, false, false);
 	fHLT->SetNWays(3);
 	fHLT->SetNWaysOuter(true);
@@ -111,7 +122,7 @@ void AliHLTTPCCAO2Interface::Deinitialize()
 	{
 		fHLT->Merger().Clear();
 		fHLT->Merger().SetGPUTracker(NULL);
-		fHLT->ExitGPU();
+		fHLT->Uninitialize();
 		fHLT = NULL;
 	}
 	fInitialized = false;
@@ -156,5 +167,5 @@ void AliHLTTPCCAO2Interface::GetClusterErrors2( int row, float z, float sinPhi, 
 
 void AliHLTTPCCAO2Interface::Cleanup()
 {
-	
+
 }

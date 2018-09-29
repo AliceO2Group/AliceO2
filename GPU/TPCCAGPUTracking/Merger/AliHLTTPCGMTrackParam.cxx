@@ -127,7 +127,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
         continue;
       }
 
-      const bool allowModification = refit && (iWay == 0 || (((nWays - iWay) & 1) ? (ihit >= std::min(maxN / 2, 30)) : (ihit <= std::max(maxN / 2, maxN - 30))));
+      const bool allowModification = refit && (iWay == 0 || (((nWays - iWay) & 1) ? (ihit >= CAMath::Min(maxN / 2, 30)) : (ihit <= CAMath::Max(maxN / 2, maxN - 30))));
       int ihitMergeFirst = ihit;
       prop.SetStatErrorCurCluster(&clusters[ihit]);
 
@@ -364,7 +364,7 @@ GPUd() void AliHLTTPCGMTrackParam::AttachClusters(const AliHLTTPCGMMerger* Merge
 GPUd() void AliHLTTPCGMTrackParam::AttachClusters(const AliHLTTPCGMMerger* Merger, int slice, int iRow, int iTrack, bool goodLeg, float Y, float Z)
 {
 #if defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE) && !defined(HLTCA_BUILD_O2_LIB)
-    AliHLTTPCCATracker& tracker = *(Merger->SliceTrackers() + slice);
+    const AliHLTTPCCATracker& tracker = *(Merger->SliceTrackers() + slice);
     MAKESharedRef(AliHLTTPCCARow, row, tracker.Row(iRow), s.fRows[iRow]);
 #ifndef HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR
     GPUglobalref() const cahit2 *hits = tracker.HitData(row);

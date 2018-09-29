@@ -49,6 +49,8 @@ include_directories(${CAGPUDIR}/GlobalTracker
                     ${CAGPUDIR}/GlobalTracker/cuda
                     ${CAGPUDIR}/Merger
                     ${CAGPUDIR}/SliceTracker
+                    ${CAGPUDIR}/TRDTracking
+                    ${ALITPCCOMMON_DIR}/sources/Common
                    )
 
 # Additional include folders in alphabetical order except ROOT
@@ -78,7 +80,7 @@ set(SRCS
 set(CINTHDRS
     AliHLTTPCCAGPUTrackerNVCC.h
     )
-  
+
 set(HDRS
     ${CINTHDRS}
     ${CAGPUDIR}/GlobalTracker/AliHLTTPCCAGPUTrackerCommon.h
@@ -115,10 +117,10 @@ endif()
 if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
     Set(LIBRARY_NAME ${MODULE})
     set(BUCKET_NAME TPCCAGPUTracking_bucket)
-    
+
     O2_GENERATE_LIBRARY()
 
     target_link_libraries(${MODULE} ${CUDA_LIBRARIES} ${LIBCUDA_SO_PATH} O2TPCCAGPUTracking)
-    
-    set_target_properties(${MODULE} PROPERTIES LINKER_LANGUAGE CXX) 
+
+    set_target_properties(${MODULE} PROPERTIES LINKER_LANGUAGE CXX)
 endif()

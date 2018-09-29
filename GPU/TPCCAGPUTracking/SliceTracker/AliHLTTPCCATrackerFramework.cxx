@@ -42,7 +42,7 @@
 
 ClassImp( AliHLTTPCCATrackerFramework )
 
-int AliHLTTPCCATrackerFramework::InitGPU(int sliceCount, int forceDeviceID)
+int AliHLTTPCCATrackerFramework::InitGPU(int forceDeviceID)
 {
 	//Initialize GPU Tracker and determine if GPU available
 	int retVal;
@@ -52,7 +52,7 @@ int AliHLTTPCCATrackerFramework::InitGPU(int sliceCount, int forceDeviceID)
 		return(1);
 	}
 	if (fGPUTrackerAvailable && (retVal = ExitGPU())) return(retVal);
-	retVal = fGPUTracker->InitGPU(sliceCount, forceDeviceID);
+	retVal = fGPUTracker->InitGPU(-1, forceDeviceID);
 	fUseGPUTracker = fGPUTrackerAvailable = retVal == 0;
 	return(retVal);
 }

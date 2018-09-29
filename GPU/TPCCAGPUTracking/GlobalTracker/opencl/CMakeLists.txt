@@ -58,6 +58,8 @@ set(CL_INC
     -I${CAGPUDIR}/SliceTracker
     -I${CAGPUDIR}/Merger
     -I${CAGPUDIR}/GlobalTracker
+    -I${CAGPUDIR}/TRDTracking
+    -I${ALITPCCOMMON_DIR}/sources/Common
 )
 
 # executes OpenCL compiler wrapper to build binary object
@@ -81,7 +83,9 @@ include_directories(${CAGPUDIR}/GlobalTracker/opencl
                     ${CAGPUDIR}/GlobalTracker
                     ${CAGPUDIR}/Standalone/makefiles
                     ${CAGPUDIR}/SliceTracker
+                    ${CAGPUDIR}/TRDTracking
                     ${CAGPUDIR}/Merger
+                    ${ALITPCCOMMON_DIR}/sources/Common
                    )
 
 # Additional include folders in alphabetical order except ROOT
@@ -96,7 +100,7 @@ else() #if we do not build for AliRoot, for the time being we still need some du
 endif()
 if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
    add_definitions(-DHLTCA_TPC_GEOMETRY_O2 -DHLTCA_BUILD_O2_LIB)
-endif()                   
+endif()
 
 # Sources in alphabetical order
 set(SRCS
@@ -143,7 +147,7 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
 #We do not need the dictionary for the standalone library files
     Set(LIBRARY_NAME ${MODULE})
     set(BUCKET_NAME TPCCAGPUTracking_bucket)
-    
+
     O2_GENERATE_LIBRARY()
 
     target_link_libraries(${MODULE} OpenCL O2TPCCAGPUTracking)
