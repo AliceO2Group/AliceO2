@@ -645,54 +645,6 @@ int AliHLTTPCCAGPUTrackerBase::InitGPU(int sliceCount, int forceDeviceID)
 	fCudaInitialized = 1;
 	HLTInfo("GPU Tracker initialization successfull"); //Verbosity reduced because GPU backend will print HLTImportant message!
 
-#if defined(HLTCA_STANDALONE) & !defined(CUDA_DEVICE_EMULATION)
-	if (fDebugLevel < 2 && 0)
-	{
-		//Do one initial run for Benchmark reasons
-		const int useDebugLevel = fDebugLevel;
-		fDebugLevel = 0;
-		AliHLTTPCCAClusterData* tmpCluster = new AliHLTTPCCAClusterData[sliceCount];
-
-		std::ifstream fin;
-
-		AliHLTTPCCAParam tmpParam;
-		AliHLTTPCCASliceOutput::outputControlStruct tmpOutputControl;
-
-		fin.open("events/settings.dump");
-		int tmpCount;
-		fin >> tmpCount;
-		for (int i = 0;i < sliceCount;i++)
-		{
-			fSlaveTrackers[i].SetOutputControl(&tmpOutputControl);
-			tmpParam.ReadSettings(fin);
-			InitializeSliceParam(i, tmpParam);
-		}
-		fin.close();
-
-		fin.open("eventspbpbc/event.0.dump", std::ifstream::binary);
-		for (int i = 0;i < sliceCount;i++)
-		{
-			tmpCluster[i].StartReading(i, 0);
-			tmpCluster[i].ReadEvent(fin);
-		}
-		fin.close();
-
-		AliHLTTPCCASliceOutput **tmpOutput = new AliHLTTPCCASliceOutput*[sliceCount];
-		memset(tmpOutput, 0, sliceCount * sizeof(AliHLTTPCCASliceOutput*));
-
-		Reconstruct(tmpOutput, tmpCluster, 0, sliceCount);
-		for (int i = 0;i < sliceCount;i++)
-		{
-			free(tmpOutput[i]);
-			tmpOutput[i] = NULL;
-			fSlaveTrackers[i].SetOutputControl(NULL);
-		}
-		delete[] tmpOutput;
-		delete[] tmpCluster;
-		fDebugLevel = useDebugLevel;
-	}
-#endif
-
 	return(retVal);
 }
 
