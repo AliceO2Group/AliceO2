@@ -1,3 +1,4 @@
+include						config_options.mak
 include						config_common.mak
 
 TARGET						= libAliHLTTPCCAGPUSA
@@ -9,7 +10,7 @@ endif
 CXXFILES					+= GlobalTracker/AliHLTTPCCAGPUTrackerBase.cxx
 
 CUFILES						= GlobalTracker/cuda/AliHLTTPCCAGPUTrackerNVCC.cu
-ASMFILES					= 
+ASMFILES					=
 
 CONFIG_CUDA					= 1
 

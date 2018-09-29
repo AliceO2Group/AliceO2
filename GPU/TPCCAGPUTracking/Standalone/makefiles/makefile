@@ -29,7 +29,7 @@ endif
 GCCFLAGSOPT						= -O3 $(GCCFLAGSARCH) -fweb -frename-registers -minline-all-stringops -mfpmath=sse -ftracer -funroll-loops -fpeel-loops -fprefetch-loop-arrays -ffast-math -fno-stack-protector
 CLANGFLAGSOPT					= -O3 $(GCCFLAGSARCH) -minline-all-stringops -mfpmath=sse -funroll-loops -ffast-math -fno-stack-protector $(EXTRAFLAGSCLANG)
 CLANGFLAGSDBG					= $(GCCFLAGSDBG) $(EXTRAFLAGSCLANG)
-#-fgcse-sm -fgcse-las -fmodulo-sched -fipa-pta -floop-interchange -floop-block 
+#-fgcse-sm -fgcse-las -fmodulo-sched -fipa-pta -floop-interchange -floop-block
 GCCFLAGSDBG						= -O0 $(GCCFLAGSARCH)
 GCCWARNINGS						= -Wall -Wextra -Wshadow -Wno-unused-function -Wno-unused-parameter -Wno-unused-local-typedefs -Wno-write-strings
 GCCFLAGSCOMMON					= $(MULTITHREADGCC) -pipe -DGCC_RUNTIME $(GCCPROF) $(GCCWARNINGS) $(EXTRAFLAGSGCC)
@@ -37,7 +37,7 @@ CLANGFLAGSCOMMON				= $(MULTITHREADGCC) -pipe -DGCC_RUNTIME -DCLANG_RUNTIME $(GC
 GCCFLAGS32						= -m32
 GCCFLAGS64						= -m64 -D"_AMD64_" -D"_X64_"
 
-GCCPROF							= 
+GCCPROF							=
 #-fprofile-arcs, -fbranch-probabilities
 
 #Multithread Options
@@ -45,7 +45,7 @@ MULTITHREAD						= /MT
 MULTITHREADLIBS					= /nodefaultlib:libc.lib
 
 NVCCFLAGSOPT					= --use_fast_math --maxrregcount $(CUDAREGS) -O4 -Xptxas -v -Xptxas -O4 -Xcompiler -O4 -m$(ARCHBITS) $(NVCCARCHS)
-NVCCFLAGSDBG					= --maxrregcount $(CUDAREGS) -Xptxas -v -Xptxas -O0 -O0 -m$(ARCHBITS) $(NVCCARCHS)
+NVCCFLAGSDBG					= --maxrregcount $(CUDAREGS) -Xptxas -v -Xptxas -O0 -O0 -G -m$(ARCHBITS) $(NVCCARCHS)
 
 TARGETTYPE						= EXECUTABLE
 
@@ -130,18 +130,18 @@ CPPFILES_GCC					:= $(CPPFILES_GCC:%.cpp=$(WORKPATH)/gcc/%.$(OBJ))
 CPPFILES_MSCC					:= $(CPPFILES_MSCC:%.cpp=$(WORKPATH)/mscc/%.$(OBJ))
 CPPFILES_CLANG					:= $(CPPFILES_CLANG:%.cpp=$(WORKPATH)/clang/%.$(OBJ))
 ifeq ($(CC_SELECTED), ICC)
-CPPFILES_ICC					+= $(CPPFILES:%.cpp=$(WORKPATH)/cpp/%.$(OBJ)) $(CXXFILES:%.cxx=$(WORKPATH)/cxx/%.$(OBJ)) $(CFILES:%.c=$(WORKPATH)/c/%.$(OBJ)) 
+CPPFILES_ICC					+= $(CPPFILES:%.cpp=$(WORKPATH)/cpp/%.$(OBJ)) $(CXXFILES:%.cxx=$(WORKPATH)/cxx/%.$(OBJ)) $(CFILES:%.c=$(WORKPATH)/c/%.$(OBJ))
 CCWITHLINK						= /link
 endif
 ifeq ($(CC_SELECTED), MSCC)
-CPPFILES_MSCC					+= $(CPPFILES:%.cpp=$(WORKPATH)/cpp/%.$(OBJ)) $(CXXFILES:%.cxx=$(WORKPATH)/cxx/%.$(OBJ)) $(CFILES:%.c=$(WORKPATH)/c/%.$(OBJ)) 
+CPPFILES_MSCC					+= $(CPPFILES:%.cpp=$(WORKPATH)/cpp/%.$(OBJ)) $(CXXFILES:%.cxx=$(WORKPATH)/cxx/%.$(OBJ)) $(CFILES:%.c=$(WORKPATH)/c/%.$(OBJ))
 CCWITHLINK						= /link
 endif
 ifeq ($(CC_SELECTED), GCC)
-CPPFILES_GCC					+= $(CPPFILES:%.cpp=$(WORKPATH)/cpp/%.$(OBJ)) $(CXXFILES:%.cxx=$(WORKPATH)/cxx/%.$(OBJ)) $(CFILES:%.c=$(WORKPATH)/c/%.$(OBJ)) 
+CPPFILES_GCC					+= $(CPPFILES:%.cpp=$(WORKPATH)/cpp/%.$(OBJ)) $(CXXFILES:%.cxx=$(WORKPATH)/cxx/%.$(OBJ)) $(CFILES:%.c=$(WORKPATH)/c/%.$(OBJ))
 endif
 ifeq ($(CC_SELECTED), clang)
-CPPFILES_CLANG					+= $(CPPFILES:%.cpp=$(WORKPATH)/cpp/%.$(OBJ)) $(CXXFILES:%.cxx=$(WORKPATH)/cxx/%.$(OBJ)) $(CFILES:%.c=$(WORKPATH)/c/%.$(OBJ)) 
+CPPFILES_CLANG					+= $(CPPFILES:%.cpp=$(WORKPATH)/cpp/%.$(OBJ)) $(CXXFILES:%.cxx=$(WORKPATH)/cxx/%.$(OBJ)) $(CFILES:%.c=$(WORKPATH)/c/%.$(OBJ))
 endif
 
 ifeq ($(CONFIG_LTO), 1)
@@ -195,16 +195,16 @@ $(EXECUTABLE):					$(EXTRADEPS) $(OBJFILES) $(EXTRAOBJFILES) $(ALLDEP)
 $(WORKPATH)/cpp/%.$(OBJ):		%.cpp $(ALLDEP)
 								$(MKDIR)
 								$(CC) $(INCLUDEPATHSUSE) $(DEFINESUSE) $(FILEFLAGS$<) $(COMPILEONLY) $< $(COMPILEOUTPUT)
-							
+
 $(WORKPATH)/cxx/%.$(OBJ):		%.cxx $(ALLDEP)
 								$(CC) $(INCLUDEPATHSUSE) $(DEFINESUSE) $(FILEFLAGS$<) $(COMPILEONLY) $< $(COMPILEOUTPUT)
-							
+
 $(WORKPATH)/c/%.$(OBJ):			%.c $(ALLDEP)
 								$(CC) $(INCLUDEPATHSUSE) $(DEFINESUSE) $(FILEFLAGS$<) $(COMPILEONLY) $< $(COMPILEOUTPUT)
 
 $(WORKPATH)/cu/%.$(OBJ):		$(WORKPATH)/cu/%.cpp $(ALLDEP)
 								$(CCCUDA) $(INCLUDEPATHSUSE) $(DEFINESUSE) $(FILEFLAGS$<) $(COMPILEONLY) $< $(COMPILEOUTPUT)
-							
+
 $(WORKPATH)/cu/%.cpp:			%.cu $(ALLDEP)
 								$(NVCC) $(NVCCFLAGSUSE) $(NVCCFLAGSDC) $(CUDAINCLUDEPATHS) $(CUDADEFINES) $(FILEFLAGS$<) --cuda --output-file "$@" $<
 								$(HIDEECHOA) cat $@ | grep -v NVCC_GREP | sed "s/#pragma detect_mismatch(\"_MSC_VER\", \"1600\")//g" > $@.tmp
@@ -213,7 +213,7 @@ $(WORKPATH)/cu/%.cpp:			%.cu $(ALLDEP)
 
 $(WORKPATH)/asm/%.$(OBJ):		$(WORKPATH)/asm/%.asm $(ALLDEP)
 								$(ASM) $(COMPILEOUTPUT) $(ASMONLY) $<
-							
+
 $(WORKPATH)/asm/%.asm:			%.asm $(ALLDEP)
 								$(CC) $(PRECOMPILEONLY) $(FILEFLAGS$<) $(DEFINESUSE) $< > $@
 
@@ -240,7 +240,7 @@ $(WORKPATH)/qt/%_moc.cpp:		%.h $(WORKPATH)/qt/%_ui.h $(ALLDEP)
 
 $(WORKPATH)/qt/%_moccpp.cpp:	%.h $(ALLDEP)
 								$(QTMOC) -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED -o $@ $<
-								
+
 $(WORKPATH)/qt/%.$(OBJ):		$(WORKPATH)/qt/%.cpp $(ALLDEP)
 								$(CC) $(INCLUDEPATHSUSE) $(DEFINESUSE) $(FILEFLAGS$<) $(COMPILEONLY) $< $(COMPILEOUTPUT)
 
@@ -266,19 +266,19 @@ $(WORKPATH)/res/%.$(OBJ):		% $(ALLDEP)
 $(WORKPATH)/make_lto_icc/icclto_$(TARGET).$(OBJ):	$(CPPFILES_ICC) $(ALLDEP)
 								$(HIDEECHOA) mkdir -p $(WORKPATH)/make_lto_icc
 								$(ICCLINK) $(INTELLINKIPO)$@ $(CPPFILES_ICC)
-							
+
 $(WORKPATH)/make_cuda_device_link/dl_$(TARGET).$(OBJ):	$(CUFILES:%.cu=$(WORKPATH)/cu/%.$(OBJ)) $(ALLDEP)
 								$(HIDEECHOA) mkdir -p $(WORKPATH)/make_cuda_device_link
 								$(NVCC) $(NVCCFLAGSUSE) -dlink $(CUFILES:%.cu=$(WORKPATH)/cu/%.$(OBJ)) -o $@ -lcudadevrt
-							
+
 clean:							$(SUBTARGETS:%=subclean/%.mak)
 								rm -Rf *.plg *.dpi *.exp *.lib $(EXECUTABLE) $(COPIED_EXECUTABLE) x64/release/* *.cubin *.gpu *.ptx *.linkinfo *.ii cuda.compute_* $(DEPENDS) $(OBJFILES) $(CUFILES:%.cu=$(WORKPATH)/cu/%.cpp) $(ASMFILES:%.asm=$(WORKPATH)/asm/%.asm) $(CLEANRELEASEDIR) $(SUBTARGETS_CLEAN)
-							
+
 subclean/%.mak:
 								+export CONFIGFILE=config_`echo $@ | sed s,subclean/,,` && $(MAKE) -f makefile clean
 
-SAVEDIR							= releases/`date +%F`-BUILD-`cat buildnr`							
-backup:						
+SAVEDIR							= releases/`date +%F`-BUILD-`cat buildnr`
+backup:
 								mkdir $(SAVEDIR)
 								cp *.cpp *.h makefile buildnr *.sh *.bat *.conf *.cu $(SAVEDIR)
 
@@ -294,37 +294,37 @@ DEPSED2							= -e 's,\\,/,g' \
 
 $(WORKPATH)/qt/%.qtd:			%.cpp %.ui $(WORKPATH)/qt/%_ui.h $(ALLDEP)
 								$(DEPMKDIR) $(DEPGCC) | $(DEPSED1) 's,^[a-zA-Z0-9._-]*[ ]*:,$(WORKPATH)/cpp/$*.$(OBJ) $@ : ,g' $(DEPSED2)
-							
+
 $(WORKPATH)/cl/%.d:				%.cl $(ALLDEP)
 								$(DEPMKDIR) $(DEPGCC) -I$(GCCPATH)/include -D__OPENCL__ | $(DEPSED1) 's,^[a-zA-Z0-9._-]*[ ]*:,$(WORKPATH)/cl/$*.clbin $(WORKPATH)/cl/$*.cl $@ : ,g' $(DEPSED2)
-							
+
 $(WORKPATH)/cu/%.d:				%.cu $(ALLDEP)
 								$(DEPMKDIR) $(DEPGCC) -I$(GCCPATH)/include -D_MSC_VER=1700 -D__CUDACC__ | $(DEPSED1) 's,^[a-zA-Z0-9._-]*[ ]*:,$(WORKPATH)/cu/$*.$(OBJ) $(WORKPATH)/cu/$*.cpp $@ : ,g' $(DEPSED2)
-							
+
 $(WORKPATH)/asm/%.d:			%.asm $(ALLDEP)
 								$(DEPMKDIR) $(DEPGCC) | $(DEPSED1) 's,^[a-zA-Z0-9._-]*[ ]*:,$(WORKPATH)/asm/$*.$(OBJ) $(WORKPATH)/asm/$*.asm $@ : ,g' $(DEPSED2)
 
 $(WORKPATH)/cpp/%.d:			%.cpp $(ALLDEP)
 								$(DEPMKDIR) $(DEPGCC) | $(DEPSED1) 's,^[a-zA-Z0-9._-]*[ ]*:,$(WORKPATH)/cpp/$*.$(OBJ) $@ : ,g' $(DEPSED2)
-							
+
 $(WORKPATH)/cxx/%.d:			%.cxx $(ALLDEP)
 								$(DEPMKDIR) $(DEPGCC) | $(DEPSED1) 's,^[a-zA-Z0-9._-]*[ ]*:,$(WORKPATH)/cxx/$*.$(OBJ) $@ : ,g' $(DEPSED2)
 
 $(WORKPATH)/c/%.d:				%.c $(ALLDEP)
 								$(DEPMKDIR) $(DEPGCC) | $(DEPSED1) 's,^[a-zA-Z0-9._-]*[ ]*:,$(WORKPATH)/c/$*.$(OBJ) $@ : ,g' $(DEPSED2)
-							
+
 $(WORKPATH)/dbg/%.d:			%.cpp $(ALLDEP)
 								$(DEPMKDIR) $(DEPGCC) -DDEBUG_RUNTIME | $(DEPSED1) 's,^[a-zA-Z0-9._-]*[ ]*:,$(WORKPATH)/dbg/$*.$(OBJ) $@ : ,g' $(DEPSED2)
 
 $(WORKPATH)/icc/%.d:			%.cpp $(ALLDEP)
 								$(DEPMKDIR) $(DEPGCC) -DINTEL_RUNTIME | $(DEPSED1) 's,^[a-zA-Z0-9._-]*[ ]*:,$(WORKPATH)/icc/$*.$(OBJ) $@ : ,g' $(DEPSED2)
-							
+
 $(WORKPATH)/vcc/%.d:			%.cpp $(ALLDEP)
 								$(DEPMKDIR) $(DEPGCC) -DVECTORC_RUNTIME | $(DEPSED1) 's,^[a-zA-Z0-9._-]*[ ]*:,$(WORKPATH)/vcc/$*.$(OBJ) $@ : ,g' $(DEPSED2)
-							
+
 $(WORKPATH)/gcc/%.d:			%.cpp $(ALLDEP)
 								$(DEPMKDIR) $(DEPGCC) -DGCC_RUNTIME | $(DEPSED1) 's,^[a-zA-Z0-9._-]*[ ]*:,$(WORKPATH)/gcc/$*.$(OBJ) $@ : ,g' $(DEPSED2)
-							
+
 $(WORKPATH)/mscc/%.d:			%.cpp $(ALLDEP)
 								$(DEPMKDIR) $(DEPGCC) -DVSNET_RUNTIME | $(DEPSED1) 's,^[a-zA-Z0-9._-]*[ ]*:,$(WORKPATH)/mscc/$*.$(OBJ) $@ : ,g' $(DEPSED2)
 
@@ -332,5 +332,5 @@ $(WORKPATH)/clang/%.d:			%.cpp $(ALLDEP)
 								$(DEPMKDIR) $(DEPGCC) -DCLANG_RUNTIME | $(DEPSED1) 's,^[a-zA-Z0-9._-]*[ ]*:,$(WORKPATH)/clang/$*.$(OBJ) $@ : ,g' $(DEPSED2)
 
 ifneq ($(CHECK_DEPENDENCIES), 0)
-include $(DEPENDS)							
+include $(DEPENDS)
 endif

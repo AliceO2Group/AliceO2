@@ -593,7 +593,7 @@ inline void drawPointLinestrip(int iSlice, int cid, int id, int id_limit = TRACK
 	if (globalPos[cid].w < id_limit) globalPos[cid].w = id;
 }
 
-vboList DrawClusters(AliHLTTPCCATracker &tracker, int select, int iCol)
+vboList DrawClusters(const AliHLTTPCCATracker &tracker, int select, int iCol)
 {
 	int iSlice = tracker.Param().ISlice();
 	size_t startCount = vertexBufferStart[iSlice].size();
@@ -639,7 +639,7 @@ vboList DrawClusters(AliHLTTPCCATracker &tracker, int select, int iCol)
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
-vboList DrawLinks(AliHLTTPCCATracker &tracker, int id, bool dodown = false)
+vboList DrawLinks(const AliHLTTPCCATracker &tracker, int id, bool dodown = false)
 {
 	int iSlice = tracker.Param().ISlice();
 	if (config.clustersOnly) return(vboList(0, 0, iSlice));
@@ -683,7 +683,7 @@ vboList DrawLinks(AliHLTTPCCATracker &tracker, int id, bool dodown = false)
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
-vboList DrawSeeds(AliHLTTPCCATracker &tracker)
+vboList DrawSeeds(const AliHLTTPCCATracker &tracker)
 {
 	int iSlice = tracker.Param().ISlice();
 	if (config.clustersOnly) return(vboList(0, 0, iSlice));
@@ -707,7 +707,7 @@ vboList DrawSeeds(AliHLTTPCCATracker &tracker)
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
-vboList DrawTracklets(AliHLTTPCCATracker &tracker)
+vboList DrawTracklets(const AliHLTTPCCATracker &tracker)
 {
 	int iSlice = tracker.Param().ISlice();
 	if (config.clustersOnly) return(vboList(0, 0, iSlice));
@@ -738,7 +738,7 @@ vboList DrawTracklets(AliHLTTPCCATracker &tracker)
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
-vboList DrawTracks(AliHLTTPCCATracker &tracker, int global)
+vboList DrawTracks(const AliHLTTPCCATracker &tracker, int global)
 {
 	int iSlice = tracker.Param().ISlice();
 	if (config.clustersOnly) return(vboList(0, 0, iSlice));
@@ -914,7 +914,7 @@ void DrawFinal(int iSlice, int /*iCol*/, AliHLTTPCGMPropagator* prop, std::array
 	}
 }
 
-vboList DrawGrid(AliHLTTPCCATracker &tracker)
+vboList DrawGrid(const AliHLTTPCCATracker &tracker)
 {
 	int iSlice = tracker.Param().ISlice();
 	size_t startCount = vertexBufferStart[iSlice].size();
@@ -1353,7 +1353,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 #endif
 			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
-				AliHLTTPCCATracker &tracker = hlt.Tracker().CPUTracker(iSlice);
+				AliHLTTPCCATracker &tracker = (AliHLTTPCCATracker&) hlt.Tracker().CPUTracker(iSlice);
 				char *tmpMem;
 				if (tracker.fLinkTmpMemory == NULL)
 				{
@@ -1381,7 +1381,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 #endif
 			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
-				AliHLTTPCCATracker &tracker = hlt.Tracker().CPUTracker(iSlice);
+				const AliHLTTPCCATracker &tracker = hlt.Tracker().CPUTracker(iSlice);
 
 				glDLlines[iSlice][1] = DrawLinks(tracker, 2);
 				glDLlines[iSlice][2] = DrawSeeds(tracker);
@@ -1396,7 +1396,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 #endif
 			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
-				AliHLTTPCCATracker &tracker = hlt.Tracker().CPUTracker(iSlice);
+				const AliHLTTPCCATracker &tracker = hlt.Tracker().CPUTracker(iSlice);
 				glDLlines[iSlice][5] = DrawTracks(tracker, 1);
 			}
 
@@ -1476,7 +1476,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 #endif
 			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
-				AliHLTTPCCATracker &tracker = hlt.Tracker().CPUTracker(iSlice);
+				const AliHLTTPCCATracker &tracker = hlt.Tracker().CPUTracker(iSlice);
 				for (int i = 0;i < N_POINTS_TYPE;i++)
 				{
 					for (int iCol = 0;iCol < nCollisions;iCol++)

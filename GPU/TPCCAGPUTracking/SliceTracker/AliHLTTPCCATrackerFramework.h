@@ -27,8 +27,6 @@ public:
 	AliHLTTPCCATrackerFramework(int allowGPU = 1, const char* GPU_Library = NULL, int GPUDeviceNum = -1);
 	~AliHLTTPCCATrackerFramework();
 
-	int InitGPU(int sliceCount = 1, int forceDeviceID = -1);
-	int ExitGPU();
 	void SetGPUDebugLevel(int Level, std::ostream *OutFile = NULL, std::ostream *GPUOutFile = NULL);
 	int SetGPUTrackerOption(const char* OptionName, int OptionValue) {if (strcmp(OptionName, "GlobalTracking") == 0) fGlobalTracking = OptionValue;return(fGPUTracker->SetGPUTrackerOption(OptionName, OptionValue));}
 	int SetGPUTracker(bool enable);
@@ -53,14 +51,17 @@ public:
 	void SetKeepData(bool v) {fKeepData = v;}
 
 	AliHLTTPCCAGPUTracker* GetGPUTracker() {return(fGPUTracker);}
-	AliHLTTPCCATracker& CPUTracker(int iSlice) {return(fCPUTrackers[iSlice]);}
+	const AliHLTTPCCATracker& CPUTracker(int iSlice) {return(fUseGPUTracker ? *(fGPUTracker->CPUTracker(iSlice)) : fCPUTrackers[iSlice]);}
 
 private:
+  int InitGPU(int forceDeviceID = -1);
+  int ExitGPU();
+
   static const int fgkNSlices = 36;       //* N slices
 
   char fGPULibAvailable;	//Is the Library with the GPU code available at all?
   char fGPUTrackerAvailable; // Is the GPU Tracker Available?
-  char fUseGPUTracker; // use the GPU tracker 
+  char fUseGPUTracker; // use the GPU tracker
   int fGPUDebugLevel;  // debug level for the GPU code
   AliHLTTPCCAGPUTracker* fGPUTracker;	//Pointer to GPU Tracker Object
   void* fGPULib;		//Pointer to GPU Library

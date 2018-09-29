@@ -37,3 +37,4 @@ int AliHLTTPCCAGPUTracker::GetSliceCount() const { return(0); }
 int AliHLTTPCCAGPUTracker::RefitMergedTracks(AliHLTTPCGMMerger* /*Merger*/, bool /*resetTimers*/) { return(0); }
 char* AliHLTTPCCAGPUTracker::MergerHostMemory() {return(NULL);}
 int AliHLTTPCCAGPUTracker::GPUMergerAvailable() {return(0);}
+const AliHLTTPCCATracker* AliHLTTPCCAGPUTracker::CPUTracker(int iSlice) {return(NULL);}

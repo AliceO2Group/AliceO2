@@ -26,7 +26,7 @@ endif()
 
 include_directories(. SliceTracker Merger ../Common)
 
-set(SRCS SliceTracker/AliHLTTPCCATrack.cxx 
+set(SRCS SliceTracker/AliHLTTPCCATrack.cxx
     SliceTracker/AliHLTTPCCABaseTrackParam.cxx
     SliceTracker/AliHLTTPCCATrackParam.cxx
     SliceTracker/AliHLTTPCCATracklet.cxx
@@ -86,7 +86,7 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
         TRDTracking/AliHLTTRDTrackerComponent.cxx
         TRDTracking/AliHLTTRDTrackletReaderComponent.cxx
     )
-    
+
     add_definitions(-DHLTCA_BUILD_ALIROOT_LIB)
 else() #if we do not build for AliRoot, for the time being we still need some dummy headers for some definitions
     include_directories(HLTHeaders Standalone/include)

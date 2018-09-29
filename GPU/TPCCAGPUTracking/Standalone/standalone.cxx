@@ -63,12 +63,6 @@ int main(int argc, char** argv)
 	_mm_setcsr(_mm_getcsr() | (_MM_FLUSH_ZERO_ON | _MM_DENORMALS_ZERO_ON));
 #endif
 
-	if (hlt.GetGPUStatus() == 0)
-	{
-		printf("No GPU Available, restricting to CPU\n");
-		configStandalone.runGPU = 0;
-	}
-
 	int qcRet = qConfigParse(argc, (const char**) argv);
 	if (qcRet)
 	{
@@ -77,8 +71,7 @@ int main(int argc, char** argv)
 	}
 	if (configStandalone.printSettings) qConfigPrint();
 
-	if (configStandalone.runGPU && hlt.GetGPUStatus() == 0) {printf("Cannot enable GPU\n"); configStandalone.runGPU = 0;}
-	if (configStandalone.runGPU == 0 || configStandalone.eventDisplay) hlt.ExitGPU();
+	if (configStandalone.eventDisplay) configStandalone.runGPU = 0;
 #ifndef WIN32
 	setlocale(LC_ALL, "");
 	if (configStandalone.affinity != -1)
@@ -173,6 +166,13 @@ int main(int argc, char** argv)
 	if (configStandalone.solenoidBz != -1e6f) eventSettings.solenoidBz = configStandalone.solenoidBz;
 	if (configStandalone.constBz) eventSettings.constBz = true;
 
+	if (hlt.Initialize(configStandalone.runGPU ? configStandalone.gpuLibrary : NULL, configStandalone.cudaDevice))
+	{
+		printf("Press a key to exit!\n");
+		getchar();
+		return(1);
+	}
+
 	hlt.SetGPUDebugLevel(configStandalone.DebugLevel, &CPUOut, &GPUOut);
 	hlt.SetEventDisplay(configStandalone.eventDisplay);
 	hlt.SetRunQA(configStandalone.qa);
@@ -182,13 +182,6 @@ int main(int argc, char** argv)
 	else
 		printf("Standalone Test Framework for CA Tracker - Using CPU\n");
 
-	if (configStandalone.runGPU && (configStandalone.cudaDevice != -1 || configStandalone.DebugLevel || (configStandalone.sliceCount != -1 && configStandalone.sliceCount != hlt.GetGPUMaxSliceCount())) && hlt.InitGPU(configStandalone.sliceCount, configStandalone.cudaDevice))
-	{
-		printf("Error Initialising GPU\n");
-		printf("Press a key to exit!\n");
-		getchar();
-		return(1);
-	}
 	configStandalone.sliceCount = hlt.GetGPUMaxSliceCount();
 	hlt.SetGPUTracker(configStandalone.runGPU);
 
@@ -667,7 +660,7 @@ breakrun:
 	hlt.Merger().Clear();
 	hlt.Merger().SetGPUTracker(NULL);
 
-	hlt.ExitGPU();
+	hlt.Uninitialize();
 
 	if (configStandalone.outputcontrolmem)
 	{

@@ -10,9 +10,9 @@
 
 //  @file   AliHLTTPCCAGPUTrackerBase.h
 //  @author David Rohr, Sergey Gorbunov
-//  @date   
+//  @date
 //  @brief  TPC CA Tracker for the NVIDIA GPU
-//  @note 
+//  @note
 
 #ifndef ALIHLTTPCCAGPUTRACKERBASE_H
 #define ALIHLTTPCCAGPUTRACKERBASE_H
@@ -69,6 +69,7 @@ public:
 
 	virtual int RefitMergedTracks(AliHLTTPCGMMerger* Merger, bool resetTimers) = 0;
 	virtual char* MergerHostMemory() {return((char*) fGPUMergerHostMemory);}
+	virtual const AliHLTTPCCATracker* CPUTracker(int iSlice);
 
 protected:
 	virtual void ActivateThreadContext() = 0;
@@ -105,7 +106,7 @@ protected:
 	int Reconstruct_Base_StartGlobal(AliHLTTPCCASliceOutput** pOutput, char*& tmpMemoryGlobalTracking);
 	int Reconstruct_Base_FinishSlices(AliHLTTPCCASliceOutput** pOutput, int& iSlice, int& firstSlice);
 	int Reconstruct_Base_Finalize(AliHLTTPCCASliceOutput** pOutput, char*& tmpMemoryGlobalTracking, int& firstSlice);
-	
+
 	int ReadEvent(AliHLTTPCCAClusterData* pClusterData, int firstSlice, int iSlice, int threadId);
 	void WriteOutput(AliHLTTPCCASliceOutput** pOutput, int firstSlice, int iSlice, int threadId);
 	int GlobalTracking(int iSlice, int threadId, helperParam* hParam);
@@ -131,7 +132,7 @@ protected:
 	}
 	void StandalonePerfTime(int iSlice, int i);
 #define GPUFailedMsg(x) GPUFailedMsgA(x, __FILE__, __LINE__)
-	
+
 	static void* helperWrapper(void*);
 
 	AliHLTTPCCATracker *fGpuTracker; //Tracker Objects that will be used on the GPU
@@ -155,7 +156,7 @@ protected:
 	AliHLTTPCCATracker fSlaveTrackers[fgkNSlices]; //CPU Slave Trackers for Initialization and Output
 
 	AliHLTTPCCASliceOutput::outputControlStruct* fOutputControl; //Output Control Structure
-	
+
 	int fThreadId; //Thread ID that is valid for the local CUDA context
 	int fCudaInitialized; //Flag if CUDA is initialized
 
@@ -164,7 +165,7 @@ protected:
 	int fConstructorBlockCount; //GPU blocks used in Tracklet Constructor
 	int fSelectorBlockCount; //GPU blocks used in Tracklet Selector
 	int fConstructorThreadCount;
-	
+
 #ifdef HLTCA_GPU_TIME_PROFILE
 	unsigned long long int fProfTimeC, fProfTimeD; //Timing
 #endif
@@ -172,7 +173,7 @@ protected:
 	int fNHelperThreads; //Number of helper threads for post/preprocessing
 	helperParam* fHelperParams; //Control Struct for helper threads
 	void* fHelperMemMutex;
-	
+
 #ifdef __ROOT__
 #define volatile
 #endif
@@ -190,10 +191,10 @@ protected:
 	int fNSlicesPerCPUTracker; //Number of slices processed by each CPU tracker
 
 	int fGlobalTracking; //Use Global Tracking
-	int fUseGlobalTracking; 
+	int fUseGlobalTracking;
 
 	int fNSlaveThreads;	//Number of slave threads currently active
-	
+
 	int fStuckProtection;   //Protection from GPU stuck, set maximum time to wait for GPU in usec!
 	int fGPUStuck;		//Marks that the GPU is stuck, skip future events
 

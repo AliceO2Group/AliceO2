@@ -616,7 +616,7 @@ void AliHLTTPCGMMerger::MergeBorderTracks ( int iSlice1, AliHLTTPCGMBorderTrack 
       if (DEBUG) {printf("Comparing track %3d to %3d: ", r1.fId, r2.fId);for (int i = 0;i < 5;i++) {printf("%8.3f ", b1.Par()[i]);}printf(" - ");for (int i = 0;i < 5;i++) {printf("%8.3f ", b1.Cov()[i]);}printf("\n%28s", "");
         for (int i = 0;i < 5;i++) {printf("%8.3f ", b2.Par()[i]);}printf(" - ");for (int i = 0;i < 5;i++) {printf("%8.3f ", b2.Cov()[i]);}printf("   -   %5s   -   ", GetTrackLabel(b1) == GetTrackLabel(b2) ? "CLONE" : "FAKE");}
       if ( b2.NClusters() < lBest2 ) {if (DEBUG) {printf("!NCl1\n");}continue;}
-      if (crossCE >= 2 && abs(b1.Row() - b2.Row()) > 1) {printf("!ROW\n");continue;}
+      if (crossCE >= 2 && abs(b1.Row() - b2.Row()) > 1) {if (DEBUG) {printf("!ROW\n");}continue;}
       if( !b1.CheckChi2Y(b2, factor2ys ) ) {if (DEBUG) {printf("!Y\n");}continue;}
       //if( !b1.CheckChi2Z(b2, factor2zt ) ) {if (DEBUG) {printf("!NCl1\n");}continue;}
       if( !b1.CheckChi2QPt(b2, factor2k ) ) {if (DEBUG) {printf("!QPt\n");}continue;}
@@ -1306,19 +1306,23 @@ void AliHLTTPCGMMerger::PrepareClustersForFit()
   }
   maxId++;
   unsigned char* sharedCount = new unsigned char[maxId];
-  unsigned int* trackSort = new unsigned int[fNOutputTracks];
 
 #if defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE) && !defined(HLTCA_BUILD_O2_LIB)
-  if (fTrackOrder) delete[] fTrackOrder;
-  if (fClusterAttachment) delete[] fClusterAttachment;
-  fTrackOrder = new unsigned int[fNOutputTracks];
-  fClusterAttachment = new int[maxId];
-  fMaxID = maxId;
-  for (int i = 0;i < fNOutputTracks;i++) trackSort[i] = i;
-  std::sort(trackSort, trackSort + fNOutputTracks, AliHLTTPCGMMerger_CompareTracks(fOutputTracks));
-  memset(fClusterAttachment, 0, maxId * sizeof(fClusterAttachment[0]));
-  for (int i = 0;i < fNOutputTracks;i++) fTrackOrder[trackSort[i]] = i;
-  for (int i = 0;i < fNOutputTrackClusters;i++) fClusterAttachment[fClusters[i].fNum] = attachAttached | attachGood;
+  if (!(fGPUTracker && fGPUTracker->IsInitialized()))
+  {
+    unsigned int* trackSort = new unsigned int[fNOutputTracks];
+    if (fTrackOrder) delete[] fTrackOrder;
+    if (fClusterAttachment) delete[] fClusterAttachment;
+    fTrackOrder = new unsigned int[fNOutputTracks];
+    fClusterAttachment = new int[maxId];
+    fMaxID = maxId;
+    for (int i = 0;i < fNOutputTracks;i++) trackSort[i] = i;
+    std::sort(trackSort, trackSort + fNOutputTracks, AliHLTTPCGMMerger_CompareTracks(fOutputTracks));
+    memset(fClusterAttachment, 0, maxId * sizeof(fClusterAttachment[0]));
+    for (int i = 0;i < fNOutputTracks;i++) fTrackOrder[trackSort[i]] = i;
+    for (int i = 0;i < fNOutputTrackClusters;i++) fClusterAttachment[fClusters[i].fNum] = attachAttached | attachGood;
+    delete[] trackSort;
+  }
 #endif
 
   for (unsigned int k = 0;k < maxId;k++) sharedCount[k] = 0;
@@ -1331,7 +1335,6 @@ void AliHLTTPCGMMerger::PrepareClustersForFit()
     if (sharedCount[fClusters[k].fNum] > 1) fClusters[k].fState |= AliHLTTPCGMMergedTrackHit::flagShared;
   }
   delete[] sharedCount;
-  delete[] trackSort;
 }
 
 void AliHLTTPCGMMerger::Refit(bool resetTimers)
@@ -1360,6 +1363,7 @@ void AliHLTTPCGMMerger::Refit(bool resetTimers)
 
 void AliHLTTPCGMMerger::Finalize()
 {
+    if (fGPUTracker && fGPUTracker->IsInitialized()) return;
 #if defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE) && !defined(HLTCA_BUILD_O2_LIB)
     int* trkOrderReverse = new int[fNOutputTracks];
     for (int i = 0;i < fNOutputTracks;i++) trkOrderReverse[fTrackOrder[i]] = i;

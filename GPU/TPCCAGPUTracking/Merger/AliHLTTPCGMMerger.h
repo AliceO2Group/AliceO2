@@ -63,8 +63,8 @@ public:
   int NOutputTrackClusters() const { return(fNOutputTrackClusters); }
   AliHLTTPCGMMergedTrackHit* Clusters() const {return(fClusters);}
   const int* GlobalClusterIDs() const {return(fGlobalClusterIDs);}
-  void SetSliceTrackers(AliHLTTPCCATracker* trk) {fSliceTrackers = trk;}
-  AliHLTTPCCATracker* SliceTrackers() const {return(fSliceTrackers);}
+  void SetSliceTrackers(const AliHLTTPCCATracker* trk) {fSliceTrackers = trk;}
+  const AliHLTTPCCATracker* SliceTrackers() const {return(fSliceTrackers);}
   int* ClusterAttachment() const {return(fClusterAttachment);}
   int MaxId() const {return(fMaxID);}
   unsigned int* TrackOrder() const {return(fTrackOrder);}
@@ -136,7 +136,7 @@ private:
   int fBorderCETracks[2][fgkNSlices];
 
   AliHLTTPCCAGPUTracker* fGPUTracker;
-  AliHLTTPCCATracker* fSliceTrackers;
+  const AliHLTTPCCATracker* fSliceTrackers;
   int fDebugLevel;
 
   int fNClusters;			//Total number of incoming clusters

@@ -335,7 +335,7 @@ int AliHLTTPCCAGPUTrackerBase::SelfHealReconstruct(AliHLTTPCCASliceOutput** pOut
 	else
 	{
 		HLTError("Unsolvable CUDA error occured, trying to reinitialize GPU");
-	}			
+	}
 	selfHealing = true;
 	ExitGPU();
 	if (InitGPU(fSliceCount, fCudaDevice))
@@ -420,7 +420,7 @@ int AliHLTTPCCAGPUTrackerBase::StartHelperThreads()
 			HLTError("Memory allocation error");
 			ExitGPU();
 			return(1);
-		}	
+		}
 		for (int i = 0;i < nThreads;i++)
 		{
 			fHelperParams[i].fCls = this;
@@ -863,7 +863,7 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_Init(AliHLTTPCCASliceOutput** pO
 		HLTError("Insuffissant constant memory (Required %d, Available %d, Tracker %d, Param %d, SliceData %d)", sliceCountLocal * (int) sizeof(AliHLTTPCCATracker), (int) HLTCA_GPU_TRACKER_CONSTANT_MEM, (int) sizeof(AliHLTTPCCATracker), (int) sizeof(AliHLTTPCCAParam), (int) sizeof(AliHLTTPCCASliceData));
 		return(1);
 	}
-	
+
 	ActivateThreadContext();
 
 	for (int i = fNHelperThreads;i < fNCPUTrackers + fNHelperThreads;i++)
@@ -944,7 +944,7 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_Init(AliHLTTPCCASliceOutput** pO
 		fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fNextTracklet = ((fConstructorBlockCount + sliceCountLocal - 1 - iSlice) / sliceCountLocal) * fConstructorThreadCount;
 		fGpuTracker[iSlice].SetGPUTextureBase(fGpuTracker[0].Data().Memory());
 	}
-	
+
 	for (int i = 0;i < fNHelperThreads;i++)
 	{
 		fHelperParams[i].CPUTracker = 0;
@@ -962,5 +962,6 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_Init(AliHLTTPCCASliceOutput** pO
 
 double AliHLTTPCCAGPUTrackerBase::GetTimer(int iSlice, unsigned int iTimer) {return fSlaveTrackers[iSlice].GetTimer(iTimer) / ((iTimer == 0 || iTimer >= 8) ? (fNHelperThreads + 1) : 1);}
 void AliHLTTPCCAGPUTrackerBase::ResetTimer(int iSlice, unsigned int iTimer) {fSlaveTrackers[iSlice].ResetTimer(iTimer);}
+const AliHLTTPCCATracker* AliHLTTPCCAGPUTrackerBase::CPUTracker(int iSlice) {return &fSlaveTrackers[iSlice];}
 
 #endif

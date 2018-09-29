@@ -38,7 +38,7 @@ texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
 
 //Include CXX Files, GPUd() macro will then produce CUDA device code out of the tracker source code
 #include "AliHLTTPCCATrackParam.cxx"
-#include "AliHLTTPCCATrack.cxx" 
+#include "AliHLTTPCCATrack.cxx"
 
 #include "AliHLTTPCCAHitArea.cxx"
 #include "AliHLTTPCCAGrid.cxx"
@@ -111,11 +111,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU_Runtime(int sliceCount, int forceDeviceID
 	for (int i = 0;i < count;i++)
 	{
 		if (fDebugLevel >= 4) printf("Examining device %d\n", i);
-#if CUDA_VERSION > 3010
 		size_t free, total;
-#else
-		unsigned int free, total;
-#endif
 		cuInit(0);
 		CUdevice tmpDevice;
 		cuDeviceGet(&tmpDevice, i);
@@ -126,9 +122,13 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU_Runtime(int sliceCount, int forceDeviceID
 		if (fDebugLevel >= 4) printf("Obtained current memory usage for device %d\n", i);
 		if (GPUFailedMsg(cudaGetDeviceProperties(&fCudaDeviceProp, i))) continue;
 		if (fDebugLevel >= 4) printf("Obtained device properties for device %d\n", i);
-		int deviceOK = fCudaDeviceProp.major < 9 && (fCudaDeviceProp.major > reqVerMaj || (fCudaDeviceProp.major == reqVerMaj && fCudaDeviceProp.minor >= reqVerMin)) && (size_t) free >= (size_t) (fGPUMemSize + 100 * 1024 + 1024);
+		int deviceOK = true;
+		const char* deviceFailure = "";
+		if (fCudaDeviceProp.major >= 9) {deviceOK = false; deviceFailure = "Invalid Revision";}
+		else if (fCudaDeviceProp.major < reqVerMaj || (fCudaDeviceProp.major == reqVerMaj && fCudaDeviceProp.minor < reqVerMin)) {deviceOK = false; deviceFailure = "Too low device revision";}
+		else if (free < (size_t) (fGPUMemSize + 100 * 1024 + 1024)) {deviceOK = false; deviceFailure = "Insufficient GPU memory";}
 
-		if (fDebugLevel >= 0) HLTInfo("%s%2d: %s (Rev: %d.%d - Mem Avail %lld / %lld)%s", deviceOK ? " " : "[", i, fCudaDeviceProp.name, fCudaDeviceProp.major, fCudaDeviceProp.minor, (long long int) free, (long long int) fCudaDeviceProp.totalGlobalMem, deviceOK ? "" : " ]");
+		if (fDebugLevel >= 0) HLTInfo("%s%2d: %s (Rev: %d.%d - Mem Avail %lld / %lld)%s %s", deviceOK ? " " : "[", i, fCudaDeviceProp.name, fCudaDeviceProp.major, fCudaDeviceProp.minor, (long long int) free, (long long int) fCudaDeviceProp.totalGlobalMem, deviceOK ? " " : " ]", deviceOK ? "" : deviceFailure);
 		deviceSpeed = (double) fCudaDeviceProp.multiProcessorCount * (double) fCudaDeviceProp.clockRate * (double) fCudaDeviceProp.warpSize * (double) free * (double) fCudaDeviceProp.major * (double) fCudaDeviceProp.major;
 		if (deviceOK)
 		{
@@ -158,7 +158,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU_Runtime(int sliceCount, int forceDeviceID
 	fCudaDevice = 0;
 #endif
 
-	cudaGetDeviceProperties(&fCudaDeviceProp ,fCudaDevice ); 
+	cudaGetDeviceProperties(&fCudaDeviceProp ,fCudaDevice );
 
 	if (fDebugLevel >= 1)
 	{
@@ -234,7 +234,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU_Runtime(int sliceCount, int forceDeviceID
 	{
 		GPUFailedMsg(cudaMemset(fGPUMemory, 143, (size_t) fGPUMemSize));
 	}
-	
+
 	fpCudaStreams = malloc(nStreams * sizeof(cudaStream_t));
 	cudaStream_t* const cudaStreams = (cudaStream_t*) fpCudaStreams;
 	for (int i = 0;i < nStreams;i++)
@@ -340,7 +340,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 
 		int useStream = HLTCA_GPU_NUM_STREAMS == 0 ? (iSlice & 1) : (iSlice % HLTCA_GPU_NUM_STREAMS);
 		//Initialize temporary memory where needed
-		if (fDebugLevel >= 3) HLTInfo("Copying Slice Data to GPU and initializing temporary memory");		
+		if (fDebugLevel >= 3) HLTInfo("Copying Slice Data to GPU and initializing temporary memory");
 		PreInitRowBlocks<<<fConstructorBlockCount, HLTCA_GPU_THREAD_COUNT, 0, cudaStreams[HLTCA_GPU_NUM_STREAMS == 0 ? 2 : useStream]>>>(fGpuTracker[iSlice].Data().HitWeights(), fSlaveTrackers[firstSlice + iSlice].Data().NumberOfHitsPlusAlign());
 		if (GPUSync("Initialization (2)", 2, iSlice + firstSlice) RANDOM_ERROR)
 		{
@@ -360,7 +360,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 			fSlaveTrackers[firstSlice + iSlice].SetGPUTrackerTrackletsMemory(reinterpret_cast<char*> ( new uint4 [ fGpuTracker[iSlice].TrackletMemorySize()/sizeof( uint4 ) + 100] ), HLTCA_GPU_MAX_TRACKLETS);
 			fSlaveTrackers[firstSlice + iSlice].SetGPUTrackerHitsMemory(reinterpret_cast<char*> ( new uint4 [ fGpuTracker[iSlice].HitMemorySize()/sizeof( uint4 ) + 100]), pClusterData[iSlice].NumberOfClusters() );
 		}
-		
+
 		if (HLTCA_GPU_NUM_STREAMS && useStream && globalSymbolDone == false)
 		{
 			cudaStreamSynchronize(cudaStreams[0]);
@@ -510,7 +510,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 			cuCtxPopCurrent((CUcontext*) fCudaContext);
 			return(1);
 		}
-		
+
 		if (fDebugLevel >= 3) HLTInfo("Running HLT Tracklet selector (Stream %d, Slice %d to %d)", useStream, iSlice, iSlice + runSlices);
 		fSlaveTrackers[firstSlice + iSlice].StartTimer(7);
 		AliHLTTPCCAProcessMulti<AliHLTTPCCATrackletSelector><<<fSelectorBlockCount, HLTCA_GPU_THREAD_COUNT_SELECTOR, 0, cudaStreams[useStream]>>>(iSlice, runSlices);
@@ -527,9 +527,9 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 
 	char *tmpMemoryGlobalTracking = NULL;
 	fSliceOutputReady = 0;
-	
+
 	if (Reconstruct_Base_StartGlobal(pOutput, tmpMemoryGlobalTracking)) return(1);
-	
+
 	for (int iSlice = 0;iSlice < sliceCountLocal;iSlice++)
 	{
 		if (GPUFailedMsg(cudaMemcpyAsync(fSlaveTrackers[firstSlice + iSlice].CommonMemory(), fGpuTracker[iSlice].CommonMemory(), fGpuTracker[iSlice].CommonMemorySize(), cudaMemcpyDeviceToHost, cudaStreams[streamMap[iSlice]])) RANDOM_ERROR)
@@ -635,7 +635,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 	bmpIH.biBitCount = 32;
 
 	fwrite(&bmpFH, 1, sizeof(bmpFH), fp2);
-	fwrite(&bmpIH, 1, sizeof(bmpIH), fp2); 	
+	fwrite(&bmpIH, 1, sizeof(bmpIH), fp2);
 
 	for (int i = 0;i < bmpheight * fConstructorBlockCount * HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR;i += fConstructorBlockCount * HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR)
 	{
@@ -665,7 +665,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 	fclose(fp);
 	fclose(fp2);
 	free(stageAtSync);
-#endif 
+#endif
 
 	cuCtxPopCurrent((CUcontext*) fCudaContext);
 	return(0);
@@ -794,7 +794,7 @@ int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger, bool
 		speed = (double) copysize / times[2] * nCount / 1e9;
 		printf("\t\tCopy From:\t%1.0f us (%lf GB/s)\n", times[2] * 1000000 / nCount, speed);
 	}
-	
+
 	if (!HLTCA_TIMING_SUM)
 	{
 		for (int i = 0;i < 3;i++) times[i] = 0;

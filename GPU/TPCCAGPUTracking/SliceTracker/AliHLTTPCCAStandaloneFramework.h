@@ -29,18 +29,21 @@ class AliHLTTPCCAStandaloneFramework
 {
   public:
 
-    AliHLTTPCCAStandaloneFramework(int allowGPU = 1, const char* GPULibrary = NULL);
+    AliHLTTPCCAStandaloneFramework();
     ~AliHLTTPCCAStandaloneFramework();
 
-    static AliHLTTPCCAStandaloneFramework &Instance(int allowGPU = 1, const char* GPULibrary = NULL);
+    int Initialize(const char* gpuLibrary, int deviceNum);
+    void Uninitialize();
 
-	const AliHLTTPCCAParam &Param ( int iSlice ) const { return(fTracker.Param(iSlice)); }
+    static AliHLTTPCCAStandaloneFramework &Instance();
+
+	const AliHLTTPCCAParam &Param ( int iSlice ) const { return(fTracker->Param(iSlice)); }
 	const AliHLTTPCCAParam &Param () const { return(fMerger.SliceParam()); }
-	const AliHLTTPCCARow &Row ( int iSlice, int iRow ) const { return(fTracker.Row(iSlice, iRow)); }
+	const AliHLTTPCCARow &Row ( int iSlice, int iRow ) const { return(fTracker->Row(iSlice, iRow)); }
     const AliHLTTPCCASliceOutput &Output( int iSlice ) const { return *fSliceOutput[iSlice]; }
     AliHLTTPCGMMerger  &Merger()  { return fMerger; }
     AliHLTTPCCAClusterData &ClusterData( int iSlice ) { return fClusterData[iSlice]; }
-    AliHLTTPCCATrackerFramework &Tracker() {return fTracker;}
+    AliHLTTPCCATrackerFramework &Tracker() {return *fTracker;}
     /**
      * prepare for reading of the event
      */
@@ -67,26 +70,24 @@ class AliHLTTPCCAStandaloneFramework
     void WriteEvent( std::ostream &out ) const;
     int ReadEvent( std::istream &in, bool ResetIds = false, bool addData = false, float shift = 0., float minZ = -1e6, float maxZ = -1e6, bool silent = false, bool doQA = true );
 
-	int InitGPU(int sliceCount = 1, int forceDeviceID = -1) { return(fTracker.InitGPU(sliceCount, forceDeviceID)); }
-	int ExitGPU() { return(fTracker.ExitGPU()); }
-	void SetGPUDebugLevel(int Level, std::ostream *OutFile = NULL, std::ostream *GPUOutFile = NULL) { fDebugLevel = Level; fTracker.SetGPUDebugLevel(Level, OutFile, GPUOutFile); fMerger.SetDebugLevel(Level);}
-	int SetGPUTrackerOption(const char* OptionName, int OptionValue) {return(fTracker.SetGPUTrackerOption(OptionName, OptionValue));}
-	int SetGPUTracker(bool enable) { return(fTracker.SetGPUTracker(enable)); }
-	int GetGPUStatus() const { return(fTracker.GetGPUStatus()); }
-	int GetGPUMaxSliceCount() const { return(fTracker.MaxSliceCount()); }
+	void SetGPUDebugLevel(int Level, std::ostream *OutFile = NULL, std::ostream *GPUOutFile = NULL) { fDebugLevel = Level; fTracker->SetGPUDebugLevel(Level, OutFile, GPUOutFile); fMerger.SetDebugLevel(Level);}
+	int SetGPUTrackerOption(const char* OptionName, int OptionValue) {return(fTracker->SetGPUTrackerOption(OptionName, OptionValue));}
+	int SetGPUTracker(bool enable) { return(fTracker->SetGPUTracker(enable)); }
+	int GetGPUStatus() const { return(fTracker->GetGPUStatus()); }
+	int GetGPUMaxSliceCount() const { return(fTracker->MaxSliceCount()); }
 	void SetNWays(int v) { AliHLTTPCCAParam param = fMerger.SliceParam(); param.SetNWays(v); fMerger.SetSliceParam(param);}
 	void SetNWaysOuter(bool v) { AliHLTTPCCAParam param = fMerger.SliceParam(); param.SetNWaysOuter(v); fMerger.SetSliceParam(param);}
-	void SetSearchWindowDZDR(float v) { AliHLTTPCCAParam param = fMerger.SliceParam(); param.SetSearchWindowDZDR(v); fMerger.SetSliceParam(param);for (int i = 0;i < fgkNSlices;i++) fTracker.GetParam(i).SetSearchWindowDZDR(v);}
-	void SetContinuousTracking(bool v) { AliHLTTPCCAParam param = fMerger.SliceParam(); param.SetContinuousTracking(v); fMerger.SetSliceParam(param);for (int i = 0;i < fgkNSlices;i++) fTracker.GetParam(i).SetContinuousTracking(v);}
+	void SetSearchWindowDZDR(float v) { AliHLTTPCCAParam param = fMerger.SliceParam(); param.SetSearchWindowDZDR(v); fMerger.SetSliceParam(param);for (int i = 0;i < fgkNSlices;i++) fTracker->GetParam(i).SetSearchWindowDZDR(v);}
+	void SetContinuousTracking(bool v) { AliHLTTPCCAParam param = fMerger.SliceParam(); param.SetContinuousTracking(v); fMerger.SetSliceParam(param);for (int i = 0;i < fgkNSlices;i++) fTracker->GetParam(i).SetContinuousTracking(v);}
     void SetRejectMode(char v) { AliHLTTPCCAParam param = fMerger.SliceParam(); param.SetRejectMode(v); fMerger.SetSliceParam(param);}
 	void SetTrackReferenceX(float v) { AliHLTTPCCAParam param = fMerger.SliceParam(); param.SetTrackReferenceX(v); fMerger.SetSliceParam(param);}
-	void UpdateGPUSliceParam() {fTracker.UpdateGPUSliceParam();}
+	void UpdateGPUSliceParam() {fTracker->UpdateGPUSliceParam();}
 	void SetEventDisplay(int v) {fEventDisplay = v;}
 	void SetRunQA(int v) {fRunQA = v;}
 	void SetRunMerger(int v) {fRunMerger = v;}
 	void SetExternalClusterData(AliHLTTPCCAClusterData* v) {fClusterData = v;}
 
-	int InitializeSliceParam(int iSlice, AliHLTTPCCAParam& param) { return(fTracker.InitializeSliceParam(iSlice, param)); }
+	int InitializeSliceParam(int iSlice, AliHLTTPCCAParam& param) { return(fTracker->InitializeSliceParam(iSlice, param)); }
 	void SetOutputControl(char* ptr, size_t size) {fOutputControl.fOutputPtr = ptr;fOutputControl.fOutputMaxSize = size;}
 
 	int GetNMCLabels() {return(fMCLabels.size());}
@@ -107,7 +108,7 @@ class AliHLTTPCCAStandaloneFramework
 	AliHLTTPCCASliceOutput* fSliceOutput[fgkNSlices];
 	AliHLTTPCCASliceOutput::outputControlStruct fOutputControl;
 
-	AliHLTTPCCATrackerFramework fTracker;
+	AliHLTTPCCATrackerFramework* fTracker;
 
     double fLastTime[20]; //* timers
     double fStatTime[20]; //* timers

@@ -18,7 +18,7 @@ CPPFILES					= cmodules/timer.cpp
 EXTRAFLAGSGCC				= -Weffc++
 EXTRAFLAGSLINK				= -rdynamic
 
-ifeq (${BUILD_DEBUG}, 1)
+ifeq ($(BUILD_DEBUG), 1)
 COMPILER_FLAGS				= DBG
 else
 COMPILER_FLAGS				= OPT
