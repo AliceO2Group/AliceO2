@@ -114,26 +114,42 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
   struct Node {
     int ID;
     char Name[32];
-    ImVec2 Pos, Size;
+    ImVec2 Size;
     float Value;
     ImVec4 Color;
     int InputsCount, OutputsCount;
 
-    Node(int id, const char* name, const ImVec2& pos, float value, const ImVec4& color, int inputs_count, int outputs_count)
+    Node(int id, const char* name, float value, const ImVec4& color, int inputs_count, int outputs_count)
     {
       ID = id;
       strncpy(Name, name, 31);
       Name[31] = 0;
-      Pos = pos;
       Value = value;
       Color = color;
       InputsCount = inputs_count;
       OutputsCount = outputs_count;
     }
 
-    ImVec2 GetInputSlotPos(int slot_no) const { return ImVec2(Pos.x, Pos.y + Size.y * ((float)slot_no + 1) / ((float)InputsCount + 1)); }
-    ImVec2 GetOutputSlotPos(int slot_no) const { return ImVec2(Pos.x + Size.x, Pos.y + Size.y * ((float)slot_no + 1) / ((float)OutputsCount + 1)); }
   };
+
+  struct NodePos {
+    ImVec2 pos;
+    static ImVec2 GetInputSlotPos(ImVector<Node> const& infos, ImVector<NodePos> const& positions, int nodeId, int slot_no)
+    {
+      ImVec2 const& pos = positions[nodeId].pos;
+      ImVec2 const& size = infos[nodeId].Size;
+      float inputsCount = infos[nodeId].InputsCount;
+      return ImVec2(pos.x, pos.y + size.y * ((float)slot_no + 1) / (inputsCount + 1));
+    }
+    static ImVec2 GetOutputSlotPos(ImVector<Node> const& infos, ImVector<NodePos> const& positions, int nodeId, int slot_no)
+    {
+      ImVec2 const& pos = positions[nodeId].pos;
+      ImVec2 const& size = infos[nodeId].Size;
+      float outputsCount = infos[nodeId].OutputsCount;
+      return ImVec2(pos.x + size.x, pos.y + size.y * ((float)slot_no + 1) / (outputsCount + 1));
+    }
+  };
+
   struct NodeLink {
     int InputIdx, InputSlot, OutputIdx, OutputSlot;
 
@@ -148,27 +164,34 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
 
   static ImVector<Node> nodes;
   static ImVector<NodeLink> links;
+  static ImVector<NodePos> positions;
+
   static bool inited = false;
   static ImVec2 scrolling = ImVec2(0.0f, 0.0f);
   static bool show_grid = true;
   static int node_selected = -1;
 
   auto prepareChannelView = [&specs](ImVector<Node>& nodeList) {
-    std::map<std::string, std::pair<int, int>> linkToIndex;
+    struct LinkInfo {
+      int specId;
+      int outputId;
+    };
+    std::map<std::string, LinkInfo> linkToIndex;
     for (int si = 0; si < specs.size(); ++si) {
       int oi = 0;
       for (auto&& output : specs[si].outputChannels) {
-        linkToIndex.insert(std::make_pair(output.name, std::make_pair(si, oi)));
+        linkToIndex.insert(std::make_pair(output.name, LinkInfo{si, oi}));
         oi += 1;
       }
     }
     for (int si = 0; si < specs.size(); ++si) {
       auto& spec = specs[si];
       // FIXME: display nodes using topological sort
-      nodeList.push_back(Node(si, spec.id.c_str(), ImVec2(40 + 120 * si, 50 + (120 * si) % 500), 0.5f,
+      nodeList.push_back(Node(si, spec.id.c_str(), 0.5f,
                               ImColor(255, 100, 100),
                               spec.inputChannels.size(),
                               spec.outputChannels.size()));
+      positions.push_back(NodePos{ImVec2(40 + 120 * si, 50 + (120 * si) % 500)});
       int ii = 0;
       for (auto& input : spec.inputChannels) {
         auto const& outName = input.name;
@@ -177,7 +200,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
           LOG(ERROR) << "Could not find suitable node for " << outName;
           continue;
         }
-        links.push_back(NodeLink{ out->second.first, out->second.second, si, ii });
+        links.push_back(NodeLink{ out->second.specId, out->second.outputId, si, ii });
         ii += 1;
       }
     }
@@ -278,10 +301,8 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
   draw_list->ChannelsSetCurrent(0); // Background
   for (int link_idx = 0; link_idx < links.Size; link_idx++) {
     NodeLink* link = &links[link_idx];
-    Node* node_inp = &nodes[link->InputIdx];
-    Node* node_out = &nodes[link->OutputIdx];
-    ImVec2 p1 = offset + node_inp->GetOutputSlotPos(link->InputSlot);
-    ImVec2 p2 = ImVec2(-3 * NODE_SLOT_RADIUS, 0) + offset + node_out->GetInputSlotPos(link->OutputSlot);
+    ImVec2 p1 = offset + NodePos::GetOutputSlotPos(nodes, positions, link->InputIdx, link->InputSlot);
+    ImVec2 p2 = ImVec2(-3 * NODE_SLOT_RADIUS, 0) + offset + NodePos::GetInputSlotPos(nodes, positions, link->OutputIdx, link->OutputSlot);
     draw_list->AddBezierCurve(p1, p1 + ImVec2(+50, 0), p2 + ImVec2(-50, 0), p2, ImColor(200, 200, 100), 3.0f);
   }
 
@@ -295,10 +316,11 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       foregroundLayer = (nodes.Size + 1) * 2 + 1;
     }
     Node* node = &nodes[node_idx];
+    NodePos* pos = &positions[node_idx];
     const DeviceInfo& info = infos[node_idx];
 
     ImGui::PushID(node->ID);
-    ImVec2 node_rect_min = offset + node->Pos;
+    ImVec2 node_rect_min = offset + pos->pos;
 
     // Display node contents first
     draw_list->ChannelsSetCurrent(foregroundLayer);
@@ -332,7 +354,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
     if (node_widgets_active || node_moving_active)
       node_selected = node->ID;
     if (node_moving_active && ImGui::IsMouseDragging(0))
-      node->Pos = node->Pos + ImGui::GetIO().MouseDelta;
+      pos->pos = pos->pos + ImGui::GetIO().MouseDelta;
     if (ImGui::IsWindowHovered() && !node_moving_active && ImGui::IsMouseDragging(0))
       scrolling = scrolling - ImVec2(ImGui::GetIO().MouseDelta.x / 4.f, ImGui::GetIO().MouseDelta.y / 4.f);
 
@@ -351,14 +373,14 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
     for (int slot_idx = 0; slot_idx < node->InputsCount; slot_idx++) {
       auto color = ImColor(200, 200, 100);
       ImVec2 p1(-3 * NODE_SLOT_RADIUS, NODE_SLOT_RADIUS), p2(-3 * NODE_SLOT_RADIUS, -NODE_SLOT_RADIUS), p3(0, 0);
-      auto pp1 = p1 + offset + node->GetInputSlotPos(slot_idx);
-      auto pp2 = p2 + offset + node->GetInputSlotPos(slot_idx);
-      auto pp3 = p3 + offset + node->GetInputSlotPos(slot_idx);
+      auto pp1 = p1 + offset + NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx);
+      auto pp2 = p2 + offset + NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx);
+      auto pp3 = p3 + offset + NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx);
       draw_list->AddTriangleFilled(pp1, pp2, pp3, color);
-      draw_list->AddCircleFilled(offset + node->GetInputSlotPos(slot_idx), NODE_SLOT_RADIUS, ImColor(150, 150, 150, 150));
+      draw_list->AddCircleFilled(offset + NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx), NODE_SLOT_RADIUS, ImColor(150, 150, 150, 150));
     }
     for (int slot_idx = 0; slot_idx < node->OutputsCount; slot_idx++)
-      draw_list->AddCircleFilled(offset + node->GetOutputSlotPos(slot_idx), NODE_SLOT_RADIUS, ImColor(150, 150, 150, 150));
+      draw_list->AddCircleFilled(offset + NodePos::GetOutputSlotPos(nodes, positions, node_idx, slot_idx), NODE_SLOT_RADIUS, ImColor(150, 150, 150, 150));
 
     ImGui::PopID();
   }
