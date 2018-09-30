@@ -63,7 +63,7 @@ class Clusterer
   Clusterer& operator=(const Clusterer&) = delete;
 
   void process(PixelReader& r, std::vector<Cluster>* fullClus,
-               std::vector<CompClusterExt>* compClus, MCTruth* labelsCl = 0);
+               std::vector<CompClusterExt>* compClus, MCTruth* labelsCl = nullptr);
 
   // provide the common ITSMFT::GeometryTGeo to access matrices
   void setGeometry(const o2::ITSMFT::GeometryTGeo* gm) { mGeometry = gm; }

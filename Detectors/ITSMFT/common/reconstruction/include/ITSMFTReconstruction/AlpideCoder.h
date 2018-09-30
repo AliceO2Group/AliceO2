@@ -12,7 +12,7 @@
 #define ALICEO2_ITSMFT_ALPIDEDECODER_H
 
 #include <Rtypes.h>
-#include <stdio.h>
+#include <cstdio>
 #include <vector>
 #include <string>
 #include <cstdint>

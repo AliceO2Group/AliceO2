@@ -94,7 +94,9 @@ class Digitizer : public TObject
 
   ExtraDig* getExtraDigBuffer(UInt_t roFrame)
   {
-    assert(roFrame >= mROFrameMin);
+    if (mROFrameMin > roFrame) {
+      return nullptr; // nothing to do
+    }
     int ind = roFrame - mROFrameMin;
     while (ind >= int(mExtraBuff.size())) {
       mExtraBuff.emplace_back(std::make_unique<ExtraDig>());
