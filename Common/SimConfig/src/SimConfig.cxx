@@ -68,7 +68,8 @@ bool SimConfig::resetFromArguments(int argc, char* argv[])
   initOptions(desc);
 
   try {
-    bpo::store(parse_command_line(argc, argv, desc), vm);
+    bpo::store(parse_command_line(argc, argv, desc, bpo::command_line_style::unix_style ^ bpo::command_line_style::allow_short), vm);
+    //    bpo::store(parse_command_line(argc, argv, desc), vm);
     bpo::notify(vm);
   } catch (const std::exception& ex) {
     std::cerr << "exception caught\n";
