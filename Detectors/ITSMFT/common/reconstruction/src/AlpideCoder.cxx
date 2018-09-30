@@ -165,7 +165,7 @@ bool AlpideCoder::openOutput(const std::string filename)
   // open output for raw data
   LOG(INFO) << "opening raw data output file " << filename << FairLogger::endl;
   mIOFile = fopen(filename.data(), "wb");
-  return mIOFile != 0;
+  return mIOFile != nullptr;
 }
 
 //_____________________________________
@@ -340,7 +340,7 @@ int AlpideCoder::readChipData(std::vector<AlpideCoder::HitsRecord>& hits,
       if (dataSM == DATASHORT) {               // single hit
         UChar_t dColID = (dataS & MaskEncoder) >> 10;
         UShort_t pixID = dataS & MaskPixID;
-        hits.push_back(HitsRecord(region, dColID, pixID, 0));
+        hits.emplace_back(region, dColID, pixID, 0);
         mExpectInp = ExpectData | ExpectRegion | ExpectChipTrailer;
         continue;
       } else if (dataSM == DATALONG) { // multiple hits
@@ -350,7 +350,7 @@ int AlpideCoder::readChipData(std::vector<AlpideCoder::HitsRecord>& hits,
         if (!getFromBuffer(hitsPattern)) {
           return unexpectedEOF("CHIP_DATA_LONG:Pattern");
         }
-        hits.push_back(HitsRecord(region, dColID, pixID, hitsPattern));
+        hits.emplace_back(region, dColID, pixID, hitsPattern);
         mExpectInp = ExpectData | ExpectRegion | ExpectChipTrailer;
         continue;
       } else {
