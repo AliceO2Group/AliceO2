@@ -28,6 +28,8 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "extKinFile", bpo::value<std::string>()->default_value("Kinematics.root"),
     "name of kinematics file for event generator from file (when applicable)")(
     "bMax,b", bpo::value<float>()->default_value(0.), "maximum value for impact parameter sampling (when applicable)")(
+    "origin", bpo::value<std::vector<float>>()->multitoken()->default_value(std::vector<float>({0., 0., 0.}), "0 0 0"), "position of the interaction diamond: x y z (cm)")(
+    "sigmaO", bpo::value<std::vector<float>>()->multitoken()->default_value(std::vector<float>({0.001, 0.001, 6.}), "0.001 0.001 6"), "width of the interaction diamond: x y z (cm)")(
     "isMT", bpo::value<bool>()->default_value(false), "multi-threaded mode (Geant4 only")(
     "outPrefix,o", bpo::value<std::string>()->default_value("o2sim"), "prefix of output files");
 }
@@ -48,6 +50,8 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mExtKinFileName = vm["extKinFile"].as<std::string>();
   mConfigData.mStartEvent = vm["startEvent"].as<unsigned int>();
   mConfigData.mBMax = vm["bMax"].as<float>();
+  mConfigData.mOrigin = vm["origin"].as<std::vector<float>>();
+  mConfigData.mSigmaO = vm["sigmaO"].as<std::vector<float>>();
   mConfigData.mIsMT = vm["isMT"].as<bool>();
   mConfigData.mOutputPrefix = vm["outPrefix"].as<std::string>();
   return true;

@@ -57,6 +57,23 @@ FairRunSim* o2sim_init(bool asservice)
 
   // setup generator
   auto primGen = new FairPrimaryGenerator();
+  // interaction diamond
+  auto origin = confref.getOrigin();
+  auto sigmaO = confref.getSigmaO();
+  if (origin.size() != 3)
+    LOG(FATAL) << "Exactly 3 values accepted for interaction diamond position, " << origin.size() << " provided" << FairLogger::endl;
+  if (sigmaO.size() != 3)
+    LOG(FATAL) << "Exactly 3 values accepted for interaction diamond width, " << sigmaO.size() << " provided" << FairLogger::endl;
+  LOG(INFO) << "Setting interaction diamond: position / width = {"
+	    << origin[0] << "," << origin[1] << "," << origin[2] << "} / {"
+	    << sigmaO[0] << "," << sigmaO[1] << "," << sigmaO[2] << "} cm"
+	    << FairLogger::endl;
+  primGen->SetBeam(origin[0], origin[1], sigmaO[0], sigmaO[1]);
+  primGen->SetTarget(origin[2], sigmaO[2]);
+  primGen->SmearVertexXY(false);
+  primGen->SmearVertexZ(false);
+  primGen->SmearGausVertexXY(true);
+  primGen->SmearGausVertexZ(true);
   if (!asservice) {
     o2::eventgen::GeneratorFactory::setPrimaryGenerator(confref, primGen);
   }
