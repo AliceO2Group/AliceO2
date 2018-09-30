@@ -77,6 +77,24 @@ NodeColor
   return result;
 }
 
+/// Displays a grid
+void displayGrid(bool show_grid, ImVec2 offset, ImDrawList* draw_list)
+{
+  if (show_grid == false) {
+    return;
+  }
+  ImU32 GRID_COLOR = ImColor(200, 200, 200, 40);
+  float GRID_SZ = 64.0f;
+  ImVec2 win_pos = ImGui::GetCursorScreenPos();
+  ImVec2 canvas_sz = ImGui::GetWindowSize();
+  for (float x = fmodf(offset.x, GRID_SZ); x < canvas_sz.x; x += GRID_SZ) {
+    draw_list->AddLine(ImVec2(x, 0.0f) + win_pos, ImVec2(x, canvas_sz.y) + win_pos, GRID_COLOR);
+  }
+  for (float y = fmodf(offset.y, GRID_SZ); y < canvas_sz.y; y += GRID_SZ) {
+    draw_list->AddLine(ImVec2(0.0f, y) + win_pos, ImVec2(canvas_sz.x, y) + win_pos, GRID_COLOR);
+  }
+}
+
 void showTopologyNodeGraph(WorkspaceGUIState& state,
                            const std::vector<DeviceInfo>& infos,
                            const std::vector<DeviceSpec>& specs,
@@ -254,16 +272,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
   draw_list->ChannelsSplit((nodes.Size + 2) * 2);
 
   // Display grid
-  if (show_grid) {
-    ImU32 GRID_COLOR = ImColor(200, 200, 200, 40);
-    float GRID_SZ = 64.0f;
-    ImVec2 win_pos = ImGui::GetCursorScreenPos();
-    ImVec2 canvas_sz = ImGui::GetWindowSize();
-    for (float x = fmodf(offset.x, GRID_SZ); x < canvas_sz.x; x += GRID_SZ)
-      draw_list->AddLine(ImVec2(x, 0.0f) + win_pos, ImVec2(x, canvas_sz.y) + win_pos, GRID_COLOR);
-    for (float y = fmodf(offset.y, GRID_SZ); y < canvas_sz.y; y += GRID_SZ)
-      draw_list->AddLine(ImVec2(0.0f, y) + win_pos, ImVec2(canvas_sz.x, y) + win_pos, GRID_COLOR);
-  }
+  displayGrid(show_grid, offset, draw_list);
 
   // Display links
   draw_list->ChannelsSetCurrent(0); // Background
