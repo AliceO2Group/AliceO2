@@ -634,6 +634,7 @@ o2_define_bucket(
     fairroot_base_bucket
     root_physics_bucket
     common_math_bucket
+    data_format_headers_bucket
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
@@ -1801,10 +1802,11 @@ o2_define_bucket(
     DEPENDENCIES
     #-- buckets follow
     fairroot_base_bucket
-
+    
     #-- precise modules follow
     Steer
     Framework
+    DetectorsCommonDataFormats
     TPCSimulation
     TPCWorkflow
     DataFormatsTPC

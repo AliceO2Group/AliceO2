@@ -32,6 +32,7 @@
 #include <algorithm>
 #include "TPCBase/CDBInterface.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
+#include "DataFormatsParameters/GRPObject.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -61,7 +62,7 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
   /// For the time being use the defaults for the CDB
   auto& cdb = o2::TPC::CDBInterface::instance();
   cdb.setUseDefaults();
-
+  static int firstChannel = -1;
   //
   auto simChains = std::make_shared<std::vector<TChain*>>();
   auto digitizertask = std::make_shared<o2::TPC::DigitizerTask>();
@@ -72,10 +73,19 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
 
   auto doit = [simChain, simChains, digitizertask, digitArray, mcTruthArray, channel](ProcessingContext& pc) {
     static int callcounter = 0;
+
     callcounter++;
     static bool finished = false;
     if (finished) {
       return;
+    }
+
+    if (firstChannel == channel) {
+      // RS: at the moment using hardcoded flag for continuos readout
+      o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::CONTINUOUS;
+      LOG(INFO) << "TPC: Sending ROMode= " << roMode << " to GRPUpdater from channel " << firstChannel;
+      pc.outputs().snapshot(Output{ "TPC", "ROMode", 0, Lifetime::Timeframe }, roMode);
+      firstChannel = -10; // forbid further sending
     }
 
     // extract which sector to treat
@@ -126,6 +136,7 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
 
       snapshotDigits(*digitArrayRaw);
       snapshotLabels(*mcTruthArrayRaw);
+
       if (sector == -1) {
         pc.services().get<ControlService>().readyToQuit(false);
         finished = true;
@@ -213,7 +224,6 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
     // snapshot / "send" digits + MC truth
     snapshotDigits(digitAccum);
     snapshotLabels(labelAccum);
-
     timer.Stop();
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
   };
@@ -243,12 +253,20 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
 
   std::stringstream id;
   id << "TPCDigitizer" << channel;
+
+  std::vector<OutputSpec> outputs; // define channel by triple of (origin, type id of data to be sent on this channel, subspecification)
+  outputs.emplace_back("TPC", "DIGITS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+  outputs.emplace_back("TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+  if (firstChannel == -1) {
+    firstChannel = channel;
+    outputs.emplace_back("TPC", "ROMode", 0, Lifetime::Timeframe);
+    LOG(INFO) << " Channel " << channel << " will suply ROMode";
+  }
+
   return DataProcessorSpec{
     id.str().c_str(), Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT",
                                          static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
-    Outputs{ // define channel by triple of (origin, type id of data to be sent on this channel, subspecification)
-             OutputSpec{ "TPC", "DIGITS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe },
-             OutputSpec{ "TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
+    outputs,
     AlgorithmSpec{ initIt },
     Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
              { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } } }
