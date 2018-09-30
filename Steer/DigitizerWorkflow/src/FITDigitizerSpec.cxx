@@ -22,6 +22,7 @@
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "Framework/Task.h"
 #include <iostream>
+#include "DataFormatsParameters/GRPObject.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -147,7 +148,8 @@ class FITDPLDigitizerTask
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
     pc.outputs().snapshot(Output{ "FIT", "DIGITS", 0, Lifetime::Timeframe }, digitAccum);
     // pc.outputs().snapshot(Output{ "FIT", "DIGITSMCTR", 0, Lifetime::Timeframe }, labelAccum);
-
+    LOG(INFO) << "FIT: Sending ROMode= " << mROMode << " to GRPUpdater";
+    pc.outputs().snapshot(Output{ "FIT", "ROMode", 0, Lifetime::Timeframe }, mROMode);
     timer.Stop();
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
 
@@ -161,6 +163,8 @@ class FITDPLDigitizerTask
   double mFairTimeUnitInNS = 1; ///< Fair time unit in ns
 
   Digitizer mDigitizer; ///< Digitizer
+  // RS: at the moment using hardcoded flag for continuos readout
+  o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
 
   std::vector<TChain*> mSimChains;
 };
@@ -175,7 +179,8 @@ o2::framework::DataProcessorSpec getFITDigitizerSpec(int channel)
   return DataProcessorSpec{
     "FITDigitizer", Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
     Outputs{ OutputSpec{ "FIT", "DIGITS", 0, Lifetime::Timeframe },
-             /*OutputSpec{ "FIT", "DIGITSMCTR", 0, Lifetime::Timeframe }*/ },
+             /*OutputSpec{ "FIT", "DIGITSMCTR", 0, Lifetime::Timeframe }*/
+             OutputSpec{ "FIT", "ROMode", 0, Lifetime::Timeframe } },
     AlgorithmSpec{ adaptFromTask<FITDPLDigitizerTask>() },
     Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
              { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },

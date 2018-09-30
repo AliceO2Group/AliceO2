@@ -19,6 +19,7 @@
 #include "TChain.h"
 
 #include "TOFSimulation/Digitizer.h"
+#include "DataFormatsParameters/GRPObject.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
 
@@ -68,6 +69,8 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
     if (finished) {
       return;
     }
+    // RS: at the moment using hardcoded flag for continuos readout
+    static o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::CONTINUOUS;
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
@@ -129,6 +132,8 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
     pc.outputs().snapshot(Output{ "TOF", "DIGITS", 0, Lifetime::Timeframe }, *digitsAccum.get());
     pc.outputs().snapshot(Output{ "TOF", "DIGITSMCTR", 0, Lifetime::Timeframe }, labelAccum);
+    LOG(INFO) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
+    pc.outputs().snapshot(Output{ "TOF", "ROMode", 0, Lifetime::Timeframe }, roMode);
 
     timer.Stop();
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
@@ -173,7 +178,8 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
     "TOFDigitizer", Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT",
                                        static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
     Outputs{ OutputSpec{ "TOF", "DIGITS", 0, Lifetime::Timeframe },
-             OutputSpec{ "TOF", "DIGITSMCTR", 0, Lifetime::Timeframe } },
+             OutputSpec{ "TOF", "DIGITSMCTR", 0, Lifetime::Timeframe },
+             OutputSpec{ "TOF", "ROMode", 0, Lifetime::Timeframe } },
     AlgorithmSpec{ initIt },
     Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
              { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },

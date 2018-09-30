@@ -26,16 +26,15 @@ O2_GENERATE_EXECUTABLE(
   src/CollisionTimePrinter.cxx
   src/TPCDriftTimeDigitizerSpec.cxx
   src/TPCDigitRootWriterSpec.cxx
-  src/ITSDigitizerSpec.cxx
-  src/ITSDigitWriterSpec.cxx
-  src/MFTDigitizerSpec.cxx
-  src/MFTDigitWriterSpec.cxx
+  src/ITSMFTDigitizerSpec.cxx
+  src/ITSMFTDigitWriterSpec.cxx
   src/TOFDigitizerSpec.cxx
   src/TOFDigitWriterSpec.cxx
   src/TOFClusterizerSpec.cxx
   src/TOFClusterWriterSpec.cxx
   src/FITDigitizerSpec.cxx
   src/FITDigitWriterSpec.cxx
+  src/GRPUpdaterSpec.cxx
 
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )

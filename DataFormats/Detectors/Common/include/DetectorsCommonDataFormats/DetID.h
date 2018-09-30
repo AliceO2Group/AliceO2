@@ -69,6 +69,8 @@ class DetID
 
   DetID(ID id) : mID(id) {}
   DetID(const char* name);
+  DetID(const DetID& src) = default;
+  DetID& operator=(const DetID& src) = default;
 
   /// get derector id
   ID getID() const { return mID; }
@@ -78,6 +80,7 @@ class DetID
   const char* getName() const { return getName(mID); }
   /// conversion operator to int
   operator int() const { return static_cast<int>(mID); }
+
   //  ---------------- general static methods -----------------
   /// get number of defined detectors
   static constexpr int getNDetectors() { return nDetectors; }
