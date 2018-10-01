@@ -15,6 +15,7 @@
 #include "Framework/LogParsingHelpers.h"
 #include "Framework/PaletteHelpers.h"
 #include "FrameworkGUIDeviceInspector.h"
+#include "../src/WorkflowHelpers.h"
 #include "DebugGUI/imgui.h"
 #include <algorithm>
 #include <cmath>
@@ -95,6 +96,59 @@ void displayGrid(bool show_grid, ImVec2 offset, ImDrawList* draw_list)
   }
 }
 
+// Private helper struct for the graph model
+struct Node {
+  int ID;
+  char Name[32];
+  ImVec2 Size;
+  float Value;
+  ImVec4 Color;
+  int InputsCount, OutputsCount;
+
+  Node(int id, const char* name, float value, const ImVec4& color, int inputs_count, int outputs_count)
+  {
+    ID = id;
+    strncpy(Name, name, 31);
+    Name[31] = 0;
+    Value = value;
+    Color = color;
+    InputsCount = inputs_count;
+    OutputsCount = outputs_count;
+  }
+};
+
+// Private helper struct for the layout of the graph
+struct NodePos {
+  ImVec2 pos;
+  static ImVec2 GetInputSlotPos(ImVector<Node> const& infos, ImVector<NodePos> const& positions, int nodeId, int slot_no)
+  {
+    ImVec2 const& pos = positions[nodeId].pos;
+    ImVec2 const& size = infos[nodeId].Size;
+    float inputsCount = infos[nodeId].InputsCount;
+    return ImVec2(pos.x, pos.y + size.y * ((float)slot_no + 1) / (inputsCount + 1));
+  }
+  static ImVec2 GetOutputSlotPos(ImVector<Node> const& infos, ImVector<NodePos> const& positions, int nodeId, int slot_no)
+  {
+    ImVec2 const& pos = positions[nodeId].pos;
+    ImVec2 const& size = infos[nodeId].Size;
+    float outputsCount = infos[nodeId].OutputsCount;
+    return ImVec2(pos.x + size.x, pos.y + size.y * ((float)slot_no + 1) / (outputsCount + 1));
+  }
+};
+
+// Private helper struct for the edges in the graph
+struct NodeLink {
+  int InputIdx, InputSlot, OutputIdx, OutputSlot;
+
+  NodeLink(int input_idx, int input_slot, int output_idx, int output_slot)
+  {
+    InputIdx = input_idx;
+    InputSlot = input_slot;
+    OutputIdx = output_idx;
+    OutputSlot = output_slot;
+  }
+};
+
 void showTopologyNodeGraph(WorkspaceGUIState& state,
                            const std::vector<DeviceInfo>& infos,
                            const std::vector<DeviceSpec>& specs,
@@ -109,58 +163,6 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
   }
 
   ImGui::Begin("Physical topology view", nullptr, ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
-
-  // Dummy
-  struct Node {
-    int ID;
-    char Name[32];
-    ImVec2 Size;
-    float Value;
-    ImVec4 Color;
-    int InputsCount, OutputsCount;
-
-    Node(int id, const char* name, float value, const ImVec4& color, int inputs_count, int outputs_count)
-    {
-      ID = id;
-      strncpy(Name, name, 31);
-      Name[31] = 0;
-      Value = value;
-      Color = color;
-      InputsCount = inputs_count;
-      OutputsCount = outputs_count;
-    }
-
-  };
-
-  struct NodePos {
-    ImVec2 pos;
-    static ImVec2 GetInputSlotPos(ImVector<Node> const& infos, ImVector<NodePos> const& positions, int nodeId, int slot_no)
-    {
-      ImVec2 const& pos = positions[nodeId].pos;
-      ImVec2 const& size = infos[nodeId].Size;
-      float inputsCount = infos[nodeId].InputsCount;
-      return ImVec2(pos.x, pos.y + size.y * ((float)slot_no + 1) / (inputsCount + 1));
-    }
-    static ImVec2 GetOutputSlotPos(ImVector<Node> const& infos, ImVector<NodePos> const& positions, int nodeId, int slot_no)
-    {
-      ImVec2 const& pos = positions[nodeId].pos;
-      ImVec2 const& size = infos[nodeId].Size;
-      float outputsCount = infos[nodeId].OutputsCount;
-      return ImVec2(pos.x + size.x, pos.y + size.y * ((float)slot_no + 1) / (outputsCount + 1));
-    }
-  };
-
-  struct NodeLink {
-    int InputIdx, InputSlot, OutputIdx, OutputSlot;
-
-    NodeLink(int input_idx, int input_slot, int output_idx, int output_slot)
-    {
-      InputIdx = input_idx;
-      InputSlot = input_slot;
-      OutputIdx = output_idx;
-      OutputSlot = output_slot;
-    }
-  };
 
   static ImVector<Node> nodes;
   static ImVector<NodeLink> links;
@@ -180,18 +182,17 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
     for (int si = 0; si < specs.size(); ++si) {
       int oi = 0;
       for (auto&& output : specs[si].outputChannels) {
-        linkToIndex.insert(std::make_pair(output.name, LinkInfo{si, oi}));
+        linkToIndex.insert(std::make_pair(output.name, LinkInfo{ si, oi }));
         oi += 1;
       }
     }
+    // Do matching between inputs and outputs
     for (int si = 0; si < specs.size(); ++si) {
       auto& spec = specs[si];
-      // FIXME: display nodes using topological sort
       nodeList.push_back(Node(si, spec.id.c_str(), 0.5f,
                               ImColor(255, 100, 100),
                               spec.inputChannels.size(),
                               spec.outputChannels.size()));
-      positions.push_back(NodePos{ImVec2(40 + 120 * si, 50 + (120 * si) % 500)});
       int ii = 0;
       for (auto& input : spec.inputChannels) {
         auto const& outName = input.name;
@@ -204,6 +205,34 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
         ii += 1;
       }
     }
+
+    // ImVector does boudary checks, so I bypass the case there is no
+    // edges.
+    std::vector<TopoIndexInfo> sortedNodes = { { 0, 0 } };
+    if (links.size()) {
+      sortedNodes = WorkflowHelpers::topologicalSort(specs.size(), &(links[0].InputIdx), &(links[0].OutputIdx), sizeof(links[0]), links.size());
+    }
+    /// We resort them again, this time with the added layer information
+    std::sort(sortedNodes.begin(), sortedNodes.end());
+
+    std::vector<int> layerEntries(1024, 0);
+    std::vector<int> layerMax(1024, 0);
+    for (auto& node : sortedNodes) {
+      layerMax[node.layer < 1023 ? node.layer : 1023] += 1;
+    }
+
+    assert(specs.size() == sortedNodes.size());
+    // FIXME: display nodes using topological sort
+    // Update positions
+    for (int si = 0; si < specs.size(); ++si) {
+      auto& node = sortedNodes[si];
+      assert(node.index == si);
+      int xpos = 40 + 240 * node.layer;
+      int ypos = 300 + (600 / (layerMax[node.layer] + 1)) * (layerEntries[node.layer] - layerMax[node.layer] / 2);
+      positions.push_back(NodePos{ ImVec2(xpos, ypos) });
+      layerEntries[node.layer] += 1;
+    }
+
   };
 
   if (!inited) {
