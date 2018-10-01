@@ -199,8 +199,6 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
   // set geometrical variables
   int det[5];
   Geo::getVolumeIndices(c.getMainContributingChannel(),det);
-  printf("mainContributingChannel = %d, det[0] = %d, det[1] = %d, det[2] = %d, det[3] = %d, det[4] = %d\n", c.getMainContributingChannel(), det[0], det[1], det[2], det[3], det[4]);
-  LOG(ERROR) << "mainContributingChannel" <<  c.getMainContributingChannel() << ", det[0] = " << det[0] << ", det[1] = " << det[1] << ", det[2] = " << det[2] << ", det[3] = " << det[3] << ", det[4] = " << det[4] << FairLogger::endl;
   float pos[3];
   Geo::getPos(det, pos);
   c.SetBaseData(c.getMainContributingChannel(),pos[0],pos[1],pos[2],0,0,0); // error on position set to zero
