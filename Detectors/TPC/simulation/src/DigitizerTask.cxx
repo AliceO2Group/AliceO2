@@ -13,6 +13,7 @@
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TFile.h"
+#include "TH3.h"
 #include "TRandom.h"
 #include "TTree.h"
 
@@ -235,4 +236,15 @@ void DigitizerTask::initBunchTrainStructure(const size_t numberOfEvents)
     } else
       eventTime += bSpacing;
   }
+}
+
+void DigitizerTask::enableSCDistortions(SpaceCharge::SCDistortionType distortionType, TH3 *hisInitialSCDensity, int nZSlices, int nPhiBins, int nRBins)
+{
+  if (distortionType==SpaceCharge::SCDistortionType::SCDistortionsConstant){
+    LOG(INFO) << "Using constant space-charge distortions." << FairLogger::endl;
+    if (hisInitialSCDensity==nullptr) LOG(FATAL) << "Constant space-charge distortions require an initial space-charge density histogram. Please provide the path to the root file (O2TPCSCDensityHisFilePath) and the histogram name (O2TPCSCDensityHisName) in your environment variables." << FairLogger::endl;
+  }
+  if (distortionType==SpaceCharge::SCDistortionType::SCDistortionsRealistic) LOG(INFO) << "Using realistic space-charge distortions." << FairLogger::endl;
+  if (hisInitialSCDensity) LOG(INFO) << "Providing initial space-charge density histogram: " << hisInitialSCDensity->GetName() << FairLogger::endl;
+  mDigitizer->enableSCDistortions(distortionType, hisInitialSCDensity, nZSlices, nPhiBins, nRBins);
 }

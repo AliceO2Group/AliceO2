@@ -11,6 +11,7 @@
 #include "TPCDriftTimeDigitizerSpec.h"
 #include <FairMQLogger.h>
 #include <TMessage.h> // object serialization
+#include "TSystem.h"
 #include <cassert>
 #include <cstring> // memcpy
 #include <memory>  // std::unique_ptr
@@ -27,6 +28,7 @@
 #include "TPCSimulation/Point.h"
 #include "TPCSimulation/ElectronTransport.h"
 #include "TPCSimulation/HitDriftFilter.h"
+#include "TPCSimulation/SpaceCharge.h"
 #include "TStopwatch.h"
 #include <sstream>
 #include <algorithm>
@@ -220,6 +222,26 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
 
   // init function return a lambda taking a ProcessingContext
   auto initIt = [digitizertask, digitArray, mcTruthArray, simChain, simChains, doit](InitContext& ctx) {
+    // Switch on distortions and get initial space-charge density histogram if provided in environment variables
+    auto useDistortions = ctx.options().get<int>("distortionType");
+    auto gridSizeString = ctx.options().get<std::string>("gridSize");
+    std::vector<int> gridSize;
+    std::stringstream ss(gridSizeString);
+    while (ss.good()){
+      std::string substr;
+      getline(ss, substr, ',');
+      gridSize.push_back(std::stoi(substr));
+    }
+    if (useDistortions>0) {
+      o2::TPC::SpaceCharge::SCDistortionType distortionType = useDistortions==1 ? o2::TPC::SpaceCharge::SCDistortionType::SCDistortionsRealistic : o2::TPC::SpaceCharge::SCDistortionType::SCDistortionsConstant;
+      TH3 *hisSCDensity = nullptr;
+      if (TString(gSystem->Getenv("O2TPCSCDensityHisFilePath")).EndsWith(".root") && gSystem->Getenv("O2TPCSCDensityHisName")){
+        TFile *fileSCInput = TFile::Open(gSystem->Getenv("O2TPCSCDensityHisFilePath"));
+        hisSCDensity = (TH3*)fileSCInput->Get(gSystem->Getenv("O2TPCSCDensityHisName"));
+      }
+      digitizertask->enableSCDistortions(distortionType, hisSCDensity, gridSize[0], gridSize[1], gridSize[2]);
+    }
+
     digitizertask->Init2();
     // the task takes the ownership of digit array + mc truth array
     // TODO: make this clear in the API
@@ -251,7 +273,9 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
              OutputSpec{ "TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
     AlgorithmSpec{ initIt },
     Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
-             { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } } }
+             { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
+             { "distortionType", VariantType::Int, 0, { "Distortion type to be used. 0 = no distortions (default), 1 = realistic distortions (not implemented yet), 2 = constant distortions"} },
+             { "gridSize", VariantType::String, "33,180,33", { "Comma separated list of number of bins in z, phi and r for distortion lookup tables (z and r can only be 2**N + 1, N=1,2,3,...)"} } }
   };
 }
 }
