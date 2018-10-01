@@ -20,6 +20,7 @@
 #include <TGeoTube.h>
 #include <TGeoVolume.h>
 #include <initializer_list>
+#include <DetectorsPassive/HallSimParam.h>
 using namespace o2::passive;
 
 Hall::~Hall() = default;
@@ -111,19 +112,21 @@ void Hall::SetSpecialPhysicsCuts()
   auto& matmgr = MaterialManager::Instance();
 
   // \note ported from AliRoot. People responsible for the HALL implementation must judge and modify cuts if required.
-  const Float_t cut1 = 1.e00;
-  const Float_t cut2 = 1.e-1;
-  const Float_t cut3 = 1.e-3;
+  auto& hallparam = HallSimParam::Instance();
+  const auto cutgam = hallparam.getCUTGAM();
+  const auto cutele = hallparam.getCUTELE();
+  const auto cutneu = hallparam.getCUTNEU();
+  const auto cuthad = hallparam.getCUTHAD();
 
   matmgr.SpecialCuts(
     "HALL", kSTST_C2,
-    { { ECut::kCUTGAM, cut1 }, { ECut::kCUTELE, cut1 }, { ECut::kCUTNEU, cut2 }, { ECut::kCUTHAD, cut3 } });
+    { { ECut::kCUTGAM, cutgam }, { ECut::kCUTELE, cutele }, { ECut::kCUTNEU, cutneu }, { ECut::kCUTHAD, cuthad } });
   matmgr.SpecialCuts(
     "HALL", kAIR_C2,
-    { { ECut::kCUTGAM, cut1 }, { ECut::kCUTELE, cut1 }, { ECut::kCUTNEU, cut2 }, { ECut::kCUTHAD, cut3 } });
+    { { ECut::kCUTGAM, cutgam }, { ECut::kCUTELE, cutele }, { ECut::kCUTNEU, cutneu }, { ECut::kCUTHAD, cuthad } });
   matmgr.SpecialCuts(
     "HALL", kCC_C2,
-    { { ECut::kCUTGAM, cut1 }, { ECut::kCUTELE, cut1 }, { ECut::kCUTNEU, cut2 }, { ECut::kCUTHAD, cut3 } });
+    { { ECut::kCUTGAM, cutgam }, { ECut::kCUTELE, cutele }, { ECut::kCUTNEU, cutneu }, { ECut::kCUTHAD, cuthad } });
 }
 
 void Hall::ConstructGeometry()

@@ -14,6 +14,7 @@
 #include <Generators/GeneratorFactory.h>
 #include <Generators/PDG.h>
 #include <SimConfig/SimConfig.h>
+#include <SimConfig/ConfigurableParam.h>
 #include <TStopwatch.h>
 #include <memory>
 #include "DataFormatsParameters/GRPObject.h"
@@ -28,6 +29,13 @@
 FairRunSim* o2sim_init(bool asservice)
 {
   auto& confref = o2::conf::SimConfig::Instance();
+  // update the parameters from local configuration file (TODO)
+
+  // update the parameters from stuff given at command line
+  o2::conf::ConfigurableParam::updateFromString(confref.getKeyValueString());
+  // write the configuration file
+  o2::conf::ConfigurableParam::writeINI("o2sim_configuration.ini");
+
   auto genconfig = confref.getGenerator();
 
   FairRunSim* run;
