@@ -12,6 +12,7 @@ set(SRCS
   src/FrameStructure.cxx
   src/Shil.cxx
   src/Hall.cxx
+  src/HallSimParam.cxx
 )
 
 Set(HEADERS
@@ -24,6 +25,7 @@ Set(HEADERS
     include/${MODULE_NAME}/FrameStructure.h
     include/${MODULE_NAME}/Shil.h
     include/${MODULE_NAME}/Hall.h
+    include/${MODULE_NAME}/HallSimParam.h
 )
 
 Set(LINKDEF src/PassiveLinkDef.h)

@@ -32,6 +32,10 @@ struct SimConfigData {
   std::string mOutputPrefix;                 // prefix to be used for output files
   std::string mLogSeverity;                  // severity for FairLogger
   std::string mLogVerbosity;                 // loglevel for FairLogger
+  std::string mKeyValueTokens;               // a string holding arbitrary sequence of key-value tokens
+                                             // Foo.parameter1=x,Bar.parameter2=y,Baz.paramter3=hello
+                                             // (can be used to **loosly** change any configuration parameter from
+                                             //  command-line)
   ClassDefNV(SimConfigData, 1);
 };
 
@@ -84,6 +88,7 @@ class SimConfig
   std::string getOutPrefix() const { return mConfigData.mOutputPrefix; }
   std::string getLogVerbosity() const { return mConfigData.mLogVerbosity; }
   std::string getLogSeverity() const { return mConfigData.mLogSeverity; }
+  std::string getKeyValueString() const { return mConfigData.mKeyValueTokens; }
 
  private:
   SimConfigData mConfigData; //!

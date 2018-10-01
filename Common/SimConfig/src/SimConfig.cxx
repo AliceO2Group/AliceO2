@@ -12,6 +12,7 @@
 #include <DetectorsCommonDataFormats/DetID.h>
 #include <boost/program_options.hpp>
 #include <iostream>
+#include <FairLogger.h>
 
 using namespace o2::conf;
 namespace bpo = boost::program_options;
@@ -30,7 +31,8 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "isMT", bpo::value<bool>()->default_value(false), "multi-threaded mode (Geant4 only")(
     "outPrefix,o", bpo::value<std::string>()->default_value("o2sim"), "prefix of output files")(
     "logseverity", bpo::value<std::string>()->default_value("INFO"), "severity level for FairLogger")(
-    "logverbosity", bpo::value<std::string>()->default_value("low"), "level of verbosity for FairLogger (low, medium, high, veryhigh)");
+    "logverbosity", bpo::value<std::string>()->default_value("low"), "level of verbosity for FairLogger (low, medium, high, veryhigh)")(
+    "configKeyValues", bpo::value<std::string>()->default_value(""), "comma separated key=value strings (e.g.: 'TPC.gasDensity=1,...");
 }
 
 bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& vm)
@@ -64,6 +66,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mOutputPrefix = vm["outPrefix"].as<std::string>();
   mConfigData.mLogSeverity = vm["logseverity"].as<std::string>();
   mConfigData.mLogVerbosity = vm["logverbosity"].as<std::string>();
+  mConfigData.mKeyValueTokens = vm["configKeyValues"].as<std::string>();
   return true;
 }
 

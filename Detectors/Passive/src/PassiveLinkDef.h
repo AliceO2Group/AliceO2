@@ -36,6 +36,7 @@
 #pragma link C++ class  o2::passive::FrameStructure+;
 #pragma link C++ class  o2::passive::Shil+;
 #pragma link C++ class  o2::passive::Hall+;
+#pragma link C++ class  o2::passive::HallSimParam+;
 
 #endif
 

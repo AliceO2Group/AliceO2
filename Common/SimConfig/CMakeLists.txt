@@ -4,10 +4,14 @@ O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
     src/SimConfig.cxx
+    src/ConfigurableParam.cxx
+    src/ConfigurableParamHelper.cxx
    )
 
 set(HEADERS
     include/${MODULE_NAME}/SimConfig.h
+    include/${MODULE_NAME}/ConfigurableParam.h
+    include/${MODULE_NAME}/ConfigurableParamHelper.h
    )
 
 set(LINKDEF src/SimConfigLinkDef.h)
@@ -17,9 +21,16 @@ set(BUCKET_NAME configuration_bucket)
 O2_GENERATE_LIBRARY()
 
  O2_GENERATE_EXECUTABLE(
-      EXE_NAME testSimConf
-      SOURCES test/TestConfig.cxx
-      MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-      BUCKET_NAME ${BUCKET_NAME}
-  )
+   EXE_NAME testSimConf
+   SOURCES test/TestConfig.cxx
+   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+   BUCKET_NAME ${BUCKET_NAME}
+ )
+
+O2_GENERATE_EXECUTABLE(
+  EXE_NAME testConfigurableParam
+  SOURCES test/TestConfigurableParam.cxx
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${BUCKET_NAME}
+)
 
