@@ -972,13 +972,14 @@ o2_define_bucket(
     tpc_base_bucket
     data_format_TPC_bucket
     detectors_base_bucket
+    TPCSpaceChargeBase_bucket
     Field
     DetectorsBase
     Generators
     TPCBase
     SimulationDataFormat
     DataFormatsTPC
-    TPCSpaceChargeBase_bucket
+    O2TPCSpaceChargeBase
     Geom
     MathCore
     MathUtils
