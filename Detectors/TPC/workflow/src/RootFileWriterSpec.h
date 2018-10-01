@@ -20,7 +20,7 @@ namespace o2
 namespace TPC
 {
 
-framework::DataProcessorSpec getRootFileWriterSpec();
+framework::DataProcessorSpec getRootFileWriterSpec(bool writeMC = false);
 
 } // end namespace TPC
 } // end namespace o2

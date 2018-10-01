@@ -39,6 +39,14 @@ Important options for the `digit-reader` as initial publisher
 --tpc-sectors arg (=0-35)             TPC sector range, e.g. 5-7,8,9
 ```
 
+Options for the `tpc-track-writer` process
+```
+--outfile arg (=tpctracks.root)                Name of the input file
+--treename arg (=o2sim)                        Name of output tree
+--track-branch-name arg (=TPCTracks)           Branch name for TPC tracks
+--trackmc-branch-name arg (=TPCTracksMCTruth)  Branch name for TPC track mc labels
+```
+
 Examples:
 ```
 tpc-reco-workflow --infile tpcdigits.root --tpc-sectors 0-15
@@ -65,9 +73,16 @@ lanes, each with clusterer, converter and decoder. The tracker will fan in from 
 ### Processor options
 
 #### TPC CA tracker
-The [tracker spec](src/CATrackerSpec.cxx) interfaces the [o2::TPC::TPCCATracking](reconstruction/include/TPCReconstruction/TPCCATracking.h) worker class which can be initialized using an option string. The processor spec defines the option `--tracker-option`, e.g.
+The [tracker spec](src/CATrackerSpec.cxx) interfaces the [o2::TPC::TPCCATracking](reconstruction/include/TPCReconstruction/TPCCATracking.h) worker class which can be initialized using an option string. The processor spec defines the option `--tracker-option`. Currently, the tracker should be run with options
 ```
---tracker-option ""refX=83""
+--tracker-option "refX=83 cont"
+```
+
+The most important tracker options are:
+```
+cont    activation of continuous mode
+refX=   reference x coordinate, tracker tries to propagate all track to the reference
+bz=     magnetic field
 ```
 
 ### Current limitations
