@@ -15,6 +15,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "../src/WorkflowHelpers.h"
 #include <boost/test/unit_test.hpp>
+#include <boost/test/tools/detail/per_element_manip.hpp>
 
 using namespace o2::framework;
 
@@ -53,7 +54,18 @@ BOOST_AUTO_TEST_CASE(TestVerifyWorkflow)
 BOOST_AUTO_TEST_CASE(TestWorkflowHelpers)
 {
   using namespace o2::framework;
-  using Edges = std::vector<std::pair<size_t, size_t>>;
+  using Edges = std::vector<std::pair<int, int>>;
+  // No edges
+
+  Edges edges0 = {};
+  auto result0 = WorkflowHelpers::topologicalSort(1,
+                                                  &(edges0[0].first),
+                                                  &(edges0[0].second),
+                                                  sizeof(edges0[0]),
+                                                  0);
+  std::vector<TopoIndexInfo> expected0 = { { 0, 0 } };
+  BOOST_TEST(result0 == expected0, boost::test_tools::per_element());
+
   // Already sorted
   Edges edges1 = {
     { 0, 1 }, // 1 depends on 0
@@ -63,10 +75,10 @@ BOOST_AUTO_TEST_CASE(TestWorkflowHelpers)
   auto result1 = WorkflowHelpers::topologicalSort(4,
                                                   &(edges1[0].first),
                                                   &(edges1[0].second),
-                                                  sizeof(edges1[0]) / sizeof(size_t),
+                                                  sizeof(edges1[0]),
                                                   3);
-  auto expected1 = { 0, 1, 2, 3 };
-  BOOST_CHECK(std::equal(result1.begin(), result1.end(), expected1.begin()));
+  std::vector<TopoIndexInfo> expected1 = { { 0, 0 }, { 1, 1 }, { 2, 2 }, { 3, 3 } };
+  BOOST_TEST(result1 == expected1, boost::test_tools::per_element());
   // Inverse sort
   Edges edges2 = {
     { 3, 2 },
@@ -76,10 +88,10 @@ BOOST_AUTO_TEST_CASE(TestWorkflowHelpers)
   auto result2 = WorkflowHelpers::topologicalSort(4,
                                                   &edges2[0].first,
                                                   &edges2[0].second,
-                                                  sizeof(edges2[0]) / sizeof(size_t),
+                                                  sizeof(edges2[0]),
                                                   3);
-  auto expected2 = { 3, 2, 1, 0 };
-  BOOST_CHECK(std::equal(result2.begin(), result2.end(), expected2.begin()));
+  std::vector<TopoIndexInfo> expected2 = { { 3, 0 }, { 2, 1 }, { 1, 2 }, { 0, 1 } };
+  BOOST_TEST(result2 == expected2, boost::test_tools::per_element());
   //     2
   //    / \
   // 4-3   0-5
@@ -96,10 +108,85 @@ BOOST_AUTO_TEST_CASE(TestWorkflowHelpers)
   auto result3 = WorkflowHelpers::topologicalSort(6,
                                                   &(edges3[0].first),
                                                   &(edges3[0].second),
-                                                  sizeof(edges3[0]) / sizeof(size_t),
+                                                  sizeof(edges3[0]),
                                                   6);
-  auto expected3 = { 4, 3, 1, 2, 0, 5 };
-  BOOST_CHECK(std::equal(result3.begin(), result3.end(), expected3.begin()));
+  std::vector<TopoIndexInfo> expected3 = { { 4, 0 }, { 3, 1 }, { 1, 2 }, { 2, 2 }, { 0, 3 }, { 5, 4 } };
+  BOOST_TEST(result3 == expected3, boost::test_tools::per_element());
+
+  // 0 -> 1 -----\
+  //              \
+  //               5
+  //              /
+  // 2 -> 3 -> 4-/
+  Edges edges4 = {
+    { 0, 1 },
+    { 2, 3 },
+    { 3, 4 },
+    { 4, 5 },
+    { 1, 5 }
+  };
+  auto result4 = WorkflowHelpers::topologicalSort(6,
+                                                  &(edges4[0].first),
+                                                  &(edges4[0].second),
+                                                  sizeof(edges4[0]),
+                                                  5);
+  std::vector<TopoIndexInfo> expected4 = { { 0, 0 }, { 2, 0 }, { 1, 1 }, { 3, 1 }, { 4, 2 }, { 5, 3 } };
+  BOOST_TEST(result4 == expected4, boost::test_tools::per_element());
+
+  // 0 -> 1
+  // 2 -> 3 -> 4
+  Edges edges5 = {
+    { 0, 1 },
+    { 2, 3 },
+    { 3, 4 },
+  };
+  auto result5 = WorkflowHelpers::topologicalSort(5,
+                                                  &(edges5[0].first),
+                                                  &(edges5[0].second),
+                                                  sizeof(edges5[0]),
+                                                  3);
+  std::vector<TopoIndexInfo> expected5 = { { 0, 0 }, { 2, 0 }, { 1, 1 }, { 3, 1 }, { 4, 2 } };
+  BOOST_TEST(result5 == expected5, boost::test_tools::per_element());
+
+  // 0 <-> 1
+  Edges edges6 = {
+    { 0, 1 },
+    { 1, 0 }
+  };
+  auto result6 = WorkflowHelpers::topologicalSort(2,
+                                                  &(edges6[0].first),
+                                                  &(edges6[0].second),
+                                                  sizeof(edges6[0]),
+                                                  2);
+  /// FIXME: Circular dependencies not possible for now. Should they actually
+  ///        be supported?
+  std::vector<TopoIndexInfo> expected6 = {};
+  BOOST_TEST(result6 == expected6, boost::test_tools::per_element());
+
+  /// We actually support using node indexes which are not
+  /// std::pair<size_t, size_t> as long as they occupy 64 bit
+  struct SlotEdge {
+    int nodeIn;
+    int slotIn;
+    int nodeOut;
+    int slotOut;
+  };
+
+  // (0,0) -> (1,0) or 0 -> 1
+  // (0,1) -> (2,0) or 0 -> 2
+  // (0,2) -> (2,1) or 0 -> 2
+  std::vector<SlotEdge> edges7 = {
+    { 0, 0, 1, 0 },
+    { 0, 1, 2, 0 },
+    { 0, 2, 2, 1 },
+  };
+  auto result7 = WorkflowHelpers::topologicalSort(3,
+                                                  &(edges7[0].nodeIn),
+                                                  &(edges7[0].nodeOut),
+                                                  sizeof(edges7[0]),
+                                                  3);
+  std::vector<TopoIndexInfo> expected7 = { { 0, 0 }, { 1, 1 }, { 2, 1 } };
+  BOOST_TEST(result7 == expected7, boost::test_tools::per_element());
 }
 
 // Test a single connection

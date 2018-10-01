@@ -24,20 +24,26 @@ namespace o2
 namespace framework
 {
 
-std::vector<size_t>
-WorkflowHelpers::topologicalSort(size_t nodeCount,
-                                 const size_t *edgeIn,
-                                 const size_t *edgeOut,
-                                 size_t stride,
-                                 size_t edgesCount) {
-  using NodeIndex = size_t;
-  using EdgeIndex = size_t;
+std::ostream& operator<<(std::ostream& out, TopoIndexInfo const& info)
+{
+  out << "(" << info.index << ", " << info.layer << ")";
+  return out;
+}
+
+std::vector<TopoIndexInfo>
+  WorkflowHelpers::topologicalSort(size_t nodeCount,
+                                   int const* edgeIn,
+                                   int const* edgeOut,
+                                   size_t byteStride,
+                                   size_t edgesCount)
+{
+  size_t stride = byteStride / sizeof(int);
+  using EdgeIndex = int;
   // Create the index which will be returned.
-  std::vector<NodeIndex> index(nodeCount);
-  for (NodeIndex wi = 0; wi < nodeCount; ++wi) {
-    index[wi] = wi;
+  std::vector<TopoIndexInfo> index(nodeCount);
+  for (int wi = 0; wi < nodeCount; ++wi) {
+    index[wi] = { wi, 0 };
   }
-  // Temporary vector holding vertices to be processed
   std::vector<EdgeIndex> remainingEdgesIndex(edgesCount);
   for (EdgeIndex ei = 0; ei < edgesCount; ++ei) {
     remainingEdgesIndex[ei] = ei;
@@ -47,19 +53,24 @@ WorkflowHelpers::topologicalSort(size_t nodeCount,
   // if the vector has dependencies, false otherwise
   std::vector<bool> nodeDeps(nodeCount, false);
   for (EdgeIndex ei = 0; ei < edgesCount; ++ei) {
-    nodeDeps[*(edgeOut+ei*stride)] = true;
+    nodeDeps[*(edgeOut + ei * stride)] = true;
   }
 
-  std::list<NodeIndex> L;
-  std::vector<NodeIndex> S;
-  std::set<NodeIndex> nextVertex;
-  std::vector<EdgeIndex> nextEdges;
-
-  for (size_t ii = 0, ie = index.size(); ii < ie; ++ii) {
+  // We start with all those which do not have any dependencies
+  // They are layer 0.
+  std::list<TopoIndexInfo> L;
+  for (int ii = 0; ii < index.size(); ++ii) {
     if (nodeDeps[ii] == false) {
-      L.push_back(ii);
+      L.push_back({ ii, 0 });
     }
   }
+
+  // The final result.
+  std::vector<TopoIndexInfo> S;
+  // The set of vertices which can be reached by the current node
+  std::set<TopoIndexInfo> nextVertex;
+  // The set of edges which are not related to the current node.
+  std::vector<EdgeIndex> nextEdges;
   while (!L.empty()) {
     auto node = L.front();
     S.push_back(node);
@@ -67,24 +78,30 @@ WorkflowHelpers::topologicalSort(size_t nodeCount,
     nextVertex.clear();
     nextEdges.clear();
 
-    for (EdgeIndex ei = 0, ee = remainingEdgesIndex.size(); ei < ee; ++ei) {
-      if (*(edgeIn+ei*stride) == node) {
-        nextVertex.insert(*(edgeOut+ei*stride));
+    // After this, nextVertex will contain all the vertices
+    // which have the current node as incoming.
+    // nextEdges will contain all the edges which are not related
+    // to the current node.
+    for (auto& ei : remainingEdgesIndex) {
+      if (*(edgeIn + ei * stride) == node.index) {
+        nextVertex.insert({ *(edgeOut + ei * stride), node.layer + 1 });
       } else {
-        nextEdges.push_back(remainingEdgesIndex[ei]);
+        nextEdges.push_back(ei);
       }
     }
     remainingEdgesIndex.swap(nextEdges);
 
-    std::set<NodeIndex> hasPredecessors;
-    for (auto &ei : remainingEdgesIndex) {
-      for (auto &m : nextVertex) {
-        if (m == *(edgeOut+ei*stride)) {
-          hasPredecessors.insert(m);
+    // Of all the vertices which have node as incoming,
+    // check if there is any other incoming node.
+    std::set<TopoIndexInfo> hasPredecessors;
+    for (auto& ei : remainingEdgesIndex) {
+      for (auto& m : nextVertex) {
+        if (m.index == *(edgeOut + ei * stride)) {
+          hasPredecessors.insert({ m.index, m.layer });
         }
       }
     }
-    std::vector<NodeIndex> withPredecessor;
+    std::vector<TopoIndexInfo> withPredecessor;
     std::set_difference(nextVertex.begin(), nextVertex.end(),
                         hasPredecessors.begin(), hasPredecessors.end(),
                         std::back_inserter(withPredecessor));
