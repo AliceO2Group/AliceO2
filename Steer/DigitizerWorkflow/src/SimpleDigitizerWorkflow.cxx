@@ -49,6 +49,7 @@
 #include <string>
 #include <sstream>
 #include <cmath>
+#include <unistd.h> // for getppid
 
 using namespace o2::framework;
 
@@ -113,7 +114,24 @@ int getNumTPCLanes(std::vector<int> const& sectors, ConfigContext const& configc
 
 void initTPC()
 {
-  LOG(DEBUG) << "Initializing TPC GEMAmplification";
+  // We only want to do this for the DPL master
+  // I am not aware of an easy way to query if "I am DPL master" so
+  // using for the moment a mechanism defining/setting an environment variable
+  // with the parent ID and query inside forks if this environment variable exists
+  // (it assumes fundamentally that the master executes this function first)
+  std::stringstream streamthis;
+  std::stringstream streamparent;
+
+  streamthis << "TPCGEMINIT_PID" << getpid();
+  streamparent << "TPCGEMINIT_PID" << getppid();
+  if (getenv(streamparent.str().c_str())) {
+    LOG(DEBUG) << "GEM ALREADY INITIALIZED ... SKIPPING HERE";
+    return;
+  } else {
+    LOG(DEBUG) << "INITIALIZING TPC GEMAmplification";
+  }
+  setenv(streamthis.str().c_str(), "ON", 1);
+
   auto& cdb = o2::TPC::CDBInterface::instance();
   cdb.setUseDefaults();
   // by invoking this constructor we make sure that a common file will be created
