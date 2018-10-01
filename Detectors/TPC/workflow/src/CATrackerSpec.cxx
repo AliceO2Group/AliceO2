@@ -28,6 +28,7 @@
 #include <memory> // for make_shared
 #include <vector>
 #include <iomanip>
+#include <stdexcept>
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -67,7 +68,9 @@ DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
       auto& tracker = processAttributes->tracker;
       parser = std::make_unique<ClusterGroupParser>();
       tracker = std::make_unique<o2::TPC::TPCCATracking>();
-      tracker->initialize(options.c_str());
+      if (tracker->initialize(options.c_str()) != 0) {
+        throw std::invalid_argument("TPCCATracking initialization failed");
+      }
       processAttributes->validInputs.reset();
       processAttributes->validMcInputs.reset();
     }
@@ -214,10 +217,8 @@ DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
       LOG(INFO) << "found " << tracks.size() << " track(s)";
       pc.outputs().snapshot(OutputRef{ "output" }, tracks);
       if (processMC) {
-        LOG(INFO) << "have " << tracksMCTruth.getIndexedSize() << " track label(s)";
-        // have to change the writer process as well but want to convert to the RootTreeWriter tool
-        // at this occasion so we skip sending the labels for the moment
-        //pc.outputs().snapshot(OutputRef{ "mclblout" }, tracksMCTruth);
+        LOG(INFO) << "sending " << tracksMCTruth.getIndexedSize() << " track label(s)";
+        pc.outputs().snapshot(OutputRef{ "mclblout" }, tracksMCTruth);
       }
 
       validInputs.reset();
@@ -261,7 +262,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
 
   return DataProcessorSpec{ "tpc-tracker", // process id
                             { createInputSpecs(processMC) },
-                            { createOutputSpecs(false /*create onece writer process has been changed*/) },
+                            { createOutputSpecs(processMC) },
                             AlgorithmSpec(initFunction),
                             Options{
                               { "tracker-options", VariantType::String, "", { "Option string passed to tracker" } },
