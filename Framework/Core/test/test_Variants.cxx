@@ -39,6 +39,12 @@ BOOST_AUTO_TEST_CASE(VariantTest) {
   ss << d;
   BOOST_CHECK(std::string(d.get<const char *>()) == "foo");
 
+  Variant e(true);
+  BOOST_CHECK_EQUAL(e.get<bool>(), true);
+
+  Variant f(false);
+  BOOST_CHECK_EQUAL(f.get<bool>(), false);
+
   BOOST_CHECK(ss.str() == "1010.110.2foo");
   // Spotted valgrind error while deleting a vector of variants.
   std::vector<Variant> vector{1, 1.2, 1.1f, "foo"};
