@@ -81,13 +81,14 @@ static TLegend* legendpull[6];
 #define N_CLS_HIST 8
 #define N_CLS_TYPE 3
 enum CL_types {CL_attached = 0, CL_fake = 1, CL_att_adj = 2, CL_fakeAdj = 3, CL_tracks = 4, CL_physics = 5, CL_prot = 6, CL_all = 7};
-static TH1F* clusters[N_CLS_TYPE * N_CLS_HIST - 1]; //attached, fakeAttached, attach+adjacent, fakeAdjacent, physics, protected, tracks, all / count, rel, integral
+static TH1D* clusters[N_CLS_TYPE * N_CLS_HIST - 1]; //attached, fakeAttached, attach+adjacent, fakeAdjacent, physics, protected, tracks, all / count, rel, integral
 static TCanvas* cclust[N_CLS_TYPE];
 static TPad* pclust[N_CLS_TYPE];
 static TLegend* legendclust[N_CLS_TYPE];
 
 long long int recClustersRejected = 0,  recClustersTube = 0, recClustersTube200 = 0, recClustersLoopers = 0, recClustersLowPt = 0, recClusters200MeV = 0, recClustersPhysics = 0, recClustersProt = 0, recClustersUnattached = 0, recClustersTotal = 0,
-	recClustersUnaccessible = 0, recClustersHighIncl = 0, recClustersAbove400 = 0, recClustersFakeRemove400 = 0, recClustersFullFakeRemove400 = 0, recClustersBelow40 = 0, recClustersFakeProtect40 = 0;
+	recClustersHighIncl = 0, recClustersAbove400 = 0, recClustersFakeRemove400 = 0, recClustersFullFakeRemove400 = 0, recClustersBelow40 = 0, recClustersFakeProtect40 = 0;
+double recClustersUnaccessible = 0;
 
 TH1F* tracks;
 TCanvas* ctracks;
@@ -418,7 +419,7 @@ void InitQA()
 		int itype   = i >= (2 * N_CLS_HIST - 1) ? 2 : i >= N_CLS_HIST ? 1 : 0;
 		sprintf(name, "clusters%s%s", ClusterNamesShort[i - ioffset], ClusterTypes[itype]);
 		double* binsPt = CreateLogAxis(axis_bins[4], PT_MIN_CLUST, PT_MAX);
-		clusters[i] = new TH1F(name, name, axis_bins[4], binsPt);
+		clusters[i] = new TH1D(name, name, axis_bins[4], binsPt);
 		delete[] binsPt;
 	}
 	{
@@ -921,7 +922,7 @@ void RunQA(bool matchOnly)
 						clusters[CL_fake]->Fill(0.f, weight);
 						clusters[CL_att_adj]->Fill(0.f, weight);
 						clusters[CL_all]->Fill(0.f, weight);
-						recClustersUnaccessible++;
+						recClustersUnaccessible += weight;
 						if (protect || physics) clusters[CL_prot]->Fill(0.f, weight);
 						if (physics) clusters[CL_physics]->Fill(0.f, weight);
 					}
@@ -1704,7 +1705,7 @@ int DrawQAHistograms()
 					for (int i = 0;i < N_CLS_HIST;i++) printf("\t%35s: %'12llu (%6.2f%%)\n", ClustersNames[i], counts[i], 100.f * counts[i] / counts[N_CLS_HIST - 1]);
 					printf("\t%35s: %'12llu (%6.2f%%)\n", "Unattached", counts[N_CLS_HIST - 1] - counts[CL_att_adj], 100.f * (counts[N_CLS_HIST - 1] - counts[CL_att_adj]) / counts[N_CLS_HIST - 1]);
 					printf("\t%35s: %'12llu (%6.2f%%)\n", "Removed", counts[CL_att_adj] - counts[CL_prot], 100.f * (counts[CL_att_adj] - counts[CL_prot]) / counts[N_CLS_HIST - 1]); //Attached + Adjacent (also fake) - protected
-					printf("\t%35s: %'12llu (%6.2f%%)\n", "Unaccessible", recClustersUnaccessible, 100.f * recClustersUnaccessible / counts[N_CLS_HIST - 1]); //No contribution from track >= 10 MeV, unattached or fake-attached/adjacent
+					printf("\t%35s: %'12llu (%6.2f%%)\n", "Unaccessible", (unsigned long long int) recClustersUnaccessible, 100.f * recClustersUnaccessible / counts[N_CLS_HIST - 1]); //No contribution from track >= 10 MeV, unattached or fake-attached/adjacent
 				}
 				else
 				{
@@ -1756,7 +1757,7 @@ int DrawQAHistograms()
 		{
 			for (int k = 0;k < ConfigNumInputs;k++)
 			{
-				TH1F* e = clusters[l ? (N_CLS_TYPE * N_CLS_HIST - 2) : (N_CLS_HIST - 1)];
+				TH1* e = clusters[l ? (N_CLS_TYPE * N_CLS_HIST - 2) : (N_CLS_HIST - 1)];
 				if (GetHist(e, tin, k, nNewInput) == NULL) continue;
 				e->SetMinimum(-1111);
 				e->SetMaximum(-1111);
@@ -1768,7 +1769,7 @@ int DrawQAHistograms()
 			{
 				for (int i = 0;i < N_CLS_HIST;i++)
 				{
-					TH1F* e = clusters[l ? (2 * N_CLS_HIST - 1 + i) : i];
+					TH1* e = clusters[l ? (2 * N_CLS_HIST - 1 + i) : i];
 					if (GetHist(e, tin, k, nNewInput) == NULL) continue;
 					e->SetMaximum(tmpMax[l] * 1.02);
 					e->SetMinimum(tmpMax[l] * -0.02);
@@ -1787,7 +1788,7 @@ int DrawQAHistograms()
 			{
 				for (int j = end -1;j >= begin;j--)
 				{
-					TH1F* e = clusters[j];
+					TH1* e = clusters[j];
 					if (GetHist(e, tin, k, nNewInput) == NULL) continue;
 
 					e->SetTitle(ClusterTitles[i]);
@@ -1810,7 +1811,7 @@ int DrawQAHistograms()
 			}
 			if (ConfigNumInputs == 1)
 			{
-				TH1F* e = (TH1F*) clusters[begin + CL_att_adj]->Clone();
+				TH1* e = (TH1F*) clusters[begin + CL_att_adj]->Clone();
 				e->Add(clusters[begin + CL_prot], -1);
 				e->SetLineColor(colorNums[numColor++ % ColorCount]);
 				e->Draw("same");
