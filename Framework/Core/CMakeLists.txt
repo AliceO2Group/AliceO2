@@ -263,5 +263,5 @@ O2_GENERATE_TESTS(
   COMMAND_LINE_ARGS
   --global-config require-me
   # Note: the group switch makes process consumer parse only the group arguments
-  --consumer "--global-config consumer-config --local-option hello-aliceo2"
+  --consumer "--global-config consumer-config --local-option hello-aliceo2 --a-boolean3 --an-int2 20 --a-double2 22."
 )
