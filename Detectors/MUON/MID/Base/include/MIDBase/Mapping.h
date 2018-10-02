@@ -29,11 +29,6 @@ class Mapping
   Mapping();
   virtual ~Mapping() = default;
 
-  Mapping(const Mapping&) = delete;
-  Mapping& operator=(const Mapping&) = delete;
-  Mapping(Mapping&&) = delete;
-  Mapping& operator=(Mapping&&) = delete;
-
   /// Indexes required to define a strip in the detection element
   struct MpStripIndex {
     /// Check if Strip is Valid
