@@ -34,6 +34,7 @@ BOOST_AUTO_TEST_CASE(TrivialBoostOptionsRetrieverTest) {
   };
   const char* args[] = {
     "test",
+    "--someBool",
     "--someInt", "1",
     "--someFloat", "0.5",
     "--someDouble", "0.5",
@@ -47,6 +48,7 @@ BOOST_AUTO_TEST_CASE(TrivialBoostOptionsRetrieverTest) {
   bpo::store(parse_command_line(sizeof(args)/sizeof(char*), args, opts), vm);
   bpo::notify(vm);
   BOOST_CHECK(vm["someInt"].as<int>() == 1);
+  BOOST_CHECK(vm["someBool"].as<bool>() == true);
   BOOST_CHECK(vm["someString"].as<std::string>() == "foobar");
   BOOST_CHECK(vm["someFloat"].as<float>() == 0.5);
   BOOST_CHECK(vm["someDouble"].as<double>() == 0.5);
