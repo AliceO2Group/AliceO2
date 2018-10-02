@@ -628,8 +628,6 @@ void DeviceSpecHelpers::prepareArguments(int argc, char** argv, bool defaultQuie
         // and is not defaulted
         const auto* description = odesc.find_nothrow(varit.first, false);
         if (description && varmap.count(varit.first)) {
-          tmpArgs.emplace_back("--");
-          tmpArgs.back() += varit.first;
           // check the semantics of the value
           auto semantic = description->semantic();
           const char* optarg = "";
@@ -638,11 +636,16 @@ void DeviceSpecHelpers::prepareArguments(int argc, char** argv, bool defaultQuie
             // multitoken, zero_token and composing
             // currently only the simple case is supported
             assert(semantic->min_tokens() <= 1);
-            assert(semantic->max_tokens() && semantic->min_tokens());
+            //assert(semantic->max_tokens() && semantic->min_tokens());
             if (semantic->min_tokens() > 0) {
+              tmpArgs.emplace_back("--");
+              tmpArgs.back() += varit.first;
               // add the token
               tmpArgs.emplace_back(varit.second.as<std::string>());
               optarg = tmpArgs.back().c_str();
+            } else if (semantic->min_tokens() == 0 && varit.second.as<bool>()) {
+              tmpArgs.emplace_back("--");
+              tmpArgs.back() += varit.first;
             }
           }
           control.options.insert(std::make_pair(varit.first, optarg));
