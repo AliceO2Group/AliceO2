@@ -220,6 +220,7 @@ set(TEST_SRCS
       test/test_FairMQResizableBuffer.cxx
       test/test_Forwarding.cxx
       test/test_FrameworkDataFlowToDDS.cxx
+      test/test_FairMQOptionsRetriever.cxx
       test/test_GUITests.cxx
       test/test_Graphviz.cxx
       test/test_InfoLogger.cxx
