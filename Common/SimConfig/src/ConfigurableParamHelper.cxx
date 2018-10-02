@@ -74,7 +74,7 @@ void _ParamHelper::printParametersImpl(TClass* cl, void* obj)
     // pointer to object
     auto dt = dm->GetDataType();
     char* pointer = ((char*)obj) + dm->GetOffset() + index * dt->Size();
-    std::cout << getName(dm, index, size) << " : " << dt->AsString(pointer);
+    std::cout << getName(dm, index, size) << " : " << dt->AsString(pointer) << "\n";
   };
   loopOverMembers(cl, obj, printMembers);
 }

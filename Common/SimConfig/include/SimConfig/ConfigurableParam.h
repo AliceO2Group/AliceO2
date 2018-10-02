@@ -18,6 +18,9 @@
 #include <boost/property_tree/ptree.hpp>
 #include <typeinfo>
 
+class TFile;
+class TRootIOCtor;
+
 namespace o2
 {
 namespace conf
@@ -77,7 +80,7 @@ class ConfigurableParam
 {
  public:
   //
-  virtual std::string getName() = 0; // print the name of the configurable Parameter
+  virtual std::string getName() const = 0; // print the name of the configurable Parameter
 
   // print the current keys and values to screen
   virtual void printKeyValues() = 0;
@@ -120,6 +123,11 @@ class ConfigurableParam
 
   static void initialize();
 
+  static void toCCDB(std::string filename);
+  static void fromCCDB(std::string filename);
+  virtual void serializeTo(TFile*) const = 0;
+  virtual void initFrom(TFile*) = 0;
+
   // allows to provide a file from which to update
   // (certain) key-values
   // propagates changes down to each registered configuration
@@ -149,12 +157,15 @@ class ConfigurableParam
   // (internal use to easily sync updates, this is ok since parameter classes are singletons)
   static std::map<std::string, std::pair<int, void*>>* sKeyToStorageMap;
 
+  void setRegisterMode(bool b) { sRegisterMode = b; }
+
  private:
   // static registry for implementations of this type
   static std::vector<ConfigurableParam*>* sRegisteredParamClasses; //!
   // static property tree (stocking all key - value pairs from instances of type ConfigurableParam)
   static boost::property_tree::ptree* sPtree; //!
   static bool sIsFullyInitialized;            //!
+  static bool sRegisterMode;                  //! (flag to enable/disable autoregistering of child classes)
 };
 
 } // end namespace conf
@@ -162,6 +173,8 @@ class ConfigurableParam
 
 // a helper macro for boilerplate code in parameter classes
 #define O2ParamDef(classname, key)               \
+ public:                                         \
+  classname(TRootIOCtor *) {}                    \
  private:                                        \
   static constexpr char const* const sKey = key; \
   static classname sInstance;                    \

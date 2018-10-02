@@ -29,12 +29,16 @@
 FairRunSim* o2sim_init(bool asservice)
 {
   auto& confref = o2::conf::SimConfig::Instance();
-  // update the parameters from local configuration file (TODO)
+  // we can read from CCDB (for the moment faking with a TFile)
+  // o2::conf::ConfigurableParam::fromCCDB("params_ccdb.root", runid);
 
   // update the parameters from stuff given at command line
   o2::conf::ConfigurableParam::updateFromString(confref.getKeyValueString());
   // write the configuration file
   o2::conf::ConfigurableParam::writeINI("o2sim_configuration.ini");
+
+  // we can update the binary CCDB entry something like this ( + timestamp key )
+  // o2::conf::ConfigurableParam::toCCDB("params_ccdb.root");
 
   auto genconfig = confref.getGenerator();
 
