@@ -46,73 +46,29 @@ void Digitizer::init()
 
 //______________________________________________________________________
 
-void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* digits)
-{
-  // hits array of TOF hits for a given simulated event
-  //mDigits = digits;
+void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* digits){
+  // hits array of TOF hits for a given simulated event 
+  // digits passed from external to be filled, in continuous readout mode we will push it on mDigitsPerTimeFrame vector of vectors of digits
+  
+  Int_t readoutwindow = Int_t((mEventTime)*Geo::READOUTWINDOW_INV); // to be replaced with "uncalibrated" time
 
-  Int_t readoutwindow = Int_t((mEventTime)*Geo::READOUTWINDOW_INV); // to be replaced with uncalibrated time
-  //while(mContinuous && readoutwindow > mReadoutWindowCurrent){
-  if (mContinuous && readoutwindow > mReadoutWindowCurrent) {
+  printf("process TOF -> continuous = %i, %i > %i?\n",mContinuous,readoutwindow,mReadoutWindowCurrent);
+
+  if (mContinuous && readoutwindow > mReadoutWindowCurrent) { // if we are moving in future readout windows flush previous ones (only for continuous readout mode)
     digits->clear();
-    //fillOutputContainer(*digits);
-    // waiting for the new framework to store previous readout window
-
-    for (Int_t i = mReadoutWindowCurrent; i < readoutwindow; i++) { // temporary loop because current framework doesn't allow to store outputs in digitizer class
-      fillOutputContainer(*digits);
-    }
-    //mReadoutWindowCurrent++;
-    mReadoutWindowCurrent = readoutwindow;
-
-    // check if digits stored for future match the new readout windows available
-    int idigit = 0;
-    for (auto& digit : mFutureDigits) {
-      int isnext = Int_t(digit.getTimeStamp() * Geo::READOUTWINDOW_INV) - mReadoutWindowCurrent; // to be replaced with uncalibrated time
-
-      if (isnext < 0) // we jump too ahead in future, digit will be not stored
-        LOG(INFO) << "Digit lost because we jump too ahead in future. Current RO window=" << isnext << "\n";
-
-      if (isnext < MAXWINDOWS - 1) { // move from digit buffer array to the proper window
-        if (isnext >= 0) {
-          std::vector<Strip>* strips = mStripsCurrent;
-          o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer = mMCTruthContainerCurrent;
-
-          if (isnext) {
-            strips = mStripsNext[isnext - 1];
-            mcTruthContainer = mMCTruthContainerNext[isnext - 1];
-          }
-
-          int trackID = mFutureItrackID[digit.getLabel()];
-          int sourceID = mFutureIsource[digit.getLabel()];
-          int eventID = mFutureIevent[digit.getLabel()];
-          fillDigitsInStrip(strips, mcTruthContainer, digit.getTimeStamp(), digit.getChannel(), digit.getTDC(), digit.getTOT(), digit.getBC(), digit.getChannel() / Geo::NPADS, trackID, eventID, sourceID);
-        }
-
-        // remove the element from the buffers
-        mFutureItrackID.erase(mFutureItrackID.begin() + digit.getLabel());
-        mFutureIsource.erase(mFutureIsource.begin() + digit.getLabel());
-        mFutureIevent.erase(mFutureIevent.begin() + digit.getLabel());
-
-        int labelremoved = digit.getLabel();
-        // adjust labels
-        for (auto& digit2 : mFutureDigits) {
-          if (digit2.getLabel() > labelremoved)
-            digit2.setLabel(digit2.getLabel() - 1);
-        }
-        // remove also digit from buffer
-        mFutureDigits.erase(mFutureDigits.begin() + idigit);
-      } else {
-        idigit++; // increment when moving to the next only if the current is not removed from the buffer
-      }
-    }
-  }
-
+    
+    for (mReadoutWindowCurrent; mReadoutWindowCurrent < readoutwindow; mReadoutWindowCurrent++) {
+      fillOutputContainer(*digits); // fill all windows which are before (not yet stored) of the new current one     
+      checkIfReuseFutureDigits();
+    }  // close loop readout window
+  } // close if continuous
+  
   for (auto& hit : *hits) {
     //TODO: put readout window counting/selection
-
+    
     processHit(hit, mEventTime);
   } // end loop over hits
-
+  
   if (!mContinuous) { // fill output container per event
     digits->clear();
     fillOutputContainer(*digits);
@@ -283,7 +239,7 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Float_t time, Float_t x, 
   bool iscurrent = true; // if we are in the current readout window
   Int_t isnext = -1;
 
-  if (mContinuous && 0) {
+  if (mContinuous) {
     isnext = Int_t(time * 1E-3 * Geo::READOUTWINDOW_INV) - mReadoutWindowCurrent; // to be replaced with uncalibrated time
 
     
@@ -303,6 +259,8 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Float_t time, Float_t x, 
     if (isnext)
       iscurrent = false;
   }
+
+  //  printf("add TOF digit c=%i n=%i\n",iscurrent,isnext);
 
   std::vector<Strip>* strips;
   o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer;
@@ -722,10 +680,20 @@ void Digitizer::testFromHits(const char* geo, const char* hits)
 //______________________________________________________________________
 void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
 {
+  if(mContinuous){
+    digits.clear();
+    mMCTruthOutputContainer->clear();
+  }
 
+  printf("TOF fill output contatiner\n");
   // filling the digit container doing a loop on all strips
   for (auto& strip : *mStripsCurrent) {
     strip.fillOutputContainer(digits);
+  }
+
+  if(mContinuous){
+    if(digits.size()) printf("%i) # TOF digits = %i (%x)\n",mIcurrentReadoutWindow,digits.size(),mStripsCurrent);
+    mDigitsPerTimeFrame.push_back(digits);
   }
 
   // if(! digits.size()) return;
@@ -739,12 +707,16 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
     }
   }
 
+  if(mContinuous) mMCTruthOutputContainerPerTimeFrame.push_back(*mMCTruthOutputContainer);
   mMCTruthContainerCurrent->clear();
 
   // switch to next mStrip after flushing current readout window data
   mIcurrentReadoutWindow++;
   if (mIcurrentReadoutWindow >= MAXWINDOWS)
     mIcurrentReadoutWindow = 0;
+
+  mStripsCurrent = &(mStrips[mIcurrentReadoutWindow]);
+  mMCTruthContainerCurrent = &(mMCTruthContainer[mIcurrentReadoutWindow]);
 
   int k = mIcurrentReadoutWindow + 1;
   for (Int_t i = 0; i < MAXWINDOWS - 1; i++) {
@@ -759,5 +731,62 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
 void Digitizer::flushOutputContainer(std::vector<Digit>& digits)
 { // flush all residual buffered data
   // TO be implemented
-  fillOutputContainer(digits);
+  printf("flushOutputContainer\n");
+  if(! mContinuous) fillOutputContainer(digits);
+  else{
+    for(Int_t i=0;i < MAXWINDOWS;i++){
+      fillOutputContainer(digits); // fill all windows which are before (not yet stored) of the new current one
+      checkIfReuseFutureDigits();
+      mReadoutWindowCurrent++;
+    }
+
+    while(mFutureDigits.size()){
+      fillOutputContainer(digits); // fill all windows which are before (not yet stored) of the new current one
+      checkIfReuseFutureDigits();
+      mReadoutWindowCurrent++;
+    }
+  }
+}
+//______________________________________________________________________
+void Digitizer::checkIfReuseFutureDigits(){
+  // check if digits stored very far in future match the new readout windows currently available
+  int idigit = 0;      
+  for (auto& digit : mFutureDigits) {
+    int isnext = Int_t(digit.getTimeStamp() * Geo::READOUTWINDOW_INV) - (mReadoutWindowCurrent+1); // to be replaced with uncalibrated time
+    if (isnext < 0) // we jump too ahead in future, digit will be not stored
+      LOG(INFO) << "Digit lost because we jump too ahead in future. Current RO window=" << isnext << "\n";
+    if (isnext < MAXWINDOWS - 1) { // move from digit buffer array to the proper window
+      if (isnext >= 0) {
+	std::vector<Strip>* strips = mStripsCurrent;
+	o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer = mMCTruthContainerCurrent;
+	
+	if (isnext) {
+	  strips = mStripsNext[isnext - 1];
+	  mcTruthContainer = mMCTruthContainerNext[isnext - 1];
+	}
+	
+	int trackID = mFutureItrackID[digit.getLabel()];
+	int sourceID = mFutureIsource[digit.getLabel()];
+	int eventID = mFutureIevent[digit.getLabel()];
+	fillDigitsInStrip(strips, mcTruthContainer, digit.getTimeStamp(), digit.getChannel(), digit.getTDC(), digit.getTOT(), digit.getBC(), digit.getChannel() / Geo::NPADS, trackID, eventID, sourceID);
+      }
+      
+      // remove the element from the buffers
+      mFutureItrackID.erase(mFutureItrackID.begin() + digit.getLabel());
+      mFutureIsource.erase(mFutureIsource.begin() + digit.getLabel());
+      mFutureIevent.erase(mFutureIevent.begin() + digit.getLabel());
+      
+      int labelremoved = digit.getLabel();
+      // adjust labels
+      for (auto& digit2 : mFutureDigits) {
+	if (digit2.getLabel() > labelremoved)
+	  digit2.setLabel(digit2.getLabel() - 1);
+      }
+      // remove also digit from buffer
+      mFutureDigits.erase(mFutureDigits.begin() + idigit);
+    }
+    else {
+      idigit++; // increment when moving to the next only if the current is not removed from the buffer
+    }      	
+  } // close future digit loop
 }

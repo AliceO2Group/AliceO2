@@ -66,6 +66,9 @@ class Digitizer
   void setContinuous(bool val) { mContinuous = val; }
   bool isContinuous() const { return mContinuous; }
 
+  const std::vector< std::vector<Digit> >* getDigitPerTimeFrame() const {return &mDigitsPerTimeFrame;}
+  const std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel> >* getMCTruthPerTimeFrame() const {return &mMCTruthOutputContainerPerTimeFrame;}
+
  private:
   // parameters
   Int_t mMode;
@@ -96,7 +99,10 @@ class Digitizer
   // digit info
   //std::vector<Digit>* mDigits;
 
-  static const int MAXWINDOWS = 10; // how many readout windows we can buffer
+  static const int MAXWINDOWS = 2; // how many readout windows we can buffer
+
+  std::vector< std::vector<Digit> > mDigitsPerTimeFrame;
+  std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel> > mMCTruthOutputContainerPerTimeFrame;
 
   int mIcurrentReadoutWindow = 0;
   o2::dataformats::MCTruthContainer<o2::tof::MCLabel> mMCTruthContainer[MAXWINDOWS];
@@ -122,6 +128,8 @@ class Digitizer
   Int_t processHit(const HitType& hit, Double_t event_time);
   void addDigit(Int_t channel, UInt_t istrip, Float_t time, Float_t x, Float_t z, Float_t charge, Int_t iX, Int_t iZ, Int_t padZfired,
                 Int_t trackID);
+
+  void checkIfReuseFutureDigits();
 
   bool isMergable(Digit digit1, Digit digit2)
   {

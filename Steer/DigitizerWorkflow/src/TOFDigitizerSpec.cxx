@@ -114,8 +114,8 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
         digits->clear();
         digitizer->process(&hits, digits.get());
         // copy digits into accumulator
-        std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
-        labelAccum.mergeAtBack(*labels);
+        //std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
+        //labelAccum.mergeAtBack(*labels);
         LOG(INFO) << "Have " << digits->size() << " digits ";
       }
     }
@@ -125,8 +125,17 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
       digitizer->flushOutputContainer(*digits.get());
       LOG(INFO) << "FLUSHING LEFTOVER STUFF " << digits->size();
       // copy digits into accumulator
-      std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
-      labelAccum.mergeAtBack(*labels);
+      //std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
+      //labelAccum.mergeAtBack(*labels);
+    }
+
+    // temporary accumulate vector of vecotors of digits in a single vector
+    // to be replace once we will be able to write the vector of vectors as different TTree entries
+    const std::vector< std::vector<Digit> >* digitsVectOfVect =  digitizer->getDigitPerTimeFrame();
+    const std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel> >* mcLabVecOfVec = digitizer->getMCTruthPerTimeFrame();
+    for(Int_t i=0; i < digitsVectOfVect->size();i++){
+      std::copy(digitsVectOfVect->at(i).begin(), digitsVectOfVect->at(i).end(), std::back_inserter(*digitsAccum.get()));
+      labelAccum.mergeAtBack(mcLabVecOfVec->at(i));
     }
 
     LOG(INFO) << "Have " << labelAccum.getNElements() << " TOF labels ";
