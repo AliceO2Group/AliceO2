@@ -17,6 +17,7 @@
 #include "TClass.h"
 #include <type_traits>
 #include <typeinfo>
+#include "TFile.h"
 
 namespace o2
 {
@@ -50,7 +51,7 @@ class ConfigurableParamHelper : virtual public ConfigurableParam
     return P::sInstance;
   }
 
-  std::string getName() final
+  std::string getName() const final
   {
     return P::sKey;
   }
@@ -81,6 +82,27 @@ class ConfigurableParamHelper : virtual public ConfigurableParam
       return;
     }
     _ParamHelper::fillKeyValuesImpl(getName(), cl, (void*)this, tree, sKeyToStorageMap);
+  }
+
+  void initFrom(TFile* file) final
+  {
+    // switch off auto registering since the readback object is
+    // only a "temporary" singleton
+    setRegisterMode(false);
+    P* readback = nullptr;
+    file->GetObject(getName().c_str(), readback);
+    if (readback != nullptr) {
+      // ATTENTION: override existing singleton object
+      // It would be better to have a way of reading INTO an existing object
+      std::memcpy((void*)this, readback, sizeof(P));
+      delete readback;
+    }
+    setRegisterMode(true);
+  }
+
+  void serializeTo(TFile* file) const final
+  {
+    file->WriteObjectAny((void*)this, TClass::GetClass(typeid(P)), getName().c_str());
   }
 };
 } // namespace conf

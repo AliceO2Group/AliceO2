@@ -21,6 +21,7 @@
 #include <typeinfo>
 #include <cassert>
 #include "TDataType.h"
+#include "TFile.h"
 
 namespace o2
 {
@@ -31,6 +32,7 @@ std::vector<ConfigurableParam*>* ConfigurableParam::sRegisteredParamClasses = nu
 boost::property_tree::ptree* ConfigurableParam::sPtree = nullptr;
 std::map<std::string, std::pair<int, void*>>* ConfigurableParam::sKeyToStorageMap = nullptr;
 bool ConfigurableParam::sIsFullyInitialized = false;
+bool ConfigurableParam::sRegisterMode = true;
 
 void ConfigurableParam::writeINI(std::string filename)
 {
@@ -54,9 +56,31 @@ void ConfigurableParam::updatePropertyTree()
 
 void ConfigurableParam::printAllKeyValuePairs()
 {
+  std::cout << "####\n";
   for (auto p : *sRegisteredParamClasses) {
     p->printKeyValues();
   }
+  std::cout << "----\n";
+}
+
+// evidently this could be a local file or an OCDB server
+// ... we need to generalize this ... but ok for demonstration purpose
+void ConfigurableParam::toCCDB(std::string filename)
+{
+  TFile file(filename.c_str(), "RECREATE");
+  for (auto p : *sRegisteredParamClasses) {
+    p->serializeTo(&file);
+  }
+  file.Close();
+}
+
+void ConfigurableParam::fromCCDB(std::string filename)
+{
+  TFile file(filename.c_str(), "READ");
+  for (auto p : *sRegisteredParamClasses) {
+    p->initFrom(&file);
+  }
+  file.Close();
 }
 
 ConfigurableParam::ConfigurableParam()
@@ -70,7 +94,9 @@ ConfigurableParam::ConfigurableParam()
   if (sKeyToStorageMap == nullptr) {
     sKeyToStorageMap = new std::map<std::string, std::pair<int, void*>>;
   }
-  sRegisteredParamClasses->push_back(this);
+  if (sRegisterMode == true) {
+    sRegisteredParamClasses->push_back(this);
+  }
 }
 
 void ConfigurableParam::initialize()
