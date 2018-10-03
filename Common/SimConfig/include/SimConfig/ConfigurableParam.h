@@ -29,17 +29,21 @@ namespace conf
 //
 // A configurable parameter is a simple class, defining
 // a few (pod) properties/members which are registered
-// in a global (boost) property tree.
+// in a global (boost) property tree / structure.
 //
 // The features that we provide here are:
-// a) Automatic translation from C++ data description to INI/JSON/XML
+// *) Automatic translation from C++ data description to INI/JSON/XML
 //    format via ROOT introspection and boost property trees and
 //    the possibility to readably save the configuration
-// b) Automatic integration of sub-classes into a common configuration
-// c) Be able to query properties from high level interfaces (just knowing
-// d) Be able to set properties from high-level interfaces (and modifying the underlying
+// *) Serialization/Deserialization into ROOT binary blobs (for the purpose
+//    of writing/retrieving parameters from CCDB)
+// *) Automatic integration of sub-classes into a common configuration
+// *) Be able to query properties from high level interfaces (just knowing
+// *) Be able to set properties from high-level interfaces (and modifying the underlying
 //    C++ object)
-// e) Automatic ability to modify parameters from the command-line
+// *) Automatic ability to modify parameters from the command-line
+// *) Keeping track of the provenance of individual parameter values; The user is able
+//    to see whether is parameter is defaulted-code-value/coming-from-CCDB/coming-from-comandline
 //
 // Note that concrete parameter sub-classes **must** be implemented
 // by inheriting from ConfigurableParamHelper and not from this class.
@@ -79,11 +83,23 @@ namespace conf
 class ConfigurableParam
 {
  public:
+  enum EParamProvenance {
+    kCODE /* from default code initialization */,
+    kCCDB /* overwritten from CCDB */,
+    kRT /* changed during runtime via API call setValue (for example command line) */
+    /* can add more modes here */
+  };
+  static std::string toString(EParamProvenance p)
+  {
+    static std::array<std::string, 3> names = { "CODE", "CCDB", "RT" };
+    return names[(int)p];
+  }
+
   //
   virtual std::string getName() const = 0; // print the name of the configurable Parameter
 
-  // print the current keys and values to screen
-  virtual void printKeyValues() = 0;
+  // print the current keys and values to screen (optionally with provenance information)
+  virtual void printKeyValues(bool showprov = true) const = 0;
 
   static void printAllRegisteredParamNames();
   static void printAllKeyValuePairs();
@@ -107,7 +123,10 @@ class ConfigurableParam
     auto key = mainkey + "." + subkey;
     if (sPtree->get_optional<std::string>(key).is_initialized()) {
       sPtree->put(key, x);
-      updateThroughStorageMap(mainkey, subkey, typeid(T), (void*)&x);
+      auto changed = updateThroughStorageMap(mainkey, subkey, typeid(T), (void*)&x);
+      if (changed) {
+        sValueProvenanceMap->find(key)->second = kRT; // set to runtime
+      }
     }
   }
 
@@ -117,7 +136,10 @@ class ConfigurableParam
   {
     if (sPtree->get_optional<std::string>(key).is_initialized()) {
       sPtree->put(key, valuestring);
-      updateThroughStorageMapWithConversion(key, valuestring);
+      auto changed = updateThroughStorageMapWithConversion(key, valuestring);
+      if (changed) {
+        sValueProvenanceMap->find(key)->second = kRT; // set to runtime
+      }
     }
   }
 
@@ -144,9 +166,9 @@ class ConfigurableParam
   // registering the concrete parameters
   ConfigurableParam();
 
-  static void updatePropertyTree();
-  static void updateThroughStorageMap(std::string, std::string, std::type_info const&, void*);
-  static void updateThroughStorageMapWithConversion(std::string, std::string);
+  static void initPropertyTree();
+  static bool updateThroughStorageMap(std::string, std::string, std::type_info const&, void*);
+  static bool updateThroughStorageMapWithConversion(std::string, std::string);
 
   virtual ~ConfigurableParam() = default;
 
@@ -156,6 +178,9 @@ class ConfigurableParam
   // static map keeping, for each configuration key, its memory location and type
   // (internal use to easily sync updates, this is ok since parameter classes are singletons)
   static std::map<std::string, std::pair<int, void*>>* sKeyToStorageMap;
+
+  // keep track of provenance of parameters and values
+  static std::map<std::string, ConfigurableParam::EParamProvenance>* sValueProvenanceMap;
 
   void setRegisterMode(bool b) { sRegisterMode = b; }
 
@@ -174,7 +199,7 @@ class ConfigurableParam
 // a helper macro for boilerplate code in parameter classes
 #define O2ParamDef(classname, key)               \
  public:                                         \
-  classname(TRootIOCtor *) {}                    \
+  classname(TRootIOCtor*) {}                     \
  private:                                        \
   static constexpr char const* const sKey = key; \
   static classname sInstance;                    \

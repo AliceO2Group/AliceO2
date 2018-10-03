@@ -24,17 +24,21 @@ namespace o2
 namespace conf
 {
 
-// just a (non-templated) Helper with exclusively private functions
+// just a (non-templated) helper with exclusively private functions
 // used by ConfigurableParamHelper
 class _ParamHelper
 {
  private:
-  static void printParametersImpl(TClass* cl, void*);
+  static void printParametersImpl(std::string mainkey, TClass* cl, void*,
+                                  std::map<std::string, ConfigurableParam::EParamProvenance> const* provmap);
 
   static void fillKeyValuesImpl(std::string mainkey, TClass* cl, void*, boost::property_tree::ptree*,
                                 std::map<std::string, std::pair<int, void*>>*);
 
   static void printWarning(std::type_info const&);
+
+  static void assignmentImpl(std::string mainkey, TClass* cl, void* to, void* from,
+                             std::map<std::string, ConfigurableParam::EParamProvenance>* provmap);
 
   template <typename P>
   friend class ConfigurableParamHelper;
@@ -57,7 +61,7 @@ class ConfigurableParamHelper : virtual public ConfigurableParam
   }
 
   // one of the key methods, using introspection to print itself
-  void printKeyValues() final
+  void printKeyValues(bool showprov) const final
   {
     // just a helper line to make sure P::sInstance is looked-up
     // and that compiler complains about missing static sInstance of type P
@@ -71,9 +75,10 @@ class ConfigurableParamHelper : virtual public ConfigurableParam
       _ParamHelper::printWarning(typeid(P));
       return;
     }
-    _ParamHelper::printParametersImpl(cl, (void*)this);
+    _ParamHelper::printParametersImpl(getName(), cl, (void*)this, showprov ? sValueProvenanceMap : nullptr);
   }
 
+  // fills the data structures with the initial default values
   void putKeyValues(boost::property_tree::ptree* tree) final
   {
     auto cl = TClass::GetClass(typeid(P));
@@ -92,9 +97,8 @@ class ConfigurableParamHelper : virtual public ConfigurableParam
     P* readback = nullptr;
     file->GetObject(getName().c_str(), readback);
     if (readback != nullptr) {
-      // ATTENTION: override existing singleton object
-      // It would be better to have a way of reading INTO an existing object
-      std::memcpy((void*)this, readback, sizeof(P));
+      _ParamHelper::assignmentImpl(getName(), TClass::GetClass(typeid(P)), (void*)this, (void*)readback,
+                                   sValueProvenanceMap);
       delete readback;
     }
     setRegisterMode(true);

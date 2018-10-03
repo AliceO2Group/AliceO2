@@ -31,22 +31,24 @@ namespace conf
 std::vector<ConfigurableParam*>* ConfigurableParam::sRegisteredParamClasses = nullptr;
 boost::property_tree::ptree* ConfigurableParam::sPtree = nullptr;
 std::map<std::string, std::pair<int, void*>>* ConfigurableParam::sKeyToStorageMap = nullptr;
+std::map<std::string, ConfigurableParam::EParamProvenance>* ConfigurableParam::sValueProvenanceMap = nullptr;
+
 bool ConfigurableParam::sIsFullyInitialized = false;
 bool ConfigurableParam::sRegisterMode = true;
 
 void ConfigurableParam::writeINI(std::string filename)
 {
-  updatePropertyTree();
+  initPropertyTree(); // update the boost tree before writing
   boost::property_tree::write_ini(filename, *sPtree);
 }
 
 void ConfigurableParam::writeJSON(std::string filename)
 {
-  updatePropertyTree();
+  initPropertyTree(); // update the boost tree before writing
   boost::property_tree::write_json(filename, *sPtree);
 }
 
-void ConfigurableParam::updatePropertyTree()
+void ConfigurableParam::initPropertyTree()
 {
   sPtree->clear();
   for (auto p : *sRegisteredParamClasses) {
@@ -58,13 +60,13 @@ void ConfigurableParam::printAllKeyValuePairs()
 {
   std::cout << "####\n";
   for (auto p : *sRegisteredParamClasses) {
-    p->printKeyValues();
+    p->printKeyValues(true);
   }
   std::cout << "----\n";
 }
 
 // evidently this could be a local file or an OCDB server
-// ... we need to generalize this ... but ok for demonstration purpose
+// ... we need to generalize this ... but ok for demonstration purposes
 void ConfigurableParam::toCCDB(std::string filename)
 {
   TFile file(filename.c_str(), "RECREATE");
@@ -76,6 +78,9 @@ void ConfigurableParam::toCCDB(std::string filename)
 
 void ConfigurableParam::fromCCDB(std::string filename)
 {
+  if (!sIsFullyInitialized) {
+    initialize();
+  }
   TFile file(filename.c_str(), "READ");
   for (auto p : *sRegisteredParamClasses) {
     p->initFrom(&file);
@@ -94,6 +99,9 @@ ConfigurableParam::ConfigurableParam()
   if (sKeyToStorageMap == nullptr) {
     sKeyToStorageMap = new std::map<std::string, std::pair<int, void*>>;
   }
+  if (sValueProvenanceMap == nullptr) {
+    sValueProvenanceMap = new std::map<std::string, ConfigurableParam::EParamProvenance>;
+  }
   if (sRegisterMode == true) {
     sRegisteredParamClasses->push_back(this);
   }
@@ -101,7 +109,12 @@ ConfigurableParam::ConfigurableParam()
 
 void ConfigurableParam::initialize()
 {
-  updatePropertyTree();
+  initPropertyTree();
+  // initialize the provenance map
+  // initially the values come from code
+  for (auto& key : *sKeyToStorageMap) {
+    sValueProvenanceMap->insert(std::pair<std::string, ConfigurableParam::EParamProvenance>(key.first, kCODE));
+  }
   sIsFullyInitialized = true;
 }
 
@@ -155,12 +168,30 @@ void ConfigurableParam::updateFromString(std::string configstring)
 void unsupp() { std::cerr << "currently unsupported\n"; }
 
 template <typename T>
-void Copy(void const* addr, void* targetaddr)
+bool isMemblockDifferent(void const* block1, void const* block2)
 {
-  std::memcpy(targetaddr, addr, sizeof(T));
+  // loop over thing in elements of bytes
+  for (int i = 0; i < sizeof(T) / sizeof(char); ++i) {
+    if (((char*)block1)[i] != ((char*)block2)[i]) {
+      return false;
+    }
+  }
+  return true;
 }
 
-void ConfigurableParam::updateThroughStorageMap(std::string mainkey, std::string subkey, std::type_info const& tinfo,
+// copies data from one place to other and returns
+// true of data was actually changed
+template <typename T>
+bool Copy(void const* addr, void* targetaddr)
+{
+  if (isMemblockDifferent<T>(addr, targetaddr)) {
+    std::memcpy(targetaddr, addr, sizeof(T));
+    return true;
+  }
+  return false;
+}
+
+bool ConfigurableParam::updateThroughStorageMap(std::string mainkey, std::string subkey, std::type_info const& tinfo,
                                                 void* addr)
 {
   // check if key_exists
@@ -168,7 +199,7 @@ void ConfigurableParam::updateThroughStorageMap(std::string mainkey, std::string
   auto iter = sKeyToStorageMap->find(key);
   if (iter == sKeyToStorageMap->end()) {
     LOG(WARN) << "Cannot update parameter " << key << " not found";
-    return;
+    return false;
   }
 
   // the type we need to convert to
@@ -177,53 +208,53 @@ void ConfigurableParam::updateThroughStorageMap(std::string mainkey, std::string
   // check that type matches
   if (iter->second.first != type) {
     LOG(WARN) << "Types do not match; cannot update value";
-    return;
+    return false;
   }
 
   auto targetaddress = iter->second.second;
   switch (type) {
     case kChar_t: {
-      Copy<char>(addr, targetaddress);
+      return Copy<char>(addr, targetaddress);
       break;
     }
     case kUChar_t: {
-      Copy<unsigned char>(addr, targetaddress);
+      return Copy<unsigned char>(addr, targetaddress);
       break;
     }
     case kShort_t: {
-      Copy<short>(addr, targetaddress);
+      return Copy<short>(addr, targetaddress);
       break;
     }
     case kUShort_t: {
-      Copy<unsigned short>(addr, targetaddress);
+      return Copy<unsigned short>(addr, targetaddress);
       break;
     }
     case kInt_t: {
-      Copy<int>(addr, targetaddress);
+      return Copy<int>(addr, targetaddress);
       break;
     }
     case kUInt_t: {
-      Copy<unsigned int>(addr, targetaddress);
+      return Copy<unsigned int>(addr, targetaddress);
       break;
     }
     case kLong_t: {
-      Copy<long>(addr, targetaddress);
+      return Copy<long>(addr, targetaddress);
       break;
     }
     case kULong_t: {
-      Copy<unsigned long>(addr, targetaddress);
+      return Copy<unsigned long>(addr, targetaddress);
       break;
     }
     case kFloat_t: {
-      Copy<float>(addr, targetaddress);
+      return Copy<float>(addr, targetaddress);
       break;
     }
     case kDouble_t: {
-      Copy<double>(addr, targetaddress);
+      return Copy<double>(addr, targetaddress);
       break;
     }
     case kDouble32_t: {
-      Copy<double>(addr, targetaddress);
+      return Copy<double>(addr, targetaddress);
       break;
     }
     case kchar: {
@@ -231,15 +262,15 @@ void ConfigurableParam::updateThroughStorageMap(std::string mainkey, std::string
       break;
     }
     case kBool_t: {
-      Copy<bool>(addr, targetaddress);
+      return Copy<bool>(addr, targetaddress);
       break;
     }
     case kLong64_t: {
-      Copy<long long>(addr, targetaddress);
+      return Copy<long long>(addr, targetaddress);
       break;
     }
     case kULong64_t: {
-      Copy<unsigned long long>(addr, targetaddress);
+      return Copy<unsigned long long>(addr, targetaddress);
       break;
     }
     case kOther_t: {
@@ -259,7 +290,7 @@ void ConfigurableParam::updateThroughStorageMap(std::string mainkey, std::string
       break;
     }
     case kCharStar: {
-      Copy<char*>(addr, targetaddress);
+      return Copy<char*>(addr, targetaddress);
       break;
     }
     case kBits: {
@@ -288,22 +319,27 @@ void ConfigurableParam::updateThroughStorageMap(std::string mainkey, std::string
       break;
     }
   }
+  return false;
 }
 
 template <typename T>
-void ConvertAndCopy(std::string const& valuestring, void* targetaddr)
+bool ConvertAndCopy(std::string const& valuestring, void* targetaddr)
 {
   auto addr = boost::lexical_cast<T>(valuestring);
-  std::memcpy(targetaddr, (void*)&addr, sizeof(T));
+  if (!isMemblockDifferent<T>(targetaddr, (void*)&addr)) {
+    std::memcpy(targetaddr, (void*)&addr, sizeof(T));
+    return true;
+  }
+  return false;
 }
 
-void ConfigurableParam::updateThroughStorageMapWithConversion(std::string key, std::string valuestring)
+bool ConfigurableParam::updateThroughStorageMapWithConversion(std::string key, std::string valuestring)
 {
   // check if key_exists
   auto iter = sKeyToStorageMap->find(key);
   if (iter == sKeyToStorageMap->end()) {
-    LOG(WARN) << "Cannot update parameter " << key << " not found";
-    return;
+    LOG(WARN) << "Cannot update parameter" << key << " (parameter not found) ";
+    return false;
   }
 
   // the type (aka ROOT::EDataType which the type identification in the map) we need to convert to
@@ -312,47 +348,47 @@ void ConfigurableParam::updateThroughStorageMapWithConversion(std::string key, s
   auto targetaddress = iter->second.second;
   switch (targettype) {
     case kChar_t: {
-      ConvertAndCopy<char>(valuestring, targetaddress);
+      return ConvertAndCopy<char>(valuestring, targetaddress);
       break;
     }
     case kUChar_t: {
-      ConvertAndCopy<unsigned char>(valuestring, targetaddress);
+      return ConvertAndCopy<unsigned char>(valuestring, targetaddress);
       break;
     }
     case kShort_t: {
-      ConvertAndCopy<short>(valuestring, targetaddress);
+      return ConvertAndCopy<short>(valuestring, targetaddress);
       break;
     }
     case kUShort_t: {
-      ConvertAndCopy<unsigned short>(valuestring, targetaddress);
+      return ConvertAndCopy<unsigned short>(valuestring, targetaddress);
       break;
     }
     case kInt_t: {
-      ConvertAndCopy<int>(valuestring, targetaddress);
+      return ConvertAndCopy<int>(valuestring, targetaddress);
       break;
     }
     case kUInt_t: {
-      ConvertAndCopy<unsigned int>(valuestring, targetaddress);
+      return ConvertAndCopy<unsigned int>(valuestring, targetaddress);
       break;
     }
     case kLong_t: {
-      ConvertAndCopy<long>(valuestring, targetaddress);
+      return ConvertAndCopy<long>(valuestring, targetaddress);
       break;
     }
     case kULong_t: {
-      ConvertAndCopy<unsigned long>(valuestring, targetaddress);
+      return ConvertAndCopy<unsigned long>(valuestring, targetaddress);
       break;
     }
     case kFloat_t: {
-      ConvertAndCopy<float>(valuestring, targetaddress);
+      return ConvertAndCopy<float>(valuestring, targetaddress);
       break;
     }
     case kDouble_t: {
-      ConvertAndCopy<double>(valuestring, targetaddress);
+      return ConvertAndCopy<double>(valuestring, targetaddress);
       break;
     }
     case kDouble32_t: {
-      ConvertAndCopy<double>(valuestring, targetaddress);
+      return ConvertAndCopy<double>(valuestring, targetaddress);
       break;
     }
     case kchar: {
@@ -360,15 +396,15 @@ void ConfigurableParam::updateThroughStorageMapWithConversion(std::string key, s
       break;
     }
     case kBool_t: {
-      ConvertAndCopy<bool>(valuestring, targetaddress);
+      return ConvertAndCopy<bool>(valuestring, targetaddress);
       break;
     }
     case kLong64_t: {
-      ConvertAndCopy<long long>(valuestring, targetaddress);
+      return ConvertAndCopy<long long>(valuestring, targetaddress);
       break;
     }
     case kULong64_t: {
-      ConvertAndCopy<unsigned long long>(valuestring, targetaddress);
+      return ConvertAndCopy<unsigned long long>(valuestring, targetaddress);
       break;
     }
     case kOther_t: {
@@ -389,7 +425,7 @@ void ConfigurableParam::updateThroughStorageMapWithConversion(std::string key, s
     }
     case kCharStar: {
       unsupp();
-      // ConvertAndCopy<char*>(valuestring, targetaddress);
+      // return ConvertAndCopy<char*>(valuestring, targetaddress);
       break;
     }
     case kBits: {
@@ -418,6 +454,7 @@ void ConfigurableParam::updateThroughStorageMapWithConversion(std::string key, s
       break;
     }
   }
+  return false;
 }
 
 } // namespace conf

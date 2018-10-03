@@ -11,6 +11,7 @@
 //first version 8/2018, Sandro Wenzel
 
 #include "SimConfig/ConfigurableParamHelper.h"
+#include "SimConfig/ConfigurableParam.h"
 #include <TClass.h>
 #include <TDataMember.h>
 #include <TDataType.h>
@@ -68,13 +69,22 @@ std::string getName(const TDataMember* dm, int index, int size)
   return namestream.str();
 }
 
-void _ParamHelper::printParametersImpl(TClass* cl, void* obj)
+void _ParamHelper::printParametersImpl(std::string mainkey, TClass* cl, void* obj,
+                                       std::map<std::string, ConfigurableParam::EParamProvenance> const* provmap)
 {
-  auto printMembers = [obj](const TDataMember* dm, int index, int size) {
+  auto printMembers = [&mainkey, obj, provmap](const TDataMember* dm, int index, int size) {
     // pointer to object
     auto dt = dm->GetDataType();
     char* pointer = ((char*)obj) + dm->GetOffset() + index * dt->Size();
-    std::cout << getName(dm, index, size) << " : " << dt->AsString(pointer) << "\n";
+    const auto name = getName(dm, index, size);
+    std::cout << name << " : " << dt->AsString(pointer);
+    if (provmap != nullptr) {
+      auto iter = provmap->find(mainkey + "." + name);
+      if (iter != provmap->end()) {
+        std::cout << "\t\t[ " << ConfigurableParam::toString(iter->second) << " ]";
+      }
+    }
+    std::cout << "\n";
   };
   loopOverMembers(cl, obj, printMembers);
 }
@@ -95,6 +105,40 @@ void _ParamHelper::fillKeyValuesImpl(std::string mainkey, TClass* cl, void* obj,
   };
   loopOverMembers(cl, obj, fillMap);
   tree->add_child(mainkey, localtree);
+}
+
+bool isMemblockDifferent(char const* block1, char const* block2, int sizeinbytes)
+{
+  // loop over thing in elements of bytes
+  for (int i = 0; i < sizeinbytes / sizeof(char); ++i) {
+    if (block1[i] != block2[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+void _ParamHelper::assignmentImpl(std::string mainkey, TClass* cl, void* to, void* from,
+                                  std::map<std::string, ConfigurableParam::EParamProvenance>* provmap)
+{
+  auto assignifchanged = [to, from, &mainkey, provmap](const TDataMember* dm, int index, int size) {
+    const auto name = getName(dm, index, size);
+    auto dt = dm->GetDataType();
+    char* pointerto = ((char*)to) + dm->GetOffset() + index * dt->Size();
+    char* pointerfrom = ((char*)from) + dm->GetOffset() + index * dt->Size();
+    if (!isMemblockDifferent(pointerto, pointerfrom, dt->Size())) {
+      auto key = mainkey + "." + name;
+      auto iter = provmap->find(key);
+      if (iter != provmap->end()) {
+        iter->second = ConfigurableParam::EParamProvenance::kCCDB; // TODO: change to "current STATE"??
+      } else {
+        LOG(WARN) << "KEY " << key << " NOT FOUND WHILE UPDATING PARAMETER PROVENANCE";
+      }
+      // actually copy
+      std::memcpy(pointerto, pointerfrom, dt->Size());
+    }
+  };
+  loopOverMembers(cl, to, assignifchanged);
 }
 
 void _ParamHelper::printWarning(std::type_info const& tinfo)
