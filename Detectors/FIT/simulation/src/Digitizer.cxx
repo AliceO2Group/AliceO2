@@ -86,36 +86,13 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
         nlbl++;
       }
     }
-  
-  for (Int_t ch_iter = 0; ch_iter < nMCPs; ch_iter++) {
-    if (ch_hit_nPe[ch_iter] != 0) {
-      ch_hit_mean_time[ch_iter] = ch_hit_mean_time[ch_iter] / (float)ch_hit_nPe[ch_iter];
-
-      //    LOG(DEBUG) << "nMCP: " << ch_iter << " n Ph. e. " << ch_hit_nPe[ch_iter] << " mean time " << ch_hit_mean_time[ch_iter] << FairLogger::endl;
-    }
   }
-  // --------------------------------------------------------------------------
-
-  //Calculating signal time, amplitude in mean_time +- time_gate --------------
-  Double_t ch_signal_nPe[nMCPs] = {};
-  Double_t ch_signal_MIP[nMCPs] = {};
-  Double_t ch_signal_time[nMCPs] = {};
-
-  for (auto& hit : *hits) {
-    Int_t hit_ch = hit.GetDetectorID();
-    Double_t hit_time = hit.GetTime();
-    Bool_t is_A_side = (hit_ch <= 4 * Geometry::NCellsA);
-    Double_t time_compensate = is_A_side ? A_side_cable_cmps : C_side_cable_cmps;
-    Bool_t is_hit_in_signal_gate = (hit_time > ch_hit_mean_time[hit_ch] - signal_width * .5) &&
-                                   (hit_time < ch_hit_mean_time[hit_ch] + signal_width * .5);
-
-    Double_t hit_time_corr = hit_time - time_compensate + BC_clk_center /* + BCEventTime*/;
-    Double_t is_time_in_gate = (hit_time != 0.); //&&(hit_time_corr > -BC_clk_center)&&(hit_time_corr < BC_clk_center);
-
-    if (is_time_in_gate && is_hit_in_signal_gate) {
-      ch_signal_nPe[hit_ch]++;
-      ch_signal_time[hit_ch] += hit_time_corr;
-    }
+  // sum  different sources 
+  std::vector<ChannelData> mChDgDataArr;
+  for (const auto& d : digit->getChDgData()) {
+    Int_t mcp = d.ChId;
+    cfd[mcp] = d.CFDTime; 
+    amp[mcp] = d.QTCAmpl;
   }
   
   for (Int_t ch_iter = 0; ch_iter < nMCPs; ch_iter++) {

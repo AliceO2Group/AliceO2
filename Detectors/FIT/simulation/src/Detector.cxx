@@ -21,7 +21,7 @@
 #include "FairVolume.h"
 
 #include "FairRootManager.h"
-#include "FairVolume.h" 
+#include "FairVolume.h"
 
 #include <sstream>
 #include "FITBase/Geometry.h"
