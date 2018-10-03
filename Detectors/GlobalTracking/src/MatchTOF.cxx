@@ -211,35 +211,41 @@ bool MatchTOF::prepareTracks()
     mTracksSectIndexCache[sec].reserve(100 + 1.2 * mNumOfTracks / o2::constants::math::NSectors);
   }
   
-
+  int nNotPropagatedToTOF = 0;
   for (int it = 0; it < mNumOfTracks; it++) {
-    //o2::dataformats::TrackTPCITS& trcOrig = (*mTracksArrayInp)[it]; // TODO: check if we cannot directly use the o2::track::TrackParCov class instead of o2::dataformats::TrackTPCITS, and then avoid the casting below; this is the track at the vertex
-    o2::track::TrackParCov& trcOrig = (*mTracksArrayInp)[it]; // TODO: check if we cannot directly use the o2::track::TrackParCov class instead of o2::dataformats::TrackTPCITS, and then avoid the casting below; this is the track at the vertex
-
+    o2::dataformats::TrackTPCITS& trcOrig = (*mTracksArrayInp)[it]; // TODO: check if we cannot directly use the o2::track::TrackParCov class instead of o2::dataformats::TrackTPCITS, and then avoid the casting below; this is the track at the vertex
+    //o2::track::TrackParCov& trcOrig = (*mTracksArrayInp)[it]; // TODO: check if we cannot directly use the o2::track::TrackParCov class instead of o2::dataformats::TrackTPCITS, and then avoid the casting below; this is the track at the vertex
     /*
     evIdx evIdxTPC = trcOrig.getRefTPC();
     int indTPC = evIdxTPC.getIndex();
     o2::TPC::TrackTPC& trcTPCOrig = (*mTPCTracksArrayInp)[indTPC]; // we take the track when it is propagated out
     */
-    
+    Printf("Original Track %d: getTimeMUS().getTimeStamp() = %f, getTimeMUS().getTimeStampError() = %f", it, (*mTracksArrayInp)[it].getTimeMUS().getTimeStamp() , (*mTracksArrayInp)[it].getTimeMUS().getTimeStampError()); 
     // create working copy of track param
     mTracksWork.emplace_back(trcOrig);//, mCurrTracksTreeEntry, it);
     // make a copy of the TPC track that we have to propagate
     //o2::TPC::TrackTPC* trc = new o2::TPC::TrackTPC(trcTPCOrig); // this would take the TPCout track
     auto& trc = mTracksWork.back(); // with this we take the TPCITS track propagated to the vertex
+    Printf("Copied Track %d: getTimeMUS().getTimeStamp() = %f, getTimeMUS().getTimeStampError() = %f", it, trc.getTimeMUS().getTimeStamp() , trc.getTimeMUS().getTimeStampError()); 
     // propagate to matching Xref
-    if (!propagateToRefX(trc, mXRef, 2)) {
-      mTracksWork.pop_back(); // discard track whose propagation to mXRef failed
+    if (!propagateToRefX(trc, mXRef, 2) || TMath::Abs(trc.getZ()) > Geo::MAXHZTOF) {
+      mTracksWork.pop_back(); // discard track whose propagation to mXRef failed, or those that go beyond TOF in z
+      nNotPropagatedToTOF++;
       continue;
     }
     //    if (mMCTruthON) {
     //      mTracksLblWork.emplace_back(mTracksLabels->getLabels(it)[0]);
     //    }
     // cache work track index
-    mTracksSectIndexCache[o2::utils::Angle2Sector(trc.getAlpha())].push_back(mTracksWork.size() - 1);
+    std::array<float, 3> globalPos;
+    trc.getXYZGlo(globalPos);
+
+    mTracksSectIndexCache[o2::utils::Angle2Sector( TMath::ATan2(globalPos[1], globalPos[0]))].push_back(mTracksWork.size() - 1);
     //delete trc; // Check: is this needed?
   }
 
+  LOG(INFO) << "Total number of tracks = " << mNumOfTracks << ", Number of tracks that failed to be propagated to TOF = " << nNotPropagatedToTOF << FairLogger::endl;
+  
   // sort tracks in each sector according to their time (increasing in time) 
   for (int sec = o2::constants::math::NSectors; sec--;) {
     auto& indexCache = mTracksSectIndexCache[sec];
@@ -388,87 +394,115 @@ void MatchTOF::doMatching(int sec)
   int itof0 = 0; // starting index in TOF clusters for matching of the track
   int   detId[2][5]; // at maximum one track can fall in 2 strips during the propagation; the second dimention of the array is the TOF det index
   float deltaPos[2][3]; // at maximum one track can fall in 2 strips during the propagation; the second dimention of the array is the residuals
-  int nmatchStrip[2] = {0,0};
+  int nStepsInsideSameStrip[2] = {0,0}; // number of propagation steps in the same strip (since we have maximum 2 strips, it has dimention = 2)
   int detIdTemp[5];
   float deltaPosTemp[3];
+  std::array<float, 3> pos;
+  std::array<float, 3> posBeforeProp;
+  float posFloat[3]; 
+  
   for (int itrk = 0; itrk < cacheTrk.size(); itrk++) {
-    int nPropagatedInStrip = 0; // how many strips were hit during the propagation
+    Printf("\n track %d", itrk);
+    for (int ii = 0; ii < 2; ii++)
+      detId[ii][2] = -1; // before trying to match, we need to inizialize the detId corresponding to the strip number to -1
+    int nStripsCrossedInPropagation = 0; // how many strips were hit during the propagation
     auto& trefTrk = mTracksWork[cacheTrk[itrk]];
     float minTrkTime = (trefTrk.getTimeMUS().getTimeStamp() - mSigmaTimeCut*trefTrk.getTimeMUS().getTimeStampError())*1.E6; // minimum time in ps
     float maxTrkTime = (trefTrk.getTimeMUS().getTimeStamp() + mSigmaTimeCut*trefTrk.getTimeMUS().getTimeStampError())*1.E6; // maximum time in ps
     int istep = 1; // number of steps
     float step = 0.1; // step size in cm
-    while (propagateToRefX(trefTrk, mXRef+istep*step, step) && nPropagatedInStrip <2 && mXRef+istep*step < Geo::RMAX){
-      istep++;
-      //      printf("istep = %d, currentPosition = %f \n", istep, mXRef+istep*step);
-      float pos[3] = {trefTrk.getX(), trefTrk.getY(), trefTrk.getZ()};
+    trefTrk.getXYZGlo(posBeforeProp);
+    //float posBeforeProp[3] = {trefTrk.getX(), trefTrk.getY(), trefTrk.getZ()}; // in local ref system
+    printf("Global coordinates: posBeforeProp[0] = %f, posBeforeProp[1] = %f, posBeforeProp[2] = %f\n", posBeforeProp[0], posBeforeProp[1], posBeforeProp[2]);
+    while (propagateToRefX(trefTrk, mXRef+istep*step, step) && nStripsCrossedInPropagation <2 && mXRef+istep*step < Geo::RMAX){
+      if (istep%100 == 0){
+	printf("istep = %d, currentPosition = %f \n", istep, mXRef+istep*step);
+      }
+      //float pos[3] = {trefTrk.getX(), trefTrk.getY(), trefTrk.getZ()}; // these are the coordinates in the local ref system
+      trefTrk.getXYZGlo(pos);
       //printf("getPadDxDyDz:\n");
-      Geo::getPadDxDyDz(pos, detIdTemp, deltaPosTemp);
-      //printf("getPadDxDyDz done\n");
+      for (int ii = 0; ii < 3; ii++){ // we need to change the type... 
+	posFloat[ii] = pos[ii];
+      }
+      Geo::getPadDxDyDz(posFloat, detIdTemp, deltaPosTemp);
+      if (detIdTemp[2] != -1 && nStripsCrossedInPropagation == 0){ // print in case you have a match
+	Printf("\n\n*********** We have a match!*********");
+	printf("Global coordinates: pos[0] = %f, pos[1] = %f, pos[2] = %f\n", pos[0], pos[1], pos[2]);
+	printf("detIdTemp[0] = %d, detIdTemp[1] = %d, detIdTemp[2] = %d, detIdTemp[3] = %d, detIdTemp[4] = %d\n", detIdTemp[0], detIdTemp[1], detIdTemp[2], detIdTemp[3], detIdTemp[4]);
+	printf("deltaPosTemp[0] = %f, deltaPosTemp[1] = %f, deltaPosTemp[2] = %f\n", deltaPosTemp[0], deltaPosTemp[1], deltaPosTemp[2]);
+      }
+	//printf("getPadDxDyDz done\n");
+      istep++;
       // check if after the propagation we are in a TOF strip
-      if (detId[nPropagatedInStrip][2] != -1) { // we ended in a TOF strip
-	if(nPropagatedInStrip && nmatchStrip[nPropagatedInStrip]){ // check if we are in new strip
-	  if(detId[nPropagatedInStrip][0] != detIdTemp[0] ||
-	     detId[nPropagatedInStrip][1] != detIdTemp[1] ||
-	     detId[nPropagatedInStrip][2] != detIdTemp[2])
-	    nPropagatedInStrip++;
+      if (detIdTemp[2] != -1) { // we ended in a TOF strip
+	Printf("We are in a TOF strip!");
+	if(nStripsCrossedInPropagation == 0 || detId[nStripsCrossedInPropagation-1][0] != detIdTemp[0] ||
+	   detId[nStripsCrossedInPropagation-1][1] != detIdTemp[1] ||
+	   detId[nStripsCrossedInPropagation-1][2] != detIdTemp[2]) {
+	  if(nStripsCrossedInPropagation == 2) break; // we have already matched 2 strips, we cannot match more
+	  nStripsCrossedInPropagation++;
+	}	
+	
+	if(nStepsInsideSameStrip[nStripsCrossedInPropagation-1] == 0){ 
+	  detId[nStripsCrossedInPropagation-1][0] = detIdTemp[0];
+	  detId[nStripsCrossedInPropagation-1][1] = detIdTemp[1];
+	  detId[nStripsCrossedInPropagation-1][2] = detIdTemp[2];
+	  detId[nStripsCrossedInPropagation-1][3] = detIdTemp[3];
+	  detId[nStripsCrossedInPropagation-1][4] = detIdTemp[4];
+	  deltaPos[nStripsCrossedInPropagation-1][0] = deltaPosTemp[0];
+	  deltaPos[nStripsCrossedInPropagation-1][1] = deltaPosTemp[1];
+	  deltaPos[nStripsCrossedInPropagation-1][2] = deltaPosTemp[2];
+	  nStepsInsideSameStrip[nStripsCrossedInPropagation-1]++;
 	}
-
-	if(nPropagatedInStrip == 2) break; 
-
-	if(nmatchStrip[nPropagatedInStrip] == 0){
-	  detId[nPropagatedInStrip][0] = detIdTemp[0];
-	  detId[nPropagatedInStrip][1] = detIdTemp[1];
-	  detId[nPropagatedInStrip][2] = detIdTemp[2];
-	  detId[nPropagatedInStrip][3] = detIdTemp[3];
-	  detId[nPropagatedInStrip][4] = detIdTemp[4];
-	  deltaPos[nPropagatedInStrip][0] = deltaPosTemp[0];
-	  deltaPos[nPropagatedInStrip][1] = deltaPosTemp[1];
-	  deltaPos[nPropagatedInStrip][2] = deltaPosTemp[2];
-	  nmatchStrip[nPropagatedInStrip]++;
-	}
-	else{ // a second propagation step in the same strip -> update info (we average on all matching with strip)
-	  deltaPos[nPropagatedInStrip][0] += deltaPosTemp[0] + (detIdTemp[4] - detId[nPropagatedInStrip][4])*Geo::XPAD;
-	  deltaPos[nPropagatedInStrip][1] += deltaPosTemp[1];
-	  deltaPos[nPropagatedInStrip][2] += deltaPosTemp[2] + (detIdTemp[3] - detId[nPropagatedInStrip][3])*Geo::ZPAD;
-	  nmatchStrip[nPropagatedInStrip]++;
+	else{ // a further propagation step in the same strip -> update info (we average on all matching with strip)
+	  deltaPos[nStripsCrossedInPropagation-1][0] += deltaPosTemp[0] + (detIdTemp[4] - detId[nStripsCrossedInPropagation-1][4])*Geo::XPAD;
+	  deltaPos[nStripsCrossedInPropagation-1][1] += deltaPosTemp[1];
+	  deltaPos[nStripsCrossedInPropagation-1][2] += deltaPosTemp[2] + (detIdTemp[3] - detId[nStripsCrossedInPropagation-1][3])*Geo::ZPAD;
+	  nStepsInsideSameStrip[nStripsCrossedInPropagation-1]++;
 	}
       }
-    }
-    //printf("while done\n");
-    for(Int_t imatch=0;imatch<nPropagatedInStrip;imatch++){
+    }    
+    printf("while done, we propagated track %d in %d strips\n", itrk, nStripsCrossedInPropagation);
+    
+    for(Int_t imatch = 0; imatch < nStripsCrossedInPropagation;imatch++){
       //printf("imatch = %d\n", imatch);
-      deltaPos[nPropagatedInStrip][0] /= nmatchStrip[nPropagatedInStrip];
-      deltaPos[nPropagatedInStrip][1] /= nmatchStrip[nPropagatedInStrip];
-      deltaPos[nPropagatedInStrip][2] /= nmatchStrip[nPropagatedInStrip];
+      // we take as residual the average of the residuals along the propagation in the same strip
+      deltaPos[imatch][0] /= nStepsInsideSameStrip[imatch]; 
+      deltaPos[imatch][1] /= nStepsInsideSameStrip[imatch];
+      deltaPos[imatch][2] /= nStepsInsideSameStrip[imatch];
+      printf("matched strip %d: deltaPos[0] = %f, deltaPos[1] = %f, deltaPos[2] = %f\n", imatch, deltaPos[imatch][0], deltaPos[imatch][1], deltaPos[imatch][2]);
     }
 
-
-    if (nPropagatedInStrip == 0) continue; // the track never hit a TOF strip during the propagation
+    if (nStripsCrossedInPropagation == 0) continue; // the track never hit a TOF strip during the propagation
+    Printf("We will check now the %d TOF clusters", nTOFCls);
     for (auto itof = itof0; itof < nTOFCls; itof++) {
       printf("itof = %d\n", itof);
       auto& trefTOF = mTOFClusWork[cacheTOF[itof]];
       // compare the times of the track and the TOF clusters - remember that they both are ordered in time!
+      Printf("trefTOF.getTime() = %f, maxTrkTime = %f, minTrkTime = %f", trefTOF.getTime(), maxTrkTime, minTrkTime);
       if (trefTOF.getTime() < minTrkTime) {
 	itof0 = itof;
-	continue;
+	//	continue;
       }
       if (trefTOF.getTime() > maxTrkTime) { // no more TOF clusters can be matched to this track
-	break;
+	//	break;
       }
       int mainChannel = trefTOF.getMainContributingChannel();
       int indices[5];
       Geo::getVolumeIndices(mainChannel, indices);
-      for (auto iPropagation = 0; iPropagation < nPropagatedInStrip; iPropagation++){
+      for (auto iPropagation = 0; iPropagation < nStripsCrossedInPropagation; iPropagation++){
 	printf("iPropagation = %d\n", iPropagation);
+	Printf("indices[0] = %d, indices[1] = %d, indices[2] = %d, detId[iPropagation][0] = %d, detId[iPropagation][1] = %d, detId[iPropagation][2] = %d", indices[0], indices[1], indices[2], detId[iPropagation][0], detId[iPropagation][1], detId[iPropagation][2]);
 	if (indices[0] != detId[iPropagation][0]) continue;
 	if (indices[1] != detId[iPropagation][1]) continue;
 	if (indices[2] != detId[iPropagation][2]) continue;
 	float resX = deltaPos[iPropagation][0] - (indices[4] - detId[iPropagation][4])*Geo::XPAD; // readjusting the residuals due to the fact that the propagation fell in a pad that was not exactly the one of the cluster
 	float resZ = deltaPos[iPropagation][2] - (indices[3] - detId[iPropagation][3])*Geo::ZPAD; // readjusting the residuals due to the fact that the propagation fell in a pad that was not exactly the one of the cluster
 	float res = TMath::Sqrt(resX*resX + resZ*resZ);
+	Printf("resX = %f, resZ = %f, res = %f", resX, resZ, res);
 	float chi2 = res; // TODO: take into account also the time!
 	if (res < mSpaceTolerance) { // matching ok!
+	  Printf("YUHUUUUUUUUU! We have a match!");
 	  mMatchedTracksPairs.push_back(std::make_pair(itrk, o2::dataformats::MatchInfoTOF(itof, chi2))); // TODO: check if this is correct!
 	}
       }
