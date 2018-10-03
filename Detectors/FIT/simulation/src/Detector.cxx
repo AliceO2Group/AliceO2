@@ -21,7 +21,7 @@
 #include "FairVolume.h"
 
 #include "FairRootManager.h"
-#include "FairVolume.h" 
+#include "FairVolume.h"
 
 #include <sstream>
 #include "FITBase/Geometry.h"
@@ -34,7 +34,7 @@ using o2::fit::Geometry;
 ClassImp(Detector);
 
 Detector::Detector(Bool_t Active)
-  : o2::Base::DetImpl<Detector>("FIT", Active), mIdSens1(0), mPMTeff(nullptr), mHits(new std::vector<o2::fit::HitType>) 
+  : o2::Base::DetImpl<Detector>("FIT", Active), mIdSens1(0), mPMTeff(nullptr), mHits(new std::vector<o2::fit::HitType>)
 {
   // Gegeo  = GetGeometry() ;
 
@@ -297,8 +297,8 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     float etot = fMC->Etot();
     int iPart = fMC->TrackPid();
     float enDep = fMC->Edep();
-    if (fMC->TrackCharge()) {  //charge particles for MCtrue
-      AddHit(x, y, z, time, 10, trackID, detID); 
+    if (fMC->TrackCharge()) { //charge particles for MCtrue
+      AddHit(x, y, z, time, 10, trackID, detID);
     }
     if (iPart == 50000050) // If particles is photon then ...
     {
@@ -306,7 +306,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
         AddHit(x, y, z, time, enDep, trackID, detID);
       }
     }
-   
+
     return kTRUE;
   }
   return kFALSE;

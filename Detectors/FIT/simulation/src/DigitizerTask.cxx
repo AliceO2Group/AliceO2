@@ -94,7 +94,7 @@ void DigitizerTask::FinishTask()
 
   FairRootManager* mgr = FairRootManager::Instance();
   mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
-  
+
   //  mDigitizer.setMCTruthContainer(mMCTruthArray);
 
   mDigitizer.finish();
@@ -119,7 +119,7 @@ void DigitizerTask::processQEDBackground(double tMax)
     mDigitizer.setEventTime(mLastQEDTimeNS);
     mDigitizer.setEventID(mQEDSourceID);
 
-    mDigitizer.process(mHitsArrayQED,mEventDigit);
+    mDigitizer.process(mHitsArrayQED, mEventDigit);
     //
   }
 }

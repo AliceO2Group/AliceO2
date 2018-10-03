@@ -34,7 +34,7 @@ class Digitizer
   // void printParameters();
   void setEventTime(double value) { mEventTime = value; }
   void setEventID(Int_t id) { mEventID = id; }
-  void setSrcID(Int_t id) { mSrcID = id; }  
+  void setSrcID(Int_t id) { mSrcID = id; }
   Int_t getCurrentTimeFrame() const { return mTimeFrameCurrent; }
   void setCurrentTimeFrame(Double_t value) { mTimeFrameCurrent = value; }
 
@@ -58,13 +58,12 @@ class Digitizer
   Double_t mLowTime;   // Initialized in initParameters
   Double_t mHighTime;  // Initialized in initParameters
   Double_t mTimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
-  
-   o2::dataformats::MCTruthContainer<o2::fit::MCLabel> *mMCLabels = nullptr; 
-  //  o2::dataformats::MCTruthContainer<o2::fit::MCLabel> mMCLabels; 
-  //  o2::dataformats::MCTruthContainer<o2::fit::MCLabel>* mMCLabels = &mMCLabels; ///< Array for MCTruth information associated to digits in mDigitsArrray.
- //Array for MCTruth information associated to digits in mDigitsArrray.
- //   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mMCLabels = nullptr;
 
+  o2::dataformats::MCTruthContainer<o2::fit::MCLabel>* mMCLabels = nullptr;
+  //  o2::dataformats::MCTruthContainer<o2::fit::MCLabel> mMCLabels;
+  //  o2::dataformats::MCTruthContainer<o2::fit::MCLabel>* mMCLabels = &mMCLabels; ///< Array for MCTruth information associated to digits in mDigitsArrray.
+  //Array for MCTruth information associated to digits in mDigitsArrray.
+  //   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mMCLabels = nullptr;
 
   ClassDefNV(Digitizer, 1);
 };
