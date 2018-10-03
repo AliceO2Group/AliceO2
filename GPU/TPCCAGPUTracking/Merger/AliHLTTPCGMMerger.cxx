@@ -949,10 +949,11 @@ void AliHLTTPCGMMerger::MergeCE()
 
             if (fSliceParam.GetContinuousTracking())
             {
-                const float z0min = std::min(fabs(fClusters[trk[0]->FirstClusterRef()].fZ), fabs(fClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].fZ));
-                const float z1min = std::min(fabs(fClusters[trk[1]->FirstClusterRef()].fZ), fabs(fClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].fZ));
-                float offset = (z0min + z1min) / 2;
-                if (!trk[0]->CSide()) offset = -offset;
+                const float z0 = trk[0]->CSide() ? std::max(fClusters[trk[0]->FirstClusterRef()].fZ, fClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].fZ) :
+                    std::min(fClusters[trk[0]->FirstClusterRef()].fZ, fClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].fZ);
+                const float z1 = trk[1]->CSide() ? std::max(fClusters[trk[1]->FirstClusterRef()].fZ, fClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].fZ) :
+                    std::min(fClusters[trk[1]->FirstClusterRef()].fZ, fClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].fZ);
+                float offset = (z0 + z1) / 2;
                 trk[0]->Param().Z() += trk[0]->Param().ZOffset() - offset;
                 trk[0]->Param().ZOffset() = offset;
             }
