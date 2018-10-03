@@ -94,6 +94,8 @@ void DigitizerTask::FinishTask()
 
   FairRootManager* mgr = FairRootManager::Instance();
   mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
+  
+  //  mDigitizer.setMCTruthContainer(mMCTruthArray);
 
   //  mDigitizer.setMCTruthContainer(mMCTruthArray);
 

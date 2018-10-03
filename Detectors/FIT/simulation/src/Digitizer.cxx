@@ -56,6 +56,7 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
   Double_t ch_signal_nPe[nMCPs] = {};
   Double_t ch_signal_MIP[nMCPs] = {};
   Double_t ch_signal_time[nMCPs] = {};
+
   for (auto& hit : *hits) {
     Int_t hit_ch = hit.GetDetectorID();
     Double_t hit_time = hit.GetTime();
@@ -75,6 +76,7 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
       ch_signal_time[hit_ch] += hit_time_corr;
     }
     //charge particles in MCLabel
+
     if (hit.GetEnergyLoss() > 0) {
       o2::fit::MCLabel label(hit.GetTrackID(), mEventID, mSrcID, hit_ch);
       int lblCurrent;

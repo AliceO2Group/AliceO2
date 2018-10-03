@@ -45,6 +45,8 @@ class DigitizerTask : public FairTask
   Digitizer& getDigitizer() { return mDigitizer; }
   void setContinuous(bool v) { mContinuous = v; }
   bool isContinuous() const { return mContinuous; }
+  
+  void setQEDInput(TBranch* qed, float timebin, UChar_t srcID);
 
   void setQEDInput(TBranch* qed, float timebin, UChar_t srcID);
 
