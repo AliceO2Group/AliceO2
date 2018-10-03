@@ -13,6 +13,9 @@
 
 #include "FITBase/Digit.h"
 #include "FITSimulation/Detector.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "FITSimulation/MCLabel.h"
 
 namespace o2
 {
@@ -31,11 +34,14 @@ class Digitizer
   // void printParameters();
   void setEventTime(double value) { mEventTime = value; }
   void setEventID(Int_t id) { mEventID = id; }
+  void setSrcID(Int_t id) { mSrcID = id; }
   Int_t getCurrentTimeFrame() const { return mTimeFrameCurrent; }
   void setCurrentTimeFrame(Double_t value) { mTimeFrameCurrent = value; }
 
   void init();
   void finish();
+  //  void setMCLabels(o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mclb) { mMCLabels = mclb; }
+  void setMCLabels(o2::dataformats::MCTruthContainer<o2::fit::MCLabel>* mclb) { mMCLabels = mclb; }
 
  private:
   // digit info
@@ -46,12 +52,15 @@ class Digitizer
   Int_t mMode;
   Int_t mTimeFrameCurrent;
   Double_t mEventTime; // Initialized in initParameters
-  Int_t mEventID = 0;
-  Int_t mSrcID = 0;
+  Int_t mEventID;
+  Int_t mSrcID;
   Int_t mAmpThreshold; // Initialized in initParameters
   Double_t mLowTime;   // Initialized in initParameters
   Double_t mHighTime;  // Initialized in initParameters
   Double_t mTimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
+
+  o2::dataformats::MCTruthContainer<o2::fit::MCLabel>* mMCLabels = nullptr;
+
   ClassDefNV(Digitizer, 1);
 };
 } // namespace fit

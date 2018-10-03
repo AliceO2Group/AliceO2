@@ -8,18 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// \file MCLabel 
+/// \brief Implementation of the MC true container
+#include "FITSimulation/MCLabel.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+using namespace o2::fit;
 
-#pragma link C++ class o2::fit::Detector+;
-#pragma link C++ class o2::fit::Digitizer + ;
-#pragma link C++ class o2::fit::DigitizerTask + ;
-#pragma link C++ class o2::fit::MCLabel + ;
-#pragma link C++ class o2::dataformats::MCTruthContainer < o2::fit::MCLabel > +;
+ClassImp(o2::fit::MCLabel);
 
-#pragma link C++ class o2::Base::DetImpl<o2::fit::Detector>+;
+MCLabel::MCLabel(Int_t trackID, Int_t eventID, Int_t srcID, Int_t qID)
+  : o2::MCCompLabel(trackID, eventID, srcID),
+    mDetID(qID)
+{
 
-#endif
+  //  std::cout<<"@@@ MCLabel constructor "<<std::endl;
+}
