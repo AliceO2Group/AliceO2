@@ -60,10 +60,6 @@ class Digitizer
   Double_t mTimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
 
   o2::dataformats::MCTruthContainer<o2::fit::MCLabel>* mMCLabels = nullptr;
-  //  o2::dataformats::MCTruthContainer<o2::fit::MCLabel> mMCLabels;
-  //  o2::dataformats::MCTruthContainer<o2::fit::MCLabel>* mMCLabels = &mMCLabels; ///< Array for MCTruth information associated to digits in mDigitsArrray.
-  //Array for MCTruth information associated to digits in mDigitsArrray.
-  //   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mMCLabels = nullptr;
 
   ClassDefNV(Digitizer, 1);
 };

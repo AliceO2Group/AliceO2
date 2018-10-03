@@ -60,8 +60,6 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
   Int_t ch_hit_nPe[nMCPs] = {};
   Double_t ch_hit_mean_time[nMCPs] = {};
 
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mcTruthContainer;
-
   for (auto& hit : *hits) {
     Int_t hit_ch = hit.GetDetectorID();
     Double_t hit_time = hit.GetTime();
@@ -205,10 +203,6 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
 
   LOG(DEBUG) << "IS A " << is_A << " IS C " << is_C << " is Central " << is_Central
              << " is SemiCentral " << is_SemiCentral << " is Vertex " << is_Vertex << FairLogger::endl;
-
-  //LOG(DEBUG) << *digit << FairLogger::endl;
-  //std::cout << *digit << FairLogger::endl;
-  // digit->printStream( std::cout );
 
   LOG(DEBUG) << "======================================\n\n"
              << FairLogger::endl;

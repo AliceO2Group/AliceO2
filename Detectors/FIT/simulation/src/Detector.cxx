@@ -74,12 +74,10 @@ void Detector::ConstructGeometry()
 
   int nCellsA = Geometry::NCellsA;
   int nCellsC = Geometry::NCellsC;
-  //std::cout<<"@@@@ mGeometry->NCells "<<nCellsA<<" "<<nCellsC<<std::endl;
-
+ 
   Geometry geometry;
   TVector3 centerMCP = geometry.centerMCP(2);
-  std::cout << "@@@@ mGeometry->centerMCP " << nCellsA << " " << nCellsC << centerMCP.X() << std::endl;
-
+ 
   Matrix(idrotm[901], 90., 0., 90., 90., 180., 0.);
 
   // C side Concave Geometry
@@ -164,7 +162,6 @@ void Detector::ConstructGeometry()
     nameTr = Form("0TR%i", itr + 1);
     z = -pstartA[2] + pinstart[2];
     tr[itr] = new TGeoTranslation(nameTr.Data(), xa[itr], ya[itr], z);
-    printf(" itr %i A %f %f %f \n", itr, xa[itr], ya[itr], z + zdetA);
     tr[itr]->RegisterYourself();
     stlinA->AddNode(ins, itr, tr[itr]);
   }
@@ -248,13 +245,10 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   topref->AddNode(top, 1, new TGeoTranslation(0, 0, 0));
   xinv = -ptop[0] - prfv[0];
   topref->AddNode(rfv, 1, new TGeoTranslation(xinv, 0, 0));
-  printf(" GEOGEO  refv %f ,  0,0 \n", xinv);
   xinv = ptop[0] + prfv[0];
   topref->AddNode(rfv, 2, new TGeoTranslation(xinv, 0, 0));
-  printf(" GEOGEO  refv %f ,  0,0 \n", xinv);
-  yinv = -ptop[1] - prfh[1];
+   yinv = -ptop[1] - prfh[1];
   topref->AddNode(rfh, 1, new TGeoTranslation(0, yinv, 0));
-  printf(" GEOGEO  refh  ,  0, %f, 0 \n", yinv);
   yinv = ptop[1] + prfh[1];
   topref->AddNode(rfh, 2, new TGeoTranslation(0, yinv, 0));
 
@@ -266,11 +260,9 @@ void Detector::SetOneMCP(TGeoVolume* ins)
       yin = -pinstart[1] + 0.3 + (iy + 0.5) * 2 * ptopref[1];
       ntops++;
       ins->AddNode(topref, ntops, new TGeoTranslation(xin, yin, z));
-      printf(" 0TOP  full %i x %f y %f z %f \n", ntops, xin, yin, z);
-      z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + preg[2];
+       z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + preg[2];
       ins->AddNode(cat, ntops, new TGeoTranslation(xin, yin, z));
       // cat->Print();
-      printf(" GEOGEO  CATHOD x=%f , y= %f z= %f num  %i\n", xin, yin, z, ntops);
     }
   }
   // Al top
