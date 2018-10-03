@@ -40,9 +40,8 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
   constexpr Double_t signal_width = 5.;           // time gate for signal, ns
   constexpr Double_t nPe_in_mip = 250.;           // n ph. e. in one mip
   constexpr Double_t CFD_trsh_mip = 0.4;          // = 4[mV] / 10[mV/mip]
-  
   Int_t nlbl = 0; //number of MCtrues
-  // --------------------------------------------------------------------------
+ // --------------------------------------------------------------------------
   //  unsigned orbit;
   //  int bc = InteractionRecord::ns2bc(mEventTime, orbit);
   // std::cout << "BC " << bc << ", orbit " << orbit << ", ns " << mEventTime << "\n";
@@ -209,11 +208,9 @@ void  Digitizer::setTriggers(  Digit* digit)
   mean_time_C = is_C ? mean_time_C / n_hit_C : 0.;
   vertex_time = (mean_time_A + mean_time_C) * .5;
   Bool_t is_Vertex = (vertex_time > trg_vertex_min) && (vertex_time < trg_vertex_max);
-  // --------------------------------------------------------------------------
-
+ 
   //filling digit
   digit->setTriggers(is_A, is_C, is_Central, is_SemiCentral, is_Vertex);
-
 
   // Debug output -------------------------------------------------------------
   LOG(DEBUG) << "\n\nTest digizing data ===================" << FairLogger::endl;

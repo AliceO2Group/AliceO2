@@ -80,7 +80,7 @@ void Detector::ConstructGeometry()
 
   int nCellsA = Geometry::NCellsA;
   int nCellsC = Geometry::NCellsC;
-
+ 
   Geometry geometry;
   TVector3 centerMCP = geometry.centerMCP(2);
 
@@ -253,11 +253,7 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   topref->AddNode(rfv, 1, new TGeoTranslation(xinv, 0, 0));
   xinv = ptop[0] + prfv[0];
   topref->AddNode(rfv, 2, new TGeoTranslation(xinv, 0, 0));
-<<<<<<< HEAD
   yinv = -ptop[1] - prfh[1];
-=======
-   yinv = -ptop[1] - prfh[1];
->>>>>>> writing MC label for charge particles
   topref->AddNode(rfh, 1, new TGeoTranslation(0, yinv, 0));
   yinv = ptop[1] + prfh[1];
   topref->AddNode(rfh, 2, new TGeoTranslation(0, yinv, 0));
@@ -270,15 +266,11 @@ void Detector::SetOneMCP(TGeoVolume* ins)
       yin = -pinstart[1] + 0.3 + (iy + 0.5) * 2 * ptopref[1];
       ntops++;
       ins->AddNode(topref, ntops, new TGeoTranslation(xin, yin, z));
-<<<<<<< HEAD
       z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + preg[2];
       ins->AddNode(cat, ntops, new TGeoTranslation(xin, yin, z));
-
-=======
        z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + preg[2];
       ins->AddNode(cat, ntops, new TGeoTranslation(xin, yin, z));
       // cat->Print();
->>>>>>> writing MC label for charge particles
     }
   }
   // Al top
