@@ -166,6 +166,15 @@ int main(int argc, char** argv)
 	if (configStandalone.solenoidBz != -1e6f) eventSettings.solenoidBz = configStandalone.solenoidBz;
 	if (configStandalone.constBz) eventSettings.constBz = true;
 
+#if !(defined(BUILD_CUDA) || defined(BUILD_OPENCL))
+	if (configStandalone.runGPU)
+	{
+		printf("GPU disables at build time!\n");
+		getchar();
+		return(1);
+	}
+#endif
+
 	if (hlt.Initialize(configStandalone.runGPU ? configStandalone.gpuLibrary : NULL, configStandalone.cudaDevice))
 	{
 		printf("Press a key to exit!\n");
