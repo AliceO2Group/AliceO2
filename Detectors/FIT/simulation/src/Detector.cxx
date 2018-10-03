@@ -81,19 +81,9 @@ void Detector::ConstructGeometry()
 
   int nCellsA = Geometry::NCellsA;
   int nCellsC = Geometry::NCellsC;
-<<<<<<< HEAD
  
-=======
-  //std::cout<<"@@@@ mGeometry->NCells "<<nCellsA<<" "<<nCellsC<<std::endl;
-
->>>>>>> MCtrue implemented
   Geometry geometry;
   TVector3 centerMCP = geometry.centerMCP(2);
-<<<<<<< HEAD
-=======
-  std::cout << "@@@@ mGeometry->centerMCP " << nCellsA << " " << nCellsC << centerMCP.X() << std::endl;
->>>>>>> MCtrue implemented
-
   Matrix(idrotm[901], 90., 0., 90., 90., 180., 0.);
 
   // C side Concave Geometry
@@ -178,10 +168,6 @@ void Detector::ConstructGeometry()
     nameTr = Form("0TR%i", itr + 1);
     z = -pstartA[2] + pinstart[2];
     tr[itr] = new TGeoTranslation(nameTr.Data(), xa[itr], ya[itr], z);
-<<<<<<< HEAD
-=======
-    printf(" itr %i A %f %f %f \n", itr, xa[itr], ya[itr], z + zdetA);
->>>>>>> MCtrue implemented
     tr[itr]->RegisterYourself();
     stlinA->AddNode(ins, itr, tr[itr]);
   }
@@ -282,7 +268,7 @@ void Detector::SetOneMCP(TGeoVolume* ins)
       ins->AddNode(topref, ntops, new TGeoTranslation(xin, yin, z));
       z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + preg[2];
       ins->AddNode(cat, ntops, new TGeoTranslation(xin, yin, z));
-       z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + preg[2];
+      z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + preg[2];
       ins->AddNode(cat, ntops, new TGeoTranslation(xin, yin, z));
       // cat->Print();
     }
