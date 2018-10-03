@@ -217,14 +217,14 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU_Runtime(int sliceCount, int forceDeviceID
 	if (fGPUMemSize > fCudaDeviceProp.totalGlobalMem || GPUFailedMsg(cudaMalloc(&fGPUMemory, (size_t) fGPUMemSize)))
 	{
 		HLTError("CUDA Memory Allocation Error");
-		cudaThreadExit();
+		cudaDeviceReset();
 		return(1);
 	}
 	if (fDebugLevel >= 1) HLTInfo("GPU Memory used: %lld", fGPUMemSize);
 	if (GPUFailedMsg(cudaMallocHost(&fHostLockedMemory, fHostMemSize)))
 	{
 		cudaFree(fGPUMemory);
-		cudaThreadExit();
+		cudaDeviceReset();
 		HLTError("Error allocating Page Locked Host Memory");
 		return(1);
 	}
@@ -243,7 +243,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU_Runtime(int sliceCount, int forceDeviceID
 		{
 			cudaFree(fGPUMemory);
 			cudaFreeHost(fHostLockedMemory);
-			cudaThreadExit();
+			cudaDeviceReset();
 			HLTError("Error creating CUDA Stream");
 			return(1);
 		}
@@ -267,7 +267,7 @@ int AliHLTTPCCAGPUTrackerNVCC::GPUSync(const char* state, int stream, int slice)
 		HLTError("Cuda Error %s while running kernel (%s) (Stream %d; %d/%d)", cudaGetErrorString(cuErr), state, stream, slice, fgkNSlices);
 		return(1);
 	}
-	if (GPUFailedMsg(cudaThreadSynchronize()))
+	if (GPUFailedMsg(cudaDeviceSynchronize()))
 	{
 		HLTError("CUDA Error while synchronizing (%s) (Stream %d; %d/%d)", state, stream, slice, fgkNSlices);
 		return(1);
@@ -465,14 +465,14 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 	}
 
 #ifdef HLTCA_GPU_CONSTRUCTOR_SINGLE_SLICE
-	cudaThreadSynchronize();
+	cudaDeviceSynchronize();
 #else
 	if (fDebugLevel >= 3) HLTInfo("Running GPU Tracklet Constructor");
 	fSlaveTrackers[firstSlice].StartTimer(6);
 	AliHLTTPCCATrackletConstructorGPU<<<fConstructorBlockCount, HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR>>>();
 	if (GPUSync("Tracklet Constructor", -1, firstSlice) RANDOM_ERROR)
 	{
-		cudaThreadSynchronize();
+		cudaDeviceSynchronize();
 		cuCtxPopCurrent((CUcontext*) fCudaContext);
 		return(1);
 	}
@@ -516,7 +516,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 		AliHLTTPCCAProcessMulti<AliHLTTPCCATrackletSelector><<<fSelectorBlockCount, HLTCA_GPU_THREAD_COUNT_SELECTOR, 0, cudaStreams[useStream]>>>(iSlice, runSlices);
 		if (GPUSync("Tracklet Selector", iSlice, iSlice + firstSlice) RANDOM_ERROR)
 		{
-			cudaThreadSynchronize();
+			cudaDeviceSynchronize();
 			cuCtxPopCurrent((CUcontext*) fCudaContext);
 			return(1);
 		}
@@ -696,7 +696,7 @@ int AliHLTTPCCAGPUTrackerNVCC::ExitGPU_Runtime()
 	//Uninitialize CUDA
 	cuCtxPushCurrent(*((CUcontext*) fCudaContext));
 
-	cudaThreadSynchronize();
+	cudaDeviceSynchronize();
 	if (fGPUMemory)
 	{
 		cudaFree(fGPUMemory);
@@ -714,7 +714,7 @@ int AliHLTTPCCAGPUTrackerNVCC::ExitGPU_Runtime()
 		cudaFreeHost(fHostLockedMemory);
 	}
 
-	if (GPUFailedMsg(cudaThreadExit()))
+	if (GPUFailedMsg(cudaDeviceReset()))
 	{
 		HLTError("Could not uninitialize GPU");
 		return(1);
@@ -776,11 +776,11 @@ int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger, bool
 	GPUFailedMsg(cudaMemcpy(field, Merger->pField(), sizeof(AliHLTTPCGMPolynomialField), cudaMemcpyHostToDevice));
 	times[0] += timer.GetCurrentElapsedTime(true);
 	RefitTracks<<<fConstructorBlockCount, HLTCA_GPU_THREAD_COUNT>>>(tracks, Merger->NOutputTracks(), clusters);
-	GPUFailedMsg(cudaThreadSynchronize());
+	GPUFailedMsg(cudaDeviceSynchronize());
 	times[1] += timer.GetCurrentElapsedTime(true);
 	GPUFailedMsg(cudaMemcpy(Merger->Clusters(), clusters, Merger->NOutputTrackClusters() * sizeof(clusters[0]), cudaMemcpyDeviceToHost));
 	GPUFailedMsg(cudaMemcpy((void*) Merger->OutputTracks(), tracks, Merger->NOutputTracks() * sizeof(AliHLTTPCGMMergedTrack), cudaMemcpyDeviceToHost));
-	GPUFailedMsg(cudaThreadSynchronize());
+	GPUFailedMsg(cudaDeviceSynchronize());
 	times[2] += timer.GetCurrentElapsedTime();
 	if (fDebugLevel >= 2) HLTInfo("GPU Merger Finished");
 	nCount++;
@@ -822,7 +822,7 @@ void AliHLTTPCCAGPUTrackerNVCC::ReleaseThreadContext()
 
 void AliHLTTPCCAGPUTrackerNVCC::SynchronizeGPU()
 {
-	cudaThreadSynchronize();
+	cudaDeviceSynchronize();
 }
 
 AliHLTTPCCAGPUTracker* AliHLTTPCCAGPUTrackerNVCCCreate()
