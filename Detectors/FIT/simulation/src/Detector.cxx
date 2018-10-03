@@ -21,7 +21,7 @@
 #include "FairVolume.h"
 
 #include "FairRootManager.h"
-#include "FairVolume.h" 
+#include "FairVolume.h"
 
 #include <sstream>
 #include "FITBase/Geometry.h"
@@ -35,6 +35,7 @@ ClassImp(Detector);
 
 Detector::Detector(Bool_t Active)
   : o2::Base::DetImpl<Detector>("FIT", Active), mIdSens1(0), mPMTeff(nullptr), mHits(o2::utils::createSimVector<HitType>())
+
 {
   // Gegeo  = GetGeometry() ;
 
