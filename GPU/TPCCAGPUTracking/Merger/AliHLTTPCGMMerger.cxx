@@ -965,12 +965,13 @@ void AliHLTTPCGMMerger::MergeCE()
             }
             trk[0]->SetFirstClusterRef(newRef);
             trk[0]->SetNClusters(trk[0]->NClusters() + trk[1]->NClusters());
+            trk[0]->SetCCE(true);
             trk[1]->SetNClusters(0);
             trk[1]->SetOK(false);
         }
     }
 
-    //for (int i = 0;i < fNOutputTracks;i++) {if (fOutputTracks[i].NeighborTrack() == -1) {fOutputTracks[i].SetNClusters(0);fOutputTracks[i].SetOK(false);}} //Remove all non-CE tracks
+    //for (int i = 0;i < fNOutputTracks;i++) {if (fOutputTracks[i].CCE() == false) {fOutputTracks[i].SetNClusters(0);fOutputTracks[i].SetOK(false);}} //Remove all non-CE tracks
 }
 
 struct AliHLTTPCGMMerger_CompareClusterIdsLooper
@@ -1240,6 +1241,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
       }
 
       AliHLTTPCGMMergedTrack &mergedTrack = fOutputTracks[fNOutputTracks];
+      mergedTrack.SetFlags(0);
       mergedTrack.SetOK(1);
       mergedTrack.SetLooper(leg > 0);
       mergedTrack.SetNClusters( nHits );
