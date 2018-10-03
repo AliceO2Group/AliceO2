@@ -21,7 +21,7 @@
 #include "FairVolume.h"
 
 #include "FairRootManager.h"
-#include "FairVolume.h"
+#include "FairVolume.h" 
 
 #include <sstream>
 #include "FITBase/Geometry.h"
@@ -267,7 +267,7 @@ void Detector::SetOneMCP(TGeoVolume* ins)
       ins->AddNode(topref, ntops, new TGeoTranslation(xin, yin, z));
       z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + preg[2];
       ins->AddNode(cat, ntops, new TGeoTranslation(xin, yin, z));
-      // cat->Print();
+
     }
   }
   // Al top

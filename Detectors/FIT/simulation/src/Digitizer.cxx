@@ -60,6 +60,8 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
   Int_t ch_hit_nPe[nMCPs] = {};
   Double_t ch_hit_mean_time[nMCPs] = {};
 
+   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mcTruthContainer;
+   
   for (auto& hit : *hits) {
     Int_t hit_ch = hit.GetDetectorID();
     Double_t hit_time = hit.GetTime();
@@ -80,8 +82,7 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
         nlbl++;
       }
     }
-  }
-
+  
   for (Int_t ch_iter = 0; ch_iter < nMCPs; ch_iter++) {
     if (ch_hit_nPe[ch_iter] != 0) {
       ch_hit_mean_time[ch_iter] = ch_hit_mean_time[ch_iter] / (float)ch_hit_nPe[ch_iter];
