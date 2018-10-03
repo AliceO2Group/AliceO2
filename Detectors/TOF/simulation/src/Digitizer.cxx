@@ -251,7 +251,7 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Float_t time, Float_t x, 
       mFutureItrackID.push_back(trackID);
 
       // fill temporary digits array
-      mFutureDigits.emplace_back(time, channel, tdc, tot * Geo::NTOTBIN_PER_NS, nbc, lblCurrent);
+      mFutureDigits.emplace_back(channel, tdc, tot * Geo::NTOTBIN_PER_NS, nbc, lblCurrent);
 
       return; // don't fill if doesn't match any available readout window
     }
@@ -273,17 +273,17 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Float_t time, Float_t x, 
     mcTruthContainer = mMCTruthContainerNext[isnext - 1];
   }
 
-  fillDigitsInStrip(strips, mcTruthContainer, time, channel, tdc, tot, nbc, istrip, trackID, mEventID, mSrcID);
+  fillDigitsInStrip(strips, mcTruthContainer, channel, tdc, tot, nbc, istrip, trackID, mEventID, mSrcID);
 }
 //______________________________________________________________________
-void Digitizer::fillDigitsInStrip(std::vector<Strip>* strips, o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer, double time, int channel, int tdc, int tot, int nbc, UInt_t istrip, Int_t trackID, Int_t eventID, Int_t sourceID)
+void Digitizer::fillDigitsInStrip(std::vector<Strip>* strips, o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer, int channel, int tdc, int tot, int nbc, UInt_t istrip, Int_t trackID, Int_t eventID, Int_t sourceID)
 {
   int lblCurrent;
   if (mcTruthContainer) {
     lblCurrent = mcTruthContainer->getIndexedSize(); // this is the size of mHeaderArray;
   }
 
-  Int_t lbl = (*strips)[istrip].addDigit(time, channel, tdc, tot * Geo::NTOTBIN_PER_NS, nbc, lblCurrent);
+  Int_t lbl = (*strips)[istrip].addDigit(channel, tdc, tot * Geo::NTOTBIN_PER_NS, nbc, lblCurrent);
 
   if (mcTruthContainer) {
     if (lbl == lblCurrent) { // it means that the digit was a new one --> we have to add the info in the MC container
@@ -693,7 +693,7 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
 
   if(mContinuous){
     if(digits.size()) printf("%i) # TOF digits = %i (%x)\n",mIcurrentReadoutWindow,digits.size(),mStripsCurrent);
-    mDigitsPerTimeFrame.push_back(digits);
+    mDigitsPerTimeFrame.get()->push_back(digits);
   }
 
   // if(! digits.size()) return;
@@ -752,7 +752,8 @@ void Digitizer::checkIfReuseFutureDigits(){
   // check if digits stored very far in future match the new readout windows currently available
   int idigit = 0;      
   for (auto& digit : mFutureDigits) {
-    int isnext = Int_t(digit.getTimeStamp() * Geo::READOUTWINDOW_INV) - (mReadoutWindowCurrent+1); // to be replaced with uncalibrated time
+    double timestamp = digit.getBC()*25 + digit.getTDC() * Geo::TDCBIN*1E-3; // in ns
+    int isnext = Int_t(timestamp * Geo::READOUTWINDOW_INV) - (mReadoutWindowCurrent+1); // to be replaced with uncalibrated time
     if (isnext < 0) // we jump too ahead in future, digit will be not stored
       LOG(INFO) << "Digit lost because we jump too ahead in future. Current RO window=" << isnext << "\n";
     if (isnext < MAXWINDOWS - 1) { // move from digit buffer array to the proper window
@@ -768,7 +769,7 @@ void Digitizer::checkIfReuseFutureDigits(){
 	int trackID = mFutureItrackID[digit.getLabel()];
 	int sourceID = mFutureIsource[digit.getLabel()];
 	int eventID = mFutureIevent[digit.getLabel()];
-	fillDigitsInStrip(strips, mcTruthContainer, digit.getTimeStamp(), digit.getChannel(), digit.getTDC(), digit.getTOT(), digit.getBC(), digit.getChannel() / Geo::NPADS, trackID, eventID, sourceID);
+	fillDigitsInStrip(strips, mcTruthContainer, digit.getChannel(), digit.getTDC(), digit.getTOT(), digit.getBC(), digit.getChannel() / Geo::NPADS, trackID, eventID, sourceID);
       }
       
       // remove the element from the buffers

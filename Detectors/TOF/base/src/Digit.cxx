@@ -17,8 +17,8 @@ using namespace o2::tof;
 
 ClassImp(o2::tof::Digit);
 
-Digit::Digit(Double_t time, Int_t channel, Int_t tdc, Int_t tot, Int_t bc, Int_t label)
-  : o2::dataformats::TimeStamp<double>(time), mChannel(channel), mTDC(tdc), mTOT(tot), mBC(bc), mLabel(label), mIsUsedInCluster(kFALSE)
+Digit::Digit(Int_t channel, Int_t tdc, Int_t tot, Int_t bc, Int_t label)
+  : mChannel(channel), mTDC(tdc), mTOT(tot), mBC(bc), mLabel(label), mIsUsedInCluster(kFALSE)
 {
 }
 
@@ -26,8 +26,7 @@ Digit::Digit(Double_t time, Int_t channel, Int_t tdc, Int_t tot, Int_t bc, Int_t
 
 void Digit::printStream(std::ostream& stream) const
 {
-  stream << "TOF Digit: Channel " << mChannel << " TDC " << mTDC << " TOT " << mTOT << " Time " << getTimeStamp()
-         << "Bunch Crossing index" << mBC << " Label " << mLabel << "\n";
+  stream << "TOF Digit: Channel " << mChannel << " TDC " << mTDC << " TOT " << mTOT << "Bunch Crossing index" << mBC << " Label " << mLabel << "\n";
 }
 
 //______________________________________________________________________
@@ -40,14 +39,13 @@ std::ostream& operator<<(std::ostream& stream, const Digit& digi)
 
 //______________________________________________________________________
 
-void Digit::merge(Double_t time, Int_t tdc, Int_t tot)
+void Digit::merge(Int_t tdc, Int_t tot)
 {
 
   // merging two digits
 
   if (tdc < mTDC) {
     mTDC = tdc;
-    setTimeStamp(time);
     // TODO: adjust TOT
   } else {
     // TODO: adjust TOT

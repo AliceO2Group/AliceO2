@@ -22,6 +22,18 @@ namespace o2
 {
 namespace tof
 {
+
+class DigitOutput
+{
+ public:
+  std::vector< std::vector<Digit> > *get() {return &mVector;}
+
+ private:
+  std::vector< std::vector<Digit> > mVector;
+
+  ClassDefNV(DigitOutput, 1);
+};
+
 class Digitizer
 {
  public:
@@ -66,8 +78,8 @@ class Digitizer
   void setContinuous(bool val) { mContinuous = val; }
   bool isContinuous() const { return mContinuous; }
 
-  const std::vector< std::vector<Digit> >* getDigitPerTimeFrame() const {return &mDigitsPerTimeFrame;}
-  const std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel> >* getMCTruthPerTimeFrame() const {return &mMCTruthOutputContainerPerTimeFrame;}
+  DigitOutput* getDigitPerTimeFrame() {return &mDigitsPerTimeFrame;}
+  std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel> >* getMCTruthPerTimeFrame() {return &mMCTruthOutputContainerPerTimeFrame;}
 
  private:
   // parameters
@@ -101,7 +113,7 @@ class Digitizer
 
   static const int MAXWINDOWS = 2; // how many readout windows we can buffer
 
-  std::vector< std::vector<Digit> > mDigitsPerTimeFrame;
+  DigitOutput mDigitsPerTimeFrame;
   std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel> > mMCTruthOutputContainerPerTimeFrame;
 
   int mIcurrentReadoutWindow = 0;
@@ -123,7 +135,7 @@ class Digitizer
 
   o2::dataformats::MCTruthContainer<o2::tof::MCLabel> mFutureMCTruthContainer;
 
-  void fillDigitsInStrip(std::vector<Strip>* strips, o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer, double time, int channel, int tdc, int tot, int nbc, UInt_t istrip, Int_t trackID, Int_t eventID, Int_t sourceID);
+  void fillDigitsInStrip(std::vector<Strip>* strips, o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer, int channel, int tdc, int tot, int nbc, UInt_t istrip, Int_t trackID, Int_t eventID, Int_t sourceID);
 
   Int_t processHit(const HitType& hit, Double_t event_time);
   void addDigit(Int_t channel, UInt_t istrip, Float_t time, Float_t x, Float_t z, Float_t charge, Int_t iX, Int_t iZ, Int_t padZfired,

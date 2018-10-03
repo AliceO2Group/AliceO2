@@ -44,16 +44,16 @@ class Cluster : public o2::BaseCluster<float>
 
   Cluster() = default;
 
-  Cluster(std::int16_t sensid, float x, float y, float z, float sy2, float sz2, float syz, float timeRaw, float time, float tot, int L0L1latency, int deltaBC);
+  Cluster(std::int16_t sensid, float x, float y, float z, float sy2, float sz2, float syz, double timeRaw, double time, float tot, int L0L1latency, int deltaBC);
 
   ~Cluster() = default;
 
   void SetBaseData(std::int16_t sensid, float x, float y, float z, float sy2, float sz2, float syz);
 
-  float getTimeRaw() const { return mTimeRaw; }             // Cluster ToF getter
-  void setTimeRaw(float timeRaw) { mTimeRaw = timeRaw; }    // Cluster ToF setter
-  float getTime() const { return mTime; }                   // Cluster ToF getter
-  void setTime(float time) { mTime = time; }                // Cluster ToF setter
+  double getTimeRaw() const { return mTimeRaw; }             // Cluster ToF getter
+  void setTimeRaw(double timeRaw) { mTimeRaw = timeRaw; }    // Cluster ToF setter
+  double getTime() const { return mTime; }                   // Cluster ToF getter
+  void setTime(double time) { mTime = time; }                // Cluster ToF setter
   float getTot() const { return mTot; }                     // Cluster Charge getter
   void setTot(int tot) { mTot = tot; }                      // Cluster ToT setter
   int getL0L1Latency() const { return mL0L1Latency; };      // L0L1 latency
@@ -111,8 +111,8 @@ class Cluster : public o2::BaseCluster<float>
  private:
   friend class boost::serialization::access;
 
-  float mTimeRaw;   // raw TOF time // CZ: in AliRoot it is a double
-  float mTime;      // calibrated TOF time // CZ: in AliRoot it is a double
+  double mTimeRaw;   // raw TOF time // CZ: in AliRoot it is a double
+  double mTime;      // calibrated TOF time // CZ: in AliRoot it is a double
   float mTot;       // Time-Over-threshold // CZ: in AliRoot it is a double
   int mL0L1Latency; // L0L1 latency // CZ: is it different per cluster? Checking one ESD file, it seems that it is always the same (see: /alice/data/2017/LHC17n/000280235/pass1/17000280235019.100/AliESDs.root)
   int mDeltaBC;     // DeltaBC --> can it be a char or short? // CZ: is it different per cluster? Checking one ESD file, it seems that it can vary (see: /alice/data/2017/LHC17n/000280235/pass1/17000280235019.100/AliESDs.root)
