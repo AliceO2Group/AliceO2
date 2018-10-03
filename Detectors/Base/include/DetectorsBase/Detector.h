@@ -154,6 +154,13 @@ class Detector : public FairDetector
     // (typically the case for geometry related stuff, etc)
     virtual void InitializeO2Detector() = 0;
 
+    // the FairModule/Detector virtual DefineSensitiveVolume() function
+    // is now done in InitializeO2Detector()
+    void DefineSensitiveVolumes() final
+    {
+      InitializeO2Detector();
+    }
+
     // the original FairModule/Detector virtual Initialize function
     // calls individual customized initializations and makes sure that the mother Initialize
     // is called as well. Marked final for this reason!
