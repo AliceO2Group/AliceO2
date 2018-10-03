@@ -251,28 +251,44 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
         float zoffset = tracks[i].CSide() ? -tracks[i].GetParam().GetZOffset() : tracks[i].GetParam().GetZOffset();
         time0 = sContinuousTFReferenceLength - zoffset * vzbinInv;
 
-        // estimate max/min time increments which still keep track in the physical limits of the TPC
-        zHigh = trackClusters[tracks[i].FirstClusterRef()].fZ - tracks[i].GetParam().GetZOffset(); // high R cluster
-        zLow = trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].fZ -
-               tracks[i].GetParam().GetZOffset(); // low R cluster
-
-        bool sideHighA = (trackClusters[tracks[i].FirstClusterRef()].fNum >> 24) < Sector::MAXSECTOR / 2;
-        bool sideLowA =
-          (trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].fNum >> 24) < Sector::MAXSECTOR / 2;
-
-        // calculate time bracket
-        float zLowAbs = zLow < 0.f ? -zLow : zLow;
-        float zHighAbs = zHigh < 0.f ? -zHigh : zHigh;
-        //
-        // tFwd = (Lmax - max(|zLow|,|zAbs|))/vzbin  = drift time from cluster current Z till endcap
-        // tBwd = min(|zLow|,|zAbs|))/vzbin          = drift time from CE till cluster current Z
-        //
-        if (zLowAbs < zHighAbs) {
-          tFwd = (detParam.getTPClength() - zHighAbs) * vzbinInv;
-          tBwd = zLowAbs * vzbinInv;
+        if (tracks[i].CCE()) {
+          bool lastSide = trackClusters[tracks[i].FirstClusterRef()].fSlice < Sector::MAXSECTOR / 2;
+          float delta = 0.f;
+          for (int iCl = 1; iCl < tracks[i].NClusters(); iCl++) {
+            if (lastSide ^ (trackClusters[tracks[i].FirstClusterRef() + iCl].fSlice < Sector::MAXSECTOR / 2)) {
+              auto& hltcl1 = trackClusters[tracks[i].FirstClusterRef() + iCl].fNum;
+              auto& hltcl2 = trackClusters[tracks[i].FirstClusterRef() + iCl - 1].fNum;
+              auto& cl1 = clusters.clusters[hltcl1 >> 24][(hltcl1 >> 16) & 0xFF][hltcl1 & 0xFFFF];
+              auto& cl2 = clusters.clusters[hltcl2 >> 24][(hltcl2 >> 16) & 0xFF][hltcl2 & 0xFFFF];
+              delta = fabs(cl1.getTime() - cl2.getTime()) * 0.5f;
+              break;
+            }
+          }
+          tFwd = tBwd = delta;
         } else {
-          tFwd = (detParam.getTPClength() - zLowAbs) * vzbinInv;
-          tBwd = zHighAbs * vzbinInv;
+          // estimate max/min time increments which still keep track in the physical limits of the TPC
+          zHigh = trackClusters[tracks[i].FirstClusterRef()].fZ - tracks[i].GetParam().GetZOffset(); // high R cluster
+          zLow = trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].fZ -
+                 tracks[i].GetParam().GetZOffset(); // low R cluster
+
+          bool sideHighA = (trackClusters[tracks[i].FirstClusterRef()].fNum >> 24) < Sector::MAXSECTOR / 2;
+          bool sideLowA =
+            (trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].fNum >> 24) < Sector::MAXSECTOR / 2;
+
+          // calculate time bracket
+          float zLowAbs = zLow < 0.f ? -zLow : zLow;
+          float zHighAbs = zHigh < 0.f ? -zHigh : zHigh;
+          //
+          // tFwd = (Lmax - max(|zLow|,|zAbs|))/vzbin  = drift time from cluster current Z till endcap
+          // tBwd = min(|zLow|,|zAbs|))/vzbin          = drift time from CE till cluster current Z
+          //
+          if (zLowAbs < zHighAbs) {
+            tFwd = (detParam.getTPClength() - zHighAbs) * vzbinInv;
+            tBwd = zLowAbs * vzbinInv;
+          } else {
+            tFwd = (detParam.getTPClength() - zLowAbs) * vzbinInv;
+            tBwd = zHighAbs * vzbinInv;
+          }
         }
       }
 
@@ -289,7 +305,10 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
       oTrack.setDeltaTBwd(tBwd);
       oTrack.setDeltaTFwd(tFwd);
       // RS: TODO: once the A/C merging will be implemented, both A and C side must be flagged for meged track
-      if (tracks[i].CSide()) {
+      if (tracks[i].CCE()) {
+        oTrack.setHasCSideClusters();
+        oTrack.setHasASideClusters();
+      } else if (tracks[i].CSide()) {
         oTrack.setHasCSideClusters();
       } else {
         oTrack.setHasASideClusters();
