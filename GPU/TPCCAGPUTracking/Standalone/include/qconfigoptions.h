@@ -55,9 +55,17 @@ AddHelp("help", 'h')
 EndConfig()
 
 BeginConfig(structConfigStandalone, configStandalone)
+#if defined(BUILD_CUDA) || defined(BUILD_OPENCL)
 AddOption(runGPU, bool, true, "gpu", 'g', "Use GPU for processing", message("GPU processing: %s"))
+#else
+AddOption(runGPU, bool, false, "gpu", 'g', "Use GPU for processing", message("GPU processing: %s"))
+#endif
 AddOptionSet(runGPU, bool, false, "cpu", 'c', "Use CPU for processing", message("CPU enabled"))
-AddOption(gpuLibrary, const char*, "libAliHLTTPCCAGPUSA.so", "gpuLibrary", 0, "GPU library to load")
+#if defined(BUILD_CUDA)
+AddOption(gpuLibrary, const char*, "libAliHLTTPCCAGPUSACUDA.so", "gpuLibrary", 0, "GPU library to load")
+#else
+AddOption(gpuLibrary, const char*, "libAliHLTTPCCAGPUSAOpenCL.so", "gpuLibrary", 0, "GPU library to load")
+#endif
 AddOption(noprompt, bool, true, "prompt", 0, "Do prompt for keypress before exiting", def(false))
 AddOption(continueOnError, bool, false, "continue", 0, "Continue processing after an error")
 AddOption(writeoutput, bool, false, "write", 0, "Write tracks found to text output file")
