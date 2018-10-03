@@ -20,6 +20,9 @@
 #include "FITBase/Digit.h"
 #include "FITSimulation/Detector.h" // for HitType
 #include "FITSimulation/Digitizer.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "FITSimulation/MCLabel.h"
 
 namespace o2
 {
@@ -42,8 +45,12 @@ class DigitizerTask : public FairTask
   Digitizer& getDigitizer() { return mDigitizer; }
   void setContinuous(bool v) { mContinuous = v; }
   bool isContinuous() const { return mContinuous; }
+  
+  void setQEDInput(TBranch* qed, float timebin, UChar_t srcID);
 
  private:
+  void processQEDBackground(double tMax);
+
   Bool_t mContinuous = kFALSE;  ///< flag to do continuous simulation
   double mFairTimeUnitInNS = 1; ///< Fair time unit in ns
 
@@ -52,8 +59,20 @@ class DigitizerTask : public FairTask
   Digitizer mDigitizer;                                      ///< Digitizer
   const std::vector<o2::fit::HitType>* mHitsArray = nullptr; ///< Array of MC hits
 
+ TBranch* mQEDBranch = nullptr;                               //! optional special branch of hits from QED collitions
+  const std::vector<o2::fit::HitType>* mHitsArrayQED = nullptr; //! array of MC hits from ED
+  float mQEDEntryTimeBinNS = 0.f;                              ///< every entry in the QED branch integrates QED for so many nanosec.
+  double mLastQEDTimeNS = 0.;                                  ///< center of the time-bin of last added QED bg slot (entry of mQEDBranch)
+  int mLastQEDEntry = -1;                                      ///< last used QED entry
+  UChar_t mQEDSourceID = 0;                                    ///< MC ID source of the QED (stored in the labels)
+
   Digit* mEventDigit = nullptr; ///< one digit for one event
   //std::vector<o2::fit::Digit>* mDigitsArray = nullptr;       ///< Array of digits
+  //  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mMCTruthArray = nullptr;
+  // o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthArray;                      //! Labels containter
+  //  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mMCTruthArrayPtr = &mMCTruthArray; //! Labels containter pointer
+ o2::dataformats::MCTruthContainer<o2::fit::MCLabel> mMCTruthArray ;       //! Labels containter
+ o2::dataformats::MCTruthContainer<o2::fit::MCLabel>* mMCTruthArrayPtr = &mMCTruthArray; //! Labels containter pointer
 
   ClassDefOverride(DigitizerTask, 1);
 };

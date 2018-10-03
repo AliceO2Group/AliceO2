@@ -21,7 +21,7 @@
 #include "FairVolume.h"
 
 #include "FairRootManager.h"
-#include "FairVolume.h"
+#include "FairVolume.h" 
 
 #include <sstream>
 #include "FITBase/Geometry.h"
@@ -34,7 +34,7 @@ using o2::fit::Geometry;
 ClassImp(Detector);
 
 Detector::Detector(Bool_t Active)
-  : o2::Base::DetImpl<Detector>("FIT", Active), mIdSens1(0), mPMTeff(nullptr), mHits(new std::vector<o2::fit::HitType>)
+  : o2::Base::DetImpl<Detector>("FIT", Active), mIdSens1(0), mPMTeff(nullptr), mHits(new std::vector<o2::fit::HitType>) 
 {
   // Gegeo  = GetGeometry() ;
 
@@ -51,7 +51,7 @@ void Detector::InitializeO2Detector()
   // FIXME: we need to register the sensitive volumes with FairRoot
   TGeoVolume* v = gGeoManager->GetVolume("0REG");
   if (v == nullptr)
-    LOG(WARN) << "@@@@ Sensitive volume 0REG not found!!!!!!!!";
+    printf("@@@@ Sensitive volume 0REG not found!!!!!!!!");
   else {
     AddSensitiveVolume(v);
   }
@@ -59,7 +59,7 @@ void Detector::InitializeO2Detector()
 
 void Detector::ConstructGeometry()
 {
-  LOG(DEBUG) << "Creating FIT geometry";
+  LOG(DEBUG) << "Creating FIT geometry\n";
   CreateMaterials();
 
   Float_t zdetA = 333;
@@ -74,10 +74,11 @@ void Detector::ConstructGeometry()
 
   int nCellsA = Geometry::NCellsA;
   int nCellsC = Geometry::NCellsC;
+  //std::cout<<"@@@@ mGeometry->NCells "<<nCellsA<<" "<<nCellsC<<std::endl;
 
   Geometry geometry;
   TVector3 centerMCP = geometry.centerMCP(2);
-  LOG(DEBUG) << "@@@@ mGeometry->centerMCP " << nCellsA << " " << nCellsC << centerMCP.X();
+  std::cout << "@@@@ mGeometry->centerMCP " << nCellsA << " " << nCellsC << centerMCP.X() << std::endl;
 
   Matrix(idrotm[901], 90., 0., 90., 90., 180., 0.);
 
@@ -163,7 +164,7 @@ void Detector::ConstructGeometry()
     nameTr = Form("0TR%i", itr + 1);
     z = -pstartA[2] + pinstart[2];
     tr[itr] = new TGeoTranslation(nameTr.Data(), xa[itr], ya[itr], z);
-    LOG(DEBUG) << Form(" FIT: itr %i A %f %f %f \n", itr, xa[itr], ya[itr], z + zdetA);
+    printf(" itr %i A %f %f %f \n", itr, xa[itr], ya[itr], z + zdetA);
     tr[itr]->RegisterYourself();
     stlinA->AddNode(ins, itr, tr[itr]);
   }
@@ -247,13 +248,13 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   topref->AddNode(top, 1, new TGeoTranslation(0, 0, 0));
   xinv = -ptop[0] - prfv[0];
   topref->AddNode(rfv, 1, new TGeoTranslation(xinv, 0, 0));
-  LOG(DEBUG) << Form(" GEOGEO  refv %f ,  0,0 \n", xinv);
+  printf(" GEOGEO  refv %f ,  0,0 \n", xinv);
   xinv = ptop[0] + prfv[0];
   topref->AddNode(rfv, 2, new TGeoTranslation(xinv, 0, 0));
-  LOG(DEBUG) << Form(" GEOGEO  refv %f ,  0,0 \n", xinv);
+  printf(" GEOGEO  refv %f ,  0,0 \n", xinv);
   yinv = -ptop[1] - prfh[1];
   topref->AddNode(rfh, 1, new TGeoTranslation(0, yinv, 0));
-  LOG(DEBUG) << Form(" GEOGEO  refh  ,  0, %f, 0 \n", yinv);
+  printf(" GEOGEO  refh  ,  0, %f, 0 \n", yinv);
   yinv = ptop[1] + prfh[1];
   topref->AddNode(rfh, 2, new TGeoTranslation(0, yinv, 0));
 
@@ -265,11 +266,11 @@ void Detector::SetOneMCP(TGeoVolume* ins)
       yin = -pinstart[1] + 0.3 + (iy + 0.5) * 2 * ptopref[1];
       ntops++;
       ins->AddNode(topref, ntops, new TGeoTranslation(xin, yin, z));
-      LOG(DEBUG) << Form(" 0TOP  full %i x %f y %f z %f \n", ntops, xin, yin, z);
+      printf(" 0TOP  full %i x %f y %f z %f \n", ntops, xin, yin, z);
       z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + preg[2];
       ins->AddNode(cat, ntops, new TGeoTranslation(xin, yin, z));
       // cat->Print();
-      LOG(DEBUG) << Form(" GEOGEO  CATHOD x=%f , y= %f z= %f num  %i\n", xin, yin, z, ntops);
+      printf(" GEOGEO  CATHOD x=%f , y= %f z= %f num  %i\n", xin, yin, z, ntops);
     }
   }
   // Al top
@@ -296,12 +297,16 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     float etot = fMC->Etot();
     int iPart = fMC->TrackPid();
     float enDep = fMC->Edep();
+    if (fMC->TrackCharge()) {  //charge particles for MCtrue
+      AddHit(x, y, z, time, 10, trackID, detID); 
+    }
     if (iPart == 50000050) // If particles is photon then ...
     {
       if (RegisterPhotoE(etot)) {
         AddHit(x, y, z, time, enDep, trackID, detID);
       }
     }
+   
     return kTRUE;
   }
   return kFALSE;

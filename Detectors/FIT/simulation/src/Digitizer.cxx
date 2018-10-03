@@ -9,6 +9,8 @@
 // or submit itself to any jurisdiction.
 
 #include "FITSimulation/Digitizer.h"
+#include "FITSimulation/MCLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 #include "TFile.h"
 #include "TH1F.h"
@@ -48,6 +50,7 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
 
   //mDigits = digits;
 
+  Int_t nlbl = 0; //number of MCtrues
   Double_t digit_timeframe = mEventTime;
   Double_t digit_bc = mEventID;
   Int_t nClk = floor(mEventTime / BC_clk);
@@ -57,6 +60,8 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
   Int_t ch_hit_nPe[nMCPs] = {};
   Double_t ch_hit_mean_time[nMCPs] = {};
 
+   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mcTruthContainer;
+   
   for (auto& hit : *hits) {
     Int_t hit_ch = hit.GetDetectorID();
     Double_t hit_time = hit.GetTime();
@@ -65,8 +70,20 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
       ch_hit_nPe[hit_ch]++;
       ch_hit_mean_time[hit_ch] += hit_time;
     }
+    if (hit.GetEnergyLoss()>0)  {
+	o2::fit::MCLabel label(hit.GetTrackID(), mEventID, mSrcID, hit_ch); 
+	//	o2::MCCompLabel label(hit.GetTrackID(), mEventID, mSrcID);
+ 	int tr,ev,sr;
+	label.get(tr,ev,sr);
+	int lblCurrent;
+	if (mMCLabels) {
+	  lblCurrent = mMCLabels->getIndexedSize(); // this is the size of mHeaderArray;
+	  mMCLabels->addElement(lblCurrent, label);
+	  nlbl++;
+	}
+    }    
   }
-
+  
   for (Int_t ch_iter = 0; ch_iter < nMCPs; ch_iter++) {
     if (ch_hit_nPe[ch_iter] != 0) {
       ch_hit_mean_time[ch_iter] = ch_hit_mean_time[ch_iter] / (float)ch_hit_nPe[ch_iter];
@@ -157,7 +174,7 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
   is_Vertex = (vertex_time > trg_vertex_min) && (vertex_time < trg_vertex_max);
   // --------------------------------------------------------------------------
 
-  //fillig digit
+  //filling digit
   digit->setTime(digit_timeframe);
   digit->setBC(mEventID);
   digit->setTriggers(is_A, is_C, is_Central, is_SemiCentral, is_Vertex);
