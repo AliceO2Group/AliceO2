@@ -642,6 +642,7 @@ void RunQA(bool matchOnly)
 		}
 		for (int i = 0;i < hlt.GetNMCLabels();i++)
 		{
+			if (configStandalone.runGPU) {printf("WARNING: INCOMPLETE QA with GPU!\n");break;}
 			if (clusterParam[i].attached == 0 && clusterParam[i].fakeAttached == 0)
 			{
 				int attach = merger.ClusterAttachment()[i];
@@ -882,6 +883,7 @@ void RunQA(bool matchOnly)
 		//Fill cluster histograms
 		for (int iTrk = 0;iTrk < merger.NOutputTracks();iTrk++)
 		{
+			if (configStandalone.runGPU) {printf("WARNING: INCOMPLETE QA with GPU!\n");break;}
 			const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[iTrk];
 			if (!track.OK()) continue;
 			if (trackMCLabels[iTrk] == -1e9)
@@ -959,6 +961,7 @@ void RunQA(bool matchOnly)
 		}
 		for (int i = 0;i < hlt.GetNMCLabels();i++)
 	 	{
+			if (configStandalone.runGPU) {printf("WARNING: INCOMPLETE QA with GPU!\n");break;}
 			if ((mcTrackMin != -1 && hlt.GetMCLabels()[i].fClusterID[0].fMCID < mcTrackMin) || (mcTrackMax != -1 && hlt.GetMCLabels()[i].fClusterID[0].fMCID >= mcTrackMax)) continue;
 			if (clusterParam[i].attached || clusterParam[i].fakeAttached) continue;
 			int attach = merger.ClusterAttachment()[i];
@@ -1071,6 +1074,7 @@ void RunQA(bool matchOnly)
 
 	for (int i = 0;i < merger.MaxId();i++)
 	{
+		if (configStandalone.runGPU) {printf("WARNING: INCOMPLETE QA with GPU!\n");break;}
 		int attach = merger.ClusterAttachment()[i];
 		CHECK_CLUSTER_STATE();
 
