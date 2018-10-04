@@ -16,6 +16,7 @@
 #include <iomanip>
 #include "Headers/DataHeader.h"
 #include "Headers/NameHeader.h"
+#include "Headers/Stack.h"
 
 #include <chrono>
 

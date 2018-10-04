@@ -16,6 +16,7 @@
 #include "Framework/InputRecord.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Headers/DataHeader.h"
+#include "Headers/Stack.h"
 
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;

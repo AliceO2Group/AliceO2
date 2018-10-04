@@ -13,6 +13,8 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/InputRoute.h"
 #include "Headers/DataHeader.h"
+#include "Headers/Stack.h"
+#include "MemoryResources/MemoryResources.h"
 #include "Framework/DataProcessingHeader.h"
 #include <fairmq/FairMQDevice.h>
 
