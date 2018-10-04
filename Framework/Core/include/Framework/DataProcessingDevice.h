@@ -66,7 +66,6 @@ class DataProcessingDevice : public FairMQDevice
   ArrowContext mDataFrameContext;
   ContextRegistry mContextRegistry;
   DataAllocator mAllocator;
-  TimesliceIndex mTimesliceIndex;
   DataRelayer mRelayer;
   std::vector<ExpirationHandler> mExpirationHandlers;
 
