@@ -562,6 +562,7 @@ void DeviceSpecHelpers::prepareArguments(int argc, char** argv, bool defaultQuie
                                          std::vector<DeviceExecution>& deviceExecutions,
                                          std::vector<DeviceControl>& deviceControls)
 {
+  assert(argc > 0); // we require to have the program name as the first argument
   assert(deviceSpecs.size() == deviceExecutions.size());
   assert(deviceControls.size() == deviceExecutions.size());
   for (size_t si = 0; si < deviceSpecs.size(); ++si) {
@@ -591,19 +592,23 @@ void DeviceSpecHelpers::prepareArguments(int argc, char** argv, bool defaultQuie
     std::vector<std::string> tmpArgs = { argv[0],       "--id",  spec.id.c_str(), "--control", "static",
                                          "--log-color", "false", "--color",       "false" };
 
-    // do the filtering of options, forward options belonging to this specific
-    // DeviceSpec, and some global options from getForwardedDeviceOptions
+    // do the filtering of options:
+    // 1) forward options belonging to this specific DeviceSpec
+    // 2) global options defined in getForwardedDeviceOptions and workflow option are
+    //    always forwarded and need to be handled separately
     const char* name = spec.name.c_str();
-    bpo::options_description od;
-    bpo::options_description wo;
+    bpo::options_description od;     // option descriptions per process
+    bpo::options_description foDesc; // forwarded options for all processes
     ConfigParamsHelper::prepareOptionsDescription(spec.options, od);
-    ConfigParamsHelper::prepareOptionsDescription(workflowOptions, wo);
-    od.add(getForwardedDeviceOptions());
-    od.add(wo);
     od.add_options()(name, bpo::value<std::string>());
+    ConfigParamsHelper::prepareOptionsDescription(workflowOptions, foDesc);
+    foDesc.add(getForwardedDeviceOptions());
 
     using FilterFunctionT = std::function<void(decltype(argc), decltype(argv), decltype(od))>;
 
+    // the filter function will forward command line arguments based on the option
+    // definition passed to it. All options of the program option definition will be forwarded
+    // if found in the argument list. If not found they will be added with the default value
     FilterFunctionT filterArgsFct = [&](int largc, char** largv, const bpo::options_description& odesc) {
       // spec contains options
       bpo::command_line_parser parser{ largc, largv };
@@ -667,6 +672,9 @@ void DeviceSpecHelpers::prepareArguments(int argc, char** argv, bool defaultQuie
       }
     };
 
+    // filter global options and workflow options independent of option groups
+    filterArgsFct(argc, argv, foDesc);
+    // filter device options, and handle option groups
     filterArgsFct(argc, argv, od);
 
     // Add the channel configuration
@@ -697,7 +705,7 @@ void DeviceSpecHelpers::prepareArguments(int argc, char** argv, bool defaultQuie
   }
 }
 
-/// define the options which are forwarded to the FairMQ device
+/// define the options which are forwarded to every child
 boost::program_options::options_description DeviceSpecHelpers::getForwardedDeviceOptions()
 {
   // - rate is an option of FairMQ device for ConditionalRun
