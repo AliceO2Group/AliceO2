@@ -12,6 +12,7 @@
 
 #include "Headers/DataHeader.h"
 #include "Framework/Lifetime.h"
+#include "Headers/Stack.h"
 
 namespace o2
 {

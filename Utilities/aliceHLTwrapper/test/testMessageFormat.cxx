@@ -17,6 +17,7 @@
 #include "aliceHLTwrapper/MessageFormat.h"
 #include "Headers/DataHeader.h"
 #include "Headers/HeartbeatFrame.h"
+#include "Headers/Stack.h"
 
 namespace o2 { 
 namespace alice_hlt {

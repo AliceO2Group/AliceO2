@@ -14,6 +14,7 @@
 
 #include <boost/test/unit_test.hpp>
 #include "Headers/DataHeader.h"
+#include "Headers/Stack.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DataRelayer.h"
 #include "Framework/DataProcessingHeader.h"
