@@ -674,6 +674,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
     std::unique_ptr<Monitoring> monitoringService;
     std::unique_ptr<InfoLogger> infoLoggerService;
     std::unique_ptr<InfoLoggerContext> infoLoggerContext;
+    std::unique_ptr<TimesliceIndex> timesliceIndex;
 
     auto afterConfigParsingCallback = [&localRootFileService,
                                        &textControlService,
@@ -684,7 +685,8 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
                                        &infoLoggerService,
                                        &spec,
                                        &serviceRegistry,
-                                       &infoLoggerContext](fair::mq::DeviceRunner& r) {
+                                       &infoLoggerContext,
+                                       &timesliceIndex](fair::mq::DeviceRunner& r) {
       localRootFileService = std::make_unique<LocalRootFileService>();
       textControlService = std::make_unique<TextControlService>();
       parallelContext = std::make_unique<ParallelContext>(spec.rank, spec.nSlots);
@@ -702,6 +704,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
       if (infoLoggerSeverity != "") {
         fair::Logger::AddCustomSink("infologger", infoLoggerSeverity, createInfoLoggerSinkHelper(infoLoggerService, infoLoggerContext));
       }
+      timesliceIndex = std::make_unique<TimesliceIndex>();
 
       serviceRegistry.registerService<Monitoring>(monitoringService.get());
       serviceRegistry.registerService<InfoLogger>(infoLoggerService.get());
@@ -710,6 +713,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
       serviceRegistry.registerService<ParallelContext>(parallelContext.get());
       serviceRegistry.registerService<RawDeviceService>(simpleRawDeviceService.get());
       serviceRegistry.registerService<CallbackService>(callbackService.get());
+      serviceRegistry.registerService<TimesliceIndex>(timesliceIndex.get());
 
       // The decltype stuff is to be able to compile with both new and old
       // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.

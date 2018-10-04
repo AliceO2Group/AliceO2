@@ -51,8 +51,7 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
     mDataFrameContext{ FairMQDeviceProxy{ this } },
     mContextRegistry{ { &mFairMQContext, &mRootContext, &mStringContext, &mDataFrameContext } },
     mAllocator{ &mTimingInfo, &mContextRegistry, spec.outputs },
-    mTimesliceIndex{},
-    mRelayer{ spec.completionPolicy, spec.inputs, spec.forwards, registry.get<Monitoring>(), mTimesliceIndex },
+    mRelayer{ spec.completionPolicy, spec.inputs, spec.forwards, registry.get<Monitoring>(), registry.get<TimesliceIndex>()},
     mServiceRegistry{ registry },
     mErrorCount{ 0 },
     mProcessingCount{ 0 }
@@ -246,7 +245,7 @@ bool DataProcessingDevice::tryDispatchComputation()
   auto& statelessProcess = mStatelessProcess;
   auto& stringContext = mStringContext;
   auto& timingInfo = mTimingInfo;
-  auto& timesliceIndex = mTimesliceIndex;
+  auto& timesliceIndex = mServiceRegistry.get<TimesliceIndex>();
 
   // These duplicate references are created so that each function
   // does not need to know about the whole class state, but I can
