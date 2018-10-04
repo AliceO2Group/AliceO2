@@ -66,6 +66,28 @@ struct DataProcessorSpec {
   size_t maxInputTimeslices = 1;
 };
 
+/// A Sampler is a DataProcessor with no input, only output(s)
+inline DataProcessorSpec createSamplerSpec(std::string name, AlgorithmSpec algo, Outputs out)
+{
+  return DataProcessorSpec{
+    name,
+    {},
+    out,
+    algo
+  };
+}
+
+/// A Sink is a DataProcessor with no output, only input(s)
+inline DataProcessorSpec createSinkSpec(std::string name, Inputs in, AlgorithmSpec algo)
+{
+  return DataProcessorSpec{
+    name,
+    in,
+    {},
+    algo
+  };
+}
+
 } // namespace framework
 } // namespace o2
 
