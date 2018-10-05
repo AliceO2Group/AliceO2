@@ -1,23 +1,36 @@
 #ifndef ALICAGPULOGGING_H
 #define ALICAGPULOGGING_H
 
-#ifdef HLTCA_BUILD_ALIROOT_LIB
+#if defined(HLTCA_BUILD_ALIROOT_LIB) && defined(HLTCA_GPULIBRARY)
+#warning ALIROOT LOGGING DISABLED FOR GPU TRACKING, CUDA incompatible to C++17 ROOT
+#endif
+
+#if defined(HLTCA_BUILD_ALIROOT_LIB) && !defined(HLTCA_GPULIBRARY)
 #include "AliHLTLogging.h"
 #define AliCAGPULogging AliHLTLogging
+#define CAGPUError(...) HLTError(__VA_ARGS__)
+#define CAGPUWarning(...) HLTWarning(__VA_ARGS__)
+#define CAGPUInfo(...) HLTInfo(__VA_ARGS__)
+#define CAGPUImportant(...) HLTImportant(__VA_ARGS__)
+#define CAGPUDebug(...) HLTDebug(__VA_ARGS__)
+#define CAGPUFatal(...) HLTFatal(__VA_ARGS__)
 #else
 
-class AliCAGPULogging
+#define AliCAGPULogging AliCAGPULoggingFake
+
+class AliCAGPULoggingFake
 {
 public:
-	virtual ~AliCAGPULogging() {};
+	virtual ~AliCAGPULoggingFake() {};
 };
 
-#define HLTError(...) {printf(__VA_ARGS__);printf("\n");}
-#define HLTWarning(...) {printf(__VA_ARGS__);printf("\n");}
-#define HLTInfo(...) {printf(__VA_ARGS__);printf("\n");}
-#define HLTImportant(...) {printf(__VA_ARGS__);printf("\n");}
-#define HLTDebug(...) {printf(__VA_ARGS__);printf("\n");}
-#define HLTFatal(...) {printf(__VA_ARGS__);printf("\n");exit(1);}
+#define CAGPUError(...) {printf(__VA_ARGS__);printf("\n");}
+#define CAGPUWarning(...) {printf(__VA_ARGS__);printf("\n");}
+#define CAGPUInfo(...) //{printf(__VA_ARGS__);printf("\n");}
+#define CAGPUImportant(...) {printf(__VA_ARGS__);printf("\n");}
+#define CAGPUDebug(...) //{printf(__VA_ARGS__);printf("\n");}
+#define CAGPUFatal(...) {printf(__VA_ARGS__);printf("\n");exit(1);}
 
 #endif
+
 #endif //ALICAGPULOGGING_H

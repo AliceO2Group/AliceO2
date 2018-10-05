@@ -48,7 +48,7 @@ int AliHLTTPCCATrackerFramework::InitGPU(int forceDeviceID)
 	int retVal;
 	if (!fGPULibAvailable)
 	{
-		HLTError("GPU Library not loaded\n");
+		CAGPUError("GPU Library not loaded\n");
 		return(1);
 	}
 	if (fGPUTrackerAvailable && (retVal = ExitGPU())) return(retVal);
@@ -115,7 +115,7 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 	int useGlobalTracking = fGlobalTracking;
 	if (fGlobalTracking && (firstSlice || sliceCount != fgkNSlices))
 	{
-		HLTWarning("Global Tracking only available if all slices are processed!");
+		CAGPUWarning("Global Tracking only available if all slices are processed!");
 		useGlobalTracking = 0;
 	}
 
@@ -133,7 +133,7 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 #ifdef HLTCA_HAVE_OPENMP
 		if (fOutputControl->fOutputPtr && omp_get_max_threads() > 1)
 		{
-			HLTError("fOutputPtr must not be used with OpenMP\n");
+			CAGPUError("fOutputPtr must not be used with OpenMP\n");
 			return(1);
 		}
 #pragma omp parallel for
@@ -279,13 +279,13 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU, const cha
 		if (allowGPU > 0)
 		{
 			#ifndef WIN32
-				HLTImportant("The following error occured during dlopen: %s", dlerror());
+				CAGPUImportant("The following error occured during dlopen: %s", dlerror());
 			#endif
-			HLTError("Error Opening cagpu library for GPU Tracker (%s), will fallback to CPU", GPU_Library == NULL ? "default: " GPULIBNAME : GPU_Library);
+			CAGPUError("Error Opening cagpu library for GPU Tracker (%s), will fallback to CPU", GPU_Library == NULL ? "default: " GPULIBNAME : GPU_Library);
 		}
 		else
 		{
-			HLTDebug("Tracking on GPU disabled");
+			CAGPUDebug("Tracking on GPU disabled");
 		}
 		fGPUTracker = new AliHLTTPCCAGPUTracker;
 	}
@@ -298,7 +298,7 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU, const cha
 #endif
 		if (createFunc == NULL)
 		{
-			HLTError("Error Creating GPU Tracker\n");
+			CAGPUError("Error Creating GPU Tracker\n");
 #ifdef WIN32
 			FreeLibrary(hGPULib);
 #else
@@ -312,7 +312,7 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU, const cha
 			fGPUTracker = tmp();
 			fGPULibAvailable = true;
 			fGPULib = (void*) (size_t) hGPULib;
-			HLTInfo("GPU Tracker library loaded and GPU tracker object created sucessfully (%sactive)", allowGPU > 0 ? "" : "in");
+			CAGPUInfo("GPU Tracker library loaded and GPU tracker object created sucessfully (%sactive)", allowGPU > 0 ? "" : "in");
 		}
 	}
 
@@ -321,11 +321,11 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU, const cha
 		fUseGPUTracker = (fGPUTrackerAvailable = (fGPUTracker->InitGPU(-1, GPUDeviceNum) == 0));
 		if(fUseGPUTracker)
 		{
-		  HLTInfo("GPU Tracker Initialized and available in framework");
+		  CAGPUInfo("GPU Tracker Initialized and available in framework");
 		}
 		else
 		{
-		  HLTError("GPU Tracker NOT Initialized and NOT available in framework");
+		  CAGPUError("GPU Tracker NOT Initialized and NOT available in framework");
 		}
 	}
 }
@@ -349,7 +349,7 @@ AliHLTTPCCATrackerFramework::~AliHLTTPCCATrackerFramework()
 #endif
 			if (destroyFunc == NULL)
 			{
-				HLTError("Error Freeing GPU Tracker\n");
+				CAGPUError("Error Freeing GPU Tracker\n");
 			}
 			else
 			{

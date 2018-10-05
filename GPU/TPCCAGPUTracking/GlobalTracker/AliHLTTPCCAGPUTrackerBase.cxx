@@ -31,7 +31,7 @@ ClassImp( AliHLTTPCCAGPUTrackerBase )
 
 int AliHLTTPCCAGPUTrackerBase::GlobalTracking(int iSlice, int threadId, AliHLTTPCCAGPUTrackerBase::helperParam* hParam)
 {
-	if (fDebugLevel >= 3) {HLTDebug("GPU Tracker running Global Tracking for slice %d on thread %d\n", iSlice, threadId);}
+	if (fDebugLevel >= 3) {CAGPUDebug("GPU Tracker running Global Tracking for slice %d on thread %d\n", iSlice, threadId);}
 
 	int sliceLeft = (iSlice + (fgkNSlices / 2 - 1)) % (fgkNSlices / 2);
 	int sliceRight = (iSlice + 1) % (fgkNSlices / 2);
@@ -53,7 +53,7 @@ int AliHLTTPCCAGPUTrackerBase::GlobalTracking(int iSlice, int threadId, AliHLTTP
 
 	fSliceLeftGlobalReady[sliceLeft] = 1;
 	fSliceRightGlobalReady[sliceRight] = 1;
-	if (fDebugLevel >= 3) {HLTDebug("GPU Tracker finished Global Tracking for slice %d on thread %d\n", iSlice, threadId);}
+	if (fDebugLevel >= 3) {CAGPUDebug("GPU Tracker finished Global Tracking for slice %d on thread %d\n", iSlice, threadId);}
 	return(0);
 }
 
@@ -65,7 +65,7 @@ void* AliHLTTPCCAGPUTrackerBase::helperWrapper(void* arg)
 	AliHLTTPCCATracker* tmpTracker = new AliHLTTPCCATracker;
 
 #ifdef HLTCA_STANDALONE
-	if (cls->fDebugLevel >= 2) HLTInfo("\tHelper thread %d starting", par->fNum);
+	if (cls->fDebugLevel >= 2) CAGPUInfo("\tHelper thread %d starting", par->fNum);
 #endif
 
 #if defined(HLTCA_STANDALONE) & !defined(WIN32)
@@ -83,7 +83,7 @@ void* AliHLTTPCCAGPUTrackerBase::helperWrapper(void* arg)
 			{
 				int myISlice = cls->fSliceCount - cls->fNCPUTrackers * cls->fNSlicesPerCPUTracker + (par->fNum - cls->fNHelperThreads) * cls->fNSlicesPerCPUTracker + i;
 #ifdef HLTCA_STANDALONE
-				if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Doing full CPU tracking, Slice %d", par->fNum, myISlice);
+				if (cls->fDebugLevel >= 3) CAGPUInfo("\tHelper Thread %d Doing full CPU tracking, Slice %d", par->fNum, myISlice);
 #endif
 				if (myISlice >= 0)
 				{
@@ -101,7 +101,7 @@ void* AliHLTTPCCAGPUTrackerBase::helperWrapper(void* arg)
 					tmpTracker->WriteOutput();
 				}
 #ifdef HLTCA_STANDALONE
-				if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Finished, Slice %d", par->fNum, myISlice);
+				if (cls->fDebugLevel >= 3) CAGPUInfo("\tHelper Thread %d Finished, Slice %d", par->fNum, myISlice);
 #endif
 			}
 		}
@@ -110,7 +110,7 @@ void* AliHLTTPCCAGPUTrackerBase::helperWrapper(void* arg)
 			int mustRunSlice19 = 0;
 			for (int i = par->fNum + 1;i < par->fSliceCount;i += cls->fNHelperThreads + 1)
 			{
-				//if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Running, Slice %d+%d, Phase %d", par->fNum, par->fFirstSlice, i, par->fPhase);
+				//if (cls->fDebugLevel >= 3) CAGPUInfo("\tHelper Thread %d Running, Slice %d+%d, Phase %d", par->fNum, par->fFirstSlice, i, par->fPhase);
 				if (par->fPhase)
 				{
 					if (cls->fUseGlobalTracking)
@@ -150,7 +150,7 @@ void* AliHLTTPCCAGPUTrackerBase::helperWrapper(void* arg)
 					if (cls->ReadEvent(par->pClusterData, par->fFirstSlice, i, par->fNum + 1)) par->fError = 1;
 					par->fDone = i + 1;
 				}
-				//if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Finished, Slice %d+%d, Phase %d", par->fNum, par->fFirstSlice, i, par->fPhase);
+				//if (cls->fDebugLevel >= 3) CAGPUInfo("\tHelper Thread %d Finished, Slice %d+%d, Phase %d", par->fNum, par->fFirstSlice, i, par->fPhase);
 			}
 			if (mustRunSlice19)
 			{
@@ -165,7 +165,7 @@ ResetHelperThread:
 		cls->ResetThisHelperThread(par);
 	}
 #ifdef HLTCA_STANDALONE
-	if (cls->fDebugLevel >= 2) HLTInfo("\tHelper thread %d terminating", par->fNum);
+	if (cls->fDebugLevel >= 2) CAGPUInfo("\tHelper thread %d terminating", par->fNum);
 #endif
 	delete tmpTracker;
 	pthread_mutex_unlock(&((pthread_mutex_t*) par->fMutex)[1]);
@@ -175,7 +175,7 @@ ResetHelperThread:
 
 void AliHLTTPCCAGPUTrackerBase::ResetThisHelperThread(AliHLTTPCCAGPUTrackerBase::helperParam* par)
 {
-	if (par->fReset) HLTImportant("GPU Helper Thread %d reseting", par->fNum);
+	if (par->fReset) CAGPUImportant("GPU Helper Thread %d reseting", par->fNum);
 	par->fReset = false;
 	pthread_mutex_unlock(&((pthread_mutex_t*) par->fMutex)[1]);
 }
@@ -241,25 +241,25 @@ int AliHLTTPCCAGPUTrackerBase::CheckMemorySizes(int sliceCount)
 	//Check constants for correct memory sizes
 	if (sizeof(AliHLTTPCCATracker) * sliceCount > HLTCA_GPU_TRACKER_OBJECT_MEMORY)
 	{
-		HLTError("Insufficiant Tracker Object Memory for %d slices", sliceCount);
+		CAGPUError("Insufficiant Tracker Object Memory for %d slices", sliceCount);
 		return(1);
 	}
 
 	if (fgkNSlices * AliHLTTPCCATracker::CommonMemorySize() > HLTCA_GPU_COMMON_MEMORY)
 	{
-		HLTError("Insufficiant Common Memory");
+		CAGPUError("Insufficiant Common Memory");
 		return(1);
 	}
 
 	if (fgkNSlices * (HLTCA_ROW_COUNT + 1) * sizeof(AliHLTTPCCARow) > HLTCA_GPU_ROWS_MEMORY)
 	{
-		HLTError("Insufficiant Row Memory");
+		CAGPUError("Insufficiant Row Memory");
 		return(1);
 	}
 
 	if (fDebugLevel >= 3)
 	{
-		HLTInfo("Memory usage: Tracker Object %lld / %lld, Common Memory %lld / %lld, Row Memory %lld / %lld",
+		CAGPUInfo("Memory usage: Tracker Object %lld / %lld, Common Memory %lld / %lld, Row Memory %lld / %lld",
 			(long long int) sizeof(AliHLTTPCCATracker) * sliceCount, (long long int) HLTCA_GPU_TRACKER_OBJECT_MEMORY,
 			(long long int) (fgkNSlices * AliHLTTPCCATracker::CommonMemorySize()), (long long int) HLTCA_GPU_COMMON_MEMORY,
 			(long long int) (fgkNSlices * (HLTCA_ROW_COUNT + 1) * sizeof(AliHLTTPCCARow)), (long long int) HLTCA_GPU_ROWS_MEMORY);
@@ -304,13 +304,13 @@ int AliHLTTPCCAGPUTrackerBase::SetGPUTrackerOption(const char* OptionName, int O
 	}
 	else
 	{
-		HLTError("Unknown Option: %s", OptionName);
+		CAGPUError("Unknown Option: %s", OptionName);
 		return(1);
 	}
 
 	if (fNHelperThreads + fNCPUTrackers > fNSlaveThreads && fCudaInitialized)
 	{
-		HLTInfo("Insufficient Slave Threads available (%d), creating additional Slave Threads (%d+%d)\n", fNSlaveThreads, fNHelperThreads, fNCPUTrackers);
+		CAGPUInfo("Insufficient Slave Threads available (%d), creating additional Slave Threads (%d+%d)\n", fNSlaveThreads, fNHelperThreads, fNCPUTrackers);
 		StopHelperThreads();
 		StartHelperThreads();
 	}
@@ -328,23 +328,23 @@ int AliHLTTPCCAGPUTrackerBase::SelfHealReconstruct(AliHLTTPCCASliceOutput** pOut
 	static bool selfHealing = false;
 	if (selfHealing)
 	{
-		HLTError("Selfhealing failed, giving up");
+		CAGPUError("Selfhealing failed, giving up");
 		ReleaseThreadContext();
 		return(1);
 	}
 	else
 	{
-		HLTError("Unsolvable CUDA error occured, trying to reinitialize GPU");
+		CAGPUError("Unsolvable CUDA error occured, trying to reinitialize GPU");
 	}
 	selfHealing = true;
 	ExitGPU();
 	if (InitGPU(fSliceCount, fCudaDevice))
 	{
-		HLTError("Could not reinitialize CUDA device, disabling GPU tracker");
+		CAGPUError("Could not reinitialize CUDA device, disabling GPU tracker");
 		ExitGPU();
 		return(1);
 	}
-	HLTInfo("GPU tracker successfully reinitialized, restarting tracking");
+	CAGPUInfo("GPU tracker successfully reinitialized, restarting tracking");
 	int retVal = Reconstruct(pOutput, pClusterData, firstSlice, sliceCountLocal);
 	selfHealing = false;
 	return(retVal);
@@ -360,14 +360,14 @@ int AliHLTTPCCAGPUTrackerBase::ReadEvent(AliHLTTPCCAClusterData* pClusterData, i
 	if (fSlaveTrackers[firstSlice + iSlice].ReadEvent(&pClusterData[iSlice])) return(1);
 #ifdef HLTCA_GPU_TIME_PROFILE
 	AliHLTTPCCATracker::StandaloneQueryTime(&b);
-	HLTInfo("Read %d %f %f\n", threadId, ((double) b - (double) a) / (double) fProfTimeC, ((double) a - (double) fProfTimeD) / (double) fProfTimeC);
+	CAGPUInfo("Read %d %f %f\n", threadId, ((double) b - (double) a) / (double) fProfTimeC, ((double) a - (double) fProfTimeD) / (double) fProfTimeC);
 #endif
 	return(0);
 }
 
 void AliHLTTPCCAGPUTrackerBase::WriteOutput(AliHLTTPCCASliceOutput** pOutput, int firstSlice, int iSlice, int threadId)
 {
-	if (fDebugLevel >= 3) {HLTDebug("GPU Tracker running WriteOutput for slice %d on thread %d\n", firstSlice + iSlice, threadId);}
+	if (fDebugLevel >= 3) {CAGPUDebug("GPU Tracker running WriteOutput for slice %d on thread %d\n", firstSlice + iSlice, threadId);}
 	fSlaveTrackers[firstSlice + iSlice].SetOutput(&pOutput[iSlice]);
 #ifdef HLTCA_GPU_TIME_PROFILE
 	unsigned long long int a, b;
@@ -379,9 +379,9 @@ void AliHLTTPCCAGPUTrackerBase::WriteOutput(AliHLTTPCCASliceOutput** pOutput, in
 	fSlaveTrackers[firstSlice + iSlice].WriteOutput();
 #ifdef HLTCA_GPU_TIME_PROFILE
 	AliHLTTPCCATracker::StandaloneQueryTime(&b);
-	HLTInfo("Write %d %f %f\n", threadId, ((double) b - (double) a) / (double) fProfTimeC, ((double) a - (double) fProfTimeD) / (double) fProfTimeC);
+	CAGPUInfo("Write %d %f %f\n", threadId, ((double) b - (double) a) / (double) fProfTimeC, ((double) a - (double) fProfTimeD) / (double) fProfTimeC);
 #endif
-	if (fDebugLevel >= 3) {HLTDebug("GPU Tracker finished WriteOutput for slice %d on thread %d\n", firstSlice + iSlice, threadId);}
+	if (fDebugLevel >= 3) {CAGPUDebug("GPU Tracker finished WriteOutput for slice %d on thread %d\n", firstSlice + iSlice, threadId);}
 }
 
 int AliHLTTPCCAGPUTrackerBase::InitializeSliceParam(int iSlice, const AliHLTTPCCAParam &param)
@@ -390,7 +390,7 @@ int AliHLTTPCCAGPUTrackerBase::InitializeSliceParam(int iSlice, const AliHLTTPCC
 	fSlaveTrackers[iSlice].Initialize(param);
 	if (fSlaveTrackers[iSlice].Param().NRows() != HLTCA_ROW_COUNT)
 	{
-		HLTError("Error, Slice Tracker %d Row Count of %d exceeds Constant of %d", iSlice, fSlaveTrackers[iSlice].Param().NRows(), HLTCA_ROW_COUNT);
+		CAGPUError("Error, Slice Tracker %d Row Count of %d exceeds Constant of %d", iSlice, fSlaveTrackers[iSlice].Param().NRows(), HLTCA_ROW_COUNT);
 		return(1);
 	}
 	return(0);
@@ -398,7 +398,7 @@ int AliHLTTPCCAGPUTrackerBase::InitializeSliceParam(int iSlice, const AliHLTTPCC
 
 void AliHLTTPCCAGPUTrackerBase::ResetHelperThreads(int helpers)
 {
-	HLTImportant("Error occurred, GPU tracker helper threads will be reset (Number of threads %d/%d)", fNHelperThreads, fNCPUTrackers);
+	CAGPUImportant("Error occurred, GPU tracker helper threads will be reset (Number of threads %d/%d)", fNHelperThreads, fNCPUTrackers);
 	SynchronizeGPU();
 	ReleaseThreadContext();
 	for (int i = 0;i < fNHelperThreads + fNCPUTrackers;i++)
@@ -406,7 +406,7 @@ void AliHLTTPCCAGPUTrackerBase::ResetHelperThreads(int helpers)
 		fHelperParams[i].fReset = true;
 		if (helpers || i >= fNHelperThreads) pthread_mutex_lock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[1]);
 	}
-	HLTImportant("GPU Tracker helper threads have ben reset");
+	CAGPUImportant("GPU Tracker helper threads have ben reset");
 }
 
 int AliHLTTPCCAGPUTrackerBase::StartHelperThreads()
@@ -417,7 +417,7 @@ int AliHLTTPCCAGPUTrackerBase::StartHelperThreads()
 		fHelperParams = new helperParam[nThreads];
 		if (fHelperParams == NULL)
 		{
-			HLTError("Memory allocation error");
+			CAGPUError("Memory allocation error");
 			ExitGPU();
 			return(1);
 		}
@@ -430,7 +430,7 @@ int AliHLTTPCCAGPUTrackerBase::StartHelperThreads()
 			fHelperParams[i].fMutex = malloc(2 * sizeof(pthread_mutex_t));
 			if (fHelperParams[i].fMutex == NULL)
 			{
-				HLTError("Memory allocation error");
+				CAGPUError("Memory allocation error");
 				ExitGPU();
 				return(1);
 			}
@@ -438,7 +438,7 @@ int AliHLTTPCCAGPUTrackerBase::StartHelperThreads()
 			{
 				if (pthread_mutex_init(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j], NULL))
 				{
-					HLTError("Error creating pthread mutex");
+					CAGPUError("Error creating pthread mutex");
 					ExitGPU();
 					return(1);
 				}
@@ -449,7 +449,7 @@ int AliHLTTPCCAGPUTrackerBase::StartHelperThreads()
 
 			if (pthread_create((pthread_t*) fHelperParams[i].fThreadId, NULL, helperWrapper, &fHelperParams[i]))
 			{
-				HLTError("Error starting slave thread");
+				CAGPUError("Error starting slave thread");
 				ExitGPU();
 				return(1);
 			}
@@ -468,17 +468,17 @@ int AliHLTTPCCAGPUTrackerBase::StopHelperThreads()
 			fHelperParams[i].fTerminate = true;
 			if (pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[0]))
 			{
-				HLTError("Error unlocking mutex to terminate slave");
+				CAGPUError("Error unlocking mutex to terminate slave");
 				return(1);
 			}
 			if (pthread_mutex_lock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[1]))
 			{
-				HLTError("Error locking mutex");
+				CAGPUError("Error locking mutex");
 				return(1);
 			}
 			if (pthread_join( *((pthread_t*) fHelperParams[i].fThreadId), NULL))
 			{
-				HLTError("Error waiting for thread to terminate");
+				CAGPUError("Error waiting for thread to terminate");
 				return(1);
 			}
 			free(fHelperParams[i].fThreadId);
@@ -486,7 +486,7 @@ int AliHLTTPCCAGPUTrackerBase::StopHelperThreads()
 			{
 				if (pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j]))
 				{
-					HLTError("Error unlocking mutex before destroying");
+					CAGPUError("Error unlocking mutex before destroying");
 					return(1);
 				}
 				pthread_mutex_destroy(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j]);
@@ -554,7 +554,7 @@ int AliHLTTPCCAGPUTrackerBase::InitGPU(int sliceCount, int forceDeviceID)
 	*semLock = CreateSemaphore(NULL, 1, 1, SemLockName);
 	if (*semLock == NULL)
 	{
-		HLTError("Error creating GPUInit Semaphore");
+		CAGPUError("Error creating GPUInit Semaphore");
 		return(1);
 	}
 	WaitForSingleObject(*semLock, INFINITE);
@@ -562,7 +562,7 @@ int AliHLTTPCCAGPUTrackerBase::InitGPU(int sliceCount, int forceDeviceID)
 	sem_t* semLock = sem_open(SemLockName, O_CREAT, 0x01B6, 1);
 	if (semLock == SEM_FAILED)
 	{
-		HLTError("Error creating GPUInit Semaphore");
+		CAGPUError("Error creating GPUInit Semaphore");
 		return(1);
 	}
 	timespec semtime;
@@ -570,8 +570,8 @@ int AliHLTTPCCAGPUTrackerBase::InitGPU(int sliceCount, int forceDeviceID)
 	semtime.tv_sec += 10;
 	while (sem_timedwait(semLock, &semtime) != 0)
 	{
-		HLTError("Global Lock for GPU initialisation was not released for 10 seconds, assuming another thread died");
-		HLTWarning("Resetting the global lock");
+		CAGPUError("Global Lock for GPU initialisation was not released for 10 seconds, assuming another thread died");
+		CAGPUWarning("Resetting the global lock");
 		sem_post(semLock);
 	}
 #endif
@@ -592,7 +592,7 @@ int AliHLTTPCCAGPUTrackerBase::InitGPU(int sliceCount, int forceDeviceID)
 
 	if (retVal)
 	{
-		HLTImportant("GPU Tracker initialization failed");
+		CAGPUImportant("GPU Tracker initialization failed");
 		return(1);
 	}
 
@@ -612,14 +612,14 @@ int AliHLTTPCCAGPUTrackerBase::InitGPU(int sliceCount, int forceDeviceID)
 	fHelperMemMutex = malloc(sizeof(pthread_mutex_t));
 	if (fHelperMemMutex == NULL)
 	{
-		HLTError("Memory allocation error");
+		CAGPUError("Memory allocation error");
 		ExitGPU_Runtime();
 		return(1);
 	}
 
 	if (pthread_mutex_init((pthread_mutex_t*) fHelperMemMutex, NULL))
 	{
-		HLTError("Error creating pthread mutex");
+		CAGPUError("Error creating pthread mutex");
 		ExitGPU_Runtime();
 		free(fHelperMemMutex);
 		return(1);
@@ -628,7 +628,7 @@ int AliHLTTPCCAGPUTrackerBase::InitGPU(int sliceCount, int forceDeviceID)
 	fSliceGlobalMutexes = malloc(sizeof(pthread_mutex_t) * fgkNSlices);
 	if (fSliceGlobalMutexes == NULL)
 	{
-		HLTError("Memory allocation error");
+		CAGPUError("Memory allocation error");
 		ExitGPU_Runtime();
 		return(1);
 	}
@@ -636,14 +636,14 @@ int AliHLTTPCCAGPUTrackerBase::InitGPU(int sliceCount, int forceDeviceID)
 	{
 		if (pthread_mutex_init(&((pthread_mutex_t*) fSliceGlobalMutexes)[i], NULL))
 		{
-			HLTError("Error creating pthread mutex");
+			CAGPUError("Error creating pthread mutex");
 			ExitGPU_Runtime();
 			return(1);
 		}
 	}
 
 	fCudaInitialized = 1;
-	HLTInfo("GPU Tracker initialization successfull"); //Verbosity reduced because GPU backend will print HLTImportant message!
+	CAGPUInfo("GPU Tracker initialization successfull"); //Verbosity reduced because GPU backend will print CAGPUImportant message!
 
 	return(retVal);
 }
@@ -666,7 +666,7 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_FinishSlices(AliHLTTPCCASliceOut
 	fSlaveTrackers[firstSlice + iSlice].CommonMemory()->fNLocalTrackHits = fSlaveTrackers[firstSlice + iSlice].CommonMemory()->fNTrackHits;
 	if (fUseGlobalTracking) fSlaveTrackers[firstSlice + iSlice].CommonMemory()->fNTracklets = 1;
 
-	if (fDebugLevel >= 3) HLTInfo("Data ready for slice %d, helper thread %d", iSlice, iSlice % (fNHelperThreads + 1));
+	if (fDebugLevel >= 3) CAGPUInfo("Data ready for slice %d, helper thread %d", iSlice, iSlice % (fNHelperThreads + 1));
 	fSliceOutputReady = iSlice;
 
 	if (fUseGlobalTracking)
@@ -749,12 +749,12 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_Finalize(AliHLTTPCCASliceOutput*
 		{
 			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
-				HLTDebug("Slice %d - Tracks: Local %d Global %d - Hits: Local %d Global %d\n", iSlice, fSlaveTrackers[iSlice].CommonMemory()->fNLocalTracks, fSlaveTrackers[iSlice].CommonMemory()->fNTracks, fSlaveTrackers[iSlice].CommonMemory()->fNLocalTrackHits, fSlaveTrackers[iSlice].CommonMemory()->fNTrackHits);
+				CAGPUDebug("Slice %d - Tracks: Local %d Global %d - Hits: Local %d Global %d\n", iSlice, fSlaveTrackers[iSlice].CommonMemory()->fNLocalTracks, fSlaveTrackers[iSlice].CommonMemory()->fNTracks, fSlaveTrackers[iSlice].CommonMemory()->fNLocalTrackHits, fSlaveTrackers[iSlice].CommonMemory()->fNTrackHits);
 			}
 		}
 	}
 
-	if (fDebugLevel >= 3) HLTInfo("GPU Reconstruction finished");
+	if (fDebugLevel >= 3) CAGPUInfo("GPU Reconstruction finished");
 	return(0);
 }
 
@@ -793,19 +793,19 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_StartGlobal(AliHLTTPCCASliceOutp
 int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_SliceInit(AliHLTTPCCAClusterData* pClusterData, int& iSlice, int& firstSlice)
 {
 	//Initialize GPU Slave Tracker
-	if (fDebugLevel >= 3) HLTInfo("Creating Slice Data (Slice %d)", iSlice);
+	if (fDebugLevel >= 3) CAGPUInfo("Creating Slice Data (Slice %d)", iSlice);
 	if (iSlice % (fNHelperThreads + 1) == 0)
 	{
 		if (ReadEvent(pClusterData, firstSlice, iSlice, 0))
 		{
-			HLTError("Error reading event");
+			CAGPUError("Error reading event");
 			ResetHelperThreads(1);
 			return(1);
 		}
 	}
 	else
 	{
-		if (fDebugLevel >= 3) HLTInfo("Waiting for helper thread %d", iSlice % (fNHelperThreads + 1) - 1);
+		if (fDebugLevel >= 3) CAGPUInfo("Waiting for helper thread %d", iSlice % (fNHelperThreads + 1) - 1);
 		while(fHelperParams[iSlice % (fNHelperThreads + 1) - 1].fDone < iSlice);
 		if (fHelperParams[iSlice % (fNHelperThreads + 1) - 1].fError)
 		{
@@ -824,14 +824,14 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_SliceInit(AliHLTTPCCAClusterData
 
 	if (fSlaveTrackers[firstSlice + iSlice].Data().MemorySize() > HLTCA_GPU_SLICE_DATA_MEMORY RANDOM_ERROR)
 	{
-		HLTError("Insufficiant Slice Data Memory: Slice %d, Needed %lld, Available %lld", firstSlice + iSlice, (long long int) fSlaveTrackers[firstSlice + iSlice].Data().MemorySize(), (long long int) HLTCA_GPU_SLICE_DATA_MEMORY);
+		CAGPUError("Insufficiant Slice Data Memory: Slice %d, Needed %lld, Available %lld", firstSlice + iSlice, (long long int) fSlaveTrackers[firstSlice + iSlice].Data().MemorySize(), (long long int) HLTCA_GPU_SLICE_DATA_MEMORY);
 		ResetHelperThreads(1);
 		return(1);
 	}
 
 	if (fDebugLevel >= 3)
 	{
-		HLTInfo("GPU Slice Data Memory Used: %lld/%lld", (long long int) fSlaveTrackers[firstSlice + iSlice].Data().MemorySize(), (long long int) HLTCA_GPU_SLICE_DATA_MEMORY);
+		CAGPUInfo("GPU Slice Data Memory Used: %lld/%lld", (long long int) fSlaveTrackers[firstSlice + iSlice].Data().MemorySize(), (long long int) HLTCA_GPU_SLICE_DATA_MEMORY);
 	}
 	return(0);
 }
@@ -842,25 +842,25 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_Init(AliHLTTPCCASliceOutput** pO
 
 	if (!fCudaInitialized)
 	{
-		HLTError("GPUTracker not initialized");
+		CAGPUError("GPUTracker not initialized");
 		return(1);
 	}
 	if (sliceCountLocal > fSliceCount)
 	{
-		HLTError("GPU Tracker was initialized to run with %d slices but was called to process %d slices", fSliceCount, sliceCountLocal);
+		CAGPUError("GPU Tracker was initialized to run with %d slices but was called to process %d slices", fSliceCount, sliceCountLocal);
 		return(1);
 	}
 	if (fThreadId != GetThread())
 	{
-		HLTDebug("CUDA thread changed, migrating context, Previous Thread: %d, New Thread: %d", fThreadId, GetThread());
+		CAGPUDebug("CUDA thread changed, migrating context, Previous Thread: %d, New Thread: %d", fThreadId, GetThread());
 		fThreadId = GetThread();
 	}
 
-	if (fDebugLevel >= 2) HLTInfo("Running GPU Tracker (Slices %d to %d)", fSlaveTrackers[firstSlice].Param().ISlice(), fSlaveTrackers[firstSlice].Param().ISlice() + sliceCountLocal);
+	if (fDebugLevel >= 2) CAGPUInfo("Running GPU Tracker (Slices %d to %d)", fSlaveTrackers[firstSlice].Param().ISlice(), fSlaveTrackers[firstSlice].Param().ISlice() + sliceCountLocal);
 
 	if (sliceCountLocal * sizeof(AliHLTTPCCATracker) > HLTCA_GPU_TRACKER_CONSTANT_MEM)
 	{
-		HLTError("Insuffissant constant memory (Required %d, Available %d, Tracker %d, Param %d, SliceData %d)", sliceCountLocal * (int) sizeof(AliHLTTPCCATracker), (int) HLTCA_GPU_TRACKER_CONSTANT_MEM, (int) sizeof(AliHLTTPCCATracker), (int) sizeof(AliHLTTPCCAParam), (int) sizeof(AliHLTTPCCASliceData));
+		CAGPUError("Insuffissant constant memory (Required %d, Available %d, Tracker %d, Param %d, SliceData %d)", sliceCountLocal * (int) sizeof(AliHLTTPCCATracker), (int) HLTCA_GPU_TRACKER_CONSTANT_MEM, (int) sizeof(AliHLTTPCCATracker), (int) sizeof(AliHLTTPCCAParam), (int) sizeof(AliHLTTPCCASliceData));
 		return(1);
 	}
 
@@ -882,7 +882,7 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_Init(AliHLTTPCCASliceOutput** pO
 
 	memcpy(fGpuTracker, &fSlaveTrackers[firstSlice], sizeof(AliHLTTPCCATracker) * sliceCountLocal);
 
-	if (fDebugLevel >= 3) HLTInfo("Allocating GPU Tracker memory and initializing constants");
+	if (fDebugLevel >= 3) CAGPUInfo("Allocating GPU Tracker memory and initializing constants");
 
 #ifdef HLTCA_GPU_TIME_PROFILE
 	AliHLTTPCCATracker::StandaloneQueryFreq(&fProfTimeC);
@@ -901,35 +901,35 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_Init(AliHLTTPCCASliceOutput** pO
 		//Set Pointers to GPU Memory
 		char* tmpMem = (char*) GlobalMemory(fGPUMemory, iSlice);
 
-		if (fDebugLevel >= 3) HLTInfo("Initialising GPU Hits Memory");
+		if (fDebugLevel >= 3) CAGPUInfo("Initialising GPU Hits Memory");
 		tmpMem = fGpuTracker[iSlice].SetGPUTrackerHitsMemory(tmpMem, pClusterData[iSlice].NumberOfClusters());
 		tmpMem = alignPointer(tmpMem, HLTCA_GPU_MEMALIGN);
 
-		if (fDebugLevel >= 3) HLTInfo("Initialising GPU Tracklet Memory");
+		if (fDebugLevel >= 3) CAGPUInfo("Initialising GPU Tracklet Memory");
 		tmpMem = fGpuTracker[iSlice].SetGPUTrackerTrackletsMemory(tmpMem, HLTCA_GPU_MAX_TRACKLETS);
 		tmpMem = alignPointer(tmpMem, HLTCA_GPU_MEMALIGN);
 
-		if (fDebugLevel >= 3) HLTInfo("Initialising GPU Track Memory");
+		if (fDebugLevel >= 3) CAGPUInfo("Initialising GPU Track Memory");
 		tmpMem = fGpuTracker[iSlice].SetGPUTrackerTracksMemory(tmpMem, HLTCA_GPU_MAX_TRACKS, pClusterData[iSlice].NumberOfClusters());
 		tmpMem = alignPointer(tmpMem, HLTCA_GPU_MEMALIGN);
 
 		if (fGpuTracker[iSlice].TrackMemorySize() >= HLTCA_GPU_TRACKS_MEMORY RANDOM_ERROR)
 		{
-			HLTError("Insufficiant Track Memory");
+			CAGPUError("Insufficiant Track Memory");
 			ResetHelperThreads(0);
 			return(1);
 		}
 
 		if ((size_t) (tmpMem - (char*) GlobalMemory(fGPUMemory, iSlice)) > HLTCA_GPU_GLOBAL_MEMORY RANDOM_ERROR)
 		{
-			HLTError("Insufficiant Global Memory (%lld < %lld)", (long long int) (size_t) (tmpMem - (char*) GlobalMemory(fGPUMemory, iSlice)), (long long int) HLTCA_GPU_GLOBAL_MEMORY);
+			CAGPUError("Insufficiant Global Memory (%lld < %lld)", (long long int) (size_t) (tmpMem - (char*) GlobalMemory(fGPUMemory, iSlice)), (long long int) HLTCA_GPU_GLOBAL_MEMORY);
 			ResetHelperThreads(0);
 			return(1);
 		}
 
 		if (fDebugLevel >= 3)
 		{
-			HLTInfo("GPU Global Memory Used: %lld/%lld, Page Locked Tracks Memory used: %lld / %lld", (long long int) (tmpMem - (char*) GlobalMemory(fGPUMemory, iSlice)), (long long int) HLTCA_GPU_GLOBAL_MEMORY, (long long int) fGpuTracker[iSlice].TrackMemorySize(), (long long int) HLTCA_GPU_TRACKS_MEMORY);
+			CAGPUInfo("GPU Global Memory Used: %lld/%lld, Page Locked Tracks Memory used: %lld / %lld", (long long int) (tmpMem - (char*) GlobalMemory(fGPUMemory, iSlice)), (long long int) HLTCA_GPU_GLOBAL_MEMORY, (long long int) fGpuTracker[iSlice].TrackMemorySize(), (long long int) HLTCA_GPU_TRACKS_MEMORY);
 		}
 
 		//Initialize Startup Constants
@@ -937,7 +937,7 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_Init(AliHLTTPCCASliceOutput** pO
 		*fSlaveTrackers[firstSlice + iSlice].NTracks() = 0;
 		*fSlaveTrackers[firstSlice + iSlice].NTrackHits() = 0;
 		fGpuTracker[iSlice].GPUParametersConst()->fGPUFixedBlockCount = sliceCountLocal > fConstructorBlockCount ? (iSlice < fConstructorBlockCount) : fConstructorBlockCount * (iSlice + 1) / sliceCountLocal - fConstructorBlockCount * (iSlice) / sliceCountLocal;
-		if (fDebugLevel >= 3) HLTInfo("Blocks for Slice %d: %d", iSlice, fGpuTracker[iSlice].GPUParametersConst()->fGPUFixedBlockCount);
+		if (fDebugLevel >= 3) CAGPUInfo("Blocks for Slice %d: %d", iSlice, fGpuTracker[iSlice].GPUParametersConst()->fGPUFixedBlockCount);
 		fGpuTracker[iSlice].GPUParametersConst()->fGPUiSlice = iSlice;
 		fGpuTracker[iSlice].GPUParametersConst()->fGPUnSlices = sliceCountLocal;
 		fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError = 0;

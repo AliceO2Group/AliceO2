@@ -22,7 +22,7 @@
 
 #include "MemoryAssignmentHelpers.h"
 
-#ifndef HLTCA_STANDALONE
+#if !defined(HLTCA_STANDALONE) && !defined(HLTCA_GPULIBRARY)
 #include "AliHLTDefinitions.h"
 #include "AliHLTSystem.h"
 #endif
