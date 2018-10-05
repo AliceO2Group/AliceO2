@@ -12,6 +12,9 @@ set(SRCS
   src/LookUp.cxx
   src/TopologyFastSimulation.cxx
   src/AlpideCoder.cxx
+  src/PayLoadCont.cxx
+  src/GBTWord.cxx
+  src/RUInfo.cxx
 )
 set(HEADERS
   include/${MODULE_NAME}/PixelReader.h
@@ -25,6 +28,9 @@ set(HEADERS
   include/${MODULE_NAME}/ChipMappingITS.h
   include/${MODULE_NAME}/ChipMappingMFT.h
   include/${MODULE_NAME}/AlpideCoder.h
+  include/${MODULE_NAME}/GBTWord.h
+  include/${MODULE_NAME}/PayLoadCont.h
+  include/${MODULE_NAME}/RUInfo.h
 )
 Set(LINKDEF src/ITSMFTReconstructionLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})
