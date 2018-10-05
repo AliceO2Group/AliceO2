@@ -34,7 +34,7 @@
   #pragma warning(disable : 1684)
 #endif
 
-#if defined(HLTCA_STANDALONE) || defined(__OPENCL__) || !defined(HLTCA_BUILD_ALIROOT_LIB) 
+#if defined(HLTCA_STANDALONE) || defined(__OPENCL__) || !defined(HLTCA_BUILD_ALIROOT_LIB) || defined(HLTCA_GPULIBRARY)
   #if !defined(ROOT_Rtypes) && !defined(__CLING__)
     #define ClassDef(name,id)
     #define ClassImp(name)
@@ -51,9 +51,9 @@
   #ifdef __OPENCL__
     #define GPUdi() inline
     #define GPUhdi() inline
-    #define GPUd() 
+    #define GPUd()
     #define GPUi() inline
-    #define GPUhd() 
+    #define GPUhd()
     #define GPUh() TRIGGER_ERROR_NO_HOST_CODE
     #define GPUg() __kernel
     #define GPUshared() __local
@@ -115,7 +115,7 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
   template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Global, L, G, C, P> { typedef G type; };
   template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Constant, L, G, C, P> { typedef C type; };
   template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Plain, L, G, C, P> { typedef P type; };
-  #define MakeType(base_type) typename MakeTypeHelper<LG, GPUshared() base_type, GPUglobalref() base_type, GPUconstant() base_type, base_type>::type 
+  #define MakeType(base_type) typename MakeTypeHelper<LG, GPUshared() base_type, GPUglobalref() base_type, GPUconstant() base_type, base_type>::type
   #define MEM_CLASS_PRE() template<LocalOrGlobal LG>
   #define MEM_LG(type) type<LG>
   #define MEM_CLASS_PRE2() template<LocalOrGlobal LG2>
