@@ -12,24 +12,11 @@
 /// \brief Implementation of the ALPIDE data decoding/encoding
 
 #include "ITSMFTReconstruction/AlpideCoder.h"
-#include <FairLogger.h>
 #include <TClass.h>
 
+//#define _RAW_READER_DEBUG_ // to produce debug output during decoding
+
 using namespace o2::ITSMFT;
-
-//_____________________________________
-AlpideCoder::AlpideCoder()
-{
-  LOG(INFO) << "ALPIDE (De)Coder" << FairLogger::endl;
-  LOG(INFO) << "ATTENTION: Currently ROFrameID is limited to UShort" << FairLogger::endl;
-  mTimerIO.Stop();
-}
-
-//_____________________________________
-AlpideCoder::~AlpideCoder()
-{
-  closeIO();
-}
 
 //_____________________________________
 void AlpideCoder::print() const
@@ -54,29 +41,31 @@ void AlpideCoder::reset()
 }
 
 //_____________________________________
-int AlpideCoder::encodeChip(short chipInModule, short framestartdata, short roflags)
+int AlpideCoder::encodeChip(PayLoadCont& buffer, const o2::ITSMFT::ChipPixelData& chipData,
+                            uint16_t chipInModule, uint16_t bc, uint16_t roflags)
 {
-  //print();
-  // process chip data
+  // Encode chip data into provided buffer. Data must be provided sorted in row/col, no check is done
   int nfound = 0;
-  // chip header
-  addToBuffer(makeChipHeader(chipInModule, framestartdata));
-  for (int ir = NRegions; ir--;) {
-    nfound += procRegion(ir);
-  }
-  if (nfound) {
-    addToBuffer(makeChipTrailer(roflags, 0));
+  auto pixels = chipData.getData();
+  if (pixels.size()) { // non-empty chip
+    for (const auto& pix : pixels) {
+      addPixel(pix.getRow(), pix.getCol());
+    }
+    buffer.addFast(makeChipHeader(chipInModule, bc)); // chip header
+    for (int ir = NRegions; ir--;) {
+      nfound += procRegion(buffer, ir);
+    }
+    buffer.addFast(makeChipTrailer(roflags));
+    resetMap();
   } else {
-    eraseInBuffer(SizeChipHeader);
-    addToBuffer(makeChipEmpty(chipInModule, framestartdata, 0), SizeChipEmpty);
+    buffer.addFast(makeChipEmpty(chipInModule, bc));
   }
   //
-  resetMap();
   return nfound;
 }
 
 //_____________________________________
-int AlpideCoder::procDoubleCol(short reg, short dcol)
+int AlpideCoder::procDoubleCol(PayLoadCont& buffer, short reg, short dcol)
 {
   // process double column: encoding
   short hits[2 * NRows];
@@ -125,19 +114,23 @@ int AlpideCoder::procDoubleCol(short reg, short dcol)
   }
   //
   int ih = 0;
+  if (nHits) {
+    buffer.addFast(makeRegion(reg)); // flag region start
+  }
+
   while ((ih < nHits)) {
     short addrE, addrW = hits[ih++]; // address of the reference hit
-    UChar_t mask = 0, npx = 0;
+    uint8_t mask = 0, npx = 0;
     short addrLim = addrW + HitMapSize + 1; // 1+address of furthest hit can be put in the map
     while ((ih < nHits && (addrE = hits[ih]) < addrLim)) {
       mask |= 0x1 << (addrE - addrW - 1);
       ih++;
     }
     if (mask) { // flag DATALONG
-      addToBuffer(makeDataLong(dcol, addrW));
-      addToBuffer(mask);
+      buffer.addFast(makeDataLong(dcol, addrW));
+      buffer.addFast(mask);
     } else {
-      addToBuffer(makeDataShort(dcol, addrW));
+      buffer.addFast(makeDataShort(dcol, addrW));
     }
     nData++;
   }
@@ -145,100 +138,6 @@ int AlpideCoder::procDoubleCol(short reg, short dcol)
   return nData;
 }
 
-//_____________________________________
-void AlpideCoder::expandBuffer(int add)
-{
-#ifdef _DEBUG_PIX_CONV_
-  printf("expandBuffer: %d -> %d\n", mWrBufferSize, mWrBufferSize + add);
-#endif
-  UChar_t* bfcopy = new UChar_t[(mWrBufferSize += add)];
-  if (mWrBufferFill) {
-    memcpy(bfcopy, mWrBuffer, mWrBufferFill * sizeof(UChar_t));
-  }
-  delete[] mWrBuffer;
-  mWrBuffer = bfcopy;
-}
-
-//_____________________________________
-bool AlpideCoder::openOutput(const std::string filename)
-{
-  // open output for raw data
-  LOG(INFO) << "opening raw data output file " << filename << FairLogger::endl;
-  mIOFile = fopen(filename.data(), "wb");
-  return mIOFile != nullptr;
-}
-
-//_____________________________________
-void AlpideCoder::openInput(const std::string filename)
-{
-  // open raw data input
-  LOG(INFO) << "opening raw data input file: " << filename << FairLogger::endl;
-  if (!(mIOFile = fopen(filename.data(), "rb"))) {
-    LOG(FATAL) << "Failed to open input file" << filename << FairLogger::endl;
-  }
-  mWrBufferFill = 0;
-  mBufferPointer = mWrBuffer;
-  mBufferEnd = mWrBuffer;
-  mExpectInp = ExpectModuleHeader;
-  loadInBuffer();
-}
-
-//_____________________________________
-void AlpideCoder::closeIO()
-{
-  // close io
-  if (mIOFile) {
-    flushBuffer();
-    fclose(mIOFile);
-  }
-  mIOFile = nullptr;
-  LOG(INFO) << Class()->GetName() << " Closed IO | total time spent in IO: " << FairLogger::endl;
-  mTimerIO.Print();
-}
-
-//_____________________________________
-bool AlpideCoder::flushBuffer()
-{
-  // flush current content of buffer
-  if (!mWrBufferFill) {
-    return false;
-  }
-  if (!mIOFile) {
-    LOG(FATAL) << "Output handler is not created" << FairLogger::endl;
-  }
-  mTimerIO.Start(false);
-  fwrite(mWrBuffer, sizeof(char), mWrBufferFill, mIOFile);
-  mTimerIO.Stop();
-  mWrBufferFill = 0; // reset the counter
-  return true;
-}
-
-//_____________________________________
-int AlpideCoder::loadInBuffer(int chunk)
-{
-  // upload next chunk of data to buffer
-  int save = mBufferEnd - mBufferPointer;
-  // move unprocessed part to the beginning of the buffer
-  if (save > 0) {
-    memmove(mWrBuffer, mBufferPointer, save);
-  } else {
-    save = 0;
-  }
-  //
-  if (mWrBufferSize < (chunk + save)) {
-    expandBuffer(chunk + save + 1000);
-  }
-  mBufferPointer = mWrBuffer;
-#ifdef _DEBUG_PIX_CONV_
-  printf("loadInBuffer: %d bytes placed with offset %d\n", chunk, save);
-#endif
-  mTimerIO.Start(false);
-  int nc = (int)fread(mWrBuffer + save, sizeof(char), chunk, mIOFile);
-  mTimerIO.Stop();
-  mWrBufferFill = save + nc;
-  mBufferEnd = mWrBuffer + mWrBufferFill;
-  return mWrBufferFill;
-}
 
 //_____________________________________
 void AlpideCoder::resetMap()
@@ -249,114 +148,154 @@ void AlpideCoder::resetMap()
 }
 
 //_____________________________________
-int AlpideCoder::readChipData(std::vector<AlpideCoder::HitsRecord>& hits,
-                              UShort_t& chip,   // updated on change, don't modify returned value
-                              UShort_t& module, // updated on change, don't modify returned value
-                              UShort_t& cycle)  // updated on change, don't modify returned value
+int AlpideCoder::decodeChip(ChipPixelData& chipData, PayLoadCont& buffer)
 {
   // read record for single non-empty chip, updating on change module and cycle.
   // return number of records filled (>0), EOFFlag or Error
+  // NOTE: decoder does not clean the chipData buffers, should be done outside
   //
-  hits.clear();
-  UChar_t dataC = 0;
-  UChar_t region = 0;
-  UChar_t framestartdata = 0;
-  UShort_t dataS = 0;
-  UInt_t dataI = 0;
+  uint8_t dataC = 0, timestamp = 0;
+  uint16_t dataS = 0, region = 0;
   //
-  int nHitsRec = 0;
-  //
-  while (1) {
+  int nRightCHits = 0;               // counter for the hits in the right column of the current double column
+  std::uint16_t rightColHits[NRows]; // buffer for the accumulation of hits in the right column
+  std::uint16_t colDPrev = 0xffff;   // previously processed double column (to dected change of the double column)
+
+  mExpectInp = ExpectChipHeader | ExpectChipEmpty; // data must always start with chip header or chip empty flag
+
+  while (buffer.next(dataC)) {
     //
-    if (!getFromBuffer(dataC)) {
-      return EOFFlag;
-    }
-    //
-    if (mExpectInp & ExpectModuleHeader && dataC == MODULEHEADER) { // new module header
-      if (!getFromBuffer(module) || !getFromBuffer(cycle)) {
-        return unexpectedEOF("MODULE_HEADER");
-      }
-      mExpectInp = ExpectModuleTrailer | ExpectChipHeader | ExpectChipEmpty;
-      continue;
-    }
-    //
-    if (mExpectInp & ExpectModuleTrailer && dataC == MODULETRAILER) { // module trailer
-      UShort_t moduleT, cycleT;
-      if (!getFromBuffer(moduleT) || !getFromBuffer(cycleT)) {
-        return unexpectedEOF("MODULE_HEADER");
-      }
-      if (moduleT != module || cycleT != cycle) {
-        LOG(ERROR) << "Error: expected module trailer for module " << module << "/cycle " << cycle << ", got for module "
-                   << moduleT << "/cycle " << cycleT << FairLogger::endl;
-        return Error;
-      }
-      mExpectInp = ExpectModuleHeader;
-      continue;
-    }
     // ---------- chip info ?
-    UChar_t dataCM = dataC & (~MaskChipID);
+    uint8_t dataCM = dataC & (~MaskChipID);
     //
+    if ((mExpectInp & ExpectChipEmpty) && dataCM == CHIPEMPTY) { // chip trailer was expected
+      chipData.setChipID(dataC & MaskChipID);                    // here we set the chip ID within the module
+      if (!buffer.next(timestamp)) {
+        return unexpectedEOF("CHIP_EMPTY:Timestamp");
+      }
+      mExpectInp = ExpectChipHeader | ExpectChipEmpty;
+      continue;
+    }
+
     if ((mExpectInp & ExpectChipHeader) && dataCM == CHIPHEADER) { // chip header was expected
-      chip = dataC & MaskChipID;
-      if (!getFromBuffer(framestartdata)) {
+      chipData.setChipID(dataC & MaskChipID);                      // here we set the chip ID within the module
+      if (!buffer.next(timestamp)) {
         return unexpectedEOF("CHIP_HEADER");
       }
       mExpectInp = ExpectRegion; // now expect region info
       continue;
     }
-    //
-    if ((mExpectInp & ExpectChipEmpty) && dataCM == CHIPEMPTY) { // chip trailer was expected
-      chip = dataC & MaskChipID;
-      if (!getFromBuffer(framestartdata)) {
-        return unexpectedEOF("CHIP_EMPTY:FrameStartData");
-      }
-      if (!getFromBuffer(dataC)) {
-        return unexpectedEOF("CHIP_EMPTY:ReservedWord");
-      }
-      mExpectInp = ExpectModuleTrailer | ExpectChipHeader | ExpectChipEmpty;
-      continue;
-    }
-    //
-    if ((mExpectInp & ExpectChipTrailer) && dataCM == CHIPTRAILER) { // chip trailer was expected
-      if (!getFromBuffer(framestartdata)) {
-        return unexpectedEOF("CHIP_TRAILER:FrameStartData");
-      }
-      mExpectInp = ExpectModuleTrailer | ExpectChipHeader | ExpectChipEmpty;
-      return hits.size();
-    }
+
     // region info ?
     if ((mExpectInp & ExpectRegion) && (dataC & REGION) == REGION) { // chip header was seen, or hit data read
       region = dataC & MaskRegion;
       mExpectInp = ExpectData;
       continue;
     }
-    // hit info ?
-    if ((mExpectInp & ExpectData)) { // region header was seen, expect data
-      stepBackInBuffer();            // need to reinterpred as short
-      if (!getFromBuffer(dataS)) {
-        return unexpectedEOF("CHIPDATA");
-      }
-      UShort_t dataSM = dataS & (~MaskDColID); // check hit data mask
-      if (dataSM == DATASHORT) {               // single hit
-        UChar_t dColID = (dataS & MaskEncoder) >> 10;
-        UShort_t pixID = dataS & MaskPixID;
-        hits.emplace_back(region, dColID, pixID, 0);
-        mExpectInp = ExpectData | ExpectRegion | ExpectChipTrailer;
-        continue;
-      } else if (dataSM == DATALONG) { // multiple hits
-        UChar_t dColID = (dataS & MaskEncoder) >> 10;
-        UShort_t pixID = dataS & MaskPixID;
-        UChar_t hitsPattern = 0;
-        if (!getFromBuffer(hitsPattern)) {
-          return unexpectedEOF("CHIP_DATA_LONG:Pattern");
+
+    if ((mExpectInp & ExpectChipTrailer) && dataCM == CHIPTRAILER) { // chip trailer was expected
+      mExpectInp = ExpectChipHeader | ExpectChipEmpty;
+
+      // in case there are entries in the "right" columns buffer, add them to the container
+      if (nRightCHits) {
+        colDPrev++;
+        for (int ihr = 0; ihr < nRightCHits; ihr++) {
+          chipData.getData().emplace_back(rightColHits[ihr], colDPrev);
         }
-        hits.emplace_back(region, dColID, pixID, hitsPattern);
-        mExpectInp = ExpectData | ExpectRegion | ExpectChipTrailer;
-        continue;
+      }
+      break;
+    }
+
+    // hit info ?
+    if ((mExpectInp & ExpectData)) {
+      if (isData(dataC)) { // region header was seen, expect data
+        // TODO note that here we are checking on the byte rather than the short, need to stepBack
+
+        buffer.stepBack(); // need to reinterpred as short
+        if (!buffer.next(dataS)) {
+          return unexpectedEOF("CHIPDATA");
+        }
+        // we are decoding the pixel addres, if this is a DATALONG, we will fetch the mask later
+        uint16_t dColID = (dataS & MaskEncoder) >> 10;
+        uint16_t pixID = dataS & MaskPixID;
+
+        // convert data to usual row/pixel format
+        uint16_t row = pixID >> 1;
+        // abs id of left column in double column
+        uint16_t colD = (region * NDColInReg + dColID) << 1; // TODO consider <<4 instead of *NDColInReg?
+
+#ifdef _RAW_READER_DEBUG_
+        printf("Reg:%3d DCol:%2d Addr:%3d | ", region, dColID, pixID);
+#endif
+
+        // if we start new double column, transfer the hits accumulated in the right column buffer of prev. double column
+        if (colD != colDPrev) {
+          colDPrev++;
+          for (int ihr = 0; ihr < nRightCHits; ihr++) {
+            chipData.getData().emplace_back(rightColHits[ihr], colDPrev);
+          }
+          colDPrev = colD;
+          nRightCHits = 0; // reset the buffer
+        }
+
+        bool rightC = (row & 0x1) ? !(pixID & 0x1) : (pixID & 0x1); // true for right column / lalse for left
+
+        // we want to have hits sorted in column/row, so the hits in right column of given double column
+        // are first collected in the temporary buffer
+        // real columnt id is col = colD + 1;
+        if (rightC) {
+          rightColHits[nRightCHits++] = row; // col = colD+1
+        } else {
+          chipData.getData().emplace_back(row, colD); // col = colD, left column hits are added directly to the container
+        }
+#ifdef _RAW_READER_DEBUG_
+        printf("%04d/%03d ", colD + rightC, row);
+#endif
+        if ((dataS & (~MaskDColID)) == DATALONG) { // multiple hits ?
+          uint8_t hitsPattern = 0;
+          if (!buffer.next(hitsPattern)) {
+            return unexpectedEOF("CHIP_DATA_LONG:Pattern");
+          }
+#ifdef _RAW_READER_DEBUG_
+          printf(" [ ");
+#endif
+          for (int ip = 0; ip < HitMapSize; ip++) {
+            if (hitsPattern & (0x1 << ip)) {
+              uint16_t addr = pixID + ip + 1, rowE = addr >> 1;
+              rightC = ((rowE & 0x1) ? !(addr & 0x1) : (addr & 0x1)); // true for right column / lalse for left
+              // the real columnt is int colE = colD + rightC;
+              if (rightC) { // same as above
+                rightColHits[nRightCHits++] = rowE;
+              } else {
+                chipData.getData().emplace_back(rowE, colD + rightC); // left column hits are added directly to the container
+              }
+#ifdef _RAW_READER_DEBUG_
+              printf("%04d/%03d ", colD + rightC, rowE);
+#endif
+            }
+          }
+#ifdef _RAW_READER_DEBUG_
+          printf("]\n");
+#endif
+        }
+#ifdef _RAW_READER_DEBUG_
+        else {
+          printf("\n");
+        }
+#endif
       } else {
-        LOG(ERROR) << "Expected DataShort or DataLong mask, got : " << dataSM << FairLogger::endl;
+        LOG(ERROR) << "Expected DataShort or DataLong mask, got : " << dataS;
         return Error;
       }
+      mExpectInp = ExpectChipTrailer | ExpectData | ExpectRegion;
+      continue; // end of DATA(SHORT or LONG) processing
     }
+
+    if (!dataC) {
+      break; // 0 padding reached (end of the cable data)
+    }
+    return unexpectedEOF("Unknown word"); // either error
   }
+
+  return chipData.getData().size();
 }

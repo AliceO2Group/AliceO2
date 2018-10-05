@@ -24,11 +24,14 @@
 #pragma link C++ class o2::ITSMFT::BuildTopologyDictionary + ;
 #pragma link C++ class o2::ITSMFT::LookUp + ;
 #pragma link C++ class o2::ITSMFT::TopologyFastSimulation + ;
-#pragma link C++ struct o2::ITSMFT::ITSChipMappingData + ;
-#pragma link C++ struct o2::ITSMFT::ITSModuleMappingData + ;
 #pragma link C++ class o2::ITSMFT::ChipMappingITS + ;
 #pragma link C++ class o2::ITSMFT::ChipMappingMFT + ;
 #pragma link C++ class o2::ITSMFT::AlpideCoder + ;
+#pragma link C++ class o2::ITSMFT::GBTWord + ;
+#pragma link C++ class o2::ITSMFT::GBTDataHeader + ;
+#pragma link C++ class o2::ITSMFT::GBTDataTrailer + ;
+#pragma link C++ class o2::ITSMFT::GBTData + ;
+#pragma link C++ class o2::ITSMFT::PayLoadCont + ;
 
 #pragma link C++ class std::map<unsigned long, std::pair<o2::ITSMFT::ClusterTopology, unsigned long>> + ;
 
