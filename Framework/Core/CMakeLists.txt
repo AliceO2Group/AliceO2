@@ -208,6 +208,7 @@ set(TEST_SRCS
       test/test_CustomGUI.cxx
       test/test_CompletionPolicy.cxx
       test/test_DanglingInputs.cxx
+      test/test_DanglingOutputs.cxx
       test/test_DataAllocator.cxx
       test/test_DataProcessorSpec.cxx
       test/test_DataRefUtils.cxx
