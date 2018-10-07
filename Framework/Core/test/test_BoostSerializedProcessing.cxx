@@ -17,6 +17,7 @@
 #include "Framework/CallbackService.h"
 #include "FairMQLogger.h"
 #include "Framework/SerializationMethods.h"
+#include "DataFormatsMID/Cluster2D.h"
 
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
@@ -33,11 +34,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
         OutputSpec{ { "make" }, "TES", "BOOST" }, //
       },
       AlgorithmSpec{ [](ProcessingContext& ctx) {
-        auto& out1 = ctx.outputs().make<BoostSerialized<std::array<int, 6>>>({ "TES", "BOOST" });
+        auto& out1 = ctx.outputs().make<BoostSerialized<std::vector<o2::mid::Cluster2D>>>({ "TES", "BOOST" });
         // auto& out1 = ctx.outputs().make_boost<std::array<int,6>>({ "TES", "BOOST" });
         // auto& out1 = ctx.outputs().make<BoostSerialized<std::array<int,6>>>({ "TES", "BOOST" });
         // auto& out1 = ctx.outputs().make<std::array<int,6>>({ "TES", "BOOST" });
-        out1 = { 1, 2, 3, 4, 5, 6 };
+        for (size_t i = 0; i < 17; i++) {
+          float iFloat = (float)i;
+          out1.emplace_back(o2::mid::Cluster2D{ (uint8_t)i, 0.3f * iFloat, 0.5f * iFloat, 0.7f / iFloat, 0.9f / iFloat });
+        }
       } } //
     },    //
     DataProcessorSpec{
@@ -50,16 +54,21 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
         [](ProcessingContext& ctx) {
           LOG(INFO) << "Buffer ready to receive";
 
-          auto in = ctx.inputs().get<BoostSerialized<std::array<int, 6>>>("make");
-          std::array<int, 6> check = { 1, 2, 3, 4, 5, 6 };
-          int cnt = 0;
-          for (const auto& it : in) {
-            if (it != check[cnt]) {
-              LOG(ERROR) << "Expecting " << check[cnt] << ", found `" << it << "'";
-            } else {
-              LOG(INFO) << "Position " << cnt << " OK";
-            }
-            cnt++;
+          auto in = ctx.inputs().get<BoostSerialized<std::vector<o2::mid::Cluster2D>>>("make");
+          std::vector<o2::mid::Cluster2D> check;
+          for (size_t i = 0; i < 17; i++) {
+            float iFloat = (float)i;
+            check.emplace_back(o2::mid::Cluster2D{ (uint8_t)i, 0.3f * iFloat, 0.5f * iFloat, 0.7f / iFloat, 0.9f / iFloat });
+          }
+
+          size_t i = 0;
+          for (auto const& test : in) {
+            assert((test.deId == check[i].deId));       // deId Wrong
+            assert((test.xCoor == check[i].xCoor));     // xCoor Wrong
+            assert((test.yCoor == check[i].yCoor));     // yCoor Wrong
+            assert((test.sigmaX2 == check[i].sigmaX2)); // sigmaX2 Wrong
+            assert((test.sigmaY2 == check[i].sigmaY2)); // sigmaY2 Wrong
+            i++;
           }
           ctx.services().get<ControlService>().readyToQuit(true);
         } //
