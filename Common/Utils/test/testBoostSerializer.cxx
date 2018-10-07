@@ -25,60 +25,60 @@ using namespace o2::utils;
 
 BOOST_AUTO_TEST_SUITE(testDPLSerializer)
 
-BOOST_AUTO_TEST_CASE(testTrivialTypeVect)
-{
-  using contType = std::vector<int>;
+// BOOST_AUTO_TEST_CASE(testTrivialTypeVect)
+// {
+//   using contType = std::vector<int>;
 
-  contType inputV{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+//   contType inputV{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
-  auto msgStr = BoostSerialize(inputV).str();
-  auto inputV2 = BoostDeserialize<contType>(msgStr);
+//   auto msgStr = BoostSerialize(inputV).str();
+//   auto inputV2 = BoostDeserialize<contType>(msgStr);
 
-  BOOST_TEST(inputV.size() == inputV2.size());
+//   BOOST_TEST(inputV.size() == inputV2.size());
 
-  size_t i = 0;
-  for (auto const& test : inputV) {
-    BOOST_TEST(test == inputV2[i]);
-    i++;
-  }
-}
+//   size_t i = 0;
+//   for (auto const& test : inputV) {
+//     BOOST_TEST(test == inputV2[i]);
+//     i++;
+//   }
+// }
 
-BOOST_AUTO_TEST_CASE(testTrivialTypeArray)
-{
-  using contType = std::array<int, 20>;
+// BOOST_AUTO_TEST_CASE(testTrivialTypeArray)
+// {
+//   using contType = std::array<int, 20>;
 
-  contType inputV{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+//   contType inputV{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
-  auto msgStr = BoostSerialize(inputV).str();
-  auto inputV2 = BoostDeserialize<contType>(msgStr);
+//   auto msgStr = BoostSerialize(inputV).str();
+//   auto inputV2 = BoostDeserialize<contType>(msgStr);
 
-  BOOST_TEST(inputV.size() == inputV2.size());
+//   BOOST_TEST(inputV.size() == inputV2.size());
 
-  size_t i = 0;
-  for (auto const& test : inputV) {
-    BOOST_TEST(test == inputV2[i]);
-    i++;
-  }
-}
+//   size_t i = 0;
+//   for (auto const& test : inputV) {
+//     BOOST_TEST(test == inputV2[i]);
+//     i++;
+//   }
+// }
 
-BOOST_AUTO_TEST_CASE(testTrivialTypeList)
-{
-  using contType = std::list<int>;
+// BOOST_AUTO_TEST_CASE(testTrivialTypeList)
+// {
+//   using contType = std::list<int>;
 
-  contType inputV{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+//   contType inputV{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
-  auto msgStr = BoostSerialize(inputV).str();
-  auto inputV2 = BoostDeserialize<contType>(msgStr);
+//   auto msgStr = BoostSerialize(inputV).str();
+//   auto inputV2 = BoostDeserialize<contType>(msgStr);
 
-  BOOST_TEST(inputV.size() == inputV2.size());
+//   BOOST_TEST(inputV.size() == inputV2.size());
 
-  size_t i = 0;
-  for (auto const& test : inputV) {
-    auto value = std::next(std::begin(inputV2), i).operator*();
-    BOOST_TEST(test == value);
-    i++;
-  }
-}
+//   size_t i = 0;
+//   for (auto const& test : inputV) {
+//     auto value = std::next(std::begin(inputV2), i).operator*();
+//     BOOST_TEST(test == value);
+//     i++;
+//   }
+// }
 
 BOOST_AUTO_TEST_CASE(testBoostSerialisedType)
 {
