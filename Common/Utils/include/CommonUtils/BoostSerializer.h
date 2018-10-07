@@ -55,23 +55,23 @@ struct is_boost_serializable_base<Type, Archive,
   : std::true_type {
 };
 
-template <typename Type, typename Archive>
-struct is_boost_serializable_base<Type, Archive,
-                                  typename std::enable_if<boost::serialization::is_bitwise_serializable<Type>::value>::type>
-  : std::true_type {
-};
+// template <class Type, typename Archive>
+// struct is_boost_serializable_base<Type, Archive,
+//                                   typename std::enable_if<boost::serialization::is_bitwise_serializable<typename Type::value_type>::value>::type>
+//   : std::true_type {
+// };
 
-template <typename Type, typename Archive = boost::archive::binary_oarchive, typename = void_t<>>
+template <class Type, typename Archive = boost::archive::binary_oarchive, typename = void_t<>>
 struct is_boost_serializable
   : is_boost_serializable_base<Type, Archive> {
 };
 
-template <typename Type, typename Archive>
+template <class Type, typename Archive>
 struct is_boost_serializable<Type, Archive, void_t<typename Type::value_type>>
   : is_boost_serializable<typename Type::value_type, Archive> {
 };
 
-template <typename Type>
+template <class Type>
 struct is_boost_serializable<Type, boost::archive::binary_oarchive, void_t<typename Type::value_type>>
   : is_boost_serializable<typename Type::value_type, boost::archive::binary_oarchive> {
 };
