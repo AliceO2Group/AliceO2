@@ -27,7 +27,7 @@ namespace conf
 {
 // Base class for a configurable parameter.
 //
-// A configurable parameter is a simple class, defining
+// A configurable parameter (ConfigurableParameter) is a simple class, defining
 // a few (pod) properties/members which are registered
 // in a global (boost) property tree / structure.
 //
@@ -36,7 +36,7 @@ namespace conf
 //    format via ROOT introspection and boost property trees and
 //    the possibility to readably save the configuration
 // *) Serialization/Deserialization into ROOT binary blobs (for the purpose
-//    of writing/retrieving parameters from CCDB)
+//    of writing/retrieving parameters from CCDB and to pass parameters along the processing chain)
 // *) Automatic integration of sub-classes into a common configuration
 // *) Be able to query properties from high level interfaces (just knowing
 // *) Be able to set properties from high-level interfaces (and modifying the underlying
@@ -95,8 +95,8 @@ class ConfigurableParam
     return names[(int)p];
   }
 
-  //
-  virtual std::string getName() const = 0; // print the name of the configurable Parameter
+  // get the name of the configurable Parameter
+  virtual std::string getName() const = 0;
 
   // print the current keys and values to screen (optionally with provenance information)
   virtual void printKeyValues(bool showprov = true) const = 0;
@@ -104,7 +104,9 @@ class ConfigurableParam
   static void printAllRegisteredParamNames();
   static void printAllKeyValuePairs();
 
+  // writes a human readable JSON file of all parameters
   static void writeJSON(std::string filename);
+  // writes a human readable INI file of all parameters
   static void writeINI(std::string filename);
 
   // can be used instead of using API on concrete child classes
@@ -143,17 +145,13 @@ class ConfigurableParam
     }
   }
 
+  // initializes the parameter database
   static void initialize();
 
+  // create CCDB snapsnot
   static void toCCDB(std::string filename);
+  // load from (CCDB) snapshot
   static void fromCCDB(std::string filename);
-  virtual void serializeTo(TFile*) const = 0;
-  virtual void initFrom(TFile*) = 0;
-
-  // allows to provide a file from which to update
-  // (certain) key-values
-  // propagates changes down to each registered configuration
-  static void updateFromFile(std::string filename);
 
   // allows to provide a string of key-values from which to update
   // (certain) key-values
@@ -174,6 +172,8 @@ class ConfigurableParam
 
   // fill property tree with the key-values from the sub-classes
   virtual void putKeyValues(boost::property_tree::ptree*) = 0;
+  virtual void serializeTo(TFile*) const = 0;
+  virtual void initFrom(TFile*) = 0;
 
   // static map keeping, for each configuration key, its memory location and type
   // (internal use to easily sync updates, this is ok since parameter classes are singletons)

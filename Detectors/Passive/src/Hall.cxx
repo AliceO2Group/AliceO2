@@ -112,11 +112,11 @@ void Hall::SetSpecialPhysicsCuts()
   auto& matmgr = MaterialManager::Instance();
 
   // \note ported from AliRoot. People responsible for the HALL implementation must judge and modify cuts if required.
-  auto& hallparam = HallSimParam::Instance();
-  const auto cutgam = hallparam.getCUTGAM();
-  const auto cutele = hallparam.getCUTELE();
-  const auto cutneu = hallparam.getCUTNEU();
-  const auto cuthad = hallparam.getCUTHAD();
+  auto& hp = HallSimParam::Instance();
+  const auto cutgam = hp.mCUTGAM;
+  const auto cutele = hp.mCUTELE;
+  const auto cutneu = hp.mCUTNEU;
+  const auto cuthad = hp.mCUTHAD;
 
   matmgr.SpecialCuts(
     "HALL", kSTST_C2,

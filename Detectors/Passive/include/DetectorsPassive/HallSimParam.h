@@ -13,32 +13,22 @@
 
 #include "SimConfig/ConfigurableParam.h"
 #include "SimConfig/ConfigurableParamHelper.h"
-#include <array>
 
 namespace o2
 {
 namespace passive
 {
 
-class HallSimParam : public o2::conf::ConfigurableParamHelper<HallSimParam>
-{
- public:
-  float getCUTGAM() const { return mCUTGAM; }
-  float getCUTELE() const { return mCUTELE; }
-  float getCUTNEU() const { return mCUTNEU; }
-  float getCUTHAD() const { return mCUTHAD; }
-
- private:
+struct HallSimParam : public o2::conf::ConfigurableParamHelper<HallSimParam> {
   float mCUTGAM = 1.e00;
   float mCUTELE = 1.e00;
   float mCUTNEU = 1.e-1;
   float mCUTHAD = 1.e-3;
-  static constexpr int N = 3;
-  int mPos[N] = { 1, 0, -2 }; //[N]
 
   // boilerplate stuff + make principal key "HallSim"
   O2ParamDef(HallSimParam, "HallSim");
 };
+
 } // namespace passive
 } // namespace o2
 
