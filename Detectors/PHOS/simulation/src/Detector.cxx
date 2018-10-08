@@ -913,5 +913,3 @@ void Detector::defineSensitiveVolumes()
     }
   }
 }
-
-
