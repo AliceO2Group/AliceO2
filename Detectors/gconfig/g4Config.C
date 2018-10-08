@@ -69,5 +69,8 @@ void Config()
   /// (verbose level, global range cut, ..)
   geant4->ProcessGeantMacro(configm1.Data());
 
+  // Enter in Geant4 Interactive mode
+  // geant4->StartGeantUI();
+
   cout << "g4Config.C finished" << endl;
 }

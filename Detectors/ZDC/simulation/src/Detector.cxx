@@ -455,7 +455,7 @@ void Detector::createMaterials()
   // ******** MATERIAL DEFINITION ********
   Mixture(0, "Walloy$", aW, zW, dW, 3, wW);
   Mixture(1, "CuZn$", aCuZn, zCuZn, dCuZn, 2, wCuZn);
-  Mixture(2, "SiO2$", aq, zq, dq, 2, wq);
+  Mixture(2, "SiO2$", aq, zq, dq, -2, wq);
   Material(3, "Pb $", aPb, zPb, dPb, radPb, absPb);
   Material(4, "Cu $", aCu, zCu, dCu, radCu, absCu);
   Material(5, "Fe $", aFe, zFe, dFe, radFe, absFe);
@@ -1479,7 +1479,7 @@ void Detector::createCsideBeamLine()
   // Inner trousers
   TGeoCompositeShape* pIntTrousersC = new TGeoCompositeShape("intTrousersC", "QCLint:ZDCC_c1+QCLint:ZDCC_c2");
   // Volume: QCLint
-  TGeoMedium* medZDCvoid = gGeoManager->GetMedium("ZDC_VoidNoField");
+  TGeoMedium* medZDCvoid = gGeoManager->GetMedium("ZDC_VoidNoField$");
   TGeoVolume* pQCLint = new TGeoVolume("QCLint", pIntTrousersC, medZDCvoid);
   pQCLint->SetLineColor(kTeal);
   pQCLint->SetVisLeaves(kTRUE);
