@@ -50,7 +50,7 @@ class ConfigurableParamHelper : virtual public ConfigurableParam
 {
  public:
   using ConfigurableParam::ConfigurableParam;
-  static P& Instance()
+  static const P& Instance()
   {
     return P::sInstance;
   }
