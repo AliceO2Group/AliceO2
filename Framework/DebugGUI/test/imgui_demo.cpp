@@ -125,24 +125,24 @@ void ImGui::ShowUserGuide()
 }
 
 // Demonstrate most ImGui features (big function!)
-void ImGui::ShowDemoWindow(bool* p_open)
+void ImGui::ShowDemoWindow(bool* p_open, bool def_open)
 {
     // Examples apps
-    static bool show_app_main_menu_bar = false;
-    static bool show_app_console = false;
-    static bool show_app_log = false;
-    static bool show_app_layout = false;
-    static bool show_app_property_editor = false;
-    static bool show_app_long_text = false;
-    static bool show_app_auto_resize = false;
-    static bool show_app_constrained_resize = false;
-    static bool show_app_simple_overlay = false;
-    static bool show_app_window_titles = false;
-    static bool show_app_custom_rendering = false;
-    static bool show_app_style_editor = false;
+    static bool show_app_main_menu_bar = def_open;
+    static bool show_app_console = def_open;
+    static bool show_app_log = def_open;
+    static bool show_app_layout = def_open;
+    static bool show_app_property_editor = def_open;
+    static bool show_app_long_text = def_open;
+    static bool show_app_auto_resize = def_open;
+    static bool show_app_constrained_resize = def_open;
+    static bool show_app_simple_overlay = def_open;
+    static bool show_app_window_titles = def_open;
+    static bool show_app_custom_rendering = def_open;
+    static bool show_app_style_editor = def_open;
 
-    static bool show_app_metrics = false;
-    static bool show_app_about = false;
+    static bool show_app_metrics = def_open;
+    static bool show_app_about = def_open;
 
     if (show_app_main_menu_bar)       ShowExampleAppMainMenuBar();
     if (show_app_console)             ShowExampleAppConsole(&show_app_console);
