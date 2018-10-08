@@ -57,6 +57,9 @@ Detector::Detector(const Detector& rhs)
 void Detector::InitializeO2Detector()
 {
   Reset();
+
+  // Define sensitive volumes
+  defineSensitiveVolumes();
 }
 
 void Detector::EndOfEvent()
@@ -283,16 +286,6 @@ void Detector::ConstructGeometry()
   }
 
   gGeoManager->CheckGeometry();
-
-  // Define sensitive volume
-  if (fActive) {
-    TGeoVolume* vsense = gGeoManager->GetVolume("PXTL");
-    if (vsense) {
-      AddSensitiveVolume(vsense);
-    } else {
-      LOG(ERROR) << "PHOS Sensitive volume PXTL not found ... No hit creation!\n";
-    }
-  }
 }
 //-----------------------------------------
 void Detector::CreateMaterials()
@@ -904,6 +897,19 @@ void Detector::ConstructSupportGeometry()
       copy = 2 * i + j;
       x0 = (2 * j - 1) * geom->GetDistanceBetwRails() / 2.0;
       fMC->Gspos("PWHE", copy, "cave", x0, y0, z0, 0, "ONLY");
+    }
+  }
+}
+
+//-----------------------------------------
+void Detector::defineSensitiveVolumes()
+{
+  if (fActive) {
+    TGeoVolume* vsense = gGeoManager->GetVolume("PXTL");
+    if (vsense) {
+      AddSensitiveVolume(vsense);
+    } else {
+      LOG(ERROR) << "PHOS Sensitive volume PXTL not found ... No hit creation!\n";
     }
   }
 }

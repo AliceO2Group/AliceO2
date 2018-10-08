@@ -42,7 +42,7 @@ Detector::Detector(Bool_t Active)
 }
 
 Detector::Detector(const Detector& rhs)
-  : o2::Base::DetImpl<Detector>(rhs), mIdSens1(rhs.mIdSens1), mPMTeff(nullptr), mHits(new std::vector<o2::fit::HitType>)
+  : o2::Base::DetImpl<Detector>(rhs), mIdSens1(rhs.mIdSens1), mPMTeff(rhs.mPMTeff), mHits(new std::vector<o2::fit::HitType>)
 {
 }
 
@@ -201,6 +201,13 @@ void Detector::ConstructGeometry()
 
   // MCP + 4 x wrapped radiator + 4xphotocathod + MCP + Al top in front of radiators
   SetOneMCP(ins);
+}
+
+void Detector::ConstructOpGeometry()
+{
+  LOG(DEBUG) << "Creating FIT optical geometry properties";
+
+  DefineOpticalProperties();
 }
 
 //_________________________________________
@@ -362,8 +369,6 @@ void Detector::CreateMaterials()
   Medium(16, "OpticalGlass$", 24, 1, isxfld, sxmgmx, 10., .01, .1, .003, .003);
   Medium(19, "OpticalGlassCathode$", 24, 1, isxfld, sxmgmx, 10., .01, .1, .003, .003);
   Medium(22, "SensAir$", 2, 1, isxfld, sxmgmx, 10., .1, 1., .003, .003);
-
-  DefineOpticalProperties();
 }
 
 //-------------------------------------------------------------------

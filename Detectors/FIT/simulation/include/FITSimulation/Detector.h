@@ -81,6 +81,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   /// Base class to create the detector geometry
   void CreateMaterials();
   void ConstructGeometry() override;
+  void ConstructOpGeometry() override;
   void SetOneMCP(TGeoVolume* stl);
 
   // Optical properties reader: e-Energy, abs-AbsorptionLength[cm], n-refractive index

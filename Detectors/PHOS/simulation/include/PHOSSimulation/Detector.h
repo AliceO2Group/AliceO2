@@ -173,6 +173,9 @@ class Detector : public o2::Base::DetImpl<Detector>
   Detector(const Detector& rhs);
   Detector& operator=(const Detector&);
 
+  /// Define the sensitive volumes of the geometry
+  void defineSensitiveVolumes();
+
   // Geometry parameters
   Bool_t mCreateHalfMod;   // Should we create  1/2 filled module
   Bool_t mActiveModule[6]; // list of modules to create
