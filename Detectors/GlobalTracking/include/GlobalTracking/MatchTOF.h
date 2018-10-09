@@ -185,7 +185,8 @@ class MatchTOF
   std::vector<std::pair<int, o2::dataformats::MatchInfoTOF>> mMatchedTracksPairs;
 
   ///<array of matched TOFCluster with matching information (residuals, expected times...) with the corresponding vector of indices
-  std::vector<o2::dataformats::MatchInfoTOF> mMatchedTracks;
+  //std::vector<o2::dataformats::MatchInfoTOF> mMatchedTracks;
+  std::vector<std::pair<int, o2::dataformats::MatchInfoTOF>> mMatchedTracks;
   int mNumOfTracks;  // number of tracks to be matched
   int* mMatchedTracksIndex = nullptr;  //[mNumOfTracks]
   int mNumOfClusters;  // number of clusters to be matched

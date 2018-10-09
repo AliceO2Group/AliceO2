@@ -140,9 +140,7 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
 
     LOG(INFO) << "Have " << labelAccum.getNElements() << " TOF labels ";
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
-    //pc.outputs().snapshot(Output{ "TOF", "DIGITS", 0, Lifetime::Timeframe }, *digitsVectOfVect);
-    // pc.outputs().snapshot(Output{ "TOF", "DIGITSMCTR", 0, Lifetime::Timeframe }, labelAccum);
-    pc.outputs().snapshot(Output{ "TOF", "DIGITS", 0, Lifetime::Timeframe }, *digitsAccum.get());
+    pc.outputs().snapshot(Output{ "TOF", "DIGITS", 0, Lifetime::Timeframe }, *digitsVectOfVect->get());
     pc.outputs().snapshot(Output{ "TOF", "DIGITSMCTR", 0, Lifetime::Timeframe }, labelAccum);
     LOG(INFO) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{ "TOF", "ROMode", 0, Lifetime::Timeframe }, roMode);

@@ -64,6 +64,7 @@ void MatchTOF::run()
     mTimerTot.Start(false);
   }
 
+  mOutputTree->Fill();
   mTimerTot.Stop();
 
   printf("Timing:\n");
@@ -425,8 +426,8 @@ void MatchTOF::doMatching(int sec)
 	posFloat[ii] = pos[ii];
       }
       Geo::getPadDxDyDz(posFloat, detIdTemp, deltaPosTemp);
-      if (detIdTemp[2] != -1 && nStripsCrossedInPropagation == 0){ // print in case you have a match
-	Printf("\n\n*********** We have a match!*********");
+      if (detIdTemp[2] != -1 && nStripsCrossedInPropagation == 0){ // print in case you have a useful propagation
+	Printf("\n\n*********** We have crossed a strip during propagation!*********");
 	printf("Global coordinates: pos[0] = %f, pos[1] = %f, pos[2] = %f\n", pos[0], pos[1], pos[2]);
 	printf("detIdTemp[0] = %d, detIdTemp[1] = %d, detIdTemp[2] = %d, detIdTemp[3] = %d, detIdTemp[4] = %d\n", detIdTemp[0], detIdTemp[1], detIdTemp[2], detIdTemp[3], detIdTemp[4]);
 	printf("deltaPosTemp[0] = %f, deltaPosTemp[1] = %f, deltaPosTemp[2] = %f\n", deltaPosTemp[0], deltaPosTemp[1], deltaPosTemp[2]);
@@ -503,7 +504,7 @@ void MatchTOF::doMatching(int sec)
 	float chi2 = res; // TODO: take into account also the time!
 	if (res < mSpaceTolerance) { // matching ok!
 	  Printf("YUHUUUUUUUUU! We have a match!");
-	  mMatchedTracksPairs.push_back(std::make_pair(itrk, o2::dataformats::MatchInfoTOF(itof, chi2))); // TODO: check if this is correct!
+	  mMatchedTracksPairs.push_back(std::make_pair(mTracksSectIndexCache[indices[0]][itrk], o2::dataformats::MatchInfoTOF(mTOFClusSectIndexCache[indices[0]][itof], chi2))); // TODO: check if this is correct!
 	}
       }
     }
@@ -519,7 +520,9 @@ void MatchTOF::selectBestMatches()
   // first, we sort according to the chi2
   std::sort(mMatchedTracksPairs.begin(), mMatchedTracksPairs.end(), [this](std::pair<int, o2::dataformats::MatchInfoTOF> a, std::pair<int, o2::dataformats::MatchInfoTOF> b) {
       return (a.second.getChi2() < b.second.getChi2());});
+  int i = 0;
   for (const std::pair<int,o2::dataformats::MatchInfoTOF> &matchingPair : mMatchedTracksPairs){
+    Printf("selectBestMatches: i = %d", i);
     if (mMatchedTracksIndex[matchingPair.first] != -1) { // the track was already filled
       continue;
     }
@@ -528,7 +531,10 @@ void MatchTOF::selectBestMatches()
     }
     mMatchedTracksIndex[matchingPair.first] = mMatchedTracks.size(); // index of the MatchInfoTOF correspoding to this track
     mMatchedClustersIndex[matchingPair.second.getTOFClIndex()] = mMatchedTracksIndex[matchingPair.first]; // index of the track that was matched to this cluster
-    mMatchedTracks.push_back(matchingPair.second); // array of MatchInfoTOF
+    //mMatchedTracks.push_back(matchingPair.second); // array of MatchInfoTOF
+    mMatchedTracks.push_back(matchingPair); // array of MatchInfoTOF
+    Printf("size of mMatchedTracks = %d", mMatchedTracks.size());
+    i++;
   }
  
 }

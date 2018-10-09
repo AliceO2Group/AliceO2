@@ -54,7 +54,7 @@ DataProcessorSpec getTOFDigitWriterSpec()
     auto outputtree = std::make_shared<TTree>(treename.c_str(), treename.c_str());
 
     // container for incoming digits
-    auto digits = std::make_shared<std::vector<o2::tof::Digit>>();
+    auto digits = std::make_shared<std::vector<std::vector<o2::tof::Digit>>>();
 
     // the callback to be set as hook at stop of processing for the framework
     auto finishWriting = [outputfile, outputtree]() {
@@ -76,7 +76,7 @@ DataProcessorSpec getTOFDigitWriterSpec()
       }
 
       // retrieve the digits from the input
-      auto indata = pc.inputs().get<std::vector<o2::tof::Digit>>("tofdigits");
+      auto indata = pc.inputs().get<std::vector<std::vector<o2::tof::Digit>>>("tofdigits");
       LOG(INFO) << "RECEIVED DIGITS SIZE " << indata.size();
       *digits.get() = std::move(indata);
 
