@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "DetectorsBase/Propagator.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CompletionPolicy.h"
@@ -178,6 +179,9 @@ bool wantCollisionTimePrinter()
 
 std::shared_ptr<o2::parameters::GRPObject> readGRP(std::string inputGRP = "o2sim_grp.root")
 {
+  // init magnetic field
+  o2::Base::Propagator::initFieldFromGRP(inputGRP);
+
   auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
   if (!grp) {
     LOG(ERROR) << "This workflow needs a valid GRP file to start";

@@ -12,6 +12,8 @@
 /// \brief Implementation of the ALICE TPC digitizer
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
+#include "TH3.h"
+
 #include "TPCSimulation/Digitizer.h"
 #include "TPCBase/ParameterDetector.h"
 #include "TPCBase/ParameterElectronics.h"
@@ -32,11 +34,24 @@ ClassImp(o2::TPC::Digitizer)
 
 bool o2::TPC::Digitizer::mIsContinuous = true;
 
-Digitizer::Digitizer() : mDigitContainer(nullptr) {}
+Digitizer::Digitizer()
+  : mDigitContainer(nullptr),
+    mSpaceChargeHandler(nullptr),
+    mUseSCDistortions(false)
+{
+}
 
 Digitizer::~Digitizer() { delete mDigitContainer; }
 
-void Digitizer::init() { mDigitContainer = new DigitContainer(); }
+void Digitizer::init()
+{
+  mDigitContainer = new DigitContainer();
+
+  // Calculate distortion lookup tables if initial space-charge density is provided
+  if (mUseSCDistortions) {
+    mSpaceChargeHandler->init();
+  }
+}
 
 DigitContainer* Digitizer::Process(const Sector& sector, const std::vector<o2::TPC::HitGroup>& hits, int eventID,
                                    float eventTime)
@@ -45,6 +60,9 @@ DigitContainer* Digitizer::Process(const Sector& sector, const std::vector<o2::T
     eventTime = 0.f;
   }
 
+  /// TODO: if eventtime-lastUpdate>=one space-charge time slice
+  ///  1) Propagate current space-charge density
+  ///  2) recalculate distortion lookup tables with updated space-charge density
   for (auto& inputgroup : hits) {
     ProcessHitGroup(inputgroup, sector, eventTime, eventID);
   }
@@ -89,7 +107,12 @@ void Digitizer::ProcessHitGroup(const HitGroup& inputgroup, const Sector& sector
   for (size_t hitindex = 0; hitindex < inputgroup.getSize(); ++hitindex) {
     const auto& eh = inputgroup.getHit(hitindex);
 
-    const GlobalPosition3D posEle(eh.GetX(), eh.GetY(), eh.GetZ());
+    GlobalPosition3D posEle(eh.GetX(), eh.GetY(), eh.GetZ());
+
+    // Distort the electron position in case space-charge distortions are used
+    if (mUseSCDistortions) {
+      mSpaceChargeHandler->distortElectron(posEle);
+    }
 
     /// Remove electrons that end up more than three sigma of the hit's average diffusion away from the current sector
     /// boundary
@@ -99,6 +122,8 @@ void Digitizer::ProcessHitGroup(const HitGroup& inputgroup, const Sector& sector
 
     /// The energy loss stored corresponds to nElectrons
     const int nPrimaryElectrons = static_cast<int>(eh.GetEnergyLoss());
+
+    /// TODO: add primary ions to space-charge density
 
     /// Loop over electrons
     for (int iEle = 0; iEle < nPrimaryElectrons; ++iEle) {
@@ -144,7 +169,21 @@ void Digitizer::ProcessHitGroup(const HitGroup& inputgroup, const Sector& sector
         mDigitContainer->addDigit(label, digiPadPos.getCRU(), sampaProcessing.getTimeBinFromTime(time), globalPad,
                                   signalArray[i]);
       }
+
+      /// TODO: add ion backflow to space-charge density
     }
     /// end of loop over electrons
+  }
+}
+
+void Digitizer::enableSCDistortions(SpaceCharge::SCDistortionType distortionType, TH3* hisInitialSCDensity, int nZSlices, int nPhiBins, int nRBins)
+{
+  mUseSCDistortions = true;
+  if (!mSpaceChargeHandler) {
+    mSpaceChargeHandler = std::make_unique<SpaceCharge>(nZSlices, nPhiBins, nRBins);
+  }
+  mSpaceChargeHandler->setSCDistortionType(distortionType);
+  if (hisInitialSCDensity) {
+    mSpaceChargeHandler->setInitialSpaceChargeDensity(hisInitialSCDensity);
   }
 }
