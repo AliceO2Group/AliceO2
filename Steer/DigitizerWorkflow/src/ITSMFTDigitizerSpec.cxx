@@ -65,7 +65,7 @@ class ITSMFTDPLDigitizerTask
       mROMode = o2::parameters::GRPObject::CONTINUOUS;
     }
     LOG(INFO) << mID.getName() << " simulated in "
-              << ((mROMode == o2::parameters::GRPObject::CONTINUOUS) ? "TRIGGERED" : "CONTINUOUS")
+              << ((mROMode == o2::parameters::GRPObject::CONTINUOUS) ? "CONTINUOUS" : "TRIGGERED")
               << " RO mode";
     // make sure that the geometry is loaded (TODO will this be done centrally?)
     if (!gGeoManager) {
