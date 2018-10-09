@@ -28,6 +28,8 @@ struct SimConfigData {
   std::string mExtKinFileName;               // file name of external kinematics file (needed for ext kinematics generator)
   unsigned int mStartEvent;                  // index of first event to be taken
   float mBMax;                               // maximum for impact parameter sampling
+  std::vector<float> mOrigin;                // position of the interaction diamond
+  std::vector<float> mSigmaO;                // width of the interaction diamond
   bool mIsMT;                                // chosen MT mode (Geant4 only)
   std::string mOutputPrefix;                 // prefix to be used for output files
   std::string mLogSeverity;                  // severity for FairLogger
@@ -84,6 +86,8 @@ class SimConfig
   std::string getExtKinematicsFileName() const { return mConfigData.mExtKinFileName; }
   unsigned int getStartEvent() const { return mConfigData.mStartEvent; }
   float getBMax() const { return mConfigData.mBMax; }
+  std::vector<float> getOrigin() const { return mConfigData.mOrigin; }
+  std::vector<float> getSigmaO() const { return mConfigData.mSigmaO; }
   bool getIsMT() const { return mConfigData.mIsMT; }
   std::string getOutPrefix() const { return mConfigData.mOutputPrefix; }
   std::string getLogVerbosity() const { return mConfigData.mLogVerbosity; }
