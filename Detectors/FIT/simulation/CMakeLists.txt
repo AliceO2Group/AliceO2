@@ -6,8 +6,7 @@ set(SRCS
   src/Detector.cxx
   src/Digitizer.cxx
   src/DigitizerTask.cxx
-  src/MCLabel.cxx 
-    )
+  )
 set(HEADERS
     include/${MODULE_NAME}/Detector.h
     include/${MODULE_NAME}/Digitizer.h
