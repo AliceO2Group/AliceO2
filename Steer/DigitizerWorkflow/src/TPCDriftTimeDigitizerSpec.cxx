@@ -27,6 +27,7 @@
 #include "TPCSimulation/Point.h"
 #include "TPCSimulation/ElectronTransport.h"
 #include "TPCSimulation/HitDriftFilter.h"
+#include "TPCSimulation/SpaceCharge.h"
 #include "TStopwatch.h"
 #include <sstream>
 #include <algorithm>
@@ -230,6 +231,35 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
 
   // init function return a lambda taking a ProcessingContext
   auto initIt = [digitizertask, digitArray, mcTruthArray, simChain, simChains, doit](InitContext& ctx) {
+    // Switch on distortions and get initial space-charge density histogram if provided in environment variables
+    auto useDistortions = ctx.options().get<int>("distortionType");
+    auto gridSizeString = ctx.options().get<std::string>("gridSize");
+    std::vector<int> gridSize;
+    std::stringstream ss(gridSizeString);
+    while (ss.good()) {
+      std::string substr;
+      getline(ss, substr, ',');
+      gridSize.push_back(std::stoi(substr));
+    }
+    auto inputHistoString = ctx.options().get<std::string>("initialSpaceChargeDensity");
+    std::vector<std::string> inputHisto;
+    std::stringstream ssHisto(inputHistoString);
+    while (ssHisto.good()) {
+      std::string substr;
+      getline(ssHisto, substr, ',');
+      inputHisto.push_back(substr);
+    }
+    if (useDistortions > 0) {
+      o2::TPC::SpaceCharge::SCDistortionType distortionType = useDistortions == 1 ? o2::TPC::SpaceCharge::SCDistortionType::SCDistortionsRealistic : o2::TPC::SpaceCharge::SCDistortionType::SCDistortionsConstant;
+      std::unique_ptr<TH3> hisSCDensity;
+      if (TString(inputHisto[0].data()).EndsWith(".root") && inputHisto[1].size() != 0) {
+        auto fileSCInput = std::unique_ptr<TFile>(TFile::Open(inputHisto[0].data()));
+        hisSCDensity.reset((TH3*)fileSCInput->Get(inputHisto[1].data()));
+        hisSCDensity->SetDirectory(nullptr);
+      }
+      digitizertask->enableSCDistortions(distortionType, hisSCDensity.get(), gridSize[0], gridSize[1], gridSize[2]);
+    }
+
     digitizertask->Init2();
     // the task takes the ownership of digit array + mc truth array
     // TODO: make this clear in the API
@@ -264,13 +294,15 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
   }
 
   return DataProcessorSpec{
-    id.str().c_str(), Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT",
-                                         static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
+    id.str().c_str(), Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
     outputs,
     AlgorithmSpec{ initIt },
     Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
-             { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } } }
+             { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
+             { "distortionType", VariantType::Int, 0, { "Distortion type to be used. 0 = no distortions (default), 1 = realistic distortions (not implemented yet), 2 = constant distortions" } },
+             { "gridSize", VariantType::String, "33,180,33", { "Comma separated list of number of bins in z, phi and r for distortion lookup tables (z and r can only be 2**N + 1, N=1,2,3,...)" } },
+             { "initialSpaceChargeDensity", VariantType::String, "", { "Path to root file containing TH3 with initial space-charge density and name of the TH3 (comma separated)" } } }
   };
 }
-}
-}
+} // namespace steer
+} // namespace o2

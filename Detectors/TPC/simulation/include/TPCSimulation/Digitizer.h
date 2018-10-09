@@ -18,6 +18,7 @@
 #include "TPCSimulation/DigitContainer.h"
 #include "TPCSimulation/PadResponse.h"
 #include "TPCSimulation/Point.h"
+#include "TPCSimulation/SpaceCharge.h"
 
 #include "TPCBase/Mapper.h"
 #include "Steer/HitProcessingManager.h"
@@ -27,6 +28,7 @@
 using std::vector;
 
 class TTree;
+class TH3;
 
 namespace o2
 {
@@ -92,16 +94,26 @@ class Digitizer
   /// \param isContinuous - false for triggered readout, true for continuous readout
   static void setContinuousReadout(bool isContinuous) { mIsContinuous = isContinuous; }
 
+  /// Enable the use of space-charge distortions
+  /// \param distortionType select the type of space-charge distortions (constant or realistic)
+  /// \param hisInitialSCDensity optional space-charge density histogram to use at the beginning of the simulation
+  /// \param nZSlices number of grid points in z, must be (2**N)+1
+  /// \param nPhiBins number of grid points in phi
+  /// \param nRBins number of grid points in r, must be (2**N)+1
+  void enableSCDistortions(SpaceCharge::SCDistortionType distortionType, TH3* hisInitialSCDensity, int nZSlices, int nPhiBins, int nRBins);
+
  private:
   Digitizer(const Digitizer&);
   Digitizer& operator=(const Digitizer&);
 
-  DigitContainer* mDigitContainer; ///< Container for the Digits
-  static bool mIsContinuous;       ///< Switch for continuous readout
+  DigitContainer* mDigitContainer;                  ///< Container for the Digits
+  std::unique_ptr<SpaceCharge> mSpaceChargeHandler; ///< Handler of space-charge distortions
+  static bool mIsContinuous;                        ///< Switch for continuous readout
+  bool mUseSCDistortions;                           ///< Flag to switch on the use of space-charge distortions
 
   ClassDefNV(Digitizer, 1);
 };
-}
-}
+} // namespace TPC
+} // namespace o2
 
 #endif // ALICEO2_TPC_Digitizer_H_

@@ -22,7 +22,10 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "TPCBase/Sector.h"
 #include "TPCSimulation/Digitizer.h"
+#include "TPCSimulation/SpaceCharge.h"
 #include "Steer/HitProcessingManager.h"
+
+class TH3;
 
 namespace o2
 {
@@ -59,6 +62,14 @@ class DigitizerTask : public FairTask
   /// Switch for triggered / continuous readout
   /// \param isContinuous - false for triggered readout, true for continuous readout
   void setContinuousReadout(bool isContinuous);
+
+  /// Enable the use of space-charge distortions
+  /// \param distortionType select the type of space-charge distortions (constant or realistic)
+  /// \param hisInitialSCDensity optional space-charge density histogram to use at the beginning of the simulation
+  /// \param nZSlices number of grid points in z, must be (2**N)+1; default size 129
+  /// \param nPhiBins number of grid points in phi; default size 180
+  /// \param nRBins number of grid points in r, must be (2**N)+1; default size 129
+  void enableSCDistortions(SpaceCharge::SCDistortionType distortionType, TH3* hisInitialSCDensity = nullptr, int nZSlices = 65, int nPhiBins = 180, int nRBins = 65);
 
   /// Set the maximal number of written out time bins
   /// \param nTimeBinsMax Maximal number of time bins to be written out
@@ -173,7 +184,7 @@ inline void DigitizerTask::setupSector(int s)
     mDigitsDebugArray->clear();
   mHitSector = s;
 }
-}
-}
+} // namespace TPC
+} // namespace o2
 
 #endif // ALICEO2_TPC_DigitizerTask_H_
