@@ -95,7 +95,7 @@ Detector::~Detector()
 void Detector::InitializeO2Detector()
 {
   // Define the list of sensitive volumes
-  DefineSensitiveVolumes();
+  defineSensitiveVolumes();
 }
 
 void Detector::SetSpecialPhysicsCuts()
@@ -3027,7 +3027,7 @@ void Detector::LoadGeometryFromFile()
   alice->AddNode(tpcVolume, 1);
 }
 
-void Detector::DefineSensitiveVolumes()
+void Detector::defineSensitiveVolumes()
 {
   TGeoManager* geoManager = gGeoManager;
   TGeoVolume* v = nullptr;
