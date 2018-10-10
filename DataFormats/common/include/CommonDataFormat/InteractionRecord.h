@@ -21,10 +21,9 @@
 namespace o2
 {
 struct InteractionRecord {
-  double timeNS = 0.; ///< time in NANOSECONDS from start of run (period=0, orbit=0)
+  double timeNS = 0.; ///< time in NANOSECONDS from start of run (orbit=0)
   int bc = 0;         ///< bunch crossing ID of interaction
-  int orbit = 0;      ///< LHC orbit
-  int period = 0;     ///< LHC period since beginning of run (if >0 -> time precision loss)
+  unsigned int orbit = 0; ///< LHC orbit
 
   InteractionRecord() = default;
 
@@ -33,37 +32,32 @@ struct InteractionRecord {
     setFromNS(tNS);
   }
 
-  InteractionRecord(int b, int orb, int per = 0) : bc(b), orbit(orb), period(per)
+  InteractionRecord(int b, unsigned int orb) : bc(b), orbit(orb)
   {
-    timeNS = bc2ns(bc, orbit, period);
+    timeNS = bc2ns(bc, orbit);
   }
 
   void setFromNS(double ns)
   {
     timeNS = ns;
-    bc = ns2bc(ns, orbit, period);
+    bc = ns2bc(ns, orbit);
   }
 
-  static double bc2ns(int bc, int orbit, int period)
+  static double bc2ns(int bc, unsigned int orbit)
   {
-    double t = bc * o2::constants::lhc::LHCBunchSpacingNS + orbit * o2::constants::lhc::LHCOrbitNS;
-    return period ? t + o2::constants::lhc::PeriodDurationNS : t;
+    return bc * o2::constants::lhc::LHCBunchSpacingNS + orbit * o2::constants::lhc::LHCOrbitNS;
   }
 
-  static int ns2bc(double ns, int& orb, int& per)
+  static int ns2bc(double ns, unsigned int& orb)
   {
-    per = ns / o2::constants::lhc::PeriodDurationNS;
-    if (per) {
-      ns -= per * o2::constants::lhc::PeriodDurationNS;
-    }
-    orb = ns / o2::constants::lhc::LHCOrbitNS;
+    orb = ns > 0 ? ns / o2::constants::lhc::LHCOrbitNS : 0;
     ns -= orb * o2::constants::lhc::LHCOrbitNS;
     return std::round(ns / o2::constants::lhc::LHCBunchSpacingNS);
   }
 
   void print() const;
 
-  ClassDefNV(InteractionRecord, 1);
+  ClassDefNV(InteractionRecord, 2);
 };
 }
 

@@ -14,7 +14,7 @@ namespace o2
 {
 void InteractionRecord::print() const
 {
-  std::cout << "BCid: " << bc << " Orbit: " << orbit << " Period: " << period << " T(ns): " << timeNS << std::endl;
+  std::cout << "BCid: " << bc << " Orbit: " << orbit << " T(ns): " << timeNS << std::endl;
 }
 
 } // namespace o2
