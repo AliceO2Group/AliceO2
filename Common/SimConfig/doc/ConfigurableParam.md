@@ -86,7 +86,7 @@ Thereafter, the parameter `ParamA` is automatically registered in a parameter re
 
 * Parameter classes may only contain simple members! Currently the following types are supported
     * simple pods (for example `double x; char y;`)
-    * simple char strings (`char *`)
+    * std::string
     * fixed size arrays of pods using the ROOT way to serialize:
        ```c++
        static constexpr int N=3; //!

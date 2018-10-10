@@ -24,6 +24,11 @@
 
 using namespace o2::conf;
 
+bool isString(TDataMember const& dm)
+{
+  return strcmp(dm.GetTrueTypeName(), "string") == 0;
+}
+
 // a generic looper of data members of a TClass; calling a callback
 // reused in various functions below
 void loopOverMembers(TClass* cl, void* obj,
@@ -33,6 +38,10 @@ void loopOverMembers(TClass* cl, void* obj,
   for (int i = 0; i < memberlist->GetEntries(); ++i) {
     auto dm = (TDataMember*)memberlist->At(i);
 
+    auto isValidComplex = [dm]() {
+      return isString(*dm);
+    };
+
     // filter out static members for now
     if (dm->Property() & kIsStatic) {
       continue;
@@ -41,8 +50,8 @@ void loopOverMembers(TClass* cl, void* obj,
       LOG(WARNING) << "Pointer types not supported in ConfigurableParams";
       continue;
     }
-    if (!dm->IsBasic()) {
-      LOG(WARNING) << "Complex types not supported in ConfigurableParams";
+    if (!dm->IsBasic() && !isValidComplex()) {
+      LOG(WARNING) << "Generic complex types not supported in ConfigurableParams";
       continue;
     }
     const auto dim = dm->GetArrayDim();
@@ -69,15 +78,34 @@ std::string getName(const TDataMember* dm, int index, int size)
   return namestream.str();
 }
 
+const char* asString(TDataMember const& dm, char* pointer)
+{
+  // first check if this is a basic data type, in which case
+  // we let ROOT do the work
+  if (auto dt = dm.GetDataType()) {
+    return dt->AsString(pointer);
+  }
+
+  // if data member is a std::string just return
+  else if (isString(dm)) {
+    return ((std::string*)pointer)->c_str();
+  }
+  // potentially other cases to be added here
+
+  LOG(ERROR) << "COULD NOT REPRESENT AS STRING";
+  return nullptr;
+}
+
 void _ParamHelper::printParametersImpl(std::string mainkey, TClass* cl, void* obj,
                                        std::map<std::string, ConfigurableParam::EParamProvenance> const* provmap)
 {
   auto printMembers = [&mainkey, obj, provmap](const TDataMember* dm, int index, int size) {
     // pointer to object
     auto dt = dm->GetDataType();
-    char* pointer = ((char*)obj) + dm->GetOffset() + index * dt->Size();
+    auto TS = dt ? dt->Size() : 0;
+    char* pointer = ((char*)obj) + dm->GetOffset() + index * TS;
     const auto name = getName(dm, index, size);
-    std::cout << name << " : " << dt->AsString(pointer);
+    std::cout << name << " : " << asString(*dm, pointer);
     if (provmap != nullptr) {
       auto iter = provmap->find(mainkey + "." + name);
       if (iter != provmap->end()) {
@@ -89,19 +117,84 @@ void _ParamHelper::printParametersImpl(std::string mainkey, TClass* cl, void* ob
   loopOverMembers(cl, obj, printMembers);
 }
 
+// a function converting a string representing a type to the type_info
+// because unfortunately typeid(double) != typeid("double")
+// but we can take the TDataType (if it exists) as a hint in order to
+// minimize string comparisons
+std::type_info const& nameToTypeInfo(const char* tname, TDataType const* dt)
+{
+  if (dt) {
+    switch (dt->GetType()) {
+      case kChar_t: {
+        return typeid(char);
+      }
+      case kUChar_t: {
+        return typeid(unsigned char);
+      }
+      case kShort_t: {
+        return typeid(short);
+      }
+      case kUShort_t: {
+        return typeid(unsigned short);
+      }
+      case kInt_t: {
+        return typeid(int);
+      }
+      case kUInt_t: {
+        return typeid(unsigned int);
+      }
+      case kLong_t: {
+        return typeid(long);
+      }
+      case kULong_t: {
+        return typeid(unsigned long);
+      }
+      case kFloat_t: {
+        return typeid(float);
+      }
+      case kDouble_t: {
+        return typeid(double);
+      }
+      case kDouble32_t: {
+        return typeid(double);
+      }
+      case kBool_t: {
+        return typeid(bool);
+      }
+      case kLong64_t: {
+        return typeid(long long);
+      }
+      case kULong64_t: {
+        return typeid(unsigned long long);
+      }
+      default: {
+        break;
+      }
+    }
+  }
+  // if we get here none of the above worked
+  if (strcmp(tname, "string") == 0 || strcmp(tname, "std::string")) {
+    return typeid(std::string);
+  }
+  LOG(ERROR) << "ENCOUNTERED AN UNSUPPORTED TYPE " << tname << "IN A CONFIGURABLE PARAMETER";
+  return typeid("ERROR");
+}
+
 void _ParamHelper::fillKeyValuesImpl(std::string mainkey, TClass* cl, void* obj, boost::property_tree::ptree* tree,
-                                     std::map<std::string, std::pair<int, void*>>* keytostoragemap)
+                                     std::map<std::string, std::pair<std::type_info const&, void*>>* keytostoragemap)
 {
   boost::property_tree::ptree localtree;
   auto fillMap = [obj, &mainkey, &localtree, &keytostoragemap](const TDataMember* dm, int index, int size) {
     const auto name = getName(dm, index, size);
     auto dt = dm->GetDataType();
-    char* pointer = ((char*)obj) + dm->GetOffset() + index * dt->Size();
-    localtree.put(name, dt->AsString(pointer));
+    auto TS = dt ? dt->Size() : 0;
+    char* pointer = ((char*)obj) + dm->GetOffset() + index * TS;
+    localtree.put(name, asString(*dm, pointer));
 
     auto key = mainkey + "." + name;
-    using mapped_t = std::pair<int, void*>;
-    keytostoragemap->insert(std::pair<std::string, mapped_t>(key, mapped_t(dt->GetType(), pointer)));
+    using mapped_t = std::pair<std::type_info const&, void*>;
+    auto& ti = nameToTypeInfo(dm->GetTrueTypeName(), dt);
+    keytostoragemap->insert(std::pair<std::string, mapped_t>(key, mapped_t(ti, pointer)));
   };
   loopOverMembers(cl, obj, fillMap);
   tree->add_child(mainkey, localtree);
@@ -124,9 +217,12 @@ void _ParamHelper::assignmentImpl(std::string mainkey, TClass* cl, void* to, voi
   auto assignifchanged = [to, from, &mainkey, provmap](const TDataMember* dm, int index, int size) {
     const auto name = getName(dm, index, size);
     auto dt = dm->GetDataType();
-    char* pointerto = ((char*)to) + dm->GetOffset() + index * dt->Size();
-    char* pointerfrom = ((char*)from) + dm->GetOffset() + index * dt->Size();
-    if (!isMemblockDifferent(pointerto, pointerfrom, dt->Size())) {
+    auto TS = dt ? dt->Size() : 0;
+    char* pointerto = ((char*)to) + dm->GetOffset() + index * TS;
+    char* pointerfrom = ((char*)from) + dm->GetOffset() + index * TS;
+
+    // lambda to update the provenance
+    auto updateProv = [&mainkey, name, provmap]() {
       auto key = mainkey + "." + name;
       auto iter = provmap->find(key);
       if (iter != provmap->end()) {
@@ -134,6 +230,25 @@ void _ParamHelper::assignmentImpl(std::string mainkey, TClass* cl, void* to, voi
       } else {
         LOG(WARN) << "KEY " << key << " NOT FOUND WHILE UPDATING PARAMETER PROVENANCE";
       }
+    };
+
+    // TODO: this could dispatch to the same method used in ConfigurableParam::setValue
+    // but will be slower
+
+    // test if a complicated case
+    if (isString(*dm)) {
+      std::string& target = *(std::string*)pointerto;
+      std::string const& origin = *(std::string*)pointerfrom;
+      if (target.compare(origin) != 0) {
+        updateProv();
+        target = origin;
+      }
+      return;
+    }
+
+    //
+    if (!isMemblockDifferent(pointerto, pointerfrom, TS)) {
+      updateProv();
       // actually copy
       std::memcpy(pointerto, pointerfrom, dt->Size());
     }

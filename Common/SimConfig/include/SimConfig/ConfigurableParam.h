@@ -105,9 +105,9 @@ class ConfigurableParam
   static void printAllKeyValuePairs();
 
   // writes a human readable JSON file of all parameters
-  static void writeJSON(std::string filename);
+  static void writeJSON(std::string const& filename);
   // writes a human readable INI file of all parameters
-  static void writeINI(std::string filename);
+  static void writeINI(std::string const& filename);
 
   // can be used instead of using API on concrete child classes
   template <typename T>
@@ -120,7 +120,7 @@ class ConfigurableParam
   }
 
   template <typename T>
-  static void setValue(std::string mainkey, std::string subkey, T x)
+  static void setValue(std::string const& mainkey, std::string const& subkey, T x)
   {
     auto key = mainkey + "." + subkey;
     if (sPtree->get_optional<std::string>(key).is_initialized()) {
@@ -134,7 +134,7 @@ class ConfigurableParam
 
   // specialized for std::string
   // which means that the type will be converted internally
-  static void setValue(std::string key, std::string valuestring)
+  static void setValue(std::string const& key, std::string const& valuestring)
   {
     if (sPtree->get_optional<std::string>(key).is_initialized()) {
       sPtree->put(key, valuestring);
@@ -157,7 +157,7 @@ class ConfigurableParam
   // (certain) key-values
   // propagates changes down to each registered configuration
   // might be useful to get stuff from the command line
-  static void updateFromString(std::string);
+  static void updateFromString(std::string const&);
 
  protected:
   // constructor is doing nothing else but
@@ -166,7 +166,7 @@ class ConfigurableParam
 
   static void initPropertyTree();
   static bool updateThroughStorageMap(std::string, std::string, std::type_info const&, void*);
-  static bool updateThroughStorageMapWithConversion(std::string, std::string);
+  static bool updateThroughStorageMapWithConversion(std::string const&, std::string const&);
 
   virtual ~ConfigurableParam() = default;
 
@@ -177,7 +177,7 @@ class ConfigurableParam
 
   // static map keeping, for each configuration key, its memory location and type
   // (internal use to easily sync updates, this is ok since parameter classes are singletons)
-  static std::map<std::string, std::pair<int, void*>>* sKeyToStorageMap;
+  static std::map<std::string, std::pair<std::type_info const&, void*>>* sKeyToStorageMap;
 
   // keep track of provenance of parameters and values
   static std::map<std::string, ConfigurableParam::EParamProvenance>* sValueProvenanceMap;

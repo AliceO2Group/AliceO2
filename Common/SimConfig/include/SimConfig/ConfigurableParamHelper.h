@@ -33,7 +33,7 @@ class _ParamHelper
                                   std::map<std::string, ConfigurableParam::EParamProvenance> const* provmap);
 
   static void fillKeyValuesImpl(std::string mainkey, TClass* cl, void*, boost::property_tree::ptree*,
-                                std::map<std::string, std::pair<int, void*>>*);
+                                std::map<std::string, std::pair<std::type_info const&, void*>>*);
 
   static void printWarning(std::type_info const&);
 
