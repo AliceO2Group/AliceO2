@@ -17,7 +17,7 @@ of an algorithm in order to be able to change/configure their value without reco
 
 Imagine some algorithms `algorithmA` depends on 2 parameters `p1` and `p2` which you want to be able to configure.
 
-You would do two steps:
+You would do the following steps:
   1. Declare a parameter class listing the parameters and their default values.
      ```c++
      struct ParamA : ConfigurableParamHelper<ParamA> {
@@ -26,15 +26,21 @@ You would do two steps:
        // boilerplate stuff + make parameters known under key "A"
        O2ParamDef(ParamA, "A");
      };
-2. Access and use the parameters in the code.
-   ```c++
-   void algorithmA() {
-     // get the parameter singleton object
-     auto& pa = ParamA::Instance();
-     // access the variables in your code
-     doSomething(pa.p1, pa.p2);
-   }
-   ```
+     ```
+  2. Put 
+     ```
+     O2ParamImpl(ParamA);
+     ```
+     in some source file, to generate necessay symbols needed for linking.
+  3. Access and use the parameters in the code.
+     ```c++
+     void algorithmA() {
+       // get the parameter singleton object
+       auto& pa = ParamA::Instance();
+       // access the variables in your code
+       doSomething(pa.p1, pa.p2);
+     }
+     ```
     
 Thereafter, the parameter `ParamA` is automatically registered in a parameter registry and can be read/influenced/serialized through this. The main influencing functions are implemented as static functions on the `ConfigurableParam` class. For example, the following things will be possible:
 * get a value by string key, addressing a specific parameter:
