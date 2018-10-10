@@ -66,11 +66,6 @@ bool HitProcessingManager::setupChain()
     }
   }
 
-  // print out entries in each chain
-  for (int i = 0; i < mSimChains.size(); ++i) {
-    mRunContext.getChains().emplace_back(mSimChains[i]);
-    LOG(INFO) << "CHAIN " << i << " has " << mSimChains[i]->GetEntries() << " entries ";
-  }
   return true;
 }
 
@@ -97,19 +92,6 @@ void HitProcessingManager::setupRun(int ncollisions)
 
   // sample collision (background-signal) constituents
   sampleCollisionConstituents();
-}
-
-void RunContext::printCollisionSummary() const
-{
-  std::cout << "Summary of RunContext --\n";
-  std::cout << "Number of Collisions " << mEventRecords.size() << "\n";
-  for (int i = 0; i < mEventRecords.size(); ++i) {
-    std::cout << "Collision " << i << " TIME " << mEventRecords[i].timeNS;
-    for (auto& e : mEventParts[i]) {
-      std::cout << " (" << e.sourceID << " , " << e.entryID << ")";
-    }
-    std::cout << "\n";
-  }
 }
 
 void HitProcessingManager::writeRunContext(const char* filename) const

@@ -1930,6 +1930,7 @@ o2_define_bucket(
     data_format_common_bucket
 
     DEPENDENCIES
+    fairroot_base_bucket
     Core RIO
 
     INCLUDE_DIRECTORIES
