@@ -15,6 +15,7 @@
 #include <TChain.h>
 #include <TBranch.h>
 #include "CommonDataFormat/InteractionRecord.h"
+#include "CommonDataFormat/BunchFilling.h"
 
 namespace o2
 {
@@ -40,15 +41,6 @@ class RunContext
  public:
   RunContext() : mNofEntries{ 0 }, mMaxPartNumber{ 0 }, mEventRecords(), mEventParts() {}
 
-  // RS Do we needs this?
-  TBranch* getBranch(std::string_view name, int sourceid = 0) const
-  {
-    if (mChains[sourceid]) {
-      return mChains[sourceid]->GetBranch(name.data());
-    }
-    return nullptr;
-  }
-
   int getNCollisions() const { return mNofEntries; }
   void setNCollisions(int n) { mNofEntries = n; }
 
@@ -57,26 +49,33 @@ class RunContext
 
   std::vector<o2::InteractionRecord>& getEventRecords() { return mEventRecords; }
   std::vector<std::vector<o2::steer::EventPart>>& getEventParts() { return mEventParts; }
-  std::vector<TChain*>& getChains() { return mChains; }
 
   const std::vector<o2::InteractionRecord>& getEventRecords() const { return mEventRecords; }
   const std::vector<std::vector<o2::steer::EventPart>>& getEventParts() const { return mEventParts; }
-  const std::vector<TChain*>& getChains() const { return mChains; }
+
+  o2::BunchFilling& getBunchFilling() { return mBCFilling; }
+  const o2::BunchFilling& getBunchFilling() const { return (const o2::BunchFilling&)mBCFilling; }
+
+  void setMuPerBC(float m) { mMuBC = m; }
+  float getMuPerBC() const { return mMuBC; }
 
   void printCollisionSummary() const;
 
  private:
   int mNofEntries = 0;
   int mMaxPartNumber = 0; // max number of parts in any given collision
+  float mMuBC;            // probability of hadronic interaction per bunch
+
   std::vector<o2::InteractionRecord> mEventRecords;
   // for each collision we record the constituents (which shall not exceed mMaxPartNumber)
   std::vector<std::vector<o2::steer::EventPart>> mEventParts;
-  std::vector<TChain*> mChains; //! pointers to input chains
+
+  o2::BunchFilling mBCFilling; // patter of active BCs
 
   // it would also be appropriate to record the filenames
   // that went into the chain
 
-  ClassDefNV(RunContext, 1);
+  ClassDefNV(RunContext, 2);
 };
 }
 }

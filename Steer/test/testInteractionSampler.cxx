@@ -41,14 +41,14 @@ BOOST_AUTO_TEST_CASE(InteractionSampler)
   // configure sampler with custom bunch filling and mu per BC
   Sampler sampler1;
   // train of 100 bunches spaced by 25 ns (1slot) and staring at BC=0
-  sampler1.setBCTrain(100, 1, 0);
+  sampler1.getBunchFilling().setBCTrain(100, 1, 0);
   // train of 100 bunches spaced by 50 ns (2slots) and staring at BC=200
-  sampler1.setBCTrain(200, 2, 200);
+  sampler1.getBunchFilling().setBCTrain(200, 2, 200);
   // add isolated BC at slot 1600
-  sampler1.setBC(1600);
+  sampler1.getBunchFilling().setBC(1600);
   // add 5 trains of 20 bunches with 100ns(4slots) spacing, separated by 10 slots and
   // starting at bunch 700
-  sampler1.setBCTrains(5, 10, 20, 4, 700);
+  sampler1.getBunchFilling().setBCTrains(5, 10, 20, 4, 700);
   // set total interaction rate in Hz
   sampler1.setInteractionRate(40e3);
   sampler1.init();
@@ -70,10 +70,10 @@ BOOST_AUTO_TEST_CASE(InteractionSampler)
     auto rec = sampler1.generateCollisionTime();
     rec.print();
     // make sure time is non-decreasing and the BC is interacting
-    BOOST_CHECK(rec.timeNS >= t && sampler1.getBC(rec.bc));
+    BOOST_CHECK(rec.timeNS >= t && sampler1.getBunchFilling().testBC(rec.bc));
     t = rec.timeNS;
   }
   sampler1.print();
-  sampler1.printBunchFilling();
+  sampler1.getBunchFilling().print();
 }
 }

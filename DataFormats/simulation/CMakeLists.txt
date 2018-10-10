@@ -6,6 +6,7 @@ set(SRCS
   src/Stack.cxx
   src/MCTrack.cxx
   src/MCCompLabel.cxx
+  src/RunContext.cxx
 )
 
 Set(HEADERS
