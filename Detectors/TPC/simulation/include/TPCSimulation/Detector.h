@@ -163,7 +163,7 @@ class Detector: public o2::Base::DetImpl<Detector> {
     void ConstructTPCGeometry();
 
     /** Define the sensitive volumes of the geometry */
-    void DefineSensitiveVolumes() override;
+    void defineSensitiveVolumes();
 
     /** container for produced hits */
     std::vector<HitGroup>*  mHitsPerSectorCollection[Sector::MAXSECTOR]; //! container that keeps track-grouped hits per sector
