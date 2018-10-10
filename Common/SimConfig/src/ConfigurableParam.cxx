@@ -30,19 +30,19 @@ namespace conf
 
 std::vector<ConfigurableParam*>* ConfigurableParam::sRegisteredParamClasses = nullptr;
 boost::property_tree::ptree* ConfigurableParam::sPtree = nullptr;
-std::map<std::string, std::pair<int, void*>>* ConfigurableParam::sKeyToStorageMap = nullptr;
+std::map<std::string, std::pair<std::type_info const&, void*>>* ConfigurableParam::sKeyToStorageMap = nullptr;
 std::map<std::string, ConfigurableParam::EParamProvenance>* ConfigurableParam::sValueProvenanceMap = nullptr;
 
 bool ConfigurableParam::sIsFullyInitialized = false;
 bool ConfigurableParam::sRegisterMode = true;
 
-void ConfigurableParam::writeINI(std::string filename)
+void ConfigurableParam::writeINI(std::string const& filename)
 {
   initPropertyTree(); // update the boost tree before writing
   boost::property_tree::write_ini(filename, *sPtree);
 }
 
-void ConfigurableParam::writeJSON(std::string filename)
+void ConfigurableParam::writeJSON(std::string const& filename)
 {
   initPropertyTree(); // update the boost tree before writing
   boost::property_tree::write_json(filename, *sPtree);
@@ -58,6 +58,9 @@ void ConfigurableParam::initPropertyTree()
 
 void ConfigurableParam::printAllKeyValuePairs()
 {
+  if (!sIsFullyInitialized) {
+    initialize();
+  }
   std::cout << "####\n";
   for (auto p : *sRegisteredParamClasses) {
     p->printKeyValues(true);
@@ -69,6 +72,9 @@ void ConfigurableParam::printAllKeyValuePairs()
 // ... we need to generalize this ... but ok for demonstration purposes
 void ConfigurableParam::toCCDB(std::string filename)
 {
+  if (!sIsFullyInitialized) {
+    initialize();
+  }
   TFile file(filename.c_str(), "RECREATE");
   for (auto p : *sRegisteredParamClasses) {
     p->serializeTo(&file);
@@ -97,7 +103,7 @@ ConfigurableParam::ConfigurableParam()
     sPtree = new boost::property_tree::ptree;
   }
   if (sKeyToStorageMap == nullptr) {
-    sKeyToStorageMap = new std::map<std::string, std::pair<int, void*>>;
+    sKeyToStorageMap = new std::map<std::string, std::pair<std::type_info const&, void*>>;
   }
   if (sValueProvenanceMap == nullptr) {
     sValueProvenanceMap = new std::map<std::string, ConfigurableParam::EParamProvenance>;
@@ -125,7 +131,7 @@ void ConfigurableParam::printAllRegisteredParamNames()
   }
 }
 
-void ConfigurableParam::updateFromString(std::string configstring)
+void ConfigurableParam::updateFromString(std::string const& configstring)
 {
   if (!sIsFullyInitialized) {
     initialize();
@@ -206,7 +212,7 @@ bool ConfigurableParam::updateThroughStorageMap(std::string mainkey, std::string
   int type = TDataType::GetType(tinfo);
 
   // check that type matches
-  if (iter->second.first != type) {
+  if (iter->second.first != tinfo) {
     LOG(WARN) << "Types do not match; cannot update value";
     return false;
   }
@@ -332,8 +338,21 @@ bool ConvertAndCopy(std::string const& valuestring, void* targetaddr)
   }
   return false;
 }
+// special version for std::string
+template <>
+bool ConvertAndCopy<std::string>(std::string const& valuestring, void* targetaddr)
+{
+  std::string& target = *((std::string*)targetaddr);
+  if (target.compare(valuestring) != 0) {
+    // the targetaddr is a std::string to which we can simply assign
+    // and all the magic will happen internally
+    target = valuestring;
+    return true;
+  }
+  return false;
+}
 
-bool ConfigurableParam::updateThroughStorageMapWithConversion(std::string key, std::string valuestring)
+bool ConfigurableParam::updateThroughStorageMapWithConversion(std::string const& key, std::string const& valuestring)
 {
   // check if key_exists
   auto iter = sKeyToStorageMap->find(key);
@@ -342,10 +361,17 @@ bool ConfigurableParam::updateThroughStorageMapWithConversion(std::string key, s
     return false;
   }
 
-  // the type (aka ROOT::EDataType which the type identification in the map) we need to convert to
-  int targettype = iter->second.first;
-
   auto targetaddress = iter->second.second;
+
+  // treat some special cases first:
+  // the type is actually a std::string
+  if (iter->second.first == typeid(std::string)) {
+    return ConvertAndCopy<std::string>(valuestring, targetaddress);
+  }
+
+  // the type (aka ROOT::EDataType which the type identification in the map) we need to convert to
+  int targettype = TDataType::GetType(iter->second.first);
+
   switch (targettype) {
     case kChar_t: {
       return ConvertAndCopy<char>(valuestring, targetaddress);
