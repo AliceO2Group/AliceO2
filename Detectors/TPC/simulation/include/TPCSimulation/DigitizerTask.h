@@ -63,6 +63,9 @@ class DigitizerTask : public FairTask
   /// \param isContinuous - false for triggered readout, true for continuous readout
   void setContinuousReadout(bool isContinuous);
 
+  /// query if the r/o mode is continuous
+  bool isContinuousReadout() const { return mIsContinuousReadout; }
+
   /// Enable the use of space-charge distortions
   /// \param distortionType select the type of space-charge distortions (constant or realistic)
   /// \param hisInitialSCDensity optional space-charge density histogram to use at the beginning of the simulation

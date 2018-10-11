@@ -59,7 +59,6 @@ DigitContainer* Digitizer::Process(const Sector& sector, const std::vector<o2::T
   if (!mIsContinuous) {
     eventTime = 0.f;
   }
-
   /// TODO: if eventtime-lastUpdate>=one space-charge time slice
   ///  1) Propagate current space-charge density
   ///  2) recalculate distortion lookup tables with updated space-charge density
@@ -79,7 +78,8 @@ DigitContainer* Digitizer::Process2(const Sector& sector, const std::vector<std:
     const auto hitvector = hits[id.storeindex];
     auto& group = (*hitvector)[id.groupID];
     auto& MCrecord = interactRecords[id.entry];
-    ProcessHitGroup(group, sector, MCrecord.timeNS * 0.001f, id.entry, id.sourceID);
+    float evTime = mIsContinuous ? MCrecord.timeNS * 0.001f : 0.f;
+    ProcessHitGroup(group, sector, evTime, id.entry, id.sourceID);
   }
 
   return mDigitContainer;
