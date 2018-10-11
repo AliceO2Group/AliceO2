@@ -88,7 +88,7 @@ class BoostSerialized
   using non_messageable = o2::framework::MarkAsNonMessageable;
   using wrapped_type = T;
 
-  static_assert(o2::utils::check::is_boost_serializable<T>::value == true, "wrapped type provides no boost serialize override");
+  static_assert(framework::is_boost_serializable<T>::value == true, "wrapped type provides no boost serialize override");
 
   BoostSerialized() = delete;
   BoostSerialized(wrapped_type& ref) : mRef(ref) {}
