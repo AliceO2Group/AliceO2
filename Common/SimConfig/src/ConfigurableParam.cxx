@@ -140,7 +140,14 @@ void ConfigurableParam::updateFromString(std::string configstring)
     std::string extractedvalue;
     int counter = 0;
     // TODO: make sure format is correct with a regular expression
-    for (const auto& s : keyvaluetokenizer) {
+    for (const auto& ss : keyvaluetokenizer) {
+      auto s = ss;
+      if (s.front() != s.back() || (s.front() != '\'' && s.front() == '\"')) { // not a string
+        s.erase(std::remove(s.begin(), s.end(), ' '), s.end());                // remove all spaces
+      } else {                                                                 // a string
+        s.erase(0, s.find_first_not_of(' '));                                  // remove leading spaces
+        s.erase(s.find_last_not_of(' ') + 1);                                  // remove trailing spaces
+      }
       if (counter == 1) {
         extractedvalue = s;
       }
