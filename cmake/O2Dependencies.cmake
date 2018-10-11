@@ -1804,6 +1804,7 @@ o2_define_bucket(
     Steer
     Framework
     DetectorsCommonDataFormats
+    CommonDataFormat
     TPCSimulation
     TPCWorkflow
     DataFormatsTPC

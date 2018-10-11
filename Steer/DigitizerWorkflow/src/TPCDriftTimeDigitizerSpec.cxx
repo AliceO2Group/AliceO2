@@ -31,12 +31,16 @@
 #include "TStopwatch.h"
 #include <sstream>
 #include <algorithm>
+#include <utility>
 #include "TPCBase/CDBInterface.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsParameters/GRPObject.h"
+#include "CommonDataFormat/RangeReference.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
+using DigiGroupRef = o2::dataformats::RangeReference<int, int>;
+
 namespace o2
 {
 namespace steer
@@ -82,9 +86,9 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
     }
 
     if (firstChannel == channel) {
-      // RS: at the moment using hardcoded flag for continuos readout
-      o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::CONTINUOUS;
-      LOG(INFO) << "TPC: Sending ROMode= " << roMode << " to GRPUpdater from channel " << firstChannel;
+      auto roMode = digitizertask->isContinuousReadout() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
+      LOG(INFO) << "TPC: Sending ROMode= " << (digitizertask->isContinuousReadout() ? "Continuous" : "Triggered")
+                << " to GRPUpdater from channel " << firstChannel;
       pc.outputs().snapshot(Output{ "TPC", "ROMode", 0, Lifetime::Timeframe }, roMode);
       firstChannel = -10; // forbid further sending
     }
@@ -125,6 +129,15 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
                                     Lifetime::Timeframe, header },
                             const_cast<o2::dataformats::MCTruthContainer<o2::MCCompLabel>&>(labels));
     };
+    // lambda that snapshots digits grouping (triggers) to be sent out; prepares and attaches header with sector information
+    auto snapshotEvents = [sector, &pc, channel, activeSectors](const std::vector<DigiGroupRef>& events) {
+      o2::TPC::TPCSectorHeader header{ sector };
+      header.activeSectors = activeSectors;
+      LOG(INFO) << "Send TRIGGERS for sector " << sector << " channel " << channel << " | size " << events.size();
+      pc.outputs().snapshot(Output{ "TPC", "DIGTRIGGERS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe,
+                                    header },
+                            const_cast<std::vector<DigiGroupRef>&>(events));
+    };
 
     // no more tasks can be marked with a negative sector
     if (sector < 0) {
@@ -134,10 +147,11 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
       // (we are essentially sending empty messages with a header containing the stop signal)
       digitArrayRaw->clear();
       mcTruthArrayRaw->clear();
+      std::vector<DigiGroupRef> evAccDummy;
 
+      snapshotEvents(evAccDummy);
       snapshotDigits(*digitArrayRaw);
       snapshotLabels(*mcTruthArrayRaw);
-
       if (sector == -1) {
         pc.services().get<ControlService>().readyToQuit(false);
         finished = true;
@@ -167,10 +181,6 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
       maxtime = std::max(maxtime, e.timeNS);
     }
 
-    // minimum 2 drifts is a safe bet; an electron might
-    // need 1 full drift and might hence land in the second drift time
-    auto ndrifts = 2 + (int)(maxtime / TPCDRIFT);
-
     std::vector<std::vector<o2::TPC::HitGroup>*> hitvectorsleft;  // "TPCHitVector"
     std::vector<o2::TPC::TPCHitGroupID> hitidsleft;               // "TPCHitIDs"
     std::vector<std::vector<o2::TPC::HitGroup>*> hitvectorsright; // "TPCHitVector"
@@ -189,40 +199,75 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
     // this is to accum digits from different drift times
     std::vector<o2::TPC::Digit> digitAccum;
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum;
+    std::vector<DigiGroupRef> eventAccum;
 
-    for (int drift = 1; drift <= ndrifts; ++drift) {
-      auto starttime = (drift - 1) * TPCDRIFT;
-      auto endtime = drift * TPCDRIFT;
-      LOG(DEBUG) << "STARTTIME " << starttime << " ENDTIME " << endtime;
-      digitizertask->setStartTime(starttime);
-      digitizertask->setEndTime(endtime);
+    if (digitizertask->isContinuousReadout()) {
+      // minimum 2 drifts is a safe bet; an electron might
+      // need 1 full drift and might hence land in the second drift time
+      auto ndrifts = 2 + (int)(maxtime / TPCDRIFT);
+      for (int drift = 1; drift <= ndrifts; ++drift) {
+        auto starttime = (drift - 1) * TPCDRIFT;
+        auto endtime = drift * TPCDRIFT;
+        LOG(DEBUG) << "STARTTIME " << starttime << " ENDTIME " << endtime;
+        digitizertask->setStartTime(starttime);
+        digitizertask->setEndTime(endtime);
 
-      hitidsleft.clear();
-      hitidsright.clear();
+        hitidsleft.clear();
+        hitidsright.clear();
 
-      // obtain candidate hit(ids) for this time range --> left
-      o2::TPC::getHits(*simChains.get(), *context.get(), hitvectorsleft, hitidsleft, getBranchNameLeft(sector).c_str(),
-                       starttime, endtime, o2::TPC::calcDriftTime);
-      // --> right
-      o2::TPC::getHits(*simChains.get(), *context.get(), hitvectorsright, hitidsright,
-                       getBranchNameRight(sector).c_str(), starttime, endtime, o2::TPC::calcDriftTime);
+        // obtain candidate hit(ids) for this time range --> left
+        o2::TPC::getHits(*simChains.get(), *context.get(), hitvectorsleft, hitidsleft, getBranchNameLeft(sector).c_str(),
+                         starttime, endtime, o2::TPC::calcDriftTime);
+        // --> right
+        o2::TPC::getHits(*simChains.get(), *context.get(), hitvectorsright, hitidsright,
+                         getBranchNameRight(sector).c_str(), starttime, endtime, o2::TPC::calcDriftTime);
 
-      LOG(DEBUG) << "DRIFTTIME " << drift << " SECTOR " << sector << " : SELECTED LEFT " << hitidsleft.size() << " IDs"
-                 << " SELECTED RIGHT " << hitidsright.size();
+        LOG(DEBUG) << "DRIFTTIME " << drift << " SECTOR " << sector << " : SELECTED LEFT " << hitidsleft.size() << " IDs"
+                   << " SELECTED RIGHT " << hitidsright.size();
 
-      // invoke digitizer if anything to digitize within this drift interval
-      if (hitidsleft.size() > 0 || hitidsright.size() > 0) {
-        digitizertask->setData(&hitvectorsleft, &hitvectorsright, &hitidsleft, &hitidsright, context.get());
-        digitizertask->setupSector(sector);
-        digitizertask->Exec2("");
+        // invoke digitizer if anything to digitize within this drift interval
+        if (hitidsleft.size() > 0 || hitidsright.size() > 0) {
+          digitizertask->setData(&hitvectorsleft, &hitvectorsright, &hitidsleft, &hitidsright, context.get());
+          digitizertask->setupSector(sector);
+          digitizertask->Exec2("");
 
-        std::copy(digitArrayRaw->begin(), digitArrayRaw->end(), std::back_inserter(digitAccum));
-        labelAccum.mergeAtBack(*mcTruthArrayRaw);
+          std::copy(digitArrayRaw->begin(), digitArrayRaw->end(), std::back_inserter(digitAccum));
+          labelAccum.mergeAtBack(*mcTruthArrayRaw);
 
-        // NOTE: we would like to send it here in order to avoid copying/accumulating !!
+          // NOTE: we would like to send it here in order to avoid copying/accumulating !!
+        }
+      }
+      eventAccum.emplace_back(0, digitAccum.size()); // all digits are grouped to 1 super-event
+    } else {                                         // pseudo-triggered mode
+      for (int coll = 0; coll < numberofcollisions; coll++) {
+        int startSize = digitAccum.size();
+        digitizertask->setStartTime(0);
+        digitizertask->setEndTime(2 * TPCDRIFT);
+        hitidsleft.clear();
+        hitidsright.clear();
+        // obtain candidate hit(ids) for this collision --> left
+        o2::TPC::getHits(*simChains.get(), *context.get(), hitvectorsleft, hitidsleft,
+                         getBranchNameLeft(sector).c_str(), coll);
+        // obtain candidate hit(ids) for this collision --> right
+        o2::TPC::getHits(*simChains.get(), *context.get(), hitvectorsright, hitidsright,
+                         getBranchNameRight(sector).c_str(), coll);
+        int tmpND = 0;
+        if (hitidsleft.size() > 0 || hitidsright.size() > 0) {
+          digitizertask->setData(&hitvectorsleft, &hitvectorsright, &hitidsleft, &hitidsright, context.get());
+          digitizertask->setupSector(sector);
+          digitizertask->Exec2("");
+
+          std::copy(digitArrayRaw->begin(), digitArrayRaw->end(), std::back_inserter(digitAccum));
+          labelAccum.mergeAtBack(*mcTruthArrayRaw);
+          // NOTE: we would like to send it here in order to avoid copying/accumulating !!
+          tmpND = digitArrayRaw->size();
+        }
+        // register digits from this collision as a pseudo-trigger
+        eventAccum.emplace_back(startSize, digitAccum.size() - startSize);
       }
     }
     // snapshot / "send" digits + MC truth
+    snapshotEvents(eventAccum);
     snapshotDigits(digitAccum);
     snapshotLabels(labelAccum);
     timer.Stop();
@@ -234,6 +279,8 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
     // Switch on distortions and get initial space-charge density histogram if provided in environment variables
     auto useDistortions = ctx.options().get<int>("distortionType");
     auto gridSizeString = ctx.options().get<std::string>("gridSize");
+    auto triggeredMode = ctx.options().get<bool>("TPCtriggered");
+
     std::vector<int> gridSize;
     std::stringstream ss(gridSizeString);
     while (ss.good()) {
@@ -259,6 +306,7 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
       }
       digitizertask->enableSCDistortions(distortionType, hisSCDensity.get(), gridSize[0], gridSize[1], gridSize[2]);
     }
+    digitizertask->setContinuousReadout(!triggeredMode);
 
     digitizertask->Init2();
     // the task takes the ownership of digit array + mc truth array
@@ -286,6 +334,7 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
 
   std::vector<OutputSpec> outputs; // define channel by triple of (origin, type id of data to be sent on this channel, subspecification)
   outputs.emplace_back("TPC", "DIGITS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+  outputs.emplace_back("TPC", "DIGTRIGGERS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
   outputs.emplace_back("TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
   if (firstChannel == -1) {
     firstChannel = channel;
@@ -301,7 +350,8 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
              { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
              { "distortionType", VariantType::Int, 0, { "Distortion type to be used. 0 = no distortions (default), 1 = realistic distortions (not implemented yet), 2 = constant distortions" } },
              { "gridSize", VariantType::String, "33,180,33", { "Comma separated list of number of bins in z, phi and r for distortion lookup tables (z and r can only be 2**N + 1, N=1,2,3,...)" } },
-             { "initialSpaceChargeDensity", VariantType::String, "", { "Path to root file containing TH3 with initial space-charge density and name of the TH3 (comma separated)" } } }
+             { "initialSpaceChargeDensity", VariantType::String, "", { "Path to root file containing TH3 with initial space-charge density and name of the TH3 (comma separated)" } },
+             { "TPCtriggered", VariantType::Bool, false, { "Impose triggered RO mode (default: continuous)" } } }
   };
 }
 } // namespace steer

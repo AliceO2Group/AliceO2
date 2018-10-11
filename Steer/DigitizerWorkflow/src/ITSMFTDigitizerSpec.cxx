@@ -339,8 +339,7 @@ DataProcessorSpec getITSDigitizerSpec(int channel)
                               { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
                               { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
                               { "simFileQED", VariantType::String, "", { "Sim (QED) input filename" } },
-			      { (detStr + "triggered").c_str(), VariantType::Bool, false,
-			      { "Impose triggered RO mode (default: continuous)" } } } };
+                              { (detStr + "triggered").c_str(), VariantType::Bool, false, { "Impose triggered RO mode (default: continuous)" } } } };
 }
 
 DataProcessorSpec getMFTDigitizerSpec(int channel)
@@ -361,8 +360,7 @@ DataProcessorSpec getMFTDigitizerSpec(int channel)
                               { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
                               { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
                               { "simFileQED", VariantType::String, "", { "Sim (QED) input filename" } },
-                              { (detStr + "triggered").c_str(), VariantType::Bool, false,
-			      { "Impose triggered RO mode (default: continuous)" } } } };
+                              { (detStr + "triggered").c_str(), VariantType::Bool, false, { "Impose triggered RO mode (default: continuous)" } } } };
 }
 
 } // end namespace ITSMFT
