@@ -9,11 +9,15 @@ set(SRCS
     src/GeneratorFromFile.cxx
     src/Pythia6Generator.cxx
     src/PDG.cxx	
+    src/PrimaryGenerator.cxx
+    src/InteractionDiamondParam.cxx
    )
 set(HEADERS
     include/${MODULE_NAME}/GeneratorFromFile.h
     include/${MODULE_NAME}/Pythia6Generator.h
     include/${MODULE_NAME}/PDG.h
+    include/${MODULE_NAME}/PrimaryGenerator.h
+    include/${MODULE_NAME}/InteractionDiamondParam.h
    )
 if (HAVESIMULATION)
   set(HEADERS ${HEADERS}
