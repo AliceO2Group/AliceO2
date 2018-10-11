@@ -50,9 +50,9 @@ void Detector::InitializeO2Detector()
 {
   // FIXME: we need to register the sensitive volumes with FairRoot
   TGeoVolume* v = gGeoManager->GetVolume("0REG");
-  if (v == nullptr)
-    printf("@@@@ Sensitive volume 0REG not found!!!!!!!!");
-  else {
+  if (v == nullptr) {
+    LOG(WARN) << "@@@@ Sensitive volume 0REG not found!!!!!!!!";
+  } else {
     AddSensitiveVolume(v);
   }
 }
@@ -74,10 +74,10 @@ void Detector::ConstructGeometry()
 
   int nCellsA = Geometry::NCellsA;
   int nCellsC = Geometry::NCellsC;
- 
+
   Geometry geometry;
   TVector3 centerMCP = geometry.centerMCP(2);
- 
+
   Matrix(idrotm[901], 90., 0., 90., 90., 180., 0.);
 
   // C side Concave Geometry
@@ -247,7 +247,7 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   topref->AddNode(rfv, 1, new TGeoTranslation(xinv, 0, 0));
   xinv = ptop[0] + prfv[0];
   topref->AddNode(rfv, 2, new TGeoTranslation(xinv, 0, 0));
-   yinv = -ptop[1] - prfh[1];
+  yinv = -ptop[1] - prfh[1];
   topref->AddNode(rfh, 1, new TGeoTranslation(0, yinv, 0));
   yinv = ptop[1] + prfh[1];
   topref->AddNode(rfh, 2, new TGeoTranslation(0, yinv, 0));
@@ -260,7 +260,7 @@ void Detector::SetOneMCP(TGeoVolume* ins)
       yin = -pinstart[1] + 0.3 + (iy + 0.5) * 2 * ptopref[1];
       ntops++;
       ins->AddNode(topref, ntops, new TGeoTranslation(xin, yin, z));
-       z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + preg[2];
+      z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + preg[2];
       ins->AddNode(cat, ntops, new TGeoTranslation(xin, yin, z));
       // cat->Print();
     }

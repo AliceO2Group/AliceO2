@@ -26,7 +26,7 @@ class MCLabel : public o2::MCCompLabel
 
  public:
   MCLabel() = default;
-  MCLabel(Int_t trackID, Int_t eventID, Int_t srcID, Int_t qID) 
+  MCLabel(Int_t trackID, Int_t eventID, Int_t srcID, Int_t qID)
     : o2::MCCompLabel(trackID, eventID, srcID), mDetID(qID) {}
   Int_t getDetID() const { return mDetID; }
 
