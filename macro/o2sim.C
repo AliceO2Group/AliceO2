@@ -10,7 +10,7 @@
 
 #include "build_geometry.C"
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-#include <FairPrimaryGenerator.h>
+#include <Generators/PrimaryGenerator.h>
 #include <Generators/GeneratorFactory.h>
 #include <Generators/PDG.h>
 #include <SimConfig/SimConfig.h>
@@ -68,7 +68,7 @@ FairRunSim* o2sim_init(bool asservice)
   build_geometry(run);
 
   // setup generator
-  auto primGen = new FairPrimaryGenerator();
+  auto primGen = new o2::eventgen::PrimaryGenerator();
   if (!asservice) {
     o2::eventgen::GeneratorFactory::setPrimaryGenerator(confref, primGen);
   }
