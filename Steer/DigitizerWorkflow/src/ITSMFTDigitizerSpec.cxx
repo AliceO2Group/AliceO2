@@ -60,7 +60,7 @@ class ITSMFTDPLDigitizerTask
       LOG(INFO) << "Attach QED Tree: " << mQEDChain.GetEntries() << FairLogger::endl;
     }
     std::string roString = mID.getName();
-    bool triggeredMode = (ic.options().get<int>((roString + "triggered").c_str()));
+    auto triggeredMode = (ic.options().get<bool>((roString + "triggered").c_str()));
     if (!triggeredMode) {
       mROMode = o2::parameters::GRPObject::CONTINUOUS;
     }
@@ -339,7 +339,8 @@ DataProcessorSpec getITSDigitizerSpec(int channel)
                               { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
                               { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
                               { "simFileQED", VariantType::String, "", { "Sim (QED) input filename" } },
-                              { (detStr + "triggered").c_str(), VariantType::Int, 0, { "Triggered RO mode (D: continuous)" } } } };
+			      { (detStr + "triggered").c_str(), VariantType::Bool, false,
+			      { "Impose triggered RO mode (default: continuous)" } } } };
 }
 
 DataProcessorSpec getMFTDigitizerSpec(int channel)
@@ -360,7 +361,8 @@ DataProcessorSpec getMFTDigitizerSpec(int channel)
                               { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
                               { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
                               { "simFileQED", VariantType::String, "", { "Sim (QED) input filename" } },
-                              { (detStr + "triggered").c_str(), VariantType::Int, 0, { "Triggered RO mode (D: continuous)" } } } };
+                              { (detStr + "triggered").c_str(), VariantType::Bool, false,
+			      { "Impose triggered RO mode (default: continuous)" } } } };
 }
 
 } // end namespace ITSMFT
