@@ -326,7 +326,7 @@ bool DataProcessingDevice::tryDispatchComputation()
   // PROCESSING:{START,END} is done so that we can trigger on begin / end of processing
   // in the GUI.
   auto dispatchProcessing = [&processingCount, &allocator, &statefulProcess, &statelessProcess, &monitoringService,
-                             &context, &rootContext, &stringContext, &rdfContext, &rawContext, &serviceRegistry, &device](int i, InputRecord& record) {
+                             &context, &rootContext, &stringContext, &rdfContext, &rawContext, &serviceRegistry, &device](TimesliceSlot slot, InputRecord& record) {
     if (statefulProcess) {
       LOG(DEBUG) << "PROCESSING:START:" << slot.index;
       monitoringService.send({ processingCount++, "dpl/stateful_process_count" });
@@ -369,14 +369,10 @@ bool DataProcessingDevice::tryDispatchComputation()
   // propagates it to the various contextes (i.e. the actual entities which
   // create messages) because the messages need to have the timeslice id into
   // it.
-  auto prepareAllocatorForCurrentTimeSlice = [&timingInfo, &rootContext, &stringContext, &context, &relayer, &timesliceIndex](TimesliceSlot i) {
+  auto prepareAllocatorForCurrentTimeSlice = [&timingInfo, &rootContext, &stringContext, &rawContext, &context, &relayer, &timesliceIndex](TimesliceSlot i) {
     auto timeslice = timesliceIndex.getTimesliceForSlot(i);
     LOG(DEBUG) << "Timeslice for cacheline is " << timeslice.value;
     timingInfo.timeslice = timeslice.value;
-  auto prepareAllocatorForCurrentTimeSlice = [&timingInfo, &rootContext, &stringContext, &rawContext, &context, &relayer](int i) {
-    size_t timeslice = relayer.getTimesliceForCacheline(i);
-    LOG(DEBUG) << "Timeslice for cacheline is " << timeslice;
-    timingInfo.timeslice = timeslice;
     rootContext.clear();
     context.clear();
     stringContext.clear();
