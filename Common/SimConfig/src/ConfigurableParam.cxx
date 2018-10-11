@@ -159,7 +159,7 @@ void ConfigurableParam::updateFromString(std::string configstring)
 
       setValue(extractedkey, extractedvalue);
     } else {
-      LOG(WARN) << "Configuration key " << extractedkey << " not valid ... (ignoring)";
+      LOG(FATAL) << "Configuration key " << extractedkey << " not valid ... (abort)";
       continue;
     }
   }
