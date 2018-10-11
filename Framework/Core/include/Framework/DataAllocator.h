@@ -143,11 +143,12 @@ class DataAllocator
     return make_boost<WT>(std::move(specs));
   }
 
-  template<typename T>
-  typename std::enable_if<is_specialization<T,BoostSerialized>::value == false 
-                        && is_messageable<T>::value == false
-                        && o2::utils::check::is_boost_serializable<T>::value == true 
-                        && std::is_base_of<std::string, T>::value == false, T&>::type 
+  template <typename T>
+  typename std::enable_if<is_specialization<T, BoostSerialized>::value == false   //
+                            && is_messageable<T>::value == false                  //
+                            && framework::is_boost_serializable<T>::value == true //
+                            && std::is_base_of<std::string, T>::value == false,
+                          T&>::type
     make(const Output& spec)
   {
     return make_boost<T>(std::move(spec));
@@ -166,12 +167,12 @@ class DataAllocator
   /// the arguments and the different return types
   template <typename T>
   typename std::enable_if<
-    is_specialization<T,BoostSerialized>::value == false 
-    && std::is_base_of<TObject, T>::value == false
-    && std::is_base_of<TableBuilder, T>::value == false
-    && is_messageable<T>::value == false
-    && std::is_same<std::string, T>::value == false
-    && o2::utils::check::is_boost_serializable<T>::value == false,
+    is_specialization<T, BoostSerialized>::value == false     //
+      && std::is_base_of<TObject, T>::value == false          //
+      && std::is_base_of<TableBuilder, T>::value == false     //
+      && is_messageable<T>::value == false                    //
+      && std::is_same<std::string, T>::value == false         //
+      && framework::is_boost_serializable<T>::value == false, //
     T&>::type
     make(const Output&)
   {
@@ -187,10 +188,10 @@ class DataAllocator
   /// catching unsupported type for case of span of objects
   template <typename T>
   typename std::enable_if<
-    std::is_base_of<TObject, T>::value == false
-    && is_messageable<T>::value == false
-    && std::is_same<std::string, T>::value == false
-    && o2::utils::check::is_boost_serializable<T>::value == false,
+    std::is_base_of<TObject, T>::value == false               //
+      && is_messageable<T>::value == false                    //
+      && std::is_same<std::string, T>::value == false         //
+      && framework::is_boost_serializable<T>::value == false, //
     gsl::span<T>>::type
     make(const Output&, size_t)
   {
@@ -206,10 +207,10 @@ class DataAllocator
   /// catching unsupported type for case of at least two additional arguments
   template <typename T, typename U, typename V, typename... Args>
   typename std::enable_if<
-    std::is_base_of<TObject, T>::value == false
-    && is_messageable<T>::value == false
-    && std::is_same<std::string, T>::value == false
-    && o2::utils::check::is_boost_serializable<T>::value == false,
+    std::is_base_of<TObject, T>::value == false               //
+      && is_messageable<T>::value == false                    //
+      && std::is_same<std::string, T>::value == false         //
+      && framework::is_boost_serializable<T>::value == false, //
     T&>::type
     make(const Output&, U, V, Args...)
   {

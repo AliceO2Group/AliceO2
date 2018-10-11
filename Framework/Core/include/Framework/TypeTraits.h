@@ -25,27 +25,31 @@ namespace framework
 /// is a specialization of a given reference type Ref.
 /// See Framework/Core/test_TypeTraits.cxx for an example
 
-template<typename T, template<typename...> class Ref>
-struct is_specialization : std::false_type {};
+template <typename T, template <typename...> class Ref>
+struct is_specialization : std::false_type {
+};
 
-template<template<typename...> class Ref, typename... Args>
-struct is_specialization<Ref<Args...>, Ref>: std::true_type {};
+template <template <typename...> class Ref, typename... Args>
+struct is_specialization<Ref<Args...>, Ref> : std::true_type {
+};
 
 // helper struct to mark a type as non-messageable by defining a type alias
 // with name 'non-messageable'
-struct MarkAsNonMessageable {};
+struct MarkAsNonMessageable {
+};
 
 // detect if a type is forced to be non-messageable, this is done by defining
 // a type alias with name 'non-messageable' of the type MarkAsNonMessageable
-template< typename T, typename _ = void >
-struct is_forced_non_messageable : public std::false_type {};
+template <typename T, typename _ = void>
+struct is_forced_non_messageable : public std::false_type {
+};
 
 // specialization to detect the type a lias
 template <typename T>
 struct is_forced_non_messageable<
   T,
-  typename std::enable_if<std::is_same<typename T::non_messageable, MarkAsNonMessageable>::value>::type
-  > : public std::true_type {};
+  typename std::enable_if<std::is_same<typename T::non_messageable, MarkAsNonMessageable>::value>::type> : public std::true_type {
+};
 
 // TODO: extend this to exclude structs with pointer data members
 // see e.g. https://stackoverflow.com/questions/32880990/how-to-check-if-class-has-pointers-in-c14
@@ -61,12 +65,14 @@ struct is_messageable : std::conditional<std::is_trivially_copyable<T>::value &&
 // Detect a container by checking on the container properties
 // this is the default trait implementation inheriting from false_type
 template <typename T, typename _ = void>
-struct is_container : std::false_type {};
+struct is_container : std::false_type {
+};
 
 // helper to be substituted if the specified template arguments are
 // available
 template <typename... Ts>
-struct class_member_checker {};
+struct class_member_checker {
+};
 
 // the specialization for container types inheriting from true_type
 // the helper can be substituted if all the specified members are available
@@ -86,12 +92,9 @@ struct is_container<
       decltype(std::declval<T>().begin()),
       decltype(std::declval<T>().end()),
       decltype(std::declval<T>().cbegin()),
-      decltype(std::declval<T>().cend())
-      >,
-    void
-    >
-  > : public std::true_type {};
-
+      decltype(std::declval<T>().cend())>,
+    void>> : public std::true_type {
+};
 
 // Detect whether a class has a ROOT dictionary
 // This member detector idiom is implemented using SFINAE idiom to look for
@@ -100,7 +103,8 @@ struct is_container<
 // serialization however is also possible for types only having the link
 // in the LinkDef file. Such types can only be detected at runtime.
 template <typename T, typename _ = void>
-struct has_root_dictionary : std::false_type {};
+struct has_root_dictionary : std::false_type {
+};
 
 template <typename T>
 struct has_root_dictionary<
@@ -108,11 +112,9 @@ struct has_root_dictionary<
   std::conditional_t<
     false,
     class_member_checker<
-      decltype(std::declval<T>().Class())
-      >,
-    void
-    >
-  > : public std::true_type {};
+      decltype(std::declval<T>().Class())>,
+    void>> : public std::true_type {
+};
 
 // specialization for containers
 // covers cases with T::value_type having ROOT dictionary, meaning that
