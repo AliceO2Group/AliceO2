@@ -205,6 +205,11 @@ struct DescriptorCompareTraits {
   static bool compare(const T &lh, const T &rh, Length N) {
     return std::memcmp(lh.str, rh.str, N) == 0;
   }
+  template <typename T, typename Length>
+  static bool lessThen(const T& lh, const T& rh, Length N)
+  {
+    return std::memcmp(lh.str, rh.str, N) < 0;
+  }
 };
 template<>
 struct DescriptorCompareTraits<1> {
@@ -212,12 +217,22 @@ struct DescriptorCompareTraits<1> {
   static bool compare(const T &lh, const T &rh, Length) {
     return lh.itg[0] == rh.itg[0];
   }
+  template <typename T, typename Length>
+  static bool lessThen(const T& lh, const T& rh, Length)
+  {
+    return lh.itg[0] < rh.itg[0];
+  }
 };
 template<>
 struct DescriptorCompareTraits<2> {
   template<typename T, typename Length>
   static bool compare(const T &lh, const T &rh, Length) {
     return (lh.itg[0] == rh.itg[0]) && (lh.itg[1] == rh.itg[1]);
+  }
+  template <typename T, typename Length>
+  static bool lessThen(const T& lh, const T& rh, Length)
+  {
+    return std::tie(lh.itg[0], lh.itg[1]) < std::tie(rh.itg[0], rh.itg[1]);
   }
 };
 
@@ -293,6 +308,7 @@ struct Descriptor {
   }
 
   bool operator==(const Descriptor& other) const {return DescriptorCompareTraits<arraySize>::compare(*this,other, N);}
+  bool operator<(const Descriptor& other) const { return DescriptorCompareTraits<arraySize>::lessThen(*this, other, N); }
   bool operator!=(const Descriptor& other) const {return not this->operator==(other);}
 
   // explicitly forbid comparison with e.g. const char* strings
