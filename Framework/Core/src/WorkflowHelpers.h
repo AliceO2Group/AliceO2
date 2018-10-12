@@ -165,6 +165,11 @@ struct WorkflowHelpers {
   static std::vector<EdgeAction> computeInEdgeActions(
                                  const std::vector<DeviceConnectionEdge> &edges,
                                  const std::vector<size_t> &index);
+
+  /// Given @a workflow it finds the OutputSpec in every module which do not have
+  /// a corresponding InputSpec. I.e. they are dangling.
+  /// @return a vector of InputSpec which would have matched said dangling outputs.
+  static std::vector<InputSpec> computeDanglingOutputs(WorkflowSpec const& workflow);
 };
 
 }

@@ -16,6 +16,7 @@
 #include "../src/WorkflowHelpers.h"
 #include <boost/test/unit_test.hpp>
 #include <boost/test/tools/detail/per_element_manip.hpp>
+#include <algorithm>
 
 using namespace o2::framework;
 
@@ -418,10 +419,59 @@ BOOST_AUTO_TEST_CASE(TestExternalInput)
 
   BOOST_CHECK_EQUAL(workflow.size(), 1);
   WorkflowHelpers::injectServiceDevices(workflow);
-  // The added device is the one which should connect to
-  // the condition DB.
-  BOOST_CHECK_EQUAL(workflow.size(), 2);
+  // The added devices are the one which should connect to
+  // the condition DB and the sink for the dangling outputs.
+  BOOST_CHECK_EQUAL(workflow.size(), 3);
   WorkflowHelpers::constructGraph(workflow, logicalEdges,
                                   outputs,
                                   availableForwardsInfo);
+}
+
+BOOST_AUTO_TEST_CASE(DetermineDanglingOutputs)
+{
+  WorkflowSpec workflow0{
+    { "A", Inputs{}, { OutputSpec{ "TST", "A" } } },
+    { "B", { InputSpec{ "a", "TST", "A" } }, Outputs{} }
+  };
+
+  WorkflowSpec workflow1{
+    { "A",
+      Inputs{},
+      Outputs{ OutputSpec{ "TST", "A" } } }
+  };
+
+  WorkflowSpec workflow2{
+    { "A", Inputs{}, { OutputSpec{ "TST", "A" } } },
+    { "B", { InputSpec{ "a", "TST", "B" } }, Outputs{} }
+  };
+
+  WorkflowSpec workflow3{
+    { "A", Inputs{}, { OutputSpec{ "TST", "A" }, OutputSpec{ "TST", "B" } } },
+    { "B", { InputSpec{ "a", "TST", "A" } }, Outputs{} }
+  };
+
+  WorkflowSpec workflow4{
+    { "A", Inputs{}, { OutputSpec{ "TST", "A" }, OutputSpec{ "TST", "B" }, OutputSpec{ "TST", "C" } } },
+    { "B", { InputSpec{ "a", "TST", "A" } }, Outputs{} }
+  };
+
+  auto dangling0 = WorkflowHelpers::computeDanglingOutputs(workflow0);
+  std::vector<InputSpec> expected0{};
+  BOOST_TEST(dangling0 == expected0, boost::test_tools::per_element());
+
+  auto dangling1 = WorkflowHelpers::computeDanglingOutputs(workflow1);
+  std::vector<InputSpec> expected1{ InputSpec{ "dangling0", "TST", "A" } };
+  BOOST_TEST(dangling1 == expected1, boost::test_tools::per_element());
+
+  auto dangling2 = WorkflowHelpers::computeDanglingOutputs(workflow2);
+  std::vector<InputSpec> expected2{ InputSpec{ "dangling0", "TST", "A" } };
+  BOOST_TEST(dangling2 == expected2, boost::test_tools::per_element());
+
+  auto dangling3 = WorkflowHelpers::computeDanglingOutputs(workflow3);
+  std::vector<InputSpec> expected3{ InputSpec{ "dangling0", "TST", "B" } };
+  BOOST_TEST(dangling3 == expected3, boost::test_tools::per_element());
+
+  auto dangling4 = WorkflowHelpers::computeDanglingOutputs(workflow4);
+  std::vector<InputSpec> expected4{ InputSpec{ "dangling0", "TST", "B" }, InputSpec{ "dangling1", "TST", "C" } };
+  BOOST_TEST(dangling4 == expected4, boost::test_tools::per_element());
 }
