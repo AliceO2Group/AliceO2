@@ -157,6 +157,13 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
     }
   }
 
+  auto danglingOutputsInputs = computeDanglingOutputs(workflow);
+  DataProcessorSpec dplInternalSync{
+    "internal-dpl-sink",
+    danglingOutputsInputs,
+    {},
+  };
+
   if (ccdbBackend.outputs.empty() == false) {
     workflow.push_back(ccdbBackend);
   }
@@ -168,6 +175,11 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
   }
   if (timer.outputs.empty() == false) {
     workflow.push_back(timer);
+  }
+  /// This will inject a fake sink so that any dangling
+  /// output is actually requested by it.
+  if (danglingOutputsInputs.empty() == false) {
+    workflow.push_back(dplInternalSync);
   }
 }
 
@@ -475,6 +487,63 @@ WorkflowHelpers::verifyWorkflow(const o2::framework::WorkflowSpec &workflow) {
       }
     }
   }
+}
+
+struct UnifiedDataSpecType {
+  header::DataOrigin origin;
+  header::DataDescription description;
+  uint64_t subSpec;
+  int isOutput;
+};
+
+std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec const& workflow)
+{
+  std::vector<UnifiedDataSpecType> tmp;
+  std::vector<InputSpec> results;
+
+  for (auto& spec : workflow) {
+    for (auto& input : spec.inputs) {
+      tmp.push_back({ input.origin, input.description, input.subSpec, 0 });
+    }
+    for (auto& output : spec.outputs) {
+      tmp.push_back({ output.origin, output.description, output.subSpec, 1 });
+    }
+  }
+
+  auto cmp = [](UnifiedDataSpecType const& lhs, UnifiedDataSpecType const& rhs) -> bool {
+    return std::tie(lhs.origin, lhs.description, lhs.subSpec, lhs.isOutput) <
+           std::tie(rhs.origin, rhs.description, rhs.subSpec, rhs.isOutput);
+  };
+  std::sort(tmp.begin(), tmp.end(), cmp);
+
+  // Once sorted, all the transitions which begin with an output
+  // mean there was no input.
+  bool isFirst = true;
+  UnifiedDataSpecType last;
+  int i = 0;
+  for (auto& unified : tmp) {
+    if (last.origin != unified.origin ||
+        last.description != unified.description ||
+        last.subSpec != unified.subSpec) {
+      isFirst = true;
+      last = unified;
+    }
+    if (isFirst && unified.isOutput == 0) {
+      isFirst = false;
+      continue;
+    }
+    if (isFirst && unified.isOutput == 1) {
+      isFirst = false;
+      char buf[64];
+      results.push_back(InputSpec{ (snprintf(buf, 64, "dangling%d", i), buf), unified.origin,
+                                   unified.description, unified.subSpec });
+      ++i;
+      continue;
+    }
+    assert(isFirst == false);
+  }
+
+  return results;
 }
 
 } // namespace framwork
