@@ -73,6 +73,8 @@ struct OutputSpec {
     return origin == that.origin && description == that.description && subSpec == that.subSpec &&
            lifetime == that.lifetime;
   };
+
+  friend std::ostream& operator<<(std::ostream& stream, OutputSpec const& arg);
 };
 
 } // namespace framework
