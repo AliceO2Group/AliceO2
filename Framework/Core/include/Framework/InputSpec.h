@@ -30,6 +30,12 @@ struct InputSpec {
   header::DataHeader::SubSpecificationType subSpec = 0;
   enum Lifetime lifetime = Lifetime::Timeframe;
 
+  bool operator==(InputSpec const& that) const
+  {
+    return origin == that.origin && description == that.description && subSpec == that.subSpec &&
+           lifetime == that.lifetime;
+  };
+
   friend std::ostream& operator<<(std::ostream& stream, InputSpec const& arg);
 };
 
