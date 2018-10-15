@@ -10,8 +10,9 @@
 #ifndef FRAMEWORK_CONFIGPARAMSPEC_H
 #define FRAMEWORK_CONFIGPARAMSPEC_H
 
-#include <string>
 #include "Framework/Variant.h"
+
+#include <string>
 
 namespace o2
 {

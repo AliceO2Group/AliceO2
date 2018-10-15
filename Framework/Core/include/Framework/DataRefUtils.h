@@ -11,15 +11,18 @@
 #define FRAMEWORK_DATAREFUTILS_H
 
 #include "Framework/DataRef.h"
-#include "Headers/DataHeader.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/SerializationMethods.h"
 #include "Framework/TypeTraits.h"
+
+#include "Headers/DataHeader.h"
+
 #include <TClass.h>
+#include <gsl/gsl>
+
 #include <stdexcept>
 #include <sstream>
 #include <type_traits>
-#include <gsl/gsl>
 
 namespace o2
 {

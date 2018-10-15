@@ -10,9 +10,6 @@
 #ifndef FRAMEWORK_RUN_DATA_PROCESSING_H
 #define FRAMEWORK_RUN_DATA_PROCESSING_H
 
-#include <unistd.h>
-#include <vector>
-#include <cstring>
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/ConfigParamsHelper.h"
@@ -23,6 +20,10 @@
 
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>
+
+#include <unistd.h>
+#include <vector>
+#include <cstring>
 
 namespace o2
 {

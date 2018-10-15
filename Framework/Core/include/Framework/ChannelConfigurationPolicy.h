@@ -10,10 +10,11 @@
 #ifndef FRAMEWORK_CHANNELCONFIGURATIONPOLICY_H
 #define FRAMEWORK_CHANNELCONFIGURATIONPOLICY_H
 
-#include <functional>
 #include "Framework/ChannelConfigurationPolicyHelpers.h"
 #include "Framework/ChannelSpec.h"
 #include "Framework/DeviceSpec.h"
+
+#include <functional>
 
 namespace o2
 {

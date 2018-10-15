@@ -10,10 +10,11 @@
 #ifndef FRAMEWORK_LIFETIMEHELPERS_H
 #define FRAMEWORK_LIFETIMEHELPERS_H
 
-#include <functional>
-#include <chrono>
 #include "Framework/ExpirationHandler.h"
 #include "Framework/PartRef.h"
+
+#include <functional>
+#include <chrono>
 
 namespace o2
 {

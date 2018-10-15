@@ -7,7 +7,6 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "FairMQDevice.h"
 #include "Framework/BoostOptionsRetriever.h"
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/ChannelMatching.h"
@@ -40,13 +39,24 @@
 #include "GraphvizHelpers.h"
 #include "SimpleResourceManager.h"
 
+#include <Monitoring/MonitoringFactory.h>
+#include <InfoLogger/InfoLogger.hxx>
+
+#include "FairMQDevice.h"
+#include <fairmq/DeviceRunner.h>
+#include <fairmq/FairMQLogger.h>
 #include "options/FairMQProgOptions.h"
+
+#include <boost/program_options.hpp>
+#include <boost/program_options/options_description.hpp>
+#include <boost/program_options/variables_map.hpp>
 
 #include <cinttypes>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <csignal>
 #include <iostream>
 #include <map>
 #include <regex>
@@ -54,7 +64,6 @@
 #include <string>
 #include <type_traits>
 #include <chrono>
-
 #include <sys/resource.h>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -63,19 +72,10 @@
 #include <sys/un.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <boost/program_options.hpp>
-#include <boost/program_options/options_description.hpp>
-#include <boost/program_options/variables_map.hpp>
-#include <csignal>
 #include <netinet/ip.h>
 
-#include <fairmq/DeviceRunner.h>
-#include <fairmq/FairMQLogger.h>
-
-#include <Monitoring/MonitoringFactory.h>
 using namespace o2::monitoring;
 
-#include <InfoLogger/InfoLogger.hxx>
 using namespace AliceO2::InfoLogger;
 
 /// Helper class to find a free port.

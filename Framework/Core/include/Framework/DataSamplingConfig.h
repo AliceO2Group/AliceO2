@@ -16,12 +16,13 @@
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
-#include <vector>
-#include <string>
-
 #include "Framework/InputSpec.h"
 #include "Framework/OutputSpec.h"
+
 #include "Headers/DataHeader.h"
+
+#include <vector>
+#include <string>
 
 namespace o2
 {

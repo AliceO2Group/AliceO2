@@ -10,9 +10,11 @@
 #ifndef FRAMEWORK_MESSAGECONTEXT_H
 #define FRAMEWORK_MESSAGECONTEXT_H
 
-#include <fairmq/FairMQParts.h>
 #include "Framework/ContextRegistry.h"
 #include "Framework/FairMQDeviceProxy.h"
+
+#include <fairmq/FairMQParts.h>
+
 #include <vector>
 #include <cassert>
 #include <string>
