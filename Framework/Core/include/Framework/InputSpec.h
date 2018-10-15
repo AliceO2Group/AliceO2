@@ -10,10 +10,11 @@
 #ifndef FRAMEWORK_INPUTSPEC_H
 #define FRAMEWORK_INPUTSPEC_H
 
-#include <string>
-#include <ostream>
 #include "Framework/Lifetime.h"
 #include "Headers/DataHeader.h"
+
+#include <string>
+#include <ostream>
 
 namespace o2
 {

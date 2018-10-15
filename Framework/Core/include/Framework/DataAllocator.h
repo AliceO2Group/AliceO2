@@ -10,7 +10,6 @@
 #ifndef FRAMEWORK_DATAALLOCATOR_H
 #define FRAMEWORK_DATAALLOCATOR_H
 
-#include "Headers/DataHeader.h"
 #include "Framework/ContextRegistry.h"
 #include "Framework/MessageContext.h"
 #include "Framework/RootObjectContext.h"
@@ -27,15 +26,16 @@
 #include "Framework/SerializationMethods.h"
 #include "Framework/TableBuilder.h"
 
+#include "Headers/DataHeader.h"
+#include <TClass.h>
+#include <gsl/span>
+
 #include <vector>
 #include <map>
 #include <string>
 #include <utility>
 #include <type_traits>
-#include <gsl/span>
 #include <utility>
-
-#include <TClass.h>
 
 // Do not change this for a full inclusion of FairMQDevice.
 class FairMQDevice;

@@ -10,9 +10,6 @@
 #ifndef FRAMEWORK_DATAPROCESSING_DEVICE_H
 #define FRAMEWORK_DATAPROCESSING_DEVICE_H
 
-#include <fairmq/FairMQDevice.h>
-#include <fairmq/FairMQParts.h>
-
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ContextRegistry.h"
@@ -28,6 +25,9 @@
 #include "Framework/InputRoute.h"
 #include "Framework/ForwardRoute.h"
 #include "Framework/TimingInfo.h"
+
+#include <fairmq/FairMQDevice.h>
+#include <fairmq/FairMQParts.h>
 
 #include <memory>
 
