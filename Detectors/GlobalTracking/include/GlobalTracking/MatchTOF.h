@@ -146,7 +146,7 @@ class MatchTOF
   // to be done later
 
   float mTimeTolerance = 1e3; ///<tolerance in ns for track-TOF time bracket matching
-  float mSpaceTolerance = 10; ///<tolerance in cm for track-TOF time bracket matching
+  float mSpaceTolerance = 100; ///<tolerance in cm for track-TOF time bracket matching
   int   mSigmaTimeCut = 3; ///< number of sigmas to cut on time when matching the track to the TOF cluster
   
   TTree* mInputTreeTracks = nullptr; ///< input tree for tracks

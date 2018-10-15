@@ -28,7 +28,7 @@ namespace dataformats
   int getTOFClIndex() const { return mTOFClIndex; }
 
   void setChi2(int chi2) { mChi2 = chi2; }
-  int getChi2() const { return mChi2; }
+  float getChi2() const { return mChi2; }
 
  private:
   

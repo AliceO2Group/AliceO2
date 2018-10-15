@@ -50,23 +50,28 @@ void MatchTOF::run()
 
   mTimerTot.Start();
 
-  prepareTracks();
+  // we load all TOF clusters (to be checked if we need to split per time frame)
   prepareTOFClusters();
-  for (int sec = o2::constants::math::NSectors; sec--;) {
-    printf("doing matching...\n");
-    doMatching(sec);
-    printf("...done. Now check the best matches\n");
-    selectBestMatches();
-  }
-  if (0) { // enabling this creates very verbose output
-    mTimerTot.Stop();
-    printCandidatesTOF();
-    mTimerTot.Start(false);
-  }
 
-  mOutputTree->Fill();
+  // we do the matching per entry of the TPCITS matched tracks tree
+  while (mCurrTracksTreeEntry+1 < mInputTreeTracks->GetEntries()) { // we add "+1" because mCurrTracksTreeEntry starts from -1, and it is incremented in loadTracksNextChunk which is called by prepareTracks
+    mMatchedTracks.clear();
+    prepareTracks();
+    for (int sec = o2::constants::math::NSectors; sec--;) {
+      printf("\n\ndoing matching for sector %i...\n", sec);
+      doMatching(sec);
+      printf("...done. Now check the best matches\n");
+      selectBestMatches();
+    }
+    if (0) { // enabling this creates very verbose output
+      mTimerTot.Stop();
+      printCandidatesTOF();
+      mTimerTot.Start(false);
+    }
+    mOutputTree->Fill();
+  }
+  
   mTimerTot.Stop();
-
   printf("Timing:\n");
   printf("Total:        ");
   mTimerTot.Print();
@@ -211,7 +216,8 @@ bool MatchTOF::prepareTracks()
     mTracksSectIndexCache[sec].clear();
     mTracksSectIndexCache[sec].reserve(100 + 1.2 * mNumOfTracks / o2::constants::math::NSectors);
   }
-  
+
+  Printf("We have %d tracks to try to match to TOF", mNumOfTracks);
   int nNotPropagatedToTOF = 0;
   for (int it = 0; it < mNumOfTracks; it++) {
     o2::dataformats::TrackTPCITS& trcOrig = (*mTracksArrayInp)[it]; // TODO: check if we cannot directly use the o2::track::TrackParCov class instead of o2::dataformats::TrackTPCITS, and then avoid the casting below; this is the track at the vertex
@@ -328,7 +334,7 @@ bool MatchTOF::loadTracksNextChunk()
   ///< load next chunk of tracks to be matched to TOF
   while (++mCurrTracksTreeEntry < mInputTreeTracks->GetEntries()) {
     mInputTreeTracks->GetEntry(mCurrTracksTreeEntry);
-    LOG(DEBUG) << "Loading tracks entry " << mCurrTracksTreeEntry << " -> " << mTracksArrayInp->size()
+    LOG(INFO) << "Loading tracks entry " << mCurrTracksTreeEntry << " -> " << mTracksArrayInp->size()
                << " tracks" << FairLogger::endl;
     if (!mTracksArrayInp->size()) {
       continue;
