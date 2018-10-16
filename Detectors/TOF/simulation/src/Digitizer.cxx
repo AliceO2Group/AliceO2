@@ -693,7 +693,7 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
 
   if(mContinuous){
     if(digits.size()) printf("%i) # TOF digits = %i (%x)\n",mIcurrentReadoutWindow,digits.size(),mStripsCurrent);
-    mDigitsPerTimeFrame.get()->push_back(digits);
+    mDigitsPerTimeFrame.push_back(digits);
   }
 
   // if(! digits.size()) return;

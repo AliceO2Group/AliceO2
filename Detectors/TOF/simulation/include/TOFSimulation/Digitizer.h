@@ -23,17 +23,6 @@ namespace o2
 namespace tof
 {
 
-class DigitOutput
-{
- public:
-  std::vector< std::vector<Digit> > *get() {return &mVector;}
-
- private:
-  std::vector< std::vector<Digit> > mVector;
-
-  ClassDefNV(DigitOutput, 1);
-};
-
 class Digitizer
 {
  public:
@@ -78,7 +67,7 @@ class Digitizer
   void setContinuous(bool val) { mContinuous = val; }
   bool isContinuous() const { return mContinuous; }
 
-  DigitOutput* getDigitPerTimeFrame() {return &mDigitsPerTimeFrame;}
+  std::vector< std::vector<Digit>>* getDigitPerTimeFrame() {return &mDigitsPerTimeFrame;}
   std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel> >* getMCTruthPerTimeFrame() {return &mMCTruthOutputContainerPerTimeFrame;}
 
  private:
@@ -113,7 +102,7 @@ class Digitizer
 
   static const int MAXWINDOWS = 2; // how many readout windows we can buffer
 
-  DigitOutput mDigitsPerTimeFrame;
+  std::vector< std::vector<Digit> > mDigitsPerTimeFrame;
   std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel> > mMCTruthOutputContainerPerTimeFrame;
 
   int mIcurrentReadoutWindow = 0;

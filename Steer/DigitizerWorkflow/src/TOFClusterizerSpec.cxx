@@ -48,7 +48,7 @@ class TOFDPLClustererTask
     }
     // get digit data
     auto digits = pc.inputs().get<std::vector<std::vector<o2::tof::Digit>>*>("tofdigits");
-    auto digitlabels = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("tofdigitlabels");
+    auto digitlabels = pc.inputs().get<std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>*>("tofdigitlabels");
     mClusterer.setMCTruthContainer(&mClsLabels);
 
     // call actual clustering routine
@@ -59,7 +59,7 @@ class TOFDPLClustererTask
       printf("# TOF readout window for clusterization = %i\n",i); 
       auto digitsRO = digits->at(i); 
       mReader.setDigitArray(&digitsRO);       
-      mClusterer.process(mReader, mClustersArray, digitlabels.get()); 
+      mClusterer.process(mReader, mClustersArray, &(digitlabels->at(i))); 
     }
     LOG(INFO) << "TOF CLUSTERER : TRANSFORMED " << digits->size()
               << " DIGITS TO " << mClustersArray.size() << " CLUSTERS";
