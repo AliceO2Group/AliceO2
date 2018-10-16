@@ -253,8 +253,7 @@ void HwClusterer::process(std::vector<o2::TPC::Digit> const& digits, MCLabelCont
     mLastTimebin = digit.getTimeStamp();
   }
 
-  if (!mIsContinuousReadout)
-    finishFrame(true);
+  finishFrame(!mIsContinuousReadout); // clear buffers for triggered readout
 
   if (digits.size() != 0)
     LOG(DEBUG) << "Event ranged from time bin " << digits.front().getTimeStamp() << " to " << digits.back().getTimeStamp() << "." << FairLogger::endl;
