@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 #include "WorkflowHelpers.h"
 #include "Framework/ChannelMatching.h"
+#include "Framework/CommonDataProcessors.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/AlgorithmSpec.h"
 #include <algorithm>
@@ -157,13 +158,6 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
     }
   }
 
-  auto danglingOutputsInputs = computeDanglingOutputs(workflow);
-  DataProcessorSpec dplInternalSync{
-    "internal-dpl-sink",
-    danglingOutputsInputs,
-    {},
-  };
-
   if (ccdbBackend.outputs.empty() == false) {
     workflow.push_back(ccdbBackend);
   }
@@ -176,10 +170,19 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
   if (timer.outputs.empty() == false) {
     workflow.push_back(timer);
   }
-  /// This will inject a fake sink so that any dangling
-  /// output is actually requested by it.
-  if (danglingOutputsInputs.empty() == false) {
-    workflow.push_back(dplInternalSync);
+  /// This will inject a file sink so that any dangling
+  /// output is actually written to it.
+  auto danglingOutputsInputs = computeDanglingOutputs(workflow);
+
+  std::vector<InputSpec> unmatched;
+  if (danglingOutputsInputs.size() > 0) {
+    auto fileSink = CommonDataProcessors::getGlobalFileSink(danglingOutputsInputs, unmatched);
+    if (unmatched.size() != danglingOutputsInputs.size()) {
+      workflow.push_back(fileSink);
+    }
+  }
+  if (unmatched.size() > 0) {
+    workflow.push_back(CommonDataProcessors::getDummySink(unmatched));
   }
 }
 

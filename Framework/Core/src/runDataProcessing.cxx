@@ -843,9 +843,7 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
       case DriverState::MATERIALISE_WORKFLOW:
         try {
           std::vector<ComputingResource> resources = resourceManager->getAvailableResources();
-          auto physicalWorkflow = workflow;
-          WorkflowHelpers::injectServiceDevices(physicalWorkflow);
-          DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(physicalWorkflow, driverInfo.channelPolicies, driverInfo.completionPolicies, deviceSpecs, resources);
+          DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, driverInfo.channelPolicies, driverInfo.completionPolicies, deviceSpecs, resources);
           // This should expand nodes so that we can build a consistent DAG.
         } catch (std::runtime_error& e) {
           std::cerr << "Invalid workflow: " << e.what() << std::endl;
@@ -1070,10 +1068,13 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
 
   bpo::options_description visibleOptions;
   visibleOptions.add(executorOptions);
+
+  auto physicalWorkflow = workflow;
+  WorkflowHelpers::injectServiceDevices(physicalWorkflow);
   // Use the hidden options as veto, all config specs matching a definition
   // in the hidden options are skipped in order to avoid duplicate definitions
   // in the main parser. Note: all config specs are forwarded to devices
-  visibleOptions.add(ConfigParamsHelper::prepareOptionDescriptions(workflow, workflowOptions, gHiddenDeviceOptions));
+  visibleOptions.add(ConfigParamsHelper::prepareOptionDescriptions(physicalWorkflow, workflowOptions, gHiddenDeviceOptions));
 
   bpo::options_description od;
   od.add(visibleOptions);
@@ -1093,7 +1094,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     bpo::options_description helpOptions;
     helpOptions.add(executorOptions);
     // this time no veto is applied, so all the options are added for printout
-    helpOptions.add(ConfigParamsHelper::prepareOptionDescriptions(workflow, workflowOptions));
+    helpOptions.add(ConfigParamsHelper::prepareOptionDescriptions(physicalWorkflow, workflowOptions));
     std::cout << helpOptions << std::endl;
     exit(0);
   }
@@ -1132,5 +1133,5 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     driverInfo.startPort = finder.port();
     driverInfo.portRange = finder.range();
   }
-  return runStateMachine(workflow, driverControl, driverInfo, gDeviceMetricsInfos, frameworkId);
+  return runStateMachine(physicalWorkflow, driverControl, driverInfo, gDeviceMetricsInfos, frameworkId);
 }
