@@ -72,6 +72,7 @@ set(SRCS
     src/FrameworkGUIDeviceInspector.cxx
     src/FrameworkGUIDataRelayerUsage.cxx
     src/PaletteHelpers.cxx
+    src/CommonDataProcessors.cxx
     ${GUI_SOURCES}
     test/TestClasses.cxx
     src/Variant.cxx
