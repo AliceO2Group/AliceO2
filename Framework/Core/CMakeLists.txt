@@ -53,6 +53,7 @@ set(SRCS
     src/FairMQResizableBuffer.cxx
     src/GraphvizHelpers.cxx
     src/InputRecord.cxx
+    src/DataDescriptorQueryBuilder.cxx
     src/LifetimeHelpers.cxx
     src/LocalRootFileService.cxx
     src/LogParsingHelpers.cxx

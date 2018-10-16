@@ -129,11 +129,13 @@ using Node = std::variant<OriginValueMatcher, DescriptionValueMatcher, SubSpecif
 class DataDescriptorMatcher
 {
  public:
-  enum struct Op { Or,
+  enum struct Op { Just,
+                   Or,
                    And,
                    Xor };
 
-  DataDescriptorMatcher(Node&& lhs, Op op, Node&& rhs)
+  /// Unary operator on a node
+  DataDescriptorMatcher(Op op, Node&& lhs, Node&& rhs = std::move(ConstantValueMatcher{ false }))
     : mOp{ op },
       mLeft{ std::move(lhs) },
       mRight{ std::move(rhs) }
@@ -152,16 +154,16 @@ class DataDescriptorMatcher
         return arg.match(d);
       }
     };
-    auto leftValue = std::visit(eval, mLeft);
-    auto rightValue = std::visit(eval, mRight);
 
     switch (mOp) {
       case Op::Or:
-        return leftValue || rightValue;
+        return std::visit(eval, mLeft) || std::visit(eval, mRight);
       case Op::And:
-        return leftValue && rightValue;
+        return std::visit(eval, mLeft) && std::visit(eval, mRight);
       case Op::Xor:
-        return leftValue ^ rightValue;
+        return std::visit(eval, mLeft) ^ std::visit(eval, mRight);
+      case Op::Just:
+        return std::visit(eval, mLeft);
     }
   };
 
