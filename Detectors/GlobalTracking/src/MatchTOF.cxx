@@ -217,7 +217,7 @@ bool MatchTOF::prepareTracks()
     mTracksSectIndexCache[sec].reserve(100 + 1.2 * mNumOfTracks / o2::constants::math::NSectors);
   }
 
-  Printf("We have %d tracks to try to match to TOF", mNumOfTracks);
+  Printf("\n\nWe have %d tracks to try to match to TOF", mNumOfTracks);
   int nNotPropagatedToTOF = 0;
   for (int it = 0; it < mNumOfTracks; it++) {
     o2::dataformats::TrackTPCITS& trcOrig = (*mTracksArrayInp)[it]; // TODO: check if we cannot directly use the o2::track::TrackParCov class instead of o2::dataformats::TrackTPCITS, and then avoid the casting below; this is the track at the vertex
@@ -227,7 +227,8 @@ bool MatchTOF::prepareTracks()
     int indTPC = evIdxTPC.getIndex();
     o2::TPC::TrackTPC& trcTPCOrig = (*mTPCTracksArrayInp)[indTPC]; // we take the track when it is propagated out
     */
-    Printf("Original Track %d: getTimeMUS().getTimeStamp() = %f, getTimeMUS().getTimeStampError() = %f", it, (*mTracksArrayInp)[it].getTimeMUS().getTimeStamp() , (*mTracksArrayInp)[it].getTimeMUS().getTimeStampError()); 
+    std::array<float, 3> globalPos;
+    Printf("\nOriginal Track %d: getTimeMUS().getTimeStamp() = %f, getTimeMUS().getTimeStampError() = %f", it, (*mTracksArrayInp)[it].getTimeMUS().getTimeStamp() , (*mTracksArrayInp)[it].getTimeMUS().getTimeStampError()); 
     // create working copy of track param
     mTracksWork.emplace_back(trcOrig);//, mCurrTracksTreeEntry, it);
     // make a copy of the TPC track that we have to propagate
@@ -235,18 +236,24 @@ bool MatchTOF::prepareTracks()
     auto& trc = mTracksWork.back(); // with this we take the TPCITS track propagated to the vertex
     Printf("Copied Track %d: getTimeMUS().getTimeStamp() = %f, getTimeMUS().getTimeStampError() = %f", it, trc.getTimeMUS().getTimeStamp() , trc.getTimeMUS().getTimeStampError()); 
     // propagate to matching Xref
+    trc.getXYZGlo(globalPos);
+    printf("Global coordinates Before propagating to 371 cm: globalPos[0] = %f, globalPos[1] = %f, globalPos[2] = %f\n", globalPos[0], globalPos[1], globalPos[2]);
+    Printf("Radius xy Before propagating to 371 cm = %f", TMath::Sqrt(globalPos[0]*globalPos[0] + globalPos[1]*globalPos[1]));
+    Printf("Radius xyz Before propagating to 371 cm = %f", TMath::Sqrt(globalPos[0]*globalPos[0] + globalPos[1]*globalPos[1] + globalPos[2]*globalPos[2]));  
+    mTracksSectIndexCache[o2::utils::Angle2Sector( TMath::ATan2(globalPos[1], globalPos[0]))].push_back(mTracksWork.size() - 1);
     if (!propagateToRefX(trc, mXRef, 2) || TMath::Abs(trc.getZ()) > Geo::MAXHZTOF) {
       mTracksWork.pop_back(); // discard track whose propagation to mXRef failed, or those that go beyond TOF in z
       nNotPropagatedToTOF++;
       continue;
     }
-    //    if (mMCTruthON) {
+ //    if (mMCTruthON) {
     //      mTracksLblWork.emplace_back(mTracksLabels->getLabels(it)[0]);
     //    }
     // cache work track index
-    std::array<float, 3> globalPos;
     trc.getXYZGlo(globalPos);
-
+    printf("Global coordinates After propagating to 371 cm: globalPos[0] = %f, globalPos[1] = %f, globalPos[2] = %f\n", globalPos[0], globalPos[1], globalPos[2]);
+    Printf("Radius xy After propagating to 371 cm = %f", TMath::Sqrt(globalPos[0]*globalPos[0] + globalPos[1]*globalPos[1]));
+    Printf("Radius xyz After propagating to 371 cm = %f", TMath::Sqrt(globalPos[0]*globalPos[0] + globalPos[1]*globalPos[1] + globalPos[2]*globalPos[2]));  
     mTracksSectIndexCache[o2::utils::Angle2Sector( TMath::ATan2(globalPos[1], globalPos[0]))].push_back(mTracksWork.size() - 1);
     //delete trc; // Check: is this needed?
   }
@@ -402,14 +409,13 @@ void MatchTOF::doMatching(int sec)
   int   detId[2][5]; // at maximum one track can fall in 2 strips during the propagation; the second dimention of the array is the TOF det index
   float deltaPos[2][3]; // at maximum one track can fall in 2 strips during the propagation; the second dimention of the array is the residuals
   int nStepsInsideSameStrip[2] = {0,0}; // number of propagation steps in the same strip (since we have maximum 2 strips, it has dimention = 2)
-  int detIdTemp[5];
   float deltaPosTemp[3];
   std::array<float, 3> pos;
   std::array<float, 3> posBeforeProp;
   float posFloat[3]; 
   
   for (int itrk = 0; itrk < cacheTrk.size(); itrk++) {
-    Printf("\n track %d", itrk);
+    Printf("\n\n\n\n ************ track %d **********", itrk);
     for (int ii = 0; ii < 2; ii++)
       detId[ii][2] = -1; // before trying to match, we need to inizialize the detId corresponding to the strip number to -1
     int nStripsCrossedInPropagation = 0; // how many strips were hit during the propagation
@@ -421,8 +427,10 @@ void MatchTOF::doMatching(int sec)
     trefTrk.getXYZGlo(posBeforeProp);
     //float posBeforeProp[3] = {trefTrk.getX(), trefTrk.getY(), trefTrk.getZ()}; // in local ref system
     printf("Global coordinates: posBeforeProp[0] = %f, posBeforeProp[1] = %f, posBeforeProp[2] = %f\n", posBeforeProp[0], posBeforeProp[1], posBeforeProp[2]);
+    Printf("Radius xy = %f", TMath::Sqrt(posBeforeProp[0]*posBeforeProp[0] + posBeforeProp[1]*posBeforeProp[1]));
+    Printf("Radius xyz = %f", TMath::Sqrt(posBeforeProp[0]*posBeforeProp[0] + posBeforeProp[1]*posBeforeProp[1] + posBeforeProp[2]*posBeforeProp[2]));
     while (propagateToRefX(trefTrk, mXRef+istep*step, step) && nStripsCrossedInPropagation <2 && mXRef+istep*step < Geo::RMAX){
-      if (istep%100 == 0){
+      if (1 || istep%100 == 0){
 	printf("istep = %d, currentPosition = %f \n", istep, mXRef+istep*step);
       }
       //float pos[3] = {trefTrk.getX(), trefTrk.getY(), trefTrk.getZ()}; // these are the coordinates in the local ref system
@@ -431,9 +439,14 @@ void MatchTOF::doMatching(int sec)
       for (int ii = 0; ii < 3; ii++){ // we need to change the type... 
 	posFloat[ii] = pos[ii];
       }
+      Printf("posFloat[0] = %f, posFloat[1] = %f, posFloat[2] = %f", posFloat[0], posFloat[1], posFloat[2]);
+      Printf("radius xy = %f", TMath::Sqrt(posFloat[0]*posFloat[0] + posFloat[1]*posFloat[1]));
+      Printf("radius xyz = %f", TMath::Sqrt(posFloat[0]*posFloat[0] + posFloat[1]*posFloat[1] + posFloat[2]*posFloat[2]));
+      int detIdTemp[5] = {-1, -1, -1, -1, -1};
       Geo::getPadDxDyDz(posFloat, detIdTemp, deltaPosTemp);
+      Printf("detIdTemp[0] = %d, detIdTemp[1] = %d, detIdTemp[2] = %d, detIdTemp[3] = %d, detIdTemp[4] = %d", detIdTemp[0], detIdTemp[1], detIdTemp[2], detIdTemp[3], detIdTemp[4]);
       if (detIdTemp[2] != -1 && nStripsCrossedInPropagation == 0){ // print in case you have a useful propagation
-	Printf("\n\n*********** We have crossed a strip during propagation!*********");
+	Printf("*********** We have crossed a strip during propagation!*********");
 	printf("Global coordinates: pos[0] = %f, pos[1] = %f, pos[2] = %f\n", pos[0], pos[1], pos[2]);
 	printf("detIdTemp[0] = %d, detIdTemp[1] = %d, detIdTemp[2] = %d, detIdTemp[3] = %d, detIdTemp[4] = %d\n", detIdTemp[0], detIdTemp[1], detIdTemp[2], detIdTemp[3], detIdTemp[4]);
 	printf("deltaPosTemp[0] = %f, deltaPosTemp[1] = %f, deltaPosTemp[2] = %f\n", deltaPosTemp[0], deltaPosTemp[1], deltaPosTemp[2]);
@@ -550,24 +563,37 @@ bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float st
 {
   //  printf("in propagateToRefX\n");
   // propagate track to matching reference X
-  bool refReached = o2::Base::Propagator::Instance()->PropagateToXBxByBz(trc, xRef, o2::constants::physics::MassPionCharged, MaxSnp, stepInCm, 0.);;
-  //printf("refReached = %d\n", (int)refReached);
-  return refReached;
-  /*
-  while (o2::Base::Propagator::Instance()->PropagateToXBxByBz(trc, xRef, o2::constants::physics::MassPionCharged, MaxSnp, stepInCm, 0.)) {
-    if (refReached)
-      break; // RS: tmp
-    // make sure the track is indeed within the sector defined by alpha
-    if (fabs(trc.getY()) < mXRef * tan(o2::constants::math::SectorSpanRad / 2)) {
-      refReached = true;
-      break; // ok, within
+  bool refReached = false;
+  float xStart = trc.getX();
+  // the first propagation will be from 2m, if the track is not at least at 2m
+  if (xStart < 50.) xStart = 50.;
+  int istep = 1;
+  bool hasPropagated = o2::Base::Propagator::Instance()->PropagateToXBxByBz(trc, xStart + istep*stepInCm, o2::constants::physics::MassPionCharged, MAXSNP, stepInCm, 0.);
+  while (hasPropagated) {
+    //Printf("propagateToRefX: istep = %d", istep);
+    if (trc.getX() > xRef) {
+      refReached = true; // we reached the 371cm reference
+      Printf("propagateToRefX: trc.getX() > xRef --> refReached = true");
     }
-    auto alphaNew = o2::utils::Angle2Alpha(trc.getPhiPos());
-    if (!trc.rotate(alphaNew) != 0) {
-      break; // failed (RS: check effect on matching tracks to neighbouring sector)
+    istep++;
+    if (fabs(trc.getY()) > trc.getX() * tan(o2::constants::math::SectorSpanRad / 2)) { // we are still in the same sector
+      // we need to rotate the track to go to the new sector
+      Printf("propagateToRefX: changing sector");
+      auto alphaNew = o2::utils::Angle2Alpha(trc.getPhiPos());
+      if (!trc.rotate(alphaNew) != 0) {
+	Printf("propagateToRefX: failed to rotate");
+	break; // failed (RS: check effect on matching tracks to neighbouring sector)
+      }
     }
+    if (refReached) break;
+    hasPropagated = o2::Base::Propagator::Instance()->PropagateToXBxByBz(trc, xStart + istep*stepInCm, o2::constants::physics::MassPionCharged, MAXSNP, stepInCm, 0.);
   }
-  printf("returning from propagateToRefX\n");
-  return refReached && std::abs(trc.getSnp()) < MaxSnp;
-  */
+  Printf("propagateToXRef: hasPropagate(%d) = %d", istep, hasPropagated);
+  if (std::abs(trc.getSnp()) > MAXSNP) Printf("propagateToRefX: condition on snp not ok, returning false");
+  Printf("propagateToRefX: final x of the track = %f, refReached at the end is %d", trc.getX(), (int)refReached);
+  Printf("propagateToRefX: snp of teh track is %f (--> %f grad)", trc.getSnp(), TMath::ASin(trc.getSnp())*TMath::RadToDeg());
+  return refReached && std::abs(trc.getSnp()) < 0.95;
+  //return refReached;
 }
+      
+    

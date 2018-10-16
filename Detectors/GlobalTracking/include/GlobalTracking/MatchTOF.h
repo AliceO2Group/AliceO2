@@ -147,7 +147,7 @@ class MatchTOF
 
   float mTimeTolerance = 1e3; ///<tolerance in ns for track-TOF time bracket matching
   float mSpaceTolerance = 100; ///<tolerance in cm for track-TOF time bracket matching
-  int   mSigmaTimeCut = 3; ///< number of sigmas to cut on time when matching the track to the TOF cluster
+  int   mSigmaTimeCut = 3.; ///< number of sigmas to cut on time when matching the track to the TOF cluster
   
   TTree* mInputTreeTracks = nullptr; ///< input tree for tracks
   TTree* mTreeTPCTracks = nullptr;   ///< input tree for TPC tracks
@@ -199,7 +199,7 @@ class MatchTOF
   std::string mOutTracksBranchName = "TOFMatchInfo";       ///< name of branch containing output matched tracks
 
   ///----------- aux stuff --------------///
-  static constexpr float MaxSnp = 0.85;                // max snp of ITS or TPC track at xRef to be matched
+  static constexpr float MAXSNP = 0.85;                // max snp of ITS or TPC track at xRef to be matched
   
   TStopwatch mTimerTot;
   ClassDefNV(MatchTOF, 1);
