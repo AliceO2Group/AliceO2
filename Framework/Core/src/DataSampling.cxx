@@ -159,7 +159,7 @@ QcTaskConfigurations DataSampling::readQcTasksConfiguration(const std::string& c
     try {
       std::string simpleQcTaskDefinition = configFile->getString(prefixConfigTasks + taskName + "/taskDefinition").value();
       taskInputsNames = configFile->getString(prefixConfigTasks + simpleQcTaskDefinition + "/inputs").value();
-      task.fractionOfDataToSample = configFile->getFloat(prefixConfigTasks + simpleQcTaskDefinition + "/fraction").value();
+      task.fractionOfDataToSample = configFile->get<double>(prefixConfigTasks + simpleQcTaskDefinition + "/fraction").value();
       if (task.fractionOfDataToSample <= 0 || task.fractionOfDataToSample > 1) {
         LOG(ERROR) << "QC Task configuration error. In file " << configurationSource << ", value "
                    << prefixConfigTasks + simpleQcTaskDefinition + "/fraction"
@@ -172,7 +172,7 @@ QcTaskConfigurations DataSampling::readQcTasksConfiguration(const std::string& c
 
       // FIXME: I do not like '-1' meaning 'all' - not 100% sure if it's safe to compare with '-1' later
       task.subSpec = static_cast<header::DataHeader::SubSpecificationType>(
-        configFile->getInt(prefixConfigTasks + simpleQcTaskDefinition + "/subSpec").value_or(-1));
+        configFile->get<int>(prefixConfigTasks + simpleQcTaskDefinition + "/subSpec").value_or(-1));
 
     } catch (const boost::bad_optional_access&) {
       LOG(ERROR) << "QC Task configuration error. In file " << configurationSource
@@ -203,12 +203,12 @@ QcTaskConfigurations DataSampling::readQcTasksConfiguration(const std::string& c
       task.desiredDataSpecs.push_back(desiredData);
 
       // for temporary feature
-      if (configFile->getInt(prefixConfigTasks + input + "/spawnConverter").value_or(0)) {
-        FairMqInput fairMqInput{ OutputSpec{
-                                   desiredData.origin, desiredData.description, task.subSpec == -1 ? 0 : task.subSpec,
-                                 },
-                                 configFile->getString(prefixConfigTasks + input + "/channelConfig").value_or(""),
-                                 configFile->getString(prefixConfigTasks + input + "/converterType").value_or("incrementalConverter") };
+      if (configFile->get<int>(prefixConfigTasks + input + "/spawnConverter").value_or(0)) {
+        FairMqInput fairMqInput{
+          OutputSpec{ desiredData.origin, desiredData.description, task.subSpec == -1 ? 0 : task.subSpec },
+          configFile->getString(prefixConfigTasks + input + "/channelConfig").value_or(""),
+          configFile->getString(prefixConfigTasks + input + "/converterType").value_or("incrementalConverter")
+        };
         task.desiredFairMqData.push_back(fairMqInput);
       }
     }
@@ -232,10 +232,10 @@ InfrastructureConfig DataSampling::readInfrastructureConfiguration(const std::st
   std::unique_ptr<ConfigurationInterface> configFile = ConfigurationFactory::getConfiguration(configurationSource);
 
   cfg.enableTimePipeliningDispatchers =
-    static_cast<bool>(configFile->getInt("qc/config/DataSampling/enableTimePipeliningDispatchers").get_value_or(0));
+    static_cast<bool>(configFile->get<int>("qc/config/DataSampling/enableTimePipeliningDispatchers").get_value_or(0));
   cfg.enableParallelDispatchers =
-    static_cast<bool>(configFile->getInt("qc/config/DataSampling/enableParallelDispatchers").get_value_or(0));
-  cfg.enableProxy = static_cast<bool>(configFile->getInt("qc/config/DataSampling/enableProxy").get_value_or(0));
+    static_cast<bool>(configFile->get<int>("qc/config/DataSampling/enableParallelDispatchers").get_value_or(0));
+  cfg.enableProxy = static_cast<bool>(configFile->get<int>("qc/config/DataSampling/enableProxy").get_value_or(0));
 
   return cfg;
 }
