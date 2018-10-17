@@ -25,6 +25,7 @@
 #include <ITSSimulation/Detector.h>
 #include <MFTSimulation/Detector.h>
 #include <MCHSimulation/Detector.h>
+#include <MIDSimulation/Detector.h>
 #include <EMCALSimulation/Detector.h>
 #include <TOFSimulation/Detector.h>
 #include <TRDSimulation/Detector.h>
@@ -165,6 +166,11 @@ void build_geometry(FairRunSim* run = nullptr)
   if (isActivated("MCH")) {
     // mch
     run->AddModule(new o2::mch::Detector(true));
+  }
+
+	if (isActivated("MID")) {
+    // mid
+    run->AddModule(new o2::mid::Detector(true));
   }
 
   if (isActivated("EMC")) {

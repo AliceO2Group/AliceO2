@@ -129,9 +129,9 @@ std::vector<std::pair<int, Point3D<float>>> HitFinder::getLocalPositions(const T
   for (auto& deId : deIdList) {
     Point3D<float> point = getIntersect(track, deId);
     int rpc = deId % 9;
-    double hw = Constants::getRPCHalfWidth(chamber, rpc);
+    double hl = Constants::getRPCHalfLength(chamber, rpc);
     double hh = Constants::getRPCHalfHeight(chamber);
-    if (point.x() < -hw || point.x() > hw) {
+    if (point.x() < -hl || point.x() > hl) {
       continue;
     }
     if (point.y() < -hh || point.y() > hh) {

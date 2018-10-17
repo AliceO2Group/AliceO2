@@ -52,12 +52,12 @@ class Constants
     return isShortRPC(rpc) ? sRPCShortCenterPos * sScaleFactors[chamber] : sRPCCenterPos * sScaleFactors[chamber];
   }
 
-  /// Returns the half width of the RPC in the chamber
+  /// Returns the half length of the RPC in the chamber
   /// @param chamber The chamber ID (0-3)
   /// @param rpc The RPC ID (0-9)
-  inline static double getRPCHalfWidth(int chamber, int rpc)
+  inline static double getRPCHalfLength(int chamber, int rpc)
   {
-    return isShortRPC(rpc) ? sRPCShortHalfWidth * sScaleFactors[chamber] : sRPCHalfWidth * sScaleFactors[chamber];
+    return isShortRPC(rpc) ? sRPCShortHalfLength * sScaleFactors[chamber] : sRPCHalfLength * sScaleFactors[chamber];
   }
 
   /// Returns the half height of the RPC in the chamber
@@ -93,10 +93,10 @@ class Constants
   static constexpr double sLocalBoardHeight = 17.; ///< Local board height in the first chamber
   static constexpr double sLocalBoardWidth = 34.;  ///< Local board width in the first chamber
   static constexpr double sRPCCenterPos = 129.5;   ///< Position of most RPCs in the right side of the first chamber
-  static constexpr double sRPCHalfWidth = 127.5;   ///< Half width of most RPCs in the first chamber
+  static constexpr double sRPCHalfLength = 127.5;  ///< Half length of most RPCs in the first chamber
   static constexpr double sRPCShortCenterPos =
-    155.; ///< Position of the short RPC in the right side of the first chamber
-  static constexpr double sRPCShortHalfWidth = 102.;    ///< Half width of the short RPC in the first chamber
+    155.;                                               ///< Position of the short RPC in the right side of the first chamber
+  static constexpr double sRPCShortHalfLength = 102.;   ///< Half length of the short RPC in the first chamber
   static constexpr double sStripUnitPitchSize = 1.0625; ///< Unit pitch size of the strip in the first chamber
 
   static constexpr double sRPCZShift =
