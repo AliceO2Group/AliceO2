@@ -168,7 +168,7 @@ void build_geometry(FairRunSim* run = nullptr)
     run->AddModule(new o2::mch::Detector(true));
   }
 
-	if (isActivated("MID")) {
+  if (isActivated("MID")) {
     // mid
     run->AddModule(new o2::mid::Detector(true));
   }

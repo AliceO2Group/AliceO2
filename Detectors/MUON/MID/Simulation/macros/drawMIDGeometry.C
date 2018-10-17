@@ -10,19 +10,20 @@
 #endif
 
 // Macro to export the MID geometry into a ROOT file for vizualisation
-void drawMIDGeometry(){
+void drawMIDGeometry()
+{
 
-	TString dir = getenv("VMCWORKDIR");
+  TString dir = getenv("VMCWORKDIR");
   TString geom_dir = dir + "/Detectors/Geometry/";
-  gSystem->Setenv("GEOMPATH",geom_dir.Data());
+  gSystem->Setenv("GEOMPATH", geom_dir.Data());
 
   TString tut_configdir = dir + "/Detectors/gconfig";
-  gSystem->Setenv("CONFIG_DIR",tut_configdir.Data());
+  gSystem->Setenv("CONFIG_DIR", tut_configdir.Data());
 
   // Create simulation run
   FairRunSim* run = new FairRunSim();
   run->SetOutputFile("foo.root"); // Output file
-  run->SetName("TGeant3");      // Transport engine
+  run->SetName("TGeant3");        // Transport engine
   // Create media
   run->SetMaterials("media.geo"); // Materials
 
@@ -31,12 +32,11 @@ void drawMIDGeometry(){
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
-	o2::mid::Detector* mid = new o2::mid::Detector(kTRUE);
-	run->AddModule(mid);
+  o2::mid::Detector* mid = new o2::mid::Detector(kTRUE);
+  run->AddModule(mid);
 
-	run->Init();
+  run->Init();
 
-	gGeoManager->SetVisLevel(5);
-	gGeoManager->Export("MIDgeometry.root");
-
+  gGeoManager->SetVisLevel(5);
+  gGeoManager->Export("MIDgeometry.root");
 }
