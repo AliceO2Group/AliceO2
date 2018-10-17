@@ -208,7 +208,9 @@ ENDIF()
 #  To be used only in exceptional cases, such as when the macro
 #  uses symbols from outside the standard O2 build/runtime
 #  environment.
-SET(IGNORE_MACROS)
+SET(IGNORE_MACROS
+    ${CMAKE_SOURCE_DIR}/Generators/share/external/hijing.C
+)
 
 # UNIT TESTS VERIFYING CONSISTENT STATE OF OUR ROOT MACROS AND THE EXECUTION ENVIRONMENT
 if(CHECK_ROOTMACRO_COMPILE AND HAVESIMULATION)
