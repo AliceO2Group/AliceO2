@@ -138,15 +138,15 @@ QcTaskConfigurations DataSampling::readQcTasksConfiguration(const std::string& c
 {
   QcTaskConfigurations tasks;
   std::unique_ptr<ConfigurationInterface> configFile = ConfigurationFactory::getConfiguration(configurationSource);
-  std::string prefixConfigTasks = "qc/tasks_config/";
+  std::string prefixConfigTasks = "qc.tasks_config.";
 
   std::vector<std::string> taskNames;
   try {
-    std::string taskNamesString = configFile->get<std::string>("qc/config/DataSampling/tasksList");
+    std::string taskNamesString = configFile->get<std::string>("qc.config.DataSampling.tasksList");
     boost::split(taskNames, taskNamesString, boost::is_any_of(","));
-  } catch (const boost::bad_optional_access&) {
+  } catch (...) {
     LOG(ERROR) << "QC Task configuration error. In file " << configurationSource
-               << ", wrong or missing value DataSampling/tasksList";
+               << ", wrong or missing value DataSampling.tasksList";
     return QcTaskConfigurations();
   }
 
@@ -157,24 +157,24 @@ QcTaskConfigurations DataSampling::readQcTasksConfiguration(const std::string& c
 
     std::string taskInputsNames;
     try {
-      std::string simpleQcTaskDefinition = configFile->get<std::string>(prefixConfigTasks + taskName + "/taskDefinition");
-      taskInputsNames = configFile->get<std::string>(prefixConfigTasks + simpleQcTaskDefinition + "/inputs");
-      task.fractionOfDataToSample = configFile->get<double>(prefixConfigTasks + simpleQcTaskDefinition + "/fraction");
+      std::string simpleQcTaskDefinition = configFile->get<std::string>(prefixConfigTasks + taskName + ".taskDefinition");
+      taskInputsNames = configFile->get<std::string>(prefixConfigTasks + simpleQcTaskDefinition + ".inputs");
+      task.fractionOfDataToSample = configFile->get<double>(prefixConfigTasks + simpleQcTaskDefinition + ".fraction");
       if (task.fractionOfDataToSample <= 0 || task.fractionOfDataToSample > 1) {
         LOG(ERROR) << "QC Task configuration error. In file " << configurationSource << ", value "
-                   << prefixConfigTasks + simpleQcTaskDefinition + "/fraction"
+                   << prefixConfigTasks + simpleQcTaskDefinition + ".fraction"
                    << " is not in range (0,1]. Setting value to 0.";
         task.fractionOfDataToSample = 0;
       }
-      task.dispatcherType = configFile->get<std::string>(prefixConfigTasks + simpleQcTaskDefinition + "/dispatcherType", "DPL");
+      task.dispatcherType = configFile->get<std::string>(prefixConfigTasks + simpleQcTaskDefinition + ".dispatcherType", "DPL");
       // if there is a channelConfig specified, then user wants output in raw FairMQ layer, not DPL
-      task.fairMqOutputChannelConfig = configFile->get<std::string>(prefixConfigTasks + simpleQcTaskDefinition + "/channelConfig", "");
+      task.fairMqOutputChannelConfig = configFile->get<std::string>(prefixConfigTasks + simpleQcTaskDefinition + ".channelConfig", "");
 
       // FIXME: I do not like '-1' meaning 'all' - not 100% sure if it's safe to compare with '-1' later
       task.subSpec = static_cast<header::DataHeader::SubSpecificationType>(
-        configFile->get<int>(prefixConfigTasks + simpleQcTaskDefinition + "/subSpec", -1));
+        configFile->get<int>(prefixConfigTasks + simpleQcTaskDefinition + ".subSpec", -1));
 
-    } catch (const boost::bad_optional_access&) {
+    } catch (...) {
       LOG(ERROR) << "QC Task configuration error. In file " << configurationSource
                  << ", missing value or values for task " << taskName;
       continue;
@@ -187,15 +187,15 @@ QcTaskConfigurations DataSampling::readQcTasksConfiguration(const std::string& c
 
       InputSpec desiredData;
       try {
-        desiredData.binding = configFile->get<std::string>(prefixConfigTasks + input + "/inputName");
+        desiredData.binding = configFile->get<std::string>(prefixConfigTasks + input + ".inputName");
 
-        std::string origin = configFile->get<std::string>(prefixConfigTasks + input + "/dataOrigin");
+        std::string origin = configFile->get<std::string>(prefixConfigTasks + input + ".dataOrigin");
         origin.copy(desiredData.origin.str, (size_t)desiredData.origin.size);
 
-        std::string description = configFile->get<std::string>(prefixConfigTasks + input + "/dataDescription");
+        std::string description = configFile->get<std::string>(prefixConfigTasks + input + ".dataDescription");
         description.copy(desiredData.description.str, (size_t)desiredData.description.size);
 
-      } catch (const boost::bad_optional_access&) {
+      } catch (...) {
         LOG(ERROR) << "QC Task configuration error. In file " << configurationSource << " input " << input
                    << " has missing values";
         continue;
@@ -203,11 +203,11 @@ QcTaskConfigurations DataSampling::readQcTasksConfiguration(const std::string& c
       task.desiredDataSpecs.push_back(desiredData);
 
       // for temporary feature
-      if (configFile->get<int>(prefixConfigTasks + input + "/spawnConverter", 0)) {
+      if (configFile->get<int>(prefixConfigTasks + input + ".spawnConverter", 0)) {
         FairMqInput fairMqInput{
           OutputSpec{ desiredData.origin, desiredData.description, task.subSpec == -1 ? 0 : task.subSpec },
-          configFile->get<std::string>(prefixConfigTasks + input + "/channelConfig", ""),
-          configFile->get<std::string>(prefixConfigTasks + input + "/converterType", "incrementalConverter")
+          configFile->get<std::string>(prefixConfigTasks + input + ".channelConfig", ""),
+          configFile->get<std::string>(prefixConfigTasks + input + ".converterType", "incrementalConverter")
         };
         task.desiredFairMqData.push_back(fairMqInput);
       }
@@ -232,10 +232,10 @@ InfrastructureConfig DataSampling::readInfrastructureConfiguration(const std::st
   std::unique_ptr<ConfigurationInterface> configFile = ConfigurationFactory::getConfiguration(configurationSource);
 
   cfg.enableTimePipeliningDispatchers =
-    static_cast<bool>(configFile->get<int>("qc/config/DataSampling/enableTimePipeliningDispatchers", 0));
+    static_cast<bool>(configFile->get<int>("qc.config.DataSampling.enableTimePipeliningDispatchers", 0));
   cfg.enableParallelDispatchers =
-    static_cast<bool>(configFile->get<int>("qc/config/DataSampling/enableParallelDispatchers", 0));
-  cfg.enableProxy = static_cast<bool>(configFile->get<int>("qc/config/DataSampling/enableProxy", 0));
+    static_cast<bool>(configFile->get<int>("qc.config.DataSampling.enableParallelDispatchers", 0));
+  cfg.enableProxy = static_cast<bool>(configFile->get<int>("qc.config.DataSampling.enableProxy", 0));
 
   return cfg;
 }
