@@ -398,21 +398,21 @@ void HwClusterer::hwClusterProcessor(const Vc::uint_m peakMask, unsigned qMaxInd
     // but only half the charge if (i) is minimum
 
     // center
-    updateCluster(peakMask, row, centerPad, centerTime,  0,  0, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels);
+    updateCluster(peakMask, row, centerPad, centerTime, 0, 0, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels);
 
     // horizontal, look for minimum in pad direction
     auto splitMask = (((mDataBuffer[row][lIndex] >> 26) & 0x1) == 0x1);
-    updateCluster(peakMask, row, centerPad, centerTime, -1,  0, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels, splitMask);
+    updateCluster(peakMask, row, centerPad, centerTime, -1, 0, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels, splitMask);
 
     splitMask = (((mDataBuffer[row][rIndex] >> 26) & 0x1) == 0x1);
-    updateCluster(peakMask, row, centerPad, centerTime, +1,  0, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels, splitMask);
+    updateCluster(peakMask, row, centerPad, centerTime, +1, 0, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels, splitMask);
 
     // vertical look for minimum in time direction
     splitMask = (((mDataBuffer[row][tIndex] >> 25) & 0x1) == 0x1);
-    updateCluster(peakMask, row, centerPad, centerTime,  0, -1, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels, splitMask);
+    updateCluster(peakMask, row, centerPad, centerTime, 0, -1, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels, splitMask);
 
     splitMask = (((mDataBuffer[row][bIndex] >> 25) & 0x1) == 0x1);
-    updateCluster(peakMask, row, centerPad, centerTime,  0, +1, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels, splitMask);
+    updateCluster(peakMask, row, centerPad, centerTime, 0, +1, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels, splitMask);
 
     // diagonal tl/br, look for minimum in 1. diagonal + vertical + horizontal direction
     splitMask = (((mDataBuffer[row][ltIndex] >> 24) & 0x1) == 0x1) |
@@ -485,9 +485,9 @@ void HwClusterer::hwClusterProcessor(const Vc::uint_m peakMask, unsigned qMaxInd
                     (((mDataBuffer[row][ltIndex] >> 24) & 0x1) != 0x1) &                            // AND (i) is not minimum in corresponding directions
                     (((mDataBuffer[row][ltIndex] >> 25) & 0x1) != 0x1) &
                     (((mDataBuffer[row][ltIndex] >> 26) & 0x1) != 0x1) &
-                    (((mDataBuffer[row][lltIndex] >> 25) & 0x1) != 0x1) &                           // AND other (o) is not minimum in corresponding direction
-                    (((mDataBuffer[row][lttIndex] >> 26) & 0x1) != 0x1);                            // AND other (o) is not minimum in corresponding direction
-    splitMask = (((mDataBuffer[row][llttIndex] >> 24) & 0x1) == 0x1) |                              // split (o) if it is miminum in corresponding direction
+                    (((mDataBuffer[row][lltIndex] >> 25) & 0x1) != 0x1) & // AND other (o) is not minimum in corresponding direction
+                    (((mDataBuffer[row][lttIndex] >> 26) & 0x1) != 0x1);  // AND other (o) is not minimum in corresponding direction
+    splitMask = (((mDataBuffer[row][llttIndex] >> 24) & 0x1) == 0x1) |    // split (o) if it is miminum in corresponding direction
                 (((mDataBuffer[row][llttIndex] >> 25) & 0x1) == 0x1) |
                 (((mDataBuffer[row][llttIndex] >> 26) & 0x1) == 0x1);
     updateCluster(selectionMask, row, centerPad, centerTime, -2, -2, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels, splitMask);
@@ -498,8 +498,6 @@ void HwClusterer::hwClusterProcessor(const Vc::uint_m peakMask, unsigned qMaxInd
     splitMask = (((mDataBuffer[row][lttIndex] >> 25) & 0x1) == 0x1) |
                 (((mDataBuffer[row][lttIndex] >> 24) & 0x1) == 0x1);
     updateCluster(selectionMask, row, centerPad, centerTime, -1, -2, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels, splitMask);
-
-
 
     selectionMask = peakMask &
                     (getFpOfADC(mDataBuffer[row][lbIndex]) > (mContributionChargeThreshold << 4)) &
@@ -527,8 +525,6 @@ void HwClusterer::hwClusterProcessor(const Vc::uint_m peakMask, unsigned qMaxInd
                 (((mDataBuffer[row][lbbIndex] >> 23) & 0x1) == 0x1);
     updateCluster(selectionMask, row, centerPad, centerTime, -1, +2, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels, splitMask);
 
-
-
     selectionMask = peakMask &
                     (getFpOfADC(mDataBuffer[row][rtIndex]) > (mContributionChargeThreshold << 4)) &
                     (((mDataBuffer[row][rtIndex] >> 26) & 0x1) != 0x1);
@@ -555,9 +551,6 @@ void HwClusterer::hwClusterProcessor(const Vc::uint_m peakMask, unsigned qMaxInd
                 (((mDataBuffer[row][rttIndex] >> 23) & 0x1) == 0x1);
     updateCluster(selectionMask, row, centerPad, centerTime, +1, -2, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels, splitMask);
 
-
-
-
     selectionMask = peakMask &
                     (getFpOfADC(mDataBuffer[row][rbIndex]) > (mContributionChargeThreshold << 4)) &
                     (((mDataBuffer[row][rbIndex] >> 26) & 0x1) != 0x1);
@@ -583,12 +576,13 @@ void HwClusterer::hwClusterProcessor(const Vc::uint_m peakMask, unsigned qMaxInd
     splitMask = (((mDataBuffer[row][rbbIndex] >> 25) & 0x1) == 0x1) |
                 (((mDataBuffer[row][rbbIndex] >> 24) & 0x1) == 0x1);
     updateCluster(selectionMask, row, centerPad, centerTime, +1, +2, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels, splitMask);
-
   }
 
   selectionMask = peakMask;
-  if (mRejectSinglePadClusters) selectionMask &= !(sigmaPad2 == 0);
-  if (mRejectSingleTimeClusters) selectionMask &= !(sigmaTime2 == 0);
+  if (mRejectSinglePadClusters)
+    selectionMask &= !(sigmaPad2 == 0);
+  if (mRejectSingleTimeClusters)
+    selectionMask &= !(sigmaTime2 == 0);
 
   ClusterHardware tmpCluster;
   for (int i = 0; i < Vc::uint_v::Size; ++i) {
@@ -685,7 +679,6 @@ void HwClusterer::hwPeakFinder(unsigned qMaxIndex, short centerPad, int mappedCe
   //  - other is peak if maxBit was already set before
   Vc::where(!tmpMask) | mDataBuffer[row][qMaxIndex] |= (0x1 << 26);
   Vc::where(!tmpMask) | mDataBuffer[row][compareIndex0] &= ~(0x1 << 26);
-
 
   //////////////////////////////////////
   // Comparison in time direction
@@ -807,7 +800,7 @@ void HwClusterer::computeClusterForTime(int timebin)
 
   const unsigned timeBinWrapped = mapTimeInRange(timebin);
   if (mRejectLaterTimebin) {
-    const unsigned previousTimeBinWrapped = mapTimeInRange(timebin-2);
+    const unsigned previousTimeBinWrapped = mapTimeInRange(timebin - 2);
     for (unsigned short row = 0; row < mNumRowSets; ++row) {
       const unsigned padOffset = timeBinWrapped * mPadsPerRowSet[row];
       const unsigned previousPadOffset = previousTimeBinWrapped * mPadsPerRowSet[row];
@@ -817,9 +810,9 @@ void HwClusterer::computeClusterForTime(int timebin)
         const unsigned qMaxPreviousIndex = previousPadOffset + pad;
 
         // TODO: define needed difference
-        const auto peakMask = ((mDataBuffer[row][qMaxIndex] >> 27) == 0x1F) &   //  True if current pad is peak AND
-          (getFpOfADC(mDataBuffer[row][qMaxIndex]) > getFpOfADC(mDataBuffer[row][qMaxPreviousIndex]) | // previous has smaller charge
-          !((mDataBuffer[row][qMaxPreviousIndex] >> 27) == 0x1F));              //  or previous one was not a peak
+        const auto peakMask = ((mDataBuffer[row][qMaxIndex] >> 27) == 0x1F) &                                              //  True if current pad is peak AND
+                              (getFpOfADC(mDataBuffer[row][qMaxIndex]) > getFpOfADC(mDataBuffer[row][qMaxPreviousIndex]) | // previous has smaller charge
+                               !((mDataBuffer[row][qMaxPreviousIndex] >> 27) == 0x1F));                                    //  or previous one was not a peak
         if (peakMask.isEmpty())
           continue;
 
@@ -886,13 +879,13 @@ void HwClusterer::clearBuffer(int timebin)
 void HwClusterer::updateCluster(
   const Vc::uint_m selectionMask, int row, short centerPad, int centerTime, short dp, short dt,
   Vc::uint_v& qTot, Vc::int_v& pad, Vc::int_v& time, Vc::int_v& sigmaPad2, Vc::int_v& sigmaTime2,
-  std::vector<std::unique_ptr<std::vector<std::pair<MCCompLabel, unsigned>>>>& mcLabels, const Vc::uint_m splitMask )
+  std::vector<std::unique_ptr<std::vector<std::pair<MCCompLabel, unsigned>>>>& mcLabels, const Vc::uint_m splitMask)
 {
-  if (selectionMask.isEmpty()) return;
+  if (selectionMask.isEmpty())
+    return;
 
   const int mappedTime = mapTimeInRange(centerTime + dt);
   const int index = mappedTime * mPadsPerRowSet[row] + centerPad + dp;
-
 
   // If the charge should be split, only half of the charge is used
   Vc::where(selectionMask & splitMask) | qTot += (getFpOfADC(mDataBuffer[row][index]) >> 1);
@@ -925,4 +918,3 @@ void HwClusterer::updateCluster(
     }
   }
 }
-
