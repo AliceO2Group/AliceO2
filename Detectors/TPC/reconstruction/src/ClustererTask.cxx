@@ -72,7 +72,7 @@ InitStatus ClustererTask::Init()
   }
 
   // Register output container
-  mHwClustersArray = std::make_unique<std::vector<ClusterHardwareContainer8kb>>();
+  mHwClustersArray = std::make_unique<std::vector<OutputType>>();
   // a trick to register the unique pointer with FairRootManager
   static auto clusterArrayTmpPtr = mHwClustersArray.get();
   mgr->RegisterAny(Form("TPCClusterHW%i", mClusterSector), clusterArrayTmpPtr, kTRUE);

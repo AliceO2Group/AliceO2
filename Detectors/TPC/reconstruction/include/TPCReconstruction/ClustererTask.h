@@ -33,7 +33,9 @@ namespace TPC{
 
 class ClustererTask : public FairTask{
 
-  using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+  using MCLabelContainer    = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+//  using OutputType          = Cluster;
+  using OutputType          = ClusterHardwareContainer8kb;
 
   public:
    /// Default constructor
@@ -68,8 +70,8 @@ class ClustererTask : public FairTask{
    std::unique_ptr<const MCLabelContainer> mDigitMCTruthArray; ///< Array for MCTruth information associated to digits in mDigitsArrray
 
    // Cluster arrays
-   std::unique_ptr<std::vector<ClusterHardwareContainer8kb>> mHwClustersArray; ///< Array of clusters found by Hw Clusterfinder
-   std::unique_ptr<MCLabelContainer> mHwClustersMCTruthArray;                  ///< Array for MCTruth information associated to cluster in mHwClustersArrays
+   std::unique_ptr<std::vector<OutputType>> mHwClustersArray;   ///< Array of clusters found by Hw Clusterfinder
+   std::unique_ptr<MCLabelContainer> mHwClustersMCTruthArray;   ///< Array for MCTruth information associated to cluster in mHwClustersArrays
 
    ClassDefOverride(ClustererTask, 1)
 };
