@@ -81,14 +81,20 @@ MKDIR							= $(HIDEECHOB) mkdir -p `echo $@ | sed 's,/[a-zA-Z0-9._-]*$$,,'` `ec
 ALLDEP							+= makefiles/makefile $(CONFIGFILE) makefiles/$(ARCHFILE) config.mak
 include							makefiles/$(ARCHFILE)
 GCCFLAGSARCH					+= $(GCCARCHA)
+ifneq ($(CONFIG_CPP), )
+GCCFLAGSCOMMON					+= -std=$(CONFIG_CPP)
+CLANGFLAGSCOMMON				+= -std=$(CONFIG_CPP)
+else
 ifeq ($(CONFIG_CPP11), 1)
 GCCFLAGSCOMMON					+= -std=c++11
 CLANGFLAGSCOMMON				+= -std=c++11
 endif
-ifneq ($(CONFIG_CPP), )
-GCCFLAGSCOMMON					+= -std=$(CONFIG_CPP)
-CLANGFLAGSCOMMON				+= -std=$(CONFIG_CPP)
 endif
+ifneq ($(CONFIG_CPP_CUDA), )
+NVCCFLAGSOPT					+= -Xcompiler "--std $(CONFIG_CPP_CUDA)"
+NVCCFLAGSDBG					+= -Xcompiler "--std $(CONFIG_CPP_CUDA)"
+endif
+
 ifeq ($(CONFIG_OPENMP), 1)
 GCCFLAGSCOMMON					+= -fopenmp
 CLANGFLAGSCOMMON				+= -fopenmp
@@ -285,7 +291,7 @@ backup:
 #Dependencies
 
 DEPMKDIR						= $(MKDIR) &&
-DEPGCC							= $(GCC3264) $(GCCFLAGSARCH) $(GCCINCLUDEPATHS) $(GCCDEFINES) -x c++ -MM $<
+DEPGCC							= $(GCC3264) $(GCCFLAGSARCH) $(GCCINCLUDEPATHS) $(GCCDEFINES) -x c++ -fPIC -MM $<
 DEPSED1							= sed -e ':a;N;$$!ba;s/\n/ /g' | sed -e
 DEPSED2							= -e 's,\\,/,g' \
 								-e 's,[cC]:/,/cygdrive/c/,g' > \

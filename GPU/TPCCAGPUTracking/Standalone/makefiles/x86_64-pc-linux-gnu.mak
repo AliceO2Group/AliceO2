@@ -144,13 +144,14 @@ LIBSUSE							+= -lX11
 endif
 
 ifeq ("$(CONFIG_QT)", "1")
-LIBSUSE							+= -lQtGui -lQtCore
-COMMONINCLUDEPATHS				+= /usr/include/qt4 /usr/include/qt4/QtGui /usr/include/qt4/QtCore /usr/include/qt4/QtWidgets $(WORKPATH)/qt
+LIBSUSE							+= -lQt5Gui -lQt5Core -lQt5Widgets
+COMMONINCLUDEPATHS				+= /usr/include/qt5 /usr/include/qt5/QtGui /usr/include/qt5/QtCore /usr/include/qt5/QtWidgets $(WORKPATH)/qt /usr/include/qt5/QtCore/5.9.5
 ifeq ($(ARCHBITS), 64)
-LIBPATHSUSE						+= -L/usr/lib/qt4
+LIBPATHSUSE						+= -L/usr/lib/qt5
 else
-LIBPATHSUSE						+= -L/usr/lib32/qt4
+LIBPATHSUSE						+= -L/usr/lib32/qt5
 endif
+COMPILETARGETTYPE				= -fPIC
 endif
 
 LIBSUSE							+= $(LIBS:%=-l%)
