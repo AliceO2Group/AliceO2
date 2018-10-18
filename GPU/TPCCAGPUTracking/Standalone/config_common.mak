@@ -59,7 +59,8 @@ HLTCA_STANDALONE_CXXFILES	= SliceTracker/AliHLTTPCCATrack.cxx \
 								SliceTracker/AliHLTTPCCAStandaloneFramework.cxx \
 								SliceTracker/AliHLTTPCCAMCPoint.cxx
 
-CONFIG_CPP					= gnu++14
+CONFIG_CPP					= gnu++17
+CONFIG_CPP_CUDA				= c++14
 
 ifeq ($(ARCH_CYGWIN), 1)
 CONFIG_O2DIR				=
