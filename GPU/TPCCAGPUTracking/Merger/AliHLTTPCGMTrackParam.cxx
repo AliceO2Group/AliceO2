@@ -721,6 +721,7 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, int
 		break;
 	}
 
+	if (track.OK())
 	{
 	  int ind = track.FirstClusterRef();
 	  const AliHLTTPCCAParam &param = merger->SliceParam();
