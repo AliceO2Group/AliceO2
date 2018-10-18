@@ -107,7 +107,7 @@ DataProcessorSpec getClustererSpec(bool sendMC, int fanNumber)
       mctruthArray.clear(); // this would also be done in the HwClusterer if the clearContainerFirst of process() would be set to true instead of false
       clusterer->process(inDigits, inMCLabels.get(), false);
       const std::vector<o2::TPC::Digit> emptyDigits;
-      clusterer->finishProcess(emptyDigits, nullptr, false); // keep here the falso, otherwise the clusters are lost of they are not stored in the meantime
+      clusterer->finishProcess(emptyDigits, nullptr, false); // keep here the false, otherwise the clusters are lost of they are not stored in the meantime
       if (verbosity > 0) {
         LOG(INFO) << "clusterer produced " << clusterArray.size() << " cluster container";
       }
