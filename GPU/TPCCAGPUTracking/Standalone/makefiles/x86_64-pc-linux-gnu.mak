@@ -112,7 +112,7 @@ endif
 endif
 CC_SELECTED						= $(CC_x86_64-pc-linux-gnu)
 
-CCCUDA							= $(GCC) -x c++ -Wno-effc++
+CCCUDA							= $(GCC) -x c++ -Wno-effc++ -D"__noinline__=__attribute__((noinline))"
 ASMPRE							= $(GCC3264)
 NVCC							= $(CUDAPATH)/bin/nvcc --compiler-bindir $(GCCCUDA)
 
