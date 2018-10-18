@@ -208,7 +208,7 @@ void HwClusterer::process(std::vector<o2::TPC::Digit> const& digits, MCLabelCont
          *       ---------
          */
         findPeaksForTime(i);
-        computeClusterForTime(i - 2);
+        computeClusterForTime(i - 3);
 
         clearBuffer(i + 1);
 
@@ -582,7 +582,7 @@ void HwClusterer::hwClusterProcessor(const Vc::uint_m peakMask, unsigned qMaxInd
                 (((mDataBuffer[row][rbbIndex] >> 24) & 0x1) == 0x1);
     updateCluster(selectionMask, row, centerPad, centerTime, +1, +2, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels, splitMask);
 
-  } 
+  }
 
   selectionMask = peakMask;
   if (mRejectSinglePadClusters) selectionMask &= !(sigmaPad2 == 0);
@@ -853,7 +853,7 @@ void HwClusterer::finishFrame(bool clear)
     }
 
     findPeaksForTime(i);
-    computeClusterForTime(i - 2);
+    computeClusterForTime(i - 3);
     clearBuffer(i + 1);
     mLastHB = HB;
   }
