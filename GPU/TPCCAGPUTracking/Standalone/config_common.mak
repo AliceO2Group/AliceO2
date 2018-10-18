@@ -79,3 +79,5 @@ endif
 ifeq ($(CONFIG_O2), 1)
 DEFINES						+= HLTCA_TPC_GEOMETRY_O2
 endif
+
+ALLDEP						+= config_common.mak config_options.mak
