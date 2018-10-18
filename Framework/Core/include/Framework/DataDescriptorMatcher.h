@@ -155,15 +155,60 @@ class DataDescriptorMatcher
       }
     };
 
+    bool leftValue = false, rightValue = false;
+
+    // FIXME: Using std::visit is not API compatible due to a new
+    // exception being thrown. This is the ABI compatible version.
+    // Replace with:
+    //
+    // switch (mOp) {
+    //   case Op::Or:
+    //     return std::visit(eval, mLeft) || std::visit(eval, mRight);
+    //   case Op::And:
+    //     return std::visit(eval, mLeft) && std::visit(eval, mRight);
+    //   case Op::Xor:
+    //     return std::visit(eval, mLeft) ^ std::visit(eval, mRight);
+    //   case Op::Just:
+    //     return std::visit(eval, mLeft);
+    // }
+    //  When we drop support for macOS 10.13
+
+    if (auto pval0 = std::get_if<OriginValueMatcher>(&mLeft)) {
+      leftValue = pval0->match(d);
+    } else if (auto pval1 = std::get_if<DescriptionValueMatcher>(&mLeft)) {
+      leftValue = pval1->match(d);
+    } else if (auto pval2 = std::get_if<SubSpecificationTypeValueMatcher>(&mLeft)) {
+      leftValue = pval2->match(d);
+    } else if (auto pval3 = std::get_if<std::unique_ptr<DataDescriptorMatcher>>(&mLeft)) {
+      leftValue = (*pval3)->match(d);
+    } else if (auto pval4 = std::get_if<ConstantValueMatcher>(&mLeft)) {
+      leftValue = pval4->match(d);
+    } else {
+      throw std::runtime_error("Bad parsing tree");
+    }
+
+    if (auto pval0 = std::get_if<OriginValueMatcher>(&mRight)) {
+      rightValue = pval0->match(d);
+    } else if (auto pval1 = std::get_if<DescriptionValueMatcher>(&mRight)) {
+      rightValue = pval1->match(d);
+    } else if (auto pval2 = std::get_if<SubSpecificationTypeValueMatcher>(&mRight)) {
+      rightValue = pval2->match(d);
+    } else if (auto pval3 = std::get_if<std::unique_ptr<DataDescriptorMatcher>>(&mRight)) {
+      rightValue = (*pval3)->match(d);
+    } else if (auto pval4 = std::get_if<ConstantValueMatcher>(&mRight)) {
+      rightValue = pval4->match(d);
+    }
+    // There are cases in which not having a rightValue might be legitimate,
+    // so we do not throw an exception.
     switch (mOp) {
       case Op::Or:
-        return std::visit(eval, mLeft) || std::visit(eval, mRight);
+        return leftValue || rightValue;
       case Op::And:
-        return std::visit(eval, mLeft) && std::visit(eval, mRight);
+        return leftValue && rightValue;
       case Op::Xor:
-        return std::visit(eval, mLeft) ^ std::visit(eval, mRight);
+        return leftValue ^ rightValue;
       case Op::Just:
-        return std::visit(eval, mLeft);
+        return leftValue;
     }
   };
 
