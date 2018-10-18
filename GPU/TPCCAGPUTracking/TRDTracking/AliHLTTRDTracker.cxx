@@ -86,8 +86,6 @@ AliHLTTRDTracker::~AliHLTTRDTracker()
   }
 }
 
-#endif
-
 GPUd() void AliHLTTRDTracker::Init()
 {
   //--------------------------------------------------------------------
@@ -227,6 +225,8 @@ GPUd() void AliHLTTRDTracker::LoadTracklet(const AliHLTTRDTrackletWord &tracklet
   fTracklets[fNTracklets++] = tracklet;
   fNtrackletsInChamber[tracklet.GetDetector()]++;
 }
+
+#endif
 
 GPUd() void AliHLTTRDTracker::DoTracking( HLTTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTPCnTrklts, int *tracksTRDlabel )
 {
