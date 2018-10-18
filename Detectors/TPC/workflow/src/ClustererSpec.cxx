@@ -103,14 +103,11 @@ DataProcessorSpec getClustererSpec(bool sendMC, int fanNumber)
       if (verbosity > 0) {
         LOG(INFO) << "processing " << inDigits.size() << " digit object(s) of sector " << sectorHeader->sector;
       }
-      clusterArray.clear();
-      mctruthArray.clear();
-      clusterer->process(inDigits, inMCLabels.get());
-      // FIXME: not clear whether we need to call this and how
-      // currently it makes all clusters being removed in the Tracker
-      // maybe the problem is the empty digit array
-      //const std::vector<o2::TPC::Digit> emptyDigits;
-      //clusterer->finishProcess(emptyDigits, nullptr);
+      clusterArray.clear(); // this would also be done in the HwClusterer if the clearContainerFirst of process() would be set to true instead of false
+      mctruthArray.clear(); // this would also be done in the HwClusterer if the clearContainerFirst of process() would be set to true instead of false
+      clusterer->process(inDigits, inMCLabels.get(), false);
+      const std::vector<o2::TPC::Digit> emptyDigits;
+      clusterer->finishProcess(emptyDigits, nullptr, false); // keep here the falso, otherwise the clusters are lost of they are not stored in the meantime
       if (verbosity > 0) {
         LOG(INFO) << "clusterer produced " << clusterArray.size() << " cluster container";
       }

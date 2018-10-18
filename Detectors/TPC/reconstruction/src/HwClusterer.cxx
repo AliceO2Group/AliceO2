@@ -129,16 +129,18 @@ HwClusterer::HwClusterer(
 }
 
 //______________________________________________________________________________
-void HwClusterer::process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth)
+void HwClusterer::process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth, bool clearContainerFirst)
 {
-  if (mClusterArray)
-    mClusterArray->clear();
-  if (mPlainClusterArray)
-    mPlainClusterArray->clear();
+  if (clearContainerFirst) {
+    if (mClusterArray)
+      mClusterArray->clear();
+    if (mPlainClusterArray)
+      mPlainClusterArray->clear();
 
-  if (mClusterMcLabelArray)
-    mClusterMcLabelArray->clear();
-  mClusterCounter = 0;
+    if (mClusterMcLabelArray)
+      mClusterMcLabelArray->clear();
+    mClusterCounter = 0;
+  }
 
   int digitIndex = 0;
   int index;
@@ -266,10 +268,10 @@ void HwClusterer::process(std::vector<o2::TPC::Digit> const& digits, MCLabelCont
 }
 
 //______________________________________________________________________________
-void HwClusterer::finishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth)
+void HwClusterer::finishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth, bool clearContainerFirst)
 {
   // Process the last digits (if there are any)
-  process(digits, mcDigitTruth);
+  process(digits, mcDigitTruth, clearContainerFirst);
 
   // Search in last remaining timebins
   finishFrame(false);
