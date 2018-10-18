@@ -44,5 +44,3 @@ DEFINES						+= BUILD_QA
 INCLUDEPATHSSYSTEM			+= $(shell root-config --incdir)
 LIBSUSE						+= $(shell root-config --libs)
 endif
-
-ALLDEP						+= config_common.mak config_options.mak
