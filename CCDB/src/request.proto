@@ -1,5 +1,7 @@
 package messaging;
 
+syntax = "proto2";
+
 option java_package = "com.cern.messaging";
 option java_outer_classname = "Request";
 
