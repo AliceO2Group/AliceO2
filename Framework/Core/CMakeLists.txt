@@ -63,6 +63,7 @@ set(SRCS
     src/TextControlService.cxx
     src/TableBuilder.cxx
     src/TableConsumer.cxx
+    src/WorkflowDispatcher.cxx
     src/WorkflowHelpers.cxx
     src/WorkflowSpec.cxx
     src/runDataProcessing.cxx
@@ -150,6 +151,8 @@ set(HEADERS
       include/Framework/DPLBoostSerializer.h
       include/Framework/TableBuilder.h
       include/Framework/FairMQResizableBuffer.h
+      include/Framework/Dispatcher.h
+      include/Framework/WorkflowDispatcher.h
       src/ComputingResource.h
       src/DDSConfigHelpers.h
       src/DeviceSpecHelpers.h
@@ -248,6 +251,7 @@ set(TEST_SRCS
       test/test_TimeParallelPipelining.cxx
       test/test_TypeTraits.cxx
       test/test_Variants.cxx
+#      test/test_WorkflowDispatcher.cxx
       test/test_WorkflowHelpers.cxx
    )
 
