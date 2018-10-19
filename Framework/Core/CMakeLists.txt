@@ -44,9 +44,6 @@ set(SRCS
     src/DeviceSpec.cxx
     src/DeviceSpecHelpers.cxx
     src/DDSConfigHelpers.cxx
-    src/DispatcherDPL.cxx
-    src/DispatcherFairMQ.cxx
-    src/DispatcherFlpProto.cxx
     src/DriverControl.cxx
     src/DriverInfo.cxx
     src/FairOptionsRetriever.cxx
@@ -151,7 +148,6 @@ set(HEADERS
       include/Framework/DPLBoostSerializer.h
       include/Framework/TableBuilder.h
       include/Framework/FairMQResizableBuffer.h
-      include/Framework/Dispatcher.h
       include/Framework/WorkflowDispatcher.h
       src/ComputingResource.h
       src/DDSConfigHelpers.h
