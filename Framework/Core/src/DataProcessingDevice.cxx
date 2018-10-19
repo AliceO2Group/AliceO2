@@ -389,9 +389,8 @@ bool DataProcessingDevice::tryDispatchComputation()
         LOG(DEBUG) << dh->dataOrigin.str;
         LOG(DEBUG) << dh->dataDescription.str;
         LOG(DEBUG) << dh->subSpecification;
-        if (DataSpecUtils::match(forward.matcher, dh->dataOrigin,
-                                 dh->dataDescription,
-                                 dh->subSpecification)) {
+        if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification)
+            && (dph->startTime % forward.maxTimeslices) == forward.timeslice) {
 
           if (header.get() == nullptr) {
             LOG(ERROR) << "Missing header!";

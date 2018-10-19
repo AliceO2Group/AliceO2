@@ -255,6 +255,8 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices, 
       ForwardRoute route;
       route.matcher = workflow[edge.consumer].inputs[edge.consumerInputIndex];
       route.channel = channel.name;
+      route.timeslice = edge.timeIndex;
+      route.maxTimeslices = consumer.maxInputTimeslices;
       device.forwards.emplace_back(route);
     }
   };
