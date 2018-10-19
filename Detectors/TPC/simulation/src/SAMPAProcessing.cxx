@@ -23,7 +23,7 @@
 
 using namespace o2::TPC;
 
-SAMPAProcessing::SAMPAProcessing() : mSaturationSpline()
+SAMPAProcessing::SAMPAProcessing() : mSaturationSpline(), mRandomNoiseRing(RandomRing::RandomType::Gaus)
 {
   updateParameters();
   importSaturationCurve("SAMPA_saturation.dat");
@@ -37,6 +37,8 @@ void SAMPAProcessing::updateParameters()
   mGasParam = &(cdb.getParameterGas());
   mDetParam = &(cdb.getParameterDetector());
   mEleParam = &(cdb.getParameterElectronics());
+  mPedestalMap = &(cdb.getPedestals());
+  mNoiseMap = &(cdb.getNoise());
 }
 
 bool SAMPAProcessing::importSaturationCurve(std::string file)

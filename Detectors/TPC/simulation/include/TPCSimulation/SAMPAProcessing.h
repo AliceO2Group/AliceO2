@@ -17,11 +17,13 @@
 
 #include <Vc/Vc>
 
-#include "TPCBase/PadSecPos.h"
+#include "TPCBase/PadPos.h"
+#include "TPCBase/CalDet.h"
+#include "TPCBase/CRU.h"
+#include "TPCBase/RandomRing.h"
 #include "TPCBase/ParameterDetector.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGas.h"
-#include "TPCSimulation/Baseline.h"
 
 #include "TSpline.h"
 
@@ -59,11 +61,12 @@ class SAMPAProcessing
   /// \return ADC value of the (saturated) SAMPA
   float getADCSaturation(const float signal) const;
 
-  /// Make the full signal including noise and pedestals from the Baseline class
+  /// Make the full signal including noise and pedestals from the OCDB
   /// \param ADCcounts ADC value of the signal (common mode already subtracted)
-  /// \param padSecPos PadSecPos of the signal
+  /// \param cru CRU of the signal
+  /// \param padPos PadPos of the signal
   /// \return ADC value after application of noise, pedestal and saturation
-  float makeSignal(float ADCcounts, const PadSecPos& padSecPos, float& pedestal, float& noise) const;
+  float makeSignal(float ADCcounts, const CRU& cru, const PadPos& pos, float& pedestal, float& noise);
 
   /// A delta signal is shaped by the FECs and thus spread over several time bins
   /// This function returns an array with the signal spread into the following time bins
@@ -106,6 +109,18 @@ class SAMPAProcessing
   /// \return Time of the time bin of the charge
   float getTimeBinTime(float time) const;
 
+  /// Get the noise for a given channel
+  /// \param cru CRU of the channel of interest
+  /// \param padPos PadPos of the channel of interest
+  /// \return Noise on the channel of interest
+  float getNoise(const CRU& cru, const PadPos& pos);
+
+  /// Get the pedestal for a given channel
+  /// \param cru CRU of the channel of interest
+  /// \param padPos PadPos of the channel of interest
+  /// \return Pedestal on the channel of interest
+  float getPedestal(const CRU& cru, const PadPos& pos) const;
+
  private:
   SAMPAProcessing();
 
@@ -120,6 +135,9 @@ class SAMPAProcessing
   const ParameterGas* mGasParam;         ///< Caching of the parameter class to avoid multiple CDB calls
   const ParameterDetector* mDetParam;    ///< Caching of the parameter class to avoid multiple CDB calls
   const ParameterElectronics* mEleParam; ///< Caching of the parameter class to avoid multiple CDB calls
+  const CalPad* mNoiseMap;               ///< Caching of the parameter class to avoid multiple CDB calls
+  const CalPad* mPedestalMap;            ///< Caching of the parameter class to avoid multiple CDB calls
+  RandomRing mRandomNoiseRing;           ///< Ring with random number for noise
 };
 
 template <typename T>
@@ -130,14 +148,12 @@ inline T SAMPAProcessing::getADCvalue(T nElectrons) const
   return nElectrons * conversion;
 }
 
-inline float SAMPAProcessing::makeSignal(float ADCcounts, const PadSecPos& padSecPos,
-                                         float& pedestal, float& noise) const
+inline float SAMPAProcessing::makeSignal(float ADCcounts, const CRU& cru, const PadPos& pos,
+                                         float& pedestal, float& noise)
 {
-  static Baseline baseline;
   float signal = ADCcounts;
-  /// \todo Pedestal to be implemented in baseline class
-  //  pedestal = baseline.getPedestal(padSecPos);
-  noise = baseline.getNoise(padSecPos);
+  pedestal = getPedestal(cru, pos);
+  noise = getNoise(cru, pos);
   switch (mEleParam->getDigitizationMode()) {
     case DigitzationMode::FullMode: {
       signal += noise;
@@ -215,6 +231,16 @@ inline float SAMPAProcessing::getTimeBinTime(float time) const
 {
   TimeBin timeBin = getTimeBinFromTime(time);
   return getTimeFromBin(timeBin);
+}
+
+inline float SAMPAProcessing::getNoise(const CRU& cru, const PadPos& pos)
+{
+  return mRandomNoiseRing.getNextValue() * mNoiseMap->getValue(cru, pos.getRow(), pos.getPad());
+}
+
+inline float SAMPAProcessing::getPedestal(const CRU& cru, const PadPos& pos) const
+{
+  return mPedestalMap->getValue(cru, pos.getRow(), pos.getPad());
 }
 }
 }
