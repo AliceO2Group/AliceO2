@@ -23,6 +23,8 @@ namespace framework
 /// the InputSpec @a matcher matches an input which should also go to
 /// @a channel
 struct ForwardRoute {
+  size_t timeslice;
+  size_t maxTimeslices;
   InputSpec matcher;
   std::string channel;
 };
