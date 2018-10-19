@@ -31,10 +31,8 @@ std::unique_ptr<DataSamplingCondition> DataSamplingConditionFactory::create(std:
     return createDataSamplingConditionPayloadSize();
   } else if (name == "nConsecutive" || name == "DataSamplingConditionNConsecutive") {
     return createDataSamplingConditionNConsecutive();
-  } else {
-    LOG(ERROR) << "DataSamplingCondition '" << name << "' unknown.";
-    return nullptr;
   }
+  throw std::runtime_error("DataSamplingCondition '" + name + "' unknown.");
 }
 
 } // namespace framework

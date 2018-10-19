@@ -12,73 +12,76 @@
 #define FRAMEWORK_DATASAMPLING_H
 
 /// \file DataSampling.h
-/// \brief Definition of O2 Data Sampling, v0.1
+/// \brief Definition of O2 Data Sampling, v1.0
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
-#include <functional>
-#include <random>
 #include <string>
-#include <vector>
 
-#include "Framework/AlgorithmSpec.h"
-#include "Framework/DataChunk.h"
-#include "Framework/DataProcessorSpec.h"
 #include "Framework/WorkflowSpec.h"
-
-#include "Framework/Dispatcher.h"
-#include "Framework/DispatcherDPL.h"
-#include "Framework/DispatcherFairMQ.h"
-#include "Framework/DispatcherFlpProto.h"
-#include "Framework/DataSamplingConfig.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/DataSamplingPolicy.h"
+#include "Framework/ChannelConfigurationPolicy.h"
 
 namespace o2
 {
 namespace framework
 {
 
-using namespace o2::framework::DataSamplingConfig;
-
 /// A class responsible for providing data from main processing flow to QC tasks.
 ///
-/// This class generates message-passing infrastructure to provide desired amount of data to Quality Control tasks.
-/// QC tasks input data should be declared in config file (e.g. O2/Framework/Core/test/exampleDataSamplerConfig.ini ).
-/// Data Sampling is based on Data Processing Layer, but supports also standard FairMQ devices by declaring external
-/// inputs/outputs in configuration file.
+/// This class generates message-passing infrastructure to provide desired amount of data to Quality Control tasks or
+/// any other clients. Data to be sampled is declared in DataSamplingPolicy'ies configuration file - an example can be
+/// found in O2/Framework/TestWorkflows/exampleDataSamplingConfig.json).
 ///
 /// In-code usage:
 /// \code{.cxx}
+/// void customize(std::vector<CompletionPolicy>& policies)
+/// {
+///    DataSampling::CustomizeInfrastructure(policies);
+/// }
+///
+/// void customize(std::vector<ChannelConfigurationPolicy>& policies)
+/// {
+///    DataSampling::CustomizeInfrastructure(policies);
+/// }
+///
+/// #include "Framework/runDataProcessing.h"
+///
 /// std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext &ctx)
 /// {
-///
+///   WorkflowSpec workflow;
 /// // <declaration of other DPL processors>
 ///
-/// const std::string configurationFilePath = <absolute file path>;
-/// DataSampling::GenerateInfrastructure(workflow, configurationFilePath);
+///   const std::string configurationFilePath = <absolute file path>;
+///   DataSampling::GenerateInfrastructure(workflow, configurationFilePath);
 ///
+///   return workflow;
 /// }
 /// \endcode
+
+//todo: update docu
+//todo: clean header mess
 
 class DataSampling
 {
  public:
-  /// Deleted default constructor. This class is stateless.
+  /// \brief Deleted default constructor. This class is stateless.
   DataSampling() = delete;
-  /// Generates data sampling infrastructure.
+  /// \brief Generates data sampling infrastructure.
   /// \param workflow              DPL workflow with already declared data processors which provide data desired by
   ///                              QC tasks.
-  /// \param configurationSource   Path to configuration file.
-  static void GenerateInfrastructure(WorkflowSpec& workflow, const std::string& configurationSource);
+  /// \param policiesSource        Path to configuration file.
+  /// \param threads               Number of dispatcher threads, that will handle the data
+  static void GenerateInfrastructure(WorkflowSpec& workflow, const std::string& policiesSource, size_t threads = 1);
+  /// \brief Configures dispatcher to consume any data immediately.
+  static void CustomizeInfrastructure(std::vector<CompletionPolicy>&);
+  /// \brief Applies blocking/nonblocking data sampling configuration to the workflow.
+  static void CustomizeInfrastructure(std::vector<ChannelConfigurationPolicy>&);
 
  private:
-  using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
-
   // Internal functions, used by GenerateInfrastructure()
-  static auto getEdgeMatcher(const QcTaskConfiguration& taskCfg);
-  static std::unique_ptr<Dispatcher> createDispatcher(SubSpecificationType subSpec, const QcTaskConfiguration& taskCfg,
-                                                      InfrastructureConfig infCfg);
-  static QcTaskConfigurations readQcTasksConfiguration(const std::string& configurationSource);
-  static InfrastructureConfig readInfrastructureConfiguration(const std::string& configurationSource);
+  static std::string dispatcherName();
 };
 
 } // namespace framework

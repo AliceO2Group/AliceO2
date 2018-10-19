@@ -48,7 +48,7 @@ class DataSamplingPolicy
   struct inputSpecEqual {
     bool operator()(const InputSpec& a, const InputSpec& b) const
     {
-      // -1 means match all subSpec
+      // -1 means 'match all subSpec'
       if (a.subSpec == -1 || b.subSpec == -1) {
         return a.description == b.description && a.origin == b.origin;
       } else {
