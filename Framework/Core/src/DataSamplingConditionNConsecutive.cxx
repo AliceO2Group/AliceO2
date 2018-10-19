@@ -25,7 +25,8 @@ namespace framework
 
 using namespace o2::header;
 
-/// \brief A DataSamplingCondition which approves n consecutive samples in defined cycle.
+/// \brief A DataSamplingCondition which approves n consecutive samples in defined cycle. It assumes that timesliceID
+// always increments by one.
 class DataSamplingConditionNConsecutive : public DataSamplingCondition
 {
 

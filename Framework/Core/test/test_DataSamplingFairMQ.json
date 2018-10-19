@@ -1,40 +1,19 @@
 {
-  "qc": {
-    "config": {
-      "DataSampling": {
-        "tasksList": "FairQcTask",
-        "enableTimePipeliningDispatchers": "1",
-        "enableParallelDispatchers": "1",
-        "enableProxy": "0"
-      }
-    },
-    "tasks_config": {
-      "FairQcTask": {
-        "taskDefinition": "FairQcTaskDefinition"
-      },
-      "FairQcTaskDefinition": {
-        "className": "o2::quality_control_modules::skeleton_dpl::SkeletonTaskDPL",
-        "moduleName": "QcSkeletonDpl",
-        "moduleOfChecks": "QcExample",
-        "outputDataOrigin": "ITS",
-        "cycleDurationSeconds": "10",
-        "maxNumberCycles": "-1",
-        "outputDataDescription": "HIST_SKLT_TASK",
-        "inputs": "fairTpcRaw",
-        "fraction": "0.2",
-        "subSpec": "-1",
-        "dispatcherType": "FairMQ",
-        "channelConfig": "name=fairTpcRawOut,type=pub,method=bind,address=tcp://127.0.0.1:26525,rateLogging=1"
-      },
-      "fairTpcRaw": {
-        "inputName": "TPC_RAWDATA",
-        "dataOrigin": "TPC",
-        "dataDescription": "RAWDATA",
-        "spawnConverter": "1",
-        "channelConfig": "type=sub,method=connect,address=tcp://localhost:5558,rateLogging=1",
-        "converterType": "incrementalConverter"
-      }
+  "dataSamplingPolicies": [
+    {
+      "id": "tpcraw",
+      "active": "true",
+      "machines": [],
+      "dataHeaders": [
+        {
+          "binding": "clusters",
+          "dataOrigin": "TPC",
+          "dataDescription": "RAWDATA"
+        }
+      ],
+      "subSpec": "-1",
+      "samplingConditions": [],
+      "fairMQOutput": "name=data,type=push,method=bind,address=tcp://127.0.0.1:26525,rateLogging=1"
     }
-  }
+  ]
 }
-

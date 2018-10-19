@@ -9,20 +9,29 @@
 // or submit itself to any jurisdiction.
 
 
-#include <iostream>
-#include <boost/algorithm/string.hpp>
+#include "Framework/DataSampling.h"
 
+using namespace o2::framework;
+void customize(std::vector<CompletionPolicy>& policies)
+{
+  DataSampling::CustomizeInfrastructure(policies);
+}
+void customize(std::vector<ChannelConfigurationPolicy>& policies)
+{
+  DataSampling::CustomizeInfrastructure(policies);
+}
+
+#include <iostream>
+
+#include <boost/algorithm/string.hpp>
 #include "Framework/InputSpec.h"
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/DataSampling.h"
 #include "Framework/runDataProcessing.h"
 #include "Framework/TMessageSerializer.h"
 #include "FairMQLogger.h"
 #include <TClonesArray.h>
 #include <TH1F.h>
 #include <TString.h>
-
-using namespace o2::framework;
 
 struct FakeCluster {
   float x;
@@ -82,8 +91,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   DataProcessorSpec qcTaskTpc{
     "qcTaskTpc",
     Inputs{
-      { "TPC_CLUSTERS_S",   "TPC", "CLUSTERS_S",   0, Lifetime::Timeframe },
-      { "TPC_CLUSTERS_P_S", "TPC", "CLUSTERS_P_S", 0, Lifetime::Timeframe }
+      { "TPC_CLUSTERS_S",   "DS", "simpleQcTask-0",   0, Lifetime::Timeframe },
+      { "TPC_CLUSTERS_P_S", "DS", "simpleQcTask-1", 0, Lifetime::Timeframe }
     },
     Outputs{},
     AlgorithmSpec{
@@ -163,8 +172,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   DataProcessorSpec rootQcTask{
     "rootQcTask",
     {
-      InputSpec{ "TST_HISTOS_S", "TST", "HISTOS_S", 0, Lifetime::Timeframe },
-      InputSpec{ "TST_STRING_S", "TST", "STRING_S", 0, Lifetime::Timeframe },
+      InputSpec{ "TST_HISTOS_S", "DS", "rootQcTask-0", 0, Lifetime::Timeframe },
+      InputSpec{ "TST_STRING_S", "DS", "rootQcTask-1", 0, Lifetime::Timeframe },
     },
     Outputs{},
     AlgorithmSpec{
@@ -197,9 +206,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   };
 
   std::string configurationSource = std::string("json://") + getenv("BASEDIR")
-                                    + "/../../O2/Framework/TestWorkflows/exampleDataSamplerConfig.json";
+                                    + "/../../O2/Framework/TestWorkflows/exampleDataSamplingConfig.json";
 
-  DataSampling::GenerateInfrastructure(specs, configurationSource);
+  DataSampling::GenerateInfrastructure(specs, configurationSource, 2);
   return specs;
 }
 
