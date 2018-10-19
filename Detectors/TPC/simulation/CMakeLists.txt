@@ -13,7 +13,6 @@ O2_SETUP(NAME ${MODULE_NAME})
 link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
-   src/Baseline.cxx
    src/Detector.cxx
    src/DigitMCMetaData.cxx
    src/DigitContainer.cxx
@@ -30,7 +29,6 @@ set(SRCS
 )
 
 set(HEADERS
-   include/${MODULE_NAME}/Baseline.h
    include/${MODULE_NAME}/Detector.h
    include/${MODULE_NAME}/DigitMCMetaData.h
    include/${MODULE_NAME}/DigitContainer.h
