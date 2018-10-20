@@ -256,9 +256,9 @@ void AliHLTTPCCATracker::DumpTrackHits(std::ostream &out)
 					out << std::endl;
 #ifdef HLTCA_GPU_SORT_DUMPDATA
 				}
-			}	
+			}
 #endif
-		}	
+		}
 #ifdef HLTCA_GPU_SORT_DUMPDATA
 	}
 #endif
@@ -692,7 +692,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 
 			float origX = fClusterData->X( clusterIndex );
 			float origY = fClusterData->Y( clusterIndex );
-			float origZ = fClusterData->Z( clusterIndex );      
+			float origZ = fClusterData->Z( clusterIndex );
 			int id = fClusterData->Id( clusterIndex );
 			unsigned char flags = fClusterData->Flags( clusterIndex );
 			unsigned short amp = fClusterData->Amp( clusterIndex );
@@ -708,7 +708,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 
 		nStoredTracks++;
 		if (iTr < fCommonMem->fNLocalTracks) nStoredLocalTracks++;
-		nStoredHits+=nClu; 
+		nStoredHits+=nClu;
 		out->SetNClusters( nClu );
 		out = out->NextTrack();
 	}
@@ -869,7 +869,7 @@ GPUh() void AliHLTTPCCATracker::PerformGlobalTracking(AliHLTTPCCATracker& sliceL
 
 	for (int i = 0;i < fCommonMem->fNLocalTracks;i++)
 	{
-		if (sliceLeft.fCommonMem->fNTracks >= MaxTracksLeft || sliceRight.fCommonMem->fNTracks >= MaxTracksRight)  {printf("Insufficient memory for global tracking %d/%d, %d/%d\n", sliceLeft.fCommonMem->fNTracks, MaxTracksLeft, sliceRight.fCommonMem->fNTracks, MaxTracksRight); return;}
+		if (sliceLeft.fCommonMem->fNTracks >= MaxTracksLeft || sliceRight.fCommonMem->fNTracks >= MaxTracksRight) {printf("Insufficient memory for global tracking Slice %d: %d/%d, %d/%d\n", Param().ISlice(), sliceLeft.fCommonMem->fNTracks, MaxTracksLeft, sliceRight.fCommonMem->fNTracks, MaxTracksRight); return;}
 
 		{
 			const int tmpHit = fTracks[i].FirstHitID();
