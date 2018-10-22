@@ -22,6 +22,7 @@
 class TH1F;
 class TList;
 class AliHLTTRDTracker;
+class AliHLTTRDGeometry;
 
 
 class AliHLTTRDTrackerComponent : public AliHLTProcessor {
@@ -124,6 +125,7 @@ private:
    * ---------------------------------------------------------------------------------
    */
   AliHLTTRDTracker *fTracker; // the tracker itself
+  AliHLTTRDGeometry *fGeo;       // TRD geometry needed by the tracker
 
   TList* fTrackList;
   bool fDebugTrackOutput; // output AliHLTTRDTracks instead AliHLTExternalTrackParam

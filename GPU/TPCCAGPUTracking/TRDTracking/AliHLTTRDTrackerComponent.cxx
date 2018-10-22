@@ -36,6 +36,7 @@
 #include "AliESDEvent.h"
 #include "AliHLTErrorGuard.h"
 #include "AliHLTDataTypes.h"
+#include "AliHLTTRDGeometry.h"
 #include "AliHLTTRDTracker.h"
 #include "AliHLTTRDTrack.h"
 #include "AliHLTTRDTrackerComponent.h"
@@ -58,6 +59,7 @@ ClassImp(AliHLTTRDTrackerComponent)
 
 AliHLTTRDTrackerComponent::AliHLTTRDTrackerComponent() :
   fTracker(0x0),
+  fGeo(0x0),
   fTrackList(0x0),
   fDebugTrackOutput(false),
   fVerboseDebugOutput(false),
@@ -69,6 +71,7 @@ AliHLTTRDTrackerComponent::AliHLTTRDTrackerComponent() :
 AliHLTTRDTrackerComponent::AliHLTTRDTrackerComponent( const AliHLTTRDTrackerComponent& )
   :
   fTracker(0x0),
+  fGeo(0x0),
   fTrackList(0x0),
   AliHLTProcessor(),
   fDebugTrackOutput(false),
@@ -201,6 +204,10 @@ int AliHLTTRDTrackerComponent::DoInit( int argc, const char** argv ) {
 
   iResult = ReadConfigurationString( arguments.Data() );
 
+  fGeo = new AliHLTTRDGeometry();
+  if (!fGeo) {
+    return -ENOMEM;
+  }
   fTracker = new AliHLTTRDTracker();
   if (!fTracker) {
     return -ENOMEM;
@@ -208,7 +215,7 @@ int AliHLTTRDTrackerComponent::DoInit( int argc, const char** argv ) {
   if (fVerboseDebugOutput) {
     fTracker->EnableDebugOutput();
   }
-  fTracker->Init();
+  fTracker->Init(fGeo);
 
   return iResult;
 }
@@ -220,6 +227,8 @@ int AliHLTTRDTrackerComponent::DoDeinit() {
   // see header file for class documentation
   delete fTracker;
   fTracker = 0x0;
+  delete fGeo;
+  fGeo = 0x0;
   return 0;
 }
 

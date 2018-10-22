@@ -196,6 +196,10 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     # Additional compilation flags
     set_target_properties(${MODULE} PROPERTIES COMPILE_FLAGS "")
 
+    # OpenMP support
+    find_package(OpenMP)
+    target_link_libraries(${MODULE} OpenMP::OpenMP_CXX)
+
     # System dependent: Modify the way the library is build
     if(${CMAKE_SYSTEM} MATCHES Darwin)
         set_target_properties(${MODULE} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")

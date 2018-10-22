@@ -20,6 +20,8 @@ class AliHLTTRDTrack : public T
 {
  public:
 
+  enum EHLTTRDTrack { kNLayers = 6 };
+
   GPUd() AliHLTTRDTrack();
   AliHLTTRDTrack(const typename T::baseClass &t ) = delete;
   GPUd() AliHLTTRDTrack(const AliHLTTRDTrack& t);
@@ -27,19 +29,20 @@ class AliHLTTRDTrack : public T
   GPUd() AliHLTTRDTrack(const T& t);
   GPUd() AliHLTTRDTrack &operator=(const AliHLTTRDTrack& t);
 
-  GPUd() int   GetNlayers()              const;
-  GPUd() int   GetTracklet(int iLayer)   const;
-  GPUd() int   GetTPCtrackId()           const { return fTPCtrackId; }
-  GPUd() int   GetNtracklets()           const { return fNtracklets; }
-  GPUd() int   GetNtrackletsOffline()    const { return fNtrackletsOffline; }
-  GPUd() int   GetLabelOffline()         const { return fLabelOffline; }
-  GPUd() int   GetLabel()                const { return fLabel; }
-  GPUd() float GetChi2()                 const { return fChi2; }
-  GPUd() float GetReducedChi2()          const { return GetNlayers() == 0 ? fChi2 : fChi2 / GetNlayers(); }
-  GPUd() float GetMass()                 const { return fMass; }
+  GPUd() int   GetNlayers()                 const;
+  GPUd() int   GetTracklet(int iLayer)      const;
+  GPUd() int   GetTPCtrackId()              const { return fTPCtrackId; }
+  GPUd() int   GetNtracklets()              const { return fNtracklets; }
+  GPUd() int   GetNtrackletsOffline()       const { return fNtrackletsOffline; }
+  GPUd() int   GetLabelOffline()            const { return fLabelOffline; }
+  GPUd() int   GetLabel()                   const { return fLabel; }
+  GPUd() float GetChi2()                    const { return fChi2; }
+  GPUd() float GetReducedChi2()             const { return GetNlayers() == 0 ? fChi2 : fChi2 / GetNlayers(); }
+  GPUd() float GetMass()                    const { return fMass; }
+  GPUd() bool  GetIsStopped()               const { return fIsStopped; }
+  GPUd() bool  GetIsFindable(int iLayer)    const { return fIsFindable[iLayer]; }
+  GPUd() int   GetTrackletIndex(int iLayer) const { return GetTracklet(iLayer); }
   GPUd() int   GetNmissingConsecLayers(int iLayer) const;
-  GPUd() bool  GetIsStopped()            const { return fIsStopped; }
-  GPUd() bool  GetIsFindable(int iLayer) const { return fIsFindable[iLayer]; }
 
   GPUd() void AddTracklet(int iLayer, int idx)  { fAttachedTracklets[iLayer] = idx; fNtracklets++;}
   GPUd() void SetTPCtrackId(int v)              { fTPCtrackId = v;}
@@ -53,10 +56,6 @@ class AliHLTTRDTrack : public T
   GPUd() void SetMass(float mass) { fMass = mass; }
   GPUd() void SetLabel(int label) { fLabel = label; }
 
-  GPUd() int GetTrackletIndex(int iLayer) const {
-    return GetTracklet(iLayer);
-  }
-
   // conversion to / from HLT track structure
 
   GPUd() void ConvertTo( AliHLTTRDTrackDataRecord &t ) const;
@@ -65,17 +64,17 @@ class AliHLTTRDTrack : public T
 
  protected:
 
-  float fChi2;                // total chi2
-  float fMass;                // mass hypothesis
-  int fLabel;                 // MC label
-  int fTPCtrackId;            // corresponding TPC track
-  int fNtracklets;            // number of attached TRD tracklets
-  int fNmissingConsecLayers;  // number of missing consecutive layers
-  int fNtrackletsOffline;     // number of attached offline TRD tracklets for debugging only
-  int fLabelOffline;          // offline TRD MC label of this track
-  int fAttachedTracklets[6];  // IDs for attached tracklets sorted by layer
-  bool fIsFindable[6];        // number of layers where tracklet should exist
-  bool fIsStopped;            // track ends in TRD
+  float fChi2;                      // total chi2
+  float fMass;                      // mass hypothesis
+  int fLabel;                       // MC label
+  int fTPCtrackId;                  // corresponding TPC track
+  int fNtracklets;                  // number of attached TRD tracklets
+  int fNmissingConsecLayers;        // number of missing consecutive layers
+  int fNtrackletsOffline;           // number of attached offline TRD tracklets for debugging only
+  int fLabelOffline;                // offline TRD MC label of this track
+  int fAttachedTracklets[kNLayers]; // IDs for attached tracklets sorted by layer
+  bool fIsFindable[kNLayers];       // number of layers where tracklet should exist
+  bool fIsStopped;                  // track ends in TRD
 
 };
 

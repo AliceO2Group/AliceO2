@@ -1,9 +1,10 @@
-#ifdef ENABLE_HLTTRDDEBUG
+#if defined (ENABLE_HLTTRDDEBUG) && defined(HLTCA_BUILD_ALIROOT_LIB)
 # ifndef ALIHLTTRDTRACKERDEBUG_H
 # define ALIHLTTRDTRACKERDEBUG_H
 
 #include "TVectorF.h"
 #include "TTreeStream.h"
+#include "AliHLTTRDTrack.h"
 
 
 class AliHLTTRDTrackerDebug
@@ -60,7 +61,7 @@ class AliHLTTRDTrackerDebug
     void SetTrackletProperties(const float dy, const int det, int ly) { fTrackletDy(ly) = dy; fTrackletDet(ly) = det; }
     void SetRawTrackletPositionReal(float fX, float *fYZ, int ly) { fTrackletXReal(ly) = fX; fTrackletYReal(ly) = fYZ[0]; fTrackletZReal(ly) = fYZ[1]; }
     void SetCorrectedTrackletPositionReal(My_Float *fYZ, int ly) { fTrackletYcorrReal(ly) = fYZ[0]; fTrackletZcorrReal(ly) = fYZ[1]; }
-    void SetTrackletPropertiesReal(const int sec, const int det, int ly) { fTrackletSecReal(ly) = sec; fTrackletDetReal(ly) = det; }
+    void SetTrackletPropertiesReal(const int det, int ly) { fTrackletSecReal(ly) = det / 30; fTrackletDetReal(ly) = det; }
 
     // update information
     void SetChi2Update(float chi2, int ly) { fChi2Update(ly) = chi2; }
