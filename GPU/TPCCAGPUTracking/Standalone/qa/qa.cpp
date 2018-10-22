@@ -163,6 +163,17 @@ static const constexpr float res_axes[5] = {1., 1., 0.03, 0.03, 1.0};
 static const constexpr float res_axes_native[5] = {1., 1., 0.1, 0.1, 5.0};
 static const constexpr float pull_axis = 10.f;
 
+#ifdef HLTCA_MERGER_BY_MC_LABEL
+	#define CHECK_CLUSTER_STATE_INIT_LEG_BY_MC() \
+	if (!unattached && trackMCLabels[id] != -1) \
+	{ \
+		int mcLabel = trackMCLabels[id] >= 0 ? trackMCLabels[id] : (-trackMCLabels[id] - 2); \
+		if (trackMCLabelsReverse[mcLabel] != id) attach &= (~AliHLTTPCGMMerger::attachGoodLeg); \
+	}
+#else
+	#define CHECK_CLUSTER_STATE_INIT_LEG_BY_MC()
+#endif
+
 #define CHECK_CLUSTER_STATE_INIT() \
 	bool unattached = attach == 0; \
 	float qpt = 0; \
@@ -176,7 +187,8 @@ static const constexpr float pull_axis = 10.f;
 		mev200 = qpt > 5; \
 		if (mev200) recClusters200MeV++; \
 	} \
-	bool physics = false, protect = false;
+	bool physics = false, protect = false; \
+	CHECK_CLUSTER_STATE_INIT_LEG_BY_MC(); \
 
 #define CHECK_CLUSTER_STATE_CHK_COUNT() \
 	if (unattached) {} \

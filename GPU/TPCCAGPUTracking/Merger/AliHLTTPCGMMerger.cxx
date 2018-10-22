@@ -114,7 +114,8 @@ AliHLTTPCGMMerger::~AliHLTTPCGMMerger()
 }
 
 //DEBUG CODE
-/*#include "AliHLTTPCCAStandaloneFramework.h"
+#if defined(HLTCA_MERGER_BY_MC_LABEL) || DEBUG == 1
+#include "AliHLTTPCCAStandaloneFramework.h"
 void AliHLTTPCGMMerger::CheckMergedTracks()
 {
     std::vector<bool> trkUsed(SliceTrackInfoLocalTotal());
@@ -125,7 +126,6 @@ void AliHLTTPCGMMerger::CheckMergedTracks()
         AliHLTTPCGMSliceTrack &track = fSliceTrackInfos[itr];
         if ( track.PrevSegmentNeighbour() >= 0 ) continue;
         if ( track.PrevNeighbour() >= 0 ) continue;
-        int nParts = 0;
         int leg = 0;
         AliHLTTPCGMSliceTrack *trbase = &track, *tr = &track;
         tr->SetPrevSegmentNeighbour(1000000000);
@@ -204,7 +204,8 @@ int AliHLTTPCGMMerger::GetTrackLabel(AliHLTTPCGMBorderTrack& trk)
     }
     return bestLabel;
 }
-//END DEBUG CODE*/
+#endif
+//END DEBUG CODE
 
 void AliHLTTPCGMMerger::SetSliceParam( const AliHLTTPCCAParam &v, long int TimeStamp, bool isMC  )
 {
@@ -606,25 +607,30 @@ void AliHLTTPCGMMerger::MergeBorderTracks ( int iSlice1, AliHLTTPCGMBorderTrack 
       if( r2.fMin > r1.fMax ) break;
       if( sameSlice && (r1.fId >= r2.fId) ) continue;
       // do check
-      AliHLTTPCGMBorderTrack &b2 = B2[r2.fId];
-      if (DEBUG) {printf("Comparing track %3d to %3d: ", r1.fId, r2.fId);for (int i = 0;i < 5;i++) {printf("%8.3f ", b1.Par()[i]);}printf(" - ");for (int i = 0;i < 5;i++) {printf("%8.3f ", b1.Cov()[i]);}printf("\n%28s", "");
-        for (int i = 0;i < 5;i++) {printf("%8.3f ", b2.Par()[i]);}printf(" - ");for (int i = 0;i < 5;i++) {printf("%8.3f ", b2.Cov()[i]);}printf("   -   %5s   -   ", GetTrackLabel(b1) == GetTrackLabel(b2) ? "CLONE" : "FAKE");}
-      if ( b2.NClusters() < lBest2 ) {if (DEBUG) {printf("!NCl1\n");}continue;}
-      if (crossCE >= 2 && abs(b1.Row() - b2.Row()) > 1) {if (DEBUG) {printf("!ROW\n");}continue;}
-      if( !b1.CheckChi2Y(b2, factor2ys ) ) {if (DEBUG) {printf("!Y\n");}continue;}
-      //if( !b1.CheckChi2Z(b2, factor2zt ) ) {if (DEBUG) {printf("!NCl1\n");}continue;}
-      if( !b1.CheckChi2QPt(b2, factor2k ) ) {if (DEBUG) {printf("!QPt\n");}continue;}
-      float fys = fabs(b1.Par()[4]) < 20 ? factor2ys : (2. * factor2ys);
-      float fzt = fabs(b1.Par()[4]) < 20 ? factor2zt : (2. * factor2zt);
-      if( !b1.CheckChi2YS(b2, fys ) ) {if (DEBUG) {printf("!YS\n");}continue;}
-      if( !b1.CheckChi2ZT(b2, fzt ) ) {if (DEBUG) {printf("!ZT\n");}continue;}
-      if (fabs(b1.Par()[4]) < 20)
-      {
-        if ( b2.NClusters() < minNPartHits ) {if (DEBUG) {printf("!NCl2\n");}continue;}
-        if ( b1.NClusters() + b2.NClusters() < minNTotalHits ) {if (DEBUG) {printf("!NCl3\n");}continue;}
-      }
-      if (DEBUG) printf("OK: dZ %8.3f D1 %8.3f D2 %8.3f\n", fabs(b1.Par()[1] - b2.Par()[1]), 3.5*sqrt(b1.Cov()[1]), 3.5*sqrt(b2.Cov()[1]));
 
+      AliHLTTPCGMBorderTrack &b2 = B2[r2.fId];
+#ifdef HLTCA_MERGER_BY_MC_LABEL
+      if (GetTrackLabel(b1) != GetTrackLabel(b2))  //DEBUG CODE, match by MC label
+#endif
+      {
+          if (DEBUG) {printf("Comparing track %3d to %3d: ", r1.fId, r2.fId);for (int i = 0;i < 5;i++) {printf("%8.3f ", b1.Par()[i]);}printf(" - ");for (int i = 0;i < 5;i++) {printf("%8.3f ", b1.Cov()[i]);}printf("\n%28s", "");
+            for (int i = 0;i < 5;i++) {printf("%8.3f ", b2.Par()[i]);}printf(" - ");for (int i = 0;i < 5;i++) {printf("%8.3f ", b2.Cov()[i]);}printf("   -   %5s   -   ", GetTrackLabel(b1) == GetTrackLabel(b2) ? "CLONE" : "FAKE");}
+          if ( b2.NClusters() < lBest2 ) {if (DEBUG) {printf("!NCl1\n");}continue;}
+          if (crossCE >= 2 && abs(b1.Row() - b2.Row()) > 1) {if (DEBUG) {printf("!ROW\n");}continue;}
+          if( !b1.CheckChi2Y(b2, factor2ys ) ) {if (DEBUG) {printf("!Y\n");}continue;}
+          //if( !b1.CheckChi2Z(b2, factor2zt ) ) {if (DEBUG) {printf("!NCl1\n");}continue;}
+          if( !b1.CheckChi2QPt(b2, factor2k ) ) {if (DEBUG) {printf("!QPt\n");}continue;}
+          float fys = fabs(b1.Par()[4]) < 20 ? factor2ys : (2. * factor2ys);
+          float fzt = fabs(b1.Par()[4]) < 20 ? factor2zt : (2. * factor2zt);
+          if( !b1.CheckChi2YS(b2, fys ) ) {if (DEBUG) {printf("!YS\n");}continue;}
+          if( !b1.CheckChi2ZT(b2, fzt ) ) {if (DEBUG) {printf("!ZT\n");}continue;}
+          if (fabs(b1.Par()[4]) < 20)
+          {
+            if ( b2.NClusters() < minNPartHits ) {if (DEBUG) {printf("!NCl2\n");}continue;}
+            if ( b1.NClusters() + b2.NClusters() < minNTotalHits ) {if (DEBUG) {printf("!NCl3\n");}continue;}
+          }
+          if (DEBUG) printf("OK: dZ %8.3f D1 %8.3f D2 %8.3f\n", fabs(b1.Par()[1] - b2.Par()[1]), 3.5*sqrt(b1.Cov()[1]), 3.5*sqrt(b2.Cov()[1]));
+      } //DEBUG CODE, match by MC label
       lBest2 = b2.NClusters();
       iBest2 = b2.TrackID();
     }
