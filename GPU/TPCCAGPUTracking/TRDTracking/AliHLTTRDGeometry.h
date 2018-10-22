@@ -66,6 +66,7 @@ public:
 	GPUd() float GetAlpha() {return getAlpha();}
 	GPUd() bool IsHole(int la, int st, int se) const {return isHole(la, st, se);}
 	GPUd() int GetRowMax(int layer, int stack, int sector) {return getRowMax(layer, stack, sector);}
+  GPUd() bool ChamberInGeometry(int det) {return false;}
 
 	static constexpr int kNstack = o2::trd::kNstack;
 };
@@ -117,6 +118,7 @@ public:
 	GPUd() float GetAlpha() {return 0;}
 	GPUd() bool IsHole(int la, int st, int se) const {return false;}
 	GPUd() int GetRowMax(int layer, int stack, int /*sector*/) {return 0;}
+  GPUd() bool ChamberInGeometry(int det) {return false;}
 
 	static const int kNstack = 0;
 };

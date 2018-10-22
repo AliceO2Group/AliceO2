@@ -138,9 +138,17 @@ public:
 	{
 		return getPointerWithAlignment<S>(reinterpret_cast<size_t&>(basePtr), nEntries);
 	}
-	template <class T, class S> static inline void computePointerWithAlignment(T*& basePtr, S*& objPtr, size_t nEntries = 1)
+
+	template <class T, class S> static inline void computePointerWithAlignment(T*& basePtr, S*& objPtr, size_t nEntries = 1, bool runConstructor = false)
 	{
 		objPtr = getPointerWithAlignment<S>(reinterpret_cast<size_t&>(basePtr), nEntries);
+    if (runConstructor)
+    {
+      for (size_t i=0; i<nEntries; ++i)
+      {
+        new (objPtr+i) S;
+      }
+    }
 	}
 	
 	//Converter functions

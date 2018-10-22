@@ -20,7 +20,7 @@ GPUd() AliHLTTRDTrack<T>::AliHLTTRDTrack(const AliHLTExternalTrackParam &t) :
   //------------------------------------------------------------------
   // copy constructor from AliHLTExternalTrackParam struct
   //------------------------------------------------------------------
-  for (int i=0; i<=5; ++i) {
+  for (int i=0; i<kNLayers; ++i) {
     fAttachedTracklets[i] = -1;
     fIsFindable[i] = 0;
   }
@@ -40,9 +40,9 @@ GPUd() AliHLTTRDTrack<T>::AliHLTTRDTrack() :
   fIsStopped(false)
 {
   //------------------------------------------------------------------
-  //Default constructor
+  // default constructor
   //------------------------------------------------------------------
-  for (int i=0; i<=5; ++i) {
+  for (int i=0; i<kNLayers; ++i) {
     fAttachedTracklets[i] = -1;
     fIsFindable[i] = 0;
   }
@@ -63,9 +63,9 @@ GPUd() AliHLTTRDTrack<T>::AliHLTTRDTrack(const AliHLTTRDTrack<T>& t) :
   fIsStopped( t.fIsStopped )
 {
   //------------------------------------------------------------------
-  //Copy constructor
+  // copy constructor
   //------------------------------------------------------------------
-  for (int i=0; i<=5; ++i) {
+  for (int i=0; i<kNLayers; ++i) {
     fAttachedTracklets[i] = t.fAttachedTracklets[i];
     fIsFindable[i] = t.fIsFindable[i];
   }
@@ -87,7 +87,7 @@ GPUd() AliHLTTRDTrack<T>::AliHLTTRDTrack(const T& t) :
   //------------------------------------------------------------------
   // copy constructor from anything
   //------------------------------------------------------------------
-  for (int i=0; i<=5; ++i) {
+  for (int i=0; i<kNLayers; ++i) {
     fAttachedTracklets[i] = -1;
     fIsFindable[i] = 0;
   }
@@ -97,7 +97,7 @@ template <typename T>
 GPUd() AliHLTTRDTrack<T> &AliHLTTRDTrack<T>::operator=(const AliHLTTRDTrack<T>& t)
 {
   //------------------------------------------------------------------
-  //Assignment operator
+  // assignment operator
   //------------------------------------------------------------------
   if( &t==this ) return *this;
   *(T*)this = t;
@@ -110,7 +110,7 @@ GPUd() AliHLTTRDTrack<T> &AliHLTTRDTrack<T>::operator=(const AliHLTTRDTrack<T>& 
   fNtrackletsOffline = t.fNtrackletsOffline;
   fLabelOffline = t.fLabelOffline;
   fIsStopped = t.fIsStopped;
-  for (int i=0; i<=5; ++i) {
+  for (int i=0; i<kNLayers; ++i) {
     fAttachedTracklets[i] = t.fAttachedTracklets[i];
     fIsFindable[i] = t.fIsFindable[i];
   }
@@ -121,8 +121,11 @@ GPUd() AliHLTTRDTrack<T> &AliHLTTRDTrack<T>::operator=(const AliHLTTRDTrack<T>& 
 template <typename T>
 GPUd() int AliHLTTRDTrack<T>::GetNlayers() const
 {
+  //------------------------------------------------------------------
+  // returns number of layers in which the track is in active area of TRD
+  //------------------------------------------------------------------
   int res = 0;
-  for (int iLy=0; iLy<6; iLy++) {
+  for (int iLy=0; iLy<kNLayers; iLy++) {
     if (fIsFindable[iLy]) {
       ++res;
     }
@@ -134,8 +137,10 @@ GPUd() int AliHLTTRDTrack<T>::GetNlayers() const
 template <typename T>
 GPUd() int AliHLTTRDTrack<T>::GetTracklet(int iLayer) const
 {
-  if (iLayer < 0 || iLayer > 5) {
-    //Error("GetTracklet", "illegal layer number %i", iLayer);
+  //------------------------------------------------------------------
+  // returns index of attached tracklet in given layer
+  //------------------------------------------------------------------
+  if (iLayer < 0 || iLayer >= kNLayers) {
     return -1;
   }
   return fAttachedTracklets[iLayer];
@@ -145,10 +150,17 @@ GPUd() int AliHLTTRDTrack<T>::GetTracklet(int iLayer) const
 template <typename T>
 GPUd() int AliHLTTRDTrack<T>::GetNmissingConsecLayers(int iLayer) const
 {
+  //------------------------------------------------------------------
+  // returns number of consecutive layers in which the track was
+  // inside the deadzone up to (and including) the given layer
+  //------------------------------------------------------------------
   int res = 0;
   while (!fIsFindable[iLayer]) {
     ++res;
     --iLayer;
+    if (iLayer < 0) {
+      break;
+    }
   }
   return res;
 }
@@ -157,8 +169,9 @@ GPUd() int AliHLTTRDTrack<T>::GetNmissingConsecLayers(int iLayer) const
 template <typename T>
 GPUd() void AliHLTTRDTrack<T>::ConvertTo( AliHLTTRDTrackDataRecord &t ) const
 {
+  //------------------------------------------------------------------
   // convert to HLT structure
-
+  //------------------------------------------------------------------
   t.fAlpha = T::getAlpha();
   t.fX = T::getX();
   t.fY = T::getY();
@@ -170,7 +183,7 @@ GPUd() void AliHLTTRDTrack<T>::ConvertTo( AliHLTTRDTrackDataRecord &t ) const
     t.fC[i] = T::getCov()[i];
   }
   t.fTPCTrackID = GetTPCtrackId();
-  for ( int i = 0; i <6; i++ ) {
+  for ( int i = 0; i < kNLayers; i++ ) {
     t.fAttachedTracklets[ i ] = GetTracklet( i );
   }
 }
@@ -178,8 +191,9 @@ GPUd() void AliHLTTRDTrack<T>::ConvertTo( AliHLTTRDTrackDataRecord &t ) const
 template <typename T>
 GPUd() void AliHLTTRDTrack<T>::ConvertFrom( const AliHLTTRDTrackDataRecord &t )
 {
+  //------------------------------------------------------------------
   // convert from HLT structure
-
+  //------------------------------------------------------------------
   T::set(t.fX, t.fAlpha, &(t.fY), t.fC);
   SetTPCtrackId( t.fTPCTrackID );
   fChi2 = 0;
@@ -190,7 +204,7 @@ GPUd() void AliHLTTRDTrack<T>::ConvertFrom( const AliHLTTRDTrackDataRecord &t )
   fLabelOffline = -1;
   fNtrackletsOffline = 0;
   fIsStopped = false;
-  for ( int iLayer=0; iLayer <6; iLayer++ ){
+  for ( int iLayer=0; iLayer < kNLayers; iLayer++ ){
     fAttachedTracklets[iLayer] = t.fAttachedTracklets[ iLayer ];
     fIsFindable[iLayer] = 0;
     if( fAttachedTracklets[iLayer]>=0 ) fNtracklets++;
