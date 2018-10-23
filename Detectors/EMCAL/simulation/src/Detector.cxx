@@ -39,7 +39,7 @@ Detector::Detector(Bool_t active)
     mBirkC0(0),
     mBirkC1(0.),
     mBirkC2(0.),
-    mHits(new std::vector<Hit>),
+    mHits(o2::utils::createSimVector<Hit>()),
     mGeometry(nullptr),
     mCurrentTrackID(-1),
     mCurrentCellID(-1),
@@ -71,7 +71,7 @@ Detector::Detector(const Detector& rhs)
     mBirkC0(rhs.mBirkC0),
     mBirkC1(rhs.mBirkC1),
     mBirkC2(rhs.mBirkC2),
-    mHits(new std::vector<Hit>),
+    mHits(o2::utils::createSimVector<Hit>()),
     mGeometry(rhs.mGeometry),
     mCurrentTrackID(-1),
     mCurrentCellID(-1),
@@ -86,6 +86,11 @@ Detector::Detector(const Detector& rhs)
   for ( int i=0; i<5; ++i) {
     mParEMOD[i] = rhs.mParEMOD[i];
   }
+}
+
+Detector::~Detector()
+{
+  o2::utils::freeSimVector(mHits);
 }
 
 void Detector::InitializeO2Detector()
@@ -236,7 +241,9 @@ void Detector::Register()
 void Detector::Reset()
 {
   LOG(DEBUG) << "Cleaning EMCAL hits ...";
-  mHits->clear();
+  if (!o2::utils::ShmManager::Instance().isOperational()) {
+    mHits->clear();
+  }
   mCurrentTrackID = -1;
   mCurrentCellID = -1;
   mCurrentHit = nullptr;

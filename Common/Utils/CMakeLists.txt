@@ -7,6 +7,7 @@ set(SRCS
   src/TreeStreamRedirector.cxx
   src/RootChain.cxx
   src/CompStream.cxx
+  src/ShmManager.cxx
 )
 
 Set(HEADERS
@@ -14,6 +15,7 @@ Set(HEADERS
   include/${MODULE_NAME}/TreeStreamRedirector.h
   include/${MODULE_NAME}/RootChain.h
   include/${MODULE_NAME}/BoostSerializer.h
+  include/${MODULE_NAME}/ShmManager.h
 )
 
 Set(LINKDEF src/CommonUtilsLinkDef.h)

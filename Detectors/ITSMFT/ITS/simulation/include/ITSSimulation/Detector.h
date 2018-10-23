@@ -111,6 +111,7 @@ class Detector : public o2::Base::DetImpl<Detector>
     return nullptr;
   }
 
+ public:
   /// Has to be called after each event to reset the containers
   void Reset() override;
 
@@ -233,7 +234,6 @@ class Detector : public o2::Base::DetImpl<Detector>
   void BeginPrimary() override { ; }
   void PostTrack() override { ; }
   void PreTrack() override { ; }
-  void BeginEvent() override { ; }
   /// Prints out the content of this class in ASCII format
   /// \param ostream *os The output stream
   void Print(std::ostream* os) const;
@@ -320,5 +320,18 @@ std::ostream& operator<<(std::ostream& os, Detector& source);
 std::istream& operator>>(std::istream& os, Detector& source);
 }
 }
+
+#ifdef USESHM
+namespace o2
+{
+namespace Base
+{
+template <>
+struct UseShm<o2::ITS::Detector> {
+  static constexpr bool value = true;
+};
+} // namespace Base
+} // namespace o2
+#endif
 
 #endif

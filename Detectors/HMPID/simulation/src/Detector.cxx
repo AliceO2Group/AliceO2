@@ -302,7 +302,12 @@ Float_t Detector::Fresnel(Float_t ene, Float_t pdoti, Bool_t pola)
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void Detector::Register() { FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, true); }
 
-void Detector::Reset() { mHits->clear(); }
+void Detector::Reset()
+{
+  if (!o2::utils::ShmManager::Instance().isOperational()) {
+    mHits->clear();
+  }
+}
 
 void Detector::IdealPosition(Int_t iCh, TGeoHMatrix* pMatrix) // ideal position of given chamber
 {

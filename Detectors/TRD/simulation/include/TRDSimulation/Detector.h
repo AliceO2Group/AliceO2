@@ -14,6 +14,7 @@
 #include <vector>
 #include "DetectorsBase/Detector.h"
 #include "SimulationDataFormat/BaseHits.h"
+#include "CommonUtils/ShmAllocator.h"
 
 class FairVolume;
 
@@ -21,17 +22,36 @@ namespace o2
 {
 namespace trd
 {
-class TRDGeometry;
+class HitType : public o2::BasicXYZEHit<float>
+{
+ public:
+  using BasicXYZEHit<float>::BasicXYZEHit;
+};
+} // namespace trd
+} // namespace o2
 
-// define TRD hit type
-using HitType = o2::BasicXYZEHit<float>;
+#ifdef USESHM
+namespace std
+{
+template <>
+class allocator<o2::trd::HitType> : public o2::utils::ShmAllocator<o2::trd::HitType>
+{
+};
+} // namespace std
+#endif
+
+namespace o2
+{
+namespace trd
+{
+class TRDGeometry;
 
 class Detector : public o2::Base::DetImpl<Detector>
 {
  public:
   Detector(Bool_t active=true);
 
-  ~Detector() override = default;
+  ~Detector() override;
 
   void InitializeO2Detector() override;
 
@@ -85,4 +105,17 @@ void Detector::addHit(T x, T y, T z, T time, T energy, int trackId, int detId)
 
 } // end namespace trd
 } // end global namespace
+
+#ifdef USESHM
+namespace o2
+{
+namespace Base
+{
+template <>
+struct UseShm<o2::trd::Detector> {
+  static constexpr bool value = true;
+};
+} // namespace Base
+} // namespace o2
+#endif
 #endif

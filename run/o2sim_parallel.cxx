@@ -23,15 +23,36 @@
 #include <csignal>
 #include "TStopwatch.h"
 #include "FairLogger.h"
+#include "CommonUtils/ShmManager.h"
 
 const char* serverlogname = "serverlog";
 const char* workerlogname = "workerlog";
 const char* mergerlogname = "mergerlog";
 
+void cleanup()
+{
+  o2::utils::ShmManager::Instance().release();
+}
+
+// signal handler for graceful exit
+void sighandler(int signal)
+{
+  if (signal == SIGINT || signal == SIGTERM) {
+    LOG(INFO) << "signal caught ... clean up and exit";
+    cleanup();
+    exit(0);
+  }
+}
+
 // helper executable to launch all the devices/processes
 // for parallel simulation
 int main(int argc, char* argv[])
 {
+  signal(SIGINT, sighandler);
+  signal(SIGTERM, sighandler);
+  // we enable the forked version of the code by default
+  setenv("ALICE_SIMFORKINTERNAL", "ON", 1);
+
   TStopwatch timer;
   timer.Start();
   std::string rootpath(getenv("O2_ROOT"));
@@ -43,6 +64,23 @@ int main(int argc, char* argv[])
   auto& conf = o2::conf::SimConfig::Instance();
   if (!conf.resetFromArguments(argc, argv)) {
     return 1;
+  }
+
+  // we create the global shared mem pool; just enough to serve
+  // n simulation workers
+  int nworkers = std::thread::hardware_concurrency() / 2;
+  auto f = getenv("ALICE_NSIMWORKERS");
+  if (f) {
+    nworkers = atoi(f);
+  }
+  std::cout << "Running with " << nworkers << " sim workers "
+            << "(customize using the ALICE_NSIMWORKERS environment variable)\n";
+
+  o2::utils::ShmManager::Instance().createGlobalSegment(nworkers);
+
+  // we can try to disable it here
+  if (getenv("ALICE_NOSIMSHM")) {
+    o2::utils::ShmManager::Instance().disable();
   }
 
   std::vector<int> childpids;
@@ -87,18 +125,10 @@ int main(int argc, char* argv[])
     std::cout << "Spawning particle server on PID " << pid << "; Redirect output to " << serverlogname << "\n";
   }
 
-  int nworkers = std::thread::hardware_concurrency() / 2;
   auto internalfork = getenv("ALICE_SIMFORKINTERNAL");
   if (internalfork) {
     // forking will be done internally to profit from copy-on-write
     nworkers = 1;
-  } else {
-    auto f = getenv("ALICE_NSIMWORKERS");
-    if (f) {
-      nworkers = atoi(f);
-    }
-    std::cout << "Running with " << nworkers << " sim workers "
-              << "(customize using the ALICE_NSIMWORKERS environment variable)\n";
   }
   for (int id = 0; id < nworkers; ++id) {
     // the workers
@@ -152,8 +182,19 @@ int main(int argc, char* argv[])
   // wait on merger (which when exiting completes the workflow)
   auto mergerpid = childpids.back();
 
-  // wait just blocks and waits until any child returns; make sure that we wait until merger is here
+  // wait just blocks and waits until any child returns; but we make sure to wait until merger is here
   while ((cpid = wait(&status)) != mergerpid) {
+    if (WIFSIGNALED(status)) {
+      LOG(INFO) << "Process " << cpid << " EXITED WITH CODE " << WEXITSTATUS(status) << " SIGNALED "
+                << WIFSIGNALED(status) << " SIGNAL " << WTERMSIG(status);
+    }
+    // we bring down all processes if one of them aborts
+    if (WTERMSIG(status) == SIGABRT) {
+      for (auto p : childpids) {
+        kill(p, SIGABRT);
+      }
+      LOG(FATAL) << "ABORTING DUE TO ABORT IN COMPONENT";
+    }
   }
   // This marks the actual end of the computation (since results are available)
   LOG(INFO) << "Merger process " << mergerpid << " returned";
@@ -165,5 +206,7 @@ int main(int argc, char* argv[])
       kill(p, SIGKILL);
     }
   }
+  LOG(DEBUG) << "ShmManager operation " << o2::utils::ShmManager::Instance().isOperational() << "\n";
+  cleanup();
   return 0;
 }

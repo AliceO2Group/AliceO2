@@ -55,6 +55,17 @@ void GeneratorFromFile::SetStartEvent(int start)
   }
 }
 
+bool isOnMassShell(TParticle const& p)
+{
+  const auto nominalmass = p.GetMass();
+  auto calculatedmass = p.Energy() * p.Energy() - (p.Px() * p.Px() + p.Py() * p.Py() + p.Pz() * p.Pz());
+  calculatedmass = (calculatedmass >= 0.) ? std::sqrt(calculatedmass) : -std::sqrt(-calculatedmass);
+  const double tol = 1.E-4;
+  auto difference = std::abs(nominalmass - calculatedmass);
+  LOG(INFO) << difference << " " << nominalmass << " " << calculatedmass;
+  return std::abs(nominalmass - calculatedmass) < tol;
+}
+
 Bool_t GeneratorFromFile::ReadEvent(FairPrimaryGenerator* primGen)
 {
   if (mEventCounter < mEventsAvailable) {
@@ -86,6 +97,11 @@ Bool_t GeneratorFromFile::ReadEvent(FairPrimaryGenerator* primGen)
         auto e = primary->Energy();
         auto tof = primary->T();
         auto weight = primary->GetWeight();
+        if (!isOnMassShell(*primary)) {
+          LOG(WARNING) << "Skipping " << pdgid << " since off-mass shell";
+          continue;
+        }
+        LOG(WARNING) << "NOT Skipping " << i << "  " << pdgid << " since off-mass shell";
         primGen->AddTrack(pdgid, px, py, pz, vx, vy, vz, parent, wanttracking, e, tof, weight);
       }
     }

@@ -48,6 +48,7 @@ class O2SimDevice : public FairMQDevice
   ~O2SimDevice() final
   {
     FairSystemInfo sysinfo;
+    o2::utils::ShmManager::Instance().release();
     LOG(INFO) << "Shutting down O2SimDevice";
     LOG(INFO) << "TIME-STAMP " << mTimer.RealTime() << "\t";
     LOG(INFO) << "MEM-STAMP " << sysinfo.GetCurrentMemory() / (1024. * 1024) << " " << sysinfo.GetMaxMemory() << " MB\n";
@@ -66,11 +67,18 @@ class O2SimDevice : public FairMQDevice
     // set the vmc and app pointers
     mVMC = TVirtualMC::GetMC();
     mVMCApp = static_cast<o2::steer::O2MCApplication*>(TVirtualMCApplication::Instance());
+    lateInit();
   }
 
   static void CustomCleanup(void* data, void* hint) { delete static_cast<std::string*>(hint); }
 
  public:
+  void lateInit()
+  {
+    // late init
+    mVMCApp->initLate();
+  }
+
   // should go into a helper
   // this function queries the sim config data and initializes the SimConfig singleton
   // returns true if successful / false if not
@@ -97,6 +105,7 @@ class O2SimDevice : public FairMQDevice
         LOG(INFO) << "COMMUNICATED ENGINE " << config->mMCEngine;
         auto& conf = o2::conf::SimConfig::Instance();
         conf.resetFromConfigData(*config);
+        delete config;
       } else {
         LOG(ERROR) << "No configuration received within " << timeoutinMS << "ms\n";
         return false;
@@ -174,6 +183,7 @@ class O2SimDevice : public FairMQDevice
         LOG(INFO) << "MEM-STAMP " << sysinfo.GetCurrentMemory() / (1024. * 1024) << " "
                   << sysinfo.GetMaxMemory() << " MB\n";
         delete message;
+        delete chunk;
       } else {
         return false;
       }

@@ -29,6 +29,8 @@ int main(int argc, char* argv[])
   // call o2sim "macro"
   o2sim(false);
 
+  o2::utils::ShmManager::Instance().release();
+
   // print total time
   LOG(INFO) << "Simulation process took " << timer.RealTime() << " s";
 

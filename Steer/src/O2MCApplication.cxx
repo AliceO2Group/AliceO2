@@ -20,6 +20,7 @@
 #include <sstream>
 #include <SimConfig/SimConfig.h>
 #include <DetectorsBase/Detector.h>
+#include <CommonUtils/ShmManager.h>
 
 namespace o2
 {
@@ -37,6 +38,16 @@ void TypedVectorAttach(const char* name, FairMQChannel& channel, FairMQParts& pa
     FairMQMessagePtr message(channel.NewMessage(buffer, buffersize,
                                                 [](void* data, void* hint) {}, buffer));
     parts.AddPart(std::move(message));
+  }
+}
+
+void O2MCApplication::initLate()
+{
+  o2::utils::ShmManager::Instance().occupySegment();
+  for (auto det : listActiveDetectors) {
+    if (dynamic_cast<o2::Base::Detector*>(det)) {
+      ((o2::Base::Detector*)det)->initializeLate();
+    }
   }
 }
 

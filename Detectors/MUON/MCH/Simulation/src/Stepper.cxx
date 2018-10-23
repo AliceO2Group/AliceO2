@@ -26,10 +26,10 @@ namespace o2
 namespace mch
 {
 
-Stepper::Stepper() : mHits{ new std::vector<o2::mch::Hit>(20) } {}
+Stepper::Stepper() : mHits{ o2::utils::createSimVector<o2::mch::Hit>() } {}
 Stepper::~Stepper()
 {
-  delete mHits;
+  o2::utils::freeSimVector(mHits);
 }
 
 void Stepper::process(const TVirtualMC& vmc)
@@ -79,7 +79,12 @@ void Stepper::resetStep()
   mTrackLength = 0.0;
 }
 
-void Stepper::resetHits() { mHits->clear(); }
+void Stepper::resetHits()
+{
+  if (!o2::utils::ShmManager::Instance().isOperational()) {
+    mHits->clear();
+  }
+}
 
 } // namespace mch
 } // namespace o2
