@@ -144,3 +144,53 @@ BOOST_AUTO_TEST_CASE(TestQueryBuilder)
   BOOST_CHECK(matcher4->match(header3) == false);
   BOOST_CHECK(matcher4->match(header4) == false);
 }
+
+BOOST_AUTO_TEST_CASE(TestInputSpecMatching)
+{
+  InputSpec spec0{ "spec0", "TPC", "CLUSTERS", 1 };
+  InputSpec spec1{ "spec1", "ITS", "TRACKLET", 2 };
+  InputSpec spec2{ "spec2", "ITS", "TRACKLET", 1 };
+  InputSpec spec3{ "spec3", "TPC", "CLUSTERS", 0 };
+  InputSpec spec4{ "spec4", "TRD", "TRACKLET", 0 };
+
+  DataDescriptorMatcher matcher{
+    DataDescriptorMatcher::Op::And,
+    OriginValueMatcher{ "TPC" },
+    std::make_unique<DataDescriptorMatcher>(
+      DataDescriptorMatcher::Op::And,
+      DescriptionValueMatcher{ "CLUSTERS" },
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::And,
+        SubSpecificationTypeValueMatcher{ 1 },
+        ConstantValueMatcher{ true }))
+  };
+
+  BOOST_CHECK(matcher.match(spec0) == true);
+  BOOST_CHECK(matcher.match(spec1) == false);
+  BOOST_CHECK(matcher.match(spec2) == false);
+  BOOST_CHECK(matcher.match(spec3) == false);
+  BOOST_CHECK(matcher.match(spec4) == false);
+
+  DataDescriptorMatcher matcher1{
+    DataDescriptorMatcher::Op::Or,
+    OriginValueMatcher{ "TPC" },
+    OriginValueMatcher{ "ITS" }
+  };
+
+  BOOST_CHECK(matcher1.match(spec0) == true);
+  BOOST_CHECK(matcher1.match(spec1) == true);
+  BOOST_CHECK(matcher1.match(spec2) == true);
+  BOOST_CHECK(matcher1.match(spec3) == true);
+  BOOST_CHECK(matcher1.match(spec4) == false);
+
+  DataDescriptorMatcher matcher2{
+    DataDescriptorMatcher::Op::Just,
+    DescriptionValueMatcher{ "TRACKLET" }
+  };
+
+  BOOST_CHECK(matcher2.match(spec0) == false);
+  BOOST_CHECK(matcher2.match(spec1) == true);
+  BOOST_CHECK(matcher2.match(spec2) == true);
+  BOOST_CHECK(matcher2.match(spec3) == false);
+  BOOST_CHECK(matcher2.match(spec4) == true);
+}
