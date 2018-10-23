@@ -10,6 +10,7 @@
 #ifndef o2_framework_DataDescriptorMatcher_H_INCLUDED
 #define o2_framework_DataDescriptorMatcher_H_INCLUDED
 
+#include "Framework/InputSpec.h"
 #include "Headers/DataHeader.h"
 
 #include <cstdint>
@@ -143,6 +144,18 @@ class DataDescriptorMatcher
   }
 
   inline ~DataDescriptorMatcher() = default;
+
+  /// @return true if the (sub-)query associated to this matcher will
+  /// match the provided @a spec, false otherwise.
+  bool match(InputSpec const& spec) const
+  {
+    header::DataHeader dh;
+    dh.dataOrigin = spec.origin;
+    dh.dataDescription = spec.description;
+    dh.subSpecification = spec.subSpec;
+
+    return this->match(dh);
+  }
 
   bool match(header::DataHeader const& d) const
   {
