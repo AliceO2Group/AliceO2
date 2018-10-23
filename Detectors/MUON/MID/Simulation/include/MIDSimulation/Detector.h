@@ -33,7 +33,13 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   void Register() override {}
 
-  std::vector<HitType>* getHits(int i) const { return nullptr; }
+  std::vector<HitType>* getHits(int i) const
+  {
+    //if (i == 0) {
+    //      return mHits;
+    //}
+    return nullptr;
+  }
 
   void Reset() override {}
 
@@ -44,6 +50,8 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   std::vector<HitType>* mHits = nullptr;
 
+  template <typename Det>
+  friend class o2::Base::DetImpl;
   ClassDefOverride(Detector, 1)
 };
 

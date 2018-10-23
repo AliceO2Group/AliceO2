@@ -12,6 +12,7 @@
 #define O2_MCH_SIMULATION_HIT_H
 
 #include "SimulationDataFormat/BaseHits.h"
+#include "CommonUtils/ShmAllocator.h"
 
 namespace o2
 {
@@ -41,5 +42,15 @@ class Hit : public ::o2::BasicXYZEHit<float>
 
 } // namespace mch
 } // namespace o2
+
+#ifdef USESHM
+namespace std
+{
+template <>
+class allocator<o2::mch::Hit> : public o2::utils::ShmAllocator<o2::mch::Hit>
+{
+};
+} // namespace std
+#endif
 
 #endif

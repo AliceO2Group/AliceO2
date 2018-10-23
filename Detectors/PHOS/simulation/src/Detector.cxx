@@ -36,7 +36,7 @@ ClassImp(Detector);
 
 Detector::Detector(Bool_t active)
   : o2::Base::DetImpl<Detector>("PHS", active),
-    mHits(new std::vector<Hit>),
+    mHits(o2::utils::createSimVector<o2::phos::Hit>()),
     mCurrentTrackID(-1),
     mCurrentCellID(-1),
     mCurentSuperParent(-1),
@@ -46,12 +46,17 @@ Detector::Detector(Bool_t active)
 
 Detector::Detector(const Detector& rhs)
   : o2::Base::DetImpl<Detector>(rhs),
-    mHits(new std::vector<Hit>),
+    mHits(o2::utils::createSimVector<o2::phos::Hit>()),
     mCurrentTrackID(-1),
     mCurrentCellID(-1),
     mCurentSuperParent(-1),
     mCurrentHit(nullptr)
 {
+}
+
+Detector::~Detector()
+{
+  o2::utils::freeSimVector(mHits);
 }
 
 void Detector::InitializeO2Detector()
@@ -108,7 +113,9 @@ void Detector::FinishEvent()
 void Detector::Reset()
 {
   mSuperParents.clear();
-  mHits->clear();
+  if (!o2::utils::ShmManager::Instance().isOperational()) {
+    mHits->clear();
+  }
   mCurrentTrackID = -1;
   mCurrentCellID = -1;
   mCurentSuperParent = -1;

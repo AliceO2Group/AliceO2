@@ -46,6 +46,10 @@
 #include <HMPIDSimulation/Detector.h>
 #include <PHOSSimulation/Detector.h>
 #include <MCHSimulation/Detector.h>
+#include <MIDSimulation/Detector.h>
+#include <ZDCSimulation/Detector.h>
+
+#include "CommonUtils/ShmManager.h"
 
 namespace o2
 {
@@ -67,12 +71,16 @@ class O2HitMerger : public FairMQDevice
   O2HitMerger()
   {
     initDetInstances();
+
+    // has to be after init of Detectors
+    o2::utils::ShmManager::Instance().attachToGlobalSegment();
+
     OnData("simdata", &O2HitMerger::handleSimData);
     mTimer.Start();
   }
 
   /// Default destructor
-  ~O2HitMerger() override
+  ~O2HitMerger()
   {
     FairSystemInfo sysinfo;
     mOutTree->SetEntries(mEntries);
@@ -121,17 +129,23 @@ class O2HitMerger : public FairMQDevice
 
   void consumeHits(FairMQParts& data, int& index)
   {
+    //static bool b = true;
+    //while (b) {
+    //
+    //}
     auto detIDmessage = std::move(data.At(index++));
     // this should be a detector ID
     LOG(INFO) << detIDmessage->GetSize();
     if (detIDmessage->GetSize() == 4) {
       auto ptr = (int*)detIDmessage->GetData();
       o2::detectors::DetID id(ptr[0]);
-      LOG(INFO) << "I1 " << ptr[0] << " NAME " << id.getName();
+      LOG(INFO) << "I1 " << ptr[0] << " NAME " << id.getName() << " MB " << data.At(index)->GetSize() / 1024. / 1024.;
 
       // get the detector than can interpret it
       auto detector = mDetectorInstances[id].get();
-      detector->fillHitBranch(*mOutTree, data, index);
+      if (detector) {
+        detector->fillHitBranch(*mOutTree, data, index);
+      }
     }
   }
 
@@ -143,6 +157,7 @@ class O2HitMerger : public FairMQDevice
     br->SetAddress(&decodeddata);
     br->Fill();
     br->ResetAddress();
+    delete decodeddata;
     index++;
   }
 
@@ -157,7 +172,6 @@ class O2HitMerger : public FairMQDevice
     memcpy((void*)&info, infomessage->GetData(), infomessage->GetSize());
 
     auto accum = insertAdd<uint32_t, uint32_t>(mPartsCheckSum, info.eventID, (uint32_t)info.part);
-    // auto totalsize = insertAdd<uint32_t, size_t>(mITSTotalSize, info.eventID, itshits.size());
 
     int index = 1;
     consumeData<std::vector<o2::MCTrack>>("MCTrack", data, index);
@@ -166,6 +180,7 @@ class O2HitMerger : public FairMQDevice
     while (index < data.Size()) {
       consumeHits(data, index);
     }
+
     mEntries++;
 
     if (isDataComplete<uint32_t>(accum, info.nparts)) {
@@ -180,7 +195,6 @@ class O2HitMerger : public FairMQDevice
   }
 
   std::map<uint32_t, uint32_t> mPartsCheckSum; //! mapping event id -> part checksum used to detect when all info
-  std::map<uint32_t, size_t> mITSTotalSize;    //! total number of tracks for a given event
 
   TFile* mOutFile;  //!
   TTree* mOutTree;  //!
@@ -242,6 +256,14 @@ void O2HitMerger::initDetInstances()
     }
     if (i == DetID::MCH) {
       mDetectorInstances[i] = std::move(std::make_unique<o2::mch::Detector>(true));
+      counter++;
+    }
+    if (i == DetID::MID) {
+      mDetectorInstances[i] = std::move(std::make_unique<o2::mid::Detector>(true));
+      counter++;
+    }
+    if (i == DetID::ZDC) {
+      mDetectorInstances[i] = std::move(std::make_unique<o2::zdc::Detector>(true));
       counter++;
     }
   }

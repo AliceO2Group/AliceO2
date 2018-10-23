@@ -26,6 +26,7 @@
 #include <SimConfig/SimConfig.h>
 #include <typeinfo>
 #include <thread>
+#include <TROOT.h>
 
 namespace o2
 {
@@ -68,8 +69,14 @@ class O2PrimaryServerDevice : public FairMQDevice
     }
     // MC ENGINE
     LOG(INFO) << "ENGINE SET TO " << vm["mcEngine"].as<std::string>();
+    // CHUNK SIZE
+    mChunkGranularity = vm["chunkSize"].as<unsigned int>();
+    LOG(INFO) << "CHUNK SIZE SET TO " << mChunkGranularity;
 
     mMaxEvents = conf.getNEvents();
+
+    // need to make ROOT thread-safe since we use ROOT services in all places
+    ROOT::EnableThreadSafety();
 
     // lunch initialization of particle generator asynchronously
     // so that we reach the RUNNING state of the server quickly
@@ -148,11 +155,26 @@ class O2PrimaryServerDevice : public FairMQDevice
     i.index = m.mParticles.size();
     m.mEventIDs.emplace_back(i);
 
-    auto startindex = mPartCounter * mChunkGranularity;
-    auto endindex = startindex + mChunkGranularity;
-    auto startiter = prims.begin() + mPartCounter * mChunkGranularity;
-    auto enditer = endindex < prims.size() ? startiter + mChunkGranularity : prims.end();
-    std::copy(startiter, enditer, std::back_inserter(m.mParticles));
+    //auto startoffset = (mPartCounter + 1) * mChunkGranularity;
+    //auto endoffset = startindex + mChunkGranularity;
+    //auto startiter = prims.begin() + mPartCounter * mChunkGranularity;
+    //auto enditer = endindex < prims.size() ? startiter + mChunkGranularity : prims.end();
+    //auto startiter = startoffset < prims.size() ? prims.rbegin() - startoffset : prims.begin();
+    //auto remaining = prims.size() - (mPartCounter + 1) * mChunkGranularity;
+    //auto enditer = startiter + (remaining > mChunkGranularity)? mChunkGranularity : remaining;
+    int endindex = prims.size() - mPartCounter * mChunkGranularity;
+    int startindex = prims.size() - (mPartCounter + 1) * mChunkGranularity;
+    if (startindex < 0) {
+      startindex = 0;
+    }
+    if (endindex < 0) {
+      endindex = 0;
+    }
+
+    // std::copy(startiter, enditer, std::back_inserter(m.mParticles));
+    for (int index = startindex; index < endindex; ++index) {
+      m.mParticles.emplace_back(prims[index]);
+    }
 
     LOG(WARNING) << "Sending " << m.mParticles.size() << " particles\n";
     LOG(WARNING) << "treating ev " << counter << " part " << i.part << " out of " << i.nparts << "\n";

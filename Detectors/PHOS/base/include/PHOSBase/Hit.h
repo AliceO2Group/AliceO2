@@ -12,6 +12,7 @@
 #define ALICEO2_PHOS_HIT_H
 
 #include "SimulationDataFormat/BaseHits.h"
+#include "CommonUtils/ShmAllocator.h"
 
 namespace o2
 {
@@ -92,5 +93,15 @@ class Hit : public o2::BasicXYZEHit<float>
 std::ostream& operator<<(std::ostream& stream, const Hit& point);
 }
 }
+
+#ifdef USESHM
+namespace std
+{
+template <>
+class allocator<o2::phos::Hit> : public o2::utils::ShmAllocator<o2::phos::Hit>
+{
+};
+} // namespace std
+#endif
 
 #endif /* Hit_h */

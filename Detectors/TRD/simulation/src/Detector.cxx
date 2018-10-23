@@ -17,24 +17,30 @@
 #include "TRDBase/TRDCommonParam.h"
 #include "TRDBase/TRDGeometry.h"
 #include "SimulationDataFormat/Stack.h"
+#include "CommonUtils/ShmAllocator.h"
 #include <stdexcept>
 
 using namespace o2::trd;
 
 Detector::Detector(Bool_t active)
-  : o2::Base::DetImpl<Detector>("TRD", active),
-    mHits(new std::vector<HitType>)
+  : o2::Base::DetImpl<Detector>("TRD", active)
 {
+  mHits = o2::utils::createSimVector<HitType>();
 }
 
 Detector::Detector(const Detector& rhs)
   : o2::Base::DetImpl<Detector>(rhs),
-    mHits(new std::vector<HitType>),
+    mHits(o2::utils::createSimVector<HitType>()),
     mFoilDensity(rhs.mFoilDensity),
     mGasNobleFraction(rhs.mGasNobleFraction),
     mGasDensity(rhs.mGasDensity),
     mGeom(rhs.mGeom)
 {
+}
+
+Detector::~Detector()
+{
+  o2::utils::freeSimVector(mHits);
 }
 
 void Detector::InitializeO2Detector()
@@ -74,7 +80,14 @@ void Detector::Register()
   FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, true);
 }
 
-void Detector::Reset() { mHits->clear(); }
+// this is very problematic; we should do round robin or the clear needs
+// to be done by the HitMerger
+void Detector::Reset()
+{
+  if (!o2::utils::ShmManager::Instance().isOperational()) {
+    mHits->clear();
+  }
+}
 
 void Detector::EndOfEvent() { Reset(); }
 

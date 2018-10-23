@@ -38,6 +38,8 @@ struct SimConfigData {
                                              // Foo.parameter1=x,Bar.parameter2=y,Baz.paramter3=hello
                                              // (can be used to **loosly** change any configuration parameter from
                                              //  command-line)
+  int mPrimaryChunkSize;                     // defining max granularity for input primaries of a sim job
+  int mInternalChunkSize;
   ClassDefNV(SimConfigData, 1);
 };
 
@@ -93,6 +95,8 @@ class SimConfig
   std::string getLogVerbosity() const { return mConfigData.mLogVerbosity; }
   std::string getLogSeverity() const { return mConfigData.mLogSeverity; }
   std::string getKeyValueString() const { return mConfigData.mKeyValueTokens; }
+  int getPrimChunkSize() const { return mConfigData.mPrimaryChunkSize; }
+  int getInternalChunkSize() const { return mConfigData.mInternalChunkSize; }
 
  private:
   SimConfigData mConfigData; //!

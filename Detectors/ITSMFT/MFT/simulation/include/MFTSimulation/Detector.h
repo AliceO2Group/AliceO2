@@ -82,7 +82,6 @@ class Detector : public o2::Base::DetImpl<Detector>
   void BeginPrimary() override { ; }
   void PostTrack() override { ; }
   void PreTrack() override { ; }
-  void BeginEvent() override { ; }
   void SetSpecialPhysicsCuts() override { ; }
   void ConstructGeometry() override; // inherited from FairModule
 
@@ -167,5 +166,18 @@ std::ostream& operator<<(std::ostream& os, Detector& source);
 std::istream& operator>>(std::istream& os, Detector& source);
 }
 }
+
+#ifdef USESHM
+namespace o2
+{
+namespace Base
+{
+template <>
+struct UseShm<o2::MFT::Detector> {
+  static constexpr bool value = true;
+};
+} // namespace Base
+} // namespace o2
+#endif
 
 #endif

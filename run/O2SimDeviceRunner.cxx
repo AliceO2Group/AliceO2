@@ -21,6 +21,7 @@
 #include <FairMQTransportFactory.h>
 #include <TStopwatch.h>
 #include <sys/wait.h>
+#include <pthread.h> // to set cpu affinity
 
 namespace bpo = boost::program_options;
 
@@ -74,7 +75,7 @@ int initAndRunDevice(int argc, char* argv[])
     });
 
     runner.AddHook<InstantiateDevice>([](DeviceRunner& r) {
-      r.fDevice = std::move(decltype(r.fDevice){ getDevice(r.fConfig) });
+      r.fDevice = std::shared_ptr<FairMQDevice>{ getDevice(r.fConfig) };
     });
 
     return runner.Run();
@@ -99,17 +100,53 @@ int runSim(std::string transport, std::string primaddress, std::string mergeradd
   auto datachannel = FairMQChannel{ "simdata", "push", factory };
   datachannel.Connect(mergeraddress);
   datachannel.ValidateChannel();
-
   // the channels are setup
 
   // init the sim object
   auto sim = getDevice();
+  sim->lateInit();
 
   // the simplified runloop
   while (sim->Kernel(primchannel, datachannel)) {
   }
   LOG(INFO) << "simulation is done";
   return 0;
+}
+
+void pinToCPU(int cpuid)
+{
+// MacOS does not support this API so we add a protection
+#ifndef __APPLE__
+  auto affinity = getenv("ALICE_CPUAFFINITY");
+  if (affinity) {
+    pthread_t thread;
+
+    thread = pthread_self();
+
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(cpuid, &cpuset);
+
+    auto s = pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
+    if (s != 0) {
+      LOG(WARNING) << "FAILED TO SET PTHREAD AFFINITY";
+    }
+
+    /* Check the actual affinity mask assigned to the thread */
+    s = pthread_getaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
+    if (s != 0) {
+      LOG(WARNING) << "FAILED TO GET PTHREAD AFFINITY";
+    }
+
+    for (int j = 0; j < CPU_SETSIZE; j++) {
+      if (CPU_ISSET(j, &cpuset)) {
+        LOG(INFO) << "ENABLED CPU " << j;
+      }
+    }
+  }
+#else
+  LOG(WARN) << "CPU AFFINITY NOT IMPLEMENTED ON APPLE";
+#endif
 }
 
 int main(int argc, char* argv[])
@@ -141,6 +178,7 @@ int main(int argc, char* argv[])
       return 1;
     }
 
+    // should be factored out?
     int nworkers = std::thread::hardware_concurrency() / 2;
     auto f = getenv("ALICE_NSIMWORKERS");
     if (f) {
@@ -151,19 +189,25 @@ int main(int argc, char* argv[])
 
     // then we fork and create a device in each fork
     for (int i = 0; i < nworkers; ++i) {
-      auto pid = fork();
+      // we use the current process as one of the workers as it has nothing else to do
+      auto pid = (i == nworkers - 1) ? 0 : fork();
       if (pid == 0) {
+        // we will try to pin each worker to a particular CPU
+        // this can be made configurable via enviroment variables??
+        pinToCPU(i);
+
         runSim("zeromq", serveraddress, mergeraddress);
-        return 0;
+
+        _exit(0);
       }
     }
     int status;
     wait(&status); /* only the parent waits */
-    return 0;
+    _exit(0);
   } else {
     // This the solution where we setup an ordinary FairMQDevice
     // (each if which will setup its own simulation). Parallelism
     // is achieved outside by instantiating multiple device processes.
-    return initAndRunDevice(argc, argv);
+    _exit(initAndRunDevice(argc, argv));
   }
 }

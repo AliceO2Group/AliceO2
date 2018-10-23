@@ -24,6 +24,8 @@
 #include "DetectorsBase/MaterialManager.h"
 #include "DetectorsBase/Detector.h"
 #include "DetectorsPassive/Cave.h"
+#include "SimConfig/SimConfig.h"
+#include <TRandom.h>
 #include "FairLogger.h"
 #include "TGeoManager.h"
 #include "TGeoVolume.h"
@@ -96,9 +98,29 @@ void Cave::FinishPrimary()
   }
 }
 
+// we set the random number generator for each
+// primary in order to be reproducible in a multi-processing sub-event
+// setting
+void Cave::BeginPrimary()
+{
+  static int primcounter = 0;
+
+  auto& conf = o2::conf::SimConfig::Instance();
+  auto chunks = conf.getInternalChunkSize();
+  if (chunks != -1) {
+    if (primcounter % chunks == 0) {
+      static int counter = 1;
+      auto seed = counter + 10;
+      gRandom->SetSeed(seed);
+      counter++;
+    }
+  }
+  primcounter++;
+}
+
 bool Cave::ProcessHits(FairVolume*)
 {
-  LOG(FATAL) << "CAVE ProcessHits called; should never happen" << FairLogger::endl;
+  LOG(FATAL) << "CAVE ProcessHits called; should never happen";
   return false;
 }
 

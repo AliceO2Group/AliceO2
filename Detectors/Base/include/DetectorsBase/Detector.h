@@ -31,6 +31,12 @@
 #include <FairMQMessage.h>
 #include <FairMQParts.h>
 #include <TMessage.h>
+#include "CommonUtils/ShmManager.h"
+#include "CommonUtils/ShmAllocator.h"
+#include <sys/shm.h>
+#include <type_traits>
+#include <unistd.h>
+#include <cassert>
 
 namespace o2 {
 namespace Base {
@@ -164,6 +170,11 @@ class Detector : public FairDetector
       FairDetector::Initialize();
     }
 
+    // a second initialization method for stuff that should be initialized late
+    // (in our case after forking off from the main simulation setup
+    // ... for things that should be setup in each simulation worker separately)
+    virtual void initializeLate() = 0;
+
     // The GetCollection interface is made final and deprecated since
     // we no longer support TClonesArrays
     [[deprecated("Use getHits API on concrete detectors!")]]
@@ -204,6 +215,43 @@ inline std::string demangle(const char* name)
 }
 
 template <typename Container>
+void attachShmMessage(Container const& hits, FairMQChannel& channel, FairMQParts& parts, bool* busy_ptr)
+{
+  struct shmcontext {
+    int id;
+    void* object_ptr;
+    bool* busy_ptr;
+  };
+
+  auto& instance = o2::utils::ShmManager::Instance();
+  shmcontext info{ instance.getShmID(), (void*)&hits, busy_ptr };
+  LOG(DEBUG) << "-- SHM SEND --";
+  LOG(INFO) << "-- SENDING -- " << hits.size() << " HITS ";
+  LOG(INFO) << "-- OBJ PTR -- " << info.object_ptr << " ";
+  assert(instance.isPointerOk(info.object_ptr));
+
+  std::unique_ptr<FairMQMessage> message(channel.NewSimpleMessage(info));
+  parts.AddPart(std::move(message));
+}
+
+template <typename T>
+T decodeShmMessage(FairMQParts& dataparts, int index, bool*& busy)
+{
+  auto rawmessage = std::move(dataparts.At(index));
+  struct shmcontext {
+    int id;
+    void* object_ptr;
+    bool* busy_ptr;
+  };
+
+  shmcontext* info = (shmcontext*)rawmessage->GetData();
+  LOG(DEBUG) << " GOT SHMID " << info->id;
+
+  busy = info->busy_ptr;
+  return reinterpret_cast<T>(info->object_ptr);
+}
+
+template <typename Container>
 void attachTMessage(Container const& hits, FairMQChannel& channel, FairMQParts& parts)
 {
   TMessage* tmsg = new TMessage();
@@ -217,6 +265,10 @@ void attachTMessage(Container const& hits, FairMQChannel& channel, FairMQParts& 
 template <typename T>
 T decodeTMessage(FairMQParts& dataparts, int index)
 {
+  // sanity check
+  if (index >= dataparts.Size()) {
+    return T(0);
+  }
   class TMessageWrapper : public TMessage
   {
    public:
@@ -245,6 +297,12 @@ TBranch* getOrMakeBranch(TTree& tree, const char* brname, T* ptr)
   // otherwise make it
   return tree.Branch(brname, ptr);
 }
+
+// a trait to determine if we should use shared mem or serialize using TMessage
+template <typename Det>
+struct UseShm {
+  static constexpr bool value = false;
+};
 
 // an implementation helper template which automatically implements
 // common functionality for deriving classes via the CRT pattern
@@ -284,27 +342,59 @@ class DetImpl : public o2::Base::Detector
   void attachHits(FairMQChannel& channel, FairMQParts& parts) override
   {
     int probe = 0;
-    // std::cerr << "ATTACHING DETID " << GetDetId() << " NAME " << GetName() << "\n";
+    // check if there is anything to be attached
+    // at least the first hit index should return non nullptr
+    if (static_cast<Det*>(this)->Det::getHits(0) == nullptr) {
+      return;
+    }
+
     attachMetaMessage(GetDetId(), channel, parts); // the DetId s are universal as they come from o2::detector::DetID
+
     while (auto hits = static_cast<Det*>(this)->Det::getHits(probe++)) {
-      attachTMessage(*hits, channel, parts);
+      if (!UseShm<Det>::value || !o2::utils::ShmManager::Instance().isOperational()) {
+        attachTMessage(*hits, channel, parts);
+      } else {
+        // this is the shared mem variant
+        // we will just send the sharedmem ID and the offset inside
+        *mShmBusy[mCurrentBuffer] = true;
+        attachShmMessage(*hits, channel, parts, mShmBusy[mCurrentBuffer]);
+      }
     }
   }
 
+ public:
   void fillHitBranch(TTree& tr, FairMQParts& parts, int& index) override
   {
     int probe = 0;
     using Hit_t = decltype(static_cast<Det*>(this)->Det::getHits(probe));
     std::string name = static_cast<Det*>(this)->getHitBranchNames(probe++);
     while (name.size() > 0) {
-      // for each branch name we extract/decode hits from the message parts ...
-      auto hitsptr = decodeTMessage<Hit_t>(parts, index++);
+      if (!UseShm<Det>::value || !o2::utils::ShmManager::Instance().isOperational()) {
 
-      // ... and fill the tree branch
-      auto br = getOrMakeBranch(tr, name.c_str(), hitsptr);
-      br->Fill();
-      br->ResetAddress();
+        // for each branch name we extract/decode hits from the message parts ...
+        auto hitsptr = decodeTMessage<Hit_t>(parts, index++);
+        if (hitsptr) {
+          // ... and fill the tree branch
+          auto br = getOrMakeBranch(tr, name.c_str(), hitsptr);
+          br->SetAddress(static_cast<void*>(&hitsptr));
+          br->Fill();
+          br->ResetAddress();
+          delete hitsptr;
+        }
+      } else {
+        // for each branch name we extract/decode hits from the message parts ...
+        bool* busy;
+        auto hitsptr = decodeShmMessage<Hit_t>(parts, index++, busy);
+        LOG(INFO) << "GOT " << hitsptr->size() << " HITS ";
+        // ... and fill the tree branch
+        auto br = getOrMakeBranch(tr, name.c_str(), hitsptr);
+        br->SetAddress(static_cast<void*>(&hitsptr));
+        br->Fill();
+        br->ResetAddress();
 
+        // he we are done so unset the busy flag
+        *busy = false;
+      }
       // next name
       name = static_cast<Det*>(this)->getHitBranchNames(probe++);
     }
@@ -317,7 +407,109 @@ class DetImpl : public o2::Base::Detector
     return new Det(static_cast<const Det&>(*this));
   }
 
-  ClassDefOverride(DetImpl, 0)
+  void freeHitBuffers()
+  {
+    using Hit_t = decltype(static_cast<Det*>(this)->Det::getHits(0));
+    if (UseShm<Det>::value) {
+      for (int buffer = 0; buffer < NHITBUFFERS; ++buffer) {
+        for (auto ptr : mCachedPtr[buffer]) {
+          o2::utils::freeSimVector(static_cast<Hit_t>(ptr));
+        }
+      }
+    }
+  }
+
+  template <typename Hit_t>
+  bool setHits(int i, std::vector<Hit_t>* ptr)
+  {
+    if (i == 0) {
+      static_cast<Det*>(this)->Det::mHits = ptr;
+    }
+    return false;
+  }
+
+  // creating a number of hit buffers (in shared mem) -- to which
+  // detectors can write in round-robin fashion
+  void createHitBuffers()
+  {
+    using VectorHit_t = decltype(static_cast<Det*>(this)->Det::getHits(0));
+    using Hit_t = typename std::remove_pointer<VectorHit_t>::type::value_type;
+    for (int buffer = 0; buffer < NHITBUFFERS; ++buffer) {
+      int probe = 0;
+      bool more{ false };
+      do {
+        auto ptr = o2::utils::createSimVector<Hit_t>();
+        more = static_cast<Det*>(this)->Det::setHits(probe, ptr);
+        mCachedPtr[buffer].emplace_back(ptr);
+        probe++;
+      } while (more);
+    }
+  }
+
+  void initializeLate() final
+  {
+    if (!mInitialized) {
+      if (UseShm<Det>::value) {
+        static_cast<Det*>(this)->Det::createHitBuffers();
+        for (int b = 0; b < NHITBUFFERS; ++b) {
+          auto& instance = o2::utils::ShmManager::Instance();
+          mShmBusy[b] = instance.hasSegment() ? (bool*)instance.getmemblock(sizeof(bool)) : new bool;
+          *mShmBusy[b] = false;
+        }
+      }
+      mInitialized = true;
+      mCurrentBuffer = 0;
+    }
+  }
+
+  void BeginEvent() final
+  {
+    if (UseShm<Det>::value) {
+      mCurrentBuffer = (mCurrentBuffer + 1) % NHITBUFFERS;
+      while (mShmBusy[mCurrentBuffer] != nullptr && *mShmBusy[mCurrentBuffer]) {
+        // this should ideally never happen
+        LOG(INFO) << " BUSY WAITING SIZE ";
+        sleep(1);
+      }
+
+      using Hit_t = decltype(static_cast<Det*>(this)->Det::getHits(0));
+
+      // now we have to clear the hits before writing again
+      int probe = 0;
+      for (auto bareptr : mCachedPtr[mCurrentBuffer]) {
+        auto hits = static_cast<Hit_t>(bareptr);
+        // assign ..
+        static_cast<Det*>(this)->Det::setHits(probe, hits);
+        hits->clear();
+        probe++;
+      }
+    }
+  }
+
+  ~DetImpl() override
+  {
+    for (int i = 0; i < NHITBUFFERS; ++i) {
+      if (mShmBusy[i]) {
+        auto& instance = o2::utils::ShmManager::Instance();
+        if (instance.hasSegment()) {
+          instance.freememblock(mShmBusy[i]);
+        } else {
+          delete mShmBusy[i];
+        }
+      }
+    }
+    freeHitBuffers();
+  }
+
+ protected:
+  static constexpr int NHITBUFFERS = 3;      // number of buffers for hits in order to allow async processing
+                                             // in the hit merger without blocking nor copying the data
+                                             // (like done in typical data aquisition systems)
+  bool* mShmBusy[NHITBUFFERS] = { nullptr }; //! pointer to bool in shared mem indicating of IO busy
+  std::vector<void*> mCachedPtr[NHITBUFFERS];
+  int mCurrentBuffer = 0; // holding the current buffer information
+  int mInitialized = false;
+  ClassDefOverride(DetImpl, 0);
 };
 }
 }

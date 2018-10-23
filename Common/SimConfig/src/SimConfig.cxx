@@ -36,7 +36,7 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "outPrefix,o", bpo::value<std::string>()->default_value("o2sim"), "prefix of output files")(
     "logseverity", bpo::value<std::string>()->default_value("INFO"), "severity level for FairLogger")(
     "logverbosity", bpo::value<std::string>()->default_value("low"), "level of verbosity for FairLogger (low, medium, high, veryhigh)")(
-    "configKeyValues", bpo::value<std::string>()->default_value(""), "comma separated key=value strings (e.g.: 'TPC.gasDensity=1,...");
+    "configKeyValues", bpo::value<std::string>()->default_value(""), "comma separated key=value strings (e.g.: 'TPC.gasDensity=1,...")("chunkSize", bpo::value<unsigned int>()->default_value(10000), "max size of primary chunk (subevent) distributed by server")("chunkSizeI", bpo::value<int>()->default_value(-1), "internalChunkSize");
 }
 
 bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& vm)
@@ -50,6 +50,13 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
     for (int d = DetID::First; d <= DetID::Last; ++d) {
       active.emplace_back(DetID::getName(d));
     }
+    // add passive components manually (make a PassiveDetID for them!)
+    active.emplace_back("HALL");
+    active.emplace_back("MAG");
+    active.emplace_back("DIPO");
+    active.emplace_back("PIPE");
+    active.emplace_back("ABSO");
+    active.emplace_back("SHIL");
   }
   // now we take out detectors listed as skipped
   auto& skipped = vm["skipModules"].as<std::vector<std::string>>();
@@ -73,6 +80,8 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mLogSeverity = vm["logseverity"].as<std::string>();
   mConfigData.mLogVerbosity = vm["logverbosity"].as<std::string>();
   mConfigData.mKeyValueTokens = vm["configKeyValues"].as<std::string>();
+  mConfigData.mPrimaryChunkSize = vm["chunkSize"].as<unsigned int>();
+  mConfigData.mInternalChunkSize = vm["chunkSizeI"].as<int>();
   return true;
 }
 
