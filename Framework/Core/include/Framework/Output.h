@@ -59,7 +59,7 @@ struct Output {
   {
   }
 
-  bool operator==(const Output& that)
+  bool operator==(const Output& that) const
   {
     return origin == that.origin && description == that.description && subSpec == that.subSpec &&
            lifetime == that.lifetime;
