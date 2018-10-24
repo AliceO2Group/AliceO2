@@ -16,28 +16,68 @@
 #include <cstdint>
 #include <string>
 #include <variant>
+#include <vector>
 
 namespace o2
 {
 namespace framework
 {
+namespace data_matcher
+{
+
+/// Marks an empty item in the context
+struct None {
+};
+
+/// A typesafe reference to an element of the context.
+struct ContextRef {
+  size_t index;
+};
+
+/// An element of the matching context. Context itself is really a vector of
+/// those. It's up to the matcher builder to build the vector in a suitable way.
+/// We do not have any float in the value, because AFAICT there is no need for
+/// it in the O2 DataHeader, however we could add it later on.
+struct ContextElement {
+  std::string label;                               /// The name of the variable contained in this element.
+  std::variant<uint64_t, std::string, None> value; /// The actual contents of the element.
+};
 
 /// Something which can be matched against a header::DataOrigin
 class OriginValueMatcher
 {
  public:
+  /// Initialise the matcher with an actual value
   OriginValueMatcher(std::string const& s)
     : mValue{ s }
   {
   }
 
-  bool match(header::DataHeader const& header) const
+  /// This means that the matcher will fill a variable in the context if
+  /// the ref points to none or use the dereferenced value, if not.
+  OriginValueMatcher(ContextRef variableId)
+    : mValue{ variableId }
   {
-    return strncmp(header.dataOrigin.str, mValue.c_str(), 4) == 0;
+  }
+
+  bool match(header::DataHeader const& header, std::vector<ContextElement>& context) const
+  {
+    if (auto ref = std::get_if<ContextRef>(&mValue)) {
+      auto& variable = context.at(ref->index);
+      if (auto value = std::get_if<std::string>(&variable.value)) {
+        return strncmp(header.dataOrigin.str, value->c_str(), 4) == 0;
+      }
+      auto maxSize = strnlen(header.dataOrigin.str, 4);
+      variable.value = std::string(header.dataOrigin.str, maxSize);
+      return true;
+    } else if (auto s = std::get_if<std::string>(&mValue)) {
+      return strncmp(header.dataOrigin.str, s->c_str(), 4) == 0;
+    }
+    throw std::runtime_error("Mismatching type for variable");
   }
 
  private:
-  std::string mValue;
+  std::variant<std::string, ContextRef> mValue;
 };
 
 /// Something which can be matched against a header::DataDescription
@@ -49,13 +89,31 @@ class DescriptionValueMatcher
   {
   }
 
-  bool match(header::DataHeader const& header) const
+  /// This means that the matcher will fill a variable in the context if
+  /// the ref points to none or use the dereferenced value, if not.
+  DescriptionValueMatcher(ContextRef ref)
+    : mValue{ ref }
   {
-    return strncmp(header.dataDescription.str, mValue.c_str(), 8) == 0;
+  }
+
+  bool match(header::DataHeader const& header, std::vector<ContextElement>& context) const
+  {
+    if (auto ref = std::get_if<ContextRef>(&mValue)) {
+      auto& variable = context.at(ref->index);
+      if (auto value = std::get_if<std::string>(&variable.value)) {
+        return strncmp(header.dataDescription.str, value->c_str(), 16) == 0;
+      }
+      auto maxSize = strnlen(header.dataDescription.str, 16);
+      variable.value = std::string(header.dataDescription.str, maxSize);
+      return true;
+    } else if (auto s = std::get_if<std::string>(&mValue)) {
+      return strncmp(header.dataDescription.str, s->c_str(), 16) == 0;
+    }
+    throw std::runtime_error("Mismatching type for variable");
   }
 
  private:
-  std::string mValue;
+  std::variant<std::string, ContextRef> mValue;
 };
 
 /// Something which can be matched against a header::SubSpecificationType
@@ -65,21 +123,40 @@ class SubSpecificationTypeValueMatcher
   /// The passed string @a s is the expected numerical value for
   /// the SubSpecification type.
   SubSpecificationTypeValueMatcher(std::string const& s)
+    : SubSpecificationTypeValueMatcher(strtoull(s.c_str(), nullptr, 10))
   {
-    mValue = strtoull(s.c_str(), nullptr, 10);
   }
 
+  /// This means that the matcher is looking for a constant.
   SubSpecificationTypeValueMatcher(uint64_t v)
+    : mValue{ v }
   {
-    mValue = v;
   }
-  bool match(header::DataHeader const& header) const
+
+  /// This means that the matcher will fill a variable in the context if
+  /// the ref points to none or use the dereferenced value, if not.
+  SubSpecificationTypeValueMatcher(ContextRef ref)
+    : mValue{ ref }
   {
-    return header.subSpecification == mValue;
+  }
+
+  bool match(header::DataHeader const& header, std::vector<ContextElement>& context) const
+  {
+    if (auto ref = std::get_if<ContextRef>(&mValue)) {
+      auto& variable = context.at(ref->index);
+      if (auto value = std::get_if<uint64_t>(&variable.value)) {
+        return header.subSpecification == *value;
+      }
+      variable.value = header.subSpecification;
+      return true;
+    } else if (auto v = std::get_if<uint64_t>(&mValue)) {
+      return header.subSpecification == *v;
+    }
+    throw std::runtime_error("Mismatching type for variable");
   }
 
  private:
-  uint64_t mValue;
+  std::variant<uint64_t, ContextRef> mValue;
 };
 
 /// Something which can be matched against a header::SubSpecificationType
@@ -92,6 +169,7 @@ class ConstantValueMatcher
   {
     mValue = value;
   }
+
   bool match(header::DataHeader const& header) const
   {
     return mValue;
@@ -107,7 +185,7 @@ struct DescriptorMatcherTrait {
 
 template <>
 struct DescriptorMatcherTrait<header::DataOrigin> {
-  using Matcher = framework::OriginValueMatcher;
+  using Matcher = OriginValueMatcher;
 };
 
 template <>
@@ -147,33 +225,34 @@ class DataDescriptorMatcher
 
   /// @return true if the (sub-)query associated to this matcher will
   /// match the provided @a spec, false otherwise.
-  bool match(InputSpec const& spec) const
+  bool match(InputSpec const& spec, std::vector<ContextElement>& context) const
   {
     header::DataHeader dh;
     dh.dataOrigin = spec.origin;
     dh.dataDescription = spec.description;
     dh.subSpecification = spec.subSpec;
 
-    return this->match(dh);
+    return this->match(dh, context);
   }
 
-  bool match(header::DataHeader const& d) const
+  bool match(header::DataHeader const& d, std::vector<ContextElement>& context) const
   {
-    auto eval = [&d](auto&& arg) -> bool {
-      using T = std::decay_t<decltype(arg)>;
-      if constexpr (std::is_same_v<T, std::unique_ptr<DataDescriptorMatcher>>) {
-        return arg->match(d);
-      } else {
-        return arg.match(d);
-      }
-    };
-
     bool leftValue = false, rightValue = false;
 
     // FIXME: Using std::visit is not API compatible due to a new
     // exception being thrown. This is the ABI compatible version.
     // Replace with:
     //
+    // auto eval = [&d](auto&& arg) -> bool {
+    //   using T = std::decay_t<decltype(arg)>;
+    //   if constexpr (std::is_same_v<T, std::unique_ptr<DataDescriptorMatcher>>) {
+    //     return arg->match(d, context);
+    //   if constexpr (std::is_same_v<T, ConstantValueMatcher>) {
+    //     return arg->match(d);
+    //   } else {
+    //     return arg.match(d, context);
+    //   }
+    // };
     // switch (mOp) {
     //   case Op::Or:
     //     return std::visit(eval, mLeft) || std::visit(eval, mRight);
@@ -185,15 +264,14 @@ class DataDescriptorMatcher
     //     return std::visit(eval, mLeft);
     // }
     //  When we drop support for macOS 10.13
-
     if (auto pval0 = std::get_if<OriginValueMatcher>(&mLeft)) {
-      leftValue = pval0->match(d);
+      leftValue = pval0->match(d, context);
     } else if (auto pval1 = std::get_if<DescriptionValueMatcher>(&mLeft)) {
-      leftValue = pval1->match(d);
+      leftValue = pval1->match(d, context);
     } else if (auto pval2 = std::get_if<SubSpecificationTypeValueMatcher>(&mLeft)) {
-      leftValue = pval2->match(d);
+      leftValue = pval2->match(d, context);
     } else if (auto pval3 = std::get_if<std::unique_ptr<DataDescriptorMatcher>>(&mLeft)) {
-      leftValue = (*pval3)->match(d);
+      leftValue = (*pval3)->match(d, context);
     } else if (auto pval4 = std::get_if<ConstantValueMatcher>(&mLeft)) {
       leftValue = pval4->match(d);
     } else {
@@ -201,13 +279,13 @@ class DataDescriptorMatcher
     }
 
     if (auto pval0 = std::get_if<OriginValueMatcher>(&mRight)) {
-      rightValue = pval0->match(d);
+      rightValue = pval0->match(d, context);
     } else if (auto pval1 = std::get_if<DescriptionValueMatcher>(&mRight)) {
-      rightValue = pval1->match(d);
+      rightValue = pval1->match(d, context);
     } else if (auto pval2 = std::get_if<SubSpecificationTypeValueMatcher>(&mRight)) {
-      rightValue = pval2->match(d);
+      rightValue = pval2->match(d, context);
     } else if (auto pval3 = std::get_if<std::unique_ptr<DataDescriptorMatcher>>(&mRight)) {
-      rightValue = (*pval3)->match(d);
+      rightValue = (*pval3)->match(d, context);
     } else if (auto pval4 = std::get_if<ConstantValueMatcher>(&mRight)) {
       rightValue = pval4->match(d);
     }
@@ -231,7 +309,8 @@ class DataDescriptorMatcher
   Node mRight;
 };
 
-} // naemspace framework
+} // namespace data_matcher
+} // namespace framework
 } // namespace o2
 
 #endif // o2_framework_DataDescriptorMatcher_H_INCLUDED

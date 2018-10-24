@@ -19,6 +19,7 @@
 
 using namespace o2::framework;
 using namespace o2::header;
+using namespace o2::framework::data_matcher;
 
 BOOST_AUTO_TEST_CASE(TestSimpleMatching)
 {
@@ -59,11 +60,12 @@ BOOST_AUTO_TEST_CASE(TestSimpleMatching)
         ConstantValueMatcher{ true }))
   };
 
-  BOOST_CHECK(matcher.match(header0) == true);
-  BOOST_CHECK(matcher.match(header1) == false);
-  BOOST_CHECK(matcher.match(header2) == false);
-  BOOST_CHECK(matcher.match(header3) == false);
-  BOOST_CHECK(matcher.match(header4) == false);
+  std::vector<ContextElement> context;
+  BOOST_CHECK(matcher.match(header0, context) == true);
+  BOOST_CHECK(matcher.match(header1, context) == false);
+  BOOST_CHECK(matcher.match(header2, context) == false);
+  BOOST_CHECK(matcher.match(header3, context) == false);
+  BOOST_CHECK(matcher.match(header4, context) == false);
 
   DataDescriptorMatcher matcher1{
     DataDescriptorMatcher::Op::Or,
@@ -71,22 +73,22 @@ BOOST_AUTO_TEST_CASE(TestSimpleMatching)
     OriginValueMatcher{ "ITS" }
   };
 
-  BOOST_CHECK(matcher1.match(header0) == true);
-  BOOST_CHECK(matcher1.match(header1) == true);
-  BOOST_CHECK(matcher1.match(header2) == true);
-  BOOST_CHECK(matcher1.match(header3) == true);
-  BOOST_CHECK(matcher1.match(header4) == false);
+  BOOST_CHECK(matcher1.match(header0, context) == true);
+  BOOST_CHECK(matcher1.match(header1, context) == true);
+  BOOST_CHECK(matcher1.match(header2, context) == true);
+  BOOST_CHECK(matcher1.match(header3, context) == true);
+  BOOST_CHECK(matcher1.match(header4, context) == false);
 
   DataDescriptorMatcher matcher2{
     DataDescriptorMatcher::Op::Just,
     DescriptionValueMatcher{ "TRACKLET" }
   };
 
-  BOOST_CHECK(matcher2.match(header0) == false);
-  BOOST_CHECK(matcher2.match(header1) == true);
-  BOOST_CHECK(matcher2.match(header2) == true);
-  BOOST_CHECK(matcher2.match(header3) == false);
-  BOOST_CHECK(matcher2.match(header4) == true);
+  BOOST_CHECK(matcher2.match(header0, context) == false);
+  BOOST_CHECK(matcher2.match(header1, context) == true);
+  BOOST_CHECK(matcher2.match(header2, context) == true);
+  BOOST_CHECK(matcher2.match(header3, context) == false);
+  BOOST_CHECK(matcher2.match(header4, context) == true);
 }
 
 BOOST_AUTO_TEST_CASE(TestQueryBuilder)
@@ -116,33 +118,76 @@ BOOST_AUTO_TEST_CASE(TestQueryBuilder)
   header4.dataDescription = "TRACKLET";
   header4.subSpecification = 0;
 
+  /// In this test the context is empty, since we do not use any variables.
+  std::vector<ContextElement> context;
+
   auto matcher1 = DataDescriptorQueryBuilder::buildFromKeepConfig("TPC/CLUSTERS/1");
-  BOOST_CHECK(matcher1->match(header0) == true);
-  BOOST_CHECK(matcher1->match(header1) == false);
-  BOOST_CHECK(matcher1->match(header2) == false);
-  BOOST_CHECK(matcher1->match(header3) == false);
-  BOOST_CHECK(matcher1->match(header4) == false);
+  BOOST_CHECK(matcher1.matcher->match(header0, context) == true);
+  BOOST_CHECK(matcher1.matcher->match(header1, context) == false);
+  BOOST_CHECK(matcher1.matcher->match(header2, context) == false);
+  BOOST_CHECK(matcher1.matcher->match(header3, context) == false);
+  BOOST_CHECK(matcher1.matcher->match(header4, context) == false);
 
   auto matcher2 = DataDescriptorQueryBuilder::buildFromKeepConfig("ITS/TRACKLET/2");
-  BOOST_CHECK(matcher2->match(header0) == false);
-  BOOST_CHECK(matcher2->match(header1) == true);
-  BOOST_CHECK(matcher2->match(header2) == false);
-  BOOST_CHECK(matcher2->match(header3) == false);
-  BOOST_CHECK(matcher2->match(header4) == false);
+  BOOST_CHECK(matcher2.matcher->match(header0, context) == false);
+  BOOST_CHECK(matcher2.matcher->match(header1, context) == true);
+  BOOST_CHECK(matcher2.matcher->match(header2, context) == false);
+  BOOST_CHECK(matcher2.matcher->match(header3, context) == false);
+  BOOST_CHECK(matcher2.matcher->match(header4, context) == false);
 
   auto matcher3 = DataDescriptorQueryBuilder::buildFromKeepConfig("TPC/CLUSTERS/1,ITS/TRACKLET/2");
-  BOOST_CHECK(matcher3->match(header0) == true);
-  BOOST_CHECK(matcher3->match(header1) == true);
-  BOOST_CHECK(matcher3->match(header2) == false);
-  BOOST_CHECK(matcher3->match(header3) == false);
-  BOOST_CHECK(matcher3->match(header4) == false);
+  BOOST_CHECK(matcher3.matcher->match(header0, context) == true);
+  BOOST_CHECK(matcher3.matcher->match(header1, context) == true);
+  BOOST_CHECK(matcher3.matcher->match(header2, context) == false);
+  BOOST_CHECK(matcher3.matcher->match(header3, context) == false);
+  BOOST_CHECK(matcher3.matcher->match(header4, context) == false);
 
   auto matcher4 = DataDescriptorQueryBuilder::buildFromKeepConfig("");
-  BOOST_CHECK(matcher4->match(header0) == false);
-  BOOST_CHECK(matcher4->match(header1) == false);
-  BOOST_CHECK(matcher4->match(header2) == false);
-  BOOST_CHECK(matcher4->match(header3) == false);
-  BOOST_CHECK(matcher4->match(header4) == false);
+  BOOST_CHECK(matcher4.matcher->match(header0, context) == false);
+  BOOST_CHECK(matcher4.matcher->match(header1, context) == false);
+  BOOST_CHECK(matcher4.matcher->match(header2, context) == false);
+  BOOST_CHECK(matcher4.matcher->match(header3, context) == false);
+  BOOST_CHECK(matcher4.matcher->match(header4, context) == false);
+}
+
+// This checks matching using variables
+BOOST_AUTO_TEST_CASE(TestMatchingVariables)
+{
+  std::vector<ContextElement> context(1);
+
+  DataDescriptorMatcher matcher{
+    DataDescriptorMatcher::Op::And,
+    OriginValueMatcher{ ContextRef{ 0 } },
+    std::make_unique<DataDescriptorMatcher>(
+      DataDescriptorMatcher::Op::And,
+      DescriptionValueMatcher{ "CLUSTERS" },
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::And,
+        SubSpecificationTypeValueMatcher{ 1 },
+        ConstantValueMatcher{ true }))
+  };
+
+  DataHeader header0;
+  header0.dataOrigin = "TPC";
+  header0.dataDescription = "CLUSTERS";
+  header0.subSpecification = 1;
+
+  BOOST_CHECK(matcher.match(header0, context) == true);
+  auto s = std::get_if<std::string>(&context[0].value);
+  BOOST_CHECK(s != nullptr);
+  BOOST_CHECK(*s == "TPC");
+
+  // This will not match, because ContextRef{0} is bound
+  // to TPC already.
+  DataHeader header1;
+  header1.dataOrigin = "ITS";
+  header1.dataDescription = "CLUSTERS";
+  header1.subSpecification = 1;
+
+  BOOST_CHECK(matcher.match(header1, context) == false);
+  auto s1 = std::get_if<std::string>(&context[0].value);
+  BOOST_CHECK(s1 != nullptr);
+  BOOST_CHECK(*s1 == "TPC");
 }
 
 BOOST_AUTO_TEST_CASE(TestInputSpecMatching)
@@ -165,11 +210,13 @@ BOOST_AUTO_TEST_CASE(TestInputSpecMatching)
         ConstantValueMatcher{ true }))
   };
 
-  BOOST_CHECK(matcher.match(spec0) == true);
-  BOOST_CHECK(matcher.match(spec1) == false);
-  BOOST_CHECK(matcher.match(spec2) == false);
-  BOOST_CHECK(matcher.match(spec3) == false);
-  BOOST_CHECK(matcher.match(spec4) == false);
+  std::vector<ContextElement> context;
+
+  BOOST_CHECK(matcher.match(spec0, context) == true);
+  BOOST_CHECK(matcher.match(spec1, context) == false);
+  BOOST_CHECK(matcher.match(spec2, context) == false);
+  BOOST_CHECK(matcher.match(spec3, context) == false);
+  BOOST_CHECK(matcher.match(spec4, context) == false);
 
   DataDescriptorMatcher matcher1{
     DataDescriptorMatcher::Op::Or,
@@ -177,20 +224,20 @@ BOOST_AUTO_TEST_CASE(TestInputSpecMatching)
     OriginValueMatcher{ "ITS" }
   };
 
-  BOOST_CHECK(matcher1.match(spec0) == true);
-  BOOST_CHECK(matcher1.match(spec1) == true);
-  BOOST_CHECK(matcher1.match(spec2) == true);
-  BOOST_CHECK(matcher1.match(spec3) == true);
-  BOOST_CHECK(matcher1.match(spec4) == false);
+  BOOST_CHECK(matcher1.match(spec0, context) == true);
+  BOOST_CHECK(matcher1.match(spec1, context) == true);
+  BOOST_CHECK(matcher1.match(spec2, context) == true);
+  BOOST_CHECK(matcher1.match(spec3, context) == true);
+  BOOST_CHECK(matcher1.match(spec4, context) == false);
 
   DataDescriptorMatcher matcher2{
     DataDescriptorMatcher::Op::Just,
     DescriptionValueMatcher{ "TRACKLET" }
   };
 
-  BOOST_CHECK(matcher2.match(spec0) == false);
-  BOOST_CHECK(matcher2.match(spec1) == true);
-  BOOST_CHECK(matcher2.match(spec2) == true);
-  BOOST_CHECK(matcher2.match(spec3) == false);
-  BOOST_CHECK(matcher2.match(spec4) == true);
+  BOOST_CHECK(matcher2.match(spec0, context) == false);
+  BOOST_CHECK(matcher2.match(spec1, context) == true);
+  BOOST_CHECK(matcher2.match(spec2, context) == true);
+  BOOST_CHECK(matcher2.match(spec3, context) == false);
+  BOOST_CHECK(matcher2.match(spec4, context) == true);
 }
