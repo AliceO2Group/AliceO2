@@ -19,7 +19,22 @@ namespace o2
 namespace framework
 {
 
+namespace data_matcher
+{
 class DataDescriptorMatcher;
+}
+
+/// Struct describing a query.
+/// @a variableNames is filled with the variables which are
+/// referenced in the matcher string. We return it as part of the query so that it can
+/// be eventually passed to a different query builder which wants to use the
+/// same variable names.  Alternatively we could simply build the query in
+/// one go and return the number of
+/// variables required by the context. Not sure what's the best approach.
+struct DataDescriptorQuery {
+  std::vector<std::string> variableNames;
+  std::shared_ptr<data_matcher::DataDescriptorMatcher> matcher;
+};
 
 /// Various utilities to manipulate InputSpecs
 struct DataDescriptorQueryBuilder {
@@ -34,7 +49,7 @@ struct DataDescriptorQueryBuilder {
   /// config := spec;spec;...
   ///
   /// Example for config: TPC/CLUSTER/0;ITS/TRACKS/1
-  static std::shared_ptr<DataDescriptorMatcher> buildFromKeepConfig(std::string const& config);
+  static DataDescriptorQuery buildFromKeepConfig(std::string const& config);
 };
 
 } // namespace framework

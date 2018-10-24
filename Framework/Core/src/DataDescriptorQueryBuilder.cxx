@@ -16,12 +16,14 @@
 #include <string>
 #include <vector>
 
+using namespace o2::framework::data_matcher;
+
 namespace o2
 {
 namespace framework
 {
 
-std::shared_ptr<DataDescriptorMatcher> DataDescriptorQueryBuilder::buildFromKeepConfig(std::string const& config)
+DataDescriptorQuery DataDescriptorQueryBuilder::buildFromKeepConfig(std::string const& config)
 {
   static const std::regex specTokenRE(R"re((\w{1,4})/(\w{1,16})/(\d*))re");
   static const std::regex delimiter(",");
@@ -55,7 +57,8 @@ std::shared_ptr<DataDescriptorMatcher> DataDescriptorQueryBuilder::buildFromKeep
       result = std::move(next);
     }
   }
-  return std::move(result);
+
+  return std::move(DataDescriptorQuery{ {}, std::move(result) });
 }
 
 } // namespace framework

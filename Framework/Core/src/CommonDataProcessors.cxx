@@ -26,6 +26,8 @@
 #include <memory>
 #include <string>
 
+using namespace o2::framework::data_matcher;
+
 namespace o2
 {
 namespace framework
@@ -43,9 +45,10 @@ DataProcessorSpec CommonDataProcessors::getGlobalFileSink(std::vector<InputSpec>
     }
 
     bool hasOutputsToWrite = false;
-    auto outputMatcher = DataDescriptorQueryBuilder::buildFromKeepConfig(keepString);
+    auto [variables, outputMatcher] = DataDescriptorQueryBuilder::buildFromKeepConfig(keepString);
+    std::vector<ContextElement> context(variables.size());
     for (auto& spec : danglingOutputInputs) {
-      if (outputMatcher->match(spec)) {
+      if (outputMatcher->match(spec, context)) {
         hasOutputsToWrite = true;
       }
     }
@@ -62,13 +65,14 @@ DataProcessorSpec CommonDataProcessors::getGlobalFileSink(std::vector<InputSpec>
       });
     }
     auto output = std::make_shared<std::ofstream>(filename.c_str(), std::ios_base::binary);
-    return std::move([ output, matcher = outputMatcher ](ProcessingContext & pc) mutable->void {
+    return std::move([ output, matcher = outputMatcher, contextSize = variables.size() ](ProcessingContext & pc) mutable->void {
+      std::vector<ContextElement> matchingContext(contextSize);
       LOG(INFO) << "processing data set with " << pc.inputs().size() << " entries";
       for (const auto& entry : pc.inputs()) {
         LOG(INFO) << "  " << *(entry.spec);
         auto header = DataRefUtils::getHeader<header::DataHeader*>(entry);
         auto dataProcessingHeader = DataRefUtils::getHeader<DataProcessingHeader*>(entry);
-        if (matcher->match(*header) == false) {
+        if (matcher->match(*header, matchingContext) == false) {
           continue;
         }
         output->write(reinterpret_cast<char const*>(header), sizeof(header::DataHeader));
