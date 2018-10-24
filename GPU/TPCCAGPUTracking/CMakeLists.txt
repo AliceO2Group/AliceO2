@@ -57,6 +57,8 @@ set(SRCS SliceTracker/AliHLTTPCCATrack.cxx
     TRDTracking/AliHLTTRDTrack.cxx
     TRDTracking/AliHLTTRDTracker.cxx
     TRDTracking/AliHLTTRDTrackletWord.cxx
+
+    GlobalTracker/AliGPUReconstruction.cxx
 )
 
 #Some extra files / includes / settings needed for the build for AliRoot

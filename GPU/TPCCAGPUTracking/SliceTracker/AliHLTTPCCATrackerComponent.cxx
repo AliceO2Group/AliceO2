@@ -74,10 +74,10 @@ ClassImp( AliHLTTPCCATrackerComponent )
   fMinNTrackClusters( -1 ),
   fMinTrackPt(MIN_TRACK_PT_DEFAULT),
   fClusterZCut( 500. ),
-  fNeighboursSearchArea( 0 ), 
-  fClusterErrorCorrectionY(0), 
+  fNeighboursSearchArea( 0 ),
+  fClusterErrorCorrectionY(0),
   fClusterErrorCorrectionZ(0),
-  fBenchmark("CATracker"), 
+  fBenchmark("CATracker"),
   fAllowGPU( 0),
   fGPUHelperThreads(-1),
   fCPUTrackers(0),
@@ -113,7 +113,7 @@ AliHLTProcessor(),
   fMinTrackPt( MIN_TRACK_PT_DEFAULT ),
   fClusterZCut( 500. ),
   fNeighboursSearchArea(0),
-  fClusterErrorCorrectionY(0), 
+  fClusterErrorCorrectionY(0),
   fClusterErrorCorrectionZ(0),
   fBenchmark("CATracker"),
   fAllowGPU( 0),
@@ -812,7 +812,7 @@ void* AliHLTTPCCATrackerComponent::TrackerDoEvent(void* par)
             if (rl == NULL) {printf("RL\n"); break;}
             
             rl->LoadKinematics();
-            rl->LoadTrackRefs(); 
+            rl->LoadTrackRefs();
             
             int nTracks = rl->GetHeader()->GetNtrack();
             
@@ -899,7 +899,7 @@ void* AliHLTTPCCATrackerComponent::TrackerDoEvent(void* par)
           }
         }
       }
-      out.close();      
+      out.close();
     }
   }
 

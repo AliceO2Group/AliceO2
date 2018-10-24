@@ -4,11 +4,7 @@ include						config_common.mak
 TARGET						= libAliHLTTPCCAGPUSACUDA
 TARGETTYPE					= LIB
 
-ifeq ($(ARCH_CYGWIN), 1)
-CXXFILES					+=
-endif
-CXXFILES					+= GlobalTracker/AliHLTTPCCAGPUTrackerBase.cxx
-
+CXXFILES					= 
 CUFILES						= GlobalTracker/cuda/AliHLTTPCCAGPUTrackerNVCC.cu
 ASMFILES					=
 

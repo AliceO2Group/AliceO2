@@ -1,4 +1,5 @@
 #include "AliHLTTPCCAStandaloneFramework.h"
+#include "AliGPUReconstruction.h"
 #include "AliHLTArray.h"
 #include "AliHLTTPCCADef.h"
 
@@ -41,6 +42,8 @@
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/ClusterHardware.h"
 #endif
+
+AliGPUReconstruction* rec = AliGPUReconstruction::CreateInstance();
 
 //#define BROKEN_EVENTS
 

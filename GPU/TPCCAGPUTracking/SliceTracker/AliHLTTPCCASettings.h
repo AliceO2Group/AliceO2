@@ -56,6 +56,6 @@ typedef unsigned int cahit;
 //#define HLTCA_FULL_CLUSTERDATA						//Store all cluster information in the cluster data, also those not needed for tracking.
 //#define GMPropagatePadRowTime							//Propagate Pad, Row, Time cluster information to GM
 //#define GMPropagatorUseFullField						//Use offline magnetic field during GMPropagator prolongation
-//#define GPUseStatError									//Use statistical errors from offline in track fit
+//#define GPUseStatError								//Use statistical errors from offline in track fit
 
 #endif
