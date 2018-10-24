@@ -274,6 +274,15 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    O2FrameworkCore_benchmark_bucket
+
+    DEPENDENCIES
+    O2FrameworkCore_bucket
+    $<IF:$<BOOL:${benchmark_FOUND}>,benchmark::benchmark,$<0:"">>
+)
+
+o2_define_bucket(
+    NAME
     FrameworkApplication_bucket
 
     DEPENDENCIES

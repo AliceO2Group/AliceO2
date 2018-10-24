@@ -248,6 +248,14 @@ set(TEST_SRCS
       test/test_WorkflowHelpers.cxx
    )
 
+set(BENCH_SRCS test/benchmark_DataDescriptorMatcher.cxx)
+
+O2_GENERATE_TESTS(
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME O2FrameworkCore_benchmark_bucket
+  TEST_SRCS ${BENCH_SRCS}
+)
+
 O2_GENERATE_TESTS(
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${BUCKET_NAME}
