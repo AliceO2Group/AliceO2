@@ -40,7 +40,9 @@ CXXFILES					= SliceTracker/AliHLTTPCCASliceData.cxx \
 								SliceTracker/AliHLTTPCCAGPUTracker.cxx \
 								SliceTracker/AliHLTTPCCATrackParam.cxx \
 								SliceTracker/AliHLTTPCCAClusterData.cxx \
-								SliceTracker/AliHLTTPCCATrackerFramework.cxx
+								SliceTracker/AliHLTTPCCATrackerFramework.cxx \
+								GlobalTracker/AliHLTTPCCAGPUTrackerBase.cxx \
+								GlobalTracker/AliGPUReconstruction.cxx
 
 HLTCA_MERGER_CXXFILES		= Merger/AliHLTTPCGMMerger.cxx \
 								Merger/AliHLTTPCGMSliceTrack.cxx \

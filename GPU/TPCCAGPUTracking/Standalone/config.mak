@@ -20,8 +20,8 @@ SUBTARGETS_CLEAN			+= libAliHLTTPCCAGPUSAOpenCL.*
 
 CXXFILES					+= standalone.cxx \
 								$(HLTCA_STANDALONE_CXXFILES) \
-									$(HLTCA_MERGER_CXXFILES) \
-									$(HLTCA_TRD_CXXFILES)
+								$(HLTCA_MERGER_CXXFILES) \
+								$(HLTCA_TRD_CXXFILES)
 
 CPPFILES					+= cmodules/qconfig.cpp
 

@@ -169,7 +169,7 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
   void SetOutput( AliHLTTPCCASliceOutput** out ) { fOutput = out; }
   int ReadEvent( AliHLTTPCCAClusterData *clusterData );
 
-  GPUhd() const AliHLTTPCCASliceOutput::outputControlStruct* OutputControl() const { return fOutputControl; }  
+  GPUhd() const AliHLTTPCCASliceOutput::outputControlStruct* OutputControl() const { return fOutputControl; }
   GPUh() void SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* const val)	{ fOutputControl = val;	}
 
   GPUhd() AliHLTTPCCAClusterData *ClusterData() const { return fClusterData; }
@@ -190,7 +190,7 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
 
   GPUh() void SetGPUSliceDataMemory(void* const pSliceMemory, void* const pRowMemory) { fData.SetGPUSliceDataMemory(pSliceMemory, pRowMemory); }
 
-#endif  
+#endif
   
   MEM_CLASS_PRE2() GPUd() void GetErrors2( int iRow,  const MEM_LG2(AliHLTTPCCATrackParam) &t, float &ErrY2, float &ErrZ2 ) const
   {
@@ -306,7 +306,7 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
 
   void PerformGlobalTracking(AliHLTTPCCATracker& sliceLeft, AliHLTTPCCATracker& sliceRight, int MaxTracksLeft, int MaxTracksRight);
 
-#ifdef HLTCA_STANDALONE  
+#ifdef HLTCA_STANDALONE
   void StartTimer(int i) {if (fGPUDebugLevel) fTimers[i].Start();}
   void StopTimer(int i) {if (fGPUDebugLevel) fTimers[i].Stop();}
   double GetTimer(int i) {return fTimers[i].GetElapsedTime();}
@@ -360,7 +360,7 @@ private:
   GPUglobalref() AliHLTTPCCAHitId *fTrackletTmpStartHits;	//Unsorted start hits
   GPUglobalref() char* fGPUTrackletTemp;					//Temp Memory for GPU Tracklet Constructor
   GPUglobalref() int* fRowBlockTracklets;					//Reference which tracklet is processed in which rowblock next
-  GPUglobalref() int4* fRowBlockPos;							//x is last tracklet to be processed, y is last tracklet already processed, z is last tracklet to be processed in next iteration, w is initial x value to check if tracklet must be initialized  
+  GPUglobalref() int4* fRowBlockPos;							//x is last tracklet to be processed, y is last tracklet already processed, z is last tracklet to be processed in next iteration, w is initial x value to check if tracklet must be initialized
   GPUglobalref() uint2* fBlockStartingTracklet;			// First Tracklet that is to be processed by current GPU MP
 
   MEM_LG(StructGPUParametersConst) fGPUParametersConst; // Parameters for GPU if this is a GPU tracker
