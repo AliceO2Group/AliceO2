@@ -277,6 +277,16 @@ class DataDescriptorMatcher
     } else {
       throw std::runtime_error("Bad parsing tree");
     }
+    // Common speedup.
+    if (mOp == Op::And && leftValue == false) {
+      return false;
+    }
+    if (mOp == Op::Or && leftValue == true) {
+      return true;
+    }
+    if (mOp == Op::Just) {
+      return leftValue;
+    }
 
     if (auto pval0 = std::get_if<OriginValueMatcher>(&mRight)) {
       rightValue = pval0->match(d, context);
