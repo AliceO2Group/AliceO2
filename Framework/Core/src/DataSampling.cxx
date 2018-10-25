@@ -185,21 +185,24 @@ QcTaskConfigurations DataSampling::readQcTasksConfiguration(const std::string& c
 
     for (auto&& input : taskInputsSplit) {
 
-      InputSpec desiredData;
+      std::string binding;
+      header::DataOrigin origin;
+      header::DataDescription description;
+
       try {
-        desiredData.binding = configFile->get<std::string>(prefixConfigTasks + input + ".inputName");
+        binding = configFile->get<std::string>(prefixConfigTasks + input + ".inputName");
+        std::string originStr = configFile->get<std::string>(prefixConfigTasks + input + ".dataOrigin");
+        std::string descriptionStr = configFile->get<std::string>(prefixConfigTasks + input + ".dataDescription");
 
-        std::string origin = configFile->get<std::string>(prefixConfigTasks + input + ".dataOrigin");
-        origin.copy(desiredData.origin.str, (size_t)desiredData.origin.size);
-
-        std::string description = configFile->get<std::string>(prefixConfigTasks + input + ".dataDescription");
-        description.copy(desiredData.description.str, (size_t)desiredData.description.size);
-
+        originStr.copy(origin.str, (size_t)origin.size);
+        descriptionStr.copy(description.str, (size_t)description.size);
       } catch (...) {
         LOG(ERROR) << "QC Task configuration error. In file " << configurationSource << " input " << input
                    << " has missing values";
         continue;
       }
+
+      InputSpec desiredData{binding, origin, description, 0};
       task.desiredDataSpecs.push_back(desiredData);
 
       // for temporary feature
