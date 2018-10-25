@@ -75,7 +75,7 @@ endif
 
 ifneq (${CONFIG_O2DIR}, )
 DEFINES						+= HAVE_O2HEADERS
-INCLUDEPATHSSYSTEM			+= ${CONFIG_O2DIR}/Detectors/TPC/base/include ${CONFIG_O2DIR}/DataFormats/Detectors/TPC/include
+INCLUDEPATHSSYSTEM			+= ${CONFIG_O2DIR}/Detectors/TPC/base/include ${CONFIG_O2DIR}/DataFormats/Detectors/TPC/include ${CONFIG_O2DIR}/Detectors/TRD/base/include
 endif
 
 ifeq ($(CONFIG_O2), 1)

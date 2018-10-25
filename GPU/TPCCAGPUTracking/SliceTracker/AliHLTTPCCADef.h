@@ -37,6 +37,7 @@
 #if defined(HLTCA_STANDALONE) || defined(__OPENCL__) || !defined(HLTCA_BUILD_ALIROOT_LIB) || defined(HLTCA_GPULIBRARY)
   #if !defined(ROOT_Rtypes) && !defined(__CLING__)
     #define ClassDef(name,id)
+    #define ClassDefNV(name, id)
     #define ClassImp(name)
   #endif
 #else
