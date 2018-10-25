@@ -40,11 +40,11 @@ BOOST_AUTO_TEST_CASE(TestVerifyWorkflow)
 
   // A non fully specified input is an error, given the result is ambiguous.
   // Completely ambiguous.
-  checkIncompleteInput(WorkflowSpec{ { "A", { InputSpec{} } } });
+  checkIncompleteInput(WorkflowSpec{ { "A", { InputSpec{ "", "", "" } } } });
   // missing origin and description
-  checkIncompleteInput(WorkflowSpec{ { "A", { InputSpec{ "x" } } } });
+  checkIncompleteInput(WorkflowSpec{ { "A", { InputSpec{ "x", "", "" } } } });
   // missing description
-  checkIncompleteInput(WorkflowSpec{ { "A", { InputSpec{ "x", "TST" } } } });
+  checkIncompleteInput(WorkflowSpec{ { "A", { InputSpec{ "x", "TST", "" } } } });
   // This is fine, since by default both subSpec == 0 and
   // Timeframe are assumed.
   checkOk(WorkflowSpec{ { "A", { InputSpec{ "x", "TST", "A" } } } });

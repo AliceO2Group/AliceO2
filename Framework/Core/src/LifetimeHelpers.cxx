@@ -11,7 +11,7 @@
 #include "Framework/LifetimeHelpers.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/RawDeviceService.h"
-#include "Framework/InputRoute.h"
+#include "Framework/InputSpec.h"
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
 #include "MemoryResources/MemoryResources.h"
@@ -107,25 +107,25 @@ ExpirationHandler::Handler LifetimeHelpers::fetchFromObjectRegistry()
 }
 
 /// Enumerate entries on every invokation.
-ExpirationHandler::Handler LifetimeHelpers::enumerate(InputRoute const& route)
+ExpirationHandler::Handler LifetimeHelpers::enumerate(InputSpec const& matcher, std::string const& sourceChannel)
 {
   auto counter = std::make_shared<int64_t>(0);
-  auto f = [route, counter](ServiceRegistry& services, PartRef& ref, uint64_t timestamp) -> void {
+  auto f = [matcher, counter, sourceChannel](ServiceRegistry& services, PartRef& ref, uint64_t timestamp) -> void {
     // We should invoke the handler only once.
     assert(!ref.header);
     assert(!ref.payload);
     auto& rawDeviceService = services.get<RawDeviceService>();
 
     DataHeader dh;
-    dh.dataOrigin = route.matcher.origin;
-    dh.dataDescription = route.matcher.description;
-    dh.subSpecification = route.matcher.subSpec;
+    dh.dataOrigin = matcher.origin;
+    dh.dataDescription = matcher.description;
+    dh.subSpecification = matcher.subSpec;
     dh.payloadSize = 8;
     dh.payloadSerializationMethod = gSerializationMethodNone;
 
     DataProcessingHeader dph{ timestamp, 1 };
 
-    auto&& transport = rawDeviceService.device()->GetChannel(route.sourceChannel, 0).Transport();
+    auto&& transport = rawDeviceService.device()->GetChannel(sourceChannel, 0).Transport();
     auto channelAlloc = o2::memory_resource::getTransportAllocator(transport);
     auto header = o2::memory_resource::getMessage(o2::header::Stack{ channelAlloc, dh, dph });
     ref.header = std::move(header);

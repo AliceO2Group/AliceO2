@@ -32,21 +32,12 @@ using Stack = o2::header::Stack;
 // and the subsequent InputRecord is immediately requested.
 BOOST_AUTO_TEST_CASE(TestNoWait) {
   Monitoring metrics;
-  InputSpec spec;
-  spec.binding = "clusters";
-  spec.description = "CLUSTERS";
-  spec.origin = "TPC";
-  spec.subSpec = 0;
-  spec.lifetime = Lifetime::Timeframe;
-
-  InputRoute route;
-  route.sourceChannel = "Fake";
-  route.matcher = spec;
-  route.timeslice = 0;
+  InputSpec spec{ "clusters", "TPC", "CLUSTERS" };
 
   std::vector<InputRoute> inputs = {
-    route
+    InputRoute{ spec, "Fake", 0 }
   };
+
   std::vector<ForwardRoute> forwards;
   TimesliceIndex index;
 
@@ -81,31 +72,22 @@ BOOST_AUTO_TEST_CASE(TestNoWait) {
 // correctly relayed before being processed.
 BOOST_AUTO_TEST_CASE(TestRelay) {
   Monitoring metrics;
-  InputSpec spec1;
-  spec1.binding = "clusters";
-  spec1.description = "CLUSTERS";
-  spec1.origin = "TPC";
-  spec1.subSpec = 0;
-  spec1.lifetime = Lifetime::Timeframe;
+  InputSpec spec1{
+    "clusters",
+    "TPC",
+    "CLUSTERS",
+  };
+  InputSpec spec2{
+    "clusters_its",
+    "ITS",
+    "CLUSTERS",
+  };
 
-  InputSpec spec2;
-  spec2.binding = "clusters_its";
-  spec2.description = "CLUSTERS";
-  spec2.origin = "ITS";
-  spec2.subSpec = 0;
-  spec2.lifetime = Lifetime::Timeframe;
+  std::vector<InputRoute> inputs = {
+    InputRoute{ spec1, "Fake1", 0 },
+    InputRoute{ spec2, "Fake2", 0 }
+  };
 
-  InputRoute route1;
-  route1.sourceChannel = "Fake";
-  route1.matcher = spec1;
-  route1.timeslice = 0;
-
-  InputRoute route2;
-  route2.sourceChannel = "Fake";
-  route2.matcher = spec2;
-  route2.timeslice = 0;
-
-  std::vector<InputRoute> inputs = { route1, route2 };
   std::vector<ForwardRoute> forwards;
 
   TimesliceIndex index;
@@ -157,20 +139,10 @@ BOOST_AUTO_TEST_CASE(TestRelay) {
 // the cache.
 BOOST_AUTO_TEST_CASE(TestCache) {
   Monitoring metrics;
-  InputSpec spec;
-  spec.binding = "clusters";
-  spec.description = "CLUSTERS";
-  spec.origin = "TPC";
-  spec.subSpec = 0;
-  spec.lifetime = Lifetime::Timeframe;
-
-  InputRoute route;
-  route.sourceChannel = "Fake";
-  route.matcher = spec;
-  route.timeslice = 0;
+  InputSpec spec{ "clusters", "TPC", "CLUSTERS" };
 
   std::vector<InputRoute> inputs = {
-    route
+    InputRoute{ spec, "Fake", 0 }
   };
   std::vector<ForwardRoute> forwards;
 
@@ -231,34 +203,14 @@ BOOST_AUTO_TEST_CASE(TestCache) {
 // it will run immediately.
 BOOST_AUTO_TEST_CASE(TestPolicies) {
   Monitoring metrics;
-  InputSpec spec1;
-  spec1.binding = "clusters";
-  spec1.description = "CLUSTERS";
-  spec1.origin = "TPC";
-  spec1.subSpec = 0;
-  spec1.lifetime = Lifetime::Timeframe;
-
-  InputSpec spec2;
-  spec2.binding = "tracks";
-  spec2.description = "TRACKS";
-  spec2.origin = "TPC";
-  spec2.subSpec = 0;
-  spec2.lifetime = Lifetime::Timeframe;
-
-  InputRoute route1;
-  route1.sourceChannel = "Fake";
-  route1.matcher = spec1;
-  route1.timeslice = 0;
-
-  InputRoute route2;
-  route2.sourceChannel = "Fake2";
-  route2.matcher = spec2;
-  route2.timeslice = 0;
+  InputSpec spec1{ "clusters", "TPC", "CLUSTERS" };
+  InputSpec spec2{ "tracks", "TPC", "TRACKS" };
 
   std::vector<InputRoute> inputs = {
-    route1,
-    route2
+    InputRoute{ spec1, "Fake1", 0 },
+    InputRoute{ spec2, "Fake2", 0 },
   };
+
   std::vector<ForwardRoute> forwards;
   TimesliceIndex index;
 

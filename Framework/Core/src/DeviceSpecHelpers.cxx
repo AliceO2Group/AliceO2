@@ -58,10 +58,10 @@ struct ExpirationHandlerHelpers {
     return [](ConfigParamRegistry const&) { return LifetimeHelpers::expireNever(); };
   }
 
-  static InputRoute::ExpirationConfigurator expiringConditionConfigurator(InputRoute& route)
+  static InputRoute::ExpirationConfigurator expiringConditionConfigurator(InputSpec const& matcher)
   {
-    return [route](ConfigParamRegistry const&) {
-      std::string prefix = std::string{ "/" } + route.matcher.origin.str + "/" + route.matcher.description.str;
+    return [matcher](ConfigParamRegistry const&) {
+      std::string prefix = std::string{ "/" } + matcher.origin.str + "/" + matcher.description.str;
       return LifetimeHelpers::fetchFromCCDBCache(prefix);
     };
   }
@@ -79,18 +79,18 @@ struct ExpirationHandlerHelpers {
     return [](ConfigParamRegistry const&) { return LifetimeHelpers::fetchFromQARegistry(); };
   }
 
-  static InputRoute::DanglingConfigurator danglingTimerConfigurator(InputRoute& route)
+  static InputRoute::DanglingConfigurator danglingTimerConfigurator(InputSpec const& matcher)
   {
-    return [route](ConfigParamRegistry const& options) {
-      std::string rateName = std::string{ "period-" } + route.matcher.origin.str + "-" + route.matcher.description.str;
+    return [matcher](ConfigParamRegistry const& options) {
+      std::string rateName = std::string{ "period-" } + matcher.binding;
       auto period = options.get<int>(rateName.c_str());
       return LifetimeHelpers::expireTimed(std::chrono::milliseconds(period));
     };
   }
 
-  static InputRoute::ExpirationConfigurator expiringTimerConfigurator(InputRoute& route)
+  static InputRoute::ExpirationConfigurator expiringTimerConfigurator(InputSpec const& matcher, std::string const& sourceChannel)
   {
-    return [route](ConfigParamRegistry const&) { return LifetimeHelpers::enumerate(route); };
+    return [matcher, sourceChannel](ConfigParamRegistry const&) { return LifetimeHelpers::enumerate(matcher, sourceChannel); };
   }
 
   static InputRoute::DanglingConfigurator danglingTransientConfigurator()
@@ -101,7 +101,7 @@ struct ExpirationHandlerHelpers {
     return [](ConfigParamRegistry const&) { return LifetimeHelpers::expireNever(); };
   }
 
-  static InputRoute::ExpirationConfigurator expiringTransientConfigurator(InputRoute& route)
+  static InputRoute::ExpirationConfigurator expiringTransientConfigurator(InputSpec const& matcher)
   {
     return [](ConfigParamRegistry const&) { return LifetimeHelpers::fetchFromObjectRegistry(); };
   }
@@ -252,11 +252,12 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices, 
       };
       device.outputs.emplace_back(route);
     } else {
-      ForwardRoute route;
-      route.matcher = workflow[edge.consumer].inputs[edge.consumerInputIndex];
-      route.channel = channel.name;
-      route.timeslice = edge.timeIndex;
-      route.maxTimeslices = consumer.maxInputTimeslices;
+      ForwardRoute route{
+        edge.timeIndex,
+        consumer.maxInputTimeslices,
+        workflow[edge.consumer].inputs[edge.consumerInputIndex],
+        channel.name
+      };
       device.forwards.emplace_back(route);
     }
   };
@@ -423,32 +424,43 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     auto const& edge = logicalEdges[ei];
     auto const& consumer = workflow[edge.consumer];
     auto& consumerDevice = devices[di];
-    InputRoute route;
-    route.matcher = consumer.inputs[edge.consumerInputIndex];
-    route.sourceChannel = consumerDevice.inputChannels[ci].name;
-    route.timeslice = edge.producerTimeIndex;
+
+    InputRoute::DanglingConfigurator danglingConfigurator;
+    InputRoute::ExpirationConfigurator expirationConfigurator;
+    auto const& inputSpec = consumer.inputs[edge.consumerInputIndex];
+    auto const& sourceChannel = consumerDevice.inputChannels[ci].name;
+
     switch (consumer.inputs[edge.consumerInputIndex].lifetime) {
       case Lifetime::Timeframe:
-        route.danglingConfigurator = ExpirationHandlerHelpers::danglingTimeframeConfigurator();
-        route.expirationConfigurator = ExpirationHandlerHelpers::expiringTimeframeConfigurator();
+        danglingConfigurator = ExpirationHandlerHelpers::danglingTimeframeConfigurator();
+        expirationConfigurator = ExpirationHandlerHelpers::expiringTimeframeConfigurator();
         break;
       case Lifetime::Condition:
-        route.danglingConfigurator = ExpirationHandlerHelpers::danglingConditionConfigurator();
-        route.expirationConfigurator = ExpirationHandlerHelpers::expiringConditionConfigurator(route);
+        danglingConfigurator = ExpirationHandlerHelpers::danglingConditionConfigurator();
+        expirationConfigurator = ExpirationHandlerHelpers::expiringConditionConfigurator(inputSpec);
         break;
       case Lifetime::QA:
-        route.danglingConfigurator = ExpirationHandlerHelpers::danglingQAConfigurator();
-        route.expirationConfigurator = ExpirationHandlerHelpers::expiringQAConfigurator();
+        danglingConfigurator = ExpirationHandlerHelpers::danglingQAConfigurator();
+        expirationConfigurator = ExpirationHandlerHelpers::expiringQAConfigurator();
         break;
       case Lifetime::Timer:
-        route.danglingConfigurator = ExpirationHandlerHelpers::danglingTimerConfigurator(route);
-        route.expirationConfigurator = ExpirationHandlerHelpers::expiringTimerConfigurator(route);
+        danglingConfigurator = ExpirationHandlerHelpers::danglingTimerConfigurator(inputSpec);
+        expirationConfigurator = ExpirationHandlerHelpers::expiringTimerConfigurator(inputSpec, sourceChannel);
         break;
       case Lifetime::Transient:
-        route.danglingConfigurator = ExpirationHandlerHelpers::danglingTransientConfigurator();
-        route.expirationConfigurator = ExpirationHandlerHelpers::expiringTransientConfigurator(route);
+        danglingConfigurator = ExpirationHandlerHelpers::danglingTransientConfigurator();
+        expirationConfigurator = ExpirationHandlerHelpers::expiringTransientConfigurator(inputSpec);
         break;
     }
+
+    InputRoute route{
+      inputSpec,
+      sourceChannel,
+      edge.producerTimeIndex,
+      danglingConfigurator,
+      expirationConfigurator
+    };
+
     consumerDevice.inputs.push_back(route);
   };
 

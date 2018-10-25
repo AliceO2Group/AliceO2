@@ -13,15 +13,16 @@
 #include "Framework/ExpirationHandler.h"
 #include "Framework/PartRef.h"
 
-#include <functional>
 #include <chrono>
+#include <functional>
+#include <string>
 
 namespace o2
 {
 namespace framework
 {
 
-struct InputRoute;
+struct InputSpec;
 
 /// Lifetime handlers are used to manage the cases in which data is not coming
 /// from the dataflow, but from some other source or trigger, e.g.,
@@ -58,13 +59,13 @@ struct LifetimeHelpers {
   /// FIXME: provide a way to customise the histogram from the configuration.
   static ExpirationHandler::Handler fetchFromObjectRegistry();
 
-  /// Enumerate entries on every invokation.  @a route is the route which the
+  /// Enumerate entries on every invokation.  @a matcher is the InputSpec which the
   /// given enumeration refers to. In particular messages created by the
   /// returned ExpirationHandler will have an header which matches the
   /// dataOrigin, dataDescrition and dataSpecification of the given @a route.
   /// The payload of each message will contain an incremental number for each
   /// message being created.
-  static ExpirationHandler::Handler enumerate(InputRoute const& route);
+  static ExpirationHandler::Handler enumerate(InputSpec const& spec, std::string const& sourceChannel);
 };
 
 } // namespace framework
