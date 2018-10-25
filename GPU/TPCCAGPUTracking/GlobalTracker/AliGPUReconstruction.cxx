@@ -129,7 +129,6 @@ template <class T> void AliGPUReconstruction::ReadData(FILE* fp, T** entries, un
 		numTotal += num[i];
 	}
 	(void) r;
-	printf("Read %s: %d\n", IOTYPENAMES[type], numTotal);
 }
 
 template <class T> void AliGPUReconstruction::AllocateIOMemoryHelper(unsigned int n, T* &ptr, std::unique_ptr<T[]> &u)

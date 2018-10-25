@@ -464,74 +464,89 @@ int main(int argc, char** argv)
 				}
 				else
 				{
-					std::ifstream in;
 					char filename[256];
 					sprintf(filename, "events/%s/" HLTCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
-					in.open(filename, std::ifstream::binary);
-					if (in.fail())
+					if (rec->ReadData(filename) == 0)
 					{
-						if (configStandalone.NEvents == -1) break;
-						printf("Error opening file %s\n", filename);
-						getchar();
-						return(1);
-					}
-					printf("Loading Event %d\n", i);
-
-					float shift;
-					if (config.nMerge && (config.shiftFirstEvent || iEventInTimeframe))
-					{
-						if (config.randomizeDistance)
+						printf("Event loaded with new format\n");
+						hlt.ResetMC();
+						for (int iSector = 0;iSector < 36;iSector++)
 						{
-							shift = disUniReal(rndGen2);
-							if (config.shiftFirstEvent)
-							{
-								if (iEventInTimeframe == 0) shift = shift * config.averageDistance;
-								else shift = (iEventInTimeframe + shift) * config.averageDistance;
-							}
-							else
-							{
-								if (iEventInTimeframe == 0) shift = 0;
-								else shift = (iEventInTimeframe - 0.5 + shift) * config.averageDistance;
-							}
-						}
-						else
-						{
-							if (config.shiftFirstEvent)
-							{
-								shift = config.averageDistance * (iEventInTimeframe + 0.5);
-							}
-							else
-							{
-								shift = config.averageDistance * (iEventInTimeframe);
-							}
+							AliHLTTPCCAClusterData& cdata = hlt.ClusterData(iSector);
+							cdata.StartReading(i, rec->mIOPtrs.nClusterData[iSector]);
+							memcpy(cdata.Clusters(), rec->mIOPtrs.clusterData[iSector], rec->mIOPtrs.nClusterData[iSector] * sizeof(rec->mIOPtrs.clusterData[iSector][0]));
+							cdata.SetNumberOfClusters(rec->mIOPtrs.nClusterData[iSector]);
 						}
 					}
 					else
 					{
-						shift = 0.;
-					}
-
-					if (config.nMerge == 0 || iEventInTimeframe == 0) hlt.StartDataReading(0);
-					hlt.ReadEvent(in, configStandalone.resetids, config.nMerge > 0, shift);
-					in.close();
-
-					for (int sl = 0;sl < 36;sl++) SetCollisionFirstCluster(iEventInTimeframe, sl, hlt.ClusterData(sl).NumberOfClusters());
-					SetCollisionFirstCluster(iEventInTimeframe, 36, hlt.GetNMCInfo());
-
-					if (config.nMerge)
-					{
-						iEventInTimeframe++;
-						if (iEventInTimeframe == config.nMerge || i == configStandalone.NEvents - 1)
+						printf("Attempting old format\n");
+						std::ifstream in;
+						in.open(filename, std::ifstream::binary);
+						if (in.fail())
 						{
-							iEventInTimeframe = 0;
+							if (configStandalone.NEvents == -1) break;
+							printf("Error opening file %s\n", filename);
+							getchar();
+							return(1);
+						}
+						printf("Loading Event %d\n", i);
+
+						float shift;
+						if (config.nMerge && (config.shiftFirstEvent || iEventInTimeframe))
+						{
+							if (config.randomizeDistance)
+							{
+								shift = disUniReal(rndGen2);
+								if (config.shiftFirstEvent)
+								{
+									if (iEventInTimeframe == 0) shift = shift * config.averageDistance;
+									else shift = (iEventInTimeframe + shift) * config.averageDistance;
+								}
+								else
+								{
+									if (iEventInTimeframe == 0) shift = 0;
+									else shift = (iEventInTimeframe - 0.5 + shift) * config.averageDistance;
+								}
+							}
+							else
+							{
+								if (config.shiftFirstEvent)
+								{
+									shift = config.averageDistance * (iEventInTimeframe + 0.5);
+								}
+								else
+								{
+									shift = config.averageDistance * (iEventInTimeframe);
+								}
+							}
 						}
 						else
 						{
-							continue;
+							shift = 0.;
+						}
+
+						if (config.nMerge == 0 || iEventInTimeframe == 0) hlt.StartDataReading(0);
+						hlt.ReadEvent(in, configStandalone.resetids, config.nMerge > 0, shift);
+						in.close();
+
+						for (int sl = 0;sl < 36;sl++) SetCollisionFirstCluster(iEventInTimeframe, sl, hlt.ClusterData(sl).NumberOfClusters());
+						SetCollisionFirstCluster(iEventInTimeframe, 36, hlt.GetNMCInfo());
+
+						if (config.nMerge)
+						{
+							iEventInTimeframe++;
+							if (iEventInTimeframe == config.nMerge || i == configStandalone.NEvents - 1)
+							{
+								iEventInTimeframe = 0;
+							}
+							else
+							{
+								continue;
+							}
 						}
 					}
 				}
-				hlt.FinishDataReading();
 				printf("Loading time: %'d us\n", (int) (1000000 * timerLoad.GetCurrentElapsedTime()));
 
 				printf("Processing Event %d\n", i);

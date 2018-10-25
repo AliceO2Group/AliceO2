@@ -50,11 +50,6 @@ class AliHLTTPCCAStandaloneFramework
     void StartDataReading( int guessForNumberOfClusters = 256 );
 
     /**
-     * finish reading of the event
-     */
-    void FinishDataReading();
-
-    /**
      *  perform event reconstruction
      */
     int ProcessEvent(int forceSingleSlice = -1, bool resetTimers = true);
@@ -94,6 +89,7 @@ class AliHLTTPCCAStandaloneFramework
 	int GetNMCInfo() {return(fMCInfo.size());}
 	const AliHLTTPCClusterMCLabel* GetMCLabels() {return(fMCLabels.data());}
 	const AliHLTTPCCAMCInfo* GetMCInfo() {return(fMCInfo.data());}
+    void ResetMC() {fMCLabels.clear(); fMCInfo.clear();}
 
   private:
 
