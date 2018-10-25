@@ -120,12 +120,6 @@ void AliHLTTPCCAStandaloneFramework::StartDataReading( int guessForNumberOfClust
   fMCInfo.clear();
 }
 
-void AliHLTTPCCAStandaloneFramework::FinishDataReading()
-{
-  //No longer needed
-}
-
-
 int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool resetTimers)
 {
   // perform the event reconstruction

@@ -87,6 +87,8 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
         DataCompression/AliHLTTPCClusterStatComponent.cxx
         TRDTracking/AliHLTTRDTrackerComponent.cxx
         TRDTracking/AliHLTTRDTrackletReaderComponent.cxx
+
+        GlobalTracker/AliHLTGPUDumpComponent.cxx
     )
 
     add_definitions(-DHLTCA_BUILD_ALIROOT_LIB)

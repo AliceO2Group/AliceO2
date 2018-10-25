@@ -55,7 +55,7 @@ class AliHLTTPCCAClusterData
     /**
      * prepare for the reading of event
      */
-    void StartReading( int sliceIndex, int guessForNumberOfClusters = 256 );
+    void StartReading( int sliceIndex, int guessForNumberOfClusters );
 
     Data* Clusters() { return(fData); }
     void SetNumberOfClusters(int number) {fNumberOfClusters = number;}
