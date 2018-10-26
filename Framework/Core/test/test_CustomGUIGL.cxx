@@ -17,6 +17,8 @@
 #include "Framework/ParallelContext.h"
 #include "Framework/runDataProcessing.h"
 #include "Framework/DebugGUI.h"
+
+#include "DebugGUI/Sokol3DUtils.h"
 #include "DebugGUI/imgui.h"
 
 using namespace o2::framework;
@@ -39,14 +41,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
       Inputs{
         { "test", "TST", "A" } },
       Outputs{},
-      AlgorithmSpec{adaptStateful(
+      AlgorithmSpec{ adaptStateful(
         [](CallbackService& callbacks) {
           void* window = initGUI("A test window");
           auto count = std::make_shared<int>(0);
+          sokol::init3DContext(window);
+
           auto guiCallback = [count]() {
             ImGui::Begin("Some sub-window");
             ImGui::Text("Counter value: %i", *count);
             ImGui::End();
+            sokol::render3D();
           };
           callbacks.set(CallbackService::Id::ClockTick,
                         [count, window, guiCallback]() {
