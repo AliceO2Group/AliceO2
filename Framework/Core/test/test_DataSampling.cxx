@@ -235,3 +235,19 @@ BOOST_AUTO_TEST_CASE(DataSamplingFairMq)
   BOOST_REQUIRE(channelConfig != disp->options.end());
 }
 
+BOOST_AUTO_TEST_CASE(InputSpecsForPolicy)
+{
+  std::string configFilePath = "json://" + std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSampling.json";
+  std::vector<InputSpec> inputs = DataSampling::InputSpecsForPolicy(configFilePath, "tpcclusters");
+
+  BOOST_CHECK_EQUAL(inputs.size(), 2);
+  BOOST_CHECK_EQUAL(inputs[0], (InputSpec{ "clusters_p", "DS", "tpcclusters-1", static_cast<DataHeader::SubSpecificationType>(-1) }));
+  BOOST_CHECK_EQUAL(inputs[0].binding, "clusters_p");
+  BOOST_CHECK_EQUAL(inputs[1], (InputSpec{ "clusters", "DS", "tpcclusters-0", static_cast<DataHeader::SubSpecificationType>(-1) }));
+  BOOST_CHECK_EQUAL(inputs[1].binding, "clusters");
+
+  std::unique_ptr<ConfigurationInterface> config = ConfigurationFactory::getConfiguration(configFilePath);
+  inputs = DataSampling::InputSpecsForPolicy(config.get(), "tpcclusters");
+
+  BOOST_CHECK_EQUAL(inputs.size(), 2);
+}

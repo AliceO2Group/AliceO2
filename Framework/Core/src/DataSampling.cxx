@@ -112,5 +112,38 @@ void DataSampling::CustomizeInfrastructure(std::vector<ChannelConfigurationPolic
   // now it cannot be done, since matching is possible only using data processors names
 }
 
+std::vector<InputSpec> DataSampling::InputSpecsForPolicy(const std::string& policiesSource, const std::string& policyName)
+{
+  std::unique_ptr<ConfigurationInterface> config = ConfigurationFactory::getConfiguration(policiesSource);
+  return InputSpecsForPolicy(config.get(), policyName);
+}
+
+std::vector<InputSpec> DataSampling::InputSpecsForPolicy(ConfigurationInterface* const config, const std::string& policyName)
+{
+  std::vector<InputSpec> inputs;
+  auto policiesTree = config->getRecursive("dataSamplingPolicies");
+
+  for (auto&& policyConfig : policiesTree) {
+    if (policyConfig.second.get<std::string>("id") == policyName) {
+      DataSamplingPolicy policy(policyConfig.second);
+      if (policy.getSubSpec() == -1) {
+        //fixme: support it, when wildcards are available
+        LOG(WARNING) << "InputSpecsForPolicy does not support subscriptions to all subSpecs yet.";
+      }
+      for (const auto& path : policy.getPathMap()) {
+        inputs.push_back(
+          InputSpec{
+            path.second.binding.value,
+            path.second.origin,
+            path.second.description,
+            path.second.subSpec,
+            path.second.lifetime });
+      }
+    }
+    break;
+  }
+  return inputs;
+}
+
 } // namespace framework
 } // namespace o2
