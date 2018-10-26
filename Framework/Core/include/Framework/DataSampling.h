@@ -78,6 +78,10 @@ class DataSampling
   static void CustomizeInfrastructure(std::vector<CompletionPolicy>&);
   /// \brief Applies blocking/nonblocking data sampling configuration to the workflow.
   static void CustomizeInfrastructure(std::vector<ChannelConfigurationPolicy>&);
+  /// \brief Provides InputSpecs to receive data for given DataSamplingPolicy
+  static std::vector<InputSpec> InputSpecsForPolicy(const std::string& policiesSource, const std::string& policyName);
+  /// \brief Provides InputSpecs to receive data for given DataSamplingPolicy
+  static std::vector<InputSpec> InputSpecsForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName);
 
  private:
   // Internal functions, used by GenerateInfrastructure()
