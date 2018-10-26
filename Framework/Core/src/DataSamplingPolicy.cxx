@@ -94,9 +94,6 @@ bool DataSamplingPolicy::match(const InputSpec& input) const
 
 bool DataSamplingPolicy::decide(const o2::framework::DataRef& dataRef)
 {
-  // protect from accessing conditions from different time-pipeline threads
-  std::lock_guard<std::mutex> guard(mDecisionMutex);
-
   return std::all_of(mConditions.begin(), mConditions.end(),
                      [dataRef](std::unique_ptr<DataSamplingCondition>& condition) {
                        return condition->decide(dataRef);
@@ -106,20 +103,17 @@ bool DataSamplingPolicy::decide(const o2::framework::DataRef& dataRef)
 const Output DataSamplingPolicy::prepareOutput(const InputSpec& input) const
 {
   auto result = mPaths.find(input);
-  return result != mPaths.end() ?
-         Output{ result->second.origin, result->second.description, input.subSpec, result->second.lifetime } :
-         Output{ header::gDataOriginInvalid, header::gDataDescriptionInvalid };
+  if (result != mPaths.end()) {
+    return Output{ result->second.origin, result->second.description, input.subSpec, result->second.lifetime };
+  } else {
+    return Output{ header::gDataOriginInvalid, header::gDataDescriptionInvalid };
+  }
 }
 
 const std::string& DataSamplingPolicy::getName() const
 {
   return mName;
 }
-
-//const std::vector<InputSpec>& DataSamplingPolicy::getInputs() const
-//{
-//  return mInputs;
-//}
 
 const DataSamplingPolicy::PathMap& DataSamplingPolicy::getPathMap() const
 {
@@ -138,7 +132,6 @@ std::string DataSamplingPolicy::getFairMQOutputChannelName() const
   std::string name = mFairMQOutputChannel.substr(nameBegin, nameEnd - nameBegin);
   return name;
 }
-
 
 const header::DataHeader::SubSpecificationType DataSamplingPolicy::getSubSpec() const
 {

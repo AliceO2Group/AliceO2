@@ -16,14 +16,13 @@
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
-#include <mutex>
-#include <boost/property_tree/ptree.hpp>
-
 #include "Headers/DataHeader.h"
 #include "Framework/InputSpec.h"
 #include "Framework/Output.h"
 #include "Framework/OutputSpec.h"
 #include "Framework/DataSamplingCondition.h"
+
+#include <boost/property_tree/ptree.hpp>
 
 namespace o2
 {
@@ -37,12 +36,13 @@ namespace framework
 class DataSamplingPolicy
 {
  private:
+  // todo: see if dpl matchers can be used here instead of this strange construction
   struct inputSpecHasher {
     size_t operator()(const InputSpec& i) const
     {
       return (static_cast<size_t>(i.description.itg[0]) << 32 |
-             static_cast<size_t>(i.description.itg[1])) ^
-               static_cast<size_t>(i.origin.itg[0]);
+              static_cast<size_t>(i.description.itg[1])) ^
+             static_cast<size_t>(i.origin.itg[0]);
     }
   };
   struct inputSpecEqual {
@@ -76,7 +76,6 @@ class DataSamplingPolicy
   const Output prepareOutput(const InputSpec&) const;
 
   const std::string& getName() const;
-  //  const std::vector<InputSpec>& getInputs() const;
   const PathMap& getPathMap() const;
   const header::DataHeader::SubSpecificationType getSubSpec() const;
   // optional fairmq channel to send stuff outside of DPL
@@ -92,8 +91,6 @@ class DataSamplingPolicy
   header::DataHeader::SubSpecificationType mSubSpec;
   std::vector<std::unique_ptr<DataSamplingCondition>> mConditions;
   std::string mFairMQOutputChannel;
-
-  std::mutex mDecisionMutex;
 };
 
 } // namespace framework

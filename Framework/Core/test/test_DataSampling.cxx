@@ -12,21 +12,23 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
+
 #include "Framework/DataSampling.h"
-#include <Framework/DataProcessingHeader.h>
-#include <Framework/ExternalFairMQDeviceProxy.h>
-#include <Framework/DataSamplingReadoutAdapter.h>
+#include "Framework/DataProcessingHeader.h"
+#include "Framework/ExternalFairMQDeviceProxy.h"
+#include "Framework/DataSamplingReadoutAdapter.h"
+#include "Headers/DataHeader.h"
+
+#include <Configuration/ConfigurationFactory.h>
 
 using namespace o2::framework;
+using namespace o2::configuration;
 using DataHeader = o2::header::DataHeader;
-using Stack = o2::header::Stack;
 using DataOrigin = o2::header::DataOrigin;
 using DataDescription = o2::header::DataDescription;
-//using namespace std;
 
 BOOST_AUTO_TEST_CASE(DataSamplingSimpleFlow)
 {
-  //  LOG(INFO) << (DataDescription("CLUSTERS_P") == DataDescription("CLUSTERS"));
   WorkflowSpec workflow{
     { "producer",
       Inputs{},
@@ -36,9 +38,9 @@ BOOST_AUTO_TEST_CASE(DataSamplingSimpleFlow)
       Outputs{ { "TPC", "CLUSTERS_P" } } }
   };
 
-  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSamplingDPL.json";
+  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSampling.json";
   std::cout << "config file : "
-            << "json:/" << configFilePath << std::endl;
+            << "json://" << configFilePath << std::endl;
   DataSampling::GenerateInfrastructure(workflow, "json://" + configFilePath);
 
   auto disp = std::find_if(workflow.begin(), workflow.end(),
@@ -86,7 +88,6 @@ BOOST_AUTO_TEST_CASE(DataSamplingSimpleFlow)
   BOOST_CHECK(disp->algorithm.onInit != nullptr);
 }
 
-
 BOOST_AUTO_TEST_CASE(DataSamplingParallelFlow)
 {
   WorkflowSpec workflow{
@@ -94,16 +95,14 @@ BOOST_AUTO_TEST_CASE(DataSamplingParallelFlow)
       Inputs{},
       { OutputSpec{ "TPC", "CLUSTERS", 0 },
         OutputSpec{ "TPC", "CLUSTERS", 1 },
-        OutputSpec{ "TPC", "CLUSTERS", 2 } },
-      AlgorithmSpec{ [](ProcessingContext& ctx) {} } }
+        OutputSpec{ "TPC", "CLUSTERS", 2 } } }
   };
 
   auto processingStages = parallel(
     DataProcessorSpec{
       "processingStage",
       Inputs{ { "dataTPC", "TPC", "CLUSTERS" } },
-      Outputs{ { "TPC", "CLUSTERS_P" } },
-      AlgorithmSpec{ [](ProcessingContext& ctx) {} } },
+      Outputs{ { "TPC", "CLUSTERS_P" } } },
     3,
     [](DataProcessorSpec& spec, size_t index) {
       spec.inputs[0].subSpec = index;
@@ -112,7 +111,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingParallelFlow)
 
   workflow.insert(std::end(workflow), std::begin(processingStages), std::end(processingStages));
 
-  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSamplingDPL.json";
+  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSampling.json";
   DataSampling::GenerateInfrastructure(workflow, "json://" + configFilePath);
 
   for (int i = 0; i < 3; ++i) {
@@ -162,28 +161,23 @@ BOOST_AUTO_TEST_CASE(DataSamplingParallelFlow)
   }
 }
 
-
 BOOST_AUTO_TEST_CASE(DataSamplingTimePipelineFlow)
 {
   WorkflowSpec workflow{
     { "producer",
       Inputs{},
-      { OutputSpec{ "TPC", "CLUSTERS", 0, Lifetime::Timeframe } },
-      AlgorithmSpec{
-        [](ProcessingContext& ctx) {} } },
+      { OutputSpec{ "TPC", "CLUSTERS", 0, Lifetime::Timeframe } } },
     timePipeline(
       DataProcessorSpec{
         "processingStage",
         Inputs{
           { "dataTPC", "TPC", "CLUSTERS", 0, Lifetime::Timeframe } },
         Outputs{
-          { "TPC", "CLUSTERS_P", 0, Lifetime::Timeframe } },
-        AlgorithmSpec{
-          [](ProcessingContext& ctx) {} } },
+          { "TPC", "CLUSTERS_P", 0, Lifetime::Timeframe } } },
       3)
   };
 
-  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSamplingDPL.json";
+  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSampling.json";
   DataSampling::GenerateInfrastructure(workflow, "json://" + configFilePath, 3);
 
   auto disp = std::find_if(workflow.begin(), workflow.end(),
@@ -198,7 +192,6 @@ BOOST_AUTO_TEST_CASE(DataSamplingTimePipelineFlow)
   BOOST_CHECK_EQUAL(disp->maxInputTimeslices, 3);
 }
 
-
 BOOST_AUTO_TEST_CASE(DataSamplingFairMq)
 {
   WorkflowSpec workflow{
@@ -209,7 +202,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingFairMq)
       dataSamplingReadoutAdapter({ "TPC", "RAWDATA" }))
   };
 
-  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSamplingFairMQ.json";
+  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSampling.json";
   DataSampling::GenerateInfrastructure(workflow, "json://" + configFilePath);
 
   auto disp = std::find_if(workflow.begin(), workflow.end(),

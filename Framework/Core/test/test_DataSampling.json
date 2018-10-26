@@ -1,6 +1,25 @@
 {
   "dataSamplingPolicies": [
     {
+      "id": "tpcclusters",
+      "active": "true",
+      "machines": [],
+      "dataHeaders": [
+        {
+          "binding": "clusters",
+          "dataOrigin": "TPC",
+          "dataDescription": "CLUSTERS"
+        },
+        {
+          "binding": "clusters_p",
+          "dataOrigin": "TPC",
+          "dataDescription": "CLUSTERS_P"
+        }
+      ],
+      "subSpec": "-1",
+      "samplingConditions": []
+    },
+    {
       "id": "tpcraw",
       "active": "true",
       "machines": [],

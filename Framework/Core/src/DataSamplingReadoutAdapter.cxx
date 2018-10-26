@@ -8,11 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <Common/DataBlock.h>
-
 #include "Framework/DataSamplingReadoutAdapter.h"
-#include "Headers/DataHeader.h"
 #include "Framework/DataProcessingHeader.h"
+#include "Headers/DataHeader.h"
+
+#include <Common/DataBlock.h>
 
 namespace o2
 {
