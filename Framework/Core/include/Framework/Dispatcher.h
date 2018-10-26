@@ -8,13 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file WorkflowDispatcher.h
-/// \brief Declaration of WorkflowDispatcher for O2 Data Sampling
+/// \file Dispatcher.h
+/// \brief Declaration of Dispatcher for O2 Data Sampling
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
-#ifndef ALICEO2_WORKFLOWDISPATCHER_H
-#define ALICEO2_WORKFLOWDISPATCHER_H
+#ifndef ALICEO2_DISPATCHER_H
+#define ALICEO2_DISPATCHER_H
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSamplingPolicy.h"
@@ -25,13 +25,13 @@ namespace o2
 namespace framework
 {
 
-class WorkflowDispatcher : public Task
+class Dispatcher : public Task
 {
  public:
   /// \brief Constructor
-  WorkflowDispatcher(const std::string name = std::string(), const std::string reconfSource = std::string());
+  Dispatcher(const std::string name, const std::string reconfigurationSource);
   /// \brief Destructor
-  ~WorkflowDispatcher();
+  ~Dispatcher();
 
   /// \brief Dispatcher init callback
   void init(InitContext& ctx) override;
@@ -60,4 +60,4 @@ class WorkflowDispatcher : public Task
 } // namespace framework
 } // namespace o2
 
-#endif //ALICEO2_WORKFLOWDISPATCHER_H
+#endif //ALICEO2_DISPATCHER_H

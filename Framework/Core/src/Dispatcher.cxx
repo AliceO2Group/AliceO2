@@ -8,19 +8,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file WorkflowDispatcher.cxx
-/// \brief Implementation of WorkflowDispatcher for O2 Data Sampling
+/// \file Dispatcher.cxx
+/// \brief Implementation of Dispatcher for O2 Data Sampling
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
-#include <Configuration/ConfigurationInterface.h>
-#include <Configuration/ConfigurationFactory.h>
-#include "Framework/WorkflowDispatcher.h"
+#include "Framework/Dispatcher.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/DataSamplingPolicy.h"
 #include "Framework/DataProcessingHeader.h"
-#include <FairMQDevice.h>
-#include <FairLogger.h>
+
+#include <Configuration/ConfigurationInterface.h>
+#include <Configuration/ConfigurationFactory.h>
+#include <fairmq/FairMQDevice.h>
+#include <fairmq/FairMQLogger.h>
 
 using namespace o2::configuration;
 
@@ -29,17 +30,16 @@ namespace o2
 namespace framework
 {
 
-WorkflowDispatcher::WorkflowDispatcher(std::string name, const std::string reconfigurationSource)
-  : mReconfigurationSource(reconfigurationSource)
-{
-  mName = name.empty() ? std::string("Dispatcher_") + getenv("HOSTNAME") : name;
-}
-
-WorkflowDispatcher::~WorkflowDispatcher()
+Dispatcher::Dispatcher(std::string name, const std::string reconfigurationSource)
+  : mName(name), mReconfigurationSource(reconfigurationSource)
 {
 }
 
-void WorkflowDispatcher::init(InitContext& ctx)
+Dispatcher::~Dispatcher()
+{
+}
+
+void Dispatcher::init(InitContext& ctx)
 {
   LOG(DEBUG) << "Reading Data Sampling Policies...";
 
@@ -52,17 +52,15 @@ void WorkflowDispatcher::init(InitContext& ctx)
   }
 }
 
-void WorkflowDispatcher::run(ProcessingContext& ctx)
+void Dispatcher::run(ProcessingContext& ctx)
 {
   for (const auto& input : ctx.inputs()) {
     if (input.header != nullptr && input.spec != nullptr) {
 
       for (auto& policy : mPolicies) {
-        // todo: evaluate order's impact on performance
         // todo: consider getting the outputSpec in match to improve performance
         // todo: consider matching (and deciding) in completion policy to save some time
         if (policy->match(*input.spec) && policy->decide(input)) {
-
 
           if (!policy->getFairMQOutputChannel().empty()) {
             sendFairMQ(ctx.services().get<RawDeviceService>().device(), input, policy->getFairMQOutputChannelName());
@@ -75,8 +73,9 @@ void WorkflowDispatcher::run(ProcessingContext& ctx)
   }
 }
 
-void WorkflowDispatcher::send(DataAllocator& dataAllocator, const DataRef& inputData, const Output& output) const
+void Dispatcher::send(DataAllocator& dataAllocator, const DataRef& inputData, const Output& output) const
 {
+  //todo: support other serialization methods
   const auto* inputHeader = header::get<header::DataHeader*>(inputData.header);
   if (inputHeader->payloadSerializationMethod == header::gSerializationMethodInvalid) {
     LOG(WARNING) << "DataSampling::dispatcherCallback: input of origin'" << inputHeader->dataOrigin.str
@@ -92,16 +91,16 @@ void WorkflowDispatcher::send(DataAllocator& dataAllocator, const DataRef& input
 }
 
 // ideally this should be in a separate proxy device or use Lifetime::External
-void WorkflowDispatcher::sendFairMQ(const FairMQDevice* device, const DataRef& inputData, const std::string& fairMQChannel) const
+void Dispatcher::sendFairMQ(const FairMQDevice* device, const DataRef& inputData, const std::string& fairMQChannel) const
 {
   const auto* dh = header::get<header::DataHeader*>(inputData.header);
   assert(dh);
   const auto* dph = header::get<DataProcessingHeader*>(inputData.header);
   assert(dph);
 
-  header::DataHeader dhout{dh->dataDescription, dh->dataOrigin, dh->subSpecification, dh->payloadSize};
+  header::DataHeader dhout{ dh->dataDescription, dh->dataOrigin, dh->subSpecification, dh->payloadSize };
   dhout.payloadSerializationMethod = dh->payloadSerializationMethod;
-  DataProcessingHeader dphout{ dph->startTime, dph->duration};
+  DataProcessingHeader dphout{ dph->startTime, dph->duration };
   o2::header::Stack headerStack{ dhout, dphout };
 
   auto channelAlloc = o2::memory_resource::getTransportAllocator(device->Transport());
@@ -119,9 +118,9 @@ void WorkflowDispatcher::sendFairMQ(const FairMQDevice* device, const DataRef& i
   int64_t bytesSent = device->Send(message, fairMQChannel);
 }
 
-void WorkflowDispatcher::registerPath(const std::pair<InputSpec, OutputSpec>& path)
+void Dispatcher::registerPath(const std::pair<InputSpec, OutputSpec>& path)
 {
-  //todo: take care of inputs inclusive in others
+  //todo: take care of inputs inclusive in others, when subSpec matchers are supported
   auto cmp = [a = path.first](const InputSpec b)
   {
     return a.origin == b.origin && a.description == b.description && a.subSpec == b.subSpec && a.lifetime == b.lifetime;
@@ -139,17 +138,17 @@ void WorkflowDispatcher::registerPath(const std::pair<InputSpec, OutputSpec>& pa
   outputs.push_back(path.second);
 }
 
-const std::string& WorkflowDispatcher::getName()
+const std::string& Dispatcher::getName()
 {
   return mName;
 }
 
-Inputs WorkflowDispatcher::getInputSpecs()
+Inputs Dispatcher::getInputSpecs()
 {
   return inputs;
 }
 
-Outputs WorkflowDispatcher::getOutputSpecs()
+Outputs Dispatcher::getOutputSpecs()
 {
   return outputs;
 }

@@ -13,16 +13,13 @@
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
+#include "Framework/DataSampling.h"
+#include "Framework/Dispatcher.h"
+#include "Framework/CompletionPolicyHelpers.h"
+
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
-
-#include "Framework/ExternalFairMQDeviceProxy.h"
-#include "Framework/DataSamplingReadoutAdapter.h"
-
-#include "Framework/DataSampling.h"
-#include "Framework/WorkflowDispatcher.h"
-#include "Framework/CompletionPolicyHelpers.h"
-#include "FairLogger.h"
+#include <fairmq/FairMQLogger.h>
 
 using namespace o2::configuration;
 using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
@@ -40,7 +37,7 @@ std::string DataSampling::dispatcherName()
 void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::string& policiesSource, size_t threads)
 {
   LOG(DEBUG) << "Generating Data Sampling infrastructure...";
-  WorkflowDispatcher dispatcher(dispatcherName(), policiesSource);
+  Dispatcher dispatcher(dispatcherName(), policiesSource);
   Options options;
 
   std::unique_ptr<ConfigurationInterface> cfg = ConfigurationFactory::getConfiguration(policiesSource);
@@ -80,11 +77,13 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
 
           dispatcher.registerPath({ candidateInputSpec, outputSpec });
           dataFound = true;
+          LOG(DEBUG) << " - found " << externalOutput << ", it will be published in " << outputSpec;
         }
       }
     }
     if (dataFound && !policy.getFairMQOutputChannel().empty()) {
       options.push_back({ "channel-config", VariantType::String, policy.getFairMQOutputChannel().c_str(), { "Out-of-band channel config" } });
+      LOG(DEBUG) << " - registering output FairMQ channel '" << policy.getFairMQOutputChannel() << "'";
     }
   }
 
@@ -92,7 +91,7 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
   spec.name = dispatcher.getName();
   spec.inputs = dispatcher.getInputSpecs();
   spec.outputs = dispatcher.getOutputSpecs();
-  spec.algorithm = adaptFromTask<WorkflowDispatcher>(std::move(dispatcher));
+  spec.algorithm = adaptFromTask<Dispatcher>(std::move(dispatcher));
   spec.maxInputTimeslices = threads;
   spec.labels = { { "DataSampling" }, { "Dispatcher" } };
   spec.options = options;

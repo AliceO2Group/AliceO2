@@ -16,12 +16,14 @@
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
-#include <string>
-
 #include "Framework/WorkflowSpec.h"
 #include "Framework/CompletionPolicy.h"
-#include "Framework/DataSamplingPolicy.h"
 #include "Framework/ChannelConfigurationPolicy.h"
+#include "Framework/InputSpec.h"
+
+#include <Configuration/ConfigurationInterface.h>
+
+#include <string>
 
 namespace o2
 {
@@ -59,9 +61,6 @@ namespace framework
 ///   return workflow;
 /// }
 /// \endcode
-
-//todo: update docu
-//todo: clean header mess
 
 class DataSampling
 {

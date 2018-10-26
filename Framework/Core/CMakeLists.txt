@@ -44,6 +44,7 @@ set(SRCS
     src/DeviceSpec.cxx
     src/DeviceSpecHelpers.cxx
     src/DDSConfigHelpers.cxx
+    src/Dispatcher.cxx
     src/DriverControl.cxx
     src/DriverInfo.cxx
     src/FairOptionsRetriever.cxx
@@ -60,7 +61,6 @@ set(SRCS
     src/TextControlService.cxx
     src/TableBuilder.cxx
     src/TableConsumer.cxx
-    src/WorkflowDispatcher.cxx
     src/WorkflowHelpers.cxx
     src/WorkflowSpec.cxx
     src/runDataProcessing.cxx
@@ -145,10 +145,10 @@ set(HEADERS
       include/Framework/DataSamplingConditionFactory.h
       include/Framework/DataSamplingReadoutAdapter.h
       include/Framework/DataSamplingPolicy.h
+      include/Framework/Dispatcher.h
       include/Framework/DPLBoostSerializer.h
       include/Framework/TableBuilder.h
       include/Framework/FairMQResizableBuffer.h
-      include/Framework/WorkflowDispatcher.h
       src/ComputingResource.h
       src/DDSConfigHelpers.h
       src/DeviceSpecHelpers.h
@@ -200,7 +200,7 @@ O2_GENERATE_EXECUTABLE(
 target_compile_options(Framework PUBLIC -O0 -g -fno-omit-frame-pointer)
 target_compile_options(test_SimpleDataProcessingDevice01 PUBLIC -O0 -g -fno-omit-frame-pointer)
 
-Install(FILES test/test_DataSamplingDPL.json test/test_DataSamplingFairMQ.json DESTINATION share/tests/)
+Install(FILES test/test_DataSampling.json DESTINATION share/tests/)
 
 set(TEST_SRCS
       test/test_AlgorithmSpec.cxx
@@ -247,7 +247,6 @@ set(TEST_SRCS
       test/test_TimeParallelPipelining.cxx
       test/test_TypeTraits.cxx
       test/test_Variants.cxx
-#      test/test_WorkflowDispatcher.cxx
       test/test_WorkflowHelpers.cxx
    )
 

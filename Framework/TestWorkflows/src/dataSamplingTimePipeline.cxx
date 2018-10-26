@@ -51,45 +51,37 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     "dataProducer",
     Inputs{},
     {
-      OutputSpec{ "TPC", "CLUSTERS"},
+      OutputSpec{ "TPC", "CLUSTERS" },
     },
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback) someDataProducerAlgorithm
-    }
+      (AlgorithmSpec::ProcessCallback)someDataProducerAlgorithm }
   };
 
   auto processingStage = timePipeline(
     DataProcessorSpec{
       "processingStage",
       Inputs{
-        { "dataTPC", "TPC", "CLUSTERS" }
-      },
+        { "dataTPC", "TPC", "CLUSTERS" } },
       Outputs{
-        { "TPC", "CLUSTERS_P" }
-      },
+        { "TPC", "CLUSTERS_P" } },
       AlgorithmSpec{
-        (AlgorithmSpec::ProcessCallback) someProcessingStageAlgorithm
-      }
-    },
-    parallelSize
-  );
+        (AlgorithmSpec::ProcessCallback)someProcessingStageAlgorithm } },
+    parallelSize);
 
   DataProcessorSpec sink{
     "sink",
     Inputs{
-      { "dataTPC-proc", "TPC", "CLUSTERS_P", 0 }
-    },
+      { "dataTPC-proc", "TPC", "CLUSTERS_P", 0 } },
     Outputs{},
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback) someSinkAlgorithm
-    }
+      (AlgorithmSpec::ProcessCallback)someSinkAlgorithm }
   };
 
-
+  // clang-format off
   DataProcessorSpec simpleQcTask{
     "simpleQcTask",
     Inputs{
-      { "TPC_CLUSTERS_S",   "DS", "simpleQcTask-0",   0 },
+      { "TPC_CLUSTERS_S",   "DS", "simpleQcTask-0", 0 },
       { "TPC_CLUSTERS_P_S", "DS", "simpleQcTask-1", 0 }
     },
     Outputs{},
@@ -124,13 +116,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     simpleQcTask
   };
 
-  std::string configurationSource = std::string("json://") + getenv("BASEDIR")
-                                    + "/../../O2/Framework/TestWorkflows/exampleDataSamplingConfig.json";
-
+  std::string configurationSource = std::string("json://") + getenv("BASEDIR") + "/../../O2/Framework/TestWorkflows/exampleDataSamplingConfig.json";
   DataSampling::GenerateInfrastructure(specs, configurationSource);
+
   return specs;
 }
-
+// clang-format on
 
 void someDataProducerAlgorithm(ProcessingContext& ctx)
 {
@@ -150,7 +141,6 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
     i++;
   }
 }
-
 
 void someProcessingStageAlgorithm(ProcessingContext& ctx)
 {
