@@ -58,18 +58,18 @@ bool pollGUI(void* context, std::function<void(void)> guiCallback)
   glfwPollEvents();
   ImGui_ImplGlfwGL3_NewFrame();
 
-  // This is where the magic actually happens...
-  if (guiCallback) {
-    guiCallback();
-  }
-  ImVec4 clear_color = ImColor(114, 144, 154);
 
   // Rendering
   int display_w, display_h;
   glfwGetFramebufferSize(window, &display_w, &display_h);
   glViewport(0, 0, display_w, display_h);
+  ImVec4 clear_color = ImColor(114, 144, 154);
   glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
   glClear(GL_COLOR_BUFFER_BIT);
+  // This is where the magic actually happens...
+  if (guiCallback) {
+    guiCallback();
+  }
   ImGui::Render();
   glfwSwapBuffers(window);
   return true;

@@ -16,11 +16,15 @@ if (GLFW_FOUND)
   set(GUI_BACKEND
         src/imgui_impl_glfw_gl3.cpp
         src/gl3w.c
+        src/Sokol3DUtils.cxx
+        src/GL3DUtils.cxx
+        src/HandMade3dImpl.cxx
         src/DebugGUI.cxx
       )
 else()
   set(MODULE_BUCKET_NAME headless_bucket)
   set(GUI_BACKEND
+        src/Dummy3DUtils.cxx
         src/DummyDebugGUI.cxx
       )
 endif()
