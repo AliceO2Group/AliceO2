@@ -66,8 +66,8 @@ void DataSamplingPolicy::configure(const ptree& config)
 
     OutputSpec outputSpec{
       { dataHeaderConfig.second.get<std::string>("binding") },
-      policyDataOrigin(),
-      policyDataDescription(mName, outputId++),
+      createPolicyDataOrigin(),
+      createPolicyDataDescription(mName, outputId++),
       mSubSpec
     };
 
@@ -138,12 +138,12 @@ const header::DataHeader::SubSpecificationType DataSamplingPolicy::getSubSpec() 
   return mSubSpec;
 }
 
-header::DataOrigin DataSamplingPolicy::policyDataOrigin()
+header::DataOrigin DataSamplingPolicy::createPolicyDataOrigin()
 {
   return header::DataOrigin("DS");
 }
 
-header::DataDescription DataSamplingPolicy::policyDataDescription(std::string policyName, size_t id)
+header::DataDescription DataSamplingPolicy::createPolicyDataDescription(std::string policyName, size_t id)
 {
   if (policyName.size() > 14) {
     LOG(WARNING) << "DataSamplingPolicy name '" << policyName << "' is longer than 14 characters, trimming in dataDescription.";

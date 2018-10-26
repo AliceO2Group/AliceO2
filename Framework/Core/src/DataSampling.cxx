@@ -29,7 +29,7 @@ namespace o2
 namespace framework
 {
 
-std::string DataSampling::dispatcherName()
+std::string DataSampling::createDispatcherName()
 {
   return std::string("Dispatcher"); //_") + getenv("HOSTNAME");
 }
@@ -37,7 +37,7 @@ std::string DataSampling::dispatcherName()
 void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::string& policiesSource, size_t threads)
 {
   LOG(DEBUG) << "Generating Data Sampling infrastructure...";
-  Dispatcher dispatcher(dispatcherName(), policiesSource);
+  Dispatcher dispatcher(createDispatcherName(), policiesSource);
   Options options;
 
   std::unique_ptr<ConfigurationInterface> cfg = ConfigurationFactory::getConfiguration(policiesSource);
@@ -101,7 +101,7 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
 
 void DataSampling::CustomizeInfrastructure(std::vector<CompletionPolicy>& policies)
 {
-  CompletionPolicy dispatcherConsumesASAP = CompletionPolicyHelpers::defineByName(dispatcherName(), CompletionPolicy::CompletionOp::Consume);
+  CompletionPolicy dispatcherConsumesASAP = CompletionPolicyHelpers::defineByName(createDispatcherName(), CompletionPolicy::CompletionOp::Consume);
   policies.push_back(dispatcherConsumesASAP);
 }
 

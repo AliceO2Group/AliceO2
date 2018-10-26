@@ -40,6 +40,8 @@ class DataSamplingPolicy
   struct inputSpecHasher {
     size_t operator()(const InputSpec& i) const
     {
+      // 'Compressing' dataOrigin and dataDescription to 64 bits. SubSpecification is not taken into account,
+      // because sometimes we want to have subSpec-agnostic match.
       return (static_cast<size_t>(i.description.itg[0]) << 32 |
               static_cast<size_t>(i.description.itg[1])) ^
              static_cast<size_t>(i.origin.itg[0]);
@@ -82,8 +84,8 @@ class DataSamplingPolicy
   const std::string& getFairMQOutputChannel() const;
   std::string getFairMQOutputChannelName() const;
 
-  static header::DataOrigin policyDataOrigin();
-  static header::DataDescription policyDataDescription(std::string policyName, size_t id);
+  static header::DataOrigin createPolicyDataOrigin();
+  static header::DataDescription createPolicyDataDescription(std::string policyName, size_t id);
 
  private:
   std::string mName;
