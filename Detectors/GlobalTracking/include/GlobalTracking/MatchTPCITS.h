@@ -138,6 +138,7 @@ struct matchRecord {
 
 class MatchTPCITS
 {
+  using MCLabCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
  public:
   ///< perform matching for provided input
@@ -176,6 +177,8 @@ class MatchTPCITS
   void setITSMCTruthBranchName(const std::string& nm) { mITSMCTruthBranchName = nm; }
   void setTPCMCTruthBranchName(const std::string& nm) { mTPCMCTruthBranchName = nm; }
   void setOutTPCITSTracksBranchName(const std::string& nm) { mOutTPCITSTracksBranchName = nm; }
+  void setOutTPCMCTruthBranchName(const std::string& nm) { mOutTPCMCTruthBranchName = nm; }
+  void setOutITSMCTruthBranchName(const std::string& nm) { mOutITSMCTruthBranchName = nm; }
 
   ///< get input branch names for the input from the tree
   const std::string& getITSTrackBranchName() const { return mITSTrackBranchName; }
@@ -184,6 +187,8 @@ class MatchTPCITS
   const std::string& getITSMCTruthBranchName() const { return mITSMCTruthBranchName; }
   const std::string& getTPCMCTruthBranchName() const { return mTPCMCTruthBranchName; }
   const std::string& getOutTPCITSTracksBranchName() const { return mOutTPCITSTracksBranchName; }
+  const std::string& getOutTPCMCTruthBranchName() const { return mOutTPCMCTruthBranchName; }
+  const std::string& getOutITSMCTruthBranchName() const { return mOutITSMCTruthBranchName; }
 
   ///< print settings
   void print() const;
@@ -268,7 +273,7 @@ class MatchTPCITS
   void doMatching(int sec);
 
   void refitWinners();
-  bool refitTrackITSTPC(const TrackLocITS& tITS);
+  bool refitTrackITSTPC(int iITS);
   void selectBestMatches();
   void buildMatch2TrackTables();
   bool validateTPCMatch(int mtID);
@@ -439,6 +444,9 @@ class MatchTPCITS
 
   ///<outputs tracks container
   std::vector<o2::dataformats::TrackTPCITS> mMatchedTracks;
+  std::vector<o2::MCCompLabel> mOutITSLabels; ///< ITS label of matched track
+  std::vector<o2::MCCompLabel> mOutTPCLabels; ///< TPC label of matched track
+
   int mMaxOutputTracksPerEntry = 500; ///< max number of output tracks to store per entry
 
   std::string mITSTrackBranchName = "ITSTrack";          ///< name of branch containing input ITS tracks
@@ -447,6 +455,8 @@ class MatchTPCITS
   std::string mITSMCTruthBranchName = "ITSTrackMCTruth"; ///< name of branch containing ITS MC labels
   std::string mTPCMCTruthBranchName = "TracksMCTruth";   ///< name of branch containing input TPC tracks
   std::string mOutTPCITSTracksBranchName = "TPCITS";     ///< name of branch containing output matched tracks
+  std::string mOutTPCMCTruthBranchName = "MatchTPCMCTruth"; ///< name of branch for output matched tracks TPC MC
+  std::string mOutITSMCTruthBranchName = "MatchITSMCTruth"; ///< name of branch for output matched tracks ITS MC
 
 #ifdef _ALLOW_DEBUG_TREES_
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
