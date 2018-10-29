@@ -213,6 +213,39 @@ class DataDescriptorMatcher
                    And,
                    Xor };
 
+  /// We treat all the nodes as values, hence we copy the
+  /// contents mLeft and mRight into a new unique_ptr, if
+  /// needed.
+  DataDescriptorMatcher(DataDescriptorMatcher const& other)
+   : mOp{other.mOp},
+     mLeft{ConstantValueMatcher{false}},
+     mRight{ConstantValueMatcher{false}}
+  {
+    if (auto pval0 = std::get_if<OriginValueMatcher>(&other.mLeft)) {
+      mLeft = *pval0;
+    } else if (auto pval1 = std::get_if<DescriptionValueMatcher>(&other.mLeft)) {
+      mLeft = *pval1;
+    } else if (auto pval2 = std::get_if<SubSpecificationTypeValueMatcher>(&other.mLeft)) {
+      mLeft = *pval2;
+    } else if (auto pval3 = std::get_if<std::unique_ptr<DataDescriptorMatcher>>(&other.mLeft)) {
+      mLeft = std::move(std::make_unique<DataDescriptorMatcher>(*pval3->get()));
+    } else if (auto pval4 = std::get_if<ConstantValueMatcher>(&other.mLeft)) {
+      mLeft = *pval4;
+    }
+
+    if (auto pval0 = std::get_if<OriginValueMatcher>(&other.mRight)) {
+      mRight = *pval0;
+    } else if (auto pval1 = std::get_if<DescriptionValueMatcher>(&other.mRight)) {
+      mRight = *pval1;
+    } else if (auto pval2 = std::get_if<SubSpecificationTypeValueMatcher>(&other.mRight)) {
+      mRight = *pval2;
+    } else if (auto pval3 = std::get_if<std::unique_ptr<DataDescriptorMatcher>>(&other.mRight)) {
+      mRight = std::move(std::make_unique<DataDescriptorMatcher>(*pval3->get()));
+    } else if (auto pval4 = std::get_if<ConstantValueMatcher>(&other.mRight)) {
+      mRight = *pval4;
+    }
+  }
+
   /// Unary operator on a node
   DataDescriptorMatcher(Op op, Node&& lhs, Node&& rhs = std::move(ConstantValueMatcher{ false }))
     : mOp{ op },
@@ -312,6 +345,10 @@ class DataDescriptorMatcher
         return leftValue;
     }
   };
+
+  Node const& getLeft() const { return mLeft; };
+  Node const& getRight() const { return mRight; };
+  Op getOp() const { return mOp; };
 
  private:
   Op mOp;

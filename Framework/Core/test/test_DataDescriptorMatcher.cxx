@@ -21,6 +21,58 @@ using namespace o2::framework;
 using namespace o2::header;
 using namespace o2::framework::data_matcher;
 
+BOOST_AUTO_TEST_CASE(TestMatcherInvariants) {
+  DataHeader header0;
+  header0.dataOrigin = "TPC";
+  header0.dataDescription = "CLUSTERS";
+  header0.subSpecification = 1;
+  std::vector<ContextElement> context;
+
+  DataHeader header1;
+  header1.dataOrigin = "ITS";
+  header1.dataDescription = "TRACKLET";
+  header1.subSpecification = 2;
+
+  DataHeader header2;
+  header2.dataOrigin = "TPC";
+  header2.dataDescription = "TRACKLET";
+  header2.subSpecification = 1;
+
+  DataHeader header3;
+  header3.dataOrigin = "TPC";
+  header3.dataDescription = "CLUSTERS";
+  header3.subSpecification = 0;
+
+  DataHeader header4;
+  header4.dataOrigin = "TRD";
+  header4.dataDescription = "TRACKLET";
+  header4.subSpecification = 0;
+
+  DataDescriptorMatcher matcher{
+    DataDescriptorMatcher::Op::And,
+    OriginValueMatcher{ "TPC" },
+    std::make_unique<DataDescriptorMatcher>(
+      DataDescriptorMatcher::Op::And,
+      DescriptionValueMatcher{ "CLUSTERS" },
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::And,
+        SubSpecificationTypeValueMatcher{ 1 },
+        ConstantValueMatcher{ true }))
+  };
+  DataDescriptorMatcher matcher2 = matcher;
+  BOOST_CHECK(matcher.match(header0, context) == true);
+  BOOST_CHECK(matcher.match(header1, context) == false);
+  BOOST_CHECK(matcher.match(header2, context) == false);
+  BOOST_CHECK(matcher.match(header3, context) == false);
+  BOOST_CHECK(matcher.match(header4, context) == false);
+  BOOST_CHECK(matcher2.match(header0, context) == true);
+  BOOST_CHECK(matcher2.match(header1, context) == false);
+  BOOST_CHECK(matcher2.match(header2, context) == false);
+  BOOST_CHECK(matcher2.match(header3, context) == false);
+  BOOST_CHECK(matcher2.match(header4, context) == false);
+
+}
+
 BOOST_AUTO_TEST_CASE(TestSimpleMatching)
 {
   DataHeader header0;
