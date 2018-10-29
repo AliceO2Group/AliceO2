@@ -21,8 +21,6 @@ namespace o2
 {
 namespace ITS
 {
-namespace CA
-{
 
 struct Label final {
   Label(const int, const float, const float, const float, const int, const int);
@@ -36,7 +34,6 @@ struct Label final {
 
   friend std::ostream& operator<<(std::ostream&, const Label&);
 };
-} // namespace CA
 } // namespace ITS
 } // namespace o2
 

@@ -18,7 +18,6 @@
 #include "ITStracking/Cell.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/IndexTableUtils.h"
-#include "ITStracking/Layer.h"
 #include "ITStracking/Tracklet.h"
 
 #include "ReconstructionDataFormats/Track.h"
@@ -28,8 +27,6 @@
 namespace o2
 {
 namespace ITS
-{
-namespace CA
 {
 
 #if !TRACKINGITSU_GPU_MODE
@@ -237,7 +234,7 @@ Tracker<IsGPU>::Tracker()
 }
 
 template <bool IsGPU>
-void Tracker<IsGPU>::clustersToTracks(const Event& event, std::ostream& timeBenchmarkOutputStream)
+void Tracker<IsGPU>::clustersToTracks(const ROframe& event, std::ostream& timeBenchmarkOutputStream)
 {
   const int verticesNum = event.getPrimaryVerticesNum();
   mTracks.clear();
@@ -401,7 +398,7 @@ void Tracker<IsGPU>::findRoads(int& iteration)
 }
 
 template <bool IsGPU>
-void Tracker<IsGPU>::findTracks(const Event& event)
+void Tracker<IsGPU>::findTracks(const ROframe& event)
 {
   mPrimaryVertexContext.getTracks().reserve(mPrimaryVertexContext.getTracks().capacity() + mPrimaryVertexContext.getRoads().size());
   std::vector<TrackITS> tracks;
@@ -447,11 +444,11 @@ void Tracker<IsGPU>::findTracks(const Event& event)
       }
     }
     /// Track seed preparation. Clusters are numbered progressively from the outermost to the innermost.
-    const auto& cluster1_glo = event.getLayer(lastCellLevel + 2).getCluster(clusters[lastCellLevel + 2]);
-    const auto& cluster2_glo = event.getLayer(lastCellLevel + 1).getCluster(clusters[lastCellLevel + 1]);
-    const auto& cluster3_glo = event.getLayer(lastCellLevel).getCluster(clusters[lastCellLevel]);
+    const auto& cluster1_glo = event.getClustersOnLayer(lastCellLevel + 2).at(clusters[lastCellLevel + 2]);
+    const auto& cluster2_glo = event.getClustersOnLayer(lastCellLevel + 1).at(clusters[lastCellLevel + 1]);
+    const auto& cluster3_glo = event.getClustersOnLayer(lastCellLevel).at(clusters[lastCellLevel]);
 
-    const auto& cluster3_tf = event.getLayer(lastCellLevel).getTrackingFrameInfo(clusters[lastCellLevel]);
+    const auto& cluster3_tf = event.getTrackingFrameInfoOnLayer(lastCellLevel).at(clusters[lastCellLevel]);
 
     /// FIXME!
     TrackITS temporaryTrack{ buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf) };
@@ -573,14 +570,14 @@ void Tracker<IsGPU>::findTracks(const Event& event)
 }
 
 template <bool IsGPU>
-bool Tracker<IsGPU>::fitTrack(const Event& event, TrackITS& track, int start, int end, int step)
+bool Tracker<IsGPU>::fitTrack(const ROframe& event, TrackITS& track, int start, int end, int step)
 {
   track.setChi2(0);
   for (int iLayer{ start }; iLayer != end; iLayer += step) {
     if (track.getClusterIndex(iLayer) == Constants::ITS::UnusedIndex) {
       continue;
     }
-    const TrackingFrameInfo& trackingHit = event.getLayer(iLayer).getTrackingFrameInfo(track.getClusterIndex(iLayer));
+    const TrackingFrameInfo& trackingHit = event.getTrackingFrameInfoOnLayer(iLayer).at(track.getClusterIndex(iLayer));
 
     if (!track.rotate(trackingHit.alphaTrackingFrame))
       return false;
@@ -641,7 +638,7 @@ void Tracker<IsGPU>::traverseCellsTree(const int currentCellId, const int curren
 }
 
 template <bool IsGPU>
-void Tracker<IsGPU>::computeRoadsMClabels(const Event& event)
+void Tracker<IsGPU>::computeRoadsMClabels(const ROframe& event)
 {
   /// Moore's Voting Algorithm
 
@@ -671,14 +668,14 @@ void Tracker<IsGPU>::computeRoadsMClabels(const Event& event)
       if (isFirstRoadCell) {
 
         const int cl0index{ mPrimaryVertexContext.getClusters()[iCell][currentCell.getFirstClusterIndex()].clusterId };
-        auto& cl0labs{ event.getLayer(iCell).getClusterLabel(cl0index) };
+        auto& cl0labs{ event.getClusterLabels(iCell, cl0index) };
         maxOccurrencesValue = cl0labs.getTrackID();
         count = 1;
 
         const int cl1index{
           mPrimaryVertexContext.getClusters()[iCell + 1][currentCell.getSecondClusterIndex()].clusterId
         };
-        auto& cl1labs{ event.getLayer(iCell + 1).getClusterLabel(cl1index) };
+        auto& cl1labs{ event.getClusterLabels(iCell + 1, cl1index) };
         const int secondMonteCarlo{ cl1labs.getTrackID() };
 
         if (secondMonteCarlo == maxOccurrencesValue) {
@@ -695,7 +692,7 @@ void Tracker<IsGPU>::computeRoadsMClabels(const Event& event)
       const int cl2index{
         mPrimaryVertexContext.getClusters()[iCell + 2][currentCell.getThirdClusterIndex()].clusterId
       };
-      auto& cl2labs{ event.getLayer(iCell + 2).getClusterLabel(cl2index) };
+      auto& cl2labs{ event.getClusterLabels(iCell + 2, cl2index) };
       const int currentMonteCarlo = { cl2labs.getTrackID() };
 
       if (currentMonteCarlo == maxOccurrencesValue) {
@@ -717,7 +714,7 @@ void Tracker<IsGPU>::computeRoadsMClabels(const Event& event)
 }
 
 template <bool IsGPU>
-void Tracker<IsGPU>::computeTracksMClabels(const Event& event)
+void Tracker<IsGPU>::computeTracksMClabels(const ROframe& event)
 {
   /// Moore's Voting Algorithm
 
@@ -736,7 +733,7 @@ void Tracker<IsGPU>::computeTracksMClabels(const Event& event)
         continue;
       }
 
-      const MCCompLabel& currentLabel = event.getLayer(iCluster).getClusterLabel(index);
+      const MCCompLabel& currentLabel = event.getClusterLabels(iCluster, index);
       if (currentLabel == maxOccurrencesValue) {
         ++count;
       } else {
@@ -798,6 +795,5 @@ track::TrackParCov Tracker<IsGPU>::buildTrackSeed(const Cluster& cluster1, const
 }
 
 template class Tracker<TRACKINGITSU_GPU_MODE>;
-} // namespace CA
 } // namespace ITS
 } // namespace o2

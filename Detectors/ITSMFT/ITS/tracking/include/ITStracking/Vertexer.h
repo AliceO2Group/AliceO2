@@ -18,23 +18,21 @@
 #include "ITStracking/Constants.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/ClusterLines.h"
+#include "ITStracking/ROframe.h"
 #include "ReconstructionDataFormats/Vertex.h"
 
 namespace o2
 {
 namespace ITS
 {
-namespace CA
-{
 class Cluster;
-class Event;
 class Line;
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 class Vertexer
 {
  public:
-  explicit Vertexer(const Event& event);
+  explicit Vertexer(const ROframe& event);
   virtual ~Vertexer();
   Vertexer(const Vertexer&) = delete;
   Vertexer& operator=(const Vertexer&) = delete;
@@ -64,7 +62,7 @@ class Vertexer
   std::array<float, 3> mAverageClustersRadii;
   std::array<float, Constants::ITS::LayersNumber> mITSRadii;
   float mZBinSize;
-  Event mEvent;
+  ROframe mEvent;
   std::vector<Vertex> mVertices;
   std::array<std::array<int, Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins + 1>,
              Constants::ITS::LayersNumberVertexer>
@@ -74,7 +72,6 @@ class Vertexer
   std::vector<ClusterLines> mTrackletClusters;
 };
 
-} // namespace CA
 } // namespace ITS
 } // namespace o2
 

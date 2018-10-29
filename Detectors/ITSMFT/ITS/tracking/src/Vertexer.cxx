@@ -19,8 +19,7 @@
 
 #include "ITStracking/Constants.h"
 #include "ITStracking/Cluster.h"
-#include "ITStracking/Event.h"
-#include "ITStracking/Layer.h"
+#include "ITStracking/ROframe.h"
 #include "ITStracking/ClusterLines.h"
 #include "ITStracking/Vertexer.h"
 #include "ITStracking/IndexTableUtils.h"
@@ -28,8 +27,6 @@
 namespace o2
 {
 namespace ITS
-{
-namespace CA
 {
 
 using Constants::IndexTable::PhiBins;
@@ -39,17 +36,17 @@ using Constants::ITS::LayersZCoordinate;
 using Constants::Math::TwoPi;
 using IndexTableUtils::getZBinIndex;
 
-Vertexer::Vertexer(const Event& event) : mEvent{ event }, mAverageClustersRadii{ std::array<float, 3>{ 0.f, 0.f, 0.f } }
+Vertexer::Vertexer(const ROframe& event) : mEvent{ event }, mAverageClustersRadii{ std::array<float, 3>{ 0.f, 0.f, 0.f } }
 {
   for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumberVertexer; ++iLayer) {
-    const Layer& currentLayer{ event.getLayer(iLayer) };
-    const int clustersNum{ currentLayer.getClustersSize() };
+    const auto& currentLayer{ event.getClustersOnLayer(iLayer) };
+    const size_t clustersNum{ currentLayer.size() };
     mClusters[iLayer].clear();
     if (clustersNum > mClusters[iLayer].capacity()) {
       mClusters[iLayer].reserve(clustersNum);
     }
-    for (int iCluster{ 0 }; iCluster < clustersNum; ++iCluster) {
-      mClusters[iLayer].emplace_back(iLayer, currentLayer.getCluster(iCluster));
+    for (size_t iCluster{ 0 }; iCluster < clustersNum; ++iCluster) {
+      mClusters[iLayer].emplace_back(iLayer, currentLayer.at(iCluster));
     }
     if (mClusters[iLayer].size() != 0) {
       const float inverseNumberOfClusters{ 1.f / mClusters[iLayer].size() };
@@ -231,10 +228,10 @@ void Vertexer::findTracklets(const bool useMCLabel)
                       (mClusters[1][iCluster1].rCoordinate - mClusters[0][iCluster0].rCoordinate)
                   };
                   bool testMC{ !useMCLabel ||
-                               (mEvent.getLayer(0).getClusterLabel(mClusters[0][iCluster0].clusterId).getTrackID() ==
-                                  mEvent.getLayer(2).getClusterLabel(mClusters[2][iCluster2].clusterId).getTrackID() &&
-                                mEvent.getLayer(0).getClusterLabel(mClusters[0][iCluster0].clusterId).getTrackID() ==
-                                  mEvent.getLayer(1).getClusterLabel(mClusters[1][iCluster1].clusterId).getTrackID()) };
+                               (mEvent.getClusterLabels(0, mClusters[0][iCluster0]).getTrackID() ==
+                                  mEvent.getClusterLabels(2, mClusters[2][iCluster2]).getTrackID() &&
+                                mEvent.getClusterLabels(0, mClusters[0][iCluster0]).getTrackID() ==
+                                  mEvent.getClusterLabels(1, mClusters[1][iCluster1]).getTrackID()) };
                   float absDeltaPhi{ std::abs(mClusters[2][iCluster2].phiCoordinate -
                                               mClusters[1][iCluster1].phiCoordinate) };
                   float absDeltaZ{ std::abs(mClusters[2][iCluster2].zCoordinate - ZProjectionRefined) };
@@ -361,6 +358,5 @@ void Vertexer::findVertices()
 #ifdef DEBUG_BUILD
 #endif
 
-} // namespace CA
 } // namespace ITS
 } // namespace o2

@@ -39,8 +39,6 @@ namespace o2
 {
 namespace ITS
 {
-namespace CA
-{
 
 void IOUtils::loadConfigurations(const std::string& fileName)
 {
@@ -54,9 +52,9 @@ void IOUtils::loadConfigurations(const std::string& fileName)
   }
 }
 
-std::vector<Event> IOUtils::loadEventData(const std::string& fileName)
+std::vector<ROframe> IOUtils::loadEventData(const std::string& fileName)
 {
-  std::vector<Event> events{};
+  std::vector<ROframe> events{};
   std::ifstream inputStream{};
   std::string line{}, unusedVariable{};
   int layerId{}, monteCarlo{};
@@ -86,7 +84,7 @@ std::vector<Event> IOUtils::loadEventData(const std::string& fileName)
 
         if (inputStringStream >> varY >> varZ >> unusedVariable >> alphaAngle >> monteCarlo) {
           events.back().addClusterToLayer(layerId, xCoordinate, yCoordinate, zCoordinate,
-                                          events.back().getLayer(layerId).getClustersSize());
+                                          events.back().getClustersOnLayer(layerId).size());
           const float sinAlpha = std::sin(alphaAngle);
           const float cosAlpha = std::cos(alphaAngle);
           const float xTF = xCoordinate * cosAlpha - yCoordinate * sinAlpha;
@@ -104,7 +102,7 @@ std::vector<Event> IOUtils::loadEventData(const std::string& fileName)
   return events;
 }
 
-void IOUtils::loadEventData(Event& event, const std::vector<ITSMFT::Cluster>* clusters,
+void IOUtils::loadEventData(ROframe& event, const std::vector<ITSMFT::Cluster>* clusters,
                             const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
   if (!clusters) {
@@ -126,13 +124,13 @@ void IOUtils::loadEventData(Event& event, const std::vector<ITSMFT::Cluster>* cl
 
     /// Rotate to the global frame
     auto xyz = c.getXYZGloRot(*geom);
-    event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), event.getLayer(layer).getClustersSize());
+    event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), event.getClustersOnLayer(layer).size());
     event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(clusterId).begin()));
     clusterId++;
   }
 }
 
-int IOUtils::loadROFrameData(std::uint32_t roFrame, Event& event, const std::vector<ITSMFT::Cluster>* clusters,
+int IOUtils::loadROFrameData(std::uint32_t roFrame, ROframe& event, const std::vector<ITSMFT::Cluster>* clusters,
                              const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
   if (!clusters) {
@@ -155,7 +153,7 @@ int IOUtils::loadROFrameData(std::uint32_t roFrame, Event& event, const std::vec
 
       /// Rotate to the global frame
       auto xyz = c.getXYZGloRot(*geom);
-      event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), event.getLayer(layer).getClustersSize());
+      event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), event.getClustersOnLayer(layer).size());
       event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(clusterId).begin()));
       nused++;
     }
@@ -317,6 +315,5 @@ void from_json(const nlohmann::json& j, IndexTableParameters& par)
   par.ComputeInverseBinSizes();
 }
 
-} // namespace CA
 } // namespace ITS
 } // namespace o2

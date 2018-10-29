@@ -5,13 +5,13 @@ O2_SETUP(NAME ${MODULE_NAME})
 set(NO_DICT_SRCS # sources not for the dictionary
     src/Cell.cxx
     src/Cluster.cxx
-    src/Event.cxx
+    src/ROframe.cxx
     src/IOUtils.cxx
     src/Label.cxx
-    src/Layer.cxx
     src/PrimaryVertexContext.cxx
     src/Road.cxx
     src/Tracker.cxx
+    src/TrackerTraits.cxx
     src/Tracklet.cxx
     src/ClusterLines.cxx
     src/Vertexer.cxx

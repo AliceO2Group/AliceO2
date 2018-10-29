@@ -25,8 +25,6 @@ namespace o2
 {
 namespace ITS
 {
-namespace CA
-{
 
 struct Cluster final {
   Cluster(const float x, const float y, const float z, const int idx);
@@ -50,7 +48,6 @@ struct TrackingFrameInfo {
   std::array<float, 2> positionTrackingFrame;
   std::array<float, 3> covarianceTrackingFrame;
 };
-} // namespace CA
 } // namespace ITS
 } // namespace o2
 

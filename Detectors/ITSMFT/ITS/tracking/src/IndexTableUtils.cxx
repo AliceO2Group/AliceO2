@@ -18,8 +18,6 @@ namespace o2
 {
 namespace ITS
 {
-namespace CA
-{
 
 const std::vector<std::pair<int, int>> IndexTableUtils::selectClusters(
   const std::array<int, Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins + 1>& indexTable,
@@ -46,6 +44,5 @@ const std::vector<std::pair<int, int>> IndexTableUtils::selectClusters(
 
   return filteredBins;
 }
-} // namespace CA
 } // namespace ITS
 } // namespace o2

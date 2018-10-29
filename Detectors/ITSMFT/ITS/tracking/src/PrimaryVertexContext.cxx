@@ -14,14 +14,12 @@
 
 #include "ITStracking/PrimaryVertexContext.h"
 
-#include "ITStracking/Event.h"
+#include "ITStracking/ROframe.h"
 #include <iostream>
 
 namespace o2
 {
 namespace ITS
-{
-namespace CA
 {
 
 PrimaryVertexContext::PrimaryVertexContext()
@@ -29,14 +27,14 @@ PrimaryVertexContext::PrimaryVertexContext()
   // Nothing to do
 }
 
-void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const Event& event, const int primaryVertexIndex, const int iteration)
+void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const ROframe& event, const int primaryVertexIndex, const int iteration)
 {
   mPrimaryVertex = event.getPrimaryVertex(primaryVertexIndex);
 
   for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumber; ++iLayer) {
 
-    const Layer& currentLayer{ event.getLayer(iLayer) };
-    const int clustersNum{ currentLayer.getClustersSize() };
+    const auto& currentLayer{ event.getClustersOnLayer(iLayer) };
+    const int clustersNum{ currentLayer.size() };
 
     if (iteration == 0) {
       mClusters[iLayer].clear();
@@ -46,7 +44,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const Ev
 
       for (int iCluster{ 0 }; iCluster < clustersNum; ++iCluster) {
 
-        const Cluster& currentCluster{ currentLayer.getCluster(iCluster) };
+        const Cluster& currentCluster{ currentLayer.at(iCluster) };
         mClusters[iLayer].emplace_back(iLayer, event.getPrimaryVertex(primaryVertexIndex), currentCluster);
       }
 
@@ -62,9 +60,9 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const Ev
       mCells[iLayer].clear();
       float cellsMemorySize =
         memParam.MemoryOffset +
-        std::ceil(((memParam.CellsMemoryCoefficients[iteration][iLayer] * event.getLayer(iLayer).getClustersSize()) *
-                   event.getLayer(iLayer + 1).getClustersSize()) *
-                  event.getLayer(iLayer + 2).getClustersSize());
+        std::ceil(((memParam.CellsMemoryCoefficients[iteration][iLayer] * event.getClustersOnLayer(iLayer).size()) *
+                   event.getClustersOnLayer(iLayer + 1).size()) *
+                  event.getClustersOnLayer(iLayer + 2).size());
 
       if (cellsMemorySize > mCells[iLayer].capacity()) {
         mCells[iLayer].reserve(cellsMemorySize);
@@ -75,10 +73,10 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const Ev
 
       mCellsLookupTable[iLayer].clear();
       mCellsLookupTable[iLayer].resize(
-        std::max(event.getLayer(iLayer + 1).getClustersSize(), event.getLayer(iLayer + 2).getClustersSize()) +
+        std::max(event.getClustersOnLayer(iLayer + 1).size(), event.getClustersOnLayer(iLayer + 2).size()) +
           std::ceil((memParam.TrackletsMemoryCoefficients[iteration][iLayer + 1] *
-                     event.getLayer(iLayer + 1).getClustersSize()) *
-                    event.getLayer(iLayer + 2).getClustersSize()),
+                     event.getClustersOnLayer(iLayer + 1).size()) *
+                    event.getClustersOnLayer(iLayer + 2).size()),
         Constants::ITS::UnusedIndex);
 
       mCellsNeighbours[iLayer].clear();
@@ -124,9 +122,9 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const Ev
       mTracklets[iLayer].clear();
 
       float trackletsMemorySize =
-        std::max(event.getLayer(iLayer).getClustersSize(), event.getLayer(iLayer + 1).getClustersSize()) +
-        std::ceil((memParam.TrackletsMemoryCoefficients[iteration][iLayer] * event.getLayer(iLayer).getClustersSize()) *
-                  event.getLayer(iLayer + 1).getClustersSize());
+        std::max(event.getClustersOnLayer(iLayer).size(), event.getClustersOnLayer(iLayer + 1).size()) +
+        std::ceil((memParam.TrackletsMemoryCoefficients[iteration][iLayer] * event.getClustersOnLayer(iLayer).size()) *
+                  event.getClustersOnLayer(iLayer + 1).size());
 
       if (trackletsMemorySize > mTracklets[iLayer].capacity()) {
         mTracklets[iLayer].reserve(trackletsMemorySize);
@@ -136,12 +134,11 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const Ev
     if (iLayer < Constants::ITS::CellsPerRoad) {
 
       mTrackletsLookupTable[iLayer].clear();
-      mTrackletsLookupTable[iLayer].resize(event.getLayer(iLayer + 1).getClustersSize(), Constants::ITS::UnusedIndex);
+      mTrackletsLookupTable[iLayer].resize(event.getClustersOnLayer(iLayer + 1).size(), Constants::ITS::UnusedIndex);
     }
   }
 #endif
 }
 
-} // namespace CA
 } // namespace ITS
 } // namespace o2

@@ -15,8 +15,6 @@ namespace o2
 {
 namespace ITS
 {
-namespace CA
-{
 
 Line::Line() : originPoint{}, weightMatrix{ std::array<float, 6>{ 1., 0., 0., 1., 0., 1. } }, cosinesDirector{}
 {
@@ -297,6 +295,5 @@ float ClusterLines::getAvgDistance2() const
   return dist / mLines.size();
 }
 
-} // namespace CA
 } // namespace ITS
 } // namespace o2

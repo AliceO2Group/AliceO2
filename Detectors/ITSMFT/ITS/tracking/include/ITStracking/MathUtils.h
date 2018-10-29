@@ -24,8 +24,6 @@ namespace o2
 {
 namespace ITS
 {
-namespace CA
-{
 
 namespace MathUtils
 {
@@ -86,7 +84,6 @@ inline float MathUtils::computeTanDipAngle(float x1, float y1, float x2, float y
   return (z1 - z2) / std::sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 }
 
-} // namespace CA
 } // namespace ITS
 } // namespace o2
 

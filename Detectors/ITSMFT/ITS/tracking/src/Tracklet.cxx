@@ -20,8 +20,6 @@ namespace o2
 {
 namespace ITS
 {
-namespace CA
-{
 
 Tracklet::Tracklet() : firstClusterIndex{ 0 }, secondClusterIndex{ 0 }, tanLambda{ 0.0f }, phiCoordinate{ 0.0f }
 {
@@ -39,6 +37,5 @@ GPU_DEVICE Tracklet::Tracklet(const int firstClusterOrderingIndex, const int sec
 {
   // Nothing to do
 }
-} // namespace CA
 } // namespace ITS
 } // namespace o2

@@ -27,8 +27,6 @@ namespace o2
 {
 namespace ITS
 {
-namespace CA
-{
 
 template <typename Param>
 class Configuration : public Param
@@ -105,7 +103,6 @@ inline void IndexTableParameters::ComputeInverseBinSizes()
   }
 }
 
-} // namespace CA
 } // namespace ITS
 } // namespace o2
 

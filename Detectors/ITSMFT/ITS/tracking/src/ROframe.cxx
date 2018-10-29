@@ -8,11 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file Event.cxx
+/// \file ROframe.cxx
 /// \brief
 ///
 
-#include "ITStracking/Event.h"
+#include "ITStracking/ROframe.h"
 
 #include <iostream>
 
@@ -20,45 +20,33 @@ namespace o2
 {
 namespace ITS
 {
-namespace CA
-{
 
-Event::Event(const int eventId) : mEventId{ eventId }
+ROframe::ROframe(const int ROframeId) : mROframeId{ ROframeId }
 {
-  for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumber; ++iLayer) {
-
-    mLayers[iLayer] = Layer(iLayer);
-  }
 }
 
-void Event::addPrimaryVertex(const float xCoordinate, const float yCoordinate, const float zCoordinate)
+void ROframe::addPrimaryVertex(const float xCoordinate, const float yCoordinate, const float zCoordinate)
 {
   mPrimaryVertices.emplace_back(float3{ xCoordinate, yCoordinate, zCoordinate });
 }
 
-void Event::printPrimaryVertices() const
+void ROframe::printPrimaryVertices() const
 {
   const int verticesNum{ static_cast<int>(mPrimaryVertices.size()) };
 
   for (int iVertex{ 0 }; iVertex < verticesNum; ++iVertex) {
 
     const float3& currentVertex = mPrimaryVertices[iVertex];
-
     std::cout << "-1\t" << currentVertex.x << "\t" << currentVertex.y << "\t" << currentVertex.z << std::endl;
   }
 }
 
-int Event::getTotalClusters() const
+int ROframe::getTotalClusters() const
 {
-  int totalClusters{ 0 };
-
-  for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumber; ++iLayer) {
-
-    totalClusters += mLayers[iLayer].getClustersSize();
-  }
-
-  return totalClusters;
+  size_t totalClusters{ 0 };
+  for (auto& clusters : mClusters)
+    totalClusters += clusters.size();
+  return int(totalClusters);
 }
-} // namespace CA
 } // namespace ITS
 } // namespace o2

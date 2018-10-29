@@ -24,8 +24,6 @@ namespace o2
 {
 namespace ITS
 {
-namespace CA
-{
 
 namespace Constants
 {
@@ -77,7 +75,6 @@ namespace PDGCodes
 constexpr int PionCode{ 211 };
 }
 } // namespace Constants
-} // namespace CA
 } // namespace ITS
 } // namespace o2
 

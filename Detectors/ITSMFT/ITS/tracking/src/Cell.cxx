@@ -18,8 +18,6 @@ namespace o2
 {
 namespace ITS
 {
-namespace CA
-{
 
 GPU_DEVICE Cell::Cell(const int firstClusterIndex, const int secondClusterIndex, const int thirdClusterIndex,
                       const int firstTrackletIndex, const int secondTrackletIndex,
@@ -35,6 +33,5 @@ GPU_DEVICE Cell::Cell(const int firstClusterIndex, const int secondClusterIndex,
 {
   // Nothing to do
 }
-} // namespace CA
 } // namespace ITS
 } // namespace o2

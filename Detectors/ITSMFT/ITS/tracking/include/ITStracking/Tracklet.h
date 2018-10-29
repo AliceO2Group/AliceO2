@@ -21,8 +21,6 @@ namespace o2
 {
 namespace ITS
 {
-namespace CA
-{
 
 struct Tracklet final {
   Tracklet();
@@ -33,7 +31,6 @@ struct Tracklet final {
   const float tanLambda;
   const float phiCoordinate;
 };
-} // namespace CA
 } // namespace ITS
 } // namespace o2
 

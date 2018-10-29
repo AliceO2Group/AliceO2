@@ -26,8 +26,6 @@ namespace o2
 {
 namespace ITS
 {
-namespace CA
-{
 
 namespace IndexTableUtils
 {
@@ -71,7 +69,6 @@ GPU_HOST_DEVICE inline int IndexTableUtils::countRowSelectedBins(
 
   return indexTable[maxBinIndex] - indexTable[firstBinIndex];
 }
-} // namespace CA
 } // namespace ITS
 } // namespace o2
 

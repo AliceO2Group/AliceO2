@@ -26,7 +26,7 @@
 
 #include "ITStracking/Configuration.h"
 #include "ITStracking/Definitions.h"
-#include "ITStracking/Event.h"
+#include "ITStracking/ROframe.h"
 #include "ITStracking/MathUtils.h"
 #include "ITStracking/PrimaryVertexContext.h"
 #include "ITStracking/Road.h"
@@ -37,8 +37,6 @@
 namespace o2
 {
 namespace ITS
-{
-namespace CA
 {
 
 template <bool IsGPU>
@@ -73,7 +71,7 @@ class Tracker : private TrackerTraits<IsGPU>
   std::vector<TrackITS>& getTracks();
   dataformats::MCTruthContainer<MCCompLabel>& getTrackLabels();
 
-  void clustersToTracks(const Event&, std::ostream& = std::cout);
+  void clustersToTracks(const ROframe&, std::ostream& = std::cout);
 
   void setROFrame(std::uint32_t f) { mROFrame = f; }
   std::uint32_t getROFrame() const { return mROFrame; }
@@ -88,11 +86,11 @@ class Tracker : private TrackerTraits<IsGPU>
   void computeCells(int& iteration);
   void findCellsNeighbours(int& iteration);
   void findRoads(int& iteration);
-  void findTracks(const Event& ev);
-  bool fitTrack(const Event& event, TrackITS& track, int start, int end, int step);
+  void findTracks(const ROframe& ev);
+  bool fitTrack(const ROframe& event, TrackITS& track, int start, int end, int step);
   void traverseCellsTree(const int, const int);
-  void computeRoadsMClabels(const Event&);
-  void computeTracksMClabels(const Event&);
+  void computeRoadsMClabels(const ROframe&);
+  void computeTracksMClabels(const ROframe&);
 
   template <typename... T>
   float evaluateTask(void (Tracker<IsGPU>::*)(T...), const char*, std::ostream& ostream, T&&... args);
@@ -197,7 +195,6 @@ template <>
 void TrackerTraits<TRACKINGITSU_GPU_MODE>::computeLayerTracklets(PrimaryVertexContext&, const TrackingParameters& trkPars, int iteration);
 template <>
 void TrackerTraits<TRACKINGITSU_GPU_MODE>::computeLayerCells(PrimaryVertexContext&, const TrackingParameters& trkPars, int iteration);
-} // namespace CA
 } // namespace ITS
 } // namespace o2
 

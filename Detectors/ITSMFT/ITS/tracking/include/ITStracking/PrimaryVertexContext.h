@@ -27,7 +27,7 @@
 #include "ITStracking/Configuration.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/Definitions.h"
-#include "ITStracking/Event.h"
+#include "ITStracking/ROframe.h"
 #include "ITStracking/Road.h"
 #include "ITStracking/Tracklet.h"
 
@@ -40,8 +40,6 @@ namespace o2
 {
 namespace ITS
 {
-namespace CA
-{
 
 class PrimaryVertexContext final
 {
@@ -51,7 +49,7 @@ class PrimaryVertexContext final
   PrimaryVertexContext(const PrimaryVertexContext&) = delete;
   PrimaryVertexContext& operator=(const PrimaryVertexContext&) = delete;
 
-  void initialise(const MemoryParameters& memParam, const Event& event, const int pvIndex, const int iteration);
+  void initialise(const MemoryParameters& memParam, const ROframe& event, const int pvIndex, const int iteration);
   const float3& getPrimaryVertex() const;
   std::array<std::vector<Cluster>, Constants::ITS::LayersNumber>& getClusters();
   std::array<std::vector<Cell>, Constants::ITS::CellsPerRoad>& getCells();
@@ -224,7 +222,6 @@ inline std::array<std::vector<int>, Constants::ITS::CellsPerRoad>& PrimaryVertex
   return mTrackletsLookupTable;
 }
 #endif
-} // namespace CA
 } // namespace ITS
 } // namespace o2
 

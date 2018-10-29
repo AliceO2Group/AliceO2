@@ -21,8 +21,6 @@ namespace o2
 {
 namespace ITS
 {
-namespace CA
-{
 
 using MathUtils::calculatePhiCoordinate;
 using MathUtils::calculateRCoordinate;
@@ -73,6 +71,5 @@ TrackingFrameInfo::TrackingFrameInfo(float xTF, float alpha, std::array<float, 2
 {
   // Nothing to do
 }
-} // namespace CA
 } // namespace ITS
 } // namespace o2
