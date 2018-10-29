@@ -21,7 +21,8 @@ using namespace o2::framework;
 using namespace o2::header;
 using namespace o2::framework::data_matcher;
 
-BOOST_AUTO_TEST_CASE(TestMatcherInvariants) {
+BOOST_AUTO_TEST_CASE(TestMatcherInvariants)
+{
   DataHeader header0;
   header0.dataOrigin = "TPC";
   header0.dataDescription = "CLUSTERS";
@@ -71,6 +72,96 @@ BOOST_AUTO_TEST_CASE(TestMatcherInvariants) {
   BOOST_CHECK(matcher2.match(header3, context) == false);
   BOOST_CHECK(matcher2.match(header4, context) == false);
 
+  BOOST_CHECK(matcher2 == matcher);
+
+  {
+    DataDescriptorMatcher matcherA{
+      DataDescriptorMatcher::Op::Just,
+      OriginValueMatcher{ "TPC" }
+    };
+    DataDescriptorMatcher matcherB{
+      DataDescriptorMatcher::Op::Just,
+      OriginValueMatcher{ "TPC" }
+    };
+    BOOST_CHECK(matcherA == matcherB);
+  }
+
+  {
+    DataDescriptorMatcher matcherA{
+      DataDescriptorMatcher::Op::Just,
+      DescriptionValueMatcher{ "TRACKS" }
+    };
+    DataDescriptorMatcher matcherB{
+      DataDescriptorMatcher::Op::Just,
+      DescriptionValueMatcher{ "TRACKS" }
+    };
+    BOOST_CHECK(matcherA == matcherB);
+  }
+
+  {
+    DataDescriptorMatcher matcherA{
+      DataDescriptorMatcher::Op::Just,
+      SubSpecificationTypeValueMatcher{ 1 }
+    };
+    DataDescriptorMatcher matcherB{
+      DataDescriptorMatcher::Op::Just,
+      SubSpecificationTypeValueMatcher{ 1 }
+    };
+    BOOST_CHECK(matcherA == matcherB);
+  }
+
+  {
+    DataDescriptorMatcher matcherA{
+      DataDescriptorMatcher::Op::Just,
+      ConstantValueMatcher{ 1 }
+    };
+    DataDescriptorMatcher matcherB{
+      DataDescriptorMatcher::Op::Just,
+      ConstantValueMatcher{ 1 }
+    };
+    BOOST_CHECK(matcherA == matcherB);
+  }
+
+  {
+    DataDescriptorMatcher matcherA{
+      DataDescriptorMatcher::Op::And,
+      ConstantValueMatcher{ 1 },
+      DescriptionValueMatcher{ "TPC" }
+    };
+    DataDescriptorMatcher matcherB{
+      DataDescriptorMatcher::Op::Just,
+      ConstantValueMatcher{ 1 },
+      DescriptionValueMatcher{ "TPC" }
+    };
+    BOOST_CHECK(matcherA == matcherB);
+  }
+
+  {
+    DataDescriptorMatcher matcherA{
+      DataDescriptorMatcher::Op::And,
+      OriginValueMatcher{ "TPC" },
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::And,
+        DescriptionValueMatcher{ "CLUSTERS" },
+        std::make_unique<DataDescriptorMatcher>(
+          DataDescriptorMatcher::Op::And,
+          SubSpecificationTypeValueMatcher{ 1 },
+          ConstantValueMatcher{ true }))
+    };
+
+    DataDescriptorMatcher matcherB{
+      DataDescriptorMatcher::Op::And,
+      OriginValueMatcher{ "TPC" },
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::And,
+        DescriptionValueMatcher{ "CLUSTERS" },
+        std::make_unique<DataDescriptorMatcher>(
+          DataDescriptorMatcher::Op::And,
+          SubSpecificationTypeValueMatcher{ 1 },
+          ConstantValueMatcher{ true }))
+    };
+    BOOST_CHECK(matcherA == matcherB);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(TestSimpleMatching)

@@ -32,6 +32,11 @@ struct None {
 /// A typesafe reference to an element of the context.
 struct ContextRef {
   size_t index;
+
+  bool operator==(ContextRef const& other) const
+  {
+    return index == other.index;
+  }
 };
 
 /// An element of the matching context. Context itself is really a vector of
@@ -43,20 +48,56 @@ struct ContextElement {
   std::variant<uint64_t, std::string, None> value; /// The actual contents of the element.
 };
 
-/// Something which can be matched against a header::DataOrigin
-class OriginValueMatcher
+/// Can hold either an actual value of type T or a reference to
+/// a variable of the same type in the Context.
+template <typename T>
+class ValueHolder
 {
  public:
-  /// Initialise the matcher with an actual value
-  OriginValueMatcher(std::string const& s)
+  ValueHolder(T const& s)
     : mValue{ s }
   {
   }
-
   /// This means that the matcher will fill a variable in the context if
   /// the ref points to none or use the dereferenced value, if not.
-  OriginValueMatcher(ContextRef variableId)
+  ValueHolder(ContextRef variableId)
     : mValue{ variableId }
+  {
+  }
+
+  bool operator==(ValueHolder<T> const& other) const
+  {
+    auto s1 = std::get_if<T>(&mValue);
+    auto s2 = std::get_if<T>(&other.mValue);
+
+    if (s1 && s2) {
+      return *s1 == *s2;
+    }
+
+    auto c1 = std::get_if<ContextRef>(&mValue);
+    auto c2 = std::get_if<ContextRef>(&other.mValue);
+    if (c1 && c2) {
+      return *c1 == *c2;
+    }
+
+    return false;
+  }
+
+ protected:
+  std::variant<T, ContextRef> mValue;
+};
+
+/// Something which can be matched against a header::DataOrigin
+class OriginValueMatcher : public ValueHolder<std::string>
+{
+ public:
+  OriginValueMatcher(std::string const& s)
+    : ValueHolder{ s }
+  {
+  }
+
+  OriginValueMatcher(ContextRef variableId)
+    : ValueHolder{ variableId }
   {
   }
 
@@ -75,24 +116,19 @@ class OriginValueMatcher
     }
     throw std::runtime_error("Mismatching type for variable");
   }
-
- private:
-  std::variant<std::string, ContextRef> mValue;
 };
 
 /// Something which can be matched against a header::DataDescription
-class DescriptionValueMatcher
+class DescriptionValueMatcher : public ValueHolder<std::string>
 {
  public:
   DescriptionValueMatcher(std::string const& s)
-    : mValue{ s }
+    : ValueHolder{ s }
   {
   }
 
-  /// This means that the matcher will fill a variable in the context if
-  /// the ref points to none or use the dereferenced value, if not.
-  DescriptionValueMatcher(ContextRef ref)
-    : mValue{ ref }
+  DescriptionValueMatcher(ContextRef variableId)
+    : ValueHolder{ variableId }
   {
   }
 
@@ -106,37 +142,32 @@ class DescriptionValueMatcher
       auto maxSize = strnlen(header.dataDescription.str, 16);
       variable.value = std::string(header.dataDescription.str, maxSize);
       return true;
-    } else if (auto s = std::get_if<std::string>(&mValue)) {
+    } else if (auto s = std::get_if<std::string>(&this->mValue)) {
       return strncmp(header.dataDescription.str, s->c_str(), 16) == 0;
     }
     throw std::runtime_error("Mismatching type for variable");
   }
-
- private:
-  std::variant<std::string, ContextRef> mValue;
 };
 
 /// Something which can be matched against a header::SubSpecificationType
-class SubSpecificationTypeValueMatcher
+class SubSpecificationTypeValueMatcher : public ValueHolder<uint64_t>
 {
  public:
+  SubSpecificationTypeValueMatcher(ContextRef variableId)
+    : ValueHolder{ variableId }
+  {
+  }
+
   /// The passed string @a s is the expected numerical value for
   /// the SubSpecification type.
   SubSpecificationTypeValueMatcher(std::string const& s)
-    : SubSpecificationTypeValueMatcher(strtoull(s.c_str(), nullptr, 10))
+    : ValueHolder<uint64_t>{ strtoull(s.c_str(), nullptr, 10) }
   {
   }
 
   /// This means that the matcher is looking for a constant.
   SubSpecificationTypeValueMatcher(uint64_t v)
-    : mValue{ v }
-  {
-  }
-
-  /// This means that the matcher will fill a variable in the context if
-  /// the ref points to none or use the dereferenced value, if not.
-  SubSpecificationTypeValueMatcher(ContextRef ref)
-    : mValue{ ref }
+    : ValueHolder<uint64_t>{ v }
   {
   }
 
@@ -154,9 +185,6 @@ class SubSpecificationTypeValueMatcher
     }
     throw std::runtime_error("Mismatching type for variable");
   }
-
- private:
-  std::variant<uint64_t, ContextRef> mValue;
 };
 
 /// Something which can be matched against a header::SubSpecificationType
@@ -173,6 +201,11 @@ class ConstantValueMatcher
   bool match(header::DataHeader const& header) const
   {
     return mValue;
+  }
+
+  bool operator==(ConstantValueMatcher const& other) const
+  {
+    return mValue == other.mValue;
   }
 
  private:
@@ -217,9 +250,9 @@ class DataDescriptorMatcher
   /// contents mLeft and mRight into a new unique_ptr, if
   /// needed.
   DataDescriptorMatcher(DataDescriptorMatcher const& other)
-   : mOp{other.mOp},
-     mLeft{ConstantValueMatcher{false}},
-     mRight{ConstantValueMatcher{false}}
+    : mOp{ other.mOp },
+      mLeft{ ConstantValueMatcher{ false } },
+      mRight{ ConstantValueMatcher{ false } }
   {
     if (auto pval0 = std::get_if<OriginValueMatcher>(&other.mLeft)) {
       mLeft = *pval0;
@@ -346,6 +379,106 @@ class DataDescriptorMatcher
     }
   };
 
+  bool operator==(DataDescriptorMatcher const& other) const
+  {
+    if (mOp != this->mOp) {
+      return false;
+    }
+
+    bool leftValue = false;
+    bool rightValue = false;
+
+    {
+      auto v1 = std::get_if<OriginValueMatcher>(&this->mLeft);
+      auto v2 = std::get_if<OriginValueMatcher>(&other.mLeft);
+      if (v1 && v2 && *v1 == *v2) {
+        leftValue = true;
+      }
+    }
+
+    {
+      auto v1 = std::get_if<DescriptionValueMatcher>(&this->mLeft);
+      auto v2 = std::get_if<DescriptionValueMatcher>(&other.mLeft);
+      if (v1 && v2 && *v1 == *v2) {
+        leftValue = true;
+      }
+    }
+
+    {
+      auto v1 = std::get_if<SubSpecificationTypeValueMatcher>(&this->mLeft);
+      auto v2 = std::get_if<SubSpecificationTypeValueMatcher>(&other.mLeft);
+      if (v1 && v2 && *v1 == *v2) {
+        leftValue = true;
+      }
+    }
+
+    {
+      auto v1 = std::get_if<ConstantValueMatcher>(&this->mLeft);
+      auto v2 = std::get_if<ConstantValueMatcher>(&other.mLeft);
+      if (v1 && v2 && *v1 == *v2) {
+        leftValue = true;
+      }
+    }
+
+    {
+      auto v1 = std::get_if<std::unique_ptr<DataDescriptorMatcher>>(&this->mLeft);
+      auto v2 = std::get_if<std::unique_ptr<DataDescriptorMatcher>>(&other.mLeft);
+      if (v1 && v2 && v1->get() && v2->get() && (**v1 == **v2)) {
+        leftValue = true;
+      }
+    }
+
+    // Shortcut the fact that the left side is different.
+    if (leftValue == false) {
+      return false;
+    }
+
+    if (mOp == Op::Just) {
+      return true;
+    }
+
+    {
+      auto v1 = std::get_if<OriginValueMatcher>(&this->mRight);
+      auto v2 = std::get_if<OriginValueMatcher>(&other.mRight);
+      if (v1 && v2 && *v1 == *v2) {
+        return true;
+      }
+    }
+
+    {
+      auto v1 = std::get_if<DescriptionValueMatcher>(&this->mRight);
+      auto v2 = std::get_if<DescriptionValueMatcher>(&other.mRight);
+      if (v1 && v2 && *v1 == *v2) {
+        return true;
+      }
+    }
+
+    {
+      auto v1 = std::get_if<SubSpecificationTypeValueMatcher>(&this->mRight);
+      auto v2 = std::get_if<SubSpecificationTypeValueMatcher>(&other.mRight);
+      if (v1 && v2 && *v1 == *v2) {
+        return true;
+      }
+    }
+
+    {
+      auto v1 = std::get_if<ConstantValueMatcher>(&this->mRight);
+      auto v2 = std::get_if<ConstantValueMatcher>(&other.mRight);
+      if (v1 && v2 && *v1 == *v2) {
+        return true;
+      }
+    }
+
+    {
+      auto v1 = std::get_if<std::unique_ptr<DataDescriptorMatcher>>(&this->mRight);
+      auto v2 = std::get_if<std::unique_ptr<DataDescriptorMatcher>>(&other.mRight);
+      if (v1 && v2 && v1->get() && v2->get() && (**v1 == **v2)) {
+        return true;
+      }
+    }
+    // We alredy know the left side is true.
+    return false;
+  }
   Node const& getLeft() const { return mLeft; };
   Node const& getRight() const { return mRight; };
   Op getOp() const { return mOp; };
