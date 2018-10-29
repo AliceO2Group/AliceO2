@@ -75,6 +75,44 @@ if (DDS_FOUND)
   set(OPTIONAL_DDS_INCLUDE_DIR ${DDS_INCLUDE_DIR})
 endif ()
 
+if (ENABLE_CUDA STREQUAL "ON")
+  if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+    set(CMAKE_CUDA_FLAGS "-Xptxas -O0 -Xcompiler -O0")
+  else()
+    set(CMAKE_CUDA_FLAGS "-Xptxas -O4 -Xcompiler -O4 -use_fast_math")
+  endif()
+  if(CUDA_GCCBIN)
+    message(STATUS "Using as CUDA GCC version: ${CUDA_GCCBIN}")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --compiler-bindir ${CUDA_GCCBIN}")
+  endif()
+  enable_language(CUDA)
+  if(CUDA_GCCBIN)
+    #Ugly hack! Otherwise CUDA includes unwanted old GCC libraries leading to version conflicts
+    set(CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES "$ENV{CUDA_PATH}/lib64")
+  endif()
+  set(CMAKE_CUDA_STANDARD 14)
+  set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr --compiler-options='${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}} -DENABLE_CUDA -fno-lto -std=c++14'")
+endif()
+
+if (ENABLE_HIP STREQUAL "ON")
+  if(NOT DEFINED HIP_PATH)
+    if(NOT DEFINED ENV{HIP_PATH})
+       set(HIP_PATH "/opt/rocm/hip" CACHE PATH "Path to which HIP has been installed")
+    else()
+      set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "Path to which HIP has been installed")
+    endif()
+  endif()
+  set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${HIP_PATH}/cmake")
+  if(NOT DEFINED HCC_PATH)
+    # Workaround to fix a potential FindHIP bug: find HCC_PATH ourselves
+    set(_HCC_PATH "${HIP_PATH}/../hcc")
+    get_filename_component(HCC_PATH ${_HCC_PATH} ABSOLUTE CACHE)
+    unset(_HCC_PATH)
+  endif()
+  find_package(HIP)
+endif()
+
 # todo this should really not be needed. ROOT, Pythia, and FairRoot should comply with CMake best practices
 # todo but they do not properly return DEPENDENCIES with absolute path.
 link_directories(
@@ -238,7 +276,7 @@ o2_define_bucket(
 o2_define_bucket(
     NAME
     InfoLogger_bucket
-
+    gpuMemcpyHostToDevice
     DEPENDENCIES
     ${InfoLogger_LIBRARIES}
 
@@ -850,6 +888,19 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/simulation/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/ITS/include
+)
+
+o2_define_bucket(
+    NAME
+    its_tracking_CUDA_bucket
+
+    DEPENDENCIES
+    its_tracking_bucket
+    #
+
+    INCLUDE_DIRECTORIES
+    ${CUB_ROOT}
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/tracking/include
 )
 
 o2_define_bucket(

@@ -12,7 +12,7 @@
 /// \brief
 ///
 
-#include "ITStracking/gpu/Context.h"
+#include "ITStrackingCUDA/Context.h"
 
 #include <sstream>
 #include <stdexcept>
@@ -87,8 +87,6 @@ namespace o2
 {
 namespace ITS
 {
-namespace CA
-{
 namespace GPU
 {
 
@@ -159,7 +157,6 @@ const DeviceProperties& Context::getDeviceProperties(const int deviceIndex)
   return mDeviceProperties[deviceIndex];
 }
 
-}
 }
 }
 }

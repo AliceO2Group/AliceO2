@@ -12,15 +12,13 @@
 /// \brief
 ///
 
-#include "ITStracking/gpu/Stream.h"
+#include "ITStrackingCUDA/Stream.h"
 
 #include <cuda_runtime.h>
 
 namespace o2
 {
 namespace ITS
-{
-namespace CA
 {
 namespace GPU
 {
@@ -40,7 +38,6 @@ const GPUStream& Stream::get() const
   return mStream;
 }
 
-}
 }
 }
 }

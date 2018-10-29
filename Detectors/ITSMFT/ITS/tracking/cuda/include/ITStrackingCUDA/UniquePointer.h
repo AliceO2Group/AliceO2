@@ -15,13 +15,11 @@
 #ifndef TRAKINGITSU_INCLUDE_GPU_CAGPUUNIQUE_POINTER_H_
 #define TRAKINGITSU_INCLUDE_GPU_CAGPUUNIQUE_POINTER_H_
 
-#include "ITStracking/gpu/Utils.h"
+#include "ITStrackingCUDA/Utils.h"
 
 namespace o2
 {
 namespace ITS
-{
-namespace CA
 {
 namespace GPU
 {
@@ -146,7 +144,6 @@ template <typename T>
 GPU_HOST_DEVICE const T& UniquePointer<T>::operator*() const noexcept
 {
   return PointerTraits::getReference(mDevicePointer);
-}
 }
 }
 }

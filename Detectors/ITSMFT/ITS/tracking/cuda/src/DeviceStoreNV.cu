@@ -8,21 +8,21 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file PrimaryVertexContext.cxx
+/// \file DeviceStoreNV.cxx
 /// \brief
 ///
 
-#include "ITStracking/gpu/PrimaryVertexContext.h"
+#include "ITStrackingCUDA/DeviceStoreNV.h"
 
 #include <sstream>
 
-#include "ITStracking/gpu/Stream.h"
+#include "ITStrackingCUDA/Stream.h"
 
 namespace {
 
-using namespace o2::ITS::CA;
+using namespace o2::ITS;
 
-__device__ void fillIndexTables(GPU::PrimaryVertexContext &primaryVertexContext, const int layerIndex)
+__device__ void fillIndexTables(GPU::DeviceStoreNV &primaryVertexContext, const int layerIndex)
 {
 
   const int currentClusterIndex { static_cast<int>(blockDim.x * blockIdx.x + threadIdx.x) };
@@ -65,7 +65,7 @@ __device__ void fillIndexTables(GPU::PrimaryVertexContext &primaryVertexContext,
   }
 }
 
-__device__ void fillTrackletsPerClusterTables(GPU::PrimaryVertexContext &primaryVertexContext, const int layerIndex)
+__device__ void fillTrackletsPerClusterTables(GPU::DeviceStoreNV &primaryVertexContext, const int layerIndex)
 {
   const int currentClusterIndex { static_cast<int>(blockDim.x * blockIdx.x + threadIdx.x) };
   const int clustersSize { static_cast<int>(primaryVertexContext.getClusters()[layerIndex + 1].size()) };
@@ -76,7 +76,7 @@ __device__ void fillTrackletsPerClusterTables(GPU::PrimaryVertexContext &primary
   }
 }
 
-__device__ void fillCellsPerClusterTables(GPU::PrimaryVertexContext &primaryVertexContext, const int layerIndex)
+__device__ void fillCellsPerClusterTables(GPU::DeviceStoreNV &primaryVertexContext, const int layerIndex)
 {
   const int totalThreadNum { static_cast<int>(primaryVertexContext.getClusters()[layerIndex + 1].size()) };
   const int trackletsSize { static_cast<int>(primaryVertexContext.getTracklets()[layerIndex + 1].capacity()) };
@@ -91,7 +91,7 @@ __device__ void fillCellsPerClusterTables(GPU::PrimaryVertexContext &primaryVert
   }
 }
 
-__global__ void fillDeviceStructures(GPU::PrimaryVertexContext &primaryVertexContext, const int layerIndex)
+__global__ void fillDeviceStructures(GPU::DeviceStoreNV &primaryVertexContext, const int layerIndex)
 {
   fillIndexTables(primaryVertexContext, layerIndex);
 
@@ -111,20 +111,19 @@ namespace o2
 {
 namespace ITS
 {
-namespace CA
-{
 namespace GPU
 {
 
-PrimaryVertexContext::PrimaryVertexContext()
+DeviceStoreNV::DeviceStoreNV()
 {
   // Nothing to do
 }
 
-UniquePointer<PrimaryVertexContext> PrimaryVertexContext::initialize(const float3 &primaryVertex,
+UniquePointer<DeviceStoreNV> DeviceStoreNV::initialise(const float3 &primaryVertex,
     const std::array<std::vector<Cluster>, Constants::ITS::LayersNumber> &clusters,
     const std::array<std::vector<Cell>, Constants::ITS::CellsPerRoad> &cells,
-    const std::array<std::vector<int>, Constants::ITS::CellsPerRoad - 1> &cellsLookupTable)
+    const std::array<std::vector<int>, Constants::ITS::CellsPerRoad - 1> &cellsLookupTable,
+    const MemoryParameters& memPar)
 {
   mPrimaryVertex = UniquePointer<float3>{ primaryVertex };
 
@@ -135,9 +134,9 @@ UniquePointer<PrimaryVertexContext> PrimaryVertexContext::initialize(const float
 
     if (iLayer < Constants::ITS::TrackletsPerRoad) {
 
-      this->mTracklets[iLayer].reset(static_cast<int>(std::ceil(
-          (Constants::Memory::TrackletsMemoryCoefficients[iLayer] * clusters[iLayer].size())
-              * clusters[iLayer + 1].size())));
+      this->mTracklets[iLayer].reset(static_cast<int>(
+          (memPar.TrackletsMemoryCoefficients[iLayer] * clusters[iLayer].size())
+              * clusters[iLayer + 1].size()+1));
     }
 
     if (iLayer < Constants::ITS::CellsPerRoad) {
@@ -154,7 +153,7 @@ UniquePointer<PrimaryVertexContext> PrimaryVertexContext::initialize(const float
     }
   }
 
-  UniquePointer<PrimaryVertexContext> gpuContextDevicePointer { *this };
+  UniquePointer<DeviceStoreNV> gpuContextDevicePointer { *this };
 
   std::array<Stream, Constants::ITS::LayersNumber> streamArray;
 
@@ -182,7 +181,6 @@ UniquePointer<PrimaryVertexContext> PrimaryVertexContext::initialize(const float
   return gpuContextDevicePointer;
 }
 
-}
 }
 }
 }

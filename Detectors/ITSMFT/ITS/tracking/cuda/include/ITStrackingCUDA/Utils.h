@@ -16,13 +16,11 @@
 #define TRACKINGITSU_INCLUDE_GPU_UTILS_H_
 
 #include "ITStracking/Definitions.h"
-#include "ITStracking/gpu/Stream.h"
+#include "ITStrackingCUDA/Stream.h"
 
 namespace o2
 {
 namespace ITS
-{
-namespace CA
 {
 namespace GPU
 {
@@ -53,7 +51,6 @@ namespace Device
 GPU_DEVICE int getLaneIndex();
 GPU_DEVICE int shareToWarp(const int, const int);
 GPU_DEVICE int gpuAtomicAdd(int*, const int);
-}
 }
 }
 }

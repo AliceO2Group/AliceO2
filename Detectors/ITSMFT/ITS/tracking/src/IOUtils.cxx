@@ -256,48 +256,70 @@ void IOUtils::writeRoadsReport(std::ofstream& correctRoadsOutputStream, std::ofs
 
 void to_json(nlohmann::json& j, const TrackingParameters& par)
 {
+  std::array<float, Constants::ITS::TrackletsPerRoad> tmpTrackletMaxDeltaZ;
+  std::copy(par.TrackletMaxDeltaZ, par.TrackletMaxDeltaZ + tmpTrackletMaxDeltaZ.size(), tmpTrackletMaxDeltaZ.begin());
+  std::array<float, Constants::ITS::CellsPerRoad> tmpCellMaxDCA;
+  std::copy(par.CellMaxDCA, par.CellMaxDCA + tmpCellMaxDCA.size(), tmpCellMaxDCA.begin());
+  std::array<float, Constants::ITS::CellsPerRoad> tmpCellMaxDeltaZ;
+  std::copy(par.CellMaxDeltaZ, par.CellMaxDeltaZ + tmpCellMaxDeltaZ.size(), tmpCellMaxDeltaZ.begin());
+  std::array<float, Constants::ITS::CellsPerRoad - 1> tmpNeighbourMaxDeltaCurvature;
+  std::copy(par.NeighbourMaxDeltaCurvature, par.NeighbourMaxDeltaCurvature + tmpNeighbourMaxDeltaCurvature.size(), tmpNeighbourMaxDeltaCurvature.begin());
+  std::array<float, Constants::ITS::CellsPerRoad - 1> tmpNeighbourMaxDeltaN;
+  std::copy(par.NeighbourMaxDeltaN, par.NeighbourMaxDeltaN + tmpNeighbourMaxDeltaN.size(), tmpNeighbourMaxDeltaN.begin());
   j = nlohmann::json{
     { "ClusterSharing", par.ClusterSharing },
     { "MinTrackLength", par.MinTrackLength },
     { "TrackletMaxDeltaPhi", par.TrackletMaxDeltaPhi },
-    { "TrackletMaxDeltaZ", par.TrackletMaxDeltaZ },
+    { "TrackletMaxDeltaZ", tmpTrackletMaxDeltaZ },
     { "CellMaxDeltaTanLambda", par.CellMaxDeltaTanLambda },
-    { "CellMaxDCA", par.CellMaxDCA },
+    { "CellMaxDCA", tmpCellMaxDCA },
     { "CellMaxDeltaPhi", par.CellMaxDeltaPhi },
-    { "CellMaxDeltaZ", par.CellMaxDeltaZ },
-    { "NeighbourMaxDeltaCurvature", par.NeighbourMaxDeltaCurvature },
-    { "NeighbourMaxDeltaN", par.NeighbourMaxDeltaN }
+    { "CellMaxDeltaZ", tmpCellMaxDeltaZ },
+    { "NeighbourMaxDeltaCurvature", tmpNeighbourMaxDeltaCurvature },
+    { "NeighbourMaxDeltaN", tmpNeighbourMaxDeltaN }
   };
 }
 
 void from_json(const nlohmann::json& j, TrackingParameters& par)
 {
   par.ClusterSharing = j.at("ClusterSharing").get<int>();
-  par.MinTrackLength = j.at("MinTrackLength").get<std::vector<int>>();
-  par.TrackletMaxDeltaPhi = j.at("TrackletMaxDeltaPhi").get<std::vector<float>>();
-  par.TrackletMaxDeltaZ = j.at("TrackletMaxDeltaZ").get<std::vector<std::array<float, Constants::ITS::TrackletsPerRoad>>>();
-  par.CellMaxDeltaTanLambda = j.at("CellMaxDeltaTanLambda").get<std::vector<float>>();
-  par.CellMaxDCA = j.at("CellMaxDCA").get<std::vector<std::array<float, Constants::ITS::CellsPerRoad>>>();
-  par.CellMaxDeltaPhi = j.at("CellMaxDeltaPhi").get<std::vector<float>>();
-  par.CellMaxDeltaZ = j.at("CellMaxDeltaZ").get<std::vector<std::array<float, Constants::ITS::CellsPerRoad>>>();
-  par.NeighbourMaxDeltaCurvature = j.at("NeighbourMaxDeltaCurvature").get<std::vector<std::array<float, Constants::ITS::CellsPerRoad - 1>>>();
-  par.NeighbourMaxDeltaN = j.at("NeighbourMaxDeltaN").get<std::vector<std::array<float, Constants::ITS::CellsPerRoad - 1>>>();
+  par.MinTrackLength = j.at("MinTrackLength").get<int>();
+  par.TrackletMaxDeltaPhi = j.at("TrackletMaxDeltaPhi").get<float>();
+  par.CellMaxDeltaTanLambda = j.at("CellMaxDeltaTanLambda").get<float>();
+  par.CellMaxDeltaPhi = j.at("CellMaxDeltaPhi").get<float>();
+  auto tmpTrackletMaxDeltaZ = j.at("TrackletMaxDeltaZ").get<std::array<float, Constants::ITS::TrackletsPerRoad>>();
+  std::copy(tmpTrackletMaxDeltaZ.begin(), tmpTrackletMaxDeltaZ.end(), par.TrackletMaxDeltaZ);
+  auto tmpCellMaxDCA = j.at("CellMaxDCA").get<std::array<float, Constants::ITS::CellsPerRoad>>();
+  std::copy(tmpCellMaxDCA.begin(), tmpCellMaxDCA.end(), par.CellMaxDCA);
+  auto tmpCellMaxDeltaZ = j.at("CellMaxDeltaZ").get<std::array<float, Constants::ITS::CellsPerRoad>>();
+  std::copy(tmpCellMaxDCA.begin(), tmpCellMaxDeltaZ.end(), par.CellMaxDeltaZ);
+  auto tmpNeighbourMaxDeltaCurvature = j.at("NeighbourMaxDeltaCurvature").get<std::array<float, Constants::ITS::CellsPerRoad - 1>>();
+  std::copy(tmpNeighbourMaxDeltaCurvature.begin(), tmpNeighbourMaxDeltaCurvature.end(), par.NeighbourMaxDeltaCurvature);
+  auto tmpNeighbourMaxDeltaN = j.at("NeighbourMaxDeltaN").get<std::array<float, Constants::ITS::CellsPerRoad - 1>>();
+  std::copy(tmpNeighbourMaxDeltaN.begin(), tmpNeighbourMaxDeltaN.end(), par.NeighbourMaxDeltaN);
+
 }
 
 void to_json(nlohmann::json& j, const MemoryParameters& par)
 {
+  std::array<float, Constants::ITS::CellsPerRoad> tmpCellsMemoryCoefficients;
+  std::copy(par.CellsMemoryCoefficients, par.CellsMemoryCoefficients + tmpCellsMemoryCoefficients.size(), tmpCellsMemoryCoefficients.begin());
+  std::array<float, Constants::ITS::TrackletsPerRoad> tmpTrackletsMemoryCoefficients;
+  std::copy(par.TrackletsMemoryCoefficients, par.TrackletsMemoryCoefficients + tmpTrackletsMemoryCoefficients.size(), tmpTrackletsMemoryCoefficients.begin());
   j = nlohmann::json{
     { "MemoryOffset", par.MemoryOffset },
-    { "CellsMemoryCoefficients", par.CellsMemoryCoefficients },
-    { "TrackletsMemoryCoefficients", par.TrackletsMemoryCoefficients }
+    { "CellsMemoryCoefficients", tmpCellsMemoryCoefficients },
+    { "TrackletsMemoryCoefficients", tmpTrackletsMemoryCoefficients }
   };
 }
 
 void from_json(const nlohmann::json& j, MemoryParameters& par)
 {
   par.MemoryOffset = j.at("MemoryOffset").get<int>();
-  par.CellsMemoryCoefficients = j.at("CellsMemoryCoefficients").get<std::vector<std::array<float, Constants::ITS::CellsPerRoad>>>();
-  par.TrackletsMemoryCoefficients = j.at("TrackletsMemoryCoefficients").get<std::vector<std::array<float, Constants::ITS::TrackletsPerRoad>>>();
+  auto tmpCellsMemoryCoefficients = j.at("CellsMemoryCoefficients").get<std::array<float, Constants::ITS::CellsPerRoad>>();
+  std::copy(tmpCellsMemoryCoefficients.begin(), tmpCellsMemoryCoefficients.end(), par.CellsMemoryCoefficients);
+  auto tmpTrackletsMemoryCoefficients = j.at("TrackletsMemoryCoefficients").get<std::array<float, Constants::ITS::TrackletsPerRoad>>();
+  std::copy(tmpTrackletsMemoryCoefficients.begin(), tmpTrackletsMemoryCoefficients.end(), par.TrackletsMemoryCoefficients);
 }
 
 void to_json(nlohmann::json& j, const IndexTableParameters& par)

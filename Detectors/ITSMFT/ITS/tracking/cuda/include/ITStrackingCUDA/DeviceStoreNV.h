@@ -8,37 +8,40 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file PrimaryVertexContext.h
+/// \file DeviceStoreNV.h
 /// \brief
 ///
 
+#ifndef TRACKINGITSU_INCLUDE_DEVICESTORENV_H_
+#define TRACKINGITSU_INCLUDE_DEVICESTORENV_H_
+
 #include "ITStracking/Cell.h"
+#include "ITStracking/Configuration.h"
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/Tracklet.h"
-#include "ITStracking/gpu/Array.h"
-#include "ITStracking/gpu/UniquePointer.h"
-#include "ITStracking/gpu/Vector.h"
+#include "ITStrackingCUDA/Array.h"
+#include "ITStrackingCUDA/UniquePointer.h"
+#include "ITStrackingCUDA/Vector.h"
 
 namespace o2
 {
 namespace ITS
 {
-namespace CA
-{
 namespace GPU
 {
 
-class PrimaryVertexContext final
+class DeviceStoreNV final
 {
  public:
-  PrimaryVertexContext();
+  DeviceStoreNV();
 
-  UniquePointer<PrimaryVertexContext> initialize(const float3&,
+  UniquePointer<DeviceStoreNV> initialise(const float3&,
                                                  const std::array<std::vector<Cluster>, Constants::ITS::LayersNumber>&,
                                                  const std::array<std::vector<Cell>, Constants::ITS::CellsPerRoad>&,
-                                                 const std::array<std::vector<int>, Constants::ITS::CellsPerRoad - 1>&);
+                                                 const std::array<std::vector<int>, Constants::ITS::CellsPerRoad - 1>&,
+                                                 const MemoryParameters&);
   GPU_DEVICE const float3& getPrimaryVertex();
   GPU_HOST_DEVICE Array<Vector<Cluster>, Constants::ITS::LayersNumber>& getClusters();
   GPU_DEVICE Array<Array<int, Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins + 1>,
@@ -65,51 +68,52 @@ class PrimaryVertexContext final
   Array<Vector<int>, Constants::ITS::CellsPerRoad - 1> mCellsPerTrackletTable;
 };
 
-GPU_DEVICE inline const float3& PrimaryVertexContext::getPrimaryVertex() { return *mPrimaryVertex; }
+GPU_DEVICE inline const float3& DeviceStoreNV::getPrimaryVertex() { return *mPrimaryVertex; }
 
-GPU_HOST_DEVICE inline Array<Vector<Cluster>, Constants::ITS::LayersNumber>& PrimaryVertexContext::getClusters()
+GPU_HOST_DEVICE inline Array<Vector<Cluster>, Constants::ITS::LayersNumber>& DeviceStoreNV::getClusters()
 {
   return mClusters;
 }
 
 GPU_DEVICE inline Array<Array<int, Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins + 1>,
                         Constants::ITS::TrackletsPerRoad>&
-  PrimaryVertexContext::getIndexTables()
+  DeviceStoreNV::getIndexTables()
 {
   return mIndexTables;
 }
 
-GPU_DEVICE inline Array<Vector<Tracklet>, Constants::ITS::TrackletsPerRoad>& PrimaryVertexContext::getTracklets()
+GPU_DEVICE inline Array<Vector<Tracklet>, Constants::ITS::TrackletsPerRoad>& DeviceStoreNV::getTracklets()
 {
   return mTracklets;
 }
 
-GPU_DEVICE inline Array<Vector<int>, Constants::ITS::CellsPerRoad>& PrimaryVertexContext::getTrackletsLookupTable()
+GPU_DEVICE inline Array<Vector<int>, Constants::ITS::CellsPerRoad>& DeviceStoreNV::getTrackletsLookupTable()
 {
   return mTrackletsLookupTable;
 }
 
-GPU_DEVICE inline Array<Vector<int>, Constants::ITS::CellsPerRoad>& PrimaryVertexContext::getTrackletsPerClusterTable()
+GPU_DEVICE inline Array<Vector<int>, Constants::ITS::CellsPerRoad>& DeviceStoreNV::getTrackletsPerClusterTable()
 {
   return mTrackletsPerClusterTable;
 }
 
-GPU_HOST_DEVICE inline Array<Vector<Cell>, Constants::ITS::CellsPerRoad>& PrimaryVertexContext::getCells()
+GPU_HOST_DEVICE inline Array<Vector<Cell>, Constants::ITS::CellsPerRoad>& DeviceStoreNV::getCells()
 {
   return mCells;
 }
 
-GPU_HOST_DEVICE inline Array<Vector<int>, Constants::ITS::CellsPerRoad - 1>& PrimaryVertexContext::getCellsLookupTable()
+GPU_HOST_DEVICE inline Array<Vector<int>, Constants::ITS::CellsPerRoad - 1>& DeviceStoreNV::getCellsLookupTable()
 {
   return mCellsLookupTable;
 }
 
 GPU_HOST_DEVICE inline Array<Vector<int>, Constants::ITS::CellsPerRoad - 1>&
-  PrimaryVertexContext::getCellsPerTrackletTable()
+  DeviceStoreNV::getCellsPerTrackletTable()
 {
   return mCellsPerTrackletTable;
 }
 }
 }
 }
-}
+
+#endif

@@ -21,8 +21,6 @@ namespace o2
 {
 namespace ITS
 {
-namespace CA
-{
 namespace GPU
 {
 
@@ -85,7 +83,6 @@ template <typename T, std::size_t Size>
 GPU_HOST_DEVICE std::size_t Array<T, Size>::size() const noexcept
 {
   return Size;
-}
 }
 }
 }

@@ -44,6 +44,7 @@ class ROframe final
   void printPrimaryVertices() const;
   int getTotalClusters() const;
 
+  const std::array<std::vector<Cluster>, Constants::ITS::LayersNumber>& getClusters() const;
   const std::vector<Cluster>& getClustersOnLayer(int layerId) const;
   const std::vector<TrackingFrameInfo>& getTrackingFrameInfoOnLayer(int layerId) const;
 
@@ -72,6 +73,10 @@ inline int ROframe::getROFrameId() const { return mROframeId; }
 inline const float3& ROframe::getPrimaryVertex(const int vertexIndex) const { return mPrimaryVertices[vertexIndex]; }
 
 inline int ROframe::getPrimaryVerticesNum() const { return mPrimaryVertices.size(); }
+
+inline const std::array<std::vector<Cluster>, Constants::ITS::LayersNumber>& ROframe::getClusters() const {
+  return mClusters;
+}
 
 inline const std::vector<Cluster>& ROframe::getClustersOnLayer(int layerId) const {
   return mClusters[layerId];

@@ -12,7 +12,7 @@
 /// \brief
 ///
 
-#include "ITStracking/gpu/Utils.h"
+#include "ITStrackingCUDA/Utils.h"
 
 #include <sstream>
 #include <stdexcept>
@@ -21,7 +21,7 @@
 #include <cuda_profiler_api.h>
 #include <cooperative_groups.h>
 
-#include "ITStracking/gpu/Context.h"
+#include "ITStrackingCUDA/Context.h"
 
 namespace {
 void checkCUDAError(const cudaError_t error, const char *file, const int line)
@@ -77,8 +77,6 @@ int findNearestDivisor(const int numToRound, const int divisor)
 namespace o2
 {
 namespace ITS
-{
-namespace CA
 {
 namespace GPU
 {
@@ -186,7 +184,6 @@ GPU_DEVICE int Utils::Device::gpuAtomicAdd(int *p, const int incrementSize)
   return atomicAdd(p, incrementSize);
 }
 
-}
 }
 }
 }

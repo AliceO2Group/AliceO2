@@ -21,8 +21,6 @@ namespace o2
 {
 namespace ITS
 {
-namespace CA
-{
 namespace GPU
 {
 
@@ -41,7 +39,6 @@ class Stream final
  private:
   GPUStream mStream;
 };
-}
 }
 }
 }

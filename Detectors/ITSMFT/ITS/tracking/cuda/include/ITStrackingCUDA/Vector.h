@@ -21,14 +21,12 @@
 #include <vector>
 
 #include "ITStracking/Definitions.h"
-#include "ITStracking/gpu/Stream.h"
-#include "ITStracking/gpu/Utils.h"
+#include "ITStrackingCUDA/Stream.h"
+#include "ITStrackingCUDA/Utils.h"
 
 namespace o2
 {
 namespace ITS
-{
-namespace CA
 {
 namespace GPU
 {
@@ -298,7 +296,6 @@ GPU_DEVICE void Vector<T>::emplace(const int index, Args&&... arguments)
 {
 
   new (mArrayPointer + index) T(std::forward<Args>(arguments)...);
-}
 }
 }
 }

@@ -14,7 +14,6 @@
 
 #include "ITStracking/PrimaryVertexContext.h"
 
-#include "ITStracking/ROframe.h"
 #include <iostream>
 
 namespace o2
@@ -27,13 +26,14 @@ PrimaryVertexContext::PrimaryVertexContext()
   // Nothing to do
 }
 
-void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const ROframe& event, const int primaryVertexIndex, const int iteration)
+void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const std::array<std::vector<Cluster>, Constants::ITS::LayersNumber>& cl,
+                          const float3& pVtx, const int iteration)
 {
-  mPrimaryVertex = event.getPrimaryVertex(primaryVertexIndex);
+  mPrimaryVertex = pVtx;
 
   for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumber; ++iLayer) {
 
-    const auto& currentLayer{ event.getClustersOnLayer(iLayer) };
+    const auto& currentLayer{ cl[iLayer] };
     const int clustersNum{ currentLayer.size() };
 
     if (iteration == 0) {
@@ -45,14 +45,12 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const RO
       for (int iCluster{ 0 }; iCluster < clustersNum; ++iCluster) {
 
         const Cluster& currentCluster{ currentLayer.at(iCluster) };
-        mClusters[iLayer].emplace_back(iLayer, event.getPrimaryVertex(primaryVertexIndex), currentCluster);
+        mClusters[iLayer].emplace_back(iLayer, pVtx, currentCluster);
       }
 
       std::sort(mClusters[iLayer].begin(), mClusters[iLayer].end(), [](Cluster& cluster1, Cluster& cluster2) {
         return cluster1.indexTableBinIndex < cluster2.indexTableBinIndex;
       });
-      mTracks.clear();
-      mTrackLabels.clear();
     }
 
     if (iLayer < Constants::ITS::CellsPerRoad) {
@@ -60,9 +58,9 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const RO
       mCells[iLayer].clear();
       float cellsMemorySize =
         memParam.MemoryOffset +
-        std::ceil(((memParam.CellsMemoryCoefficients[iteration][iLayer] * event.getClustersOnLayer(iLayer).size()) *
-                   event.getClustersOnLayer(iLayer + 1).size()) *
-                  event.getClustersOnLayer(iLayer + 2).size());
+        std::ceil(((memParam.CellsMemoryCoefficients[iLayer] * cl[iLayer].size()) *
+                   cl[iLayer + 1].size()) *
+                  cl[iLayer + 2].size());
 
       if (cellsMemorySize > mCells[iLayer].capacity()) {
         mCells[iLayer].reserve(cellsMemorySize);
@@ -73,10 +71,10 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const RO
 
       mCellsLookupTable[iLayer].clear();
       mCellsLookupTable[iLayer].resize(
-        std::max(event.getClustersOnLayer(iLayer + 1).size(), event.getClustersOnLayer(iLayer + 2).size()) +
-          std::ceil((memParam.TrackletsMemoryCoefficients[iteration][iLayer + 1] *
-                     event.getClustersOnLayer(iLayer + 1).size()) *
-                    event.getClustersOnLayer(iLayer + 2).size()),
+        std::max(cl[iLayer + 1].size(), cl[iLayer + 2].size()) +
+          std::ceil((memParam.TrackletsMemoryCoefficients[iLayer + 1] *
+                     cl[iLayer + 1].size()) *
+                    cl[iLayer + 2].size()),
         Constants::ITS::UnusedIndex);
 
       mCellsNeighbours[iLayer].clear();
@@ -85,9 +83,6 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const RO
 
   mRoads.clear();
 
-#if TRACKINGITSU_GPU_MODE
-  mGPUContextDevicePointer = mGPUContext.initialize(mPrimaryVertex, mClusters, mCells, mCellsLookupTable);
-#else
   for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumber; ++iLayer) {
 
     const int clustersNum = static_cast<int>(mClusters[iLayer].size());
@@ -122,9 +117,9 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const RO
       mTracklets[iLayer].clear();
 
       float trackletsMemorySize =
-        std::max(event.getClustersOnLayer(iLayer).size(), event.getClustersOnLayer(iLayer + 1).size()) +
-        std::ceil((memParam.TrackletsMemoryCoefficients[iteration][iLayer] * event.getClustersOnLayer(iLayer).size()) *
-                  event.getClustersOnLayer(iLayer + 1).size());
+        std::max(cl[iLayer].size(), cl[iLayer + 1].size()) +
+        std::ceil((memParam.TrackletsMemoryCoefficients[iLayer] * cl[iLayer].size()) *
+                  cl[iLayer + 1].size());
 
       if (trackletsMemorySize > mTracklets[iLayer].capacity()) {
         mTracklets[iLayer].reserve(trackletsMemorySize);
@@ -134,10 +129,9 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const RO
     if (iLayer < Constants::ITS::CellsPerRoad) {
 
       mTrackletsLookupTable[iLayer].clear();
-      mTrackletsLookupTable[iLayer].resize(event.getClustersOnLayer(iLayer + 1).size(), Constants::ITS::UnusedIndex);
+      mTrackletsLookupTable[iLayer].resize(cl[iLayer + 1].size(), Constants::ITS::UnusedIndex);
     }
   }
-#endif
 }
 
 } // namespace ITS

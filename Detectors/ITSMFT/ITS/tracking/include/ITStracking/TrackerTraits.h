@@ -8,12 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file Tracker.h
+/// \file TrackerTraits.h
 /// \brief
 ///
 
-#ifndef TRACKINGITSU_INCLUDE_TRACKER_H_
-#define TRACKINGITSU_INCLUDE_TRACKER_H_
+#ifndef TRACKINGITSU_INCLUDE_TRACKERTRAITS_H_
+#define TRACKINGITSU_INCLUDE_TRACKERTRAITS_H_
 
 #include <array>
 #include <chrono>
@@ -30,9 +30,6 @@
 #include "ITStracking/PrimaryVertexContext.h"
 #include "ITStracking/Road.h"
 
-#include "DataFormatsITS/TrackITS.h"
-#include "SimulationDataFormat/MCCompLabel.h"
-
 namespace o2
 {
 namespace ITS
@@ -41,22 +38,27 @@ namespace ITS
 class TrackerTraits
 {
  public:
-  GPU_HOST_DEVICE constexpr int4 getEmptyBinsRect() { return int4{ 0, 0, 0, 0 }; }
-  GPU_DEVICE const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
+  virtual ~TrackerTraits() {}
 
-  GPU_DEVICE void computeLayerTracklets(PrimaryVertexContext&, int iteration = 0);
-  GPU_DEVICE void computeLayerCells(PrimaryVertexContext&, int iteration = 0);
+  GPU_HOST_DEVICE static constexpr int4 getEmptyBinsRect() { return int4{ 0, 0, 0, 0 }; }
+  GPU_DEVICE static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
+
+  virtual void computeLayerTracklets(PrimaryVertexContext*, int iteration = 0) {};
+  virtual void computeLayerCells(PrimaryVertexContext*, int iteration = 0) {};
+
+  void UpdateTrackingParameters(const TrackingParameters& trkPar);
 
  protected:
-  ~TrackerTraits() = default;
 
-  TrackingParameters& mTrkParams;
-  std::vector<std::vector<Tracklet>> mTracklets;
-  std::vector<std::vector<Cell>> mCells;
+  TrackingParameters mTrkParams;
 };
 
-GPU_DEVICE const int4 TrackerTraits::getBinsRect(const Cluster& currentCluster, const int layerIndex,
-                                                 const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
+inline void TrackerTraits::UpdateTrackingParameters(const TrackingParameters& trkPar) {
+  mTrkParams = trkPar;
+}
+
+inline GPU_DEVICE const int4 TrackerTraits::getBinsRect(const Cluster& currentCluster, const int layerIndex,
+                                                        const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
 {
   const float zRangeMin = directionZIntersection - 2 * maxdeltaz;
   const float phiRangeMin = currentCluster.phiCoordinate - maxdeltaphi;
@@ -78,4 +80,4 @@ GPU_DEVICE const int4 TrackerTraits::getBinsRect(const Cluster& currentCluster, 
 }
 }
 
-#endif /* TRACKINGITSU_INCLUDE_TRACKER_H_ */
+#endif /* TRACKINGITSU_INCLUDE_TRACKERTRAITS_H_ */
