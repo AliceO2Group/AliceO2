@@ -250,7 +250,9 @@ set(TEST_SRCS
       test/test_WorkflowHelpers.cxx
    )
 
-set(BENCH_SRCS test/benchmark_DataDescriptorMatcher.cxx)
+set(BENCH_SRCS 
+    test/benchmark_DataDescriptorMatcher.cxx
+    test/benchmark_DataRelayer.cxx)
 
 O2_GENERATE_TESTS(
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
