@@ -68,7 +68,7 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
 {
   setPipelineLength(DEFAULT_PIPELINE_LENGTH);
   for (size_t ci = 0; ci < mCache.size(); ci++) {
-    metrics.send({ 0, std::string("data_relayer/") + std::to_string(ci) });
+    metrics.send({ 0, sMetricsNames[ci] });
   }
 }
 
@@ -194,7 +194,7 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
     for (size_t ai = slot.index * numInputTypes, ae = ai + numInputTypes; ai != ae; ++ai) {
       cache[ai].header.reset(nullptr);
       cache[ai].payload.reset(nullptr);
-      metrics.send({ 0, std::string("data_relayer/") + std::to_string(ai) });
+      metrics.send({ 0, sMetricsNames[ai] });
     }
   };
 
@@ -213,7 +213,7 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
     auto slot = index.bookTimeslice(timeslice);
     auto cacheIdx = numInputTypes * slot.index + input;
     PartRef& currentPart = cache[cacheIdx];
-    metrics.send({ 1, std::string("data_relayer/") + std::to_string(cacheIdx) });
+    metrics.send({ 1, sMetricsNames[cacheIdx] });
     PartRef ref{std::move(header), std::move(payload)};
     currentPart = std::move(ref);
     assert(header.get() == nullptr && payload.get() == nullptr);
@@ -344,7 +344,7 @@ std::vector<std::unique_ptr<FairMQMessage>>
   // automatically discarded by the relay method.
   auto moveHeaderPayloadToOutput = [&messages, &cache, &index, &numInputTypes, &metrics](TimesliceSlot s, size_t arg) {
     auto cacheId = s.index * numInputTypes + arg;
-    metrics.send({ 2, "data_relayer/" + std::to_string(cacheId) });
+    metrics.send({ 2, sMetricsNames[cacheId] });
     messages.emplace_back(std::move(cache[cacheId].header));
     messages.emplace_back(std::move(cache[cacheId].payload));
     index.markAsObsolete(s);
@@ -390,7 +390,13 @@ DataRelayer::setPipelineLength(size_t s) {
   mCache.resize(numInputTypes * mTimesliceIndex.size());
   mMetrics.send({ (int)numInputTypes, "data_relayer/h" });
   mMetrics.send({ (int)mTimesliceIndex.size(), "data_relayer/w" });
+  sMetricsNames.resize(mCache.size());
+  for (size_t i = 0; i < sMetricsNames.size(); ++i) {
+    sMetricsNames[i] = std::string("data_relayer/") + std::to_string(i);
+  }
 }
+
+std::vector<std::string> DataRelayer::sMetricsNames;
 
 }
 }

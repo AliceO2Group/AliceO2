@@ -97,6 +97,7 @@ public:
   std::vector<bool> mForwardingMask;
   CompletionPolicy mCompletionPolicy;
   std::vector<size_t> mDistinctRoutesIndex;
+  static std::vector<std::string> sMetricsNames;
 };
 
 } // namespace framework
