@@ -24,6 +24,9 @@ class AliHLTTRDTrack : public T
   AliHLTTRDTrack(const typename T::baseClass &t ) = delete;
   GPUd() AliHLTTRDTrack(const AliHLTTRDTrack& t);
   GPUd() AliHLTTRDTrack(const AliHLTExternalTrackParam& t);
+  GPUd() AliHLTTRDTrack(const T& t);
+  GPUd() AliHLTTRDTrack(const AliHLTTPCGMMergedTrack& t);
+  GPUd() AliHLTTRDTrack(const AliHLTTPCGMTrackParam::AliHLTTPCCAOuterParam& t);
   GPUd() AliHLTTRDTrack &operator=(const AliHLTTRDTrack& t);
 
   GPUd() int   GetNlayers()              const;
