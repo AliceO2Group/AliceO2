@@ -99,6 +99,32 @@ template <> class trackInterface<AliHLTTPCGMTrackParam> : public AliHLTTPCGMTrac
   public:
     GPUd() trackInterface<AliHLTTPCGMTrackParam>() : AliHLTTPCGMTrackParam(), fAlpha(0.f) {};
     GPUd() trackInterface<AliHLTTPCGMTrackParam>(const AliHLTTPCGMTrackParam &param) = delete;
+    GPUd() trackInterface<AliHLTTPCGMTrackParam>(const AliHLTTPCGMMergedTrack &trk) :
+      AliHLTTPCGMTrackParam(),
+      fAlpha(trk.GetAlpha())
+    {
+      SetX(trk.GetParam().GetX());
+      SetPar(0, trk.GetParam().GetY());
+      SetPar(1, trk.GetParam().GetZ());
+      SetPar(2, trk.GetParam().GetSinPhi());
+      SetPar(3, trk.GetParam().GetDzDs());
+      SetPar(4, trk.GetParam().GetQPt());
+      for (int i=0; i<15; i++) {
+        SetCov(i, trk.GetParam().GetCov(i));
+      }
+    };
+    GPUd() trackInterface<AliHLTTPCGMTrackParam>(const AliHLTTPCGMTrackParam::AliHLTTPCCAOuterParam &param) :
+      AliHLTTPCGMTrackParam(),
+      fAlpha(param.fAlpha)
+    {
+      SetX(param.fX);
+      for (int i=0; i<5; i++) {
+        SetPar(i, param.fP[i]);
+      }
+      for (int i=0; i<15; i++) {
+        SetCov(i, param.fC[i]);
+      }
+    };
     GPUd() trackInterface<AliHLTTPCGMTrackParam>(const trackInterface<AliHLTTPCGMTrackParam> &param) :
       AliHLTTPCGMTrackParam(),
       fAlpha(param.fAlpha)
