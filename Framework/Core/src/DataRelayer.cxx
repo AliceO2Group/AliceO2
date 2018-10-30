@@ -8,24 +8,27 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/DataRelayer.h"
+
+#include "Framework/DataDescriptorMatcher.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/DataRef.h"
 #include "Framework/InputRecord.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/PartRef.h"
-#include "fairmq/FairMQLogger.h"
 #include "Framework/TimesliceIndex.h"
 
 #include <Monitoring/Monitoring.h>
 
+#include <fairmq/FairMQLogger.h>
+
 #include <gsl/span>
 
+using namespace o2::framework::data_matcher;
 using DataHeader = o2::header::DataHeader;
 using DataProcessingHeader = o2::framework::DataProcessingHeader;
 
 constexpr size_t MAX_PARALLEL_TIMESLICES = 256;
-
 
 namespace o2
 {
@@ -43,6 +46,28 @@ std::vector<size_t> createDistinctRouteIndex(std::vector<InputRoute> const& rout
       result.push_back(ri);
     }
   }
+  return result;
+}
+
+/// This converts from InputRoute to the associated DataDescriptorMatcher.
+std::vector<DataDescriptorMatcher> createInputMatchers(std::vector<InputRoute> const& routes)
+{
+  std::vector<DataDescriptorMatcher> result;
+
+  for (auto& route : routes) {
+    DataDescriptorMatcher matcher{
+      DataDescriptorMatcher::Op::And,
+      OriginValueMatcher{ route.matcher.origin.str },
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::And,
+        DescriptionValueMatcher{ route.matcher.description.str },
+        std::make_unique<DataDescriptorMatcher>(
+          DataDescriptorMatcher::Op::Just,
+          SubSpecificationTypeValueMatcher{ route.matcher.subSpec }))
+    };
+    result.emplace_back(std::move(matcher));
+  }
+
   return result;
 }
 }
@@ -64,7 +89,8 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
     mTimesliceIndex{ index },
     mMetrics{ metrics },
     mCompletionPolicy{ policy },
-    mDistinctRoutesIndex{ createDistinctRouteIndex(inputRoutes) }
+    mDistinctRoutesIndex{ createDistinctRouteIndex(inputRoutes) },
+    mInputMatchers{ createInputMatchers(inputRoutes) }
 {
   setPipelineLength(DEFAULT_PIPELINE_LENGTH);
   for (size_t ci = 0; ci < mCache.size(); ci++) {
@@ -107,22 +133,24 @@ void DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& ex
 /// reason why these might diffent is that when you have timepipelining
 /// you have one route per timeslice, even if the type is the same.
 size_t
-assignInputSpecId(void *data, std::vector<InputRoute> const &routes) {
-  for (size_t ri = 0, re = routes.size(); ri < re; ++ri) {
-    auto &route = routes[ri];
+  assignInputSpecId(void* data, std::vector<DataDescriptorMatcher> const& matchers)
+{
+  /// FIXME: for the moment we have a global context, since we do not support
+  ///        yet generic matchers as InputSpec.
+  std::vector<ContextElement> context{};
+
+  for (size_t ri = 0, re = matchers.size(); ri < re; ++ri) {
+    auto& matcher = matchers[ri];
     const DataHeader* h = o2::header::get<DataHeader*>(data);
     if (h == nullptr) {
       return re;
     }
 
-    if (DataSpecUtils::match(route.matcher,
-                             h->dataOrigin,
-                             h->dataDescription,
-                             h->subSpecification)) {
+    if (matcher.match(*h, context)) {
       return ri;
     }
   }
-  return routes.size();
+  return matchers.size();
 }
 
 DataRelayer::RelayChoice
@@ -145,8 +173,8 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
   // This returns the identifier for the given input. We use a separate
   // function because while it's trivial now, the actual matchmaking will
   // become more complicated when we will start supporting ranges.
-  auto getInput = [&inputRoutes,&header] () -> int {
-    return assignInputSpecId(header->GetData(), inputRoutes);
+  auto getInput = [&matchers = mInputMatchers ,&header] () -> int {
+    return assignInputSpecId(header->GetData(), matchers);
   };
 
   // This will check if the input is valid. We hide the details so that

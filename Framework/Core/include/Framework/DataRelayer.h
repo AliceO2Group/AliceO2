@@ -11,6 +11,7 @@
 #define FRAMEWORK_DATARELAYER_H
 
 #include "Framework/InputRoute.h"
+#include "Framework/DataDescriptorMatcher.h"
 #include "Framework/ForwardRoute.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/PartRef.h"
@@ -97,6 +98,7 @@ public:
   std::vector<bool> mForwardingMask;
   CompletionPolicy mCompletionPolicy;
   std::vector<size_t> mDistinctRoutesIndex;
+  std::vector<data_matcher::DataDescriptorMatcher> mInputMatchers;
   static std::vector<std::string> sMetricsNames;
 };
 
