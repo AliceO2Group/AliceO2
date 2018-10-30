@@ -115,6 +115,35 @@ class MatchTOF
   ///< get number of sigma used to do the matching
   float getSigmaTimeCut() const { return mSigmaTimeCut; }
 
+#ifdef _ALLOW_DEBUG_TREES_
+  enum DebugFlagTypes : UInt_t {
+    MatchTreeAll = 0x1 << 1,     ///< produce matching candidates tree for all candidates
+  };
+  ///< check if partucular flags are set
+  bool isDebugFlag(UInt_t flags) const { return mDBGFlags & flags; }
+
+  ///< get debug trees flags
+  UInt_t getDebugFlags() const { return mDBGFlags; }
+
+  ///< set or unset debug stream flag
+  void setDebugFlag(UInt_t flag, bool on = true);
+
+  ///< set the name of output debug file
+  void setDebugTreeFileName(std::string name)
+  {
+    if (!name.empty()) {
+      mDebugTreeFileName = name;
+    }
+  }
+
+  ///< get the name of output debug file
+  const std::string& getDebugTreeFileName() const { return mDebugTreeFileName; }
+
+  ///< fill matching debug tree
+  void fillTOFmatchTree(const char* tname, int cacheTOF, int sectTOF, int plateTOF, int stripTOF, int padXTOF, int padZTOF, int cacheeTrk, int crossedStrip, int sectPropagation, int platePropagation, int stripPropagation, int padXPropagation, int padZPropagation, float resX, float resZ, float res, o2::dataformats::TrackTPCITS& trk);
+  void dumpWinnerMatches();
+#endif
+
  private:
   void attachInputTrees();
   bool prepareTracks();
@@ -146,7 +175,7 @@ class MatchTOF
   // to be done later
 
   float mTimeTolerance = 1e3; ///<tolerance in ns for track-TOF time bracket matching
-  float mSpaceTolerance = 100; ///<tolerance in cm for track-TOF time bracket matching
+  float mSpaceTolerance = 10; ///<tolerance in cm for track-TOF time bracket matching
   int   mSigmaTimeCut = 3.; ///< number of sigmas to cut on time when matching the track to the TOF cluster
   
   TTree* mInputTreeTracks = nullptr; ///< input tree for tracks
@@ -198,10 +227,17 @@ class MatchTOF
   std::string mTOFMCTruthBranchName = "TOFClusterMCTruth"; ///< name of branch containing ITS MC labels
   std::string mOutTracksBranchName = "TOFMatchInfo";       ///< name of branch containing output matched tracks
 
+#ifdef _ALLOW_DEBUG_TREES_
+  std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
+  UInt_t mDBGFlags = 0;
+  std::string mDebugTreeFileName = "dbg_matchTOF.root"; ///< name for the debug tree file
+#endif
+
   ///----------- aux stuff --------------///
   static constexpr float MAXSNP = 0.85;                // max snp of ITS or TPC track at xRef to be matched
   
   TStopwatch mTimerTot;
+  TStopwatch mTimerDBG;
   ClassDefNV(MatchTOF, 1);
 };
 } // namespace globaltracking

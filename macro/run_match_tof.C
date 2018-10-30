@@ -48,6 +48,16 @@ void run_match_tof(std::string path = "./", std::string outputfile = "o2match_to
   TTree outTree("matchTOF", "Matched TOF-tracks");
   matching.setOutputTree(&outTree);
 
+#ifdef _ALLOW_DEBUG_TREES_
+  matching.setDebugTreeFileName(path + matching.getDebugTreeFileName());
+  // dump accepted pairs only
+  //matching.setDebugFlag(o2::globaltracking::MatchTPCITS::MatchTreeAccOnly);
+  // dump all checked pairs
+  matching.setDebugFlag(o2::globaltracking::MatchTPCITS::MatchTreeAll);
+  // dump winner matches
+  //matching.setDebugFlag(o2::globaltracking::MatchTPCITS::WinnerMatchesTree);
+#endif
+
   //-------- init geometry and field --------//
   o2::Base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
   o2::Base::Propagator::initFieldFromGRP(path + inputGRP);
