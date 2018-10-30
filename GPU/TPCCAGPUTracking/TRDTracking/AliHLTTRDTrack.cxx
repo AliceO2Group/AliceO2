@@ -85,58 +85,13 @@ GPUd() AliHLTTRDTrack<T>::AliHLTTRDTrack(const T& t) :
   fIsStopped(false)
 {
   //------------------------------------------------------------------
-  // copy constructor from anything -> FIXME is it safe to have this?
+  // copy constructor from anything
   //------------------------------------------------------------------
   for (int i=0; i<=5; ++i) {
     fAttachedTracklets[i] = -1;
     fIsFindable[i] = 0;
   }
 }
-
-template <>
-GPUd() AliHLTTRDTrack<trackInterface<AliHLTTPCGMTrackParam>>::AliHLTTRDTrack(const AliHLTTPCGMMergedTrack& t) :
-  trackInterface<AliHLTTPCGMTrackParam>(t),
-  fChi2(0),
-  fMass(0),
-  fLabel(-1),
-  fTPCtrackId(0),
-  fNtracklets(0),
-  fNmissingConsecLayers(0),
-  fNtrackletsOffline(0),
-  fLabelOffline(-1),
-  fIsStopped(false)
-{
-  //------------------------------------------------------------------
-  // copy constructor from AliHLTTPCGMMergedTrack
-  //------------------------------------------------------------------
-  for (int i=0; i<=5; ++i) {
-    fAttachedTracklets[i] = -1;
-    fIsFindable[i] = 0;
-  }
-}
-
-template <>
-GPUd() AliHLTTRDTrack<trackInterface<AliHLTTPCGMTrackParam>>::AliHLTTRDTrack(const AliHLTTPCGMTrackParam::AliHLTTPCCAOuterParam& t) :
-  trackInterface<AliHLTTPCGMTrackParam>(t),
-  fChi2(0),
-  fMass(0),
-  fLabel(-1),
-  fTPCtrackId(0),
-  fNtracklets(0),
-  fNmissingConsecLayers(0),
-  fNtrackletsOffline(0),
-  fLabelOffline(-1),
-  fIsStopped(false)
-{
-  //------------------------------------------------------------------
-  // copy constructor from AliHLTTPCGMTrackParam::AliHLTTPCCAOuterParam
-  //------------------------------------------------------------------
-  for (int i=0; i<=5; ++i) {
-    fAttachedTracklets[i] = -1;
-    fIsFindable[i] = 0;
-  }
-}
-
 
 template <typename T>
 GPUd() AliHLTTRDTrack<T> &AliHLTTRDTrack<T>::operator=(const AliHLTTRDTrack<T>& t)
