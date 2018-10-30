@@ -1119,16 +1119,19 @@ bool MatchTPCITS::refitTrackITSTPC(int iITS)
   loadITSTracksChunk(tITS.source.getEvent());
   loadTPCTracksChunk(tTPC.source.getEvent());
 
-  mMatchedTracks.emplace_back(tTPC); // create a copy of TPC track at xRef
+  auto itsTrOrig = (*mITSTracksArrayInp)[tITS.source.getIndex()]; // currently we store clusterIDs in the track
+
+  mMatchedTracks.emplace_back(tTPC, itsTrOrig.getParamOut()); // create a copy of TPC track at xRef
   auto& trfit = mMatchedTracks.back();
   // in continuos mode the Z of TPC track is meaningless, unless it is CE crossing
   // track (currently absent, TODO)
   if (!mCompareTracksDZ) {
     trfit.setZ(tITS.getZ()); // fix the seed Z
   }
-  float deltaT = (trfit.getZ() - tTPC.getZ()) * mZ2TPCBin; // time correction in time-bins
+  auto dzCorr = trfit.getZ() - tTPC.getZ();
+  float deltaT = dzCorr * mZ2TPCBin; // time correction in time-bins
 
-  auto itsTrOrig = (*mITSTracksArrayInp)[tITS.source.getIndex()]; // currently we store clusterIDs in the track
+  // refit TPC track inward into the ITS
   int nclRefit = 0, ncl = itsTrOrig.getNumberOfClusters();
   float chi2 = 0.f;
   auto geom = o2::ITS::GeometryTGeo::Instance();
@@ -1155,6 +1158,9 @@ bool MatchTPCITS::refitTrackITSTPC(int iITS)
     mMatchedTracks.pop_back(); // destroy failed track
     return false;
   }
+
+  // refit ITS outer trackparam outward into the TPC
+  // TODO
 
   /// precise time estimate
   auto tpcTrOrig = (*mTPCTracksArrayInp)[tTPC.source.getIndex()];

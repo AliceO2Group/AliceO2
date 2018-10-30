@@ -34,6 +34,7 @@ class TrackTPCITS : public o2::track::TrackParCov
   ~TrackTPCITS() = default;
   TrackTPCITS(const TrackTPCITS& src) = default;
   TrackTPCITS(const o2::track::TrackParCov& src) : o2::track::TrackParCov(src) {}
+  TrackTPCITS(const o2::track::TrackParCov& srcIn, const o2::track::TrackParCov& srcOut) : o2::track::TrackParCov(srcIn), mParamOut(srcOut) {}
 
   const evIdx& getRefTPC() const { return mRefTPC; }
   const evIdx& getRefITS() const { return mRefITS; }
@@ -57,6 +58,9 @@ class TrackTPCITS : public o2::track::TrackParCov
   void setChi2Match(float v) { mChi2Match = v; }
   float getChi2Match() const { return mChi2Match; }
 
+  o2::track::TrackParCov& getParamOut() { return mParamOut; }
+  const o2::track::TrackParCov& getParamOut() const { return mParamOut; }
+
   void print() const;
 
  private:
@@ -65,8 +69,8 @@ class TrackTPCITS : public o2::track::TrackParCov
   float mChi2Refit = 0.f; ///< chi2 of the refit
   float mChi2Match = 0.f; ///< chi2 of the match
   timeEst mTimeMUS;       ///< time estimate in ns
-
-  ClassDefNV(TrackTPCITS, 1);
+  o2::track::TrackParCov mParamOut; ///< refitted outer parameter
+  ClassDefNV(TrackTPCITS, 2);
 };
 }
 }
