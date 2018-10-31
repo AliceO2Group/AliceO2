@@ -16,6 +16,7 @@
 #include "Framework/DataDescriptorQueryBuilder.h"
 
 #include <boost/test/unit_test.hpp>
+#include <variant>
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -296,7 +297,7 @@ BOOST_AUTO_TEST_CASE(TestQueryBuilder)
 // This checks matching using variables
 BOOST_AUTO_TEST_CASE(TestMatchingVariables)
 {
-  std::vector<ContextElement> context(1);
+  std::vector<ContextElement> context(2);
 
   DataDescriptorMatcher matcher{
     DataDescriptorMatcher::Op::And,
@@ -306,7 +307,7 @@ BOOST_AUTO_TEST_CASE(TestMatchingVariables)
       DescriptionValueMatcher{ "CLUSTERS" },
       std::make_unique<DataDescriptorMatcher>(
         DataDescriptorMatcher::Op::And,
-        SubSpecificationTypeValueMatcher{ 1 },
+        SubSpecificationTypeValueMatcher{ ContextRef{ 1 } },
         ConstantValueMatcher{ true }))
   };
 
@@ -319,6 +320,9 @@ BOOST_AUTO_TEST_CASE(TestMatchingVariables)
   auto s = std::get_if<std::string>(&context[0].value);
   BOOST_CHECK(s != nullptr);
   BOOST_CHECK(*s == "TPC");
+  auto v = std::get_if<uint64_t>(&context[1].value);
+  BOOST_CHECK(v != nullptr);
+  BOOST_CHECK(*v == 1);
 
   // This will not match, because ContextRef{0} is bound
   // to TPC already.
@@ -383,4 +387,31 @@ BOOST_AUTO_TEST_CASE(TestInputSpecMatching)
   BOOST_CHECK(matcher2.match(spec2, context) == true);
   BOOST_CHECK(matcher2.match(spec3, context) == false);
   BOOST_CHECK(matcher2.match(spec4, context) == true);
+}
+
+BOOST_AUTO_TEST_CASE(TestStartTimeMatching)
+{
+  std::vector<ContextElement> context(1);
+
+  DataDescriptorMatcher matcher{
+    DataDescriptorMatcher::Op::Just,
+    StartTimeValueMatcher{ ContextRef{ 0 } }
+  };
+
+  DataHeader dh;
+  dh.dataOrigin = "TPC";
+  dh.dataDescription = "CLUSTERS";
+  dh.subSpecification = 1;
+
+  DataProcessingHeader dph;
+  dph.startTime = 123;
+
+  Stack s{ dh, dph };
+  auto s2dph = o2::header::get<DataProcessingHeader*>(s.data());
+  BOOST_CHECK(s2dph != nullptr);
+  BOOST_CHECK_EQUAL(s2dph->startTime, 123);
+  BOOST_CHECK(matcher.match(s, context) == true);
+  auto vPtr = std::get_if<uint64_t>(&context[0].value);
+  BOOST_REQUIRE(vPtr != nullptr);
+  BOOST_CHECK_EQUAL(*vPtr, 123);
 }

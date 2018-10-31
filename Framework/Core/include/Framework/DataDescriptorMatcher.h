@@ -11,7 +11,9 @@
 #define o2_framework_DataDescriptorMatcher_H_INCLUDED
 
 #include "Framework/InputSpec.h"
+#include "Framework/DataProcessingHeader.h"
 #include "Headers/DataHeader.h"
+#include "Headers/Stack.h"
 
 #include <cstdint>
 #include <string>
@@ -45,7 +47,7 @@ struct ContextRef {
 /// it in the O2 DataHeader, however we could add it later on.
 struct ContextElement {
   std::string label;                               /// The name of the variable contained in this element.
-  std::variant<uint64_t, std::string, None> value; /// The actual contents of the element.
+  std::variant<uint64_t, std::string, None> value = None{}; /// The actual contents of the element.
 };
 
 /// Can hold either an actual value of type T or a reference to
@@ -187,7 +189,55 @@ class SubSpecificationTypeValueMatcher : public ValueHolder<uint64_t>
   }
 };
 
-/// Something which can be matched against a header::SubSpecificationType
+/// Matcher on actual time, as reported in the DataProcessingHeader
+class StartTimeValueMatcher : public ValueHolder<uint64_t>
+{
+ public:
+  StartTimeValueMatcher(ContextRef variableId, uint64_t scale = 1)
+    : ValueHolder{ variableId },
+      mScale{ scale }
+  {
+  }
+
+  /// The passed string @a s is the expected numerical value for
+  /// the SubSpecification type.
+  StartTimeValueMatcher(std::string const& s, uint64_t scale = 1)
+    : ValueHolder<uint64_t>{ strtoull(s.c_str(), nullptr, 10) },
+      mScale{ scale }
+  {
+  }
+
+  /// This means that the matcher is looking for a constant.
+  /// We will divide the input by scale so that we can map
+  /// quantities with different granularities to the same record.
+  StartTimeValueMatcher(uint64_t v, uint64_t scale = 1)
+    : ValueHolder<uint64_t>{ v / scale },
+      mScale{ scale }
+  {
+  }
+
+  /// This will match the timing information which is currently in
+  /// the DataProcessingHeader. Notice how we apply the scale to the
+  /// actual values found.
+  bool match(DataProcessingHeader const& dph, std::vector<ContextElement>& context) const
+  {
+    if (auto ref = std::get_if<ContextRef>(&mValue)) {
+      auto& variable = context.at(ref->index);
+      if (auto value = std::get_if<uint64_t>(&variable.value)) {
+        return (dph.startTime / mScale) == *value;
+      }
+      variable.value = dph.startTime / mScale;
+      return true;
+    } else if (auto v = std::get_if<uint64_t>(&mValue)) {
+      return (dph.startTime / mScale) == *v;
+    }
+    throw std::runtime_error("Mismatching type for variable");
+  }
+
+ private:
+  uint64_t mScale;
+};
+
 class ConstantValueMatcher
 {
  public:
@@ -198,7 +248,7 @@ class ConstantValueMatcher
     mValue = value;
   }
 
-  bool match(header::DataHeader const& header) const
+  bool match() const
   {
     return mValue;
   }
@@ -232,7 +282,7 @@ struct DescriptorMatcherTrait<header::DataHeader::SubSpecificationType> {
 };
 
 class DataDescriptorMatcher;
-using Node = std::variant<OriginValueMatcher, DescriptionValueMatcher, SubSpecificationTypeValueMatcher, std::unique_ptr<DataDescriptorMatcher>, ConstantValueMatcher>;
+using Node = std::variant<OriginValueMatcher, DescriptionValueMatcher, SubSpecificationTypeValueMatcher, std::unique_ptr<DataDescriptorMatcher>, ConstantValueMatcher, StartTimeValueMatcher>;
 
 // A matcher for a given O2 Data Model descriptor.  We use a variant to hold
 // the different kind of matchers so that we can have a hierarchy or
@@ -298,10 +348,22 @@ class DataDescriptorMatcher
     dh.dataDescription = spec.description;
     dh.subSpecification = spec.subSpec;
 
-    return this->match(dh, context);
+    return this->match(reinterpret_cast<char const*>(&dh), context);
   }
 
-  bool match(header::DataHeader const& d, std::vector<ContextElement>& context) const
+  bool match(header::DataHeader const& header, std::vector<ContextElement>& context) const
+  {
+    return this->match(reinterpret_cast<char const*>(&header), context);
+  }
+
+  bool match(header::Stack const& stack, std::vector<ContextElement>& context) const
+  {
+    return this->match(reinterpret_cast<char const*>(stack.data()), context);
+  }
+
+  // actual polymorphic matcher which is able to cast the pointer to the correct
+  // kind of header.
+  bool match(char const* d, std::vector<ContextElement>& context) const
   {
     bool leftValue = false, rightValue = false;
 
@@ -331,15 +393,33 @@ class DataDescriptorMatcher
     // }
     //  When we drop support for macOS 10.13
     if (auto pval0 = std::get_if<OriginValueMatcher>(&mLeft)) {
-      leftValue = pval0->match(d, context);
+      auto dh = o2::header::get<header::DataHeader*>(d);
+      if (dh == nullptr) {
+        throw std::runtime_error("Cannot find DataHeader");
+      }
+      leftValue = pval0->match(*dh, context);
     } else if (auto pval1 = std::get_if<DescriptionValueMatcher>(&mLeft)) {
-      leftValue = pval1->match(d, context);
+      auto dh = o2::header::get<header::DataHeader*>(d);
+      if (dh == nullptr) {
+        throw std::runtime_error("Cannot find DataHeader");
+      }
+      leftValue = pval1->match(*dh, context);
     } else if (auto pval2 = std::get_if<SubSpecificationTypeValueMatcher>(&mLeft)) {
-      leftValue = pval2->match(d, context);
+      auto dh = o2::header::get<header::DataHeader*>(d);
+      if (dh == nullptr) {
+        throw std::runtime_error("Cannot find DataHeader");
+      }
+      leftValue = pval2->match(*dh, context);
     } else if (auto pval3 = std::get_if<std::unique_ptr<DataDescriptorMatcher>>(&mLeft)) {
       leftValue = (*pval3)->match(d, context);
     } else if (auto pval4 = std::get_if<ConstantValueMatcher>(&mLeft)) {
-      leftValue = pval4->match(d);
+      leftValue = pval4->match();
+    } else if (auto pval5 = std::get_if<StartTimeValueMatcher>(&mLeft)) {
+      auto dph = o2::header::get<DataProcessingHeader*>(d);
+      if (dph == nullptr) {
+        throw std::runtime_error("Cannot find DataProcessingHeader");
+      }
+      leftValue = pval5->match(*dph, context);
     } else {
       throw std::runtime_error("Bad parsing tree");
     }
@@ -355,15 +435,21 @@ class DataDescriptorMatcher
     }
 
     if (auto pval0 = std::get_if<OriginValueMatcher>(&mRight)) {
-      rightValue = pval0->match(d, context);
+      auto dh = o2::header::get<header::DataHeader*>(d);
+      rightValue = pval0->match(*dh, context);
     } else if (auto pval1 = std::get_if<DescriptionValueMatcher>(&mRight)) {
-      rightValue = pval1->match(d, context);
+      auto dh = o2::header::get<header::DataHeader*>(d);
+      rightValue = pval1->match(*dh, context);
     } else if (auto pval2 = std::get_if<SubSpecificationTypeValueMatcher>(&mRight)) {
-      rightValue = pval2->match(d, context);
+      auto dh = o2::header::get<header::DataHeader*>(d);
+      rightValue = pval2->match(*dh, context);
     } else if (auto pval3 = std::get_if<std::unique_ptr<DataDescriptorMatcher>>(&mRight)) {
       rightValue = (*pval3)->match(d, context);
     } else if (auto pval4 = std::get_if<ConstantValueMatcher>(&mRight)) {
-      rightValue = pval4->match(d);
+      rightValue = pval4->match();
+    } else if (auto pval5 = std::get_if<StartTimeValueMatcher>(&mRight)) {
+      auto dph = o2::header::get<DataProcessingHeader*>(d);
+      rightValue = pval5->match(*dph, context);
     }
     // There are cases in which not having a rightValue might be legitimate,
     // so we do not throw an exception.
