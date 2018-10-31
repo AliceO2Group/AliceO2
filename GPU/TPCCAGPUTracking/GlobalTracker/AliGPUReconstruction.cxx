@@ -13,14 +13,21 @@
 #include "AliHLTTPCClusterMCData.h"
 #include "AliHLTTPCCAMCInfo.h"
 #include "AliHLTTRDTrack.h"
+#include "AliHLTTRDTracker.h"
 
 static constexpr char DUMP_HEADER[] = "CAv1";
 
-AliGPUReconstruction::~AliGPUReconstruction()
+AliGPUReconstruction::AliGPUReconstruction() : mIOPtrs(), mIOMem(), mTRDTracker(new AliHLTTRDTracker)
 {
+	mTRDTracker->Init();
 }
+
+AliGPUReconstruction::~AliGPUReconstruction()
+{}
+
 AliGPUReconstruction::InOutMemory::InOutMemory() : mcLabelsTPC(), mcInfosTPC(), mergedTracks(), mergedTrackHits(), trdTracks(), trdTracklets()
 {}
+	
 AliGPUReconstruction::InOutMemory::~InOutMemory()
 {}
 
@@ -129,6 +136,7 @@ template <class T> void AliGPUReconstruction::ReadData(FILE* fp, T** entries, un
 		numTotal += num[i];
 	}
 	(void) r;
+	//printf("Read %d %s\n", numTotal, IOTYPENAMES[type]);
 }
 
 template <class T> void AliGPUReconstruction::AllocateIOMemoryHelper(unsigned int n, T* &ptr, std::unique_ptr<T[]> &u)
@@ -150,4 +158,34 @@ void AliGPUReconstruction::AllocateIOMemory()
 	AllocateIOMemoryHelper(mIOPtrs.nMergedTrackHits, mIOPtrs.mergedTrackHits, mIOMem.mergedTrackHits);
 	AllocateIOMemoryHelper(mIOPtrs.nTRDTracks, mIOPtrs.trdTracks, mIOMem.trdTracks);
 	AllocateIOMemoryHelper(mIOPtrs.nTRDTracklets, mIOPtrs.trdTracklets, mIOMem.trdTracklets);
+}
+
+int AliGPUReconstruction::RunTRDTracking()
+{
+	std::vector< HLTTRDTrack > tracksTPC;
+	std::vector< int > tracksTPCLab;
+	std::vector< int > tracksTPCId;
+
+	for (unsigned int i = 0;i < mIOPtrs.nMergedTracks;i++)
+	{
+		const AliHLTTPCGMMergedTrack& trk = mIOPtrs.mergedTracks[i];
+		if (!trk.OK()) continue;
+		tracksTPC.emplace_back(trk);
+		tracksTPCId.push_back(i);
+		tracksTPCLab.push_back(-1);
+	}
+	
+	mTRDTracker->Reset();
+	mTRDTracker->StartLoadTracklets(mIOPtrs.nTRDTracklets);
+
+	for (unsigned int iTracklet = 0;iTracklet < mIOPtrs.nTRDTracklets;++iTracklet)
+	{
+		mTRDTracker->LoadTracklet(mIOPtrs.trdTracklets[iTracklet]);
+	}
+
+	mTRDTracker->DoTracking(&(tracksTPC[0]), &(tracksTPCLab[0]), tracksTPC.size());
+	
+	printf("TRD Tracker reconstructed %d tracks\n", mTRDTracker->NTracks());
+	
+	return 0;
 }
