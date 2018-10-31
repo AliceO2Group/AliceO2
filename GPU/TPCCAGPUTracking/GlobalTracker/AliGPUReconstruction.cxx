@@ -170,7 +170,9 @@ int AliGPUReconstruction::RunTRDTracking()
 	{
 		const AliHLTTPCGMMergedTrack& trk = mIOPtrs.mergedTracks[i];
 		if (!trk.OK()) continue;
-		tracksTPC.emplace_back(trk);
+#ifndef HLTCA_BUILD_ALIROOT_LIB
+		tracksTPC.emplace_back(trk.OuterParam());
+#endif
 		tracksTPCId.push_back(i);
 		tracksTPCLab.push_back(-1);
 	}
