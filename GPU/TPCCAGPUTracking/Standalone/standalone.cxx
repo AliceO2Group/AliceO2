@@ -121,7 +121,6 @@ int main(int argc, char** argv)
 	if ((configStandalone.nways & 1) == 0) {printf("nWay setting musst be odd number!\n"); return(1);}
 
 	std::ofstream CPUOut, GPUOut;
-	FILE* fpBinaryOutput = NULL;
 
 	if (configStandalone.eventDisplay) configStandalone.noprompt = 1;
 	if (configStandalone.DebugLevel >= 4)
@@ -133,15 +132,6 @@ int main(int argc, char** argv)
 #ifdef HLTCA_HAVE_OPENMP
 	if (configStandalone.OMPThreads != -1) omp_set_num_threads(configStandalone.OMPThreads);
 #endif
-	if (configStandalone.writebinary)
-	{
-		if ((fpBinaryOutput = fopen("output.bin", "w+b")) == NULL)
-		{
-			printf("Error opening output file\n");
-			exit(1);
-		}
-	}
-
 	if (configStandalone.outputcontrolmem)
 	{
 		outputmemory = malloc(configStandalone.outputcontrolmem);
@@ -605,68 +595,6 @@ int main(int argc, char** argv)
 						if (tmpRetVal != 2) printf("Error occured\n");
 						goto breakrun;
 					}
-
-					if (configStandalone.merger)
-					{
-						const AliHLTTPCGMMerger& merger = hlt.Merger();
-						if (configStandalone.resetids && (configStandalone.writeoutput || configStandalone.writebinary))
-						{
-							printf("\nWARNING: Renumbering Cluster IDs, Cluster IDs in output do NOT match IDs from input\n\n");
-						}
-						if (configStandalone.writeoutput)
-						{
-							char filename[1024];
-							sprintf(filename, "output.%d.txt", i);
-							printf("Creating output file %s\n", filename);
-							FILE* foutput = fopen(filename, "w+");
-							if (foutput == NULL)
-							{
-								printf("Error creating file\n");
-								exit(1);
-							}
-							fprintf(foutput, "Event %d\n", i);
-							for (int k = 0;k < merger.NOutputTracks();k++)
-							{
-								const AliHLTTPCGMMergedTrack& track = merger.OutputTracks()[k];
-								const AliHLTTPCGMTrackParam& param = track.GetParam();
-								fprintf(foutput, "Track %d: %4s Alpha %f X %f Y %f Z %f SinPhi %f DzDs %f q/Pt %f - Clusters ", k, track.OK() ? "OK" : "FAIL", track.GetAlpha(), param.GetX(), param.GetY(), param.GetZ(), param.GetSinPhi(), param.GetDzDs(), param.GetQPt());
-								for (int l = 0;l < track.NClusters();l++)
-								{
-									fprintf(foutput, "%d ", merger.Clusters()[track.FirstClusterRef() + l].fNum);
-								}
-								fprintf(foutput, "\n");
-							}
-							fclose(foutput);
-						}
-
-						if (configStandalone.writebinary)
-						{
-							int numTracks = merger.NOutputTracks();
-							fwrite(&numTracks, sizeof(numTracks), 1, fpBinaryOutput);
-							for (int k = 0;k < numTracks;k++)
-							{
-								OutputTrack tmpTrack;
-								const AliHLTTPCGMMergedTrack& track = merger.OutputTracks()[k];
-								const AliHLTTPCGMTrackParam& param = track.GetParam();
-
-								tmpTrack.Alpha = track.GetAlpha();
-								tmpTrack.X = param.GetX();
-								tmpTrack.Y = param.GetY();
-								tmpTrack.Z = param.GetZ();
-								tmpTrack.SinPhi = param.GetSinPhi();
-								tmpTrack.DzDs = param.GetDzDs();
-								tmpTrack.QPt = param.GetQPt();
-								tmpTrack.NClusters = track.NClusters();
-								tmpTrack.FitOK = track.OK();
-								fwrite(&tmpTrack, sizeof(tmpTrack), 1, fpBinaryOutput);
-								const AliHLTTPCGMMergedTrackHit* clusters = merger.Clusters() + track.FirstClusterRef();
-								for (int l = 0;l < track.NClusters();l++)
-								{
-									fwrite(&clusters[l].fNum, sizeof(clusters[l].fNum), 1, fpBinaryOutput);
-								}
-							}
-						}
-					}
 				}
 			}
 			if (nEventsProcessed > 1)
@@ -692,7 +620,6 @@ breakrun:
 		CPUOut.close();
 		GPUOut.close();
 	}
-	if (configStandalone.writebinary) fclose(fpBinaryOutput);
 
 	hlt.Merger().Clear();
 	hlt.Merger().SetGPUTracker(NULL);

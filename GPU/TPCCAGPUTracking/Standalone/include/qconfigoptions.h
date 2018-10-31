@@ -73,8 +73,6 @@ AddOption(gpuLibrary, const char*, "libAliHLTTPCCAGPUSAOpenCL.so", "gpuLibrary",
 #endif
 AddOption(noprompt, bool, true, "prompt", 0, "Do prompt for keypress before exiting", def(false))
 AddOption(continueOnError, bool, false, "continue", 0, "Continue processing after an error")
-AddOption(writeoutput, bool, false, "write", 0, "Write tracks found to text output file")
-AddOption(writebinary, bool, false, "writeBinary", 0, "Write tracks found to binary output file")
 AddOption(DebugLevel, int, 0, "debug", 'd', "Set debug level")
 AddOption(seed, int, -1, "seed", 0, "Set srand seed (-1: random)")
 AddOption(cleardebugout, bool, false, "clearDebugFile", 0, "Clear debug output file when processing next event")
