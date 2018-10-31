@@ -25,8 +25,6 @@ MEM_CLASS_PRE() class AliHLTTPCCATracklet
 
 #if !defined(HLTCA_GPUCODE)
     AliHLTTPCCATracklet() : fNHits( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fParam(), fHitWeight(0) {};
-    void Dummy() const ;
-    ~AliHLTTPCCATracklet() {}
 #endif //!HLTCA_GPUCODE
 
     GPUhd() int  NHits()                const { return fNHits;      }

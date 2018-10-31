@@ -316,7 +316,7 @@ int GetMCLabel(unsigned int trackId)
 void InitQA()
 {
 	structConfigQA& config = configStandalone.configQA;
-	char name[1024], fname[1024];
+	char name[2048], fname[1024];
 
 	for (int i = 0;i < ColorCount;i++)
 	{
@@ -1263,7 +1263,7 @@ int DrawQAHistograms()
 {
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	bool mcAvail = hlt.GetNMCInfo() && hlt.GetNMCLabels();
-	char name[1024], fname[1024];
+	char name[2048], fname[1024];
 
 	const structConfigQA& config = configStandalone.configQA;
 	const int nNewInput = config.inputHistogramsOnly ? 0 : 1;

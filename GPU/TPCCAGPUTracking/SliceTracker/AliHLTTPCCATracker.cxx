@@ -607,7 +607,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutputPrepare()
 	if (fOutputControl == NULL)
 	{
 		fOutputControl = new AliHLTTPCCASliceOutput::outputControlStruct;
-		memset(fOutputControl, 0, sizeof(*fOutputControl));
+		memset((void*) fOutputControl, 0, sizeof(*fOutputControl));
 	}
 	AliHLTTPCCASliceOutput::Allocate(*fOutput, fCommonMem->fNTracks, fCommonMem->fNTrackHits, fOutputControl);
 	StopTimer(9);

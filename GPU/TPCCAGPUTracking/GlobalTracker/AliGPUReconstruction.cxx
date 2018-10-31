@@ -33,7 +33,7 @@ AliGPUReconstruction::InOutMemory::~InOutMemory()
 
 void AliGPUReconstruction::ClearIOPointers()
 {
-	std::memset(&mIOPtrs, 0, sizeof(mIOPtrs));
+	std::memset((void*) &mIOPtrs, 0, sizeof(mIOPtrs));
 	for (unsigned int i = 0;i < NSLICES;i++)
 	{
 		mIOMem.clusterData[i].reset();
