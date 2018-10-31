@@ -32,6 +32,7 @@ public:
 			mergedTracks(nullptr), nMergedTracks(0), mergedTrackHits(nullptr), nMergedTrackHits(0),
 			trdTracks(nullptr), nTRDTracks(0), trdTracklets(nullptr), nTRDTracklets(0)
 		{}
+		
 		AliHLTTPCCAClusterData::Data* clusterData[NSLICES];
 		unsigned int nClusterData[NSLICES];
 		AliHLTTPCCASliceOutTrack* sliceOutTracks[NSLICES];

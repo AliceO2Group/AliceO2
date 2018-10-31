@@ -880,7 +880,7 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_Init(AliHLTTPCCASliceOutput** pO
 
 	fUseGlobalTracking = fGlobalTracking && sliceCountLocal == fgkNSlices;
 
-	memcpy(fGpuTracker, &fSlaveTrackers[firstSlice], sizeof(AliHLTTPCCATracker) * sliceCountLocal);
+	memcpy((void*) fGpuTracker, (void*) &fSlaveTrackers[firstSlice], sizeof(AliHLTTPCCATracker) * sliceCountLocal);
 
 	if (fDebugLevel >= 3) CAGPUInfo("Allocating GPU Tracker memory and initializing constants");
 

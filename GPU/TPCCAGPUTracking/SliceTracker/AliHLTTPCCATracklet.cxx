@@ -18,9 +18,3 @@
 
 
 #include "AliHLTTPCCATracklet.h"
-
-#if !defined(HLTCA_GPUCODE)
-void AliHLTTPCCATracklet::Dummy() const
-{
-}
-#endif
