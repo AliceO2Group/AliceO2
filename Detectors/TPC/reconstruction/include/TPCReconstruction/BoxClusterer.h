@@ -19,82 +19,97 @@
 #include "Rtypes.h"
 #include "TPCReconstruction/Clusterer.h"
 #include "DataFormatsTPC/Cluster.h"
-#include "TPCBase/CalDet.h"
 
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
 namespace o2{
 
-  namespace TPC {
+namespace TPC
+{
 
-    class ClusterContainer;
+class ClusterContainer;
 
-    class BoxClusterer : public Clusterer {
-    public:
+class BoxClusterer : public Clusterer
+{
 
-    /// Constructor
-    /// \param output is pointer to vector to be filled with clusters
-    /// \param rowsMax Max number of rows to process
-    /// \param padsMax Max number of pads to process
-    /// \param timeBinsMax Max number of timebins to process
-    /// \param minQMax Minimum peak charge for cluster
-    /// \param requirePositiveCharge Positive charge is required
-    /// \param requireNeighbouringPad Requires at least 2 adjecent pads with charge above threshold
-      BoxClusterer(std::vector<o2::TPC::Cluster> *output,
-        int rowsMax = 18,
-        int padsMax = 138,
-        int timeBinsMax = 1024,
-        int minQMax = 5,
-        bool requirePositiveCharge = true,
-        bool requireNeighbouringPad = true);
+  using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
-      /// Destructor
-      ~BoxClusterer() override;
+ public:
+  /// Constructor
+  /// \param output is pointer to vector to be filled with clusters
+  /// \param rowsMax Max number of rows to process
+  /// \param padsMax Max number of pads to process
+  /// \param timeBinsMax Max number of timebins to process
+  /// \param minQMax Minimum peak charge for cluster
+  /// \param requirePositiveCharge Positive charge is required
+  /// \param requireNeighbouringPad Requires at least 2 adjecent pads with charge above threshold
+  BoxClusterer(std::vector<o2::TPC::Cluster>* output,
+               int rowsMax = 18,
+               int padsMax = 138,
+               int timeBinsMax = 1024,
+               int minQMax = 5,
+               bool requirePositiveCharge = true,
+               bool requireNeighbouringPad = true);
 
-      /// Steer conversion of points to digits
-      /// @param digits Container with TPC digits
-      /// @param mcDigitTruth MC Digit Truth container
-      /// @param eventCount event counter 
-      /// @return Container with clusters
-      void Process(std::vector<o2::TPC::Digit> const & digits, MCLabelContainer const* mcDigitTruth, int eventCount) override;
-      void Process(std::vector<std::unique_ptr<Digit>>& digits, MCLabelContainer const* mcDigitTruth, int eventCount) override;
+  /// Destructor
+  ~BoxClusterer() override;
 
-      /// Set a pedestal object
-      void setPedestals(CalPad* pedestals) { mPedestals = pedestals; }
+  /// Steer conversion of points to digits
+  /// \param digits Container with TPC digits
+  /// \param mcDigitTruth MC Digit Truth container
+  void process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth) override;
+  void finishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth) override{};
 
-    private:
-      // To be done
-      /* BoxClusterer(const BoxClusterer &); */
-      /* BoxClusterer &operator=(const BoxClusterer &); */
+  void setRowsMax(int val) { mRowsMax = val; };
+  void setPadsMax(int val) { mPadsMax = val; };
+  void setTimeBinsMax(int val) { mTimeBinsMax = val; };
+  void setMinQMax(float val) { mMinQMax = val; };
+  void setRequirePositiveCharge(bool val) { mRequirePositiveCharge = val; };
+  void setRequireNeighbouringPad(bool val) { mRequireNeighbouringPad = val; };
 
-      void FindLocalMaxima(const Int_t iCRU);
-      void CleanArrays();
-      void GetPadAndTimeBin(Int_t bin, Short_t& iPad, Short_t& iTimeBin);
-      Int_t Update(const Int_t iCRU, const Int_t iRow, const Int_t iPad,
-		   const Int_t iTimeBin, Float_t signal);
-      Float_t GetQ(const Float_t* adcArray, const Short_t pad,
-           const Short_t time, Short_t& timeMin, Short_t& timeMax,
-		   Short_t& padMin, Short_t& padMax) const;
-      Bool_t UpdateCluster(Float_t charge, Int_t deltaPad, Int_t deltaTime,
-			   Float_t& qTotal, Double_t& meanPad,
-			   Double_t& sigmaPad, Double_t& meanTime,
-			   Double_t& sigmaTime);
+  int getRowsMax() const { return mRowsMax; };
+  int getPadsMax() const { return mPadsMax; };
+  int getTimeBinsMax() const { return mTimeBinsMax; };
+  float getMinQMax() const { return mMinQMax; };
+  bool hasRequirePositiveCharge() const { return mRequirePositiveCharge; };
+  bool hasRequireNeighbouringPad() const { return mRequireNeighbouringPad; };
 
+ private:
+  // To be done
+  /* BoxClusterer(const BoxClusterer &); */
+  /* BoxClusterer &operator=(const BoxClusterer &); */
 
-      //
-      //  Expand buffer
-      //
-      Float_t** mAllBins;      //!<! Array for digit using random access
-      Int_t**   mAllSigBins;   //!<! Array of pointers to the indexes over threshold
-      Int_t*    mAllNSigBins;  //!<! Array with number of signals in each row
-      CalPad*   mPedestals;    //!<! Pedestal data
+  void findLocalMaxima(const Int_t iCRU);
+  void cleanArrays();
+  void getPadAndTimeBin(Int_t bin, Short_t& iPad, Short_t& iTimeBin);
+  Int_t update(const Int_t iCRU, const Int_t iRow, const Int_t iPad,
+               const Int_t iTimeBin, Float_t signal);
+  Float_t getQ(const Float_t* adcArray, const Short_t pad,
+               const Short_t time, Short_t& timeMin, Short_t& timeMax,
+               Short_t& padMin, Short_t& padMax) const;
+  Bool_t updateCluster(Float_t charge, Int_t deltaPad, Int_t deltaTime,
+                       Float_t& qTotal, Double_t& meanPad,
+                       Double_t& sigmaPad, Double_t& meanTime,
+                       Double_t& sigmaTime);
 
-      std::vector<o2::TPC::Cluster>* mClusterArray; ///< Internal cluster storage
+  int mRowsMax;                 ///< Maximum row number
+  int mPadsMax;                 ///< Maximum pad number
+  int mTimeBinsMax;             ///< Maximum time bin
+  float mMinQMax;               ///< Minimun Qmax for cluster
+  bool mRequirePositiveCharge;  ///< If true, require charge > 0
+  bool mRequireNeighbouringPad; ///< If true, require 2+ pads minimum
 
-      ClassDefNV(BoxClusterer, 1);
-    };
-  }
+  //
+  //  Expand buffer
+  //
+  Float_t** mAllBins;  //!<! Array for digit using random access
+  Int_t** mAllSigBins; //!<! Array of pointers to the indexes over threshold
+  Int_t* mAllNSigBins; //!<! Array with number of signals in each row
+
+  std::vector<o2::TPC::Cluster>* mClusterArray; ///< Internal cluster storage
+};
+}
 }
 
 

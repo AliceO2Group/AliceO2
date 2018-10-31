@@ -24,12 +24,15 @@
 #include <TPCSimulation/Detector.h>
 #include <ITSSimulation/Detector.h>
 #include <MFTSimulation/Detector.h>
+#include <MCHSimulation/Detector.h>
+#include <MIDSimulation/Detector.h>
 #include <EMCALSimulation/Detector.h>
 #include <TOFSimulation/Detector.h>
 #include <TRDSimulation/Detector.h>
 #include <FITSimulation/Detector.h>
 #include <HMPIDSimulation/Detector.h>
 #include <PHOSSimulation/Detector.h>
+#include <ZDCSimulation/Detector.h>
 #include <DetectorsPassive/Cave.h>
 #include <DetectorsPassive/FrameStructure.h>
 #include <SimConfig/SimConfig.h>
@@ -40,12 +43,13 @@
 
 void finalize_geometry(FairRunSim* run);
 
-bool isActivated(std::string s) {
-// access user configuration for list of wanted modules
+bool isActivated(std::string s)
+{
+  // access user configuration for list of wanted modules
   auto& modulelist = o2::conf::SimConfig::Instance().getActiveDetectors();
-  auto active = std::find(modulelist.begin(), modulelist.end(), s)!=modulelist.end();
+  auto active = std::find(modulelist.begin(), modulelist.end(), s) != modulelist.end();
   if (active) {
-    std::cout << "Activating " << s << " module \n";
+    LOG(INFO) << "Activating " << s << " module";
   }
   return active;
 }
@@ -56,7 +60,7 @@ void build_geometry(FairRunSim* run = nullptr)
   bool geomonly = (run == nullptr);
 
   // minimal macro to test setup of the geometry
-  
+
   TString dir = getenv("VMCWORKDIR");
   TString geom_dir = dir + "/Detectors/Geometry/";
   gSystem->Setenv("GEOMPATH", geom_dir.Data());
@@ -80,6 +84,8 @@ void build_geometry(FairRunSim* run = nullptr)
   // Create geometry
   // we always need the gave
   o2::Passive::Cave* cave = new o2::Passive::Cave("CAVE");
+  // adjust size depending on content
+  cave->includeZDC(isActivated("ZDC"));
   // the experiment hall (cave)
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
@@ -97,7 +103,7 @@ void build_geometry(FairRunSim* run = nullptr)
     run->AddModule(magnet);
   }
 
-   // the dipole
+  // the dipole
   if (isActivated("DIPO")) {
     auto dipole = new o2::passive::Dipole("Dipole", "Alice Dipole");
     run->AddModule(dipole);
@@ -107,7 +113,7 @@ void build_geometry(FairRunSim* run = nullptr)
   if (isActivated("PIPE")) {
     run->AddModule(new o2::passive::Pipe("Pipe", "Beam pipe"));
   }
-  
+
   // the absorber
   if (isActivated("ABSO")) {
     // the frame structure to support other detectors
@@ -120,14 +126,14 @@ void build_geometry(FairRunSim* run = nullptr)
     auto shil = new o2::passive::Shil("Shield", "Small angle beam shield");
     run->AddModule(shil);
   }
-  
+
   if (isActivated("TOF") || isActivated("TRD") || isActivated("FRAME")) {
     // the frame structure to support other detectors
     auto frame = new o2::passive::FrameStructure("Frame", "Frame");
     run->AddModule(frame);
   }
 
-  if (isActivated("TOF")){
+  if (isActivated("TOF")) {
     // TOF
     auto tof = new o2::tof::Detector(true);
     run->AddModule(tof);
@@ -139,30 +145,40 @@ void build_geometry(FairRunSim* run = nullptr)
     run->AddModule(trd);
   }
 
-  if (isActivated("TPC")){
+  if (isActivated("TPC")) {
     // tpc
     auto tpc = new o2::TPC::Detector(true);
     run->AddModule(tpc);
   }
 
-  if (isActivated("ITS")){
+  if (isActivated("ITS")) {
     // its
     auto its = new o2::ITS::Detector(true);
     run->AddModule(its);
   }
 
-  if (isActivated("MFT")){
+  if (isActivated("MFT")) {
     // mft
     auto mft = new o2::MFT::Detector();
     run->AddModule(mft);
   }
-  
-  if (isActivated("EMC")){
+
+  if (isActivated("MCH")) {
+    // mch
+    run->AddModule(new o2::mch::Detector(true));
+  }
+
+  if (isActivated("MID")) {
+    // mid
+    run->AddModule(new o2::mid::Detector(true));
+  }
+
+  if (isActivated("EMC")) {
     // emcal
     run->AddModule(new o2::EMCAL::Detector(true));
   }
 
-  if (isActivated("PHS")){
+  if (isActivated("PHS")) {
     // phos
     run->AddModule(new o2::phos::Detector(true));
   }
@@ -177,6 +193,11 @@ void build_geometry(FairRunSim* run = nullptr)
     run->AddModule(new o2::hmpid::Detector(true));
   }
 
+  if (isActivated("ZDC")) {
+    // ZDC
+    run->AddModule(new o2::zdc::Detector(true));
+  }
+
   if (geomonly) {
     run->Init();
     finalize_geometry(run);
@@ -188,23 +209,24 @@ void finalize_geometry(FairRunSim* run)
 {
   // finalize geometry and declare alignable volumes
   // this should be called geometry is fully built
-  
+
   if (!gGeoManager) {
     LOG(ERROR) << "gGeomManager is not available" << FairLogger::endl;
     return;
   }
-  
+
   gGeoManager->CloseGeometry();
   if (!run) {
     LOG(ERROR) << "FairRunSim is not available" << FairLogger::endl;
     return;
   }
-  
+
   const TObjArray* modArr = run->GetListOfModules();
   TIter next(modArr);
   FairModule* module = nullptr;
-  while ( (module=(FairModule*)next()) ) {
+  while ((module = (FairModule*)next())) {
     o2::Base::Detector* det = dynamic_cast<o2::Base::Detector*>(module);
-    if (det) det->addAlignableVolumes();
+    if (det)
+      det->addAlignableVolumes();
   }
 }

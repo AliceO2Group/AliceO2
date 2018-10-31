@@ -17,8 +17,8 @@
 #include <iostream>
 #include <random>
 #include "MIDBase/Mapping.h"
-#include "DataFormatsMID/StripPattern.h"
-#include "Clusterizer.h"
+#include "DataFormatsMID/ColumnData.h"
+#include "MIDClustering/Clusterizer.h"
 
 o2::mid::ColumnData& getColumn(std::vector<o2::mid::ColumnData>& patterns, uint8_t icolumn, uint8_t deId)
 {
@@ -34,17 +34,12 @@ o2::mid::ColumnData& getColumn(std::vector<o2::mid::ColumnData>& patterns, uint8
 
 bool addStrip(o2::mid::ColumnData& column, int cathode, int line, int strip)
 {
-  uint16_t pattern = (cathode == 0) ? column.patterns.getBendPattern(line) : column.patterns.getNonBendPattern();
+  uint16_t pattern = column.getPattern(cathode, line);
   uint16_t currStrip = (1 << strip);
   if (pattern & currStrip) {
     return false;
   }
-  pattern |= currStrip;
-  if (cathode == 0) {
-    column.patterns.setBendPattern(pattern, line);
-  } else {
-    column.patterns.setNonBendPattern(pattern);
-  }
+  column.addStrip(strip, cathode, line);
   return true;
 }
 
@@ -110,7 +105,8 @@ class BenchClustering : public benchmark::Fixture
   o2::mid::Clusterizer clusterizer;
 };
 
-BENCHMARK_DEFINE_F(BenchClustering, clustering)(benchmark::State& state)
+BENCHMARK_DEFINE_F(BenchClustering, clustering)
+(benchmark::State& state)
 {
 
   int deId = state.range(0);

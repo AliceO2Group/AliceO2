@@ -29,17 +29,43 @@ LookUp::LookUp(std::string fileName)
   mTopologiesOverThreshold = mDictionary.mFinalMap.size();
 }
 
-int LookUp::findGroupID(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes], int nBytesUsed)
+int LookUp::groupFinder(int nRow, int nCol)
 {
-  unsigned long hash = ClusterTopology::getCompleteHash(nRow, nCol, patt, nBytesUsed);
+  int row_index = nRow / TopologyDictionary::RowClassSpan;
+  if (nRow % TopologyDictionary::RowClassSpan == 0) {
+    row_index--;
+  }
+  int col_index = nCol / TopologyDictionary::ColClassSpan;
+  if (nCol % TopologyDictionary::RowClassSpan == 0) {
+    col_index--;
+  }
+  if (row_index > TopologyDictionary::MaxNumberOfClasses || col_index > TopologyDictionary::MaxNumberOfClasses) {
+    return TopologyDictionary::NumberOfRareGroups - 1;
+  } else {
+    return row_index * TopologyDictionary::MaxNumberOfClasses + col_index;
+  }
+}
+
+int LookUp::findGroupID(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes])
+{
+  int nBits = nRow * nCol;
+  // Small topology
+  if (nBits < 9) {
+    int ID = mDictionary.mSmallTopologiesLUT[(nRow - 1) * 255 + (int)patt[0]];
+    if (ID >= 0)
+      return ID;
+    else { //small rare topology (inside groups)
+      int index = groupFinder(nRow, nCol);
+      return (mTopologiesOverThreshold + index);
+    }
+  }
+  // Big topology
+  unsigned long hash = ClusterTopology::getCompleteHash(nRow, nCol, patt);
   auto ret = mDictionary.mFinalMap.find(hash);
   if (ret != mDictionary.mFinalMap.end())
     return ret->second;
-  else {
-    int index = (nRow / TopologyDictionary::RowClassSpan) * TopologyDictionary::NumberOfRowClasses +
-                nCol / TopologyDictionary::ColClassSpan;
-    if (index >= TopologyDictionary::NumberOfRowClasses * TopologyDictionary::NumberOfColClasses)
-      index = TopologyDictionary::NumberOfRowClasses * TopologyDictionary::NumberOfColClasses;
+  else { // Big rare topology (inside groups)
+    int index = groupFinder(nRow, nCol);
     return (mTopologiesOverThreshold + index);
   }
 }

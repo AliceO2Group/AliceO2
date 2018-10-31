@@ -15,8 +15,10 @@
 #include <vector>
 #include <iosfwd>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 struct GraphvizHelpers {
   using Devices = std::vector<DeviceSpec>;

@@ -14,8 +14,10 @@
 #include <string>
 #include "Framework/LogParsingHelpers.h"
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 constexpr int MAX_USER_FILTER_SIZE = 256;
 
@@ -28,6 +30,8 @@ struct DeviceControl {
   bool stopped = false;
   /// wether we should be capturing device output.
   bool quiet = false;
+  /// wether the log window should be opened.
+  bool logVisible = false;
   /// Minimum log level for messages to appear
   LogParsingHelpers::LogLevel logLevel = LogParsingHelpers::LogLevel::Info;
   /// Lines in the log should match this to be displayed

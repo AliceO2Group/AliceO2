@@ -29,15 +29,16 @@ void DigitGlobalPad::fillOutputContainer(std::vector<Digit>* output,
                                          GlobalPadNumber globalPad, float commonMode)
 {
   const static Mapper& mapper = Mapper::instance();
+  const static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
   const PadPos pad = mapper.padPos(globalPad);
 
-  /// The charge accumulated on that pad is converted into ADC counts, saturation of the SAMPA is applied and a Digit is
-  /// created in written out
+  /// The charge accumulated on that pad is converted into ADC counts, saturation of the SAMPA is applied and a Digit
+  /// is created in written out
   const float totalADC = mChargePad - commonMode; // common mode is subtracted here in order to properly apply noise,
                                                   // pedestals and saturation of the SAMPA
 
   float noise, pedestal;
-  const float mADC = SAMPAProcessing::makeSignal(totalADC, PadSecPos(cru.sector(), pad), pedestal, noise);
+  const float mADC = sampaProcessing.makeSignal(totalADC, PadSecPos(cru.sector(), pad), pedestal, noise);
 
   /// only write out the data if there is actually charge on that pad
   if (mADC > 0 && mChargePad > 0) {

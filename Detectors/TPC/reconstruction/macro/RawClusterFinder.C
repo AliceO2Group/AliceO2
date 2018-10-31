@@ -29,6 +29,7 @@
 #include "TPCBase/CalDet.h"
 #include "TPCBase/CRU.h"
 #include "TPCCalibration/CalibRawBase.h"
+#include "TPCReconstruction/Clusterer.h"
 #include "TPCReconstruction/HwClusterer.h"
 #include "TPCReconstruction/BoxClusterer.h"
 #include "TPCReconstruction/ClusterContainer.h"
@@ -84,7 +85,7 @@ class RawClusterFinder : public CalibRawBase
     Int_t updateROC(const Int_t sector, const Int_t row, const Int_t pad,
                     const Int_t timeBin, const Float_t signal) final { return 0;}
 
-    /// 
+    ///
     Int_t updateCRU(const CRU& cru, const Int_t row, const Int_t pad,
                     const Int_t timeBin, const Float_t signal) final;
 
@@ -143,14 +144,14 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
   }
 
   // ===| output file and container |===========================================
-  std::vector<o2::TPC::Cluster> arrCluster;
+  auto arrCluster = std::make_unique<std::vector<o2::TPC::Cluster>>();
   std::vector<o2::TPC::Cluster> *arrClusterBox = nullptr;
   float cherenkovValue = 0.;
   int runNumber = 0;
 
   TFile fout(outputFileName,"recreate");
   TTree t("cbmsim","cbmsim");
-  t.Branch("TPCClusterHW", &arrCluster);
+  t.Branch("TPCClusterHW", arrCluster.get());
   t.Branch("cherenkovValue", &cherenkovValue);
   t.Branch("runNumber", &runNumber);
 
@@ -176,24 +177,22 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
   // HW cluster finder
   std::unique_ptr<Clusterer> cl;
   if (clustererType == ClustererType::HW) {
-    HwClusterer *hwCl = new HwClusterer(&arrCluster, nullptr, 0, 3);
+    HwClusterer* hwCl = new HwClusterer(arrCluster.get(), 0, nullptr);
     hwCl->setContinuousReadout(false);
     hwCl->setPedestalObject(pedestal);
     cl = std::unique_ptr<Clusterer>(hwCl);
-  }
-  else if (clustererType == ClustererType::Box) {
-    BoxClusterer *boxCl = new BoxClusterer(arrClusterBox);
-    boxCl->setPedestals(pedestal);
+  } else if (clustererType == ClustererType::Box) {
+    BoxClusterer* boxCl = new BoxClusterer(arrClusterBox);
+    boxCl->setPedestalObject(pedestal);
     cl = std::unique_ptr<Clusterer>(boxCl);
-  }
-  else {
+  } else {
     return;
   }
-    
+
   //cl->setRequirePositiveCharge(false);
 
   // Box cluster finder
-  
+
   // ===| loop over all data |==================================================
   int events = 0;
   bool data = true;
@@ -207,11 +206,14 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
 
     printf("========| Event %4zu %d %d %d |========\n", converter.getPresentEventNumber(), events, maxEvents, status);
 
-    auto &arr = converter.getDigitVector();
-    if (!arr.size()) {++events; continue;}
+    auto arr = std::make_unique<const std::vector<Digit>>(converter.getDigitVector());
+    if (!arr->size()) {
+      ++events;
+      continue;
+    }
     //printf("Converted digits: %zu %f\n", arr.size(), arr.at(0)->getChargeFloat());
 
-    cl->Process(arr,nullptr,events);
+    cl->process(*arr.get(), nullptr);
 
     // ---| set cherenkov value|---------------------------------------------
     if (istr.is_open()) {
@@ -221,7 +223,7 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
     }
     t.Fill();
 
-    printf("Found clusters: %d\n", arrCluster.size());
+    printf("Found cluster container: %d\n", arrCluster->size());
 
     Int_t nTries = -1; // defaults to number of clusters in the roc
     Int_t allowedMisses = 3;  //number of allowed holes in track before discarding
@@ -231,7 +233,7 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
     //converter.TrackFinder(nTries, allowedMisses, minClusters, reverse, &arrCluster, arrTracks);
 
     tOut.Fill();
-    arrCluster.clear();
+    arrCluster->clear();
     ++events;
   }
 
@@ -249,7 +251,6 @@ void RawClusterFinder::TrackFinder(int nTries, int allowedMisses, int minCluster
   float zPosition = 0.;
   float fWindowPad = 4.;
   float fWindowTime = 4.;
- 
 
   Mapper &mapper = Mapper::instance();
   auto &clusterArray = *pclusterArray;
@@ -435,45 +436,45 @@ void RawClusterFinder::TrackFinder(int nTries, int allowedMisses, int minCluster
       GetFit(zGraph, slopeZ, offsetZ, slopeErrorZ, offsetErrorZ, chi2Z);
 
      if(loopcounter == 0) {
-    	TCanvas *c1 = new TCanvas(); 	       
-	trackCandidateGraph->Draw("APE");
-	c1->Update();
-        c1->Print("test_cand_1_xy.root");
-        TCanvas *c2 = new TCanvas(); 	       
-	trackCandidateGraphYZ->Draw("APE");
-	c2->Update();
-        c2->Print("test_cand_1_yz.root");
-        TCanvas *c3 = new TCanvas(); 	       
-	zGraph->Draw("APE");
-	c3->Update();
-        c3->Print("test_cand_1_xz.root");
+       TCanvas* c1 = new TCanvas();
+       trackCandidateGraph->Draw("APE");
+       c1->Update();
+       c1->Print("test_cand_1_xy.root");
+       TCanvas* c2 = new TCanvas();
+       trackCandidateGraphYZ->Draw("APE");
+       c2->Update();
+       c2->Print("test_cand_1_yz.root");
+       TCanvas* c3 = new TCanvas();
+       zGraph->Draw("APE");
+       c3->Update();
+       c3->Print("test_cand_1_xz.root");
       }
       if(loopcounter == 1) {
-    	TCanvas *c4 = new TCanvas(); 	       
-	trackCandidateGraph->Draw("APE");
-	c4->Update();
+        TCanvas* c4 = new TCanvas();
+        trackCandidateGraph->Draw("APE");
+        c4->Update();
         c4->Print("test_cand_2_xy.root");
-        TCanvas *c5 = new TCanvas(); 	       
-	trackCandidateGraphYZ->Draw("APE");
-	c5->Update();
+        TCanvas* c5 = new TCanvas();
+        trackCandidateGraphYZ->Draw("APE");
+        c5->Update();
         c5->Print("test_cand_2_yz.root");
-        TCanvas *c6 = new TCanvas(); 	       
-	zGraph->Draw("APE");
-	c6->Update();
+        TCanvas* c6 = new TCanvas();
+        zGraph->Draw("APE");
+        c6->Update();
         c6->Print("test_cand_2_xz.root");
       }
       if(loopcounter == 2) {
-        TCanvas *c7 = new TCanvas(); 	       
-	trackCandidateGraph->Draw("APE");
-	c7->Update();
+        TCanvas* c7 = new TCanvas();
+        trackCandidateGraph->Draw("APE");
+        c7->Update();
         c7->Print("test_cand_3_xy.root");
-        TCanvas *c8 = new TCanvas(); 	       
-	trackCandidateGraphYZ->Draw("APE");
-	c8->Update();
+        TCanvas* c8 = new TCanvas();
+        trackCandidateGraphYZ->Draw("APE");
+        c8->Update();
         c8->Print("test_cand_3_yz.root");
-        TCanvas *c9 = new TCanvas(); 	       
-	zGraph->Draw("APE");
-	c9->Update();
+        TCanvas* c9 = new TCanvas();
+        zGraph->Draw("APE");
+        c9->Update();
         c9->Print("test_cand_3_xz.root");
       }
 

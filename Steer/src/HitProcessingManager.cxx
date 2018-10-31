@@ -12,6 +12,9 @@
 #include "FairLogger.h"
 #include <vector>
 #include <map>
+#include <iostream>
+#include <TFile.h>
+#include <TClass.h>
 
 ClassImp(o2::steer::HitProcessingManager);
 
@@ -63,11 +66,6 @@ bool HitProcessingManager::setupChain()
     }
   }
 
-  // print out entries in each chain
-  for (int i = 0; i < mSimChains.size(); ++i) {
-    mRunContext.mChains.emplace_back(mSimChains[i]);
-    LOG(INFO) << "CHAIN " << i << " has " << mSimChains[i]->GetEntries() << " entries ";
-  }
   return true;
 }
 
@@ -89,11 +87,34 @@ void HitProcessingManager::setupRun(int ncollisions)
     LOG(INFO) << "Automatic deduction of number of collisions ... will just take number of background entries "
               << mNumberOfCollisions;
   }
-  mRunContext.mNofEntries = mNumberOfCollisions;
+  mRunContext.setNCollisions(mNumberOfCollisions);
   sampleCollisionTimes();
 
   // sample collision (background-signal) constituents
   sampleCollisionConstituents();
 }
+
+void HitProcessingManager::writeRunContext(const char* filename) const
+{
+  TFile file(filename, "RECREATE");
+  auto cl = TClass::GetClass(typeid(mRunContext));
+  file.WriteObjectAny(&mRunContext, cl, "RunContext");
+  file.Close();
 }
+
+bool HitProcessingManager::setupRunFromExistingContext(const char* filename)
+{
+  RunContext* incontext = nullptr;
+  TFile file(filename, "OPEN");
+  file.GetObject("RunContext", incontext);
+
+  if (incontext) {
+    incontext->printCollisionSummary();
+    mRunContext = *incontext;
+    return true;
+  }
+  LOG(INFO) << "NO COLLISIONOBJECT FOUND";
+  return false;
 }
+} // end namespace steer
+} // end namespace o2

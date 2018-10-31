@@ -12,7 +12,7 @@
 
 #include "CCDB/ConditionsMQServer.h"
 
-using namespace o2::CDB;
+using namespace o2::ccdb;
 using namespace std;
 
 namespace bpo = boost::program_options;
@@ -29,4 +29,7 @@ void addCustomOptions(bpo::options_description& options)
     "channel-name", bpo::value<std::string>()->default_value("ROOT"), "Output channel name");
 }
 
-FairMQDevice* getDevice(const FairMQProgOptions& config) { return new ConditionsMQServer(); }
+FairMQDevice* getDevice(const FairMQProgOptions& config)
+{
+  return new ConditionsMQServer();
+}

@@ -73,14 +73,9 @@ class Detector : public o2::Base::DetImpl<Detector>
   ~Detector() override = default;
 
   ///
-  ///  Clone this object (used in MT mode only)
-  ///
-  FairModule* CloneModule() const override;
-
-  ///
   /// Initializing detector
   ///
-  void Initialize() final;
+  void InitializeO2Detector() final;
 
   ///
   /// Processing hit creation in the PHOS crystalls
@@ -111,13 +106,22 @@ class Detector : public o2::Base::DetImpl<Detector>
   ///
   /// Get access to the hits
   ///
-  std::vector<Hit>* getHits(Int_t  iColl ) const { if(iColl==0) return mHits; else return nullptr ; }
+  std::vector<Hit>* getHits(Int_t iColl) const
+  {
+    if (iColl == 0)
+      return mHits;
+    else
+      return nullptr;
+  }
 
   ///
   /// Reset
   /// Clean Hits collection
   ///
   void Reset() final;
+
+  /// Sort final hist
+  void FinishEvent() final;
 
   ///
   /// Steps to be carried out at the end of the event
@@ -131,7 +135,6 @@ class Detector : public o2::Base::DetImpl<Detector>
   /// \return Access to the PHOS Geometry description
   ///
   Geometry* GetGeometry();
-
 
  protected:
   ///
@@ -170,6 +173,9 @@ class Detector : public o2::Base::DetImpl<Detector>
   Detector(const Detector& rhs);
   Detector& operator=(const Detector&);
 
+  /// Define the sensitive volumes of the geometry
+  void defineSensitiveVolumes();
+
   // Geometry parameters
   Bool_t mCreateHalfMod;   // Should we create  1/2 filled module
   Bool_t mActiveModule[6]; // list of modules to create
@@ -183,6 +189,8 @@ class Detector : public o2::Base::DetImpl<Detector>
   Int_t mCurentSuperParent;         //! current SuperParent ID: particle entered PHOS
   Hit* mCurrentHit;                 //! current Hit
 
+  template <typename Det>
+  friend class o2::Base::DetImpl;
   ClassDefOverride(Detector, 1)
 };
 }

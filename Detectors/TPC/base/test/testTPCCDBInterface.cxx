@@ -38,10 +38,13 @@ namespace TPC
 template <class T>
 void writeObject(T& obj, const std::string_view type, const std::string_view name, const int run)
 {
-  auto cdb = o2::CDB::Manager::Instance();
+  auto cdb = o2::ccdb::Manager::Instance();
 
-  auto id = new o2::CDB::ConditionId("TPC/" + type + "/" + name, run, run, 1, 0);
-  auto md = new o2::CDB::ConditionMetaData();
+  auto id = new o2::ccdb::ConditionId(
+    "TPC/" + type +
+      "/" + name,
+    run, run, 1, 0);
+  auto md = new o2::ccdb::ConditionMetaData();
   cdb->putObjectAny(&obj, *id, md);
 }
 
@@ -94,7 +97,7 @@ BOOST_AUTO_TEST_CASE(CDBInterface_test_pedestals)
   const std::string_view type = "Pedestals";
 
   // ===| initialize CDB manager |==============================================
-  auto cdb = o2::CDB::Manager::Instance();
+  auto cdb = o2::ccdb::Manager::Instance();
   cdb->setDefaultStorage("local://O2CDB");
 
   // ===| write test object |===================================================
@@ -119,7 +122,7 @@ BOOST_AUTO_TEST_CASE(CDBInterface_test_noise)
   const std::string_view type = "Noise";
 
   // ===| initialize CDB manager |==============================================
-  auto cdb = o2::CDB::Manager::Instance();
+  auto cdb = o2::ccdb::Manager::Instance();
   cdb->setDefaultStorage("local://O2CDB");
 
   // ===| write test object |===================================================
@@ -136,6 +139,31 @@ BOOST_AUTO_TEST_CASE(CDBInterface_test_noise)
   checkCalPadEqual(data, dataRead);
 }
 
+/// \brief Test reading gain map object from the CDB using the TPC CDBInterface
+BOOST_AUTO_TEST_CASE(CDBInterface_test_gainmap)
+{
+  const int run = 2;
+  const int dataOffset = 1;
+  const std::string_view type = "Gain";
+
+  // ===| initialize CDB manager |==============================================
+  auto cdb = o2::ccdb::Manager::Instance();
+  cdb->setDefaultStorage("local://O2CDB");
+
+  // ===| write test object |===================================================
+  auto data = writeCalPadObject(type, run, dataOffset);
+
+  // ===| TPC interface |=======================================================
+  auto& tpcCDB = CDBInterface::instance();
+
+  // ===| read object |=========================================================
+  cdb->setRun(run);
+  auto dataRead = tpcCDB.getGainMap();
+
+  // ===| checks |==============================================================
+  checkCalPadEqual(data, dataRead);
+}
+
 /// \brief Test reading ParameterDetector from the CDB using the TPC CDBInterface
 BOOST_AUTO_TEST_CASE(CDBInterface_test_ParameterDetector)
 {
@@ -144,7 +172,7 @@ BOOST_AUTO_TEST_CASE(CDBInterface_test_ParameterDetector)
   auto value = 100.3f;
 
   // ===| initialize CDB manager |==============================================
-  auto cdb = o2::CDB::Manager::Instance();
+  auto cdb = o2::ccdb::Manager::Instance();
   cdb->setDefaultStorage("local://O2CDB");
 
   // ===| write test object |===================================================
@@ -171,7 +199,7 @@ BOOST_AUTO_TEST_CASE(CDBInterface_test_ParameterElectronics)
   auto value = 80.9f;
 
   // ===| initialize CDB manager |==============================================
-  auto cdb = o2::CDB::Manager::Instance();
+  auto cdb = o2::ccdb::Manager::Instance();
   cdb->setDefaultStorage("local://O2CDB");
 
   // ===| write test object |===================================================
@@ -198,7 +226,7 @@ BOOST_AUTO_TEST_CASE(CDBInterface_test_ParameterGas)
   auto value = 1000.9434f;
 
   // ===| initialize CDB manager |==============================================
-  auto cdb = o2::CDB::Manager::Instance();
+  auto cdb = o2::ccdb::Manager::Instance();
   cdb->setDefaultStorage("local://O2CDB");
 
   // ===| write test object |===================================================
@@ -225,7 +253,7 @@ BOOST_AUTO_TEST_CASE(CDBInterface_test_ParameterGEM)
   auto value = 1.7382f;
 
   // ===| initialize CDB manager |==============================================
-  auto cdb = o2::CDB::Manager::Instance();
+  auto cdb = o2::ccdb::Manager::Instance();
   cdb->setDefaultStorage("local://O2CDB");
 
   // ===| write test object |===================================================
@@ -256,6 +284,7 @@ BOOST_AUTO_TEST_CASE(CDBInterface_test_Default_ReadFromFile)
   // we need a copy here to do the comparison below
   auto pedestals = tpcCDB.getPedestals();
   auto noise = tpcCDB.getNoise();
+  auto gainmap = tpcCDB.getGainMap();
 
   // check interface for defaults
   tpcCDB.getParameterDetector();
@@ -264,22 +293,26 @@ BOOST_AUTO_TEST_CASE(CDBInterface_test_Default_ReadFromFile)
   tpcCDB.getParameterGEM();
 
   // ===| dump to file |========================================================
-  auto f = TFile::Open("Noise_Pedestal.root", "recreate");
+  auto f = TFile::Open("Calibration.root", "recreate");
   f->WriteObject(&pedestals, "Pedestals");
   f->WriteObject(&noise, "Noise");
+  f->WriteObject(&gainmap, "Gain");
   delete f;
 
   // ===| read from file |======================================================
   tpcCDB.setUseDefaults(false);
-  tpcCDB.resetLocalPedestalsAndNoise();
-  tpcCDB.setPedestalsAndNoiseFromFile("Noise_Pedestal.root");
+  tpcCDB.resetLocalCalibration();
+  tpcCDB.setPedestalsAndNoiseFromFile("Calibration.root");
+  tpcCDB.setGainMapFromFile("Calibration.root");
 
   auto& pedestalsFromFile = tpcCDB.getPedestals();
   auto& noiseFromFile = tpcCDB.getNoise();
+  auto& gainmapFromFile = tpcCDB.getGainMap();
 
   // ===| checks |==============================================================
   checkCalPadEqual(noise, noiseFromFile);
   checkCalPadEqual(pedestals, pedestalsFromFile);
+  checkCalPadEqual(gainmap, gainmapFromFile);
 }
 }
 }

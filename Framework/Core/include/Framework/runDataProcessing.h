@@ -10,17 +10,25 @@
 #ifndef FRAMEWORK_RUN_DATA_PROCESSING_H
 #define FRAMEWORK_RUN_DATA_PROCESSING_H
 
-#include <unistd.h>
-#include <vector>
 #include "Framework/ChannelConfigurationPolicy.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/ConfigParamsHelper.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/WorkflowSpec.h"
+#include "Framework/ConfigContext.h"
+#include "Framework/BoostOptionsRetriever.h"
+
+#include <boost/program_options/options_description.hpp>
+#include <boost/program_options/variables_map.hpp>
+
+#include <unistd.h>
+#include <vector>
+#include <cstring>
 
 namespace o2
 {
 namespace framework
 {
-using WorkflowSpec = std::vector<DataProcessorSpec>;
 using Inputs = std::vector<InputSpec>;
 using Outputs = std::vector<OutputSpec>;
 using Options = std::vector<ConfigParamSpec>;
@@ -29,11 +37,14 @@ using Options = std::vector<ConfigParamSpec>;
 } // namespace o2
 
 /// To be implemented by the user to specify one or more DataProcessorSpec.
-/// The reason why this passes a preallocated specs, rather than asking the
-/// caller to allocate his / her own is that if we end up wrapping this in
-/// some scripting language, we do not need to delegate the allocation to the
-/// scripting language itself.
-void defineDataProcessing(o2::framework::WorkflowSpec& specs);
+/// 
+/// Use the ConfigContext @a context in input to get the value of global configuration
+/// properties like command line options, number of available CPUs or whatever
+/// can affect the creation of the actual workflow.
+///
+/// @returns a std::vector of DataProcessorSpec which represents the actual workflow
+///         to be executed
+o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const&context);
 
 // This template magic allow users to customize the behavior of the process
 // by (optionally) implementing a `configure` method which modifies one of the
@@ -53,6 +64,8 @@ void defineDataProcessing(o2::framework::WorkflowSpec& specs);
 // a "match all" policy which uses pub / sub
 // FIXME: add a debug statement saying that the default policy was used?
 void defaultConfiguration(std::vector<o2::framework::ChannelConfigurationPolicy>& channelPolicies) {}
+void defaultConfiguration(std::vector<o2::framework::ConfigParamSpec> &globalWorkflowOptions) {}
+void defaultConfiguration(std::vector<o2::framework::CompletionPolicy> &completionPolicies) {}
 
 struct UserCustomizationsHelper {
   template <typename T>
@@ -71,26 +84,40 @@ struct UserCustomizationsHelper {
 
 // This comes from the framework itself. This way we avoid code duplication.
 int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& specs,
-           std::vector<o2::framework::ChannelConfigurationPolicy> const& channelPolicies);
+           std::vector<o2::framework::ChannelConfigurationPolicy> const& channelPolicies,
+           std::vector<o2::framework::CompletionPolicy> const &completionPolicies,
+           std::vector<o2::framework::ConfigParamSpec> const &workflowOptions,
+           o2::framework::ConfigContext &configContext);
 
 int main(int argc, char** argv)
 {
   using namespace o2::framework;
+  using namespace boost::program_options;
+  // The 0 here is an int, therefore having the template matching in the
+  // SFINAE expression above fit better the version which invokes user code over
+  // the default one.
 
-  WorkflowSpec specs;
-  defineDataProcessing(specs);
+  std::vector<o2::framework::ConfigParamSpec> workflowOptions;
+  UserCustomizationsHelper::userDefinedCustomization(workflowOptions, 0);
 
   // The default policy is a catch all pub/sub setup to be consistent with the past.
   std::vector<ChannelConfigurationPolicy> channelPolicies;
 
-  // The 0 here is an int, therefore having the template matching in the
-  // SFINAE expression above fit better the version which invokes user code over
-  // the default one.
   UserCustomizationsHelper::userDefinedCustomization(channelPolicies, 0);
-  auto defaultPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
-  channelPolicies.insert(std::end(channelPolicies), std::begin(defaultPolicies), std::end(defaultPolicies));
+  auto defaultChannelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  channelPolicies.insert(std::end(channelPolicies), std::begin(defaultChannelPolicies), std::end(defaultChannelPolicies));
 
-  auto result = doMain(argc, argv, specs, channelPolicies);
+  std::vector<CompletionPolicy> completionPolicies;
+  UserCustomizationsHelper::userDefinedCustomization(completionPolicies, 0);
+  auto defaultCompletionPolicies = CompletionPolicy::createDefaultPolicies();
+  completionPolicies.insert(std::end(completionPolicies), std::begin(defaultCompletionPolicies), std::end(defaultCompletionPolicies));
+
+  std::unique_ptr<ParamRetriever> retriever{new BoostOptionsRetriever(workflowOptions, true, argc, argv)};
+  ConfigParamRegistry workflowOptionsRegistry(std::move(retriever));
+  ConfigContext configContext{workflowOptionsRegistry};
+  o2::framework::WorkflowSpec specs = defineDataProcessing(configContext);
+
+  auto result = doMain(argc, argv, specs, channelPolicies, completionPolicies, workflowOptions, configContext);
   LOG(INFO) << "Process " << getpid() << " is exiting.";
   return result;
 }

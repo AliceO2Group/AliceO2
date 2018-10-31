@@ -143,26 +143,37 @@ const Int_t V3Layer::sOBNChipRows = 2;
 const Double_t V3Layer::sOBChipThickness = 100.0 * sMicron;
 
 const Double_t V3Layer::sOBHalfStaveWidth = 3.01 * sCm;
-const Double_t V3Layer::sOBModuleWidth = sOBHalfStaveWidth;
-const Double_t V3Layer::sOBModuleGap = 0.01 * sCm;
-const Double_t V3Layer::sOBChipXGap = 0.01 * sCm;
-const Double_t V3Layer::sOBChipZGap = 0.01 * sCm;
+const Double_t V3Layer::sOBModuleGap = 200.0 * sMicron;
+const Double_t V3Layer::sOBChipXGap = 150.0 * sMicron;
+const Double_t V3Layer::sOBChipZGap = 150.0 * sMicron;
+const Double_t V3Layer::sOBFlexCableXWidth = 3.3 * sCm;
 const Double_t V3Layer::sOBFlexCableAlThick = 0.005 * sCm;
-const Double_t V3Layer::sOBFlexCableCuThick = 0.004 * sCm;
-const Double_t V3Layer::sOBFlexCableKapThick = 125.0 * sMicron;
-const Double_t V3Layer::sOBBusCableAlThick = 0.02 * sCm;
-const Double_t V3Layer::sOBBusCableKapThick = 0.02 * sCm;
+const Double_t V3Layer::sOBFlexCableKapThick = 75.0 * sMicron;
+const Double_t V3Layer::sOBFPCSoldMaskThick = 30.0 * sMicron;
+const Double_t V3Layer::sOBFPCCopperThick = 18.0 * sMicron;
+const Double_t V3Layer::sOBFPCCuAreaFracGnd = 0.954; // F.Benotto
+const Double_t V3Layer::sOBFPCCuAreaFracSig = 0.617; // F.Benotto
+const Double_t V3Layer::sOBGlueFPCThick = 50 * sMicron;
+const Double_t V3Layer::sOBGlueColdPlThick = 80 * sMicron;
+const Double_t V3Layer::sOBPowerBusXWidth = 3.04 * sCm;
+const Double_t V3Layer::sOBPowerBusAlThick = 100.0 * sMicron;
+const Double_t V3Layer::sOBPowerBusAlFrac = 0.90; // L.Greiner
+const Double_t V3Layer::sOBPowerBusDielThick = 50.0 * sMicron;
+const Double_t V3Layer::sOBPowerBusKapThick = 27.5 * sMicron;
+const Double_t V3Layer::sOBBiasBusXWidth = 7.7 * sMm;
+const Double_t V3Layer::sOBBiasBusAlThick = 25.0 * sMicron;
+const Double_t V3Layer::sOBBiasBusAlFrac = 0.90; // L.Greiner
+const Double_t V3Layer::sOBBiasBusDielThick = 50.0 * sMicron;
+const Double_t V3Layer::sOBBiasBusKapThick = 25.0 * sMicron;
+const Double_t V3Layer::sOBColdPlateXWidth = 3.04 * sCm;
+const Double_t V3Layer::sOBColdPlateZLenML = 87.55 * sCm;
+const Double_t V3Layer::sOBColdPlateZLenOL = 150.15 * sCm;
 const Double_t V3Layer::sOBColdPlateThick = 0.012 * sCm;
-const Double_t V3Layer::sOBCarbonPlateThick = 0.012 * sCm;
-const Double_t V3Layer::sOBGlueThickM1 = 0.03 * sCm;
-const Double_t V3Layer::sOBGlueThick = 0.01 * sCm;
-const Double_t V3Layer::sOBModuleZLength = 21.06 * sCm;
 const Double_t V3Layer::sOBHalfStaveYPos = 2.067 * sCm;
 const Double_t V3Layer::sOBHalfStaveYTrans = 1.76 * sMm;
-const Double_t V3Layer::sOBHalfStaveXOverlap = 4.3 * sMm;
+const Double_t V3Layer::sOBHalfStaveXOverlap = 7.2 * sMm;
 const Double_t V3Layer::sOBGraphiteFoilThick = 30.0 * sMicron;
 const Double_t V3Layer::sOBCarbonFleeceThick = 20.0 * sMicron;
-const Double_t V3Layer::sOBCoolTubeInnerDM1 = 2.052 * sMm;
 const Double_t V3Layer::sOBCoolTubeInnerD = 2.05 * sMm;
 const Double_t V3Layer::sOBCoolTubeThick = 32.0 * sMicron;
 const Double_t V3Layer::sOBCoolTubeXDist = 10.0 * sMm;
@@ -172,12 +183,12 @@ const Double_t V3Layer::sOBCPConnBlockZLen = 15.0 * sMm;
 const Double_t V3Layer::sOBCPConnBlockYHei = 3.6 * sMm;
 const Double_t V3Layer::sOBCPConnHollowZLen = 3.0 * sMm;
 const Double_t V3Layer::sOBCPConnHollowYHei = 0.9 * sMm;
-const Double_t V3Layer::sOBCPConnSquareHoleX = 6.0 * sMm;
-const Double_t V3Layer::sOBCPConnSquareHoleZ = 6.0 * sMm;
+const Double_t V3Layer::sOBCPConnSquareHoleX = 4.0 * sMm;
+const Double_t V3Layer::sOBCPConnSquareHoleZ = 5.0 * sMm;
 const Double_t V3Layer::sOBCPConnSqrHoleZPos = 4.0 * sMm;
 const Double_t V3Layer::sOBCPConnSqrInsertRZ = 3.5 * sMm;
-const Double_t V3Layer::sOBCPConnRoundHoleD = 6.0 * sMm;
-const Double_t V3Layer::sOBCPConnRndHoleZPos = 4.0 * sMm;
+const Double_t V3Layer::sOBCPConnRoundHoleD = 4.0 * sMm;
+const Double_t V3Layer::sOBCPConnRndHoleZPos = 7.0 * sMm;
 const Double_t V3Layer::sOBCPConnTubesXDist = 10.0 * sMm;
 const Double_t V3Layer::sOBCPConnTubesYPos = 1.8 * sMm;
 const Double_t V3Layer::sOBCPConnTubeHole1D = 2.6 * sMm;
@@ -186,15 +197,12 @@ const Double_t V3Layer::sOBCPConnTubeHole2D = 2.2 * sMm;
 const Double_t V3Layer::sOBCPConnFitHoleD = 2.8 * sMm;
 const Double_t V3Layer::sOBCPConnTubeHole3XP = 1.0 * sMm;
 const Double_t V3Layer::sOBCPConnTubeHole3ZP = 2.0 * sMm;
-const Double_t V3Layer::sOBCPConnInstInnerX = 4.0 * sMm;
-const Double_t V3Layer::sOBCPConnInstInnerR = 1.5 * sMm;
 const Double_t V3Layer::sOBCPConnInstZThick = 1.0 * sMm;
 const Double_t V3Layer::sOBCPConnInsertYHei = 3.4 * sMm;
-const Double_t V3Layer::sOBCPConnInsertD = 4.0 * sMm;
-const Double_t V3Layer::sOBCPConnAFitExtD = 2.77 * sMm;
+const Double_t V3Layer::sOBCPConnAFitExtD = 2.8 * sMm;
 const Double_t V3Layer::sOBCPConnAFitThick = 0.3 * sMm;
-const Double_t V3Layer::sOBCPConnAFitZLen = 25.0 * sMm;
-const Double_t V3Layer::sOBCPConnAFitZOut = 22.0 * sMm;
+const Double_t V3Layer::sOBCPConnAFitZLen = 17.0 * sMm;
+const Double_t V3Layer::sOBCPConnAFitZIn = 3.0 * sMm;
 const Double_t V3Layer::sOBCPConnPlugInnerD = 0.8 * sMm;
 const Double_t V3Layer::sOBCPConnPlugTotLen = 1.7 * sMm;
 const Double_t V3Layer::sOBCPConnPlugThick = 0.5 * sMm;
@@ -1768,18 +1776,19 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
   // Updated:      11 Nov 2014  Mario Sitta  Model2
   // Updated:      03 Dec 2014  Mario Sitta  Revised with C.Gargiulo latest infos
   // Updated:      19 Jul 2017  Mario Sitta  O2 version
+  // Updated:      04 Aug 2018  Mario Sitta  Updated geometry
+  // Updated:      25 Aug 2018  Mario Sitta  To latest blueprints
   //
 
   // Local parameters
   Double_t yFlex1 = sOBFlexCableAlThick;
   Double_t yFlex2 = sOBFlexCableKapThick;
   Double_t flexOverlap = 5; // to be checked - unused for the time being
-  Double_t xHalfSt = sOBHalfStaveWidth / 2;
   Double_t yCFleece = sOBCarbonFleeceThick;
   Double_t yGraph = sOBGraphiteFoilThick;
-  Double_t yHalfSt = 0; // will be computed
+  Double_t xHalfSt, yHalfSt;
 
-  Double_t ymod, zmod;
+  Double_t xmod, ymod, zmod, ypowbus;
   Double_t xtru[12], ytru[12];
   Double_t xpos, ypos, ypos1, zpos /*, zpos5cm*/;
   Double_t xlen, ylen, zlen;
@@ -1795,27 +1804,25 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
 
   TGeoVolume* moduleVol = createModuleOuterB();
   moduleVol->SetVisibility(kTRUE);
+  xmod = (static_cast<TGeoBBox*>(moduleVol->GetShape()))->GetDX();
   ymod = (static_cast<TGeoBBox*>(moduleVol->GetShape()))->GetDY();
   zmod = (static_cast<TGeoBBox*>(moduleVol->GetShape()))->GetDZ();
 
-  if (mOBModuleZLength == 0.) // Use default if undefined (should never happen)
-    mOBModuleZLength = sOBModuleZLength;
+  if (mLayerNumber <= 4)
+    zlen = sOBColdPlateZLenML / 2; // Middle Layer
+  else
+    zlen = sOBColdPlateZLenOL / 2; // Outer Layer
 
-  zlen = (mNumberOfModules * mOBModuleZLength + (mNumberOfModules - 1) * sOBModuleGap) / 2;
+  xlen = sOBColdPlateXWidth / 2;
 
-  TGeoBBox* busAl = new TGeoBBox("BusAl", xHalfSt, sOBBusCableAlThick / 2, zlen);
-  TGeoBBox* busKap = new TGeoBBox("BusKap", xHalfSt, sOBBusCableKapThick / 2, zlen);
+  TGeoBBox* coldPlate = new TGeoBBox("ColdPlate", xlen, sOBColdPlateThick / 2, zlen);
 
-  TGeoBBox* glue = new TGeoBBox("Glue", xHalfSt, sOBGlueThick / 2, zlen);
-
-  TGeoBBox* coldPlate = new TGeoBBox("ColdPlate", sOBHalfStaveWidth / 2, sOBColdPlateThick / 2, zlen);
-
-  TGeoBBox* fleeccent = new TGeoBBox("FleeceCent", xHalfSt, yCFleece / 2, zlen);
+  TGeoBBox* fleeccent = new TGeoBBox("FleeceCent", xlen, yCFleece / 2, zlen);
 
   TGeoTube* coolTube = new TGeoTube("CoolingTube", rCoolMin, rCoolMax, zlen);
   TGeoTube* coolWater = new TGeoTube("CoolingWater", 0., rCoolMin, zlen);
 
-  xlen = xHalfSt - sOBCoolTubeXDist / 2 - coolTube->GetRmax();
+  xlen = sOBColdPlateXWidth / 2 - sOBCoolTubeXDist / 2 - coolTube->GetRmax();
   TGeoBBox* graphlat = new TGeoBBox("GraphLateral", xlen / 2, yGraph / 2, zlen);
 
   xlen = sOBCoolTubeXDist / 2 - coolTube->GetRmax();
@@ -1826,7 +1833,7 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
 
   TGeoTubeSeg* graphtub = new TGeoTubeSeg("GraphTube", rCoolMax, rCoolMax + yGraph, zlen, 180., 360.);
 
-  xlen = xHalfSt - sOBCoolTubeXDist / 2 - coolTube->GetRmax() - yGraph;
+  xlen = sOBColdPlateXWidth / 2 - sOBCoolTubeXDist / 2 - coolTube->GetRmax() - yGraph;
   TGeoBBox* fleeclat = new TGeoBBox("FleecLateral", xlen / 2, yCFleece / 2, zlen);
 
   xlen = sOBCoolTubeXDist / 2 - coolTube->GetRmax() - yGraph;
@@ -1842,13 +1849,17 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
   if (mAddGammaConv)
     gammaConvRod = new TGeoTube("GammaConver", 0, 0.5 * mGammaConvDiam, zlen - sOBCPConnHollowZLen);
 
-  TGeoBBox* flex1_5cm = new TGeoBBox("Flex1MV_5cm", xHalfSt, yFlex1 / 2, flexOverlap / 2);
-  TGeoBBox* flex2_5cm = new TGeoBBox("Flex2MV_5cm", xHalfSt, yFlex2 / 2, flexOverlap / 2);
+  //  TGeoBBox* flex1_5cm = new TGeoBBox("Flex1MV_5cm", xHalfSt, yFlex1 / 2, flexOverlap / 2);
+  //  TGeoBBox* flex2_5cm = new TGeoBBox("Flex2MV_5cm", xHalfSt, yFlex2 / 2, flexOverlap / 2);
+
+  // The power bus
+  TGeoVolume* powerBusVol = createOBPowerBiasBuses(zlen);
+  powerBusVol->SetVisibility(kTRUE);
+  ypowbus = (static_cast<TGeoBBox*>(powerBusVol->GetShape()))->GetDY();
 
   // The half stave container (an XTru to avoid overlaps between neightbours)
-  yHalfSt = ymod + busAl->GetDY() + busKap->GetDY() + coldPlate->GetDY() + fleeccent->GetDY() + graphlat->GetDY() +
-            fleeclat->GetDY();
-  yHalfSt += 2 * glue->GetDY();
+  xHalfSt = xmod; // add the cross cables when done!
+  yHalfSt = ypowbus + ymod + coldPlate->GetDY() + 2 * fleeccent->GetDY() + graphlat->GetDY() + fleeclat->GetDY();
   if (mAddGammaConv)
     yHalfSt += mGammaConvDiam;
 
@@ -1879,7 +1890,7 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
 
   // The connectors' containers
   TGeoBBox* connAside = new TGeoBBox("connAsideOB", sOBCPConnectorXWidth / 2, sOBCPConnBlockYHei / 2,
-                                     (sOBCPConnBlockZLen + sOBCPConnAFitZOut) / 2);
+                                     (sOBCPConnBlockZLen + sOBCPConnAFitZLen - sOBCPConnAFitZIn) / 2);
 
   TGeoBBox* connCside =
     new TGeoBBox("connCsideOB", sOBCPConnectorXWidth / 2, sOBCPConnBlockYHei / 2, sOBCPConnBlockZLen / 2);
@@ -1913,18 +1924,7 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
   TGeoMedium* medCarbonFleece = mgr->GetMedium("ITS_CarbonFleece$");
   TGeoMedium* medFGS003 = mgr->GetMedium("ITS_FGS003$"); // amec thermasol
   TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
-  TGeoMedium* medGlue = mgr->GetMedium("ITS_GLUE$");
   TGeoMedium* medTungsten = mgr->GetMedium("ITS_TUNGSTEN$");
-
-  TGeoVolume* busAlVol = new TGeoVolume("PowerBusAlVol", busAl, medAluminum);
-  busAlVol->SetLineColor(kCyan);
-  busAlVol->SetFillColor(busAlVol->GetLineColor());
-  busAlVol->SetFillStyle(4000); // 0% transparent
-
-  TGeoVolume* busKapVol = new TGeoVolume("PowerBusKapVol", busKap, medKapton);
-  busKapVol->SetLineColor(kBlue);
-  busKapVol->SetFillColor(busKapVol->GetLineColor());
-  busKapVol->SetFillStyle(4000); // 0% transparent
 
   TGeoVolume* coldPlateVol = new TGeoVolume("ColdPlateVol", coldPlate, medK13D2U120);
   coldPlateVol->SetLineColor(kYellow - 3);
@@ -1935,11 +1935,6 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
   fleeccentVol->SetLineColor(kViolet);
   fleeccentVol->SetFillColor(fleeccentVol->GetLineColor());
   fleeccentVol->SetFillStyle(4000); // 0% transparent
-
-  TGeoVolume* glueVol = new TGeoVolume("GlueVol", glue, medGlue);
-  glueVol->SetLineColor(kBlack);
-  glueVol->SetFillColor(glueVol->GetLineColor());
-  glueVol->SetFillStyle(4000); // 0% transparent
 
   TGeoVolume* coolTubeVol = new TGeoVolume("CoolingTubeVol", coolTube, medKapton);
   coolTubeVol->SetLineColor(kGray);
@@ -2006,29 +2001,17 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
   //   halfStaveVol->SetFillColor(12);
   //   halfStaveVol->SetVisibility(kTRUE);
 
-  TGeoVolume* flex1_5cmVol = new TGeoVolume("Flex1Vol5cm", flex1_5cm, medAluminum);
-  TGeoVolume* flex2_5cmVol = new TGeoVolume("Flex2Vol5cm", flex2_5cm, medKapton);
+  //  TGeoVolume* flex1_5cmVol = new TGeoVolume("Flex1Vol5cm", flex1_5cm, medAluminum);
+  //  TGeoVolume* flex2_5cmVol = new TGeoVolume("Flex2Vol5cm", flex2_5cm, medKapton);
 
-  flex1_5cmVol->SetLineColor(kRed);
-  flex2_5cmVol->SetLineColor(kGreen);
+  //  flex1_5cmVol->SetLineColor(kRed);
+  //  flex2_5cmVol->SetLineColor(kGreen);
 
   // Now build up the half stave
-  ypos = -busKap->GetDY();
-  if (mBuildLevel < 5) // Kapton
-    halfStaveVol->AddNode(busKapVol, 1, new TGeoTranslation(0, ypos, 0));
+  ypos = -ypowbus;
+  halfStaveVol->AddNode(powerBusVol, 1, new TGeoTranslation(0, ypos, 0));
 
-  ypos -= (busKap->GetDY() + busAl->GetDY());
-  if (mBuildLevel < 2) // Aluminum
-    halfStaveVol->AddNode(busAlVol, 1, new TGeoTranslation(0, ypos, 0));
-
-  ypos -= busAl->GetDY();
-
-  ypos -= glue->GetDY();
-  if (mBuildLevel < 3) // Glue
-    halfStaveVol->AddNode(glueVol, 1, new TGeoTranslation(0, ypos, 0));
-  ypos -= glue->GetDY();
-
-  ypos -= ymod;
+  ypos -= (ypowbus + ymod);
   for (Int_t j = 0; j < mNumberOfModules; j++) {
     zpos = -zlen + j * (2 * zmod + sOBModuleGap) + zmod;
     halfStaveVol->AddNode(moduleVol, j, new TGeoTranslation(0, ypos, zpos));
@@ -2036,11 +2019,6 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
   }
 
   ypos -= ymod;
-
-  ypos -= glue->GetDY();
-  if (mBuildLevel < 3) // Glue
-    halfStaveVol->AddNode(glueVol, 2, new TGeoTranslation(0, ypos, 0));
-  ypos -= glue->GetDY();
 
   ypos -= fleeccent->GetDY();
   if (mBuildLevel < 6) // Carbon
@@ -2050,9 +2028,14 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
   ypos -= coldPlate->GetDY();
   if (mBuildLevel < 6) // Carbon
     halfStaveVol->AddNode(coldPlateVol, 1, new TGeoTranslation(0, ypos, 0));
+  ypos -= coldPlate->GetDY();
+
+  ypos -= fleeccent->GetDY();
+  if (mBuildLevel < 6) // Carbon
+    halfStaveVol->AddNode(fleeccentVol, 2, new TGeoTranslation(0, ypos, 0));
 
   xpos = sOBCoolTubeXDist / 2;
-  ypos1 = ypos - (coldPlate->GetDY() + coolTube->GetRmax());
+  ypos1 = ypos - (fleeccent->GetDY() + coolTube->GetRmax());
   if (mBuildLevel < 4) { // Water
     halfStaveVol->AddNode(coolWaterVol, 1, new TGeoTranslation(-xpos, ypos1, 0));
     halfStaveVol->AddNode(coolWaterVol, 2, new TGeoTranslation(xpos, ypos1, 0));
@@ -2071,16 +2054,16 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
     halfStaveVol->AddNode(fleectubVol, 2, new TGeoTranslation(xpos, ypos1, 0));
   }
 
-  xpos = xHalfSt - graphlat->GetDX();
-  ypos1 = ypos - (coldPlate->GetDY() + graphlat->GetDY());
+  xpos = sOBColdPlateXWidth / 2 - graphlat->GetDX();
+  ypos1 = ypos - (fleeccent->GetDY() + graphlat->GetDY());
   if (mBuildLevel < 6) { // Carbon
     halfStaveVol->AddNode(graphlatVol, 1, new TGeoTranslation(-xpos, ypos1, 0));
     halfStaveVol->AddNode(graphlatVol, 2, new TGeoTranslation(xpos, ypos1, 0));
 
     halfStaveVol->AddNode(graphmidVol, 1, new TGeoTranslation(0, ypos1, 0));
 
-    xpos = xHalfSt - 2 * graphlat->GetDX() + graphvert->GetDX();
-    ypos1 = ypos - (coldPlate->GetDY() + 2 * graphlat->GetDY() + graphvert->GetDY());
+    xpos = sOBColdPlateXWidth / 2 - 2 * graphlat->GetDX() + graphvert->GetDX();
+    ypos1 = ypos - (fleeccent->GetDY() + 2 * graphlat->GetDY() + graphvert->GetDY());
     halfStaveVol->AddNode(graphvertVol, 1, new TGeoTranslation(-xpos, ypos1, 0));
     halfStaveVol->AddNode(graphvertVol, 2, new TGeoTranslation(xpos, ypos1, 0));
     xpos = graphmid->GetDX() - graphvert->GetDX();
@@ -2088,16 +2071,16 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
     halfStaveVol->AddNode(graphvertVol, 4, new TGeoTranslation(xpos, ypos1, 0));
   }
 
-  xpos = xHalfSt - fleeclat->GetDX();
-  ypos1 = ypos - (coldPlate->GetDY() + 2 * graphlat->GetDY() + fleeclat->GetDY());
+  xpos = sOBColdPlateXWidth / 2 - fleeclat->GetDX();
+  ypos1 = ypos - (fleeccent->GetDY() + 2 * graphlat->GetDY() + fleeclat->GetDY());
   if (mBuildLevel < 6) { // Carbon
     halfStaveVol->AddNode(fleeclatVol, 1, new TGeoTranslation(-xpos, ypos1, 0));
     halfStaveVol->AddNode(fleeclatVol, 2, new TGeoTranslation(xpos, ypos1, 0));
 
     halfStaveVol->AddNode(fleecmidVol, 1, new TGeoTranslation(0, ypos1, 0));
 
-    xpos = xHalfSt - 2 * fleeclat->GetDX() + fleecvert->GetDX();
-    ypos1 = ypos - (coldPlate->GetDY() + 2 * graphlat->GetDY() + 2 * fleeclat->GetDY() + fleecvert->GetDY());
+    xpos = sOBColdPlateXWidth / 2 - 2 * fleeclat->GetDX() + fleecvert->GetDX();
+    ypos1 = ypos - (fleeccent->GetDY() + 2 * graphlat->GetDY() + 2 * fleeclat->GetDY() + fleecvert->GetDY());
     halfStaveVol->AddNode(fleecvertVol, 1, new TGeoTranslation(-xpos, ypos1, 0));
     halfStaveVol->AddNode(fleecvertVol, 2, new TGeoTranslation(xpos, ypos1, 0));
     xpos = fleecmid->GetDX() - fleecvert->GetDX();
@@ -2108,7 +2091,7 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
   // Add the Gamma Converter Rod (only on Layer 3) - M.S. 17 Oct 2016
   if (mAddGammaConv) {
     xpos = mGammaConvXPos;
-    ypos1 = ypos - (coldPlate->GetDY() + 2 * graphlat->GetDY() + 2 * fleeclat->GetDY() + gammaConvRod->GetRmax());
+    ypos1 = ypos - (fleeccent->GetDY() + 2 * graphlat->GetDY() + 2 * fleeclat->GetDY() + gammaConvRod->GetRmax());
     halfStaveVol->AddNode(gammaConvRodVol, 1, new TGeoTranslation(xpos, ypos1, 0));
   }
 
@@ -2134,6 +2117,140 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
 
   // Done, return the half stave structure
   return halfStaveVol;
+}
+
+TGeoVolume* V3Layer::createOBPowerBiasBuses(const Double_t zcable, const TGeoManager* mgr)
+{
+  //
+  // Create the OB Power Bus and Bias Bus cables
+  //
+  // Input:
+  //         zcable : the cable half Z length
+  //         mgr    : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //         a TGeoVolume with both the Power and the Bias Buses
+  //
+  // Created:      05 Aug 2018  Mario Sitta
+  // Updated:      06 Sep 2018  Mario Sitta
+  //
+
+  Double_t xcable, ytot, ypos;
+
+  // First create all needed shapes
+  xcable = sOBPowerBusXWidth / 2;
+  TGeoBBox* gndPB = new TGeoBBox(xcable, sOBPowerBusAlThick / 2, zcable);
+  TGeoBBox* dielPB = new TGeoBBox(xcable, sOBPowerBusDielThick / 2, zcable);
+  TGeoBBox* kapPB = new TGeoBBox(xcable, sOBPowerBusKapThick / 2, zcable);
+  xcable *= sOBPowerBusAlFrac;
+  TGeoBBox* topPB = new TGeoBBox(xcable, sOBPowerBusAlThick / 2, zcable);
+
+  xcable = sOBBiasBusXWidth / 2;
+  TGeoBBox* botBB = new TGeoBBox(xcable, sOBBiasBusAlThick / 2, zcable);
+  TGeoBBox* dielBB = new TGeoBBox(xcable, sOBBiasBusDielThick / 2, zcable);
+  TGeoBBox* kapBB = new TGeoBBox(xcable, sOBBiasBusKapThick / 2, zcable);
+  xcable *= sOBBiasBusAlFrac;
+  TGeoBBox* topBB = new TGeoBBox(xcable, sOBBiasBusAlThick / 2, zcable);
+
+  // Then the volumes
+  TGeoMedium* medKapton = mgr->GetMedium("ITS_KAPTON(POLYCH2)$");
+  TGeoMedium* medAluminum = mgr->GetMedium("ITS_ALUMINUM$");
+  TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
+
+  TGeoVolume* gndPBVol = new TGeoVolume("PowerBusGround", gndPB, medAluminum);
+  gndPBVol->SetLineColor(kCyan);
+  gndPBVol->SetFillColor(gndPBVol->GetLineColor());
+  gndPBVol->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume* dielPBVol = new TGeoVolume("PowerBusDielectric", dielPB, medKapton);
+  dielPBVol->SetLineColor(kBlue);
+  dielPBVol->SetFillColor(dielPBVol->GetLineColor());
+  dielPBVol->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume* kapPBVol = new TGeoVolume("PowerBusKapton", kapPB, medKapton);
+  kapPBVol->SetLineColor(kBlue);
+  kapPBVol->SetFillColor(kapPBVol->GetLineColor());
+  kapPBVol->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume* topPBVol = new TGeoVolume("PowerBusTop", topPB, medAluminum);
+  topPBVol->SetLineColor(kCyan);
+  topPBVol->SetFillColor(topPBVol->GetLineColor());
+  topPBVol->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume* botBBVol = new TGeoVolume("BiasBusBottom", botBB, medAluminum);
+  botBBVol->SetLineColor(kCyan);
+  botBBVol->SetFillColor(botBBVol->GetLineColor());
+  botBBVol->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume* dielBBVol = new TGeoVolume("BiasBusDielectric", dielBB, medKapton);
+  dielBBVol->SetLineColor(kBlue);
+  dielBBVol->SetFillColor(dielBBVol->GetLineColor());
+  dielBBVol->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume* kapBBVol = new TGeoVolume("BiasBusKapton", kapBB, medKapton);
+  kapBBVol->SetLineColor(kBlue);
+  kapBBVol->SetFillColor(kapBBVol->GetLineColor());
+  kapBBVol->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume* topBBVol = new TGeoVolume("BiasBusTop", topBB, medAluminum);
+  topBBVol->SetLineColor(kCyan);
+  topBBVol->SetFillColor(topBBVol->GetLineColor());
+  topBBVol->SetFillStyle(4000); // 0% transparent
+
+  // Finally the volume containing both the Power Bus and the Bias Bus
+  xcable = sOBPowerBusXWidth / 2;
+  ytot = 2 * kapPB->GetDY() + topPB->GetDY() + dielPB->GetDY() + gndPB->GetDY() + 2 * kapBB->GetDY() + topBB->GetDY() + dielBB->GetDY() + botBB->GetDY();
+
+  TGeoBBox* pnbBus = new TGeoBBox(xcable, ytot, zcable);
+
+  TGeoVolume* pnbBusVol = new TGeoVolume("OBPowerBiasBus", pnbBus, medAir);
+
+  // Volumes are piled up from bottom to top
+  ypos = -pnbBus->GetDY() + kapPB->GetDY();
+  if (mBuildLevel < 5) // Kapton
+    pnbBusVol->AddNode(kapPBVol, 1, new TGeoTranslation(0, ypos, 0));
+
+  ypos += (kapPB->GetDY() + gndPB->GetDY());
+  if (mBuildLevel < 2) // Aluminum
+    pnbBusVol->AddNode(gndPBVol, 1, new TGeoTranslation(0, ypos, 0));
+
+  ypos += (gndPB->GetDY() + dielPB->GetDY());
+  if (mBuildLevel < 5) // Kapton
+    pnbBusVol->AddNode(dielPBVol, 1, new TGeoTranslation(0, ypos, 0));
+
+  ypos += (dielPB->GetDY() + topPB->GetDY());
+  if (mBuildLevel < 2) // Aluminum
+    pnbBusVol->AddNode(topPBVol, 1, new TGeoTranslation(0, ypos, 0));
+
+  ypos += (topPB->GetDY() + kapPB->GetDY());
+  if (mBuildLevel < 5) // Kapton
+    pnbBusVol->AddNode(kapPBVol, 2, new TGeoTranslation(0, ypos, 0));
+
+  //
+  ypos += (kapPB->GetDY() + kapBB->GetDY());
+  if (mBuildLevel < 5) // Kapton
+    pnbBusVol->AddNode(kapBBVol, 1, new TGeoTranslation(0, ypos, 0));
+
+  ypos += (kapBB->GetDY() + botBB->GetDY());
+  if (mBuildLevel < 2) // Aluminum
+    pnbBusVol->AddNode(botBBVol, 1, new TGeoTranslation(0, ypos, 0));
+
+  ypos += (botBB->GetDY() + dielBB->GetDY());
+  if (mBuildLevel < 5) // Kapton
+    pnbBusVol->AddNode(dielBBVol, 1, new TGeoTranslation(0, ypos, 0));
+
+  ypos += (dielBB->GetDY() + topBB->GetDY());
+  if (mBuildLevel < 2) // Aluminum
+    pnbBusVol->AddNode(topBBVol, 1, new TGeoTranslation(0, ypos, 0));
+
+  ypos += (topBB->GetDY() + kapBB->GetDY());
+  if (mBuildLevel < 5) // Kapton
+    pnbBusVol->AddNode(kapBBVol, 2, new TGeoTranslation(0, ypos, 0));
+
+  //
+  return pnbBusVol;
 }
 
 void V3Layer::createOBColdPlateConnectors()
@@ -2168,6 +2285,7 @@ void V3Layer::createOBColdPlateConnectorsASide()
   //
   // Created:      26 May 2015  Mario Sitta
   // Updated:      20 Jul 2017  Mario Sitta  O2 version
+  // Updated:      15 Oct 2018  Mario Sitta  To latest blueprints
   //
 
   // The geoManager
@@ -2182,7 +2300,6 @@ void V3Layer::createOBColdPlateConnectorsASide()
   // Gather all material pointers
   TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
   TGeoMedium* medPEEK = mgr->GetMedium("ITS_PEEKCF30$");
-  TGeoMedium* medWC = mgr->GetMedium("ITS_TUNGCARB$");
   TGeoMedium* medInox304 = mgr->GetMedium("ITS_INOX304$");
 
   // First create all elements
@@ -2228,7 +2345,7 @@ void V3Layer::createOBColdPlateConnectorsASide()
   TGeoBBox* connSquareHole = new TGeoBBox("connASquareHole", xlen, ylen, zlen);
 
   zpos =
-    -connBlock->GetDZ() + (sOBCPConnHollowZLen + sOBCPConnSqrHoleZPos + sOBCPConnSqrInsertRZ - connSquareHole->GetDZ());
+    -connBlock->GetDZ() + (sOBCPConnSqrHoleZPos + connSquareHole->GetDZ());
   TGeoTranslation* transSquareHole = new TGeoTranslation("transASquareHole", 0, 0, zpos);
   transSquareHole->RegisterYourself();
 
@@ -2251,7 +2368,7 @@ void V3Layer::createOBColdPlateConnectorsASide()
   TGeoTranslation* trans2Tube2AHole = new TGeoTranslation("trans2Tube2AHole", xpos, ypos, 0);
   trans2Tube2AHole->RegisterYourself();
 
-  zlen = sOBCPConnAFitZLen - sOBCPConnAFitZOut;
+  zlen = sOBCPConnAFitZIn;
   TGeoTube* connFitHole = new TGeoTube("fitAHole", 0, sOBCPConnFitHoleD / 2, zlen);
 
   TGeoTranslation* trans1FitAHole = new TGeoTranslation("trans1FitAHole", -xpos, ypos, zpos);
@@ -2268,35 +2385,6 @@ void V3Layer::createOBColdPlateConnectorsASide()
   connBlockA->SetFillColor(42); // Brownish shade
   connBlockA->SetLineColor(42);
 
-  // The steel insert, an Xtru
-  xv[0] = sOBCPConnSquareHoleX / 2;
-  yv[0] = -sOBCPConnSqrInsertRZ;
-  xv[1] = xv[0];
-  yv[1] = yv[0] + sOBCPConnSquareHoleZ;
-  xv[2] = sOBCPConnInstInnerX / 2;
-  yv[2] = yv[1];
-  xv[3] = xv[2];
-  yv[3] = yv[0] + sOBCPConnInstZThick + sOBCPConnInstInnerR;
-  for (Int_t i = 1; i < 5; i++) {
-    Double_t alpha = TMath::PiOver2() * i / 4.;
-    xv[3 + i] = xv[3] - (1 - TMath::Cos(alpha)) * sOBCPConnInstInnerR;
-    yv[3 + i] = yv[3] - TMath::Sin(alpha) * sOBCPConnInstInnerR;
-  }
-
-  for (Int_t i = 0; i < 8; i++) {
-    xv[8 + i] = -xv[7 - i];
-    yv[8 + i] = yv[7 - i];
-  }
-
-  TGeoXtru* connInsertSh = new TGeoXtru(2);
-  connInsertSh->DefinePolygon(16, xv, yv);
-  connInsertSh->DefineSection(0, -sOBCPConnInsertYHei / 2);
-  connInsertSh->DefineSection(1, sOBCPConnInsertYHei / 2);
-
-  TGeoVolume* connInsert = new TGeoVolume("OBColdPlateConnectorInsertSquare", connInsertSh, medWC);
-  connInsert->SetFillColor(kGray);
-  connInsert->SetLineColor(kGray);
-
   // The fitting tubes, a Tube
   Double_t rmin = sOBCPConnAFitExtD / 2 - sOBCPConnAFitThick;
   TGeoTube* connFitSh = new TGeoTube(rmin, sOBCPConnAFitExtD / 2, sOBCPConnAFitZLen / 2);
@@ -2309,7 +2397,7 @@ void V3Layer::createOBColdPlateConnectorsASide()
   // to avoid fake overlaps with stave elements
   xlen = sOBCPConnectorXWidth;
   ylen = sOBCPConnBlockYHei;
-  zlen = sOBCPConnBlockZLen + sOBCPConnAFitZOut;
+  zlen = sOBCPConnBlockZLen + (sOBCPConnAFitZLen - sOBCPConnAFitZIn);
   TGeoBBox* connBox = new TGeoBBox("connectorOBCPA", xlen / 2, ylen / 2, zlen / 2);
 
   ypos = -connBox->GetDY();
@@ -2334,9 +2422,6 @@ void V3Layer::createOBColdPlateConnectorsASide()
   zpos = -connectSh->GetDZ() + connBlock->GetDZ();
   connectorASide->AddNode(connBlockA, 1, new TGeoTranslation(0, 0, zpos));
 
-  zpos = -connectSh->GetDZ() + sOBCPConnHollowZLen + sOBCPConnSqrHoleZPos;
-  connectorASide->AddNode(connInsert, 1, new TGeoCombiTrans(0, 0, zpos, new TGeoRotation("", 0, -90, 0)));
-
   xpos = sOBCPConnTubesXDist / 2;
   ypos = -connBlock->GetDY() + sOBCPConnTubesYPos;
   zpos = connectSh->GetDZ() - connFitSh->GetDz();
@@ -2357,6 +2442,7 @@ void V3Layer::createOBColdPlateConnectorsCSide()
   //
   // Created:      29 May 2015  Mario Sitta
   // Updated:      20 Jul 2017  Mario Sitta  O2 version
+  // Updated:      15 Oct 2018  Mario Sitta  To latest blueprints
   //
 
   // The geoManager
@@ -2371,7 +2457,6 @@ void V3Layer::createOBColdPlateConnectorsCSide()
   // Gather all material pointers
   TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
   TGeoMedium* medPEEK = mgr->GetMedium("ITS_PEEKCF30$");
-  TGeoMedium* medWC = mgr->GetMedium("ITS_TUNGCARB$");
 
   // First create all elements
 
@@ -2412,7 +2497,7 @@ void V3Layer::createOBColdPlateConnectorsCSide()
 
   TGeoTube* connRoundHole = new TGeoTube("connCRoundHole", 0, sOBCPConnRoundHoleD / 2, sOBCPConnBlockYHei / 1.5);
 
-  zpos = connBlock->GetDZ() - sOBCPConnHollowZLen - sOBCPConnRndHoleZPos;
+  zpos = connBlock->GetDZ() - sOBCPConnRndHoleZPos;
   TGeoCombiTrans* transRoundHole = new TGeoCombiTrans("transCRoundHole", 0, 0, zpos, new TGeoRotation("", 0, 90, 0));
   transRoundHole->RegisterYourself();
 
@@ -2450,13 +2535,6 @@ void V3Layer::createOBColdPlateConnectorsCSide()
   TGeoVolume* connBlockC = new TGeoVolume("OBColdPlateConnectorBlockCSide", connBlockSh, medPEEK);
   connBlockC->SetFillColor(42); // Brownish shade
   connBlockC->SetLineColor(42);
-
-  // The steel insert, a Tube
-  TGeoTube* connInsertSh = new TGeoTube(sOBCPConnInsertD / 2, sOBCPConnRoundHoleD / 2, sOBCPConnInsertYHei / 2);
-
-  TGeoVolume* connInsert = new TGeoVolume("OBColdPlateConnectorInsertRound", connInsertSh, medWC);
-  connInsert->SetFillColor(kGray);
-  connInsert->SetLineColor(kGray);
 
   // The plug, a Pcon
   TGeoPcon* connPlugSh = new TGeoPcon(0, 360, 4);
@@ -2496,9 +2574,6 @@ void V3Layer::createOBColdPlateConnectorsCSide()
 
   // Finally build up the connector
   connectorCSide->AddNode(connBlockC, 1);
-
-  zpos = connBlock->GetDZ() - sOBCPConnHollowZLen - sOBCPConnRndHoleZPos;
-  connectorCSide->AddNode(connInsert, 1, new TGeoCombiTrans(0, 0, zpos, new TGeoRotation("", 0, 90, 0)));
 
   xpos = -connBlock->GetDX();
   ypos = -connBlock->GetDY() + sOBCPConnTubesYPos;
@@ -3048,7 +3123,7 @@ void V3Layer::createOBSpaceFrameObjects(const TGeoManager* mgr)
 TGeoVolume* V3Layer::createModuleOuterB(const TGeoManager* mgr)
 {
   //
-  // Creates the OB Module: HIC + FPC + Carbon plate
+  // Creates the OB Module: HIC + FPC
   //
   // Input:
   //         mgr  : the GeoManager (used only to get the proper material)
@@ -3063,6 +3138,7 @@ TGeoVolume* V3Layer::createModuleOuterB(const TGeoManager* mgr)
   // Updated:      12 Nov 2014  M. Sitta  Model2 is w/o Carbon Plate and Glue
   //                                      and Cu instead of Al
   // Updated:      20 Jul 2017  M. Sitta  O2 version
+  // Updated:      30 Jul 2018  M. Sitta  Updated geometry
   //
 
   const Int_t nameLen = 30;
@@ -3099,56 +3175,49 @@ TGeoVolume* V3Layer::createModuleOuterB(const TGeoManager* mgr)
 
   mOBModuleZLength = 2 * zchip * sOBChipsPerRow + (sOBChipsPerRow - 1) * sOBChipZGap;
 
-  // The module carbon plate
-  xlen = sOBHalfStaveWidth / 2;
-  ylen = sOBCarbonPlateThick / 2;
   zlen = mOBModuleZLength / 2;
-  TGeoBBox* modPlate = new TGeoBBox("CarbonPlate", xlen, ylen, zlen);
 
   // The glue
-  ylen = sOBGlueThickM1 / 2;
-  TGeoBBox* glue = new TGeoBBox("Glue", xlen, ylen, zlen);
+  xlen = (4 * xchip + xGap) / 2;
+  ylen = sOBGlueFPCThick / 2;
+  TGeoBBox* glueFPC = new TGeoBBox("GlueFPC", xlen, ylen, zlen);
+
+  ylen = sOBGlueColdPlThick / 2;
+  TGeoBBox* glueCP = new TGeoBBox("GlueCP", xlen, ylen, zlen);
 
   // The FPC cables
-  TGeoBBox* flexMetal;
-  ylen = sOBFlexCableCuThick / 2;
-  flexMetal = new TGeoBBox("FlexCu", xlen, ylen, zlen);
-
+  xlen = sOBFlexCableXWidth / 2;
   ylen = sOBFlexCableKapThick / 2;
-  TGeoBBox* flexKap = new TGeoBBox("FlexKap", xlen, ylen, zlen);
+  TGeoBBox* flexKap = new TGeoBBox("MidFlexKap", xlen, ylen, zlen);
+
+  TGeoVolume* cuGndCableVol = createOBFPCCuGnd(zlen);
+  TGeoVolume* cuSignalCableVol = createOBFPCCuSig(zlen);
 
   // The module
-  xlen = sOBHalfStaveWidth / 2;
-  ylen = ychip + flexMetal->GetDY() + flexKap->GetDY();
-  zlen = mOBModuleZLength / 2;
+  Double_t ygnd = (static_cast<TGeoBBox*>(cuGndCableVol->GetShape()))->GetDY();
+  Double_t ysig = (static_cast<TGeoBBox*>(cuSignalCableVol->GetShape()))->GetDY();
+
+  xlen = (static_cast<TGeoBBox*>(cuGndCableVol->GetShape()))->GetDX();
+  ylen = glueCP->GetDY() + ychip + glueFPC->GetDY() + ysig + flexKap->GetDY() + ygnd;
   TGeoBBox* module = new TGeoBBox("OBModule", xlen, ylen, zlen);
 
   // We have all shapes: now create the real volumes
 
   TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
-  TGeoMedium* medCarbon = mgr->GetMedium("ITS_CARBON$");
   TGeoMedium* medGlue = mgr->GetMedium("ITS_GLUE$");
-  TGeoMedium* medAluminum = mgr->GetMedium("ITS_ALUMINUM$");
-  TGeoMedium* medCopper = mgr->GetMedium("ITS_COPPER$");
   TGeoMedium* medKapton = mgr->GetMedium("ITS_KAPTON(POLYCH2)$");
 
-  TGeoVolume* modPlateVol = new TGeoVolume("CarbonPlateVol", modPlate, medCarbon);
-  modPlateVol->SetLineColor(kMagenta - 8);
-  modPlateVol->SetFillColor(modPlateVol->GetLineColor());
-  modPlateVol->SetFillStyle(4000); // 0% transparent
+  TGeoVolume* glueFPCVol = new TGeoVolume("GlueFPCVol", glueFPC, medGlue);
+  glueFPCVol->SetLineColor(kBlack);
+  glueFPCVol->SetFillColor(glueFPCVol->GetLineColor());
+  glueFPCVol->SetFillStyle(4000); // 0% transparent
 
-  TGeoVolume* glueVol = new TGeoVolume("GlueVol", glue, medGlue);
-  glueVol->SetLineColor(kBlack);
-  glueVol->SetFillColor(glueVol->GetLineColor());
-  glueVol->SetFillStyle(4000); // 0% transparent
+  TGeoVolume* glueCPVol = new TGeoVolume("GlueColdPlVol", glueCP, medGlue);
+  glueCPVol->SetLineColor(kBlack);
+  glueCPVol->SetFillColor(glueCPVol->GetLineColor());
+  glueCPVol->SetFillStyle(4000); // 0% transparent
 
-  TGeoVolume* flexMetalVol;
-  flexMetalVol = new TGeoVolume("FPCCuVol", flexMetal, medCopper);
-  flexMetalVol->SetLineColor(kRed);
-  flexMetalVol->SetFillColor(flexMetalVol->GetLineColor());
-  flexMetalVol->SetFillStyle(4000); // 0% transparent
-
-  TGeoVolume* flexKapVol = new TGeoVolume("FPCKapVol", flexKap, medKapton);
+  TGeoVolume* flexKapVol = new TGeoVolume("FPCMidKapVol", flexKap, medKapton);
   flexKapVol->SetLineColor(kGreen);
   flexKapVol->SetFillColor(flexKapVol->GetLineColor());
   flexKapVol->SetFillStyle(4000); // 0% transparent
@@ -3158,12 +3227,13 @@ TGeoVolume* V3Layer::createModuleOuterB(const TGeoManager* mgr)
   modVol->SetVisibility(kTRUE);
 
   // Now build up the module
-  // Model1 : CarbonPlate-Glue-Chips-AluminumFPC-KaptonFPC
-  // Model2 : Chips-CopperFPC-KaptonFPCChips
-  ypos = -module->GetDY();
+  ypos = -module->GetDY() + glueCP->GetDY();
 
-  xpos = -module->GetDX() + xchip;
-  ypos += ychip;
+  if (mBuildLevel < 3) // Glue
+    modVol->AddNode(glueCPVol, 1, new TGeoTranslation(0, ypos, 0));
+
+  xpos = xchip + xGap / 2;
+  ypos += (ychip + glueCP->GetDY());
   for (Int_t k = 0; k < sOBChipsPerRow; k++) // put 7x2 chip into one module
   {
     zpos = -module->GetDZ() + zchip + k * (2 * zchip + zGap);
@@ -3172,16 +3242,114 @@ TGeoVolume* V3Layer::createModuleOuterB(const TGeoManager* mgr)
     mHierarchy[kChip] += 2;
   }
 
-  ypos += (ychip + flexMetal->GetDY());
-  if (mBuildLevel < 1) // Model1: Aluminum  Model2: Copper
-    modVol->AddNode(flexMetalVol, 1, new TGeoTranslation(0, ypos, 0));
+  ypos += (ychip + glueFPC->GetDY());
+  if (mBuildLevel < 3) // Glue
+    modVol->AddNode(glueFPCVol, 1, new TGeoTranslation(0, ypos, 0));
+  ypos += glueFPC->GetDY();
 
-  ypos += (flexMetal->GetDY() + flexKap->GetDY());
-  if (mBuildLevel < 5) // Kapton
+  if (mBuildLevel < 5) { // Kapton
+    ypos += ysig;
+    modVol->AddNode(cuSignalCableVol, 1, new TGeoTranslation(0, ypos, 0));
+
+    ypos += (ysig + flexKap->GetDY());
     modVol->AddNode(flexKapVol, 1, new TGeoTranslation(0, ypos, 0));
+
+    ypos += (flexKap->GetDY() + ygnd);
+    modVol->AddNode(cuGndCableVol, 1, new TGeoTranslation(0, ypos, 0));
+  }
 
   // Done, return the module
   return modVol;
+}
+
+TGeoVolume* V3Layer::createOBFPCCuGnd(const Double_t zcable, const TGeoManager* mgr)
+{
+  //
+  // Create the OB FPC Copper Ground cable
+  //
+  // Input:
+  //         zcable : the cable half Z length
+  //         mgr    : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //         the FPC cable as a TGeoVolume
+  //
+  // Created:      30 Jul 2018  Mario Sitta
+  //
+
+  Double_t xcable, ytot, ypos;
+
+  // First create all needed shapes
+  xcable = sOBFlexCableXWidth / 2;
+  ytot = sOBFPCSoldMaskThick + sOBFPCCopperThick;
+  TGeoBBox* soldmask = new TGeoBBox(xcable, ytot / 2, zcable);
+  xcable *= sOBFPCCuAreaFracGnd;
+  TGeoBBox* copper = new TGeoBBox(xcable, sOBFPCCopperThick / 2, zcable);
+
+  // Then the volumes
+  TGeoMedium* medKapton = mgr->GetMedium("ITS_KAPTON(POLYCH2)$");
+  TGeoMedium* medCopper = mgr->GetMedium("ITS_COPPER$");
+
+  TGeoVolume* soldmaskVol = new TGeoVolume("FPCGndSolderMask", soldmask, medKapton);
+  soldmaskVol->SetLineColor(kBlue);
+  soldmaskVol->SetFillColor(kBlue);
+
+  TGeoVolume* copperVol = new TGeoVolume("FPCCopperGround", copper, medCopper);
+  copperVol->SetLineColor(kCyan);
+  copperVol->SetFillColor(kCyan);
+
+  ypos = -soldmask->GetDY() + copper->GetDY();
+  if (mBuildLevel < 1) // Copper
+    soldmaskVol->AddNode(copperVol, 1, new TGeoTranslation(0, ypos, 0));
+
+  return soldmaskVol;
+}
+
+TGeoVolume* V3Layer::createOBFPCCuSig(const Double_t zcable, const TGeoManager* mgr)
+{
+  //
+  // Create the OB FPC Copper Signal cable
+  //
+  // Input:
+  //         zcable : the cable half Z length
+  //         mgr    : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //         the FPC cable as a TGeoVolume
+  //
+  // Created:      30 Jul 2018  Mario Sitta
+  //
+
+  Double_t xcable, ytot, ypos;
+
+  // First create all needed shapes
+  xcable = sOBFlexCableXWidth / 2;
+  ytot = sOBFPCSoldMaskThick + sOBFPCCopperThick;
+  TGeoBBox* soldmask = new TGeoBBox(xcable, ytot / 2, zcable);
+  xcable *= sOBFPCCuAreaFracSig;
+  TGeoBBox* copper = new TGeoBBox(xcable, sOBFPCCopperThick / 2, zcable);
+
+  // Then the volumes
+  TGeoMedium* medKapton = mgr->GetMedium("ITS_KAPTON(POLYCH2)$");
+  TGeoMedium* medCopper = mgr->GetMedium("ITS_COPPER$");
+
+  TGeoVolume* soldmaskVol = new TGeoVolume("FPCSigSolderMask", soldmask, medKapton);
+  soldmaskVol->SetLineColor(kBlue);
+  soldmaskVol->SetFillColor(kBlue);
+
+  TGeoVolume* copperVol = new TGeoVolume("FPCCopperSignal", copper, medCopper);
+  copperVol->SetLineColor(kCyan);
+  copperVol->SetFillColor(kCyan);
+
+  ypos = soldmask->GetDY() - copper->GetDY();
+  if (mBuildLevel < 1) // Copper
+    soldmaskVol->AddNode(copperVol, 1, new TGeoTranslation(0, ypos, 0));
+
+  return soldmaskVol;
 }
 
 Double_t V3Layer::getGammaConversionRodDiam()

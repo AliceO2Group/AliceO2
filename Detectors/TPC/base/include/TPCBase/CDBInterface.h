@@ -70,6 +70,13 @@ class CDBInterface
   /// \return noise object
   const CalPad& getNoise();
 
+  /// Return the gain map object
+  ///
+  /// The function checks if the object is already loaded and returns it
+  /// otherwise the object will be loaded first depending on the configuration
+  /// \return gain map object
+  const CalPad& getGainMap();
+
   /// Return the Detector parameters
   ///
   /// The function checks if the object is already loaded and returns it
@@ -106,16 +113,24 @@ class CDBInterface
   /// \param fileName name of the file containing pedestals and noise
   void setPedestalsAndNoiseFromFile(const std::string fileName) { mPedestalNoiseFileName = fileName; }
 
+  /// Set gain map from file
+  ///
+  /// This assumes that the objects is stored under the name 'Gain'
+  ///
+  /// \param fileName name of the file containing gain map
+  void setGainMapFromFile(const std::string fileName) { mGainMapFileName = fileName; }
+
   /// Force using default values instead of reading the CCDB
   ///
   /// \param default switch if to use default values
   void setUseDefaults(bool defaults = true) { mUseDefaults = defaults; }
 
-  /// Reset the local pedestals and noise
-  void resetLocalPedestalsAndNoise()
+  /// Reset the local calibration
+  void resetLocalCalibration()
   {
     mPedestals.reset();
     mNoise.reset();
+    mGainMap.reset();
   }
 
  private:
@@ -124,27 +139,31 @@ class CDBInterface
   // ===| Pedestal and noise |==================================================
   std::unique_ptr<CalPad> mPedestals; ///< Pedestal object
   std::unique_ptr<CalPad> mNoise;     ///< Noise object
+  std::unique_ptr<CalPad> mGainMap;   ///< Gain map object
 
   // ===| switches and parameters |=============================================
   bool mUseDefaults = false; ///< use defaults instead of CCDB
 
   std::string mPedestalNoiseFileName; ///< optional file name for pedestal and noise data
+  std::string mGainMapFileName;       ///< optional file name for the gain map
 
   // ===========================================================================
   // ===| functions |===========================================================
   //
   void loadNoiseAndPedestalFromFile(); ///< load noise and pedestal values from mPedestalNoiseFileName
+  void loadGainMapFromFile();          ///< load gain map from mGainmapFileName
   void createDefaultPedestals();       ///< creation of default pedestals if requested
   void createDefaultNoise();           ///< creation of default noise if requested
+  void createDefaultGainMap();         ///< creation of default gain map if requested
 
   template <typename T>
-  T& getObjectFromCDB(const o2::CDB::IdPath& path);
+  T& getObjectFromCDB(const o2::ccdb::IdPath& path);
 };
 
 template <typename T>
-inline T& CDBInterface::getObjectFromCDB(const o2::CDB::IdPath& path)
+inline T& CDBInterface::getObjectFromCDB(const o2::ccdb::IdPath& path)
 {
-  static auto cdb = o2::CDB::Manager::Instance();
+  static auto cdb = o2::ccdb::Manager::Instance();
   auto condread = cdb->getCondition(path);
   T* object{ nullptr };
   condread->getObjectAs(object);

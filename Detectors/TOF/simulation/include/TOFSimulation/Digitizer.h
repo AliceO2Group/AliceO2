@@ -14,6 +14,7 @@
 #include "TOFBase/Geo.h"
 #include "TOFBase/Digit.h"
 #include "TOFSimulation/Detector.h"
+#include "TOFSimulation/Strip.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "TOFSimulation/MCLabel.h"
 
@@ -24,8 +25,10 @@ namespace tof
 class Digitizer
 {
  public:
-  Digitizer(Int_t mode = 0) : mMode(mode), mTimeFrameCurrent(0) { initParameters(); };
+  Digitizer(Int_t mode = 0) : mMode(mode), mReadoutWindowCurrent(0) { init(); };
   ~Digitizer() = default;
+
+  void init();
 
   void process(const std::vector<HitType>* hits, std::vector<Digit>* digits);
 
@@ -37,8 +40,8 @@ class Digitizer
   Float_t getEffZ(Float_t z);
   Float_t getFractionOfCharge(Float_t x, Float_t z);
 
-  Int_t getCurrentTimeFrame() const { return mTimeFrameCurrent; }
-  void setCurrentTimeFrame(Double_t value) { mTimeFrameCurrent = value; }
+  Int_t getCurrentReadoutWindow() const { return mReadoutWindowCurrent; }
+  void setCurrentReadoutWindow(Double_t value) { mReadoutWindowCurrent = value; }
   Float_t getTimeLastHit(Int_t idigit) const { return 0; }
   Float_t getTotLastHit(Int_t idigit) const { return 0; }
   Int_t getXshift(Int_t idigit) const { return 0; }
@@ -46,9 +49,10 @@ class Digitizer
   void setEventTime(double value) { mEventTime = value; }
   void setEventID(Int_t id) { mEventID = id; }
   void setSrcID(Int_t id) { mSrcID = id; }
-  void setMCTruthContainer(o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* truthcontainer)
+
+  void setMCTruthContainer(o2::dataformats::MCTruthContainer<o2::MCCompLabel>* truthcontainer)
   {
-    mMCTruthContainer = truthcontainer;
+    mMCTruthOutputContainer = truthcontainer;
   }
 
   void initParameters();
@@ -56,6 +60,11 @@ class Digitizer
 
   void test(const char* geo = "O2geometry.root");
   void testFromHits(const char* geo = "O2geometry.root", const char* hits = "AliceO2_TGeant3.tof.mc_10_event.root");
+  void fillOutputContainer(std::vector<Digit>& digits);
+  void flushOutputContainer(std::vector<Digit>& digits); // flush all residual buffered data
+
+  void setContinuous(bool val) { mContinuous = val; }
+  bool isContinuous() const { return mContinuous; }
 
  private:
   // parameters
@@ -77,18 +86,41 @@ class Digitizer
   Float_t mEffBoundary3;
 
   // info TOF timewindow
-  Int_t mTimeFrameCurrent;
+  Int_t mReadoutWindowCurrent;
   Double_t mEventTime;
   Int_t mEventID = 0;
   Int_t mSrcID = 0;
 
+  bool mContinuous = false;
+
   // digit info
-  std::vector<Digit>* mDigits;
-  o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mMCTruthContainer =
-    nullptr; ///< Array for MCTruth information associated to digits in mDigitsArrray. Passed from the digitization
+  //std::vector<Digit>* mDigits;
+
+  static const int MAXWINDOWS = 10; // how many readout windows we can buffer
+
+  int mIcurrentReadoutWindow = 0;
+  o2::dataformats::MCTruthContainer<o2::tof::MCLabel> mMCTruthContainer[MAXWINDOWS];
+  o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mMCTruthContainerCurrent = &mMCTruthContainer[0]; ///< Array for MCTruth information associated to digits in mDigitsArrray.
+  o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mMCTruthContainerNext[MAXWINDOWS - 1];            ///< Array for MCTruth information associated to digits in mDigitsArrray.
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mMCTruthOutputContainer;
+
+  // array of strips to store the digits per strip (one for the current readout window, one for the next one)
+  std::vector<Strip> mStrips[MAXWINDOWS];
+  std::vector<Strip>* mStripsCurrent = &(mStrips[0]);
+  std::vector<Strip>* mStripsNext[MAXWINDOWS - 1];
+
+  // arrays with digit and MCLabels out of the current readout windows (stored to fill future readout window)
+  std::vector<Digit> mFutureDigits;
+  std::vector<int> mFutureIevent;
+  std::vector<int> mFutureIsource;
+  std::vector<int> mFutureItrackID;
+
+  o2::dataformats::MCTruthContainer<o2::tof::MCLabel> mFutureMCTruthContainer;
+
+  void fillDigitsInStrip(std::vector<Strip>* strips, o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer, double time, int channel, int tdc, int tot, int nbc, UInt_t istrip, Int_t trackID, Int_t eventID, Int_t sourceID);
 
   Int_t processHit(const HitType& hit, Double_t event_time);
-  void addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Float_t charge, Int_t iX, Int_t iZ, Int_t padZfired,
+  void addDigit(Int_t channel, UInt_t istrip, Float_t time, Float_t x, Float_t z, Float_t charge, Int_t iX, Int_t iZ, Int_t padZfired,
                 Int_t trackID);
 
   bool isMergable(Digit digit1, Digit digit2)

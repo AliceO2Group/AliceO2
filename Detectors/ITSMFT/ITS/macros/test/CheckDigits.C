@@ -15,45 +15,43 @@
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSMFTSimulation/Hit.h"
 #include "MathUtils/Utils.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "DetectorsBase/GeometryManager.h"
 #endif
 
 using namespace o2::Base;
 
-void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3")
+void CheckDigits(std::string digifile = "o2digi_its.root", std::string hitfile = "o2sim.root", std::string inputGeom = "O2geometry.root", std::string paramfile = "o2sim_par.root")
 {
-  using o2::ITSMFT::SegmentationAlpide;
   using o2::ITSMFT::Digit;
   using o2::ITSMFT::Hit;
+  using o2::ITSMFT::SegmentationAlpide;
   using namespace o2::ITS;
 
   TFile* f = TFile::Open("CheckDigits.root", "recreate");
   TNtuple* nt = new TNtuple("ntd", "digit ntuple", "id:x:y:z:rowD:colD:rowH:colH:xlH:zlH:xlcH:zlcH:dx:dz");
 
-  char filename[100];
-
   // Geometry
-  sprintf(filename, "AliceO2_%s.params_%i.root", mcEngine.Data(), nEvents);
-  TFile* file = TFile::Open(filename);
-  gFile->Get("FairGeoParSet");
-
+  o2::Base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
   auto* gman = o2::ITS::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::L2G));
 
   SegmentationAlpide seg;
 
   // Hits
-  sprintf(filename, "AliceO2_%s.mc_%i_event.root", mcEngine.Data(), nEvents);
-  TFile* file0 = TFile::Open(filename);
+  TFile* file0 = TFile::Open(hitfile.data());
   TTree* hitTree = (TTree*)gFile->Get("o2sim");
   std::vector<o2::ITSMFT::Hit>* hitArray = nullptr;
   hitTree->SetBranchAddress("ITSHit", &hitArray);
 
   // Digits
-  sprintf(filename, "AliceO2_%s.digi_%i_event.root", mcEngine.Data(), nEvents);
-  TFile* file1 = TFile::Open(filename);
+  TFile* file1 = TFile::Open(digifile.data());
   TTree* digTree = (TTree*)gFile->Get("o2sim");
   std::vector<o2::ITSMFT::Digit>* digArr = nullptr;
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels = nullptr;
   digTree->SetBranchAddress("ITSDigit", &digArr);
+  digTree->SetBranchAddress("ITSDigitMCTruth", &labels);
 
   int nevD = digTree->GetEntries(); // digits in cont. readout may be grouped as few events per entry
   int nevH = hitTree->GetEntries(); // hits are stored as one event per entry
@@ -73,9 +71,9 @@ void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3")
       const Point3D<float> locD(x, 0., z);
 
       Int_t chipID = d.getChipIndex();
-      o2::MCCompLabel lab = d.getLabel(0);
-      int trID = lab.getTrackID();
-      int ievH = lab.getEventID();
+      const auto& labs = labels->getLabels(nd);
+      int trID = labs[0].getTrackID();
+      int ievH = labs[0].getEventID();
 
       if (trID >= 0) { // not a noise
         ndr++;

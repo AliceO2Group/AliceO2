@@ -20,6 +20,7 @@ class Producer
 {
  public:
   virtual TObject* produceData() const = 0;
+  virtual ~Producer() = default;
 };
 }
 }

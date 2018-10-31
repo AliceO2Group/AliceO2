@@ -21,7 +21,7 @@
 #include <cfloat>
 #include <cmath>
 #include <cstring>
-#include <iostream>
+#include <iosfwd>
 #include "Math/SMatrix.h"
 #include "Math/SVector.h"
 

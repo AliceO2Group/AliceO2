@@ -54,15 +54,19 @@ Detector::Detector(const Detector& rhs)
 {
 }
 
-FairModule* Detector::CloneModule() const { return new Detector(*this); }
-
-void Detector::Initialize()
+void Detector::InitializeO2Detector()
 {
-  o2::Base::Detector::Initialize();
   Reset();
+
+  // Define sensitive volumes
+  defineSensitiveVolumes();
 }
 
 void Detector::EndOfEvent()
+{
+  Reset();
+}
+void Detector::FinishEvent()
 {
   // Sort Hits
   // Add duplicates if any and remove them
@@ -104,7 +108,7 @@ void Detector::EndOfEvent()
 void Detector::Reset()
 {
   mSuperParents.clear();
-  //  mHits.clear();
+  mHits->clear();
   mCurrentTrackID = -1;
   mCurrentCellID = -1;
   mCurentSuperParent = -1;
@@ -115,6 +119,7 @@ void Detector::Register() { FairRootManager::Instance()->RegisterAny(addNameTo("
 
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
+
   // 1. Remember all particles first entered PHOS (active medium)
   // 2. Collect all energy depositions in Cell by all secondaries from particle first entered PHOS
 
@@ -157,11 +162,12 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   //    return false ; //  We are not inside a PBWO crystal
 
   Int_t moduleNumber;
-  fMC->CurrentVolOffID(11, moduleNumber); //11: number of geom. levels between PXTL and PHOS module: get the PHOS module number ;
+  fMC->CurrentVolOffID(
+    11, moduleNumber); // 11: number of geom. levels between PXTL and PHOS module: get the PHOS module number ;
   Int_t strip;
-  fMC->CurrentVolOffID(3, strip); //3: number of geom levels between PXTL and strip: get strip number in PHOS module
+  fMC->CurrentVolOffID(3, strip); // 3: number of geom levels between PXTL and strip: get strip number in PHOS module
   Int_t cell;
-  fMC->CurrentVolOffID(2, cell);  //2: number of geom levels between PXTL and cell: get sell in strip number.
+  fMC->CurrentVolOffID(2, cell); // 2: number of geom levels between PXTL and cell: get sell in strip number.
   Int_t detID = mGeom->RelToAbsId(moduleNumber, strip, cell);
 
   if (superParent == mCurentSuperParent && detID == mCurrentCellID && mCurrentHit) {
@@ -198,6 +204,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   mCurentSuperParent = superParent;
   mCurrentTrackID = partID;
   mCurrentCellID = detID;
+
   return true;
 }
 
@@ -279,16 +286,6 @@ void Detector::ConstructGeometry()
   }
 
   gGeoManager->CheckGeometry();
-
-  // Define sensitive volume
-  if (fActive) {
-    TGeoVolume* vsense = gGeoManager->GetVolume("PXTL");
-    if (vsense) {
-      AddSensitiveVolume(vsense);
-    } else {
-      LOG(ERROR) << "PHOS Sensitive volume PXTL not found ... No hit creation!\n";
-    }
-  }
 }
 //-----------------------------------------
 void Detector::CreateMaterials()
@@ -393,10 +390,6 @@ void Detector::CreateMaterials()
   Int_t isxfld = 2;
   Float_t sxmgmx = 10.0;
   o2::Base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
-
-  // void Medium(Int_t numed, const char *name, Int_t nmat, Int_t isvol, Int_t ifield, Float_t fieldm,
-  //              Float_t tmaxfd, Float_t stemax, Float_t deemax, Float_t epsil, Float_t stmin, Float_t *ubuf = nullptr,
-  //              Int_t nbuf = 0);
 
   // The scintillator of the calorimeter made of PBW04                              -> idtmed[699]
   if (fActive) {
@@ -904,6 +897,19 @@ void Detector::ConstructSupportGeometry()
       copy = 2 * i + j;
       x0 = (2 * j - 1) * geom->GetDistanceBetwRails() / 2.0;
       fMC->Gspos("PWHE", copy, "cave", x0, y0, z0, 0, "ONLY");
+    }
+  }
+}
+
+//-----------------------------------------
+void Detector::defineSensitiveVolumes()
+{
+  if (fActive) {
+    TGeoVolume* vsense = gGeoManager->GetVolume("PXTL");
+    if (vsense) {
+      AddSensitiveVolume(vsense);
+    } else {
+      LOG(ERROR) << "PHOS Sensitive volume PXTL not found ... No hit creation!\n";
     }
   }
 }

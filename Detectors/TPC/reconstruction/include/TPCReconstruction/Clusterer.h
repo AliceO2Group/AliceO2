@@ -20,6 +20,8 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
+#include "TPCBase/CalDet.h"
+
 namespace o2{
 namespace TPC {
 
@@ -32,72 +34,43 @@ class Clusterer {
     using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
   public:
+   /// Default Constructor
+   Clusterer() = default;
 
-    /// Default Constructor
-    Clusterer() = delete;
+   /// Destructor
+   virtual ~Clusterer() = default;
 
-    /// Constructor
-    /// \param rowsMax Max number of rows to process
-    /// \param padsMax Max number of pads to process
-    /// \param timeBinsMax Max number of timebins to process
-    /// \param minQMax Minimum peak charge for cluster
-    /// \param requirePositiveCharge Positive charge is required
-    /// \param requireNeighbouringPad Requires at least 2 adjecent pads with charge above threshold
-    Clusterer(
-        int rowsMax = 18,
-        int padsMax = 138,
-        int timeBinsMax = 1024,
-        int minQMax = 5,
-        bool requirePositiveCharge = true,
-        bool requireNeighbouringPad = true);
+   /// Copy constructor
+   Clusterer(Clusterer const& other) = default;
 
-    /// Destructor
-    virtual ~Clusterer() = default;
+   /// Processing all digits
+   /// \param digits Container with TPC digits
+   /// \param mcDigitTruth MC Digit Truth container
+   virtual void process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth) = 0;
+   virtual void finishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth) = 0;
 
-    /// Processing all digits
-    /// \param digits Container with TPC digits
-    /// \param mcDigitTruth MC Digit Truth container
-    /// \param eventCount event counter
-    /// \return Container with clusters
-    virtual void Process(std::vector<o2::TPC::Digit> const &digits, MCLabelContainer const* mcDigitTruth, int eventCount) = 0;
-    virtual void Process(std::vector<std::unique_ptr<Digit>>& digits, MCLabelContainer const* mcDigitTruth, int eventCount) = 0;
+   /// Setter for noise object, noise will be added before cluster finding
+   /// \param noiseObject CalDet object, containing noise simulation
+   void setNoiseObject(CalDet<float>* noiseObject);
 
-    void setRowsMax(int val)                    { mRowsMax = val; };
-    void setPadsMax(int val)                    { mPadsMax = val; };
-    void setTimeBinsMax(int val)                { mTimeBinsMax = val; };
-    void setMinQMax(float val)                  { mMinQMax = val; };
-    void setRequirePositiveCharge(bool val)     { mRequirePositiveCharge = val; };
-    void setRequireNeighbouringPad(bool val)    { mRequireNeighbouringPad = val; };
-
-    int     getRowsMax()                  const { return mRowsMax; };
-    int     getPadsMax()                  const { return mPadsMax; };
-    int     getTimeBinsMax()              const { return mTimeBinsMax; };
-    float   getMinQMax()                  const { return mMinQMax; };
-    bool    hasRequirePositiveCharge()    const { return mRequirePositiveCharge; };
-    bool    hasRequireNeighbouringPad()   const { return mRequireNeighbouringPad; };
+   /// Setter for pedestal object, pedestal value will be subtracted before cluster finding
+   /// \param pedestalObject CalDet object, containing pedestals for each pad
+   void setPedestalObject(CalDet<float>* pedestalObject);
 
   protected:
-
-    int     mRowsMax;                       ///< Maximum row number
-    int     mPadsMax;                       ///< Maximum pad number
-    int     mTimeBinsMax;                   ///< Maximum time bin
-    float   mMinQMax;                       ///< Minimun Qmax for cluster
-    bool    mRequirePositiveCharge;         ///< If true, require charge > 0
-    bool    mRequireNeighbouringPad;        ///< If true, require 2+ pads minimum
-
+   CalDet<float>* mNoiseObject;    ///< Pointer to the CalDet object for noise simulation
+   CalDet<float>* mPedestalObject; ///< Pointer to the CalDet object for the pedestal subtraction
 };
 
-//________________________________________________________________________
-inline Clusterer::Clusterer(int rowsMax, int padsMax, int timeBinsMax, int minQMax,
-    bool requirePositiveCharge, bool requireNeighbouringPad)
-  : mRowsMax(rowsMax)
-  , mPadsMax(padsMax)
-  , mTimeBinsMax(timeBinsMax)
-  , mMinQMax(minQMax)
-  , mRequirePositiveCharge(requirePositiveCharge)
-  , mRequireNeighbouringPad(requireNeighbouringPad)
-{}
+inline void Clusterer::setNoiseObject(CalDet<float>* noiseObject)
+{
+  mNoiseObject = noiseObject;
+}
 
+inline void Clusterer::setPedestalObject(CalDet<float>* pedestalObject)
+{
+  mPedestalObject = pedestalObject;
+}
 }
 }
 

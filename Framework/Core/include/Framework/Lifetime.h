@@ -10,8 +10,10 @@
 #ifndef FRAMEWORK_LIFETIME_H
 #define FRAMEWORK_LIFETIME_H
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// Possible Lifetime of objects being exchanged by the DPL.
 /// FIXME: currently only Timeframe behaves as expected.
@@ -19,9 +21,10 @@ enum struct Lifetime {
   Timeframe,
   Condition,
   QA,
-  Transient
+  Transient,
+  Timer
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif

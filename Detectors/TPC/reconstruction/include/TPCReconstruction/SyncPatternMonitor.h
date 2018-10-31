@@ -15,7 +15,7 @@
 #define ALICEO2_TPC_SYNCPATTERNMONITOR_H_
 
 #include "FairLogger.h"
-#include <iostream>
+#include <iosfwd>
 #include <iomanip>
 #include <array>
 

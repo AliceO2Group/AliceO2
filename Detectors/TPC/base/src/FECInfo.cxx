@@ -9,3 +9,24 @@
 // or submit itself to any jurisdiction.
 
 #include "TPCBase/FECInfo.h"
+#include <iostream>
+
+namespace o2
+{
+namespace TPC
+{
+std::ostream& FECInfo::print(std::ostream& out) const
+{
+  out << "FEC in sector [" << int(mIndex)
+      //<<"], FEC connector [" << int(mConnector) << "], FEC channel [" << int(mChannel)
+      << "], SAMPA chip [" << int(mSampaChip) << "], SAMPA channel [" << int(mSampaChannel) << "]";
+  return out;
+}
+
+std::ostream& operator<<(std::ostream& out, const TPC::FECInfo& fec)
+{
+  fec.print(out);
+  return out;
+}
+} // namespace TPC
+} // namespace o2

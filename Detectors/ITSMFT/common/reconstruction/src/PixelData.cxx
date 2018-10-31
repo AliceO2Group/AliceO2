@@ -1,0 +1,34 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file PixelData.cxx
+/// \brief Implementation for transient data of single pixel and set of pixels from current chip
+
+#include "ITSMFTReconstruction/PixelData.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
+#include <cassert>
+
+using namespace o2::ITSMFT;
+
+void PixelData::sanityCheck() const
+{
+  // make sure the mask used in this class are compatible with Alpide segmenations
+  static_assert(RowMask + 1 >= o2::ITSMFT::SegmentationAlpide::NRows,
+                "incompatible mask, does not match Alpide segmentations");
+}
+
+void ChipPixelData::print() const
+{
+  // print chip data
+  printf("Chip %d in ROFrame %d\n", mChipID, mROFrame);
+  for (int i = 0; i < mPixels.size(); i++) {
+    printf("#%4d C:%4d R: %3d %s\n", i, mPixels[i].getCol(), mPixels[i].getRow(), mPixels[i].isMasked() ? "*" : "");
+  }
+}

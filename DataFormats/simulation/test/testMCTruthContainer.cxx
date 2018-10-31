@@ -78,6 +78,29 @@ BOOST_AUTO_TEST_CASE(MCTruth)
   BOOST_CHECK(view[1] == 101);
   BOOST_CHECK(view[2] == 102);
   BOOST_CHECK(view[3] == 103);
+
+  // test merging
+  {
+    dataformats::MCTruthContainer<TruthElement> container1;
+    container1.addElement(0, TruthElement(1));
+    container1.addElement(0, TruthElement(2));
+    container1.addElement(1, TruthElement(1));
+    container1.addElement(2, TruthElement(10));
+
+    dataformats::MCTruthContainer<TruthElement> container2;
+    container2.addElement(0, TruthElement(11));
+    container2.addElement(0, TruthElement(12));
+    container2.addElement(1, TruthElement(1));
+    container2.addElement(2, TruthElement(10));
+
+    container1.mergeAtBack(container2);
+    auto lview = container1.getLabels(3); //
+    BOOST_CHECK(lview.size() == 2);
+    BOOST_CHECK(lview[0] == 11);
+    BOOST_CHECK(lview[1] == 12);
+    BOOST_CHECK(container1.getIndexedSize() == 6);
+    BOOST_CHECK(container1.getNElements() == 8);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(MCTruth_RandomAccess)

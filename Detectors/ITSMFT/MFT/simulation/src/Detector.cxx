@@ -26,7 +26,6 @@
 #include "TVirtualMC.h"
 #include "TLorentzVector.h"
 #include "TVector3.h"
-#include "TClonesArray.h"
 #include "TGeoManager.h"
 
 #include "FairLogger.h"
@@ -91,14 +90,11 @@ Detector::~Detector()
 }
 
 //_____________________________________________________________________________
-void Detector::Initialize()
+void Detector::InitializeO2Detector()
 {
-
   mGeometryTGeo = GeometryTGeo::Instance();
 
   defineSensitiveVolumes();
-
-  FairDetector::Initialize();
 }
 
 //_____________________________________________________________________________
@@ -128,7 +124,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   Int_t sensorIndex = mGeometryTGeo->getSensorIndex(halfID, diskID, ladderID, sensorID);
 
   // LOG(INFO) << "Found hit into half = " << halfID << "; disk = " << diskID << "; ladder = " << ladderID << "; sensor
-  // = " << sensorID << FairLogger::endl;
+  // = " << sensorID ;
 
   bool startHit = false, stopHit = false;
   unsigned char status = 0;
@@ -333,7 +329,7 @@ void Detector::createMaterials()
   Float_t maxField;
   o2::Base::Detector::initFieldTrackingParams(fieldType, maxField);
 
-  LOG(INFO) << "Detector::createMaterials >>>>> fieldType " << fieldType << " maxField " << maxField << "\n";
+  LOG(DEBUG) << "Detector::createMaterials >>>>> fieldType " << fieldType << " maxField " << maxField;
 
   o2::Base::Detector::Mixture(++matId, "Air$", aAir, zAir, dAir, nAir, wAir);
   o2::Base::Detector::Medium(Air, "Air$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
@@ -430,7 +426,7 @@ void Detector::createMaterials()
   o2::Base::Detector::Medium(CarbonFleece, "CarbonFleece$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax,
                              epsil, stmin);
 
-  LOG(INFO) << "Detector::createMaterials -----> matId = " << matId << "\n";
+  LOG(DEBUG) << "Detector::createMaterials -----> matId = " << matId;
 }
 
 //_____________________________________________________________________________
@@ -458,13 +454,13 @@ void Detector::defineSensitiveVolumes()
 
   vol = gGeoManager->GetVolume("MFTSensor");
   if (!vol) {
-    LOG(FATAL) << "can't find volume MFTSensor" << FairLogger::endl;
+    LOG(FATAL) << "can't find volume MFTSensor";
   } else {
     AddSensitiveVolume(vol);
     if (!mftGeom->getSensorVolumeID()) {
       mftGeom->setSensorVolumeID(vol->GetNumber());
     } else if (mftGeom->getSensorVolumeID() != vol->GetNumber()) {
-      LOG(FATAL) << "CreateSensors: different Sensor volume ID !!!!" << FairLogger::endl;
+      LOG(FATAL) << "CreateSensors: different Sensor volume ID !!!!";
     }
   }
 }

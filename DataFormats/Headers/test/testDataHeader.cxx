@@ -16,11 +16,35 @@
 #include <iomanip>
 #include "Headers/DataHeader.h"
 #include "Headers/NameHeader.h"
+#include "Headers/Stack.h"
 
 #include <chrono>
 
 using system_clock = std::chrono::system_clock;
 using TimeScale = std::chrono::nanoseconds;
+
+namespace o2
+{
+namespace header
+{
+namespace test
+{
+struct MetaHeader : public BaseHeader {
+  // Required to do the lookup
+  static const o2::header::HeaderType sHeaderType;
+  static const uint32_t sVersion = 1;
+
+  MetaHeader(uint32_t v)
+    : BaseHeader(sizeof(MetaHeader), sHeaderType, o2::header::gSerializationMethodNone, sVersion), secret(v)
+  {
+  }
+
+  uint64_t secret;
+};
+constexpr o2::header::HeaderType MetaHeader::sHeaderType = "MetaHead";
+}
+}
+}
 
 namespace o2 {
   namespace header {
@@ -71,6 +95,8 @@ namespace o2 {
       TestDescriptorT runtimeDescriptor;
       runtimeDescriptor.runtimeInit(runtimeString.c_str());
       BOOST_CHECK(runtimeDescriptor == TestDescriptorT("RUNTIMES"));
+
+      BOOST_CHECK(testDescriptor.as<std::string>().length() == 8);
     }
 
     BOOST_AUTO_TEST_CASE(DataDescription_test)
@@ -102,6 +128,15 @@ namespace o2 {
       DataDescription runtimeDesc;
       runtimeDesc.runtimeInit(runtimeString.c_str());
       BOOST_CHECK(runtimeDesc == DataDescription("DATA_DESCRIPTION"));
+
+      BOOST_CHECK(desc.as<std::string>().length() == 6);
+      BOOST_CHECK(runtimeDesc.as<std::string>().length() == 16);
+      BOOST_CHECK(DataDescription("INVALIDDATA").as<std::string>().length() == 11);
+
+      BOOST_CHECK(DataDescription("A") < DataDescription("B"));
+      BOOST_CHECK(DataDescription("AA") < DataDescription("AB"));
+      BOOST_CHECK(DataDescription("AAA") < DataDescription("AAB"));
+      BOOST_CHECK(DataDescription("AAA") < DataDescription("ABA"));
     }
 
     BOOST_AUTO_TEST_CASE(DataOrigin_test)
@@ -111,12 +146,56 @@ namespace o2 {
       using TestDescriptorT = Descriptor<descriptorSize>;
       BOOST_CHECK(TestDescriptorT::size == descriptorSize);
       BOOST_CHECK(TestDescriptorT::bitcount == descriptorSize * 8);
-      BOOST_CHECK(sizeof(TestDescriptorT::ItgType)*TestDescriptorT::arraySize == descriptorSize);
+      BOOST_CHECK(sizeof(TestDescriptorT::ItgType) * TestDescriptorT::arraySize == descriptorSize);
       BOOST_CHECK(TestDescriptorT::size == sizeof(DataOrigin));
 
       // we want to explicitely have the size of DataOrigin to be 4
       static_assert(sizeof(DataOrigin) == 4,
                     "DataOrigin struct must be of size 4");
+
+      // Check that ordering works.
+      BOOST_CHECK(DataOrigin("A") < DataOrigin("B"));
+      BOOST_CHECK(DataOrigin("AA") < DataOrigin("AB"));
+      BOOST_CHECK(DataOrigin("AAA") < DataOrigin("AAB"));
+      BOOST_CHECK(DataOrigin("AAA") < DataOrigin("ABA"));
+      std::vector<DataOrigin> v1 = { DataOrigin("B"), DataOrigin("C"), DataOrigin("A") };
+      std::sort(v1.begin(), v1.end());
+      BOOST_CHECK_EQUAL(v1[0], DataOrigin("A"));
+      BOOST_CHECK_EQUAL(v1[1], DataOrigin("B"));
+      BOOST_CHECK_EQUAL(v1[2], DataOrigin("C"));
+      std::vector<DataOrigin> v2 = { DataOrigin("A"), DataOrigin("B") };
+      std::sort(v2.begin(), v2.end());
+      BOOST_CHECK_EQUAL(v2[0], DataOrigin("A"));
+      BOOST_CHECK_EQUAL(v2[1], DataOrigin("B"));
+
+      using CustomHeader = std::tuple<DataOrigin, DataDescription>;
+      std::vector<CustomHeader> v3{ CustomHeader{ "TST", "B" }, CustomHeader{ "TST", "A" } };
+      std::sort(v3.begin(), v3.end());
+      auto h0 = CustomHeader{ "TST", "A" };
+      auto h1 = CustomHeader{ "TST", "B" };
+      BOOST_CHECK(v3[0] == h0);
+      BOOST_CHECK(v3[1] == h1);
+
+      using CustomHeader2 = std::tuple<DataOrigin, DataDescription, int>;
+      std::vector<CustomHeader2> v4{ CustomHeader2{ "TST", "A", 1 }, CustomHeader2{ "TST", "A", 0 } };
+      std::sort(v4.begin(), v4.end());
+      auto hh0 = CustomHeader2{ "TST", "A", 0 };
+      auto hh1 = CustomHeader2{ "TST", "A", 1 };
+      BOOST_CHECK(v4[0] == hh0);
+      BOOST_CHECK(v4[1] == hh1);
+
+      struct CustomHeader3 {
+        DataOrigin origin;
+        DataDescription desc;
+        uint64_t subSpec;
+        int isOut;
+      };
+      std::vector<CustomHeader3> v5{ CustomHeader3{ "TST", "A", 0, 1 }, CustomHeader3{ "TST", "A", 0, 0 } };
+      std::sort(v5.begin(), v5.end(), [](CustomHeader3 const& lhs, CustomHeader3 const& rhs) {
+        return std::tie(lhs.origin, lhs.desc, rhs.subSpec, lhs.isOut) < std::tie(rhs.origin, rhs.desc, rhs.subSpec, rhs.isOut);
+      });
+      BOOST_CHECK(v5[0].isOut == 0);
+      BOOST_CHECK(v5[1].isOut == 1);
     }
 
     BOOST_AUTO_TEST_CASE(BaseHeader_test)
@@ -166,16 +245,46 @@ namespace o2 {
       Stack s1{ DataHeader{ gDataDescriptionInvalid, gDataOriginInvalid, DataHeader::SubSpecificationType{ 0 }, 0 },
                 NameHeader<9>{ "somename" } };
 
-      const DataHeader* h1 = get<DataHeader*>(s1.buffer.get());
+      const DataHeader* h1 = get<DataHeader*>(s1.data());
       BOOST_CHECK(h1 != nullptr);
       BOOST_CHECK(*h1 == dh1);
-      const NameHeader<0>* h2 = get<NameHeader<0>*>(s1.buffer.get());
+      const NameHeader<0>* h2 = get<NameHeader<0>*>(s1.data());
       BOOST_CHECK(h2 != nullptr);
       BOOST_CHECK(0 == std::strcmp(h2->getName(), "somename"));
       BOOST_CHECK(h2->description == NameHeader<0>::sHeaderType);
       BOOST_CHECK(h2->serialization == gSerializationMethodNone);
       BOOST_CHECK(h2->size() == sizeof(NameHeader<9>));
       BOOST_CHECK(h2->getNameLength() == 9);
+
+      // create new stack from stack and additional header
+      auto meta = test::MetaHeader{ 42 };
+      Stack s2{ s1, meta };
+      BOOST_CHECK(s2.size() == s1.size() + sizeof(decltype(meta)));
+
+      auto* h3 = get<test::MetaHeader*>(s1.data());
+      BOOST_CHECK(h3 == nullptr);
+      h3 = get<test::MetaHeader*>(s2.data());
+      BOOST_REQUIRE(h3 != nullptr);
+      BOOST_CHECK(h3->flagsNextHeader == false);
+      h1 = get<DataHeader*>(s2.data());
+      BOOST_REQUIRE(h1 != nullptr);
+      BOOST_CHECK(h1->flagsNextHeader == true);
+
+      // create stack from header and empty stack
+      Stack s3{ meta, Stack{} };
+      BOOST_CHECK(s3.size() == sizeof(meta));
+      h3 = get<test::MetaHeader*>(s3.data());
+      BOOST_REQUIRE(h3 != nullptr);
+      // no next header to be flagged as the stack was empty
+      BOOST_CHECK(h3->flagsNextHeader == false);
+
+      // create new stack from stack, empty stack, and header
+      Stack s4{ s1, Stack{}, meta };
+      BOOST_CHECK(s4.size() == s1.size() + sizeof(meta));
+      // check if we can find the header even though there was an empty stack in the middle
+      h3 = get<test::MetaHeader*>(s4.data());
+      BOOST_REQUIRE(h3 != nullptr);
+      BOOST_CHECK(h3->secret == 42);
     }
 
     BOOST_AUTO_TEST_CASE(Descriptor_benchmark)

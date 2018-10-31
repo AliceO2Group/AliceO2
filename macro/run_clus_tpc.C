@@ -57,15 +57,11 @@ void run_clus_tpc(std::string outputfile, std::string inputfile, std::string par
   // Setup clusterer
   o2::TPC::ClustererTask* clustTPC = new o2::TPC::ClustererTask(0);
   clustTPC->setContinuousReadout(isContinuous);
-  clustTPC->setClustererEnable(o2::TPC::ClustererTask::ClustererType::Box, false);
-  clustTPC->setClustererEnable(o2::TPC::ClustererTask::ClustererType::HW, true);
 
   run->AddTask(clustTPC);
 
   // Initialize everything
   run->Init();
-
-  clustTPC->getHwClusterer()->setNumThreads(threads);
 
   // Start simulation
   timer.Start();

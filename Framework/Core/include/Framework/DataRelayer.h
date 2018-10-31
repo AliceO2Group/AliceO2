@@ -10,16 +10,26 @@
 #ifndef FRAMEWORK_DATARELAYER_H
 #define FRAMEWORK_DATARELAYER_H
 
-#include <fairmq/FairMQMessage.h>
 #include "Framework/InputRoute.h"
+#include "Framework/DataDescriptorMatcher.h"
 #include "Framework/ForwardRoute.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/PartRef.h"
+#include "Framework/TimesliceIndex.h"
+
 #include <cstddef>
 #include <vector>
 
-namespace o2 {
-namespace framework {
+class FairMQMessage;
 
-class MetricsService;
+namespace o2
+{
+namespace monitoring
+{
+class Monitoring;
+}
+namespace framework
+{
 
 class DataRelayer {
 public:
@@ -28,19 +38,22 @@ public:
     WillNotRelay
   };
 
-  struct TimesliceId {
-    int64_t value;
+  struct RecordAction {
+    TimesliceSlot slot;
+    CompletionPolicy::CompletionOp op;
   };
 
-  // Reference to an inflight part.
-  struct PartRef {
-    std::unique_ptr<FairMQMessage> header;
-    std::unique_ptr<FairMQMessage> payload;
-  };
-
-  DataRelayer(std::vector<InputRoute> const&,
+  DataRelayer(CompletionPolicy const&,
+              std::vector<InputRoute> const&,
               std::vector<ForwardRoute> const&,
-              MetricsService &);
+              monitoring::Monitoring&,
+              TimesliceIndex&);
+
+  /// This invokes the appropriate `InputRoute::danglingChecker` on every
+  /// entry in the cache and if it returns true, it creates a new
+  /// cache entry by invoking the associated `InputRoute::expirationHandler`.
+  void processDanglingInputs(std::vector<ExpirationHandler> const&,
+                             ServiceRegistry& context);
 
   /// This is used to ask for relaying a given (header,payload) pair.
   /// Notice that we expect that the header is an O2 Header Stack
@@ -48,14 +61,14 @@ public:
   RelayChoice relay(std::unique_ptr<FairMQMessage> &&header,
                     std::unique_ptr<FairMQMessage> &&payload);
 
-  /// Returns the lines in the cache which are ready to be completed.
-  std::vector<int> getReadyToProcess();
+  /// @returns the actions ready to be performed.
+  std::vector<RecordAction> getReadyToProcess();
 
   /// Returns an input registry associated to the given timeslice and gives
   /// ownership to the caller. This is because once the inputs are out of the
   /// DataRelayer they need to be deleted once the processing is concluded.
   std::vector<std::unique_ptr<FairMQMessage>>
-  getInputsForTimeslice(size_t i);
+    getInputsForTimeslice(TimesliceSlot id);
 
   /// Returns the index of the arguments which have to be forwarded to
   /// the next processor
@@ -64,32 +77,32 @@ public:
   /// Returns how many timeslices we can handle in parallel
   size_t getParallelTimeslices() const;
 
-  /// Lookup the timeslice for the given index in the cache
-  size_t getTimesliceForCacheline(size_t i) {
-    assert(i < mTimeslices.size());
-    return mTimeslices[i].value;
-  }
-
   /// Tune the maximum number of in flight timeslices this can handle.
   void setPipelineLength(size_t s);
-private:
-  std::vector<InputRoute> mInputs;
-  std::vector<ForwardRoute> mForwards;
-  MetricsService &mMetrics;
 
-  /// This is the actual cache of all the parts in flight. 
+ private:
+  std::vector<InputRoute> const& mInputRoutes;
+  std::vector<ForwardRoute> const& mForwardRoutes;
+  monitoring::Monitoring& mMetrics;
+
+  /// This is the actual cache of all the parts in flight.
   /// Notice that we store them as a NxM sized vector, where
   /// N is the maximum number of inflight timeslices, while
   /// M is the number of inputs which are requested.
   std::vector<PartRef> mCache;
 
-  /// This is the timeslices for all the in flight parts.
-  std::vector<TimesliceId> mTimeslices;
+  /// This is the index which maps a given timestamp to the associated
+  /// cacheline.
+  TimesliceIndex& mTimesliceIndex;
 
   std::vector<bool> mForwardingMask;
+  CompletionPolicy mCompletionPolicy;
+  std::vector<size_t> mDistinctRoutesIndex;
+  std::vector<data_matcher::DataDescriptorMatcher> mInputMatchers;
+  static std::vector<std::string> sMetricsNames;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 
 #endif

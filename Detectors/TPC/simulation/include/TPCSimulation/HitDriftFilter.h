@@ -82,6 +82,69 @@ void getHits(TChain& chain, const Collection& eventrecords, std::vector<std::vec
 
 inline void getHits(std::vector<TChain*> const& chains, const o2::steer::RunContext& runcontext,
                     std::vector<std::vector<o2::TPC::HitGroup>*>& hitvectors,
+                    std::vector<o2::TPC::TPCHitGroupID>& hitids, const std::string_view branchname,
+                    int collision)
+{
+  // Collect hits of single collision in the run context
+  hitids.clear();
+
+  // helper to fetch right branch
+  auto fetchBranch = [chains, branchname](int source) -> TBranch* {
+    if (!chains[source]) {
+      return nullptr;
+    }
+    auto& chain = *chains[source];
+    auto br = chain.GetBranch(branchname.data());
+    if (!br) {
+      return nullptr;
+    }
+    return br;
+  };
+
+  // number of collision given by runcontext
+  const auto& eventrecords = runcontext.getEventRecords();
+  auto ncollisions = eventrecords.size();
+  if (collision >= ncollisions) {
+    LOG(ERROR) << "runContext contains" << ncollisions << " collisions, " << collision << " is requested";
+    return;
+  }
+  const auto& parts = runcontext.getEventParts();
+  const auto maxpartspercollision = runcontext.getMaxNumberParts();
+
+  const auto& theseparts = parts[collision];
+  for (int p = 0; p < theseparts.size(); ++p) {
+    // compute where to store the hits
+    const auto eventID = theseparts[p].entryID;
+    const auto source = theseparts[p].sourceID;
+    const auto storeentry = eventID * maxpartspercollision + source;
+
+    // retrieve correct branch and fill the vector
+    // This needs to be done only once for any entry per chain
+    // retrieve source
+    if (hitvectors[storeentry] == nullptr) {
+      // TODO: instead of trying to fetch all the time .. do this outside and cache
+      auto br = fetchBranch(source);
+      br->SetAddress(&hitvectors[storeentry]);
+      br->GetEntry(eventID);
+    }
+
+    int groupid = -1;
+    auto groups = hitvectors[storeentry];
+    for (auto& singlegroup : *groups) {
+      if (singlegroup.getSize() == 0) {
+        // there are not hits in this group .. so continue
+        // TODO: figure out why such a group would exist??
+        continue;
+      }
+      groupid++;
+      // need to record index of the group
+      hitids.emplace_back(storeentry, collision, eventID, groupid, source);
+    } // end loop over entries
+  }
+}
+
+inline void getHits(std::vector<TChain*> const& chains, const o2::steer::RunContext& runcontext,
+                    std::vector<std::vector<o2::TPC::HitGroup>*>& hitvectors,
                     std::vector<o2::TPC::TPCHitGroupID>& hitids, const std::string_view branchname, float tmin /*NS*/,
                     float tmax /*NS*/, std::function<float(float, float, float)>&& f)
 {
@@ -169,8 +232,9 @@ inline void getHits(std::vector<TChain*> const& chains, const o2::steer::RunCont
 
 // TPC hit selection lambda
 auto calcDriftTime = [](float tNS, float tof, float z) {
+  const static ElectronTransport& eleTrans = ElectronTransport::instance();
   // returns time in NS
-  return tNS + o2::TPC::ElectronTransport::getDriftTime(z) * 1000 + tof;
+  return tNS + eleTrans.getDriftTime(z) * 1000 + tof;
 };
 
 } // end namespace TPC

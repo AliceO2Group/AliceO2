@@ -8,26 +8,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//-*- Mode: C++ -*-
+/* Local Variables:  */
+/* mode: c++         */
+/* End:              */
 
 #ifndef CODINGMODELDISPATCHER_H
 #define CODINGMODELDISPATCHER_H
-//****************************************************************************
-//* This file is free software: you can redistribute it and/or modify        *
-//* it under the terms of the GNU General Public License as published by     *
-//* the Free Software Foundation, either version 3 of the License, or        *
-//* (at your option) any later version.                                      *
-//*                                                                          *
-//* Primary Authors: Matthias Richter <richterm@scieq.net>                   *
-//*                                                                          *
-//* The authors make no claims about the suitability of this software for    *
-//* any purpose. It is provided "as is" without express or implied warranty. *
-//****************************************************************************
 
-//  @file   CodingModelDispatcher.h
-//  @author Matthias Richter
-//  @since  2016-09-11
-//  @brief  Runtime dispatcher interface for probability model definitions
+/// @file   CodingModelDispatcher.h
+/// @author Matthias Richter
+/// @since  2016-09-11
+/// @brief  Runtime dispatcher interface for probability model definitions
 
 #include "mpl_tools.h"
 #include "runtime_container.h"
@@ -39,6 +30,8 @@
 using namespace gNeric;
 
 namespace o2
+{
+namespace data_compression
 {
 
 /**
@@ -380,6 +373,7 @@ class CodingModelDispatcher
   container_type mContainer;
 };
 
-}; // namespace o2
+} // namespace data_compression
+} // namespace o2
 
 #endif

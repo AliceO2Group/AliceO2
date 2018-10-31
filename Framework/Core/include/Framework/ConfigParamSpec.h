@@ -10,11 +10,14 @@
 #ifndef FRAMEWORK_CONFIGPARAMSPEC_H
 #define FRAMEWORK_CONFIGPARAMSPEC_H
 
-#include <string>
 #include "Framework/Variant.h"
 
-namespace o2 {
-namespace framework {
+#include <string>
+
+namespace o2
+{
+namespace framework
+{
 
 /// @class ConfigParamSpec Definition of options for a processor
 /// An option definition consists of a name, a type, a help message, and
@@ -61,7 +64,7 @@ struct ConfigParamSpec {
   HelpString help;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 
 #endif // FRAMEWORK_CONFIGPARAMSPEC_H

@@ -35,8 +35,10 @@
 #include <cassert>
 #include <cstring> //needed for memcmp
 #include <algorithm> // std::min
-
-using byte = unsigned char;
+#include <stdexcept>
+#include <string>
+// FIXME: for o2::byte. Use std::byte as soon as we move to C++17..
+#include "MemoryResources/Types.h"
 
 namespace o2 {
 namespace header {
@@ -84,6 +86,10 @@ constexpr uint32_t gSizeHeaderDescriptionString = 8;
 //__________________________________________________________________________________________________
 struct DataHeader;
 struct DataIdentifier;
+
+//__________________________________________________________________________________________________
+///helper function to print a hex/ASCII dump of some memory
+void hexDump(const char* desc, const void* voidaddr, size_t len, size_t max = 0);
 
 //__________________________________________________________________________________________________
 // internal implementations
@@ -199,6 +205,11 @@ struct DescriptorCompareTraits {
   static bool compare(const T &lh, const T &rh, Length N) {
     return std::memcmp(lh.str, rh.str, N) == 0;
   }
+  template <typename T, typename Length>
+  static bool lessThen(const T& lh, const T& rh, Length N)
+  {
+    return std::memcmp(lh.str, rh.str, N) < 0;
+  }
 };
 template<>
 struct DescriptorCompareTraits<1> {
@@ -206,12 +217,22 @@ struct DescriptorCompareTraits<1> {
   static bool compare(const T &lh, const T &rh, Length) {
     return lh.itg[0] == rh.itg[0];
   }
+  template <typename T, typename Length>
+  static bool lessThen(const T& lh, const T& rh, Length)
+  {
+    return lh.itg[0] < rh.itg[0];
+  }
 };
 template<>
 struct DescriptorCompareTraits<2> {
   template<typename T, typename Length>
   static bool compare(const T &lh, const T &rh, Length) {
     return (lh.itg[0] == rh.itg[0]) && (lh.itg[1] == rh.itg[1]);
+  }
+  template <typename T, typename Length>
+  static bool lessThen(const T& lh, const T& rh, Length)
+  {
+    return std::tie(lh.itg[0], lh.itg[1]) < std::tie(rh.itg[0], rh.itg[1]);
   }
 };
 
@@ -280,10 +301,14 @@ struct Descriptor {
     targetEnd = str + N;
     for ( ; target < targetEnd; ++target) *target = 0;
     // require the string to be not longer than the descriptor size
-    assert(source != nullptr && (*source == 0 || (length >= 0 && length <= (int)N)));
+    if (source != nullptr && (*source == 0 || (length >= 0 && length <= (int)N))) {
+    } else {
+      throw std::invalid_argument("argument must not be longer than descriptor size");
+    }
   }
 
   bool operator==(const Descriptor& other) const {return DescriptorCompareTraits<arraySize>::compare(*this,other, N);}
+  bool operator<(const Descriptor& other) const { return DescriptorCompareTraits<arraySize>::lessThen(*this, other, N); }
   bool operator!=(const Descriptor& other) const {return not this->operator==(other);}
 
   // explicitly forbid comparison with e.g. const char* strings
@@ -293,6 +318,21 @@ struct Descriptor {
   bool operator==(const T*) const = delete;
   template<typename T>
   bool operator!=(const T*) const = delete;
+
+  /// get the descriptor as std::string
+  template <typename T>
+  std::enable_if_t<std::is_same<T, std::string>::value == true, T> as() const
+  {
+    // backward search to find first non-zero char
+    // FIXME: can optimize this by using the int value to start at e.g. size/2
+    // if the upper part of the string is just zeros.
+    size_t len = size;
+    while (len > 1 && str[len - 1] == 0) {
+      --len;
+    }
+    std::string ret(str, len);
+    return std::move(ret);
+  }
   // print function needs to be implemented for every derivation
   void print() const {
     // eventually terminate string before printing
@@ -316,6 +356,7 @@ constexpr o2::header::SerializationMethod gSerializationMethodInvalid{ "INVALID"
 constexpr o2::header::SerializationMethod gSerializationMethodNone{ "NONE" };
 constexpr o2::header::SerializationMethod gSerializationMethodROOT{ "ROOT" };
 constexpr o2::header::SerializationMethod gSerializationMethodFlatBuf{ "FLATBUF" };
+constexpr o2::header::SerializationMethod gSerializationMethodArrow { "ARROW" };
 
 //__________________________________________________________________________________________________
 /// @struct BaseHeader
@@ -386,29 +427,42 @@ struct BaseHeader
   /// @brief access header in buffer
   ///
   /// this is to guess if the buffer starting at b looks like a header
-  inline static const BaseHeader* get(const byte* b, size_t /*len*/=0) {
-    return (*(reinterpret_cast<const uint32_t*>(b))==sMagicString) ?
-      reinterpret_cast<const BaseHeader*>(b) :
-      nullptr;
+  inline static const BaseHeader* get(const o2::byte* b, size_t /*len*/ = 0)
+  {
+    return (b != nullptr && *(reinterpret_cast<const uint32_t*>(b)) == sMagicString)
+             ? reinterpret_cast<const BaseHeader*>(b)
+             : nullptr;
+  }
+
+  /// @brief access header in buffer
+  ///
+  /// this is to guess if the buffer starting at b looks like a header
+  inline static BaseHeader* get(o2::byte* b, size_t /*len*/ = 0)
+  {
+    return (b != nullptr && *(reinterpret_cast<uint32_t*>(b)) == sMagicString) ? reinterpret_cast<BaseHeader*>(b)
+                                                                               : nullptr;
   }
 
   inline uint32_t size() const noexcept { return headerSize; }
-  inline const byte* data() const noexcept { return reinterpret_cast<const byte*>(this); }
+  inline const o2::byte* data() const noexcept { return reinterpret_cast<const o2::byte*>(this); }
 
-  /// get the next header if any
+  /// get the next header if any (const version)
   inline const BaseHeader* next() const noexcept {
-    return (flagsNextHeader) ?
-      reinterpret_cast<const BaseHeader*>(reinterpret_cast<const byte*>(this)+headerSize) :
-      nullptr;
+    return (flagsNextHeader) ? reinterpret_cast<const BaseHeader*>(reinterpret_cast<const o2::byte*>(this) + headerSize) : nullptr;
   }
 
+  /// get the next header if any (non-const version)
+  inline BaseHeader* next() noexcept
+  {
+    return (flagsNextHeader) ? reinterpret_cast<BaseHeader*>(reinterpret_cast<o2::byte*>(this) + headerSize) : nullptr;
+  }
 };
 
 /// find a header of type HeaderType in a buffer
 /// use like this:
 /// HeaderType* h = get<HeaderType*>(buffer)
 template <typename HeaderType, typename std::enable_if_t<std::is_pointer<HeaderType>::value, int> = 0>
-auto get(const byte* buffer, size_t /*len*/ = 0)
+auto get(const o2::byte* buffer, size_t /*len*/ = 0)
 {
   using HeaderConstPtrType = const typename std::remove_pointer<HeaderType>::type*;
   using HeaderValueType = typename std::remove_pointer<HeaderType>::type;
@@ -430,85 +484,6 @@ auto get(const void* buffer, size_t len = 0)
 {
   return get<HeaderType>(reinterpret_cast<const byte *>(buffer), len);
 }
-
-//__________________________________________________________________________________________________
-/// @struct Stack
-/// @brief a move-only header stack with serialized headers
-/// This is the flat buffer where all the headers in a multi-header go.
-/// This guy knows how to move the serialized content to FairMQ
-/// and inform it how to release when all is sent.
-/// methods to construct a multi-header
-/// intended use:
-///   - as a variadic intializer list (as an argument to a function)
-///
-///   One can also use the ctor directly:
-//    Stack::Stack(const T& header1, const T& header2, ...)
-//    - arguments can be headers, or stacks, all will be concatenated in a new Stack
-///   - returns a Stack ready to be shipped.
-struct Stack {
-
-  // This is ugly and needs fixing BUT:
-  // we need a static deleter for fairmq.
-  // TODO: maybe use allocator_traits if custom allocation is desired
-  //       the deallocate function is then static.
-  //       In the case of special transports is is cheap to copy the header stack into a message, so no problem there.
-  //       The copy can be avoided if we construct in place inside a FairMQMessage directly (instead of
-  //       allocating a unique_ptr we would hold a FairMQMessage which for the large part has similar semantics).
-  //
-  using Buffer = std::unique_ptr<byte[]>;
-  static std::default_delete<byte[]> sDeleter;
-  static void freefn(void* /*data*/, void* hint) {
-    Stack::sDeleter(static_cast<byte*>(hint));
-  }
-
-  size_t bufferSize;
-  Buffer buffer;
-
-  byte* data() const {return buffer.get();}
-  size_t size() const {return bufferSize;}
-
-  ///The magic constructor: takes arbitrary number of arguments and serialized them
-  /// into the buffer.
-  /// Intended use: produce a temporary via an initializer list.
-  /// TODO: maybe add a static_assert requiring first arg to be DataHeader
-  /// or maybe even require all these to be derived form BaseHeader
-  template<typename... Headers>
-  Stack(const Headers&... headers)
-    : bufferSize{size(headers...)}
-    , buffer{std::make_unique<byte[]>(bufferSize)}
-  {
-    inject(buffer.get(), headers...);
-  }
-  Stack() = default;
-  Stack(Stack&&) = default;
-  Stack(Stack&) = delete;
-  Stack& operator=(Stack&) = delete;
-  Stack& operator=(Stack&&) = default;
-
-  template<typename T, typename... Args>
-  static size_t size(const T& h, const Args... args) noexcept {
-    return size(h) + size(args...);
-  }
-
-private:
-  template<typename T>
-  static size_t size(const T& h) noexcept {
-    return h.size();
-  }
-
-  template<typename T>
-  static byte* inject(byte* here, const T& h) noexcept {
-    std::copy(h.data(), h.data()+h.size(), here);
-    return here + h.size();
-  }
-
-  template<typename T, typename... Args>
-  static byte* inject(byte* here, const T& h, const Args... args) noexcept {
-    auto alsohere = inject(here, h);
-    (reinterpret_cast<BaseHeader*>(here))->flagsNextHeader = true;
-    return inject(alsohere, args...);
-  }
-};
 
 //__________________________________________________________________________________________________
 /// this 128 bit type for a header field describing the payload data type
@@ -583,7 +558,7 @@ struct DataHeader : public BaseHeader
 
   //___the functions:
   DataHeader(); ///ctor
-  explicit DataHeader(DataDescription desc, DataOrigin origin, SubSpecificationType subspec, uint64_t size); /// ctor
+  explicit DataHeader(DataDescription desc, DataOrigin origin, SubSpecificationType subspec, uint64_t size = 0); /// ctor
 
   DataHeader(const DataHeader&) = default;
   DataHeader& operator=(const DataHeader&) = default; //assignment
@@ -679,10 +654,6 @@ static_assert(gSizeMagicString == sizeof(BaseHeader::magicStringInt),
               "Size mismatch in magic string union");
 static_assert(sizeof(BaseHeader::sMagicString) == sizeof(BaseHeader::magicStringInt),
               "Inconsitent size of global magic identifier");
-
-//__________________________________________________________________________________________________
-///helper function to print a hex/ASCII dump of some memory
-void hexDump (const char* desc, const void* voidaddr, size_t len, size_t max=0);
 
 } //namespace header
 

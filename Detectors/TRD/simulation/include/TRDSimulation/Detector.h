@@ -16,7 +16,6 @@
 #include "SimulationDataFormat/BaseHits.h"
 
 class FairVolume;
-class TClonesArray;
 
 namespace o2
 {
@@ -34,9 +33,7 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   ~Detector() override = default;
 
-  FairModule* CloneModule() const override;
-
-  void Initialize() override;
+  void InitializeO2Detector() override;
 
   bool ProcessHits(FairVolume* v = nullptr) override;
 
@@ -75,6 +72,8 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   TRDGeometry* mGeom = nullptr;
 
+  template <typename Det>
+  friend class o2::Base::DetImpl;
   ClassDefOverride(Detector, 1)
 };
 

@@ -16,7 +16,14 @@
 #include "FairLogger.h"
 #include "FairModule.h"
 #include <DetectorsPassive/Cave.h>
+#include "DetectorsBase/MaterialManager.h"
 
+//using declarations here since SetCuts.C and g3Config.C are included within namespace
+// these are needed for SetCuts.C inclusion
+using o2::Base::ECut;
+using o2::Base::EProc;
+using o2::Base::MaterialManager;
+// these are used in g3Config.C
 using std::cout;
 using std::endl;
 #include <SimSetup/SimSetup.h>
@@ -26,7 +33,7 @@ namespace o2
 namespace g3config
 {
 #include "../g3Config.C"
-#include "../SetCuts.C"
+#include "../SetCuts.h"
 
 void G3Config()
 {

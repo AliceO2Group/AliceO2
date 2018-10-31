@@ -16,6 +16,7 @@
 
 #include <cmath>
 #include <limits>
+#include <cstdint>
 
 namespace o2
 {

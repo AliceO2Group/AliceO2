@@ -12,7 +12,7 @@
 /// \brief  Implementation of the cluster reconstruction algorithm for MID
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   24 October 2016
-#include "Clusterizer.h"
+#include "MIDClustering/Clusterizer.h"
 #include <cassert>
 
 #include "FairLogger.h"
@@ -97,7 +97,7 @@ bool Clusterizer::loadPatterns(const std::vector<ColumnData>& stripPatterns)
     mActiveDEs[deIndex] = 1;
 
     de->firedColumns |= (1 << col.columnId);
-    de->columns[col.columnId] = col.patterns;
+    de->columns[col.columnId] = col;
   }
 
   return (stripPatterns.size() > 0);
@@ -150,7 +150,7 @@ void Clusterizer::preClusterizeNBP(PatternStruct& de)
         pc->area[icolumn].setXmax(limit);
         LOG(DEBUG) << "  adding col " << icolumn << "  strip " << istrip << "  (" << pc->area[icolumn].getXmin() << ", "
                    << pc->area[icolumn].getXmax() << ") (" << pc->area[icolumn].getYmin() << ", "
-                   << pc->area[icolumn].getYmax();
+                   << pc->area[icolumn].getYmax() << ")";
       } else {
         pc = nullptr;
       }
@@ -163,12 +163,12 @@ void Clusterizer::preClusterizeNBP(PatternStruct& de)
 void Clusterizer::preClusterizeBP(PatternStruct& de)
 {
   /// PreClusterizes bending plane
-  PreCluster* pc = nullptr;
   double limit = 0;
   for (int icolumn = mMapping.getFirstColumn(de.deId); icolumn < 7; ++icolumn) {
     if ((de.firedColumns & (1 << icolumn)) == 0) {
       continue;
     }
+    PreCluster* pc = nullptr;
     int firstLine = mMapping.getFirstBoardBP(icolumn, de.deId);
     int lastLine = mMapping.getLastBoardBP(icolumn, de.deId);
     for (int iline = firstLine; iline <= lastLine; ++iline) {
@@ -213,7 +213,7 @@ void Clusterizer::makeClusters(const int& deIndex)
     int icolumn = pcNB.firstColumn;
     if (icolumn == pcNB.lastColumn) {
       // This is the most simple and common case: the NBP pre-cluster is on
-      // on single column. So it can be easily matched with the BP
+      // one single column. So it can be easily matched with the BP
       // since the corresponding contours are both rectangles
       for (int ib = 0; ib < mNPreClusters[icolumn]; ++ib) {
         PreCluster& pcB = mPreClusters[icolumn][ib];
@@ -225,7 +225,7 @@ void Clusterizer::makeClusters(const int& deIndex)
       std::vector<std::vector<PreCluster*>> pcBneighbours;
       LOG(DEBUG) << "Spanning non-bend: " << icolumn << " -> " << pcNB.lastColumn;
       buildListOfNeighbours(icolumn, pcNB.lastColumn, pcBneighbours);
-      for (const auto pcBlist : pcBneighbours) {
+      for (auto& pcBlist : pcBneighbours) {
         makeCluster(pcBlist, deIndex, &pcNB);
       }
     }
@@ -241,7 +241,7 @@ void Clusterizer::makeClusters(const int& deIndex)
   /// Search for monocathodic clusters in the BP
   std::vector<std::vector<PreCluster*>> pcBneighbours;
   buildListOfNeighbours(0, 6, pcBneighbours, true);
-  for (const auto pcBlist : pcBneighbours) {
+  for (auto& pcBlist : pcBneighbours) {
     makeCluster(pcBlist, deIndex);
   }
 }
@@ -263,7 +263,7 @@ void Clusterizer::makeCluster(PreCluster& clBend, PreCluster& clNonBend, const i
 {
   /// Makes the cluster from pre-clusters
   Cluster2D& cl = nextCluster();
-  int icolumn = clNonBend.firstColumn;
+  int icolumn = clBend.firstColumn;
   cl.deId = (uint8_t)deIndex;
   cl.xCoor = 0.5 * (clNonBend.area[icolumn].getXmax() + clNonBend.area[icolumn].getXmin());
   cl.yCoor = 0.5 * (clBend.area[icolumn].getYmax() + clBend.area[icolumn].getYmin());
@@ -278,7 +278,7 @@ void Clusterizer::makeCluster(PreCluster& clBend, PreCluster& clNonBend, const i
 }
 
 //______________________________________________________________________________
-void Clusterizer::makeCluster(std::vector<PreCluster*> pcBlist, const int& deIndex, PreCluster* clNonBend)
+void Clusterizer::makeCluster(std::vector<PreCluster*>& pcBlist, const int& deIndex, PreCluster* clNonBend)
 {
   /// Makes the cluster from pre-clusters
   // This is the general case:

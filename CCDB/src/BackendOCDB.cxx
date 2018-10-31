@@ -21,17 +21,24 @@
 #include <FairMQLogger.h>
 
 #include <zlib.h>
+#include <iostream>
 
-using namespace o2::CDB;
+using namespace o2::ccdb;
 using namespace std;
 
 // special class to expose protected TMessage constructor
-class WrapTMessage : public TMessage {
-public:
-  WrapTMessage(void* buf, Int_t len) : TMessage(buf, len) { ResetBit(kIsOwner); }
+class WrapTMessage : public TMessage
+{
+ public:
+  WrapTMessage(void* buf, Int_t len) : TMessage(buf, len)
+  {
+    ResetBit(kIsOwner);
+  }
 };
 
-BackendOCDB::BackendOCDB() {}
+BackendOCDB::BackendOCDB()
+{
+}
 
 void BackendOCDB::Pack(const std::string& path, const std::string& key, std::string*& messageString)
 {

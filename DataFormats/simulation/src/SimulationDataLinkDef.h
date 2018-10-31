@@ -30,7 +30,6 @@
 #pragma link C++ class std::vector < o2::MCTrackT < double >> +;
 #pragma link C++ class std::vector < o2::MCTrackT < float >> +;
 #pragma link C++ class o2::MCCompLabel + ;
-#pragma link C++ class o2::MCInteractionRecord + ;
 
 #pragma link C++ class o2::BaseHit + ;
 #pragma link C++ class o2::BasicXYZEHit < float, float > +;
@@ -45,5 +44,14 @@
 #pragma link C++ class o2::TrackReference+;
 #pragma link C++ class std::vector<o2::TrackReference>+;
 #pragma link C++ class o2::dataformats::MCTruthContainer<o2::TrackReference>+;
+
+#pragma link C++ struct o2::Data::SubEventInfo+;
+#pragma link C++ class std::vector<o2::Data::SubEventInfo>+;
+#pragma link C++ struct o2::Data::PrimaryChunk+;
+
+#pragma link C++ class o2::steer::RunContext + ;
+#pragma link C++ class o2::steer::EventPart + ;
+#pragma link C++ class vector < o2::steer::EventPart > +;
+#pragma link C++ class vector < vector < o2::steer::EventPart >> +;
 
 #endif

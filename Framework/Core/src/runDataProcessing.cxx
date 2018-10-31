@@ -7,10 +7,12 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "FairMQDevice.h"
+#include "Framework/BoostOptionsRetriever.h"
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/ChannelMatching.h"
 #include "Framework/ConfigParamsHelper.h"
+#include "Framework/ConfigParamSpec.h"
+#include "Framework/ConfigContext.h"
 #include "Framework/DataProcessingDevice.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSourceDevice.h"
@@ -25,7 +27,6 @@
 #include "Framework/LogParsingHelpers.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/RawDeviceService.h"
-#include "Framework/SimpleMetricsService.h"
 #include "Framework/SimpleRawDeviceService.h"
 #include "Framework/TextControlService.h"
 #include "Framework/CallbackService.h"
@@ -38,13 +39,24 @@
 #include "GraphvizHelpers.h"
 #include "SimpleResourceManager.h"
 
+#include <Monitoring/MonitoringFactory.h>
+#include <InfoLogger/InfoLogger.hxx>
+
+#include "FairMQDevice.h"
+#include <fairmq/DeviceRunner.h>
+#include <fairmq/FairMQLogger.h>
 #include "options/FairMQProgOptions.h"
+
+#include <boost/program_options.hpp>
+#include <boost/program_options/options_description.hpp>
+#include <boost/program_options/variables_map.hpp>
 
 #include <cinttypes>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <csignal>
 #include <iostream>
 #include <map>
 #include <regex>
@@ -52,7 +64,6 @@
 #include <string>
 #include <type_traits>
 #include <chrono>
-
 #include <sys/resource.h>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -61,30 +72,33 @@
 #include <sys/un.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <boost/program_options.hpp>
-#include <csignal>
+#include <netinet/ip.h>
 
-#include <fairmq/DeviceRunner.h>
-#include <fairmq/FairMQLogger.h>
+using namespace o2::monitoring;
+
+using namespace AliceO2::InfoLogger;
 
 /// Helper class to find a free port.
-class FreePortFinder {
-public:
+class FreePortFinder
+{
+ public:
   FreePortFinder(unsigned short initialPort, unsigned short finalPort, unsigned short step)
-    : mInitialPort{initialPort},
-      mFinalPort{finalPort},
-      mStep{step},
-      mSocket{socket(AF_INET, SOCK_STREAM, 0)}
-  {}
+    : mInitialPort{ initialPort },
+      mFinalPort{ finalPort },
+      mStep{ step },
+      mSocket{ socket(AF_INET, SOCK_STREAM, 0) }
+  {
+  }
 
-  void scan() {
+  void scan()
+  {
     struct sockaddr_in addr;
     for (mPort = mInitialPort; mPort < mFinalPort; mPort += mStep) {
       memset(&addr, 0, sizeof(addr));
       addr.sin_family = AF_INET;
       addr.sin_addr.s_addr = INADDR_ANY;
       addr.sin_port = htons(mPort);
-      if (bind(mSocket, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
+      if (bind(mSocket, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
         LOG(WARN) << "Port range [" << mPort << ", " << mPort + mStep
                   << "] already taken. Skipping";
         continue;
@@ -94,12 +108,14 @@ public:
     }
   }
 
-  ~FreePortFinder() {
+  ~FreePortFinder()
+  {
     close(mSocket);
   }
   unsigned short port() { return mPort + 1; }
-  unsigned short range() {return mStep; }
-private:
+  unsigned short range() { return mStep; }
+
+ private:
   int mSocket;
   unsigned short mInitialPort;
   unsigned short mFinalPort;
@@ -122,29 +138,29 @@ std::vector<DeviceMetricsInfo> gDeviceMetricsInfos;
 // overloaded in the config spec
 bpo::options_description gHiddenDeviceOptions("Hidden child options");
 
-// To be used to allow specifying the CompletionPolicy on the command line.
+// To be used to allow specifying the TerminationPolicy on the command line.
 namespace o2
 {
 namespace framework
 {
-std::istream& operator>>(std::istream& in, enum CompletionPolicy& policy)
+std::istream& operator>>(std::istream& in, enum TerminationPolicy& policy)
 {
   std::string token;
   in >> token;
   if (token == "quit") {
-    policy = CompletionPolicy::QUIT;
+    policy = TerminationPolicy::QUIT;
   } else if (token == "wait") {
-    policy = CompletionPolicy::WAIT;
+    policy = TerminationPolicy::WAIT;
   } else
     in.setstate(std::ios_base::failbit);
   return in;
 }
 
-std::ostream& operator<<(std::ostream& out, const enum CompletionPolicy& policy)
+std::ostream& operator<<(std::ostream& out, const enum TerminationPolicy& policy)
 {
-  if (policy == CompletionPolicy::QUIT) {
+  if (policy == TerminationPolicy::QUIT) {
     out << "quit";
-  } else if (policy == CompletionPolicy::WAIT) {
+  } else if (policy == TerminationPolicy::WAIT) {
     out << "wait";
   } else
     out.setstate(std::ios_base::failbit);
@@ -272,6 +288,15 @@ static void handle_sigint(int) { graceful_exit = true; }
 
 static void handle_sigchld(int) { sigchld_requested = true; }
 
+bool startsWith(std::string mainStr, std::string toMatch)
+{
+  if (mainStr.find(toMatch) == 0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 /// This will start a new device by forking and executing a
 /// new child
 void spawnDevice(DeviceSpec const& spec, std::map<int, size_t>& socket2DeviceInfo, DeviceControl& control,
@@ -329,6 +354,7 @@ void spawnDevice(DeviceSpec const& spec, std::map<int, size_t>& socket2DeviceInf
   info.historySize = 1000;
   info.historyPos = 0;
   info.maxLogLevel = LogParsingHelpers::LogLevel::Debug;
+  info.dataRelayerViewIndex = DataRelayerViewIndex{ 0, 0, {} };
 
   socket2DeviceInfo.insert(std::make_pair(childstdout[0], deviceInfos.size()));
   socket2DeviceInfo.insert(std::make_pair(childstderr[0], deviceInfos.size()));
@@ -345,6 +371,8 @@ void spawnDevice(DeviceSpec const& spec, std::map<int, size_t>& socket2DeviceInf
 void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpecs const& specs,
                            DeviceControls& controls, std::vector<DeviceMetricsInfo>& metricsInfos)
 {
+  static const char* DATA_RELAYER_METRIC_PREFIX = "data_relayer";
+  static const size_t DATA_RELAYER_METRIC_PREFIX_SIZE = std::strlen(DATA_RELAYER_METRIC_PREFIX);
   // Wait for children to say something. When they do
   // print it.
   fd_set fdset;
@@ -398,6 +426,40 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
     info.history.resize(info.historySize);
     info.historyLevel.resize(info.historySize);
 
+    auto& view = info.dataRelayerViewIndex;
+    auto updateDataRelayerViewIndex = [&view](std::string const& name, MetricInfo const& metric, int value) {
+      if (startsWith(name, DATA_RELAYER_METRIC_PREFIX) == false) {
+        return;
+      }
+      auto extra = name;
+
+      // +1 is to remove the /
+      extra.erase(0, DATA_RELAYER_METRIC_PREFIX_SIZE + 1);
+      if (extra == "w") {
+        view.w = value;
+        view.indexes.resize(view.w * view.h);
+        return;
+      } else if (extra == "h") {
+        view.h = value;
+        view.indexes.resize(view.w * view.h);
+        return;
+      }
+      int idx = -1;
+      try {
+        idx = std::stoi(extra, nullptr, 10);
+      } catch (...) {
+        LOG(ERROR) << "Badly formatted metric" << std::endl;
+      }
+      if (idx < 0) {
+        LOG(ERROR) << "Negative metric" << std::endl;
+        return;
+      }
+      if (view.indexes.size() <= idx) {
+        view.indexes.resize(std::max(idx + 1, view.w * view.h));
+      }
+      view.indexes[idx] = metric.storeIdx;
+    };
+
     while ((pos = s.find(delimiter)) != std::string::npos) {
       token = s.substr(0, pos);
       auto logLevel = LogParsingHelpers::parseTokenLevel(token);
@@ -407,10 +469,12 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
       // in the GUI.
       // Then we check if it is part of our Poor man control system
       // if yes, we execute the associated command.
-      if (parseMetric(token, match)) {
+      if (DeviceMetricsHelper::parseMetric(token, match)) {
         LOG(DEBUG) << "Found metric with key " << match[2] << " and value " << match[4];
-        processMetric(match, metrics);
-      } else if (parseControl(token, match)) {
+        // We use this callback to cache which metrics are needed to provide a
+        // the DataRelayer view.
+        DeviceMetricsHelper::processMetric(match, metrics, updateDataRelayerViewIndex);
+      } else if (logLevel == LogParsingHelpers::LogLevel::Info && parseControl(token, match)) {
         auto command = match[1];
         auto validFor = match[2];
         LOG(DEBUG) << "Found control command " << command << " from pid " << info.pid << " valid for " << validFor;
@@ -521,6 +585,62 @@ struct TurnOffColors {
   }
 };
 
+// Creates the sink for FairLogger / InfoLogger integration
+auto createInfoLoggerSinkHelper(std::unique_ptr<InfoLogger>& logger, std::unique_ptr<InfoLoggerContext>& ctx)
+{
+  return [&logger,
+          &ctx](const std::string& content, const fair::LogMetaData& metadata) {
+    // translate FMQ metadata
+    InfoLogger::InfoLogger::Severity severity = InfoLogger::Severity::Undefined;
+    int level = InfoLogger::undefinedMessageOption.level;
+
+    if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::nolog)) {
+      // discard
+      return;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::fatal)) {
+      severity = InfoLogger::Severity::Fatal;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::error)) {
+      severity = InfoLogger::Severity::Error;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::warn)) {
+      severity = InfoLogger::Severity::Warning;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::state)) {
+      severity = InfoLogger::Severity::Info;
+      level = 10;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::info)) {
+      severity = InfoLogger::Severity::Info;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug)) {
+      severity = InfoLogger::Severity::Debug;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug1)) {
+      severity = InfoLogger::Severity::Debug;
+      level = 10;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug2)) {
+      severity = InfoLogger::Severity::Debug;
+      level = 20;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug3)) {
+      severity = InfoLogger::Severity::Debug;
+      level = 30;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug4)) {
+      severity = InfoLogger::Severity::Debug;
+      level = 40;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::trace)) {
+      severity = InfoLogger::Severity::Debug;
+      level = 50;
+    }
+
+    InfoLogger::InfoLoggerMessageOption opt = {
+      severity,
+      level,
+      InfoLogger::undefinedMessageOption.errorCode,
+      metadata.file.c_str(),
+      atoi(metadata.line.c_str())
+    };
+
+    if (logger) {
+      logger->log(opt, *ctx, "DPL: %s", content.c_str());
+    }
+  };
+};
+
 int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
 {
   TurnOffColors::apply(false, 0);
@@ -533,7 +653,10 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
     // declared in the workflow definition are allowed.
     runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec](fair::mq::DeviceRunner& r) {
       boost::program_options::options_description optsDesc;
-      populateBoostProgramOptions(optsDesc, spec.options, gHiddenDeviceOptions);
+      ConfigParamsHelper::populateBoostProgramOptions(optsDesc, spec.options, gHiddenDeviceOptions);
+      optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("infologger://"), "monitoring backend info") //
+        ("infologger-severity", bpo::value<std::string>()->default_value(""), "minimum FairLogger severity to send to InfoLogger")       //
+        ("infologger-mode", bpo::value<std::string>()->default_value(""), "INFOLOGGER_MODE override");
       r.fConfig.AddToCmdLineOptions(optsDesc, true);
     });
 
@@ -541,35 +664,74 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
     // different versions of the service
     ServiceRegistry serviceRegistry;
 
-    auto simpleMetricsService = std::make_unique<SimpleMetricsService>();
-    auto localRootFileService = std::make_unique<LocalRootFileService>();
-    auto textControlService = std::make_unique<TextControlService>();
-    auto parallelContext = std::make_unique<ParallelContext>(spec.rank, spec.nSlots);
-    auto simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr);
-    auto callbackService = std::make_unique<CallbackService>();
-    serviceRegistry.registerService<MetricsService>(simpleMetricsService.get());
-    serviceRegistry.registerService<RootFileService>(localRootFileService.get());
-    serviceRegistry.registerService<ControlService>(textControlService.get());
-    serviceRegistry.registerService<ParallelContext>(parallelContext.get());
-    serviceRegistry.registerService<RawDeviceService>(simpleRawDeviceService.get());
-    serviceRegistry.registerService<CallbackService>(callbackService.get());
+    // This is to control lifetime. All these services get destroyed
+    // when the runner is done.
+    std::unique_ptr<LocalRootFileService> localRootFileService;
+    std::unique_ptr<TextControlService> textControlService;
+    std::unique_ptr<ParallelContext> parallelContext;
+    std::unique_ptr<SimpleRawDeviceService> simpleRawDeviceService;
+    std::unique_ptr<CallbackService> callbackService;
+    std::unique_ptr<Monitoring> monitoringService;
+    std::unique_ptr<InfoLogger> infoLoggerService;
+    std::unique_ptr<InfoLoggerContext> infoLoggerContext;
+    std::unique_ptr<TimesliceIndex> timesliceIndex;
 
-    std::unique_ptr<FairMQDevice> device;
-    if (spec.inputs.empty()) {
-      LOG(DEBUG) << spec.id << " is a source\n";
-      device = std::make_unique<DataSourceDevice>(spec, serviceRegistry);
-    } else {
-      LOG(DEBUG) << spec.id << " is a processor\n";
-      device = std::make_unique<DataProcessingDevice>(spec, serviceRegistry);
-    }
+    auto afterConfigParsingCallback = [&localRootFileService,
+                                       &textControlService,
+                                       &parallelContext,
+                                       &simpleRawDeviceService,
+                                       &callbackService,
+                                       &monitoringService,
+                                       &infoLoggerService,
+                                       &spec,
+                                       &serviceRegistry,
+                                       &infoLoggerContext,
+                                       &timesliceIndex](fair::mq::DeviceRunner& r) {
+      localRootFileService = std::make_unique<LocalRootFileService>();
+      textControlService = std::make_unique<TextControlService>();
+      parallelContext = std::make_unique<ParallelContext>(spec.rank, spec.nSlots);
+      simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr);
+      callbackService = std::make_unique<CallbackService>();
+      monitoringService = MonitoringFactory::Get(r.fConfig.GetStringValue("monitoring-backend"));
+      auto infoLoggerMode = r.fConfig.GetStringValue("infologger-mode");
+      if (infoLoggerMode != "") {
+        setenv("INFOLOGGER_MODE", r.fConfig.GetStringValue("infologger-mode").c_str(), 1);
+      }
+      infoLoggerService = std::make_unique<InfoLogger>();
+      infoLoggerContext = std::make_unique<InfoLoggerContext>();
 
-    serviceRegistry.get<RawDeviceService>().setDevice(device.get());
+      auto infoLoggerSeverity = r.fConfig.GetStringValue("infologger-severity");
+      if (infoLoggerSeverity != "") {
+        fair::Logger::AddCustomSink("infologger", infoLoggerSeverity, createInfoLoggerSinkHelper(infoLoggerService, infoLoggerContext));
+      }
+      timesliceIndex = std::make_unique<TimesliceIndex>();
 
-    runner.AddHook<fair::mq::hooks::InstantiateDevice>([&device](fair::mq::DeviceRunner& r) {
-      r.fDevice = std::shared_ptr<FairMQDevice>{ std::move(device) };
+      serviceRegistry.registerService<Monitoring>(monitoringService.get());
+      serviceRegistry.registerService<InfoLogger>(infoLoggerService.get());
+      serviceRegistry.registerService<RootFileService>(localRootFileService.get());
+      serviceRegistry.registerService<ControlService>(textControlService.get());
+      serviceRegistry.registerService<ParallelContext>(parallelContext.get());
+      serviceRegistry.registerService<RawDeviceService>(simpleRawDeviceService.get());
+      serviceRegistry.registerService<CallbackService>(callbackService.get());
+      serviceRegistry.registerService<TimesliceIndex>(timesliceIndex.get());
+
+      // The decltype stuff is to be able to compile with both new and old
+      // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
+      decltype(r.fDevice) device;
+      if (spec.inputs.empty()) {
+        LOG(DEBUG) << spec.id << " is a source\n";
+        device = std::move(make_matching<decltype(device), DataSourceDevice>(spec, serviceRegistry));
+      } else {
+        LOG(DEBUG) << spec.id << " is a processor\n";
+        device = std::move(make_matching<decltype(device), DataProcessingDevice>(spec, serviceRegistry));
+      }
+
+      serviceRegistry.get<RawDeviceService>().setDevice(device.get());
+      r.fDevice = std::move(device);
       TurnOffColors::apply(false, 0);
-    });
+    };
 
+    runner.AddHook<fair::mq::hooks::InstantiateDevice>(afterConfigParsingCallback);
     return runner.Run();
   } catch (std::exception& e) {
     LOG(ERROR) << "Unhandled exception reached the top of main: " << e.what() << ", device shutting down.";
@@ -681,7 +843,7 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
       case DriverState::MATERIALISE_WORKFLOW:
         try {
           std::vector<ComputingResource> resources = resourceManager->getAvailableResources();
-          DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, driverInfo.channelPolicies, deviceSpecs, resources);
+          DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, driverInfo.channelPolicies, driverInfo.completionPolicies, deviceSpecs, resources);
           // This should expand nodes so that we can build a consistent DAG.
         } catch (std::runtime_error& e) {
           std::cerr << "Invalid workflow: " << e.what() << std::endl;
@@ -716,7 +878,8 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
         deviceExecutions.resize(deviceSpecs.size());
 
         DeviceSpecHelpers::prepareArguments(driverInfo.argc, driverInfo.argv, driverControl.defaultQuiet,
-                                            driverControl.defaultStopped, deviceSpecs, deviceExecutions, controls);
+                                            driverControl.defaultStopped, deviceSpecs,
+                                            driverInfo.workflowOptions, deviceExecutions, controls);
         for (size_t di = 0; di < deviceSpecs.size(); ++di) {
           spawnDevice(deviceSpecs[di], driverInfo.socket2DeviceInfo, controls[di], deviceExecutions[di], infos,
                       driverInfo.maxFd, driverInfo.childFdset);
@@ -729,7 +892,7 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
         // Calculate what we should do next and eventually
         // show the GUI
         if (guiQuitRequested ||
-            (driverInfo.completionPolicy == CompletionPolicy::QUIT && (checkIfCanExit(infos) == true))) {
+            (driverInfo.terminationPolicy == TerminationPolicy::QUIT && (checkIfCanExit(infos) == true))) {
           // Something requested to quit. This can be a user
           // interaction with the GUI or (if --completion-policy=quit)
           // it could mean that the workflow does not have anything else to do.
@@ -872,10 +1035,13 @@ void initialiseDriverControl(bpo::variables_map const& varmap, DriverControl& co
 //     killing them all on ctrl-c).
 //   - Child, pick the data-processor ID and start a O2DataProcessorDevice for
 //     each DataProcessorSpec
-int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
-           std::vector<ChannelConfigurationPolicy> const& channelPolicies)
+int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
+           std::vector<ChannelConfigurationPolicy> const& channelPolicies,
+           std::vector<CompletionPolicy> const& completionPolicies,
+           std::vector<ConfigParamSpec> const& workflowOptions,
+           o2::framework::ConfigContext& configContext)
 {
-  enum CompletionPolicy policy;
+  enum TerminationPolicy policy;
   bpo::options_description executorOptions("Executor options");
   executorOptions.add_options()                                                                             //
     ("help,h", "print this help")                                                                           //
@@ -885,25 +1051,30 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
     ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(false), "batch processing mode")           //
     ("start-port,p", bpo::value<unsigned short>()->default_value(22000), "start port to allocate")          //
     ("port-range,pr", bpo::value<unsigned short>()->default_value(1000), "ports in range")                  //
-    ("completion-policy,c", bpo::value<CompletionPolicy>(&policy)->default_value(CompletionPolicy::QUIT),   //
-     "what to do when processing is finished")                                                      //
-    ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output") //
-    ("timeout,t", bpo::value<double>()->default_value(0), "timeout after which to exit")            //
+    ("completion-policy,c", bpo::value<TerminationPolicy>(&policy)->default_value(TerminationPolicy::QUIT), //
+     "what to do when processing is finished")                                                              //
+    ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")         //
+    ("timeout,t", bpo::value<double>()->default_value(0), "timeout after which to exit")                    //
     ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration");
   // some of the options must be forwarded by default to the device
   executorOptions.add(DeviceSpecHelpers::getForwardedDeviceOptions());
 
-  gHiddenDeviceOptions.add_options()((std::string("id") + ",i").c_str(), bpo::value<std::string>(),
-                                     "device id for child spawning")(
-    "channel-config", bpo::value<std::vector<std::string>>(), "channel configuration")("control", "control plugin")(
-    "log-color", "logging color scheme")("color", "logging color scheme");
+  gHiddenDeviceOptions.add_options()                                                    //
+    ((std::string("id") + ",i").c_str(), bpo::value<std::string>(),                     //
+     "device id for child spawning")                                                    //
+    ("channel-config", bpo::value<std::vector<std::string>>(), "channel configuration") //
+    ("control", "control plugin")                                                       //
+    ("log-color", "logging color scheme")("color", "logging color scheme");
 
   bpo::options_description visibleOptions;
   visibleOptions.add(executorOptions);
+
+  auto physicalWorkflow = workflow;
+  WorkflowHelpers::injectServiceDevices(physicalWorkflow);
   // Use the hidden options as veto, all config specs matching a definition
   // in the hidden options are skipped in order to avoid duplicate definitions
   // in the main parser. Note: all config specs are forwarded to devices
-  visibleOptions.add(prepareOptionDescriptions(workflow, gHiddenDeviceOptions));
+  visibleOptions.add(ConfigParamsHelper::prepareOptionDescriptions(physicalWorkflow, workflowOptions, gHiddenDeviceOptions));
 
   bpo::options_description od;
   od.add(visibleOptions);
@@ -923,7 +1094,7 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
     bpo::options_description helpOptions;
     helpOptions.add(executorOptions);
     // this time no veto is applied, so all the options are added for printout
-    helpOptions.add(prepareOptionDescriptions(workflow));
+    helpOptions.add(ConfigParamsHelper::prepareOptionDescriptions(physicalWorkflow, workflowOptions));
     std::cout << helpOptions << std::endl;
     exit(0);
   }
@@ -937,14 +1108,17 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
   driverInfo.sigintRequested = false;
   driverInfo.sigchldRequested = false;
   driverInfo.channelPolicies = channelPolicies;
+  driverInfo.completionPolicies = completionPolicies;
   driverInfo.argc = argc;
   driverInfo.argv = argv;
   driverInfo.batch = varmap["batch"].as<bool>();
-  driverInfo.completionPolicy = varmap["completion-policy"].as<CompletionPolicy>();
+  driverInfo.terminationPolicy = varmap["completion-policy"].as<TerminationPolicy>();
   driverInfo.startTime = std::chrono::steady_clock::now();
   driverInfo.timeout = varmap["timeout"].as<double>();
   driverInfo.startPort = varmap["start-port"].as<unsigned short>();
   driverInfo.portRange = varmap["port-range"].as<unsigned short>();
+  driverInfo.workflowOptions = workflowOptions;
+  driverInfo.configContext = &configContext;
 
   std::string frameworkId;
   // If the id is set, this means this is a device,
@@ -959,5 +1133,5 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
     driverInfo.startPort = finder.port();
     driverInfo.portRange = finder.range();
   }
-  return runStateMachine(workflow, driverControl, driverInfo, gDeviceMetricsInfos, frameworkId);
+  return runStateMachine(physicalWorkflow, driverControl, driverInfo, gDeviceMetricsInfos, frameworkId);
 }

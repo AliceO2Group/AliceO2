@@ -30,7 +30,6 @@
 #include <FairMQParts.h>
 #include <FairMQLogger.h>
 #include <FairMQPoller.h>
-#include <options/FairProgOptions.h>
 #include <options/FairMQProgOptions.h>
 
 #include <boost/thread.hpp>

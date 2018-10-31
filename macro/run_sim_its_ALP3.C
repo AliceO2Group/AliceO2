@@ -48,7 +48,7 @@ void run_sim_its_ALP3(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   timer.Start();
 
   // CDB manager
-  //   o2::CDB::Manager *cdbManager = o2::CDB::Manager::Instance();
+  //   o2::ccdb::Manager *cdbManager = o2::ccdb::Manager::Instance();
   //   cdbManager->setDefaultStorage("local://$ALICEO2/tpc/dirty/o2cdb");
   //   cdbManager->setRun(0);
 

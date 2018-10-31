@@ -55,7 +55,7 @@ class TrackITS : public o2::track::TrackParCov
   // Bool_t getPhiZat(Float_t r,Float_t &phi,Float_t &z) const;
 
   void setClusterIndex(Int_t layer, Int_t index);
-  void setExternalClusterIndex(Int_t layer, Int_t idx);
+  void setExternalClusterIndex(Int_t layer, Int_t idx, bool newCluster = false);
   void resetClusters();
 
   void setChi2(float chi2) { mChi2 = chi2; }

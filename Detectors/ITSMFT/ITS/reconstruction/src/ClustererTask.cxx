@@ -11,83 +11,212 @@
 /// \file  ClustererTask.cxx
 /// \brief Implementation of the ITS cluster finder task
 
+#include "DetectorsCommonDataFormats/DetID.h"
 #include "ITSReconstruction/ClustererTask.h"
 #include "MathUtils/Cartesian3D.h"
 #include "MathUtils/Utils.h"
-#include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
 
-#include "FairLogger.h"      // for LOG
-#include "FairRootManager.h" // for FairRootManager
+#include "FairLogger.h"
+#include "FairRootManager.h"
 
-ClassImp(o2::ITS::ClustererTask)
+ClassImp(o2::ITS::ClustererTask);
 
-  using namespace o2::ITS;
+using namespace o2::ITS;
 using namespace o2::Base;
 using namespace o2::utils;
 
 //_____________________________________________________________________
-ClustererTask::ClustererTask(Bool_t useMCTruth) : FairTask("ITSClustererTask")
+ClustererTask::ClustererTask(bool useMC, bool raw) : FairTask("ITSClustererTask"),
+                                                     mRawDataMode(raw),
+                                                     mUseMCTruth(useMC && (!raw))
 {
-  if (useMCTruth)
-    mClsLabels = new o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+  LOG(INFO) << Class()->GetName() << ": MC digits mode: " << (mRawDataMode ? "OFF" : "ON")
+            << " | Use MCtruth: " << (mUseMCTruth ? "ON" : "OFF") << FairLogger::endl;
+
+  mClusterer.setNChips(o2::ITSMFT::ChipMappingITS::getNChips());
 }
 
 //_____________________________________________________________________
 ClustererTask::~ClustererTask()
 {
-  if (mClustersArray) {
-    mClustersArray->clear();
-    delete mClustersArray;
-  }
-  if (mClsLabels) {
-    mClsLabels->clear();
-    delete mClsLabels;
-  }
+  mFullClus.clear();
+  mCompClus.clear();
+  mClsLabels.clear();
 }
 
 //_____________________________________________________________________
-/// \brief Init function
-/// Inititializes the clusterer and connects input and output container
 InitStatus ClustererTask::Init()
 {
-  FairRootManager* mgr = FairRootManager::Instance();
-  if (!mgr) {
-    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
-    return kERROR;
+  /// Inititializes the clusterer and connects input and output container
+
+  if (mReader) {
+    return kSUCCESS; // already initialized
   }
 
-  const std::vector<o2::ITSMFT::Digit>* arr = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Digit>*>("ITSDigit");
-  if (!arr) {
-    LOG(ERROR) << "ITS digits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
-    return kERROR;
+  // create reader according to requested raw of MC mode
+  if (mRawDataMode) {
+    mReaderRaw = std::make_unique<o2::ITSMFT::RawPixelReader<o2::ITSMFT::ChipMappingITS>>();
+    mReader = mReaderRaw.get();
+  } else { // clusterizer of digits needs input from the FairRootManager (at the moment)
+    mReaderMC = std::make_unique<o2::ITSMFT::DigitPixelReader>();
+    mReader = mReaderMC.get();
+
+    if (!isSelfManagedMode()) {
+      attachFairManagerIO();
+    }
   }
-  mReader.setDigitArray(arr);
-
-  // Register output container
-  mgr->RegisterAny("ITSCluster", mClustersArray, kTRUE);
-
-  // Register MC Truth container
-  if (mClsLabels)
-    mgr->RegisterAny("ITSClusterMCTruth", mClsLabels, kTRUE);
 
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L)); // make sure T2L matrices are loaded
   mGeometry = geom;
   mClusterer.setGeometry(geom);
-  mClusterer.setMCTruthContainer(mClsLabels);
+
+  mClusterer.print();
 
   return kSUCCESS;
 }
 
 //_____________________________________________________________________
+void ClustererTask::attachFairManagerIO()
+{
+  // attachs input/output containers from the FairManager
+
+  if (mRawDataMode) {
+    LOG(FATAL) << "FairRootManager I/O is not supported in raw data mode" << FairLogger::endl;
+  }
+
+  FairRootManager* mgr = FairRootManager::Instance();
+  if (!mgr) {
+    LOG(FATAL) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
+  }
+
+  const auto arrDig = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Digit>*>("ITSDigit");
+  if (!arrDig) {
+    LOG(FATAL) << "ITS digits are not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+  }
+  mReaderMC->setDigits(arrDig);
+
+  if (mUseMCTruth && !(mClusterer.getWantFullClusters() || mClusterer.getWantCompactClusters())) {
+    mUseMCTruth = false;
+    LOG(WARNING) << "ITS clusters storage is not requested, suppressing MCTruth storage" << FairLogger::endl;
+  }
+
+  const auto arrDigLbl = mUseMCTruth ? mgr->InitObjectAs<const MCTruth*>("ITSDigitMCTruth") : nullptr;
+
+  if (!arrDigLbl && mUseMCTruth) {
+    LOG(WARNING) << "ITS digits labels are not registered in the FairRootManager. Continue w/o MC truth ..."
+                 << FairLogger::endl;
+  }
+  mReaderMC->setDigitsMCTruth(arrDigLbl);
+
+  // Register output containers
+  if (mClusterer.getWantFullClusters()) {
+    mFullClusPtr = &mFullClus;
+    mgr->RegisterAny("ITSCluster", mFullClusPtr, kTRUE);
+    LOG(INFO) << Class()->GetName() << " output of full clusters is requested " << FairLogger::endl;
+  } else {
+    LOG(INFO) << Class()->GetName() << " output of full clusters is not requested " << FairLogger::endl;
+  }
+
+  if (mClusterer.getWantCompactClusters()) {
+    mCompClusPtr = &mCompClus;
+    mgr->RegisterAny("ITSClusterComp", mCompClusPtr, kTRUE);
+    LOG(INFO) << Class()->GetName() << " output of compact clusters is requested " << FairLogger::endl;
+  } else {
+    LOG(INFO) << Class()->GetName() << " output of compact clusters is not requested " << FairLogger::endl;
+  }
+
+  // Register output MC Truth container if there is an MC truth for digits
+  if (arrDigLbl) {
+    mClsLabelsPtr = &mClsLabels;
+    mgr->RegisterAny("ITSClusterMCTruth", mClsLabelsPtr, kTRUE);
+  }
+  LOG(INFO) << Class()->GetName() << " | MCTruth: " << (arrDigLbl ? "ON" : "OFF") << FairLogger::endl;
+}
+
+//_____________________________________________________________________
 void ClustererTask::Exec(Option_t* option)
 {
-  if (mClustersArray)
-    mClustersArray->clear();
-  if (mClsLabels)
-    mClsLabels->clear();
+  /// execution entry point used when managed by the FairRunAna
+  if (mFullClusPtr) {
+    mFullClusPtr->clear();
+  }
+  if (mCompClusPtr) {
+    mCompClusPtr->clear();
+  }
+  if (mClsLabelsPtr) {
+    mClsLabelsPtr->clear();
+  }
   LOG(DEBUG) << "Running clusterization on new event" << FairLogger::endl;
+  mReader->init(); // needed when we start with fresh input data, as in case of FairRoort input
+  mClusterer.process(*mReader, mFullClusPtr, mCompClusPtr, mClsLabelsPtr);
+}
 
-  mClusterer.process(mReader, *mClustersArray);
+//_____________________________________________________________________
+void ClustererTask::run(const std::string inpName, const std::string outName, bool entryPerROF)
+{
+  // standalone execution
+  setSelfManagedMode(true); // to prevent interference with FairRootManager io
+  Init();                   // create reader, clusterer
+
+  std::unique_ptr<TFile> outFile(TFile::Open(outName.data(), "recreate"));
+  if (!outFile || outFile->IsZombie()) {
+    LOG(FATAL) << "Failed to open output file " << outName << FairLogger::endl;
+  }
+  std::unique_ptr<TTree> outTree = std::make_unique<TTree>("o2sim", "ITS Clusters");
+
+  if (mClusterer.getWantFullClusters()) {
+    mFullClusPtr = &mFullClus;
+    outTree->Branch("ITSCluster", &mFullClusPtr);
+    LOG(INFO) << Class()->GetName() << " output of full clusters is requested " << FairLogger::endl;
+  } else {
+    LOG(INFO) << Class()->GetName() << " output of full clusters is not requested " << FairLogger::endl;
+  }
+
+  if (mClusterer.getWantCompactClusters()) {
+    mCompClusPtr = &mCompClus;
+    outTree->Branch("ITSClusterComp", &mCompClusPtr);
+    LOG(INFO) << Class()->GetName() << " output of compact clusters is requested " << FairLogger::endl;
+  } else {
+    LOG(INFO) << Class()->GetName() << " output of compact clusters is not requested " << FairLogger::endl;
+  }
+
+  if (entryPerROF) {
+    mClusterer.setOutputTree(outTree.get()); // this will force flushing at every ROF
+  }
+
+  if (mRawDataMode) {
+    mReaderRaw->openInput(inpName);
+    mClusterer.process(*mReaderRaw.get(), mFullClusPtr, mCompClusPtr);
+  } else {
+    mReaderMC->openInput(inpName, o2::detectors::DetID("ITS"));
+
+    if (mUseMCTruth && !(mClusterer.getWantFullClusters() || mClusterer.getWantCompactClusters())) {
+      mUseMCTruth = false;
+      LOG(WARNING) << "ITS clusters storage is not requested, suppressing MCTruth storage" << FairLogger::endl;
+    }
+
+    if (mUseMCTruth && mReaderMC->getDigitsMCTruth()) {
+      // digit labels are provided directly to clusterer
+      mClsLabelsPtr = &mClsLabels;
+      outTree->Branch("ITSClusterMCTruth", &mClsLabelsPtr);
+    } else {
+      mUseMCTruth = false;
+    }
+    LOG(INFO) << Class()->GetName() << " | MCTruth: " << (mUseMCTruth ? "ON" : "OFF") << FairLogger::endl;
+
+    // loop over entries of the input tree
+    while (mReaderMC->readNextEntry()) {
+      mClusterer.process(*mReaderMC.get(), mFullClusPtr, mCompClusPtr, mClsLabelsPtr);
+    }
+  }
+
+  if (!entryPerROF) { // Clustered was not managing the output, do it here
+    outTree->Fill();  // in this mode all ROF will go to single entry of the tree
+  }
+  outTree->Write();
+  outTree.reset(); // tree should be destroyed before the file is closed
+  outFile->Close();
+
+  mClusterer.clear();
 }

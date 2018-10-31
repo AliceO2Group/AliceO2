@@ -18,8 +18,6 @@
 #include "DetectorsBase/Detector.h" // for Detector
 #include "FITBase/Geometry.h"
 
-class FairModule;
-
 class FairVolume;
 class TGeoVolume;
 class TGraph;
@@ -30,7 +28,7 @@ namespace fit
 {
 class Geometry;
 }
-}
+} // namespace o2
 
 namespace o2
 {
@@ -59,8 +57,9 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   /// Default constructor
   Detector() = default;
+
   /// Initialization of the detector is done here
-  void Initialize() override;
+  void InitializeO2Detector() override;
 
   /// This method is called for each step during simulation (see FairMCApplication::Stepping())
   Bool_t ProcessHits(FairVolume* v) override;
@@ -77,10 +76,12 @@ class Detector : public o2::Base::DetImpl<Detector>
   }
 
   void Reset() override;
+  void EndOfEvent() override { Reset(); }
 
   /// Base class to create the detector geometry
   void CreateMaterials();
   void ConstructGeometry() override;
+  void ConstructOpGeometry() override;
   void SetOneMCP(TGeoVolume* stl);
 
   // Optical properties reader: e-Energy, abs-AbsorptionLength[cm], n-refractive index
@@ -99,12 +100,12 @@ class Detector : public o2::Base::DetImpl<Detector>
   /// \param istream *is The input stream
   void Read(std::istream* is);
 
-  /// Clone this object (used in MT mode only)
-  // FairModule *CloneModule() const override;
-
  private:
-  Int_t mIdSens1;  // Sensetive volume  in T0
-  TGraph* mPMTeff; // pmt registration effeicincy
+  /// copy constructor (used in MT)
+  Detector(const Detector& rhs);
+
+  Int_t mIdSens1;            // Sensetive volume  in T0
+  TGraph* mPMTeff = nullptr; // pmt registration effeicincy
 
   // Optical properties to be extracted from file
   std::vector<Double_t> mPhotonEnergyD;
@@ -122,17 +123,17 @@ class Detector : public o2::Base::DetImpl<Detector>
   std::vector<Double_t> mReflMet;
 
   /// Container for data points
-  std::vector<HitType>* mHits;
+  std::vector<HitType>* mHits = nullptr;
 
   /// Define the sensitive volumes of the geometry
   void defineSensitiveVolumes();
 
-  Detector(const Detector&);
-
   Detector& operator=(const Detector&);
 
-  Geometry* mGeometry; //! Geometry
+  Geometry* mGeometry = nullptr; //! Geometry
 
+  template <typename Det>
+  friend class o2::Base::DetImpl;
   ClassDefOverride(Detector, 1)
 };
 
@@ -140,7 +141,7 @@ class Detector : public o2::Base::DetImpl<Detector>
 std::ostream& operator<<(std::ostream& os, Detector& source);
 
 std::istream& operator>>(std::istream& os, Detector& source);
-}
-}
+} // namespace fit
+} // namespace o2
 
 #endif

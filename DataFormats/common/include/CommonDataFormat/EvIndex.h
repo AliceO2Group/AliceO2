@@ -40,6 +40,8 @@ class EvIndex
   I getIndex() const { return mIndex; }
   void setEvent(E ev) { mEvent = ev; }
   void setIndex(I ind) { mIndex = ind; }
+  void shiftEvent(E inc) { mEvent += inc; }
+  void shiftIndex(I inc) { mIndex += inc; }
 
  private:
   E mEvent = 0; ///< ID of event or chunk or message containing referred object

@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(TestTMessageSerializer_InvalidBuffer)
   // FIXME: at the moment, TMessage fails directly with a segfault, which it shouldn't do
   /*
   try {
-    auto out = TMessageSerializer::deserialize((byte*)buffer, strlen(buffer));
+    auto out = TMessageSerializer::deserialize((o2::byte*)buffer, strlen(buffer));
     BOOST_ERROR("here we should never get, the function call must fail with exception");
   } catch (std::exception& e) {
     std::string expected("");
@@ -99,7 +99,7 @@ BOOST_AUTO_TEST_CASE(TestTMessageSerializer_InvalidBuffer)
   try {
     struct Dummy {
     };
-    auto out = TMessageSerializer::deserialize<Dummy>((byte*)buffer, strlen(buffer));
+    auto out = TMessageSerializer::deserialize<Dummy>((o2::byte*)buffer, strlen(buffer));
     BOOST_ERROR("here we should never get, the function call must fail with exception");
   } catch (std::exception& e) {
     BOOST_CHECK_MESSAGE(std::string(e.what()).find("class is not ROOT-serializable") == 0, e.what());

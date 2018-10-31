@@ -17,6 +17,7 @@
 #pragma link C++ class o2::tof::Detector+;
 #pragma link C++ class o2::tof::Digitizer+;
 #pragma link C++ class o2::tof::DigitizerTask+;
+#pragma link C++ class o2::tof::Strip + ;
 #pragma link C++ class o2::Base::DetImpl<o2::tof::Detector>+;
 
 #endif

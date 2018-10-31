@@ -1,11 +1,17 @@
 
-ALICE O2 software 
+ALICE O2 software
 =================
 
 [![codecov](https://codecov.io/gh/AliceO2Group/AliceO2/branch/dev/graph/badge.svg)](https://codecov.io/gh/AliceO2Group/AliceO2/branches/dev)
+[![JIRA](https://img.shields.io/badge/JIRA-Report%20issue-blue.svg)](https://alice.its.cern.ch/jira/secure/CreateIssue.jspa?pid=11201&issuetype=1)
+
+[![](http://ali-ci.cern.ch/repo/buildstatus/AliceO2Group/AliceO2/dev/build_O2_o2.svg)](https://ali-ci.cern.ch/repo/logs/AliceO2Group/AliceO2/dev/latest/build_O2_o2/fullLog.txt)
+[![](http://ali-ci.cern.ch/repo/buildstatus/AliceO2Group/AliceO2/dev/build_o2_macos.svg)](https://ali-ci.cern.ch/repo/logs/AliceO2Group/AliceO2/dev/latest/build_o2_macos/fullLog.txt)
+[![](http://ali-ci.cern.ch/repo/buildstatus/AliceO2Group/AliceO2/dev/build_o2checkcode_o2.svg)](https://ali-ci.cern.ch/repo/logs/AliceO2Group/AliceO2/dev/latest/build_o2checkcode_o2/fullLog.txt)
+[![](http://ali-ci.cern.ch/repo/buildstatus/AliceO2Group/AliceO2/dev/build_O2_o2-dev-fairroot.svg)](https://ali-ci.cern.ch/repo/logs/AliceO2Group/AliceO2/dev/latest/build_O2_o2-dev-fairroot/fullLog.txt)
 
 ### Scope
-The ALICE O2 software repository contains the framework, as well as the detector specific, code for the reconstruction, calibration and simulation for the ALICE experiment at CERN for Run 3 and 4. It also encompasses the commonalities such as the data format, and the global algorithms like the global tracking. 
+The ALICE O2 software repository contains the framework, as well as the detector specific, code for the reconstruction, calibration and simulation for the ALICE experiment at CERN for Run 3 and 4. It also encompasses the commonalities such as the data format, and the global algorithms like the global tracking.
 Other repositories in AliceO2Group contain a number of large common modules, for instance for Monitoring or Configuration.
 
 ### Website
@@ -16,7 +22,7 @@ A quickstart page can be found under [https://aliceo2group.github.io/](https://a
 In order to install with aliBuild you can follow [this tutorial](http://alisw.github.io/alibuild/o2-tutorial.html).
 
 ### Issue tracking system
-We use JIRA to track issues. Head [here](https://alice.its.cern.ch/jira) to create tickets.
+We use JIRA to track issues. [Report a bug here](https://alice.its.cern.ch/jira/secure/CreateIssue.jspa?pid=11201&issuetype=1).
 
 ### Coding guidelines
 The Coding Guidelines are [here](https://github.com/AliceO2Group/CodingGuidelines).
@@ -43,6 +49,11 @@ approach, all changes have to follow the formatting rules. A tool script can be
 used to integrate the formatting into `git` and suggest formatting only for
 changed lines.
 
+##### Install `clang-format`
+Use alienv to load `clang` which includes `clang-format` : `alienv load Clang/latest`
+If Clang is not yet build, use alibuild : `aliBuild build --defaults o2 Clang`
+If you use your own clang installation, make sure you have at least version 3.9.
+
 ##### Install `clang-format` git integration
 The `git-clang-format` Python script integrates `clang-format` into `git`.
 Put it somewhere in your path and ensure that it is executable, e.g.
@@ -50,7 +61,7 @@ Put it somewhere in your path and ensure that it is executable, e.g.
 cd $HOME
 mkdir -p bin
 cd bin
-wget //llvm.org/svn/llvm-project/cfe/trunk/tools/clang-format/git-clang-format
+wget llvm.org/svn/llvm-project/cfe/trunk/tools/clang-format/git-clang-format
 chmod u+x git-clang-format
 ```
 
@@ -69,12 +80,12 @@ git clang-format origin/dev
 ```
 
 ##### Checking files
-show updated version of complete file
+Show updated version of complete file :
 ```
 clang-format -style=file SOURCEFILE
 ```
 
-Directly apply the style to file
+Directly apply the style to file :
 ```
 clang-format -style=file -i SOURCEFILE
 ```

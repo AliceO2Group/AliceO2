@@ -11,7 +11,7 @@
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/runDataProcessing.h"
-#include "Framework/MetricsService.h"
+#include <Monitoring/Monitoring.h>
 #include "Framework/ControlService.h"
 #include "Framework/CallbackService.h"
 #include "FairMQLogger.h"
@@ -21,8 +21,8 @@ using DataHeader = o2::header::DataHeader;
 
 // This is a simple consumer / producer workflow where both are
 // stateful, i.e. they have context which comes from their initialization.
-void defineDataProcessing(WorkflowSpec &specs) {
-  WorkflowSpec workflow = {
+WorkflowSpec defineDataProcessing(ConfigContext const&) {
+  return WorkflowSpec{
     //
     DataProcessorSpec{
       "producer",                                                  //
@@ -80,6 +80,4 @@ void defineDataProcessing(WorkflowSpec &specs) {
       }   //
     }     //
   };
-
-  specs.swap(workflow);
 }

@@ -12,8 +12,10 @@
 
 #include <vector>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// This  represent one  single  execution of  a Device.  It's  meant to  hold
 /// information which  can change between  one execution  of a Device  and the
@@ -22,6 +24,6 @@ struct DeviceExecution {
   std::vector<char *> args;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif

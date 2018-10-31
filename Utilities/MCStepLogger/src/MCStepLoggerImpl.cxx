@@ -8,24 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//****************************************************************************
-//* This file is free software: you can redistribute it and/or modify        *
-//* it under the terms of the GNU General Public License as published by     *
-//* the Free Software Foundation, either version 3 of the License, or        *
-//* (at your option) any later version.                                      *
-//*                                                                          *
-//* Primary Authors: Sandro Wenzel <sandro.wenzel@cern.ch>                   *
-//*                                                                          *
-//* The authors make no claims about the suitability of this software for    *
-//* any purpose. It is provided "as is" without express or implied warranty. *
-//****************************************************************************
-
 //  @file   MCStepLoggerImpl.cxx
 //  @author Sandro Wenzel
 //  @since  2017-06-29
 //  @brief  A logging service for MCSteps (hooking into Stepping of TVirtualMCApplication's)
 
-#include <StepInfo.h>
+#include "MCStepLogger/StepInfo.h"
+#include "MCStepLogger/MetaInfo.h"
 #include <TBranch.h>
 #include <TClonesArray.h>
 #include <TFile.h>
@@ -121,7 +110,19 @@ void flushToTTree(const char* branchname, T* address)
   branch->SetAddress(&address);
   branch->Fill();
   tree->SetEntries(branch->GetEntries());
-  f->Write();
+  // To avoid large number of cycles since whenever the file is opened and things are written, this is done as a new cycle
+  //f->Write();
+  tree->Write("", TObject::kOverwrite);
+  f->Close();
+  delete f;
+}
+
+void initTFile()
+{
+  if (!std::getenv("MCSTEPLOG_TTREE")) {
+    return;
+  }
+  TFile* f = new TFile(getLogFileName(), "RECREATE");
   f->Close();
   delete f;
 }
@@ -319,7 +320,6 @@ class StepLogger
 // pointers to dissallow construction at each library load
 StepLogger* logger;
 FieldLogger* fieldlogger;
-
 } // end namespace
 
 // a helper template kernel describing generically the redispatching prodecure
@@ -397,6 +397,8 @@ extern "C" void logField(double const* p, double const* b)
 
 extern "C" void initLogger()
 {
+  // init TFile for logging output
+  o2::initTFile();
   // initializes the logging instances
   o2::logger = new o2::StepLogger();
   o2::fieldlogger = new o2::FieldLogger();

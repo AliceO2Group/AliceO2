@@ -23,11 +23,14 @@
 #include "CCDB/Manager.h"
 #include "ParameterMQServer.h"
 
-namespace o2 {
-namespace CDB {
+namespace o2
+{
+namespace ccdb
+{
 
-class ConditionsMQServer : public ParameterMQServer {
-public:
+class ConditionsMQServer : public ParameterMQServer
+{
+ public:
   ConditionsMQServer();
 
   ~ConditionsMQServer() override;
@@ -36,7 +39,7 @@ public:
 
   void InitTask() override;
 
-private:
+ private:
   Manager* mCdbManager;
 
   void getFromOCDB(std::string key);

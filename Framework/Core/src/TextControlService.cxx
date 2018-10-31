@@ -13,8 +13,10 @@
 #include <regex>
 #include <iostream>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 // All we do is to printout
 void TextControlService::readyToQuit(bool all) {
@@ -30,8 +32,12 @@ void TextControlService::readyToQuit(bool all) {
 }
 
 bool parseControl(const std::string &s, std::smatch &match) {
-  const static std::regex controlRE(".*CONTROL_ACTION: READY_TO_(QUIT)_(ME|ALL)");
-  return std::regex_match(s, match, controlRE);
+  const static std::regex controlRE("READY_TO_(QUIT)_(ME|ALL)", std::regex::optimize);
+  auto idx = s.find("CONTROL_ACTION: ");
+  if (idx == std::string::npos) {
+    return false;
+  }
+  return std::regex_search(s.begin() + idx, s.end(), match, controlRE);
 }
 
 } // framework

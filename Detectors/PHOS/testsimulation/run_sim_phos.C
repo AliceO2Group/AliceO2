@@ -1,26 +1,26 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-  #include <iostream>
+#include <iostream>
 
-  #include "Rtypes.h"
-  #include "TSystem.h"
-  #include "TMath.h"
-  #include "TString.h"
-  #include "TStopwatch.h"
-  #include "TGeoManager.h"
+#include "Rtypes.h"
+#include "TGeoManager.h"
+#include "TMath.h"
+#include "TStopwatch.h"
+#include "TString.h"
+#include "TSystem.h"
 
-  #include "FairRunSim.h"
-  #include "FairRuntimeDb.h"
-  #include "FairPrimaryGenerator.h"
-  #include "FairBoxGenerator.h"
-  #include "FairParRootFileIo.h"
-  #include "FairSystemInfo.h"
+#include "FairBoxGenerator.h"
+#include "FairParRootFileIo.h"
+#include "FairPrimaryGenerator.h"
+#include "FairRunSim.h"
+#include "FairRuntimeDb.h"
+#include "FairSystemInfo.h"
 
-  #include "TGeoGlobalMagField.h"
-  #include "Field/MagneticField.h"
+#include "Field/MagneticField.h"
+#include "TGeoGlobalMagField.h"
 
- // #include "DetectorsPassive/Cave.h"
- // #include "Generators/GeneratorFromFile.h"
- // #include "TPCSimulation/Detector.h"
+// #include "DetectorsPassive/Cave.h"
+// #include "Generators/GeneratorFromFile.h"
+// #include "TPCSimulation/Detector.h"
 #endif
 
 #define BOX_GENERATOR 1
@@ -30,11 +30,10 @@ void run_sim_phos(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   FairLogger::GetLogger()->SetLogScreenLevel("DEBUG");
   TString dir = getenv("VMCWORKDIR");
   TString geom_dir = dir + "/Detectors/Geometry/";
-  gSystem->Setenv("GEOMPATH",geom_dir.Data());
-
+  gSystem->Setenv("GEOMPATH", geom_dir.Data());
 
   TString tut_configdir = dir + "/Detectors/gconfig";
-  gSystem->Setenv("CONFIG_DIR",tut_configdir.Data());
+  gSystem->Setenv("CONFIG_DIR", tut_configdir.Data());
 
   // Output file name
   char fileout[100];
@@ -55,7 +54,6 @@ void run_sim_phos(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   TStopwatch timer;
   timer.Start();
 
-
   // Create simulation run
   FairRunSim* run = new FairRunSim();
 
@@ -71,7 +69,8 @@ void run_sim_phos(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
-  o2::field::MagneticField *magField = new o2::field::MagneticField("Maps","Maps", -1., -1., o2::field::MagFieldParam::k5kG);
+  o2::field::MagneticField* magField =
+    new o2::field::MagneticField("Maps", "Maps", -1., -1., o2::field::MagFieldParam::k5kG);
   run->SetField(magField);
 
   // ===| Add PHOS |============================================================
@@ -83,8 +82,8 @@ void run_sim_phos(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 #ifdef BOX_GENERATOR
   FairBoxGenerator* boxGen = new FairBoxGenerator(22, 10); /*photons*/
 
-  //boxGen->SetThetaRange(0.0, 90.0);
-  boxGen->SetEtaRange(-0.3,0.3);
+  // boxGen->SetThetaRange(0.0, 90.0);
+  boxGen->SetEtaRange(-0.3, 0.3);
   boxGen->SetPRange(1., 10.);
   boxGen->SetPhiRange(240., 330.);
   boxGen->SetDebug(kTRUE);
@@ -92,7 +91,7 @@ void run_sim_phos(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   primGen->AddGenerator(boxGen);
 #else
   // reading the events from a kinematics file (produced by AliRoot)
-  auto extGen =  new o2::eventgen::GeneratorFromFile("Kinematics.root");
+  auto extGen = new o2::eventgen::GeneratorFromFile("Kinematics.root");
   extGen->SetStartEvent(2);
   primGen->AddGenerator(extGen);
 #endif
@@ -116,7 +115,7 @@ void run_sim_phos(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   // Start run
   run->Run(nEvents);
   delete run;
-//  run->CreateGeometryFile("geofile_full.root");
+  run->CreateGeometryFile("geofile_full.root");
 
   // Finish
   timer.Stop();

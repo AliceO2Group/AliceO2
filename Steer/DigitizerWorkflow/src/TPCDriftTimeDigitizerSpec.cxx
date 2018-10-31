@@ -27,59 +27,140 @@
 #include "TPCSimulation/Point.h"
 #include "TPCSimulation/ElectronTransport.h"
 #include "TPCSimulation/HitDriftFilter.h"
+#include "TPCSimulation/SpaceCharge.h"
 #include "TStopwatch.h"
 #include <sstream>
 #include <algorithm>
+#include <utility>
+#include "TPCBase/CDBInterface.h"
+#include "DataFormatsTPC/TPCSectorHeader.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "CommonDataFormat/RangeReference.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
+using DigiGroupRef = o2::dataformats::RangeReference<int, int>;
+
 namespace o2
 {
 namespace steer
 {
 
-DataProcessorSpec getTPCDriftTimeDigitizer(int sector, int channel, bool cachehits)
+std::string getBranchNameLeft(int sector)
 {
-  TChain* simChain = new TChain("o2sim");
-  //
-  auto simChains = std::make_shared<std::vector<TChain*>>();
   std::stringstream branchnamestreamleft;
   branchnamestreamleft << "TPCHitsShiftedSector" << int(o2::TPC::Sector::getLeft(o2::TPC::Sector(sector)));
-  std::string branchnameleft = branchnamestreamleft.str();
+  return branchnamestreamleft.str();
+}
+
+std::string getBranchNameRight(int sector)
+{
   std::stringstream branchnamestreamright;
   branchnamestreamright << "TPCHitsShiftedSector" << sector;
-  std::string branchnameright = branchnamestreamright.str();
+  return branchnamestreamright.str();
+}
 
+DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
+{
+  TChain* simChain = new TChain("o2sim");
+
+  /// For the time being use the defaults for the CDB
+  auto& cdb = o2::TPC::CDBInterface::instance();
+  cdb.setUseDefaults();
+  static int firstChannel = -1;
+  //
+  auto simChains = std::make_shared<std::vector<TChain*>>();
   auto digitizertask = std::make_shared<o2::TPC::DigitizerTask>();
-  digitizertask->Init2();
 
   auto digitArray = std::make_shared<std::vector<o2::TPC::Digit>>();
-  auto mcTruthArray = std::make_shared<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
-  // the task takes the ownership of digit array + mc truth array
-  // TODO: make this clear in the API
-  digitizertask->setOutputData(digitArray.get(), mcTruthArray.get());
 
-  auto doit = [simChain, simChains, branchnameleft, branchnameright, sector, digitizertask, digitArray,
-               mcTruthArray](ProcessingContext& pc) {
+  auto mcTruthArray = std::make_shared<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
+
+  auto doit = [simChain, simChains, digitizertask, digitArray, mcTruthArray, channel](ProcessingContext& pc) {
     static int callcounter = 0;
+
     callcounter++;
+    static bool finished = false;
+    if (finished) {
+      return;
+    }
+
+    if (firstChannel == channel) {
+      auto roMode = digitizertask->isContinuousReadout() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
+      LOG(INFO) << "TPC: Sending ROMode= " << (digitizertask->isContinuousReadout() ? "Continuous" : "Triggered")
+                << " to GRPUpdater from channel " << firstChannel;
+      pc.outputs().snapshot(Output{ "TPC", "ROMode", 0, Lifetime::Timeframe }, roMode);
+      firstChannel = -10; // forbid further sending
+    }
+
+    // extract which sector to treat
+    using TPCSectorHeader = o2::TPC::TPCSectorHeader;
+    auto const* sectorHeader = DataRefUtils::getHeader<TPCSectorHeader*>(pc.inputs().get("collisioncontext"));
+    if (sectorHeader == nullptr) {
+      LOG(ERROR) << "TPC sector header missing, skipping processing";
+      return;
+    }
+    auto sector = sectorHeader->sector;
+    LOG(INFO) << "GOT ASSIGNED SECTOR " << sector;
+    // the active sectors need to be propagated
+    uint64_t activeSectors = 0;
+    activeSectors = sectorHeader->activeSectors;
 
     // ===| open file and register branches |=====================================
     // this is done at the moment for each worker function invocation
     // TODO: make this nicer or let the write service be handled outside
-    auto file = std::make_unique<TFile>(Form("tpc_digi_%i_instance%i.root", sector, callcounter), "recreate");
-    auto outtree = std::make_unique<TTree>("o2sim", "TPC digits");
-    outtree->SetDirectory(file.get());
     auto digitArrayRaw = digitArray.get();
     auto mcTruthArrayRaw = mcTruthArray.get();
-    auto digitBranch = outtree->Branch(Form("TPCDigit_%i", sector), &digitArrayRaw);
-    auto mcTruthBranch = outtree->Branch(Form("TPCDigitMCTruth_%i", sector), &mcTruthArrayRaw);
+
+    // lambda that snapshots digits to be sent out; prepares and attaches header with sector information
+    auto snapshotDigits = [sector, &pc, channel, activeSectors](std::vector<o2::TPC::Digit> const& digits) {
+      o2::TPC::TPCSectorHeader header{ sector };
+      header.activeSectors = activeSectors;
+      // note that snapshoting only works with non-const references (to be fixed?)
+      pc.outputs().snapshot(Output{ "TPC", "DIGITS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe,
+                                    header },
+                            const_cast<std::vector<o2::TPC::Digit>&>(digits));
+    };
+    // lambda that snapshots labels to be sent out; prepares and attaches header with sector information
+    auto snapshotLabels = [&sector, &pc, &channel, activeSectors](o2::dataformats::MCTruthContainer<o2::MCCompLabel> const& labels) {
+      o2::TPC::TPCSectorHeader header{ sector };
+      header.activeSectors = activeSectors;
+      pc.outputs().snapshot(Output{ "TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(channel),
+                                    Lifetime::Timeframe, header },
+                            const_cast<o2::dataformats::MCTruthContainer<o2::MCCompLabel>&>(labels));
+    };
+    // lambda that snapshots digits grouping (triggers) to be sent out; prepares and attaches header with sector information
+    auto snapshotEvents = [sector, &pc, channel, activeSectors](const std::vector<DigiGroupRef>& events) {
+      o2::TPC::TPCSectorHeader header{ sector };
+      header.activeSectors = activeSectors;
+      LOG(INFO) << "Send TRIGGERS for sector " << sector << " channel " << channel << " | size " << events.size();
+      pc.outputs().snapshot(Output{ "TPC", "DIGTRIGGERS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe,
+                                    header },
+                            const_cast<std::vector<DigiGroupRef>&>(events));
+    };
+
+    // no more tasks can be marked with a negative sector
+    if (sector < 0) {
+      // we are ready to quit or we received a NOP
+
+      // notify channels further down the road that we are done (why do I have to send digitArray here????)
+      // (we are essentially sending empty messages with a header containing the stop signal)
+      digitArrayRaw->clear();
+      mcTruthArrayRaw->clear();
+      std::vector<DigiGroupRef> evAccDummy;
+
+      snapshotEvents(evAccDummy);
+      snapshotDigits(*digitArrayRaw);
+      snapshotLabels(*mcTruthArrayRaw);
+      if (sector == -1) {
+        pc.services().get<ControlService>().readyToQuit(false);
+        finished = true;
+      }
+      return;
+    }
 
     // obtain collision contexts
-    auto dataref = pc.inputs().get("timeinput");
-    auto header = o2::header::get<const o2::header::DataHeader*>(dataref.header);
-
-    auto context = pc.inputs().get<o2::steer::RunContext>("timeinput");
+    auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
     auto& timesview = context->getEventRecords();
     LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES";
 
@@ -100,10 +181,6 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int sector, int channel, bool cachehi
       maxtime = std::max(maxtime, e.timeNS);
     }
 
-    // minimum 2 drifts is a safe bet; an electron might
-    // need 1 full drift and might hence land in the second drift time
-    auto ndrifts = 2 + (int)(maxtime / TPCDRIFT);
-
     std::vector<std::vector<o2::TPC::HitGroup>*> hitvectorsleft;  // "TPCHitVector"
     std::vector<o2::TPC::TPCHitGroupID> hitidsleft;               // "TPCHitIDs"
     std::vector<std::vector<o2::TPC::HitGroup>*> hitvectorsright; // "TPCHitVector"
@@ -119,48 +196,124 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int sector, int channel, bool cachehi
     hitvectorsleft.resize(maxnumberofentries, nullptr);
     hitvectorsright.resize(maxnumberofentries, nullptr);
 
-    for (int drift = 1; drift <= ndrifts; ++drift) {
-      auto starttime = (drift - 1) * TPCDRIFT;
-      auto endtime = drift * TPCDRIFT;
-      LOG(DEBUG) << "STARTTIME " << starttime << " ENDTIME " << endtime;
-      digitizertask->setStartTime(starttime);
-      digitizertask->setEndTime(endtime);
+    // this is to accum digits from different drift times
+    std::vector<o2::TPC::Digit> digitAccum;
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum;
+    std::vector<DigiGroupRef> eventAccum;
 
-      hitidsleft.clear();
-      hitidsright.clear();
+    if (digitizertask->isContinuousReadout()) {
+      // minimum 2 drifts is a safe bet; an electron might
+      // need 1 full drift and might hence land in the second drift time
+      auto ndrifts = 2 + (int)(maxtime / TPCDRIFT);
+      for (int drift = 1; drift <= ndrifts; ++drift) {
+        auto starttime = (drift - 1) * TPCDRIFT;
+        auto endtime = drift * TPCDRIFT;
+        LOG(DEBUG) << "STARTTIME " << starttime << " ENDTIME " << endtime;
+        digitizertask->setStartTime(starttime);
+        digitizertask->setEndTime(endtime);
 
-      // obtain candidate hit(ids) for this time range --> left
-      o2::TPC::getHits(*simChains.get(), *context.get(), hitvectorsleft, hitidsleft, branchnameleft.c_str(), starttime,
-                       endtime, o2::TPC::calcDriftTime);
-      // --> right
-      o2::TPC::getHits(*simChains.get(), *context.get(), hitvectorsright, hitidsright, branchnameright.c_str(),
-                       starttime, endtime, o2::TPC::calcDriftTime);
+        hitidsleft.clear();
+        hitidsright.clear();
 
-      LOG(DEBUG) << "DRIFTTIME " << drift << " SECTOR " << sector << " : SELECTED LEFT " << hitidsleft.size() << " IDs"
-                 << " SELECTED RIGHT " << hitidsright.size();
+        // obtain candidate hit(ids) for this time range --> left
+        o2::TPC::getHits(*simChains.get(), *context.get(), hitvectorsleft, hitidsleft, getBranchNameLeft(sector).c_str(),
+                         starttime, endtime, o2::TPC::calcDriftTime);
+        // --> right
+        o2::TPC::getHits(*simChains.get(), *context.get(), hitvectorsright, hitidsright,
+                         getBranchNameRight(sector).c_str(), starttime, endtime, o2::TPC::calcDriftTime);
 
-      // invoke digitizer if anything to digitize within this drift interval
-      if (hitidsleft.size() > 0 || hitidsright.size() > 0) {
-        digitizertask->setData(&hitvectorsleft, &hitvectorsright, &hitidsleft, &hitidsright, context.get());
-        digitizertask->setupSector(sector);
-        digitizertask->Exec2("");
+        LOG(DEBUG) << "DRIFTTIME " << drift << " SECTOR " << sector << " : SELECTED LEFT " << hitidsleft.size() << " IDs"
+                   << " SELECTED RIGHT " << hitidsright.size();
 
-        // write digits + MC truth
-        outtree->Fill();
+        // invoke digitizer if anything to digitize within this drift interval
+        if (hitidsleft.size() > 0 || hitidsright.size() > 0) {
+          digitizertask->setData(&hitvectorsleft, &hitvectorsright, &hitidsleft, &hitidsright, context.get());
+          digitizertask->setupSector(sector);
+          digitizertask->Exec2("");
+
+          std::copy(digitArrayRaw->begin(), digitArrayRaw->end(), std::back_inserter(digitAccum));
+          labelAccum.mergeAtBack(*mcTruthArrayRaw);
+
+          // NOTE: we would like to send it here in order to avoid copying/accumulating !!
+        }
+      }
+      eventAccum.emplace_back(0, digitAccum.size()); // all digits are grouped to 1 super-event
+    } else {                                         // pseudo-triggered mode
+      for (int coll = 0; coll < numberofcollisions; coll++) {
+        int startSize = digitAccum.size();
+        digitizertask->setStartTime(0);
+        digitizertask->setEndTime(2 * TPCDRIFT);
+        hitidsleft.clear();
+        hitidsright.clear();
+        // obtain candidate hit(ids) for this collision --> left
+        o2::TPC::getHits(*simChains.get(), *context.get(), hitvectorsleft, hitidsleft,
+                         getBranchNameLeft(sector).c_str(), coll);
+        // obtain candidate hit(ids) for this collision --> right
+        o2::TPC::getHits(*simChains.get(), *context.get(), hitvectorsright, hitidsright,
+                         getBranchNameRight(sector).c_str(), coll);
+        int tmpND = 0;
+        if (hitidsleft.size() > 0 || hitidsright.size() > 0) {
+          digitizertask->setData(&hitvectorsleft, &hitvectorsright, &hitidsleft, &hitidsright, context.get());
+          digitizertask->setupSector(sector);
+          digitizertask->Exec2("");
+
+          std::copy(digitArrayRaw->begin(), digitArrayRaw->end(), std::back_inserter(digitAccum));
+          labelAccum.mergeAtBack(*mcTruthArrayRaw);
+          // NOTE: we would like to send it here in order to avoid copying/accumulating !!
+          tmpND = digitArrayRaw->size();
+        }
+        // register digits from this collision as a pseudo-trigger
+        eventAccum.emplace_back(startSize, digitAccum.size() - startSize);
       }
     }
-    outtree->SetDirectory(file.get());
-    file->Write();
+    // snapshot / "send" digits + MC truth
+    snapshotEvents(eventAccum);
+    snapshotDigits(digitAccum);
+    snapshotLabels(labelAccum);
     timer.Stop();
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
-
-    pc.services().get<ControlService>().readyToQuit(false);
   };
 
   // init function return a lambda taking a ProcessingContext
-  auto initIt = [simChain, simChains, doit](InitContext& ctx) {
-    // setup the input chain
+  auto initIt = [digitizertask, digitArray, mcTruthArray, simChain, simChains, doit](InitContext& ctx) {
+    // Switch on distortions and get initial space-charge density histogram if provided in environment variables
+    auto useDistortions = ctx.options().get<int>("distortionType");
+    auto gridSizeString = ctx.options().get<std::string>("gridSize");
+    auto triggeredMode = ctx.options().get<bool>("TPCtriggered");
 
+    std::vector<int> gridSize;
+    std::stringstream ss(gridSizeString);
+    while (ss.good()) {
+      std::string substr;
+      getline(ss, substr, ',');
+      gridSize.push_back(std::stoi(substr));
+    }
+    auto inputHistoString = ctx.options().get<std::string>("initialSpaceChargeDensity");
+    std::vector<std::string> inputHisto;
+    std::stringstream ssHisto(inputHistoString);
+    while (ssHisto.good()) {
+      std::string substr;
+      getline(ssHisto, substr, ',');
+      inputHisto.push_back(substr);
+    }
+    if (useDistortions > 0) {
+      o2::TPC::SpaceCharge::SCDistortionType distortionType = useDistortions == 1 ? o2::TPC::SpaceCharge::SCDistortionType::SCDistortionsRealistic : o2::TPC::SpaceCharge::SCDistortionType::SCDistortionsConstant;
+      std::unique_ptr<TH3> hisSCDensity;
+      if (TString(inputHisto[0].data()).EndsWith(".root") && inputHisto[1].size() != 0) {
+        auto fileSCInput = std::unique_ptr<TFile>(TFile::Open(inputHisto[0].data()));
+        hisSCDensity.reset((TH3*)fileSCInput->Get(inputHisto[1].data()));
+        hisSCDensity->SetDirectory(nullptr);
+      }
+      digitizertask->enableSCDistortions(distortionType, hisSCDensity.get(), gridSize[0], gridSize[1], gridSize[2]);
+    }
+    digitizertask->setContinuousReadout(!triggeredMode);
+
+    digitizertask->Init2();
+    // the task takes the ownership of digit array + mc truth array
+    // TODO: make this clear in the API
+    digitizertask->setOutputData(digitArray.get(), mcTruthArray.get());
+
+    // setup the input chain
     simChains->emplace_back(new TChain("o2sim"));
     // add the background chain
     simChains->back()->AddFile(ctx.options().get<std::string>("simFile").c_str());
@@ -177,17 +330,29 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int sector, int channel, bool cachehi
   };
 
   std::stringstream id;
-  id << "TPCDigitizer" << sector;
+  id << "TPCDigitizer" << channel;
+
+  std::vector<OutputSpec> outputs; // define channel by triple of (origin, type id of data to be sent on this channel, subspecification)
+  outputs.emplace_back("TPC", "DIGITS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+  outputs.emplace_back("TPC", "DIGTRIGGERS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+  outputs.emplace_back("TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+  if (firstChannel == -1) {
+    firstChannel = channel;
+    outputs.emplace_back("TPC", "ROMode", 0, Lifetime::Timeframe);
+    LOG(INFO) << " Channel " << channel << " will suply ROMode";
+  }
+
   return DataProcessorSpec{
-    id.str().c_str(), Inputs{ InputSpec{ "timeinput", "SIM", "EVENTTIMES", static_cast<SubSpecificationType>(channel),
-                                         Lifetime::Timeframe } },
-    Outputs{
-      // define channel by triple of (origin, type id of data to be sent on this channel, subspecification)
-    },
+    id.str().c_str(), Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
+    outputs,
     AlgorithmSpec{ initIt },
     Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
-             { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } } }
+             { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
+             { "distortionType", VariantType::Int, 0, { "Distortion type to be used. 0 = no distortions (default), 1 = realistic distortions (not implemented yet), 2 = constant distortions" } },
+             { "gridSize", VariantType::String, "33,180,33", { "Comma separated list of number of bins in z, phi and r for distortion lookup tables (z and r can only be 2**N + 1, N=1,2,3,...)" } },
+             { "initialSpaceChargeDensity", VariantType::String, "", { "Path to root file containing TH3 with initial space-charge density and name of the TH3 (comma separated)" } },
+             { "TPCtriggered", VariantType::Bool, false, { "Impose triggered RO mode (default: continuous)" } } }
   };
 }
-}
-}
+} // namespace steer
+} // namespace o2

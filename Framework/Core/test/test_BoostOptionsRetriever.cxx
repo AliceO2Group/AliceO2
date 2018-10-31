@@ -7,7 +7,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#define BOOST_TEST_MODULE Test Framework ConfigParamsHelper
+#define BOOST_TEST_MODULE Test Framework BoostOptionsRetriever
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
@@ -21,7 +21,7 @@
 
 using namespace o2::framework;
 
-BOOST_AUTO_TEST_CASE(ConfigParamsHelper) {
+BOOST_AUTO_TEST_CASE(TrivialBoostOptionsRetrieverTest) {
   using namespace o2::framework;
   namespace bpo = boost::program_options;
 
@@ -34,6 +34,7 @@ BOOST_AUTO_TEST_CASE(ConfigParamsHelper) {
   };
   const char* args[] = {
     "test",
+    "--someBool",
     "--someInt", "1",
     "--someFloat", "0.5",
     "--someDouble", "0.5",
@@ -42,11 +43,12 @@ BOOST_AUTO_TEST_CASE(ConfigParamsHelper) {
   bpo::variables_map vm;
   bpo::options_description opts;
 
-  populateBoostProgramOptions(opts, specs);
+  ConfigParamsHelper::populateBoostProgramOptions(opts, specs);
 
   bpo::store(parse_command_line(sizeof(args)/sizeof(char*), args, opts), vm);
   bpo::notify(vm);
   BOOST_CHECK(vm["someInt"].as<int>() == 1);
+  BOOST_CHECK(vm["someBool"].as<bool>() == true);
   BOOST_CHECK(vm["someString"].as<std::string>() == "foobar");
   BOOST_CHECK(vm["someFloat"].as<float>() == 0.5);
   BOOST_CHECK(vm["someDouble"].as<double>() == 0.5);

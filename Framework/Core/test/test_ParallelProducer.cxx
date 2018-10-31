@@ -7,7 +7,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "Framework/runDataProcessing.h"
+
+#include "Framework/ConfigContext.h"
 #include "Framework/DataProcessorSpec.h"
 #include "FairMQLogger.h"
 #include "Framework/ParallelContext.h"
@@ -15,6 +16,13 @@
 #include <vector>
 
 using namespace o2::framework;
+
+void customize(std::vector<ConfigParamSpec> &options) {
+  options.push_back(o2::framework::ConfigParamSpec{"jobs", VariantType::Int, 4, {"number of producer jobs"}});
+};
+
+#include "Framework/runDataProcessing.h"
+
 using DataHeader = o2::header::DataHeader;
 
 DataProcessorSpec templateProducer() {
@@ -42,20 +50,21 @@ DataProcessorSpec templateProducer() {
 
 // This is a simple consumer / producer workflow where both are
 // stateful, i.e. they have context which comes from their initialization.
-void defineDataProcessing(o2::framework::WorkflowSpec &specs) {
+WorkflowSpec defineDataProcessing(ConfigContext const&context) {
   // This is an example of how we can parallelize by subSpec.
   // templatedProducer will be instanciated 32 times and the lambda function
   // passed to the parallel statement will be applied to each one of the
   // instances in order to modify it. Parallel will also make sure the name of
   // the instance is amended from "some-producer" to "some-producer-<index>".
-  WorkflowSpec workflow = parallel(templateProducer(), 4, [](DataProcessorSpec &spec, size_t index) {
+  auto jobs = context.options().get<int>("jobs");
+  WorkflowSpec workflow = parallel(templateProducer(), jobs, [](DataProcessorSpec &spec, size_t index) {
       spec.outputs[0].subSpec = index;
     }
   );
   workflow.push_back(DataProcessorSpec{
       "merger",
       mergeInputs(InputSpec{"x", "TST", "A", 0, Lifetime::Timeframe},
-                  4,
+                  jobs,
                   [](InputSpec &input, size_t index){
                      input.subSpec = index;
                   }
@@ -70,5 +79,5 @@ void defineDataProcessing(o2::framework::WorkflowSpec &specs) {
       }
   });
 
-  specs.swap(workflow);
+  return workflow;
 }

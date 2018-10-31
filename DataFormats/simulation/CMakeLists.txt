@@ -6,6 +6,7 @@ set(SRCS
   src/Stack.cxx
   src/MCTrack.cxx
   src/MCCompLabel.cxx
+  src/RunContext.cxx
 )
 
 Set(HEADERS
@@ -14,8 +15,9 @@ Set(HEADERS
     include/${MODULE_NAME}/BaseHits.h
     include/${MODULE_NAME}/MCTruthContainer.h
     include/${MODULE_NAME}/MCCompLabel.h
-    include/${MODULE_NAME}/MCInteractionRecord.h
     include/${MODULE_NAME}/TrackReference.h
+    include/${MODULE_NAME}/PrimaryChunk.h
+    include/${MODULE_NAME}/RunContext.h
 )
 
 Set(LINKDEF src/SimulationDataLinkDef.h)

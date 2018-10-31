@@ -12,6 +12,7 @@ set(SRCS
    src/Helpers.cxx
    src/TrackTPC.cxx
    src/Cluster.cxx
+   src/TPCSectorHeader.cxx
 )
 
 set(HEADERS

@@ -17,7 +17,7 @@
 #define O2_MID_TRACKERDEVICE_H
 
 #include "FairMQDevice.h"
-#include "Tracker.h"
+#include "MIDTracking/Tracker.h"
 
 namespace o2
 {

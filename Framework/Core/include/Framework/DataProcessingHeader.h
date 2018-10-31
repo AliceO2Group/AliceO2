@@ -14,12 +14,13 @@
 
 #include <cstdint>
 #include <cstdio>
-#include <iostream>
 #include <memory>
 #include <cassert>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 //__________________________________________________________________________________________________
 /// @defgroup o2_dataflow_header The DataFlow Header
@@ -43,7 +44,7 @@ namespace framework {
 struct DataProcessingHeader : public header::BaseHeader
 {
   // Required to do the lookup
-  static const o2::header::HeaderType sHeaderType;
+  constexpr static const o2::header::HeaderType sHeaderType = "DataFlow";
   static const uint32_t sVersion = 1;
 
   // allows DataHeader::SubSpecificationType to be used as generic type in the code
@@ -88,7 +89,7 @@ struct DataProcessingHeader : public header::BaseHeader
   }
 };
 
-} //namespace framework
-} //namespace o2
+} // namespace framework
+} // namespace o2
 
 #endif // FRAMEWORK_DATAPROCESSINGHEADER_H

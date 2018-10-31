@@ -11,16 +11,26 @@
 #define FRAMEWORK_FRAMEWORKGUIDEVICEGRAPH_H
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceInfo.h"
+#include "Framework/DeviceMetricsInfo.h"
 
 #include <vector>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
+namespace gui
+{
 
-void showTopologyNodeGraph(bool* opened,
-                           const std::vector<DeviceInfo> &infos,
-                           const std::vector<DeviceSpec> &specs);
+class WorkspaceGUIState;
 
+void showTopologyNodeGraph(WorkspaceGUIState& state,
+                           const std::vector<DeviceInfo>& infos,
+                           const std::vector<DeviceSpec>& specs,
+                           std::vector<DeviceControl>& controls,
+                           const std::vector<DeviceMetricsInfo>& metricsInfos);
+
+} // namespace gui
 } // namespace framework
 } // namespace o2
 

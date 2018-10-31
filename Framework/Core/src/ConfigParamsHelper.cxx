@@ -16,12 +16,14 @@
 
 namespace bpo = boost::program_options;
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// this creates the boost program options description from the ConfigParamSpec
 /// taking the VariantType into account
-void populateBoostProgramOptions(
+void ConfigParamsHelper::populateBoostProgramOptions(
     bpo::options_description &options,
     const std::vector<ConfigParamSpec> &specs,
     bpo::options_description vetos
@@ -61,23 +63,27 @@ void populateBoostProgramOptions(
 
 /// populate boost program options making all options of type string
 /// this is used for filtering the command line argument
-bool
-prepareOptionsDescription(const std::vector<ConfigParamSpec> &spec,
-                          boost::program_options::options_description& options,
-                          boost::program_options::options_description vetos
-			  )
+bool ConfigParamsHelper::prepareOptionsDescription(const std::vector<ConfigParamSpec>& spec,
+                                                   boost::program_options::options_description& options,
+                                                   boost::program_options::options_description vetos)
 {
   bool haveOption = false;
-  for (const auto & configSpec : spec) {
+  for (const auto& configSpec : spec) {
     // skip everything found in the veto definition
-    if (vetos.find_nothrow(configSpec.name, false)) continue;
+    if (vetos.find_nothrow(configSpec.name, false))
+      continue;
     haveOption = true;
     std::stringstream defaultValue;
     defaultValue << configSpec.defaultValue;
-    options.add_options()
-      (configSpec.name.c_str(),
-       bpo::value<std::string>()->default_value(defaultValue.str().c_str()),
-       configSpec.help.c_str());
+    if (configSpec.type != VariantType::Bool) {
+      options.add_options()(configSpec.name.c_str(),
+                            bpo::value<std::string>()->default_value(defaultValue.str().c_str()),
+                            configSpec.help.c_str());
+    } else {
+      options.add_options()(configSpec.name.c_str(),
+                            bpo::value<bool>()->zero_tokens()->default_value(configSpec.defaultValue.get<bool>()),
+                            configSpec.help.c_str());
+    }
   }
 
   return haveOption;

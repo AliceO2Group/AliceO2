@@ -44,42 +44,6 @@ Bool_t Cluster::testPixel(UShort_t row, UShort_t col) const
   //
 }
 
-//______________________________________________________________________________
-void Cluster::setPixel(UShort_t row, UShort_t col, Bool_t fired)
-{
-  // test if pixel at relative row,col is fired
-  int nbits = row * getPatternColSpan() + col;
-  if (nbits >= kMaxPatternBits)
-    return;
-  int bytn = nbits >> 3; // 1/8
-  int bitn = 7 - (nbits % 8);
-  if (nbits >= kMaxPatternBits)
-    exit(1);
-  if (fired)
-    mPattern[bytn] |= (0x1 << bitn);
-  else
-    mPattern[bytn] &= (0xff ^ (0x1 << bitn));
-  //
-}
-
-//______________________________________________________________________________
-void Cluster::setPatternRowSpan(UShort_t nr, Bool_t truncated)
-{
-  // set pattern span in rows, flag if truncated
-  mPatternNRows = kSpanMask & nr;
-  if (truncated)
-    mPatternNRows |= kTruncateMask;
-}
-
-//______________________________________________________________________________
-void Cluster::setPatternColSpan(UShort_t nc, Bool_t truncated)
-{
-  // set pattern span in columns, flag if truncated
-  mPatternNCols = kSpanMask & nc;
-  if (truncated)
-    mPatternNCols |= kTruncateMask;
-}
-
 #endif
 /*
 //______________________________________________________________________________

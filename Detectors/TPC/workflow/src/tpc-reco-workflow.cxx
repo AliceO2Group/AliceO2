@@ -13,25 +13,28 @@
 /// @since  2018-03-15
 /// @brief  Basic DPL workflow for TPC reconstruction starting from digits
 
-#include "Framework/runDataProcessing.h" // the main driver
 #include "Framework/WorkflowSpec.h"
+#include "Framework/ConfigParamSpec.h"
+#include "TPCWorkflow/RecoWorkflow.h"
 
-#include "DigitReaderSpec.h"
-#include "ClusterReaderSpec.h"
-#include "ClustererSpec.h"
-#include "ClusterConverterSpec.h"
-#include "ClusterDecoderRawSpec.h"
-#include "CATrackerSpec.h"
-#include "RootFileWriterSpec.h"
-#include "DataFormatsTPC/Constants.h"
-#include "DataFormatsTPC/ClusterGroupAttribute.h"
-
-#include "FairMQLogger.h"
 #include <string>
 #include <stdexcept>
-#include <fstream>
-#include <sstream>
-#include <iomanip>
+#include <unordered_map>
+
+// add workflow options, note that customization needs to be declared before
+// including Framework/runDataProcessing
+void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+{
+  std::vector<o2::framework::ConfigParamSpec> options{
+    { "input-type", o2::framework::VariantType::String, "digits", { "digits, clusters, raw" } },
+    { "output-type", o2::framework::VariantType::String, "tracks", { "clusters, raw, tracks" } },
+    { "disable-mc", o2::framework::VariantType::Bool, false, { "disable sending of MC information" } },
+    { "tpc-lanes", o2::framework::VariantType::Int, 1, { "number of parallel lanes up to the tracker" } },
+  };
+  std::swap(workflowOptions, options);
+}
+
+#include "Framework/runDataProcessing.h" // the main driver
 
 using namespace o2::framework;
 
@@ -44,73 +47,15 @@ using namespace o2::framework;
 ///
 /// Digit reader and clusterer can be replaced by the cluster reader.
 ///
-/// FIXME:
-/// - need to add propagation of command line parameters to this function, this
-///   is a feature request in the DPL
-/// - add propagation of MC information
-/// - add writing of the CA Tracker output to ROOT file
+/// MC info is always sent by the digit reader and clusterer processes, the
+/// cluster converter process creating the raw format can be configured to forward MC.
+///
 /// This function is required to be implemented to define the workflow specifications
-void defineDataProcessing(WorkflowSpec& specs)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  specs.clear();
-
-  // choose whether to start from the digits or from the clusters
-  // these are just temporary switches
-  bool publishDigits = true;
-  bool doDecoding = true;
-
-  if (publishDigits) {
-    specs.emplace_back(o2::TPC::getDigitReaderSpec());
-    specs.emplace_back(o2::TPC::getClustererSpec());
-  } else {
-    specs.emplace_back(o2::TPC::getClusterReaderSpec());
-  }
-  specs.emplace_back(o2::TPC::getClusterConverterSpec());
-
-  // also add a binary writer
-  auto writerFunction = [](InitContext& ic) {
-    auto filename = ic.options().get<std::string>("outfile");
-    if (filename.empty()) {
-      throw std::runtime_error("output file missing");
-    }
-    auto output = std::make_shared<std::ofstream>(filename.c_str(), std::ios_base::binary);
-    return [output](ProcessingContext& pc) {
-      LOG(INFO) << "processing data set with " << pc.inputs().size() << " entries";
-      for (const auto& entry : pc.inputs()) {
-        LOG(INFO) << "  " << *(entry.spec);
-        output->write(entry.payload, o2::framework::DataRefUtils::getPayloadSize(entry));
-        LOG(INFO) << "wrote data, size " << o2::framework::DataRefUtils::getPayloadSize(entry);
-      }
-    };
-  };
-
-  specs.emplace_back(o2::TPC::getClusterDecoderRawSpec());
-
-  auto createInputSpec = []() {
-    o2::framework::Inputs inputs;
-    /**
-    for (uint8_t sector = 0; sector < o2::TPC::Constants::MAXSECTOR; sector++) {
-      std::stringstream label;
-      label << "input_" << std::setw(2) << std::setfill('0') << (int)sector;
-      auto subSpec = o2::TPC::ClusterGroupAttribute{sector, 0}.getSubSpecification();
-      inputs.emplace_back(InputSpec{ label.str().c_str(), "TPC", "CLUSTERNATIVE", subSpec, Lifetime::Timeframe });
-    }
-    */
-    inputs.emplace_back(InputSpec{ "input", "TPC", "CLUSTERNATIVE", 0, Lifetime::Timeframe });
-
-    return std::move(inputs);
-  };
-
-  if (true) {
-    specs.emplace_back(o2::TPC::getCATrackerSpec());
-    specs.emplace_back(o2::TPC::getRootFileWriterSpec());
-  } else {
-    specs.emplace_back(DataProcessorSpec{ "writer",
-                                          { createInputSpec() },
-                                          {},
-                                          AlgorithmSpec(writerFunction),
-                                          Options{
-                                            { "outfile", VariantType::String, { "Name of the output file" } },
-                                          } });
-  }
+  return std::move(o2::TPC::RecoWorkflow::getWorkflow(not cfgc.options().get<bool>("disable-mc"),    //
+                                                      cfgc.options().get<int>("tpc-lanes"),          //
+                                                      cfgc.options().get<std::string>("input-type"), //
+                                                      cfgc.options().get<std::string>("output-type") //
+                                                      ));
 }

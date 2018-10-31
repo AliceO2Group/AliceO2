@@ -8,8 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <ostream>
 #include "Framework/InputSpec.h"
+#include "Framework/OutputSpec.h"
+
+#include <ostream>
+#include <string>
 
 namespace o2
 {
@@ -19,7 +22,14 @@ namespace framework
 std::ostream& operator<<(std::ostream& stream, o2::framework::InputSpec const& arg)
 {
   // FIXME: should have stream operators for the header fields
-  stream << arg.binding << " {" << arg.origin.str << ":" << arg.description.str << ":" << arg.subSpec << "}";
+  stream << arg.binding << " {" << arg.origin.as<std::string>() << ":" << arg.description.as<std::string>() << ":" << arg.subSpec << "}";
+  return stream;
+}
+
+std::ostream& operator<<(std::ostream& stream, o2::framework::OutputSpec const& arg)
+{
+  // FIXME: should have stream operators for the header fields
+  stream << arg.binding.value << " {" << arg.origin.as<std::string>() << ":" << arg.description.as<std::string>() << ":" << arg.subSpec << "}";
   return stream;
 }
 

@@ -16,6 +16,7 @@
 #include "ClusterDecoderRawSpec.h"
 #include "Headers/DataHeader.h"
 #include "Framework/DataRefUtils.h"
+#include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/ClusterHardware.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "TPCReconstruction/HardwareClusterDecoder.h"
@@ -24,6 +25,9 @@
 #include <FairMQLogger.h>
 #include <memory> // for make_shared
 #include <vector>
+#include <cassert>
+#include <iomanip>
+#include <string>
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -35,15 +39,31 @@ namespace TPC
 
 using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
-/// create a processor spec
-/// convert incoming TPC raw to TPC native clusters
-DataProcessorSpec getClusterDecoderRawSpec()
+/// create the processor spec for TPC raw cluster decoder converting TPC raw to native clusters
+/// Input: raw pages of TPC raw clusters
+/// Output: vector of containers with clusters in ClusterNative format, one container per
+/// (sector,globalPadRow)-address, the output is flattend in one single binary buffer
+///
+/// MC labels are received as MCLabelContainers
+DataProcessorSpec getClusterDecoderRawSpec(bool sendMC, int fanNumber)
 {
-  auto initFunction = [](InitContext& ic) {
+  std::string processorName = "tpc-cluster-decoder";
+  o2::header::DataHeader::SubSpecificationType fanSpec = 0;
+  if (fanNumber < 0) {
+    // only one instance; set to 0, it is used as subspecification
+    fanNumber = 0;
+  } else {
+    // multiple instances, add number to name
+    processorName += std::to_string(fanNumber);
+    fanSpec = fanNumber;
+  }
+
+  auto initFunction = [sendMC, fanSpec](InitContext& ic) {
     // there is nothing to init at the moment
+    auto verbosity = 0;
     auto decoder = std::make_shared<HardwareClusterDecoder>();
 
-    auto processingFct = [decoder](ProcessingContext& pc) {
+    auto processingFct = [verbosity, decoder, sendMC, fanSpec](ProcessingContext& pc) {
       // this will return a span of TPC clusters
       const auto& ref = pc.inputs().get("rawin");
       auto size = o2::framework::DataRefUtils::getPayloadSize(ref);
@@ -51,30 +71,112 @@ DataProcessorSpec getClusterDecoderRawSpec()
         return;
       }
 
-      std::vector<std::pair<const ClusterHardwareContainer*, std::size_t>> inputList = {
-        { reinterpret_cast<const ClusterHardwareContainer*>(ref.payload), size / 8192 }
-      };
-      std::vector<ClusterNativeContainer> cont;
-      decoder->decodeClusters(inputList, cont);
+      // init the stacks for forwarding the sector header
+      // FIXME check if there is functionality in the DPL to forward the stack
+      // FIXME make one function
+      o2::header::Stack rawHeaderStack;
+      o2::header::Stack mcHeaderStack;
+      o2::TPC::TPCSectorHeader const* sectorHeaderMC = nullptr;
+      if (sendMC) {
+        sectorHeaderMC = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(pc.inputs().get("mclblin"));
+        if (sectorHeaderMC) {
+          o2::header::Stack actual{ *sectorHeaderMC };
+          std::swap(mcHeaderStack, actual);
+          if (sectorHeaderMC->sector < 0) {
+            pc.outputs().snapshot(OutputRef{ "mclblout", fanSpec, std::move(mcHeaderStack) }, fanSpec);
+          }
+        }
+      }
+      auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(pc.inputs().get("rawin"));
+      if (sectorHeader) {
+        o2::header::Stack actual{ *sectorHeader };
+        std::swap(rawHeaderStack, actual);
+        if (sectorHeader->sector < 0) {
+          pc.outputs().snapshot(OutputRef{ "clusterout", fanSpec, std::move(rawHeaderStack) }, fanSpec);
+          return;
+        }
+      }
+      assert(sectorHeaderMC == nullptr || sectorHeader->sector == sectorHeaderMC->sector);
 
-      // FIXME: avoid the copy by snapshot: allocate array for max number of clusters and
-      // update after writing
+      // input to the decoder is a vector of raw pages description ClusterHardwareContainer,
+      // each specified as a pair of pointer to ClusterHardwareContainer and the number
+      // of pages in that buffer
+      // FIXME: better description of the raw page
+      size_t nPages = size / 8192;
+      std::vector<std::pair<const ClusterHardwareContainer*, std::size_t>> inputList;
+
+      // MC labels are received as one container of labels in the sequence matching clusters
+      // in the raw pages
+      std::vector<MCLabelContainer> mcinCopies;
+      std::unique_ptr<const MCLabelContainer> mcin;
+      if (sendMC) {
+        mcin = std::move(pc.inputs().get<MCLabelContainer*>("mclblin"));
+        mcinCopies.resize(nPages);
+        if (verbosity > 0) {
+          LOG(INFO) << "Decoder input: " << size << ", " << nPages << " pages, " << mcin->getIndexedSize() << " MC label sets";
+        }
+      }
+
+      // FIXME: the decoder takes vector of MCLabelContainers as input and the retreived
+      // input can not be moved because the input is const, so we have to copy
+      // Furthermore, the current decoder implementation supports handling of MC labels
+      // only for single 8kb pages. So we have to add the raw pages individually and create
+      // MC label containers for the corresponding clusters.
+      size_t mcinPos = 0;
+      for (size_t page = 0; page < nPages; page++) {
+        inputList.emplace_back(reinterpret_cast<const ClusterHardwareContainer*>(ref.payload + page * 8192), 1);
+        const ClusterHardwareContainer& container = *(inputList.back().first);
+        if (verbosity > 0) {
+          LOG(INFO) << "Decoder input in page " << std::setw(2) << page << ": "     //
+                    << "CRU " << std::setw(3) << container.CRU << " "               //
+                    << std::setw(3) << container.numberOfClusters << " cluster(s)"; //
+        }
+        if (mcin) {
+          for (size_t mccopyPos = 0; mccopyPos < container.numberOfClusters; mccopyPos++, mcinPos++) {
+            for (auto const& label : mcin->getLabels(mcinPos)) {
+              mcinCopies[page].addElement(mccopyPos, label);
+            }
+          }
+        }
+      }
+      assert(!mcin || mcinPos == mcin->getIndexedSize());
+      // output of the decoder is sorted in (sector,globalPadRow) coordinates, individual
+      // containers are created for clusters and MC labels per (sector,globalPadRow) address
+      std::vector<ClusterNativeContainer> cont;
+      std::vector<MCLabelContainer> mcoutList;
+      decoder->decodeClusters(inputList, cont, (mcin ? &mcinCopies : nullptr), &mcoutList);
+
+      // The output of clusters involves a copy to flatten the list of buffers and extend the
+      // ClusterGroupAttribute struct containing sector and globalPadRow by the size of the collection.
+      // FIXME: provide allocator to decoder to do the allocation in place, create ClusterGroupHeader
+      //        directly
+      // The vector of MC label containers is simply serialized
       size_t totalSize = 0;
       for (const auto& coll : cont) {
         const auto& groupAttribute = static_cast<const ClusterGroupAttribute>(coll);
-        LOG(DEBUG) << "cluster native collection sector " << (int)groupAttribute.sector << ", global padow "
-                   << (int)groupAttribute.globalPadRow << ": " << coll.clusters.size();
         totalSize += coll.getFlatSize() + sizeof(ClusterGroupHeader) - sizeof(ClusterGroupAttribute);
       }
 
-      auto* target = pc.outputs().newChunk(OutputRef{ "clout" }, totalSize).data;
+      auto* target = pc.outputs().newChunk(OutputRef{ "clusterout", fanSpec, std::move(rawHeaderStack) }, totalSize).data;
 
       for (const auto& coll : cont) {
+        if (verbosity > 0) {
+          LOG(INFO) << "decoder " << std::setw(2) << sectorHeader->sector                             //
+                    << ": decoded " << std::setw(4) << coll.clusters.size() << " clusters on sector " //
+                    << std::setw(2) << (int)coll.sector << "[" << (int)coll.globalPadRow << "]";      //
+        }
         ClusterGroupHeader groupHeader(coll, coll.clusters.size());
         memcpy(target, &groupHeader, sizeof(groupHeader));
         target += sizeof(groupHeader);
         memcpy(target, coll.data(), coll.getFlatSize() - sizeof(ClusterGroupAttribute));
         target += coll.getFlatSize() - sizeof(ClusterGroupAttribute);
+      }
+      if (sendMC) {
+        if (verbosity > 0) {
+          LOG(INFO) << "sending " << mcoutList.size() << " MC label containers" << std::endl;
+        }
+        // serialize the complete list of MC label containers
+        pc.outputs().snapshot(OutputRef{ "mclblout", fanSpec, std::move(mcHeaderStack) }, mcoutList);
       }
     };
 
@@ -83,9 +185,34 @@ DataProcessorSpec getClusterDecoderRawSpec()
     return processingFct;
   };
 
-  return DataProcessorSpec{ "decoder",
-                            { InputSpec{ "rawin", gDataOriginTPC, "CLUSTERHW", 0, Lifetime::Timeframe } },
-                            { OutputSpec{ { "clout" }, gDataOriginTPC, "CLUSTERNATIVE", 0, Lifetime::Timeframe } },
+  auto createInputSpecs = [fanSpec](bool makeMcInput) {
+    std::vector<InputSpec> inputSpecs{
+      InputSpec{ { "rawin" }, gDataOriginTPC, "CLUSTERHW", fanSpec, Lifetime::Timeframe },
+    };
+    if (makeMcInput) {
+      // FIXME: define common data type specifiers
+      constexpr o2::header::DataDescription datadesc("CLUSTERHWMCLBL");
+      inputSpecs.emplace_back(InputSpec{ "mclblin", gDataOriginTPC, datadesc, fanSpec, Lifetime::Timeframe });
+    }
+    return std::move(inputSpecs);
+  };
+
+  auto createOutputSpecs = [fanSpec](bool makeMcOutput) {
+    std::vector<OutputSpec> outputSpecs{
+      OutputSpec{ { "clusterout" }, gDataOriginTPC, "CLUSTERNATIVE", fanSpec, Lifetime::Timeframe },
+    };
+    if (makeMcOutput) {
+      OutputLabel label{ "mclblout" };
+      // have to use a new data description, routing is only based on origin and decsription
+      constexpr o2::header::DataDescription datadesc("CLNATIVEMCLBL");
+      outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, fanSpec, Lifetime::Timeframe);
+    }
+    return std::move(outputSpecs);
+  };
+
+  return DataProcessorSpec{ processorName,
+                            { createInputSpecs(sendMC) },
+                            { createOutputSpecs(sendMC) },
                             AlgorithmSpec(initFunction) };
 }
 

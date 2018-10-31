@@ -17,7 +17,6 @@
 #include "SimulationDataFormat/BaseHits.h"
 
 class FairVolume;
-class TClonesArray;
 
 namespace o2
 {
@@ -53,9 +52,7 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   ~Detector() override = default;
 
-  FairModule* CloneModule() const override;
-
-  void Initialize() final;
+  void InitializeO2Detector() final;
 
   Bool_t ProcessHits(FairVolume* v = nullptr) final;
 
@@ -121,6 +118,8 @@ class Detector : public o2::Base::DetImpl<Detector>
   /// container for data points
   std::vector<HitType>* mHits; //!
 
+  template <typename Det>
+  friend class o2::Base::DetImpl;
   ClassDefOverride(Detector, 1);
 };
 }

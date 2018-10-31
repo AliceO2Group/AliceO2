@@ -18,10 +18,12 @@
 
 using namespace o2::framework;
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
-using LogicalChannelsMap = std::map<LogicalChannel, size_t>;
+using LogicalChannelsMap = std::map<LogicalChannelRange, size_t>;
 
 // This calculates the distance between two strings. See:
 //

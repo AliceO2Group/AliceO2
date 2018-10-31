@@ -30,6 +30,7 @@
 #include "aliceHLTwrapper/AliHLTHOMERData.h"
 #include "aliceHLTwrapper/AliHLTHOMERWriter.h"
 #include "aliceHLTwrapper/AliHLTHOMERReader.h"
+#include "Headers/Stack.h"
 
 #include <cstdlib>
 #include <cerrno>

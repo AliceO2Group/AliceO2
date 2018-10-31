@@ -19,6 +19,7 @@
 #include "TPCSimulation/ElectronTransport.h"
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/ParameterDetector.h"
+#include "TPCBase/CDBInterface.h"
 
 #include "TH1D.h"
 #include "TF1.h"
@@ -36,6 +37,8 @@ namespace TPC
 /// Precision: 0.5 %.
 BOOST_AUTO_TEST_CASE(ElectronDiffusion_test1)
 {
+  auto& cdb = CDBInterface::instance();
+  cdb.setUseDefaults();
   const static ParameterGas& gasParam = ParameterGas::defaultInstance();
   const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
   const GlobalPosition3D posEle(10.f, 10.f, 10.f);
@@ -47,7 +50,7 @@ BOOST_AUTO_TEST_CASE(ElectronDiffusion_test1)
   TF1 gausY("gausY", "gaus");
   TF1 gausZ("gausZ", "gaus");
 
-  static ElectronTransport electronTransport;
+  static ElectronTransport& electronTransport = ElectronTransport::instance();
   float driftTime = 0.f;
 
   for (int i = 0; i < 500000; ++i) {
@@ -83,6 +86,8 @@ BOOST_AUTO_TEST_CASE(ElectronDiffusion_test1)
 /// Precision: 0.5 %.
 BOOST_AUTO_TEST_CASE(ElectronDiffusion_test2)
 {
+  auto& cdb = CDBInterface::instance();
+  cdb.setUseDefaults();
   const static ParameterGas& gasParam = ParameterGas::defaultInstance();
   const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
   const GlobalPosition3D posEle(1.f, 1.f, detParam.getTPClength() - 1.f);
@@ -94,7 +99,7 @@ BOOST_AUTO_TEST_CASE(ElectronDiffusion_test2)
   TF1 gausY("gausY", "gaus");
   TF1 gausZ("gausZ", "gaus");
 
-  static ElectronTransport electronTransport;
+  static ElectronTransport& electronTransport = ElectronTransport::instance();
   float driftTime = 0.f;
 
   for (int i = 0; i < 500000; ++i) {
@@ -126,12 +131,14 @@ BOOST_AUTO_TEST_CASE(ElectronDiffusion_test2)
 /// Precision: 0.1 %.
 BOOST_AUTO_TEST_CASE(ElectronAttatchment_test_1)
 {
+  auto& cdb = CDBInterface::instance();
+  cdb.setUseDefaults();
   const static ParameterGas& gasParam = ParameterGas::defaultInstance();
-  static ElectronTransport electronTransport;
+  static ElectronTransport& electronTransport = ElectronTransport::instance();
 
   const float driftTime = 100.f;
   float lostElectrons = 0;
-  const float nEvents = 500000;
+  const float nEvents = 1000000;
   for (int i = 0; i < nEvents; ++i) {
     if (electronTransport.isElectronAttachment(driftTime)) {
       ++lostElectrons;
@@ -139,7 +146,7 @@ BOOST_AUTO_TEST_CASE(ElectronAttatchment_test_1)
   }
 
   BOOST_CHECK_CLOSE(lostElectrons / nEvents,
-                    gasParam.getAttachmentCoefficient() * gasParam.getOxygenContent() * driftTime, 0.1);
+                    gasParam.getAttachmentCoefficient() * gasParam.getOxygenContent() * driftTime, 0.5);
 }
 }
 }

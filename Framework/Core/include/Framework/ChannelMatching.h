@@ -16,54 +16,78 @@
 #include <vector>
 #include <string>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
-struct LogicalChannel {
+struct LogicalChannelRange {
+  LogicalChannelRange(const OutputSpec& spec)
+  {
+    name = std::string("out_") +
+           spec.origin.as<std::string>() + "_" +
+           spec.description.as<std::string>() + "_" +
+           std::to_string(spec.subSpec);
+  }
+
   std::string name;
-  bool operator<(LogicalChannel const&other) const {
+  bool operator<(LogicalChannelRange const& other) const
+  {
     return this->name < other.name;
   }
 };
 
-struct PhysicalChannel {
+struct DomainId {
+  std::string value;
+};
+
+struct LogicalChannelDomain {
+  LogicalChannelDomain(const InputSpec& spec)
+  {
+    name.value = std::string("out_") + spec.origin.as<std::string>() + "_" + spec.description.as<std::string>() + "_" + std::to_string(spec.subSpec);
+  }
+  DomainId name;
+  bool operator<(LogicalChannelDomain const& other) const
+  {
+    return this->name.value < other.name.value;
+  }
+};
+
+struct PhysicalChannelRange {
+  PhysicalChannelRange(const OutputSpec& spec, int count)
+  {
+    char buffer[16];
+    auto channel = LogicalChannelRange(spec);
+    id = channel.name + (snprintf(buffer, 16, "_%d", count), buffer);
+  }
+
   std::string id;
-  bool operator<(PhysicalChannel const&other) const {
+  bool operator<(PhysicalChannelRange const& other) const
+  {
     return this->id < other.id;
   }
 };
 
-inline LogicalChannel outputSpec2LogicalChannel(const OutputSpec &spec) {
-  auto name = std::string("out_") +
-              spec.origin.str + "_" +
-              spec.description.str + "_" +
-              std::to_string(spec.subSpec);
-  return LogicalChannel{name};
-}
+struct PhysicalChannelDomain {
+  PhysicalChannelDomain(const InputSpec& spec, int count)
+  {
+    char buffer[16];
+    auto channel = LogicalChannelDomain(spec);
+    id.value = channel.name.value + (snprintf(buffer, 16, "_%d", count), buffer);
+  }
+  DomainId id;
+  bool operator<(PhysicalChannelDomain const& other) const
+  {
+    return this->id.value < other.id.value;
+  }
+};
 
-inline PhysicalChannel outputSpec2PhysicalChannel(const OutputSpec &spec, int count) {
-  char buffer[16];
-  auto channel = outputSpec2LogicalChannel(spec);
-  return PhysicalChannel{channel.name + (snprintf(buffer, 16, "_%d", count), buffer)};
-}
-
-inline LogicalChannel inputSpec2LogicalChannelMatcher(const InputSpec &spec) {
-  auto name = std::string("out_") + spec.origin.str + "_" + spec.description.str + "_" + std::to_string(spec.subSpec);
-  return LogicalChannel{name};
-}
-
-inline PhysicalChannel inputSpec2PhysicalChannelMatcher(const InputSpec&spec, int count) {
-  char buffer[16];
-  auto channel = inputSpec2LogicalChannelMatcher(spec);
-  return PhysicalChannel{channel.name + (snprintf(buffer, 16, "_%d", count), buffer)};
-}
-
-/// @return true if a given DataSpec can use the provided channel.
+/// @return true if the doma
 /// FIXME: for the moment we require a full match, however matcher could really be
 ///        a *-expression or even a regular expression.
-inline bool matchDataSpec2Channel(const InputSpec &spec, const LogicalChannel &channel) {
-  auto matcher = inputSpec2LogicalChannelMatcher(spec);
-  return matcher.name == channel.name;
+inline bool intersect(const LogicalChannelDomain& targetDomain, const LogicalChannelRange& sourceRange)
+{
+  return targetDomain.name.value == sourceRange.name;
 }
 
 } // namespace framework

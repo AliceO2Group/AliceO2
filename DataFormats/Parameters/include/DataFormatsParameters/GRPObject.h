@@ -38,6 +38,11 @@ class GRPObject
  public:
   using timePoint = std::time_t;
 
+  enum ROMode : int { ABSENT = 0,
+                      PRESENT = 0x1,
+                      CONTINUOUS = PRESENT + (0x1 << 1),
+                      TRIGGERING = PRESENT + (0x1 << 2) };
+
   GRPObject() = default;
   ~GRPObject() = default;
 
@@ -90,7 +95,12 @@ class GRPObject
   /// add specific detector to the list of readout detectors
   void addDetReadOut(o2::detectors::DetID id) { mDetsReadout |= id.getMask(); }
   /// remove specific detector from the list of readout detectors
-  void remDetReadOut(o2::detectors::DetID id) { mDetsReadout &= ~id.getMask(); }
+  void remDetReadOut(o2::detectors::DetID id)
+  {
+    mDetsReadout &= ~id.getMask();
+    remDetContinuousReadOut(id);
+    remDetTrigger(id);
+  }
   /// add specific detector to the list of continuously readout detectors
   void addDetContinuousReadOut(o2::detectors::DetID id) { mDetsContinuousRO |= id.getMask(); }
   /// remove specific detector from the list of continuouslt readout detectors
@@ -105,6 +115,10 @@ class GRPObject
   bool isDetContinuousReadOut(o2::detectors::DetID id) const { return (mDetsContinuousRO & id.getMask()) != 0; }
   /// test if detector is triggering
   bool isDetTriggers(o2::detectors::DetID id) const { return (mDetsTrigger & id.getMask()) != 0; }
+  /// set detector readout mode status
+  void setDetROMode(o2::detectors::DetID id, ROMode status);
+  ROMode getDetROMode(o2::detectors::DetID id) const;
+
   /// print itself
   void print() const;
 

@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file DigitizerTask.h
+/// \file DigitizerTask.cxx
 /// \brief Task driving the convertion from Hit to Digit
 /// \author bogdan.vulpescu@cern.ch
 /// \date 03/05/2017
@@ -30,19 +30,18 @@ using namespace o2::utils;
 using o2::ITSMFT::DigiParams;
 
 //_____________________________________________________________________________
-DigitizerTask::DigitizerTask(Bool_t useAlpide) : FairTask("MFTDigitizerTask"), mUseAlpideSim(useAlpide), mDigitizer() {}
+DigitizerTask::DigitizerTask() : FairTask("MFTDigitizerTask"), mDigitizer() {}
 //_____________________________________________________________________________
 DigitizerTask::~DigitizerTask()
 {
-  if (mDigitsArray) {
-    mDigitsArray->clear();
-    delete mDigitsArray;
-  }
+  mDigitsArray.clear();
+  mMCTruthArray.clear();
+  delete mHitsArrayQED; // this special branch is managed by the task
 }
+
 /// \brief Init function
 ///
 /// Inititializes the digitizer and connects input and output container
-//_____________________________________________________________________________
 InitStatus DigitizerTask::Init()
 {
   FairRootManager* mgr = FairRootManager::Instance();
@@ -58,45 +57,41 @@ InitStatus DigitizerTask::Init()
   }
 
   // Register output container
-  mgr->RegisterAny("MFTDigit", mDigitsArray, kTRUE);
-
-  DigiParams param; // RS: TODO: Eventually load this from the CCDB
-
-  param.setContinuous(mContinuous);
-  param.setROFrameLenght(mAlpideROFramLength);
-  param.setHitDigitsMethod(mUseAlpideSim ? DigiParams::p2dCShape : DigiParams::p2dSimple);
-  param.setNoisePerPixel(0.);
-  mDigitizer.setDigiParams(param);
-
-  mDigitizer.setCoeffToNanoSecond(mFairTimeUnitInNS);
+  mgr->RegisterAny("MFTDigit", mDigitsArrayPtr, kTRUE);
+  mgr->RegisterAny("MFTDigitMCTruth", mMCTruthArrayPtr, kTRUE);
 
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::L2G)); // make sure L2G matrices are loaded
   mDigitizer.setGeometry(geom);
+
+  mDigitizer.setDigits(mDigitsArrayPtr);
+  mDigitizer.setMCLabels(mMCTruthArrayPtr);
 
   mDigitizer.init();
 
   return kSUCCESS;
 }
 
-//_____________________________________________________________________________
+//________________________________________________________
 void DigitizerTask::Exec(Option_t* option)
 {
   FairRootManager* mgr = FairRootManager::Instance();
 
-  if (mDigitsArray)
-    mDigitsArray->clear();
-  mDigitizer.setEventTime(mgr->GetEventTime());
+  mDigitsArray.clear();
+  mMCTruthArray.clear();
 
+  double tEvent = mgr->GetEventTime() * mFairTimeUnitInNS; // event time in ns
+
+  // is there QED backgroung provided? Fill QED slots until provided collision time
+  if (mQEDBranch) {
+    processQEDBackground(tEvent);
+  }
+  //
+  mDigitizer.setEventTime(tEvent);
   // the type of digitization is steered by the DigiParams object of the Digitizer
   LOG(DEBUG) << "Running digitization on new event " << mEventID << " from source " << mSourceID << FairLogger::endl;
 
-  /// RS: ATTENTION: this is just a trick until we clarify how the hits from different source are
-  /// provided and identified.
-  mDigitizer.setCurrSrcID(mSourceID);
-  mDigitizer.setCurrEvID(mEventID);
-
-  mDigitizer.process(const_cast<std::vector<o2::ITSMFT::Hit>*>(mHitsArray), mDigitsArray);
+  mDigitizer.process(mHitsArray, mEventID, mSourceID);
 
   mEventID++;
 }
@@ -106,11 +101,60 @@ void DigitizerTask::FinishTask()
 {
   // finalize digitization, if needed, flash remaining digits
 
-  if (!mContinuous)
+  if (!mDigitizer.getParams().isContinuous()) {
     return;
+  }
+
+  // is there QED backgroung provided? Fill QED slots up to the end of reserved ROFrames
+  if (mQEDBranch) {
+    processQEDBackground(mDigitizer.getEndTimeOfROFMax());
+  }
+
   FairRootManager* mgr = FairRootManager::Instance();
   mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
-  if (mDigitsArray)
-    mDigitsArray->clear();
-  mDigitizer.fillOutputContainer(mDigitsArray);
+  mDigitsArray.clear();
+  mMCTruthArray.clear();
+  mDigitizer.fillOutputContainer();
+}
+
+//________________________________________________________
+void DigitizerTask::processQEDBackground(double tMax)
+{
+  // process QED time-slots until provided collision time (in ns)
+
+  double tQEDNext = mLastQEDTimeNS + mQEDEntryTimeBinNS;
+
+  while (tQEDNext < tMax) {
+    mLastQEDTimeNS = tQEDNext;      // time used for current QED slot
+    tQEDNext += mQEDEntryTimeBinNS; // prepare time for next QED slot
+    if (++mLastQEDEntry >= mQEDBranch->GetEntries()) {
+      mLastQEDEntry = 0; // wrapp if needed
+    }
+    mQEDBranch->GetEntry(mLastQEDEntry);
+    mDigitizer.setEventTime(mLastQEDTimeNS);
+    mDigitizer.process(mHitsArrayQED, mLastQEDEntry, mQEDSourceID);
+    //
+  }
+}
+
+//________________________________________________________
+void DigitizerTask::setQEDInput(TBranch* qed, float timebin, UChar_t srcID)
+{
+  // assign the branch containing hits from QED electrons, whith every entry integrating
+  // timebin ns of collisions
+
+  LOG(INFO) << "Attaching QED ITS hits as sourceID=" << int(srcID) << ", entry integrates "
+            << timebin << " ns" << FairLogger::endl;
+
+  mQEDBranch = qed;
+  mQEDEntryTimeBinNS = timebin;
+  if (mQEDBranch) {
+    assert(mQEDEntryTimeBinNS >= 1.0);
+    mLastQEDTimeNS = -mQEDEntryTimeBinNS / 2; // time will be assigned to the middle of the bin
+    mQEDBranch->SetAddress(&mHitsArrayQED);
+    mLastQEDEntry = -1;
+    mQEDSourceID = srcID;
+    assert(mHitsArrayQED);
+    assert(srcID < o2::MCCompLabel::maxSourceID());
+  }
 }

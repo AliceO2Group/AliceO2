@@ -14,7 +14,7 @@
 #include <Riostream.h>
 // using std::endl;
 // using std::cout;
-using namespace o2::CDB;
+using namespace o2::ccdb;
 
 ClassImp(ConditionId)
 

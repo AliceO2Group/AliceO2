@@ -10,79 +10,126 @@
 
 /// \file Digitizer.h
 /// \brief Definition of the ITS digitizer
-#ifndef ALICEO2_ITS_DIGITIZER_H
-#define ALICEO2_ITS_DIGITIZER_H
+#ifndef ALICEO2_ITSMFT_DIGITIZER_H
+#define ALICEO2_ITSMFT_DIGITIZER_H
 
 #include <vector>
+#include <deque>
 #include <memory>
 
 #include "Rtypes.h"  // for Digitizer::Class, Double_t, ClassDef, etc
 #include "TObject.h" // for TObject
 
-#include "ITSMFTSimulation/SimulationAlpide.h"
+#include "ITSMFTSimulation/ChipDigitsContainer.h"
 #include "ITSMFTSimulation/AlpideSimResponse.h"
 #include "ITSMFTSimulation/DigiParams.h"
+#include "ITSMFTSimulation/Hit.h"
 #include "ITSMFTBase/GeometryTGeo.h"
+#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 
 namespace o2
 {
-  namespace ITSMFT
-  {
-    class Digitizer : public TObject
-    {
-    public:
-      
-      Digitizer() = default;
-      ~Digitizer() override = default;
-      Digitizer(const Digitizer&) = delete;
-      Digitizer& operator=(const Digitizer&) = delete;
 
-
-      void init();
-
-      /// Steer conversion of hits to digits
-      void   process(const std::vector<Hit>* hits, std::vector<Digit>* digits);
-      
-      void   setEventTime(double t);
-      double getEventTime()        const  {return mEventTime;}
-
-      void   setContinuous(bool v) {mParams.setContinuous(v);}
-      bool   isContinuous()  const {return mParams.isContinuous();}
-      void   fillOutputContainer(std::vector<Digit>* digits, UInt_t maxFrame=0xffffffff);
-
-      void   setDigiParams(const o2::ITSMFT::DigiParams& par) {mParams = par;}
-      const  o2::ITSMFT::DigiParams& getDigitParams()   const {return mParams;}
-
-      void   setCoeffToNanoSecond(double cf)                  { mCoeffToNanoSecond = cf; }
-      double getCoeffToNanoSecond()                     const { return mCoeffToNanoSecond; }
-
-      int getCurrSrcID() const { return mCurrSrcID; }
-      int getCurrEvID()  const { return mCurrEvID; }
-
-      void setCurrSrcID(int v);
-      void setCurrEvID(int v);
-            
-      // provide the common ITSMFT::GeometryTGeo to access matrices and segmentation
-      void setGeometry(const o2::ITSMFT::GeometryTGeo* gm) { mGeometry = gm;}
-      
-    private:
-
-      const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr;    ///< ITS OR MFT upgrade geometry
-      std::vector<o2::ITSMFT::SimulationAlpide> mSimulations; ///< Array of chips response simulations
-      o2::ITSMFT::DigiParams mParams;            ///< digitization parameters
-      double mEventTime = 0;                     ///< global event time
-      double mCoeffToNanoSecond = 1.0;           ///< coefficient to convert event time (Fair) to ns
-      bool   mContinuous = false;                ///< flag for continuous simulation
-      UInt_t mROFrameMin = 0;                    ///< lowest RO frame of current digits
-      UInt_t mROFrameMax = 0;                    ///< highest RO frame of current digits
-      int    mCurrSrcID = 0;                     ///< current MC source from the manager
-      int    mCurrEvID = 0;                      ///< current event ID from the manager
-
-      std::unique_ptr<o2::ITSMFT::AlpideSimResponse> mAlpSimResp; // simulated response 
-      
-      ClassDefOverride(Digitizer, 2);
-    };
-  }
+namespace dataformats
+{
+template <typename T>
+class MCTruthContainer;
 }
 
-#endif /* ALICEO2_ITS_DIGITIZER_H */
+namespace ITSMFT
+{
+class Digitizer : public TObject
+{
+  using ExtraDig = std::vector<PreDigitLabelRef>; ///< container for extra contributions to PreDigits
+
+ public:
+  Digitizer() = default;
+  ~Digitizer() override = default;
+  Digitizer(const Digitizer&) = delete;
+  Digitizer& operator=(const Digitizer&) = delete;
+
+  void setDigits(std::vector<o2::ITSMFT::Digit>* dig) { mDigits = dig; }
+  void setMCLabels(o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mclb) { mMCLabels = mclb; }
+  void setROFRecords(std::vector<o2::ITSMFT::ROFRecord>* rec) { mROFRecords = rec; }
+
+  o2::ITSMFT::DigiParams& getParams() { return (o2::ITSMFT::DigiParams&)mParams; }
+  const o2::ITSMFT::DigiParams& getParams() const { return mParams; }
+
+  void init();
+
+  /// Steer conversion of hits to digits
+  void process(const std::vector<Hit>* hits, int evID, int srcID);
+  void setEventTime(double t);
+  double getEventTime() const { return mEventTime; }
+  double getEndTimeOfROFMax() const
+  {
+    ///< return the time corresponding to end of the last reserved ROFrame : mROFrameMax
+    return mParams.getROFrameLength() * (mROFrameMax + 1) + mParams.getTimeOffset();
+  }
+
+  void setContinuous(bool v) { mParams.setContinuous(v); }
+  bool isContinuous() const { return mParams.isContinuous(); }
+  void fillOutputContainer(UInt_t maxFrame = 0xffffffff);
+
+  void setDigiParams(const o2::ITSMFT::DigiParams& par) { mParams = par; }
+  const o2::ITSMFT::DigiParams& getDigitParams() const { return mParams; }
+
+  // provide the common ITSMFT::GeometryTGeo to access matrices and segmentation
+  void setGeometry(const o2::ITSMFT::GeometryTGeo* gm) { mGeometry = gm; }
+
+  UInt_t getEventROFrameMin() const { return mEventROFrameMin; }
+  UInt_t getEventROFrameMax() const { return mEventROFrameMax; }
+  void resetEventROFrames()
+  {
+    mEventROFrameMin = 0xffffffff;
+    mEventROFrameMax = 0;
+  }
+
+ private:
+  void processHit(const o2::ITSMFT::Hit& hit, UInt_t& maxFr, int evID, int srcID);
+  void registerDigits(ChipDigitsContainer& chip, UInt_t roFrame, float tInROF, int nROF,
+                      UShort_t row, UShort_t col, int nEle, o2::MCCompLabel& lbl);
+
+  ExtraDig* getExtraDigBuffer(UInt_t roFrame)
+  {
+    if (mROFrameMin > roFrame) {
+      return nullptr; // nothing to do
+    }
+    int ind = roFrame - mROFrameMin;
+    while (ind >= int(mExtraBuff.size())) {
+      mExtraBuff.emplace_back(std::make_unique<ExtraDig>());
+    }
+    return mExtraBuff[ind].get();
+  }
+
+  static constexpr float sec2ns = 1e9;
+
+  o2::ITSMFT::DigiParams mParams;  ///< digitization parameters
+  double mEventTime = 0;           ///< global event time
+  bool mContinuous = false;        ///< flag for continuous simulation
+  UInt_t mROFrameMin = 0;          ///< lowest RO frame of current digits
+  UInt_t mROFrameMax = 0;          ///< highest RO frame of current digits
+  UInt_t mNewROFrame = 0;          ///< ROFrame corresponding to provided time
+
+  UInt_t mEventROFrameMin = 0xffffffff; ///< lowest RO frame for processed events (w/o automatic noise ROFs)
+  UInt_t mEventROFrameMax = 0;          ///< highest RO frame forfor processed events (w/o automatic noise ROFs)
+
+  std::unique_ptr<o2::ITSMFT::AlpideSimResponse> mAlpSimResp; // simulated response
+
+  const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr; ///< ITS OR MFT upgrade geometry
+
+  std::vector<o2::ITSMFT::ChipDigitsContainer> mChips; ///< Array of chips digits containers
+  std::deque<std::unique_ptr<ExtraDig>> mExtraBuff;    ///< burrer (per roFrame) for extra digits
+
+  std::vector<o2::ITSMFT::Digit>* mDigits = nullptr;                       //! output digits
+  std::vector<o2::ITSMFT::ROFRecord>* mROFRecords = nullptr;               //! output ROF records
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mMCLabels = nullptr; //! output labels
+
+  ClassDefOverride(Digitizer, 2);
+};
+}
+}
+
+#endif /* ALICEO2_ITSMFT_DIGITIZER_H */

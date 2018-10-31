@@ -215,6 +215,24 @@ class V3Layer : public V11Geometry
   /// \param mgr The GeoManager (used only to get the proper material)
   void createIBConnectorsCSide(const TGeoManager* mgr = gGeoManager);
 
+  /// Creates the OB FPC Copper Ground layer
+  /// Returns the FPC as a TGeoVolume
+  /// \param z Z module half lengths
+  /// \param mgr The GeoManager (used only to get the proper material)
+  TGeoVolume* createOBFPCCuGnd(Double_t z, const TGeoManager* mgr = gGeoManager);
+
+  /// Creates the OB FPC Copper Signal layer
+  /// Returns the FPC as a TGeoVolume
+  /// \param z Z module half lengths
+  /// \param mgr The GeoManager (used only to get the proper material)
+  TGeoVolume* createOBFPCCuSig(Double_t z, const TGeoManager* mgr = gGeoManager);
+
+  /// Creates the OB Power and Bias Buses
+  /// Returns a TGeoVolume with both buses
+  /// \param z Z stave half lengths
+  /// \param mgr The GeoManager (used only to get the proper material)
+  TGeoVolume* createOBPowerBiasBuses(Double_t z, const TGeoManager* mgr = gGeoManager);
+
   /// Create the chip stave for the Outer Barrel
   /// \param mgr The GeoManager (used only to get the proper material)
   TGeoVolume* createStaveOuterB(const TGeoManager* mgr = gGeoManager);
@@ -408,26 +426,37 @@ class V3Layer : public V11Geometry
   static const Double_t sOBChipThickness; ///< Default OB chip thickness
 
   static const Double_t sOBHalfStaveWidth;    ///< OB Half Stave Width
-  static const Double_t sOBModuleWidth;       ///< OB Module Width
   static const Double_t sOBModuleGap;         ///< Gap between OB modules
   static const Double_t sOBChipXGap;          ///< Gap between OB chips on X
   static const Double_t sOBChipZGap;          ///< Gap between OB chips on Z
+  static const Double_t sOBFlexCableXWidth;   ///< OB FPC X width
   static const Double_t sOBFlexCableAlThick;  ///< Thickness of FPC Aluminum
-  static const Double_t sOBFlexCableCuThick;  ///< Thickness of FPC Copper
   static const Double_t sOBFlexCableKapThick; ///< Thickness of FPC Kapton
-  static const Double_t sOBBusCableAlThick;   ///< Thickness of Bus Aluminum
-  static const Double_t sOBBusCableKapThick;  ///< Thickness of Bus Kapton
-  static const Double_t sOBCarbonPlateThick;  ///< OB Carbon Plate Thickness
+  static const Double_t sOBFPCSoldMaskThick;  ///< Thickness of FPC Solder Mask
+  static const Double_t sOBFPCCopperThick;    ///< Thickness of FPC Copper
+  static const Double_t sOBFPCCuAreaFracGnd;  ///< Fraction of Cu on Gnd FPC
+  static const Double_t sOBFPCCuAreaFracSig;  ///< Fraction of Cu on Sig FPC
+  static const Double_t sOBGlueFPCThick;      ///< Thickness of Glue to FPC
+  static const Double_t sOBGlueColdPlThick;   ///< Thickness of Glue to Cold Pl
+  static const Double_t sOBPowerBusXWidth;    ///< OB Power Bus X width
+  static const Double_t sOBPowerBusAlThick;   ///< OB Power Bus Al thickness
+  static const Double_t sOBPowerBusAlFrac;    ///< Fraction of Al on OB PB
+  static const Double_t sOBPowerBusDielThick; ///< OB Power Bus Dielectric thick
+  static const Double_t sOBPowerBusKapThick;  ///< OB Power Bus Kapton thick
+  static const Double_t sOBBiasBusXWidth;     ///< OB Bias Bus X width
+  static const Double_t sOBBiasBusAlThick;    ///< OB Bias Bus Al thickness
+  static const Double_t sOBBiasBusAlFrac;     ///< Fraction of Al on OB BB
+  static const Double_t sOBBiasBusDielThick;  ///< OB Bias Bus Dielectric thick
+  static const Double_t sOBBiasBusKapThick;   ///< OB Bias Bus Kapton thick
+  static const Double_t sOBColdPlateXWidth;   ///< OB Cold Plate X width
+  static const Double_t sOBColdPlateZLenML;   ///< OB ML Cold Plate Z length
+  static const Double_t sOBColdPlateZLenOL;   ///< OB OL Cold Plate Z length
   static const Double_t sOBColdPlateThick;    ///< OB Cold Plate Thickness
-  static const Double_t sOBGlueThickM1;       ///< OB Glue Thickness (Model1)
-  static const Double_t sOBGlueThick;         ///< OB Glue Thickness
-  static const Double_t sOBModuleZLength;     ///< OB Module Length along Z
   static const Double_t sOBHalfStaveYPos;     ///< OB half staves Y position
   static const Double_t sOBHalfStaveYTrans;   ///< OB half staves Y transl.
   static const Double_t sOBHalfStaveXOverlap; ///< OB half staves X overlap
   static const Double_t sOBGraphiteFoilThick; ///< OB graphite foil thickness
   static const Double_t sOBCarbonFleeceThick; ///< OB carbon fleece thickness
-  static const Double_t sOBCoolTubeInnerDM1;  ///< OB cooling inner diameter
   static const Double_t sOBCoolTubeInnerD;    ///< OB cooling inner diameter
   static const Double_t sOBCoolTubeThick;     ///< OB cooling tube thickness
   static const Double_t sOBCoolTubeXDist;     ///< OB cooling tube separation
@@ -451,15 +480,12 @@ class V3Layer : public V11Geometry
   static const Double_t sOBCPConnFitHoleD;    ///< OB Connector Fit Hole diam
   static const Double_t sOBCPConnTubeHole3XP; ///< OB Connector Tube3 X pos
   static const Double_t sOBCPConnTubeHole3ZP; ///< OB Connector Tube3 Z pos
-  static const Double_t sOBCPConnInstInnerX;  ///< OB Connector Insert X in
-  static const Double_t sOBCPConnInstInnerR;  ///< OB Connector Insert R in
   static const Double_t sOBCPConnInstZThick;  ///< OB Connector Insert height
   static const Double_t sOBCPConnInsertYHei;  ///< OB Connector Insert height
-  static const Double_t sOBCPConnInsertD;     ///< OB Connector Insert diam
   static const Double_t sOBCPConnAFitExtD;    ///< OB ConnectorA Fitting ext D
   static const Double_t sOBCPConnAFitThick;   ///< OB ConnectorA Fitting thick
   static const Double_t sOBCPConnAFitZLen;    ///< OB ConnectorA Fitting Z len
-  static const Double_t sOBCPConnAFitZOut;    ///< OB ConnectorA Fitting Z Out
+  static const Double_t sOBCPConnAFitZIn;     ///< OB ConnectorA Fitting Z ins
   static const Double_t sOBCPConnPlugInnerD;  ///< OB Connector Plug int diam
   static const Double_t sOBCPConnPlugTotLen;  ///< OB Connector Plug tot le
   static const Double_t sOBCPConnPlugThick;   ///< OB Connector Plug thickness

@@ -127,6 +127,10 @@ class CookedTracker
 
   static Layer sLayers[kNLayers]; ///< Layers filled with clusters
   std::vector<TrackITS> mSeeds;   ///< Track seeds
+
+  const Cluster* mFirstCluster = nullptr; ///< Pointer to the 1st cluster in event
+
+  ClassDefNV(CookedTracker, 1);
 };
 
 class CookedTracker::Layer

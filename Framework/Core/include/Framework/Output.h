@@ -12,24 +12,60 @@
 
 #include "Headers/DataHeader.h"
 #include "Framework/Lifetime.h"
+#include "Headers/Stack.h"
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// A concrete description of the output to be created
+///
+/// Note that header::Stack forbids copy constructor and so it is for Output.
+/// As a consequence it can not be used in standard containers. This is however
+/// not a limitation which is expected to cause problems because Output is mostly
+/// used as rvalue in specifying output route.
 struct Output {
   header::DataOrigin origin;
   header::DataDescription description;
   header::DataHeader::SubSpecificationType subSpec = 0;
   enum Lifetime lifetime = Lifetime::Timeframe;
+  header::Stack metaHeader = {};
 
-  bool operator==(const Output& that)
+  Output(header::DataOrigin o, header::DataDescription d) : origin(o), description(d) {}
+
+  Output(header::DataOrigin o, header::DataDescription d, header::DataHeader::SubSpecificationType s)
+    : origin(o), description(d), subSpec(s)
+  {
+  }
+
+  Output(header::DataOrigin o, header::DataDescription d, header::DataHeader::SubSpecificationType s, Lifetime l)
+    : origin(o), description(d), subSpec(s), lifetime(l)
+  {
+  }
+
+  Output(header::DataOrigin o, header::DataDescription d, header::DataHeader::SubSpecificationType s, Lifetime l,
+         header::Stack&& stack)
+    : origin(o), description(d), subSpec(s), lifetime(l), metaHeader(std::move(stack))
+  {
+  }
+
+  Output(const Output&& rhs)
+    : origin(rhs.origin),
+      description(rhs.description),
+      subSpec(rhs.subSpec),
+      lifetime(rhs.lifetime),
+      metaHeader(std::move(rhs.metaHeader))
+  {
+  }
+
+  bool operator==(const Output& that) const
   {
     return origin == that.origin && description == that.description && subSpec == that.subSpec &&
            lifetime == that.lifetime;
   };
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif

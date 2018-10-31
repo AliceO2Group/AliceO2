@@ -23,8 +23,14 @@ namespace framework
 class CallbackService
 {
  public:
-  // the defined processing steps at which a callback can be invoked
-  enum class Id { Start, Stop, Reset };
+  /// the defined processing steps at which a callback can be invoked
+  enum class Id {
+    Start,    /**< Invoked before the inner loop is started */
+    Stop,     /**< Invoked when the device is about to be stoped */
+    Reset,    /**< Invoked on device rest */
+    Idle,     /**< Invoked when there was no computation scheduled */
+    ClockTick /**< Invoked every iteration of the inner loop */
+  };
 
   template <typename T, T... v>
   class EnumRegistry
@@ -36,11 +42,16 @@ class CallbackService
   using StartCallback = std::function<void()>;
   using StopCallback = std::function<void()>;
   using ResetCallback = std::function<void()>;
-  using Callbacks = CallbackRegistry<Id,                                         //
-                                     RegistryPair<Id, Id::Start, StartCallback>, //
-                                     RegistryPair<Id, Id::Stop, StopCallback>,   //
-                                     RegistryPair<Id, Id::Reset, ResetCallback>  //
-                                     >;                                          //
+  using IdleCallback = std::function<void()>;
+  using ClockTickCallback = std::function<void()>;
+
+  using Callbacks = CallbackRegistry<Id,                                                //
+                                     RegistryPair<Id, Id::Start, StartCallback>,        //
+                                     RegistryPair<Id, Id::Stop, StopCallback>,          //
+                                     RegistryPair<Id, Id::Reset, ResetCallback>,        //
+                                     RegistryPair<Id, Id::Idle, IdleCallback>,          //
+                                     RegistryPair<Id, Id::ClockTick, ClockTickCallback> //
+                                     >;                                                 //
 
   // set callback for specified processing step
   template <typename U>
@@ -60,6 +71,6 @@ class CallbackService
   Callbacks mCallbacks;
 };
 
-} // framework
-} // o2
+} // namespace framework
+} // namespace o2
 #endif // FRAMEWORK_CALLBACKSERVICE_H

@@ -14,17 +14,19 @@
 #include <string>
 #include <vector>
 
-namespace o2 {
-namespace CDB {
+namespace o2
+{
+namespace ccdb
+{
 
-class ObjectHandler {
-public:
+class ObjectHandler
+{
+ public:
   ObjectHandler();
   virtual ~ObjectHandler();
 
   /// Returns the binary payload of a ROOT file as an std::string
   static void GetObject(const std::string& path, std::string& object);
-
 };
 }
 }

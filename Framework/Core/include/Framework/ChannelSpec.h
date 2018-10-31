@@ -12,18 +12,20 @@
 
 #include <string>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// These map to zeromq connection
 /// methods.
-enum ChannelMethod {
+enum struct ChannelMethod {
   Bind,
   Connect
 };
 
 /// These map to zeromq types for the channels.
-enum ChannelType {
+enum struct ChannelType {
   Pub,
   Sub,
   Push,
@@ -52,7 +54,7 @@ struct OutputChannelSpec {
   size_t listeners;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 
 #endif // FRAMEWORK_CHANNELSPEC_H

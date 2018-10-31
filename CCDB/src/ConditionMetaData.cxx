@@ -14,7 +14,7 @@
 #include <TObjString.h>   // for TObjString
 #include <TTimeStamp.h>   // for TTimeStamp
 
-using namespace o2::CDB;
+using namespace o2::ccdb;
 
 ClassImp(ConditionMetaData)
 

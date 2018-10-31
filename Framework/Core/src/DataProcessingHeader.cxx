@@ -11,10 +11,12 @@
 #include "Framework/DataProcessingHeader.h"
 #include "Headers/DataHeader.h"
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
-constexpr o2::header::HeaderType DataProcessingHeader::sHeaderType = "DataFlow";
+constexpr o2::header::HeaderType DataProcessingHeader::sHeaderType;
 
 } // namespace framework
 } // namespace o2

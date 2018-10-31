@@ -15,6 +15,8 @@ FOREACH (p
     CMP0025 # CMake 3.0
     CMP0042 # CMake 3.0
     CMP0028
+    CMP0068
+    CMP0057
     )
   IF (POLICY ${p})
     cmake_policy(SET ${p} NEW)
@@ -32,33 +34,7 @@ ADD_CUSTOM_TARGET(man ALL)
 #In case you need Fortran
 #ENABLE_LANGUAGE(Fortran)
 
-# Check for needed environment variables
-#IF not stop execution unless modular build is activated
-Option(ALICEO2_MODULAR_BUILD "Modular build without environment variables" OFF)
-IF (NOT ALICEO2_MODULAR_BUILD)
-  IF (NOT DEFINED ENV{FAIRROOTPATH})
-    MESSAGE(FATAL_ERROR "You did not define the environment variable FAIRROOTPATH which is needed to find FairRoot. Please set this variable and execute cmake again.")
-  ENDIF (NOT DEFINED ENV{FAIRROOTPATH})
-
-  IF (NOT DEFINED ENV{SIMPATH})
-    MESSAGE(FATAL_ERROR "You did not define the environment variable SIMPATH which is nedded to find the external packages. Please set this variable and execute cmake again.")
-  ENDIF (NOT DEFINED ENV{SIMPATH})
-
-  SET(SIMPATH $ENV{SIMPATH})
-  SET(FAIRROOTPATH $ENV{FAIRROOTPATH})
-
-  # where to look first for cmake modules, before ${CMAKE_ROOT}/Modules/
-  # is checked
-  set(CMAKE_MODULE_PATH "${FAIRROOTPATH}/share/fairbase/cmake/modules" ${CMAKE_MODULE_PATH})
-  set(CMAKE_MODULE_PATH "${FAIRROOTPATH}/share/fairbase/cmake/modules_old" ${CMAKE_MODULE_PATH})
-  set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules" ${CMAKE_MODULE_PATH})
-
-  Set(CheckSrcDir "${FAIRROOTPATH}/share/fairbase/cmake/checks")
-ELSE (NOT ALICEO2_MODULAR_BUILD)
-  find_package(Boost REQUIRED)
-ENDIF (NOT ALICEO2_MODULAR_BUILD)
-
-find_package(Arrow)
+find_package(Boost REQUIRED)
 
 # Load some basic macros which are needed later on
 include(O2Utils)
@@ -70,22 +46,19 @@ include(CheckCompiler)
 #include(CheckFortran)
 
 # check if we have a simulation environment
-# (unfortunately neither GEANT4_FOUND nor GEANT3_FOUND work reliably)
-find_library(G4RUNLIB libG4run.dylib libG4run.so HINTS ENV LD_LIBRARY_PATH)
-find_library(G3RUNLIB libgeant321.dylib libgeant321.so HINTS ENV LD_LIBRARY_PATH)
-find_library(VMCLIB libgeant4vmc.dylib libgeant4vmc.so HINTS ENV LD_LIBRARY_PATH)
-if (G4RUNLIB AND G3RUNLIB AND VMCLIB AND Pythia6_FOUND AND PYTHIA8_FOUND)
+if (Geant3_FOUND AND Geant4_FOUND AND Geant4VMC_FOUND AND Pythia6_FOUND AND PYTHIA8_FOUND)
   SET (HAVESIMULATION 1)
   message(STATUS "Simulation environment found")
 else()
-  message(STATUS "Simulation environment not found : at least one of the variables G4RUNLIB, G3RUNLIB, VMCLIB, Pythia6_FOUND or PYTHIA8_FOUND was not set correctly.")
+  message(STATUS "Simulation environment not found : at least one of the variables Geant3_FOUND , Geant4_FOUND , Geant4VMC_FOUND , Pythia6_FOUND or PYTHIA8_FOUND is not set")
   message(STATUS "All of them are needed for a simulation environment.")
   message(STATUS "That might not be a problem if you don't care about simulation though.")
-  message(STATUS "G4RUNLIB=${G4RUNLIB}")
-  message(STATUS "G3RUNLIB=${G3RUNLIB}")
-  message(STATUS "VMCLIB=${VMCLIB}")
+  message(STATUS "Geant3_FOUND    = ${Geant3_FOUND}")
+  message(STATUS "Geant4_FOUND    = ${Geant4_FOUND}")
+  message(STATUS "Geant4VMC_FOUND = ${Geant4VMC_FOUND}")
   message(STATUS "Pythia6_FOUND=${Pythia6_FOUND}")
   message(STATUS "PYTHIA8_FOUND=${PYTHIA8_FOUND}")
+  message(FATAL "stop")
 endif()
 
 
@@ -139,12 +112,6 @@ ENDIF (NOT UNIX)
 # directory
 CHECK_EXTERNAL_PACKAGE_INSTALL_DIR()
 
-# set a variable which should be used in all CMakeLists.txt
-# Defines all basic include directories from fairbase
-IF (NOT ALICEO2_MODULAR_BUILD)
-  SetBasicVariables()
-ENDIF (NOT ALICEO2_MODULAR_BUILD)
-
 # Set the library version in the main CMakeLists.txt
 SET(ALICEO2_MAJOR_VERSION 0)
 SET(ALICEO2_MINOR_VERSION 0)
@@ -165,28 +132,24 @@ ENDIF ()
 
 Generate_Version_Info()
 
+# Our libraries will be under "lib"
 SET(_LIBDIR ${CMAKE_BINARY_DIR}/lib)
 SET(LD_LIBRARY_PATH ${_LIBDIR} ${LD_LIBRARY_PATH})
 
-IF (NOT ALICEO2_MODULAR_BUILD)
-  # Check IF the compiler support specific C++14 features
-  # Up to now this is only a check since the code does not use
-  # any of the features of the new standard
-  # does not work straightforward
-  include(CheckCXX11Features)
+# Build targets with install rpath on Mac to dramatically speed up installation
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
+if("${isSystemDir}" STREQUAL "-1")
+  if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    set(CMAKE_INSTALL_RPATH "@loader_path/../lib")
+  endif()
+endif()
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+endif()
+unset(isSystemDir)
 
-  # Check IF the compilation flag -std=c++14 is set
-  IF (NOT CMAKE_CXX_FLAGS)
-    Message(FATAL_ERROR "No C++14 support found. AliceO2 requires C++14 be build.")
-  EndIF (NOT CMAKE_CXX_FLAGS)
-
-ELSE (NOT ALICEO2_MODULAR_BUILD)
-  # This needs to be improved
-  # (hopefully by making CheckCXX11Features working also with this build option)
-  set(CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS}")
-ENDIF (NOT ALICEO2_MODULAR_BUILD)
-
-#check C++14 features
+# Check for the required C++ standard features (break if not available)
 set(CheckCXX14SrcDir "${CMAKE_SOURCE_DIR}/cmake/checks")
 include(CheckCXX14Features)
 
@@ -241,6 +204,14 @@ IF($ENV{ALIBUILD_O2_TESTS})
   SET(CHECK_ROOTMACRO_COMPILE 1)
 ENDIF()
 
+# A LIST OF MACROS TO EXCLUDE FROM THE TEST
+#  To be used only in exceptional cases, such as when the macro
+#  uses symbols from outside the standard O2 build/runtime
+#  environment.
+SET(IGNORE_MACROS
+    ${CMAKE_SOURCE_DIR}/Generators/share/external/hijing.C
+)
+
 # UNIT TESTS VERIFYING CONSISTENT STATE OF OUR ROOT MACROS AND THE EXECUTION ENVIRONMENT
 if(CHECK_ROOTMACRO_COMPILE AND HAVESIMULATION)
   # On Mac OS GLOB_RECURSE returns both .C and .c files, i.e. case insensitive
@@ -249,14 +220,18 @@ if(CHECK_ROOTMACRO_COMPILE AND HAVESIMULATION)
   LIST(FILTER MACRO_FILES INCLUDE REGEX "^.*\\.C$")
   SET(TEST_NO 0)
   FOREACH(MACRO_FILE ${MACRO_FILES})
-    string(REPLACE ${CMAKE_SOURCE_DIR} "" MACRO_FILE_LABEL ${MACRO_FILE})
-    MATH(EXPR TEST_NO "${TEST_NO} + 1")
-    ADD_TEST(NAME ${MACRO_FILE_LABEL}
-      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-      COMMAND root -n -b -l -q -e ".L ${MACRO_FILE}"
-    )
-    SET_PROPERTY(TEST ${MACRO_FILE_LABEL} PROPERTY ENVIRONMENT "LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
-    SET_PROPERTY(TEST ${MACRO_FILE_LABEL} APPEND PROPERTY ENVIRONMENT "DYLD_LIBRARY_PATH=$ENV{DYLD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
-    SET_PROPERTY(TEST ${MACRO_FILE_LABEL} APPEND PROPERTY ENVIRONMENT "ROOT_HIST=0")
+    IF(NOT ${MACRO_FILE} IN_LIST IGNORE_MACROS)
+      string(REPLACE ${CMAKE_SOURCE_DIR} "" MACRO_FILE_LABEL ${MACRO_FILE})
+      MATH(EXPR TEST_NO "${TEST_NO} + 1")
+      ADD_TEST(NAME ${MACRO_FILE_LABEL}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMAND root -n -b -l -q -e ".L ${MACRO_FILE}"
+      )
+      SET_PROPERTY(TEST ${MACRO_FILE_LABEL} PROPERTY ENVIRONMENT "LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
+      SET_PROPERTY(TEST ${MACRO_FILE_LABEL} APPEND PROPERTY ENVIRONMENT "DYLD_LIBRARY_PATH=$ENV{DYLD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
+      SET_PROPERTY(TEST ${MACRO_FILE_LABEL} APPEND PROPERTY ENVIRONMENT "ROOT_HIST=0")
+    ELSE()
+      MESSAGE(STATUS "EXCLUDING ROOT MACRO ${MACRO_FILE} FROM CHECK")
+    ENDIF()
   ENDFOREACH()
 endif()

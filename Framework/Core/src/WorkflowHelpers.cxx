@@ -9,31 +9,42 @@
 // or submit itself to any jurisdiction.
 #include "WorkflowHelpers.h"
 #include "Framework/ChannelMatching.h"
+#include "Framework/CommonDataProcessors.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/AlgorithmSpec.h"
 #include <algorithm>
 #include <list>
 #include <set>
 #include <utility>
 #include <vector>
 #include <climits>
+#include <thread>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
-std::vector<size_t>
-WorkflowHelpers::topologicalSort(size_t nodeCount,
-                                 const size_t *edgeIn,
-                                 const size_t *edgeOut,
-                                 size_t stride,
-                                 size_t edgesCount) {
-  using NodeIndex = size_t;
-  using EdgeIndex = size_t;
+std::ostream& operator<<(std::ostream& out, TopoIndexInfo const& info)
+{
+  out << "(" << info.index << ", " << info.layer << ")";
+  return out;
+}
+
+std::vector<TopoIndexInfo>
+  WorkflowHelpers::topologicalSort(size_t nodeCount,
+                                   int const* edgeIn,
+                                   int const* edgeOut,
+                                   size_t byteStride,
+                                   size_t edgesCount)
+{
+  size_t stride = byteStride / sizeof(int);
+  using EdgeIndex = int;
   // Create the index which will be returned.
-  std::vector<NodeIndex> index(nodeCount);
-  for (NodeIndex wi = 0; wi < nodeCount; ++wi) {
-    index[wi] = wi;
+  std::vector<TopoIndexInfo> index(nodeCount);
+  for (int wi = 0; wi < nodeCount; ++wi) {
+    index[wi] = { wi, 0 };
   }
-  // Temporary vector holding vertices to be processed
   std::vector<EdgeIndex> remainingEdgesIndex(edgesCount);
   for (EdgeIndex ei = 0; ei < edgesCount; ++ei) {
     remainingEdgesIndex[ei] = ei;
@@ -43,19 +54,24 @@ WorkflowHelpers::topologicalSort(size_t nodeCount,
   // if the vector has dependencies, false otherwise
   std::vector<bool> nodeDeps(nodeCount, false);
   for (EdgeIndex ei = 0; ei < edgesCount; ++ei) {
-    nodeDeps[*(edgeOut+ei*stride)] = true;
+    nodeDeps[*(edgeOut + ei * stride)] = true;
   }
 
-  std::list<NodeIndex> L;
-  std::vector<NodeIndex> S;
-  std::set<NodeIndex> nextVertex;
-  std::vector<EdgeIndex> nextEdges;
-
-  for (size_t ii = 0, ie = index.size(); ii < ie; ++ii) {
+  // We start with all those which do not have any dependencies
+  // They are layer 0.
+  std::list<TopoIndexInfo> L;
+  for (int ii = 0; ii < index.size(); ++ii) {
     if (nodeDeps[ii] == false) {
-      L.push_back(ii);
+      L.push_back({ ii, 0 });
     }
   }
+
+  // The final result.
+  std::vector<TopoIndexInfo> S;
+  // The set of vertices which can be reached by the current node
+  std::set<TopoIndexInfo> nextVertex;
+  // The set of edges which are not related to the current node.
+  std::vector<EdgeIndex> nextEdges;
   while (!L.empty()) {
     auto node = L.front();
     S.push_back(node);
@@ -63,30 +79,111 @@ WorkflowHelpers::topologicalSort(size_t nodeCount,
     nextVertex.clear();
     nextEdges.clear();
 
-    for (EdgeIndex ei = 0, ee = remainingEdgesIndex.size(); ei < ee; ++ei) {
-      if (*(edgeIn+ei*stride) == node) {
-        nextVertex.insert(*(edgeOut+ei*stride));
+    // After this, nextVertex will contain all the vertices
+    // which have the current node as incoming.
+    // nextEdges will contain all the edges which are not related
+    // to the current node.
+    for (auto& ei : remainingEdgesIndex) {
+      if (*(edgeIn + ei * stride) == node.index) {
+        nextVertex.insert({ *(edgeOut + ei * stride), node.layer + 1 });
       } else {
-        nextEdges.push_back(remainingEdgesIndex[ei]);
+        nextEdges.push_back(ei);
       }
     }
     remainingEdgesIndex.swap(nextEdges);
 
-    std::set<NodeIndex> hasPredecessors;
-    for (auto &ei : remainingEdgesIndex) {
-      for (auto &m : nextVertex) {
-        if (m == *(edgeOut+ei*stride)) {
-          hasPredecessors.insert(m);
+    // Of all the vertices which have node as incoming,
+    // check if there is any other incoming node.
+    std::set<TopoIndexInfo> hasPredecessors;
+    for (auto& ei : remainingEdgesIndex) {
+      for (auto& m : nextVertex) {
+        if (m.index == *(edgeOut + ei * stride)) {
+          hasPredecessors.insert({ m.index, m.layer });
         }
       }
     }
-    std::vector<NodeIndex> withPredecessor;
+    std::vector<TopoIndexInfo> withPredecessor;
     std::set_difference(nextVertex.begin(), nextVertex.end(),
                         hasPredecessors.begin(), hasPredecessors.end(),
                         std::back_inserter(withPredecessor));
     std::copy(withPredecessor.begin(), withPredecessor.end(), std::back_inserter(L));
   }
   return S;
+}
+
+void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
+{
+  auto fakeCallback = AlgorithmSpec{ [](InitContext&) {
+    LOG(INFO) << "This is not a real device, merely a placeholder for external inputs";
+    LOG(INFO) << "To be hidden / removed at some point.";
+    return [](ProcessingContext& ctx) {
+      std::this_thread::sleep_for(std::chrono::seconds(2));
+    };
+  } };
+  DataProcessorSpec ccdbBackend{ "internal-dpl-ccdb-backend",
+                                 {},
+                                 {},
+                                 fakeCallback };
+  DataProcessorSpec transientStore{ "internal-dpl-transient-store",
+                                    {},
+                                    {},
+                                    fakeCallback };
+  DataProcessorSpec qaStore{ "internal-dpl-qa-store",
+                             {},
+                             {},
+                             fakeCallback };
+  DataProcessorSpec timer{ "internal-dpl-clock",
+                           {},
+                           {},
+                           fakeCallback };
+
+  for (size_t wi = 0; wi < workflow.size(); ++wi) {
+    auto& consumer = workflow[wi];
+    for (size_t ii = 0; ii < consumer.inputs.size(); ++ii) {
+      auto& input = consumer.inputs[ii];
+      OutputSpec output{ input.origin,
+                         input.description,
+                         input.subSpec,
+                         input.lifetime };
+      switch (input.lifetime) {
+        case Lifetime::Timer:
+          timer.outputs.push_back(output);
+          break;
+        case Lifetime::Condition:
+        case Lifetime::QA:
+        case Lifetime::Transient:
+        case Lifetime::Timeframe:
+          break;
+      }
+    }
+  }
+
+  if (ccdbBackend.outputs.empty() == false) {
+    workflow.push_back(ccdbBackend);
+  }
+  if (transientStore.outputs.empty() == false) {
+    workflow.push_back(transientStore);
+  }
+  if (qaStore.outputs.empty() == false) {
+    workflow.push_back(qaStore);
+  }
+  if (timer.outputs.empty() == false) {
+    workflow.push_back(timer);
+  }
+  /// This will inject a file sink so that any dangling
+  /// output is actually written to it.
+  auto danglingOutputsInputs = computeDanglingOutputs(workflow);
+
+  std::vector<InputSpec> unmatched;
+  if (danglingOutputsInputs.size() > 0) {
+    auto fileSink = CommonDataProcessors::getGlobalFileSink(danglingOutputsInputs, unmatched);
+    if (unmatched.size() != danglingOutputsInputs.size()) {
+      workflow.push_back(fileSink);
+    }
+  }
+  if (unmatched.size() > 0) {
+    workflow.push_back(CommonDataProcessors::getDummySink(unmatched));
+  }
 }
 
 void
@@ -128,7 +225,7 @@ WorkflowHelpers::constructGraph(const WorkflowSpec &workflow,
     auto &input = workflow[ci].inputs[ii];
     auto matcher = [&input, &constOutputs](const LogicalOutputInfo &outputInfo) -> bool {
       auto &output = constOutputs[outputInfo.outputGlobalIndex];
-      return matchDataSpec2Channel(input, outputSpec2LogicalChannel(output));
+      return intersect(LogicalChannelDomain(input), LogicalChannelRange(output));
     };
     oif = std::find_if(availableOutputsInfo.begin(),
                        availableOutputsInfo.end(),
@@ -150,7 +247,7 @@ WorkflowHelpers::constructGraph(const WorkflowSpec &workflow,
     auto &input = workflow[ci].inputs[ii];
     auto matcher = [&input, &constOutputs](const LogicalOutputInfo &outputInfo) -> bool {
       auto &output = constOutputs[outputInfo.outputGlobalIndex];
-      return matchDataSpec2Channel(input, outputSpec2LogicalChannel(output));
+      return intersect(LogicalChannelDomain(input), LogicalChannelRange(output));
     };
     oif = availableOutputsInfo.erase(oif);
     oif = std::find_if(oif, availableOutputsInfo.end(), matcher);
@@ -202,8 +299,8 @@ WorkflowHelpers::constructGraph(const WorkflowSpec &workflow,
   auto errorDueToMissingOutputFor = [&workflow](size_t ci, size_t ii) {
     auto input = workflow[ci].inputs[ii];
     std::ostringstream str;
-    str << "No matching output found for " << input.origin.str << " "
-        << input.description.str << " "
+    str << "No matching output found for " << input.origin.as<std::string>() << " "
+        << input.description.as<std::string>() << " "
         << input.subSpec << "\n";
     throw std::runtime_error(str.str());
   };
@@ -368,8 +465,10 @@ WorkflowHelpers::verifyWorkflow(const o2::framework::WorkflowSpec &workflow) {
   {
     if (spec.name.empty())
       throw std::runtime_error("Invalid DataProcessorSpec name");
-    if (validNames.find(spec.name) != validNames.end())
+    if (validNames.find(spec.name) != validNames.end()) {
       throw std::runtime_error("Name " + spec.name + " is used twice.");
+    }
+    validNames.insert(spec.name);
     for (auto &option : spec.options) {
       if (option.defaultValue.type() != VariantType::Empty &&
           option.type != option.defaultValue.type()) {
@@ -391,6 +490,63 @@ WorkflowHelpers::verifyWorkflow(const o2::framework::WorkflowSpec &workflow) {
       }
     }
   }
+}
+
+struct UnifiedDataSpecType {
+  header::DataOrigin origin;
+  header::DataDescription description;
+  uint64_t subSpec;
+  int isOutput;
+};
+
+std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec const& workflow)
+{
+  std::vector<UnifiedDataSpecType> tmp;
+  std::vector<InputSpec> results;
+
+  for (auto& spec : workflow) {
+    for (auto& input : spec.inputs) {
+      tmp.push_back({ input.origin, input.description, input.subSpec, 0 });
+    }
+    for (auto& output : spec.outputs) {
+      tmp.push_back({ output.origin, output.description, output.subSpec, 1 });
+    }
+  }
+
+  auto cmp = [](UnifiedDataSpecType const& lhs, UnifiedDataSpecType const& rhs) -> bool {
+    return std::tie(lhs.origin, lhs.description, lhs.subSpec, lhs.isOutput) <
+           std::tie(rhs.origin, rhs.description, rhs.subSpec, rhs.isOutput);
+  };
+  std::sort(tmp.begin(), tmp.end(), cmp);
+
+  // Once sorted, all the transitions which begin with an output
+  // mean there was no input.
+  bool isFirst = true;
+  UnifiedDataSpecType last;
+  int i = 0;
+  for (auto& unified : tmp) {
+    if (last.origin != unified.origin ||
+        last.description != unified.description ||
+        last.subSpec != unified.subSpec) {
+      isFirst = true;
+      last = unified;
+    }
+    if (isFirst && unified.isOutput == 0) {
+      isFirst = false;
+      continue;
+    }
+    if (isFirst && unified.isOutput == 1) {
+      isFirst = false;
+      char buf[64];
+      results.push_back(InputSpec{ (snprintf(buf, 64, "dangling%d", i), buf), unified.origin,
+                                   unified.description, unified.subSpec });
+      ++i;
+      continue;
+    }
+    assert(isFirst == false);
+  }
+
+  return results;
 }
 
 } // namespace framwork

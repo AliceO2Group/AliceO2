@@ -8,24 +8,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/* Local Variables:  */
+/* mode: c++         */
+/* End:              */
+
 #ifndef DATADEFLATER_H
 #define DATADEFLATER_H
-//****************************************************************************
-//* This file is free software: you can redistribute it and/or modify        *
-//* it under the terms of the GNU General Public License as published by     *
-//* the Free Software Foundation, either version 3 of the License, or        *
-//* (at your option) any later version.                                      *
-//*                                                                          *
-//* Primary Authors: Matthias Richter <richterm@scieq.net>                   *
-//*                                                                          *
-//* The authors make no claims about the suitability of this software for    *
-//* any purpose. It is provided "as is" without express or implied warranty. *
-//****************************************************************************
 
-//  @file   DataDeflater.h
-//  @author Matthias Richter
-//  @since  2016-08-08
-//  @brief  A general data deflater
+/// @file   DataDeflater.h
+/// @author Matthias Richter
+/// @since  2016-08-08
+/// @brief  A general data deflater
 
 #include <cstdint>
 #include <cerrno>
@@ -189,7 +182,7 @@ class DataDeflater
   Codec mCodec;
 };
 
-}; // namespace data_compression
-}; // namespace o2
+} // namespace data_compression
+} // namespace o2
 
 #endif

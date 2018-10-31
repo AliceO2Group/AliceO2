@@ -12,28 +12,30 @@ set(MODULE_NAME "TPCWorkflow")
 set(MODULE_BUCKET_NAME TPC_workflow_bucket)
 
 O2_SETUP(NAME ${MODULE_NAME})
-#set(SRCS
-#   )
+set(SRCS
+   src/RecoWorkflow.cxx
+   src/DigitReaderSpec.cxx
+   src/ClusterReaderSpec.cxx
+   src/ClustererSpec.cxx
+   src/ClusterConverterSpec.cxx
+   src/ClusterDecoderRawSpec.cxx
+   src/CATrackerSpec.cxx
+   src/RootFileWriterSpec.cxx
+   )
 
 ## TODO: feature of macro, it deletes the variables we pass to it, set them again
 ## this has to be fixed in the macro implementation
 set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME ${MODULE_BUCKET_NAME})
 
-#O2_GENERATE_LIBRARY()
+O2_GENERATE_LIBRARY()
 
 O2_GENERATE_EXECUTABLE(
   EXE_NAME tpc-reco-workflow
 
   SOURCES
   src/tpc-reco-workflow.cxx
-  src/DigitReaderSpec.cxx
-  src/ClusterReaderSpec.cxx
-  src/ClustererSpec.cxx
-  src/ClusterConverterSpec.cxx
-  src/ClusterDecoderRawSpec.cxx
-  src/CATrackerSpec.cxx
-  src/RootFileWriterSpec.cxx
 
-  BUCKET_NAME ${MODULE_BUCKET_NAME}
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${BUCKET_NAME}
 )

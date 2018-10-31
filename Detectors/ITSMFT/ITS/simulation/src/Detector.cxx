@@ -243,7 +243,7 @@ Detector& Detector::operator=(const Detector& rhs)
   return *this;
 }
 
-void Detector::Initialize()
+void Detector::InitializeO2Detector()
 {
   // Define the list of sensitive volumes
   defineSensitiveVolumes();
@@ -253,9 +253,6 @@ void Detector::Initialize()
   }
 
   mGeometryTGeo = GeometryTGeo::Instance();
-
-  FairDetector::Initialize();
-
   //  FairRuntimeDb* rtdb= FairRun::Instance()->GetRuntimeDb();
   //  O2itsGeoPar* par=(O2itsGeoPar*)(rtdb->getContainer("O2itsGeoPar"));
 }
@@ -543,8 +540,7 @@ void Detector::defineWrapperVolume(Int_t id, Double_t rmin, Double_t rmax, Doubl
 {
   // set parameters of id-th wrapper volume
   if (id >= sNumberOfWrapperVolumes || id < 0) {
-    LOG(FATAL) << "id " << id << " of wrapper volume is not in 0-" << sNumberOfWrapperVolumes - 1 << " range"
-               << FairLogger::endl;
+    LOG(FATAL) << "id " << id << " of wrapper volume is not in 0-" << sNumberOfWrapperVolumes - 1 << " range";
   }
 
   mWrapperMinRadius[id] = rmin;
@@ -573,11 +569,10 @@ void Detector::defineLayer(Int_t nlay, double phi0, Double_t r, Int_t nstav, Int
   //   none.
 
   LOG(INFO) << "L# " << nlay << " Phi:" << phi0 << " R:" << r << " Nst:" << nstav << " Nunit:" << nunit
-            << " Lthick:" << lthick << " Dthick:" << dthick << " DetID:" << dettypeID << " B:" << buildLevel
-            << FairLogger::endl;
+            << " Lthick:" << lthick << " Dthick:" << dthick << " DetID:" << dettypeID << " B:" << buildLevel;
 
   if (nlay >= sNumberLayers || nlay < 0) {
-    LOG(ERROR) << "Wrong layer number " << nlay << FairLogger::endl;
+    LOG(ERROR) << "Wrong layer number " << nlay;
     return;
   }
 
@@ -617,10 +612,10 @@ void Detector::defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Int_t nst
 
   LOG(INFO) << "L# " << nlay << " Phi:" << phi0 << " R:" << r << " Nst:" << nstav << " Nunit:" << nunit
             << " W:" << width << " Tilt:" << tilt << " Lthick:" << lthick << " Dthick:" << dthick
-            << " DetID:" << dettypeID << " B:" << buildLevel << FairLogger::endl;
+            << " DetID:" << dettypeID << " B:" << buildLevel;
 
   if (nlay >= sNumberLayers || nlay < 0) {
-    LOG(ERROR) << "Wrong layer number " << nlay << FairLogger::endl;
+    LOG(ERROR) << "Wrong layer number " << nlay;
     return;
   }
 
@@ -658,7 +653,7 @@ void Detector::getLayerParameters(Int_t nlay, Double_t& phi0, Double_t& r, Int_t
   //   none.
 
   if (nlay >= sNumberLayers || nlay < 0) {
-    LOG(ERROR) << "Wrong layer number " << nlay << FairLogger::endl;
+    LOG(ERROR) << "Wrong layer number " << nlay;
     return;
   }
 
@@ -711,7 +706,7 @@ void Detector::constructDetectorGeometry()
   TGeoVolume* vALIC = geoManager->GetVolume("cave");
 
   if (!vALIC) {
-    LOG(FATAL) << "Could not find the top volume" << FairLogger::endl;
+    LOG(FATAL) << "Could not find the top volume";
   }
 
   new TGeoVolumeAssembly(GeometryTGeo::getITSVolPattern());
@@ -725,36 +720,36 @@ void Detector::constructDetectorGeometry()
   // Check that we have all needed parameters
   for (Int_t j = 0; j < sNumberLayers; j++) {
     if (mLayerRadii[j] <= 0) {
-      LOG(FATAL) << "Wrong layer radius for layer " << j << "(" << mLayerRadii[j] << ")" << FairLogger::endl;
+      LOG(FATAL) << "Wrong layer radius for layer " << j << "(" << mLayerRadii[j] << ")";
     }
     if (mStavePerLayer[j] <= 0) {
-      LOG(FATAL) << "Wrong number of staves for layer " << j << "(" << mStavePerLayer[j] << ")" << FairLogger::endl;
+      LOG(FATAL) << "Wrong number of staves for layer " << j << "(" << mStavePerLayer[j] << ")";
     }
     if (mUnitPerStave[j] <= 0) {
-      LOG(FATAL) << "Wrong number of chips for layer " << j << "(" << mUnitPerStave[j] << ")" << FairLogger::endl;
+      LOG(FATAL) << "Wrong number of chips for layer " << j << "(" << mUnitPerStave[j] << ")";
     }
     if (mChipThickness[j] < 0) {
-      LOG(FATAL) << "Wrong chip thickness for layer " << j << "(" << mChipThickness[j] << ")" << FairLogger::endl;
+      LOG(FATAL) << "Wrong chip thickness for layer " << j << "(" << mChipThickness[j] << ")";
     }
     if (mTurboLayer[j] && mStaveWidth[j] <= 0) {
-      LOG(FATAL) << "Wrong stave width for layer " << j << "(" << mStaveWidth[j] << ")" << FairLogger::endl;
+      LOG(FATAL) << "Wrong stave width for layer " << j << "(" << mStaveWidth[j] << ")";
     }
     if (mDetectorThickness[j] < 0) {
-      LOG(FATAL) << "Wrong Sensor thickness for layer " << j << "(" << mDetectorThickness[j] << ")" << FairLogger::endl;
+      LOG(FATAL) << "Wrong Sensor thickness for layer " << j << "(" << mDetectorThickness[j] << ")";
     }
 
     if (j > 0) {
       if (mLayerRadii[j] <= mLayerRadii[j - 1]) {
         LOG(FATAL) << "Layer " << j << " radius (" << mLayerRadii[j] << ") is smaller than layer " << j - 1
-                   << " radius (" << mLayerRadii[j - 1] << ")" << FairLogger::endl;
+                   << " radius (" << mLayerRadii[j - 1] << ")";
       }
     }
 
     if (mChipThickness[j] == 0) {
-      LOG(INFO) << "Chip thickness for layer " << j << " not set, using default" << FairLogger::endl;
+      LOG(INFO) << "Chip thickness for layer " << j << " not set, using default";
     }
     if (mDetectorThickness[j] == 0) {
-      LOG(INFO) << "Sensor thickness for layer " << j << " not set, using default" << FairLogger::endl;
+      LOG(INFO) << "Sensor thickness for layer " << j << " not set, using default";
     }
   }
 
@@ -795,7 +790,7 @@ void Detector::constructDetectorGeometry()
       mGeometry[j]->setStaveModel(mStaveModelOuterBarrel);
     }
 
-    LOG(DEBUG1) << "mBuildLevel: " << mBuildLevel[j] << FairLogger::endl;
+    LOG(DEBUG1) << "mBuildLevel: " << mBuildLevel[j];
 
     if (mChipThickness[j] != 0) {
       mGeometry[j]->setChipThick(mChipThickness[j]);
@@ -806,7 +801,7 @@ void Detector::constructDetectorGeometry()
 
     for (int iw = 0; iw < sNumberOfWrapperVolumes; iw++) {
       if (mLayerRadii[j] > mWrapperMinRadius[iw] && mLayerRadii[j] < mWrapperMaxRadius[iw]) {
-        LOG(INFO) << "Will embed layer " << j << " in wrapper volume " << iw << FairLogger::endl;
+        LOG(DEBUG) << "Will embed layer " << j << " in wrapper volume " << iw;
 
         dest = wrapVols[iw];
         mWrapperLayerId[j] = iw;
@@ -866,20 +861,20 @@ void Detector::addAlignableVolumes() const
   // Created:      06 Mar 2018  Mario Sitta First version (mainly ported from AliRoot)
   //
 
-  LOG(INFO) << "Add ITS alignable volumes" << FairLogger::endl;
+  LOG(INFO) << "Add ITS alignable volumes";
 
   if (!gGeoManager) {
-    LOG(FATAL) << "TGeoManager doesn't exist !" << FairLogger::endl;
+    LOG(FATAL) << "TGeoManager doesn't exist !";
     return;
   }
 
   TString path = Form("/cave_1/%s_2", GeometryTGeo::getITSVolPattern());
   TString sname = GeometryTGeo::composeSymNameITS();
 
-  LOG(DEBUG) << sname << " <-> " << path << FairLogger::endl;
+  LOG(DEBUG) << sname << " <-> " << path;
 
   if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data()))
-    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path << FairLogger::endl;
+    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
 
   Int_t lastUID = 0;
   for (Int_t lr = 0; lr < sNumberLayers; lr++)
@@ -901,10 +896,10 @@ void Detector::addAlignableVolumesLayer(int lr, TString& parent, Int_t& lastUID)
   TString path = Form("%s/%s/%s%d_1", parent.Data(), wrpV.Data(), GeometryTGeo::getITSLayerPattern(), lr);
   TString sname = GeometryTGeo::composeSymNameLayer(lr);
 
-  LOG(DEBUG) << "Add " << sname << " <-> " << path << FairLogger::endl;
+  LOG(DEBUG) << "Add " << sname << " <-> " << path;
 
   if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data()))
-    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path << FairLogger::endl;
+    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
 
   const V3Layer* lrobj = mGeometry[lr];
   Int_t nstaves = lrobj->getNumberOfStavesPerParent();
@@ -925,10 +920,10 @@ void Detector::addAlignableVolumesStave(Int_t lr, Int_t st, TString& parent, Int
   TString path = Form("%s/%s%d_%d", parent.Data(), GeometryTGeo::getITSStavePattern(), lr, st);
   TString sname = GeometryTGeo::composeSymNameStave(lr, st);
 
-  LOG(DEBUG) << "Add " << sname << " <-> " << path << FairLogger::endl;
+  LOG(DEBUG) << "Add " << sname << " <-> " << path;
 
   if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data()))
-    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path << FairLogger::endl;
+    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
 
   const V3Layer* lrobj = mGeometry[lr];
   Int_t nhstave = lrobj->getNumberOfHalfStavesPerParent();
@@ -952,10 +947,10 @@ void Detector::addAlignableVolumesHalfStave(Int_t lr, Int_t st, Int_t hst, TStri
     path = Form("%s/%s%d_%d", parent.Data(), GeometryTGeo::getITSHalfStavePattern(), lr, hst);
     TString sname = GeometryTGeo::composeSymNameHalfStave(lr, st, hst);
 
-    LOG(DEBUG) << "Add " << sname << " <-> " << path << FairLogger::endl;
+    LOG(DEBUG) << "Add " << sname << " <-> " << path;
 
     if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data()))
-      LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path << FairLogger::endl;
+      LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
   }
 
   const V3Layer* lrobj = mGeometry[lr];
@@ -980,10 +975,10 @@ void Detector::addAlignableVolumesModule(Int_t lr, Int_t st, Int_t hst, Int_t md
     path = Form("%s/%s%d_%d", parent.Data(), GeometryTGeo::getITSModulePattern(), lr, md);
     TString sname = GeometryTGeo::composeSymNameModule(lr, st, hst, md);
 
-    LOG(DEBUG) << "Add " << sname << " <-> " << path << FairLogger::endl;
+    LOG(DEBUG) << "Add " << sname << " <-> " << path;
 
     if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data()))
-      LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path << FairLogger::endl;
+      LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
   }
 
   const V3Layer* lrobj = mGeometry[lr];
@@ -1007,10 +1002,10 @@ void Detector::addAlignableVolumesChip(Int_t lr, Int_t st, Int_t hst, Int_t md, 
   TString sname = GeometryTGeo::composeSymNameChip(lr, st, hst, md, ch);
   Int_t modUID = chipVolUID(lastUID++);
 
-  LOG(DEBUG) << "Add " << sname << " <-> " << path << FairLogger::endl;
+  LOG(DEBUG) << "Add " << sname << " <-> " << path;
 
   if (!gGeoManager->SetAlignableEntry(sname, path.Data(), modUID))
-    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path << FairLogger::endl;
+    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
 
   return;
 }
@@ -1086,8 +1081,6 @@ void Detector::Read(std::istream* is)
   // RS no need to read garbage
   return;
 }
-
-FairModule* Detector::CloneModule() const { return new Detector(*this); }
 
 std::ostream& operator<<(std::ostream& os, Detector& p)
 {

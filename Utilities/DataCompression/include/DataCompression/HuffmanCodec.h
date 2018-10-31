@@ -8,26 +8,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//-*- Mode: C++ -*-
+/* Local Variables:  */
+/* mode: c++         */
+/* End:              */
 
 #ifndef HUFFMANCODEC_H
 #define HUFFMANCODEC_H
-//****************************************************************************
-//* This file is free software: you can redistribute it and/or modify        *
-//* it under the terms of the GNU General Public License as published by     *
-//* the Free Software Foundation, either version 3 of the License, or        *
-//* (at your option) any later version.                                      *
-//*                                                                          *
-//* Primary Authors: Matthias Richter <richterm@scieq.net>                   *
-//*                                                                          *
-//* The authors make no claims about the suitability of this software for    *
-//* any purpose. It is provided "as is" without express or implied warranty. *
-//****************************************************************************
 
-//  @file   HuffmanCodec.h
-//  @author Matthias Richter
-//  @since  2016-08-11
-//  @brief  Implementation of a Huffman codec
+/// @file   HuffmanCodec.h
+/// @author Matthias Richter
+/// @since  2016-08-11
+/// @brief  Implementation of a Huffman codec
 
 #include <cstdint>
 #include <cerrno>
@@ -40,8 +31,11 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream> // stringstream in configuration parsing
+#include "CommonUtils/CompStream.h"
 
 namespace o2
+{
+namespace data_compression
 {
 
 /**
@@ -70,8 +64,7 @@ class HuffmanNode
     : mLeft(), mRight(), mWeight(weight), mIndex(index), mCode(), mCodeLen(0)
   {
   }
-  // TODO: check if the shared pointers can be passed by reference
-  // quick attempt lead to compilation error
+
   HuffmanNode(shared_pointer left, shared_pointer right)
     : mLeft(left),
       mRight(right),
@@ -97,6 +90,7 @@ class HuffmanNode
     mCodeLen = codeLen;
   }
 
+  // insert bit at LSB
   self_type& operator<<=(bool bit)
   {
     mCode <<= 1;
@@ -109,6 +103,7 @@ class HuffmanNode
     return *this;
   }
 
+  // insert bit at MSB
   self_type& operator>>=(bool bit)
   {
     if (bit) {
@@ -168,29 +163,60 @@ template <typename _CodingModel>
 class HuffmanCodec
 {
  public:
+  using model_type = _CodingModel;
+  using value_type = typename model_type::value_type;
+  using code_type = typename model_type::code_type;
+
   HuffmanCodec() = delete; // forbidden
-  HuffmanCodec(const _CodingModel& model) : mCodingModel(model) {}
+  HuffmanCodec(const model_type& model) : mCodingModel(model) {}
   ~HuffmanCodec() {}
 
-  using model_type = _CodingModel;
-
-  /// Return Huffman code for a value
-  template <typename CodeType, typename ValueType>
-  const bool Encode(ValueType v, CodeType& code, uint16_t& codeLength) const
+  /// Encode a value and return Huffman code and code lenght
+  /// @param v          value to be encoded
+  /// @param code       [out] returned code
+  /// @param codeLength [out] length of the returned code
+  template <typename ValueType>
+  const bool Encode(ValueType v, code_type& code, uint16_t& codeLength) const
   {
     code = mCodingModel.Encode(v, codeLength);
     return true;
   }
 
-  template <typename ReturnType, typename CodeType, bool orderMSB = true>
-  bool Decode(ReturnType& v, CodeType code, uint16_t& codeLength) const
+  /// Decode a value
+  /// @param v          [out] decoded value
+  /// @param code       [in] code to be processed
+  /// @param codeLength [out] length of the processed code
+  template <typename ReturnType>
+  bool Decode(ReturnType& v, code_type code, uint16_t& codeLength) const
   {
     v = mCodingModel.Decode(code, codeLength);
     return true;
   }
 
+  /// Get the underlying coding model
+  model_type const& getCodingModel() const
+  {
+    return mCodingModel;
+  }
+
+  /// Load configuration from file
+  ///
+  /// Text file can be in compressed format, supported methods: gzip, zlib, bzip2, and lzma
+  int loadConfiguration(const char* filename, std::string method = "zlib")
+  {
+    return mCodingModel.read(filename, method);
+  }
+
+  /// Write configuration to file
+  ///
+  /// Can be written in compressed format, supported methods: gzip, zlib, bzip2, and lzma
+  int writeConfiguration(const char* filename, std::string method = "zlib") const
+  {
+    return mCodingModel.write(filename, method);
+  }
+
  private:
-  _CodingModel mCodingModel;
+  model_type mCodingModel;
 };
 
 /**
@@ -209,7 +235,7 @@ class HuffmanCodec
  * - class StorageType as template parameter for Alphabet type
  * - error policy
  */
-template <typename _BASE, typename _NodeType, bool _orderMSB = true>
+template <typename _BASE, typename Rep, bool orderMSB = true>
 class HuffmanModel : public _BASE
 {
  public:
@@ -217,10 +243,10 @@ class HuffmanModel : public _BASE
   ~HuffmanModel() {}
 
   using base_type = _BASE;
-  using self_type = class HuffmanModel<_BASE, _NodeType>;
+  using code_type = Rep;
+  using node_type = HuffmanNode<code_type>;
   using value_type = typename _BASE::value_type;
-  using code_type = typename _NodeType::CodeType;
-  static constexpr bool orderMSB = _orderMSB;
+  static constexpr bool OrderMSB = orderMSB;
 
   int init(double v = 1.) { return _BASE::initWeight(mAlphabet, v); }
 
@@ -272,7 +298,7 @@ class HuffmanModel : public _BASE
     // the top node is the only element in the multiset after using the
     // weighted sort algorithm to build the tree, all nodes are referenced
     // from their parents in the tree.
-    const _NodeType* node = (*mTreeNodes.begin()).get();
+    const node_type* node = (*mTreeNodes.begin()).get();
     uint16_t codeMSB = code.size() - 1;
     while (node) {
       // N.B.: nodes have either both child nodes or none of them
@@ -289,7 +315,7 @@ class HuffmanModel : public _BASE
         break;
       }
       bool bit = false;
-      if (orderMSB) {
+      if (OrderMSB) {
         bit = code.test(codeMSB - codeLength);
       } else {
         bit = code.test(codeLength);
@@ -354,7 +380,7 @@ class HuffmanModel : public _BASE
     _BASE& model = *this;
     for (auto i : model) {
       // create nodes knowing about their index and the symbol weight
-      mLeaveNodes.push_back(std::make_shared<_NodeType>(i.second, _BASE::alphabet_type::getIndex(i.first)));
+      mLeaveNodes.push_back(std::make_shared<node_type>(i.second, _BASE::alphabet_type::getIndex(i.first)));
     }
 
     // insert pointer to nodes into ordered structure to build tree
@@ -365,7 +391,7 @@ class HuffmanModel : public _BASE
     }
     while (mTreeNodes.size() > 1) {
       // create new node combining the two with lowest probability
-      std::shared_ptr<_NodeType> combinedNode = std::make_shared<_NodeType>(*mTreeNodes.begin(), *++mTreeNodes.begin());
+      std::shared_ptr<node_type> combinedNode = std::make_shared<node_type>(*mTreeNodes.begin(), *++mTreeNodes.begin());
       // remove those two nodes from the list
       mTreeNodes.erase(mTreeNodes.begin());
       mTreeNodes.erase(mTreeNodes.begin());
@@ -382,7 +408,7 @@ class HuffmanModel : public _BASE
   /**
    * assign code to this node loop to right and left nodes
    *
-   * Code direction is determined by template parameter _orderMSB being either
+   * Code direction is determined by template parameter orderMSB being either
    * true or false.
    * Code can be built up in two directions, either with the bit of the parent
    * node in the MSB or LSB. In the latter case, the bit of the parent node
@@ -393,7 +419,7 @@ class HuffmanModel : public _BASE
    *
    * TODO: implement iterator concept
    */
-  int assignCode(_NodeType* node)
+  int assignCode(node_type* node)
   {
     if (node == nullptr) {
       return 0;
@@ -402,7 +428,7 @@ class HuffmanModel : public _BASE
     int retcodelen = codelen;
     if (node->getLeftChild()) { // bit '1' branch
       code_type c = node->getBinaryCode();
-      if (orderMSB) { // note: this is a compile time switch
+      if (OrderMSB) { // note: this is a compile time switch
         c <<= 1;
         c.set(0);
       } else {
@@ -415,7 +441,7 @@ class HuffmanModel : public _BASE
     }
     if (node->getRightChild()) { // bit '0' branch
       code_type c = node->getBinaryCode();
-      if (orderMSB) {
+      if (OrderMSB) {
         c <<= 1;
         c.reset(0);
       } else {
@@ -430,18 +456,45 @@ class HuffmanModel : public _BASE
   }
 
   /**
-   * @brief Write Huffman table in self-consistent format.
+   * @brief Write Huffman table to file.
+   *
+   * The file can be compressed on-the-fly, supported methods:
+   * gzip, zlib, bzip2, and lzma
+   *
+   * Configuration is written in self-consistent text file format.
    */
-  int write(std::ostream& out)
+  int write(const char* filename, std::string method = "zlib") const
+  {
+    o2::io::ocomp_stream out(filename, method);
+    return write(out);
+  }
+
+  /**
+   * @brief Write Huffman table in self-consistent format to an output stream
+   */
+  int write(std::ostream& out) const
   {
     if (mTreeNodes.size() == 0) {
       return 0;
     }
-    return write(out, (*mTreeNodes.begin()).get(), 0);
+    return write(out, (*mTreeNodes.begin()).get());
   }
 
   /**
    * @brief Read configuration from file
+   *
+   * Read configuration text file, can be in compressed format, supported
+   * methods: gzip, zlib, bzip2, and lzma
+   */
+  int read(const char* filename, std::string method = "zlib")
+  {
+    o2::io::icomp_stream in(filename, method);
+    return read(in);
+  }
+
+  /**
+   * @brief Read configuration from stream
+   * The previous configuration is discarded.
    *
    * The text file contains a self-consistent representatio of the Huffman tree,
    * one node definition per line. Each node has an index (corresponding to the
@@ -460,12 +513,6 @@ class HuffmanModel : public _BASE
       treeNodeConfiguration(int _index, int _left, int _right) : index(_index), left(_left), right(_right) {}
       int index, left, right;
       bool operator<(const treeNodeConfiguration& other) const { return index < other.index; }
-      struct less {
-        bool operator()(const treeNodeConfiguration& a, const treeNodeConfiguration& b) const
-        {
-          return a.index < b.index;
-        }
-      };
     };
     std::set<treeNodeConfiguration> treeNodeConfigurations;
     char firstChar = 0;
@@ -507,7 +554,7 @@ class HuffmanModel : public _BASE
         if (mLeaveNodes.size() < symbolIndex + 1) {
           mLeaveNodes.resize(symbolIndex + 1);
         }
-        mLeaveNodes[symbolIndex] = std::make_shared<_NodeType>(weight, symbolIndex);
+        mLeaveNodes[symbolIndex] = std::make_shared<node_type>(weight, symbolIndex);
         std::stringstream ps(parameters);
         uint16_t codeLen = 0;
         ps >> codeLen;
@@ -521,9 +568,9 @@ class HuffmanModel : public _BASE
       }
       nodeIndices.insert(lineNo);
     }
-    std::map<int, std::shared_ptr<_NodeType>> treeNodes;
+    std::map<int, std::shared_ptr<node_type>> treeNodes;
     for (auto conf : treeNodeConfigurations) {
-      std::shared_ptr<_NodeType> left_local;
+      std::shared_ptr<node_type> left_local;
       auto ln = leaveNodeMap.find(conf.left);
       if (ln != leaveNodeMap.end()) {
         left_local = mLeaveNodes[ln->second];
@@ -537,7 +584,7 @@ class HuffmanModel : public _BASE
         left_local = tn->second;
         treeNodes.erase(tn);
       }
-      std::shared_ptr<_NodeType> right_local;
+      std::shared_ptr<node_type> right_local;
       auto rn = leaveNodeMap.find(conf.right);
       if (rn != leaveNodeMap.end()) {
         right_local = mLeaveNodes[rn->second];
@@ -552,7 +599,7 @@ class HuffmanModel : public _BASE
         treeNodes.erase(tn);
       }
       // make combined node shared ptr and add to map
-      treeNodes[conf.index] = std::make_shared<_NodeType>(left_local, right_local);
+      treeNodes[conf.index] = std::make_shared<node_type>(left_local, right_local);
     }
     if (leaveNodeMap.size() != 0 || treeNodes.size() != 1) {
       std::cerr << "error: " << leaveNodeMap.size() << " unhandled leave node(s)"
@@ -565,7 +612,7 @@ class HuffmanModel : public _BASE
   void print() const
   {
     if (mTreeNodes.size() > 0) {
-      _NodeType* topNode = (*mTreeNodes.begin()).get();
+      node_type* topNode = (*mTreeNodes.begin()).get();
       if (topNode) {
         topNode->print();
       } else {
@@ -582,7 +629,7 @@ class HuffmanModel : public _BASE
    * leave of each branch and then the corresponding parent tree nodes.
    */
   template <typename NodeType>
-  int write(std::ostream& out, NodeType* node, int nodeIndex) const
+  int write(std::ostream& out, NodeType* node, int nodeIndex = 0) const
   {
     if (!node) {
       return nodeIndex;
@@ -590,7 +637,7 @@ class HuffmanModel : public _BASE
     const _BASE& model = *this;
     NodeType* left = node->getLeftChild();
     NodeType* right = node->getRightChild();
-    if (left == NULL) {
+    if (left == nullptr) {
       typename _BASE::value_type value = _BASE::alphabet_type::getSymbol(node->getIndex());
       out << nodeIndex << " " << value << " " << model[value] << " " << node->getBinaryCodeLength() << " "
           << node->getBinaryCode() << std::endl;
@@ -605,11 +652,12 @@ class HuffmanModel : public _BASE
   // the alphabet, determined by template parameter
   typename _BASE::alphabet_type mAlphabet;
   // Huffman leave nodes containing symbol index to code mapping
-  std::vector<std::shared_ptr<_NodeType>> mLeaveNodes;
+  std::vector<std::shared_ptr<node_type>> mLeaveNodes;
   // multiset, order determined by less functor working on pointers
-  std::multiset<std::shared_ptr<_NodeType>, isless<std::shared_ptr<_NodeType>>> mTreeNodes;
+  std::multiset<std::shared_ptr<node_type>, isless<std::shared_ptr<node_type>>> mTreeNodes;
 };
 
-}; // namespace o2
+} // namespace data_compression
+} // namespace o2
 
 #endif

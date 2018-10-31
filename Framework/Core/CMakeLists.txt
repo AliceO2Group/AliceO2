@@ -14,16 +14,17 @@ set(MODULE_BUCKET_NAME O2FrameworkCore_bucket)
 
 O2_SETUP(NAME ${MODULE_NAME})
 if (GLFW_FOUND)
-  set(GUI_SOURCES src/FrameworkGUIDebugger.cxx
-                  src/FrameworkGUIDevicesGraph.cxx
-                  src/PaletteHelpers.cxx)
+  set(GUI_SOURCES src/FrameworkGUIDebugger.cxx)
 else()
-  set(GUI_SOURCES src/FrameworkDummyDebugger.cxx src/DummyDebugGUI.cxx)
+  set(GUI_SOURCES src/FrameworkDummyDebugger.cxx)
 endif()
 
 set(SRCS
     src/BoostOptionsRetriever.cxx
     src/ConfigParamsHelper.cxx
+    src/CompletionPolicy.cxx
+    src/ChannelSpecHelpers.cxx
+    src/CompletionPolicyHelpers.cxx
     src/ChannelConfigurationPolicy.cxx
     src/ChannelConfigurationPolicyHelpers.cxx
     src/DataAllocator.cxx
@@ -32,32 +33,48 @@ set(SRCS
     src/DataProcessor.cxx
     src/DataRelayer.cxx
     src/DataSampling.cxx
+    src/DataSamplingConditionRandom.cxx
+    src/DataSamplingConditionPayloadSize.cxx
+    src/DataSamplingConditionNConsecutive.cxx
+    src/DataSamplingConditionFactory.cxx
+    src/DataSamplingReadoutAdapter.cxx
+    src/DataSamplingPolicy.cxx
     src/DataSourceDevice.cxx
     src/DeviceMetricsInfo.cxx
     src/DeviceSpec.cxx
     src/DeviceSpecHelpers.cxx
     src/DDSConfigHelpers.cxx
-    src/DispatcherDPL.cxx
-    src/DispatcherFairMQ.cxx
-    src/DispatcherFlpProto.cxx
+    src/Dispatcher.cxx
     src/DriverControl.cxx
     src/DriverInfo.cxx
     src/FairOptionsRetriever.cxx
+    src/FairMQDeviceProxy.cxx
+    src/FairMQResizableBuffer.cxx
     src/GraphvizHelpers.cxx
     src/InputRecord.cxx
+    src/DataDescriptorQueryBuilder.cxx
+    src/LifetimeHelpers.cxx
     src/LocalRootFileService.cxx
     src/LogParsingHelpers.cxx
     src/ExternalFairMQDeviceProxy.cxx
-    src/SimpleMetricsService.cxx
     src/SimpleResourceManager.cxx
     src/TextControlService.cxx
+    src/TableBuilder.cxx
+    src/TableConsumer.cxx
     src/WorkflowHelpers.cxx
     src/WorkflowSpec.cxx
     src/runDataProcessing.cxx
+    src/Task.cxx
     src/TMessageSerializer.cxx
     src/StreamOperators.cxx
+    src/FrameworkGUIDevicesGraph.cxx
+    src/FrameworkGUIDeviceInspector.cxx
+    src/FrameworkGUIDataRelayerUsage.cxx
+    src/PaletteHelpers.cxx
+    src/CommonDataProcessors.cxx
     ${GUI_SOURCES}
     test/TestClasses.cxx
+    src/Variant.cxx
    )
 
 set(HEADERS
@@ -65,6 +82,7 @@ set(HEADERS
       include/Framework/DataProcessor.h
       include/Framework/DataSpecUtils.h
       include/Framework/FrameworkGUIDevicesGraph.h
+      include/Framework/FrameworkGUIDataRelayerUsage.h
       include/Framework/DeviceMetricsInfo.h
       include/Framework/DeviceSpec.h
       include/Framework/DeviceControl.h
@@ -74,11 +92,9 @@ set(HEADERS
       include/Framework/DebugGUI.h
       include/Framework/TypeTraits.h
       include/Framework/PaletteHelpers.h
-      include/Framework/SimpleMetricsService.h
       include/Framework/ConfigParamSpec.h
       include/Framework/TMessageSerializer.h
       include/Framework/DataProcessorLabel.h
-      include/Framework/MetricsService.h
       include/Framework/LogParsingHelpers.h
       include/Framework/InputSpec.h
       include/Framework/DeviceInfo.h
@@ -104,7 +120,6 @@ set(HEADERS
       include/Framework/DataRef.h
       include/Framework/WorkflowSpec.h
       include/Framework/LocalRootFileService.h
-      include/Framework/RemoteMetricsService.h
       include/Framework/OutputSpec.h
       include/Framework/ChannelSpec.h
       include/Framework/ChannelConfigurationPolicy.h
@@ -123,9 +138,17 @@ set(HEADERS
       include/Framework/RootObjectContext.h
       include/Framework/DataProcessingDevice.h
       include/Framework/Variant.h
-      include/Framework/RootTreeReader.h
       include/Framework/CallbackRegistry.h
       include/Framework/CallbackService.h
+      include/Framework/DataSampling.h
+      include/Framework/DataSamplingCondition.h
+      include/Framework/DataSamplingConditionFactory.h
+      include/Framework/DataSamplingReadoutAdapter.h
+      include/Framework/DataSamplingPolicy.h
+      include/Framework/Dispatcher.h
+      include/Framework/DPLBoostSerializer.h
+      include/Framework/TableBuilder.h
+      include/Framework/FairMQResizableBuffer.h
       src/ComputingResource.h
       src/DDSConfigHelpers.h
       src/DeviceSpecHelpers.h
@@ -177,36 +200,65 @@ O2_GENERATE_EXECUTABLE(
 target_compile_options(Framework PUBLIC -O0 -g -fno-omit-frame-pointer)
 target_compile_options(test_SimpleDataProcessingDevice01 PUBLIC -O0 -g -fno-omit-frame-pointer)
 
-Install(FILES test/test_DataSamplingDPL.ini test/test_DataSamplingFairMQ.ini DESTINATION share/tests/)
+Install(FILES test/test_DataSampling.json DESTINATION share/tests/)
 
 set(TEST_SRCS
-      test/test_SimpleStatefulProcessing01.cxx
       test/test_AlgorithmSpec.cxx
       test/test_BoostOptionsRetriever.cxx
+      test/test_CallbackRegistry.cxx
+      test/test_CallbackService.cxx
+      test/test_ChannelSpecHelpers.cxx
+      test/test_CustomGUI.cxx
+      test/test_CompletionPolicy.cxx
+      test/test_DanglingInputs.cxx
+      test/test_DanglingOutputs.cxx
+      test/test_DataAllocator.cxx
+      test/test_DataDescriptorMatcher.cxx
+      test/test_DataProcessorSpec.cxx
+      test/test_DataRefUtils.cxx
       test/test_DataRelayer.cxx
       test/test_DataSampling.cxx
-      test/test_DataRefUtils.cxx
-      test/test_DataProcessorSpec.cxx
+      test/test_DataSamplingCondition.cxx
+      test/test_DataSamplingPolicy.cxx
       test/test_DeviceMetricsInfo.cxx
       test/test_DeviceSpec.cxx
-      test/test_FrameworkDataFlowToDDS.cxx
-      test/test_Graphviz.cxx
-      test/test_InputRecord.cxx
-      test/test_ParallelProducer.cxx
-      test/test_LogParsingHelpers.cxx
       test/test_ExternalFairMQDeviceProxy.cxx
+      test/test_FairMQResizableBuffer.cxx
+      test/test_Forwarding.cxx
+      test/test_FrameworkDataFlowToDDS.cxx
+      test/test_FairMQOptionsRetriever.cxx
+      test/test_GUITests.cxx
+      test/test_Graphviz.cxx
+      test/test_InfoLogger.cxx
+      test/test_InputRecord.cxx
+      test/test_LogParsingHelpers.cxx
+      test/test_ParallelProducer.cxx
+      test/test_PtrHelpers.cxx
       test/test_Services.cxx
+      test/test_SimpleRDataFrameProcessing.cxx
+      test/test_SimpleStatefulProcessing01.cxx
+      test/test_SimpleStringProcessing.cxx
       test/test_SingleDataSource.cxx
       test/test_SuppressionGenerator.cxx
+      test/test_TimesliceIndex.cxx
+      test/test_TMessageSerializer.cxx
+      test/test_TableBuilder.cxx
+      test/test_Task.cxx
       test/test_TimeParallelPipelining.cxx
       test/test_TypeTraits.cxx
       test/test_Variants.cxx
       test/test_WorkflowHelpers.cxx
-      test/test_TMessageSerializer.cxx
-      test/test_DataAllocator.cxx
-      test/test_RootTreeReader.cxx
-      test/test_CallbackRegistry.cxx
    )
+
+set(BENCH_SRCS 
+    test/benchmark_DataDescriptorMatcher.cxx
+    test/benchmark_DataRelayer.cxx)
+
+O2_GENERATE_TESTS(
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME O2FrameworkCore_benchmark_bucket
+  TEST_SRCS ${BENCH_SRCS}
+)
 
 O2_GENERATE_TESTS(
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
@@ -219,13 +271,13 @@ O2_GENERATE_TESTS(
 O2_GENERATE_TESTS(
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${BUCKET_NAME}
-  TIMEOUT 30
+  TIMEOUT 60
 
   TEST_SRCS
-  test/test_WorkflowOptions.cxx
+  test/test_ProcessorOptions.cxx
 
   COMMAND_LINE_ARGS
   --global-config require-me
   # Note: the group switch makes process consumer parse only the group arguments
-  --consumer "--global-config require-me --local-option hello-aliceo2"
+  --consumer "--global-config consumer-config --local-option hello-aliceo2 --a-boolean3 --an-int2 20 --a-double2 22."
 )

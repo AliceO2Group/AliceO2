@@ -16,15 +16,16 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/DeviceSpec.h"
-#include "Framework/MessageContext.h"
-#include "Framework/RootObjectContext.h"
+#include "Framework/ArrowContext.h"
 #include "Framework/ServiceRegistry.h"
 
 #include <memory>
 #include <cstddef>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 /// Implements the boilerplate for a generic
 /// framework device which only produces data
 class DataSourceDevice : public FairMQDevice {
@@ -45,14 +46,18 @@ private:
 
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
   ServiceRegistry& mServiceRegistry;
-  MessageContext mContext;
+  TimingInfo mTimingInfo;
+  MessageContext mFairMQContext;
   RootObjectContext mRootContext;
+  StringContext mStringContext;
+  ArrowContext mDataFrameContext;
+  ContextRegistry mContextRegistry;
   DataAllocator mAllocator;
   size_t mCurrentTimeslice;
   float mRate;
   size_t mLastTime;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif

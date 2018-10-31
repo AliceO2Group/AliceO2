@@ -28,7 +28,8 @@ using DataDescription = o2::header::DataDescription;
 using DataOrigin = o2::header::DataOrigin;
 
 template <typename T>
-void fakePayload(std::vector<byte> &buffer, std::function<void(T&,int)> filler, int numOfElements) {
+void fakePayload(std::vector<o2::byte>& buffer, std::function<void(T&, int)> filler, int numOfElements)
+{
   auto payloadSize = sizeof(T)*numOfElements;
   LOG(INFO) << "Payload size " << payloadSize << "\n";
   buffer.resize(buffer.size() + payloadSize);
@@ -122,7 +123,7 @@ void DataPublisherDevice::InitTask()
 
 bool DataPublisherDevice::HandleData(FairMQParts& msgParts, int index)
 {
-  ForEach(msgParts, &DataPublisherDevice::HandleO2LogicalBlock);
+  o2::Base::forEach(msgParts, [&](auto header, auto payload) { this->HandleO2LogicalBlock(header.data(), header.size(), payload.data(), payload.size()); });
 
   return true;
 }
@@ -191,8 +192,8 @@ bool DataPublisherDevice::HandleO2LogicalBlock(const byte* headerBuffer,
   // TODO: fix payload size in dh
   auto *buffer = new char[mFileBuffer.size()];
   memcpy(buffer, mFileBuffer.data(), mFileBuffer.size());
-  AddMessage(outgoing, dh, NewMessage(buffer, mFileBuffer.size(),
-                        [](void* data, void* hint) { delete[] reinterpret_cast<char *>(data); }, nullptr));
+  o2::Base::addDataBlock(outgoing, dh, NewMessage(buffer, mFileBuffer.size(),
+                                                  [](void* data, void* hint) { delete[] reinterpret_cast<char*>(data); }, nullptr));
 
   // send message
   Send(outgoing, mOutputChannelName.c_str());
@@ -201,7 +202,7 @@ bool DataPublisherDevice::HandleO2LogicalBlock(const byte* headerBuffer,
   return true;
 }
 
-bool DataPublisherDevice::AppendFile(const char* name, std::vector<byte>& buffer)
+bool DataPublisherDevice::AppendFile(const char* name, std::vector<o2::byte>& buffer)
 {
   bool result = true;
   std::ifstream ifile(name, std::ifstream::binary);

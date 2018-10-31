@@ -17,6 +17,17 @@
 
 #include <array>
 
+#ifdef CA_DEBUG
+#define CA_DEBUGGER(x) x
+#else
+#define CA_DEBUGGER(x) \
+  do {                 \
+  } while (0)
+#ifndef NDEBUG
+#define NDEBUG 1
+#endif
+#endif
+
 #if defined(TRACKINGITSU_CUDA_COMPILE)
 #define TRACKINGITSU_GPU_MODE true
 #else
@@ -68,6 +79,8 @@ typedef cudaStream_t GPUStream;
 #define MATH_MIN std::min
 #define MATH_SQRT std::sqrt
 
+#ifndef __VECTOR_TYPES_H__
+//This will clash if any other header has pulled in CUDA before
 typedef struct _dim3 {
   unsigned int x, y, z;
 } dim3;
@@ -83,6 +96,7 @@ typedef struct _float3 {
 typedef struct _float4 {
   float x, y, z, w;
 } float4;
+#endif
 
 template <typename T, std::size_t Size>
 using GPUArray = std::array<T, Size>;

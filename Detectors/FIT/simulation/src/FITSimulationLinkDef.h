@@ -15,6 +15,11 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::fit::Detector+;
+#pragma link C++ class o2::fit::Digitizer + ;
+#pragma link C++ class o2::fit::DigitizerTask + ;
+#pragma link C++ class o2::fit::MCLabel + ;
+#pragma link C++ class o2::dataformats::MCTruthContainer < o2::fit::MCLabel > +;
+
 #pragma link C++ class o2::Base::DetImpl<o2::fit::Detector>+;
 
 #endif

@@ -17,8 +17,10 @@
 #include <string>
 #include <vector>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 // FIXME: For the moment we only support basic types. Should probably support
 //        (nested) vectors and maps as well. If FairMQ plugins can be used
@@ -26,21 +28,25 @@ namespace framework {
 //        using the FairMQ plugin directly
 class BoostOptionsRetriever : public ParamRetriever {
 public:
-  BoostOptionsRetriever(std::vector<ConfigParamSpec> &specs);
-  void parseArgs(int argc, char **argv);
+  BoostOptionsRetriever(std::vector<ConfigParamSpec> const&specs,
+                        bool ignoreUnknown,
+                        int &argc, char **&argv);
 
-  virtual int getInt(const char *name) final;
-  virtual float getFloat(const char *name) final;
-  virtual double getDouble(const char *name) final;
-  virtual bool getBool(const char *name) final;
-  virtual std::string getString(const char *name) final;
-  virtual std::vector<std::string> getVString(const char *name) final;
-private:
+  int getInt(const char* name) const final;
+  float getFloat(const char* name) const final;
+  double getDouble(const char* name) const final;
+  bool getBool(const char* name) const final;
+  std::string getString(const char* name) const final;
+  std::vector<std::string> getVString(const char* name) const final;
+
+ private:
+  void parseArgs(int &argc, char **&argv);
   boost::program_options::variables_map mVariables;
   boost::program_options::options_description mDescription;
+  bool mIgnoreUnknown;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif // FRAMEWORK_BOOSTOPTIONSRETRIEVER_H
 

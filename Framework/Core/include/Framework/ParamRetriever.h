@@ -13,8 +13,10 @@
 #include <string>
 #include <vector>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 // FIXME: For the moment we only support basic types. Should probably support
 //        (nested) vectors and maps as well. If FairMQ plugins can be used
@@ -28,8 +30,9 @@ public:
   virtual bool getBool(const char *name) const = 0;
   virtual std::string getString(const char *name) const = 0;
   virtual std::vector<std::string> getVString(const char *name) const = 0;
+  virtual ~ParamRetriever() = default;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif // FRAMEWORK_PARAMETERRETRIEVER_H

@@ -8,22 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//****************************************************************************
-//* This file is free software: you can redistribute it and/or modify        *
-//* it under the terms of the GNU General Public License as published by     *
-//* the Free Software Foundation, either version 3 of the License, or        *
-//* (at your option) any later version.                                      *
-//*                                                                          *
-//* Primary Authors: Matthias Richter <richterm@scieq.net>                   *
-//*                                                                          *
-//* The authors make no claims about the suitability of this software for    *
-//* any purpose. It is provided "as is" without express or implied warranty. *
-//****************************************************************************
-
-//  @file   test_Fifo.cxx
-//  @author Matthias Richter
-//  @since  2016-12-06
-//  @brief  Test program for thread safe FIFO
+/// @file   test_Fifo.cxx
+/// @author Matthias Richter
+/// @since  2016-12-06
+/// @brief  Test program for thread safe FIFO
 
 #define BOOST_TEST_MODULE Utility test
 #define BOOST_TEST_MAIN

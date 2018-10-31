@@ -16,7 +16,7 @@
 #include <array>
 #include <iomanip>
 #include <ios>
-#include <iostream>
+#include <iosfwd>
 
 namespace o2
 {

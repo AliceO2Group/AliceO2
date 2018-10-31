@@ -8,6 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// @file   test_dc_primitives.cxx
+/// @author Matthias Richter
+/// @since  2016-08-31
+/// @brief  Test program for dc_primitives tools
+
 #define BOOST_TEST_MODULE Utility test
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
@@ -22,6 +27,11 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
+
+namespace o2
+{
+namespace data_compression
+{
 
 /**
  * TODO: would like to have a general Tester for different kinds
@@ -99,3 +109,6 @@ BOOST_AUTO_TEST_CASE(test_dc_primitives)
   using ParameterSet = boost::mpl::vector<TestAlphabet, TenBitAlphabet>;
   boost::mpl::for_each<ParameterSet>(AlphabetTester<std::vector<int16_t>>(values));
 }
+
+} // namespace data_compression
+} // namespace o2

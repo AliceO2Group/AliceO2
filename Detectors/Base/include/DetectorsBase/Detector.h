@@ -16,6 +16,7 @@
 
 #include <map>
 #include <vector>
+#include <initializer_list>
 #include <memory>
 
 #include "FairDetector.h"  // for FairDetector
@@ -26,6 +27,10 @@
 #include <typeinfo>
 #include <type_traits>
 #include <string>
+#include <FairMQChannel.h>
+#include <FairMQMessage.h>
+#include <FairMQParts.h>
+#include <TMessage.h>
 
 namespace o2 {
 namespace Base {
@@ -54,6 +59,15 @@ class Detector : public FairDetector
     void Medium(Int_t numed, const char *name, Int_t nmat, Int_t isvol, Int_t ifield, Float_t fieldm,
                 Float_t tmaxfd, Float_t stemax, Float_t deemax, Float_t epsil, Float_t stmin, Float_t *ubuf = nullptr,
                 Int_t nbuf = 0);
+
+    /// Custom processes and transport cuts
+    void SpecialCuts(Int_t numed, const std::initializer_list<std::pair<ECut, Float_t>>& parIDValMap);
+    /// Set cut by name and value
+    void SpecialCut(Int_t numed, ECut parID, Float_t val);
+
+    void SpecialProcesses(Int_t numed, const std::initializer_list<std::pair<EProc, int>>& parIDValMap);
+    /// Set process by name and value
+    void SpecialProcess(Int_t numed, EProc parID, int val);
 
     /// Define a rotation matrix. angles are in degrees.
     /// \param nmat on output contains the number assigned to the rotation matrix
@@ -113,18 +127,42 @@ class Detector : public FairDetector
       mgr.getMediumIDMappingAsVector(GetName(), mapping);
     }
 
-    // return the name augmented by extention
-    std::string addNameTo(const char* ext) {
+    // return the name augmented by extension
+    std::string addNameTo(const char* ext) const
+    {
       std::string s(GetName());
-      return s+ext;
+      return s + ext;
     }
-    
+
+    // returning the name of the branch (corresponding to probe)
+    // returns zero length string when probe not defined
+    virtual std::string getHitBranchNames(int probe) const = 0;
 
     // interface to update track indices of data objects
     // usually called by the Stack, at the end of an event, which might have changed
     // the track indices due to filtering
     // FIXME: make private friend of stack?
     virtual void updateHitTrackIndices(std::map<int, int> const&) = 0;
+
+    // interfaces to attach properly encoded hit information to a FairMQ message
+    // and to decode it
+    virtual void attachHits(FairMQChannel&, FairMQParts&) = 0;
+    virtual void fillHitBranch(TTree& tr, FairMQParts& parts, int& index) = 0;
+
+    // hook which is called automatically to custom initialize the O2 detectors
+    // all initialization not able to do in constructors should be done here
+    // (typically the case for geometry related stuff, etc)
+    virtual void InitializeO2Detector() = 0;
+
+    // the original FairModule/Detector virtual Initialize function
+    // calls individual customized initializations and makes sure that the mother Initialize
+    // is called as well. Marked final for this reason!
+    void Initialize() final
+    {
+      InitializeO2Detector();
+      // make sure the basic initialization is also done
+      FairDetector::Initialize();
+    }
 
     // The GetCollection interface is made final and deprecated since
     // we no longer support TClonesArrays
@@ -165,6 +203,49 @@ inline std::string demangle(const char* name)
   return (status == 0) ? res.get() : name;
 }
 
+template <typename Container>
+void attachTMessage(Container const& hits, FairMQChannel& channel, FairMQParts& parts)
+{
+  TMessage* tmsg = new TMessage();
+  tmsg->WriteObjectAny((void*)&hits, TClass::GetClass(typeid(hits)));
+  auto free_tmessage = [](void* data, void* hint) { delete static_cast<TMessage*>(hint); };
+
+  std::unique_ptr<FairMQMessage> message(channel.NewMessage(tmsg->Buffer(), tmsg->BufferSize(), free_tmessage, tmsg));
+  parts.AddPart(std::move(message));
+}
+
+template <typename T>
+T decodeTMessage(FairMQParts& dataparts, int index)
+{
+  class TMessageWrapper : public TMessage
+  {
+   public:
+    TMessageWrapper(void* buf, Int_t len) : TMessage(buf, len) { ResetBit(kIsOwner); }
+    ~TMessageWrapper() override = default;
+  };
+  auto rawmessage = std::move(dataparts.At(index));
+  auto message = std::make_unique<TMessageWrapper>(rawmessage->GetData(), rawmessage->GetSize());
+  return static_cast<T>(message.get()->ReadObjectAny(message.get()->GetClass()));
+}
+
+template <typename T>
+void attachMetaMessage(T secret, FairMQChannel& channel, FairMQParts& parts)
+{
+  std::unique_ptr<FairMQMessage> message(channel.NewSimpleMessage(secret));
+  parts.AddPart(std::move(message));
+}
+
+template <typename T>
+TBranch* getOrMakeBranch(TTree& tree, const char* brname, T* ptr)
+{
+  if (auto br = tree.GetBranch(brname)) {
+    br->SetAddress(static_cast<void*>(&ptr));
+    return br;
+  }
+  // otherwise make it
+  return tree.Branch(brname, ptr);
+}
+
 // an implementation helper template which automatically implements
 // common functionality for deriving classes via the CRT pattern
 // (example: it implements the updateHitTrackIndices function and avoids
@@ -175,6 +256,15 @@ class DetImpl : public o2::Base::Detector
  public:
   // offer same constructors as base
   using Detector::Detector;
+
+  // default implementation for getHitBranchNames
+  std::string getHitBranchNames(int probe) const override
+  {
+    if (probe == 0) {
+      return addNameTo("Hit");
+    }
+    return std::string(); // empty string as undefined
+  }
 
   // generic implementation for the updateHitTrackIndices interface
   // assumes Detectors have a GetHits(int) function that return some iterable
@@ -190,6 +280,43 @@ class DetImpl : public o2::Base::Detector
       }
     }
   }
+
+  void attachHits(FairMQChannel& channel, FairMQParts& parts) override
+  {
+    int probe = 0;
+    // std::cerr << "ATTACHING DETID " << GetDetId() << " NAME " << GetName() << "\n";
+    attachMetaMessage(GetDetId(), channel, parts); // the DetId s are universal as they come from o2::detector::DetID
+    while (auto hits = static_cast<Det*>(this)->Det::getHits(probe++)) {
+      attachTMessage(*hits, channel, parts);
+    }
+  }
+
+  void fillHitBranch(TTree& tr, FairMQParts& parts, int& index) override
+  {
+    int probe = 0;
+    using Hit_t = decltype(static_cast<Det*>(this)->Det::getHits(probe));
+    std::string name = static_cast<Det*>(this)->getHitBranchNames(probe++);
+    while (name.size() > 0) {
+      // for each branch name we extract/decode hits from the message parts ...
+      auto hitsptr = decodeTMessage<Hit_t>(parts, index++);
+
+      // ... and fill the tree branch
+      auto br = getOrMakeBranch(tr, name.c_str(), hitsptr);
+      br->Fill();
+      br->ResetAddress();
+
+      // next name
+      name = static_cast<Det*>(this)->getHitBranchNames(probe++);
+    }
+  }
+
+  // implementing CloneModule (for G4-MT mode) automatically for each deriving
+  // Detector class "Det"; calls copy constructor of Det
+  FairModule* CloneModule() const final
+  {
+    return new Det(static_cast<const Det&>(*this));
+  }
+
   ClassDefOverride(DetImpl, 0)
 };
 }

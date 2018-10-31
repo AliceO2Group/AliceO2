@@ -15,7 +15,7 @@
 #include "CCDB/Backend.h"
 #include "request.pb.h"
 
-using namespace o2::CDB;
+using namespace o2::ccdb;
 using namespace std;
 
 void Backend::Serialize(std::string*& messageString, const std::string& key, const std::string& operationType,

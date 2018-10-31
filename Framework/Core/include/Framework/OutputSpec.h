@@ -13,8 +13,10 @@
 #include "Headers/DataHeader.h"
 #include "Framework/Lifetime.h"
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 struct OutputLabel {
   std::string value;
@@ -66,13 +68,15 @@ struct OutputSpec {
   {
   }
 
-  bool operator==(const OutputSpec& that)
+  bool operator==(OutputSpec const& that) const
   {
     return origin == that.origin && description == that.description && subSpec == that.subSpec &&
            lifetime == that.lifetime;
   };
+
+  friend std::ostream& operator<<(std::ostream& stream, OutputSpec const& arg);
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif

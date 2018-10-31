@@ -16,6 +16,7 @@
 #define TRACKINGITSU_INCLUDE_CONSTANTS_H_
 
 #include <climits>
+#include <vector>
 
 #include "ITSReconstruction/CA/Definitions.h"
 
@@ -44,6 +45,7 @@ constexpr int LayersNumber{ 7 };
 constexpr int LayersNumberVertexer{ 3 };
 constexpr int TrackletsPerRoad{ LayersNumber - 1 };
 constexpr int CellsPerRoad{ LayersNumber - 2 };
+constexpr int ClustersPerCell{ 3 };
 constexpr int UnusedIndex{ -1 };
 constexpr float Resolution{ 0.0005f };
 
@@ -57,31 +59,6 @@ GPU_HOST_DEVICE constexpr GPUArray<float, LayersNumber> LayersRCoordinate()
 }
 } // namespace ITS
 
-namespace Thresholds
-{
-GPU_DEVICE constexpr GPUArray<float, ITS::TrackletsPerRoad> TrackletMaxDeltaZThreshold()
-{
-  return GPUArray<float, ITS::TrackletsPerRoad>{ { 0.1f, 0.1f, 0.3f, 0.3f, 0.3f, 0.3f } };
-}
-constexpr float CellMaxDeltaTanLambdaThreshold{ 0.025f };
-GPU_DEVICE constexpr GPUArray<float, ITS::CellsPerRoad> CellMaxDeltaZThreshold()
-{
-  return GPUArray<float, ITS::CellsPerRoad>{ { 0.2f, 0.4f, 0.5f, 0.6f, 3.0f } };
-}
-GPU_DEVICE constexpr GPUArray<float, ITS::CellsPerRoad> CellMaxDistanceOfClosestApproachThreshold()
-{
-  return GPUArray<float, ITS::CellsPerRoad>{ { 0.05f, 0.04f, 0.05f, 0.2f, 0.4f } };
-}
-constexpr float CellMaxDeltaPhiThreshold{ 0.14f };
-constexpr float ZCoordinateCut{ 0.5f };
-constexpr float PhiCoordinateCut{ 0.3f };
-constexpr GPUArray<float, ITS::CellsPerRoad - 1> NeighbourCellMaxNormalVectorsDelta{ { 0.002f, 0.009f, 0.002f,
-                                                                                       0.005f } };
-constexpr GPUArray<float, ITS::CellsPerRoad - 1> NeighbourCellMaxCurvaturesDelta{ { 0.008f, 0.0025f, 0.003f,
-                                                                                    0.0035f } };
-constexpr int CellsMinLevel{ 5 };
-} // namespace Thresholds
-
 namespace IndexTable
 {
 constexpr int ZBins{ 20 };
@@ -94,16 +71,6 @@ GPU_HOST_DEVICE constexpr GPUArray<float, ITS::LayersNumber> InverseZBinSize()
                                                0.5 * ZBins / 73.745f } };
 }
 } // namespace IndexTable
-
-namespace Memory
-{
-constexpr GPUArray<float, ITS::TrackletsPerRoad> TrackletsMemoryCoefficients{
-  { 0.0016353f, 0.0013627f, 0.000984f, 0.00078135f, 0.00057934f, 0.00052217f }
-};
-constexpr GPUArray<float, ITS::CellsPerRoad> CellsMemoryCoefficients{ { 2.3208e-08f, 2.104e-08f, 1.6432e-08f,
-                                                                        1.2412e-08f, 1.3543e-08f } };
-constexpr int Offset = 256; /// Required for low multiplicity events
-} // namespace Memory
 
 namespace PDGCodes
 {

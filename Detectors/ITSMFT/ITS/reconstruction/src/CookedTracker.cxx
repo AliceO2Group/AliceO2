@@ -99,7 +99,8 @@ Label CookedTracker::cookLabel(TrackITS& t, Float_t wrong) const
   for (int i = noc; i--;) {
     Int_t index = t.getClusterIndex(i);
     const Cluster* c = getCluster(index);
-    auto labels = mClsLabels->getLabels(c->GetUniqueID());
+    Int_t idx = c - mFirstCluster; // Index of this cluster in event
+    auto labels = mClsLabels->getLabels(idx);
 
     for (auto lab : labels) { // check all labels of the cluster
       if (lab.isEmpty())
@@ -147,7 +148,7 @@ void CookedTracker::setExternalIndices(TrackITS& t) const
   for (Int_t i = 0; i < noc; i++) {
     Int_t index = t.getClusterIndex(i);
     const Cluster* c = getCluster(index);
-    Int_t idx = c->GetUniqueID();
+    Int_t idx = c - mFirstCluster; // Index of this cluster in event
     t.setExternalClusterIndex(i, idx);
   }
 }
@@ -629,6 +630,7 @@ int CookedTracker::loadClusters(const std::vector<Cluster>& clusters)
   //--------------------------------------------------------------------
   Int_t numOfClusters = clusters.size();
   int nLoaded = 0;
+  mFirstCluster = &clusters.front();
 
   if (mContinuousMode) { // check the ROFrame in cont. mode
     for (auto& c : clusters) {

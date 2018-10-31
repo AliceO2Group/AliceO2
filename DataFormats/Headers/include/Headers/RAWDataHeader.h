@@ -20,17 +20,132 @@
 namespace o2 {
 namespace header {
 
-/// The definition of the RAW Data Header v2 (RDH) is specified in
+/// The definition of the RAW Data Header is specified in
 /// https://docs.google.com/document/d/1IxCCa1ZRpI3J9j3KCmw2htcOLIRVVdEcO-DDPcLNFM0
 /// preliminary description of the fields can be found here
-/// https://docs.google.com/document/d/1FLcBrPaF3Bg1Pnm17nwaxNlenKtEk3ocizEAiGP58J8
+/// https://docs.google.com/document/d/1otkSDYasqpVBDnxplBI7dWNxaZohctA-bvhyrzvtLoQ
 /// FIXME: replace citation with correct ALICE note reference when published
 ///
 /// Note: the definition requires little endian architecture, for the moment we
 /// assume that this is the only type the software has to support (based on
 /// experience with previous systems)
 ///
-/// RDH consists of 4 64 bit words
+/// RDH v3 consists of 4 64 bit words, each of the words is extended to 128 bits
+/// by the CRU
+/// https://docs.google.com/document/d/1otkSDYasqpVBDnxplBI7dWNxaZohctA-bvhyrzvtLoQ
+/// accessed on Sep 18 2018, a pdf version is available under this link
+/// https://alice-o2-project.web.cern.ch/_webdav/files/pdf/RDH%20V3_2.pdf
+/// Note: there has been a failure in the document regarding the order of the
+/// 32 bit words of Field 4 and 6. Fixed on Sep 17 in the document.
+///
+///
+///       63     56      48      40      32      24      16       8       0
+///       |---------------|---------------|---------------|---------------|
+///
+///       |reserve| prior |                               |    header     |
+/// 0     | zero  |ity bit|    FEE id     | block length  | size  | vers  |
+///
+/// 1     |         reserved     |link id |  memory size  |offset nxt pack|
+///
+/// 2     |      heartbeat orbit          |       trigger orbit           |
+///
+/// 3     |                          reserved                             |
+///
+/// 4     |      trigger type             |res|   HB BC   |res|trigger BC |
+///
+/// 5     |                          reserved                             |
+///
+/// 6     |res|    page count     | stop  | detector par  |detector field |
+///
+/// 5     |                          reserved                             |
+///
+/// Field 1,3,5,7 are reserved fields and added to extend each word to 128 bit, marked
+/// grey in the documentation to indicate that those fields are added by the CRU
+/// Field 1 contains additional information added by the CRU, like actual data size
+/// and offset to the next page.
+///
+/// Field description:
+/// -  8 header version: the header version number
+/// -  8 header size:    the header size in byte(s)
+/// - 16 block length:   assumed to be in byte, but discussion not yet finalized
+/// - 16 FEE ID:         unique id of the Frontend equipment
+/// -  8 priority bit:   indicates packet packet transport of higher priority
+/// - 16 next package:   offset to next page
+/// - 16 memory size:    actual data size in bytes, filled by CRU
+/// -  8 Link ID:        set by the CRU
+/// - 32 trigger orbit:  trigger timing
+/// - 32 heartbeat orbit: heartbeat timing
+/// - 12 trigger BC:     bunch crossing parameter for trigger
+/// - 12 beartbeat BC:   bunch crossing parameter for heartbeat
+/// - 32 trigger type:   bit fiels for the trigger type yet to be decided
+/// - 16 detector field: detector specific field
+/// - 16 detector par:   detector specific field
+/// -  8 stop:           bit 0 of the stop field is set if this is the last page
+/// - 16 page count:     incremented if data is bigger than the page size, pages are
+///                      incremented starting from 0
+struct RAWDataHeaderV3 {
+  union {
+    // default value
+    uint64_t word0 = 0x0000ffff00000803;
+    //                   | | | |     | version 3
+    //                   | | | |   | 8 64 bit words
+    //                   | | | | block length 0
+    //                   | | invalid FEE id
+    //                   | priority bit 0
+    struct {
+      uint64_t version : 8;        /// bit  0 to  7: header version
+      uint64_t headerSize : 8;     /// bit  9 to 15: header size
+      uint64_t blockLength : 16;   /// bit 16 to 31: block length
+      uint64_t feeId : 16;         /// bit 32 to 47: FEE identifier
+      uint64_t priority : 8;       /// bit 48 to 55: priority bit
+      uint64_t zero0 : 8;          /// bit 56 to 63: zeroed
+    };                             ///
+  };                               ///
+  union {                          ///
+    uint64_t word1 = 0x0;          /// bit  0 to 63: zeroed
+  };                               ///
+  union {                          ///
+    uint64_t word2 = 0x0;          ///
+    struct {                       ///
+      uint32_t triggerOrbit;       /// bit 0 to 31: trigger orbit
+      uint32_t heartbeatOrbit;     /// bit 32 to 63: trigger orbit
+    };                             ///
+  };                               ///
+  union {                          ///
+    uint64_t word3 = 0x0;          /// bit  0 to 63: zeroed
+  };                               ///
+  union {                          ///
+    uint64_t word4 = 0x0;          ///
+    struct {                       ///
+      uint64_t triggerBC : 12;     /// bit 32 to 43: trigger BC ID
+      uint64_t zero41 : 4;         /// bit 44 to 47: zeroed
+      uint64_t heartbeatBC : 12;   /// bit 48 to 59: heartbeat BC ID
+      uint64_t zero42 : 4;         /// bit 60 to 63: zeroed
+      uint64_t triggerType : 32;   /// bit  0 to 31: trigger type
+    };                             ///
+  };                               ///
+  union {                          ///
+    uint64_t word5 = 0x0;          /// bit  0 to 63: zeroed
+  };                               ///
+  union {                          ///
+    uint64_t word6 = 0x0;          ///
+    struct {                       ///
+      uint64_t detectorField : 16; /// bit 32 to 47: detector field
+      uint64_t par : 16;           /// bit 48 to 63: par
+      uint64_t stop : 8;           /// bit  0 to  7: stop code
+      uint64_t pageCnt : 16;       /// bit  8 to 23: pages counter
+      uint64_t zero6 : 8;          /// bit 24 to 31: zeroed
+    };
+  };
+  union {
+    uint64_t word7 = 0x0; /// bit  0 to 63: zeroed
+  };
+};
+
+/// RDH v2
+/// this is the version 2 definition which probably has not been adapted by any FEE
+/// https://docs.google.com/document/d/1FLcBrPaF3Bg1Pnm17nwaxNlenKtEk3ocizEAiGP58J8
+///
 ///       63     56      48      40      32      24      16       8       0
 ///       |---------------|---------------|---------------|---------------|
 ///
@@ -51,7 +166,7 @@ namespace header {
 /// - heartbeat and trigger orbit/BC: LHC clock parameters, still under
 ///                 discussion whether separate fields for HB and trigger
 ///                 information needed
-/// - trigger type: bit fiels fir the trigger type yet to be decided
+/// - trigger type: bit fiels for the trigger type yet to be decided
 /// - page count:   incremented if data is bigger than the page size, pages are
 ///                 incremented starting from 0
 /// - stop:         bit 0 of the stop field is set if this is the last page
@@ -103,8 +218,7 @@ struct RAWDataHeaderV2
   };
 };
 
-using RAWDataHeader = RAWDataHeaderV2;
-
+using RAWDataHeader = RAWDataHeaderV3;
 }
 }
 

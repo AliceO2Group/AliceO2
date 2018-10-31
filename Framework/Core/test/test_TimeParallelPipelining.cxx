@@ -52,9 +52,10 @@ BOOST_AUTO_TEST_CASE(TimePipeliningSimple)
   auto workflow = defineSimplePipelining();
   std::vector<DeviceSpec> devices;
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  auto completionPolicies = CompletionPolicy::createDefaultPolicies();
   SimpleResourceManager rm(22000, 1000);
   auto resources = rm.getAvailableResources();
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, devices, resources);
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, resources);
   BOOST_REQUIRE_EQUAL(devices.size(), 4);
   auto& producer = devices[0];
   auto& layer0Consumer0 = devices[1];
@@ -104,9 +105,10 @@ BOOST_AUTO_TEST_CASE(TimePipeliningFull)
   auto workflow = defineDataProcessing();
   std::vector<DeviceSpec> devices;
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  auto completionPolicies = CompletionPolicy::createDefaultPolicies();
   SimpleResourceManager rm(22000, 1000);
   auto resources = rm.getAvailableResources();
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, devices, resources);
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, resources);
   BOOST_REQUIRE_EQUAL(devices.size(), 7);
   auto& producer = devices[0];
   auto& layer0Consumer0 = devices[1];

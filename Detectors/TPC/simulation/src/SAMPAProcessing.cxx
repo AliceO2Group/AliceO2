@@ -13,6 +13,7 @@
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/SAMPAProcessing.h"
+#include "TPCBase/CDBInterface.h"
 
 #include <fstream>
 #include <iostream>
@@ -22,9 +23,21 @@
 
 using namespace o2::TPC;
 
-SAMPAProcessing::SAMPAProcessing() : mSaturationSpline() { importSaturationCurve("SAMPA_saturation.dat"); }
+SAMPAProcessing::SAMPAProcessing() : mSaturationSpline()
+{
+  updateParameters();
+  importSaturationCurve("SAMPA_saturation.dat");
+}
 
 SAMPAProcessing::~SAMPAProcessing() = default;
+
+void SAMPAProcessing::updateParameters()
+{
+  auto& cdb = CDBInterface::instance();
+  mGasParam = &(cdb.getParameterGas());
+  mDetParam = &(cdb.getParameterDetector());
+  mEleParam = &(cdb.getParameterElectronics());
+}
 
 bool SAMPAProcessing::importSaturationCurve(std::string file)
 {
@@ -60,17 +73,16 @@ bool SAMPAProcessing::importSaturationCurve(std::string file)
   return true;
 }
 
-void SAMPAProcessing::getShapedSignal(float ADCsignal, float driftTime, std::vector<float>& signalArray)
+void SAMPAProcessing::getShapedSignal(float ADCsignal, float driftTime, std::vector<float>& signalArray) const
 {
-  const static ParameterElectronics& eleParam = ParameterElectronics::defaultInstance();
   const float timeBinTime = getTimeBinTime(driftTime);
   const float offset = driftTime - timeBinTime;
-  for (float bin = 0; bin < eleParam.getNShapedPoints(); bin += Vc::float_v::Size) {
+  for (float bin = 0; bin < mEleParam->getNShapedPoints(); bin += Vc::float_v::Size) {
     Vc::float_v binvector;
     for (int i = 0; i < Vc::float_v::Size; ++i) {
       binvector[i] = bin + i;
     }
-    Vc::float_v time = timeBinTime + binvector * eleParam.getZBinWidth();
+    Vc::float_v time = timeBinTime + binvector * mEleParam->getZBinWidth();
     Vc::float_v signal = getGamma4(time, Vc::float_v(timeBinTime + offset), Vc::float_v(ADCsignal));
     for (int i = 0; i < Vc::float_v::Size; ++i) {
       signalArray[bin + i] = signal[i];

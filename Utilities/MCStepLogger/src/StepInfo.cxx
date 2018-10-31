@@ -8,24 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//****************************************************************************
-//* This file is free software: you can redistribute it and/or modify        *
-//* it under the terms of the GNU General Public License as published by     *
-//* the Free Software Foundation, either version 3 of the License, or        *
-//* (at your option) any later version.                                      *
-//*                                                                          *
-//* Primary Authors: Sandro Wenzel <sandro.wenzel@cern.ch>                   *
-//*                                                                          *
-//* The authors make no claims about the suitability of this software for    *
-//* any purpose. It is provided "as is" without express or implied warranty. *
-//****************************************************************************
-
 //  @file   StepInfo.cxx
 //  @author Sandro Wenzel
 //  @since  2017-06-29
 //  @brief  structures encapsulating information about MC stepping
 
-#include <StepInfo.h>
+#include "MCStepLogger/StepInfo.h"
 #include <TArrayI.h>
 #include <TParticle.h>
 #include <TVirtualMC.h>
@@ -87,6 +75,8 @@ StepInfo::StepInfo(TVirtualMC* mc)
   x = xd;
   y = yd;
   z = zd;
+  step = mc->TrackStep();
+  maxstep = mc->MaxStep();
   E = curtrack->Energy();
   auto now = std::chrono::high_resolution_clock::now();
   // cputimestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(now - starttime).count();

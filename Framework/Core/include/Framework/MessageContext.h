@@ -10,19 +10,32 @@
 #ifndef FRAMEWORK_MESSAGECONTEXT_H
 #define FRAMEWORK_MESSAGECONTEXT_H
 
+#include "Framework/ContextRegistry.h"
+#include "Framework/FairMQDeviceProxy.h"
+
 #include <fairmq/FairMQParts.h>
+
 #include <vector>
 #include <cassert>
 #include <string>
 
-namespace o2 {
-namespace framework {
+class FairMQDevice;
+
+namespace o2
+{
+namespace framework
+{
 
 class MessageContext {
 public:
-  struct MessageRef {
-    FairMQParts parts;
-    std::string channel;
+ MessageContext(FairMQDeviceProxy proxy)
+   : mProxy{ proxy }
+ {
+ }
+
+ struct MessageRef {
+   FairMQParts parts;
+   std::string channel;
   };
   using Messages = std::vector<MessageRef>;
 
@@ -51,27 +64,41 @@ public:
   /// Prepares the context to create messages for the given timeslice. This
   /// expects that the previous context was already sent and can be completely
   /// discarded.
-  void prepareForTimeslice(size_t timeslice)
+  void clear()
   {
     // Verify that everything has been sent on clear.
     for (auto &m : mMessages) {
       assert(m.parts.Size() == 0);
     }
     mMessages.clear();
-    mTimeslice = timeslice;
   }
 
-  /// This returns the current timeslice for the context. The value of the
-  /// timeslice is used to determine which downstream device will get the
-  /// message in case we are doing time pipelining.
-  size_t timeslice() const {
-    return mTimeslice;
+  FairMQDeviceProxy& proxy()
+  {
+    return mProxy;
   }
-private:
+
+ private:
+  FairMQDeviceProxy mProxy;
   Messages mMessages;
-  size_t mTimeslice;
 };
 
+/// Helper to get the context from the registry.
+template <>
+inline MessageContext*
+  ContextRegistry::get<MessageContext>()
+{
+  return reinterpret_cast<MessageContext*>(mContextes[0]);
 }
+
+/// Helper to set the context from the registry.
+template <>
+inline void
+  ContextRegistry::set<MessageContext>(MessageContext* context)
+{
+  mContextes[0] = context;
 }
+
+} // namespace framework
+} // namespace o2
 #endif // FRAMEWORK_MESSAGECONTEXT_H

@@ -23,7 +23,6 @@
 #include "DetectorsCommonDataFormats/DetID.h" // for Detector
 #include "ITSMFTSimulation/Hit.h"             // for Hit
 
-class TClonesArray;
 class TVector3;
 
 namespace o2
@@ -56,7 +55,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   ~Detector() override;
 
   /// Initialization of the detector is done here
-  void Initialize() override;
+  void InitializeO2Detector() override;
 
   /// This method is called for each step during simulation (see FairMCApplication::Stepping())
   Bool_t ProcessHits(FairVolume* v = nullptr) override;
@@ -78,7 +77,6 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   void EndOfEvent() override;
 
-  void CopyClones(TClonesArray* cl1, TClonesArray* cl2, Int_t offset) override { ; }
   void FinishPrimary() override { ; }
   void FinishRun() override { ; }
   void BeginPrimary() override { ; }
@@ -159,6 +157,8 @@ class Detector : public o2::Base::DetImpl<Detector>
     double mEnergyLoss;            //! energy loss
   } mTrackData;                    //!
 
+  template <typename Det>
+  friend class o2::Base::DetImpl;
   ClassDefOverride(Detector, 1)
 };
 
