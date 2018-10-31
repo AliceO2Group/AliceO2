@@ -23,24 +23,29 @@ add_definitions(-DHLTCA_GPULIBRARY=CUDA)
 
 option(CUDA_GCCBIN "GCC binary to use for compiling host part of CUDA code for systems with multiple GCC versions installed"   OFF)
 
-find_package(CUDA)
-if(NOT CUDA_FOUND)
-    message( FATAL_ERROR "NVIDIA CUDA package not found. Please install or set ENABLE_CUDA=OFF" )
+if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT") #We need to handle finding CUDA in AliRoot case
+    if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+      set(CMAKE_CUDA_FLAGS "-Xptxas -O0 -Xcompiler -O0")
+    else()
+      set(CMAKE_CUDA_FLAGS "-Xptxas -O4 -Xcompiler -O4 -use_fast_math")
+    endif()
+    if(CUDA_GCCBIN)
+      message(STATUS "Using as CUDA GCC version: ${CUDA_GCCBIN}")
+      set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --compiler-bindir ${CUDA_GCCBIN}")
+    endif()
+    enable_language(CUDA)
+    if(CUDA_GCCBIN)
+      #Ugly hack!: Otherwise CUDA includes unwanted old GCC libraries leading to version conflicts
+      set(CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES "$ENV{CUDA_PATH}/lib64")
+    endif()
+    set(CMAKE_CUDA_STANDARD 14)
+    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr -DENABLE_CUDA --compiler-options \"${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}} -std=c++14\"")
 else()
-    find_library(LIBCUDA_SO_PATH libcuda.so)
-    string(FIND ${LIBCUDA_SO_PATH} "-NOTFOUND" LIBCUDA_SO_PATH_NOTFOUND )
-endif(NOT CUDA_FOUND)
-message( STATUS "Building CAGPUTracking with CUDA support" )
-
-if(LIBCUDA_SO_PATH_NOTFOUND GREATER -1)
-  message( FATAL_ERROR "NVIDIA CUDA libcuda.so not found. Please install or set ENABLE_CUDA=OFF" )
-endif(LIBCUDA_SO_PATH_NOTFOUND GREATER -1)
-
-#set nvcc flags
-set(CUDA_NVCC_FLAGS -Wno-deprecated-gpu-targets --use_fast_math --maxrregcount 64 -O4 -Xptxas -O4 -Xcompiler -fPIC -Xptxas -O4 -gencode arch=compute_61,code=sm_61 -Xcompiler "-std=c++14")
-if(CUDA_GCCBIN)
-  set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} --compiler-bindir ${CUDA_GCCBIN})
+    #Another ugly hack!: nvcc dies due to O2 link flags, so we strip them for device linkage
+    set(CMAKE_CUDA_DEVICE_LINK_LIBRARY "<CMAKE_CUDA_COMPILER> <LANGUAGE_COMPILE_FLAGS> -Xcompiler=-fPIC -Wno-deprecated-gpu-targets -shared -dlink <OBJECTS> -o <TARGET>")
 endif()
+message( STATUS "Building CAGPUTracking with CUDA support" )
 
 #for convenience
 set(CAGPUDIR ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking)
@@ -67,14 +72,9 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
     add_definitions(-DHLTCA_TPC_GEOMETRY_O2 -DHLTCA_BUILD_O2_LIB)
 endif()
 
-#compile CUDA object file
-cuda_compile(CAGPU_O AliHLTTPCCAGPUTrackerNVCC.cu)
-
-#end of CUDA specific stuff; from here on build usual library
-
 # Sources in alphabetical order
 set(SRCS
-    ${CAGPU_O}
+    AliHLTTPCCAGPUTrackerNVCC.cu
    )
 
 # Headers from sources
