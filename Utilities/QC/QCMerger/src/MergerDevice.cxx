@@ -59,7 +59,6 @@ void MergerDevice::establishChannel(string type, string method, string address, 
 void MergerDevice::executeRunLoop()
 {
   ChangeState("INIT_DEVICE");
-  WaitForInitialValidation();
   WaitForEndOfState("INIT_DEVICE");
 
   subscribeDdsCommands();

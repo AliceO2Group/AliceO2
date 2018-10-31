@@ -169,7 +169,6 @@ void ProducerDevice::establishChannel(std::string type, std::string method, std:
 void ProducerDevice::executeRunLoop()
 {
   ChangeState("INIT_DEVICE");
-  WaitForInitialValidation();
   WaitForEndOfState("INIT_DEVICE");
 
   subscribeDdsCommands();

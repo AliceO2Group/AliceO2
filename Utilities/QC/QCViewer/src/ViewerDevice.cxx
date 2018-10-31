@@ -83,7 +83,6 @@ TObject* ViewerDevice::receiveDataObjectFromMerger()
 void ViewerDevice::executeRunLoop()
 {
   ChangeState("INIT_DEVICE");
-  WaitForInitialValidation();
   WaitForEndOfState("INIT_DEVICE");
 
   ChangeState("INIT_TASK");
