@@ -159,7 +159,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 					const AliHLTTPCRawCluster &cRaw = clRaw.fClusters[ic];
 					if (fabs(c.GetZ()) > 300) continue;
 					if (c.GetX() < 1.f) continue; // cluster xyz position was not calculated for whatever reason
-					pCluster->fId = nClustersTotal;
+					pCluster->fId = AliHLTTPCCAGeometry::CreateClusterID(slice, patch, ic);
 					pCluster->fX = c.GetX();
 					pCluster->fY = c.GetY();
 					pCluster->fZ = c.GetZ();
@@ -175,11 +175,11 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 					pCluster->fSigmaTime2 = cRaw.GetSigmaTime2();
 #endif
 					pCluster++;
-					nClustersTotal++;
 				}
 			}
 		}
 		fClusterData[slice].SetNumberOfClusters(pCluster - fClusterData[slice].Clusters());
+		nClustersTotal += fClusterData[slice].NumberOfClusters();
 		HLTDebug("Read %d->%d hits for slice %d", nClustersSliceTotal, fClusterData[slice].NumberOfClusters(), slice);
 	}
 
@@ -209,6 +209,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 				for (int ic = 0; ic < clXYZ.fCount; ic++)
 				{
 					if (pCluster->fId != AliHLTTPCCAGeometry::CreateClusterID(iSlice, iPatch, ic)) continue;
+					pCluster->fId = labels.size();
 					labels.push_back(clusterLabels[iSlice][iPatch]->fLabels[ic]);
 					pCluster++;
 				}
@@ -217,7 +218,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 		
 		if (labels.size() != nClustersTotal)
 		{
-			HLTFatal("Error getting cluster MC labels");
+			HLTFatal("Error getting cluster MC labels (%d labels, %d clusters)", (int) labels.size(), nClustersTotal);
 			return(-EINVAL);
 		}
 		

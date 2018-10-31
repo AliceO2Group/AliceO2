@@ -54,6 +54,11 @@ AddOption(numberOfTracks, int, 1, "numberOfTracks", 0, "Number of tracks per gen
 AddHelp("help", 'h')
 EndConfig()
 
+BeginSubConfig(structConfigRec, configRec, configStandalone, "REC", 0, "Reconstruction settings")
+AddOption(runTRD, bool, false, "trd", 0, "Enable TRD processing")
+AddHelp("help", 'h')
+EndConfig()
+
 BeginConfig(structConfigStandalone, configStandalone)
 #if defined(BUILD_CUDA) || defined(BUILD_OPENCL)
 AddOption(runGPU, bool, true, "gpu", 'g', "Use GPU for processing", message("GPU processing: %s"))
@@ -110,4 +115,5 @@ AddSubConfig(structConfigTF, configTF)
 AddSubConfig(structConfigQA, configQA)
 AddSubConfig(structConfigEG, configEG)
 AddSubConfig(structConfigGL, configGL)
+AddSubConfig(structConfigRec, configRec)
 EndConfig()

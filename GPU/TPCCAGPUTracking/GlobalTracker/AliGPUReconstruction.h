@@ -14,6 +14,7 @@ class AliHLTTPCGMMergedTrackHit;
 class AliHLTTRDTrackletWord;
 class AliHLTTPCClusterMCLabel;
 class AliHLTTPCCAMCInfo;
+class AliHLTTRDTracker;
 #include "AliHLTTRDDef.h"
 
 class AliGPUReconstruction
@@ -103,12 +104,16 @@ public:
 		objPtr = getPointerWithAlignment<S>(reinterpret_cast<size_t&>(basePtr), nEntries);
 	}
 	
+	int RunTRDTracking();
+	
 protected:
-	AliGPUReconstruction() : mIOPtrs(), mIOMem() {}
+	AliGPUReconstruction();
 	
 	template <class T> void DumpData(FILE* fp, T** entries, unsigned int* num, InOutPointerType type);
 	template <class T> void ReadData(FILE* fp, T** entries, unsigned int* num, std::unique_ptr<T[]>* mem, InOutPointerType type);
 	template <class T> void AllocateIOMemoryHelper(unsigned int n, T* &ptr, std::unique_ptr<T[]> &u);
+	
+	std::unique_ptr<AliHLTTRDTracker> mTRDTracker;
 };
 
 #endif
