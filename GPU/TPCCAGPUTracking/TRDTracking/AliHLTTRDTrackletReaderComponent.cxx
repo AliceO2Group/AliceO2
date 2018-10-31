@@ -29,6 +29,9 @@
 #include "AliTRDtrackletWord.h"
 #include "TTree.h"
 #include "TEventList.h"
+#include "AliRunLoader.h"
+#include "AliLoader.h"
+#include "AliDataLoader.h"
 
 ClassImp(AliHLTTRDTrackletReaderComponent)
 
@@ -297,6 +300,7 @@ int AliHLTTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hl
 	HLTFatal("No Tracklet Tree found");
 	return -EINVAL;
       }
+      
       TBranch *trklbranch = trackletTree->GetBranch("mcmtrklbranch");
       if (!trklbranch ) {
 	HLTFatal("No tracklet branch found in tracklet tree");
@@ -304,7 +308,41 @@ int AliHLTTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hl
       }
       int nTracklets = trklbranch->GetEntries();
       HLTInfo("Input tree with %d TRD MCM tracklets", nTracklets );
-
+      
+      //-----------------------------------
+      //Deploy same hack as in ITS Clusterizer
+      AliRunLoader* pRunLoader=AliRunLoader::Instance();
+      if (!pRunLoader) {
+        HLTError("failed to get global runloader instance");
+        return -ENOSYS;
+      }
+      pRunLoader->GetEvent(GetEventCount());
+      const char* loaderType="TRDLoader";
+      AliLoader* pLoader = pRunLoader->GetLoader(loaderType);
+      if (!pLoader) {
+        HLTError("can not get loader \"%s\" from runloader", loaderType);
+        return -ENOSYS;
+      }
+      pLoader->LoadDigits("read");
+      AliDataLoader *dataLoader = pLoader->GetDataLoader("tracklets");
+      if (dataLoader) {
+         trackletTree = dataLoader->Tree();
+         dataLoader->Load("read");
+      } else {
+         HLTWarning("TRD tracklet loader not found");
+      }
+      trklbranch = trackletTree->GetBranch("mcmtrklbranch");
+      if (!trklbranch ) {
+        HLTFatal("No tracklet branch found in tracklet tree");
+        return -EINVAL;
+      }
+      if (trklbranch->GetEntries() != nTracklets)
+      {
+        HLTFatal("Incorrect number of tracklets in tree");
+        return -EINVAL;
+      }
+      //-----------------------------------
+      
       AliTRDtrackletMCM *trkl = 0x0;
       trklbranch->SetAddress(&trkl);
 
