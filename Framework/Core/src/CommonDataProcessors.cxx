@@ -46,7 +46,7 @@ DataProcessorSpec CommonDataProcessors::getGlobalFileSink(std::vector<InputSpec>
 
     bool hasOutputsToWrite = false;
     auto [variables, outputMatcher] = DataDescriptorQueryBuilder::buildFromKeepConfig(keepString);
-    std::vector<ContextElement> context(variables.size());
+    VariableContext context;
     for (auto& spec : danglingOutputInputs) {
       if (outputMatcher->match(spec, context)) {
         hasOutputsToWrite = true;
@@ -65,8 +65,8 @@ DataProcessorSpec CommonDataProcessors::getGlobalFileSink(std::vector<InputSpec>
       });
     }
     auto output = std::make_shared<std::ofstream>(filename.c_str(), std::ios_base::binary);
-    return std::move([ output, matcher = outputMatcher, contextSize = variables.size() ](ProcessingContext & pc) mutable->void {
-      std::vector<ContextElement> matchingContext(contextSize);
+    return std::move([ output, matcher = outputMatcher ](ProcessingContext & pc) mutable->void {
+      VariableContext matchingContext;
       LOG(INFO) << "processing data set with " << pc.inputs().size() << " entries";
       for (const auto& entry : pc.inputs()) {
         LOG(INFO) << "  " << *(entry.spec);

@@ -137,7 +137,7 @@ size_t
 {
   /// FIXME: for the moment we have a global context, since we do not support
   ///        yet generic matchers as InputSpec.
-  std::vector<ContextElement> context{};
+  VariableContext context;
 
   for (size_t ri = 0, re = matchers.size(); ri < re; ++ri) {
     auto& matcher = matchers[ri];
@@ -147,8 +147,10 @@ size_t
     }
 
     if (matcher.match(*h, context)) {
+      context.commit();
       return ri;
     }
+    context.discard();
   }
   return matchers.size();
 }

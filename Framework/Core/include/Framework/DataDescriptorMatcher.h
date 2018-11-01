@@ -15,6 +15,7 @@
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
 
+#include <array>
 #include <cstdint>
 #include <string>
 #include <variant>
@@ -46,8 +47,72 @@ struct ContextRef {
 /// We do not have any float in the value, because AFAICT there is no need for
 /// it in the O2 DataHeader, however we could add it later on.
 struct ContextElement {
+  using Value = std::variant<uint64_t, std::string, None>;
   std::string label;                               /// The name of the variable contained in this element.
-  std::variant<uint64_t, std::string, None> value = None{}; /// The actual contents of the element.
+  Value value = None{};                            /// The actual contents of the element.
+};
+
+struct ContextUpdate {
+  size_t position;
+  ContextElement::Value newValue;
+};
+
+constexpr int MAX_MATCHING_VARIABLE = 16;
+constexpr int MAX_UPDATES_PER_QUERY = 16;
+
+class VariableContext
+{
+ public:
+  VariableContext()
+    : mPerformedUpdates{ 0 }
+  {
+  }
+
+  ContextElement::Value const& get(size_t pos) const
+  {
+    // First we check if there is any pending update
+    for (size_t i = 0; i < mPerformedUpdates; ++i) {
+      if (mUpdates[i].position == pos) {
+        return mUpdates[i].newValue;
+      }
+    }
+    // Otherwise we return the element.
+    return mElements.at(pos).value;
+  }
+
+  void put(ContextUpdate&& update)
+  {
+    mUpdates[mPerformedUpdates++] = std::move(update);
+  }
+
+  /// Use this after a query to actually commit the matched fields.  Notice the
+  /// old matches remain there, but we do not need to clean them up as we have
+  /// reset the counter. Use this after a successful query to persist matches
+  /// variables and speedup subsequent lookups.
+  void commit()
+  {
+    for (size_t i = 0; i < mPerformedUpdates; ++i) {
+      mElements[mUpdates[i].position].value = mUpdates[i].newValue;
+    }
+    mPerformedUpdates = 0;
+  }
+
+  /// Discard the updates. Use this after a failed query if you do not want to
+  /// retain partial matches.
+  void discard()
+  {
+    mPerformedUpdates = 0;
+  }
+
+ private:
+  /* We make this class fixed size to avoid memory churning while 
+     matching as much as posible when doing the matching, as that might become
+     performance critical. Given we will have only a few of these (one per
+     cacheline of the input messages) it should not be critical memory wise.
+   */
+  std::array<ContextElement, MAX_MATCHING_VARIABLE> mElements;
+  std::array<ContextUpdate, MAX_UPDATES_PER_QUERY> mUpdates;
+  int mPerformedUpdates;
 };
 
 /// Can hold either an actual value of type T or a reference to
@@ -103,15 +168,15 @@ class OriginValueMatcher : public ValueHolder<std::string>
   {
   }
 
-  bool match(header::DataHeader const& header, std::vector<ContextElement>& context) const
+  bool match(header::DataHeader const& header, VariableContext& context) const
   {
     if (auto ref = std::get_if<ContextRef>(&mValue)) {
-      auto& variable = context.at(ref->index);
-      if (auto value = std::get_if<std::string>(&variable.value)) {
+      auto& variable = context.get(ref->index);
+      if (auto value = std::get_if<std::string>(&variable)) {
         return strncmp(header.dataOrigin.str, value->c_str(), 4) == 0;
       }
       auto maxSize = strnlen(header.dataOrigin.str, 4);
-      variable.value = std::string(header.dataOrigin.str, maxSize);
+      context.put({ ref->index, std::string(header.dataOrigin.str, maxSize) });
       return true;
     } else if (auto s = std::get_if<std::string>(&mValue)) {
       return strncmp(header.dataOrigin.str, s->c_str(), 4) == 0;
@@ -134,15 +199,15 @@ class DescriptionValueMatcher : public ValueHolder<std::string>
   {
   }
 
-  bool match(header::DataHeader const& header, std::vector<ContextElement>& context) const
+  bool match(header::DataHeader const& header, VariableContext& context) const
   {
     if (auto ref = std::get_if<ContextRef>(&mValue)) {
-      auto& variable = context.at(ref->index);
-      if (auto value = std::get_if<std::string>(&variable.value)) {
+      auto& variable = context.get(ref->index);
+      if (auto value = std::get_if<std::string>(&variable)) {
         return strncmp(header.dataDescription.str, value->c_str(), 16) == 0;
       }
       auto maxSize = strnlen(header.dataDescription.str, 16);
-      variable.value = std::string(header.dataDescription.str, maxSize);
+      context.put({ ref->index, std::string(header.dataDescription.str, maxSize) });
       return true;
     } else if (auto s = std::get_if<std::string>(&this->mValue)) {
       return strncmp(header.dataDescription.str, s->c_str(), 16) == 0;
@@ -173,14 +238,14 @@ class SubSpecificationTypeValueMatcher : public ValueHolder<uint64_t>
   {
   }
 
-  bool match(header::DataHeader const& header, std::vector<ContextElement>& context) const
+  bool match(header::DataHeader const& header, VariableContext& context) const
   {
     if (auto ref = std::get_if<ContextRef>(&mValue)) {
-      auto& variable = context.at(ref->index);
-      if (auto value = std::get_if<uint64_t>(&variable.value)) {
+      auto& variable = context.get(ref->index);
+      if (auto value = std::get_if<uint64_t>(&variable)) {
         return header.subSpecification == *value;
       }
-      variable.value = header.subSpecification;
+      context.put({ ref->index, header.subSpecification });
       return true;
     } else if (auto v = std::get_if<uint64_t>(&mValue)) {
       return header.subSpecification == *v;
@@ -219,14 +284,14 @@ class StartTimeValueMatcher : public ValueHolder<uint64_t>
   /// This will match the timing information which is currently in
   /// the DataProcessingHeader. Notice how we apply the scale to the
   /// actual values found.
-  bool match(DataProcessingHeader const& dph, std::vector<ContextElement>& context) const
+  bool match(DataProcessingHeader const& dph, VariableContext& context) const
   {
     if (auto ref = std::get_if<ContextRef>(&mValue)) {
-      auto& variable = context.at(ref->index);
-      if (auto value = std::get_if<uint64_t>(&variable.value)) {
+      auto& variable = context.get(ref->index);
+      if (auto value = std::get_if<uint64_t>(&variable)) {
         return (dph.startTime / mScale) == *value;
       }
-      variable.value = dph.startTime / mScale;
+      context.put({ ref->index, dph.startTime / mScale });
       return true;
     } else if (auto v = std::get_if<uint64_t>(&mValue)) {
       return (dph.startTime / mScale) == *v;
@@ -341,7 +406,7 @@ class DataDescriptorMatcher
 
   /// @return true if the (sub-)query associated to this matcher will
   /// match the provided @a spec, false otherwise.
-  bool match(InputSpec const& spec, std::vector<ContextElement>& context) const
+  bool match(InputSpec const& spec, VariableContext& context) const
   {
     header::DataHeader dh;
     dh.dataOrigin = spec.origin;
@@ -351,19 +416,19 @@ class DataDescriptorMatcher
     return this->match(reinterpret_cast<char const*>(&dh), context);
   }
 
-  bool match(header::DataHeader const& header, std::vector<ContextElement>& context) const
+  bool match(header::DataHeader const& header, VariableContext& context) const
   {
     return this->match(reinterpret_cast<char const*>(&header), context);
   }
 
-  bool match(header::Stack const& stack, std::vector<ContextElement>& context) const
+  bool match(header::Stack const& stack, VariableContext& context) const
   {
     return this->match(reinterpret_cast<char const*>(stack.data()), context);
   }
 
   // actual polymorphic matcher which is able to cast the pointer to the correct
   // kind of header.
-  bool match(char const* d, std::vector<ContextElement>& context) const
+  bool match(char const* d, VariableContext& context) const
   {
     bool leftValue = false, rightValue = false;
 
