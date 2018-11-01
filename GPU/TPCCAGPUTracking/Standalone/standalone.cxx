@@ -326,6 +326,7 @@ int main(int argc, char** argv)
 								double p2 = p;
 								while (randVal > p)
 								{
+									if (config.noBorder && (nBunch < 0 || nBunch >= lastTFBunch)) break;
 									if (nCollisionsInTrain >= nEventsInDirectory)
 									{
 										printf("Error: insuffient events for mixing!\n");
