@@ -10,6 +10,8 @@
  * @class this is an interface header for making the TRD tracking portable between O2, AliRoot, and HLT standalone framework
  */
 
+#include "AliHLTTPCGMMergedTrack.h"
+#include "AliHLTTPCGMTrackParam.h"
 #include "AliHLTTRDDef.h"
 template <typename T> class trackInterface;
 template <typename T> class propagatorInterface;
@@ -32,6 +34,16 @@ template <> class trackInterface<AliExternalTrackParam> : public AliExternalTrac
     {
       float paramTmp[5] = { param.fY, param.fZ, param.fSinPhi, param.fTgl, param.fq1Pt };
       Set( param.fX, param.fAlpha, paramTmp, param.fC );
+    }
+    trackInterface<AliExternalTrackParam>(const AliHLTTPCGMMergedTrack &trk) :
+      AliExternalTrackParam()
+    {
+      Set( trk.GetParam().GetX(), trk.GetAlpha(), trk.GetParam().GetPar(), trk.GetParam().GetCov() );
+    }
+    trackInterface<AliExternalTrackParam>(const AliHLTTPCGMTrackParam::AliHLTTPCCAOuterParam &param) :
+      AliExternalTrackParam()
+    {
+      Set( param.fX, param.fAlpha, param.fP, param.fC );
     }
 
     // parameter + covariance
@@ -88,7 +100,6 @@ template <> class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 //TODO: Implement!
 #endif
 
-#include "AliHLTTPCGMTrackParam.h"
 #include "AliHLTTPCGMPropagator.h"
 #include "AliHLTTPCGMMerger.h"
 #include "AliHLTTPCCAParam.h"
