@@ -713,7 +713,7 @@ void AliHLTTPCGMMerger::PrintMergeGraph(AliHLTTPCGMSliceTrack* trk)
       {
           printf("   (TRACK TREE INVALID!!! %d <-- %d --> %d)   ", trk2->PrevNeighbour(), nextId, trk2->NextNeighbour());
       }
-      printf(" %s%5d", trk2 == orgTrack ? "!" : " ", nextId);
+      printf(" %s%5d(%5.2f)", trk2 == orgTrack ? "!" : " ", nextId, trk2->QPt());
       nextId = trk2->NextSegmentNeighbour();
     }
     printf("\n");
@@ -776,6 +776,16 @@ void AliHLTTPCGMMerger::ResolveMergeSlices(bool fromOrig, bool mergeAll)
                 if (track1 == track2) goto NextTrack;
             }
             std::swap(track1, track1Base);
+            for (int k = 0;k < 2;k++)
+            {
+                AliHLTTPCGMSliceTrack* tmp = track1Base;
+                while (tmp->Neighbour(k) >= 0)
+                {
+                    tmp = &fSliceTrackInfos[tmp->Neighbour(k)];
+                    if (tmp == track2) goto NextTrack;
+                }
+            }
+
             while (track1->NextSegmentNeighbour() >= 0)
             {
                 track1 = &fSliceTrackInfos[track1->NextSegmentNeighbour()];
@@ -786,17 +796,15 @@ void AliHLTTPCGMMerger::ResolveMergeSlices(bool fromOrig, bool mergeAll)
         {
             while (track1->PrevSegmentNeighbour() >= 0) track1 = &fSliceTrackInfos[track1->PrevSegmentNeighbour()];
 
-            AliHLTTPCGMSliceTrack* tmp = track1;
             if (track1 == track2) continue;
             for (int k = 0;k < 2;k++)
             {
-                track1 = tmp;
-                while (track1->Neighbour(k) >= 0)
+                AliHLTTPCGMSliceTrack* tmp = track1;
+                while (tmp->Neighbour(k) >= 0)
                 {
-                    track1 = &fSliceTrackInfos[track1->Neighbour(k)];
-                    if (track1 == track2) goto NextTrack;
+                    tmp = &fSliceTrackInfos[tmp->Neighbour(k)];
+                    if (tmp == track2) goto NextTrack;
                 }
-                track1 = tmp;
             }
 
             float z1min = track1->MinClusterZ(), z1max = track1->MaxClusterZ();
