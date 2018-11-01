@@ -101,7 +101,7 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     # Add a library to the project using the specified source files
     add_library_tested(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)
     #CUDA run-time and driver
-    target_link_libraries(${MODULE} ${CUDA_LIBRARIES} ${LIBCUDA_SO_PATH} AliTPCCAGPUTracking)
+    target_link_libraries(${MODULE} AliTPCCAGPUTracking)
 
     # Additional compilation flags
     set_target_properties(${MODULE} PROPERTIES COMPILE_FLAGS "")
@@ -121,7 +121,9 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
 
     O2_GENERATE_LIBRARY()
 
-    target_link_libraries(${MODULE} ${CUDA_LIBRARIES} ${LIBCUDA_SO_PATH} O2TPCCAGPUTracking)
-
+    target_link_libraries(${MODULE} ${CUDA_LIBRARIES} O2TPCCAGPUTracking)
     set_target_properties(${MODULE} PROPERTIES LINKER_LANGUAGE CXX)
 endif()
+
+#Another hack, the above hack removes also the CUDA libraries that are actually needed...
+target_link_libraries(${MODULE} "-lcudart -lcuda -lcudadevrt")
