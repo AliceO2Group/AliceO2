@@ -17,7 +17,7 @@ static void BM_MatchedSingleQuery(benchmark::State& state)
     OriginValueMatcher{ "TRD" }
   };
 
-  std::vector<ContextElement> context;
+  VariableContext context;
 
   for (auto _ : state) {
     matcher.match(header, context);
@@ -45,7 +45,7 @@ static void BM_MatchedFullQuery(benchmark::State& state)
         ConstantValueMatcher{ true }))
   };
 
-  std::vector<ContextElement> context;
+  VariableContext context;
 
   for (auto _ : state) {
     matcher.match(header, context);
@@ -73,7 +73,7 @@ static void BM_UnmatchedSingleQuery(benchmark::State& state)
         ConstantValueMatcher{ true }))
   };
 
-  std::vector<ContextElement> context;
+  VariableContext context;
 
   for (auto _ : state) {
     matcher.match(header, context);
@@ -102,7 +102,7 @@ static void BM_UnmatchedFullQuery(benchmark::State& state)
         ConstantValueMatcher{ true }))
   };
 
-  std::vector<ContextElement> context;
+  VariableContext context;
 
   for (auto _ : state) {
     matcher.match(header, context);
@@ -130,11 +130,11 @@ static void BM_OneVariableFullMatch(benchmark::State& state)
         ConstantValueMatcher{ true }))
   };
 
-  std::vector<ContextElement> context(1);
+  VariableContext context;
 
   for (auto _ : state) {
-    context[0].value = None{};
     matcher.match(header, context);
+    context.discard();
   }
 }
 // Register the function as a benchmark
@@ -164,12 +164,12 @@ static void BM_OneVariableMatchUnmatch(benchmark::State& state)
         ConstantValueMatcher{ true }))
   };
 
-  std::vector<ContextElement> context(1);
+  VariableContext context;
 
   for (auto _ : state) {
-    context[0].value = None{};
     matcher.match(header0, context);
     matcher.match(header1, context);
+    context.discard();
   }
 }
 // Register the function as a benchmark

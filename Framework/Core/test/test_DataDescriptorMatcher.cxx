@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE(TestMatcherInvariants)
   header0.dataOrigin = "TPC";
   header0.dataDescription = "CLUSTERS";
   header0.subSpecification = 1;
-  std::vector<ContextElement> context;
+  VariableContext context;
 
   DataHeader header1;
   header1.dataOrigin = "ITS";
@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE(TestSimpleMatching)
         ConstantValueMatcher{ true }))
   };
 
-  std::vector<ContextElement> context;
+  VariableContext context;
   BOOST_CHECK(matcher.match(header0, context) == true);
   BOOST_CHECK(matcher.match(header1, context) == false);
   BOOST_CHECK(matcher.match(header2, context) == false);
@@ -263,7 +263,7 @@ BOOST_AUTO_TEST_CASE(TestQueryBuilder)
   header4.subSpecification = 0;
 
   /// In this test the context is empty, since we do not use any variables.
-  std::vector<ContextElement> context;
+  VariableContext context;
 
   auto matcher1 = DataDescriptorQueryBuilder::buildFromKeepConfig("TPC/CLUSTERS/1");
   BOOST_CHECK(matcher1.matcher->match(header0, context) == true);
@@ -297,7 +297,7 @@ BOOST_AUTO_TEST_CASE(TestQueryBuilder)
 // This checks matching using variables
 BOOST_AUTO_TEST_CASE(TestMatchingVariables)
 {
-  std::vector<ContextElement> context(2);
+  VariableContext context;
 
   DataDescriptorMatcher matcher{
     DataDescriptorMatcher::Op::And,
@@ -317,10 +317,10 @@ BOOST_AUTO_TEST_CASE(TestMatchingVariables)
   header0.subSpecification = 1;
 
   BOOST_CHECK(matcher.match(header0, context) == true);
-  auto s = std::get_if<std::string>(&context[0].value);
+  auto s = std::get_if<std::string>(&context.get(0));
   BOOST_CHECK(s != nullptr);
   BOOST_CHECK(*s == "TPC");
-  auto v = std::get_if<uint64_t>(&context[1].value);
+  auto v = std::get_if<uint64_t>(&context.get(1));
   BOOST_CHECK(v != nullptr);
   BOOST_CHECK(*v == 1);
 
@@ -332,7 +332,7 @@ BOOST_AUTO_TEST_CASE(TestMatchingVariables)
   header1.subSpecification = 1;
 
   BOOST_CHECK(matcher.match(header1, context) == false);
-  auto s1 = std::get_if<std::string>(&context[0].value);
+  auto s1 = std::get_if<std::string>(&context.get(0));
   BOOST_CHECK(s1 != nullptr);
   BOOST_CHECK(*s1 == "TPC");
 }
@@ -357,7 +357,7 @@ BOOST_AUTO_TEST_CASE(TestInputSpecMatching)
         ConstantValueMatcher{ true }))
   };
 
-  std::vector<ContextElement> context;
+  VariableContext context;
 
   BOOST_CHECK(matcher.match(spec0, context) == true);
   BOOST_CHECK(matcher.match(spec1, context) == false);
@@ -391,7 +391,7 @@ BOOST_AUTO_TEST_CASE(TestInputSpecMatching)
 
 BOOST_AUTO_TEST_CASE(TestStartTimeMatching)
 {
-  std::vector<ContextElement> context(1);
+  VariableContext context;
 
   DataDescriptorMatcher matcher{
     DataDescriptorMatcher::Op::Just,
@@ -411,7 +411,100 @@ BOOST_AUTO_TEST_CASE(TestStartTimeMatching)
   BOOST_CHECK(s2dph != nullptr);
   BOOST_CHECK_EQUAL(s2dph->startTime, 123);
   BOOST_CHECK(matcher.match(s, context) == true);
-  auto vPtr = std::get_if<uint64_t>(&context[0].value);
+  auto vPtr = std::get_if<uint64_t>(&context.get(0));
   BOOST_REQUIRE(vPtr != nullptr);
   BOOST_CHECK_EQUAL(*vPtr, 123);
+}
+
+/// If a query matches only partially, we do not want
+/// to pollute the context with partial results.
+BOOST_AUTO_TEST_CASE(TestAtomicUpdatesOfContext)
+{
+  VariableContext context;
+
+  DataDescriptorMatcher matcher{
+    DataDescriptorMatcher::Op::And,
+    OriginValueMatcher{ ContextRef{ 0 } },
+    std::make_unique<DataDescriptorMatcher>(
+      DataDescriptorMatcher::Op::And,
+      DescriptionValueMatcher{ "CLUSTERS" },
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::Just,
+        SubSpecificationTypeValueMatcher{ ContextRef{ 1 } }))
+  };
+
+  /// This will match TPC, but not TRACKS, so the context should
+  /// be left pristine.
+  DataHeader dh;
+  dh.dataOrigin = "TPC";
+  dh.dataDescription = "TRACKS";
+  dh.subSpecification = 1;
+
+  auto vPtr0 = std::get_if<None>(&context.get(0));
+  auto vPtr1 = std::get_if<None>(&context.get(1));
+  BOOST_CHECK(vPtr0 != nullptr);
+  BOOST_CHECK(vPtr1 != nullptr);
+  BOOST_REQUIRE_EQUAL(matcher.match(dh, context), false);
+  // We discard the updates, because there was no match
+  context.discard();
+  vPtr0 = std::get_if<None>(&context.get(0));
+  vPtr1 = std::get_if<None>(&context.get(1));
+  BOOST_CHECK(vPtr0 != nullptr);
+  BOOST_CHECK(vPtr1 != nullptr);
+}
+
+BOOST_AUTO_TEST_CASE(TestVariableContext)
+{
+  VariableContext context;
+  // Put some updates, but do not commit them
+  // we should still be able to retrieve them
+  // (just slower).
+  context.put(ContextUpdate{ 0, "A TEST" });
+  context.put(ContextUpdate{ 10, 77 });
+  auto v1 = std::get_if<std::string>(&context.get(0));
+  BOOST_REQUIRE(v1 != nullptr);
+  BOOST_CHECK(*v1 == "A TEST");
+  auto v2 = std::get_if<std::string>(&context.get(1));
+  BOOST_CHECK(v2 == nullptr);
+  auto v3 = std::get_if<uint64_t>(&context.get(10));
+  BOOST_CHECK(v3 != nullptr);
+  BOOST_CHECK(*v3 == 77);
+  context.commit();
+  // After commits everything is the same
+  v1 = std::get_if<std::string>(&context.get(0));
+  BOOST_REQUIRE(v1 != nullptr);
+  BOOST_CHECK(*v1 == "A TEST");
+  v2 = std::get_if<std::string>(&context.get(1));
+  BOOST_CHECK(v2 == nullptr);
+  v3 = std::get_if<uint64_t>(&context.get(10));
+  BOOST_CHECK(v3 != nullptr);
+  BOOST_CHECK(*v3 == 77);
+
+  // Let's update again. New values should win.
+  context.put(ContextUpdate{ 0, "SOME MORE" });
+  context.put(ContextUpdate{ 10, 16 });
+  v1 = std::get_if<std::string>(&context.get(0));
+  BOOST_REQUIRE(v1 != nullptr);
+  BOOST_CHECK(*v1 == "SOME MORE");
+  v2 = std::get_if<std::string>(&context.get(1));
+  BOOST_CHECK(v2 == nullptr);
+  v3 = std::get_if<uint64_t>(&context.get(10));
+  BOOST_CHECK(v3 != nullptr);
+  BOOST_CHECK(*v3 == 16);
+
+  // Until we discard
+  context.discard();
+  v1 = std::get_if<std::string>(&context.get(0));
+  BOOST_REQUIRE(v1 != nullptr);
+  BOOST_CHECK(*v1 == "A TEST");
+  auto n = std::get_if<None>(&context.get(1));
+  BOOST_CHECK(n != nullptr);
+  v3 = std::get_if<uint64_t>(&context.get(10));
+  BOOST_CHECK(v3 != nullptr);
+  BOOST_CHECK(*v3 == 77);
+
+  //auto d3 = std::get_if<uint64_t>(&context.get(0));
+  //BOOST_CHECK(d1 == nullptr);
+  //BOOST_CHECK(d2 == nullptr);
+  //BOOST_CHECK(d3 == nullptr);
 }
