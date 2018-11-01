@@ -8,6 +8,7 @@ install(DIRECTORY
         TPCFastTransformation
         TPCSpaceChargeBase
         Common
+        cmake
         DESTINATION sources
         PATTERN "TPCCAGPUTracking/Standalone/cmodules/.*" EXCLUDE
 )
