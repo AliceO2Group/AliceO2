@@ -475,7 +475,7 @@ Data Sampling provides possibility to sample data in DPL workflows, basing on ce
 ### Usage
 
 To use Data Sampling in a DPL workflow insert following lines to your code:
-```
+```cpp
 #include "Framework/DataSampling.h"
 using namespace o2::framework;
 void customize(std::vector<CompletionPolicy>& policies)
@@ -510,7 +510,7 @@ Sampled data can be subscribed to by adding `InputSpecs` provided by `std::vecto
 
 The following sampling conditions are available. When more than one is used, a positive decision is taken when all the conditions are fulfilled.
 - **DataSamplingConditionRandom** - pseudo-randomly accepts specified fraction of incoming messages.
-```
+```json
 {
   "condition": "random",
   "fraction": "0.1",
@@ -518,7 +518,7 @@ The following sampling conditions are available. When more than one is used, a p
 }
 ```
 - **DataSamplingConditionNConsecutive** - approves n consecutive samples in defined cycle. It assumes that timesliceID always increments by one.
-```
+```json
 {
   "condition": "nConsecutive",
   "samplesNumber": "3",
@@ -526,7 +526,7 @@ The following sampling conditions are available. When more than one is used, a p
 }
 ```
 - **DataSamplingConditionPayloadSize** - approves messages having payload size within specified boundaries.
-```
+```json
 {
   "condition": "payloadSize",
   "lowerLimit": "300",

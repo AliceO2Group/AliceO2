@@ -84,7 +84,7 @@ class DataSampling
 
  private:
   // Internal functions, used by GenerateInfrastructure()
-  static std::string dispatcherName();
+  static std::string createDispatcherName();
 };
 
 } // namespace framework
