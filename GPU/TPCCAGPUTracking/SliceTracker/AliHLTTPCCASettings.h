@@ -22,6 +22,7 @@
 #define TRACKLET_CONSTRUCTOR_MAX_ROW_GAP 4			//Maximum number of consecutive rows without hit in track following
 #define TRACKLET_CONSTRUCTOR_MAX_ROW_GAP_SEED 2		//Same, but during fit of seed
 #define HLTCA_MERGER_MAXN_MISSED_HARD 10			//Hard limit for number of missed rows in fit / propagation
+#define HLTCA_MERGER_COV_LIMIT 1000                 //Abort fit when y/z cov exceed the limit
 #define MIN_TRACK_PT_DEFAULT 0.010					//Default setting for minimum track Pt at some places
 
 #define MAX_SLICE_NTRACK (2 << 24)					//Maximum number of tracks per slice (limited by track id format)
