@@ -23,7 +23,7 @@ FOREACH (p
   ENDIF ()
 endforeach ()
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${EXTERNAL_CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake) # project specific cmake dir
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake) # project specific cmake dir
 
 # Set name of our project to "ALICEO2". Has to be done
 # after check of cmake version since this is a new feature

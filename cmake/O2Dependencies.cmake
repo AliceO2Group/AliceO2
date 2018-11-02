@@ -277,7 +277,6 @@ o2_define_bucket(
 o2_define_bucket(
     NAME
     InfoLogger_bucket
-    gpuMemcpyHostToDevice
     DEPENDENCIES
     ${InfoLogger_LIBRARIES}
 
@@ -870,24 +869,15 @@ o2_define_bucket(
     its_tracking_bucket
 
     DEPENDENCIES
-    its_base_bucket
-    data_format_itsmft_bucket
     data_format_its_bucket
-    itsmft_reconstruction_bucket
     #
-    ITSMFTBase
-    ITSMFTReconstruction
-    ITSBase
-    ITSSimulation
-    DetectorsBase
     DataFormatsITS
+    DetectorsBase
+    ITSBase
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
-    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
-    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/reconstruction/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
-    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/simulation/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/ITS/include
 )
 
@@ -896,7 +886,10 @@ o2_define_bucket(
     its_tracking_CUDA_bucket
 
     DEPENDENCIES
-    its_tracking_bucket
+    cuda
+    cudart
+    cudadevrt
+    ITStracking
     #
 
     INCLUDE_DIRECTORIES

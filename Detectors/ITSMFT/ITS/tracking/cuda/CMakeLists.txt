@@ -22,15 +22,8 @@ set(NO_DICT_SRCS ${NO_DICT_SRCS}
     src/dummy.cxx
 )
 
-
 Set(LIBRARY_NAME ${MODULE_NAME})
-Set(BUCKET_NAME its_tracking_CUDA_bucket)
+set(BUCKET_NAME its_tracking_CUDA_bucket)
 O2_GENERATE_LIBRARY()
 
 set_property(TARGET "${MODULE_NAME}" PROPERTY CUDA_SEPARABLE_COMPILATION ON)
-
-target_include_directories("${MODULE_NAME}" PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CUB_ROOT}
-)
-target_link_libraries(${MODULE_NAME} ${CUDA_LIBRARIES} ${LIBCUDA_SO_PATH})
