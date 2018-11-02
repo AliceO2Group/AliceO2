@@ -140,7 +140,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
       {
           const AliHLTTPCGMTrackParam backup = *this;
           const float backupAlpha = prop.GetAlpha();
-          if (FollowCircle(merger, prop, lastSlice, lastRow, iTrk, clusters[ihit].fLeg == clusters[maxN - 1].fLeg, clAlpha, xx, yy, clusters[ihit].fSlice, clusters[ihit].fRow, inFlyDirection))
+          if (lastRow != 255 && FollowCircle(merger, prop, lastSlice, lastRow, iTrk, clusters[ihit].fLeg == clusters[maxN - 1].fLeg, clAlpha, xx, yy, clusters[ihit].fSlice, clusters[ihit].fRow, inFlyDirection))
           {
               CADEBUG(printf("Error during follow circle, resetting track!\n");)
               *this = backup;
