@@ -211,6 +211,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
       const int err2 = fNDF > 0 && CAMath::Abs(prop.GetSinPhi0()) >= maxSinForUpdate;
       if ( err || err2 )
       {
+        if (fP[0] > HLTCA_MERGER_COV_LIMIT || fP[2] > HLTCA_MERGER_COV_LIMIT) break;
         MarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, AliHLTTPCGMMergedTrackHit::flagNotFit);
         nMissed2++;
         NTolerated++;
