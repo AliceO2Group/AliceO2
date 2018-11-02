@@ -370,7 +370,7 @@ int main(int argc, char** argv)
 					nTotalCollisions += nCollisions;
 					printf("Timeframe statistics: collisions: %d+%d in %d trains (inside / outside), average rate %f (pile up: in bunch %d, in train %d)\n", nCollisions, nBorderCollisions, nTrainCollissions, (float) nCollisions / (float) (config.timeFrameLen - driftTime) * 1e9, nMultipleCollisions, nTrainMultipleCollisions);
 #ifdef BUILD_QA
-					SetMCTrackRange(mcMin, mcMax);
+					if (!config.noBorder) SetMCTrackRange(mcMin, mcMax);
 #endif
 					if (config.dumpO2)
 					{
