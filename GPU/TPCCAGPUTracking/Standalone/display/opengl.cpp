@@ -1418,7 +1418,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 				if (nCollisions > 1)
 				{
 					int label = GetMCLabel(i);
-					if (label < -1) label = -label - 2;
+					if (label != -1e9 && label < -1) label = -label - 2;
 					while (col < collisionClusters.size() && collisionClusters[col][fgkNSlices] < label) col++;
 				}
 				threadTracks[numThread][col][slice][0].emplace_back(i);

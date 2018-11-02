@@ -165,7 +165,7 @@ static const constexpr float pull_axis = 10.f;
 
 #ifdef HLTCA_MERGER_BY_MC_LABEL
 	#define CHECK_CLUSTER_STATE_INIT_LEG_BY_MC() \
-	if (!unattached && trackMCLabels[id] != -1) \
+	if (!unattached && trackMCLabels[id] != MC_LABEL_INVALID) \
 	{ \
 		int mcLabel = trackMCLabels[id] >= 0 ? trackMCLabels[id] : (-trackMCLabels[id] - 2); \
 		if (trackMCLabelsReverse[mcLabel] != id) attach &= (~AliHLTTPCGMMerger::attachGoodLeg); \
@@ -310,7 +310,7 @@ bool SuppressHit(int iHit)
 
 int GetMCLabel(unsigned int trackId)
 {
-	return(trackId >= trackMCLabels.size() ? -1 : trackMCLabels[trackId]);
+	return(trackId >= trackMCLabels.size() ? MC_LABEL_INVALID : trackMCLabels[trackId]);
 }
 
 void InitQA()
@@ -611,7 +611,7 @@ void RunQA(bool matchOnly)
 		{
 			const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[i];
 			if (!track.OK()) continue;
-			if (trackMCLabels[i] == -1e9)
+			if (trackMCLabels[i] == MC_LABEL_INVALID)
 			{
 				for (int k = 0;k < track.NClusters();k++)
 				{
@@ -898,7 +898,7 @@ void RunQA(bool matchOnly)
 			if (configStandalone.runGPU) {printf("WARNING: INCOMPLETE QA with GPU!\n");break;}
 			const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[iTrk];
 			if (!track.OK()) continue;
-			if (trackMCLabels[iTrk] == -1e9)
+			if (trackMCLabels[iTrk] == MC_LABEL_INVALID)
 			{
 				for (int k = 0;k < track.NClusters();k++)
 				{
@@ -981,7 +981,7 @@ void RunQA(bool matchOnly)
 			if (clusterParam[i].adjacent)
 			{
 				int label = merger.ClusterAttachment()[i] & AliHLTTPCGMMerger::attachTrackMask;
-				if (trackMCLabels[label] == -1e9)
+				if (trackMCLabels[label] == MC_LABEL_INVALID)
 				{
 					float totalWeight = 0.;
 					for (int j = 0;j < 3;j++)
