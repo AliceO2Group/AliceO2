@@ -73,7 +73,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
 
   for (int iWay = 0;iWay < nWays;iWay++)
   {
-    int nMissed = 0;
+    int nMissed = 0, nMissed2 = 0;
     if (iWay && param.GetNWaysOuter() && iWay == nWays - 1 && outerParam)
     {
         for (int i = 0;i < 5;i++) outerParam->fP[i] = fP[i];
@@ -120,7 +120,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
       CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f (Missed %d)", ihit, maxN, clusters[ihit].fRow, clAlpha, xx, yy, zz, nMissed);)
       CADEBUG(AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();if (configStandalone.resetids && (unsigned int) hlt.GetNMCLabels() > clusters[ihit].fNum))
       CADEBUG({printf(" MC:"); for (int i = 0;i < 3;i++) {int mcId = hlt.GetMCLabels()[clusters[ihit].fNum].fClusterID[i].fMCID; if (mcId >= 0) printf(" %d", mcId);}}printf("\n");)
-      if ((param.GetRejectMode() > 0 && nMissed >= param.GetRejectMode()) || clusters[ihit].fState & AliHLTTPCGMMergedTrackHit::flagReject)
+      if ((param.GetRejectMode() > 0 && nMissed >= param.GetRejectMode()) || nMissed2 >= HLTCA_MERGER_MAXN_MISSED_HARD || clusters[ihit].fState & AliHLTTPCGMMergedTrackHit::flagReject)
       {
         CADEBUG(printf("\tSkipping hit, %d hits rejected, flag %X\n", nMissed, (int) clusters[ihit].fState);)
         if (iWay + 2 >= nWays && !(clusters[ihit].fState & AliHLTTPCGMMergedTrackHit::flagReject)) clusters[ihit].fState |= AliHLTTPCGMMergedTrackHit::flagRejectErr;
@@ -131,7 +131,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
       int ihitMergeFirst = ihit;
       prop.SetStatErrorCurCluster(&clusters[ihit]);
 
-      if (MergeDoubleRowClusters(ihit, wayDirection, clusters, param, prop, xx, yy, zz, maxN, clAlpha, clusterState, allowModification, nMissed) == -1) continue;
+      if (MergeDoubleRowClusters(ihit, wayDirection, clusters, param, prop, xx, yy, zz, maxN, clAlpha, clusterState, allowModification) == -1) {nMissed++;nMissed2++;continue;}
 
       bool changeDirection = (clusters[ihit].fLeg - lastLeg) & 1;
       CADEBUG(if(changeDirection) printf("\t\tChange direction\n");)
@@ -212,6 +212,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
       if ( err || err2 )
       {
         MarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, AliHLTTPCGMMergedTrackHit::flagNotFit);
+        nMissed2++;
         NTolerated++;
         CADEBUG(printf(" --- break (%d, %d)\n", err, err2);)
         continue;
@@ -231,7 +232,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
         noFollowCircle2 = false;
         lastUpdateX = fX;
         covYYUpd = fC[0];
-        nMissed = 0;
+        nMissed = nMissed2 = 0;
         UnmarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, AliHLTTPCGMMergedTrackHit::flagNotFit);
         N++;
         ihitStart = ihit;
@@ -247,6 +248,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
       {
         if (allowModification) MarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, AliHLTTPCGMMergedTrackHit::flagRejectDistance);
         nMissed++;
+        nMissed2++;
       }
       else break; // bad chi2 for the whole track, stop the fit
     }
@@ -306,7 +308,7 @@ GPUd() void AliHLTTPCGMTrackParam::MirrorTo(AliHLTTPCGMPropagator& prop, float t
     fChi2 = 0;
 }
 
-GPUd() int AliHLTTPCGMTrackParam::MergeDoubleRowClusters(int ihit, int wayDirection, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, AliHLTTPCGMPropagator& prop, float& xx, float& yy, float& zz, int maxN, float clAlpha, unsigned char& clusterState, bool rejectChi2, int& nMissed)
+GPUd() int AliHLTTPCGMTrackParam::MergeDoubleRowClusters(int ihit, int wayDirection, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, AliHLTTPCGMPropagator& prop, float& xx, float& yy, float& zz, int maxN, float clAlpha, unsigned char& clusterState, bool rejectChi2)
 {
     if (ihit + wayDirection >= 0 && ihit + wayDirection < maxN && clusters[ihit].fRow == clusters[ihit + wayDirection].fRow && clusters[ihit].fSlice == clusters[ihit + wayDirection].fSlice && clusters[ihit].fLeg == clusters[ihit + wayDirection].fLeg)
     {
@@ -344,7 +346,6 @@ GPUd() int AliHLTTPCGMTrackParam::MergeDoubleRowClusters(int ihit, int wayDirect
         }
         if (count < 0.1)
         {
-          nMissed++;
           CADEBUG(printf("\t\tNo matching cluster in double-row, skipping\n");)
           return -1;
         }
