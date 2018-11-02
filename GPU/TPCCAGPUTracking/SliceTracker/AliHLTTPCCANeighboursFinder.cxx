@@ -29,7 +29,7 @@
 #include "AliHLTTPCCADisplay.h"
 #endif //DRAW
 
-GPUdi() void AliHLTTPCCANeighboursFinder::Thread
+GPUd() void AliHLTTPCCANeighboursFinder::Thread
 ( int /*nBlocks*/, int nThreads, int iBlock, int iThread, int iSync,
   GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) &s, GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker )
 {

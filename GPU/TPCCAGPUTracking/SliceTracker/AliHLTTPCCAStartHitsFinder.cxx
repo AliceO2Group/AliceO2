@@ -21,7 +21,7 @@
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCAMath.h"
 
-GPUdi() void AliHLTTPCCAStartHitsFinder::Thread
+GPUd() void AliHLTTPCCAStartHitsFinder::Thread
 ( int /*nBlocks*/, int nThreads, int iBlock, int iThread, int iSync,
   GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) &s, GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker )
 {
@@ -70,5 +70,5 @@ GPUdi() void AliHLTTPCCAStartHitsFinder::Thread
 #endif
     }
 #endif
-  }  
+  }
 }

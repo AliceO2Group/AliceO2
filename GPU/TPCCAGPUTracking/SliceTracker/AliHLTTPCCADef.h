@@ -48,66 +48,7 @@
 #define TRACKER_KEEP_TEMPDATA
 #endif
 
-#ifdef HLTCA_GPUCODE
-  #ifdef __OPENCL__
-    #define GPUdi() inline
-    #define GPUhdi() inline
-    #define GPUd()
-    #define GPUi() inline
-    #define GPUhd()
-    #define GPUh() TRIGGER_ERROR_NO_HOST_CODE
-    #define GPUg() __kernel
-    #define GPUshared() __local
-    #define GPUsync() barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE)
-  #else //Now comes CUDA
-    #define GPUdi() __device__ inline
-    #define GPUhdi() __host__ __device__ inline
-    #define GPUd() __device__
-    #define GPUi() inline
-    #define GPUhd() __host__ __device__
-    #define GPUh() __host__ inline
-    #define GPUg() __global__
-    #define GPUshared() __shared__
-    #define GPUsync() __syncthreads()
-  #endif
-#else //Now comes CPU
-
-  #define GPUdi()
-  #define GPUhdi()
-  #define GPUd()
-  #define GPUi()
-  #define GPUhd()
-  #define GPUg()
-  #define GPUh()
-  #define GPUshared()
-  #define GPUsync()
-
-  struct float4 { float x, y, z, w; };
-  struct float2 { float x; float y; };
-  struct uchar2 { unsigned char x, y; };
-  struct short2 { short x, y; };
-  struct ushort2 { unsigned short x, y; };
-  struct int2 { int x, y; };
-  struct int3 { int x, y, z; };
-  struct int4 { int x, y, z, w; };
-  struct uint1 { unsigned int x; };
-  struct uint2 { unsigned int x, y; };
-  struct uint3 { unsigned int x, y, z; };
-  struct uint4 { unsigned int x, y, z, w; };
-  struct uint16 { unsigned int x[16]; };
-
-#endif //HLTCA_GPUCODE
-
-#if defined(__OPENCL__)
-  #define GPUsharedref() GPUshared()
-  #define GPUglobalref() __global
-  //#define GPUconstant() __constant //Replace __constant by __global (possibly add const __restrict where possible later!)
-  #define GPUconstant() GPUglobalref()
-#else
-  #define GPUconstant()
-  #define GPUsharedref()
-  #define GPUglobalref()
-#endif
+#include "AliTPCCommonDef.h"
 
 enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
 #if defined(__OPENCL__)

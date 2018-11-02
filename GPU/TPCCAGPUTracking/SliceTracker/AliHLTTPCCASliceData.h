@@ -47,7 +47,7 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
 {
   public:
     AliHLTTPCCASliceData()
-      : 
+      :
       fIsGpuSliceData(0), fGPUSharedDataReq(0), fFirstRow( 0 ), fLastRow( HLTCA_ROW_COUNT - 1), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMaxZ(0.f), fMemorySize( 0 ), fGpuMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
       ,fRows( NULL ), fLinkUpData( 0 ), fLinkDownData( 0 ), fHitData( 0 ), fClusterDataIndex( 0 )
       , fFirstHitInBin( 0 ), fHitWeights( 0 )
@@ -88,11 +88,11 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
     MEM_TEMPLATE() GPUd() calink HitLinkUpData  ( const MEM_TYPE(AliHLTTPCCARow) &row, const calink &hitIndex ) const;
     MEM_TEMPLATE() GPUd() calink HitLinkDownData( const MEM_TYPE(AliHLTTPCCARow) &row, const calink &hitIndex ) const;
 
-    MEM_TEMPLATE() GPUhd() GPUglobalref() const cahit2 *HitData( const MEM_TYPE(AliHLTTPCCARow) &row ) const {return &fHitData[row.fHitNumberOffset];}
+    MEM_TEMPLATE() GPUhdi() GPUglobalref() const cahit2 *HitData( const MEM_TYPE(AliHLTTPCCARow) &row ) const {return &fHitData[row.fHitNumberOffset];}
     GPUhd() GPUglobalref() const cahit2* HitData() const { return(fHitData); }
-	MEM_TEMPLATE() GPUd() GPUglobalref() const calink *HitLinkUpData  ( const MEM_TYPE(AliHLTTPCCARow) &row ) const {return &fLinkUpData[row.fHitNumberOffset];}
-	MEM_TEMPLATE() GPUd() GPUglobalref() const calink *HitLinkDownData( const MEM_TYPE(AliHLTTPCCARow) &row ) const {return &fLinkDownData[row.fHitNumberOffset];}
-	MEM_TEMPLATE() GPUd() GPUglobalref() const calink *FirstHitInBin( const MEM_TYPE( AliHLTTPCCARow) &row ) const {return &fFirstHitInBin[row.fFirstHitInBinOffset];}
+	MEM_TEMPLATE() GPUdi() GPUglobalref() const calink *HitLinkUpData  ( const MEM_TYPE(AliHLTTPCCARow) &row ) const {return &fLinkUpData[row.fHitNumberOffset];}
+	MEM_TEMPLATE() GPUdi() GPUglobalref() const calink *HitLinkDownData( const MEM_TYPE(AliHLTTPCCARow) &row ) const {return &fLinkDownData[row.fHitNumberOffset];}
+	MEM_TEMPLATE() GPUdi() GPUglobalref() const calink *FirstHitInBin( const MEM_TYPE( AliHLTTPCCARow) &row ) const {return &fFirstHitInBin[row.fFirstHitInBinOffset];}
 
     MEM_TEMPLATE() GPUd() void SetHitLinkUpData  ( const MEM_TYPE(AliHLTTPCCARow) &row, const calink &hitIndex,
                              const calink &value );
@@ -144,20 +144,20 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
     /**
      * Return the row object for the given row index.
      */
-    GPUhd() GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow)& Row( int rowIndex ) const {return fRows[rowIndex];}
-    GPUhd() GPUglobalref() MEM_GLOBAL(AliHLTTPCCARow)* Rows() const {return fRows;}
+    GPUhdi() GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow)& Row( int rowIndex ) const {return fRows[rowIndex];}
+    GPUhdi() GPUglobalref() MEM_GLOBAL(AliHLTTPCCARow)* Rows() const {return fRows;}
 
-    GPUhd() GPUglobalref() int* HitWeights() const {return(fHitWeights); }
+    GPUhdi() GPUglobalref() int* HitWeights() const {return(fHitWeights); }
 
-    GPUhd() void SetGPUTextureBase(char* const val) {fGPUTextureBase = val;}
-    GPUhd() char* GPUTextureBase() const { return(fGPUTextureBase); }
-    GPUhd() char* GPUTextureBaseConst() const { return(fGPUTextureBase); }
+    GPUhdi() void SetGPUTextureBase(char* const val) {fGPUTextureBase = val;}
+    GPUhdi() char* GPUTextureBase() const { return(fGPUTextureBase); }
+    GPUhdi() char* GPUTextureBaseConst() const { return(fGPUTextureBase); }
 
 #if !defined(__OPENCL__)
-    GPUh() char* Memory() const {return(fMemory); }
-    GPUh() size_t MemorySize() const {return(fMemorySize); }
-    GPUh() size_t GpuMemorySize() const {return(fGpuMemorySize); }
-    GPUh() int GPUSharedDataReq() const { return fGPUSharedDataReq; }
+    GPUhi() char* Memory() const {return(fMemory); }
+    GPUhi() size_t MemorySize() const {return(fMemorySize); }
+    GPUhi() size_t GpuMemorySize() const {return(fGpuMemorySize); }
+    GPUhi() int GPUSharedDataReq() const { return fGPUSharedDataReq; }
 #endif
 
     void SetGpuSliceData() { fIsGpuSliceData = 1; }
@@ -207,62 +207,62 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
 
 };
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline calink MEM_LG(AliHLTTPCCASliceData)::HitLinkUpData  ( const MEM_TYPE( AliHLTTPCCARow)&row, const calink &hitIndex ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() calink MEM_LG(AliHLTTPCCASliceData)::HitLinkUpData  ( const MEM_TYPE( AliHLTTPCCARow)&row, const calink &hitIndex ) const
 {
   return fLinkUpData[row.fHitNumberOffset + hitIndex];
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline calink MEM_LG(AliHLTTPCCASliceData)::HitLinkDownData( const MEM_TYPE( AliHLTTPCCARow)&row, const calink &hitIndex ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() calink MEM_LG(AliHLTTPCCASliceData)::HitLinkDownData( const MEM_TYPE( AliHLTTPCCARow)&row, const calink &hitIndex ) const
 {
   return fLinkDownData[row.fHitNumberOffset + hitIndex];
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline void MEM_LG(AliHLTTPCCASliceData)::SetHitLinkUpData  ( const MEM_TYPE( AliHLTTPCCARow)&row, const calink &hitIndex, const calink &value )
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() void MEM_LG(AliHLTTPCCASliceData)::SetHitLinkUpData  ( const MEM_TYPE( AliHLTTPCCARow)&row, const calink &hitIndex, const calink &value )
 {
   fLinkUpData[row.fHitNumberOffset + hitIndex] = value;
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline void MEM_LG(AliHLTTPCCASliceData)::SetHitLinkDownData( const MEM_TYPE( AliHLTTPCCARow)&row, const calink &hitIndex, const calink &value )
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() void MEM_LG(AliHLTTPCCASliceData)::SetHitLinkDownData( const MEM_TYPE( AliHLTTPCCARow)&row, const calink &hitIndex, const calink &value )
 {
   fLinkDownData[row.fHitNumberOffset + hitIndex] = value;
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline cahit MEM_LG(AliHLTTPCCASliceData)::HitDataY( const MEM_TYPE( AliHLTTPCCARow)&row, const uint_v &hitIndex ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() cahit MEM_LG(AliHLTTPCCASliceData)::HitDataY( const MEM_TYPE( AliHLTTPCCARow)&row, const uint_v &hitIndex ) const
 {
   return fHitData[row.fHitNumberOffset + hitIndex].x;
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline cahit MEM_LG(AliHLTTPCCASliceData)::HitDataZ( const MEM_TYPE( AliHLTTPCCARow)&row, const uint_v &hitIndex ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() cahit MEM_LG(AliHLTTPCCASliceData)::HitDataZ( const MEM_TYPE( AliHLTTPCCARow)&row, const uint_v &hitIndex ) const
 {
   return fHitData[row.fHitNumberOffset + hitIndex].y;
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline cahit2 MEM_LG(AliHLTTPCCASliceData)::HitData( const MEM_TYPE( AliHLTTPCCARow)&row, const uint_v &hitIndex ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() cahit2 MEM_LG(AliHLTTPCCASliceData)::HitData( const MEM_TYPE( AliHLTTPCCARow)&row, const uint_v &hitIndex ) const
 {
   return fHitData[row.fHitNumberOffset + hitIndex];
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline calink MEM_LG(AliHLTTPCCASliceData)::FirstHitInBin( const MEM_TYPE( AliHLTTPCCARow)&row, calink binIndexes ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() calink MEM_LG(AliHLTTPCCASliceData)::FirstHitInBin( const MEM_TYPE( AliHLTTPCCARow)&row, calink binIndexes ) const
 {
   return fFirstHitInBin[row.fFirstHitInBinOffset + binIndexes];
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUhd() inline int_v MEM_LG(AliHLTTPCCASliceData)::ClusterDataIndex( const MEM_TYPE( AliHLTTPCCARow)&row, uint_v hitIndex ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUhdi() int_v MEM_LG(AliHLTTPCCASliceData)::ClusterDataIndex( const MEM_TYPE( AliHLTTPCCARow)&row, uint_v hitIndex ) const
 {
   return fClusterDataIndex[row.fHitNumberOffset + hitIndex];
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline void MEM_LG(AliHLTTPCCASliceData)::MaximizeHitWeight( const MEM_TYPE( AliHLTTPCCARow)&row, uint_v hitIndex, int_v weight )
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() void MEM_LG(AliHLTTPCCASliceData)::MaximizeHitWeight( const MEM_TYPE( AliHLTTPCCARow)&row, uint_v hitIndex, int_v weight )
 {
   CAMath::AtomicMax( &fHitWeights[row.fHitNumberOffset + hitIndex], weight );
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline void MEM_LG(AliHLTTPCCASliceData)::SetHitWeight( const MEM_TYPE( AliHLTTPCCARow)&row, uint_v hitIndex, int_v weight )
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() void MEM_LG(AliHLTTPCCASliceData)::SetHitWeight( const MEM_TYPE( AliHLTTPCCARow)&row, uint_v hitIndex, int_v weight )
 {
   fHitWeights[row.fHitNumberOffset + hitIndex] = weight;
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline int_v MEM_LG(AliHLTTPCCASliceData)::HitWeight( const MEM_TYPE( AliHLTTPCCARow)&row, uint_v hitIndex ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() int_v MEM_LG(AliHLTTPCCASliceData)::HitWeight( const MEM_TYPE( AliHLTTPCCARow)&row, uint_v hitIndex ) const
 {
   return fHitWeights[row.fHitNumberOffset + hitIndex];
 }

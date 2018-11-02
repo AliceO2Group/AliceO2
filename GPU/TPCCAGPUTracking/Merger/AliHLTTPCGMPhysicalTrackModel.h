@@ -33,7 +33,7 @@ class AliHLTTPCGMPhysicalTrackModel
   
   GPUd() AliHLTTPCGMPhysicalTrackModel( const AliHLTTPCGMTrackParam &t );
 
-  GPUd() void Set( const AliHLTTPCGMTrackParam &t );   
+  GPUd() void Set( const AliHLTTPCGMTrackParam &t );
   GPUd() void Set( float X, float Y, float Z, float Px, float Py, float Pz, float Q);
     
   GPUd() float& X() { return fX; }
@@ -77,7 +77,7 @@ class AliHLTTPCGMPhysicalTrackModel
   GPUd() int PropagateToXBzLight( float x, float Bz, float &dLp );
   
   GPUd() int PropagateToXBxByBz( float x,
-				 float Bx, float By, float Bz,				   
+				 float Bx, float By, float Bz,
 				 float &dLp );
   
   GPUd() int PropagateToLpBz( float Lp, float Bz );
@@ -109,16 +109,16 @@ class AliHLTTPCGMPhysicalTrackModel
   
   float fSinPhi; // SinPhi = Py/Pt
   float fCosPhi; // CosPhi = abs(Px)/Pt
-  float fSecPhi; // 1/cos(phi) = Pt/abs(Px)    
+  float fSecPhi; // 1/cos(phi) = Pt/abs(Px)
   float fDzDs;   // DzDs = Pz/Pt
   float fDlDs;   // DlDs = P/Pt
   float fQPt;    // QPt = q/Pt
-  float fP;    // momentum 
-  float fPt;    // Pt momentum 
+  float fP;    // momentum
+  float fPt;    // Pt momentum
 };
 
 
-GPUd() inline void AliHLTTPCGMPhysicalTrackModel::Set( const AliHLTTPCGMTrackParam &t )
+GPUdi() void AliHLTTPCGMPhysicalTrackModel::Set( const AliHLTTPCGMTrackParam &t )
 {
   float pti = fabs(t.GetQPt());
   if( pti < 1.e-4 ) pti = 1.e-4; // set 10000 GeV momentum for straight track
@@ -127,15 +127,15 @@ GPUd() inline void AliHLTTPCGMPhysicalTrackModel::Set( const AliHLTTPCGMTrackPar
   fY = t.GetY();
   fZ = t.GetZ();
   
-  fPt = 1./pti;  
+  fPt = 1./pti;
   fSinPhi = t.GetSinPhi();
   if( fSinPhi >  HLTCA_MAX_SIN_PHI ) fSinPhi = HLTCA_MAX_SIN_PHI;
   if( fSinPhi < -HLTCA_MAX_SIN_PHI ) fSinPhi = -HLTCA_MAX_SIN_PHI;
-  fCosPhi = sqrt( (1. - fSinPhi)*(1.+fSinPhi) );  
+  fCosPhi = sqrt( (1. - fSinPhi)*(1.+fSinPhi) );
   fSecPhi = 1./fCosPhi;
   fDzDs = t.GetDzDs();
   fDlDs = sqrt(1.f+fDzDs*fDzDs);
-  fP = fPt*fDlDs;  
+  fP = fPt*fDlDs;
 
   fPy = fPt*fSinPhi;
   fPx = fPt*fCosPhi;
@@ -143,14 +143,14 @@ GPUd() inline void AliHLTTPCGMPhysicalTrackModel::Set( const AliHLTTPCGMTrackPar
   fQPt = fQ*pti;
 }
 
-GPUd() inline AliHLTTPCGMPhysicalTrackModel::AliHLTTPCGMPhysicalTrackModel( const AliHLTTPCGMTrackParam &t )
+GPUdi() AliHLTTPCGMPhysicalTrackModel::AliHLTTPCGMPhysicalTrackModel( const AliHLTTPCGMTrackParam &t )
 : fX(0.f), fY(0.f), fZ(0.f), fPx(1.e4f), fPy(0.f), fPz(0.f), fQ(1.f), fSinPhi( 0. ), fCosPhi( 1. ), fSecPhi( 1. ), fDzDs( 0. ), fDlDs( 0.), fQPt( 0. ), fP(fPx), fPt(fPx)
 {
   Set(t);
 }
 
 
-GPUd() inline void AliHLTTPCGMPhysicalTrackModel::Set( float X, float Y, float Z, float Px, float Py, float Pz, float Q)
+GPUdi() void AliHLTTPCGMPhysicalTrackModel::Set( float X, float Y, float Z, float Px, float Py, float Pz, float Q)
 {
   fX = X; fY = Y; fZ = Z; fPx = Px; fPy = Py; fPz = Pz;
   fQ = (Q>=0) ?1 :-1;
@@ -158,7 +158,7 @@ GPUd() inline void AliHLTTPCGMPhysicalTrackModel::Set( float X, float Y, float Z
 }
 
 
-GPUd() inline void AliHLTTPCGMPhysicalTrackModel::UpdateValues()
+GPUdi() void AliHLTTPCGMPhysicalTrackModel::UpdateValues()
 {
   float px = fPx;
   if( fabs(px) < 1.e-4f ) px = copysign(1.e-4f,px);
@@ -174,7 +174,7 @@ GPUd() inline void AliHLTTPCGMPhysicalTrackModel::UpdateValues()
   fQPt = fQ*pti;
 }
 
-GPUd() inline bool AliHLTTPCGMPhysicalTrackModel::SetDirectionAlongX()
+GPUdi() bool AliHLTTPCGMPhysicalTrackModel::SetDirectionAlongX()
 {
   //
   // set direction of movenment collinear to X axis
@@ -185,37 +185,37 @@ GPUd() inline bool AliHLTTPCGMPhysicalTrackModel::SetDirectionAlongX()
   fPx = -fPx;
   fPy = -fPy;
   fPz = -fPz;
-  fQ = -fQ;  
+  fQ = -fQ;
   UpdateValues();
   return 1;
 }
 
 
-GPUd() inline float AliHLTTPCGMPhysicalTrackModel::GetMirroredY( float Bz ) const
+GPUdi() float AliHLTTPCGMPhysicalTrackModel::GetMirroredY( float Bz ) const
 {
   // get Y of the point which has the same X, but located on the other side of trajectory
   if( fabs(Bz)<1.e-8 ) Bz = 1.e-8;
   return fY - 2.f*fQ*fPx/Bz;
 }
 
-GPUd() inline void AliHLTTPCGMPhysicalTrackModel::RotateLight( float alpha )
+GPUdi() void AliHLTTPCGMPhysicalTrackModel::RotateLight( float alpha )
 {
   //* Rotate the coordinate system in XY on the angle alpha
 
   float cA = CAMath::Cos( alpha );
   float sA = CAMath::Sin( alpha );
-  float x = fX, y = fY, px = fPx, py = fPy;    
+  float x = fX, y = fY, px = fPx, py = fPy;
   fX  =  x*cA + y*sA;
   fY  = -x*sA + y*cA;
   fPx =  px*cA + py*sA;
   fPy = -px*sA + py*cA;
 }
 
-GPUd() inline void AliHLTTPCGMPhysicalTrackModel::Rotate( float alpha )
+GPUdi() void AliHLTTPCGMPhysicalTrackModel::Rotate( float alpha )
 {
   //* Rotate the coordinate system in XY on the angle alpha
   RotateLight(alpha);
-  UpdateValues();  
+  UpdateValues();
 }
 
 #endif

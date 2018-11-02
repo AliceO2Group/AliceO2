@@ -25,7 +25,7 @@
 #include "AliHLTTPCCATracklet.h"
 #include "AliHLTTPCCAMath.h"
 
-GPUdi() void AliHLTTPCCATrackletSelector::Thread
+GPUd() void AliHLTTPCCATrackletSelector::Thread
 ( int nBlocks, int nThreads, int iBlock, int iThread, int iSync,
  GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) &s, GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker )
 {
