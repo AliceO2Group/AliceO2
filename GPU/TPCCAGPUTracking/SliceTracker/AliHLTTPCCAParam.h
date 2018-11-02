@@ -41,10 +41,10 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     void LoadClusterErrors( bool Print=0 );
 #endif //!HLTCA_GPUCODE
 
-	GPUd() void Slice2Global( float x, float y,  float z,
+    void Slice2Global( float x, float y,  float z,
                               float *X, float *Y,  float *Z ) const;
 
-    GPUd() void Global2Slice( float x, float y,  float z,
+    void Global2Slice( float x, float y,  float z,
                               float *X, float *Y,  float *Z ) const;
 
 

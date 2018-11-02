@@ -23,7 +23,7 @@
 class AliHLTTPCCAGrid
 {
   public:
-    GPUd() void CreateEmpty();
+    void CreateEmpty();
     GPUd() void Create( float yMin, float yMax, float zMin, float zMax, float sy, float sz  );
 
     GPUd() int GetBin( float Y, float Z ) const;

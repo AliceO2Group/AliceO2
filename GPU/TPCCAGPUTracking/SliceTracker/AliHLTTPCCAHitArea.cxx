@@ -22,7 +22,7 @@
 #include "AliHLTTPCCAHit.h"
 MEM_CLASS_PRE() class AliHLTTPCCARow;
 
-MEM_TEMPLATE() GPUdi() void AliHLTTPCCAHitArea::Init( const MEM_TYPE( AliHLTTPCCARow) &row, GPUglobalref() const MEM_GLOBAL(AliHLTTPCCASliceData) &slice, float y, float z,
+MEM_TEMPLATE() GPUd() void AliHLTTPCCAHitArea::Init( const MEM_TYPE( AliHLTTPCCARow) &row, GPUglobalref() const MEM_GLOBAL(AliHLTTPCCASliceData) &slice, float y, float z,
                                       float dy, float dz )
 {
   //initialisation
@@ -53,7 +53,7 @@ MEM_TEMPLATE() GPUdi() void AliHLTTPCCAHitArea::Init( const MEM_TYPE( AliHLTTPCC
   fIh = fHitYfst;
 }
 
-MEM_TEMPLATE() GPUdi() int AliHLTTPCCAHitArea::GetNext( GPUconstant() const MEM_CONSTANT(AliHLTTPCCATracker) &tracker, const MEM_TYPE( AliHLTTPCCARow) &row,
+MEM_TEMPLATE() GPUd() int AliHLTTPCCAHitArea::GetNext( GPUconstant() const MEM_CONSTANT(AliHLTTPCCATracker) &tracker, const MEM_TYPE( AliHLTTPCCARow) &row,
                                         GPUglobalref() const MEM_GLOBAL(AliHLTTPCCASliceData) &slice, AliHLTTPCCAHit *h )
 {
   // get next hit index

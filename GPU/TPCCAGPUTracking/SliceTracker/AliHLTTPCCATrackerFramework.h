@@ -34,8 +34,8 @@ public:
 	int InitializeSliceParam(int iSlice, AliHLTTPCCAParam &param);
 	void UpdateGPUSliceParam();
 
-	GPUhd() const AliHLTTPCCASliceOutput::outputControlStruct* OutputControl() const { return fOutputControl; }
-	GPUhd() void SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* val);
+	const AliHLTTPCCASliceOutput::outputControlStruct* OutputControl() const { return fOutputControl; }
+	void SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* val);
 
 	int ProcessSlices(int firstSlice, int sliceCount, AliHLTTPCCAClusterData* pClusterData, AliHLTTPCCASliceOutput** pOutput);
 	double GetTimer(int iSlice, int iTimer);

@@ -6,12 +6,13 @@ elseif(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     set(MODULE AliTPCCommonBase)
 endif()
 
-set(SRCS 
+set(SRCS
     AliTPCCommon.cxx
 )
 
 set (HDRS
 	AliTPCCommonDef.h
+	AliTPCCommonDefGPU.h
 	FlatObject.h
 )
 

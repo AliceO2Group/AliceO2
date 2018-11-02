@@ -22,7 +22,7 @@
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCCATracker.h"
 
-GPUdi() void AliHLTTPCCANeighboursCleaner::Thread
+GPUd() void AliHLTTPCCANeighboursCleaner::Thread
 ( int /*nBlocks*/, int nThreads, int iBlock, int iThread, int iSync,
   GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) &s, GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker )
 {

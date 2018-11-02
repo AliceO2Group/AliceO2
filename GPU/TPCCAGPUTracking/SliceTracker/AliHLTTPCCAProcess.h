@@ -20,11 +20,7 @@
 
 MEM_CLASS_PRE() class AliHLTTPCCATracker;
 
-#if defined(HLTCA_GPUCODE)
-
-#ifdef __OPENCL__
-
-#else //__OPENCL__
+#if defined(__CUDACC__)
 
 template<class TProcess>
 GPUg() void AliHLTTPCCAProcess(int iSlice)
@@ -38,8 +34,7 @@ GPUg() void AliHLTTPCCAProcess(int iSlice)
   }
 }
 
-template <class TProcess>
-GPUg() void AliHLTTPCCAProcessMultiA(int firstSlice, int nSliceCount, int nVirtualBlocks)
+template <class TProcess> GPUg() void AliHLTTPCCAProcessMultiA(int firstSlice, int nSliceCount, int nVirtualBlocks)
 {
 	if (get_group_id(0) >= nSliceCount) return;
 	AliHLTTPCCATracker &tracker = ( ( AliHLTTPCCATracker* ) gGPUConstantMem )[firstSlice + get_group_id(0)];
@@ -51,12 +46,11 @@ GPUg() void AliHLTTPCCAProcessMultiA(int firstSlice, int nSliceCount, int nVirtu
 		for( int iSync=0; iSync<=TProcess::NThreadSyncPoints(); iSync++){
 			GPUsync();
 			TProcess::Thread( nVirtualBlocks, get_local_size(0), i, get_local_id(0), iSync, smem, tracker  );
-		}		
+		}
 	}
 }
 
-template<class TProcess>
-GPUg() void AliHLTTPCCAProcessMulti(int firstSlice, int nSliceCount)
+template<class TProcess> GPUg() void AliHLTTPCCAProcessMulti(int firstSlice, int nSliceCount)
 {
   const int iSlice = nSliceCount * (get_group_id(0) + (get_num_groups(0) % nSliceCount != 0 && nSliceCount * (get_group_id(0) + 1) % get_num_groups(0) != 0)) / get_num_groups(0);
   const int nSliceBlockOffset = get_num_groups(0) * iSlice / nSliceCount;
@@ -71,8 +65,7 @@ GPUg() void AliHLTTPCCAProcessMulti(int firstSlice, int nSliceCount)
   }
 }
 
-template<typename TProcess>
-GPUg() void AliHLTTPCCAProcess1()
+template<typename TProcess> GPUg() void AliHLTTPCCAProcess1()
 {
   AliHLTTPCCATracker &tracker = *( ( AliHLTTPCCATracker* ) gGPUConstantMem );
   AliHLTTPCCATrackParam tParam;
@@ -88,12 +81,11 @@ GPUg() void AliHLTTPCCAProcess1()
   }
 }
 
-#endif //__OPENCL__
+#elif defined(__OPENCL__) //__OPENCL__
 
-#else //HLTCA_GPUCODE
+#else //CPU
 
-template<class TProcess>
-GPUg() void AliHLTTPCCAProcess( int nBlocks, int nThreads, AliHLTTPCCATracker &tracker )
+template<class TProcess> void AliHLTTPCCAProcess( int nBlocks, int nThreads, AliHLTTPCCATracker &tracker )
 {
   for ( int iB = 0; iB < nBlocks; iB++ ) {
     typename TProcess::AliHLTTPCCASharedMemory smem;
@@ -104,8 +96,7 @@ GPUg() void AliHLTTPCCAProcess( int nBlocks, int nThreads, AliHLTTPCCATracker &t
   }
 }
 
-template<typename TProcess>
-GPUg() void AliHLTTPCCAProcess1( int nBlocks, int nThreads, AliHLTTPCCATracker &tracker )
+template<typename TProcess> void AliHLTTPCCAProcess1( int nBlocks, int nThreads, AliHLTTPCCATracker &tracker )
 {
   for ( int iB = 0; iB < nBlocks; iB++ ) {
     typename TProcess::AliHLTTPCCASharedMemory smem;
@@ -120,6 +111,6 @@ GPUg() void AliHLTTPCCAProcess1( int nBlocks, int nThreads, AliHLTTPCCATracker &
   }
 }
 
-#endif //HLTCA_GPUCODE
+#endif
 
 #endif //ALIHLTTPCCAPROCESS_H

@@ -41,7 +41,7 @@ public:
   AliHLTTPCGMMerger();
   ~AliHLTTPCGMMerger();
 
-  GPUhd() void SetSliceParam( const AliHLTTPCCAParam &v, long int TimeStamp=0, bool isMC=0  );
+  void SetSliceParam( const AliHLTTPCCAParam &v, long int TimeStamp=0, bool isMC=0  );
 
   void Clear();
   void SetSliceData( int index, const AliHLTTPCCASliceOutput *SliceData );

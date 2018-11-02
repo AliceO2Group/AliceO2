@@ -768,7 +768,7 @@ int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger, bool
 	if (fDebugLevel >= 2) CAGPUInfo("Running GPU Merger (%d/%d)", Merger->NOutputTrackClusters(), Merger->NClusters());
 	timer.Start();
 	AliHLTTPCGMMerger* gpuMerger = (AliHLTTPCGMMerger*) new char[sizeof(AliHLTTPCGMMerger)]; //We don't want constructor / destructor!
-	memcpy(gpuMerger, Merger, sizeof(AliHLTTPCGMMerger));
+	memcpy((void*) gpuMerger, Merger, sizeof(AliHLTTPCGMMerger));
 	GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMem, Merger, sizeof(*Merger), 0, cudaMemcpyHostToDevice));
 	delete[] (char*) gpuMerger;
 	GPUFailedMsg(cudaMemcpy(clusters, Merger->Clusters(), Merger->NOutputTrackClusters() * sizeof(clusters[0]), cudaMemcpyHostToDevice));

@@ -30,7 +30,7 @@ public:
 
   void Set( float nominalBz, const float *Bx, const float *By, const float *Bz );
 
-  GPUd() float GetNominalBz() const { return fNominalBz; }
+  GPUdi() float GetNominalBz() const { return fNominalBz; }
 
   GPUd() void  GetField( float x, float y, float z, float B[3] ) const;
 
@@ -64,7 +64,7 @@ inline void AliHLTTPCGMPolynomialField::Reset()
 inline void AliHLTTPCGMPolynomialField::Set( float nominalBz, const float *Bx, const float *By, const float *Bz )
 {
   if( !Bx || !By || !Bz ){ Reset(); return; }
-  fNominalBz = nominalBz;  
+  fNominalBz = nominalBz;
   for( int i=0; i<fkM; i++){
     fBx[i] = Bx[i];
     fBy[i] = By[i];
@@ -79,7 +79,7 @@ inline void AliHLTTPCGMPolynomialField::GetPolynoms( float x, float y, float z, 
   f[4]=x*x; f[5]=x*y; f[6]=x*z; f[7]=y*y; f[8]=y*z; f[9]=z*z;
 }
 
-GPUd() inline void AliHLTTPCGMPolynomialField::GetField( float x, float y, float z, float B[3] ) const
+GPUdi() void AliHLTTPCGMPolynomialField::GetField( float x, float y, float z, float B[3] ) const
 {
   const float f[fkM] = { 1.f, x, y, z, x*x, x*y, x*z, y*y, y*z, z*z };
   float bx = 0.f, by = 0.f, bz = 0.f;
@@ -93,7 +93,7 @@ GPUd() inline void AliHLTTPCGMPolynomialField::GetField( float x, float y, float
   B[2] = bz;
 }
 
-GPUd() inline float AliHLTTPCGMPolynomialField::GetFieldBz( float x, float y, float z ) const
+GPUdi() float AliHLTTPCGMPolynomialField::GetFieldBz( float x, float y, float z ) const
 {
   const float f[fkM] = { 1.f, x, y, z, x*x, x*y, x*z, y*y, y*z, z*z };
   float bz = 0.f;
@@ -103,4 +103,4 @@ GPUd() inline float AliHLTTPCGMPolynomialField::GetFieldBz( float x, float y, fl
   return bz;
 }
 
-#endif 
+#endif
