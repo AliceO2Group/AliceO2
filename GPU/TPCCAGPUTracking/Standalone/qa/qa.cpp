@@ -1166,8 +1166,8 @@ void RunQA(bool matchOnly)
 		char fname[256];
 		sprintf(fname, "dump.%d.csv", csvNum);
 		FILE* fp = fopen(fname, "w+");
-		fprintf(fp, "x;y;z;reconstructedPt;individualMomentum;individualTransverseMomentum;trackLabel1;trackLabel2;trackLabel3\n\n");
-		int clustersAttached = 0;
+		fprintf(fp, "x;y;z;reconstructedPt;individualMomentum;individualTransverseMomentum;trackLabel1;trackLabel2;trackLabel3;removed\n\n");
+		int dumpClTot = 0, dumpClLeft = 0, dumpClRem = 0;
 		for (int iSlice = 0; iSlice < 36; iSlice++)
 		{
 			const AliHLTTPCCAClusterData &cdata = hlt.ClusterData(iSlice);
@@ -1190,7 +1190,7 @@ void RunQA(bool matchOnly)
 					for (int j = 0;j < 3;j++)
 					{
 						const AliHLTTPCClusterMCWeight label = hlt.GetMCLabels()[cid].fClusterID[j];
-						if (label.fMCID >= 0 && label.fWeight > 0.1 * totalWeight)
+						if (label.fMCID >= 0 && label.fWeight > 0.3 * totalWeight)
 						{
 							const AliHLTTPCCAMCInfo& info = hlt.GetMCInfo()[label.fMCID];
 							const additionalMCParameters& mc2 = mcParam[label.fMCID];
@@ -1203,11 +1203,19 @@ void RunQA(bool matchOnly)
 						}
 					}
 				}
-				if (clusterInfo[cid] > 0.f) clustersAttached++;
 				int labels[3] = {};
 				if (hlt.GetNMCInfo() && hlt.GetNMCLabels())
 					for (int j = 0;j < 3;j++) labels[j] = hlt.GetMCLabels()[cid].fClusterID[j].fMCID;
-				fprintf(fp, "%f;%f;%f;%f;%f;%f;%d;%d;%d\n", x, y, z, clusterInfo[cid], p, maxPt, labels[0], labels[1], labels[2]);
+					
+				dumpClTot++;
+				int attach = merger.ClusterAttachment()[cid];
+				CHECK_CLUSTER_STATE();
+				if (protect || physics) continue;
+				if (attach && qpt < 50) continue;
+				dumpClLeft++;
+				if (attach) dumpClRem++;
+				
+				fprintf(fp, "%f;%f;%f;%f;%f;%f;%d;%d;%d;%d\n", x, y, z, attach ? 1.f / qpt : 0.f, p, maxPt, labels[0], labels[1], labels[2], attach ? 1 : 0);
 			}
 		}
 		fclose(fp);
@@ -1224,7 +1232,7 @@ void RunQA(bool matchOnly)
 			}
 			fclose(fp);
 		}
-		printf("Wrote %s, %d out of %lu clusters attached (%6.2f%%)\n", fname, clustersAttached, clusterInfo.size(), 100.f * clustersAttached / clusterInfo.size());
+		printf("Wrote %s,%d clusters in total, %d left, %d to be removed\n", fname, dumpClTot, dumpClLeft, dumpClRem);
 	}
 }
 
