@@ -257,7 +257,7 @@ $(WORKPATH)/_makefiles_support_opencl.exe:	$(WORKPATH)/_makefiles_support_opencl
 								$(LINK) $(LIBPATHSUSE) $< $(LINKFLAGSUSE) $(LINKOUTPUT) $(LINKFLAGSARCH) $(OPENCLLIB)
 
 $(WORKPATH)/cl/%.clbin:			%.cl $(WORKPATH)/_makefiles_support_opencl.exe $(ALLDEP)
-								$(HIDEECHOA) $(OPENCL_ENVIRONMENT) ./$(WORKPATH)/_makefiles_support_opencl.exe -output-file $@ $< -- -I. $(GCCINCLUDEPATHS) $(GCCDEFINES) $(OPENCL_DEF_OPTIONS) $(OPENCL_OPTIONS) > /dev/null
+								$(HIDEECHOA) $(OPENCL_ENVIRONMENT) ./$(WORKPATH)/_makefiles_support_opencl.exe -output-file $@ $< -- -I. $(GCCINCLUDEPATHS:-isystem=-I) $(GCCDEFINES) $(OPENCL_DEF_OPTIONS) $(OPENCL_OPTIONS) > /dev/null
 
 $(WORKPATH)/cl/%.$(OBJ):		$(WORKPATH)/cl/%.clbin $(ALLDEP)
 								@echo $<
