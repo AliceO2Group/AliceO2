@@ -879,6 +879,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/ITS/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/tracking/cuda/include    
 )
 
 o2_define_bucket(

@@ -20,10 +20,14 @@
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/TrackerTraits.h"
+#include "ITStracking/TrackerTraitsCPU.h"
 
 #include "ReconstructionDataFormats/Track.h"
 #include <cassert>
 #include <iostream>
+#include <dlfcn.h>
+#include <cstdlib>
+#include <string>
 
 namespace o2
 {
@@ -32,10 +36,19 @@ namespace ITS
 
 Tracker::Tracker()
 {
-  mTrkParams.resize(1); /// Initialise standard configuration with 1 iteration
-
+  /// Initialise standard configuration with 1 iteration
+  mTrkParams.resize(1);
+  mMemParams.resize(1);
   // This will be superseeded by the dlopen trial
-  mTraits = new TrackerTraits();
+  std::string libPath = std::getenv("O2_ROOT");
+  libPath += "/lib/libITStrackingCUDA.so"; 
+  void* hGPULib = dlopen(libPath.data(), RTLD_NOW);
+  if (hGPULib)
+    std::cout << "CUDA library found." << std::endl;
+  else
+    std::cout << "CUDA library not found in " << libPath << std::endl;
+
+  mTraits = new TrackerTraitsCPU();
   mPrimaryVertexContext = new PrimaryVertexContext();
 }
 

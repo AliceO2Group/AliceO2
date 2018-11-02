@@ -17,6 +17,8 @@
 
 #include <array>
 
+#define CA_DEBUG
+
 #ifdef CA_DEBUG
 #define CA_DEBUGGER(x) x
 #else

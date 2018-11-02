@@ -22,7 +22,7 @@
 
 #include "ITSBase/GeometryTGeo.h"
 
-#include "ITStracking/Event.h"
+#include "ITStracking/ROframe.h"
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/Tracker.h"
 
@@ -37,8 +37,10 @@ void run_trac_ca_its(std::string path = "./", std::string outputfile = "o2ca_its
                      std::string paramfilename = "o2sim_par.root")
 {
 
-  o2::ITS::CA::Tracker<false> tracker;
-  o2::ITS::CA::Event event;
+  gSystem->Load("libITStracking.so");
+
+  o2::ITS::Tracker tracker;
+  o2::ITS::ROframe event(0);
 
   if (path.back() != '/') {
     path += '/';
@@ -90,11 +92,11 @@ void run_trac_ca_its(std::string path = "./", std::string outputfile = "o2ca_its
   std::vector<o2::ITSMFT::Cluster>* clusters = nullptr;
   itsClusters.SetBranchAddress("ITSCluster", &clusters);
 
-  if (!itsClusters.GetBranch("EventHeader.")) {
-    LOG(FATAL) << "Did not find the EventHeader branch in the input cluster tree" << FairLogger::endl;
-  }
-  FairEventHeader* header = nullptr;
-  itsClusters.SetBranchAddress("EventHeader.", &header);
+//  if (!itsClusters.GetBranch("EventHeader.")) {
+//    LOG(FATAL) << "Did not find the EventHeader branch in the input cluster tree" << FairLogger::endl;
+//  }
+//  FairEventHeader* header = nullptr;
+//  itsClusters.SetBranchAddress("EventHeader.", &header);
 
   if (!itsClusters.GetBranch("ITSClusterMCTruth")) {
     LOG(FATAL) << "Did not find ITS clusters branch ITSClusterMCTruth in the input tree" << FairLogger::endl;
@@ -108,7 +110,7 @@ void run_trac_ca_its(std::string path = "./", std::string outputfile = "o2ca_its
   std::vector<o2::ITS::TrackITS>* tracksITS = new std::vector<o2::ITS::TrackITS>;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trackLabels =
     new o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  outTree.Branch("EventHeader.", &header);
+//  outTree.Branch("EventHeader.", &header);
   outTree.Branch("ITSTrack", &tracksITS);
   outTree.Branch("ITSTrackMCTruth", &trackLabels);
 
@@ -121,7 +123,7 @@ void run_trac_ca_its(std::string path = "./", std::string outputfile = "o2ca_its
     if (isContITS) {
       int nclLeft = clusters->size();
       while (nclLeft > 0) {
-        int nclUsed = o2::ITS::CA::IOUtils::loadROFrameData(roFrame, event, clusters, labels);
+        int nclUsed = o2::ITS::IOUtils::loadROFrameData(roFrame, event, clusters, labels);
         if (nclUsed) {
           cout << "Event " << iEvent << " ROFrame " << roFrame << std::endl;
           // Attention: in the continuous mode cluster entry ID does not give the physics event ID
@@ -138,7 +140,7 @@ void run_trac_ca_its(std::string path = "./", std::string outputfile = "o2ca_its
       }
     } else { // triggered mode
       cout << "Event " << iEvent << std::endl;
-      o2::ITS::CA::IOUtils::loadEventData(event, clusters, labels);
+      o2::ITS::IOUtils::loadEventData(event, clusters, labels);
       event.addPrimaryVertex(mcHeader->GetX(), mcHeader->GetY(), mcHeader->GetZ());
       tracker.clustersToTracks(event);
       tracksITS->swap(tracker.getTracks());
