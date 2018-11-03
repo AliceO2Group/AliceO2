@@ -19,6 +19,9 @@
 #include "TPCBase/CRU.h"
 #include "DataFormatsTPC/Defs.h"
 #include "TPCSimulation/DigitTime.h"
+#include "TPCBase/ParameterDetector.h"
+#include "TPCBase/ParameterElectronics.h"
+#include "TPCBase/ParameterGas.h"
 
 namespace o2
 {
@@ -76,10 +79,17 @@ class DigitContainer
   Sector mSector;                  ///< ID of the currently processed sector
   TimeBin mFirstTimeBin;           ///< First time bin to consider
   TimeBin mEffectiveTimeBin;       ///< Effective time bin of that digit
+  TimeBin mTmaxTriggered;          ///< Maximum time bin in case of triggered mode (TPClength / width of time bin)
   std::deque<DigitTime> mTimeBins; ///< Time bin Container for the ADC value
 };
 
-inline DigitContainer::DigitContainer() : mSector(-1), mFirstTimeBin(0), mEffectiveTimeBin(0), mTimeBins(500) {}
+inline DigitContainer::DigitContainer() : mSector(-1), mFirstTimeBin(0), mEffectiveTimeBin(0), mTmaxTriggered(0), mTimeBins(500)
+{
+  const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
+  const static ParameterElectronics& eleParam = ParameterElectronics::defaultInstance();
+  const static ParameterGas& gasParam = ParameterGas::defaultInstance();
+  mTmaxTriggered = detParam.getTPClength() / (eleParam.getZBinWidth() * gasParam.getVdrift());
+}
 
 inline void DigitContainer::setup(const Sector& sector)
 {
