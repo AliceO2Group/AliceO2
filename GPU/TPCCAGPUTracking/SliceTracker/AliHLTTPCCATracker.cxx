@@ -21,7 +21,7 @@
 #include "AliHLTTPCCARow.h"
 #include "AliHLTTPCCATrack.h"
 #include "AliHLTTPCCATracklet.h"
-#include "AliHLTTPCCAMath.h"
+#include "AliTPCCommonMath.h"
 #include "MemoryAssignmentHelpers.h"
 
 #include "AliHLTTPCCAHitArea.h"

@@ -12,7 +12,7 @@
 #define ALIHLTTPCCATRACKPARAM_H
 
 #include "AliHLTTPCCADef.h"
-#include "AliHLTTPCCAMath.h"
+#include "AliTPCCommonMath.h"
 #include "AliHLTTPCCABaseTrackParam.h"
 
 class AliHLTTPCCATrackLinearisation;

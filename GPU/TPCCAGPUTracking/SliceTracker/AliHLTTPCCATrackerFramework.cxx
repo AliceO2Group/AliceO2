@@ -22,7 +22,7 @@
 #include "AliHLTTPCCATrackerFramework.h"
 #include "AliHLTTPCCAGPUTracker.h"
 #include "AliHLTTPCCATracker.h"
-#include "AliHLTTPCCAMath.h"
+#include "AliTPCCommonMath.h"
 #include "AliHLTTPCCAClusterData.h"
 
 #ifdef WIN32

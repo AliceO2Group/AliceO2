@@ -11,7 +11,7 @@
 #define ALIHLTTPCCAPARAM_H
 
 #include "AliHLTTPCCADef.h"
-#include "AliHLTTPCCAMath.h"
+#include "AliTPCCommonMath.h"
 #include "AliHLTTPCCATrackParam.h"
 
 #if !defined(__OPENCL__)

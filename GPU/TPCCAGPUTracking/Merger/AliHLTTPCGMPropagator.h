@@ -11,7 +11,7 @@
 #ifndef AliHLTTPCGMPropagator_H
 #define AliHLTTPCGMPropagator_H
 
-#include "AliHLTTPCCAMath.h"
+#include "AliTPCCommonMath.h"
 #include "AliHLTTPCGMPhysicalTrackModel.h"
 #include "AliHLTTPCGMPolynomialField.h"
 #include "AliHLTTPCGMOfflineStatisticalErrors.h"
@@ -31,7 +31,7 @@ public:
   GPUd() AliHLTTPCGMPropagator();
 
   struct MaterialCorrection {
-    GPUd() MaterialCorrection() : fRadLen(29.532f), fRho(1.025e-3f), fRhoOverRadLen(fRho/fRadLen), 
+    GPUd() MaterialCorrection() : fRadLen(29.532f), fRho(1.025e-3f), fRhoOverRadLen(fRho/fRadLen),
 			   fDLMax(0.f), fEP2(0.f), fSigmadE2(0.f), fK22(0.f), fK33(0.f), fK43(0.f), fK44(0.f) {}
 
     float fRadLen, fRho, fRhoOverRadLen,
@@ -48,7 +48,7 @@ public:
 
   GPUd() void SetMaxSinPhi( float maxSinPhi ){ fMaxSinPhi = maxSinPhi; }
   
-  GPUd() void SetTrack( AliHLTTPCGMTrackParam *track, float Alpha ); 
+  GPUd() void SetTrack( AliHLTTPCGMTrackParam *track, float Alpha );
   GPUd() void ResetT0 () { if (!fT) return; fT0.Set(*fT);}
     
   GPUd() int RotateToAlpha( float newAlpha );
@@ -139,8 +139,8 @@ GPUd() inline float AliHLTTPCGMPropagator::GetMirroredYModel() const
 GPUd() inline float AliHLTTPCGMPropagator::GetMirroredYTrack() const
 {
   if( !fT ) return -1.E10;
-  float Bz = GetBz( fAlpha, fT->GetX(), fT->GetY(), fT->GetZ() );  
-  return fT->GetMirroredY( Bz ); 
+  float Bz = GetBz( fAlpha, fT->GetX(), fT->GetY(), fT->GetZ() );
+  return fT->GetMirroredY( Bz );
 }
 
-#endif 
+#endif

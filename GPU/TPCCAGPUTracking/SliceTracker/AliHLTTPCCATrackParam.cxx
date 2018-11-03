@@ -19,7 +19,6 @@
 
 
 #include "AliHLTTPCCATrackParam.h"
-#include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCCATrackLinearisation.h"
 
 //
@@ -365,8 +364,8 @@ MEM_CLASS_PRE() GPUd() float MEM_LG(AliHLTTPCCATrackParam)::BetheBlochGeant( flo
 
   //*** Density effect
   float d2 = 0.;
-  const float x = 0.5 * AliHLTTPCCAMath::Log( bg2 );
-  const float lhwI = AliHLTTPCCAMath::Log( 28.816 * 1e-9 * AliHLTTPCCAMath::Sqrt( rho * mZA ) / mI );
+  const float x = 0.5 * CAMath::Log( bg2 );
+  const float lhwI = CAMath::Log( 28.816 * 1e-9 * CAMath::Sqrt( rho * mZA ) / mI );
   if ( x > x1 ) {
     d2 = lhwI + x - 0.5;
   } else if ( x > x0 ) {
@@ -374,7 +373,7 @@ MEM_CLASS_PRE() GPUd() float MEM_LG(AliHLTTPCCATrackParam)::BetheBlochGeant( flo
     d2 = lhwI + x - 0.5 + ( 0.5 - lhwI - x0 ) * r * r * r;
   }
 
-  return mK*mZA*( 1 + bg2 ) / bg2*( 0.5*AliHLTTPCCAMath::Log( 2*me*bg2*maxT / ( mI*mI ) ) - bg2 / ( 1 + bg2 ) - d2 );
+  return mK*mZA*( 1 + bg2 ) / bg2*( 0.5*CAMath::Log( 2*me*bg2*maxT / ( mI*mI ) ) - bg2 / ( 1 + bg2 ) - d2 );
 }
 
 MEM_CLASS_PRE() GPUd() float MEM_LG(AliHLTTPCCATrackParam)::BetheBlochSolid( float bg )
@@ -668,11 +667,11 @@ MEM_CLASS_PRE() GPUd() bool MEM_LG(AliHLTTPCCATrackParam)::CheckNumericalQuality
 {
   //* Check that the track parameters and covariance matrix are reasonable
 
-  bool ok = AliHLTTPCCAMath::Finite( GetX() ) && AliHLTTPCCAMath::Finite( fSignCosPhi ) && AliHLTTPCCAMath::Finite( fChi2 );
+  bool ok = CAMath::Finite( GetX() ) && CAMath::Finite( fSignCosPhi ) && CAMath::Finite( fChi2 );
 
   const float *c = Cov();
-  for ( int i = 0; i < 15; i++ ) ok = ok && AliHLTTPCCAMath::Finite( c[i] );
-  for ( int i = 0; i < 5; i++ ) ok = ok && AliHLTTPCCAMath::Finite( Par()[i] );
+  for ( int i = 0; i < 15; i++ ) ok = ok && CAMath::Finite( c[i] );
+  for ( int i = 0; i < 5; i++ ) ok = ok && CAMath::Finite( Par()[i] );
 
   if ( c[0] <= 0 || c[2] <= 0 || c[5] <= 0 || c[9] <= 0 || c[14] <= 0 ) ok = 0;
   if ( c[0] > 5. || c[2] > 5. || c[5] > 2. || c[9] > 2

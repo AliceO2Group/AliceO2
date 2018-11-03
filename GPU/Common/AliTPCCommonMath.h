@@ -6,21 +6,16 @@
 //                                                                        *
 //*************************************************************************
 
-#ifndef ALIHLTTPCCAMATH_H
-#define ALIHLTTPCCAMATH_H
+#ifndef ALITPCCOMMONMATH_H
+#define ALITPCCOMMONMATH_H
 
-#include "AliHLTTPCCADef.h"
+#include "AliTPCCommonDef.h"
 
 #if !defined(__OPENCL__)
 #include <cmath>
 #endif
 
-/**
- * @class ALIHLTTPCCAMath
- *
- *
- */
-class AliHLTTPCCAMath
+class AliTPCCommonMath
 {
   public:
     GPUd() static float2 MakeFloat2( float x, float y );
@@ -57,7 +52,7 @@ class AliHLTTPCCAMath
     GPUd() static float FMulRZ( float a, float b );
 };
 
-typedef AliHLTTPCCAMath CAMath;
+typedef AliTPCCommonMath CAMath;
 
 #if defined( HLTCA_GPUCODE ) && defined (__CUDACC__)
     #define choice(c1,c2) c1
@@ -70,7 +65,7 @@ typedef AliHLTTPCCAMath CAMath;
     #define choiceA choice
 #endif //HLTCA_GPUCODE
 
-GPUdi() float2 AliHLTTPCCAMath::MakeFloat2( float x, float y )
+GPUdi() float2 AliTPCCommonMath::MakeFloat2( float x, float y )
 {
 #if !defined( HLTCA_GPUCODE ) || defined(__OPENCL__)
   float2 ret = {x, y};
@@ -80,8 +75,7 @@ GPUdi() float2 AliHLTTPCCAMath::MakeFloat2( float x, float y )
 #endif //HLTCA_GPUCODE
 }
 
-
-GPUdi() int AliHLTTPCCAMath::Nint( float x )
+GPUdi() int AliTPCCommonMath::Nint( float x )
 {
   int i;
   if ( x >= 0 ) {
@@ -94,17 +88,17 @@ GPUdi() int AliHLTTPCCAMath::Nint( float x )
   return i;
 }
 
-GPUdi() bool AliHLTTPCCAMath::Finite( float x )
+GPUdi() bool AliTPCCommonMath::Finite( float x )
 {
   return choice( 1, std::isfinite( x ) );
 }
 
-GPUdi() float AliHLTTPCCAMath::ATan2( float y, float x )
+GPUdi() float AliTPCCommonMath::ATan2( float y, float x )
 {
   return choiceA( atan2f( y, x ), atan2( y, x ) );
 }
 
-GPUdi() float AliHLTTPCCAMath::Copysign( float x, float y )
+GPUdi() float AliTPCCommonMath::Copysign( float x, float y )
 {
 #if defined( HLTCA_GPUCODE ) && !defined(__OPENCL__)
   return copysignf( x, y );
@@ -114,84 +108,84 @@ GPUdi() float AliHLTTPCCAMath::Copysign( float x, float y )
 #endif //HLTCA_GPUCODE
 }
 
-GPUdi() float AliHLTTPCCAMath::Sin( float x )
+GPUdi() float AliTPCCommonMath::Sin( float x )
 {
   return choiceA( sinf( x ), sin( x ) );
 }
 
-GPUdi() float AliHLTTPCCAMath::Cos( float x )
+GPUdi() float AliTPCCommonMath::Cos( float x )
 {
   return choiceA( cosf( x ), cos( x ) );
 }
 
-GPUdi() float AliHLTTPCCAMath::Tan( float x )
+GPUdi() float AliTPCCommonMath::Tan( float x )
 {
   return choiceA( tanf( x ), tan( x ) );
 }
 
-GPUhdi() float AliHLTTPCCAMath::Min( float x, float y )
+GPUhdi() float AliTPCCommonMath::Min( float x, float y )
 {
   return choiceA( fminf( x, y ), ( x < y ? x : y ) );
 }
 
-GPUhdi() float AliHLTTPCCAMath::Max( float x, float y )
+GPUhdi() float AliTPCCommonMath::Max( float x, float y )
 {
   return choiceA( fmaxf( x, y ),  ( x > y ? x : y ) );
 }
 
-GPUhdi() int AliHLTTPCCAMath::Min( int x, int y )
+GPUhdi() int AliTPCCommonMath::Min( int x, int y )
 {
   return choiceA( min( x, y ),  ( x < y ? x : y ) );
 }
 
-GPUhdi() int AliHLTTPCCAMath::Max( int x, int y )
+GPUhdi() int AliTPCCommonMath::Max( int x, int y )
 {
   return choiceA( max( x, y ),  ( x > y ? x : y ) );
 }
 
-GPUdi() float AliHLTTPCCAMath::Sqrt( float x )
+GPUdi() float AliTPCCommonMath::Sqrt( float x )
 {
   return choiceA( sqrtf( x ), sqrt( x ) );
 }
 
-GPUdi() float AliHLTTPCCAMath::Abs( float x )
+GPUdi() float AliTPCCommonMath::Abs( float x )
 {
   return choiceA( fabsf( x ), fabs( x ) );
 }
 
-GPUdi() double AliHLTTPCCAMath::Abs( double x )
+GPUdi() double AliTPCCommonMath::Abs( double x )
 {
   return choice( fabs( x ), fabs( x ) );
 }
 
-GPUdi() int AliHLTTPCCAMath::Abs( int x )
+GPUdi() int AliTPCCommonMath::Abs( int x )
 {
   return choice( abs( x ), ( x >= 0 ? x : -x ) );
 }
 
-GPUdi() float AliHLTTPCCAMath::ASin( float x )
+GPUdi() float AliTPCCommonMath::ASin( float x )
 {
   return choiceA( asinf( x ), asin( x ) );
 }
 
-GPUdi() float AliHLTTPCCAMath::Log(float x)
+GPUdi() float AliTPCCommonMath::Log(float x)
 {
 	return choice( log(x), log(x) );
 }
 
 #if defined(__OPENCL__)
-GPUdi() int AliHLTTPCCAMath::AtomicExchShared( GPUsharedref() int *addr, int val ) {return ::atomic_xchg( (volatile __local int*) addr, val );}
-GPUdi() int AliHLTTPCCAMath::AtomicAddShared ( GPUsharedref() int *addr, int val ) {return ::atomic_add( (volatile __local int*) addr, val );}
-GPUdi() int AliHLTTPCCAMath::AtomicMaxShared ( GPUsharedref() int *addr, int val ) {return ::atomic_max( (volatile __local int*) addr, val );}
-GPUdi() int AliHLTTPCCAMath::AtomicMinShared ( GPUsharedref() int *addr, int val ) {return ::atomic_min( (volatile __local int*) addr, val );}
+GPUdi() int AliTPCCommonMath::AtomicExchShared( GPUsharedref() int *addr, int val ) {return ::atomic_xchg( (volatile __local int*) addr, val );}
+GPUdi() int AliTPCCommonMath::AtomicAddShared ( GPUsharedref() int *addr, int val ) {return ::atomic_add( (volatile __local int*) addr, val );}
+GPUdi() int AliTPCCommonMath::AtomicMaxShared ( GPUsharedref() int *addr, int val ) {return ::atomic_max( (volatile __local int*) addr, val );}
+GPUdi() int AliTPCCommonMath::AtomicMinShared ( GPUsharedref() int *addr, int val ) {return ::atomic_min( (volatile __local int*) addr, val );}
 #else
-GPUdi() int AliHLTTPCCAMath::AtomicExchShared( int *addr, int val ) {return(AliHLTTPCCAMath::AtomicExch(addr, val));}
-GPUdi() int AliHLTTPCCAMath::AtomicAddShared ( int *addr, int val ) {return(AliHLTTPCCAMath::AtomicAdd(addr, val));}
-GPUdi() int AliHLTTPCCAMath::AtomicMaxShared ( int *addr, int val ) {return(AliHLTTPCCAMath::AtomicMax(addr, val));}
-GPUdi() int AliHLTTPCCAMath::AtomicMinShared ( int *addr, int val ) {return(AliHLTTPCCAMath::AtomicMin(addr, val));}
+GPUdi() int AliTPCCommonMath::AtomicExchShared( int *addr, int val ) {return(AliTPCCommonMath::AtomicExch(addr, val));}
+GPUdi() int AliTPCCommonMath::AtomicAddShared ( int *addr, int val ) {return(AliTPCCommonMath::AtomicAdd(addr, val));}
+GPUdi() int AliTPCCommonMath::AtomicMaxShared ( int *addr, int val ) {return(AliTPCCommonMath::AtomicMax(addr, val));}
+GPUdi() int AliTPCCommonMath::AtomicMinShared ( int *addr, int val ) {return(AliTPCCommonMath::AtomicMin(addr, val));}
 #endif
 
-GPUdi() int AliHLTTPCCAMath::AtomicExch( GPUglobalref() int *addr, int val )
+GPUdi() int AliTPCCommonMath::AtomicExch( GPUglobalref() int *addr, int val )
 {
 #if defined(HLTCA_GPUCODE) && defined(__OPENCL__)
 	return ::atomic_xchg( (volatile __global int*) addr, val );
@@ -204,7 +198,7 @@ GPUdi() int AliHLTTPCCAMath::AtomicExch( GPUglobalref() int *addr, int val )
 #endif //HLTCA_GPUCODE
 }
 
-GPUdi() int AliHLTTPCCAMath::AtomicAdd ( GPUglobalref() int *addr, int val )
+GPUdi() int AliTPCCommonMath::AtomicAdd ( GPUglobalref() int *addr, int val )
 {
 #if defined(HLTCA_GPUCODE) && defined(__OPENCL__)
   return ::atomic_add( (volatile __global int*) addr, val );
@@ -217,7 +211,7 @@ GPUdi() int AliHLTTPCCAMath::AtomicAdd ( GPUglobalref() int *addr, int val )
 #endif //HLTCA_GPUCODE
 }
 
-GPUdi() int AliHLTTPCCAMath::AtomicMax ( GPUglobalref() int *addr, int val )
+GPUdi() int AliTPCCommonMath::AtomicMax ( GPUglobalref() int *addr, int val )
 {
 #if defined(HLTCA_GPUCODE) && defined(__OPENCL__)
   return ::atomic_max( (volatile __global int*) addr, val );
@@ -230,7 +224,7 @@ GPUdi() int AliHLTTPCCAMath::AtomicMax ( GPUglobalref() int *addr, int val )
 #endif //HLTCA_GPUCODE
 }
 
-GPUdi() int AliHLTTPCCAMath::AtomicMin ( GPUglobalref() int *addr, int val )
+GPUdi() int AliTPCCommonMath::AtomicMin ( GPUglobalref() int *addr, int val )
 {
 #if defined(HLTCA_GPUCODE) && defined(__OPENCL__)
   return ::atomic_min( (volatile __global int*) addr, val );
@@ -245,4 +239,4 @@ GPUdi() int AliHLTTPCCAMath::AtomicMin ( GPUglobalref() int *addr, int val )
 
 #undef CHOICE
 
-#endif //ALIHLTTPCCAMATH_H
+#endif //AliTPCCommonMath_H

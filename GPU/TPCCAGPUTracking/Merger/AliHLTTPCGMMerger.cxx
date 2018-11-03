@@ -28,7 +28,7 @@
 #include "AliHLTTPCGMPolynomialFieldCreator.h"
 #include "AliHLTTPCGMMerger.h"
 
-#include "AliHLTTPCCAMath.h"
+#include "AliTPCCommonMath.h"
 
 #include "AliHLTTPCCATrackParam.h"
 #include "AliHLTTPCCASliceOutput.h"
@@ -494,8 +494,8 @@ void AliHLTTPCGMMerger::MakeBorderTracks( int iSlice, int iBorder, AliHLTTPCGMBo
   }
 
   const float maxSin = CAMath::Sin( 60. / 180.*CAMath::Pi() );
-  float cosAlpha = AliHLTTPCCAMath::Cos( dAlpha );
-  float sinAlpha = AliHLTTPCCAMath::Sin( dAlpha );
+  float cosAlpha = CAMath::Cos( dAlpha );
+  float sinAlpha = CAMath::Sin( dAlpha );
 
   AliHLTTPCGMSliceTrack trackTmp;
   for ( int itr = SliceTrackInfoFirst(iSlice); itr < SliceTrackInfoLast(iSlice); itr++ ) {
@@ -561,7 +561,7 @@ void AliHLTTPCGMMerger::MergeBorderTracks ( int iSlice1, AliHLTTPCGMBorderTrack 
   {
     for ( int itr = 0; itr < N1; itr++ ){
       AliHLTTPCGMBorderTrack &b = B1[itr];
-      float d = AliHLTTPCCAMath::Max(0.5f, 3.5*sqrt(b.Cov()[1]));
+      float d = CAMath::Max(0.5f, 3.5*sqrt(b.Cov()[1]));
       if (fabs(b.Par()[4]) >= 20) d *= 2;
       else if (d > 3) d = 3;
       if (DEBUG) {printf("  Input Slice 1 %d Track %d: ", iSlice1, itr); for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Par()[i]);} printf(" - "); for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Cov()[i]);} printf(" - D %8.3f\n", d);}
@@ -578,7 +578,7 @@ void AliHLTTPCGMMerger::MergeBorderTracks ( int iSlice1, AliHLTTPCGMBorderTrack 
     }else{
       for ( int itr = 0; itr < N2; itr++ ){
         AliHLTTPCGMBorderTrack &b = B2[itr];
-        float d = AliHLTTPCCAMath::Max(0.5f, 3.5*sqrt(b.Cov()[1]));
+        float d = CAMath::Max(0.5f, 3.5*sqrt(b.Cov()[1]));
         if (fabs(b.Par()[4]) >= 20) d *= 2;
         else if (d > 3) d = 3;
         if (DEBUG) {printf("  Input Slice 2 %d Track %d: ", iSlice2, itr);for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Par()[i]);}printf(" - ");for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Cov()[i]);}printf(" - D %8.3f\n", d);}

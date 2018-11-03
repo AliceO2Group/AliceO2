@@ -10,12 +10,10 @@
 #ifndef ALIHLTTPCGMBORDERTRACK_H
 #define ALIHLTTPCGMBORDERTRACK_H
 
-#include "AliHLTTPCCAMath.h"
-
 /**
  * @class AliHLTTPCGMBorderTrack
  *
- * The class describes TPC slice tracks at sector borders. 
+ * The class describes TPC slice tracks at sector borders.
  * Used in AliHLTTPCGMMerger
  *
  */
@@ -33,7 +31,7 @@ class AliHLTTPCGMBorderTrack
 
 
   int   TrackID()                    const { return fTrackID;   }
-  short NClusters()                  const { return fNClusters; }  
+  short NClusters()                  const { return fNClusters; }
   short Row()                        const { return fRow;       }
   const float *Par() const { return fP; }
   float ZOffset() const { return fZOffset;}

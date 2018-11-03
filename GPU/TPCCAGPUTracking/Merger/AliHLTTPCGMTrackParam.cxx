@@ -21,7 +21,6 @@
 
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCGMTrackParam.h"
-#include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCGMPhysicalTrackModel.h"
 #include "AliHLTTPCGMPropagator.h"
 #include "AliHLTTPCGMBorderTrack.h"
@@ -239,7 +238,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
         ihitStart = ihit;
         float dy = fP[0] - prop.Model().Y();
         float dz = fP[1] - prop.Model().Z();
-        if (AliHLTTPCCAMath::Abs(fP[4]) > 10 && --resetT0 <= 0 && AliHLTTPCCAMath::Abs(fP[2]) < 0.15 && dy*dy+dz*dz>1)
+        if (CAMath::Abs(fP[4]) > 10 && --resetT0 <= 0 && CAMath::Abs(fP[2]) < 0.15 && dy*dy+dz*dz>1)
         {
             CADEBUG(printf("Reinit linearization\n");)
             prop.SetTrack(this, prop.GetAlpha());
@@ -583,19 +582,19 @@ GPUd() void AliHLTTPCGMTrackParam::ShiftZ(const AliHLTTPCGMPolynomialField* fiel
   if (!param.GetContinuousTracking()) return;
   if ((clusters[0].fSlice < 18) ^ (clusters[N - 1].fSlice < 18)) return; //Do not shift tracks crossing the central electrode
 
-  const float cosPhi = fabs(fP[2]) < 1.f ? AliHLTTPCCAMath::Sqrt(1 - fP[2] * fP[2]) : 0.f;
-  const float dxf = -AliHLTTPCCAMath::Abs(fP[2]);
+  const float cosPhi = fabs(fP[2]) < 1.f ? CAMath::Sqrt(1 - fP[2] * fP[2]) : 0.f;
+  const float dxf = -CAMath::Abs(fP[2]);
   const float dyf = cosPhi * (fP[2] > 0 ? 1. : -1.);
   const float r = 1./fabs(fP[4] * field->GetNominalBz());
   float xp = fX + dxf * r;
   float yp = fP[0] + dyf * r;
   //printf("X %f Y %f SinPhi %f QPt %f R %f --> XP %f YP %f\n", fX, fP[0], fP[2], fP[4], r, xp, yp);
-  const float r2 = (r + AliHLTTPCCAMath::Sqrt(xp * xp + yp * yp)) / 2.; //Improve the radius by taking into acount both points we know (00 and xy).
+  const float r2 = (r + CAMath::Sqrt(xp * xp + yp * yp)) / 2.; //Improve the radius by taking into acount both points we know (00 and xy).
   xp = fX + dxf * r2;
   yp = fP[0] + dyf * r2;
   //printf("X %f Y %f SinPhi %f QPt %f R %f --> XP %f YP %f\n", fX, fP[0], fP[2], fP[4], r2, xp, yp);
-  float atana = AliHLTTPCCAMath::ATan2(CAMath::Abs(xp), CAMath::Abs(yp));
-  float atanb = AliHLTTPCCAMath::ATan2(CAMath::Abs(fX - xp), CAMath::Abs(fP[0] - yp));
+  float atana = CAMath::ATan2(CAMath::Abs(xp), CAMath::Abs(yp));
+  float atanb = CAMath::ATan2(CAMath::Abs(fX - xp), CAMath::Abs(fP[0] - yp));
   //printf("Tan %f %f (%f %f)\n", atana, atanb, fX - xp, fP[0] - yp);
   const float dS = (xp > 0 ? (atana + atanb) : (atanb - atana)) * r;
   float dz = dS * fP[3];
@@ -637,12 +636,12 @@ GPUd() bool AliHLTTPCGMTrackParam::CheckCov() const
 GPUd() bool AliHLTTPCGMTrackParam::CheckNumericalQuality(float overrideCovYY) const
 {
   //* Check that the track parameters and covariance matrix are reasonable
-  bool ok = AliHLTTPCCAMath::Finite(fX) && AliHLTTPCCAMath::Finite( fChi2 );
+  bool ok = CAMath::Finite(fX) && CAMath::Finite( fChi2 );
   CADEBUG(printf("OK %d - ", (int) ok); for (int i = 0;i < 5;i++) printf("%f ", fP[i]); printf(" - "); for (int i = 0;i < 15;i++) printf("%f ", fC[i]); printf("\n");)
   const float *c = fC;
-  for ( int i = 0; i < 15; i++ ) ok = ok && AliHLTTPCCAMath::Finite( c[i] );
+  for ( int i = 0; i < 15; i++ ) ok = ok && CAMath::Finite( c[i] );
   CADEBUG(printf("OK1 %d\n", (int) ok);)
-  for ( int i = 0; i < 5; i++ ) ok = ok && AliHLTTPCCAMath::Finite( fP[i] );
+  for ( int i = 0; i < 5; i++ ) ok = ok && CAMath::Finite( fP[i] );
   CADEBUG(printf("OK2 %d\n", (int) ok);)
   if ( (overrideCovYY > 0 ? overrideCovYY : c[0]) > 4.*4. || c[2] > 4.*4. || c[5] > 2.*2. || c[9] > 2.*2. ) ok = 0;
   CADEBUG(printf("OK3 %d\n", (int) ok);)
@@ -731,8 +730,8 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, int
 	  float xx = clusters[ind].fX;
 	  float yy = clusters[ind].fY;
 	  float zz = clusters[ind].fZ - track.Param().GetZOffset();
-	  float sinA = AliHLTTPCCAMath::Sin( alphaa - track.Alpha());
-	  float cosA = AliHLTTPCCAMath::Cos( alphaa - track.Alpha());
+	  float sinA = CAMath::Sin( alphaa - track.Alpha());
+	  float cosA = CAMath::Cos( alphaa - track.Alpha());
 	  track.SetLastX( xx*cosA - yy*sinA );
 	  track.SetLastY( xx*sinA + yy*cosA );
 	  track.SetLastZ( zz );

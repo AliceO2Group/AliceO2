@@ -112,7 +112,6 @@ set(HDRS ${HDRS}
     SliceTracker/AliHLTTPCCADef.h
     SliceTracker/AliHLTTPCCASettings.h
     SliceTracker/AliHLTTPCCAGPUConfig.h
-    SliceTracker/AliHLTTPCCAMath.h
     SliceTracker/AliHLTTPCCAMCInfo.h
     SliceTracker/AliHLTTPCCAHit.h
     SliceTracker/AliHLTTPCCAHitId.h

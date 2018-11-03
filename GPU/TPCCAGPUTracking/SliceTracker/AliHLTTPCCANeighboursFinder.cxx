@@ -18,7 +18,7 @@
 //***************************************************************************
 
 #include "AliHLTTPCCANeighboursFinder.h"
-#include "AliHLTTPCCAMath.h"
+#include "AliTPCCommonMath.h"
 #include "AliHLTTPCCAHitArea.h"
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCAHit.h"

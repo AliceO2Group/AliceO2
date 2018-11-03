@@ -19,7 +19,6 @@
 
 
 #include "AliHLTTPCGMPropagator.h"
-#include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCGMPhysicalTrackModel.h"
 #include "AliHLTTPCCAParam.h"
 #include "AliHLTTPCGMMergedTrackHit.h"
@@ -35,8 +34,8 @@ GPUd() void  AliHLTTPCGMPropagator::GetBxByBz( float Alpha, float X, float Y, fl
 {
   // get global coordinates
 
-  float cs = AliHLTTPCCAMath::Cos(Alpha);
-  float sn = AliHLTTPCCAMath::Sin(Alpha);
+  float cs = CAMath::Cos(Alpha);
+  float sn = CAMath::Sin(Alpha);
 
 #if defined(GMPropagatorUseFullField)
   const double kCLight = 0.000299792458;
@@ -53,7 +52,7 @@ GPUd() void  AliHLTTPCGMPropagator::GetBxByBz( float Alpha, float X, float Y, fl
   cout<<"Fast field = "<<(void*) fld->GetFastField()<<endl;
   AliMagF::BMap_t  type = fld->GetMapType() ;
   cout<<"Field type: "<<type<<endl;
-  //  fMapType==k2BMap_t     
+  //  fMapType==k2BMap_t
   */
 #else
   float  bb[3];
@@ -82,8 +81,8 @@ GPUd()  float  AliHLTTPCGMPropagator::GetBz( float Alpha, float X, float Y, floa
 
   // get global coordinates
 
-  float cs = AliHLTTPCCAMath::Cos(Alpha);
-  float sn = AliHLTTPCCAMath::Sin(Alpha);  
+  float cs = CAMath::Cos(Alpha);
+  float sn = CAMath::Sin(Alpha);
 
 #if defined(GMPropagatorUseFullField)
   const double kCLight = 0.000299792458;
@@ -107,7 +106,7 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
   float cc = CAMath::Cos( newAlpha - fAlpha );
   float ss = CAMath::Sin( newAlpha - fAlpha );
 
-  AliHLTTPCGMPhysicalTrackModel t0 = fT0; 
+  AliHLTTPCGMPhysicalTrackModel t0 = fT0;
   
   float x0 = fT0.X();
   float y0 = fT0.Y();
@@ -170,8 +169,8 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
   // Rotate cov. matrix Cr = J0 x C x J0T. Cr has one more row+column for X:
   float *c = fT->Cov();
   
-  float c15 = c[ 0]*j0*j2;  
-  float c16 = c[ 1]*j2; 
+  float c15 = c[ 0]*j0*j2;
+  float c16 = c[ 1]*j2;
   float c17 = c[ 3]*j1*j2;
   float c18 = c[ 6]*j2;
   float c19 = c[10]*j2;
@@ -195,7 +194,7 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
   if( t0.SetDirectionAlongX() ){ // change direction if Px < 0
     fT->SinPhi() = -fT->SinPhi();
     fT->DzDs()   = -fT->DzDs();
-    fT->QPt()    = -fT->QPt();    
+    fT->QPt()    = -fT->QPt();
     c[3] = -c[3]; // covariances with SinPhi
     c[4] = -c[4];
     c17 = -c17;
@@ -205,7 +204,7 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
     c[10] = -c[10];// covariances with QPt
     c[11] = -c[11];
     c19 = -c19;
-  } 
+  }
   
   // Now fix the X coordinate: so to say, transport track T to fixed X = fT->X().
   // only covariance changes. Use rotated and transported t0 for linearisation
@@ -214,11 +213,11 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
   float j5 =  t0.QPt()*B[2];
 
   //                    Y  Z Sin DzDs q/p  X
-  // Jacobian J1 = { {  1, 0, 0,  0,  0,  j3 }, // Y 
+  // Jacobian J1 = { {  1, 0, 0,  0,  0,  j3 }, // Y
   //                 {  0, 1, 0,  0,  0,  j4 }, // Z
   //                 {  0, 0, 1,  0,  0,  j5 }, // SinPhi
   //                 {  0, 0, 0,  1,  0,   0 }, // DzDs
-  //                 {  0, 0, 0,  0,  1,   0 } }; // q/p    
+  //                 {  0, 0, 0,  0,  1,   0 } }; // q/p
 
   float h15 = c15 + c20*j3;
   float h16 = c16 + c20*j4;
@@ -356,7 +355,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
     c[4] = c21 + j13*c32 + j24*n11;
     c[5] = c22 + j24*( c42 + n12 );
     c[6] = n6;
-    c[7] = n7; 
+    c[7] = n7;
     c[8] = c32 + c43*j24;
     c[10] = n10;
     c[11] = n11;
@@ -378,7 +377,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
     float j12 = dx*fT0.DzDs()*tg*(2.f+tg*(ey*exi+ey1*ex1i))/(xx*yy);
     float j14 = 0;
     if( CAMath::Abs(fT0.QPt())>1.e-6 ){
-      j14 = (2.f*xx*ex1i*dx/yy-dS)*fT0.DzDs()/fT0.QPt();    
+      j14 = (2.f*xx*ex1i*dx/yy-dS)*fT0.DzDs()/fT0.QPt();
     } else {
       j14 = -fT0.DzDs()*bz*dx*dx*exi*exi*exi
         *( 0.5*ey + (1.f/3.f)*kdx*(1+2.f*ey*ey)*exi*exi
@@ -437,11 +436,11 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
   float dLmask = 0.f;
   bool maskMS = ( fabs( dL ) < fMaterial.fDLMax );
   if( maskMS ) dLmask = dL;
-  float dLabs = fabs( dLmask); 
+  float dLabs = fabs( dLmask);
 
   // Energy Loss
 
-  if( 1||!fToyMCEvents ){  
+  if( 1||!fToyMCEvents ){
     //std::cout<<"APPLY ENERGY LOSS!!!"<<std::endl;
     float corr = 1.f - fMaterial.fEP2* dLmask ;
     float corrInv = 1.f/corr;
@@ -465,7 +464,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
 
   //  Multiple Scattering
   
-  if( !fToyMCEvents ){ 
+  if( !fToyMCEvents ){
     fC22 += dLabs * fMaterial.fK22 * fT0.CosPhi()*fT0.CosPhi();
     fC33 += dLabs * fMaterial.fK33;
     fC43 += dLabs * fMaterial.fK43;
@@ -527,19 +526,19 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha
   // propagate track and cov matrix with derivatives for (0,0,Bz) field
 
   float dS =  dLp*t0e.Pt();
-  float dL =  fabs(dLp*t0e.P());   
+  float dL =  fabs(dLp*t0e.P());
 
   if( inFlyDirection ) dL = -dL;
   
   float k  = -fT0.QPt()*Bz;
   float dx = posX - fT0.X();
-  float kdx = k*dx; 
-  float dxcci = dx / (fT0.CosPhi() + t0e.CosPhi());            
+  float kdx = k*dx;
+  float dxcci = dx / (fT0.CosPhi() + t0e.CosPhi());
       
-  float hh = dxcci*t0e.SecPhi()*(2.f+0.5f*kdx*kdx); 
+  float hh = dxcci*t0e.SecPhi()*(2.f+0.5f*kdx*kdx);
   float h02 = fT0.SecPhi()*hh;
   float h04 = -Bz*dxcci*hh;
-  float h13 = dS;  
+  float h13 = dS;
   float h24 = -dx*Bz;
 
   float *p = fT->Par();
@@ -594,7 +593,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha
   c[6] = n6;
   
   c[2]+= h13*(c31 + n7);
-  c[7] = n7; 
+  c[7] = n7;
   
   c[3] = c20ph04c42 + h02c22  + h24*n10;
   c[10] = n10;
@@ -618,7 +617,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha
   float dLmask = 0.f;
   bool maskMS = ( fabs( dL ) < fMaterial.fDLMax );
   if( maskMS ) dLmask = dL;
-  float dLabs = fabs( dLmask); 
+  float dLabs = fabs( dLmask);
   float corr = 1.f - fMaterial.fEP2* dLmask ;
 
   float corrInv = 1.f/corr;
@@ -686,7 +685,7 @@ GPUd() float AliHLTTPCGMPropagator::PredictChi2( float posY, float posZ, float e
     { // Invert symmetric matrix
       float det = w0*w2 - w1*w1;
       if( CAMath::Abs(det) < 1.e-10 ) det = 1.e-10;
-      det = 1./det;    
+      det = 1./det;
       w0 =  w0*det;
       w1 = -w1*det;
       w2 =  w2*det;
@@ -701,7 +700,7 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, cons
     GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState);
 
     if ( fT->NDF()==-5 )
-    { // first measurement: no need to filter, as the result is known in advance. just set it. 
+    { // first measurement: no need to filter, as the result is known in advance. just set it.
       fT->ResetCovariance();
       float *fC = fT->Cov();
       float *fP = fT->Par();
@@ -715,7 +714,7 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, cons
       fP[ 1] = posZ;
       fC[ 0] = err2Y;
       fC[ 2] = err2Z;
-      fT->NDF() = -3;   
+      fT->NDF() = -3;
       return 0;
     }
 
@@ -748,7 +747,7 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, short clusterS
     { // Invert symmetric matrix
       float det = w0*w2 - w1*w1;
       if( CAMath::Abs(det)<1.e-10 ) return -1;
-      det = 1./det;    
+      det = 1./det;
       w0 =  w0*det;
       w1 = -w1*det;
       w2 =  w2*det;
@@ -787,11 +786,11 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, short clusterS
     fC[14] -= k40 * d04 ;
   }
   else
-  {  
+  {
     float k00= d00*w0 + d01*w1;   float k01= d00*w1 + d10*w2;
-    float k10= d01*w0 + d11*w1;   float k11= d01*w1 + d11*w2;  
+    float k10= d01*w0 + d11*w1;   float k11= d01*w1 + d11*w2;
     float k20= d02*w0 + d12*w1;   float k21= d02*w1 + d12*w2;
-    float k30= d03*w0 + d13*w1;   float k31= d03*w1 + d13*w2; 
+    float k30= d03*w0 + d13*w1;   float k31= d03*w1 + d13*w2;
     float k40= d04*w0 + d14*w1;   float k41= d04*w1 + d14*w2;
     
     fP[0]+= k00*z0 + k01*z1;
@@ -850,7 +849,7 @@ GPUd() float AliHLTTPCGMPropagator::ApproximateBetheBloch( float beta2 )
 
   if( bad ) beta2 = 0.5f;
 
-  float a = beta2 / ( 1.f - beta2 ); 
+  float a = beta2 / ( 1.f - beta2 );
   float b = 0.5*log(a);
   float d =  0.153e-3 / beta2;
   float c = b - beta2;
@@ -859,7 +858,7 @@ GPUd() float AliHLTTPCGMPropagator::ApproximateBetheBloch( float beta2 )
   float case1 = d*(log1 + c );
   
   if( a > 3.5*3.5  ) ret = case1;
-  if( bad ) ret = 0. ; 
+  if( bad ) ret = 0. ;
 
   return ret;
 }
@@ -958,7 +957,7 @@ GPUd() void AliHLTTPCGMPropagator::Mirror(bool inFlyDirection)
   float Bz = B[2];
   if( fabs(Bz)<1.e-8 ) Bz = 1.e-8;
 
-  float dy = - 2.f*fT0.Q()*fT0.Px()/Bz;  
+  float dy = - 2.f*fT0.Q()*fT0.Px()/Bz;
   float dS; // path in XY
   {
     float chord = dy; // chord to the extrapolated point == |dy|*sign(x direction)
@@ -966,14 +965,14 @@ GPUd() void AliHLTTPCGMPropagator::Mirror(bool inFlyDirection)
   
     // dS = (Pt/b)*2*arcsin( sa )
     //    = (Pt/b)*2*sa*(1 + 1/6 sa^2 + 3/40 sa^4 + 5/112 sa^6 +... )
-    //    =       chord*(1 + 1/6 sa^2 + 3/40 sa^4 + 5/112 sa^6 +... )   
+    //    =       chord*(1 + 1/6 sa^2 + 3/40 sa^4 + 5/112 sa^6 +... )
     
     float sa2 = sa*sa;
     const float k2 = 1./6.;
     const float k4 = 3./40.;
     //const float k6 = 5.f/112.f;
     dS =  chord + chord*sa2*(k2 + k4*sa2);
-    //dS = sqrtf(pt2)/b*2.*AliHLTTPCCAMath::ASin( sa );
+    //dS = sqrtf(pt2)/b*2.*CAMath::ASin( sa );
   }
 
   if( fT0.SinPhi()<0.f ) dS = -dS;
@@ -1004,7 +1003,7 @@ GPUd() void AliHLTTPCGMPropagator::Mirror(bool inFlyDirection)
     float dLmask = 0.f;
     bool maskMS = ( fabs( dL ) < fMaterial.fDLMax );
     if( maskMS ) dLmask = dL;
-    float dLabs = fabs( dLmask); 
+    float dLabs = fabs( dLmask);
     float corr = 1.f - fMaterial.fEP2* dLmask ;
     
     float corrInv = 1.f/corr;
@@ -1021,7 +1020,7 @@ GPUd() void AliHLTTPCGMPropagator::Mirror(bool inFlyDirection)
     fC41 *= corr;
     fC42 *= corr;
     fC43 *= corr;
-    fC44  = fC44*corr*corr + dLabs*fMaterial.fSigmadE2; 
+    fC44  = fC44*corr*corr + dLabs*fMaterial.fSigmadE2;
   } else {
     // std::cout<<"MIRROR: DONT APPLY ENERGY LOSS!!!"<<std::endl;
   }

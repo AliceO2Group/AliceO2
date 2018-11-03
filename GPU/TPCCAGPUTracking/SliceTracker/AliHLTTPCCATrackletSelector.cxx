@@ -23,7 +23,7 @@
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCATrackParam.h"
 #include "AliHLTTPCCATracklet.h"
-#include "AliHLTTPCCAMath.h"
+#include "AliTPCCommonMath.h"
 
 GPUd() void AliHLTTPCCATrackletSelector::Thread
 ( int nBlocks, int nThreads, int iBlock, int iThread, int iSync,
