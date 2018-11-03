@@ -13,6 +13,8 @@
 # * provided "as is" without express or implied warranty.                  *
 # **************************************************************************
 
+cmake_minimum_required(VERSION 3.9)
+
 # Module
 if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
 set(MODULE O2TPCCAGPUTrackingCUDA)
@@ -23,7 +25,8 @@ add_definitions(-DHLTCA_GPULIBRARY=CUDA)
 
 option(CUDA_GCCBIN "GCC binary to use for compiling host part of CUDA code for systems with multiple GCC versions installed"   OFF)
 
-if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT") #We need to handle finding CUDA in AliRoot case
+get_property(LANGUAGES GLOBAL PROPERTY ENABLED_LANGUAGES)
+if (NOT CUDA IN_LIST LANGUAGES) #We need to handle finding CUDA in AliRoot case
     if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
       set(CMAKE_CUDA_FLAGS "-Xptxas -O0 -Xcompiler -O0")
     else()
@@ -41,9 +44,14 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT") #We need to handle finding CUDA i
     set(CMAKE_CUDA_STANDARD 14)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr -DENABLE_CUDA --compiler-options \"${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}} -std=c++14\"")
-else()
-    #Another ugly hack!: nvcc dies due to O2 link flags, so we strip them for device linkage
-    set(CMAKE_CUDA_DEVICE_LINK_LIBRARY "<CMAKE_CUDA_COMPILER> <LANGUAGE_COMPILE_FLAGS> -Xcompiler=-fPIC -Wno-deprecated-gpu-targets -shared -dlink <OBJECTS> -o <TARGET>")
+endif()
+
+#Another ugly hack!: nvcc dies due to O2 link flags, so we strip them for device linkage
+set(CMAKE_CUDA_DEVICE_LINK_LIBRARY "<CMAKE_CUDA_COMPILER> <LANGUAGE_COMPILE_FLAGS> -Xcompiler=-fPIC -Wno-deprecated-gpu-targets -shared -dlink <OBJECTS> -o <TARGET>")
+
+get_property(LANGUAGES GLOBAL PROPERTY ENABLED_LANGUAGES)
+if (NOT CUDA IN_LIST LANGUAGES)
+    message(FATAL_ERROR "CMake could not find CUDA (${LANGUAGES})")
 endif()
 message( STATUS "Building CAGPUTracking with CUDA support" )
 
