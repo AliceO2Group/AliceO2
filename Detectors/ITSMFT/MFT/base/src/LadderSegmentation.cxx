@@ -64,8 +64,9 @@ LadderSegmentation::LadderSegmentation(const LadderSegmentation& ladder)
 /// Creates the Sensors Segmentation array on the Ladder
 
 //_____________________________________________________________________________
-void LadderSegmentation::createSensors(TXMLEngine* xml, XMLNodePointer_t node) {
-  
+void LadderSegmentation::createSensors(TXMLEngine* xml, XMLNodePointer_t node)
+{
+
   if (!mChips) {
     mChips = new TClonesArray("o2::MFT::ChipSegmentation", mNSensors);
     mChips->SetOwner(kTRUE);
@@ -73,72 +74,65 @@ void LadderSegmentation::createSensors(TXMLEngine* xml, XMLNodePointer_t node) {
 
   Int_t ichip;
   Double_t pos[3];
-  Double_t ang[3]={0.,0.,0.};
-  
-  Geometry * mftGeom = Geometry::instance();
+  Double_t ang[3] = { 0., 0., 0. };
+
+  Geometry* mftGeom = Geometry::instance();
 
   TString nodeName = xml->GetNodeName(node);
   if (!nodeName.CompareTo("chip")) {
     XMLAttrPointer_t attr = xml->GetFirstAttr(node);
     while (attr != nullptr) {
       TString attrName = xml->GetAttrName(attr);
-      TString attrVal  = xml->GetAttrValue(attr);
-      if(!attrName.CompareTo("ichip")) {
+      TString attrVal = xml->GetAttrValue(attr);
+      if (!attrName.CompareTo("ichip")) {
         ichip = attrVal.Atoi();
         if (ichip >= getNSensors() || ichip < 0) {
           LOG(FATAL) << "Wrong chip number : " << ichip << FairLogger::endl;
         }
-      } else
-        if(!attrName.CompareTo("xpos")) {
-          pos[0] = attrVal.Atof();
-        } else
-          if(!attrName.CompareTo("ypos")) {
-            pos[1] = attrVal.Atof();
-          } else
-            if(!attrName.CompareTo("zpos")) {
-              pos[2] = attrVal.Atof();
-            } else
-              if(!attrName.CompareTo("phi")) {
-                ang[0] = attrVal.Atof();
-              } else
-                if(!attrName.CompareTo("theta")) {
-                  ang[1] = attrVal.Atof();
-                } else
-                  if(!attrName.CompareTo("psi")) {
-                    ang[2] = attrVal.Atof();
-                  } else{
-                    LOG(ERROR) << "Unknwon Attribute name " << xml->GetAttrName(attr) << FairLogger::endl;
-                  }
+      } else if (!attrName.CompareTo("xpos")) {
+        pos[0] = attrVal.Atof();
+      } else if (!attrName.CompareTo("ypos")) {
+        pos[1] = attrVal.Atof();
+      } else if (!attrName.CompareTo("zpos")) {
+        pos[2] = attrVal.Atof();
+      } else if (!attrName.CompareTo("phi")) {
+        ang[0] = attrVal.Atof();
+      } else if (!attrName.CompareTo("theta")) {
+        ang[1] = attrVal.Atof();
+      } else if (!attrName.CompareTo("psi")) {
+        ang[2] = attrVal.Atof();
+      } else {
+        LOG(ERROR) << "Unknwon Attribute name " << xml->GetAttrName(attr) << FairLogger::endl;
+      }
       attr = xml->GetNextAttr(attr);
     }
 
     UInt_t chipUniqueID =
-    mftGeom->getObjectID(Geometry::SensorType,
-                         mftGeom->getHalfID(GetUniqueID()),
-                         mftGeom->getDiskID(GetUniqueID()),
-                         mftGeom->getPlaneID(GetUniqueID()),
-                         mftGeom->getLadderID(GetUniqueID()),
-                         ichip);
-    
-    auto *chip = new ChipSegmentation(chipUniqueID);
-//    pos[0] = mftGeom->getSensorID(GetUniqueID())*
-//    (SegmentationAlpide::SensorSizeCols + Geometry::sSensorInterspace) + Geometry::sSensorSideOffset;
-//    pos[1] = Geometry::sSensorTopOffset;
-//    pos[2] = Geometry::sFlexThickness;
+      mftGeom->getObjectID(Geometry::SensorType,
+                           mftGeom->getHalfID(GetUniqueID()),
+                           mftGeom->getDiskID(GetUniqueID()),
+                           mftGeom->getPlaneID(GetUniqueID()),
+                           mftGeom->getLadderID(GetUniqueID()),
+                           ichip);
+
+    auto* chip = new ChipSegmentation(chipUniqueID);
+    //    pos[0] = mftGeom->getSensorID(GetUniqueID())*
+    //    (SegmentationAlpide::SensorSizeCols + Geometry::sSensorInterspace) + Geometry::sSensorSideOffset;
+    //    pos[1] = Geometry::sSensorTopOffset;
+    //    pos[2] = Geometry::sFlexThickness;
     chip->setPosition(pos);
     chip->setRotationAngles(ang);
-    
+
     new ((*mChips)[ichip]) ChipSegmentation(*chip);
     delete chip;
   }
 
   // display all child nodes
   XMLNodePointer_t child = xml->GetChild(node);
-  while (child!=nullptr) {
+  while (child != nullptr) {
     createSensors(xml, child);
     child = xml->GetNext(child);
   }
-
 }
 
 /// Returns pointer to a sensor segmentation

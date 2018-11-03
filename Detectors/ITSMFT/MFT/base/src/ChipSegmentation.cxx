@@ -42,13 +42,12 @@ ChipSegmentation::ChipSegmentation(UInt_t uniqueID) : VSegmentation()
                mftGeom->getDiskID(GetUniqueID()), mftGeom->getLadderID(GetUniqueID()),
                mftGeom->getSensorID(GetUniqueID())));
 
-//  Double_t pos[3];
-//  pos[0] = mftGeom->getSensorID(GetUniqueID())*
-//    (SegmentationAlpide::SensorSizeCols + Geometry::sSensorInterspace) + Geometry::sSensorSideOffset;
-//  pos[1] = Geometry::sSensorTopOffset;
-//  pos[2] = Geometry::sFlexThickness;
-//  setPosition(pos);
-  
+  //  Double_t pos[3];
+  //  pos[0] = mftGeom->getSensorID(GetUniqueID())*
+  //    (SegmentationAlpide::SensorSizeCols + Geometry::sSensorInterspace) + Geometry::sSensorSideOffset;
+  //  pos[1] = Geometry::sSensorTopOffset;
+  //  pos[2] = Geometry::sFlexThickness;
+  //  setPosition(pos);
 }
 
 /// \brief Print out Sensor information (Name, ID, position, orientation)

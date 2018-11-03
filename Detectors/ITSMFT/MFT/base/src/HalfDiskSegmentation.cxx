@@ -142,18 +142,6 @@ void HalfDiskSegmentation::createLadders(TXMLEngine* xml, XMLNodePointer_t node)
     ladder->setPosition(pos);
     ladder->setRotationAngles(ang);
 
-    /// @todo : In the XML geometry file, the position of the top-left corner of the chip closest to the pipe is given
-    /// in the Halfdisk coordinate system.
-    /// Need to put in the XML file the position of the ladder coordinate center
-    // Find the position of the corner of the flex which is the ladder corrdinate system center.
-
-    pos[0] = -Geometry::sSensorSideOffset;
-    pos[1] = -Geometry::sSensorTopOffset - SegmentationAlpide::SensorSizeRows;
-    pos[2] = -Geometry::sFlexThickness - Geometry::sChipThickness;
-    Double_t master[3];
-    ladder->getTransformation()->LocalToMaster(pos, master);
-    ladder->setPosition(master);
-    
     ladder->createSensors(xml, node);
 
     new ((*mLadders)[iladder]) LadderSegmentation(*ladder);
