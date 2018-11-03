@@ -46,8 +46,10 @@ void DigitContainer::fillOutputContainer(std::vector<Digit>* output,
   TimeBin timeBin = mFirstTimeBin;
   for (auto& time : mTimeBins) {
     /// the time bins between the last event and the timing of this event are uncorrelated and can be written out
-    /// OR the readout is triggered (i.e. not continuous) and we can dump everything in any case
+    /// OR the readout is triggered (i.e. not continuous) and we can dump everything in any case, as long it is within one drift time interval
     if ((nProcessedTimeBins + mFirstTimeBin < eventTime) || !isContinuous) {
+      if (!isContinuous && timeBin > mTmaxTriggered)
+        continue;
       ++nProcessedTimeBins;
       time.fillOutputContainer(output, mcTruth, debug, mSector, timeBin);
     } else {
