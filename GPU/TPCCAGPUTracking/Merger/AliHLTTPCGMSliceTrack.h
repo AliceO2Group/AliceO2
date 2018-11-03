@@ -10,7 +10,7 @@
 #ifndef ALIHLTTPCGMSLICETRACK_H
 #define ALIHLTTPCGMSLICETRACK_H
 
-#include "AliHLTTPCCAMath.h"
+#include "AliTPCCommonMath.h"
 #include "AliHLTTPCGMTrackParam.h"
 #include "AliHLTTPCCASliceOutTrack.h"
 #include <algorithm>
@@ -82,7 +82,7 @@ class AliHLTTPCGMSliceTrack
     fC9 = 1;
     fC10 = 0;
     fC12 = 0;
-    fC14 = 10;	
+    fC14 = 10;
   }
   
   void SetNClusters ( int v )                        { fNClusters = v;       }
@@ -111,10 +111,10 @@ class AliHLTTPCGMSliceTrack
   float fX, fY, fZ, fSinPhi, fDzDs, fQPt, fCosPhi, fSecPhi; // parameters
   float fZOffset;
   float fC0, fC2, fC3, fC5, fC7, fC9, fC10, fC12, fC14; // covariances
-  float fAlpha;           // alpha angle 
+  float fAlpha;           // alpha angle
   int fSlice;             // slice of this track segment
   int fNClusters;         // N clusters
-  int fNeighbour[2];      // 
+  int fNeighbour[2];      //
   int fSegmentNeighbour[2]; //
   int fLocalTrackId;	  // Corrected local track id in terms of GMSliceTracks array
   int fGlobalTrackIds[2]; // IDs of associated global tracks

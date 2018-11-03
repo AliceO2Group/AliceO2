@@ -21,7 +21,7 @@
 
 #include "AliHLTTPCGMOfflineFitter.h"
 
-#include "AliHLTTPCCAMath.h"
+#include "AliTPCCommonMath.h"
 #include "AliHLTTPCGMMergedTrack.h"
 #include "AliHLTTPCGMMergedTrackHit.h"
 #include "AliHLTTPCCAGeometry.h"
@@ -56,9 +56,9 @@ void AliHLTTPCGMOfflineFitter::Initialize( const AliHLTTPCCAParam& hltParam, Lon
   //
 
   AliHLTTPCClusterTransformation hltTransform;
-  hltTransform.Init( 0., TimeStamp, isMC, 1);  
+  hltTransform.Init( 0., TimeStamp, isMC, 1);
  
-  // initialisation of AliTPCtracker as it is done in AliTPCReconstructor.cxx 
+  // initialisation of AliTPCtracker as it is done in AliTPCReconstructor.cxx
   
   AliTPCcalibDB * calib = AliTPCcalibDB::Instance();
   const AliMagF * field = (AliMagF*)TGeoGlobalMagField::Instance()->GetField();
@@ -69,15 +69,15 @@ void AliHLTTPCGMOfflineFitter::Initialize( const AliHLTTPCCAParam& hltParam, Lon
     AliWarning("Loading default TPC parameters !");
     param = new AliTPCParamSR;
   }
-  param->ReadGeoMatrices(); 
+  param->ReadGeoMatrices();
 
   AliTPCReconstructor *tpcRec = new AliTPCReconstructor();
   tpcRec->SetRecoParam( AliTPCcalibDB::Instance()->GetTransform()->GetCurrentRecoParam() );
 
   //(this)->~AliTPCtracker();   //call the destructor explicitly
-  //new (this) AliTPCtracker(param); // call the constructor 
+  //new (this) AliTPCtracker(param); // call the constructor
 
-  AliTPCtracker::fSectors = AliTPCtracker::fInnerSec; 
+  AliTPCtracker::fSectors = AliTPCtracker::fInnerSec;
   // AliTPCReconstructor::ParseOptions(tracker);  : not important, it only set useHLTClusters flag
   
   fCAParam = hltParam;
@@ -90,15 +90,15 @@ void AliHLTTPCGMOfflineFitter::RefitTrack( AliHLTTPCGMMergedTrack &track, const 
 
   // copy of HLT RefitTrack() with calling of the offline fit utilities
 
-  if( !track.OK() ) return;    
+  if( !track.OK() ) return;
 
   int nTrackHits = track.NClusters();
   cout<<"call FitOffline .. "<<endl;
-  bool ok  = FitOffline( field, track, clusters + track.FirstClusterRef(), nTrackHits ); 
+  bool ok  = FitOffline( field, track, clusters + track.FirstClusterRef(), nTrackHits );
   cout<<".. end of call FitOffline "<<endl;
 
   AliHLTTPCGMTrackParam t = track.Param();
-  float Alpha = track.Alpha();  
+  float Alpha = track.Alpha();
  
   if ( fabs( t.QPt() ) < 1.e-4 ) t.QPt() = 1.e-4 ;
 	  
@@ -113,8 +113,8 @@ void AliHLTTPCGMOfflineFitter::RefitTrack( AliHLTTPCGMMergedTrack &track, const 
     float xx = clusters[ind].fX;
     float yy = clusters[ind].fY;
     float zz = clusters[ind].fZ - track.Param().GetZOffset();
-    float sinA = AliHLTTPCCAMath::Sin( alphaa - track.Alpha());
-    float cosA = AliHLTTPCCAMath::Cos( alphaa - track.Alpha());
+    float sinA = CAMath::Sin( alphaa - track.Alpha());
+    float cosA = CAMath::Cos( alphaa - track.Alpha());
     track.SetLastX( xx*cosA - yy*sinA );
     track.SetLastY( xx*sinA + yy*cosA );
     track.SetLastZ( zz );
@@ -134,13 +134,13 @@ int  AliHLTTPCGMOfflineFitter::CreateTPCclusterMI( const AliHLTTPCGMMergedTrackH
   Int_t sector, row;
   AliHLTTPCCAGeometry::Slice2Sector( h.fSlice, h.fRow, sector, row);
   c.SetDetector( sector );
-  c.SetRow( row ); // ?? is it right row numbering for the TPC tracker ??  
+  c.SetRow( row ); // ?? is it right row numbering for the TPC tracker ??
   c.SetX(h.fX);
   c.SetY(h.fY);
   c.SetZ(h.fZ);
   int index=(((sector<<8)+row)<<16)+0;
   return index;
-}    
+}
 
 bool AliHLTTPCGMOfflineFitter::FitOffline( const AliHLTTPCGMPolynomialField* field, AliHLTTPCGMMergedTrack &gmtrack,  AliHLTTPCGMMergedTrackHit* clusters, int &N )
 {
@@ -161,7 +161,7 @@ bool AliHLTTPCGMOfflineFitter::FitOffline( const AliHLTTPCGMPolynomialField* fie
   AliTPCtracker::SetIteration(2);
 
   AliTPCseed seed;
-  gmtrack.Param().GetExtParam( seed, gmtrack.Alpha() );  
+  gmtrack.Param().GetExtParam( seed, gmtrack.Alpha() );
 
   AliTPCtracker::AddCovariance( &seed );
   
@@ -193,7 +193,7 @@ bool AliHLTTPCGMOfflineFitter::FitOffline( const AliHLTTPCGMPolynomialField* fie
       } while (ihit + 1 >= 0 && ihit + 1 < maxN && clusters[ihit].fRow == clusters[ihit + 1].fRow);
       xx /= count;
       yy /= count;
-      zz /= count;          
+      zz /= count;
     }
     
     // Create AliTPCclusterMI for the hit
@@ -202,7 +202,7 @@ bool AliHLTTPCGMOfflineFitter::FitOffline( const AliHLTTPCGMPolynomialField* fie
     Int_t tpcindex = CreateTPCclusterMI( clusters[ihit], cluster );
     if( tpcindex <0 ) continue;
     Double_t sy2=0, sz2=0;
-    AliTPCtracker::ErrY2Z2( &seed, &cluster,sy2,sz2);      
+    AliTPCtracker::ErrY2Z2( &seed, &cluster,sy2,sz2);
     cluster.SetSigmaY2( sy2 );
     cluster.SetSigmaZ2( sz2 );
     cluster.SetQ(10);
@@ -210,12 +210,12 @@ bool AliHLTTPCGMOfflineFitter::FitOffline( const AliHLTTPCGMPolynomialField* fie
     
     Int_t iRow = clusters[ihit].fRow;
 
-    if( iRow < AliHLTTPCCAGeometry::GetNRowLow() ) AliTPCtracker::fSectors = AliTPCtracker::fInnerSec; 
-    else AliTPCtracker::fSectors = AliTPCtracker::fOuterSec; 
+    if( iRow < AliHLTTPCCAGeometry::GetNRowLow() ) AliTPCtracker::fSectors = AliTPCtracker::fInnerSec;
+    else AliTPCtracker::fSectors = AliTPCtracker::fOuterSec;
 
     seed.SetClusterIndex2( iRow, tpcindex );
     seed.SetClusterPointer( iRow, &cluster );
-    seed.SetCurrentClusterIndex1(tpcindex); 
+    seed.SetCurrentClusterIndex1(tpcindex);
 
     int retVal;
     float threshold = 3. + (lastUpdateX >= 0 ? (fabs(seed.GetX() - lastUpdateX) / 2) : 0.);
@@ -230,7 +230,7 @@ bool AliHLTTPCGMOfflineFitter::FitOffline( const AliHLTTPCGMPolynomialField* fie
 	  {
 	    if (N > 0 && (fabs(yy - seed.GetY()) > 3 || fabs(zz - seed.GetZ()) > 3)) clusters[ihit].fState = -2;
 	    else if (err && err >= -3) clusters[ihit].fState = -1;
-	  }        
+	  }
 	continue;
       }
       
@@ -251,12 +251,12 @@ bool AliHLTTPCGMOfflineFitter::FitOffline( const AliHLTTPCGMPolynomialField* fie
         if (markNonFittedClusters) clusters[ihit].fState = -2;
       }
     else break; // bad chi2 for the whole track, stop the fit
-  } // end loop over clusters   
+  } // end loop over clusters
 
 
  
   AliHLTTPCGMTrackParam t;
-  t.SetExtParam( seed  );  
+  t.SetExtParam( seed  );
 
   float Alpha = seed.GetAlpha();
 
@@ -275,7 +275,7 @@ bool AliHLTTPCGMOfflineFitter::FitOffline( const AliHLTTPCGMPolynomialField* fie
 
     AliHLTTPCGMPropagator prop;
     //    prop.SetMaterial( kRadLen, kRho );
-    prop.SetPolynomialField( field );  
+    prop.SetPolynomialField( field );
     prop.SetMaxSinPhi( maxSinPhi );
     prop.SetToyMCEventsFlag( fCAParam.ToyMCEventsFlag());
 
@@ -291,7 +291,7 @@ bool AliHLTTPCGMOfflineFitter::FitOffline( const AliHLTTPCGMPolynomialField* fie
 	    t.Rotate(dAngle);
 	    break;
           }
-      }    
+      }
   }
   else if (fabs(t.GetY()) > t.GetX() * tan(kSectAngle / 2.f))
   {
@@ -303,7 +303,7 @@ bool AliHLTTPCGMOfflineFitter::FitOffline( const AliHLTTPCGMPolynomialField* fie
   else if (Alpha <= -3.1415926535897) Alpha += 2*3.1415926535897;
 
   gmtrack.Param() = t ;
-  gmtrack.Alpha() = Alpha;  
+  gmtrack.Alpha() = Alpha;
 
   return(ok);
 }

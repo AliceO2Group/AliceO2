@@ -19,7 +19,7 @@
 
 
 #include "AliHLTTPCCAMCTrack.h"
-#include "AliHLTTPCCAMath.h"
+#include "AliTPCCommonMath.h"
 #include "TParticle.h"
 #include "TDatabasePDG.h"
 
@@ -28,10 +28,10 @@ AliHLTTPCCAMCTrack::AliHLTTPCCAMCTrack()
     : fPDG( 0 ), fP( 0 ), fPt( 0 ), fNHits( 0 ), fNMCPoints( 0 ), fFirstMCPointID( 0 ), fNReconstructed( 0 ), fSet( 0 ), fNTurns( 0 )
 {
   //* Default constructor
-  for( int i=0;i<7; i++){     
+  for( int i=0;i<7; i++){
     fPar[i] = 0;
     fTPCPar[i] = 0;
-  }  
+  }
 }
 
 

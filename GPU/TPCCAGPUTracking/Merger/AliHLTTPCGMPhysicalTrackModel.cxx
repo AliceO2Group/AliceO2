@@ -17,7 +17,7 @@
 //***************************************************************************
 
 #include "AliHLTTPCGMPhysicalTrackModel.h"
-#include "AliHLTTPCCAMath.h"
+#include "AliTPCCommonMath.h"
 
 GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBzLight( float x, float Bz, float &dLp )
 {
@@ -25,7 +25,7 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBzLight( float x, float Bz
     if( fabs(x-t.X())<1.e-8f ) return 0;
     int err = t.PropagateToXBzLightNoUpdate(x, Bz, dLp);
     if (err) return(err);
-    t.UpdateValues(); 
+    t.UpdateValues();
     *this = t;
     return 0;
 }
@@ -40,33 +40,33 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBzLightNoUpdate( float x, 
   // Additional values are not recalculated, UpdateValues() has to be called afterwards!!
   //
   float b = fQ*Bz;
-  float pt2 = fPx*fPx + fPy*fPy;  
+  float pt2 = fPx*fPx + fPy*fPy;
   float dx = x - fX;
   float pye = fPy - dx*b; // extrapolated py
   float pxe2 = pt2 - pye*pye;
 
-  if(fPx < (1.f - HLTCA_MAX_SIN_PHI) || pxe2 < (1.f - HLTCA_MAX_SIN_PHI) * (1.f - HLTCA_MAX_SIN_PHI)) return -1; // can not transport to x=x  
+  if(fPx < (1.f - HLTCA_MAX_SIN_PHI) || pxe2 < (1.f - HLTCA_MAX_SIN_PHI) * (1.f - HLTCA_MAX_SIN_PHI)) return -1; // can not transport to x=x
   
-  float pxe = AliHLTTPCCAMath::Sqrt( pxe2 ); // extrapolated px
-  float pti = 1.f/AliHLTTPCCAMath::Sqrt(pt2);
+  float pxe = CAMath::Sqrt( pxe2 ); // extrapolated px
+  float pti = 1.f/CAMath::Sqrt(pt2);
   
-  float ty = ( fPy+pye ) / ( fPx+pxe );  
+  float ty = ( fPy+pye ) / ( fPx+pxe );
   float dy = dx*ty;
   float dS; // path in XY
   {
-    float chord = dx*AliHLTTPCCAMath::Sqrt( 1.f + ty*ty ); // chord to the extrapolated point == sqrt(dx^2+dy^2)*sign(dx)
+    float chord = dx*CAMath::Sqrt( 1.f + ty*ty ); // chord to the extrapolated point == sqrt(dx^2+dy^2)*sign(dx)
     float sa = 0.5*chord*b*pti; //  sin( half of the rotation angle ) ==  (chord/2) / radius
   
     // dS = (Pt/b)*2*arcsin( sa )
     //    = (Pt/b)*2*sa*(1 + 1/6 sa^2 + 3/40 sa^4 + 5/112 sa^6 +... )
-    //    =       chord*(1 + 1/6 sa^2 + 3/40 sa^4 + 5/112 sa^6 +... )   
+    //    =       chord*(1 + 1/6 sa^2 + 3/40 sa^4 + 5/112 sa^6 +... )
     
     float sa2 = sa*sa;
     const float k2 = 1./6.;
     const float k4 = 3./40.;
     //const float k6 = 5.f/112.f;
     dS =  chord + chord*sa2*(k2 + k4*sa2);
-    //dS = sqrt(pt2)/b*2.*AliHLTTPCCAMath::ASin( sa );
+    //dS = sqrt(pt2)/b*2.*CAMath::ASin( sa );
   }
 
   dLp = pti*dS; // path in XYZ / p == path in XY / pt
@@ -86,11 +86,11 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBzLightNoUpdate( float x, 
 
 
 GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBxByBz( float x,
-							      float Bx, float By, float Bz,							      
+							      float Bx, float By, float Bz,
 							      float &dLp )
 {
   //
-  // transport the track to X=x in magnetic field B = ( Bx, By, Bz )[kG*0.000299792458] 
+  // transport the track to X=x in magnetic field B = ( Bx, By, Bz )[kG*0.000299792458]
   // xyzPxPyPz as well as all the additional values will change. No need to call UpdateValues() afterwards.
   // the method returns error code (0 == no error)
   //
@@ -104,8 +104,8 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBxByBz( float x,
 
   // Rotate to the system where Bx=By=0.
 
-  float bt = AliHLTTPCCAMath::Sqrt(Bz*Bz + By*By);
-  float bb = AliHLTTPCCAMath::Sqrt(Bx*Bx + By*By + Bz*Bz);
+  float bt = CAMath::Sqrt(Bz*Bz + By*By);
+  float bb = CAMath::Sqrt(Bx*Bx + By*By + Bz*Bz);
 
   float c1=1.f, s1=0.f;
   float c2=1.f, s2=0.f;
@@ -119,14 +119,14 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBxByBz( float x,
   // after the first rotation: Bx'==Bx, By'==0, Bz'==Bt, X'==X
   // after the second rotation: Bx''==0, By''==0, Bz''==B, X'' axis is as close as possible to the original X
 
-  //  
+  //
   //     ( c2 0 s2 )   ( 1  0   0 )
   // R = (  0 1 0  ) X ( 0 c1 -s1 )
   //     (-s2 0 c2 )   ( 0 s1  c1 )
   //
   
   float R0[3] = { c2, s1*s2, c1*s2 };
-  float R1[3] = {  0,    c1,   -s1 };	 
+  float R1[3] = {  0,    c1,   -s1 };
   float R2[3] = {-s2, s1*c2, c1*c2 };
     
   // parameters and the extrapolation point in the rotated coordinate system
@@ -151,7 +151,7 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBxByBz( float x,
   if( t.PropagateToXBzLightNoUpdate( xe, bb, dLp )!=0 ) return -1;
 
   // rotate coordinate system back to the original R{-1}==R{T}
-  {  
+  {
     float lx = t.X(), ly = t.Y(), lz=t.Z(), lpx = t.Px(), lpy = t.Py(), lpz = t.Pz();
  
     t.X() = R0[0]*lx + R1[0]*ly + R2[0]*lz;
@@ -172,7 +172,7 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBxByBz( float x,
   dLp+=ddLp;
 
   t.UpdateValues();
-  *this = t;  
+  *this = t;
   return 0;
 }
 
@@ -190,7 +190,7 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToLpBz( float Lp, float Bz )
 
   float step = Lp;
 
-  const float kOvSqSix = AliHLTTPCCAMath::Sqrt(1./6.);
+  const float kOvSqSix = CAMath::Sqrt(1./6.);
   
   float px = fPx;
   float py = fPy;
@@ -198,7 +198,7 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToLpBz( float Lp, float Bz )
     
   float tet = qfield*step;
 
-  float tsint, sintt, sint, cos1t; 
+  float tsint, sintt, sint, cos1t;
   if (CAMath::Abs(tet) > 0.03) {
      sint  = CAMath::Sin(tet);
      sintt = sint/tet;
@@ -209,7 +209,7 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToLpBz( float Lp, float Bz )
      tsint = tet*tet/6.;
      sintt = (1.f-tet*kOvSqSix)*(1.f+tet*kOvSqSix); // 1.- tsint;
      sint  = tet*sintt;
-     cos1t = 0.5f*tet; 
+     cos1t = 0.5f*tet;
   }
 
   float f1 = step*sintt;
@@ -230,13 +230,13 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToLpBz( float Lp, float Bz )
   return 0;
 }
 
-#if !defined(HLTCA_GPUCODE) 
+#if !defined(HLTCA_GPUCODE)
 #include <iostream>
 #endif
 
 GPUd() void AliHLTTPCGMPhysicalTrackModel::Print() const
 {
-#if !defined(HLTCA_GPUCODE) 
+#if !defined(HLTCA_GPUCODE)
   std::cout<<"AliHLTTPCGMPhysicalTrackModel:  x "<<fX<<" y "<<fY<<" z "<<fZ<<" px "<<fPx<<" py "<<fPy<<" pz "<<fPz<<" q "<<fQ<<std::endl;
 #endif
 }

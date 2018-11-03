@@ -16,7 +16,6 @@
 
 #include "AliHLTTPCCASliceData.h"
 #include "AliHLTTPCCAClusterData.h"
-#include "AliHLTTPCCAMath.h"
 #include "AliHLTArray.h"
 #include "AliHLTTPCCAHit.h"
 #include "AliHLTTPCCAParam.h"
@@ -79,7 +78,7 @@ inline int AliHLTTPCCASliceData::PackHitData( AliHLTTPCCARow* const row, const A
 {
   // hit data packing
 
-  static const float maxVal = (((long long int) 1 << AliHLTTPCCAMath::Min(24, sizeof(cahit) * 8)) - 1); //Stay within float precision in any case!
+  static const float maxVal = (((long long int) 1 << CAMath::Min(24, sizeof(cahit) * 8)) - 1); //Stay within float precision in any case!
   static const float packingConstant = 1.f / (maxVal - 2.);
   const float y0 = row->fGrid.YMin();
   const float z0 = row->fGrid.ZMin();

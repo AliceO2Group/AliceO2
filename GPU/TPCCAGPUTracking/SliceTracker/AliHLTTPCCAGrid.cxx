@@ -20,7 +20,7 @@
 
 
 #include "AliHLTTPCCAGrid.h"
-#include "AliHLTTPCCAMath.h"
+#include "AliTPCCommonMath.h"
 
 #ifndef assert
 #include <assert.h>

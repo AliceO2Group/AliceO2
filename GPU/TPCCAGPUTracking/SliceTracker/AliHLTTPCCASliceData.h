@@ -19,7 +19,7 @@
 
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCARow.h"
-#include "AliHLTTPCCAMath.h"
+#include "AliTPCCommonMath.h"
 #ifndef HLTCA_GPUCODE
 #include "AliHLTArray.h"
 #else

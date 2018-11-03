@@ -13,6 +13,7 @@ set(SRCS
 set (HDRS
 	AliTPCCommonDef.h
 	AliTPCCommonDefGPU.h
+    AliTPCCommonMath.h
 	FlatObject.h
 )
 

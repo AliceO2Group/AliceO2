@@ -19,7 +19,7 @@
 
 #include "AliHLTTPCCAStandaloneFramework.h"
 #include "AliHLTTPCCATrackParam.h"
-#include "AliHLTTPCCAMath.h"
+#include "AliTPCCommonMath.h"
 #include "AliHLTTPCCAClusterData.h"
 #include "AliHLTTPCCAGeometry.h"
 

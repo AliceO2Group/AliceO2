@@ -11,8 +11,9 @@
 #ifndef ALIHLTTPCGMTRACKPARAM_H
 #define ALIHLTTPCGMTRACKPARAM_H
 
-#include "AliHLTTPCCAMath.h"
+#include "AliTPCCommonMath.h"
 #include "AliHLTTPCGMMergedTrackHit.h"
+#include "AliHLTTPCCASettings.h"
 
 class AliHLTTPCGMMerger;
 class AliHLTTPCGMBorderTrack;

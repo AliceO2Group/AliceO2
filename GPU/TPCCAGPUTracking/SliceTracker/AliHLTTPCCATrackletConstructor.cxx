@@ -23,7 +23,7 @@
 #include "AliHLTTPCCATrackParam.h"
 #include "AliHLTTPCCATrackParam.h"
 #include "AliHLTTPCCAGrid.h"
-#include "AliHLTTPCCAMath.h"
+#include "AliTPCCommonMath.h"
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCATracklet.h"
 #include "AliHLTTPCCATrackletConstructor.h"
@@ -53,7 +53,7 @@ MEM_CLASS_PRE23() GPUd() void AliHLTTPCCATrackletConstructor::StoreTracklet
   // reconstruction of tracklets, tracklet store step
   if ( r.fNHits && (r.fNHits < TRACKLET_SELECTOR_MIN_HITS(tParam.QPt()) ||
     !CheckCov(tParam) ||
-    AliHLTTPCCAMath::Abs(tParam.GetQPt()) > tracker.Param().MaxTrackQPt() ))
+    CAMath::Abs(tParam.GetQPt()) > tracker.Param().MaxTrackQPt() ))
   {
     r.fNHits = 0;
   }

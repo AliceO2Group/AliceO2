@@ -15,7 +15,7 @@
 // **************************************************************************
 
 #include "AliHLTTPCCAClusterData.h"
-#include "AliHLTTPCCAMath.h"
+#include "AliTPCCommonMath.h"
 #include <algorithm>
 #include "AliHLTArray.h"
 #include "AliHLTTPCCAGPUConfig.h"

@@ -19,7 +19,6 @@
 
 
 #include "AliHLTTPCCAParam.h"
-#include "AliHLTTPCCAMath.h"
 
 #if !defined(HLTCA_GPUCODE) & !defined(HLTCA_STANDALONE)
 #include "AliTPCClusterParam.h"

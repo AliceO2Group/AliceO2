@@ -19,7 +19,7 @@
 
 #include "AliHLTTPCCAStartHitsFinder.h"
 #include "AliHLTTPCCATracker.h"
-#include "AliHLTTPCCAMath.h"
+#include "AliTPCCommonMath.h"
 
 GPUd() void AliHLTTPCCAStartHitsFinder::Thread
 ( int /*nBlocks*/, int nThreads, int iBlock, int iThread, int iSync,

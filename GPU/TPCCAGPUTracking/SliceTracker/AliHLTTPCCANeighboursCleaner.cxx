@@ -19,7 +19,7 @@
 
 
 #include "AliHLTTPCCANeighboursCleaner.h"
-#include "AliHLTTPCCAMath.h"
+#include "AliTPCCommonMath.h"
 #include "AliHLTTPCCATracker.h"
 
 GPUd() void AliHLTTPCCANeighboursCleaner::Thread
