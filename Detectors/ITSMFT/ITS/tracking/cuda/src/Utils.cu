@@ -23,6 +23,8 @@
 
 #include "ITStrackingCUDA/Context.h"
 
+#include <iostream>
+
 namespace {
 void checkCUDAError(const cudaError_t error, const char *file, const int line)
 {
@@ -95,8 +97,8 @@ dim3 Utils::Host::getBlockSize(const int colsNum, const int rowsNum)
 dim3 Utils::Host::getBlockSize(const int colsNum, const int rowsNum, const int maxThreadsPerBlock)
 {
   const DeviceProperties& deviceProperties = Context::getInstance().getDeviceProperties();
-  int xThreads = min(colsNum, deviceProperties.maxThreadsDim.x);
-  int yThreads = min(rowsNum, deviceProperties.maxThreadsDim.y);
+  int xThreads = max(min(colsNum, deviceProperties.maxThreadsDim.x),1);
+  int yThreads = max(min(rowsNum, deviceProperties.maxThreadsDim.y),1);
   const int totalThreads = roundUp(min(xThreads * yThreads, maxThreadsPerBlock),
       deviceProperties.warpSize);
 

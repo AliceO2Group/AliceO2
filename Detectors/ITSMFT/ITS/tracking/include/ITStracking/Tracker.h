@@ -46,7 +46,7 @@ class Tracker
 {
 
  public:
-  Tracker();
+  Tracker(bool useGPU = false);
 
   Tracker(const Tracker&) = delete;
   Tracker& operator=(const Tracker&) = delete;
@@ -69,8 +69,8 @@ class Tracker
                                     const TrackingFrameInfo& tf3);
   template <typename... T>
   void initialisePrimaryVertexContext(T&&... args);
-  void computeTracklets(int& iteration);
-  void computeCells(int& iteration);
+  void computeTracklets();
+  void computeCells();
   void findCellsNeighbours(int& iteration);
   void findRoads(int& iteration);
   void findTracks(const ROframe& ev);
@@ -88,6 +88,7 @@ class Tracker
   std::vector<MemoryParameters> mMemParams;
   std::vector<TrackingParameters> mTrkParams;
 
+  bool mCUDA = false;
   float mBz = 5.f;
   std::uint32_t mROFrame = 0;
   std::vector<TrackITS> mTracks;

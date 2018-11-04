@@ -29,8 +29,9 @@ namespace o2
 namespace ITS
 {
 
-void TrackerTraitsCPU::computeLayerTracklets(PrimaryVertexContext* primaryVertexContext, int iteration)
+void TrackerTraitsCPU::computeLayerTracklets()
 {
+  PrimaryVertexContext* primaryVertexContext = mPrimaryVertexContext;
   for (int iLayer{ 0 }; iLayer < Constants::ITS::TrackletsPerRoad; ++iLayer) {
     if (primaryVertexContext->getClusters()[iLayer].empty() || primaryVertexContext->getClusters()[iLayer + 1].empty()) {
       return;
@@ -100,8 +101,9 @@ void TrackerTraitsCPU::computeLayerTracklets(PrimaryVertexContext* primaryVertex
   }
 }
 
-void TrackerTraitsCPU::computeLayerCells(PrimaryVertexContext* primaryVertexContext, int iteration)
+void TrackerTraitsCPU::computeLayerCells()
 {
+  PrimaryVertexContext* primaryVertexContext = mPrimaryVertexContext;
   for (int iLayer{ 0 }; iLayer < Constants::ITS::CellsPerRoad; ++iLayer) {
 
     if (primaryVertexContext->getTracklets()[iLayer + 1].empty() ||

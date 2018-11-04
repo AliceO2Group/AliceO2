@@ -43,7 +43,7 @@ class PrimaryVertexContext
   PrimaryVertexContext& operator=(const PrimaryVertexContext&) = delete;
 
   virtual void initialise(const MemoryParameters& memParam, const std::array<std::vector<Cluster>, Constants::ITS::LayersNumber>& cl,
-                          const float3& pv, const int iteration);
+                          const std::array<float,3> &pv, const int iteration);
   const float3& getPrimaryVertex() const;
   std::array<std::vector<Cluster>, Constants::ITS::LayersNumber>& getClusters();
   std::array<std::vector<Cell>, Constants::ITS::CellsPerRoad>& getCells();

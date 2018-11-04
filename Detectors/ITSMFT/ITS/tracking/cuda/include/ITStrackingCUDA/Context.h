@@ -56,7 +56,7 @@ class Context final
   const DeviceProperties& getDeviceProperties(const int);
 
  private:
-  Context();
+  Context(bool dumpDevices = true);
   ~Context() = default;
 
   int mDevicesNum;

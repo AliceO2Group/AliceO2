@@ -39,11 +39,12 @@ namespace ITS
 class TrackerTraitsCPU : public TrackerTraits
 {
  public:
-  virtual ~TrackerTraitsCPU() {}
+  TrackerTraitsCPU() { mPrimaryVertexContext = new PrimaryVertexContext; }
+  virtual ~TrackerTraitsCPU() { delete mPrimaryVertexContext; }
 
 
-  void computeLayerTracklets(PrimaryVertexContext*, int iteration = 0) final;
-  void computeLayerCells(PrimaryVertexContext*, int iteration = 0) final;
+  void computeLayerTracklets() final;
+  void computeLayerCells() final;
 
  protected:
 

@@ -34,7 +34,7 @@ namespace o2
 namespace ITS
 {
 
-Tracker::Tracker()
+Tracker::Tracker(bool useGPU)
 {
   /// Initialise standard configuration with 1 iteration
   mTrkParams.resize(1);
@@ -43,20 +43,28 @@ Tracker::Tracker()
   std::string libPath = std::getenv("O2_ROOT");
   libPath += "/lib/libITStrackingCUDA.so"; 
   void* hGPULib = dlopen(libPath.data(), RTLD_NOW);
-  if (hGPULib)
-    std::cout << "CUDA library found." << std::endl;
-  else
-    std::cout << "CUDA library not found in " << libPath << std::endl;
-
-  mTraits = new TrackerTraitsCPU();
-  mPrimaryVertexContext = new PrimaryVertexContext();
+  if (hGPULib != NULL && useGPU) {
+    std::cout << "CUDA library found... ";
+    void* createFunc = (void*)dlsym(hGPULib, "createTrackerTraitsNV");
+    if (createFunc != NULL) {
+      std::cout << "and correctly loaded." << std::endl;
+      mCUDA = true;
+      TrackerTraits* (*tmp)() = (TrackerTraits* (*)()) createFunc;
+      mTraits = tmp();
+    } else {
+      std::cout << "but not properly loaded." << std::endl;
+    }
+  }
+  if (!mCUDA) {
+    std::cout << "Loading the CPU version of the algorithm." << std::endl;
+    mTraits = new TrackerTraitsCPU();
+  }
+  mPrimaryVertexContext = mTraits->getPrimaryVertexContext();
 }
 
 Tracker::~Tracker()
 {
-  // Nothing to do
   delete mTraits;
-  delete mPrimaryVertexContext;
 }
 
 void Tracker::clustersToTracks(const ROframe& event, std::ostream& timeBenchmarkOutputStream)
@@ -71,10 +79,12 @@ void Tracker::clustersToTracks(const ROframe& event, std::ostream& timeBenchmark
 
     for (int iteration = 0; iteration < mTrkParams.size(); ++iteration) {
       mTraits->UpdateTrackingParameters(mTrkParams[iteration]);
+      /// Ugly hack -> Unifiy float3 definition in CPU and CUDA/HIP code
+      std::array<float,3> pV = {event.getPrimaryVertex(iVertex).x, event.getPrimaryVertex(iVertex).y, event.getPrimaryVertex(iVertex).z};
       total += evaluateTask(&Tracker::initialisePrimaryVertexContext, "Context initialisation",
-                            timeBenchmarkOutputStream, mMemParams[iteration], event.getClusters(), event.getPrimaryVertex(iVertex), iteration);
-      total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", timeBenchmarkOutputStream, iteration);
-      total += evaluateTask(&Tracker::computeCells, "Cell finding", timeBenchmarkOutputStream, iteration);
+                            timeBenchmarkOutputStream, mMemParams[iteration], event.getClusters(), pV, iteration);
+      total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", timeBenchmarkOutputStream);
+      total += evaluateTask(&Tracker::computeCells, "Cell finding", timeBenchmarkOutputStream);
       total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", timeBenchmarkOutputStream, iteration);
       total += evaluateTask(&Tracker::findRoads, "Road finding", timeBenchmarkOutputStream, iteration);
       total += evaluateTask(&Tracker::findTracks, "Track finding", timeBenchmarkOutputStream, event);
@@ -88,14 +98,14 @@ void Tracker::clustersToTracks(const ROframe& event, std::ostream& timeBenchmark
   computeTracksMClabels(event);
 }
 
-void Tracker::computeTracklets(int& iteration)
+void Tracker::computeTracklets()
 {
-  mTraits->computeLayerTracklets(mPrimaryVertexContext, iteration);
+  mTraits->computeLayerTracklets();
 }
 
-void Tracker::computeCells(int& iteration)
+void Tracker::computeCells()
 {
-  mTraits->computeLayerCells(mPrimaryVertexContext, iteration);
+  mTraits->computeLayerCells();
 }
 
 void Tracker::findCellsNeighbours(int& iteration)

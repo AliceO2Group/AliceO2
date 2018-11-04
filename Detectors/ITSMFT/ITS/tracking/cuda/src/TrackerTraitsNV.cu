@@ -284,9 +284,21 @@ __global__ void sortCellsKernel(DeviceStoreNV& devStore, const int layerIndex,
 
 } /// End of GPU namespace
 
-void TrackerTraitsNV::computeLayerTracklets(PrimaryVertexContext* pvc, int iteration)
+TrackerTraits* createTrackerTraitsNV() {
+  return new TrackerTraitsNV;
+}
+
+TrackerTraitsNV::TrackerTraitsNV() {
+  mPrimaryVertexContext = new PrimaryVertexContextNV;
+}
+
+TrackerTraitsNV::~TrackerTraitsNV() {
+  delete mPrimaryVertexContext;
+}
+
+void TrackerTraitsNV::computeLayerTracklets()
 {
-  PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(pvc);
+  PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(mPrimaryVertexContext);
 
   cudaMemcpyToSymbol(GPU::kTrkPar, &mTrkParams, sizeof(TrackingParameters));
   std::array<size_t, Constants::ITS::CellsPerRoad> tempSize;
@@ -344,6 +356,9 @@ void TrackerTraitsNV::computeLayerTracklets(PrimaryVertexContext* pvc, int itera
   for (int iLayer { 0 }; iLayer < Constants::ITS::CellsPerRoad; ++iLayer) {
 
     trackletsNum[iLayer] = primaryVertexContext->getTempTrackletArray()[iLayer].getSizeFromDevice();
+    if (trackletsNum[iLayer] == 0) {
+      continue;
+    }
     primaryVertexContext->getDeviceTracklets()[iLayer + 1].resize(trackletsNum[iLayer]);
 
     cub::DeviceScan::ExclusiveSum(static_cast<void *>(primaryVertexContext->getTempTableArray()[iLayer].get()), tempSize[iLayer],
@@ -368,11 +383,13 @@ void TrackerTraitsNV::computeLayerTracklets(PrimaryVertexContext* pvc, int itera
       throw std::runtime_error { errorString.str() };
     }
   }
+
 }
 
-void TrackerTraitsNV::computeLayerCells(PrimaryVertexContext* pvc, int iteration)
+void TrackerTraitsNV::computeLayerCells()
 {
-  PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(pvc);
+
+  PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(mPrimaryVertexContext);
   std::array<size_t, Constants::ITS::CellsPerRoad - 1> tempSize;
   std::array<int, Constants::ITS::CellsPerRoad - 1> trackletsNum;
   std::array<int, Constants::ITS::CellsPerRoad - 1> cellsNum;
@@ -384,7 +401,9 @@ void TrackerTraitsNV::computeLayerCells(PrimaryVertexContext* pvc, int iteration
     trackletsNum[iLayer] = primaryVertexContext->getDeviceTracklets()[iLayer + 1].getSizeFromDevice();
     primaryVertexContext->getTempCellArray()[iLayer].reset(
 		static_cast<int>(primaryVertexContext->getDeviceCells()[iLayer + 1].capacity()));
-
+    if (trackletsNum[iLayer] == 0) {
+      continue;
+    }
     cub::DeviceScan::ExclusiveSum(static_cast<void *>(NULL), tempSize[iLayer],
         primaryVertexContext->getDeviceCellsPerTrackletTable()[iLayer].get(),
         primaryVertexContext->getDeviceCellsLookupTable()[iLayer].get(), trackletsNum[iLayer]);
@@ -395,9 +414,11 @@ void TrackerTraitsNV::computeLayerCells(PrimaryVertexContext* pvc, int iteration
   cudaDeviceSynchronize();
 
   for (int iLayer { 0 }; iLayer < Constants::ITS::CellsPerRoad; ++iLayer) {
-
     const GPU::DeviceProperties& deviceProperties = GPU::Context::getInstance().getDeviceProperties();
     const int trackletsSize = primaryVertexContext->getDeviceTracklets()[iLayer].getSizeFromDevice();
+    if (trackletsSize == 0) {
+      continue;
+    }
     dim3 threadsPerBlock { GPU::Utils::Host::getBlockSize(trackletsSize) };
     dim3 blocksGrid { GPU::Utils::Host::getBlocksGrid(threadsPerBlock, trackletsSize) };
 
@@ -427,8 +448,10 @@ void TrackerTraitsNV::computeLayerCells(PrimaryVertexContext* pvc, int iteration
   cudaDeviceSynchronize();
 
   for (int iLayer { 0 }; iLayer < Constants::ITS::CellsPerRoad - 1; ++iLayer) {
-
     cellsNum[iLayer] = primaryVertexContext->getTempCellArray()[iLayer].getSizeFromDevice();
+    if (cellsNum[iLayer] == 0) {
+      continue;
+    }
     primaryVertexContext->getDeviceCells()[iLayer + 1].resize(cellsNum[iLayer]);
 
     cub::DeviceScan::ExclusiveSum(static_cast<void *>(primaryVertexContext->getTempTableArray()[iLayer].get()), tempSize[iLayer],
@@ -458,16 +481,17 @@ void TrackerTraitsNV::computeLayerCells(PrimaryVertexContext* pvc, int iteration
 
   for (int iLayer { 0 }; iLayer < Constants::ITS::CellsPerRoad; ++iLayer) {
 
-    int cellsSize;
-
+    int cellsSize = 0;
     if (iLayer == 0) {
 
       cellsSize = primaryVertexContext->getDeviceCells()[iLayer].getSizeFromDevice();
-
+      if (cellsSize == 0)
+        continue;
     } else {
 
       cellsSize = cellsNum[iLayer - 1];
-
+      if (cellsSize == 0)
+        continue;
       primaryVertexContext->getDeviceCellsLookupTable()[iLayer - 1].copyIntoVector(
           primaryVertexContext->getCellsLookupTable()[iLayer - 1], trackletsNum[iLayer - 1]);
     }

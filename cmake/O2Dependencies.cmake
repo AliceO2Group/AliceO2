@@ -879,7 +879,6 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/ITS/include
-    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/tracking/cuda/include    
 )
 
 o2_define_bucket(
@@ -887,11 +886,11 @@ o2_define_bucket(
     its_tracking_CUDA_bucket
 
     DEPENDENCIES
+    #
     cuda
     cudart
     cudadevrt
     ITStracking
-    #
 
     INCLUDE_DIRECTORIES
     ${CUB_ROOT}

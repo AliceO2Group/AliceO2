@@ -19,6 +19,8 @@
 
 #include <cuda_runtime.h>
 
+#include <iostream>
+
 namespace {
 inline void checkCUDAError(const cudaError_t error, const char *file, const int line)
 {
@@ -90,7 +92,7 @@ namespace ITS
 namespace GPU
 {
 
-Context::Context()
+Context::Context(bool dumpDevices)
 {
   checkCUDAError(cudaGetDeviceCount(&mDevicesNum), __FILE__, __LINE__);
 
@@ -133,6 +135,25 @@ Context::Context()
     mDeviceProperties[iDevice].maxGridDim = dim3 { static_cast<unsigned int>(deviceProperties.maxGridSize[0]),
         static_cast<unsigned int>(deviceProperties.maxGridSize[1]),
         static_cast<unsigned int>(deviceProperties.maxGridSize[2]) };
+    if (dumpDevices) {
+      std::cout << "################ CUDA DEVICE " << iDevice << " ################" << std::endl;
+      std::cout << "Name " << mDeviceProperties[iDevice].name << std::endl;
+      std::cout << "gpuProcessors " << mDeviceProperties[iDevice].gpuProcessors << std::endl;
+      std::cout << "cudaCores " << mDeviceProperties[iDevice].cudaCores << std::endl;
+      std::cout << "globalMemorySize " << mDeviceProperties[iDevice].globalMemorySize << std::endl;
+      std::cout << "constantMemorySize " << mDeviceProperties[iDevice].constantMemorySize << std::endl;
+      std::cout << "sharedMemorySize " << mDeviceProperties[iDevice].sharedMemorySize << std::endl;
+      std::cout << "maxClockRate " << mDeviceProperties[iDevice].maxClockRate << std::endl;
+      std::cout << "busWidth " << mDeviceProperties[iDevice].busWidth << std::endl;
+      std::cout << "l2CacheSize " << mDeviceProperties[iDevice].l2CacheSize << std::endl;
+      std::cout << "registersPerBlock " << mDeviceProperties[iDevice].registersPerBlock << std::endl;
+      std::cout << "warpSize " << mDeviceProperties[iDevice].warpSize << std::endl;
+      std::cout << "maxThreadsPerBlock " << mDeviceProperties[iDevice].maxThreadsPerBlock << std::endl;
+      std::cout << "maxBlocksPerSM " << mDeviceProperties[iDevice].maxBlocksPerSM << std::endl;
+      std::cout << "maxThreadsDim " << mDeviceProperties[iDevice].maxThreadsDim.x << ", " << mDeviceProperties[iDevice].maxThreadsDim.y << ", " << mDeviceProperties[iDevice].maxThreadsDim.z << std::endl;
+      std::cout << "maxGridDim " << mDeviceProperties[iDevice].maxGridDim.x << ", " << mDeviceProperties[iDevice].maxGridDim.y << ", " << mDeviceProperties[iDevice].maxGridDim.z << std::endl;
+      std::cout << std::endl;
+    }
   }
 
   checkCUDAError(cudaSetDevice(currentDeviceIndex), __FILE__, __LINE__);

@@ -27,14 +27,14 @@ PrimaryVertexContext::PrimaryVertexContext()
 }
 
 void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const std::array<std::vector<Cluster>, Constants::ITS::LayersNumber>& cl,
-                          const float3& pVtx, const int iteration)
+                          const std::array<float,3> &pVtx, const int iteration)
 {
-  mPrimaryVertex = pVtx;
+  mPrimaryVertex = {pVtx[0], pVtx[1], pVtx[2]};
 
   for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumber; ++iLayer) {
 
     const auto& currentLayer{ cl[iLayer] };
-    const int clustersNum{ currentLayer.size() };
+    const int clustersNum{ static_cast<int>(currentLayer.size()) };
 
     if (iteration == 0) {
       mClusters[iLayer].clear();
@@ -45,7 +45,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
       for (int iCluster{ 0 }; iCluster < clustersNum; ++iCluster) {
 
         const Cluster& currentCluster{ currentLayer.at(iCluster) };
-        mClusters[iLayer].emplace_back(iLayer, pVtx, currentCluster);
+        mClusters[iLayer].emplace_back(iLayer, mPrimaryVertex, currentCluster);
       }
 
       std::sort(mClusters[iLayer].begin(), mClusters[iLayer].end(), [](Cluster& cluster1, Cluster& cluster2) {

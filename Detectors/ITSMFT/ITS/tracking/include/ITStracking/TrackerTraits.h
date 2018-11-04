@@ -43,13 +43,14 @@ class TrackerTraits
   GPU_HOST_DEVICE static constexpr int4 getEmptyBinsRect() { return int4{ 0, 0, 0, 0 }; }
   GPU_DEVICE static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
 
-  virtual void computeLayerTracklets(PrimaryVertexContext*, int iteration = 0) {};
-  virtual void computeLayerCells(PrimaryVertexContext*, int iteration = 0) {};
+  virtual void computeLayerTracklets() {};
+  virtual void computeLayerCells() {};
 
   void UpdateTrackingParameters(const TrackingParameters& trkPar);
+  PrimaryVertexContext* getPrimaryVertexContext() { return mPrimaryVertexContext; }
 
  protected:
-
+  PrimaryVertexContext* mPrimaryVertexContext;
   TrackingParameters mTrkParams;
 };
 

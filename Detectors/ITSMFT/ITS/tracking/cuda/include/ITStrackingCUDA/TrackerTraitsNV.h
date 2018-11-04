@@ -29,13 +29,15 @@ class PrimaryVertexContext;
 class TrackerTraitsNV : public TrackerTraits
 {
  public:
+  TrackerTraitsNV();
+  virtual ~TrackerTraitsNV();
 
-  virtual ~TrackerTraitsNV() {}
-
-  void computeLayerTracklets(PrimaryVertexContext*, int iteration = 0) final;
-  void computeLayerCells(PrimaryVertexContext*, int iteration = 0) final;
+  void computeLayerTracklets() final;
+  void computeLayerCells() final;
 
 };
+
+extern "C" TrackerTraits* createTrackerTraitsNV();
 
 }
 }
