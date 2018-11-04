@@ -51,12 +51,14 @@ class ROframe final
   const TrackingFrameInfo& getClusterTrackingFrameInfo(int layerId, const Cluster& cl) const;
   const MCCompLabel& getClusterLabels(int layerId, const Cluster& cl) const ;
   const MCCompLabel& getClusterLabels(int layerId, const int clId) const;
+  int getClusterExternalIndex(int layerId, const int clId) const;
 
   template <typename... T>
   void addClusterToLayer(int layer, T&&... args);
   template <typename... T>
   void addTrackingFrameInfoToLayer(int layer, T&&... args);
   void addClusterLabelToLayer(int layer, const MCCompLabel label);
+  void addClusterExternalIndexToLayer(int layer, const int idx);
 
   void clear();
 
@@ -66,6 +68,7 @@ class ROframe final
   std::array<std::vector<Cluster>, Constants::ITS::LayersNumber> mClusters;
   std::array<std::vector<TrackingFrameInfo>, Constants::ITS::LayersNumber> mTrackingFrameInfo;
   std::array<std::vector<MCCompLabel>, Constants::ITS::LayersNumber> mClusterLabels;
+  std::array<std::vector<int>, Constants::ITS::LayersNumber> mClusterExternalIndices;
 };
 
 inline int ROframe::getROFrameId() const { return mROframeId; }
@@ -98,6 +101,10 @@ inline const MCCompLabel& ROframe::getClusterLabels(int layerId, const int clId)
   return mClusterLabels[layerId][clId];
 }
 
+inline int ROframe::getClusterExternalIndex(int layerId, const int clId) const {
+  return mClusterExternalIndices[layerId][clId];
+}
+
 template <typename... T>
 void ROframe::addClusterToLayer(int layer, T&&... values)
 {
@@ -112,12 +119,17 @@ void ROframe::addTrackingFrameInfoToLayer(int layer, T&&... values)
 
 inline void ROframe::addClusterLabelToLayer(int layer, const MCCompLabel label) { mClusterLabels[layer].emplace_back(label); }
 
+inline void ROframe::addClusterExternalIndexToLayer(int layer, const int idx) {
+  mClusterExternalIndices[layer].push_back(idx);
+}
+
 inline void ROframe::clear()
 {
   for (int iL = 0; iL < Constants::ITS::LayersNumber; ++iL) {
     mClusters[iL].clear();
     mTrackingFrameInfo[iL].clear();
     mClusterLabels[iL].clear();
+    mClusterExternalIndices[iL].clear();
   }
   mPrimaryVertices.clear();
 }

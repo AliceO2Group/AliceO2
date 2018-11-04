@@ -126,6 +126,7 @@ void IOUtils::loadEventData(ROframe& event, const std::vector<ITSMFT::Cluster>* 
     auto xyz = c.getXYZGloRot(*geom);
     event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), event.getClustersOnLayer(layer).size());
     event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(clusterId).begin()));
+    event.addClusterExternalIndexToLayer(layer, clusterId);
     clusterId++;
   }
 }
@@ -155,6 +156,7 @@ int IOUtils::loadROFrameData(std::uint32_t roFrame, ROframe& event, const std::v
       auto xyz = c.getXYZGloRot(*geom);
       event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), event.getClustersOnLayer(layer).size());
       event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(clusterId).begin()));
+      event.addClusterExternalIndexToLayer(layer, clusterId);
       nused++;
     }
     clusterId++;
