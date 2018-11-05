@@ -36,6 +36,8 @@ struct None {
 struct ContextRef {
   size_t index;
 
+  /// Two context refs are the same if they point to the
+  /// same element in the context
   bool operator==(ContextRef const& other) const
   {
     return index == other.index;
@@ -102,6 +104,16 @@ class VariableContext
   void discard()
   {
     mPerformedUpdates = 0;
+  }
+
+  /// Reset the all the variables and updates, without having to
+  /// tear down the context.
+  void reset()
+  {
+    mPerformedUpdates = 0;
+    for (auto& element : mElements) {
+      element.value = None{};
+    }
   }
 
  private:
@@ -379,6 +391,8 @@ class DataDescriptorMatcher
       mLeft = std::move(std::make_unique<DataDescriptorMatcher>(*pval3->get()));
     } else if (auto pval4 = std::get_if<ConstantValueMatcher>(&other.mLeft)) {
       mLeft = *pval4;
+    } else if (auto pval5 = std::get_if<StartTimeValueMatcher>(&other.mLeft)) {
+      mLeft = *pval5;
     }
 
     if (auto pval0 = std::get_if<OriginValueMatcher>(&other.mRight)) {
@@ -391,6 +405,8 @@ class DataDescriptorMatcher
       mRight = std::move(std::make_unique<DataDescriptorMatcher>(*pval3->get()));
     } else if (auto pval4 = std::get_if<ConstantValueMatcher>(&other.mRight)) {
       mRight = *pval4;
+    } else if (auto pval5 = std::get_if<StartTimeValueMatcher>(&other.mRight)) {
+      mRight = *pval5;
     }
   }
 

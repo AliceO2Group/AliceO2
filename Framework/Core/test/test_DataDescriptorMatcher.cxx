@@ -503,6 +503,27 @@ BOOST_AUTO_TEST_CASE(TestVariableContext)
   BOOST_CHECK(v3 != nullptr);
   BOOST_CHECK(*v3 == 77);
 
+  // Let's update again. New values should win.
+  context.put(ContextUpdate{ 0, "SOME MORE" });
+  context.put(ContextUpdate{ 10, 16 });
+  v1 = std::get_if<std::string>(&context.get(0));
+  BOOST_REQUIRE(v1 != nullptr);
+  BOOST_CHECK(*v1 == "SOME MORE");
+  v2 = std::get_if<std::string>(&context.get(1));
+  BOOST_CHECK(v2 == nullptr);
+  v3 = std::get_if<uint64_t>(&context.get(10));
+  BOOST_CHECK(v3 != nullptr);
+  BOOST_CHECK(*v3 == 16);
+
+  // Until we discard again, using reset
+  context.reset();
+  auto n1 = std::get_if<None>(&context.get(0));
+  BOOST_REQUIRE(n1 != nullptr);
+  auto n2 = std::get_if<None>(&context.get(1));
+  BOOST_CHECK(n2 != nullptr);
+  auto n3 = std::get_if<None>(&context.get(10));
+  BOOST_CHECK(n3 != nullptr);
+
   //auto d3 = std::get_if<uint64_t>(&context.get(0));
   //BOOST_CHECK(d1 == nullptr);
   //BOOST_CHECK(d2 == nullptr);
