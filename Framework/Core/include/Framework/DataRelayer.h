@@ -99,6 +99,7 @@ public:
   CompletionPolicy mCompletionPolicy;
   std::vector<size_t> mDistinctRoutesIndex;
   std::vector<data_matcher::DataDescriptorMatcher> mInputMatchers;
+  std::vector<data_matcher::VariableContext> mVariableContextes;
   static std::vector<std::string> sMetricsNames;
 };
 

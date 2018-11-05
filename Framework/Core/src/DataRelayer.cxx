@@ -57,13 +57,16 @@ std::vector<DataDescriptorMatcher> createInputMatchers(std::vector<InputRoute> c
   for (auto& route : routes) {
     DataDescriptorMatcher matcher{
       DataDescriptorMatcher::Op::And,
-      OriginValueMatcher{ route.matcher.origin.str },
+      StartTimeValueMatcher{ ContextRef{ 0 } },
       std::make_unique<DataDescriptorMatcher>(
         DataDescriptorMatcher::Op::And,
-        DescriptionValueMatcher{ route.matcher.description.str },
+        OriginValueMatcher{ route.matcher.origin.str },
         std::make_unique<DataDescriptorMatcher>(
-          DataDescriptorMatcher::Op::Just,
-          SubSpecificationTypeValueMatcher{ route.matcher.subSpec }))
+          DataDescriptorMatcher::Op::And,
+          DescriptionValueMatcher{ route.matcher.description.str },
+          std::make_unique<DataDescriptorMatcher>(
+            DataDescriptorMatcher::Op::Just,
+            SubSpecificationTypeValueMatcher{ route.matcher.subSpec })))
     };
     result.emplace_back(std::move(matcher));
   }
@@ -132,21 +135,14 @@ void DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& ex
 /// This does the mapping between a route and a InputSpec. The
 /// reason why these might diffent is that when you have timepipelining
 /// you have one route per timeslice, even if the type is the same.
-size_t
-  assignInputSpecId(void* data, std::vector<DataDescriptorMatcher> const& matchers)
+size_t assignInputSpecId(void* data,
+                         std::vector<DataDescriptorMatcher> const& matchers,
+                         VariableContext& context)
 {
-  /// FIXME: for the moment we have a global context, since we do not support
-  ///        yet generic matchers as InputSpec.
-  VariableContext context;
-
   for (size_t ri = 0, re = matchers.size(); ri < re; ++ri) {
     auto& matcher = matchers[ri];
-    const DataHeader* h = o2::header::get<DataHeader*>(data);
-    if (h == nullptr) {
-      return re;
-    }
 
-    if (matcher.match(*h, context)) {
+    if (matcher.match(reinterpret_cast<char const*>(data), context)) {
       context.commit();
       return ri;
     }
@@ -175,31 +171,30 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
   // This returns the identifier for the given input. We use a separate
   // function because while it's trivial now, the actual matchmaking will
   // become more complicated when we will start supporting ranges.
-  auto getInput = [&matchers = mInputMatchers ,&header] () -> int {
-    return assignInputSpecId(header->GetData(), matchers);
-  };
+  auto getInputAndTimeslice = [& matchers = mInputMatchers,
+                               &header,
+                               &index,
+                               &contexts = mVariableContextes ]()
+                                ->std::tuple<int, TimesliceId>
+  {
+    /// FIXME: for the moment we only use the first context and reset
+    /// between one invokation and the other.
+    assert(contexts.empty() == false);
+    for (auto& context : contexts) {
+      context.reset();
+      auto input = assignInputSpecId(header->GetData(), matchers, context);
 
-  // This will check if the input is valid. We hide the details so that
-  // in principle the outer code will work regardless of the actual
-  // implementation.
-  auto isValidInput = [](int inputIdx) {
-    // If this is true, it means the message we got does
-    // not match any of the expected inputs.
-    return inputIdx != INVALID_INPUT;
-  };
+      if (input == INVALID_INPUT) {
+        return { INVALID_INPUT, TimesliceId{ TimesliceId::INVALID } };
+      }
 
-  // The timeslice is embedded in the DataProcessingHeader header of the O2
-  // header stack. This is an extension to the DataHeader, because apparently
-  // we do have data which comes without a timestamp, although I am personally
-  // not sure what that would be.
-  const auto getTimeslice = [&header, &index]() -> TimesliceId {
-    const DataProcessingHeader* dph = o2::header::get<DataProcessingHeader*>(header->GetData());
-    if (dph == nullptr) {
-      return TimesliceId{ TimesliceId::INVALID };
+      /// The first argument is always matched against the data start time, so
+      /// we can assert it's the same as the dph->startTime
+      if (auto pval = std::get_if<uint64_t>(&context.get(0))) {
+        return { input, TimesliceId{ *pval } };
+      }
     }
-    size_t timesliceId = dph->startTime;
-    assert(index.size());
-    return TimesliceId{ timesliceId };
+    return { INVALID_INPUT, TimesliceId{ TimesliceId::INVALID } };
   };
 
   // A cache line is obsolete if the incoming one has a greater timestamp or 
@@ -253,21 +248,20 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
   // 
   // This is the actual outer loop processing input as part of a given
   // timeslice. All the other implementation details are hidden by the lambdas
-  auto input = getInput();
+  auto[input, timeslice] = getInputAndTimeslice();
 
-  if (isValidInput(input) == false) {
+  if (input == INVALID_INPUT) {
     LOG(ERROR) << "A malformed message just arrived";
     return WillNotRelay;
   }
 
-  auto timeslice = getTimeslice();
-  auto slot = index.getSlotForTimeslice(timeslice);
-  LOG(DEBUG) << "Received timeslice" << timeslice.value;
   if (TimesliceId::isValid(timeslice) == false) {
     LOG(ERROR) << "Could not determine the timeslice for input";
     return WillNotRelay;
   }
+  LOG(DEBUG) << "Received timeslice " << timeslice.value;
 
+  assert(index.size());
   if (index.isObsolete(timeslice)) {
     LOG(ERROR) << "An entry for timeslice " << timeslice.value << " just arrived but too late to be processed";
     return WillNotRelay;
@@ -415,6 +409,7 @@ DataRelayer::getParallelTimeslices() const {
 void
 DataRelayer::setPipelineLength(size_t s) {
   mTimesliceIndex.resize(s);
+  mVariableContextes.resize(s);
   auto numInputTypes = mDistinctRoutesIndex.size();
   assert(numInputTypes);
   mCache.resize(numInputTypes * mTimesliceIndex.size());
