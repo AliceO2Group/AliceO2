@@ -128,7 +128,7 @@ inline void PrimaryVertexContextNV::initialise(const MemoryParameters& memParam,
                                                const std::array<float,3> &pv, const int iteration)
 {
   this->PrimaryVertexContext::initialise(memParam, cl, pv, iteration);
-  mGPUContextDevicePointer = mGPUContext.initialise(mPrimaryVertex, mClusters, mCells, mCellsLookupTable, memParam);
+  mGPUContextDevicePointer = mGPUContext.initialise(mPrimaryVertex, mClusters, mTracklets, mCells, mCellsLookupTable);
 }
 
 } // namespace ITS

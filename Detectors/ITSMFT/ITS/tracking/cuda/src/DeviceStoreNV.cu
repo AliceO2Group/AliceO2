@@ -121,9 +121,9 @@ DeviceStoreNV::DeviceStoreNV()
 
 UniquePointer<DeviceStoreNV> DeviceStoreNV::initialise(const float3 &primaryVertex,
     const std::array<std::vector<Cluster>, Constants::ITS::LayersNumber> &clusters,
+    const std::array<std::vector<Tracklet>, Constants::ITS::TrackletsPerRoad> &tracklets,
     const std::array<std::vector<Cell>, Constants::ITS::CellsPerRoad> &cells,
-    const std::array<std::vector<int>, Constants::ITS::CellsPerRoad - 1> &cellsLookupTable,
-    const MemoryParameters& memPar)
+    const std::array<std::vector<int>, Constants::ITS::CellsPerRoad - 1> &cellsLookupTable)
 {
   mPrimaryVertex = UniquePointer<float3>{ primaryVertex };
 
@@ -133,10 +133,7 @@ UniquePointer<DeviceStoreNV> DeviceStoreNV::initialise(const float3 &primaryVert
         Vector<Cluster> { &clusters[iLayer][0], static_cast<int>(clusters[iLayer].size()) };
 
     if (iLayer < Constants::ITS::TrackletsPerRoad) {
-
-      this->mTracklets[iLayer].reset(static_cast<int>(
-          (memPar.TrackletsMemoryCoefficients[iLayer] * clusters[iLayer].size())
-              * clusters[iLayer + 1].size()+1));
+      this->mTracklets[iLayer].reset(tracklets[iLayer].capacity());
     }
 
     if (iLayer < Constants::ITS::CellsPerRoad) {

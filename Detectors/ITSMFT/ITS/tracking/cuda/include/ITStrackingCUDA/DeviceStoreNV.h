@@ -38,10 +38,10 @@ class DeviceStoreNV final
   DeviceStoreNV();
 
   UniquePointer<DeviceStoreNV> initialise(const float3&,
-                                                 const std::array<std::vector<Cluster>, Constants::ITS::LayersNumber>&,
-                                                 const std::array<std::vector<Cell>, Constants::ITS::CellsPerRoad>&,
-                                                 const std::array<std::vector<int>, Constants::ITS::CellsPerRoad - 1>&,
-                                                 const MemoryParameters&);
+                                          const std::array<std::vector<Cluster>, Constants::ITS::LayersNumber>&,
+                                          const std::array<std::vector<Tracklet>, Constants::ITS::TrackletsPerRoad> &,
+                                          const std::array<std::vector<Cell>, Constants::ITS::CellsPerRoad>&,
+                                          const std::array<std::vector<int>, Constants::ITS::CellsPerRoad - 1>&);
   GPU_DEVICE const float3& getPrimaryVertex();
   GPU_HOST_DEVICE Array<Vector<Cluster>, Constants::ITS::LayersNumber>& getClusters();
   GPU_DEVICE Array<Array<int, Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins + 1>,
