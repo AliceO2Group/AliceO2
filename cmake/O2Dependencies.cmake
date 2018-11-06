@@ -1094,6 +1094,7 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/SliceTracker
+    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/GlobalTracker
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Merger
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/TRDTracking
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Interface
