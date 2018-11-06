@@ -12,7 +12,7 @@
 
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCAGPUTracker.h"
-#include "AliHLTTPCCAParam.h"
+#include "AliGPUCAParam.h"
 #include "AliHLTTPCCASliceOutput.h"
 #include "AliCAGPULogging.h"
 #include <iostream>
@@ -31,7 +31,7 @@ public:
 	int SetGPUTrackerOption(const char* OptionName, int OptionValue) {if (strcmp(OptionName, "GlobalTracking") == 0) fGlobalTracking = OptionValue;return(fGPUTracker->SetGPUTrackerOption(OptionName, OptionValue));}
 	int SetGPUTracker(bool enable);
 
-	int InitializeSliceParam(int iSlice, AliHLTTPCCAParam &param);
+	int InitializeSliceParam(int iSlice, AliGPUCAParam &param);
 	void UpdateGPUSliceParam();
 
 	const AliHLTTPCCASliceOutput::outputControlStruct* OutputControl() const { return fOutputControl; }
@@ -44,8 +44,8 @@ public:
 	int MaxSliceCount() const { return(fUseGPUTracker ? (fGPUTrackerAvailable ? fGPUTracker->GetSliceCount() : 0) : fCPUSliceCount); }
 	int GetGPUStatus() const { return(fGPUTrackerAvailable + fUseGPUTracker); }
 
-	const AliHLTTPCCAParam& Param(int iSlice) const { return(fCPUTrackers[iSlice].Param()); }
-	AliHLTTPCCAParam& GetParam(int iSlice) { return(*((AliHLTTPCCAParam*)fCPUTrackers[iSlice].pParam())); }
+	const AliGPUCAParam& Param(int iSlice) const { return(fCPUTrackers[iSlice].Param()); }
+	AliGPUCAParam& GetParam(int iSlice) { return(*((AliGPUCAParam*)fCPUTrackers[iSlice].pParam())); }
 	const AliHLTTPCCARow& Row(int iSlice, int iRow) const { return(fCPUTrackers[iSlice].Row(iRow)); }  //TODO: Should be changed to return only row parameters
 
 	void SetKeepData(bool v) {fKeepData = v;}

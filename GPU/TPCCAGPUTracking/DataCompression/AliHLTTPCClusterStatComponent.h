@@ -1,6 +1,6 @@
 #ifndef ALIHLTTPCCLUSTERSTAT_H
 #define ALIHLTTPCCLUSTERSTAT_H
-//* This file is property of and copyright by the ALICE HLT Project        * 
+//* This file is property of and copyright by the ALICE HLT Project        *
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //* See cxx source for full Copyright notice                               *
 
@@ -10,7 +10,7 @@
 
 class AliHLTTPCReverseTransformInfoV1;
 class AliHLTExternalTrackParam;
-class AliHLTTPCCAParam;
+class AliGPUCAParam;
 class AliHLTTPCRawCluster;
 class AliHLTTPCClusterXYZ;
 
@@ -50,9 +50,9 @@ class AliHLTTPCClusterStatComponent : public AliHLTProcessor, public AliOptionPa
   int DoInit(int argc, const char** argv);
   int DoDeinit();
   int DoEvent( const AliHLTComponentEventData& evtData,
-		       const AliHLTComponentBlockData* blocks, 
+		       const AliHLTComponentBlockData* blocks,
 		       AliHLTComponentTriggerData& trigData,
-		       AliHLTUInt8_t* outputPtr, 
+		       AliHLTUInt8_t* outputPtr,
 		       AliHLTUInt32_t& size,
 		       AliHLTComponentBlockDataList& outputBlocks );
 
@@ -67,7 +67,7 @@ class AliHLTTPCClusterStatComponent : public AliHLTProcessor, public AliOptionPa
   /** assignment operator prohibited */
   AliHLTTPCClusterStatComponent& operator=(const AliHLTTPCClusterStatComponent&);
   
-  AliHLTTPCCAParam* fSliceParam;
+  AliGPUCAParam* fSliceParam;
 
   int fTotal, fEdge, fSplitPad, fSplitTime, fSplitPadTime, fSplitPadOrTime, fAssigned; //!
 

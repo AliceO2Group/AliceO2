@@ -17,7 +17,7 @@
 #include "AliHLTTPCGMOfflineStatisticalErrors.h"
 
 class AliHLTTPCGMTrackParam;
-class AliHLTTPCCAParam;
+class AliGPUCAParam;
 
 /**
  * @class AliHLTTPCGMPropagator
@@ -57,9 +57,9 @@ public:
 
   //  GPUd() int PropagateToXAlphaBz( float posX, float posAlpha, bool inFlyDirection );
 
-  GPUd() int Update( float posY, float posZ, int iRow, const AliHLTTPCCAParam &param, short clusterState, bool rejectChi2, bool refit );
+  GPUd() int Update( float posY, float posZ, int iRow, const AliGPUCAParam &param, short clusterState, bool rejectChi2, bool refit );
   GPUd() int Update( float posY, float posZ, short clusterState, bool rejectChi2, float err2Y, float err2Z );
-  GPUd() float PredictChi2( float posY, float posZ, int iRow, const AliHLTTPCCAParam &param, short clusterState ) const;
+  GPUd() float PredictChi2( float posY, float posZ, int iRow, const AliGPUCAParam &param, short clusterState ) const;
   GPUd() float PredictChi2( float posY, float posZ, float err2Y, float err2Z ) const;
   GPUd() int RejectCluster(float chiY, float chiZ, unsigned char clusterState)
   {
@@ -72,7 +72,7 @@ public:
   GPUd() float GetBz( float Alpha, float X, float Y, float Z ) const;
   GPUd() void  GetBxByBz( float Alpha, float X, float Y, float Z, float B[3] ) const;
   
-  GPUd() void GetErr2( float& err2Y, float& err2Z, const AliHLTTPCCAParam &param, float posZ, int iRow, short clusterState) const;
+  GPUd() void GetErr2( float& err2Y, float& err2Z, const AliGPUCAParam &param, float posZ, int iRow, short clusterState) const;
 
   GPUd() float GetAlpha() const { return fAlpha; }
   GPUd() float GetQPt0() const { return fT0.GetQPt(); }

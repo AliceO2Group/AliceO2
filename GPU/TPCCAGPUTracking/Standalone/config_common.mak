@@ -32,7 +32,6 @@ CXXFILES					= SliceTracker/AliHLTTPCCASliceData.cxx \
 								SliceTracker/AliHLTTPCCANeighboursFinder.cxx \
 								SliceTracker/AliHLTTPCCANeighboursCleaner.cxx \
 								SliceTracker/AliHLTTPCCAGrid.cxx \
-								SliceTracker/AliHLTTPCCAParam.cxx \
 								SliceTracker/AliHLTTPCCATrackletConstructor.cxx \
 								SliceTracker/AliHLTTPCCATrackletSelector.cxx \
 								SliceTracker/AliHLTTPCCAStartHitsFinder.cxx \
@@ -42,7 +41,8 @@ CXXFILES					= SliceTracker/AliHLTTPCCASliceData.cxx \
 								SliceTracker/AliHLTTPCCAClusterData.cxx \
 								SliceTracker/AliHLTTPCCATrackerFramework.cxx \
 								GlobalTracker/AliHLTTPCCAGPUTrackerBase.cxx \
-								GlobalTracker/AliGPUReconstruction.cxx
+								GlobalTracker/AliGPUReconstruction.cxx \
+								GlobalTracker/AliGPUCAParam.cxx \
 
 HLTCA_MERGER_CXXFILES		= Merger/AliHLTTPCGMMerger.cxx \
 								Merger/AliHLTTPCGMSliceTrack.cxx \

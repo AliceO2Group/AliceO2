@@ -28,7 +28,7 @@ void AliHLTTPCCAGPUTracker::SetDebugLevel(int /*dwLevel*/, std::ostream* /*NewOu
 int AliHLTTPCCAGPUTracker::SetGPUTrackerOption(const char* /*OptionName*/, int /*OptionValue*/) {return(1);}
 int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput** /*pTracker*/, AliHLTTPCCAClusterData* /*pClusterData*/, int /*fFirstSlice*/, int /*fSliceCount*/) {return(1);}
 int AliHLTTPCCAGPUTracker::ExitGPU() {return(0);}
-int AliHLTTPCCAGPUTracker::InitializeSliceParam(int /*iSlice*/, const AliHLTTPCCAParam& /*param*/) { return 1; }
+int AliHLTTPCCAGPUTracker::InitializeSliceParam(int /*iSlice*/, const AliGPUCAParam& /*param*/) { return 1; }
 void AliHLTTPCCAGPUTracker::SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* /*val*/) {}
 double AliHLTTPCCAGPUTracker::GetTimer(int /*iSlice*/, unsigned int /*i*/) {return 0;}
 void AliHLTTPCCAGPUTracker::ResetTimer(int /*iSlice*/, unsigned int /*i*/) {};

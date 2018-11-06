@@ -32,7 +32,6 @@ set(SRCS SliceTracker/AliHLTTPCCATrack.cxx
     SliceTracker/AliHLTTPCCATracklet.cxx
     SliceTracker/AliHLTTPCCAStartHitsFinder.cxx
     SliceTracker/AliHLTTPCCANeighboursCleaner.cxx
-    SliceTracker/AliHLTTPCCAParam.cxx
     SliceTracker/AliHLTTPCCATracker.cxx
     SliceTracker/AliHLTTPCCATrackerFramework.cxx
     SliceTracker/AliHLTTPCCASliceData.cxx
@@ -59,6 +58,7 @@ set(SRCS SliceTracker/AliHLTTPCCATrack.cxx
     TRDTracking/AliHLTTRDTrackletWord.cxx
 
     GlobalTracker/AliGPUReconstruction.cxx
+    GlobalTracker/AliGPUCAParam.cxx
 )
 
 #Some extra files / includes / settings needed for the build for AliRoot

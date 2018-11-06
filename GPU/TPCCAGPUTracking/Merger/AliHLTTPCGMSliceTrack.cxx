@@ -18,16 +18,16 @@
 
 #include "AliHLTTPCGMSliceTrack.h"
 #include "AliHLTTPCGMBorderTrack.h"
-#include "AliHLTTPCCAParam.h"
+#include "AliGPUCAParam.h"
 #include <cmath>
 
-bool AliHLTTPCGMSliceTrack::FilterErrors( AliHLTTPCCAParam &param, float maxSinPhi, float sinPhiMargin )
+bool AliHLTTPCGMSliceTrack::FilterErrors( AliGPUCAParam &param, float maxSinPhi, float sinPhiMargin )
 {
   float lastX = fOrigTrack->Cluster(fOrigTrack->NClusters()-1 ).GetX();
 
   const int N = 3;
 
-  float bz = -param.ConstBz();
+  float bz = -param.ConstBz;
 
   float k  = fQPt*bz;
   float dx = (1.f/N)*(lastX - fX);

@@ -20,6 +20,7 @@
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCARow.h"
 #include "AliTPCCommonMath.h"
+#include "AliGPUCAParam.h"
 #ifndef HLTCA_GPUCODE
 #include "AliHLTArray.h"
 #else
@@ -35,7 +36,6 @@ typedef float float_v;
 
 class AliHLTTPCCAClusterData;
 class AliHLTTPCCAHit;
-MEM_CLASS_PRE() class AliHLTTPCCAParam;
 
 /**
  * Data abstraction class for the Slice Tracker.
@@ -58,7 +58,7 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
     ~AliHLTTPCCASliceData();
 #endif //!HLTCA_GPUCODE
 
-    MEM_CLASS_PRE2() void InitializeRows( const MEM_LG2(AliHLTTPCCAParam) &parameters );
+    MEM_CLASS_PRE2() void InitializeRows( const MEM_LG2(AliGPUCAParam) &parameters );
 
     /**
      * (Re)Create the data that is tuned for optimal performance of the algorithm from the cluster

@@ -26,7 +26,7 @@
 
 #include "AliHLTTPCCATrackerComponent.h"
 #include "AliHLTTPCCATrackerFramework.h"
-#include "AliHLTTPCCAParam.h"
+#include "AliGPUCAParam.h"
 #include "AliHLTArray.h"
 
 #include "AliHLTTPCRawCluster.h"
@@ -429,52 +429,21 @@ int AliHLTTPCCATrackerComponent::Configure( const char* cdbEntry, const char* ch
 void AliHLTTPCCATrackerComponent::ConfigureSlices()
 {
   // Initialize the tracker slices
+  AliGPUCAParam param;
+  param.SetDefaults(fSolenoidBz);
+  param.LoadClusterErrors();
   for (int slice = 0;slice < fgkNSlices;slice++)
   {
-    int iSec = slice;
-    float inRmin = 83.65;
-    //    float inRmax = 133.3;
-    //    float outRmin = 133.5;
-    float outRmax = 247.7;
-    float plusZmin = 0.0529937;
-    float plusZmax = 249.778;
-    float minusZmin = -249.645;
-    float minusZmax = -0.0799937;
-    float dalpha = 0.349066;
-    float alpha = 0.174533 + dalpha * iSec;
 
-    bool zPlus = ( iSec < 18 );
-    float zMin =  zPlus ? plusZmin : minusZmin;
-    float zMax =  zPlus ? plusZmax : minusZmax;
-    //TPCZmin = -249.645, ZMax = 249.778
-    //    float rMin =  inRmin;
-    //    float rMax =  outRmax;
-    int nRows = AliHLTTPCCAGeometry::GetNRows();
+    param.HitPickUpFactor = 2;
+    if( fNeighboursSearchArea>0 ) param.NeighboursSearchArea = fNeighboursSearchArea;
+    if( fClusterErrorCorrectionY>1.e-4 ) param.ClusterError2CorrectionY = fClusterErrorCorrectionY*fClusterErrorCorrectionY;
+    if( fClusterErrorCorrectionZ>1.e-4 ) param.ClusterError2CorrectionZ = fClusterErrorCorrectionZ*fClusterErrorCorrectionZ;
+    param.MinNTrackClusters = fMinNTrackClusters;
+    param.SetMinTrackPt(fMinTrackPt);
+    param.SearchWindowDZDR = fSearchWindowDZDR;
 
-    float padPitch = 0.4;
-    float sigmaZ = 0.228808;
-
-    float *rowX = new float [nRows];
-    for ( int irow = 0; irow < nRows; irow++ ) {
-      rowX[irow] = AliHLTTPCCAGeometry::Row2X( irow );
-    }
-
-    AliHLTTPCCAParam param;
-
-    param.Initialize( iSec, nRows, rowX, alpha, dalpha,
-      inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, fSolenoidBz );
-    param.SetHitPickUpFactor( 2 );
-    if( fNeighboursSearchArea>0 ) param.SetNeighboursSearchArea( fNeighboursSearchArea );
-    if( fClusterErrorCorrectionY>1.e-4 ) param.SetClusterError2CorrectionY( fClusterErrorCorrectionY*fClusterErrorCorrectionY );
-    if( fClusterErrorCorrectionZ>1.e-4 ) param.SetClusterError2CorrectionZ( fClusterErrorCorrectionZ*fClusterErrorCorrectionZ );
-    param.SetMinNTrackClusters( fMinNTrackClusters );
-    param.SetMinTrackPt( fMinTrackPt );
-    param.SetSearchWindowDZDR(fSearchWindowDZDR);
-    param.LoadClusterErrors();
-
-    param.Update();
     fTracker->InitializeSliceParam( slice, param );
-    delete[] rowX;
   }
 }
 
@@ -760,7 +729,7 @@ void* AliHLTTPCCATrackerComponent::TrackerDoEvent(void* par)
         out.open(filename, std::ofstream::binary);
         hltca_event_dump_settings eventSettings;
         eventSettings.setDefaults();
-        eventSettings.solenoidBz = fTracker->Param(0).BzkG();
+        eventSettings.solenoidBz = fTracker->Param(0).BzkG;
         eventSettings.constBz = false;
         out.write((char*) &eventSettings, sizeof(eventSettings));
         out.close();

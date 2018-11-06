@@ -51,7 +51,7 @@ AliHLTTPCGMOfflineFitter::~AliHLTTPCGMOfflineFitter()
 {
 }
 
-void AliHLTTPCGMOfflineFitter::Initialize( const AliHLTTPCCAParam& hltParam, Long_t TimeStamp, bool isMC )
+void AliHLTTPCGMOfflineFitter::Initialize( const AliGPUCAParam& hltParam, Long_t TimeStamp, bool isMC )
 {
   //
 

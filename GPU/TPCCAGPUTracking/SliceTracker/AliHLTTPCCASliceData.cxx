@@ -18,7 +18,7 @@
 #include "AliHLTTPCCAClusterData.h"
 #include "AliHLTArray.h"
 #include "AliHLTTPCCAHit.h"
-#include "AliHLTTPCCAParam.h"
+#include "AliGPUCAParam.h"
 #include "AliHLTTPCCAGPUConfig.h"
 #include "AliHLTTPCCAGPUTracker.h"
 #include "MemoryAssignmentHelpers.h"
@@ -116,13 +116,13 @@ void AliHLTTPCCASliceData::Clear()
   fNumberOfHits = 0;
 }
 
-void AliHLTTPCCASliceData::InitializeRows( const AliHLTTPCCAParam &p )
+void AliHLTTPCCASliceData::InitializeRows( const AliGPUCAParam &p )
 {
   // initialisation of rows
-	if (!fRows) fRows = new AliHLTTPCCARow[HLTCA_ROW_COUNT + 1];
-  for ( int i = 0; i < p.NRows(); ++i ) {
-    fRows[i].fX = p.RowX( i );
-    fRows[i].fMaxY = CAMath::Tan( p.DAlpha() / 2. ) * fRows[i].fX;
+  if (!fRows) fRows = new AliHLTTPCCARow[HLTCA_ROW_COUNT + 1];
+  for ( int i = 0; i < HLTCA_ROW_COUNT; ++i ) {
+    fRows[i].fX = p.RowX[i];
+    fRows[i].fMaxY = CAMath::Tan( p.DAlpha / 2. ) * fRows[i].fX;
   }
 }
 
@@ -223,7 +223,7 @@ int AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &dat
 
   int RowOffset[HLTCA_ROW_COUNT];
   int NumberOfClustersInRow[HLTCA_ROW_COUNT];
-  memset(NumberOfClustersInRow, 0, HLTCA_ROW_COUNT * sizeof(int));
+  memset(NumberOfClustersInRow, 0, HLTCA_ROW_COUNT * sizeof(NumberOfClustersInRow[0]));
   fFirstRow = HLTCA_ROW_COUNT;
   fLastRow = 0;
 

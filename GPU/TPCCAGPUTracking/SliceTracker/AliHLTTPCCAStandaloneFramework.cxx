@@ -21,7 +21,6 @@
 #include "AliHLTTPCCATrackParam.h"
 #include "AliTPCCommonMath.h"
 #include "AliHLTTPCCAClusterData.h"
-#include "AliHLTTPCCAGeometry.h"
 
 #if defined(HLTCA_BUILD_O2_LIB) & defined(HLTCA_STANDALONE)
 #undef HLTCA_STANDALONE //We disable the standalone application features for the O2 lib. This is a hack since the HLTCA_STANDALONE setting is ambigious... In this file it affects standalone application features, in the other files it means independence from aliroot
@@ -318,79 +317,19 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool rese
 
 void AliHLTTPCCAStandaloneFramework::SetSettings(float solenoidBz, bool toyMCEvents, bool constBz)
 {
+    AliGPUCAParam param;
+    param.SetDefaults(solenoidBz);
+    param.HitPickUpFactor = 2;
+    param.MinNTrackClusters = -1;
+    param.SetMinTrackPt(MIN_TRACK_PT_DEFAULT);
+    param.AssumeConstantBz = constBz;
+    param.ToyMCEventsFlag = toyMCEvents;
+    param.ClusterError2CorrectionZ = 1.1;
     for (int slice = 0;slice < fgkNSlices;slice++)
     {
-      int iSec = slice;
-      float inRmin = 83.65;
-      float outRmax = 247.7;
-      float plusZmin = 0.0529937;
-      float plusZmax = 249.778;
-      float minusZmin = -249.645;
-      float minusZmax = -0.0799937;
-      float dalpha = 0.349066;
-      int tmp = iSec;
-      if (tmp >= 18) tmp -= 18;
-      if (tmp >= 9) tmp -= 18;
-      float alpha = 0.174533 + dalpha * tmp;
-
-      bool zPlus = ( iSec < 18 );
-      float zMin =  zPlus ? plusZmin : minusZmin;
-      float zMax =  zPlus ? plusZmax : minusZmax;
-      int nRows = HLTCA_ROW_COUNT;
-
-      float padPitch = 0.4;
-      float sigmaZ = 0.228808;
-
-      float *rowX = new float [nRows];
-      for ( int irow = 0; irow < nRows; irow++ ) {
-        rowX[irow] = AliHLTTPCCAGeometry::Row2X( irow );
-      }
-
-      AliHLTTPCCAParam param;
-
-      param.Initialize( iSec, nRows, rowX, alpha, dalpha,
-        inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, solenoidBz );
-      param.SetHitPickUpFactor( 2 );
-      param.SetMinNTrackClusters( -1 );
-      param.SetMinTrackPt( MIN_TRACK_PT_DEFAULT );
-
-      param.Update();
       fTracker->InitializeSliceParam( slice, param );
-      delete[] rowX;
     }
-
-	{
-	  AliHLTTPCCAParam param;
-	  // get gemetry
-	  int iSec = 0;
-	  float inRmin = 83.65;
-	  float outRmax = 247.7;
-	  float plusZmin = 0.0529937;
-	  float plusZmax = 249.778;
-	  float dalpha = 0.349066;
-	  float alpha = 0.174533;
-	  float zMin =  plusZmin;
-	  float zMax =  plusZmax;
-	  int nRows = HLTCA_ROW_COUNT;
-	  float padPitch = 0.4;
-	  float sigmaZ = 0.228808;
-	  float *rowX = new float [nRows];
-	  for ( int irow = 0; irow < nRows; irow++ ) {
-		rowX[irow] = AliHLTTPCCAGeometry::Row2X( irow );
-	  }
-
-	  param.Initialize( iSec, nRows, rowX, alpha, dalpha,
-						inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, solenoidBz );
-	  param.SetAssumeConstantBz(constBz);
-	  param.SetToyMCEventsFlag( toyMCEvents );
-	  param.SetClusterError2CorrectionZ( 1.1 );
-	  param.Update();
-
-	  delete[] rowX;
-
-	  fMerger.SetSliceParam(param);
-	}
-
+    fMerger.SetSliceParam(param);
 }
 
 void AliHLTTPCCAStandaloneFramework::WriteEvent( std::ostream &out ) const

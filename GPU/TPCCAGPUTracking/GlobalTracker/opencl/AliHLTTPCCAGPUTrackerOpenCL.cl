@@ -8,12 +8,12 @@
 #define assert(param)
 
 #include "AliHLTTPCCATrackParam.cxx"
-#include "AliHLTTPCCATrack.cxx" 
+#include "AliHLTTPCCATrack.cxx"
 
 #include "AliHLTTPCCAHitArea.cxx"
 #include "AliHLTTPCCAGrid.cxx"
 #include "AliHLTTPCCARow.cxx"
-#include "AliHLTTPCCAParam.cxx"
+#include "AliGPUCAParam.cxx"
 #include "AliHLTTPCCATracker.cxx"
 
 #include "AliHLTTPCCATrackletSelector.cxx"

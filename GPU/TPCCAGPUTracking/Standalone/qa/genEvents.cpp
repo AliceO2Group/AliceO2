@@ -6,7 +6,7 @@
 #include "AliHLTTPCCAClusterData.h"
 #include "AliHLTTPCCAMCInfo.h"
 #include "AliHLTTPCClusterMCData.h"
-#include "AliHLTTPCCAParam.h"
+#include "AliGPUCAParam.h"
 #include "AliHLTTPCGMPhysicalTrackModel.h"
 #include "AliHLTTPCGMPropagator.h"
 #include "AliHLTTPCCAStandaloneFramework.h"
@@ -30,7 +30,7 @@ using namespace std;
 struct GenCluster
 {
   int fSector;
-  int fRow; 
+  int fRow;
   int fMCID;
   float fX;
   float fY;
@@ -48,7 +48,7 @@ int GetSlice( double GlobalPhi )
   //  std::cout<<" GetSlice: phi = "<<phi<<std::endl;
 
   if( phi >= kTwoPi ) phi -= kTwoPi;
-  if( phi < 0 ) phi+= kTwoPi; 
+  if( phi < 0 ) phi+= kTwoPi;
   return (int) ( phi / kSliceDAngle );
 }
 
@@ -117,7 +117,7 @@ void FinishEventGenerator()
   c->Divide(3,2);
   int ipad=1;
   for( int j=0; j<2; j++){
-    for( int i=0; i<3; i++){  
+    for( int i=0; i<3; i++){
       c->cd(ipad++);
       int k=i;
       if( i==1 ) k=2;
@@ -137,7 +137,7 @@ void FinishEventGenerator()
   }
 }
 
-int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
+int GenerateEvent(const AliGPUCAParam& sliceParam, char* filename)
 {
   static int iEvent = -1;
   iEvent++;
@@ -167,7 +167,7 @@ int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
     prop.SetToyMCEventsFlag( kTRUE );
     AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
     const AliHLTTPCGMMerger &merger = hlt.Merger();
-    prop.SetPolynomialField( merger.pField() );	  
+    prop.SetPolynomialField( merger.pField() );
   }
   
   //  const double kCLight = 0.000299792458;
@@ -180,9 +180,9 @@ int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
   
   for (int itr = 0; itr < nTracks; itr++){
     // std::cout<<"Track "<<itr<<":"<<std::endl;
-    //gRandom->SetSeed(seed);   
+    //gRandom->SetSeed(seed);
 
-    mcInfo[itr].fPID = -100; //-100: Unknown / other, 0: Electron, 1, Muon, 2: Pion, 3: Kaon, 4: Proton      
+    mcInfo[itr].fPID = -100; //-100: Unknown / other, 0: Electron, 1, Muon, 2: Pion, 3: Kaon, 4: Proton
     mcInfo[itr].fCharge = 1;
     mcInfo[itr].fPrim = 1; //Primary particle
     mcInfo[itr].fPrimDaughters = 0; //Primary particle with daughters in the TPC
@@ -218,24 +218,24 @@ int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
       //exit(0);
     }
     
-    for( int iRow=0; iRow<sliceParam.NRows(); iRow++ ){
+    for( int iRow=0; iRow<HLTCA_ROW_COUNT; iRow++ ){
       //if( iRow>=50 ) break; //SG!!!
-      float xRow = sliceParam.RowX( iRow );	
+      float xRow = sliceParam.RowX[iRow];
       // transport to row
       int err = 0;
-      for( int itry=0; itry<1; itry++ ){ 
+      for( int itry=0; itry<1; itry++ ){
 	float B[3];
 	prop.GetBxByBz( GetSliceAngle( iSlice ), t.GetX(), t.GetY(), t.GetZ(), B );
 	float dLp=0;
 	err = t.PropagateToXBxByBz( xRow, B[0], B[1], B[2], dLp );
 	if( err ){
 	  std::cout<<"Can not propagate to x = "<<xRow<<std::endl;
-	  t.Print();	  
+	  t.Print();
 	  break;
 	}
-	if( fabs(t.GetZ())>=250. ){ 
+	if( fabs(t.GetZ())>=250. ){
 	  std::cout<<"Can not propagate to x = "<<xRow<<": Z outside the volume"<<std::endl;
-	  t.Print();	  
+	  t.Print();
 	  err = -1;
 	  break;
 	}
@@ -253,14 +253,14 @@ int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
       if( iRow==0 ){ // store MC track at first row
 	//std::cout<<std::setprecision( 20 );
 	//std::cout<<"track "<<itr<<": x "<<t.X()<<" y "<<t.Y()<<" z "<<t.Z()<<std::endl;
-	AliHLTTPCGMPhysicalTrackModel tg(t); // global coordinates	
+	AliHLTTPCGMPhysicalTrackModel tg(t); // global coordinates
 	tg.Rotate( - GetSliceAngle( iSlice ));
 
 	mcInfo[itr].fPID = 2; // pion
 	mcInfo[itr].fCharge = 3*q;
 	mcInfo[itr].fX = tg.GetX(); //Position of MC track at entry of TPC / first hit in the TPC
 	mcInfo[itr].fY = tg.GetY();
-	mcInfo[itr].fZ = tg.GetZ();	
+	mcInfo[itr].fZ = tg.GetZ();
 	mcInfo[itr].fPx = tg.GetPx(); //Momentum of MC track at that position
 	mcInfo[itr].fPy = tg.GetPy();
 	mcInfo[itr].fPz = tg.GetPz();
@@ -269,8 +269,8 @@ int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
       
       // create cluster
       GenCluster c;
-      float sigmaY = 0.3; 
-      float sigmaZ = 0.5; 
+      float sigmaY = 0.3;
+      float sigmaZ = 0.5;
       const int rowType = iRow < 64 ? 0 : iRow < 128 ? 2 : 1;
       t.UpdateValues();
       sliceParam.GetClusterErrors2( rowType, t.GetZ(), t.GetSinPhi(), t.GetDzDs(), sigmaY, sigmaZ );
@@ -282,7 +282,7 @@ int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
       //if( sigmaY > 0.5 ) sigmaY = 0.5;
       //if( sigmaZ > 0.5 ) sigmaZ = 0.5;
       c.fSector = (t.GetZ()>=0.) ?iSlice :iSlice+18;
-      c.fRow = iRow; 
+      c.fRow = iRow;
       c.fMCID = itr;
       c.fX = t.GetX();
       c.fY = t.GetY() + GetGaus(sigmaY);
@@ -292,7 +292,7 @@ int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
     } // iRow
   } // itr
   
-  std::vector<AliHLTTPCClusterMCLabel> labels; 
+  std::vector<AliHLTTPCClusterMCLabel> labels;
 
   for (int iSector = 0;iSector < 36;iSector++) //HLT Sector numbering, sectors go from 0 to 35, all spanning all rows from 0 to 158.
     {
@@ -301,7 +301,7 @@ int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
       //For every sector we first have to fill the number of hits in this sector to the file
       out.write((char*) &nNumberOfHits, sizeof(nNumberOfHits));
       
-      AliHLTTPCCAClusterData::Data* clusters = new AliHLTTPCCAClusterData::Data[nNumberOfHits]; 
+      AliHLTTPCCAClusterData::Data* clusters = new AliHLTTPCCAClusterData::Data[nNumberOfHits];
       int icl=0;
       for( unsigned int i=0; i<vClusters.size(); i++ ){
 	GenCluster &c = vClusters[i];
@@ -320,9 +320,9 @@ int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
 	  }
 	  clusterLabel.fClusterID[0].fMCID = c.fMCID;
 	  clusterLabel.fClusterID[0].fWeight = 1;
-	  labels.push_back( clusterLabel);	  
+	  labels.push_back( clusterLabel);
 	}
-      }      
+      }
       out.write((char*) clusters, sizeof(clusters[0]) * nNumberOfHits);
       delete clusters;
     }

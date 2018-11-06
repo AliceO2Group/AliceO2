@@ -27,7 +27,7 @@
 #include "AliGeomManager.h"
 #include "AliHLTExternalTrackParam.h"
 #include "AliHLTGlobalBarrelTrack.h"
-#include "AliHLTTPCCAParam.h"
+#include "AliGPUCAParam.h"
 #include "AliHLTTPCClusterStatComponent.h"
 #include "AliHLTTPCClusterTransformation.h"
 #include "AliHLTTPCClusterXYZ.h"
@@ -168,34 +168,8 @@ int AliHLTTPCClusterStatComponent::DoInit(int argc, const char **argv)
 	AliTPCRecoParam *recParam = (AliTPCRecoParam *) fOfflineRecoParam.GetDetRecoParam(1);
 	pCalib->GetTransform()->SetCurrentRecoParam(recParam);
 
-	fSliceParam = new AliHLTTPCCAParam();
-
-	{
-		//From GMMerger
-		int iSec = 0;
-		float inRmin = 83.65;
-		float outRmax = 247.7;
-		float plusZmin = 0.0529937;
-		float plusZmax = 249.778;
-		float dalpha = 0.349066;
-		float alpha = 0.174533 + dalpha * iSec;
-		float zMin = plusZmin; //zPlus ? plusZmin : minusZmin;
-		float zMax = plusZmax; //zPlus ? plusZmax : minusZmax;
-		int nRows = AliHLTTPCCAGeometry::GetNRows();
-		float padPitch = 0.4;
-		float sigmaZ = 0.228808;
-		float *rowX = new float[nRows];
-		for (int irow = 0; irow < nRows; irow++)
-		{
-			rowX[irow] = AliHLTTPCCAGeometry::Row2X(irow);
-		}
-
-		float solenoidBz = GetBz();
-
-		fSliceParam->Initialize(iSec, nRows, rowX, alpha, dalpha, inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, solenoidBz);
-		fSliceParam->Update();
-		delete[] rowX;
-	}
+	fSliceParam = new AliGPUCAParam();
+    fSliceParam->SetDefaults(GetBz());
 
 	return iResult;
 }
@@ -555,7 +529,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 					ftrack.SetX(xyz[0]);
 					falpha = alpha;
 					
-					prop.SetTrack(&ftrack, falpha);					
+					prop.SetTrack(&ftrack, falpha);
 					ftrack.ResetCovariance();
 					bool inFlyDirection = 1;
 					prop.PropagateToXAlpha( xyz[0], falpha,  inFlyDirection );
@@ -631,7 +605,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 				averageQMax += cluster.GetQMax();
 
 				if (ip != 0)
-				{				       
+				{
 				  prop.Update(xyz[1], xyz[2], rowType, *fSliceParam, 0, false, false );
 				}
 			}

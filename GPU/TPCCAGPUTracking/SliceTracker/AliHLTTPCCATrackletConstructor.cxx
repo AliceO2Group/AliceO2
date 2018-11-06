@@ -53,7 +53,7 @@ MEM_CLASS_PRE23() GPUd() void AliHLTTPCCATrackletConstructor::StoreTracklet
   // reconstruction of tracklets, tracklet store step
   if ( r.fNHits && (r.fNHits < TRACKLET_SELECTOR_MIN_HITS(tParam.QPt()) ||
     !CheckCov(tParam) ||
-    CAMath::Abs(tParam.GetQPt()) > tracker.Param().MaxTrackQPt() ))
+    CAMath::Abs(tParam.GetQPt()) > tracker.Param().MaxTrackQPt ))
   {
     r.fNHits = 0;
   }
@@ -123,7 +123,7 @@ MEM_CLASS_PRE2() GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         tParam.SetX( x );
         tParam.SetY( y );
         r.fLastY = y;
-        if (tracker.Param().GetContinuousTracking()) {
+        if (tracker.Param().ContinuousTracking) {
           tParam.SetZ( 0.f );
           r.fLastZ = 0.f;
           tParam.SetZOffset( z );
@@ -171,7 +171,7 @@ MEM_CLASS_PRE2() GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
           cosPhi = dx * ri;
         }
         CADEBUG(printf("%14s: FIT TRACK ROW %3d X %8.3f -", "", iRow, tParam.X());for (int i = 0;i < 5;i++) printf(" %8.3f", tParam.Par()[i]); printf(" -"); for (int i = 0;i < 15;i++) printf(" %8.3f", tParam.Cov()[i]); printf("\n");)
-        if ( !tParam.TransportToX( x, sinPhi, cosPhi, tracker.Param().ConstBz(), CALINK_INVAL ) ) {
+        if ( !tParam.TransportToX( x, sinPhi, cosPhi, tracker.Param().ConstBz, CALINK_INVAL ) ) {
           SETRowHit(iRow, CALINK_INVAL);
           break;
         }
@@ -180,7 +180,7 @@ MEM_CLASS_PRE2() GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 
         if (r.fNHits >= 10)
         {
-          const float kFactor = tracker.Param().HitPickUpFactor() * tracker.Param().HitPickUpFactor() * 3.5 * 3.5;
+          const float kFactor = tracker.Param().HitPickUpFactor * tracker.Param().HitPickUpFactor * 3.5 * 3.5;
           float sy2 = kFactor * ( tParam.GetErr2Y() +  err2Y );
           float sz2 = kFactor * ( tParam.GetErr2Z() +  err2Z );
           if ( sy2 > 2. ) sy2 = 2.;
@@ -238,7 +238,7 @@ MEM_CLASS_PRE2() GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       float x = row.X();
       float err2Y, err2Z;
       CADEBUG(printf("%14s: SEA TRACK ROW %3d X %8.3f -", "", iRow, tParam.X());for (int i = 0;i < 5;i++) printf(" %8.3f", tParam.Par()[i]); printf(" -"); for (int i = 0;i < 15;i++) printf(" %8.3f", tParam.Cov()[i]); printf("\n");)
-      if ( !tParam.TransportToX( x, tParam.SinPhi(), tParam.GetCosPhi(), tracker.Param().ConstBz(), HLTCA_MAX_SIN_PHI_LOW ) ) {
+      if ( !tParam.TransportToX( x, tParam.SinPhi(), tParam.GetCosPhi(), tracker.Param().ConstBz, HLTCA_MAX_SIN_PHI_LOW ) ) {
         r.fGo = 0;
         SETRowHit(iRow, CALINK_INVAL);
         break;
@@ -259,7 +259,7 @@ MEM_CLASS_PRE2() GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 
       { // search for the closest hit
         tracker.GetErrors2( iRow, *( ( MEM_LG2(AliHLTTPCCATrackParam)* )&tParam ), err2Y, err2Z );
-        const float kFactor = tracker.Param().HitPickUpFactor() * tracker.Param().HitPickUpFactor() * 3.5 * 3.5;
+        const float kFactor = tracker.Param().HitPickUpFactor * tracker.Param().HitPickUpFactor * 3.5 * 3.5;
         float sy2 = kFactor * ( tParam.GetErr2Y() +  err2Y );
         float sz2 = kFactor * ( tParam.GetErr2Z() +  err2Z );
         if ( sy2 > 2. ) sy2 = 2.;
@@ -323,7 +323,7 @@ MEM_CLASS_PRE2() GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 
 GPUd() void AliHLTTPCCATrackletConstructor::DoTracklet(GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker)& tracker, GPUsharedref() AliHLTTPCCATrackletConstructor::MEM_LOCAL(AliHLTTPCCASharedMemory)& s, AliHLTTPCCAThreadMemory& r)
 {
-	int iRow = 0, iRowEnd = tracker.Param().NRows();;
+	int iRow = 0, iRowEnd = HLTCA_ROW_COUNT;
 	MEM_PLAIN(AliHLTTPCCATrackParam) tParam;
 #ifndef EXTERN_ROW_HITS
 	AliHLTTPCCATracklet &tracklet = tracker.Tracklets()[r.fItr];
@@ -363,7 +363,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::DoTracklet(GPUconstant() MEM_CONSTAN
 		else
 		{
 			r.fNMissed = 0;
-			if ((r.fGo = (tParam.TransportToX( tracker.Row( r.fEndRow ).X(), tracker.Param().ConstBz(), HLTCA_MAX_SIN_PHI) && tParam.Filter( r.fLastY, r.fLastZ, tParam.Err2Y() / 2, tParam.Err2Z() / 2., HLTCA_MAX_SIN_PHI_LOW, true))))
+			if ((r.fGo = (tParam.TransportToX( tracker.Row( r.fEndRow ).X(), tracker.Param().ConstBz, HLTCA_MAX_SIN_PHI) && tParam.Filter( r.fLastY, r.fLastZ, tParam.Err2Y() / 2, tParam.Err2Z() / 2., HLTCA_MAX_SIN_PHI_LOW, true))))
             {
                 CADEBUG(printf("%14s: SEA BACK  ROW %3d X %8.3f -", "", iRow, tParam.X());for (int i = 0;i < 5;i++) printf(" %8.3f", tParam.Par()[i]); printf(" -"); for (int i = 0;i < 15;i++) printf(" %8.3f", tParam.Cov()[i]); printf("\n");)
     			float err2Y, err2Z;
@@ -410,7 +410,7 @@ GPUd() int AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGlobalT
 	rMem.fStage = 3;
 	rMem.fNHits = rMem.fNMissed = 0;
 	rMem.fGo = 1;
-	while (rMem.fGo && row >= 0 && row < tracker.Param().NRows())
+	while (rMem.fGo && row >= 0 && row < HLTCA_ROW_COUNT)
 	{
 		UpdateTracklet(1, 1, 0, 0, sMem, rMem, tracker, tParam, row);
 		row += increment;

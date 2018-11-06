@@ -74,11 +74,9 @@ AliHLTTPCCATracker::~AliHLTTPCCATracker()
 }
 
 // ----------------------------------------------------------------------------------
-void AliHLTTPCCATracker::Initialize( const AliHLTTPCCAParam &param )
+void AliHLTTPCCATracker::Initialize( const AliGPUCAParam &param, int iSlice )
 {
-	// initialisation
-	fParam = param;
-	fParam.Update();
+	SetParam(param, iSlice);
 	fData.InitializeRows( fParam );
 
 	StartEvent();
@@ -113,7 +111,7 @@ char* AliHLTTPCCATracker::SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits
 	SetPointersHits(MaxNHits);
 	pGPUMemory += fHitMemorySize;
 	AssignMemory(fTrackletTmpStartHits, pGPUMemory, HLTCA_ROW_COUNT * HLTCA_GPU_MAX_ROWSTARTHITS);
-	AssignMemory(fRowStartHitCountOffset, pGPUMemory, Param().NRows());
+	AssignMemory(fRowStartHitCountOffset, pGPUMemory, HLTCA_ROW_COUNT);
 
 	return(pGPUMemory);
 }
@@ -139,7 +137,7 @@ char* AliHLTTPCCATracker::SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTr
 
 void AliHLTTPCCATracker::DumpOutput(FILE* out)
 {
-	fprintf(out, "Slice %d\n", fParam.ISlice());
+	fprintf(out, "Slice %d\n", fISlice);
 	const AliHLTTPCCASliceOutTrack* track = (*(Output()))->GetFirstTrack();
 	for (int j = 0;j < (*(Output()))->NTracks();j++)
 	{
@@ -157,8 +155,8 @@ void AliHLTTPCCATracker::DumpOutput(FILE* out)
 void AliHLTTPCCATracker::DumpSliceData(std::ostream &out)
 {
 	//Dump Slice Input Data to File
-	out << "Slice Data (Slice" << Param().ISlice() << "):" << std::endl;
-	for (int i = 0;i < Param().NRows();i++)
+	out << "Slice Data (Slice" << fISlice << "):" << std::endl;
+	for (int i = 0;i < HLTCA_ROW_COUNT;i++)
 	{
 		if (Row(i).NHits() == 0) continue;
 		out << "Row: " << i << std::endl;
@@ -174,8 +172,8 @@ void AliHLTTPCCATracker::DumpSliceData(std::ostream &out)
 void AliHLTTPCCATracker::DumpLinks(std::ostream &out)
 {
 	//Dump Links (after Neighbours Finder / Cleaner) to file
-	out << "Hit Links(Slice" << Param().ISlice() << "):" << std::endl;
-	for (int i = 0;i < Param().NRows();i++)
+	out << "Hit Links(Slice" << fISlice << "):" << std::endl;
+	for (int i = 0;i < HLTCA_ROW_COUNT;i++)
 	{
 		if (Row(i).NHits() == 0) continue;
 		out << "Row: " << i << std::endl;
@@ -191,8 +189,8 @@ void AliHLTTPCCATracker::DumpLinks(std::ostream &out)
 void AliHLTTPCCATracker::DumpHitWeights(std::ostream &out)
 {
 	//dump hit weights to file
-	out << "Hit Weights(Slice" << Param().ISlice() << "):" << std::endl;
-	for (int i = 0;i < Param().NRows();i++)
+	out << "Hit Weights(Slice" << fISlice << "):" << std::endl;
+	for (int i = 0;i < HLTCA_ROW_COUNT;i++)
 	{
 		if (Row(i).NHits() == 0) continue;
 		out << "Row: " << i << ":" << std::endl;
@@ -218,7 +216,7 @@ int AliHLTTPCCATracker::StarthitSortComparison(const void*a, const void* b)
 void AliHLTTPCCATracker::DumpStartHits(std::ostream &out)
 {
 	//sort start hits and dump to file
-	out << "Start Hits: (Slice" << Param().ISlice() << ") (" << *NTracklets() << ")" << std::endl;
+	out << "Start Hits: (Slice" << fISlice << ") (" << *NTracklets() << ")" << std::endl;
 #ifdef HLTCA_GPU_SORT_DUMPDATA
 	qsort(TrackletStartHits(), *NTracklets(), sizeof(AliHLTTPCCAHitId), StarthitSortComparison);
 #endif
@@ -232,9 +230,9 @@ void AliHLTTPCCATracker::DumpStartHits(std::ostream &out)
 void AliHLTTPCCATracker::DumpTrackHits(std::ostream &out)
 {
 	//dump tracks to file
-	out << "Tracks: (Slice" << Param().ISlice() << ") (" << *NTracks() << ")" << std::endl;
+	out << "Tracks: (Slice" << fISlice << ") (" << *NTracks() << ")" << std::endl;
 #ifdef HLTCA_GPU_SORT_DUMPDATA
-	for (int k = 0;k < Param().NRows();k++)
+	for (int k = 0;k < HLTCA_ROW_COUNT;k++)
 	{
 		for (int l = 0;l < Row(k).NHits();l++)
 		{
@@ -270,15 +268,15 @@ void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 	int nTracklets = *NTracklets();
 	if( nTracklets<0 ) nTracklets = 0;
 	if( nTracklets>HLTCA_GPU_MAX_TRACKLETS ) nTracklets = HLTCA_GPU_MAX_TRACKLETS;
-	out << "Tracklets: (Slice" << Param().ISlice() << ") (" << nTracklets << ")" << std::endl;
+	out << "Tracklets: (Slice" << fISlice << ") (" << nTracklets << ")" << std::endl;
 #ifdef HLTCA_GPU_SORT_DUMPDATA
 	AliHLTTPCCAHitId* tmpIds = new AliHLTTPCCAHitId[nTracklets];
 	AliHLTTPCCATracklet* tmpTracklets = new AliHLTTPCCATracklet[nTracklets];
 	memcpy(tmpIds, TrackletStartHits(), nTracklets * sizeof(AliHLTTPCCAHitId));
 	memcpy(tmpTracklets, Tracklets(), nTracklets * sizeof(AliHLTTPCCATracklet));
 #ifdef EXTERN_ROW_HITS
-	calink* tmpHits = new calink[nTracklets * Param().NRows()];
-	memcpy(tmpHits, TrackletRowHits(), nTracklets * Param().NRows() * sizeof(calink));
+	calink* tmpHits = new calink[nTracklets * HLTCA_ROW_COUNT];
+	memcpy(tmpHits, TrackletRowHits(), nTracklets * HLTCA_ROW_COUNT * sizeof(calink));
 #endif
 	qsort(TrackletStartHits(), nTracklets, sizeof(AliHLTTPCCAHitId), StarthitSortComparison);
 	for (int i = 0;i < nTracklets; i++ ){
@@ -289,7 +287,7 @@ void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 				if (tmpTracklets[i].NHits() ){
 					for (int k = tmpTracklets[i].FirstRow();k <= tmpTracklets[i].LastRow();k++){
 						const int pos = k * nTracklets + j;
-						if (pos < 0 || pos >= HLTCA_GPU_MAX_TRACKLETS * fParam.NRows()){
+						if (pos < 0 || pos >= HLTCA_GPU_MAX_TRACKLETS * HLTCA_ROW_COUNT){
 							printf("internal error: invalid tracklet position k=%d j=%d pos=%d\n", k, j, pos);
 						} else {
 							fTrackletRowHits[pos] = tmpHits[k * nTracklets + i];
@@ -311,12 +309,12 @@ void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 	{
 		out << "Tracklet " << std::setw(4) << j << " (Hits: " << std::setw(3) << Tracklets()[j].NHits() << ", Start: " << std::setw(3) << TrackletStartHit(j).RowIndex() << "-" << std::setw(3) << TrackletStartHit(j).HitIndex() << ", Rows: " << (Tracklets()[j].NHits() ? Tracklets()[j].FirstRow() : -1) << " - " << (Tracklets()[j].NHits() ? Tracklets()[j].LastRow() : -1) << ") ";
 		if (Tracklets()[j].NHits() == 0);
-		else if (Tracklets()[j].LastRow() > Tracklets()[j].FirstRow() && (Tracklets()[j].FirstRow() >= Param().NRows() || Tracklets()[j].LastRow() >= Param().NRows()))
+		else if (Tracklets()[j].LastRow() > Tracklets()[j].FirstRow() && (Tracklets()[j].FirstRow() >= HLTCA_ROW_COUNT || Tracklets()[j].LastRow() >= HLTCA_ROW_COUNT))
 		{
 #ifdef HLTCA_STANDALONE
 			printf("\nError: Tracklet %d First %d Last %d Hits %d", j, Tracklets()[j].FirstRow(), Tracklets()[j].LastRow(), Tracklets()[j].NHits());
 			out << " (Error: Tracklet " << j << " First " << Tracklets()[j].FirstRow() << " Last " << Tracklets()[j].LastRow() << " Hits " << Tracklets()[j].NHits() << ") ";
-			for (int i = 0;i < Param().NRows();i++)
+			for (int i = 0;i < HLTCA_ROW_COUNT;i++)
 			{
 				//if (Tracklets()[j].RowHit(i) != CALINK_INVAL)
 #ifdef EXTERN_ROW_HITS
@@ -398,7 +396,7 @@ int AliHLTTPCCATracker::ReadEvent( AliHLTTPCCAClusterData *clusterData )
 		printf("Error initializing from cluster data\n");
 		return 1;
 	}
-	if (fData.MaxZ() > 300 && !fParam.GetContinuousTracking())
+	if (fData.MaxZ() > 300 && !fParam.ContinuousTracking)
 	{
 		printf("Need to set continuous tracking mode for data outside of the TPC volume!\n");
 		return 1;
@@ -435,7 +433,7 @@ GPUhd() void  AliHLTTPCCATracker::SetPointersTracklets( int MaxNTracklets )
 
 	AssignMemory( fTracklets, mem, MaxNTracklets );
 #ifdef EXTERN_ROW_HITS
-	AssignMemory( fTrackletRowHits, mem, MaxNTracklets * Param().NRows());
+	AssignMemory( fTrackletRowHits, mem, MaxNTracklets * HLTCA_ROW_COUNT);
 #endif
 
 	fTrackletMemorySize = mem - fTrackletMemory;
@@ -477,19 +475,19 @@ GPUh() int AliHLTTPCCATracker::CheckEmptySlice() const
 void AliHLTTPCCATracker::RunNeighboursFinder()
 {
 	//Run the CPU Neighbours Finder
-	AliHLTTPCCAProcess<AliHLTTPCCANeighboursFinder>( Param().NRows(), 1, *this );
+	AliHLTTPCCAProcess<AliHLTTPCCANeighboursFinder>( HLTCA_ROW_COUNT, 1, *this );
 }
 
 void AliHLTTPCCATracker::RunNeighboursCleaner()
 {
 	//Run the CPU Neighbours Cleaner
-	AliHLTTPCCAProcess<AliHLTTPCCANeighboursCleaner>( Param().NRows() - 2, 1, *this );
+	AliHLTTPCCAProcess<AliHLTTPCCANeighboursCleaner>( HLTCA_ROW_COUNT - 2, 1, *this );
 }
 
 void AliHLTTPCCATracker::RunStartHitsFinder()
 {
 	//Run the CPU Start Hits Finder
-	AliHLTTPCCAProcess<AliHLTTPCCAStartHitsFinder>( Param().NRows() - 4, 1, *this );
+	AliHLTTPCCAProcess<AliHLTTPCCAStartHitsFinder>( HLTCA_ROW_COUNT - 4, 1, *this );
 }
 
 void AliHLTTPCCATracker::RunTrackletConstructor()
@@ -511,7 +509,7 @@ GPUh() void AliHLTTPCCATracker::DoTracking()
 	if (fGPUDebugLevel >= 6)
 	{
 #ifndef BITWISE_COMPATIBLE_DEBUG_OUTPUT
-		*fGPUDebugOut << std::endl << std::endl << "Slice: " << Param().ISlice() << std::endl;
+		*fGPUDebugOut << std::endl << std::endl << "Slice: " << fISlice << std::endl;
 		*fGPUDebugOut << "Slice Data:" << std::endl;
 #endif
 		DumpSliceData(*fGPUDebugOut);
@@ -567,21 +565,21 @@ GPUh() void AliHLTTPCCATracker::DoTracking()
 	StartTimer(6);
 	RunTrackletConstructor();
 	StopTimer(6);
-	if (fGPUDebugLevel >= 3) printf("Slice %d, Number of tracklets: %d\n", fParam.ISlice(), *NTracklets());
+	if (fGPUDebugLevel >= 3) printf("Slice %d, Number of tracklets: %d\n", fISlice, *NTracklets());
 
 	if (fGPUDebugLevel >= 6) DumpTrackletHits(*fGPUDebugOut);
 #ifndef BITWISE_COMPATIBLE_DEBUG_OUTPUT
 	if (fGPUDebugLevel >= 6) DumpHitWeights(*fGPUDebugOut);
 #endif
 
-	//std::cout<<"Slice "<<Param().ISlice()<<": NHits="<<NHitsTotal()<<", NTracklets="<<*NTracklets()<<std::endl;
+	//std::cout<<"Slice "<<fISlice<<": NHits="<<NHitsTotal()<<", NTracklets="<<*NTracklets()<<std::endl;
 
 	StartTimer(7);
 	RunTrackletSelector();
 	StopTimer(7);
-	if (fGPUDebugLevel >= 3) printf("Slice %d, Number of tracks: %d\n", fParam.ISlice(), *NTracks());
+	if (fGPUDebugLevel >= 3) printf("Slice %d, Number of tracks: %d\n", fISlice, *NTracks());
 
-	//std::cout<<"Slice "<<Param().ISlice()<<": N start hits/tracklets/tracks = "<<nStartHits<<" "<<nStartHits<<" "<<*fNTracks<<std::endl;
+	//std::cout<<"Slice "<<fISlice<<": N start hits/tracklets/tracks = "<<nStartHits<<" "<<nStartHits<<" "<<*fNTracks<<std::endl;
 
 	if (fGPUDebugLevel >= 6) DumpTrackHits(*fGPUDebugOut);
 
@@ -717,7 +715,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 	useOutput->SetNTracks( nStoredTracks );
 	useOutput->SetNLocalTracks( nStoredLocalTracks );
 	useOutput->SetNTrackClusters( nStoredHits );
-	if (fGPUDebugLevel >= 3) printf("Slice %d, Output: Tracks %d, local tracks %d, hits %d\n", fParam.ISlice(), nStoredTracks, nStoredLocalTracks, nStoredHits);
+	if (fGPUDebugLevel >= 3) printf("Slice %d, Output: Tracks %d, local tracks %d, hits %d\n", fISlice, nStoredTracks, nStoredLocalTracks, nStoredHits);
 
 	StopTimer(9);
 }
@@ -725,14 +723,14 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 GPUh() void AliHLTTPCCATracker::WriteEvent( std::ostream &out )
 {
 	// write event to the file
-	for ( int iRow = 0; iRow < fParam.NRows(); iRow++ ) {
+	for ( int iRow = 0; iRow < HLTCA_ROW_COUNT; iRow++ ) {
 		out << fData.Row( iRow ).HitNumberOffset() << " " << fData.Row( iRow ).NHits() << std::endl;
 	}
 	out << NHitsTotal() << std::endl;
 
 	AliHLTResizableArray<float> y( NHitsTotal() ), z( NHitsTotal() );
 
-	for ( int iRow = 0; iRow < fParam.NRows(); iRow++ ) {
+	for ( int iRow = 0; iRow < HLTCA_ROW_COUNT; iRow++ ) {
 		const AliHLTTPCCARow &row = Row( iRow );
 		float y0 = row.Grid().YMin();
 		float z0 = row.Grid().ZMin();
@@ -787,7 +785,7 @@ GPUh() int AliHLTTPCCATracker::PerformGlobalTrackingRun(AliHLTTPCCATracker& slic
 	do
 	{
 		rowIndex += direction;
-		if (!tParam.TransportToX(sliceNeighbour.Row(rowIndex).X(), t0, fParam.ConstBz(), HLTCA_MAX_SIN_PHI)) return(0); //Reuse t0 linearization until we are in the next sector
+		if (!tParam.TransportToX(sliceNeighbour.Row(rowIndex).X(), t0, fParam.ConstBz, HLTCA_MAX_SIN_PHI)) return(0); //Reuse t0 linearization until we are in the next sector
 		//printf("Transported X %f Y %f Z %f SinPhi %f DzDs %f QPt %f SignCosPhi %f (MaxY %f)\n", tParam.X(), tParam.Y(), tParam.Z(), tParam.SinPhi(), tParam.DzDs(), tParam.QPt(), tParam.SignCosPhi(), sliceNeighbour.Row(rowIndex).MaxY());
 		if (--maxRowGap == 0) return(0);
 	} while (fabs(tParam.Y()) > sliceNeighbour.Row(rowIndex).MaxY());
@@ -845,7 +843,7 @@ GPUh() int AliHLTTPCCATracker::PerformGlobalTrackingRun(AliHLTTPCCATracker& slic
 		track.SetParam(tParam.GetParam());
 		track.SetNHits(nHits);
 		track.SetFirstHitID(sliceNeighbour.fCommonMem->fNTrackHits);
-		track.SetLocalTrackId((fParam.ISlice() << 24) | fTracks[iTrack].LocalTrackId());
+		track.SetLocalTrackId((fISlice << 24) | fTracks[iTrack].LocalTrackId());
 		sliceNeighbour.fCommonMem->fNTracks++;
 		sliceNeighbour.fCommonMem->fNTrackHits += nHits;
 	}
@@ -869,7 +867,7 @@ GPUh() void AliHLTTPCCATracker::PerformGlobalTracking(AliHLTTPCCATracker& sliceL
 
 	for (int i = 0;i < fCommonMem->fNLocalTracks;i++)
 	{
-		if (sliceLeft.fCommonMem->fNTracks >= MaxTracksLeft || sliceRight.fCommonMem->fNTracks >= MaxTracksRight) {printf("Insufficient memory for global tracking Slice %d: %d/%d, %d/%d\n", Param().ISlice(), sliceLeft.fCommonMem->fNTracks, MaxTracksLeft, sliceRight.fCommonMem->fNTracks, MaxTracksRight); return;}
+		if (sliceLeft.fCommonMem->fNTracks >= MaxTracksLeft || sliceRight.fCommonMem->fNTracks >= MaxTracksRight) {printf("Insufficient memory for global tracking Slice %d: %d/%d, %d/%d\n", fISlice, sliceLeft.fCommonMem->fNTracks, MaxTracksLeft, sliceRight.fCommonMem->fNTracks, MaxTracksRight); return;}
 
 		{
 			const int tmpHit = fTracks[i].FirstHitID();
@@ -881,13 +879,13 @@ GPUh() void AliHLTTPCCATracker::PerformGlobalTracking(AliHLTTPCCATracker& sliceL
 				if (Y < -row.MaxY() * GLOBAL_TRACKING_Y_RANGE_LOWER_LEFT)
 				{
 					//printf("Track %d, lower row %d, left border (%f of %f)\n", i, fTrackHits[tmpHit].RowIndex(), Y, -row.MaxY());
-					ll += PerformGlobalTrackingRun(sliceLeft, i, rowIndex, -fParam.DAlpha(), -1);
+					ll += PerformGlobalTrackingRun(sliceLeft, i, rowIndex, -fParam.DAlpha, -1);
 				}
 				if (sliceRight.fCommonMem->fNTracks >= MaxTracksRight) {printf("Insufficient memory for global tracking (%d / %d)\n", sliceRight.fCommonMem->fNTracks, MaxTracksRight); return;}
 				if (Y > row.MaxY() * GLOBAL_TRACKING_Y_RANGE_LOWER_RIGHT)
 				{
 					//printf("Track %d, lower row %d, right border (%f of %f)\n", i, fTrackHits[tmpHit].RowIndex(), Y, row.MaxY());
-					lr += PerformGlobalTrackingRun(sliceRight, i, rowIndex, fParam.DAlpha(), -1);
+					lr += PerformGlobalTrackingRun(sliceRight, i, rowIndex, fParam.DAlpha, -1);
 				}
 			}
 		}
@@ -902,13 +900,13 @@ GPUh() void AliHLTTPCCATracker::PerformGlobalTracking(AliHLTTPCCATracker& sliceL
 				if (Y < -row.MaxY() * GLOBAL_TRACKING_Y_RANGE_UPPER_LEFT)
 				{
 					//printf("Track %d, upper row %d, left border (%f of %f)\n", i, fTrackHits[tmpHit].RowIndex(), Y, -row.MaxY());
-					ul += PerformGlobalTrackingRun(sliceLeft, i, rowIndex, -fParam.DAlpha(), 1);
+					ul += PerformGlobalTrackingRun(sliceLeft, i, rowIndex, -fParam.DAlpha, 1);
 				}
 				if (sliceLeft.fCommonMem->fNTracks >= MaxTracksLeft) {printf("Insufficient memory for global tracking (%d / %d)\n", sliceLeft.fCommonMem->fNTracks, MaxTracksLeft); return;}
 				if (Y > row.MaxY() * GLOBAL_TRACKING_Y_RANGE_UPPER_RIGHT)
 				{
 					//printf("Track %d, upper row %d, right border (%f of %f)\n", i, fTrackHits[tmpHit].RowIndex(), Y, row.MaxY());
-					ur += PerformGlobalTrackingRun(sliceRight, i, rowIndex, fParam.DAlpha(), 1);
+					ur += PerformGlobalTrackingRun(sliceRight, i, rowIndex, fParam.DAlpha, 1);
 				}
 			}
 		}

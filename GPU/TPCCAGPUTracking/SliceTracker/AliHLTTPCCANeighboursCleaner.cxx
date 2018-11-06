@@ -32,16 +32,15 @@ GPUd() void AliHLTTPCCANeighboursCleaner::Thread
 
   if ( iSync == 0 ) {
     if ( iThread == 0 ) {
-      s.fNRows = tracker.Param().NRows();
       s.fIRow = iBlock + 2;
-      if ( s.fIRow <= s.fNRows - 3 ) {
+      if ( s.fIRow <= HLTCA_ROW_COUNT - 3 ) {
         s.fIRowUp = s.fIRow + 2;
         s.fIRowDn = s.fIRow - 2;
         s.fNHits = tracker.Row( s.fIRow ).NHits();
       }
     }
   } else if ( iSync == 1 ) {
-    if ( s.fIRow <= s.fNRows - 3 ) {
+    if ( s.fIRow <= HLTCA_ROW_COUNT - 3 ) {
 #ifdef HLTCA_GPUCODE
       int Up = s.fIRowUp;
       int Dn = s.fIRowDn;

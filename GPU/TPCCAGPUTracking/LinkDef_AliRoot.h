@@ -9,7 +9,6 @@
 #pragma link C++ class AliHLTTPCCATracker+;
 #pragma link C++ class AliHLTTPCCABaseTrackParam+;
 #pragma link C++ class AliHLTTPCCATrackParam+;
-#pragma link C++ class AliHLTTPCCAParam+;
 #pragma link C++ class AliHLTTPCCARow+;
 #pragma link C++ class AliHLTTPCCAGrid+;
 #pragma link C++ class AliHLTTPCCAHitArea+;

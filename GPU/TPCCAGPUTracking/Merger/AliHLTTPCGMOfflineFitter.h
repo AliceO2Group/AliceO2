@@ -14,7 +14,7 @@
 #if ( !defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE) )
 
 
-#include "AliHLTTPCCAParam.h"
+#include "AliGPUCAParam.h"
 #include "AliTPCtracker.h"
 
 class AliHLTTPCGMMergedTrack;
@@ -26,10 +26,10 @@ class AliHLTTPCGMOfflineFitter :public AliTPCtracker
 {
 public:
 
-  AliHLTTPCGMOfflineFitter();  
+  AliHLTTPCGMOfflineFitter();
   ~AliHLTTPCGMOfflineFitter();
   
-  void Initialize( const AliHLTTPCCAParam& hltParam, Long_t TimeStamp, bool isMC );
+  void Initialize( const AliGPUCAParam& hltParam, Long_t TimeStamp, bool isMC );
   
   void RefitTrack(  AliHLTTPCGMMergedTrack &track, const AliHLTTPCGMPolynomialField* field,  AliHLTTPCGMMergedTrackHit* clusters );
 
@@ -38,9 +38,9 @@ public:
   bool FitOffline(  const AliHLTTPCGMPolynomialField* field, AliHLTTPCGMMergedTrack &gmtrack,  AliHLTTPCGMMergedTrackHit* clusters, int &N );
 
 private:
-  AliHLTTPCCAParam fCAParam;
+  AliGPUCAParam fCAParam;
 };
 
 #endif
 
-#endif 
+#endif
