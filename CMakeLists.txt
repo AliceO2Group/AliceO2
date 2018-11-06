@@ -6,7 +6,7 @@
 # and the experiment part.
 
 # Check IF cmake has the required version
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.11 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.11.0 FATAL_ERROR)
 
 ### CMP0025   Compiler id for Apple Clang is now AppleClang.
 ### CMP0042   MACOSX_RPATH is enabled by default.
