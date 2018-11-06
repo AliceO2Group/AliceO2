@@ -38,8 +38,9 @@ O2_GENERATE_TESTS(
   TEST_SRCS test/testDEconversion.cxx
 )
 
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS test/testGeometryTransformer.cxx
-)
+# SW: This test takes very very long
+#O2_GENERATE_TESTS(
+#  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+#  BUCKET_NAME ${BUCKET_NAME}
+#  TEST_SRCS test/testGeometryTransformer.cxx
+#)
