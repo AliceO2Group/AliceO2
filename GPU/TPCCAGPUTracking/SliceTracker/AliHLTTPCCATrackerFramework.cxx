@@ -24,6 +24,7 @@
 #include "AliHLTTPCCATracker.h"
 #include "AliTPCCommonMath.h"
 #include "AliHLTTPCCAClusterData.h"
+#include "AliGPUReconstruction.h"
 
 #ifdef WIN32
 #include <windows.h>
@@ -252,73 +253,15 @@ void AliHLTTPCCATrackerFramework::UpdateGPUSliceParam()
 #define GPULIBNAME "libAliHLTTPCCAGPU"
 #endif
 
-AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU, const char* GPU_Library, int GPUDeviceNum) : fGPULibAvailable(false), fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUTracker(NULL), fGPULib(NULL), fOutputControl( NULL ), fKeepData(false), fGlobalTracking(false)
+AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(AliGPUReconstruction* rec) : fGPULibAvailable(false), fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUTracker(NULL), fGPULib(NULL), fOutputControl( NULL ), fKeepData(false), fGlobalTracking(false)
 {
 	//Constructor
-	#ifdef WIN32
-		HMODULE hGPULib;
-	#else
-		void* hGPULib;
-	#endif
-	if (allowGPU != -1)
-	{
-		if (GPU_Library && !GPU_Library[0]) GPU_Library = NULL;
-#ifdef WIN32
-		hGPULib = LoadLibraryEx(GPU_Library == NULL ? (GPULIBNAME ".dll") : GPU_Library, NULL, NULL);
-#else
-		hGPULib = dlopen(GPU_Library == NULL ? (GPULIBNAME ".so") : GPU_Library, RTLD_NOW);
-#endif
-	}
-	else
-	{
-		hGPULib = NULL;
-	}
+	if (rec) fGPUTracker = rec->GetTPCTracker();
+	fGPULibAvailable = (fGPUTracker != NULL);
 
-	if (hGPULib == NULL)
+	if (fGPULibAvailable)
 	{
-		if (allowGPU > 0)
-		{
-			#ifndef WIN32
-				CAGPUImportant("The following error occured during dlopen: %s", dlerror());
-			#endif
-			CAGPUError("Error Opening cagpu library for GPU Tracker (%s), will fallback to CPU", GPU_Library == NULL ? "default: " GPULIBNAME : GPU_Library);
-		}
-		else
-		{
-			CAGPUDebug("Tracking on GPU disabled");
-		}
-		fGPUTracker = new AliHLTTPCCAGPUTracker;
-	}
-	else
-	{
-#ifdef WIN32
-		FARPROC createFunc = GetProcAddress(hGPULib, "AliHLTTPCCAGPUTrackerNVCCCreate");
-#else
-		void* createFunc = (void*) dlsym(hGPULib, "AliHLTTPCCAGPUTrackerNVCCCreate");
-#endif
-		if (createFunc == NULL)
-		{
-			CAGPUError("Error Creating GPU Tracker\n");
-#ifdef WIN32
-			FreeLibrary(hGPULib);
-#else
-			dlclose(hGPULib);
-#endif
-			fGPUTracker = new AliHLTTPCCAGPUTracker;
-		}
-		else
-		{
-			AliHLTTPCCAGPUTracker* (*tmp)() = (AliHLTTPCCAGPUTracker* (*)()) createFunc;
-			fGPUTracker = tmp();
-			fGPULibAvailable = true;
-			fGPULib = (void*) (size_t) hGPULib;
-			CAGPUInfo("GPU Tracker library loaded and GPU tracker object created sucessfully (%sactive)", allowGPU > 0 ? "" : "in");
-		}
-	}
-
-	if (allowGPU && fGPULibAvailable)
-	{
-		fUseGPUTracker = (fGPUTrackerAvailable = (fGPUTracker->InitGPU(-1, GPUDeviceNum) == 0));
+		fUseGPUTracker = (fGPUTrackerAvailable = (fGPUTracker->InitGPU(-1, -1) == 0));
 		if(fUseGPUTracker)
 		{
 		  CAGPUInfo("GPU Tracker Initialized and available in framework");
@@ -328,46 +271,12 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU, const cha
 		  CAGPUError("GPU Tracker NOT Initialized and NOT available in framework");
 		}
 	}
+	else
+	{
+		fGPUTracker = new AliHLTTPCCAGPUTracker;
+	}
 }
 
 AliHLTTPCCATrackerFramework::~AliHLTTPCCATrackerFramework()
 {
-#ifdef WIN32
-	HMODULE hGPULib = (HMODULE) (size_t) fGPULib;
-#else
-	void* hGPULib = fGPULib;
-#endif
-	if (fGPULib)
-	{
-		if (fGPUTracker)
-		{
-			ExitGPU();
-#ifdef WIN32
-			FARPROC destroyFunc = GetProcAddress(hGPULib, "AliHLTTPCCAGPUTrackerNVCCDestroy");
-#else
-			void* destroyFunc = (void*) dlsym(hGPULib, "AliHLTTPCCAGPUTrackerNVCCDestroy");
-#endif
-			if (destroyFunc == NULL)
-			{
-				CAGPUError("Error Freeing GPU Tracker\n");
-			}
-			else
-			{
-				void (*tmp)(AliHLTTPCCAGPUTracker*) =  (void (*)(AliHLTTPCCAGPUTracker*)) destroyFunc;
-				tmp(fGPUTracker);
-			}
-		}
-
-#ifdef WIN32
-		FreeLibrary(hGPULib);
-#else
-		dlclose(hGPULib);
-#endif
-	}
-	else if (fGPUTracker)
-	{
-		delete fGPUTracker;
-	}
-	fGPULib = NULL;
-	fGPUTracker = NULL;
 }

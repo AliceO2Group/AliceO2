@@ -1,10 +1,11 @@
 include						config_options.mak
 include						config_common.mak
 
-TARGET						= libAliHLTTPCCAGPUSAOpenCL
+TARGET						= libTPCCAGPUTrackingOCL
 TARGETTYPE					= LIB
 
-CXXFILES					= GlobalTracker/opencl/AliHLTTPCCAGPUTrackerOpenCL.cxx
+CXXFILES					= GlobalTracker/opencl/AliHLTTPCCAGPUTrackerOpenCL.cxx \
+								GlobalTracker/opencl/AliGPUReconstructionOCL.cxx
 ASMFILES					=
 CLFILES						= GlobalTracker/opencl/AliHLTTPCCAGPUTrackerOpenCL.cl
 

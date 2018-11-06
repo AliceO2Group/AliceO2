@@ -17,6 +17,7 @@
 //***************************************************************************
 
 #include "AliHLTTPCCAO2Interface.h"
+#include "AliGPUReconstruction.h"
 #include "AliHLTTPCCAStandaloneFramework.h"
 #include "standaloneSettings.h"
 #include <iostream>
@@ -25,7 +26,7 @@
 #include <omp.h>
 #endif
 
-AliHLTTPCCAO2Interface::AliHLTTPCCAO2Interface() : fInitialized(false), fDumpEvents(false), fContinuous(false), fHLT(NULL)
+AliHLTTPCCAO2Interface::AliHLTTPCCAO2Interface() : fInitialized(false), fDumpEvents(false), fContinuous(false), fHLT(NULL), mRec(nullptr)
 {
 }
 
@@ -43,7 +44,7 @@ int AliHLTTPCCAO2Interface::Initialize(const char* options)
 	float refX = 1000.;
 	int nThreads = 1;
 	bool useGPU = false;
-	char gpuLibName[1024];
+	char gpuType[1024];
 
 	if (options && *options)
 	{
@@ -79,13 +80,13 @@ int AliHLTTPCCAO2Interface::Initialize(const char* options)
 				sscanf(optPtr + 8, "%d", &nThreads);
 				printf("Using %d threads\n", nThreads);
 			}
-			else if (optLen > 7 && strncmp(optPtr, "gpuLib=", 7) == 0)
+			else if (optLen > 7 && strncmp(optPtr, "gpuType=", 7) == 0)
 			{
 				int len = std::min(optLen - 7, 1023);
-				memcpy(gpuLibName, optPtr + 7, len);
-				gpuLibName[len] = 0;
+				memcpy(gpuType, optPtr + 7, len);
+				gpuType[len] = 0;
 				useGPU = true;
-				printf("Using GPU library %s\n", gpuLibName);
+				printf("Using GPU library %s\n", gpuType);
 			}
 			else
 			{
@@ -101,7 +102,8 @@ int AliHLTTPCCAO2Interface::Initialize(const char* options)
 #else
 	if (nThreads != 1) printf("ERROR: Compiled without OpenMP. Cannot set number of threads!\n");
 #endif
-	if (fHLT->Initialize(useGPU ? gpuLibName : NULL, -1)) return 1;
+	mRec.reset(AliGPUReconstruction::CreateInstance(useGPU ? gpuType : "CPU", true));
+	if (fHLT->Initialize(mRec.get())) return 1;
 	fHLT->SetSettings(solenoidBz, false, false);
 	fHLT->SetNWays(3);
 	fHLT->SetNWaysOuter(true);

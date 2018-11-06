@@ -4,4 +4,4 @@
 /ca.exe
 /makefiles/.svn
 /cmodules/.svn
-/libAliHLTTPCCAGPUSA*.so
+/libTPCCAGPUTracking*.so

@@ -7,16 +7,16 @@ include						config_common.mak
 TARGET						= ca
 
 ifeq ($(BUILD_CUDA), 1)
-SUBTARGETS					+= libAliHLTTPCCAGPUSACUDA
+SUBTARGETS					+= libTPCCAGPUTrackingCUDA
 DEFINES						+= BUILD_CUDA
 endif
-SUBTARGETS_CLEAN			+= libAliHLTTPCCAGPUSACUDA.*
+SUBTARGETS_CLEAN			+= libTPCCAGPUTrackingCUDA.*
 
 ifeq ($(BUILD_OPENCL), 1)
-SUBTARGETS					+= libAliHLTTPCCAGPUSAOpenCL
+SUBTARGETS					+= libTPCCAGPUTrackingOCL
 DEFINES						+= BUILD_OPENCL
 endif
-SUBTARGETS_CLEAN			+= libAliHLTTPCCAGPUSAOpenCL.*
+SUBTARGETS_CLEAN			+= libTPCCAGPUTrackingOCL.*
 
 CXXFILES					+= standalone.cxx \
 								$(HLTCA_STANDALONE_CXXFILES) \

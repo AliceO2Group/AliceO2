@@ -20,11 +20,12 @@
 
 class AliHLTTPCCASliceOutput;
 class AliHLTTPCCAClusterData;
+class AliGPUReconstruction;
 
 class AliHLTTPCCATrackerFramework : AliCAGPULogging
 {
 public:
-	AliHLTTPCCATrackerFramework(int allowGPU = 1, const char* GPU_Library = NULL, int GPUDeviceNum = -1);
+	AliHLTTPCCATrackerFramework(AliGPUReconstruction* rec);
 	~AliHLTTPCCATrackerFramework();
 
 	void SetGPUDebugLevel(int Level, std::ostream *OutFile = NULL, std::ostream *GPUOutFile = NULL);

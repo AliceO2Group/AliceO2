@@ -87,15 +87,9 @@ AliHLTTPCCAStandaloneFramework::~AliHLTTPCCAStandaloneFramework()
     delete fTracker;
 }
 
-int AliHLTTPCCAStandaloneFramework::Initialize(const char* gpuLibrary, int deviceNum)
+int AliHLTTPCCAStandaloneFramework::Initialize(AliGPUReconstruction* rec)
 {
-  fTracker = new AliHLTTPCCATrackerFramework(gpuLibrary ? 1 : 0, gpuLibrary, deviceNum);
-  if (gpuLibrary && GetGPUStatus() == 0)
-  {
-    delete fTracker;
-    printf("Error initializing GPU tracker\n");
-    return 1;
-  }
+  fTracker = new AliHLTTPCCATrackerFramework(rec);
   fTracker->SetOutputControl(&fOutputControl);
   return 0;
 }
