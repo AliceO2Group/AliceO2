@@ -87,7 +87,7 @@ void* AliHLTTPCCAGPUTrackerBase::helperWrapper(void* arg)
 #endif
 				if (myISlice >= 0)
 				{
-					tmpTracker->Initialize(cls->fSlaveTrackers[par->fFirstSlice + myISlice].Param());
+					tmpTracker->Initialize(cls->fSlaveTrackers[par->fFirstSlice + myISlice].Param(), par->fFirstSlice + myISlice);
 					if (tmpTracker->ReadEvent(&par->pClusterData[myISlice]))
 					{
 						printf("Fatal error during CPU tracking!\n");
@@ -384,15 +384,10 @@ void AliHLTTPCCAGPUTrackerBase::WriteOutput(AliHLTTPCCASliceOutput** pOutput, in
 	if (fDebugLevel >= 3) {CAGPUDebug("GPU Tracker finished WriteOutput for slice %d on thread %d\n", firstSlice + iSlice, threadId);}
 }
 
-int AliHLTTPCCAGPUTrackerBase::InitializeSliceParam(int iSlice, const AliHLTTPCCAParam &param)
+int AliHLTTPCCAGPUTrackerBase::InitializeSliceParam(int iSlice, const AliGPUCAParam &param)
 {
 	//Initialize Slice Tracker Parameter for a slave tracker
-	fSlaveTrackers[iSlice].Initialize(param);
-	if (fSlaveTrackers[iSlice].Param().NRows() != HLTCA_ROW_COUNT)
-	{
-		CAGPUError("Error, Slice Tracker %d Row Count of %d exceeds Constant of %d", iSlice, fSlaveTrackers[iSlice].Param().NRows(), HLTCA_ROW_COUNT);
-		return(1);
-	}
+	fSlaveTrackers[iSlice].Initialize(param, iSlice);
 	return(0);
 }
 
@@ -856,11 +851,11 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_Init(AliHLTTPCCASliceOutput** pO
 		fThreadId = GetThread();
 	}
 
-	if (fDebugLevel >= 2) CAGPUInfo("Running GPU Tracker (Slices %d to %d)", fSlaveTrackers[firstSlice].Param().ISlice(), fSlaveTrackers[firstSlice].Param().ISlice() + sliceCountLocal);
+	if (fDebugLevel >= 2) CAGPUInfo("Running GPU Tracker (Slices %d to %d)", fSlaveTrackers[firstSlice].ISlice(), fSlaveTrackers[firstSlice].ISlice() + sliceCountLocal);
 
 	if (sliceCountLocal * sizeof(AliHLTTPCCATracker) > HLTCA_GPU_TRACKER_CONSTANT_MEM)
 	{
-		CAGPUError("Insuffissant constant memory (Required %d, Available %d, Tracker %d, Param %d, SliceData %d)", sliceCountLocal * (int) sizeof(AliHLTTPCCATracker), (int) HLTCA_GPU_TRACKER_CONSTANT_MEM, (int) sizeof(AliHLTTPCCATracker), (int) sizeof(AliHLTTPCCAParam), (int) sizeof(AliHLTTPCCASliceData));
+		CAGPUError("Insuffissant constant memory (Required %d, Available %d, Tracker %d, Param %d, SliceData %d)", sliceCountLocal * (int) sizeof(AliHLTTPCCATracker), (int) HLTCA_GPU_TRACKER_CONSTANT_MEM, (int) sizeof(AliHLTTPCCATracker), (int) sizeof(AliGPUCAParam), (int) sizeof(AliHLTTPCCASliceData));
 		return(1);
 	}
 

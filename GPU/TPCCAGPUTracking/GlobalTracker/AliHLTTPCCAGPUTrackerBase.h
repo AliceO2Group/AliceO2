@@ -61,7 +61,7 @@ public:
 	virtual double GetTimer(int iSlice, unsigned int i);
 	virtual void ResetTimer(int iSlice, unsigned int i);
 
-	virtual int InitializeSliceParam(int iSlice, const AliHLTTPCCAParam &param);
+	virtual int InitializeSliceParam(int iSlice, const AliGPUCAParam &param);
 	virtual void SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* val);
 
 	virtual const AliHLTTPCCASliceOutput::outputControlStruct* OutputControl() const;

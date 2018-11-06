@@ -27,9 +27,9 @@ class AliHLTTPCCANeighboursCleaner
       public:
 #if !defined(HLTCA_GPUCODE)
         AliHLTTPCCASharedMemory()
-            : fIRow( 0 ), fIRowUp( 0 ), fIRowDn( 0 ), fNRows( 0 ), fNHits( 0 ) {}
+            : fIRow( 0 ), fIRowUp( 0 ), fIRowDn( 0 ), fNHits( 0 ) {}
         AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
-            : fIRow( 0 ), fIRowUp( 0 ), fIRowDn( 0 ), fNRows( 0 ), fNHits( 0 ) {}
+            : fIRow( 0 ), fIRowUp( 0 ), fIRowDn( 0 ), fNHits( 0 ) {}
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
 #endif //!HLTCA_GPUCODE
 
@@ -37,7 +37,6 @@ class AliHLTTPCCANeighboursCleaner
         int fIRow; // current row index
         int fIRowUp; // current row index
         int fIRowDn; // current row index
-        int fNRows; // number of rows
         int fNHits; // number of hits
     };
 

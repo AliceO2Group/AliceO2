@@ -27,12 +27,12 @@ GPUd() void AliHLTTPCCAStartHitsSorter::Thread
 	if ( iSync == 0 ) {
 		if ( iThread == 0 ) {
 			const int gpuFixedBlockCount = tracker.GPUParametersConst()->fGPUFixedBlockCount;
-			const int tmpNRows = tracker.Param().NRows() - 6;
+			const int tmpNRows = HLTCA_ROW_COUNT - 6;
 			const int nRows = iBlock == (nBlocks - 1) ? (tmpNRows - (tmpNRows / nBlocks) * (nBlocks - 1)) : (tmpNRows / nBlocks);
 			const int nStartRow = (tmpNRows / nBlocks) * iBlock + 1;
 			int startOffset2 = 0;
 
-			for (int ir = 1;ir < tracker.Param().NRows() - 5;ir++)
+			for (int ir = 1;ir < HLTCA_ROW_COUNT - 5;ir++)
 			{
 				if (ir < nStartRow) startOffset2 += tracker.RowStartHitCountOffset()[ir];
 			}

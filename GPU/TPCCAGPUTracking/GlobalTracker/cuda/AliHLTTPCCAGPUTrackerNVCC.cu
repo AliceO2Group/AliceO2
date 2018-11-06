@@ -43,7 +43,7 @@ texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
 #include "AliHLTTPCCAHitArea.cxx"
 #include "AliHLTTPCCAGrid.cxx"
 #include "AliHLTTPCCARow.cxx"
-#include "AliHLTTPCCAParam.cxx"
+#include "AliGPUCAParam.cxx"
 #include "AliHLTTPCCATracker.cxx"
 
 #include "AliHLTTPCCAProcess.h"
@@ -376,7 +376,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 
 		if (fDebugLevel >= 3) CAGPUInfo("Running GPU Neighbours Finder (Slice %d/%d)", iSlice, sliceCountLocal);
 		fSlaveTrackers[firstSlice + iSlice].StartTimer(1);
-		AliHLTTPCCAProcess<AliHLTTPCCANeighboursFinder> <<<fSlaveTrackers[firstSlice + iSlice].Param().NRows(), HLTCA_GPU_THREAD_COUNT_FINDER, 0, cudaStreams[useStream]>>>(iSlice);
+		AliHLTTPCCAProcess<AliHLTTPCCANeighboursFinder> <<<HLTCA_ROW_COUNT, HLTCA_GPU_THREAD_COUNT_FINDER, 0, cudaStreams[useStream]>>>(iSlice);
 
 		if (GPUSync("Neighbours finder", useStream, iSlice + firstSlice) RANDOM_ERROR)
 		{
@@ -393,7 +393,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 
 		if (fDebugLevel >= 3) CAGPUInfo("Running GPU Neighbours Cleaner (Slice %d/%d)", iSlice, sliceCountLocal);
 		fSlaveTrackers[firstSlice + iSlice].StartTimer(2);
-		AliHLTTPCCAProcess<AliHLTTPCCANeighboursCleaner> <<<fSlaveTrackers[firstSlice + iSlice].Param().NRows()-2, HLTCA_GPU_THREAD_COUNT, 0, cudaStreams[useStream]>>>(iSlice);
+		AliHLTTPCCAProcess<AliHLTTPCCANeighboursCleaner> <<<HLTCA_ROW_COUNT - 2, HLTCA_GPU_THREAD_COUNT, 0, cudaStreams[useStream]>>>(iSlice);
 		if (GPUSync("Neighbours Cleaner", useStream, iSlice + firstSlice) RANDOM_ERROR)
 		{
 			ResetHelperThreads(1);
@@ -409,7 +409,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 
 		if (fDebugLevel >= 3) CAGPUInfo("Running GPU Start Hits Finder (Slice %d/%d)", iSlice, sliceCountLocal);
 		fSlaveTrackers[firstSlice + iSlice].StartTimer(3);
-		AliHLTTPCCAProcess<AliHLTTPCCAStartHitsFinder> <<<fSlaveTrackers[firstSlice + iSlice].Param().NRows()-6, HLTCA_GPU_THREAD_COUNT, 0, cudaStreams[useStream]>>>(iSlice);
+		AliHLTTPCCAProcess<AliHLTTPCCAStartHitsFinder> <<<HLTCA_ROW_COUNT - 6, HLTCA_GPU_THREAD_COUNT, 0, cudaStreams[useStream]>>>(iSlice);
 		if (GPUSync("Start Hits Finder", useStream, iSlice + firstSlice) RANDOM_ERROR)
 		{
 			ResetHelperThreads(1);
@@ -787,7 +787,7 @@ int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger, bool
 
 	if (fDebugLevel > 0)
 	{
-		int copysize = 4 * Merger->NOutputTrackClusters() * sizeof(float) + Merger->NOutputTrackClusters() * sizeof(unsigned int) + Merger->NOutputTracks() * sizeof(AliHLTTPCGMMergedTrack) + 6 * sizeof(float) + sizeof(AliHLTTPCCAParam);
+		int copysize = 4 * Merger->NOutputTrackClusters() * sizeof(float) + Merger->NOutputTrackClusters() * sizeof(unsigned int) + Merger->NOutputTracks() * sizeof(AliHLTTPCGMMergedTrack) + 6 * sizeof(float) + sizeof(AliGPUCAParam);
 		double speed = (double) copysize / times[0] * nCount / 1e9;
 		printf("GPU Fit:\tCopy To:\t%1.0f us (%lf GB/s)\n", times[0] * 1000000 / nCount, speed);
 		printf("\t\tFit:\t%1.0f us\n", times[1] * 1000000 / nCount);

@@ -93,7 +93,7 @@ AliHLTComponentDataType AliHLTTPCCAGlobalMergerComponent::GetOutputDataType()
   return kAliHLTMultipleDataType;
 }
 
-int AliHLTTPCCAGlobalMergerComponent::GetOutputDataTypes(AliHLTComponentDataTypeList& tgtList) { 
+int AliHLTTPCCAGlobalMergerComponent::GetOutputDataTypes(AliHLTComponentDataTypeList& tgtList) {
   // see header file for class documentation
 
   tgtList.clear();
@@ -130,7 +130,7 @@ void AliHLTTPCCAGlobalMergerComponent::SetDefaultConfiguration()
   fNoClear = false;
   fBenchmark.Reset();
   fBenchmark.SetTimer(0,"total");
-  fBenchmark.SetTimer(1,"reco");    
+  fBenchmark.SetTimer(1,"reco");
 }
 
 int AliHLTTPCCAGlobalMergerComponent::ReadConfigurationString(  const char* arguments )
@@ -273,43 +273,8 @@ int AliHLTTPCCAGlobalMergerComponent::Configure( const char* cdbEntry, const cha
 
   // Initialize the merger
 
-  AliHLTTPCCAParam param;
-
-  {
-    // get gemetry
-    int iSec = 0;
-    float inRmin = 83.65;
-    float outRmax = 247.7;
-    float plusZmin = 0.0529937;
-    float plusZmax = 249.778;
-    //float minusZmin = -249.645;
-    //float minusZmax = -0.0799937;
-    float dalpha = 0.349066;
-    float alpha = 0.174533 + dalpha * iSec;
-    //bool zPlus = ( iSec < 18 );
-    float zMin =  plusZmin; //zPlus ? plusZmin : minusZmin;
-    float zMax =  plusZmax; //zPlus ? plusZmax : minusZmax;
-    int nRows = AliHLTTPCCAGeometry::GetNRows();
-    float padPitch = 0.4;
-    float sigmaZ = 0.228808;
-    float *rowX = new float [nRows];
-    for ( int irow = 0; irow < nRows; irow++ ) {
-      rowX[irow] = AliHLTTPCCAGeometry::Row2X( irow );
-    }
-
-    param.Initialize( iSec, nRows, rowX, alpha, dalpha,
-                      inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, fSolenoidBz );
-
-    if( fClusterErrorCorrectionY>1.e-4 ) param.SetClusterError2CorrectionY( fClusterErrorCorrectionY*fClusterErrorCorrectionY );
-    if( fClusterErrorCorrectionZ>1.e-4 ) param.SetClusterError2CorrectionZ( fClusterErrorCorrectionZ*fClusterErrorCorrectionZ );
-    param.Update();
-
-    delete[] rowX;
-    param.SetNWays(fNWays);
-    param.SetNWaysOuter(fNWaysOuter);
-    param.LoadClusterErrors();
-  }
-
+  AliGPUCAParam param;
+  param.SetDefaults(fSolenoidBz);
   fGlobalMerger->SetSliceParam( param, GetTimeStamp(), 1 );
 
   return iResult1 ? iResult1 : ( iResult2 ? iResult2 : iResult3 );
@@ -416,13 +381,13 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
   fGlobalMerger->Reconstruct();
   fBenchmark.Stop(1);
 
-  // Fill output 
+  // Fill output
     unsigned int mySize = 0;
     {
       AliHLTTracksData* outPtr = ( AliHLTTracksData* )( outputPtr );
       AliHLTExternalTrackParam* currOutTrack = outPtr->fTracklets;
       mySize =   ( ( AliHLTUInt8_t * )currOutTrack ) -  ( ( AliHLTUInt8_t * )outputPtr );
-      outPtr->fCount = 0;   
+      outPtr->fCount = 0;
       int nTracks = fGlobalMerger->NOutputTracks();
 
       for ( int itr = 0; itr < nTracks; itr++ ) {
@@ -446,10 +411,10 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
       
 	// normalize the angle to +-Pi
 	      
-	currOutTrack->fAlpha = tp.GetAlpha() - CAMath::Nint(tp.GetAlpha()/CAMath::TwoPi())*CAMath::TwoPi();      
+	currOutTrack->fAlpha = tp.GetAlpha() - CAMath::Nint(tp.GetAlpha()/CAMath::TwoPi())*CAMath::TwoPi();
 	currOutTrack->fX = tp.GetX();
 	currOutTrack->fY = tp.GetY();
-	currOutTrack->fZ = tp.GetZ();      
+	currOutTrack->fZ = tp.GetZ();
 	currOutTrack->fLastX = track.LastX();
 	currOutTrack->fLastY = track.LastY();
 	currOutTrack->fLastZ = track.LastZ();
@@ -460,7 +425,7 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
 	for( int i=0; i<15; i++ ) currOutTrack->fC[i] = tp.GetCovariance()[i];
 	currOutTrack->fTrackID = itr;
 	currOutTrack->fFlags = 0;
-	currOutTrack->fNPoints = 0;    
+	currOutTrack->fNPoints = 0;
 	for ( int i = 0; i < track.NClusters(); i++ )
 	{
 	  if (fGlobalMerger->Clusters()[track.FirstClusterRef() + i].fState & AliHLTTPCGMMergedTrackHit::flagReject) continue;
@@ -491,7 +456,7 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
       AliHLTTracksData* outPtr = ( AliHLTTracksData* )( outputPtr + size );
       AliHLTExternalTrackParam* currOutTrack = outPtr->fTracklets;
       newSize =   ( ( AliHLTUInt8_t * )currOutTrack ) -  ( outputPtr + size );
-      outPtr->fCount = 0;   
+      outPtr->fCount = 0;
       int nTracks = fGlobalMerger->NOutputTracks();
 
       for ( int itr = 0; itr < nTracks; itr++ ) {
@@ -512,7 +477,7 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
             
         // normalize the angle to +-Pi
               
-        currOutTrack->fAlpha = track.OuterParam().fAlpha - CAMath::Nint(tp.GetAlpha()/CAMath::TwoPi())*CAMath::TwoPi();      
+        currOutTrack->fAlpha = track.OuterParam().fAlpha - CAMath::Nint(tp.GetAlpha()/CAMath::TwoPi())*CAMath::TwoPi();
         currOutTrack->fX = track.OuterParam().fX;
         currOutTrack->fY = track.OuterParam().fP[0];
         currOutTrack->fZ = track.OuterParam().fP[1];

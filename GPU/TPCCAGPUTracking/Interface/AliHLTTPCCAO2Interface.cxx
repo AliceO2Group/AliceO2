@@ -146,7 +146,7 @@ int AliHLTTPCCAO2Interface::RunTracking(const AliHLTTPCCAClusterData* inputClust
 			out.open("settings.dump", std::ofstream::binary);
 			hltca_event_dump_settings settings;
 			settings.setDefaults();
-			settings.solenoidBz = fHLT->Param().BzkG();
+			settings.solenoidBz = fHLT->Param().BzkG;
 			out.write((char*) &settings, sizeof(settings));
 			out.close();
 		}

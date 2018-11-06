@@ -102,7 +102,7 @@ template <> class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 
 #include "AliHLTTPCGMPropagator.h"
 #include "AliHLTTPCGMMerger.h"
-#include "AliHLTTPCCAParam.h"
+#include "AliGPUCAParam.h"
 #include "AliHLTTPCCADef.h"
 
 template <> class trackInterface<AliHLTTPCGMTrackParam> : public AliHLTTPCGMTrackParam

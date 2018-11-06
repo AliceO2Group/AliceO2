@@ -40,7 +40,7 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
 	for (int i = iThread;i < sizeof(MEM_PLAIN(AliHLTTPCCARow)) / sizeof(int);i += nThreads)
 	{
 		reinterpret_cast<GPUsharedref() int*>(&s.fRow)[i] = reinterpret_cast<GPUglobalref() int*>(&tracker.SliceDataRows()[iBlock])[i];
-		if (iBlock >= 2 && iBlock <= tracker.Param().NRows() - 3)
+		if (iBlock >= 2 && iBlock <= HLTCA_ROW_COUNT - 3)
 		{
 			reinterpret_cast<GPUsharedref() int*>(&s.fRowUp)[i] = reinterpret_cast<GPUglobalref() int*>(&tracker.SliceDataRows()[iBlock + 2])[i];
 			reinterpret_cast<GPUsharedref() int*>(&s.fRowDown)[i] = reinterpret_cast<GPUglobalref() int*>(&tracker.SliceDataRows()[iBlock - 2])[i];
@@ -49,9 +49,8 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
 	GPUsync();
 #endif
     if ( iThread == 0 ) {
-      s.fNRows = tracker.Param().NRows();
       s.fIRow = iBlock;
-      if ( s.fIRow < s.fNRows ) {
+      if ( s.fIRow < HLTCA_ROW_COUNT ) {
 #ifdef HLTCA_GPUCODE
 		GPUsharedref() const MEM_LOCAL(AliHLTTPCCARow) &row = s.fRow;
 #else
@@ -59,7 +58,7 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
 #endif
         s.fNHits = row.NHits();
 
-        if ( ( s.fIRow >= 2 ) && ( s.fIRow <= s.fNRows - 3 ) ) {
+        if ( ( s.fIRow >= 2 ) && ( s.fIRow <= HLTCA_ROW_COUNT - 3 ) ) {
           s.fIRowUp = s.fIRow + 2;
           s.fIRowDn = s.fIRow - 2;
 
@@ -95,8 +94,8 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
       }
     }
   } else if ( iSync == 1 ) {
-    if ( s.fIRow < s.fNRows ) {
-      if ( ( s.fIRow <= 1 ) || ( s.fIRow >= s.fNRows - 2 ) ) {
+    if ( s.fIRow < HLTCA_ROW_COUNT ) {
+      if ( ( s.fIRow <= 1 ) || ( s.fIRow >= HLTCA_ROW_COUNT - 2 ) ) {
 #ifdef HLTCA_GPUCODE
 		GPUsharedref() const MEM_LOCAL(AliHLTTPCCARow) &row = s.fRow;
 #else
@@ -126,9 +125,9 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
   } else if ( iSync == 2 ) {
 
 #ifdef HLTCA_GPUCODE
-    if ( ( iBlock <= 1 ) || ( iBlock >= s.fNRows - 2 ) ) return;
+    if ( ( iBlock <= 1 ) || ( iBlock >= HLTCA_ROW_COUNT - 2 ) ) return;
 #else
-    if ( ( s.fIRow <= 1 ) || ( s.fIRow >= s.fNRows - 2 ) ) return;
+    if ( ( s.fIRow <= 1 ) || ( s.fIRow >= HLTCA_ROW_COUNT - 2 ) ) return;
 #endif
 
     float chi2Cut = 3.*3.*4 * ( s.fUpDx * s.fUpDx + s.fDnDx * s.fDnDx );
@@ -186,8 +185,8 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
 		int nNeighUp = 0;
         AliHLTTPCCAHitArea areaDn, areaUp;
 
-        const float kAngularMultiplier = tracker.Param().GetSearchWindowDZDR();
-        const float kAreaSize = tracker.Param().NeighboursSearchArea();
+        const float kAngularMultiplier = tracker.Param().SearchWindowDZDR;
+        const float kAreaSize = tracker.Param().NeighboursSearchArea;
         areaUp.Init( rowUp, tracker.Data(), y*s.fUpTx, kAngularMultiplier != 0. ? z : (z*s.fUpTx), kAreaSize, kAngularMultiplier != 0 ? (s.fUpDx * kAngularMultiplier) : kAreaSize);
         areaDn.Init( rowDn, tracker.Data(), y*s.fDnTx, kAngularMultiplier != 0. ? z : (z*s.fDnTx), kAreaSize, kAngularMultiplier != 0 ? (-s.fDnDx * kAngularMultiplier) : kAreaSize);
 

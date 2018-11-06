@@ -32,7 +32,7 @@
 #ifndef HLTCA_STANDALONE
 #include "AliExternalTrackParam.h"
 #endif
-#include "AliHLTTPCCAParam.h"
+#include "AliGPUCAParam.h"
 #include "AliHLTTPCCAClusterErrorStat.h"
 #ifdef HLTCA_CADEBUG_ENABLED
 #include "AliHLTTPCCAStandaloneFramework.h"
@@ -51,7 +51,7 @@ static constexpr float kSectAngle = 2 * M_PI / 18.f;
 
 GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk, AliHLTTPCGMMergedTrackHit* clusters, int &N, int &NTolerated, float &Alpha, int attempt, float maxSinPhi, AliHLTTPCCAOuterParam* outerParam)
 {
-  const AliHLTTPCCAParam &param = merger->SliceParam();
+  const AliGPUCAParam &param = merger->SliceParam();
 
   AliHLTTPCCAClusterErrorStat errorStat(N);
 
@@ -59,10 +59,10 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
   prop.SetMaterial( kRadLen, kRho );
   prop.SetPolynomialField( merger->pField() );
   prop.SetMaxSinPhi( maxSinPhi );
-  prop.SetToyMCEventsFlag( param.ToyMCEventsFlag());
+  prop.SetToyMCEventsFlag( param.ToyMCEventsFlag);
   ShiftZ(merger->pField(), clusters, param, N);
 
-  int nWays = param.GetNWays();
+  int nWays = param.NWays;
   int maxN = N;
   int ihitStart = 0;
   float covYYUpd = 0.;
@@ -73,7 +73,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
   for (int iWay = 0;iWay < nWays;iWay++)
   {
     int nMissed = 0, nMissed2 = 0;
-    if (iWay && param.GetNWaysOuter() && iWay == nWays - 1 && outerParam)
+    if (iWay && param.NWaysOuter && iWay == nWays - 1 && outerParam)
     {
         for (int i = 0;i < 5;i++) outerParam->fP[i] = fP[i];
         outerParam->fP[1] += fZOffset;
@@ -119,7 +119,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
       CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f (Missed %d)", ihit, maxN, clusters[ihit].fRow, clAlpha, xx, yy, zz, nMissed);)
       CADEBUG(AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();if (configStandalone.resetids && (unsigned int) hlt.GetNMCLabels() > clusters[ihit].fNum))
       CADEBUG({printf(" MC:"); for (int i = 0;i < 3;i++) {int mcId = hlt.GetMCLabels()[clusters[ihit].fNum].fClusterID[i].fMCID; if (mcId >= 0) printf(" %d", mcId);}}printf("\n");)
-      if ((param.GetRejectMode() > 0 && nMissed >= param.GetRejectMode()) || nMissed2 >= HLTCA_MERGER_MAXN_MISSED_HARD || clusters[ihit].fState & AliHLTTPCGMMergedTrackHit::flagReject)
+      if ((param.RejectMode > 0 && nMissed >= param.RejectMode) || nMissed2 >= HLTCA_MERGER_MAXN_MISSED_HARD || clusters[ihit].fState & AliHLTTPCGMMergedTrackHit::flagReject)
       {
         CADEBUG(printf("\tSkipping hit, %d hits rejected, flag %X\n", nMissed, (int) clusters[ihit].fState);)
         if (iWay + 2 >= nWays && !(clusters[ihit].fState & AliHLTTPCGMMergedTrackHit::flagReject)) clusters[ihit].fState |= AliHLTTPCGMMergedTrackHit::flagRejectErr;
@@ -173,7 +173,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
           if (prop.PropagateToXAlpha(xx, prop.GetAlpha(), inFlyDirection ) == 0)
             err = prop.PropagateToXAlpha(xx, clAlpha, inFlyDirection );
       }
-      if (lastRow == 255 || abs((int) lastRow - (int) clusters[ihit].fRow) > 5 || lastSlice != clusters[ihit].fSlice || (param.GetRejectMode() < 0 && -nMissed <= param.GetRejectMode())) goodRows = 0;
+      if (lastRow == 255 || abs((int) lastRow - (int) clusters[ihit].fRow) > 5 || lastSlice != clusters[ihit].fSlice || (param.RejectMode < 0 && -nMissed <= param.RejectMode)) goodRows = 0;
       else goodRows++;
       if (err == 0)
       {
@@ -260,11 +260,11 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
   if (!ok) return(false);
 
   Alpha = prop.GetAlpha();
-  if (param.GetTrackReferenceX() <= 500)
+  if (param.TrackReferenceX <= 500)
   {
       for (int k = 0;k < 3;k++) //max 3 attempts
       {
-          int err = prop.PropagateToXAlpha(param.GetTrackReferenceX(), Alpha, 0);
+          int err = prop.PropagateToXAlpha(param.TrackReferenceX, Alpha, 0);
           ConstrainSinPhi();
           if (fabs(fP[0]) <= fX * tanf(kSectAngle / 2.f)) break;
           float dAngle = floor(atan2f(fP[0], fX) / kDeg2Rad / 20.f + 0.5f) * kSectAngle;
@@ -291,7 +291,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
   return(ok);
 }
 
-GPUd() void AliHLTTPCGMTrackParam::MirrorTo(AliHLTTPCGMPropagator& prop, float toY, float toZ, bool inFlyDirection, const AliHLTTPCCAParam& param, unsigned char row, unsigned char clusterState, bool mirrorParameters)
+GPUd() void AliHLTTPCGMTrackParam::MirrorTo(AliHLTTPCGMPropagator& prop, float toY, float toZ, bool inFlyDirection, const AliGPUCAParam& param, unsigned char row, unsigned char clusterState, bool mirrorParameters)
 {
     if (mirrorParameters) prop.Mirror(inFlyDirection);
     float err2Y, err2Z;
@@ -308,7 +308,7 @@ GPUd() void AliHLTTPCGMTrackParam::MirrorTo(AliHLTTPCGMPropagator& prop, float t
     fChi2 = 0;
 }
 
-GPUd() int AliHLTTPCGMTrackParam::MergeDoubleRowClusters(int ihit, int wayDirection, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, AliHLTTPCGMPropagator& prop, float& xx, float& yy, float& zz, int maxN, float clAlpha, unsigned char& clusterState, bool rejectChi2)
+GPUd() int AliHLTTPCGMTrackParam::MergeDoubleRowClusters(int ihit, int wayDirection, AliHLTTPCGMMergedTrackHit* clusters, const AliGPUCAParam &param, AliHLTTPCGMPropagator& prop, float& xx, float& yy, float& zz, int maxN, float clAlpha, unsigned char& clusterState, bool rejectChi2)
 {
     if (ihit + wayDirection >= 0 && ihit + wayDirection < maxN && clusters[ihit].fRow == clusters[ihit + wayDirection].fRow && clusters[ihit].fSlice == clusters[ihit + wayDirection].fSlice && clusters[ihit].fLeg == clusters[ihit + wayDirection].fLeg)
     {
@@ -414,12 +414,12 @@ GPUd() void AliHLTTPCGMTrackParam::AttachClustersPropagate(const AliHLTTPCGMMerg
 {
 #if defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE) && !defined(HLTCA_BUILD_O2_LIB)
     int step = toRow > lastRow ? 1 : -1;
-    float xx = fX - Merger->SliceParam().RowX(lastRow);
+    float xx = fX - Merger->SliceParam().RowX[lastRow];
     for (int iRow = lastRow + step;iRow != toRow;iRow += step)
     {
         if (fabs(fP[2]) > maxSinPhi) return;
         if (fabs(fX) > fabs(fP[0]) * tanf(kSectAngle / 2.f)) return;
-        int err = prop.PropagateToXAlpha(xx + Merger->SliceParam().RowX(iRow), prop.GetAlpha(), inFlyDirection);
+        int err = prop.PropagateToXAlpha(xx + Merger->SliceParam().RowX[iRow], prop.GetAlpha(), inFlyDirection);
         if (err) return;
         CADEBUG(printf("Attaching in row %d\n", iRow);)
         AttachClusters(Merger, slice, iRow, iTrack, goodLeg);
@@ -437,7 +437,7 @@ GPUd() bool AliHLTTPCGMTrackParam::FollowCircleChk(float lrFactor, float toY, fl
 GPUd() int AliHLTTPCGMTrackParam::FollowCircle(const AliHLTTPCGMMerger* Merger, AliHLTTPCGMPropagator& prop, int slice, int iRow, int iTrack, bool goodLeg, float toAlpha, float toX, float toY, int toSlice, int toRow, bool inFlyDirection)
 {
 #if defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE) && !defined(HLTCA_BUILD_O2_LIB)
-    const AliHLTTPCCAParam &param = Merger->SliceParam();
+    const AliGPUCAParam &param = Merger->SliceParam();
     bool right;
     float dAlpha = toAlpha - prop.GetAlpha();
     if (fabs(dAlpha) > 0.001)
@@ -471,7 +471,7 @@ GPUd() int AliHLTTPCGMTrackParam::FollowCircle(const AliHLTTPCGMMerger* Merger, 
             int found = 0;
             for (int j = 0;j < HLTCA_ROW_COUNT && found < 3;j++)
             {
-                float rowX = Merger->SliceParam().RowX(j);
+                float rowX = Merger->SliceParam().RowX[j];
                 if (fabs(rowX - (-fP[0] * lrFactor)) < 1.5)
                 {
                     CADEBUG(printf("Attempt row %d (Y %f Z %f)\n", j, fX * lrFactor, fP[1]);)
@@ -508,12 +508,12 @@ GPUd() int AliHLTTPCGMTrackParam::FollowCircle(const AliHLTTPCGMMerger* Merger, 
     prop.Rotate180();
     CADEBUG(printf("Mirrored position: Alpha %f X %f Y %f Z %f SinPhi %f DzDs %f\n", prop.GetAlpha(), fX, fP[0], fP[1], fP[2], fP[3]);)
     iRow = toRow;
-    float dx = toX - Merger->SliceParam().RowX(toRow);
+    float dx = toX - Merger->SliceParam().RowX[toRow];
     if (up ^ (toX > fX))
     {
-        if (up) while (iRow < HLTCA_ROW_COUNT - 2 && Merger->SliceParam().RowX(iRow + 1) + dx <= fX) iRow++;
-        else while (iRow > 1 && Merger->SliceParam().RowX(iRow - 1) + dx >= fX) iRow--;
-        prop.PropagateToXAlpha(Merger->SliceParam().RowX(iRow) + dx, prop.GetAlpha(), inFlyDirection);
+        if (up) while (iRow < HLTCA_ROW_COUNT - 2 && Merger->SliceParam().RowX[iRow + 1] + dx <= fX) iRow++;
+        else while (iRow > 1 && Merger->SliceParam().RowX[iRow - 1] + dx >= fX) iRow--;
+        prop.PropagateToXAlpha(Merger->SliceParam().RowX[iRow] + dx, prop.GetAlpha(), inFlyDirection);
         AttachClustersPropagate(Merger, slice, iRow, toRow, iTrack, !goodLeg, prop, inFlyDirection);
     }
     if (prop.PropagateToXAlpha(toX, prop.GetAlpha(), inFlyDirection)) fX = toX;
@@ -538,7 +538,7 @@ GPUd() void AliHLTTPCGMTrackParam::AttachClustersMirror(const AliHLTTPCGMMerger*
 
     int count = fabs((toX - X) / 0.5) + 0.5;
     float dx = (toX - X) / count;
-    const float myRowX = Merger->SliceParam().RowX(iRow);
+    const float myRowX = Merger->SliceParam().RowX[iRow];
     //printf("AttachMirror\n");
     //printf("X %f Y %f Z %f SinPhi %f toY %f -->\n", fX, fP[0], fP[1], fP[2], toY);
     //printf("X %f Y %f Z %f SinPhi %f, count %d dx %f (to: %f)\n", X, Y, Z, SinPhi, count, dx, X + count * dx);
@@ -566,7 +566,7 @@ GPUd() void AliHLTTPCGMTrackParam::AttachClustersMirror(const AliHLTTPCGMMerger*
         int found = 0;
         for (int j = iRow;j >= 0 && j < HLTCA_ROW_COUNT && found < 3;j += step)
         {
-            float rowX = fX + Merger->SliceParam().RowX(j) - myRowX;
+            float rowX = fX + Merger->SliceParam().RowX[j] - myRowX;
             if (fabs(rowX - paramX) < 1.5)
             {
                 //printf("Attempt row %d\n", j);
@@ -577,9 +577,9 @@ GPUd() void AliHLTTPCGMTrackParam::AttachClustersMirror(const AliHLTTPCGMMerger*
 #endif
 }
 
-GPUd() void AliHLTTPCGMTrackParam::ShiftZ(const AliHLTTPCGMPolynomialField* field, const AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, int N)
+GPUd() void AliHLTTPCGMTrackParam::ShiftZ(const AliHLTTPCGMPolynomialField* field, const AliHLTTPCGMMergedTrackHit* clusters, const AliGPUCAParam &param, int N)
 {
-  if (!param.GetContinuousTracking()) return;
+  if (!param.ContinuousTracking) return;
   if ((clusters[0].fSlice < 18) ^ (clusters[N - 1].fSlice < 18)) return; //Do not shift tracks crossing the central electrode
 
   const float cosPhi = fabs(fP[2]) < 1.f ? CAMath::Sqrt(1 - fP[2] * fP[2]) : 0.f;
@@ -725,7 +725,7 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, int
 	if (track.OK())
 	{
 	  int ind = track.FirstClusterRef();
-	  const AliHLTTPCCAParam &param = merger->SliceParam();
+	  const AliGPUCAParam &param = merger->SliceParam();
 	  float alphaa = param.Alpha(clusters[ind].fSlice);
 	  float xx = clusters[ind].fX;
 	  float yy = clusters[ind].fY;

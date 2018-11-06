@@ -814,7 +814,7 @@ void RunQA(bool matchOnly)
 		prop.SetMaxSinPhi( .999 );
 		prop.SetMaterial( kRadLen, kRho );
 		prop.SetPolynomialField( merger.pField() );
-		prop.SetToyMCEventsFlag( merger.SliceParam().ToyMCEventsFlag());
+		prop.SetToyMCEventsFlag( merger.SliceParam().ToyMCEventsFlag);
 
 		for (int i = 0; i < merger.NOutputTracks(); i++)
 		{
@@ -1175,7 +1175,7 @@ void RunQA(bool matchOnly)
 			{
 				const int cid = cdata.Id(i);
 				float x, y, z;
-				merger.SliceParam().Slice2Global(cdata.X(i), cdata.Y(i), cdata.Z(i), &x, &y, &z);
+				merger.SliceParam().Slice2Global(iSlice, cdata.X(i), cdata.Y(i), cdata.Z(i), &x, &y, &z);
 				float totalWeight = 0.f;
 				if (hlt.GetNMCInfo() && hlt.GetNMCLabels())
 					for (int j = 0;j < 3;j++)

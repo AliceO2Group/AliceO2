@@ -18,7 +18,7 @@
 class AliHLTTPCGMMerger;
 class AliHLTTPCGMBorderTrack;
 class AliExternalTrackParam;
-class AliHLTTPCCAParam;
+class AliGPUCAParam;
 class AliHLTTPCGMPhysicalTrackModel;
 class AliHLTTPCGMPolynomialField;
 class AliHLTTPCGMMergedTrack;
@@ -105,8 +105,8 @@ public:
   GPUd() bool CheckCov() const ;
 
   GPUd() bool Fit(const AliHLTTPCGMMerger* merger, int iTrk, AliHLTTPCGMMergedTrackHit* clusters, int &N, int &NTolerated, float &Alpha, int attempt = 0, float maxSinPhi = HLTCA_MAX_SIN_PHI, AliHLTTPCCAOuterParam* outerParam = NULL);
-  GPUd() void MirrorTo(AliHLTTPCGMPropagator& prop, float toY, float toZ, bool inFlyDirection, const AliHLTTPCCAParam& param, unsigned char row, unsigned char clusterState, bool mirrorParameters);
-  GPUd() int MergeDoubleRowClusters(int ihit, int wayDirection, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, AliHLTTPCGMPropagator& prop, float& xx, float& yy, float& zz, int maxN, float clAlpha, unsigned char& clusterState, bool rejectChi2);
+  GPUd() void MirrorTo(AliHLTTPCGMPropagator& prop, float toY, float toZ, bool inFlyDirection, const AliGPUCAParam& param, unsigned char row, unsigned char clusterState, bool mirrorParameters);
+  GPUd() int MergeDoubleRowClusters(int ihit, int wayDirection, AliHLTTPCGMMergedTrackHit* clusters, const AliGPUCAParam &param, AliHLTTPCGMPropagator& prop, float& xx, float& yy, float& zz, int maxN, float clAlpha, unsigned char& clusterState, bool rejectChi2);
   
   GPUd() void AttachClustersMirror(const AliHLTTPCGMMerger* Merger, int slice, int iRow, int iTrack, float toY, AliHLTTPCGMPropagator& prop);
   GPUd() void AttachClustersPropagate(const AliHLTTPCGMMerger* Merger, int slice, int lastRow, int toRow, int iTrack, bool goodLeg, AliHLTTPCGMPropagator& prop, bool inFlyDirection, float maxSinPhi = HLTCA_MAX_SIN_PHI);
@@ -125,7 +125,7 @@ public:
   }
   
   GPUd() bool Rotate( float alpha );
-  GPUd() void ShiftZ(const AliHLTTPCGMPolynomialField* field, const AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, int N);
+  GPUd() void ShiftZ(const AliHLTTPCGMPolynomialField* field, const AliHLTTPCGMMergedTrackHit* clusters, const AliGPUCAParam &param, int N);
 
   GPUd() static float Reciprocal( float x ){ return 1./x; }
   GPUd() static void Assign( float &x, bool mask, float v ){

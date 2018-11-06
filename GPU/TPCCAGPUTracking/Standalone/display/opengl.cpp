@@ -595,7 +595,7 @@ inline void drawPointLinestrip(int iSlice, int cid, int id, int id_limit = TRACK
 
 vboList DrawClusters(const AliHLTTPCCATracker &tracker, int select, int iCol)
 {
-	int iSlice = tracker.Param().ISlice();
+	int iSlice = tracker.ISlice();
 	size_t startCount = vertexBufferStart[iSlice].size();
 	size_t startCountInner = vertexBuffer[iSlice].size();
 	const int firstCluster = (nCollisions > 1 && iCol > 0) ? collisionClusters[iCol - 1][iSlice] : 0;
@@ -635,21 +635,21 @@ vboList DrawClusters(const AliHLTTPCCATracker &tracker, int select, int iCol)
 			vertexBuffer[iSlice].emplace_back(globalPos[cid].x, globalPos[cid].y, projectxy ? 0 : globalPos[cid].z);
 		}
 	}
-	insertVertexList(tracker.Param().ISlice(), startCountInner, vertexBuffer[iSlice].size());
+	insertVertexList(tracker.ISlice(), startCountInner, vertexBuffer[iSlice].size());
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
 vboList DrawLinks(const AliHLTTPCCATracker &tracker, int id, bool dodown = false)
 {
-	int iSlice = tracker.Param().ISlice();
+	int iSlice = tracker.ISlice();
 	if (config.clustersOnly) return(vboList(0, 0, iSlice));
 	size_t startCount = vertexBufferStart[iSlice].size();
 	size_t startCountInner = vertexBuffer[iSlice].size();
-	for (int i = 0;i < tracker.Param().NRows();i++)
+	for (int i = 0;i < HLTCA_ROW_COUNT;i++)
 	{
 		const AliHLTTPCCARow &row = tracker.Data().Row(i);
 
-		if (i < tracker.Param().NRows() - 2)
+		if (i < HLTCA_ROW_COUNT - 2)
 		{
 			const AliHLTTPCCARow &rowUp = tracker.Data().Row(i + 2);
 			for (int j = 0;j < row.NHits();j++)
@@ -679,13 +679,13 @@ vboList DrawLinks(const AliHLTTPCCATracker &tracker, int id, bool dodown = false
 				}
 		}
 	}
-	insertVertexList(tracker.Param().ISlice(), startCountInner, vertexBuffer[iSlice].size());
+	insertVertexList(tracker.ISlice(), startCountInner, vertexBuffer[iSlice].size());
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
 vboList DrawSeeds(const AliHLTTPCCATracker &tracker)
 {
-	int iSlice = tracker.Param().ISlice();
+	int iSlice = tracker.ISlice();
 	if (config.clustersOnly) return(vboList(0, 0, iSlice));
 	size_t startCount = vertexBufferStart[iSlice].size();
 	for (int i = 0;i < *tracker.NTracklets();i++)
@@ -702,14 +702,14 @@ vboList DrawSeeds(const AliHLTTPCCATracker &tracker)
 			ir += 2;
 			ih = tracker.Data().HitLinkUpData(row, ih);
 		} while (ih != CALINK_INVAL);
-		insertVertexList(tracker.Param().ISlice(), startCountInner, vertexBuffer[iSlice].size());
+		insertVertexList(tracker.ISlice(), startCountInner, vertexBuffer[iSlice].size());
 	}
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
 vboList DrawTracklets(const AliHLTTPCCATracker &tracker)
 {
-	int iSlice = tracker.Param().ISlice();
+	int iSlice = tracker.ISlice();
 	if (config.clustersOnly) return(vboList(0, 0, iSlice));
 	size_t startCount = vertexBufferStart[iSlice].size();
 	for (int i = 0;i < *tracker.NTracklets();i++)
@@ -733,14 +733,14 @@ vboList DrawTracklets(const AliHLTTPCCATracker &tracker)
 				drawPointLinestrip(iSlice, cid, 4);
 			}
 		}
-		insertVertexList(tracker.Param().ISlice(), startCountInner, vertexBuffer[iSlice].size());
+		insertVertexList(tracker.ISlice(), startCountInner, vertexBuffer[iSlice].size());
 	}
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
 vboList DrawTracks(const AliHLTTPCCATracker &tracker, int global)
 {
-	int iSlice = tracker.Param().ISlice();
+	int iSlice = tracker.ISlice();
 	if (config.clustersOnly) return(vboList(0, 0, iSlice));
 	size_t startCount = vertexBufferStart[iSlice].size();
 	for (int i = (global ? tracker.CommonMemory()->fNLocalTracks : 0);i < (global ? *tracker.NTracks() : tracker.CommonMemory()->fNLocalTracks);i++)
@@ -754,7 +754,7 @@ vboList DrawTracks(const AliHLTTPCCATracker &tracker, int global)
 			const int cid = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, hit.HitIndex()));
 			drawPointLinestrip(iSlice, cid, 5 + global);
 		}
-		insertVertexList(tracker.Param().ISlice(), startCountInner, vertexBuffer[iSlice].size());
+		insertVertexList(tracker.ISlice(), startCountInner, vertexBuffer[iSlice].size());
 	}
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
@@ -916,10 +916,10 @@ void DrawFinal(int iSlice, int /*iCol*/, AliHLTTPCGMPropagator* prop, std::array
 
 vboList DrawGrid(const AliHLTTPCCATracker &tracker)
 {
-	int iSlice = tracker.Param().ISlice();
+	int iSlice = tracker.ISlice();
 	size_t startCount = vertexBufferStart[iSlice].size();
 	size_t startCountInner = vertexBuffer[iSlice].size();
-	for (int i = 0;i < tracker.Param().NRows();i++)
+	for (int i = 0;i < HLTCA_ROW_COUNT;i++)
 	{
 		const AliHLTTPCCARow &row = tracker.Data().Row(i);
 		for (int j = 0;j <= (signed) row.Grid().Ny();j++)
@@ -929,9 +929,9 @@ vboList DrawGrid(const AliHLTTPCCATracker &tracker)
 			float x = row.X() + Xadd;
 			float y = row.Grid().YMin() + (float) j / row.Grid().StepYInv();
 			float zz1, zz2, yy1, yy2, xx1, xx2;
-			tracker.Param().Slice2Global(x, y, z1, &xx1, &yy1, &zz1);
-			tracker.Param().Slice2Global(x, y, z2, &xx2, &yy2, &zz2);
-			if (zz1 >= 0)
+			tracker.Param().Slice2Global(tracker.ISlice(), x, y, z1, &xx1, &yy1, &zz1);
+			tracker.Param().Slice2Global(tracker.ISlice(), x, y, z2, &xx2, &yy2, &zz2);
+			if (iSlice < 18)
 			{
 				zz1 += Zadd;
 				zz2 += Zadd;
@@ -951,9 +951,9 @@ vboList DrawGrid(const AliHLTTPCCATracker &tracker)
 			float x = row.X() + Xadd;
 			float z = row.Grid().ZMin() + (float) j / row.Grid().StepZInv();
 			float zz1, zz2, yy1, yy2, xx1, xx2;
-			tracker.Param().Slice2Global(x, y1, z, &xx1, &yy1, &zz1);
-			tracker.Param().Slice2Global(x, y2, z, &xx2, &yy2, &zz2);
-			if (zz1 >= 0)
+			tracker.Param().Slice2Global(tracker.ISlice(), x, y1, z, &xx1, &yy1, &zz1);
+			tracker.Param().Slice2Global(tracker.ISlice(), x, y2, z, &xx2, &yy2, &zz2);
+			if (iSlice < 18)
 			{
 				zz1 += Zadd;
 				zz2 += Zadd;
@@ -967,7 +967,7 @@ vboList DrawGrid(const AliHLTTPCCATracker &tracker)
 			vertexBuffer[iSlice].emplace_back(xx2 / GL_SCALE_FACTOR, yy2 / GL_SCALE_FACTOR, zz2 / GL_SCALE_FACTOR);
 		}
 	}
-	insertVertexList(tracker.Param().ISlice(), startCountInner, vertexBuffer[iSlice].size());
+	insertVertexList(tracker.ISlice(), startCountInner, vertexBuffer[iSlice].size());
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
@@ -1295,9 +1295,9 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 					exit(1);
 				}
 				float4 *ptr = &globalPos[cid];
-				hlt.Tracker().CPUTracker(iSlice).Param().Slice2Global(cdata.X(i) + Xadd, cdata.Y(i), cdata.Z(i), &ptr->x, &ptr->y, &ptr->z);
+				hlt.Tracker().CPUTracker(iSlice).Param().Slice2Global(iSlice, cdata.X(i) + Xadd, cdata.Y(i), cdata.Z(i), &ptr->x, &ptr->y, &ptr->z);
 				if (fabs(ptr->z) > maxClusterZ) maxClusterZ = fabs(ptr->z);
-				if (ptr->z >= 0)
+				if (iSlice < 18)
 				{
 					ptr->z += Zadd;
 					ptr->z += Zadd;
@@ -1373,7 +1373,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			prop.SetMaxSinPhi(.999);
 			prop.SetMaterial(kRadLen, kRho);
 			prop.SetPolynomialField(merger.pField());
-			prop.SetToyMCEventsFlag(merger.SliceParam().ToyMCEventsFlag());
+			prop.SetToyMCEventsFlag(merger.SliceParam().ToyMCEventsFlag);
 
 #ifdef HLTCA_HAVE_OPENMP
 #pragma omp barrier

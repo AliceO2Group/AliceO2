@@ -27,18 +27,17 @@ class AliHLTTPCCAStartHitsFinder
       public:
 #if !defined(HLTCA_GPUCODE)
         AliHLTTPCCASharedMemory()
-            : fIRow( 0 ), fNRows( 0 ), fNHits( 0 ), fNRowStartHits( 0 ) {
+            : fIRow( 0 ), fNHits( 0 ), fNRowStartHits( 0 ) {
 }
 
         AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
-	  : fIRow( 0 ), fNRows( 0 ), fNHits( 0 ), fNRowStartHits( 0 ) {
+	  : fIRow( 0 ), fNHits( 0 ), fNRowStartHits( 0 ) {
 	}
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
 #endif //!HLTCA_GPUCODE
 
       protected:
         int fIRow; // row index
-        int fNRows; // n rows
         int fNHits; // n hits in the row
         int fNRowStartHits; //start hits found in the row
     };

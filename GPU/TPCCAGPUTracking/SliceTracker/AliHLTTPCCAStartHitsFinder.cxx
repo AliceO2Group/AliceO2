@@ -29,10 +29,9 @@ GPUd() void AliHLTTPCCAStartHitsFinder::Thread
 
   if ( iSync == 0 ) {
     if ( iThread == 0 ) {
-      s.fNRows = tracker.Param().NRows();
       s.fIRow = iBlock + 1;
       s.fNRowStartHits = 0;
-      if ( s.fIRow <= s.fNRows - 4 ) {
+      if ( s.fIRow <= HLTCA_ROW_COUNT - 4 ) {
         s.fNHits = tracker.Row( s.fIRow ).NHits();
       } else s.fNHits = -1;
     }

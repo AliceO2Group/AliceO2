@@ -47,5 +47,5 @@ static bool clusterRemovable(int cid, bool prot) {return false;}
 
 //QA - Event Generator
 extern void InitEventGenerator();
-extern int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename);
+extern int GenerateEvent(const AliGPUCAParam& sliceParam, char* filename);
 extern void FinishEventGenerator();

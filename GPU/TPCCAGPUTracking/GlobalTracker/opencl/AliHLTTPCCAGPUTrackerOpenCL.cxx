@@ -30,7 +30,7 @@
 #include "AliHLTTPCCAHitArea.h"
 #include "AliHLTTPCCAGrid.h"
 #include "AliHLTTPCCARow.h"
-#include "AliHLTTPCCAParam.h"
+#include "AliGPUCAParam.h"
 #include "AliHLTTPCCATracker.h"
 
 #include "AliHLTTPCCAProcess.h"
@@ -509,7 +509,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 		clSetKernelArgA(ocl->kernel_neighbours_finder, 1, ocl->mem_constant);
 		clSetKernelArgA(ocl->kernel_neighbours_finder, 2, iSlice);
 		fSlaveTrackers[firstSlice + iSlice].StartTimer(1);
-		clExecuteKernelA(ocl->command_queue[iSlice & 1], ocl->kernel_neighbours_finder, HLTCA_GPU_THREAD_COUNT_FINDER, HLTCA_GPU_THREAD_COUNT_FINDER * fSlaveTrackers[firstSlice + iSlice].Param().NRows(), NULL);
+		clExecuteKernelA(ocl->command_queue[iSlice & 1], ocl->kernel_neighbours_finder, HLTCA_GPU_THREAD_COUNT_FINDER, HLTCA_GPU_THREAD_COUNT_FINDER * HLTCA_ROW_COUNT, NULL);
 		if (GPUSync("Neighbours finder", iSlice & 1, iSlice + firstSlice) RANDOM_ERROR)
 		{
 			ResetHelperThreads(1);
@@ -529,7 +529,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 		clSetKernelArgA(ocl->kernel_neighbours_cleaner, 1, ocl->mem_constant);
 		clSetKernelArgA(ocl->kernel_neighbours_cleaner, 2, iSlice);
 		fSlaveTrackers[firstSlice + iSlice].StartTimer(2);
-		clExecuteKernelA(ocl->command_queue[iSlice & 1], ocl->kernel_neighbours_cleaner, HLTCA_GPU_THREAD_COUNT, HLTCA_GPU_THREAD_COUNT * (fSlaveTrackers[firstSlice + iSlice].Param().NRows() - 2), NULL);
+		clExecuteKernelA(ocl->command_queue[iSlice & 1], ocl->kernel_neighbours_cleaner, HLTCA_GPU_THREAD_COUNT, HLTCA_GPU_THREAD_COUNT * (HLTCA_ROW_COUNT - 2), NULL);
 		if (GPUSync("Neighbours Cleaner", iSlice & 1, iSlice + firstSlice) RANDOM_ERROR)
 		{
 			ResetHelperThreads(1);
@@ -549,7 +549,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 		clSetKernelArgA(ocl->kernel_start_hits_finder, 1, ocl->mem_constant);
 		clSetKernelArgA(ocl->kernel_start_hits_finder, 2, iSlice);
 		fSlaveTrackers[firstSlice + iSlice].StartTimer(3);
-		clExecuteKernelA(ocl->command_queue[iSlice & 1], ocl->kernel_start_hits_finder, HLTCA_GPU_THREAD_COUNT, HLTCA_GPU_THREAD_COUNT * (fSlaveTrackers[firstSlice + iSlice].Param().NRows() - 6), NULL);
+		clExecuteKernelA(ocl->command_queue[iSlice & 1], ocl->kernel_start_hits_finder, HLTCA_GPU_THREAD_COUNT, HLTCA_GPU_THREAD_COUNT * (HLTCA_ROW_COUNT - 6), NULL);
 		if (GPUSync("Start Hits Finder", iSlice & 1, iSlice + firstSlice) RANDOM_ERROR)
 		{
 			ResetHelperThreads(1);
