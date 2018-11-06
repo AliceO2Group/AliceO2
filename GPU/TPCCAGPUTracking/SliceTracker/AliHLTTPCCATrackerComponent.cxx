@@ -26,6 +26,7 @@
 
 #include "AliHLTTPCCATrackerComponent.h"
 #include "AliHLTTPCCATrackerFramework.h"
+#include "AliGPUReconstruction.h"
 #include "AliGPUCAParam.h"
 #include "AliHLTArray.h"
 
@@ -83,12 +84,13 @@ ClassImp( AliHLTTPCCATrackerComponent )
   fCPUTrackers(0),
   fGlobalTracking(0),
   fGPUDeviceNum(-1),
-  fGPULibrary(""),
+  fGPUType("CPU"),
   fGPUStuckProtection(0),
   fAsync(0),
   fDumpEvent(0),
   fDumpEventNClsCut(0),
   fSearchWindowDZDR(0.),
+  fRec(0),
   fAsyncProcessor()
 {
   // see header file for class documentation
@@ -121,12 +123,13 @@ AliHLTProcessor(),
   fCPUTrackers(0),
   fGlobalTracking(0),
   fGPUDeviceNum(-1),
-  fGPULibrary(""),
+  fGPUType("CPU"),
   fGPUStuckProtection(0),
   fAsync(0),
   fDumpEvent(0),
   fDumpEventNClsCut(0),
   fSearchWindowDZDR(0.),
+  fRec(0),
   fAsyncProcessor()
 {
   // see header file for class documentation
@@ -151,6 +154,7 @@ AliHLTTPCCATrackerComponent::~AliHLTTPCCATrackerComponent()
   // see header file for class documentation
   if (fTracker) delete fTracker;
   if (fClusterData) delete[] fClusterData;
+  if (fRec) delete fRec;
 }
 
 //
@@ -330,9 +334,9 @@ int AliHLTTPCCATrackerComponent::ReadConfigurationString(  const char* arguments
       continue;
     }
 
-    if ( argument.CompareTo( "-GPULibrary" ) == 0 ) {
+    if ( argument.CompareTo( "-GPUType" ) == 0 ) {
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
-      fGPULibrary = ( ( TObjString* )pTokens->At( i ) )->GetString();
+      fGPUType = ( ( TObjString* )pTokens->At( i ) )->GetString();
       continue;
     }
 
@@ -452,7 +456,8 @@ void* AliHLTTPCCATrackerComponent::TrackerInit(void* par)
     fMinSlice = 0;
     fSliceCount = fgkNSlices;
     //Create tracker instance and set parameters
-    fTracker = new AliHLTTPCCATrackerFramework(fAllowGPU, fGPULibrary, fGPUDeviceNum);
+    fRec = AliGPUReconstruction::CreateInstance(fAllowGPU ? fGPUType.Data() : "CPU", true);
+    fTracker = new AliHLTTPCCATrackerFramework(fRec);
     if ( fAllowGPU && fTracker->GetGPUStatus() < 2 ) {
       HLTError("GPU Tracker requested but unavailable, aborting.");
       return((void*) -1);

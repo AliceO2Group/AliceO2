@@ -43,7 +43,7 @@
 #include "DataFormatsTPC/ClusterHardware.h"
 #endif
 
-AliGPUReconstruction* rec = AliGPUReconstruction::CreateInstance();
+std::unique_ptr<AliGPUReconstruction> rec;
 
 //#define BROKEN_EVENTS
 
@@ -168,7 +168,14 @@ int main(int argc, char** argv)
 	}
 #endif
 
-	if (hlt.Initialize(configStandalone.runGPU ? configStandalone.gpuLibrary : NULL, configStandalone.cudaDevice))
+	rec.reset(AliGPUReconstruction::CreateInstance(configStandalone.runGPU ? configStandalone.gpuType : AliGPUReconstruction::DEVICE_TYPE_NAMES[AliGPUReconstruction::DeviceType::CPU], configStandalone.runGPUforce));
+	if (rec == nullptr)
+	{
+		printf("Error initializing AliGPUReconstruction\n");
+		return(1);
+	}
+
+	if (hlt.Initialize(rec.get()))
 	{
 		printf("Press a key to exit!\n");
 		getchar();

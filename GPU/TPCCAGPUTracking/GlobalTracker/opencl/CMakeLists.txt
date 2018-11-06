@@ -106,6 +106,7 @@ endif()
 # Sources in alphabetical order
 set(SRCS
     AliHLTTPCCAGPUTrackerOpenCL.cxx
+    AliGPUReconstructionOCL.cxx
     ${CMAKE_CURRENT_BINARY_DIR}/AliHLTTPCCAGPUTrackerOpenCLCode.S
    )
 

@@ -17,6 +17,7 @@
 class AliHLTTPCCATrackerFramework;
 class AliHLTTPCCASliceOutput;
 class AliHLTTPCCAClusterData;
+class AliGPUReconstruction;
 
 /**
  * @class AliHLTTPCCATrackerComponent
@@ -78,7 +79,7 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
   private:
 
     struct AliHLTTPCTrackerWrapperData
-    {  
+    {
       const AliHLTComponentEventData* fEvtData;
       const AliHLTComponentBlockData* fBlocks;
       AliHLTUInt8_t* fOutputPtr;
@@ -114,12 +115,13 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
     int fCPUTrackers;                 //Number of CPU trackers to run in addition to GPU tracker
     char fGlobalTracking;             //Activate global tracking feature
     int fGPUDeviceNum;				  //GPU Device to use, default -1 for auto detection
-    TString fGPULibrary;			  //Name of the library file that provides the GPU tracker object
+    TString fGPUType;		    	  //GPU type to use "CUDA", "HIP", "OCL"
     int fGPUStuckProtection;		//Protect from stuck GPUs
 	int fAsync;                       //Run tracking in async thread to catch GPU hangs....
 	int fDumpEvent;					//Debug function to dump event for standalone tracker
     int fDumpEventNClsCut;          //Do not dump events with <= clusters (default 0)
     float fSearchWindowDZDR;        //See TPCCAParam
+    AliGPUReconstruction* fRec;     //AliGPUReconstruction
 
     /** set configuration parameters **/
     void SetDefaultConfiguration();

@@ -15,6 +15,7 @@
 #include "AliHLTTPCCATrackerFramework.h"
 #include "AliHLTTPCClusterMCData.h"
 #include "AliHLTTPCCAMCInfo.h"
+class AliGPUReconstruction;
 #include <iostream>
 #include <fstream>
 
@@ -32,7 +33,7 @@ class AliHLTTPCCAStandaloneFramework
     AliHLTTPCCAStandaloneFramework();
     ~AliHLTTPCCAStandaloneFramework();
 
-    int Initialize(const char* gpuLibrary, int deviceNum);
+    int Initialize(AliGPUReconstruction* rec);
     void Uninitialize();
 
     static AliHLTTPCCAStandaloneFramework &Instance();

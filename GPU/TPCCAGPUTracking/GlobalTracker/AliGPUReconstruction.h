@@ -15,6 +15,7 @@ class AliHLTTRDTrackletWord;
 class AliHLTTPCClusterMCLabel;
 class AliHLTTPCCAMCInfo;
 class AliHLTTRDTracker;
+class AliHLTTPCCAGPUTracker;
 #include "AliHLTTRDDef.h"
 
 class AliGPUReconstruction
@@ -22,7 +23,11 @@ class AliGPUReconstruction
 public:
 	virtual ~AliGPUReconstruction();
 	
-	static AliGPUReconstruction* CreateInstance() {return new AliGPUReconstruction;}
+	enum DeviceType : unsigned int {RESERVED = 0, CPU = 1, CUDA = 2, HIP = 3, OCL = 4};
+	static constexpr const char* DEVICE_TYPE_NAMES[] = {"INVALID", "CPU", "CUDA", "HIP", "OCL"};
+	static AliGPUReconstruction* CreateInstance(DeviceType type = CPU, bool forceType = true);
+	static AliGPUReconstruction* CreateInstance(int type, bool forceType) {return CreateInstance((DeviceType) type, forceType);}
+	static AliGPUReconstruction* CreateInstance(const char* type, bool forceType);
 	
 	constexpr static size_t MIN_ALIGNMENT = 64;
 	constexpr static unsigned int NSLICES = 36;
@@ -107,6 +112,9 @@ public:
 	
 	int RunTRDTracking();
 	
+	AliHLTTRDTracker* GetTRDTracker() {return mTRDTracker.get();}
+	AliHLTTPCCAGPUTracker* GetTPCTracker() {return mTPCTracker.get();}
+	
 protected:
 	AliGPUReconstruction();
 	
@@ -115,6 +123,26 @@ protected:
 	template <class T> void AllocateIOMemoryHelper(unsigned int n, T* &ptr, std::unique_ptr<T[]> &u);
 	
 	std::unique_ptr<AliHLTTRDTracker> mTRDTracker;
+	std::unique_ptr<AliHLTTPCCAGPUTracker> mTPCTracker;
+	
+	class LibraryLoader
+	{
+		friend class AliGPUReconstruction;
+		LibraryLoader(const char* lib, const char* func);
+		~LibraryLoader();
+		LibraryLoader(const LibraryLoader&) CON_DELETE;
+		const LibraryLoader& operator= (const LibraryLoader&) CON_DELETE;
+		int LoadLibrary();
+		int CloseLibrary();
+		AliGPUReconstruction* GetPtr();
+		
+	private:
+		const char* mLibName;
+		const char* mFuncName;
+		void* mGPULib;
+		void* mGPUEntry;
+	};
+	static LibraryLoader sLibCUDA, sLibHIP, sLibOCL;
 };
 
 #endif

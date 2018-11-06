@@ -10,6 +10,8 @@
 #define ALIHLTTPCCAO2INTERFACE_H
 
 class AliHLTTPCCAStandaloneFramework;
+class AliGPUReconstruction;
+#include <memory>
 #include "AliHLTTPCCAClusterData.h"
 #include "AliHLTTPCGMMergedTrack.h"
 #include "AliHLTTPCGMMergedTrackHit.h"
@@ -37,6 +39,8 @@ private:
 	bool fDumpEvents;
 	bool fContinuous;
 	AliHLTTPCCAStandaloneFramework* fHLT;
+	
+	std::unique_ptr<AliGPUReconstruction> mRec;
 };
 
 #endif

@@ -5,7 +5,7 @@
 #warning ALIROOT LOGGING DISABLED FOR GPU TRACKING, CUDA incompatible to C++17 ROOT
 #endif
 
-#if defined(HLTCA_BUILD_ALIROOT_LIB) && !defined(HLTCA_GPULIBRARY)
+#if defined(HLTCA_BUILD_ALIROOT_LIB) && !defined(HLTCA_GPULIBRARY) && !defined(HLTCA_LOGGING_PRINTF)
 #include "AliHLTLogging.h"
 #define AliCAGPULogging AliHLTLogging
 #define CAGPUError(...) HLTError(__VA_ARGS__)

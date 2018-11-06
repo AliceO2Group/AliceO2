@@ -1,6 +1,13 @@
 #include <cstring>
 #include <stdio.h>
 
+#ifdef WIN32
+#include <windows.h>
+#include <winbase.h>
+#else
+#include <dlfcn.h>
+#endif
+
 #include "AliGPUReconstruction.h"
 
 #include "AliHLTTPCCAClusterData.h"
@@ -15,15 +22,21 @@
 #include "AliHLTTRDTrack.h"
 #include "AliHLTTRDTracker.h"
 
+#define HLTCA_LOGGING_PRINTF
+#include "AliCAGPULogging.h"
+
 static constexpr char DUMP_HEADER[] = "CAv1";
 
-AliGPUReconstruction::AliGPUReconstruction() : mIOPtrs(), mIOMem(), mTRDTracker(new AliHLTTRDTracker)
+AliGPUReconstruction::AliGPUReconstruction() : mIOPtrs(), mIOMem(), mTRDTracker(new AliHLTTRDTracker), mTPCTracker(nullptr)
 {
 	mTRDTracker->Init();
 }
 
 AliGPUReconstruction::~AliGPUReconstruction()
-{}
+{
+	mTRDTracker.reset();
+	mTPCTracker.reset();
+}
 
 AliGPUReconstruction::InOutMemory::InOutMemory() : mcLabelsTPC(), mcInfosTPC(), mergedTracks(), mergedTrackHits(), trdTracks(), trdTracklets()
 {}
@@ -94,7 +107,6 @@ int AliGPUReconstruction::ReadData(const char* filename)
 	(void) r;
 	if (strncmp(DUMP_HEADER, buf, strlen(DUMP_HEADER)))
 	{
-		printf("Error reading file!!!\n");
 		return(1);
 	}
 		
@@ -187,5 +199,135 @@ int AliGPUReconstruction::RunTRDTracking()
 	
 	printf("TRD Tracker reconstructed %d tracks\n", mTRDTracker->NTracks());
 	
+	return 0;
+}
+
+AliGPUReconstruction* AliGPUReconstruction::CreateInstance(DeviceType type, bool forceType)
+{
+	if (type == DeviceType::CPU)
+	{
+		return new AliGPUReconstruction;
+	}
+	else if (type == DeviceType::CUDA)
+	{
+		return sLibCUDA.GetPtr();
+	}
+	else if (type == DeviceType::HIP)
+	{
+		return sLibHIP.GetPtr();
+	}
+	else if (type == DeviceType::OCL)
+	{
+		return sLibOCL.GetPtr();
+	}
+	
+	return nullptr;
+}
+
+AliGPUReconstruction* AliGPUReconstruction::CreateInstance(const char* type, bool forceType)
+{
+	for (unsigned int i = 1;i < sizeof(DEVICE_TYPE_NAMES) / sizeof(DEVICE_TYPE_NAMES[0]);i++)
+	{
+		if (strcmp(DEVICE_TYPE_NAMES[i], type) == 0)
+		{
+			return CreateInstance(i, forceType);
+		}
+	}
+	printf("Invalid device type provided\n");
+	return nullptr;
+}
+
+#ifdef WIN32
+#define LIBRARY_EXTENSION ".dll"
+#else
+#define LIBRARY_EXTENSION ".so"
+#endif
+
+#if defined(HLTCA_BUILD_ALIROOT_LIB)
+#define LIBRARY_PREFIX "Ali"
+#elif defined(HLTCA_BUILD_O2_LIB)
+#define LIBRARY_PREFIX "O2"
+#else
+#define LIBRARY_PREFIX ""
+#endif
+
+AliGPUReconstruction::LibraryLoader AliGPUReconstruction::sLibCUDA("lib" LIBRARY_PREFIX "TPCCAGPUTracking" "CUDA" LIBRARY_EXTENSION, "AliGPUReconstruction_Create_" "CUDA");
+AliGPUReconstruction::LibraryLoader AliGPUReconstruction::sLibHIP("lib" LIBRARY_PREFIX "TPCCAGPUTracking" "HIP" LIBRARY_EXTENSION, "AliGPUReconstruction_Create_" "HIP");
+AliGPUReconstruction::LibraryLoader AliGPUReconstruction::sLibOCL("lib" LIBRARY_PREFIX "TPCCAGPUTracking" "OCL" LIBRARY_EXTENSION, "AliGPUReconstruction_Create_" "OCL");
+
+AliGPUReconstruction::LibraryLoader::LibraryLoader(const char* lib, const char* func) : mLibName(lib), mFuncName(func), mGPULib(nullptr), mGPUEntry(nullptr)
+{
+	LoadLibrary();
+}
+
+AliGPUReconstruction::LibraryLoader::~LibraryLoader()
+{
+	CloseLibrary();
+}
+
+int AliGPUReconstruction::LibraryLoader::LoadLibrary()
+{
+	#ifdef WIN32
+		HMODULE hGPULib;
+		hGPULib = LoadLibraryEx(mLibName, NULL, NULL);
+	#else
+		void* hGPULib;
+		hGPULib = dlopen(mLibName, RTLD_NOW);
+	#endif
+
+	if (hGPULib == NULL)
+	{
+		#ifndef WIN32
+			CAGPUImportant("The following error occured during dlopen: %s", dlerror());
+		#endif
+		CAGPUError("Error Opening cagpu library for GPU Tracker (%s)", mLibName);
+		return 1;
+	}
+	else
+	{
+		#ifdef WIN32
+			FARPROC createFunc = GetProcAddress(hGPULib, mFuncName);
+		#else
+			void* createFunc = (void*) dlsym(hGPULib, mFuncName);
+		#endif
+		if (createFunc == NULL)
+		{
+			CAGPUError("Error fetching entry function in GPU library\n");
+	#ifdef WIN32
+			FreeLibrary(hGPULib);
+	#else
+			dlclose(hGPULib);
+	#endif
+			return 1;
+		}
+		else
+		{
+			mGPULib = (void*) (size_t) hGPULib;
+			mGPUEntry = (void*) createFunc;
+			CAGPUInfo("GPU Tracker library loaded and GPU tracker object created sucessfully");
+		}
+	}
+	return 0;
+}
+
+AliGPUReconstruction* AliGPUReconstruction::LibraryLoader::GetPtr()
+{
+	if (mGPUEntry == nullptr) return nullptr;
+	AliGPUReconstruction* (*tmp)() = (AliGPUReconstruction* (*)()) mGPUEntry;
+	return tmp();
+}
+
+int AliGPUReconstruction::LibraryLoader::CloseLibrary()
+{
+	if (mGPUEntry == nullptr) return 1;
+	#ifdef WIN32
+		HMODULE hGPULib = (HMODULE) (size_t) mGPULib;
+		FreeLibrary(hGPULib);
+	#else
+		void* hGPULib = mGPULib;
+		dlclose(hGPULib);
+	#endif
+	mGPULib = nullptr;
+	mGPUEntry = nullptr;
 	return 0;
 }

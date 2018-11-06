@@ -83,6 +83,7 @@ endif()
 # Sources in alphabetical order
 set(SRCS
     AliHLTTPCCAGPUTrackerNVCC.cu
+    AliGPUReconstructionCUDA.cu
    )
 
 # Headers from sources
