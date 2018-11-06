@@ -340,7 +340,7 @@ void Cluster::EvalPrimaries(const std::vector<Digit>* digits)
         }
       }
       if (!found) {
-        mLabelsEProp.push_back(lab);
+        mLabels.push_back(lab);
         mLabelsEProp.push_back(eProp * ((*foundIt).getAmplitude()) / mFullEnergy);
       }
     }

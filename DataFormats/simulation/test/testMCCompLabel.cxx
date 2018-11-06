@@ -29,7 +29,7 @@ BOOST_AUTO_TEST_CASE(MCCompLabel_test)
     MCCompLabel lb(tr, ev, src);
     std::cout << "Input:   [" << src << '/' << ev << '/'
               << std::setw(6) << tr << ']' << std::endl;
-    std::cout << "Encoded: " << lb << " (packed: " << ULong_t(lb) << ")" << std::endl;
+    std::cout << "Encoded: " << lb << " (packed: " << lb.getEncodedLabel() << ")" << std::endl;
     int trE, evE, srcE;
     lb.get(trE, evE, srcE);
     std::cout << "Decoded: [" << srcE << '/' << evE << '/'

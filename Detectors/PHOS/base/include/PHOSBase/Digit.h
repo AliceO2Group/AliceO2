@@ -99,7 +99,7 @@ class Digit : public DigitBase
   /// \brief Proportion of energy deposited by particle idx
   /// \param idx index in a list of a particles, max length kMaxLabels
   /// \return Proportion of energy from this particle.
-  Label getLabelEProp(Int_t idx) const
+  double getLabelEProp(Int_t idx) const
   {
     if (idx < kMaxLabels)
       return mEProp[idx];

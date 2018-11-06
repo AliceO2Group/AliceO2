@@ -66,8 +66,6 @@ class MCCompLabel
     return (tr1 == tr2) ? 1 : ((tr1 = -tr2) ? 0 : -1);
   }
 
-  // conversion operator
-  operator ULong64_t() const { return mLabel; }
   // comparison operator, compares only label, not evential weight info
   bool operator==(const MCCompLabel& other) const { return (mLabel & maskFull) == (other.mLabel & maskFull); }
   // invalidate
@@ -83,6 +81,9 @@ class MCCompLabel
   int getTrackID() const { return static_cast<int>(mLabel & maskTrackID); }
   int getEventID() const { return (mLabel >> nbitsTrackID) & maskEvID; }
   int getSourceID() const { return (mLabel >> (nbitsTrackID + nbitsEvID)) & maskSrcID; }
+
+  ULong64_t getEncodedLabel() const { return mLabel; }
+
   void get(int& trackID, int& evID, int& srcID)
   {
     /// parse label
