@@ -1,7 +1,7 @@
 #include "AliGPUReconstructionOCL.h"
 #include "AliHLTTPCCAGPUTrackerOpenCL.h"
 
-AliGPUReconstructionOCL::AliGPUReconstructionOCL() : AliGPUReconstruction()
+AliGPUReconstructionOCL::AliGPUReconstructionOCL() : AliGPUReconstruction(OCL)
 {
     mTPCTracker.reset(new AliHLTTPCCAGPUTrackerOpenCL);
 }

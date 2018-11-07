@@ -1,5 +1,6 @@
 #include <cstring>
 #include <stdio.h>
+#include <mutex>
 
 #ifdef WIN32
 #include <windows.h>
@@ -27,7 +28,7 @@
 
 static constexpr char DUMP_HEADER[] = "CAv1";
 
-AliGPUReconstruction::AliGPUReconstruction() : mIOPtrs(), mIOMem(), mTRDTracker(new AliHLTTRDTracker), mTPCTracker(nullptr)
+AliGPUReconstruction::AliGPUReconstruction(DeviceType type) : mIOPtrs(), mIOMem(), mTRDTracker(new AliHLTTRDTracker), mTPCTracker(nullptr), mDeviceType(type)
 {
 	mTRDTracker->Init();
 }
@@ -204,24 +205,47 @@ int AliGPUReconstruction::RunTRDTracking()
 
 AliGPUReconstruction* AliGPUReconstruction::CreateInstance(DeviceType type, bool forceType)
 {
+	AliGPUReconstruction* retVal = nullptr;
 	if (type == DeviceType::CPU)
 	{
-		return new AliGPUReconstruction;
+		retVal = new AliGPUReconstruction(CPU);
 	}
 	else if (type == DeviceType::CUDA)
 	{
-		return sLibCUDA.GetPtr();
+		retVal = sLibCUDA.GetPtr();
 	}
 	else if (type == DeviceType::HIP)
 	{
-		return sLibHIP.GetPtr();
+		retVal = sLibHIP.GetPtr();
 	}
 	else if (type == DeviceType::OCL)
 	{
-		return sLibOCL.GetPtr();
+		retVal = sLibOCL.GetPtr();
+	}
+	else
+	{
+		printf("Error: Invalid device type %d\n", type);
+		return nullptr;
 	}
 	
-	return nullptr;
+	if (retVal == 0)
+	{
+		if (forceType)
+		{
+			printf("Error: Could not load AliGPUReconstruction for specified device: %s (%d)\n", DEVICE_TYPE_NAMES[type], type);
+		}
+		else
+		{
+			printf("Could not load AliGPUReconstruction for device type %s (%d), falling back to CPU version\n", DEVICE_TYPE_NAMES[type], type);
+			retVal = CreateInstance(CPU);
+		}
+	}
+	else
+	{
+		printf("Created AliGPUReconstruction instance for device type %s (%d)\n", DEVICE_TYPE_NAMES[type], type);
+	}
+	
+	return retVal;
 }
 
 AliGPUReconstruction* AliGPUReconstruction::CreateInstance(const char* type, bool forceType)
@@ -239,8 +263,16 @@ AliGPUReconstruction* AliGPUReconstruction::CreateInstance(const char* type, boo
 
 #ifdef WIN32
 #define LIBRARY_EXTENSION ".dll"
+#define LIBRARY_TYPE HMODULE
+#define LIBRARY_LOAD(name) LoadLibraryEx(name, NULL, NULL)
+#define LIBRARY_CLOSE FreeLibrary
+#define LIBRARY_FUNCTION GetProcAddress
 #else
 #define LIBRARY_EXTENSION ".so"
+#define LIBRARY_TYPE void*
+#define LIBRARY_LOAD(name) dlopen(name, RTLD_NOW)
+#define LIBRARY_CLOSE dlclose
+#define LIBRARY_FUNCTION dlsym
 #endif
 
 #if defined(HLTCA_BUILD_ALIROOT_LIB)
@@ -257,7 +289,6 @@ AliGPUReconstruction::LibraryLoader AliGPUReconstruction::sLibOCL("lib" LIBRARY_
 
 AliGPUReconstruction::LibraryLoader::LibraryLoader(const char* lib, const char* func) : mLibName(lib), mFuncName(func), mGPULib(nullptr), mGPUEntry(nullptr)
 {
-	LoadLibrary();
 }
 
 AliGPUReconstruction::LibraryLoader::~LibraryLoader()
@@ -267,14 +298,13 @@ AliGPUReconstruction::LibraryLoader::~LibraryLoader()
 
 int AliGPUReconstruction::LibraryLoader::LoadLibrary()
 {
-	#ifdef WIN32
-		HMODULE hGPULib;
-		hGPULib = LoadLibraryEx(mLibName, NULL, NULL);
-	#else
-		void* hGPULib;
-		hGPULib = dlopen(mLibName, RTLD_NOW);
-	#endif
-
+	static std::mutex mut;
+	std::lock_guard<std::mutex> lock(mut);
+	
+	if (mGPUEntry) return 0;
+	
+	LIBRARY_TYPE hGPULib;
+	hGPULib = LIBRARY_LOAD(mLibName);
 	if (hGPULib == NULL)
 	{
 		#ifndef WIN32
@@ -285,25 +315,17 @@ int AliGPUReconstruction::LibraryLoader::LoadLibrary()
 	}
 	else
 	{
-		#ifdef WIN32
-			FARPROC createFunc = GetProcAddress(hGPULib, mFuncName);
-		#else
-			void* createFunc = (void*) dlsym(hGPULib, mFuncName);
-		#endif
+		void* createFunc = LIBRARY_FUNCTION(hGPULib, mFuncName);
 		if (createFunc == NULL)
 		{
 			CAGPUError("Error fetching entry function in GPU library\n");
-	#ifdef WIN32
-			FreeLibrary(hGPULib);
-	#else
-			dlclose(hGPULib);
-	#endif
+			LIBRARY_CLOSE(hGPULib);
 			return 1;
 		}
 		else
 		{
 			mGPULib = (void*) (size_t) hGPULib;
-			mGPUEntry = (void*) createFunc;
+			mGPUEntry = createFunc;
 			CAGPUInfo("GPU Tracker library loaded and GPU tracker object created sucessfully");
 		}
 	}
@@ -312,6 +334,7 @@ int AliGPUReconstruction::LibraryLoader::LoadLibrary()
 
 AliGPUReconstruction* AliGPUReconstruction::LibraryLoader::GetPtr()
 {
+	if (LoadLibrary()) return nullptr;
 	if (mGPUEntry == nullptr) return nullptr;
 	AliGPUReconstruction* (*tmp)() = (AliGPUReconstruction* (*)()) mGPUEntry;
 	return tmp();
@@ -320,13 +343,7 @@ AliGPUReconstruction* AliGPUReconstruction::LibraryLoader::GetPtr()
 int AliGPUReconstruction::LibraryLoader::CloseLibrary()
 {
 	if (mGPUEntry == nullptr) return 1;
-	#ifdef WIN32
-		HMODULE hGPULib = (HMODULE) (size_t) mGPULib;
-		FreeLibrary(hGPULib);
-	#else
-		void* hGPULib = mGPULib;
-		dlclose(hGPULib);
-	#endif
+	LIBRARY_CLOSE((LIBRARY_TYPE) (size_t) mGPULib);
 	mGPULib = nullptr;
 	mGPUEntry = nullptr;
 	return 0;

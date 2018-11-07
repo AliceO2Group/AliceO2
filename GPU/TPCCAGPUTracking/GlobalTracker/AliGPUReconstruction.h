@@ -115,8 +115,10 @@ public:
 	AliHLTTRDTracker* GetTRDTracker() {return mTRDTracker.get();}
 	AliHLTTPCCAGPUTracker* GetTPCTracker() {return mTPCTracker.get();}
 	
+	DeviceType GetDeviceType() const {return mDeviceType;}
+	
 protected:
-	AliGPUReconstruction();
+	AliGPUReconstruction(DeviceType type);
 	
 	template <class T> void DumpData(FILE* fp, T** entries, unsigned int* num, InOutPointerType type);
 	template <class T> void ReadData(FILE* fp, T** entries, unsigned int* num, std::unique_ptr<T[]>* mem, InOutPointerType type);
@@ -143,6 +145,7 @@ protected:
 		void* mGPUEntry;
 	};
 	static LibraryLoader sLibCUDA, sLibHIP, sLibOCL;
+	DeviceType mDeviceType;
 };
 
 #endif
