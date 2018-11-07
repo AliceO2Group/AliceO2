@@ -17,7 +17,8 @@ namespace o2
 {
 namespace framework
 {
-FairMQTransportFactory *FairMQDeviceProxy::getTransport() {
+FairMQTransportFactory* FairMQDeviceProxy::getTransport()
+{
   return mDevice->Transport();
 }
 

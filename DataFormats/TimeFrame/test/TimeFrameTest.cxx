@@ -66,8 +66,8 @@ inline static void SimpleMsgCleanup(void* /*data*/, void* obj)
   delete static_cast<T*>(obj);
 }
 
-template<typename Factory, typename T>
-inline static FairMQMessagePtr NewSimpleMessage(Factory &f, const T& data)
+template <typename Factory, typename T>
+inline static FairMQMessagePtr NewSimpleMessage(Factory& f, const T& data)
 {
   auto* dataCopy = new T(data);
   return f.CreateMessage(dataCopy, sizeof(T), SimpleMsgCleanup<T>, dataCopy);
