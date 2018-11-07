@@ -22,6 +22,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
+#include "DetectorsBase/GeometryManager.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -56,11 +57,11 @@ DataProcessorSpec getEMCALDigitizerSpec(int channel)
   auto simChains = std::make_shared<std::vector<TChain*>>();
 
   // the instance of the actual digitizer
-  auto digitizer = std::make_shared<o2::emcal::Digitizer>();
+  auto digitizer = std::make_shared<o2::EMCAL::Digitizer>();
 
   // containers for digits and labels
-  auto digits = std::make_shared<std::vector<o2::emcal::Digit>>();
-  auto digitsAccum = std::make_shared<std::vector<o2::emcal::Digit>>(); // accumulator for all digits
+  auto digits = std::make_shared<std::vector<o2::EMCAL::Digit>>();
+  auto digitsAccum = std::make_shared<std::vector<o2::EMCAL::Digit>>(); // accumulator for all digits
   auto labels = std::make_shared<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
   // the actual processing function which get called whenever new data is incoming
@@ -87,7 +88,7 @@ DataProcessorSpec getEMCALDigitizerSpec(int channel)
 
     LOG(INFO) << " CALLING EMCAL DIGITIZATION ";
 
-    static std::vector<o2::emcal::Hit> hits;
+    static std::vector<o2::EMCAL::Hit> hits;
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum;
 
     auto& eventParts = context->getEventParts();
@@ -104,7 +105,7 @@ DataProcessorSpec getEMCALDigitizerSpec(int channel)
 
         // get the hits for this event and this source
         hits.clear();
-        retrieveHits(*simChains.get(), "EMCALHit", part.sourceID, part.entryID, &hits);
+        retrieveHits(*simChains.get(), "EMCHit", part.sourceID, part.entryID, &hits);
 
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found " << hits.size() << " hits ";
 
@@ -149,7 +150,13 @@ DataProcessorSpec getEMCALDigitizerSpec(int channel)
       simChains->back()->AddFile(signalfilename.c_str());
     }
 
+    // make sure that the geometry is loaded (TODO will this be done centrally?)
+    if (!gGeoManager) {
+      o2::Base::GeometryManager::loadGeometry();
+    }
+    auto geom = o2::EMCAL::Geometry::GetInstance("EMCAL_COMPLETE", "Geant4", "EMV-EMCAL");
     // init digitizer
+    digitizer->setGeometry(geom);
     digitizer->init();
 
     // return the actual processing function which is now setup/configured
