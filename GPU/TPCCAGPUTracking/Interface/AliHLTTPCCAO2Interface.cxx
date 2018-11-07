@@ -80,13 +80,13 @@ int AliHLTTPCCAO2Interface::Initialize(const char* options)
 				sscanf(optPtr + 8, "%d", &nThreads);
 				printf("Using %d threads\n", nThreads);
 			}
-			else if (optLen > 7 && strncmp(optPtr, "gpuType=", 7) == 0)
+			else if (optLen > 8 && strncmp(optPtr, "gpuType=", 8) == 0)
 			{
-				int len = std::min(optLen - 7, 1023);
-				memcpy(gpuType, optPtr + 7, len);
+				int len = std::min(optLen - 8, 1023);
+				memcpy(gpuType, optPtr + 8, len);
 				gpuType[len] = 0;
 				useGPU = true;
-				printf("Using GPU library %s\n", gpuType);
+				printf("Using GPU Type %s\n", gpuType);
 			}
 			else
 			{
@@ -103,6 +103,7 @@ int AliHLTTPCCAO2Interface::Initialize(const char* options)
 	if (nThreads != 1) printf("ERROR: Compiled without OpenMP. Cannot set number of threads!\n");
 #endif
 	mRec.reset(AliGPUReconstruction::CreateInstance(useGPU ? gpuType : "CPU", true));
+	if (mRec == nullptr) return 1;
 	if (fHLT->Initialize(mRec.get())) return 1;
 	fHLT->SetSettings(solenoidBz, false, false);
 	fHLT->SetNWays(3);

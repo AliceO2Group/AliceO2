@@ -17,9 +17,9 @@ cmake_minimum_required(VERSION 3.9)
 
 # Module
 if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
-set(MODULE O2TPCCAGPUTrackingCUDA)
+    set(MODULE O2TPCCAGPUTrackingCUDA)
 elseif(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
-set(MODULE AliTPCCAGPUTrackingCUDA)
+    set(MODULE AliTPCCAGPUTrackingCUDA)
 endif()
 add_definitions(-DHLTCA_GPULIBRARY=CUDA)
 
@@ -71,13 +71,8 @@ include_directories(${CAGPUDIR}/GlobalTracker
 include_directories(SYSTEM ${ROOT_INCLUDE_DIR})
 if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     include_directories(${AliRoot_SOURCE_DIR}/HLT/BASE)
-    add_definitions(-DHLTCA_BUILD_ALIROOT_LIB)
 else() #if we do not build for AliRoot, for the time being we still need some dummy headers for some definitions
     include_directories(${CAGPUDIR}/HLTHeaders ${CAGPUDIR}/Standalone/include)
-    add_definitions(-DHLTCA_STANDALONE)
-endif()
-if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
-    add_definitions(-DHLTCA_TPC_GEOMETRY_O2 -DHLTCA_BUILD_O2_LIB)
 endif()
 
 # Sources in alphabetical order
@@ -126,7 +121,7 @@ endif()
 #Default cmake build script for O2
 if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
     Set(LIBRARY_NAME ${MODULE})
-    set(BUCKET_NAME TPCCAGPUTracking_bucket)
+    set(BUCKET_NAME TPCCAGPUTrackingCUDA_bucket)
 
     O2_GENERATE_LIBRARY()
 

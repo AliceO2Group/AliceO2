@@ -18,6 +18,8 @@ class AliHLTTRDTracker;
 class AliHLTTPCCAGPUTracker;
 #include "AliHLTTRDDef.h"
 
+namespace o2 { namespace ITS { class TrackerTraits; }}
+
 class AliGPUReconstruction
 {
 public:
@@ -114,6 +116,7 @@ public:
 	
 	AliHLTTRDTracker* GetTRDTracker() {return mTRDTracker.get();}
 	AliHLTTPCCAGPUTracker* GetTPCTracker() {return mTPCTracker.get();}
+	o2::ITS::TrackerTraits* GetITSTrackerTraits() {return mITSTrackerTraits.get();}
 	
 	DeviceType GetDeviceType() const {return mDeviceType;}
 	
@@ -126,6 +129,7 @@ protected:
 	
 	std::unique_ptr<AliHLTTRDTracker> mTRDTracker;
 	std::unique_ptr<AliHLTTPCCAGPUTracker> mTPCTracker;
+	std::unique_ptr<o2::ITS::TrackerTraits> mITSTrackerTraits;
 	
 	class LibraryLoader
 	{

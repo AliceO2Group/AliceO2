@@ -37,6 +37,7 @@
     #define GPUsync()
 
     struct float4 { float x, y, z, w; };
+    struct float3 { float x, y, z; };
     struct float2 { float x; float y; };
     struct uchar2 { unsigned char x, y; };
     struct short2 { short x, y; };
@@ -49,6 +50,7 @@
     struct uint3 { unsigned int x, y, z; };
     struct uint4 { unsigned int x, y, z, w; };
     struct uint16 { unsigned int x[16]; };
+    struct dim3 { unsigned int x, y, z; };
 #endif
 
 #if defined(__OPENCL__) //Other special defines for OpenCL

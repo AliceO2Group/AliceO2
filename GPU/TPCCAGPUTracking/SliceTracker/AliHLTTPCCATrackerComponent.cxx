@@ -457,6 +457,7 @@ void* AliHLTTPCCATrackerComponent::TrackerInit(void* par)
     fSliceCount = fgkNSlices;
     //Create tracker instance and set parameters
     fRec = AliGPUReconstruction::CreateInstance(fAllowGPU ? fGPUType.Data() : "CPU", true);
+    if (fRec == NULL) return((void*) -1);
     fTracker = new AliHLTTPCCATrackerFramework(fRec);
     if ( fAllowGPU && fTracker->GetGPUStatus() < 2 ) {
       HLTError("GPU Tracker requested but unavailable, aborting.");
