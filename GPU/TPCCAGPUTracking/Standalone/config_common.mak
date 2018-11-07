@@ -15,7 +15,7 @@ INCLUDEPATHS				= include SliceTracker HLTHeaders Merger GlobalTracker TRDTracki
 DEFINES						= HLTCA_STANDALONE HLTCA_ENABLE_GPU_TRACKER
 CPPFILES					= cmodules/timer.cpp
 
-EXTRAFLAGSGCC				= -Weffc++
+EXTRAFLAGSGCC				=
 EXTRAFLAGSLINK				= -rdynamic
 
 ifeq ($(BUILD_DEBUG), 1)
@@ -75,11 +75,16 @@ endif
 
 ifneq (${CONFIG_O2DIR}, )
 DEFINES						+= HAVE_O2HEADERS
-INCLUDEPATHSSYSTEM			+= ${CONFIG_O2DIR}/Detectors/TPC/base/include \
+INCLUDEPATHSSYSTEM			+= O2Headers \
+								${CONFIG_O2DIR}/Detectors/TPC/base/include \
 								${CONFIG_O2DIR}/DataFormats/Detectors/TPC/include \
 								${CONFIG_O2DIR}/Detectors/TRD/base/include \
 								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/include \
-								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/cuda/include
+								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/cuda/include \
+								${CONFIG_O2DIR}/Common/Constants/include \
+								${CONFIG_O2DIR}/DataFormats/Reconstruction/include \
+								${CONFIG_O2DIR}/Common/MathUtils/include \
+								${CONFIG_O2DIR}/DataFormats/Detectors/Common/include
 endif
 
 ifeq ($(CONFIG_O2), 1)
