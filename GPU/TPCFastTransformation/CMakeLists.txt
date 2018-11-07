@@ -93,6 +93,10 @@ endif()
 #Default cmake build script for O2
 if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "O2")
     string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
+    set (HDRS
+        ${HDRS}
+    	../Common/AliTPCCommonDef.h
+    )
 
     Set(HEADERS ${HDRS})
     Set(LINKDEF LinkDef_O2.h)

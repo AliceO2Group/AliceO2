@@ -130,9 +130,9 @@ class TPCDistortionIRS :public FlatObject
 
 
   /// _______________ The main method: cluster distortion  _______________________  
-  /// 
-  int getDistortion( int slice, int row, float u, float v, float &dx, float &du, float &dv );
-
+  ///
+  int getDistortion(int slice, int row, float u, float v, float &dx, float &du,
+                    float &dv) const;
 
   /// _______________  Utilities  _______________________________________________
  
@@ -219,9 +219,9 @@ inline int TPCDistortionIRS::convSUVtoUV( int slice, int row, float su, float sv
   return 0;
 }
 
-
-inline int TPCDistortionIRS::getDistortion( int slice, int row, float u, float v, float &dx, float &du, float &dv )
-{
+inline int TPCDistortionIRS::getDistortion(int slice, int row, float u, float v,
+                                           float &dx, float &du,
+                                           float &dv) const {
   const IrregularSpline2D3D& spline = getSpline( slice, row );
   const float *splineData = getSplineData( slice, row );
   float su=0, sv=0;
