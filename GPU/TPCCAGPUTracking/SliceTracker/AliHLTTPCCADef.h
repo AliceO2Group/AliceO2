@@ -16,10 +16,6 @@
   #define WIN32
 #endif
 
-#if defined(__CUDACC__) || defined(__OPENCL__)
-  #define HLTCA_GPUCODE //Executed on GPU
-#endif
-
 #if defined(WIN32) && defined(INTEL_RUNTIME)
   #pragma warning(disable : 1786)
   #pragma warning(disable : 1478)
