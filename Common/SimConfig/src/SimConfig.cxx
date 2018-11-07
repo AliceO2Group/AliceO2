@@ -36,7 +36,9 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "outPrefix,o", bpo::value<std::string>()->default_value("o2sim"), "prefix of output files")(
     "logseverity", bpo::value<std::string>()->default_value("INFO"), "severity level for FairLogger")(
     "logverbosity", bpo::value<std::string>()->default_value("low"), "level of verbosity for FairLogger (low, medium, high, veryhigh)")(
-    "configKeyValues", bpo::value<std::string>()->default_value(""), "comma separated key=value strings (e.g.: 'TPC.gasDensity=1,...")("chunkSize", bpo::value<unsigned int>()->default_value(10000), "max size of primary chunk (subevent) distributed by server")("chunkSizeI", bpo::value<int>()->default_value(-1), "internalChunkSize");
+    "configKeyValues", bpo::value<std::string>()->default_value(""), "comma separated key=value strings (e.g.: 'TPC.gasDensity=1,...")("chunkSize", bpo::value<unsigned int>()->default_value(10000), "max size of primary chunk (subevent) distributed by server")(
+    "chunkSizeI", bpo::value<int>()->default_value(-1), "internalChunkSize")(
+    "seed", bpo::value<int>()->default_value(-1), "initial seed (default: -1 random)");
 }
 
 bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& vm)
@@ -82,6 +84,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mKeyValueTokens = vm["configKeyValues"].as<std::string>();
   mConfigData.mPrimaryChunkSize = vm["chunkSize"].as<unsigned int>();
   mConfigData.mInternalChunkSize = vm["chunkSizeI"].as<int>();
+  mConfigData.mStartSeed = vm["seed"].as<int>();
   return true;
 }
 

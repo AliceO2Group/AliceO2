@@ -39,8 +39,10 @@ struct SimConfigData {
                                              // (can be used to **loosly** change any configuration parameter from
                                              //  command-line)
   int mPrimaryChunkSize;                     // defining max granularity for input primaries of a sim job
-  int mInternalChunkSize;
-  ClassDefNV(SimConfigData, 1);
+  int mInternalChunkSize;                    //
+  int mStartSeed;                            // base for random number seeds
+
+  ClassDefNV(SimConfigData, 2);
 };
 
 // A singleton class which can be used
@@ -97,6 +99,7 @@ class SimConfig
   std::string getKeyValueString() const { return mConfigData.mKeyValueTokens; }
   int getPrimChunkSize() const { return mConfigData.mPrimaryChunkSize; }
   int getInternalChunkSize() const { return mConfigData.mInternalChunkSize; }
+  int getStartSeed() const { return mConfigData.mStartSeed; }
 
  private:
   SimConfigData mConfigData; //!
