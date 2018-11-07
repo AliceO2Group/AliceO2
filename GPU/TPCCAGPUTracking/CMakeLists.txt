@@ -69,6 +69,7 @@ set(SRCS SliceTracker/AliHLTTPCCATrack.cxx
     TRDTracking/AliHLTTRDTrackletWord.cxx
 
     GlobalTracker/AliGPUReconstruction.cxx
+    GlobalTracker/AliGPUReconstructionDeviceBase.cxx
     GlobalTracker/AliGPUCAParam.cxx
 )
 
@@ -135,6 +136,7 @@ set(HDRS ${HDRS}
     TRDTracking/AliHLTTRDTrack.h
     TRDTracking/AliHLTTRDTrackData.h
     TRDTracking/AliHLTTRDTrackPoint.h
+    GlobalTracker/AliGPUCADataTypes.h
 )
 #Not processed by ROOT
 set(HDRS2

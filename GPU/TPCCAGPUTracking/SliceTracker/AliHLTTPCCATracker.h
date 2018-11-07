@@ -218,6 +218,7 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
   
   GPUhd() MakeType(const MEM_LG(AliGPUCAParam)&) Param() const { return *fParam; }
   GPUhd() MakeType(const MEM_LG(AliGPUCAParam)*) pParam() const { return fParam; }
+  GPUhd() void SetParam(const MEM_LG(AliGPUCAParam)* p) { fParam = p; }
   GPUhd() int ISlice() const { return fISlice; }
   
   GPUhd() MakeType(const MEM_LG(AliHLTTPCCASliceData)&) Data() const { return fData; }
@@ -296,6 +297,7 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
   GPUhd() GPUglobalref() int* RowStartHitCountOffset() const {return(fRowStartHitCountOffset);}
   GPUhd() GPUglobalref() StructGPUParameters* GPUParameters() const {return(&fCommonMem->fGPUParameters);}
   GPUhd() MakeType(MEM_LG(StructGPUParametersConst)*) GPUParametersConst() {return(&fGPUParametersConst);}
+  GPUhd() MakeType(MEM_LG(const StructGPUParametersConst)*) GetGPUParametersConst() const {return(&fGPUParametersConst);}
   GPUhd() void SetGPUTextureBase(char* val) { fData.SetGPUTextureBase(val); }
 
   struct trackSortData

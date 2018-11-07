@@ -32,7 +32,7 @@ GPUdi() int AliHLTTPCCATrackletConstructor::FetchTracklet(GPUconstant() MEM_CONS
 
 GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) *pTracker, GPUsharedref() AliHLTTPCCATrackletConstructor::MEM_LOCAL(AliHLTTPCCASharedMemory)& sMem)
 {
-	const int nSlices = pTracker[0].GPUParametersConst()->fGPUnSlices;
+	const int nSlices = pTracker[0].GetGPUParametersConst()->fGPUnSlices;
 	int mySlice = get_group_id(0) % nSlices;
 	int currentSlice = -1;
 
@@ -106,7 +106,7 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorSingl
 GPUg() void AliHLTTPCCATrackletConstructorGPU()
 {
 	//GPU Wrapper for AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU
-	AliHLTTPCCATracker *pTracker = ( ( AliHLTTPCCATracker* ) gGPUConstantMem );
+	AliHLTTPCCATracker *pTracker = gGPUConstantMem.tpcTrackers;
 	GPUshared() AliHLTTPCCATrackletConstructor::MEM_LOCAL(AliHLTTPCCASharedMemory) sMem;
 	AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(pTracker, sMem);
 }
@@ -114,7 +114,7 @@ GPUg() void AliHLTTPCCATrackletConstructorGPU()
 GPUg() void AliHLTTPCCATrackletConstructorSingleSlice(int iSlice)
 {
 	GPUshared() AliHLTTPCCATrackletConstructor::MEM_LOCAL(AliHLTTPCCASharedMemory) sMem;
-	AliHLTTPCCATracker *pTracker = ((AliHLTTPCCATracker*) gGPUConstantMem) + iSlice;
+	AliHLTTPCCATracker *pTracker = &gGPUConstantMem.tpcTrackers[iSlice];
 	AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorSingleSlice(pTracker, sMem);
 }
 #endif

@@ -4,17 +4,19 @@
 #ifdef HAVE_O2HEADERS
 #include "ITStrackingCUDA/TrackerTraitsNV.h"
 
+#ifndef HLTCA_BUILD_O2_LIB
 #include "TrackerTraitsNV.cu"
 #include "Context.cu"
 #include "Stream.cu"
 #include "DeviceStoreNV.cu"
 #include "Utils.cu"
+#endif
 
 #else
 namespace o2 { namespace ITS { class TrackerTraits {}; class TrackerTraitsNV : public TrackerTraits {}; }}
 #endif
 
-AliGPUReconstructionCUDA::AliGPUReconstructionCUDA() : AliGPUReconstruction(CUDA)
+AliGPUReconstructionCUDA::AliGPUReconstructionCUDA() : AliGPUReconstructionDeviceBase(CUDA)
 {
     mTPCTracker.reset(new AliHLTTPCCAGPUTrackerNVCC);
     mITSTrackerTraits.reset(new o2::ITS::TrackerTraitsNV);

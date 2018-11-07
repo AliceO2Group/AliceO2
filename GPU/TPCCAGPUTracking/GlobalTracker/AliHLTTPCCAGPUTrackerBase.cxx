@@ -214,7 +214,8 @@ fGlobalTracking(0),
 fUseGlobalTracking(0),
 fNSlaveThreads(0),
 fStuckProtection(0),
-fGPUStuck(0)
+fGPUStuck(0),
+fParam(NULL)
 {}
 
 AliHLTTPCCAGPUTrackerBase::~AliHLTTPCCAGPUTrackerBase()
@@ -388,6 +389,7 @@ int AliHLTTPCCAGPUTrackerBase::InitializeSliceParam(int iSlice, const AliGPUCAPa
 {
 	//Initialize Slice Tracker Parameter for a slave tracker
 	fSlaveTrackers[iSlice].Initialize(param, iSlice);
+	fParam = param;
 	return(0);
 }
 
@@ -852,12 +854,6 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_Init(AliHLTTPCCASliceOutput** pO
 	}
 
 	if (fDebugLevel >= 2) CAGPUInfo("Running GPU Tracker (Slices %d to %d)", fSlaveTrackers[firstSlice].ISlice(), fSlaveTrackers[firstSlice].ISlice() + sliceCountLocal);
-
-	if (sliceCountLocal * sizeof(AliHLTTPCCATracker) > HLTCA_GPU_TRACKER_CONSTANT_MEM)
-	{
-		CAGPUError("Insuffissant constant memory (Required %d, Available %d, Tracker %d, Param %d, SliceData %d)", sliceCountLocal * (int) sizeof(AliHLTTPCCATracker), (int) HLTCA_GPU_TRACKER_CONSTANT_MEM, (int) sizeof(AliHLTTPCCATracker), (int) sizeof(AliGPUCAParam), (int) sizeof(AliHLTTPCCASliceData));
-		return(1);
-	}
 
 	ActivateThreadContext();
 

@@ -30,7 +30,11 @@
 #include <cuda.h>
 #include <sm_20_atomic_functions.h>
 
-__constant__ float4 gGPUConstantMem[HLTCA_GPU_TRACKER_CONSTANT_MEM / sizeof( float4 )];
+#include "AliGPUCADataTypes.h"
+__constant__ char gGPUConstantMemBuffer[sizeof(AliGPUCAConstantMem)];
+__constant__ AliGPUCAConstantMem& gGPUConstantMem = (AliGPUCAConstantMem&) gGPUConstantMemBuffer;
+
+AliGPUCAConstantMem AliGPUCAConstantMemDummy;
 #ifdef HLTCA_GPU_USE_TEXTURES
 texture<cahit2, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu2;
 texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
@@ -326,7 +330,21 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 	fGpuTracker[0].fStageAtSync = tmpMem;
 	GPUFailedMsg(cudaMemset(fGpuTracker[0].StageAtSync(), 0, 100000000));
 #endif
-	GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMem, fGpuTracker, sizeof(AliHLTTPCCATracker) * sliceCountLocal, 0, cudaMemcpyHostToDevice, cudaStreams[0]));
+	GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, fParam, sizeof(AliGPUCAParam), (char*) &AliGPUCAConstantMemDummy.param - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice, cudaStreams[0]));
+	
+	void* devPtrConstantMem;
+	if (GPUFailedMsg(cudaGetSymbolAddress(&devPtrConstantMem, gGPUConstantMemBuffer)))
+	{
+		CAGPUError("Error getting ptr to constant memory");
+		ResetHelperThreads(0);
+		return 1;
+	}
+	for (int i = 0;i < 36;i++)
+	{
+		fGpuTracker[i].SetParam((AliGPUCAParam*) ((char*) devPtrConstantMem + ((char*) &AliGPUCAConstantMemDummy.param - (char*) &AliGPUCAConstantMemDummy)));
+	}
+	GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, fGpuTracker, sizeof(AliHLTTPCCATracker) * sliceCountLocal, (char*) AliGPUCAConstantMemDummy.tpcTrackers - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice, cudaStreams[0]));
+	
 	bool globalSymbolDone = false;
 	if (GPUSync("Initialization (1)", 0, firstSlice) RANDOM_ERROR)
 	{
@@ -732,11 +750,9 @@ int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger, bool
 	char* gpumem = (char*) fGPUMergerMemory;
 	AliHLTTPCGMMergedTrackHit *clusters;
 	AliHLTTPCGMMergedTrack* tracks;
-	AliHLTTPCGMPolynomialField* field;
 
 	AssignMemory(clusters, gpumem, Merger->NClusters());
 	AssignMemory(tracks, gpumem, Merger->NOutputTracks());
-	AssignMemory(field, gpumem, 1);
 
 	if ((size_t) (gpumem - (char*) fGPUMergerMemory) > (size_t) fGPUMergerMaxMemory)
 	{
@@ -749,11 +765,20 @@ int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger, bool
 	timer.Start();
 	AliHLTTPCGMMerger* gpuMerger = (AliHLTTPCGMMerger*) new char[sizeof(AliHLTTPCGMMerger)]; //We don't want constructor / destructor!
 	memcpy((void*) gpuMerger, Merger, sizeof(AliHLTTPCGMMerger));
-	GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMem, Merger, sizeof(*Merger), 0, cudaMemcpyHostToDevice));
+
+	void* devPtrConstantMem;
+	if (GPUFailedMsg(cudaGetSymbolAddress(&devPtrConstantMem, gGPUConstantMemBuffer)))
+	{
+		CAGPUError("Error getting ptr to constant memory");
+		ResetHelperThreads(0);
+		return 1;
+	}
+	gpuMerger->SetSliceParam((AliGPUCAParam*) ((char*) devPtrConstantMem + ((char*) &AliGPUCAConstantMemDummy.param - (char*) &AliGPUCAConstantMemDummy)), false, false, true);
+
+	GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, gpuMerger, sizeof(*Merger), (char*) &AliGPUCAConstantMemDummy.tpcMerger - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice));
 	delete[] (char*) gpuMerger;
 	GPUFailedMsg(cudaMemcpy(clusters, Merger->Clusters(), Merger->NOutputTrackClusters() * sizeof(clusters[0]), cudaMemcpyHostToDevice));
 	GPUFailedMsg(cudaMemcpy(tracks, Merger->OutputTracks(), Merger->NOutputTracks() * sizeof(AliHLTTPCGMMergedTrack), cudaMemcpyHostToDevice));
-	GPUFailedMsg(cudaMemcpy(field, Merger->pField(), sizeof(AliHLTTPCGMPolynomialField), cudaMemcpyHostToDevice));
 	times[0] += timer.GetCurrentElapsedTime(true);
 	RefitTracks<<<fConstructorBlockCount, HLTCA_GPU_THREAD_COUNT>>>(tracks, Merger->NOutputTracks(), clusters);
 	GPUFailedMsg(cudaDeviceSynchronize());
