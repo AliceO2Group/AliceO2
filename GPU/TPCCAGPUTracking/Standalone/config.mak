@@ -44,3 +44,9 @@ DEFINES						+= BUILD_QA
 INCLUDEPATHSSYSTEM			+= $(shell root-config --incdir)
 LIBSUSE						+= $(shell root-config --libs)
 endif
+
+ifneq (${CONFIG_O2DIR}, )
+CXXFILES					+= ${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/src/PrimaryVertexContext.cxx \
+								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/src/Cluster.cxx \
+								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/src/TrackerTraitsCPU.cxx
+endif
