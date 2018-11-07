@@ -1119,6 +1119,7 @@ o2_define_bucket(
     Base
     TreePlayer
     O2TPCCAGPUTracking
+    O2TPCFastTransformation
     TPCSimulation
     #the dependency on TPCSimulation should be removed at some point
     #perhaps 'Cluster' can be moved to base, or so
