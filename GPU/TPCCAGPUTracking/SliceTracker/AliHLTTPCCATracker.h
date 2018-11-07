@@ -67,7 +67,7 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
 #endif
       fLinkTmpMemory( NULL ),
 #endif
-      fParam(),
+      fParam(NULL),
       fISlice(0),
       fOutputControl(),
       fClusterData( 0 ),
@@ -128,7 +128,7 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
     StructGPUParameters fGPUParameters; // GPU parameters
   };
   
-  MEM_CLASS_PRE2() void Initialize( const MEM_LG2(AliGPUCAParam) &param, int iSlice );
+  MEM_CLASS_PRE2() void Initialize( const MEM_LG2(AliGPUCAParam) *param, int iSlice );
   
   void StartEvent();
   
@@ -196,12 +196,12 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
   MEM_CLASS_PRE2() GPUd() void GetErrors2( int iRow,  const MEM_LG2(AliHLTTPCCATrackParam) &t, float &ErrY2, float &ErrZ2 ) const
   {
     //fParam.GetClusterErrors2( iRow, fParam.GetContinuousTracking() != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
-    fParam.GetClusterRMS2( iRow, fParam.ContinuousTracking != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
+    fParam->GetClusterRMS2( iRow, fParam->ContinuousTracking != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
   }
   GPUd() void GetErrors2( int iRow, float z, float sinPhi, float DzDs, float &ErrY2, float &ErrZ2 ) const
   {
     //fParam.GetClusterErrors2( iRow, fParam.GetContinuousTracking() != 0. ? 125. : z, sinPhi, DzDs, ErrY2, ErrZ2 );
-    fParam.GetClusterRMS2( iRow, fParam.ContinuousTracking != 0. ? 125. : z, sinPhi, DzDs, ErrY2, ErrZ2 );
+    fParam->GetClusterRMS2( iRow, fParam->ContinuousTracking != 0. ? 125. : z, sinPhi, DzDs, ErrY2, ErrZ2 );
   }
   
   void SetupCommonMemory();
@@ -216,10 +216,9 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
   GPUh() void ReadTracks( std::istream &in );
 #endif //!HLTCA_GPUCODE
   
-  GPUhd() MakeType(const MEM_LG(AliGPUCAParam)&) Param() const { return fParam; }
-  GPUhd() MakeType(const MEM_LG(AliGPUCAParam)*) pParam() const { return &fParam; }
+  GPUhd() MakeType(const MEM_LG(AliGPUCAParam)&) Param() const { return *fParam; }
+  GPUhd() MakeType(const MEM_LG(AliGPUCAParam)*) pParam() const { return fParam; }
   GPUhd() int ISlice() const { return fISlice; }
-  MEM_CLASS_PRE2() GPUhd() void SetParam( const MEM_LG2(AliGPUCAParam) &v, int iSlice ) { fParam = v; fISlice = iSlice; }
   
   GPUhd() MakeType(const MEM_LG(AliHLTTPCCASliceData)&) Data() const { return fData; }
   
@@ -334,7 +333,7 @@ public:
 private:
 #endif
   
-  MEM_LG(AliGPUCAParam) fParam; // parameters
+  GPUglobalref() const MEM_GLOBAL(AliGPUCAParam) *fParam; // parameters
   int fISlice; //Number of slice
 #ifdef HLTCA_STANDALONE
   HighResTimer fTimers[10];

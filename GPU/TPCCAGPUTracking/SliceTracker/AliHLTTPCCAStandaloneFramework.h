@@ -62,7 +62,6 @@ class AliHLTTPCCAStandaloneFramework
     double StatTime( int iTimer ) const { return fStatTime[iTimer]; }
     int StatNEvents() const { return fStatNEvents; }
 
-    void SetSettings(float solenoidBz, bool toyMCEvents, bool constBz);
     void WriteEvent( std::ostream &out ) const;
     int ReadEvent( std::istream &in, bool ResetIds = false, bool addData = false, float shift = 0., float minZ = -1e6, float maxZ = -1e6, bool silent = false, bool doQA = true );
 
@@ -71,19 +70,12 @@ class AliHLTTPCCAStandaloneFramework
 	int SetGPUTracker(bool enable) { return(fTracker->SetGPUTracker(enable)); }
 	int GetGPUStatus() const { return(fTracker->GetGPUStatus()); }
 	int GetGPUMaxSliceCount() const { return(fTracker->MaxSliceCount()); }
-	void SetNWays(int v) { AliGPUCAParam param = fMerger.SliceParam(); param.NWays = v; fMerger.SetSliceParam(param);}
-	void SetNWaysOuter(bool v) { AliGPUCAParam param = fMerger.SliceParam(); param.NWaysOuter = v; fMerger.SetSliceParam(param);}
-	void SetSearchWindowDZDR(float v) { AliGPUCAParam param = fMerger.SliceParam(); param.SearchWindowDZDR =v; fMerger.SetSliceParam(param);for (int i = 0;i < fgkNSlices;i++) fTracker->GetParam(i).SearchWindowDZDR = v;}
-	void SetContinuousTracking(bool v) { AliGPUCAParam param = fMerger.SliceParam(); param.ContinuousTracking = v; fMerger.SetSliceParam(param);for (int i = 0;i < fgkNSlices;i++) fTracker->GetParam(i).ContinuousTracking = v;}
-    void SetRejectMode(char v) { AliGPUCAParam param = fMerger.SliceParam(); param.RejectMode = v; fMerger.SetSliceParam(param);}
-	void SetTrackReferenceX(float v) { AliGPUCAParam param = fMerger.SliceParam(); param.TrackReferenceX = v; fMerger.SetSliceParam(param);}
-	void UpdateGPUSliceParam() {fTracker->UpdateGPUSliceParam();}
 	void SetEventDisplay(int v) {fEventDisplay = v;}
 	void SetRunQA(int v) {fRunQA = v;}
 	void SetRunMerger(int v) {fRunMerger = v;}
 	void SetExternalClusterData(AliHLTTPCCAClusterData* v) {fClusterData = v;}
 
-	int InitializeSliceParam(int iSlice, AliGPUCAParam& param) { return(fTracker->InitializeSliceParam(iSlice, param)); }
+	int InitializeSliceParam(int iSlice, const AliGPUCAParam* param) { return(fTracker->InitializeSliceParam(iSlice, param)); }
 	void SetOutputControl(char* ptr, size_t size) {fOutputControl.fOutputPtr = ptr;fOutputControl.fOutputMaxSize = size;}
 
 	int GetNMCLabels() {return(fMCLabels.size());}

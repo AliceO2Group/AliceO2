@@ -436,18 +436,19 @@ void AliHLTTPCCATrackerComponent::ConfigureSlices()
   AliGPUCAParam param;
   param.SetDefaults(fSolenoidBz);
   param.LoadClusterErrors();
+
+  param.HitPickUpFactor = 2;
+  if( fNeighboursSearchArea>0 ) param.NeighboursSearchArea = fNeighboursSearchArea;
+  if( fClusterErrorCorrectionY>1.e-4 ) param.ClusterError2CorrectionY = fClusterErrorCorrectionY*fClusterErrorCorrectionY;
+  if( fClusterErrorCorrectionZ>1.e-4 ) param.ClusterError2CorrectionZ = fClusterErrorCorrectionZ*fClusterErrorCorrectionZ;
+  param.MinNTrackClusters = fMinNTrackClusters;
+  param.SetMinTrackPt(fMinTrackPt);
+  param.SearchWindowDZDR = fSearchWindowDZDR;
+  
+  fRec->SetParam(param);
   for (int slice = 0;slice < fgkNSlices;slice++)
   {
-
-    param.HitPickUpFactor = 2;
-    if( fNeighboursSearchArea>0 ) param.NeighboursSearchArea = fNeighboursSearchArea;
-    if( fClusterErrorCorrectionY>1.e-4 ) param.ClusterError2CorrectionY = fClusterErrorCorrectionY*fClusterErrorCorrectionY;
-    if( fClusterErrorCorrectionZ>1.e-4 ) param.ClusterError2CorrectionZ = fClusterErrorCorrectionZ*fClusterErrorCorrectionZ;
-    param.MinNTrackClusters = fMinNTrackClusters;
-    param.SetMinTrackPt(fMinTrackPt);
-    param.SearchWindowDZDR = fSearchWindowDZDR;
-
-    fTracker->InitializeSliceParam( slice, param );
+    fTracker->InitializeSliceParam( slice, &fRec->GetParam() );
   }
 }
 

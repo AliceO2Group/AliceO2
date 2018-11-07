@@ -17,6 +17,7 @@ class AliHLTTPCCAMCInfo;
 class AliHLTTRDTracker;
 class AliHLTTPCCAGPUTracker;
 #include "AliHLTTRDDef.h"
+#include "AliGPUCAParam.h"
 
 namespace o2 { namespace ITS { class TrackerTraits; }}
 
@@ -127,6 +128,9 @@ public:
 	o2::ITS::TrackerTraits* GetITSTrackerTraits() {return mITSTrackerTraits.get();}
 	
 	DeviceType GetDeviceType() const {return mDeviceType;}
+	void SetParam(const AliGPUCAParam& param) {mParam = param;}
+	const AliGPUCAParam& GetParam() const {return mParam;}
+	AliGPUCAParam& GetParam() {return mParam;}
 	
 protected:
 	AliGPUReconstruction(DeviceType type);
@@ -158,6 +162,8 @@ protected:
 	};
 	static LibraryLoader sLibCUDA, sLibHIP, sLibOCL;
 	DeviceType mDeviceType;
+	
+	AliGPUCAParam mParam;
 };
 
 #endif

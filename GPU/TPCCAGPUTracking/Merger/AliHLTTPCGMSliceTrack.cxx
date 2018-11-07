@@ -21,7 +21,7 @@
 #include "AliGPUCAParam.h"
 #include <cmath>
 
-bool AliHLTTPCGMSliceTrack::FilterErrors( AliGPUCAParam &param, float maxSinPhi, float sinPhiMargin )
+bool AliHLTTPCGMSliceTrack::FilterErrors( const AliGPUCAParam &param, float maxSinPhi, float sinPhiMargin )
 {
   float lastX = fOrigTrack->Cluster(fOrigTrack->NClusters()-1 ).GetX();
 

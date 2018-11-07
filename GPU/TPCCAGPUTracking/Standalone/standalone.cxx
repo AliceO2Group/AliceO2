@@ -182,6 +182,9 @@ int main(int argc, char** argv)
 		return(1);
 	}
 
+	AliGPUCAParam param;
+    param.SetDefaults(eventSettings.solenoidBz);
+
 	hlt.SetGPUDebugLevel(configStandalone.DebugLevel, &CPUOut, &GPUOut);
 	hlt.SetEventDisplay(configStandalone.eventDisplay);
 	hlt.SetRunQA(configStandalone.qa);
@@ -192,14 +195,25 @@ int main(int argc, char** argv)
 	configStandalone.sliceCount = hlt.GetGPUMaxSliceCount();
 	hlt.SetGPUTracker(configStandalone.runGPU);
 
-	hlt.SetSettings(eventSettings.solenoidBz, eventSettings.homemadeEvents, eventSettings.constBz);
-	hlt.SetNWays(configStandalone.nways);
-	hlt.SetNWaysOuter(configStandalone.nwaysouter);
-	hlt.SetRejectMode(configStandalone.rejectMode);
-	if (configStandalone.cont) hlt.SetContinuousTracking(configStandalone.cont);
-	if (configStandalone.dzdr != 0.) hlt.SetSearchWindowDZDR(configStandalone.dzdr);
-	if (configStandalone.referenceX < 500.) hlt.SetTrackReferenceX(configStandalone.referenceX);
-	hlt.UpdateGPUSliceParam();
+	param.HitPickUpFactor = 2;
+    param.MinNTrackClusters = -1;
+    param.SetMinTrackPt(MIN_TRACK_PT_DEFAULT);
+    param.AssumeConstantBz = eventSettings.constBz;
+    param.ToyMCEventsFlag = eventSettings.homemadeEvents;
+    param.ClusterError2CorrectionZ = 1.1;
+	param.NWays = configStandalone.nways;
+	param.NWaysOuter = configStandalone.nwaysouter;
+	param.RejectMode = configStandalone.rejectMode;
+	param.ContinuousTracking = configStandalone.cont;
+	param.SearchWindowDZDR = configStandalone.dzdr;
+	if (configStandalone.referenceX < 500.) param.TrackReferenceX = configStandalone.referenceX;
+	rec->SetParam(param);
+	for (int i = 0;i < 36;i++)
+	{
+		hlt.InitializeSliceParam(i, &rec->GetParam());
+	}
+	hlt.Merger().SetSliceParam(&rec->GetParam());
+
 	hlt.SetGPUTrackerOption("GlobalTracking", 1);
 
 	for (unsigned int i = 0;i < configStandalone.gpuOptions.size();i++)
