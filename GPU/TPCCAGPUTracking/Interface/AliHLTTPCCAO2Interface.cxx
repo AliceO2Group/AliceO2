@@ -136,16 +136,22 @@ int AliHLTTPCCAO2Interface::RunTracking(const AliHLTTPCCAClusterData* inputClust
 	if (!fInitialized) return(1);
 	static int nEvent = 0;
 	fHLT->SetExternalClusterData((AliHLTTPCCAClusterData*) inputClusters);
+	
 	if (fDumpEvents)
 	{
-		std::ofstream out;
+		mRec->ClearIOPointers();
+		for (int i = 0;i < 36;i++)
+		{
+			mRec->mIOPtrs.nClusterData[i] = inputClusters[i].NumberOfClusters();
+			mRec->mIOPtrs.clusterData[i] = ((AliHLTTPCCAClusterData*) inputClusters)[i].Clusters();
+		}
+		
 		char fname[1024];
 		sprintf(fname, "event.%d.dump", nEvent);
-		out.open(fname, std::ofstream::binary);
-		fHLT->WriteEvent(out);
-		out.close();
+		mRec->DumpData(fname);
 		if (nEvent == 0)
 		{
+			std::ofstream out;
 			out.open("settings.dump", std::ofstream::binary);
 			hltca_event_dump_settings settings;
 			settings.setDefaults();
