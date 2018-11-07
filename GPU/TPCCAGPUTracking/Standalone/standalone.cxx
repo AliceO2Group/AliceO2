@@ -186,10 +186,8 @@ int main(int argc, char** argv)
 	hlt.SetEventDisplay(configStandalone.eventDisplay);
 	hlt.SetRunQA(configStandalone.qa);
 	hlt.SetRunMerger(configStandalone.merger);
-	if (configStandalone.runGPU)
-		printf("Standalone Test Framework for CA Tracker - Using GPU\n");
-	else
-		printf("Standalone Test Framework for CA Tracker - Using CPU\n");
+	if (rec->GetDeviceType() == AliGPUReconstruction::DeviceType::CPU) printf("Standalone Test Framework for CA Tracker - Using CPU\n");
+	else printf("Standalone Test Framework for CA Tracker - Using GPU\n");
 
 	configStandalone.sliceCount = hlt.GetGPUMaxSliceCount();
 	hlt.SetGPUTracker(configStandalone.runGPU);

@@ -1,7 +1,7 @@
 #include "AliGPUReconstructionCUDA.h"
 #include "AliHLTTPCCAGPUTrackerNVCC.h"
 
-AliGPUReconstructionCUDA::AliGPUReconstructionCUDA() : AliGPUReconstruction()
+AliGPUReconstructionCUDA::AliGPUReconstructionCUDA() : AliGPUReconstruction(CUDA)
 {
     mTPCTracker.reset(new AliHLTTPCCAGPUTrackerNVCC);
 }
