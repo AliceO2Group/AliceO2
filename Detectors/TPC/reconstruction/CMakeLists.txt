@@ -35,7 +35,7 @@ set(SRCS
    src/TPCCATracking.cxx
    src/HardwareClusterDecoder.cxx
    src/DigitalCurrentClusterIntegrator.cxx
-   src/TPCFastTransformManagerO2.cxx
+   src/TPCFastTransformHelperO2.cxx
 )
 
 set(HEADERS

@@ -16,7 +16,11 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
+<<<<<<< db661e6c182dd52119e3f341d5e20805d2073495
 #include "TPCReconstruction/TPCFastTransformManagerO2.h"
+=======
+#include "TPCReconstruction/TPCFastTransformHelperO2.h"
+>>>>>>> TPCFastTransform helper for O2
 #include "TPCBase/Mapper.h"
 #include "TPCBase/PadRegionInfo.h"
 #include "TPCBase/ParameterDetector.h"
@@ -42,9 +46,8 @@ namespace TPC
 /// @brief Test 1 basic class IO tests
 BOOST_AUTO_TEST_CASE(FastTransform_test1)
 {
-  TPCFastTransformManagerO2 manager;
-  TPCFastTransform fastTransform;
-  manager.create(fastTransform, 0);
+  std::unique_ptr<TPCFastTransform> fastTransformPtr(TPCFastTransformHelperO2::Instance()->create(0));
+  TPCFastTransform& fastTransform = *fastTransformPtr;
 
   Mapper& mapper = Mapper::instance();
 
