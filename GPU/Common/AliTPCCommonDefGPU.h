@@ -1,6 +1,10 @@
 #ifndef ALITPCCOMMONDEFGPU_H
 #define ALITPCCOMMONDEFGPU_H
 
+#if defined(__CUDACC__) || defined(__OPENCL__)
+  #define HLTCA_GPUCODE //Executed on GPU
+#endif
+
 //Define macros for GPU keywords. i-version defines inline functions.
 //All host-functions in GPU code are automatically inlined, to avoid duplicate symbols.
 //For non-inline host only functions, use no keyword at all!
