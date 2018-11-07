@@ -1043,6 +1043,7 @@ o2_define_bucket(
     Base
     TreePlayer
     O2TPCCAGPUTracking
+    O2TPCFastTransformation
     TPCSimulation
     #the dependency on TPCSimulation should be removed at some point
     #perhaps 'Cluster' can be moved to base, or so
@@ -1090,6 +1091,7 @@ o2_define_bucket(
 o2_define_bucket(
     NAME
     TPCCAGPUTracking_bucket
+    TPCFastTransformation_bucket
 
     DEPENDENCIES
     dl
@@ -1108,6 +1110,7 @@ o2_define_bucket(
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/HLTHeaders
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone/cmodules
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone/include
+    ${ALITPCCOMMON_DIR}/sources/TPCFastTransformation
 )
 
 o2_define_bucket(

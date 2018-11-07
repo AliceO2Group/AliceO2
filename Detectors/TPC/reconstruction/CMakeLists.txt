@@ -35,6 +35,7 @@ set(SRCS
    src/TPCCATracking.cxx
    src/HardwareClusterDecoder.cxx
    src/DigitalCurrentClusterIntegrator.cxx
+   src/TPCFastTransformManagerO2.cxx
 )
 
 set(HEADERS
@@ -96,6 +97,7 @@ set(TEST_SRCS
   test/testTPCAdcClockMonitor.cxx
   test/testTPCCATracking.cxx
   test/testTPCHwClusterer.cxx
+  test/testTPCFastTransform.cxx
 )
 
 O2_GENERATE_TESTS(
