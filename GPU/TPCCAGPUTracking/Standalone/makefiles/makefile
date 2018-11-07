@@ -121,8 +121,8 @@ run								: all
 subbuild/%.mak:
 								+$(MAKE) CONFIGFILE=config_`echo $@ | sed s,subbuild/,,` BUILDSCRIPT=config_`echo $@ | sed s,subbuild/,, | sed s,mak,sh,` -f makefile
 
-CUDAINCLUDEPATHS				= $(INCLUDEPATHSUSE:%=--compiler-options %)
-CUDADEFINES						= $(DEFINESUSE:%=--compiler-options %)
+CUDAINCLUDEPATHS				= --compiler-options '$(INCLUDEPATHSUSE)'
+CUDADEFINES						= $(DEFINESUSE)
 
 DEPENDS							:= $(CUFILES:%.cu=$(WORKPATH)/cu/%.d) $(CLFILES:%.cl=$(WORKPATH)/cl/%.d) $(ASMFILES:%.asm=$(WORKPATH)/asm/%.d) $(CPPFILES_DBG:%.cpp=$(WORKPATH)/dbg/%.d) $(CPPFILES_VCC:%.cpp=$(WORKPATH)/vcc/%.d) \
 									$(CPPFILES:%.cpp=$(WORKPATH)/cpp/%.d) $(CXXFILES:%.cxx=$(WORKPATH)/cxx/%.d) $(CFILES:%.c=$(WORKPATH)/c/%.d) \

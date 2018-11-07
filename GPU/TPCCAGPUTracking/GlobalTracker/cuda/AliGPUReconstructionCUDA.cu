@@ -3,6 +3,13 @@
 
 #ifdef HAVE_O2HEADERS
 #include "ITStrackingCUDA/TrackerTraitsNV.h"
+
+#include "TrackerTraitsNV.cu"
+#include "Context.cu"
+#include "Stream.cu"
+#include "DeviceStoreNV.cu"
+#include "Utils.cu"
+
 #else
 namespace o2 { namespace ITS { class TrackerTraits {}; class TrackerTraitsNV : public TrackerTraits {}; }}
 #endif
