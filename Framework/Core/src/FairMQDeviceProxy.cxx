@@ -17,11 +17,11 @@ namespace o2
 {
 namespace framework
 {
-const FairMQTransportFactory *FairMQDeviceProxy::getTransport() {
+FairMQTransportFactory *FairMQDeviceProxy::getTransport() {
   return mDevice->Transport();
 }
 
-const FairMQTransportFactory* FairMQDeviceProxy::getTransport(const std::string& channel, int index)
+FairMQTransportFactory* FairMQDeviceProxy::getTransport(const std::string& channel, int index)
 {
   return mDevice->GetChannel(channel, index).Transport();
 }

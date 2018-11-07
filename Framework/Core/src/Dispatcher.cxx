@@ -91,7 +91,7 @@ void Dispatcher::send(DataAllocator& dataAllocator, const DataRef& inputData, co
 }
 
 // ideally this should be in a separate proxy device or use Lifetime::External
-void Dispatcher::sendFairMQ(const FairMQDevice* device, const DataRef& inputData, const std::string& fairMQChannel) const
+void Dispatcher::sendFairMQ(FairMQDevice* device, const DataRef& inputData, const std::string& fairMQChannel) const
 {
   const auto* dh = header::get<header::DataHeader*>(inputData.header);
   assert(dh);
