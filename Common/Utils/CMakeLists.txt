@@ -16,6 +16,7 @@ Set(HEADERS
   include/${MODULE_NAME}/RootChain.h
   include/${MODULE_NAME}/BoostSerializer.h
   include/${MODULE_NAME}/ShmManager.h
+  include/${MODULE_NAME}/RngHelper.h
 )
 
 Set(LINKDEF src/CommonUtilsLinkDef.h)
