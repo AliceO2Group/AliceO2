@@ -26,17 +26,29 @@
 #define HLTCA_LOGGING_PRINTF
 #include "AliCAGPULogging.h"
 
+#ifdef HAVE_O2HEADERS
+#include "ITStracking/TrackerTraitsCPU.h"
+#else
+namespace o2 { namespace ITS { class TrackerTraits {}; class TrackerTraitsCPU : public TrackerTraits {}; }}
+#endif
+
 static constexpr char DUMP_HEADER[] = "CAv1";
 
-AliGPUReconstruction::AliGPUReconstruction(DeviceType type) : mIOPtrs(), mIOMem(), mTRDTracker(new AliHLTTRDTracker), mTPCTracker(nullptr), mDeviceType(type)
+AliGPUReconstruction::AliGPUReconstruction(DeviceType type) : mIOPtrs(), mIOMem(), mTRDTracker(new AliHLTTRDTracker), mTPCTracker(nullptr), mITSTrackerTraits(nullptr), mDeviceType(type)
 {
 	mTRDTracker->Init();
+	if (type == CPU)
+	{
+		mTPCTracker.reset(new AliHLTTPCCAGPUTracker);
+		mITSTrackerTraits.reset(new o2::ITS::TrackerTraitsCPU);
+	}
 }
 
 AliGPUReconstruction::~AliGPUReconstruction()
 {
 	mTRDTracker.reset();
 	mTPCTracker.reset();
+	mITSTrackerTraits.reset();
 }
 
 AliGPUReconstruction::InOutMemory::InOutMemory() : mcLabelsTPC(), mcInfosTPC(), mergedTracks(), mergedTrackHits(), trdTracks(), trdTracklets()

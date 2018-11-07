@@ -1,5 +1,20 @@
 cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
 
+if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
+    add_definitions(-DHLTCA_BUILD_ALIROOT_LIB)
+else()
+    add_definitions(-DHLTCA_STANDALONE)
+endif()
+
+if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
+    add_definitions(-DHLTCA_BUILD_O2_LIB -DHLTCA_TPC_GEOMETRY_O2 -DHAVE_O2HEADERS)
+endif()
+
+if(OpenMP_CXX_FOUND)
+    message(STATUS "AliTPCCommon: Using OpenMP: ${OpenMP_CXX_SPEC_DATE}")
+    add_definitions(-DHLTCA_HAVE_OPENMP)
+endif()
+
 if (ENABLE_CUDA OR ENABLE_OPENCL)
     if (CMAKE_SYSTEM_NAME MATCHES Darwin)
         message(WARNING "GPU Tracking disabled on MacOS")
@@ -16,10 +31,6 @@ endif()
 
 if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
     set(MODULE O2TPCCAGPUTracking)
-    if(OpenMP_CXX_FOUND)
-        message(STATUS "AliTPCCommon: Using OpenMP: ${OpenMP_CXX_SPEC_DATE}")
-        add_definitions(-DHLTCA_HAVE_OPENMP)
-    endif()
 elseif(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     set(MODULE AliTPCCAGPUTracking)
 endif()
@@ -91,10 +102,8 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
         GlobalTracker/AliHLTGPUDumpComponent.cxx
     )
 
-    add_definitions(-DHLTCA_BUILD_ALIROOT_LIB)
 else() #if we do not build for AliRoot, for the time being we still need some dummy headers for some definitions
     include_directories(HLTHeaders Standalone/include)
-    add_definitions(-DHLTCA_STANDALONE)
 endif()
 
 #Some extra files / includes / settings needed for the build for O2
@@ -102,8 +111,6 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
     set(SRCS ${SRCS}
         Interface/AliHLTTPCCAO2Interface.cxx
     )
-
-    add_definitions(-DHLTCA_TPC_GEOMETRY_O2 -DHLTCA_BUILD_O2_LIB)
 endif()
 
 string(REPLACE ".cxx" ".h" HDRS "${SRCS}")

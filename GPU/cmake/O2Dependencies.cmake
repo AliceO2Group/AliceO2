@@ -33,6 +33,8 @@ o2_define_bucket(
     pthread
     root_base_bucket
     common_vc_bucket
+    TRDBase
+    ITStracking
     AliTPCCommonBase_bucket
 
     INCLUDE_DIRECTORIES
@@ -45,6 +47,23 @@ o2_define_bucket(
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/HLTHeaders
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone/cmodules
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone/include
+)
+
+o2_define_bucket(
+    NAME
+    TPCCAGPUTrackingCUDA_bucket
+
+    DEPENDENCIES
+    TPCCAGPUTracking_bucket
+    ITStrackingCUDA
+)
+
+o2_define_bucket(
+    NAME
+    TPCCAGPUTrackingOCL_bucket
+
+    DEPENDENCIES
+    TPCCAGPUTracking_bucket
 )
 
 o2_define_bucket(

@@ -15,9 +15,9 @@
 
 # Module
 if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
-set(MODULE O2TPCCAGPUTrackingOpenCL)
+    set(MODULE O2TPCCAGPUTrackingOpenCL)
 elseif(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
-set(MODULE AliTPCCAGPUTrackingOpenCL)
+    set(MODULE AliTPCCAGPUTrackingOpenCL)
 endif()
 add_definitions(-DHLTCA_GPULIBRARY=OPENCL)
 
@@ -94,13 +94,8 @@ include_directories(SYSTEM ${ROOT_INCLUDE_DIR})
 include_directories(${AMDAPPSDKROOT}/include)
 if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
    include_directories(${AliRoot_SOURCE_DIR}/HLT/BASE)
-   add_definitions(-DHLTCA_BUILD_ALIROOT_LIB)
 else() #if we do not build for AliRoot, for the time being we still need some dummy headers for some definitions
    include_directories(${CAGPUDIR}/HLTHeaders ${CAGPUDIR}/Standalone/include)
-   add_definitions(-DHLTCA_STANDALONE)
-endif()
-if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
-   add_definitions(-DHLTCA_TPC_GEOMETRY_O2 -DHLTCA_BUILD_O2_LIB)
 endif()
 
 # Sources in alphabetical order
@@ -148,7 +143,7 @@ endif()
 if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
 #We do not need the dictionary for the standalone library files
     Set(LIBRARY_NAME ${MODULE})
-    set(BUCKET_NAME TPCCAGPUTracking_bucket)
+    set(BUCKET_NAME TPCCAGPUTrackingOCL_bucket)
 
     O2_GENERATE_LIBRARY()
 
