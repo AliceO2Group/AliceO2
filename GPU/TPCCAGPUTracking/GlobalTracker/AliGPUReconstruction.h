@@ -25,7 +25,15 @@ class AliGPUReconstruction
 public:
 	virtual ~AliGPUReconstruction();
 	
-	enum DeviceType : unsigned int {RESERVED = 0, CPU = 1, CUDA = 2, HIP = 3, OCL = 4};
+	enum GeometryType : unsigned int {RESERVED_GEOMETRY = 0, ALIROOT = 1, O2 = 2};
+	static constexpr const char* GEOMETRY_TYPE_NAMES[] = {"INVALID", "ALIROOT", "O2"};
+	#ifdef HLTCA_TPC_GEOMETRY_O2
+		const GeometryType geometryType = O2;
+	#else
+		const GeometryType geometryType = ALIROOT;
+	#endif
+	
+	enum DeviceType : unsigned int {RESERVED_DEVICE = 0, CPU = 1, CUDA = 2, HIP = 3, OCL = 4};
 	static constexpr const char* DEVICE_TYPE_NAMES[] = {"INVALID", "CPU", "CUDA", "HIP", "OCL"};
 	static AliGPUReconstruction* CreateInstance(DeviceType type = CPU, bool forceType = true);
 	static AliGPUReconstruction* CreateInstance(int type, bool forceType) {return CreateInstance((DeviceType) type, forceType);}

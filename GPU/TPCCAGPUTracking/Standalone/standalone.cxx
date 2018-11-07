@@ -462,7 +462,8 @@ int main(int argc, char** argv)
 				{
 					char filename[256];
 					sprintf(filename, "events/%s/" HLTCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
-					if (rec->ReadData(filename) == 0)
+					int r = rec->ReadData(filename);
+					if (r == 0)
 					{
 						printf("Event loaded with new format\n");
 						hlt.ResetMC();
@@ -474,7 +475,7 @@ int main(int argc, char** argv)
 							cdata.SetNumberOfClusters(rec->mIOPtrs.nClusterData[iSector]);
 						}
 					}
-					else
+					else if (r == -1)
 					{
 						printf("Attempting old format\n");
 						std::ifstream in;
@@ -541,6 +542,10 @@ int main(int argc, char** argv)
 								continue;
 							}
 						}
+					}
+					else
+					{
+						return(1);
 					}
 				}
 				printf("Loading time: %'d us\n", (int) (1000000 * timerLoad.GetCurrentElapsedTime()));
