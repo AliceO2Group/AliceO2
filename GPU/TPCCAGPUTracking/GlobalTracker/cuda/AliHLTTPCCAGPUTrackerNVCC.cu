@@ -671,26 +671,6 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 	return(0);
 }
 
-__global__ void ClearPPHitWeights(int sliceCount)
-{
-	//Clear HitWeights
-
-	for (int k = 0;k < sliceCount;k++)
-	{
-		AliHLTTPCCATracker &tracker = ((AliHLTTPCCATracker*) gGPUConstantMem)[k];
-		int4* const pHitWeights = (int4*) tracker.Data().HitWeights();
-		const int dwCount = tracker.Data().NumberOfHitsPlusAlign();
-		const int stride = get_global_size(0);
-		int4 i0;
-		i0.x = i0.y = i0.z = i0.w = 0;
-
-		for (int i = get_global_id(0);i < dwCount * sizeof(int) / sizeof(int4);i += stride)
-		{
-			pHitWeights[i] = i0;
-		}
-	}
-}
-
 int AliHLTTPCCAGPUTrackerNVCC::ExitGPU_Runtime()
 {
 	//Uninitialize CUDA
