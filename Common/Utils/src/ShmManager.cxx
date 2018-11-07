@@ -142,6 +142,7 @@ bool ShmManager::createGlobalSegment(int nsegments)
     // TODO: consider using named posix shared memory segments to avoid this
     setenv(SHMIDNAME, std::to_string(mShmID).c_str(), 1);
     setenv(SHMADDRNAME, std::to_string((unsigned long long)(addr)).c_str(), 1);
+    return true;
   }
   LOG(INFO) << "SHARED MEM INITIALIZED AT ID " << mShmID;
   if (mShmID == -1) {
@@ -150,6 +151,7 @@ bool ShmManager::createGlobalSegment(int nsegments)
     setenv(SHMADDRNAME, std::to_string(0).c_str(), 1);
   }
 #endif
+  return false;
 }
 
 bool ShmManager::attachToGlobalSegment()
@@ -168,6 +170,7 @@ bool ShmManager::attachToGlobalSegment()
 
   bool b;
   tryAttach(b);
+  return b;
 }
 
 void ShmManager::occupySegment()
