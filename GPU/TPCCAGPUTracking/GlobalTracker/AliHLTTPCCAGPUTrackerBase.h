@@ -197,6 +197,8 @@ protected:
 
 	int fStuckProtection;   //Protection from GPU stuck, set maximum time to wait for GPU in usec!
 	int fGPUStuck;		//Marks that the GPU is stuck, skip future events
+	
+	const AliGPUCAParam* fParam;
 
 	// disable copy
 	AliHLTTPCCAGPUTrackerBase( const AliHLTTPCCAGPUTrackerBase& );

@@ -744,7 +744,7 @@ GPUg() void RefitTracks(AliHLTTPCGMMergedTrack* tracks, int nTracks, AliHLTTPCGM
 {
 	for (int i = get_global_id(0);i < nTracks;i += get_global_size(0))
 	{
-		AliHLTTPCGMTrackParam::RefitTrack(tracks[i], i, (AliHLTTPCGMMerger*) gGPUConstantMem, clusters);
+		AliHLTTPCGMTrackParam::RefitTrack(tracks[i], i, &gGPUConstantMem.tpcMerger, clusters);
 	}
 }
 

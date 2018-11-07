@@ -1,7 +1,7 @@
 #ifndef ALIGPURECONSTRUCTIONCUDA_H
 #define ALIGPURECONSTRUCTIONCUDA_H
 
-#include "AliGPUReconstruction.h"
+#include "AliGPUReconstructionDeviceBase.h"
 
 #ifdef WIN32
 extern "C" __declspec(dllexport) AliGPUReconstruction* AliGPUReconstruction_Create_CUDA();
@@ -9,8 +9,9 @@ extern "C" __declspec(dllexport) AliGPUReconstruction* AliGPUReconstruction_Crea
 extern "C" AliGPUReconstruction* AliGPUReconstruction_Create_CUDA();
 #endif
 
-class AliGPUReconstructionCUDA : public AliGPUReconstruction
+class AliGPUReconstructionCUDA : public AliGPUReconstructionDeviceBase
 {
+protected:
     friend AliGPUReconstruction* AliGPUReconstruction_Create_CUDA();
     AliGPUReconstructionCUDA();
     virtual ~AliGPUReconstructionCUDA();

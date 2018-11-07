@@ -1,7 +1,7 @@
 #ifndef ALIGPURECONSTRUCTIONOCL_H
 #define ALIGPURECONSTRUCTIONOCL_H
 
-#include "AliGPUReconstruction.h"
+#include "AliGPUReconstructionDeviceBase.h"
 
 #ifdef WIN32
 extern "C" __declspec(dllexport) AliGPUReconstruction* AliGPUReconstruction_Create_OCL();
@@ -9,8 +9,9 @@ extern "C" __declspec(dllexport) AliGPUReconstruction* AliGPUReconstruction_Crea
 extern "C" AliGPUReconstruction* AliGPUReconstruction_Create_OCL();
 #endif
 
-class AliGPUReconstructionOCL : public AliGPUReconstruction
+class AliGPUReconstructionOCL : public AliGPUReconstructionDeviceBase
 {
+protected:
     friend AliGPUReconstruction* AliGPUReconstruction_Create_OCL();
     AliGPUReconstructionOCL();
     virtual ~AliGPUReconstructionOCL();

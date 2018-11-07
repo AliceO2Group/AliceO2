@@ -43,6 +43,8 @@
 #include "AliHLTTPCCATrackletConstructor.h"
 #include "AliHLTTPCCAClusterData.h"
 
+#include "AliGPUCADataTypes.h"
+
 #include <unistd.h>
 
 #include "../makefiles/opencl_obtain_program.h"
@@ -272,7 +274,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 		return(1);
 	}
 
-	ocl->mem_constant = clCreateBuffer(ocl->context, CL_MEM_READ_ONLY, HLTCA_GPU_TRACKER_CONSTANT_MEM, NULL, &ocl_error);
+	ocl->mem_constant = clCreateBuffer(ocl->context, CL_MEM_READ_ONLY, sizeof(AliGPUCAConstantMem), NULL, &ocl_error);
 	if (ocl_error != CL_SUCCESS)
 	{
 		CAGPUError("OPENCL Constant Memory Allocation Error");

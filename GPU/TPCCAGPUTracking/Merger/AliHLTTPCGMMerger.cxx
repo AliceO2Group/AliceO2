@@ -207,9 +207,10 @@ int AliHLTTPCGMMerger::GetTrackLabel(AliHLTTPCGMBorderTrack& trk)
 #endif
 //END DEBUG CODE
 
-void AliHLTTPCGMMerger::SetSliceParam( const AliGPUCAParam *v, long int TimeStamp, bool isMC  )
+void AliHLTTPCGMMerger::SetSliceParam( const AliGPUCAParam *v, long int TimeStamp, bool isMC, bool setParamOnly )
 {
   fSliceParam = v;
+  if (setParamOnly) return;
   if (fSliceParam->AssumeConstantBz) AliHLTTPCGMPolynomialFieldCreator::GetPolynomialField( AliHLTTPCGMPolynomialFieldCreator::kUniform, v->BzkG, fField );
   else AliHLTTPCGMPolynomialFieldCreator::GetPolynomialField( v->BzkG, fField );
 
