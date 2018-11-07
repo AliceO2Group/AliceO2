@@ -234,17 +234,12 @@ void AliHLTTPCCATrackerFramework::ResetTimer(int iSlice, int iTimer)
 	return(fUseGPUTracker ? fGPUTracker->ResetTimer(iSlice, iTimer) : fCPUTrackers[iSlice].ResetTimer(iTimer));
 }
 
-int AliHLTTPCCATrackerFramework::InitializeSliceParam(int iSlice, AliGPUCAParam &param)
+int AliHLTTPCCATrackerFramework::InitializeSliceParam(int iSlice, const AliGPUCAParam *param)
 {
 	//Initialize Tracker Parameters for a slice
 	if (fGPUTrackerAvailable && fGPUTracker->InitializeSliceParam(iSlice, param)) return(1);
 	fCPUTrackers[iSlice].Initialize(param, iSlice);
 	return(0);
-}
-
-void AliHLTTPCCATrackerFramework::UpdateGPUSliceParam()
-{
-	if (fGPUTrackerAvailable) for (int i = 0;i < fgkNSlices;i++) fGPUTracker->InitializeSliceParam(i, fCPUTrackers[i].Param());
 }
 
 #ifdef HLTCA_STANDALONE

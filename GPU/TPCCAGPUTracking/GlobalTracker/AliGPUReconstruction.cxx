@@ -42,6 +42,7 @@ AliGPUReconstruction::AliGPUReconstruction(DeviceType type) : mIOPtrs(), mIOMem(
 		mTPCTracker.reset(new AliHLTTPCCAGPUTracker);
 		mITSTrackerTraits.reset(new o2::ITS::TrackerTraitsCPU);
 	}
+	mParam.SetDefaults(-5);
 }
 
 AliGPUReconstruction::~AliGPUReconstruction()

@@ -87,7 +87,7 @@ void* AliHLTTPCCAGPUTrackerBase::helperWrapper(void* arg)
 #endif
 				if (myISlice >= 0)
 				{
-					tmpTracker->Initialize(cls->fSlaveTrackers[par->fFirstSlice + myISlice].Param(), par->fFirstSlice + myISlice);
+					tmpTracker->Initialize(cls->fSlaveTrackers[par->fFirstSlice + myISlice].pParam(), par->fFirstSlice + myISlice);
 					if (tmpTracker->ReadEvent(&par->pClusterData[myISlice]))
 					{
 						printf("Fatal error during CPU tracking!\n");
@@ -384,7 +384,7 @@ void AliHLTTPCCAGPUTrackerBase::WriteOutput(AliHLTTPCCASliceOutput** pOutput, in
 	if (fDebugLevel >= 3) {CAGPUDebug("GPU Tracker finished WriteOutput for slice %d on thread %d\n", firstSlice + iSlice, threadId);}
 }
 
-int AliHLTTPCCAGPUTrackerBase::InitializeSliceParam(int iSlice, const AliGPUCAParam &param)
+int AliHLTTPCCAGPUTrackerBase::InitializeSliceParam(int iSlice, const AliGPUCAParam *param)
 {
 	//Initialize Slice Tracker Parameter for a slave tracker
 	fSlaveTrackers[iSlice].Initialize(param, iSlice);

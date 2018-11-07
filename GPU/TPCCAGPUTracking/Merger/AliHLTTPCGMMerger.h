@@ -41,7 +41,7 @@ public:
   AliHLTTPCGMMerger();
   ~AliHLTTPCGMMerger();
 
-  void SetSliceParam( const AliGPUCAParam &v, long int TimeStamp=0, bool isMC=0  );
+  void SetSliceParam( const AliGPUCAParam *v, long int TimeStamp=0, bool isMC=0  );
 
   void Clear();
   void SetSliceData( int index, const AliHLTTPCCASliceOutput *SliceData );
@@ -50,7 +50,7 @@ public:
   int NOutputTracks() const { return fNOutputTracks; }
   const AliHLTTPCGMMergedTrack * OutputTracks() const { return fOutputTracks; }
 
-  GPUhd() const AliGPUCAParam &SliceParam() const { return fSliceParam; }
+  GPUhd() const AliGPUCAParam &SliceParam() const { return *fSliceParam; }
 
   void SetGPUTracker(AliHLTTPCCAGPUTracker* gpu) {fGPUTracker = gpu;}
   void SetDebugLevel(int debug) {fDebugLevel = debug;}
@@ -112,7 +112,7 @@ private:
 
   AliHLTTPCGMPolynomialField fField;
 
-  AliGPUCAParam fSliceParam;           //* slice parameters (geometry, calibr, etc.)
+  const AliGPUCAParam* fSliceParam;           //* slice parameters (geometry, calibr, etc.)
   const AliHLTTPCCASliceOutput *fkSlices[fgkNSlices]; //* array of input slice tracks
 
   int* fTrackLinks;

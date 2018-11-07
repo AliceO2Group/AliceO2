@@ -55,7 +55,7 @@ ClassImp( AliHLTTPCCAGlobalMergerComponent )
 const AliHLTTPCGMMerger* AliHLTTPCCAGlobalMergerComponent::fgCurrentMerger = NULL;
 
 AliHLTTPCCAGlobalMergerComponent::AliHLTTPCCAGlobalMergerComponent()
-: AliHLTProcessor(), fGlobalMerger(0), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fNWays(1), fNWaysOuter(0), fNoClear(false), fBenchmark("GlobalMerger")
+: AliHLTProcessor(), fGlobalMerger(0), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fNWays(1), fNWaysOuter(0), fNoClear(false), fBenchmark("GlobalMerger"), fParam()
 {
   // see header file for class documentation
 }
@@ -273,9 +273,13 @@ int AliHLTTPCCAGlobalMergerComponent::Configure( const char* cdbEntry, const cha
 
   // Initialize the merger
 
-  AliGPUCAParam param;
+  AliGPUCAParam& param = fParam;
   param.SetDefaults(fSolenoidBz);
-  fGlobalMerger->SetSliceParam( param, GetTimeStamp(), 1 );
+  if( fClusterErrorCorrectionY>1.e-4 ) param.ClusterError2CorrectionY = fClusterErrorCorrectionY*fClusterErrorCorrectionY;
+  if( fClusterErrorCorrectionZ>1.e-4 ) param.ClusterError2CorrectionZ = fClusterErrorCorrectionZ*fClusterErrorCorrectionZ;
+  param.NWays = fNWays;
+  param.NWaysOuter = fNWaysOuter;
+  fGlobalMerger->SetSliceParam( &param, GetTimeStamp(), 1 );
 
   return iResult1 ? iResult1 : ( iResult2 ? iResult2 : iResult3 );
 }

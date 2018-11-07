@@ -308,24 +308,6 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool rese
   return(0);
 }
 
-
-void AliHLTTPCCAStandaloneFramework::SetSettings(float solenoidBz, bool toyMCEvents, bool constBz)
-{
-    AliGPUCAParam param;
-    param.SetDefaults(solenoidBz);
-    param.HitPickUpFactor = 2;
-    param.MinNTrackClusters = -1;
-    param.SetMinTrackPt(MIN_TRACK_PT_DEFAULT);
-    param.AssumeConstantBz = constBz;
-    param.ToyMCEventsFlag = toyMCEvents;
-    param.ClusterError2CorrectionZ = 1.1;
-    for (int slice = 0;slice < fgkNSlices;slice++)
-    {
-      fTracker->InitializeSliceParam( slice, param );
-    }
-    fMerger.SetSliceParam(param);
-}
-
 void AliHLTTPCCAStandaloneFramework::WriteEvent( std::ostream &out ) const
 {
   // write event to the file

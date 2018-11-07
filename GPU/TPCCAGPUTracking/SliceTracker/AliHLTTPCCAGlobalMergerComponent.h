@@ -19,6 +19,7 @@
 
 #include "AliHLTProcessor.h"
 #include "AliHLTComponentBenchmark.h"
+#include "AliGPUCAParam.h"
 
 class AliHLTTPCGMMerger;
 
@@ -126,6 +127,7 @@ class AliHLTTPCCAGlobalMergerComponent : public AliHLTProcessor
     bool fNoClear;  //Do not clear memory after processing an event
     static const AliHLTTPCGMMerger* fgCurrentMerger; //Pointer to current merger in case memory is not cleared after processing the event
     AliHLTComponentBenchmark fBenchmark;// benchmark
+    AliGPUCAParam fParam; //ca params
 
     ClassDef( AliHLTTPCCAGlobalMergerComponent, 0 )
 };
