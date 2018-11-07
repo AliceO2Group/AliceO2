@@ -79,6 +79,7 @@ void AliGPUReconstruction::DumpData(const char* filename)
 	FILE* fp = fopen(filename, "w+b");
 	if (fp == nullptr) return;
 	fwrite(DUMP_HEADER, 1, strlen(DUMP_HEADER), fp);
+	fwrite(&geometryType, sizeof(geometryType), 1, fp);
 	DumpData(fp, mIOPtrs.clusterData, mIOPtrs.nClusterData, InOutPointerType::CLUSTER_DATA);
 	DumpData(fp, mIOPtrs.sliceOutTracks, mIOPtrs.nSliceOutTracks, InOutPointerType::SLICE_OUT_TRACK);
 	DumpData(fp, mIOPtrs.sliceOutClusters, mIOPtrs.nSliceOutClusters, InOutPointerType::SLICE_OUT_CLUSTER);
@@ -115,14 +116,21 @@ int AliGPUReconstruction::ReadData(const char* filename)
 	ClearIOPointers();
 	FILE* fp = fopen(filename, "rb");
 	if (fp == nullptr) return(1);
-	char buf[strlen(DUMP_HEADER)] = "";
+	char buf[strlen(DUMP_HEADER) + 1] = "";
 	size_t r = fread(buf, 1, strlen(DUMP_HEADER), fp);
-	(void) r;
 	if (strncmp(DUMP_HEADER, buf, strlen(DUMP_HEADER)))
 	{
-		return(1);
+		printf("Invalid file header\n");
+		return -1;
 	}
-		
+	GeometryType geo;
+	r = fread(&geo, sizeof(geo), 1, fp);
+	if (geo != geometryType)
+	{
+		printf("File has invalid geometry (%s v.s. %s)\n", GEOMETRY_TYPE_NAMES[geo], GEOMETRY_TYPE_NAMES[geometryType]);
+		return 1;
+	}
+	(void) r;
 	ReadData(fp, mIOPtrs.clusterData, mIOPtrs.nClusterData, mIOMem.clusterData, InOutPointerType::CLUSTER_DATA);
 	ReadData(fp, mIOPtrs.sliceOutTracks, mIOPtrs.nSliceOutTracks, mIOMem.sliceOutTracks, InOutPointerType::SLICE_OUT_TRACK);
 	ReadData(fp, mIOPtrs.sliceOutClusters, mIOPtrs.nSliceOutClusters, mIOMem.sliceOutClusters, InOutPointerType::SLICE_OUT_CLUSTER);
