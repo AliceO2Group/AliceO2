@@ -125,7 +125,7 @@ bool DeviceMetricsHelper::processMetric(const std::smatch& match,
     assert(metricInfo.storeIdx != -1);
     assert(metricLabelIdx.first.empty() == false);
     if (newMetricsCallback != nullptr) {
-      newMetricsCallback(metricLabelIdx.first, metricInfo, intValue);
+      newMetricsCallback(metricLabelIdx.first, metricInfo, intValue, metricIndex);
     }
     info.metrics.push_back(metricInfo);
   } else {

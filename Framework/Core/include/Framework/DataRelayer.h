@@ -100,7 +100,10 @@ public:
   std::vector<size_t> mDistinctRoutesIndex;
   std::vector<data_matcher::DataDescriptorMatcher> mInputMatchers;
   std::vector<data_matcher::VariableContext> mVariableContextes;
+
   static std::vector<std::string> sMetricsNames;
+  static std::vector<std::string> sVariablesMetricsNames;
+  static std::vector<std::string> sQueriesMetricsNames;
 };
 
 } // namespace framework

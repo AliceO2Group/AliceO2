@@ -97,6 +97,9 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
   for (size_t ci = 0; ci < mCache.size(); ci++) {
     metrics.send({ 0, sMetricsNames[ci] });
   }
+  for (size_t ci = 0; ci < mVariableContextes.size() * 16; ci++) {
+    metrics.send({ std::string("null"), sVariablesMetricsNames[ci] });
+  }
 }
 
 void DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& expirationHandlers,
@@ -147,6 +150,25 @@ size_t matchToContext(void* data,
     context.discard();
   }
   return INVALID_INPUT;
+}
+
+/// Send the contents of a context as metrics, so that we can examine them in
+/// the GUI.
+void sendVariableContextMetrics(VariableContext& context, TimesliceSlot slot,
+                                monitoring::Monitoring& metrics, std::vector<std::string> const& names)
+{
+  const std::string nullstring{"null"};
+
+  for (size_t i = 0; i < MAX_MATCHING_VARIABLE; i++) {
+    auto& var = context.get(i);
+    if (auto pval = std::get_if<uint64_t>(&var)) {
+      metrics.send(monitoring::Metric{ std::to_string(*pval), names[16 * slot.index + i] });
+    } else if (auto pval2 = std::get_if<std::string>(&var)) {
+      metrics.send(monitoring::Metric{ *pval2, names[16 * slot.index + i] });
+    } else {
+      metrics.send(monitoring::Metric{ nullstring, names[16 * slot.index + i] });
+    }
+  }
 }
 
 DataRelayer::RelayChoice
@@ -273,6 +295,7 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
   if (input != INVALID_INPUT && TimesliceId::isValid(timeslice) && TimesliceSlot::isValid(slot)) {
     LOG(DEBUG) << "Received timeslice " << timeslice.value;
     saveInSlot(timeslice, input, slot);
+    sendVariableContextMetrics(index.getVariablesForSlot(slot), slot, mMetrics, sVariablesMetricsNames);
     index.markAsDirty(slot, true);
     return WillRelay;
   }
@@ -303,6 +326,7 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
   // cache still holds the old data, so we prune it.
   pruneCache(slot);
   saveInSlot(timeslice, input, slot);
+  sendVariableContextMetrics(pristineContext, slot, mMetrics, sVariablesMetricsNames);
   index.markAsDirty(slot, true);
 
   return WillRelay;
@@ -449,10 +473,36 @@ DataRelayer::setPipelineLength(size_t s) {
   sMetricsNames.resize(mCache.size());
   for (size_t i = 0; i < sMetricsNames.size(); ++i) {
     sMetricsNames[i] = std::string("data_relayer/") + std::to_string(i);
+    //mMetrics.send({ 0, sMetricsNames[i] });
+  }
+  // There is maximum 16 variables available. We keep them row-wise so that
+  // that we can take mod 16 of the index to understand which variable we
+  // are talking about.
+  sVariablesMetricsNames.resize(mVariableContextes.size() * 16);
+  mMetrics.send({ (int)16, "matcher_variables/w" });
+  mMetrics.send({ (int)mVariableContextes.size(), "matcher_variables/h" });
+  for (size_t i = 0; i < sVariablesMetricsNames.size(); ++i) {
+    sVariablesMetricsNames[i] = std::string("matcher_variables/") + std::to_string(i);
+    mMetrics.send({ std::string("null"), sVariablesMetricsNames[i % 16] });
+  }
+  // The queries are all the same, so we only have width 1
+  sQueriesMetricsNames.resize(numInputTypes * 1);
+  mMetrics.send({ (int)numInputTypes, "data_queries/h" });
+  mMetrics.send({ (int)1, "data_queries/w" });
+  for (size_t i = 0; i < numInputTypes; ++i) {
+    sQueriesMetricsNames[i] = std::string("data_queries/") + std::to_string(i);
+    char buffer[128];
+    auto& matcher = mInputRoutes[mDistinctRoutesIndex[i]].matcher;
+    snprintf(buffer, 127, "%s/%s/%llu",
+             matcher.origin.str,
+             matcher.description.str,
+             matcher.subSpec);
+    mMetrics.send({ std::string(buffer), sQueriesMetricsNames[i] });
   }
 }
 
 std::vector<std::string> DataRelayer::sMetricsNames;
-
+std::vector<std::string> DataRelayer::sVariablesMetricsNames;
+std::vector<std::string> DataRelayer::sQueriesMetricsNames;
 }
 }
