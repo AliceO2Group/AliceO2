@@ -14,7 +14,7 @@
 ///
 /// Usage:
 ///
-///  std::unique_ptr<TPCFastTransform> fastTransform = TPCFastTransformHelperO2::Instance()->create( 0 );
+///  std::unique_ptr<TPCFastTransform> fastTransform = TPCFastTransformHelperO2::instance()->create( 0 );
 ///
 
 #ifndef ALICEO2_TPC_TPCFASTTRANSFORMHELPERO2_H_
@@ -48,7 +48,7 @@ class TPCFastTransformHelperO2
   ~TPCFastTransformHelperO2() = default;
 
   /// Singleton
-  static TPCFastTransformHelperO2* Instance();
+  static TPCFastTransformHelperO2* instance();
 
   /// _______________  Main functionality  ________________________
 

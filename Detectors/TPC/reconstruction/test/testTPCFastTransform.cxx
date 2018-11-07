@@ -16,11 +16,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
-<<<<<<< db661e6c182dd52119e3f341d5e20805d2073495
-#include "TPCReconstruction/TPCFastTransformManagerO2.h"
-=======
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
->>>>>>> TPCFastTransform helper for O2
 #include "TPCBase/Mapper.h"
 #include "TPCBase/PadRegionInfo.h"
 #include "TPCBase/ParameterDetector.h"
@@ -46,10 +42,11 @@ namespace TPC
 /// @brief Test 1 basic class IO tests
 BOOST_AUTO_TEST_CASE(FastTransform_test1)
 {
-  std::unique_ptr<TPCFastTransform> fastTransformPtr(TPCFastTransformHelperO2::Instance()->create(0));
+  std::unique_ptr<TPCFastTransform> fastTransformPtr(TPCFastTransformHelperO2::instance()->create(0));
+
   TPCFastTransform& fastTransform = *fastTransformPtr;
 
-  Mapper& mapper = Mapper::instance();
+  const Mapper& mapper = Mapper::instance();
 
   BOOST_CHECK_EQUAL(fastTransform.getNumberOfSlices(), Sector::MAXSECTOR);
   BOOST_CHECK_EQUAL(fastTransform.getNumberOfRows(), mapper.getNumberOfRows());
@@ -80,10 +77,12 @@ BOOST_AUTO_TEST_CASE(FastTransform_test1)
       if (fabs(dy) >= 1.e-5) {
         std::cout << "row " << row << " pad " << pad << " y calc " << u << " y in map " << -c.Y() << " dy " << dy << std::endl;
       }
-      if (fabs(maxDx) < fabs(dx))
+      if (fabs(maxDx) < fabs(dx)){
         maxDx = dx;
-      if (fabs(maxDy) < fabs(dy))
+      }
+      if (fabs(maxDy) < fabs(dy)){
         maxDy = dy;
+      }
     }
   }
 

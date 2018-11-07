@@ -33,7 +33,7 @@ namespace TPC
 
 TPCFastTransformHelperO2* TPCFastTransformHelperO2::sInstance = nullptr;
 
-TPCFastTransformHelperO2* TPCFastTransformHelperO2::Instance()
+TPCFastTransformHelperO2* TPCFastTransformHelperO2::instance()
 {
   // returns TPCFastTransformHelperO2 instance (singleton)
   if (!sInstance) {
@@ -63,20 +63,22 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
 
   TPCFastTransform& fastTransform = *fastTransformPtr;
 
-  if (!mIsInitialized)
-    init();
+  if (!mIsInitialized){ 
+    init(); 
+  }
 
   const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
   const static ParameterGas& gasParam = ParameterGas::defaultInstance();
   const static ParameterElectronics& elParam = ParameterElectronics::defaultInstance();
 
-  double vDrift = (elParam.getZBinWidth() * gasParam.getVdrift());
+  const double vDrift = (elParam.getZBinWidth() * gasParam.getVdrift());
 
   // find last calibrated time bin
 
-  double lastTimeBin = detParam.getTPClength() / vDrift + 1;
+  const double lastTimeBin = detParam.getTPClength() / vDrift + 1;
 
-  Mapper& mapper = Mapper::instance();
+  const Mapper& mapper = Mapper::instance();
+
   const int nRows = mapper.getNumberOfRows();
 
   fastTransform.startConstruction(nRows);
@@ -110,7 +112,15 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
     distortion.setTPCrow(iRow, xRow, nPads, padWidth, 0);
   }
 
-  fastTransform.setCalibration(-1, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f);
+  // set some initial values, will be reinitialised later int updateCalibration() 
+  const double t0 = 0.;
+  const double vdCorrY = 0.;
+  const double ldCorr = 0.;
+  const double tpcAlignmentZ = 0.;
+  const double tofCorr = 0.;
+  const double primVtxZ = 0.;
+  const double initTimeStamp = -1;
+  fastTransform.setCalibration(initTimeStamp, t0, vDrift, vdCorrY, ldCorr, tofCorr, primVtxZ, tpcAlignmentZ);
 
   IrregularSpline2D3D spline;
   {
@@ -160,8 +170,9 @@ int TPCFastTransformHelperO2::updateCalibration(ali_tpc_common::tpc_fast_transfo
 {
   // Update the calibration with the new time stamp
 
-  if (!mIsInitialized)
+  if (!mIsInitialized){
     init();
+  }
 
   Long_t lastTS = fastTransform.getTimeStamp();
 
@@ -169,8 +180,9 @@ int TPCFastTransformHelperO2::updateCalibration(ali_tpc_common::tpc_fast_transfo
 
   fastTransform.setTimeStamp(-1);
 
-  if (TimeStamp < 0)
+  if (TimeStamp < 0){
     return 0;
+  }
 
   // search for the calibration database ...
 
@@ -184,8 +196,9 @@ int TPCFastTransformHelperO2::updateCalibration(ali_tpc_common::tpc_fast_transfo
 
   // less than 60 seconds from the previois time stamp, don't do anything
 
-  if (lastTS >= 0 && TMath::Abs(lastTS - TimeStamp) < 60)
+  if (lastTS >= 0 && TMath::Abs(lastTS - TimeStamp) < 60){
     return 0;
+  }
 
   // start the initialization
 
@@ -193,7 +206,8 @@ int TPCFastTransformHelperO2::updateCalibration(ali_tpc_common::tpc_fast_transfo
 
   // find last calibrated time bin
 
-  double vDrift = elParam.getZBinWidth() * gasParam.getVdrift();
+  const double vDrift = elParam.getZBinWidth() * gasParam.getVdrift();
+
   //mLastTimeBin = detParam.getTPClength() / vDrift  + 1;
 
   // fast transform formula:
@@ -202,13 +216,13 @@ int TPCFastTransformHelperO2::updateCalibration(ali_tpc_common::tpc_fast_transfo
   // spline distortions for xyz
   // Time-of-flight correction: ldrift += dist-to-vtx*tofCorr
 
-  double t0 = 0.;
-  double vdCorrY = 0.;
-  double ldCorr = 0.;
-  double tpcAlignmentZ = 0.;
+  const double t0 = 0.;
+  const double vdCorrY = 0.;
+  const double ldCorr = 0.;
+  const double tpcAlignmentZ = 0.;
 
-  double tofCorr = 0.;
-  double primVtxZ = 0.;
+  const double tofCorr = 0.;
+  const double primVtxZ = 0.;
 
   fastTransform.setCalibration(TimeStamp, t0, vDrift, vdCorrY, ldCorr, tofCorr, primVtxZ, tpcAlignmentZ);
 
@@ -239,7 +253,7 @@ int TPCFastTransformHelperO2::updateCalibration(ali_tpc_common::tpc_fast_transfo
 
 void TPCFastTransformHelperO2::testGeometry(const ali_tpc_common::tpc_fast_transformation::TPCFastTransform& fastTransform) const
 {
-  Mapper& mapper = Mapper::instance();
+  const Mapper& mapper = Mapper::instance();
 
   if (fastTransform.getNumberOfSlices() != Sector::MAXSECTOR) {
     LOG(FATAL) << "Wrong number of sectors :" << fastTransform.getNumberOfSlices() << " instead of " << Sector::MAXSECTOR << std::endl;
@@ -253,13 +267,13 @@ void TPCFastTransformHelperO2::testGeometry(const ali_tpc_common::tpc_fast_trans
 
   for (int row = 0; row < fastTransform.getNumberOfRows(); row++) {
 
-    int nPads = fastTransform.getRowInfo(row).maxPad + 1;
-
+    const int nPads = fastTransform.getRowInfo(row).maxPad + 1;
+    
     if (nPads != mapper.getNumberOfPadsInRowSector(row)) {
       LOG(FATAL) << "Wrong number of pads :" << nPads << " instead of " << mapper.getNumberOfPadsInRowSector(row) << std::endl;
     }
 
-    double x = fastTransform.getRowInfo(row).x;
+    const double x = fastTransform.getRowInfo(row).x;
 
     // check if calculated pad positions are equal to the real ones
 
@@ -272,18 +286,20 @@ void TPCFastTransformHelperO2::testGeometry(const ali_tpc_common::tpc_fast_trans
         LOG(FATAL) << "Can not transform a cluster: row " << row << " pad " << pad << " time 10. : error " << err << std::endl;
       }
 
-      double dx = x - c.X();
-      double dy = u - (-c.Y()); // diferent sign convention for Y coordinate in the map
+      const double dx = x - c.X();
+      const double dy = u - (-c.Y()); // diferent sign convention for Y coordinate in the map
 
       if (fabs(dx) >= 1.e-6 || fabs(dy) >= 1.e-5) {
         LOG(WARNING) << "wrong calculated pad position:"
                      << " row " << row << " pad " << pad << " x calc " << x << " x in map " << c.X() << " dx " << (x - c.X())
                      << " y calc " << u << " y in map " << -c.Y() << " dy " << dy << std::endl;
       }
-      if (fabs(maxDx) < fabs(dx))
+      if (fabs(maxDx) < fabs(dx)){
         maxDx = dx;
-      if (fabs(maxDy) < fabs(dy))
+      }
+      if (fabs(maxDy) < fabs(dy)){
         maxDy = dy;
+      }
     }
   }
 
