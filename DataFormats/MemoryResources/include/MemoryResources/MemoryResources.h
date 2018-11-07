@@ -58,7 +58,7 @@ class FairMQMemoryResource : public boost::container::pmr::memory_resource
   /// return nullptr if returning a message does not make sense!
   virtual FairMQMessagePtr getMessage(void* p) = 0;
   virtual void* setMessage(FairMQMessagePtr) = 0;
-  virtual const FairMQTransportFactory* getTransportFactory() const noexcept = 0;
+  virtual FairMQTransportFactory* getTransportFactory() noexcept = 0;
   virtual size_t getNumberOfMessages() const noexcept = 0;
 };
 
@@ -69,14 +69,14 @@ class FairMQMemoryResource : public boost::container::pmr::memory_resource
 class ChannelResource : public FairMQMemoryResource
 {
  protected:
-  const FairMQTransportFactory* factory{ nullptr };
+  FairMQTransportFactory* factory{ nullptr };
   // TODO: for now a map to keep track of allocations, something else would probably be faster, but for now this does
   // not need to be fast.
   boost::container::flat_map<void*, FairMQMessagePtr> messageMap;
 
  public:
   ChannelResource() = delete;
-  ChannelResource(const FairMQTransportFactory* _factory) : FairMQMemoryResource(), factory(_factory), messageMap()
+  ChannelResource(FairMQTransportFactory* _factory) : FairMQMemoryResource(), factory(_factory), messageMap()
   {
     if (!factory) {
       throw std::runtime_error("Tried to construct from a nullptr FairMQTransportFactory");
@@ -94,7 +94,7 @@ class ChannelResource : public FairMQMemoryResource
     messageMap[addr] = std::move(message);
     return addr;
   }
-  const FairMQTransportFactory* getTransportFactory() const noexcept override { return factory; }
+  FairMQTransportFactory* getTransportFactory() noexcept override { return factory; }
 
   size_t getNumberOfMessages() const noexcept override { return messageMap.size(); }
 
@@ -130,7 +130,7 @@ class SpectatorMessageResource : public FairMQMemoryResource
   SpectatorMessageResource() = default;
   SpectatorMessageResource(const FairMQMessage* _message) : message(_message){};
   FairMQMessagePtr getMessage(void* p) override { return nullptr; }
-  const FairMQTransportFactory* getTransportFactory() const noexcept override { return nullptr; }
+  FairMQTransportFactory* getTransportFactory() noexcept override { return nullptr; }
   size_t getNumberOfMessages() const noexcept override { return 0; }
   void* setMessage(FairMQMessagePtr) override { return nullptr; }
 
@@ -189,7 +189,7 @@ class MessageResource : public FairMQMemoryResource
   }
   FairMQMessagePtr getMessage(void* p) override { return mUpstream->getMessage(p); }
   void* setMessage(FairMQMessagePtr message) override { return mUpstream->setMessage(std::move(message)); }
-  const FairMQTransportFactory* getTransportFactory() const noexcept override { return nullptr; }
+  FairMQTransportFactory* getTransportFactory() noexcept override { return nullptr; }
   size_t getNumberOfMessages() const noexcept override { return mMessageData ? 1 : 0; }
 
  protected:
@@ -397,20 +397,20 @@ class TransportAllocatorMap
     static TransportAllocatorMap S;
     return S;
   }
-  ChannelResource* operator[](const FairMQTransportFactory* factory)
+  ChannelResource* operator[](FairMQTransportFactory* factory)
   {
     return std::addressof(map.emplace(factory, factory).first->second);
   }
 
  private:
-  std::unordered_map<const FairMQTransportFactory*, ChannelResource> map{};
+  std::unordered_map<FairMQTransportFactory*, ChannelResource> map{};
   TransportAllocatorMap(){};
 };
 }
 
 //__________________________________________________________________________________________________
 /// Get the allocator associated to a transport factory
-inline static ChannelResource* getTransportAllocator(const FairMQTransportFactory* factory)
+inline static ChannelResource* getTransportAllocator(FairMQTransportFactory* factory)
 {
   return internal::TransportAllocatorMap::Instance()[factory];
 }

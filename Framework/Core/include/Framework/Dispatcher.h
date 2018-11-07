@@ -47,7 +47,7 @@ class Dispatcher : public Task
 
  private:
   void send(DataAllocator& dataAllocator, const DataRef& inputData, const Output& output) const;
-  void sendFairMQ(const FairMQDevice* device, const DataRef& inputData, const std::string& fairMQChannel) const;
+  void sendFairMQ(FairMQDevice* device, const DataRef& inputData, const std::string& fairMQChannel) const;
 
   std::string mName;
   std::string mReconfigurationSource;

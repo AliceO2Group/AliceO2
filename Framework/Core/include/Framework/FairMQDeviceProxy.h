@@ -37,8 +37,8 @@ public:
   }
 
   /// Looks like what we really need in the headers is just the transport.
-  const FairMQTransportFactory* getTransport();
-  const FairMQTransportFactory* getTransport(const std::string& channel, int index);
+  FairMQTransportFactory* getTransport();
+  FairMQTransportFactory* getTransport(const std::string& channel, int index);
   std::unique_ptr<FairMQMessage> createMessage() const;
   std::unique_ptr<FairMQMessage> createMessage(const size_t size) const;
 private:
