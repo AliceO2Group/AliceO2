@@ -15,6 +15,7 @@
 #include <Generators/PDG.h>
 #include <SimConfig/SimConfig.h>
 #include <SimConfig/ConfigurableParam.h>
+#include <CommonUtils/RngHelper.h>
 #include <TStopwatch.h>
 #include <memory>
 #include "DataFormatsParameters/GRPObject.h"
@@ -40,8 +41,11 @@ FairRunSim* o2sim_init(bool asservice)
   // we can update the binary CCDB entry something like this ( + timestamp key )
   // o2::conf::ConfigurableParam::toCCDB("params_ccdb.root");
 
-  auto genconfig = confref.getGenerator();
+  // set seed
+  auto seed = o2::utils::RngHelper::setGRandomSeed(confref.getStartSeed());
+  LOG(INFO) << "RNG INITIAL SEED " << seed;
 
+  auto genconfig = confref.getGenerator();
   FairRunSim* run;
   if (asservice) {
     run = new o2::steer::O2RunSim();

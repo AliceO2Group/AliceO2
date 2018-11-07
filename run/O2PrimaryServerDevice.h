@@ -24,10 +24,10 @@
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <Generators/GeneratorFromFile.h>
 #include <SimConfig/SimConfig.h>
+#include <CommonUtils/RngHelper.h>
 #include <typeinfo>
 #include <thread>
 #include <TROOT.h>
-#include <fcntl.h>
 
 namespace o2
 {
@@ -76,12 +76,8 @@ class O2PrimaryServerDevice : public FairMQDevice
 
     // initial initial seed --> we should store this somewhere
     mInitialSeed = vm["seed"].as<int>();
-    if (mInitialSeed == -1) {
-      mInitialSeed = getRandomSeed();
-    }
-    LOG(INFO) << "INITIAL SEED " << mInitialSeed;
-    // set seed here ... in order to influence already event generation
-    gRandom->SetSeed(mInitialSeed);
+    mInitialSeed = o2::utils::RngHelper::setGRandomSeed(mInitialSeed);
+    LOG(INFO) << "RNG INITIAL SEED " << mInitialSeed;
 
     mMaxEvents = conf.getNEvents();
 
@@ -211,24 +207,6 @@ class O2PrimaryServerDevice : public FairMQDevice
   }
 
  private:
-  // helper function to get truly random seed
-  int getRandomSeed() const
-  {
-    int randomDataHandle = open("/dev/urandom", O_RDONLY);
-    if (randomDataHandle < 0) {
-      // something went wrong
-    } else {
-      int seed;
-      auto result = read(randomDataHandle, &seed, sizeof(seed));
-      if (result < 0) {
-        // something went wrong
-      }
-      close(randomDataHandle);
-      return seed;
-    }
-    return 0;
-  }
-
   std::string mOutChannelName = "";
   FairPrimaryGenerator mPrimGen;
   FairMCEventHeader mEventHeader;
