@@ -64,7 +64,7 @@ struct DeviceMetricsInfo {
 struct DeviceMetricsHelper {
   /// Type of the callback which can be provided to be invoked every time a new
   /// metric is found by the system.
-  using NewMetricCallback = std::function<void(std::string const&, MetricInfo const&, int value)>;
+  using NewMetricCallback = std::function<void(std::string const&, MetricInfo const&, int value, size_t metricIndex)>;
 
   /// Helper function to parse a metric string.
   static bool parseMetric(const std::string& s, std::smatch& match);

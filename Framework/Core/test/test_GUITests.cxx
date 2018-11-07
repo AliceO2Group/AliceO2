@@ -117,12 +117,13 @@ BOOST_AUTO_TEST_CASE(DeviceInspector)
   DeviceSpec spec;
   DeviceInfo info;
   DeviceControl control;
+  DeviceMetricsInfo metrics;
 
   for (int n = 0; n < 50; n++) {
     io.DisplaySize = ImVec2(1920, 1080);
     io.DeltaTime = 1.0f / 60.0f;
     ImGui::NewFrame();
-    gui::displayDeviceInspector(spec, info, control);
+    gui::displayDeviceInspector(spec, info, metrics, control);
     ImGui::Render();
   }
   ImGui::DestroyContext();

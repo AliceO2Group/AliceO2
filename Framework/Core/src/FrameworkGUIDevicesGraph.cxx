@@ -448,8 +448,9 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       auto& spec = specs[node_selected];
       auto& control = controls[node_selected];
       auto& info = infos[node_selected];
+      auto& metrics = metricsInfos[node_selected];
       if (state.rightPaneVisible) {
-        gui::displayDeviceInspector(spec, info, control);
+        gui::displayDeviceInspector(spec, info, metrics, control);
       }
     } else {
       ImGui::TextWrapped("Select a node in the topology to display information about it");

@@ -348,6 +348,8 @@ void spawnDevice(DeviceSpec const& spec, std::map<int, size_t>& socket2DeviceInf
   info.historyPos = 0;
   info.maxLogLevel = LogParsingHelpers::LogLevel::Debug;
   info.dataRelayerViewIndex = Metric2DViewIndex{ "data_relayer", 0, 0, {} };
+  info.variablesViewIndex = Metric2DViewIndex{ "matcher_variables", 0, 0, {} };
+  info.queriesViewIndex = Metric2DViewIndex{ "data_queries", 0, 0, {} };
 
   socket2DeviceInfo.insert(std::make_pair(childstdout[0], deviceInfos.size()));
   socket2DeviceInfo.insert(std::make_pair(childstderr[0], deviceInfos.size()));
@@ -417,7 +419,10 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
     info.history.resize(info.historySize);
     info.historyLevel.resize(info.historySize);
 
-    auto updateDataRelayerViewIndex = Metric2DViewIndex::getUpdater(info.dataRelayerViewIndex);
+    auto updateMetricsViews =
+      Metric2DViewIndex::getUpdater({ &info.dataRelayerViewIndex,
+                                      &info.variablesViewIndex,
+                                      &info.queriesViewIndex });
 
     while ((pos = s.find(delimiter)) != std::string::npos) {
       token = s.substr(0, pos);
@@ -432,7 +437,7 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
         LOG(DEBUG) << "Found metric with key " << match[1] << " and value " << match[3];
         // We use this callback to cache which metrics are needed to provide a
         // the DataRelayer view.
-        DeviceMetricsHelper::processMetric(match, metrics, updateDataRelayerViewIndex);
+        DeviceMetricsHelper::processMetric(match, metrics, updateMetricsViews);
       } else if (logLevel == LogParsingHelpers::LogLevel::Info && parseControl(token, match)) {
         auto command = match[1];
         auto validFor = match[2];

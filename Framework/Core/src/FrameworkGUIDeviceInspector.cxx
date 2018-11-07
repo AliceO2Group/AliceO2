@@ -9,10 +9,13 @@
 // or submit itself to any jurisdiction.
 
 #include "FrameworkGUIDeviceInspector.h"
+
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceInfo.h"
+#include "Framework/DeviceMetricsInfo.h"
 #include "Framework/ChannelSpec.h"
+
 #include "DebugGUI/imgui.h"
 #include <csignal>
 
@@ -42,6 +45,16 @@ struct ChannelsTableHelper {
     ImGui::Columns(1);
   }
 };
+
+void deviceInfoTable(DeviceInfo const& info, DeviceMetricsInfo const& metrics)
+{
+  if (info.queriesViewIndex.indexes.empty() == false && ImGui::CollapsingHeader("Inputs:", ImGuiTreeNodeFlags_DefaultOpen)) {
+    for (size_t i = 0; i < info.queriesViewIndex.indexes.size(); ++i) {
+      auto& metric = metrics.metrics[info.queriesViewIndex.indexes[i]];
+      ImGui::Text("%zu: %s", i, metrics.stringMetrics[metric.storeIdx][0].data);
+    }
+  }
+}
 
 void optionsTable(const DeviceSpec& spec, const DeviceControl& control)
 {
@@ -89,17 +102,18 @@ void optionsTable(const DeviceSpec& spec, const DeviceControl& control)
   ImGui::Columns(1);
 }
 
-void displayDeviceInspector(DeviceSpec const& spec, DeviceInfo const& info, DeviceControl& control)
+void displayDeviceInspector(DeviceSpec const& spec, DeviceInfo const& info, DeviceMetricsInfo const& metrics, DeviceControl& control)
 {
   ImGui::Text("Name: %s", spec.name.c_str());
   ImGui::Text("Pid: %d", info.pid);
 
+  deviceInfoTable(info, metrics);
+  optionsTable(spec, control);
   if (ImGui::CollapsingHeader("Channels", ImGuiTreeNodeFlags_DefaultOpen)) {
     ImGui::Text("# channels: %lu", spec.inputChannels.size() + spec.outputChannels.size());
     ChannelsTableHelper::channelsTable("Inputs:", spec.inputChannels);
     ChannelsTableHelper::channelsTable("Outputs:", spec.outputChannels);
   }
-  optionsTable(spec, control);
   if (ImGui::CollapsingHeader("Data relayer")) {
     ImGui::Text("Completion policy: %s", spec.completionPolicy.name.c_str());
   }

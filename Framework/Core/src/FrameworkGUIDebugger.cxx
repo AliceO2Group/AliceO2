@@ -24,6 +24,9 @@
 #include "Framework/PaletteHelpers.h"
 #include "Framework/FrameworkGUIState.h"
 
+// Simplify debugging
+template class std::vector<o2::framework::DeviceMetricsInfo>;
+
 static inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y); }
 static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x - rhs.x, lhs.y - rhs.y); }
 
@@ -296,40 +299,44 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
   }
 }
 
-void metricsTable(gui::WorkspaceGUIState& globalGUIState, const DeviceMetricsInfo& metricsInfo)
+struct ColumnInfo {
+  MetricType type;
+  int index;
+};
+
+void metricsTableRow(std::vector<ColumnInfo> columnInfos,
+                     std::vector<DeviceMetricsInfo> const& metricsInfos,
+                     int row)
 {
-  /// Nothing to draw, if no metric selected.
-  if (globalGUIState.selectedMetric == -1) {
-    return;
-  }
+  ImGui::Text("%d", row);
+  ImGui::NextColumn();
 
-  auto currentMetricName = globalGUIState.availableMetrics[globalGUIState.selectedMetric];
+  for (size_t j = 0; j < columnInfos.size(); j++) {
+    auto& info = columnInfos[j];
+    auto& metricsInfo = metricsInfos[j];
 
-  size_t i = DeviceMetricsHelper::metricIdxByName(currentMetricName, metricsInfo);
-
-  // We did not find any plot, skipping this.
-  if (i == metricsInfo.metricLabelsIdx.size()) {
-    ImGui::TextUnformatted("-");
-    ImGui::NextColumn();
-    return;
-  }
-  auto& metric = metricsInfo.metrics[i];
-  switch (metric.type) {
-    case MetricType::Int: {
-      ImGui::Text("%i", metricsInfo.intMetrics[metric.storeIdx][0]);
+    if (info.index == -1) {
+      ImGui::TextUnformatted("-");
       ImGui::NextColumn();
-    } break;
-    case MetricType::Float: {
-      ImGui::Text("%f", metricsInfo.floatMetrics[metric.storeIdx][0]);
-      ImGui::NextColumn();
-    } break;
-    case MetricType::String: {
-      ImGui::Text("%s", metricsInfo.stringMetrics[metric.storeIdx][0].data);
-      ImGui::NextColumn();
-    } break;
-    default:
-      ImGui::NextColumn();
-      break;
+      continue;
+    }
+    switch (info.type) {
+      case MetricType::Int: {
+        ImGui::Text("%i (%i)", metricsInfo.intMetrics[info.index][row], info.index);
+        ImGui::NextColumn();
+      } break;
+      case MetricType::Float: {
+        ImGui::Text("%f (%i)", metricsInfo.floatMetrics[info.index][row], info.index);
+        ImGui::NextColumn();
+      } break;
+      case MetricType::String: {
+        ImGui::Text("%s (%i)", metricsInfo.stringMetrics[info.index][row].data, info.index);
+        ImGui::NextColumn();
+      } break;
+      default:
+        ImGui::NextColumn();
+        break;
+    }
   }
 }
 
@@ -396,6 +403,31 @@ void historyBar(gui::WorkspaceGUIState& globalGUIState, size_t rangeBegin, size_
       break;
   }
 }
+
+/// Calculate where to find the coliumns for a give metric
+std::vector<ColumnInfo> calculateTableIndex(gui::WorkspaceGUIState& globalGUIState, int selectedMetric, std::vector<DeviceMetricsInfo> const& metricsInfos)
+{
+  std::vector<ColumnInfo> columns;
+  for (size_t j = 0; j < globalGUIState.devices.size(); ++j) {
+    const DeviceMetricsInfo& metricsInfo = metricsInfos[j];
+    /// Nothing to draw, if no metric selected.
+    if (selectedMetric == -1) {
+      columns.push_back({ MetricType::Int, -1 });
+      continue;
+    }
+    auto currentMetricName = globalGUIState.availableMetrics[selectedMetric];
+    size_t idx = DeviceMetricsHelper::metricIdxByName(currentMetricName, metricsInfo);
+
+    // We did not find any plot, skipping this.
+    if (idx == metricsInfo.metricLabelsIdx.size()) {
+      columns.push_back({ MetricType::Int, -1 });
+      continue;
+    }
+    auto metric = metricsInfos[j].metrics[idx];
+    columns.push_back({ metric.type, static_cast<int>(metric.storeIdx) });
+  }
+  return columns;
+};
 
 void displayDeviceHistograms(gui::WorkspaceGUIState& state,
                              const std::vector<DeviceInfo>& infos, const std::vector<DeviceSpec>& devices,
@@ -519,7 +551,6 @@ void displayDeviceHistograms(gui::WorkspaceGUIState& state,
           for (size_t j = 0; j < state.devices.size(); ++j) {
             gui::DeviceGUIState& deviceGUIState = state.devices[j];
             const DeviceSpec& spec = devices[j];
-            const DeviceMetricsInfo& metricsInfo = metricsInfos[j];
 
             ImGui::SetColumnOffset(-1, offset);
             textsize = ImGui::CalcTextSize(spec.name.c_str(), NULL, true);
@@ -528,16 +559,13 @@ void displayDeviceHistograms(gui::WorkspaceGUIState& state,
             ImGui::NextColumn();
           }
           ImGui::Separator();
+
+          auto columns = calculateTableIndex(state, state.selectedMetric, metricsInfos);
+
+          // Calculate which columns we want to see.
           // FIXME: only one column for now.
-          for (size_t i = 0; i < 1; ++i) {
-            ImGui::Text("%li", i);
-            ImGui::NextColumn();
-            for (size_t j = 0; j < state.devices.size(); ++j) {
-              gui::DeviceGUIState& deviceGUIState = state.devices[j];
-              const DeviceSpec& spec = devices[j];
-              const DeviceMetricsInfo& metricsInfo = metricsInfos[j];
-              metricsTable(state, metricsInfo);
-            }
+          for (size_t i = 0; i < 10; ++i) {
+            metricsTableRow(columns, metricsInfos, i);
           }
           ImGui::Columns(1);
 
