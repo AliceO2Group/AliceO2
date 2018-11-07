@@ -46,11 +46,10 @@ int TPCFastTransformManagerO2::create(TPCFastTransform& fastTransform, Long_t Ti
 
   // find last calibrated time bin
   
-  mLastTimeBin = detParam.getTPClength() / (gasParam.getVdrift() * elParam.getZBinWidth())  + 1;
+  mLastTimeBin = detParam.getTPClength() / vDrift  + 1;
 
   Mapper& mapper = Mapper::instance();
-  const int nRows = mapper.getNumberOfRows();
-  const int nSectors = Sector::MAXSECTOR;
+  const int nRows = mapper.getNumberOfRows();  
 
   fastTransform.startConstruction( nRows );
 
@@ -63,8 +62,6 @@ int TPCFastTransformManagerO2::create(TPCFastTransform& fastTransform, Long_t Ti
 
   fastTransform.setTPCgeometry(  tpcZlengthSideA, tpcZlengthSideC );
   distortion.setTPCgeometry(  tpcZlengthSideA, tpcZlengthSideC );
-  
-  double maxDx=0, maxDy=0;  
 
   for( int iRow=0; iRow<fastTransform.getNumberOfRows(); iRow++){
     Sector sector = 0;
@@ -160,7 +157,8 @@ int TPCFastTransformManagerO2::updateCalibration( ali_tpc_common::tpc_fast_trans
   
   // find last calibrated time bin
   
-  mLastTimeBin = detParam.getTPClength() / (gasParam.getVdrift() * elParam.getZBinWidth())  + 1;
+  double vDrift = elParam.getZBinWidth() * gasParam.getVdrift();
+  mLastTimeBin = detParam.getTPClength() / vDrift  + 1;
 
  
   // fast transform formula:
@@ -170,7 +168,6 @@ int TPCFastTransformManagerO2::updateCalibration( ali_tpc_common::tpc_fast_trans
   // Time-of-flight correction: ldrift += dist-to-vtx*tofCorr
 
   double t0 = 0.;
-  double vDrift = elParam.getZBinWidth() * gasParam.getVdrift();
   double vdCorrY = 0.;
   double ldCorr = 0.;
   double tpcAlignmentZ = 0.;
@@ -188,7 +185,7 @@ int TPCFastTransformManagerO2::updateCalibration( ali_tpc_common::tpc_fast_trans
  
   for( int slice=0; slice<distortion.getNumberOfSlices(); slice++){      
     for( int row=0; row<distortion.getNumberOfRows(); row++ ){
-      const TPCFastTransform::RowInfo &rowInfo = fastTransform.getRowInfo( row );
+      //const TPCFastTransform::RowInfo &rowInfo = fastTransform.getRowInfo( row );
       const IrregularSpline2D3D& spline = distortion.getSpline( slice, row );
       float *data = distortion.getSplineDataNonConst(slice,row);
       for( int knot=0; knot<spline.getNumberOfKnots(); knot++ ){
