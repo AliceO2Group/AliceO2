@@ -242,12 +242,6 @@ int AliHLTTPCCATrackerFramework::InitializeSliceParam(int iSlice, const AliGPUCA
 	return(0);
 }
 
-#ifdef HLTCA_STANDALONE
-#define GPULIBNAME "libAliHLTTPCCAGPUSA"
-#else
-#define GPULIBNAME "libAliHLTTPCCAGPU"
-#endif
-
 AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(AliGPUReconstruction* rec) : fGPULibAvailable(false), fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUTracker(NULL), fGPULib(NULL), fOutputControl( NULL ), fKeepData(false), fGlobalTracking(false)
 {
 	//Constructor
