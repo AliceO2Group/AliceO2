@@ -14,8 +14,6 @@
 
 #include "ITStrackingCUDA/Stream.h"
 
-#include <cuda_runtime.h>
-
 namespace o2
 {
 namespace ITS
