@@ -107,7 +107,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
         }
       }
 
-      for (int iBin{ previousBinIndex + 1 }; iBin < mIndexTables[iLayer - 1].size(); iBin++) {
+      for (int iBin{ previousBinIndex + 1 }; iBin < (int) mIndexTables[iLayer - 1].size(); iBin++) {
         mIndexTables[iLayer - 1][iBin] = clustersNum;
       }
     }
