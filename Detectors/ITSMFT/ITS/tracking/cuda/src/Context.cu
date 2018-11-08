@@ -13,6 +13,7 @@
 ///
 
 #include "ITStrackingCUDA/Context.h"
+#include "ITStrackingCUDA/Utils.h"
 
 #include <sstream>
 #include <stdexcept>
@@ -20,18 +21,6 @@
 #include <iostream>
 
 namespace {
-inline void checkCUDAError(const cudaError_t error, const char *file, const int line)
-{
-  if (error != cudaSuccess) {
-
-    std::ostringstream errorString { };
-
-    errorString << file << ":" << line << " CUDA API returned error [" << cudaGetErrorString(error) << "] (code "
-        << error << ")" << std::endl;
-
-    throw std::runtime_error { errorString.str() };
-  }
-}
 
 inline int getCudaCores(const int major, const int minor)
 {
@@ -89,6 +78,8 @@ namespace ITS
 {
 namespace GPU
 {
+
+using Utils::Host::checkCUDAError;
 
 Context::Context(bool dumpDevices)
 {
