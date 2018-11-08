@@ -145,22 +145,25 @@ protected:
 	
 	class LibraryLoader
 	{
+	public:
+		~LibraryLoader();
+
+	private:
 		friend class AliGPUReconstruction;
 		LibraryLoader(const char* lib, const char* func);
-		~LibraryLoader();
 		LibraryLoader(const LibraryLoader&) CON_DELETE;
 		const LibraryLoader& operator= (const LibraryLoader&) CON_DELETE;
 		int LoadLibrary();
 		int CloseLibrary();
 		AliGPUReconstruction* GetPtr();
 		
-	private:
 		const char* mLibName;
 		const char* mFuncName;
 		void* mGPULib;
 		void* mGPUEntry;
 	};
-	static LibraryLoader sLibCUDA, sLibHIP, sLibOCL;
+	static std::shared_ptr<LibraryLoader> sLibCUDA, sLibHIP, sLibOCL;
+	std::shared_ptr<LibraryLoader> mMyLib = nullptr;
 	DeviceType mDeviceType;
 	
 	AliGPUCAParam mParam;

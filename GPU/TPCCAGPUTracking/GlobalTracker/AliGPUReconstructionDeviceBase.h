@@ -6,6 +6,9 @@
 
 class AliGPUReconstructionDeviceBase : public AliGPUReconstruction
 {
+public:
+    virtual ~AliGPUReconstructionDeviceBase();
+
 protected:
     AliGPUReconstructionDeviceBase(DeviceType type);
     AliGPUCAConstantMem mGPUReconstructors;

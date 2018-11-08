@@ -11,10 +11,12 @@ extern "C" AliGPUReconstruction* AliGPUReconstruction_Create_CUDA();
 
 class AliGPUReconstructionCUDA : public AliGPUReconstructionDeviceBase
 {
+public:
+    virtual ~AliGPUReconstructionCUDA();
+    
 protected:
     friend AliGPUReconstruction* AliGPUReconstruction_Create_CUDA();
     AliGPUReconstructionCUDA();
-    virtual ~AliGPUReconstructionCUDA();
 };
 
 #endif

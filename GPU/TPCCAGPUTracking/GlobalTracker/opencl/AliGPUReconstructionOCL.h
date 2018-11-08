@@ -11,10 +11,12 @@ extern "C" AliGPUReconstruction* AliGPUReconstruction_Create_OCL();
 
 class AliGPUReconstructionOCL : public AliGPUReconstructionDeviceBase
 {
+public:
+    virtual ~AliGPUReconstructionOCL();
+    
 protected:
     friend AliGPUReconstruction* AliGPUReconstruction_Create_OCL();
     AliGPUReconstructionOCL();
-    virtual ~AliGPUReconstructionOCL();
 };
 
 #endif
