@@ -56,6 +56,7 @@ set(SRCS
     src/LifetimeHelpers.cxx
     src/LocalRootFileService.cxx
     src/LogParsingHelpers.cxx
+    src/Metric2DViewIndex.cxx
     src/ExternalFairMQDeviceProxy.cxx
     src/SimpleResourceManager.cxx
     src/TextControlService.cxx
@@ -149,6 +150,7 @@ set(HEADERS
       include/Framework/DPLBoostSerializer.h
       include/Framework/TableBuilder.h
       include/Framework/FairMQResizableBuffer.h
+      include/Framework/Metric2DViewIndex.h
       src/ComputingResource.h
       src/DDSConfigHelpers.h
       src/DeviceSpecHelpers.h
