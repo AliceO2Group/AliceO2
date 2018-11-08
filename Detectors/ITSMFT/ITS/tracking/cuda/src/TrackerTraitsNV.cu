@@ -18,7 +18,6 @@
 #include <sstream>
 #include <iostream>
 
-#include <cuda_runtime.h>
 #include <cooperative_groups.h>
 
 #include "cub/cub.cuh"

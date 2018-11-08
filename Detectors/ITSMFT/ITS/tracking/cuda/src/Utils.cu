@@ -17,7 +17,6 @@
 #include <sstream>
 #include <stdexcept>
 
-#include <cuda_runtime.h>
 #include <cuda_profiler_api.h>
 #include <cooperative_groups.h>
 
