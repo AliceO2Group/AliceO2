@@ -233,15 +233,15 @@ AliGPUReconstruction* AliGPUReconstruction::CreateInstance(DeviceType type, bool
 	}
 	else if (type == DeviceType::CUDA)
 	{
-		retVal = sLibCUDA.GetPtr();
+		if ((retVal = sLibCUDA->GetPtr())) retVal->mMyLib = sLibCUDA;
 	}
 	else if (type == DeviceType::HIP)
 	{
-		retVal = sLibHIP.GetPtr();
+		if((retVal = sLibHIP->GetPtr())) retVal->mMyLib = sLibHIP;
 	}
 	else if (type == DeviceType::OCL)
 	{
-		retVal = sLibOCL.GetPtr();
+		if((retVal = sLibOCL->GetPtr())) retVal->mMyLib = sLibOCL;
 	}
 	else
 	{
@@ -304,9 +304,9 @@ AliGPUReconstruction* AliGPUReconstruction::CreateInstance(const char* type, boo
 #define LIBRARY_PREFIX ""
 #endif
 
-AliGPUReconstruction::LibraryLoader AliGPUReconstruction::sLibCUDA("lib" LIBRARY_PREFIX "TPCCAGPUTracking" "CUDA" LIBRARY_EXTENSION, "AliGPUReconstruction_Create_" "CUDA");
-AliGPUReconstruction::LibraryLoader AliGPUReconstruction::sLibHIP("lib" LIBRARY_PREFIX "TPCCAGPUTracking" "HIP" LIBRARY_EXTENSION, "AliGPUReconstruction_Create_" "HIP");
-AliGPUReconstruction::LibraryLoader AliGPUReconstruction::sLibOCL("lib" LIBRARY_PREFIX "TPCCAGPUTracking" "OCL" LIBRARY_EXTENSION, "AliGPUReconstruction_Create_" "OCL");
+std::shared_ptr<AliGPUReconstruction::LibraryLoader> AliGPUReconstruction::sLibCUDA(new AliGPUReconstruction::LibraryLoader("lib" LIBRARY_PREFIX "TPCCAGPUTracking" "CUDA" LIBRARY_EXTENSION, "AliGPUReconstruction_Create_" "CUDA"));
+std::shared_ptr<AliGPUReconstruction::LibraryLoader> AliGPUReconstruction::sLibHIP(new AliGPUReconstruction::LibraryLoader("lib" LIBRARY_PREFIX "TPCCAGPUTracking" "HIP" LIBRARY_EXTENSION, "AliGPUReconstruction_Create_" "HIP"));
+std::shared_ptr<AliGPUReconstruction::LibraryLoader> AliGPUReconstruction::sLibOCL(new AliGPUReconstruction::LibraryLoader("lib" LIBRARY_PREFIX "TPCCAGPUTracking" "OCL" LIBRARY_EXTENSION, "AliGPUReconstruction_Create_" "OCL"));
 
 AliGPUReconstruction::LibraryLoader::LibraryLoader(const char* lib, const char* func) : mLibName(lib), mFuncName(func), mGPULib(nullptr), mGPUEntry(nullptr)
 {
