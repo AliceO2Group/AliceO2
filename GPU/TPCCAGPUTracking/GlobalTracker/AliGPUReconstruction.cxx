@@ -133,6 +133,14 @@ int AliGPUReconstruction::ReadData(const char* filename)
 	}
 	(void) r;
 	ReadData(fp, mIOPtrs.clusterData, mIOPtrs.nClusterData, mIOMem.clusterData, InOutPointerType::CLUSTER_DATA);
+	int nClustersTotal = 0;
+	for (int i = 0;i < 36;i++)
+	{
+		for (unsigned int j = 0;j < mIOPtrs.nClusterData[i];j++)
+		{
+			mIOPtrs.clusterData[i][j].fId = nClustersTotal++;
+		}
+	}
 	ReadData(fp, mIOPtrs.sliceOutTracks, mIOPtrs.nSliceOutTracks, mIOMem.sliceOutTracks, InOutPointerType::SLICE_OUT_TRACK);
 	ReadData(fp, mIOPtrs.sliceOutClusters, mIOPtrs.nSliceOutClusters, mIOMem.sliceOutClusters, InOutPointerType::SLICE_OUT_CLUSTER);
 	ReadData(fp, &mIOPtrs.mcLabelsTPC, &mIOPtrs.nMCLabelsTPC, &mIOMem.mcLabelsTPC, InOutPointerType::MC_LABEL_TPC);
