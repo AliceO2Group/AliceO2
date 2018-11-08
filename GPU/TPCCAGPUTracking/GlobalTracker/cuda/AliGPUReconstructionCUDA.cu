@@ -24,7 +24,9 @@ AliGPUReconstructionCUDA::AliGPUReconstructionCUDA() : AliGPUReconstructionDevic
 
 AliGPUReconstructionCUDA::~AliGPUReconstructionCUDA()
 {
-    
+#if defined(HLTCA_STANDALONE) && !defined(HLTCA_BUILD_O2_LIB)
+    mITSTrackerTraits.release();
+#endif
 }
 
 AliGPUReconstruction* AliGPUReconstruction_Create_CUDA()
