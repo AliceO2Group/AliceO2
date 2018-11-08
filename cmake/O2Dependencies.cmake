@@ -879,6 +879,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     data_format_its_bucket
+    AliTPCCommonBase_bucket
     #
     DataFormatsITS
     DetectorsBase
@@ -887,6 +888,7 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/tracking/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/ITS/include
 )
 

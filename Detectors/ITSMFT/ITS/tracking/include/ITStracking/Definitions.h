@@ -82,22 +82,9 @@ typedef cudaStream_t GPUStream;
 #define MATH_SQRT std::sqrt
 
 #ifndef __VECTOR_TYPES_H__
-//This will clash if any other header has pulled in CUDA before
-typedef struct _dim3 {
-  unsigned int x, y, z;
-} dim3;
-typedef struct _int4 {
-  int x, y, z, w;
-} int4;
-typedef struct _float2 {
-  float x, y;
-} float2;
-typedef struct _float3 {
-  float x, y, z;
-} float3;
-typedef struct _float4 {
-  float x, y, z, w;
-} float4;
+
+#include "AliTPCCommonDefGPU.h"
+
 #endif
 
 template <typename T, std::size_t Size>
