@@ -25,18 +25,6 @@
 #include <iostream>
 
 namespace {
-void checkCUDAError(const cudaError_t error, const char *file, const int line)
-{
-  if (error != cudaSuccess) {
-
-    std::ostringstream errorString { };
-
-    errorString << file << ":" << line << " CUDA API returned error [" << cudaGetErrorString(error) << "] (code "
-        << error << ")" << std::endl;
-
-    throw std::runtime_error { errorString.str() };
-  }
-}
 
 int roundUp(const int numToRound, const int multiple)
 {
@@ -81,6 +69,19 @@ namespace ITS
 {
 namespace GPU
 {
+
+void Utils::Host::checkCUDAError(const cudaError_t error, const char *file, const int line)
+{
+  if (error != cudaSuccess) {
+
+    std::ostringstream errorString { };
+
+    errorString << file << ":" << line << " CUDA API returned error [" << cudaGetErrorString(error) << "] (code "
+        << error << ")" << std::endl;
+
+    throw std::runtime_error { errorString.str() };
+  }
+}
 
 dim3 Utils::Host::getBlockSize(const int colsNum)
 {
@@ -167,20 +168,20 @@ void Utils::Host::gpuStopProfiler()
   checkCUDAError(cudaProfilerStop(), __FILE__, __LINE__);
 }
 
-GPU_DEVICE int Utils::Device::getLaneIndex()
+GPUd() int Utils::Device::getLaneIndex()
 {
   uint32_t laneIndex;
   asm volatile("mov.u32 %0, %%laneid;" : "=r"(laneIndex));
   return static_cast<int>(laneIndex);
 }
 
-GPU_DEVICE int Utils::Device::shareToWarp(const int value, const int laneIndex)
+GPUd() int Utils::Device::shareToWarp(const int value, const int laneIndex)
 {
   cooperative_groups::coalesced_group threadGroup = cooperative_groups::coalesced_threads();
   return threadGroup.shfl(value, laneIndex);
 }
 
-GPU_DEVICE int Utils::Device::gpuAtomicAdd(int *p, const int incrementSize)
+GPUd() int Utils::Device::gpuAtomicAdd(int *p, const int incrementSize)
 {
   return atomicAdd(p, incrementSize);
 }

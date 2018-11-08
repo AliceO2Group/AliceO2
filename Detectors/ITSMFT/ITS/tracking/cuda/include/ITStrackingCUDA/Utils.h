@@ -15,7 +15,7 @@
 #ifndef TRACKINGITSU_INCLUDE_GPU_UTILS_H_
 #define TRACKINGITSU_INCLUDE_GPU_UTILS_H_
 
-#include "ITStracking/Definitions.h"
+#include "AliTPCCommonDefGPU.h"
 #include "ITStrackingCUDA/Stream.h"
 
 namespace o2
@@ -30,6 +30,11 @@ namespace Utils
 
 namespace Host
 {
+
+#ifdef __CUDACC__
+void checkCUDAError(const cudaError_t error, const char *file, const int line);
+#endif
+
 dim3 getBlockSize(const int);
 dim3 getBlockSize(const int, const int);
 dim3 getBlockSize(const int, const int, const int);
@@ -48,9 +53,9 @@ void gpuStopProfiler();
 
 namespace Device
 {
-GPU_DEVICE int getLaneIndex();
-GPU_DEVICE int shareToWarp(const int, const int);
-GPU_DEVICE int gpuAtomicAdd(int*, const int);
+GPUd() int getLaneIndex();
+GPUd() int shareToWarp(const int, const int);
+GPUd() int gpuAtomicAdd(int*, const int);
 }
 }
 }
