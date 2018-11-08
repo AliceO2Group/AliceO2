@@ -212,7 +212,9 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool rese
 			{
 				time /= fgkNSlices;
 			}
+#ifdef HLTCA_HAVE_OPENMP
 			if (fTracker->GetGPUStatus() < 2) time /= omp_get_max_threads();
+#endif
 
 			printf("Execution Time: Task: %20s ", tmpNames[i]);
 			printf("Time: %1.0f us", time * 1000000 / nCount);
