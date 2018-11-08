@@ -231,7 +231,7 @@ void AliHLTTPCGMMerger::ClearMemory()
 {
   delete[] fTrackLinks;
   delete[] fSliceTrackInfos;
-  if (!(fGPUTracker && fGPUTracker->IsInitialized()))
+  if (!fGPUTracker)
   {
     delete[] fOutputTracks;
     delete[] fClusters;
@@ -359,7 +359,7 @@ bool AliHLTTPCGMMerger::AllocateMemory()
   //cout<<"\nMerger: input "<<nTracks<<" tracks, "<<nClusters<<" clusters"<<endl;
 
   fSliceTrackInfos = new AliHLTTPCGMSliceTrack[nTracks];
-  if (fGPUTracker && fGPUTracker->IsInitialized())
+  if (fGPUTracker)
   {
     char* basemem = fGPUTracker->MergerHostMemory();
     AssignMemory(fClusters, basemem, fNMaxOutputTrackClusters);
@@ -1331,7 +1331,7 @@ void AliHLTTPCGMMerger::PrepareClustersForFit()
   unsigned char* sharedCount = new unsigned char[maxId];
 
 #if defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE) && !defined(HLTCA_BUILD_O2_LIB)
-  if (!(fGPUTracker && fGPUTracker->IsInitialized()))
+  if (!fGPUTracker)
   {
     unsigned int* trackSort = new unsigned int[fNOutputTracks];
     if (fTrackOrder) delete[] fTrackOrder;
@@ -1364,7 +1364,7 @@ void AliHLTTPCGMMerger::Refit(bool resetTimers)
 {
   //* final refit
 #ifdef HLTCA_GPU_MERGER
-  if (fGPUTracker && fGPUTracker->IsInitialized())
+  if (fGPUTracker)
   {
     fGPUTracker->RefitMergedTracks(this, resetTimers);
   }
@@ -1386,7 +1386,7 @@ void AliHLTTPCGMMerger::Refit(bool resetTimers)
 
 void AliHLTTPCGMMerger::Finalize()
 {
-    if (fGPUTracker && fGPUTracker->IsInitialized()) return;
+    if (fGPUTracker) return;
 #if defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE) && !defined(HLTCA_BUILD_O2_LIB)
     int* trkOrderReverse = new int[fNOutputTracks];
     for (int i = 0;i < fNOutputTracks;i++) trkOrderReverse[fTrackOrder[i]] = i;
