@@ -1005,7 +1005,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("help,h", "print this help")                                                                           //
     ("quiet,q", bpo::value<bool>()->zero_tokens()->default_value(false), "quiet operation")                 //
     ("stop,s", bpo::value<bool>()->zero_tokens()->default_value(false), "stop before device start")         //
-    ("single-step,S", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode") //
+    ("single-step", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode")   //
     ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(false), "batch processing mode")           //
     ("start-port,p", bpo::value<unsigned short>()->default_value(22000), "start port to allocate")          //
     ("port-range,pr", bpo::value<unsigned short>()->default_value(1000), "ports in range")                  //
