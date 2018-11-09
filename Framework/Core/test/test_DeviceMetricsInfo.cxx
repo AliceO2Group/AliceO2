@@ -118,4 +118,11 @@ BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo) {
   BOOST_CHECK_EQUAL(DeviceMetricsHelper::metricIdxByName("bkey", info), 0);
   BOOST_CHECK_EQUAL(DeviceMetricsHelper::metricIdxByName("key3", info), 2);
   BOOST_CHECK_EQUAL(DeviceMetricsHelper::metricIdxByName("foo", info), 3);
+
+  // Parse a string metric
+  metric = "[METRIC] key4,1 some_string 1789372895 hostname=test.cern.ch";
+  result = DeviceMetricsHelper::parseMetric(metric, match);
+  BOOST_CHECK_EQUAL(result, true);
+  result = DeviceMetricsHelper::processMetric(match, info);
+  BOOST_CHECK_EQUAL(result, true);
 }
