@@ -210,6 +210,12 @@ ENDIF()
 #  environment.
 SET(IGNORE_MACROS
     ${CMAKE_SOURCE_DIR}/Generators/share/external/hijing.C
+    # Temporarily disable the following macros: ROOT v6-14-04 fails to parse
+    # correctly some Boost headers
+    ${CMAKE_SOURCE_DIR}/CCDB/example/fill_local_ocdb.C
+    ${CMAKE_SOURCE_DIR}/macro/loadExtDepLib.C
+    ${CMAKE_SOURCE_DIR}/macro/putCondition.C
+    # End of temporarily disabled macros
 )
 
 # UNIT TESTS VERIFYING CONSISTENT STATE OF OUR ROOT MACROS AND THE EXECUTION ENVIRONMENT
