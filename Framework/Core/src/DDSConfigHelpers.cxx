@@ -45,6 +45,7 @@ dumpDeviceSpec2DDS(std::ostream &out,
       }
       out << arg << " ";
     }
+    out << "--plugin-search-path $FAIRMQ_ROOT/lib --plugin dds";
     out << "</exe>\n";
     out << "   </decltask>\n";
   }
