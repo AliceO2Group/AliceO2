@@ -25,6 +25,7 @@ namespace framework
 
 enum class MetricType {
   Int,
+  String,
   Float,
   Unknown
 };
@@ -37,10 +38,19 @@ struct MetricInfo {
   size_t pos; // Last position in the circular buffer
 };
 
+// We keep only fixed lenght strings for metrics, as in the end this is not
+// really needed. They should be nevertheless 0 terminated.
+struct StringMetric {
+  char data[128];
+};
+
 /// This struct hold information about device metrics when running
 /// in standalone mode
 struct DeviceMetricsInfo {
+  // We keep the size of each metric to 4096 bytes. No need for more
+  // for the debug GUI
   std::vector<std::array<int, 1024>> intMetrics;
+  std::vector<std::array<StringMetric, 32>> stringMetrics; // We do not keep so many strings as metrics as history is less relevant.
   std::vector<std::array<float, 1024>> floatMetrics;
   std::vector<std::array<size_t, 1024>> timestamps;
   std::vector<float> max;

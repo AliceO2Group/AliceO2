@@ -40,6 +40,7 @@ struct MultiplotData {
   const void* X;
   MetricType type;
 };
+
 } // namespace framework
 } // namespace o2
 
@@ -48,6 +49,8 @@ template class std::vector<o2::framework::MultiplotData>;
 namespace o2
 {
 namespace framework
+{
+namespace gui
 {
 
 ImVec4 colorForLogLevel(LogParsingHelpers::LogLevel logLevel)
@@ -66,15 +69,6 @@ ImVec4 colorForLogLevel(LogParsingHelpers::LogLevel logLevel)
     default:
       return PaletteHelpers::WHITE;
   };
-}
-
-bool startsWith(std::string mainStr, std::string toMatch)
-{
-  if (mainStr.find(toMatch) == 0) {
-    return true;
-  } else {
-    return false;
-  }
 }
 
 void displayHistory(const DeviceInfo& info, DeviceControl& control)
@@ -160,8 +154,15 @@ struct HistoData {
   const T* points;
 };
 
+enum struct MetricsDisplayStyle : int {
+  Lines = 0,
+  Histos = 1,
+  Sparks = 2,
+  Table = 3
+};
+
 void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string const& selectedMetricName,
-                          size_t rangeBegin, size_t rangeEnd, size_t bins, bool useHistos,
+                          size_t rangeBegin, size_t rangeEnd, size_t bins, MetricsDisplayStyle displayType,
                           std::vector<DeviceSpec> const& specs, std::vector<DeviceMetricsInfo> const& metricsInfos)
 {
   static std::vector<ImColor> palette = {
@@ -217,8 +218,14 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
         metricType = MetricType::Float;
         metricSize = metricsInfos[mi].floatMetrics[metric.storeIdx].size();
       } break;
-      default:
-        break;
+      case MetricType::Unknown:
+      case MetricType::String: {
+        data.size = metricsInfos[mi].stringMetrics[metric.storeIdx].size();
+        data.Y = nullptr;
+        data.type = MetricType::String;
+        metricType = MetricType::String;
+        metricSize = metricsInfos[mi].stringMetrics[metric.storeIdx].size();
+      } break;
     }
     userData.emplace_back(data);
   }
@@ -235,8 +242,11 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
     assert(pos >= 0 && pos < 1024);
     if (histoData->type == MetricType::Int) {
       return static_cast<const int*>(histoData->Y)[pos];
+    } else if (histoData->type == MetricType::Float) {
+      return static_cast<const float*>(histoData->Y)[pos];
+    } else {
+      return 0;
     }
-    return static_cast<const float*>(histoData->Y)[pos];
   };
   auto getterX = [](const void* hData, int idx) -> size_t {
     auto histoData = reinterpret_cast<const MultiplotData*>(hData);
@@ -245,36 +255,78 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
     assert(pos >= 0 && pos < 1024);
     return static_cast<const size_t*>(histoData->X)[pos];
   };
-  if (useHistos) {
-    ImGui::PlotMultiHistograms(
-      label,
-      userData.size(),
-      deviceNames.data(),
-      colors.data(),
-      getterY,
-      getterX,
-      metricsToDisplay.data(),
-      metricSize,
-      minValue,
-      maxValue * 1.2f,
-      minDomain,
-      maxDomain,
-      canvasSize);
-  } else {
-    ImGui::PlotMultiLines(
-      label,
-      userData.size(),
-      deviceNames.data(),
-      colors.data(),
-      getterY,
-      getterX,
-      metricsToDisplay.data(),
-      metricSize,
-      minValue,
-      maxValue * 1.2f,
-      minDomain,
-      maxDomain,
-      canvasSize);
+  switch (displayType) {
+    case MetricsDisplayStyle::Histos:
+      ImGui::PlotMultiHistograms(
+        label,
+        userData.size(),
+        deviceNames.data(),
+        colors.data(),
+        getterY,
+        getterX,
+        metricsToDisplay.data(),
+        metricSize,
+        minValue,
+        maxValue * 1.2f,
+        minDomain,
+        maxDomain,
+        canvasSize);
+      break;
+    case MetricsDisplayStyle::Lines:
+      ImGui::PlotMultiLines(
+        label,
+        userData.size(),
+        deviceNames.data(),
+        colors.data(),
+        getterY,
+        getterX,
+        metricsToDisplay.data(),
+        metricSize,
+        minValue,
+        maxValue * 1.2f,
+        minDomain,
+        maxDomain,
+        canvasSize);
+      break;
+    default:
+      break;
+  }
+}
+
+void metricsTable(gui::WorkspaceGUIState& globalGUIState, const DeviceMetricsInfo& metricsInfo)
+{
+  /// Nothing to draw, if no metric selected.
+  if (globalGUIState.selectedMetric == -1) {
+    return;
+  }
+
+  auto currentMetricName = globalGUIState.availableMetrics[globalGUIState.selectedMetric];
+
+  size_t i = DeviceMetricsHelper::metricIdxByName(currentMetricName, metricsInfo);
+
+  // We did not find any plot, skipping this.
+  if (i == metricsInfo.metricLabelsIdx.size()) {
+    ImGui::TextUnformatted("-");
+    ImGui::NextColumn();
+    return;
+  }
+  auto& metric = metricsInfo.metrics[i];
+  switch (metric.type) {
+    case MetricType::Int: {
+      ImGui::Text("%i", metricsInfo.intMetrics[metric.storeIdx][0]);
+      ImGui::NextColumn();
+    } break;
+    case MetricType::Float: {
+      ImGui::Text("%f", metricsInfo.floatMetrics[metric.storeIdx][0]);
+      ImGui::NextColumn();
+    } break;
+    case MetricType::String: {
+      ImGui::Text("%s", metricsInfo.stringMetrics[metric.storeIdx][0].data);
+      ImGui::NextColumn();
+    } break;
+    default:
+      ImGui::NextColumn();
+      break;
   }
 }
 
@@ -386,11 +438,12 @@ void displayDeviceHistograms(gui::WorkspaceGUIState& state,
     static char const* plotStyles[] = {
       "lines",
       "histograms",
-      "sparks"
+      "sparks",
+      "table"
     };
     ImGui::SameLine();
-    static int currentStyle = 0;
-    ImGui::Combo("##Select style", &currentStyle, plotStyles, IM_ARRAYSIZE(plotStyles));
+    static enum MetricsDisplayStyle currentStyle = MetricsDisplayStyle::Lines;
+    ImGui::Combo("##Select style", reinterpret_cast<int*>(&currentStyle), plotStyles, IM_ARRAYSIZE(plotStyles));
 
     // Calculate the full timestamp range for the selected metric
     size_t minTime = -1;
@@ -427,22 +480,66 @@ void displayDeviceHistograms(gui::WorkspaceGUIState& state,
     }
     ImGui::EndGroup();
     if (!currentMetricName.empty()) {
-      if (currentStyle == 0 || currentStyle == 1) {
-        displayDeviceMetrics("Metrics", ImVec2(ImGui::GetIO().DisplaySize.x - 10, state.bottomPaneSize - ImGui::GetItemRectSize().y - 20), currentMetricName, minTime, maxTime, 1024, currentStyle, devices, metricsInfos);
-      } else {
-        ImGui::BeginChild("##ScrollingRegion", ImVec2(ImGui::GetIO().DisplaySize.x + state.leftPaneSize + state.rightPaneSize - 10, -ImGui::GetItemsLineHeightWithSpacing()), false,
-                          ImGuiWindowFlags_HorizontalScrollbar);
-        ImGui::Columns(2);
-        ImGui::SetColumnOffset(1, 300);
-        for (size_t i = 0; i < state.devices.size(); ++i) {
-          gui::DeviceGUIState& deviceGUIState = state.devices[i];
-          const DeviceSpec& spec = devices[i];
-          const DeviceMetricsInfo& metricsInfo = metricsInfos[i];
+      switch (currentStyle) {
+        case MetricsDisplayStyle::Histos:
+        case MetricsDisplayStyle::Lines: {
+          displayDeviceMetrics("Metrics",
+                               ImVec2(ImGui::GetIO().DisplaySize.x - 10, state.bottomPaneSize - ImGui::GetItemRectSize().y - 20), currentMetricName, minTime, maxTime, 1024,
+                               currentStyle, devices, metricsInfos);
+        } break;
+        case MetricsDisplayStyle::Sparks: {
+          ImGui::BeginChild("##ScrollingRegion", ImVec2(ImGui::GetIO().DisplaySize.x + state.leftPaneSize + state.rightPaneSize - 10, -ImGui::GetItemsLineHeightWithSpacing()), false,
+                            ImGuiWindowFlags_HorizontalScrollbar);
+          ImGui::Columns(2);
+          ImGui::SetColumnOffset(1, 300);
+          for (size_t i = 0; i < state.devices.size(); ++i) {
+            gui::DeviceGUIState& deviceGUIState = state.devices[i];
+            const DeviceSpec& spec = devices[i];
+            const DeviceMetricsInfo& metricsInfo = metricsInfos[i];
 
-          historyBar(state, minTime, maxTime, deviceGUIState, spec, metricsInfo);
-        }
-        ImGui::Columns(1);
-        ImGui::EndChild();
+            historyBar(state, minTime, maxTime, deviceGUIState, spec, metricsInfo);
+          }
+          ImGui::Columns(1);
+          ImGui::EndChild();
+        } break;
+        case MetricsDisplayStyle::Table: {
+          ImGui::BeginChild("##ScrollingRegion", ImVec2(ImGui::GetIO().DisplaySize.x + state.leftPaneSize + state.rightPaneSize - 10, -ImGui::GetItemsLineHeightWithSpacing()), false,
+                            ImGuiWindowFlags_HorizontalScrollbar);
+
+          // The +1 is for the timestamp column
+          ImGui::Columns(state.devices.size() + 1);
+          ImGui::TextUnformatted("entry");
+          ImGui::NextColumn();
+          ImVec2 textsize = ImGui::CalcTextSize("extry", NULL, true);
+          float offset = 0.f;
+          offset += std::max(100.f, textsize.x);
+          for (size_t j = 0; j < state.devices.size(); ++j) {
+            gui::DeviceGUIState& deviceGUIState = state.devices[j];
+            const DeviceSpec& spec = devices[j];
+            const DeviceMetricsInfo& metricsInfo = metricsInfos[j];
+
+            ImGui::SetColumnOffset(-1, offset);
+            textsize = ImGui::CalcTextSize(spec.name.c_str(), NULL, true);
+            offset += std::max(100.f, textsize.x);
+            ImGui::TextUnformatted(spec.name.c_str());
+            ImGui::NextColumn();
+          }
+          ImGui::Separator();
+          // FIXME: only one column for now.
+          for (size_t i = 0; i < 1; ++i) {
+            ImGui::Text("%li", i);
+            ImGui::NextColumn();
+            for (size_t j = 0; j < state.devices.size(); ++j) {
+              gui::DeviceGUIState& deviceGUIState = state.devices[j];
+              const DeviceSpec& spec = devices[j];
+              const DeviceMetricsInfo& metricsInfo = metricsInfos[j];
+              metricsTable(state, metricsInfo);
+            }
+          }
+          ImGui::Columns(1);
+
+          ImGui::EndChild();
+        } break;
       }
     }
     ImGui::End();
@@ -647,5 +744,6 @@ std::function<void(void)> getGUIDebugger(const std::vector<DeviceInfo>& infos, c
   };
 }
 
+} // namespace gui
 } // namespace framework
 } // namespace o2
