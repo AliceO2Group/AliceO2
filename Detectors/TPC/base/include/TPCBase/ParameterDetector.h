@@ -16,6 +16,7 @@
 #define ALICEO2_TPC_ParameterDetector_H_
 
 #include <array>
+#include "DataFormatsTPC/Defs.h"
 
 namespace o2
 {
@@ -47,6 +48,10 @@ class ParameterDetector
   /// \param cpad Pad capacitance [pF]
   void setPadCapacitance(float cpad) { mPadCapacitance = cpad; }
 
+  /// Set maximum time bin in case of triggered readout mode
+  /// \param Maximum time bin in case of triggered readout mode
+  void setMaxTimeBinTriggered(TimeBin binMax) { mTmaxTriggered = binMax; }
+
   /// Get the TPC length
   /// \return TPC length [cm]
   float getTPClength() const { return mTPClength; }
@@ -55,9 +60,14 @@ class ParameterDetector
   /// \return Pad capacitance [pF]
   float getPadCapacitance() const { return mPadCapacitance; }
 
+  /// Get maximum time bin in case of triggered readout mode
+  /// \return Maximum time bin in case of triggered readout mode
+  int getMaxTimeBinTriggered() const { return mTmaxTriggered; }
+
  private:
   float mTPClength;      ///< Length of the TPC [cm]
   float mPadCapacitance; ///< Capacitance of a single pad [pF]
+  TimeBin mTmaxTriggered; ///< Maximum time bin in case of triggered readout mode
 };
 }
 }
