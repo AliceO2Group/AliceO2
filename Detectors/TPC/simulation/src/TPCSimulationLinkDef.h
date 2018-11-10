@@ -14,7 +14,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::TPC::Baseline + ;
 #pragma link C++ class o2::TPC::Detector + ;
 #pragma link C++ class o2::Base::DetImpl < o2::TPC::Detector > +;
 #pragma link C++ class o2::TPC::DigitMCMetaData + ;
@@ -32,6 +31,7 @@
 #pragma link C++ class std::vector < o2::TPC::ElementalHit > +;
 #pragma link C++ class o2::TPC::HitGroup + ;
 #pragma link C++ class o2::TPC::SAMPAProcessing + ;
+#pragma link C++ class o2::TPC::SpaceCharge+;
 
 #pragma link C++ class std::vector < o2::TPC::HitGroup > +;
 

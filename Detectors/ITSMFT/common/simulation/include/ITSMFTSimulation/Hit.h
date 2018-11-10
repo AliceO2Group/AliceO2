@@ -18,6 +18,7 @@
 #include "Rtypes.h"       // for Bool_t, Double_t, Int_t, Double32_t, etc
 #include "TVector3.h"     // for TVector3
 #include <iosfwd>
+#include "CommonUtils/ShmAllocator.h"
 
 namespace o2 {
 namespace ITSMFT {
@@ -128,5 +129,16 @@ Hit::Hit(int trackID, unsigned short detID, const TVector3& startPos, const TVec
 
 }
 }
+
+#ifdef USESHM
+namespace std
+{
+template <>
+class allocator<o2::ITSMFT::Hit> : public o2::utils::ShmAllocator<o2::ITSMFT::Hit>
+{
+};
+} // namespace std
+
+#endif
 
 #endif

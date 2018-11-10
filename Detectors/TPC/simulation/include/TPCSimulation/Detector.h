@@ -140,7 +140,6 @@ class Detector: public o2::Base::DetImpl<Detector> {
     void   BeginPrimary() override {;}
     void   PostTrack() override {;}
     void   PreTrack() override {;}
-    void   BeginEvent() override {;}
 
     void SetGeoFileName(const TString file) { mGeoFileName=file;   }
     const TString& GetGeoFileName() const   { return mGeoFileName; }
@@ -163,7 +162,20 @@ class Detector: public o2::Base::DetImpl<Detector> {
     void ConstructTPCGeometry();
 
     /** Define the sensitive volumes of the geometry */
-    void DefineSensitiveVolumes() override;
+    void defineSensitiveVolumes();
+
+    // needed by base implementation
+    bool setHits(Int_t iColl, std::vector<HitGroup>* ptr)
+    {
+      if (iColl >= 0 && iColl < Sector::MAXSECTOR) {
+        mHitsPerSectorCollection[iColl] = ptr;
+        // more entries to set?
+        if (iColl < Sector::MAXSECTOR - 1) {
+          return true;
+        }
+      }
+      return false;
+    }
 
     /** container for produced hits */
     std::vector<HitGroup>*  mHitsPerSectorCollection[Sector::MAXSECTOR]; //! container that keeps track-grouped hits per sector
@@ -195,5 +207,18 @@ T Detector::BetheBlochAleph(T bg, T kp1, T kp2, T kp3, T kp4, T kp5){
 
 }
 }
+
+#ifdef USESHM
+namespace o2
+{
+namespace Base
+{
+template <>
+struct UseShm<o2::TPC::Detector> {
+  static constexpr bool value = true;
+};
+} // namespace Base
+} // namespace o2
+#endif
 
 #endif // AliceO2_TPC_Detector_H_

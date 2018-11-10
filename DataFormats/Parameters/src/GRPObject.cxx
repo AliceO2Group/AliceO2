@@ -70,6 +70,44 @@ void GRPObject::print() const
 }
 
 //_______________________________________________
+void GRPObject::setDetROMode(o2::detectors::DetID id, ROMode status)
+{
+  /// set detector readout mode status
+  if (!(status & PRESENT)) {
+    remDetReadOut(id);
+    return;
+  }
+  addDetReadOut(id);
+  if ((status & CONTINUOUS) == CONTINUOUS) {
+    addDetContinuousReadOut(id);
+  } else {
+    remDetContinuousReadOut(id);
+  }
+  if ((status & TRIGGERING) == TRIGGERING) {
+    addDetTrigger(id);
+  } else {
+    remDetTrigger(id);
+  }
+}
+
+//_______________________________________________
+GRPObject::ROMode GRPObject::getDetROMode(o2::detectors::DetID id) const
+{
+  GRPObject::ROMode status = ABSENT;
+  if (isDetReadOut(id)) {
+    status = PRESENT;
+  } else {
+    if (isDetContinuousReadOut(id)) {
+      status = GRPObject::ROMode(status | CONTINUOUS);
+    }
+    if (isDetTriggers(id)) {
+      status = GRPObject::ROMode(status | TRIGGERING);
+    }
+  }
+  return status;
+}
+
+//_______________________________________________
 GRPObject* GRPObject::loadFrom(const std::string grpFileName, std::string grpName)
 {
   // load object from file

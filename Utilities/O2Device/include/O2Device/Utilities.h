@@ -29,6 +29,8 @@
 
 #include "MemoryResources/MemoryResources.h"
 #include "Headers/DataHeader.h"
+#include "Headers/Stack.h"
+
 #include <utility>
 #include <gsl/gsl>
 

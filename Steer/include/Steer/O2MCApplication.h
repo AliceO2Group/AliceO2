@@ -41,6 +41,8 @@ class O2MCApplication : public FairMCApplication
   // triggers data sending/io
   void SendData();
 
+  void initLate();
+
   /** Define actions at the end of event */
   void FinishEvent() override
   {

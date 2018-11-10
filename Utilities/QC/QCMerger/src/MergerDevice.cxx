@@ -59,7 +59,6 @@ void MergerDevice::establishChannel(string type, string method, string address, 
 void MergerDevice::executeRunLoop()
 {
   ChangeState("INIT_DEVICE");
-  WaitForInitialValidation();
   WaitForEndOfState("INIT_DEVICE");
 
   subscribeDdsCommands();
@@ -209,13 +208,13 @@ TObject* MergerDevice::receiveDataObjectFromProducer()
   TObject* receivedDataObject;
   unique_ptr<FairMQMessage> input(NewMessage());
 
-  if ((respondeCode = fChannels.at("data-in").at(0).ReceiveAsync(input)) == -2) {
-    if ((respondeCode = fChannels.at("data-in").at(0).ReceiveAsync(input)) == -2) {
+  if ((respondeCode = fChannels.at("data-in").at(0).Receive(input, 0)) == -2) {
+    if ((respondeCode = fChannels.at("data-in").at(0).Receive(input, 0)) == -2) {
       mLastReceiveBufferOverloadTime = clock();
       mReceiveBufferOverloaded = true;
       LOG(DEBUG) << "Buffer of data-in channel is full. Waiting for free buffer...";
 
-      while ((respondeCode = fChannels.at("data-in").at(0).ReceiveAsync(input)) == -2) {
+      while ((respondeCode = fChannels.at("data-in").at(0).Receive(input, 0)) == -2) {
         this_thread::sleep_for(chrono::milliseconds(10));
       }
 

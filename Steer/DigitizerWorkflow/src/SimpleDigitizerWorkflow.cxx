@@ -8,12 +8,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "DetectorsBase/Propagator.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/DeviceSpec.h"
 #include "SimReaderSpec.h"
 #include "CollisionTimePrinter.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 
 // for TPC
 #include "TPCDriftTimeDigitizerSpec.h"
@@ -24,13 +26,9 @@
 // needed in order to init the **SHARED** polyadist file (to be done before the digitizers initialize)
 #include "TPCSimulation/GEMAmplification.h"
 
-// for ITS
-#include "ITSDigitizerSpec.h"
-#include "ITSDigitWriterSpec.h"
-
-// for ITS
-#include "MFTDigitizerSpec.h"
-#include "MFTDigitWriterSpec.h"
+// for ITSMFT
+#include "ITSMFTDigitizerSpec.h"
+#include "ITSMFTDigitWriterSpec.h"
 
 // for TOF
 #include "TOFDigitizerSpec.h"
@@ -44,6 +42,7 @@
 
 // GRP
 #include "DataFormatsParameters/GRPObject.h"
+#include "GRPUpdaterSpec.h"
 
 #include <cstdlib>
 // this is somewhat assuming that a DPL workflow will run on one node
@@ -51,6 +50,7 @@
 #include <string>
 #include <sstream>
 #include <cmath>
+#include <unistd.h> // for getppid
 
 using namespace o2::framework;
 
@@ -115,7 +115,24 @@ int getNumTPCLanes(std::vector<int> const& sectors, ConfigContext const& configc
 
 void initTPC()
 {
-  LOG(DEBUG) << "Initializing TPC GEMAmplification";
+  // We only want to do this for the DPL master
+  // I am not aware of an easy way to query if "I am DPL master" so
+  // using for the moment a mechanism defining/setting an environment variable
+  // with the parent ID and query inside forks if this environment variable exists
+  // (it assumes fundamentally that the master executes this function first)
+  std::stringstream streamthis;
+  std::stringstream streamparent;
+
+  streamthis << "TPCGEMINIT_PID" << getpid();
+  streamparent << "TPCGEMINIT_PID" << getppid();
+  if (getenv(streamparent.str().c_str())) {
+    LOG(DEBUG) << "GEM ALREADY INITIALIZED ... SKIPPING HERE";
+    return;
+  } else {
+    LOG(DEBUG) << "INITIALIZING TPC GEMAmplification";
+  }
+  setenv(streamthis.str().c_str(), "ON", 1);
+
   auto& cdb = o2::TPC::CDBInterface::instance();
   cdb.setUseDefaults();
   // by invoking this constructor we make sure that a common file will be created
@@ -162,6 +179,9 @@ bool wantCollisionTimePrinter()
 
 std::shared_ptr<o2::parameters::GRPObject> readGRP(std::string inputGRP = "o2sim_grp.root")
 {
+  // init magnetic field
+  o2::Base::Propagator::initFieldFromGRP(inputGRP);
+
   auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
   if (!grp) {
     LOG(ERROR) << "This workflow needs a valid GRP file to start";
@@ -217,6 +237,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     return !is_skipped && is_ingrp;
   };
 
+  std::vector<o2::detectors::DetID> detList; // list of participating detectors
   int fanoutsize = 0;
   if (wantCollisionTimePrinter()) {
     specs.emplace_back(o2::steer::getCollisionTimePrinter(fanoutsize++));
@@ -233,6 +254,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
     extractTPCSectors(*tpcsectors.get(), configcontext);
     auto lanes = getNumTPCLanes(*tpcsectors.get(), configcontext);
+    detList.emplace_back(o2::detectors::DetID::TPC);
 
     for (int l = 0; l < lanes; ++l) {
       specs.emplace_back(o2::steer::getTPCDriftTimeDigitizer(fanoutsize));
@@ -253,22 +275,25 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // the ITS part
   if (isEnabled(o2::detectors::DetID::ITS)) {
+    detList.emplace_back(o2::detectors::DetID::ITS);
     // connect the ITS digitization
-    specs.emplace_back(o2::ITS::getITSDigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::ITSMFT::getITSDigitizerSpec(fanoutsize++));
     // connect ITS digit writer
-    specs.emplace_back(o2::ITS::getITSDigitWriterSpec());
+    specs.emplace_back(o2::ITSMFT::getITSDigitWriterSpec());
   }
 
   // the MFT part
   if (isEnabled(o2::detectors::DetID::MFT)) {
+    detList.emplace_back(o2::detectors::DetID::MFT);
     // connect the MFT digitization
-    specs.emplace_back(o2::MFT::getMFTDigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::ITSMFT::getMFTDigitizerSpec(fanoutsize++));
     // connect MFT digit writer
-    specs.emplace_back(o2::MFT::getMFTDigitWriterSpec());
+    specs.emplace_back(o2::ITSMFT::getMFTDigitWriterSpec());
   }
 
   // the TOF part
   if (isEnabled(o2::detectors::DetID::TOF)) {
+    detList.emplace_back(o2::detectors::DetID::TOF);
     // connect the TOF digitization
     specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++));
     // add TOF digit writer
@@ -281,11 +306,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // the FIT part
   if (isEnabled(o2::detectors::DetID::FIT)) {
+    detList.emplace_back(o2::detectors::DetID::FIT);
     // connect the FIT digitization
     specs.emplace_back(o2::fit::getFITDigitizerSpec(fanoutsize++));
     // connect the FIT digit writer
     specs.emplace_back(o2::fit::getFITDigitWriterSpec());
   }
+
+  // GRP updater: must come after all detectors since requires their list
+  specs.emplace_back(o2::parameters::getGRPUpdaterSpec(detList));
 
   // The SIM Reader. NEEDS TO BE LAST
   specs[0] = o2::steer::getSimReaderSpec(fanoutsize, tpcsectors, tpclanes);

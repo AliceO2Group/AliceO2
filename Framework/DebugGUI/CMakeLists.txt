@@ -59,4 +59,15 @@ O2_GENERATE_EXECUTABLE(
 )
 endif()
 
+O2_GENERATE_EXECUTABLE(
+  EXE_NAME "test_DebugGUI_test_ImGUIHeadless"
+  SOURCES test/test_ImGUIHeadless.cpp test/imgui_demo.cpp
+
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${MODULE_BUCKET_NAME}
+)
+add_test(NAME test_DebugGUI_test_ImGUIHeadless COMMAND test_DebugGUI_test_ImGUIHeadless)
+target_link_libraries(test_DebugGUI_test_ImGUIHeadless Boost::unit_test_framework)
+set_tests_properties(test_DebugGUI_test_ImGUIHeadless PROPERTIES TIMEOUT 30)
+
 target_compile_options(DebugGUI PUBLIC -O0 -g -fno-omit-frame-pointer)

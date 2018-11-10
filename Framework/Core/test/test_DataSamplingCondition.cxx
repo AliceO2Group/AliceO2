@@ -18,6 +18,7 @@
 #include "Framework/DataRef.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Headers/DataHeader.h"
+#include "Headers/Stack.h"
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -28,8 +29,8 @@ BOOST_AUTO_TEST_CASE(DataSamplingConditionRandom)
   BOOST_REQUIRE(conditionRandom);
 
   boost::property_tree::ptree config;
-  config.put("fraction", 0.5);
-  config.put("seed", 943753948);
+  config.put("fraction", "0.5");
+  config.put("seed", "943753948");
   conditionRandom->configure(config);
 
   // PRNG should behave the same every time and on every machine.

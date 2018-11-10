@@ -10,10 +10,11 @@
 #ifndef FRAMEWORK_INPUTSPEC_H
 #define FRAMEWORK_INPUTSPEC_H
 
-#include <string>
-#include <ostream>
 #include "Framework/Lifetime.h"
 #include "Headers/DataHeader.h"
+
+#include <string>
+#include <ostream>
 
 namespace o2
 {
@@ -24,11 +25,28 @@ namespace framework
 /// input or in output. This can be used, for example to match
 /// specific payloads in a timeframe.
 struct InputSpec {
+  /// This is the legacy way to construct things. For the moment we still allow
+  /// accessing directly the members, but this will change as well at some point.
+  InputSpec(std::string binding_, header::DataOrigin origin_, header::DataDescription description_, header::DataHeader::SubSpecificationType subSpec_ = 0, enum Lifetime lifetime_ = Lifetime::Timeframe)
+    : binding{binding_},
+      origin{origin_},
+      description{description_},
+      subSpec{subSpec_},
+      lifetime{lifetime_}
+  {
+  }
+
   std::string binding;
   header::DataOrigin origin;
   header::DataDescription description;
-  header::DataHeader::SubSpecificationType subSpec = 0;
-  enum Lifetime lifetime = Lifetime::Timeframe;
+  header::DataHeader::SubSpecificationType subSpec;
+  enum Lifetime lifetime;
+
+  bool operator==(InputSpec const& that) const
+  {
+    return origin == that.origin && description == that.description && subSpec == that.subSpec &&
+           lifetime == that.lifetime;
+  };
 
   friend std::ostream& operator<<(std::ostream& stream, InputSpec const& arg);
 };

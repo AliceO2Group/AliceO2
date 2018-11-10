@@ -12,68 +12,46 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
+
 #include "Framework/DataSampling.h"
-#include <Framework/DataProcessingHeader.h>
+#include "Framework/DataProcessingHeader.h"
+#include "Framework/ExternalFairMQDeviceProxy.h"
+#include "Framework/DataSamplingReadoutAdapter.h"
+#include "Headers/DataHeader.h"
+
+#include <Configuration/ConfigurationFactory.h>
 
 using namespace o2::framework;
+using namespace o2::configuration;
 using DataHeader = o2::header::DataHeader;
-using Stack = o2::header::Stack;
 using DataOrigin = o2::header::DataOrigin;
 using DataDescription = o2::header::DataDescription;
-using namespace std;
 
 BOOST_AUTO_TEST_CASE(DataSamplingSimpleFlow)
 {
   WorkflowSpec workflow{
-    {
-      "producer",
+    { "producer",
       Inputs{},
-      {
-        OutputSpec{"TPC", "CLUSTERS", 0, Lifetime::Timeframe}
-      },
-      AlgorithmSpec{
-        [](ProcessingContext& ctx) {}
-      }
-    },
-    {
-      "processingStage",
-      Inputs{
-        {"dataTPC", "TPC", "CLUSTERS", 0, Lifetime::Timeframe}
-      },
-      Outputs{
-        {"TPC", "CLUSTERS_P", 0, Lifetime::Timeframe}
-      },
-      AlgorithmSpec{
-        [](ProcessingContext& ctx) {}
-      }
-    },
-    {
-      "qcTaskTpc",
-      Inputs{
-        {"TPC_CLUSTERS_S",   "TPC", "CLUSTERS_S"},
-        {"TPC_CLUSTERS_P_S", "TPC", "CLUSTERS_P_S"}
-      },
-      Outputs{},
-      AlgorithmSpec{
-        [](ProcessingContext& ctx) {}
-      }
-    }
+      Outputs{ { "TPC", "CLUSTERS" } } },
+    { "processingStage",
+      Inputs{ { "dataTPC", "TPC", "CLUSTERS" } },
+      Outputs{ { "TPC", "CLUSTERS_P" } } }
   };
 
-  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSamplingDPL.json";
-  cout << "config file : " << "json://" << configFilePath << endl;
+  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSampling.json";
+  std::cout << "config file : "
+            << "json://" << configFilePath << std::endl;
   DataSampling::GenerateInfrastructure(workflow, "json://" + configFilePath);
 
   auto disp = std::find_if(workflow.begin(), workflow.end(),
                            [](const DataProcessorSpec& d) {
-                             return d.name == "Dispatcher0_for_TpcQcTask";
+                             return d.name.find("Dispatcher") != std::string::npos;
                            });
   BOOST_REQUIRE(disp != workflow.end());
 
   auto input = std::find_if(disp->inputs.begin(), disp->inputs.end(),
                             [](const InputSpec& in) {
-                              return in.binding == "TPC_CLUSTERS_S" &&
-                                     in.origin == DataOrigin("TPC") &&
+                              return in.origin == DataOrigin("TPC") &&
                                      in.description == DataDescription("CLUSTERS") &&
                                      in.subSpec == 0 &&
                                      in.lifetime == Lifetime::Timeframe;
@@ -82,8 +60,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingSimpleFlow)
 
   input = std::find_if(disp->inputs.begin(), disp->inputs.end(),
                        [](const InputSpec& in) {
-                         return in.binding == "TPC_CLUSTERS_P_S" &&
-                                in.origin == DataOrigin("TPC") &&
+                         return in.origin == DataOrigin("TPC") &&
                                 in.description == DataDescription("CLUSTERS_P") &&
                                 in.subSpec == 0 &&
                                 in.lifetime == Lifetime::Timeframe;
@@ -92,8 +69,8 @@ BOOST_AUTO_TEST_CASE(DataSamplingSimpleFlow)
 
   auto output = std::find_if(disp->outputs.begin(), disp->outputs.end(),
                              [](const OutputSpec& out) {
-                               return out.origin == DataOrigin("TPC") &&
-                                      out.description == DataDescription("CLUSTERS_P_S") &&
+                               return out.origin == DataOrigin("DS") &&
+                                      out.description == DataDescription("tpcclusters-0") &&
                                       out.subSpec == 0 &&
                                       out.lifetime == Lifetime::Timeframe;
                              });
@@ -101,81 +78,52 @@ BOOST_AUTO_TEST_CASE(DataSamplingSimpleFlow)
 
   output = std::find_if(disp->outputs.begin(), disp->outputs.end(),
                         [](const OutputSpec& out) {
-                          return out.origin == DataOrigin("TPC") &&
-                                 out.description == DataDescription("CLUSTERS_S") &&
+                          return out.origin == DataOrigin("DS") &&
+                                 out.description == DataDescription("tpcclusters-1") &&
                                  out.subSpec == 0 &&
                                  out.lifetime == Lifetime::Timeframe;
                         });
   BOOST_CHECK(output != disp->outputs.end());
 
-  BOOST_CHECK(disp->algorithm.onProcess != nullptr);
+  BOOST_CHECK(disp->algorithm.onInit != nullptr);
 }
-
 
 BOOST_AUTO_TEST_CASE(DataSamplingParallelFlow)
 {
   WorkflowSpec workflow{
-    {
-      "producer",
+    { "producer",
       Inputs{},
-      {
-        OutputSpec{"TPC", "CLUSTERS", 0, Lifetime::Timeframe},
-        OutputSpec{"TPC", "CLUSTERS", 1, Lifetime::Timeframe},
-        OutputSpec{"TPC", "CLUSTERS", 2, Lifetime::Timeframe}
-      },
-      AlgorithmSpec{
-        [](ProcessingContext& ctx) {}
-      }
-    },
-    {
-      "qcTaskTpc",
-      Inputs{
-        {"TPC_CLUSTERS_S",   "TPC", "CLUSTERS_S",   0},
-        {"TPC_CLUSTERS_P_S", "TPC", "CLUSTERS_P_S", 0}
-      },
-      Outputs{},
-      AlgorithmSpec{
-        [](ProcessingContext& ctx) {}
-      }
-    }
+      { OutputSpec{ "TPC", "CLUSTERS", 0 },
+        OutputSpec{ "TPC", "CLUSTERS", 1 },
+        OutputSpec{ "TPC", "CLUSTERS", 2 } } }
   };
 
   auto processingStages = parallel(
     DataProcessorSpec{
       "processingStage",
-      Inputs{
-        {"dataTPC", "TPC", "CLUSTERS"}
-      },
-      Outputs{
-        {"TPC", "CLUSTERS_P"}
-      },
-      AlgorithmSpec{
-        [](ProcessingContext& ctx) {}
-      }
-    },
+      Inputs{ { "dataTPC", "TPC", "CLUSTERS" } },
+      Outputs{ { "TPC", "CLUSTERS_P" } } },
     3,
     [](DataProcessorSpec& spec, size_t index) {
       spec.inputs[0].subSpec = index;
       spec.outputs[0].subSpec = index;
-    }
-  );
+    });
 
   workflow.insert(std::end(workflow), std::begin(processingStages), std::end(processingStages));
 
-  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSamplingDPL.json";
+  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSampling.json";
   DataSampling::GenerateInfrastructure(workflow, "json://" + configFilePath);
 
   for (int i = 0; i < 3; ++i) {
     auto disp = std::find_if(workflow.begin(), workflow.end(),
                              [i](const DataProcessorSpec& d) {
-                               return d.name == "Dispatcher" + std::to_string(i) + "_for_TpcQcTask";
+                               return d.name.find("Dispatcher") != std::string::npos;
                              });
     BOOST_REQUIRE(disp != workflow.end());
 
     auto input = std::find_if(disp->inputs.begin(), disp->inputs.end(),
                               [i](const InputSpec& in) {
-                                return in.binding == "TPC_CLUSTERS_S" &&
-                                       in.origin == DataOrigin("TPC") &&
+                                return in.origin == DataOrigin("TPC") &&
                                        in.description == DataDescription("CLUSTERS") &&
                                        in.subSpec == i &&
                                        in.lifetime == Lifetime::Timeframe;
@@ -184,8 +132,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingParallelFlow)
 
     input = std::find_if(disp->inputs.begin(), disp->inputs.end(),
                          [i](const InputSpec& in) {
-                           return in.binding == "TPC_CLUSTERS_P_S" &&
-                                  in.origin == DataOrigin("TPC") &&
+                           return in.origin == DataOrigin("TPC") &&
                                   in.description == DataDescription("CLUSTERS_P") &&
                                   in.subSpec == i &&
                                   in.lifetime == Lifetime::Timeframe;
@@ -194,8 +141,8 @@ BOOST_AUTO_TEST_CASE(DataSamplingParallelFlow)
 
     auto output = std::find_if(disp->outputs.begin(), disp->outputs.end(),
                                [](const OutputSpec& out) {
-                                 return out.origin == DataOrigin("TPC") &&
-                                        out.description == DataDescription("CLUSTERS_P_S") &&
+                                 return out.origin == DataOrigin("DS") &&
+                                        out.description == DataDescription("tpcclusters-0") &&
                                         out.subSpec == 0 &&
                                         out.lifetime == Lifetime::Timeframe;
                                });
@@ -203,110 +150,76 @@ BOOST_AUTO_TEST_CASE(DataSamplingParallelFlow)
 
     output = std::find_if(disp->outputs.begin(), disp->outputs.end(),
                           [](const OutputSpec& out) {
-                            return out.origin == DataOrigin("TPC") &&
-                                   out.description == DataDescription("CLUSTERS_S") &&
+                            return out.origin == DataOrigin("DS") &&
+                                   out.description == DataDescription("tpcclusters-1") &&
                                    out.subSpec == 0 &&
                                    out.lifetime == Lifetime::Timeframe;
                           });
     BOOST_CHECK(output != disp->outputs.end());
 
-    BOOST_CHECK(disp->algorithm.onProcess != nullptr);
+    BOOST_CHECK(disp->algorithm.onInit != nullptr);
   }
 }
-
 
 BOOST_AUTO_TEST_CASE(DataSamplingTimePipelineFlow)
 {
   WorkflowSpec workflow{
-    {
-      "producer",
+    { "producer",
       Inputs{},
-      {
-        OutputSpec{"TPC", "CLUSTERS", 0, Lifetime::Timeframe}
-      },
-      AlgorithmSpec{
-        [](ProcessingContext& ctx) {}
-      }
-    },
+      { OutputSpec{ "TPC", "CLUSTERS", 0, Lifetime::Timeframe } } },
     timePipeline(
       DataProcessorSpec{
         "processingStage",
         Inputs{
-          {"dataTPC", "TPC", "CLUSTERS", 0, Lifetime::Timeframe}
-        },
+          { "dataTPC", "TPC", "CLUSTERS", 0, Lifetime::Timeframe } },
         Outputs{
-          {"TPC", "CLUSTERS_P", 0, Lifetime::Timeframe}
-        },
-        AlgorithmSpec{
-          [](ProcessingContext& ctx) {}
-        }
-      }, 3),
-    {
-      "qcTaskTpc",
-      Inputs{
-        {"TPC_CLUSTERS_S",   "TPC", "CLUSTERS_S",   0, Lifetime::Timeframe},
-        {"TPC_CLUSTERS_P_S", "TPC", "CLUSTERS_P_S", 0, Lifetime::Timeframe}
-      },
-      Outputs{},
-      AlgorithmSpec{
-        [](ProcessingContext& ctx) {}
-      }
-    }
+          { "TPC", "CLUSTERS_P", 0, Lifetime::Timeframe } } },
+      3)
   };
 
-  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSamplingDPL.json";
-  DataSampling::GenerateInfrastructure(workflow, "json://" + configFilePath);
+  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSampling.json";
+  DataSampling::GenerateInfrastructure(workflow, "json://" + configFilePath, 3);
 
   auto disp = std::find_if(workflow.begin(), workflow.end(),
                            [](const DataProcessorSpec& d) {
-                             return d.name == "Dispatcher0_for_TpcQcTask";
+                             return d.name.find("Dispatcher") != std::string::npos;
                            });
+
   BOOST_REQUIRE(disp != workflow.end());
   BOOST_CHECK_EQUAL(disp->inputs.size(), 2);
   BOOST_CHECK_EQUAL(disp->outputs.size(), 2);
-  BOOST_CHECK(disp->algorithm.onProcess != nullptr);
+  BOOST_CHECK(disp->algorithm.onInit != nullptr);
   BOOST_CHECK_EQUAL(disp->maxInputTimeslices, 3);
 }
 
-
 BOOST_AUTO_TEST_CASE(DataSamplingFairMq)
 {
-  WorkflowSpec workflow;
+  WorkflowSpec workflow{
+    specifyExternalFairMQDeviceProxy(
+      "readout-proxy",
+      Outputs{ { "TPC", "RAWDATA" } },
+      "fake-channel-config",
+      dataSamplingReadoutAdapter({ "TPC", "RAWDATA" }))
+  };
 
-  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSamplingFairMQ.json";
+  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSampling.json";
   DataSampling::GenerateInfrastructure(workflow, "json://" + configFilePath);
-
-  auto fairMqProxy = std::find_if(workflow.begin(), workflow.end(),
-                                  [](const DataProcessorSpec& p) {
-                                    return p.name == "FairMQ_proxy_for_FairQcTask";
-                                  });
-  BOOST_REQUIRE(fairMqProxy != workflow.end());
-
-  auto output = std::find_if(fairMqProxy->outputs.begin(), fairMqProxy->outputs.end(),
-                             [](const OutputSpec& out) {
-                               return out.origin == DataOrigin("TPC") &&
-                                      out.description == DataDescription("RAWDATA") &&
-                                      out.subSpec == 0 &&
-                                      out.lifetime == Lifetime::Timeframe;
-                             });
-  BOOST_CHECK(output != fairMqProxy->outputs.end());
 
   auto disp = std::find_if(workflow.begin(), workflow.end(),
                            [](const DataProcessorSpec& d) {
-                             return d.name == "Dispatcher0_for_FairQcTask";
+                             return d.name.find("Dispatcher") != std::string::npos;
                            });
   BOOST_REQUIRE(disp != workflow.end());
 
   auto input = std::find_if(disp->inputs.begin(), disp->inputs.end(),
                             [](const InputSpec& in) {
-                              return in.binding == "TPC_RAWDATA" &&
-                                     in.origin == DataOrigin("TPC") &&
+                              return in.origin == DataOrigin("TPC") &&
                                      in.description == DataDescription("RAWDATA") &&
                                      in.subSpec == 0 &&
                                      in.lifetime == Lifetime::Timeframe;
                             });
   BOOST_CHECK(input != disp->inputs.end());
-  BOOST_CHECK_EQUAL(disp->outputs.size(), 0);
+  BOOST_CHECK_EQUAL(disp->outputs.size(), 1);
 
   auto channelConfig = std::find_if(disp->options.begin(), disp->options.end(),
                                     [](const ConfigParamSpec& opt) {
@@ -315,3 +228,19 @@ BOOST_AUTO_TEST_CASE(DataSamplingFairMq)
   BOOST_REQUIRE(channelConfig != disp->options.end());
 }
 
+BOOST_AUTO_TEST_CASE(InputSpecsForPolicy)
+{
+  std::string configFilePath = "json://" + std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSampling.json";
+  std::vector<InputSpec> inputs = DataSampling::InputSpecsForPolicy(configFilePath, "tpcclusters");
+
+  BOOST_CHECK_EQUAL(inputs.size(), 2);
+  BOOST_CHECK_EQUAL(inputs[0], (InputSpec{ "clusters_p", "DS", "tpcclusters-1", static_cast<DataHeader::SubSpecificationType>(-1) }));
+  BOOST_CHECK_EQUAL(inputs[0].binding, "clusters_p");
+  BOOST_CHECK_EQUAL(inputs[1], (InputSpec{ "clusters", "DS", "tpcclusters-0", static_cast<DataHeader::SubSpecificationType>(-1) }));
+  BOOST_CHECK_EQUAL(inputs[1].binding, "clusters");
+
+  std::unique_ptr<ConfigurationInterface> config = ConfigurationFactory::getConfiguration(configFilePath);
+  inputs = DataSampling::InputSpecsForPolicy(config.get(), "tpcclusters");
+
+  BOOST_CHECK_EQUAL(inputs.size(), 2);
+}

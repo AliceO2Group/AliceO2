@@ -13,6 +13,7 @@
 #include "Framework/ArrowContext.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataProcessingHeader.h"
+#include "Headers/Stack.h"
 
 #include <fairmq/FairMQDevice.h>
 
@@ -171,6 +172,21 @@ void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
   assert(context);
   context->addTable(std::move(header), std::move(payload), channel);
   assert(payload.get() == nullptr);
+}
+
+Output DataAllocator::getOutputByBind(OutputRef&& ref)
+{
+  if (ref.label.empty()) {
+    throw std::runtime_error("Invalid (empty) OutputRef provided.");
+  }
+  for (size_t ri = 0, re = mAllowedOutputRoutes.size(); ri != re; ++ri) {
+    if (mAllowedOutputRoutes[ri].matcher.binding.value == ref.label) {
+      auto spec = mAllowedOutputRoutes[ri].matcher;
+      return Output{ spec.origin, spec.description, ref.subSpec, spec.lifetime, std::move(ref.headerStack) };
+    }
+  }
+  throw std::runtime_error("Unable to find OutputSpec with label " + ref.label);
+  assert(false);
 }
 
 }

@@ -11,9 +11,11 @@
 #define FRAMEWORK_DATARELAYER_H
 
 #include "Framework/InputRoute.h"
+#include "Framework/DataDescriptorMatcher.h"
 #include "Framework/ForwardRoute.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/PartRef.h"
+#include "Framework/TimesliceIndex.h"
 
 #include <cstddef>
 #include <vector>
@@ -36,19 +38,16 @@ public:
     WillNotRelay
   };
 
-  struct TimesliceId {
-    int64_t value;
-  };
-
   struct RecordAction {
-    size_t cacheLineIdx;
+    TimesliceSlot slot;
     CompletionPolicy::CompletionOp op;
   };
 
   DataRelayer(CompletionPolicy const&,
               std::vector<InputRoute> const&,
               std::vector<ForwardRoute> const&,
-              monitoring::Monitoring&);
+              monitoring::Monitoring&,
+              TimesliceIndex&);
 
   /// This invokes the appropriate `InputRoute::danglingChecker` on every
   /// entry in the cache and if it returns true, it creates a new
@@ -69,7 +68,7 @@ public:
   /// ownership to the caller. This is because once the inputs are out of the
   /// DataRelayer they need to be deleted once the processing is concluded.
   std::vector<std::unique_ptr<FairMQMessage>>
-  getInputsForTimeslice(size_t i);
+    getInputsForTimeslice(TimesliceSlot id);
 
   /// Returns the index of the arguments which have to be forwarded to
   /// the next processor
@@ -77,12 +76,6 @@ public:
 
   /// Returns how many timeslices we can handle in parallel
   size_t getParallelTimeslices() const;
-
-  /// Lookup the timeslice for the given index in the cache
-  size_t getTimesliceForCacheline(size_t i) {
-    assert(i < mTimeslices.size());
-    return mTimeslices[i].value;
-  }
 
   /// Tune the maximum number of in flight timeslices this can handle.
   void setPipelineLength(size_t s);
@@ -98,15 +91,15 @@ public:
   /// M is the number of inputs which are requested.
   std::vector<PartRef> mCache;
 
-  /// This is the timeslices for all the in flight parts.
-  std::vector<TimesliceId> mTimeslices;
-  /// This keeps track whether or not something was relayed
-  /// since last time we called getReadyToProcess()
-  std::vector<bool> mDirty;
+  /// This is the index which maps a given timestamp to the associated
+  /// cacheline.
+  TimesliceIndex& mTimesliceIndex;
 
   std::vector<bool> mForwardingMask;
   CompletionPolicy mCompletionPolicy;
   std::vector<size_t> mDistinctRoutesIndex;
+  std::vector<data_matcher::DataDescriptorMatcher> mInputMatchers;
+  static std::vector<std::string> sMetricsNames;
 };
 
 } // namespace framework

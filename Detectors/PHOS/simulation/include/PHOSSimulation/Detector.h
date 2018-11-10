@@ -70,7 +70,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   ///
   /// Destructor
   ///
-  ~Detector() override = default;
+  ~Detector() override;
 
   ///
   /// Initializing detector
@@ -173,6 +173,9 @@ class Detector : public o2::Base::DetImpl<Detector>
   Detector(const Detector& rhs);
   Detector& operator=(const Detector&);
 
+  /// Define the sensitive volumes of the geometry
+  void defineSensitiveVolumes();
+
   // Geometry parameters
   Bool_t mCreateHalfMod;   // Should we create  1/2 filled module
   Bool_t mActiveModule[6]; // list of modules to create
@@ -192,4 +195,18 @@ class Detector : public o2::Base::DetImpl<Detector>
 };
 }
 }
+
+#ifdef USESHM
+namespace o2
+{
+namespace Base
+{
+template <>
+struct UseShm<o2::phos::Detector> {
+  static constexpr bool value = true;
+};
+} // namespace Base
+} // namespace o2
+#endif
+
 #endif // Detector.h

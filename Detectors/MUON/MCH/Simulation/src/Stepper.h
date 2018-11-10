@@ -30,6 +30,7 @@ class Stepper
   void process(const TVirtualMC& vmc);
 
   std::vector<o2::mch::Hit>* getHits() { return mHits; }
+  void setHits(std::vector<o2::mch::Hit>* ptr) { mHits = ptr; }
 
   void resetHits();
 

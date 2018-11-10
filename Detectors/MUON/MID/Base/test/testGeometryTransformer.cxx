@@ -13,8 +13,8 @@
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   14 March 2018
 
+#define BOOST_TEST_MODULE Test MID geometry transformer
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MAIN
 
 #include <boost/test/unit_test.hpp>
 
@@ -37,58 +37,44 @@ o2::mid::GeometryTransformer GEOM::geoTrans;
 BOOST_AUTO_TEST_SUITE(o2_mid_geometryTransformer)
 BOOST_FIXTURE_TEST_SUITE(geo, GEOM)
 
-std::vector<Point3D<double>> generatePoints(int ntimes)
+BOOST_TEST_DECORATOR(*boost::unit_test::tolerance(0.00001))
+BOOST_DATA_TEST_CASE(InverseTransformation, boost::unit_test::data::xrange(72), deId)
 {
+
   std::random_device rd;
   std::mt19937 mt(rd());
   std::uniform_real_distribution<double> distX(-127.5, 127.5);
   std::uniform_real_distribution<double> distY(-40., 40.);
 
-  std::vector<Point3D<double>> points;
+  for (int ipt = 0; ipt < 1000; ++ipt) {
+    Point3D<double> point(distX(mt), distY(mt), 0.);
 
-  for (int itime = 0; itime < ntimes; ++itime) {
-    points.emplace_back(distX(mt), distY(mt), 0.);
+    Point3D<double> globalPoint = GEOM::geoTrans.localToGlobal(deId, point.x(), point.y());
+    Point3D<double> localPoint = GEOM::geoTrans.globalToLocal(deId, globalPoint.x(), globalPoint.y(), globalPoint.z());
+
+    BOOST_TEST(localPoint.x() == point.x());
+    BOOST_TEST(localPoint.y() == point.y());
+    BOOST_TEST(localPoint.z() == point.z());
   }
-
-  return points;
 }
 
 BOOST_TEST_DECORATOR(*boost::unit_test::tolerance(0.00001))
-BOOST_DATA_TEST_CASE(InverseTransformation, boost::unit_test::data::xrange(72) * generatePoints(1000), deId, point)
-{
-  Point3D<double> globalPoint = GEOM::geoTrans.localToGlobal(deId, point.x(), point.y());
-  Point3D<double> localPoint = GEOM::geoTrans.globalToLocal(deId, globalPoint.x(), globalPoint.y(), globalPoint.z());
-
-  BOOST_TEST(localPoint.x() == point.x());
-  BOOST_TEST(localPoint.y() == point.y());
-  BOOST_TEST(localPoint.z() == point.z());
-}
-
-std::vector<Vector3D<double>> generateSlopes(int ntimes)
+BOOST_DATA_TEST_CASE(InverseTransformationSlope, boost::unit_test::data::xrange(72), deId)
 {
   std::random_device rd;
   std::mt19937 mt(rd());
   std::uniform_real_distribution<double> distX(-1., 1.);
   std::uniform_real_distribution<double> distY(-1., 1.);
 
-  std::vector<Vector3D<double>> slopes;
+  for (int ipt = 0; ipt < 1000; ++ipt) {
+    Vector3D<double> slope(distX(mt), distY(mt), 1.);
+    Vector3D<double> globalSlope = GEOM::geoTrans.localToGlobal(deId, slope);
+    Vector3D<double> localSlope = GEOM::geoTrans.globalToLocal(deId, globalSlope);
 
-  for (int itime = 0; itime < ntimes; ++itime) {
-    slopes.emplace_back(distX(mt), distY(mt), 1.);
+    BOOST_TEST(localSlope.x() == slope.x());
+    BOOST_TEST(localSlope.y() == slope.y());
+    BOOST_TEST(localSlope.z() == slope.z());
   }
-
-  return slopes;
-}
-
-BOOST_TEST_DECORATOR(*boost::unit_test::tolerance(0.00001))
-BOOST_DATA_TEST_CASE(InverseTransformationSlope, boost::unit_test::data::xrange(72) * generateSlopes(1000), deId, slope)
-{
-  Vector3D<double> globalSlope = GEOM::geoTrans.localToGlobal(deId, slope);
-  Vector3D<double> localSlope = GEOM::geoTrans.globalToLocal(deId, globalSlope);
-
-  BOOST_TEST(localSlope.x() == slope.x());
-  BOOST_TEST(localSlope.y() == slope.y());
-  BOOST_TEST(localSlope.z() == slope.z());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

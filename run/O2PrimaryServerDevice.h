@@ -24,8 +24,10 @@
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <Generators/GeneratorFromFile.h>
 #include <SimConfig/SimConfig.h>
+#include <CommonUtils/RngHelper.h>
 #include <typeinfo>
 #include <thread>
+#include <TROOT.h>
 
 namespace o2
 {
@@ -68,8 +70,19 @@ class O2PrimaryServerDevice : public FairMQDevice
     }
     // MC ENGINE
     LOG(INFO) << "ENGINE SET TO " << vm["mcEngine"].as<std::string>();
+    // CHUNK SIZE
+    mChunkGranularity = vm["chunkSize"].as<unsigned int>();
+    LOG(INFO) << "CHUNK SIZE SET TO " << mChunkGranularity;
+
+    // initial initial seed --> we should store this somewhere
+    mInitialSeed = vm["seed"].as<int>();
+    mInitialSeed = o2::utils::RngHelper::setGRandomSeed(mInitialSeed);
+    LOG(INFO) << "RNG INITIAL SEED " << mInitialSeed;
 
     mMaxEvents = conf.getNEvents();
+
+    // need to make ROOT thread-safe since we use ROOT services in all places
+    ROOT::EnableThreadSafety();
 
     // lunch initialization of particle generator asynchronously
     // so that we reach the RUNNING state of the server quickly
@@ -144,15 +157,30 @@ class O2PrimaryServerDevice : public FairMQDevice
     i.maxEvents = mMaxEvents;
     i.part = mPartCounter + 1;
     i.nparts = numberofparts;
-    i.seed = counter + 10;
+    i.seed = counter + mInitialSeed;
     i.index = m.mParticles.size();
     m.mEventIDs.emplace_back(i);
 
-    auto startindex = mPartCounter * mChunkGranularity;
-    auto endindex = startindex + mChunkGranularity;
-    auto startiter = prims.begin() + mPartCounter * mChunkGranularity;
-    auto enditer = endindex < prims.size() ? startiter + mChunkGranularity : prims.end();
-    std::copy(startiter, enditer, std::back_inserter(m.mParticles));
+    //auto startoffset = (mPartCounter + 1) * mChunkGranularity;
+    //auto endoffset = startindex + mChunkGranularity;
+    //auto startiter = prims.begin() + mPartCounter * mChunkGranularity;
+    //auto enditer = endindex < prims.size() ? startiter + mChunkGranularity : prims.end();
+    //auto startiter = startoffset < prims.size() ? prims.rbegin() - startoffset : prims.begin();
+    //auto remaining = prims.size() - (mPartCounter + 1) * mChunkGranularity;
+    //auto enditer = startiter + (remaining > mChunkGranularity)? mChunkGranularity : remaining;
+    int endindex = prims.size() - mPartCounter * mChunkGranularity;
+    int startindex = prims.size() - (mPartCounter + 1) * mChunkGranularity;
+    if (startindex < 0) {
+      startindex = 0;
+    }
+    if (endindex < 0) {
+      endindex = 0;
+    }
+
+    // std::copy(startiter, enditer, std::back_inserter(m.mParticles));
+    for (int index = startindex; index < endindex; ++index) {
+      m.mParticles.emplace_back(prims[index]);
+    }
 
     LOG(WARNING) << "Sending " << m.mParticles.size() << " particles\n";
     LOG(WARNING) << "treating ev " << counter << " part " << i.part << " out of " << i.nparts << "\n";
@@ -188,6 +216,7 @@ class O2PrimaryServerDevice : public FairMQDevice
   int mPartCounter = 0;
   bool mNeedNewEvent = true;
   int mMaxEvents = 2;
+  int mInitialSeed = -1;
 
   std::thread mGeneratorInitThread; //! a thread used to concurrently init the particle generator
 };

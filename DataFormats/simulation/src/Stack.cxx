@@ -368,7 +368,7 @@ void Stack::UpdateTrackIndex(TRefArray* detList)
       if (o2det) {
         mActiveDetectors.emplace_back(o2det);
       } else {
-        LOG(INFO) << "Found nonconforming detector" << FairLogger::endl;
+        LOG(INFO) << "Found nonconforming detector " << det->GetName() << FairLogger::endl;
       }
     }
   }

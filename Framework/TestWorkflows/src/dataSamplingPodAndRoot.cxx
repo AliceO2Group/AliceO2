@@ -8,21 +8,29 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "Framework/DataSampling.h"
+
+using namespace o2::framework;
+void customize(std::vector<CompletionPolicy>& policies)
+{
+  DataSampling::CustomizeInfrastructure(policies);
+}
+void customize(std::vector<ChannelConfigurationPolicy>& policies)
+{
+  DataSampling::CustomizeInfrastructure(policies);
+}
 
 #include <iostream>
-#include <boost/algorithm/string.hpp>
 
+#include <boost/algorithm/string.hpp>
 #include "Framework/InputSpec.h"
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/DataSampling.h"
 #include "Framework/runDataProcessing.h"
 #include "Framework/TMessageSerializer.h"
 #include "FairMQLogger.h"
 #include <TClonesArray.h>
 #include <TH1F.h>
 #include <TString.h>
-
-using namespace o2::framework;
 
 struct FakeCluster {
   float x;
@@ -42,52 +50,44 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   DataProcessorSpec podDataProducer{
     "podDataProducer",
     Inputs{},
-    {
-      OutputSpec{ "TPC", "CLUSTERS", 0, Lifetime::Timeframe },
-      OutputSpec{ "ITS", "CLUSTERS", 0, Lifetime::Timeframe }
-    },
+    { OutputSpec{ "TPC", "CLUSTERS", 0, Lifetime::Timeframe },
+      OutputSpec{ "ITS", "CLUSTERS", 0, Lifetime::Timeframe } },
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback) someDataProducerAlgorithm
-    }
+      (AlgorithmSpec::ProcessCallback)someDataProducerAlgorithm }
   };
 
   DataProcessorSpec processingStage{
     "processingStage",
     Inputs{
       { "dataTPC", "TPC", "CLUSTERS", 0, Lifetime::Timeframe },
-      { "dataITS", "ITS", "CLUSTERS", 0, Lifetime::Timeframe }
-    },
+      { "dataITS", "ITS", "CLUSTERS", 0, Lifetime::Timeframe } },
     Outputs{
       { "TPC", "CLUSTERS_P", 0, Lifetime::Timeframe },
-      { "ITS", "CLUSTERS_P", 0, Lifetime::Timeframe }
-    },
+      { "ITS", "CLUSTERS_P", 0, Lifetime::Timeframe } },
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback) someProcessingStageAlgorithm
-    }
+      (AlgorithmSpec::ProcessCallback)someProcessingStageAlgorithm }
   };
-
 
   DataProcessorSpec podSink{
     "podSink",
     Inputs{
       { "dataTPC-proc", "TPC", "CLUSTERS_P", 0, Lifetime::Timeframe },
-      { "dataITS-proc", "ITS", "CLUSTERS_P", 0, Lifetime::Timeframe }
-    },
+      { "dataITS-proc", "ITS", "CLUSTERS_P", 0, Lifetime::Timeframe } },
     Outputs{},
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback) someSinkAlgorithm
-    }
+      (AlgorithmSpec::ProcessCallback)someSinkAlgorithm }
   };
 
+  // clang-format off
   DataProcessorSpec qcTaskTpc{
     "qcTaskTpc",
     Inputs{
-      { "TPC_CLUSTERS_S",   "TPC", "CLUSTERS_S",   0, Lifetime::Timeframe },
-      { "TPC_CLUSTERS_P_S", "TPC", "CLUSTERS_P_S", 0, Lifetime::Timeframe }
+      { "TPC_CLUSTERS_S",   "DS", "simpleQcTask-0",   0, Lifetime::Timeframe },
+      { "TPC_CLUSTERS_P_S", "DS", "simpleQcTask-1", 0, Lifetime::Timeframe }
     },
     Outputs{},
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback) [](ProcessingContext& ctx) {
+      (AlgorithmSpec::ProcessCallback)[](ProcessingContext& ctx) {
         auto inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("TPC_CLUSTERS_S").payload);
         auto inputDataTpcProcessed = reinterpret_cast<const FakeCluster*>(ctx.inputs().get(
           "TPC_CLUSTERS_P_S").payload);
@@ -163,8 +163,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   DataProcessorSpec rootQcTask{
     "rootQcTask",
     {
-      InputSpec{ "TST_HISTOS_S", "TST", "HISTOS_S", 0, Lifetime::Timeframe },
-      InputSpec{ "TST_STRING_S", "TST", "STRING_S", 0, Lifetime::Timeframe },
+      InputSpec{ "TST_HISTOS_S", "DS", "rootQcTask-0", 0, Lifetime::Timeframe },
+      InputSpec{ "TST_STRING_S", "DS", "rootQcTask-1", 0, Lifetime::Timeframe },
     },
     Outputs{},
     AlgorithmSpec{
@@ -182,7 +182,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
         auto s = ctx.inputs().get<TObjString*>("TST_STRING_S");
 
         LOG(INFO) << "qcTaskTst: TObjString is " << (std::string("foo") == s->GetString().Data() ? "correct" : "wrong");
-      } }
+      }
+    }
   };
 
   WorkflowSpec specs{
@@ -196,13 +197,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     rootQcTask
   };
 
-  std::string configurationSource = std::string("json://") + getenv("BASEDIR")
-                                    + "/../../O2/Framework/TestWorkflows/exampleDataSamplerConfig.json";
-
-  DataSampling::GenerateInfrastructure(specs, configurationSource);
+  std::string configurationSource = std::string("json://") + getenv("BASEDIR") + "/../../O2/Framework/TestWorkflows/exampleDataSamplingConfig.json";
+  DataSampling::GenerateInfrastructure(specs, configurationSource, 2);
   return specs;
 }
-
+// clang-format on
 
 void someDataProducerAlgorithm(ProcessingContext& ctx)
 {
@@ -233,7 +232,6 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
   }
 }
 
-
 void someProcessingStageAlgorithm(ProcessingContext& ctx)
 {
   const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataTPC").payload);
@@ -263,7 +261,6 @@ void someProcessingStageAlgorithm(ProcessingContext& ctx)
     cluster.q = inputDataIts[i].q;
     i++;
   }
-
 };
 
 void someSinkAlgorithm(ProcessingContext& ctx)

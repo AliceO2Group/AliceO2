@@ -20,7 +20,7 @@ namespace framework
 
 namespace
 {
-std::string quote(std::string s) { return R"(")" + s + R"(")"; }
+std::string quote(std::string const& s) { return R"(")" + s + R"(")"; }
 } // namespace
 
 /// Helper to dump a workflow as a graphviz file

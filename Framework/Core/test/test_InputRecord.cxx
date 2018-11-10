@@ -16,6 +16,7 @@
 #include "Framework/InputRecord.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Headers/DataHeader.h"
+#include "Headers/Stack.h"
 
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
@@ -25,32 +26,15 @@ bool any_exception( std::exception const& ex ) { return true; }
 
 BOOST_AUTO_TEST_CASE(TestInputRecord) {
   // Create the routes we want for the InputRecord
-  InputSpec spec1;
-  spec1.binding = "x";
-  spec1.description = "CLUSTERS";
-  spec1.origin = "TPC";
-  spec1.subSpec = 0;
-  spec1.lifetime = Lifetime::Timeframe;
+  InputSpec spec1{ "x", "TPC", "CLUSTERS", 0, Lifetime::Timeframe };
+  InputSpec spec2{ "y", "ITS", "CLUSTERS", 0, Lifetime::Timeframe };
+  InputSpec spec3{ "z", "TST", "EMPTY", 0, Lifetime::Timeframe };
 
-  InputSpec spec2;
-  spec2.binding = "y";
-  spec2.description = "CLUSTERS";
-  spec2.origin = "ITS";
-  spec2.subSpec = 0;
-  spec2.lifetime = Lifetime::Timeframe;
-
-  InputSpec spec3;
-  spec3.binding = "z";
-  spec3.description = "EMPTY";
-  spec3.origin = "TST";
-  spec3.subSpec = 0;
-  spec3.lifetime = Lifetime::Timeframe;
-
-  auto createRoute = [](const char *source, InputSpec &spec) {
-    InputRoute route;
-    route.sourceChannel = source;
-    route.matcher = spec;
-    return route;
+  auto createRoute = [](const char* source, InputSpec& spec) {
+    return InputRoute{
+      spec,
+      source
+    };
   };
 
   std::vector<InputRoute> schema = {
@@ -142,5 +126,3 @@ BOOST_AUTO_TEST_CASE(TestInputRecord) {
   BOOST_CHECK_EQUAL(record.get<int>("x"), 1);
   BOOST_CHECK_EQUAL(record.get<int>("x"), 1);
 }
-
-

@@ -26,13 +26,23 @@ struct SimConfigData {
   std::string mGenerator;                    // chosen VMC generator
   unsigned int mNEvents;                     // number of events to be simulated
   std::string mExtKinFileName;               // file name of external kinematics file (needed for ext kinematics generator)
+  std::string mExtGenFileName;               // file name containing the external generator configuration
+  std::string mExtGenFuncName;               // function call to retrieve the external generator configuration
   unsigned int mStartEvent;                  // index of first event to be taken
   float mBMax;                               // maximum for impact parameter sampling
   bool mIsMT;                                // chosen MT mode (Geant4 only)
   std::string mOutputPrefix;                 // prefix to be used for output files
   std::string mLogSeverity;                  // severity for FairLogger
   std::string mLogVerbosity;                 // loglevel for FairLogger
-  ClassDefNV(SimConfigData, 1);
+  std::string mKeyValueTokens;               // a string holding arbitrary sequence of key-value tokens
+                                             // Foo.parameter1=x,Bar.parameter2=y,Baz.paramter3=hello
+                                             // (can be used to **loosly** change any configuration parameter from
+                                             //  command-line)
+  int mPrimaryChunkSize;                     // defining max granularity for input primaries of a sim job
+  int mInternalChunkSize;                    //
+  int mStartSeed;                            // base for random number seeds
+
+  ClassDefNV(SimConfigData, 2);
 };
 
 // A singleton class which can be used
@@ -78,12 +88,18 @@ class SimConfig
   unsigned int getNEvents() const { return mConfigData.mNEvents; }
 
   std::string getExtKinematicsFileName() const { return mConfigData.mExtKinFileName; }
+  std::string getExtGeneratorFileName() const { return mConfigData.mExtGenFileName; }
+  std::string getExtGeneratorFuncName() const { return mConfigData.mExtGenFuncName; }
   unsigned int getStartEvent() const { return mConfigData.mStartEvent; }
   float getBMax() const { return mConfigData.mBMax; }
   bool getIsMT() const { return mConfigData.mIsMT; }
   std::string getOutPrefix() const { return mConfigData.mOutputPrefix; }
   std::string getLogVerbosity() const { return mConfigData.mLogVerbosity; }
   std::string getLogSeverity() const { return mConfigData.mLogSeverity; }
+  std::string getKeyValueString() const { return mConfigData.mKeyValueTokens; }
+  int getPrimChunkSize() const { return mConfigData.mPrimaryChunkSize; }
+  int getInternalChunkSize() const { return mConfigData.mInternalChunkSize; }
+  int getStartSeed() const { return mConfigData.mStartSeed; }
 
  private:
   SimConfigData mConfigData; //!

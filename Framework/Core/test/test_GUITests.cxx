@@ -66,6 +66,7 @@ BOOST_AUTO_TEST_CASE(HeatmapTest)
   DeviceInfo deviceInfo;
   DeviceInfo deviceInfo2;
   deviceInfo2.dataRelayerViewIndex = {
+    "data_relayer",
     1,
     1,
     { 0 }
@@ -148,7 +149,10 @@ BOOST_AUTO_TEST_CASE(DevicesGraph)
       {},
       {},
       {},
-      {},
+      { ConfigParamSpec{ "global-config", VariantType::String, { "A global config option for all processor specs" } },
+        ConfigParamSpec{ "a-boolean", VariantType::Bool, true, { "A boolean which we pick by default" } },
+        ConfigParamSpec{ "an-int", VariantType::Int, 10, { "An int for which we pick up the default" } },
+        ConfigParamSpec{ "a-double", VariantType::Double, 11., { "A double for which we pick up the override" } } },
       AlgorithmSpec{},
       {},
       {},
@@ -171,7 +175,7 @@ BOOST_AUTO_TEST_CASE(DevicesGraph)
       {},
       true,
       false,
-      0 });
+      Metric2DViewIndex{}});
 
   std::vector<DeviceControl> controls;
   controls.push_back(

@@ -10,7 +10,6 @@
 #ifndef FRAMEWORK_DATAALLOCATOR_H
 #define FRAMEWORK_DATAALLOCATOR_H
 
-#include "Headers/DataHeader.h"
 #include "Framework/ContextRegistry.h"
 #include "Framework/MessageContext.h"
 #include "Framework/RootObjectContext.h"
@@ -27,15 +26,16 @@
 #include "Framework/SerializationMethods.h"
 #include "Framework/TableBuilder.h"
 
+#include "Headers/DataHeader.h"
+#include <TClass.h>
+#include <gsl/span>
+
 #include <vector>
 #include <map>
 #include <string>
 #include <utility>
 #include <type_traits>
-#include <gsl/span>
 #include <utility>
-
-#include <TClass.h>
 
 // Do not change this for a full inclusion of FairMQDevice.
 class FairMQDevice;
@@ -412,21 +412,7 @@ public:
                                            o2::header::SerializationMethod serializationMethod, //
                                            size_t payloadSize);                                 //
 
-  Output getOutputByBind(OutputRef&& ref)
-  {
-    if (ref.label.empty()) {
-      throw std::runtime_error("Invalid (empty) OutputRef provided.");
-    }
-    for (size_t ri = 0, re = mAllowedOutputRoutes.size(); ri != re; ++ri) {
-      if (mAllowedOutputRoutes[ri].matcher.binding.value == ref.label) {
-        auto spec = mAllowedOutputRoutes[ri].matcher;
-        return Output{ spec.origin, spec.description, ref.subSpec, spec.lifetime, std::move(ref.headerStack) };
-      }
-    }
-    throw std::runtime_error("Unable to find OutputSpec with label " + ref.label);
-    assert(false);
-  }
-
+  Output getOutputByBind(OutputRef&& ref);
   void addPartToContext(FairMQMessagePtr&& payload,
                         const Output &spec,
                         o2::header::SerializationMethod serializationMethod);

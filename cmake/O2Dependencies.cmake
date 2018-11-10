@@ -22,25 +22,18 @@ find_package(ROOT 6.06.00 REQUIRED)
 find_package(Vc REQUIRED)
 find_package(Pythia8)
 find_package(Pythia6)
-if (ALICEO2_MODULAR_BUILD)
-  # Installed via CMake. Note: we work around hardcoded full paths in the CMake
-  # config files not being relocated properly by appending library paths.
-  guess_append_libpath(geant321 "${Geant3_DIR}")
-  find_package(Geant3 NO_MODULE)
-  guess_append_libpath(G4run "${Geant4_DIR}")
-  find_package(Geant4 NO_MODULE)
-  guess_append_libpath(geant4vmc "${GEANT4_VMC_DIR}")
-  find_package(Geant4VMC NO_MODULE)
-  guess_append_libpath(BaseVGM "${VGM_DIR}")
-  find_package(VGM NO_MODULE)
-else (ALICEO2_MODULAR_BUILD)
-  # For old versions of VMC packages (to be removed)
-  find_package(GEANT3)
-  find_package(GEANT4)
-  find_package(GEANT4DATA)
-  find_package(GEANT4VMC)
-  find_package(CLHEP)
-endif (ALICEO2_MODULAR_BUILD)
+
+# Installed via CMake. Note: we work around hardcoded full paths in the CMake
+# config files not being relocated properly by appending library paths.
+guess_append_libpath(geant321 "${Geant3_DIR}")
+find_package(Geant3 NO_MODULE)
+guess_append_libpath(G4run "${Geant4_DIR}")
+find_package(Geant4 NO_MODULE)
+guess_append_libpath(geant4vmc "${GEANT4_VMC_DIR}")
+find_package(Geant4VMC NO_MODULE)
+guess_append_libpath(BaseVGM "${VGM_DIR}")
+
+find_package(VGM NO_MODULE)
 find_package(CERNLIB)
 find_package(HEPMC)
 # FIXME: the way, iwyu is integrated now conflicts with the possibility to add
@@ -81,6 +74,52 @@ if (DDS_FOUND)
   set(OPTIONAL_DDS_LIBRARIES ${DDS_INTERCOM_LIBRARY_SHARED} ${DDS_PROTOCOL_LIBRARY_SHARED} ${DDS_USER_DEFAULTS_LIBRARY_SHARED})
   set(OPTIONAL_DDS_INCLUDE_DIR ${DDS_INCLUDE_DIR})
 endif ()
+
+if (ENABLE_CUDA)
+  include(CheckLanguage)
+  check_language(CUDA)
+  if(NOT CMAKE_CUDA_COMPILER)
+    message(FATAL "No CUDA compiler found")
+  endif()
+  if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+    set(CMAKE_CUDA_FLAGS "-Xptxas -O0 -Xcompiler -O0")
+  else()
+    set(CMAKE_CUDA_FLAGS "-Xptxas -O4 -Xcompiler -O4 -use_fast_math")
+  endif()
+  if(CUDA_GCCBIN)
+    message(STATUS "Using as CUDA GCC version: ${CUDA_GCCBIN}")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --compiler-bindir ${CUDA_GCCBIN}")
+  endif()
+  enable_language(CUDA)
+  if(CUDA_GCCBIN)
+    #Ugly hack! Otherwise CUDA includes unwanted old GCC libraries leading to version conflicts
+    set(CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES "$ENV{CUDA_PATH}/lib64")
+  endif()
+  add_definitions(-DENABLE_CUDA)
+  set(CMAKE_CUDA_STANDARD 14)
+  set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr --compiler-options \"${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}} -std=c++14\"")
+  message(STATUS "CUDA FOUND: Version ${CUDA_VERSION}")
+endif()
+
+if (ENABLE_HIP)
+  if(NOT DEFINED HIP_PATH)
+    if(NOT DEFINED ENV{HIP_PATH})
+       set(HIP_PATH "/opt/rocm/hip" CACHE PATH "Path to which HIP has been installed")
+    else()
+      set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "Path to which HIP has been installed")
+    endif()
+  endif()
+  set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${HIP_PATH}/cmake")
+  if(NOT DEFINED HCC_PATH)
+    # Workaround to fix a potential FindHIP bug: find HCC_PATH ourselves
+    set(_HCC_PATH "${HIP_PATH}/../hcc")
+    get_filename_component(HCC_PATH ${_HCC_PATH} ABSOLUTE CACHE)
+    unset(_HCC_PATH)
+  endif()
+  find_package(HIP REQUIRED)
+  add_definitions(-DENABLE_HIP)
+endif()
 
 # todo this should really not be needed. ROOT, Pythia, and FairRoot should comply with CMake best practices
 # todo but they do not properly return DEPENDENCIES with absolute path.
@@ -277,6 +316,15 @@ o2_define_bucket(
     ${Configuration_INCLUDE_DIRS}
     ${COMMON_INCLUDE_DIR}/include
     ${CMAKE_SOURCE_DIR}/Utilities/PCG/include
+)
+
+o2_define_bucket(
+    NAME
+    O2FrameworkCore_benchmark_bucket
+
+    DEPENDENCIES
+    O2FrameworkCore_bucket
+    $<IF:$<BOOL:${benchmark_FOUND}>,benchmark::benchmark,$<0:"">>
 )
 
 o2_define_bucket(
@@ -634,6 +682,7 @@ o2_define_bucket(
     fairroot_base_bucket
     root_physics_bucket
     common_math_bucket
+    data_format_headers_bucket
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
@@ -655,6 +704,9 @@ o2_define_bucket(
     Net
     VMC # ROOT
     Geom
+    common_utils_bucket
+    CommonUtils
+    
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -662,6 +714,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Common/Field/include
     ${CMAKE_SOURCE_DIR}/Common/Constants/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Parameters/include
+    ${CMAKE_SOURCE_DIR}/Common/Utils/include
 )
 
 o2_define_bucket(
@@ -686,6 +739,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/common/include
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/Base/include
+    ${CMAKE_SOURCE_DIR}/Common/Utils/include
 )
 
 o2_define_bucket(
@@ -729,8 +783,8 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
-    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/common/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+    ${CMAKE_SOURCE_DIR}/Common/Utils/include
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
 )
@@ -795,6 +849,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/simulation/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
+    ${CMAKE_SOURCE_DIR}/Common/Utils/include
 )
 
 o2_define_bucket(
@@ -836,7 +891,8 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/simulation/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
-
+    ${CMAKE_SOURCE_DIR}/Common/Utils/include
+   
     SYSTEMINCLUDE_DIRECTORIES
     ${Boost_INCLUDE_DIR}
     )
@@ -972,13 +1028,14 @@ o2_define_bucket(
     tpc_base_bucket
     data_format_TPC_bucket
     detectors_base_bucket
+    TPCSpaceChargeBase_bucket
     Field
     DetectorsBase
     Generators
     TPCBase
     SimulationDataFormat
     DataFormatsTPC
-    TPCSpaceChargeBase_bucket
+    O2TPCSpaceChargeBase
     Geom
     MathCore
     MathUtils
@@ -1090,6 +1147,7 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/SliceTracker
+    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/GlobalTracker
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Merger
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/TRDTracking
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Interface
@@ -1178,6 +1236,7 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
     ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Common/SimConfig/include
 )
 
 o2_define_bucket(
@@ -1218,6 +1277,7 @@ o2_define_bucket(
     Graf
     Gpad
     XMLIO
+    common_utils_bucket
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
@@ -1237,13 +1297,14 @@ o2_define_bucket(
     MFTBase
     DetectorsBase
     SimulationDataFormat
+    common_utils_bucket
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/simulation/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/MFT/base/include
-
+    ${CMAKE_SOURCE_DIR}/Common/Utils/include
 )
 
 o2_define_bucket(
@@ -1351,10 +1412,12 @@ o2_define_bucket(
     fairroot_geom
     Field
     DetectorsBase
+    SimConfig
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Common/Field/include
     ${CMAKE_SOURCE_DIR}/Detectors/Passive/include
+    ${CMAKE_SOURCE_DIR}/Common/SimConfig/include
 )
 
 o2_define_bucket(
@@ -1448,7 +1511,7 @@ o2_define_bucket(
     DetectorsBase
     SimulationDataFormat
     DataFormatsTOF
-    
+
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
@@ -1625,7 +1688,7 @@ o2_define_bucket(
     RIO
     DetectorsBase
     SimulationDataFormat
-    Core 
+    Core
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -1658,7 +1721,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/DataFormats/common/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
-
+    ${CMAKE_SOURCE_DIR}/Common/Utils/include
 )
 
 o2_define_bucket(
@@ -1686,7 +1749,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Detectors/PHOS/base/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
-
+   
 )
 
 o2_define_bucket(
@@ -1754,6 +1817,8 @@ o2_define_bucket(
     DetectorsBase
     detectors_base_bucket
     SimulationDataFormat
+    common_utils_bucket
+    CommonUtils
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -1779,6 +1844,7 @@ o2_define_bucket(
     ITSSimulation
     MFTSimulation
     MCHSimulation
+    MIDSimulation
     TRDSimulation
     EMCALSimulation
     TOFSimulation
@@ -1805,6 +1871,8 @@ o2_define_bucket(
     #-- precise modules follow
     Steer
     Framework
+    DetectorsCommonDataFormats
+    CommonDataFormat
     TPCSimulation
     TPCWorkflow
     DataFormatsTPC
@@ -1932,6 +2000,7 @@ o2_define_bucket(
     data_format_common_bucket
 
     DEPENDENCIES
+    fairroot_base_bucket
     Core RIO
 
     INCLUDE_DIRECTORIES
@@ -2198,6 +2267,25 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/MUON/MID/Clustering/src
+)
+
+o2_define_bucket(
+    NAME
+    mid_simulation_bucket
+
+    DEPENDENCIES
+		mid_base_bucket
+    root_base_bucket
+    fairroot_base_bucket
+    DetectorsBase
+    detectors_base_bucket
+    SimulationDataFormat
+		MIDBase
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+		${CMAKE_SOURCE_DIR}/Detectors/MID/base/include
 )
 
 o2_define_bucket(

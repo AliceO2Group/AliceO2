@@ -12,6 +12,7 @@
 
 #include "Headers/DataHeader.h"
 #include "Framework/Lifetime.h"
+#include "Headers/Stack.h"
 
 namespace o2
 {
@@ -58,7 +59,7 @@ struct Output {
   {
   }
 
-  bool operator==(const Output& that)
+  bool operator==(const Output& that) const
   {
     return origin == that.origin && description == that.description && subSpec == that.subSpec &&
            lifetime == that.lifetime;

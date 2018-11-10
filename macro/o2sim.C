@@ -10,10 +10,12 @@
 
 #include "build_geometry.C"
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-#include <FairPrimaryGenerator.h>
+#include <Generators/PrimaryGenerator.h>
 #include <Generators/GeneratorFactory.h>
 #include <Generators/PDG.h>
 #include <SimConfig/SimConfig.h>
+#include <SimConfig/ConfigurableParam.h>
+#include <CommonUtils/RngHelper.h>
 #include <TStopwatch.h>
 #include <memory>
 #include "DataFormatsParameters/GRPObject.h"
@@ -28,8 +30,22 @@
 FairRunSim* o2sim_init(bool asservice)
 {
   auto& confref = o2::conf::SimConfig::Instance();
-  auto genconfig = confref.getGenerator();
+  // we can read from CCDB (for the moment faking with a TFile)
+  // o2::conf::ConfigurableParam::fromCCDB("params_ccdb.root", runid);
 
+  // update the parameters from stuff given at command line
+  o2::conf::ConfigurableParam::updateFromString(confref.getKeyValueString());
+  // write the configuration file
+  o2::conf::ConfigurableParam::writeINI("o2sim_configuration.ini");
+
+  // we can update the binary CCDB entry something like this ( + timestamp key )
+  // o2::conf::ConfigurableParam::toCCDB("params_ccdb.root");
+
+  // set seed
+  auto seed = o2::utils::RngHelper::setGRandomSeed(confref.getStartSeed());
+  LOG(INFO) << "RNG INITIAL SEED " << seed;
+
+  auto genconfig = confref.getGenerator();
   FairRunSim* run;
   if (asservice) {
     run = new o2::steer::O2RunSim();
@@ -56,7 +72,7 @@ FairRunSim* o2sim_init(bool asservice)
   build_geometry(run);
 
   // setup generator
-  auto primGen = new FairPrimaryGenerator();
+  auto primGen = new o2::eventgen::PrimaryGenerator();
   if (!asservice) {
     o2::eventgen::GeneratorFactory::setPrimaryGenerator(confref, primGen);
   }

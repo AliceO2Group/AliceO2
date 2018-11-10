@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <vector>
+#include <iosfwd>
 
 namespace o2
 {
@@ -102,22 +103,39 @@ struct EdgeAction {
   bool requiresNewChannel = false;
 };
 
+/// Helper struct to keep track of the results of the topological sort
+struct TopoIndexInfo {
+  int index; //!< the index in the actual storage of the nodes to be sorted topologically
+  int layer; //!< the associated layer in the sorting procedure
+  bool operator<(TopoIndexInfo const& rhs) const
+  {
+    return index < rhs.index;
+  }
+  bool operator==(TopoIndexInfo const& rhs) const
+  {
+    return index == rhs.index;
+  }
+
+  friend std::ostream& operator<<(std::ostream& out, TopoIndexInfo const& info);
+};
+
 /// A set of internal helper classes to manipulate a Workflow
 struct WorkflowHelpers {
   /// Topological sort for a graph of @a nodeCount nodes.
-  ///  
+  ///
   /// @a edgeIn pointer to the index of the input node for the first edge
   /// @a edgeOut pointer to the index of the out node for the first edge
-  /// @a stride distance (in size_t) between the first and the second element the array
+  /// @a stride distance (in bytes) between the first and the second element the array
   ///    holding the edges
   /// @return an index vector for the @a nodeCount nodes, where the order is a topological
-  /// sort according to the information provided in edges.
-  static std::vector<size_t> topologicalSort(size_t nodeCount,
-                                             const size_t *edgeIn,
-                                             const size_t *edgeOut,
-                                             size_t stride,
-                                             size_t edgesCount
-      );
+  /// sort according to the information provided in edges. The first element of
+  /// the pair is the index in the nodes array, the second one is the layer in the topological
+  /// sort.
+  static std::vector<TopoIndexInfo> topologicalSort(size_t nodeCount,
+                                                    int const* edgeIn,
+                                                    int const* edgeOut,
+                                                    size_t stride,
+                                                    size_t edgesCount);
 
   // Helper method to verify that a given workflow is actually valid e.g. that
   // it contains no empty labels.
@@ -147,6 +165,11 @@ struct WorkflowHelpers {
   static std::vector<EdgeAction> computeInEdgeActions(
                                  const std::vector<DeviceConnectionEdge> &edges,
                                  const std::vector<size_t> &index);
+
+  /// Given @a workflow it finds the OutputSpec in every module which do not have
+  /// a corresponding InputSpec. I.e. they are dangling.
+  /// @return a vector of InputSpec which would have matched said dangling outputs.
+  static std::vector<InputSpec> computeDanglingOutputs(WorkflowSpec const& workflow);
 };
 
 }

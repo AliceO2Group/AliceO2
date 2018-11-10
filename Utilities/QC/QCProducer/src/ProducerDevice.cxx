@@ -99,12 +99,12 @@ int ProducerDevice::getCurrentSecond() const
 
 void ProducerDevice::sendDataToMerger(unique_ptr<FairMQMessage> request)
 {
-  if (fChannels.at("data-out").at(0).SendAsync(request) == -2) {
+  if (fChannels.at("data-out").at(0).Send(request, 0) == -2) {
     mLastBufferOverloadTime = clock();
     mBufferOverloaded = true;
     LOG(DEBUG) << "Buffer of data-out channel is full. Waiting for free buffer...";
 
-    while (fChannels.at("data-out").at(0).SendAsync(request) == -2) {
+    while (fChannels.at("data-out").at(0).Send(request, 0) == -2) {
       this_thread::sleep_for(chrono::milliseconds(10));
     }
 
@@ -169,7 +169,6 @@ void ProducerDevice::establishChannel(std::string type, std::string method, std:
 void ProducerDevice::executeRunLoop()
 {
   ChangeState("INIT_DEVICE");
-  WaitForInitialValidation();
   WaitForEndOfState("INIT_DEVICE");
 
   subscribeDdsCommands();

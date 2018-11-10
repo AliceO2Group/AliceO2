@@ -26,7 +26,6 @@ namespace o2
 {
 namespace zdc
 {
-class Hit;
 
 class Detector : public o2::Base::DetImpl<Detector>
 {

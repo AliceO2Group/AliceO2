@@ -15,6 +15,7 @@
 #define ALICEO2_ZDC_HIT_H_
 
 #include "SimulationDataFormat/BaseHits.h" // for BasicXYZEHit
+#include "CommonUtils/ShmAllocator.h"
 
 namespace o2
 {
@@ -86,5 +87,16 @@ inline Hit::Hit(int trackID, int parent, Bool_t sFlag, Float_t primaryEnergy, In
 }
 }
 }
+
+#ifdef USESHM
+namespace std
+{
+template <>
+class allocator<o2::zdc::Hit> : public o2::utils::ShmAllocator<o2::zdc::Hit>
+{
+};
+} // namespace std
+
+#endif
 
 #endif

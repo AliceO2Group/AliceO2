@@ -15,8 +15,6 @@
 #include "Field/MagFieldFast.h"
 #include "ITSBase/GeometryTGeo.h"
 
-#include "SimulationDataFormat/MCTruthContainer.h"
-
 #include "DetectorsBase/Propagator.h"
 #include "CommonUtils/TreeStream.h"
 
@@ -35,7 +33,7 @@
 #include <TFile.h>
 #include <TGeoGlobalMagField.h>
 #include "DataFormatsParameters/GRPObject.h"
-
+#include "SimulationDataFormat/MCTruthContainer.h"
 #include "GlobalTracking/MatchTPCITS.h"
 
 using namespace o2::globaltracking;
@@ -131,9 +129,15 @@ void MatchTPCITS::init()
 
   // create output branch
   if (mOutputTree) {
+    LOG(INFO) << "ITS-TPC Matching results will be stored in the tree " << mOutputTree->GetName();
     mOutputTree->Branch(mOutTPCITSTracksBranchName.data(), &mMatchedTracks);
-    LOG(INFO) << "Matched tracks will be stored in " << mOutTPCITSTracksBranchName << " branch of tree "
-              << mOutputTree->GetName() << FairLogger::endl;
+    LOG(INFO) << "Matched tracks branch: " << mOutTPCITSTracksBranchName;
+    if (mMCTruthON) {
+      mOutputTree->Branch(mOutTPCMCTruthBranchName.data(), &mOutITSLabels);
+      LOG(INFO) << "ITS Tracks Labels branch: " << mOutITSMCTruthBranchName;
+      mOutputTree->Branch(mOutITSMCTruthBranchName.data(), &mOutTPCLabels);
+      LOG(INFO) << "TPC Tracks Labels branch: " << mOutTPCMCTruthBranchName;
+    }
   } else {
     LOG(ERROR) << "Output tree is not attached, matched tracks will not be stored" << FairLogger::endl;
   }
@@ -1068,12 +1072,11 @@ void MatchTPCITS::refitWinners()
   mWinnerChi2Refit.resize(mITSWork.size(), -1.f);
   mCurrITSTracksTreeEntry = -1;
   mCurrITSClustersTreeEntry = -1;
-  for (int i = 0; i < mITSWork.size(); i++) {
-    const auto& its = mITSWork[i];
-    if (!refitTrackITSTPC(its)) {
+  for (int iITS = 0; iITS < mITSWork.size(); iITS++) {
+    if (!refitTrackITSTPC(iITS)) {
       continue;
     }
-    mWinnerChi2Refit[i] = mMatchedTracks.back().getChi2Refit();
+    mWinnerChi2Refit[iITS] = mMatchedTracks.back().getChi2Refit();
     if (mMatchedTracks.size() == mMaxOutputTracksPerEntry) {
       if (mOutputTree) {
         mTimerRefit.Stop();
@@ -1081,6 +1084,10 @@ void MatchTPCITS::refitWinners()
         mTimerRefit.Start(false);
       }
       mMatchedTracks.clear();
+      if (mMCTruthON) {
+        mOutITSLabels.clear();
+        mOutTPCLabels.clear();
+      }
     }
   }
   // flush last tracks
@@ -1088,34 +1095,43 @@ void MatchTPCITS::refitWinners()
     mOutputTree->Fill();
   }
   mMatchedTracks.clear();
+  if (mMCTruthON) {
+    mOutITSLabels.clear();
+    mOutTPCLabels.clear();
+  }
   mTimerRefit.Stop();
 }
 
 //______________________________________________
-bool MatchTPCITS::refitTrackITSTPC(const TrackLocITS& tITS)
+bool MatchTPCITS::refitTrackITSTPC(int iITS)
 {
   ///< refit in inward direction the pair of TPC and ITS tracks
+  const auto& tITS = mITSWork[iITS];
   if (tITS.matchID < 0 || isDisabledITS(mMatchesITS[tITS.matchID])) {
     return false; // no match
   }
   const auto& itsMatch = mMatchesITS[tITS.matchID];
   const auto& itsMatchRec = mMatchRecordsITS[itsMatch.first];
-  const auto& tTPC = mTPCWork[mTPCMatch2Track[itsMatchRec.matchID]];
+  int iTPC = mTPCMatch2Track[itsMatchRec.matchID];
+  const auto& tTPC = mTPCWork[iTPC];
 
   loadITSClustersChunk(tITS.source.getEvent());
   loadITSTracksChunk(tITS.source.getEvent());
   loadTPCTracksChunk(tTPC.source.getEvent());
 
-  mMatchedTracks.emplace_back(tTPC); // create a copy of TPC track at xRef
+  auto itsTrOrig = (*mITSTracksArrayInp)[tITS.source.getIndex()]; // currently we store clusterIDs in the track
+
+  mMatchedTracks.emplace_back(tTPC, itsTrOrig.getParamOut()); // create a copy of TPC track at xRef
   auto& trfit = mMatchedTracks.back();
   // in continuos mode the Z of TPC track is meaningless, unless it is CE crossing
   // track (currently absent, TODO)
   if (!mCompareTracksDZ) {
     trfit.setZ(tITS.getZ()); // fix the seed Z
   }
-  float deltaT = (trfit.getZ() - tTPC.getZ()) * mZ2TPCBin; // time correction in time-bins
+  auto dzCorr = trfit.getZ() - tTPC.getZ();
+  float deltaT = dzCorr * mZ2TPCBin; // time correction in time-bins
 
-  auto itsTrOrig = (*mITSTracksArrayInp)[tITS.source.getIndex()]; // currently we store clusterIDs in the track
+  // refit TPC track inward into the ITS
   int nclRefit = 0, ncl = itsTrOrig.getNumberOfClusters();
   float chi2 = 0.f;
   auto geom = o2::ITS::GeometryTGeo::Instance();
@@ -1143,6 +1159,9 @@ bool MatchTPCITS::refitTrackITSTPC(const TrackLocITS& tITS)
     return false;
   }
 
+  // refit ITS outer trackparam outward into the TPC
+  // TODO
+
   /// precise time estimate
   auto tpcTrOrig = (*mTPCTracksArrayInp)[tTPC.source.getIndex()];
   float time = tpcTrOrig.getTime0() - mNTPCBinsFullDrift;
@@ -1162,6 +1181,12 @@ bool MatchTPCITS::refitTrackITSTPC(const TrackLocITS& tITS)
   trfit.setTimeMUS(time, timeErr);
   trfit.setRefTPC(tTPC.source);
   trfit.setRefITS(tITS.source);
+
+  if (mMCTruthON) { // store MC info
+    mOutITSLabels.emplace_back(mITSLblWork[iITS]);
+    mOutTPCLabels.emplace_back(mTPCLblWork[iTPC]);
+  }
+
   return true;
 }
 

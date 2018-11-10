@@ -49,7 +49,8 @@ class HitProcessingManager
 
   void setGeometryFile(std::string const& geomfile) { mGeometryFile = geomfile; }
 
-  void setInteractionSampler();
+  o2::steer::InteractionSampler& getInteractionSampler() { return mInteractionSampler; }
+
   void sampleCollisionTimes();
   void sampleCollisionConstituents();
 
@@ -92,6 +93,8 @@ inline void HitProcessingManager::sampleCollisionTimes()
 {
   mRunContext.getEventRecords().resize(mRunContext.getNCollisions());
   mInteractionSampler.generateCollisionTimes(mRunContext.getEventRecords());
+  mRunContext.getBunchFilling() = mInteractionSampler.getBunchFilling();
+  mRunContext.setMuPerBC(mInteractionSampler.getMuPerBC());
 }
 
 inline void HitProcessingManager::sampleCollisionConstituents()
@@ -155,25 +158,6 @@ inline void HitProcessingManager::run()
   for (auto& f : mRegisteredRunFunctions) {
     f(mRunContext);
   }
-}
-
-template <typename HitType, typename Task_t>
-std::function<void(const o2::steer::RunContext&)> defaultRunFunction(Task_t& task, std::string_view brname)
-{
-  //  using HitType = Task_t::InputType;
-  return [&task, brname](const o2::steer::RunContext& c) {
-    HitType* hittype = nullptr;
-    auto br = c.getBranch(brname.data());
-    assert(br);
-    br->SetAddress(&hittype);
-    for (auto entry = 0; entry < c.getNCollisions(); ++entry) {
-      br->GetEntry(entry);
-      task.setData(hittype, &c);
-      task.Exec("");
-    }
-    task.FinishTask();
-    // delete hittype
-  };
 }
 
 inline void HitProcessingManager::registerRunFunction(RunFunct_t&& f) { mRegisteredRunFunctions.emplace_back(f); }

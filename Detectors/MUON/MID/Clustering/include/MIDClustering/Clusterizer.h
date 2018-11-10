@@ -74,7 +74,7 @@ class Clusterizer
   Cluster2D& nextCluster();
   void makeClusters(const int& deIndex);
   void makeCluster(PreCluster& clBend, PreCluster& clNonBend, const int& deIndex);
-  void makeCluster(std::vector<PreCluster*> pcBlist, const int& deIndex, PreCluster* clNonBend = nullptr);
+  void makeCluster(std::vector<PreCluster*>& pcBlist, const int& deIndex, PreCluster* clNonBend = nullptr);
 
   Mapping mMapping;                              ///< Mapping
   std::unordered_map<int, PatternStruct> mMpDEs; ///< internal mapping

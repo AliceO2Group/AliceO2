@@ -62,7 +62,7 @@ using namespace o2::TPC;
 Detector::Detector(Bool_t active) : o2::Base::DetImpl<Detector>("TPC", active), mGeoFileName()
 {
   for (int i = 0; i < Sector::MAXSECTOR; ++i) {
-    mHitsPerSectorCollection[i] = new std::vector<o2::TPC::HitGroup>;
+    mHitsPerSectorCollection[i] = o2::utils::createSimVector<o2::TPC::HitGroup>(); //new std::vector<o2::TPC::HitGroup>;
   }
 }
 
@@ -77,15 +77,15 @@ Detector::Detector(const Detector& rhs)
     mGeoFileName(rhs.mGeoFileName)
 {
   for (int i = 0; i < Sector::MAXSECTOR; ++i) {
-    mHitsPerSectorCollection[i] = new std::vector<o2::TPC::HitGroup>;
+    mHitsPerSectorCollection[i] = o2::utils::createSimVector<o2::TPC::HitGroup>(); //new std::vector<o2::TPC::HitGroup>;new std::vector<o2::TPC::HitGroup>;
   }
 }
 
 Detector::~Detector()
 {
   for (int i = 0; i < Sector::MAXSECTOR; ++i) {
-    mHitsPerSectorCollection[i]->clear();
-    delete mHitsPerSectorCollection[i];
+    // mHitsPerSectorCollection[i]->clear();
+    o2::utils::freeSimVector(mHitsPerSectorCollection[i]);
   }
   std::cout << "Produced hits " << mHitCounter << "\n";
   std::cout << "Produced electrons " << mElectronCounter << "\n";
@@ -95,7 +95,7 @@ Detector::~Detector()
 void Detector::InitializeO2Detector()
 {
   // Define the list of sensitive volumes
-  DefineSensitiveVolumes();
+  defineSensitiveVolumes();
 }
 
 void Detector::SetSpecialPhysicsCuts()
@@ -287,8 +287,10 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
 void Detector::EndOfEvent()
 {
-  for (int i = 0; i < Sector::MAXSECTOR; ++i) {
-    mHitsPerSectorCollection[i]->clear();
+  if (!o2::utils::ShmManager::Instance().isOperational()) {
+    for (int i = 0; i < Sector::MAXSECTOR; ++i) {
+      mHitsPerSectorCollection[i]->clear();
+    }
   }
 }
 
@@ -3027,7 +3029,7 @@ void Detector::LoadGeometryFromFile()
   alice->AddNode(tpcVolume, 1);
 }
 
-void Detector::DefineSensitiveVolumes()
+void Detector::defineSensitiveVolumes()
 {
   TGeoManager* geoManager = gGeoManager;
   TGeoVolume* v = nullptr;

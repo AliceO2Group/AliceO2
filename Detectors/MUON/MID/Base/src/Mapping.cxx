@@ -146,6 +146,9 @@ double Mapping::getStripSize(int strip, int cathode, int column, int deId) const
   int ichamber = Constants::getChamber(deId);
   int stripPitch = (cathode == 0) ? mDetectionElements[rpcType].columns[column].stripPitchBP
                                   : mDetectionElements[rpcType].columns[column].stripPitchNBP;
+  if (cathode == 0) {
+    strip = 0;
+  }
 
   return getStripSize(ichamber, stripPitch, strip);
 }
@@ -380,7 +383,7 @@ double Mapping::getStripSize(int chamber, int stripPitch, int strip) const
 double Mapping::getColumnLeftPosition(int column, int chamber, int rpcType) const
 {
   /// Returns the left position of the column
-  double xCenter = Constants::getRPCHalfWidth(chamber, rpcType);
+  double xCenter = Constants::getRPCHalfLength(chamber, rpcType);
   double col = (double)column;
   if (rpcType == 4) {
     col += (column == 1) ? -1. : -1.5;
@@ -501,7 +504,7 @@ MpArea Mapping::stripByLocationInBoard(int strip, int cathode, int boardId, int 
 int Mapping::getColumn(double xPos, int chamber, int rpcType) const
 {
   /// Gets the column from x position
-  double xShift = xPos + Constants::getRPCHalfWidth(chamber, rpcType);
+  double xShift = xPos + Constants::getRPCHalfLength(chamber, rpcType);
   int invalid = 7;
   if (xShift < 0) {
     return invalid;

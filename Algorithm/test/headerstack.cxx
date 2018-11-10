@@ -22,6 +22,7 @@
 #include <cstring> // memcmp
 #include "Headers/DataHeader.h" // hexdump
 #include "Headers/NameHeader.h"
+#include "Headers/Stack.h"
 #include "../include/Algorithm/HeaderStack.h"
 
 using DataHeader = o2::header::DataHeader;

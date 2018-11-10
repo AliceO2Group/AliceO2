@@ -5,9 +5,11 @@
 /mcVerbose/geometryManager 1
 /mcVerbose/opGeometryManager 1
 /mcTracking/loopVerbose 1
-/mcPhysics/rangeCuts 0.01 mm
-
 /mcVerbose/composedPhysicsList 2
+#/tracking/verbose 1
+#//control/cout/ignoreThreadsExcept 0
+
+/mcPhysics/rangeCuts 0.01 mm
 /mcTracking/skipNeutrino true
 /mcDet/setIsMaxStepInLowDensityMaterials true
 /mcDet/setMaxStepInLowDensityMaterials 10 m
@@ -33,5 +35,5 @@
 #
 # Geant4 VMC >= v3.2
 /mcPhysics/emModel/setEmModel  SpecialUrbanMsc
-/mcPhysics/emModel/setRegions  EMCAL_Lead$ EMCAL_Scintillator$
+/mcPhysics/emModel/setRegions  EMC_Lead$ EMC_Scintillator$
 /mcPhysics/emModel/setParticles  e- e+

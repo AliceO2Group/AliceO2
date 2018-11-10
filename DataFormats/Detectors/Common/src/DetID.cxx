@@ -23,6 +23,12 @@ ClassImp(o2::detectors::DetID);
 constexpr const char* DetID::sDetNames[DetID::nDetectors + 1];
 constexpr std::array<DetID::mask_t, DetID::nDetectors> DetID::sMasks;
 
+// redundant declarations
+constexpr DetID::ID DetID::ITS, DetID::TPC, DetID::TRD, DetID::TOF, DetID::PHS, DetID::CPV, DetID::EMC,
+  DetID::HMP, DetID::MFT, DetID::MCH, DetID::MID, DetID::ZDC, DetID::FIT, DetID::ACO, DetID::First, DetID::Last;
+
+constexpr int DetID::nDetectors;
+
 //_______________________________
 DetID::DetID(const char* name) : mID(nameToID(name, First))
 {

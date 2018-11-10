@@ -38,14 +38,13 @@ set(SRCS
     src/DataSamplingConditionNConsecutive.cxx
     src/DataSamplingConditionFactory.cxx
     src/DataSamplingReadoutAdapter.cxx
+    src/DataSamplingPolicy.cxx
     src/DataSourceDevice.cxx
     src/DeviceMetricsInfo.cxx
     src/DeviceSpec.cxx
     src/DeviceSpecHelpers.cxx
     src/DDSConfigHelpers.cxx
-    src/DispatcherDPL.cxx
-    src/DispatcherFairMQ.cxx
-    src/DispatcherFlpProto.cxx
+    src/Dispatcher.cxx
     src/DriverControl.cxx
     src/DriverInfo.cxx
     src/FairOptionsRetriever.cxx
@@ -53,9 +52,11 @@ set(SRCS
     src/FairMQResizableBuffer.cxx
     src/GraphvizHelpers.cxx
     src/InputRecord.cxx
+    src/DataDescriptorQueryBuilder.cxx
     src/LifetimeHelpers.cxx
     src/LocalRootFileService.cxx
     src/LogParsingHelpers.cxx
+    src/Metric2DViewIndex.cxx
     src/ExternalFairMQDeviceProxy.cxx
     src/SimpleResourceManager.cxx
     src/TextControlService.cxx
@@ -71,6 +72,7 @@ set(SRCS
     src/FrameworkGUIDeviceInspector.cxx
     src/FrameworkGUIDataRelayerUsage.cxx
     src/PaletteHelpers.cxx
+    src/CommonDataProcessors.cxx
     ${GUI_SOURCES}
     test/TestClasses.cxx
     src/Variant.cxx
@@ -143,9 +145,12 @@ set(HEADERS
       include/Framework/DataSamplingCondition.h
       include/Framework/DataSamplingConditionFactory.h
       include/Framework/DataSamplingReadoutAdapter.h
+      include/Framework/DataSamplingPolicy.h
+      include/Framework/Dispatcher.h
       include/Framework/DPLBoostSerializer.h
       include/Framework/TableBuilder.h
       include/Framework/FairMQResizableBuffer.h
+      include/Framework/Metric2DViewIndex.h
       src/ComputingResource.h
       src/DDSConfigHelpers.h
       src/DeviceSpecHelpers.h
@@ -197,7 +202,7 @@ O2_GENERATE_EXECUTABLE(
 target_compile_options(Framework PUBLIC -O0 -g -fno-omit-frame-pointer)
 target_compile_options(test_SimpleDataProcessingDevice01 PUBLIC -O0 -g -fno-omit-frame-pointer)
 
-Install(FILES test/test_DataSamplingDPL.json test/test_DataSamplingFairMQ.json DESTINATION share/tests/)
+Install(FILES test/test_DataSampling.json DESTINATION share/tests/)
 
 set(TEST_SRCS
       test/test_AlgorithmSpec.cxx
@@ -208,18 +213,22 @@ set(TEST_SRCS
       test/test_CustomGUI.cxx
       test/test_CompletionPolicy.cxx
       test/test_DanglingInputs.cxx
+      test/test_DanglingOutputs.cxx
       test/test_DataAllocator.cxx
+      test/test_DataDescriptorMatcher.cxx
       test/test_DataProcessorSpec.cxx
       test/test_DataRefUtils.cxx
       test/test_DataRelayer.cxx
       test/test_DataSampling.cxx
       test/test_DataSamplingCondition.cxx
+      test/test_DataSamplingPolicy.cxx
       test/test_DeviceMetricsInfo.cxx
       test/test_DeviceSpec.cxx
       test/test_ExternalFairMQDeviceProxy.cxx
       test/test_FairMQResizableBuffer.cxx
       test/test_Forwarding.cxx
       test/test_FrameworkDataFlowToDDS.cxx
+      test/test_FairMQOptionsRetriever.cxx
       test/test_GUITests.cxx
       test/test_Graphviz.cxx
       test/test_InfoLogger.cxx
@@ -233,6 +242,7 @@ set(TEST_SRCS
       test/test_SimpleStringProcessing.cxx
       test/test_SingleDataSource.cxx
       test/test_SuppressionGenerator.cxx
+      test/test_TimesliceIndex.cxx
       test/test_TMessageSerializer.cxx
       test/test_TableBuilder.cxx
       test/test_Task.cxx
@@ -241,6 +251,17 @@ set(TEST_SRCS
       test/test_Variants.cxx
       test/test_WorkflowHelpers.cxx
    )
+
+set(BENCH_SRCS 
+    test/benchmark_DataDescriptorMatcher.cxx
+    test/benchmark_DataRelayer.cxx
+    test/benchmark_InputRecord.cxx)
+
+O2_GENERATE_TESTS(
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME O2FrameworkCore_benchmark_bucket
+  TEST_SRCS ${BENCH_SRCS}
+)
 
 O2_GENERATE_TESTS(
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
@@ -261,5 +282,5 @@ O2_GENERATE_TESTS(
   COMMAND_LINE_ARGS
   --global-config require-me
   # Note: the group switch makes process consumer parse only the group arguments
-  --consumer "--global-config consumer-config --local-option hello-aliceo2"
+  --consumer "--global-config consumer-config --local-option hello-aliceo2 --a-boolean3 --an-int2 20 --a-double2 22."
 )

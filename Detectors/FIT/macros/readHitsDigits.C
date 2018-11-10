@@ -4,16 +4,6 @@
 #include <TH2F.h>
 #endif
 
-// ROOT has problems with symbols from using declarations
-// so temporarily repeating it here
-namespace o2
-{
-namespace fit
-{
-using HitType = o2::BasicXYZEHit<float, float>;
-}
-}
-
 void readHitsDigits()
 {
   using namespace o2::fit;

@@ -13,7 +13,6 @@ O2_SETUP(NAME ${MODULE_NAME})
 link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
-   src/Baseline.cxx
    src/Detector.cxx
    src/DigitMCMetaData.cxx
    src/DigitContainer.cxx
@@ -26,10 +25,10 @@ set(SRCS
    src/PadResponse.cxx
    src/Point.cxx
    src/SAMPAProcessing.cxx
+   src/SpaceCharge.cxx
 )
 
 set(HEADERS
-   include/${MODULE_NAME}/Baseline.h
    include/${MODULE_NAME}/Detector.h
    include/${MODULE_NAME}/DigitMCMetaData.h
    include/${MODULE_NAME}/DigitContainer.h
@@ -42,6 +41,7 @@ set(HEADERS
    include/${MODULE_NAME}/PadResponse.h
    include/${MODULE_NAME}/Point.h
    include/${MODULE_NAME}/SAMPAProcessing.h
+   include/${MODULE_NAME}/SpaceCharge.h
 )
 Set(LINKDEF src/TPCSimulationLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})

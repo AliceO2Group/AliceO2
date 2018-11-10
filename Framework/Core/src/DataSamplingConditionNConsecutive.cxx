@@ -16,6 +16,7 @@
 #include "Framework/DataSamplingCondition.h"
 #include "Framework/DataSamplingConditionFactory.h"
 #include "Framework/DataProcessingHeader.h"
+#include <fairlogger/Logger.h>
 
 namespace o2
 {
@@ -24,7 +25,8 @@ namespace framework
 
 using namespace o2::header;
 
-/// \brief A DataSamplingCondition which approves n consecutive samples in defined cycle.
+/// \brief A DataSamplingCondition which approves n consecutive samples in defined cycle. It assumes that timesliceID
+// always increments by one.
 class DataSamplingConditionNConsecutive : public DataSamplingCondition
 {
 

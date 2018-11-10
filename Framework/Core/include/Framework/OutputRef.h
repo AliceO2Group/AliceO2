@@ -11,6 +11,7 @@
 #define FRAMEWORK_OUTPUTREF_H
 
 #include "Headers/DataHeader.h"
+#include "Headers/Stack.h"
 
 #include <string>
 

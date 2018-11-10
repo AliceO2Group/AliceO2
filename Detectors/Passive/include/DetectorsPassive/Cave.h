@@ -66,6 +66,8 @@ class Cave : public FairDetector
 
   void includeZDC(bool hasZDC) { mHasZDC = hasZDC; }
 
+  void BeginPrimary() override;
+
  private:
   Cave(const Cave& orig);
   Cave& operator=(const Cave&);

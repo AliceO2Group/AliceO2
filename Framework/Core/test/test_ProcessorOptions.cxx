@@ -38,7 +38,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
             // there is nothing to do, simply stop the workflow but we have to send at least one message
             // to make sure that the callback of the consumer is called
             ctx.outputs().make<int>(Output{ "TST", "TEST", 0, Lifetime::Timeframe }) = 42;
-            ctx.services().get<ControlService>().readyToQuit(true);
           };
         },
       },
@@ -62,6 +61,21 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           // read back the option from the command line, see CMakeLists.txt
           auto configstring = ic.options().get<std::string>("global-config");
           auto anotheroption = ic.options().get<std::string>("local-option");
+          auto aBoolean = ic.options().get<bool>("a-boolean");
+          auto aBoolean2 = ic.options().get<bool>("a-boolean2");
+          auto aBoolean3 = ic.options().get<bool>("a-boolean3");
+          auto anInt = ic.options().get<int>("an-int");
+          auto anInt2 = ic.options().get<int>("an-int2");
+          auto aDouble = ic.options().get<double>("a-double");
+          auto aDouble2 = ic.options().get<double>("a-double2");
+
+          ASSERT_ERROR(aBoolean == true);
+          ASSERT_ERROR(aBoolean2 == false);
+          ASSERT_ERROR(aBoolean3 == true);
+          ASSERT_ERROR(anInt == 10);
+          ASSERT_ERROR(anInt2 == 20);
+          ASSERT_ERROR(aDouble == 11.);
+          ASSERT_ERROR(aDouble2 == 22.);
           ASSERT_ERROR(configstring == "consumer-config");
           ASSERT_ERROR(anotheroption == "hello-aliceo2");
 
@@ -74,6 +88,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
       {
         ConfigParamSpec{ "global-config", VariantType::String, { "A global config option for all processor specs" } },
         ConfigParamSpec{ "local-option", VariantType::String, { "Option only valid for this processor spec" } },
+        ConfigParamSpec{ "a-boolean", VariantType::Bool, true, { "A boolean which we pick by default" } },
+        ConfigParamSpec{ "a-boolean2", VariantType::Bool, false, { "Another boolean which we pick by default" } },
+        ConfigParamSpec{ "a-boolean3", VariantType::Bool, false, { "Another boolean which we pick from the outside options" } },
+        ConfigParamSpec{ "an-int", VariantType::Int, 10, { "An int for which we pick up the default" } },
+        ConfigParamSpec{ "an-int2", VariantType::Int, 1, { "An int for which we pick up the override" } },
+        ConfigParamSpec{ "a-double", VariantType::Double, 11., { "A double for which we pick up the override" } },
+        ConfigParamSpec{ "a-double2", VariantType::Double, 12., { "A double for which we pick up the override" } },
       },
     }
   };

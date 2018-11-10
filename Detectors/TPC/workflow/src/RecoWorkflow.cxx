@@ -144,7 +144,7 @@ framework::WorkflowSpec getWorkflow(bool propagateMC, int nLanes, std::string cf
 
   if (outputType == OutputType::Tracks) {
     specs.emplace_back(o2::TPC::getCATrackerSpec(propagateMC, nLanes));
-    specs.emplace_back(o2::TPC::getRootFileWriterSpec());
+    specs.emplace_back(o2::TPC::getRootFileWriterSpec(propagateMC));
   } else if (outputType == OutputType::DecodedClusters) {
     specs.emplace_back(DataProcessorSpec{ "writer",
                                           { createInputSpec() },

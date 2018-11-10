@@ -36,7 +36,7 @@ ClassImp(Detector);
 
 Detector::Detector(Bool_t active)
   : o2::Base::DetImpl<Detector>("PHS", active),
-    mHits(new std::vector<Hit>),
+    mHits(o2::utils::createSimVector<o2::phos::Hit>()),
     mCurrentTrackID(-1),
     mCurrentCellID(-1),
     mCurentSuperParent(-1),
@@ -46,7 +46,7 @@ Detector::Detector(Bool_t active)
 
 Detector::Detector(const Detector& rhs)
   : o2::Base::DetImpl<Detector>(rhs),
-    mHits(new std::vector<Hit>),
+    mHits(o2::utils::createSimVector<o2::phos::Hit>()),
     mCurrentTrackID(-1),
     mCurrentCellID(-1),
     mCurentSuperParent(-1),
@@ -54,9 +54,17 @@ Detector::Detector(const Detector& rhs)
 {
 }
 
+Detector::~Detector()
+{
+  o2::utils::freeSimVector(mHits);
+}
+
 void Detector::InitializeO2Detector()
 {
   Reset();
+
+  // Define sensitive volumes
+  defineSensitiveVolumes();
 }
 
 void Detector::EndOfEvent()
@@ -105,7 +113,9 @@ void Detector::FinishEvent()
 void Detector::Reset()
 {
   mSuperParents.clear();
-  mHits->clear();
+  if (!o2::utils::ShmManager::Instance().isOperational()) {
+    mHits->clear();
+  }
   mCurrentTrackID = -1;
   mCurrentCellID = -1;
   mCurentSuperParent = -1;
@@ -283,16 +293,6 @@ void Detector::ConstructGeometry()
   }
 
   gGeoManager->CheckGeometry();
-
-  // Define sensitive volume
-  if (fActive) {
-    TGeoVolume* vsense = gGeoManager->GetVolume("PXTL");
-    if (vsense) {
-      AddSensitiveVolume(vsense);
-    } else {
-      LOG(ERROR) << "PHOS Sensitive volume PXTL not found ... No hit creation!\n";
-    }
-  }
 }
 //-----------------------------------------
 void Detector::CreateMaterials()
@@ -904,6 +904,19 @@ void Detector::ConstructSupportGeometry()
       copy = 2 * i + j;
       x0 = (2 * j - 1) * geom->GetDistanceBetwRails() / 2.0;
       fMC->Gspos("PWHE", copy, "cave", x0, y0, z0, 0, "ONLY");
+    }
+  }
+}
+
+//-----------------------------------------
+void Detector::defineSensitiveVolumes()
+{
+  if (fActive) {
+    TGeoVolume* vsense = gGeoManager->GetVolume("PXTL");
+    if (vsense) {
+      AddSensitiveVolume(vsense);
+    } else {
+      LOG(ERROR) << "PHOS Sensitive volume PXTL not found ... No hit creation!\n";
     }
   }
 }

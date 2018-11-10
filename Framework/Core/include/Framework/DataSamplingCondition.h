@@ -17,6 +17,7 @@
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
 #include "Framework/DataRef.h"
+
 #include <boost/property_tree/ptree.hpp>
 
 namespace o2

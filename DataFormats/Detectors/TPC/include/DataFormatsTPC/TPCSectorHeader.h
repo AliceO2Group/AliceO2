@@ -23,7 +23,7 @@ namespace TPC
 /// TPC specific header to be transported on the header stack
 struct TPCSectorHeader : public o2::header::BaseHeader {
   // Required to do the lookup
-  static const o2::header::HeaderType sHeaderType;
+  constexpr static const o2::header::HeaderType sHeaderType = "TPCSectH";
   static const uint32_t sVersion = 1;
 
   TPCSectorHeader(int s)

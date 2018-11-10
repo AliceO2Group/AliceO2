@@ -7,7 +7,6 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "FairMQDevice.h"
 #include "Framework/BoostOptionsRetriever.h"
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/ChannelMatching.h"
@@ -40,13 +39,24 @@
 #include "GraphvizHelpers.h"
 #include "SimpleResourceManager.h"
 
+#include <Monitoring/MonitoringFactory.h>
+#include <InfoLogger/InfoLogger.hxx>
+
+#include "FairMQDevice.h"
+#include <fairmq/DeviceRunner.h>
+#include <fairmq/FairMQLogger.h>
 #include "options/FairMQProgOptions.h"
+
+#include <boost/program_options.hpp>
+#include <boost/program_options/options_description.hpp>
+#include <boost/program_options/variables_map.hpp>
 
 #include <cinttypes>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <csignal>
 #include <iostream>
 #include <map>
 #include <regex>
@@ -54,7 +64,6 @@
 #include <string>
 #include <type_traits>
 #include <chrono>
-
 #include <sys/resource.h>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -63,19 +72,10 @@
 #include <sys/un.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <boost/program_options.hpp>
-#include <boost/program_options/options_description.hpp>
-#include <boost/program_options/variables_map.hpp>
-#include <csignal>
 #include <netinet/ip.h>
 
-#include <fairmq/DeviceRunner.h>
-#include <fairmq/FairMQLogger.h>
-
-#include <Monitoring/MonitoringFactory.h>
 using namespace o2::monitoring;
 
-#include <InfoLogger/InfoLogger.hxx>
 using namespace AliceO2::InfoLogger;
 
 /// Helper class to find a free port.
@@ -288,14 +288,6 @@ static void handle_sigint(int) { graceful_exit = true; }
 
 static void handle_sigchld(int) { sigchld_requested = true; }
 
-bool startsWith(std::string mainStr, std::string toMatch)
-{
-  if (mainStr.find(toMatch) == 0) {
-    return true;
-  } else {
-    return false;
-  }
-}
 
 /// This will start a new device by forking and executing a
 /// new child
@@ -354,7 +346,7 @@ void spawnDevice(DeviceSpec const& spec, std::map<int, size_t>& socket2DeviceInf
   info.historySize = 1000;
   info.historyPos = 0;
   info.maxLogLevel = LogParsingHelpers::LogLevel::Debug;
-  info.dataRelayerViewIndex = DataRelayerViewIndex{ 0, 0, {} };
+  info.dataRelayerViewIndex = Metric2DViewIndex{ "data_relayer", 0, 0, {} };
 
   socket2DeviceInfo.insert(std::make_pair(childstdout[0], deviceInfos.size()));
   socket2DeviceInfo.insert(std::make_pair(childstderr[0], deviceInfos.size()));
@@ -371,8 +363,6 @@ void spawnDevice(DeviceSpec const& spec, std::map<int, size_t>& socket2DeviceInf
 void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpecs const& specs,
                            DeviceControls& controls, std::vector<DeviceMetricsInfo>& metricsInfos)
 {
-  static const char* DATA_RELAYER_METRIC_PREFIX = "data_relayer";
-  static const size_t DATA_RELAYER_METRIC_PREFIX_SIZE = std::strlen(DATA_RELAYER_METRIC_PREFIX);
   // Wait for children to say something. When they do
   // print it.
   fd_set fdset;
@@ -426,39 +416,7 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
     info.history.resize(info.historySize);
     info.historyLevel.resize(info.historySize);
 
-    auto& view = info.dataRelayerViewIndex;
-    auto updateDataRelayerViewIndex = [&view](std::string const& name, MetricInfo const& metric, int value) {
-      if (startsWith(name, DATA_RELAYER_METRIC_PREFIX) == false) {
-        return;
-      }
-      auto extra = name;
-
-      // +1 is to remove the /
-      extra.erase(0, DATA_RELAYER_METRIC_PREFIX_SIZE + 1);
-      if (extra == "w") {
-        view.w = value;
-        view.indexes.resize(view.w * view.h);
-        return;
-      } else if (extra == "h") {
-        view.h = value;
-        view.indexes.resize(view.w * view.h);
-        return;
-      }
-      int idx = -1;
-      try {
-        idx = std::stoi(extra, nullptr, 10);
-      } catch (...) {
-        LOG(ERROR) << "Badly formatted metric" << std::endl;
-      }
-      if (idx < 0) {
-        LOG(ERROR) << "Negative metric" << std::endl;
-        return;
-      }
-      if (view.indexes.size() <= idx) {
-        view.indexes.resize(std::max(idx + 1, view.w * view.h));
-      }
-      view.indexes[idx] = metric.storeIdx;
-    };
+    auto updateDataRelayerViewIndex = Metric2DViewIndex::getUpdater(info.dataRelayerViewIndex);
 
     while ((pos = s.find(delimiter)) != std::string::npos) {
       token = s.substr(0, pos);
@@ -674,6 +632,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
     std::unique_ptr<Monitoring> monitoringService;
     std::unique_ptr<InfoLogger> infoLoggerService;
     std::unique_ptr<InfoLoggerContext> infoLoggerContext;
+    std::unique_ptr<TimesliceIndex> timesliceIndex;
 
     auto afterConfigParsingCallback = [&localRootFileService,
                                        &textControlService,
@@ -684,7 +643,8 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
                                        &infoLoggerService,
                                        &spec,
                                        &serviceRegistry,
-                                       &infoLoggerContext](fair::mq::DeviceRunner& r) {
+                                       &infoLoggerContext,
+                                       &timesliceIndex](fair::mq::DeviceRunner& r) {
       localRootFileService = std::make_unique<LocalRootFileService>();
       textControlService = std::make_unique<TextControlService>();
       parallelContext = std::make_unique<ParallelContext>(spec.rank, spec.nSlots);
@@ -702,6 +662,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
       if (infoLoggerSeverity != "") {
         fair::Logger::AddCustomSink("infologger", infoLoggerSeverity, createInfoLoggerSinkHelper(infoLoggerService, infoLoggerContext));
       }
+      timesliceIndex = std::make_unique<TimesliceIndex>();
 
       serviceRegistry.registerService<Monitoring>(monitoringService.get());
       serviceRegistry.registerService<InfoLogger>(infoLoggerService.get());
@@ -710,6 +671,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
       serviceRegistry.registerService<ParallelContext>(parallelContext.get());
       serviceRegistry.registerService<RawDeviceService>(simpleRawDeviceService.get());
       serviceRegistry.registerService<CallbackService>(callbackService.get());
+      serviceRegistry.registerService<TimesliceIndex>(timesliceIndex.get());
 
       // The decltype stuff is to be able to compile with both new and old
       // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
@@ -839,9 +801,7 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
       case DriverState::MATERIALISE_WORKFLOW:
         try {
           std::vector<ComputingResource> resources = resourceManager->getAvailableResources();
-          auto physicalWorkflow = workflow;
-          WorkflowHelpers::injectServiceDevices(physicalWorkflow);
-          DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(physicalWorkflow, driverInfo.channelPolicies, driverInfo.completionPolicies, deviceSpecs, resources);
+          DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, driverInfo.channelPolicies, driverInfo.completionPolicies, deviceSpecs, resources);
           // This should expand nodes so that we can build a consistent DAG.
         } catch (std::runtime_error& e) {
           std::cerr << "Invalid workflow: " << e.what() << std::endl;
@@ -1045,7 +1005,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("help,h", "print this help")                                                                           //
     ("quiet,q", bpo::value<bool>()->zero_tokens()->default_value(false), "quiet operation")                 //
     ("stop,s", bpo::value<bool>()->zero_tokens()->default_value(false), "stop before device start")         //
-    ("single-step,S", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode") //
+    ("single-step", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode")   //
     ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(false), "batch processing mode")           //
     ("start-port,p", bpo::value<unsigned short>()->default_value(22000), "start port to allocate")          //
     ("port-range,pr", bpo::value<unsigned short>()->default_value(1000), "ports in range")                  //
@@ -1066,10 +1026,13 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
 
   bpo::options_description visibleOptions;
   visibleOptions.add(executorOptions);
+
+  auto physicalWorkflow = workflow;
+  WorkflowHelpers::injectServiceDevices(physicalWorkflow);
   // Use the hidden options as veto, all config specs matching a definition
   // in the hidden options are skipped in order to avoid duplicate definitions
   // in the main parser. Note: all config specs are forwarded to devices
-  visibleOptions.add(ConfigParamsHelper::prepareOptionDescriptions(workflow, workflowOptions, gHiddenDeviceOptions));
+  visibleOptions.add(ConfigParamsHelper::prepareOptionDescriptions(physicalWorkflow, workflowOptions, gHiddenDeviceOptions));
 
   bpo::options_description od;
   od.add(visibleOptions);
@@ -1089,7 +1052,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     bpo::options_description helpOptions;
     helpOptions.add(executorOptions);
     // this time no veto is applied, so all the options are added for printout
-    helpOptions.add(ConfigParamsHelper::prepareOptionDescriptions(workflow, workflowOptions));
+    helpOptions.add(ConfigParamsHelper::prepareOptionDescriptions(physicalWorkflow, workflowOptions));
     std::cout << helpOptions << std::endl;
     exit(0);
   }
@@ -1128,5 +1091,5 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     driverInfo.startPort = finder.port();
     driverInfo.portRange = finder.range();
   }
-  return runStateMachine(workflow, driverControl, driverInfo, gDeviceMetricsInfos, frameworkId);
+  return runStateMachine(physicalWorkflow, driverControl, driverInfo, gDeviceMetricsInfos, frameworkId);
 }

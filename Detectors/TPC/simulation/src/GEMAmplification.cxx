@@ -14,10 +14,11 @@
 
 #include "TPCSimulation/GEMAmplification.h"
 #include <TStopwatch.h>
-#include <iostream>
 #include "MathUtils/CachingTF1.h"
 #include <TFile.h>
 #include "TPCBase/CDBInterface.h"
+#include <fstream>
+#include "FairLogger.h"
 
 using namespace o2::TPC;
 using boost::format;
@@ -35,13 +36,21 @@ GEMAmplification::GEMAmplification()
   const float kappa = 1 / (sigmaOverMu * sigmaOverMu);
   boost::format polya("1/(TMath::Gamma(%1%)*%2%) * TMath::Power(x/%3%, %4%) * TMath::Exp(-x/%5%)");
 
-  bool cacheexists = false;
-  // FIXME: this should come from the CCDB (just as the other parameters)
-  auto outfile = TFile::Open(TString::Format("tpc_polyadist.root").Data());
-  if (outfile) {
-    cacheexists = true;
+  // to be replaced by std::filesystem::exists once we have C++17
+  auto fileexists = [](const char* fileName) -> bool {
+    std::ifstream infile(fileName);
+    return infile.good();
+  };
+
+  const char* polyaFileName = "tpc_polyadist.root";
+  TFile* outfile;
+  auto cacheexists = fileexists(polyaFileName);
+  if (cacheexists) {
+    LOG(INFO) << "TPC GEM SETUP FROM EXISTING CACHE";
+    outfile = TFile::Open(polyaFileName);
   } else {
-    outfile = TFile::Open(TString::Format("tpc_polyadist.root").Data(), "create");
+    LOG(INFO) << "TPC GEM SETUP : INITIALIZATION FROM SCRATCH";
+    outfile = TFile::Open(polyaFileName, "CREATE");
   }
 
   for (int i = 0; i < 4; ++i) {
@@ -71,7 +80,7 @@ GEMAmplification::GEMAmplification()
   mRandomGaus.initialize(RandomRing::RandomType::Gaus);
   mRandomFlat.initialize(RandomRing::RandomType::Flat);
   watch.Stop();
-  std::cerr << "GEM SETUP TOOK " << watch.CpuTime() << "\n";
+  LOG(INFO) << "TPC GEM SETUP (POLYA-DISTRIBUTION) TOOK " << watch.CpuTime();
 }
 
 GEMAmplification::~GEMAmplification() = default;

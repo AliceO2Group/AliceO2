@@ -19,6 +19,7 @@
 #include "Framework/InputRecord.h"
 #include "ScopedExit.h"
 #include <fairmq/FairMQParts.h>
+#include <fairmq/FairMQSocket.h>
 #include <options/FairMQProgOptions.h>
 #include <Monitoring/Monitoring.h>
 #include <TMessage.h>
@@ -38,6 +39,27 @@ namespace o2
 namespace framework
 {
 
+/// Handle the fact that FairMQ deprecated ReceiveAsync and changed the behavior of receive.
+namespace
+{
+struct FairMQDeviceLegacyWrapper {
+  // If both APIs are available, this has precendence because of dummy.
+  // Only the old API before the deprecation had FairMQSocket::TrySend().
+  template <typename S>
+  static auto ReceiveAsync(FairMQDevice* device, FairMQParts& parts, std::string const& channel, int dummy) -> typename std::enable_if<(sizeof(decltype(std::declval<S>().TrySend(parts.At(0)))) > 0), int>::type
+  {
+    return device->ReceiveAsync(parts, channel);
+  }
+
+  // Otherwise if we are here it means that TrySend() is not there anymore
+  template <typename S>
+  static auto ReceiveAsync(FairMQDevice* device, FairMQParts& parts, std::string const& channel, long dummy) -> int
+  {
+    return device->Receive(parts, channel, 0, 0);
+  }
+};
+}
+
 DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegistry& registry)
   : mSpec{ spec },
     mInit{ spec.algorithm.onInit },
@@ -51,7 +73,7 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
     mDataFrameContext{ FairMQDeviceProxy{ this } },
     mContextRegistry{ { &mFairMQContext, &mRootContext, &mStringContext, &mDataFrameContext } },
     mAllocator{ &mTimingInfo, &mContextRegistry, spec.outputs },
-    mRelayer{ spec.completionPolicy, spec.inputs, spec.forwards, registry.get<Monitoring>() },
+    mRelayer{ spec.completionPolicy, spec.inputs, spec.forwards, registry.get<Monitoring>(), registry.get<TimesliceIndex>()},
     mServiceRegistry{ registry },
     mErrorCount{ 0 },
     mProcessingCount{ 0 }
@@ -103,7 +125,7 @@ bool DataProcessingDevice::ConditionalRun()
   bool active = false;
   for (auto& channel : mSpec.inputChannels) {
     FairMQParts parts;
-    auto result = this->ReceiveAsync(parts, channel.name);
+    auto result = FairMQDeviceLegacyWrapper::ReceiveAsync<FairMQSocket>(this, parts, channel.name, 0);
     if (result > 0) {
       this->handleData(parts);
       active |= this->tryDispatchComputation();
@@ -245,6 +267,7 @@ bool DataProcessingDevice::tryDispatchComputation()
   auto& statelessProcess = mStatelessProcess;
   auto& stringContext = mStringContext;
   auto& timingInfo = mTimingInfo;
+  auto& timesliceIndex = mServiceRegistry.get<TimesliceIndex>();
 
   // These duplicate references are created so that each function
   // does not need to know about the whole class state, but I can
@@ -287,8 +310,8 @@ bool DataProcessingDevice::tryDispatchComputation()
   // This is needed to convert from a pair of pointers to an actual DataRef
   // and to make sure the ownership is moved from the cache in the relayer to
   // the execution.
-  auto fillInputs = [&relayer, &inputsSchema, &currentSetOfInputs](int timeslice) -> InputRecord {
-    currentSetOfInputs = std::move(relayer.getInputsForTimeslice(timeslice));
+  auto fillInputs = [&relayer, &inputsSchema, &currentSetOfInputs](TimesliceSlot slot) -> InputRecord {
+    currentSetOfInputs = std::move(relayer.getInputsForTimeslice(slot));
     InputSpan span{ [&currentSetOfInputs](size_t i) -> char const* {
                      return currentSetOfInputs.at(i) ? static_cast<char const*>(currentSetOfInputs.at(i)->GetData()) : nullptr;
                    },
@@ -301,24 +324,24 @@ bool DataProcessingDevice::tryDispatchComputation()
   // PROCESSING:{START,END} is done so that we can trigger on begin / end of processing
   // in the GUI.
   auto dispatchProcessing = [&processingCount, &allocator, &statefulProcess, &statelessProcess, &monitoringService,
-                             &context, &rootContext, &stringContext, &rdfContext, &serviceRegistry, &device](int i, InputRecord& record) {
+                             &context, &rootContext, &stringContext, &rdfContext, &serviceRegistry, &device](TimesliceSlot slot, InputRecord& record) {
     if (statefulProcess) {
-      LOG(DEBUG) << "PROCESSING:START:" << i;
+      LOG(DEBUG) << "PROCESSING:START:" << slot.index;
       monitoringService.send({ processingCount++, "dpl/stateful_process_count" });
       ProcessingContext processContext{record, serviceRegistry, allocator};
       monitoringService.send({ 2, "dpl/in_handle_data" });
       statefulProcess(processContext);
       monitoringService.send({ 1, "dpl/in_handle_data" });
-      LOG(DEBUG) << "PROCESSING:END:" << i;
+      LOG(DEBUG) << "PROCESSING:END:" << slot.index;
     }
     if (statelessProcess) {
-      LOG(DEBUG) << "PROCESSING:START:" << i;
+      LOG(DEBUG) << "PROCESSING:START:" << slot.index;
       monitoringService.send({ processingCount++, "dpl/stateless_process_count" });
       ProcessingContext processContext{record, serviceRegistry, allocator};
       monitoringService.send({ 2, "dpl/in_handle_data" });
       statelessProcess(processContext);
       monitoringService.send({ 1, "dpl/in_handle_data" });
-      LOG(DEBUG) << "PROCESSING:END:" << i;
+      LOG(DEBUG) << "PROCESSING:END:" << slot.index;
     }
 
     DataProcessor::doSend(device, context);
@@ -343,10 +366,10 @@ bool DataProcessingDevice::tryDispatchComputation()
   // propagates it to the various contextes (i.e. the actual entities which
   // create messages) because the messages need to have the timeslice id into
   // it.
-  auto prepareAllocatorForCurrentTimeSlice = [&timingInfo, &rootContext, &stringContext, &context, &relayer](int i) {
-    size_t timeslice = relayer.getTimesliceForCacheline(i);
-    LOG(DEBUG) << "Timeslice for cacheline is " << timeslice;
-    timingInfo.timeslice = timeslice;
+  auto prepareAllocatorForCurrentTimeSlice = [&timingInfo, &rootContext, &stringContext, &context, &relayer, &timesliceIndex](TimesliceSlot i) {
+    auto timeslice = timesliceIndex.getTimesliceForSlot(i);
+    LOG(DEBUG) << "Timeslice for cacheline is " << timeslice.value;
+    timingInfo.timeslice = timeslice.value;
     rootContext.clear();
     context.clear();
     stringContext.clear();
@@ -356,9 +379,9 @@ bool DataProcessingDevice::tryDispatchComputation()
   // the inputs which are shared between this device and others
   // to the next one in the daisy chain.
   // FIXME: do it in a smarter way than O(N^2)
-  auto forwardInputs = [&reportError, &forwards, &device, &currentSetOfInputs](int timeslice, InputRecord& record) {
+  auto forwardInputs = [&reportError, &forwards, &device, &currentSetOfInputs](TimesliceSlot slot, InputRecord& record) {
     assert(record.size()*2 == currentSetOfInputs.size());
-    LOG(DEBUG) << "FORWARDING:START:" << timeslice;
+    LOG(DEBUG) << "FORWARDING:START:" << slot.index;
     for (size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
       DataRef input = record.getByPos(ii);
 
@@ -388,9 +411,8 @@ bool DataProcessingDevice::tryDispatchComputation()
         LOG(DEBUG) << dh->dataOrigin.str;
         LOG(DEBUG) << dh->dataDescription.str;
         LOG(DEBUG) << dh->subSpecification;
-        if (DataSpecUtils::match(forward.matcher, dh->dataOrigin,
-                                 dh->dataDescription,
-                                 dh->subSpecification)) {
+        if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification)
+            && (dph->startTime % forward.maxTimeslices) == forward.timeslice) {
 
           if (header.get() == nullptr) {
             LOG(ERROR) << "Missing header!";
@@ -433,23 +455,23 @@ bool DataProcessingDevice::tryDispatchComputation()
       continue;
     }
 
-    prepareAllocatorForCurrentTimeSlice(action.cacheLineIdx);
-    InputRecord record = fillInputs(action.cacheLineIdx);
+    prepareAllocatorForCurrentTimeSlice(TimesliceSlot{ action.slot });
+    InputRecord record = fillInputs(action.slot);
     if (action.op == CompletionPolicy::CompletionOp::Discard) {
       if (forwards.empty() == false) {
-        forwardInputs(action.cacheLineIdx, record);
+        forwardInputs(action.slot, record);
         continue;
       }
     }
     try {
       for (size_t ai = 0; ai != record.size(); ai++) {
-        auto cacheId = action.cacheLineIdx * record.size() + ai;
+        auto cacheId = action.slot.index * record.size() + ai;
         auto state = record.isValid(ai) ? 2 : 0;
         monitoringService.send({ state, "data_relayer/" + std::to_string(cacheId) });
       }
-      dispatchProcessing(action.cacheLineIdx, record);
+      dispatchProcessing(action.slot, record);
       for (size_t ai = 0; ai != record.size(); ai++) {
-        auto cacheId = action.cacheLineIdx * record.size() + ai;
+        auto cacheId = action.slot.index * record.size() + ai;
         auto state = record.isValid(ai) ? 3 : 0;
         monitoringService.send({ state, "data_relayer/" + std::to_string(cacheId) });
       }
@@ -460,7 +482,7 @@ bool DataProcessingDevice::tryDispatchComputation()
     // we keep them for next message arriving.
     if (action.op == CompletionPolicy::CompletionOp::Consume) {
       if (forwards.empty() == false) {
-        forwardInputs(action.cacheLineIdx, record);
+        forwardInputs(action.slot, record);
       }
     }
   }

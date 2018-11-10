@@ -50,7 +50,8 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   void defineSensitiveVolumes();
 
- private:
+  bool setHits(int i, std::vector<o2::mch::Hit>* ptr);
+
   o2::mch::Stepper* mStepper{ nullptr }; //!
 
   template <typename Det>
@@ -60,5 +61,18 @@ class Detector : public o2::Base::DetImpl<Detector>
 
 } // namespace mch
 } // namespace o2
+
+#ifdef USESHM
+namespace o2
+{
+namespace Base
+{
+template <>
+struct UseShm<o2::mch::Detector> {
+  static constexpr bool value = true;
+};
+} // namespace Base
+} // namespace o2
+#endif
 
 #endif
