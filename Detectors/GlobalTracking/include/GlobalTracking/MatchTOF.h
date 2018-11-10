@@ -86,15 +86,25 @@ class MatchTOF
   ///< set input branch names for the input from the tree
   void setTrackBranchName(const std::string& nm) { mTracksBranchName = nm; }
   void setTPCTrackBranchName(const std::string& nm) { mTPCTracksBranchName = nm; }
-  void setTOFClusterBranchName(const std::string& nm) { mTOFClusterBranchName = nm; }
+  void setTPCMCTruthBranchName(const std::string& nm) { mTPCMCTruthBranchName = nm; }
+  void setITSMCTruthBranchName(const std::string& nm) { mITSMCTruthBranchName = nm; }
   void setTOFMCTruthBranchName(const std::string& nm) { mTOFMCTruthBranchName = nm; }
+  void setTOFClusterBranchName(const std::string& nm) { mTOFClusterBranchName = nm; }
+  void setOutTOFMCTruthBranchName(const std::string& nm) { mOutTOFMCTruthBranchName = nm; }
+  void setOutTPCMCTruthBranchName(const std::string& nm) { mOutTPCMCTruthBranchName = nm; }
+  void setOutITSMCTruthBranchName(const std::string& nm) { mOutITSMCTruthBranchName = nm; }
   void setOutTracksBranchName(const std::string& nm) { mOutTracksBranchName = nm; }
 
   ///< get input branch names for the input from the tree
   const std::string& getTracksBranchName() const { return mTracksBranchName; }
   const std::string& getTPCTracksBranchName() const { return mTPCTracksBranchName;}
+  const std::string& getTPCMCTruthBranchName() const { return mTPCMCTruthBranchName;}
+  const std::string& getITSMCTruthBranchName() const { return mITSMCTruthBranchName;}
+  const std::string& getTOFMCTruthBranchName() const { return mTOFMCTruthBranchName;}
   const std::string& getTOFClusterBranchName() const { return mTOFClusterBranchName; }
-  const std::string& getTOFMCTruthBranchName() const { return mTOFMCTruthBranchName; }
+  const std::string& getOutTOFMCTruthBranchName() const { return mOutTOFMCTruthBranchName; }
+  const std::string& getOutTPCMCTruthBranchName() const { return mOutTPCMCTruthBranchName; }
+  const std::string& getOutITSMCTruthBranchName() const { return mOutITSMCTruthBranchName; }
 
   ///< print settings
   void print() const;
@@ -141,6 +151,7 @@ class MatchTOF
 
   ///< fill matching debug tree
   void fillTOFmatchTree(const char* tname, int cacheTOF, int sectTOF, int plateTOF, int stripTOF, int padXTOF, int padZTOF, int cacheeTrk, int crossedStrip, int sectPropagation, int platePropagation, int stripPropagation, int padXPropagation, int padZPropagation, float resX, float resZ, float res, o2::dataformats::TrackTPCITS& trk);
+  void fillTOFmatchTreeWithLabels(const char* tname, int cacheTOF, int sectTOF, int plateTOF, int stripTOF, int padXTOF, int padZTOF, int cacheeTrk, int crossedStrip, int sectPropagation, int platePropagation, int stripPropagation, int padXPropagation, int padZPropagation, float resX, float resZ, float res, o2::dataformats::TrackTPCITS& trk, int TPClabelTrackID, int TPClabelEventID, int TPClabelSourceID, int ITSlabelTrackID, int ITSlabelEventID, int ITSlabelSourceID, int TOFlabelTrackID0, int TOFlabelEventID0, int TOFlabelSourceID0, int TOFlabelTrackID1, int TOFlabelEventID1, int TOFlabelSourceID1, int TOFlabelTrackID2, int TOFlabelEventID2, int TOFlabelSourceID2);
   void dumpWinnerMatches();
 #endif
 
@@ -190,12 +201,12 @@ class MatchTOF
   std::vector<o2::TPC::TrackTPC>* mTPCTracksArrayInp = nullptr; ///< input TPC tracks
   std::vector<Cluster>* mTOFClustersArrayInp = nullptr; ///< input TOF clusters
 
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTracksLabels = nullptr; ///< input TPC Track MC labels
-
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTOFClusLabels = nullptr; ///< input TOF clusters MC labels
   std::vector<o2::MCCompLabel> mTracksLblWork; ///<TPCITS track labels
-  std::vector<o2::MCCompLabel> mTTOFClusLblWork; ///<TOF cluster labels
-
+ 
+  std::vector<o2::MCCompLabel>* mTPCLabels = nullptr; ///< TPC label of input tracks
+  std::vector<o2::MCCompLabel>* mITSLabels = nullptr; ///< ITS label of input tracks
+ 
 
   /// <<<-----
 
@@ -215,7 +226,11 @@ class MatchTOF
 
   ///<array of matched TOFCluster with matching information (residuals, expected times...) with the corresponding vector of indices
   //std::vector<o2::dataformats::MatchInfoTOF> mMatchedTracks;
-  std::vector<std::pair<int, o2::dataformats::MatchInfoTOF>> mMatchedTracks;
+  std::vector<std::pair<int, o2::dataformats::MatchInfoTOF>> mMatchedTracks; // this is the output of the matching
+  std::vector<o2::MCCompLabel> mOutTOFLabels; ///< TOF label of matched tracks
+  std::vector<o2::MCCompLabel> mOutTPCLabels; ///< TPC label of matched tracks
+  std::vector<o2::MCCompLabel> mOutITSLabels; ///< ITS label of matched tracks
+  
   int mNumOfTracks;  // number of tracks to be matched
   int* mMatchedTracksIndex = nullptr;  //[mNumOfTracks]
   int mNumOfClusters;  // number of clusters to be matched
@@ -223,9 +238,14 @@ class MatchTOF
 
   std::string mTracksBranchName = "TPCITS";                ///< name of branch containing input matched tracks
   std::string mTPCTracksBranchName = "Tracks";                ///< name of branch containing actual TPC tracks
+  std::string mTPCMCTruthBranchName = "MatchTPCMCTruth";                ///< name of branch containing TPC labels
+  std::string mITSMCTruthBranchName = "MatchITSMCTruth";                ///< name of branch containing ITS labels
+  std::string mTOFMCTruthBranchName = "TOFClusterMCTruth";                ///< name of branch containing TOF clusters labels
   std::string mTOFClusterBranchName = "TOFCluster";        ///< name of branch containing input ITS clusters
-  std::string mTOFMCTruthBranchName = "TOFClusterMCTruth"; ///< name of branch containing ITS MC labels
   std::string mOutTracksBranchName = "TOFMatchInfo";       ///< name of branch containing output matched tracks
+  std::string mOutTOFMCTruthBranchName = "MatchTOFMCTruth";       ///< name of branch containing TOF labels for output matched tracks
+  std::string mOutTPCMCTruthBranchName = "MatchTPCMCTruth";       ///< name of branch containing TOF labels for output matched tracks
+  std::string mOutITSMCTruthBranchName = "MatchITSMCTruth";       ///< name of branch containing TOF labels for output matched tracks
 
 #ifdef _ALLOW_DEBUG_TREES_
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
