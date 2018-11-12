@@ -31,7 +31,7 @@ class Dispatcher : public Task
   /// \brief Constructor
   Dispatcher(const std::string name, const std::string reconfigurationSource);
   /// \brief Destructor
-  ~Dispatcher();
+  ~Dispatcher() override;
 
   /// \brief Dispatcher init callback
   void init(InitContext& ctx) override;

@@ -32,7 +32,7 @@ class FairMQResizableBuffer : public ::arrow::ResizableBuffer
   using Creator = std::function<std::unique_ptr<FairMQMessage>(size_t)>;
 
   FairMQResizableBuffer(Creator);
-  virtual ~FairMQResizableBuffer();
+  ~FairMQResizableBuffer() override;
 
   /// Resize the buffer
   ///
@@ -40,12 +40,12 @@ class FairMQResizableBuffer : public ::arrow::ResizableBuffer
   ///   will be created.
   /// * If new size is smaller than the backing message. We will use
   ///   FairMQMessage::SetUsedSize() accordingly when finalising the message.
-  virtual arrow::Status Resize(const int64_t new_size, bool shrink_to_fit) override;
+  arrow::Status Resize(const int64_t new_size, bool shrink_to_fit) override;
   /// Reserve behaves as std::vector<T>::reserve()
   ///
-  /// * If new capacity is greated than old capacity, reallocation happens
+  /// * If new capacity is greater than old capacity, reallocation happens
   /// * If new capacity is smaller than the old one, nothing happens.
-  virtual arrow::Status Reserve(const int64_t capacity) override;
+  arrow::Status Reserve(const int64_t capacity) override;
 
   /// @return the message to be sent. This will make the buffer lose ownership
   /// of the backing store, so you will have to either create a new one or
