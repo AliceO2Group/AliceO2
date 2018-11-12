@@ -750,7 +750,7 @@ int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger, bool
 	AliHLTTPCGMMergedTrackHit *clusters;
 	AliHLTTPCGMMergedTrack* tracks;
 
-	AssignMemory(clusters, gpumem, Merger->NClusters());
+	AssignMemory(clusters, gpumem, Merger->NOutputTrackClusters());
 	AssignMemory(tracks, gpumem, Merger->NOutputTracks());
 
 	if ((size_t) (gpumem - (char*) fGPUMergerMemory) > (size_t) fGPUMergerMaxMemory)
