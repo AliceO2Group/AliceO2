@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @brief  Processor spec for a ROOT file writer for TOF digits
+/// @brief  Processor spec for a ROOT file writer for EMCAL digits
 
 #include "EMCALDigitWriterSpec.h"
 #include "Framework/CallbackService.h"
