@@ -31,6 +31,8 @@ namespace o2
 {
 namespace framework
 {
+namespace gui
+{
 // Type erased information for the plotting
 struct MultiplotData {
   int mod;
@@ -41,10 +43,11 @@ struct MultiplotData {
   MetricType type;
 };
 
+} // namespace gui
 } // namespace framework
 } // namespace o2
 
-template class std::vector<o2::framework::MultiplotData>;
+template class std::vector<o2::framework::gui::MultiplotData>;
 
 namespace o2
 {
