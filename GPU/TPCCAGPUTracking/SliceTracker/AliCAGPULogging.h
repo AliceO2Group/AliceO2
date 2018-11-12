@@ -26,7 +26,11 @@ public:
 
 #define CAGPUError(...) {printf(__VA_ARGS__);printf("\n");}
 #define CAGPUWarning(...) {printf(__VA_ARGS__);printf("\n");}
+#ifdef HLTCA_BUILD_O2_LIB
 #define CAGPUInfo(...) {} //{printf(__VA_ARGS__);printf("\n");}
+#else
+#define CAGPUInfo(...) {printf(__VA_ARGS__);printf("\n");}
+#endif
 #define CAGPUImportant(...) {printf(__VA_ARGS__);printf("\n");}
 #define CAGPUDebug(...) {} //{printf(__VA_ARGS__);printf("\n");}
 #define CAGPUFatal(...) {printf(__VA_ARGS__);printf("\n");exit(1);}

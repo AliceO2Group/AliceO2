@@ -294,7 +294,6 @@ __global__ void PreInitRowBlocks(int* const SliceDataHitWeights, int nSliceDataH
 int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int firstSlice, int sliceCountLocal)
 {
 	//Primary reconstruction function
-
 	cudaStream_t* const cudaStreams = (cudaStream_t*) fpCudaStreams;
 
 	if (Reconstruct_Base_Init(pOutput, pClusterData, firstSlice, sliceCountLocal)) return(1);
