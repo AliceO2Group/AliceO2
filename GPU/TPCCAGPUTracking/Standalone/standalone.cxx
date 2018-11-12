@@ -491,6 +491,10 @@ int main(int argc, char** argv)
 					}
 					else if (r == -1)
 					{
+#ifdef HLTCA_TPC_GEOMETRY_O2
+						printf("Not attempting old format for O2\n");
+						break;
+#endif
 						printf("Attempting old format\n");
 						std::ifstream in;
 						in.open(filename, std::ifstream::binary);
