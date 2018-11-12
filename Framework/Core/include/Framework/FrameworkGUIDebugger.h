@@ -26,10 +26,13 @@ namespace framework
 class DriverInfo;
 class DriverControl;
 
+namespace gui
+{
 std::function<void(void)> getGUIDebugger(const std::vector<DeviceInfo>& infos, const std::vector<DeviceSpec>& devices,
                                          const std::vector<DeviceMetricsInfo>& metricsInfos,
                                          const DriverInfo& driverInfo, std::vector<DeviceControl>& controls,
                                          DriverControl& driverControl);
+} // namespace gui
 } // namespace framework
 } // namespace o2
 #endif // FRAMEWORK_FRAMEWORKGUIDEBUGGER_H

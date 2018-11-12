@@ -721,7 +721,7 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
   auto resourceManager = std::make_unique<SimpleResourceManager>(driverInfo.startPort, driverInfo.portRange);
 
   void* window = nullptr;
-  decltype(getGUIDebugger(infos, deviceSpecs, metricsInfos, driverInfo, controls, driverControl)) debugGUICallback;
+  decltype(gui::getGUIDebugger(infos, deviceSpecs, metricsInfos, driverInfo, controls, driverControl)) debugGUICallback;
 
   // An empty frameworkId means this is the driver, so we initialise the GUI
   if (driverInfo.batch == false && frameworkId.empty()) {
@@ -823,7 +823,7 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
         // We need to recreate the GUI callback every time we reschedule
         // because getGUIDebugger actually recreates the GUI state.
         if (window) {
-          debugGUICallback = getGUIDebugger(infos, deviceSpecs, metricsInfos, driverInfo, controls, driverControl);
+          debugGUICallback = gui::getGUIDebugger(infos, deviceSpecs, metricsInfos, driverInfo, controls, driverControl);
         }
         break;
       case DriverState::SCHEDULE:
