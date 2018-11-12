@@ -74,6 +74,24 @@ ifeq ($(CONFIG_OPENMP), 1)
 DEFINES						+= HLTCA_HAVE_OPENMP
 endif
 
+ifeq ($(LINK_ROOT), 0)
+ifneq ($(CONFIG_O2DIR), )
+$(warning Cannot use O2DIR without QA)
+CONFIG_O2DIR =
+endif
+ifeq ($(BUILD_QA), 1)
+$(warning Cannot build QA without ROOT)
+BUILD_QA = 0
+endif
+endif
+
+ifeq ($(CONFIG_O2DIR), )
+ifeq ($(CONFIG_O2), 1)
+$(warning Cannot build v.s. O2 wihout O2 dir)
+CONFIG_O2 = 0
+endif
+endif
+
 ifneq (${CONFIG_O2DIR}, )
 DEFINES						+= HAVE_O2HEADERS
 INCLUDEPATHSSYSTEM			+= O2Headers \

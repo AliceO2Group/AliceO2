@@ -41,6 +41,9 @@ endif
 ifeq ($(BUILD_QA), 1)
 CPPFILES					+= qa/qa.cpp qa/genEvents.cpp
 DEFINES						+= BUILD_QA
+endif
+
+ifeq ($(LINK_ROOT), 1)
 INCLUDEPATHSSYSTEM			+= $(shell root-config --incdir)
 LIBSUSE						+= $(shell root-config --libs)
 endif
