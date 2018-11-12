@@ -83,6 +83,7 @@ AliHLTTRDTracker::~AliHLTTRDTracker()
     delete[] fR;
     delete fGeo;
     delete fDebug;
+    delete[] fMaskedChambers;
   }
 }
 
