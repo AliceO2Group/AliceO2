@@ -828,13 +828,3 @@ void AliHLTTPCCAGPUTrackerNVCC::SynchronizeGPU()
 {
 	cudaDeviceSynchronize();
 }
-
-AliHLTTPCCAGPUTracker* AliHLTTPCCAGPUTrackerNVCCCreate()
-{
-	return new AliHLTTPCCAGPUTrackerNVCC;
-}
-
-void AliHLTTPCCAGPUTrackerNVCCDestroy(AliHLTTPCCAGPUTracker* ptr)
-{
-	delete ptr;
-}
