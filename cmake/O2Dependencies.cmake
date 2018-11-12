@@ -1882,6 +1882,7 @@ o2_define_bucket(
     TOFSimulation
     TOFReconstruction
     FITSimulation
+    EMCALSimulation
 )
 
 o2_define_bucket(
