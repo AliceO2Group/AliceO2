@@ -112,7 +112,7 @@ DataProcessorSpec getEMCALDigitizerSpec(int channel)
         // call actual digitization procedure
         labels->clear();
         digits->clear();
-        digitizer->process(hits,*digits.get());
+        digitizer->process(hits, *digits.get());
         // copy digits into accumulator
         std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
         labelAccum.mergeAtBack(*labels);
@@ -170,7 +170,7 @@ DataProcessorSpec getEMCALDigitizerSpec(int channel)
   //  options that can be used for this processor (here: input file names where to take the hits)
   return DataProcessorSpec{
     "EMCALDigitizer", Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT",
-                                       static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
+                                         static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
     Outputs{ OutputSpec{ "EMC", "DIGITS", 0, Lifetime::Timeframe },
              OutputSpec{ "EMC", "DIGITSMCTR", 0, Lifetime::Timeframe },
              OutputSpec{ "EMC", "ROMode", 0, Lifetime::Timeframe } },
