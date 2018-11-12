@@ -44,16 +44,7 @@
 #include "TObjArray.h"
 #include "AliHLTTPCCASliceOutput.h"
 #include "AliHLTTPCCAClusterData.h"
-#include "AliRunLoader.h"
-#include "AliHeader.h"
-#include "TBranch.h"
-#include "TTree.h"
-#include "AliStack.h"
-#include "AliMCParticle.h"
-#include "AliTrackReference.h"
-#include "AliHLTTPCCAMCInfo.h"
 #include "AliHLTTPCGMMergedTrackHit.h"
-#include "TPDGCode.h"
 #if __GNUC__>= 3
 using namespace std;
 #endif
@@ -87,8 +78,6 @@ ClassImp( AliHLTTPCCATrackerComponent )
   fGPUType("CPU"),
   fGPUStuckProtection(0),
   fAsync(0),
-  fDumpEvent(0),
-  fDumpEventNClsCut(0),
   fSearchWindowDZDR(0.),
   fRec(0),
   fAsyncProcessor()
@@ -126,8 +115,6 @@ AliHLTProcessor(),
   fGPUType("CPU"),
   fGPUStuckProtection(0),
   fAsync(0),
-  fDumpEvent(0),
-  fDumpEventNClsCut(0),
   fSearchWindowDZDR(0.),
   fRec(0),
   fAsyncProcessor()
@@ -289,19 +276,6 @@ int AliHLTTPCCATrackerComponent::ReadConfigurationString(  const char* arguments
     if (argument.CompareTo( "-GlobalTracking" ) == 0) {
       fGlobalTracking = 1;
       HLTInfo( "Global Tracking Activated" );
-      continue;
-    }
-
-    if (argument.CompareTo( "-DumpEvent" ) == 0) {
-      fDumpEvent = 1;
-      HLTImportant( "Dumping Events for Debugging" );
-      continue;
-    }
-
-    if ( argument.CompareTo( "-DumpEventNClsCut" ) == 0 ) {
-      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
-      fDumpEventNClsCut = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
-      HLTInfo( "Dump Event NCls cut set to: %d", fDumpEventNClsCut );
       continue;
     }
 
@@ -724,161 +698,6 @@ void* AliHLTTPCCATrackerComponent::TrackerDoEvent(void* par)
     }
   }
   
-  if (fDumpEvent && nClustersTotal > fDumpEventNClsCut && fSliceCount == 36)
-  {
-    static int nEvent = 0;
-    std::ofstream out;
-    char filename[256];
-
-    if (nEvent == 0)
-    {
-        sprintf(filename, "config.dump");
-        out.open(filename, std::ofstream::binary);
-        hltca_event_dump_settings eventSettings;
-        eventSettings.setDefaults();
-        eventSettings.solenoidBz = fTracker->Param(0).BzkG;
-        eventSettings.constBz = false;
-        out.write((char*) &eventSettings, sizeof(eventSettings));
-        out.close();
-    }
-
-    sprintf(filename, HLTCA_EVDUMP_FILE ".%d.dump", nEvent++);
-    out.open(filename, std::ofstream::binary);
-    if (!out.fail())
-    {
-      //Write cluster data
-      for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ )
-      {
-        fClusterData[iSlice].WriteEvent( out );
-      }
-    
-      if (labelsPresent)
-      {
-        //Write cluster labels
-        std::vector<AliHLTTPCClusterMCLabel> labels;
-        for (int iSlice = 0;iSlice < 36;iSlice++)
-        {
-          AliHLTTPCCAClusterData::Data* pCluster = fClusterData[iSlice].Clusters();
-          for (int iPatch = 0;iPatch < 6;iPatch++)
-          {
-            if (clusterLabels[iSlice][iPatch] == NULL || clustersXYZ[iSlice][iPatch] == NULL || clusterLabels[iSlice][iPatch]->fCount != clustersXYZ[iSlice][iPatch]->fCount) continue;
-            const AliHLTTPCClusterXYZData& clXYZ = *clustersXYZ[iSlice][iPatch];
-            for (int ic = 0;ic < clXYZ.fCount;ic++)
-            {
-              if (pCluster->fId != AliHLTTPCCAGeometry::CreateClusterID(iSlice, iPatch, ic)) continue;
-              labels.push_back(clusterLabels[iSlice][iPatch]->fLabels[ic]);
-              pCluster++;
-            }
-          }
-        }
-        
-        if (!labels.size() || labels.size() != nClustersTotal)
-        {
-          printf("Error getting cluster MC labels\n");
-        }
-        else
-        {
-          out.write((const char*) labels.data(), labels.size() * sizeof(labels[0]));
-          
-          //Write MC tracks
-          bool OK = false;
-          do
-          {
-            AliRunLoader* rl = AliRunLoader::Instance();
-            if (rl == NULL) {printf("RL\n"); break;}
-            
-            rl->LoadKinematics();
-            rl->LoadTrackRefs();
-            
-            int nTracks = rl->GetHeader()->GetNtrack();
-            
-            AliStack* stack = rl->Stack();
-            if (stack == NULL) {printf("stack\n");break;}
-            TTree *TR = rl->TreeTR();
-            if (TR == NULL) {printf("TR\n");break;}
-            TBranch *branch = TR->GetBranch("TrackReferences");
-            if (branch == NULL) {printf("branch\n");break;}
-
-            int nPrimaries = stack->GetNprimary();
-            
-            std::vector<AliTrackReference*> trackRefs(nTracks, NULL);
-            TClonesArray* tpcRefs = NULL;
-            branch->SetAddress(&tpcRefs);
-            int nr = TR->GetEntries();
-            for (int r = 0;r < nr;r++)
-            {
-              TR->GetEvent(r);
-              for (int i = 0;i < tpcRefs->GetEntriesFast();i++)
-              {
-                AliTrackReference* tpcRef = (AliTrackReference*) tpcRefs->UncheckedAt(i);
-                if (tpcRef->DetectorId() != AliTrackReference::kTPC) continue;
-                if (tpcRef->Label() < 0 || tpcRef->Label() >= nTracks)
-                {
-                  printf("Invalid reference %d / %d\n", tpcRef->Label(), nTracks);
-                  continue;
-                }
-                if (trackRefs[tpcRef->Label()] != NULL) continue;
-                trackRefs[tpcRef->Label()] = new AliTrackReference(*tpcRef);
-              }
-            }
-            
-            std::vector<AliHLTTPCCAMCInfo> mcInfo(nTracks);
-            memset(mcInfo.data(), 0, nTracks * sizeof(mcInfo[0]));
-            
-            for (int i = 0;i < nTracks;i++)
-            {
-              mcInfo[i].fPID = -100;
-              TParticle *particle = (TParticle*) stack->Particle(i);
-              if (particle == NULL) continue;
-              if (particle->GetPDG() == NULL) continue;
-              
-              int charge = (int) particle->GetPDG()->Charge();
-              int prim = stack->IsPhysicalPrimary(i);
-              int hasPrimDaughter = particle->GetFirstDaughter() != -1 && particle->GetFirstDaughter() < nPrimaries;
-              
-              mcInfo[i].fCharge = charge;
-              mcInfo[i].fPrim = prim;
-              mcInfo[i].fPrimDaughters = hasPrimDaughter;
-              mcInfo[i].fGenRadius = sqrt(particle->Vx()*particle->Vx()+particle->Vy()*particle->Vy()+particle->Vz()*particle->Vz());
-              
-              Int_t pid = -1;
-              if(TMath::Abs(particle->GetPdgCode()) == kElectron) pid = 0;
-              if(TMath::Abs(particle->GetPdgCode()) == kMuonMinus) pid = 1;
-              if(TMath::Abs(particle->GetPdgCode()) == kPiPlus) pid = 2;
-              if(TMath::Abs(particle->GetPdgCode()) == kKPlus) pid = 3;
-              if(TMath::Abs(particle->GetPdgCode()) == kProton) pid = 4;
-              mcInfo[i].fPID = pid;
-              
-              AliTrackReference* ref = trackRefs[i];
-              if (ref)
-              {
-                mcInfo[i].fX = ref->X();
-                mcInfo[i].fY = ref->Y();
-                mcInfo[i].fZ = ref->Z();
-                mcInfo[i].fPx = ref->Px();
-                mcInfo[i].fPy = ref->Py();
-                mcInfo[i].fPz = ref->Pz();
-              }
-              
-              //if (ref) printf("Particle %d: Charge %d, Prim %d, PrimDaughter %d, Pt %f %f ref %p\n", i, charge, prim, hasPrimDaughter, ref->Pt(), particle->Pt(), ref);
-            }
-            for (int i = 0;i < nTracks;i++) delete trackRefs[i];
-            
-            out.write((const char*) &nTracks, sizeof(nTracks));
-            out.write((const char*) mcInfo.data(), nTracks * sizeof(mcInfo[0]));
-            OK = true;
-          } while (false);
-            
-          if (!OK)
-          {
-            printf("Error accessing MC data\n");
-          }
-        }
-      }
-      out.close();
-    }
-  }
-
   if (nClustersTotal == 0)
   {
     //No input, skip processing

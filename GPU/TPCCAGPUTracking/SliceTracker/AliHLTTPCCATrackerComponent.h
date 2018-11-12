@@ -118,8 +118,6 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
     TString fGPUType;		    	  //GPU type to use "CUDA", "HIP", "OCL"
     int fGPUStuckProtection;		//Protect from stuck GPUs
 	int fAsync;                       //Run tracking in async thread to catch GPU hangs....
-	int fDumpEvent;					//Debug function to dump event for standalone tracker
-    int fDumpEventNClsCut;          //Do not dump events with <= clusters (default 0)
     float fSearchWindowDZDR;        //See TPCCAParam
     AliGPUReconstruction* fRec;     //AliGPUReconstruction
 

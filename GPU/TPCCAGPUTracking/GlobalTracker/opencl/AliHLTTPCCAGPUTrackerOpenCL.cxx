@@ -846,13 +846,3 @@ void AliHLTTPCCAGPUTrackerOpenCL::SynchronizeGPU()
 	const int nStreams = CAMath::Max(3, fSliceCount);
 	for (int i = 0;i < nStreams;i++) clFinish(ocl->command_queue[i]);
 }
-
-AliHLTTPCCAGPUTracker* AliHLTTPCCAGPUTrackerNVCCCreate()
-{
-	return new AliHLTTPCCAGPUTrackerOpenCL;
-}
-
-void AliHLTTPCCAGPUTrackerNVCCDestroy(AliHLTTPCCAGPUTracker* ptr)
-{
-	delete ptr;
-}
