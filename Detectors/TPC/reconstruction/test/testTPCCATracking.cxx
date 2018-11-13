@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
     cont[i].sector = 0;
     cont[i].globalPadRow = i;
     cont[i].clusters.resize(1);
-    cont[i].clusters[0].setTimeFlags(0, 0);
+    cont[i].clusters[0].setTimeFlags(2, 0);
     cont[i].clusters[0].setPad(0);
     cont[i].clusters[0].setSigmaTime(1);
     cont[i].clusters[0].setSigmaPad(1);
