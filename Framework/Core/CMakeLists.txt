@@ -254,6 +254,7 @@ set(TEST_SRCS
       test/test_TypeTraits.cxx
       test/test_Variants.cxx
       test/test_WorkflowHelpers.cxx
+      test/test_DeviceSpecHelpers.cxx
    )
 
 set(BENCH_SRCS 
