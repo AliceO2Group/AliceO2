@@ -14,6 +14,8 @@
 #include "GlobalTracking/MatchTOF.h"
 #endif
 
+#define _ALLOW_DEBUG_TREES_ // to allow debug and control tree output
+
 void run_match_tof(std::string path = "./", std::string outputfile = "o2match_tof.root",
                       std::string inputTracksTPCITS = "o2match_itstpc.root",
 		   std::string inputTracksTPC = "tpctracks.root",
@@ -50,28 +52,13 @@ void run_match_tof(std::string path = "./", std::string outputfile = "o2match_to
 
 #ifdef _ALLOW_DEBUG_TREES_
   matching.setDebugTreeFileName(path + matching.getDebugTreeFileName());
-  // dump accepted pairs only
-  //matching.setDebugFlag(o2::globaltracking::MatchTPCITS::MatchTreeAccOnly);
-  // dump all checked pairs
-  matching.setDebugFlag(o2::globaltracking::MatchTPCITS::MatchTreeAll);
-  // dump winner matches
-  //matching.setDebugFlag(o2::globaltracking::MatchTPCITS::WinnerMatchesTree);
+  matching.setDebugFlag(o2::globaltracking::MatchTOF::MatchTreeAll);
 #endif
 
   //-------- init geometry and field --------//
   o2::Base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
   o2::Base::Propagator::initFieldFromGRP(path + inputGRP);
 
-  //-------------------- settings -----------//
-  /*
-    matching.setITSROFrameLengthMUS(5.0f); // ITS ROFrame duration in \mus
-    matching.setCutMatchingChi2(100.);
-    std::array<float, o2::track::kNParams> cutsAbs = { 2.f, 2.f, 0.2f, 0.2f, 4.f };
-    std::array<float, o2::track::kNParams> cutsNSig2 = { 49.f, 49.f, 49.f, 49.f, 49.f };
-    matching.setCrudeAbsDiffCut(cutsAbs);
-    matching.setCrudeNSigma2Cut(cutsNSig2);
-    matching.setTPCTimeEdgeZSafeMargin(3);
-  */
   matching.init();
 
   matching.run();

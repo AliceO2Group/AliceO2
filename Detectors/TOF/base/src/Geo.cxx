@@ -370,40 +370,12 @@ Int_t Geo::fromPlateToStrip(Float_t* pos, Int_t iplate)
   for (Int_t istrip = 0; istrip < nstrips; istrip++) {
     Float_t posLoc2[3] = { pos[0], pos[1], pos[2] };
 
-    /*
-    for (int ii = 0; ii < 3; ii++){
-      Printf("posLoc2[%d] = %f", ii, posLoc2[ii]);
-    }
-    */
     step[0] = 0.;
     step[1] = getHeights(iplate, istrip);
     step[2] = -getDistances(iplate, istrip);
-    /*    for (int ii = 0; ii < 3; ii++){
-      Printf("step[%d] = %f", ii, step[ii]);
-    }
-    */
     translate(posLoc2, step);
-    /*
-    Printf("After translation");
-    for (int ii = 0; ii < 3; ii++){
-      Printf("posLoc2[%d] = %f", ii, posLoc2[ii]);
-    }
-    */
     rotateToStrip(posLoc2, iplate, istrip);
-    /*
-Printf("After rotation");
-    for (int ii = 0; ii < 3; ii++){
-      Printf("posLoc2[%d] = %f", ii, posLoc2[ii]);
-    }
-    */
-    /*
-    Printf("STRIPLENGTH = %f", STRIPLENGTH);
-    Printf("HSTRIPY = %f", HSTRIPY);
-    Printf("WCPCBZ = %f", WCPCBZ);
-    Printf("TMath::Abs(posLoc2[0]) <= STRIPLENGTH * 0.5 = %d", (int)(TMath::Abs(posLoc2[0]) <= STRIPLENGTH * 0.5));
-    Printf("TMath::Abs(posLoc2[1]) <= HSTRIPY * 0.5 = %d", (int)(TMath::Abs(posLoc2[1]) <= HSTRIPY * 0.5));
-    Printf("TMath::Abs(posLoc2[2]) <= WCPCBZ * 0.5 = %d", (int)(TMath::Abs(posLoc2[2]) <= WCPCBZ * 0.5));
-    */    if ((TMath::Abs(posLoc2[0]) <= STRIPLENGTH * 0.5) && (TMath::Abs(posLoc2[1]) <= HSTRIPY * 0.5) &&
+    if ((TMath::Abs(posLoc2[0]) <= STRIPLENGTH * 0.5) && (TMath::Abs(posLoc2[1]) <= HSTRIPY * 0.5) &&
         (TMath::Abs(posLoc2[2]) <= WCPCBZ * 0.5)) {
       step[0] = -0.5 * NPADX * XPAD;
       step[1] = 0.;
@@ -557,8 +529,6 @@ Int_t Geo::getPadX(const Float_t* pos)
   //
 
   Int_t iPadX = (Int_t)(pos[0] / XPAD);
-  //Int_t iPadX = (Int_t)(-1. / XPAD); // just for CZ debugging
-  //  Printf("pos[0] = %f, XPAD = %f, iPadX = %d", pos[0], XPAD, iPadX);
   if (iPadX == NPADX)
     iPadX--;
   else if (iPadX > NPADX)
@@ -584,7 +554,6 @@ void Geo::rotateToSector(Float_t* xyz, Int_t isector)
   Float_t xyzDummy[3] = { 0., 0., 0. };
 
   for (Int_t ii = 0; ii < 3; ii++) {
-    //    Printf("mRotationMatrixSector[isector][ii][0] = %f, mRotationMatrixSector[isector][ii][1] = %f, mRotationMatrixSector[isector][ii][2] = %f", mRotationMatrixSector[isector][ii][0], mRotationMatrixSector[isector][ii][1], mRotationMatrixSector[isector][ii][2]);
     xyzDummy[ii] = xyz[0] * mRotationMatrixSector[isector][ii][0] + xyz[1] * mRotationMatrixSector[isector][ii][1] +
                    xyz[2] * mRotationMatrixSector[isector][ii][2];
   }

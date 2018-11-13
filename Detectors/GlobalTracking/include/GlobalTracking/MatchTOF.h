@@ -15,8 +15,6 @@
 #ifndef ALICEO2_GLOBTRACKING_MATCHTOF_
 #define ALICEO2_GLOBTRACKING_MATCHTOF_
 
-#define _ALLOW_DEBUG_TREES_ // to allow debug and control tree output
-
 #include <Rtypes.h>
 #include <array>
 #include <vector>
