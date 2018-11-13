@@ -243,13 +243,13 @@ size_t MergerDevice::sendMergedObjectToViewer(TObject* dataObject)
   unique_ptr<FairMQMessage> viewerRequest(fTransportFactory->CreateMessage(
     viewerMessage->Buffer(), viewerMessage->BufferSize(), deleteTMessage, viewerMessage));
   size_t messageSize = viewerRequest->GetSize();
-  if ((respondeCode = fChannels.at("data-out").at(0).SendAsync(viewerRequest)) == -2) {
-    if ((respondeCode = fChannels.at("data-out").at(0).SendAsync(viewerRequest)) == -2) {
+  if ((respondeCode = fChannels.at("data-out").at(0).Send(viewerRequest, 0)) == -2) {
+    if ((respondeCode = fChannels.at("data-out").at(0).Send(viewerRequest, 0)) == -2) {
       mLastSendBufferOverloadTime = clock();
       mSendBufferOverloaded = true;
       LOG(DEBUG) << "Buffer of data-out channel is full. Waiting for free buffer...";
 
-      while ((respondeCode = fChannels.at("data-out").at(0).SendAsync(viewerRequest)) == -2) {
+      while ((respondeCode = fChannels.at("data-out").at(0).Send(viewerRequest, 0)) == -2) {
         this_thread::sleep_for(chrono::milliseconds(10));
       }
 
