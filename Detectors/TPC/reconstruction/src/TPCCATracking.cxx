@@ -31,6 +31,7 @@
 // class.
 // Therefore, the macros are defined here and not globally, in order not to pollute the global namespace
 #define HLTCA_STANDALONE
+#define HAVE_O2HEADERS
 #define HLTCA_TPC_GEOMETRY_O2
 
 // This class is only a wrapper for the actual tracking contained in the HLT O2 CA Tracking library.
@@ -184,14 +185,16 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
         const PadCentre& padCentre = mapper.padCentre(pad);
         const float localY = padCentre.Y() - (padY - padNumber) * region.getPadWidth();
         const float localYfactor = (cru.side() == Side::A) ? -1.f : 1.f;
-        float zPositionAbs = cluster.getTime() * vzbin;
+        //Add constant offset of 1.6 time bins due to signal shape and binning
+        //To be done properly in the transformation step eventually.
+        float zPositionAbs = (cluster.getTime() - 1.6) * vzbin;
         if (!mTrackingCAO2Interface->GetParamContinuous())
           zPositionAbs = detParam.getTPClength() - zPositionAbs;
         else
           zPositionAbs = sContinuousTFReferenceLength * vzbin - zPositionAbs;
 
         // sanity checks
-        if (zPositionAbs < 0 ||
+        if (zPositionAbs < -2 ||
             (!mTrackingCAO2Interface->GetParamContinuous() && zPositionAbs > detParam.getTPClength())) {
           LOG(INFO) << "Removing cluster " << i << " time: " << cluster.getTime() << ", abs. z: " << zPositionAbs
                     << "\n";
