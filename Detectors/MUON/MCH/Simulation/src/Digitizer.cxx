@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "MCHSimulation/Digitizer.h"
-#include "Mapping/Interface/SegmentationCInterface.h"
+#include "Mapping/Interface/SegmentationCInterface.h"//to be replaced
 
 
 #include "TMath.h"
@@ -25,7 +25,15 @@ ClassImp(Digitizer);
 void Digitizer::init()
 {
 
-  // method to initialize the array of digits
+  
+  
+  // method to initialize the array of detector segmentation's
+  for(Int_t i=0; i<mNdE; ++i){
+    mSegbend[i]= Segmentation(i,kTRUE);
+    mSegnon[i] = Segmentation(i,kFALSE);
+  }
+  
+  
   // To be done:
   //0) adding processing steps and proper translation of charge to adc counts
   //need for "sdigits" (one sdigit per Hit in aliroot) vs. digits (comb. signal per pad) separation?
@@ -100,7 +108,7 @@ void Digitizer::process(const std::vector<HitType>* hits, std::vector<DigitStruc
 Int_t Digitizer::processHit(const HitType &hit,Double_t event_time)
 {
 
-  //hit position
+  //hit position, need cm, the case?
   Float_t pos[3] = { hit.GetX(), hit.GetY(), hit.GetZ() };
   //hit energy deposition
   Float_t edepos = hit.GetEnergyLoss();
@@ -110,26 +118,22 @@ Int_t Digitizer::processHit(const HitType &hit,Double_t event_time)
   //number of digits added for this hit
   Int_t ndigits=0;
   //overhead to create these 2 struct?
-  MchSegmentationHandle seghandbend = mchSegmentationConstruct(hit.GetDetectorID(),kTRUE);
   MchSegmentationHandle seghandnon  = mchSegmentationConstruct(hit.GetDetectorID(),kFALSE);
   
-  Int_t paduidbend = mchSegmentationFindPadByPosition(seghandbend,pos[0],pos[1]);
-  Int_t paduidnon  = mchSegmentationFindPadByPosition(seghandnon,pos[0],pos[1]);
+  Int_t paduidbend = mSegbend[hit.GetDetectorID()].findPadByPosition(pos[0],pos[1]);
+  Int_t paduidnon  =  mSegnon[hit.GetDetectorID()].findPadByPosition(pos[0],pos[1]);
   //TODO: charge sharing between planes, possibility to do random seeding in some controlled way to
   // be able to be 100% reproducible if wanted? or already given up on geant level?
   Float_t fracplane = 0.5;
   Float_t chargebend= fracplane*edepos;
   Float_t chargenon = (1.0-fracplane)*edepos;
-  //TODO: charge spread on planes (new member function): strange wire position not used in AliMUONResponseV0.cxx?
+  //TODO: charge spread on planes (new member function): AliMUONResponseV0.cxx
   //TODO get neighbouring pads (new member function): via extension of MpPad?
   //just doing the 9 pads sufficient or need to go for variable area?
   //TODO: loop over neighbouring pads having charge from the one hit treated here
   //TODO: provide interface to retrieve equivalent of sDigits for embedding: not clear how exactly used in past
-  //DigitStruct has no constructor yet!
-  //Is it ok to abuse digits to  here the charge instead of adc?
-  //or different class/struct to make it clear?
-  mDigits.emplace_back(paduidbend,chargebend);
-  mDigits.emplace_back(paduidnon, chargenon);
+  mDigits.emplace_back(paduidbend,chargebend, time);// check if time correspond to time stamp required
+  mDigits.emplace_back(paduidnon, chargenon, time); //
    
   return ndigits;
 

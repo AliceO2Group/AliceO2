@@ -5,15 +5,17 @@ O2_SETUP(NAME ${MODULE_NAME})
 link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
-   src/Mapping.cxx
-   src/DigitBlock.cxx
-   src/PreClusterBlock.cxx
+  src/Mapping.cxx
+  src/Digit.cxx
+  src/DigitBlock.cxx
+  src/PreClusterBlock.cxx
 )
 
 set(HEADERS
-   include/${MODULE_NAME}/Mapping.h
-   include/${MODULE_NAME}/DigitBlock.h
-   include/${MODULE_NAME}/PreClusterBlock.h
+  include/${MODULE_NAME}/Mapping.h
+  include/${MODULE_NAME}/Digit.h
+  include/${MODULE_NAME}/DigitBlock.h
+  include/${MODULE_NAME}/PreClusterBlock.h
 )
 
 Set(LIBRARY_NAME ${MODULE_NAME})

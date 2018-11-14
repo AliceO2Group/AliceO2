@@ -11,10 +11,10 @@
 #ifndef ALICEO2_MCH_DIGITIZER_H_
 #define ALICEO2_MCH_DIGITIZER_H_
 
-#include "MCHBase/DigitBlock.h"// not clear if this is sufficient as structure
+#include "MCHBase/Digit.h"
 #include "MCHSimulation/Detector.h"
 #include "MCHSimulation/Hit.h"
-
+#include "MCHMappingInterface/Segmentation.h"
 
 
 namespace o2
@@ -51,12 +51,16 @@ class Digitizer
   Int_t mEventID = 0;
   Int_t mSrcID = 0;
   
-  bool mContinuous = false;
+  bool mContinuous = false; 
 
-  
-  // digit per pad info
-  std::vector<DigitStruct> mDigits;
-  
+  //number of detector elements 5(stations)*2(layer per station)* 2(?) +1 (?)
+  const Int_t mNdE = 21;
+  // digit per pad
+  std::vector<Digit> mDigits;
+
+  //detector segmentation handler to convert pad-id to coordinates and vice versa
+  Segmentation mSegbend[nNdE];
+  Segmentation mSegnon[nNdE];
   
   Int_t processHit(const HitType& hit, Double_t event_time);
   

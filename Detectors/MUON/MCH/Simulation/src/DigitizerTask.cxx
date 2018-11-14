@@ -75,7 +75,7 @@ void DigitizerTask::Exec(Option_t* option)
     mMCTruthArray->clear();
   }
 
-  mDigitizer.setMCTruthContainer(mMCTruthArray);
+  //mDigitizer.setMCTruthContainer(mMCTruthArray);
 
   // the type of digitization is steered by the DigiParams object of the Digitizer
   LOG(DEBUG) << "Running digitization on new event " << mEventID << " from source " << mSourceID << FairLogger::endl;
@@ -103,12 +103,12 @@ void DigitizerTask::FinishTask()
     mDigitsArray->clear();
 
   // TODO: reenable this
-  mMCTruthArray->getIndexedSize();
+  //  mMCTruthArray->getIndexedSize();
 
   if (mMCTruthArray) {
     mMCTruthArray->clear();
   }
-  mDigitizer.setMCTruthContainer(mMCTruthArray);
+  //mDigitizer.setMCTruthContainer(mMCTruthArray);
 
   mDigitizer.flushOutputContainer(*mDigitsArray);
 }
