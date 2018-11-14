@@ -1883,6 +1883,8 @@ o2_define_bucket(
     TOFReconstruction
     FITSimulation
     EMCALSimulation
+    HMPIDBase
+    HMPIDSimulation
 )
 
 o2_define_bucket(

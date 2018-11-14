@@ -13,7 +13,7 @@
 
 #include <vector>
 #include "DetectorsBase/Detector.h"
-#include "SimulationDataFormat/BaseHits.h"
+#include "HMPIDBase/Hit.h"
 
 class TGeoVolume;
 class TGeoHMatrix;
@@ -22,10 +22,6 @@ namespace o2
 {
 namespace hmpid
 {
-
-// define HMPID hit type
-using HitType = o2::BasicXYZEHit<float>;
-
 class Detector : public o2::Base::DetImpl<Detector>
 {
  public:
