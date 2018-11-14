@@ -8,14 +8,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#ifndef DETECTORS_HMPID_BASE_INCLUDE_HMPIDBASE_HIT_H_
+#define DETECTORS_HMPID_BASE_INCLUDE_HMPIDBASE_HIT_H_
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "SimulationDataFormat/BaseHits.h"
 
-#pragma link C++ class o2::hmpid::Detector+;
-#pragma link C++ class o2::Base::DetImpl<o2::hmpid::Detector>+;
-#pragma link C++ class o2::hmpid::HMPIDDigitizer + ;
+namespace o2
+{
+namespace hmpid
+{
 
-#endif
+// define HMPID hit type
+using HitType = o2::BasicXYZEHit<float>;
+
+} // namespace hmpid
+} // namespace o2
+
+#endif /* DETECTORS_HMPID_BASE_INCLUDE_HMPIDBASE_HIT_H_ */

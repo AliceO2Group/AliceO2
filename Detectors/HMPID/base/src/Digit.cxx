@@ -8,14 +8,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include "HMPIDBase/Digit.h"
+#include <iostream>
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+using namespace o2::hmpid;
 
-#pragma link C++ class o2::hmpid::Detector+;
-#pragma link C++ class o2::Base::DetImpl<o2::hmpid::Detector>+;
-#pragma link C++ class o2::hmpid::HMPIDDigitizer + ;
-
-#endif
+ClassImp(o2::hmpid::Digit);
