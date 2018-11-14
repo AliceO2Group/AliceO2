@@ -21,6 +21,7 @@ class RootObjectContext;
 class MessageContext;
 class StringContext;
 class ArrowContext;
+class RawBufferContext;
 
 /// Helper class to send messages from a contex at the end
 /// of a computation.
@@ -29,6 +30,7 @@ struct DataProcessor {
   static void doSend(FairMQDevice&, MessageContext&);
   static void doSend(FairMQDevice&, StringContext&);
   static void doSend(FairMQDevice&, ArrowContext&);
+  static void doSend(FairMQDevice&, RawBufferContext&);
 };
 
 } // namespace framework

@@ -34,6 +34,8 @@ O2_GENERATE_EXECUTABLE(
   src/TOFClusterWriterSpec.cxx
   src/FITDigitizerSpec.cxx
   src/FITDigitWriterSpec.cxx
+  src/EMCALDigitizerSpec.cxx
+  src/EMCALDigitWriterSpec.cxx
   src/GRPUpdaterSpec.cxx
 
   BUCKET_NAME ${MODULE_BUCKET_NAME}

@@ -66,6 +66,7 @@ BOOST_AUTO_TEST_CASE(HeatmapTest)
   DeviceInfo deviceInfo;
   DeviceInfo deviceInfo2;
   deviceInfo2.dataRelayerViewIndex = {
+    "data_relayer",
     1,
     1,
     { 0 }
@@ -174,7 +175,7 @@ BOOST_AUTO_TEST_CASE(DevicesGraph)
       {},
       true,
       false,
-      0 });
+      Metric2DViewIndex{}});
 
   std::vector<DeviceControl> controls;
   controls.push_back(

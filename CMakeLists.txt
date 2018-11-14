@@ -6,7 +6,7 @@
 # and the experiment part.
 
 # Check IF cmake has the required version
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.11 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.11.0 FATAL_ERROR)
 
 ### CMP0025   Compiler id for Apple Clang is now AppleClang.
 ### CMP0042   MACOSX_RPATH is enabled by default.
@@ -210,6 +210,12 @@ ENDIF()
 #  environment.
 SET(IGNORE_MACROS
     ${CMAKE_SOURCE_DIR}/Generators/share/external/hijing.C
+    # Temporarily disable the following macros: ROOT v6-14-04 fails to parse
+    # correctly some Boost headers
+    ${CMAKE_SOURCE_DIR}/CCDB/example/fill_local_ocdb.C
+    ${CMAKE_SOURCE_DIR}/macro/loadExtDepLib.C
+    ${CMAKE_SOURCE_DIR}/macro/putCondition.C
+    # End of temporarily disabled macros
 )
 
 # UNIT TESTS VERIFYING CONSISTENT STATE OF OUR ROOT MACROS AND THE EXECUTION ENVIRONMENT

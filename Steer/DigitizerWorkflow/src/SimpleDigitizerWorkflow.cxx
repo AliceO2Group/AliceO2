@@ -40,6 +40,10 @@
 #include "FITDigitizerSpec.h"
 #include "FITDigitWriterSpec.h"
 
+// for EMCal
+#include "EMCALDigitizerSpec.h"
+#include "EMCALDigitWriterSpec.h"
+
 // GRP
 #include "DataFormatsParameters/GRPObject.h"
 #include "GRPUpdaterSpec.h"
@@ -311,6 +315,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::fit::getFITDigitizerSpec(fanoutsize++));
     // connect the FIT digit writer
     specs.emplace_back(o2::fit::getFITDigitWriterSpec());
+  }
+
+  // the EMCal part
+  if (isEnabled(o2::detectors::DetID::EMC)) {
+    detList.emplace_back(o2::detectors::DetID::EMC);
+    // connect the EMCal digitization
+    specs.emplace_back(o2::emcal::getEMCALDigitizerSpec(fanoutsize++));
+    // connect the EMCal digit writer
+    specs.emplace_back(o2::emcal::getEMCALDigitWriterSpec());
   }
 
   // GRP updater: must come after all detectors since requires their list

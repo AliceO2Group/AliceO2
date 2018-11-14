@@ -70,7 +70,7 @@ TObject* ViewerDevice::receiveDataObjectFromMerger()
   TObject* receivedObject;
   unique_ptr<FairMQMessage> request(NewMessage());
 
-  if (fChannels.at("data-in").at(0).ReceiveAsync(request) >= 0) {
+  if (fChannels.at("data-in").at(0).Receive(request, 0) >= 0) {
     TMessageWrapper tm(request->GetData(), request->GetSize());
     receivedObject = static_cast<TObject*>(tm.ReadObject(tm.GetClass()));
   } else {

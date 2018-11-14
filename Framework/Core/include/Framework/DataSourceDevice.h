@@ -18,6 +18,7 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/ArrowContext.h"
 #include "Framework/ServiceRegistry.h"
+#include "Framework/RawBufferContext.h"
 
 #include <memory>
 #include <cstddef>
@@ -51,6 +52,7 @@ private:
   RootObjectContext mRootContext;
   StringContext mStringContext;
   ArrowContext mDataFrameContext;
+  RawBufferContext mRawBufferContext;
   ContextRegistry mContextRegistry;
   DataAllocator mAllocator;
   size_t mCurrentTimeslice;

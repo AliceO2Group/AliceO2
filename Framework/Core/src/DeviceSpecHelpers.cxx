@@ -704,6 +704,9 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
   // - child-driver is not a FairMQ device option but used per device to start to process
   bpo::options_description forwardedDeviceOptions;
   forwardedDeviceOptions.add_options()                                                                          //
+    ("plugin,P", bpo::value<std::string>(), "FairMQ plugin list")                                               //
+    ("plugin-search-path,S", bpo::value<std::string>(), "FairMQ plugins search path")                           //
+    ("control-port", bpo::value<std::string>(), "Utility port to be used by O2 Control")                        //
     ("rate", bpo::value<std::string>(), "rate for a data source device (Hz)")                                   //
     ("monitoring-backend", bpo::value<std::string>(), "monitoring connection string")                           //
     ("infologger-mode", bpo::value<std::string>(), "INFOLOGGER_MODE override")                                  //

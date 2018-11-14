@@ -11,6 +11,7 @@
 #define FRAMEWORK_DEVICEINFO_H
 
 #include "Framework/LogParsingHelpers.h"
+#include "Framework/Metric2DViewIndex.h"
 #include "Framework/Variant.h"
 
 #include <cstddef>
@@ -24,16 +25,6 @@ namespace o2
 {
 namespace framework
 {
-
-/// Index of what metrics have to be picked up
-/// for the DataRelayer view of a given device.
-struct DataRelayerViewIndex {
-  int w = 0;
-  int h = 0;
-  std::vector<size_t> indexes = {};
-  /// Whether or not the view is ready to be used.
-  bool isComplete() const { return (w * h) != 0; }
-};
 
 struct DeviceInfo {
   /// The pid of the device associated to this device
@@ -57,8 +48,8 @@ struct DeviceInfo {
   bool active;
   /// Whether the device is ready to quit.
   bool readyToQuit;
-  /// Index for a particular release.
-  DataRelayerViewIndex dataRelayerViewIndex;
+  /// Index for a particular relayer.
+  Metric2DViewIndex dataRelayerViewIndex;
 };
 
 } // namespace framework

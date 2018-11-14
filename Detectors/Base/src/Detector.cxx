@@ -148,4 +148,71 @@ void Detector::addAlignableVolumes() const
   LOG(WARNING) << "Alignable volumes are not yet defined for " << GetName() << FairLogger::endl;
 }
 
+#include <FairMQMessage.h>
+#include <FairMQParts.h>
+#include <FairMQChannel.h>
+namespace o2
+{
+namespace Base
+{
+// this goes into the source
+void attachMessageBufferToParts(FairMQParts& parts, FairMQChannel& channel, void* data, size_t size,
+                                void (*free_func)(void* data, void* hint), void* hint)
+{
+  std::unique_ptr<FairMQMessage> message(channel.NewMessage(data, size, free_func, hint));
+  parts.AddPart(std::move(message));
+}
+void attachDetIDHeaderMessage(int id, FairMQChannel& channel, FairMQParts& parts)
+{
+  std::unique_ptr<FairMQMessage> message(channel.NewSimpleMessage(id));
+  parts.AddPart(std::move(message));
+}
+void attachShmMessage(void* hits_ptr, FairMQChannel& channel, FairMQParts& parts, bool* busy_ptr)
+{
+  struct shmcontext {
+    int id;
+    void* object_ptr;
+    bool* busy_ptr;
+  };
+
+  auto& instance = o2::utils::ShmManager::Instance();
+  shmcontext info{ instance.getShmID(), hits_ptr, busy_ptr };
+  LOG(DEBUG) << "-- SHM SEND --";
+  LOG(INFO) << "-- OBJ PTR -- " << info.object_ptr << " ";
+  assert(instance.isPointerOk(info.object_ptr));
+
+  std::unique_ptr<FairMQMessage> message(channel.NewSimpleMessage(info));
+  parts.AddPart(std::move(message));
+}
+void* decodeShmCore(FairMQParts& dataparts, int index, bool*& busy)
+{
+  auto rawmessage = std::move(dataparts.At(index));
+  struct shmcontext {
+    int id;
+    void* object_ptr;
+    bool* busy_ptr;
+  };
+
+  shmcontext* info = (shmcontext*)rawmessage->GetData();
+  LOG(DEBUG) << " GOT SHMID " << info->id;
+
+  busy = info->busy_ptr;
+  return info->object_ptr;
+}
+
+void* decodeTMessageCore(FairMQParts& dataparts, int index)
+{
+  class TMessageWrapper : public TMessage
+  {
+   public:
+    TMessageWrapper(void* buf, Int_t len) : TMessage(buf, len) { ResetBit(kIsOwner); }
+    ~TMessageWrapper() override = default;
+  };
+  auto rawmessage = std::move(dataparts.At(index));
+  auto message = std::make_unique<TMessageWrapper>(rawmessage->GetData(), rawmessage->GetSize());
+  return message.get()->ReadObjectAny(message.get()->GetClass());
+}
+
+} // namespace Base
+} // namespace o2
 ClassImp(o2::Base::Detector)

@@ -138,8 +138,8 @@ std::vector<InputSpec> DataSampling::InputSpecsForPolicy(ConfigurationInterface*
             path.second.subSpec,
             path.second.lifetime });
       }
+      break;
     }
-    break;
   }
   return inputs;
 }

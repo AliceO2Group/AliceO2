@@ -27,9 +27,6 @@
 #include <typeinfo>
 #include <type_traits>
 #include <string>
-#include <FairMQChannel.h>
-#include <FairMQMessage.h>
-#include <FairMQParts.h>
 #include <TMessage.h>
 #include "CommonUtils/ShmManager.h"
 #include "CommonUtils/ShmAllocator.h"
@@ -37,6 +34,9 @@
 #include <type_traits>
 #include <unistd.h>
 #include <cassert>
+
+class FairMQParts;
+class FairMQChannel;
 
 namespace o2 {
 namespace Base {
@@ -214,78 +214,36 @@ inline std::string demangle(const char* name)
   return (status == 0) ? res.get() : name;
 }
 
-template <typename Container>
-void attachShmMessage(Container const& hits, FairMQChannel& channel, FairMQParts& parts, bool* busy_ptr)
-{
-  struct shmcontext {
-    int id;
-    void* object_ptr;
-    bool* busy_ptr;
-  };
-
-  auto& instance = o2::utils::ShmManager::Instance();
-  shmcontext info{ instance.getShmID(), (void*)&hits, busy_ptr };
-  LOG(DEBUG) << "-- SHM SEND --";
-  LOG(INFO) << "-- SENDING -- " << hits.size() << " HITS ";
-  LOG(INFO) << "-- OBJ PTR -- " << info.object_ptr << " ";
-  assert(instance.isPointerOk(info.object_ptr));
-
-  std::unique_ptr<FairMQMessage> message(channel.NewSimpleMessage(info));
-  parts.AddPart(std::move(message));
-}
+void attachShmMessage(void* hitsptr, FairMQChannel& channel, FairMQParts& parts, bool* busy_ptr);
+void* decodeShmCore(FairMQParts& dataparts, int index, bool*& busy);
 
 template <typename T>
 T decodeShmMessage(FairMQParts& dataparts, int index, bool*& busy)
 {
-  auto rawmessage = std::move(dataparts.At(index));
-  struct shmcontext {
-    int id;
-    void* object_ptr;
-    bool* busy_ptr;
-  };
-
-  shmcontext* info = (shmcontext*)rawmessage->GetData();
-  LOG(DEBUG) << " GOT SHMID " << info->id;
-
-  busy = info->busy_ptr;
-  return reinterpret_cast<T>(info->object_ptr);
+  return reinterpret_cast<T>(decodeShmCore(dataparts, index, busy));
 }
+
+// this goes into the source
+void attachMessageBufferToParts(FairMQParts& parts, FairMQChannel& channel,
+                                void* data, size_t size, void (*func_ptr)(void* data, void* hint), void* hint);
 
 template <typename Container>
 void attachTMessage(Container const& hits, FairMQChannel& channel, FairMQParts& parts)
 {
   TMessage* tmsg = new TMessage();
   tmsg->WriteObjectAny((void*)&hits, TClass::GetClass(typeid(hits)));
-  auto free_tmessage = [](void* data, void* hint) { delete static_cast<TMessage*>(hint); };
-
-  std::unique_ptr<FairMQMessage> message(channel.NewMessage(tmsg->Buffer(), tmsg->BufferSize(), free_tmessage, tmsg));
-  parts.AddPart(std::move(message));
+  attachMessageBufferToParts(parts, channel, tmsg->Buffer(), tmsg->BufferSize(),
+                             [](void* data, void* hint) { delete static_cast<TMessage*>(hint); }, tmsg);
 }
 
+void* decodeTMessageCore(FairMQParts& dataparts, int index);
 template <typename T>
 T decodeTMessage(FairMQParts& dataparts, int index)
 {
-  // sanity check
-  if (index >= dataparts.Size()) {
-    return T(0);
-  }
-  class TMessageWrapper : public TMessage
-  {
-   public:
-    TMessageWrapper(void* buf, Int_t len) : TMessage(buf, len) { ResetBit(kIsOwner); }
-    ~TMessageWrapper() override = default;
-  };
-  auto rawmessage = std::move(dataparts.At(index));
-  auto message = std::make_unique<TMessageWrapper>(rawmessage->GetData(), rawmessage->GetSize());
-  return static_cast<T>(message.get()->ReadObjectAny(message.get()->GetClass()));
+  return static_cast<T>(decodeTMessageCore(dataparts, index));
 }
 
-template <typename T>
-void attachMetaMessage(T secret, FairMQChannel& channel, FairMQParts& parts)
-{
-  std::unique_ptr<FairMQMessage> message(channel.NewSimpleMessage(secret));
-  parts.AddPart(std::move(message));
-}
+void attachDetIDHeaderMessage(int id, FairMQChannel& channel, FairMQParts& parts);
 
 template <typename T>
 TBranch* getOrMakeBranch(TTree& tree, const char* brname, T* ptr)
@@ -348,7 +306,7 @@ class DetImpl : public o2::Base::Detector
       return;
     }
 
-    attachMetaMessage(GetDetId(), channel, parts); // the DetId s are universal as they come from o2::detector::DetID
+    attachDetIDHeaderMessage(GetDetId(), channel, parts); // the DetId s are universal as they come from o2::detector::DetID
 
     while (auto hits = static_cast<Det*>(this)->Det::getHits(probe++)) {
       if (!UseShm<Det>::value || !o2::utils::ShmManager::Instance().isOperational()) {
@@ -357,7 +315,7 @@ class DetImpl : public o2::Base::Detector
         // this is the shared mem variant
         // we will just send the sharedmem ID and the offset inside
         *mShmBusy[mCurrentBuffer] = true;
-        attachShmMessage(*hits, channel, parts, mShmBusy[mCurrentBuffer]);
+        attachShmMessage((void*)hits, channel, parts, mShmBusy[mCurrentBuffer]);
       }
     }
   }
