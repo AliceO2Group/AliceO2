@@ -77,8 +77,6 @@ public:
   void InitTask() override;
   /// inherited from FairMQDevice
   void Run() override;
-  /// inherited from FairMQDevice
-  void Pause() override;
 
   /// sampler loop started in a separate thread
   void samplerLoop();
