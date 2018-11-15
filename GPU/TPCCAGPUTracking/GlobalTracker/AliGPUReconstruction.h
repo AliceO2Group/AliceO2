@@ -27,15 +27,15 @@ public:
 	virtual ~AliGPUReconstruction();
 	
 	enum GeometryType : unsigned int {RESERVED_GEOMETRY = 0, ALIROOT = 1, O2 = 2};
-	static constexpr const char* GEOMETRY_TYPE_NAMES[] = {"INVALID", "ALIROOT", "O2"};
+	static constexpr const char* const GEOMETRY_TYPE_NAMES[] = {"INVALID", "ALIROOT", "O2"};
 	#ifdef HLTCA_TPC_GEOMETRY_O2
-		const GeometryType geometryType = O2;
+		static constexpr GeometryType geometryType = O2;
 	#else
-		const GeometryType geometryType = ALIROOT;
+		static constexpr GeometryType geometryType = ALIROOT;
 	#endif
 	
 	enum DeviceType : unsigned int {RESERVED_DEVICE = 0, CPU = 1, CUDA = 2, HIP = 3, OCL = 4};
-	static constexpr const char* DEVICE_TYPE_NAMES[] = {"INVALID", "CPU", "CUDA", "HIP", "OCL"};
+	static constexpr const char* const DEVICE_TYPE_NAMES[] = {"INVALID", "CPU", "CUDA", "HIP", "OCL"};
 	static AliGPUReconstruction* CreateInstance(DeviceType type = CPU, bool forceType = true);
 	static AliGPUReconstruction* CreateInstance(int type, bool forceType) {return CreateInstance((DeviceType) type, forceType);}
 	static AliGPUReconstruction* CreateInstance(const char* type, bool forceType);
@@ -69,7 +69,7 @@ public:
 		unsigned int nTRDTracklets;
 	} mIOPtrs;
 	enum InOutPointerType : unsigned int {CLUSTER_DATA = 0, SLICE_OUT_TRACK = 1, SLICE_OUT_CLUSTER = 2, MC_LABEL_TPC = 3, MC_INFO_TPC = 4, MERGED_TRACK = 5, MERGED_TRACK_HIT = 6, TRD_TRACK = 7, TRD_TRACKLET = 8};
-	static constexpr const char* IOTYPENAMES[] = {"TPC Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters", "TRD Tracks", "TRD Tracklets"};
+	static constexpr const char* const IOTYPENAMES[] = {"TPC Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters", "TRD Tracks", "TRD Tracklets"};
 	
 	struct InOutMemory
 	{
