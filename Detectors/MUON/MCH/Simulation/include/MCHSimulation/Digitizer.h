@@ -31,8 +31,12 @@ class Digitizer
 
   void process(const std::vector<HitType>* hits, std::vector<Digit>* digits);
 
-  Float_t getCharge(Float_t eDep); 
-
+  Float_t getCharge(Float_t eDep);
+  Double_t getXmin(Int_t detID, Double_t hitX);
+  Double_t getXmax(Int_t detID, Double_t hitX);
+  Double_t getYmin(Int_t detID, Double_t hitY);
+  Double_t getYmax(Int_t detID, Double_t hitY);
+  
   void setEventTime(double value) { mEventTime = value; }
   void setEventID(Int_t id) { mEventID = id; }
   void setSrcID(Int_t id) { mSrcID = id; }

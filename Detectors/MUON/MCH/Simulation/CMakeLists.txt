@@ -30,7 +30,6 @@ set(HEADERS
   include/${MODULE_NAME}/Hit.h
 )
 
-SET(LINKDEF src/MCHSimulationLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME mch_simulation_bucket)
 

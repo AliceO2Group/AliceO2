@@ -11,14 +11,15 @@
 #ifndef ALICEO2_MCH_DIGIT_H_
 #define ALICEO2_MCH_DIGIT_H_
 
-#include <CommonDataFormat/TimeStamp.h>
+//#include <CommonDataFormat/TimeStamp.h>//TODO compiler doesn't link properly 
+
 #include <iosfwd>
 
 namespace o2 {
   namespace mch {
     // \class Digit
     /// \brief MCH digit implementation
-    class Digit: public o2::dataformats::TimeStamp<double>
+    class Digit //: public o2::dataformats::TimeStamp<double>
     {
     public:
       Digit() = default;
@@ -32,10 +33,14 @@ namespace o2 {
       Double_t GetADC() { return mADC; }
       void SetADC(Double_t adc) { mADC=adc;}
 
+      Double_t GetTimeStamp() {return mTime;}
+      void SetTimeStamp(Double_t time){mTime =time;}
+	
     private:
 
       Int_t mPadID;
       Double_t mADC;
+      Double_t mTime;
 
       ClassDefNV(Digit,1);
       

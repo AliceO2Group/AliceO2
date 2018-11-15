@@ -20,7 +20,7 @@ using namespace o2::mch;
 ClassImp(o2::mch::Digit);
 
 Digit::Digit(uint32_t pad, Double_t adc, Double_t time)//check if long etc for pad needed
-  : mPadID(pad), mADC(adc), o2::dataformats::TimeStamp<double>(time)
+  : mPadID(pad), mADC(adc), mTime(time)
 {
 }
 
@@ -28,7 +28,7 @@ Digit::Digit(uint32_t pad, Double_t adc, Double_t time)//check if long etc for p
 
 void Digit::printStream(std::ostream& stream) const
 {
-  stream << "MCH Digit: PadID " << mPadID << " ADC " << " Time " << getTimeStamp() << "\n";
+  stream << "MCH Digit: PadID " << mPadID << " ADC " << mADC << " Time " << mTime << "\n";
   
 }
 
