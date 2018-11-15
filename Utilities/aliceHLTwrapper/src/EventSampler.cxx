@@ -204,14 +204,6 @@ void EventSampler::Run()
   samplerThread.join();
 }
 
-void EventSampler::Pause()
-{
-  /// inherited from FairMQDevice
-
-  // nothing to do
-  FairMQDevice::Pause();
-}
-
 void EventSampler::samplerLoop()
 {
   /// sampler loop
