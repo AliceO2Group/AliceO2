@@ -14,7 +14,7 @@
 /// @brief  Workflow definition for the TPC reconstruction
 
 #include "Framework/WorkflowSpec.h"
-
+#include "Utils/MakeRootTreeWriterSpec.h"
 #include "TPCWorkflow/RecoWorkflow.h"
 #include "DigitReaderSpec.h"
 #include "ClusterReaderSpec.h"
@@ -22,9 +22,11 @@
 #include "ClusterConverterSpec.h"
 #include "ClusterDecoderRawSpec.h"
 #include "CATrackerSpec.h"
-#include "RootFileWriterSpec.h"
 #include "DataFormatsTPC/Constants.h"
 #include "DataFormatsTPC/ClusterGroupAttribute.h"
+#include "DataFormatsTPC/TrackTPC.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 
 #include "FairMQLogger.h"
 #include <string>
@@ -43,6 +45,8 @@ namespace RecoWorkflow
 {
 
 using namespace framework;
+template <typename T>
+using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 
 const std::unordered_map<std::string, InputType> InputMap{
   { "digitizer", InputType::Digitizer },
@@ -144,7 +148,31 @@ framework::WorkflowSpec getWorkflow(bool propagateMC, int nLanes, std::string cf
 
   if (outputType == OutputType::Tracks) {
     specs.emplace_back(o2::TPC::getCATrackerSpec(propagateMC, nLanes));
-    specs.emplace_back(o2::TPC::getRootFileWriterSpec(propagateMC));
+
+    // defining the track writer process using the generic RootTreeWriter and generator tool
+    //
+    // defaults
+    const char* processName = "tpc-track-writer";
+    const char* defaultFileName = "tpctracks.root";
+    const char* defaultTreeName = "tpcrec";
+
+    //branch definitions for RootTreeWriter spec
+    using TrackOutputType = std::vector<o2::TPC::TrackTPC>;
+    using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+    auto tracksdef = BranchDefinition<TrackOutputType>{ InputSpec{ "input", "TPC", "TRACKS" },    //
+                                                        "TPCTracks", "track-branch-name" };       //
+    auto mcdef = BranchDefinition<MCLabelContainer>{ InputSpec{ "mcinput", "TPC", "TRACKMCLBL" }, //
+                                                     "TPCTracksMCTruth", "trackmc-branch-name" }; //
+
+    // depending on the MC propagation flag, the RootTreeWriter spec is created with two
+    // or one branch definition
+    if (propagateMC) {
+      specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName, //
+                                             std::move(tracksdef), std::move(mcdef))());    //
+    } else {                                                                                //
+      specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName, //
+                                             std::move(tracksdef))());                      //
+    }
   } else if (outputType == OutputType::DecodedClusters) {
     specs.emplace_back(DataProcessorSpec{ "writer",
                                           { createInputSpec() },
