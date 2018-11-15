@@ -32,7 +32,8 @@
 namespace o2 { namespace ITS { class TrackerTraits {}; class TrackerTraitsCPU : public TrackerTraits {}; }}
 #endif
 
-static constexpr char DUMP_HEADER[] = "CAv1";
+static constexpr unsigned int DUMP_HEADER_SIZE = 4;
+static constexpr char DUMP_HEADER[DUMP_HEADER_SIZE + 1] = "CAv1";
 
 AliGPUReconstruction::AliGPUReconstruction(DeviceType type) : mIOPtrs(), mIOMem(), mTRDTracker(new AliHLTTRDTracker), mTPCTracker(nullptr), mITSTrackerTraits(nullptr), mDeviceType(type)
 {
@@ -79,7 +80,7 @@ void AliGPUReconstruction::DumpData(const char* filename)
 {
 	FILE* fp = fopen(filename, "w+b");
 	if (fp == nullptr) return;
-	fwrite(DUMP_HEADER, 1, strlen(DUMP_HEADER), fp);
+	fwrite(DUMP_HEADER, 1, DUMP_HEADER_SIZE, fp);
 	fwrite(&geometryType, sizeof(geometryType), 1, fp);
 	DumpData(fp, mIOPtrs.clusterData, mIOPtrs.nClusterData, InOutPointerType::CLUSTER_DATA);
 	DumpData(fp, mIOPtrs.sliceOutTracks, mIOPtrs.nSliceOutTracks, InOutPointerType::SLICE_OUT_TRACK);
@@ -117,9 +118,9 @@ int AliGPUReconstruction::ReadData(const char* filename)
 	ClearIOPointers();
 	FILE* fp = fopen(filename, "rb");
 	if (fp == nullptr) return(1);
-	char buf[strlen(DUMP_HEADER) + 1] = "";
-	size_t r = fread(buf, 1, strlen(DUMP_HEADER), fp);
-	if (strncmp(DUMP_HEADER, buf, strlen(DUMP_HEADER)))
+	char buf[DUMP_HEADER_SIZE + 1] = "";
+	size_t r = fread(buf, 1, DUMP_HEADER_SIZE, fp);
+	if (strncmp(DUMP_HEADER, buf, DUMP_HEADER_SIZE))
 	{
 		printf("Invalid file header\n");
 		return -1;
