@@ -429,7 +429,7 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
       // Then we check if it is part of our Poor man control system
       // if yes, we execute the associated command.
       if (DeviceMetricsHelper::parseMetric(token, match)) {
-        LOG(DEBUG) << "Found metric with key " << match[2] << " and value " << match[4];
+        LOG(DEBUG) << "Found metric with key " << match[1] << " and value " << match[3];
         // We use this callback to cache which metrics are needed to provide a
         // the DataRelayer view.
         DeviceMetricsHelper::processMetric(match, metrics, updateDataRelayerViewIndex);
