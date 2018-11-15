@@ -435,9 +435,9 @@ int AliHLTTRDTrackerComponent::DoEvent
 	HLTError("Internal error: wrong space point index %d", id );
       }
       AliHLTTRDTrackPoint *currOutPoint = &outTrackPoints->fPoints[id];
-      currOutPoint->fX[0] = sp.fX[0];
-      currOutPoint->fX[1] = sp.fX[1];
-      currOutPoint->fX[2] = sp.fX[2];
+      currOutPoint->fX[0] = sp.fR; // x in sector coordinates
+      currOutPoint->fX[1] = sp.fX[0]; // y in sector coordinates
+      currOutPoint->fX[2] = sp.fX[1]; // z in sector coordinates
       currOutPoint->fVolumeId = sp.fVolumeId;
     }
     AliHLTComponentBlockData resultDataSP;
