@@ -92,7 +92,9 @@ FairRunSim* o2sim_init(bool asservice)
   }
   geomss << ".root";
   gGeoManager->Export(geomss.str().c_str());
-
+  if (asservice) {
+    symlink(geomss.str().c_str(), "O2geometry.root");
+  }
   std::time_t runStart = std::time(nullptr);
 
   // runtime database

@@ -45,6 +45,7 @@ set(SRCS
     src/DeviceSpecHelpers.cxx
     src/DDSConfigHelpers.cxx
     src/Dispatcher.cxx
+    src/O2ControlHelpers.cxx
     src/DriverControl.cxx
     src/DriverInfo.cxx
     src/FairOptionsRetriever.cxx
@@ -151,8 +152,10 @@ set(HEADERS
       include/Framework/TableBuilder.h
       include/Framework/FairMQResizableBuffer.h
       include/Framework/Metric2DViewIndex.h
+      include/Framework/RawBufferContext.h
       src/ComputingResource.h
       src/DDSConfigHelpers.h
+      src/O2ControlHelpers.h
       src/DeviceSpecHelpers.h
       src/DriverControl.h
       src/DriverInfo.h
@@ -205,6 +208,7 @@ target_compile_options(test_SimpleDataProcessingDevice01 PUBLIC -O0 -g -fno-omit
 Install(FILES test/test_DataSampling.json DESTINATION share/tests/)
 
 set(TEST_SRCS
+      test/test_BoostSerializedProcessing.cxx
       test/test_AlgorithmSpec.cxx
       test/test_BoostOptionsRetriever.cxx
       test/test_CallbackRegistry.cxx
@@ -250,12 +254,15 @@ set(TEST_SRCS
       test/test_TypeTraits.cxx
       test/test_Variants.cxx
       test/test_WorkflowHelpers.cxx
+      test/test_DeviceSpecHelpers.cxx
    )
 
 set(BENCH_SRCS 
     test/benchmark_DataDescriptorMatcher.cxx
     test/benchmark_DataRelayer.cxx
-    test/benchmark_InputRecord.cxx)
+    test/benchmark_DeviceMetricsInfo.cxx
+    test/benchmark_InputRecord.cxx
+    )
 
 O2_GENERATE_TESTS(
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}

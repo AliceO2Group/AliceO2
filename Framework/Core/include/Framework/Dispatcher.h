@@ -31,7 +31,7 @@ class Dispatcher : public Task
   /// \brief Constructor
   Dispatcher(const std::string name, const std::string reconfigurationSource);
   /// \brief Destructor
-  ~Dispatcher();
+  ~Dispatcher() override;
 
   /// \brief Dispatcher init callback
   void init(InitContext& ctx) override;
@@ -47,7 +47,7 @@ class Dispatcher : public Task
 
  private:
   void send(DataAllocator& dataAllocator, const DataRef& inputData, const Output& output) const;
-  void sendFairMQ(const FairMQDevice* device, const DataRef& inputData, const std::string& fairMQChannel) const;
+  void sendFairMQ(FairMQDevice* device, const DataRef& inputData, const std::string& fairMQChannel) const;
 
   std::string mName;
   std::string mReconfigurationSource;

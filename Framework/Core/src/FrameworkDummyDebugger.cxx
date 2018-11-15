@@ -15,7 +15,8 @@ namespace o2
 {
 namespace framework
 {
-
+namespace gui
+{
 // Dummy function in case we want to build without debugger.
 std::function<void(void)> getGUIDebugger(const std::vector<DeviceInfo>& infos, const std::vector<DeviceSpec>& devices,
                                          const std::vector<DeviceMetricsInfo>& metricsInfos,
@@ -27,5 +28,6 @@ std::function<void(void)> getGUIDebugger(const std::vector<DeviceInfo>& infos, c
 
 void showNodeGraph(bool* opened) {}
 
+} // namespace gui
 } // namespace framework
 } // namespace o2

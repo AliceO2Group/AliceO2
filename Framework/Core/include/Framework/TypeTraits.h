@@ -14,6 +14,9 @@
 #include <vector>
 #include <memory>
 
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+
 namespace o2
 {
 namespace framework
@@ -22,27 +25,31 @@ namespace framework
 /// is a specialization of a given reference type Ref.
 /// See Framework/Core/test_TypeTraits.cxx for an example
 
-template<typename T, template<typename...> class Ref>
-struct is_specialization : std::false_type {};
+template <typename T, template <typename...> class Ref>
+struct is_specialization : std::false_type {
+};
 
-template<template<typename...> class Ref, typename... Args>
-struct is_specialization<Ref<Args...>, Ref>: std::true_type {};
+template <template <typename...> class Ref, typename... Args>
+struct is_specialization<Ref<Args...>, Ref> : std::true_type {
+};
 
 // helper struct to mark a type as non-messageable by defining a type alias
 // with name 'non-messageable'
-struct MarkAsNonMessageable {};
+struct MarkAsNonMessageable {
+};
 
 // detect if a type is forced to be non-messageable, this is done by defining
 // a type alias with name 'non-messageable' of the type MarkAsNonMessageable
-template< typename T, typename _ = void >
-struct is_forced_non_messageable : public std::false_type {};
+template <typename T, typename _ = void>
+struct is_forced_non_messageable : public std::false_type {
+};
 
 // specialization to detect the type a lias
 template <typename T>
 struct is_forced_non_messageable<
   T,
-  typename std::enable_if<std::is_same<typename T::non_messageable, MarkAsNonMessageable>::value>::type
-  > : public std::true_type {};
+  typename std::enable_if<std::is_same<typename T::non_messageable, MarkAsNonMessageable>::value>::type> : public std::true_type {
+};
 
 // TODO: extend this to exclude structs with pointer data members
 // see e.g. https://stackoverflow.com/questions/32880990/how-to-check-if-class-has-pointers-in-c14
@@ -58,12 +65,14 @@ struct is_messageable : std::conditional<std::is_trivially_copyable<T>::value &&
 // Detect a container by checking on the container properties
 // this is the default trait implementation inheriting from false_type
 template <typename T, typename _ = void>
-struct is_container : std::false_type {};
+struct is_container : std::false_type {
+};
 
 // helper to be substituted if the specified template arguments are
 // available
 template <typename... Ts>
-struct class_member_checker {};
+struct class_member_checker {
+};
 
 // the specialization for container types inheriting from true_type
 // the helper can be substituted if all the specified members are available
@@ -83,12 +92,9 @@ struct is_container<
       decltype(std::declval<T>().begin()),
       decltype(std::declval<T>().end()),
       decltype(std::declval<T>().cbegin()),
-      decltype(std::declval<T>().cend())
-      >,
-    void
-    >
-  > : public std::true_type {};
-
+      decltype(std::declval<T>().cend())>,
+    void>> : public std::true_type {
+};
 
 // Detect whether a class has a ROOT dictionary
 // This member detector idiom is implemented using SFINAE idiom to look for
@@ -97,7 +103,8 @@ struct is_container<
 // serialization however is also possible for types only having the link
 // in the LinkDef file. Such types can only be detected at runtime.
 template <typename T, typename _ = void>
-struct has_root_dictionary : std::false_type {};
+struct has_root_dictionary : std::false_type {
+};
 
 template <typename T>
 struct has_root_dictionary<
@@ -105,11 +112,9 @@ struct has_root_dictionary<
   std::conditional_t<
     false,
     class_member_checker<
-      decltype(std::declval<T>().Class())
-      >,
-    void
-    >
-  > : public std::true_type {};
+      decltype(std::declval<T>().Class())>,
+    void>> : public std::true_type {
+};
 
 // specialization for containers
 // covers cases with T::value_type having ROOT dictionary, meaning that
@@ -151,6 +156,48 @@ static std::enable_if_t<sizeof(std::declval<HOLDER>().get_deleter()) != 0, HOLDE
   return std::make_unique<T>(std::forward<ARGS>(args)...);
 }
 
+// Helper classes to check availability of boost serialization for RawBufferContext for a given type.
+// Provides recurrence to correclty unwrap containers of containers ... of container of base type.
+//Defining useful void_t template alias
+template <typename...>
+using void_t = void;
+
+//Base case called by all overloads when needed. Derives from false_type.
+template <typename Type, typename Archive = boost::archive::binary_oarchive, typename = void_t<>>
+struct is_boost_serializable_base : std::false_type {
+};
+
+//Check if provided type implements a boost serialize method directly
+template <class Type, typename Archive>
+struct is_boost_serializable_base<Type, Archive,
+                                  void_t<decltype(std::declval<Type&>().serialize(std::declval<Archive&>(), 0))>>
+  : std::true_type {
+};
+
+// //Check if provided type is trivial (aka doesn't need a boost deserializer)
+// template <class Type, typename Archive>
+// struct is_boost_serializable_base<Type, Archive,
+//                                   typename std::enable_if<boost::serialization::is_bitwise_serializable<typename Type::value_type>::value>::type>
+//   : std::true_type {
+// };
+
+//Base implementation to provided recurrence. Wraps around base templates
+template <class Type, typename Archive = boost::archive::binary_oarchive, typename = void_t<>>
+struct is_boost_serializable
+  : is_boost_serializable_base<Type, Archive> {
+};
+
+//Call base implementation in contained class/type if possible
+template <class Type, typename Archive>
+struct is_boost_serializable<Type, Archive, void_t<typename Type::value_type>>
+  : is_boost_serializable<typename Type::value_type, Archive> {
+};
+
+//Call base implementation in contained class/type if possible. Added default archive type for convenience
+template <class Type>
+struct is_boost_serializable<Type, boost::archive::binary_oarchive, void_t<typename Type::value_type>>
+  : is_boost_serializable<typename Type::value_type, boost::archive::binary_oarchive> {
+};
 } // namespace framework
 } // namespace o2
 #endif // FRAMEWORK_TYPETRAITS_H

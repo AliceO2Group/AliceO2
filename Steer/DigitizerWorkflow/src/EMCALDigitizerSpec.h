@@ -8,12 +8,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file ParameterDetector.cxx
-/// \brief Implementation of the parameter class for the detector
-/// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
+#ifndef STEER_DIGITIZERWORKFLOW_EMCALDIGITIZER_H_
+#define STEER_DIGITIZERWORKFLOW_EMCALDIGITIZER_H_
 
-#include "TPCBase/ParameterDetector.h"
+#include "Framework/DataProcessorSpec.h"
 
-using namespace o2::TPC;
+namespace o2
+{
+namespace emcal
+{
 
-ParameterDetector::ParameterDetector() : mTPClength(250.f), mPadCapacitance(0.1f), mTmaxTriggered(550) {}
+o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel);
+
+} // end namespace emcal
+} // end namespace o2
+
+#endif /* STEER_DIGITIZERWORKFLOW_EMCALDIGITIZER_H_ */
