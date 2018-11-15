@@ -1012,8 +1012,9 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
 {
   enum TerminationPolicy policy;
   bpo::options_description executorOptions("Executor options");
+  const char* helpDescription = "print help: short, full, executor, or processor name";
   executorOptions.add_options()                                                                             //
-    ("help,h", "print this help")                                                                           //
+    ("help,h", bpo::value<std::string>()->implicit_value("short"), helpDescription)                         //
     ("quiet,q", bpo::value<bool>()->zero_tokens()->default_value(false), "quiet operation")                 //
     ("stop,s", bpo::value<bool>()->zero_tokens()->default_value(false), "stop before device start")         //
     ("single-step", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode")   //
@@ -1061,11 +1062,35 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   }
 
   if (varmap.count("help")) {
+    auto mode = varmap["help"].as<std::string>();
     bpo::options_description helpOptions;
-    helpOptions.add(executorOptions);
+    if (mode == "full" || mode == "short" || mode == "executor") {
+      helpOptions.add(executorOptions);
+    }
     // this time no veto is applied, so all the options are added for printout
-    helpOptions.add(ConfigParamsHelper::prepareOptionDescriptions(physicalWorkflow, workflowOptions));
-    std::cout << helpOptions << std::endl;
+    if (mode == "executor") {
+      // nothing more
+    } else if (mode == "workflow") {
+      // executor options and workflow options, skip the actual workflow
+      o2::framework::WorkflowSpec emptyWorkflow;
+      helpOptions.add(ConfigParamsHelper::prepareOptionDescriptions(emptyWorkflow, workflowOptions));
+    } else if (mode == "full" || mode == "short") {
+      helpOptions.add(ConfigParamsHelper::prepareOptionDescriptions(physicalWorkflow, workflowOptions,
+                                                                    bpo::options_description(),
+                                                                    mode));
+    } else {
+      helpOptions.add(ConfigParamsHelper::prepareOptionDescriptions(physicalWorkflow, {},
+                                                                    bpo::options_description(),
+                                                                    mode));
+    }
+    if (helpOptions.options().size() == 0) {
+      // the specified argument is invalid, add at leat the executor options
+      mode += " is an invalid argument, please use correct argument for";
+      helpOptions.add(executorOptions);
+    }
+    std::cout << "ALICE O2 DPL workflow driver"        //
+              << " (" << mode << " help)" << std::endl //
+              << helpOptions << std::endl;             //
     exit(0);
   }
 

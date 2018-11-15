@@ -42,39 +42,59 @@ struct ConfigParamsHelper
                                        );
 
   /// populate boost program options for a complete workflow
-  template<typename ContainerType>
+  template <typename ContainerType>
   static boost::program_options::options_description
-  prepareOptionDescriptions(const ContainerType &workflow,
-                            const std::vector<ConfigParamSpec> &workflowOptions,
-                            options_description vetos = options_description()
-                            )
+    prepareOptionDescriptions(const ContainerType& workflow,
+                              const std::vector<ConfigParamSpec>& workflowOptions,
+                              options_description vetos = options_description(),
+                              std::string mode = "full")
   {
     boost::program_options::options_description toplevel;
     boost::program_options::options_description wo("Global workflow options");
     if (prepareOptionsDescription(workflowOptions, wo, vetos)) {
       toplevel.add(wo);
     }
-    boost::program_options::options_description specOptions("Available data processors");
+    std::string specOptionsDescription = "Available data processors";
+    if (mode == "short") {
+      specOptionsDescription += " (full info with '--help full')";
+    }
+    options_description specOptions(specOptionsDescription);
     for (const auto & spec : workflow) {
-      std::string help = "Usage: --" + spec.name + R"( "<data processor options>")";
-      specOptions.add_options()(spec.name.c_str(),
-                                boost::program_options::value<std::string>(),
-                                help.c_str());
       std::string name = "Data processor options: " + spec.name;
-      boost::program_options::options_description options(name);
-      if (prepareOptionsDescription(spec.options, options, vetos)) {
-        specOptions.add(options);
+      boost::program_options::options_description processorOptions(name);
+      if (prepareOptionsDescription(spec.options, processorOptions, vetos)) {
         // if vetos have been provided to the function we also need to make
         // sure that there are no duplicate option definitions for the individual
         // processor specs, so we add in order to be vetos for all subsequent specs.
         // Note: this only concerns the main parser, all individual options are
         // handled when starting individual processors.
         if (vetos.options().size() > 0) {
-          vetos.add(options);
+          vetos.add(processorOptions);
+        }
+        if (mode == "full") {
+          specOptions.add(processorOptions);
+        } else if (mode == spec.name) {
+          toplevel.add(processorOptions);
+          break;
         }
       }
+      if (mode == "full" || mode == "short") {
+        std::string help;
+        if (mode == "full") {
+          help = "Option groups by process name: --" + spec.name + R"( "<processor options>")";
+        } else if (mode == "short" && processorOptions.options().size() > 0) {
+          help = "Use '--help " + spec.name + "' to display processor options";
+        } else if (mode == "short" && processorOptions.options().size() == 0) {
+          help = "No processor options";
+        }
+        specOptions.add_options()(spec.name.c_str(),
+                                  boost::program_options::value<std::string>(),
+                                  help.c_str());
+      }
     }
-    toplevel.add(specOptions);
+    if (workflow.size() > 0 && (mode == "full" || mode == "short")) {
+      toplevel.add(specOptions);
+    }
     return toplevel;
   }
 
