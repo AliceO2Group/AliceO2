@@ -90,7 +90,8 @@ DataProcessorSpec getClustererSpec(bool sendMC, int fanNumber)
       auto inMCLabels = pc.inputs().get<const MCLabelContainer*>("mclabels");
       auto inDigits = pc.inputs().get<const std::vector<o2::TPC::Digit>>("digits");
       if (verbosity > 0) {
-        LOG(INFO) << "received " << inDigits.size() << " digits";
+        LOG(INFO) << "received " << inDigits.size() << " digits, "
+                  << inMCLabels->getIndexedSize() << " MC label objects";
       }
       if (!clusterers[sector]) {
         // create the clusterer for this sector, take the same target arrays for all clusterers
@@ -103,13 +104,19 @@ DataProcessorSpec getClustererSpec(bool sendMC, int fanNumber)
       if (verbosity > 0) {
         LOG(INFO) << "processing " << inDigits.size() << " digit object(s) of sector " << sectorHeader->sector;
       }
-      clusterArray.clear(); // this would also be done in the HwClusterer if the clearContainerFirst of process() would be set to true instead of false
-      mctruthArray.clear(); // this would also be done in the HwClusterer if the clearContainerFirst of process() would be set to true instead of false
-      clusterer->process(inDigits, inMCLabels.get(), false);
+      // process the digits and MC labels, the bool parameter controls whether to clear all
+      // internal data or not. Have to clear it inside the process method as not only the containers
+      // are cleared but also the cluster counter. Clearing the containers externally leaves the
+      // cluster counter unchanged and leads to an inconsistency between cluster container and
+      // MC label container (the latter just grows with every call).
+      clusterer->process(inDigits, inMCLabels.get(), true /* clear output containers and cluster counter */);
       const std::vector<o2::TPC::Digit> emptyDigits;
       clusterer->finishProcess(emptyDigits, nullptr, false); // keep here the false, otherwise the clusters are lost of they are not stored in the meantime
       if (verbosity > 0) {
-        LOG(INFO) << "clusterer produced " << clusterArray.size() << " cluster container";
+        LOG(INFO) << "clusterer produced " << clusterArray.size() << " cluster(s)";
+        if (sendMC) {
+          LOG(INFO) << "clusterer produced " << mctruthArray.getIndexedSize() << " MC label object(s)";
+        }
       }
       pc.outputs().snapshot(OutputRef{ "clusters", fanSpec, { *sectorHeader } }, clusterArray);
       if (sendMC) {

@@ -88,15 +88,17 @@ DataProcessorSpec getClusterConverterSpec(bool sendMC, int fanNumber)
       // this will return a span of TPC clusters
       auto inClusters = pc.inputs().get<std::vector<o2::TPC::Cluster>>("clusterin");
       int nClusters = inClusters.size();
-      LOG(INFO) << "got clusters from input: " << nClusters;
 
       // MC labels are received as one container of labels in the sequence matching clusters
       // in the input
       std::unique_ptr<const MCLabelContainer> mcin;
       MCLabelContainer mcout;
+      std::string mcMesssage;
       if (sendMC) {
         mcin = std::move(pc.inputs().get<MCLabelContainer*>("mclblin"));
+        mcMesssage = ", " + std::to_string(mcin->getIndexedSize()) + " MC label objects";
       }
+      LOG(INFO) << "got " << nClusters << " cluster(s) from input" << mcMesssage;
 
       // clusters need to be sorted to write clusters of one CRU to raw pages
       struct ClusterMapper {
