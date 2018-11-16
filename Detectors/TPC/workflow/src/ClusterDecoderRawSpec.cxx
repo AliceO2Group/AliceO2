@@ -28,6 +28,7 @@
 #include <cassert>
 #include <iomanip>
 #include <string>
+#include <numeric>
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -123,6 +124,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC, int fanNumber)
       // only for single 8kb pages. So we have to add the raw pages individually and create
       // MC label containers for the corresponding clusters.
       size_t mcinPos = 0;
+      size_t totalNumberOfClusters = 0;
       for (size_t page = 0; page < nPages; page++) {
         inputList.emplace_back(reinterpret_cast<const ClusterHardwareContainer*>(ref.payload + page * 8192), 1);
         const ClusterHardwareContainer& container = *(inputList.back().first);
@@ -131,15 +133,24 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC, int fanNumber)
                     << "CRU " << std::setw(3) << container.CRU << " "               //
                     << std::setw(3) << container.numberOfClusters << " cluster(s)"; //
         }
+        totalNumberOfClusters += container.numberOfClusters;
         if (mcin) {
-          for (size_t mccopyPos = 0; mccopyPos < container.numberOfClusters; mccopyPos++, mcinPos++) {
+          for (size_t mccopyPos = 0;
+               mccopyPos < container.numberOfClusters && mcinPos < mcin->getIndexedSize();
+               mccopyPos++, mcinPos++) {
             for (auto const& label : mcin->getLabels(mcinPos)) {
               mcinCopies[page].addElement(mccopyPos, label);
             }
           }
         }
       }
-      assert(!mcin || mcinPos == mcin->getIndexedSize());
+      // FIXME: introduce error handling policy: throw, ignore, warn
+      //assert(!mcin || mcinPos == mcin->getIndexedSize());
+      if (mcin && mcinPos != totalNumberOfClusters) {
+        LOG(ERROR) << "inconsistent number of MC label objects processed"
+                   << ", expecting MC label objects for " << totalNumberOfClusters << " cluster(s)"
+                   << ", got " << mcin->getIndexedSize();
+      }
       // output of the decoder is sorted in (sector,globalPadRow) coordinates, individual
       // containers are created for clusters and MC labels per (sector,globalPadRow) address
       std::vector<ClusterNativeContainer> cont;
@@ -160,7 +171,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC, int fanNumber)
       auto* target = pc.outputs().newChunk(OutputRef{ "clusterout", fanSpec, std::move(rawHeaderStack) }, totalSize).data;
 
       for (const auto& coll : cont) {
-        if (verbosity > 0) {
+        if (verbosity > 1) {
           LOG(INFO) << "decoder " << std::setw(2) << sectorHeader->sector                             //
                     << ": decoded " << std::setw(4) << coll.clusters.size() << " clusters on sector " //
                     << std::setw(2) << (int)coll.sector << "[" << (int)coll.globalPadRow << "]";      //
@@ -173,7 +184,9 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC, int fanNumber)
       }
       if (sendMC) {
         if (verbosity > 0) {
-          LOG(INFO) << "sending " << mcoutList.size() << " MC label containers" << std::endl;
+          LOG(INFO) << "sending " << mcoutList.size() << " MC label container(s) with in total "
+                    << std::accumulate(mcoutList.begin(), mcoutList.end(), size_t(0), [](size_t l, auto const& r) { return l + r.getIndexedSize(); })
+                    << " label object(s)" << std::endl;
         }
         // serialize the complete list of MC label containers
         pc.outputs().snapshot(OutputRef{ "mclblout", fanSpec, std::move(mcHeaderStack) }, mcoutList);
