@@ -4,6 +4,8 @@
 #include <sstream>
 #include <vector>
 
+#include "errorcodes.h"
+
 
 namespace gpucf {
     namespace log {
@@ -130,9 +132,10 @@ namespace gpucf {
 }; // namespace gpucf
 
 
-#define CATCH(openclCall) do { \
-        int err = openclCall; \
-        if (err) { \
-            log::Fail() << __FILE__ << ":" << __LINE__ << ": Error!"; \
-        } \
-    } while (false)
+#define ASSERT(cond) \
+    if (!(cond)) log::Fail() << __FILE__ ":" << __LINE__ \
+        << ": Failed assertion " #cond
+
+#define CATCH_CL(err) \
+    ASSERT(err == CL_SUCCESS) << "\n\n Encountered OpenCL error: " \
+        << PrintCLError(err)
