@@ -271,6 +271,7 @@ class Mapper
         break;
       }
     }
+    return 0;
   }
 
   int getNumberOfPadsInRowSector(int row) const { return mMapNumberOfPadsPerRow[row]; }
@@ -302,6 +303,7 @@ class Mapper
         break;
       }
     }
+    return 0;
   }
 
   /// Convert sector, row, pad to global pad row in sector and pad number
