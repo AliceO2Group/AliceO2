@@ -1598,13 +1598,15 @@ o2_define_bucket(
     Geom
     SimulationDataFormat
     CommonDataFormat
-
+    CommonUtils
+    
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/DataFormats/common/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
     ${CMAKE_SOURCE_DIR}/Detectors/HMPID/base/include
+    ${CMAKE_SOURCE_DIR}/Common/Utils/include
 )
 
 o2_define_bucket(

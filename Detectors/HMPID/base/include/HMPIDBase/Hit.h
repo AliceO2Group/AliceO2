@@ -12,6 +12,7 @@
 #define DETECTORS_HMPID_BASE_INCLUDE_HMPIDBASE_HIT_H_
 
 #include "SimulationDataFormat/BaseHits.h"
+#include "CommonUtils/ShmAllocator.h"
 
 namespace o2
 {
@@ -19,9 +20,25 @@ namespace hmpid
 {
 
 // define HMPID hit type
-using HitType = o2::BasicXYZEHit<float>;
+class HitType : public o2::BasicXYZEHit<float>
+{
+ public:
+  using Base = o2::BasicXYZEHit<float>;
+  using Base::Base;
+  ClassDef(HitType, 1);
+};
 
 } // namespace hmpid
 } // namespace o2
+
+#ifdef USESHM
+namespace std
+{
+template <>
+class allocator<o2::hmpid::HitType> : public o2::utils::ShmAllocator<o2::hmpid::HitType>
+{
+};
+} // namespace std
+#endif
 
 #endif /* DETECTORS_HMPID_BASE_INCLUDE_HMPIDBASE_HIT_H_ */
