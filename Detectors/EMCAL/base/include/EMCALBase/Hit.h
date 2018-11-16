@@ -12,6 +12,7 @@
 #define ALICEO2_EMCAL_HIT_H
 
 #include "SimulationDataFormat/BaseHits.h"
+#include "CommonUtils/ShmAllocator.h"
 
 namespace o2
 {
@@ -110,5 +111,15 @@ class Hit : public o2::BasicXYZEHit<float>
 std::ostream& operator<<(std::ostream& stream, const Hit& point);
 }
 }
+
+#ifdef USESHM
+namespace std
+{
+template <>
+class allocator<o2::EMCAL::Hit> : public o2::utils::ShmAllocator<o2::EMCAL::Hit>
+{
+};
+} // namespace std
+#endif
 
 #endif /* Point_h */
