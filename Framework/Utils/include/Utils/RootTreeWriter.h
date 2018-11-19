@@ -107,24 +107,18 @@ class RootTreeWriter
 
   /// process functor
   /// It expects a context which is used by lambda capture in the snapshot function.
-  /// Recursively process all inputs and set the branch address to extracted objects.
-  /// Release function is called on the object after filling the tree.
+  /// Recursively process all inputs and fill branches individually from extracted
+  /// objects.
   template <typename ContextType>
   void operator()(ContextType&& context)
   {
     if (!mTree || !mFile || mFile->IsZombie()) {
       throw std::runtime_error("Writer is invalid state, probably closed previously");
     }
+    // execute tree structure handlers and fill the individual branches
     mTreeStructure->exec(std::forward<ContextType>(context), mBranchSpecs);
-    mTree->Fill();
-    for (auto& spec : mBranchSpecs) {
-      if (!spec.releaseFct) {
-        continue;
-      }
-      spec.releaseFct(spec.data);
-      spec.data = nullptr;
-      spec.releaseFct = nullptr;
-    }
+    // set the number of elements according to branch content
+    mTree->SetEntries();
   }
 
   /// write the tree and close the file
@@ -148,8 +142,6 @@ class RootTreeWriter
   struct BranchSpec {
     key_type key;
     std::string name;
-    void* data = nullptr;
-    std::function<void(void*)> releaseFct = nullptr;
     TBranch* branch = nullptr;
     TClass* classinfo = nullptr;
   };
@@ -201,7 +193,7 @@ class RootTreeWriter
     /// setup this instance and recurse to the parent one
     void setupInstance(std::vector<BranchSpec>& specs, TTree* tree)
     {
-      static_cast<PrevT>(*this).setupInstance(specs, tree);
+      PrevT::setupInstance(specs, tree);
       constexpr size_t Index = STAGE - 1;
       specs[Index].branch = tree->Branch(specs[Index].name.c_str(), &mStore);
       specs[Index].classinfo = TClass::GetClass(typeid(type));
@@ -211,7 +203,7 @@ class RootTreeWriter
     // process previous stage and this stage
     void process(InputContext& context, std::vector<BranchSpec>& specs)
     {
-      static_cast<PrevT>(*this).process(context, specs);
+      PrevT::process(context, specs);
       constexpr size_t Index = STAGE - 1;
       auto data = context.get<type*>(specs[Index].key.c_str());
       // could either copy to the corresponding store variable or use the object
@@ -220,20 +212,15 @@ class RootTreeWriter
       // FIXME: get rid of the const_cast
       // FIXME: using object directly results in a segfault in the Streamer when
       // using std::vector<o2::test::Polymorphic> in test_RootTreeWriter.cxx
+      // for std::vector, the branch has sub-branches so maybe the address can not
+      // simply be set
       //specs[Index].branch->SetAddress(const_cast<type*>(data.get()));
       // handling copy-or-move is also more complicated because the returned smart
       // pointer wraps a const buffer which might reside in the input queue and
       // thus can not be moved.
       //copyOrMove(mStore, (type&)*data);
       mStore = *data;
-      // the data object is a smart pointer and we have to keep the data alieve
-      // until the tree is actually filled after the recursive processing of inputs
-      // release the base pointer from the smart pointer instance and keep the
-      // daleter to be called after tree fill.
-      // Note: the deleter might not be existent if the content was moved before
-      specs[Index].data = const_cast<type*>(data.release());
-      auto deleter = data.get_deleter();
-      specs[Index].releaseFct = [deleter](void* buffer) { deleter(reinterpret_cast<type*>(buffer)); };
+      specs[Index].branch->Fill();
     }
 
    private:
