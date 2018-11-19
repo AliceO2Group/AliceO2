@@ -39,7 +39,6 @@
 #include "AliHLTTPCGMTrackParam.h"
 #include "AliHLTTPCCAGeometry.h"
 #include "AliHLTTPCRawCluster.h"
-#include "AliHLTTPCReverseTransformInfoV1.h"
 #include "AliRawEventHeaderBase.h"
 #include "AliRecoParam.h"
 #include "AliRunInfo.h"
@@ -182,7 +181,7 @@ int AliHLTTPCClusterStatComponent::DoDeinit()
 	return 0;
 }
 
-void AliHLTTPCClusterStatComponent::TransformReverse(int slice, int row, float y, float z, float padtime[], const AliHLTTPCReverseTransformInfoV1 *revInfo, bool applyCorrection)
+void AliHLTTPCClusterStatComponent::TransformReverse(int slice, int row, float y, float z, float padtime[])
 {
 	AliTPCcalibDB *calib = AliTPCcalibDB::Instance();
 	AliTPCParam *param = calib->GetParameters();
@@ -212,55 +211,16 @@ void AliHLTTPCClusterStatComponent::TransformReverse(int slice, int row, float y
 		padWidth = param->GetPadPitchWidth(sector);
 	}
 
-	if (applyCorrection)
-	{
-		float correctionY = revInfo->fCorrectY1 + revInfo->fCorrectY2 * param->GetPadRowRadii(sector, sectorrow) + revInfo->fCorrectY3 * (AliHLTTPCCAGeometry::GetZLength() - fabs(z));
-		y -= correctionY;
-	}
-
 	padtime[0] = y * sign / padWidth + 0.5 * maxPad;
-
-	float vdcorrectionTime, vdcorrectionTimeGY, time0corrTime, deltaZcorrTime, zLength;
-	if (slice < 18)
-	{
-		vdcorrectionTime = revInfo->fVdcorrectionTimeA;
-		vdcorrectionTimeGY = revInfo->fVdcorrectionTimeGYA;
-		time0corrTime = revInfo->fTime0corrTimeA;
-		deltaZcorrTime = revInfo->fDeltaZcorrTimeA;
-		zLength = revInfo->fZLengthA;
-	}
-	else
-	{
-		vdcorrectionTime = revInfo->fVdcorrectionTimeC;
-		vdcorrectionTimeGY = revInfo->fVdcorrectionTimeGYC;
-		time0corrTime = revInfo->fTime0corrTimeC;
-		deltaZcorrTime = revInfo->fDeltaZcorrTimeC;
-		zLength = revInfo->fZLengthC;
-	}
 
 	float xyzGlobal[2] = {param->GetPadRowRadii(sector, sectorrow), y};
 	AliHLTTPCCAGeometry::Local2Global(xyzGlobal, slice);
 
-	zwidth = revInfo->fZWidth * revInfo->fDriftCorr;
-	zwidth *= vdcorrectionTime * (1 + xyzGlobal[1] * vdcorrectionTimeGY);
-
-	float time = z + deltaZcorrTime;
-	time = zLength - time * sign;
-	time += 3. * revInfo->fZSigma + time0corrTime;
-	time /= zwidth;
-	time += revInfo->fNTBinsL1;
-	padtime[1] = time;
-
-	if (applyCorrection)
-	{
-		float m = slice >= 18 ? revInfo->fDriftTimeFactorC : revInfo->fDriftTimeFactorA;
-		float n = slice >= 18 ? revInfo->fDriftTimeOffsetC : revInfo->fDriftTimeOffsetA;
-		float correctionTime = (z - n) / m;
-		padtime[1] += correctionTime;
-	}
+	float time = z * sign * 1024.f / 250.f;
+	padtime[1] = (1024.f - time);
 }
 
-void AliHLTTPCClusterStatComponent::TransformForward(int slice, int row, float pad, float time, float xyz[], const AliHLTTPCReverseTransformInfoV1 *revInfo, bool applyCorrection)
+void AliHLTTPCClusterStatComponent::TransformForward(int slice, int row, float pad, float time, float xyz[])
 {
 	AliTPCcalibDB *calib = AliTPCcalibDB::Instance();
 	AliTPCParam *param = calib->GetParameters();
@@ -293,45 +253,10 @@ void AliHLTTPCClusterStatComponent::TransformForward(int slice, int row, float p
 	xyz[0] = param->GetPadRowRadii(sector, sectorrow);
 	xyz[1] = (pad - 0.5 * maxPad) * padWidth * sign;
 
-	float vdcorrectionTime, vdcorrectionTimeGY, time0corrTime, deltaZcorrTime, zLength;
-	if (slice < 18)
-	{
-		vdcorrectionTime = revInfo->fVdcorrectionTimeA;
-		vdcorrectionTimeGY = revInfo->fVdcorrectionTimeGYA;
-		time0corrTime = revInfo->fTime0corrTimeA;
-		deltaZcorrTime = revInfo->fDeltaZcorrTimeA;
-		zLength = revInfo->fZLengthA;
-	}
-	else
-	{
-		vdcorrectionTime = revInfo->fVdcorrectionTimeC;
-		vdcorrectionTimeGY = revInfo->fVdcorrectionTimeGYC;
-		time0corrTime = revInfo->fTime0corrTimeC;
-		deltaZcorrTime = revInfo->fDeltaZcorrTimeC;
-		zLength = revInfo->fZLengthC;
-	}
-
 	float xyzGlobal[2] = {xyz[0], xyz[1]};
 	AliHLTTPCCAGeometry::Local2Global(xyzGlobal, slice);
 
-	zwidth = revInfo->fZWidth * revInfo->fDriftCorr;
-	zwidth *= vdcorrectionTime * (1 + xyzGlobal[1] * vdcorrectionTimeGY);
-
-	xyz[2] = time - revInfo->fNTBinsL1;
-	xyz[2] *= zwidth;
-	xyz[2] -= 3. * revInfo->fZSigma + time0corrTime;
-	xyz[2] = sign * (zLength - xyz[2]);
-	xyz[2] -= deltaZcorrTime;
-
-	if (applyCorrection)
-	{
-		float m = slice >= 18 ? revInfo->fDriftTimeFactorC : revInfo->fDriftTimeFactorA;
-		float n = slice >= 18 ? revInfo->fDriftTimeOffsetC : revInfo->fDriftTimeOffsetA;
-		float correctionTime = (xyz[2] - n) / m;
-		xyz[2] += correctionTime * zwidth * sign;
-		float correctionY = revInfo->fCorrectY1 + revInfo->fCorrectY2 * xyz[0] + revInfo->fCorrectY3 * (AliHLTTPCCAGeometry::GetZLength() - fabs(xyz[2]));
-		xyz[1] += correctionY;
-	}
+	xyz[2] = sign * (1024 - time) * 250.f / 1024.f;
 }
 
 static bool AliHLTTPCClusterStat_sorthelper(const AliHLTTPCRawCluster& a, const AliHLTTPCRawCluster& b)
@@ -359,8 +284,6 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 	}
 	int nBlocks = evtData.fBlockCnt;
 
-	const AliHLTTPCReverseTransformInfoV1 *revInfo = NULL;
-
 	AliHLTTPCRawClusterData *clustersArray[36][6];
 	AliHLTTPCClusterXYZData *clustersTransformedArray[36][6];
 	AliHLTTPCTrackHelperStruct *clustersTrackIDArray[36][6];
@@ -383,14 +306,6 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 	for (int ndx = 0; ndx < nBlocks; ndx++)
 	{
 		const AliHLTComponentBlockData *iter = blocks + ndx;
-		if (iter->fDataType == (AliHLTTPCDefinitions::fgkTPCReverseTransformInfoDataType))
-		{
-			revInfo = (const AliHLTTPCReverseTransformInfoV1 *) iter->fPtr;
-			/*HLTImportant("Reverse Transform Info: NTBin %f ZWid %f ZSig %f ZLenA %f ZLenC %f driftc %f t0A %f deltaA %f vdA %f vdGYA %f t0C %f deltaC %f vdC %f vdGYC %f",
-              revInfo->fNTBinsL1, revInfo->fZWidth, revInfo->fZSigma, revInfo->fZLengthA, revInfo->fZLengthC, revInfo->fDriftCorr,
-              revInfo->fTime0corrTimeA, revInfo->fDeltaZcorrTimeA, revInfo->fVdcorrectionTimeA, revInfo->fVdcorrectionTimeGYA,
-              revInfo->fTime0corrTimeC, revInfo->fDeltaZcorrTimeC, revInfo->fVdcorrectionTimeC, revInfo->fVdcorrectionTimeGYC);*/
-		}
 
 		if (iter->fDataType == (AliHLTTPCDefinitions::fgkRawClustersDataType | kAliHLTDataOriginTPC))
 		{
@@ -423,11 +338,6 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 
 	if (fCompressionStudy)
 	{
-		if (revInfo == NULL)
-		{
-			HLTError("RevInfo missing");
-			return (0);
-		}
 		if (tracks == NULL)
 		{
 			HLTError("Tracks missing");
@@ -502,7 +412,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 				float xyz[3];
 				if (1) //Use forward (exact reverse-reverse) transformation of raw cluster (track fit in distorted coordinates)
 				{
-					TransformForward(slice, padrow, cluster.GetPad(), cluster.GetTime(), xyz, revInfo, true);
+					TransformForward(slice, padrow, cluster.GetPad(), cluster.GetTime(), xyz);
 				}
 				else
 				{ //Correct cluster coordinates using correct transformation
@@ -510,7 +420,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 					xyz[1] = clusterTransformed.fY;
 					xyz[2] = clusterTransformed.fZ;
 				}
-
+                
 				float alpha = slice;
 				if (alpha > 18) alpha -= 18;
 				if (alpha > 9) alpha -= 18;
@@ -519,13 +429,12 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 
 				etrack.Propagate(alpha, x, bz);
 				int rowType = padrow < 64 ? 0 : (padrow < 128 ? 2 : 1);
-			       				
+
 				if (ip == 0)
 				{
 					ftrack.Par()[0] = xyz[1];
 					ftrack.Par()[1] = xyz[2];
-					for (int k = 2; k < 5; k++)
-						ftrack.Par()[k] = etrack.GetParameter()[k];
+					for (int k = 2; k < 5; k++) ftrack.Par()[k] = etrack.GetParameter()[k];
 					ftrack.SetX(xyz[0]);
 					falpha = alpha;
 					
@@ -536,9 +445,8 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 				}
 				else
 				{
-				        bool inFlyDirection = 0;
+					bool inFlyDirection = 0;
 					prop.PropagateToXAlpha( xyz[0], alpha,  inFlyDirection );
-
 				}
 
 				nClusterTracks++;
@@ -561,16 +469,16 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 				//clusterTransformed.fY - ftrack.GetY(), clusterTransformed.fZ - ftrack.GetZ());
 
 				float padtime[2];
-				TransformReverse(slice, padrow, ftrack.GetY(), ftrack.GetZ(), padtime, revInfo, true);
+				TransformReverse(slice, padrow, ftrack.GetY(), ftrack.GetZ(), padtime);
 
 				//Check forward / backward transformation
 				/*float xyzChk[3];
-				TransformForward(slice, padrow, padtime[0], padtime[1], xyzChk, revInfo, true);
+				TransformForward(slice, padrow, padtime[0], padtime[1], xyzChk);
 				HLTImportant("BackwardForward Residual %f %f %f: %f %f", ftrack.GetX(), ftrack.GetY(), ftrack.GetZ(), ftrack.GetY() - xyzChk[1], ftrack.GetZ() - xyzChk[2]);*/
 
 				//Show residual wrt to raw cluster position
 				//HLTImportant("Raw Cluster Residual %d (%d/%d) %d: %f %f (%f %f)", i, ip, track->fNPoints, padrow, cluster.GetPad() - padtime[0], cluster.GetTime() - padtime[1], clusterTransformed.fY - ftrack.GetY(), clusterTransformed.fZ - ftrack.GetZ());
-				if (fabs(clusterTransformed.fY - ftrack.GetY()) > 5 || fabs(clusterTransformed.fZ - ftrack.GetZ()) > 5)
+				if (fabs(cluster.GetPad() - padtime[0]) > 5 || fabs(cluster.GetTime() - padtime[1]) > 5)
 				{
 					break;
 				}
@@ -663,9 +571,9 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 					int row = cluster.GetPadRow() + firstRow;
 
 					float xyz[3];
-					TransformForward(is, row, cluster.GetPad(), cluster.GetTime(), xyz, revInfo);
+					TransformForward(is, row, cluster.GetPad(), cluster.GetTime(), xyz);
 
-					float xyzOrig[3], xyzLocGlob[3];
+					/*float xyzOrig[3], xyzLocGlob[3];
 					{
 						int sector = AliHLTTPCCAGeometry::GetNRowLow() ? is : is + 36;
 						int sectorrow = AliHLTTPCCAGeometry::GetNRowLow() ? row : row - AliHLTTPCCAGeometry::GetNRowLow();
@@ -680,10 +588,10 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 							xyzOrig[k] = xx[k];
 							xyzLocGlob[k] = yy[k];
 						}
-					}
+					}*/
 
 					float padtime[2];
-					TransformReverse(is, row, clusterTransformed.fY, clusterTransformed.fZ, padtime, revInfo, true);
+					TransformReverse(is, row, clusterTransformed.fY, clusterTransformed.fZ, padtime);
 
 					nClusters++;
 					residualBacktransformPadabs += fabs(cluster.GetPad() - padtime[0]);
@@ -817,14 +725,14 @@ void AliHLTTPCClusterStatComponent::PrintDumpClustersScaled(int is, int ip, AliH
 	if (fDumpClusters)
 	{
 		int dumpVals[16] = {fEvent, (int) is, (int) ip, (int) cluster.GetPadRow(), (int) pad64, (int) time64, (int) sigmaPad64, (int) sigmaTime64, (int) cluster.GetQMax(), (int) cluster.GetCharge(),
-		                    (int) (cluster.GetFlagSplitPad() * 2 + cluster.GetFlagSplitTime()), (int) clusterTrack.fID, (int) pad64res, (int) time64res, (int) clusterTrack.fAverageQTot, (int) clusterTrack.fAverageQMax};
+		                    (int) (cluster.GetFlagEdge() * 4 + cluster.GetFlagSplitPad() * 2 + cluster.GetFlagSplitTime()), (int) clusterTrack.fID, (int) pad64res, (int) time64res, (int) clusterTrack.fAverageQTot, (int) clusterTrack.fAverageQMax};
 		fwrite(dumpVals, sizeof(int), 16, fp);
 	}
 
 	if (fPrintClustersScaled)
 	{
-		HLTImportant("Slice %d, Patch %d, Row %d, Pad %d, Time %d, SPad %d, STime %d, QMax %d, QTot %d, SplitPad %d, SplitTime %d, TrackID %d, PadRes %d, TimeRes %d AvgTot %d AvgMax %d",
-		             is, ip, (int) cluster.GetPadRow(), (int) pad64, (int) time64, (int) sigmaPad64, (int) sigmaTime64, (int) cluster.GetQMax(), (int) cluster.GetCharge(),
-		             (int) cluster.GetFlagSplitPad(), (int) cluster.GetFlagSplitTime(), (int) clusterTrack.fID, (int) pad64res, (int) time64res, (int) clusterTrack.fAverageQTot, (int) clusterTrack.fAverageQMax);
+		HLTImportant("Event %d Slice %d, Patch %d, Row %d, Pad %d, Time %d, SPad %d, STime %d, QMax %d, QTot %d, SplitPad %d, SplitTime %d, Edge %d, TrackID %d, PadRes %d, TimeRes %d AvgTot %d AvgMax %d",
+		             fEvent, is, ip, (int) cluster.GetPadRow(), (int) pad64, (int) time64, (int) sigmaPad64, (int) sigmaTime64, (int) cluster.GetQMax(), (int) cluster.GetCharge(),
+		             (int) cluster.GetFlagSplitPad(), (int) cluster.GetFlagSplitTime(), (int) cluster.GetFlagEdge(), (int) clusterTrack.fID, (int) pad64res, (int) time64res, (int) clusterTrack.fAverageQTot, (int) clusterTrack.fAverageQMax);
 	}
 }
