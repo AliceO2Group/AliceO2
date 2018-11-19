@@ -24,7 +24,7 @@ namespace o2 {
     public:
       Digit() = default;
 
-      Digit(uint32_t pad, Double_t adc, Double_t time);
+      Digit(Int_t pad, Double_t adc, Double_t time); //check if need uint32_to
       ~Digit() = default;
 
       Int_t GetPadID() { return mPadID; }

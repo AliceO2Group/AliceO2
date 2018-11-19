@@ -4,8 +4,7 @@ O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
   src/Detector.cxx
-  src/Digitizer.cxx
-  src/DigitizerTask.cxx
+  src/MCHDigitizer.cxx
   src/Geometry.cxx
   src/GeometryTest.cxx
   src/Hit.cxx
@@ -23,8 +22,7 @@ set(SRCS
 
 set(HEADERS
   include/${MODULE_NAME}/Detector.h
-  include/${MODULE_NAME}/Digitizer.h
-  include/${MODULE_NAME}/DigitizerTask.h
+  include/${MODULE_NAME}/MCHDigitizer.h
   include/${MODULE_NAME}/Geometry.h
   include/${MODULE_NAME}/GeometryTest.h
   include/${MODULE_NAME}/Hit.h

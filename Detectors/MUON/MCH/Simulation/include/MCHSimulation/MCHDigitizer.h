@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_MCH_DIGITIZER_H_
-#define ALICEO2_MCH_DIGITIZER_H_
+#ifndef ALICEO2_MCH_MCHDIGITIZER_H_
+#define ALICEO2_MCH_MCHDIGITIZER_H_
 
 #include "MCHBase/Digit.h"
 #include "MCHSimulation/Detector.h"
@@ -21,11 +21,11 @@ namespace o2
 {
 namespace mch
 {
-class Digitizer
+class MCHDigitizer
 {
  public:
-  Digitizer(Int_t mode = 0) : mReadoutWindowCurrent(0) { init(); };
-  ~Digitizer() = default;
+  MCHDigitizer(Int_t mode = 0) : mReadoutWindowCurrent(0) { init(); };
+  ~MCHDigitizer() = default;
 
   void init();
 
@@ -71,7 +71,7 @@ class Digitizer
 
 
   
-  ClassDefNV(Digitizer, 1);
+  ClassDefNV(MCHDigitizer, 1);
 };
 } // namespace mch
 } // namespace o2
