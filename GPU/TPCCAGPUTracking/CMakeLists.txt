@@ -37,7 +37,8 @@ endif()
 
 include_directories(. SliceTracker Merger ../Common)
 
-set(SRCS SliceTracker/AliHLTTPCCATrack.cxx
+set(SRCS
+    SliceTracker/AliHLTTPCCATrack.cxx
     SliceTracker/AliHLTTPCCABaseTrackParam.cxx
     SliceTracker/AliHLTTPCCATrackParam.cxx
     SliceTracker/AliHLTTPCCATracklet.cxx
@@ -68,9 +69,12 @@ set(SRCS SliceTracker/AliHLTTPCCATrack.cxx
     TRDTracking/AliHLTTRDTracker.cxx
     TRDTracking/AliHLTTRDTrackletWord.cxx
 
+    GlobalTracker/AliGPUCAParam.cxx
+)
+
+set(SRCS_NO_CINT
     GlobalTracker/AliGPUReconstruction.cxx
     GlobalTracker/AliGPUReconstructionDeviceBase.cxx
-    GlobalTracker/AliGPUCAParam.cxx
 )
 
 #Some extra files / includes / settings needed for the build for AliRoot
@@ -102,6 +106,13 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
 
         GlobalTracker/AliHLTGPUDumpComponent.cxx
     )
+    
+    set (SRCS_NO_CINT ${SRCS_NO_CINT}
+        ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCGeometry.cxx
+        ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCLog.cxx
+        ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCDefinitions.cxx
+        ${AliRoot_SOURCE_DIR}/HLT/TRD/AliHLTTRDDefinitions.cxx
+    )
 
 else() #if we do not build for AliRoot, for the time being we still need some dummy headers for some definitions
     include_directories(HLTHeaders Standalone/include)
@@ -111,6 +122,9 @@ endif()
 if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
     set(SRCS ${SRCS}
         Interface/AliHLTTPCCAO2Interface.cxx
+    )
+    set(SRCS_NO_CINT ${SRCS_NO_CINT}
+        Standalone/cmodules/timer.cpp
     )
 endif()
 
@@ -150,13 +164,7 @@ set(HDRS2
     ../Common/AliTPCCommonDef.h
 )
 
-#Extra cpp files, whose headers we don't pass to CINT
-if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
-    set(SRCS ${SRCS} Standalone/cmodules/timer.cpp)
-endif()
-if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
-    set (SRCS ${SRCS} ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCGeometry.cxx ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCLog.cxx ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCDefinitions.cxx ${AliRoot_SOURCE_DIR}/HLT/TRD/AliHLTTRDDefinitions.cxx)
-endif()
+set(SRCS ${SRCS} ${SRCS_NO_CINT})
 
 #Default cmake build script for AliRoot
 if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")

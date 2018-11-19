@@ -35,6 +35,7 @@ namespace o2 { namespace ITS { class TrackerTraits {}; class TrackerTraitsCPU : 
 constexpr const char* const AliGPUReconstruction::GEOMETRY_TYPE_NAMES[];
 constexpr const char* const AliGPUReconstruction::DEVICE_TYPE_NAMES[];
 constexpr const char* const AliGPUReconstruction::IOTYPENAMES[];
+constexpr AliGPUReconstruction::GeometryType AliGPUReconstruction::geometryType;
 
 static constexpr unsigned int DUMP_HEADER_SIZE = 4;
 static constexpr char DUMP_HEADER[DUMP_HEADER_SIZE + 1] = "CAv1";
