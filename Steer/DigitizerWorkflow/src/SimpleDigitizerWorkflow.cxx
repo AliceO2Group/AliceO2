@@ -44,6 +44,10 @@
 #include "EMCALDigitizerSpec.h"
 #include "EMCALDigitWriterSpec.h"
 
+// for HMPID
+#include "HMPIDDigitizerSpec.h"
+#include "HMPIDDigitWriterSpec.h"
+
 // GRP
 #include "DataFormatsParameters/GRPObject.h"
 #include "GRPUpdaterSpec.h"
@@ -324,6 +328,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::emcal::getEMCALDigitizerSpec(fanoutsize++));
     // connect the EMCal digit writer
     specs.emplace_back(o2::emcal::getEMCALDigitWriterSpec());
+  }
+
+  // add HMPID
+  if (isEnabled(o2::detectors::DetID::HMP)) {
+    detList.emplace_back(o2::detectors::DetID::HMP);
+    // connect the HMP digitization
+    specs.emplace_back(o2::hmpid::getHMPIDDigitizerSpec(fanoutsize++));
+    // connect the HMP digit writer
+    specs.emplace_back(o2::hmpid::getHMPIDDigitWriterSpec());
   }
 
   // GRP updater: must come after all detectors since requires their list

@@ -4,9 +4,11 @@ O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
     src/Detector.cxx
+    src/HMPIDDigitizer.cxx
     )
 set(HEADERS
     include/${MODULE_NAME}/Detector.h
+    include/${MODULE_NAME}/HMPIDDigitizer.h
     )
 
 Set(LINKDEF src/HMPIDSimulationLinkDef.h)

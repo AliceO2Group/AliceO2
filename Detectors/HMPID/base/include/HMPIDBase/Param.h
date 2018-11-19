@@ -93,7 +93,7 @@ class Param
   //ThMax  (degree) of the camber ch
   float ChThMax(Int_t ch) { return Lors2Mars(ch, LorsX(ch, kMaxPcx) - mX, LorsY(ch, kMaxPcy) - mY).Theta() * r2d(); }
 
-  inline static void Lors2Pad(float x, float y, Int_t& pc, Int_t& px, Int_t& py); //(x,y)->(pc,px,py)
+  static void Lors2Pad(float x, float y, Int_t& pc, Int_t& px, Int_t& py); //(x,y)->(pc,px,py)
 
   //(ch,pc,padx,pady)-> abs pad
   static Int_t Abs(Int_t ch, Int_t pc, Int_t x, Int_t y) { return ch * 100000000 + pc * 1000000 + x * 1000 + y; }
