@@ -8,7 +8,6 @@
 #include "AliHLTComponentBenchmark.h"
 #include "AliOptionParser.h"
 
-class AliHLTTPCReverseTransformInfoV1;
 class AliHLTExternalTrackParam;
 class AliGPUCAParam;
 class AliHLTTPCRawCluster;
@@ -40,8 +39,8 @@ class AliHLTTPCClusterStatComponent : public AliHLTProcessor, public AliOptionPa
   void GetOutputDataSize(unsigned long& constBase, double& inputMultiplier);
   AliHLTComponent* Spawn() {return new AliHLTTPCClusterStatComponent;}
 
-  static void TransformReverse(int slice, int row, float y, float z, float padtime[], const AliHLTTPCReverseTransformInfoV1* revInfo, bool applyCorrection = false);
-  static void TransformForward(int slice, int row, float pad, float time, float xyz[], const AliHLTTPCReverseTransformInfoV1* revInfo, bool applyCorrection = false);
+  static void TransformReverse(int slice, int row, float y, float z, float padtime[]);
+  static void TransformForward(int slice, int row, float pad, float time, float xyz[]);
   
   void PrintDumpClustersScaled(int is, int ip, AliHLTTPCRawCluster &cluster, AliHLTTPCClusterXYZ &clusterTransformed, AliHLTTPCTrackHelperStruct &clusterTrack);
 
