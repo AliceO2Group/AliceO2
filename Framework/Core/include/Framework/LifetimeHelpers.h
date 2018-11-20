@@ -22,7 +22,7 @@ namespace o2
 namespace framework
 {
 
-struct InputSpec;
+struct ConcreteDataMatcher;
 
 /// Lifetime handlers are used to manage the cases in which data is not coming
 /// from the dataflow, but from some other source or trigger, e.g.,
@@ -65,7 +65,7 @@ struct LifetimeHelpers {
   /// dataOrigin, dataDescrition and dataSpecification of the given @a route.
   /// The payload of each message will contain an incremental number for each
   /// message being created.
-  static ExpirationHandler::Handler enumerate(InputSpec const& spec, std::string const& sourceChannel);
+  static ExpirationHandler::Handler enumerate(ConcreteDataMatcher const& spec, std::string const& sourceChannel);
 };
 
 } // namespace framework

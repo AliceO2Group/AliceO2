@@ -15,6 +15,7 @@
 
 #include "Framework/DataSamplingPolicy.h"
 #include "Framework/DataSamplingConditionFactory.h"
+#include "Framework/DataSpecUtils.h"
 
 namespace o2
 {
@@ -104,7 +105,8 @@ const Output DataSamplingPolicy::prepareOutput(const InputSpec& input) const
 {
   auto result = mPaths.find(input);
   if (result != mPaths.end()) {
-    return Output{ result->second.origin, result->second.description, input.subSpec, result->second.lifetime };
+    auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
+    return Output{ result->second.origin, result->second.description, concrete.subSpec };
   } else {
     return Output{ header::gDataOriginInvalid, header::gDataDescriptionInvalid };
   }

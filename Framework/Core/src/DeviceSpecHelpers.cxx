@@ -61,7 +61,7 @@ struct ExpirationHandlerHelpers {
   static InputRoute::ExpirationConfigurator expiringConditionConfigurator(InputSpec const& matcher)
   {
     return [matcher](ConfigParamRegistry const&) {
-      std::string prefix = std::string{ "/" } + matcher.origin.str + "/" + matcher.description.str;
+      std::string prefix = DataSpecUtils::restEndpoint(matcher);
       return LifetimeHelpers::fetchFromCCDBCache(prefix);
     };
   }
@@ -88,9 +88,14 @@ struct ExpirationHandlerHelpers {
     };
   }
 
-  static InputRoute::ExpirationConfigurator expiringTimerConfigurator(InputSpec const& matcher, std::string const& sourceChannel)
+  static InputRoute::ExpirationConfigurator expiringTimerConfigurator(InputSpec const& spec, std::string const& sourceChannel)
   {
-    return [matcher, sourceChannel](ConfigParamRegistry const&) { return LifetimeHelpers::enumerate(matcher, sourceChannel); };
+    auto m = std::get_if<ConcreteDataMatcher>(&spec.matcher);
+    if (m == nullptr) {
+      throw std::runtime_error("InputSpec for Timers must be fully qualified");
+    }
+    // We copy the matcher to avoid lifetime issues.
+    return [ matcher = *m, sourceChannel ](ConfigParamRegistry const&) { return LifetimeHelpers::enumerate(matcher, sourceChannel); };
   }
 
   static InputRoute::DanglingConfigurator danglingTransientConfigurator()

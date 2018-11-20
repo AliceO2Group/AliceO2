@@ -8,10 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "WorkflowHelpers.h"
+#include "Framework/AlgorithmSpec.h"
 #include "Framework/ChannelMatching.h"
 #include "Framework/CommonDataProcessors.h"
 #include "Framework/DeviceSpec.h"
-#include "Framework/AlgorithmSpec.h"
+#include "Framework/DataSpecUtils.h"
 #include <algorithm>
 #include <list>
 #include <set>
@@ -141,14 +142,11 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
     auto& consumer = workflow[wi];
     for (size_t ii = 0; ii < consumer.inputs.size(); ++ii) {
       auto& input = consumer.inputs[ii];
-      OutputSpec output{ input.origin,
-                         input.description,
-                         input.subSpec,
-                         input.lifetime };
       switch (input.lifetime) {
-        case Lifetime::Timer:
-          timer.outputs.push_back(output);
-          break;
+        case Lifetime::Timer: {
+          auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
+          timer.outputs.emplace_back(OutputSpec{ concrete.origin, concrete.description, concrete.subSpec, Lifetime::Timer });
+        } break;
         case Lifetime::Condition:
         case Lifetime::QA:
         case Lifetime::Transient:
@@ -222,10 +220,10 @@ WorkflowHelpers::constructGraph(const WorkflowSpec &workflow,
                                &forwardedInputsInfo](size_t ci, size_t ii) {
     assert(ci < workflow.size());
     assert(ii < workflow[ci].inputs.size());
-    auto &input = workflow[ci].inputs[ii];
-    auto matcher = [&input, &constOutputs](const LogicalOutputInfo &outputInfo) -> bool {
-      auto &output = constOutputs[outputInfo.outputGlobalIndex];
-      return intersect(LogicalChannelDomain(input), LogicalChannelRange(output));
+    auto& input = workflow[ci].inputs[ii];
+    auto matcher = [&input, &constOutputs](const LogicalOutputInfo& outputInfo) -> bool {
+      auto& output = constOutputs[outputInfo.outputGlobalIndex];
+      return DataSpecUtils::match(input, output);
     };
     oif = std::find_if(availableOutputsInfo.begin(),
                        availableOutputsInfo.end(),
@@ -247,7 +245,7 @@ WorkflowHelpers::constructGraph(const WorkflowSpec &workflow,
     auto &input = workflow[ci].inputs[ii];
     auto matcher = [&input, &constOutputs](const LogicalOutputInfo &outputInfo) -> bool {
       auto &output = constOutputs[outputInfo.outputGlobalIndex];
-      return intersect(LogicalChannelDomain(input), LogicalChannelRange(output));
+      return DataSpecUtils::match(input, output);
     };
     oif = availableOutputsInfo.erase(oif);
     oif = std::find_if(oif, availableOutputsInfo.end(), matcher);
@@ -299,9 +297,8 @@ WorkflowHelpers::constructGraph(const WorkflowSpec &workflow,
   auto errorDueToMissingOutputFor = [&workflow](size_t ci, size_t ii) {
     auto input = workflow[ci].inputs[ii];
     std::ostringstream str;
-    str << "No matching output found for " << input.origin.as<std::string>() << " "
-        << input.description.as<std::string>() << " "
-        << input.subSpec << "\n";
+    str << "No matching output found for "
+        << DataSpecUtils::describe(input) << "\n";
     throw std::runtime_error(str.str());
   };
 
@@ -480,70 +477,62 @@ WorkflowHelpers::verifyWorkflow(const o2::framework::WorkflowSpec &workflow) {
     }
     for (size_t ii = 0; ii < spec.inputs.size(); ++ii) {
       InputSpec const &input = spec.inputs[ii];
-      if (input.binding.empty()
-          || input.description == o2::header::DataDescription("")
-          || input.origin == o2::header::DataOrigin("")) {
-        ss << "In spec " << spec.name << " input specification " 
+      if (DataSpecUtils::validate(input) == false) {
+        ss << "In spec " << spec.name << " input specification "
            << ii << " requires binding, description and origin"
-           " to be fully specified";
+                    " to be fully specified";
         throw std::runtime_error(ss.str());
       }
     }
   }
 }
 
-struct UnifiedDataSpecType {
-  header::DataOrigin origin;
-  header::DataDescription description;
-  uint64_t subSpec;
-  int isOutput;
+using UnifiedDataSpecType = std::variant<InputSpec, OutputSpec>;
+struct DataMatcherId {
+  size_t workflowId;
+  size_t id;
 };
 
 std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec const& workflow)
 {
-  std::vector<UnifiedDataSpecType> tmp;
+  std::vector<DataMatcherId> inputs;
+  std::vector<DataMatcherId> outputs;
   std::vector<InputSpec> results;
 
-  for (auto& spec : workflow) {
-    for (auto& input : spec.inputs) {
-      tmp.push_back({ input.origin, input.description, input.subSpec, 0 });
+  /// Prepare an index to do the iterations quickly.
+  for (size_t wi = 0, we = workflow.size(); wi != we; ++wi) {
+    auto &spec = workflow[wi];
+    for (size_t ii = 0, ie = spec.inputs.size(); ii != ie; ++ii) {
+      inputs.push_back(DataMatcherId{wi, ii});
     }
-    for (auto& output : spec.outputs) {
-      tmp.push_back({ output.origin, output.description, output.subSpec, 1 });
+    for (size_t oi = 0, oe = spec.outputs.size(); oi != oe; ++oi) {
+      outputs.push_back(DataMatcherId{wi, oi});
     }
   }
 
-  auto cmp = [](UnifiedDataSpecType const& lhs, UnifiedDataSpecType const& rhs) -> bool {
-    return std::tie(lhs.origin, lhs.description, lhs.subSpec, lhs.isOutput) <
-           std::tie(rhs.origin, rhs.description, rhs.subSpec, rhs.isOutput);
-  };
-  std::sort(tmp.begin(), tmp.end(), cmp);
+  for (size_t oi = 0, oe = outputs.size(); oi != oe; ++oi) {
+    auto& output = outputs[oi];
+    bool matched = false;
+    for (size_t ii = 0, ie = inputs.size(); ii != ie; ++ii) {
+      auto& input = inputs[ii];
+      // Inputs of the same workflow cannot match outputs
+      if (output.workflowId == input.workflowId) {
+        continue;
+      }
+      auto &outputSpec = workflow[output.workflowId].outputs[output.id];
+      auto &inputSpec = workflow[input.workflowId].inputs[input.id];
+      if (DataSpecUtils::match(inputSpec, outputSpec)) {
+        matched = true;
+        break;
+      }
+    }
 
-  // Once sorted, all the transitions which begin with an output
-  // mean there was no input.
-  bool isFirst = true;
-  UnifiedDataSpecType last;
-  int i = 0;
-  for (auto& unified : tmp) {
-    if (last.origin != unified.origin ||
-        last.description != unified.description ||
-        last.subSpec != unified.subSpec) {
-      isFirst = true;
-      last = unified;
-    }
-    if (isFirst && unified.isOutput == 0) {
-      isFirst = false;
-      continue;
-    }
-    if (isFirst && unified.isOutput == 1) {
-      isFirst = false;
+    if (matched == false) {
+      auto &outputSpec = workflow[output.workflowId].outputs[output.id];
       char buf[64];
-      results.push_back(InputSpec{ (snprintf(buf, 64, "dangling%d", i), buf), unified.origin,
-                                   unified.description, unified.subSpec });
-      ++i;
-      continue;
+      results.push_back(InputSpec{ (snprintf(buf, 64, "dangling_%zu_%zu", output.workflowId, output.id), buf), outputSpec.origin,
+                                   outputSpec.description, outputSpec.subSpec });
     }
-    assert(isFirst == false);
   }
 
   return results;

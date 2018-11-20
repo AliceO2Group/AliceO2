@@ -40,21 +40,31 @@ class DataSamplingPolicy
   struct inputSpecHasher {
     size_t operator()(const InputSpec& i) const
     {
-      // 'Compressing' dataOrigin and dataDescription to 64 bits. SubSpecification is not taken into account,
-      // because sometimes we want to have subSpec-agnostic match.
-      return (static_cast<size_t>(i.description.itg[0]) << 32 |
-              static_cast<size_t>(i.description.itg[1])) ^
-             static_cast<size_t>(i.origin.itg[0]);
+      if (auto matcher = std::get_if<ConcreteDataMatcher>(&i.matcher)) {
+        // 'Compressing' dataOrigin and dataDescription to 64 bits. SubSpecification is not taken into account,
+        // because sometimes we want to have subSpec-agnostic match.
+        return (static_cast<size_t>(matcher->description.itg[0]) << 32 |
+                static_cast<size_t>(matcher->description.itg[1])) ^
+               static_cast<size_t>(matcher->origin.itg[0]);
+      } else {
+        throw std::runtime_error("Unsupported InputSpec type");
+      }
     }
   };
   struct inputSpecEqual {
     bool operator()(const InputSpec& a, const InputSpec& b) const
     {
-      // -1 means 'match all subSpec'
-      if (a.subSpec == -1 || b.subSpec == -1) {
-        return a.description == b.description && a.origin == b.origin;
+      auto matcherA = std::get_if<ConcreteDataMatcher>(&a.matcher);
+      auto matcherB = std::get_if<ConcreteDataMatcher>(&b.matcher);
+      if (matcherA && matcherB) {
+        // -1 means 'match all subSpec'
+        if (matcherA->subSpec == -1 || matcherB->subSpec == -1) {
+          return matcherA->description == matcherB->description && matcherA->origin == matcherB->origin;
+        } else {
+          return *matcherA == *matcherB;
+        }
       } else {
-        return a.description == b.description && a.origin == b.origin && a.subSpec == b.subSpec;
+        return a == b;
       }
     }
   };

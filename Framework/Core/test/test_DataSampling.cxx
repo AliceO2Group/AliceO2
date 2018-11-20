@@ -17,12 +17,14 @@
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/DataSamplingReadoutAdapter.h"
+#include "Framework/DataSpecUtils.h"
 #include "Headers/DataHeader.h"
 
 #include <Configuration/ConfigurationFactory.h>
 
 using namespace o2::framework;
 using namespace o2::configuration;
+
 using DataHeader = o2::header::DataHeader;
 using DataOrigin = o2::header::DataOrigin;
 using DataDescription = o2::header::DataDescription;
@@ -51,19 +53,13 @@ BOOST_AUTO_TEST_CASE(DataSamplingSimpleFlow)
 
   auto input = std::find_if(disp->inputs.begin(), disp->inputs.end(),
                             [](const InputSpec& in) {
-                              return in.origin == DataOrigin("TPC") &&
-                                     in.description == DataDescription("CLUSTERS") &&
-                                     in.subSpec == 0 &&
-                                     in.lifetime == Lifetime::Timeframe;
+                              return DataSpecUtils::match(in, DataOrigin("TPC"), DataDescription("CLUSTERS"), 0) && in.lifetime == Lifetime::Timeframe;
                             });
   BOOST_CHECK(input != disp->inputs.end());
 
   input = std::find_if(disp->inputs.begin(), disp->inputs.end(),
                        [](const InputSpec& in) {
-                         return in.origin == DataOrigin("TPC") &&
-                                in.description == DataDescription("CLUSTERS_P") &&
-                                in.subSpec == 0 &&
-                                in.lifetime == Lifetime::Timeframe;
+                         return DataSpecUtils::match(in, DataOrigin("TPC"), DataDescription("CLUSTERS_P"), 0) && in.lifetime == Lifetime::Timeframe;
                        });
   BOOST_CHECK(input != disp->inputs.end());
 
@@ -105,7 +101,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingParallelFlow)
       Outputs{ { "TPC", "CLUSTERS_P" } } },
     3,
     [](DataProcessorSpec& spec, size_t index) {
-      spec.inputs[0].subSpec = index;
+      DataSpecUtils::updateMatchingSubspec(spec.inputs[0], index);
       spec.outputs[0].subSpec = index;
     });
 
@@ -123,19 +119,13 @@ BOOST_AUTO_TEST_CASE(DataSamplingParallelFlow)
 
     auto input = std::find_if(disp->inputs.begin(), disp->inputs.end(),
                               [i](const InputSpec& in) {
-                                return in.origin == DataOrigin("TPC") &&
-                                       in.description == DataDescription("CLUSTERS") &&
-                                       in.subSpec == i &&
-                                       in.lifetime == Lifetime::Timeframe;
+                                return DataSpecUtils::match(in, ConcreteDataMatcher{ DataOrigin("TPC"), DataDescription("CLUSTERS"), static_cast<DataHeader::SubSpecificationType>(i) }) && in.lifetime == Lifetime::Timeframe;
                               });
     BOOST_CHECK(input != disp->inputs.end());
 
     input = std::find_if(disp->inputs.begin(), disp->inputs.end(),
                          [i](const InputSpec& in) {
-                           return in.origin == DataOrigin("TPC") &&
-                                  in.description == DataDescription("CLUSTERS_P") &&
-                                  in.subSpec == i &&
-                                  in.lifetime == Lifetime::Timeframe;
+                           return DataSpecUtils::match(in, ConcreteDataMatcher{ DataOrigin("TPC"), DataDescription("CLUSTERS_P"), static_cast<DataHeader::SubSpecificationType>(i) }) && in.lifetime == Lifetime::Timeframe;
                          });
     BOOST_CHECK(input != disp->inputs.end());
 
@@ -213,10 +203,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingFairMq)
 
   auto input = std::find_if(disp->inputs.begin(), disp->inputs.end(),
                             [](const InputSpec& in) {
-                              return in.origin == DataOrigin("TPC") &&
-                                     in.description == DataDescription("RAWDATA") &&
-                                     in.subSpec == 0 &&
-                                     in.lifetime == Lifetime::Timeframe;
+                              return DataSpecUtils::match(in, ConcreteDataMatcher{ DataOrigin("TPC"), DataDescription("RAWDATA"), 0 }) && in.lifetime == Lifetime::Timeframe;
                             });
   BOOST_CHECK(input != disp->inputs.end());
   BOOST_CHECK_EQUAL(disp->outputs.size(), 1);
@@ -234,9 +221,9 @@ BOOST_AUTO_TEST_CASE(InputSpecsForPolicy)
   std::vector<InputSpec> inputs = DataSampling::InputSpecsForPolicy(configFilePath, "tpcclusters");
 
   BOOST_CHECK_EQUAL(inputs.size(), 2);
-  BOOST_CHECK_EQUAL(inputs[0], (InputSpec{ "clusters_p", "DS", "tpcclusters-1", static_cast<DataHeader::SubSpecificationType>(-1) }));
+  BOOST_CHECK(DataSpecUtils::match(inputs[0], ConcreteDataMatcher{ "DS", "tpcclusters-1", static_cast<DataHeader::SubSpecificationType>(-1) }));
   BOOST_CHECK_EQUAL(inputs[0].binding, "clusters_p");
-  BOOST_CHECK_EQUAL(inputs[1], (InputSpec{ "clusters", "DS", "tpcclusters-0", static_cast<DataHeader::SubSpecificationType>(-1) }));
+  BOOST_CHECK(DataSpecUtils::match(inputs[1], ConcreteDataMatcher{ "DS", "tpcclusters-0", static_cast<DataHeader::SubSpecificationType>(-1) }));
   BOOST_CHECK_EQUAL(inputs[1].binding, "clusters");
 
   std::unique_ptr<ConfigurationInterface> config = ConfigurationFactory::getConfiguration(configFilePath);
