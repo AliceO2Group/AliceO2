@@ -17,7 +17,7 @@
 #ifndef ALICE_ALITPCOMMON_TPCFASTTRANSFORMATION_FLATOBJECT_H
 #define ALICE_ALITPCOMMON_TPCFASTTRANSFORMATION_FLATOBJECT_H
 
-#undef NDEBUG 
+#undef NDEBUG
 
 #include <stddef.h>
 #include <memory>
@@ -34,31 +34,31 @@ namespace tpc_fast_transformation {
 /// The data may contain pointers to the buffer inside.
 /// The buffer can be internal, placed in mFlatBufferContainer, or external.
 ///
-/// Important: 
+/// Important:
 /// All methods of the FlatObject are marked "protected" in order to not let users to call them directly.
-/// They all should be reimplemented in daughter classes, 
-/// because only daughter class knows how to reset all pointers in the data buffer. 
-/// This is an unusual decision. Normally, to avoid confusion one should just mark methods of a base class  virtual or abstract. 
+/// They all should be reimplemented in daughter classes,
+/// because only daughter class knows how to reset all pointers in the data buffer.
+/// This is an unusual decision. Normally, to avoid confusion one should just mark methods of a base class  virtual or abstract.
 /// But this right solution invokes use of a virtual table and complicates porting objects to other machines.
 /// Therefore:  no virtual functions but protected methods.
-/// 
+///
 /// == Object construction.
 ///
-/// This base class performs some basic operations, like setting initialisation flags, 
+/// This base class performs some basic operations, like setting initialisation flags,
 /// allocating / releasing memory etc. As no virtual methods are involved,
-/// the rest should be done manually in daughter classes. 
+/// the rest should be done manually in daughter classes.
 ///
-/// It is assumed, that a daughter object may be complicated 
+/// It is assumed, that a daughter object may be complicated
 /// and can not be constructed by just a call of its c++ constructor.
 /// May be it needs to wait for something else to be initialized first. Like a database or so.
 ///
-/// Therefore the object may find itself in some intermediate half-constructed state, 
-/// where its data stays in private temporary arrays and can not be yet copied to the flat buffer. 
+/// Therefore the object may find itself in some intermediate half-constructed state,
+/// where its data stays in private temporary arrays and can not be yet copied to the flat buffer.
 ///
 /// To deal with it, some extra control on the initialization flow is provided.
 ///
-/// The object can be constructed either 
-/// a) by calling  
+/// The object can be constructed either
+/// a) by calling
 ///    void startConstruction();
 ///    ... do something ..
 ///    void finishConstruction( int flatBufferSize );
@@ -75,7 +75,7 @@ namespace tpc_fast_transformation {
 ///  std::unique_ptr<char[]> p = obj.releaseInternalBuffer();
 ///  ..taking care on p..
 ///
-/// option b) 
+/// option b)
 ///  std::unique_ptr<char[]> p( new char[obj.GetBufferSize()] );
 ///  obj.moveBufferTo( p.get() );
 ///  ..taking care on p..
@@ -95,14 +95,14 @@ namespace tpc_fast_transformation {
 ///
 /// == Moving an object to other machine.
 ///
-/// This only works when the buffer is external. 
-/// The object and its buffer are supposed to be bit-wise ported to a new place. 
-/// And they need to find each other there. 
-/// There are 2 options: 
+/// This only works when the buffer is external.
+/// The object and its buffer are supposed to be bit-wise ported to a new place.
+/// And they need to find each other there.
+/// There are 2 options:
 ///
 /// option a) The new buffer location is only known after the transport. In this case call:
 ///  obj.setActualBufferAddress( new buffer address )
-/// from the new place. 
+/// from the new place.
 ///
 /// option b) The new buffer location is known before the transport (case of porting to GPU). In this case call:
 ///   obj.setFutureBufferAddress( char* futureFlatBufferPtr );
@@ -110,7 +110,7 @@ namespace tpc_fast_transformation {
 ///
 class FlatObject
 {
- protected:    
+ protected:
 
   /// _____________  Constructors / destructors __________________________
 
@@ -143,8 +143,8 @@ class FlatObject
   /// Starts the construction procedure. A daughter class should reserve temporary memory.
   void startConstruction();
   
-  /// Finishes construction: creates internal flat buffer. 
-  /// A daughter class should put all created variable-size members to this buffer  
+  /// Finishes construction: creates internal flat buffer.
+  /// A daughter class should put all created variable-size members to this buffer
   ///
   void finishConstruction( int flatBufferSize );
 
@@ -152,7 +152,7 @@ class FlatObject
   void destroy();
 
   /// Initializes from another object, copies data to newBufferPtr
-  /// When newBufferPtr==nullptr, an internal container will be created, the data will be copied there. 
+  /// When newBufferPtr==nullptr, an internal container will be created, the data will be copied there.
   /// A daughter class should relocate pointers inside the buffer.
   ///
   void cloneFromObject( const FlatObject &obj, char *newFlatBufferPtr );
@@ -179,13 +179,13 @@ class FlatObject
 
   
   /// Sets a future location of the external flat buffer before moving it to this location (i.e. when copying to GPU).
-  /// 
+  ///
   /// The object can be used immidiatelly after the move, call of setActualFlatBufferAddress() is not needed.
   ///
   /// A daughter class should already relocate all the pointers inside the current buffer to the future location.
   /// It should not touch memory in the future location, since it may be not yet available.
   ///
-  /// !!! Information about the actual buffer location will be lost. 
+  /// !!! Information about the actual buffer location will be lost.
   /// !!! Most of the class methods may be called only after the buffer will be moved to its new location.
   /// !!! To undo call setActualFlatBufferAddress()
   ///
@@ -203,16 +203,19 @@ class FlatObject
   const char* getFlatBufferPtr() const {return mFlatBufferPtr;}
 
   /// Tells if the object is constructed
-  bool isConstructed() const { 
-    return (mConstructionMask & (unsigned int) ConstructionState::Constructed); 
+  bool isConstructed() const {
+    return (mConstructionMask & (unsigned int) ConstructionState::Constructed);
   }
 
   /// Tells if the buffer is internal
-  bool isBufferInternal() const { 
-    return ( (mFlatBufferPtr!=nullptr) && (mFlatBufferPtr == mFlatBufferContainer.get()) ); 
+  bool isBufferInternal() const {
+    return ( (mFlatBufferPtr!=nullptr) && (mFlatBufferPtr == mFlatBufferContainer.get()) );
   }
 
-
+  // Adopt an external unique_ptr as internal buffer
+  void adoptInternalBuffer(std::unique_ptr<char[]>&& buf);
+  // Hard reset of internal unique_ptr to nullptr without deleting (needed copying an object without releasing)
+  void clearInternalBufferUniquePtr();
 
   /// _______________  Generic utilities  _______________________________________________
 
@@ -226,18 +229,18 @@ class FlatObject
 
   /// Relocates a pointer inside a buffer to the new buffer address
   template<class T>
-    static T* relocatePointer( const char *oldBase, char *newBase, const T* ptr){ 
-    return reinterpret_cast<T*>( newBase + (reinterpret_cast<const char*>(ptr) - oldBase) ); 
+    static T* relocatePointer( const char *oldBase, char *newBase, const T* ptr){
+    return reinterpret_cast<T*>( newBase + (reinterpret_cast<const char*>(ptr) - oldBase) );
   }
 
 
- protected:   
+ protected:
 
   /// _______________  Data members  _______________________________________________
 
 
   /// Enumeration of construction states
-  enum  ConstructionState : unsigned int { 
+  enum  ConstructionState : unsigned int {
     NotConstructed = 0x0,    ///< the object is not constructed
     Constructed    = 0x1,    ///< the object is constructed, temporary memory is released
     InProgress     = 0x2     ///< construction started: temporary  memory is reserved
@@ -245,7 +248,7 @@ class FlatObject
 
   size_t mFlatBufferSize ;                      ///< Size of the flat buffer
   std::unique_ptr<char[]> mFlatBufferContainer; ///< Optional container for the flat buffer
-  char* mFlatBufferPtr;                         ///< Pointer to the flat buffer    
+  char* mFlatBufferPtr;                         ///< Pointer to the flat buffer
   unsigned int mConstructionMask;               ///< mask for constructed object members, first two bytes are used by this class
 };
 
@@ -266,13 +269,13 @@ inline FlatObject::FlatObject()
   mFlatBufferContainer( nullptr ),
   mFlatBufferPtr( nullptr ),
   mConstructionMask( ConstructionState::NotConstructed )
-{  
+{
   // Default Constructor: creates an empty uninitialized object
 }
 
 
 inline void FlatObject::startConstruction()
-{ 
+{
   /// Starts the construction procedure. A daughter class should reserve temporary memory.
   destroy();
   mConstructionMask =  ConstructionState::InProgress;
@@ -282,7 +285,7 @@ inline void FlatObject::startConstruction()
 inline void FlatObject::destroy()
 {
   /// Set the object to NotConstructed state, release the buffer
-  mFlatBufferSize = 0; 
+  mFlatBufferSize = 0;
   mFlatBufferContainer.reset();
   mFlatBufferPtr = nullptr;
   mConstructionMask = ConstructionState::NotConstructed;
@@ -291,8 +294,8 @@ inline void FlatObject::destroy()
 
 inline void FlatObject::finishConstruction( int flatBufferSize )
 {
-  /// Finishes construction: creates internal flat buffer. 
-  /// A daughter class should put all created variable-size members to this buffer    
+  /// Finishes construction: creates internal flat buffer.
+  /// A daughter class should put all created variable-size members to this buffer
 
   assert( mConstructionMask & (unsigned int) ConstructionState::InProgress );
 
@@ -310,7 +313,7 @@ inline void FlatObject::cloneFromObject( const FlatObject &obj, char *newFlatBuf
 {
 
   /// Initializes from another object, copies data to newBufferPtr
-  /// When newBufferPtr==nullptr, the internal container will be created, the data will be copied there. 
+  /// When newBufferPtr==nullptr, the internal container will be created, the data will be copied there.
   /// obj can be *this
 
   assert( obj.isConstructed() );
@@ -327,7 +330,7 @@ inline void FlatObject::cloneFromObject( const FlatObject &obj, char *newFlatBuf
  
   mFlatBufferSize = obj.mFlatBufferSize;
   mFlatBufferPtr = newFlatBufferPtr;
-  mConstructionMask = (unsigned int) ConstructionState::Constructed; 
+  mConstructionMask = (unsigned int) ConstructionState::Constructed;
 }
    
 
@@ -335,6 +338,19 @@ inline std::unique_ptr<char[]> FlatObject::releaseInternalBuffer()
 {
   // returns an unique pointer to the internal buffer with all the rights. Makes the internal container variable empty.
   return std::move(mFlatBufferContainer); // must also work without move()
+}
+
+inline void FlatObject::adoptInternalBuffer(std::unique_ptr<char[]>&& buf)
+{
+  // buf becomes the new internal buffer, after it was already set as new setActualBufferAddress
+  assert( mFlatBufferPtr == buf.get() );
+  mFlatBufferContainer = std::move(buf);
+}
+
+inline void FlatObject::clearInternalBufferUniquePtr()
+{
+  // we just release the internal buffer ressetting it to nullptr
+  mFlatBufferContainer.release();
 }
 
 
@@ -359,7 +375,7 @@ inline void FlatObject::moveBufferTo( char *newFlatBufferPtr )
 inline void FlatObject::setActualBufferAddress( char* actualFlatBufferPtr )
 {
   /// Sets the actual location of the external flat buffer after it has been moved (i.e. to another maschine)
-  /// 
+  ///
   /// It sets  mFlatBufferPtr to actualFlatBufferPtr.
   /// A daughter class should update all the pointers inside the buffer in the new location.
  
@@ -372,7 +388,7 @@ inline void FlatObject::setActualBufferAddress( char* actualFlatBufferPtr )
 inline void FlatObject::setFutureBufferAddress( char* futureFlatBufferPtr )
 {
   /// Sets a future location of the external flat buffer before moving it to this location.
-  /// 
+  ///
   /// A daughter class should already reset all the pointers inside the current buffer to the future location
   /// without touching memory in the future location.
  
