@@ -208,6 +208,68 @@ void AliGPUReconstruction::AllocateIOMemory()
 	AllocateIOMemoryHelper(mIOPtrs.nTRDTracklets, mIOPtrs.trdTracklets, mIOMem.trdTracklets);
 }
 
+template <class T> void AliGPUReconstruction::DumpFlatObjectToFile(const T* obj, const char* file)
+{
+	FILE* fp = fopen(file, "w+b");
+	if (fp == nullptr) return;
+	size_t size[2] = {sizeof(*obj), obj->getFlatBufferSize()};
+	fwrite(size, sizeof(size[0]), 2, fp);
+	fwrite(obj, 1, size[0], fp);
+	fwrite(obj->getFlatBufferPtr(), 1, size[1], fp);
+	fclose(fp);
+}
+
+template <class T> std::unique_ptr<T> AliGPUReconstruction::ReadFlatObjectFromFile(const char* file)
+{
+	FILE* fp = fopen(file, "rb");
+	if (fp == nullptr) return nullptr;
+	size_t size[2], r;
+	r = fread(size, sizeof(size[0]), 2, fp);
+	if (r == 0 || size[0] != sizeof(T)) {fclose(fp); return nullptr;}
+	std::unique_ptr<T> retVal(new T);
+	std::unique_ptr<char[]> buf(new char[size[1]]);
+	r = fread((void*) retVal.get(), 1, size[0], fp);
+	r = fread(buf.get(), 1, size[1], fp);
+	fclose(fp);
+	retVal->clearInternalBufferUniquePtr();
+	retVal->setActualBufferAddress(buf.get());
+	retVal->adoptInternalBuffer(std::move(buf));
+	return std::move(retVal);
+}
+
+template <class T> void AliGPUReconstruction::DumpStructToFile(const T* obj, const char* file)
+{
+	FILE* fp = fopen(file, "w+b");
+	if (fp == nullptr) return;
+	size_t size = sizeof(*obj);
+	fwrite(&size, sizeof(size), 1, fp);
+	fwrite(obj, 1, size, fp);
+	fclose(fp);
+}
+
+template <class T> std::unique_ptr<T> AliGPUReconstruction::ReadStructFromFile(const char* file)
+{
+	FILE* fp = fopen(file, "rb");
+	if (fp == nullptr) return nullptr;
+	size_t size, r;
+	r = fread(&size, sizeof(size), 1, fp);
+	if (r == 0 || size != sizeof(T)) {fclose(fp); return nullptr;}
+	std::unique_ptr<T> newObj(new T);
+	r = fread(newObj.get(), 1, size, fp);
+	fclose(fp);
+	return std::move(newObj);
+}
+
+template <class T> void AliGPUReconstruction::ReadStructFromFile(const char* file, T* obj)
+{
+	FILE* fp = fopen(file, "rb");
+	if (fp == nullptr) return;
+	size_t size, r;
+	r = fread(&size, sizeof(size), 1, fp);
+	if (r == 0) {fclose(fp); return;}
+	r = fread(obj, 1, size, fp);
+}
+
 int AliGPUReconstruction::RunTRDTracking()
 {
 	std::vector< HLTTRDTrack > tracksTPC;
