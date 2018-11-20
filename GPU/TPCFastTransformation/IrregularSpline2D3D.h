@@ -20,7 +20,7 @@
 #include "IrregularSpline1D.h"
 #include "FlatObject.h"
 
-#if !defined(__CINT__) && !defined(__ROOTCINT__) && !defined(HLTCA_GPUCODE)
+#if !defined(__CINT__) && !defined(__ROOTCINT__) && !defined(HLTCA_GPUCODE) && !defined(HLTCA_NO_VC)
 //&& !defined(__CLING__)
 #include <Vc/Vc>
 #endif
@@ -29,25 +29,25 @@ namespace ali_tpc_common {
 namespace tpc_fast_transformation {
 
 ///
-/// The IrregularSpline2D3D class represents twoo-dimensional spline interpolation on nonunifom (irregular) grid. 
-/// 
+/// The IrregularSpline2D3D class represents twoo-dimensional spline interpolation on nonunifom (irregular) grid.
+///
 /// The class is flat C structure. No virtual methods, no ROOT types are used.
 /// It is designed for spline parameterisation of TPC transformation.
-/// 
+///
 /// ---
 /// The spline interpolates a generic function F:[u,v)->(x,y,z),
 /// where u,v belong to [0,1]x[0,1]
 ///
 /// It is an extension of IrregularSpline1D class, see IrregularSpline1D.h for more details.
 ///
-/// Important: 
+/// Important:
 ///   -- The number of knots and their positions may change during initialisation
 ///   -- Don't forget to call correctEdges() for the array of F values (see IrregularSpline1D.h )
 ///
 /// ------------
 ///
 ///  Example of creating a spline:
-///   
+///
 ///  const int nKnotsU=5;
 ///  const int nKnotsV=6;
 ///  float knotsU[nKnotsU] = {0., 0.25, 0.5, 0.7, 1.};
@@ -57,10 +57,10 @@ namespace tpc_fast_transformation {
 ///  spline.correctEdges( f );
 ///  spline.getSpline( f, 0., 0. ); // == 3.5
 ///  spline.getSpline( f, 0.1, 0.32 ); // == some interpolated value
-/// 
+///
 class IrregularSpline2D3D :public FlatObject
 {
- public:   
+ public:
 
   /// _____________  Constructors / destructors __________________________
 
@@ -80,7 +80,7 @@ class IrregularSpline2D3D :public FlatObject
   
   /// _____________  FlatObject functionality, see FlatObject class for description  ____________
 
-  /// Memory alignment 
+  /// Memory alignment
 
   using FlatObject::getClassAlignmentBytes;
   using FlatObject::getBufferAlignmentBytes;
@@ -95,7 +95,7 @@ class IrregularSpline2D3D :public FlatObject
   using FlatObject::releaseInternalBuffer;
   void moveBufferTo( char *newBufferPtr );
 
-  /// Moving the class with its external buffer to another location 
+  /// Moving the class with its external buffer to another location
   
   void setActualBufferAddress( char* actualFlatBufferPtr );
   void setFutureBufferAddress( char* futureFlatBufferPtr );
@@ -113,13 +113,13 @@ class IrregularSpline2D3D :public FlatObject
   /// - Knots which are too close to each other will be merged
   /// - At least 5 knots and at least 4 axis bins will be created for consistency reason
   ///
-  /// \param numberOfKnotsU     U axis: Number of knots in knots[] array 
+  /// \param numberOfKnotsU     U axis: Number of knots in knots[] array
   /// \param knotsU             U axis: Array of knots.
   /// \param numberOfAxisBinsU  U axis: Number of axis bins to map U coordinate to
   ///                           an appropriate [knot(i),knot(i+1)] interval.
   ///                           The knot positions have a "granularity" of 1./numberOfAxisBins
   ///
-  /// \param numberOfKnotsV     V axis: Number of knots in knots[] array 
+  /// \param numberOfKnotsV     V axis: Number of knots in knots[] array
   /// \param knotsV             V axis: Array of knots.
   /// \param numberOfAxisBinsV  V axis: Number of axis bins to map U coordinate to
   ///                           an appropriate [knot(i),knot(i+1)] interval.
@@ -132,10 +132,10 @@ class IrregularSpline2D3D :public FlatObject
 
   /// _______________  Main functionality   ________________________
 
-  /// Correction of data values at edge knots. 
+  /// Correction of data values at edge knots.
   ///
   /// It is needed for the fast spline mathematics to work correctly. See explanation in IrregularSpline1D.h header
-  /// 
+  ///
   /// \param data array of function values. It has the size of getNumberOfKnots()
   template <typename T>
     void correctEdges( T *data ) const;
@@ -145,7 +145,7 @@ class IrregularSpline2D3D :public FlatObject
   template <typename T>
     void getSpline( const T *correctedData, float u, float v, T &x, T &y, T &z ) const;
 
-  /// Same as getSpline, but using vectorized calculation. 
+  /// Same as getSpline, but using vectorized calculation.
   /// \param correctedData should be at least 128-bit aligned
   void getSplineVec( const float *correctedData, float u, float v, float &x, float &y, float &z ) const;
 
@@ -158,7 +158,7 @@ class IrregularSpline2D3D :public FlatObject
   /// Get 1-D grid for V coordinate
   const IrregularSpline1D& getGridV() const { return mGridV; }
 
-  /// Get u,v of i-th knot 
+  /// Get u,v of i-th knot
   void getKnotUV( int iKnot, float &u, float &v ) const;
  
   /// Get size of the mFlatBuffer data
@@ -184,7 +184,7 @@ class IrregularSpline2D3D :public FlatObject
   /// Get offset of GridV flat data in the flat buffer
   size_t getGridVOffset() const { return mGridV.getFlatBufferPtr() - mFlatBufferPtr; }
  
- private: 
+ private:
 
    void relocateBufferPointers( const char* oldBuffer, char *newBuffer );
 
@@ -205,7 +205,7 @@ class IrregularSpline2D3D :public FlatObject
 
 inline  void IrregularSpline2D3D::getKnotUV( int iKnot, float &u, float &v ) const
 {
-  /// Get u,v of i-th knot 
+  /// Get u,v of i-th knot
   const IrregularSpline1D &gridU = getGridU();
   const IrregularSpline1D &gridV = getGridV();
   int nu = gridU.getNumberOfKnots();
@@ -235,7 +235,7 @@ inline void IrregularSpline2D3D::correctEdges( T *data ) const
       T *f2 = f0 + 6;
       T *f3 = f0 + 9;
       for( int idim=0; idim<3; idim++){
-	f0[idim] = (T) ( c0*f0[idim] + c1*f1[idim] + c2*f2[idim] + c3*f3[idim] ); 
+	f0[idim] = (T) ( c0*f0[idim] + c1*f1[idim] + c2*f2[idim] + c3*f3[idim] );
       }
     }
   }
@@ -251,7 +251,7 @@ inline void IrregularSpline2D3D::correctEdges( T *data ) const
       T *f2 = f0 + 6;
       T *f3 = f0 + 9;
       for( int idim=0; idim<3; idim++){
-	f3[idim] = (T) ( c0*f0[idim] + c1*f1[idim] + c2*f2[idim] + c3*f3[idim] ); 
+	f3[idim] = (T) ( c0*f0[idim] + c1*f1[idim] + c2*f2[idim] + c3*f3[idim] );
       }
     }
   }
@@ -267,7 +267,7 @@ inline void IrregularSpline2D3D::correctEdges( T *data ) const
       T *f2 = f0 + nu*6;
       T *f3 = f0 + nu*9;
       for( int idim=0; idim<3; idim++){
-	f0[idim] = (T) (c0*f0[idim] + c1*f1[idim] + c2*f2[idim] + c3*f3[idim]); 
+	f0[idim] = (T) (c0*f0[idim] + c1*f1[idim] + c2*f2[idim] + c3*f3[idim]);
       }
     }
   }
@@ -283,7 +283,7 @@ inline void IrregularSpline2D3D::correctEdges( T *data ) const
       T *f2 = f0 + nu*6;
       T *f3 = f0 + nu*9;
       for( int idim=0; idim<3; idim++){
-	f3[idim] = (T) ( c0*f0[idim] + c1*f1[idim] + c2*f2[idim] + c3*f3[idim] ); 
+	f3[idim] = (T) ( c0*f0[idim] + c1*f1[idim] + c2*f2[idim] + c3*f3[idim] );
       }
     }
   }
@@ -332,10 +332,10 @@ inline void IrregularSpline2D3D::getSpline( const T *correctedData, float u, flo
 
 inline void IrregularSpline2D3D::getSplineVec( const float *correctedData, float u, float v, float &x, float &y, float &z ) const
 {
-  // Same as getSpline, but using vectorized calculation. 
+  // Same as getSpline, but using vectorized calculation.
   // \param correctedData should be at least 128-bit aligned
 
-#if !defined(__CINT__) && !defined(__ROOTCINT__) && !defined(HLTCA_GPUCODE)
+#if !defined(__CINT__) && !defined(__ROOTCINT__) && !defined(HLTCA_GPUCODE) && !defined(HLTCA_NO_VC)
 //&& !defined(__CLING__)
   const IrregularSpline1D &gridU = getGridU();
   const IrregularSpline1D &gridV = getGridV();
@@ -370,8 +370,8 @@ inline void IrregularSpline2D3D::getSplineVec( const float *correctedData, float
 
   x = res[0];
   y = res[1];
-  z = res[2];  
-#else 
+  z = res[2];
+#else
   getSpline( correctedData, u,  v, x, y, z );
 #endif
 }
