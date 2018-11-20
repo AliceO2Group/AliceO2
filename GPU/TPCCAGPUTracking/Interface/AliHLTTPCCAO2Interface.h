@@ -15,6 +15,7 @@ class AliGPUReconstruction;
 #include "AliHLTTPCCAClusterData.h"
 #include "AliHLTTPCGMMergedTrack.h"
 #include "AliHLTTPCGMMergedTrackHit.h"
+#include "TPCFastTransform.h"
 
 class AliHLTTPCCAO2Interface
 {
@@ -22,7 +23,7 @@ public:
 	AliHLTTPCCAO2Interface();
 	~AliHLTTPCCAO2Interface();
 	
-	int Initialize(const char* options = NULL);
+	int Initialize(const char* options = NULL, std::unique_ptr<ali_tpc_common::tpc_fast_transformation::TPCFastTransform>&& fastTrans = nullptr);
 	void Deinitialize();
 	
 	int RunTracking(const AliHLTTPCCAClusterData* inputClusters, const AliHLTTPCGMMergedTrack* &outputTracks, int &nOutputTracks, const AliHLTTPCGMMergedTrackHit* &outputTrackClusters);

@@ -52,7 +52,6 @@ int main(int argc, char** argv)
 	void* outputmemory = NULL;
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	int iEventInTimeframe = 0, nEventsInDirectory = 0;
-	hltca_event_dump_settings eventSettings;
 
 #ifdef FE_DFL_DISABLE_SSE_DENORMS_ENV //Flush and load denormals to zero in any case
 	fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
@@ -142,23 +141,6 @@ int main(int argc, char** argv)
 		}
 	}
 
-	eventSettings.setDefaults();
-	if (!configStandalone.eventGenerator)
-	{
-		char filename[256];
-		sprintf(filename, "events/%s/config.dump", configStandalone.EventsDir);
-		FILE* fp = fopen(filename, "rb");
-		if (fp)
-		{
-			int n = fread(&eventSettings, 1, sizeof(eventSettings), fp);
-			printf("Read event settings from file %s (%d bytes, solenoidBz: %f, home-made events %d, constBz %d)\n", filename, n, eventSettings.solenoidBz, (int) eventSettings.homemadeEvents, (int) eventSettings.constBz);
-			fclose(fp);
-		}
-	}
-	if (configStandalone.eventGenerator) eventSettings.homemadeEvents = true;
-	if (configStandalone.solenoidBz != -1e6f) eventSettings.solenoidBz = configStandalone.solenoidBz;
-	if (configStandalone.constBz) eventSettings.constBz = true;
-
 #if !(defined(BUILD_CUDA) || defined(BUILD_OPENCL))
 	if (configStandalone.runGPU)
 	{
@@ -181,9 +163,21 @@ int main(int argc, char** argv)
 		getchar();
 		return(1);
 	}
+	
+	if (!configStandalone.eventGenerator)
+	{
+		char filename[256];
+		sprintf(filename, "events/%s/", configStandalone.EventsDir);
+		rec->ReadSettings(filename);
+		printf("Read event settings from dir %s (solenoidBz: %f, home-made events %d, constBz %d)\n", filename, rec->GetEventSettings().solenoidBz, (int) rec->GetEventSettings().homemadeEvents, (int) rec->GetEventSettings().constBz);
+	}
+	if (configStandalone.eventGenerator) rec->GetEventSettings().homemadeEvents = true;
+	if (configStandalone.solenoidBz != -1e6f) rec->GetEventSettings().solenoidBz = configStandalone.solenoidBz;
+	if (configStandalone.constBz) rec->GetEventSettings().constBz = true;
+
 
 	AliGPUCAParam param;
-    param.SetDefaults(eventSettings.solenoidBz);
+    param.SetDefaults(rec->GetEventSettings().solenoidBz);
 
 	hlt.SetGPUDebugLevel(configStandalone.DebugLevel, &CPUOut, &GPUOut);
 	hlt.SetEventDisplay(configStandalone.eventDisplay);
@@ -198,8 +192,8 @@ int main(int argc, char** argv)
 	param.HitPickUpFactor = 2;
     param.MinNTrackClusters = -1;
     param.SetMinTrackPt(MIN_TRACK_PT_DEFAULT);
-    param.AssumeConstantBz = eventSettings.constBz;
-    param.ToyMCEventsFlag = eventSettings.homemadeEvents;
+    param.AssumeConstantBz = rec->GetEventSettings().constBz;
+    param.ToyMCEventsFlag = rec->GetEventSettings().homemadeEvents;
     param.ClusterError2CorrectionZ = 1.1;
 	param.NWays = configStandalone.nways;
 	param.NWaysOuter = configStandalone.nwaysouter;
@@ -275,24 +269,18 @@ int main(int argc, char** argv)
 	if (configStandalone.eventGenerator)
 	{
 #ifdef BUILD_QA
-		char filename[256];
-		sprintf(filename, "events/%s/", configStandalone.EventsDir);
-		mkdir(filename, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-		sprintf(filename, "events/%s/config.dump", configStandalone.EventsDir);
-		FILE* fp = fopen(filename, "w+b");
-		if (fp)
-		{
-			fwrite(&eventSettings, sizeof(eventSettings), 1, fp);
-			fclose(fp);
-		}
+		char dirname[256];
+		sprintf(dirname, "events/%s/", configStandalone.EventsDir);
+		mkdir(dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+		rec->DumpSettings(dirname);
 
 		InitEventGenerator();
 
 		for (int i = 0;i < (configStandalone.NEvents == -1 ? 10 : configStandalone.NEvents);i++)
 		{
 			printf("Generating event %d/%d\n", i, configStandalone.NEvents == -1 ? 10 : configStandalone.NEvents);
-			sprintf(filename, "events/%s/" HLTCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
-			GenerateEvent(hlt.Param(), filename);
+			sprintf(dirname, "events/%s/" HLTCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
+			GenerateEvent(hlt.Param(), dirname);
 		}
 		FinishEventGenerator();
 #endif
