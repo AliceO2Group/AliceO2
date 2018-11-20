@@ -35,8 +35,8 @@ namespace tpc_fast_transformation {
 /// 1. raw coordinate system: TPC row number [int], readout pad number [float], drift time [float]
 ///
 /// 2. drift volume coordinate system (x,u,v)[cm]. These are cartesian coordinates:
-///    x = local x,  
-///    u = along the local y axis but towards to the pad increase direction, 
+///    x = local x,
+///    u = along the local y axis but towards to the pad increase direction,
 ///    v = along the global z axis but towards the drift length increase derection.
 ///
 ///    u and v are mirrored for A/C sides of the TPC
@@ -49,17 +49,17 @@ namespace tpc_fast_transformation {
 /// The transformation is pefformed as the following:
 ///
 /// First, the class transforms input raw coordinates to the drift volume coordinates applying the drift velocity calibration.
-/// Then it aplies TPCCorrectionIRS to the drift coordinates. 
+/// Then it aplies TPCCorrectionIRS to the drift coordinates.
 /// At the end it transforms the drift coordinates to the output local coordinates.
-/// 
+///
 /// The class is flat C structure. No virtual methods, no ROOT types are used.
 
 
 class TPCFastTransform :public FlatObject
 {
- public:   
+ public:
   
-  /// The struct contains necessary info for TPC slice 
+  /// The struct contains necessary info for TPC slice
   struct SliceInfo{
     float sinAlpha;
     float cosAlpha;
@@ -69,7 +69,7 @@ class TPCFastTransform :public FlatObject
   struct RowInfo{
     float x;        ///< x coordinate of the row [cm]
     int maxPad;     ///< maximal pad number = n pads - 1
-    float padWidth; ///< width of pads [cm] 
+    float padWidth; ///< width of pads [cm]
   };
   
   /// _____________  Constructors / destructors __________________________
@@ -89,7 +89,7 @@ class TPCFastTransform :public FlatObject
   
   /// _____________  FlatObject functionality, see FlatObject class for description  ____________
 
-  /// Memory alignment 
+  /// Memory alignment
  
 
   /// Gives minimal alignment in bytes required for the class object
@@ -105,10 +105,10 @@ class TPCFastTransform :public FlatObject
   
   /// Making the data buffer external
   
-  using FlatObject::releaseInternalBuffer;  
+  using FlatObject::releaseInternalBuffer;
   void moveBufferTo( char *newBufferPtr );
     
-  /// Moving the class with its external buffer to another location 
+  /// Moving the class with its external buffer to another location
   
   void setActualBufferAddress( char* actualFlatBufferPtr );
   void setFutureBufferAddress( char* futureFlatBufferPtr );
@@ -121,7 +121,7 @@ class TPCFastTransform :public FlatObject
   void startConstruction( int numberOfRows );
 
   /// Initializes a TPC row
-  void setTPCrow( int iRow, float x, int nPads, float padWidth );  
+  void setTPCrow( int iRow, float x, int nPads, float padWidth );
 
   /// Sets TPC geometry
   ///
@@ -130,11 +130,11 @@ class TPCFastTransform :public FlatObject
   
   /// Sets all drift calibration parameters and the time stamp
   ///
-  /// It must be called once during construction, 
+  /// It must be called once during construction,
   /// but also may be called afterwards to reset these parameters.
   void setCalibration( long int timeStamp, float t0, float vDrift, float vDriftCorrY, float lDriftCorr, float tofCorr, float primVtxZ, float tpcAlignmentZ );
 
-  /// Sets the time stamp of the current calibaration 
+  /// Sets the time stamp of the current calibaration
   void setTimeStamp( long int v)  { mTimeStamp = v; }
 
   /// Gives a reference for external initialization of TPC distortions
@@ -145,10 +145,10 @@ class TPCFastTransform :public FlatObject
 
 
 
-  /// _______________ The main method: cluster transformation _______________________  
+  /// _______________ The main method: cluster transformation _______________________
   ///
   /// Transforms raw TPC coordinates to local XYZ withing a slice
-  /// taking calibration + alignment into account.  
+  /// taking calibration + alignment into account.
   ///
   int Transform(int slice, int row, float pad, float time, float &x, float &y,
                 float &z, float vertexTime = 0) const;
@@ -192,11 +192,11 @@ class TPCFastTransform :public FlatObject
   const RowInfo& getRowInfo( int row ) const { return mRowInfoPtr[row]; }
  
  
- private:   
+ private:
 
 
   /// Enumeration of possible initialization states
-  enum ConstructionExtraState : unsigned int { 
+  enum ConstructionExtraState : unsigned int {
     GeometryIsSet = 0x4,         ///< the TPC geometry is set
     CalibrationIsSet = 0x8       ///< the drift calibration is set
   };
@@ -215,7 +215,7 @@ class TPCFastTransform :public FlatObject
 
   /// _______________  Construction control  _______________________________________________
     
-  unsigned int mConstructionCounter; ///< counter for initialized parameters
+  int mConstructionCounter; ///< counter for initialized parameters
   std::unique_ptr<RowInfo[]> mConstructionRowInfoBuffer; ///< Temporary container of the row infos during initialization
 
   /// _______________  Geometry  _______________________________________________
@@ -237,10 +237,10 @@ class TPCFastTransform :public FlatObject
 
   /// Correction of (x,u,v) with irregular splines.
   ///
-  /// After the initialization, mDistortion.getFlatBufferPtr()  
-  /// is pointed to the corresponding part of this->mFlatBufferPtr 
+  /// After the initialization, mDistortion.getFlatBufferPtr()
+  /// is pointed to the corresponding part of this->mFlatBufferPtr
   ///
-  TPCDistortionIRS mDistortion; 
+  TPCDistortionIRS mDistortion;
 
   bool mApplyDistortion; // flag for applying distortion
  
@@ -249,7 +249,7 @@ class TPCFastTransform :public FlatObject
   /// t = (float) time bin, y = global y
   ///
   /// L(t,y) = (t-mT0)*(mVdrift + mVdriftCorrY*y ) + mLdriftCorr  ____
-  /// 
+  ///
   float mT0; ///< T0 in [time bin]
   float mVdrift; ///< VDrift in  [cm/time bin]
   float mVdriftCorrY; ///< VDrift correction for global Y[cm] in [1/time bin]
@@ -262,9 +262,9 @@ class TPCFastTransform :public FlatObject
   ///
   /// mTOFcorr == mVdrift/(speed of light)
   ///
-  float mTOFcorr; 
+  float mTOFcorr;
 
-  float mPrimVtxZ;      ///< Z of the primary vertex, needed for the Time-Of-Flight correction   
+  float mPrimVtxZ;      ///< Z of the primary vertex, needed for the Time-Of-Flight correction
   float mTPCalignmentZ; ///< Global Z shift of the TPC detector. It is applied at the end of the transformation.
 };
 
@@ -277,7 +277,7 @@ class TPCFastTransform :public FlatObject
 
 inline void TPCFastTransform::setTPCrow( int iRow, float x, int nPads, float padWidth )
 {
-  /// Initializes a TPC row  
+  /// Initializes a TPC row
   assert( mConstructionMask & ConstructionState::InProgress );
   assert( iRow>=0 && iRow < mNumberOfRows );
   RowInfo &row = mConstructionRowInfoBuffer[iRow];
@@ -300,10 +300,10 @@ inline int TPCFastTransform::convPadTimeToUV(int slice, int row, float pad,
   float x = rowInfo.x;
   u = (pad - 0.5*rowInfo.maxPad)*rowInfo.padWidth;
 
-  float y = sideC ? -u :u; // pads are mirrorred on C-side  
-  float yLab = y*sliceInfo.cosAlpha+x*sliceInfo.sinAlpha;  
+  float y = sideC ? -u :u; // pads are mirrorred on C-side
+  float yLab = y*sliceInfo.cosAlpha+x*sliceInfo.sinAlpha;
 
-  v = (time-mT0-vertexTime)*(mVdrift + mVdriftCorrY*yLab) + mLdriftCorr; // drift length cm  
+  v = (time-mT0-vertexTime)*(mVdrift + mVdriftCorrY*yLab) + mLdriftCorr; // drift length cm
   return 0;
 }
 
@@ -321,10 +321,10 @@ TPCFastTransform::convPadTimeToUVInTimeFrame(int slice, int row, float pad,
   float x = rowInfo.x;
   u = (pad - 0.5*rowInfo.maxPad)*rowInfo.padWidth;
 
-  float y = sideC ? -u :u; // pads are mirrorred on C-side  
-  float yLab = y*sliceInfo.cosAlpha+x*sliceInfo.sinAlpha;  
+  float y = sideC ? -u :u; // pads are mirrorred on C-side
+  float yLab = y*sliceInfo.cosAlpha+x*sliceInfo.sinAlpha;
 
-  v = (time-maxTimeBin)*(mVdrift + mVdriftCorrY*yLab); // drift length cm    
+  v = (time-maxTimeBin)*(mVdrift + mVdriftCorrY*yLab); // drift length cm
 
   if( sideC ) v+=mTPCzLengthC;
   else v+=mTPCzLengthA;
@@ -345,7 +345,7 @@ inline int TPCFastTransform::convUVtoPadTime(int slice, int row, float u,
   pad = u / rowInfo.padWidth + 0.5*rowInfo.maxPad;
 
   float x = rowInfo.x;
-  float y = sideC ? -u :u; // pads are mirrorred on C-side  
+  float y = sideC ? -u :u; // pads are mirrorred on C-side
   float yLab = y*sliceInfo.cosAlpha+x*sliceInfo.sinAlpha;
   time = mT0 + (v - mLdriftCorr) / (mVdrift + mVdriftCorrY*yLab);
   return 0;
@@ -353,12 +353,12 @@ inline int TPCFastTransform::convUVtoPadTime(int slice, int row, float u,
 
 inline int TPCFastTransform::convUVtoYZ(int slice, int row, float x, float u,
                                         float v, float &y, float &z) const {
-  if ( slice<0 || slice>=NumberOfSlices || row<0 || row>=mNumberOfRows ) return -1; 
+  if ( slice<0 || slice>=NumberOfSlices || row<0 || row>=mNumberOfRows ) return -1;
 
   bool sideC = ( slice >= NumberOfSlices / 2 );
 
   if( sideC ){
-    y = -u; // pads are mirrorred on C-side  
+    y = -u; // pads are mirrorred on C-side
     z = v - mTPCzLengthC ; // drift direction is mirrored on C-side
   } else {
     y = u;
@@ -376,11 +376,11 @@ inline int TPCFastTransform::convYZtoUV(int slice, int row, float x, float y,
  
   bool sideC = ( slice >= NumberOfSlices / 2 );
 
-  z = z - mTPCalignmentZ;   
+  z = z - mTPCalignmentZ;
   if( sideC ){
     u = -y;
     v = z + mTPCzLengthC;
-  } else { 
+  } else {
     u = y;
     v = mTPCzLengthA - z;
   }
@@ -391,10 +391,10 @@ inline int TPCFastTransform::getTOFcorrection(int slice, int row, float x,
                                               float y, float z,
                                               float &dz) const {
   // calculate time of flight correction for  z coordinate
-  if ( slice<0 || slice>=NumberOfSlices || row<0 || row>=mNumberOfRows ) return -1; 
-  bool sideC = ( slice >= NumberOfSlices / 2 );  
+  if ( slice<0 || slice>=NumberOfSlices || row<0 || row>=mNumberOfRows ) return -1;
+  bool sideC = ( slice >= NumberOfSlices / 2 );
   float distZ = z - mPrimVtxZ;
-  float dv = - sqrt( x*x + y*y + distZ*distZ )*mTOFcorr; 
+  float dv = - sqrt( x*x + y*y + distZ*distZ )*mTOFcorr;
   dz = sideC ?dv :-dv;
   return 0;
 }
@@ -402,17 +402,17 @@ inline int TPCFastTransform::getTOFcorrection(int slice, int row, float x,
 inline int TPCFastTransform::Transform(int slice, int row, float pad,
                                        float time, float &x, float &y, float &z,
                                        float vertexTime) const {
-  /// _______________ The main method: cluster transformation _______________________  
+  /// _______________ The main method: cluster transformation _______________________
   ///
   /// Transforms raw TPC coordinates to local XYZ withing a slice
-  /// taking calibration + alignment into account.  
+  /// taking calibration + alignment into account.
   ///
 
   if ( slice<0 || slice>=NumberOfSlices || row<0 || row>=mNumberOfRows ) return -1;
 
   const RowInfo &rowInfo = getRowInfo( row );
-  const SliceInfo &sliceInfo = getSliceInfo( slice );
-  bool sideC = ( slice >= NumberOfSlices / 2 );
+  //const SliceInfo &sliceInfo = getSliceInfo( slice );
+  //bool sideC = ( slice >= NumberOfSlices / 2 );
 
   x = rowInfo.x;
   float u=0, v=0;
@@ -420,7 +420,7 @@ inline int TPCFastTransform::Transform(int slice, int row, float pad,
 
   if( mApplyDistortion ){
     float dx, du, dv;
-    mDistortion.getDistortion( slice, row, u, v, dx, du, dv );    
+    mDistortion.getDistortion( slice, row, u, v, dx, du, dv );
     x += dx;
     u += du;
     v += dv;
@@ -438,7 +438,7 @@ inline int TPCFastTransform::TransformInTimeFrame(int slice, int row, float pad,
                                                   float time, float &x,
                                                   float &y, float &z,
                                                   float maxTimeBin) const {
-  /// _______________ Special cluster transformation for a time frame _______________________  
+  /// _______________ Special cluster transformation for a time frame _______________________
   ///
   /// Same as Transform(), but clusters are shifted in z such, that Z(maxTimeBin)==0
   /// Distortions and Time-Of-Flight correction are not alpplied.

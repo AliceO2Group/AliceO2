@@ -29,16 +29,16 @@ namespace tpc_fast_transformation {
 /// using irregular splines
 ///
 /// Row, U, V -> dX,dU,dV
-/// 
+///
 /// The class is flat C structure. No virtual methods, no ROOT types are used.
-/// 
+///
 class TPCDistortionIRS :public FlatObject
 {
- public:   
+ public:
 
   ///
   /// \brief The struct contains necessary info for TPC padrow
-  /// 
+  ///
   struct RowInfo{
     float x;        ///< x coordinate of the row [cm]
     float U0;          ///< min. u coordinate
@@ -65,7 +65,7 @@ class TPCDistortionIRS :public FlatObject
 
   /// _____________  FlatObject functionality, see FlatObject class for description  ____________
 
-  /// Memory alignment 
+  /// Memory alignment
 
   using FlatObject::getClassAlignmentBytes;
   using FlatObject::getBufferAlignmentBytes;
@@ -80,7 +80,7 @@ class TPCDistortionIRS :public FlatObject
   using FlatObject::releaseInternalBuffer;
   void moveBufferTo( char *newBufferPtr );
 
-  /// Moving the class with its external buffer to another location 
+  /// Moving the class with its external buffer to another location
   
   void setActualBufferAddress( char* actualFlatBufferPtr );
   void setFutureBufferAddress( char* futureFlatBufferPtr );
@@ -94,12 +94,12 @@ class TPCDistortionIRS :public FlatObject
   void startConstruction( int numberOfRows, int numberOfScenarios );
 
   /// Initializes a TPC row
-  void setTPCrow( int iRow, float x, int nPads, float padWidth, int iScenario );  
+  void setTPCrow( int iRow, float x, int nPads, float padWidth, int iScenario );
 
   /// Sets TPC geometry
   void setTPCgeometry( float tpcLengthSideA, float tpcLengthSideC );
   
-  /// Sets approximation scenario 
+  /// Sets approximation scenario
   void setApproximationScenario( int scenarioIndex, const  IrregularSpline2D3D &spline );
   
   /// Finishes construction: puts everything to the flat buffer, releases temporary memory
@@ -109,16 +109,16 @@ class TPCDistortionIRS :public FlatObject
  
   /// _______________  Initialization interface  ________________________
 
-  /// Sets the time stamp of the current calibaration 
+  /// Sets the time stamp of the current calibaration
   void setTimeStamp( long int v)  { mTimeStamp = v; }
 
-  /// Gives pointer to a spline  
+  /// Gives pointer to a spline
   const IrregularSpline2D3D& getSpline( int slice, int row ) const;
 
-  /// Gives pointer to spline data  
+  /// Gives pointer to spline data
   float *getSplineDataNonConst( int slice, int row );
 
-  /// Gives pointer to spline data  
+  /// Gives pointer to spline data
   const float *getSplineData( int slice, int row ) const;
 
   
@@ -129,7 +129,7 @@ class TPCDistortionIRS :public FlatObject
   static constexpr size_t getBufferAlignmentBytes() {return 8;}
 
 
-  /// _______________ The main method: cluster distortion  _______________________  
+  /// _______________ The main method: cluster distortion  _______________________
   ///
   int getDistortion(int slice, int row, float u, float v, float &dx, float &du,
                     float &dv) const;
@@ -151,12 +151,12 @@ class TPCDistortionIRS :public FlatObject
   int convUVtoSUV( int slice, int row, float u, float v, float &su, float &sv ) const;
   int convSUVtoUV( int slice, int row, float su, float sv, float &u, float &v ) const;
 
- private:   
+ private:
 
   void relocateBufferPointers( const char* oldBuffer, char *newBuffer );
 
   /// Enumeration of construction states
-  enum  ConstructionExtraState : unsigned int { 
+  enum  ConstructionExtraState : unsigned int {
     GeometryIsSet = 0x4      ///< geometry is set
   };
 
@@ -168,8 +168,8 @@ class TPCDistortionIRS :public FlatObject
 
   /// _______________  Construction control  _______________________________________________
   
-  unsigned int mConstructionCounterRows; ///< counter for constructed members
-  unsigned int mConstructionCounterScenarios; ///< counter for constructed members
+  int mConstructionCounterRows; ///< counter for constructed members
+  int mConstructionCounterScenarios; ///< counter for constructed members
   std::unique_ptr<RowInfo[]> mConstructionRowInfos; ///< Temporary container of the row infos during construction
   std::unique_ptr<IrregularSpline2D3D[]> mConstructionScenarios; ///< Temporary container for spline scenarios
  
@@ -183,9 +183,9 @@ class TPCDistortionIRS :public FlatObject
   IrregularSpline2D3D *mScenarioPtr; ///< Pointer to spline scenarios
 
   float mScaleVtoSVsideA; ///< scale for v->sv for TPC side A
-  float mScaleVtoSVsideC; ///< scale for v->sv for TPC side C  
+  float mScaleVtoSVsideC; ///< scale for v->sv for TPC side C
   float mScaleSVtoVsideA; ///< scale for sv->v for TPC side A
-  float mScaleSVtoVsideC; ///< scale for sv->v for TPC side C  
+  float mScaleSVtoVsideC; ///< scale for sv->v for TPC side C
 
   /// _______________  Calibration data  _______________________________________________
  
@@ -202,8 +202,8 @@ class TPCDistortionIRS :public FlatObject
 /// ====================================================
  
 inline int TPCDistortionIRS::convUVtoSUV( int slice, int row, float u, float v, float &su, float &sv ) const
-{  
-  const RowInfo& rowInfo = getRowInfo( row );  
+{
+  const RowInfo& rowInfo = getRowInfo( row );
   su = (u-rowInfo.U0)*rowInfo.scaleUtoSU;
   if( slice<18 ) sv = v*mScaleVtoSVsideA;
   else sv = v*mScaleVtoSVsideC;
@@ -211,8 +211,8 @@ inline int TPCDistortionIRS::convUVtoSUV( int slice, int row, float u, float v, 
 }
 
 inline int TPCDistortionIRS::convSUVtoUV( int slice, int row, float su, float sv, float &u, float &v ) const
-{  
-  const RowInfo& rowInfo = getRowInfo( row );  
+{
+  const RowInfo& rowInfo = getRowInfo( row );
   u = rowInfo.U0 + su*rowInfo.scaleSUtoU;
   if( slice<18 ) v = sv*mScaleSVtoVsideA;
   else v = sv*mScaleSVtoVsideC;
@@ -225,7 +225,7 @@ inline int TPCDistortionIRS::getDistortion(int slice, int row, float u, float v,
   const IrregularSpline2D3D& spline = getSpline( slice, row );
   const float *splineData = getSplineData( slice, row );
   float su=0, sv=0;
-  convUVtoSUV( slice, row, u, v, su, sv );  
+  convUVtoSUV( slice, row, u, v, su, sv );
   spline.getSplineVec( splineData, su, sv, dx, du, dv );
   return 0;
 }
