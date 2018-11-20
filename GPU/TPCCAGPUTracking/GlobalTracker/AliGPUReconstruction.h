@@ -139,14 +139,25 @@ public:
 	void SetParam(const AliGPUCAParam& param) {mParam = param;}
 	const AliGPUCAParam& GetParam() const {return mParam;}
 	AliGPUCAParam& GetParam() {return mParam;}
+	hltca_event_dump_settings& GetEventSettings() {return *mEventDumpSettings;}
+	void SetSettingsStandalone(float solenoidBz);
+	void SetSettingsStandalone(const hltca_event_dump_settings& settings);
+	void SetTPCFastTransform(std::unique_ptr<TPCFastTransform> tpcFastTransform);
 	
 protected:
 	AliGPUReconstruction(DeviceType type);								//Constructor
 	
-	//Private helper functions
+	//Private helper functions for reading / writing / allocating IO buffer from/to file
 	template <class T> void DumpData(FILE* fp, T** entries, unsigned int* num, InOutPointerType type);
 	template <class T> void ReadData(FILE* fp, T** entries, unsigned int* num, std::unique_ptr<T[]>* mem, InOutPointerType type);
 	template <class T> void AllocateIOMemoryHelper(unsigned int n, T* &ptr, std::unique_ptr<T[]> &u);
+	
+	//Private helper functions to dump / load flat objects
+	template <class T> void DumpFlatObjectToFile(const T* obj, const char* file);
+	template <class T> std::unique_ptr<T> ReadFlatObjectFromFile(const char* file);
+	template <class T> void DumpStructToFile(const T* obj, const char* file);
+	template <class T> std::unique_ptr<T> ReadStructFromFile(const char* file);
+	template <class T> void ReadStructFromFile(const char* file, T* obj);
 	
 	//Pointers to tracker classes
 	std::unique_ptr<AliHLTTRDTracker> mTRDTracker;
