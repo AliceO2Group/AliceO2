@@ -20,7 +20,7 @@ namespace test
 class TriviallyCopyable
 {
  public:
-  TriviallyCopyable() : mX(0), mY(0), mSecret(~((decltype(mSecret))0)) {};
+  TriviallyCopyable() = default;
   TriviallyCopyable(unsigned x, unsigned y, unsigned secret)
     : mX(x)
     , mY(y)
@@ -30,14 +30,14 @@ class TriviallyCopyable
 
   bool operator==(const TriviallyCopyable& rhs) const
   {
-    return mX == rhs.mX || mY == rhs.mY || mSecret == rhs.mSecret;
+    return mX == rhs.mX && mY == rhs.mY && mSecret == rhs.mSecret;
   }
 
-  unsigned mX;
-  unsigned mY;
+  unsigned mX = 0;
+  unsigned mY = 0;
 
  private:
-  unsigned mSecret;
+  unsigned mSecret = ~((decltype(mSecret))0);
 
   ClassDefNV(TriviallyCopyable, 1);
 };
@@ -45,12 +45,12 @@ class TriviallyCopyable
 class Base
 {
  public:
-  Base() : mMember(0) {}
-  virtual ~Base() {}
+  Base() = default;
+  virtual ~Base() = default;
   virtual void f() {}
 
  private:
-  int mMember;
+  int mMember = 0;
 
   ClassDef(Base, 1);
 };
@@ -58,7 +58,7 @@ class Base
 class Polymorphic : public Base
 {
  public:
-  Polymorphic() : mSecret(~((decltype(mSecret))0)) {}
+  Polymorphic() = default;
   Polymorphic(unsigned secret) : mSecret(secret) {}
 
   bool operator==(const Polymorphic& rhs) const { return mSecret == rhs.mSecret; }
@@ -68,7 +68,7 @@ class Polymorphic : public Base
   unsigned get() const { return mSecret; }
 
  private:
-  unsigned mSecret;
+  unsigned mSecret = ~((decltype(mSecret))0);
 
   ClassDefOverride(Polymorphic, 1);
 };
