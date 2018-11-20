@@ -104,8 +104,9 @@ using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 BOOST_AUTO_TEST_CASE(test_MakeRootTreeWriterSpec)
 {
   // setup the spec helper and retrieve the spec by calling the operator
-  MakeRootTreeWriterSpec("writer-process",                                                                   //
-                         BranchDefinition<int>{ InputSpec{ "input1", "TST", "INTDATA" }, "intbranch" },      //
-                         BranchDefinition<float>{ InputSpec{ "input2", "TST", "FLOATDATA" }, "floatbranch" } //
+  MakeRootTreeWriterSpec("writer-process",                                                              //
+                         BranchDefinition<int>{ InputSpec{ "input1", "TST", "INTDATA" }, "intbranch" }, //
+                         BranchDefinition<float>{ InputSpec{ "input2", "TST", "FLOATDATA" },            //
+                                                  "floatbranch", "floatbranchname" }                    //
                          )();
 }

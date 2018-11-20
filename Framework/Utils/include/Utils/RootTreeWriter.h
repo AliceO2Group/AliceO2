@@ -105,6 +105,11 @@ class RootTreeWriter
     mTreeStructure->setup(mBranchSpecs, mTree.get());
   }
 
+  void setBranchName(size_t index, const char* branchName)
+  {
+    mBranchSpecs.at(index).name = branchName;
+  }
+
   /// process functor
   /// It expects a context which is used by lambda capture in the snapshot function.
   /// Recursively process all inputs and fill branches individually from extracted
@@ -230,7 +235,7 @@ class RootTreeWriter
 
   /// recursively step through all members of the store and set up corresponding branch
   template <typename BASE, typename T, typename... Args>
-  std::enable_if_t<is_specialization<T, BranchDef>::value, std::unique_ptr<TreeStructureInterface>>
+  std::enable_if_t<std::is_base_of<BranchDef<typename T::type, typename T::key_type, typename T::key_extractor>, T>::value, std::unique_ptr<TreeStructureInterface>>
     createTreeStructure(T def, Args&&... args)
   {
     mBranchSpecs.push_back({ T::key_extractor::asString(def.key), def.branchName });

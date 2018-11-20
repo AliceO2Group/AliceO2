@@ -44,6 +44,9 @@ namespace framework
 ///   --treename
 ///   --nevents
 ///
+/// In addition to that, a custom option can be added for every branch to configure the
+/// branch name, see below.
+///
 /// Default file name can be configured alone, tree name can only be specified after
 /// file name. The default number of events can be specified at arbitrary place between
 /// process name and branch configuration.
@@ -82,6 +85,11 @@ namespace framework
 ///                      )()                               // invocation of operator()
 ///                     );
 ///
+/// Definition of branch name options:
+/// The option key is specified as part of the branch definition, a key-value option is added
+/// with branchname as default value
+///   MakeRootTreeWriterSpec::BranchDefinition<Type>{ InputSpec{ ... }, "branchname", "optionkey" }
+///
 class MakeRootTreeWriterSpec
 {
  public:
@@ -94,7 +102,9 @@ class MakeRootTreeWriterSpec
 
   // branch definition structure uses InputSpec as key type
   template <typename T>
-  using BranchDefinition = WriterType::BranchDef<T, InputSpec, KeyExtractor>;
+  struct BranchDefinition : public WriterType::BranchDef<T, InputSpec, KeyExtractor> {
+    std::string optionKey = "";
+  };
 
   /// default constructor forbidden
   MakeRootTreeWriterSpec() = delete;
@@ -107,7 +117,7 @@ class MakeRootTreeWriterSpec
 
   DataProcessorSpec operator()()
   {
-    auto initFct = [writer = mWriter](InitContext & ic)
+    auto initFct = [ branchNameOptions = mBranchNameOptions, writer = mWriter ](InitContext & ic)
     {
       auto filename = ic.options().get<std::string>("outfile");
       auto treename = ic.options().get<std::string>("treename");
@@ -116,6 +126,14 @@ class MakeRootTreeWriterSpec
       *counter = 0;
       if (filename.empty() || treename.empty()) {
         throw std::invalid_argument("output file name and tree name are mandatory options");
+      }
+      for (size_t branchIndex = 0; branchIndex < branchNameOptions.size(); branchIndex++) {
+        // pair of key (first) - value (second)
+        if (branchNameOptions[branchIndex].first.empty()) {
+          continue;
+        }
+        auto branchName = ic.options().get<std::string>(branchNameOptions[branchIndex].first.c_str());
+        writer->setBranchName(branchIndex, branchName.c_str());
       }
       writer->init(filename.c_str(), treename.c_str());
 
@@ -134,16 +152,31 @@ class MakeRootTreeWriterSpec
       return processingFct;
     };
 
+    Options options{
+      // default options
+      { "outfile", VariantType::String, mDefaultFileName.c_str(), { "Name of the output file" } },
+      { "treename", VariantType::String, mDefaultTreeName.c_str(), { "Name of tree" } },
+      { "nevents", VariantType::Int, mDefaultNofEvents, { "Number of events to execute" } },
+    };
+    for (size_t branchIndex = 0; branchIndex < mBranchNameOptions.size(); branchIndex++) {
+      // adding option definitions for those ones defined in the branch definition
+      if (mBranchNameOptions[branchIndex].first.empty()) {
+        continue;
+      }
+      options.push_back(ConfigParamSpec(mBranchNameOptions[branchIndex].first.c_str(),  // option key
+                                        VariantType::String,                            // option argument type
+                                        mBranchNameOptions[branchIndex].second.c_str(), // default branch name
+                                        { "configurable branch name" }                  // help message
+                                        ));
+    }
+
     return DataProcessorSpec{
       // processing spec generated from the class configuartion
       mProcessName.c_str(),   // name of the process
       mInputs,                // list of inputs
       Outputs{},              // no outputs
       AlgorithmSpec(initFct), // return the init function
-      Options{                // default options
-               { "outfile", VariantType::String, mDefaultFileName.c_str(), { "Name of the output file" } },
-               { "treename", VariantType::String, mDefaultTreeName.c_str(), { "Name of tree" } },
-               { "nevents", VariantType::Int, mDefaultNofEvents, { "Number of events to execute" } } }
+      std::move(options),     // processor options
     };
   }
 
@@ -184,6 +217,7 @@ class MakeRootTreeWriterSpec
   void parseConstructorArgs(BranchDefinition<T>&& def, Args&&... args)
   {
     mInputs.emplace_back(def.key);
+    mBranchNameOptions.emplace_back(def.optionKey, def.branchName);
     LOG(INFO) << "adding input spec: " << mInputs.back();
     parseConstructorArgs<N + 1>(std::forward<Args>(args)...);
     if (N == 0) {
@@ -200,6 +234,7 @@ class MakeRootTreeWriterSpec
   std::shared_ptr<WriterType> mWriter;
   std::string mProcessName;
   std::vector<InputSpec> mInputs;
+  std::vector<std::pair<std::string, std::string>> mBranchNameOptions;
   std::string mDefaultFileName;
   std::string mDefaultTreeName;
   int mDefaultNofEvents = -1;
