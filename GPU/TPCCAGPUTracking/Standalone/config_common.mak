@@ -74,6 +74,12 @@ ifeq ($(CONFIG_OPENMP), 1)
 DEFINES						+= HLTCA_HAVE_OPENMP
 endif
 
+ifeq ($(CONFIG_VC), 1)
+LIBSUSE						+= -lVc
+else
+DEFINES						+= HLTCA_NO_VC
+endif
+
 ifeq ($(LINK_ROOT), 0)
 ifneq ($(CONFIG_O2DIR), )
 $(warning Cannot use O2DIR without QA)
