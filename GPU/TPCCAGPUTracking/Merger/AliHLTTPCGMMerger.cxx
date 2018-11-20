@@ -891,7 +891,9 @@ void AliHLTTPCGMMerger::MergeCEInit()
 void AliHLTTPCGMMerger::MergeCEFill(const AliHLTTPCGMSliceTrack* track, const AliHLTTPCGMMergedTrackHit& cls, int itr)
 {
 #if defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE) && !defined(HLTCA_BUILD_O2_LIB)
+#ifdef MERGE_CE_ROWLIMIT
   if (cls.fRow < MERGE_CE_ROWLIMIT || cls.fRow >= HLTCA_ROW_COUNT - MERGE_CE_ROWLIMIT) return;
+#endif
   if (!fSliceParam->ContinuousTracking && fabs(cls.fZ) > 10) return;
   int slice = track->Slice();
   for (int attempt = 0;attempt < 2;attempt++)
@@ -931,6 +933,8 @@ void AliHLTTPCGMMerger::MergeCE()
         if (fTrackLinks[i] >= 0)
         {
             AliHLTTPCGMMergedTrack* trk[2] = {&fOutputTracks[i], &fOutputTracks[fTrackLinks[i]]};
+            
+            if (!trk[1]->OK() || trk[1]->CCE()) continue;
 
             if (fNOutputTrackClusters + trk[0]->NClusters() + trk[1]->NClusters() >= fNMaxOutputTrackClusters)
             {
@@ -968,9 +972,9 @@ void AliHLTTPCGMMerger::MergeCE()
                     std::min(fClusters[trk[0]->FirstClusterRef()].fZ, fClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].fZ);
                 const float z1 = trk[1]->CSide() ? std::max(fClusters[trk[1]->FirstClusterRef()].fZ, fClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].fZ) :
                     std::min(fClusters[trk[1]->FirstClusterRef()].fZ, fClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].fZ);
-                float offset = (z0 + z1) / 2;
-                trk[0]->Param().Z() += trk[0]->Param().ZOffset() - offset;
-                trk[0]->Param().ZOffset() = offset;
+                float offset = fabs(z1) > fabs(z0) ? -z0 : z1;
+                trk[1]->Param().Z() += trk[1]->Param().ZOffset() - offset;
+                trk[1]->Param().ZOffset() = offset;
             }
 
             int newRef = fNOutputTrackClusters;
@@ -979,11 +983,11 @@ void AliHLTTPCGMMerger::MergeCE()
                 if (reverse[k]) for (int j = trk[k]->NClusters() - 1;j >= 0;j--) fClusters[fNOutputTrackClusters++] = fClusters[trk[k]->FirstClusterRef() + j];
                 else for (int j = 0;j < trk[k]->NClusters();j++) fClusters[fNOutputTrackClusters++] = fClusters[trk[k]->FirstClusterRef() + j];
             }
-            trk[0]->SetFirstClusterRef(newRef);
-            trk[0]->SetNClusters(trk[0]->NClusters() + trk[1]->NClusters());
-            trk[0]->SetCCE(true);
-            trk[1]->SetNClusters(0);
-            trk[1]->SetOK(false);
+            trk[1]->SetFirstClusterRef(newRef);
+            trk[1]->SetNClusters(trk[0]->NClusters() + trk[1]->NClusters());
+            trk[1]->SetCCE(true);
+            trk[0]->SetNClusters(0);
+            trk[0]->SetOK(false);
         }
     }
 
