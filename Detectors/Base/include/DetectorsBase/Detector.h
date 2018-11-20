@@ -155,6 +155,14 @@ class Detector : public FairDetector
     virtual void attachHits(FairMQChannel&, FairMQParts&) = 0;
     virtual void fillHitBranch(TTree& tr, FairMQParts& parts, int& index) = 0;
 
+    // interface needed to merge together hit entries in TBranches (as used by hit merger process)
+    // the 2 maps given are
+    // a) entries: a map giving for each real event; the entries in origin that contribute to this event
+    // b) trackoffsets: a map giving the corresponding trackoffset to be applied to the trackID property when
+    // merging
+    virtual void mergeHitEntries(TTree& origin, TTree& target, std::map<int, std::vector<int>> const& entries,
+                                 std::map<int, std::vector<int>> const& trackoffsets) = 0;
+
     // hook which is called automatically to custom initialize the O2 detectors
     // all initialization not able to do in constructors should be done here
     // (typically the case for geometry related stuff, etc)
@@ -317,6 +325,73 @@ class DetImpl : public o2::Base::Detector
         *mShmBusy[mCurrentBuffer] = true;
         attachShmMessage((void*)hits, channel, parts, mShmBusy[mCurrentBuffer]);
       }
+    }
+  }
+
+  // this merges several entries from the TBranch brname from the origin TTree
+  // into a single entry in a target TTree / same branch
+  // (assuming T is typically a vector; merging is simply done by appending)
+  // make this function a (static helper)
+  template <typename T>
+  void mergeAndAdjustHits(std::string const& brname, TTree& origin, TTree& target,
+                          std::map<int, std::vector<int>> const& entrygroups,
+                          std::map<int, std::vector<int>> const& trackoffsets)
+  {
+    auto originbr = origin.GetBranch(brname.c_str());
+    if (originbr) {
+      auto targetdata = new T;
+      T* incomingdata = nullptr;
+      originbr->SetAddress(&incomingdata);
+      for (auto& event_entries_pair : entrygroups) {
+        const auto& entries = event_entries_pair.second;
+        int offset = 0;
+        const auto& offsetvector = trackoffsets.find(event_entries_pair.first)->second;
+        int entrycounter = 0;
+        for (auto& e : entries) {
+          originbr->GetEntry(e);
+          if (incomingdata) {
+            if (offset != 0) {
+              // fix the trackIDs for this data
+              for (auto& hit : *incomingdata) {
+                const auto oldID = hit.GetTrackID();
+                // assert(oldID >= 0);
+                // assert(offset > 0);
+                hit.SetTrackID(oldID + offset);
+                // assert(hit.GetTrackID() >= 0);
+              }
+            }
+            // this could be further generalized by using a policy for T
+            std::copy(incomingdata->begin(), incomingdata->end(), std::back_inserter(*targetdata));
+            // adjust offset
+            offset += offsetvector[entrycounter];
+            delete incomingdata;
+            incomingdata = nullptr;
+          }
+          entrycounter++;
+        }
+        // fill target for this event
+        auto targetbr = o2::Base::getOrMakeBranch(target, brname.c_str(), &targetdata);
+        targetbr->SetAddress(&targetdata);
+        targetbr->Fill();
+        targetbr->ResetAddress();
+        targetdata->clear();
+      }
+      delete targetdata;
+    }
+  }
+
+  void mergeHitEntries(TTree& origin, TTree& target, std::map<int, std::vector<int>> const& entries,
+                       std::map<int, std::vector<int>> const& trackoffsets) final
+  {
+    // loop over hit containers / different branches
+    // adjust trackID in hits on the go
+    int probe = 0;
+    using Hit_t = decltype(static_cast<Det*>(this)->Det::getHits(probe));
+    std::string name = static_cast<Det*>(this)->getHitBranchNames(probe++);
+    while (name.size() > 0) {
+      mergeAndAdjustHits<typename std::remove_pointer<Hit_t>::type>(name, origin, target, entries, trackoffsets);
+      // next name
+      name = static_cast<Det*>(this)->getHitBranchNames(probe++);
     }
   }
 
