@@ -107,7 +107,7 @@ ExpirationHandler::Handler LifetimeHelpers::fetchFromObjectRegistry()
 }
 
 /// Enumerate entries on every invokation.
-ExpirationHandler::Handler LifetimeHelpers::enumerate(InputSpec const& matcher, std::string const& sourceChannel)
+ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const& matcher, std::string const& sourceChannel)
 {
   auto counter = std::make_shared<int64_t>(0);
   auto f = [matcher, counter, sourceChannel](ServiceRegistry& services, PartRef& ref, uint64_t timestamp) -> void {

@@ -11,10 +11,12 @@
 #define FRAMEWORK_INPUTSPEC_H
 
 #include "Framework/Lifetime.h"
-#include "Headers/DataHeader.h"
+#include "Framework/ConcreteDataMatcher.h"
+#include "Framework/DataDescriptorMatcher.h"
 
 #include <string>
 #include <ostream>
+#include <variant>
 
 namespace o2
 {
@@ -27,28 +29,15 @@ namespace framework
 struct InputSpec {
   /// This is the legacy way to construct things. For the moment we still allow
   /// accessing directly the members, but this will change as well at some point.
-  InputSpec(std::string binding_, header::DataOrigin origin_, header::DataDescription description_, header::DataHeader::SubSpecificationType subSpec_ = 0, enum Lifetime lifetime_ = Lifetime::Timeframe)
-    : binding{binding_},
-      origin{origin_},
-      description{description_},
-      subSpec{subSpec_},
-      lifetime{lifetime_}
-  {
-  }
+  InputSpec(std::string binding_, header::DataOrigin origin_, header::DataDescription description_, header::DataHeader::SubSpecificationType subSpec_ = 0, enum Lifetime lifetime_ = Lifetime::Timeframe);
+  InputSpec(std::string binding, data_matcher::DataDescriptorMatcher &&matcher);
 
   std::string binding;
-  header::DataOrigin origin;
-  header::DataDescription description;
-  header::DataHeader::SubSpecificationType subSpec;
+  std::variant<ConcreteDataMatcher, data_matcher::DataDescriptorMatcher> matcher;
   enum Lifetime lifetime;
 
-  bool operator==(InputSpec const& that) const
-  {
-    return origin == that.origin && description == that.description && subSpec == that.subSpec &&
-           lifetime == that.lifetime;
-  };
-
   friend std::ostream& operator<<(std::ostream& stream, InputSpec const& arg);
+  bool operator==(InputSpec const& that) const;
 };
 
 } // namespace framework

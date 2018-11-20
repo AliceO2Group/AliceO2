@@ -9,10 +9,13 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/ConfigContext.h"
-#include "Framework/DataProcessorSpec.h"
-#include "FairMQLogger.h"
-#include "Framework/ParallelContext.h"
 #include "Framework/ControlService.h"
+#include "Framework/DataProcessorSpec.h"
+#include "Framework/DataSpecUtils.h"
+#include "Framework/ParallelContext.h"
+
+#include "FairMQLogger.h"
+
 #include <vector>
 
 using namespace o2::framework;
@@ -62,22 +65,19 @@ WorkflowSpec defineDataProcessing(ConfigContext const&context) {
     }
   );
   workflow.push_back(DataProcessorSpec{
-      "merger",
-      mergeInputs(InputSpec{"x", "TST", "A", 0, Lifetime::Timeframe},
-                  jobs,
-                  [](InputSpec &input, size_t index){
-                     input.subSpec = index;
-                  }
-                 ),
-      {},
-      AlgorithmSpec{[](InitContext &setup) {
-        return [](ProcessingContext &ctx) {
-            // Create a single output.
-            LOG(DEBUG) << "Invoked" << std::endl;
-          };
-        }
-      }
-  });
+    "merger",
+    mergeInputs(InputSpec{ "x", "TST", "A", 0, Lifetime::Timeframe },
+                jobs,
+                [](InputSpec& input, size_t index) {
+                  DataSpecUtils::updateMatchingSubspec(input, index);
+                }),
+    {},
+    AlgorithmSpec{ [](InitContext& setup) {
+      return [](ProcessingContext& ctx) {
+        // Create a single output.
+        LOG(DEBUG) << "Invoked" << std::endl;
+      };
+    } } });
 
   return workflow;
 }

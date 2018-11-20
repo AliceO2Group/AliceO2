@@ -27,9 +27,12 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/DataProcessorSpec.h"
-#include "FairMQLogger.h"
+#include "Framework/DataSpecUtils.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/ControlService.h"
+
+#include "FairMQLogger.h"
+
 #include <vector>
 
 using DataHeader = o2::header::DataHeader;
@@ -72,8 +75,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   // instances in order to modify it. Parallel will also make sure the name of
   // the instance is amended from "some-producer" to "some-producer-<index>".
   WorkflowSpec workflow = parallel(templateProcessor(), jobs, [](DataProcessorSpec& spec, size_t index) {
+    DataSpecUtils::updateMatchingSubspec(spec.inputs[0], index);
     spec.outputs[0].subSpec = index;
-    spec.inputs[0].subSpec = index;
   });
 
   std::vector<OutputSpec> outputSpecs;
@@ -97,11 +100,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
                                     mergeInputs(InputSpec{ "x", "TST", "P" },
                                                 jobs,
                                                 [](InputSpec& input, size_t index) {
-                                                  input.subSpec = index;
+                                                  DataSpecUtils::updateMatchingSubspec(input, index);
                                                 }),
-                                    {
-                                      OutputSpec{{"out"}, "TST", "M"}
-                                    },
+                                    { OutputSpec{ { "out" }, "TST", "M" } },
                                     AlgorithmSpec{ [](InitContext& setup) {
                                       return [](ProcessingContext& ctx) {
                                         ctx.outputs().make<int>(OutputRef("out", 0), 1);

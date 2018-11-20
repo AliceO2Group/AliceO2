@@ -20,14 +20,15 @@ void customize(std::vector<ChannelConfigurationPolicy>& policies)
   DataSampling::CustomizeInfrastructure(policies);
 }
 
-#include <iostream>
-#include <boost/algorithm/string.hpp>
-
 #include "Framework/InputSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSampling.h"
+#include "Framework/DataSpecUtils.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/runDataProcessing.h"
+
+#include <iostream>
+#include <boost/algorithm/string.hpp>
 
 using namespace o2::framework;
 
@@ -70,7 +71,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
         (AlgorithmSpec::ProcessCallback)someProcessingStageAlgorithm } },
     parallelSize,
     [](DataProcessorSpec& spec, size_t index) {
-      spec.inputs[0].subSpec = index;
+      DataSpecUtils::updateMatchingSubspec(spec.inputs[0], index);
       spec.outputs[0].subSpec = index;
     });
 
@@ -78,7 +79,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     { "dataTPC-proc", "TPC", "CLUSTERS_P" },
     parallelSize,
     [](InputSpec& input, size_t index) {
-      input.subSpec = index;
+      DataSpecUtils::updateMatchingSubspec(input, index);
     });
 
   DataProcessorSpec sink{

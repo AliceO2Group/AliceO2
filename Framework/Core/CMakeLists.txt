@@ -29,6 +29,7 @@ set(SRCS
     src/ChannelConfigurationPolicy.cxx
     src/ChannelConfigurationPolicyHelpers.cxx
     src/DataAllocator.cxx
+    src/DataDescriptorMatcher.cxx
     src/DataProcessingDevice.cxx
     src/DataProcessingHeader.cxx
     src/DataProcessor.cxx
@@ -41,6 +42,7 @@ set(SRCS
     src/DataSamplingReadoutAdapter.cxx
     src/DataSamplingPolicy.cxx
     src/DataSourceDevice.cxx
+    src/DataSpecUtils.cxx
     src/DeviceMetricsInfo.cxx
     src/DeviceSpec.cxx
     src/DeviceSpecHelpers.cxx
@@ -54,6 +56,7 @@ set(SRCS
     src/FairMQResizableBuffer.cxx
     src/GraphvizHelpers.cxx
     src/InputRecord.cxx
+    src/InputSpec.cxx
     src/DataDescriptorQueryBuilder.cxx
     src/LifetimeHelpers.cxx
     src/LocalRootFileService.cxx

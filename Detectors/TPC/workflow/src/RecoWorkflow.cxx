@@ -14,6 +14,7 @@
 /// @brief  Workflow definition for the TPC reconstruction
 
 #include "Framework/WorkflowSpec.h"
+#include "Framework/DataSpecUtils.h"
 #include "Utils/MakeRootTreeWriterSpec.h"
 #include "TPCWorkflow/RecoWorkflow.h"
 #include "PublisherSpec.h"
@@ -198,7 +199,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, bool pro
                                   nLanes,
                                   [](DataProcessorSpec& spec, size_t id) {
                                     for (auto& input : spec.inputs) {
-                                      input.subSpec = id;
+                                      DataSpecUtils::updateMatchingSubspec(input, id);
                                     }
                                     for (auto& output : spec.outputs) {
                                       output.subSpec = id;
@@ -253,7 +254,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, bool pro
 
     auto amendInput = [](InputSpec& input, size_t lane) {
       input.binding += std::to_string(lane);
-      input.subSpec = lane;
+      DataSpecUtils::updateMatchingSubspec(input, lane);
     };
     auto amendBranchDef = [nLanes, propagateMC, amendInput, tpcSectors, getIndex, getName](auto&& def) {
       def.keys = mergeInputs(def.keys, nLanes, amendInput);

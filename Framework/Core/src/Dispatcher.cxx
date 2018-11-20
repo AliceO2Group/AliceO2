@@ -17,6 +17,7 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/DataSamplingPolicy.h"
 #include "Framework/DataProcessingHeader.h"
+#include "Framework/DataSpecUtils.h"
 
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
@@ -123,15 +124,14 @@ void Dispatcher::registerPath(const std::pair<InputSpec, OutputSpec>& path)
   //todo: take care of inputs inclusive in others, when subSpec matchers are supported
   auto cmp = [a = path.first](const InputSpec b)
   {
-    return a.origin == b.origin && a.description == b.description && a.subSpec == b.subSpec && a.lifetime == b.lifetime;
+    return a.matcher == b.matcher && a.lifetime == b.lifetime;
   };
 
   if (std::find_if(inputs.begin(), inputs.end(), cmp) == inputs.end()) {
     inputs.push_back(path.first);
-    LOG(DEBUG) << "Registering input " << path.first.origin.str << " " << path.first.description.str << " "
-               << path.first.subSpec;
+    LOG(DEBUG) << "Registering input " << DataSpecUtils::describe(path.first);
   } else {
-    LOG(DEBUG) << "Input " << path.first.origin.str << " " << path.first.description.str << " " << path.first.subSpec
+    LOG(DEBUG) << "Input " << DataSpecUtils::describe(path.first)
                << " already registered";
   }
 

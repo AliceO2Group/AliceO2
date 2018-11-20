@@ -47,26 +47,36 @@ std::vector<size_t> createDistinctRouteIndex(std::vector<InputRoute> const& rout
   return result;
 }
 
+DataDescriptorMatcher fromConcreteMatcher(ConcreteDataMatcher const& matcher)
+{
+  return DataDescriptorMatcher{
+    DataDescriptorMatcher::Op::And,
+    StartTimeValueMatcher{ ContextRef{ 0 } },
+    std::make_unique<DataDescriptorMatcher>(
+      DataDescriptorMatcher::Op::And,
+      OriginValueMatcher{ matcher.origin.str },
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::And,
+        DescriptionValueMatcher{ matcher.description.str },
+        std::make_unique<DataDescriptorMatcher>(
+          DataDescriptorMatcher::Op::Just,
+          SubSpecificationTypeValueMatcher{ matcher.subSpec })))
+  };
+}
+
 /// This converts from InputRoute to the associated DataDescriptorMatcher.
 std::vector<DataDescriptorMatcher> createInputMatchers(std::vector<InputRoute> const& routes)
 {
   std::vector<DataDescriptorMatcher> result;
 
   for (auto& route : routes) {
-    DataDescriptorMatcher matcher{
-      DataDescriptorMatcher::Op::And,
-      StartTimeValueMatcher{ ContextRef{ 0 } },
-      std::make_unique<DataDescriptorMatcher>(
-        DataDescriptorMatcher::Op::And,
-        OriginValueMatcher{ route.matcher.origin.str },
-        std::make_unique<DataDescriptorMatcher>(
-          DataDescriptorMatcher::Op::And,
-          DescriptionValueMatcher{ route.matcher.description.str },
-          std::make_unique<DataDescriptorMatcher>(
-            DataDescriptorMatcher::Op::Just,
-            SubSpecificationTypeValueMatcher{ route.matcher.subSpec })))
-    };
-    result.emplace_back(std::move(matcher));
+    if (auto pval = std::get_if<ConcreteDataMatcher>(&route.matcher.matcher)) {
+      result.emplace_back(fromConcreteMatcher(*pval));
+    } else if (auto matcher = std::get_if<DataDescriptorMatcher>(&route.matcher.matcher)) {
+      result.push_back(*matcher);
+    } else {
+      throw std::runtime_error("Unsupported InputSpec type");
+    }
   }
 
   return result;
@@ -493,11 +503,8 @@ DataRelayer::setPipelineLength(size_t s) {
     sQueriesMetricsNames[i] = std::string("data_queries/") + std::to_string(i);
     char buffer[128];
     auto& matcher = mInputRoutes[mDistinctRoutesIndex[i]].matcher;
-    snprintf(buffer, 127, "%s/%s/%llu",
-             matcher.origin.str,
-             matcher.description.str,
-             matcher.subSpec);
-    mMetrics.send({ std::string(buffer), sQueriesMetricsNames[i] });
+    DataSpecUtils::describe(buffer, 127, matcher);
+    mMetrics.send({ std::string{ buffer }, sQueriesMetricsNames[i] });
   }
 }
 

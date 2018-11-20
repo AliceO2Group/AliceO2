@@ -17,6 +17,7 @@
 #include "Headers/DataHeader.h"
 #include "Framework/WorkflowSpec.h" // o2::framework::mergeInputs
 #include "Framework/DataRefUtils.h"
+#include "Framework/DataSpecUtils.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/Helpers.h"
@@ -282,7 +283,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
                                    // using unique input names for the moment but want to find
                                    // an input-multiplicity-agnostic way of processing
                                    input.binding += std::to_string(index);
-                                   input.subSpec = index;
+                                   DataSpecUtils::updateMatchingSubspec(input, index);
                                  }));
   };
 

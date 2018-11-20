@@ -14,6 +14,7 @@
 
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/DataDescriptorQueryBuilder.h"
+#include "Framework/InputSpec.h"
 
 #include <boost/test/unit_test.hpp>
 #include <variant>
@@ -339,11 +340,11 @@ BOOST_AUTO_TEST_CASE(TestMatchingVariables)
 
 BOOST_AUTO_TEST_CASE(TestInputSpecMatching)
 {
-  InputSpec spec0{ "spec0", "TPC", "CLUSTERS", 1 };
-  InputSpec spec1{ "spec1", "ITS", "TRACKLET", 2 };
-  InputSpec spec2{ "spec2", "ITS", "TRACKLET", 1 };
-  InputSpec spec3{ "spec3", "TPC", "CLUSTERS", 0 };
-  InputSpec spec4{ "spec4", "TRD", "TRACKLET", 0 };
+  ConcreteDataMatcher spec0{ "TPC", "CLUSTERS", 1 };
+  ConcreteDataMatcher spec1{ "ITS", "TRACKLET", 2 };
+  ConcreteDataMatcher spec2{ "ITS", "TRACKLET", 1 };
+  ConcreteDataMatcher spec3{ "TPC", "CLUSTERS", 0 };
+  ConcreteDataMatcher spec4{ "TRD", "TRACKLET", 0 };
 
   DataDescriptorMatcher matcher{
     DataDescriptorMatcher::Op::And,
