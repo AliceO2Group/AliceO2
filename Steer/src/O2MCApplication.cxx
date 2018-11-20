@@ -21,6 +21,7 @@
 #include <SimConfig/SimConfig.h>
 #include <DetectorsBase/Detector.h>
 #include <CommonUtils/ShmManager.h>
+#include <cassert>
 
 namespace o2
 {
@@ -57,14 +58,16 @@ void O2MCApplication::attachSubEventInfo(FairMQParts& parts, o2::Data::SubEventI
 }
 
 // helper function to fetch data from FairRootManager branch and serialize it
+// returns handle to container
 template <typename T>
-void attachBranch(std::string name, FairMQChannel& channel, FairMQParts& parts)
+const T* attachBranch(std::string name, FairMQChannel& channel, FairMQParts& parts)
 {
   auto mgr = FairRootManager::Instance();
   auto data = mgr->InitObjectAs<const T*>(name.c_str());
   if (data) {
     o2::Base::attachTMessage(*data, channel, parts);
   }
+  return data;
 }
 
 void O2MCApplication::SendData()
@@ -73,11 +76,13 @@ void O2MCApplication::SendData()
 
   // fill these parts ... the receiver has to unpack similary
   // TODO: actually we could just loop over branches in FairRootManager at this moment?
+  mSubEventInfo.npersistenttracks = static_cast<o2::Data::Stack*>(GetStack())->getMCTracks()->size();
   attachSubEventInfo(simdataparts, mSubEventInfo);
-  attachBranch<std::vector<o2::MCTrack>>("MCTrack", *mSimDataChannel, simdataparts);
+  auto tracks = attachBranch<std::vector<o2::MCTrack>>("MCTrack", *mSimDataChannel, simdataparts);
   attachBranch<std::vector<o2::TrackReference>>("TrackRefs", *mSimDataChannel, simdataparts);
-  attachBranch<o2::dataformats::MCTruthContainer<o2::TrackReference>>("IndexedTrackRefs", *mSimDataChannel,
-                                                                      simdataparts);
+  attachBranch<o2::dataformats::MCTruthContainer<o2::TrackReference>>("IndexedTrackRefs", *mSimDataChannel, simdataparts);
+  assert(tracks->size() == mSubEventInfo.npersistenttracks);
+
   for (auto det : listActiveDetectors) {
     if (dynamic_cast<o2::Base::Detector*>(det)) {
       ((o2::Base::Detector*)det)->attachHits(*mSimDataChannel, simdataparts);

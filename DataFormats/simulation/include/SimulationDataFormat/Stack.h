@@ -163,6 +163,8 @@ class Stack : public FairGenericStack
 
   TClonesArray* GetListOfParticles() override;
 
+  std::vector<MCTrack> const* const getMCTracks() const { return mTracks; }
+
   /// Clone for worker (used in MT mode only)
   FairGenericStack* CloneStack() const override;
 

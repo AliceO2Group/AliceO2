@@ -29,6 +29,7 @@ struct SubEventInfo {
   uint16_t nparts = 0;    // out of how many parts
   uint32_t seed = 0;      // seed for RNG
   uint32_t index = 0;
+  int32_t npersistenttracks = -1; // the number of persistent tracks for this SubEvent (might be set to cache it)
   // might add more fields (such as which process treated this chunk etc)
   ClassDefNV(SubEventInfo, 1);
 };

@@ -50,6 +50,8 @@
 #include <ZDCSimulation/Detector.h>
 
 #include "CommonUtils/ShmManager.h"
+#include <map>
+#include <vector>
 
 namespace o2
 {
@@ -85,6 +87,9 @@ class O2HitMerger : public FairMQDevice
     FairSystemInfo sysinfo;
     mOutTree->SetEntries(mEntries);
     mOutTree->Write();
+
+    mergeEntries();
+
     mOutFile->Close();
     LOG(INFO) << "TIME-STAMP " << mTimer.RealTime() << "\t";
     mTimer.Continue();
@@ -129,10 +134,6 @@ class O2HitMerger : public FairMQDevice
 
   void consumeHits(FairMQParts& data, int& index)
   {
-    //static bool b = true;
-    //while (b) {
-    //
-    //}
     auto detIDmessage = std::move(data.At(index++));
     // this should be a detector ID
     LOG(INFO) << detIDmessage->GetSize();
@@ -161,6 +162,17 @@ class O2HitMerger : public FairMQDevice
     index++;
   }
 
+  // fills a special branch of SubEventInfos in order to keep
+  // track of which entry corresponds to which event etc.
+  void fillSubEventInfoEntry(o2::Data::SubEventInfo& info)
+  {
+    auto infoptr = &info;
+    auto br = o2::Base::getOrMakeBranch(*mOutTree, "SubEventInfo", &infoptr);
+    br->SetAddress(&infoptr);
+    br->Fill();
+    br->ResetAddress();
+  }
+
   bool handleSimData(FairMQParts& data, int /*index*/)
   {
     LOG(INFO) << "SIMDATA channel got " << data.Size() << " parts\n";
@@ -174,6 +186,7 @@ class O2HitMerger : public FairMQDevice
     auto accum = insertAdd<uint32_t, uint32_t>(mPartsCheckSum, info.eventID, (uint32_t)info.part);
 
     int index = 1;
+    fillSubEventInfoEntry(info);
     consumeData<std::vector<o2::MCTrack>>("MCTrack", data, index);
     consumeData<std::vector<o2::TrackReference>>("TrackRefs", data, index);
     consumeData<o2::dataformats::MCTruthContainer<o2::TrackReference>>("IndexedTrackRefs", data, index);
@@ -194,10 +207,99 @@ class O2HitMerger : public FairMQDevice
     return true;
   }
 
+  // this merges several entries from the TBranch brname from the origin TTree
+  // into a single entry in a target TTree / same branch
+  // (assuming T is typically a vector; merging is simply done by appending)
+  template <typename T>
+  void merge(std::string brname, TTree& origin, TTree& target, std::map<int, std::vector<int>> const& entrygroups)
+  {
+    auto originbr = origin.GetBranch(brname.c_str());
+    auto targetdata = new T;
+    T* incomingdata = nullptr;
+    originbr->SetAddress(&incomingdata);
+    for (auto& event_entries_pair : entrygroups) {
+      const auto& entries = event_entries_pair.second;
+      for (auto& e : entries) {
+        originbr->GetEntry(e);
+        // this could be further generalized by using a policy for T
+        std::copy(incomingdata->begin(), incomingdata->end(), std::back_inserter(*targetdata));
+        delete incomingdata;
+        incomingdata = nullptr;
+      }
+
+      // fill target for this event
+      auto targetbr = o2::Base::getOrMakeBranch(target, brname.c_str(), &targetdata);
+      targetbr->SetAddress(&targetdata);
+      targetbr->Fill();
+      targetbr->ResetAddress();
+      targetdata->clear();
+    }
+    delete targetdata;
+  }
+
+  // This method goes over the final tree containing the hits
+  // and merges entries (of subevents) into entries corresponding to one event.
+  // (Preference would be not to do this at all and to keep references to sub-events in the MC labels instead;
+  //  ... but method is provided in order to have backward compatibility first)
+  void mergeEntries()
+  {
+    // a) find out which entries to merge together
+    // we produce a vector<vector<int>>
+    auto infobr = mOutTree->GetBranch("SubEventInfo");
+    std::map<int, std::vector<int>> entrygroups;  // collecting all entries belonging to an event
+    std::map<int, std::vector<int>> trackoffsets; // collecting trackoffsets to be applied to correct
+    // the MC labels (trackID) for hits
+    o2::Data::SubEventInfo* info = nullptr;
+    infobr->SetAddress(&info);
+    for (int i = 0; i < infobr->GetEntries(); ++i) {
+      infobr->GetEntry(i);
+      assert(info->npersistenttracks >= 0);
+      auto event = info->eventID;
+      entrygroups[event].emplace_back(i);
+      trackoffsets[event].emplace_back(info->npersistenttracks);
+    }
+
+    // create the final output
+    auto mergedOutFile = new TFile("o2sim_corrected.root", "RECREATE");
+    gFile = mergedOutFile;
+    auto mergedOutTree = new TTree("o2sim1", "o2sim1");
+
+    for (auto& e : entrygroups) {
+      LOG(INFO) << "EVENT " << e.first << " HAS " << e.second.size() << " ENTRIES ";
+      std::stringstream indices;
+      indices << "{";
+      for (int index : e.second) {
+        indices << index << " , ";
+      }
+      indices << "}";
+      LOG(INFO) << "# " << indices.str();
+    }
+    mergedOutTree->SetEntries(entrygroups.size());
+
+    // b) merge the general data
+    merge<std::vector<o2::MCTrack>>("MCTrack", *mOutTree, *mergedOutTree, entrygroups);
+    merge<std::vector<o2::TrackReference>>("TrackRefs", *mOutTree, *mergedOutTree, entrygroups);
+    // TODO: trackreferences indexed version
+
+    // c) do the merge procedure for all hits ... delegate this to detector specific functions
+    // since they know about types; number of branches; etc.
+    // this will also fix the trackIDs inside the hits
+    for (auto& det : mDetectorInstances) {
+      if (det) {
+        det->mergeHitEntries(*mOutTree, *mergedOutTree, entrygroups, trackoffsets);
+      }
+    }
+
+    mergedOutTree->Write();
+    mergedOutFile->Close();
+    gFile = mOutFile;
+  }
+
   std::map<uint32_t, uint32_t> mPartsCheckSum; //! mapping event id -> part checksum used to detect when all info
 
   TFile* mOutFile;  //!
   TTree* mOutTree;  //!
+
   int mEntries = 0; //! counts the number of entries in the branches
   int mEventChecksum = 0; //! checksum for events
   TStopwatch mTimer;
