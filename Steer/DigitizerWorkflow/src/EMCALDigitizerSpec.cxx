@@ -154,7 +154,9 @@ DataProcessorSpec getEMCALDigitizerSpec(int channel)
     if (!gGeoManager) {
       o2::Base::GeometryManager::loadGeometry();
     }
-    auto geom = o2::EMCAL::Geometry::GetInstance("EMCAL_COMPLETE", "Geant4", "EMV-EMCAL");
+    // run 3 geometry == run 2 geometry for EMCAL
+    // to be adapted with run numbers at a later stage
+    auto geom = o2::EMCAL::Geometry::GetInstance("EMCAL_COMPLETE12SMV1_DCAL_8SM", "Geant4", "EMV-EMCAL");
     // init digitizer
     digitizer->setGeometry(geom);
     digitizer->init();
