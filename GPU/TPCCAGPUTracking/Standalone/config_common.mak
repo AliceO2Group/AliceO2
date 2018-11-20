@@ -11,7 +11,7 @@ HIDEECHO					= @
 CC_x86_64-pc-linux-gnu		= GCC
 CC_i686-pc-cygwin			= ICC
 
-INCLUDEPATHS				= include SliceTracker HLTHeaders Merger GlobalTracker TRDTracking Common
+INCLUDEPATHS				= include SliceTracker HLTHeaders Merger GlobalTracker TRDTracking Common TPCFastTransformation
 DEFINES						= HLTCA_STANDALONE HLTCA_ENABLE_GPU_TRACKER
 CPPFILES					= cmodules/timer.cpp
 
@@ -44,6 +44,10 @@ CXXFILES					= SliceTracker/AliHLTTPCCASliceData.cxx \
 								GlobalTracker/AliGPUReconstruction.cxx \
 								GlobalTracker/AliGPUReconstructionDeviceBase.cxx \
 								GlobalTracker/AliGPUCAParam.cxx \
+								TPCFastTransformation/TPCFastTransform.cxx \
+								TPCFastTransformation/TPCDistortionIRS.cxx \
+								TPCFastTransformation/IrregularSpline1D.cxx \
+								TPCFastTransformation/IrregularSpline2D3D.cxx
 
 HLTCA_MERGER_CXXFILES		= Merger/AliHLTTPCGMMerger.cxx \
 								Merger/AliHLTTPCGMSliceTrack.cxx \

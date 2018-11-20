@@ -351,14 +351,8 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 
 	if (nEvent == 0)
 	{
-		sprintf(filename, "config.dump");
-		out.open(filename, std::ofstream::binary);
-		hltca_event_dump_settings eventSettings;
-		eventSettings.setDefaults();
-		eventSettings.solenoidBz = fSolenoidBz;
-		eventSettings.constBz = false;
-		out.write((char *) &eventSettings, sizeof(eventSettings));
-		out.close();
+		fRec->SetSettingsStandalone(fSolenoidBz);
+		fRec->DumpSettings();
 	}
 
 	sprintf(filename, HLTCA_EVDUMP_FILE ".%d.dump", nEvent++);

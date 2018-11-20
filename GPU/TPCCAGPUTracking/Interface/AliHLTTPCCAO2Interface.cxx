@@ -19,7 +19,6 @@
 #include "AliHLTTPCCAO2Interface.h"
 #include "AliGPUReconstruction.h"
 #include "AliHLTTPCCAStandaloneFramework.h"
-#include "standaloneSettings.h"
 #include <iostream>
 #include <fstream>
 #ifdef HLTCA_HAVE_OPENMP
@@ -35,7 +34,7 @@ AliHLTTPCCAO2Interface::~AliHLTTPCCAO2Interface()
 	Deinitialize();
 }
 
-int AliHLTTPCCAO2Interface::Initialize(const char* options)
+int AliHLTTPCCAO2Interface::Initialize(const char* options, std::unique_ptr<TPCFastTransform>&& fastTrans)
 {
 	if (fInitialized) return(1);
 	fHLT = &AliHLTTPCCAStandaloneFramework::Instance();
@@ -123,6 +122,8 @@ int AliHLTTPCCAO2Interface::Initialize(const char* options)
 	param.ContinuousTracking = fContinuous;
 	param.TrackReferenceX = refX;
 	mRec->SetParam(param);
+	mRec->SetSettingsStandalone(param.BzkG);
+	mRec->SetTPCFastTransform(std::move(fastTrans));
 	for (int i = 0;i < 36;i++)
 	{
 		fHLT->InitializeSliceParam(i, &mRec->GetParam());
@@ -141,6 +142,7 @@ void AliHLTTPCCAO2Interface::Deinitialize()
 		fHLT->Merger().SetGPUTracker(NULL);
 		fHLT->Uninitialize();
 		fHLT = NULL;
+		mRec.reset();
 	}
 	fInitialized = false;
 }
@@ -165,13 +167,7 @@ int AliHLTTPCCAO2Interface::RunTracking(const AliHLTTPCCAClusterData* inputClust
 		mRec->DumpData(fname);
 		if (nEvent == 0)
 		{
-			std::ofstream out;
-			out.open("settings.dump", std::ofstream::binary);
-			hltca_event_dump_settings settings;
-			settings.setDefaults();
-			settings.solenoidBz = fHLT->Param().BzkG;
-			out.write((char*) &settings, sizeof(settings));
-			out.close();
+			mRec->DumpSettings();
 		}
 	}
 	fHLT->ProcessEvent();

@@ -36,6 +36,8 @@ o2_define_bucket(
     TRDBase
     ITStracking
     AliTPCCommonBase_bucket
+    TPCFastTransformation_bucket
+    O2TPCFastTransformation
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}

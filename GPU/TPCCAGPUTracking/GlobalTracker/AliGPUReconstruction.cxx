@@ -1,6 +1,7 @@
 #include <cstring>
 #include <stdio.h>
 #include <mutex>
+#include <string>
 
 #ifdef WIN32
 #include <windows.h>
@@ -22,6 +23,8 @@
 #include "AliHLTTPCCAMCInfo.h"
 #include "AliHLTTRDTrack.h"
 #include "AliHLTTRDTracker.h"
+#include "TPCFastTransform.h"
+#include "standaloneSettings.h"
 
 #define HLTCA_LOGGING_PRINTF
 #include "AliCAGPULogging.h"
@@ -40,8 +43,9 @@ constexpr AliGPUReconstruction::GeometryType AliGPUReconstruction::geometryType;
 static constexpr unsigned int DUMP_HEADER_SIZE = 4;
 static constexpr char DUMP_HEADER[DUMP_HEADER_SIZE + 1] = "CAv1";
 
-AliGPUReconstruction::AliGPUReconstruction(DeviceType type) : mIOPtrs(), mIOMem(), mTRDTracker(new AliHLTTRDTracker), mTPCTracker(nullptr), mITSTrackerTraits(nullptr), mDeviceType(type)
+AliGPUReconstruction::AliGPUReconstruction(DeviceType type) : mIOPtrs(), mIOMem(), mTRDTracker(new AliHLTTRDTracker), mTPCTracker(nullptr), mITSTrackerTraits(nullptr), mDeviceType(type), mTPCFastTransform(nullptr), mEventDumpSettings(new hltca_event_dump_settings)
 {
+	mEventDumpSettings->setDefaults();
 	mTRDTracker->Init();
 	if (type == CPU)
 	{
@@ -187,6 +191,30 @@ template <class T> void AliGPUReconstruction::ReadData(FILE* fp, T** entries, un
 	//printf("Read %d %s\n", numTotal, IOTYPENAMES[type]);
 }
 
+void AliGPUReconstruction::DumpSettings(const char* dir)
+{
+	std::string f;
+	f = dir;
+	f += "settings.dump";
+	if (mEventDumpSettings != nullptr) DumpStructToFile(mEventDumpSettings.get(), f.c_str());
+	f = dir;
+	f += "tpctransform.dump";
+	if (mTPCFastTransform != nullptr) DumpFlatObjectToFile(mTPCFastTransform.get(), f.c_str());
+}
+
+void AliGPUReconstruction::ReadSettings(const char* dir)
+{
+	std::string f;
+	f = dir;
+	f += "settings.dump";
+	mEventDumpSettings.reset(new hltca_event_dump_settings);
+	mEventDumpSettings->setDefaults();
+	ReadStructFromFile<hltca_event_dump_settings>(f.c_str(), mEventDumpSettings.get());
+	f = dir;
+	f += "tpctransform.dump";
+	mTPCFastTransform = ReadFlatObjectFromFile<TPCFastTransform>(f.c_str());
+}
+
 template <class T> void AliGPUReconstruction::AllocateIOMemoryHelper(unsigned int n, T* &ptr, std::unique_ptr<T[]> &u)
 {
 	u.reset(n ? (ptr = new T[n]) : nullptr);
@@ -268,6 +296,21 @@ template <class T> void AliGPUReconstruction::ReadStructFromFile(const char* fil
 	r = fread(&size, sizeof(size), 1, fp);
 	if (r == 0) {fclose(fp); return;}
 	r = fread(obj, 1, size, fp);
+}
+
+void AliGPUReconstruction::SetSettingsStandalone(float solenoidBz)
+{
+	mEventDumpSettings.reset(new hltca_event_dump_settings);
+	mEventDumpSettings->setDefaults();
+	mEventDumpSettings->solenoidBz = solenoidBz;
+}
+void AliGPUReconstruction::SetSettingsStandalone(const hltca_event_dump_settings& settings)
+{
+	mEventDumpSettings.reset(new hltca_event_dump_settings(settings));
+}
+void AliGPUReconstruction::SetTPCFastTransform(std::unique_ptr<TPCFastTransform> tpcFastTransform)
+{
+	mTPCFastTransform = std::move(tpcFastTransform);
 }
 
 int AliGPUReconstruction::RunTRDTracking()

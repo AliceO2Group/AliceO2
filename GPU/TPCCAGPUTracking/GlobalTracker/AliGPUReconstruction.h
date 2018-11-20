@@ -18,8 +18,11 @@ class AliHLTTRDTracker;
 class AliHLTTPCCAGPUTracker;
 #include "AliHLTTRDDef.h"
 #include "AliGPUCAParam.h"
+struct hltca_event_dump_settings;
 
 namespace o2 { namespace ITS { class TrackerTraits; }}
+namespace ali_tpc_common { namespace tpc_fast_transformation { class TPCFastTransform; }}
+using TPCFastTransform = ali_tpc_common::tpc_fast_transformation::TPCFastTransform;
 
 class AliGPUReconstruction
 {
@@ -97,6 +100,8 @@ public:
 	void AllocateIOMemory();
 	void DumpData(const char* filename);
 	int ReadData(const char* filename);
+	void DumpSettings(const char* dir = "");
+	void ReadSettings(const char* dir = "");
 	
 	//Helpers for memory allocation
 	static inline size_t getAlignment(size_t addr, size_t alignment = MIN_ALIGNMENT)
@@ -189,6 +194,8 @@ protected:
 	DeviceType mDeviceType;
 	
 	AliGPUCAParam mParam;												//Reconstruction parameters
+	std::unique_ptr<TPCFastTransform> mTPCFastTransform;				//Global TPC fast transformation object
+	std::unique_ptr<hltca_event_dump_settings> mEventDumpSettings;		//Standalone event dump settings
 };
 
 #endif

@@ -35,7 +35,7 @@ elseif(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     set(MODULE AliTPCCAGPUTracking)
 endif()
 
-include_directories(. SliceTracker Merger ../Common)
+include_directories(. SliceTracker Merger ../Common ../TPCFastTransformation Standalone/include)
 
 set(SRCS
     SliceTracker/AliHLTTPCCATrack.cxx
@@ -175,7 +175,7 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
 
     # Generate the ROOT map
     # Dependecies
-    set(LIBDEPS STEERBase STEER ESD CDB HLTbase TPCbase TPCrec TPCcalib TRDbase)
+    set(LIBDEPS STEERBase STEER ESD CDB HLTbase TPCbase TPCrec TPCcalib TRDbase AliTPCFastTransformation)
     generate_rootmap("${MODULE}" "${LIBDEPS}" "${CMAKE_CURRENT_SOURCE_DIR}/TPCCAGPUTrackingLinkDef_AliRoot.h")
     # Don't pass Vc to root
     set(LIBDEPS ${LIBDEPS} Vc)
