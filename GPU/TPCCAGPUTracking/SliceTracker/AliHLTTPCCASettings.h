@@ -12,7 +12,7 @@
 #define GLOBAL_TRACKING_MIN_ROWS 10					//Min num of rows an additional global track must span over
 #define GLOBAL_TRACKING_MIN_HITS 8					//Min num of hits for an additional global track
 
-#define MERGE_CE_ROWLIMIT 15						////Distance from first / last row in order to attempt merging accross CE
+//#define MERGE_CE_ROWLIMIT 15						//Distance from first / last row in order to attempt merging accross CE
 
 #define MERGE_LOOPER_QPT_LIMIT 4					//Min Q/Pt to run special looper merging procedure
 #define MERGE_HORIZONTAL_DOUBLE_QPT_LIMIT 2			//Min Q/Pt to attempt second horizontal merge between slices after a vertical merge was found

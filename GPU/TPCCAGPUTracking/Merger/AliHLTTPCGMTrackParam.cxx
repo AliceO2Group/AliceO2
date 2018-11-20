@@ -116,7 +116,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
       float zz = clusters[ihit].fZ - fZOffset;
       unsigned char clusterState = clusters[ihit].fState;
       const float clAlpha = param.Alpha(clusters[ihit].fSlice);
-      CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f (Missed %d)", ihit, maxN, clusters[ihit].fRow, clAlpha, xx, yy, zz, nMissed);)
+      CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f %d , X %8.3f - Y %8.3f, Z %8.3f (Missed %d)", ihit, maxN, (int) clusters[ihit].fRow, clAlpha, (int) clusters[ihit].fSlice, xx, yy, zz, nMissed);)
       CADEBUG(AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();if (configStandalone.resetids && (unsigned int) hlt.GetNMCLabels() > clusters[ihit].fNum))
       CADEBUG({printf(" MC:"); for (int i = 0;i < 3;i++) {int mcId = hlt.GetMCLabels()[clusters[ihit].fNum].fClusterID[i].fMCID; if (mcId >= 0) printf(" %d", mcId);}}printf("\n");)
       if ((param.RejectMode > 0 && nMissed >= param.RejectMode) || nMissed2 >= HLTCA_MERGER_MAXN_MISSED_HARD || clusters[ihit].fState & AliHLTTPCGMMergedTrackHit::flagReject)
@@ -164,7 +164,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
       {
           AttachClustersPropagate(merger, clusters[ihit].fSlice, lastRow, clusters[ihit].fRow, iTrk, clusters[ihit].fLeg == clusters[maxN - 1].fLeg, prop, inFlyDirection);
       }
-
+      
       int err = prop.PropagateToXAlpha(xx, clAlpha, inFlyDirection);
       CADEBUG(if(!CheckCov()) printf("INVALID COV AFTER PROPAGATE!!!\n");)
       if (err == -2) //Rotation failed, try to bring to new x with old alpha first, rotate, and then propagate to x, alpha
