@@ -171,12 +171,12 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     # Generate the dictionary
     # It will create G_ARG1.cxx and G_ARG1.h / ARG1 = function first argument
     get_directory_property(incdirs INCLUDE_DIRECTORIES)
-    generate_dictionary_flat("${MODULE}" "LinkDef_AliRoot.h" "${HDRS}" "${incdirs}")
+    generate_dictionary_flat("${MODULE}" "TPCCAGPUTrackingLinkDef_AliRoot.h" "${HDRS}" "${incdirs}")
 
     # Generate the ROOT map
     # Dependecies
     set(LIBDEPS STEERBase STEER ESD CDB HLTbase TPCbase TPCrec TPCcalib TRDbase)
-    generate_rootmap("${MODULE}" "${LIBDEPS}" "${CMAKE_CURRENT_SOURCE_DIR}/LinkDef_AliRoot.h")
+    generate_rootmap("${MODULE}" "${LIBDEPS}" "${CMAKE_CURRENT_SOURCE_DIR}/TPCCAGPUTrackingLinkDef_AliRoot.h")
     # Don't pass Vc to root
     set(LIBDEPS ${LIBDEPS} Vc)
 
@@ -203,7 +203,7 @@ endif()
 #Default cmake build script for O2
 if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
     Set(HEADERS ${HDRS})
-    Set(LINKDEF LinkDef_O2.h)
+    Set(LINKDEF TPCCAGPUTrackingLinkDef_O2.h)
     Set(LIBRARY_NAME ${MODULE})
     set(BUCKET_NAME TPCCAGPUTracking_bucket)
 
