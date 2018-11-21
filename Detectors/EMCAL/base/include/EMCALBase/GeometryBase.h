@@ -67,7 +67,7 @@ class InvalidModuleException : public std::exception
 class InvalidPositionException : public std::exception
 {
  public:
-  InvalidPositionException(double eta, double phi) : std::exception()
+  InvalidPositionException(double eta, double phi) : std::exception(), mEta(eta), mPhi(phi)
   {
     std::stringstream msgbuilder;
     msgbuilder << "Position phi (" << mPhi << "), eta(" << mEta << ") not im EMCAL";
@@ -81,7 +81,8 @@ class InvalidPositionException : public std::exception
   const char* what() const noexcept final { return mMessage.c_str(); }
 
  private:
-  double mEta, mPhi;    ///< Position (eta, phi) raising the exception
+  double mEta = 0.;
+  double mPhi = 0.;     ///< Position (eta, phi) raising the exception
   std::string mMessage; ///< Error message
 };
 
