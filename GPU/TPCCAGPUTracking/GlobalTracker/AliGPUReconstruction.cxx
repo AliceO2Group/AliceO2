@@ -32,9 +32,13 @@
 
 #ifdef HAVE_O2HEADERS
 #include "ITStracking/TrackerTraitsCPU.h"
+#include "DataFormatsTPC/ClusterNative.h"
 #else
 namespace o2 { namespace ITS { class TrackerTraits {}; class TrackerTraitsCPU : public TrackerTraits {}; }}
+namespace o2 { namespace TPC { struct ClusterNativeAccessFullTPC {ClusterNative* clusters[36][HLTCA_ROW_COUNT]; unsigned int nClusters[36][HLTCA_ROW_COUNT];}; struct ClusterNative {}; }}
 #endif
+using namespace o2::ITS;
+using namespace o2::TPC;
 
 constexpr const char* const AliGPUReconstruction::GEOMETRY_TYPE_NAMES[];
 constexpr const char* const AliGPUReconstruction::DEVICE_TYPE_NAMES[];
@@ -44,7 +48,8 @@ constexpr AliGPUReconstruction::GeometryType AliGPUReconstruction::geometryType;
 static constexpr unsigned int DUMP_HEADER_SIZE = 4;
 static constexpr char DUMP_HEADER[DUMP_HEADER_SIZE + 1] = "CAv1";
 
-AliGPUReconstruction::AliGPUReconstruction(DeviceType type) : mIOPtrs(), mIOMem(), mTRDTracker(new AliHLTTRDTracker), mTPCTracker(nullptr), mITSTrackerTraits(nullptr), mDeviceType(type), mTPCFastTransform(nullptr), mEventDumpSettings(new hltca_event_dump_settings)
+AliGPUReconstruction::AliGPUReconstruction(DeviceType type) : mIOPtrs(), mIOMem(), mTRDTracker(new AliHLTTRDTracker), mTPCTracker(nullptr), mITSTrackerTraits(nullptr), mDeviceType(type), mTPCFastTransform(nullptr), mEventDumpSettings(new hltca_event_dump_settings),
+	mClusterNativeAccess(new ClusterNativeAccessFullTPC)
 {
 	mEventDumpSettings->setDefaults();
 	mTRDTracker->Init();
@@ -79,6 +84,10 @@ void AliGPUReconstruction::ClearIOPointers()
 		mIOMem.sliceOutTracks[i].reset();
 		mIOMem.sliceOutClusters[i].reset();
 	}
+	for (unsigned int i = 0;i < NSLICES * HLTCA_ROW_COUNT;i++)
+	{
+		mIOMem.clustersNative[i].reset();
+	}
 	mIOMem.mcLabelsTPC.reset();
 	mIOMem.mcInfosTPC.reset();
 	mIOMem.mergedTracks.reset();
@@ -95,6 +104,7 @@ void AliGPUReconstruction::DumpData(const char* filename)
 	fwrite(&geometryType, sizeof(geometryType), 1, fp);
 	DumpData(fp, mIOPtrs.clusterData, mIOPtrs.nClusterData, InOutPointerType::CLUSTER_DATA);
 	DumpData(fp, mIOPtrs.rawClusters, mIOPtrs.nRawClusters, InOutPointerType::RAW_CLUSTERS);
+	if (mIOPtrs.clustersNative) DumpData(fp, &mIOPtrs.clustersNative->clusters[0][0], &mIOPtrs.clustersNative->nClusters[0][0], InOutPointerType::CLUSTERS_NATIVE);
 	DumpData(fp, mIOPtrs.sliceOutTracks, mIOPtrs.nSliceOutTracks, InOutPointerType::SLICE_OUT_TRACK);
 	DumpData(fp, mIOPtrs.sliceOutClusters, mIOPtrs.nSliceOutClusters, InOutPointerType::SLICE_OUT_CLUSTER);
 	DumpData(fp, &mIOPtrs.mcLabelsTPC, &mIOPtrs.nMCLabelsTPC, InOutPointerType::MC_LABEL_TPC);
@@ -106,10 +116,11 @@ void AliGPUReconstruction::DumpData(const char* filename)
 	fclose(fp);
 }
 
-template <class T> void AliGPUReconstruction::DumpData(FILE* fp, T** entries, unsigned int* num, InOutPointerType type)
+template <class T> void AliGPUReconstruction::DumpData(FILE* fp, const T* const* entries, const unsigned int* num, InOutPointerType type)
 {
 	int count;
 	if (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS) count = NSLICES;
+	else if (type == CLUSTERS_NATIVE) count = NSLICES * HLTCA_ROW_COUNT;
 	else count = 1;
 	unsigned int numTotal = 0;
 	for (int i = 0;i < count;i++) numTotal += num[i];
@@ -151,10 +162,11 @@ int AliGPUReconstruction::ReadData(const char* filename)
 	{
 		for (unsigned int j = 0;j < mIOPtrs.nClusterData[i];j++)
 		{
-			mIOPtrs.clusterData[i][j].fId = nClustersTotal++;
+			mIOMem.clusterData[i][j].fId = nClustersTotal++;
 		}
 	}
 	ReadData(fp, mIOPtrs.rawClusters, mIOPtrs.nRawClusters, mIOMem.rawClusters, InOutPointerType::RAW_CLUSTERS);
+	mIOPtrs.clustersNative = ReadData<ClusterNative>(fp, (const ClusterNative**) &mClusterNativeAccess->clusters[0][0], &mClusterNativeAccess->nClusters[0][0], mIOMem.clustersNative, InOutPointerType::CLUSTERS_NATIVE) ? mClusterNativeAccess.get() : nullptr;
 	ReadData(fp, mIOPtrs.sliceOutTracks, mIOPtrs.nSliceOutTracks, mIOMem.sliceOutTracks, InOutPointerType::SLICE_OUT_TRACK);
 	ReadData(fp, mIOPtrs.sliceOutClusters, mIOPtrs.nSliceOutClusters, mIOMem.sliceOutClusters, InOutPointerType::SLICE_OUT_CLUSTER);
 	ReadData(fp, &mIOPtrs.mcLabelsTPC, &mIOPtrs.nMCLabelsTPC, &mIOMem.mcLabelsTPC, InOutPointerType::MC_LABEL_TPC);
@@ -168,31 +180,33 @@ int AliGPUReconstruction::ReadData(const char* filename)
 	return(0);
 }
 
-template <class T> void AliGPUReconstruction::ReadData(FILE* fp, T** entries, unsigned int* num, std::unique_ptr<T[]>* mem, InOutPointerType type)
+template <class T> size_t AliGPUReconstruction::ReadData(FILE* fp, const T** entries, unsigned int* num, std::unique_ptr<T[]>* mem, InOutPointerType type)
 {
-	if (feof(fp)) return;
+	if (feof(fp)) return 0;
 	InOutPointerType inType;
 	size_t r, pos = ftell(fp);
 	r = fread(&inType, sizeof(inType), 1, fp);
 	if (r != 1 || inType != type)
 	{
 		fseek(fp, pos, SEEK_SET);
-		return;
+		return 0;
 	}
 	
 	int count;
 	if (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS) count = NSLICES;
+	else if (type == CLUSTERS_NATIVE) count = NSLICES * HLTCA_ROW_COUNT;
 	else count = 1;
-	unsigned int numTotal = 0;
+	size_t numTotal = 0;
 	for (int i = 0;i < count;i++)
 	{
 		r = fread(&num[i], sizeof(num[i]), 1, fp);
 		AllocateIOMemoryHelper(num[i], entries[i], mem[i]);
-		if (num[i]) r = fread(entries[i], sizeof(*entries[i]), num[i], fp);
+		if (num[i]) r = fread(mem[i].get(), sizeof(*entries[i]), num[i], fp);
 		numTotal += num[i];
 	}
 	(void) r;
 	//printf("Read %d %s\n", numTotal, IOTYPENAMES[type]);
+	return numTotal;
 }
 
 void AliGPUReconstruction::DumpSettings(const char* dir)
@@ -219,9 +233,15 @@ void AliGPUReconstruction::ReadSettings(const char* dir)
 	mTPCFastTransform = ReadFlatObjectFromFile<TPCFastTransform>(f.c_str());
 }
 
-template <class T> void AliGPUReconstruction::AllocateIOMemoryHelper(unsigned int n, T* &ptr, std::unique_ptr<T[]> &u)
+template <class T> void AliGPUReconstruction::AllocateIOMemoryHelper(unsigned int n, const T* &ptr, std::unique_ptr<T[]> &u)
 {
-	u.reset(n ? (ptr = new T[n]) : nullptr);
+	if (n == 0)
+	{
+		u.reset(nullptr);
+		return;
+	}
+	u.reset(new T[n]);
+	ptr = u.get();
 }
 
 void AliGPUReconstruction::AllocateIOMemory()
