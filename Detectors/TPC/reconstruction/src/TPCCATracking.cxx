@@ -25,6 +25,7 @@
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/Sector.h"
+#include "TPCReconstruction/TPCFastTransformHelperO2.h"
 
 // The AliHLTTPCCAO2Interface.h needs certain macro definitions.
 // The AliHLTTPCCAO2Interface will only be included once here, all O2 TPC tracking will run through this TPCCATracking
@@ -47,8 +48,9 @@ TPCCATracking::TPCCATracking() : mTrackingCAO2Interface(), mClusterData_UPTR(), 
 TPCCATracking::~TPCCATracking() { deinitialize(); }
 int TPCCATracking::initialize(const char* options)
 {
+  std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
   mTrackingCAO2Interface.reset(new AliHLTTPCCAO2Interface);
-  int retVal = mTrackingCAO2Interface->Initialize(options);
+  int retVal = mTrackingCAO2Interface->Initialize(options, std::move(fastTransform));
   if (retVal) {
     mTrackingCAO2Interface.reset();
   } else {
