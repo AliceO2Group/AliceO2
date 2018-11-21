@@ -136,7 +136,7 @@ struct ClusterNativeContainer : public ClusterGroupAttribute {
   std::vector<ClusterNative> clusters;
 };
 
-// This is an index struct to access TPC clusters inside sectors and rows. It shall not own the data, but jus point to
+// This is an index struct to access TPC clusters inside sectors and rows. It shall not own the data, but just point to
 // the data inside a buffer.
 struct ClusterNativeAccessFullTPC {
   const ClusterNative* clusters[o2::TPC::Constants::MAXSECTOR][o2::TPC::Constants::MAXGLOBALPADROW];

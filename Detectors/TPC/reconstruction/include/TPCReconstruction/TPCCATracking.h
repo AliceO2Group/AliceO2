@@ -39,24 +39,9 @@ public:
   int initialize(const char* options = nullptr);
   void deinitialize();
 
-  int runTracking(const std::vector<Cluster>* inputClusters, std::vector<TrackTPC>* outputTracks) {return runTracking(nullptr, inputClusters, outputTracks);}
-  int runTracking(TChain* inputClusters, std::vector<TrackTPC>* outputTracks) {return runTracking(inputClusters, nullptr, outputTracks);}
-  
-  
   //Input: cluster structure, possibly including MC labels, pointers to std::vectors for tracks and track MC labels. outputTracksMCTruth may be nullptr to indicate missing cluster MC labels. Otherwise, cluster MC labels are assumed to be present.
   int runTracking(const o2::TPC::ClusterNativeAccessFullTPC& clusters, std::vector<TrackTPC>* outputTracks,
                   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* outputTracksMCTruth = nullptr);
-
-  int convertClusters(const std::vector<Cluster>* inputClusters, o2::TPC::ClusterNativeAccessFullTPC& outputClusters,
-                      std::unique_ptr<o2::TPC::ClusterNative[]>& clusterMemory)
-  {
-    return convertClusters(nullptr, inputClusters, outputClusters, clusterMemory);
-  }
-  int convertClusters(TChain* inputClusters, o2::TPC::ClusterNativeAccessFullTPC& outputClusters,
-                      std::unique_ptr<o2::TPC::ClusterNative[]>& clusterMemory)
-  {
-    return convertClusters(inputClusters, nullptr, outputClusters, clusterMemory);
-  }
 
   float getPseudoVDrift();                                            //Return artificial VDrift used to convert time to Z
   float getTFReferenceLength() {return sContinuousTFReferenceLength;} //Return reference time frame length used to obtain Z from T in continuous data
@@ -64,11 +49,6 @@ public:
   void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const;
 
  private:
-  int runTracking(TChain* inputClustersChain, const std::vector<Cluster>* inputClustersArray, std::vector<TrackTPC>* outputTracks);
-  int convertClusters(TChain* inputClustersChain, const std::vector<Cluster>* inputClustersArray,
-                      o2::TPC::ClusterNativeAccessFullTPC& outputClusters,
-                      std::unique_ptr<o2::TPC::ClusterNative[]>& clusterMemory);
-
   std::unique_ptr<AliHLTTPCCAO2Interface> mTrackingCAO2Interface; //Pointer to Interface class in HLT O2 CA Tracking library.
                                                                   //The tracking code itself is not included in the O2 package, but contained in the CA library.
                                                                   //The TPCCATracking class interfaces this library via this pointer to AliHLTTPCCAO2Interface class.
