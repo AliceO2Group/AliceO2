@@ -16,6 +16,20 @@
 #include "AliTrackReference.h"
 #include "AliHLTTRDDefinitions.h"
 #include "AliHLTTRDTrackletWord.h"
+#include "TPCFastTransform.h"
+#include "TPCFastTransformManager.h"
+#include "AliRecoParam.h"
+#include "AliTPCTransform.h"
+#include "AliTPCcalibDB.h"
+#include "AliCDBManager.h"
+#include "AliGRPObject.h"
+#include "AliCDBEntry.h"
+#include "AliRunInfo.h"
+#include "AliEventInfo.h"
+#include "AliRawEventHeaderBase.h"
+#include "AliTPCRecoParam.h"
+#include <TGeoGlobalMagField.h>
+#include <TVirtualMC.h>
 
 #include "TTree.h"
 #include "TParticle.h"
@@ -24,7 +38,10 @@
 
 #include "../Standalone/include/standaloneSettings.h"
 
-AliHLTGPUDumpComponent::AliHLTGPUDumpComponent() : fSolenoidBz(0.f), fRec(NULL), fClusterData(NULL)
+AliHLTGPUDumpComponent::AliHLTGPUDumpComponent() : fSolenoidBz(0.f), fRec(NULL), fClusterData(NULL),
+  fFastTransformIRS(new ali_tpc_common::tpc_fast_transformation::TPCFastTransform),
+  fFastTransformManager( new ali_tpc_common::tpc_fast_transformation::TPCFastTransformManager ),
+  fOfflineRecoParam(), fOrigTransform(nullptr), fIsMC(false)
 {
 	fRec = AliGPUReconstruction::CreateInstance();
 	fClusterData = new AliHLTTPCCAClusterData[36];
@@ -69,6 +86,63 @@ AliHLTComponent *AliHLTGPUDumpComponent::Spawn()
 int AliHLTGPUDumpComponent::DoInit(int argc, const char **argv)
 {
 	fSolenoidBz = GetBz();
+	fIsMC = TVirtualMC::GetMC();
+	
+	if(!AliGeomManager::GetGeometry()) AliGeomManager::LoadGeometry();
+	if(!AliGeomManager::GetGeometry()) HLTFatal("Can not initialise geometry");
+	
+	AliTPCcalibDB* pCalib=AliTPCcalibDB::Instance();
+	if(!pCalib) HLTFatal("Calibration not found");
+	pCalib->SetRun(GetRunNo());
+	pCalib->UpdateRunInformations(GetRunNo());
+	
+	const AliMagF * field = (AliMagF*) TGeoGlobalMagField::Instance()->GetField();
+	pCalib->SetExBField(field);
+
+	if(!pCalib->GetTransform()) HLTFatal("No TPC transformation found");
+	
+	AliGRPObject *pGRP=0;
+	AliCDBEntry *entry = AliCDBManager::Instance()->Get("GRP/GRP/Data");
+	if(!entry) HLTFatal("No GRP object found in data base");
+	pGRP = dynamic_cast<AliGRPObject*>(entry->GetObject());
+	  
+	if(!pGRP) HLTFatal("Unknown format of the GRP object in data base");
+
+	AliRunInfo runInfo(pGRP->GetLHCState(), pGRP->GetBeamType(), pGRP->GetBeamEnergy(), pGRP->GetRunType(), pGRP->GetDetectorMask());
+	AliEventInfo evInfo;
+	evInfo.SetEventType(AliRawEventHeaderBase::kPhysicsEvent);
+
+	entry = AliCDBManager::Instance()->Get("TPC/Calib/RecoParam");
+	if(!entry) HLTFatal("No TPC reco param entry found in data base");
+	TObject *recoParamObj = entry->GetObject();
+	if (dynamic_cast<TObjArray*>(recoParamObj))
+	{
+		TObjArray *copy = (TObjArray*)( static_cast<TObjArray*>(recoParamObj)->Clone() );
+		fOfflineRecoParam.AddDetRecoParamArray(1,copy);
+	}
+	else if (dynamic_cast<AliDetectorRecoParam*>(recoParamObj))
+	{
+		AliDetectorRecoParam *copy = (AliDetectorRecoParam*)static_cast<AliDetectorRecoParam*>(recoParamObj)->Clone();
+		fOfflineRecoParam.AddDetRecoParam(1,copy);
+	}
+	else
+	{
+		HLTFatal("Unknown format of the TPC Reco Param entry in the data base");
+	}
+	
+	long TimeStamp = GetTimeStamp();
+	
+	fOfflineRecoParam.SetEventSpecie(&runInfo, evInfo, 0);
+	AliTPCRecoParam* recParam = (AliTPCRecoParam*) fOfflineRecoParam.GetDetRecoParam(1);
+	if( !recParam ) HLTFatal("No TPC Reco Param entry found for the given event specification");
+	if (fIsMC && !recParam->GetUseCorrectionMap()) TimeStamp = 0;
+	pCalib->GetTransform()->SetCurrentRecoParam(recParam);
+	
+	if (fFastTransformManager->create(*fFastTransformIRS, pCalib->GetTransform(), TimeStamp))
+	{
+		HLTFatal("Initialisation of Fast Transformation failed with error %s", fFastTransformManager->getLastError());
+	}
+
 	return 0;
 }
 
@@ -352,6 +426,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 	if (nEvent == 0)
 	{
 		fRec->SetSettingsStandalone(fSolenoidBz);
+		fRec->SetTPCFastTransform(std::move(fFastTransformIRS));
 		fRec->DumpSettings();
 	}
 
