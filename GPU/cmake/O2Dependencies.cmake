@@ -38,6 +38,7 @@ o2_define_bucket(
     AliTPCCommonBase_bucket
     TPCFastTransformation_bucket
     O2TPCFastTransformation
+    data_format_TPC_bucket
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}

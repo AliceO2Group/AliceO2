@@ -21,6 +21,8 @@ class AliHLTTPCCAGPUTracker;
 struct hltca_event_dump_settings;
 struct AliHLTTPCRawCluster;
 
+namespace o2 { namespace TPC { struct ClusterNativeAccessFullTPC; struct ClusterNative;}}
+
 namespace o2 { namespace ITS { class TrackerTraits; }}
 namespace ali_tpc_common { namespace tpc_fast_transformation { class TPCFastTransform; }}
 using TPCFastTransform = ali_tpc_common::tpc_fast_transformation::TPCFastTransform;
@@ -58,25 +60,26 @@ public:
 			trdTracks(nullptr), nTRDTracks(0), trdTracklets(nullptr), nTRDTracklets(0)
 		{}
 		
-		AliHLTTPCCAClusterData::Data* clusterData[NSLICES];
+		const AliHLTTPCCAClusterData::Data* clusterData[NSLICES];
 		unsigned int nClusterData[NSLICES];
-		AliHLTTPCRawCluster* rawClusters[NSLICES];
+		const AliHLTTPCRawCluster* rawClusters[NSLICES];
 		unsigned int nRawClusters[NSLICES];
-		AliHLTTPCCASliceOutTrack* sliceOutTracks[NSLICES];
+		const o2::TPC::ClusterNativeAccessFullTPC* clustersNative;
+		const AliHLTTPCCASliceOutTrack* sliceOutTracks[NSLICES];
 		unsigned int nSliceOutTracks[NSLICES];
-		AliHLTTPCCASliceOutCluster* sliceOutClusters[NSLICES];
+		const AliHLTTPCCASliceOutCluster* sliceOutClusters[NSLICES];
 		unsigned int nSliceOutClusters[NSLICES];
-		AliHLTTPCClusterMCLabel* mcLabelsTPC;
+		const AliHLTTPCClusterMCLabel* mcLabelsTPC;
 		unsigned int nMCLabelsTPC;
-		AliHLTTPCCAMCInfo* mcInfosTPC;
+		const AliHLTTPCCAMCInfo* mcInfosTPC;
 		unsigned int nMCInfosTPC;
-		AliHLTTPCGMMergedTrack* mergedTracks;
+		const AliHLTTPCGMMergedTrack* mergedTracks;
 		unsigned int nMergedTracks;
-		AliHLTTPCGMMergedTrackHit* mergedTrackHits;
+		const AliHLTTPCGMMergedTrackHit* mergedTrackHits;
 		unsigned int nMergedTrackHits;
-		HLTTRDTrack* trdTracks;
+		const HLTTRDTrack* trdTracks;
 		unsigned int nTRDTracks;
-		AliHLTTRDTrackletWord* trdTracklets;
+		const AliHLTTRDTrackletWord* trdTracklets;
 		unsigned int nTRDTracklets;
 	} mIOPtrs;
 
@@ -86,6 +89,7 @@ public:
 		~InOutMemory();
 		std::unique_ptr<AliHLTTPCCAClusterData::Data[]> clusterData[NSLICES];
 		std::unique_ptr<AliHLTTPCRawCluster[]> rawClusters[NSLICES];
+		std::unique_ptr<o2::TPC::ClusterNative[]> clustersNative[NSLICES * HLTCA_ROW_COUNT];
 		std::unique_ptr<AliHLTTPCCASliceOutTrack[]> sliceOutTracks[NSLICES];
 		std::unique_ptr<AliHLTTPCCASliceOutCluster[]> sliceOutClusters[NSLICES];
 		std::unique_ptr<AliHLTTPCClusterMCLabel[]> mcLabelsTPC;
@@ -97,8 +101,8 @@ public:
 	} mIOMem;
 	
 	//Functionality to dump and read input / output data
-	enum InOutPointerType : unsigned int {CLUSTER_DATA = 0, SLICE_OUT_TRACK = 1, SLICE_OUT_CLUSTER = 2, MC_LABEL_TPC = 3, MC_INFO_TPC = 4, MERGED_TRACK = 5, MERGED_TRACK_HIT = 6, TRD_TRACK = 7, TRD_TRACKLET = 8, RAW_CLUSTERS = 9};
-	static constexpr const char* const IOTYPENAMES[] = {"TPC Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters", "TRD Tracks", "TRD Tracklets", "Raw Clusters"};
+	enum InOutPointerType : unsigned int {CLUSTER_DATA = 0, SLICE_OUT_TRACK = 1, SLICE_OUT_CLUSTER = 2, MC_LABEL_TPC = 3, MC_INFO_TPC = 4, MERGED_TRACK = 5, MERGED_TRACK_HIT = 6, TRD_TRACK = 7, TRD_TRACKLET = 8, RAW_CLUSTERS = 9, CLUSTERS_NATIVE = 10};
+	static constexpr const char* const IOTYPENAMES[] = {"TPC Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters", "TRD Tracks", "TRD Tracklets", "Raw Clusters", "ClusterNative"};
 
 	void ClearIOPointers();
 	void AllocateIOMemory();
@@ -147,6 +151,7 @@ public:
 	DeviceType GetDeviceType() const {return mDeviceType;}
 	void SetParam(const AliGPUCAParam& param) {mParam = param;}
 	const AliGPUCAParam& GetParam() const {return mParam;}
+	const TPCFastTransform* GetTPCTransform() const {return mTPCFastTransform.get();}
 	AliGPUCAParam& GetParam() {return mParam;}
 	hltca_event_dump_settings& GetEventSettings() {return *mEventDumpSettings;}
 	void SetSettingsStandalone(float solenoidBz);
@@ -157,9 +162,9 @@ protected:
 	AliGPUReconstruction(DeviceType type);								//Constructor
 	
 	//Private helper functions for reading / writing / allocating IO buffer from/to file
-	template <class T> void DumpData(FILE* fp, T** entries, unsigned int* num, InOutPointerType type);
-	template <class T> void ReadData(FILE* fp, T** entries, unsigned int* num, std::unique_ptr<T[]>* mem, InOutPointerType type);
-	template <class T> void AllocateIOMemoryHelper(unsigned int n, T* &ptr, std::unique_ptr<T[]> &u);
+	template <class T> void DumpData(FILE* fp, const T* const* entries, const unsigned int* num, InOutPointerType type);
+	template <class T> size_t ReadData(FILE* fp, const T** entries, unsigned int* num, std::unique_ptr<T[]>* mem, InOutPointerType type);
+	template <class T> void AllocateIOMemoryHelper(unsigned int n, const T* &ptr, std::unique_ptr<T[]> &u);
 	
 	//Private helper functions to dump / load flat objects
 	template <class T> void DumpFlatObjectToFile(const T* obj, const char* file);
@@ -197,9 +202,10 @@ protected:
 	std::shared_ptr<LibraryLoader> mMyLib = nullptr;
 	DeviceType mDeviceType;
 	
-	AliGPUCAParam mParam;												//Reconstruction parameters
-	std::unique_ptr<TPCFastTransform> mTPCFastTransform;				//Global TPC fast transformation object
-	std::unique_ptr<hltca_event_dump_settings> mEventDumpSettings;		//Standalone event dump settings
+	AliGPUCAParam mParam;														//Reconstruction parameters
+	std::unique_ptr<TPCFastTransform> mTPCFastTransform;						//Global TPC fast transformation object
+	std::unique_ptr<hltca_event_dump_settings> mEventDumpSettings;				//Standalone event dump settings
+	std::unique_ptr<o2::TPC::ClusterNativeAccessFullTPC> mClusterNativeAccess;	//Internal memory for clusterNativeAccess
 };
 
 #endif
