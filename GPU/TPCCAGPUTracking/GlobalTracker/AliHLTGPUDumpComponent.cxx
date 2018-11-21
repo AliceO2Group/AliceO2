@@ -202,11 +202,14 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 			nTRDTrackletsTotal = pBlock.fSize / sizeof(AliHLTTRDTrackletWord);
 		}
 	}
+	
+	std::vector<AliHLTTPCRawCluster> rawClusters[36];
 
 	int nClustersTotal = 0;
 	for (int slice = 0;slice < 36;slice++)
 	{
 		int nClustersSliceTotal = 0;
+		rawClusters[slice].clear();
 		for (int patch = 0; patch < 6; patch++)
 		{
 			if (clustersXYZ[slice][patch]) nClustersSliceTotal += clustersXYZ[slice][patch]->fCount;
@@ -248,6 +251,10 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 					pCluster->fSigmaPad2 = cRaw.GetSigmaPad2();
 					pCluster->fSigmaTime2 = cRaw.GetSigmaTime2();
 #endif
+					AliHLTTPCRawCluster tmp = cRaw;
+					tmp.fPadRow += firstRow;
+					rawClusters[slice].emplace_back(tmp);
+					
 					pCluster++;
 				}
 			}
@@ -264,6 +271,8 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 	{
 		fRec->mIOPtrs.nClusterData[i] = fClusterData[i].NumberOfClusters();
 		fRec->mIOPtrs.clusterData[i] = fClusterData[i].Clusters();
+		fRec->mIOPtrs.nRawClusters[i] = fClusterData[i].NumberOfClusters();
+		fRec->mIOPtrs.rawClusters[i] = rawClusters[i].data();
 		HLTDebug("Slice %d - Clusters %d", i, (int) fClusterData[i].NumberOfClusters());
 	}
 

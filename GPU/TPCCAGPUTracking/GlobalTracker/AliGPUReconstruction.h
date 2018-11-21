@@ -19,6 +19,7 @@ class AliHLTTPCCAGPUTracker;
 #include "AliHLTTRDDef.h"
 #include "AliGPUCAParam.h"
 struct hltca_event_dump_settings;
+struct AliHLTTPCRawCluster;
 
 namespace o2 { namespace ITS { class TrackerTraits; }}
 namespace ali_tpc_common { namespace tpc_fast_transformation { class TPCFastTransform; }}
@@ -59,6 +60,8 @@ public:
 		
 		AliHLTTPCCAClusterData::Data* clusterData[NSLICES];
 		unsigned int nClusterData[NSLICES];
+		AliHLTTPCRawCluster* rawClusters[NSLICES];
+		unsigned int nRawClusters[NSLICES];
 		AliHLTTPCCASliceOutTrack* sliceOutTracks[NSLICES];
 		unsigned int nSliceOutTracks[NSLICES];
 		AliHLTTPCCASliceOutCluster* sliceOutClusters[NSLICES];
@@ -82,6 +85,7 @@ public:
 		InOutMemory();
 		~InOutMemory();
 		std::unique_ptr<AliHLTTPCCAClusterData::Data[]> clusterData[NSLICES];
+		std::unique_ptr<AliHLTTPCRawCluster[]> rawClusters[NSLICES];
 		std::unique_ptr<AliHLTTPCCASliceOutTrack[]> sliceOutTracks[NSLICES];
 		std::unique_ptr<AliHLTTPCCASliceOutCluster[]> sliceOutClusters[NSLICES];
 		std::unique_ptr<AliHLTTPCClusterMCLabel[]> mcLabelsTPC;
@@ -93,8 +97,8 @@ public:
 	} mIOMem;
 	
 	//Functionality to dump and read input / output data
-	enum InOutPointerType : unsigned int {CLUSTER_DATA = 0, SLICE_OUT_TRACK = 1, SLICE_OUT_CLUSTER = 2, MC_LABEL_TPC = 3, MC_INFO_TPC = 4, MERGED_TRACK = 5, MERGED_TRACK_HIT = 6, TRD_TRACK = 7, TRD_TRACKLET = 8};
-	static constexpr const char* const IOTYPENAMES[] = {"TPC Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters", "TRD Tracks", "TRD Tracklets"};
+	enum InOutPointerType : unsigned int {CLUSTER_DATA = 0, SLICE_OUT_TRACK = 1, SLICE_OUT_CLUSTER = 2, MC_LABEL_TPC = 3, MC_INFO_TPC = 4, MERGED_TRACK = 5, MERGED_TRACK_HIT = 6, TRD_TRACK = 7, TRD_TRACKLET = 8, RAW_CLUSTERS = 9};
+	static constexpr const char* const IOTYPENAMES[] = {"TPC Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters", "TRD Tracks", "TRD Tracklets", "Raw Clusters"};
 
 	void ClearIOPointers();
 	void AllocateIOMemory();

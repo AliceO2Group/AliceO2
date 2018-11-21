@@ -25,6 +25,7 @@
 #include "AliHLTTRDTracker.h"
 #include "TPCFastTransform.h"
 #include "standaloneSettings.h"
+#include "AliHLTTPCRawCluster.h"
 
 #define HLTCA_LOGGING_PRINTF
 #include "AliCAGPULogging.h"
@@ -74,6 +75,7 @@ void AliGPUReconstruction::ClearIOPointers()
 	for (unsigned int i = 0;i < NSLICES;i++)
 	{
 		mIOMem.clusterData[i].reset();
+		mIOMem.rawClusters[i].reset();
 		mIOMem.sliceOutTracks[i].reset();
 		mIOMem.sliceOutClusters[i].reset();
 	}
@@ -92,6 +94,7 @@ void AliGPUReconstruction::DumpData(const char* filename)
 	fwrite(DUMP_HEADER, 1, DUMP_HEADER_SIZE, fp);
 	fwrite(&geometryType, sizeof(geometryType), 1, fp);
 	DumpData(fp, mIOPtrs.clusterData, mIOPtrs.nClusterData, InOutPointerType::CLUSTER_DATA);
+	DumpData(fp, mIOPtrs.rawClusters, mIOPtrs.nRawClusters, InOutPointerType::RAW_CLUSTERS);
 	DumpData(fp, mIOPtrs.sliceOutTracks, mIOPtrs.nSliceOutTracks, InOutPointerType::SLICE_OUT_TRACK);
 	DumpData(fp, mIOPtrs.sliceOutClusters, mIOPtrs.nSliceOutClusters, InOutPointerType::SLICE_OUT_CLUSTER);
 	DumpData(fp, &mIOPtrs.mcLabelsTPC, &mIOPtrs.nMCLabelsTPC, InOutPointerType::MC_LABEL_TPC);
@@ -106,7 +109,7 @@ void AliGPUReconstruction::DumpData(const char* filename)
 template <class T> void AliGPUReconstruction::DumpData(FILE* fp, T** entries, unsigned int* num, InOutPointerType type)
 {
 	int count;
-	if (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER) count = NSLICES;
+	if (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS) count = NSLICES;
 	else count = 1;
 	unsigned int numTotal = 0;
 	for (int i = 0;i < count;i++) numTotal += num[i];
@@ -151,6 +154,7 @@ int AliGPUReconstruction::ReadData(const char* filename)
 			mIOPtrs.clusterData[i][j].fId = nClustersTotal++;
 		}
 	}
+	ReadData(fp, mIOPtrs.rawClusters, mIOPtrs.nRawClusters, mIOMem.rawClusters, InOutPointerType::RAW_CLUSTERS);
 	ReadData(fp, mIOPtrs.sliceOutTracks, mIOPtrs.nSliceOutTracks, mIOMem.sliceOutTracks, InOutPointerType::SLICE_OUT_TRACK);
 	ReadData(fp, mIOPtrs.sliceOutClusters, mIOPtrs.nSliceOutClusters, mIOMem.sliceOutClusters, InOutPointerType::SLICE_OUT_CLUSTER);
 	ReadData(fp, &mIOPtrs.mcLabelsTPC, &mIOPtrs.nMCLabelsTPC, &mIOMem.mcLabelsTPC, InOutPointerType::MC_LABEL_TPC);
@@ -177,7 +181,7 @@ template <class T> void AliGPUReconstruction::ReadData(FILE* fp, T** entries, un
 	}
 	
 	int count;
-	if (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER) count = NSLICES;
+	if (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS) count = NSLICES;
 	else count = 1;
 	unsigned int numTotal = 0;
 	for (int i = 0;i < count;i++)
@@ -225,6 +229,7 @@ void AliGPUReconstruction::AllocateIOMemory()
 	for (unsigned int i = 0;i < NSLICES;i++)
 	{
 		AllocateIOMemoryHelper(mIOPtrs.nClusterData[i], mIOPtrs.clusterData[i], mIOMem.clusterData[i]);
+		AllocateIOMemoryHelper(mIOPtrs.nRawClusters[i], mIOPtrs.rawClusters[i], mIOMem.rawClusters[i]);
 		AllocateIOMemoryHelper(mIOPtrs.nSliceOutTracks[i], mIOPtrs.sliceOutTracks[i], mIOMem.sliceOutTracks[i]);
 		AllocateIOMemoryHelper(mIOPtrs.nSliceOutClusters[i], mIOPtrs.sliceOutClusters[i], mIOMem.sliceOutClusters[i]);
 	}
