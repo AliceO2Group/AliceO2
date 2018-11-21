@@ -6,6 +6,8 @@
 
 class AliGPUReconstruction;
 class AliHLTTPCCAClusterData;
+class AliTPCcalibDB;
+class AliTPCRecoParam;
 #include "AliRecoParam.h"
 class AliTPCTransform;
 namespace ali_tpc_common { namespace tpc_fast_transformation {
@@ -42,8 +44,9 @@ class AliHLTGPUDumpComponent : public AliHLTProcessor
     float fSolenoidBz;
     AliGPUReconstruction* fRec;
     AliHLTTPCCAClusterData* fClusterData;
-    std::unique_ptr<ali_tpc_common::tpc_fast_transformation::TPCFastTransform> fFastTransformIRS;
-    std::unique_ptr<ali_tpc_common::tpc_fast_transformation::TPCFastTransformManager> fFastTransformManager;
+    ali_tpc_common::tpc_fast_transformation::TPCFastTransformManager* fFastTransformManager;
+    AliTPCcalibDB* fCalib;
+    AliTPCRecoParam* fRecParam;
     AliRecoParam fOfflineRecoParam;
     AliTPCTransform* fOrigTransform;
     bool fIsMC;

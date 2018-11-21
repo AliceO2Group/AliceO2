@@ -11,6 +11,7 @@
 #ifndef ALIHLTTPCGMTRACKPARAM_H
 #define ALIHLTTPCGMTRACKPARAM_H
 
+#include <cstddef>
 #include "AliTPCCommonMath.h"
 #include "AliHLTTPCGMMergedTrackHit.h"
 #include "AliHLTTPCCASettings.h"
