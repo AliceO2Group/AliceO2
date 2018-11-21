@@ -20,7 +20,6 @@
 #include "../macro/run_sim_tpc.C"
 #include "../macro/run_digi_tpc.C"
 #include "../macro/run_clus_tpc.C"
-#include "../Detectors/TPC/reconstruction/macro/runCATracking.C"
 
 namespace bpo = boost::program_options;
 
@@ -31,7 +30,7 @@ int main(int argc, char *argv[])
   bpo::options_description desc("Allowed options");
   desc.add_options()
     ("help,h", "Produce help message.")
-    ("mode,m",      bpo::value<std::string>()->default_value("sim"),    R"(mode of processing, "sim", "digi", "clus", "track" or "all".)")
+    ("mode,m",      bpo::value<std::string>()->default_value("sim"),    R"(mode of processing, "sim", "digi", "clus", "all".)")
     ("nEvents,n",   bpo::value<int>()->default_value(2),                "number of events to simulate.")
     ("mcEngine,e",  bpo::value<std::string>()->default_value("TGeant3"), "MC generator to be used.")
     ("continuous,c", bpo::value<int>()->default_value(1),                "Running in continuous mode 1 - Triggered mode 0")
@@ -65,11 +64,6 @@ int main(int argc, char *argv[])
     run_digi_tpc(events,engine, isContinuous);
   } else if (mode == "clus") {
     run_clus_tpc(events,engine, isContinuous, threads);
-  } else if (mode == "track") {
-    std::stringstream inputfile, outputfile;
-    inputfile  << "AliceO2_" << engine << ".tpc.clusters_" << events << "_event.root";
-    outputfile << "AliceO2_" << engine << ".tpc.tracks_"   << events << "_event.root";
-    runCATracking(inputfile.str().c_str(), outputfile.str().c_str(), isContinuous?"cont":"");
   } else if (mode == "all") {
     int status;
     pid_t PID = fork();
@@ -85,17 +79,6 @@ int main(int argc, char *argv[])
     PID = fork();
     if (PID == -1) { std::cout << "ERROR" << std::endl; return EXIT_FAILURE;}
     if (PID == 0)  { run_clus_tpc(events,engine,isContinuous,threads); return EXIT_SUCCESS;}
-    else waitpid(PID,&status,0);
-
-    PID = fork();
-    if (PID == -1) { std::cout << "ERROR" << std::endl; return EXIT_FAILURE;}
-    if (PID == 0)  {
-      std::stringstream inputfile, outputfile;
-      inputfile  << "AliceO2_" << engine << ".tpc.clusters_" << events << "_event.root";
-      outputfile << "AliceO2_" << engine << ".tpc.tracks_"   << events << "_event.root";
-      runCATracking(inputfile.str().c_str(), outputfile.str().c_str(), isContinuous?"cont":"");
-      return EXIT_SUCCESS;
-    }
     else waitpid(PID,&status,0);
   } else {
       std::cout << "Mode was not recognised" << std::endl;

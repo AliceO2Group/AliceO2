@@ -65,81 +65,6 @@ void TPCCATracking::deinitialize()
   mClusterData = nullptr;
 }
 
-int TPCCATracking::convertClusters(TChain* inputClustersChain, const std::vector<o2::TPC::Cluster>* inputClustersArray,
-                                   ClusterNativeAccessFullTPC& outputClusters,
-                                   std::unique_ptr<ClusterNative[]>& clusterMemory)
-{
-  if (inputClustersChain && inputClustersArray) {
-    LOG(FATAL) << "Internal error, must not pass in both TChain and TClonesArray of clusters\n";
-  }
-  int numChunks;
-  if (inputClustersChain) {
-    inputClustersChain->SetBranchAddress("TPCClusterHW", &inputClustersArray);
-    numChunks = inputClustersChain->GetEntries();
-  } else {
-    numChunks = 1;
-  }
-
-  // index to the pointers in the store, used to assign converted clusters and sort them
-  // while outputClusters object only holds the const pointer for read access
-  ClusterNative* clusterptrs[Sector::MAXSECTOR][Constants::MAXGLOBALPADROW];
-  memset(clusterptrs, 0, sizeof(ClusterNative*) * Sector::MAXSECTOR * Constants::MAXGLOBALPADROW);
-  Mapper& mapper = Mapper::instance();
-  for (int iter = 0; iter < 2; iter++) {
-    for (int i = 0; i < Sector::MAXSECTOR; i++) {
-      for (int j = 0; j < Constants::MAXGLOBALPADROW; j++) {
-        outputClusters.nClusters[i][j] = 0;
-      }
-    }
-
-    unsigned int nClusters = 0;
-    for (int iChunk = 0; iChunk < numChunks; iChunk++) {
-      if (inputClustersChain) {
-        inputClustersChain->GetEntry(iChunk);
-      }
-      for (const auto& cluster : *inputClustersArray) {
-        const CRU cru(cluster.getCRU());
-        const Sector sector = cru.sector();
-        const PadRegionInfo& region = mapper.getPadRegionInfo(cru.region());
-        const int rowInSector = cluster.getRow() + region.getGlobalRowOffset();
-
-        // in first iteration (== 0) only the clusters are counted
-        // clusters are converted in the second iteraton once store has been allocated
-        if (iter == 1) {
-          ClusterNative& oCluster = clusterptrs[sector][rowInSector][outputClusters.nClusters[sector][rowInSector]];
-          oCluster.setTimeFlags(cluster.getTimeMean(), 0);
-          oCluster.setPad(cluster.getPadMean());
-          oCluster.setSigmaTime(cluster.getTimeSigma());
-          oCluster.setSigmaPad(cluster.getPadSigma());
-          oCluster.qTot = cluster.getQ();
-          oCluster.qMax = cluster.getQmax();
-        }
-        outputClusters.nClusters[sector][rowInSector]++;
-      }
-      nClusters += inputClustersArray->size();
-    }
-    if (iter == 0) {
-      clusterMemory.reset(new ClusterNative[nClusters]);
-      unsigned int pos = 0;
-      for (int i = 0; i < Sector::MAXSECTOR; i++) {
-        for (int j = 0; j < Constants::MAXGLOBALPADROW; j++) {
-          clusterptrs[i][j] = &clusterMemory[pos];
-          outputClusters.clusters[i][j] = &clusterMemory[pos];
-          pos += outputClusters.nClusters[i][j];
-        }
-      }
-    }
-  }
-  for (int i = 0; i < Sector::MAXSECTOR; i++) {
-    for (int j = 0; j < Constants::MAXGLOBALPADROW; j++) {
-      std::sort(clusterptrs[i][j], clusterptrs[i][j] + outputClusters.nClusters[i][j],
-                ClusterNativeContainer::sortComparison);
-    }
-  }
-
-  return (0);
-}
-
 int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::vector<TrackTPC>* outputTracks,
                                MCLabelContainer* outputTracksMCTruth)
 {
@@ -370,21 +295,6 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
   }
   mTrackingCAO2Interface->Cleanup();
   return (retVal);
-}
-
-int TPCCATracking::runTracking(TChain* inputClustersChain, const std::vector<o2::TPC::Cluster>* inputClustersArray,
-                               std::vector<TrackTPC>* outputTracks)
-{
-  if (mTrackingCAO2Interface == nullptr)
-    return (1);
-  int retVal = 0;
-
-  std::unique_ptr<ClusterNative[]> clusterMemory;
-  ClusterNativeAccessFullTPC clusters;
-  retVal = convertClusters(inputClustersChain, inputClustersArray, clusters, clusterMemory);
-  if (retVal)
-    return (retVal);
-  return (runTracking(clusters, outputTracks));
 }
 
 float TPCCATracking::getPseudoVDrift()
