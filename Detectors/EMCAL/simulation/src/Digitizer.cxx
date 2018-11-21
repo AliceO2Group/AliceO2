@@ -41,25 +41,29 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
   mDigits.clear();
 
   for (auto hit : hits) {
-    Digit digit = hitToDigit(hit);
-    Int_t id = digit.GetTower();
+    try {
+      Digit digit = hitToDigit(hit);
+      Int_t id = digit.GetTower();
 
-    if (id < 0 || id > mGeometry->GetNCells()) {
-      LOG(WARNING) << "tower index out of range: " << id << FairLogger::endl;
-      continue;
-    }
-
-    Bool_t flag = false;
-    for (auto& digit0 : mDigits[id]) {
-      if (digit0.canAdd(digit)) {
-        digit0 += digit;
-        flag = true;
-        break;
+      if (id < 0 || id > mGeometry->GetNCells()) {
+        LOG(WARNING) << "tower index out of range: " << id << FairLogger::endl;
+        continue;
       }
-    }
 
-    if (!flag) {
-      mDigits[id].push_front(digit);
+      Bool_t flag = false;
+      for (auto& digit0 : mDigits[id]) {
+        if (digit0.canAdd(digit)) {
+          digit0 += digit;
+          flag = true;
+          break;
+        }
+      }
+
+      if (!flag) {
+        mDigits[id].push_front(digit);
+      }
+    } catch (InvalidPositionException& e) {
+      LOG(ERROR) << "Error in creating the digit: " << e.what() << FairLogger::endl;
     }
   }
 
