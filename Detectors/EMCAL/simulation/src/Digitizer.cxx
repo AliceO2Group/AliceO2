@@ -41,7 +41,7 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
   mDigits.clear();
 
   for (auto hit : hits) {
-    try{
+    try {
       Digit digit = hitToDigit(hit);
       Int_t id = digit.GetTower();
 
@@ -62,10 +62,10 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
       if (!flag) {
         mDigits[id].push_front(digit);
       }
-    } catch(InvalidPositionException &e) {
+    } catch (InvalidPositionException& e) {
       LOG(ERROR) << "Error in creating the digit: " << e.what() << FairLogger::endl;
     }
-  } 
+  }
 
   fillOutputContainer(digits);
 }
