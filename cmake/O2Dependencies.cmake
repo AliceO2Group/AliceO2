@@ -310,11 +310,11 @@ o2_define_bucket(
     ${Monitoring_LIBRARIES}
     ${Configuration_LIBRARIES}
     InfoLogger_bucket
+    AliceO2::Common
 
     SYSTEMINCLUDE_DIRECTORIES
     ${Monitoring_INCLUDE_DIRS}
     ${Configuration_INCLUDE_DIRS}
-    ${COMMON_INCLUDE_DIR}/include
     ${CMAKE_SOURCE_DIR}/Utilities/PCG/include
 )
 
