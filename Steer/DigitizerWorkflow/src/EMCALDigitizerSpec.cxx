@@ -112,7 +112,13 @@ DataProcessorSpec getEMCALDigitizerSpec(int channel)
         // call actual digitization procedure
         labels->clear();
         digits->clear();
-        digitizer->process(hits, *digits.get());
+        try {
+          digitizer->process(hits, *digits.get());
+        } catch (o2::EMCAL::InvalidPositionException e) {
+          LOG(WARN) << "Exception occurred in EMC digitizer ... ignoring ";
+          LOG(WARN) << "Exception information: " << e.what();
+        }
+
         // copy digits into accumulator
         std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
         labelAccum.mergeAtBack(*labels);
