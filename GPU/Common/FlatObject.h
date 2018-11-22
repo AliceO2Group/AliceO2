@@ -230,7 +230,7 @@ class FlatObject
   /// Relocates a pointer inside a buffer to the new buffer address
   template<class T>
     static T* relocatePointer( const char *oldBase, char *newBase, const T* ptr){
-    return reinterpret_cast<T*>( newBase + (reinterpret_cast<const char*>(ptr) - oldBase) );
+    return (ptr!=nullptr) ?reinterpret_cast<T*>( newBase + (reinterpret_cast<const char*>(ptr) - oldBase) ) :nullptr;
   }
 
 
