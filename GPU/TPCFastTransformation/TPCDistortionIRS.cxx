@@ -106,6 +106,11 @@ void TPCDistortionIRS::cloneFromObject( const TPCDistortionIRS &obj, char *newFl
 
   mSliceDataSizeBytes = obj.mSliceDataSizeBytes;
 
+  // variable-size data
+  mRowInfoPtr = obj.mRowInfoPtr;
+  mScenarioPtr = obj.mScenarioPtr;
+  mSplineData = obj.mSplineData;
+
   relocateBufferPointers( oldFlatBufferPtr, mFlatBufferPtr );
 }
   
