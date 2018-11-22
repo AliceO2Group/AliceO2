@@ -96,31 +96,61 @@ framework::WorkflowSpec getWorkflow(bool propagateMC, unsigned nLanes, std::stri
   // note: converter does not touch MC, this is routed directly to downstream consumer
   if (inputType == InputType::Digits) {
     specs.emplace_back(o2::TPC::getDigitReaderSpec(nLanes));
-    for (int n = 0; n < nLanes; ++n) {
-      specs.emplace_back(o2::TPC::getClustererSpec(propagateMC, (nLanes > 1 ? n : -1)));
-      specs.emplace_back(o2::TPC::getClusterConverterSpec(propagateMC, (nLanes > 1 ? n : -1)));
-    }
-  } else if (inputType == InputType::Digitizer) {
-    for (int n = 0; n < nLanes; ++n) {
-      specs.emplace_back(o2::TPC::getClustererSpec(propagateMC, (nLanes > 1 ? n : -1)));
-      specs.emplace_back(o2::TPC::getClusterConverterSpec(propagateMC, (nLanes > 1 ? n : -1)));
-    }
   } else if (inputType == InputType::Clusters) {
     specs.emplace_back(o2::TPC::getClusterReaderSpec(/*propagateMC*/));
-    for (int n = 0; n < nLanes; ++n) {
-      specs.emplace_back(o2::TPC::getClusterConverterSpec(propagateMC, (nLanes > 1 ? n : -1)));
-    }
   } else if (inputType == InputType::Raw) {
     throw std::runtime_error(std::string("input type 'raw' not yet implemented"));
   }
 
-  if (isEnabled(OutputType::Clusters) || isEnabled(OutputType::Raw)) {
+  WorkflowSpec parallelProcessors;
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  //
+  // clusterer process(es)
+  //
+  //
+  if (inputType == InputType::Digitizer || inputType == InputType::Digits) {
+    parallelProcessors.push_back(o2::TPC::getClustererSpec(propagateMC));
+  }
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  //
+  // cluster converter process(es)
+  //
+  //
+  if (inputType != InputType::Raw && (isEnabled(OutputType::DecodedClusters) || isEnabled(OutputType::Tracks))) {
+    parallelProcessors.push_back(o2::TPC::getClusterConverterSpec(propagateMC));
+  }
+
+  if (isEnabled(OutputType::Raw)) {
     throw std::runtime_error(std::string("output types 'clusters' and 'raw' not yet implemented"));
   }
 
-  for (int n = 0; n < nLanes; ++n) {
-    specs.emplace_back(o2::TPC::getClusterDecoderRawSpec(propagateMC, (nLanes > 1 ? n : -1)));
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  //
+  // cluster decoder process(es)
+  //
+  //
+  if (isEnabled(OutputType::DecodedClusters) || isEnabled(OutputType::Tracks)) {
+    parallelProcessors.push_back(o2::TPC::getClusterDecoderRawSpec(propagateMC));
   }
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  //
+  // set up parallel TPC lanes
+  //
+  if (nLanes > 1) {
+    parallelProcessors = parallel(parallelProcessors,
+                                  nLanes,
+                                  [](DataProcessorSpec& spec, size_t id) {
+                                    for (auto& input : spec.inputs) {
+                                      input.subSpec = id;
+                                    }
+                                    for (auto& output : spec.outputs) {
+                                      output.subSpec = id;
+                                    }
+                                  });
+  }
+  specs.insert(specs.end(), parallelProcessors.begin(), parallelProcessors.end());
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   //

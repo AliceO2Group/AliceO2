@@ -15,6 +15,7 @@
 
 #include "CATrackerSpec.h"
 #include "Headers/DataHeader.h"
+#include "Framework/WorkflowSpec.h" // o2::framework::mergeInputs
 #include "Framework/DataRefUtils.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/ClusterNative.h"
@@ -233,19 +234,23 @@ DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
     return processingFct;
   };
 
+  // FIXME: find out how to handle merge inputs in a simple and intuitive way
+  // changing the binding name of the input in order to identify inputs by unique labels
+  // in the processing. Think about how the processing can be made agnostic of input size,
+  // e.g. by providing a span of inputs under a certain label
   auto createInputSpecs = [fanIn](bool makeMcInput) {
-    std::vector<InputSpec> inputSpecs;
-    for (size_t n = 0; n < fanIn; ++n) {
-      std::string label = "input" + std::to_string(n);
-      inputSpecs.emplace_back(InputSpec{ label, gDataOriginTPC, "CLUSTERNATIVE", n, Lifetime::Timeframe });
-
-      if (makeMcInput) {
-        label = "mclblin" + std::to_string(n);
-        constexpr o2::header::DataDescription datadesc("CLNATIVEMCLBL");
-        inputSpecs.emplace_back(InputSpec{ label, gDataOriginTPC, datadesc, n, Lifetime::Timeframe });
-      }
+    Inputs inputs = { InputSpec{ "input", gDataOriginTPC, "CLUSTERNATIVE", 0, Lifetime::Timeframe } };
+    if (makeMcInput) {
+      inputs.emplace_back(InputSpec{ "mclblin", gDataOriginTPC, "CLNATIVEMCLBL", 0, Lifetime::Timeframe });
     }
-    return std::move(inputSpecs);
+
+    return std::move(mergeInputs(inputs, fanIn,
+                                 [](InputSpec& input, size_t index) {
+                                   // using unique input names for the moment but want to find
+                                   // an input-multiplicity-agnostic way of processing
+                                   input.binding += std::to_string(index);
+                                   input.subSpec = index;
+                                 }));
   };
 
   auto createOutputSpecs = [](bool makeMcOutput) {
