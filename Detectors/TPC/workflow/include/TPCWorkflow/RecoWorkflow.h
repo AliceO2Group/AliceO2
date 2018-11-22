@@ -35,7 +35,7 @@ enum struct OutputType { Clusters,
                          Tracks };
 
 /// create the workflow for TPC reconstruction
-framework::WorkflowSpec getWorkflow(bool propagateMC = true, int nLanes = 1,                               //
+framework::WorkflowSpec getWorkflow(bool propagateMC = true, unsigned nLanes = 1,                          //
                                     std::string inputType = "digitizer", std::string outputType = "tracks" //
                                     );
 
