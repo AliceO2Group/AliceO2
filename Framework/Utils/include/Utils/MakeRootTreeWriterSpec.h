@@ -39,6 +39,9 @@ namespace framework
 /// Further optional arguments directly after the process name can change the behavior
 /// of spec options defaults.
 ///
+/// A branch definition is always bound to a data type, the advanced version supports
+/// multiple branches for the same data type. See further down.
+///
 /// The processor spec is generated with the following options:
 ///   --outfile
 ///   --treename
@@ -90,6 +93,49 @@ namespace framework
 /// with branchname as default value
 ///   MakeRootTreeWriterSpec::BranchDefinition<Type>{ InputSpec{ ... }, "branchname", "optionkey" }
 ///
+/// Advanced branch definition:
+/// In order to write to multiple branches, the definition can be extended by
+///   - number n of branches controlled by definition
+///   - callback to calculate an index in the range [0,n-1] from the DataRef
+///       argument(s): o2::framework::DataRef const&
+///       result: size_t index, data set is skipped if ~(size_t)0
+///   - callback to return the branch name for an index
+///       argument(s): std::string basename, size_t index
+///       result: std::string with branchname
+///
+/// Examples:
+/// Multiple inputs for the same data type can be handled by the same branch definition
+/// by specifying a vector of InputSpecs instead of a single InputSpec. The number of branches
+/// has to be equal or larger than the size of the vector.
+///
+///     template <typename T>
+///     using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
+///
+///     // the callback to retrieve index from DataHeader
+///     auto getIndex = [](o2::framework::DataRef const& ref) {
+///       using DataHeader = o2::header::DataHeader;
+///       auto const* dataHeader = o2::framework::DataRefUtils::getHeader<DataHeader*>(ref);
+///       return dataHeader->subSpecification;
+///     };
+///
+///     // the callback for the branch name
+///     auto getName = [](std::string base, size_t index) {
+///       return base + " " + std::to_string(index);
+///     };
+///
+///     // assuming 4 inputs distinguished by DataHeader sub specification
+///     std::vector<InputSpec> inputs{ {"...", "...", 0}, ... , {"...", "...", 3} };
+///
+///     // advanced branch definition
+///     auto def = BranchDefinition<DataType>{ inputs,
+///                                            "branchname",
+///                                            4,
+///                                            getIndex,
+///                                            getName };
+///
+/// A single input can also be distributed to multiple branches if the getIndex
+/// callback calculates the index from another piece of information in the
+/// header stack.
 class MakeRootTreeWriterSpec
 {
  public:
@@ -103,6 +149,20 @@ class MakeRootTreeWriterSpec
   // branch definition structure uses InputSpec as key type
   template <typename T>
   struct BranchDefinition : public WriterType::BranchDef<T, InputSpec, KeyExtractor> {
+    /// constructor allows to specify an optional key used to generate a command line
+    /// option, all other parameters are simply forwarded to base class
+    template <typename KeyType>
+    BranchDefinition(KeyType&& key, std::string _branchName, std::string _optionKey = "")
+      : WriterType::BranchDef<T, InputSpec, KeyExtractor>(std::forward<KeyType>(key), _branchName), optionKey(_optionKey)
+    {
+    }
+    /// constructor, all parameters are simply forwarded to base class
+    template <typename KeyType, typename... Args>
+    BranchDefinition(KeyType key, std::string _branchName, std::string _optionKey, Args&&... args)
+      : WriterType::BranchDef<T, InputSpec, KeyExtractor>(std::forward<KeyType>(key), _branchName, std::forward<Args>(args)...), optionKey(_optionKey)
+    {
+    }
+    /// key for command line option
     std::string optionKey = "";
   };
 
@@ -216,9 +276,8 @@ class MakeRootTreeWriterSpec
   template <size_t N, typename T, typename... Args>
   void parseConstructorArgs(BranchDefinition<T>&& def, Args&&... args)
   {
-    mInputs.emplace_back(def.key);
+    mInputs.insert(mInputs.end(), def.keys.begin(), def.keys.end());
     mBranchNameOptions.emplace_back(def.optionKey, def.branchName);
-    LOG(INFO) << "adding input spec: " << mInputs.back();
     parseConstructorArgs<N + 1>(std::forward<Args>(args)...);
     if (N == 0) {
       mWriter = std::make_shared<WriterType>(nullptr, nullptr, std::forward<BranchDefinition<T>>(def), std::forward<Args>(args)...);
