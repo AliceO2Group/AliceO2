@@ -22,6 +22,7 @@
 #include "ClusterConverterSpec.h"
 #include "ClusterDecoderRawSpec.h"
 #include "CATrackerSpec.h"
+#include "RangeTokenizer.h"
 #include "DataFormatsTPC/Constants.h"
 #include "DataFormatsTPC/ClusterGroupAttribute.h"
 #include "DataFormatsTPC/TrackTPC.h"
@@ -36,6 +37,7 @@
 #include <iomanip>
 #include <unordered_map>
 #include <stdexcept>
+#include <algorithm> // std::find
 
 namespace o2
 {
@@ -45,6 +47,7 @@ namespace RecoWorkflow
 {
 
 using namespace framework;
+
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 
@@ -62,26 +65,30 @@ const std::unordered_map<std::string, OutputType> OutputMap{
   { "tracks", OutputType::Tracks },
 };
 
-framework::WorkflowSpec getWorkflow(bool propagateMC, int nLanes, std::string cfgInput, std::string cfgOutput)
+framework::WorkflowSpec getWorkflow(bool propagateMC, unsigned nLanes, std::string cfgInput, std::string cfgOutput)
 {
   InputType inputType;
-  OutputType outputType;
+
   try {
     inputType = InputMap.at(cfgInput);
   } catch (std::out_of_range&) {
     throw std::runtime_error(std::string("invalid input type: ") + cfgInput);
   }
+  std::vector<OutputType> outputTypes;
   try {
-    outputType = OutputMap.at(cfgOutput);
+    outputTypes = RangeTokenizer::tokenize<OutputType>(cfgOutput, [](std::string const& token) { return OutputMap.at(token); });
   } catch (std::out_of_range&) {
     throw std::runtime_error(std::string("invalid output type: ") + cfgOutput);
   }
+  auto isEnabled = [&outputTypes](OutputType type) {
+    return std::find(outputTypes.begin(), outputTypes.end(), type) != outputTypes.end();
+  };
 
   WorkflowSpec specs;
 
   // there is no MC info when starting from raw data
   // but maybe the warning can be dropped
-  if (propagateMC && outputType == OutputType::Raw) {
+  if (propagateMC && inputType == InputType::Raw) {
     LOG(WARNING) << "input type 'raw' selected, switch off MC propagation";
     propagateMC = false;
   }
@@ -107,46 +114,68 @@ framework::WorkflowSpec getWorkflow(bool propagateMC, int nLanes, std::string cf
     throw std::runtime_error(std::string("input type 'raw' not yet implemented"));
   }
 
-  if (outputType == OutputType::Clusters || outputType == OutputType::Raw) {
+  if (isEnabled(OutputType::Clusters) || isEnabled(OutputType::Raw)) {
     throw std::runtime_error(std::string("output types 'clusters' and 'raw' not yet implemented"));
   }
-  // also add a binary writer
-  auto writerFunction = [](InitContext& ic) {
-    auto filename = ic.options().get<std::string>("outfile");
-    if (filename.empty()) {
-      throw std::runtime_error("output file missing");
-    }
-    auto output = std::make_shared<std::ofstream>(filename.c_str(), std::ios_base::binary);
-    return [output](ProcessingContext& pc) {
-      LOG(INFO) << "processing data set with " << pc.inputs().size() << " entries";
-      for (const auto& entry : pc.inputs()) {
-        LOG(INFO) << "  " << *(entry.spec);
-        output->write(entry.payload, o2::framework::DataRefUtils::getPayloadSize(entry));
-        LOG(INFO) << "wrote data, size " << o2::framework::DataRefUtils::getPayloadSize(entry);
-      }
-    };
-  };
 
   for (int n = 0; n < nLanes; ++n) {
     specs.emplace_back(o2::TPC::getClusterDecoderRawSpec(propagateMC, (nLanes > 1 ? n : -1)));
   }
 
-  auto createInputSpec = []() {
-    o2::framework::Inputs inputs;
-    /**
-    for (uint8_t sector = 0; sector < o2::TPC::Constants::MAXSECTOR; sector++) {
-      std::stringstream label;
-      label << "input_" << std::setw(2) << std::setfill('0') << (int)sector;
-      auto subSpec = o2::TPC::ClusterGroupAttribute{sector, 0}.getSubSpecification();
-      inputs.emplace_back(InputSpec{ label.str().c_str(), "TPC", "CLUSTERNATIVE", subSpec, framework::Lifetime::Timeframe });
-    }
-    */
-    inputs.emplace_back(InputSpec{ "input", "TPC", "CLUSTERNATIVE", 0, framework::Lifetime::Timeframe });
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  //
+  // a writer process for decoded clusters
+  //
+  // selected by output type 'decoded-clusters'
+  if (isEnabled(OutputType::DecodedClusters)) {
+    // writer function
+    auto writerFunction = [](InitContext& ic) {
+      auto filename = ic.options().get<std::string>("outfile");
+      if (filename.empty()) {
+        throw std::runtime_error("output file missing");
+      }
+      auto output = std::make_shared<std::ofstream>(filename.c_str(), std::ios_base::binary);
+      return [output](ProcessingContext& pc) {
+        LOG(INFO) << "processing data set with " << pc.inputs().size() << " entries";
+        for (const auto& entry : pc.inputs()) {
+          LOG(INFO) << "  " << *(entry.spec);
+          const auto* header = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(entry);
+          output->write(reinterpret_cast<const char*>(header), header->headerSize);
+          output->write(entry.payload, o2::framework::DataRefUtils::getPayloadSize(entry));
+          LOG(INFO) << "wrote data, size " << o2::framework::DataRefUtils::getPayloadSize(entry);
+        }
+      };
+    };
 
-    return std::move(inputs);
-  };
+    // inputs to the writer
+    auto createInputSpec = [nLanes, propagateMC]() {
+      o2::framework::Inputs inputs;
+      for (o2::header::DataHeader::SubSpecificationType n = 0; n < nLanes; ++n) {
+        inputs.emplace_back(InputSpec{ "input", "TPC", "CLUSTERNATIVE", n, framework::Lifetime::Timeframe });
+        if (propagateMC) {
+          inputs.emplace_back(InputSpec{ "mcin", "TPC", "CLNATIVEMCLBL", n, framework::Lifetime::Timeframe });
+        }
+      }
+      return std::move(inputs);
+    };
 
-  if (outputType == OutputType::Tracks) {
+    specs.emplace_back(DataProcessorSpec{
+      "tpc-decoded-cluster-writer",  //
+      { createInputSpec() },         //
+      {},                            //
+      AlgorithmSpec(writerFunction), //
+      Options{
+        { "outfile", VariantType::String, "tpc-decoded-clusters.bin", { "Name of the output file" } }, //
+      }                                                                                                //
+    });
+  }
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  //
+  // a writer process for tracks
+  //
+  // selected by output type 'tracks'
+  if (isEnabled(OutputType::Tracks)) {
     specs.emplace_back(o2::TPC::getCATrackerSpec(propagateMC, nLanes));
 
     // defining the track writer process using the generic RootTreeWriter and generator tool
@@ -173,15 +202,8 @@ framework::WorkflowSpec getWorkflow(bool propagateMC, int nLanes, std::string cf
       specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName, //
                                              std::move(tracksdef))());                      //
     }
-  } else if (outputType == OutputType::DecodedClusters) {
-    specs.emplace_back(DataProcessorSpec{ "writer",
-                                          { createInputSpec() },
-                                          {},
-                                          AlgorithmSpec(writerFunction),
-                                          Options{
-                                            { "outfile", VariantType::String, { "Name of the output file" } },
-                                          } });
   }
+
   return std::move(specs);
 }
 
