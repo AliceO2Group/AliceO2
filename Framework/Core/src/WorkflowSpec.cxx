@@ -22,6 +22,7 @@ WorkflowSpec parallel(DataProcessorSpec original,
                       size_t maxIndex,
                       std::function<void(DataProcessorSpec&, size_t)> amendCallback) {
   WorkflowSpec results;
+  results.reserve(maxIndex);
   for (size_t i = 0; i < maxIndex; ++i) {
     results.push_back(original);
     results.back().name = original.name + "_" + std::to_string(i);
@@ -32,10 +33,25 @@ WorkflowSpec parallel(DataProcessorSpec original,
   return results;
 }
 
+WorkflowSpec parallel(WorkflowSpec specs,
+                      size_t maxIndex,
+                      std::function<void(DataProcessorSpec&, size_t)> amendCallback)
+{
+  WorkflowSpec results;
+  results.reserve(specs.size() * maxIndex);
+  for (auto& spec : specs) {
+    auto result = parallel(spec, maxIndex, amendCallback);
+    results.insert(results.end(), result.begin(), result.end());
+  }
+
+  return results;
+}
+
 Inputs mergeInputs(InputSpec original,
                    size_t maxIndex,
                    std::function<void(InputSpec &, size_t)> amendCallback) {
   Inputs results;
+  results.reserve(maxIndex);
   for (size_t i = 0; i < maxIndex; ++i) {
     results.push_back(original);
     amendCallback(results.back(), i);
@@ -43,6 +59,20 @@ Inputs mergeInputs(InputSpec original,
   return results;
 }
 
+Inputs mergeInputs(Inputs inputs,
+                   size_t maxIndex,
+                   std::function<void(InputSpec&, size_t)> amendCallback)
+{
+  Inputs results;
+  results.reserve(inputs.size() * maxIndex);
+  for (size_t i = 0; i < maxIndex; ++i) {
+    for (auto const& original : inputs) {
+      results.push_back(original);
+      amendCallback(results.back(), i);
+    }
+  }
+  return results;
+}
 
 DataProcessorSpec timePipeline(DataProcessorSpec original,
                           size_t count) {
