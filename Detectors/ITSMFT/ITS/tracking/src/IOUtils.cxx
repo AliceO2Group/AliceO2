@@ -299,7 +299,6 @@ void from_json(const nlohmann::json& j, TrackingParameters& par)
   std::copy(tmpNeighbourMaxDeltaCurvature.begin(), tmpNeighbourMaxDeltaCurvature.end(), par.NeighbourMaxDeltaCurvature);
   auto tmpNeighbourMaxDeltaN = j.at("NeighbourMaxDeltaN").get<std::array<float, Constants::ITS::CellsPerRoad - 1>>();
   std::copy(tmpNeighbourMaxDeltaN.begin(), tmpNeighbourMaxDeltaN.end(), par.NeighbourMaxDeltaN);
-
 }
 
 void to_json(nlohmann::json& j, const MemoryParameters& par)

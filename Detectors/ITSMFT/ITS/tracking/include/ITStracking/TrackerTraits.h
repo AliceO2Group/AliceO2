@@ -43,8 +43,8 @@ class TrackerTraits
   GPU_HOST_DEVICE static constexpr int4 getEmptyBinsRect() { return int4{ 0, 0, 0, 0 }; }
   GPU_DEVICE static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
 
-  virtual void computeLayerTracklets() {};
-  virtual void computeLayerCells() {};
+  virtual void computeLayerTracklets(){};
+  virtual void computeLayerCells(){};
 
   void UpdateTrackingParameters(const TrackingParameters& trkPar);
   PrimaryVertexContext* getPrimaryVertexContext() { return mPrimaryVertexContext; }
@@ -54,7 +54,8 @@ class TrackerTraits
   TrackingParameters mTrkParams;
 };
 
-inline void TrackerTraits::UpdateTrackingParameters(const TrackingParameters& trkPar) {
+inline void TrackerTraits::UpdateTrackingParameters(const TrackingParameters& trkPar)
+{
   mTrkParams = trkPar;
 }
 
@@ -77,7 +78,6 @@ inline GPU_DEVICE const int4 TrackerTraits::getBinsRect(const Cluster& currentCl
                MATH_MIN(Constants::IndexTable::ZBins - 1, IndexTableUtils::getZBinIndex(layerIndex + 1, zRangeMax)),
                IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phiRangeMax)) };
 }
-
 }
 }
 

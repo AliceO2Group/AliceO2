@@ -71,8 +71,8 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
   Int_t tf = 0, nrec = 0;
   Int_t lastEventID = -1;
   Int_t nev = mcTree->GetEntries();
-  TH1D* den = new TH1D("den",";#it{p}_{T} (GeV/#it{c});Den",100,0.01,10);
-  TH1D* num = new TH1D("num",";#it{p}_{T} (GeV/#it{c});Num",100,0.01,10);
+  TH1D* den = new TH1D("den", ";#it{p}_{T} (GeV/#it{c});Den", 100, 0.01, 10);
+  TH1D* num = new TH1D("num", ";#it{p}_{T} (GeV/#it{c});Num", 100, 0.01, 10);
   for (Int_t n = 0; n < nev; n++) {
     std::cout << "\nMC event " << n << '/' << nev << std::endl;
     Int_t nGen = 0, nGoo = 0;

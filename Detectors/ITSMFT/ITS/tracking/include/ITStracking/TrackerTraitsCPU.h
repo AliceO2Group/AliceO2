@@ -42,16 +42,13 @@ class TrackerTraitsCPU : public TrackerTraits
   TrackerTraitsCPU() { mPrimaryVertexContext = new PrimaryVertexContext; }
   virtual ~TrackerTraitsCPU() { delete mPrimaryVertexContext; }
 
-
   void computeLayerTracklets() final;
   void computeLayerCells() final;
 
  protected:
-
   std::vector<std::vector<Tracklet>> mTracklets;
   std::vector<std::vector<Cell>> mCells;
 };
-
 }
 }
 

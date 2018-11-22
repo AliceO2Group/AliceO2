@@ -39,7 +39,7 @@ class PrimaryVertexContextNV final : public PrimaryVertexContext
   virtual ~PrimaryVertexContextNV() = default;
 
   virtual void initialise(const MemoryParameters& memParam, const std::array<std::vector<Cluster>, Constants::ITS::LayersNumber>& cl,
-                          const std::array<float,3> &pv, const int iteration);
+                          const std::array<float, 3>& pv, const int iteration);
 
   GPU::DeviceStoreNV& getDeviceContext();
   GPU::Array<GPU::Vector<Cluster>, Constants::ITS::LayersNumber>& getDeviceClusters();
@@ -125,7 +125,7 @@ inline void PrimaryVertexContextNV::updateDeviceContext()
 }
 
 inline void PrimaryVertexContextNV::initialise(const MemoryParameters& memParam, const std::array<std::vector<Cluster>, Constants::ITS::LayersNumber>& cl,
-                                               const std::array<float,3> &pv, const int iteration)
+                                               const std::array<float, 3>& pv, const int iteration)
 {
   this->PrimaryVertexContext::initialise(memParam, cl, pv, iteration);
   mGPUContextDevicePointer = mGPUContext.initialise(mPrimaryVertex, mClusters, mTracklets, mCells, mCellsLookupTable);

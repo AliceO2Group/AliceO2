@@ -34,11 +34,9 @@ class TrackerTraitsNV : public TrackerTraits
 
   void computeLayerTracklets() final;
   void computeLayerCells() final;
-
 };
 
 extern "C" TrackerTraits* createTrackerTraitsNV();
-
 }
 }
 

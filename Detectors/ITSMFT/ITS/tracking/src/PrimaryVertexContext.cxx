@@ -27,9 +27,9 @@ PrimaryVertexContext::PrimaryVertexContext()
 }
 
 void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const std::array<std::vector<Cluster>, Constants::ITS::LayersNumber>& cl,
-                          const std::array<float,3> &pVtx, const int iteration)
+                                      const std::array<float, 3>& pVtx, const int iteration)
 {
-  mPrimaryVertex = {pVtx[0], pVtx[1], pVtx[2]};
+  mPrimaryVertex = { pVtx[0], pVtx[1], pVtx[2] };
 
   for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumber; ++iLayer) {
 
@@ -107,7 +107,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
         }
       }
 
-      for (int iBin{ previousBinIndex + 1 }; iBin < (int) mIndexTables[iLayer - 1].size(); iBin++) {
+      for (int iBin{ previousBinIndex + 1 }; iBin < (int)mIndexTables[iLayer - 1].size(); iBin++) {
         mIndexTables[iLayer - 1][iBin] = clustersNum;
       }
     }

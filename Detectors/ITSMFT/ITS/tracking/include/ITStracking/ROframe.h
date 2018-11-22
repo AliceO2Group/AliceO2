@@ -49,7 +49,7 @@ class ROframe final
   const std::vector<TrackingFrameInfo>& getTrackingFrameInfoOnLayer(int layerId) const;
 
   const TrackingFrameInfo& getClusterTrackingFrameInfo(int layerId, const Cluster& cl) const;
-  const MCCompLabel& getClusterLabels(int layerId, const Cluster& cl) const ;
+  const MCCompLabel& getClusterLabels(int layerId, const Cluster& cl) const;
   const MCCompLabel& getClusterLabels(int layerId, const int clId) const;
   int getClusterExternalIndex(int layerId, const int clId) const;
 
@@ -77,31 +77,38 @@ inline const float3& ROframe::getPrimaryVertex(const int vertexIndex) const { re
 
 inline int ROframe::getPrimaryVerticesNum() const { return mPrimaryVertices.size(); }
 
-inline const std::array<std::vector<Cluster>, Constants::ITS::LayersNumber>& ROframe::getClusters() const {
+inline const std::array<std::vector<Cluster>, Constants::ITS::LayersNumber>& ROframe::getClusters() const
+{
   return mClusters;
 }
 
-inline const std::vector<Cluster>& ROframe::getClustersOnLayer(int layerId) const {
+inline const std::vector<Cluster>& ROframe::getClustersOnLayer(int layerId) const
+{
   return mClusters[layerId];
 }
 
-inline const std::vector<TrackingFrameInfo>& ROframe::getTrackingFrameInfoOnLayer(int layerId) const {
+inline const std::vector<TrackingFrameInfo>& ROframe::getTrackingFrameInfoOnLayer(int layerId) const
+{
   return mTrackingFrameInfo[layerId];
 }
 
-inline const TrackingFrameInfo& ROframe::getClusterTrackingFrameInfo(int layerId, const Cluster& cl) const {
+inline const TrackingFrameInfo& ROframe::getClusterTrackingFrameInfo(int layerId, const Cluster& cl) const
+{
   return mTrackingFrameInfo[layerId][cl.clusterId];
 }
 
-inline const MCCompLabel& ROframe::getClusterLabels(int layerId, const Cluster& cl) const{
+inline const MCCompLabel& ROframe::getClusterLabels(int layerId, const Cluster& cl) const
+{
   return mClusterLabels[layerId][cl.clusterId];
 }
 
-inline const MCCompLabel& ROframe::getClusterLabels(int layerId, const int clId) const {
+inline const MCCompLabel& ROframe::getClusterLabels(int layerId, const int clId) const
+{
   return mClusterLabels[layerId][clId];
 }
 
-inline int ROframe::getClusterExternalIndex(int layerId, const int clId) const {
+inline int ROframe::getClusterExternalIndex(int layerId, const int clId) const
+{
   return mClusterExternalIndices[layerId][clId];
 }
 
@@ -119,7 +126,8 @@ void ROframe::addTrackingFrameInfoToLayer(int layer, T&&... values)
 
 inline void ROframe::addClusterLabelToLayer(int layer, const MCCompLabel label) { mClusterLabels[layer].emplace_back(label); }
 
-inline void ROframe::addClusterExternalIndexToLayer(int layer, const int idx) {
+inline void ROframe::addClusterExternalIndexToLayer(int layer, const int idx)
+{
   mClusterExternalIndices[layer].push_back(idx);
 }
 

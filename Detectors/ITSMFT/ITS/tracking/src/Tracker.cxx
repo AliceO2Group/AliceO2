@@ -34,37 +34,18 @@ namespace o2
 namespace ITS
 {
 
-Tracker::Tracker(bool useGPU)
+Tracker::Tracker(o2::ITS::TrackerTraits* traits)
 {
   /// Initialise standard configuration with 1 iteration
   mTrkParams.resize(1);
   mMemParams.resize(1);
-  // This will be superseeded by the dlopen trial
-  std::string libPath = std::getenv("O2_ROOT");
-  libPath += "/lib/libITStrackingCUDA.so"; 
-  void* hGPULib = dlopen(libPath.data(), RTLD_NOW);
-  if (hGPULib != NULL && useGPU) {
-    std::cout << "CUDA library found... ";
-    void* createFunc = (void*)dlsym(hGPULib, "createTrackerTraitsNV");
-    if (createFunc != NULL) {
-      std::cout << "and correctly loaded." << std::endl;
-      mCUDA = true;
-      TrackerTraits* (*tmp)() = (TrackerTraits* (*)()) createFunc;
-      mTraits = tmp();
-    } else {
-      std::cout << "but not properly loaded." << std::endl;
-    }
-  }
-  if (!mCUDA) {
-    std::cout << "Loading the CPU version of the algorithm." << std::endl;
-    mTraits = new TrackerTraitsCPU();
-  }
+  assert(mTracks != nullptr);
+  mTraits = traits;
   mPrimaryVertexContext = mTraits->getPrimaryVertexContext();
 }
 
 Tracker::~Tracker()
 {
-  delete mTraits;
 }
 
 void Tracker::clustersToTracks(const ROframe& event, std::ostream& timeBenchmarkOutputStream)
@@ -80,7 +61,7 @@ void Tracker::clustersToTracks(const ROframe& event, std::ostream& timeBenchmark
     for (int iteration = 0; iteration < mTrkParams.size(); ++iteration) {
       mTraits->UpdateTrackingParameters(mTrkParams[iteration]);
       /// Ugly hack -> Unifiy float3 definition in CPU and CUDA/HIP code
-      std::array<float,3> pV = {event.getPrimaryVertex(iVertex).x, event.getPrimaryVertex(iVertex).y, event.getPrimaryVertex(iVertex).z};
+      std::array<float, 3> pV = { event.getPrimaryVertex(iVertex).x, event.getPrimaryVertex(iVertex).y, event.getPrimaryVertex(iVertex).z };
       total += evaluateTask(&Tracker::initialisePrimaryVertexContext, "Context initialisation",
                             timeBenchmarkOutputStream, mMemParams[iteration], event.getClusters(), pV, iteration);
       total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", timeBenchmarkOutputStream);
@@ -93,7 +74,6 @@ void Tracker::clustersToTracks(const ROframe& event, std::ostream& timeBenchmark
     if (Constants::DoTimeBenchmarks)
       timeBenchmarkOutputStream << std::setw(2) << " - "
                                 << "Vertex processing completed in: " << total << "ms" << std::endl;
-
   }
   computeTracksMClabels(event);
 }
@@ -574,7 +554,7 @@ void Tracker::computeTracksMClabels(const ROframe& event)
     if (isFakeTrack)
       maxOccurrencesValue.set(-maxOccurrencesValue.getTrackID(), maxOccurrencesValue.getEventID(),
                               maxOccurrencesValue.getSourceID());
-    mTrackLabels.addElement(mTrackLabels.getIndexedSize(),maxOccurrencesValue);
+    mTrackLabels.addElement(mTrackLabels.getIndexedSize(), maxOccurrencesValue);
   }
 }
 
@@ -583,7 +563,7 @@ void Tracker::computeTracksMClabels(const ROframe& event)
 /// whereas the others are referred to the global frame. This function is almost a clone of CookSeed, adapted to return
 /// a TrackParCov
 track::TrackParCov Tracker::buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2,
-                                                  const Cluster& cluster3, const TrackingFrameInfo& tf3)
+                                           const Cluster& cluster3, const TrackingFrameInfo& tf3)
 {
   const float ca = std::cos(tf3.alphaTrackingFrame), sa = std::sin(tf3.alphaTrackingFrame);
   const float x1 = cluster1.xCoordinate * ca + cluster1.yCoordinate * sa;
