@@ -10,7 +10,7 @@
 #ifndef RANGE_TOKENIZER_H
 #define RANGE_TOKENIZER_H
 
-/// @file   RangeTolenizer.h
+/// @file   RangeTokenizer.h
 /// @author Matthias Richter
 /// @since  2018-09-18
 /// @brief  Helper function to tokenize sequences and ranges of integral numbers
@@ -19,6 +19,7 @@
 #include <string>
 #include <sstream>
 #include <utility> // std::move
+#include <functional> // std::function
 
 namespace o2
 {
@@ -26,7 +27,7 @@ namespace o2
 struct RangeTokenizer {
   /// tokenize a string according to delimiter ',' and extract values of type T
   template <typename T>
-  static std::vector<T> tokenize(std::string input)
+  static std::vector<T> tokenize(std::string input, std::function<T(std::string const&)> convert = [](std::string const& token) {T value; std::istringstream(token) >> value; return value; })
   {
     std::istringstream stream(input);
     std::string token;
@@ -35,10 +36,9 @@ struct RangeTokenizer {
       T value;
       if (std::is_integral<T>::value && token.find('-') != token.npos) {
         // extract range
-        insertRange(res, token);
+        insertRange(res, token, convert);
       } else {
-        std::istringstream(token) >> value;
-        res.emplace_back(value);
+        res.emplace_back(convert(token));
       }
     }
     return std::move(res);
@@ -46,15 +46,15 @@ struct RangeTokenizer {
 
   /// extract a range of an integral type from a token string and add to vector
   template <typename T, typename std::enable_if_t<std::is_integral<T>::value == true, int> = 0>
-  static void insertRange(std::vector<T>& res, std::string token)
+  static void insertRange(std::vector<T>& res, std::string token, std::function<T(std::string const&)> convert)
   {
     std::istringstream tokenstream(token);
     std::string bound;
     T lowerBound, upperBound;
     if (std::getline(tokenstream, bound, '-')) {
-      std::istringstream(bound) >> lowerBound;
+      lowerBound = convert(bound);
       if (std::getline(tokenstream, bound, '-')) {
-        std::istringstream(bound) >> upperBound;
+        upperBound = convert(bound);
         for (T index = lowerBound; index <= upperBound; index++) {
           res.emplace_back(index);
         }
@@ -64,7 +64,7 @@ struct RangeTokenizer {
 
   // this is needed to make the compilation work, but never called
   template <typename T, typename std::enable_if_t<std::is_integral<T>::value == false, int> = 0>
-  static void insertRange(std::vector<T>& res, std::string token)
+  static void insertRange(std::vector<T>&, std::string, std::function<T(std::string const&)>)
   {
   }
 };
