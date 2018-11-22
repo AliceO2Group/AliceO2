@@ -25,7 +25,7 @@ public:
 
 class TObjArray;
 #include "AliHLTTPCCADef.h"
-#include "TRDBase/TRDGeometry.h"
+//#include "TRDBase/TRDGeometryBase.h"
 
 class TGeoHMatrix
 {
