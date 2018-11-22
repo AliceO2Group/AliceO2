@@ -23,169 +23,11 @@ using namespace o2::trd;
 
 //_____________________________________________________________________________
 
-//
-// The geometry constants
-//
-const int TRDGeometry::fgkNsector = kNsector;
-const int TRDGeometry::fgkNlayer = kNlayer;
-const int TRDGeometry::fgkNstack = kNstack;
-const int TRDGeometry::fgkNdet = kNdet;
-
-//
-// Dimensions of the detector
-//
-
-// Total length of the TRD mother volume
-const float TRDGeometry::fgkTlength = 751.0;
-
-// Parameter of the super module mother volumes
-const float TRDGeometry::fgkSheight = 77.9;
-const float TRDGeometry::fgkSwidth1 = 94.881;
-const float TRDGeometry::fgkSwidth2 = 122.353;
-const float TRDGeometry::fgkSlength = 702.0;
-
-// Length of the additional space in front of the supermodule
-// used for services
-const float TRDGeometry::fgkFlength = (TRDGeometry::fgkTlength - TRDGeometry::fgkSlength) / 2.0;
-
-// The super module side plates
-const float TRDGeometry::fgkSMpltT = 0.2;
-
-// Vertical spacing of the chambers
-const float TRDGeometry::fgkVspace = 1.784;
-// Horizontal spacing of the chambers
-const float TRDGeometry::fgkHspace = 2.0;
-// Radial distance of the first ROC to the outer plates of the SM
-const float TRDGeometry::fgkVrocsm = 1.2;
-
-// Height of different chamber parts
-// Radiator
-const float TRDGeometry::fgkCraH = 4.8;
-// Drift region
-const float TRDGeometry::fgkCdrH = 3.0;
-// Amplification region
-const float TRDGeometry::fgkCamH = 0.7;
-// Readout
-const float TRDGeometry::fgkCroH = 2.316;
-// Additional width of the readout chamber frames
-const float TRDGeometry::fgkCroW = 0.9;
-// Services on top of ROC
-const float TRDGeometry::fgkCsvH = TRDGeometry::fgkVspace - 0.742;
-// Total height (w/o services)
-const float TRDGeometry::fgkCH =
-  TRDGeometry::fgkCraH + TRDGeometry::fgkCdrH + TRDGeometry::fgkCamH + TRDGeometry::fgkCroH;
-// Total height (with services)
-
-const float TRDGeometry::fgkCHsv = TRDGeometry::fgkCH + TRDGeometry::fgkCsvH;
-
-// Distance of anode wire plane relative to middle of alignable volume
-const float TRDGeometry::fgkAnodePos =
-  TRDGeometry::fgkCraH + TRDGeometry::fgkCdrH + TRDGeometry::fgkCamH / 2.0 - TRDGeometry::fgkCHsv / 2.0;
-
-// Thicknesses of different parts of the chamber frame
-// Lower aluminum frame
-const float TRDGeometry::fgkCalT = 0.4;
-// Lower Wacosit frame sides
-const float TRDGeometry::fgkCclsT = 0.21;
-// Lower Wacosit frame front
-const float TRDGeometry::fgkCclfT = 1.0;
-// Thickness of glue around radiator
-const float TRDGeometry::fgkCglT = 0.25;
-// Upper Wacosit frame around amplification region
-const float TRDGeometry::fgkCcuTa = 1.0;
-const float TRDGeometry::fgkCcuTb = 0.8;
-// Al frame of back panel
-const float TRDGeometry::fgkCauT = 1.5;
-// Additional Al ledge at the lower chamber frame
-// Actually the dimensions are not realistic, but
-// modified in order to allow to mis-alignment.
-// The amount of material is, however, correct
-const float TRDGeometry::fgkCalW = 2.5;
-const float TRDGeometry::fgkCalH = 0.4;
-const float TRDGeometry::fgkCalWmod = 0.4;
-const float TRDGeometry::fgkCalHmod = 2.5;
-// Additional Wacosit ledge at the lower chamber frame
-const float TRDGeometry::fgkCwsW = 1.2;
-const float TRDGeometry::fgkCwsH = 0.3;
-
-// Difference of outer chamber width and pad plane width
-const float TRDGeometry::fgkCpadW = 0.0;
-const float TRDGeometry::fgkRpadW = 1.0;
-
-//
-// Thickness of the the material layers
-//
-const float TRDGeometry::fgkDrThick = TRDGeometry::fgkCdrH;
-const float TRDGeometry::fgkAmThick = TRDGeometry::fgkCamH;
-const float TRDGeometry::fgkXeThick = TRDGeometry::fgkDrThick + TRDGeometry::fgkAmThick;
-const float TRDGeometry::fgkWrThick = 0.00011;
-
-const float TRDGeometry::fgkRMyThick = 0.0015;
-const float TRDGeometry::fgkRCbThick = 0.0055;
-const float TRDGeometry::fgkRGlThick = 0.0065;
-const float TRDGeometry::fgkRRhThick = 0.8;
-const float TRDGeometry::fgkRFbThick = fgkCraH - 2.0 * (fgkRMyThick + fgkRCbThick + fgkRRhThick);
-
-const float TRDGeometry::fgkPPdThick = 0.0025;
-const float TRDGeometry::fgkPPpThick = 0.0356;
-const float TRDGeometry::fgkPGlThick = 0.1428;
-const float TRDGeometry::fgkPCbThick = 0.019;
-const float TRDGeometry::fgkPPcThick = 0.0486;
-const float TRDGeometry::fgkPRbThick = 0.0057;
-const float TRDGeometry::fgkPElThick = 0.0029;
-const float TRDGeometry::fgkPHcThick =
-  fgkCroH - fgkPPdThick - fgkPPpThick - fgkPGlThick - fgkPCbThick * 2.0 - fgkPPcThick - fgkPRbThick - fgkPElThick;
-
-//
-// Position of the material layers
-//
-const float TRDGeometry::fgkDrZpos = 2.4;
-const float TRDGeometry::fgkAmZpos = 0.0;
-const float TRDGeometry::fgkWrZposA = 0.0;
-const float TRDGeometry::fgkWrZposB = -fgkAmThick / 2.0 + 0.001;
-const float TRDGeometry::fgkCalZpos = 0.3;
-
-const int TRDGeometry::fgkMCMmax = 16;
-const int TRDGeometry::fgkMCMrow = 4;
-const int TRDGeometry::fgkROBmaxC0 = 6;
-const int TRDGeometry::fgkROBmaxC1 = 8;
-const int TRDGeometry::fgkADCmax = 21;
-const int TRDGeometry::fgkTBmax = 60;
-const int TRDGeometry::fgkPadmax = 18;
-const int TRDGeometry::fgkColmax = 144;
-const int TRDGeometry::fgkRowmaxC0 = 12;
-const int TRDGeometry::fgkRowmaxC1 = 16;
-
-const double TRDGeometry::fgkTime0Base = 300.65;
-const float TRDGeometry::fgkTime0[6] = { static_cast<float>(fgkTime0Base + 0 * (Cheight() + Cspace())),
-                                         static_cast<float>(fgkTime0Base + 1 * (Cheight() + Cspace())),
-                                         static_cast<float>(fgkTime0Base + 2 * (Cheight() + Cspace())),
-                                         static_cast<float>(fgkTime0Base + 3 * (Cheight() + Cspace())),
-                                         static_cast<float>(fgkTime0Base + 4 * (Cheight() + Cspace())),
-                                         static_cast<float>(fgkTime0Base + 5 * (Cheight() + Cspace())) };
-
-const double TRDGeometry::fgkXtrdBeg = 288.43; // Values depend on position of TRD
-const double TRDGeometry::fgkXtrdEnd = 366.33; // mother volume inside space frame !!!
-
-// The outer width of the chambers
-const float TRDGeometry::fgkCwidth[kNlayer] = { 90.4, 94.8, 99.3, 103.7, 108.1, 112.6 };
-
-// The outer lengths of the chambers
-// Includes the spacings between the chambers!
-const float TRDGeometry::fgkClength[kNlayer][kNstack] = {
-  { 124.0, 124.0, 110.0, 124.0, 124.0 }, { 124.0, 124.0, 110.0, 124.0, 124.0 }, { 131.0, 131.0, 110.0, 131.0, 131.0 },
-  { 138.0, 138.0, 110.0, 138.0, 138.0 }, { 145.0, 145.0, 110.0, 145.0, 145.0 }, { 147.0, 147.0, 110.0, 147.0, 147.0 }
-};
-
-char TRDGeometry::fgSMstatus[kNsector] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
-
 TObjArray* TRDGeometry::fgClusterMatrixArray = nullptr;
-
-// TObjArray* TRDGeometry::fgPadPlaneArray = NULL;
-std::vector<TRDPadPlane*>* TRDGeometry::fgPadPlaneArray;
+std::unique_ptr<TRDPadPlane[]> TRDGeometry::fgPadPlaneArray;
 
 //_____________________________________________________________________________
-TRDGeometry::TRDGeometry()
+TRDGeometry::TRDGeometry() : TRDGeometryBase()
 {
   //
   // TRDGeometry default constructor
@@ -201,37 +43,50 @@ TRDGeometry::~TRDGeometry()
 }
 
 //_____________________________________________________________________________
+bool TRDGeometry::RotateBack(int det, const double* const loc, double* glb) const
+{
+  //
+  // Rotates a chambers to transform the corresponding local frame
+  // coordinates <loc> into the coordinates of the ALICE restframe <glb>.
+  //
+
+  int sector = GetSector(det);
+  float phi = 2.0 * TMath::Pi() / (float)fgkNsector * ((float)sector + 0.5);
+
+  glb[0] = loc[0] * TMath::Cos(phi) - loc[1] * TMath::Sin(phi);
+  glb[1] = loc[0] * TMath::Sin(phi) + loc[1] * TMath::Cos(phi);
+  glb[2] = loc[2];
+
+  return true;
+}
+
+//_____________________________________________________________________________
 void TRDGeometry::CreatePadPlaneArray()
 {
   //
   // Creates the array of TRDPadPlane objects
   //
 
-  if (fgPadPlaneArray)
+  if (fgPadPlaneArray != nullptr)
     return;
 
-  //  static TObjArray padPlaneArray(fgkNlayer * fgkNstack);
-  // padPlaneArray.SetOwner(true);
-
-  fgPadPlaneArray = new std::vector<TRDPadPlane*>;
-  fgPadPlaneArray->resize(fgkNlayer * fgkNstack);
+  fgPadPlaneArray.reset(new TRDPadPlane[fgkNlayer * fgkNstack]);
   for (int ilayer = 0; ilayer < fgkNlayer; ilayer++) {
     for (int istack = 0; istack < fgkNstack; istack++) {
       int ipp = GetDetectorSec(ilayer, istack);
-      // fgPadPlaneArray->AddAt(CreatePadPlane(ilayer,istack),ipp);
-      (*fgPadPlaneArray)[ipp] = CreatePadPlane(ilayer, istack);
+      CreatePadPlane(ilayer, istack, fgPadPlaneArray.get()[ipp]);
     }
   }
 }
 
 //_____________________________________________________________________________
-TRDPadPlane* TRDGeometry::CreatePadPlane(int ilayer, int istack)
+void TRDGeometry::CreatePadPlane(int ilayer, int istack, TRDPadPlane& plane)
 {
   //
   // Creates an TRDPadPlane object
   //
 
-  TRDPadPlane* padPlane = new TRDPadPlane();
+  TRDPadPlane* padPlane = &plane;
 
   padPlane->SetLayer(ilayer);
   padPlane->SetStack(istack);
@@ -400,8 +255,6 @@ TRDPadPlane* TRDGeometry::CreatePadPlane(int ilayer, int istack)
     rowTmp -= fgkClength[ilayer][jstack];
   }
   padPlane->SetPadRowSMOffset(rowTmp - fgkClength[ilayer][istack] / 2.0);
-
-  return padPlane;
 }
 
 void TRDGeometry::createVolume(const char* name, const char* shape, int nmed, float* upar, int np)
@@ -420,6 +273,16 @@ void TRDGeometry::CreateGeometry(std::vector<int> const& idtmed)
 {
   //
   // Create the TRD geometry
+  CreatePadPlaneArray();
+  mPadPlaneArray = fgPadPlaneArray.get();
+  CreateVolumes(idtmed);
+  CreatePadPlaneArray();
+}
+
+void TRDGeometry::CreateVolumes(std::vector<int> const& idtmed)
+{
+  //
+  // Create the TRD geometry volumes
   //
   //
   // Names of the TRD volumina (xx = detector number):
@@ -1199,7 +1062,7 @@ void TRDGeometry::CreateFrame(std::vector<int> const& idtmed)
   }
 
   //
-  // The aymmetric flat frame in the middle
+  // The asymmetric flat frame in the middle
   //
 
   // The envelope volume (aluminum)
@@ -2695,158 +2558,6 @@ void TRDGeometry::AssembleChamber(int ilayer, int istack)
   }
 }
 
-//_____________________________________________________________________________
-bool TRDGeometry::RotateBack(int det, const double* const loc, double* glb) const
-{
-  //
-  // Rotates a chambers to transform the corresponding local frame
-  // coordinates <loc> into the coordinates of the ALICE restframe <glb>.
-  //
-
-  int sector = GetSector(det);
-  float phi = 2.0 * TMath::Pi() / (float)fgkNsector * ((float)sector + 0.5);
-
-  glb[0] = loc[0] * TMath::Cos(phi) - loc[1] * TMath::Sin(phi);
-  glb[1] = loc[0] * TMath::Sin(phi) + loc[1] * TMath::Cos(phi);
-  glb[2] = loc[2];
-
-  return true;
-}
-
-//_____________________________________________________________________________
-int TRDGeometry::GetDetectorSec(int layer, int stack)
-{
-  //
-  // Convert plane / stack into detector number for one single sector
-  //
-
-  return (layer + stack * fgkNlayer);
-}
-
-//_____________________________________________________________________________
-int TRDGeometry::GetDetector(int layer, int stack, int sector)
-{
-  //
-  // Convert layer / stack / sector into detector number
-  //
-
-  return (layer + stack * fgkNlayer + sector * fgkNlayer * fgkNstack);
-}
-
-//_____________________________________________________________________________
-int TRDGeometry::GetLayer(int det)
-{
-  //
-  // Reconstruct the layer number from the detector number
-  //
-
-  return ((int)(det % fgkNlayer));
-}
-
-//_____________________________________________________________________________
-int TRDGeometry::GetStack(int det)
-{
-  //
-  // Reconstruct the stack number from the detector number
-  //
-
-  return ((int)(det % (fgkNlayer * fgkNstack)) / fgkNlayer);
-}
-
-//_____________________________________________________________________________
-int TRDGeometry::GetStack(double z, int layer)
-{
-  //
-  // Reconstruct the chamber number from the z position and layer number
-  //
-  // The return function has to be protected for positiveness !!
-  //
-
-  if ((layer < 0) || (layer >= fgkNlayer))
-    return -1;
-
-  int istck = fgkNstack;
-  double zmin = 0.0;
-  double zmax = 0.0;
-
-  do {
-    istck--;
-    if (istck < 0)
-      break;
-    TRDPadPlane* pp = GetPadPlane(layer, istck);
-    zmax = pp->GetRow0();
-    int nrows = pp->GetNrows();
-    zmin = zmax - 2 * pp->GetLengthOPad() - (nrows - 2) * pp->GetLengthIPad() - (nrows - 1) * pp->GetRowSpacing();
-  } while ((z < zmin) || (z > zmax));
-
-  return istck;
-}
-
-//_____________________________________________________________________________
-int TRDGeometry::GetSector(int det)
-{
-  //
-  // Reconstruct the sector number from the detector number
-  //
-
-  return ((int)(det / (fgkNlayer * fgkNstack)));
-}
-
-//_____________________________________________________________________________
-TRDPadPlane* TRDGeometry::GetPadPlane(int layer, int stack)
-{
-  //
-  // Returns the pad plane for a given plane <pl> and stack <st> number
-  //
-
-  if (!fgPadPlaneArray) {
-    CreatePadPlaneArray();
-  }
-
-  int ipp = GetDetectorSec(layer, stack);
-  return (*fgPadPlaneArray)[ipp];
-}
-
-//_____________________________________________________________________________
-int TRDGeometry::GetRowMax(int layer, int stack, int /*sector*/)
-{
-  //
-  // Returns the number of rows on the pad plane
-  //
-
-  return GetPadPlane(layer, stack)->GetNrows();
-}
-
-//_____________________________________________________________________________
-int TRDGeometry::GetColMax(int layer)
-{
-  //
-  // Returns the number of rows on the pad plane
-  //
-
-  return GetPadPlane(layer, 0)->GetNcols();
-}
-
-//_____________________________________________________________________________
-double TRDGeometry::GetRow0(int layer, int stack, int /*sector*/)
-{
-  //
-  // Returns the position of the border of the first pad in a row
-  //
-
-  return GetPadPlane(layer, stack)->GetRow0();
-}
-
-//_____________________________________________________________________________
-double TRDGeometry::GetCol0(int layer)
-{
-  //
-  // Returns the position of the border of the first pad in a column
-  //
-
-  return GetPadPlane(layer, 0)->GetCol0();
-}
-
 /*
 //_____________________________________________________________________________
 bool TRDGeometry::CreateClusterMatrixArray()
@@ -2995,56 +2706,5 @@ bool TRDGeometry::ChamberInGeometry(int det)
 
 }
 */
-
-//_____________________________________________________________________________
-bool TRDGeometry::IsHole(int /*la*/, int st, int se) const
-{
-  //
-  // Checks for holes in front of PHOS
-  //
-
-  if (((se == 13) || (se == 14) || (se == 15)) && (st == 2)) {
-    return true;
-  }
-
-  return false;
-}
-
-//_____________________________________________________________________________
-bool TRDGeometry::IsOnBoundary(int det, float y, float z, float eps) const
-{
-  //
-  // Checks whether position is at the boundary of the sensitive volume
-  //
-
-  int ly = GetLayer(det);
-  if ((ly < 0) || (ly >= fgkNlayer))
-    return true;
-
-  int stk = GetStack(det);
-  if ((stk < 0) || (stk >= fgkNstack))
-    return true;
-
-  TRDPadPlane* pp = (*fgPadPlaneArray)[GetDetectorSec(ly, stk)];
-  if (!pp)
-    return true;
-
-  double max = pp->GetRow0();
-  int n = pp->GetNrows();
-  double min = max - 2 * pp->GetLengthOPad() - (n - 2) * pp->GetLengthIPad() - (n - 1) * pp->GetRowSpacing();
-  if (z < min + eps || z > max - eps) {
-    // printf("z : min[%7.2f (%7.2f)] %7.2f max[(%7.2f) %7.2f]\n", min, min+eps, z, max-eps, max);
-    return true;
-  }
-  min = pp->GetCol0();
-  n = pp->GetNcols();
-  max = min + 2 * pp->GetWidthOPad() + (n - 2) * pp->GetWidthIPad() + (n - 1) * pp->GetColSpacing();
-  if (y < min + eps || y > max - eps) {
-    // printf("y : min[%7.2f (%7.2f)] %7.2f max[(%7.2f) %7.2f]\n", min, min+eps, y, max-eps, max);
-    return true;
-  }
-
-  return false;
-}
 
 ClassImp(TRDGeometry)

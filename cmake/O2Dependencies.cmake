@@ -1369,6 +1369,8 @@ o2_define_bucket(
     Geom
     SimulationDataFormat
     CommonDataFormat
+    data_format_detectors_common_bucket
+    DetectorsCommonDataFormats
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}

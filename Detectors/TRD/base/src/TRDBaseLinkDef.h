@@ -16,6 +16,7 @@
 
 #pragma link C++ class o2::trd::TRDPadPlane + ;
 #pragma link C++ class o2::trd::TRDGeometry + ;
+#pragma link C++ class o2::trd::TRDGeometryBase + ;
 #pragma link C++ class o2::trd::TRDCommonParam + ;
 #pragma link C++ class o2::trd::TRDSimParam + ;
 
