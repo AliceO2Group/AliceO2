@@ -113,7 +113,8 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
         ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCDefinitions.cxx
         ${AliRoot_SOURCE_DIR}/HLT/TRD/AliHLTTRDDefinitions.cxx
     )
-
+    
+    ALICE_UseVc()
 else() #if we do not build for AliRoot, for the time being we still need some dummy headers for some definitions
     include_directories(HLTHeaders Standalone/include)
 endif()
