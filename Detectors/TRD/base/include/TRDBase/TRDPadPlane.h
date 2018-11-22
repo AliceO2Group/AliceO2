@@ -32,6 +32,8 @@ class TRDPadPlane
  public:
   TRDPadPlane();
   TRDPadPlane(int layer, int stack);
+  TRDPadPlane(const TRDPadPlane& p) = delete;
+  TRDPadPlane& operator=(const TRDPadPlane& p) = delete;
   ~TRDPadPlane();
   // virtual void       Copy(TObject &p) const;
 
@@ -172,9 +174,6 @@ class TRDPadPlane
   double mAnodeWireOffset; //  Distance of first anode wire from pad edge
 
  private:
-  TRDPadPlane(const TRDPadPlane& p);
-  TRDPadPlane& operator=(const TRDPadPlane& p);
-
   ClassDefNV(TRDPadPlane, 1) //  TRD ROC pad plane
 };
 }

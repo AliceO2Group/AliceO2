@@ -100,61 +100,6 @@ TRDPadPlane::~TRDPadPlane()
   }
 }
 
-/*
-//_____________________________________________________________________________
-void TRDPadPlane::Copy(TObject &p) const
-{
-  //
-  // Copy function
-  //
-
-  int iBin = 0;
-
-  ((TRDPadPlane &) p).fLayer           = fLayer;
-  ((TRDPadPlane &) p).fStack           = fStack;
-
-  ((TRDPadPlane &) p).fLength          = fLength;
-  ((TRDPadPlane &) p).fWidth           = fWidth;
-  ((TRDPadPlane &) p).fLengthRim       = fLengthRim;
-  ((TRDPadPlane &) p).fWidthRim        = fWidthRim;
-  ((TRDPadPlane &) p).fLengthOPad      = fLengthOPad;
-  ((TRDPadPlane &) p).fWidthOPad       = fWidthOPad;
-  ((TRDPadPlane &) p).fLengthIPad      = fLengthIPad;
-  ((TRDPadPlane &) p).fWidthIPad       = fWidthIPad;
-
-  ((TRDPadPlane &) p).fRowSpacing      = fRowSpacing;
-  ((TRDPadPlane &) p).fColSpacing      = fColSpacing;
-
-  ((TRDPadPlane &) p).fNrows           = fNrows;
-  ((TRDPadPlane &) p).fNcols           = fNcols;
-
-  ((TRDPadPlane &) p).fTiltingAngle    = fTiltingAngle;
-  ((TRDPadPlane &) p).fTiltingTan      = fTiltingTan;
-
-  ((TRDPadPlane &) p).fPadRowSMOffset  = fPadRowSMOffset;
-  ((TRDPadPlane &) p).fAnodeWireOffset = fAnodeWireOffset;
-
-  if (((TRDPadPlane &) p).fPadRow) {
-    delete [] ((TRDPadPlane &) p).fPadRow;
-  }
-  ((TRDPadPlane &) p).fPadRow = new double[fNrows];
-  for (iBin = 0; iBin < fNrows; iBin++) {
-    ((TRDPadPlane &) p).fPadRow[iBin] = fPadRow[iBin];
-  }
-
-  if (((TRDPadPlane &) p).fPadCol) {
-    delete [] ((TRDPadPlane &) p).fPadCol;
-  }
-  ((TRDPadPlane &) p).fPadCol = new double[fNrows];
-  for (iBin = 0; iBin < fNrows; iBin++) {
-    ((TRDPadPlane &) p).fPadCol[iBin] = fPadCol[iBin];
-  }
-
-  TObject::Copy(p);
-
-}
-*/
-
 //_____________________________________________________________________________
 void TRDPadPlane::SetTiltingAngle(double t)
 {
