@@ -39,7 +39,7 @@ void run_trac_ca_its(std::string path = "./", std::string outputfile = "o2ca_its
 
   gSystem->Load("libITStracking.so");
 
-  o2::ITS::Tracker tracker;
+  o2::ITS::Tracker tracker(AliGPUReconstruction::CreateInstance()->GetITSTrackerTraits());
   o2::ITS::ROframe event(0);
 
   if (path.back() != '/') {
@@ -92,11 +92,11 @@ void run_trac_ca_its(std::string path = "./", std::string outputfile = "o2ca_its
   std::vector<o2::ITSMFT::Cluster>* clusters = nullptr;
   itsClusters.SetBranchAddress("ITSCluster", &clusters);
 
-//  if (!itsClusters.GetBranch("EventHeader.")) {
-//    LOG(FATAL) << "Did not find the EventHeader branch in the input cluster tree" << FairLogger::endl;
-//  }
-//  FairEventHeader* header = nullptr;
-//  itsClusters.SetBranchAddress("EventHeader.", &header);
+  //  if (!itsClusters.GetBranch("EventHeader.")) {
+  //    LOG(FATAL) << "Did not find the EventHeader branch in the input cluster tree" << FairLogger::endl;
+  //  }
+  //  FairEventHeader* header = nullptr;
+  //  itsClusters.SetBranchAddress("EventHeader.", &header);
 
   if (!itsClusters.GetBranch("ITSClusterMCTruth")) {
     LOG(FATAL) << "Did not find ITS clusters branch ITSClusterMCTruth in the input tree" << FairLogger::endl;
@@ -110,7 +110,7 @@ void run_trac_ca_its(std::string path = "./", std::string outputfile = "o2ca_its
   std::vector<o2::ITS::TrackITS>* tracksITS = new std::vector<o2::ITS::TrackITS>;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trackLabels =
     new o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-//  outTree.Branch("EventHeader.", &header);
+  //  outTree.Branch("EventHeader.", &header);
   outTree.Branch("ITSTrack", &tracksITS);
   outTree.Branch("ITSTrackMCTruth", &trackLabels);
 

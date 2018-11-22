@@ -52,9 +52,7 @@ struct Array final {
   GPU_HOST_DEVICE std::size_t size() const noexcept { return Size; }
 
   T InternalArray[Size];
-
 };
-
 }
 }
 }

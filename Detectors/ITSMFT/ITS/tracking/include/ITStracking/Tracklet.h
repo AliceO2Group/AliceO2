@@ -38,7 +38,7 @@ inline Tracklet::Tracklet() : firstClusterIndex{ 0 }, secondClusterIndex{ 0 }, t
 }
 
 inline GPU_DEVICE Tracklet::Tracklet(const int firstClusterOrderingIndex, const int secondClusterOrderingIndex,
-                              const Cluster& firstCluster, const Cluster& secondCluster)
+                                     const Cluster& firstCluster, const Cluster& secondCluster)
   : firstClusterIndex{ firstClusterOrderingIndex },
     secondClusterIndex{ secondClusterOrderingIndex },
     tanLambda{ (firstCluster.zCoordinate - secondCluster.zCoordinate) /

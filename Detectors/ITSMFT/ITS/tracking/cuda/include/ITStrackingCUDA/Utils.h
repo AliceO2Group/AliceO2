@@ -32,7 +32,7 @@ namespace Host
 {
 
 #ifdef __CUDACC__
-void checkCUDAError(const cudaError_t error, const char *file, const int line);
+void checkCUDAError(const cudaError_t error, const char* file, const int line);
 #endif
 
 dim3 getBlockSize(const int);

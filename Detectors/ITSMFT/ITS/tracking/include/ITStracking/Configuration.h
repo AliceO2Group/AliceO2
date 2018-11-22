@@ -45,8 +45,8 @@ class Configuration : public Param
 };
 
 struct TrackingParameters {
-  TrackingParameters& operator=(const TrackingParameters &t);
-  
+  TrackingParameters& operator=(const TrackingParameters& t);
+
   int CellMinimumLevel();
 
   /// General parameters
@@ -67,7 +67,7 @@ struct TrackingParameters {
 
 struct MemoryParameters {
   /// Memory coefficients
-  MemoryParameters& operator=(const MemoryParameters &t);
+  MemoryParameters& operator=(const MemoryParameters& t);
   int MemoryOffset = 256;
   float CellsMemoryCoefficients[Constants::ITS::CellsPerRoad] = { 2.3208e-08f, 2.104e-08f, 1.6432e-08f, 1.2412e-08f, 1.3543e-08f };
   float TrackletsMemoryCoefficients[Constants::ITS::TrackletsPerRoad] = { 0.0016353f, 0.0013627f, 0.000984f, 0.00078135f, 0.00057934f, 0.00052217f };
@@ -100,7 +100,8 @@ inline void IndexTableParameters::ComputeInverseBinSizes()
   }
 }
 
-inline TrackingParameters& TrackingParameters::operator=(const TrackingParameters &t) {
+inline TrackingParameters& TrackingParameters::operator=(const TrackingParameters& t)
+{
   this->ClusterSharing = t.ClusterSharing;
   this->MinTrackLength = t.MinTrackLength;
   /// Trackleting cuts
@@ -115,21 +116,22 @@ inline TrackingParameters& TrackingParameters::operator=(const TrackingParameter
     this->CellMaxDeltaZ[iC] = t.CellMaxDeltaZ[iC];
   }
   /// Neighbour finding cuts
-  for (int iC = 0; iC < Constants::ITS::CellsPerRoad -1; ++iC) {
+  for (int iC = 0; iC < Constants::ITS::CellsPerRoad - 1; ++iC) {
     this->NeighbourMaxDeltaCurvature[iC] = t.NeighbourMaxDeltaCurvature[iC];
     this->NeighbourMaxDeltaN[iC] = t.NeighbourMaxDeltaN[iC];
   }
   return *this;
-} 
+}
 
-inline MemoryParameters& MemoryParameters::operator=(const MemoryParameters &t) {
+inline MemoryParameters& MemoryParameters::operator=(const MemoryParameters& t)
+{
   this->MemoryOffset = t.MemoryOffset;
   for (int iC = 0; iC < Constants::ITS::CellsPerRoad; ++iC)
     this->CellsMemoryCoefficients[iC] = t.CellsMemoryCoefficients[iC];
   for (int iT = 0; iT < Constants::ITS::TrackletsPerRoad; ++iT)
     this->TrackletsMemoryCoefficients[iT] = t.TrackletsMemoryCoefficients[iT];
   return *this;
-} 
+}
 
 } // namespace ITS
 } // namespace o2

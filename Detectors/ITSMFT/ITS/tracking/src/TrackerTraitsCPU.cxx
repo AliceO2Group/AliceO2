@@ -93,7 +93,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
             }
 
             primaryVertexContext->getTracklets()[iLayer].emplace_back(iCluster, iNextLayerCluster, currentCluster,
-                                                                     nextCluster);
+                                                                      nextCluster);
           }
         }
       }

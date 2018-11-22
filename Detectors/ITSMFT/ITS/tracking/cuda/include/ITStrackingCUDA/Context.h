@@ -62,7 +62,6 @@ class Context final
   int mDevicesNum;
   std::vector<DeviceProperties> mDeviceProperties;
 };
-
 }
 }
 }
