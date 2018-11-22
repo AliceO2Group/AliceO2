@@ -23,7 +23,6 @@ using namespace o2::trd;
 
 //_____________________________________________________________________________
 
-TObjArray* TRDGeometry::fgClusterMatrixArray = nullptr;
 std::unique_ptr<TRDPadPlane[]> TRDGeometry::fgPadPlaneArray;
 const o2::detectors::DetID TRDGeometry::sDetID(o2::detectors::DetID::TRD);
 
@@ -32,14 +31,6 @@ TRDGeometry::TRDGeometry() : TRDGeometryBase(), o2::detectors::DetMatrixCacheInd
 {
   //
   // TRDGeometry default constructor
-  //
-}
-
-//_____________________________________________________________________________
-TRDGeometry::~TRDGeometry()
-{
-  //
-  // TRDGeometry destructor
   //
 }
 
@@ -74,33 +65,32 @@ void TRDGeometry::CreatePadPlaneArray()
   fgPadPlaneArray.reset(new TRDPadPlane[kNlayer * kNstack]);
   for (int ilayer = 0; ilayer < kNlayer; ilayer++) {
     for (int istack = 0; istack < kNstack; istack++) {
-      int ipp = GetDetectorSec(ilayer, istack);
-      CreatePadPlane(ilayer, istack, fgPadPlaneArray.get()[ipp]);
+      CreatePadPlane(ilayer, istack);
     }
   }
 }
 
 //_____________________________________________________________________________
-void TRDGeometry::CreatePadPlane(int ilayer, int istack, TRDPadPlane& plane)
+void TRDGeometry::CreatePadPlane(int ilayer, int istack)
 {
   //
   // Creates an TRDPadPlane object
   //
+  int ipp = GetDetectorSec(ilayer, istack);
+  auto& padPlane = fgPadPlaneArray.get()[ipp];
 
-  TRDPadPlane* padPlane = &plane;
+  padPlane.SetLayer(ilayer);
+  padPlane.SetStack(istack);
 
-  padPlane->SetLayer(ilayer);
-  padPlane->SetStack(istack);
+  padPlane.SetRowSpacing(0.0);
+  padPlane.SetColSpacing(0.0);
 
-  padPlane->SetRowSpacing(0.0);
-  padPlane->SetColSpacing(0.0);
+  padPlane.SetLengthRim(1.0);
+  padPlane.SetWidthRim(0.5);
 
-  padPlane->SetLengthRim(1.0);
-  padPlane->SetWidthRim(0.5);
+  padPlane.SetNcols(144);
 
-  padPlane->SetNcols(144);
-
-  padPlane->SetAnodeWireOffset(0.25);
+  padPlane.SetAnodeWireOffset(0.25);
 
   //
   // The pad plane parameter
@@ -110,114 +100,114 @@ void TRDGeometry::CreatePadPlane(int ilayer, int istack, TRDPadPlane& plane)
     case 0:
       if (istack == 2) {
         // L0C0 type
-        padPlane->SetNrows(12);
-        padPlane->SetLength(108.0);
-        padPlane->SetLengthOPad(8.0);
-        padPlane->SetLengthIPad(9.0);
+        padPlane.SetNrows(12);
+        padPlane.SetLength(108.0);
+        padPlane.SetLengthOPad(8.0);
+        padPlane.SetLengthIPad(9.0);
       } else {
         // L0C1 type
-        padPlane->SetNrows(16);
-        padPlane->SetLength(122.0);
-        padPlane->SetLengthOPad(7.5);
-        padPlane->SetLengthIPad(7.5);
+        padPlane.SetNrows(16);
+        padPlane.SetLength(122.0);
+        padPlane.SetLengthOPad(7.5);
+        padPlane.SetLengthIPad(7.5);
       }
-      padPlane->SetWidth(92.2);
-      padPlane->SetWidthOPad(0.515);
-      padPlane->SetWidthIPad(0.635);
-      padPlane->SetTiltingAngle(-kTiltAngle);
+      padPlane.SetWidth(92.2);
+      padPlane.SetWidthOPad(0.515);
+      padPlane.SetWidthIPad(0.635);
+      padPlane.SetTiltingAngle(-kTiltAngle);
       break;
     case 1:
       if (istack == 2) {
         // L1C0 type
-        padPlane->SetNrows(12);
-        padPlane->SetLength(108.0);
-        padPlane->SetLengthOPad(8.0);
-        padPlane->SetLengthIPad(9.0);
+        padPlane.SetNrows(12);
+        padPlane.SetLength(108.0);
+        padPlane.SetLengthOPad(8.0);
+        padPlane.SetLengthIPad(9.0);
       } else {
         // L1C1 type
-        padPlane->SetNrows(16);
-        padPlane->SetLength(122.0);
-        padPlane->SetLengthOPad(7.5);
-        padPlane->SetLengthIPad(7.5);
+        padPlane.SetNrows(16);
+        padPlane.SetLength(122.0);
+        padPlane.SetLengthOPad(7.5);
+        padPlane.SetLengthIPad(7.5);
       }
-      padPlane->SetWidth(96.6);
-      padPlane->SetWidthOPad(0.585);
-      padPlane->SetWidthIPad(0.665);
-      padPlane->SetTiltingAngle(kTiltAngle);
+      padPlane.SetWidth(96.6);
+      padPlane.SetWidthOPad(0.585);
+      padPlane.SetWidthIPad(0.665);
+      padPlane.SetTiltingAngle(kTiltAngle);
       break;
     case 2:
       if (istack == 2) {
         // L2C0 type
-        padPlane->SetNrows(12);
-        padPlane->SetLength(108.0);
-        padPlane->SetLengthOPad(8.0);
-        padPlane->SetLengthIPad(9.0);
+        padPlane.SetNrows(12);
+        padPlane.SetLength(108.0);
+        padPlane.SetLengthOPad(8.0);
+        padPlane.SetLengthIPad(9.0);
       } else {
         // L2C1 type
-        padPlane->SetNrows(16);
-        padPlane->SetLength(129.0);
-        padPlane->SetLengthOPad(7.5);
-        padPlane->SetLengthIPad(8.0);
+        padPlane.SetNrows(16);
+        padPlane.SetLength(129.0);
+        padPlane.SetLengthOPad(7.5);
+        padPlane.SetLengthIPad(8.0);
       }
-      padPlane->SetWidth(101.1);
-      padPlane->SetWidthOPad(0.705);
-      padPlane->SetWidthIPad(0.695);
-      padPlane->SetTiltingAngle(-kTiltAngle);
+      padPlane.SetWidth(101.1);
+      padPlane.SetWidthOPad(0.705);
+      padPlane.SetWidthIPad(0.695);
+      padPlane.SetTiltingAngle(-kTiltAngle);
       break;
     case 3:
       if (istack == 2) {
         // L3C0 type
-        padPlane->SetNrows(12);
-        padPlane->SetLength(108.0);
-        padPlane->SetLengthOPad(8.0);
-        padPlane->SetLengthIPad(9.0);
+        padPlane.SetNrows(12);
+        padPlane.SetLength(108.0);
+        padPlane.SetLengthOPad(8.0);
+        padPlane.SetLengthIPad(9.0);
       } else {
         // L3C1 type
-        padPlane->SetNrows(16);
-        padPlane->SetLength(136.0);
-        padPlane->SetLengthOPad(7.5);
-        padPlane->SetLengthIPad(8.5);
+        padPlane.SetNrows(16);
+        padPlane.SetLength(136.0);
+        padPlane.SetLengthOPad(7.5);
+        padPlane.SetLengthIPad(8.5);
       }
-      padPlane->SetWidth(105.5);
-      padPlane->SetWidthOPad(0.775);
-      padPlane->SetWidthIPad(0.725);
-      padPlane->SetTiltingAngle(kTiltAngle);
+      padPlane.SetWidth(105.5);
+      padPlane.SetWidthOPad(0.775);
+      padPlane.SetWidthIPad(0.725);
+      padPlane.SetTiltingAngle(kTiltAngle);
       break;
     case 4:
       if (istack == 2) {
         // L4C0 type
-        padPlane->SetNrows(12);
-        padPlane->SetLength(108.0);
-        padPlane->SetLengthOPad(8.0);
+        padPlane.SetNrows(12);
+        padPlane.SetLength(108.0);
+        padPlane.SetLengthOPad(8.0);
       } else {
         // L4C1 type
-        padPlane->SetNrows(16);
-        padPlane->SetLength(143.0);
-        padPlane->SetLengthOPad(7.5);
+        padPlane.SetNrows(16);
+        padPlane.SetLength(143.0);
+        padPlane.SetLengthOPad(7.5);
       }
-      padPlane->SetWidth(109.9);
-      padPlane->SetWidthOPad(0.845);
-      padPlane->SetLengthIPad(9.0);
-      padPlane->SetWidthIPad(0.755);
-      padPlane->SetTiltingAngle(-kTiltAngle);
+      padPlane.SetWidth(109.9);
+      padPlane.SetWidthOPad(0.845);
+      padPlane.SetLengthIPad(9.0);
+      padPlane.SetWidthIPad(0.755);
+      padPlane.SetTiltingAngle(-kTiltAngle);
       break;
     case 5:
       if (istack == 2) {
         // L5C0 type
-        padPlane->SetNrows(12);
-        padPlane->SetLength(108.0);
-        padPlane->SetLengthOPad(8.0);
+        padPlane.SetNrows(12);
+        padPlane.SetLength(108.0);
+        padPlane.SetLengthOPad(8.0);
       } else {
         // L5C1 type
-        padPlane->SetNrows(16);
-        padPlane->SetLength(145.0);
-        padPlane->SetLengthOPad(8.5);
+        padPlane.SetNrows(16);
+        padPlane.SetLength(145.0);
+        padPlane.SetLengthOPad(8.5);
       }
-      padPlane->SetWidth(114.4);
-      padPlane->SetWidthOPad(0.965);
-      padPlane->SetLengthIPad(9.0);
-      padPlane->SetWidthIPad(0.785);
-      padPlane->SetTiltingAngle(kTiltAngle);
+      padPlane.SetWidth(114.4);
+      padPlane.SetWidthOPad(0.965);
+      padPlane.SetLengthIPad(9.0);
+      padPlane.SetWidthIPad(0.785);
+      padPlane.SetTiltingAngle(kTiltAngle);
       break;
   };
 
@@ -226,27 +216,27 @@ void TRDGeometry::CreatePadPlane(int ilayer, int istack, TRDPadPlane& plane)
   //
   // Row direction
   //
-  double row = fgkClength[ilayer][istack] / 2.0 - fgkRpadW - padPlane->GetLengthRim();
-  for (int ir = 0; ir < padPlane->GetNrows(); ir++) {
-    padPlane->SetPadRow(ir, row);
-    row -= padPlane->GetRowSpacing();
+  double row = fgkClength[ilayer][istack] / 2.0 - fgkRpadW - padPlane.GetLengthRim();
+  for (int ir = 0; ir < padPlane.GetNrows(); ir++) {
+    padPlane.SetPadRow(ir, row);
+    row -= padPlane.GetRowSpacing();
     if (ir == 0) {
-      row -= padPlane->GetLengthOPad();
+      row -= padPlane.GetLengthOPad();
     } else {
-      row -= padPlane->GetLengthIPad();
+      row -= padPlane.GetLengthIPad();
     }
   }
   //
   // Column direction
   //
-  double col = -fgkCwidth[ilayer] / 2.0 - fgkCroW + padPlane->GetWidthRim();
-  for (int ic = 0; ic < padPlane->GetNcols(); ic++) {
-    padPlane->SetPadCol(ic, col);
-    col += padPlane->GetColSpacing();
+  double col = -fgkCwidth[ilayer] / 2.0 - fgkCroW + padPlane.GetWidthRim();
+  for (int ic = 0; ic < padPlane.GetNcols(); ic++) {
+    padPlane.SetPadCol(ic, col);
+    col += padPlane.GetColSpacing();
     if (ic == 0) {
-      col += padPlane->GetWidthOPad();
+      col += padPlane.GetWidthOPad();
     } else {
-      col += padPlane->GetWidthIPad();
+      col += padPlane.GetWidthIPad();
     }
   }
   // Calculate the offset to translate from the local ROC system into
@@ -255,7 +245,7 @@ void TRDGeometry::CreatePadPlane(int ilayer, int istack, TRDPadPlane& plane)
   for (int jstack = 0; jstack < istack; jstack++) {
     rowTmp -= fgkClength[ilayer][jstack];
   }
-  padPlane->SetPadRowSMOffset(rowTmp - fgkClength[ilayer][istack] / 2.0);
+  padPlane.SetPadRowSMOffset(rowTmp - fgkClength[ilayer][istack] / 2.0);
 }
 
 void TRDGeometry::createVolume(const char* name, const char* shape, int nmed, float* upar, int np)
@@ -275,22 +265,14 @@ void TRDGeometry::CreateGeometry(std::vector<int> const& idtmed)
   //
   // Create the TRD geometry
   
-  if (isBuilt()) {
-    LOG(WARNING) << "Already built" << FairLogger::endl;
-    return; // already initialized
-  }
-
   if (!gGeoManager) {
     // RSTODO: in future there will be a method to load matrices from the CDB
     LOG(FATAL) << "Geometry is not loaded" << FairLogger::endl;
   }
-
+  
   CreatePadPlaneArray();
   mPadPlaneArray = fgPadPlaneArray.get();
   CreateVolumes(idtmed);
-  
-  setSize(kNdet, kNdet);
-  fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L));
 }
 
 void TRDGeometry::CreateVolumes(std::vector<int> const& idtmed)
@@ -2581,30 +2563,23 @@ void TRDGeometry::fillMatrixCache(int mask)
   useT2LCache();
 
   std::string volPath;
-  const std::string vpStr   = "ALIC_1/B077_1/BSEGMO";
-  const std::string vpApp1  = "_1/BTRD";
-  const std::string vpApp2  = "_1";
-  const std::string vpApp3a = "/UTR1_1/UTS1_1/UTI1_1";
-  const std::string vpApp3b = "/UTR2_1/UTS2_1/UTI2_1";
-  const std::string vpApp3c = "/UTR3_1/UTS3_1/UTI3_1";
-  const std::string vpApp3d = "/UTR4_1/UTS4_1/UTI4_1";
+  const std::string vpStr { "ALIC_1/B077_1/BSEGMO" };
+  const std::string vpApp1 {"_1/BTRD" };
+  const std::string vpApp2  { "_1" };
+  const std::string vpApp3a { "/UTR1_1/UTS1_1/UTI1_1" };
+  const std::string vpApp3b { "/UTR2_1/UTS2_1/UTI2_1" };
+  const std::string vpApp3c { "/UTR3_1/UTS3_1/UTI3_1" };
+  const std::string vpApp3d { "/UTR4_1/UTS4_1/UTI4_1" };
 
-  fgClusterMatrixArray = new TObjArray(kNdet);
-
-  // in opposite to AliGeomManager, we use consecutive numbering of modules through whole TRD
-  int volid = -1;
-  
   for (int ilayer = 0; ilayer < kNlayer; ilayer++) {
     for (int isector = 0; isector < kNsector; isector++ ) {
       for (int istack = 0; istack < kNstack; istack++) {
         Int_t lid = GetDetector(ilayer,istack,isector);
-
-        volid++;
         // Check for disabled supermodules
         volPath  = vpStr;
-        volPath += isector;
+        volPath += std::to_string(isector);
         volPath += vpApp1;
-        volPath += isector;
+        volPath += std::to_string(isector);
         volPath += vpApp2;
         switch (isector) {
         case 17:
@@ -2630,28 +2605,143 @@ void TRDGeometry::fillMatrixCache(int mask)
           volPath += vpApp3a;
         };
         if (!gGeoManager->CheckPath(volPath.c_str())) {
-          //AliInfo(Form("Path not found in geometry: %s",volPath.Data()));
           continue;
         }
-        TGeoHMatrix *m = o2::Base::GeometryManager::getMatrix(sDetID, volid);
+        const auto m = o2::Base::GeometryManager::getMatrix(o2::detectors::DetID::TRD, lid);
         TGeoRotation mchange;
         mchange.RotateY(90);
         mchange.RotateX(90);
-
         //
         // Cluster transformation matrix
         //
-        std::unique_ptr<TGeoHMatrix> rotMatrix = std::make_unique<TGeoHMatrix>(mchange.Inverse());
-        rotMatrix->MultiplyLeft(m);
-        float sectorAngle = 20.0 * (isector % 18) + 10.0;
+        TGeoHMatrix  rotMatrix(mchange.Inverse());
+        rotMatrix.MultiplyLeft(m);
+        Double_t sectorAngle = 20.0 * (isector % 18) + 10.0;
         TGeoHMatrix  rotSector;
         rotSector.RotateZ(sectorAngle);
         const auto& inv = rotSector.Inverse();
-        rotMatrix->MultiplyLeft(&inv);
-        setMatrixT2L(Mat3D(*rotMatrix), lid);
+        rotMatrix.MultiplyLeft(&inv);
+        setMatrixT2L(Mat3D(rotMatrix), lid);
       }
     }
   }
+}
+
+//_____________________________________________________________________________
+void TRDGeometry::addAlignableVolumes() const
+{
+  //
+  // define alignable volumes of the TRD
+  //
+  if (!gGeoManager) {
+    LOG(FATAL) << "Geometry is not loaded";
+  }
+  
+  std::string volPath;
+  std::string vpStr { "ALIC_1/B077_1/BSEGMO" };
+  const std::string vpApp1 {"_1/BTRD" };
+  const std::string vpApp2  { "_1" };
+  const std::string vpApp3a { "/UTR1_1/UTS1_1/UTI1_1" };
+  const std::string vpApp3b { "/UTR2_1/UTS2_1/UTI2_1" };
+  const std::string vpApp3c { "/UTR3_1/UTS3_1/UTI3_1" };
+  const std::string vpApp3d { "/UTR4_1/UTS4_1/UTI4_1" };
+  std::string symName;
+  
+  // in opposite to AliGeomManager, we use consecutive numbering of modules through whole TRD
+  int volid = -1;
+
+  // The super modules
+  // The symbolic names are: TRD/sm00 ... TRD/sm17
+  for (int isector = 0; isector < kNsector; isector++ ) {
+    volPath  = vpStr;
+    volPath += std::to_string(isector);
+    volPath += vpApp1;
+    volPath += std::to_string(isector);
+    volPath += vpApp2;
+    symName = Form("TRD/sm%02d",isector);
+    gGeoManager->SetAlignableEntry(symName.c_str(),volPath.c_str());
+  }
+  
+  // The readout chambers
+  // The symbolic names are: TRD/sm00/st0/pl0 ... TRD/sm17/st4/pl5
+  
+  for (int isector = 0; isector < kNsector; isector++ ) {
+    if (!GetSMstatus(isector)) continue;
+    for (int ilayer = 0; ilayer < kNlayer; ilayer++) {
+      for (int istack = 0; istack < kNstack; istack++) {
+        Int_t lid = GetDetector(ilayer,istack,isector);
+        int idet = GetDetectorSec(ilayer, istack);
+
+        // Check for disabled supermodules
+        volPath  = vpStr;
+        volPath += std::to_string(isector);
+        volPath += vpApp1;
+        volPath += std::to_string(isector);
+        volPath += vpApp2;
+        switch (isector) {
+        case 17:
+          if ((istack == 4) && (ilayer == 4)) {
+            continue;
+          }
+          volPath += vpApp3d;
+          break;
+        case 13:
+        case 14:
+        case 15:
+          // Check for holes in from of PHOS
+          if (istack == 2) {
+            continue;
+          }
+          volPath += vpApp3c;
+          break;
+        case 11:
+        case 12:
+          volPath += vpApp3b;
+          break;
+        default:
+          volPath += vpApp3a;
+        };
+        volPath += Form("/UT%02d_1",idet);
+
+        symName  = Form("TRD/sm%02d/st%d/pl%d",isector,istack,ilayer);
+        int modID = o2::Base::GeometryManager::getSensID(o2::detectors::DetID::TRD, lid);
+
+        TGeoPNEntry *alignableEntry = gGeoManager->SetAlignableEntry(symName.c_str(),volPath.c_str(),modID);
+
+        // Add the tracking to local matrix
+        if (alignableEntry) {
+          TGeoHMatrix *globMatrix = alignableEntry->GetGlobalOrig();
+          Double_t sectorAngle = 20.0 * (isector % 18) + 10.0;
+          TGeoHMatrix *t2lMatrix  = new TGeoHMatrix();
+          t2lMatrix->RotateZ(sectorAngle);
+          const TGeoHMatrix& globmatrixi = globMatrix->Inverse();
+          t2lMatrix->MultiplyLeft(&globmatrixi);
+          alignableEntry->SetMatrix(t2lMatrix);
+        }
+        else {
+          LOG(ERROR) << "Alignable entry is not valid: ModID:" << modID << " Sector:" << isector << " Lr:" << ilayer
+              << " Stack: " << istack << " name: " << symName.c_str() << " vol: " << volPath.c_str();
+        }
+      }
+    }
+  }
+}
+
+//_____________________________________________________________________________
+bool TRDGeometry::createClusterMatrixArray()
+{
+  if (!gGeoManager) {
+    LOG(ERROR) << "Geometry is not loaded yet";
+    return false;
+  }
+  if (isBuilt()) {
+    LOG(WARNING) << "Already built" << FairLogger::endl;
+    return true; // already initialized
+  }
+
+  setSize(521, kNdet); //Only 521 of kNdet matrices are filled
+  fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L));
+  return true;
 }
 
 //_____________________________________________________________________________
@@ -2677,5 +2767,3 @@ bool TRDGeometry::ChamberInGeometry(int det)
     return true;
   }
 }
-
-ClassImp(TRDGeometry)

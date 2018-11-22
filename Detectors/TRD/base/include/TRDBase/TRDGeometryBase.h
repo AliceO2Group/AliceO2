@@ -11,6 +11,8 @@
 #ifndef O2_TRDGEOMETRYBASE_H
 #define O2_TRDGEOMETRYBASE_H
 
+#include "TRDBase/TRDCommonParam.h"
+
 namespace o2
 {
 namespace trd
@@ -20,13 +22,19 @@ class TRDPadPlane;
 class TRDGeometryBase
 {
  public:
-  enum { kNlayer = 6, kNstack = 5, kNsector = 18, kNdet = 540, kNdets = 30 };
-
   int IsVersion() { return 1; }
   bool IsHole(int la, int st, int se) const;
   bool IsOnBoundary(int det, float y, float z, float eps = 0.5) const;
 
-  void SetSMstatus(int sm, char status) { fgSMstatus[sm] = status; }
+  void SetSMstatus(int sm, bool status) {
+    if (status) {
+      mSMStatus |= 0x3ffff&(0x1<<sm);
+    }
+    else {
+      mSMStatus &= ~(0x3ffff&(0x1<<sm));
+    }
+  }
+  bool GetSMstatus(int sm) const { return (mSMStatus&(0x1<<sm))!=0; }
   static int GetDetectorSec(int layer, int stack);
   static int GetDetector(int layer, int stack, int sector);
   static int GetLayer(int det);
@@ -44,7 +52,6 @@ class TRDGeometryBase
   static float GetTime0(int layer) { return fgkTime0[layer]; }
   static double GetXtrdBeg() { return fgkXtrdBeg; }
   static double GetXtrdEnd() { return fgkXtrdEnd; }
-  char GetSMstatus(int sm) const { return fgSMstatus[sm]; }
   static float GetChamberWidth(int layer) { return fgkCwidth[layer]; }
   static float GetChamberLength(int layer, int stack) { return fgkClength[layer][stack]; }
   static double GetAlpha() { return 2.0 * 3.14159265358979324 / kNsector; }
@@ -77,7 +84,7 @@ class TRDGeometryBase
   static int RowmaxC1() { return fgkRowmaxC1; }
  protected:
   TRDGeometryBase();
-  ~TRDGeometryBase();
+  ~TRDGeometryBase() = default;
      
   static const float fgkTlength; //  Length of the TRD-volume in spaceframe (BTRD)
 
@@ -168,7 +175,7 @@ class TRDGeometryBase
   static const double fgkXtrdBeg; //  X-coordinate in tracking system of begin of TRD mother volume
   static const double fgkXtrdEnd; //  X-coordinate in tracking system of end of TRD mother volume
 
-  static char fgSMstatus[kNsector]; //  Super module status byte
+  int mSMStatus = 0x3ffff;
   
   TRDPadPlane* mPadPlaneArray = nullptr;
 

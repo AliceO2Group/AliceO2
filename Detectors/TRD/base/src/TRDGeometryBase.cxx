@@ -163,21 +163,11 @@ const float TRDGeometryBase::fgkClength[kNlayer][kNstack] = {
   { 138.0, 138.0, 110.0, 138.0, 138.0 }, { 145.0, 145.0, 110.0, 145.0, 145.0 }, { 147.0, 147.0, 110.0, 147.0, 147.0 }
 };
 
-char TRDGeometryBase::fgSMstatus[kNsector] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
-
 //_____________________________________________________________________________
 TRDGeometryBase::TRDGeometryBase()
 {
   //
   // TRDGeometry default constructor
-  //
-}
-
-//_____________________________________________________________________________
-TRDGeometryBase::~TRDGeometryBase()
-{
-  //
-  // TRDGeometry destructor
   //
 }
 
@@ -351,5 +341,3 @@ bool TRDGeometryBase::IsOnBoundary(int det, float y, float z, float eps) const
 
   return false;
 }
-
-ClassImp(TRDGeometryBase)

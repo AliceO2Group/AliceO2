@@ -13,17 +13,17 @@
 
 #include "TRDBase/TRDSimParam.h"
 
-class TRDPadPlane;
-
 namespace o2
 {
 namespace trd
 {
+
+class TRDPadPlane;
+constexpr int kNlayer = 6, kNstack = 5, kNsector = 18, kNdet = 540;
+
 class TRDCommonParam
 {
  public:
-  enum { kNlayer = 6, kNstack = 5, kNsector = 18, kNdet = 540 };
-
   enum { kXenon = 0, kArgon = 1 };
 
   TRDCommonParam(const TRDCommonParam& p);
