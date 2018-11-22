@@ -72,6 +72,9 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   void createMaterials();
   void ConstructGeometry() override;
+  
+  /// Add alignable top volumes
+  void addAlignableVolumes() const override;
 
  private:
   /// copy constructor (used in MT)

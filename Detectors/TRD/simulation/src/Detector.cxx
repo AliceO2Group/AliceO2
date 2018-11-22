@@ -318,4 +318,9 @@ void Detector::defineSensitiveVolumes()
   }
 }
 
+void Detector::addAlignableVolumes() const
+{
+  mGeom->addAlignableVolumes();
+}
+
 ClassImp(Detector);
