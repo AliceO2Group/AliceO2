@@ -308,7 +308,7 @@ double TRDCommonParam::TimeStruct(float vdrift, double dist, double z)
 
   // Dist now is the drift distance to the anode wires (negative if electrons are
   // between anode wire plane and cathode pad plane)
-  dist -= TRDGeometry::AmThick() / 2.0;
+  dist -= TRDGeometry::amThick() / 2.0;
 
   // Interpolation in z-directions, lower drift time map
   const float ktdrift1 =

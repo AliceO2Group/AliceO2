@@ -37,59 +37,59 @@ class TRDPadPlane
   ~TRDPadPlane();
   // virtual void       Copy(TObject &p) const;
 
-  void SetLayer(int l) { mLayer = l; };
-  void SetStack(int s) { mStack = s; };
-  void SetRowSpacing(double s) { mRowSpacing = s; };
-  void SetColSpacing(double s) { mColSpacing = s; };
-  void SetLengthRim(double l) { mLengthRim = l; };
-  void SetWidthRim(double w) { mWidthRim = w; };
-  void SetNcols(int n)
+  void setLayer(int l) { mLayer = l; };
+  void setStack(int s) { mStack = s; };
+  void setRowSpacing(double s) { mRowSpacing = s; };
+  void setColSpacing(double s) { mColSpacing = s; };
+  void setLengthRim(double l) { mLengthRim = l; };
+  void setWidthRim(double w) { mWidthRim = w; };
+  void setNcols(int n)
   {
     mNcols = n;
     if (mPadCol)
       delete[] mPadCol;
     mPadCol = new double[mNcols];
   };
-  void SetNrows(int n)
+  void setNrows(int n)
   {
     mNrows = n;
     if (mPadRow)
       delete[] mPadRow;
     mPadRow = new double[mNrows];
   };
-  void SetPadCol(int ic, double c)
+  void setPadCol(int ic, double c)
   {
     if (ic < mNcols)
       mPadCol[ic] = c;
   };
-  void SetPadRow(int ir, double r)
+  void setPadRow(int ir, double r)
   {
     if (ir < mNrows)
       mPadRow[ir] = r;
   };
-  void SetLength(double l) { mLength = l; };
-  void SetWidth(double w) { mWidth = w; };
-  void SetLengthOPad(double l) { mLengthOPad = l; };
-  void SetWidthOPad(double w) { mWidthOPad = w; };
-  void SetLengthIPad(double l) { mLengthIPad = l; };
-  void SetWidthIPad(double w) { mWidthIPad = w; };
-  void SetPadRowSMOffset(double o) { mPadRowSMOffset = o; };
-  void SetAnodeWireOffset(float o) { mAnodeWireOffset = o; };
-  void SetTiltingAngle(double t);
+  void setLength(double l) { mLength = l; };
+  void setWidth(double w) { mWidth = w; };
+  void setLengthOPad(double l) { mLengthOPad = l; };
+  void setWidthOPad(double w) { mWidthOPad = w; };
+  void setLengthIPad(double l) { mLengthIPad = l; };
+  void setWidthIPad(double w) { mWidthIPad = w; };
+  void setPadRowSMOffset(double o) { mPadRowSMOffset = o; };
+  void setAnodeWireOffset(float o) { mAnodeWireOffset = o; };
+  void setTiltingAngle(double t);
 
-  int GetPadRowNumber(double z) const;
-  int GetPadRowNumberROC(double z) const;
-  int GetPadColNumber(double rphi) const;
+  int getPadRowNumber(double z) const;
+  int getPadRowNumberROC(double z) const;
+  int getPadColNumber(double rphi) const;
 
-  double GetTiltOffset(double rowOffset) const { return mTiltingTan * (rowOffset - 0.5 * mLengthIPad); };
-  double GetPadRowOffset(int row, double z) const
+  double getTiltOffset(double rowOffset) const { return mTiltingTan * (rowOffset - 0.5 * mLengthIPad); };
+  double getPadRowOffset(int row, double z) const
   {
     if ((row < 0) || (row >= mNrows))
       return -1.0;
     else
       return mPadRow[row] + mPadRowSMOffset - z;
   };
-  double GetPadRowOffsetROC(int row, double z) const
+  double getPadRowOffsetROC(int row, double z) const
   {
     if ((row < 0) || (row >= mNrows))
       return -1.0;
@@ -97,7 +97,7 @@ class TRDPadPlane
       return mPadRow[row] - z;
   };
 
-  double GetPadColOffset(int col, double rphi) const
+  double getPadColOffset(int col, double rphi) const
   {
     if ((col < 0) || (col >= mNcols))
       return -1.0;
@@ -105,26 +105,26 @@ class TRDPadPlane
       return rphi - mPadCol[col];
   };
 
-  double GetTiltingAngle() const { return mTiltingAngle; };
-  int GetNrows() const { return mNrows; };
-  int GetNcols() const { return mNcols; };
-  double GetRow0() const { return mPadRow[0] + mPadRowSMOffset; };
-  double GetRow0ROC() const { return mPadRow[0]; };
-  double GetCol0() const { return mPadCol[0]; };
-  double GetRowEnd() const { return mPadRow[mNrows - 1] - mLengthOPad + mPadRowSMOffset; };
-  double GetRowEndROC() const { return mPadRow[mNrows - 1] - mLengthOPad; };
-  double GetColEnd() const { return mPadCol[mNcols - 1] + mWidthOPad; };
-  double GetRowPos(int row) const { return mPadRow[row] + mPadRowSMOffset; };
-  double GetRowPosROC(int row) const { return mPadRow[row]; };
-  double GetColPos(int col) const { return mPadCol[col]; };
-  double GetRowSize(int row) const
+  double getTiltingAngle() const { return mTiltingAngle; };
+  int getNrows() const { return mNrows; };
+  int getNcols() const { return mNcols; };
+  double getRow0() const { return mPadRow[0] + mPadRowSMOffset; };
+  double getRow0ROC() const { return mPadRow[0]; };
+  double getCol0() const { return mPadCol[0]; };
+  double getRowEnd() const { return mPadRow[mNrows - 1] - mLengthOPad + mPadRowSMOffset; };
+  double getRowEndROC() const { return mPadRow[mNrows - 1] - mLengthOPad; };
+  double getColEnd() const { return mPadCol[mNcols - 1] + mWidthOPad; };
+  double getRowPos(int row) const { return mPadRow[row] + mPadRowSMOffset; };
+  double getRowPosROC(int row) const { return mPadRow[row]; };
+  double getColPos(int col) const { return mPadCol[col]; };
+  double getRowSize(int row) const
   {
     if ((row == 0) || (row == mNrows - 1))
       return mLengthOPad;
     else
       return mLengthIPad;
   };
-  double GetColSize(int col) const
+  double getColSize(int col) const
   {
     if ((col == 0) || (col == mNcols - 1))
       return mWidthOPad;
@@ -132,15 +132,15 @@ class TRDPadPlane
       return mWidthIPad;
   };
 
-  double GetLengthRim() const { return mLengthRim; };
-  double GetWidthRim() const { return mWidthRim; };
-  double GetRowSpacing() const { return mRowSpacing; };
-  double GetColSpacing() const { return mColSpacing; };
-  double GetLengthOPad() const { return mLengthOPad; };
-  double GetLengthIPad() const { return mLengthIPad; };
-  double GetWidthOPad() const { return mWidthOPad; };
-  double GetWidthIPad() const { return mWidthIPad; };
-  double GetAnodeWireOffset() const { return mAnodeWireOffset; };
+  double getLengthRim() const { return mLengthRim; };
+  double getWidthRim() const { return mWidthRim; };
+  double getRowSpacing() const { return mRowSpacing; };
+  double getColSpacing() const { return mColSpacing; };
+  double getLengthOPad() const { return mLengthOPad; };
+  double getLengthIPad() const { return mLengthIPad; };
+  double getWidthOPad() const { return mWidthOPad; };
+  double getWidthIPad() const { return mWidthIPad; };
+  double getAnodeWireOffset() const { return mAnodeWireOffset; };
  protected:
   int mLayer; //  Layer number
   int mStack; //  Stack number
