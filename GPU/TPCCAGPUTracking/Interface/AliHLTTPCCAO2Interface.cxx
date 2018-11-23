@@ -25,6 +25,9 @@
 #include <omp.h>
 #endif
 
+#include "DataFormatsTPC/ClusterNative.h"
+#include "ClusterNativeAccessExt.h"
+
 AliHLTTPCCAO2Interface::AliHLTTPCCAO2Interface() : fInitialized(false), fDumpEvents(false), fContinuous(false), fHLT(NULL), mRec(nullptr)
 {
 }
@@ -143,10 +146,47 @@ void AliHLTTPCCAO2Interface::Deinitialize()
 	fInitialized = false;
 }
 
-int AliHLTTPCCAO2Interface::RunTracking(const AliHLTTPCCAClusterData* inputClusters, const AliHLTTPCGMMergedTrack* &outputTracks, int &nOutputTracks, const AliHLTTPCGMMergedTrackHit* &outputTrackClusters)
+int AliHLTTPCCAO2Interface::RunTracking(const o2::TPC::ClusterNativeAccessFullTPC* inputClusters, const AliHLTTPCGMMergedTrack* &outputTracks, int &nOutputTracks, const AliHLTTPCGMMergedTrackHit* &outputTrackClusters)
 {
 	if (!fInitialized) return(1);
 	static int nEvent = 0;
+	if (fDumpEvents)
+	{
+		mRec->ClearIOPointers();
+		mRec->mIOPtrs.clustersNative = inputClusters;
+		
+		char fname[1024];
+		sprintf(fname, "event.%d.dump", nEvent);
+		mRec->DumpData(fname);
+		if (nEvent == 0)
+		{
+			mRec->DumpSettings();
+		}
+	}
+	
+	mRec->mIOPtrs.clustersNative = inputClusters;
+	mRec->ConvertNativeToClusterData();
+	AliHLTTPCCAClusterData cData[36];
+	for (int i = 0;i < 36;i++) cData[i].SetClusterData(i, mRec->mIOPtrs.nClusterData[i], mRec->mIOPtrs.clusterData[i]);
+	fHLT->SetExternalClusterData(cData);
+	fHLT->ProcessEvent();
+	outputTracks = fHLT->Merger().OutputTracks();
+	nOutputTracks = fHLT->Merger().NOutputTracks();
+	outputTrackClusters = fHLT->Merger().Clusters();
+	const ClusterNativeAccessExt* ext = mRec->GetClusterNativeAccessExt();
+	for (int i = 0;i < fHLT->Merger().NOutputTrackClusters();i++)
+	{
+		auto& cl = fHLT->Merger().Clusters()[i];
+		cl.fNum -= ext->clusterOffset[cl.fSlice][cl.fRow];
+	}
+	nEvent++;
+	return(0);
+}
+
+int AliHLTTPCCAO2Interface::RunTracking(const AliHLTTPCCAClusterData* inputClusters, const AliHLTTPCGMMergedTrack* &outputTracks, int &nOutputTracks, const AliHLTTPCGMMergedTrackHit* &outputTrackClusters)
+{
+	static int nEvent = 0;
+	if (!fInitialized) return(1);
 	fHLT->SetExternalClusterData((AliHLTTPCCAClusterData*) inputClusters);
 	
 	if (fDumpEvents)
