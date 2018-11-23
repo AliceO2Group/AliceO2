@@ -26,6 +26,7 @@
 #include "DataFormatsTPC/Constants.h"
 #include "DataFormatsTPC/ClusterGroupAttribute.h"
 #include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsTPC/TPCSectorHeader.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
@@ -97,7 +98,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, bool pro
   if (inputType == InputType::Digits) {
     specs.emplace_back(o2::TPC::getDigitReaderSpec(tpcSectors, nLanes));
   } else if (inputType == InputType::Clusters) {
-    specs.emplace_back(o2::TPC::getClusterReaderSpec(/*propagateMC*/));
+    specs.emplace_back(o2::TPC::getClusterReaderSpec(tpcSectors, nLanes));
   } else if (inputType == InputType::Raw) {
     throw std::runtime_error(std::string("input type 'raw' not yet implemented"));
   }
@@ -151,6 +152,77 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, bool pro
                                   });
   }
   specs.insert(specs.end(), parallelProcessors.begin(), parallelProcessors.end());
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  //
+  // a writer process for simulated clusters
+  //
+  // selected by output type 'clusters'
+  if (isEnabled(OutputType::Clusters)) {
+    // defining cluster writer process using the generic RootTreeWriter and generator tool
+    //
+    // defaults
+    const char* processName = "tpc-cluster-writer";
+    const char* defaultFileName = "tpcclusters.root";
+    const char* defaultTreeName = "o2sim";
+
+    if (tpcSectors.size() == 0) {
+      throw std::invalid_argument(std::string("cluster writer configuration needs list of TPC sectors"));
+    }
+    auto getIndex = [tpcSectors](o2::framework::DataRef const& ref) {
+      auto const* tpcSectorHeader = o2::framework::DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(ref);
+      if (!tpcSectorHeader) {
+        throw std::runtime_error("TPC sector header missing in header stack");
+      }
+      if (tpcSectorHeader->sector < 0) {
+        // special data sets, don't write
+        return ~(size_t)0;
+      }
+      size_t index = 0;
+      for (auto const& sector : tpcSectors) {
+        if (sector == tpcSectorHeader->sector) {
+          return index;
+        }
+        ++index;
+      }
+      throw std::runtime_error("sector " + std::to_string(tpcSectorHeader->sector) + " not configured for writing");
+    };
+    auto getName = [tpcSectors](std::string base, size_t index) {
+      return base + "_" + std::to_string(tpcSectors.at(index));
+    };
+
+    //branch definitions for RootTreeWriter spec
+    using ClusterOutputType = std::vector<o2::TPC::Cluster>;
+    using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+    std::vector<InputSpec> inputs;
+    std::vector<InputSpec> mcinputs;
+    for (o2::header::DataHeader::SubSpecificationType n = 0; n < nLanes; ++n) {
+      std::string inputname = "input" + std::to_string(n);
+      std::string mcinputname = "mc" + inputname;
+      inputs.emplace_back(inputname.c_str(), "TPC", "CLUSTERSIM", n);
+      mcinputs.emplace_back(mcinputname.c_str(), "TPC", "CLUSTERMCLBL", n);
+    }
+    auto def = BranchDefinition<ClusterOutputType>{ inputs,
+                                                    "TPCCluster", "cluster-branch-name",
+                                                    tpcSectors.size(),
+                                                    getIndex,
+                                                    getName };
+    auto mcdef = BranchDefinition<MCLabelContainer>{ mcinputs,
+                                                     "TPCClusterMCTruth", "clustermc-branch-name",
+                                                     tpcSectors.size(),
+                                                     getIndex,
+                                                     getName };
+
+    // depending on the MC propagation flag, the RootTreeWriter spec is created with two
+    // or one branch definition
+    if (propagateMC) {
+      specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName, //
+                                             std::move(def), std::move(mcdef))());          //
+    } else {                                                                                //
+      specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName, //
+                                             std::move(def))());                            //
+    }
+  }
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   //
