@@ -215,7 +215,7 @@ void TRDGeometry::createPadPlane(int ilayer, int istack)
   //
   // Row direction
   //
-  float row = fgkClength[ilayer][istack] / 2.0 - fgkRpadW - padPlane.getLengthRim();
+  float row = CLENGTH[ilayer][istack] / 2.0 - RPADW - padPlane.getLengthRim();
   for (int ir = 0; ir < padPlane.getNrows(); ir++) {
     padPlane.setPadRow(ir, row);
     row -= padPlane.getRowSpacing();
@@ -228,7 +228,7 @@ void TRDGeometry::createPadPlane(int ilayer, int istack)
   //
   // Column direction
   //
-  float col = -fgkCwidth[ilayer] / 2.0 - fgkCroW + padPlane.getWidthRim();
+  float col = -CWIDTH[ilayer] / 2.0 - CROW + padPlane.getWidthRim();
   for (int ic = 0; ic < padPlane.getNcols(); ic++) {
     padPlane.setPadCol(ic, col);
     col += padPlane.getColSpacing();
@@ -240,11 +240,11 @@ void TRDGeometry::createPadPlane(int ilayer, int istack)
   }
   // Calculate the offset to translate from the local ROC system into
   // the local supermodule system, which is used for clusters
-  float rowTmp = fgkClength[ilayer][0] + fgkClength[ilayer][1] + fgkClength[ilayer][2] / 2.0;
+  float rowTmp = CLENGTH[ilayer][0] + CLENGTH[ilayer][1] + CLENGTH[ilayer][2] / 2.0;
   for (int jstack = 0; jstack < istack; jstack++) {
-    rowTmp -= fgkClength[ilayer][jstack];
+    rowTmp -= CLENGTH[ilayer][jstack];
   }
-  padPlane.setPadRowSMOffset(rowTmp - fgkClength[ilayer][istack] / 2.0);
+  padPlane.setPadRowSMOffset(rowTmp - CLENGTH[ilayer][istack] / 2.0);
 }
 
 void TRDGeometry::createVolume(const char* name, const char* shape, int nmed, float* upar, int np)
@@ -263,12 +263,12 @@ void TRDGeometry::createGeometry(std::vector<int> const& idtmed)
 {
   //
   // Create the TRD geometry
-  
+
   if (!gGeoManager) {
     // RSTODO: in future there will be a method to load matrices from the CDB
-    LOG(FATAL) << "Geometry is not loaded" << FairLogger::endl;
+    LOG(FATAL) << "Geometry is not loaded";
   }
-  
+
   createPadPlaneArray();
   mPadPlaneArray = fgPadPlaneArray.get();
   createVolumes(idtmed);
@@ -342,29 +342,29 @@ void TRDGeometry::createVolumes(std::vector<int> const& idtmed)
   //
   // The mother volume for one sector (Air), full length in z-direction
   // Provides material for side plates of super module
-  parTrd[0] = fgkSwidth1 / 2.0;
-  parTrd[1] = fgkSwidth2 / 2.0;
-  parTrd[2] = fgkSlength / 2.0;
-  parTrd[3] = fgkSheight / 2.0;
+  parTrd[0] = SWIDTH1 / 2.0;
+  parTrd[1] = SWIDTH2 / 2.0;
+  parTrd[2] = SLENGTH / 2.0;
+  parTrd[3] = SHEIGHT / 2.0;
   createVolume("UTR1", "TRD1", idtmed[2], parTrd, kNparTrd);
   createVolume("UTR2", "TRD1", idtmed[2], parTrd, kNparTrd);
   createVolume("UTR3", "TRD1", idtmed[2], parTrd, kNparTrd);
   createVolume("UTR4", "TRD1", idtmed[2], parTrd, kNparTrd);
   // The outer aluminum plates of the super module (Al)
-  parTrd[0] = fgkSwidth1 / 2.0;
-  parTrd[1] = fgkSwidth2 / 2.0;
-  parTrd[2] = fgkSlength / 2.0;
-  parTrd[3] = fgkSheight / 2.0;
+  parTrd[0] = SWIDTH1 / 2.0;
+  parTrd[1] = SWIDTH2 / 2.0;
+  parTrd[2] = SLENGTH / 2.0;
+  parTrd[3] = SHEIGHT / 2.0;
   createVolume("UTS1", "TRD1", idtmed[1], parTrd, kNparTrd);
   createVolume("UTS2", "TRD1", idtmed[1], parTrd, kNparTrd);
   createVolume("UTS3", "TRD1", idtmed[1], parTrd, kNparTrd);
   createVolume("UTS4", "TRD1", idtmed[1], parTrd, kNparTrd);
   // The inner part of the TRD mother volume for one sector (Air),
   // full length in z-direction
-  parTrd[0] = fgkSwidth1 / 2.0 - fgkSMpltT;
-  parTrd[1] = fgkSwidth2 / 2.0 - fgkSMpltT;
-  parTrd[2] = fgkSlength / 2.0;
-  parTrd[3] = fgkSheight / 2.0 - fgkSMpltT;
+  parTrd[0] = SWIDTH1 / 2.0 - SMPLTT;
+  parTrd[1] = SWIDTH2 / 2.0 - SMPLTT;
+  parTrd[2] = SLENGTH / 2.0;
+  parTrd[3] = SHEIGHT / 2.0 - SMPLTT;
   createVolume("UTI1", "TRD1", idtmed[2], parTrd, kNparTrd);
   createVolume("UTI2", "TRD1", idtmed[2], parTrd, kNparTrd);
   createVolume("UTI3", "TRD1", idtmed[2], parTrd, kNparTrd);
@@ -372,10 +372,10 @@ void TRDGeometry::createVolumes(std::vector<int> const& idtmed)
 
   // The inner part of the TRD mother volume for services in front
   // of the supermodules  (Air),
-  parTrd[0] = fgkSwidth1 / 2.0;
-  parTrd[1] = fgkSwidth2 / 2.0;
-  parTrd[2] = fgkFlength / 2.0;
-  parTrd[3] = fgkSheight / 2.0;
+  parTrd[0] = SWIDTH1 / 2.0;
+  parTrd[1] = SWIDTH2 / 2.0;
+  parTrd[2] = FLENGTH / 2.0;
+  parTrd[3] = SHEIGHT / 2.0;
   createVolume("UTF1", "TRD1", idtmed[2], parTrd, kNparTrd);
   createVolume("UTF2", "TRD1", idtmed[2], parTrd, kNparTrd);
 
@@ -386,69 +386,69 @@ void TRDGeometry::createVolumes(std::vector<int> const& idtmed)
       // The lower part of the readout chambers (drift volume + radiator)
       // The aluminum frames
       snprintf(cTagV, kTag, "UA%02d", iDet);
-      parCha[0] = fgkCwidth[ilayer] / 2.0;
-      parCha[1] = fgkClength[ilayer][istack] / 2.0 - fgkHspace / 2.0;
-      parCha[2] = fgkCraH / 2.0 + fgkCdrH / 2.0;
+      parCha[0] = CWIDTH[ilayer] / 2.0;
+      parCha[1] = CLENGTH[ilayer][istack] / 2.0 - HSPACE / 2.0;
+      parCha[2] = CRAH / 2.0 + CDRH / 2.0;
       createVolume(cTagV, "BOX ", idtmed[1], parCha, kNparCha);
       // The additional aluminum on the frames
       // This part has not the correct shape but is just supposed to
       // represent the missing material. The correct form of the L-shaped
       // profile would not fit into the alignable volume.
       snprintf(cTagV, kTag, "UZ%02d", iDet);
-      parCha[0] = fgkCalWmod / 2.0;
-      parCha[1] = fgkClength[ilayer][istack] / 2.0 - fgkHspace / 2.0;
-      parCha[2] = fgkCalHmod / 2.0;
+      parCha[0] = CALWMOD / 2.0;
+      parCha[1] = CLENGTH[ilayer][istack] / 2.0 - HSPACE / 2.0;
+      parCha[2] = CALHMOD / 2.0;
       createVolume(cTagV, "BOX ", idtmed[1], parCha, kNparCha);
       // The additional Wacosit on the frames
       snprintf(cTagV, kTag, "UP%02d", iDet);
-      parCha[0] = fgkCwsW / 2.0;
-      parCha[1] = fgkClength[ilayer][istack] / 2.0 - fgkHspace / 2.0;
-      parCha[2] = fgkCwsH / 2.0;
+      parCha[0] = CWSW / 2.0;
+      parCha[1] = CLENGTH[ilayer][istack] / 2.0 - HSPACE / 2.0;
+      parCha[2] = CWSH / 2.0;
       createVolume(cTagV, "BOX ", idtmed[7], parCha, kNparCha);
       // The Wacosit frames
       snprintf(cTagV, kTag, "UB%02d", iDet);
-      parCha[0] = fgkCwidth[ilayer] / 2.0 - fgkCalT;
+      parCha[0] = CWIDTH[ilayer] / 2.0 - CALT;
       parCha[1] = -1.0;
       parCha[2] = -1.0;
       createVolume(cTagV, "BOX ", idtmed[7], parCha, kNparCha);
       // The glue around the radiator
       snprintf(cTagV, kTag, "UX%02d", iDet);
-      parCha[0] = fgkCwidth[ilayer] / 2.0 - fgkCalT - fgkCclsT;
-      parCha[1] = fgkClength[ilayer][istack] / 2.0 - fgkHspace / 2.0 - fgkCclfT;
-      parCha[2] = fgkCraH / 2.0;
+      parCha[0] = CWIDTH[ilayer] / 2.0 - CALT - CCLST;
+      parCha[1] = CLENGTH[ilayer][istack] / 2.0 - HSPACE / 2.0 - CCLFT;
+      parCha[2] = CRAH / 2.0;
       createVolume(cTagV, "BOX ", idtmed[11], parCha, kNparCha);
       // The inner part of radiator (air)
       snprintf(cTagV, kTag, "UC%02d", iDet);
-      parCha[0] = fgkCwidth[ilayer] / 2.0 - fgkCalT - fgkCclsT - fgkCglT;
-      parCha[1] = fgkClength[ilayer][istack] / 2.0 - fgkHspace / 2.0 - fgkCclfT - fgkCglT;
+      parCha[0] = CWIDTH[ilayer] / 2.0 - CALT - CCLST - CGLT;
+      parCha[1] = CLENGTH[ilayer][istack] / 2.0 - HSPACE / 2.0 - CCLFT - CGLT;
       parCha[2] = -1.0;
       createVolume(cTagV, "BOX ", idtmed[2], parCha, kNparCha);
 
       // The upper part of the readout chambers (amplification volume)
       // The Wacosit frames
       snprintf(cTagV, kTag, "UD%02d", iDet);
-      parCha[0] = fgkCwidth[ilayer] / 2.0 + fgkCroW;
-      parCha[1] = fgkClength[ilayer][istack] / 2.0 - fgkHspace / 2.0;
-      parCha[2] = fgkCamH / 2.0;
+      parCha[0] = CWIDTH[ilayer] / 2.0 + CROW;
+      parCha[1] = CLENGTH[ilayer][istack] / 2.0 - HSPACE / 2.0;
+      parCha[2] = CAMH / 2.0;
       createVolume(cTagV, "BOX ", idtmed[7], parCha, kNparCha);
       // The inner part of the Wacosit frame (air)
       snprintf(cTagV, kTag, "UE%02d", iDet);
-      parCha[0] = fgkCwidth[ilayer] / 2.0 + fgkCroW - fgkCcuTb;
-      parCha[1] = fgkClength[ilayer][istack] / 2.0 - fgkHspace / 2.0 - fgkCcuTa;
+      parCha[0] = CWIDTH[ilayer] / 2.0 + CROW - CCUTB;
+      parCha[1] = CLENGTH[ilayer][istack] / 2.0 - HSPACE / 2.0 - CCUTA;
       parCha[2] = -1.;
       createVolume(cTagV, "BOX ", idtmed[2], parCha, kNparCha);
 
       // The back panel, including pad plane and readout boards
       // The aluminum frames
       snprintf(cTagV, kTag, "UF%02d", iDet);
-      parCha[0] = fgkCwidth[ilayer] / 2.0 + fgkCroW;
-      parCha[1] = fgkClength[ilayer][istack] / 2.0 - fgkHspace / 2.0;
-      parCha[2] = fgkCroH / 2.0;
+      parCha[0] = CWIDTH[ilayer] / 2.0 + CROW;
+      parCha[1] = CLENGTH[ilayer][istack] / 2.0 - HSPACE / 2.0;
+      parCha[2] = CROH / 2.0;
       createVolume(cTagV, "BOX ", idtmed[1], parCha, kNparCha);
       // The inner part of the aluminum frames
       snprintf(cTagV, kTag, "UG%02d", iDet);
-      parCha[0] = fgkCwidth[ilayer] / 2.0 + fgkCroW - fgkCauT;
-      parCha[1] = fgkClength[ilayer][istack] / 2.0 - fgkHspace / 2.0 - fgkCauT;
+      parCha[0] = CWIDTH[ilayer] / 2.0 + CROW - CAUT;
+      parCha[1] = CLENGTH[ilayer][istack] / 2.0 - HSPACE / 2.0 - CAUT;
       parCha[2] = -1.0;
       createVolume(cTagV, "BOX ", idtmed[2], parCha, kNparCha);
 
@@ -459,100 +459,100 @@ void TRDGeometry::createVolumes(std::vector<int> const& idtmed)
       // Mylar layer (radiator)
       parCha[0] = -1.0;
       parCha[1] = -1.0;
-      parCha[2] = fgkRMyThick / 2.0;
+      parCha[2] = RMYTHICK / 2.0;
       snprintf(cTagV, kTag, "URMY%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[27], parCha, kNparCha);
       // Carbon layer (radiator)
       parCha[0] = -1.0;
       parCha[1] = -1.0;
-      parCha[2] = fgkRCbThick / 2.0;
+      parCha[2] = RCBTHICK / 2.0;
       snprintf(cTagV, kTag, "URCB%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[26], parCha, kNparCha);
       // Araldite layer (radiator)
       parCha[0] = -1.0;
       parCha[1] = -1.0;
-      parCha[2] = fgkRGlThick / 2.0;
+      parCha[2] = RGLTHICK / 2.0;
       snprintf(cTagV, kTag, "URGL%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[11], parCha, kNparCha);
       // Rohacell layer (radiator)
       parCha[0] = -1.0;
       parCha[1] = -1.0;
-      parCha[2] = fgkRRhThick / 2.0;
+      parCha[2] = RRHTHICK / 2.0;
       snprintf(cTagV, kTag, "URRH%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[15], parCha, kNparCha);
       // Fiber layer (radiator)
       parCha[0] = -1.0;
       parCha[1] = -1.0;
-      parCha[2] = fgkRFbThick / 2.0;
+      parCha[2] = RFBTHICK / 2.0;
       snprintf(cTagV, kTag, "URFB%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[28], parCha, kNparCha);
 
       // Xe/Isobutane layer (drift volume)
-      parCha[0] = fgkCwidth[ilayer] / 2.0 - fgkCalT - fgkCclsT;
-      parCha[1] = fgkClength[ilayer][istack] / 2.0 - fgkHspace / 2.0 - fgkCclfT;
-      parCha[2] = fgkDrThick / 2.0;
+      parCha[0] = CWIDTH[ilayer] / 2.0 - CALT - CCLST;
+      parCha[1] = CLENGTH[ilayer][istack] / 2.0 - HSPACE / 2.0 - CCLFT;
+      parCha[2] = DRTHICK / 2.0;
       snprintf(cTagV, kTag, "UJ%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[9], parCha, kNparCha);
 
       // Xe/Isobutane layer (amplification volume)
       parCha[0] = -1.0;
       parCha[1] = -1.0;
-      parCha[2] = fgkAmThick / 2.0;
+      parCha[2] = AMTHICK / 2.0;
       snprintf(cTagV, kTag, "UK%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[9], parCha, kNparCha);
       // Cu layer (wire plane)
       parCha[0] = -1.0;
       parCha[1] = -1.0;
-      parCha[2] = fgkWrThick / 2.0;
+      parCha[2] = WRTHICK / 2.0;
       snprintf(cTagV, kTag, "UW%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[3], parCha, kNparCha);
 
       // Cu layer (pad plane)
       parCha[0] = -1.0;
       parCha[1] = -1.0;
-      parCha[2] = fgkPPdThick / 2.0;
+      parCha[2] = PPDTHICK / 2.0;
       snprintf(cTagV, kTag, "UPPD%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[5], parCha, kNparCha);
       // G10 layer (pad plane)
       parCha[0] = -1.0;
       parCha[1] = -1.0;
-      parCha[2] = fgkPPpThick / 2.0;
+      parCha[2] = PPPTHICK / 2.0;
       snprintf(cTagV, kTag, "UPPP%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[13], parCha, kNparCha);
       // Araldite layer (glue)
       parCha[0] = -1.0;
       parCha[1] = -1.0;
-      parCha[2] = fgkPGlThick / 2.0;
+      parCha[2] = PGLTHICK / 2.0;
       snprintf(cTagV, kTag, "UPGL%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[11], parCha, kNparCha);
       // Carbon layer (carbon fiber mats)
       parCha[0] = -1.0;
       parCha[1] = -1.0;
-      parCha[2] = fgkPCbThick / 2.0;
+      parCha[2] = PCBTHICK / 2.0;
       snprintf(cTagV, kTag, "UPCB%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[26], parCha, kNparCha);
       // Aramide layer (honeycomb)
       parCha[0] = -1.0;
       parCha[1] = -1.0;
-      parCha[2] = fgkPHcThick / 2.0;
+      parCha[2] = PHCTHICK / 2.0;
       snprintf(cTagV, kTag, "UPHC%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[10], parCha, kNparCha);
       // G10 layer (PCB readout board)
       parCha[0] = -1.0;
       parCha[1] = -1.0;
-      parCha[2] = fgkPPcThick / 2;
+      parCha[2] = PPCTHICK / 2;
       snprintf(cTagV, kTag, "UPPC%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[13], parCha, kNparCha);
       // Cu layer (traces in readout board)
       parCha[0] = -1.0;
       parCha[1] = -1.0;
-      parCha[2] = fgkPRbThick / 2.0;
+      parCha[2] = PRBTHICK / 2.0;
       snprintf(cTagV, kTag, "UPRB%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[6], parCha, kNparCha);
       // Cu layer (other material on in readout board, incl. screws)
       parCha[0] = -1.0;
       parCha[1] = -1.0;
-      parCha[2] = fgkPElThick / 2.0;
+      parCha[2] = PELTHICK / 2.0;
       snprintf(cTagV, kTag, "UPEL%02d", iDet);
       createVolume(cTagV, "BOX ", idtmed[4], parCha, kNparCha);
 
@@ -564,38 +564,38 @@ void TRDGeometry::createVolumes(std::vector<int> const& idtmed)
 
       // Lower part
       // Mylar layers (radiator)
-      zpos = fgkRMyThick / 2.0 - fgkCraH / 2.0;
+      zpos = RMYTHICK / 2.0 - CRAH / 2.0;
       snprintf(cTagV, kTag, "URMY%02d", iDet);
       snprintf(cTagM, kTag, "UC%02d", iDet);
       TVirtualMC::GetMC()->Gspos(cTagV, 1, cTagM, xpos, ypos, zpos, 0, "ONLY");
-      zpos = -fgkRMyThick / 2.0 + fgkCraH / 2.0;
+      zpos = -RMYTHICK / 2.0 + CRAH / 2.0;
       snprintf(cTagV, kTag, "URMY%02d", iDet);
       snprintf(cTagM, kTag, "UC%02d", iDet);
       TVirtualMC::GetMC()->Gspos(cTagV, 2, cTagM, xpos, ypos, zpos, 0, "ONLY");
       // Carbon layers (radiator)
-      zpos = fgkRCbThick / 2.0 + fgkRMyThick - fgkCraH / 2.0;
+      zpos = RCBTHICK / 2.0 + RMYTHICK - CRAH / 2.0;
       snprintf(cTagV, kTag, "URCB%02d", iDet);
       snprintf(cTagM, kTag, "UC%02d", iDet);
       TVirtualMC::GetMC()->Gspos(cTagV, 1, cTagM, xpos, ypos, zpos, 0, "ONLY");
-      zpos = -fgkRCbThick / 2.0 - fgkRMyThick + fgkCraH / 2.0;
+      zpos = -RCBTHICK / 2.0 - RMYTHICK + CRAH / 2.0;
       snprintf(cTagV, kTag, "URCB%02d", iDet);
       snprintf(cTagM, kTag, "UC%02d", iDet);
       TVirtualMC::GetMC()->Gspos(cTagV, 2, cTagM, xpos, ypos, zpos, 0, "ONLY");
       // Carbon layers (radiator)
-      zpos = fgkRGlThick / 2.0 + fgkRCbThick + fgkRMyThick - fgkCraH / 2.0;
+      zpos = RGLTHICK / 2.0 + RCBTHICK + RMYTHICK - CRAH / 2.0;
       snprintf(cTagV, kTag, "URGL%02d", iDet);
       snprintf(cTagM, kTag, "UC%02d", iDet);
       TVirtualMC::GetMC()->Gspos(cTagV, 1, cTagM, xpos, ypos, zpos, 0, "ONLY");
-      zpos = -fgkRGlThick / 2.0 - fgkRCbThick - fgkRMyThick + fgkCraH / 2.0;
+      zpos = -RGLTHICK / 2.0 - RCBTHICK - RMYTHICK + CRAH / 2.0;
       snprintf(cTagV, kTag, "URGL%02d", iDet);
       snprintf(cTagM, kTag, "UC%02d", iDet);
       TVirtualMC::GetMC()->Gspos(cTagV, 2, cTagM, xpos, ypos, zpos, 0, "ONLY");
       // Rohacell layers (radiator)
-      zpos = fgkRRhThick / 2.0 + fgkRGlThick + fgkRCbThick + fgkRMyThick - fgkCraH / 2.0;
+      zpos = RRHTHICK / 2.0 + RGLTHICK + RCBTHICK + RMYTHICK - CRAH / 2.0;
       snprintf(cTagV, kTag, "URRH%02d", iDet);
       snprintf(cTagM, kTag, "UC%02d", iDet);
       TVirtualMC::GetMC()->Gspos(cTagV, 1, cTagM, xpos, ypos, zpos, 0, "ONLY");
-      zpos = -fgkRRhThick / 2.0 - fgkRGlThick - fgkRCbThick - fgkRMyThick + fgkCraH / 2.0;
+      zpos = -RRHTHICK / 2.0 - RGLTHICK - RCBTHICK - RMYTHICK + CRAH / 2.0;
       snprintf(cTagV, kTag, "URRH%02d", iDet);
       snprintf(cTagM, kTag, "UC%02d", iDet);
       TVirtualMC::GetMC()->Gspos(cTagV, 2, cTagM, xpos, ypos, zpos, 0, "ONLY");
@@ -606,69 +606,69 @@ void TRDGeometry::createVolumes(std::vector<int> const& idtmed)
       TVirtualMC::GetMC()->Gspos(cTagV, 1, cTagM, xpos, ypos, zpos, 0, "ONLY");
 
       // Xe/Isobutane layer (drift volume)
-      zpos = fgkDrZpos;
+      zpos = DRZPOS;
       snprintf(cTagV, kTag, "UJ%02d", iDet);
       snprintf(cTagM, kTag, "UB%02d", iDet);
       TVirtualMC::GetMC()->Gspos(cTagV, 1, cTagM, xpos, ypos, zpos, 0, "ONLY");
 
       // Upper part
       // Xe/Isobutane layer (amplification volume)
-      zpos = fgkAmZpos;
+      zpos = AMZPOS;
       snprintf(cTagV, kTag, "UK%02d", iDet);
       snprintf(cTagM, kTag, "UE%02d", iDet);
       TVirtualMC::GetMC()->Gspos(cTagV, 1, cTagM, xpos, ypos, zpos, 0, "ONLY");
       // Cu layer (wire planes inside amplification volume)
-      zpos = fgkWrZposA;
+      zpos = WRZPOSA;
       snprintf(cTagV, kTag, "UW%02d", iDet);
       snprintf(cTagM, kTag, "UK%02d", iDet);
       TVirtualMC::GetMC()->Gspos(cTagV, 1, cTagM, xpos, ypos, zpos, 0, "ONLY");
-      zpos = fgkWrZposB;
+      zpos = WRZPOSB;
       snprintf(cTagV, kTag, "UW%02d", iDet);
       snprintf(cTagM, kTag, "UK%02d", iDet);
       TVirtualMC::GetMC()->Gspos(cTagV, 2, cTagM, xpos, ypos, zpos, 0, "ONLY");
 
       // Back panel + pad plane + readout part
       // Cu layer (pad plane)
-      zpos = fgkPPdThick / 2.0 - fgkCroH / 2.0;
+      zpos = PPDTHICK / 2.0 - CROH / 2.0;
       snprintf(cTagV, kTag, "UPPD%02d", iDet);
       snprintf(cTagM, kTag, "UG%02d", iDet);
       TVirtualMC::GetMC()->Gspos(cTagV, 1, cTagM, xpos, ypos, zpos, 0, "ONLY");
       // G10  layer (pad plane)
-      zpos = fgkPPpThick / 2.0 + fgkPPdThick - fgkCroH / 2.0;
+      zpos = PPPTHICK / 2.0 + PPDTHICK - CROH / 2.0;
       snprintf(cTagV, kTag, "UPPP%02d", iDet);
       snprintf(cTagM, kTag, "UG%02d", iDet);
       TVirtualMC::GetMC()->Gspos(cTagV, 1, cTagM, xpos, ypos, zpos, 0, "ONLY");
       // Araldite layer (glue)
-      zpos = fgkPGlThick / 2.0 + fgkPPpThick + fgkPPdThick - fgkCroH / 2.0;
+      zpos = PGLTHICK / 2.0 + PPPTHICK + PPDTHICK - CROH / 2.0;
       snprintf(cTagV, kTag, "UPGL%02d", iDet);
       snprintf(cTagM, kTag, "UG%02d", iDet);
       TVirtualMC::GetMC()->Gspos(cTagV, 1, cTagM, xpos, ypos, zpos, 0, "ONLY");
       // Carbon layers (carbon fiber mats)
-      zpos = fgkPCbThick / 2.0 + fgkPGlThick + fgkPPpThick + fgkPPdThick - fgkCroH / 2.0;
+      zpos = PCBTHICK / 2.0 + PGLTHICK + PPPTHICK + PPDTHICK - CROH / 2.0;
       snprintf(cTagV, kTag, "UPCB%02d", iDet);
       snprintf(cTagM, kTag, "UG%02d", iDet);
       TVirtualMC::GetMC()->Gspos(cTagV, 1, cTagM, xpos, ypos, zpos, 0, "ONLY");
-      zpos = -fgkPCbThick / 2.0 - fgkPPcThick - fgkPRbThick - fgkPElThick + fgkCroH / 2.0;
+      zpos = -PCBTHICK / 2.0 - PPCTHICK - PRBTHICK - PELTHICK + CROH / 2.0;
       snprintf(cTagV, kTag, "UPCB%02d", iDet);
       snprintf(cTagM, kTag, "UG%02d", iDet);
       TVirtualMC::GetMC()->Gspos(cTagV, 2, cTagM, xpos, ypos, zpos, 0, "ONLY");
       // Aramide layer (honeycomb)
-      zpos = fgkPHcThick / 2.0 + fgkPCbThick + fgkPGlThick + fgkPPpThick + fgkPPdThick - fgkCroH / 2.0;
+      zpos = PHCTHICK / 2.0 + PCBTHICK + PGLTHICK + PPPTHICK + PPDTHICK - CROH / 2.0;
       snprintf(cTagV, kTag, "UPHC%02d", iDet);
       snprintf(cTagM, kTag, "UG%02d", iDet);
       TVirtualMC::GetMC()->Gspos(cTagV, 1, cTagM, xpos, ypos, zpos, 0, "ONLY");
       // G10 layer (PCB readout board)
-      zpos = -fgkPPcThick / 2.0 - fgkPRbThick - fgkPElThick + fgkCroH / 2.0;
+      zpos = -PPCTHICK / 2.0 - PRBTHICK - PELTHICK + CROH / 2.0;
       snprintf(cTagV, kTag, "UPPC%02d", iDet);
       snprintf(cTagM, kTag, "UG%02d", iDet);
       TVirtualMC::GetMC()->Gspos(cTagV, 1, cTagM, xpos, ypos, zpos, 0, "ONLY");
       // Cu layer (traces in readout board)
-      zpos = -fgkPRbThick / 2.0 - fgkPElThick + fgkCroH / 2.0;
+      zpos = -PRBTHICK / 2.0 - PELTHICK + CROH / 2.0;
       snprintf(cTagV, kTag, "UPRB%02d", iDet);
       snprintf(cTagM, kTag, "UG%02d", iDet);
       TVirtualMC::GetMC()->Gspos(cTagV, 1, cTagM, xpos, ypos, zpos, 0, "ONLY");
       // Cu layer (other materials on readout board, incl. screws)
-      zpos = -fgkPElThick / 2.0 + fgkCroH / 2.0;
+      zpos = -PELTHICK / 2.0 + CROH / 2.0;
       snprintf(cTagV, kTag, "UPEL%02d", iDet);
       snprintf(cTagM, kTag, "UG%02d", iDet);
       TVirtualMC::GetMC()->Gspos(cTagV, 1, cTagM, xpos, ypos, zpos, 0, "ONLY");
@@ -683,7 +683,7 @@ void TRDGeometry::createVolumes(std::vector<int> const& idtmed)
       snprintf(cTagM, kTag, "UX%02d", iDet);
       TVirtualMC::GetMC()->Gspos(cTagV, 1, cTagM, xpos, ypos, zpos, 0, "ONLY");
       // The glue around the radiator
-      zpos = fgkCraH / 2.0 - fgkCdrH / 2.0 - fgkCraH / 2.0;
+      zpos = CRAH / 2.0 - CDRH / 2.0 - CRAH / 2.0;
       snprintf(cTagV, kTag, "UX%02d", iDet);
       snprintf(cTagM, kTag, "UB%02d", iDet);
       TVirtualMC::GetMC()->Gspos(cTagV, 1, cTagM, xpos, ypos, zpos, 0, "ONLY");
@@ -769,7 +769,7 @@ void TRDGeometry::createVolumes(std::vector<int> const& idtmed)
   // Put the TRD volumes into the space frame mother volumes
   // if enabled via status flag
   xpos = 0.0;
-  ypos = 0.5 * fgkSlength + 0.5 * fgkFlength;
+  ypos = 0.5 * SLENGTH + 0.5 * FLENGTH;
   zpos = 0.0;
   for (int isector = 0; isector < kNsector; isector++) {
     if (getSMstatus(isector)) {
@@ -844,10 +844,10 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   // Bottom 1 (all sectors)
   parCrb[0] = 77.49 / 2.0;
   parCrb[1] = 104.60 / 2.0;
-  parCrb[2] = fgkSMpltT / 2.0;
+  parCrb[2] = SMPLTT / 2.0;
   xpos = 0.0;
   ypos = 0.0;
-  zpos = fgkSMpltT / 2.0 - fgkSheight / 2.0;
+  zpos = SMPLTT / 2.0 - SHEIGHT / 2.0;
   TVirtualMC::GetMC()->Gsposp("USCR", 1, "UTS1", xpos, ypos, zpos, 0, "ONLY", parCrb, kNparCrb);
   TVirtualMC::GetMC()->Gsposp("USCR", 2, "UTS2", xpos, ypos, zpos, 0, "ONLY", parCrb, kNparCrb);
   TVirtualMC::GetMC()->Gsposp("USCR", 3, "UTS3", xpos, ypos, zpos, 0, "ONLY", parCrb, kNparCrb);
@@ -855,10 +855,10 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   // Bottom 2 (all sectors)
   parCrb[0] = 77.49 / 2.0;
   parCrb[1] = 55.80 / 2.0;
-  parCrb[2] = fgkSMpltT / 2.0;
+  parCrb[2] = SMPLTT / 2.0;
   xpos = 0.0;
   ypos = 85.6;
-  zpos = fgkSMpltT / 2.0 - fgkSheight / 2.0;
+  zpos = SMPLTT / 2.0 - SHEIGHT / 2.0;
   TVirtualMC::GetMC()->Gsposp("USCR", 5, "UTS1", xpos, ypos, zpos, 0, "ONLY", parCrb, kNparCrb);
   TVirtualMC::GetMC()->Gsposp("USCR", 6, "UTS2", xpos, ypos, zpos, 0, "ONLY", parCrb, kNparCrb);
   TVirtualMC::GetMC()->Gsposp("USCR", 7, "UTS3", xpos, ypos, zpos, 0, "ONLY", parCrb, kNparCrb);
@@ -870,10 +870,10 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   // Bottom 3 (all sectors)
   parCrb[0] = 77.49 / 2.0;
   parCrb[1] = 56.00 / 2.0;
-  parCrb[2] = fgkSMpltT / 2.0;
+  parCrb[2] = SMPLTT / 2.0;
   xpos = 0.0;
   ypos = 148.5;
-  zpos = fgkSMpltT / 2.0 - fgkSheight / 2.0;
+  zpos = SMPLTT / 2.0 - SHEIGHT / 2.0;
   TVirtualMC::GetMC()->Gsposp("USCR", 13, "UTS1", xpos, ypos, zpos, 0, "ONLY", parCrb, kNparCrb);
   TVirtualMC::GetMC()->Gsposp("USCR", 14, "UTS2", xpos, ypos, zpos, 0, "ONLY", parCrb, kNparCrb);
   TVirtualMC::GetMC()->Gsposp("USCR", 15, "UTS3", xpos, ypos, zpos, 0, "ONLY", parCrb, kNparCrb);
@@ -885,10 +885,10 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   // Bottom 4 (all sectors)
   parCrb[0] = 77.49 / 2.0;
   parCrb[1] = 118.00 / 2.0;
-  parCrb[2] = fgkSMpltT / 2.0;
+  parCrb[2] = SMPLTT / 2.0;
   xpos = 0.0;
   ypos = 240.5;
-  zpos = fgkSMpltT / 2.0 - fgkSheight / 2.0;
+  zpos = SMPLTT / 2.0 - SHEIGHT / 2.0;
   TVirtualMC::GetMC()->Gsposp("USCR", 21, "UTS1", xpos, ypos, zpos, 0, "ONLY", parCrb, kNparCrb);
   TVirtualMC::GetMC()->Gsposp("USCR", 22, "UTS2", xpos, ypos, zpos, 0, "ONLY", parCrb, kNparCrb);
   TVirtualMC::GetMC()->Gsposp("USCR", 23, "UTS3", xpos, ypos, zpos, 0, "ONLY", parCrb, kNparCrb);
@@ -900,19 +900,19 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   // Top 1 (only in front of PHOS)
   parCrb[0] = 111.48 / 2.0;
   parCrb[1] = 105.00 / 2.0;
-  parCrb[2] = fgkSMpltT / 2.0;
+  parCrb[2] = SMPLTT / 2.0;
   xpos = 0.0;
   ypos = 0.0;
-  zpos = fgkSMpltT / 2.0 - fgkSheight / 2.0;
+  zpos = SMPLTT / 2.0 - SHEIGHT / 2.0;
   TVirtualMC::GetMC()->Gsposp("USCR", 29, "UTS2", xpos, ypos, -zpos, 0, "ONLY", parCrb, kNparCrb);
   TVirtualMC::GetMC()->Gsposp("USCR", 30, "UTS3", xpos, ypos, -zpos, 0, "ONLY", parCrb, kNparCrb);
   // Top 2 (only in front of PHOS)
   parCrb[0] = 111.48 / 2.0;
   parCrb[1] = 56.00 / 2.0;
-  parCrb[2] = fgkSMpltT / 2.0;
+  parCrb[2] = SMPLTT / 2.0;
   xpos = 0.0;
   ypos = 85.5;
-  zpos = fgkSMpltT / 2.0 - fgkSheight / 2.0;
+  zpos = SMPLTT / 2.0 - SHEIGHT / 2.0;
   TVirtualMC::GetMC()->Gsposp("USCR", 31, "UTS2", xpos, ypos, -zpos, 0, "ONLY", parCrb, kNparCrb);
   TVirtualMC::GetMC()->Gsposp("USCR", 32, "UTS3", xpos, ypos, -zpos, 0, "ONLY", parCrb, kNparCrb);
   TVirtualMC::GetMC()->Gsposp("USCR", 33, "UTS2", xpos, -ypos, -zpos, 0, "ONLY", parCrb, kNparCrb);
@@ -929,7 +929,7 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   const int kNparSRL = 11;
   float parSRL[kNparSRL];
   // Trapezoidal shape
-  parSRL[0] = fgkSlength / 2.0;
+  parSRL[0] = SLENGTH / 2.0;
   parSRL[1] = 0.0;
   parSRL[2] = 0.0;
   parSRL[3] = kSRLhgt / 2.0;
@@ -946,10 +946,10 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   ypos = 0.0;
   zpos = 0.0;
   for (ilayer = 1; ilayer < kNlayer; ilayer++) {
-    xpos = fgkCwidth[ilayer] / 2.0 + kSRLwidA / 2.0 + kSRLdst;
+    xpos = CWIDTH[ilayer] / 2.0 + kSRLwidA / 2.0 + kSRLdst;
     ypos = 0.0;
-    zpos = fgkVrocsm + fgkSMpltT - fgkCalZpos - fgkSheight / 2.0 + fgkCraH + fgkCdrH - fgkCalH - kSRLhgt / 2.0 +
-           ilayer * (fgkCH + fgkVspace);
+    zpos = VROCSM + SMPLTT - CALZPOS - SHEIGHT / 2.0 + CRAH + CDRH - CALH - kSRLhgt / 2.0 +
+           ilayer * (CH + VSPACE);
     TVirtualMC::GetMC()->Gspos("USRL", ilayer + 1, "UTI1", xpos, ypos, zpos, matrix[2], "ONLY");
     TVirtualMC::GetMC()->Gspos("USRL", ilayer + 1 + kNlayer, "UTI1", -xpos, ypos, zpos, matrix[3], "ONLY");
     TVirtualMC::GetMC()->Gspos("USRL", ilayer + 1 + 2 * kNlayer, "UTI2", xpos, ypos, zpos, matrix[2], "ONLY");
@@ -971,7 +971,7 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   const int kNparSCB = 3;
   float parSCB[kNparSCB];
   parSCB[1] = kSCBwid / 2.0;
-  parSCB[2] = fgkCH / 2.0 + fgkVspace / 2.0 - kSCHhgt;
+  parSCB[2] = CH / 2.0 + VSPACE / 2.0 - kSCHhgt;
 
   const int kNparSCI = 3;
   float parSCI[kNparSCI];
@@ -982,7 +982,7 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   zpos = 0.0;
   for (ilayer = 0; ilayer < kNlayer; ilayer++) {
     // The aluminum of the cross bars
-    parSCB[0] = fgkCwidth[ilayer] / 2.0 + kSRLdst / 2.0;
+    parSCB[0] = CWIDTH[ilayer] / 2.0 + kSRLdst / 2.0;
     snprintf(cTagV, kTag, "USF%01d", ilayer);
     createVolume(cTagV, "BOX ", idtmed[1], parSCB, kNparSCB);
 
@@ -1011,15 +1011,15 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
 
     snprintf(cTagV, kTag, "USF%01d", ilayer);
     xpos = 0.0;
-    zpos = fgkVrocsm + fgkSMpltT + parSCB[2] - fgkSheight / 2.0 + ilayer * (fgkCH + fgkVspace);
+    zpos = VROCSM + SMPLTT + parSCB[2] - SHEIGHT / 2.0 + ilayer * (CH + VSPACE);
 
-    ypos = fgkClength[ilayer][2] / 2.0 + fgkClength[ilayer][1];
+    ypos = CLENGTH[ilayer][2] / 2.0 + CLENGTH[ilayer][1];
     TVirtualMC::GetMC()->Gspos(cTagV, 1, "UTI1", xpos, ypos, zpos, 0, "ONLY");
     TVirtualMC::GetMC()->Gspos(cTagV, 3, "UTI2", xpos, ypos, zpos, 0, "ONLY");
     TVirtualMC::GetMC()->Gspos(cTagV, 5, "UTI3", xpos, ypos, zpos, 0, "ONLY");
     TVirtualMC::GetMC()->Gspos(cTagV, 7, "UTI4", xpos, ypos, zpos, 0, "ONLY");
 
-    ypos = -fgkClength[ilayer][2] / 2.0 - fgkClength[ilayer][1];
+    ypos = -CLENGTH[ilayer][2] / 2.0 - CLENGTH[ilayer][1];
     TVirtualMC::GetMC()->Gspos(cTagV, 2, "UTI1", xpos, ypos, zpos, 0, "ONLY");
     TVirtualMC::GetMC()->Gspos(cTagV, 4, "UTI2", xpos, ypos, zpos, 0, "ONLY");
     TVirtualMC::GetMC()->Gspos(cTagV, 6, "UTI3", xpos, ypos, zpos, 0, "ONLY");
@@ -1034,17 +1034,17 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   float parSCH[kNparSCH];
 
   for (ilayer = 1; ilayer < kNlayer - 1; ilayer++) {
-    parSCH[0] = fgkCwidth[ilayer] / 2.0;
-    parSCH[1] = (fgkClength[ilayer + 1][2] / 2.0 + fgkClength[ilayer + 1][1] - fgkClength[ilayer][2] / 2.0 -
-                 fgkClength[ilayer][1]) /
+    parSCH[0] = CWIDTH[ilayer] / 2.0;
+    parSCH[1] = (CLENGTH[ilayer + 1][2] / 2.0 + CLENGTH[ilayer + 1][1] - CLENGTH[ilayer][2] / 2.0 -
+                 CLENGTH[ilayer][1]) /
                 2.0;
     parSCH[2] = kSCHhgt / 2.0;
 
     snprintf(cTagV, kTag, "USH%01d", ilayer);
     createVolume(cTagV, "BOX ", idtmed[1], parSCH, kNparSCH);
     xpos = 0.0;
-    ypos = fgkClength[ilayer][2] / 2.0 + fgkClength[ilayer][1] + parSCH[1];
-    zpos = fgkVrocsm + fgkSMpltT - kSCHhgt / 2.0 - fgkSheight / 2.0 + (ilayer + 1) * (fgkCH + fgkVspace);
+    ypos = CLENGTH[ilayer][2] / 2.0 + CLENGTH[ilayer][1] + parSCH[1];
+    zpos = VROCSM + SMPLTT - kSCHhgt / 2.0 - SHEIGHT / 2.0 + (ilayer + 1) * (CH + VSPACE);
     TVirtualMC::GetMC()->Gspos(cTagV, 1, "UTI1", xpos, ypos, zpos, 0, "ONLY");
     TVirtualMC::GetMC()->Gspos(cTagV, 3, "UTI2", xpos, ypos, zpos, 0, "ONLY");
     TVirtualMC::GetMC()->Gspos(cTagV, 5, "UTI3", xpos, ypos, zpos, 0, "ONLY");
@@ -1161,7 +1161,7 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   zpos = 0.4;
   TVirtualMC::GetMC()->Gspos("USD6", 1, "USDB", xpos, ypos, zpos, matrix[2], "ONLY");
   xpos = 0.0;
-  ypos = fgkClength[5][2] / 2.0;
+  ypos = CLENGTH[5][2] / 2.0;
   zpos = 0.04;
   TVirtualMC::GetMC()->Gspos("USDB", 1, "UTI1", xpos, ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("USDB", 2, "UTI1", xpos, -ypos, zpos, 0, "ONLY");
@@ -1177,8 +1177,8 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   parBOX[2] = 3.00 / 2.0;
   createVolume("USD7", "BOX ", idtmed[1], parBOX, kNparBOX);
   xpos = 0.0;
-  ypos = fgkClength[5][2] / 2.0;
-  zpos = fgkSheight / 2.0 - fgkSMpltT - 3.00 / 2.0;
+  ypos = CLENGTH[5][2] / 2.0;
+  zpos = SHEIGHT / 2.0 - SMPLTT - 3.00 / 2.0;
   TVirtualMC::GetMC()->Gspos("USD7", 1, "UTI1", xpos, ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("USD7", 2, "UTI1", xpos, -ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("USD7", 3, "UTI2", xpos, ypos, zpos, 0, "ONLY");
@@ -1193,8 +1193,8 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   parBOX[2] = 1.74 / 2.0;
   createVolume("USD8", "BOX ", idtmed[1], parBOX, kNparBOX);
   xpos = 0.0;
-  ypos = fgkClength[5][2] / 2.0 - 0.1;
-  zpos = -fgkSheight / 2.0 + fgkSMpltT + 2.27;
+  ypos = CLENGTH[5][2] / 2.0 - 0.1;
+  zpos = -SHEIGHT / 2.0 + SMPLTT + 2.27;
   TVirtualMC::GetMC()->Gspos("USD8", 1, "UTI1", xpos, ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("USD8", 2, "UTI1", xpos, -ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("USD8", 3, "UTI2", xpos, ypos, zpos, 0, "ONLY");
@@ -1209,8 +1209,8 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   parBOX[2] = 1.40 / 2.0;
   createVolume("USD9", "BOX ", idtmed[1], parBOX, kNparBOX);
   xpos = 0.0;
-  ypos = fgkClength[5][2] / 2.0;
-  zpos = -fgkSheight / 2.0 + fgkSMpltT + 1.40 / 2.0;
+  ypos = CLENGTH[5][2] / 2.0;
+  zpos = -SHEIGHT / 2.0 + SMPLTT + 1.40 / 2.0;
   TVirtualMC::GetMC()->Gspos("USD9", 1, "UTI1", xpos, ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("USD9", 2, "UTI1", xpos, -ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("USD9", 3, "UTI2", xpos, ypos, zpos, 0, "ONLY");
@@ -1233,7 +1233,7 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   parTRP[10] = -5.0;
   createVolume("USDF", "TRAP", idtmed[2], parTRP, kNparTRP);
   xpos = -32.0;
-  ypos = fgkClength[5][2] / 2.0 + 1.20 / 2.0 + 0.10 / 2.0;
+  ypos = CLENGTH[5][2] / 2.0 + 1.20 / 2.0 + 0.10 / 2.0;
   zpos = 0.0;
   TVirtualMC::GetMC()->Gspos("USDF", 1, "UTI1", xpos, ypos, zpos, matrix[2], "ONLY");
   TVirtualMC::GetMC()->Gspos("USDF", 2, "UTI1", xpos, -ypos, zpos, matrix[2], "ONLY");
@@ -1293,7 +1293,7 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   TVirtualMC::GetMC()->Gspos("USC3", 1, "USCB", xpos, ypos, zpos, matrix[4], "ONLY");
   TVirtualMC::GetMC()->Gspos("USC3", 2, "USCB", -xpos, ypos, zpos, matrix[5], "ONLY");
   xpos = 0.0;
-  ypos = fgkClength[5][2] / 2.0 + fgkClength[5][1] + fgkClength[5][0];
+  ypos = CLENGTH[5][2] / 2.0 + CLENGTH[5][1] + CLENGTH[5][0];
   zpos = 0.0;
   TVirtualMC::GetMC()->Gspos("USCB", 1, "UTI1", xpos, ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("USCB", 2, "UTI1", xpos, -ypos, zpos, 0, "ONLY");
@@ -1309,8 +1309,8 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   parBOX[2] = 3.00 / 2.0;
   createVolume("USC4", "BOX ", idtmed[1], parBOX, kNparBOX);
   xpos = 0.0;
-  ypos = fgkClength[5][2] / 2.0 + fgkClength[5][1] + fgkClength[5][0];
-  zpos = fgkSheight / 2.0 - fgkSMpltT - 3.00 / 2.0;
+  ypos = CLENGTH[5][2] / 2.0 + CLENGTH[5][1] + CLENGTH[5][0];
+  zpos = SHEIGHT / 2.0 - SMPLTT - 3.00 / 2.0;
   TVirtualMC::GetMC()->Gspos("USC4", 1, "UTI1", xpos, ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("USC4", 2, "UTI1", xpos, -ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("USC4", 3, "UTI2", xpos, ypos, zpos, 0, "ONLY");
@@ -1325,8 +1325,8 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   parBOX[2] = 2.00 / 2.0;
   createVolume("USC5", "BOX ", idtmed[1], parBOX, kNparBOX);
   xpos = 0.0;
-  ypos = fgkClength[5][2] / 2.0 + fgkClength[5][1] + fgkClength[5][0];
-  zpos = -fgkSheight / 2.0 + fgkSMpltT + 2.60;
+  ypos = CLENGTH[5][2] / 2.0 + CLENGTH[5][1] + CLENGTH[5][0];
+  zpos = -SHEIGHT / 2.0 + SMPLTT + 2.60;
   TVirtualMC::GetMC()->Gspos("USC5", 1, "UTI1", xpos, ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("USC5", 2, "UTI1", xpos, -ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("USC5", 3, "UTI2", xpos, ypos, zpos, 0, "ONLY");
@@ -1341,8 +1341,8 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   parBOX[2] = 1.60 / 2.0;
   createVolume("USC6", "BOX ", idtmed[1], parBOX, kNparBOX);
   xpos = 0.0;
-  ypos = fgkClength[5][2] / 2.0 + fgkClength[5][1] + fgkClength[5][0];
-  zpos = -fgkSheight / 2.0 + fgkSMpltT + 1.60 / 2.0;
+  ypos = CLENGTH[5][2] / 2.0 + CLENGTH[5][1] + CLENGTH[5][0];
+  zpos = -SHEIGHT / 2.0 + SMPLTT + 1.60 / 2.0;
   TVirtualMC::GetMC()->Gspos("USC6", 1, "UTI1", xpos, ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("USC6", 2, "UTI1", xpos, -ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("USC6", 3, "UTI2", xpos, ypos, zpos, 0, "ONLY");
@@ -1375,12 +1375,12 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   const float kSCLposzUb = 0.3;
   // Vertical
   parSCL[0] = kSCLthkUa / 2.0;
-  parSCL[1] = fgkSlength / 2.0;
+  parSCL[1] = SLENGTH / 2.0;
   parSCL[2] = kSCLwidUa / 2.0;
   createVolume("USL1", "BOX ", idtmed[1], parSCL, kNparSCL);
-  xpos = fgkSwidth2 / 2.0 - fgkSMpltT - kSCLposxUa;
+  xpos = SWIDTH2 / 2.0 - SMPLTT - kSCLposxUa;
   ypos = 0.0;
-  zpos = fgkSheight / 2.0 - fgkSMpltT - kSCLposzUa;
+  zpos = SHEIGHT / 2.0 - SMPLTT - kSCLposzUa;
   TVirtualMC::GetMC()->Gspos("USL1", 1, "UTI1", xpos, ypos, zpos, matrix[0], "ONLY");
   TVirtualMC::GetMC()->Gspos("USL1", 3, "UTI4", xpos, ypos, zpos, matrix[0], "ONLY");
   xpos = -xpos;
@@ -1388,12 +1388,12 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   TVirtualMC::GetMC()->Gspos("USL1", 4, "UTI4", xpos, ypos, zpos, matrix[1], "ONLY");
   // Horizontal
   parSCL[0] = kSCLwidUb / 2.0;
-  parSCL[1] = fgkSlength / 2.0;
+  parSCL[1] = SLENGTH / 2.0;
   parSCL[2] = kSCLthkUb / 2.0;
   createVolume("USL2", "BOX ", idtmed[1], parSCL, kNparSCL);
-  xpos = fgkSwidth2 / 2.0 - fgkSMpltT - kSCLposxUb;
+  xpos = SWIDTH2 / 2.0 - SMPLTT - kSCLposxUb;
   ypos = 0.0;
-  zpos = fgkSheight / 2.0 - fgkSMpltT - kSCLposzUb;
+  zpos = SHEIGHT / 2.0 - SMPLTT - kSCLposzUb;
   TVirtualMC::GetMC()->Gspos("USL2", 1, "UTI1", xpos, ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("USL2", 3, "UTI2", xpos, ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("USL2", 5, "UTI3", xpos, ypos, zpos, 0, "ONLY");
@@ -1418,7 +1418,7 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   const float kSCLposzLb = kSCLthkLb / 2.0;
   // Vertical
   // Trapezoidal shape
-  parSCLb[0] = fgkSlength / 2.0;
+  parSCLb[0] = SLENGTH / 2.0;
   parSCLb[1] = 0.0;
   parSCLb[2] = 0.0;
   parSCLb[3] = kSCLwidLa / 2.0;
@@ -1430,9 +1430,9 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   parSCLb[9] = kSCLthkLa / 2.0;
   parSCLb[10] = 5.0;
   createVolume("USL3", "TRAP", idtmed[1], parSCLb, kNparSCLb);
-  xpos = fgkSwidth1 / 2.0 - fgkSMpltT - kSCLposxLa;
+  xpos = SWIDTH1 / 2.0 - SMPLTT - kSCLposxLa;
   ypos = 0.0;
-  zpos = -fgkSheight / 2.0 + fgkSMpltT + kSCLposzLa;
+  zpos = -SHEIGHT / 2.0 + SMPLTT + kSCLposzLa;
   TVirtualMC::GetMC()->Gspos("USL3", 1, "UTI1", xpos, ypos, zpos, matrix[2], "ONLY");
   TVirtualMC::GetMC()->Gspos("USL3", 3, "UTI2", xpos, ypos, zpos, matrix[2], "ONLY");
   TVirtualMC::GetMC()->Gspos("USL3", 5, "UTI3", xpos, ypos, zpos, matrix[2], "ONLY");
@@ -1444,12 +1444,12 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   TVirtualMC::GetMC()->Gspos("USL3", 8, "UTI4", xpos, ypos, zpos, matrix[3], "ONLY");
   // Horizontal part
   parSCL[0] = kSCLwidLb / 2.0;
-  parSCL[1] = fgkSlength / 2.0;
+  parSCL[1] = SLENGTH / 2.0;
   parSCL[2] = kSCLthkLb / 2.0;
   createVolume("USL4", "BOX ", idtmed[1], parSCL, kNparSCL);
-  xpos = fgkSwidth1 / 2.0 - fgkSMpltT - kSCLposxLb;
+  xpos = SWIDTH1 / 2.0 - SMPLTT - kSCLposxLb;
   ypos = 0.0;
-  zpos = -fgkSheight / 2.0 + fgkSMpltT + kSCLposzLb;
+  zpos = -SHEIGHT / 2.0 + SMPLTT + kSCLposzLb;
   TVirtualMC::GetMC()->Gspos("USL4", 1, "UTI1", xpos, ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("USL4", 3, "UTI2", xpos, ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("USL4", 5, "UTI3", xpos, ypos, zpos, 0, "ONLY");
@@ -1466,13 +1466,13 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
 
   const int kNparTrd = 4;
   float parTrd[kNparTrd];
-  parTrd[0] = fgkSwidth1 / 2.0 - 2.5;
-  parTrd[1] = fgkSwidth2 / 2.0 - 2.5;
-  parTrd[2] = fgkSMpltT / 2.0;
-  parTrd[3] = fgkSheight / 2.0 - 1.0;
+  parTrd[0] = SWIDTH1 / 2.0 - 2.5;
+  parTrd[1] = SWIDTH2 / 2.0 - 2.5;
+  parTrd[2] = SMPLTT / 2.0;
+  parTrd[3] = SHEIGHT / 2.0 - 1.0;
   createVolume("UTA1", "TRD1", idtmed[1], parTrd, kNparTrd);
   xpos = 0.0;
-  ypos = fgkSMpltT / 2.0 - fgkFlength / 2.0;
+  ypos = SMPLTT / 2.0 - FLENGTH / 2.0;
   zpos = -0.5;
   TVirtualMC::GetMC()->Gspos("UTA1", 1, "UTF1", xpos, ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("UTA1", 2, "UTF2", xpos, -ypos, zpos, 0, "ONLY");
@@ -1485,17 +1485,17 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   createVolume("UTA2", "BOX ", idtmed[1], parPlt, 0);
   xpos = 0.0;
   ypos = 0.0;
-  zpos = fgkSheight / 2.0 - fgkSMpltT / 2.0;
-  parPlt[0] = fgkSwidth2 / 2.0 - 0.2;
-  parPlt[1] = fgkFlength / 2.0;
-  parPlt[2] = fgkSMpltT / 2.0;
+  zpos = SHEIGHT / 2.0 - SMPLTT / 2.0;
+  parPlt[0] = SWIDTH2 / 2.0 - 0.2;
+  parPlt[1] = FLENGTH / 2.0;
+  parPlt[2] = SMPLTT / 2.0;
   TVirtualMC::GetMC()->Gsposp("UTA2", 1, "UTF2", xpos, ypos, zpos, 0, "ONLY", parPlt, kNparPlt);
-  xpos = (fgkSwidth1 + fgkSwidth2) / 4.0 - fgkSMpltT / 2.0 - 0.0016;
+  xpos = (SWIDTH1 + SWIDTH2) / 4.0 - SMPLTT / 2.0 - 0.0016;
   ypos = 0.0;
   zpos = 0.0;
-  parPlt[0] = fgkSMpltT / 2.0;
-  parPlt[1] = fgkFlength / 2.0;
-  parPlt[2] = fgkSheight / 2.0;
+  parPlt[0] = SMPLTT / 2.0;
+  parPlt[1] = FLENGTH / 2.0;
+  parPlt[2] = SHEIGHT / 2.0;
   TVirtualMC::GetMC()->Gsposp("UTA2", 2, "UTF2", xpos, ypos, zpos, matrix[0], "ONLY", parPlt, kNparPlt);
   TVirtualMC::GetMC()->Gsposp("UTA2", 3, "UTF2", -xpos, ypos, zpos, matrix[1], "ONLY", parPlt, kNparPlt);
 
@@ -1505,8 +1505,8 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   parBOX[2] = 10.0 / 2.0;
   createVolume("UTA3", "BOX ", idtmed[1], parBOX, kNparBOX);
   xpos = 0.0;
-  ypos = 1.0 / 2.0 + fgkSMpltT - fgkFlength / 2.0;
-  zpos = fgkSheight / 2.0 - 1.5 - 10.0 / 2.0;
+  ypos = 1.0 / 2.0 + SMPLTT - FLENGTH / 2.0;
+  zpos = SHEIGHT / 2.0 - 1.5 - 10.0 / 2.0;
   TVirtualMC::GetMC()->Gspos("UTA3", 1, "UTF1", xpos, ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("UTA3", 2, "UTF2", xpos, -ypos, zpos, 0, "ONLY");
 }
@@ -1603,12 +1603,12 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
 
   for (ilayer = 1; ilayer < kNlayer; ilayer++) {
     // Along the chambers
-    xpos = fgkCwidth[ilayer] / 2.0 + kCOLwid / 2.0 + kCOLposx;
+    xpos = CWIDTH[ilayer] / 2.0 + kCOLwid / 2.0 + kCOLposx;
     ypos = 0.0;
     zpos =
-      fgkVrocsm + fgkSMpltT - fgkCalZpos + kCOLhgt / 2.0 - fgkSheight / 2.0 + kCOLposz + ilayer * (fgkCH + fgkVspace);
+      VROCSM + SMPLTT - CALZPOS + kCOLhgt / 2.0 - SHEIGHT / 2.0 + kCOLposz + ilayer * (CH + VSPACE);
     parCOL[0] = kCOLwid / 2.0;
-    parCOL[1] = fgkSlength / 2.0;
+    parCOL[1] = SLENGTH / 2.0;
     parCOL[2] = kCOLhgt / 2.0;
     TVirtualMC::GetMC()->Gsposp("UTC1", ilayer, "UTI1", xpos, ypos, zpos, matrix[0], "ONLY", parCOL, kNparCOL);
     TVirtualMC::GetMC()->Gsposp("UTC1", ilayer + kNlayer, "UTI1", -xpos, ypos, zpos, matrix[1], "ONLY", parCOL,
@@ -1627,12 +1627,12 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
                                 kNparCOL);
 
     // Front of supermodules
-    xpos = fgkCwidth[ilayer] / 2.0 + kCOLwid / 2.0 + kCOLposx;
+    xpos = CWIDTH[ilayer] / 2.0 + kCOLwid / 2.0 + kCOLposx;
     ypos = 0.0;
     zpos =
-      fgkVrocsm + fgkSMpltT - fgkCalZpos + kCOLhgt / 2.0 - fgkSheight / 2.0 + kCOLposz + ilayer * (fgkCH + fgkVspace);
+      VROCSM + SMPLTT - CALZPOS + kCOLhgt / 2.0 - SHEIGHT / 2.0 + kCOLposz + ilayer * (CH + VSPACE);
     parCOL[0] = kCOLwid / 2.0;
-    parCOL[1] = fgkFlength / 2.0;
+    parCOL[1] = FLENGTH / 2.0;
     parCOL[2] = kCOLhgt / 2.0;
     TVirtualMC::GetMC()->Gsposp("UTC3", ilayer + 2 * kNlayer, "UTF1", xpos, ypos, zpos, matrix[0], "ONLY", parCOL,
                                 kNparCOL);
@@ -1646,10 +1646,10 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
 
   for (ilayer = 1; ilayer < kNlayer; ilayer++) {
     // In baby frame
-    xpos = fgkCwidth[ilayer] / 2.0 + kCOLwid / 2.0 + kCOLposx - 2.5;
+    xpos = CWIDTH[ilayer] / 2.0 + kCOLwid / 2.0 + kCOLposx - 2.5;
     ypos = kBBSdz / 2.0 - kBBMdz / 2.0;
     zpos =
-      fgkVrocsm + fgkSMpltT - fgkCalZpos + kCOLhgt / 2.0 - fgkSheight / 2.0 + kCOLposz + ilayer * (fgkCH + fgkVspace);
+      VROCSM + SMPLTT - CALZPOS + kCOLhgt / 2.0 - SHEIGHT / 2.0 + kCOLposz + ilayer * (CH + VSPACE);
     parCOL[0] = kCOLwid / 2.0;
     parCOL[1] = kBBSdz / 2.0;
     parCOL[2] = kCOLhgt / 2.0;
@@ -1661,10 +1661,10 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
 
   for (ilayer = 1; ilayer < kNlayer; ilayer++) {
     // In back frame
-    xpos = fgkCwidth[ilayer] / 2.0 + kCOLwid / 2.0 + kCOLposx - 0.3;
+    xpos = CWIDTH[ilayer] / 2.0 + kCOLwid / 2.0 + kCOLposx - 0.3;
     ypos = -kBFSdz / 2.0 + kBFMdz / 2.0;
     zpos =
-      fgkVrocsm + fgkSMpltT - fgkCalZpos + kCOLhgt / 2.0 - fgkSheight / 2.0 + kCOLposz + ilayer * (fgkCH + fgkVspace);
+      VROCSM + SMPLTT - CALZPOS + kCOLhgt / 2.0 - SHEIGHT / 2.0 + kCOLposz + ilayer * (CH + VSPACE);
     parCOL[0] = kCOLwid / 2.0;
     parCOL[1] = kBFSdz / 2.0;
     parCOL[2] = kCOLhgt / 2.0;
@@ -1676,11 +1676,11 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
 
   // The upper most layer
   // Along the chambers
-  xpos = fgkCwidth[5] / 2.0 - kCOLhgt / 2.0 - 1.3;
+  xpos = CWIDTH[5] / 2.0 - kCOLhgt / 2.0 - 1.3;
   ypos = 0.0;
-  zpos = fgkSheight / 2.0 - fgkSMpltT - 0.4 - kCOLwid / 2.0;
+  zpos = SHEIGHT / 2.0 - SMPLTT - 0.4 - kCOLwid / 2.0;
   parCOL[0] = kCOLwid / 2.0;
-  parCOL[1] = fgkSlength / 2.0;
+  parCOL[1] = SLENGTH / 2.0;
   parCOL[2] = kCOLhgt / 2.0;
   TVirtualMC::GetMC()->Gsposp("UTC1", 6, "UTI1", xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
   TVirtualMC::GetMC()->Gsposp("UTC1", 6 + kNlayer, "UTI1", -xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
@@ -1691,29 +1691,29 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   TVirtualMC::GetMC()->Gsposp("UTC1", 6 + 10 * kNlayer, "UTI4", xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
   TVirtualMC::GetMC()->Gsposp("UTC1", 6 + 11 * kNlayer, "UTI4", -xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
   // Front of supermodules
-  xpos = fgkCwidth[5] / 2.0 - kCOLhgt / 2.0 - 1.3;
+  xpos = CWIDTH[5] / 2.0 - kCOLhgt / 2.0 - 1.3;
   ypos = 0.0;
-  zpos = fgkSheight / 2.0 - fgkSMpltT - 0.4 - kCOLwid / 2.0;
+  zpos = SHEIGHT / 2.0 - SMPLTT - 0.4 - kCOLwid / 2.0;
   parCOL[0] = kCOLwid / 2.0;
-  parCOL[1] = fgkFlength / 2.0;
+  parCOL[1] = FLENGTH / 2.0;
   parCOL[2] = kCOLhgt / 2.0;
   TVirtualMC::GetMC()->Gsposp("UTC3", 6 + 2 * kNlayer, "UTF1", xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
   TVirtualMC::GetMC()->Gsposp("UTC3", 6 + 3 * kNlayer, "UTF1", -xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
   TVirtualMC::GetMC()->Gsposp("UTC3", 6 + 4 * kNlayer, "UTF2", xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
   TVirtualMC::GetMC()->Gsposp("UTC3", 6 + 5 * kNlayer, "UTF2", -xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
   // In baby frame
-  xpos = fgkCwidth[5] / 2.0 - kCOLhgt / 2.0 - 3.1;
+  xpos = CWIDTH[5] / 2.0 - kCOLhgt / 2.0 - 3.1;
   ypos = kBBSdz / 2.0 - kBBMdz / 2.0;
-  zpos = fgkSheight / 2.0 - fgkSMpltT - 0.4 - kCOLwid / 2.0;
+  zpos = SHEIGHT / 2.0 - SMPLTT - 0.4 - kCOLwid / 2.0;
   parCOL[0] = kCOLwid / 2.0;
   parCOL[1] = kBBSdz / 2.0;
   parCOL[2] = kCOLhgt / 2.0;
   TVirtualMC::GetMC()->Gsposp("UTC3", 6 + 6 * kNlayer, "BBTRD", xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
   TVirtualMC::GetMC()->Gsposp("UTC3", 6 + 7 * kNlayer, "BBTRD", -xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
   // In back frame
-  xpos = fgkCwidth[5] / 2.0 - kCOLhgt / 2.0 - 1.3;
+  xpos = CWIDTH[5] / 2.0 - kCOLhgt / 2.0 - 1.3;
   ypos = -kBFSdz / 2.0 + kBFMdz / 2.0;
-  zpos = fgkSheight / 2.0 - fgkSMpltT - 0.4 - kCOLwid / 2.0;
+  zpos = SHEIGHT / 2.0 - SMPLTT - 0.4 - kCOLwid / 2.0;
   parCOL[0] = kCOLwid / 2.0;
   parCOL[1] = kBFSdz / 2.0;
   parCOL[2] = kCOLhgt / 2.0;
@@ -1741,12 +1741,12 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
 
   for (ilayer = 1; ilayer < kNlayer; ilayer++) {
     // Along the chambers
-    xpos = fgkCwidth[ilayer] / 2.0 + kPWRwid / 2.0 + kPWRposx;
+    xpos = CWIDTH[ilayer] / 2.0 + kPWRwid / 2.0 + kPWRposx;
     ypos = 0.0;
     zpos =
-      fgkVrocsm + fgkSMpltT - fgkCalZpos + kPWRhgtA / 2.0 - fgkSheight / 2.0 + kPWRposz + ilayer * (fgkCH + fgkVspace);
+      VROCSM + SMPLTT - CALZPOS + kPWRhgtA / 2.0 - SHEIGHT / 2.0 + kPWRposz + ilayer * (CH + VSPACE);
     parPWR[0] = kPWRwid / 2.0;
-    parPWR[1] = fgkSlength / 2.0;
+    parPWR[1] = SLENGTH / 2.0;
     parPWR[2] = kPWRhgtA / 2.0;
     TVirtualMC::GetMC()->Gsposp("UTP1", ilayer, "UTI1", xpos, ypos, zpos, matrix[0], "ONLY", parPWR, kNparPWR);
     TVirtualMC::GetMC()->Gsposp("UTP1", ilayer + kNlayer, "UTI1", -xpos, ypos, zpos, matrix[1], "ONLY", parPWR,
@@ -1765,12 +1765,12 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
                                 kNparPWR);
 
     // Front of supermodule
-    xpos = fgkCwidth[ilayer] / 2.0 + kPWRwid / 2.0 + kPWRposx;
+    xpos = CWIDTH[ilayer] / 2.0 + kPWRwid / 2.0 + kPWRposx;
     ypos = 0.0;
     zpos =
-      fgkVrocsm + fgkSMpltT - fgkCalZpos + kPWRhgtA / 2.0 - fgkSheight / 2.0 + kPWRposz + ilayer * (fgkCH + fgkVspace);
+      VROCSM + SMPLTT - CALZPOS + kPWRhgtA / 2.0 - SHEIGHT / 2.0 + kPWRposz + ilayer * (CH + VSPACE);
     parPWR[0] = kPWRwid / 2.0;
-    parPWR[1] = fgkFlength / 2.0;
+    parPWR[1] = FLENGTH / 2.0;
     parPWR[2] = kPWRhgtA / 2.0;
     TVirtualMC::GetMC()->Gsposp("UTP3", ilayer + 2 * kNlayer, "UTF1", xpos, ypos, zpos, matrix[0], "ONLY", parPWR,
                                 kNparPWR);
@@ -1784,10 +1784,10 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
 
   for (ilayer = 1; ilayer < kNlayer; ilayer++) {
     // In baby frame
-    xpos = fgkCwidth[ilayer] / 2.0 + kPWRwid / 2.0 + kPWRposx - 2.5;
+    xpos = CWIDTH[ilayer] / 2.0 + kPWRwid / 2.0 + kPWRposx - 2.5;
     ypos = kBBSdz / 2.0 - kBBMdz / 2.0;
     zpos =
-      fgkVrocsm + fgkSMpltT - fgkCalZpos + kPWRhgtB / 2.0 - fgkSheight / 2.0 + kPWRposz + ilayer * (fgkCH + fgkVspace);
+      VROCSM + SMPLTT - CALZPOS + kPWRhgtB / 2.0 - SHEIGHT / 2.0 + kPWRposz + ilayer * (CH + VSPACE);
     parPWR[0] = kPWRwid / 2.0;
     parPWR[1] = kBBSdz / 2.0;
     parPWR[2] = kPWRhgtB / 2.0;
@@ -1799,10 +1799,10 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
 
   for (ilayer = 1; ilayer < kNlayer; ilayer++) {
     // In back frame
-    xpos = fgkCwidth[ilayer] / 2.0 + kPWRwid / 2.0 + kPWRposx - 0.3;
+    xpos = CWIDTH[ilayer] / 2.0 + kPWRwid / 2.0 + kPWRposx - 0.3;
     ypos = -kBFSdz / 2.0 + kBFMdz / 2.0;
     zpos =
-      fgkVrocsm + fgkSMpltT - fgkCalZpos + kPWRhgtB / 2.0 - fgkSheight / 2.0 + kPWRposz + ilayer * (fgkCH + fgkVspace);
+      VROCSM + SMPLTT - CALZPOS + kPWRhgtB / 2.0 - SHEIGHT / 2.0 + kPWRposz + ilayer * (CH + VSPACE);
     parPWR[0] = kPWRwid / 2.0;
     parPWR[1] = kBFSdz / 2.0;
     parPWR[2] = kPWRhgtB / 2.0;
@@ -1814,11 +1814,11 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
 
   // The upper most layer
   // Along the chambers
-  xpos = fgkCwidth[5] / 2.0 + kPWRhgtB / 2.0 - 1.3;
+  xpos = CWIDTH[5] / 2.0 + kPWRhgtB / 2.0 - 1.3;
   ypos = 0.0;
-  zpos = fgkSheight / 2.0 - fgkSMpltT - 0.6 - kPWRwid / 2.0;
+  zpos = SHEIGHT / 2.0 - SMPLTT - 0.6 - kPWRwid / 2.0;
   parPWR[0] = kPWRwid / 2.0;
-  parPWR[1] = fgkSlength / 2.0;
+  parPWR[1] = SLENGTH / 2.0;
   parPWR[2] = kPWRhgtB / 2.0;
   TVirtualMC::GetMC()->Gsposp("UTP1", 6, "UTI1", xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
   TVirtualMC::GetMC()->Gsposp("UTP1", 6 + kNlayer, "UTI1", -xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
@@ -1829,29 +1829,29 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   TVirtualMC::GetMC()->Gsposp("UTP1", 6 + 10 * kNlayer, "UTI4", xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
   TVirtualMC::GetMC()->Gsposp("UTP1", 6 + 11 * kNlayer, "UTI4", -xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
   // Front of supermodules
-  xpos = fgkCwidth[5] / 2.0 + kPWRhgtB / 2.0 - 1.3;
+  xpos = CWIDTH[5] / 2.0 + kPWRhgtB / 2.0 - 1.3;
   ypos = 0.0;
-  zpos = fgkSheight / 2.0 - fgkSMpltT - 0.6 - kPWRwid / 2.0;
+  zpos = SHEIGHT / 2.0 - SMPLTT - 0.6 - kPWRwid / 2.0;
   parPWR[0] = kPWRwid / 2.0;
-  parPWR[1] = fgkFlength / 2.0;
+  parPWR[1] = FLENGTH / 2.0;
   parPWR[2] = kPWRhgtB / 2.0;
   TVirtualMC::GetMC()->Gsposp("UTP3", 6 + 2 * kNlayer, "UTF1", xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
   TVirtualMC::GetMC()->Gsposp("UTP3", 6 + 3 * kNlayer, "UTF1", -xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
   TVirtualMC::GetMC()->Gsposp("UTP3", 6 + 4 * kNlayer, "UTF2", xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
   TVirtualMC::GetMC()->Gsposp("UTP3", 6 + 5 * kNlayer, "UTF2", -xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
   // In baby frame
-  xpos = fgkCwidth[5] / 2.0 + kPWRhgtB / 2.0 - 3.0;
+  xpos = CWIDTH[5] / 2.0 + kPWRhgtB / 2.0 - 3.0;
   ypos = kBBSdz / 2.0 - kBBMdz / 2.0;
-  zpos = fgkSheight / 2.0 - fgkSMpltT - 0.6 - kPWRwid / 2.0;
+  zpos = SHEIGHT / 2.0 - SMPLTT - 0.6 - kPWRwid / 2.0;
   parPWR[0] = kPWRwid / 2.0;
   parPWR[1] = kBBSdz / 2.0;
   parPWR[2] = kPWRhgtB / 2.0;
   TVirtualMC::GetMC()->Gsposp("UTP3", 6 + 6 * kNlayer, "BBTRD", xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
   TVirtualMC::GetMC()->Gsposp("UTP3", 6 + 7 * kNlayer, "BBTRD", -xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
   // In back frame
-  xpos = fgkCwidth[5] / 2.0 + kPWRhgtB / 2.0 - 1.3;
+  xpos = CWIDTH[5] / 2.0 + kPWRhgtB / 2.0 - 1.3;
   ypos = -kBFSdz / 2.0 + kBFMdz / 2.0;
-  zpos = fgkSheight / 2.0 - fgkSMpltT - 0.6 - kPWRwid / 2.0;
+  zpos = SHEIGHT / 2.0 - SMPLTT - 0.6 - kPWRwid / 2.0;
   parPWR[0] = kPWRwid / 2.0;
   parPWR[1] = kBFSdz / 2.0;
   parPWR[2] = kPWRhgtB / 2.0;
@@ -1866,39 +1866,39 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   // PHOS holes
   parTube[0] = 0.0;
   parTube[1] = 2.2 / 2.0;
-  parTube[2] = fgkClength[5][2] / 2.0 - fgkHspace / 2.0;
+  parTube[2] = CLENGTH[5][2] / 2.0 - HSPACE / 2.0;
   createVolume("UTG1", "TUBE", idtmed[8], parTube, kNparTube);
   parTube[0] = 0.0;
   parTube[1] = 2.1 / 2.0;
-  parTube[2] = fgkClength[5][2] / 2.0 - fgkHspace / 2.0;
+  parTube[2] = CLENGTH[5][2] / 2.0 - HSPACE / 2.0;
   createVolume("UTG2", "TUBE", idtmed[9], parTube, kNparTube);
   xpos = 0.0;
   ypos = 0.0;
   zpos = 0.0;
   TVirtualMC::GetMC()->Gspos("UTG2", 1, "UTG1", xpos, ypos, zpos, 0, "ONLY");
   for (ilayer = 0; ilayer < kNlayer; ilayer++) {
-    xpos = fgkCwidth[ilayer] / 2.0 + kCOLwid / 2.0 - 1.5;
+    xpos = CWIDTH[ilayer] / 2.0 + kCOLwid / 2.0 - 1.5;
     ypos = 0.0;
-    zpos = fgkVrocsm + fgkSMpltT + kCOLhgt / 2.0 - fgkSheight / 2.0 + 5.0 + ilayer * (fgkCH + fgkVspace);
+    zpos = VROCSM + SMPLTT + kCOLhgt / 2.0 - SHEIGHT / 2.0 + 5.0 + ilayer * (CH + VSPACE);
     TVirtualMC::GetMC()->Gspos("UTG1", 1 + ilayer, "UTI3", xpos, ypos, zpos, matrix[4], "ONLY");
     TVirtualMC::GetMC()->Gspos("UTG1", 7 + ilayer, "UTI3", -xpos, ypos, zpos, matrix[4], "ONLY");
   }
   // Missing L4S4 chamber in sector 17
   parTube[0] = 0.0;
   parTube[1] = 2.2 / 2.0;
-  parTube[2] = fgkClength[4][4] / 2.0 - fgkHspace / 2.0;
+  parTube[2] = CLENGTH[4][4] / 2.0 - HSPACE / 2.0;
   createVolume("UTG3", "TUBE", idtmed[8], parTube, kNparTube);
   parTube[0] = 0.0;
   parTube[1] = 2.1 / 2.0;
-  parTube[2] = fgkClength[4][4] / 2.0 - fgkHspace / 2.0;
+  parTube[2] = CLENGTH[4][4] / 2.0 - HSPACE / 2.0;
   createVolume("UTG4", "TUBE", idtmed[9], parTube, kNparTube);
   xpos = 0.0;
   ypos = 0.0;
   zpos = 0.0;
   TVirtualMC::GetMC()->Gspos("UTG4", 1, "UTG3", xpos, ypos, zpos, 0, "ONLY");
-  xpos = fgkCwidth[4] / 2.0 + kCOLwid / 2.0 - 1.5;
-  ypos = -fgkClength[4][0] / 2.0 - fgkClength[4][1] - fgkClength[4][2] / 2.0;
-  zpos = fgkVrocsm + fgkSMpltT + kCOLhgt / 2.0 - fgkSheight / 2.0 + 5.0 + 4 * (fgkCH + fgkVspace);
+  xpos = CWIDTH[4] / 2.0 + kCOLwid / 2.0 - 1.5;
+  ypos = -CLENGTH[4][0] / 2.0 - CLENGTH[4][1] - CLENGTH[4][2] / 2.0;
+  zpos = VROCSM + SMPLTT + kCOLhgt / 2.0 - SHEIGHT / 2.0 + 5.0 + 4 * (CH + VSPACE);
   TVirtualMC::GetMC()->Gspos("UTG3", 1, "UTI4", xpos, ypos, zpos, matrix[4], "ONLY");
   TVirtualMC::GetMC()->Gspos("UTG4", 2, "UTI4", -xpos, ypos, zpos, matrix[4], "ONLY");
 
@@ -1914,9 +1914,9 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
       int iDet = getDetectorSec(ilayer, istack);
 
       snprintf(cTagV, kTag, "UU%02d", iDet);
-      parServ[0] = fgkCwidth[ilayer] / 2.0;
-      parServ[1] = fgkClength[ilayer][istack] / 2.0 - fgkHspace / 2.0;
-      parServ[2] = fgkCsvH / 2.0;
+      parServ[0] = CWIDTH[ilayer] / 2.0;
+      parServ[1] = CLENGTH[ilayer][istack] / 2.0 - HSPACE / 2.0;
+      parServ[2] = CSVH / 2.0;
       createVolume(cTagV, "BOX", idtmed[2], parServ, kNparServ);
     }
   }
@@ -1947,16 +1947,16 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
       int iDet = getDetectorSec(ilayer, istack);
       int iCopy = getDetector(ilayer, istack, 0) * 100;
       int nMCMrow = getRowMax(ilayer, istack, 0);
-      float ySize = (getChamberLength(ilayer, istack) - 2.0 * fgkRpadW) / ((float)nMCMrow);
+      float ySize = (getChamberLength(ilayer, istack) - 2.0 * RPADW) / ((float)nMCMrow);
       snprintf(cTagV, kTag, "UU%02d", iDet);
       for (int iMCMrow = 0; iMCMrow < nMCMrow; iMCMrow++) {
         xpos = 0.0;
-        ypos = (0.5 + iMCMrow) * ySize - fgkClength[ilayer][istack] / 2.0 + fgkHspace / 2.0;
+        ypos = (0.5 + iMCMrow) * ySize - CLENGTH[ilayer][istack] / 2.0 + HSPACE / 2.0;
         zpos = 0.0 + 0.742 / 2.0;
         // The cooling pipes
         parTube[0] = 0.0;
         parTube[1] = 0.3 / 2.0; // Thickness of the cooling pipes
-        parTube[2] = fgkCwidth[ilayer] / 2.0;
+        parTube[2] = CWIDTH[ilayer] / 2.0;
         TVirtualMC::GetMC()->Gsposp("UTCP", iCopy + iMCMrow, cTagV, xpos, ypos, zpos, matrix[2], "ONLY", parTube,
                                     kNparTube);
       }
@@ -1979,15 +1979,15 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
       int iDet = getDetectorSec(ilayer, istack);
       int iCopy = getDetector(ilayer, istack, 0) * 100;
       int nMCMrow = getRowMax(ilayer, istack, 0);
-      float ySize = (getChamberLength(ilayer, istack) - 2.0 * fgkRpadW) / ((float)nMCMrow);
+      float ySize = (getChamberLength(ilayer, istack) - 2.0 * RPADW) / ((float)nMCMrow);
       snprintf(cTagV, kTag, "UU%02d", iDet);
       for (int iMCMrow = 0; iMCMrow < nMCMrow; iMCMrow++) {
         xpos = 0.0;
-        ypos = (0.5 + iMCMrow) * ySize - 1.0 - fgkClength[ilayer][istack] / 2.0 + fgkHspace / 2.0;
+        ypos = (0.5 + iMCMrow) * ySize - 1.0 - CLENGTH[ilayer][istack] / 2.0 + HSPACE / 2.0;
         zpos = -0.4 + 0.742 / 2.0;
         parTube[0] = 0.0;
         parTube[1] = 0.2 / 2.0; // Thickness of the power lines
-        parTube[2] = fgkCwidth[ilayer] / 2.0;
+        parTube[2] = CWIDTH[ilayer] / 2.0;
         TVirtualMC::GetMC()->Gsposp("UTPL", iCopy + iMCMrow, cTagV, xpos, ypos, zpos, matrix[2], "ONLY", parTube,
                                     kNparTube);
       }
@@ -2054,21 +2054,21 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
       int iDet = getDetectorSec(ilayer, istack);
       int iCopy = getDetector(ilayer, istack, 0) * 1000;
       int nMCMrow = getRowMax(ilayer, istack, 0);
-      float ySize = (getChamberLength(ilayer, istack) - 2.0 * fgkRpadW) / ((float)nMCMrow);
+      float ySize = (getChamberLength(ilayer, istack) - 2.0 * RPADW) / ((float)nMCMrow);
       int nMCMcol = 8;
-      float xSize = (getChamberWidth(ilayer) - 2.0 * fgkCpadW) / ((float)nMCMcol + 6); // Introduce 6 gaps
+      float xSize = (getChamberWidth(ilayer) - 2.0 * CPADW) / ((float)nMCMcol + 6);    // Introduce 6 gaps
       int iMCM[8] = { 1, 2, 3, 5, 8, 9, 10, 12 };                                      // 0..7 MCM + 6 gap structure
       snprintf(cTagV, kTag, "UU%02d", iDet);
       for (int iMCMrow = 0; iMCMrow < nMCMrow; iMCMrow++) {
         for (int iMCMcol = 0; iMCMcol < nMCMcol; iMCMcol++) {
-          xpos = (0.5 + iMCM[iMCMcol]) * xSize + 1.0 - fgkCwidth[ilayer] / 2.0;
-          ypos = (0.5 + iMCMrow) * ySize + 1.0 - fgkClength[ilayer][istack] / 2.0 + fgkHspace / 2.0;
+          xpos = (0.5 + iMCM[iMCMcol]) * xSize + 1.0 - CWIDTH[ilayer] / 2.0;
+          ypos = (0.5 + iMCMrow) * ySize + 1.0 - CLENGTH[ilayer][istack] / 2.0 + HSPACE / 2.0;
           zpos = -0.4 + 0.742 / 2.0;
           TVirtualMC::GetMC()->Gspos("UMCM", iCopy + iMCMrow * 10 + iMCMcol, cTagV, xpos, ypos, zpos, 0, "ONLY");
           // Add two additional smaller cooling pipes on top of the MCMs
           // to mimic the meandering structure
-          xpos = (0.5 + iMCM[iMCMcol]) * xSize + 1.0 - fgkCwidth[ilayer] / 2.0;
-          ypos = (0.5 + iMCMrow) * ySize - fgkClength[ilayer][istack] / 2.0 + fgkHspace / 2.0;
+          xpos = (0.5 + iMCM[iMCMcol]) * xSize + 1.0 - CWIDTH[ilayer] / 2.0;
+          ypos = (0.5 + iMCMrow) * ySize - CLENGTH[ilayer][istack] / 2.0 + HSPACE / 2.0;
           zpos = 0.0 + 0.742 / 2.0;
           parTube[0] = 0.0;
           parTube[1] = 0.3 / 2.0; // Thickness of the cooling pipes
@@ -2133,10 +2133,10 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
     for (ilayer = 0; ilayer < kNlayer; ilayer++) {
       int iDet = getDetectorSec(ilayer, istack);
       int iCopy = iDet + 1;
-      xpos = fgkCwidth[ilayer] / 2.0 -
-             1.9 * (getChamberLength(ilayer, istack) - 2.0 * fgkRpadW) / ((float)getRowMax(ilayer, istack, 0));
-      ypos = 0.05 * fgkClength[ilayer][istack];
-      zpos = kDCSz / 2.0 - fgkCsvH / 2.0;
+      xpos = CWIDTH[ilayer] / 2.0 -
+             1.9 * (getChamberLength(ilayer, istack) - 2.0 * RPADW) / ((float)getRowMax(ilayer, istack, 0));
+      ypos = 0.05 * CLENGTH[ilayer][istack];
+      zpos = kDCSz / 2.0 - CSVH / 2.0;
       snprintf(cTagV, kTag, "UU%02d", iDet);
       TVirtualMC::GetMC()->Gspos("UDCS", iCopy, cTagV, xpos, ypos, zpos, 0, "ONLY");
     }
@@ -2193,16 +2193,16 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
     for (ilayer = 0; ilayer < kNlayer; ilayer++) {
       int iDet = getDetectorSec(ilayer, istack);
       int iCopy = iDet + 1;
-      xpos = fgkCwidth[ilayer] / 2.0 -
-             1.92 * (getChamberLength(ilayer, istack) - 2.0 * fgkRpadW) / ((float)getRowMax(ilayer, istack, 0));
+      xpos = CWIDTH[ilayer] / 2.0 -
+             1.92 * (getChamberLength(ilayer, istack) - 2.0 * RPADW) / ((float)getRowMax(ilayer, istack, 0));
       ypos = -16.0;
-      zpos = kORIz / 2.0 - fgkCsvH / 2.0;
+      zpos = kORIz / 2.0 - CSVH / 2.0;
       snprintf(cTagV, kTag, "UU%02d", iDet);
       TVirtualMC::GetMC()->Gspos("UORI", iCopy, cTagV, xpos, ypos, zpos, 0, "ONLY");
-      xpos = -fgkCwidth[ilayer] / 2.0 +
-             3.8 * (getChamberLength(ilayer, istack) - 2.0 * fgkRpadW) / ((float)getRowMax(ilayer, istack, 0));
+      xpos = -CWIDTH[ilayer] / 2.0 +
+             3.8 * (getChamberLength(ilayer, istack) - 2.0 * RPADW) / ((float)getRowMax(ilayer, istack, 0));
       ypos = -16.0;
-      zpos = kORIz / 2.0 - fgkCsvH / 2.0;
+      zpos = kORIz / 2.0 - CSVH / 2.0;
       snprintf(cTagV, kTag, "UU%02d", iDet);
       TVirtualMC::GetMC()->Gspos("UORI", iCopy + kNdet, cTagV, xpos, ypos, zpos, 0, "ONLY");
     }
@@ -2228,11 +2228,11 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   TVirtualMC::GetMC()->Gspos("UTG4", 1, "UTG3", xpos, ypos, zpos, 0, "ONLY");
   for (ilayer = 0; ilayer < kNlayer - 1; ilayer++) {
     xpos = 0.0;
-    ypos = fgkClength[ilayer][2] / 2.0 + fgkClength[ilayer][1] + fgkClength[ilayer][0];
-    zpos = 9.0 - fgkSheight / 2.0 + ilayer * (fgkCH + fgkVspace);
+    ypos = CLENGTH[ilayer][2] / 2.0 + CLENGTH[ilayer][1] + CLENGTH[ilayer][0];
+    zpos = 9.0 - SHEIGHT / 2.0 + ilayer * (CH + VSPACE);
     parTube[0] = 0.0;
     parTube[1] = 1.5 / 2.0;
-    parTube[2] = fgkCwidth[ilayer] / 2.0 - 2.5;
+    parTube[2] = CWIDTH[ilayer] / 2.0 - 2.5;
     TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1, "UTI1", xpos, ypos, zpos, matrix[2], "ONLY", parTube, kNparTube);
     TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1 + 1 * kNlayer, "UTI1", xpos, -ypos, zpos, matrix[2], "ONLY", parTube,
                                 kNparTube);
@@ -2342,7 +2342,7 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   TVirtualMC::GetMC()->Gspos("UTCO", 8, "UTCM", xpos, ypos, zpos, matrix[4], "ONLY");
 
   xpos = 40.0;
-  ypos = fgkFlength / 2.0 - 23.0 / 2.0;
+  ypos = FLENGTH / 2.0 - 23.0 / 2.0;
   zpos = 0.0;
   TVirtualMC::GetMC()->Gspos("UTCM", 1, "UTF1", xpos, ypos, zpos, matrix[0], "ONLY");
   TVirtualMC::GetMC()->Gspos("UTCM", 2, "UTF1", -xpos, ypos, zpos, matrix[1], "ONLY");
@@ -2355,15 +2355,15 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   parBox[2] = 7.0 / 2.0;
   createVolume("UTPC", "BOX ", idtmed[25], parBox, kNparBox);
   for (ilayer = 0; ilayer < kNlayer - 1; ilayer++) {
-    xpos = fgkCwidth[ilayer] / 2.0 + kPWRwid / 2.0;
+    xpos = CWIDTH[ilayer] / 2.0 + kPWRwid / 2.0;
     ypos = 0.0;
-    zpos = fgkVrocsm + fgkSMpltT + kPWRhgtA / 2.0 - fgkSheight / 2.0 + kPWRposz + (ilayer + 1) * (fgkCH + fgkVspace);
+    zpos = VROCSM + SMPLTT + kPWRhgtA / 2.0 - SHEIGHT / 2.0 + kPWRposz + (ilayer + 1) * (CH + VSPACE);
     TVirtualMC::GetMC()->Gspos("UTPC", ilayer, "UTF1", xpos, ypos, zpos, matrix[0], "ONLY");
     TVirtualMC::GetMC()->Gspos("UTPC", ilayer + kNlayer, "UTF1", -xpos, ypos, zpos, matrix[1], "ONLY");
   }
-  xpos = fgkCwidth[5] / 2.0 + kPWRhgtA / 2.0 - 2.0;
+  xpos = CWIDTH[5] / 2.0 + kPWRhgtA / 2.0 - 2.0;
   ypos = 0.0;
-  zpos = fgkSheight / 2.0 - fgkSMpltT - 2.0;
+  zpos = SHEIGHT / 2.0 - SMPLTT - 2.0;
   TVirtualMC::GetMC()->Gspos("UTPC", 5, "UTF1", xpos, ypos, zpos, matrix[3], "ONLY");
   TVirtualMC::GetMC()->Gspos("UTPC", 5 + kNlayer, "UTF1", -xpos, ypos, zpos, matrix[3], "ONLY");
 
@@ -2396,8 +2396,8 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   zpos = 0.0;
   TVirtualMC::GetMC()->Gspos("UTE2", 1, "UTE1", xpos, ypos, zpos, 0, "ONLY");
   xpos = 0.0;
-  ypos = fgkSlength / 2.0 - 10.0 / 2.0 - 3.0;
-  zpos = -fgkSheight / 2.0 + 6.0 / 2.0 + 1.0;
+  ypos = SLENGTH / 2.0 - 10.0 / 2.0 - 3.0;
+  zpos = -SHEIGHT / 2.0 + 6.0 / 2.0 + 1.0;
   TVirtualMC::GetMC()->Gspos("UTE1", 1, "UTI1", xpos, ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("UTE1", 2, "UTI2", xpos, ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("UTE1", 3, "UTI3", xpos, ypos, zpos, 0, "ONLY");
@@ -2418,8 +2418,8 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   zpos = 0.0;
   TVirtualMC::GetMC()->Gspos("UTE4", 1, "UTE3", xpos, ypos, zpos, 0, "ONLY");
   xpos = 0.0;
-  ypos = -fgkSlength / 2.0 + 15.0 / 2.0 + 3.0;
-  zpos = -fgkSheight / 2.0 + 20.0 / 2.0 + 1.0;
+  ypos = -SLENGTH / 2.0 + 15.0 / 2.0 + 3.0;
+  zpos = -SHEIGHT / 2.0 + 20.0 / 2.0 + 1.0;
   TVirtualMC::GetMC()->Gspos("UTE3", 1, "UTI1", xpos, ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("UTE3", 2, "UTI2", xpos, ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("UTE3", 3, "UTI3", xpos, ypos, zpos, 0, "ONLY");
@@ -2440,7 +2440,7 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   zpos = 0.0;
   TVirtualMC::GetMC()->Gspos("UTE6", 1, "UTE5", xpos, ypos, zpos, 0, "ONLY");
   xpos = 20.0;
-  ypos = -fgkSlength / 2.0 + 7.0 / 2.0 + 3.0;
+  ypos = -SLENGTH / 2.0 + 7.0 / 2.0 + 3.0;
   zpos = 0.0;
   TVirtualMC::GetMC()->Gspos("UTE5", 1, "UTI1", xpos, ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("UTE5", 2, "UTI2", xpos, ypos, zpos, 0, "ONLY");
@@ -2479,24 +2479,24 @@ void TRDGeometry::assembleChamber(int ilayer, int istack)
   // including radiator and drift region
   xpos = 0.0;
   ypos = 0.0;
-  zpos = fgkCraH / 2.0 + fgkCdrH / 2.0 - fgkCHsv / 2.0;
+  zpos = CRAH / 2.0 + CDRH / 2.0 - CHSV / 2.0;
   snprintf(cTagV, kTag, "UA%02d", idet);
   TGeoVolume* rocA = gGeoManager->GetVolume(cTagV);
   roc->AddNode(rocA, 1, new TGeoTranslation(xpos, ypos, zpos));
 
   // Add the additional aluminum ledges
-  xpos = fgkCwidth[ilayer] / 2.0 + fgkCalWmod / 2.0;
+  xpos = CWIDTH[ilayer] / 2.0 + CALWMOD / 2.0;
   ypos = 0.0;
-  zpos = fgkCraH + fgkCdrH - fgkCalZpos - fgkCalHmod / 2.0 - fgkCHsv / 2.0;
+  zpos = CRAH + CDRH - CALZPOS - CALHMOD / 2.0 - CHSV / 2.0;
   snprintf(cTagV, kTag, "UZ%02d", idet);
   TGeoVolume* rocZ = gGeoManager->GetVolume(cTagV);
   roc->AddNode(rocZ, 1, new TGeoTranslation(xpos, ypos, zpos));
   roc->AddNode(rocZ, 2, new TGeoTranslation(-xpos, ypos, zpos));
 
   // Add the additional wacosit ledges
-  xpos = fgkCwidth[ilayer] / 2.0 + fgkCwsW / 2.0;
+  xpos = CWIDTH[ilayer] / 2.0 + CWSW / 2.0;
   ypos = 0.0;
-  zpos = fgkCraH + fgkCdrH - fgkCwsH / 2.0 - fgkCHsv / 2.0;
+  zpos = CRAH + CDRH - CWSH / 2.0 - CHSV / 2.0;
   snprintf(cTagV, kTag, "UP%02d", idet);
   TGeoVolume* rocP = gGeoManager->GetVolume(cTagV);
   roc->AddNode(rocP, 1, new TGeoTranslation(xpos, ypos, zpos));
@@ -2506,7 +2506,7 @@ void TRDGeometry::assembleChamber(int ilayer, int istack)
   // including amplification region
   xpos = 0.0;
   ypos = 0.0;
-  zpos = fgkCamH / 2.0 + fgkCraH + fgkCdrH - fgkCHsv / 2.0;
+  zpos = CAMH / 2.0 + CRAH + CDRH - CHSV / 2.0;
   snprintf(cTagV, kTag, "UD%02d", idet);
   TGeoVolume* rocD = gGeoManager->GetVolume(cTagV);
   roc->AddNode(rocD, 1, new TGeoTranslation(xpos, ypos, zpos));
@@ -2515,7 +2515,7 @@ void TRDGeometry::assembleChamber(int ilayer, int istack)
   // including back panel and FEE
   xpos = 0.0;
   ypos = 0.0;
-  zpos = fgkCroH / 2.0 + fgkCamH + fgkCraH + fgkCdrH - fgkCHsv / 2.0;
+  zpos = CROH / 2.0 + CAMH + CRAH + CDRH - CHSV / 2.0;
   snprintf(cTagV, kTag, "UF%02d", idet);
   TGeoVolume* rocF = gGeoManager->GetVolume(cTagV);
   roc->AddNode(rocF, 1, new TGeoTranslation(xpos, ypos, zpos));
@@ -2523,7 +2523,7 @@ void TRDGeometry::assembleChamber(int ilayer, int istack)
   // Add the volume with services on top of the back panel
   xpos = 0.0;
   ypos = 0.0;
-  zpos = fgkCsvH / 2.0 + fgkCroH + fgkCamH + fgkCraH + fgkCdrH - fgkCHsv / 2.0;
+  zpos = CSVH / 2.0 + CROH + CAMH + CRAH + CDRH - CHSV / 2.0;
   snprintf(cTagV, kTag, "UU%02d", idet);
   TGeoVolume* rocU = gGeoManager->GetVolume(cTagV);
   roc->AddNode(rocU, 1, new TGeoTranslation(xpos, ypos, zpos));
@@ -2531,12 +2531,12 @@ void TRDGeometry::assembleChamber(int ilayer, int istack)
   // Place the ROC assembly into the super modules
   xpos = 0.0;
   ypos = 0.0;
-  ypos = fgkClength[ilayer][0] + fgkClength[ilayer][1] + fgkClength[ilayer][2] / 2.0;
+  ypos = CLENGTH[ilayer][0] + CLENGTH[ilayer][1] + CLENGTH[ilayer][2] / 2.0;
   for (int ic = 0; ic < istack; ic++) {
-    ypos -= fgkClength[ilayer][ic];
+    ypos -= CLENGTH[ilayer][ic];
   }
-  ypos -= fgkClength[ilayer][istack] / 2.0;
-  zpos = fgkVrocsm + fgkSMpltT + fgkCHsv / 2.0 - fgkSheight / 2.0 + ilayer * (fgkCH + fgkVspace);
+  ypos -= CLENGTH[ilayer][istack] / 2.0;
+  zpos = VROCSM + SMPLTT + CHSV / 2.0 - SHEIGHT / 2.0 + ilayer * (CH + VSPACE);
   TGeoVolume* sm1 = gGeoManager->GetVolume("UTI1");
   TGeoVolume* sm2 = gGeoManager->GetVolume("UTI2");
   TGeoVolume* sm3 = gGeoManager->GetVolume("UTI3");
@@ -2558,50 +2558,50 @@ void TRDGeometry::fillMatrixCache(int mask)
   if (mask != o2::utils::bit2Mask(o2::TransformType::T2L)) {
     LOG(FATAL) << "Unsupported transform matrix mask" << FairLogger::endl;
   }
-  
+
   useT2LCache();
 
   std::string volPath;
-  const std::string vpStr { "ALIC_1/B077_1/BSEGMO" };
-  const std::string vpApp1 {"_1/BTRD" };
-  const std::string vpApp2  { "_1" };
-  const std::string vpApp3a { "/UTR1_1/UTS1_1/UTI1_1" };
-  const std::string vpApp3b { "/UTR2_1/UTS2_1/UTI2_1" };
-  const std::string vpApp3c { "/UTR3_1/UTS3_1/UTI3_1" };
-  const std::string vpApp3d { "/UTR4_1/UTS4_1/UTI4_1" };
+  const std::string vpStr{ "ALIC_1/B077_1/BSEGMO" };
+  const std::string vpApp1{ "_1/BTRD" };
+  const std::string vpApp2{ "_1" };
+  const std::string vpApp3a{ "/UTR1_1/UTS1_1/UTI1_1" };
+  const std::string vpApp3b{ "/UTR2_1/UTS2_1/UTI2_1" };
+  const std::string vpApp3c{ "/UTR3_1/UTS3_1/UTI3_1" };
+  const std::string vpApp3d{ "/UTR4_1/UTS4_1/UTI4_1" };
 
   for (int ilayer = 0; ilayer < kNlayer; ilayer++) {
-    for (int isector = 0; isector < kNsector; isector++ ) {
+    for (int isector = 0; isector < kNsector; isector++) {
       for (int istack = 0; istack < kNstack; istack++) {
-        Int_t lid = getDetector(ilayer,istack,isector);
+        Int_t lid = getDetector(ilayer, istack, isector);
         // Check for disabled supermodules
-        volPath  = vpStr;
+        volPath = vpStr;
         volPath += std::to_string(isector);
         volPath += vpApp1;
         volPath += std::to_string(isector);
         volPath += vpApp2;
         switch (isector) {
-        case 17:
-          if ((istack == 4) && (ilayer == 4)) {
-            continue;
-          }
-          volPath += vpApp3d;
-          break;
-        case 13:
-        case 14:
-        case 15:
-          // Check for holes in from of PHOS
-          if (istack == 2) {
-            continue;
-          }
-          volPath += vpApp3c;
-          break;
-        case 11:
-        case 12:
-          volPath += vpApp3b;
-          break;
-        default:
-          volPath += vpApp3a;
+          case 17:
+            if ((istack == 4) && (ilayer == 4)) {
+              continue;
+            }
+            volPath += vpApp3d;
+            break;
+          case 13:
+          case 14:
+          case 15:
+            // Check for holes in from of PHOS
+            if (istack == 2) {
+              continue;
+            }
+            volPath += vpApp3c;
+            break;
+          case 11:
+          case 12:
+            volPath += vpApp3b;
+            break;
+          default:
+            volPath += vpApp3a;
         };
         if (!gGeoManager->CheckPath(volPath.c_str())) {
           continue;
@@ -2613,10 +2613,10 @@ void TRDGeometry::fillMatrixCache(int mask)
         //
         // Cluster transformation matrix
         //
-        TGeoHMatrix  rotMatrix(mchange.Inverse());
+        TGeoHMatrix rotMatrix(mchange.Inverse());
         rotMatrix.MultiplyLeft(m);
         Double_t sectorAngle = 20.0 * (isector % 18) + 10.0;
-        TGeoHMatrix  rotSector;
+        TGeoHMatrix rotSector;
         rotSector.RotateZ(sectorAngle);
         const auto& inv = rotSector.Inverse();
         rotMatrix.MultiplyLeft(&inv);
@@ -2635,91 +2635,91 @@ void TRDGeometry::addAlignableVolumes() const
   if (!gGeoManager) {
     LOG(FATAL) << "Geometry is not loaded";
   }
-  
+
   std::string volPath;
-  std::string vpStr { "ALIC_1/B077_1/BSEGMO" };
-  const std::string vpApp1 {"_1/BTRD" };
-  const std::string vpApp2  { "_1" };
-  const std::string vpApp3a { "/UTR1_1/UTS1_1/UTI1_1" };
-  const std::string vpApp3b { "/UTR2_1/UTS2_1/UTI2_1" };
-  const std::string vpApp3c { "/UTR3_1/UTS3_1/UTI3_1" };
-  const std::string vpApp3d { "/UTR4_1/UTS4_1/UTI4_1" };
+  std::string vpStr{ "ALIC_1/B077_1/BSEGMO" };
+  const std::string vpApp1{ "_1/BTRD" };
+  const std::string vpApp2{ "_1" };
+  const std::string vpApp3a{ "/UTR1_1/UTS1_1/UTI1_1" };
+  const std::string vpApp3b{ "/UTR2_1/UTS2_1/UTI2_1" };
+  const std::string vpApp3c{ "/UTR3_1/UTS3_1/UTI3_1" };
+  const std::string vpApp3d{ "/UTR4_1/UTS4_1/UTI4_1" };
   std::string symName;
-  
+
   // in opposite to AliGeomManager, we use consecutive numbering of modules through whole TRD
   int volid = -1;
 
   // The super modules
   // The symbolic names are: TRD/sm00 ... TRD/sm17
-  for (int isector = 0; isector < kNsector; isector++ ) {
-    volPath  = vpStr;
+  for (int isector = 0; isector < kNsector; isector++) {
+    volPath = vpStr;
     volPath += std::to_string(isector);
     volPath += vpApp1;
     volPath += std::to_string(isector);
     volPath += vpApp2;
-    symName = Form("TRD/sm%02d",isector);
-    gGeoManager->SetAlignableEntry(symName.c_str(),volPath.c_str());
+    symName = Form("TRD/sm%02d", isector);
+    gGeoManager->SetAlignableEntry(symName.c_str(), volPath.c_str());
   }
-  
+
   // The readout chambers
   // The symbolic names are: TRD/sm00/st0/pl0 ... TRD/sm17/st4/pl5
-  
-  for (int isector = 0; isector < kNsector; isector++ ) {
-    if (!getSMstatus(isector)) continue;
+
+  for (int isector = 0; isector < kNsector; isector++) {
+    if (!getSMstatus(isector))
+      continue;
     for (int ilayer = 0; ilayer < kNlayer; ilayer++) {
       for (int istack = 0; istack < kNstack; istack++) {
-        Int_t lid = getDetector(ilayer,istack,isector);
+        Int_t lid = getDetector(ilayer, istack, isector);
         int idet = getDetectorSec(ilayer, istack);
 
         // Check for disabled supermodules
-        volPath  = vpStr;
+        volPath = vpStr;
         volPath += std::to_string(isector);
         volPath += vpApp1;
         volPath += std::to_string(isector);
         volPath += vpApp2;
         switch (isector) {
-        case 17:
-          if ((istack == 4) && (ilayer == 4)) {
-            continue;
-          }
-          volPath += vpApp3d;
-          break;
-        case 13:
-        case 14:
-        case 15:
-          // Check for holes in from of PHOS
-          if (istack == 2) {
-            continue;
-          }
-          volPath += vpApp3c;
-          break;
-        case 11:
-        case 12:
-          volPath += vpApp3b;
-          break;
-        default:
-          volPath += vpApp3a;
+          case 17:
+            if ((istack == 4) && (ilayer == 4)) {
+              continue;
+            }
+            volPath += vpApp3d;
+            break;
+          case 13:
+          case 14:
+          case 15:
+            // Check for holes in from of PHOS
+            if (istack == 2) {
+              continue;
+            }
+            volPath += vpApp3c;
+            break;
+          case 11:
+          case 12:
+            volPath += vpApp3b;
+            break;
+          default:
+            volPath += vpApp3a;
         };
-        volPath += Form("/UT%02d_1",idet);
+        volPath += Form("/UT%02d_1", idet);
 
-        symName  = Form("TRD/sm%02d/st%d/pl%d",isector,istack,ilayer);
+        symName = Form("TRD/sm%02d/st%d/pl%d", isector, istack, ilayer);
         int modID = o2::Base::GeometryManager::getSensID(o2::detectors::DetID::TRD, lid);
 
-        TGeoPNEntry *alignableEntry = gGeoManager->SetAlignableEntry(symName.c_str(),volPath.c_str(),modID);
+        TGeoPNEntry* alignableEntry = gGeoManager->SetAlignableEntry(symName.c_str(), volPath.c_str(), modID);
 
         // Add the tracking to local matrix
         if (alignableEntry) {
-          TGeoHMatrix *globMatrix = alignableEntry->GetGlobalOrig();
+          TGeoHMatrix* globMatrix = alignableEntry->GetGlobalOrig();
           Double_t sectorAngle = 20.0 * (isector % 18) + 10.0;
-          TGeoHMatrix *t2lMatrix  = new TGeoHMatrix();
+          TGeoHMatrix* t2lMatrix = new TGeoHMatrix();
           t2lMatrix->RotateZ(sectorAngle);
           const TGeoHMatrix& globmatrixi = globMatrix->Inverse();
           t2lMatrix->MultiplyLeft(&globmatrixi);
           alignableEntry->SetMatrix(t2lMatrix);
-        }
-        else {
+        } else {
           LOG(ERROR) << "Alignable entry is not valid: ModID:" << modID << " Sector:" << isector << " Lr:" << ilayer
-              << " Stack: " << istack << " name: " << symName.c_str() << " vol: " << volPath.c_str();
+                     << " Stack: " << istack << " name: " << symName.c_str() << " vol: " << volPath.c_str();
         }
       }
     }
@@ -2734,7 +2734,7 @@ bool TRDGeometry::createClusterMatrixArray()
     return false;
   }
   if (isBuilt()) {
-    LOG(WARNING) << "Already built" << FairLogger::endl;
+    LOG(WARNING) << "Already built";
     return true; // already initialized
   }
 
@@ -2749,7 +2749,9 @@ const TRDGeometry::Mat3D* TRDGeometry::getClusterMatrix(int det)
   //
   // Returns the cluster transformation matrix for a given detector
   //
-  if (!isMatrixAvailable(det)) return nullptr;
+  if (!isMatrixAvailable(det)) {
+    return nullptr;
+  }
   return &getMatrixT2L(det);
 }
 
