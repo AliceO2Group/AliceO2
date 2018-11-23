@@ -460,6 +460,7 @@ o2_define_bucket(
     common_boost_bucket
     fairmq_bucket
     Base FairTools Core MathCore Matrix Minuit Hist Geom GenVector RIO
+    AliTPCCommonBase_bucket
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -1345,6 +1346,7 @@ o2_define_bucket(
     CommonDataFormat
     data_format_detectors_common_bucket
     DetectorsCommonDataFormats
+    AliTPCCommonBase_bucket
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}

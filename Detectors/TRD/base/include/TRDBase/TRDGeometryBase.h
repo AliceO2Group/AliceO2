@@ -11,24 +11,26 @@
 #ifndef O2_TRDGEOMETRYBASE_H
 #define O2_TRDGEOMETRYBASE_H
 
+#include "AliTPCCommonDefGPU.h"
 #include "TRDBase/TRDCommonParam.h"
+#include "TRDBase/TRDPadPlane.h"
 
 namespace o2
 {
 namespace trd
 {
-class TRDPadPlane;
-
 class TRDGeometryBase
 {
  public:
   ~TRDGeometryBase() = default;
 
-  int isVersion() { return 1; }
-  bool isHole(int la, int st, int se) const;
-  bool isOnBoundary(int det, float y, float z, float eps = 0.5) const;
+  static constexpr int MAXMATRICES = 521;
 
-  void setSMstatus(int sm, bool status)
+  GPUd() int isVersion() { return 1; }
+  GPUd() bool isHole(int la, int st, int se) const { return (((se == 13) || (se == 14) || (se == 15)) && (st == 2)); }
+  GPUd() bool isOnBoundary(int det, float y, float z, float eps = 0.5) const;
+
+  GPUd() void setSMstatus(int sm, bool status)
   {
     if (status) {
       mSMStatus |= 0x3ffff & (0x1 << sm);
@@ -36,19 +38,21 @@ class TRDGeometryBase
       mSMStatus &= ~(0x3ffff & (0x1 << sm));
     }
   }
-  bool getSMstatus(int sm) const { return (mSMStatus & (0x1 << sm)) != 0; }
-  int getDetectorSec(int layer, int stack) const;
-  int getDetector(int layer, int stack, int sector) const;
-  int getLayer(int det) const;
-  int getStack(int det) const;
-  int getStack(float z, int layer) const;
+  GPUd() bool getSMstatus(int sm) const { return (mSMStatus & (0x1 << sm)) != 0; }
+  GPUd() int getDetectorSec(int det) const { return (det % (kNlayer * kNstack)); }
+  GPUd() int getDetectorSec(int layer, int stack) const { return (layer + stack * kNlayer); }
+  GPUd() int getDetector(int layer, int stack, int sector) const { return (layer + stack * kNlayer + sector * kNlayer * kNstack); }
+  GPUd() int getLayer(int det) const { return (det % kNlayer); }
+  GPUd() int getStack(int det) const { return ((det % (kNlayer * kNstack)) / kNlayer); }
+  GPUd() int getStack(float z, int layer) const;
 
-  TRDPadPlane* getPadPlane(int layer, int stack) const;
-  TRDPadPlane* getPadPlane(int det) const { return getPadPlane(getLayer(det), getStack(det)); }
-  int getRowMax(int layer, int stack, int /*sector*/) const;
-  int getColMax(int layer) const;
-  float getRow0(int layer, int stack, int /*sector*/) const;
-  float getCol0(int layer) const;
+  GPUd() const TRDPadPlane* getPadPlane(int layer, int stack) const { return &mPadPlanes[getDetectorSec(layer, stack)]; }
+  GPUd() const TRDPadPlane* getPadPlane(int det) const { return &mPadPlanes[getDetectorSec(det)]; }
+
+  GPUd() int getRowMax(int layer, int stack, int /*sector*/) const { return getPadPlane(layer, stack)->getNrows(); }
+  GPUd() int getColMax(int layer) const { return getPadPlane(layer, 0)->getNcols(); }
+  GPUd() float getRow0(int layer, int stack, int /*sector*/) const { return getPadPlane(layer, stack)->getRow0(); }
+  GPUd() float getCol0(int layer) const { return getPadPlane(layer, 0)->getCol0(); }
 
   static constexpr int getSector(int det) { return (det / (kNlayer * kNstack)); }
   static constexpr float getTime0(int layer) { return TIME0[layer]; }
@@ -84,6 +88,7 @@ class TRDGeometryBase
   static constexpr int colmax() { return COLMAX; }
   static constexpr int rowmaxC0() { return ROWMAXC0; }
   static constexpr int rowmaxC1() { return ROWMAXC1; }
+
  protected:
   TRDGeometryBase() = default;
 
@@ -202,12 +207,11 @@ class TRDGeometryBase
     { 147.0, 147.0, 110.0, 147.0, 147.0 }
   };
 
+  TRDPadPlane mPadPlanes[kNlayer * kNstack];
+
   int mSMStatus = 0x3ffff;
 
-  TRDPadPlane* mPadPlaneArray = nullptr;
-
- private:
-  ClassDefNV(TRDGeometryBase, 1) //  TRD geometry class
+  ClassDefNV(TRDGeometryBase, 1)
 };
 } // end namespace trd
 } // end namespace o2
