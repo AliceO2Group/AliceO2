@@ -262,11 +262,10 @@ o2_define_bucket(
     FairTools
     Headers
     fairmq_bucket
-    ${Monitoring_LIBRARIES}
+    AliceO2::Monitoring
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
-    ${Monitoring_INCLUDE_DIRS}
 )
 
 o2_define_bucket(
@@ -307,14 +306,12 @@ o2_define_bucket(
     TreePlayer
     Net
     DebugGUI
-    ${Monitoring_LIBRARIES}
-    ${Configuration_LIBRARIES}
+    AliceO2::Monitoring
+    AliceO2::Configuration
     InfoLogger_bucket
     AliceO2::Common
 
     SYSTEMINCLUDE_DIRECTORIES
-    ${Monitoring_INCLUDE_DIRS}
-    ${Configuration_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/Utilities/PCG/include
 )
 
