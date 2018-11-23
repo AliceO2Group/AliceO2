@@ -49,8 +49,8 @@ class MatrixCache
   void setMatrix(const T& mat, int sensID)
   {
     // assign matrix for given sensor. The cache must be booked in advance
-    if (sensID >= mCache.size()) {
-      LOG(FATAL) << "SensID " << sensID << " exceeds cache size of " << mCache.size() << FairLogger::endl;
+    if ((unsigned int)sensID >= mCache.size()) {
+      LOG(FATAL) << "SensID " << sensID << " exceeds cache size of " << mCache.size();
     }
     mCache[sensID] = mat;
   }
@@ -117,6 +117,62 @@ class DetMatrixCache
   MatrixCache<Rot2D> mT2GRot; ///< Tracking to Global matrices in case of barrel (simple rotation)
 
   ClassDef(DetMatrixCache, 1);
+};
+
+/// Variant of DetMatrixCache for non consecutive indexing
+
+class DetMatrixCacheIndirect : private DetMatrixCache
+{
+ public:
+  typedef o2::Transform3D Mat3D;
+  typedef o2::Rotation2D Rot2D;
+     
+  DetMatrixCacheIndirect() = default;
+  DetMatrixCacheIndirect(const o2::detectors::DetID& id) : DetMatrixCache(id) {}
+  virtual ~DetMatrixCacheIndirect() override = default;
+
+  DetMatrixCacheIndirect(const DetMatrixCacheIndirect& src) = delete;
+  DetMatrixCacheIndirect& operator=(const DetMatrixCacheIndirect& geom) = delete;
+
+  const Mat3D& getMatrixT2L(int sensID) const { return mT2L.getMatrix(mIndirection[sensID]); }
+  const Mat3D& getMatrixT2G(int sensID) const { return mT2G.getMatrix(mIndirection[sensID]); }
+  const Mat3D& getMatrixL2G(int sensID) const { return mL2G.getMatrix(mIndirection[sensID]); }
+  const Rot2D& getMatrixT2GRot(int sensID) const { return mT2GRot.getMatrix(mIndirection[sensID]); }
+  
+  bool isBuilt() const { return DetMatrixCache::isBuilt(); }
+  int getSize() const { return DetMatrixCache::getSize(); }
+  int getIndirectSize() const { return mIndirectSize; }
+  bool isMatrixAvailable(int sensID) const { return mIndirection[sensID] >= 0; }
+
+protected:
+  // before calling fillMatrixCache, detector implementation should set the size of the matrix cache
+  void setSize(int s) = delete;
+  void setSize(int size, int sizeIndirect);
+
+  void setMatrixT2L(const Mat3D& matrix, int sensID) { mT2L.setMatrix(matrix, getCacheHelper(sensID)); }
+  void setMatrixT2G(const Mat3D& matrix, int sensID) { mT2G.setMatrix(matrix, getCacheHelper(sensID)); }
+  void setMatrixL2G(const Mat3D& matrix, int sensID) { mL2G.setMatrix(matrix, getCacheHelper(sensID)); }
+  void setMatrixT2GRot(const Rot2D& matrix, int sensID) { mT2GRot.setMatrix(matrix, getCacheHelper(sensID)); }
+  void useT2LCache() { mT2L.setSize(mSize); }
+  void useT2GCache() { mT2G.setSize(mSize); }
+  void useL2GCache() { mL2G.setSize(mSize); }
+  void useT2GRotCache() { mT2GRot.setSize(mSize); }
+
+ private:
+  int getCacheHelper(int sensID)
+  {
+    if (sensID >= mIndirectSize) {
+      LOG(FATAL) << "SendID " << sensID << " exceeds indirect cache size of " << mIndirectSize;
+    }
+    if (mIndirection[sensID] >= 0) return mIndirection[sensID];
+    return (mIndirection[sensID] = mNextEntry++);
+  }
+    
+  int mIndirectSize = 0;           ///< prebooked number of indirect sensors
+  int mNextEntry = 0;              ///< next free entry in actual cache
+  std::vector<short> mIndirection; ///< indirection table
+
+  ClassDefOverride(DetMatrixCacheIndirect, 1);
 };
 }
 }
