@@ -126,7 +126,7 @@ class DetMatrixCacheIndirect : private DetMatrixCache
  public:
   typedef o2::Transform3D Mat3D;
   typedef o2::Rotation2D Rot2D;
-     
+
   DetMatrixCacheIndirect() = default;
   DetMatrixCacheIndirect(const o2::detectors::DetID& id) : DetMatrixCache(id) {}
   virtual ~DetMatrixCacheIndirect() override = default;
@@ -138,13 +138,13 @@ class DetMatrixCacheIndirect : private DetMatrixCache
   const Mat3D& getMatrixT2G(int sensID) const { return mT2G.getMatrix(mIndirection[sensID]); }
   const Mat3D& getMatrixL2G(int sensID) const { return mL2G.getMatrix(mIndirection[sensID]); }
   const Rot2D& getMatrixT2GRot(int sensID) const { return mT2GRot.getMatrix(mIndirection[sensID]); }
-  
+
   bool isBuilt() const { return DetMatrixCache::isBuilt(); }
   int getSize() const { return DetMatrixCache::getSize(); }
   int getIndirectSize() const { return mIndirectSize; }
   bool isMatrixAvailable(int sensID) const { return mIndirection[sensID] >= 0; }
 
-protected:
+ protected:
   // before calling fillMatrixCache, detector implementation should set the size of the matrix cache
   void setSize(int s) = delete;
   void setSize(int size, int sizeIndirect);
@@ -164,10 +164,12 @@ protected:
     if (sensID >= mIndirectSize) {
       LOG(FATAL) << "SendID " << sensID << " exceeds indirect cache size of " << mIndirectSize;
     }
-    if (mIndirection[sensID] >= 0) return mIndirection[sensID];
+    if (mIndirection[sensID] >= 0) {
+      return mIndirection[sensID];
+    }
     return (mIndirection[sensID] = mNextEntry++);
   }
-    
+
   int mIndirectSize = 0;           ///< prebooked number of indirect sensors
   int mNextEntry = 0;              ///< next free entry in actual cache
   std::vector<short> mIndirection; ///< indirection table
