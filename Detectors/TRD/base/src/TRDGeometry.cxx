@@ -28,7 +28,7 @@ std::unique_ptr<TRDPadPlane[]> TRDGeometry::fgPadPlaneArray;
 const o2::detectors::DetID TRDGeometry::sDetID(o2::detectors::DetID::TRD);
 
 //_____________________________________________________________________________
-TRDGeometry::TRDGeometry() : TRDGeometryBase()
+TRDGeometry::TRDGeometry() : TRDGeometryBase(), o2::detectors::DetMatrixCacheIndirect(sDetID)
 {
   //
   // TRDGeometry default constructor
@@ -274,10 +274,23 @@ void TRDGeometry::CreateGeometry(std::vector<int> const& idtmed)
 {
   //
   // Create the TRD geometry
+  
+  if (isBuilt()) {
+    LOG(WARNING) << "Already built" << FairLogger::endl;
+    return; // already initialized
+  }
+
+  if (!gGeoManager) {
+    // RSTODO: in future there will be a method to load matrices from the CDB
+    LOG(FATAL) << "Geometry is not loaded" << FairLogger::endl;
+  }
+
   CreatePadPlaneArray();
   mPadPlaneArray = fgPadPlaneArray.get();
   CreateVolumes(idtmed);
-  CreatePadPlaneArray();
+  
+  setSize(kNdet, kNdet);
+  fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L));
 }
 
 void TRDGeometry::CreateVolumes(std::vector<int> const& idtmed)
@@ -2559,30 +2572,22 @@ void TRDGeometry::AssembleChamber(int ilayer, int istack)
   }
 }
 
-/*
-//_____________________________________________________________________________
-bool TRDGeometry::CreateClusterMatrixArray()
+void TRDGeometry::fillMatrixCache(int mask)
 {
-  //
-  // Create the matrices to transform cluster coordinates from the
-  // local chamber system to the tracking coordinate system
-  //
-
-  if (!gGeoManager) {
-    return false;
+  if (mask != o2::utils::bit2Mask(o2::TransformType::T2L)) {
+    LOG(FATAL) << "Unsupported transform matrix mask" << FairLogger::endl;
   }
+  
+  useT2LCache();
 
-  if(fgClusterMatrixArray)
-    return true;
-
-  TString volPath;
-  TString vpStr   = "ALIC_1/B077_1/BSEGMO";
-  TString vpApp1  = "_1/BTRD";
-  TString vpApp2  = "_1";
-  TString vpApp3a = "/UTR1_1/UTS1_1/UTI1_1";
-  TString vpApp3b = "/UTR2_1/UTS2_1/UTI2_1";
-  TString vpApp3c = "/UTR3_1/UTS3_1/UTI3_1";
-  TString vpApp3d = "/UTR4_1/UTS4_1/UTI4_1";
+  std::string volPath;
+  const std::string vpStr   = "ALIC_1/B077_1/BSEGMO";
+  const std::string vpApp1  = "_1/BTRD";
+  const std::string vpApp2  = "_1";
+  const std::string vpApp3a = "/UTR1_1/UTS1_1/UTI1_1";
+  const std::string vpApp3b = "/UTR2_1/UTS2_1/UTI2_1";
+  const std::string vpApp3c = "/UTR3_1/UTS3_1/UTI3_1";
+  const std::string vpApp3d = "/UTR4_1/UTS4_1/UTI4_1";
 
   fgClusterMatrixArray = new TObjArray(kNdet);
 
@@ -2643,35 +2648,22 @@ bool TRDGeometry::CreateClusterMatrixArray()
         rotSector.RotateZ(sectorAngle);
         const auto& inv = rotSector.Inverse();
         rotMatrix->MultiplyLeft(&inv);
-        sClusterMatrixArray[lid] = rotMatrix;
+        setMatrixT2L(Mat3D(*rotMatrix), lid);
       }
     }
   }
-
-  return true;
-
 }
-*/
 
-/*
 //_____________________________________________________________________________
-TGeoHMatrix *TRDGeometry::GetClusterMatrix(int det)
+const TRDGeometry::Mat3D* TRDGeometry::GetClusterMatrix(int det)
 {
   //
   // Returns the cluster transformation matrix for a given detector
   //
-
-  if (!fgClusterMatrixArray) {
-    if (!CreateClusterMatrixArray()) {
-      return NULL;
-    }
-  }
-  return (TGeoHMatrix *) fgClusterMatrixArray->At(det);
-
+  if (!isMatrixAvailable(det)) return nullptr;
+  return &getMatrixT2L(det);
 }
-*/
 
-/*
 //_____________________________________________________________________________
 bool TRDGeometry::ChamberInGeometry(int det)
 {
@@ -2679,14 +2671,11 @@ bool TRDGeometry::ChamberInGeometry(int det)
   // Checks whether the given detector is part of the current geometry
   //
 
-  if (!GetClusterMatrix(det)) {
+  if (!isMatrixAvailable(det)) {
     return false;
-  }
-  else {
+  } else {
     return true;
   }
-
 }
-*/
 
 ClassImp(TRDGeometry)

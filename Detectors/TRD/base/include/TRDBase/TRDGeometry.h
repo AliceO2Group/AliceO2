@@ -12,6 +12,7 @@
 #define O2_TRDGEOMETRY_H
 
 #include "TRDBase/TRDGeometryBase.h"
+#include "DetectorsCommonDataFormats/DetMatrixCache.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 
 #include <string>
@@ -20,13 +21,15 @@
 
 class TGeoHMatrix;
 
+using namespace o2::trd;
+
 namespace o2
 {
 namespace trd
 {
 class TRDPadPlane;
 
-class TRDGeometry : public TRDGeometryBase
+class TRDGeometry : public TRDGeometryBase, public o2::detectors::DetMatrixCacheIndirect
 {
  public:
   TRDGeometry();
@@ -40,10 +43,15 @@ class TRDGeometry : public TRDGeometryBase
   void CreateFrame(std::vector<int> const& idtmed);
   void CreateServices(std::vector<int> const& idtmed);
   bool RotateBack(int det, const double* const loc, double* glb) const;
+  
+  bool ChamberInGeometry(int det);
+  const Mat3D* GetClusterMatrix(int det);
 
   std::vector<std::string> const& getSensitiveTRDVolumes() const { return mSensitiveVolumeNames; }
 
  protected:
+  virtual void fillMatrixCache(int mask) override;
+
   static TObjArray* fgClusterMatrixArray; //! Transformation matrices loc. cluster to tracking cs
   static std::unique_ptr<TRDPadPlane[]> fgPadPlaneArray;
 
@@ -54,7 +62,7 @@ class TRDGeometry : public TRDGeometryBase
   // helper function to create volumes and registering them automatically
   void createVolume(const char* name, const char* shape, int nmed, float* upar, int np);
 
-  ClassDefNV(TRDGeometry, 1) //  TRD geometry class
+  ClassDefOverride(TRDGeometry, 1) //  TRD geometry class
 };
 } // end namespace trd
 } // end namespace o2
