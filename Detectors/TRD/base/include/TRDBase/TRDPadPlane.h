@@ -11,7 +11,10 @@
 #ifndef O2_TRDPADPLANE_H
 #define O2_TRDPADPLANE_H
 
-#include <Rtypes.h> // for ClassDef
+//Forwards to standard header with protection for GPU compilation
+#include "AliTPCCommonRtypes.h" // for ClassDef
+
+#include "AliTPCCommonDefGPU.h"
 
 ////////////////////////////////////////////////////////////////////////////
 //                                                                        //
@@ -30,12 +33,11 @@ namespace trd
 class TRDPadPlane
 {
  public:
-  TRDPadPlane();
-  TRDPadPlane(int layer, int stack);
+  TRDPadPlane() = default;
+  TRDPadPlane(int layer, int stack) : mLayer(layer), mStack(stack){};
   TRDPadPlane(const TRDPadPlane& p) = delete;
   TRDPadPlane& operator=(const TRDPadPlane& p) = delete;
-  ~TRDPadPlane();
-  // virtual void       Copy(TObject &p) const;
+  ~TRDPadPlane() = default;
 
   void setLayer(int l) { mLayer = l; };
   void setStack(int s) { mStack = s; };
@@ -43,20 +45,8 @@ class TRDPadPlane
   void setColSpacing(double s) { mColSpacing = s; };
   void setLengthRim(double l) { mLengthRim = l; };
   void setWidthRim(double w) { mWidthRim = w; };
-  void setNcols(int n)
-  {
-    mNcols = n;
-    if (mPadCol)
-      delete[] mPadCol;
-    mPadCol = new double[mNcols];
-  };
-  void setNrows(int n)
-  {
-    mNrows = n;
-    if (mPadRow)
-      delete[] mPadRow;
-    mPadRow = new double[mNrows];
-  };
+  void setNcols(int n);
+  void setNrows(int n);
   void setPadCol(int ic, double c)
   {
     if (ic < mNcols)
@@ -77,19 +67,19 @@ class TRDPadPlane
   void setAnodeWireOffset(float o) { mAnodeWireOffset = o; };
   void setTiltingAngle(double t);
 
-  int getPadRowNumber(double z) const;
-  int getPadRowNumberROC(double z) const;
-  int getPadColNumber(double rphi) const;
+  GPUd() int getPadRowNumber(double z) const;
+  GPUd() int getPadRowNumberROC(double z) const;
+  GPUd() int getPadColNumber(double rphi) const;
 
-  double getTiltOffset(double rowOffset) const { return mTiltingTan * (rowOffset - 0.5 * mLengthIPad); };
-  double getPadRowOffset(int row, double z) const
+  GPUd() double getTiltOffset(double rowOffset) const { return mTiltingTan * (rowOffset - 0.5 * mLengthIPad); };
+  GPUd() double getPadRowOffset(int row, double z) const
   {
     if ((row < 0) || (row >= mNrows))
       return -1.0;
     else
       return mPadRow[row] + mPadRowSMOffset - z;
   };
-  double getPadRowOffsetROC(int row, double z) const
+  GPUd() double getPadRowOffsetROC(int row, double z) const
   {
     if ((row < 0) || (row >= mNrows))
       return -1.0;
@@ -97,7 +87,7 @@ class TRDPadPlane
       return mPadRow[row] - z;
   };
 
-  double getPadColOffset(int col, double rphi) const
+  GPUd() double getPadColOffset(int col, double rphi) const
   {
     if ((col < 0) || (col >= mNcols))
       return -1.0;
@@ -105,26 +95,26 @@ class TRDPadPlane
       return rphi - mPadCol[col];
   };
 
-  double getTiltingAngle() const { return mTiltingAngle; };
-  int getNrows() const { return mNrows; };
-  int getNcols() const { return mNcols; };
-  double getRow0() const { return mPadRow[0] + mPadRowSMOffset; };
-  double getRow0ROC() const { return mPadRow[0]; };
-  double getCol0() const { return mPadCol[0]; };
-  double getRowEnd() const { return mPadRow[mNrows - 1] - mLengthOPad + mPadRowSMOffset; };
-  double getRowEndROC() const { return mPadRow[mNrows - 1] - mLengthOPad; };
-  double getColEnd() const { return mPadCol[mNcols - 1] + mWidthOPad; };
-  double getRowPos(int row) const { return mPadRow[row] + mPadRowSMOffset; };
-  double getRowPosROC(int row) const { return mPadRow[row]; };
-  double getColPos(int col) const { return mPadCol[col]; };
-  double getRowSize(int row) const
+  GPUd() double getTiltingAngle() const { return mTiltingAngle; };
+  GPUd() int getNrows() const { return mNrows; };
+  GPUd() int getNcols() const { return mNcols; };
+  GPUd() double getRow0() const { return mPadRow[0] + mPadRowSMOffset; };
+  GPUd() double getRow0ROC() const { return mPadRow[0]; };
+  GPUd() double getCol0() const { return mPadCol[0]; };
+  GPUd() double getRowEnd() const { return mPadRow[mNrows - 1] - mLengthOPad + mPadRowSMOffset; };
+  GPUd() double getRowEndROC() const { return mPadRow[mNrows - 1] - mLengthOPad; };
+  GPUd() double getColEnd() const { return mPadCol[mNcols - 1] + mWidthOPad; };
+  GPUd() double getRowPos(int row) const { return mPadRow[row] + mPadRowSMOffset; };
+  GPUd() double getRowPosROC(int row) const { return mPadRow[row]; };
+  GPUd() double getColPos(int col) const { return mPadCol[col]; };
+  GPUd() double getRowSize(int row) const
   {
     if ((row == 0) || (row == mNrows - 1))
       return mLengthOPad;
     else
       return mLengthIPad;
   };
-  double getColSize(int col) const
+  GPUd() double getColSize(int col) const
   {
     if ((col == 0) || (col == mNcols - 1))
       return mWidthOPad;
@@ -132,16 +122,20 @@ class TRDPadPlane
       return mWidthIPad;
   };
 
-  double getLengthRim() const { return mLengthRim; };
-  double getWidthRim() const { return mWidthRim; };
-  double getRowSpacing() const { return mRowSpacing; };
-  double getColSpacing() const { return mColSpacing; };
-  double getLengthOPad() const { return mLengthOPad; };
-  double getLengthIPad() const { return mLengthIPad; };
-  double getWidthOPad() const { return mWidthOPad; };
-  double getWidthIPad() const { return mWidthIPad; };
-  double getAnodeWireOffset() const { return mAnodeWireOffset; };
+  GPUd() double getLengthRim() const { return mLengthRim; };
+  GPUd() double getWidthRim() const { return mWidthRim; };
+  GPUd() double getRowSpacing() const { return mRowSpacing; };
+  GPUd() double getColSpacing() const { return mColSpacing; };
+  GPUd() double getLengthOPad() const { return mLengthOPad; };
+  GPUd() double getLengthIPad() const { return mLengthIPad; };
+  GPUd() double getWidthOPad() const { return mWidthOPad; };
+  GPUd() double getWidthIPad() const { return mWidthIPad; };
+  GPUd() double getAnodeWireOffset() const { return mAnodeWireOffset; };
+
  protected:
+  static constexpr int MAXCOLS = 144;
+  static constexpr int MAXROWS = 16;
+
   int mLayer; //  Layer number
   int mStack; //  Stack number
 
@@ -166,8 +160,8 @@ class TRDPadPlane
   double mTiltingAngle; //  Pad tilting angle
   double mTiltingTan;   //  Tangens of pad tilting angle
 
-  double* mPadRow; //  Pad border positions in row direction
-  double* mPadCol; //  Pad border positions in column direction
+  double mPadRow[MAXROWS]; //  Pad border positions in row direction
+  double mPadCol[MAXCOLS]; //  Pad border positions in column direction
 
   double mPadRowSMOffset; //  To be added to translate local ROC system to local SM system
 

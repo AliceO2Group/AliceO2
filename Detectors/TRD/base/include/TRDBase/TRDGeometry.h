@@ -35,6 +35,7 @@ class TRDGeometry : public TRDGeometryBase, public o2::detectors::DetMatrixCache
   void createGeometry(std::vector<int> const& idtmed);
   void addAlignableVolumes() const;
   bool createClusterMatrixArray();
+  void createPadPlaneArray();
 
   bool rotateBack(int det, const float* const loc, float* glb) const;
   bool chamberInGeometry(int det) const;
@@ -43,14 +44,11 @@ class TRDGeometry : public TRDGeometryBase, public o2::detectors::DetMatrixCache
  protected:
   virtual void fillMatrixCache(int mask) override;
 
-  std::unique_ptr<TRDPadPlane[]> fgPadPlaneArray;
-
  private:
   void createVolumes(std::vector<int> const& idtmed);
   void assembleChamber(int ilayer, int istack);
   void createFrame(std::vector<int> const& idtmed);
   void createServices(std::vector<int> const& idtmed);
-  void createPadPlaneArray();
   void createPadPlane(int ilayer, int istack);
 
   std::vector<std::string> mSensitiveVolumeNames; //!< vector keeping track of sensitive TRD volumes

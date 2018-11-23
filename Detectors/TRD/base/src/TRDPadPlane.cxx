@@ -23,82 +23,9 @@
 
 #include "TRDBase/TRDPadPlane.h"
 #include <TMath.h>
+#include <FairLogger.h>
 
 using namespace o2::trd;
-
-//_____________________________________________________________________________
-TRDPadPlane::TRDPadPlane()
-  : mLayer(0),
-    mStack(0),
-    mLength(0),
-    mWidth(0),
-    mLengthRim(0),
-    mWidthRim(0),
-    mLengthOPad(0),
-    mWidthOPad(0),
-    mLengthIPad(0),
-    mWidthIPad(0),
-    mRowSpacing(0),
-    mColSpacing(0),
-    mNrows(0),
-    mNcols(0),
-    mTiltingAngle(0),
-    mTiltingTan(0),
-    mPadRow(nullptr),
-    mPadCol(nullptr),
-    mPadRowSMOffset(0),
-    mAnodeWireOffset(0)
-{
-  //
-  // Default constructor
-  //
-}
-
-//_____________________________________________________________________________
-TRDPadPlane::TRDPadPlane(int layer, int stack)
-  : mLayer(layer),
-    mStack(stack),
-    mLength(0),
-    mWidth(0),
-    mLengthRim(0),
-    mWidthRim(0),
-    mLengthOPad(0),
-    mWidthOPad(0),
-    mLengthIPad(0),
-    mWidthIPad(0),
-    mRowSpacing(0),
-    mColSpacing(0),
-    mNrows(0),
-    mNcols(0),
-    mTiltingAngle(0),
-    mTiltingTan(0),
-    mPadRow(nullptr),
-    mPadCol(nullptr),
-    mPadRowSMOffset(0),
-    mAnodeWireOffset(0)
-{
-  //
-  // Constructor
-  //
-}
-
-//_____________________________________________________________________________
-TRDPadPlane::~TRDPadPlane()
-{
-  //
-  // TRDPadPlane destructor
-  //
-
-  if (mPadRow) {
-    delete[] mPadRow;
-    mPadRow = nullptr;
-  }
-
-  if (mPadCol) {
-    delete[] mPadCol;
-    mPadCol = nullptr;
-  }
-}
 
 //_____________________________________________________________________________
 void TRDPadPlane::setTiltingAngle(double t)
@@ -216,4 +143,16 @@ int TRDPadPlane::getPadColNumber(double rphi) const
   return col;
 }
 
-ClassImp(TRDPadPlane)
+void TRDPadPlane::setNcols(int n)
+{
+  if (n > MAXCOLS)
+    LOG(FATAL) << "MAXCOLS exceeded " << n << " > " << MAXCOLS << FairLogger::endl;
+  mNcols = n;
+};
+
+void TRDPadPlane::setNrows(int n)
+{
+  if (n > MAXROWS)
+    LOG(FATAL) << "MAXROWS exceeded " << n << " > " << MAXROWS << FairLogger::endl;
+  mNrows = n;
+};

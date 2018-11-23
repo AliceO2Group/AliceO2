@@ -10,12 +10,14 @@
 #ifndef ALICEO2_BASE_DETMATRIXCACHE_H
 #define ALICEO2_BASE_DETMATRIXCACHE_H
 
-#include <FairLogger.h>
+//Forward to standard headers with protection for GPU compilation
+#include "AliTPCCommonFairLogger.h"
+#include "AliTPCCommonRtypes.h"
+
 #include <array>
 #include <vector>
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "MathUtils/Cartesian3D.h"
-#include "Rtypes.h"
 
 class TGeoHMatrix;
 

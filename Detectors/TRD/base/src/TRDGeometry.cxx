@@ -12,7 +12,6 @@
 #include <TGeoPhysicalNode.h>
 #include <TMath.h>
 #include <TVirtualMC.h>
-
 #include <FairLogger.h>
 
 #include "DetectorsBase/GeometryManager.h"
@@ -58,10 +57,6 @@ void TRDGeometry::createPadPlaneArray()
   // Creates the array of TRDPadPlane objects
   //
 
-  if (fgPadPlaneArray != nullptr)
-    return;
-
-  fgPadPlaneArray.reset(new TRDPadPlane[kNlayer * kNstack]);
   for (int ilayer = 0; ilayer < kNlayer; ilayer++) {
     for (int istack = 0; istack < kNstack; istack++) {
       createPadPlane(ilayer, istack);
@@ -76,7 +71,7 @@ void TRDGeometry::createPadPlane(int ilayer, int istack)
   // Creates an TRDPadPlane object
   //
   int ipp = getDetectorSec(ilayer, istack);
-  auto& padPlane = fgPadPlaneArray.get()[ipp];
+  auto& padPlane = mPadPlanes[ipp];
 
   padPlane.setLayer(ilayer);
   padPlane.setStack(istack);
@@ -270,7 +265,6 @@ void TRDGeometry::createGeometry(std::vector<int> const& idtmed)
   }
 
   createPadPlaneArray();
-  mPadPlaneArray = fgPadPlaneArray.get();
   createVolumes(idtmed);
 }
 
@@ -2754,12 +2748,13 @@ bool TRDGeometry::createClusterMatrixArray()
     return true; // already initialized
   }
 
-  setSize(521, kNdet); //Only 521 of kNdet matrices are filled
+  setSize(MAXMATRICES, kNdet); //Only MAXMATRICES=521 of kNdet matrices are filled
   fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L) | o2::utils::bit2Mask(o2::TransformType::L2G) |
                   o2::utils::bit2Mask(o2::TransformType::T2G) | o2::utils::bit2Mask(o2::TransformType::T2GRot));
   return true;
 }
 
+//_____________________________________________________________________________
 bool TRDGeometry::chamberInGeometry(int det) const
 {
   //

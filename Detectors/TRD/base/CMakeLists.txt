@@ -6,6 +6,7 @@ SET(SRCS
   src/TRDPadPlane.cxx
   src/TRDGeometryBase.cxx
   src/TRDGeometry.cxx
+  src/TRDGeometryFlat.cxx
   src/TRDCommonParam.cxx
   src/TRDSimParam.cxx
 )
@@ -14,6 +15,7 @@ SET(HEADERS
   include/${MODULE_NAME}/TRDPadPlane.h
   include/${MODULE_NAME}/TRDGeometryBase.h
   include/${MODULE_NAME}/TRDGeometry.h
+  include/${MODULE_NAME}/TRDGeometryFlat.h
   include/${MODULE_NAME}/TRDSimParam.h
   include/${MODULE_NAME}/TRDCommonParam.h
 )
