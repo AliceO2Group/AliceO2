@@ -302,7 +302,7 @@ void Detector::ConstructGeometry()
   getMediumIDMappingAsVector(medmapping);
 
   mGeom = new TRDGeometry();
-  mGeom->CreateGeometry(medmapping);
+  mGeom->createGeometry(medmapping);
 }
 
 void Detector::defineSensitiveVolumes()

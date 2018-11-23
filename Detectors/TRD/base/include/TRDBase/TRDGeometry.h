@@ -32,28 +32,28 @@ class TRDGeometry : public TRDGeometryBase, public o2::detectors::DetMatrixCache
   TRDGeometry();
   virtual ~TRDGeometry() override = default;
 
-  void CreateGeometry(std::vector<int> const& idtmed);
+  void createGeometry(std::vector<int> const& idtmed);
   void addAlignableVolumes() const;
   bool createClusterMatrixArray();
 
-  bool RotateBack(int det, const double* const loc, double* glb) const;
-  bool ChamberInGeometry(int det);
-  const Mat3D* GetClusterMatrix(int det);
+  bool rotateBack(int det, const float* const loc, float* glb) const;
+  bool chamberInGeometry(int det);
+  const Mat3D* getClusterMatrix(int det);
 
   std::vector<std::string> const& getSensitiveTRDVolumes() const { return mSensitiveVolumeNames; }
 
  protected:
   virtual void fillMatrixCache(int mask) override;
 
-  static std::unique_ptr<TRDPadPlane[]> fgPadPlaneArray;
+  std::unique_ptr<TRDPadPlane[]> fgPadPlaneArray;
 
  private:
-  void CreateVolumes(std::vector<int> const& idtmed);
-  void AssembleChamber(int ilayer, int istack);
-  void CreateFrame(std::vector<int> const& idtmed);
-  void CreateServices(std::vector<int> const& idtmed);
-  static void CreatePadPlaneArray();
-  static void CreatePadPlane(int ilayer, int istack);
+  void createVolumes(std::vector<int> const& idtmed);
+  void assembleChamber(int ilayer, int istack);
+  void createFrame(std::vector<int> const& idtmed);
+  void createServices(std::vector<int> const& idtmed);
+  void createPadPlaneArray();
+  void createPadPlane(int ilayer, int istack);
 
   std::vector<std::string> mSensitiveVolumeNames; //!< vector keeping track of sensitive TRD volumes
   static const o2::detectors::DetID sDetID;
