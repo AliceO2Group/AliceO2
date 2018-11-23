@@ -16,6 +16,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "TPCWorkflow/RecoWorkflow.h"
+#include "RangeTokenizer.h"
 
 #include <string>
 #include <stdexcept>
@@ -26,9 +27,10 @@
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<o2::framework::ConfigParamSpec> options{
-    { "input-type", o2::framework::VariantType::String, "digits", { "digits, clusters, raw" } },
-    { "output-type", o2::framework::VariantType::String, "tracks", { "clusters, raw, tracks" } },
+    { "input-type", o2::framework::VariantType::String, "digits", { "digitizer, digits, clusters, raw" } },
+    { "output-type", o2::framework::VariantType::String, "tracks", { "clusters, raw, decoded-clusters, tracks" } },
     { "disable-mc", o2::framework::VariantType::Bool, false, { "disable sending of MC information" } },
+    { "tpc-sectors", o2::framework::VariantType::String, "0-35", { "TPC sector range, e.g. 5-7,8,9" } },
     { "tpc-lanes", o2::framework::VariantType::Int, 1, { "number of parallel lanes up to the tracker" } },
   };
   std::swap(workflowOptions, options);
@@ -53,9 +55,11 @@ using namespace o2::framework;
 /// This function is required to be implemented to define the workflow specifications
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return std::move(o2::TPC::RecoWorkflow::getWorkflow(not cfgc.options().get<bool>("disable-mc"),    //
-                                                      cfgc.options().get<int>("tpc-lanes"),          //
-                                                      cfgc.options().get<std::string>("input-type"), //
-                                                      cfgc.options().get<std::string>("output-type") //
-                                                      ));
+  auto tpcSectors = o2::RangeTokenizer::tokenize<int>(cfgc.options().get<std::string>("tpc-sectors"));
+  return o2::TPC::RecoWorkflow::getWorkflow(tpcSectors,                                    //
+                                            not cfgc.options().get<bool>("disable-mc"),    //
+                                            cfgc.options().get<int>("tpc-lanes"),          //
+                                            cfgc.options().get<std::string>("input-type"), //
+                                            cfgc.options().get<std::string>("output-type") //
+                                            );
 }

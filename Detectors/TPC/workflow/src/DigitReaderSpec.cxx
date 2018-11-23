@@ -15,13 +15,14 @@
 
 #include "Framework/ControlService.h"
 #include "DigitReaderSpec.h"
-#include "RangeTokenizer.h"
 #include "Headers/DataHeader.h"
 #include "Utils/RootTreeReader.h"
 #include "TPCBase/Sector.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include <memory> // for make_shared, make_unique, unique_ptr
-#include <algorithm>
+#include <array>
+#include <vector>
+#include <utility> // std::move
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -32,7 +33,10 @@ namespace TPC
 {
 /// create a processor spec
 /// read simulated TPC digits from file and publish
-DataProcessorSpec getDigitReaderSpec(size_t fanOut)
+/// digits are expected to be stored in separated branches per sector, the default
+/// branch name is TPCDigit_n with n being the sector number
+/// the base name can be configured, however not the extension '_n'
+DataProcessorSpec getDigitReaderSpec(std::vector<int> const& tpcSectors, size_t fanOut)
 {
   constexpr static size_t NSectors = o2::TPC::Sector::MAXSECTOR;
   struct ProcessAttributes {
@@ -44,7 +48,7 @@ DataProcessorSpec getDigitReaderSpec(size_t fanOut)
     bool finished = false;
   };
 
-  auto initFunction = [fanOut](InitContext& ic) {
+  auto initFunction = [fanOut, tpcSectors](InitContext& ic) {
     // get the option from the init context
     auto filename = ic.options().get<std::string>("infile");
     auto treename = ic.options().get<std::string>("treename");
@@ -60,7 +64,7 @@ DataProcessorSpec getDigitReaderSpec(size_t fanOut)
       auto& activeSectors = processAttributes->activeSectors;
       auto& readers = processAttributes->readers;
 
-      sectors = std::move(o2::RangeTokenizer::tokenize<int>(ic.options().get<std::string>("tpc-sectors")));
+      sectors = tpcSectors;
       for (auto const& s : sectors) {
         // set the mask of active sectors
         if (s >= NSectors) {
@@ -188,8 +192,7 @@ DataProcessorSpec getDigitReaderSpec(size_t fanOut)
                               { "infile", VariantType::String, "", { "Name of the input file" } },
                               { "treename", VariantType::String, "o2sim", { "Name of the input tree" } },
                               { "digitbranch", VariantType::String, "TPCDigit", { "Digit branch" } },
-                              { "mcbranch", VariantType::String, "TPCDigitMCTruth", { "MC info branch" } },
-                              { "tpc-sectors", VariantType::String, "0-35", { "TPC sector range, e.g. 5-7,8,9" } },
+                              { "mcbranch", VariantType::String, "TPCDigitMCTruth", { "MC label branch" } },
                               { "nevents", VariantType::Int, -1, { "number of events to run" } },
                               { "terminate-on-eod", VariantType::Bool, false, { "terminate on end-of-data" } },
                             } };

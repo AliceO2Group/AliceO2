@@ -65,7 +65,7 @@ const std::unordered_map<std::string, OutputType> OutputMap{
   { "tracks", OutputType::Tracks },
 };
 
-framework::WorkflowSpec getWorkflow(bool propagateMC, unsigned nLanes, std::string cfgInput, std::string cfgOutput)
+framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, bool propagateMC, unsigned nLanes, std::string const& cfgInput, std::string const& cfgOutput)
 {
   InputType inputType;
 
@@ -95,7 +95,7 @@ framework::WorkflowSpec getWorkflow(bool propagateMC, unsigned nLanes, std::stri
 
   // note: converter does not touch MC, this is routed directly to downstream consumer
   if (inputType == InputType::Digits) {
-    specs.emplace_back(o2::TPC::getDigitReaderSpec(nLanes));
+    specs.emplace_back(o2::TPC::getDigitReaderSpec(tpcSectors, nLanes));
   } else if (inputType == InputType::Clusters) {
     specs.emplace_back(o2::TPC::getClusterReaderSpec(/*propagateMC*/));
   } else if (inputType == InputType::Raw) {
