@@ -14,6 +14,7 @@
 /// @brief  Processor spec for a reader of TPC data from ROOT file
 
 #include "Framework/DataProcessorSpec.h"
+#include <vector>
 
 namespace o2
 {
@@ -22,7 +23,7 @@ namespace TPC
 
 /// create a processor spec
 /// read simulated TPC clusters from file and publish
-framework::DataProcessorSpec getDigitReaderSpec(size_t parallel = 1);
+framework::DataProcessorSpec getDigitReaderSpec(std::vector<int> const& tpcSectors, size_t parallel);
 
 } // end namespace TPC
 } // end namespace o2
