@@ -119,6 +119,8 @@ class AliHLTTPCCAClusterData
     Data *GetClusterData( int index ) { return &( fData[index] ); }
 
     void Allocate( int number);
+    
+    void SetClusterData(int sl, int n, const Data* d);
 
   private:
     AliHLTTPCCAClusterData(AliHLTTPCCAClusterData&): fSliceIndex( 0 ), fData( NULL ), fNumberOfClusters(0), fAllocated(0) {}

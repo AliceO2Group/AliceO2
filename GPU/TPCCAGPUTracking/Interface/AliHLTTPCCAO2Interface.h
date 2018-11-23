@@ -17,6 +17,8 @@ class AliGPUReconstruction;
 #include "AliHLTTPCGMMergedTrackHit.h"
 #include "TPCFastTransform.h"
 
+namespace o2 { namespace TPC { struct ClusterNativeAccessFullTPC; struct ClusterNative;}}
+
 class AliHLTTPCCAO2Interface
 {
 public:
@@ -26,6 +28,7 @@ public:
 	int Initialize(const char* options = NULL, std::unique_ptr<ali_tpc_common::tpc_fast_transformation::TPCFastTransform>&& fastTrans = nullptr);
 	void Deinitialize();
 	
+	int RunTracking(const o2::TPC::ClusterNativeAccessFullTPC* inputClusters, const AliHLTTPCGMMergedTrack* &outputTracks, int &nOutputTracks, const AliHLTTPCGMMergedTrackHit* &outputTrackClusters);
 	int RunTracking(const AliHLTTPCCAClusterData* inputClusters, const AliHLTTPCGMMergedTrack* &outputTracks, int &nOutputTracks, const AliHLTTPCGMMergedTrackHit* &outputTrackClusters);
 	void Cleanup();
 	

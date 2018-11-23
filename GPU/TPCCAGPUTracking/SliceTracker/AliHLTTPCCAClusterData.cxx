@@ -27,10 +27,10 @@ AliHLTTPCCAClusterData::~AliHLTTPCCAClusterData()
 
 void AliHLTTPCCAClusterData::StartReading( int sliceIndex, int guessForNumberOfClusters )
 {
-  // Start reading of event - initialisation
-  fSliceIndex = sliceIndex;
-  fNumberOfClusters = 0;
-  Allocate(CAMath::Max( 64, guessForNumberOfClusters ));
+	// Start reading of event - initialisation
+	fSliceIndex = sliceIndex;
+	fNumberOfClusters = 0;
+	Allocate(CAMath::Max( 64, guessForNumberOfClusters ));
 }
 
 template <class T> void AliHLTTPCCAClusterData::WriteEventVector(const T* const &data, std::ostream &out) const
@@ -76,4 +76,13 @@ void AliHLTTPCCAClusterData::Allocate(int number)
 		newnumber = number;
 	}
 	fAllocated = newnumber;
+}
+
+void AliHLTTPCCAClusterData::SetClusterData(int sl, int n, const Data* d)
+{
+	if (fAllocated) free(fData);
+	fAllocated = 0;
+	fSliceIndex = sl;
+	fNumberOfClusters = n;
+	fData = (Data*) d;
 }
