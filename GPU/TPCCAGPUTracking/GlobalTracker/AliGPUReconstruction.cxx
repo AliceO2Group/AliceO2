@@ -33,12 +33,15 @@
 #ifdef HAVE_O2HEADERS
 #include "ITStracking/TrackerTraitsCPU.h"
 #include "DataFormatsTPC/ClusterNative.h"
+#include "TRDBase/TRDGeometryFlat.h"
 #else
 namespace o2 { namespace ITS { class TrackerTraits {}; class TrackerTraitsCPU : public TrackerTraits {}; }}
 namespace o2 { namespace TPC { struct ClusterNativeAccessFullTPC {ClusterNative* clusters[36][HLTCA_ROW_COUNT]; unsigned int nClusters[36][HLTCA_ROW_COUNT];}; struct ClusterNative {}; }}
+namespace o2 { namespace trd { class TRDGeometryFlat {}; }}
 #endif
 using namespace o2::ITS;
 using namespace o2::TPC;
+using namespace o2::trd;
 
 constexpr const char* const AliGPUReconstruction::GEOMETRY_TYPE_NAMES[];
 constexpr const char* const AliGPUReconstruction::DEVICE_TYPE_NAMES[];
@@ -218,6 +221,10 @@ void AliGPUReconstruction::DumpSettings(const char* dir)
 	f = dir;
 	f += "tpctransform.dump";
 	if (mTPCFastTransform != nullptr) DumpFlatObjectToFile(mTPCFastTransform.get(), f.c_str());
+	f = dir;
+	f += "trdgeometry.dump";
+	if (mTRDGeometry != nullptr) DumpStructToFile(mTRDGeometry.get(), f.c_str());
+	
 }
 
 void AliGPUReconstruction::ReadSettings(const char* dir)
@@ -231,6 +238,9 @@ void AliGPUReconstruction::ReadSettings(const char* dir)
 	f = dir;
 	f += "tpctransform.dump";
 	mTPCFastTransform = ReadFlatObjectFromFile<TPCFastTransform>(f.c_str());
+	f = dir;
+	f += "trdgeometry.dump";
+	mTRDGeometry = ReadStructFromFile<o2::trd::TRDGeometryFlat>(f.c_str());
 }
 
 template <class T> void AliGPUReconstruction::AllocateIOMemoryHelper(unsigned int n, const T* &ptr, std::unique_ptr<T[]> &u)
@@ -336,6 +346,10 @@ void AliGPUReconstruction::SetSettingsStandalone(const hltca_event_dump_settings
 void AliGPUReconstruction::SetTPCFastTransform(std::unique_ptr<TPCFastTransform> tpcFastTransform)
 {
 	mTPCFastTransform = std::move(tpcFastTransform);
+}
+void AliGPUReconstruction::SetTRDGeometry(const o2::trd::TRDGeometryFlat& geo)
+{
+	mTRDGeometry.reset(new o2::trd::TRDGeometryFlat(geo));
 }
 
 int AliGPUReconstruction::RunTRDTracking()
