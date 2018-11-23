@@ -26,18 +26,13 @@ class TRDGeometryBase
   bool IsHole(int la, int st, int se) const;
   bool IsOnBoundary(int det, float y, float z, float eps = 0.5) const;
 
-  // bool           ChamberInGeometry(int det);
-
-  //  static  bool           CreateClusterMatrixArray();
-  // static  TGeoHMatrix     *GetClusterMatrix(int det);
-
   void SetSMstatus(int sm, char status) { fgSMstatus[sm] = status; }
   static int GetDetectorSec(int layer, int stack);
   static int GetDetector(int layer, int stack, int sector);
   static int GetLayer(int det);
   int GetStack(int det) const;
   int GetStack(double z, int layer) const;
-  static int GetSector(int det);
+  static int GetSector(int det) {return (det / (kNlayer * kNstack));}
 
   TRDPadPlane* GetPadPlane(int layer, int stack) const;
   TRDPadPlane* GetPadPlane(int det) const { return GetPadPlane(GetLayer(det), GetStack(det)); }

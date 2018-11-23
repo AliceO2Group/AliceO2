@@ -251,16 +251,6 @@ int TRDGeometryBase::GetStack(double z, int layer) const
 }
 
 //_____________________________________________________________________________
-int TRDGeometryBase::GetSector(int det)
-{
-  //
-  // Reconstruct the sector number from the detector number
-  //
-
-  return ((int)(det / (fgkNlayer * fgkNstack)));
-}
-
-//_____________________________________________________________________________
 TRDPadPlane* TRDGeometryBase::GetPadPlane(int layer, int stack) const
 {
   //
