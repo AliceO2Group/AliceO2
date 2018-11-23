@@ -24,7 +24,21 @@ void DetMatrixCache::setSize(int s)
 {
   // set the size of the matrix cache, can be done only once
   if (mSize != 0) {
-    LOG(FATAL) << "Cache size (N sensors) was already set to " << mSize << FairLogger::endl;
+    LOG(FATAL) << "Cache size (N sensors) was already set to " << mSize;
   }
   mSize = s;
+}
+
+void DetMatrixCacheIndirect::setSize(int size, int sizeIndirect)
+{
+  // set the size of the matrix cache, can be done only once
+  if (mSize != 0 || mIndirectSize != 0) {
+    LOG(FATAL) << "Cache size (N sensors) was already set to " << mSize << " / " << mIndirectSize;
+  }
+  if (mIndirectSize >= 32768)
+  {
+    LOG(FATAL) << "Indirect cache size exceeds maximum size of 32768 (signed short)\n";
+  }
+  DetMatrixCache::setSize(size);
+  mIndirection.resize(mIndirectSize = sizeIndirect, -1);
 }
