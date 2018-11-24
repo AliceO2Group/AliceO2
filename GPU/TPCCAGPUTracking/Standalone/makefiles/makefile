@@ -44,8 +44,8 @@ GCCPROF							=
 MULTITHREAD						= /MT
 MULTITHREADLIBS					= /nodefaultlib:libc.lib
 
-NVCCFLAGSOPT					= --use_fast_math --maxrregcount $(CUDAREGS) -O4 -Xptxas -v -Xptxas -O4 -Xcompiler -O4 -m$(ARCHBITS) $(NVCCARCHS)
-NVCCFLAGSDBG					= --maxrregcount $(CUDAREGS) -Xptxas -v -Xptxas -O0 -O0 -G -m$(ARCHBITS) $(NVCCARCHS)
+NVCCFLAGSOPT					= --use_fast_math --maxrregcount $(CUDAREGS) -O4 -Xptxas -v -Xptxas -O4 -Xcompiler -O4 -m$(ARCHBITS) $(NVCCARCHS) --expt-relaxed-constexpr
+NVCCFLAGSDBG					= --maxrregcount $(CUDAREGS) -Xptxas -v -Xptxas -O0 -O0 -G -m$(ARCHBITS) $(NVCCARCHS) --expt-relaxed-constexpr
 
 TARGETTYPE						= EXECUTABLE
 
