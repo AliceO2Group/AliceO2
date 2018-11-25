@@ -2555,11 +2555,18 @@ void TRDGeometry::assembleChamber(int ilayer, int istack)
 
 void TRDGeometry::fillMatrixCache(int mask)
 {
-  if (mask != o2::utils::bit2Mask(o2::TransformType::T2L)) {
-    LOG(FATAL) << "Unsupported transform matrix mask" << FairLogger::endl;
+  if (mask & o2::utils::bit2Mask(o2::TransformType::T2L)) {
+    useT2LCache();
   }
-
-  useT2LCache();
+  if (mask & o2::utils::bit2Mask(o2::TransformType::L2G)) {
+    useL2GCache();
+  }
+  if (mask & o2::utils::bit2Mask(o2::TransformType::T2G)) {
+    useT2GCache();
+  }
+  if (mask & o2::utils::bit2Mask(o2::TransformType::T2GRot)) {
+    useT2GRotCache();
+  }
 
   std::string volPath;
   const std::string vpStr{ "ALIC_1/B077_1/BSEGMO" };
@@ -2607,20 +2614,29 @@ void TRDGeometry::fillMatrixCache(int mask)
           continue;
         }
         const auto m = o2::Base::GeometryManager::getMatrix(o2::detectors::DetID::TRD, lid);
-        TGeoRotation mchange;
-        mchange.RotateY(90);
-        mchange.RotateX(90);
-        //
-        // Cluster transformation matrix
-        //
-        TGeoHMatrix rotMatrix(mchange.Inverse());
+        TGeoHMatrix rotMatrix;
+        rotMatrix.RotateX(-90);
+        rotMatrix.RotateY(-90);
         rotMatrix.MultiplyLeft(m);
+        const TGeoHMatrix& t2l = rotMatrix.Inverse();
+        if (mask & o2::utils::bit2Mask(o2::TransformType::L2G)) {
+          setMatrixL2G(Mat3D(t2l), lid);
+        }
+
         Double_t sectorAngle = 20.0 * (isector % 18) + 10.0;
         TGeoHMatrix rotSector;
         rotSector.RotateZ(sectorAngle);
-        const auto& inv = rotSector.Inverse();
-        rotMatrix.MultiplyLeft(&inv);
-        setMatrixT2L(Mat3D(rotMatrix), lid);
+        if (mask & o2::utils::bit2Mask(o2::TransformType::T2G)) {
+          setMatrixT2G(Mat3D(rotSector), lid);
+        }
+        if (mask & o2::utils::bit2Mask(o2::TransformType::T2GRot)) {
+          setMatrixT2GRot(Rot2D(sectorAngle), lid);
+        }
+        if (mask & o2::utils::bit2Mask(o2::TransformType::T2L)) {
+          const TGeoMatrix& inv = rotSector.Inverse();
+          rotMatrix.MultiplyLeft(&inv);
+          setMatrixT2L(Mat3D(rotMatrix.Inverse()), lid);
+        }
       }
     }
   }
@@ -2739,24 +2755,12 @@ bool TRDGeometry::createClusterMatrixArray()
   }
 
   setSize(521, kNdet); //Only 521 of kNdet matrices are filled
-  fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L));
+  fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L) | o2::utils::bit2Mask(o2::TransformType::L2G) |
+                  o2::utils::bit2Mask(o2::TransformType::T2G) | o2::utils::bit2Mask(o2::TransformType::T2GRot));
   return true;
 }
 
-//_____________________________________________________________________________
-const TRDGeometry::Mat3D* TRDGeometry::getClusterMatrix(int det)
-{
-  //
-  // Returns the cluster transformation matrix for a given detector
-  //
-  if (!isMatrixAvailable(det)) {
-    return nullptr;
-  }
-  return &getMatrixT2L(det);
-}
-
-//_____________________________________________________________________________
-bool TRDGeometry::chamberInGeometry(int det)
+bool TRDGeometry::chamberInGeometry(int det) const
 {
   //
   // Checks whether the given detector is part of the current geometry
