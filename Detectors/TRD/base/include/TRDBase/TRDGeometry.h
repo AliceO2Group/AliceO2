@@ -37,9 +37,7 @@ class TRDGeometry : public TRDGeometryBase, public o2::detectors::DetMatrixCache
   bool createClusterMatrixArray();
 
   bool rotateBack(int det, const float* const loc, float* glb) const;
-  bool chamberInGeometry(int det);
-  const Mat3D* getClusterMatrix(int det);
-
+  bool chamberInGeometry(int det) const;
   std::vector<std::string> const& getSensitiveTRDVolumes() const { return mSensitiveVolumeNames; }
 
  protected:
