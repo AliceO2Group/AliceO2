@@ -52,6 +52,8 @@ public:
 	static AliGPUReconstruction* CreateInstance(int type, bool forceType) {return CreateInstance((DeviceType) type, forceType);}
 	static AliGPUReconstruction* CreateInstance(const char* type, bool forceType);
 	
+	virtual int Init();
+	
 	//Structures for input and output data
 	struct InOutPointers
 	{

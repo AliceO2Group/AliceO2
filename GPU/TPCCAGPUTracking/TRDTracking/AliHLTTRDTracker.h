@@ -50,7 +50,7 @@ class AliHLTTRDTracker {
     int fTrackletId;
   };
 
-  GPUd() void Init();
+  GPUd() void Init(AliHLTTRDGeometry* geo = NULL);
   GPUd() void Reset();
   GPUd() void StartLoadTracklets(const int nTrklts);
   GPUd() void LoadTracklet(const AliHLTTRDTrackletWord &tracklet);
@@ -73,6 +73,7 @@ class AliHLTTRDTracker {
   GPUd() int   PartitionHypothesis(const int left, const int right);
   GPUd() void  Quicksort(const int left, const int right, const int size, const int type = 0);
   GPUd() void  PrintSettings() const;
+  bool IsInitialized() const {return fIsInitialized;}
 
   // settings
   GPUd() void SetMCEvent(AliMCEvent* mc)       { fMCEvent = mc;}
@@ -113,6 +114,7 @@ class AliHLTTRDTracker {
   Hypothesis *fHypothesis;                    // array with multiple track hypothesis
   HLTTRDTrack *fCandidates;                   // array of tracks for multiple hypothesis tracking
   AliHLTTRDSpacePointInternal *fSpacePoints;  // array with tracklet coordinates in global tracking frame
+  bool fExternalGeometry;                     // Geometry taken fron external, do not delete!
   AliHLTTRDGeometry *fGeo;                    // TRD geometry
   bool fDebugOutput;                          // store debug output
   float fMinPt;                               // min pt of TPC tracks for tracking

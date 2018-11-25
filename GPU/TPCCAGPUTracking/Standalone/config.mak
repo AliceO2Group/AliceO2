@@ -51,5 +51,6 @@ endif
 ifneq (${CONFIG_O2DIR}, )
 CXXFILES					+= ${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/src/PrimaryVertexContext.cxx \
 								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/src/Cluster.cxx \
-								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/src/TrackerTraitsCPU.cxx
+								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/src/TrackerTraitsCPU.cxx \
+								${CONFIG_O2DIR}/Detectors/TRD/base/src/TRDGeometryBase.cxx
 endif

@@ -202,6 +202,7 @@ int main(int argc, char** argv)
 	param.SearchWindowDZDR = configStandalone.dzdr;
 	if (configStandalone.referenceX < 500.) param.TrackReferenceX = configStandalone.referenceX;
 	rec->SetParam(param);
+	rec->Init();
 	for (int i = 0;i < 36;i++)
 	{
 		hlt.InitializeSliceParam(i, &rec->GetParam());
