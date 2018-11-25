@@ -115,7 +115,6 @@ struct ClusterHardware { // Draft of hardware clusters in bit-packed format.
     int tot = qTot * 16.f;
     qTot = tot / 16.f;
     int padPeak = pad + 0.5;
-    float padOrg = pad;
     pad -= padPeak;
     int timePeak = time + 0.5;
     time -= timePeak;
