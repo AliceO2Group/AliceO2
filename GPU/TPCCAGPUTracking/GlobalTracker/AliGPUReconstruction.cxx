@@ -37,7 +37,7 @@
 #else
 namespace o2 { namespace ITS { class TrackerTraits {}; class TrackerTraitsCPU : public TrackerTraits {}; }}
 namespace o2 { namespace TPC { struct ClusterNativeAccessFullTPC {ClusterNative* clusters[36][HLTCA_ROW_COUNT]; unsigned int nClusters[36][HLTCA_ROW_COUNT];}; struct ClusterNative {}; }}
-namespace o2 { namespace trd { class TRDGeometryFlat {}; }}
+namespace o2 { namespace trd { struct TRDGeometryFlat {}; }}
 #endif
 using namespace o2::ITS;
 using namespace o2::TPC;
@@ -55,7 +55,6 @@ AliGPUReconstruction::AliGPUReconstruction(DeviceType type) : mIOPtrs(), mIOMem(
 	mClusterNativeAccess(new ClusterNativeAccessFullTPC)
 {
 	mEventDumpSettings->setDefaults();
-	mTRDTracker->Init();
 	if (type == CPU)
 	{
 		mTPCTracker.reset(new AliHLTTPCCAGPUTracker);
@@ -66,9 +65,16 @@ AliGPUReconstruction::AliGPUReconstruction(DeviceType type) : mIOPtrs(), mIOMem(
 
 AliGPUReconstruction::~AliGPUReconstruction()
 {
+	//Reset these explicitly before the destruction of other members unloads the library
 	mTRDTracker.reset();
 	mTPCTracker.reset();
 	mITSTrackerTraits.reset();
+}
+
+int AliGPUReconstruction::Init()
+{
+	mTRDTracker->Init((AliHLTTRDGeometry*) mTRDGeometry.get()); //Cast is safe, we just add some member functions
+	return 0;
 }
 
 AliGPUReconstruction::InOutMemory::InOutMemory() : mcLabelsTPC(), mcInfosTPC(), mergedTracks(), mergedTrackHits(), trdTracks(), trdTracklets()
@@ -208,7 +214,7 @@ template <class T> size_t AliGPUReconstruction::ReadData(FILE* fp, const T** ent
 		numTotal += num[i];
 	}
 	(void) r;
-	//printf("Read %d %s\n", numTotal, IOTYPENAMES[type]);
+	//printf("Read %d %s\n", (int) numTotal, IOTYPENAMES[type]);
 	return numTotal;
 }
 
@@ -294,6 +300,7 @@ template <class T> std::unique_ptr<T> AliGPUReconstruction::ReadFlatObjectFromFi
 	r = fread((void*) retVal.get(), 1, size[0], fp);
 	r = fread(buf.get(), 1, size[1], fp);
 	fclose(fp);
+	//printf("Read %d bytes from %s\n", (int) r, file);
 	retVal->clearInternalBufferUniquePtr();
 	retVal->setActualBufferAddress(buf.get());
 	retVal->adoptInternalBuffer(std::move(buf));
@@ -320,6 +327,7 @@ template <class T> std::unique_ptr<T> AliGPUReconstruction::ReadStructFromFile(c
 	std::unique_ptr<T> newObj(new T);
 	r = fread(newObj.get(), 1, size, fp);
 	fclose(fp);
+	//printf("Read %d bytes from %s\n", (int) r, file);
 	return std::move(newObj);
 }
 
@@ -331,6 +339,8 @@ template <class T> void AliGPUReconstruction::ReadStructFromFile(const char* fil
 	r = fread(&size, sizeof(size), 1, fp);
 	if (r == 0) {fclose(fp); return;}
 	r = fread(obj, 1, size, fp);
+	fclose(fp);
+	//printf("Read %d bytes from %s\n", (int) r, file);
 }
 
 void AliGPUReconstruction::SetSettingsStandalone(float solenoidBz)
@@ -354,9 +364,10 @@ void AliGPUReconstruction::SetTRDGeometry(const o2::trd::TRDGeometryFlat& geo)
 
 int AliGPUReconstruction::RunTRDTracking()
 {
-	std::vector< HLTTRDTrack > tracksTPC;
-	std::vector< int > tracksTPCLab;
-	std::vector< int > tracksTPCId;
+	if (!mTRDTracker->IsInitialized()) return 1;
+	std::vector<HLTTRDTrack> tracksTPC;
+	std::vector<int> tracksTPCLab;
+	std::vector<int> tracksTPCId;
 
 	for (unsigned int i = 0;i < mIOPtrs.nMergedTracks;i++)
 	{

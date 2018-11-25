@@ -48,6 +48,7 @@ AliHLTTRDTracker::AliHLTTRDTracker() :
   fHypothesis(nullptr),
   fCandidates(nullptr),
   fSpacePoints(nullptr),
+  fExternalGeometry(false),
   fGeo(nullptr),
   fDebugOutput(false),
   fMinPt(0.6),
@@ -81,21 +82,17 @@ AliHLTTRDTracker::~AliHLTTRDTracker()
     delete[] fNtrackletsInChamber;
     delete[] fTrackletIndexArray;
     delete[] fR;
-    delete fGeo;
+    if (!fExternalGeometry) delete fGeo;
     delete fDebug;
     delete[] fMaskedChambers;
   }
 }
 
-GPUd() void AliHLTTRDTracker::Init()
+GPUd() void AliHLTTRDTracker::Init(AliHLTTRDGeometry* geo)
 {
   //--------------------------------------------------------------------
   // Initialise tracker
   //--------------------------------------------------------------------
-  if(!AliHLTTRDGeometry::CheckGeometryAvailable()){
-    Error("Init", "Could not get geometry.");
-  }
-
   fNtrackletsInChamber = new int[kNChambers];
   fTrackletIndexArray = new int[kNChambers];
   for (int iDet=0; iDet<kNChambers; ++iDet) {
@@ -146,14 +143,28 @@ GPUd() void AliHLTTRDTracker::Init()
   for (int iLy=0; iLy<kNLayers; iLy++) {
     fR[iLy] = x0[iLy];
   }
-  fGeo = new AliHLTTRDGeometry();
-  if (!fGeo) {
-    Error("Init", "TRD geometry could not be loaded");
+  if (geo)
+  {
+      fGeo = geo;
+      fExternalGeometry = true;
   }
-  fGeo->CreateClusterMatrixArray();
-  TGeoHMatrix *matrix = nullptr;
-  double loc[3] = { fGeo->AnodePos(), 0., 0. };
-  double glb[3] = { 0., 0., 0. };
+  else
+  {
+      if(!AliHLTTRDGeometry::CheckGeometryAvailable()){
+        Error("Init", "Could not get geometry.");
+        return;
+      }
+
+      fGeo = new AliHLTTRDGeometry();
+      if (!fGeo) {
+        Error("Init", "TRD geometry could not be loaded");
+        return;
+      }
+      fGeo->CreateClusterMatrixArray();
+  }
+  auto* matrix = fGeo->GetClusterMatrix(0);
+  My_Float loc[3] = { fGeo->AnodePos(), 0., 0. };
+  My_Float glb[3] = { 0., 0., 0. };
   for (int iLy=0; iLy<kNLayers; iLy++) {
     for (int iSec=0; iSec<kNSectors; iSec++) {
       matrix = fGeo->GetClusterMatrix(fGeo->GetDetector(iLy, 2, iSec));
@@ -292,7 +303,7 @@ GPUd() bool AliHLTTRDTracker::CalculateSpacePoints()
       continue;
     }
 
-    TGeoHMatrix *matrix = fGeo->GetClusterMatrix(iDet);
+    auto* matrix = fGeo->GetClusterMatrix(iDet);
     if (!matrix){
 	    Error("CalculateSpacePoints", "Invalid TRD cluster matrix, skipping detector  %i", iDet);
       result = false;
@@ -308,8 +319,8 @@ GPUd() bool AliHLTTRDTracker::CalculateSpacePoints()
       int trkltIdx = fTrackletIndexArray[iDet] + iTrklt;
       int trkltZbin = fTracklets[trkltIdx].GetZbin();
       float sz2 = pow(pp->GetRowSize(trkltZbin), 2) / 12.; // sigma_z = l_pad/sqrt(12) TODO try a larger z error
-      double xTrkltDet[3] = { 0. }; // trklt position in chamber coordinates
-      double xTrkltSec[3] = { 0. }; // trklt position in sector coordinates
+      My_Float xTrkltDet[3] = { 0. }; // trklt position in chamber coordinates
+      My_Float xTrkltSec[3] = { 0. }; // trklt position in sector coordinates
       xTrkltDet[0] = fGeo->AnodePos();
       xTrkltDet[1] = fTracklets[trkltIdx].GetY();
       xTrkltDet[2] = pp->GetRowPos(trkltZbin) - pp->GetRowSize(trkltZbin)/2. - pp->GetRowPos(pp->GetNrows()/2);

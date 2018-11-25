@@ -25,53 +25,49 @@ public:
 
 class TObjArray;
 #include "AliHLTTPCCADef.h"
-//#include "TRDBase/TRDGeometryBase.h"
+#include "TRDBase/TRDGeometryFlat.h"
+#include "TRDBase/TRDPadPlane.h"
+#include "AliTPCCommonTransform3D.h"
 
-class TGeoHMatrix
+class AliHLTTRDpadPlane : private o2::trd::TRDPadPlane
 {
 public:
-	template <class T> GPUd() void LocalToMaster(T*, T*) {}
+	GPUd() float GetTiltingAngle() {return getTiltingAngle();}
+	GPUd() float GetRowSize(int row) {return getRowSize(row);}
+	GPUd() float GetRowPos(int row) {return getRowPos(row);}
+	GPUd() float GetColPos(int col) {return getColPos(col);}
+	GPUd() float GetNrows() {return getNrows();}
 };
 
-class AliHLTTRDpadPlane
+class AliHLTTRDGeometry : private o2::trd::TRDGeometryFlat
 {
 public:
-	GPUd() float GetTiltingAngle() {return 0;}
-	GPUd() float GetRowSize(int row) {return 0;}
-	GPUd() float GetRowPos(int row) {return 0;}
-	GPUd() float GetColPos(int col) {return 0;}
-	GPUd() float GetNrows() {return 0;}
-};
-
-class AliHLTTRDGeometry
-{
-public:
-	GPUd() static bool CheckGeometryAvailable() {return false;}
+	GPUd() static bool CheckGeometryAvailable() {return true;}
 
 	//Make sub-functionality available directly in AliHLTTRDGeometry
-	GPUd() float GetPadPlaneWidthIPad(int det) {return 0;}
-	GPUd() float GetPadPlaneRowPos(int layer, int stack, int row) {return 0;}
-	GPUd() float GetPadPlaneRowSize(int layer, int stack, int row) {return 0;}
+	GPUd() float GetPadPlaneWidthIPad(int det) {return getPadPlane(det)->getWidthIPad();}
+	GPUd() float GetPadPlaneRowPos(int layer, int stack, int row) {return getPadPlane(layer, stack)->getRowPos(row);}
+	GPUd() float GetPadPlaneRowSize(int layer, int stack, int row) {return getPadPlane(layer, stack)->getRowSize(row);}
 	GPUd() int GetGeomManagerVolUID(int det, int modId) {return 0;}
 	
 	//Base functionality of TRDGeometry
-	GPUd() float GetTime0(int layer) {return 0;}
-	GPUd() float GetCol0(int layer) {return 0;}
-	GPUd() int GetLayer(int det) {return 0;}
+	GPUd() float GetTime0(int layer) {return getTime0(layer);}
+	GPUd() float GetCol0(int layer) {return getCol0(layer);}
+	GPUd() int GetLayer(int det) {return getLayer(det);}
 	GPUd() bool CreateClusterMatrixArray() {return false;}
-	GPUd() float AnodePos() {return 0;}
-	GPUd() TGeoHMatrix* GetClusterMatrix(int det) {return nullptr;}
-	GPUd() int GetDetector(int layer, int stack, int sector) {return 0;}
-	GPUd() AliHLTTRDpadPlane* GetPadPlane(int layer, int stack) {return nullptr;}
-	GPUd() AliHLTTRDpadPlane* GetPadPlane(int detector) {return nullptr;}
-	GPUd() int GetSector(int det) {return 0;}
-	GPUd() int GetStack(int det) {return 0;}
-	GPUd() int GetStack(float z, int layer) {return 0;}
-	GPUd() float GetAlpha() {return 0;}
-	GPUd() bool IsHole(int la, int st, int se) const {return false;}
-	GPUd() int GetRowMax(int layer, int stack, int /*sector*/) {return 0;}
+	GPUd() float AnodePos() {return anodePos();}
+	GPUd() const ali_tpc_common::Transform3D* GetClusterMatrix(int det) {return getMatrixT2L(det);}
+	GPUd() int GetDetector(int layer, int stack, int sector) {return getDetector(layer, stack, sector);}
+	GPUd() AliHLTTRDpadPlane* GetPadPlane(int layer, int stack) {return (AliHLTTRDpadPlane*) getPadPlane(layer, stack);}
+	GPUd() AliHLTTRDpadPlane* GetPadPlane(int detector) {return (AliHLTTRDpadPlane*) getPadPlane(detector);}
+	GPUd() int GetSector(int det) {return getSector(det);}
+	GPUd() int GetStack(int det) {return getStack(det);}
+	GPUd() int GetStack(float z, int layer) {return getStack(z, layer);}
+	GPUd() float GetAlpha() {return getAlpha();}
+	GPUd() bool IsHole(int la, int st, int se) const {return isHole(la, st, se);}
+	GPUd() int GetRowMax(int layer, int stack, int sector) {return getRowMax(layer, stack, sector);}
 
-	static const int kNstack = 0;
+	static constexpr int kNstack = o2::trd::kNstack;
 };
 
 #else
