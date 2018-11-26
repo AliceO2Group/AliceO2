@@ -17,6 +17,7 @@
 
 #include <array>
 #include <cstdint>
+#include <iosfwd>
 #include <string>
 #include <variant>
 #include <vector>
@@ -160,6 +161,16 @@ class ValueHolder
     }
 
     return false;
+  }
+
+  friend std::ostream& operator<<(std::ostream& os, ValueHolder<T> const& holder)
+  {
+    if (auto value = std::get_if<T>(&holder.mValue)) {
+      os << *value;
+    } else if (auto context = std::get_if<ContextRef>(&holder.mValue)) {
+      os << "$" << context->index;
+    }
+    return os;
   }
 
  protected:
@@ -399,6 +410,9 @@ class DataDescriptorMatcher
   bool match(char const* d, VariableContext& context) const;
 
   bool operator==(DataDescriptorMatcher const& other) const;
+
+  friend std::ostream& operator<<(std::ostream& os, DataDescriptorMatcher const& matcher);
+  friend std::ostream& operator<<(std::ostream& os, Op const& matcher);
 
   Node const& getLeft() const { return mLeft; };
   Node const& getRight() const { return mRight; };

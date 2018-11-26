@@ -530,3 +530,101 @@ BOOST_AUTO_TEST_CASE(TestVariableContext)
   //BOOST_CHECK(d2 == nullptr);
   //BOOST_CHECK(d3 == nullptr);
 }
+
+BOOST_AUTO_TEST_CASE(DataQuery)
+{
+  auto empty_bindings = [](std::runtime_error const& ex) -> bool {
+    BOOST_CHECK_EQUAL(ex.what(), "Parse error: empty binding string");
+    return true;
+  };
+  auto missing_origin = [](std::runtime_error const& ex) -> bool {
+    BOOST_CHECK_EQUAL(ex.what(), "Parse error: origin needs to be between 1 and 4 char long");
+    return true;
+  };
+  auto missing_description = [](std::runtime_error const& ex) -> bool {
+    BOOST_CHECK_EQUAL(ex.what(), "Parse error: description needs to be between 1 and 16 char long");
+    return true;
+  };
+  auto missing_subspec = [](std::runtime_error const& ex) -> bool {
+    BOOST_CHECK_EQUAL(ex.what(), "Parse error: Expected a number");
+    return true;
+  };
+  auto missing_timemodulo = [](std::runtime_error const& ex) -> bool {
+    BOOST_CHECK_EQUAL(ex.what(), "Parse error: Expected a number");
+    return true;
+  };
+  auto trailing_semicolon = [](std::runtime_error const& ex) -> bool {
+    BOOST_CHECK_EQUAL(ex.what(), "Parse error: Remove trailing ;");
+    return true;
+  };
+  // Empty query.
+  BOOST_CHECK(DataDescriptorQueryBuilder::parse().empty() == true);
+  // Empty bindings.
+  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse(":"), std::runtime_error, empty_bindings);
+  // Missing origin
+  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:"), std::runtime_error, missing_origin);
+  // Origin too long
+  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:bacjasbjkca"), std::runtime_error, missing_origin);
+  // This is a valid expression, short for x:TST/*/* or x:TST/$1/$2
+  BOOST_CHECK_NO_THROW(DataDescriptorQueryBuilder::parse("x:TST"));
+  // This one is not, as we expect a description after a /
+  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:TST/"), std::runtime_error, missing_description);
+  // This one is not, as the description is too long
+  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:TST/cdjancajncjancjkancjkadncancnacaklmcak"), std::runtime_error, missing_description);
+  // This one is ok, short for "x:TST/A1/*"
+  BOOST_CHECK_NO_THROW(DataDescriptorQueryBuilder::parse("x:TST/A1"));
+  // This one is not, as subspec needs to be a value or a range.
+  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:TST/A1/"), std::runtime_error, missing_subspec);
+  // Not valid as subspec should be a number.
+  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:TST/A1/a0"), std::runtime_error, missing_subspec);
+
+  // Let's verify that the contents are correct.
+  auto result0 = DataDescriptorQueryBuilder::parse("x:TST/A1/77");
+  BOOST_CHECK_EQUAL(result0.size(), 1);
+  DataDescriptorMatcher expectedMatcher00{
+    DataDescriptorMatcher::Op::And,
+    OriginValueMatcher{ "TST" },
+    std::make_unique<DataDescriptorMatcher>(
+      DataDescriptorMatcher::Op::And,
+      DescriptionValueMatcher{ "A1" },
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::And,
+        SubSpecificationTypeValueMatcher{ 77 },
+        std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
+                                                StartTimeValueMatcher{ ContextRef{ 0 } })))
+  };
+  auto matcher = std::get_if<DataDescriptorMatcher>(&result0[0].matcher);
+  BOOST_REQUIRE(matcher != nullptr);
+  BOOST_CHECK(expectedMatcher00 == *matcher);
+  std::ostringstream ss0;
+  ss0 << *matcher;
+  std::ostringstream expectedSS00;
+  expectedSS00 << expectedMatcher00;
+  BOOST_CHECK_EQUAL(ss0.str(), "(and origin:TST (and description:A1 (and subSpec:77 (just startTime:$0 ))))");
+  BOOST_CHECK_EQUAL(expectedSS00.str(), "(and origin:TST (and description:A1 (and subSpec:77 (just startTime:$0 ))))");
+  BOOST_CHECK_EQUAL(ss0.str(), expectedSS00.str());
+
+  // This is valid. TimeModulo is 1.
+  BOOST_CHECK_NO_THROW(DataDescriptorQueryBuilder::parse("x:TST/A1/0"));
+  // Not valid as timemodulo should be a number.
+  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:TST/A1/0%"), std::runtime_error, missing_timemodulo);
+  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:TST/A1/0\%oabdian"), std::runtime_error, missing_timemodulo);
+  // This is valid.
+  BOOST_CHECK_NO_THROW(DataDescriptorQueryBuilder::parse("x:TST/A1/0%1"));
+  // This is not valid.
+  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:TST/A1/0%1;:"), std::runtime_error, empty_bindings);
+  // This is not valid.
+  BOOST_CHECK_EXCEPTION(DataDescriptorQueryBuilder::parse("x:TST/A1/0%1;"), std::runtime_error, trailing_semicolon);
+  // This is valid.
+  BOOST_CHECK_NO_THROW(DataDescriptorQueryBuilder::parse("x:TST/A1/0%1;x:TST/A2"));
+  // Let's verify that the contents are correct.
+  auto result1 = DataDescriptorQueryBuilder::parse("x:TST/A1/0%1;y:TST/A2");
+  BOOST_CHECK_EQUAL(result1.size(), 2);
+
+  std::ostringstream ops;
+  ops << DataDescriptorMatcher::Op::And
+      << DataDescriptorMatcher::Op::Or
+      << DataDescriptorMatcher::Op::Xor
+      << DataDescriptorMatcher::Op::Just;
+  BOOST_CHECK_EQUAL(ops.str(), "andorxorjust");
+}

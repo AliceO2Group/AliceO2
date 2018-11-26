@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/DataDescriptorMatcher.h"
+#include "Framework/DataProcessingHeader.h"
 #include <iostream>
 
 namespace o2
@@ -78,8 +79,11 @@ bool DataDescriptorMatcher::match(ConcreteDataMatcher const& matcher, VariableCo
   dh.dataOrigin = matcher.origin;
   dh.dataDescription = matcher.description;
   dh.subSpecification = matcher.subSpec;
+  DataProcessingHeader dph;
+  dph.startTime = 0;
+  header::Stack s{ dh, dph };
 
-  return this->match(reinterpret_cast<char const*>(&dh), context);
+  return this->match(reinterpret_cast<char const*>(s.data()), context);
 }
 
 bool DataDescriptorMatcher::match(header::DataHeader const& header, VariableContext& context) const
@@ -310,6 +314,50 @@ bool DataDescriptorMatcher::operator==(DataDescriptorMatcher const& other) const
   }
   // We alredy know the left side is true.
   return false;
+}
+
+std::ostream& operator<<(std::ostream& os, DataDescriptorMatcher const& matcher)
+{
+  auto printer = [&os](decltype(&matcher.mLeft) v) -> void {
+    if (auto left = std::get_if<std::unique_ptr<DataDescriptorMatcher>>(v)) {
+      os << **left;
+    } else if (auto originMatcher = std::get_if<OriginValueMatcher>(v)) {
+      os << "origin:" << *originMatcher;
+    } else if (auto descriptionMatcher = std::get_if<DescriptionValueMatcher>(v)) {
+      os << "description:" << *descriptionMatcher;
+    } else if (auto subSpecMatcher = std::get_if<SubSpecificationTypeValueMatcher>(v)) {
+      os << "subSpec:" << *subSpecMatcher;
+    } else if (auto startTimeMatcher = std::get_if<StartTimeValueMatcher>(v)) {
+      os << "startTime:" << *startTimeMatcher;
+    }
+  };
+
+  os << "(" << matcher.mOp << " ";
+  printer(&matcher.mLeft);
+  os << " ";
+  printer(&matcher.mRight);
+  os << ")";
+
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, DataDescriptorMatcher::Op const& op)
+{
+  switch (op) {
+    case DataDescriptorMatcher::Op::And:
+      os << "and";
+      break;
+    case DataDescriptorMatcher::Op::Or:
+      os << "or";
+      break;
+    case DataDescriptorMatcher::Op::Just:
+      os << "just";
+      break;
+    case DataDescriptorMatcher::Op::Xor:
+      os << "xor";
+      break;
+  }
+  return os;
 }
 
 } // namespace data_matcher
