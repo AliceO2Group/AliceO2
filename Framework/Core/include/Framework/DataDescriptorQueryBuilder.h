@@ -10,6 +10,8 @@
 #ifndef o2_framework_DataDescriptorQueryBuilder_H_INCLUDED
 #define o2_framework_DataDescriptorQueryBuilder_H_INCLUDED
 
+#include "Framework/InputSpec.h"
+
 #include <string>
 #include <vector>
 #include <memory>
@@ -38,6 +40,20 @@ struct DataDescriptorQuery {
 
 /// Various utilities to manipulate InputSpecs
 struct DataDescriptorQueryBuilder {
+  /// Creates an inputspec from a configuration @a config string with the
+  /// following grammar.
+  ///
+  /// string := [a-zA-Z0-9_*]*
+  /// binding := string
+  /// origin := string
+  /// description := string
+  /// subspec := [0-9]*
+  /// spec := binding:origin/description/subspec
+  /// config := spec;spec;...
+  ///
+  /// Example for config: x:TPC/CLUSTER/0;y:ITS/TRACKS/1
+  static std::vector<InputSpec> parse(const char* s = "");
+
   /// Creates an inputspec from a configuration @a config string with the
   /// following grammar.
   ///

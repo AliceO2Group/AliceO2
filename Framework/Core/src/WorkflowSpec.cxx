@@ -9,9 +9,11 @@
 // or submit itself to any jurisdiction.
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/DataDescriptorQueryBuilder.h"
+
+#include <cstddef>
 #include <functional>
 #include <string>
-#include <cstddef>
 
 namespace o2
 {
@@ -83,6 +85,12 @@ DataProcessorSpec timePipeline(DataProcessorSpec original,
   return original;
 }
 
+/// Really a wrapper around `DataDescriptorQueryBuilder::parse`
+/// FIXME: should really use an rvalue..
+std::vector<InputSpec> select(const char* matcher)
+{
+  return DataDescriptorQueryBuilder::parse(matcher);
+}
 
 } // namespace framework
 } // namespace o2

@@ -83,33 +83,23 @@ struct DataProcessorSpec {
 };
 ```
 
-In the above both `InputSpec` and `OutputSpec` are like:
+the inputs field represents a set of subscriptions to some kind of input data we would like to process. As per O2 Data Model
+there is 3 major properties O2 attaches to a message: its origin, a description and a generic subspecification.
 
-```cpp
-struct InputSpec {
-  std::string binding;
-  o2::Headers::DataDescription description;
-  o2::Headers::DataOrigin origin;
-  o2::Headers::SubSpecificationType subSpec;
-  enum Lifetime lifetime;
-  ...
-};
-```
+So:
 
-where description, origin and subSpec match the O2 Data Model definition. For the moment we will consider this a one to one mapping with the `o2::Headers::DataHeader` ones. In principle one could think of a one-to-many relationship (e.g. give me all the clusters, regardless of their provenance) and the processing layer could automatically aggregate those in a unique view. This is also the semantic difference between `InputSpec` and `OutputSpec`: the former is to express data that matches a given query (which must be exact at the moment) the latter is to describe in all details and without any doubt the kind of the produced outputs.
+    {InputSpec{"clusters", "TPC", "CLUSTERS", 0}}
 
-The `lifetime` property:
+really means "subscribe in input to the messages which have origin "TPC", contain objects of kind "CLUSTERS" and have a generic 
+subspecification 0 (e.g. to index the sector). In your code you will be able to retrieve these kind of messages using the "clusters"
+label (see later the description of the InputRecord API).An InputSpec is effectively a three dimensional selection on space defined by all the possible origins, descriptions and subspecifications.
 
-```cpp
-enum struct Lifetime {
-  Timeframe,
-  Condition,
-  QA,
-  Transient
-};
-```
+Notice that the method `o2::framework::select` can be used to provide the query
+in a more compact (and flexible way). Using such an helper the above becomes:
 
-will be used to distinguish if the associated payload should be considered payload data, and therefore be processed only once, or alignment / conditions data, and therefore it would be considered valid until a new copy is made available to the device.
+     select("clusters:TPC/CLUSTERS/0")
+
+Similarly the `OutputSpec` is a description of what the DataProcessor will produce, again in terms of (origin, description, subspecification) properties.
 
 The `configParams` vector would be used to specify which configuration options the data processing being described requires:
 
