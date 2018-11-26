@@ -19,8 +19,6 @@
 #include <climits>
 #include <vector>
 
-#include "json.h"
-
 #include "ITStracking/Constants.h"
 
 namespace o2
