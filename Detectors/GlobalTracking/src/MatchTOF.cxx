@@ -402,17 +402,6 @@ bool MatchTOF::loadTracksNextChunk()
   return false;
 }
 //______________________________________________
-void MatchTOF::loadTracksChunk(int chunk)
-{
-  ///< load the next chunk of tracks to be matched to TOF (chunk = timeframe? to be checked)
-
-  // load single entry from tracks tree
-  if (mCurrTracksTreeEntry != chunk) {
-    mInputTreeTracks->GetEntry(mCurrTracksTreeEntry = chunk);
-  }
-}
-
-//______________________________________________
 bool MatchTOF::loadTOFClustersNextChunk()
 {
   ///< load next chunk of clusters to be matched to TOF
@@ -430,16 +419,6 @@ bool MatchTOF::loadTOFClustersNextChunk()
   }
   --mCurrTOFClustersTreeEntry;
   return false;
-}
-//______________________________________________
-void MatchTOF::loadTOFClustersChunk(int chunk)
-{
-  ///< load the next chunk of TOF clusters for the matching (chunk = timeframe? to be checked)
-
-  // load single entry from TOF clusters tree
-  if (mCurrTOFClustersTreeEntry != chunk) {
-    mTreeTOFClusters->GetEntry(mCurrTOFClustersTreeEntry = chunk);
-  }
 }
 //______________________________________________
 void MatchTOF::doMatching(int sec)

@@ -158,9 +158,7 @@ class MatchTOF
   bool prepareTracks();
   bool prepareTOFClusters();
   bool loadTracksNextChunk();
-  void loadTracksChunk(int chunk);
   bool loadTOFClustersNextChunk();
-  void loadTOFClustersChunk(int chunk);
 
   void doMatching(int sec);
   void selectBestMatches();

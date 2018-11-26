@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file Cluster.h
-/// \brief Definition of the TOF cluster
+/// \file MatchInfoTOF.h
+/// \brief Class to store the output of the matching to TOF
 
 #ifndef ALICEO2_MATCHINFOTOF_H
 #define ALICEO2_MATCHINFOTOF_H

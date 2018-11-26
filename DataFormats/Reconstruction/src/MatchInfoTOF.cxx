@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file Cluster.cxx
-/// \brief Implementation of the TOF cluster
+/// \file MatchInfoTOF.cxx
+/// \brief Class to store the output of the matching to TOF
 
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
 
