@@ -66,7 +66,7 @@ bool Detector::ProcessHits(FairVolume* v)
 
   float enDep = fMC->Edep();
   float time = fMC->TrackTime() * 1.0e09;
-  auto stack = (o2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
+  auto stack = (o2::Data::Stack*)fMC->GetStack();
   auto trackID = stack->GetCurrentTrackNumber();
   auto sensID = v->getMCid();
   addHit(x, y, z, time, enDep, trackID, sensID);
