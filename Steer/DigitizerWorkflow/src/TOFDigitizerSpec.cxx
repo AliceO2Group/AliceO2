@@ -131,9 +131,9 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
 
     // temporary accumulate vector of vecotors of digits in a single vector
     // to be replace once we will be able to write the vector of vectors as different TTree entries
-    std::vector< std::vector<Digit>>* digitsVectOfVect =  digitizer->getDigitPerTimeFrame();
-    std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel> >* mcLabVecOfVec = digitizer->getMCTruthPerTimeFrame();
-    for(Int_t i=0; i < digitsVectOfVect->size();i++){
+    std::vector<std::vector<Digit>>* digitsVectOfVect = digitizer->getDigitPerTimeFrame();
+    std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* mcLabVecOfVec = digitizer->getMCTruthPerTimeFrame();
+    for (Int_t i = 0; i < digitsVectOfVect->size(); i++) {
       std::copy(digitsVectOfVect->at(i).begin(), digitsVectOfVect->at(i).end(), std::back_inserter(*digitsAccum.get()));
       labelAccum.mergeAtBack(mcLabVecOfVec->at(i));
     }

@@ -19,8 +19,6 @@
 #include <TMath.h>
 #include <cstdlib>
 
-
-
 namespace o2
 {
 namespace tof
@@ -50,10 +48,10 @@ class Cluster : public o2::BaseCluster<float>
 
   void SetBaseData(std::int16_t sensid, float x, float y, float z, float sy2, float sz2, float syz);
 
-  double getTimeRaw() const { return mTimeRaw; }             // Cluster ToF getter
-  void setTimeRaw(double timeRaw) { mTimeRaw = timeRaw; }    // Cluster ToF setter
-  double getTime() const { return mTime; }                   // Cluster ToF getter
-  void setTime(double time) { mTime = time; }                // Cluster ToF setter
+  double getTimeRaw() const { return mTimeRaw; }            // Cluster ToF getter
+  void setTimeRaw(double timeRaw) { mTimeRaw = timeRaw; }   // Cluster ToF setter
+  double getTime() const { return mTime; }                  // Cluster ToF getter
+  void setTime(double time) { mTime = time; }               // Cluster ToF setter
   float getTot() const { return mTot; }                     // Cluster Charge getter
   void setTot(int tot) { mTot = tot; }                      // Cluster ToT setter
   int getL0L1Latency() const { return mL0L1Latency; };      // L0L1 latency
@@ -61,9 +59,9 @@ class Cluster : public o2::BaseCluster<float>
   int getDeltaBC() const { return mDeltaBC; };              // deltaBC
   void setDeltaBC(int value) { mDeltaBC = value; };         // deltaBC
   //float  getZ()   const   {return mZ;}   // Cluster Z - already in the definition of the cluster
-  float getR() const { return TMath::Sqrt(getX()*getX() + getY()*getY() + getZ()*getZ()); }     // Cluster Radius
-  float getPhi() const { return TMath::ATan2(getY(), getX()); } // Cluster Phi
-  int getSector() const { return int((TMath::ATan2(-getY(), -getX())+TMath::Pi())*TMath::RadToDeg()*0.05);} // Cluster Sector
+  float getR() const { return TMath::Sqrt(getX() * getX() + getY() * getY() + getZ() * getZ()); }                  // Cluster Radius
+  float getPhi() const { return TMath::ATan2(getY(), getX()); }                                                    // Cluster Phi
+  int getSector() const { return int((TMath::ATan2(-getY(), -getX()) + TMath::Pi()) * TMath::RadToDeg() * 0.05); } // Cluster Sector
 
   int getContributingChannels() const { return mContributingChannels; }
   void setContributingChannels(int contributingChannels) { mContributingChannels = contributingChannels; }
@@ -111,8 +109,8 @@ class Cluster : public o2::BaseCluster<float>
  private:
   friend class boost::serialization::access;
 
-  double mTimeRaw;   // raw TOF time // CZ: in AliRoot it is a double
-  double mTime;      // calibrated TOF time // CZ: in AliRoot it is a double
+  double mTimeRaw;  // raw TOF time // CZ: in AliRoot it is a double
+  double mTime;     // calibrated TOF time // CZ: in AliRoot it is a double
   float mTot;       // Time-Over-threshold // CZ: in AliRoot it is a double
   int mL0L1Latency; // L0L1 latency // CZ: is it different per cluster? Checking one ESD file, it seems that it is always the same (see: /alice/data/2017/LHC17n/000280235/pass1/17000280235019.100/AliESDs.root)
   int mDeltaBC;     // DeltaBC --> can it be a char or short? // CZ: is it different per cluster? Checking one ESD file, it seems that it can vary (see: /alice/data/2017/LHC17n/000280235/pass1/17000280235019.100/AliESDs.root)

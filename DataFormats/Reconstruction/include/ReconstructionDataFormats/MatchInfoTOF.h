@@ -18,10 +18,9 @@ namespace o2
 {
 namespace dataformats
 {
-  class MatchInfoTOF
+class MatchInfoTOF
 {
  public:
-
   MatchInfoTOF(int indexTOFCl, float chi2) : mTOFClIndex(indexTOFCl), mChi2(chi2){};
   MatchInfoTOF() = default;
   void setTOFClIndex(int index) { mTOFClIndex = index; }
@@ -31,10 +30,8 @@ namespace dataformats
   float getChi2() const { return mChi2; }
 
  private:
-  
   int mTOFClIndex; // index of the TOF cluster used for the matching
   float mChi2;     // chi2 of the pair track-TOFcluster
-  
 
   //  ClassDefNV(MatchInfoTOF, 1);
 };

@@ -55,11 +55,11 @@ class TOFDPLClustererTask
     mClustersArray.clear();
     mClsLabels.clear();
 
-    for(int i=0;i < digits->size();i++){
-      printf("# TOF readout window for clusterization = %i\n",i); 
-      auto digitsRO = digits->at(i); 
-      mReader.setDigitArray(&digitsRO);       
-      mClusterer.process(mReader, mClustersArray, &(digitlabels->at(i))); 
+    for (int i = 0; i < digits->size(); i++) {
+      printf("# TOF readout window for clusterization = %i\n", i);
+      auto digitsRO = digits->at(i);
+      mReader.setDigitArray(&digitsRO);
+      mClusterer.process(mReader, mClustersArray, &(digitlabels->at(i)));
     }
     LOG(INFO) << "TOF CLUSTERER : TRANSFORMED " << digits->size()
               << " DIGITS TO " << mClustersArray.size() << " CLUSTERS";

@@ -17,10 +17,10 @@
 #define _ALLOW_DEBUG_TREES_ // to allow debug and control tree output
 
 void run_match_tof(std::string path = "./", std::string outputfile = "o2match_tof.root",
-                      std::string inputTracksTPCITS = "o2match_itstpc.root",
-		   std::string inputTracksTPC = "tpctracks.root",
-                      std::string inputClustersTOF = "tofclusters.root", std::string inputGeom = "O2geometry.root",
-                      std::string inputGRP = "o2sim_grp.root")
+                   std::string inputTracksTPCITS = "o2match_itstpc.root",
+                   std::string inputTracksTPC = "tpctracks.root",
+                   std::string inputClustersTOF = "tofclusters.root", std::string inputGeom = "O2geometry.root",
+                   std::string inputGRP = "o2sim_grp.root")
 {
 
   o2::globaltracking::MatchTOF matching;
@@ -38,7 +38,7 @@ void run_match_tof(std::string path = "./", std::string outputfile = "o2match_to
   tpcTracks.AddFile((path + inputTracksTPC).data());
   matching.setInputTreeTPCTracks(&tpcTracks);
   matching.setTPCTrackBranchName("TPCTracks");
-   
+
   TChain tofClusters("o2sim");
   tofClusters.AddFile((path + inputClustersTOF).data());
   matching.setInputTreeTOFClusters(&tofClusters);

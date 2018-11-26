@@ -158,7 +158,8 @@ void Geo::getPos(Int_t* det, Float_t* pos)
   Char_t path[200];
   getVolumePath(det, path);
   if (!gGeoManager) {
-    LOG(ERROR) << " no TGeo! Loading it" << "\n"; 
+    LOG(ERROR) << " no TGeo! Loading it"
+               << "\n";
     o2::Base::GeometryManager::loadGeometry();
   }
   FILE* ciccio = fopen("TOF_geo.txt", "w");
@@ -326,7 +327,7 @@ Int_t Geo::getStripNumberPerSM(Int_t iplate, Int_t istrip)
 void Geo::fromGlobalToSector(Float_t* pos, Int_t isector)
 {
   if (isector == -1) {
-    //LOG(ERROR) << "Sector Index not valid (-1)\n"; 
+    //LOG(ERROR) << "Sector Index not valid (-1)\n";
     return;
   }
 
@@ -636,4 +637,3 @@ void Geo::antiRotate(Float_t* xyz, Double_t rotationAngles[6])
 
   return;
 }
-

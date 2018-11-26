@@ -66,7 +66,7 @@ Int_t Strip::addDigit(Int_t channel, Int_t tdc, Int_t tot, Int_t bc, Int_t lbl)
   auto dig = findDigit(key);
   if (dig) {
     lbl = dig->getLabel();      // getting the label from the already existing digit
-    dig->merge(tdc, tot); // merging to the existing digit
+    dig->merge(tdc, tot);       // merging to the existing digit
   } else {
     auto digIter = mDigits.emplace(std::make_pair(key, Digit(channel, tdc, tot, bc, lbl)));
   }

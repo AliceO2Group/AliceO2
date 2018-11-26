@@ -67,8 +67,8 @@ class Digitizer
   void setContinuous(bool val) { mContinuous = val; }
   bool isContinuous() const { return mContinuous; }
 
-  std::vector< std::vector<Digit>>* getDigitPerTimeFrame() {return &mDigitsPerTimeFrame;}
-  std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel> >* getMCTruthPerTimeFrame() {return &mMCTruthOutputContainerPerTimeFrame;}
+  std::vector<std::vector<Digit>>* getDigitPerTimeFrame() { return &mDigitsPerTimeFrame; }
+  std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* getMCTruthPerTimeFrame() { return &mMCTruthOutputContainerPerTimeFrame; }
 
  private:
   // parameters
@@ -102,8 +102,8 @@ class Digitizer
 
   static const int MAXWINDOWS = 2; // how many readout windows we can buffer
 
-  std::vector< std::vector<Digit> > mDigitsPerTimeFrame;
-  std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel> > mMCTruthOutputContainerPerTimeFrame;
+  std::vector<std::vector<Digit>> mDigitsPerTimeFrame;
+  std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mMCTruthOutputContainerPerTimeFrame;
 
   int mIcurrentReadoutWindow = 0;
   o2::dataformats::MCTruthContainer<o2::tof::MCLabel> mMCTruthContainer[MAXWINDOWS];
