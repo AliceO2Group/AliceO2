@@ -202,7 +202,7 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
   Geo::getVolumeIndices(c.getMainContributingChannel(), det);
   float pos[3];
   Geo::getPos(det, pos);
-  c.SetBaseData(c.getMainContributingChannel(), pos[0], pos[1], pos[2], 0, 0, 0); // error on position set to zero
+  c.setBaseData(c.getMainContributingChannel(), pos[0], pos[1], pos[2], 0, 0, 0); // error on position set to zero
 
   return;
 }

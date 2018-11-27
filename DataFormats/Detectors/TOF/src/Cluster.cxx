@@ -28,9 +28,10 @@ Cluster::Cluster(std::int16_t sensid, float x, float y, float z, float sy2, floa
   // caching R and phi
   mR = TMath::Sqrt(x * x + y * y);
   mPhi = TMath::ATan2(y, x);
+  mSector = (TMath::ATan2(-getY(), -getX()) + TMath::Pi()) * TMath::RadToDeg() * 0.05;
 }
 //______________________________________________________________________
-void Cluster::SetBaseData(std::int16_t sensid, float x, float y, float z, float sy2, float sz2, float syz)
+void Cluster::setBaseData(std::int16_t sensid, float x, float y, float z, float sy2, float sz2, float syz)
 {
   setSensorID(sensid);
   setXYZ(x, y, z);
@@ -39,6 +40,7 @@ void Cluster::SetBaseData(std::int16_t sensid, float x, float y, float z, float 
   // caching R and phi
   mR = TMath::Sqrt(x * x + y * y);
   mPhi = TMath::ATan2(y, x);
+  mSector = (TMath::ATan2(-getY(), -getX()) + TMath::Pi()) * TMath::RadToDeg() * 0.05;
 }
 //______________________________________________________________________
 int Cluster::getNumOfContributingChannels() const
@@ -72,7 +74,7 @@ int Cluster::getNumOfContributingChannels() const
 }
 
 //______________________________________________________________________
-std::ostream& operator<<(std::ostream& os, const Cluster& c)
+std::ostream& operator<<(std::ostream& os, Cluster& c)
 {
   os << (o2::BaseCluster<float>&)c;
   os << " TOF cluster: raw time = " << std::scientific << c.getTimeRaw() << ", time = " << std::scientific << c.getTime() << ", Tot = " << std::scientific << c.getTot() << ", L0L1Latency = " << c.getL0L1Latency() << ", deltaBC = " << c.getDeltaBC() << ", R = " << c.getR() << ", mPhi = " << c.getPhi() << ", ContributingChannels = " << c.getNumOfContributingChannels() << "\n";
