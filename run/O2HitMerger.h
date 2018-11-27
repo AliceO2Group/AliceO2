@@ -242,19 +242,32 @@ class O2HitMerger : public FairMQDevice
     originbr->SetAddress(&incomingdata);
     for (auto& event_entries_pair : entrygroups) {
       const auto& entries = event_entries_pair.second;
-      for (auto& e : entries) {
-        originbr->GetEntry(e);
-        backInsert(*incomingdata, *targetdata);
-        delete incomingdata;
-        incomingdata = nullptr;
+
+      T* filladdress;
+      if (entries.size() == 1) {
+        // this avoids useless copy in case there was no sub-event splitting; we just use the original data
+        originbr->GetEntry(entries[0]);
+        filladdress = incomingdata;
+      } else {
+        filladdress = targetdata;
+        for (auto& e : entries) {
+          originbr->GetEntry(e);
+          backInsert(*incomingdata, *targetdata);
+          delete incomingdata;
+          incomingdata = nullptr;
+        }
       }
 
       // fill target for this event
-      auto targetbr = o2::Base::getOrMakeBranch(target, brname.c_str(), &targetdata);
-      targetbr->SetAddress(&targetdata);
+      auto targetbr = o2::Base::getOrMakeBranch(target, brname.c_str(), &filladdress);
+      targetbr->SetAddress(&filladdress);
       targetbr->Fill();
       targetbr->ResetAddress();
       targetdata->clear();
+      if (incomingdata) {
+        delete incomingdata;
+        incomingdata = nullptr;
+      }
     }
     delete targetdata;
   }
@@ -310,6 +323,7 @@ class O2HitMerger : public FairMQDevice
 
     // b) merge the general data
     merge<std::vector<o2::MCTrack>>("MCTrack", *mOutTree, *mergedOutTree, entrygroups);
+    // TODO: fix track numbers in TrackRefs
     merge<std::vector<o2::TrackReference>>("TrackRefs", *mOutTree, *mergedOutTree, entrygroups);
     merge<o2::dataformats::MCTruthContainer<o2::TrackReference>>("IndexedTrackRefs",
                                                                  *mOutTree, *mergedOutTree, entrygroups);

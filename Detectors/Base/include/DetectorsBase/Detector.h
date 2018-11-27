@@ -342,39 +342,48 @@ class DetImpl : public o2::Base::Detector
       auto targetdata = new T;
       T* incomingdata = nullptr;
       originbr->SetAddress(&incomingdata);
+
+      T* filladdress;
       for (auto& event_entries_pair : entrygroups) {
         const auto& entries = event_entries_pair.second;
         int offset = 0;
         const auto& offsetvector = trackoffsets.find(event_entries_pair.first)->second;
         int entrycounter = 0;
-        for (auto& e : entries) {
-          originbr->GetEntry(e);
-          if (incomingdata) {
-            if (offset != 0) {
-              // fix the trackIDs for this data
-              for (auto& hit : *incomingdata) {
-                const auto oldID = hit.GetTrackID();
-                // assert(oldID >= 0);
-                // assert(offset > 0);
-                hit.SetTrackID(oldID + offset);
-                // assert(hit.GetTrackID() >= 0);
+        if (entries.size() == 1) {
+          originbr->GetEntry(entries[0]);
+          filladdress = incomingdata;
+        } else {
+          for (auto& e : entries) {
+            filladdress = targetdata;
+            originbr->GetEntry(e);
+            if (incomingdata) {
+              if (offset != 0) {
+                // fix the trackIDs for this data
+                for (auto& hit : *incomingdata) {
+                  const auto oldID = hit.GetTrackID();
+                  hit.SetTrackID(oldID + offset);
+                }
               }
+              // this could be further generalized by using a policy for T
+              std::copy(incomingdata->begin(), incomingdata->end(), std::back_inserter(*targetdata));
+              // adjust offset
+              offset += offsetvector[entrycounter];
+              delete incomingdata;
+              incomingdata = nullptr;
             }
-            // this could be further generalized by using a policy for T
-            std::copy(incomingdata->begin(), incomingdata->end(), std::back_inserter(*targetdata));
-            // adjust offset
-            offset += offsetvector[entrycounter];
-            delete incomingdata;
-            incomingdata = nullptr;
+            entrycounter++;
           }
-          entrycounter++;
         }
         // fill target for this event
-        auto targetbr = o2::Base::getOrMakeBranch(target, brname.c_str(), &targetdata);
-        targetbr->SetAddress(&targetdata);
+        auto targetbr = o2::Base::getOrMakeBranch(target, brname.c_str(), &filladdress);
+        targetbr->SetAddress(&filladdress);
         targetbr->Fill();
         targetbr->ResetAddress();
         targetdata->clear();
+        if (incomingdata) {
+          delete incomingdata;
+          incomingdata = nullptr;
+        }
       }
       delete targetdata;
     }
