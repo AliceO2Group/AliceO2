@@ -58,7 +58,7 @@ void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* di
   if (mContinuous && readoutwindow > mReadoutWindowCurrent) { // if we are moving in future readout windows flush previous ones (only for continuous readout mode)
     digits->clear();
 
-    for (mReadoutWindowCurrent; mReadoutWindowCurrent < readoutwindow; mReadoutWindowCurrent++) {
+    for (; mReadoutWindowCurrent < readoutwindow; mReadoutWindowCurrent++) {
       fillOutputContainer(*digits); // fill all windows which are before (not yet stored) of the new current one
       checkIfReuseFutureDigits();
     } // close loop readout window
