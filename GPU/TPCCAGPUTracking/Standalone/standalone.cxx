@@ -489,7 +489,7 @@ int main(int argc, char** argv)
 						in.open(filename, std::ifstream::binary);
 						if (in.fail())
 						{
-							if (configStandalone.NEvents == -1) break;
+							if (i && configStandalone.NEvents == -1) break;
 							printf("Error opening file %s\n", filename);
 							getchar();
 							return(1);
@@ -552,6 +552,7 @@ int main(int argc, char** argv)
 					}
 					else
 					{
+						if (i && configStandalone.NEvents == -1) break;
 						return(1);
 					}
 				}
