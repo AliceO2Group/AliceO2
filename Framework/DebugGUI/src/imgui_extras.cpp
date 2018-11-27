@@ -4,6 +4,7 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 
+#include <cassert>
 #include <iostream>
 #include <tuple>
 #include <vector>
@@ -266,6 +267,7 @@ static void PlotMultiEx(
         case ValueScale::LOG:
           return log(v);
       }
+      assert(false);
     };
 
     float hoveredBinPos = (float)(v_hovered) / (float)(item_count);

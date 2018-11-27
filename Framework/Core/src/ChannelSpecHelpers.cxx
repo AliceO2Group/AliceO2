@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 #include "ChannelSpecHelpers.h"
 #include <ostream>
+#include <cassert>
 
 namespace o2
 {
@@ -37,6 +38,7 @@ char const* ChannelSpecHelpers::methodAsString(enum ChannelMethod method)
     case ChannelMethod::Connect:
       return "connect";
   }
+  assert(false);
 }
 
 char const* ChannelSpecHelpers::methodAsUrl(enum ChannelMethod method)

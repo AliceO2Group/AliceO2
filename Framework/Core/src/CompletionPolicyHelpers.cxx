@@ -16,6 +16,8 @@
 
 #include <gsl/span>
 
+#include <cassert>
+
 namespace o2
 {
 namespace framework
@@ -42,6 +44,7 @@ CompletionPolicy CompletionPolicyHelpers::defineByName(std::string const&name, C
       return CompletionPolicy{"always-discard", matcher, callback };
       break;
   }
+  assert(false);
 }
 
 CompletionPolicy CompletionPolicyHelpers::consumeWhenAll() {
