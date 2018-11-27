@@ -237,6 +237,14 @@ bool DataDescriptorMatcher::operator==(DataDescriptorMatcher const& other) const
   }
 
   {
+    auto v1 = std::get_if<StartTimeValueMatcher>(&this->mLeft);
+    auto v2 = std::get_if<StartTimeValueMatcher>(&other.mLeft);
+    if (v1 && v2 && *v1 == *v2) {
+      leftValue = true;
+    }
+  }
+
+  {
     auto v1 = std::get_if<std::unique_ptr<DataDescriptorMatcher>>(&this->mLeft);
     auto v2 = std::get_if<std::unique_ptr<DataDescriptorMatcher>>(&other.mLeft);
     if (v1 && v2 && v1->get() && v2->get() && (**v1 == **v2)) {
@@ -280,6 +288,14 @@ bool DataDescriptorMatcher::operator==(DataDescriptorMatcher const& other) const
   {
     auto v1 = std::get_if<ConstantValueMatcher>(&this->mRight);
     auto v2 = std::get_if<ConstantValueMatcher>(&other.mRight);
+    if (v1 && v2 && *v1 == *v2) {
+      return true;
+    }
+  }
+
+  {
+    auto v1 = std::get_if<StartTimeValueMatcher>(&this->mRight);
+    auto v2 = std::get_if<StartTimeValueMatcher>(&other.mRight);
     if (v1 && v2 && *v1 == *v2) {
       return true;
     }
