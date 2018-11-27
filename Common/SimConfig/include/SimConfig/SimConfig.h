@@ -41,6 +41,7 @@ struct SimConfigData {
   int mPrimaryChunkSize;                     // defining max granularity for input primaries of a sim job
   int mInternalChunkSize;                    //
   int mStartSeed;                            // base for random number seeds
+  int mSimWorkers = 1;                       // number of parallel sim workers (when it applies)
 
   ClassDefNV(SimConfigData, 2);
 };
@@ -100,6 +101,7 @@ class SimConfig
   int getPrimChunkSize() const { return mConfigData.mPrimaryChunkSize; }
   int getInternalChunkSize() const { return mConfigData.mInternalChunkSize; }
   int getStartSeed() const { return mConfigData.mStartSeed; }
+  int getNSimWorkers() const { return mConfigData.mSimWorkers; }
 
  private:
   SimConfigData mConfigData; //!

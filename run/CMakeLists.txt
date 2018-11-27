@@ -1,11 +1,11 @@
 
 Set(Exe_Names
-  o2sim
+  o2sim_serial
   runTPC
   O2SimDeviceRunner
   O2PrimaryServerDeviceRunner
   O2HitMergerRunner
-  o2sim_parallel
+  o2sim
 )
 
 Set(Exe_Source
@@ -14,7 +14,7 @@ Set(Exe_Source
   O2SimDeviceRunner.cxx
   O2PrimaryServerDeviceRunner.cxx
   O2HitMergerRunner.cxx
-  o2sim_parallel
+  o2sim_parallel.cxx
 )
 
 set(BUCKET_NAME "run_bucket")
@@ -42,13 +42,14 @@ if (HAVESIMULATION)
   if(NOT APPLE) # THESE TESTS HAVE PROBLEMS ON OUR CI MACHINE
   add_test(NAME o2sim_G4
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim -n 2 -m PIPE ITS TPC TRD TOF EMC PHS -e TGeant4 -o o2simG4)
-  set_tests_properties(o2sim_G4 PROPERTIES PASS_REGULAR_EXPRESSION "Macro finished succesfully"
+    COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim -n 2 -j 2 -m PIPE ITS TPC TRD TOF EMC PHS -e TGeant4 -o o2simG4)
+  set_tests_properties(o2sim_G4 PROPERTIES PASS_REGULAR_EXPRESSION "SIMULATION RETURNED SUCCESFULLY"
                                            ENVIRONMENT VMCWORKDIR=${CMAKE_SOURCE_DIR} FIXTURES_SETUP G4) 
-                                           
+
+  # note that the MT is currently only supported in the non FairMQ version					 
   add_test(NAME o2sim_G4_mt 
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim -n 10 -m PIPE ITS TPC TRD TOF EMC PHS -e TGeant4 --isMT on -o o2simG4MT)
+    COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim_serial -n 10 -m PIPE ITS TPC TRD TOF EMC PHS -e TGeant4 --isMT on -o o2simG4MT)
   set_tests_properties(o2sim_G4_mt PROPERTIES PASS_REGULAR_EXPRESSION "Macro finished succesfully"
                                               ENVIRONMENT VMCWORKDIR=${CMAKE_SOURCE_DIR})
   
@@ -60,8 +61,8 @@ if (HAVESIMULATION)
   endif()
   add_test(NAME o2sim_G3
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim -n 2 -m PIPE ITS TPC MCH TOF EMC PHS -e TGeant3 -o o2simG3)
-  set_tests_properties(o2sim_G3 PROPERTIES PASS_REGULAR_EXPRESSION "Macro finished succesfully"
+    COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim -n 2 -j 2 -m PIPE ITS TPC MCH TOF EMC PHS -e TGeant3 -o o2simG3)
+  set_tests_properties(o2sim_G3 PROPERTIES PASS_REGULAR_EXPRESSION "SIMULATION RETURNED SUCCESFULLY"
                                            ENVIRONMENT VMCWORKDIR=${CMAKE_SOURCE_DIR} FIXTURES_SETUP G3) 
   
   add_test(NAME checksimkinematics_G3

@@ -120,7 +120,7 @@ bool ShmManager::createGlobalSegment(int nsegments)
 
   LOG(INFO) << "CREATING SIM SHARED MEM SEGMENT FOR " << nsegments << " WORKERS";
 #ifdef USESHM
-  LOG(INFO) << "SIZEOF ShmMetaInfo " << sizeof(ShmMetaInfo);
+  // LOG(INFO) << "SIZEOF ShmMetaInfo " << sizeof(ShmMetaInfo);
   const auto totalsize = sizeof(ShmMetaInfo) + SHMPOOLSIZE * nsegments;
   if ((mShmID = shmget(IPC_PRIVATE, totalsize, IPC_CREAT | 0666)) == -1) {
     perror("shmget: shmget failed");
@@ -129,7 +129,7 @@ bool ShmManager::createGlobalSegment(int nsegments)
     // In this case (if it succeeds) we can also share objects with shm pointers
     auto addr = shmat(mShmID, nullptr, 0);
     mSegPtr = addr;
-    LOG(INFO) << "COMMON ADDRESS " << addr << " AS NUMBER " << (unsigned long long)addr;
+    LOG(DEBUG) << "COMMON ADDRESS " << addr << " AS NUMBER " << (unsigned long long)addr;
 
     // initialize the meta information (counter)
     o2::utils::ShmMetaInfo info;
@@ -146,7 +146,7 @@ bool ShmManager::createGlobalSegment(int nsegments)
   }
   LOG(INFO) << "SHARED MEM INITIALIZED AT ID " << mShmID;
   if (mShmID == -1) {
-    LOG(WARN) << "COULD NOT CREATE SHARED MEMORY";
+    LOG(WARN) << "COULD NOT CREATE SHARED MEMORY ... FALLING BACK TO SIMPLE MODE";
     setenv(SHMIDNAME, std::to_string(mShmID).c_str(), 1);
     setenv(SHMADDRNAME, std::to_string(0).c_str(), 1);
   }
@@ -237,7 +237,7 @@ void ShmManager::release()
 {
 #ifdef USESHM
   if (mIsMaster) {
-    LOG(INFO) << "REMOVING SHARED MEM SEGMENT ID " << mShmID;
+    LOG(DEBUG) << "REMOVING SHARED MEM SEGMENT ID " << mShmID;
     if (mShmID != -1) {
       shmctl(mShmID, IPC_RMID, nullptr);
       mShmID = -1;

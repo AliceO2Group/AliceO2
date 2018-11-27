@@ -184,8 +184,7 @@ int main(int argc, char* argv[])
     if (f) {
       nworkers = atoi(f);
     }
-    LOG(INFO) << "Running with " << nworkers << " sim workers "
-              << "(customize using the ALICE_NSIMWORKERS environment variable)\n";
+    LOG(INFO) << "Running with " << nworkers << " sim workers ";
 
     // then we fork and create a device in each fork
     for (int i = 0; i < nworkers; ++i) {
