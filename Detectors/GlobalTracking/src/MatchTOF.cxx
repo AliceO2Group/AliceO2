@@ -701,6 +701,7 @@ void MatchTOF::selectBestMatches()
 bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float stepInCm)
 {
   // propagate track to matching reference X
+  const float tanHalfSector = tan(o2::constants::math::SectorSpanRad / 2);
   bool refReached = false;
   float xStart = trc.getX();
   // the first propagation will be from 2m, if the track is not at least at 2m
@@ -713,7 +714,7 @@ bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float st
       refReached = true; // we reached the 371cm reference
     }
     istep++;
-    if (fabs(trc.getY()) > trc.getX() * tan(o2::constants::math::SectorSpanRad / 2)) { // we are still in the same sector
+    if (fabs(trc.getY()) > trc.getX() * tanHalfSector) { // we are still in the same sector
       // we need to rotate the track to go to the new sector
       //Printf("propagateToRefX: changing sector");
       auto alphaNew = o2::utils::Angle2Alpha(trc.getPhiPos());
