@@ -13,12 +13,14 @@
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <FairLogger.h>
+#include <thread>
 
 using namespace o2::conf;
 namespace bpo = boost::program_options;
 
 void SimConfig::initOptions(boost::program_options::options_description& options)
 {
+  int nsimworkersdefault = std::thread::hardware_concurrency() / 2;
   options.add_options()(
     "mcEngine,e", bpo::value<std::string>()->default_value("TGeant3"), "VMC backend to be used.")(
     "generator,g", bpo::value<std::string>()->default_value("boxgen"), "Event generator to be used.")(
@@ -38,7 +40,8 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "logverbosity", bpo::value<std::string>()->default_value("low"), "level of verbosity for FairLogger (low, medium, high, veryhigh)")(
     "configKeyValues", bpo::value<std::string>()->default_value(""), "comma separated key=value strings (e.g.: 'TPC.gasDensity=1,...")("chunkSize", bpo::value<unsigned int>()->default_value(10000), "max size of primary chunk (subevent) distributed by server")(
     "chunkSizeI", bpo::value<int>()->default_value(-1), "internalChunkSize")(
-    "seed", bpo::value<int>()->default_value(-1), "initial seed (default: -1 random)");
+    "seed", bpo::value<int>()->default_value(-1), "initial seed (default: -1 random)")(
+    "nworkers,j", bpo::value<int>()->default_value(nsimworkersdefault), "number of parallel simulation workers (only for parallel mode)");
 }
 
 bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& vm)
@@ -85,6 +88,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mPrimaryChunkSize = vm["chunkSize"].as<unsigned int>();
   mConfigData.mInternalChunkSize = vm["chunkSizeI"].as<int>();
   mConfigData.mStartSeed = vm["seed"].as<int>();
+  mConfigData.mSimWorkers = vm["nworkers"].as<int>();
   return true;
 }
 

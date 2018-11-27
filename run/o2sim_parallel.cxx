@@ -24,6 +24,8 @@
 #include "TStopwatch.h"
 #include "FairLogger.h"
 #include "CommonUtils/ShmManager.h"
+#include "TFile.h"
+#include "TTree.h"
 
 const char* serverlogname = "serverlog";
 const char* workerlogname = "workerlog";
@@ -32,6 +34,28 @@ const char* mergerlogname = "mergerlog";
 void cleanup()
 {
   o2::utils::ShmManager::Instance().release();
+}
+
+// quick cross check of simulation output
+int checkresult()
+{
+  int errors = 0;
+  // We can put more or less complex things
+  // here.
+  auto& conf = o2::conf::SimConfig::Instance();
+  // easy check: see if we have number of entries in output tree == number of events asked
+  std::string filename = std::string(conf.getOutPrefix()) + ".root";
+  TFile f(filename.c_str(), "OPEN");
+  auto tr = static_cast<TTree*>(f.Get("o2sim"));
+  if (!tr) {
+    errors++;
+  } else {
+    errors += tr->GetEntries() != conf.getNEvents();
+  }
+
+  // add more simple checks
+
+  return errors;
 }
 
 // signal handler for graceful exit
@@ -68,13 +92,9 @@ int main(int argc, char* argv[])
 
   // we create the global shared mem pool; just enough to serve
   // n simulation workers
-  int nworkers = std::thread::hardware_concurrency() / 2;
-  auto f = getenv("ALICE_NSIMWORKERS");
-  if (f) {
-    nworkers = atoi(f);
-  }
-  std::cout << "Running with " << nworkers << " sim workers "
-            << "(customize using the ALICE_NSIMWORKERS environment variable)\n";
+  int nworkers = conf.getNSimWorkers();
+  setenv("ALICE_NSIMWORKERS", std::to_string(nworkers).c_str(), 1);
+  LOG(INFO) << "Running with " << nworkers << " sim workers ";
 
   o2::utils::ShmManager::Instance().createGlobalSegment(nworkers);
 
@@ -193,6 +213,7 @@ int main(int argc, char* argv[])
       for (auto p : childpids) {
         kill(p, SIGABRT);
       }
+      cleanup();
       LOG(FATAL) << "ABORTING DUE TO ABORT IN COMPONENT";
     }
   }
@@ -206,7 +227,16 @@ int main(int argc, char* argv[])
       kill(p, SIGKILL);
     }
   }
+
   LOG(DEBUG) << "ShmManager operation " << o2::utils::ShmManager::Instance().isOperational() << "\n";
   cleanup();
-  return 0;
+
+  // do a quick check to see if simulation produced something reasonable
+  // (mainly useful for continuous integration / automated testing suite)
+  auto returncode = checkresult();
+  if (returncode == 0) {
+    LOG(INFO) << "SIMULATION RETURNED SUCCESFULLY";
+  }
+
+  return returncode;
 }
