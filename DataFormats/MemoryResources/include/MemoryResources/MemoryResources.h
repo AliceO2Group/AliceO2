@@ -37,8 +37,10 @@
 #include <utility>
 #include <vector>
 #include <unordered_map>
-#include "FairMQMessage.h"
-#include "FairMQTransportFactory.h"
+#include <FairMQMessage.h>
+#include <FairMQTransportFactory.h>
+#include <fairmq/MemoryResources.h>
+#include <fairmq/MemoryResourceTools.h>
 
 namespace o2
 {
@@ -48,76 +50,14 @@ using byte = unsigned char;
 namespace memory_resource
 {
 
-//__________________________________________________________________________________________________
-/// All FairMQ related memory resources need to inherit from this interface class for the getMessage() api.
-class FairMQMemoryResource : public boost::container::pmr::memory_resource
+using FairMQMemoryResource = fair::mq::FairMQMemoryResource;
+using ChannelResource = fair::mq::ChannelResource;
+
+template <typename ContainerT>
+FairMQMessagePtr getMessage(ContainerT&& container, FairMQMemoryResource* targetResource = nullptr)
 {
- public:
-  /// return the message containing data associated with the pointer (to start of buffer),
-  /// e.g. pointer returned by std::vector::data()
-  /// return nullptr if returning a message does not make sense!
-  virtual FairMQMessagePtr getMessage(void* p) = 0;
-  virtual void* setMessage(FairMQMessagePtr) = 0;
-  virtual FairMQTransportFactory* getTransportFactory() noexcept = 0;
-  virtual size_t getNumberOfMessages() const noexcept = 0;
-};
-
-//__________________________________________________________________________________________________
-/// This is the allocator that interfaces to FairMQ memory management. All allocations are delegated
-/// to FairMQ so standard (e.g. STL) containers can construct their stuff in memory regions appropriate
-/// for the data channel configuration.
-class ChannelResource : public FairMQMemoryResource
-{
- protected:
-  FairMQTransportFactory* factory{ nullptr };
-  // TODO: for now a map to keep track of allocations, something else would probably be faster, but for now this does
-  // not need to be fast.
-  boost::container::flat_map<void*, FairMQMessagePtr> messageMap;
-
- public:
-  ChannelResource() = delete;
-  ChannelResource(FairMQTransportFactory* _factory) : FairMQMemoryResource(), factory(_factory), messageMap()
-  {
-    if (!factory) {
-      throw std::runtime_error("Tried to construct from a nullptr FairMQTransportFactory");
-    }
-  };
-  FairMQMessagePtr getMessage(void* p) override
-  {
-    auto mes = std::move(messageMap[p]);
-    messageMap.erase(p);
-    return mes;
-  }
-  void* setMessage(FairMQMessagePtr message) override
-  {
-    void* addr = message->GetData();
-    messageMap[addr] = std::move(message);
-    return addr;
-  }
-  FairMQTransportFactory* getTransportFactory() noexcept override { return factory; }
-
-  size_t getNumberOfMessages() const noexcept override { return messageMap.size(); }
-
- protected:
-  void* do_allocate(std::size_t bytes, std::size_t alignment) override
-  {
-    FairMQMessagePtr message;
-    message = factory->CreateMessage(bytes);
-    void* addr = message->GetData();
-    messageMap[addr] = std::move(message);
-    return addr;
-  };
-
-  void do_deallocate(void* p, std::size_t bytes, std::size_t alignment) override
-  {
-    messageMap.erase(p);
-  };
-
-  bool do_is_equal(const boost::container::pmr::memory_resource& other) const noexcept override
-  {
-    return this == &other;
-  };
-};
+  return fair::mq::getMessage(std::forward<ContainerT>(container), targetResource);
+}
 
 //__________________________________________________________________________________________________
 /// This memory resource only watches, does not allocate/deallocate anything.
@@ -312,46 +252,6 @@ using ByteSpectatorAllocator = SpectatorAllocator<o2::byte>;
 using BytePmrAllocator = boost::container::pmr::polymorphic_allocator<o2::byte>;
 
 //__________________________________________________________________________________________________
-// return the message associated with the container or nullptr if it does not make sense (e.g. when we are just
-// watching an existing message or when the container is not using FairMQMemoryResource as backend).
-template <typename ContainerT>
-// typename std::enable_if<std::is_base_of<boost::container::pmr::polymorphic_allocator<typename
-// ContainerT::value_type>,
-//                                        typename ContainerT::allocator_type>::value == true,
-//                        FairMQMessagePtr>::type
-FairMQMessagePtr getMessage(ContainerT&& container_, FairMQMemoryResource* targetResource = nullptr)
-{
-  auto container = std::move(container_);
-  auto alloc = container.get_allocator();
-
-  auto resource = dynamic_cast<FairMQMemoryResource*>(alloc.resource());
-  if (!resource && !targetResource) {
-    throw std::runtime_error("Neither the container or target resource specified");
-  }
-  size_t containerSizeBytes = container.size() * sizeof(typename ContainerT::value_type);
-  if ((!targetResource && resource) || (resource && targetResource && resource->is_equal(*targetResource))) {
-    auto message = resource->getMessage(static_cast<void*>(
-      const_cast<typename std::remove_const<typename ContainerT::value_type>::type*>(container.data())));
-    if (message)
-      message->SetUsedSize(containerSizeBytes);
-    return std::move(message);
-  } else {
-    auto message = targetResource->getTransportFactory()->CreateMessage(containerSizeBytes);
-    std::memcpy(static_cast<o2::byte*>(message->GetData()), container.data(), containerSizeBytes);
-    return std::move(message);
-  }
-};
-
-//__________________________________________________________________________________________________
-/// Return a vector of const ElemT, resource must be kept alive throughout the lifetime of the container and
-/// associated message.
-template <typename ElemT>
-auto adoptVector(size_t nelem, SpectatorMessageResource* resource)
-{
-  return std::vector<const ElemT, SpectatorAllocator<const ElemT>>(nelem, SpectatorAllocator<ElemT>(resource));
-};
-
-//__________________________________________________________________________________________________
 /// Return a vector of const ElemT, takes ownership of the message, needs an upstream global ChannelResource to register
 /// the message.
 template <typename ElemT>
@@ -384,35 +284,11 @@ auto adoptVector(size_t nelem, FairMQMessage* message)
   return OutputType(output, doubleDeleter{ std::move(resource) });
 }
 
-namespace internal
-{
-//__________________________________________________________________________________________________
-/// A (thread local) singleton placeholder for the channel allocators. There will normally be 1-2 elements in the map.
-// Ideally the transport class itself would hold (or be) the allocator, if that ever happens, this can go away.
-class TransportAllocatorMap
-{
- public:
-  static TransportAllocatorMap& Instance()
-  {
-    static TransportAllocatorMap S;
-    return S;
-  }
-  ChannelResource* operator[](FairMQTransportFactory* factory)
-  {
-    return std::addressof(map.emplace(factory, factory).first->second);
-  }
-
- private:
-  std::unordered_map<FairMQTransportFactory*, ChannelResource> map{};
-  TransportAllocatorMap(){};
-};
-}
-
 //__________________________________________________________________________________________________
 /// Get the allocator associated to a transport factory
 inline static ChannelResource* getTransportAllocator(FairMQTransportFactory* factory)
 {
-  return internal::TransportAllocatorMap::Instance()[factory];
+  return factory->GetMemoryResource();
 }
 
 }; //namespace memory_resource
