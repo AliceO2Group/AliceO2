@@ -122,7 +122,7 @@ BOOST_AUTO_TEST_CASE(getMessage_test)
     v.emplace_back(2);
     v.emplace_back(3);
     void* vectorBeginPtr = &v[0];
-    message = getMessage(std::move(v));
+    message = o2::memory_resource::getMessage(std::move(v));
     BOOST_CHECK(message != nullptr);
     BOOST_CHECK(message->GetData() == vectorBeginPtr);
   }
@@ -137,7 +137,7 @@ BOOST_AUTO_TEST_CASE(getMessage_test)
     v.emplace_back(5);
     v.emplace_back(6);
     void* vectorBeginPtr = &v[0];
-    message = getMessage(std::move(v), allocSHM);
+    message = o2::memory_resource::getMessage(std::move(v), allocSHM);
     BOOST_CHECK(message != nullptr);
     BOOST_CHECK(message->GetData() != vectorBeginPtr);
   }
@@ -163,7 +163,7 @@ BOOST_AUTO_TEST_CASE(adoptVector_test)
   BOOST_CHECK(adoptedOwner[1].i == 2);
   BOOST_CHECK(adoptedOwner[2].i == 1);
 
-  auto reclaimedMessage = getMessage(std::move(adoptedOwner));
+  auto reclaimedMessage = o2::memory_resource::getMessage(std::move(adoptedOwner));
   BOOST_CHECK(reclaimedMessage.get() == messageAddr);
   BOOST_CHECK(adoptedOwner.size() == 0);
 }
