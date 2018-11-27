@@ -46,6 +46,7 @@ AddOption(filterPID, int, -1, "filterPID", 0, "Filter for Particle Type (0 Elect
 AddOption(writeMCLabels, bool, false, "writeLabels", 0, "Store mc labels to file for later matching")
 AddOptionVec(matchMCLabels, const char*, "matchLabels", 0, "Read labels from files and match them, only process tracks where labels differ")
 AddOption(matchDisplayMinPt, float, 0, "matchDisplayMinPt", 0, "Minimum Pt of a matched track to be displayed")
+AddOption(writeRootFiles, bool, false, "root", 0, "Create ROOT canvas files")
 AddShortcut("compare", 0, "--QAinput", "Compare QA histograms", "--qa", "--QAonly")
 AddHelp("help", 'h')
 EndConfig()

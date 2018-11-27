@@ -1447,8 +1447,8 @@ int DrawQAHistograms()
 
 		doPerfFigure(0.2, 0.295, 0.025);
 
-		sprintf(fname, "plots/eff_vs_%s.pdf", VSParameterNames[ii]);
-		ceff[ii]->Print(fname);
+		ceff[ii]->Print(Form("plots/eff_vs_%s.pdf", VSParameterNames[ii]));
+		if (config.writeRootFiles) ceff[ii]->Print(Form("plots/eff_vs_%s.root", VSParameterNames[ii]));
 	}
 
 	//Process / Draw Resolution Histograms
@@ -1653,8 +1653,8 @@ int DrawQAHistograms()
 
 			doPerfFigure(0.2, 0.295, 0.025);
 
-			sprintf(fname, p ? "plots/pull_vs_%s.pdf" : "plots/res_vs_%s.pdf", VSParameterNames[ii]);
-			can->Print(fname);
+			can->Print(Form(p ? "plots/pull_vs_%s.pdf" : "plots/res_vs_%s.pdf", VSParameterNames[ii]));
+			if (config.writeRootFiles) can->Print(Form(p ? "plots/pull_vs_%s.root" : "plots/res_vs_%s.root", VSParameterNames[ii]));
 		}
 	}
 	delete customGaus;
@@ -1698,6 +1698,7 @@ int DrawQAHistograms()
 			can->cd();
 		}
 		can->Print(p ? "plots/pull_integral.pdf" : "plots/res_integral.pdf");
+		if (config.writeRootFiles) can->Print(p ? "plots/pull_integral.root" : "plots/res_integral.root");
 		if (!config.inputHistogramsOnly) for (int i = 0;i < 5;i++) delete (p ? pullIntegral : resIntegral)[i];
 	}
 
@@ -1847,6 +1848,7 @@ int DrawQAHistograms()
 
 			cclust[i]->cd();
 			cclust[i]->Print(i == 2 ? "plots/clusters_integral.pdf" : i == 1 ? "plots/clusters_relative.pdf" : "plots/clusters.pdf");
+			if (config.writeRootFiles) cclust[i]->Print(i == 2 ? "plots/clusters_integral.root" : i == 1 ? "plots/clusters_relative.root" : "plots/clusters.root");
 		}
 	}
 
@@ -1883,6 +1885,7 @@ int DrawQAHistograms()
 		legendtracks->Draw();
 		ctracks->cd();
 		ctracks->Print("plots/tracks.pdf");
+		if (config.writeRootFiles) ctracks->Print("plots/tracks.root");
 		tmpMax = 0.;
 		for (int k = 0;k < ConfigNumInputs;k++)
 		{
@@ -1913,6 +1916,7 @@ int DrawQAHistograms()
 		legendncl->Draw();
 		cncl->cd();
 		cncl->Print("plots/nClusters.pdf");
+		if (config.writeRootFiles) cncl->Print("plots/nClusters.root");
 	}
 
 	if (tout && !config.inputHistogramsOnly && config.writeMCLabels)
