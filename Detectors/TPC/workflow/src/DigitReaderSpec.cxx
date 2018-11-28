@@ -118,16 +118,13 @@ DataProcessorSpec getDigitReaderSpec(std::vector<int> const& tpcSectors, size_t 
         auto& sectors = processAttributes->sectors;
         auto& activeSectors = processAttributes->activeSectors;
         auto& readers = processAttributes->readers;
-        if (*index >= sectors.size()) {
-          *index = 0;
-        }
         while (*index < sectors.size() && !readers[sectors[*index]]) {
           // probably more efficient to use a vector of valid readers instead of the fixed array with
           // possibly invalid entries
           ++(*index);
         }
         if (*index == sectors.size()) {
-          // there is no valid reader at all
+          // there is no valid reader for this call
           return false;
         }
         auto sector = sectors[*index];
@@ -148,6 +145,9 @@ DataProcessorSpec getDigitReaderSpec(std::vector<int> const& tpcSectors, size_t 
         return true;
       };
 
+      if (*index >= processAttributes->sectors.size()) {
+        *index = 0;
+      }
       int operation = -2;
       for (size_t lane = 0; lane < processAttributes->nParallelReaders; ++lane) {
         if (!publish()) {
