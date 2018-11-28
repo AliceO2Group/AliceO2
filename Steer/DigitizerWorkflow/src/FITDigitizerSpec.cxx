@@ -124,12 +124,13 @@ class FITDPLDigitizerTask
         labels.clear();
         // digits.clear();
         mDigitizer.process(&hits, &digit);
-        digit.printStream(std::cout);
-        auto data = digit.getChDgData();
+        mDigitizer.SetTriggers(&digit);
+	auto data = digit.getChDgData();
         LOG(INFO) << "Have " << data.size() << " fired channels ";
         // copy digits into accumulator
         digitAccum.push_back(digit); // we should move it there actually
         LOG(INFO) << "Have " << digitAccum.back().getChDgData().size() << " fired channels ";
+  	digit.printStream(std::cout);
         // labelAccum.mergeAtBack(*labels);
         // LOG(INFO) << "Have " << digits->size() << " digits ";
       }

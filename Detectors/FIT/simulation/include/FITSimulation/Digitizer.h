@@ -37,7 +37,8 @@ class Digitizer
   void setSrcID(Int_t id) { mSrcID = id; }
   Int_t getCurrentTimeFrame() const { return mTimeFrameCurrent; }
   void setCurrentTimeFrame(Double_t value) { mTimeFrameCurrent = value; }
-
+  void  SetTriggers(Digit* digit);
+  
   void init();
   void finish();
 
