@@ -60,12 +60,15 @@ class Polymorphic : public Base
  public:
   Polymorphic() = default;
   Polymorphic(unsigned secret) : mSecret(secret) {}
+  ~Polymorphic() override = default;
 
   bool operator==(const Polymorphic& rhs) const { return mSecret == rhs.mSecret; }
 
   bool isDefault() const { return mSecret == ~(decltype(mSecret))0; }
 
   unsigned get() const { return mSecret; }
+
+  void f() override {}
 
  private:
   unsigned mSecret = ~((decltype(mSecret))0);
