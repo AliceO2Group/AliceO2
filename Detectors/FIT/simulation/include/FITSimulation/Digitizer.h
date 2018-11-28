@@ -40,6 +40,7 @@ class Digitizer
 
   void setTriggers(Digit* digit);
   void smearCFDtime (Digit* digit);
+
   void init();
   void finish();
 

@@ -57,6 +57,12 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
   Double_t ch_signal_MIP[nMCPs] = {};
   Double_t ch_signal_time[nMCPs] = {};
 
+  //Calculating signal time, amplitude in mean_time +- time_gate --------------
+  Float_t cfd[nMCPs] = {};
+  Float_t amp[nMCPs] = {};
+  Double_t ch_signal_nPe[nMCPs] = {};
+  Double_t ch_signal_MIP[nMCPs] = {};
+  Double_t ch_signal_time[nMCPs] = {};
   for (auto& hit : *hits) {
     Int_t hit_ch = hit.GetDetectorID();
     Double_t hit_time = hit.GetTime();
@@ -86,7 +92,13 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
         nlbl++;
       }
     }
+<<<<<<< HEAD
   }
+=======
+
+  }
+  
+>>>>>>> tune for mulpile source of hits
   // sum  different sources 
   std::vector<ChannelData> mChDgDataArr;
   for (const auto& d : digit->getChDgData()) {
@@ -100,10 +112,18 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
       ch_signal_MIP[ch_iter] = amp[ch_iter] + ch_signal_nPe[ch_iter] / nPe_in_mip ;
       ch_signal_time[ch_iter] = (cfd[ch_iter] + ch_signal_time[ch_iter] / (float)ch_signal_nPe[ch_iter] );
       if (ch_signal_MIP[ch_iter] > CFD_trsh_mip) {
+<<<<<<< HEAD
 	mChDgDataArr.emplace_back(ChannelData{ ch_iter, ch_signal_time[ch_iter], ch_signal_MIP[ch_iter] });
 	LOG(DEBUG) << ch_iter << " : "
 		   << " : " << ch_signal_time[ch_iter] << " : "
 		   << ch_signal_MIP[ch_iter] << " : " << smeared_time << FairLogger::endl;
+=======
+	Double_t smeared_time = gRandom->Gaus(ch_signal_time[ch_iter], 0.050);
+	mChDgDataArr.emplace_back(ChannelData{ ch_iter, smeared_time, ch_signal_MIP[ch_iter] });
+	//	LOG(DEBUG) << ch_iter << " : "
+	//           << " : " << ch_signal_time[ch_iter] << " : "
+	//		   << ch_signal_MIP[ch_iter] << " : " << smeared_time << FairLogger::endl;
+>>>>>>> tune for mulpile source of hits
       }
     }
 
@@ -117,6 +137,7 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
   digit->setChDgData(std::move(mChDgDataArr));
   
 }
+<<<<<<< HEAD
 //------------------------------------------------------------------------
 void  Digitizer::smearCFDtime( Digit* digit)
 {
@@ -139,6 +160,14 @@ void  Digitizer::smearCFDtime( Digit* digit)
 void  Digitizer::setTriggers(  Digit* digit)
 {
    constexpr Double_t BC_clk_center = 12.5; // clk center
+=======
+
+//------------------------------------------------------------------------
+void  Digitizer::SetTriggers(  Digit* digit)
+{
+  constexpr Double_t BC_clk = 25.;                //ns event clk lenght
+  constexpr Double_t BC_clk_center = BC_clk / 2.; // clk center
+>>>>>>> tune for mulpile source of hits
   constexpr Int_t nMCPs = (Geometry::NCellsA + Geometry::NCellsC) * 4;
   constexpr Double_t time_trg_gate = 4.;          // ns
   constexpr Double_t trg_central_trh = 100.;              // mip
@@ -187,10 +216,19 @@ void  Digitizer::setTriggers(  Digit* digit)
   mean_time_C = is_C ? mean_time_C / n_hit_C : 0.;
   vertex_time = (mean_time_A + mean_time_C) * .5;
   Bool_t is_Vertex = (vertex_time > trg_vertex_min) && (vertex_time < trg_vertex_max);
+<<<<<<< HEAD
  
   //filling digit
   digit->setTriggers(is_A, is_C, is_Central, is_SemiCentral, is_Vertex);
 
+=======
+  // --------------------------------------------------------------------------
+
+  //filling digit
+  digit->setTriggers(is_A, is_C, is_Central, is_SemiCentral, is_Vertex);
+
+
+>>>>>>> tune for mulpile source of hits
   // Debug output -------------------------------------------------------------
   LOG(DEBUG) << "\n\nTest digizing data ===================" << FairLogger::endl;
 
