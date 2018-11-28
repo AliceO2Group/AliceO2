@@ -19,7 +19,7 @@ Other repositories in AliceO2Group contain a number of large common modules, for
 The main entry point for O2 information is [here](http://alice-o2.web.cern.ch/).
 A quickstart page can be found under [https://aliceo2group.github.io/](https://aliceo2group.github.io/).
 
-### Installation
+### Building / Installation
 In order to install with aliBuild you can follow [this tutorial](http://alisw.github.io/alibuild/o2-tutorial.html).
 
 ### Issue tracking system
