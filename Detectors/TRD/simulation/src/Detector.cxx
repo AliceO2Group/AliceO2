@@ -59,6 +59,60 @@ bool Detector::ProcessHits(FairVolume* v)
     return false;
   }
 
+  // Inside sensitive volume ?
+  bool drRegion = false;
+  bool amRegion = false;
+  const TString  cIdSensDr = "J";
+  const TString  cIdSensAm = "K";
+  TString cIdCurrent = fMC->CurrentVolName();
+  std::cout << "TRD::Detector::ProcessHits() \t cIdCurrent = " << cIdCurrent << std::endl;
+  if (cIdCurrent[1] == cIdSensDr) {
+    drRegion = true;
+  }
+  if (cIdCurrent[2] == cIdSensAm) {
+    amRegion = true;
+  }
+
+  if (!drRegion && !amRegion) {
+    return false;
+  }
+
+  TString cIdPath = gGeoManager->GetPath();
+  std::cout << "TRD::Detector::ProcessHits() \t cIdPath = " << cIdPath << std::endl;
+  // Example of cIdPath to get IdSector
+  // /cave_1/B077_1/BSEGMO13_1/BTRD13_1/UTR3_1/UTS3_1/UTI3_1/UT29_1/UD29_1/UE29_1/UK29_1
+  //                      ** 
+  // cIdPath[21] = 1;
+  // cIdPath[22] = 3; // then
+  // cIdSector = 130;
+
+  // The sector number (0 - 17), according to standard coordinate system
+  char cIdSector[3];
+  cIdSector[0] = cIdPath[21];
+  cIdSector[1] = cIdPath[22];
+  cIdSector[2] = 0;
+  int sector = std::stoi(cIdSector);
+
+  // The plane and chamber number
+  char cIdChamber[3];
+  cIdChamber[0] = cIdCurrent[2];
+  cIdChamber[1] = cIdCurrent[3];
+  cIdChamber[2] = 0;
+  const int idChamber = mGeom->getDetectorSec(std::stoi(cIdSector)); //(std::stoi(cIdChamber) % (kNlayer*kNstack)); // getDetectorSec(int det)
+  const int det = mGeom->getDetector(mGeom->getLayer(idChamber), mGeom->getStack(idChamber), sector);
+
+  // Special hits if track is entering
+  if (drRegion && fMC->IsTrackEntering()) {
+    // Create a track reference at the entrance of each
+    // chamber that contains the momentum components of the particle
+
+  }
+  else if(amRegion && fMC->IsTrackExiting()) {
+    // Create a track reference at the exit of each
+    // chamber that contains the momentum components of the particle
+
+  }
+
   // just record position and basic quantities for the moment
   // TODO: needs to be interpreted properly
   float x, y, z;
@@ -66,9 +120,9 @@ bool Detector::ProcessHits(FairVolume* v)
 
   float enDep = fMC->Edep();
   float time = fMC->TrackTime() * 1.0e09;
-  auto stack = (o2::Data::Stack*)fMC->GetStack();
-  auto trackID = stack->GetCurrentTrackNumber();
-  auto sensID = v->getMCid();
+  o2::Data::Stack* stack = (o2::Data::Stack*) fMC->GetStack();
+  const int trackID = stack->GetCurrentTrackNumber();
+  const int sensID = v->getMCid();
   addHit(x, y, z, time, enDep, trackID, sensID);
   stack->addHit(GetDetId());
 
