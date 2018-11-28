@@ -41,7 +41,7 @@
 #include <cstddef>
 
 // Do not change this for a full inclusion of FairMQDevice.
-class FairMQDevice;
+#include <FairMQDevice.h>
 class FairMQMessage;
 
 namespace o2
@@ -463,6 +463,42 @@ class DataAllocator
   void adopt(OutputRef&& ref, T* obj)
   {
     return adopt(getOutputByBind(std::move(ref)), obj);
+  }
+
+  //make a stl (pmr) vector
+  template <typename T, typename... Args>
+  o2::vector<T> makeVector(const Output& spec, Args&&... args)
+  {
+    std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+    auto context = mContextRegistry->get<MessageContext>();
+    o2::pmr::FairMQMemoryResource* targetResource = context->proxy().getDevice()->GetChannel(channel).Transport()->GetMemoryResource();
+    return o2::vector<T>{ targetResource, std::forward<Args>(args)... };
+  }
+
+  //adopt container (if PMR is used with the appropriate memory resource iin container it is ZERO-copy)
+  template <typename ContainerT>
+  void adoptContainer(const Output& spec, ContainerT& container) = delete; //only bind to moved-from containers
+  template <typename ContainerT>
+  void adoptContainer(const Output& spec, ContainerT&& container)
+  {
+    // Find a matching channel, create a new message for it and put it in the
+    // queue to be sent at the end of the processing
+    std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+
+    FairMQParts parts;
+
+    auto context = mContextRegistry->get<MessageContext>();
+    o2::pmr::FairMQMemoryResource* targetResource = context->proxy().getDevice()->GetChannel(channel).Transport()->GetMemoryResource();
+    FairMQMessagePtr payloadMessage = o2::pmr::getMessage(std::forward<ContainerT>(container), targetResource);
+
+    FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel,                        //
+                                                             o2::header::gSerializationMethodNone, //
+                                                             payloadMessage->GetSize()             //
+    );
+
+    parts.AddPart(std::move(headerMessage));
+    parts.AddPart(std::move(payloadMessage));
+    context->addPart(std::move(parts), channel);
   }
 
   /// snapshot object and route to output specified by OutputRef

@@ -18,6 +18,7 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include <functional>
+#include "MemoryResources/MemoryResources.h"
 
 namespace o2f = o2::framework;
 
@@ -36,7 +37,7 @@ o2f::DataProcessorSpec defineBroadcaster(std::string devName, o2f::InputSpec usr
                                          size_t fixMsgSize);
 o2f::DataProcessorSpec defineBroadcaster(std::string devName, o2f::InputSpec usrInput, o2f::Outputs usrOutputs);
 
-using OutputBuffer = std::vector<char>;
+using OutputBuffer = o2::vector<char>;
 // Merger implementations
 o2f::DataProcessorSpec defineMerger(std::string devName, o2f::Inputs usrInputs, o2f::OutputSpec usrOutput,
                                     std::function<void(OutputBuffer, const o2f::DataRef)> const mergerFunc);

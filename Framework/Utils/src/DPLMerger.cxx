@@ -40,14 +40,13 @@ o2f::DataProcessorSpec defineMerger(std::string devName, o2f::Inputs usrInputs, 
 
              // Defining the ProcessCallback as returned object of InitCallback
              return [outputPtr, mergerFuncPtr](o2f::ProcessingContext& ctx) {
-               OutputBuffer outputBuffer;
+               OutputBuffer outputBuffer = ctx.outputs().makeVector<char>(*outputPtr);
                // Iterating over the InputSpecs to aggregate msgs from the connected devices
                for (const auto& itInputs : ctx.inputs()) {
                  (*mergerFuncPtr)(outputBuffer, itInputs);
                }
                // Adopting the buffer as new chunk
-               ctx.outputs().adoptChunk((*outputPtr), &outputBuffer[0], outputBuffer.size(), header::Stack::getFreefn(),
-                                        nullptr);
+               ctx.outputs().adoptContainer((*outputPtr), std::move(outputBuffer));
              };
            } } };
 }

@@ -41,17 +41,17 @@
 #include <FairMQTransportFactory.h>
 #include <fairmq/MemoryResources.h>
 #include <fairmq/MemoryResourceTools.h>
+#include "Types.h"
 
 namespace o2
 {
 
-using byte = unsigned char;
-
-namespace memory_resource
+namespace pmr
 {
 
 using FairMQMemoryResource = fair::mq::FairMQMemoryResource;
 using ChannelResource = fair::mq::ChannelResource;
+using namespace fair::mq::pmr;
 
 template <typename ContainerT>
 FairMQMessagePtr getMessage(ContainerT&& container, FairMQMemoryResource* targetResource = nullptr)
@@ -209,6 +209,8 @@ class OwningMessageSpectatorAllocator
 
 using ByteSpectatorAllocator = SpectatorAllocator<o2::byte>;
 using BytePmrAllocator = boost::container::pmr::polymorphic_allocator<o2::byte>;
+template <class T>
+using vector = std::vector<T, o2::pmr::polymorphic_allocator<T>>;
 
 //__________________________________________________________________________________________________
 /// Return a std::vector spanned over the contents of the message, takes ownership of the message
@@ -227,7 +229,11 @@ inline static ChannelResource* getTransportAllocator(FairMQTransportFactory* fac
   return factory->GetMemoryResource();
 }
 
-}; //namespace memory_resource
+}; //namespace pmr
+
+template <class T>
+using vector = std::vector<T, o2::pmr::polymorphic_allocator<T>>;
+
 }; //namespace o2
 
 #endif
