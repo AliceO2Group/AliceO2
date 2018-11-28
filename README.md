@@ -20,7 +20,7 @@ The main entry point for O2 information is [here](http://alice-o2.web.cern.ch/).
 A quickstart page can be found under [https://aliceo2group.github.io/](https://aliceo2group.github.io/).
 
 ### Building / Installation
-In order to install with aliBuild you can follow [this tutorial](http://alisw.github.io/alibuild/o2-tutorial.html).
+In order to build and install O2 with aliBuild you can follow [this tutorial](http://alisw.github.io/alibuild/o2-tutorial.html).
 
 ### Issue tracking system
 We use JIRA to track issues. [Report a bug here](https://alice.its.cern.ch/jira/secure/CreateIssue.jspa?pid=11201&issuetype=1).
