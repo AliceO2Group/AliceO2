@@ -28,7 +28,7 @@ namespace framework
 // [METRIC] <name>,<type> <value> <timestamp> [<tags>]
 bool DeviceMetricsHelper::parseMetric(const std::string& s, std::smatch& match)
 {
-  static std::regex metricsRE(R"regex(\[METRIC\] ([a-zA-Z0-9/_-]+),(0|1|2|4) ([0-9.a-zA-Z_/]+) ([0-9]+))regex", std::regex::optimize);
+  static std::regex metricsRE(R"regex(\[METRIC\] ([a-zA-Z0-9/_-]+),(0|1|2|4) ([0-9.a-zA-Z_/" <>()<$:]+) ([0-9]+))regex", std::regex::optimize);
   return std::regex_search(s, match, metricsRE);
 }
 
