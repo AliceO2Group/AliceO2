@@ -37,6 +37,7 @@ endif()
 
 include_directories(. SliceTracker Merger ../Common ../TPCFastTransformation Standalone/include)
 
+#SRCs processed by CINT and added to HDRS
 set(SRCS
     SliceTracker/AliHLTTPCCATrack.cxx
     SliceTracker/AliHLTTPCCABaseTrackParam.cxx
@@ -68,13 +69,45 @@ set(SRCS
     TRDTracking/AliHLTTRDTrack.cxx
     TRDTracking/AliHLTTRDTracker.cxx
     TRDTracking/AliHLTTRDTrackletWord.cxx
-
     GlobalTracker/AliGPUCAParam.cxx
 )
 
 set(SRCS_NO_CINT
     GlobalTracker/AliGPUReconstruction.cxx
     GlobalTracker/AliGPUReconstructionDeviceBase.cxx
+)
+
+#Extra headers to install
+set(HDRS
+    SliceTracker/AliHLTTPCCADef.h
+    SliceTracker/AliHLTTPCCASettings.h
+    SliceTracker/AliHLTTPCCAGPUConfig.h
+    SliceTracker/AliHLTTPCCAMCInfo.h
+    SliceTracker/AliHLTTPCCAHit.h
+    SliceTracker/AliHLTTPCCAHitId.h
+    SliceTracker/AliHLTTPCCASliceOutCluster.h
+    SliceTracker/AliHLTTPCCASliceOutTrack.h
+    SliceTracker/AliHLTTPCCATrackLinearisation.h
+    Merger/AliHLTTPCGMBorderTrack.h
+    Merger/AliHLTTPCGMCluster.h
+    Merger/AliHLTTPCGMOfflineStatisticalErrors.h
+    Merger/AliHLTTPCGMMergedTrack.h
+    Merger/AliHLTTPCGMMergedTrackHit.h
+    TRDTracking/AliHLTTRDDef.h
+    TRDTracking/AliHLTTRDTrackPoint.h
+    TRDTracking/AliHLTTRDTrack.h
+    TRDTracking/AliHLTTRDTrackData.h
+    TRDTracking/AliHLTTRDTrackPoint.h
+    GlobalTracker/AliGPUCADataTypes.h
+)
+#Not processed by ROOT
+set(HDRS2
+    SliceTracker/AliHLTTPCCAProcess.h
+    SliceTracker/AliHLTTPCCAGeometry.h
+    SliceTracker/AliCAGPULogging.h
+    TRDTracking/AliHLTTRDGeometry.h
+    TRDTracking/AliHLTTRDTrackerDebug.h
+    TRDTracking/AliHLTTRDInterfaces.h
 )
 
 #Some extra files / includes / settings needed for the build for AliRoot
@@ -114,6 +147,10 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
         ${AliRoot_SOURCE_DIR}/HLT/TRD/AliHLTTRDDefinitions.cxx
     )
     
+    set (HDRS2 ${HDRS2}
+        SliceTracker/AliHLTTPCCADefinitions.h
+    )
+    
     ALICE_UseVc()
 else() #if we do not build for AliRoot, for the time being we still need some dummy headers for some definitions
     include_directories(HLTHeaders Standalone/include)
@@ -129,42 +166,10 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
     )
 endif()
 
-string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
-#Extra headers to install
-set(HDRS ${HDRS}
-    SliceTracker/AliHLTTPCCADef.h
-    SliceTracker/AliHLTTPCCASettings.h
-    SliceTracker/AliHLTTPCCAGPUConfig.h
-    SliceTracker/AliHLTTPCCAMCInfo.h
-    SliceTracker/AliHLTTPCCAHit.h
-    SliceTracker/AliHLTTPCCAHitId.h
-    SliceTracker/AliHLTTPCCASliceOutCluster.h
-    SliceTracker/AliHLTTPCCASliceOutTrack.h
-    SliceTracker/AliHLTTPCCATrackLinearisation.h
-    Merger/AliHLTTPCGMBorderTrack.h
-    Merger/AliHLTTPCGMCluster.h
-    Merger/AliHLTTPCGMOfflineStatisticalErrors.h
-    Merger/AliHLTTPCGMMergedTrack.h
-    Merger/AliHLTTPCGMMergedTrackHit.h
-    TRDTracking/AliHLTTRDDef.h
-    TRDTracking/AliHLTTRDTrackPoint.h
-    TRDTracking/AliHLTTRDTrack.h
-    TRDTracking/AliHLTTRDTrackData.h
-    TRDTracking/AliHLTTRDTrackPoint.h
-    GlobalTracker/AliGPUCADataTypes.h
-)
-#Not processed by ROOT
-set(HDRS2
-    SliceTracker/AliHLTTPCCAProcess.h
-    SliceTracker/AliHLTTPCCADefinitions.h
-    SliceTracker/AliHLTTPCCAGeometry.h
-    SliceTracker/AliCAGPULogging.h
-    TRDTracking/AliHLTTRDGeometry.h
-    TRDTracking/AliHLTTRDTrackerDebug.h
-    TRDTracking/AliHLTTRDInterfaces.h
-    ../Common/AliTPCCommonDef.h
-)
-
+string(REPLACE ".cxx" ".h" HDRSSRC "${SRCS}")
+set(HDRS ${HDRS} ${HDRSSRC})
+string(REPLACE ".cxx" ".h" HDRSSRC "${SRCS_NO_CINT}")
+set(HDRS2 ${HDRS2} ${HDRSSRC})
 set(SRCS ${SRCS} ${SRCS_NO_CINT})
 
 #Default cmake build script for AliRoot
