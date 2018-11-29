@@ -65,7 +65,7 @@ bool Detector::ProcessHits(FairVolume* v)
   const TString  cIdSensDr = "J";
   const TString  cIdSensAm = "K";
   TString cIdCurrent = fMC->CurrentVolName();
-  std::cout << "TRD::Detector::ProcessHits() \t cIdCurrent = " << cIdCurrent << std::endl;
+  // LOG(DEBUG) << "TRD::Detector::ProcessHits() \t cIdCurrent = " << cIdCurrent;
   if (cIdCurrent[1] == cIdSensDr) {
     drRegion = true;
   }
@@ -78,7 +78,7 @@ bool Detector::ProcessHits(FairVolume* v)
   }
 
   TString cIdPath = gGeoManager->GetPath();
-  std::cout << "TRD::Detector::ProcessHits() \t cIdPath = " << cIdPath << std::endl;
+  // LOG(DEBUG) << "TRD::Detector::ProcessHits() \t cIdPath = " << cIdPath;
   // Example of cIdPath to get IdSector
   // /cave_1/B077_1/BSEGMO13_1/BTRD13_1/UTR3_1/UTS3_1/UTI3_1/UT29_1/UD29_1/UE29_1/UK29_1
   //                      ** 
@@ -91,14 +91,15 @@ bool Detector::ProcessHits(FairVolume* v)
   cIdSector[0] = cIdPath[21];
   cIdSector[1] = cIdPath[22];
   cIdSector[2] = 0;
-  int sector = std::stoi(cIdSector);
-
-  // The plane and chamber number
+    // The plane and chamber number
   char cIdChamber[3];
   cIdChamber[0] = cIdCurrent[2];
   cIdChamber[1] = cIdCurrent[3];
   cIdChamber[2] = 0;
-  const int idChamber = mGeom->getDetectorSec(std::stoi(cIdSector)); //(std::stoi(cIdChamber) % (kNlayer*kNstack)); // getDetectorSec(int det)
+
+  int sector = std::stoi(cIdSector);
+  // const idChamber = (std::stoi(cIdChamber) % (kNlayer*kNstack));
+  const int idChamber = mGeom->getDetectorSec(sector);
   const int det = mGeom->getDetector(mGeom->getLayer(idChamber), mGeom->getStack(idChamber), sector);
 
   // Special hits if track is entering
