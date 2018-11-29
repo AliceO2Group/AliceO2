@@ -73,8 +73,7 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
 //_______________________________________________________________________
 o2::EMCAL::Digit Digitizer::hitToDigit(const Hit& hit)
 {
-  Point3D<double> pos(hit.GetX(), hit.GetY(), hit.GetZ());
-  Int_t tower = mGeometry->GetAbsCellIdFromEtaPhi(pos.Eta(), pos.Phi());
+  Int_t tower = hit.GetDetectorID();
   Double_t amplitude = hit.GetEnergyLoss();
   Digit digit(tower, amplitude, mEventTime);
   return digit;
