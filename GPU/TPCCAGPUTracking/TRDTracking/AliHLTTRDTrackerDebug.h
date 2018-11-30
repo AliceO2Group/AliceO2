@@ -240,7 +240,7 @@ class AliHLTTRDTrackerDebug
     GPUd() void SetTrackletProperties(const float dy, const int det, int ly) {}
     GPUd() void SetRawTrackletPositionReal(float fX, float *fYZ, int ly) {}
     GPUd() void SetCorrectedTrackletPositionReal(My_Float *fYZ, int ly) {}
-    GPUd() void SetTrackletPropertiesReal(const int sec, const int det, int ly) {}
+    GPUd() void SetTrackletPropertiesReal(const int det, int ly) {}
 
     // update information
     GPUd() void SetChi2Update(float chi2, int ly) {}
