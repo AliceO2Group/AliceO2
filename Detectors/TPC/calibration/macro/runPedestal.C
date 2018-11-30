@@ -15,16 +15,20 @@ void runPedestal(TString fileInfo, TString outputFileName="", Int_t nevents=100,
   ped.setADCRange(adcMin, adcMax);
   ped.setupContainers(fileInfo);
 
-  ped.processEvent();
-  ped.resetData();
+  //ped.processEvent();
+  //ped.resetData();
 
+  CalibRawBase::ProcessStatus status = CalibRawBase::ProcessStatus::Ok;
   //while (ped.processEvent());
   for (Int_t i=0; i<nevents; ++i) {
-    if (ped.processEvent() != CalibRawBase::ProcessStatus::Ok) break;
+    status = ped.processEvent();
+    cout << "Processing event " << i << " with status " << int(status) << '\n';
+    if ( status != CalibRawBase::ProcessStatus::Ok) break;
   }
   ped.analyse();
 
   cout << "Number of processed events: " << ped.getNumberOfProcessedEvents() << '\n';
+  cout << "Status: " << int(status) << '\n';
   if (outputFileName.IsNull()) outputFileName="Pedestals.root";
   ped.dumpToFile(outputFileName.Data());
 

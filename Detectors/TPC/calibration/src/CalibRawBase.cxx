@@ -11,6 +11,7 @@
 /// \file   CalibRawBase.cxx
 /// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 
+#include "TSystem.h"
 #include "TObjString.h"
 #include "TObjArray.h"
 
@@ -27,7 +28,7 @@ void CalibRawBase::setupContainers(TString fileInfo)
 
   //auto contPtr = std::unique_ptr<GBTFrameContainer>(new GBTFrameContainer(iSize,iCRU,iLink));
   // input data
-  TString rorcType="raw";
+  TString rorcType = "cru";
   auto arrData = fileInfo.Tokenize("; ");
 
   std::shared_ptr<RawReaderEventSync> eventSync = std::make_shared<RawReaderEventSync>();
@@ -39,16 +40,38 @@ void CalibRawBase::setupContainers(TString fileInfo)
     auto arrDataInfo = data.Tokenize(":");
     if (arrDataInfo->GetEntriesFast() == 1) {
       TString& rorcTypeTmp = static_cast<TObjString*>(arrDataInfo->At(0))->String();
-      if (rorcTypeTmp=="grorc") rorcType=rorcTypeTmp;
-      else if (rorcTypeTmp=="trorc") rorcType=rorcTypeTmp;
-      else if (rorcTypeTmp=="trorc2") rorcType=rorcTypeTmp;
-      else if (rorcTypeTmp=="raw") rorcType=rorcTypeTmp;
-      else {
+      if (rorcTypeTmp == "grorc") {
+        rorcType = rorcTypeTmp;
+      } else if (rorcTypeTmp == "trorc") {
+        rorcType = rorcTypeTmp;
+      } else if (rorcTypeTmp == "trorc2") {
+        rorcType = rorcTypeTmp;
+      } else if (rorcTypeTmp == "raw") {
+        rorcType = rorcTypeTmp;
+      } else if (rorcTypeTmp == "cru") {
+        rorcType = rorcTypeTmp;
+      } else {
         printf("Error, unrecognized option: %s\n", rorcTypeTmp.Data());
       }
       std::cout << "Found decoder type: " << rorcType << "\n";
       delete arrDataInfo;
       continue;
+    } else if (rorcType == "cru") {
+      TString files = gSystem->GetFromPipe(TString::Format("ls %s", arrDataInfo->At(0)->GetName()));
+      const int timeBins = static_cast<TObjString*>(arrDataInfo->At(1))->String().Atoi();
+      std::unique_ptr<TObjArray> arr(files.Tokenize("\n"));
+      for (auto file : *arr) {
+        // fix the number of time bins
+        mRawReadersCRU.emplace_back(std::make_unique<RawReaderCRU>(file->GetName(), timeBins));
+        mRawReadersCRU.back()->setVerbosity(2);
+        printf("Adding file: %s\n", file->GetName());
+        if (arrDataInfo->GetEntriesFast() == 3) {
+          const int cru = static_cast<TObjString*>(arrDataInfo->At(2))->String().Atoi();
+          mRawReadersCRU.back()->forceCRU(cru);
+          printf("Forcing CRU %03d\n", cru);
+        }
+      }
+
     } else if (arrDataInfo->GetEntriesFast() < 3) {
       printf("Error, badly formatte input data string: %s, expected format is <filename:cru:link[:sampaVersion]>\n",
              data.Data());
@@ -56,14 +79,13 @@ void CalibRawBase::setupContainers(TString fileInfo)
       continue;
     }
 
-    if ( rorcType == "raw" ) {
+    if (rorcType == "raw") {
       auto rawReader = new RawReader;
       rawReader->addEventSynchronizer(eventSync);
       rawReader->addInputFile(data.Data());
 
       addRawReader(rawReader);
-    }
-    else {
+    } else if (rorcType != "cru") {
       TString& filename = static_cast<TObjString*>(arrDataInfo->At(0))->String();
       iCRU = static_cast<TObjString*>(arrDataInfo->At(1))->String().Atoi();
       iLink = static_cast<TObjString*>(arrDataInfo->At(2))->String().Atoi();
