@@ -79,7 +79,11 @@ int main(int argc, char* argv[])
 
   TStopwatch timer;
   timer.Start();
-  std::string rootpath(getenv("O2_ROOT"));
+  auto o2env = getenv("O2_ROOT");
+  if (!o2env) {
+    LOG(FATAL) << "O2_ROOT environment not defined";
+  }
+  std::string rootpath(o2env);
   std::string installpath = rootpath + "/bin";
 
   std::stringstream configss;
