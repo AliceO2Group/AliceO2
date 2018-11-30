@@ -1,6 +1,6 @@
 #define ENABLE_HLTTRDDEBUG
-#define ENABLE_WARNING 1
-#define ENABLE_INFO 1
+#define ENABLE_WARNING 0
+#define ENABLE_INFO 0
 #ifdef HLTCA_BUILD_ALIROOT_LIB
 #define ENABLE_HLTMC
 #endif
@@ -85,7 +85,6 @@ AliHLTTRDTracker::AliHLTTRDTracker() :
   fHypothesis(nullptr),
   fCandidates(nullptr),
   fSpacePoints(nullptr),
-  fExternalGeometry(false),
   fGeo(nullptr),
   fDebugOutput(false),
   fMinPt(0.6),
@@ -158,25 +157,6 @@ GPUd() bool AliHLTTRDTracker::Init(AliHLTTRDGeometry *geo)
   float x0[kNLayers]    = { 300.2, 312.8, 325.4, 338.0, 350.6, 363.2 };
   for (int iLy=0; iLy<kNLayers; iLy++) {
     fR[iLy] = x0[iLy];
-  }
-  if (geo)
-  {
-      fGeo = geo;
-      fExternalGeometry = true;
-  }
-  else
-  {
-      if(!AliHLTTRDGeometry::CheckGeometryAvailable()){
-        Error("Init", "Could not get geometry.");
-        return;
-      }
-
-      fGeo = new AliHLTTRDGeometry();
-      if (!fGeo) {
-        Error("Init", "TRD geometry could not be loaded");
-        return;
-      }
-      fGeo->CreateClusterMatrixArray();
   }
   auto* matrix = fGeo->GetClusterMatrix(0);
   My_Float loc[3] = { fGeo->AnodePos(), 0., 0. };
@@ -419,7 +399,7 @@ GPUd() bool AliHLTTRDTracker::CalculateSpacePoints()
       int modId   = fGeo->GetSector(iDet) * AliHLTTRDGeometry::kNstack + fGeo->GetStack(iDet); // global TRD stack number
       unsigned short volId = fGeo->GetGeomManagerVolUID(iDet, modId);
       fSpacePoints[trkltIdx].fVolumeId = volId;
-      printf("Space point %i: x=%f, y=%f, z=%f\n", iTrklt, fSpacePoints[trkltIdx].fR, fSpacePoints[trkltIdx].fX[0], fSpacePoints[trkltIdx].fX[1]); 
+      //printf("Space point %i: x=%f, y=%f, z=%f\n", iTrklt, fSpacePoints[trkltIdx].fR, fSpacePoints[trkltIdx].fX[0], fSpacePoints[trkltIdx].fX[1]);
     }
   }
   return result;
@@ -436,7 +416,7 @@ GPUd() bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDT
   //--------------------------------------------------------------------
 
   if (!t->CheckNumericalQuality()) {
-    printf("Error: track does not pass quality check\n");
+    //printf("Error: track does not pass quality check\n");
     return false;
   }
 
@@ -457,7 +437,7 @@ GPUd() bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDT
 
 #ifdef ENABLE_HLTTRDDEBUG
   HLTTRDTrack trackNoUp(*t);
-  //printf("Track w/o updates: x=%f, y=%f, z=%f\n", trackNoUp.GetX(),  trackNoUp.GetY(), trackNoUp.GetZ());
+  printf("Track w/o updates: x=%f, y=%f, z=%f\n", trackNoUp.GetX(),  trackNoUp.GetY(), trackNoUp.GetZ());
 #endif
 
   // look for matching tracklets via MC label
@@ -503,7 +483,7 @@ GPUd() bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDT
     // --------------------------------------------------------------------------------
     for (int iCandidate=0; iCandidate<nCandidates; iCandidate++) {
 
-      printf("Processing candidate %i in layer %i\n", iCandidate, iLayer);
+      //printf("Processing candidate %i in layer %i\n", iCandidate, iLayer);
 
       int det[nMaxChambersToSearch] = { -1, -1, -1, -1 }; // TRD chambers to be searched for tracklets
 
@@ -715,8 +695,8 @@ GPUd() bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDT
     // loop over the best N_candidates hypothesis
     //
     // --------------------------------------------------------------------------------
-    printf("nCurrHypothesis=%i, nCandidates=%i\n", nCurrHypothesis, nCandidates);
-    for (int idx=0; idx<10; ++idx) { printf("fHypothesis[%i]: candidateId=%i, nLayers=%i, trackletId=%i, chi2=%f\n", idx, fHypothesis[idx].fCandidateId,  fHypothesis[idx].fLayers, fHypothesis[idx].fTrackletId, fHypothesis[idx].fChi2); }
+    //printf("nCurrHypothesis=%i, nCandidates=%i\n", nCurrHypothesis, nCandidates);
+    //for (int idx=0; idx<10; ++idx) { printf("fHypothesis[%i]: candidateId=%i, nLayers=%i, trackletId=%i, chi2=%f\n", idx, fHypothesis[idx].fCandidateId,  fHypothesis[idx].fLayers, fHypothesis[idx].fTrackletId, fHypothesis[idx].fChi2); }
     for (int iUpdate = 0; iUpdate < nCurrHypothesis && iUpdate < fNCandidates; iUpdate++) {
       if (fHypothesis[iUpdate + hypothesisIdxOffset].fCandidateId == -1) {
         // no more candidates
@@ -780,7 +760,7 @@ GPUd() bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDT
 
 #ifdef ENABLE_HLTTRDDEBUG
       prop->setTrack(&trackNoUp);
-      prop->rotate(GetAlphaOfSector(trkltSec));
+      //prop->rotate(GetAlphaOfSector(trkltSec));
       //prop->PropagateToX(fSpacePoints[fHypothesis[iUpdate + hypothesisIdxOffset].fTrackletId].fR, .8f, 2.f);
       prop->PropagateToX(fR[iLayer], .8f, 2.f);
       printf("Track w/o updates (layer %i): x=%f, y=%f, z=%f\n", iLayer, trackNoUp.GetX(),  trackNoUp.GetY(), trackNoUp.GetZ());
