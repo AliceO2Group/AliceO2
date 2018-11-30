@@ -39,11 +39,9 @@ Detector::Detector(const Detector& rhs)
 {
   if (TRDCommonParam::Instance()->IsXenon()) {
     mWion = 23.53; // Ionization energy XeCO2 (85/15)
-  }
-  else if (TRDCommonParam::Instance()->IsArgon()) {
+  } else if (TRDCommonParam::Instance()->IsArgon()) {
     mWion = 27.21; // Ionization energy ArCO2 (82/18)
-  }
-  else {
+  } else {
     LOG(FATAL) << "Wrong gas mixture";
     // add hard exit here!
   }
@@ -78,8 +76,8 @@ bool Detector::ProcessHits(FairVolume* v)
   // Inside sensitive volume ?
   bool drRegion = false;
   bool amRegion = false;
-  const TString  cIdSensDr = "J";
-  const TString  cIdSensAm = "K";
+  const TString cIdSensDr = "J";
+  const TString cIdSensAm = "K";
   TString cIdCurrent = fMC->CurrentVolName();
   // LOG(DEBUG) << "TRD::Detector::ProcessHits() \t cIdCurrent = " << cIdCurrent;
   if (cIdCurrent[1] == cIdSensDr) {
@@ -111,8 +109,7 @@ bool Detector::ProcessHits(FairVolume* v)
       // CreateTRhit(); // See AliTRDv1.cxx
     }
     trkStat = 1;
-  }
-  else if(amRegion && fMC->IsTrackExiting()) {
+  } else if(amRegion && fMC->IsTrackExiting()) {
     // Create a track reference at the exit of each
     // chamber that contains the momentum components of the particle
     /* Do what AliRoot does here
