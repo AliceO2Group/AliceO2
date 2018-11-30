@@ -26,7 +26,9 @@ void drawNoiseAndPedestal(TString pedestalFile)
   auto hPedestal = new TH1F("hPedestal","Pedestal distribution;ADC value", 100, 50, 150);
   auto hNoise = new TH1F("hNoise","Noise distribution;ADC value", 100, 0, 5);
   auto hPedestal2D = Painter::getHistogram2D(rocPedestal);
+  hPedestal2D->SetStats(0);
   auto hNoise2D = Painter::getHistogram2D(rocNoise);
+  hNoise2D->SetStats(0);
 
   // ===| fill 1D histograms |===
   for (const auto& val : rocPedestal.getData()) {
