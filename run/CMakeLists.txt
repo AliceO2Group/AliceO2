@@ -45,6 +45,8 @@ if (HAVESIMULATION)
     COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim -n 2 -j 2 -m PIPE ITS TPC TRD TOF EMC PHS -e TGeant4 -o o2simG4)
   set_tests_properties(o2sim_G4 PROPERTIES PASS_REGULAR_EXPRESSION "SIMULATION RETURNED SUCCESFULLY"
                                            ENVIRONMENT VMCWORKDIR=${CMAKE_SOURCE_DIR} FIXTURES_SETUP G4) 
+  set_property(TEST o2sim_G4 APPEND PROPERTY ENVIRONMENT "O2_ROOT=${CMAKE_INSTALL_PREFIX}")
+  set_property(TEST o2sim_G4 APPEND PROPERTY ENVIRONMENT "LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
 
   # note that the MT is currently only supported in the non FairMQ version					 
   add_test(NAME o2sim_G4_mt 
@@ -52,44 +54,28 @@ if (HAVESIMULATION)
     COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim_serial -n 10 -m PIPE ITS TPC TRD TOF EMC PHS -e TGeant4 --isMT on -o o2simG4MT)
   set_tests_properties(o2sim_G4_mt PROPERTIES PASS_REGULAR_EXPRESSION "Macro finished succesfully"
                                               ENVIRONMENT VMCWORKDIR=${CMAKE_SOURCE_DIR})
+  set_property(TEST o2sim_G4_mt APPEND PROPERTY ENVIRONMENT "O2_ROOT=${CMAKE_INSTALL_PREFIX}")
   
-  add_test(NAME checksimkinematics_G4
+  add_test(NAME o2sim_checksimkinematics_G4
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMAND root -n -b -l -q ${CMAKE_SOURCE_DIR}/DataFormats/simulation/test/checkStack.C\(\"o2simG4.root\"\))
-  set_tests_properties(checksimkinematics_G4 PROPERTIES FIXTURES_REQUIRED G4
+  set_tests_properties(o2sim_checksimkinematics_G4 PROPERTIES FIXTURES_REQUIRED G4
                                                         ENVIRONMENT "LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
   endif()
   add_test(NAME o2sim_G3
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim -n 2 -j 2 -m PIPE ITS TPC MCH TOF EMC PHS -e TGeant3 -o o2simG3)
+
+  # set properties for G3 ... we use fixtures to force execution after G4 (since they require multiple CPUs)
   set_tests_properties(o2sim_G3 PROPERTIES PASS_REGULAR_EXPRESSION "SIMULATION RETURNED SUCCESFULLY"
-                                           ENVIRONMENT VMCWORKDIR=${CMAKE_SOURCE_DIR} FIXTURES_SETUP G3) 
-  
-  add_test(NAME checksimkinematics_G3
+                                           FIXTURES_REQUIRED G4
+                                           ENVIRONMENT "VMCWORKDIR=${CMAKE_SOURCE_DIR}" FIXTURES_SETUP G3) 
+  set_property(TEST o2sim_G3 APPEND PROPERTY ENVIRONMENT "O2_ROOT=${CMAKE_INSTALL_PREFIX}")
+  set_property(TEST o2sim_G3 APPEND PROPERTY ENVIRONMENT "LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
+
+  add_test(NAME o2sim_checksimkinematics_G3
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMAND root -n -b -l -q ${CMAKE_SOURCE_DIR}/DataFormats/simulation/test/checkStack.C\(\"o2simG3.root\"\))
-  set_tests_properties(checksimkinematics_G3 PROPERTIES FIXTURES_REQUIRED G3 
+  set_tests_properties(o2sim_checksimkinematics_G3 PROPERTIES FIXTURES_REQUIRED G3 
                                                         ENVIRONMENT "LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
-
-# testing the parallel simulation (in preparation)
-#  add_test(NAME o2sim_parallel_G4_forked
-#    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-#    COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim_parallel -n 2 -m PIPE ITS TPC TRD TOF EMC PHS -e TGeant4 -g pythia8)
-#  set_tests_properties(o2sim_parallel_G4_forked PROPERTIES PASS_REGULAR_EXPRESSION "Merger process"
-#                                           ENVIRONMENT VMCWORKDIR=${CMAKE_SOURCE_DIR}
-#                                           FIXTURES_SETUP G4PARA
-#                                           )
-# we need to append more environment setting like this
-#  set_property(TEST o2sim_parallel_G4_forked
-#               APPEND PROPERTY ENVIRONMENT ALICE_NSIMWORKERS=1)
-#  set_property(TEST o2sim_parallel_G4_forked
-#               APPEND PROPERTY ENVIRONMENT ALICE_SIMINTERNALFORK=ON)
-
-#  add_test(NAME checksimkinematics_G4PARA
-#    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-#    COMMAND root -n -b -l -q ${CMAKE_SOURCE_DIR}/DataFormats/simulation/test/checkStack.C)
-#  set_tests_properties(checksimkinematics_G4PARA PROPERTIES FIXTURES_REQUIRED G4PARA
-#                                                        ENVIRONMENT "LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
-
-
 endif()
