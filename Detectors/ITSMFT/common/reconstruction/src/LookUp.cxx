@@ -59,7 +59,7 @@ int LookUp::findGroupID(int nRow, int nCol, const unsigned char patt[Cluster::kM
   int nBits = nRow * nCol;
   // Small topology
   if (nBits < 9) {
-    int ID = mDictionary.mSmallTopologiesLUT[(nRow - 1) * 255 + (int)patt[0]];
+    int ID = mDictionary.mSmallTopologiesLUT[(nCol - 1) * 255 + (int)patt[0]];
     if (ID >= 0)
       return ID;
     else { //small rare topology (inside groups)

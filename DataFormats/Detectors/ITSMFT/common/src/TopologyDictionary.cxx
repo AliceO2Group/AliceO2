@@ -83,7 +83,7 @@ ClassImp(o2::ITSMFT::TopologyDictionary)
         in.read(reinterpret_cast<char*>(&gr.mPattern.mBitmap), sizeof(unsigned char) * (ClusterPattern::kExtendedPatternBytes));
         mVectorOfGroupIDs.push_back(gr);
         if (gr.mPattern.getUsedBytes() == 1)
-          mSmallTopologiesLUT[(gr.mPattern.getRowSpan() - 1) * 255 + (int)gr.mPattern.mBitmap[2]] = groupID;
+          mSmallTopologiesLUT[(gr.mPattern.getColumnSpan() - 1) * 255 + (int)gr.mPattern.mBitmap[2]] = groupID;
         if (((gr.mHash) & 0xffffffff) != 0)
           mFinalMap.insert(std::make_pair(gr.mHash, groupID));
         groupID++;

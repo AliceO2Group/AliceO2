@@ -196,7 +196,7 @@ ClassImp(o2::ITSMFT::BuildTopologyDictionary)
       mDictionary.mVectorOfGroupIDs.push_back(gr);
       mDictionary.mFinalMap.insert(std::make_pair(gr.mHash, j));
       if (gr.mPattern.getUsedBytes() == 1)
-        mDictionary.mSmallTopologiesLUT[(gr.mPattern.getRowSpan() - 1) * 255 + (int)gr.mPattern.mBitmap[2]] = j;
+        mDictionary.mSmallTopologiesLUT[(gr.mPattern.getColumnSpan() - 1) * 255 + (int)gr.mPattern.mBitmap[2]] = j;
     }
     // groupRareTopologies based on binning over number of rows and columns (TopologyDictionary::NumberOfRowClasses *
     // NumberOfColClasse)
