@@ -25,15 +25,13 @@ CalibPedestal::CalibPedestal(PadSubset padSubset)
     mLastTimeBin(500),
     mADCMin(0),
     mADCMax(120),
-    mNumberOfADCs(mADCMax-mADCMin+1),
-    mPedestal(padSubset),
-    mNoise(padSubset),
+    mNumberOfADCs(mADCMax - mADCMin + 1),
+    mPedestal("Pedestals", padSubset),
+    mNoise("Noise", padSubset),
     mADCdata()
 
 {
   mADCdata.resize(ROC::MaxROC);
-  mPedestal.setName("Pedestals");
-  mNoise.setName("Noise");
 }
 
 //______________________________________________________________________________
@@ -41,11 +39,13 @@ Int_t CalibPedestal::updateROC(const Int_t roc, const Int_t row, const Int_t pad
                                const Int_t timeBin, const Float_t signal)
 {
   Int_t adcValue = Int_t(signal);
-  if (timeBin<mFirstTimeBin || timeBin>mLastTimeBin) return 0;
-  if (adcValue<mADCMin || adcValue>mADCMax) return 0;
+  if (timeBin < mFirstTimeBin || timeBin > mLastTimeBin)
+    return 0;
+  if (adcValue < mADCMin || adcValue > mADCMax)
+    return 0;
 
   const GlobalPadNumber padInROC = mMapper.getPadNumberInROC(PadROCPos(roc, row, pad));
-  Int_t bin = padInROC * mNumberOfADCs + (adcValue-mADCMin);
+  Int_t bin = padInROC * mNumberOfADCs + (adcValue - mADCMin);
   vectorType& adcVec = *getVector(ROC(roc), kTRUE);
   ++(adcVec[bin]);
 
@@ -55,10 +55,11 @@ Int_t CalibPedestal::updateROC(const Int_t roc, const Int_t row, const Int_t pad
 }
 
 //______________________________________________________________________________
-CalibPedestal::vectorType* CalibPedestal::getVector(ROC roc, bool create/*=kFALSE*/)
+CalibPedestal::vectorType* CalibPedestal::getVector(ROC roc, bool create /*=kFALSE*/)
 {
   vectorType* vec = mADCdata[roc].get();
-  if (vec || !create) return vec;
+  if (vec || !create)
+    return vec;
 
   const size_t numberOfPads = (roc.rocType() == RocType::IROC) ? mMapper.getPadsInIROC() : mMapper.getPadsInOROC();
 
@@ -87,21 +88,20 @@ void CalibPedestal::analyse()
     CalROC& calROCPedestal = mPedestal.getCalArray(roc);
     CalROC& calROCNoise = mNoise.getCalArray(roc);
 
-    float *array = vec->data();
+    float* array = vec->data();
 
     const size_t numberOfPads = (roc.rocType() == RocType::IROC) ? mMapper.getPadsInIROC() : mMapper.getPadsInOROC();
 
-    for (Int_t ichannel=0; ichannel<numberOfPads; ++ichannel) {
+    for (Int_t ichannel = 0; ichannel < numberOfPads; ++ichannel) {
       size_t offset = ichannel * mNumberOfADCs;
-      fitGaus(mNumberOfADCs, array+offset, float(mADCMin), float(mADCMax+1), fitValues);
+      fitGaus(mNumberOfADCs, array + offset, float(mADCMin), float(mADCMax + 1), fitValues);
 
       const float pedestal = fitValues[1];
-      const float noise    = fitValues[2];
+      const float noise = fitValues[2];
       calROCPedestal.setValue(ichannel, pedestal);
       calROCNoise.setValue(ichannel, noise);
 
       //printf("roc: %2d, channel: %4d, pedestal: %.2f, noise: %.2f\n", roc.getRoc(), ichannel, pedestal, noise);
-
     }
 
     ++roc;
