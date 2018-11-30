@@ -34,6 +34,9 @@ class AliHLTTRDpadPlane : private o2::trd::TRDPadPlane
 public:
 	GPUd() float GetTiltingAngle() {return getTiltingAngle();}
 	GPUd() float GetRowSize(int row) {return getRowSize(row);}
+	GPUd() float GetRow0() {return getRow0();}
+	GPUd() float GetRowEnd() {return getRowEnd();}
+	GPUd() float GetColEnd() {return getColEnd();}
 	GPUd() float GetRowPos(int row) {return getRowPos(row);}
 	GPUd() float GetColPos(int col) {return getColPos(col);}
 	GPUd() float GetNrows() {return getNrows();}
