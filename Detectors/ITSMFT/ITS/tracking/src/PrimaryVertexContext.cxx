@@ -21,11 +21,6 @@ namespace o2
 namespace ITS
 {
 
-PrimaryVertexContext::PrimaryVertexContext()
-{
-  // Nothing to do
-}
-
 void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const std::array<std::vector<Cluster>, Constants::ITS::LayersNumber>& cl,
                                       const std::array<float, 3>& pVtx, const int iteration)
 {
