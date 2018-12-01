@@ -38,7 +38,7 @@ namespace ITS
 class TrackerTraits
 {
  public:
-  virtual ~TrackerTraits() {}
+  virtual ~TrackerTraits() = default;
 
   GPU_HOST_DEVICE static constexpr int4 getEmptyBinsRect() { return int4{ 0, 0, 0, 0 }; }
   GPU_DEVICE static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
