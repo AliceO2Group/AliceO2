@@ -43,7 +43,7 @@ class Configuration : public Param
 };
 
 struct TrackingParameters {
-  TrackingParameters& operator=(const TrackingParameters& t);
+  TrackingParameters& operator=(const TrackingParameters &t);
 
   int CellMinimumLevel();
 
