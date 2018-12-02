@@ -12,7 +12,7 @@
 #define DETECTORS_MUON_MCH_BASE_INCLUDE_MCH_DIGIT_H_
 
 //#include <CommonDataFormat/TimeStamp.h>//TODO compiler doesn't link properly 
-
+#include "Rtypes.h"
 #include <iosfwd>
 
 namespace o2 {
