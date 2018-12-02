@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization 
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_MCH_DIGIT_H_
-#define ALICEO2_MCH_DIGIT_H_
+#ifndef DETECTORS_MUON_MCH_BASE_INCLUDE_MCH_DIGIT_H_
+#define DETECTORS_MUON_MCH_BASE_INCLUDE_MCH_DIGIT_H_
 
 //#include <CommonDataFormat/TimeStamp.h>//TODO compiler doesn't link properly 
 
@@ -24,28 +24,30 @@ namespace o2 {
     public:
       Digit() = default;
 
-      Digit(Int_t pad, Double_t adc, Double_t time); //check if need uint32_to
+      Digit(int pad, double adc, double time); //check if need uint32_to
       ~Digit() = default;
 
-      Int_t GetPadID() { return mPadID; }
-      void SetPadID(uint32_t pad) { mPadID=pad;}
+      int GetPadID() { return mPadID; }
+      void SetPadID(int pad) { mPadID=pad;}
       
-      Double_t GetADC() { return mADC; }
-      void SetADC(Double_t adc) { mADC=adc;}
+      double GetADC() { return mADC; }
+      void SetADC(double adc) { mADC=adc;}
 
-      Double_t GetTimeStamp() {return mTime;}
-      void SetTimeStamp(Double_t time){mTime =time;}
+      double GetTimeStamp() {return mTime;}
+      void SetTimeStamp(double time){mTime =time;}
 	
     private:
 
-      Int_t mPadID;
-      Double_t mADC;
-      Double_t mTime;
+      int mPadID;
+      double mADC;
+      double mTime;
 
       ClassDefNV(Digit,1);
       
     };//class Digit
 
-    std::ostream &operator<<(std::ostream &stream, const Digit &dig);
+    //    std::ostream &operator<<(std::ostream &stream, const Digit &dig);
   }//namespace mch
 }//namespace o2
+
+#endif // ALICEO2_MCH_DIGIT_H_
