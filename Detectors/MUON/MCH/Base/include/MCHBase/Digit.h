@@ -42,8 +42,7 @@ namespace o2 {
       double mADC;
       double mTime;
 
-      ClassDefNV(Digit,1);
-      
+      ClassDefNV(Digit,1);      
     };//class Digit
 
     //    std::ostream &operator<<(std::ostream &stream, const Digit &dig);

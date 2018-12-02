@@ -17,7 +17,8 @@
 
 using namespace o2::mch;
 
-//ClassImp(o2::mch::Digit);
+ClassImp(o2::mch::Digit);
+
 
 Digit::Digit(int pad, double adc, double time)//check if long etc for pad needed, need uint32_t
   : mPadID(pad), mADC(adc), mTime(time)
