@@ -34,8 +34,17 @@ Detector::Detector(const Detector& rhs)
     mFoilDensity(rhs.mFoilDensity),
     mGasNobleFraction(rhs.mGasNobleFraction),
     mGasDensity(rhs.mGasDensity),
-    mGeom(rhs.mGeom)
+    mGeom(rhs.mGeom),
+    mTRon(false)
 {
+  if (TRDCommonParam::Instance()->IsXenon()) {
+    mWion = 23.53; // Ionization energy XeCO2 (85/15)
+  } else if (TRDCommonParam::Instance()->IsArgon()) {
+    mWion = 27.21; // Ionization energy ArCO2 (82/18)
+  } else {
+    LOG(FATAL) << "Wrong gas mixture";
+    // add hard exit here!
+  }
 }
 
 Detector::~Detector()
@@ -52,27 +61,81 @@ void Detector::InitializeO2Detector()
 bool Detector::ProcessHits(FairVolume* v)
 {
   // very rudimentatary hit creation
-  // TODO: needs upgrade to the level of AliROOT
+  /* TODO: needs upgrade to the level of AliROOT
+
+    - Add primary ionization (fluka, geant?) see AliRoot
+    - Add TR
+
+  */
 
   // If not charged track or already stopped or disappeared, just return.
   if ((!fMC->TrackCharge()) || fMC->IsTrackDisappeared()) {
     return false;
   }
 
-  // just record position and basic quantities for the moment
-  // TODO: needs to be interpreted properly
-  float x, y, z;
-  fMC->TrackPosition(x, y, z);
+  // Inside sensitive volume ?
+  bool drRegion = false;
+  bool amRegion = false;
+  const TString cIdSensDr = "J";
+  const TString cIdSensAm = "K";
+  TString cIdCurrent = fMC->CurrentVolName();
+  // LOG(DEBUG) << "TRD::Detector::ProcessHits() \t cIdCurrent = " << cIdCurrent;
+  if (cIdCurrent[1] == cIdSensDr) {
+    drRegion = true;
+  }
+  if (cIdCurrent[2] == cIdSensAm) {
+    amRegion = true;
+  }
 
-  float enDep = fMC->Edep();
-  float time = fMC->TrackTime() * 1.0e09;
-  auto stack = (o2::Data::Stack*)fMC->GetStack();
-  auto trackID = stack->GetCurrentTrackNumber();
-  auto sensID = v->getMCid();
-  addHit(x, y, z, time, enDep, trackID, sensID);
-  stack->addHit(GetDetId());
+  if (!drRegion && !amRegion) {
+    return false;
+  }
 
-  return true;
+  // 0: InFlight 1: Entering 2: Exiting
+  int trkStat = 0;
+  // Special hits if track is entering
+  if (drRegion && fMC->IsTrackEntering()) {
+    // Create a track reference at the entrance of each
+    // chamber that contains the momentum components of the particle
+    /* Do what AliRoot does here
+      fMC->TrackMomentum(mom);
+      AddTrackReference(gAlice->GetMCApp()->GetCurrentTrackNumber(), AliTrackReference::kTRD);
+    */
+    // Create the hits from TR photons if electron/positron is entering the drift volume
+    const int ele = TMath::Abs(fMC->TrackPid()) == 11; // electron PDG code.
+    if (mTRon && ele) {
+      // Do TR simulation here
+      // Emulate what AliTRDsimTR does here
+      // CreateTRhit(); // See AliTRDv1.cxx
+    }
+    trkStat = 1;
+  } else if (amRegion && fMC->IsTrackExiting()) {
+    // Create a track reference at the exit of each
+    // chamber that contains the momentum components of the particle
+    /* Do what AliRoot does here
+            fMC->TrackMomentum(mom);
+            AddTrackReference(gAlice->GetMCApp()->GetCurrentTrackNumber(), AliTrackReference::kTRD);
+            trkStat = 2;
+    */
+    trkStat = 2;
+  }
+  // Calculate the charge according to GEANT Edep
+  // Create a new dEdx hit
+  const double enDep = fMC->Edep();
+  // Store those hits with enDep bigger than the ionization potential of the gas mixture for in-flight tracks
+  // or store hits of tracks that are entering or exiting
+  if ((enDep > mWion) || trkStat) {
+    double x, y, z;
+    fMC->TrackPosition(x, y, z);
+    double time = fMC->TrackTime() * 1e9;
+    o2::Data::Stack* stack = (o2::Data::Stack*)fMC->GetStack();
+    const int trackID = stack->GetCurrentTrackNumber();
+    const int sensID = v->getMCid();
+    addHit(x, y, z, time, enDep, trackID, sensID);
+    stack->addHit(GetDetId());
+    return true;
+  }
+  return false;
 }
 
 void Detector::Register()

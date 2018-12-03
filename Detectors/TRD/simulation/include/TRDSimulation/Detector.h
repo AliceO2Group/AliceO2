@@ -93,6 +93,9 @@ class Detector : public o2::Base::DetImpl<Detector>
   float mGasNobleFraction;
   float mGasDensity;
 
+  bool mTRon;  //  Switch for TR simulation
+  float mWion; //  Ionization potential
+
   TRDGeometry* mGeom = nullptr;
 
   template <typename Det>
