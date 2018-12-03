@@ -283,6 +283,7 @@ std::vector<DataRelayer::RecordAction>
 DataRelayer::getReadyToProcess() {
   // THE STATE
   std::vector<RecordAction> completed;
+  completed.reserve(16);
   const auto &cache = mCache;
   const auto numInputTypes = mDistinctRoutesIndex.size();
   //
@@ -302,7 +303,7 @@ DataRelayer::getReadyToProcess() {
   // or vectorised so "completed" could be a thread local variable which needs
   // merging at the end.
   auto updateCompletionResults = [&completed](TimesliceSlot li, CompletionPolicy::CompletionOp op) {
-    completed.push_back({li, op});
+    completed.emplace_back(RecordAction{ li, op });
   };
 
   auto completionResults = [&completed]() -> std::vector<RecordAction> {
