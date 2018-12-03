@@ -24,7 +24,7 @@ namespace o2
 namespace ITSMFT
 {
 
-LookUp::LookUp() : mDictionary{}, mTopologiesOverThreshold{0} {}
+LookUp::LookUp() : mDictionary{}, mTopologiesOverThreshold{ 0 } {}
 
 LookUp::LookUp(std::string fileName)
 {

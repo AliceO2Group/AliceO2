@@ -93,7 +93,8 @@ class Clusterer
   }
 
   ///< load the dictionary of cluster topologies
-  void loadDictionary(std::string fileName){
+  void loadDictionary(std::string fileName)
+  {
     mPattIdConverter.loadDictionary(fileName);
   }
 

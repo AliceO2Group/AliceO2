@@ -2,6 +2,7 @@
 /// \brief Simple macro to check ITSU clusters
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "TStopwatch.h"
 #include <TAxis.h>
 #include <TCanvas.h>
 #include <TFile.h>
@@ -13,22 +14,25 @@
 #include <TTree.h>
 #include <fstream>
 #include <string>
-#include "TStopwatch.h"
 
-#include "MathUtils/Utils.h"
+#include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/ClusterTopology.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTReconstruction/BuildTopologyDictionary.h"
 #include "ITSMFTReconstruction/LookUp.h"
-#include "DataFormatsITSMFT/Cluster.h"
-#include "DataFormatsITSMFT/ClusterTopology.h"
 #include "ITSMFTSimulation/Hit.h"
 #include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 #endif
 
-void CheckLookUp(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim.root", std::string inputGeom = "O2geometry.root")
+bool verbose = false;
+
+void CheckLookUp(std::string clusfile = "o2clus_its.root",
+                 std::string hitfile = "o2sim.root",
+                 std::string inputGeom = "O2geometry.root")
 {
   using namespace o2::Base;
   using namespace o2::ITS;
@@ -44,11 +48,16 @@ void CheckLookUp(std::string clusfile = "o2clus_its.root", std::string hitfile =
   TopologyDictionary dict;
   dict.ReadBinaryFile("complete_dictionary.bin");
   ofstream check_output("checkLU.txt");
-
+  ofstream mist("mist.txt");
+  TFile outroot("checkLU.root", "RECREATE");
+  TH1F* hDistribution =
+    new TH1F("hDistribution", ";TopologyID;frequency", 1060, -0.5, 1059.5);
   // Geometry
   o2::Base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
   auto gman = o2::ITS::GeometryTGeo::Instance();
-  gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot, o2::TransformType::L2G)); // request cached transforms
+  gman->fillMatrixCache(
+    o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
+                        o2::TransformType::L2G)); // request cached transforms
 
   // Hits
   TFile* file0 = TFile::Open(hitfile.data());
@@ -65,10 +74,13 @@ void CheckLookUp(std::string clusfile = "o2clus_its.root", std::string hitfile =
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clusLabArr = nullptr;
   clusTree->SetBranchAddress("ITSClusterMCTruth", &clusLabArr);
 
-  Int_t nevCl = clusTree->GetEntries(); // clusters in cont. readout may be grouped as few events per entry
+  Int_t nevCl = clusTree->GetEntries(); // clusters in cont. readout may be
+                                        // grouped as few events per entry
   Int_t nevH = hitTree->GetEntries();   // hits are stored as one event per entry
   int ievC = 0, ievH = 0;
   int lastReadHitEv = -1;
+  int mistakes = 0;
+  int total = 0;
 
   for (ievC = 0; ievC < nevCl; ievC++) {
     clusTree->GetEvent(ievC);
@@ -77,6 +89,7 @@ void CheckLookUp(std::string clusfile = "o2clus_its.root", std::string hitfile =
     bool restart = false;
     restart = (ievC == 0) ? true : false;
     while (nc--) {
+      total++;
       // cluster is in tracking coordinates always
       Cluster& c = (*clusArr)[nc];
       int rowSpan = c.getPatternRowSpan();
@@ -87,13 +100,45 @@ void CheckLookUp(std::string clusfile = "o2clus_its.root", std::string hitfile =
       unsigned char patt[Cluster::kMaxPatternBytes];
       c.getPattern(&patt[0], nBytes);
       ClusterTopology topology(rowSpan, columnSpan, patt);
-      check_output << "input:" << endl
-                   << endl;
-      check_output << topology << endl;
-      check_output << "output:" << endl
-                   << endl;
-      check_output << dict.GetPattern(finder.findGroupID(rowSpan, columnSpan, patt)) << endl;
-      check_output << "********************************************************" << endl;
+      std::array<unsigned char, Cluster::kMaxPatternBytes + 2> pattExt =
+        topology.getPattern();
+      if (verbose) {
+        check_output << "input:" << endl
+                     << endl;
+        check_output << topology << endl;
+        check_output << "output:" << endl
+                     << endl;
+      }
+      std::array<unsigned char, Cluster::kMaxPatternBytes + 2> out_patt =
+        dict.GetPattern(finder.findGroupID(rowSpan, columnSpan, patt))
+          .getPattern();
+      int out_index = finder.findGroupID(rowSpan, columnSpan, patt);
+      hDistribution->Fill(out_index);
+      if (verbose) {
+        check_output << dict.GetPattern(out_index) << endl;
+        check_output
+          << "********************************************************"
+          << endl;
+      }
+      for (int i = 0; i < Cluster::kMaxPatternBytes + 2; i++) {
+        if (pattExt[i] != out_patt[i]) {
+          mistakes++;
+          mist << "input:" << endl
+               << endl;
+          mist << topology << endl;
+          mist << "output:" << endl
+               << endl;
+          mist << dict.GetPattern(finder.findGroupID(rowSpan, columnSpan, patt))
+               << endl;
+          mist << "********************************************************"
+               << endl;
+          break;
+        }
+      }
     }
   }
+  std::cout << "number of mismatch:" << mistakes << " / " << total << std::endl;
+  hDistribution->Scale(1 / hDistribution->Integral());
+  outroot.cd();
+  hDistribution->Write();
 }

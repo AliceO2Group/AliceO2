@@ -279,10 +279,10 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
       c.setErrors(SigmaX2, SigmaY2, 0.f);
     }
 
-    if (compClus) {                     // store compact clusters
+    if (compClus) { // store compact clusters
       unsigned char patt[Cluster::kMaxPatternBytes];
       clus.getPattern(&patt[0], Cluster::kMaxPatternBytes);
-      UShort_t pattID = mPattIdConverter.findGroupID(clus.getPatternRowSpan(),clus.getPatternRowSpan(),patt);
+      UShort_t pattID = mPattIdConverter.findGroupID(clus.getPatternRowSpan(), clus.getPatternColSpan(), patt);
       compClus->emplace_back(rowMin, colMin, pattID, mChipData->getChipID(), mChipData->getROFrame());
     }
 
