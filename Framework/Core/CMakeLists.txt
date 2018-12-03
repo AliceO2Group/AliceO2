@@ -262,6 +262,7 @@ set(BENCH_SRCS
     test/benchmark_DataRelayer.cxx
     test/benchmark_DeviceMetricsInfo.cxx
     test/benchmark_InputRecord.cxx
+    test/benchmark_TableBuilder.cxx
     )
 
 O2_GENERATE_TESTS(
