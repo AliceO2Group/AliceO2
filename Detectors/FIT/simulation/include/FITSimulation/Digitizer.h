@@ -58,6 +58,7 @@ class Digitizer
   Int_t mEventID;
   Int_t mSrcID;
   Double_t mEventTime; // Initialized in initParameters
+
   Int_t mAmpThreshold; // Initialized in initParameters
   Double_t mLowTime;   // Initialized in initParameters
   Double_t mHighTime;  // Initialized in initParameters
