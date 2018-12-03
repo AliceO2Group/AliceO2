@@ -108,13 +108,13 @@ class FITDPLDigitizerTask
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < timesview.size(); ++collID) {
       mDigitizer.setEventTime(timesview[collID].timeNS);
-
+      mDigitizer.setOrbit(timesview[collID].orbit);
+      mDigitizer.setBC(timesview[collID].bc);
+      digit.cleardigits();
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
-        mDigitizer.setEventID(part.entryID);
-        // mDigitizer.setSrcID(part.sourceID);
-
+  	
         // get the hits for this event and this source
         hits.clear();
         retrieveHits(mSimChains, "FITHit", part.sourceID, part.entryID, &hits);
@@ -124,17 +124,18 @@ class FITDPLDigitizerTask
         labels.clear();
         // digits.clear();
         mDigitizer.process(&hits, &digit);
-        mDigitizer.SetTriggers(&digit);
-	auto data = digit.getChDgData();
+ 	auto data = digit.getChDgData();
         LOG(INFO) << "Have " << data.size() << " fired channels ";
         // copy digits into accumulator
-        digitAccum.push_back(digit); // we should move it there actually
-        LOG(INFO) << "Have " << digitAccum.back().getChDgData().size() << " fired channels ";
-  	digit.printStream(std::cout);
         // labelAccum.mergeAtBack(*labels);
         // LOG(INFO) << "Have " << digits->size() << " digits ";
       }
-    }
+      mDigitizer.setTriggers(&digit);
+      mDigitizer.smearCFDtime(&digit);
+      digitAccum.push_back(digit); // we should move it there actually
+      LOG(INFO) << "Have " << digitAccum.back().getChDgData().size() << " fired channels ";
+      digit.printStream(std::cout);
+   }
     //    if (mDigitizer.isContinuous()) {
     //      digits->clear();
     //      labels->clear();

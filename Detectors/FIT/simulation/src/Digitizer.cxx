@@ -11,6 +11,7 @@
 #include "FITSimulation/Digitizer.h"
 #include "FITSimulation/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include <CommonDataFormat/InteractionRecord.h>
 
 #include "TFile.h"
 #include "TH1F.h"
@@ -27,25 +28,29 @@ using o2::fit::Geometry;
 
 ClassImp(Digitizer);
 
-//void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* digits)
 void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
 {
   //parameters constants TO DO: move to class
   constexpr Double_t TimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
   constexpr Int_t nMCPs = (Geometry::NCellsA + Geometry::NCellsC) * 4;
 
-  constexpr Double_t BC_clk = 25.;                //ns event clk lenght
-  constexpr Double_t BC_clk_center = BC_clk / 2.; // clk center
+  constexpr Double_t BC_clk_center = 12.5; // clk center
   constexpr Double_t C_side_cable_cmps = 2.8;     //ns
   constexpr Double_t A_side_cable_cmps = 11.;     //ns
   constexpr Double_t signal_width = 5.;           // time gate for signal, ns
   constexpr Double_t nPe_in_mip = 250.;           // n ph. e. in one mip
   constexpr Double_t CFD_trsh_mip = 0.4;          // = 4[mV] / 10[mV/mip]
-  //mDigits = digits;
-
+  
   Int_t nlbl = 0; //number of MCtrues
   // --------------------------------------------------------------------------
+  //  unsigned orbit;
+  //  int bc = InteractionRecord::ns2bc(mEventTime, orbit);
+  // std::cout << "BC " << bc << ", orbit " << orbit << ", ns " << mEventTime << "\n";
 
+  digit->setTime(mEventTime);
+  digit->setBC(mBC);
+  digit->setOrbit(mOrbit);
+  
   //Calculating signal time, amplitude in mean_time +- time_gate --------------
   Float_t cfd[nMCPs] = {};
   Float_t amp[nMCPs] = {};
@@ -62,6 +67,8 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
                                    (hit_time < time_compensate + signal_width * .5);
 
     Double_t hit_time_corr = hit_time - time_compensate + BC_clk_center + mEventTime;
+    
+    
      //  Double_t is_time_in_gate = (hit_time != 0.); //&&(hit_time_corr > -BC_clk_center)&&(hit_time_corr < BC_clk_center);
     
     if (/*is_time_in_gate &&*/ is_hit_in_signal_gate) {
@@ -115,11 +122,10 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
       ch_signal_MIP[ch_iter] = amp[ch_iter] + ch_signal_nPe[ch_iter] / nPe_in_mip ;
       ch_signal_time[ch_iter] = (cfd[ch_iter] + ch_signal_time[ch_iter] / (float)ch_signal_nPe[ch_iter] );
       if (ch_signal_MIP[ch_iter] > CFD_trsh_mip) {
-	Double_t smeared_time = gRandom->Gaus(ch_signal_time[ch_iter], 0.050);
-	mChDgDataArr.emplace_back(ChannelData{ ch_iter, smeared_time, ch_signal_MIP[ch_iter] });
-	//	LOG(DEBUG) << ch_iter << " : "
-	//           << " : " << ch_signal_time[ch_iter] << " : "
-	//		   << ch_signal_MIP[ch_iter] << " : " << smeared_time << FairLogger::endl;
+	mChDgDataArr.emplace_back(ChannelData{ ch_iter, ch_signal_time[ch_iter], ch_signal_MIP[ch_iter] });
+	LOG(DEBUG) << ch_iter << " : "
+		   << " : " << ch_signal_time[ch_iter] << " : "
+		   << ch_signal_MIP[ch_iter] << " : " << smeared_time << FairLogger::endl;
       }
     }
 
@@ -133,12 +139,28 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
   digit->setChDgData(std::move(mChDgDataArr));
   
 }
-
 //------------------------------------------------------------------------
-void  Digitizer::SetTriggers(  Digit* digit)
+void  Digitizer::smearCFDtime( Digit* digit)
 {
-  constexpr Double_t BC_clk = 25.;                //ns event clk lenght
-  constexpr Double_t BC_clk_center = BC_clk / 2.; // clk center
+  //smeared CFD time for 50ps
+  constexpr Double_t BC_clk_center = 12.5; // clk center
+  constexpr Double_t CFD_trsh_mip = 0.4;          // = 4[mV] / 10[mV/mip]
+  std::vector<ChannelData> mChDgDataArr;
+  for (const auto& d : digit->getChDgData()) {
+    Int_t mcp = d.ChId;
+    Float_t cfd  = d.CFDTime  - BC_clk_center - mEventTime;
+    Float_t amp = d.QTCAmpl;
+    if (amp > CFD_trsh_mip) {
+      Double_t smeared_time = gRandom->Gaus(cfd, 0.050);
+      mChDgDataArr.emplace_back(ChannelData{ mcp, smeared_time, amp });
+    }
+  }
+}
+  
+//------------------------------------------------------------------------
+void  Digitizer::setTriggers(  Digit* digit)
+{
+   constexpr Double_t BC_clk_center = 12.5; // clk center
   constexpr Int_t nMCPs = (Geometry::NCellsA + Geometry::NCellsC) * 4;
   constexpr Double_t time_trg_gate = 4.;          // ns
   constexpr Double_t trg_central_trh = 100.;              // mip

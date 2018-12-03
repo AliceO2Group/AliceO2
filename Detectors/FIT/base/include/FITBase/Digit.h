@@ -51,6 +51,8 @@ class Digit : public DigitBase
 
   Int_t getBC() const { return mBC; }
   void setBC(Int_t bc) { mBC = bc; }
+  Int_t getOrbit() const { return mOrbit; }
+  void setOrbit(Int_t orbit) { mOrbit = orbit; }
 
   Bool_t getisA() const { return mIsA; }
   Bool_t getisC() const { return mIsC; }
@@ -72,12 +74,16 @@ class Digit : public DigitBase
   void setChDgData(std::vector<ChannelData>&& ChDgDataArr) { mChDgDataArr = std::move(ChDgDataArr); }
 
   void printStream(std::ostream& stream) const;
+  void cleardigits() { mIsA = mIsC = mIsCentral = mIsSemiCentral = mIsVertex =0;
+    mChDgDataArr.clear(); }
+    
 
  private:
   //  friend class boost::serialization::access;
 
   Double_t mTime; /// time stamp
   Int_t mBC;      ///< Bunch Crossing
+  Int_t mOrbit;   // orbit
 
   //online triggers processed on TCM
   Bool_t mIsA, mIsC;
