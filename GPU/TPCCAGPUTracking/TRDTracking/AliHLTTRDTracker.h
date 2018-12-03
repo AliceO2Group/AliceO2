@@ -69,7 +69,7 @@ class AliHLTTRDTracker {
   GPUd() int GetSector(float alpha) const;
   GPUd() float GetAlphaOfSector(const int sec) const;
   GPUd() float GetRPhiRes(float snp) const { return (0.04f*0.04f+0.33f*0.33f*(snp-0.126f)*(snp-0.126f)); } // parametrization obtained from track-tracklet residuals
-  GPUd() void RecalcTrkltCov(const int trkltIdx, const float tilt, const float snp, const float rowSize, My_Float (&cov)[3]);
+  GPUd() void RecalcTrkltCov(const float tilt, const float snp, const float rowSize, My_Float (&cov)[3]);
   void CountMatches(const int trackID, std::vector<int> *matches) const;
   GPUd() void CheckTrackRefs(const int trackID, bool *findableMC) const;
   GPUd() void FindChambersInRoad(const HLTTRDTrack *t, const float roadY, const float roadZ, const int iLayer, int* det, const float zMax, const float alpha) const;
