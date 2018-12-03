@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization 
 // or submit itself to any jurisdiction.
 
-#ifndef DETECTORS_MUON_MCH_BASE_INCLUDE_MCH_DIGIT_H_
-#define DETECTORS_MUON_MCH_BASE_INCLUDE_MCH_DIGIT_H_
+#ifndef DETECTORS_MUON_MCH_BASE_INCLUDE_MCHBASE_DIGIT_H_
+#define DETECTORS_MUON_MCH_BASE_INCLUDE_MCHBASE_DIGIT_H_
 
 //#include <CommonDataFormat/TimeStamp.h>//TODO compiler doesn't link properly 
 #include "Rtypes.h"
