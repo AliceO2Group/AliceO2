@@ -101,15 +101,15 @@ bool Detector::ProcessHits(FairVolume* v)
       fMC->TrackMomentum(mom);
       AddTrackReference(gAlice->GetMCApp()->GetCurrentTrackNumber(), AliTrackReference::kTRD);
     */
-    // Create the hits from TR photons if electron/positron is entering the drift volume    
+    // Create the hits from TR photons if electron/positron is entering the drift volume
     const int ele = TMath::Abs(fMC->TrackPid()) == 11; // electron PDG code.
     if (mTRon && ele) {
       // Do TR simulation here
-      // Emulate what AliTRDsimTR does here 
+      // Emulate what AliTRDsimTR does here
       // CreateTRhit(); // See AliTRDv1.cxx
     }
     trkStat = 1;
-  } else if(amRegion && fMC->IsTrackExiting()) {
+  } else if (amRegion && fMC->IsTrackExiting()) {
     // Create a track reference at the exit of each
     // chamber that contains the momentum components of the particle
     /* Do what AliRoot does here
@@ -125,10 +125,10 @@ bool Detector::ProcessHits(FairVolume* v)
   // Store those hits with enDep bigger than the ionization potential of the gas mixture for in-flight tracks
   // or store hits of tracks that are entering or exiting
   if ((enDep > mWion) || trkStat) {
-    double x,y,z;
-    fMC->TrackPosition(x,y,z);
+    double x, y, z;
+    fMC->TrackPosition(x, y, z);
     double time = fMC->TrackTime() * 1e9;
-    o2::Data::Stack* stack = (o2::Data::Stack*) fMC->GetStack();
+    o2::Data::Stack* stack = (o2::Data::Stack*)fMC->GetStack();
     const int trackID = stack->GetCurrentTrackNumber();
     const int sensID = v->getMCid();
     addHit(x, y, z, time, enDep, trackID, sensID);
