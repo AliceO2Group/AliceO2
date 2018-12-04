@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "MCHSimulation/Digitizer.h"
-#include "Mapping/Interface/SegmentationCInterface.h"
+#include "MCHSimulation/MCHDigitizer.h"
+#include "Mapping/Interface/Segmentation.h"//to be replaced
 
 
 #include "TMath.h"
@@ -20,12 +20,20 @@
 
 using namespace o2::mch;
 
-ClassImp(Digitizer);
+ClassImp(MCHDigitizer);
 
-void Digitizer::init()
+void MCHDigitizer::init()
 {
 
-  // method to initialize the array of digits
+  
+  
+  // method to initialize the array of detector segmentation's
+  for(Int_t i=0; i<mNdE; ++i){
+    mSegbend[i]= Segmentation(i,kTRUE);
+    mSegnon[i] = Segmentation(i,kFALSE);
+  }
+  
+  
   // To be done:
   //0) adding processing steps and proper translation of charge to adc counts
   //need for "sdigits" (one sdigit per Hit in aliroot) vs. digits (comb. signal per pad) separation?
@@ -64,7 +72,7 @@ void Digitizer::init()
 
 //______________________________________________________________________
 
-void Digitizer::process(const std::vector<HitType>* hits, std::vector<DigitStruct>* digits)
+void MCHDigitizer::process(const std::vector<HitType>* hits, std::vector<DigitStruct>* digits)
 {
   // hits array of MCH hits for a given simulated event
   for (auto& hit : *hits) {
@@ -97,46 +105,68 @@ void Digitizer::process(const std::vector<HitType>* hits, std::vector<DigitStruc
 
 //______________________________________________________________________
 
-Int_t Digitizer::processHit(const HitType &hit,Double_t event_time)
+Int_t MCHDigitizer::processHit(const HitType &hit,Double_t event_time)
 {
 
-  //hit position
+  //hit position, need cm, the case?
   Float_t pos[3] = { hit.GetX(), hit.GetY(), hit.GetZ() };
   //hit energy deposition
   Float_t edepos = hit.GetEnergyLoss();
   //hit time information
   Float_t time = hit.GetTime();
-
+  Int_t detID = hit.GetDetectorID();
+  
   //number of digits added for this hit
   Int_t ndigits=0;
   //overhead to create these 2 struct?
-  MchSegmentationHandle seghandbend = mchSegmentationConstruct(hit.GetDetectorID(),kTRUE);
-  MchSegmentationHandle seghandnon  = mchSegmentationConstruct(hit.GetDetectorID(),kFALSE);
+  //use DetectorID to get area for signal induction
+  Double_t xMin = getXmin(detID,pos[0]);
+  Double_t xMax = getXmax(detID,pos[0]);
+
+  Double_t yMin = getYmin(detID,pos[1]);
+  Double_t yMax = getYmax(detID,pos[1]);
   
-  Int_t paduidbend = mchSegmentationFindPadByPosition(seghandbend,pos[0],pos[1]);
-  Int_t paduidnon  = mchSegmentationFindPadByPosition(seghandnon,pos[0],pos[1]);
+    // SegmentationImpl3.h: Return the list of paduids for the pads contained in the box {xmin,ymin,xmax,ymax}.      
+  //  std::vector<int> getPadUids(double xmin, double ymin, double xmax, double ymax) const;
+  //is this available via Segmentation.h interface already?
+
+  Int_t paduidbend = mSegbend[hit.GetDetectorID()].findPadByPosition(pos[0],pos[1]);
+  Int_t paduidnon  =  mSegnon[hit.GetDetectorID()].findPadByPosition(pos[0],pos[1]);
   //TODO: charge sharing between planes, possibility to do random seeding in some controlled way to
   // be able to be 100% reproducible if wanted? or already given up on geant level?
   Float_t fracplane = 0.5;
   Float_t chargebend= fracplane*edepos;
   Float_t chargenon = (1.0-fracplane)*edepos;
-  //TODO: charge spread on planes (new member function): strange wire position not used in AliMUONResponseV0.cxx?
+  //TODO: charge spread on planes (new member function): AliMUONResponseV0.cxx
   //TODO get neighbouring pads (new member function): via extension of MpPad?
   //just doing the 9 pads sufficient or need to go for variable area?
   //TODO: loop over neighbouring pads having charge from the one hit treated here
   //TODO: provide interface to retrieve equivalent of sDigits for embedding: not clear how exactly used in past
-  //DigitStruct has no constructor yet!
-  //Is it ok to abuse digits to  here the charge instead of adc?
-  //or different class/struct to make it clear?
-  mDigits.emplace_back(paduidbend,chargebend);
-  mDigits.emplace_back(paduidnon, chargenon);
+  mDigits.emplace_back(paduidbend,chargebend, time);// check if time correspond to time stamp required
+  mDigits.emplace_back(paduidnon, chargenon, time); //
    
   return ndigits;
 
 }
-
 //______________________________________________________________________
-Float_t Digitizer::getCharge(Float_t eDep)
+Double_t MCHDigitizer::getXmin(Int_t detID,Double_t hitX)
+{
+  return ;
+}
+//______________________________________________________________________
+Double_t MCHDigitizer::getXmax(Int_t detID, Double_t hitX)
+{
+}
+//______________________________________________________________________
+Double_t MCHDigitizer::getYmin(Int_t detID, Double_t hitY)
+{
+}
+//______________________________________________________________________
+Double_t MCHDigitizer::getXmin(Int_t detID, Double_t hitY)
+{
+}
+//______________________________________________________________________
+Float_t MCHDigitizer::getCharge(Float_t eDep)
 {
   // transform deposited energy in collected charge
   // to be modified with Mathieson function
@@ -145,7 +175,7 @@ Float_t Digitizer::getCharge(Float_t eDep)
   return 0.0;
 }
 //______________________________________________________________________
-void Digitizer::fillOutputContainer(std::vector<DigitStruct>& digits)
+void MCHDigitizer::fillOutputContainer(std::vector<DigitStruct>& digits)
 {
 
   // filling the digit container
@@ -165,7 +195,7 @@ void Digitizer::fillOutputContainer(std::vector<DigitStruct>& digits)
   //need to clear hits?
 }
 //______________________________________________________________________
-void Digitizer::flushOutputContainer(std::vector<DigitStruct>& digits)
+void MCHDigitizer::flushOutputContainer(std::vector<DigitStruct>& digits)
 { // flush all residual buffered data
   // TO be implemented
   //TODO: check if used in Task

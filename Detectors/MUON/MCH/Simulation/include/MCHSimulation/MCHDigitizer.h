@@ -8,31 +8,35 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_MCH_DIGITIZER_H_
-#define ALICEO2_MCH_DIGITIZER_H_
+#ifndef ALICEO2_MCH_MCHDIGITIZER_H_
+#define ALICEO2_MCH_MCHDIGITIZER_H_
 
-#include "MCHBase/DigitBlock.h"// not clear if this is sufficient as structure
+#include "MCHBase/Digit.h"
 #include "MCHSimulation/Detector.h"
 #include "MCHSimulation/Hit.h"
-
+#include "MCHMappingInterface/Segmentation.h"
 
 
 namespace o2
 {
 namespace mch
 {
-class Digitizer
+class MCHDigitizer
 {
  public:
-  Digitizer(Int_t mode = 0) : mReadoutWindowCurrent(0) { init(); };
-  ~Digitizer() = default;
+  MCHDigitizer(Int_t mode = 0) : mReadoutWindowCurrent(0) { init(); };
+  ~MCHDigitizer() = default;
 
   void init();
 
   void process(const std::vector<HitType>* hits, std::vector<Digit>* digits);
 
-  Float_t getCharge(Float_t eDep); 
-
+  Float_t getCharge(Float_t eDep);
+  Double_t getXmin(Int_t detID, Double_t hitX);
+  Double_t getXmax(Int_t detID, Double_t hitX);
+  Double_t getYmin(Int_t detID, Double_t hitY);
+  Double_t getYmax(Int_t detID, Double_t hitY);
+  
   void setEventTime(double value) { mEventTime = value; }
   void setEventID(Int_t id) { mEventID = id; }
   void setSrcID(Int_t id) { mSrcID = id; }
@@ -51,19 +55,23 @@ class Digitizer
   Int_t mEventID = 0;
   Int_t mSrcID = 0;
   
-  bool mContinuous = false;
+  bool mContinuous = false; 
 
-  
-  // digit per pad info
-  std::vector<DigitStruct> mDigits;
-  
+  //number of detector elements 5(stations)*2(layer per station)* 2(?) +1 (?)
+  const Int_t mNdE = 21;
+  // digit per pad
+  std::vector<Digit> mDigits;
+
+  //detector segmentation handler to convert pad-id to coordinates and vice versa
+  Segmentation mSegbend[nNdE];
+  Segmentation mSegnon[nNdE];
   
   Int_t processHit(const HitType& hit, Double_t event_time);
   
 
 
   
-  ClassDefNV(Digitizer, 1);
+  ClassDefNV(MCHDigitizer, 1);
 };
 } // namespace mch
 } // namespace o2

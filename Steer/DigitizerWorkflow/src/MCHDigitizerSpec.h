@@ -8,14 +8,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#ifndef STEER_DIGITIZERWORKFLOW_SRC_MCHDIGITIZERSPEC_H_
+#define STEER_DIGITIZERWORKFLOW_SRC_MCHDIGITIZERSPEC_H_
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "Framework/DataProcessorSpec.h"
 
-#pragma link C++ class o2::MUON::Mapping+;
-#pragma link C++ class o2::MUON::DigitBlock+;
-#pragma link C++ class o2::MUON::PreclusterBlock+;
+namespace o2
+{
+namespace mch
+{
 
-#endif
+o2::framework::DataProcessorSpec getMCHDigitizerSpec(int channel);
+
+} // end namespace mch
+} // end namespace o2
+
+#endif /* STEER_DIGITIZERWORKFLOW_SRC_MCHDIGITIZERSPEC_H_ */
