@@ -15,6 +15,7 @@
 #include "MCHSimulation/Detector.h"
 #include "MCHSimulation/Hit.h"
 #include "MCHMappingInterface/Segmentation.h"
+//#include "Mapping/Interface/Segmentation.h"//to be replaced, which one? 
 
 
 namespace o2
@@ -62,12 +63,48 @@ class MCHDigitizer
   // digit per pad
   std::vector<Digit> mDigits;
 
+  std::vector<int> mPadIDsbend;
+  std::vector<int> mPadIDsnon;
+
   //detector segmentation handler to convert pad-id to coordinates and vice versa
   Segmentation mSegbend[nNdE];
-  Segmentation mSegnon[nNdE];
+  Segmentation  mSegnon[nNdE];
+
+  //proper parameter in aliroot in AliMUONResponseFactory.cxx
+  //to be discussed n-sigma to be put, use detID to choose value?
+  //anything in segmentation foreseen?
+  //seem to be only two different values (st. 1 and st. 2-5)...overhead limited
+  //any need for separate values as in old code? in principle not...I think
+  const Float_t mQspreadX = 0.144; //charge spread in cm
+  const Float_t mQspreadY = 0.144;
   
   Int_t processHit(const HitType& hit, Double_t event_time);
+  Double_t chargePad(Float_t x, Float_t y, Float_t xmin, Float_t xmax, Float_t ymin, Float_t ymax, Int_t detID, Float_t charge);
+  Double_t response(Float_t charge, Int_t detID);
+
+  //Mathieson parameter: NIM A270 (1988) 602-603 
+  //should be a common place for MCH
   
+  //difference made between param for x and y
+  //why needed? should be symmetric...
+  //just take different
+  //Station 1 first entry, Station 2-5 second entry
+  // Mathieson parameters from L.Kharmandarian's thesis, page 190
+   //  fKy2 = TMath::Pi() / 2. * (1. - 0.5 * fSqrtKy3);
+  //  Float_t cy1 = fKy2 * fSqrtKy3 / 4. / TMath::ATan(Double_t(fSqrtKy3));
+  //  fKy4 = cy1 / fKy2 / fSqrtKy3; //this line from AliMUONMathieson::SetSqrtKy3AndDeriveKy2Ky4
+  //why this multiplicitation before again division? any number small compared to Float precision?
+  const Double_t mK2x[2] = {1.021026,1.010729};
+  const Double_t mSqrtK3x[2] = {0.7000,0.7131};
+  const Double_t mK4x[2]     = {0.0,0.0};
+   const Double_t mK2y[2] = {0.9778207,0.970595};
+  const Double_t mSqrtK3y[2] = {0.7550,0.7642};
+  const Double_t mK4y[2]     = {0.0,0.0};
+
+  
+  //anode-cathode Pitch in 1/cm
+  //Station 1 first entry, Station 2-5 second entry
+  const Double_t mInversePitch[2] ={1./0.21,1./0.25};
 
 
   

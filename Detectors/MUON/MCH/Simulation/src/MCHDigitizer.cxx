@@ -9,8 +9,6 @@
 // or submit itself to any jurisdiction.
 
 #include "MCHSimulation/MCHDigitizer.h"
-#include "Mapping/Interface/Segmentation.h"//to be replaced
-
 
 #include "TMath.h"
 #include "TProfile2D.h"
@@ -72,7 +70,7 @@ void MCHDigitizer::init()
 
 //______________________________________________________________________
 
-void MCHDigitizer::process(const std::vector<HitType>* hits, std::vector<DigitStruct>* digits)
+void MCHDigitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* digits)
 {
   // hits array of MCH hits for a given simulated event
   for (auto& hit : *hits) {
@@ -112,67 +110,109 @@ Int_t MCHDigitizer::processHit(const HitType &hit,Double_t event_time)
   Float_t pos[3] = { hit.GetX(), hit.GetY(), hit.GetZ() };
   //hit energy deposition
   Float_t edepos = hit.GetEnergyLoss();
+ //TODO: charge sharing between planes, possibility to do random seeding in some controlled way to 
+  // be able to be 100% reproducible if wanted? or already given up on geant level?
+  Float_t fracplane = 0.5;
+  Float_t chargebend= fracplane*edepos;
+  Float_t chargenon = (1.0-fracplane)*edepos;
+  Float_t signal = 0.0;
   //hit time information
   Float_t time = hit.GetTime();
   Int_t detID = hit.GetDetectorID();
   
   //number of digits added for this hit
   Int_t ndigits=0;
-  //overhead to create these 2 struct?
-  //use DetectorID to get area for signal induction
-  Double_t xMin = getXmin(detID,pos[0]);
-  Double_t xMax = getXmax(detID,pos[0]);
+  //ToDO check units!
+  //borders of charge 
+  Double_t xMin = pos[0]-mQspreadX*0.5;
+  Double_t xMax = pos[0]+mQspreadX*0.5;
 
-  Double_t yMin = getYmin(detID,pos[1]);
-  Double_t yMax = getYmax(detID,pos[1]);
+  Double_t yMin = pos[1]-mQspreadY*0.5;
+  Double_t yMax = pos[1]+mQspreadY*0.5;
   
-    // SegmentationImpl3.h: Return the list of paduids for the pads contained in the box {xmin,ymin,xmax,ymax}.      
+  //pad-borders
+  Float_t xmin =0.0;
+  Float_t xmax =0.0;
+  Float_t ymin =0.0;
+  Float_t ymax =0.0;
+
+  
+  //use DetectorID to get area for signal induction                                                                                                  
+  // SegmentationImpl3.h: Return the list of paduids for the pads contained in the box {xmin,ymin,xmax,ymax}.      
   //  std::vector<int> getPadUids(double xmin, double ymin, double xmax, double ymax) const;
   //is this available via Segmentation.h interface already?
 
-  Int_t paduidbend = mSegbend[hit.GetDetectorID()].findPadByPosition(pos[0],pos[1]);
-  Int_t paduidnon  =  mSegnon[hit.GetDetectorID()].findPadByPosition(pos[0],pos[1]);
-  //TODO: charge sharing between planes, possibility to do random seeding in some controlled way to
-  // be able to be 100% reproducible if wanted? or already given up on geant level?
-  Float_t fracplane = 0.5;
-  Float_t chargebend= fracplane*edepos;
-  Float_t chargenon = (1.0-fracplane)*edepos;
-  //TODO: charge spread on planes (new member function): AliMUONResponseV0.cxx
-  //TODO get neighbouring pads (new member function): via extension of MpPad?
-  //just doing the 9 pads sufficient or need to go for variable area?
-  //TODO: loop over neighbouring pads having charge from the one hit treated here
-  //TODO: provide interface to retrieve equivalent of sDigits for embedding: not clear how exactly used in past
-  mDigits.emplace_back(paduidbend,chargebend, time);// check if time correspond to time stamp required
-  mDigits.emplace_back(paduidnon, chargenon, time); //
-   
+  //fall back for only one bad
+  //  Int_t paduidbend = mSegbend[detID].findPadByPosition(pos[0],pos[1]);
+  //  Int_t paduidnon  = mSegnon[detID].findPadByPosition(pos[0],pos[1]);
+  //correct coordinate system? how misalignment enters
+  mPadIDsbend = mSegbend.getPadUids(xMin,xMax,yMin,yMax);
+  mPadIDsnon  =  mSegnon.getPadUids(xMin,xMax,yMin,yMax);
+
+  for(auto & padidbend : *mPadIDsbend){
+    //retrieve coordinates for each pad
+    xmin =  mSegbend.padPositionX(padidbend)-mSegBend.padSizeX(padidbend)*0.5;
+    xmax =  mSegbend.padPositionX(padidbend)+mSegbend.padSizeX(padidbend)*0.5;
+    ymin =  mSegbend.padPositionY(padidbend)-mSegBend.padSizeY(padidbend)*0.5;
+    ymax =  mSegbend.padPositionY(padidbend)+mSegbend.padSizeY(padidbend)*0.5;
+    // 1st step integrate induced charge for each pad
+    signal = intcharge(x,y,xmin,xmax,ymin,ymax,detID,chargebend);
+    //2n step TODO: electronic response
+    signal = response(detID,signal);
+    mDigits.emplace_back(paduidbend,signal,time);
+    ++ndigits;
+  }
+
+    for(auto & padidnon : *mPadIDsnon){
+    //retrieve coordinates for each pad                                                                                                               
+    xmin =  mSegnon.padPositionX(padidnon)-mSegnon.padSizeX(padidnon)*0.5;
+    xmax =  mSegnon.padPositionX(padidnon)+mSegnon.padSizeX(padidnon)*0.5;
+    ymin =  mSegnon.padPositionY(padidnon)-mSegnon.padSizeY(padidnon)*0.5;
+    ymax =  mSegnon.padPositionY(padidnon)+mSegnon.padSizeY(padidnon)*0.5;
+    //retrieve charge for given x,y with Mathieson                                                                                                   
+    signal = chargePad(x,y,xmin,xmax,ymin,ymax,detID,chargenon);
+    mDigits.emplace_back(paduidbend,signal,time);
+    ++ndigits;
+  }	
+
+  //OLD only single pad mDigits.emplace_back(paduidbend,chargebend, time);// check if time correspond to time stamp required
+  //OLD only single pad mDigits.emplace_back(paduidnon, chargenon, time); //
   return ndigits;
 
 }
-//______________________________________________________________________
-Double_t MCHDigitizer::getXmin(Int_t detID,Double_t hitX)
-{
-  return ;
+//_____________________________________________________________________
+Double_t MCHDigitizer::chargePad(Float_t x, Float_t y, Float_t xmin, Float_t xmax, Float_t ymin, Float_t ymax, Int_t detID, Float_t charge ){
+  //see AliMUONResponseV0.cxx
+  // and AliMUONMathieson.cxx
+  Int_t station = 0;
+  if(detID>11) station = 1;
+  //correct? should info from segmentation, not hard-coded
+  // normalise w.r.t. Pitch
+  xmin *= mInversePitch[station];
+  xmax *= mInversePitch[station];
+  ymin *= mInversePitch[station];
+  ymax *= mInversePitch[station];
+  //                                                                  
+  // The Mathieson function
+  Double_t ux1=mSqrtK3x[station]*TMath::TanH(mK2x[station]*xmin);
+  Double_t ux2=mSqrtK3x[station]*TMath::TanH(mK2x[station]*xmax);
+  
+  Double_t uy1=mSqrtK3y[station]*TMath::TanH(mK2y[station]*ymin);
+  Double_t uy2=mSqrtK3y[station]*TMath::TanH(mK2y[station]*ymax);
+  
+  return 4.*mK4x[station]*(TMath::ATan(ux2)-TMath::ATan(ux1))*
+    mK4y[station]*(TMath::ATan(uy2)-TMath::ATan(uy1));
+  
 }
 //______________________________________________________________________
-Double_t MCHDigitizer::getXmax(Int_t detID, Double_t hitX)
-{
+Double_t response(Float_t charge, Int_t detID){
+  //to be done
+  return charge;
 }
 //______________________________________________________________________
-Double_t MCHDigitizer::getYmin(Int_t detID, Double_t hitY)
-{
-}
-//______________________________________________________________________
-Double_t MCHDigitizer::getXmin(Int_t detID, Double_t hitY)
-{
-}
-//______________________________________________________________________
-Float_t MCHDigitizer::getCharge(Float_t eDep)
-{
-  // transform deposited energy in collected charge
-  // to be modified with Mathieson function
-  //TODO put corresponding path in old implementation
-
-  return 0.0;
+Float_t getCharge(Float_t charge){
+  //convert from e-depos to charge created at anodes
+  return charge;
 }
 //______________________________________________________________________
 void MCHDigitizer::fillOutputContainer(std::vector<DigitStruct>& digits)
