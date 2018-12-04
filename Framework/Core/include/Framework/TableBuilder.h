@@ -50,8 +50,13 @@ auto make_builders()
   return std::make_tuple(std::make_unique<ARGS>()...);
 }
 
-/// Helper functions to create components of an arrow::Table
-struct TableBuilderHelper {
+template <typename T>
+struct BuilderTraits {
+  using ArrowType = typename arrow::stl::ConversionTraits<T>::ArrowType;
+  using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
+};
+
+struct TableBuilderHelpers {
   template <typename... ARGS>
   static auto makeFields(std::vector<std::string> const& names)
   {
@@ -62,71 +67,25 @@ struct TableBuilderHelper {
     }
     return std::move(result);
   }
-};
 
-template <typename T>
-struct BuilderTraits {
-  using ArrowType = typename arrow::stl::ConversionTraits<T>::ArrowType;
-  using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
-};
-
-/// Invokes the right appender for each one of the builders.
-template <int N, int I>
-struct Appender {
   /// Invokes the append method for each entry in the tuple
-  template <typename TUPLE, typename T, typename... ARGS>
-  static void append(TUPLE& builders, T value, ARGS... rest)
+  template <std::size_t... Is, typename BUILDERS, typename VALUES>
+  static bool append(BUILDERS& builders, std::index_sequence<Is...>, VALUES&& values)
   {
-    auto& builder = std::get<N - I>(builders);
-    auto status = builder->Append(value);
-    if (status.ok() == false) {
-      throw std::runtime_error("Unable to append");
-    }
-    Appender<N, I - 1>::append(builders, rest...);
+    return (std::get<Is>(builders)->Append(std::get<Is>(values)).ok() && ...);
   }
-};
 
-template <int N>
-struct Appender<N, 1> {
   /// Invokes the append method for each entry in the tuple
-  template <typename TUPLE, typename T>
-  static void append(TUPLE& builders, T value)
+  template <typename BUILDERS, std::size_t... Is>
+  static bool finalize(std::vector<std::shared_ptr<arrow::Array>>& arrays, BUILDERS& builders, std::index_sequence<Is...> seq)
   {
-    auto& builder = std::get<N - 1>(builders);
-    auto status = builder->Append(value);
-    if (status.ok() == false) {
-      throw std::runtime_error("Unable to append");
-    }
+    return (std::get<Is>(builders)->Finish(&arrays[Is]).ok() && ...);
   }
-};
 
-/// Invokes the right appender for each one of the builders.
-template <int N, int I>
-struct Finalizer {
-  /// Invokes the append method for each entry in the tuple
-  template <typename TUPLE>
-  static void finalize(std::vector<std::shared_ptr<arrow::Array>>& arrays, TUPLE& builders)
+  template <typename BUILDERS, std::size_t... Is>
+  static bool reserveAll(BUILDERS& builders, size_t s, std::index_sequence<Is...>)
   {
-    auto& builder = std::get<N - I>(builders);
-    auto status = builder->Finish(&arrays[N - I]);
-    if (status.ok() == false) {
-      throw std::runtime_error("Unable to finalize");
-    }
-    Finalizer<N, I - 1>::finalize(arrays, builders);
-  }
-};
-
-template <int N>
-struct Finalizer<N, 1> {
-  /// Invokes the append method for each entry in the tuple
-  template <typename TUPLE>
-  static void finalize(std::vector<std::shared_ptr<arrow::Array>>& arrays, TUPLE& builders)
-  {
-    auto& builder = std::get<N - 1>(builders);
-    auto status = builder->Finish(&arrays[N - 1]);
-    if (status.ok() == false) {
-      throw std::runtime_error("Unable to finalize");
-    }
+    return (std::get<Is>(builders)->Reserve(s).ok() && ...);
   }
 };
 
@@ -156,18 +115,27 @@ class TableBuilder
     mArrays.resize(nColumns);
 
     using BuildersTuple = typename std::tuple<std::unique_ptr<typename BuilderTraits<ARGS>::BuilderType>...>;
-    mSchema = std::make_shared<arrow::Schema>(TableBuilderHelper::makeFields<ARGS...>(columnNames));
+    mSchema = std::make_shared<arrow::Schema>(TableBuilderHelpers::makeFields<ARGS...>(columnNames));
 
     BuildersTuple* builders = new BuildersTuple(std::make_unique<typename BuilderTraits<ARGS>::BuilderType>(mMemoryPool)...);
+    auto seq = std::make_index_sequence<sizeof...(ARGS)>{};
+    TableBuilderHelpers::reserveAll(*builders, 1000, seq);
     mBuilders = builders; // We store the builders
     /// Callback used to finalize the table.
-    mFinalizer = [schema = mSchema, &arrays = mArrays, builders = builders]() -> std::shared_ptr<arrow::Table> {
-      Finalizer<nColumns, nColumns>::finalize(arrays, *builders);
+    mFinalizer = [ schema = mSchema, &arrays = mArrays, builders = builders]()->std::shared_ptr<arrow::Table>
+    {
+      auto status = TableBuilderHelpers::finalize(arrays, *builders, std::make_index_sequence<sizeof...(ARGS)>{});
+      if (status == false) {
+        throw std::runtime_error("Unable to finalize");
+      }
       return arrow::Table::Make(schema, arrays);
     };
     // Callback used to fill the builders
     return [builders = builders](unsigned int slot, ARGS... args) -> void {
-      Appender<nColumns, nColumns>::append(*builders, args...);
+      auto status = TableBuilderHelpers::append(*builders, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
+      if (status == false) {
+        throw std::runtime_error("Unable to append");
+      }
     };
   }
 
