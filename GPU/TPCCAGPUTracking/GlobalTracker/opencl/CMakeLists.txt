@@ -87,6 +87,7 @@ include_directories(${CAGPUDIR}/GlobalTracker/opencl
                     ${CAGPUDIR}/TRDTracking
                     ${CAGPUDIR}/Merger
                     ${ALITPCCOMMON_DIR}/sources/Common
+                    ${CMAKE_CURRENT_BINARY_DIR}
                    )
 
 # Additional include folders in alphabetical order except ROOT
