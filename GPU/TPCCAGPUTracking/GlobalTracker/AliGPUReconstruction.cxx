@@ -11,6 +11,7 @@
 #endif
 
 #include "AliGPUReconstruction.h"
+#include "AliGPUReconstructionConvert.h"
 
 #include "AliHLTTPCCAClusterData.h"
 #include "AliHLTTPCCASliceOutput.h"
@@ -26,17 +27,16 @@
 #include "TPCFastTransform.h"
 #include "standaloneSettings.h"
 #include "AliHLTTPCRawCluster.h"
+#include "ClusterNativeAccessExt.h"
 
 #define HLTCA_LOGGING_PRINTF
 #include "AliCAGPULogging.h"
 
 #ifdef HAVE_O2HEADERS
 #include "ITStracking/TrackerTraitsCPU.h"
-#include "DataFormatsTPC/ClusterNative.h"
 #include "TRDBase/TRDGeometryFlat.h"
 #else
 namespace o2 { namespace ITS { class TrackerTraits {}; class TrackerTraitsCPU : public TrackerTraits {}; }}
-namespace o2 { namespace TPC { struct ClusterNativeAccessFullTPC {ClusterNative* clusters[36][HLTCA_ROW_COUNT]; unsigned int nClusters[36][HLTCA_ROW_COUNT];}; struct ClusterNative {}; }}
 namespace o2 { namespace trd { struct TRDGeometryFlat {}; }}
 #endif
 using namespace o2::ITS;
@@ -52,7 +52,7 @@ static constexpr unsigned int DUMP_HEADER_SIZE = 4;
 static constexpr char DUMP_HEADER[DUMP_HEADER_SIZE + 1] = "CAv1";
 
 AliGPUReconstruction::AliGPUReconstruction(DeviceType type) : mIOPtrs(), mIOMem(), mTRDTracker(new AliHLTTRDTracker), mTPCTracker(nullptr), mITSTrackerTraits(nullptr), mDeviceType(type), mTPCFastTransform(nullptr), mEventDumpSettings(new hltca_event_dump_settings),
-	mClusterNativeAccess(new ClusterNativeAccessFullTPC)
+	mClusterNativeAccess(new ClusterNativeAccessExt)
 {
 	mEventDumpSettings->setDefaults();
 	if (type == CPU)
@@ -214,7 +214,7 @@ template <class T> size_t AliGPUReconstruction::ReadData(FILE* fp, const T** ent
 		numTotal += num[i];
 	}
 	(void) r;
-	//printf("Read %d %s\n", (int) numTotal, IOTYPENAMES[type]);
+	printf("Read %d %s\n", (int) numTotal, IOTYPENAMES[type]);
 	return numTotal;
 }
 
@@ -300,7 +300,7 @@ template <class T> std::unique_ptr<T> AliGPUReconstruction::ReadFlatObjectFromFi
 	r = fread((void*) retVal.get(), 1, size[0], fp);
 	r = fread(buf.get(), 1, size[1], fp);
 	fclose(fp);
-	//printf("Read %d bytes from %s\n", (int) r, file);
+	printf("Read %d bytes from %s\n", (int) r, file);
 	retVal->clearInternalBufferUniquePtr();
 	retVal->setActualBufferAddress(buf.get());
 	retVal->adoptInternalBuffer(std::move(buf));
@@ -327,7 +327,7 @@ template <class T> std::unique_ptr<T> AliGPUReconstruction::ReadStructFromFile(c
 	std::unique_ptr<T> newObj(new T);
 	r = fread(newObj.get(), 1, size, fp);
 	fclose(fp);
-	//printf("Read %d bytes from %s\n", (int) r, file);
+	printf("Read %d bytes from %s\n", (int) r, file);
 	return std::move(newObj);
 }
 
@@ -340,7 +340,22 @@ template <class T> void AliGPUReconstruction::ReadStructFromFile(const char* fil
 	if (r == 0) {fclose(fp); return;}
 	r = fread(obj, 1, size, fp);
 	fclose(fp);
-	//printf("Read %d bytes from %s\n", (int) r, file);
+	printf("Read %d bytes from %s\n", (int) r, file);
+}
+
+void AliGPUReconstruction::ConvertNativeToClusterData()
+{
+	o2::TPC::ClusterNativeAccessFullTPC* tmp = mClusterNativeAccess.get();
+	if (tmp != mIOPtrs.clustersNative)
+	{
+		*tmp = *mIOPtrs.clustersNative;
+	}
+	AliGPUReconstructionConvert::ConvertNativeToClusterData(mClusterNativeAccess.get(), mIOMem.clusterData, mIOPtrs.nClusterData, mTPCFastTransform.get());
+	for (unsigned int i = 0;i < NSLICES;i++)
+	{
+		mIOPtrs.clusterData[i] = mIOMem.clusterData[i].get();
+	}
+	mIOPtrs.clustersNative = nullptr;
 }
 
 void AliGPUReconstruction::SetSettingsStandalone(float solenoidBz)

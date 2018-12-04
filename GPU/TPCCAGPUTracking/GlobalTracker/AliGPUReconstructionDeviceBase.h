@@ -7,7 +7,7 @@
 class AliGPUReconstructionDeviceBase : public AliGPUReconstruction
 {
 public:
-    virtual ~AliGPUReconstructionDeviceBase();
+    virtual ~AliGPUReconstructionDeviceBase() override = default;
 
 protected:
     AliGPUReconstructionDeviceBase(DeviceType type);

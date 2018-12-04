@@ -75,6 +75,7 @@ set(SRCS
 set(SRCS_NO_CINT
     GlobalTracker/AliGPUReconstruction.cxx
     GlobalTracker/AliGPUReconstructionDeviceBase.cxx
+    GlobalTracker/AliGPUReconstructionConvert.cxx
 )
 
 #Extra headers to install
@@ -105,6 +106,7 @@ set(HDRS2
     SliceTracker/AliHLTTPCCAProcess.h
     SliceTracker/AliHLTTPCCAGeometry.h
     SliceTracker/AliCAGPULogging.h
+    SliceTracker/ClusterNativeAccessExt.h
     TRDTracking/AliHLTTRDGeometry.h
     TRDTracking/AliHLTTRDTrackerDebug.h
     TRDTracking/AliHLTTRDInterfaces.h

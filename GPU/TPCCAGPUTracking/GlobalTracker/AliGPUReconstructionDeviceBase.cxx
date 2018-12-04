@@ -3,7 +3,3 @@
 AliGPUReconstructionDeviceBase::AliGPUReconstructionDeviceBase(DeviceType type) : AliGPUReconstruction(type)
 {
 }
-
-AliGPUReconstructionDeviceBase::~AliGPUReconstructionDeviceBase()
-{
-}
