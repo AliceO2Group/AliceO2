@@ -30,18 +30,8 @@ template class std::vector<std::shared_ptr<arrow::Column>>;
 template class std::shared_ptr<arrow::Array>;
 template class std::vector<std::shared_ptr<arrow::Field>>;
 template class std::shared_ptr<arrow::ChunkedArray>;
-
-BOOST_AUTO_TEST_CASE(TestTableBuilderHelper)
-{
-  using namespace o2::framework;
-
-  auto fields = TableBuilderHelper::makeFields<int, float>({ "x", "y" });
-  BOOST_REQUIRE_EQUAL(fields.size(), 2);
-  BOOST_REQUIRE_EQUAL(fields[0]->name(), "x");
-  BOOST_REQUIRE_EQUAL(fields[1]->name(), "y");
-  BOOST_REQUIRE_EQUAL(fields[0]->type()->id(), arrow::int32()->id());
-  BOOST_REQUIRE_EQUAL(fields[1]->type()->id(), arrow::float32()->id());
-}
+template class std::shared_ptr<arrow::Table>;
+template class std::shared_ptr<arrow::Field>;
 
 BOOST_AUTO_TEST_CASE(TestTableBuilder)
 {
