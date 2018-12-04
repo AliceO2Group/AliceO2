@@ -62,6 +62,7 @@ if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "O2")
   set(BUCKET_NAME TPCSpaceChargeBase_bucket)
 
   O2_GENERATE_LIBRARY()
+  install(FILES ${HDRS} DESTINATION include/AliTPCCommon)
 
   set(TEST_SRCS
     ctest/testTPCSpaceChargeBase.cxx

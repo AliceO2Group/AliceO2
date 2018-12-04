@@ -214,6 +214,7 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
     set(BUCKET_NAME TPCCAGPUTracking_bucket)
 
     O2_GENERATE_LIBRARY()
+    install(FILES ${HDRS} ${HDRS2} DESTINATION include/AliTPCCommon)
 
     set(TEST_SRCS
       ctest/testTPCCAGPUTracking.cxx
