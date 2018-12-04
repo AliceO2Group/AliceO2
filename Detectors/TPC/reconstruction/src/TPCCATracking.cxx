@@ -44,7 +44,7 @@ using namespace o2::dataformats;
 
 using MCLabelContainer = MCTruthContainer<MCCompLabel>;
 
-TPCCATracking::TPCCATracking() : mTrackingCAO2Interface(), mClusterData_UPTR(), mClusterData(nullptr) {}
+TPCCATracking::TPCCATracking() : mTrackingCAO2Interface() {}
 TPCCATracking::~TPCCATracking() { deinitialize(); }
 int TPCCATracking::initialize(const char* options)
 {
@@ -53,9 +53,6 @@ int TPCCATracking::initialize(const char* options)
   int retVal = mTrackingCAO2Interface->Initialize(options, std::move(fastTransform));
   if (retVal) {
     mTrackingCAO2Interface.reset();
-  } else {
-    mClusterData_UPTR.reset(new AliHLTTPCCAClusterData[Sector::MAXSECTOR]);
-    mClusterData = mClusterData_UPTR.get();
   }
   return (retVal);
 }
@@ -63,8 +60,6 @@ int TPCCATracking::initialize(const char* options)
 void TPCCATracking::deinitialize()
 {
   mTrackingCAO2Interface.reset();
-  mClusterData_UPTR.reset();
-  mClusterData = nullptr;
 }
 
 int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::vector<TrackTPC>* outputTracks,
@@ -73,83 +68,14 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
   const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
   const static ParameterGas& gasParam = ParameterGas::defaultInstance();
   const static ParameterElectronics& elParam = ParameterElectronics::defaultInstance();
-
-  int nClusters[Sector::MAXSECTOR] = {};
-  int nClustersConverted = 0;
-  int nClustersTotal = 0;
   float vzbin = (elParam.getZBinWidth() * gasParam.getVdrift());
   float vzbinInv = 1.f / vzbin;
-
   Mapper& mapper = Mapper::instance();
-  for (int i = 0; i < Sector::MAXSECTOR; i++) {
-    for (int j = 0; j < Constants::MAXGLOBALPADROW; j++) {
-      if (clusters.nClusters[i][j] > 0xFFFF) {
-        LOG(ERROR) << "Number of clusters in sector " << i << " row " << j
-                   << " exceeds 0xFFFF, which is currently a hard limit of the wrapper for the tracking!\n";
-        return (1);
-      }
-      nClusters[i] += clusters.nClusters[i][j];
-    }
-    nClustersTotal += nClusters[i];
-
-    mClusterData[i].StartReading(i, nClusters[i]);
-
-    for (int j = 0; j < Constants::MAXGLOBALPADROW; j++) {
-      Sector sector = i;
-      int regionNumber = 0;
-      while (j > mapper.getGlobalRowOffsetRegion(regionNumber) + mapper.getNumberOfRowsRegion(regionNumber))
-        regionNumber++;
-      CRU cru(sector, regionNumber);
-      const PadRegionInfo& region = mapper.getPadRegionInfo(cru.region());
-      for (int k = 0; k < clusters.nClusters[i][j]; k++) {
-        const ClusterNative& cluster = clusters.clusters[i][j][k];
-        AliHLTTPCCAClusterData& cd = mClusterData[i];
-        AliHLTTPCCAClusterData::Data& hltCluster = cd.Clusters()[cd.NumberOfClusters()];
-
-        const float padY = cluster.getPad();
-        const int padNumber = int(padY);
-        const GlobalPadNumber pad = mapper.globalPadNumber(PadPos(j, padNumber));
-        const PadCentre& padCentre = mapper.padCentre(pad);
-        const float localY = padCentre.Y() - (padY - padNumber) * region.getPadWidth();
-        const float localYfactor = (cru.side() == Side::A) ? -1.f : 1.f;
-        //Add constant offset of 1.6 time bins due to signal shape and binning
-        //To be done properly in the transformation step eventually.
-        float zPositionAbs = (cluster.getTime() - 1.6) * vzbin;
-        if (!mTrackingCAO2Interface->GetParamContinuous())
-          zPositionAbs = detParam.getTPClength() - zPositionAbs;
-        else
-          zPositionAbs = sContinuousTFReferenceLength * vzbin - zPositionAbs;
-
-        // sanity checks
-        if (zPositionAbs < -2 ||
-            (!mTrackingCAO2Interface->GetParamContinuous() && zPositionAbs > detParam.getTPClength())) {
-          LOG(INFO) << "Removing cluster " << i << " time: " << cluster.getTime() << ", abs. z: " << zPositionAbs
-                    << "\n";
-          continue;
-        }
-
-        hltCluster.fX = padCentre.X();
-        hltCluster.fY = localY * (localYfactor);
-        hltCluster.fZ = zPositionAbs * (-localYfactor);
-        hltCluster.fRow = j;
-        hltCluster.fAmp = cluster.qMax;
-        hltCluster.fFlags = cluster.getFlags();
-        hltCluster.fId = (i << 24) | (j << 16) | (k);
-
-        cd.SetNumberOfClusters(cd.NumberOfClusters() + 1);
-        nClustersConverted++;
-      }
-    }
-  }
-
-  if (nClustersTotal != nClustersConverted) {
-    LOG(INFO) << "Passed " << nClustersConverted << " (out of " << nClustersTotal << ") clusters to CA tracker\n";
-  }
 
   const AliHLTTPCGMMergedTrack* tracks;
   int nTracks;
   const AliHLTTPCGMMergedTrackHit* trackClusters;
-  int retVal = mTrackingCAO2Interface->RunTracking(mClusterData, tracks, nTracks, trackClusters);
+  int retVal = mTrackingCAO2Interface->RunTracking(&clusters, tracks, nTracks, trackClusters);
   if (retVal == 0) {
     std::vector<std::pair<int, float>> trackSort(nTracks);
     int tmp = 0, tmp2 = 0;
@@ -183,10 +109,10 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
           float delta = 0.f;
           for (int iCl = 1; iCl < tracks[i].NClusters(); iCl++) {
             if (lastSide ^ (trackClusters[tracks[i].FirstClusterRef() + iCl].fSlice < Sector::MAXSECTOR / 2)) {
-              auto& hltcl1 = trackClusters[tracks[i].FirstClusterRef() + iCl].fNum;
-              auto& hltcl2 = trackClusters[tracks[i].FirstClusterRef() + iCl - 1].fNum;
-              auto& cl1 = clusters.clusters[hltcl1 >> 24][(hltcl1 >> 16) & 0xFF][hltcl1 & 0xFFFF];
-              auto& cl2 = clusters.clusters[hltcl2 >> 24][(hltcl2 >> 16) & 0xFF][hltcl2 & 0xFFFF];
+              auto& hltcl1 = trackClusters[tracks[i].FirstClusterRef() + iCl];
+              auto& hltcl2 = trackClusters[tracks[i].FirstClusterRef() + iCl - 1];
+              auto& cl1 = clusters.clusters[hltcl1.fSlice][hltcl1.fRow][hltcl1.fNum];
+              auto& cl2 = clusters.clusters[hltcl2.fSlice][hltcl2.fRow][hltcl2.fNum];
               delta = fabs(cl1.getTime() - cl2.getTime()) * 0.5f;
               break;
             }
@@ -198,9 +124,9 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
           zLow = trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].fZ -
                  tracks[i].GetParam().GetZOffset(); // low R cluster
 
-          bool sideHighA = (trackClusters[tracks[i].FirstClusterRef()].fNum >> 24) < Sector::MAXSECTOR / 2;
+          bool sideHighA = trackClusters[tracks[i].FirstClusterRef()].fSlice < Sector::MAXSECTOR / 2;
           bool sideLowA =
-            (trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].fNum >> 24) < Sector::MAXSECTOR / 2;
+            trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].fSlice < Sector::MAXSECTOR / 2;
 
           // calculate time bracket
           float zLowAbs = zLow < 0.f ? -zLow : zLow;
@@ -231,7 +157,6 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
       oTrack.setTime0(time0);
       oTrack.setDeltaTBwd(tBwd);
       oTrack.setDeltaTFwd(tFwd);
-      // RS: TODO: once the A/C merging will be implemented, both A and C side must be flagged for meged track
       if (tracks[i].CCE()) {
         oTrack.setHasCSideClusters();
         oTrack.setHasASideClusters();
@@ -253,9 +178,8 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
       std::vector<std::pair<MCCompLabel, unsigned int>> labels;
       for (int j = 0; j < tracks[i].NClusters(); j++) {
         int clusterId = trackClusters[tracks[i].FirstClusterRef() + j].fNum;
-        Sector sector = clusterId >> 24;
-        int globalRow = (clusterId >> 16) & 0xFF;
-        clusterId &= 0xFFFF;
+        Sector sector = trackClusters[tracks[i].FirstClusterRef() + j].fSlice;
+        int globalRow = trackClusters[tracks[i].FirstClusterRef() + j].fRow;
         const ClusterNative& cl = clusters.clusters[sector][globalRow][clusterId];
         int regionNumber = 0;
         while (globalRow > mapper.getGlobalRowOffsetRegion(regionNumber) + mapper.getNumberOfRowsRegion(regionNumber))
