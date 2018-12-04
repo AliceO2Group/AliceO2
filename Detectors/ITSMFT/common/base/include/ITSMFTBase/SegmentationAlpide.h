@@ -81,7 +81,7 @@ class SegmentationAlpide
   static void detectorToLocalUnchecked(int iRow, int iCol, float& xRow, float& zCol);
 
   static constexpr float getFirstRowCoordinate() {
-    return 0.5 * (PitchRow - (ActiveMatrixSizeRows + PassiveEdgeTop - PassiveEdgeReadOut));
+    return 0.5 * ((ActiveMatrixSizeRows - PassiveEdgeTop + PassiveEdgeReadOut) - PitchRow);
   }
   static constexpr float getFirstColCoordinate() { return 0.5 * (PitchCol - ActiveMatrixSizeCols); }
   
@@ -95,8 +95,8 @@ class SegmentationAlpide
 inline void SegmentationAlpide::localToDetectorUnchecked(float xRow, float zCol, int& iRow, int& iCol)
 {
   // convert to row/col w/o over/underflow check
-  xRow += 0.5 * (ActiveMatrixSizeRows+PassiveEdgeTop-PassiveEdgeReadOut); // coordinate wrt left edge of Active matrix
-  zCol += 0.5 * ActiveMatrixSizeCols; // coordinate wrt bottom edge of Active matrix
+  xRow = 0.5 * (ActiveMatrixSizeRows - PassiveEdgeTop + PassiveEdgeReadOut) - xRow; // coordinate wrt top edge of Active matrix
+  zCol += 0.5 * ActiveMatrixSizeCols;                                               // coordinate wrt left edge of Active matrix
   iRow = int(xRow / PitchRow);
   iCol = int(zCol / PitchCol);
   if (xRow<0) iRow -= 1;
@@ -106,8 +106,8 @@ inline void SegmentationAlpide::localToDetectorUnchecked(float xRow, float zCol,
 //_________________________________________________________________________________________________
 inline bool SegmentationAlpide::localToDetector(float xRow, float zCol, int& iRow, int& iCol)
 {
-  // convert to row/col 
-  xRow += 0.5 * (ActiveMatrixSizeRows+PassiveEdgeTop-PassiveEdgeReadOut); // coordinate wrt left edge of Active matrix
+  // convert to row/col
+  xRow = 0.5 * (ActiveMatrixSizeRows - PassiveEdgeTop + PassiveEdgeReadOut) - xRow; // coordinate wrt left edge of Active matrix
   zCol += 0.5 * ActiveMatrixSizeCols; // coordinate wrt bottom edge of Active matrix
   if (xRow<0 || xRow>=ActiveMatrixSizeRows || zCol<0 || zCol>=ActiveMatrixSizeCols) {
     iRow = iCol = -1;
@@ -121,7 +121,7 @@ inline bool SegmentationAlpide::localToDetector(float xRow, float zCol, int& iRo
 //_________________________________________________________________________________________________
 inline void SegmentationAlpide::detectorToLocalUnchecked(int iRow, int iCol, float& xRow, float& zCol)
 {
-  xRow = iRow*PitchRow + getFirstRowCoordinate();
+  xRow = getFirstRowCoordinate() - iRow * PitchRow;
   zCol = iCol*PitchCol + getFirstColCoordinate();
 }
 
