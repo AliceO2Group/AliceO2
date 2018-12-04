@@ -124,6 +124,7 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
     set(BUCKET_NAME TPCCAGPUTrackingCUDA_bucket)
 
     O2_GENERATE_LIBRARY()
+    install(FILES ${HDRS} DESTINATION include/AliTPCCommon)
 
     target_link_libraries(${MODULE} ${CUDA_LIBRARIES} O2TPCCAGPUTracking)
     set_target_properties(${MODULE} PROPERTIES LINKER_LANGUAGE CXX)

@@ -9,7 +9,7 @@ endif()
 include_directories(.)
 include_directories(../Common)
 
-set(SRCS 
+set(SRCS
     IrregularSpline1D.cxx
     IrregularSpline2D3D.cxx
     TPCDistortionIRS.cxx
@@ -49,7 +49,7 @@ endif()
 if (NOT ROOT_VERSION_MAJOR EQUAL 5)
     set (HDRS ${HDRS}
         ../Common/FlatObject.h
-        IrregularSpline1D.h	
+        IrregularSpline1D.h
         IrregularSpline2D3D.h
         TPCFastTransform.h
         TPCDistortionIRS.h
@@ -104,6 +104,7 @@ if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "O2")
     set(BUCKET_NAME TPCFastTransformation_bucket)
 
     O2_GENERATE_LIBRARY()
+    install(FILES ${HDRS} DESTINATION include/AliTPCCommon)
 
 #    set(TEST_SRCS
 #      ctest/testTPCCAGPUTracking.cxx

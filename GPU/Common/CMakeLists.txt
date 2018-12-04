@@ -14,6 +14,9 @@ set (HDRS
 	AliTPCCommonDef.h
 	AliTPCCommonDefGPU.h
     AliTPCCommonMath.h
+    AliTPCCommonFairLogger.h
+    AliTPCCommonRtypes.h
+    AliTPCCommonTransform3D.h
 	FlatObject.h
 )
 
@@ -45,4 +48,5 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
     set(BUCKET_NAME AliTPCCommonBase_bucket)
 
     O2_GENERATE_LIBRARY()
+    install(FILES ${HDRS} DESTINATION include/AliTPCCommon)
 endif()
