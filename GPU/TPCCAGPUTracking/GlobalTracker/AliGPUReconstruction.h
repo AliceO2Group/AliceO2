@@ -21,9 +21,10 @@ class AliHLTTPCCAGPUTracker;
 struct hltca_event_dump_settings;
 struct AliHLTTPCRawCluster;
 
-namespace o2 { namespace TPC { struct ClusterNativeAccessFullTPC; struct ClusterNative;}}
+struct ClusterNativeAccessExt;
 namespace o2 { namespace ITS { class TrackerTraits; }}
 namespace o2 { namespace trd { class TRDGeometryFlat; }}
+namespace o2 { namespace TPC { struct ClusterNativeAccessFullTPC; struct ClusterNative; }}
 namespace ali_tpc_common { namespace tpc_fast_transformation { class TPCFastTransform; }}
 using TPCFastTransform = ali_tpc_common::tpc_fast_transformation::TPCFastTransform;
 
@@ -141,6 +142,9 @@ public:
 		objPtr = getPointerWithAlignment<S>(reinterpret_cast<size_t&>(basePtr), nEntries);
 	}
 	
+	//Converter functions
+	void ConvertNativeToClusterData();
+	
 	//Getters for external usage of tracker classes
 	AliHLTTRDTracker* GetTRDTracker() {return mTRDTracker.get();}
 	AliHLTTPCCAGPUTracker* GetTPCTracker() {return mTPCTracker.get();}
@@ -154,6 +158,7 @@ public:
 	void SetParam(const AliGPUCAParam& param) {mParam = param;}
 	const AliGPUCAParam& GetParam() const {return mParam;}
 	const TPCFastTransform* GetTPCTransform() const {return mTPCFastTransform.get();}
+	const ClusterNativeAccessExt* GetClusterNativeAccessExt() const {return mClusterNativeAccess.get();}
 	AliGPUCAParam& GetParam() {return mParam;}
 	hltca_event_dump_settings& GetEventSettings() {return *mEventDumpSettings;}
 	void SetSettingsStandalone(float solenoidBz);
@@ -208,7 +213,7 @@ protected:
 	AliGPUCAParam mParam;														//Reconstruction parameters
 	std::unique_ptr<TPCFastTransform> mTPCFastTransform;						//Global TPC fast transformation object
 	std::unique_ptr<hltca_event_dump_settings> mEventDumpSettings;				//Standalone event dump settings
-	std::unique_ptr<o2::TPC::ClusterNativeAccessFullTPC> mClusterNativeAccess;	//Internal memory for clusterNativeAccess
+	std::unique_ptr<ClusterNativeAccessExt> mClusterNativeAccess;	//Internal memory for clusterNativeAccess
 	std::unique_ptr<o2::trd::TRDGeometryFlat> mTRDGeometry;						//TRD Geometry
 };
 
