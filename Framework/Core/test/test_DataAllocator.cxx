@@ -128,6 +128,9 @@ DataProcessorSpec getSinkSpec()
     // plain, unserialized object in input1 channel
     auto object1 = pc.inputs().get<o2::test::TriviallyCopyable>("input1");
     ASSERT_ERROR(object1 == o2::test::TriviallyCopyable(42, 23, 0xdead));
+    auto object1span = pc.inputs().get<gsl::span<o2::test::TriviallyCopyable>>("input1");
+    ASSERT_ERROR(object1span.size() == 1);
+    ASSERT_ERROR(sizeof(typename decltype(object1span)::value_type) == sizeof(o2::test::TriviallyCopyable));
     // check the additional header on the stack
     auto* metaHeader1 = DataRefUtils::getHeader<test::MetaHeader*>(pc.inputs().get("input1"));
     // check if there are more of the same type

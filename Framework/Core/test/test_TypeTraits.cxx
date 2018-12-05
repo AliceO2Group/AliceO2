@@ -18,6 +18,7 @@
 #include <boost/test/unit_test.hpp>
 #include <vector>
 #include <list>
+#include <gsl/gsl>
 
 using namespace o2::framework;
 
@@ -81,6 +82,8 @@ BOOST_AUTO_TEST_CASE(TestIsMessageable)
   std::vector<int> c;
   o2::test::TriviallyCopyable d;
   o2::test::Polymorphic e;
+  gsl::span<o2::test::TriviallyCopyable> spantriv;
+  gsl::span<o2::test::Polymorphic> spanpoly;
 
   BOOST_REQUIRE_EQUAL(is_messageable<decltype(a)>::value, true);
   BOOST_REQUIRE_EQUAL(is_messageable<decltype(b)>::value, true);
@@ -88,6 +91,8 @@ BOOST_AUTO_TEST_CASE(TestIsMessageable)
   BOOST_REQUIRE_EQUAL(is_messageable<decltype(d)>::value, true);
   BOOST_REQUIRE_EQUAL(is_messageable<decltype(e)>::value, false);
   BOOST_REQUIRE_EQUAL(is_messageable<ROOTSerialized<decltype(e)>>::value, false);
+  BOOST_REQUIRE_EQUAL(is_messageable<decltype(spantriv)>::value, false);
+  BOOST_REQUIRE_EQUAL(is_messageable<decltype(spanpoly)>::value, false);
 }
 
 BOOST_AUTO_TEST_CASE(TestIsStlContainer)
