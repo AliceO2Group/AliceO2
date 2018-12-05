@@ -27,8 +27,8 @@
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<o2::framework::ConfigParamSpec> options{
-    { "input-type", o2::framework::VariantType::String, "digits", { "digitizer, digits, clusters, raw" } },
-    { "output-type", o2::framework::VariantType::String, "tracks", { "clusters, raw, decoded-clusters, tracks" } },
+    { "input-type", o2::framework::VariantType::String, "digits", { "digitizer, digits, clusters, raw, decoded-clusters" } },
+    { "output-type", o2::framework::VariantType::String, "tracks", { "digits, clusters, raw, decoded-clusters, tracks" } },
     { "disable-mc", o2::framework::VariantType::Bool, false, { "disable sending of MC information" } },
     { "tpc-sectors", o2::framework::VariantType::String, "0-35", { "TPC sector range, e.g. 5-7,8,9" } },
     { "tpc-lanes", o2::framework::VariantType::Int, 1, { "number of parallel lanes up to the tracker" } },

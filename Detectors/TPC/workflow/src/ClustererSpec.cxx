@@ -82,9 +82,12 @@ DataProcessorSpec getClustererSpec(bool sendMC)
         }
         return;
       }
-      auto inMCLabels = pc.inputs().get<const MCLabelContainer*>("mclabels");
+      std::unique_ptr<const MCLabelContainer> inMCLabels;
+      if (sendMC) {
+        inMCLabels = std::move(pc.inputs().get<const MCLabelContainer*>("mclabels"));
+      }
       auto inDigits = pc.inputs().get<const std::vector<o2::TPC::Digit>>("digits");
-      if (verbosity > 0) {
+      if (verbosity > 0 && inMCLabels) {
         LOG(INFO) << "received " << inDigits.size() << " digits, "
                   << inMCLabels->getIndexedSize() << " MC label objects";
       }
@@ -122,6 +125,17 @@ DataProcessorSpec getClustererSpec(bool sendMC)
     return processingFct;
   };
 
+  auto createInputSpecs = [](bool makeMcInput) {
+    std::vector<InputSpec> inputSpecs{
+      InputSpec{ "digits", gDataOriginTPC, "DIGITS", 0, Lifetime::Timeframe },
+    };
+    if (makeMcInput) {
+      constexpr o2::header::DataDescription datadesc("DIGITSMCTR");
+      inputSpecs.emplace_back("mclabels", gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
+    }
+    return std::move(inputSpecs);
+  };
+
   auto createOutputSpecs = [](bool makeMcOutput) {
     std::vector<OutputSpec> outputSpecs{
       OutputSpec{ { "clusters" }, gDataOriginTPC, "CLUSTERSIM", 0, Lifetime::Timeframe },
@@ -136,8 +150,7 @@ DataProcessorSpec getClustererSpec(bool sendMC)
   };
 
   return DataProcessorSpec{ processorName,
-                            { InputSpec{ "digits", gDataOriginTPC, "DIGITS", 0, Lifetime::Timeframe },
-                              InputSpec{ "mclabels", gDataOriginTPC, "DIGITSMCTR", 0, Lifetime::Timeframe } },
+                            { createInputSpecs(sendMC) },
                             { createOutputSpecs(sendMC) },
                             AlgorithmSpec(initFunction) };
 }

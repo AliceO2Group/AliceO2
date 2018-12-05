@@ -8,13 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   DigitReaderSpec.cxx
+/// @file   PublisherSpec.cxx
 /// @author Matthias Richter
-/// @since  2018-03-23
+/// @since  2018-12-06
 /// @brief  Processor spec for a reader of TPC data from ROOT file
 
 #include "Framework/ControlService.h"
-#include "DigitReaderSpec.h"
+#include "PublisherSpec.h"
 #include "Headers/DataHeader.h"
 #include "Utils/RootTreeReader.h"
 #include "TPCBase/Sector.h"
@@ -22,7 +22,8 @@
 #include <memory> // for make_shared, make_unique, unique_ptr
 #include <array>
 #include <vector>
-#include <utility> // std::move
+#include <utility>   // std::move
+#include <stdexcept> //std::invalid_argument
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -31,13 +32,16 @@ namespace o2
 {
 namespace TPC
 {
+
 /// create a processor spec
-/// read simulated TPC digits from file and publish
-/// digits are expected to be stored in separated branches per sector, the default
-/// branch name is TPCDigit_n with n being the sector number
-/// the base name can be configured, however not the extension '_n'
-DataProcessorSpec getDigitReaderSpec(std::vector<int> const& tpcSectors, size_t fanOut)
+/// read data from multiple tree branches from ROOT file and publish
+/// data are expected to be stored in separated branches per sector, the default
+/// branch name is configurable, sector number is apended as extension '_n'
+DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC)
 {
+  if (config.tpcSectors.size() == 0 || config.fanOut == 0) {
+    throw std::invalid_argument("need TPC sector configuration and fan out size");
+  }
   constexpr static size_t NSectors = o2::TPC::Sector::MAXSECTOR;
   struct ProcessAttributes {
     size_t nParallelReaders = 1;
@@ -48,23 +52,23 @@ DataProcessorSpec getDigitReaderSpec(std::vector<int> const& tpcSectors, size_t 
     bool finished = false;
   };
 
-  auto initFunction = [fanOut, tpcSectors](InitContext& ic) {
+  auto initFunction = [config, propagateMC](InitContext& ic) {
     // get the option from the init context
     auto filename = ic.options().get<std::string>("infile");
     auto treename = ic.options().get<std::string>("treename");
-    auto clbrName = ic.options().get<std::string>("digitbranch");
-    auto mcbrName = ic.options().get<std::string>("mcbranch");
+    auto clbrName = ic.options().get<std::string>(config.databranch.option.c_str());
+    auto mcbrName = ic.options().get<std::string>(config.mcbranch.option.c_str());
     auto nofEvents = ic.options().get<int>("nevents");
 
     auto processAttributes = std::make_shared<ProcessAttributes>();
     {
-      processAttributes->nParallelReaders = fanOut;
+      processAttributes->nParallelReaders = config.fanOut;
       processAttributes->terminateOnEod = ic.options().get<bool>("terminate-on-eod");
       auto& sectors = processAttributes->sectors;
       auto& activeSectors = processAttributes->activeSectors;
       auto& readers = processAttributes->readers;
 
-      sectors = tpcSectors;
+      sectors = config.tpcSectors;
       for (auto const& s : sectors) {
         // set the mask of active sectors
         if (s >= NSectors) {
@@ -88,14 +92,25 @@ DataProcessorSpec getDigitReaderSpec(std::vector<int> const& tpcSectors, size_t 
         }
         std::string clusterbranchname = clbrName + "_" + std::to_string(sector);
         std::string mcbranchname = mcbrName + "_" + std::to_string(sector);
-        readers[sector] = std::make_shared<RootTreeReader>(treename.c_str(), // tree name
-                                                           nofEvents,        // number of entries to publish
-                                                           filename.c_str(), // input file name
-                                                           Output{ gDataOriginTPC, "DIGITS", lane, persistency },
-                                                           clusterbranchname.c_str(), // name of digit branch
-                                                           Output{ gDataOriginTPC, "DIGITSMCTR", lane, persistency },
-                                                           mcbranchname.c_str() // name of mc label branch
-                                                           );
+        auto& dto = config.dataoutput;
+        auto& mco = config.mcoutput;
+        if (propagateMC) {
+          readers[sector] = std::make_shared<RootTreeReader>(treename.c_str(), // tree name
+                                                             nofEvents,        // number of entries to publish
+                                                             filename.c_str(), // input file name
+                                                             Output{ dto.origin, dto.description, lane, persistency },
+                                                             clusterbranchname.c_str(), // name of cluster branch
+                                                             Output{ mco.origin, mco.description, lane, persistency },
+                                                             mcbranchname.c_str() // name of mc label branch
+                                                             );
+        } else {
+          readers[sector] = std::make_shared<RootTreeReader>(treename.c_str(), // tree name
+                                                             nofEvents,        // number of entries to publish
+                                                             filename.c_str(), // input file name
+                                                             Output{ dto.origin, dto.description, lane, persistency },
+                                                             clusterbranchname.c_str() // name of cluster branch
+                                                             );
+        }
         if (++lane >= processAttributes->nParallelReaders) {
           lane = 0;
         }
@@ -108,13 +123,13 @@ DataProcessorSpec getDigitReaderSpec(std::vector<int> const& tpcSectors, size_t 
     // function gets out of scope
     // FIXME: wanted to use it = sectors.begin() in the variable capture but the iterator
     // is const and can not be incremented
-    auto processingFct = [ processAttributes, index = std::make_shared<int>(0) ](ProcessingContext & pc)
+    auto processingFct = [processAttributes, index = std::make_shared<int>(0), propagateMC](ProcessingContext& pc)
     {
       if (processAttributes->finished) {
         return;
       }
 
-      auto publish = [&processAttributes, &index, &pc]() {
+      auto publish = [&processAttributes, &index, &pc, propagateMC]() {
         auto& sectors = processAttributes->sectors;
         auto& activeSectors = processAttributes->activeSectors;
         auto& readers = processAttributes->readers;
@@ -159,7 +174,9 @@ DataProcessorSpec getDigitReaderSpec(std::vector<int> const& tpcSectors, size_t 
           }
           o2::TPC::TPCSectorHeader header{ operation };
           pc.outputs().snapshot(OutputRef{ "output", lane, { header } }, lane);
-          pc.outputs().snapshot(OutputRef{ "outputMC", lane, { header } }, lane);
+          if (propagateMC) {
+            pc.outputs().snapshot(OutputRef{ "outputMC", lane, { header } }, lane);
+          }
         }
       }
 
@@ -173,26 +190,28 @@ DataProcessorSpec getDigitReaderSpec(std::vector<int> const& tpcSectors, size_t 
     return processingFct;
   };
 
-  auto createOutputSpecs = [fanOut]() {
+  auto createOutputSpecs = [&config, propagateMC]() {
     std::vector<OutputSpec> outputSpecs;
-    for (size_t n = 0; n < fanOut; ++n) {
-      constexpr o2::header::DataDescription datadesc("DIGITS");
-      outputSpecs.emplace_back(OutputSpec{ { "output" }, gDataOriginTPC, datadesc, n, Lifetime::Timeframe });
-      constexpr o2::header::DataDescription datadescMC("DIGITSMCTR");
-      outputSpecs.emplace_back(OutputSpec{ { "outputMC" }, gDataOriginTPC, datadescMC, n, Lifetime::Timeframe });
+    for (size_t n = 0; n < config.fanOut; ++n) {
+      outputSpecs.emplace_back(OutputSpec{ { "output" }, config.dataoutput.origin, config.dataoutput.description, n, Lifetime::Timeframe });
+      if (propagateMC) {
+        outputSpecs.emplace_back(OutputSpec{ { "outputMC" }, config.mcoutput.origin, config.mcoutput.description, n, Lifetime::Timeframe });
+      }
     }
     return std::move(outputSpecs);
   };
 
-  return DataProcessorSpec{ "tpc-digit-reader",
+  auto& dtb = config.databranch;
+  auto& mcb = config.mcbranch;
+  return DataProcessorSpec{ config.processName.c_str(),
                             Inputs{}, // no inputs
                             { createOutputSpecs() },
                             AlgorithmSpec(initFunction),
                             Options{
                               { "infile", VariantType::String, "", { "Name of the input file" } },
-                              { "treename", VariantType::String, "o2sim", { "Name of the input tree" } },
-                              { "digitbranch", VariantType::String, "TPCDigit", { "Digit branch" } },
-                              { "mcbranch", VariantType::String, "TPCDigitMCTruth", { "MC label branch" } },
+                              { "treename", VariantType::String, config.defaultTreeName.c_str(), { "Name of input tree" } },
+                              { dtb.option.c_str(), VariantType::String, dtb.defval.c_str(), { dtb.help.c_str() } },
+                              { mcb.option.c_str(), VariantType::String, mcb.defval.c_str(), { mcb.help.c_str() } },
                               { "nevents", VariantType::Int, -1, { "number of events to run" } },
                               { "terminate-on-eod", VariantType::Bool, false, { "terminate on end-of-data" } },
                             } };

@@ -64,18 +64,20 @@ tpc-reco-workflow --infile tpcdigits.root --tpc-sectors 0-15 --disable-mc 1
 
 ### Global workflow options:
 ```
---input-type arg (=digits)            digitizer, digits, clusters, raw
---output-type arg (=tracks)           clusters, raw, decoded-clusters, tracks
+--input-type arg (=digits)            digitizer, digits, clusters, raw, decoded-clusters
+--output-type arg (=tracks)           digits, clusters, raw, decoded-clusters, tracks
 --disable-mc arg (=0)                 disable sending of MC information
 --tpc-lanes arg (=1)                  number of parallel lanes up to the tracker
 --tpc-sectors arg (=0-35)             TPC sector range, e.g. 5-7,8,9
 ```
 
 #### Input Type
-The input and output types `raw` have not yet been implemented.
-
 Input type `digitizer` will create the clusterers with dangling input, this is used
 to connect the reconstruction workflow directly to the digitizer workflow.
+
+All other input types will create a publisher process reading data from branches of
+a ROOT file. File and branch names are configurable. The MC labels are always read
+from a parallel branch, the sequence of data and MC objects is assumed to be identical.
 
 #### Output Type
 The output type selects up to which final product the workflow is executed. Multiple outputs
@@ -83,6 +85,9 @@ are supported in order to write data at intermediate steps, e.g.
 ```
 --output-type clusters,tracks
 ```
+
+MC label data are stored in corresponding branches per sector. The sequence of MC objects must match
+the sequence of data objects.
 
 #### Parallel processing
 Parallel processing is controlled by the option `--tpc-lanes n`. The digit reader will fan out to n processing
@@ -107,8 +112,6 @@ bz=     magnetic field
 ```
 
 ### Current limitations/TODO
-* input and output types `raw` are not yet implemented
-
 * the propagation of MC labels goes together with multiple rearrangements and thus copy
 
 * sequential workflow where the TPC sectors are processed individually and the data is buffered in the

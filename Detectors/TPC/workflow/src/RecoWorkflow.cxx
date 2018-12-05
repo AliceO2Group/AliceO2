@@ -16,13 +16,13 @@
 #include "Framework/WorkflowSpec.h"
 #include "Utils/MakeRootTreeWriterSpec.h"
 #include "TPCWorkflow/RecoWorkflow.h"
-#include "DigitReaderSpec.h"
-#include "ClusterReaderSpec.h"
+#include "PublisherSpec.h"
 #include "ClustererSpec.h"
 #include "ClusterConverterSpec.h"
 #include "ClusterDecoderRawSpec.h"
 #include "CATrackerSpec.h"
 #include "RangeTokenizer.h"
+#include "TPCBase/Digit.h"
 #include "DataFormatsTPC/Constants.h"
 #include "DataFormatsTPC/ClusterGroupAttribute.h"
 #include "DataFormatsTPC/TrackTPC.h"
@@ -57,9 +57,11 @@ const std::unordered_map<std::string, InputType> InputMap{
   { "digits", InputType::Digits },
   { "clusters", InputType::Clusters },
   { "raw", InputType::Raw },
+  { "decoded-clusters", InputType::DecodedClusters },
 };
 
 const std::unordered_map<std::string, OutputType> OutputMap{
+  { "digits", OutputType::Digits },
   { "clusters", OutputType::Clusters },
   { "raw", OutputType::Raw },
   { "decoded-clusters", OutputType::DecodedClusters },
@@ -73,35 +75,91 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, bool pro
   try {
     inputType = InputMap.at(cfgInput);
   } catch (std::out_of_range&) {
-    throw std::runtime_error(std::string("invalid input type: ") + cfgInput);
+    throw std::invalid_argument(std::string("invalid input type: ") + cfgInput);
   }
   std::vector<OutputType> outputTypes;
   try {
     outputTypes = RangeTokenizer::tokenize<OutputType>(cfgOutput, [](std::string const& token) { return OutputMap.at(token); });
   } catch (std::out_of_range&) {
-    throw std::runtime_error(std::string("invalid output type: ") + cfgOutput);
+    throw std::invalid_argument(std::string("invalid output type: ") + cfgOutput);
   }
   auto isEnabled = [&outputTypes](OutputType type) {
     return std::find(outputTypes.begin(), outputTypes.end(), type) != outputTypes.end();
   };
 
+  if (inputType == InputType::Clusters && (isEnabled(OutputType::Digits))) {
+    throw std::invalid_argument("input/output type mismatch, can not produce 'digits' from 'clusters");
+  }
+  if (inputType == InputType::Raw && (isEnabled(OutputType::Digits) || isEnabled(OutputType::Clusters))) {
+    throw std::invalid_argument("input/output type mismatch, can not produce 'digits' nor 'clusters' from 'raw'");
+  }
+  if (inputType == InputType::DecodedClusters && (isEnabled(OutputType::Clusters) || isEnabled(OutputType::Clusters) || isEnabled(OutputType::Raw))) {
+    throw std::invalid_argument("input/output type mismatch, can not produce 'digits', 'clusters' nor 'raw' from 'decoded-clusters");
+  }
+
   WorkflowSpec specs;
 
-  // there is no MC info when starting from raw data
-  // but maybe the warning can be dropped
-  if (propagateMC && inputType == InputType::Raw) {
-    LOG(WARNING) << "input type 'raw' selected, switch off MC propagation";
-    propagateMC = false;
+  if (inputType == InputType::Digits) {
+    specs.emplace_back(o2::TPC::getPublisherSpec(PublisherConf{
+                                                   "tpc-digit-reader",
+                                                   "o2sim",
+                                                   { "digitbranch", "TPCDigit", "Digit branch" },
+                                                   { "mcbranch", "TPCDigitMCTruth", "MC label branch" },
+                                                   OutputSpec{ "TPC", "DIGITS" },
+                                                   OutputSpec{ "TPC", "DIGITSMCTR" },
+                                                   tpcSectors,
+                                                   nLanes,
+                                                 },
+                                                 propagateMC));
+  } else if (inputType == InputType::Clusters) {
+    specs.emplace_back(o2::TPC::getPublisherSpec(PublisherConf{
+                                                   "tpc-cluster-reader",
+                                                   "o2sim",
+                                                   { "clusterbranch", "TPCCluster", "Cluster branch" },
+                                                   { "clustermcbranch", "TPCClusterMCTruth", "MC label branch" },
+                                                   OutputSpec{ "TPC", "CLUSTERSIM" },
+                                                   OutputSpec{ "TPC", "CLUSTERMCLBL" },
+                                                   tpcSectors,
+                                                   nLanes,
+                                                 },
+                                                 propagateMC));
+  } else if (inputType == InputType::Raw) {
+    specs.emplace_back(o2::TPC::getPublisherSpec(PublisherConf{
+                                                   "tpc-raw-cluster-reader",
+                                                   "tpcraw",
+                                                   { "databranch", "TPCClusterHw", "Branch with raw clusters" },
+                                                   { "mcbranch", "TPCClusterHwMCTruth", "MC label branch" },
+                                                   OutputSpec{ "TPC", "CLUSTERHW" },
+                                                   OutputSpec{ "TPC", "CLUSTERHWMCLBL" },
+                                                   tpcSectors,
+                                                   nLanes,
+                                                 },
+                                                 propagateMC));
+  } else if (inputType == InputType::DecodedClusters) {
+    specs.emplace_back(o2::TPC::getPublisherSpec(PublisherConf{
+                                                   "tpc-decoded-cluster-reader",
+                                                   "tpcrec",
+                                                   { "clusterbranch", "TPCClusterNative", "Branch with decoded clusters" },
+                                                   { "clustermcbranch", "TPCClusterNativeMCTruth", "MC label branch" },
+                                                   OutputSpec{ "TPC", "CLUSTERNATIVE" },
+                                                   OutputSpec{ "TPC", "CLNATIVEMCLBL" },
+                                                   tpcSectors,
+                                                   nLanes,
+                                                 },
+                                                 propagateMC));
   }
 
-  // note: converter does not touch MC, this is routed directly to downstream consumer
-  if (inputType == InputType::Digits) {
-    specs.emplace_back(o2::TPC::getDigitReaderSpec(tpcSectors, nLanes));
-  } else if (inputType == InputType::Clusters) {
-    specs.emplace_back(o2::TPC::getClusterReaderSpec(tpcSectors, nLanes));
-  } else if (inputType == InputType::Raw) {
-    throw std::runtime_error(std::string("input type 'raw' not yet implemented"));
-  }
+  // output matrix
+  bool runTracker = isEnabled(OutputType::Tracks);
+  bool runDecoder = runTracker || isEnabled(OutputType::DecodedClusters);
+  bool runConverter = runDecoder || isEnabled(OutputType::Raw);
+  bool runClusterer = runConverter || isEnabled(OutputType::Clusters);
+
+  // input matrix
+  runClusterer &= inputType == InputType::Digitizer || inputType == InputType::Digits;
+  runConverter &= runClusterer || inputType == InputType::Clusters;
+  runDecoder &= runConverter || inputType == InputType::Raw;
+  runTracker &= runDecoder || inputType == InputType::DecodedClusters;
 
   WorkflowSpec parallelProcessors;
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -109,7 +167,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, bool pro
   // clusterer process(es)
   //
   //
-  if (inputType == InputType::Digitizer || inputType == InputType::Digits) {
+  if (runClusterer) {
     parallelProcessors.push_back(o2::TPC::getClustererSpec(propagateMC));
   }
 
@@ -118,12 +176,8 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, bool pro
   // cluster converter process(es)
   //
   //
-  if (inputType != InputType::Raw && (isEnabled(OutputType::DecodedClusters) || isEnabled(OutputType::Tracks))) {
+  if (runConverter) {
     parallelProcessors.push_back(o2::TPC::getClusterConverterSpec(propagateMC));
-  }
-
-  if (isEnabled(OutputType::Raw)) {
-    throw std::runtime_error(std::string("output types 'clusters' and 'raw' not yet implemented"));
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -131,7 +185,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, bool pro
   // cluster decoder process(es)
   //
   //
-  if (isEnabled(OutputType::DecodedClusters) || isEnabled(OutputType::Tracks)) {
+  if (runDecoder) {
     parallelProcessors.push_back(o2::TPC::getClusterDecoderRawSpec(propagateMC));
   }
 
@@ -155,73 +209,125 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, bool pro
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   //
-  // a writer process for simulated clusters
+  // generation of processor specs for various types of outputs
+  // based on generic RootTreeWriter and MakeRootTreeWriterSpec generator
   //
-  // selected by output type 'clusters'
-  if (isEnabled(OutputType::Clusters)) {
-    // defining cluster writer process using the generic RootTreeWriter and generator tool
-    //
-    // defaults
-    const char* processName = "tpc-cluster-writer";
-    const char* defaultFileName = "tpcclusters.root";
-    const char* defaultTreeName = "o2sim";
+  // -------------------------------------------------------------------------------------------
+  // the callbacks for the RootTreeWriter
+  //
+  // The generic writer needs a way to associate incoming data with the individual branches for
+  // the TPC sectors. The sector number is transmitted as part of the sector header, the callback
+  // finds the corresponding index in the vector of configured sectors
+  auto getIndex = [tpcSectors](o2::framework::DataRef const& ref) {
+    auto const* tpcSectorHeader = o2::framework::DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(ref);
+    if (!tpcSectorHeader) {
+      throw std::runtime_error("TPC sector header missing in header stack");
+    }
+    if (tpcSectorHeader->sector < 0) {
+      // special data sets, don't write
+      return ~(size_t)0;
+    }
+    size_t index = 0;
+    for (auto const& sector : tpcSectors) {
+      if (sector == tpcSectorHeader->sector) {
+        return index;
+      }
+      ++index;
+    }
+    throw std::runtime_error("sector " + std::to_string(tpcSectorHeader->sector) + " not configured for writing");
+  };
+  auto getName = [tpcSectors](std::string base, size_t index) {
+    return base + "_" + std::to_string(tpcSectors.at(index));
+  };
 
+  // -------------------------------------------------------------------------------------------
+  // helper to create writer specs for different types of output
+  auto makeWriterSpec = [tpcSectors, nLanes, propagateMC, getIndex, getName](const char* processName,
+                                                                             const char* defaultFileName,
+                                                                             const char* defaultTreeName,
+                                                                             auto&& databranch,
+                                                                             auto&& mcbranch) {
     if (tpcSectors.size() == 0) {
-      throw std::invalid_argument(std::string("cluster writer configuration needs list of TPC sectors"));
+      throw std::invalid_argument(std::string("writer process configuration needs list of TPC sectors"));
     }
-    auto getIndex = [tpcSectors](o2::framework::DataRef const& ref) {
-      auto const* tpcSectorHeader = o2::framework::DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(ref);
-      if (!tpcSectorHeader) {
-        throw std::runtime_error("TPC sector header missing in header stack");
-      }
-      if (tpcSectorHeader->sector < 0) {
-        // special data sets, don't write
-        return ~(size_t)0;
-      }
-      size_t index = 0;
-      for (auto const& sector : tpcSectors) {
-        if (sector == tpcSectorHeader->sector) {
-          return index;
-        }
-        ++index;
-      }
-      throw std::runtime_error("sector " + std::to_string(tpcSectorHeader->sector) + " not configured for writing");
-    };
-    auto getName = [tpcSectors](std::string base, size_t index) {
-      return base + "_" + std::to_string(tpcSectors.at(index));
-    };
 
-    //branch definitions for RootTreeWriter spec
-    using ClusterOutputType = std::vector<o2::TPC::Cluster>;
-    using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-    std::vector<InputSpec> inputs;
-    std::vector<InputSpec> mcinputs;
-    for (o2::header::DataHeader::SubSpecificationType n = 0; n < nLanes; ++n) {
-      std::string inputname = "input" + std::to_string(n);
-      std::string mcinputname = "mc" + inputname;
-      inputs.emplace_back(inputname.c_str(), "TPC", "CLUSTERSIM", n);
-      mcinputs.emplace_back(mcinputname.c_str(), "TPC", "CLUSTERMCLBL", n);
-    }
-    auto def = BranchDefinition<ClusterOutputType>{ inputs,
-                                                    "TPCCluster", "cluster-branch-name",
-                                                    tpcSectors.size(),
-                                                    getIndex,
-                                                    getName };
-    auto mcdef = BranchDefinition<MCLabelContainer>{ mcinputs,
-                                                     "TPCClusterMCTruth", "clustermc-branch-name",
-                                                     tpcSectors.size(),
-                                                     getIndex,
-                                                     getName };
+    auto amendInput = [](InputSpec& input, size_t lane) {
+      input.binding += std::to_string(lane);
+      input.subSpec = lane;
+    };
+    auto amendBranchDef = [nLanes, propagateMC, amendInput, tpcSectors, getIndex, getName](auto&& def) {
+      def.keys = mergeInputs(def.keys, nLanes, amendInput);
+      def.nofBranches = tpcSectors.size();
+      def.getIndex = getIndex;
+      def.getName = getName;
+      return std::move(def);
+    };
 
     // depending on the MC propagation flag, the RootTreeWriter spec is created with two
     // or one branch definition
     if (propagateMC) {
-      specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName, //
-                                             std::move(def), std::move(mcdef))());          //
-    } else {                                                                                //
-      specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName, //
-                                             std::move(def))());                            //
+      return std::move(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
+                                              std::move(amendBranchDef(databranch)),
+                                              std::move(amendBranchDef(mcbranch)))());
     }
+    return std::move(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
+                                            std::move(amendBranchDef(databranch)))());
+  };
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  //
+  // a writer process for digits
+  //
+  // selected by output type 'difits'
+  if (isEnabled(OutputType::Digits)) {
+    using DigitOutputType = std::vector<o2::TPC::Digit>;
+    using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+    specs.push_back(makeWriterSpec("tpc-digits-writer",
+                                   inputType == InputType::Digits ? "tpc-filtered-digits.root" : "tpcdigits.root",
+                                   "o2sim",
+                                   BranchDefinition<DigitOutputType>{ InputSpec{ "data", "TPC", "DIGITS", 0 },
+                                                                      "TPCDigit",
+                                                                      "digit-branch-name" },
+                                   BranchDefinition<MCLabelContainer>{ InputSpec{ "mc", "TPC", "DIGITSMCTR", 0 },
+                                                                       "TPCDigitMCTruth",
+                                                                       "digitmc-branch-name" }));
+  }
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  //
+  // a writer process for simulated clusters
+  //
+  // selected by output type 'clusters'
+  if (isEnabled(OutputType::Clusters)) {
+    using ClusterOutputType = std::vector<o2::TPC::Cluster>;
+    using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+    specs.push_back(makeWriterSpec("tpc-cluster-writer",
+                                   inputType == InputType::Clusters ? "tpc-filtered-clusters.root" : "tpcclusters.root",
+                                   "o2sim",
+                                   BranchDefinition<ClusterOutputType>{ InputSpec{ "data", "TPC", "CLUSTERSIM", 0 },
+                                                                        "TPCCluster",
+                                                                        "cluster-branch-name" },
+                                   BranchDefinition<MCLabelContainer>{ InputSpec{ "mc", "TPC", "CLUSTERMCLBL", 0 },
+                                                                       "TPCClusterMCTruth",
+                                                                       "clustermc-branch-name" }));
+  }
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  //
+  // a writer process for raw hardware clusters
+  //
+  // selected by output type 'raw'
+  if (isEnabled(OutputType::Raw)) {
+    using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+    specs.push_back(makeWriterSpec("tpc-raw-cluster-writer",
+                                   inputType == InputType::Raw ? "tpc-filtered-raw-clusters.root" : "tpc-raw-clusters.root",
+                                   "tpcraw",
+                                   BranchDefinition<const char*>{ InputSpec{ "data", "TPC", "CLUSTERHW", 0 },
+                                                                  "TPCClusterHw",
+                                                                  "databranch" },
+                                   BranchDefinition<MCLabelContainer>{ InputSpec{ "mc", "TPC", "CLUSTERHWMCLBL", 0 },
+                                                                       "TPCClusterHwMCTruth",
+                                                                       "mcbranch" }));
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -230,46 +336,25 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, bool pro
   //
   // selected by output type 'decoded-clusters'
   if (isEnabled(OutputType::DecodedClusters)) {
-    // writer function
-    auto writerFunction = [](InitContext& ic) {
-      auto filename = ic.options().get<std::string>("outfile");
-      if (filename.empty()) {
-        throw std::runtime_error("output file missing");
-      }
-      auto output = std::make_shared<std::ofstream>(filename.c_str(), std::ios_base::binary);
-      return [output](ProcessingContext& pc) {
-        LOG(INFO) << "processing data set with " << pc.inputs().size() << " entries";
-        for (const auto& entry : pc.inputs()) {
-          LOG(INFO) << "  " << *(entry.spec);
-          const auto* header = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(entry);
-          output->write(reinterpret_cast<const char*>(header), header->headerSize);
-          output->write(entry.payload, o2::framework::DataRefUtils::getPayloadSize(entry));
-          LOG(INFO) << "wrote data, size " << o2::framework::DataRefUtils::getPayloadSize(entry);
-        }
-      };
-    };
+    using MCLabelCollection = std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>;
+    specs.push_back(makeWriterSpec("tpc-decoded-cluster-writer",
+                                   inputType == InputType::DecodedClusters ? "tpc-filtered-decoded-clusters.root" : "tpc-decoded-clusters.root",
+                                   "tpcrec",
+                                   BranchDefinition<const char*>{ InputSpec{ "data", "TPC", "CLUSTERNATIVE", 0 },
+                                                                  "TPCClusterNative",
+                                                                  "databranch" },
+                                   BranchDefinition<MCLabelCollection>{ InputSpec{ "mc", "TPC", "CLNATIVEMCLBL", 0 },
+                                                                        "TPCClusterNativeMCTruth",
+                                                                        "mcbranch" }));
+  }
 
-    // inputs to the writer
-    auto createInputSpec = [nLanes, propagateMC]() {
-      o2::framework::Inputs inputs;
-      for (o2::header::DataHeader::SubSpecificationType n = 0; n < nLanes; ++n) {
-        inputs.emplace_back(InputSpec{ "input", "TPC", "CLUSTERNATIVE", n, framework::Lifetime::Timeframe });
-        if (propagateMC) {
-          inputs.emplace_back(InputSpec{ "mcin", "TPC", "CLNATIVEMCLBL", n, framework::Lifetime::Timeframe });
-        }
-      }
-      return std::move(inputs);
-    };
-
-    specs.emplace_back(DataProcessorSpec{
-      "tpc-decoded-cluster-writer",  //
-      { createInputSpec() },         //
-      {},                            //
-      AlgorithmSpec(writerFunction), //
-      Options{
-        { "outfile", VariantType::String, "tpc-decoded-clusters.bin", { "Name of the output file" } }, //
-      }                                                                                                //
-    });
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  //
+  // tracker process
+  //
+  // selected by output type 'tracks'
+  if (runTracker) {
+    specs.emplace_back(o2::TPC::getCATrackerSpec(propagateMC, nLanes));
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -278,8 +363,6 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, bool pro
   //
   // selected by output type 'tracks'
   if (isEnabled(OutputType::Tracks)) {
-    specs.emplace_back(o2::TPC::getCATrackerSpec(propagateMC, nLanes));
-
     // defining the track writer process using the generic RootTreeWriter and generator tool
     //
     // defaults

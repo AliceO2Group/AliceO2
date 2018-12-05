@@ -168,7 +168,40 @@ DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
       }
       assert(processMC == false || validMcInputs == validInputs);
       if (verbosity > 0) {
-        LOG(INFO) << "running tracking for sectors " << validInputs;
+        // make human readable information from the bitfield
+        std::string bitInfo;
+        auto nActiveBits = validInputs.count();
+        if (((uint64_t)0x1 << nActiveBits) == validInputs.to_ulong() + 1) {
+          // sectors 0 to some upper bound are active
+          bitInfo = "0-" + std::to_string(nActiveBits - 1);
+        } else {
+          int rangeStart = -1;
+          int rangeEnd = -1;
+          for (size_t sector = 0; sector < validInputs.size(); sector++) {
+            if (validInputs.test(sector)) {
+              if (rangeStart < 0) {
+                if (rangeEnd >= 0) {
+                  bitInfo += ",";
+                }
+                bitInfo += std::to_string(sector);
+                if (nActiveBits == 1) {
+                  break;
+                }
+                rangeStart = sector;
+              }
+              rangeEnd = sector;
+            } else {
+              if (rangeStart >= 0 && rangeEnd > rangeStart) {
+                bitInfo += "-" + std::to_string(rangeEnd);
+              }
+              rangeStart = -1;
+            }
+          }
+          if (rangeStart >= 0 && rangeEnd > rangeStart) {
+            bitInfo += "-" + std::to_string(rangeEnd);
+          }
+        }
+        LOG(INFO) << "running tracking for sector(s) " << bitInfo;
       }
       ClusterNativeAccessFullTPC clusterIndex;
       memset(&clusterIndex, 0, sizeof(clusterIndex));
