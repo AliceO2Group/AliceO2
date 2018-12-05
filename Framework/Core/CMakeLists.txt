@@ -240,6 +240,7 @@ set(TEST_SRCS
       test/test_LogParsingHelpers.cxx
       test/test_ParallelProducer.cxx
       test/test_PtrHelpers.cxx
+      test/test_Root2ArrowTable.cxx
       test/test_Services.cxx
       test/test_SimpleRDataFrameProcessing.cxx
       test/test_SimpleStatefulProcessing01.cxx
