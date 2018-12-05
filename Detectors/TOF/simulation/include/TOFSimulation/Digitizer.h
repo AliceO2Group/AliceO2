@@ -90,7 +90,7 @@ class Digitizer
   Float_t mEffBoundary3;
 
   // info TOF timewindow
-  Int_t mReadoutWindowCurrent;
+  Int_t mReadoutWindowCurrent = 0;
   Double_t mEventTime;
   Int_t mEventID = 0;
   Int_t mSrcID = 0;

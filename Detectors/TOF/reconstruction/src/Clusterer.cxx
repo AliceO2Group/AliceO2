@@ -20,12 +20,6 @@
 using namespace o2::tof;
 
 //__________________________________________________
-Clusterer::Clusterer()
-{
-
-  // empty for now
-}
-//__________________________________________________
 void Clusterer::process(DataReader& reader, std::vector<Cluster>& clusters, MCLabelContainer const* digitMCTruth)
 {
   reader.init();

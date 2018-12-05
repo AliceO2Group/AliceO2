@@ -68,13 +68,13 @@ void MatchTOF::run()
     // printing the tracks    
     std::array<float, 3> globalPosTmp;
     int totTracks = 0; 
-    /*
+    
     for (int sec = o2::constants::math::NSectors; sec--;) {
-      Printf("\nsector %d", sec);
+     Printf("\nsector %d", sec);
       auto& cacheTrkTmp = mTracksSectIndexCache[sec];   // array of cached tracks indices for this sector; reminder: they are ordered in time!
       for (int itrk = 0; itrk < cacheTrkTmp.size(); itrk++){
 	auto& trc = mTracksWork[cacheTrkTmp[itrk]];
-	trc.getXYZGlo(globalPosTmp);
+        trc.getXYZGlo(globalPosTmp);
 	LOG(INFO) << "Track" << totTracks << " [in this sector it is the " << itrk << "]: Global coordinates After propagating to 371 cm: globalPos[0] = " << globalPosTmp[0] << ", globalPos[1] = " << globalPosTmp[1] << ", globalPos[2] = " << globalPosTmp[2];
 	LOG(INFO) << "The phi angle is " << TMath::ATan2(globalPosTmp[1], globalPosTmp[0]);
 	totTracks++;
@@ -405,7 +405,7 @@ bool MatchTOF::loadTracksNextChunk()
 bool MatchTOF::loadTOFClustersNextChunk()
 {
   ///< load next chunk of clusters to be matched to TOF
-  printf("Loading TOF clusters: number of entries in tree = %d\n", mTreeTOFClusters->GetEntries());
+  printf("Loading TOF clusters: number of entries in tree = %lld\n", mTreeTOFClusters->GetEntries());
   while (++mCurrTOFClustersTreeEntry < mTreeTOFClusters->GetEntries()) {
     mTreeTOFClusters->GetEntry(mCurrTOFClustersTreeEntry);
     LOG(DEBUG) << "Loading TOF clusters entry " << mCurrTOFClustersTreeEntry << " -> " << mTOFClustersArrayInp->size()
@@ -603,8 +603,8 @@ void MatchTOF::doMatching(int sec)
       int eventIdTOF;
       int sourceIdTOF;
       for (auto iPropagation = 0; iPropagation < nStripsCrossedInPropagation; iPropagation++) {
-        LOG(DEBUG) << "TOF Cluster [" << itof << ", " << cacheTOF[itof] << "]:      indices   = " << indices[0], indices[1], indices[2], indices[3], indices[4];
-        LOG(DEBUG) << "Propagated Track [" << itrk << ", " << cacheTrk[itrk] << "]: detId[" << iPropagation << "]  = " << detId[iPropagation][0], detId[iPropagation][1], detId[iPropagation][2], detId[iPropagation][3], detId[iPropagation][4];
+        LOG(DEBUG) << "TOF Cluster [" << itof << ", " << cacheTOF[itof] << "]:      indices   = " << indices[0] << ", " << indices[1] << ", " << indices[2] << ", " << indices[3] << ", " << indices[4];
+        LOG(DEBUG) << "Propagated Track [" << itrk << ", " << cacheTrk[itrk] << "]: detId[" << iPropagation << "]  = " << detId[iPropagation][0] << ", " << detId[iPropagation][1] << ", " << detId[iPropagation][2] << ", " << detId[iPropagation][3] << ", " << detId[iPropagation][4];
         float resX = deltaPos[iPropagation][0] - (indices[4] - detId[iPropagation][4]) * Geo::XPAD; // readjusting the residuals due to the fact that the propagation fell in a pad that was not exactly the one of the cluster
         float resZ = deltaPos[iPropagation][2] - (indices[3] - detId[iPropagation][3]) * Geo::ZPAD; // readjusting the residuals due to the fact that the propagation fell in a pad that was not exactly the one of the cluster
         float res = TMath::Sqrt(resX * resX + resZ * resZ);
@@ -637,7 +637,7 @@ void MatchTOF::doMatching(int sec)
         if (res < mSpaceTolerance) { // matching ok!
           LOG(DEBUG) << "MATCHING FOUND: We have a match! between track " << mTracksSectIndexCache[indices[0]][itrk] << " and TOF cluster " << mTOFClusSectIndexCache[indices[0]][itof];
           foundCluster = true;
-          mMatchedTracksPairs.push_back(std::make_pair(mTracksSectIndexCache[indices[0]][itrk], o2::dataformats::MatchInfoTOF(mTOFClusSectIndexCache[indices[0]][itof], chi2))); // TODO: check if this is correct!
+          mMatchedTracksPairs.emplace_back(std::make_pair(mTracksSectIndexCache[indices[0]][itrk], o2::dataformats::MatchInfoTOF(mTOFClusSectIndexCache[indices[0]][itof], chi2))); // TODO: check if this is correct!
           for (int ilabel = 0; ilabel < labelsTOF.size(); ilabel++) {
             LOG(DEBUG) << "TOF label " << ilabel << ": trackID = " << labelsTOF[ilabel].getTrackID() << ", eventID = " << labelsTOF[ilabel].getEventID() << ", sourceID = " << labelsTOF[ilabel].getSourceID();
           }
