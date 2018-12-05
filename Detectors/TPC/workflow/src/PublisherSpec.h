@@ -8,22 +8,43 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   ClusterReaderSpec.h
+/// @file   DigitReaderSpec.h
 /// @author Matthias Richter
-/// @since  2018-01-15
+/// @since  2018-12-06
 /// @brief  Processor spec for a reader of TPC data from ROOT file
 
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/OutputSpec.h"
 #include <vector>
+#include <string>
 
 namespace o2
 {
 namespace TPC
 {
 
+using OutputSpec = framework::OutputSpec;
+
+struct PublisherConf {
+  struct BranchOptionConfig {
+    std::string option;
+    std::string defval;
+    std::string help;
+  };
+
+  std::string processName;
+  std::string defaultTreeName;
+  BranchOptionConfig databranch;
+  BranchOptionConfig mcbranch;
+  OutputSpec dataoutput;
+  OutputSpec mcoutput;
+  std::vector<int> tpcSectors;
+  size_t fanOut = 1;
+};
+
 /// create a processor spec
-/// read simulated TPC clusters from file and publish
-framework::DataProcessorSpec getClusterReaderSpec(std::vector<int> const& tpcSectors, size_t fanOut);
+/// read data from multiple tree branches from ROOT file and publish
+framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC = true);
 
 } // end namespace TPC
 } // end namespace o2

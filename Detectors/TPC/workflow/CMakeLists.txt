@@ -14,8 +14,7 @@ set(MODULE_BUCKET_NAME TPC_workflow_bucket)
 O2_SETUP(NAME ${MODULE_NAME})
 set(SRCS
    src/RecoWorkflow.cxx
-   src/DigitReaderSpec.cxx
-   src/ClusterReaderSpec.cxx
+   src/PublisherSpec.cxx
    src/ClustererSpec.cxx
    src/ClusterConverterSpec.cxx
    src/ClusterDecoderRawSpec.cxx
@@ -37,4 +36,15 @@ O2_GENERATE_EXECUTABLE(
 
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${BUCKET_NAME}
+)
+
+set(TEST_SRCS
+      test/test_TPCWorkflow.cxx
+   )
+
+O2_GENERATE_TESTS(
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${BUCKET_NAME}
+  TEST_SRCS ${TEST_SRCS}
+  TIMEOUT 60
 )

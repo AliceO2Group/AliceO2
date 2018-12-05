@@ -25,11 +25,13 @@ namespace TPC
 namespace RecoWorkflow
 {
 /// define input and output types of the workflow
-enum struct InputType { Digitizer, // directly read digits from  {TPC:DIGITS}
-                        Digits,    // read digits from file
-                        Clusters,  // read clusters from file
+enum struct InputType { Digitizer,       // directly read digits from  {TPC:DIGITS}
+                        Digits,          // read digits from file
+                        Clusters,        // read clusters from file
+                        DecodedClusters, // read decoded clusters from file
                         Raw };
-enum struct OutputType { Clusters,
+enum struct OutputType { Digits,
+                         Clusters,
                          Raw,
                          DecodedClusters,
                          Tracks };
