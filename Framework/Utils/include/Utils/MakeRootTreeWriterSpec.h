@@ -42,6 +42,12 @@ namespace framework
 /// A branch definition is always bound to a data type, the advanced version supports
 /// multiple branches for the same data type. See further down.
 ///
+/// While the generic writer is primarily intended for ROOT serializable objects, a special
+/// case is the writing of binary data when const char* is used as type. Data is written
+/// as a std::vector<char>, this ensures separation on event basis as well as having binary
+/// data in parallel to ROOT objects in the same file, e.g. a binary data format from the
+/// reconstruction in parallel to MC labels.
+///
 /// The processor spec is generated with the following options:
 ///   --outfile
 ///   --treename

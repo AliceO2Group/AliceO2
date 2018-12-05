@@ -64,6 +64,12 @@ namespace framework
 /// and a callback creating the branch name for base name and index. A single input can
 /// also be distributed to multiple branches if the getIndex callback calculates the index
 /// from another piece of information in the header stack.
+///
+/// While the generic writer is primarily intended for ROOT serializable objects, a special
+/// case is the writing of binary data when const char* is used as type. Data is written
+/// as a std::vector<char>, this ensures separation on event basis as well as having binary
+/// data in parallel to ROOT objects in the same file, e.g. a binary data format from the
+/// reconstruction in parallel to MC labels.
 class RootTreeWriter
 {
  public:
@@ -238,6 +244,9 @@ class RootTreeWriter
     void process(InputContext&, std::vector<BranchSpec>&) {}
   };
 
+  template <typename T = char>
+  using BinaryBranchStoreType = std::tuple<std::vector<T>, TBranch*, size_t>;
+
   /// one element in the tree structure object
   /// it contains the previous element as base class and is bound to a data type.
   template <typename DataT, typename BASE>
@@ -245,7 +254,12 @@ class RootTreeWriter
   {
    public:
     using PrevT = BASE;
-    using type = DataT;
+    using value_type = DataT;
+    using store_type = typename std::conditional<std::is_same<DataT, const char*>::value,
+                                                 BinaryBranchStoreType<char>,
+                                                 typename std::conditional<has_root_dictionary<value_type>::value,
+                                                                           value_type*,
+                                                                           value_type>::type>::type;
     static const size_t STAGE = BASE::STAGE + 1;
     TreeStructureElement() = default;
     ~TreeStructureElement() override = default;
@@ -263,6 +277,30 @@ class RootTreeWriter
     }
     size_t size() const override { return STAGE; }
 
+    // the default method creates branch using address to store variable
+    // Note: the type of the store variable is pointer to object for objects with a ROOT TClass
+    // interface, or plain type for all others
+    template <typename T, typename std::enable_if_t<!std::is_same<T, const char*>::value, int> = 0>
+    TBranch* createBranch(TTree* tree, const char* name, size_t branchIdx)
+    {
+      return tree->Branch(name, &(mStore.at(branchIdx)));
+    }
+
+    // specialization for binary buffers indicated by const char*
+    // a variable binary data branch is written, the size of each entry is stored in a size branch
+    template <typename T, typename std::enable_if_t<std::is_same<T, const char*>::value, int> = 0>
+    TBranch* createBranch(TTree* tree, const char* name, size_t branchIdx)
+    {
+      // size variable to write the size of the data branch
+      std::get<2>(mStore.at(branchIdx)) = 1;
+      // branch name of the size branch
+      std::string sizeBranchName = std::string(name) + "Size";
+      // leaf list: one leaf of type unsinged int
+      std::string leafList = sizeBranchName + "/i";
+      std::get<1>(mStore.at(branchIdx)) = tree->Branch(sizeBranchName.c_str(), &(std::get<2>(mStore.at(branchIdx))), leafList.c_str());
+      return tree->Branch(name, &(std::get<0>(mStore.at(branchIdx))));
+    }
+
     /// setup this instance and recurse to the parent one
     void setupInstance(std::vector<BranchSpec>& specs, TTree* tree)
     {
@@ -270,14 +308,61 @@ class RootTreeWriter
       // i.e. the base class method.
       PrevT::setupInstance(specs, tree);
       constexpr size_t SpecIndex = STAGE - 1;
+      specs[SpecIndex].classinfo = TClass::GetClass(typeid(value_type));
+      if (std::is_same<value_type, const char*>::value == false && std::is_fundamental<value_type>::value == false &&
+          specs[SpecIndex].classinfo == nullptr) {
+        // for all non-fundamental types but the special case for binary chunks, a dictionary is required
+        // FIXME: find a reliable way to check that the type has been specified in the LinkDef
+        // Only then the required functionality for streaming the type to the branch is available.
+        // If e.g. a standard container of some ROOT serializable type has not been specified in
+        // LinkDef, the functionality is not available and the attempt to stream will simply crash.
+        // Unfortunately, a class info object can be extracted for the type, so this check does not help
+        throw std::runtime_error(std::to_string(SpecIndex) + ": no dictionary available for non-fundamental type " + typeid(value_type).name());
+      }
       size_t branchIdx = 0;
       mStore.resize(specs[SpecIndex].names.size());
       for (auto const& name : specs[SpecIndex].names) {
-        specs[SpecIndex].branches.at(branchIdx) = tree->Branch(name.c_str(), &(mStore.at(branchIdx)));
+        specs[SpecIndex].branches.at(branchIdx) = createBranch<value_type>(tree, name.c_str(), branchIdx);
         LOG(INFO) << SpecIndex << ": branch  " << name << " set up";
         branchIdx++;
       }
-      specs[SpecIndex].classinfo = TClass::GetClass(typeid(type));
+    }
+
+    // specialization for trivial structs or serialized objects without a TClass interface
+    // the extracted object is copied to store variable
+    template <typename T, typename std::enable_if_t<std::is_same<T, value_type>::value, int> = 0>
+    void fillData(InputContext& context, const char* key, TBranch* branch, size_t branchIdx)
+    {
+      auto data = context.get<typename std::add_pointer<value_type>::type>(key);
+      mStore[branchIdx] = *data;
+      branch->Fill();
+    }
+
+    // specialization for objects with ROOT dictionary
+    // for non-trivial structs, the address of the pointer to the objects needs to be used
+    // in order to directly use the pointer to extracted object
+    // store is a pointer to object
+    template <typename T, typename std::enable_if_t<std::is_same<T, value_type*>::value, int> = 0>
+    void fillData(InputContext& context, const char* key, TBranch* branch, size_t branchIdx)
+    {
+      auto data = context.get<typename std::add_pointer<value_type>::type>(key);
+      // this is ugly but necessary because of the TTree API does not allow a const
+      // object as input. Have to rely on that ROOT treats the object as const
+      mStore[branchIdx] = const_cast<value_type*>(data.get());
+      branch->Fill();
+    }
+
+    // specialization for binary buffers using const char*
+    // this writes both the data branch and a size branch
+    template <typename T, typename std::enable_if_t<std::is_same<T, BinaryBranchStoreType<char>>::value, int> = 0>
+    void fillData(InputContext& context, const char* key, TBranch* branch, size_t branchIdx)
+    {
+      auto data = context.get<gsl::span<char>>(key);
+      std::get<2>(mStore.at(branchIdx)) = data.size();
+      std::get<1>(mStore.at(branchIdx))->Fill();
+      std::get<0>(mStore.at(branchIdx)).resize(data.size());
+      memcpy(std::get<0>(mStore.at(branchIdx)).data(), data.data(), data.size());
+      branch->Fill();
     }
 
     // process previous stage and this stage
@@ -299,29 +384,13 @@ class RootTreeWriter
             continue;
           }
         }
-        auto& store = mStore[branchIdx];
-        auto data = context.get<type*>(key.c_str());
-        // could either copy to the corresponding store variable or use the object
-        // directly. TBranch::SetAddress supports only non-const pointers, so this is
-        // a hack
-        // FIXME: get rid of the const_cast
-        // FIXME: using object directly results in a segfault in the Streamer when
-        // using std::vector<o2::test::Polymorphic> in test_RootTreeWriter.cxx
-        // for std::vector, the branch has sub-branches so maybe the address can not
-        // simply be set
-        //spec.branches.at(branchIdx)->SetAddress(const_cast<type*>(data.get()));
-        // handling copy-or-move is also more complicated because the returned smart
-        // pointer wraps a const buffer which might reside in the input queue and
-        // thus can not be moved.
-        //copyOrMove(store, (type&)*data);
-        store = *data;
-        spec.branches.at(branchIdx)->Fill();
+        fillData<store_type>(context, key.c_str(), spec.branches.at(branchIdx), branchIdx);
       }
     }
 
    private:
-    /// internal store variable of the type wraped by this instance
-    std::vector<type> mStore;
+    /// internal store variable of the type wrapped by this instance
+    std::vector<store_type> mStore;
   };
 
   /// recursively step through all members of the store and set up corresponding branch
@@ -363,18 +432,6 @@ class RootTreeWriter
   {
     std::unique_ptr<TreeStructureInterface> ret(new T);
     return std::move(ret);
-  }
-
-  template <typename T>
-  static typename std::enable_if<std::is_move_assignable<T>::value == true>::type copyOrMove(T& from, T& to)
-  {
-    to = std::move(from);
-  }
-
-  template <typename T>
-  static typename std::enable_if<std::is_move_assignable<T>::value == false>::type copyOrMove(T& from, T& to)
-  {
-    to = from;
   }
 
   /// the output file
