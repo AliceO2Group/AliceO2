@@ -26,7 +26,7 @@ namespace tof
 class Digitizer
 {
  public:
-  Digitizer(Int_t mode = 0) : mMode(mode), mReadoutWindowCurrent(0) { init(); };
+  Digitizer(Int_t mode = 0) : mMode(mode) { init(); };
   ~Digitizer() = default;
 
   void init();
