@@ -176,7 +176,7 @@ class GenericRootTreeReader
   bool operator()(ContextType& context,
                   HeaderTypes&&... headers) const
   {
-    auto snapshot = [&context, &headers...](const KeyType& key, const ROOTSerializedByClass& object) {
+    auto snapshot = [&context, &headers...](const KeyType& key, const auto& object) {
       o2::header::Stack stack{ std::forward<HeaderTypes>(headers)... };
       context.outputs().snapshot(Output{ key.origin, key.description, key.subSpec, key.lifetime, std::move(stack) }, object);
     };
@@ -184,12 +184,9 @@ class GenericRootTreeReader
     return process(snapshot);
   }
 
-  bool process(std::function<void(const KeyType&, const ROOTSerializedByClass&)> snapshot) const
+  template <typename F>
+  bool process(F&& snapshot) const
   {
-    if (!snapshot) {
-      return false;
-    }
-
     if (mEntry >= mNEntries || mNEntries == 0 || (mMaxEntries > 0 && mEntry >= mMaxEntries)) {
       return false;
     }
@@ -199,7 +196,20 @@ class GenericRootTreeReader
         // FIXME: is this an error?
         continue;
       }
-      snapshot(spec.first, ROOTSerializedByClass(*spec.second->data, spec.second->classinfo));
+      if (spec.second->sizebranch == nullptr) {
+        snapshot(spec.first, ROOTSerializedByClass(*spec.second->data, spec.second->classinfo));
+      } else {
+        auto* buffer = reinterpret_cast<std::vector<char>*>(spec.second->data);
+        if (buffer->size() == spec.second->datasize) {
+          LOG(INFO) << "branch " << spec.second->name << ": publishing binary chunk of " << spec.second->datasize << " bytes(s)";
+          snapshot(spec.first, *buffer);
+        } else {
+          LOG(ERROR) << "branch " << spec.second->name << ": inconsitent size of binary chunk "
+                     << buffer->size() << " vs " << spec.second->datasize;
+          std::vector<char> empty;
+          snapshot(spec.first, empty);
+        }
+      }
     }
     return true;
   }
@@ -214,7 +224,9 @@ class GenericRootTreeReader
   struct BranchSpec {
     std::string name;
     char* data = nullptr;
+    size_t datasize = 0;
     TBranch* branch = nullptr;
+    TBranch* sizebranch = nullptr;
     TClass* classinfo = nullptr;
   };
 
@@ -223,13 +235,25 @@ class GenericRootTreeReader
   void addBranchSpec(KeyType key, const char* branchName)
   {
     // right now we allow the same key to appear for multiple branches
-    mBranchSpecs.emplace_back(key, std::make_unique<BranchSpec>(BranchSpec{ branchName }));
-    auto branch = mInput.GetBranch(mBranchSpecs.back().second->name.c_str());
+    auto branch = mInput.GetBranch(branchName);
     if (branch) {
+      mBranchSpecs.emplace_back(key, std::make_unique<BranchSpec>(BranchSpec{ branchName }));
       branch->SetAddress(&(mBranchSpecs.back().second->data));
       mBranchSpecs.back().second->branch = branch;
-      mBranchSpecs.back().second->classinfo = TClass::GetClass(branch->GetClassName());
-      LOG(INFO) << "branch set up: " << branchName;
+      std::string sizebranchName = std::string(branchName) + "Size";
+      auto sizebranch = mInput.GetBranch(sizebranchName.c_str());
+      if (!sizebranch) {
+        mBranchSpecs.back().second->classinfo = TClass::GetClass(branch->GetClassName());
+        LOG(INFO) << "branch set up: " << branchName;
+      } else {
+        auto* classinfo = TClass::GetClass(branch->GetClassName());
+        if (classinfo == nullptr || classinfo != TClass::GetClass(typeid(std::vector<char>))) {
+          throw std::runtime_error("mismatching class type, expecting std::vector<char> for binary branch");
+        }
+        mBranchSpecs.back().second->sizebranch = sizebranch;
+        sizebranch->SetAddress(&(mBranchSpecs.back().second->datasize));
+        LOG(INFO) << "binary branch set up: " << branchName;
+      }
     } else {
       std::string msg("can not find branch ");
       msg += branchName;
