@@ -157,6 +157,7 @@ set(HEADERS
       include/Framework/FairMQResizableBuffer.h
       include/Framework/Metric2DViewIndex.h
       include/Framework/RawBufferContext.h
+      include/Framework/observer_ptr.h
       src/ComputingResource.h
       src/DDSConfigHelpers.h
       src/O2ControlHelpers.h
