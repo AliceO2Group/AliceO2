@@ -33,7 +33,7 @@ class AliHLTTRDTrackerDebug
                     fRoadY.Zero(); fRoadZ.Zero(); fTrackletXReal.Zero(); fTrackletYReal.Zero(); fTrackletZReal.Zero(); ; fTrackletYcorrReal.Zero(); fTrackletZcorrReal.Zero();
                     fTrackletSecReal.Zero(); fTrackletDetReal.Zero(); fTrackXReal.Zero(); fTrackYReal.Zero(); fTrackZReal.Zero(); fTrackSecReal.Zero();
                     fChi2Update.Zero(); fChi2Real.Zero(); fNmatchesAvail.Zero(); fFindable.Zero(); fFindableMC.Zero(); fUpdates.Zero();
-                    fEv = 0; fNTPCtracks = 0; fTrk = 0; fTrackId = 0; fPtTPC = 0.f; fNtrklts = 0; fNtrkltsRef = 0; fTrackIDref = -1; fNlayers = 0; fChi2 = 0.f; fNmatch = 0; fNfake = 0; fNrelated = 0;
+                    fEv = 0; fNTPCtracks = 0; fTrk = 0; fTrackId = 0; fPtTPC = 0.f; fNtrklts = 0; fNtrkltsRef = 0; fNtrkltsRefMatch = 0; fNtrkltsRefRelated = 0; fNtrkltsRefFake = 0; fTrackIDref = -1; fNlayers = 0; fChi2 = 0.f; fNmatch = 0; fNfake = 0; fNrelated = 0;
                     fXvMC = 0; fYvMC = 0; fZvMC = 0; fPdgCode = 0;
                  }
 
@@ -51,7 +51,7 @@ class AliHLTTRDTrackerDebug
             { fTrackNoUpX(ly) = trk.getX(); fTrackNoUpY(ly) = trk.getY(); fTrackNoUpZ(ly) = trk.getZ(); fTrackNoUpPhi(ly) = trk.getSnp(); fTrackNoUpLambda(ly) = trk.getTgl();
               fTrackNoUpPt(ly) = trk.getPt(); fTrackNoUpSector(ly) = GetSector(trk.getAlpha()); fTrackNoUpYerr(ly) = trk.getSigmaY2(); fTrackNoUpZerr(ly) = trk.getSigmaZ2(); }
     void SetTrackParameterReal(const HLTTRDTrack &trk, int ly) { fTrackXReal(ly) = trk.getX(); fTrackYReal(ly) = trk.getY(); fTrackZReal(ly) = trk.getZ(); fTrackSecReal(ly) = GetSector(trk.getAlpha()); }
-    void SetTrack(const HLTTRDTrack &trk) { fChi2 = trk.GetChi2(); fNlayers = trk.GetNlayers(); fNtrklts = trk.GetNtracklets(); fNtrkltsRef = trk.GetNtrackletsOffline(); fTrackIDref = trk.GetLabelOffline();
+    void SetTrack(const HLTTRDTrack &trk) { fChi2 = trk.GetChi2(); fNlayers = trk.GetNlayers(); fNtrklts = trk.GetNtracklets(); fNtrkltsRef = trk.GetNtrackletsOffline(0); fNtrkltsRefMatch = trk.GetNtrackletsOffline(1); fNtrkltsRefRelated = trk.GetNtrackletsOffline(2); fNtrkltsRefFake = trk.GetNtrackletsOffline(3); fTrackIDref = trk.GetLabelOffline();
                                                 for (int iLy=0; iLy<6; iLy++) { if (trk.GetIsFindable(iLy)) fFindable(iLy) = 1; } }
 
     // tracklet parameters
@@ -126,6 +126,9 @@ class AliHLTTRDTrackerDebug
         "nLayers=" << fNlayers <<                     // number of layers in which track was findable
         "nTracklets=" << fNtrklts <<                  // number of attached tracklets
         "nTrackletsOffline=" << fNtrkltsRef <<        // number of attached offline tracklets
+        "nTrackletsOfflineMatch=" << fNtrkltsRefMatch <<     // number of attached offline tracklets
+        "nTrackletsOfflineRelated=" << fNtrkltsRefRelated << // number of attached offline tracklets
+        "nTrackletsOfflineFake=" << fNtrkltsRefFake <<       // number of attached offline tracklets
         "labelRef=" << fTrackIDref <<                 // TRD MC track label from offline, if provided
         "roadY.=" << &fRoadY <<                       // search road width in Y
         "roadZ.=" << &fRoadZ <<                       // search road width in Z
@@ -151,6 +154,9 @@ class AliHLTTRDTrackerDebug
     float fPtTPC;
     int fNtrklts;
     int fNtrkltsRef;
+    int fNtrkltsRefMatch;
+    int fNtrkltsRefRelated;
+    int fNtrkltsRefFake;
     int fTrackIDref;
     int fNlayers;
     float fChi2;

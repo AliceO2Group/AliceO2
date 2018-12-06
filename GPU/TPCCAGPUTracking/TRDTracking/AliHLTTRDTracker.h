@@ -60,8 +60,8 @@ class AliHLTTRDTracker {
   GPUd() void Reset();
   GPUd() void StartLoadTracklets(const int nTrklts);
   GPUd() void LoadTracklet(const AliHLTTRDTrackletWord &tracklet);
-  GPUd() void DoTracking(HLTTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTPCnTrklts = 0x0, int *tracksTRDlabel = 0x0);
-  GPUd() void DoTrackingThread(HLTTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int iTrk, int threadId, int *tracksTPCnTrklts = 0x0, int *tracksTRDlabel = 0x0);
+  GPUd() void DoTracking(HLTTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTRDnTrklts = 0x0, int *tracksTRDlab = 0x0);
+  GPUd() void DoTrackingThread(HLTTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int iTrk, int threadId, int *tracksTRDnTrklts = 0x0, int *tracksTRDlab = 0x0);
   GPUd() bool CalculateSpacePoints();
   GPUd() bool FollowProlongation(HLTTRDPropagator *prop, HLTTRDTrack *t, int nTPCtracks, int threadId);
   GPUd() int GetDetectorNumber(const float zPos, const float alpha, const int layer) const;

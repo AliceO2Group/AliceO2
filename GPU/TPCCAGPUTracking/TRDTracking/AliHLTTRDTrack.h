@@ -33,7 +33,7 @@ class AliHLTTRDTrack : public T
   GPUd() int   GetTracklet(int iLayer)      const;
   GPUd() int   GetTPCtrackId()              const { return fTPCtrackId; }
   GPUd() int   GetNtracklets()              const { return fNtracklets; }
-  GPUd() int   GetNtrackletsOffline()       const { return fNtrackletsOffline; }
+  GPUd() int   GetNtrackletsOffline(int type) const { return fNtrackletsOffline[type]; }
   GPUd() int   GetLabelOffline()            const { return fLabelOffline; }
   GPUd() int   GetLabel()                   const { return fLabel; }
   GPUd() float GetChi2()                    const { return fChi2; }
@@ -48,7 +48,7 @@ class AliHLTTRDTrack : public T
   GPUd() void SetTPCtrackId(int v)              { fTPCtrackId = v;}
   GPUd() void SetNtracklets(int nTrklts)        { fNtracklets = nTrklts; }
   GPUd() void SetIsFindable(int iLayer)         { fIsFindable[iLayer] = true; }
-  GPUd() void SetNtrackletsOffline(int nTrklts) { fNtrackletsOffline = nTrklts; }
+  GPUd() void SetNtrackletsOffline(int type, int nTrklts) { fNtrackletsOffline[type] = nTrklts; }
   GPUd() void SetLabelOffline(int lab)          { fLabelOffline = lab; }
   GPUd() void SetIsStopped()                    { fIsStopped = true; }
 
@@ -70,7 +70,7 @@ class AliHLTTRDTrack : public T
   int fTPCtrackId;                  // corresponding TPC track
   int fNtracklets;                  // number of attached TRD tracklets
   int fNmissingConsecLayers;        // number of missing consecutive layers
-  int fNtrackletsOffline;           // number of attached offline TRD tracklets for debugging only
+  int fNtrackletsOffline[4];        // for debugging: attached offline TRD tracklets (0: total, 1: match, 2: related, 3: fake)
   int fLabelOffline;                // offline TRD MC label of this track
   int fAttachedTracklets[kNLayers]; // IDs for attached tracklets sorted by layer
   bool fIsFindable[kNLayers];       // number of layers where tracklet should exist

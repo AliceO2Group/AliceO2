@@ -13,7 +13,6 @@ GPUd() AliHLTTRDTrack<T>::AliHLTTRDTrack(const AliHLTExternalTrackParam &t) :
   fTPCtrackId(0),
   fNtracklets(0),
   fNmissingConsecLayers(0),
-  fNtrackletsOffline(0),
   fLabelOffline(-1),
   fIsStopped(false)
 {
@@ -23,6 +22,9 @@ GPUd() AliHLTTRDTrack<T>::AliHLTTRDTrack(const AliHLTExternalTrackParam &t) :
   for (int i=0; i<kNLayers; ++i) {
     fAttachedTracklets[i] = -1;
     fIsFindable[i] = 0;
+  }
+  for (int j=0; j<4; ++j) {
+    fNtrackletsOffline[j] = 0;
   }
 }
 #endif
@@ -35,7 +37,6 @@ GPUd() AliHLTTRDTrack<T>::AliHLTTRDTrack() :
   fTPCtrackId(0),
   fNtracklets(0),
   fNmissingConsecLayers(0),
-  fNtrackletsOffline(0),
   fLabelOffline(0),
   fIsStopped(false)
 {
@@ -45,6 +46,9 @@ GPUd() AliHLTTRDTrack<T>::AliHLTTRDTrack() :
   for (int i=0; i<kNLayers; ++i) {
     fAttachedTracklets[i] = -1;
     fIsFindable[i] = 0;
+  }
+  for (int j=0; j<4; ++j) {
+    fNtrackletsOffline[j] = 0;
   }
 }
 
@@ -58,7 +62,6 @@ GPUd() AliHLTTRDTrack<T>::AliHLTTRDTrack(const AliHLTTRDTrack<T>& t) :
   fTPCtrackId( t.fTPCtrackId ),
   fNtracklets( t.fNtracklets ),
   fNmissingConsecLayers( t.fNmissingConsecLayers ),
-  fNtrackletsOffline( t.fNtrackletsOffline ),
   fLabelOffline( t.fLabelOffline ),
   fIsStopped( t.fIsStopped )
 {
@@ -68,6 +71,9 @@ GPUd() AliHLTTRDTrack<T>::AliHLTTRDTrack(const AliHLTTRDTrack<T>& t) :
   for (int i=0; i<kNLayers; ++i) {
     fAttachedTracklets[i] = t.fAttachedTracklets[i];
     fIsFindable[i] = t.fIsFindable[i];
+  }
+  for (int j=0; j<4; ++j) {
+    fNtrackletsOffline[j] = t.fNtrackletsOffline[j];
   }
 }
 
@@ -80,7 +86,6 @@ GPUd() AliHLTTRDTrack<T>::AliHLTTRDTrack(const T& t) :
   fTPCtrackId(0),
   fNtracklets(0),
   fNmissingConsecLayers(0),
-  fNtrackletsOffline(0),
   fLabelOffline(-1),
   fIsStopped(false)
 {
@@ -90,6 +95,9 @@ GPUd() AliHLTTRDTrack<T>::AliHLTTRDTrack(const T& t) :
   for (int i=0; i<kNLayers; ++i) {
     fAttachedTracklets[i] = -1;
     fIsFindable[i] = 0;
+  }
+  for (int j=0; j<4; ++j) {
+    fNtrackletsOffline[j] = 0;
   }
 }
 
@@ -107,12 +115,14 @@ GPUd() AliHLTTRDTrack<T> &AliHLTTRDTrack<T>::operator=(const AliHLTTRDTrack<T>& 
   fTPCtrackId = t.fTPCtrackId;
   fNtracklets = t.fNtracklets;
   fNmissingConsecLayers = t.fNmissingConsecLayers;
-  fNtrackletsOffline = t.fNtrackletsOffline;
   fLabelOffline = t.fLabelOffline;
   fIsStopped = t.fIsStopped;
   for (int i=0; i<kNLayers; ++i) {
     fAttachedTracklets[i] = t.fAttachedTracklets[i];
     fIsFindable[i] = t.fIsFindable[i];
+  }
+  for (int j=0; j<4; ++j) {
+    fNtrackletsOffline[j] = t.fNtrackletsOffline[j];
   }
   return *this;
 }
@@ -202,12 +212,14 @@ GPUd() void AliHLTTRDTrack<T>::ConvertFrom( const AliHLTTRDTrackDataRecord &t )
   fNtracklets = 0;
   fNmissingConsecLayers = 0;
   fLabelOffline = -1;
-  fNtrackletsOffline = 0;
   fIsStopped = false;
   for ( int iLayer=0; iLayer < kNLayers; iLayer++ ){
     fAttachedTracklets[iLayer] = t.fAttachedTracklets[ iLayer ];
     fIsFindable[iLayer] = 0;
     if( fAttachedTracklets[iLayer]>=0 ) fNtracklets++;
+  }
+  for (int j=0; j<4; ++j) {
+    fNtrackletsOffline[j] = 0;
   }
 }
 
