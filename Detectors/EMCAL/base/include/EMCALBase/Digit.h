@@ -15,6 +15,7 @@
 #include <cmath>
 #include "Rtypes.h"
 #include "CommonDataFormat/TimeStamp.h"
+#include "EMCALBase/Constants.h"
 
 #include <boost/serialization/base_object.hpp> // for base_object
 
@@ -40,7 +41,7 @@ class Digit : public DigitBase
 
   bool canAdd(const Digit other)
   {
-    return (mTower == other.GetTower() && fabs(getTimeStamp() - other.getTimeStamp()) <= 25);
+    return (mTower == other.GetTower() && std::abs(getTimeStamp() - other.getTimeStamp()) <= constants::EMCAL_TIMESAMPLE);
   }
 
   Digit& operator+=(const Digit& other);              // Adds energy of other digits to this digit.

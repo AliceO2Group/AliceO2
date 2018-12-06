@@ -10,6 +10,8 @@
 #ifndef ALICEO2_EMCAL_CONSTANTS_H_
 #define ALICEO2_EMCAL_CONSTANTS_H_
 
+#include <Rtypes.h>
+
 namespace o2
 {
 namespace EMCAL
@@ -21,6 +23,12 @@ enum {
   EMCAL_LEDREFS = 24,   ///< Number of LEDs (reference/monitors) per module for EMCAL; one per StripModule
   EMCAL_TEMPSENSORS = 8 ///< Number Temperature sensors per module for EMCAL
 };
-}
-}
+
+namespace constants
+{
+constexpr Double_t EMCAL_TIMESAMPLE = 100.; ///< Width of a timebin in nanoseconds
+} // namespace constants
+
+} // namespace EMCAL
+} // namespace o2
 #endif
