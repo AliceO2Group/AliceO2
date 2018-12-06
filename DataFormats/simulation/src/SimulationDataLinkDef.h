@@ -37,6 +37,7 @@
 #pragma link C++ struct o2::dataformats::MCTruthHeaderElement + ;
 #pragma link C++ class o2::dataformats::MCTruthContainer < long > +;
 #pragma link C++ class o2::dataformats::MCTruthContainer < o2::MCCompLabel > +;
+#pragma link C++ class std::vector < o2::dataformats::MCTruthContainer < o2::MCCompLabel >> +;
 #pragma link C++ class std::vector < o2::MCCompLabel > +;
 #pragma link C++ class std::vector < o2::dataformats::MCTruthHeaderElement > +;
 
