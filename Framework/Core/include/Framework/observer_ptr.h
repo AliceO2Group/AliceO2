@@ -63,6 +63,12 @@ class observer_ptr
   element_type* mptr{ nullptr };
 };
 
+template <typename W>
+observer_ptr<W> make_observer(W* p) noexcept
+{
+  return observer_ptr(p);
+}
+
 } //namespace o2
 
 #endif
