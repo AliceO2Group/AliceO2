@@ -274,11 +274,14 @@ int AliHLTTPCCAGlobalMergerComponent::Configure( const char* cdbEntry, const cha
   // Initialize the merger
 
   AliGPUCAParam& param = fParam;
-  param.SetDefaults(fSolenoidBz);
-  if( fClusterErrorCorrectionY>1.e-4 ) param.ClusterError2CorrectionY = fClusterErrorCorrectionY*fClusterErrorCorrectionY;
-  if( fClusterErrorCorrectionZ>1.e-4 ) param.ClusterError2CorrectionZ = fClusterErrorCorrectionZ*fClusterErrorCorrectionZ;
-  param.NWays = fNWays;
-  param.NWaysOuter = fNWaysOuter;
+  AliGPUCASettingsEvent ev;
+  AliGPUCASettingsRec rec;
+  ev.solenoidBz = fSolenoidBz;
+  if( fClusterErrorCorrectionY>1.e-4 ) rec.ClusterError2CorrectionY = fClusterErrorCorrectionY*fClusterErrorCorrectionY;
+  if( fClusterErrorCorrectionZ>1.e-4 ) rec.ClusterError2CorrectionZ = fClusterErrorCorrectionZ*fClusterErrorCorrectionZ;
+  rec.NWays = fNWays;
+  rec.NWaysOuter = fNWaysOuter;
+  param.SetDefaults(&ev, &rec);
   fGlobalMerger->SetSliceParam( &param, GetTimeStamp(), 1 );
 
   return iResult1 ? iResult1 : ( iResult2 ? iResult2 : iResult3 );

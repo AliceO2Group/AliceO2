@@ -5,6 +5,10 @@
 #include <stdio.h>
 #include <memory>
 
+#include "AliHLTTRDDef.h"
+#include "AliGPUCAParam.h"
+#include "AliGPUCASettings.h"
+
 #include "AliHLTTPCCAClusterData.h"
 class AliHLTTPCCASliceOutput;
 class AliHLTTPCCASliceOutTrack;
@@ -16,12 +20,9 @@ class AliHLTTPCClusterMCLabel;
 class AliHLTTPCCAMCInfo;
 class AliHLTTRDTracker;
 class AliHLTTPCCAGPUTracker;
-#include "AliHLTTRDDef.h"
-#include "AliGPUCAParam.h"
-struct hltca_event_dump_settings;
 struct AliHLTTPCRawCluster;
-
 struct ClusterNativeAccessExt;
+
 namespace o2 { namespace ITS { class TrackerTraits; }}
 namespace o2 { namespace trd { class TRDGeometryFlat; }}
 namespace o2 { namespace TPC { struct ClusterNativeAccessFullTPC; struct ClusterNative; }}
@@ -155,16 +156,16 @@ public:
 	
 	//Getters / setters for parameters
 	DeviceType GetDeviceType() const {return mDeviceType;}
-	void SetParam(const AliGPUCAParam& param) {mParam = param;}
 	const AliGPUCAParam& GetParam() const {return mParam;}
 	const TPCFastTransform* GetTPCTransform() const {return mTPCFastTransform.get();}
 	const ClusterNativeAccessExt* GetClusterNativeAccessExt() const {return mClusterNativeAccess.get();}
-	AliGPUCAParam& GetParam() {return mParam;}
-	hltca_event_dump_settings& GetEventSettings() {return *mEventDumpSettings;}
-	void SetSettingsStandalone(float solenoidBz);
-	void SetSettingsStandalone(const hltca_event_dump_settings& settings);
+	const AliGPUCASettingsEvent& GetEventSettings() {return mEventSettings;}
+	const AliGPUCASettingsProcessing& GetProcessingSettings() {return mProcessingSettings;}
+	void SetSettings(float solenoidBz);
+	void SetSettings(const AliGPUCASettingsEvent* settings, const AliGPUCASettingsRec* rec = nullptr, const AliGPUCASettingsProcessing* proc = nullptr);
 	void SetTPCFastTransform(std::unique_ptr<TPCFastTransform> tpcFastTransform);
 	void SetTRDGeometry(const o2::trd::TRDGeometryFlat& geo);
+	void LoadClusterErrors();
 	
 protected:
 	AliGPUReconstruction(DeviceType type);								//Constructor
@@ -211,8 +212,10 @@ protected:
 	DeviceType mDeviceType;
 	
 	AliGPUCAParam mParam;														//Reconstruction parameters
+	AliGPUCASettingsEvent mEventSettings;										//Event Parameters
+	AliGPUCASettingsProcessing mProcessingSettings;								//Processing Parameters
+	
 	std::unique_ptr<TPCFastTransform> mTPCFastTransform;						//Global TPC fast transformation object
-	std::unique_ptr<hltca_event_dump_settings> mEventDumpSettings;				//Standalone event dump settings
 	std::unique_ptr<ClusterNativeAccessExt> mClusterNativeAccess;	//Internal memory for clusterNativeAccess
 	std::unique_ptr<o2::trd::TRDGeometryFlat> mTRDGeometry;						//TRD Geometry
 };

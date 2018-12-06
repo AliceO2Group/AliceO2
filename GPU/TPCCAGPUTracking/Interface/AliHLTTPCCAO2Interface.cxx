@@ -105,24 +105,20 @@ int AliHLTTPCCAO2Interface::Initialize(const char* options, std::unique_ptr<TPCF
 	if (mRec == nullptr) return 1;
 	if (fHLT->Initialize(mRec.get())) return 1;
 	
-	AliGPUCAParam param;
-	param.SetDefaults(solenoidBz);
-	param.HitPickUpFactor = 2;
-	param.MinNTrackClusters = -1;
-	param.SetMinTrackPt(MIN_TRACK_PT_DEFAULT);
-	param.AssumeConstantBz = false;
-	param.ToyMCEventsFlag = false;
-	param.ClusterError2CorrectionZ = 1.1;
+	AliGPUCASettingsRec rec;
+	AliGPUCASettingsEvent ev;
+	rec.SetDefaults();
+	ev.SetDefaults();
+	ev.solenoidBz = solenoidBz;
+	ev.continuousMaxTimeBin = fContinuous ? 0.023 * 5e6 : 0;
 
-	param.NWays = 3;
-	param.NWaysOuter = true;
+	rec.NWays = 3;
+	rec.NWaysOuter = true;
 	fHLT->SetGPUTrackerOption("HelperThreads", 0);
 	fHLT->SetGPUTrackerOption("GlobalTracking", 1);
-	param.SearchWindowDZDR = 2.5f;
-	param.ContinuousTracking = fContinuous;
-	param.TrackReferenceX = refX;
-	mRec->SetParam(param);
-	mRec->SetSettingsStandalone(param.BzkG);
+	rec.SearchWindowDZDR = 2.5f;
+	rec.TrackReferenceX = refX;
+	mRec->SetSettings(&ev, &rec);
 	mRec->SetTPCFastTransform(std::move(fastTrans));
 	for (int i = 0;i < 36;i++)
 	{
