@@ -53,7 +53,7 @@ MEM_CLASS_PRE23() GPUd() void AliHLTTPCCATrackletConstructor::StoreTracklet
   // reconstruction of tracklets, tracklet store step
   if ( r.fNHits && (r.fNHits < TRACKLET_SELECTOR_MIN_HITS(tParam.QPt()) ||
     !CheckCov(tParam) ||
-    CAMath::Abs(tParam.GetQPt()) > tracker.Param().MaxTrackQPt ))
+    CAMath::Abs(tParam.GetQPt()) > tracker.Param().rec.MaxTrackQPt ))
   {
     r.fNHits = 0;
   }
@@ -180,7 +180,7 @@ MEM_CLASS_PRE2() GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 
         if (r.fNHits >= 10)
         {
-          const float kFactor = tracker.Param().HitPickUpFactor * tracker.Param().HitPickUpFactor * 3.5 * 3.5;
+          const float kFactor = tracker.Param().rec.HitPickUpFactor * tracker.Param().rec.HitPickUpFactor * 3.5 * 3.5;
           float sy2 = kFactor * ( tParam.GetErr2Y() +  err2Y );
           float sz2 = kFactor * ( tParam.GetErr2Z() +  err2Z );
           if ( sy2 > 2. ) sy2 = 2.;
@@ -259,7 +259,7 @@ MEM_CLASS_PRE2() GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 
       { // search for the closest hit
         tracker.GetErrors2( iRow, *( ( MEM_LG2(AliHLTTPCCATrackParam)* )&tParam ), err2Y, err2Z );
-        const float kFactor = tracker.Param().HitPickUpFactor * tracker.Param().HitPickUpFactor * 3.5 * 3.5;
+        const float kFactor = tracker.Param().rec.HitPickUpFactor * tracker.Param().rec.HitPickUpFactor * 3.5 * 3.5;
         float sy2 = kFactor * ( tParam.GetErr2Y() +  err2Y );
         float sz2 = kFactor * ( tParam.GetErr2Z() +  err2Z );
         if ( sy2 > 2. ) sy2 = 2.;

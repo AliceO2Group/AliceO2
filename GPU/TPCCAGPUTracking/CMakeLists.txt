@@ -76,6 +76,7 @@ set(SRCS_NO_CINT
     GlobalTracker/AliGPUReconstruction.cxx
     GlobalTracker/AliGPUReconstructionDeviceBase.cxx
     GlobalTracker/AliGPUReconstructionConvert.cxx
+    GlobalTracker/AliGPUCASettings.cxx
 )
 
 #Extra headers to install

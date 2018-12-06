@@ -14,7 +14,9 @@
 
 void AliGPUCAParam::SetDefaults(float solenoidBz)
 {
-    memset(this, 0, sizeof(*this));
+    memset((void*) this, 0, sizeof(*this));
+    rec.SetDefaults();
+    
     float const kParamS0Par[2][3][6]=
     {
         {  { 6.45913474727e-04, 2.51547407970e-05, 1.57551113516e-02, 1.99872811635e-08, -5.86769729853e-03, 9.16301505640e-05 },
@@ -96,28 +98,35 @@ void AliGPUCAParam::SetDefaults(float solenoidBz)
         SliceParam[i].AngleMax = SliceParam[i].Alpha + DAlpha / 2.f;
     }
     
-    HitPickUpFactor = 1.;
-    MaxTrackMatchDRow = 4;
-    NeighboursSearchArea = 3.f;
-    TrackConnectionFactor = 3.5f;
-    ClusterError2CorrectionY = 1.f;
-    ClusterError2CorrectionZ = 1.f;
-    MinNTrackClusters = -1;
-    MaxTrackQPt = 1.f / MIN_TRACK_PT_DEFAULT;
-    NWays = 1;
-    NWaysOuter = 0;
     AssumeConstantBz = false;
     ToyMCEventsFlag = false;
     ContinuousTracking = false;
-    RejectMode = 5;
-    SearchWindowDZDR = 0.f;
-    TrackReferenceX = 1000.f;
+    continuousMaxTimeBin = 0;
+}
+
+void AliGPUCAParam::UpdateEventSettings(const AliGPUCASettingsEvent* e)
+{
+    AssumeConstantBz = e->constBz;
+    ToyMCEventsFlag = e->homemadeEvents;
+    ContinuousTracking = e->continuousMaxTimeBin != 0;
+    continuousMaxTimeBin = e->continuousMaxTimeBin == -1 ? (0.023 * 5e6) : e->continuousMaxTimeBin;
+}
+
+void AliGPUCAParam::SetDefaults(const AliGPUCASettingsEvent* e, const AliGPUCASettingsRec* r)
+{
+    SetDefaults(e->solenoidBz);
+    if (r) rec = *r;
+    UpdateEventSettings(e);
 }
 
 #endif
 
+#if !defined(HLTCA_GPUCODE)
+#if defined(HLTCA_STANDALONE)
+void AliGPUCAParam::LoadClusterErrors( bool Print ) {}
 
-#if !defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE)
+#else
+
 #include <iostream>
 #include <iomanip>
 void AliGPUCAParam::LoadClusterErrors( bool Print )
@@ -191,6 +200,7 @@ void AliGPUCAParam::LoadClusterErrors( bool Print )
 
 }
 #endif
+#endif
 
 MEM_CLASS_PRE() void MEM_LG(AliGPUCAParam)::Slice2Global( int iSlice, float x, float y, float z, float *X, float *Y, float *Z ) const
 {
@@ -243,7 +253,7 @@ MEM_CLASS_PRE() GPUd() float MEM_LG(AliGPUCAParam)::GetClusterError2( int yz, in
     +c[4]*angle2*angle2 + c[5]*z*angle2;
   v = fabs(v);
   if (v<0.01) v = 0.01;
-  v *= yz ? ClusterError2CorrectionZ : ClusterError2CorrectionY;
+  v *= yz ? rec.ClusterError2CorrectionZ : rec.ClusterError2CorrectionY;
   return v;
 }
 

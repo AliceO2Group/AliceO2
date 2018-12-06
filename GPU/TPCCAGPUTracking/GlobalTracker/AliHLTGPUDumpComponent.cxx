@@ -436,7 +436,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 		}
 		fRec->SetTPCFastTransform(std::move(fFastTransformIRS));
 		
-		fRec->SetSettingsStandalone(fSolenoidBz);
+		fRec->SetSettings(fSolenoidBz);
 		fRec->DumpSettings();
 	}
 

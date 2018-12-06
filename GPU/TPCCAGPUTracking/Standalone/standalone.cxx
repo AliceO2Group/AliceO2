@@ -32,7 +32,7 @@
 #include "AliHLTTPCGMMergedTrack.h"
 #include "Interface/outputtrack.h"
 #include "include.h"
-#include "standaloneSettings.h"
+#include "AliGPUCASettings.h"
 #include <vector>
 #include <xmmintrin.h>
 
@@ -171,13 +171,14 @@ int main(int argc, char** argv)
 		rec->ReadSettings(filename);
 		printf("Read event settings from dir %s (solenoidBz: %f, home-made events %d, constBz %d)\n", filename, rec->GetEventSettings().solenoidBz, (int) rec->GetEventSettings().homemadeEvents, (int) rec->GetEventSettings().constBz);
 	}
-	if (configStandalone.eventGenerator) rec->GetEventSettings().homemadeEvents = true;
-	if (configStandalone.solenoidBz != -1e6f) rec->GetEventSettings().solenoidBz = configStandalone.solenoidBz;
-	if (configStandalone.constBz) rec->GetEventSettings().constBz = true;
-
-
-	AliGPUCAParam param;
-    param.SetDefaults(rec->GetEventSettings().solenoidBz);
+	
+	AliGPUCASettingsEvent ev = rec->GetEventSettings();
+	AliGPUCASettingsRec recSet;
+	
+	if (configStandalone.eventGenerator) ev.homemadeEvents = true;
+	if (configStandalone.solenoidBz != -1e6f) ev.solenoidBz = configStandalone.solenoidBz;
+	if (configStandalone.constBz) ev.constBz = true;
+	if (configStandalone.cont) ev.continuousMaxTimeBin = -1;
 
 	hlt.SetGPUDebugLevel(configStandalone.DebugLevel, &CPUOut, &GPUOut);
 	hlt.SetEventDisplay(configStandalone.eventDisplay);
@@ -189,19 +190,13 @@ int main(int argc, char** argv)
 	configStandalone.sliceCount = hlt.GetGPUMaxSliceCount();
 	hlt.SetGPUTracker(configStandalone.runGPU);
 
-	param.HitPickUpFactor = 2;
-    param.MinNTrackClusters = -1;
-    param.SetMinTrackPt(MIN_TRACK_PT_DEFAULT);
-    param.AssumeConstantBz = rec->GetEventSettings().constBz;
-    param.ToyMCEventsFlag = rec->GetEventSettings().homemadeEvents;
-    param.ClusterError2CorrectionZ = 1.1;
-	param.NWays = configStandalone.nways;
-	param.NWaysOuter = configStandalone.nwaysouter;
-	param.RejectMode = configStandalone.rejectMode;
-	param.ContinuousTracking = configStandalone.cont;
-	param.SearchWindowDZDR = configStandalone.dzdr;
-	if (configStandalone.referenceX < 500.) param.TrackReferenceX = configStandalone.referenceX;
-	rec->SetParam(param);
+	recSet.SetMinTrackPt(MIN_TRACK_PT_DEFAULT);
+	recSet.NWays = configStandalone.nways;
+	recSet.NWaysOuter = configStandalone.nwaysouter;
+	recSet.RejectMode = configStandalone.rejectMode;
+	recSet.SearchWindowDZDR = configStandalone.dzdr;
+	if (configStandalone.referenceX < 500.) recSet.TrackReferenceX = configStandalone.referenceX;
+	rec->SetSettings(&ev, &recSet);
 	rec->Init();
 	for (int i = 0;i < 36;i++)
 	{

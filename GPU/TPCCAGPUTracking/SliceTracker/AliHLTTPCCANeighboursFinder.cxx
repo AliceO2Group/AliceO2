@@ -185,8 +185,8 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
 		int nNeighUp = 0;
         AliHLTTPCCAHitArea areaDn, areaUp;
 
-        const float kAngularMultiplier = tracker.Param().SearchWindowDZDR;
-        const float kAreaSize = tracker.Param().NeighboursSearchArea;
+        const float kAngularMultiplier = tracker.Param().rec.SearchWindowDZDR;
+        const float kAreaSize = tracker.Param().rec.NeighboursSearchArea;
         areaUp.Init( rowUp, tracker.Data(), y*s.fUpTx, kAngularMultiplier != 0. ? z : (z*s.fUpTx), kAreaSize, kAngularMultiplier != 0 ? (s.fUpDx * kAngularMultiplier) : kAreaSize);
         areaDn.Init( rowDn, tracker.Data(), y*s.fDnTx, kAngularMultiplier != 0. ? z : (z*s.fDnTx), kAreaSize, kAngularMultiplier != 0 ? (-s.fDnDx * kAngularMultiplier) : kAreaSize);
 

@@ -407,19 +407,20 @@ int AliHLTTPCCATrackerComponent::Configure( const char* cdbEntry, const char* ch
 void AliHLTTPCCATrackerComponent::ConfigureSlices()
 {
   // Initialize the tracker slices
-  AliGPUCAParam param;
-  param.SetDefaults(fSolenoidBz);
-  param.LoadClusterErrors();
-
-  param.HitPickUpFactor = 2;
-  if( fNeighboursSearchArea>0 ) param.NeighboursSearchArea = fNeighboursSearchArea;
-  if( fClusterErrorCorrectionY>1.e-4 ) param.ClusterError2CorrectionY = fClusterErrorCorrectionY*fClusterErrorCorrectionY;
-  if( fClusterErrorCorrectionZ>1.e-4 ) param.ClusterError2CorrectionZ = fClusterErrorCorrectionZ*fClusterErrorCorrectionZ;
-  param.MinNTrackClusters = fMinNTrackClusters;
-  param.SetMinTrackPt(fMinTrackPt);
-  param.SearchWindowDZDR = fSearchWindowDZDR;
+  AliGPUCASettingsRec rec;
+  AliGPUCASettingsEvent ev;
+  ev.solenoidBz = fSolenoidBz;
+  ev.continuousMaxTimeBin = 0; //triggered events
+  if( fNeighboursSearchArea>0 ) rec.NeighboursSearchArea = fNeighboursSearchArea;
+  if( fClusterErrorCorrectionY>1.e-4 ) rec.ClusterError2CorrectionY = fClusterErrorCorrectionY*fClusterErrorCorrectionY;
+  if( fClusterErrorCorrectionZ>1.e-4 ) rec.ClusterError2CorrectionZ = fClusterErrorCorrectionZ*fClusterErrorCorrectionZ;
+  rec.MinNTrackClusters = fMinNTrackClusters;
+  rec.SetMinTrackPt(fMinTrackPt);
+  rec.SearchWindowDZDR = fSearchWindowDZDR;
   
-  fRec->SetParam(param);
+  fRec->SetSettings(&ev, &rec);
+  fRec->LoadClusterErrors();
+
   for (int slice = 0;slice < fgkNSlices;slice++)
   {
     fTracker->InitializeSliceParam( slice, &fRec->GetParam() );
