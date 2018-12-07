@@ -1,11 +1,14 @@
-#define ENABLE_HLTTRDDEBUG
+//#define ENABLE_HLTTRDDEBUG
 #define ENABLE_WARNING 0
 #define ENABLE_INFO 0
 #ifdef HLTCA_BUILD_ALIROOT_LIB
 #define ENABLE_HLTMC
 #endif
 
+#ifdef HLTCA_HAVE_OPENMP
 #include <omp.h>
+#endif
+
 #include <chrono>
 #include <vector>
 #include <algorithm>
@@ -121,10 +124,6 @@ GPUd() bool AliHLTTRDTracker::Init(AliHLTTRDGeometry *geo)
   //--------------------------------------------------------------------
   // Initialise tracker
   //--------------------------------------------------------------------
-  if (!AliHLTTRDGeometry::CheckGeometryAvailable()) {
-    Error("Init", "Could not get geometry.");
-    return false;
-  }
   if (!geo) {
     Error("Init", "TRD geometry must be provided externally");
     return false;
@@ -282,29 +281,32 @@ GPUd() void AliHLTTRDTracker::DoTracking( HLTTRDTrack *tracksTPC, int *tracksTPC
 
   fNTracks = 0;
 
-  //auto timeStart = std::chrono::high_resolution_clock::now();
+  auto timeStart = std::chrono::high_resolution_clock::now();
 
+#ifdef HLTCA_HAVE_OPENMP
   //omp_set_dynamic(0);
-  //omp_set_num_threads(15);
-//#pragma omp parallel for
+  //omp_set_num_threads(1);
+#pragma omp parallel for
   for (int i=0; i<nTPCtracks; ++i) {
-    //if (omp_get_num_threads() > fMaxThreads) {
-    //  Error("DoTracking", "number of parallel threads too high, aborting tracking");
-    //  // break statement not possible in OpenMP for loop
-    //  i = nTPCtracks;
-    //  continue;
-    //}
-    //int threadId = omp_get_thread_num();
-    int threadId = 0;
-//#pragma omp critical
-//{
+    if (omp_get_num_threads() > fMaxThreads) {
+      Error("DoTracking", "number of parallel threads too high, aborting tracking");
+      // break statement not possible in OpenMP for loop
+      i = nTPCtracks;
+      continue;
+    }
+    int threadId = omp_get_thread_num();
     DoTrackingThread(tracksTPC, tracksTPClab, nTPCtracks, i, threadId, tracksTRDnTrklts, tracksTRDlab);
-//}
   }
+#else
+  for (int i=0; i<nTPCtracks; ++i) {
+    int threadId = 0;
+    DoTrackingThread(tracksTPC, tracksTPClab, nTPCtracks, i, threadId, tracksTRDnTrklts, tracksTRDlab);
+  }
+#endif
 
-  //auto duration = std::chrono::high_resolution_clock::now() - timeStart;
+  auto duration = std::chrono::high_resolution_clock::now() - timeStart;
 
-  //std::cout << "Time for event " << fNEvents << ": " << std::chrono::duration_cast<std::chrono::milliseconds>(duration).count() << " ms" << std::endl;
+  //std::cout << "--->  -----> -------> ---------> Time for event " << fNEvents << ": " << std::chrono::duration_cast<std::chrono::milliseconds>(duration).count() << " ms" << std::endl;
 
   //DumpTracks();
 
@@ -342,10 +344,15 @@ GPUd() void AliHLTTRDTracker::DoTrackingThread( HLTTRDTrack *tracksTPC, int *tra
   HLTTRDPropagator prop(fMerger);
   prop.setTrack(t);
   FollowProlongation(&prop, t, nTPCtracks, threadId);
-//#pragma omp atomic write
-  fTracks[fNTracks] = *t;
-//#pragma omp atomic write
-  fNTracks++;
+#ifdef HLTCA_HAVE_OPENMP
+//#pragma omp atomic write // FIXME could be that this fails with OpenMP...
+  fTracks[fNTracks] = tMI;
+#pragma omp atomic write
+  fNTracks = fNTracks + 1;
+#else
+  fTracks[fNTracks++] = *t;
+#endif
+
 }
 
 
@@ -419,7 +426,6 @@ GPUd() bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDT
   //--------------------------------------------------------------------
 
   if (!t->CheckNumericalQuality()) {
-    //printf("Error: track does not pass quality check\n");
     return false;
   }
 
@@ -440,7 +446,6 @@ GPUd() bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDT
 
 #ifdef ENABLE_HLTTRDDEBUG
   HLTTRDTrack trackNoUp(*t);
-  //printf("Track w/o updates: x=%f, y=%f, z=%f\n", trackNoUp.GetX(),  trackNoUp.GetY(), trackNoUp.GetZ());
 #endif
 
   // look for matching tracklets via MC label
@@ -471,7 +476,6 @@ GPUd() bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDT
   fDebug->SetGeneralInfo(fNEvents, nTPCtracks, iTrack, trackID, t->getPt());
 
   for (int iLayer=0; iLayer<kNLayers; ++iLayer) {
-    //printf("####################### layer %i ###############\n", iLayer);
     int nCurrHypothesis = 0;
     bool isOK = false; // if at least one candidate could be propagated or the track was stopped this becomes true
     int currIdx = candidateIdxOffset + iLayer % 2;
@@ -547,7 +551,6 @@ GPUd() bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDT
         }
         continue;
       }
-      //printf("Track w updates: x=%f, y=%f, z=%f\n", fCandidates[2*iCandidate+currIdx].GetX(),  fCandidates[2*iCandidate+currIdx].GetY(), fCandidates[2*iCandidate+currIdx].GetZ());
 
       // determine chamber(s) to be searched for tracklets
       FindChambersInRoad(&fCandidates[2*iCandidate+currIdx], roadY, roadZ, iLayer, det, zMaxTRD, prop->getAlpha());
@@ -764,10 +767,9 @@ GPUd() bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDT
 
 #ifdef ENABLE_HLTTRDDEBUG
       prop->setTrack(&trackNoUp);
-      //prop->rotate(GetAlphaOfSector(trkltSec));
-      //prop->PropagateToX(fSpacePoints[fHypothesis[iUpdate + hypothesisIdxOffset].fTrackletId].fR, .8f, 2.f);
+      prop->rotate(GetAlphaOfSector(trkltSec));
+      prop->PropagateToX(fSpacePoints[fHypothesis[iUpdate + hypothesisIdxOffset].fTrackletId].fR, .8f, 2.f);
       prop->PropagateToX(fR[iLayer], .8f, 2.f);
-      //printf("Track w/o updates (layer %i): x=%f, y=%f, z=%f\n", iLayer, trackNoUp.GetX(),  trackNoUp.GetY(), trackNoUp.GetZ());
       prop->setTrack(&fCandidates[2*iUpdate+nextIdx]);
 #endif
 
