@@ -8,10 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization 
 // or submit itself to any jurisdiction.
 
-#ifndef DETECTORS_MUON_MCH_BASE_INCLUDE_MCHBASE_DIGIT_H_
-#define DETECTORS_MUON_MCH_BASE_INCLUDE_MCHBASE_DIGIT_H_
+#ifndef ALICEO2_SIMULATION_MCH_DIGIT_H_
+#define ALICEO2_SIMULATION_MCH_DIGIT_H_
 
-//#include <CommonDataFormat/TimeStamp.h>//TODO compiler doesn't link properly 
+#include <CommonDataFormat/TimeStamp.h>//TODO compiler doesn't link properly 
 #include "Rtypes.h"
 #include <iosfwd>
 
@@ -19,14 +19,15 @@ namespace o2 {
   namespace mch {
     // \class Digit
     /// \brief MCH digit implementation
-    class Digit //: public o2::dataformats::TimeStamp<double>
+    using DigitBase = o2::dataformats::TimeStamp<double>;
+class Digit : public DigitBase //: public o2::dataformats::TimeStamp<double>
     {
     public:
       Digit() = default;
-
-      Digit(int pad, double adc, double time); //check if need uint32_to
+      
+      Digit(int pad, double adc); //check if need uint32_to
       ~Digit() = default;
-
+      
       int GetPadID() { return mPadID; }
       void SetPadID(int pad) { mPadID=pad;}
       
@@ -41,12 +42,10 @@ namespace o2 {
       int mPadID;
       double mADC;
       double mTime;
-
-      ClassDefNV(Digit,1);      
+      
+      ClassDefNV(Digit,1); //does not work
     };//class Digit
-
-    //    std::ostream &operator<<(std::ostream &stream, const Digit &dig);
+    
   }//namespace mch
 }//namespace o2
-
 #endif // ALICEO2_MCH_DIGIT_H_

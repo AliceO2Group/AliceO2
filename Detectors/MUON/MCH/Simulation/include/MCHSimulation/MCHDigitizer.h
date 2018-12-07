@@ -8,14 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_MCH_MCHDIGITIZER_H_
-#define ALICEO2_MCH_MCHDIGITIZER_H_
+#ifndef O2_MCH_SIMULATION_MCHDIGITIZER_H_
+#define O2_MCH_SIMULATION_MCHDIGITIZER_H_
 
-#include "MCHBase/Digit.h"
+#include "MCHSimulation/Digit.h"
 #include "MCHSimulation/Detector.h"
 #include "MCHSimulation/Hit.h"
-#include "MCHMappingInterface/Segmentation.h"
-//#include "Mapping/Interface/Segmentation.h"//to be replaced, which one? 
+//#include "MCHMappingInterface/Segmentation.h"
 
 
 namespace o2
@@ -30,9 +29,9 @@ class MCHDigitizer
 
   void init();
 
-  void process(const std::vector<HitType>* hits, std::vector<Digit>* digits);
+  void process(const std::vector<Hit>* hits, std::vector<Digit>* digits);
 
-  Float_t getCharge(Float_t eDep);
+  Float_t getAnod(Float_t x, Int_t detID);
   Double_t getXmin(Int_t detID, Double_t hitX);
   Double_t getXmax(Int_t detID, Double_t hitX);
   Double_t getYmin(Int_t detID, Double_t hitY);
@@ -41,8 +40,6 @@ class MCHDigitizer
   void setEventTime(double value) { mEventTime = value; }
   void setEventID(Int_t id) { mEventID = id; }
   void setSrcID(Int_t id) { mSrcID = id; }
-
-  void initParameters();
 
   void fillOutputContainer(std::vector<Digit>& digits);
   void flushOutputContainer(std::vector<Digit>& digits); // flush all residual buffered data
@@ -59,7 +56,7 @@ class MCHDigitizer
   bool mContinuous = false; 
 
   //number of detector elements 5(stations)*2(layer per station)* 2(?) +1 (?)
-  const Int_t mNdE = 21;
+  const static Int_t mNdE = 21;
   // digit per pad
   std::vector<Digit> mDigits;
 
@@ -67,9 +64,10 @@ class MCHDigitizer
   std::vector<int> mPadIDsnon;
 
   //detector segmentation handler to convert pad-id to coordinates and vice versa
-  Segmentation mSegbend[nNdE];
-  Segmentation  mSegnon[nNdE];
-
+  /*  Segmentation mSegbend[mNdE];
+  Segmentation  mSegnon[mNdE];
+  */
+  
   //proper parameter in aliroot in AliMUONResponseFactory.cxx
   //to be discussed n-sigma to be put, use detID to choose value?
   //anything in segmentation foreseen?
@@ -78,10 +76,11 @@ class MCHDigitizer
   const Float_t mQspreadX = 0.144; //charge spread in cm
   const Float_t mQspreadY = 0.144;
   
-  Int_t processHit(const HitType& hit, Double_t event_time);
+  Int_t processHit(const Hit& hit, Double_t event_time);
+  Double_t etocharge(Float_t edepos);
   Double_t chargePad(Float_t x, Float_t y, Float_t xmin, Float_t xmax, Float_t ymin, Float_t ymax, Int_t detID, Float_t charge);
   Double_t response(Float_t charge, Int_t detID);
-
+ 
   //Mathieson parameter: NIM A270 (1988) 602-603 
   //should be a common place for MCH
   
@@ -100,11 +99,11 @@ class MCHDigitizer
    const Double_t mK2y[2] = {0.9778207,0.970595};
   const Double_t mSqrtK3y[2] = {0.7550,0.7642};
   const Double_t mK4y[2]     = {0.0,0.0};
-
+  //chargecorr 0.11
   
   //anode-cathode Pitch in 1/cm
   //Station 1 first entry, Station 2-5 second entry
-  const Double_t mInversePitch[2] ={1./0.21,1./0.25};
+  const Float_t mInversePitch[2] ={1./0.21,1./0.25};
 
 
   

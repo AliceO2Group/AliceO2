@@ -21,7 +21,7 @@
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "MCHBase/Digit.h"
+#include "MCHSimulation/Digit.h"
 #include "MCHSimulation/MCHDigitizer.h"
 #include "MCHSimulation/Detector.h"
 #include "DetectorsBase/GeometryManager.h"

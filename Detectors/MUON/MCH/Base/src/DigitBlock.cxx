@@ -14,8 +14,6 @@ namespace o2
 {
 namespace mch
 {
-  ClassImp(o2::mch::DigitStruct);
-  ClassImp(o2::mch::DigitBlock);
   
 std::ostream& operator<<(std::ostream& stream, const DigitStruct& digit)
 {

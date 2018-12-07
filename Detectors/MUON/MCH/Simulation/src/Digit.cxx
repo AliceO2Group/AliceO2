@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "MCHBase/Digit.h" //check if proper path
+#include "MCHSimulation/Digit.h" //check if proper path
 //check if anything else, like mapping needed
 //to be added later: MC-truth and cluster-info
 //maybe: bool whether after or before FEE simu?
@@ -17,29 +17,10 @@
 
 using namespace o2::mch;
 
-ClassImp(o2::mch::Digit);
+ClassImp(o2::mch::Digit);// does not work...
 
 
-Digit::Digit(int pad, double adc, double time)//check if long etc for pad needed, need uint32_t
-  : mPadID(pad), mADC(adc), mTime(time)
+Digit::Digit(int pad, double adc)//check if long etc for pad needed, need uint32_t
+  : mPadID(pad), mADC(adc)
 {
 }
-
-//______________________________________________________________________
-/*
-void Digit::printStream(std::ostream& stream) const
-{
-  stream << "MCH Digit: PadID " << mPadID << " ADC " << mADC << " Time " << mTime << "\n";
-  
-}
-*/
-//______________________________________________________________________
-
-/*std::ostream& operator<<(std::ostream& stream, const Digit& digi)
-{
-  digi.printStream(stream);
-  return stream;
-  }*/
-
-
-

@@ -15,7 +15,6 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::mch::Mapping+;
-#pragma link C++ class o2::mch::Digit+;
 #pragma link C++ class o2::mch::DigitBlock+;
 #pragma link C++ class o2::mch::PreClusterBlock+;
 
