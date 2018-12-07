@@ -19,8 +19,9 @@ Usage:
 #include "TH2.h"
 #include "TLegend.h"
 
-TFile *f = 0x0;
-TTree *tree = 0x0;
+TFile *f = 0x0; // input file (TRDhlt.root)
+TTree *tree = 0x0; // input tree (tracksFinal)
+TFile *fOut = 0x0; // output file with results
 
 // branches
 Int_t event                   = 0x0;
@@ -31,8 +32,11 @@ Int_t nLayers                 = 0x0;
 Float_t chi2Total             = 0x0;
 Float_t trackPtTPC            = 0x0;
 Int_t nRelated                = 0x0;
+Int_t nRelatedOffline         = 0x0;
 Int_t nMatching               = 0x0;
+Int_t nMatchingOffline        = 0x0;
 Int_t nFake                   = 0x0;
+Int_t nFakeOffline            = 0x0;
 Int_t trackID                 = 0x0;
 Int_t trackIDref              = 0x0;
 Int_t trackPID                = 0x0;
@@ -182,6 +186,9 @@ void InitBranches()
   tree->SetBranchAddress("nRelated", &nRelated);
   tree->SetBranchAddress("nMatching", &nMatching);
   tree->SetBranchAddress("nFake", &nFake);
+  tree->SetBranchAddress("nTrackletsOfflineRelated", &nRelatedOffline);
+  tree->SetBranchAddress("nTrackletsOfflineMatch", &nMatchingOffline);
+  tree->SetBranchAddress("nTrackletsOfflineFake", &nFakeOffline);
 }
 
 void InitCalib()
@@ -228,8 +235,6 @@ void SetAlias(TTree *tree, Bool_t isMC)
   tree->SetAlias("resZ", "(trackZ.fElements-trackletZ.fElements)");
   tree->SetAlias("pullY", "resY/sqrt(trackYerr.fElements+trackletYerr.fElements)");
   tree->SetAlias("pullZ", "resZ/sqrt(trackZerr.fElements+trackletZerr.fElements)");
-  //tree->SetAlias("pullY", "(trackY.fElements-trackletY.fElements)/sqrt(trackYerr.fElements+trackletYerr.fElements)");
-  //tree->SetAlias("pullZ", "(trackZ.fElements-trackletZ.fElements)/sqrt(trackZerr.fElements+trackletZerr.fElements)");
   tree->SetAlias("isIdealAngle", "abs(trackPhi.fElements-0.12)<0.05");
 }
 
@@ -419,8 +424,8 @@ void PrintEfficiency(Float_t ptCut = 1.5)
 void Sweep()
 {
   // check efficiency and fake rate for different tracker parameters
-  TFile fOut("sweep-results.root", "recreate");
-  fOut.Close();
+  fOut = new TFile("sweep-results.root", "recreate");
+  fOut->Close();
 
   for (Int_t iCandidates = 0; iCandidates < nCandidatesSweep; ++iCandidates) {
     Int_t nCan = nCandidates[iCandidates];
@@ -450,6 +455,8 @@ void Sweep()
       }
     }
   }
+  delete fOut;
+  fOut = 0x0;
 }
 
 void ParameterSweepResults()
@@ -602,16 +609,32 @@ void MakeLogScale(TH1 *hist, Double_t xMin = -1, Double_t xMax = -1)
 
 void TwoTrackletEfficiency(Int_t nEntries = -1)
 {
-  TFile fOut("output.root", "recreate");
+  fOut = new TFile("results.root", "recreate");
   TH1F *hAll = new TH1F("all", "p_{T} spectrum for all tracks;track pT (GeV); counts", 10, 0, 10);
   TH1F *h2Trklts = new TH1F("h2trklts", "p_{T} spectrum for all tracks w/ N_{trklts} >= 2;track pT (GeV); counts", 10, 0, 10);
   TH1F *h2TrkltsNoFakes = new TH1F("h2trkltsNoFakes", "p_{T} spectrum for all tracks w/ N_{trklts} >= 2 and zero fakes;track pT (GeV); counts", 10, 0, 10);
+  TH1F *h2TrkltsRef = new TH1F("h2trkltsRef", "p_{T} spectrum for all tracks w/ N_{trklts} >= 2 (ref);track pT (GeV); counts", 10, 0, 10);
+  TH1F *h2TrkltsNoFakesRef = new TH1F("h2trkltsNoFakesRef", "p_{T} spectrum for all tracks w/ N_{trklts} >= 2 and zero fakes (ref);track pT (GeV); counts", 10, 0, 10);
   TH1F *h2TrkltsEff = new TH1F("h2TrkltsEff", "fraction with at least two tracklets;track pT (GeV); counts", 10, 0, 10);
   TH1F *h2TrkltsNoFakesEff = new TH1F("h2TrkltsNoFakesEff", "fraction of two tracklet tracks w/o fakes;track pT (GeV); counts", 10, 0, 10);
+  TH1F *h2TrkltsEffRef = new TH1F("h2TrkltsEffRef", "fraction with at least two tracklets (ref);track pT (GeV); counts", 10, 0, 10);
+  TH1F *h2TrkltsNoFakesEffRef = new TH1F("h2TrkltsNoFakesEffRef", "fraction of two tracklet tracks w/o fakes(ref);track pT (GeV); counts", 10, 0, 10);
+
+  MakeLogScale(hAll, .2, 12.);
+  MakeLogScale(h2Trklts, .2, 12.);
+  MakeLogScale(h2TrkltsNoFakes, .2, 12.);
+  MakeLogScale(h2TrkltsRef, .2, 12.);
+  MakeLogScale(h2TrkltsNoFakesRef, .2, 12.);
+  MakeLogScale(h2TrkltsEff, .2, 12.);
+  MakeLogScale(h2TrkltsNoFakesEff, .2, 12.);
+  MakeLogScale(h2TrkltsEffRef, .2, 12.);
+  MakeLogScale(h2TrkltsNoFakesEffRef, .2, 12.);
 
   hAll->Sumw2();
   h2Trklts->Sumw2();
   h2TrkltsNoFakes->Sumw2();
+  h2TrkltsRef->Sumw2();
+  h2TrkltsNoFakesRef->Sumw2();
 
   if (nEntries < 0) {
     nEntries = tree->GetEntriesFast();
@@ -626,16 +649,27 @@ void TwoTrackletEfficiency(Int_t nEntries = -1)
     }
     Double_t pt = trackPtTPC;
     hAll->Fill(pt);
-    if (nTracklets >= 2) {
+    //if (nTracklets >= 2) {
+    if (nMatching + nRelated >= 2) {
       h2Trklts->Fill(pt);
       if (nFake == 0) {
         h2TrkltsNoFakes->Fill(pt);
+      }
+    }
+    //if (nTrackletsOffline >= 2) {
+    if (nMatchingOffline + nRelatedOffline >= 2) {
+      h2TrkltsRef->Fill(pt);
+      if (nFakeOffline == 0) {
+        h2TrkltsNoFakesRef->Fill(pt);
       }
     }
   }
   gStyle->SetOptStat(0);
   h2TrkltsEff->Divide(h2Trklts, hAll, 1, 1, "B");
   h2TrkltsNoFakesEff->Divide(h2TrkltsNoFakes, h2Trklts, 1, 1, "B");
+  h2TrkltsEffRef->Divide(h2TrkltsRef, hAll, 1, 1, "B");
+  h2TrkltsNoFakesEffRef->Divide(h2TrkltsNoFakesRef, h2TrkltsRef, 1, 1, "B");
+  /*
   TCanvas *cAll = new TCanvas("cAll", "cAll");
   hAll->Draw();
   TCanvas *c2Trklts = new TCanvas("c2Trklts", "c2Trklts");
@@ -654,13 +688,20 @@ void TwoTrackletEfficiency(Int_t nEntries = -1)
   h2TrkltsNoFakesEff->Draw("e0");
   c2TrkltsNoFakesEff->SetGridx();
   c2TrkltsNoFakesEff->SetGridy();
+  */
 
-  fOut.cd();
+  fOut->cd();
   h2TrkltsEff->Write();
   delete h2TrkltsEff;
   h2TrkltsNoFakesEff->Write();
   delete h2TrkltsNoFakesEff;
-  fOut.Close();
+  h2TrkltsEffRef->Write();
+  delete h2TrkltsEffRef;
+  h2TrkltsNoFakesEffRef->Write();
+  delete h2TrkltsNoFakesEffRef;
+  fOut->Close();
+  delete fOut;
+  fOut = 0x0;
 }
 
 void OfflineOnlineComparison()
@@ -669,7 +710,7 @@ void OfflineOnlineComparison()
     printf("Initialize first! Exiting\n");
     return;
   }
-  TFile fOut("results.root", "recreate");
+  fOut = new TFile("results.root", "recreate");
   TH1F *hAll = new TH1F("all", "p_{T} spectrum for all tracks;track pT (GeV); counts", 10, 0, 10);
   TH1F *h2TrkltsOn = new TH1F("h2trkltsOn", "p_{T} spectrum for all tracks w/ N_{trklts} >= 2 (online);track pT (GeV); counts", 10, 0, 10);
   TH1F *h2TrkltsOff = new TH1F("h2trkltsOff", "p_{T} spectrum for all tracks w/ N_{trklts} >= 2 (offline);track pT (GeV); counts", 10, 0, 10);
@@ -732,7 +773,7 @@ void OfflineOnlineComparison()
   h2TrkltsNoFakesEff->SetMarkerStyle(21);
   h2TrkltsNoFakesEffRef->SetMarkerStyle(21);
 
-  fOut.cd();
+  fOut->cd();
   h2TrkltsEffOn->Write();
   delete h2TrkltsEffOn;
   h2TrkltsEffOff->Write();
@@ -741,8 +782,136 @@ void OfflineOnlineComparison()
   delete h2TrkltsNoFakesEff;
   h2TrkltsNoFakesEffRef->Write();
   delete h2TrkltsNoFakesEffRef;
-  fOut.Close();
+  fOut->Close();
+  delete fOut;
+  fOut = 0x0;
 }
+
+void PlotTRDEfficiency(Int_t nEntries = -1, Bool_t writeToFile = kTRUE)
+{
+  // plot fraction of tracks with at least 4/5/6 online/offline tracklets
+  // independent of TRD online tracker
+
+  if (!tree) {
+    printf("Initialize first!\n");
+    return;
+  }
+
+  if (writeToFile) {
+    fOut = new TFile("TRDefficiency.root", "recreate");
+  }
+
+  if (nEntries < 0) {
+    nEntries = tree->GetEntriesFast();
+  }
+  TH1F *hAll = new TH1F("all", "tmp histogram;pT (GeV);counts", 6, 0, 5);
+  TH1F *hFracOffline[6];
+  TH1F *hFracOnline[6];
+  TH1F *hEffOffline[6];
+  TH1F *hEffOnline[6];
+  for (Int_t i=0; i<6; ++i) {
+    TString hNameFracOff = TString::Format("fracOff%i", i+1);
+    TString hNameFracOn = TString::Format("fracOn%i", i+1);
+    TString hNameEffOff = TString::Format("effOff%i", i+1);
+    TString hNameEffOn = TString::Format("effOn%i", i+1);
+    hFracOffline[i] = new TH1F(hNameFracOff.Data(), "", 6, 0, 5);
+    hFracOnline[i] = new TH1F(hNameFracOn.Data(), "", 6, 0, 5);
+    hEffOffline[i] = new TH1F(hNameEffOff.Data(), ";p_{T} (GeV/#it{c});efficiency", 6, 0, 5);
+    hEffOnline[i] = new TH1F(hNameEffOn.Data(), ";p_{T} (GeV/#it{c});efficiency", 6, 0, 5);
+    hFracOffline[i]->Sumw2();
+    hFracOnline[i]->Sumw2();
+    MakeLogScale(hFracOffline[i], 0.2, 12.);
+    MakeLogScale(hFracOnline[i], 0.2, 12.);
+    MakeLogScale(hEffOffline[i], 0.2, 12.);
+    MakeLogScale(hEffOnline[i], 0.2, 12.);
+  }
+  hAll->Sumw2();
+  MakeLogScale(hAll, 0.2, 12.);
+  for (Int_t iEntry = 0; iEntry < nEntries; iEntry++) {
+    tree->GetEntry(iEntry);
+    if (trackID < 0) {
+      continue;
+    }
+    Double_t trkPt = (*trackPt)[0];
+    hAll->Fill(trkPt);
+    Int_t nTrackletsRef = nMatchingOffline + nRelatedOffline;
+    Int_t nTrackletsOnline = 0;
+    for (Int_t iLy=0; iLy<6; ++iLy) {
+      if ((*nMatchingTracklets)[iLy] > 0) {
+        ++nTrackletsOnline;
+      }
+    }
+    for (Int_t nTrkltsMin=1; nTrkltsMin<=6; ++nTrkltsMin) {
+      if (nTrackletsRef >= nTrkltsMin) {
+        hFracOffline[nTrkltsMin-1]->Fill(trkPt);
+      }
+      if (nTrackletsOnline >= nTrkltsMin) {
+        hFracOnline[nTrkltsMin-1]->Fill(trkPt);
+      }
+    }
+  }
+  gStyle->SetOptStat(0);
+  gStyle->SetErrorX(0);
+  TCanvas *c1 = 0x0;
+  if (!writeToFile) {
+    c1 = new TCanvas("c1", "c1");
+    c1->SetGridy();
+    c1->SetGridx();
+    c1->SetLogx();
+  }
+  Bool_t hasDrawnHist = kFALSE;
+
+  hEffOffline[5]->SetMarkerStyle(24);
+  hEffOffline[4]->SetMarkerStyle(25);
+  hEffOffline[3]->SetMarkerStyle(26);
+  hEffOffline[2]->SetMarkerStyle(32);
+  hEffOffline[1]->SetMarkerStyle(27);
+  hEffOffline[0]->SetMarkerStyle(28);
+
+  hEffOnline[5]->SetMarkerStyle(20);
+  hEffOnline[4]->SetMarkerStyle(21);
+  hEffOnline[3]->SetMarkerStyle(22);
+  hEffOnline[2]->SetMarkerStyle(23);
+  hEffOnline[1]->SetMarkerStyle(33);
+  hEffOnline[0]->SetMarkerStyle(34);
+
+  for (Int_t j=0; j<6; ++j) {
+    hEffOffline[j]->Divide(hFracOffline[j], hAll, 1, 1, "B");
+    hEffOnline[j]->Divide(hFracOnline[j], hAll, 1, 1, "B");
+    hEffOffline[j]->GetYaxis()->SetRangeUser(0., 1.);
+    hEffOffline[j]->SetLineWidth(2);
+    hEffOffline[j]->SetLineColor(kBlue);
+    hEffOffline[j]->SetMarkerSize(1.5);
+    hEffOffline[j]->SetMarkerColor(kBlue);
+    hEffOnline[j]->SetLineWidth(2);
+    hEffOnline[j]->SetLineColor(kBlue);
+    hEffOnline[j]->SetMarkerSize(1.5);
+    hEffOnline[j]->SetMarkerColor(kBlue);
+    hEffOnline[j]->GetYaxis()->SetRangeUser(0., 1.);
+    if (!writeToFile) {
+      if (!hasDrawnHist) {
+        hEffOffline[j]->Draw("ep");
+        hasDrawnHist = kTRUE;
+      }
+      else {
+        hEffOffline[j]->Draw("ep same");
+      }
+      hEffOnline[j]->Draw("ep same");
+    }
+    else {
+      hEffOffline[j]->Write();
+      hEffOnline[j]->Write();
+      delete hEffOffline[j];
+      delete hEffOnline[j];
+    }
+  }
+  if (writeToFile) {
+    fOut->Close();
+    delete fOut;
+    fOut = 0x0;
+  }
+}
+
 
 void PlotOnlineTrackletEfficiency(Int_t nEntries = -1)
 {
