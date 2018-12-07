@@ -10,6 +10,7 @@
  * @class this is an interface header for making the TRD tracking portable between O2, AliRoot, and HLT standalone framework
  */
 
+#include "AliTPCCommonDef.h"
 #include "AliHLTTPCGMMergedTrack.h"
 #include "AliHLTTPCGMTrackParam.h"
 #include "AliHLTTRDDef.h"
@@ -28,7 +29,7 @@ template <> class trackInterface<AliExternalTrackParam> : public AliExternalTrac
     trackInterface<AliExternalTrackParam> () : AliExternalTrackParam() {};
     trackInterface<AliExternalTrackParam> (const trackInterface<AliExternalTrackParam> &param) :
       AliExternalTrackParam(param) {};
-    trackInterface<AliExternalTrackParam> (const AliExternalTrackParam &param) = delete;
+    trackInterface<AliExternalTrackParam> (const AliExternalTrackParam &param) CON_DELETE;
     trackInterface<AliExternalTrackParam> (const AliHLTExternalTrackParam &param) :
       AliExternalTrackParam()
     {
@@ -77,8 +78,8 @@ template <> class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 
   public:
     propagatorInterface<AliTrackerBase> (const void* = nullptr) : AliTrackerBase(), fParam(nullptr) {};
-    propagatorInterface<AliTrackerBase> (const propagatorInterface<AliTrackerBase>&) = delete;
-    propagatorInterface<AliTrackerBase>& operator=(const propagatorInterface<AliTrackerBase>&) = delete;
+    propagatorInterface<AliTrackerBase> (const propagatorInterface<AliTrackerBase>&) CON_DELETE;
+    propagatorInterface<AliTrackerBase>& operator=(const propagatorInterface<AliTrackerBase>&) CON_DELETE;
 
     bool PropagateToX(float x, float maxSnp, float maxStep) {
       return PropagateTrackToBxByBz(fParam, x, 0.13957, maxStep, false, maxSnp);
@@ -109,7 +110,7 @@ template <> class trackInterface<AliHLTTPCGMTrackParam> : public AliHLTTPCGMTrac
 {
   public:
     GPUd() trackInterface<AliHLTTPCGMTrackParam>() : AliHLTTPCGMTrackParam(), fAlpha(0.f) {};
-    GPUd() trackInterface<AliHLTTPCGMTrackParam>(const AliHLTTPCGMTrackParam &param) = delete;
+    GPUd() trackInterface<AliHLTTPCGMTrackParam>(const AliHLTTPCGMTrackParam &param) CON_DELETE;
     GPUd() trackInterface<AliHLTTPCGMTrackParam>(const AliHLTTPCGMMergedTrack &trk) :
       AliHLTTPCGMTrackParam(),
       fAlpha(trk.GetAlpha())
@@ -209,8 +210,8 @@ template <> class propagatorInterface<AliHLTTPCGMPropagator> : public AliHLTTPCG
       this->SetToyMCEventsFlag(0);
       this->SetFitInProjections(0);
     };
-    propagatorInterface<AliHLTTPCGMPropagator>(const propagatorInterface<AliHLTTPCGMPropagator>&) = delete;
-    propagatorInterface<AliHLTTPCGMPropagator>& operator=(const propagatorInterface<AliHLTTPCGMPropagator>&) = delete;
+    propagatorInterface<AliHLTTPCGMPropagator>(const propagatorInterface<AliHLTTPCGMPropagator>&) CON_DELETE;
+    propagatorInterface<AliHLTTPCGMPropagator>& operator=(const propagatorInterface<AliHLTTPCGMPropagator>&) CON_DELETE;
     GPUd() void setTrack(trackInterface<AliHLTTPCGMTrackParam> *trk) { SetTrack(trk, trk->getAlpha()); fTrack = trk;}
     GPUd() bool PropagateToX( float x, float maxSnp, float maxStep ) {
       bool ok = PropagateToXAlpha( x, GetAlpha(), true ) == 0 ? true : false;

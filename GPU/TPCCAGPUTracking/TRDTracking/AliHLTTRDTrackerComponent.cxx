@@ -208,6 +208,10 @@ int AliHLTTRDTrackerComponent::DoInit( int argc, const char** argv ) {
   if (!fGeo) {
     return -ENOMEM;
   }
+  if (!AliHLTTRDGeometry::CheckGeometryAvailable()) {
+    HLTError("TRD geometry not available");
+    return -EINVAL;
+  }
   fTracker = new AliHLTTRDTracker();
   if (!fTracker) {
     return -ENOMEM;
