@@ -48,6 +48,10 @@
 #include "HMPIDDigitizerSpec.h"
 #include "HMPIDDigitWriterSpec.h"
 
+// for TRD
+#include "TRDDigitizerSpec.h"
+// #include "TRDDDigitWriterSpec.h"
+
 // GRP
 #include "DataFormatsParameters/GRPObject.h"
 #include "GRPUpdaterSpec.h"
@@ -337,6 +341,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::hmpid::getHMPIDDigitizerSpec(fanoutsize++));
     // connect the HMP digit writer
     specs.emplace_back(o2::hmpid::getHMPIDDigitWriterSpec());
+  }
+
+  // add TRD
+  if (isEnabled(o2::detectors::DetID::TRD)) {
+    detList.emplace_back(o2::detectors::DetID::TRD);
+    // connect the TRD digitization
+    specs.emplace_back(o2::trd::getTRDDigitizerSpec(fanoutsize++));
+    // connect the TRD digit writer
+    // specs.emplace_back(o2::trd::getTRDDigitWriterSpec());
   }
 
   // GRP updater: must come after all detectors since requires their list
