@@ -1865,6 +1865,8 @@ o2_define_bucket(
     EMCALSimulation
     HMPIDBase
     HMPIDSimulation
+    TRDBase
+    TRDSimulation
 )
 
 o2_define_bucket(
