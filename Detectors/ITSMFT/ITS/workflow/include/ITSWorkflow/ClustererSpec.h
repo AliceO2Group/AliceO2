@@ -8,31 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   RecoWorkflow.cxx
+/// @file   ClustererSpec.h
 
-#include "ITSWorkflow/RecoWorkflow.h"
-
-#include "ITSWorkflow/DigitReaderSpec.h"
-#include "ITSWorkflow/ClustererSpec.h"
+#include "Framework/DataProcessorSpec.h"
 
 namespace o2
 {
 namespace ITS
 {
-  
-namespace RecoWorkflow
-{
 
-framework::WorkflowSpec getWorkflow() {
-  framework::WorkflowSpec specs;
+/// create a processor spec
+/// run ITS cluster finder
+framework::DataProcessorSpec getClustererSpec();
 
-  specs.emplace_back(o2::ITS::getDigitReaderSpec());
-  specs.emplace_back(o2::ITS::getClustererSpec());
-
-  return specs;
-}
-  
-}
-  
 }
 }

@@ -6,6 +6,7 @@ O2_SETUP(NAME ${MODULE_NAME})
 set(SRCS
   src/RecoWorkflow.cxx
   src/DigitReaderSpec.cxx
+  src/ClustererSpec.cxx
    )
 
 set(LIBRARY_NAME ${MODULE_NAME})
