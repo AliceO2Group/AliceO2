@@ -114,10 +114,8 @@ void DigitPixelReader::clear()
 {
   // clear data structures
   mInputTree.reset();
-  delete mDigits;
-  delete mDigitsMCTruth;
+  delete mDigitsSelf;
+  delete mDigitsMCTruthSelf;
   mDigitsMCTruthSelf = nullptr;
-  mDigitsMCTruth = nullptr;
   mDigitsSelf = nullptr;
-  mDigits = nullptr;
 }
