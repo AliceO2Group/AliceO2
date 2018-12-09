@@ -92,7 +92,7 @@ class MCHDigitizer
  Float_t etocharge(Float_t edepos);
   Double_t chargePad(Float_t x, Float_t y, Float_t xmin, Float_t xmax, Float_t ymin, Float_t ymax, Int_t detID, Float_t charge);
   Double_t response(Float_t charge, Int_t detID);
-  Float_t chargeCorr(Float_t charge);
+  Float_t chargeCorr();
  
   //Mathieson parameter: NIM A270 (1988) 602-603 
   //should be a common place for MCH

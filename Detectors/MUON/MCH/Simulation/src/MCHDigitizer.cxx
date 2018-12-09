@@ -223,10 +223,11 @@ Float_t MCHDigitizer::getAnod(Float_t x, Int_t detID){
   return pitch*wire;
 }
 //______________________________________________________________________
-Float_t chargeCorr(){
+Float_t MCHDigitizer::chargeCorr(){
   //taken from AliMUONResponseV0
   //conceptually not at all understood why this should make sense
-  return TMath::Exp(gRandom->Gaus(0.0,mChargeCorr/2.0));
+  //mChargeCorr not taken
+  return TMath::Exp(gRandom->Gaus(0.0, mChargeCorr/2.0));
 }
 //______________________________________________________________________
 //not clear if needed for DPL or modifications required
