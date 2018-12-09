@@ -75,11 +75,24 @@ class MCHDigitizer
   //any need for separate values as in old code? in principle not...I think
   const Float_t mQspreadX = 0.144; //charge spread in cm
   const Float_t mQspreadY = 0.144;
+
+  //ChargeSlope for Station 2-5
+  //to be done: ChargeSlope 10 for station 1
+  const Float_t mChargeSlope = 25;//why float in Aliroot?
+  const Float_t mChargeCorr = 0.11;// number from line 122
+  //of AliMUONResponseFactory.cxx
+
+  const Float_t mChargeThreshold= 1e-4;
+  //AliMUONResponseV0.cxx constr.
+  const Float_t mChargeSat=0.61*1.25*0.2;
+  //from AliMUONResponseV0.cxx
+  //equals AliMUONConstants::DefaultADC2MV()*AliMUONConstants::DefaultA0()*AliMUONConstants::DefaultCapa()
   
   Int_t processHit(const Hit& hit, Double_t event_time);
-  Double_t etocharge(Float_t edepos);
+ Float_t etocharge(Float_t edepos);
   Double_t chargePad(Float_t x, Float_t y, Float_t xmin, Float_t xmax, Float_t ymin, Float_t ymax, Int_t detID, Float_t charge);
   Double_t response(Float_t charge, Int_t detID);
+  Float_t chargeCorr(Float_t charge);
  
   //Mathieson parameter: NIM A270 (1988) 602-603 
   //should be a common place for MCH
