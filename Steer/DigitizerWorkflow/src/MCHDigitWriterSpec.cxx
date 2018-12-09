@@ -43,7 +43,7 @@ class MCHDPLDigitWriterTask
     auto digits = pc.inputs().get<std::vector<o2::mch::Digit>*>("mchdigits");
     LOG(INFO) << "MCH received " << digits->size() << " digits";
     for (auto& digit : *digits) {
-      LOG(INFO) << "Have digit with charge " << digit.getCharge();
+      LOG(INFO) << "Have digit with charge " << digit.getADC();
     }
 
     // we should be only called once; tell DPL that this process is ready to exit

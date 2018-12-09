@@ -28,14 +28,14 @@ class Digit : public DigitBase //: public o2::dataformats::TimeStamp<double>
       Digit(int pad, double adc); //check if need uint32_to
       ~Digit() = default;
       
-      int GetPadID() { return mPadID; }
-      void SetPadID(int pad) { mPadID=pad;}
+      int getPadID() { return mPadID; }
+      void setPadID(int pad) { mPadID=pad;}
       
-      double GetADC() { return mADC; }
-      void SetADC(double adc) { mADC=adc;}
+      double getADC() { return mADC; }
+      void setADC(double adc) { mADC=adc;}
 
-      double GetTimeStamp() {return mTime;}
-      void SetTimeStamp(double time){mTime =time;}
+      double getTimeStamp() {return mTime;}
+      void setTimeStamp(double time){mTime =time;}
 	
     private:
 

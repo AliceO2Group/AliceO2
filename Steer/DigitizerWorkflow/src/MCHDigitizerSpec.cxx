@@ -106,7 +106,7 @@ class MCHDPLDigitizerTask
         mDigitizer.setSrcID(part.sourceID);
 
         // get the hits for this event and this source
-        std::vector<o2::mch::HitType> hits;
+        std::vector<o2::mch::Hit> hits;
         retrieveHits(mSimChains, "MCHHit", part.sourceID, part.entryID, &hits);
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found MCH " << hits.size() << " hits ";
 
@@ -115,7 +115,7 @@ class MCHDPLDigitizerTask
         mDigitizer.process(hits, digits);
         LOG(INFO) << "MCH obtained " << digits.size() << " digits ";
         for (auto& d : digits) {
-          LOG(INFO) << "CHARGE " << d.getCharge();
+          LOG(INFO) << "ADC " << d.getADC();
           LOG(INFO) << "PAD " << d.getPadID();
         }
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
