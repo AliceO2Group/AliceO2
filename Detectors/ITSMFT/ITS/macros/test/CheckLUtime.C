@@ -1,5 +1,5 @@
-/// \file CheckDigits.C
-/// \brief Simple macro to check ITSU clusters
+/// \file CheckLUtime.C
+/// \brief Macro to measure the time necessaty for the identification of the topology IDs of the clusters generated in an event. A dictionary of topologies must be provided as input.
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <TAxis.h>
@@ -15,32 +15,23 @@
 #include <string>
 #include "TStopwatch.h"
 
-#include "MathUtils/Utils.h"
-#include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTReconstruction/BuildTopologyDictionary.h"
 #include "ITSMFTReconstruction/LookUp.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/ClusterTopology.h"
-#include "ITSMFTSimulation/Hit.h"
-#include "MathUtils/Cartesian3D.h"
-#include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
 
 #endif
 
-void CheckLUtime(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim.root", std::string inputGeom = "O2geometry.root")
+void CheckLUtime(std::string clusfile = "o2clus_its.root", std::string dictfile = "complete_dictionary.bin")
 {
-  using namespace o2::Base;
-  using namespace o2::ITS;
 
   using o2::ITSMFT::BuildTopologyDictionary;
   using o2::ITSMFT::Cluster;
   using o2::ITSMFT::ClusterTopology;
-  using o2::ITSMFT::Hit;
   using o2::ITSMFT::LookUp;
   using o2::ITSMFT::TopologyDictionary;
 
-  LookUp finder("complete_dictionary.bin");
+  LookUp finder(dictfile.c_str());
   TopologyDictionary dict;
   ofstream time_output("time.txt");
 
@@ -50,30 +41,14 @@ void CheckLUtime(std::string clusfile = "o2clus_its.root", std::string hitfile =
 
   TStopwatch timerLookUp;
 
-  // Geometry
-  o2::Base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
-  auto gman = o2::ITS::GeometryTGeo::Instance();
-  gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot, o2::TransformType::L2G)); // request cached transforms
-
-  // Hits
-  TFile* file0 = TFile::Open(hitfile.data());
-  TTree* hitTree = (TTree*)gFile->Get("o2sim");
-  std::vector<Hit>* hitArray = nullptr;
-  hitTree->SetBranchAddress("ITSHit", &hitArray);
-
   // Clusters
   TFile* file1 = TFile::Open(clusfile.data());
   TTree* clusTree = (TTree*)gFile->Get("o2sim");
   std::vector<Cluster>* clusArr = nullptr;
   clusTree->SetBranchAddress("ITSCluster", &clusArr);
-  // Cluster MC labels
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clusLabArr = nullptr;
-  clusTree->SetBranchAddress("ITSClusterMCTruth", &clusLabArr);
 
   Int_t nevCl = clusTree->GetEntries(); // clusters in cont. readout may be grouped as few events per entry
-  Int_t nevH = hitTree->GetEntries();   // hits are stored as one event per entry
   int ievC = 0, ievH = 0;
-  int lastReadHitEv = -1;
 
   for (ievC = 0; ievC < nevCl; ievC++) {
     clusTree->GetEvent(ievC);

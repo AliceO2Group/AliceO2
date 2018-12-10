@@ -1,5 +1,5 @@
-/// \file CheckDigits.C
-/// \brief Simple macro to check ITSU clusters
+/// \file CheckTopologies.C
+/// Macros to test the generation of a dictionary of topologies. Three dictionaries are generated: one with signal-cluster only, one with noise-clusters only and one with all the clusters.
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <TAxis.h>

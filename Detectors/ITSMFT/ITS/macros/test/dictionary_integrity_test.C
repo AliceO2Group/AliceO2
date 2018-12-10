@@ -1,3 +1,6 @@
+/// \file CheckLookUp.C
+/// Macro to check the integrity of the dictionary of cluster-topology. The ID of each entry is checked.
+
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <TFile.h>
 #include <string>
@@ -13,7 +16,7 @@ using o2::ITSMFT::ClusterPattern;
 using o2::ITSMFT::LookUp;
 using o2::ITSMFT::TopologyDictionary;
 
-void dictionary_integrity_test(string intput_name = "complete_dictionary.bin", string output_name = "atomic_test.txt")
+void dictionary_integrity_test(string intput_name = "complete_dictionary.bin", string output_name = "dictionary_test.txt")
 {
 
   TopologyDictionary dict;
