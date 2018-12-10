@@ -23,4 +23,8 @@ Digitizer::~Digitizer()
 void Digitizer::process(std::vector<o2::trd::HitType> const& hits, std::vector<o2::trd::Digit>& digits)
 {
   // very basic implementation
+  // for every hit seen, create a digit
+  for (auto& hit : hits) {
+    digits.emplace_back();
+  }
 }
