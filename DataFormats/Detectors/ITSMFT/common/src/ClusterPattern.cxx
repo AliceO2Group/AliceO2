@@ -31,7 +31,7 @@ ClassImp(o2::ITSMFT::ClusterPattern)
   unsigned char ClusterPattern::getByte(int n) const
   {
     if (n < 0 || n > Cluster::kMaxPatternBytes + 1) {
-      std::cout << "Invalid element of the pattern" << std::endl;
+      LOG(ERROR) << "Invalid element of the pattern";
       return -1;
     } else {
       return mBitmap[n];
