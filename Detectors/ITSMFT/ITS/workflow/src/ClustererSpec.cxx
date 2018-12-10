@@ -71,7 +71,7 @@ DataProcessorSpec getClustererSpec()
       pc.outputs().snapshot(Output{"ITS","CLUSTERSMCTR", 0, Lifetime::Timeframe}, clusterLabels);
 
       done=true;
-      pc.services().get<ControlService>().readyToQuit(true);
+      //pc.services().get<ControlService>().readyToQuit(true);
   };
 
   return DataProcessorSpec {
