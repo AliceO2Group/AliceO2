@@ -50,7 +50,7 @@
 
 // for TRD
 #include "TRDDigitizerSpec.h"
-// #include "TRDDDigitWriterSpec.h"
+#include "TRDDigitWriterSpec.h"
 
 // GRP
 #include "DataFormatsParameters/GRPObject.h"
@@ -349,7 +349,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     // connect the TRD digitization
     specs.emplace_back(o2::trd::getTRDDigitizerSpec(fanoutsize++));
     // connect the TRD digit writer
-    // specs.emplace_back(o2::trd::getTRDDigitWriterSpec());
+    specs.emplace_back(o2::trd::getTRDDigitWriterSpec());
   }
 
   // GRP updater: must come after all detectors since requires their list
