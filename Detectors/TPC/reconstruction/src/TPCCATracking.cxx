@@ -204,17 +204,21 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
         }
       }
       if (outputTracksMCTruth) {
-        int bestLabelNum = 0, bestLabelCount = 0;
-        for (int j = 0; j < labels.size(); j++) {
-          if (labels[j].second > bestLabelCount) {
-            bestLabelNum = j;
-            bestLabelCount = labels[j].second;
+        if (labels.size() == 0) {
+          outputTracksMCTruth->addElement(iTmp, MCCompLabel()); //default constructor creates NotSet label
+        } else {
+          int bestLabelNum = 0, bestLabelCount = 0;
+          for (int j = 0; j < labels.size(); j++) {
+            if (labels[j].second > bestLabelCount) {
+              bestLabelNum = j;
+              bestLabelCount = labels[j].second;
+            }
           }
+          MCCompLabel& bestLabel = labels[bestLabelNum].first;
+          if (bestLabelCount < (1.f - sTrackMCMaxFake) * tracks[i].NClusters())
+            bestLabel.set(-bestLabel.getTrackID(), bestLabel.getEventID(), bestLabel.getSourceID());
+          outputTracksMCTruth->addElement(iTmp, bestLabel);
         }
-        MCCompLabel& bestLabel = labels[bestLabelNum].first;
-        if (bestLabelCount < (1.f - sTrackMCMaxFake) * tracks[i].NClusters())
-          bestLabel.set(-bestLabel.getTrackID(), bestLabel.getEventID(), bestLabel.getSourceID());
-        outputTracksMCTruth->addElement(iTmp, bestLabel);
       }
       int lastSector = trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].fNum >> 24;
     }
