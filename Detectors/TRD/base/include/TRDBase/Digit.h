@@ -11,9 +11,12 @@
 #ifndef ALICEO2_TRD_DIGIT_H_
 #define ALICEO2_TRD_DIGIT_H_
 
-namespace o2 {
-namespace trd {
-class Digit {
+namespace o2
+{
+namespace trd
+{
+class Digit
+{
  public:
   Digit() = default;
   ~Digit() = default;
@@ -25,14 +28,14 @@ class Digit {
   int GetSourceID() const { return mSourceID; }
 
  private:
-  int mRow = 0; // pad row number
-  int mCol = 0; // pad col number
+  int mRow = 0;  // pad row number
+  int mCol = 0;  // pad col number
   int mTime = 0; // time stamp
-  int mAmp = 0; // digitalized energy
+  int mAmp = 0;  // digitalized energy
   int mEventID = 0;
   int mSourceID = 0;
 };
-}  // namespace trd
-}  // namespace o2
+} // namespace trd
+} // namespace o2
 
 #endif

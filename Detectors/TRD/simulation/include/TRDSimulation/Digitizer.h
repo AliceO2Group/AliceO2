@@ -11,17 +11,21 @@
 #ifndef ALICEO2_TRD_DIGITIZER_H_
 #define ALICEO2_TRD_DIGITIZER_H_
 
-#include "TRDSimulation/Detector.h"
 #include "TRDBase/Digit.h"
+#include "TRDSimulation/Detector.h"
 
-namespace o2 {
-namespace trd {
-class Digitizer {
+namespace o2
+{
+namespace trd
+{
+class Digitizer
+{
  public:
   //
   Digitizer();
   ~Digitizer();
-  void process(std::vector<o2::trd::HitType> const&, std::vector<o2::trd::Digit>&);
+  void process(std::vector<o2::trd::HitType> const&,
+               std::vector<o2::trd::Digit>&);
   void setEventTime(double timeNS) { mTime = timeNS; }
   void setEventID(int entryID) { mEventID = entryID; }
   void setSrcID(int sourceID) { mSrcID = sourceID; }
@@ -31,6 +35,6 @@ class Digitizer {
   int mEventID = 0;
   int mSrcID = 0;
 };
-}  // namespace trd
-}  // namespace o2
+} // namespace trd
+} // namespace o2
 #endif
