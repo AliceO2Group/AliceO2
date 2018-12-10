@@ -15,8 +15,8 @@ namespace o2 {
 namespace trd {
 class Digit {
  public:
-  Digit();
-  ~Digit();
+  Digit() = default;
+  ~Digit() = default;
   int GetRow() const { return mRow; }
   int GetCol() const { return mCol; }
   int GetTime() const { return mTime; }
@@ -25,12 +25,12 @@ class Digit {
   int GetSourceID() const { return mSourceID; }
 
  private:
-  int mRow; // pad row number
-  int mCol; // pad col number
-  int mTime; // time stamp
-  int mAmp; // digitalized energy
-  int mEventID;
-  int mSourceID;
+  int mRow = 0; // pad row number
+  int mCol = 0; // pad col number
+  int mTime = 0; // time stamp
+  int mAmp = 0; // digitalized energy
+  int mEventID = 0;
+  int mSourceID = 0;
 };
 }  // namespace trd
 }  // namespace o2

@@ -19,5 +19,6 @@
 #pragma link C++ class o2::trd::TRDGeometryBase + ;
 #pragma link C++ class o2::trd::TRDCommonParam + ;
 #pragma link C++ class o2::trd::TRDSimParam + ;
+#pragma link C++ class o2::trd::Digit + ;
 
 #endif

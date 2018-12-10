@@ -21,10 +21,15 @@ class Digitizer {
   //
   Digitizer();
   ~Digitizer();
-  void Process(std::vector<o2::trd::HitType> const&,
-               std::vector<o2::trd::Digit>&);
+  void process(std::vector<o2::trd::HitType> const&, std::vector<o2::trd::Digit>&);
+  void setEventTime(double timeNS) { mTime = timeNS; }
+  void setEventID(int entryID) { mEventID = entryID; }
+  void setSrcID(int sourceID) { mSrcID = sourceID; }
 
  private:
+  double mTime = 0.;
+  int mEventID = 0;
+  int mSrcID = 0;
 };
 }  // namespace trd
 }  // namespace o2

@@ -20,7 +20,7 @@ Digitizer::~Digitizer()
 {
 }
 
-void Digitizer::Process(std::vector<o2::trd::HitType> const& hits, std::vector<o2::trd::Digit>& digits)
+void Digitizer::process(std::vector<o2::trd::HitType> const& hits, std::vector<o2::trd::Digit>& digits)
 {
   // very basic implementation
 }
