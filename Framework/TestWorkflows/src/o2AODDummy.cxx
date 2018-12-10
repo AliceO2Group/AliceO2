@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/runDataProcessing.h"
+#include "Framework/AODReaderHelpers.h"
 
 #include <ROOT/RDataFrame.hxx>
 #include <ROOT/RArrowDS.hxx>
@@ -29,55 +30,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
         OutputSpec{ { "Muon" }, "AOD", "MUONINFO" },
         OutputSpec{ { "Calo" }, "AOD", "CALOINFO" },
       },
-      AlgorithmSpec{
-        [](InitContext& setup) {
-          return [](ProcessingContext& ctx) {
-            /// We get the table builder for track param.
-            auto& trackParBuilder = ctx.outputs().make<TableBuilder>(Output{ "AOD", "TRACKPAR" });
-            auto& trackParCovBuilder = ctx.outputs().make<TableBuilder>(Output{ "AOD", "TRACKPARCOV" });
-            // We use RDataFrame to create a few columns with 100 rows.
-            // The final action is the one which allows the user to create the
-            // output message.
-            //
-            // FIXME: bloat in the code I'd like to get rid of:
-            //
-            // * I need to specify the types for the columns
-            // * I need to specify the names of the columns twice
-            // * I should use the RDataFrame to read / convert from the ESD...
-            //   Using dummy values for now.
-            ROOT::RDataFrame rdf(100);
-            auto trackParRDF = rdf.Define("mX", "1.f")
-                                 .Define("mAlpha", "2.f")
-                                 .Define("y", "3.f")
-                                 .Define("z", "4.f")
-                                 .Define("snp", "5.f")
-                                 .Define("tgl", "6.f")
-                                 .Define("qpt", "7.f");
-
-            /// FIXME: think of the best way to include the non-diag elements.
-            auto trackParCorRDF = rdf.Define("sigY", "1.f")
-                                    .Define("sigZ", "2.f")
-                                    .Define("sigSnp", "3.f")
-                                    .Define("sigTgl", "4.f")
-                                    .Define("sigQpt", "5.f");
-
-            /// FIXME: we need to do some cling magic to hide all of this.
-            trackParRDF.ForeachSlot(trackParBuilder.persist<float, float, float, float, float, float, float>(
-                                      { "mX", "mAlpha", "y", "z", "snp", "tgl", "qpt" }),
-                                    { "mX", "mAlpha", "y", "z", "snp", "tgl", "qpt" });
-
-            trackParCorRDF.ForeachSlot(trackParCovBuilder.persist<float, float, float, float, float>(
-                                         { "sigY", "sigZ", "sigSnp", "sigTgl", "sigQpt" }),
-                                       { "sigY", "sigZ", "sigSnp", "sigTgl", "sigQpt" });
-
-          };
-        } },
-      { ConfigParamSpec{ "infile", VariantType::Int, 28, { "Input ESD file" } } } },
+      o2::framework::readers::AODReaderHelpers::rootFileReaderCallback(),
+      { ConfigParamSpec{ "aod-file", VariantType::String, "aod.root", { "Input AOD file" } } } },
     /// Minimal analysis example
     DataProcessorSpec{
       "dummy-analysis",
-      { InputSpec{ "TrackPar", "AOD", "TRACKPAR" },
-        InputSpec{ "TrackParCov", "AOD", "TRACKPARCOV" } },
+      {
+        InputSpec{ "TrackPar", "AOD", "TRACKPAR" },
+        InputSpec{ "TrackParCov", "AOD", "TRACKPARCOV" },
+        InputSpec{ "TrackExtra", "AOD", "TRACKEXTRA" },
+      },
       {},
       AlgorithmSpec{
         [](InitContext& setup) {
@@ -89,10 +51,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
             ///
             /// auto rdf = ctx.inputs().get<RDataSource>("xz");
             auto table = s->asArrowTable();
-            if (table->num_rows() != 100) {
-              LOG(ERROR) << "Wrong number of entries for the arrow table" << table->num_rows();
+            if (table->num_rows() == 0) {
+              LOG(ERROR) << "Arrow table is TRACKPAR is empty" << table->num_rows();
             }
-            if (table->num_columns() != 7) {
+            if (table->num_columns() != 8) {
               LOG(ERROR) << "Wrong number of columns for the arrow table" << table->num_columns();
             }
             auto source = std::make_unique<ROOT::RDF::RArrowDS>(s->asArrowTable(), std::vector<std::string>{});
@@ -101,7 +63,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
             auto table2 = s->asArrowTable();
             auto source2 = std::make_unique<ROOT::RDF::RArrowDS>(s->asArrowTable(), std::vector<std::string>{});
             ROOT::RDataFrame rdf2(std::move(source2));
-            LOG(ERROR) << *(rdf2.Count());
           };
         } } }
   };
