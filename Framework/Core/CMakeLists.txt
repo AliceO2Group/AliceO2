@@ -20,6 +20,7 @@ else()
 endif()
 
 set(SRCS
+    src/AODReaderHelpers.cxx
     src/BoostOptionsRetriever.cxx
     src/ConfigParamsHelper.cxx
     src/CompletionPolicy.cxx
