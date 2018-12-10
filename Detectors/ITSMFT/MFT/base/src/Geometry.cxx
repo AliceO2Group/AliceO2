@@ -32,7 +32,7 @@ const Double_t Geometry::sSensorInterspace = 0.01; //[cm]  Offset between two ad
 const Double_t Geometry::sSensorSideOffset = 0.04; // [cm] Side Offset between the ladder edge and the chip edge
 const Double_t Geometry::sSensorTopOffset = 0.04;  // [cm] Top Offset between the ladder edge and the chip edge
 const Double_t Geometry::sLadderOffsetToEnd =
-  4.7; // [cm] Offset between the last Chip and the end of the ladder toward the DAQ connector
+  4.7;                                              // [cm] Offset between the last Chip and the end of the ladder toward the DAQ connector
 const Double_t Geometry::sSensorThickness = 30.e-4; // 50 microns
 const Double_t Geometry::sChipThickness = 50.e-4;   // 50 microns
 
@@ -44,11 +44,11 @@ const Double_t Geometry::sKaptonThickness = 75.e-4;  // 75 microns FPC
 const Double_t Geometry::sFlexThickness =
   sKaptonThickness + 2 * sAluThickness + 2 * sVarnishThickness; // total thickness of a FPC
 const Double_t Geometry::sFlexHeight = 1.68;
-const Double_t Geometry::sClearance = 300.e-4; // 300 microns clearance without any conducting metal all around the FPC
-const Double_t Geometry::sRadiusHole1 = 0.125; // diameter of the FPC crew, closest to the FPC electric connector
-const Double_t Geometry::sRadiusHole2 = 0.1;   // diameter of the FPC pin locator, after the previous hole crew
-const Double_t Geometry::sHoleShift1 = 2.8;    // shift of the FPC crew
-const Double_t Geometry::sHoleShift2 = 3.6;    // shift of the FPC pin locator
+const Double_t Geometry::sClearance = 300.e-4;   // 300 microns clearance without any conducting metal all around the FPC
+const Double_t Geometry::sRadiusHole1 = 0.125;   // diameter of the FPC crew, closest to the FPC electric connector
+const Double_t Geometry::sRadiusHole2 = 0.1;     // diameter of the FPC pin locator, after the previous hole crew
+const Double_t Geometry::sHoleShift1 = 2.8;      // shift of the FPC crew
+const Double_t Geometry::sHoleShift2 = 3.6;      // shift of the FPC pin locator
 const Double_t Geometry::sConnectorOffset = 0.4; // distance between the connector and the start of the FPC
 const Double_t Geometry::sCapacitorDx = 0.05;
 const Double_t Geometry::sCapacitorDy = 0.1;
@@ -61,10 +61,12 @@ const Double_t Geometry::sShiftDDGNDline =
   0.4;                                       // positionning of the line to separate AVDD/DVDD et AGND/DGND on the FPC
 const Double_t Geometry::sShiftline = 0.025; // positionning of the line along the FPC side
 const Double_t Geometry::sEpsilon = 0.0001;  // to see the removed volumes produced by TGeoSubtraction
-const Double_t Geometry::sRohacell = -0.001; // to modify the thickness of the rohacell
 
-const Double_t Geometry::sGlueThickness = 100.e-4; // 100 microns of SE4445 to be confirmed
-const Double_t Geometry::sGlueEdge = 300.e-4; // in case the glue is not spreaded on the whole surface of the sensor
+const Double_t Geometry::sGlueThickness = 100.e-4;                  // 100 microns of SE4445 to be confirmed
+const Double_t Geometry::sGlueEdge = 300.e-4;                       // in case the glue is not spreaded on the whole surface of the sensor
+const Double_t Geometry::sGlueRohacellCarbonThickness = 0.0025 / 2; // glue betweeen the carbone plates and the rohacell
+const Double_t Geometry::sKaptonOnCarbonThickness = 0.0013 / 2;     // thickness of the kapton layer on the heat exchanger carbone plate
+const Double_t Geometry::sKaptonGlueThickness = 0.0027 / 2;         // thickness of the kapton layer glue
 
 // need to do this, because of the different conventions between
 // ITS and MFT in placing the chips (rows, cols) in the geometry
