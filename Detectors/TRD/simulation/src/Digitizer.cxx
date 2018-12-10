@@ -8,17 +8,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include "TRDSimulation/Digitizer.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+using namespace o2::trd;
 
-#pragma link C++ class o2::trd::TRDPadPlane + ;
-#pragma link C++ class o2::trd::TRDGeometry + ;
-#pragma link C++ class o2::trd::TRDGeometryBase + ;
-#pragma link C++ class o2::trd::TRDCommonParam + ;
-#pragma link C++ class o2::trd::TRDSimParam + ;
-#pragma link C++ class o2::trd::Digit + ;
+Digitizer::Digitizer()
+{
+}
 
-#endif
+Digitizer::~Digitizer()
+{
+}
+
+void Digitizer::process(std::vector<o2::trd::HitType> const& hits, std::vector<o2::trd::Digit>& digits)
+{
+  // very basic implementation
+}

@@ -8,17 +8,4 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
-
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
-
-#pragma link C++ class o2::trd::TRDPadPlane + ;
-#pragma link C++ class o2::trd::TRDGeometry + ;
-#pragma link C++ class o2::trd::TRDGeometryBase + ;
-#pragma link C++ class o2::trd::TRDCommonParam + ;
-#pragma link C++ class o2::trd::TRDSimParam + ;
-#pragma link C++ class o2::trd::Digit + ;
-
-#endif
+#include "TRDBase/Digit.h"

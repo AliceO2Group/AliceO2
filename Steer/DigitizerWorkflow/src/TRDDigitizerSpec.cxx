@@ -21,8 +21,8 @@
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
-// #include "TRDBase/Digit.h" --> activate this
-// #include "TRDSimulation/TRDDigitizer.h" --> activate this
+#include "TRDBase/Digit.h"
+#include "TRDSimulation/Digitizer.h"
 #include "TRDSimulation/Detector.h" // for the Hittype
 #include "DetectorsBase/GeometryManager.h"
 
@@ -92,31 +92,30 @@ class TRDDPLDigitizerTask
     }
 
     auto& eventParts = context->getEventParts();
-    // std::vector<o2::trd::Digit> digitsAccum; // accumulator for digits  --> activate this
+    std::vector<o2::trd::Digit> digitsAccum; // accumulator for digits
 
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < irecords.size(); ++collID) {
-      // mDigitizer.setEventTime(irecords[collID].timeNS); --> activate this line
+      mDigitizer.setEventTime(irecords[collID].timeNS);
 
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
-        // mDigitizer.setEventID(part.entryID);  --> activate this
-        // mDigitizer.setSrcID(part.sourceID); --> activate this
+        mDigitizer.setEventID(part.entryID);
+        mDigitizer.setSrcID(part.sourceID);
 
         // get the hits for this event and this source
         std::vector<o2::trd::HitType> hits;
         retrieveHits(mSimChains, "TRDHit", part.sourceID, part.entryID, &hits);
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found TRD " << hits.size() << " hits ";
 
-        // std::vector<o2::trd::Digit> digits; // digits which get filled  --> activate this
-        // mDigitizer.process(hits, digits); --> activate this
+        std::vector<o2::trd::Digit> digits; // digits which get filled
+        mDigitizer.process(hits, digits);
+        std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
       }
-      // std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));  --> activate this
     }
-    // pc.outputs().snapshot(Output{ "TRD", "DIGITS", 0, Lifetime::Timeframe }, digitsAccum); --> activate this
-
+    pc.outputs().snapshot(Output{ "TRD", "DIGITS", 0, Lifetime::Timeframe }, digitsAccum);
     LOG(INFO) << "TRD: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{ "TRD", "ROMode", 0, Lifetime::Timeframe }, mROMode);
 
@@ -126,7 +125,7 @@ class TRDDPLDigitizerTask
   }
 
  private:
-  // TRDDigitizer mDigitizer;  --> activate this as soon as you have it
+  Digitizer mDigitizer;
   std::vector<TChain*> mSimChains;
   // RS: at the moment using hardcoded flag for continuos readout
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
@@ -143,7 +142,7 @@ o2::framework::DataProcessorSpec getTRDDigitizerSpec(int channel)
     "TRDDigitizer",
     Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
 
-    Outputs{ /* OutputSpec{ "TRD", "DIGITS", 0, Lifetime::Timeframe }, --> active this */
+    Outputs{ OutputSpec{ "TRD", "DIGITS", 0, Lifetime::Timeframe },
              OutputSpec{ "TRD", "ROMode", 0, Lifetime::Timeframe } },
 
     AlgorithmSpec{ adaptFromTask<TRDDPLDigitizerTask>() },
