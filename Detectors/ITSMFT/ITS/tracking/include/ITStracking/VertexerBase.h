@@ -25,17 +25,18 @@ namespace o2
 {
 namespace ITS
 {
+
 class Cluster;
 class Line;
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
-class Vertexer
+class VertexerBase
 {
  public:
-  explicit Vertexer(const ROframe& event);
-  virtual ~Vertexer();
-  Vertexer(const Vertexer&) = delete;
-  Vertexer& operator=(const Vertexer&) = delete;
+  explicit VertexerBase(const ROframe& event/*, useGPU = false*/);
+
+  VertexerBase(const VertexerBase&) = delete;
+  VertexerBase& operator=(const VertexerBase&) = delete;
   void initialise(const float zCut, const float phiCut, const float pairCut, const float clusterCut,
                   const int clusterContributorsCut);
   void initialise(const std::tuple<float, float, float, float, int> initParams);

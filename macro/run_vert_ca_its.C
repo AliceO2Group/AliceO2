@@ -30,18 +30,18 @@
 #include "Field/MagneticField.h"
 
 #include "ITSBase/GeometryTGeo.h"
-#include "ITStracking/Event.h"
+#include "ITStracking/ROframe.h"
 #include "ITStracking/IOUtils.h"
-#include "ITStracking/Vertexer.h"
+#include "ITStracking/VertexerBase.h"
 #include "ITStracking/ClusterLines.h"
 #include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
-using o2::ITS::CA::Cluster;
-using o2::ITS::CA::Line;
-using o2::ITS::CA::MathUtils::calculatePhiCoordinate;
-using o2::ITS::CA::MathUtils::calculateRCoordinate;
+using o2::ITS::Cluster;
+using o2::ITS::Line;
+using o2::ITS::MathUtils::calculatePhiCoordinate;
+using o2::ITS::MathUtils::calculateRCoordinate;
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 void run_vert_ca_its(const int inspEvt = -1, bool useMC = false,
@@ -52,7 +52,8 @@ void run_vert_ca_its(const int inspEvt = -1, bool useMC = false,
                      std::string outfile = "vertexer_data.root")
 {
 
-  o2::ITS::CA::Event event;
+  gSystem->Load("libITStracking.so");
+  o2::ITS::ROframe frame(-123);
   if (path.back() != '/')
     path += '/';
   //-------- init geometry and field --------//
@@ -132,11 +133,11 @@ void run_vert_ca_its(const int inspEvt = -1, bool useMC = false,
     if (isContITS) {
       int nclLeft = clusters->size();
       while (nclLeft > 0) {
-        int nclUsed = o2::ITS::CA::IOUtils::loadROFrameData(roFrame, event, clusters, labels);
+        int nclUsed = o2::ITS::IOUtils::loadROFrameData(roFrame, frame, clusters, labels);
         if (nclUsed) {
-          cout << "Event " << iEvent << " ROFrame " << roFrame << std::endl;
+          cout << " ROFrame " << roFrame << std::endl;
           start = std::chrono::system_clock::now();
-          o2::ITS::CA::Vertexer vertexer(event);
+          o2::ITS::VertexerBase vertexer(frame);
           end_inst = std::chrono::system_clock::now();
           vertexer.setROFrame(roFrame);
           vertexer.initialise(initParams);
@@ -164,10 +165,10 @@ void run_vert_ca_its(const int inspEvt = -1, bool useMC = false,
         outTree.Fill();
       }
     } else { // triggered mode
-      cout << "Event " << iEvent << std::endl;
-      o2::ITS::CA::IOUtils::loadEventData(event, clusters, labels);
+      cout << "ROframe " << iEvent << std::endl;
+      o2::ITS::IOUtils::loadEventData(frame, clusters, labels);
       start = std::chrono::system_clock::now();
-      o2::ITS::CA::Vertexer vertexer(event);
+      o2::ITS::VertexerBase vertexer(frame);
       end_inst = std::chrono::system_clock::now();
       vertexer.setROFrame(roFrame);
       vertexer.initialise(initParams);
