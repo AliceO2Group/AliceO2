@@ -35,12 +35,13 @@ class Digit : public DigitBase
  public:
   Digit() = default;
 
-  Digit(std::vector<ChannelData> ChDgDataArr, Double_t time, Int_t bc, Bool_t isA,
+  Digit(std::vector<ChannelData> ChDgDataArr, Double_t time, Int_t bc, Int_t orbit, Bool_t isA,
         Bool_t isC, Bool_t isCnt, Bool_t isSCnt, Bool_t isVrtx)
   {
     setChDgData(std::move(ChDgDataArr));
     setTime(time);
     setBC(bc);
+    setOrbit(orbit);
     setTriggers(isA, isC, isCnt, isSCnt, isVrtx);
   }
 
@@ -74,15 +75,15 @@ class Digit : public DigitBase
   void setChDgData(std::vector<ChannelData>&& ChDgDataArr) { mChDgDataArr = std::move(ChDgDataArr); }
 
   void printStream(std::ostream& stream) const;
-  void cleardigits() { mIsA = mIsC = mIsCentral = mIsSemiCentral = mIsVertex =0;
+  void cleardigits()
+  {
+    mIsA = mIsC = mIsCentral = mIsSemiCentral = mIsVertex = 0;
     mChDgDataArr.clear(); }
     
 
  private:
-  //  friend class boost::serialization::access;
-
-  Double_t mTime; /// time stamp
-  Int_t mBC;      ///< Bunch Crossing
+  Double_t mTime; // time stamp
+  Int_t mBC;      // Bunch Crossing
   Int_t mOrbit;   // orbit
 
   //online triggers processed on TCM

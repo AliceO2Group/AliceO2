@@ -33,15 +33,15 @@ void RecPoints::FillFromDigits(const Digit& digit)
   mEventTime = digit.getTime();
   mBC = digit.getBC();
   mOrbit = digit.getOrbit();
- 
-  Double_t BCEventTime = 12.5;
- 
+
+  Float_t BCEventTime = 12.5;
+
   for (const auto& d : digit.getChDgData()) {
     Int_t mcp = d.ChId;
     cfd[mcp] = d.CFDTime - mEventTime - BCEventTime;
     amp[mcp] = d.QTCAmpl;
     mTimeAmp.push_back(ChannelData{ mcp, cfd[mcp], amp[mcp] });
-    //   LOG(DEBUG) << " mcp " << mcp<<" time "<< cfd[mcp]<<  FairLogger::endl;
+    //  LOG(DEBUG) << " mcp " << mcp<<" time "<< cfd[mcp]<<" amplitude "<< amp[mcp] << FairLogger::endl;
   }
 
   for (Int_t imcp = 0; imcp < nMCPsA; imcp++) {

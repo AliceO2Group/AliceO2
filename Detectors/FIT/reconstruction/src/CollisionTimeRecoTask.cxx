@@ -45,13 +45,11 @@ InitStatus CollisionTimeRecoTask::Init()
     return kERROR;
   }
 
-  //mDigitsArray = mgr->InitObjectAs<const std::vector<o2::fit::Digit>*>("FITDigit");
   mEventDigit = mgr->InitObjectAs<const Digit*>("FITDigit");
-  //  if (!mDigitsArray) {
-  //    LOG(ERROR) << "FIT digits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
-  //    return kERROR;
-  //  }
-
+  if (!mEventDigit) {
+    LOG(ERROR) << "FIT digits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+    return kERROR;
+  }
   // Register output container
   mgr->RegisterAny("FITRecPoints", mRecPoints, kTRUE);
 
@@ -61,6 +59,7 @@ InitStatus CollisionTimeRecoTask::Init()
 void CollisionTimeRecoTask::Exec(Option_t* option)
 {
   LOG(DEBUG) << "Running reconstruction on new event" << FairLogger::endl;
+  std::cout << "Running reconstruction on new event" << std::endl;
   FairRootManager* mgr = FairRootManager::Instance();
 
   mRecPoints->FillFromDigits(*mEventDigit);

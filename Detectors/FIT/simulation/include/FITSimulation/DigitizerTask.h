@@ -48,10 +48,6 @@ class DigitizerTask : public FairTask
 
   void setQEDInput(TBranch* qed, float timebin, UChar_t srcID);
 
-  void setQEDInput(TBranch* qed, float timebin, UChar_t srcID);
-
-  void setQEDInput(TBranch* qed, float timebin, UChar_t srcID);
-
  private:
   void processQEDBackground(double tMax);
 

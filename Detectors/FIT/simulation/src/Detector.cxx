@@ -254,6 +254,20 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   xinv = ptop[0] + prfv[0];
   topref->AddNode(rfv, 2, new TGeoTranslation(xinv, 0, 0));
   yinv = -ptop[1] - prfh[1];
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+   yinv = -ptop[1] - prfh[1];
+<<<<<<< HEAD
+>>>>>>> FIT: Initial MCtruth treatment for charged particles / QED background
+=======
+>>>>>>> writing MC label for charge particles
+>>>>>>> writing MC label for charge particles
+=======
+
+>>>>>>> cosmetic changes
+>>>>>>> cosmetic changes
   topref->AddNode(rfh, 1, new TGeoTranslation(0, yinv, 0));
   yinv = ptop[1] + prfh[1];
   topref->AddNode(rfh, 2, new TGeoTranslation(0, yinv, 0));
@@ -267,8 +281,21 @@ void Detector::SetOneMCP(TGeoVolume* ins)
       ntops++;
       ins->AddNode(topref, ntops, new TGeoTranslation(xin, yin, z));
       z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + preg[2];
+<<<<<<< HEAD
       ins->AddNode(cat, ntops, new TGeoTranslation(xin, yin, z));
       z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + preg[2];
+=======
+<<<<<<< HEAD
+=======
+       z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + preg[2];
+<<<<<<< HEAD
+>>>>>>> FIT: Initial MCtruth treatment for charged particles / QED background
+=======
+>>>>>>> writing MC label for charge particles
+>>>>>>> writing MC label for charge particles
+=======
+>>>>>>> cosmetic changes
+>>>>>>> cosmetic changes
       ins->AddNode(cat, ntops, new TGeoTranslation(xin, yin, z));
       // cat->Print();
     }
