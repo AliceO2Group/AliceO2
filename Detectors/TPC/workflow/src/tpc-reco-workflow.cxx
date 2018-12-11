@@ -16,7 +16,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "TPCWorkflow/RecoWorkflow.h"
-#include "RangeTokenizer.h"
+#include "Algorithm/RangeTokenizer.h"
 
 #include <string>
 #include <stdexcept>
