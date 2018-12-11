@@ -77,7 +77,7 @@ DataProcessorSpec getDigitReaderSpec()
     },
     AlgorithmSpec{ init },
     Options{
-       { "its-digit-infile", VariantType::String, "o2digi_its.root", { "Name of the input file" } }
+       { "its-digit-infile", VariantType::String, "itsdigits.root", { "Name of the input file" } }
     }
   };
 }
