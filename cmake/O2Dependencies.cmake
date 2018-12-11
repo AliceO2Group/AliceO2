@@ -2012,7 +2012,8 @@ o2_define_bucket(
     detectors_base_bucket
     SimulationDataFormat
     RapidJSON
-
+    mch_mapping_interface_bucket
+    
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
