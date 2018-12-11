@@ -20,6 +20,10 @@ using namespace o2::framework;
 WorkflowSpec defineDataProcessing(ConfigContext const& specs)
 {
   WorkflowSpec workflow{
+    /// FIXME: for the moment we need to have an explicit declaration
+    ///        of the reader and what to produce. In the future this
+    ///        will not be required, as dangling AOD inputs will be mapped automatically
+    ///        to an AOD Source
     DataProcessorSpec{
       "dummy-aod-producer",
       {},

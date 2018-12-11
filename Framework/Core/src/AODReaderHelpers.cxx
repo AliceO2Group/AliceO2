@@ -79,15 +79,14 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         TTreeReaderValue<float> c5(*extraReader, "fITSchi2Ncl");
         TTreeReaderValue<float> c6(*extraReader, "fTPCchi2Ncl");
         TTreeReaderValue<float> c7(*extraReader, "fTRDchi2");
-        // FIXME: not sure what is inside. Commenting for now
-        // TTreeReaderValue<float> c8(*extraReader, "fTOFchi2fTOFchi2");
+        TTreeReaderValue<float> c8(*extraReader, "fTOFchi2");
         TTreeReaderValue<float> c9(*extraReader, "fTPCsignal");
         TTreeReaderValue<float> c10(*extraReader, "fTRDsignal");
         TTreeReaderValue<float> c11(*extraReader, "fTOFsignal");
         TTreeReaderValue<float> c12(*extraReader, "fLength");
         auto& extraBuilder = ctx.outputs().make<TableBuilder>(Output{ "AOD", "TRACKEXTRA" });
         RootTableBuilderHelpers::convertTTree(extraBuilder, *extraReader,
-                                              c0, c1, c2, c3, c4, c5, c6, c7, c9, c10, c11); // c8 is missing.
+                                              c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11);
       }
 
     };
