@@ -245,9 +245,7 @@ GPUd() void AliHLTTRDTracker::LoadTracklet(const AliHLTTRDTrackletWord &tracklet
   fNtrackletsInChamber[tracklet.GetDetector()]++;
 }
 
-#endif
-
-GPUd() void AliHLTTRDTracker::DoTracking( HLTTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTRDnTrklts, int *tracksTRDlab )
+void AliHLTTRDTracker::DoTracking( HLTTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTRDnTrklts, int *tracksTRDlab )
 {
   //--------------------------------------------------------------------
   // Steering function for the tracking
@@ -278,9 +276,7 @@ GPUd() void AliHLTTRDTracker::DoTracking( HLTTRDTrack *tracksTPC, int *tracksTPC
     return;
   }
   SetPointersTracks(fTracksDataPtr, nTPCtracks);
-
   fNTracks = 0;
-
   auto timeStart = std::chrono::high_resolution_clock::now();
 
 #ifdef HLTCA_HAVE_OPENMP
@@ -305,13 +301,13 @@ GPUd() void AliHLTTRDTracker::DoTracking( HLTTRDTrack *tracksTPC, int *tracksTPC
 #endif
 
   auto duration = std::chrono::high_resolution_clock::now() - timeStart;
-
   //std::cout << "--->  -----> -------> ---------> Time for event " << fNEvents << ": " << std::chrono::duration_cast<std::chrono::milliseconds>(duration).count() << " ms" << std::endl;
 
   //DumpTracks();
-
   fNEvents++;
 }
+
+#endif
 
 GPUd() void AliHLTTRDTracker::DumpTracks()
 {
@@ -1298,7 +1294,7 @@ GPUd() void AliHLTTRDTracker::Quicksort(const int left, const int right, const i
 {
   //--------------------------------------------------------------------
   // use own quicksort implementation since std::sort not available
-  // sorting either tracklet array (type == 0) 
+  // sorting either tracklet array (type == 0)
   // or hypothesis array (type == 1)
   //--------------------------------------------------------------------
   if (left >= right) {
