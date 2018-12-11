@@ -14,7 +14,7 @@
 #include "MCHSimulation/Digit.h"
 #include "MCHSimulation/Detector.h"
 #include "MCHSimulation/Hit.h"
-//#include "MCHMappingInterface/Segmentation.h"
+#include "MCHMappingInterface/Segmentation.h"
 
 
 namespace o2
