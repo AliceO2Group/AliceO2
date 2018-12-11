@@ -15,6 +15,7 @@
 #include "ITSWorkflow/DigitReaderSpec.h"
 #include "ITSWorkflow/ClustererSpec.h"
 #include "ITSWorkflow/ClusterWriterSpec.h"
+#include "ITSWorkflow/CookedTrackerSpec.h"
 
 namespace o2
 {
@@ -29,7 +30,8 @@ framework::WorkflowSpec getWorkflow() {
 
   specs.emplace_back(o2::ITS::getDigitReaderSpec());
   specs.emplace_back(o2::ITS::getClustererSpec());
-  specs.emplace_back(o2::ITS::getClusterWriterSpec());
+  //specs.emplace_back(o2::ITS::getClusterWriterSpec());
+  specs.emplace_back(o2::ITS::getCookedTrackerSpec());
 
   return specs;
 }

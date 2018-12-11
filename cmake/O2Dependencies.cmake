@@ -914,9 +914,11 @@ o2_define_bucket(
     DEPENDENCIES
     Framework
     its_reconstruction_bucket
+    ITSReconstruction
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/workflow/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/reconstruction/include
 )
 
 o2_define_bucket(
