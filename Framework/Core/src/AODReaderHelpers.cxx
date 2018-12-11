@@ -19,12 +19,13 @@ namespace o2::framework::readers
 
 AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
 {
-  auto callback = AlgorithmSpec{ [](InitContext&) {
+  auto callback = AlgorithmSpec{ [](InitContext& initCtx) {
     LOG(INFO) << "This is not a real device, merely a placeholder for external inputs";
     LOG(INFO) << "To be hidden / removed at some point.";
     std::shared_ptr<TFile> infile;
     try {
-      infile = std::make_shared<TFile>("aod.root");
+      auto filename = initCtx.options().get<std::string>("aod-file");
+      infile = std::make_shared<TFile>(filename.c_str());
     } catch (...) {
       LOG(ERROR) << "Unable to open file";
     }
