@@ -49,8 +49,6 @@
 using namespace std;
 #endif
 
-#include "../Standalone/include/standaloneSettings.h"
-
 const AliHLTComponentDataType AliHLTTPCCADefinitions::fgkTrackletsDataType = AliHLTComponentDataTypeInitializer( "CATRACKL", kAliHLTDataOriginTPC );
 
 /** ROOT macro for the implementation of ROOT specific class methods */
