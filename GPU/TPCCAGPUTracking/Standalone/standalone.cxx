@@ -465,13 +465,8 @@ int main(int argc, char** argv)
 					{
 						printf("Event loaded with new format\n");
 						hlt.ResetMC();
-						for (int iSector = 0;iSector < 36;iSector++)
-						{
-							AliHLTTPCCAClusterData& cdata = hlt.ClusterData(iSector);
-							cdata.StartReading(i, rec->mIOPtrs.nClusterData[iSector]);
-							memcpy(cdata.Clusters(), rec->mIOPtrs.clusterData[iSector], rec->mIOPtrs.nClusterData[iSector] * sizeof(rec->mIOPtrs.clusterData[iSector][0]));
-							cdata.SetNumberOfClusters(rec->mIOPtrs.nClusterData[iSector]);
-						}
+						if (rec->mIOPtrs.clustersNative) rec->ConvertNativeToClusterData();
+						for (int iSector = 0;iSector < 36;iSector++) hlt.ClusterData(iSector).SetClusterData(i, rec->mIOPtrs.nClusterData[iSector], rec->mIOPtrs.clusterData[iSector]);
 					}
 					else if (r == -1)
 					{
