@@ -36,8 +36,6 @@
 #include "TParticlePDG.h"
 #include "TPDGCode.h"
 
-#include "../Standalone/include/standaloneSettings.h"
-
 AliHLTGPUDumpComponent::AliHLTGPUDumpComponent() : fSolenoidBz(0.f), fRec(NULL), fClusterData(NULL),
   fFastTransformManager( new ali_tpc_common::tpc_fast_transformation::TPCFastTransformManager ),
   fCalib(NULL), fRecParam(NULL), fOfflineRecoParam(), fOrigTransform(nullptr), fIsMC(false)
