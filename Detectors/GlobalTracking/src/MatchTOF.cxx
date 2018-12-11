@@ -463,7 +463,7 @@ void MatchTOF::doMatching(int sec)
   std::array<float, 3> pos;
   std::array<float, 3> posBeforeProp;
   float posFloat[3];
-  
+
   LOG(DEBUG) << "Trying to match %d tracks" << cacheTrk.size();
   for (int itrk = 0; itrk < cacheTrk.size(); itrk++) {
     for (int ii = 0; ii < 2; ii++) {
@@ -484,12 +484,12 @@ void MatchTOF::doMatching(int sec)
 																//Printf("Radius xy = %f", TMath::Sqrt(posBeforeProp[0]*posBeforeProp[0] + posBeforeProp[1]*posBeforeProp[1]));
 																//Printf("Radius xyz = %f", TMath::Sqrt(posBeforeProp[0]*posBeforeProp[0] + posBeforeProp[1]*posBeforeProp[1] + posBeforeProp[2]*posBeforeProp[2]));
 																*/
-    
+
 #ifdef _ALLOW_DEBUG_TREES_
     (*mDBGOut) << "propOK"
                << "track=" << trefTrk << "\n";
 #endif
-    
+
     // initializing
     for (int ii = 0; ii < 2; ii++) {
       for (int iii = 0; iii < 5; iii++) {
@@ -514,7 +514,7 @@ void MatchTOF::doMatching(int sec)
       for (int idet = 0; idet < 5; idet++)
         detIdTemp[idet] = -1;
       Geo::getPadDxDyDz(posFloat, detIdTemp, deltaPosTemp);
-      
+
       // uncomment below only for local debug; this will produce A LOT of output - one print per propagation step
       //Printf("detIdTemp[0] = %d, detIdTemp[1] = %d, detIdTemp[2] = %d, detIdTemp[3] = %d, detIdTemp[4] = %d", detIdTemp[0], detIdTemp[1], detIdTemp[2], detIdTemp[3], detIdTemp[4]);
       if (detIdTemp[2] != -1 && nStripsCrossedInPropagation == 0) { // print in case you have a useful propagation
@@ -611,48 +611,48 @@ void MatchTOF::doMatching(int sec)
       int eventIdTOF;
       int sourceIdTOF;
       for (auto iPropagation = 0; iPropagation < nStripsCrossedInPropagation; iPropagation++) {
-	LOG(DEBUG) << "TOF Cluster [" << itof << ", " << cacheTOF[itof] << "]:      indices   = " << indices[0] << ", " << indices[1] << ", " << indices[2] << ", " << indices[3] << ", " << indices[4];
-	LOG(DEBUG) << "Propagated Track [" << itrk << ", " << cacheTrk[itrk] << "]: detId[" << iPropagation << "]  = " << detId[iPropagation][0] << ", " << detId[iPropagation][1] << ", " << detId[iPropagation][2] << ", " << detId[iPropagation][3] << ", " << detId[iPropagation][4];
-	float resX = deltaPos[iPropagation][0] - (indices[4] - detId[iPropagation][4]) * Geo::XPAD; // readjusting the residuals due to the fact that the propagation fell in a pad that was not exactly the one of the cluster
-	float resZ = deltaPos[iPropagation][2] - (indices[3] - detId[iPropagation][3]) * Geo::ZPAD; // readjusting the residuals due to the fact that the propagation fell in a pad that was not exactly the one of the cluster
-	float res = TMath::Sqrt(resX * resX + resZ * resZ);
-	LOG(DEBUG) << "resX = " << resX << ", resZ = " << resZ << ", res = " << res;
+        LOG(DEBUG) << "TOF Cluster [" << itof << ", " << cacheTOF[itof] << "]:      indices   = " << indices[0] << ", " << indices[1] << ", " << indices[2] << ", " << indices[3] << ", " << indices[4];
+        LOG(DEBUG) << "Propagated Track [" << itrk << ", " << cacheTrk[itrk] << "]: detId[" << iPropagation << "]  = " << detId[iPropagation][0] << ", " << detId[iPropagation][1] << ", " << detId[iPropagation][2] << ", " << detId[iPropagation][3] << ", " << detId[iPropagation][4];
+        float resX = deltaPos[iPropagation][0] - (indices[4] - detId[iPropagation][4]) * Geo::XPAD; // readjusting the residuals due to the fact that the propagation fell in a pad that was not exactly the one of the cluster
+        float resZ = deltaPos[iPropagation][2] - (indices[3] - detId[iPropagation][3]) * Geo::ZPAD; // readjusting the residuals due to the fact that the propagation fell in a pad that was not exactly the one of the cluster
+        float res = TMath::Sqrt(resX * resX + resZ * resZ);
+        LOG(DEBUG) << "resX = " << resX << ", resZ = " << resZ << ", res = " << res;
 #ifdef _ALLOW_DEBUG_TREES_
-	fillTOFmatchTree("match0", cacheTOF[itof], indices[0], indices[1], indices[2], indices[3], indices[4], cacheTrk[itrk], iPropagation, detId[iPropagation][0], detId[iPropagation][1], detId[iPropagation][2], detId[iPropagation][3], detId[iPropagation][4], resX, resZ, res, trefTrk);
+        fillTOFmatchTree("match0", cacheTOF[itof], indices[0], indices[1], indices[2], indices[3], indices[4], cacheTrk[itrk], iPropagation, detId[iPropagation][0], detId[iPropagation][1], detId[iPropagation][2], detId[iPropagation][3], detId[iPropagation][4], resX, resZ, res, trefTrk);
 #endif
-	int tofLabelTrackID[3] = { -1, -1, -1 };
-	int tofLabelEventID[3] = { -1, -1, -1 };
-	int tofLabelSourceID[3] = { -1, -1, -1 };
-	for (int ilabel = 0; ilabel < labelsTOF.size(); ilabel++) {
-	  tofLabelTrackID[ilabel] = labelsTOF[ilabel].getTrackID();
-	  tofLabelEventID[ilabel] = labelsTOF[ilabel].getEventID();
-	  tofLabelSourceID[ilabel] = labelsTOF[ilabel].getSourceID();
-	}
-	//auto labelTPC = mTPCLabels->at(mTracksSectIndexCache[indices[0]][itrk]);
-	auto labelITS = (*mITSLabels)[mTracksSectIndexCache[indices[0]][itrk]];
-	fillTOFmatchTreeWithLabels("matchPossibleWithLabels", cacheTOF[itof], indices[0], indices[1], indices[2], indices[3], indices[4], cacheTrk[itrk], iPropagation, detId[iPropagation][0], detId[iPropagation][1], detId[iPropagation][2], detId[iPropagation][3], detId[iPropagation][4], resX, resZ, res, trefTrk, labelTPC.getTrackID(), labelTPC.getEventID(), labelTPC.getSourceID(), labelITS.getTrackID(), labelITS.getEventID(), labelITS.getSourceID(), tofLabelTrackID[0], tofLabelEventID[0], tofLabelSourceID[0], tofLabelTrackID[1], tofLabelEventID[1], tofLabelSourceID[1], tofLabelTrackID[2], tofLabelEventID[2], tofLabelSourceID[2]);
-	if (indices[0] != detId[iPropagation][0])
-	  continue;
-	if (indices[1] != detId[iPropagation][1])
-	  continue;
-	if (indices[2] != detId[iPropagation][2])
-	  continue;
-	float chi2 = res; // TODO: take into account also the time!
-	fillTOFmatchTree("match1", cacheTOF[itof], indices[0], indices[1], indices[2], indices[3], indices[4], cacheTrk[itrk], iPropagation, detId[iPropagation][0], detId[iPropagation][1], detId[iPropagation][2], detId[iPropagation][3], detId[iPropagation][4], resX, resZ, res, trefTrk);
+        int tofLabelTrackID[3] = { -1, -1, -1 };
+        int tofLabelEventID[3] = { -1, -1, -1 };
+        int tofLabelSourceID[3] = { -1, -1, -1 };
+        for (int ilabel = 0; ilabel < labelsTOF.size(); ilabel++) {
+          tofLabelTrackID[ilabel] = labelsTOF[ilabel].getTrackID();
+          tofLabelEventID[ilabel] = labelsTOF[ilabel].getEventID();
+          tofLabelSourceID[ilabel] = labelsTOF[ilabel].getSourceID();
+        }
+        //auto labelTPC = mTPCLabels->at(mTracksSectIndexCache[indices[0]][itrk]);
+        auto labelITS = (*mITSLabels)[mTracksSectIndexCache[indices[0]][itrk]];
+        fillTOFmatchTreeWithLabels("matchPossibleWithLabels", cacheTOF[itof], indices[0], indices[1], indices[2], indices[3], indices[4], cacheTrk[itrk], iPropagation, detId[iPropagation][0], detId[iPropagation][1], detId[iPropagation][2], detId[iPropagation][3], detId[iPropagation][4], resX, resZ, res, trefTrk, labelTPC.getTrackID(), labelTPC.getEventID(), labelTPC.getSourceID(), labelITS.getTrackID(), labelITS.getEventID(), labelITS.getSourceID(), tofLabelTrackID[0], tofLabelEventID[0], tofLabelSourceID[0], tofLabelTrackID[1], tofLabelEventID[1], tofLabelSourceID[1], tofLabelTrackID[2], tofLabelEventID[2], tofLabelSourceID[2]);
+        if (indices[0] != detId[iPropagation][0])
+          continue;
+        if (indices[1] != detId[iPropagation][1])
+          continue;
+        if (indices[2] != detId[iPropagation][2])
+          continue;
+        float chi2 = res; // TODO: take into account also the time!
+        fillTOFmatchTree("match1", cacheTOF[itof], indices[0], indices[1], indices[2], indices[3], indices[4], cacheTrk[itrk], iPropagation, detId[iPropagation][0], detId[iPropagation][1], detId[iPropagation][2], detId[iPropagation][3], detId[iPropagation][4], resX, resZ, res, trefTrk);
 
-	fillTOFmatchTreeWithLabels("matchOkWithLabels", cacheTOF[itof], indices[0], indices[1], indices[2], indices[3], indices[4], cacheTrk[itrk], iPropagation, detId[iPropagation][0], detId[iPropagation][1], detId[iPropagation][2], detId[iPropagation][3], detId[iPropagation][4], resX, resZ, res, trefTrk, labelTPC.getTrackID(), labelTPC.getEventID(), labelTPC.getSourceID(), labelITS.getTrackID(), labelITS.getEventID(), labelITS.getSourceID(), tofLabelTrackID[0], tofLabelEventID[0], tofLabelSourceID[0], tofLabelTrackID[1], tofLabelEventID[1], tofLabelSourceID[1], tofLabelTrackID[2], tofLabelEventID[2], tofLabelSourceID[2]);
+        fillTOFmatchTreeWithLabels("matchOkWithLabels", cacheTOF[itof], indices[0], indices[1], indices[2], indices[3], indices[4], cacheTrk[itrk], iPropagation, detId[iPropagation][0], detId[iPropagation][1], detId[iPropagation][2], detId[iPropagation][3], detId[iPropagation][4], resX, resZ, res, trefTrk, labelTPC.getTrackID(), labelTPC.getEventID(), labelTPC.getSourceID(), labelITS.getTrackID(), labelITS.getEventID(), labelITS.getSourceID(), tofLabelTrackID[0], tofLabelEventID[0], tofLabelSourceID[0], tofLabelTrackID[1], tofLabelEventID[1], tofLabelSourceID[1], tofLabelTrackID[2], tofLabelEventID[2], tofLabelSourceID[2]);
 
-	if (res < mSpaceTolerance) { // matching ok!
-	  LOG(DEBUG) << "MATCHING FOUND: We have a match! between track " << mTracksSectIndexCache[indices[0]][itrk] << " and TOF cluster " << mTOFClusSectIndexCache[indices[0]][itof];
-	  foundCluster = true;
-	  mMatchedTracksPairs.emplace_back(std::make_pair(mTracksSectIndexCache[indices[0]][itrk], o2::dataformats::MatchInfoTOF(mTOFClusSectIndexCache[indices[0]][itof], chi2))); // TODO: check if this is correct!
-	  for (int ilabel = 0; ilabel < labelsTOF.size(); ilabel++) {
-	    LOG(DEBUG) << "TOF label " << ilabel << ": trackID = " << labelsTOF[ilabel].getTrackID() << ", eventID = " << labelsTOF[ilabel].getEventID() << ", sourceID = " << labelsTOF[ilabel].getSourceID();
-	  }
-	  LOG(DEBUG) << "TPC label of the track: trackID = " << labelTPC.getTrackID() << ", eventID = " << labelTPC.getEventID() << ", sourceID = " << labelTPC.getSourceID();
-	  LOG(DEBUG) << "ITS label of the track: trackID = " << labelITS.getTrackID() << ", eventID = " << labelITS.getEventID() << ", sourceID = " << labelITS.getSourceID();
-	  fillTOFmatchTreeWithLabels("matchOkWithLabelsInSpaceTolerance", cacheTOF[itof], indices[0], indices[1], indices[2], indices[3], indices[4], cacheTrk[itrk], iPropagation, detId[iPropagation][0], detId[iPropagation][1], detId[iPropagation][2], detId[iPropagation][3], detId[iPropagation][4], resX, resZ, res, trefTrk, labelTPC.getTrackID(), labelTPC.getEventID(), labelTPC.getSourceID(), labelITS.getTrackID(), labelITS.getEventID(), labelITS.getSourceID(), tofLabelTrackID[0], tofLabelEventID[0], tofLabelSourceID[0], tofLabelTrackID[1], tofLabelEventID[1], tofLabelSourceID[1], tofLabelTrackID[2], tofLabelEventID[2], tofLabelSourceID[2]);
-	}
+        if (res < mSpaceTolerance) { // matching ok!
+          LOG(DEBUG) << "MATCHING FOUND: We have a match! between track " << mTracksSectIndexCache[indices[0]][itrk] << " and TOF cluster " << mTOFClusSectIndexCache[indices[0]][itof];
+          foundCluster = true;
+          mMatchedTracksPairs.emplace_back(std::make_pair(mTracksSectIndexCache[indices[0]][itrk], o2::dataformats::MatchInfoTOF(mTOFClusSectIndexCache[indices[0]][itof], chi2))); // TODO: check if this is correct!
+          for (int ilabel = 0; ilabel < labelsTOF.size(); ilabel++) {
+            LOG(DEBUG) << "TOF label " << ilabel << ": trackID = " << labelsTOF[ilabel].getTrackID() << ", eventID = " << labelsTOF[ilabel].getEventID() << ", sourceID = " << labelsTOF[ilabel].getSourceID();
+          }
+          LOG(DEBUG) << "TPC label of the track: trackID = " << labelTPC.getTrackID() << ", eventID = " << labelTPC.getEventID() << ", sourceID = " << labelTPC.getSourceID();
+          LOG(DEBUG) << "ITS label of the track: trackID = " << labelITS.getTrackID() << ", eventID = " << labelITS.getEventID() << ", sourceID = " << labelITS.getSourceID();
+          fillTOFmatchTreeWithLabels("matchOkWithLabelsInSpaceTolerance", cacheTOF[itof], indices[0], indices[1], indices[2], indices[3], indices[4], cacheTrk[itrk], iPropagation, detId[iPropagation][0], detId[iPropagation][1], detId[iPropagation][2], detId[iPropagation][3], detId[iPropagation][4], resX, resZ, res, trefTrk, labelTPC.getTrackID(), labelTPC.getEventID(), labelTPC.getSourceID(), labelITS.getTrackID(), labelITS.getEventID(), labelITS.getSourceID(), tofLabelTrackID[0], tofLabelEventID[0], tofLabelSourceID[0], tofLabelTrackID[1], tofLabelEventID[1], tofLabelSourceID[1], tofLabelTrackID[2], tofLabelEventID[2], tofLabelSourceID[2]);
+        }
       }
     }
     if (!foundCluster)
