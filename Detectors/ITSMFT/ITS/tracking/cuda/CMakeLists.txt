@@ -8,6 +8,7 @@ set(NO_DICT_SRCS
   src/DeviceStoreNV.cu
   src/Stream.cu
   src/TrackerTraitsNV.cu
+  # src/VertexerCUDA.cu
   src/Utils.cu
 )
 

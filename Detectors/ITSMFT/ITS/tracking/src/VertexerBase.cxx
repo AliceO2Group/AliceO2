@@ -21,7 +21,7 @@
 #include "ITStracking/Cluster.h"
 #include "ITStracking/ROframe.h"
 #include "ITStracking/ClusterLines.h"
-#include "ITStracking/Vertexer.h"
+#include "ITStracking/VertexerBase.h"
 #include "ITStracking/IndexTableUtils.h"
 
 namespace o2
@@ -36,7 +36,7 @@ using Constants::ITS::LayersZCoordinate;
 using Constants::Math::TwoPi;
 using IndexTableUtils::getZBinIndex;
 
-Vertexer::Vertexer(const ROframe& event) : mEvent{ event }, mAverageClustersRadii{ std::array<float, 3>{ 0.f, 0.f, 0.f } }
+VertexerBase::VertexerBase(const ROframe& event) : mEvent{ event }, mAverageClustersRadii{ std::array<float, 3>{ 0.f, 0.f, 0.f } }
 {
   for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumberVertexer; ++iLayer) {
     const auto& currentLayer{ event.getClustersOnLayer(iLayer) };
@@ -65,9 +65,9 @@ Vertexer::Vertexer(const ROframe& event) : mEvent{ event }, mAverageClustersRadi
                                        (mDeltaRadii10 + mDeltaRadii21) * (mDeltaRadii10 + mDeltaRadii21));
 }
 
-Vertexer::~Vertexer(){};
+// VertexerBase::~VertexerBase(){};
 
-void Vertexer::initialise(const float zCut, const float phiCut, const float pairCut, const float clusterCut,
+void VertexerBase::initialise(const float zCut, const float phiCut, const float pairCut, const float clusterCut,
                           const int clusterContributorsCut)
 {
   for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumberVertexer; ++iLayer) {
@@ -103,7 +103,7 @@ void Vertexer::initialise(const float zCut, const float phiCut, const float pair
   mVertexerInitialised = true;
 }
 
-void Vertexer::initialise(const std::tuple<float, float, float, float, int> initParams)
+void VertexerBase::initialise(const std::tuple<float, float, float, float, int> initParams)
 {
   for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumberVertexer; ++iLayer) {
     std::sort(mClusters[iLayer].begin(), mClusters[iLayer].end(), [](Cluster& cluster1, Cluster& cluster2) {
@@ -139,7 +139,7 @@ void Vertexer::initialise(const std::tuple<float, float, float, float, int> init
   mVertexerInitialised = true;
 }
 
-const std::vector<std::pair<int, int>> Vertexer::selectClusters(const std::array<int, ZBins * PhiBins + 1>& indexTable,
+const std::vector<std::pair<int, int>> VertexerBase::selectClusters(const std::array<int, ZBins * PhiBins + 1>& indexTable,
                                                                 const std::array<int, 4>& selectedBinsRect)
 {
   std::vector<std::pair<int, int>> filteredBins{};
@@ -157,7 +157,7 @@ const std::vector<std::pair<int, int>> Vertexer::selectClusters(const std::array
   return filteredBins;
 }
 
-void Vertexer::findTracklets(const bool useMCLabel)
+void VertexerBase::findTracklets(const bool useMCLabel)
 {
   if (mVertexerInitialised) {
     std::vector<std::pair<int, int>> clusters0, clusters2;
@@ -267,7 +267,7 @@ void Vertexer::findTracklets(const bool useMCLabel)
   }
 }
 
-void Vertexer::findVertices()
+void VertexerBase::findVertices()
 {
   if (mTrackletsFound) {
     const int numTracklets{ static_cast<int>(mTracklets.size()) };
