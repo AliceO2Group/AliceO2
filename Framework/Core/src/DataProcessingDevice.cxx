@@ -450,6 +450,18 @@ bool DataProcessingDevice::tryDispatchComputation()
     LOG(DEBUG) << "FORWARDING:END";
   };
 
+  auto calculateTotalInputRecordSize = [](InputRecord const& record) -> int {
+    size_t totalInputSize = 0;
+    for (auto& item : record) {
+      auto* header = o2::header::get<DataHeader*>(item.header);
+      if (header == nullptr) {
+        continue;
+      }
+      totalInputSize += header->payloadSize;
+    }
+    return totalInputSize;
+  };
+
   if (canDispatchSomeComputation() == false) {
     return false;
   }
@@ -467,6 +479,7 @@ bool DataProcessingDevice::tryDispatchComputation()
         continue;
       }
     }
+    auto tStart = std::chrono::high_resolution_clock::now();
     try {
       for (size_t ai = 0; ai != record.size(); ai++) {
         auto cacheId = action.slot.index * record.size() + ai;
@@ -482,6 +495,14 @@ bool DataProcessingDevice::tryDispatchComputation()
     } catch(std::exception &e) {
       errorHandling(e, record);
     }
+    auto tEnd = std::chrono::high_resolution_clock::now();
+    double elapsedTimeMs = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+    auto totalProcessedSize = calculateTotalInputRecordSize(record);
+
+    monitoringService.send({ totalProcessedSize, "dpl/processed_input_size_bytes" });
+    monitoringService.send({ elapsedTimeMs, "dpl/elapsed_time_ms" });
+    monitoringService.send({ (int)((totalProcessedSize / elapsedTimeMs) / 1000), "dpl/data_rate_mb_s" });
+
     // We forward inputs only when we consume them. If we simply Process them,
     // we keep them for next message arriving.
     if (action.op == CompletionPolicy::CompletionOp::Consume) {
