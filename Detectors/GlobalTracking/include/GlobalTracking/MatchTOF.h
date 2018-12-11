@@ -163,6 +163,7 @@ class MatchTOF
   void doMatching(int sec);
   void selectBestMatches();
   bool propagateToRefX(o2::track::TrackParCov& trc, float xRef /*in cm*/, float stepInCm /*in cm*/);
+  bool propagateToRefXWithoutCov(o2::track::TrackParCov& trc, float xRef /*in cm*/, float stepInCm /*in cm*/, float bz);
 
   //================================================================
 
@@ -225,7 +226,7 @@ class MatchTOF
   std::vector<o2::MCCompLabel> mOutITSLabels;                                ///< ITS label of matched tracks
 
   int mNumOfTracks;                     // number of tracks to be matched
-  int* mMatchedTracksIndex = nullptr;   //[mNumOfTracks]
+  std::vector<int> mMatchedTracksIndex; // vector of indexes of the tracks to be matched
   int mNumOfClusters;                   // number of clusters to be matched
   int* mMatchedClustersIndex = nullptr; //[mNumOfClusters]
 

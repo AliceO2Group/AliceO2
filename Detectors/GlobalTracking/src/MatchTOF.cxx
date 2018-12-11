@@ -244,10 +244,8 @@ bool MatchTOF::prepareTracks()
   mNumOfTracks = mTracksArrayInp->size();
   if (mNumOfTracks == 0)
     return false; // no tracks to be matched
-  if (mMatchedTracksIndex)
-    delete[] mMatchedTracksIndex;
-  mMatchedTracksIndex = new int[mNumOfTracks];
-  std::fill_n(mMatchedTracksIndex, mNumOfTracks, -1); // initializing all to -1
+  mMatchedTracksIndex.resize(mNumOfTracks);
+  std::fill(mMatchedTracksIndex.begin(), mMatchedTracksIndex.end(), -1); // initializing all to -1
 
   // copy the track params, propagate to reference X and build sector tables
   mTracksWork.clear();
@@ -260,6 +258,10 @@ bool MatchTOF::prepareTracks()
     mTracksSectIndexCache[sec].clear();
     mTracksSectIndexCache[sec].reserve(100 + 1.2 * mNumOfTracks / o2::constants::math::NSectors);
   }
+
+  // getting Bz (mag field)
+  auto o2field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+  float bzField = o2field->solenoidField(); // magnetic field in kGauss
 
   Printf("\n\nWe have %d tracks to try to match to TOF", mNumOfTracks);
   int nNotPropagatedToTOF = 0;
@@ -278,11 +280,17 @@ bool MatchTOF::prepareTracks()
     LOG(DEBUG) << "Global coordinates Before propagating to 371 cm: globalPos[0] = " << globalPos[0] << ", globalPos[1] = " << globalPos[1] << ", globalPos[2] = " << globalPos[2];
     LOG(DEBUG) << "Radius xy Before propagating to 371 cm = " << TMath::Sqrt(globalPos[0] * globalPos[0] + globalPos[1] * globalPos[1]);
     LOG(DEBUG) << "Radius xyz Before propagating to 371 cm = " << TMath::Sqrt(globalPos[0] * globalPos[0] + globalPos[1] * globalPos[1] + globalPos[2] * globalPos[2]);
-    if (!propagateToRefX(trc, mXRef, 2) || TMath::Abs(trc.getZ()) > Geo::MAXHZTOF) {
+    if (!propagateToRefXWithoutCov(trc, mXRef, 2, bzField)) { // we first propagate to 371 cm without considering the covariance matrix
       nNotPropagatedToTOF++;
       continue;
     }
 
+    // the "rough" propagation worked; now we can propagate considering also the cov matrix
+    if (!propagateToRefX(trc, mXRef, 2) || TMath::Abs(trc.getZ()) > Geo::MAXHZTOF) { // we check that the propagation with the cov matrix worked; CHECK: can it happen that it does not if the progataion without the errors succeeded? 
+      nNotPropagatedToTOF++;
+      continue;
+    }
+    
     trc.getXYZGlo(globalPos);
 
     LOG(DEBUG) << "Global coordinates After propagating to 371 cm: globalPos[0] = " << globalPos[0] << ", globalPos[1] = " << globalPos[1] << ", globalPos[2] = " << globalPos[2];
@@ -579,7 +587,8 @@ void MatchTOF::doMatching(int sec)
     }
     Printf("We will check now the %d TOF clusters", nTOFCls);
     bool foundCluster = false;
-    auto labelTPC = mTPCLabels->at(mTracksSectIndexCache[sec][itrk]);
+[itrk], mTPCLabels->size());
+    auto labelTPC = (*mTPCLabels)[mTracksSectIndexCache[sec][itrk]];
     for (auto itof = itof0; itof < nTOFCls; itof++) {
       //      printf("itof = %d\n", itof);
       auto& trefTOF = mTOFClusWork[cacheTOF[itof]];
@@ -621,7 +630,7 @@ void MatchTOF::doMatching(int sec)
           tofLabelSourceID[ilabel] = labelsTOF[ilabel].getSourceID();
         }
         //auto labelTPC = mTPCLabels->at(mTracksSectIndexCache[indices[0]][itrk]);
-        auto labelITS = mITSLabels->at(mTracksSectIndexCache[indices[0]][itrk]);
+        auto labelITS = (*mITSLabels)[mTracksSectIndexCache[indices[0]][itrk]];
         fillTOFmatchTreeWithLabels("matchPossibleWithLabels", cacheTOF[itof], indices[0], indices[1], indices[2], indices[3], indices[4], cacheTrk[itrk], iPropagation, detId[iPropagation][0], detId[iPropagation][1], detId[iPropagation][2], detId[iPropagation][3], detId[iPropagation][4], resX, resZ, res, trefTrk, labelTPC.getTrackID(), labelTPC.getEventID(), labelTPC.getSourceID(), labelITS.getTrackID(), labelITS.getEventID(), labelITS.getSourceID(), tofLabelTrackID[0], tofLabelEventID[0], tofLabelSourceID[0], tofLabelTrackID[1], tofLabelEventID[1], tofLabelSourceID[1], tofLabelTrackID[2], tofLabelEventID[2], tofLabelSourceID[2]);
         if (indices[0] != detId[iPropagation][0])
           continue;
@@ -672,9 +681,9 @@ void MatchTOF::selectBestMatches()
     mMatchedTracksIndex[matchingPair.first] = mMatchedTracks.size();                                      // index of the MatchInfoTOF correspoding to this track
     mMatchedClustersIndex[matchingPair.second.getTOFClIndex()] = mMatchedTracksIndex[matchingPair.first]; // index of the track that was matched to this cluster
     mMatchedTracks.push_back(matchingPair);                                                               // array of MatchInfoTOF
-    const auto& labelTPC = mTPCLabels->at(matchingPair.first);
+    const auto& labelTPC = (*mTPCLabels)[matchingPair.first];
     LOG(DEBUG) << "labelTPC: trackID = " << labelTPC.getTrackID() << ", eventID = " << labelTPC.getEventID() << ", sourceID = " << labelTPC.getSourceID();
-    const auto& labelITS = mITSLabels->at(matchingPair.first);
+    const auto& labelITS = (*mITSLabels)[matchingPair.first];
     LOG(DEBUG) << "labelITS: trackID = " << labelITS.getTrackID() << ", eventID = " << labelITS.getEventID() << ", sourceID = " << labelITS.getSourceID();
     const auto& labelsTOF = mTOFClusLabels->getLabels(matchingPair.second.getTOFClIndex());
     bool labelOk = false; // whether we have found or not the same TPC label of the track among the labels of the TOF cluster
@@ -730,6 +739,44 @@ bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float st
   //  if (std::abs(trc.getSnp()) > MAXSNP) Printf("propagateToRefX: condition on snp not ok, returning false");
   //Printf("propagateToRefX: snp of teh track is %f (--> %f grad)", trc.getSnp(), TMath::ASin(trc.getSnp())*TMath::RadToDeg());
   return refReached && std::abs(trc.getSnp()) < 0.95; // Here we need to put MAXSNP
+}
+
+//______________________________________________
+bool MatchTOF::propagateToRefXWithoutCov(o2::track::TrackParCov& trc, float xRef, float stepInCm, float bzField)
+{
+  // propagate track to matching reference X without using the covariance matrix
+  // we create the copy of the track in a TrackPar object (no cov matrix)
+  o2::track::TrackPar trcNoCov(trc);
+  const float tanHalfSector = tan(o2::constants::math::SectorSpanRad / 2);
+  bool refReached = false;
+  float xStart = trcNoCov.getX();
+  // the first propagation will be from 2m, if the track is not at least at 2m
+  if (xStart < 50.)
+    xStart = 50.;
+  int istep = 1;
+  bool hasPropagated = trcNoCov.propagateParamTo(xStart + istep * stepInCm, bzField);
+  while (hasPropagated) {
+    if (trcNoCov.getX() > xRef) {
+      refReached = true; // we reached the 371cm reference
+    }
+    istep++;
+    if (fabs(trcNoCov.getY()) > trcNoCov.getX() * tanHalfSector) { // we are still in the same sector
+      // we need to rotate the track to go to the new sector
+      //Printf("propagateToRefX: changing sector");
+      auto alphaNew = o2::utils::Angle2Alpha(trcNoCov.getPhiPos());
+      if (!trcNoCov.rotateParam(alphaNew) != 0) {
+        //	Printf("propagateToRefX: failed to rotate");
+        break; // failed (this line is taken from MatchTPCITS and the following comment too: RS: check effect on matching tracks to neighbouring sector)
+      }
+    }
+    if (refReached)
+      break;
+    hasPropagated = trcNoCov.propagateParamTo(xStart + istep * stepInCm, bzField);
+  }
+  //  if (std::abs(trc.getSnp()) > MAXSNP) Printf("propagateToRefX: condition on snp not ok, returning false");
+  //Printf("propagateToRefX: snp of teh track is %f (--> %f grad)", trcNoCov.getSnp(), TMath::ASin(trcNoCov.getSnp())*TMath::RadToDeg());
+  
+  return refReached && std::abs(trcNoCov.getSnp()) < 0.95 && TMath::Abs(trcNoCov.getZ()) < Geo::MAXHZTOF; // Here we need to put MAXSNP
 }
 
 #ifdef _ALLOW_DEBUG_TREES_
