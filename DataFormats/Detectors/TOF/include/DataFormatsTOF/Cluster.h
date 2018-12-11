@@ -30,8 +30,8 @@ namespace tof
 class Cluster : public o2::BaseCluster<float>
 {
   static constexpr float RadiusOutOfRange = 9999; // used to check if the radius was already calculated or not
-  static constexpr float PhiOutOfRange = 9999; // used to check if phi was already calculated or not
-  
+  static constexpr float PhiOutOfRange = 9999;    // used to check if phi was already calculated or not
+
  public:
   enum { kMain = 0x3FFFF,
          kUpLeft = 0x40000,     // 2^18, 19th bit
@@ -136,9 +136,9 @@ class Cluster : public o2::BaseCluster<float>
   int mL0L1Latency; // L0L1 latency // CZ: is it different per cluster? Checking one ESD file, it seems that it is always the same (see: /alice/data/2017/LHC17n/000280235/pass1/17000280235019.100/AliESDs.root)
   int mDeltaBC;     // DeltaBC --> can it be a char or short? // CZ: is it different per cluster? Checking one ESD file, it seems that it can vary (see: /alice/data/2017/LHC17n/000280235/pass1/17000280235019.100/AliESDs.root)
   //float  mZ;           //! z-coordinate // CZ: to be verified if it is the same in the BaseCluster class
-  float mR = RadiusOutOfRange;       //! radius
-  float mPhi = PhiOutOfRange;        //! phi coordinate
-  int mSector = -1;          //! sector number
+  float mR = RadiusOutOfRange; //! radius
+  float mPhi = PhiOutOfRange;  //! phi coordinate
+  int mSector = -1;            //! sector number
   int mContributingChannels; // index of the channels that contributed to the cluster; to be read like this:
                              // channel & 0x3FFFF -> first 18 bits to store the main channel
                              // channel & bit19 (0x40000) -> alsoUPLEFT
