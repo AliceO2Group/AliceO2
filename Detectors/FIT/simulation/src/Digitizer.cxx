@@ -134,12 +134,6 @@ void  Digitizer::smearCFDtime( Digit* digit)
   }
 }
   
-//------------------------------------------------------------------------
-void  Digitizer::setTriggers(  Digit* digit)
-{
-   constexpr Double_t BC_clk_center = 12.5; // clk center
-
-//------------------------------------------------------------------------
 void  Digitizer::smearCFDtime( Digit* digit)
 {
   //smeared CFD time for 50ps
@@ -160,17 +154,7 @@ void  Digitizer::smearCFDtime( Digit* digit)
 //------------------------------------------------------------------------
 void  Digitizer::setTriggers(  Digit* digit)
 {
-<<<<<<< HEAD
-  constexpr Double_t BC_clk = 25.;                //ns event clk lenght
-  constexpr Double_t BC_clk_center = BC_clk / 2.; // clk center
->>>>>>> tune for mulpile source of hits
-=======
-   constexpr Double_t BC_clk_center = 12.5; // clk center
->>>>>>> add BC and Orbit from DPL to digits and recpoints, set CFD time smearing after loop over hits sources
-  constexpr Int_t nMCPs = (Geometry::NCellsA + Geometry::NCellsC) * 4;
-  constexpr Double_t time_trg_gate = 4.;          // ns
-=======
->>>>>>> cosmetic changes
+  constexpr Double_t BC_clk_center = 12.5; // clk center
   constexpr Double_t trg_central_trh = 100.;              // mip
   constexpr Double_t trg_semicentral_trh = 50.;           // mip
   constexpr Double_t trg_vertex_min = - 3.; //ns
@@ -208,7 +192,6 @@ void  Digitizer::setTriggers(  Digit* digit)
     
   }
   
- 
   Bool_t  is_A = n_hit_A > 0;
   Bool_t is_C = n_hit_C > 0;
   Bool_t is_Central = summ_ampl_A + summ_ampl_C >= trg_central_trh;
@@ -218,19 +201,10 @@ void  Digitizer::setTriggers(  Digit* digit)
   mean_time_C = is_C ? mean_time_C / n_hit_C : 0.;
   vertex_time = (mean_time_A + mean_time_C) * .5;
   Bool_t is_Vertex = (vertex_time > trg_vertex_min) && (vertex_time < trg_vertex_max);
-<<<<<<< HEAD
- 
-  //filling digit
-  digit->setTriggers(is_A, is_C, is_Central, is_SemiCentral, is_Vertex);
-
-=======
-  // --------------------------------------------------------------------------
 
   //filling digit
   digit->setTriggers(is_A, is_C, is_Central, is_SemiCentral, is_Vertex);
 
-
->>>>>>> tune for mulpile source of hits
   // Debug output -------------------------------------------------------------
   LOG(DEBUG) << "\n\nTest digizing data ===================" << FairLogger::endl;
 
