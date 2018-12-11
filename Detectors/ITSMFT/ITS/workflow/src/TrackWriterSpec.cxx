@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   ClusterWriterSpec.cxx
+/// @file   TrackWriterSpec.cxx
 
 #include <vector>
 
@@ -16,9 +16,8 @@
 #include "TTree.h"
 
 #include "Framework/ControlService.h"
-#include "ITSWorkflow/ClusterWriterSpec.h"
-#include "DataFormatsITSMFT/CompCluster.h"
-#include "DataFormatsITSMFT/Cluster.h"
+#include "ITSWorkflow/TrackWriterSpec.h"
+#include "DataFormatsITS/TrackITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
@@ -29,10 +28,10 @@ namespace o2
 namespace ITS
 {
 
-DataProcessorSpec getClusterWriterSpec()
+DataProcessorSpec getTrackWriterSpec()
 {
   auto init = [](InitContext &ic) {
-    auto filename = ic.options().get<std::string>("its-cluster-outfile");
+    auto filename = ic.options().get<std::string>("its-track-outfile");
 	  
     return [filename](ProcessingContext &pc) {
       static bool done=false;
@@ -40,18 +39,16 @@ DataProcessorSpec getClusterWriterSpec()
 
       TFile file(filename.c_str(),"RECREATE");
       if (file.IsOpen()) {
-        auto compClusters = pc.inputs().get<const std::vector<o2::ITSMFT::CompClusterExt>>("compClusters");
-        auto clusters = pc.inputs().get<const std::vector<o2::ITSMFT::Cluster>>("clusters");
+        auto tracks = pc.inputs().get<const std::vector<o2::ITS::TrackITS>>("tracks");
         auto labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
         auto plabels=labels.get();
 	
-	LOG(INFO)<<"ITSClusterWriter pulled "<<clusters.size()<<" clusters, "
+	LOG(INFO)<<"ITSTrackWriter pulled "<<tracks.size()<<" tracks, "
                  << labels->getIndexedSize() << " MC label objects";
 
-	TTree tree("o2sim","Tree with ITS clusters");
-	tree.Branch("ITSClusterComp",&compClusters);
-	tree.Branch("ITSCluster",&clusters);
-	tree.Branch("ITSClusterMCTruth",&plabels);
+	TTree tree("o2sim","Tree with ITS tracks");
+	tree.Branch("ITSTrack",&tracks);
+	tree.Branch("ITSTrackMCTruth",&plabels);
 	tree.Fill();
 	tree.Write();
 	file.Close();
@@ -60,22 +57,21 @@ DataProcessorSpec getClusterWriterSpec()
 	LOG(ERROR)<<"Cannot open the "<< filename.c_str()<<" file !";
       }
       done=true;
-      //pc.services().get<ControlService>().readyToQuit(true);
+      pc.services().get<ControlService>().readyToQuit(true);
     };
   };
 
   return DataProcessorSpec {
-    "its-cluster-writer",
+    "its-track-writer",
     Inputs{
-      InputSpec{"compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe},
-      InputSpec{"clusters", "ITS", "CLUSTERS",     0, Lifetime::Timeframe},
-      InputSpec{"labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe}
+      InputSpec{"tracks", "ITS", "TRACKS",     0, Lifetime::Timeframe},
+      InputSpec{"labels", "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}
     },
     Outputs{
     },
     AlgorithmSpec{ init },
     Options{
-      {"its-cluster-outfile", VariantType::String, "o2clus_its.root", {"Name of the output file"}}
+      {"its-track-outfile", VariantType::String, "o2trac_its.root", {"Name of the output file"}}
     }
   };
 }

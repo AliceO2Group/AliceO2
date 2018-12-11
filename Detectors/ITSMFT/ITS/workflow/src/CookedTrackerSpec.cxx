@@ -85,7 +85,7 @@ DataProcessorSpec getCookedTrackerSpec()
 	LOG(ERROR)<<"Cannot retrieve GRP from the "<< filename.c_str()<<" file !";
       }
       done=true;
-      pc.services().get<ControlService>().readyToQuit(true);
+      //pc.services().get<ControlService>().readyToQuit(true);
     };
   };
 

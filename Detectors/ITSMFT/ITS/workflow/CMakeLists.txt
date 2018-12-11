@@ -9,6 +9,7 @@ set(SRCS
   src/ClustererSpec.cxx
   src/ClusterWriterSpec.cxx
   src/CookedTrackerSpec.cxx
+  src/TrackWriterSpec.cxx
    )
 
 set(LIBRARY_NAME ${MODULE_NAME})
