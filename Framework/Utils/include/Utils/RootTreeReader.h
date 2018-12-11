@@ -106,6 +106,7 @@ class GenericRootTreeReader
                         Args&&... args)       // file names, followed by branch info
     : mInput(treename)
   {
+    mInput.SetCacheSize(0);
     parseConstructorArgs(std::forward<Args>(args)...);
   }
 
@@ -120,6 +121,7 @@ class GenericRootTreeReader
     : mInput(treename),
       mMaxEntries(nMaxEntries)
   {
+    mInput.SetCacheSize(0);
     parseConstructorArgs(std::forward<Args>(args)...);
   }
 
@@ -148,7 +150,7 @@ class GenericRootTreeReader
       }
       return false;
     }
-    mInput.GetEntry(++mEntry);
+    ++mEntry;
     return true;
   }
 
@@ -192,24 +194,27 @@ class GenericRootTreeReader
     }
 
     for (auto& spec : mBranchSpecs) {
-      if (spec.second->data == nullptr) {
-        // FIXME: is this an error?
-        continue;
-      }
+      char* data = nullptr;
+      spec.second->branch->SetAddress(&data);
+      spec.second->branch->GetEntry(mEntry);
       if (spec.second->sizebranch == nullptr) {
-        snapshot(spec.first, ROOTSerializedByClass(*spec.second->data, spec.second->classinfo));
+        snapshot(spec.first, ROOTSerializedByClass(*data, spec.second->classinfo));
       } else {
-        auto* buffer = reinterpret_cast<std::vector<char>*>(spec.second->data);
-        if (buffer->size() == spec.second->datasize) {
-          LOG(INFO) << "branch " << spec.second->name << ": publishing binary chunk of " << spec.second->datasize << " bytes(s)";
+        size_t datasize = 0;
+        spec.second->sizebranch->SetAddress(&datasize);
+        spec.second->sizebranch->GetEntry(mEntry);
+        auto* buffer = reinterpret_cast<std::vector<char>*>(data);
+        if (buffer->size() == datasize) {
+          LOG(INFO) << "branch " << spec.second->name << ": publishing binary chunk of " << datasize << " bytes(s)";
           snapshot(spec.first, *buffer);
         } else {
           LOG(ERROR) << "branch " << spec.second->name << ": inconsitent size of binary chunk "
-                     << buffer->size() << " vs " << spec.second->datasize;
+                     << buffer->size() << " vs " << datasize;
           std::vector<char> empty;
           snapshot(spec.first, empty);
         }
       }
+      spec.second->branch->DropBaskets("all");
     }
     return true;
   }
@@ -223,8 +228,6 @@ class GenericRootTreeReader
  private:
   struct BranchSpec {
     std::string name;
-    char* data = nullptr;
-    size_t datasize = 0;
     TBranch* branch = nullptr;
     TBranch* sizebranch = nullptr;
     TClass* classinfo = nullptr;
@@ -238,7 +241,6 @@ class GenericRootTreeReader
     auto branch = mInput.GetBranch(branchName);
     if (branch) {
       mBranchSpecs.emplace_back(key, std::make_unique<BranchSpec>(BranchSpec{ branchName }));
-      branch->SetAddress(&(mBranchSpecs.back().second->data));
       mBranchSpecs.back().second->branch = branch;
       std::string sizebranchName = std::string(branchName) + "Size";
       auto sizebranch = mInput.GetBranch(sizebranchName.c_str());
@@ -251,7 +253,6 @@ class GenericRootTreeReader
           throw std::runtime_error("mismatching class type, expecting std::vector<char> for binary branch");
         }
         mBranchSpecs.back().second->sizebranch = sizebranch;
-        sizebranch->SetAddress(&(mBranchSpecs.back().second->datasize));
         LOG(INFO) << "binary branch set up: " << branchName;
       }
     } else {
