@@ -24,9 +24,9 @@ void MCHDigitizer::init()
 {
 // initialize the array of detector segmentation's
   for(Int_t i=0; i<mNdE; ++i){
-    /*  mSegbend[i]= Segmentation(i,kTRUE);
+    mSegbend[i]= Segmentation(i,kTRUE);
     mSegnon[i] = Segmentation(i,kFALSE);
-    */
+    
   }
   
   
@@ -125,12 +125,11 @@ Int_t MCHDigitizer::processHit(const Hit &hit,Double_t event_time)
   */
   for(auto & padidbend : mPadIDsbend){
     //retrieve coordinates for each pad
-    /*xmin =  mSegbend.padPositionX(padidbend)-mSegBend.padSizeX(padidbend)*0.5;
+    xmin =  mSegbend.padPositionX(padidbend)-mSegBend.padSizeX(padidbend)*0.5;
     xmax =  mSegbend.padPositionX(padidbend)+mSegbend.padSizeX(padidbend)*0.5;
     ymin =  mSegbend.padPositionY(padidbend)-mSegBend.padSizeY(padidbend)*0.5;
     ymax =  mSegbend.padPositionY(padidbend)+mSegbend.padSizeY(padidbend)*0.5;
-    */
-    
+        
     // 1st step integrate induced charge for each pad
     signal = chargePad(anodpos,pos[1],xmin,xmax,ymin,ymax,detID,chargebend);
     if(signal>mChargeThreshold && signal<mChargeSat){
@@ -145,11 +144,11 @@ Int_t MCHDigitizer::processHit(const Hit &hit,Double_t event_time)
 
   for(auto & padidnon : mPadIDsnon){
     //retrieve coordinates for each pad
-    /* xmin =  mSegnon.padPositionX(padidnon)-mSegnon.padSizeX(padidnon)*0.5;
-       xmax =  mSegnon.padPositionX(padidnon)+mSegnon.padSizeX(padidnon)*0.5;
-       ymin =  mSegnon.padPositionY(padidnon)-mSegnon.padSizeY(padidnon)*0.5;
-       ymax =  mSegnon.padPositionY(padidnon)+mSegnon.padSizeY(padidnon)*0.5;
-    */
+    xmin =  mSegnon.padPositionX(padidnon)-mSegnon.padSizeX(padidnon)*0.5;
+    xmax =  mSegnon.padPositionX(padidnon)+mSegnon.padSizeX(padidnon)*0.5;
+    ymin =  mSegnon.padPositionY(padidnon)-mSegnon.padSizeY(padidnon)*0.5;
+    ymax =  mSegnon.padPositionY(padidnon)+mSegnon.padSizeY(padidnon)*0.5;
+       
     //retrieve charge for given x,y with Mathieson
     signal = chargePad(anodpos,pos[1],xmin,xmax,ymin,ymax,detID,chargenon);
     if(signal>mChargeThreshold && signal<mChargeSat){

@@ -64,9 +64,9 @@ class MCHDigitizer
   std::vector<int> mPadIDsnon;
 
   //detector segmentation handler to convert pad-id to coordinates and vice versa
-  /*  Segmentation mSegbend[mNdE];
+  Segmentation mSegbend[mNdE];
   Segmentation  mSegnon[mNdE];
-  */
+  
   
   //proper parameter in aliroot in AliMUONResponseFactory.cxx
   //to be discussed n-sigma to be put, use detID to choose value?
