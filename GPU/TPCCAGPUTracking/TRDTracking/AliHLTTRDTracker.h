@@ -52,15 +52,15 @@ class AliHLTTRDTracker {
     Hypothesis() : fLayers(0), fCandidateId(-1), fTrackletId(-1), fChi2(9999.f) {}
   };
 
-  GPUd() size_t SetPointersBase(void* base, int maxThreads = 1, bool doConstruct = false);
-  GPUd() size_t SetPointersTracklets(void* base);
-  GPUd() size_t SetPointersTracks(void *base, int nTracks);
+  size_t SetPointersBase(void* base, int maxThreads = 1, bool doConstruct = false);
+  size_t SetPointersTracklets(void* base);
+  size_t SetPointersTracks(void *base, int nTracks);
 
   GPUd() bool Init(AliHLTTRDGeometry *geo = nullptr);
   GPUd() void Reset();
   GPUd() void StartLoadTracklets(const int nTrklts);
   GPUd() void LoadTracklet(const AliHLTTRDTrackletWord &tracklet);
-  GPUd() void DoTracking(HLTTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTRDnTrklts = 0x0, int *tracksTRDlab = 0x0);
+  void DoTracking(HLTTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTRDnTrklts = 0x0, int *tracksTRDlab = 0x0);
   GPUd() void DoTrackingThread(HLTTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int iTrk, int threadId, int *tracksTRDnTrklts = 0x0, int *tracksTRDlab = 0x0);
   GPUd() bool CalculateSpacePoints();
   GPUd() bool FollowProlongation(HLTTRDPropagator *prop, HLTTRDTrack *t, int nTPCtracks, int threadId);
