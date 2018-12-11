@@ -21,7 +21,7 @@
 #include "ClusterConverterSpec.h"
 #include "ClusterDecoderRawSpec.h"
 #include "CATrackerSpec.h"
-#include "RangeTokenizer.h"
+#include "Algorithm/RangeTokenizer.h"
 #include "TPCBase/Digit.h"
 #include "DataFormatsTPC/Constants.h"
 #include "DataFormatsTPC/ClusterGroupAttribute.h"
