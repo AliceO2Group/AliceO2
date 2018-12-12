@@ -26,39 +26,39 @@ auto factorySHM = FairMQTransportFactory::CreateTransportFactory("shmem");
 
 struct testData {
   int i{ 1 };
-  static int nallocated;
-  static int nallocations;
-  static int ndeallocations;
+  static int nconstructed;
+  static int nconstructions;
+  static int ndestructions;
   testData()
   {
-    ++nallocated;
-    ++nallocations;
+    ++nconstructed;
+    ++nconstructions;
   }
   testData(const testData& in) : i{ in.i }
   {
-    ++nallocated;
-    ++nallocations;
+    ++nconstructed;
+    ++nconstructions;
   }
   testData(const testData&& in) : i{ in.i }
   {
-    ++nallocated;
-    ++nallocations;
+    ++nconstructed;
+    ++nconstructions;
   }
   testData(int in) : i{ in }
   {
-    ++nallocated;
-    ++nallocations;
+    ++nconstructed;
+    ++nconstructions;
   }
   ~testData()
   {
-    --nallocated;
-    ++ndeallocations;
+    --nconstructed;
+    ++ndestructions;
   }
 };
 
-int testData::nallocated = 0;
-int testData::nallocations = 0;
-int testData::ndeallocations = 0;
+int testData::nconstructed = 0;
+int testData::nconstructions = 0;
+int testData::ndestructions = 0;
 
 auto allocZMQ = getTransportAllocator(factoryZMQ.get());
 auto allocSHM = getTransportAllocator(factorySHM.get());
@@ -74,8 +74,8 @@ using namespace boost::container::pmr;
 
 BOOST_AUTO_TEST_CASE(allocator_test)
 {
-  testData::nallocations = 0;
-  testData::ndeallocations = 0;
+  testData::nconstructions = 0;
+  testData::ndestructions = 0;
 
   {
     std::vector<testData, polymorphic_allocator<testData>> v(polymorphic_allocator<testData>{ allocZMQ });
@@ -86,13 +86,13 @@ BOOST_AUTO_TEST_CASE(allocator_test)
     v.emplace_back(2);
     v.emplace_back(3);
     BOOST_CHECK((byte*)&(*v.end()) - (byte*)&(*v.begin()) == 3 * sizeof(testData));
-    BOOST_CHECK(testData::nallocated == 3);
+    BOOST_CHECK(testData::nconstructed == 3);
   }
-  BOOST_CHECK(testData::nallocated == 0);
-  BOOST_CHECK(testData::nallocations == testData::ndeallocations);
+  BOOST_CHECK(testData::nconstructed == 0);
+  BOOST_CHECK(testData::nconstructions == testData::ndestructions);
 
-  testData::nallocations = 0;
-  testData::ndeallocations = 0;
+  testData::nconstructions = 0;
+  testData::ndestructions = 0;
   {
     std::vector<testData, SpectatorAllocator<testData>> v(SpectatorAllocator<testData>{ allocZMQ });
     v.reserve(3);
@@ -100,16 +100,16 @@ BOOST_AUTO_TEST_CASE(allocator_test)
     v.emplace_back(1);
     v.emplace_back(2);
     v.emplace_back(3);
-    BOOST_CHECK(testData::nallocated == 3);
+    BOOST_CHECK(testData::nconstructed == 3);
   }
-  BOOST_CHECK(testData::nallocated == 3); //ByteSpectatorAllocator does not call dtors so nallocated remains at 3;
+  BOOST_CHECK(testData::nconstructed == 3); //ByteSpectatorAllocator does not call dtors so nconstructed remains at 3;
   BOOST_CHECK(allocZMQ->getNumberOfMessages() == 0);
 }
 
 BOOST_AUTO_TEST_CASE(getMessage_test)
 {
-  testData::nallocations = 0;
-  testData::ndeallocations = 0;
+  testData::nconstructions = 0;
+  testData::ndestructions = 0;
 
   FairMQMessagePtr message{ nullptr };
 
@@ -152,13 +152,17 @@ BOOST_AUTO_TEST_CASE(getMessage_test)
 
 BOOST_AUTO_TEST_CASE(adoptVector_test)
 {
+  testData::nconstructed = 0;
+  testData::nconstructions = 0;
+  testData::ndestructions = 0;
+
   //Create a bogus message
   auto message = factoryZMQ->CreateMessage(3 * sizeof(testData));
   auto messageAddr = message.get();
   testData tmpBuf[3] = { 3, 2, 1 };
   std::memcpy(message->GetData(), tmpBuf, 3 * sizeof(testData));
 
-  auto adoptedOwner = adoptVector<testData>(3, getTransportAllocator(factoryZMQ.get()), std::move(message));
+  auto adoptedOwner = adoptVector<testData>(3, std::move(message));
   BOOST_CHECK(adoptedOwner[0].i == 3);
   BOOST_CHECK(adoptedOwner[1].i == 2);
   BOOST_CHECK(adoptedOwner[2].i == 1);
@@ -166,6 +170,17 @@ BOOST_AUTO_TEST_CASE(adoptVector_test)
   auto reclaimedMessage = o2::memory_resource::getMessage(std::move(adoptedOwner));
   BOOST_CHECK(reclaimedMessage.get() == messageAddr);
   BOOST_CHECK(adoptedOwner.size() == 0);
+
+  auto modified = adoptVector<testData>(3, std::move(reclaimedMessage));
+  modified.emplace_back(9);
+  BOOST_CHECK(modified[3].i == 9);
+  BOOST_CHECK(modified.size() == 4);
+  BOOST_CHECK(testData::nconstructed == 7);
+  BOOST_CHECK(testData::nconstructions == 7);
+  BOOST_CHECK(testData::ndestructions == 0); //we don't call the dtor, just drop the store
+  auto modifiedMessage = getMessage(std::move(modified));
+  BOOST_CHECK(modifiedMessage != nullptr);
+  BOOST_CHECK(modifiedMessage.get() != messageAddr);
 }
 };
 };
