@@ -5,6 +5,7 @@ set(GPUCF_SRC
     "./common/Digit.cpp"
 
     "./io/DigitParser.cpp"
+    "./io/filename.cpp"
 )
 
 add_library(gpucf STATIC ${GPUCF_SRC})
