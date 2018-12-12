@@ -59,7 +59,7 @@ class AliHLTTRDTracker {
   GPUd() bool Init(AliHLTTRDGeometry *geo = nullptr);
   GPUd() void Reset();
   GPUd() void StartLoadTracklets(const int nTrklts);
-  GPUd() void LoadTracklet(const AliHLTTRDTrackletWord &tracklet, int *labels = 0x0);
+  GPUd() void LoadTracklet(const AliHLTTRDTrackletWord &tracklet, const int *labels = 0x0);
   void DoTracking(HLTTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTRDnTrklts = 0x0, int *tracksTRDlab = 0x0);
   GPUd() void DoTrackingThread(HLTTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int iTrk, int threadId, int *tracksTRDnTrklts = 0x0, int *tracksTRDlab = 0x0);
   GPUd() bool CalculateSpacePoints();

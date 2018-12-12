@@ -27,6 +27,7 @@
 #include "TPCFastTransform.h"
 #include "AliHLTTPCRawCluster.h"
 #include "ClusterNativeAccessExt.h"
+#include "AliHLTTRDTrackletLabels.h"
 
 #define HLTCA_LOGGING_PRINTF
 #include "AliCAGPULogging.h"
@@ -76,7 +77,7 @@ int AliGPUReconstruction::Init()
 	return 0;
 }
 
-AliGPUReconstruction::InOutMemory::InOutMemory() : mcLabelsTPC(), mcInfosTPC(), mergedTracks(), mergedTrackHits(), trdTracks(), trdTracklets()
+AliGPUReconstruction::InOutMemory::InOutMemory()
 {}
 	
 AliGPUReconstruction::InOutMemory::~InOutMemory()
@@ -102,6 +103,7 @@ void AliGPUReconstruction::ClearIOPointers()
 	mIOMem.mergedTrackHits.reset();
 	mIOMem.trdTracks.reset();
 	mIOMem.trdTracklets.reset();
+	mIOMem.trdTrackletsMC.reset();
 }
 
 void AliGPUReconstruction::DumpData(const char* filename)
@@ -121,6 +123,7 @@ void AliGPUReconstruction::DumpData(const char* filename)
 	DumpData(fp, &mIOPtrs.mergedTrackHits, &mIOPtrs.nMergedTrackHits, InOutPointerType::MERGED_TRACK_HIT);
 	DumpData(fp, &mIOPtrs.trdTracks, &mIOPtrs.nTRDTracks, InOutPointerType::TRD_TRACK);
 	DumpData(fp, &mIOPtrs.trdTracklets, &mIOPtrs.nTRDTracklets, InOutPointerType::TRD_TRACKLET);
+	DumpData(fp, &mIOPtrs.trdTrackletsMC, &mIOPtrs.nTRDTrackletsMC, InOutPointerType::TRD_TRACKLET_MC);
 	fclose(fp);
 }
 
@@ -183,6 +186,7 @@ int AliGPUReconstruction::ReadData(const char* filename)
 	ReadData(fp, &mIOPtrs.mergedTrackHits, &mIOPtrs.nMergedTrackHits, &mIOMem.mergedTrackHits, InOutPointerType::MERGED_TRACK_HIT);
 	ReadData(fp, &mIOPtrs.trdTracks, &mIOPtrs.nTRDTracks, &mIOMem.trdTracks, InOutPointerType::TRD_TRACK);
 	ReadData(fp, &mIOPtrs.trdTracklets, &mIOPtrs.nTRDTracklets, &mIOMem.trdTracklets, InOutPointerType::TRD_TRACKLET);
+	ReadData(fp, &mIOPtrs.trdTrackletsMC, &mIOPtrs.nTRDTrackletsMC, &mIOMem.trdTrackletsMC, InOutPointerType::TRD_TRACKLET_MC);
 	fclose(fp);
 	
 	return(0);
@@ -274,6 +278,7 @@ void AliGPUReconstruction::AllocateIOMemory()
 	AllocateIOMemoryHelper(mIOPtrs.nMergedTrackHits, mIOPtrs.mergedTrackHits, mIOMem.mergedTrackHits);
 	AllocateIOMemoryHelper(mIOPtrs.nTRDTracks, mIOPtrs.trdTracks, mIOMem.trdTracks);
 	AllocateIOMemoryHelper(mIOPtrs.nTRDTracklets, mIOPtrs.trdTracklets, mIOMem.trdTracklets);
+	AllocateIOMemoryHelper(mIOPtrs.nTRDTrackletsMC, mIOPtrs.trdTrackletsMC, mIOMem.trdTrackletsMC);
 }
 
 template <class T> void AliGPUReconstruction::DumpFlatObjectToFile(const T* obj, const char* file)
@@ -418,7 +423,8 @@ int AliGPUReconstruction::RunTRDTracking()
 
 	for (unsigned int iTracklet = 0;iTracklet < mIOPtrs.nTRDTracklets;++iTracklet)
 	{
-		mTRDTracker->LoadTracklet(mIOPtrs.trdTracklets[iTracklet]);
+		if (mIOPtrs.trdTrackletsMC) mTRDTracker->LoadTracklet(mIOPtrs.trdTracklets[iTracklet], mIOPtrs.trdTrackletsMC[iTracklet].fLabel);
+		else mTRDTracker->LoadTracklet(mIOPtrs.trdTracklets[iTracklet]);
 	}
 
 	mTRDTracker->DoTracking(&(tracksTPC[0]), &(tracksTPCLab[0]), tracksTPC.size());

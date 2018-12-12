@@ -22,6 +22,7 @@ class AliHLTTRDTracker;
 class AliHLTTPCCAGPUTracker;
 struct AliHLTTPCRawCluster;
 struct ClusterNativeAccessExt;
+struct AliHLTTRDTrackletLabels;
 
 namespace o2 { namespace ITS { class TrackerTraits; }}
 namespace o2 { namespace trd { class TRDGeometryFlat; }}
@@ -61,7 +62,8 @@ public:
 	{
 		InOutPointers() : mcLabelsTPC(nullptr), nMCLabelsTPC(0), mcInfosTPC(nullptr), nMCInfosTPC(0),
 			mergedTracks(nullptr), nMergedTracks(0), mergedTrackHits(nullptr), nMergedTrackHits(0),
-			trdTracks(nullptr), nTRDTracks(0), trdTracklets(nullptr), nTRDTracklets(0)
+			trdTracks(nullptr), nTRDTracks(0), trdTracklets(nullptr), nTRDTracklets(0), trdTrackletsMC(nullptr),
+			nTRDTrackletsMC(0)
 		{}
 		
 		const AliHLTTPCCAClusterData::Data* clusterData[NSLICES];
@@ -85,6 +87,8 @@ public:
 		unsigned int nTRDTracks;
 		const AliHLTTRDTrackletWord* trdTracklets;
 		unsigned int nTRDTracklets;
+		const AliHLTTRDTrackletLabels* trdTrackletsMC;
+		unsigned int nTRDTrackletsMC;
 	} mIOPtrs;
 
 	struct InOutMemory
@@ -102,11 +106,12 @@ public:
 		std::unique_ptr<AliHLTTPCGMMergedTrackHit[]> mergedTrackHits;
 		std::unique_ptr<HLTTRDTrack[]> trdTracks;
 		std::unique_ptr<AliHLTTRDTrackletWord[]> trdTracklets;
+		std::unique_ptr<AliHLTTRDTrackletLabels[]> trdTrackletsMC;
 	} mIOMem;
 	
 	//Functionality to dump and read input / output data
-	enum InOutPointerType : unsigned int {CLUSTER_DATA = 0, SLICE_OUT_TRACK = 1, SLICE_OUT_CLUSTER = 2, MC_LABEL_TPC = 3, MC_INFO_TPC = 4, MERGED_TRACK = 5, MERGED_TRACK_HIT = 6, TRD_TRACK = 7, TRD_TRACKLET = 8, RAW_CLUSTERS = 9, CLUSTERS_NATIVE = 10};
-	static constexpr const char* const IOTYPENAMES[] = {"TPC Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters", "TRD Tracks", "TRD Tracklets", "Raw Clusters", "ClusterNative"};
+	enum InOutPointerType : unsigned int {CLUSTER_DATA = 0, SLICE_OUT_TRACK = 1, SLICE_OUT_CLUSTER = 2, MC_LABEL_TPC = 3, MC_INFO_TPC = 4, MERGED_TRACK = 5, MERGED_TRACK_HIT = 6, TRD_TRACK = 7, TRD_TRACKLET = 8, RAW_CLUSTERS = 9, CLUSTERS_NATIVE = 10, TRD_TRACKLET_MC = 11};
+	static constexpr const char* const IOTYPENAMES[] = {"TPC Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters", "TRD Tracks", "TRD Tracklets", "Raw Clusters", "ClusterNative", "TRD Tracklet MC Labels"};
 
 	void ClearIOPointers();
 	void AllocateIOMemory();
