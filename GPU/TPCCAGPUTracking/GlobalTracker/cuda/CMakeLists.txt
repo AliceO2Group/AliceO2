@@ -74,6 +74,9 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
 else() #if we do not build for AliRoot, for the time being we still need some dummy headers for some definitions
     include_directories(${CAGPUDIR}/HLTHeaders ${CAGPUDIR}/Standalone/include)
 endif()
+if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2") #We need to add src dirs of O2 to include cxx files for CUDA compilation
+    include_directories(${CMAKE_SOURCE_DIR}/Detectors/TRD/base/src)
+endif()
 
 # Sources in alphabetical order
 set(SRCS
