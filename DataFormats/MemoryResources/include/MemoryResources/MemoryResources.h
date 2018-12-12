@@ -105,7 +105,7 @@ class MessageResource : public FairMQMemoryResource
   }
   void do_deallocate(void* p, std::size_t bytes, std::size_t alignment) override
   {
-    getMessage(mMessageData); //let the message die.
+    mUpstream->deallocate(p, bytes, alignment);
     return;
   }
   bool do_is_equal(const memory_resource& other) const noexcept override
