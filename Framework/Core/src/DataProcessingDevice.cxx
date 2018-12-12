@@ -450,6 +450,29 @@ bool DataProcessingDevice::tryDispatchComputation()
     LOG(DEBUG) << "FORWARDING:END";
   };
 
+  // We use this to keep track of the latency of the first message we get for a given input record
+  // and of the last one.
+  struct InputLatency {
+    uint64_t minLatency;
+    uint64_t maxLatency;
+  };
+
+  auto calculateInputRecordLatency = [](InputRecord const& record, auto now) -> InputLatency {
+    InputLatency result{ static_cast<uint64_t>(-1), 0 };
+
+    auto currentTime = (uint64_t)std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
+    for (auto& item : record) {
+      auto* header = o2::header::get<DataProcessingHeader*>(item.header);
+      if (header == nullptr) {
+        continue;
+      }
+      auto partLatency = currentTime - header->creation;
+      result.minLatency = std::min(result.minLatency, partLatency);
+      result.maxLatency = std::max(result.maxLatency, partLatency);
+    }
+    return result;
+  };
+
   auto calculateTotalInputRecordSize = [](InputRecord const& record) -> int {
     size_t totalInputSize = 0;
     for (auto& item : record) {
@@ -498,10 +521,23 @@ bool DataProcessingDevice::tryDispatchComputation()
     auto tEnd = std::chrono::high_resolution_clock::now();
     double elapsedTimeMs = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
     auto totalProcessedSize = calculateTotalInputRecordSize(record);
+    auto latency = calculateInputRecordLatency(record, tStart);
 
+    /// The size of all the input messages which have been processed in this iteration
     monitoringService.send({ totalProcessedSize, "dpl/processed_input_size_bytes" });
+    /// The time to do the processing for this iteration
     monitoringService.send({ elapsedTimeMs, "dpl/elapsed_time_ms" });
-    monitoringService.send({ (int)((totalProcessedSize / elapsedTimeMs) / 1000), "dpl/data_rate_mb_s" });
+    /// The rate at which processing was happening in this iteration
+    monitoringService.send({ (int)((totalProcessedSize / elapsedTimeMs) / 1000), "dpl/processing_rate_mb_s" });
+    /// The smallest latency between an input message being created and its processing
+    /// starting.
+    monitoringService.send({ (int)latency.minLatency, "dpl/min_input_latency_ms" });
+    /// The largest latency between an input message being created and its processing
+    /// starting.
+    monitoringService.send({ (int)latency.maxLatency, "dpl/max_input_latency_ms" });
+    /// The rate at which we get inputs, i.e. the longest time between one of the inputs being
+    /// created and actually reaching the consumer device.
+    monitoringService.send({ (int)((totalProcessedSize / latency.maxLatency) / 1000), "dpl/input_rate_mb_s" });
 
     // We forward inputs only when we consume them. If we simply Process them,
     // we keep them for next message arriving.

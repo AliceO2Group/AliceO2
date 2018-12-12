@@ -11,10 +11,19 @@
 #include "Framework/DataProcessingHeader.h"
 #include "Headers/DataHeader.h"
 
+#include <cstdint>
+#include <chrono>
+
 namespace o2
 {
 namespace framework
 {
+
+uint64_t DataProcessingHeader::getCreationTime()
+{
+  auto now = std::chrono::steady_clock::now();
+  return std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
+}
 
 constexpr o2::header::HeaderType DataProcessingHeader::sHeaderType;
 
