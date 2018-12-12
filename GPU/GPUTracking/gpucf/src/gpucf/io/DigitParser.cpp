@@ -13,8 +13,6 @@ bool DigitParser::operator()(const std::string &line,
     std::smatch sm; 
     bool isDigit = std::regex_match(line, sm, prefix);
 
-    log::Debug() << line;
-
     if (!isDigit) {
         return true;
     }

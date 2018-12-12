@@ -9,9 +9,10 @@ int main(int argc, char *argv[]) {
 
     DigitReader reader(argv[1]);
 
-    for (const Digit &d : reader.get()) {
-        std::cout << d << std::endl; 
-    }
+    log::Info() << reader.get().size();
+    /* for (const Digit &d : reader.get()) { */
+    /*     std::cout << d << std::endl; */ 
+    /* } */
 
     return 0;
 }
