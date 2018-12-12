@@ -89,16 +89,16 @@ class MessageResource : public FairMQMemoryResource
   FairMQMemoryResource* mUpstream{ nullptr };
   size_t mMessageSize{ 0 };
   void* mMessageData{ nullptr };
-  bool initialImport{true};
+  bool initialImport{ true };
 
   void* do_allocate(std::size_t bytes, std::size_t alignment) override
   {
     if (initialImport) {
-    if (bytes > mMessageSize) {
-      throw std::bad_alloc();
-    }
-    initialImport=false;
-    return mMessageData;
+      if (bytes > mMessageSize) {
+        throw std::bad_alloc();
+      }
+      initialImport = false;
+      return mMessageData;
     } else {
       return mUpstream->allocate(bytes, alignment);
     }
