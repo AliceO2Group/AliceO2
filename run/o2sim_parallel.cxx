@@ -34,6 +34,25 @@ const char* mergerlogname = "mergerlog";
 void cleanup()
 {
   o2::utils::ShmManager::Instance().release();
+
+  // special mode in which we dump the output from various
+  // log files to terminal (mainly interesting for CI mode)
+  if (getenv("ALICE_O2SIM_DUMPLOG")) {
+    std::cerr << "------------- START OF EVENTSERVER LOG ----------" << std::endl;
+    std::stringstream catcommand1;
+    catcommand1 << "cat " << serverlogname << ";";
+    system(catcommand1.str().c_str());
+
+    std::cerr << "------------- START OF SIM WORKER(S) LOG --------" << std::endl;
+    std::stringstream catcommand2;
+    catcommand2 << "cat " << workerlogname << "*;";
+    system(catcommand2.str().c_str());
+
+    std::cerr << "------------- START OF MERGER LOG ---------------" << std::endl;
+    std::stringstream catcommand3;
+    catcommand3 << "cat " << mergerlogname << ";";
+    system(catcommand3.str().c_str());
+  }
 }
 
 // quick cross check of simulation output
