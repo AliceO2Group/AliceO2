@@ -59,7 +59,7 @@ class AliHLTTRDTracker {
   GPUd() bool Init(AliHLTTRDGeometry *geo = nullptr);
   GPUd() void Reset();
   GPUd() void StartLoadTracklets(const int nTrklts);
-  GPUd() void LoadTracklet(const AliHLTTRDTrackletWord &tracklet);
+  GPUd() void LoadTracklet(const AliHLTTRDTrackletWord &tracklet, int *labels = 0x0);
   void DoTracking(HLTTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTRDnTrklts = 0x0, int *tracksTRDlab = 0x0);
   GPUd() void DoTrackingThread(HLTTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int iTrk, int threadId, int *tracksTRDnTrklts = 0x0, int *tracksTRDlab = 0x0);
   GPUd() bool CalculateSpacePoints();
@@ -127,6 +127,7 @@ class AliHLTTRDTracker {
   Hypothesis *fHypothesis;                    // array with multiple track hypothesis
   HLTTRDTrack *fCandidates;                   // array of tracks for multiple hypothesis tracking
   AliHLTTRDSpacePointInternal *fSpacePoints;  // array with tracklet coordinates in global tracking frame
+  int *fTrackletLabels;                       // array with MC tracklet labels
   AliHLTTRDGeometry *fGeo;                    // TRD geometry
   bool fDebugOutput;                          // store debug output
   float fMinPt;                               // min pt of TPC tracks for tracking

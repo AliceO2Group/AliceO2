@@ -1,5 +1,6 @@
 #include "AliHLTGPUDumpComponent.h"
 
+#include "AliGeomManager.h"
 #include "AliGPUReconstruction.h"
 #include "AliHLTTPCDefinitions.h"
 #include "AliHLTTPCCAMCInfo.h"
