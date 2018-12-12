@@ -26,31 +26,25 @@ auto factorySHM = FairMQTransportFactory::CreateTransportFactory("shmem");
 
 struct testData {
   int i{ 1 };
-  static int nconstructed;
   static int nconstructions;
   testData()
   {
-    ++nconstructed;
     ++nconstructions;
   }
   testData(const testData& in) : i{ in.i }
   {
-    ++nconstructed;
     ++nconstructions;
   }
   testData(const testData&& in) : i{ in.i }
   {
-    ++nconstructed;
     ++nconstructions;
   }
   testData(int in) : i{ in }
   {
-    ++nconstructed;
     ++nconstructions;
   }
 };
 
-int testData::nconstructed = 0;
 int testData::nconstructions = 0;
 
 auto allocZMQ = getTransportAllocator(factoryZMQ.get());
@@ -78,9 +72,8 @@ BOOST_AUTO_TEST_CASE(allocator_test)
     v.emplace_back(2);
     v.emplace_back(3);
     BOOST_CHECK((byte*)&(*v.end()) - (byte*)&(*v.begin()) == 3 * sizeof(testData));
-    BOOST_CHECK(testData::nconstructed == 3);
+    BOOST_CHECK(testData::nconstructions == 3);
   }
-  BOOST_CHECK(testData::nconstructed == 0);
 
   testData::nconstructions = 0;
   {
@@ -90,9 +83,8 @@ BOOST_AUTO_TEST_CASE(allocator_test)
     v.emplace_back(1);
     v.emplace_back(2);
     v.emplace_back(3);
-    BOOST_CHECK(testData::nconstructed == 3);
+    BOOST_CHECK(testData::nconstructions == 3);
   }
-  BOOST_CHECK(testData::nconstructed == 3); //ByteSpectatorAllocator does not call dtors so nconstructed remains at 3;
   BOOST_CHECK(allocZMQ->getNumberOfMessages() == 0);
 }
 
@@ -141,7 +133,6 @@ BOOST_AUTO_TEST_CASE(getMessage_test)
 
 BOOST_AUTO_TEST_CASE(adoptVector_test)
 {
-  testData::nconstructed = 0;
   testData::nconstructions = 0;
 
   //Create a bogus message
@@ -163,7 +154,6 @@ BOOST_AUTO_TEST_CASE(adoptVector_test)
   modified.emplace_back(9);
   BOOST_CHECK(modified[3].i == 9);
   BOOST_CHECK(modified.size() == 4);
-  BOOST_CHECK(testData::nconstructed == 7);
   BOOST_CHECK(testData::nconstructions == 7);
   auto modifiedMessage = getMessage(std::move(modified));
   BOOST_CHECK(modifiedMessage != nullptr);
