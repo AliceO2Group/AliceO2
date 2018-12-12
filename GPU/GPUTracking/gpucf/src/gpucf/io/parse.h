@@ -10,7 +10,7 @@
 #define MATCH_IMPL(str, type, name, strToType) \
     type name; \
     do { \
-        std::regex re(#name "\\s*=\\s*([^,\\s]*),?"); \
+        static std::regex re(#name "\\s*=\\s*([^,\\s]*),?"); \
         std::smatch sm; \
         bool ok = std::regex_search(str, sm, re); \
         if (!ok) { \
