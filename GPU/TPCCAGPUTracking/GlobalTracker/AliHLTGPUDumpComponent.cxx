@@ -17,6 +17,7 @@
 #include "AliTrackReference.h"
 #include "AliHLTTRDDefinitions.h"
 #include "AliHLTTRDTrackletWord.h"
+#include "AliHLTTRDTrackletLabels.h"
 #include "TPCFastTransform.h"
 #include "TPCFastTransformManager.h"
 #include "AliRecoParam.h"
@@ -64,6 +65,7 @@ void AliHLTGPUDumpComponent::GetInputDataTypes(vector<AliHLTComponentDataType> &
 	list.push_back(AliHLTTPCDefinitions::ClustersXYZDataType());
 	list.push_back(AliHLTTPCDefinitions::AliHLTDataTypeClusterMCInfo());
 	list.push_back(AliHLTTRDDefinitions::fgkTRDTrackletDataType);
+	list.push_back( AliHLTTRDDefinitions::fgkTRDMCTrackletDataType );
 }
 
 AliHLTComponentDataType AliHLTGPUDumpComponent::GetOutputDataType()
@@ -168,7 +170,9 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 	const AliHLTTPCRawClusterData *clustersRaw[36][6] = {NULL};
 	bool labelsPresent = false;
 	AliHLTTRDTrackletWord *TRDtracklets = NULL;
+    AliHLTTRDTrackletLabels *TRDtrackletsMC = NULL;
 	int nTRDTrackletsTotal = 0;
+    int nTRDTrackletsMCTotal = 0;
 
 	for (unsigned long ndx = 0; ndx < evtData.fBlockCnt; ndx++)
 	{
@@ -192,6 +196,11 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 		{
 			TRDtracklets = reinterpret_cast<AliHLTTRDTrackletWord*>(pBlock.fPtr);
 			nTRDTrackletsTotal = pBlock.fSize / sizeof(AliHLTTRDTrackletWord);
+		}
+		else if (pBlock.fDataType == (AliHLTTRDDefinitions::fgkTRDMCTrackletDataType))
+		{
+			TRDtrackletsMC = reinterpret_cast<AliHLTTRDTrackletLabels*>(pBlock.fPtr);
+			nTRDTrackletsMCTotal = pBlock.fSize / sizeof(AliHLTTRDTrackletLabels);
 		}
 	}
 	
@@ -418,6 +427,8 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 	
 	fRec->mIOPtrs.nTRDTracklets = nTRDTrackletsTotal;
 	fRec->mIOPtrs.trdTracklets = TRDtracklets;
+    fRec->mIOPtrs.nTRDTrackletsMC = nTRDTrackletsMCTotal;
+	fRec->mIOPtrs.trdTrackletsMC = TRDtrackletsMC;
 	HLTDebug("Number of TRD tracklets: %d", (int) nTRDTrackletsTotal);
 	
 	static int nEvent = 0;

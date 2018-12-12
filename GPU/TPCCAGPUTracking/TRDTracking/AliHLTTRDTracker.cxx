@@ -237,7 +237,7 @@ GPUd() void AliHLTTRDTracker::StartLoadTracklets(const int nTrklts)
   }
 }
 
-GPUd() void AliHLTTRDTracker::LoadTracklet(const AliHLTTRDTrackletWord &tracklet, int *labels)
+GPUd() void AliHLTTRDTracker::LoadTracklet(const AliHLTTRDTrackletWord &tracklet, const int *labels)
 {
   //--------------------------------------------------------------------
   // Add single tracklet to tracker
