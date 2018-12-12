@@ -13,7 +13,7 @@
 struct errorcode
 {
 	cl_int		statusCode;
-	char *		meaning;
+    std::string		meaning;
 }
 ErrorCodes[ ] =
 {
@@ -67,7 +67,7 @@ ErrorCodes[ ] =
 };
 
 
-const char *
+std::string
 PrintCLError(cl_int status)
 {
 	const int numErrorCodes = sizeof( ErrorCodes ) / sizeof( struct errorcode );

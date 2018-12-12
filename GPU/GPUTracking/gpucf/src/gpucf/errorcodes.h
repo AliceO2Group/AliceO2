@@ -2,6 +2,8 @@
  * 
  * Source: http://web.engr.oregonstate.edu/~mjb/cs575e/
  */
-#include <CL/cl.h>
+#include <gpucf/cl.h>
 
-const char *PrintCLError(cl_int);
+#include <string>
+
+std::string PrintCLError(cl_int);
