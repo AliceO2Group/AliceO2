@@ -400,20 +400,8 @@ int AliGPUReconstruction::RunTRDTracking()
 		const AliHLTTPCGMMergedTrack& trk = mIOPtrs.mergedTracks[i];
 		if (!trk.OK()) continue;
 		if (trk.Looper()) continue;
-		AliHLTTPCGMTrackParam::AliHLTTPCCAOuterParam param = trk.OuterParam();
-		bool trackBad = false;
-		float tooLarge = 1e4;
-		float tooSmall = 1e-10;
-		if ((param.fX > 0 && (param.fX < tooSmall || param.fX > tooLarge)) || (param.fX < 0 && (param.fX > -tooSmall || param.fX < -tooLarge))) trackBad = true;
-		if ((param.fAlpha > 0 && (param.fAlpha < tooSmall || param.fAlpha > tooLarge)) || (param.fAlpha < 0 && (param.fAlpha > -tooSmall || param.fAlpha < -tooLarge))) trackBad = true;
-		for (int ip=0; ip<5; ++ip) {
-			if ((param.fP[ip] > 0 && (param.fP[ip] < tooSmall || param.fP[ip] > tooLarge)) || (param.fP[ip] < 0 && (param.fP[ip] > -tooSmall || param.fP[ip] < -tooLarge))) trackBad = true;
-		}
-		for (int ic=0; ic<15; ++ic) {
-			if ((param.fC[ic] > 0 && (param.fC[ic] < tooSmall || param.fC[ic] > tooLarge)) || (param.fC[ic] < 0 && (param.fC[ic] > -tooSmall || param.fC[ic] < -tooLarge))) trackBad = true;
-		}
-		if (trackBad) continue;
-		tracksTPC.emplace_back(trk.OuterParam());
+		if (mParam.rec.NWaysOuter) tracksTPC.emplace_back(trk.OuterParam());
+		else tracksTPC.emplace_back(trk);
 		tracksTPCId.push_back(i);
 		tracksTPCLab.push_back(-1);
 	}
