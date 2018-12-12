@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gpucf/log.h>
+#include "ParsingError.h"
 
 #include <fstream>
 #include <vector>
@@ -21,14 +22,16 @@ private:
         Parser parser;
         std::ifstream infile(fName); 
 
-        int lineNr = 1;
+        size_t lineNr = 1;
         for (std::string line; 
                 std::getline(infile, line); 
                 lineNr++) {
             bool ok = parser(line, &data);
+
+            if (!ok) {
+                throw ParsingError(fName, lineNr);
+            }
             
-            ASSERT(ok) << "\n\n Failed to load file " << fName 
-                << ". Error in line " << lineNr;  
         }
     }
 
