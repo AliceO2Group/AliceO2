@@ -26,7 +26,9 @@
 #include "AliRawReaderMemory.h"
 #include "AliTRDrawStream.h"
 #include "AliHLTTRDTrackletWord.h"
+#include "AliHLTTRDTrackletLabels.h"
 #include "AliTRDtrackletWord.h"
+#include "AliTRDtrackletMCM.h"
 #include "TTree.h"
 #include "TEventList.h"
 #include "AliRunLoader.h"
@@ -71,6 +73,7 @@ AliHLTComponentDataType AliHLTTRDTrackletReaderComponent::GetOutputDataType() {
 int AliHLTTRDTrackletReaderComponent::GetOutputDataTypes(AliHLTComponentDataTypeList& tgtList) {
   tgtList.clear();
   tgtList.push_back(AliHLTTRDDefinitions::fgkTRDTrackletDataType);
+  tgtList.push_back(AliHLTTRDDefinitions::fgkTRDMCTrackletDataType);
   return tgtList.size();
 }
 
@@ -186,9 +189,9 @@ int AliHLTTRDTrackletReaderComponent::DoDeinit() {
 //  AliHLTEventID_t eventNumber = fEventId;
 //  int runNumber = -1;
 //  printf("TRDGM %s-%s: [PRE] %s%s\n",
-// 	 (runNumber >= 0) ? Form("%06d", runNumber) : "XXXXXX",
-// 	 (eventNumber != fgkInvalidEventId) ? Form("%05llu", eventNumber) : "XXXXX",
-// 	 (strlen(prefix) > 0) ? Form("<%s> ", prefix) : "", msg);
+//   (runNumber >= 0) ? Form("%06d", runNumber) : "XXXXXX",
+//   (eventNumber != fgkInvalidEventId) ? Form("%05llu", eventNumber) : "XXXXX",
+//   (strlen(prefix) > 0) ? Form("<%s> ", prefix) : "", msg);
 //}
 
 
@@ -197,9 +200,9 @@ void AliHLTTRDTrackletReaderComponent::DbgLog(const char* prefix, ...){
   AliHLTEventID_t eventNumber = fEventId;
   int runNumber = -1;
   printf("TRDHLTGM %s-X-%s: [PRE] %s",
- 	 (runNumber >= 0) ? Form("%06d", runNumber) : "XXXXXX",
- 	 (eventNumber != fgkInvalidEventId) ? Form("%05llu", eventNumber) : "XXXXX",
- 	 (strlen(prefix) > 0) ? Form("<%s> ", prefix) : "");
+   (runNumber >= 0) ? Form("%06d", runNumber) : "XXXXXX",
+   (eventNumber != fgkInvalidEventId) ? Form("%05llu", eventNumber) : "XXXXX",
+   (strlen(prefix) > 0) ? Form("<%s> ", prefix) : "");
 #endif
   va_list args;
   va_start(args, prefix);
@@ -211,12 +214,12 @@ void AliHLTTRDTrackletReaderComponent::DbgLog(const char* prefix, ...){
 
 
 int AliHLTTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hltEventData,
-					    AliHLTComponentTriggerData& /*trigData*/) {
+              AliHLTComponentTriggerData& /*trigData*/) {
 
   fEventId = hltEventData.fEventID;
 
   HLTInfo("### START DoEvent [event id: %llu, %d blocks, size: %d]",
-	   hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize);
+            hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize);
 
   // event processing function
   int iResult = 0;
@@ -226,11 +229,12 @@ int AliHLTTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hl
 
   if (!IsDataEvent()) { // process data events only
     HLTInfo("### END   DoEvent [event id: %llu, %d blocks, size: %d] (skipped: no data event)",
-	    hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize);
+              hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize);
     return iResult;
   }
 
   std::vector<AliHLTTRDTrackletWord> outputTrkls;
+  std::vector<AliHLTTRDTrackletLabels> outputTrklsMC;
 
   { // read raw data
 
@@ -239,38 +243,41 @@ int AliHLTTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hl
 
     // loop over all incoming TRD raw data blocks
     for (const AliHLTComponentBlockData* pBlock = GetFirstInputBlock(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginTRD);
-	 pBlock != NULL && iResult >= 0;
-	 pBlock = GetNextInputBlock()) {
+          pBlock != NULL && iResult >= 0;
+          pBlock = GetNextInputBlock())
+    {
 
       int trdSector = -1;
 
       // determine sector from block specification
       for (unsigned pos = 0; pos < 8*sizeof(AliHLTUInt32_t); pos++) {
-	if (pBlock->fSpecification & (0x1 << pos)) {
-	  if (trdSector >= 0) {
-	    HLTWarning("Cannot uniquely identify DDL number from specification, skipping data block %s 0x%08x",
-		       DataType2Text(pBlock->fDataType).c_str(),
-		       pBlock->fSpecification);
-	    trdSector = -1;
-	    break;
-	  }
-	  trdSector = pos;
-	}
+        if (pBlock->fSpecification & (0x1 << pos)) {
+          if (trdSector >= 0) {
+            HLTWarning("Cannot uniquely identify DDL number from specification, skipping data block %s 0x%08x",
+                  DataType2Text(pBlock->fDataType).c_str(),
+                  pBlock->fSpecification);
+                  trdSector = -1;
+            break;
+          }
+          trdSector = pos;
+        }
       }
-      if (trdSector < 0) continue;
+      if (trdSector < 0) {
+        continue;
+      }
 
       // add data block to rawreader
       infoStr += Form("%02d, ", trdSector);
       sourceSectors |= pBlock->fSpecification;
-      if(!fRawReaderMem->AddBuffer((unsigned char*) pBlock->fPtr, pBlock->fSize, trdSector + 1024)){
-	LogError("Could not add buffer of data block  %s, 0x%08x to rawreader",
-		 DataType2Text(pBlock->fDataType).c_str(),
-		 pBlock->fSpecification);
-	continue;
+      if(!fRawReaderMem->AddBuffer((unsigned char*) pBlock->fPtr, pBlock->fSize, trdSector + 1024) ){
+        LogError("Could not add buffer of data block  %s, 0x%08x to rawreader",
+            DataType2Text(pBlock->fDataType).c_str(),
+            pBlock->fSpecification);
+        continue;
       }
     } // loop over all incoming TRD raw data blocks
 
-    if (sourceSectors){
+    if (sourceSectors) {
       infoStr.Remove(infoStr.Length() - 2, 2);
       LogDebug("preprocessing raw data from sectors: %s...", infoStr.Data());
 
@@ -281,10 +288,10 @@ int AliHLTTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hl
       int nTracklets = fTrackletArray->GetEntriesFast();
 
       HLTInfo("There are %i tracklets in this event\n", nTracklets);
-      for (int iTracklet = 0; iTracklet < nTracklets; ++iTracklet){
-	AliHLTTRDTrackletWord trkl = *((AliTRDtrackletWord*)fTrackletArray->At(iTracklet));
-	trkl.SetId(iTracklet);
-	outputTrkls.push_back(trkl);
+      for (int iTracklet = 0; iTracklet < nTracklets; ++iTracklet) {
+        AliHLTTRDTrackletWord trkl = *((AliTRDtrackletWord*)fTrackletArray->At(iTracklet));
+        trkl.SetId(iTracklet);
+        outputTrkls.push_back(trkl);
       }
       LogDebug("pushing data for sectors: 0x%05x", sourceSectors);
     }
@@ -297,18 +304,18 @@ int AliHLTTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hl
     for ( const TObject *iter = GetFirstInputObject( kAliHLTDataTypeAliTreeD|kAliHLTDataOriginTRD ); iter != NULL; iter = GetNextInputObject() ) {
       TTree *trackletTree = dynamic_cast<TTree*>(const_cast<TObject*>( iter ) );
       if(!trackletTree){
-	HLTFatal("No Tracklet Tree found");
-	return -EINVAL;
+        HLTFatal("No Tracklet Tree found");
+        return -EINVAL;
       }
-      
+
       TBranch *trklbranch = trackletTree->GetBranch("mcmtrklbranch");
       if (!trklbranch ) {
-	HLTFatal("No tracklet branch found in tracklet tree");
-	return -EINVAL;
+        HLTFatal("No tracklet branch found in tracklet tree");
+        return -EINVAL;
       }
       int nTracklets = trklbranch->GetEntries();
       HLTInfo("Input tree with %d TRD MCM tracklets", nTracklets );
-      
+
       //-----------------------------------
       //Deploy same hack as in ITS Clusterizer
       AliRunLoader* pRunLoader=AliRunLoader::Instance();
@@ -342,31 +349,39 @@ int AliHLTTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hl
         return -EINVAL;
       }
       //-----------------------------------
-      
+
       AliTRDtrackletMCM *trkl = 0x0;
       trklbranch->SetAddress(&trkl);
 
       for (int iTracklet = 0; iTracklet < nTracklets; iTracklet++) {
-	int nbytes = trklbranch->GetEntry(iTracklet,1);
-	if( !trkl || nbytes<=0 ){
-	  //HLTWarning("Can not read entry %d of %d from tracklet branch", &iTracklet, &nTracklets);
-	  HLTWarning("Can not read entry from tracklet branch");
-	  continue;
-	}
-	AliHLTTRDTrackletWord hltTrkl = *trkl;
-	hltTrkl.SetId(iTracklet);
-	outputTrkls.push_back(hltTrkl);
+        int nbytes = trklbranch->GetEntry(iTracklet,1);
+        if( !trkl || nbytes<=0 ) {
+          HLTWarning("Can not read entry from tracklet branch");
+          continue;
+        }
+        AliHLTTRDTrackletWord hltTrkl = *trkl;
+        hltTrkl.SetId(iTracklet);
+        outputTrkls.push_back(hltTrkl);
+        AliHLTTRDTrackletLabels trklMC;
+        trklMC.fLabel[0] = trkl->GetLabel(0);
+        trklMC.fLabel[1] = trkl->GetLabel(1);
+        trklMC.fLabel[2] = trkl->GetLabel(2);
+        outputTrklsMC.push_back(trklMC);
       }
     }
   }
 
 
- if( outputTrkls.size()>0 ){
-   iResult = PushBack(&outputTrkls[0], outputTrkls.size() * sizeof(outputTrkls[0]), AliHLTTRDDefinitions::fgkTRDTrackletDataType, 0);
- }
+  if( outputTrkls.size()>0 ){
+    iResult = PushBack(&outputTrkls[0], outputTrkls.size() * sizeof(outputTrkls[0]), AliHLTTRDDefinitions::fgkTRDTrackletDataType, 0);
+  }
+  if( outputTrklsMC.size()>0 ){
+    iResult = PushBack(&outputTrklsMC[0], outputTrklsMC.size() * sizeof(outputTrklsMC[0]), AliHLTTRDDefinitions::fgkTRDMCTrackletDataType, 0);
+  }
 
- HLTInfo("### END   DoEvent [event id: %llu, %d blocks, size: %d, output tracklets: %d]",
-	 hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize, outputTrkls.size() );
+  HLTInfo("### END   DoEvent [event id: %llu, %d blocks, size: %d, output tracklets: %d]",
+    hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize, outputTrkls.size() );
 
  return iResult;
+
 }

@@ -41,6 +41,7 @@
 #include "AliHLTTRDTrack.h"
 #include "AliHLTTRDTrackerComponent.h"
 #include "AliHLTTRDTrackletWord.h"
+#include "AliHLTTRDTrackletLabels.h"
 #include "AliHLTTRDDefinitions.h"
 #include "AliHLTTPCDefinitions.h"
 #include "AliHLTTRDTrackPoint.h"
@@ -105,6 +106,7 @@ void AliHLTTRDTrackerComponent::GetInputDataTypes( std::vector<AliHLTComponentDa
   list.push_back( AliHLTTPCDefinitions::TracksOuterDataType()|kAliHLTDataOriginTPC);
   list.push_back( kAliHLTDataTypeTrackMC|kAliHLTDataOriginTPC );
   list.push_back( AliHLTTRDDefinitions::fgkTRDTrackletDataType );
+  list.push_back( AliHLTTRDDefinitions::fgkTRDMCTrackletDataType );
 }
 
 AliHLTComponentDataType AliHLTTRDTrackerComponent::GetOutputDataType() {
@@ -277,8 +279,12 @@ int AliHLTTRDTrackerComponent::DoEvent
   std::vector< int > tracksTPCLab;
   std::vector< int > tracksTPCId;
 
+  bool hasMCtracklets = false;
+
   int nTrackletsTotal = 0;
+  int nTrackletsTotalMC = 0;
   AliHLTTRDTrackletWord *tracklets = NULL;
+  AliHLTTRDTrackletLabels *trackletsMC = NULL;
 
   for (int iBlock = 0; iBlock < nBlocks; iBlock++) {
     if (blocks[iBlock].fDataType == (kAliHLTDataTypeTrack | kAliHLTDataOriginITS) && fRequireITStrack) {
@@ -298,6 +304,12 @@ int AliHLTTRDTrackerComponent::DoEvent
       nTrackletsTotal = blocks[iBlock].fSize / sizeof(AliHLTTRDTrackletWord);
       fBenchmark.AddInput(blocks[iBlock].fSize);
     }
+    else if (blocks[iBlock].fDataType == (AliHLTTRDDefinitions::fgkTRDMCTrackletDataType)) {
+      hasMCtracklets = true;
+      trackletsMC = reinterpret_cast<AliHLTTRDTrackletLabels*>( blocks[iBlock].fPtr );
+      nTrackletsTotalMC = blocks[iBlock].fSize / sizeof(AliHLTTRDTrackletLabels);
+      fBenchmark.AddInput(blocks[iBlock].fSize);
+    }
   }
 
   if (tpcData == NULL) {
@@ -308,6 +320,11 @@ int AliHLTTRDTrackerComponent::DoEvent
   if (nTrackletsTotal == 0) {
     HLTInfo("did not receive any TRD tracklets. Skipping event");
     return 0;
+  }
+
+  if (hasMCtracklets && nTrackletsTotal != nTrackletsTotalMC) {
+    HLTError("the numbers of input tracklets does not match the number of input MC labels for them");
+    return -EINVAL;
   }
 
   int nTPCtracks = tpcData->fCount;
@@ -365,7 +382,12 @@ int AliHLTTRDTrackerComponent::DoEvent
 
   // loop over all tracklets
   for (int iTracklet=0; iTracklet<nTrackletsTotal; ++iTracklet){
-	  fTracker->LoadTracklet(tracklets[iTracklet]);
+    if (!hasMCtracklets) {
+	    fTracker->LoadTracklet(tracklets[iTracklet]);
+    }
+    else {
+	    fTracker->LoadTracklet(tracklets[iTracklet], trackletsMC[iTracklet].fLabel);
+    }
   }
 
   fBenchmark.Start(1);

@@ -14,13 +14,13 @@
 
 class AliTRDtrackletWord;
 class AliTRDtrackletMCM;
-#include "AliHLTTRDGeometry.h"
+
 #include "AliHLTTPCCADef.h"
 
 class AliHLTTRDTrackletWord {
  public:
   GPUd() AliHLTTRDTrackletWord(unsigned int trackletWord = 0);
-  GPUd() AliHLTTRDTrackletWord(unsigned int trackletWord, int hcid, int id, int *label = 0x0);
+  GPUd() AliHLTTRDTrackletWord(unsigned int trackletWord, int hcid, int id);
   GPUd() AliHLTTRDTrackletWord(const AliHLTTRDTrackletWord &rhs);
   AliHLTTRDTrackletWord(const AliTRDtrackletWord &rhs);
   AliHLTTRDTrackletWord(const AliTRDtrackletMCM &rhs);
@@ -40,11 +40,8 @@ class AliHLTTRDTrackletWord {
   GPUd() int GetPID() const { return ((fTrackletWord >> 24) & 0xff); }
 
   GPUd() int GetId() const { return fId; }
-  GPUd() const int* GetLabels() const { return fLabel; }
-  GPUd() int GetLabel(int i=0) const { return fLabel[i];}
-  
+
   // ----- Getters for offline corresponding values -----
-  GPUd() bool CookPID() { return false; }
   GPUd() double GetPID(int /* is */) const { return (double) GetPID()/256.; }
   GPUd() int GetDetector() const { return fHCId / 2; }
   GPUd() int GetHCId() const { return fHCId; }
@@ -55,13 +52,10 @@ class AliHLTTRDTrackletWord {
   GPUd() void SetTrackletWord(unsigned int trackletWord) { fTrackletWord = trackletWord; }
   GPUd() void SetDetector(int id) { fHCId = 2 * id + (GetYbin() < 0 ? 0 : 1); }
   GPUd() void SetId(int id) { fId = id; }
-  GPUd() void SetLabel(const int *label) { for (int i=3;i--;) fLabel[i] = label[i]; }
-  GPUd() void SetLabel(int i, int label) { fLabel[i] = label; }
   GPUd() void SetHCId(int id) { fHCId = id; }
 
  protected:
   int fId;                      // index in tracklet array
-  int fLabel[3];                // MC label
   int fHCId;                    // half-chamber ID
   unsigned int fTrackletWord;   // tracklet word: PID | Z | deflection length | Y
                                 //          bits:   8   4            7          13

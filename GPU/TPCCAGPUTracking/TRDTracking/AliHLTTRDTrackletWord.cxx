@@ -32,26 +32,13 @@ GPUd() AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(unsigned int trackletWord) :
   fHCId(-1),
   fTrackletWord(trackletWord)
 {
-  for (int i=3;i--;) {
-    fLabel[i] = -1;
-  }
 }
 
-GPUd() AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(unsigned int trackletWord, int hcid, int id, int* label) :
+GPUd() AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(unsigned int trackletWord, int hcid, int id) :
   fId(id),
   fHCId(hcid),
   fTrackletWord(trackletWord)
 {
-  if (label) {
-    for (int i=3;i--;) {
-      fLabel[i] = label[i];
-    }
-  }
-  else {
-    for (int i=3;i--;) {
-      fLabel[i] = -1;
-    }
-  }
 }
 
 GPUd() AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliHLTTRDTrackletWord &rhs) :
@@ -59,9 +46,6 @@ GPUd() AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliHLTTRDTrackletWord 
   fHCId(rhs.fHCId),
   fTrackletWord(rhs.fTrackletWord)
 {
-  for (int i=3;i--;) {
-    fLabel[i] =  rhs.fLabel[i];
-  }
 }
 
 #ifdef HLTCA_BUILD_ALIROOT_LIB
@@ -74,9 +58,6 @@ AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliTRDtrackletWord &rhs) :
   fHCId(rhs.GetHCId()),
   fTrackletWord(rhs.GetTrackletWord())
 {
-  for (int i=3;i--;) {
-    fLabel[i] = -1;
-  }
 }
 
 AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliTRDtrackletMCM &rhs) :
@@ -84,9 +65,6 @@ AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliTRDtrackletMCM &rhs) :
   fHCId(rhs.GetHCId()),
   fTrackletWord(rhs.GetTrackletWord())
 {
-  for (int i=3;i--;) {
-    fLabel[i] =  rhs.GetLabel(i);
-  }
 }
 
 AliHLTTRDTrackletWord& AliHLTTRDTrackletWord::operator=(const AliTRDtrackletMCM &rhs)

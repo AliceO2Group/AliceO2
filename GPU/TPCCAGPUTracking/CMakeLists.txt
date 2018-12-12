@@ -100,6 +100,7 @@ set(HDRS
     TRDTracking/AliHLTTRDTrack.h
     TRDTracking/AliHLTTRDTrackData.h
     TRDTracking/AliHLTTRDTrackPoint.h
+    TRDTracking/AliHLTTRDTrackletLabels.h
     GlobalTracker/AliGPUCADataTypes.h
 )
 #Not processed by ROOT

@@ -54,6 +54,7 @@ size_t AliHLTTRDTracker::SetPointersTracklets(void *base)
   void *oldBase = base;
   AliGPUReconstruction::computePointerWithAlignment(base, fTracklets, fNtrackletsMax);
   AliGPUReconstruction::computePointerWithAlignment(base, fSpacePoints, fNtrackletsMax);
+  AliGPUReconstruction::computePointerWithAlignment(base, fTrackletLabels, 3*fNtrackletsMax);
   return ((size_t) base - (size_t) oldBase);
 }
 
@@ -88,6 +89,7 @@ AliHLTTRDTracker::AliHLTTRDTracker() :
   fHypothesis(nullptr),
   fCandidates(nullptr),
   fSpacePoints(nullptr),
+  fTrackletLabels(nullptr),
   fGeo(nullptr),
   fDebugOutput(false),
   fMinPt(0.6),
@@ -197,6 +199,9 @@ GPUd() void AliHLTTRDTracker::Reset()
     fSpacePoints[i].fCov[2]   = 0.;
     fSpacePoints[i].fDy       = 0.;
     fSpacePoints[i].fId       = 0;
+    fSpacePoints[i].fLabel[0] = -1;
+    fSpacePoints[i].fLabel[1] = -1;
+    fSpacePoints[i].fLabel[2] = -1;
     fSpacePoints[i].fVolumeId = 0;
   }
   for (int iDet=0; iDet<kNChambers; ++iDet) {
@@ -232,7 +237,7 @@ GPUd() void AliHLTTRDTracker::StartLoadTracklets(const int nTrklts)
   }
 }
 
-GPUd() void AliHLTTRDTracker::LoadTracklet(const AliHLTTRDTrackletWord &tracklet)
+GPUd() void AliHLTTRDTracker::LoadTracklet(const AliHLTTRDTrackletWord &tracklet, int *labels)
 {
   //--------------------------------------------------------------------
   // Add single tracklet to tracker
@@ -240,6 +245,11 @@ GPUd() void AliHLTTRDTracker::LoadTracklet(const AliHLTTRDTrackletWord &tracklet
   if (fNTracklets >= fNtrackletsMax ) {
     Error("LoadTracklet", "Running out of memory for tracklets, skipping tracklet(s). This should actually never happen.");
     return;
+  }
+  if (labels) {
+    for (int i=0; i<3; ++i) {
+      fTrackletLabels[3*fNTracklets+i] = labels[i];
+    }
   }
   fTracklets[fNTracklets++] = tracklet;
   fNtrackletsInChamber[tracklet.GetDetector()]++;
@@ -395,7 +405,7 @@ GPUd() bool AliHLTTRDTracker::CalculateSpacePoints()
       fSpacePoints[trkltIdx].fX[1] = xTrkltSec[2];
       fSpacePoints[trkltIdx].fId = fTracklets[trkltIdx].GetId();
       for (int i=0; i<3; i++) {
-        fSpacePoints[trkltIdx].fLabel[i] = fTracklets[trkltIdx].GetLabel(i);
+        fSpacePoints[trkltIdx].fLabel[i] = fTrackletLabels[3*fTracklets[trkltIdx].GetId() + i];
       }
       fSpacePoints[trkltIdx].fCov[0] = c2 * (sy2 + t2 * sz2);
       fSpacePoints[trkltIdx].fCov[1] = c2 * tilt * (sz2 - sy2);
