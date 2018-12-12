@@ -110,6 +110,7 @@ INCLUDEPATHS					+= O2Headers \
 								${CONFIG_O2DIR}/Detectors/TPC/base/include \
 								${CONFIG_O2DIR}/DataFormats/Detectors/TPC/include \
 								${CONFIG_O2DIR}/Detectors/TRD/base/include \
+								${CONFIG_O2DIR}/Detectors/TRD/base/src \
 								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/include \
 								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/cuda/include \
 								${CONFIG_O2DIR}/Common/Constants/include \

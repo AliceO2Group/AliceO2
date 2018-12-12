@@ -68,6 +68,9 @@ texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
 #include "AliHLTTRDTrack.cxx"
 #include "AliHLTTRDTracker.cxx"
 #include "AliHLTTRDTrackletWord.cxx"
+#ifdef HAVE_O2HEADERS
+#include "TRDGeometryBase.cxx"
+#endif
 #endif
 
 //ClassImp( AliHLTTPCCAGPUTrackerNVCC )
