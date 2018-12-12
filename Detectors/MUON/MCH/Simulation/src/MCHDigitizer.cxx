@@ -18,14 +18,19 @@
 
 using namespace o2::mch;
 
-ClassImp(o2::mch::MCHDigitizer);
+
 
 void MCHDigitizer::init()
 {
 // initialize the array of detector segmentation's
+  //std::vector<mapping::Segmentation*> mSegbend;
+  // std::vector<mapping::Segmentation*> mSegbend;
+  //how does programme know about proper storage footprint
   for(Int_t i=0; i<mNdE; ++i){
-    mSegbend[i]= Segmentation(i,kTRUE);
-    mSegnon[i] = Segmentation(i,kFALSE);
+    mapping::Segmentation itb{i,true};
+    mSegbend.at(i) =  &itb; //= mapping::Segmentation(i,kTRUE);
+    mapping::Segmentation itn{i,false};
+    mSegnon.at(i) = &itn; // = mapping::Segmentation(i,kFALSE);
     
   }
   
@@ -125,11 +130,11 @@ Int_t MCHDigitizer::processHit(const Hit &hit,Double_t event_time)
   */
   for(auto & padidbend : mPadIDsbend){
     //retrieve coordinates for each pad
-    xmin =  mSegbend.padPositionX(padidbend)-mSegBend.padSizeX(padidbend)*0.5;
+    /*    xmin =  mSegbend.padPositionX(padidbend)-mSegBend.padSizeX(padidbend)*0.5;
     xmax =  mSegbend.padPositionX(padidbend)+mSegbend.padSizeX(padidbend)*0.5;
     ymin =  mSegbend.padPositionY(padidbend)-mSegBend.padSizeY(padidbend)*0.5;
     ymax =  mSegbend.padPositionY(padidbend)+mSegbend.padSizeY(padidbend)*0.5;
-        
+    */  
     // 1st step integrate induced charge for each pad
     signal = chargePad(anodpos,pos[1],xmin,xmax,ymin,ymax,detID,chargebend);
     if(signal>mChargeThreshold && signal<mChargeSat){
@@ -144,11 +149,11 @@ Int_t MCHDigitizer::processHit(const Hit &hit,Double_t event_time)
 
   for(auto & padidnon : mPadIDsnon){
     //retrieve coordinates for each pad
-    xmin =  mSegnon.padPositionX(padidnon)-mSegnon.padSizeX(padidnon)*0.5;
+    /* xmin =  mSegnon.padPositionX(padidnon)-mSegnon.padSizeX(padidnon)*0.5;
     xmax =  mSegnon.padPositionX(padidnon)+mSegnon.padSizeX(padidnon)*0.5;
     ymin =  mSegnon.padPositionY(padidnon)-mSegnon.padSizeY(padidnon)*0.5;
     ymax =  mSegnon.padPositionY(padidnon)+mSegnon.padSizeY(padidnon)*0.5;
-       
+    */ 
     //retrieve charge for given x,y with Mathieson
     signal = chargePad(anodpos,pos[1],xmin,xmax,ymin,ymax,detID,chargenon);
     if(signal>mChargeThreshold && signal<mChargeSat){
@@ -189,7 +194,7 @@ Double_t MCHDigitizer::chargePad(Float_t x, Float_t y, Float_t xmin, Float_t xma
   //see AliMUONResponseV0.cxx (inside DisIntegrate)
   // and AliMUONMathieson.cxx (IntXY)
   Int_t station = 0;
-  if(detID>11) station = 1;
+  if(detID>11) station = 1;//wrong numbers!
   //correct? should take info from segmentation
   // normalise w.r.t. Pitch
   xmin *= mInversePitch[station];
@@ -215,7 +220,7 @@ Double_t MCHDigitizer::response(Float_t charge, Int_t detID){
 Float_t MCHDigitizer::getAnod(Float_t x, Int_t detID){
 
   Float_t pitch = mInversePitch[1];
-  if(detID<11) pitch = mInversePitch[0];
+  if(detID<11) pitch = mInversePitch[0]; //11 wrong
   
   Int_t n = Int_t(x/pitch);
   Float_t wire = (x>0) ? n+0.5 : n-0.5;

@@ -24,7 +24,7 @@ namespace mch
 class MCHDigitizer
 {
  public:
-  MCHDigitizer(Int_t mode = 0) : mReadoutWindowCurrent(0) { init(); };
+ MCHDigitizer(Int_t mode = 0) : mReadoutWindowCurrent(0)    { init(); };
   ~MCHDigitizer() = default;
 
   void init();
@@ -56,17 +56,18 @@ class MCHDigitizer
   bool mContinuous = false; 
 
   //number of detector elements 5(stations)*2(layer per station)* 2(?) +1 (?)
-  const static Int_t mNdE = 21;
+  const static int mNdE = 156;
   // digit per pad
   std::vector<Digit> mDigits;
+ 
 
   std::vector<int> mPadIDsbend;
   std::vector<int> mPadIDsnon;
 
   //detector segmentation handler to convert pad-id to coordinates and vice versa
-  Segmentation mSegbend[mNdE];
-  Segmentation  mSegnon[mNdE];
-  
+  std::vector<mapping::Segmentation*> mSegbend; //, mapping::Segmentation (1,true) );//Segmentation has no default constructor...
+  std::vector<mapping::Segmentation*> mSegnon; //, mapping::Segmentation (1,false) );  //  mapping::Segmentation mSegbend = mapping::Segmentation(1,true);
+
   
   //proper parameter in aliroot in AliMUONResponseFactory.cxx
   //to be discussed n-sigma to be put, use detID to choose value?
@@ -120,7 +121,7 @@ class MCHDigitizer
 
 
   
-  ClassDefNV(MCHDigitizer, 1);
+
 };
 } // namespace mch
 } // namespace o2
