@@ -28,7 +28,6 @@ struct testData {
   int i{ 1 };
   static int nconstructed;
   static int nconstructions;
-  static int ndestructions;
   testData()
   {
     ++nconstructed;
@@ -49,16 +48,10 @@ struct testData {
     ++nconstructed;
     ++nconstructions;
   }
-  ~testData()
-  {
-    --nconstructed;
-    ++ndestructions;
-  }
 };
 
 int testData::nconstructed = 0;
 int testData::nconstructions = 0;
-int testData::ndestructions = 0;
 
 auto allocZMQ = getTransportAllocator(factoryZMQ.get());
 auto allocSHM = getTransportAllocator(factorySHM.get());
@@ -75,7 +68,6 @@ using namespace boost::container::pmr;
 BOOST_AUTO_TEST_CASE(allocator_test)
 {
   testData::nconstructions = 0;
-  testData::ndestructions = 0;
 
   {
     std::vector<testData, polymorphic_allocator<testData>> v(polymorphic_allocator<testData>{ allocZMQ });
@@ -89,10 +81,8 @@ BOOST_AUTO_TEST_CASE(allocator_test)
     BOOST_CHECK(testData::nconstructed == 3);
   }
   BOOST_CHECK(testData::nconstructed == 0);
-  BOOST_CHECK(testData::nconstructions == testData::ndestructions);
 
   testData::nconstructions = 0;
-  testData::ndestructions = 0;
   {
     std::vector<testData, SpectatorAllocator<testData>> v(SpectatorAllocator<testData>{ allocZMQ });
     v.reserve(3);
@@ -109,7 +99,6 @@ BOOST_AUTO_TEST_CASE(allocator_test)
 BOOST_AUTO_TEST_CASE(getMessage_test)
 {
   testData::nconstructions = 0;
-  testData::ndestructions = 0;
 
   FairMQMessagePtr message{ nullptr };
 
@@ -154,7 +143,6 @@ BOOST_AUTO_TEST_CASE(adoptVector_test)
 {
   testData::nconstructed = 0;
   testData::nconstructions = 0;
-  testData::ndestructions = 0;
 
   //Create a bogus message
   auto message = factoryZMQ->CreateMessage(3 * sizeof(testData));
@@ -177,7 +165,6 @@ BOOST_AUTO_TEST_CASE(adoptVector_test)
   BOOST_CHECK(modified.size() == 4);
   BOOST_CHECK(testData::nconstructed == 7);
   BOOST_CHECK(testData::nconstructions == 7);
-  BOOST_CHECK(testData::ndestructions == 0); //we don't call the dtor, just drop the store
   auto modifiedMessage = getMessage(std::move(modified));
   BOOST_CHECK(modifiedMessage != nullptr);
   BOOST_CHECK(modifiedMessage.get() != messageAddr);

@@ -215,6 +215,7 @@ using BytePmrAllocator = boost::container::pmr::polymorphic_allocator<o2::byte>;
 template <typename ElemT>
 auto adoptVector(size_t nelem, FairMQMessagePtr message)
 {
+  static_assert(std::is_trivially_destructible<ElemT>::value);
   return std::vector<const ElemT, OwningMessageSpectatorAllocator<const ElemT>>(
     nelem, OwningMessageSpectatorAllocator<const ElemT>(MessageResource{ std::move(message) }));
 };
