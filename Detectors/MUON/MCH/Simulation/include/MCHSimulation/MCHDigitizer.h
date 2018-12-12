@@ -46,7 +46,9 @@ class MCHDigitizer
 
   void setContinuous(bool val) { mContinuous = val; }
   bool isContinuous() const { return mContinuous; }
-
+  
+  std::vector<int> getPadUid(Double_t xMin, Double_t xMax, Double_t yMin, Double_t yMax, bool bend);
+  
  private:  
   Double_t mEventTime;
   Int_t mReadoutWindowCurrent;  
@@ -61,8 +63,8 @@ class MCHDigitizer
   std::vector<Digit> mDigits;
  
 
-  std::vector<int> mPadIDsbend;
-  std::vector<int> mPadIDsnon;
+  std::vector<int> mPadIDsbend;//not needed as member...only generate where needed
+  std::vector<int> mPadIDsnon;//not needed as member
 
   //detector segmentation handler to convert pad-id to coordinates and vice versa
   std::vector<mapping::Segmentation*> mSegbend; //, mapping::Segmentation (1,true) );//Segmentation has no default constructor...

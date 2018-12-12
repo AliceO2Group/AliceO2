@@ -72,6 +72,7 @@ void MCHDigitizer::process(const std::vector<Hit>* hits, std::vector<Digit>* dig
 Int_t MCHDigitizer::processHit(const Hit &hit,Double_t event_time)
 {
 
+
   //hit position(cm)
   Float_t pos[3] = { hit.GetX(), hit.GetY(), hit.GetZ() };
   //convert energy to charge, float enough?
@@ -117,26 +118,29 @@ Int_t MCHDigitizer::processHit(const Hit &hit,Double_t event_time)
   //use DetectorID to get area for signal induction               
   // SegmentationImpl3.h: Return the list of paduids for the pads contained in the box {xmin,ymin,xmax,ymax}.      
   //  std::vector<int> getPadUids(double xmin, double ymin, double xmax, double ymax) const;
+  //  mPadIDsbend = getPadUid(xMin,xMax,yMin,yMax);
+  
   //is this available via Segmentation.h interface already?
-
-  //testing with only one pad
-  //  Int_t paduidbend = mSegbend[detID].findPadByPosition(pos[0],pos[1]);
-  //  Int_t paduidnon  = mSegnon[detID].findPadByPosition(pos[0],pos[1]);
+  
+  
+  //TEST with only one pad
+    Int_t padidbend = mSegbend[detID]->findPadByPosition(anodpos,pos[1]);
+    Int_t padidnon  = mSegnon[detID]->findPadByPosition(anodpos,pos[1]);
   //correct coordinate system? how misalignment enters?
 
 
   /*mPadIDsbend = mSegbend.getPadUids(xMin,xMax,yMin,yMax);
-  mPadIDsnon  = mSegnon.getPadUids(xMin,xMax,yMin,yMax);
+    mPadIDsnon  = mSegnon.getPadUids(xMin,xMax,yMin,yMax);
   */
-  for(auto & padidbend : mPadIDsbend){
-    //retrieve coordinates for each pad
-    /*    xmin =  mSegbend.padPositionX(padidbend)-mSegBend.padSizeX(padidbend)*0.5;
-    xmax =  mSegbend.padPositionX(padidbend)+mSegbend.padSizeX(padidbend)*0.5;
-    ymin =  mSegbend.padPositionY(padidbend)-mSegBend.padSizeY(padidbend)*0.5;
-    ymax =  mSegbend.padPositionY(padidbend)+mSegbend.padSizeY(padidbend)*0.5;
-    */  
+    /* for(auto & padidbend : mPadIDsbend){
+    //retrieve coordinates for each pad*/
+      xmin =  mSegbend[detID]->padPositionX(padidbend)-mSegbend[detID]->padSizeX(padidbend)*0.5;
+      xmax =  mSegbend[detID]->padPositionX(padidbend)+mSegbend[detID]->padSizeX(padidbend)*0.5;
+      ymin =  mSegbend[detID]->padPositionY(padidbend)-mSegbend[detID]->padSizeY(padidbend)*0.5;
+      ymax =  mSegbend[detID]->padPositionY(padidbend)+mSegbend[detID]->padSizeY(padidbend)*0.5;
+      
     // 1st step integrate induced charge for each pad
-    signal = chargePad(anodpos,pos[1],xmin,xmax,ymin,ymax,detID,chargebend);
+      signal = chargePad(anodpos,pos[1],xmin,xmax,ymin,ymax,detID,chargebend);
     if(signal>mChargeThreshold && signal<mChargeSat){
       //2nd condition in Aliroot said to be only for backward compatibility
       //to be seen...means that there is no digit, if signal above... strange!
@@ -145,15 +149,15 @@ Int_t MCHDigitizer::processHit(const Hit &hit,Double_t event_time)
       mDigits.emplace_back(padidbend,signal);//how trace time?
       ++ndigits;
     }
-  }
+    /*}
 
-  for(auto & padidnon : mPadIDsnon){
+	   for(auto & padidnon : mPadIDsnon){*/
     //retrieve coordinates for each pad
-    /* xmin =  mSegnon.padPositionX(padidnon)-mSegnon.padSizeX(padidnon)*0.5;
-    xmax =  mSegnon.padPositionX(padidnon)+mSegnon.padSizeX(padidnon)*0.5;
-    ymin =  mSegnon.padPositionY(padidnon)-mSegnon.padSizeY(padidnon)*0.5;
-    ymax =  mSegnon.padPositionY(padidnon)+mSegnon.padSizeY(padidnon)*0.5;
-    */ 
+    xmin =  mSegnon[detID]->padPositionX(padidnon)-mSegnon[detID]->padSizeX(padidnon)*0.5;
+    xmax =  mSegnon[detID]->padPositionX(padidnon)+mSegnon[detID]->padSizeX(padidnon)*0.5;
+    ymin =  mSegnon[detID]->padPositionY(padidnon)-mSegnon[detID]->padSizeY(padidnon)*0.5;
+    ymax =  mSegnon[detID]->padPositionY(padidnon)+mSegnon[detID]->padSizeY(padidnon)*0.5;
+    
     //retrieve charge for given x,y with Mathieson
     signal = chargePad(anodpos,pos[1],xmin,xmax,ymin,ymax,detID,chargenon);
     if(signal>mChargeThreshold && signal<mChargeSat){
@@ -161,11 +165,10 @@ Int_t MCHDigitizer::processHit(const Hit &hit,Double_t event_time)
       mDigits.emplace_back(padidnon,signal);//how is time propagated
       ++ndigits;
     }
-  }	
+    /*}*/	
     
-  //OLD only single pad mDigits.emplace_back(paduidbend,chargebend, time);
-  //OLD only single pad mDigits.emplace_back(paduidnon, chargenon, time);
-  return ndigits;
+    
+    return ndigits;
 }
 //_____________________________________________________________________
 Float_t MCHDigitizer::etocharge(Float_t edepos){
@@ -189,6 +192,14 @@ Float_t MCHDigitizer::etocharge(Float_t edepos){
   }
   return charge;
 }
+//_____________________________________________________________________
+ std::vector<int> MCHDigitizer::getPadUid(Double_t xMin, Double_t xMax, Double_t yMin, Double_t yMax, bool bend){
+  //to be implemented?
+  
+  return mPadIDsbend;
+
+}
+
 //_____________________________________________________________________
 Double_t MCHDigitizer::chargePad(Float_t x, Float_t y, Float_t xmin, Float_t xmax, Float_t ymin, Float_t ymax, Int_t detID, Float_t charge ){
   //see AliMUONResponseV0.cxx (inside DisIntegrate)
