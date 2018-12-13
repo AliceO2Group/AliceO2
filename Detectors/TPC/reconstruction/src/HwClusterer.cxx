@@ -182,7 +182,7 @@ void HwClusterer::process(std::vector<o2::TPC::Digit> const& digits, MCLabelCont
          * a cluster is found with a negative HB, because at least 2 timebins
          * have to be filled to be able to find a cluster.
          */
-        HB = i < 2 ? 0 : (i - 2) / 447; // integer division on purpose
+        HB = i < 3 ? 0 : (i - 3) / 447; // integer division on purpose
         if (HB != mLastHB) {
           writeOutputWithTimeOffset(mLastHB * 447);
         }
@@ -842,7 +842,7 @@ void HwClusterer::finishFrame(bool clear)
   unsigned HB;
   // Search in last remaining timebins for clusters
   for (int i = mLastTimebin; i - mLastTimebin < mTimebinsInBuffer; ++i) {
-    HB = i < 2 ? 0 : (i - 2) / 447; // integer division on purpose
+    HB = i < 3 ? 0 : (i - 3) / 447; // integer division on purpose
     if (HB != mLastHB) {
       writeOutputWithTimeOffset(mLastHB * 447);
     }
