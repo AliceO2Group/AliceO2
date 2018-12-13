@@ -43,20 +43,20 @@ using namespace o2::ITS;
 using namespace o2::TPC;
 using namespace o2::trd;
 
-constexpr const char* const AliGPUReconstruction::GEOMETRY_TYPE_NAMES[];
 constexpr const char* const AliGPUReconstruction::DEVICE_TYPE_NAMES[];
+constexpr const char* const AliGPUReconstruction::GEOMETRY_TYPE_NAMES[];
 constexpr const char* const AliGPUReconstruction::IOTYPENAMES[];
 constexpr AliGPUReconstruction::GeometryType AliGPUReconstruction::geometryType;
 
 static constexpr unsigned int DUMP_HEADER_SIZE = 4;
 static constexpr char DUMP_HEADER[DUMP_HEADER_SIZE + 1] = "CAv1";
 
-AliGPUReconstruction::AliGPUReconstruction(DeviceType type) : mIOPtrs(), mIOMem(), mTRDTracker(new AliHLTTRDTracker), mTPCTracker(nullptr), mITSTrackerTraits(nullptr), mDeviceType(type), mTPCFastTransform(nullptr), mClusterNativeAccess(new ClusterNativeAccessExt)
+AliGPUReconstruction::AliGPUReconstruction(const AliGPUCASettingsProcessing& cfg) : mIOPtrs(), mIOMem(), mTRDTracker(new AliHLTTRDTracker), mTPCTracker(nullptr), mITSTrackerTraits(nullptr), mTPCFastTransform(nullptr), mClusterNativeAccess(new ClusterNativeAccessExt)
 {
 	mEventSettings.SetDefaults();
-	mProcessingSettings.SetDefaults();
+	mProcessingSettings = cfg;
 	mParam.SetDefaults(&mEventSettings);
-	if (type == CPU)
+	if (mProcessingSettings.deviceType == CPU)
 	{
 		mTPCTracker.reset(new AliHLTTPCCAGPUTracker);
 		mITSTrackerTraits.reset(new o2::ITS::TrackerTraitsCPU);
@@ -424,22 +424,32 @@ int AliGPUReconstruction::RunTRDTracking()
 
 AliGPUReconstruction* AliGPUReconstruction::CreateInstance(DeviceType type, bool forceType)
 {
+	AliGPUCASettingsProcessing cfg;
+	cfg.SetDefaults();
+	cfg.deviceType = type;
+	cfg.forceDeviceType = forceType;
+	return CreateInstance(cfg);
+}
+	
+AliGPUReconstruction* AliGPUReconstruction::CreateInstance(const AliGPUCASettingsProcessing& cfg)
+{
 	AliGPUReconstruction* retVal = nullptr;
+	unsigned int type = cfg.deviceType;
 	if (type == DeviceType::CPU)
 	{
-		retVal = new AliGPUReconstruction(CPU);
+		retVal = new AliGPUReconstruction(cfg);
 	}
 	else if (type == DeviceType::CUDA)
 	{
-		if ((retVal = sLibCUDA->GetPtr())) retVal->mMyLib = sLibCUDA;
+		if ((retVal = sLibCUDA->GetPtr(cfg))) retVal->mMyLib = sLibCUDA;
 	}
 	else if (type == DeviceType::HIP)
 	{
-		if((retVal = sLibHIP->GetPtr())) retVal->mMyLib = sLibHIP;
+		if((retVal = sLibHIP->GetPtr(cfg))) retVal->mMyLib = sLibHIP;
 	}
 	else if (type == DeviceType::OCL)
 	{
-		if((retVal = sLibOCL->GetPtr())) retVal->mMyLib = sLibOCL;
+		if((retVal = sLibOCL->GetPtr(cfg))) retVal->mMyLib = sLibOCL;
 	}
 	else
 	{
@@ -449,14 +459,16 @@ AliGPUReconstruction* AliGPUReconstruction::CreateInstance(DeviceType type, bool
 	
 	if (retVal == 0)
 	{
-		if (forceType)
+		if (cfg.forceDeviceType)
 		{
 			printf("Error: Could not load AliGPUReconstruction for specified device: %s (%d)\n", DEVICE_TYPE_NAMES[type], type);
 		}
 		else
 		{
 			printf("Could not load AliGPUReconstruction for device type %s (%d), falling back to CPU version\n", DEVICE_TYPE_NAMES[type], type);
-			retVal = CreateInstance(CPU);
+			AliGPUCASettingsProcessing cfg2 = cfg;
+			cfg2.deviceType = CPU;
+			retVal = CreateInstance(cfg2);
 		}
 	}
 	else
@@ -469,15 +481,25 @@ AliGPUReconstruction* AliGPUReconstruction::CreateInstance(DeviceType type, bool
 
 AliGPUReconstruction* AliGPUReconstruction::CreateInstance(const char* type, bool forceType)
 {
+	DeviceType t = GetDeviceType(type);
+	if (t == INVALID_DEVICE)
+	{
+		printf("Invalid device type: %s\n", type);
+		return nullptr;
+	}
+	return CreateInstance(t, forceType);
+}
+
+AliGPUReconstruction::DeviceType AliGPUReconstruction::GetDeviceType(const char* type)
+{
 	for (unsigned int i = 1;i < sizeof(DEVICE_TYPE_NAMES) / sizeof(DEVICE_TYPE_NAMES[0]);i++)
 	{
 		if (strcmp(DEVICE_TYPE_NAMES[i], type) == 0)
 		{
-			return CreateInstance(i, forceType);
+			return (DeviceType) i;
 		}
 	}
-	printf("Invalid device type provided\n");
-	return nullptr;
+	return INVALID_DEVICE;
 }
 
 #ifdef WIN32
@@ -551,12 +573,12 @@ int AliGPUReconstruction::LibraryLoader::LoadLibrary()
 	return 0;
 }
 
-AliGPUReconstruction* AliGPUReconstruction::LibraryLoader::GetPtr()
+AliGPUReconstruction* AliGPUReconstruction::LibraryLoader::GetPtr(const AliGPUCASettingsProcessing& cfg)
 {
 	if (LoadLibrary()) return nullptr;
 	if (mGPUEntry == nullptr) return nullptr;
-	AliGPUReconstruction* (*tmp)() = (AliGPUReconstruction* (*)()) mGPUEntry;
-	return tmp();
+	AliGPUReconstruction* (*tmp)(const AliGPUCASettingsProcessing& cfg) = (AliGPUReconstruction* (*)(const AliGPUCASettingsProcessing& cfg)) mGPUEntry;
+	return tmp(cfg);
 }
 
 int AliGPUReconstruction::LibraryLoader::CloseLibrary()

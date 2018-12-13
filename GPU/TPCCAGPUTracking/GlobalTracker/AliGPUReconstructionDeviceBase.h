@@ -10,7 +10,7 @@ public:
     virtual ~AliGPUReconstructionDeviceBase() override = default;
 
 protected:
-    AliGPUReconstructionDeviceBase(DeviceType type);
+    AliGPUReconstructionDeviceBase(const AliGPUCASettingsProcessing& cfg);
     AliGPUCAConstantMem mGPUReconstructors;
 };
 

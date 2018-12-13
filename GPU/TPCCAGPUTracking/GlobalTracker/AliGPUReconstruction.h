@@ -48,9 +48,12 @@ public:
 		static constexpr GeometryType geometryType = ALIROOT;
 	#endif
 	
-	//Functionality to create an instance of AliGPUReconstruction for the desired device
-	enum DeviceType : unsigned int {RESERVED_DEVICE = 0, CPU = 1, CUDA = 2, HIP = 3, OCL = 4};
+	enum DeviceType : unsigned int {INVALID_DEVICE = 0, CPU = 1, CUDA = 2, HIP = 3, OCL = 4};
 	static constexpr const char* const DEVICE_TYPE_NAMES[] = {"INVALID", "CPU", "CUDA", "HIP", "OCL"};
+	static DeviceType GetDeviceType(const char* type);
+
+	//Functionality to create an instance of AliGPUReconstruction for the desired device
+	static AliGPUReconstruction* CreateInstance(const AliGPUCASettingsProcessing& cfg);
 	static AliGPUReconstruction* CreateInstance(DeviceType type = CPU, bool forceType = true);
 	static AliGPUReconstruction* CreateInstance(int type, bool forceType) {return CreateInstance((DeviceType) type, forceType);}
 	static AliGPUReconstruction* CreateInstance(const char* type, bool forceType);
@@ -168,7 +171,7 @@ public:
 	int RunTRDTracking();
 	
 	//Getters / setters for parameters
-	DeviceType GetDeviceType() const {return mDeviceType;}
+	DeviceType GetDeviceType() const {return (DeviceType) mProcessingSettings.deviceType;}
 	const AliGPUCAParam& GetParam() const {return mParam;}
 	const TPCFastTransform* GetTPCTransform() const {return mTPCFastTransform.get();}
 	const ClusterNativeAccessExt* GetClusterNativeAccessExt() const {return mClusterNativeAccess.get();}
@@ -181,7 +184,7 @@ public:
 	void LoadClusterErrors();
 	
 protected:
-	AliGPUReconstruction(DeviceType type);								//Constructor
+	AliGPUReconstruction(const AliGPUCASettingsProcessing& cfg);			//Constructor
 	
 	//Private helper functions for reading / writing / allocating IO buffer from/to file
 	template <class T> void DumpData(FILE* fp, const T* const* entries, const unsigned int* num, InOutPointerType type);
@@ -213,7 +216,7 @@ protected:
 		const LibraryLoader& operator= (const LibraryLoader&) CON_DELETE;
 		int LoadLibrary();
 		int CloseLibrary();
-		AliGPUReconstruction* GetPtr();
+		AliGPUReconstruction* GetPtr(const AliGPUCASettingsProcessing& cfg);
 		
 		const char* mLibName;
 		const char* mFuncName;
@@ -222,7 +225,6 @@ protected:
 	};
 	static std::shared_ptr<LibraryLoader> sLibCUDA, sLibHIP, sLibOCL;
 	std::shared_ptr<LibraryLoader> mMyLib = nullptr;
-	DeviceType mDeviceType;
 	
 	AliGPUCAParam mParam;														//Reconstruction parameters
 	AliGPUCASettingsEvent mEventSettings;										//Event Parameters

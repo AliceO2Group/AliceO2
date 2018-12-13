@@ -1,5 +1,7 @@
 #include "AliGPUCASettings.h"
 #include "AliHLTTPCCASettings.h"
+#include "AliGPUReconstruction.h"
+#include <string.h>
 
 void AliGPUCASettingsRec::SetDefaults()
 {
@@ -27,4 +29,6 @@ void AliGPUCASettingsEvent::SetDefaults()
 void AliGPUCASettingsProcessing::SetDefaults()
 {
 	nThreads = 0;
+	deviceType = AliGPUReconstruction::DeviceType::CPU;
+	forceDeviceType = true;
 }

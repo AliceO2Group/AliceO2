@@ -3,6 +3,11 @@
 
 #include "AliTPCCommonMath.h"
 
+class AliGPUCASettings
+{
+public:
+};
+
 struct AliGPUCASettingsRec
 {
 #ifndef HLTCA_GPUCODE
@@ -46,6 +51,8 @@ struct AliGPUCASettingsProcessing
 #endif
 	
 	int nThreads; //0 = auto-detect
+	unsigned int deviceType;
+	bool forceDeviceType;
 };
 
 #endif
