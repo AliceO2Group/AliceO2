@@ -36,9 +36,9 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       }
       /// FIXME: Substitute here the actual data you want to convert for the AODReader
       {
-        std::unique_ptr<TTreeReader> reader = std::make_unique<TTreeReader>("O2aod", infile.get());
+        std::unique_ptr<TTreeReader> reader = std::make_unique<TTreeReader>("O2tracks", infile.get());
         auto& trackParBuilder = ctx.outputs().make<TableBuilder>(Output{ "AOD", "TRACKPAR" });
-        TTreeReaderValue<int> c0(*reader, "fVertexID");
+        TTreeReaderValue<int> c0(*reader, "fID4Tracks");
         TTreeReaderValue<float> c1(*reader, "fX");
         TTreeReaderValue<float> c2(*reader, "fAlpha");
         TTreeReaderValue<float> c3(*reader, "fY");
@@ -51,7 +51,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       }
 
       {
-        std::unique_ptr<TTreeReader> covReader = std::make_unique<TTreeReader>("O2aod", infile.get());
+        std::unique_ptr<TTreeReader> covReader = std::make_unique<TTreeReader>("O2tracks", infile.get());
         TTreeReaderValue<float> c0(*covReader, "fCYY");
         TTreeReaderValue<float> c1(*covReader, "fCZY");
         TTreeReaderValue<float> c2(*covReader, "fCZZ");
@@ -70,7 +70,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
                                               c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12);
       }
       {
-        std::unique_ptr<TTreeReader> extraReader = std::make_unique<TTreeReader>("O2aod", infile.get());
+        std::unique_ptr<TTreeReader> extraReader = std::make_unique<TTreeReader>("O2tracks", infile.get());
         TTreeReaderValue<float> c0(*extraReader, "fTPCinnerP");
         TTreeReaderValue<uint64_t> c1(*extraReader, "fFlags");
         TTreeReaderValue<unsigned char> c2(*extraReader, "fITSClusterMap");
@@ -87,6 +87,17 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         auto& extraBuilder = ctx.outputs().make<TableBuilder>(Output{ "AOD", "TRACKEXTRA" });
         RootTableBuilderHelpers::convertTTree(extraBuilder, *extraReader,
                                               c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11);
+      }
+      {
+        std::unique_ptr<TTreeReader> extraReader = std::make_unique<TTreeReader>("O2calo", infile.get());
+        TTreeReaderValue<int> c0(*extraReader, "fID4Calo");
+        TTreeReaderValue<short> c1(*extraReader, "fCellNumber");
+        TTreeReaderValue<float> c2(*extraReader, "fAmplitude");
+        TTreeReaderValue<float> c3(*extraReader, "fTime");
+        TTreeReaderValue<int8_t> c4(*extraReader, "fType");
+        auto& extraBuilder = ctx.outputs().make<TableBuilder>(Output{ "AOD", "CALO" });
+        RootTableBuilderHelpers::convertTTree(extraBuilder, *extraReader,
+                                              c0, c1, c2, c3, c4);
       }
 
     };
