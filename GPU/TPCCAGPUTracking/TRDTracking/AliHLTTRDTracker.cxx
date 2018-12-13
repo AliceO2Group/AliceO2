@@ -82,7 +82,7 @@ AliHLTTRDTracker::AliHLTTRDTracker() :
   fNEvents(0),
   fTracklets(nullptr),
   fNtrackletsMax(1000),
-  fMaxThreads(1),
+  fMaxThreads(100),
   fNTracklets(0),
   fNtrackletsInChamber(nullptr),
   fTrackletIndexArray(nullptr),
@@ -351,10 +351,9 @@ GPUd() void AliHLTTRDTracker::DoTrackingThread( HLTTRDTrack *tracksTPC, int *tra
   prop.setTrack(t);
   FollowProlongation(&prop, t, nTPCtracks, threadId);
 #ifdef HLTCA_HAVE_OPENMP
-//#pragma omp atomic write // FIXME could be that this fails with OpenMP...
-  fTracks[fNTracks] = tMI;
-#pragma omp atomic write
-  fNTracks = fNTracks + 1;
+  fTracks[iTrk] = *t;
+#pragma omp atomic
+  ++fNTracks;
 #else
   fTracks[fNTracks++] = *t;
 #endif
