@@ -241,11 +241,31 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
   auto timeslice = TimesliceId{ TimesliceId::INVALID };
   auto slot = TimesliceSlot{ TimesliceSlot::INVALID };
 
+  // First look for matching slots which already have some 
+  // partial match.
   for (size_t ci = 0; ci < index.size(); ++ci) {
     slot = TimesliceSlot{ ci };
+    if (index.isValid(slot) == false) {
+      continue;
+    }
     std::tie(input, timeslice) = getInputTimeslice(index.getVariablesForSlot(slot));
     if (input != INVALID_INPUT) {
       break;
+    }
+  }
+
+  // If we did not find anything, look for slots which
+  // are invalid.
+  if (input == INVALID_INPUT) {
+    for (size_t ci = 0; ci < index.size(); ++ci) {
+      slot = TimesliceSlot{ ci };
+      if (index.isValid(slot) == true) {
+        continue;
+      }
+      std::tie(input, timeslice) = getInputTimeslice(index.getVariablesForSlot(slot));
+      if (input != INVALID_INPUT) {
+        break;
+      }
     }
   }
 

@@ -18,6 +18,7 @@
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DataRelayer.h"
 #include "Framework/DataProcessingHeader.h"
+#include "Framework/WorkflowSpec.h"
 #include <Monitoring/Monitoring.h>
 #include <fairmq/FairMQTransportFactory.h>
 #include <cstring>
@@ -36,6 +37,45 @@ BOOST_AUTO_TEST_CASE(TestNoWait) {
 
   std::vector<InputRoute> inputs = {
     InputRoute{ spec, "Fake", 0 }
+  };
+
+  std::vector<ForwardRoute> forwards;
+  TimesliceIndex index;
+
+  auto policy = CompletionPolicyHelpers::consumeWhenAny();
+  DataRelayer relayer(policy, inputs, forwards, metrics, index);
+  relayer.setPipelineLength(4);
+
+  // Let's create a dummy O2 Message with two headers in the stack:
+  // - DataHeader matching the one provided in the input
+  DataHeader dh;
+  dh.dataDescription = "CLUSTERS";
+  dh.dataOrigin = "TPC";
+  dh.subSpecification = 0;
+
+  DataProcessingHeader dph{0,1};
+  Stack stack{dh, dph};
+  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  FairMQMessagePtr header = transport->CreateMessage(stack.size());
+  FairMQMessagePtr payload = transport->CreateMessage(1000);
+  memcpy(header->GetData(), stack.data(), stack.size());
+  relayer.relay(std::move(header),std::move(payload));
+  auto ready = relayer.getReadyToProcess();
+  BOOST_REQUIRE_EQUAL(ready.size(), 1);
+  BOOST_CHECK_EQUAL(ready[0].slot.index, 0);
+  BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
+  auto result = relayer.getInputsForTimeslice(ready[0].slot);
+  // One for the header, one for the payload
+  BOOST_REQUIRE_EQUAL(result.size(),2);
+}
+
+//
+BOOST_AUTO_TEST_CASE(TestNoWaitMatcher) {
+  Monitoring metrics;
+  auto specs = o2::framework::select("clusters:TPC/CLUSTERS");
+
+  std::vector<InputRoute> inputs = {
+    InputRoute{ specs[0], "Fake", 0 }
   };
 
   std::vector<ForwardRoute> forwards;
@@ -98,8 +138,8 @@ BOOST_AUTO_TEST_CASE(TestRelay) {
 
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
 
-  auto createMessage = [&transport,&relayer] (DataHeader &dh) {
-    DataProcessingHeader dph{0,1};
+  auto createMessage = [&transport,&relayer] (DataHeader &dh, size_t time) {
+    DataProcessingHeader dph{time,1};
     Stack stack{dh, dph};
     FairMQMessagePtr header = transport->CreateMessage(stack.size());
     FairMQMessagePtr payload = transport->CreateMessage(1000);
@@ -120,11 +160,11 @@ BOOST_AUTO_TEST_CASE(TestRelay) {
   dh2.dataOrigin = "ITS";
   dh2.subSpecification = 0;
 
-  createMessage(dh1);
+  createMessage(dh1, 0);
   auto ready = relayer.getReadyToProcess();
   BOOST_REQUIRE_EQUAL(ready.size(), 0);
 
-  createMessage(dh2);
+  createMessage(dh2, 0);
   ready = relayer.getReadyToProcess();
   BOOST_REQUIRE_EQUAL(ready.size(), 1);
   BOOST_CHECK_EQUAL(ready[0].slot.index, 0);
@@ -133,6 +173,86 @@ BOOST_AUTO_TEST_CASE(TestRelay) {
   auto result = relayer.getInputsForTimeslice(ready[0].slot);
   // One for the header, one for the payload, for two inputs.
   BOOST_REQUIRE_EQUAL(result.size(),4);
+}
+
+// This test a more complicated set of inputs, and verifies that data is
+// correctly relayed before being processed.
+BOOST_AUTO_TEST_CASE(TestRelayBug) {
+  Monitoring metrics;
+  InputSpec spec1{
+    "clusters",
+    "TPC",
+    "CLUSTERS",
+  };
+  InputSpec spec2{
+    "clusters_its",
+    "ITS",
+    "CLUSTERS",
+  };
+
+  std::vector<InputRoute> inputs = {
+    InputRoute{ spec1, "Fake1", 0 },
+    InputRoute{ spec2, "Fake2", 0 }
+  };
+
+  std::vector<ForwardRoute> forwards;
+
+  TimesliceIndex index;
+
+  auto policy = CompletionPolicyHelpers::consumeWhenAll();
+  DataRelayer relayer(policy, inputs, forwards, metrics, index);
+  relayer.setPipelineLength(3);
+
+  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+
+  auto createMessage = [&transport,&relayer] (DataHeader &dh, size_t time) {
+    DataProcessingHeader dph{time,1};
+    Stack stack{dh, dph};
+    FairMQMessagePtr header = transport->CreateMessage(stack.size());
+    FairMQMessagePtr payload = transport->CreateMessage(1000);
+    memcpy(header->GetData(), stack.data(), stack.size());
+    relayer.relay(std::move(header),std::move(payload));
+  };
+
+  // Let's create a dummy O2 Message with two headers in the stack:
+  // - DataHeader matching the one provided in the input
+  DataHeader dh1;
+  dh1.dataDescription = "CLUSTERS";
+  dh1.dataOrigin = "TPC";
+  dh1.subSpecification = 0;
+
+  // Let's create the second O2 Message:
+  DataHeader dh2;
+  dh2.dataDescription = "CLUSTERS";
+  dh2.dataOrigin = "ITS";
+  dh2.subSpecification = 0;
+
+  // Let's create the second O2 Message:
+  DataHeader dh3;
+  dh3.dataDescription = "CLUSTERS";
+  dh3.dataOrigin = "FOO";
+  dh3.subSpecification = 0;
+
+
+  /// Reproduce the bug reported by Matthias in https://github.com/AliceO2Group/AliceO2/pull/1483
+  createMessage(dh1, 0);
+  auto ready = relayer.getReadyToProcess();
+  BOOST_REQUIRE_EQUAL(ready.size(), 0);
+  createMessage(dh1, 1);
+  ready = relayer.getReadyToProcess();
+  BOOST_REQUIRE_EQUAL(ready.size(), 0);
+  createMessage(dh2, 0);
+  ready = relayer.getReadyToProcess();
+  BOOST_REQUIRE_EQUAL(ready.size(), 1);
+  BOOST_CHECK_EQUAL(ready[0].slot.index, 0);
+  BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
+  auto result = relayer.getInputsForTimeslice(ready[0].slot);
+  createMessage(dh2, 1);
+  ready = relayer.getReadyToProcess();
+  BOOST_REQUIRE_EQUAL(ready.size(), 1);
+  BOOST_CHECK_EQUAL(ready[0].slot.index, 1);
+  BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
+  result = relayer.getInputsForTimeslice(ready[0].slot);
 }
 
 // This tests a simple cache pruning, where a single input is shifted out of
