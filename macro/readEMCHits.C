@@ -12,12 +12,11 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 
 #endif
-/// Example of accessing the digits of MCEvent digitized with continous readout
 
+/// read and draw the hits for EMC obtained from simulation
 void readEMCHits(std::string path = "./",
                  std::string mcfileName = "o2sim.root")
 {
-  std::cout << "IAMHERE\n";
   if (path.back() != '/') {
     path += '/';
   }
