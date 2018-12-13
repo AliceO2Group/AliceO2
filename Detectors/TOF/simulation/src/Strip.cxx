@@ -56,7 +56,7 @@ Int_t Strip::getStripIndex(const HitType* hit)
   return channelID / Geo::NPADS;
 }
 //_______________________________________________________________________
-Int_t Strip::addDigit(Double_t time, Int_t channel, Int_t tdc, Int_t tot, Int_t bc, Int_t lbl)
+Int_t Strip::addDigit(Int_t channel, Int_t tdc, Int_t tot, Int_t bc, Int_t lbl)
 {
 
   // return the MC label. We pass it also as argument, but it can change in
@@ -66,9 +66,9 @@ Int_t Strip::addDigit(Double_t time, Int_t channel, Int_t tdc, Int_t tot, Int_t 
   auto dig = findDigit(key);
   if (dig) {
     lbl = dig->getLabel();      // getting the label from the already existing digit
-    dig->merge(time, tdc, tot); // merging to the existing digit
+    dig->merge(tdc, tot);       // merging to the existing digit
   } else {
-    auto digIter = mDigits.emplace(std::make_pair(key, Digit(time, channel, tdc, tot, bc, lbl)));
+    auto digIter = mDigits.emplace(std::make_pair(key, Digit(channel, tdc, tot, bc, lbl)));
   }
 
   return lbl;

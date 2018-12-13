@@ -2103,12 +2103,14 @@ o2_define_bucket(
     data_format_reconstruction_bucket
     data_format_common_bucket
     data_format_TPC_bucket
+    data_format_TOF_bucket
     its_reconstruction_bucket
     data_format_itsmft_bucket
     common_field_bucket
     detectors_base_bucket
     its_base_bucket
     tpc_base_bucket
+    tof_base_bucket
     data_parameters_bucket
     common_utils_bucket
     common_math_bucket
@@ -2120,9 +2122,11 @@ o2_define_bucket(
     DataFormatsITSMFT
     DetectorsBase
     DataFormatsTPC
+    DataFormatsTOF
     DataFormatsParameters
     ITSBase
     TPCBase
+    TOFBase
     CommonUtils
     MathUtils
     Field
@@ -2139,6 +2143,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/common/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/TOF/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Common/Utils/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include

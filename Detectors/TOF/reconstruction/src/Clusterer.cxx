@@ -20,12 +20,6 @@
 using namespace o2::tof;
 
 //__________________________________________________
-Clusterer::Clusterer()
-{
-
-  // empty for now
-}
-//__________________________________________________
 void Clusterer::process(DataReader& reader, std::vector<Cluster>& clusters, MCLabelContainer const* digitMCTruth)
 {
   reader.init();
@@ -131,7 +125,8 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
   }
 
   c.setMainContributingChannel(mContributingDigit[0]->getChannel());
-  c.setTime(mContributingDigit[0]->getTDC() * Geo::TDCBIN);       // time in ps (for now we assume it calibrated)
+  c.setTime(mContributingDigit[0]->getTDC() * Geo::TDCBIN + double(mContributingDigit[0]->getBC() * 25000.)); // time in ps (for now we assume it calibrated)
+
   c.setTot(mContributingDigit[0]->getTOT() * Geo::TOTBIN * 1E-3); // TOT in ns (for now we assume it calibrated)
   //setL0L1Latency(); // to be filled (maybe)
   //setDeltaBC(); // to be filled (maybe)
@@ -181,15 +176,27 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
   // filling the MC labels of this cluster; the first will be those of the main digit; then the others
   if (digitMCTruth != nullptr) {
     int lbl = mClsLabels->getIndexedSize(); // this should correspond to the number of digits also;
+    printf("lbl = %d\n", lbl);
     for (int i = 0; i < mNumberOfContributingDigits; i++) {
+      printf("contributing digit = %d\n", i);
       int digitLabel = mContributingDigit[i]->getLabel();
+      printf("digitLabel = %d\n", digitLabel);
       gsl::span<const o2::MCCompLabel> mcArray = digitMCTruth->getLabels(digitLabel);
-      for (int j = 0; j < static_cast<int>(mcArray.size()); ++j) {
+      for (int j = 0; j < static_cast<int>(mcArray.size()); j++) {
+        printf("checking element %d in the array of labels\n", j);
         auto label = digitMCTruth->getElement(digitMCTruth->getMCTruthHeader(digitLabel).index + j);
+        printf("EventID = %d\n", label.getEventID());
         mClsLabels->addElement(lbl, label);
       }
     }
   }
+
+  // set geometrical variables
+  int det[5];
+  Geo::getVolumeIndices(c.getMainContributingChannel(), det);
+  float pos[3];
+  Geo::getPos(det, pos);
+  c.setBaseData(c.getMainContributingChannel(), pos[0], pos[1], pos[2], 0, 0, 0); // error on position set to zero
 
   return;
 }

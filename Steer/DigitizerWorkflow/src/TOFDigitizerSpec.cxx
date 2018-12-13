@@ -17,6 +17,7 @@
 #include "TStopwatch.h"
 #include "Steer/HitProcessingManager.h" // for RunContext
 #include "TChain.h"
+#include "DetectorsBase/GeometryManager.h"
 
 #include "TOFSimulation/Digitizer.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -113,8 +114,8 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
         digits->clear();
         digitizer->process(&hits, digits.get());
         // copy digits into accumulator
-        std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
-        labelAccum.mergeAtBack(*labels);
+        //std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
+        //labelAccum.mergeAtBack(*labels);
         LOG(INFO) << "Have " << digits->size() << " digits ";
       }
     }
@@ -124,14 +125,23 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
       digitizer->flushOutputContainer(*digits.get());
       LOG(INFO) << "FLUSHING LEFTOVER STUFF " << digits->size();
       // copy digits into accumulator
-      std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
-      labelAccum.mergeAtBack(*labels);
+      //std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
+      //labelAccum.mergeAtBack(*labels);
+    }
+
+    // temporary accumulate vector of vecotors of digits in a single vector
+    // to be replace once we will be able to write the vector of vectors as different TTree entries
+    std::vector<std::vector<Digit>>* digitsVectOfVect = digitizer->getDigitPerTimeFrame();
+    std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* mcLabVecOfVec = digitizer->getMCTruthPerTimeFrame();
+    for (Int_t i = 0; i < digitsVectOfVect->size(); i++) {
+      std::copy(digitsVectOfVect->at(i).begin(), digitsVectOfVect->at(i).end(), std::back_inserter(*digitsAccum.get()));
+      labelAccum.mergeAtBack(mcLabVecOfVec->at(i));
     }
 
     LOG(INFO) << "Have " << labelAccum.getNElements() << " TOF labels ";
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
-    pc.outputs().snapshot(Output{ "TOF", "DIGITS", 0, Lifetime::Timeframe }, *digitsAccum.get());
-    pc.outputs().snapshot(Output{ "TOF", "DIGITSMCTR", 0, Lifetime::Timeframe }, labelAccum);
+    pc.outputs().snapshot(Output{ "TOF", "DIGITS", 0, Lifetime::Timeframe }, *digitsVectOfVect);
+    pc.outputs().snapshot(Output{ "TOF", "DIGITSMCTR", 0, Lifetime::Timeframe }, *mcLabVecOfVec);
     LOG(INFO) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{ "TOF", "ROMode", 0, Lifetime::Timeframe }, roMode);
 
@@ -156,6 +166,11 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
     if (signalfilename.size() > 0) {
       simChains->emplace_back(new TChain("o2sim"));
       simChains->back()->AddFile(signalfilename.c_str());
+    }
+
+    // make sure that the geometry is loaded (TODO will this be done centrally?)
+    if (!gGeoManager) {
+      o2::Base::GeometryManager::loadGeometry();
     }
 
     // init digitizer

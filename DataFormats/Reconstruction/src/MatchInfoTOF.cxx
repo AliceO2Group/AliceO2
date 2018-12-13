@@ -8,15 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// \file MatchInfoTOF.cxx
+/// \brief Class to store the output of the matching to TOF
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "ReconstructionDataFormats/MatchInfoTOF.h"
 
-#pragma link C++ class o2::tof::Geo+;
-#pragma link C++ class o2::tof::Digit+;
-#pragma link C++ class vector<o2::tof::Digit>+;
-#pragma link C++ class vector < vector < o2::tof::Digit >> +;
+using namespace o2::dataformats;
 
-#endif
+//ClassImp(o2::dataformats::MatchInfoTOF);

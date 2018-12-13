@@ -12,6 +12,7 @@
 #include "TGeoManager.h"
 #include "TMath.h"
 #include "FairLogger.h"
+#include "DetectorsBase/GeometryManager.h"
 
 ClassImp(o2::tof::Geo);
 
@@ -104,7 +105,7 @@ void Geo::Init()
 void Geo::getVolumePath(const Int_t* ind, Char_t* path)
 {
   //--------------------------------------------------------------------
-  // This function returns the colume path of a given pad
+  // This function returns the volume path of a given pad
   //--------------------------------------------------------------------
   Int_t sector = ind[0];
 
@@ -157,8 +158,13 @@ void Geo::getPos(Int_t* det, Float_t* pos)
   Char_t path[200];
   getVolumePath(det, path);
   if (!gGeoManager) {
-    LOG(ERROR) << " no TGeo!" << "\n"; 
+    LOG(ERROR) << " no TGeo! Loading it"
+               << "\n";
+    o2::Base::GeometryManager::loadGeometry();
   }
+  FILE* ciccio = fopen("TOF_geo.txt", "w");
+  fprintf(ciccio, "path = %s, gGeoManager = %p", path, gGeoManager);
+  fclose(ciccio);
   gGeoManager->cd(path);
   TGeoHMatrix global;
   global = *gGeoManager->GetCurrentMatrix();
@@ -321,7 +327,7 @@ Int_t Geo::getStripNumberPerSM(Int_t iplate, Int_t istrip)
 void Geo::fromGlobalToSector(Float_t* pos, Int_t isector)
 {
   if (isector == -1) {
-    LOG(ERROR) << "Sector Index not valid (-1)\n"; 
+    //LOG(ERROR) << "Sector Index not valid (-1)\n";
     return;
   }
 
@@ -369,9 +375,7 @@ Int_t Geo::fromPlateToStrip(Float_t* pos, Int_t iplate)
     step[1] = getHeights(iplate, istrip);
     step[2] = -getDistances(iplate, istrip);
     translate(posLoc2, step);
-
     rotateToStrip(posLoc2, iplate, istrip);
-
     if ((TMath::Abs(posLoc2[0]) <= STRIPLENGTH * 0.5) && (TMath::Abs(posLoc2[1]) <= HSTRIPY * 0.5) &&
         (TMath::Abs(posLoc2[2]) <= WCPCBZ * 0.5)) {
       step[0] = -0.5 * NPADX * XPAD;

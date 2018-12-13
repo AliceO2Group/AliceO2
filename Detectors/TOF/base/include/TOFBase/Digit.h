@@ -11,7 +11,6 @@
 #ifndef ALICEO2_TOF_DIGIT_H_
 #define ALICEO2_TOF_DIGIT_H_
 
-#include <CommonDataFormat/TimeStamp.h>
 #include <iosfwd>
 #include "Rtypes.h"
 
@@ -21,12 +20,12 @@ namespace o2 {
 namespace tof {
 /// \class Digit
 /// \brief TOF digit implementation
-class Digit : public o2::dataformats::TimeStamp<double>
+class Digit
 {
  public:
   Digit() = default;
 
-  Digit(Double_t time, Int_t channel, Int_t tdc, Int_t tot, Int_t bc, Int_t label = -1);
+  Digit(Int_t channel, Int_t tdc, Int_t tot, Int_t bc, Int_t label = -1);
   ~Digit() = default;
 
   /// Get global ordering key made of
@@ -52,7 +51,7 @@ class Digit : public o2::dataformats::TimeStamp<double>
 
   void printStream(std::ostream &stream) const;
 
-  void merge(Double_t time, Int_t tdc, Int_t tot);
+  void merge(Int_t tdc, Int_t tot);
 
   void getPhiAndEtaIndex(int& phi, int& eta);
 
