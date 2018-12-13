@@ -16,8 +16,9 @@
 namespace o2 { namespace ITS { class TrackerTraits {}; class TrackerTraitsNV : public TrackerTraits {}; }}
 #endif
 
-AliGPUReconstructionCUDA::AliGPUReconstructionCUDA() : AliGPUReconstructionDeviceBase(CUDA)
+AliGPUReconstructionCUDA::AliGPUReconstructionCUDA(const AliGPUCASettingsProcessing& cfg) : AliGPUReconstructionDeviceBase(cfg)
 {
+    mProcessingSettings.deviceType = CUDA;
     mTPCTracker.reset(new AliHLTTPCCAGPUTrackerNVCC);
     mITSTrackerTraits.reset(new o2::ITS::TrackerTraitsNV);
 }
@@ -29,7 +30,7 @@ AliGPUReconstructionCUDA::~AliGPUReconstructionCUDA()
 #endif
 }
 
-AliGPUReconstruction* AliGPUReconstruction_Create_CUDA()
+AliGPUReconstruction* AliGPUReconstruction_Create_CUDA(const AliGPUCASettingsProcessing& cfg)
 {
-	return new AliGPUReconstructionCUDA;
+	return new AliGPUReconstructionCUDA(cfg);
 }
