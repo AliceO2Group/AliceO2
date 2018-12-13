@@ -69,7 +69,7 @@ public:
 	GPUd() float GetAlpha() {return getAlpha();}
 	GPUd() bool IsHole(int la, int st, int se) const {return isHole(la, st, se);}
 	GPUd() int GetRowMax(int layer, int stack, int sector) {return getRowMax(layer, stack, sector);}
-  GPUd() bool ChamberInGeometry(int det) {return chamberInGeometry(det);}
+	GPUd() bool ChamberInGeometry(int det) {return chamberInGeometry(det);}
 
 	static constexpr int kNstack = o2::trd::kNstack;
 };

@@ -350,14 +350,14 @@ GPUd() void AliHLTTRDTracker::DoTrackingThread( HLTTRDTrack *tracksTPC, int *tra
   HLTTRDPropagator prop(fMerger);
   prop.setTrack(t);
   FollowProlongation(&prop, t, nTPCtracks, threadId);
-#ifdef HLTCA_HAVE_OPENMP
-  fTracks[iTrk] = *t;
-#pragma omp atomic
-  ++fNTracks;
-#else
-  fTracks[fNTracks++] = *t;
-#endif
-
+  int myTrack;
+  {
+    #ifdef HLTCA_HAVE_OPENMP
+    #pragma omp atomic capture
+    #endif
+    myTrack = fNTracks++;
+  }
+  fTracks[myTrack] = *t;
 }
 
 
