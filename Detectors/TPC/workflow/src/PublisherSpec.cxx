@@ -213,7 +213,7 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
                               { dtb.option.c_str(), VariantType::String, dtb.defval.c_str(), { dtb.help.c_str() } },
                               { mcb.option.c_str(), VariantType::String, mcb.defval.c_str(), { mcb.help.c_str() } },
                               { "nevents", VariantType::Int, -1, { "number of events to run" } },
-                              { "terminate-on-eod", VariantType::Bool, false, { "terminate on end-of-data" } },
+                              { "terminate-on-eod", VariantType::Bool, true, { "terminate on end-of-data" } },
                             } };
 }
 } // end namespace TPC

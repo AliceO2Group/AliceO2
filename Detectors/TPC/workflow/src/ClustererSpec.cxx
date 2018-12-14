@@ -14,6 +14,7 @@
 /// @brief  spec definition for a TPC clusterer process
 
 #include "ClustererSpec.h"
+#include "Framework/ControlService.h"
 #include "Headers/DataHeader.h"
 #include "TPCBase/Digit.h"
 #include "TPCReconstruction/HwClusterer.h"
@@ -48,6 +49,7 @@ DataProcessorSpec getClustererSpec(bool sendMC)
     MCLabelContainer mctruthArray;
     std::array<std::shared_ptr<o2::TPC::HwClusterer>, NSectors> clusterers;
     int verbosity = 1;
+    bool finished = false;
   };
 
   auto initFunction = [sendMC](InitContext& ic) {
@@ -58,6 +60,9 @@ DataProcessorSpec getClustererSpec(bool sendMC)
     auto processAttributes = std::make_shared<ProcessAttributes>();
 
     auto processingFct = [processAttributes, sendMC](ProcessingContext& pc) {
+      if (processAttributes->finished) {
+        return;
+      }
       auto& clusterArray = processAttributes->clusterArray;
       auto& mctruthArray = processAttributes->mctruthArray;
       auto& clusterers = processAttributes->clusterers;
@@ -79,6 +84,11 @@ DataProcessorSpec getClustererSpec(bool sendMC)
         pc.outputs().snapshot(OutputRef{ "clusters", fanSpec, { header } }, fanSpec);
         if (sendMC) {
           pc.outputs().snapshot(OutputRef{ "clusterlbl", fanSpec, { header } }, fanSpec);
+        }
+        if (sectorHeader->sector == -1) {
+          // got EOD
+          processAttributes->finished = true;
+          pc.services().get<ControlService>().readyToQuit(false);
         }
         return;
       }
