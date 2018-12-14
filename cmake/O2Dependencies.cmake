@@ -1104,6 +1104,7 @@ o2_define_bucket(
     tpc_base_bucket
     data_format_TPC_bucket
     data_format_detectors_common_bucket
+    TPCFastTransformation_bucket
     DetectorsCommonDataFormats
     DetectorsBase
     TPCBase
