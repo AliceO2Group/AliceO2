@@ -10,9 +10,9 @@
 
 //  @file   AliHLTTPCCAGPUTrackerOpenCL.h
 //  @author David Rohr, Sergey Gorbunov
-//  @date   
+//  @date
 //  @brief  TPC CA Tracker for the NVIDIA GPU
-//  @note 
+//  @note
 
 
 #ifndef ALIHLTTPCCAGPUTRACKEROPENCL_H
@@ -28,8 +28,8 @@ public:
 	AliHLTTPCCAGPUTrackerOpenCL();
 	virtual ~AliHLTTPCCAGPUTrackerOpenCL();
 
-	virtual int InitGPU_Runtime(int sliceCount = -1, int forceDeviceID = -1);
-	virtual int Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);
+	virtual int InitGPU_Runtime(int forceDeviceID = -1);
+	virtual int Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData);
 	virtual int ExitGPU_Runtime();
 	virtual int RefitMergedTracks(AliHLTTPCGMMerger* Merger, bool resetTimers);
 

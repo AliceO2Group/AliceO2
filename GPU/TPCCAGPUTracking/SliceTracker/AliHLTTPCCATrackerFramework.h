@@ -37,7 +37,7 @@ public:
 	const AliHLTTPCCASliceOutput::outputControlStruct* OutputControl() const { return fOutputControl; }
 	void SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* val);
 
-	int ProcessSlices(int firstSlice, int sliceCount, AliHLTTPCCAClusterData* pClusterData, AliHLTTPCCASliceOutput** pOutput);
+	int ProcessSlices(AliHLTTPCCAClusterData* pClusterData, AliHLTTPCCASliceOutput** pOutput);
 	double GetTimer(int iSlice, int iTimer);
 	void ResetTimer(int iSlice, int iTimer);
 

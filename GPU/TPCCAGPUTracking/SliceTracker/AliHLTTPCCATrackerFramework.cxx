@@ -86,10 +86,10 @@ GPUhd() void AliHLTTPCCATrackerFramework::SetOutputControl( AliHLTTPCCASliceOutp
 	}
 }
 
-int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, AliHLTTPCCAClusterData* pClusterData, AliHLTTPCCASliceOutput** pOutput)
+int AliHLTTPCCATrackerFramework::ProcessSlices(AliHLTTPCCAClusterData* pClusterData, AliHLTTPCCASliceOutput** pOutput)
 {
 	long long int totalNClusters = 0;
-	for (int iSlice = 0;iSlice < CAMath::Min(sliceCount, fgkNSlices - firstSlice);iSlice++)
+	for (int iSlice = 0;iSlice < 36;iSlice++)
 	{
 		totalNClusters += pClusterData[iSlice].NumberOfClusters();
 		if (totalNClusters >= ((long long int) 1) << (sizeof(int) * 8))
@@ -98,17 +98,10 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 			return(1);
 		}
 	}
-	int useGlobalTracking = fGlobalTracking;
-	if (fGlobalTracking && (firstSlice || sliceCount != fgkNSlices))
-	{
-		CAGPUWarning("Global Tracking only available if all slices are processed!");
-		useGlobalTracking = 0;
-	}
 
-	//Process sliceCount slices starting from firstslice, in is pClusterData array, out pOutput array
 	if (fUseGPUTracker)
 	{
-		if (fGPUTracker->Reconstruct(pOutput, pClusterData, firstSlice, CAMath::Min(sliceCount, fgkNSlices - firstSlice))) return(1);
+		if (fGPUTracker->Reconstruct(pOutput, pClusterData)) return(1);
 	}
 	else
 	{
@@ -124,36 +117,36 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 		}
 #pragma omp parallel for
 #endif
-		for (int iSlice = 0;iSlice < CAMath::Min(sliceCount, fgkNSlices - firstSlice);iSlice++)
+		for (int iSlice = 0;iSlice < 36;iSlice++)
 		{
 			if (error) continue;
-			if (fCPUTrackers[firstSlice + iSlice].ReadEvent(&pClusterData[iSlice]))
+			if (fCPUTrackers[iSlice].ReadEvent(&pClusterData[iSlice]))
 			{
 				error = true;
 				continue;
 			}
-			fCPUTrackers[firstSlice + iSlice].SetOutput(&pOutput[iSlice]);
-			fCPUTrackers[firstSlice + iSlice].Reconstruct();
-			fCPUTrackers[firstSlice + iSlice].CommonMemory()->fNLocalTracks = fCPUTrackers[firstSlice + iSlice].CommonMemory()->fNTracks;
-			fCPUTrackers[firstSlice + iSlice].CommonMemory()->fNLocalTrackHits = fCPUTrackers[firstSlice + iSlice].CommonMemory()->fNTrackHits;
-			if (!useGlobalTracking)
+			fCPUTrackers[iSlice].SetOutput(&pOutput[iSlice]);
+			fCPUTrackers[iSlice].Reconstruct();
+			fCPUTrackers[iSlice].CommonMemory()->fNLocalTracks = fCPUTrackers[iSlice].CommonMemory()->fNTracks;
+			fCPUTrackers[iSlice].CommonMemory()->fNLocalTrackHits = fCPUTrackers[iSlice].CommonMemory()->fNTrackHits;
+			if (!fGlobalTracking)
 			{
-				fCPUTrackers[firstSlice + iSlice].ReconstructOutput();
+				fCPUTrackers[iSlice].ReconstructOutput();
 #ifdef HLTCA_STANDALONE
-				nOutputTracks += (*fCPUTrackers[firstSlice + iSlice].Output())->NTracks();
-				nLocalTracks += fCPUTrackers[firstSlice + iSlice].CommonMemory()->fNTracks;
+				nOutputTracks += (*fCPUTrackers[iSlice].Output())->NTracks();
+				nLocalTracks += fCPUTrackers[iSlice].CommonMemory()->fNTracks;
 #endif
 				if (!fKeepData)
 				{
-					fCPUTrackers[firstSlice + iSlice].SetupCommonMemory();
+					fCPUTrackers[iSlice].SetupCommonMemory();
 				}
 			}
 		}
 		if (error) return(1);
 
-		if (useGlobalTracking)
+		if (fGlobalTracking)
 		{
-			for (int iSlice = 0;iSlice < CAMath::Min(sliceCount, fgkNSlices - firstSlice);iSlice++)
+			for (int iSlice = 0;iSlice < 36;iSlice++)
 			{
 				int sliceLeft = (iSlice + (fgkNSlices / 2 - 1)) % (fgkNSlices / 2);
 				int sliceRight = (iSlice + 1) % (fgkNSlices / 2);
@@ -164,9 +157,9 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 				}
 				fCPUTrackers[iSlice].PerformGlobalTracking(fCPUTrackers[sliceLeft], fCPUTrackers[sliceRight], fCPUTrackers[sliceLeft].NMaxTracks(), fCPUTrackers[sliceRight].NMaxTracks());
 			}
-			for (int iSlice = 0;iSlice < CAMath::Min(sliceCount, fgkNSlices - firstSlice);iSlice++)
+			for (int iSlice = 0;iSlice < 36;iSlice++)
 			{
-				fCPUTrackers[firstSlice + iSlice].ReconstructOutput();
+				fCPUTrackers[iSlice].ReconstructOutput();
 #ifdef HLTCA_STANDALONE
 				//printf("Slice %d - Tracks: Local %d Global %d - Hits: Local %d Global %d\n", iSlice, fCPUTrackers[iSlice].CommonMemory()->fNLocalTracks, fCPUTrackers[iSlice].CommonMemory()->fNTracks, fCPUTrackers[iSlice].CommonMemory()->fNLocalTrackHits, fCPUTrackers[iSlice].CommonMemory()->fNTrackHits);
 				nLocalTracks += fCPUTrackers[iSlice].CommonMemory()->fNLocalTracks;
@@ -177,11 +170,11 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 #endif
 				if (!fKeepData)
 				{
-					fCPUTrackers[firstSlice + iSlice].SetupCommonMemory();
+					fCPUTrackers[iSlice].SetupCommonMemory();
 				}
 			}
 		}
-		for (int iSlice = 0;iSlice < CAMath::Min(sliceCount, fgkNSlices - firstSlice);iSlice++)
+		for (int iSlice = 0;iSlice < 36;iSlice++)
 		{
 			if (fCPUTrackers[iSlice].GPUParameters()->fGPUError != 0)
 			{
@@ -193,7 +186,7 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 		}
 #ifdef HLTCA_STANDALONE
 		//printf("Slice Tracks Output %d: - Tracks: %d local, %d global -  Hits: %d local, %d global\n", nOutputTracks, nLocalTracks, nGlobalTracks, nLocalHits, nGlobalHits);
-		/*for (int i = firstSlice;i < firstSlice + sliceCount;i++)
+		/*for (int i = 0;i < 36;i++)
 		{
 			fCPUTrackers[i].DumpOutput(stdout);
 		}*/
@@ -203,7 +196,7 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 	if (fGPUDebugLevel >= 6 && fUseGPUTracker)
 	{
 	    fUseGPUTracker = 0;
-	    ProcessSlices(firstSlice, sliceCount, pClusterData, pOutput);
+	    ProcessSlices(pClusterData, pOutput);
 	    fUseGPUTracker = 1;
 	}
 
@@ -235,7 +228,7 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(AliGPUReconstruction* r
 
 	if (fGPULibAvailable)
 	{
-		fUseGPUTracker = (fGPUTrackerAvailable = (fGPUTracker->InitGPU(-1, rec->GetDeviceProcessingSettings().deviceNum) == 0));
+		fUseGPUTracker = (fGPUTrackerAvailable = (fGPUTracker->InitGPU(rec->GetDeviceProcessingSettings().deviceNum) == 0));
 		if(fUseGPUTracker)
 		{
 		  CAGPUInfo("GPU Tracker Initialized and available in framework");
