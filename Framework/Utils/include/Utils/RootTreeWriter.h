@@ -189,6 +189,10 @@ class RootTreeWriter
   /// the writer is invalid after calling close
   void close()
   {
+    mIsClosed = true;
+    if (!mFile) {
+      return;
+    }
     // set the number of elements according to branch content and write tree
     mTree->SetEntries();
     mTree->Write();
@@ -197,6 +201,11 @@ class RootTreeWriter
     // automatically
     mTree.release();
     mFile.reset(nullptr);
+  }
+
+  bool isClosed() const
+  {
+    return mIsClosed;
   }
 
   size_t getStoreSize() const
@@ -442,6 +451,8 @@ class RootTreeWriter
   std::vector<BranchSpec> mBranchSpecs;
   /// the underlying tree structure
   std::unique_ptr<TreeStructureInterface> mTreeStructure;
+  /// indicate that the writer has been closed
+  bool mIsClosed = false;
 };
 
 } // namespace framework

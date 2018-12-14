@@ -116,6 +116,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
       fileName.c_str(),                                                                         // default file name
       "testtree",                                                                               // default tree name
       1,                                                                                        // default number of events
+      MakeRootTreeWriterSpec::TerminationPolicy::Workflow,                                      // terminate the workflow
       BranchDefinition<Polymorphic>{ InputSpec{ "input", "TST", "SOMEOBJECT" }, "polyobject" }, // branch config
       BranchDefinition<int>{ InputSpec{ "meta", "TST", "METADATA" }, "counter" }                // branch config
       )()                                                                                       // call the generator
