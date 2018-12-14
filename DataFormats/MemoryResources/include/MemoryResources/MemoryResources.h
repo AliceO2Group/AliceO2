@@ -61,53 +61,6 @@ FairMQMessagePtr getMessage(ContainerT&& container, FairMQMemoryResource* target
 
 //__________________________________________________________________________________________________
 /// This memory resource only watches, does not allocate/deallocate anything.
-/// In combination with the ByteSpectatorAllocator this is an alternative to using span, as raw memory
-/// (e.g. an existing buffer message) will be accessible with appropriate container.
-class SpectatorMessageResource : public FairMQMemoryResource
-{
-
- public:
-  SpectatorMessageResource() = default;
-  SpectatorMessageResource(const FairMQMessage* _message) : message(_message){};
-  FairMQMessagePtr getMessage(void* p) override { return nullptr; }
-  FairMQTransportFactory* getTransportFactory() noexcept override { return nullptr; }
-  size_t getNumberOfMessages() const noexcept override { return 0; }
-  void* setMessage(FairMQMessagePtr) override { return nullptr; }
-
- protected:
-  const FairMQMessage* message;
-
-  void* do_allocate(std::size_t bytes, std::size_t alignment) override
-  {
-    if (message) {
-      if (bytes > message->GetSize()) {
-        throw std::bad_alloc();
-      }
-      return message->GetData();
-    } else {
-      return nullptr;
-    }
-  };
-  void do_deallocate(void* p, std::size_t bytes, std::size_t alignment) override
-  {
-    message = nullptr;
-    return;
-  };
-  bool do_is_equal(const memory_resource& other) const noexcept override
-  {
-    const SpectatorMessageResource* that = dynamic_cast<const SpectatorMessageResource*>(&other);
-    if (!that) {
-      return false;
-    }
-    if (that->message == message) {
-      return true;
-    }
-    return false;
-  };
-};
-
-//__________________________________________________________________________________________________
-/// This memory resource only watches, does not allocate/deallocate anything.
 /// Ownership of hte message is taken. Meant to be used for transparent data adoption in containers.
 /// In combination with the SpectatorAllocator this is an alternative to using span, as raw memory
 /// (e.g. an existing buffer message) will be accessible with appropriate container.
@@ -120,8 +73,8 @@ class MessageResource : public FairMQMemoryResource
   MessageResource(MessageResource&&) noexcept = default;
   MessageResource& operator=(const MessageResource&) = default;
   MessageResource& operator=(MessageResource&&) = default;
-  MessageResource(FairMQMessagePtr message, FairMQMemoryResource* upstream)
-    : mUpstream{ upstream },
+  MessageResource(FairMQMessagePtr message)
+    : mUpstream{ message->GetTransport()->GetMemoryResource() },
       mMessageSize{ message->GetSize() },
       mMessageData{ mUpstream ? mUpstream->setMessage(std::move(message))
                               : throw std::runtime_error("MessageResource::MessageResource upstream is nullptr") }
@@ -136,17 +89,23 @@ class MessageResource : public FairMQMemoryResource
   FairMQMemoryResource* mUpstream{ nullptr };
   size_t mMessageSize{ 0 };
   void* mMessageData{ nullptr };
+  bool initialImport{ true };
 
   void* do_allocate(std::size_t bytes, std::size_t alignment) override
   {
-    if (bytes > mMessageSize) {
-      throw std::bad_alloc();
+    if (initialImport) {
+      if (bytes > mMessageSize) {
+        throw std::bad_alloc();
+      }
+      initialImport = false;
+      return mMessageData;
+    } else {
+      return mUpstream->allocate(bytes, alignment);
     }
-    return mMessageData;
   }
   void do_deallocate(void* p, std::size_t bytes, std::size_t alignment) override
   {
-    getMessage(mMessageData); //let the message die.
+    mUpstream->deallocate(p, bytes, alignment);
     return;
   }
   bool do_is_equal(const memory_resource& other) const noexcept override
@@ -252,37 +211,14 @@ using ByteSpectatorAllocator = SpectatorAllocator<o2::byte>;
 using BytePmrAllocator = boost::container::pmr::polymorphic_allocator<o2::byte>;
 
 //__________________________________________________________________________________________________
-/// Return a vector of const ElemT, takes ownership of the message, needs an upstream global ChannelResource to register
-/// the message.
+/// Return a std::vector spanned over the contents of the message, takes ownership of the message
 template <typename ElemT>
-auto adoptVector(size_t nelem, ChannelResource* upstream, FairMQMessagePtr message)
+auto adoptVector(size_t nelem, FairMQMessagePtr message)
 {
-  return std::vector<const ElemT, OwningMessageSpectatorAllocator<const ElemT>>(
-    nelem, OwningMessageSpectatorAllocator<const ElemT>(MessageResource{ std::move(message), upstream }));
+  static_assert(std::is_trivially_destructible<ElemT>::value);
+  return std::vector<ElemT, OwningMessageSpectatorAllocator<ElemT>>(
+    nelem, OwningMessageSpectatorAllocator<ElemT>(MessageResource{ std::move(message) }));
 };
-
-//__________________________________________________________________________________________________
-// This returns a unique_ptr of const vector, does not allow modifications at the cost of pointer
-// semantics for access.
-// use auto or decltype to catch the return value (or use span)
-template <typename ElemT>
-auto adoptVector(size_t nelem, FairMQMessage* message)
-{
-  using DataType = std::vector<ElemT, ByteSpectatorAllocator>;
-
-  struct doubleDeleter {
-    // kids: don't do this at home! (but here it's OK)
-    // this stateful deleter allows a single unique_ptr to manage 2 resources at the same time.
-    std::unique_ptr<SpectatorMessageResource> extra;
-    void operator()(const DataType* ptr) { delete ptr; }
-  };
-
-  using OutputType = std::unique_ptr<const DataType, doubleDeleter>;
-
-  auto resource = std::make_unique<SpectatorMessageResource>(message);
-  auto output = new DataType(nelem, ByteSpectatorAllocator{ resource.get() });
-  return OutputType(output, doubleDeleter{ std::move(resource) });
-}
 
 //__________________________________________________________________________________________________
 /// Get the allocator associated to a transport factory
