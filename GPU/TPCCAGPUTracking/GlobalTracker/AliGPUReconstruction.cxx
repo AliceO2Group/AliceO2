@@ -53,8 +53,9 @@ static constexpr char DUMP_HEADER[DUMP_HEADER_SIZE + 1] = "CAv1";
 
 AliGPUReconstruction::AliGPUReconstruction(const AliGPUCASettingsProcessing& cfg) : mIOPtrs(), mIOMem(), mTRDTracker(new AliHLTTRDTracker), mTPCTracker(nullptr), mITSTrackerTraits(nullptr), mTPCFastTransform(nullptr), mClusterNativeAccess(new ClusterNativeAccessExt)
 {
-	mEventSettings.SetDefaults();
 	mProcessingSettings = cfg;
+	mDeviceProcessingSettings.SetDefaults();
+	mEventSettings.SetDefaults();
 	mParam.SetDefaults(&mEventSettings);
 	if (mProcessingSettings.deviceType == CPU)
 	{
@@ -369,10 +370,10 @@ void AliGPUReconstruction::SetSettings(float solenoidBz)
 	ev.solenoidBz = solenoidBz;
 	SetSettings(&ev, nullptr, nullptr);
 }
-void AliGPUReconstruction::SetSettings(const AliGPUCASettingsEvent* settings, const AliGPUCASettingsRec* rec, const AliGPUCASettingsProcessing* proc)
+void AliGPUReconstruction::SetSettings(const AliGPUCASettingsEvent* settings, const AliGPUCASettingsRec* rec, const AliGPUCASettingsDeviceProcessing* proc)
 {
 	mEventSettings = *settings;
-	if (proc) mProcessingSettings = *proc;
+	if (proc) mDeviceProcessingSettings = *proc;
 	mParam.SetDefaults(&mEventSettings, rec);
 }
 void AliGPUReconstruction::LoadClusterErrors()

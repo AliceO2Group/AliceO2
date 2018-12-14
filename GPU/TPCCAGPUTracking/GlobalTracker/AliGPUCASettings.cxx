@@ -14,6 +14,7 @@ void AliGPUCASettingsRec::SetDefaults()
 	NWays = 1;
 	NWaysOuter = 0;
 	RejectMode = 5;
+	GlobalTracking = 1;
 	SearchWindowDZDR = 0.f;
 	TrackReferenceX = 1000.f;
 }
@@ -28,7 +29,17 @@ void AliGPUCASettingsEvent::SetDefaults()
 
 void AliGPUCASettingsProcessing::SetDefaults()
 {
-	nThreads = 0;
 	deviceType = AliGPUReconstruction::DeviceType::CPU;
 	forceDeviceType = true;
+}
+
+void AliGPUCASettingsDeviceProcessing::SetDefaults()
+{
+	nThreads = 0;
+	deviceNum = -1;
+	platformNum = -1;
+	nDeviceHelperThreads = 1;
+	debugLevel = 0;
+	runEventDisplay = 0;
+	runQA = 0;
 }

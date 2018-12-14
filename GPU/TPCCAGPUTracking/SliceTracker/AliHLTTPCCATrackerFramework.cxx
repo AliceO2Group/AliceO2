@@ -43,21 +43,6 @@
 
 ClassImp( AliHLTTPCCATrackerFramework )
 
-int AliHLTTPCCATrackerFramework::InitGPU(int forceDeviceID)
-{
-	//Initialize GPU Tracker and determine if GPU available
-	int retVal;
-	if (!fGPULibAvailable)
-	{
-		CAGPUError("GPU Library not loaded\n");
-		return(1);
-	}
-	if (fGPUTrackerAvailable && (retVal = ExitGPU())) return(retVal);
-	retVal = fGPUTracker->InitGPU(-1, forceDeviceID);
-	fUseGPUTracker = fGPUTrackerAvailable = retVal == 0;
-	return(retVal);
-}
-
 int AliHLTTPCCATrackerFramework::ExitGPU()
 {
 	//Uninitialize GPU Tracker
@@ -250,7 +235,7 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(AliGPUReconstruction* r
 
 	if (fGPULibAvailable)
 	{
-		fUseGPUTracker = (fGPUTrackerAvailable = (fGPUTracker->InitGPU(-1, -1) == 0));
+		fUseGPUTracker = (fGPUTrackerAvailable = (fGPUTracker->InitGPU(-1, rec->GetDeviceProcessingSettings().deviceNum) == 0));
 		if(fUseGPUTracker)
 		{
 		  CAGPUInfo("GPU Tracker Initialized and available in framework");

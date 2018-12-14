@@ -66,12 +66,8 @@ class AliHLTTPCCAStandaloneFramework
     int ReadEvent( std::istream &in, bool ResetIds = false, bool addData = false, float shift = 0., float minZ = -1e6, float maxZ = -1e6, bool silent = false, bool doQA = true );
 
 	void SetGPUDebugLevel(int Level, std::ostream *OutFile = NULL, std::ostream *GPUOutFile = NULL) { fDebugLevel = Level; fTracker->SetGPUDebugLevel(Level, OutFile, GPUOutFile); fMerger.SetDebugLevel(Level);}
-	int SetGPUTrackerOption(const char* OptionName, int OptionValue) {return(fTracker->SetGPUTrackerOption(OptionName, OptionValue));}
-	int SetGPUTracker(bool enable) { return(fTracker->SetGPUTracker(enable)); }
 	int GetGPUStatus() const { return(fTracker->GetGPUStatus()); }
 	int GetGPUMaxSliceCount() const { return(fTracker->MaxSliceCount()); }
-	void SetEventDisplay(int v) {fEventDisplay = v;}
-	void SetRunQA(int v) {fRunQA = v;}
 	void SetRunMerger(int v) {fRunMerger = v;}
 	void SetExternalClusterData(AliHLTTPCCAClusterData* v) {fClusterData = v;}
 

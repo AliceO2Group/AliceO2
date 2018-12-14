@@ -54,7 +54,6 @@ public:
 	const AliHLTTPCCATracker& CPUTracker(int iSlice) {return(fUseGPUTracker ? *(fGPUTracker->CPUTracker(iSlice)) : fCPUTrackers[iSlice]);}
 
 private:
-  int InitGPU(int forceDeviceID = -1);
   int ExitGPU();
 
   static const int fgkNSlices = 36;       //* N slices
