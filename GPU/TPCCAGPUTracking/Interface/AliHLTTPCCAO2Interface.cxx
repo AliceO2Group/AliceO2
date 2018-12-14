@@ -106,7 +106,6 @@ int AliHLTTPCCAO2Interface::Initialize(const char* options, std::unique_ptr<TPCF
 #endif
 	mRec.reset(AliGPUReconstruction::CreateInstance(useGPU ? gpuType : "CPU", true));
 	if (mRec == nullptr) return 1;
-	if (fHLT->Initialize(mRec.get())) return 1;
 	
 	AliGPUCASettingsRec rec;
 	AliGPUCASettingsEvent ev;
@@ -117,12 +116,12 @@ int AliHLTTPCCAO2Interface::Initialize(const char* options, std::unique_ptr<TPCF
 
 	rec.NWays = 3;
 	rec.NWaysOuter = true;
-	fHLT->SetGPUTrackerOption("HelperThreads", 0);
-	fHLT->SetGPUTrackerOption("GlobalTracking", 1);
 	rec.SearchWindowDZDR = 2.5f;
 	rec.TrackReferenceX = refX;
 	mRec->SetSettings(&ev, &rec);
 	mRec->SetTPCFastTransform(std::move(fastTrans));
+	mRec->Init();
+	if (fHLT->Initialize(mRec.get())) return 1;
 	for (int i = 0;i < 36;i++)
 	{
 		fHLT->InitializeSliceParam(i, &mRec->GetParam());

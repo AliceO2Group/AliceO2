@@ -25,6 +25,7 @@ struct AliGPUCASettingsRec
 	char NWays;							//Do N fit passes in final fit of merger
 	char NWaysOuter;					//Store outer param
 	char RejectMode;					//0: no limit on rejection or missed hits, >0: break after n rejected hits, <0: reject at max -n hits
+	char GlobalTracking;				//Enable Global Tracking (prolong tracks to adjacent sectors to find short segments)
 	float SearchWindowDZDR;				//Use DZDR window for seeding instead of vertex window
 	float TrackReferenceX;				//Transport all tracks to this X after tracking (disabled if > 500)
 };
@@ -50,9 +51,24 @@ struct AliGPUCASettingsProcessing
 	void SetDefaults();
 #endif
 	
-	int nThreads; //0 = auto-detect
 	unsigned int deviceType;
-	bool forceDeviceType;
+	char forceDeviceType;
+};
+
+struct AliGPUCASettingsDeviceProcessing
+{
+	#ifndef HLTCA_GPUCODE
+		AliGPUCASettingsDeviceProcessing() {SetDefaults();}
+		void SetDefaults();
+	#endif
+		
+	int nThreads;						//Numnber of threads on CPU, 0 = auto-detect
+	int deviceNum;						//Device number to use, in case the backend provides multiple devices (-1 = auto-select)
+	int platformNum;					//Platform to use, in case the backend provides multiple platforms (-1 = auto-select)
+	int nDeviceHelperThreads;			//Additional CPU helper-threads for CPU parts of processing with accelerator
+	int debugLevel;						//Level of debug output
+	int runEventDisplay;				//Run event display after processing
+	int runQA;							//Run QA after processing
 };
 
 #endif

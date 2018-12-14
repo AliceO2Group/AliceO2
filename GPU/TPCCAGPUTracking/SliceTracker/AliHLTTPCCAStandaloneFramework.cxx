@@ -21,6 +21,7 @@
 #include "AliHLTTPCCATrackParam.h"
 #include "AliTPCCommonMath.h"
 #include "AliHLTTPCCAClusterData.h"
+#include "AliGPUReconstruction.h"
 
 #if defined(HLTCA_BUILD_O2_LIB) & defined(HLTCA_STANDALONE)
 #undef HLTCA_STANDALONE //We disable the standalone application features for the O2 lib. This is a hack since the HLTCA_STANDALONE setting is ambigious... In this file it affects standalone application features, in the other files it means independence from aliroot
@@ -91,6 +92,11 @@ int AliHLTTPCCAStandaloneFramework::Initialize(AliGPUReconstruction* rec)
 {
   fTracker = new AliHLTTPCCATrackerFramework(rec);
   fTracker->SetOutputControl(&fOutputControl);
+  fTracker->SetGPUTracker(rec->IsGPU());
+  fTracker->SetGPUTrackerOption("GlobalTracking", rec->GetParam().rec.GlobalTracking);
+  fTracker->SetGPUTrackerOption("HelperThreads", rec->GetDeviceProcessingSettings().nDeviceHelperThreads);
+  fRunQA = rec->GetDeviceProcessingSettings().runQA;
+  fEventDisplay = rec->GetDeviceProcessingSettings().runEventDisplay;
   return 0;
 }
 

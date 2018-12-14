@@ -172,13 +172,15 @@ public:
 	
 	//Getters / setters for parameters
 	DeviceType GetDeviceType() const {return (DeviceType) mProcessingSettings.deviceType;}
+	bool IsGPU() const {return GetDeviceType() != INVALID_DEVICE && GetDeviceType() != CPU;}
 	const AliGPUCAParam& GetParam() const {return mParam;}
 	const TPCFastTransform* GetTPCTransform() const {return mTPCFastTransform.get();}
 	const ClusterNativeAccessExt* GetClusterNativeAccessExt() const {return mClusterNativeAccess.get();}
 	const AliGPUCASettingsEvent& GetEventSettings() {return mEventSettings;}
 	const AliGPUCASettingsProcessing& GetProcessingSettings() {return mProcessingSettings;}
+	const AliGPUCASettingsDeviceProcessing& GetDeviceProcessingSettings() {return mDeviceProcessingSettings;}
 	void SetSettings(float solenoidBz);
-	void SetSettings(const AliGPUCASettingsEvent* settings, const AliGPUCASettingsRec* rec = nullptr, const AliGPUCASettingsProcessing* proc = nullptr);
+	void SetSettings(const AliGPUCASettingsEvent* settings, const AliGPUCASettingsRec* rec = nullptr, const AliGPUCASettingsDeviceProcessing* proc = nullptr);
 	void SetTPCFastTransform(std::unique_ptr<TPCFastTransform> tpcFastTransform);
 	void SetTRDGeometry(const o2::trd::TRDGeometryFlat& geo);
 	void LoadClusterErrors();
@@ -228,7 +230,8 @@ protected:
 	
 	AliGPUCAParam mParam;														//Reconstruction parameters
 	AliGPUCASettingsEvent mEventSettings;										//Event Parameters
-	AliGPUCASettingsProcessing mProcessingSettings;								//Processing Parameters
+	AliGPUCASettingsProcessing mProcessingSettings;								//Processing Parameters (at constructor level)
+	AliGPUCASettingsDeviceProcessing mDeviceProcessingSettings;					//Processing Parameters (at init level)
 	
 	std::unique_ptr<TPCFastTransform> mTPCFastTransform;						//Global TPC fast transformation object
 	std::unique_ptr<ClusterNativeAccessExt> mClusterNativeAccess;	//Internal memory for clusterNativeAccess

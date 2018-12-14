@@ -157,13 +157,6 @@ int main(int argc, char** argv)
 		return(1);
 	}
 
-	if (hlt.Initialize(rec.get()))
-	{
-		printf("Press a key to exit!\n");
-		getchar();
-		return(1);
-	}
-	
 	if (!configStandalone.eventGenerator)
 	{
 		char filename[256];
@@ -180,15 +173,8 @@ int main(int argc, char** argv)
 	if (configStandalone.constBz) ev.constBz = true;
 	if (configStandalone.cont) ev.continuousMaxTimeBin = -1;
 
-	hlt.SetGPUDebugLevel(configStandalone.DebugLevel, &CPUOut, &GPUOut);
-	hlt.SetEventDisplay(configStandalone.eventDisplay);
-	hlt.SetRunQA(configStandalone.qa);
-	hlt.SetRunMerger(configStandalone.merger);
 	if (rec->GetDeviceType() == AliGPUReconstruction::DeviceType::CPU) printf("Standalone Test Framework for CA Tracker - Using CPU\n");
 	else printf("Standalone Test Framework for CA Tracker - Using GPU\n");
-
-	configStandalone.sliceCount = hlt.GetGPUMaxSliceCount();
-	hlt.SetGPUTracker(configStandalone.runGPU);
 
 	recSet.SetMinTrackPt(MIN_TRACK_PT_DEFAULT);
 	recSet.NWays = configStandalone.nways;
@@ -198,19 +184,21 @@ int main(int argc, char** argv)
 	if (configStandalone.referenceX < 500.) recSet.TrackReferenceX = configStandalone.referenceX;
 	rec->SetSettings(&ev, &recSet);
 	rec->Init();
+
+	if (hlt.Initialize(rec.get()))
+	{
+		printf("Press a key to exit!\n");
+		getchar();
+		return(1);
+	}
+	hlt.SetGPUDebugLevel(configStandalone.DebugLevel, &CPUOut, &GPUOut);
+	hlt.SetRunMerger(configStandalone.merger);
+	configStandalone.sliceCount = hlt.GetGPUMaxSliceCount();
 	for (int i = 0;i < 36;i++)
 	{
 		hlt.InitializeSliceParam(i, &rec->GetParam());
 	}
 	hlt.Merger().SetSliceParam(&rec->GetParam());
-
-	hlt.SetGPUTrackerOption("GlobalTracking", 1);
-
-	for (unsigned int i = 0;i < configStandalone.gpuOptions.size();i++)
-	{
-		printf("Setting GPU Option %s to %d\n", std::get<0>(configStandalone.gpuOptions[i]), std::get<1>(configStandalone.gpuOptions[i]));
-		hlt.SetGPUTrackerOption(std::get<0>(configStandalone.gpuOptions[i]), std::get<1>(configStandalone.gpuOptions[i]));
-	}
 
 	if (configStandalone.seed == -1)
 	{

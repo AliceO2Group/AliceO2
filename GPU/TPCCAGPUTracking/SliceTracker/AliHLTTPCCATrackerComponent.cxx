@@ -418,6 +418,7 @@ void AliHLTTPCCATrackerComponent::ConfigureSlices()
   
   fRec->SetSettings(&ev, &rec);
   fRec->LoadClusterErrors();
+  fRec->Init();
 
   for (int slice = 0;slice < fgkNSlices;slice++)
   {
