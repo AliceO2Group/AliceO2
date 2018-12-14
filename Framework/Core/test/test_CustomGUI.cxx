@@ -31,16 +31,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
         OutputSpec{ { "test" }, "TST", "A" },
       },
       AlgorithmSpec{
-        [](ProcessingContext& ctx) {
+        adaptStateless([](DataAllocator& outputs) {
           sleep(1);
-          auto out = ctx.outputs().make<int>(OutputRef{ "test", 0 });
-        } } },
+          auto out = outputs.make<int>(OutputRef{ "test", 0 });
+        }) } },
     { "dest",
       Inputs{
         { "test", "TST", "A" } },
       Outputs{},
-      AlgorithmSpec{
-        [](InitContext& ic) {
+      AlgorithmSpec{adaptStateful(
+        [](CallbackService& callbacks) {
           void* window = initGUI("A test window");
           auto count = std::make_shared<int>(0);
           auto guiCallback = [count]() {
@@ -48,14 +48,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
             ImGui::Text("Counter value: %i", *count);
             ImGui::End();
           };
-          ic.services().get<CallbackService>().set(CallbackService::Id::ClockTick,
-                                                   [count, window, guiCallback]() {
+          callbacks.set(CallbackService::Id::ClockTick,
+                        [count, window, guiCallback]() {
                     (*count)++; window ? pollGUI(window, guiCallback) : false; });
-          return [count](ProcessingContext& ctx) {
+          return adaptStateless([count](ControlService& control) {
             if (*count > 1000) {
-              ctx.services().get<ControlService>().readyToQuit(true);
+              control.readyToQuit(true);
             }
-          };
-        } } }
+          });
+        }) } }
   };
 }
