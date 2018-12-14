@@ -81,8 +81,6 @@ AddOption(continueOnError, bool, false, "continue", 0, "Continue processing afte
 AddOption(DebugLevel, int, 0, "debug", 'd', "Set debug level")
 AddOption(seed, int, -1, "seed", 0, "Set srand seed (-1: random)")
 AddOption(cleardebugout, bool, false, "clearDebugFile", 0, "Clear debug output file when processing next event")
-AddOption(sliceCount, int, -1, "sliceCount", 0, "Number of slices to process (-1: all)", min(-1), max(36))
-AddOption(forceSlice, int, -1, "slice", 0, "Process only this slice (-1: disable)", min(-1), max(36))
 AddOption(cudaDevice, int, -1, "gpuDevice", 0, "Set GPU device to use (-1: automatic)")
 AddOption(StartEvent, int, 0, "s", 's', "First event to process", min(0))
 AddOption(NEvents, int, -1, "n", 'n', "Number of events to process (-1; all)", min(1))

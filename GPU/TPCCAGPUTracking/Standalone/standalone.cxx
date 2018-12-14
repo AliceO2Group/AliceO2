@@ -193,7 +193,6 @@ int main(int argc, char** argv)
 	}
 	hlt.SetGPUDebugLevel(configStandalone.DebugLevel, &CPUOut, &GPUOut);
 	hlt.SetRunMerger(configStandalone.merger);
-	configStandalone.sliceCount = hlt.GetGPUMaxSliceCount();
 	for (int i = 0;i < 36;i++)
 	{
 		hlt.InitializeSliceParam(i, &rec->GetParam());
@@ -554,7 +553,7 @@ int main(int argc, char** argv)
 						hlt.SetOutputControl((char*) outputmemory, configStandalone.outputcontrolmem);
 					}
 
-					int tmpRetVal = hlt.ProcessEvent(configStandalone.forceSlice, j <= configStandalone.runsInit);
+					int tmpRetVal = hlt.ProcessEvent(j <= configStandalone.runsInit);
 					if (configStandalone.configRec.runTRD)
 					{
 						rec->mIOPtrs.nMergedTracks = hlt.Merger().NOutputTracks();

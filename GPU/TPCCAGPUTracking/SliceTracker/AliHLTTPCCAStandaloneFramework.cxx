@@ -119,7 +119,7 @@ void AliHLTTPCCAStandaloneFramework::StartDataReading( int guessForNumberOfClust
   fMCInfo.clear();
 }
 
-int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool resetTimers)
+int AliHLTTPCCAStandaloneFramework::ProcessEvent(bool resetTimers)
 {
   // perform the event reconstruction
 
@@ -143,17 +143,7 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool rese
   }
 #endif
 
-  if (forceSingleSlice != -1)
-  {
-	if (fTracker->ProcessSlices(forceSingleSlice, 1, &fClusterData[forceSingleSlice], &fSliceOutput[forceSingleSlice])) return (1);
-  }
-  else
-  {
-	for (int iSlice = 0;iSlice < fgkNSlices;iSlice += fTracker->MaxSliceCount())
-	{
-		if (fTracker->ProcessSlices(iSlice, CAMath::Min(fTracker->MaxSliceCount(), fgkNSlices - iSlice), &fClusterData[iSlice], &fSliceOutput[iSlice])) return (1);
-	}
-  }
+  if (fTracker->ProcessSlices(fClusterData, fSliceOutput)) return (1);
 
 #ifdef HLTCA_STANDALONE
   timerTracking.Stop();
@@ -209,15 +199,10 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool rese
             double time = 0;
 			for ( int iSlice = 0; iSlice < fgkNSlices;iSlice++)
 			{
-				if (forceSingleSlice != -1) iSlice = forceSingleSlice;
 				time += fTracker->GetTimer(iSlice, i);
                 if (!HLTCA_TIMING_SUM) fTracker->ResetTimer(iSlice, i);
-				if (forceSingleSlice != -1) break;
 			}
-			if (forceSingleSlice == -1)
-			{
-				time /= fgkNSlices;
-			}
+			time /= fgkNSlices;
 #ifdef HLTCA_HAVE_OPENMP
 			if (fTracker->GetGPUStatus() < 2) time /= omp_get_max_threads();
 #endif

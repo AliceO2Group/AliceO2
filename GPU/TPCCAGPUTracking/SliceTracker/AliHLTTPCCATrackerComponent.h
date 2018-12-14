@@ -95,11 +95,6 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
     AliHLTTPCCAClusterData* fClusterData;                       //Storage classes for cluser data in slice
     AliHLTTPCCASliceOutput* fSliceOutput[fgkNSlices];           //Pointers to slice tracker output structures
 
-    //The following parameters are maintained for compatibility to be able to change the component
-    //such to process less than all 36 slices. Currently, fMinSlice is always 0 and fSliceCount is 36
-    int fMinSlice;                                              //minimum slice number to be processed
-    int fSliceCount;                                            //Number of slices to be processed
-
     /** magnetic field */
     double fSolenoidBz;               // see above
     int fMinNTrackClusters;           //* required min number of clusters on the track

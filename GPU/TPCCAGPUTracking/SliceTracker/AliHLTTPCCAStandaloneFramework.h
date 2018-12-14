@@ -53,7 +53,7 @@ class AliHLTTPCCAStandaloneFramework
     /**
      *  perform event reconstruction
      */
-    int ProcessEvent(int forceSingleSlice = -1, bool resetTimers = true);
+    int ProcessEvent(bool resetTimers = true);
 
 
     int NSlices() const { return fgkNSlices; }

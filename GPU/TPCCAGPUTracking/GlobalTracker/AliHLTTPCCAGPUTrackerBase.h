@@ -47,11 +47,11 @@ public:
 	AliHLTTPCCAGPUTrackerBase();
 	virtual ~AliHLTTPCCAGPUTrackerBase();
 
-	virtual int InitGPU(int sliceCount = -1, int forceDeviceID = -1);
-	virtual int InitGPU_Runtime(int sliceCount = -1, int forceDeviceID = -1) = 0;
+	virtual int InitGPU(int forceDeviceID = -1);
+	virtual int InitGPU_Runtime(int forceDeviceID = -1) = 0;
 	virtual int IsInitialized();
-	virtual int Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1) = 0;
-	int SelfHealReconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);
+	virtual int Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData) = 0;
+	int SelfHealReconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData);
 	virtual int ExitGPU();
 	virtual int ExitGPU_Runtime() = 0;
 
@@ -65,7 +65,6 @@ public:
 	virtual void SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* val);
 
 	virtual const AliHLTTPCCASliceOutput::outputControlStruct* OutputControl() const;
-	virtual int GetSliceCount() const;
 
 	virtual int RefitMergedTracks(AliHLTTPCGMMerger* Merger, bool resetTimers) = 0;
 	virtual char* MergerHostMemory() {return((char*) fGPUMergerHostMemory);}
@@ -81,14 +80,11 @@ protected:
 		void* fThreadId;
 		AliHLTTPCCAGPUTrackerBase* fCls;
 		int fNum;
-		int fSliceCount;
 		AliHLTTPCCAClusterData* pClusterData;
 		AliHLTTPCCASliceOutput** pOutput;
-		int fFirstSlice;
 		void* fMutex;
 		char fTerminate;
 		int fPhase;
-		int CPUTracker;
 		volatile int fDone;
 		volatile char fError;
 		volatile char fReset;
@@ -97,18 +93,18 @@ protected:
 	static void* RowMemory(void* const BaseMemory, int iSlice)       { return( ((char*) BaseMemory) + iSlice * sizeof(AliHLTTPCCARow) * (HLTCA_ROW_COUNT + 1) ); }
 	static void* CommonMemory(void* const BaseMemory, int iSlice)    { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + iSlice * AliHLTTPCCATracker::CommonMemorySize() ); }
 	static void* SliceDataMemory(void* const BaseMemory, int iSlice) { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + iSlice * HLTCA_GPU_SLICE_DATA_MEMORY ); }
-	void* GlobalMemory(void* const BaseMemory, int iSlice) const     { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + fSliceCount * (HLTCA_GPU_SLICE_DATA_MEMORY) + iSlice * HLTCA_GPU_GLOBAL_MEMORY ); } //in GPU memory, not host memory!!!
-	void* TracksMemory(void* const BaseMemory, int iSlice) const     { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + fSliceCount * (HLTCA_GPU_SLICE_DATA_MEMORY) + iSlice * HLTCA_GPU_TRACKS_MEMORY ); } //in host memory, not GPU memory!!!
-	void* TrackerMemory(void* const BaseMemory, int iSlice) const    { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + fSliceCount * (HLTCA_GPU_SLICE_DATA_MEMORY + HLTCA_GPU_TRACKS_MEMORY) + iSlice * sizeof(AliHLTTPCCATracker) ); }
+	void* GlobalMemory(void* const BaseMemory, int iSlice) const     { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + 36 * (HLTCA_GPU_SLICE_DATA_MEMORY) + iSlice * HLTCA_GPU_GLOBAL_MEMORY ); } //in GPU memory, not host memory!!!
+	void* TracksMemory(void* const BaseMemory, int iSlice) const     { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + 36 * (HLTCA_GPU_SLICE_DATA_MEMORY) + iSlice * HLTCA_GPU_TRACKS_MEMORY ); } //in host memory, not GPU memory!!!
+	void* TrackerMemory(void* const BaseMemory, int iSlice) const    { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + 36 * (HLTCA_GPU_SLICE_DATA_MEMORY + HLTCA_GPU_TRACKS_MEMORY) + iSlice * sizeof(AliHLTTPCCATracker) ); }
 
-	int Reconstruct_Base_Init(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int& firstSlice, int& sliceCountLocal);
-	int Reconstruct_Base_SliceInit(AliHLTTPCCAClusterData* pClusterData, int& iSlice, int& firstSlice);
+	int Reconstruct_Base_Init(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData);
+	int Reconstruct_Base_SliceInit(AliHLTTPCCAClusterData* pClusterData, int& iSlice);
 	int Reconstruct_Base_StartGlobal(AliHLTTPCCASliceOutput** pOutput, char*& tmpMemoryGlobalTracking);
-	int Reconstruct_Base_FinishSlices(AliHLTTPCCASliceOutput** pOutput, int& iSlice, int& firstSlice);
-	int Reconstruct_Base_Finalize(AliHLTTPCCASliceOutput** pOutput, char*& tmpMemoryGlobalTracking, int& firstSlice);
+	int Reconstruct_Base_FinishSlices(AliHLTTPCCASliceOutput** pOutput, int& iSlice);
+	int Reconstruct_Base_Finalize(AliHLTTPCCASliceOutput** pOutput, char*& tmpMemoryGlobalTracking);
 
-	int ReadEvent(AliHLTTPCCAClusterData* pClusterData, int firstSlice, int iSlice, int threadId);
-	void WriteOutput(AliHLTTPCCASliceOutput** pOutput, int firstSlice, int iSlice, int threadId);
+	int ReadEvent(AliHLTTPCCAClusterData* pClusterData, int iSlice, int threadId);
+	void WriteOutput(AliHLTTPCCASliceOutput** pOutput, int iSlice, int threadId);
 	int GlobalTracking(int iSlice, int threadId, helperParam* hParam);
 
 	int StartHelperThreads();
@@ -149,7 +145,6 @@ protected:
 	unsigned long long int fGPUMemSize;	//Memory Size to allocate on GPU
 	unsigned long long int fHostMemSize; //Memory Size to allocate on Host
 
-	int fSliceCount; //Maximum Number of Slices this GPU tracker can process in parallel
 	int fCudaDevice; //CUDA device used by GPU tracker
 
 	static const int fgkNSlices = 36; //Number of Slices in Alice
@@ -187,11 +182,7 @@ protected:
 	char fGlobalTrackingDone[fgkNSlices];
 	char fWriteOutputDone[fgkNSlices];
 
-	int fNCPUTrackers; //Number of CPU trackers to use
-	int fNSlicesPerCPUTracker; //Number of slices processed by each CPU tracker
-
 	int fGlobalTracking; //Use Global Tracking
-	int fUseGlobalTracking;
 
 	int fNSlaveThreads;	//Number of slave threads currently active
 
