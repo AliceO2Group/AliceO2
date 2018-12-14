@@ -8,6 +8,7 @@ set(SRCS
   src/DigitReaderSpec.cxx
   src/ClustererSpec.cxx
   src/ClusterWriterSpec.cxx
+  src/TrackerSpec.cxx
   src/CookedTrackerSpec.cxx
   src/TrackWriterSpec.cxx
    )
