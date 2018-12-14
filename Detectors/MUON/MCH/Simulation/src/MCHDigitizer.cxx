@@ -26,13 +26,17 @@ void MCHDigitizer::init()
   //std::vector<mapping::Segmentation*> mSegbend;
   // std::vector<mapping::Segmentation*> mSegbend;
   //how does programme know about proper storage footprint
-  for(Int_t i=0; i<mNdE; ++i){
-    mapping::Segmentation itb{i,true};
-    mSegbend.at(i) =  &itb; //= mapping::Segmentation(i,kTRUE);
-    mapping::Segmentation itn{i,false};
-    mSegnon.at(i) = &itn; // = mapping::Segmentation(i,kFALSE);
-    
+  //  for(Int_t i=0; i<mNdE; ++i){
+  for (auto deid : mdetID) {
+    mSegbend.push_back(mapping::Segmentation{deid, true});
+    //    mapping::forEachDetectionElement([&mSegbend](int deid){ segs.emplace_back(deid, true); });
   }
+    //mapping::Segmentation itb{i,true};
+    // mSegbend.emplace_back(i, mapping::Segmentation(i,true)); //= mapping::Segmentation(i,kTRUE);
+    //    mapping::Segmentation itn{i, mapping::Segmentation{i,false}};
+    //mSegnon.emplace_back(i, mapping::Segmentation{i,false});
+    
+    //}
   
   
   // To be done:
@@ -124,8 +128,8 @@ Int_t MCHDigitizer::processHit(const Hit &hit,Double_t event_time)
   
   
   //TEST with only one pad
-    Int_t padidbend = mSegbend[detID]->findPadByPosition(anodpos,pos[1]);
-    Int_t padidnon  = mSegnon[detID]->findPadByPosition(anodpos,pos[1]);
+  Int_t padidbend=0 ;//= mSegbend[detID]->findPadByPosition(anodpos,pos[1]);
+  Int_t padidnon=0  ;//= mSegnon[detID]->findPadByPosition(anodpos,pos[1]);
   //correct coordinate system? how misalignment enters?
 
 
@@ -134,10 +138,10 @@ Int_t MCHDigitizer::processHit(const Hit &hit,Double_t event_time)
   */
     /* for(auto & padidbend : mPadIDsbend){
     //retrieve coordinates for each pad*/
-      xmin =  mSegbend[detID]->padPositionX(padidbend)-mSegbend[detID]->padSizeX(padidbend)*0.5;
-      xmax =  mSegbend[detID]->padPositionX(padidbend)+mSegbend[detID]->padSizeX(padidbend)*0.5;
-      ymin =  mSegbend[detID]->padPositionY(padidbend)-mSegbend[detID]->padSizeY(padidbend)*0.5;
-      ymax =  mSegbend[detID]->padPositionY(padidbend)+mSegbend[detID]->padSizeY(padidbend)*0.5;
+    //  xmin =  mSegbend[detID]->padPositionX(padidbend)-mSegbend[detID]->padSizeX(padidbend)*0.5;
+    //  xmax =  mSegbend[detID]->padPositionX(padidbend)+mSegbend[detID]->padSizeX(padidbend)*0.5;
+    //  ymin =  mSegbend[detID]->padPositionY(padidbend)-mSegbend[detID]->padSizeY(padidbend)*0.5;
+    //  ymax =  mSegbend[detID]->padPositionY(padidbend)+mSegbend[detID]->padSizeY(padidbend)*0.5;
       
     // 1st step integrate induced charge for each pad
       signal = chargePad(anodpos,pos[1],xmin,xmax,ymin,ymax,detID,chargebend);
@@ -153,10 +157,10 @@ Int_t MCHDigitizer::processHit(const Hit &hit,Double_t event_time)
 
 	   for(auto & padidnon : mPadIDsnon){*/
     //retrieve coordinates for each pad
-    xmin =  mSegnon[detID]->padPositionX(padidnon)-mSegnon[detID]->padSizeX(padidnon)*0.5;
-    xmax =  mSegnon[detID]->padPositionX(padidnon)+mSegnon[detID]->padSizeX(padidnon)*0.5;
-    ymin =  mSegnon[detID]->padPositionY(padidnon)-mSegnon[detID]->padSizeY(padidnon)*0.5;
-    ymax =  mSegnon[detID]->padPositionY(padidnon)+mSegnon[detID]->padSizeY(padidnon)*0.5;
+    //  xmin =  mSegnon[detID]->padPositionX(padidnon)-mSegnon[detID]->padSizeX(padidnon)*0.5;
+    // xmax =  mSegnon[detID]->padPositionX(padidnon)+mSegnon[detID]->padSizeX(padidnon)*0.5;
+    // ymin =  mSegnon[detID]->padPositionY(padidnon)-mSegnon[detID]->padSizeY(padidnon)*0.5;
+    // ymax =  mSegnon[detID]->padPositionY(padidnon)+mSegnon[detID]->padSizeY(padidnon)*0.5;
     
     //retrieve charge for given x,y with Mathieson
     signal = chargePad(anodpos,pos[1],xmin,xmax,ymin,ymax,detID,chargenon);
