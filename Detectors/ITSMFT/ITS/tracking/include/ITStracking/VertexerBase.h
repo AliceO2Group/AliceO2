@@ -33,7 +33,7 @@ using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 class VertexerBase
 {
  public:
-  explicit VertexerBase(const ROframe& event/*, useGPU = false*/);
+  explicit VertexerBase(const ROframe& event /*, useGPU = false*/);
 
   VertexerBase(const VertexerBase&) = delete;
   VertexerBase& operator=(const VertexerBase&) = delete;
@@ -62,7 +62,7 @@ class VertexerBase
   int mPhiSpan, mZSpan;
   std::array<float, 3> mAverageClustersRadii;
   std::array<float, Constants::ITS::LayersNumber> mITSRadii;
-  float mZBinSize;
+  // float mZBinSize;
   ROframe mEvent;
   std::vector<Vertex> mVertices;
   std::array<std::array<int, Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins + 1>,

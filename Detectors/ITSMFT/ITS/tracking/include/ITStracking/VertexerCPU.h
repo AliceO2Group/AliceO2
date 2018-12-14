@@ -42,16 +42,13 @@ class VertexerCPU : public VertexerBase
   // VertexerCPU() { }
   // virtual ~VertexerCPU() { }
 
-
   // void computeLayerTracklets() final;
   // void computeLayerCells() final;
 
  protected:
-
   // std::vector<std::vector<Tracklet>> mTracklets;
   // std::vector<std::vector<Cell>> mCells;
 };
-
 }
 }
 

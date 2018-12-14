@@ -139,11 +139,11 @@ void run_trac_ca_its(bool useITSVertex = false,
             std::vector<Vertex> vertITS = vertexer.getVertices();
             if (!vertITS.empty()) {
               // Using only the first vertex in the list
-              cout << " - Reconstructed vertexer: x = " <<vertITS[0].getX()<< " y = " <<
-              vertITS[0].getY() << " x = " << vertITS[0].getZ() << std::endl;
+              cout << " - Reconstructed vertexer: x = " << vertITS[0].getX() << " y = " << vertITS[0].getY() << " x = " << vertITS[0].getZ() << std::endl;
               event.addPrimaryVertex(vertITS[0].getX(), vertITS[0].getY(), vertITS[0].getZ());
             } else {
-              cout << " - Vertex not reconstructed, tracking skipped" << std::endl;;
+              cout << " - Vertex not reconstructed, tracking skipped" << std::endl;
+              ;
             }
           } else {
             event.addPrimaryVertex(0.f, 0.f, 0.f);
@@ -161,24 +161,23 @@ void run_trac_ca_its(bool useITSVertex = false,
       cout << "Event " << iEvent << std::endl;
       o2::ITS::IOUtils::loadEventData(event, clusters, labels);
       if (useITSVertex) {
-            o2::ITS::VertexerBase vertexer(event);
-            vertexer.setROFrame(roFrame);
-            vertexer.initialise({ 0.005, 0.002, 0.04, 0.8, 5 });
-            // set to true to use MC check
-            vertexer.findTracklets(false);
-            vertexer.findVertices();
-            std::vector<Vertex> vertITS = vertexer.getVertices();
-            // Using only the first vertex in the list
-            if (!vertITS.empty()) {
-              cout << " - Reconstructed vertex: x = " <<vertITS[0].getX()<< " y = " <<
-              vertITS[0].getY() << " x = " << vertITS[0].getZ() << std::endl;
-              event.addPrimaryVertex(vertITS[0].getX(), vertITS[0].getY(), vertITS[0].getZ());
-            } else {
-              cout << " - Vertex not reconstructed, tracking skipped" << std::endl;
-            }
-          } else {
-            event.addPrimaryVertex(mcHeader->GetX(), mcHeader->GetY(), mcHeader->GetZ());
-          }
+        o2::ITS::VertexerBase vertexer(event);
+        vertexer.setROFrame(roFrame);
+        vertexer.initialise({ 0.005, 0.002, 0.04, 0.8, 5 });
+        // set to true to use MC check
+        vertexer.findTracklets(false);
+        vertexer.findVertices();
+        std::vector<Vertex> vertITS = vertexer.getVertices();
+        // Using only the first vertex in the list
+        if (!vertITS.empty()) {
+          cout << " - Reconstructed vertex: x = " << vertITS[0].getX() << " y = " << vertITS[0].getY() << " x = " << vertITS[0].getZ() << std::endl;
+          event.addPrimaryVertex(vertITS[0].getX(), vertITS[0].getY(), vertITS[0].getZ());
+        } else {
+          cout << " - Vertex not reconstructed, tracking skipped" << std::endl;
+        }
+      } else {
+        event.addPrimaryVertex(mcHeader->GetX(), mcHeader->GetY(), mcHeader->GetZ());
+      }
       tracker.clustersToTracks(event);
       tracksITS->swap(tracker.getTracks());
       *trackLabels = tracker.getTrackLabels(); /// FIXME: assignment ctor is not optimal.

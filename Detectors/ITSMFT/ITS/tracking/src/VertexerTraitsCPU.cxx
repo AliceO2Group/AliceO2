@@ -8,30 +8,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file VertexerCUDA.h
+/// \file VertexerCPU.cxx
 /// \brief
 ///
 
-#ifndef TRACKINGITSU_INCLUDE_VERTEXERCUDA_H_
-#define TRACKINGITSU_INCLUDE_VERTEXERCUDA_H_
-
-#include "ITStracking/VertexerBase.h"
+#include "ITStracking/VertexerTraitsCPU.h"
 
 namespace o2
 {
 namespace ITS
 {
 
-class VertexerCUDA : public VertexerBase
-{
- public:
-  VertexerCUDA();
-  virtual ~VertexerCUDA();
-  void computeLayerTracklets() final;
-};
-
-extern "C" VertexerBase* createVertexerCUDA();
-}
-}
-
-#endif /* TRACKINGITSU_INCLUDE_VERTEXERCUDA_H_ */
+} // namespace ITS
+} // namespace o2

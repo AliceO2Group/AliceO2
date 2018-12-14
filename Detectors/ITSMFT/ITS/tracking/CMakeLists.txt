@@ -15,9 +15,10 @@ set(NO_DICT_SRCS # sources not for the dictionary
     src/Road.cxx
     src/Tracker.cxx
     src/TrackerTraitsCPU.cxx
-    src/VertexerCPU.cxx
     src/ClusterLines.cxx
     src/VertexerBase.cxx
+    src/Vertexer.cxx
+    src/VertexerTraits.cxx
     )
 #   src/TrivialClusterer.cxx
 
@@ -32,8 +33,8 @@ set(NO_DICT_HEADERS
     include/${MODULE_NAME}/Config.h
     include/${MODULE_NAME}/Definitions.h
     include/${MODULE_NAME}/TrackerTraits.h
+    # include/${MODULE_NAME}/VertexerTraits.h
     include/${MODULE_NAME}/Tracklet.h
-    # include/${MODULE_NAME}/VertexerCPU.h
     )
 
 # Set(LINKDEF src/${MODULE_NAME}LinkDef.h)
