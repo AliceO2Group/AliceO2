@@ -68,7 +68,7 @@ VertexerBase::VertexerBase(const ROframe& event) : mEvent{ event }, mAverageClus
 // VertexerBase::~VertexerBase(){};
 
 void VertexerBase::initialise(const float zCut, const float phiCut, const float pairCut, const float clusterCut,
-                          const int clusterContributorsCut)
+                              const int clusterContributorsCut)
 {
   for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumberVertexer; ++iLayer) {
     std::sort(mClusters[iLayer].begin(), mClusters[iLayer].end(), [](Cluster& cluster1, Cluster& cluster2) {
@@ -140,7 +140,7 @@ void VertexerBase::initialise(const std::tuple<float, float, float, float, int> 
 }
 
 const std::vector<std::pair<int, int>> VertexerBase::selectClusters(const std::array<int, ZBins * PhiBins + 1>& indexTable,
-                                                                const std::array<int, 4>& selectedBinsRect)
+                                                                    const std::array<int, 4>& selectedBinsRect)
 {
   std::vector<std::pair<int, int>> filteredBins{};
   int phiBinsNum{ selectedBinsRect[3] - selectedBinsRect[1] + 1 };

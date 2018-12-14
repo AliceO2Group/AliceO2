@@ -8,17 +8,35 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file VertexerCPU.cxx
+/// \file VertexerTraitsCPU.h
 /// \brief
 ///
 
-#include "ITStracking/VertexerCPU.h"
+#ifndef VERTEXERTRAITSCPU_H_
+#define VERTEXERTRAITSCPU_H_
+
+#include <vector>
+#include "ITStracking/VertexerTraits.h"
+#include "ITStracking/ClusterLines.h"
 
 namespace o2
 {
 namespace ITS
 {
 
+class VertexerTraitsCPU : public VertexerTraits
+{
+ public:
+  VertexerTraitsCPU();
+  // ~VertexerTraitsCPU();
 
-} // namespace ITS
-} // namespace o2
+  void findLayerTracklets(const bool useMCLabels) final;
+  void findLayerVertices() final;
+
+ protected:
+  std::vector<Line> mTracklets;
+};
+}
+}
+
+#endif /* VERTEXERTRAITCPUS_H_ */
