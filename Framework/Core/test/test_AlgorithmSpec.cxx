@@ -46,4 +46,8 @@ BOOST_AUTO_TEST_CASE(TestAlgorithmSpec) {
     }},
     AlgorithmSpec::emptyErrorCallback()
   };
+
+  AlgorithmSpec spec7{ adaptStateless([](InputRecord&, DataAllocator&) {}) };
+  int i = 0;
+  AlgorithmSpec spec8{ adaptStateless([&i](InputRecord&, DataAllocator&) {}) };
 }
