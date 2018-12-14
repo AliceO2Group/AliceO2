@@ -54,6 +54,7 @@ set(HEADERS
    include/${MODULE_NAME}/TPCCATracking.h
    include/${MODULE_NAME}/HardwareClusterDecoder.h
    include/${MODULE_NAME}/DigitalCurrentClusterIntegrator.h
+   include/${MODULE_NAME}/TPCFastTransformHelperO2.h
 )
 set(LINKDEF src/TPCReconstructionLinkDef.h)
 set(LIBRARY_NAME ${MODULE_NAME})
