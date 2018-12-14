@@ -1,5 +1,5 @@
-/// \file CheckDigits.C
-/// \brief Simple macro to check ITSU clusters
+/// \file CheckTopologies.C
+/// Macros to test the generation of a dictionary of topologies. Three dictionaries are generated: one with signal-cluster only, one with noise-clusters only and one with all the clusters.
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <TAxis.h>
@@ -154,6 +154,7 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfi
   hComplete->SetFillColor(kRed);
   hComplete->SetFillStyle(3005);
   hComplete->Draw("hist");
+  hComplete->Write();
   cComplete->Write();
   TCanvas* cNoise = new TCanvas("cNoise", "Distribution of noise topologies");
   cNoise->cd();
@@ -165,6 +166,7 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfi
   hNoise->SetFillColor(kRed);
   hNoise->SetFillStyle(3005);
   hNoise->Draw("hist");
+  hNoise->Write();
   cNoise->Write();
   TCanvas* cProper = new TCanvas("cProper", "cProper");
   cProper->cd();
@@ -176,5 +178,6 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfi
   hProper->SetFillColor(kRed);
   hProper->SetFillStyle(3005);
   hProper->Draw("hist");
+  hProper->Write();
   cProper->Write();
 }

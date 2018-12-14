@@ -72,7 +72,7 @@ class TopologyDictionary
   /// Prints the dictionary in a binary file
   void WriteBinaryFile(std::string outputFile);
   /// Reads the dictionary from a binary file
-  void ReadBinaryFile(std::string fileName);
+  int ReadBinaryFile(std::string fileName);
   /// Returns the x position of the COG for the n_th element
   float GetXcog(int n);
   /// Returns the error on the x position of the COG for the n_th element
