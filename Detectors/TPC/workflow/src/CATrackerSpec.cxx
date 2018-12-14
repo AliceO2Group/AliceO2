@@ -18,6 +18,7 @@
 #include "Framework/WorkflowSpec.h" // o2::framework::mergeInputs
 #include "Framework/DataRefUtils.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/ControlService.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/Helpers.h"
@@ -58,6 +59,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
     std::unique_ptr<o2::TPC::TPCCATracking> tracker;
     int verbosity = 1;
     size_t nParallelInputs = 1;
+    bool readyToQuit = false;
   };
 
   auto initFunction = [processMC, fanIn](InitContext& ic) {
@@ -78,6 +80,9 @@ DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
     }
 
     auto processingFct = [processAttributes, processMC](ProcessingContext& pc) {
+      if (processAttributes->readyToQuit) {
+        return;
+      }
       auto& parser = processAttributes->parser;
       auto& tracker = processAttributes->tracker;
       uint64_t activeSectors = 0;
@@ -100,7 +105,6 @@ DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
           }
           const int& sector = sectorHeader->sector;
           if (sector < 0) {
-            // FIXME: this we have to sort out once the steering is implemented
             continue;
           }
           if (validMcInputs.test(sector)) {
@@ -127,6 +131,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
       std::generate(inputLabels.begin(), inputLabels.end(), [counter = std::make_shared<int>(0)]() { return "input" + std::to_string((*counter)++); });
       auto& validInputs = processAttributes->validInputs;
       auto& inputs = processAttributes->inputs;
+      int operation = 0;
       for (auto& inputLabel : inputLabels) {
         auto ref = pc.inputs().get(inputLabel);
         auto payploadSize = DataRefUtils::getPayloadSize(ref);
@@ -138,7 +143,12 @@ DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
         }
         const int& sector = sectorHeader->sector;
         if (sector < 0) {
-          // FIXME: this we have to sort out once the steering is implemented
+          if (operation < 0 && operation != sector) {
+            // we expect the same operation on all inputs
+            LOG(ERROR) << "inconsistent lane operation, got " << sector << ", expecting " << operation;
+          } else if (operation == 0) {
+            operation = sector;
+          }
           continue;
         }
         if (validInputs.test(sector)) {
@@ -161,10 +171,23 @@ DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
         }
       }
 
+      if (operation == -1) {
+        // EOD is transmitted in the sectorHeader with sector number equal to -1
+        o2::TPC::TPCSectorHeader sh{ -1 };
+        sh.activeSectors = activeSectors;
+        pc.outputs().snapshot(OutputRef{ "output", 0, { sh } }, -1);
+        if (processMC) {
+          pc.outputs().snapshot(OutputRef{ "mclblout", 0, { sh } }, -1);
+        }
+        pc.services().get<ControlService>().readyToQuit(false);
+        processAttributes->readyToQuit = true;
+        return;
+      }
       if (activeSectors == 0 || (activeSectors & validInputs.to_ulong()) != activeSectors ||
           (processMC && (activeSectors & validMcInputs.to_ulong()) != activeSectors)) {
         // not all sectors available
-        // FIXME: do we need to send something
+        // not needed to send something, DPL will simply drop this timeslice, whenever the
+        // data for all sectors is available, the output is sent in that time slice
         return;
       }
       assert(processMC == false || validMcInputs == validInputs);

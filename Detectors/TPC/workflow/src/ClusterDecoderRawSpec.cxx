@@ -16,6 +16,7 @@
 #include "ClusterDecoderRawSpec.h"
 #include "Headers/DataHeader.h"
 #include "Framework/DataRefUtils.h"
+#include "Framework/ControlService.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/ClusterHardware.h"
 #include "DataFormatsTPC/Helpers.h"
@@ -56,6 +57,10 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
     auto decoder = std::make_shared<HardwareClusterDecoder>();
 
     auto processingFct = [verbosity, decoder, sendMC](ProcessingContext& pc) {
+      static bool finished = false;
+      if (finished) {
+        return;
+      }
       // this will return a span of TPC clusters
       const auto& ref = pc.inputs().get("rawin");
       auto size = o2::framework::DataRefUtils::getPayloadSize(ref);
@@ -87,6 +92,11 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
         std::swap(rawHeaderStack, actual);
         if (sectorHeader->sector < 0) {
           pc.outputs().snapshot(OutputRef{ "clusterout", fanSpec, std::move(rawHeaderStack) }, fanSpec);
+          if (sectorHeader->sector == -1) {
+            // got EOD
+            finished = true;
+            pc.services().get<ControlService>().readyToQuit(false);
+          }
           return;
         }
       }

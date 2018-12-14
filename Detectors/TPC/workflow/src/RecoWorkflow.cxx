@@ -241,13 +241,33 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, bool pro
     return base + "_" + std::to_string(tpcSectors.at(index));
   };
 
+  // check if the process is ready to quit
+  // this is decided upon the meta information in the TPC sector header, the operation is set as
+  // a negative number in the sector member, -2 indicates no-operation, -1 indicates end-of-data
+  // see also PublisherSpec.cxx
+  // in this workflow, the EOD is sent after the last real data, and all inputs will receive EOD,
+  // so it is enough to check on the first occurence
+  // FIXME: this will be changed once DPL can propagate control events like EOD
+  auto checkReady = [](o2::framework::DataRef const& ref, bool& isReady) {
+    auto const* tpcSectorHeader = o2::framework::DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(ref);
+    // sector number -1 indicates end-of-data
+    if (tpcSectorHeader != nullptr) {
+      isReady = tpcSectorHeader->sector == -1;
+      // indicate normal processing if not ready and skip if ready
+      if (isReady) {
+        return MakeRootTreeWriterSpec::TerminationCondition::Action::SkipProcessing;
+      }
+    }
+    return MakeRootTreeWriterSpec::TerminationCondition::Action::DoProcessing;
+  };
+
   // -------------------------------------------------------------------------------------------
   // helper to create writer specs for different types of output
-  auto makeWriterSpec = [tpcSectors, nLanes, propagateMC, getIndex, getName](const char* processName,
-                                                                             const char* defaultFileName,
-                                                                             const char* defaultTreeName,
-                                                                             auto&& databranch,
-                                                                             auto&& mcbranch) {
+  auto makeWriterSpec = [tpcSectors, nLanes, propagateMC, getIndex, getName, checkReady](const char* processName,
+                                                                                         const char* defaultFileName,
+                                                                                         const char* defaultTreeName,
+                                                                                         auto&& databranch,
+                                                                                         auto&& mcbranch) {
     if (tpcSectors.size() == 0) {
       throw std::invalid_argument(std::string("writer process configuration needs list of TPC sectors"));
     }
@@ -268,10 +288,12 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, bool pro
     // or one branch definition
     if (propagateMC) {
       return std::move(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
+                                              MakeRootTreeWriterSpec::TerminationCondition{ checkReady },
                                               std::move(amendBranchDef(databranch)),
                                               std::move(amendBranchDef(mcbranch)))());
     }
     return std::move(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
+                                            MakeRootTreeWriterSpec::TerminationCondition{ checkReady },
                                             std::move(amendBranchDef(databranch)))());
   };
 
@@ -382,11 +404,15 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, bool pro
     // depending on the MC propagation flag, the RootTreeWriter spec is created with two
     // or one branch definition
     if (propagateMC) {
-      specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName, //
-                                             std::move(tracksdef), std::move(mcdef))());    //
-    } else {                                                                                //
-      specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName, //
-                                             std::move(tracksdef))());                      //
+      specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,              //
+                                             MakeRootTreeWriterSpec::TerminationPolicy::Process,         //
+                                             MakeRootTreeWriterSpec::TerminationCondition{ checkReady }, //
+                                             std::move(tracksdef), std::move(mcdef))());                 //
+    } else {                                                                                             //
+      specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,              //
+                                             MakeRootTreeWriterSpec::TerminationPolicy::Process,         //
+                                             MakeRootTreeWriterSpec::TerminationCondition{ checkReady }, //
+                                             std::move(tracksdef))());                                   //
     }
   }
 

@@ -14,6 +14,7 @@
 /// @brief  Processor spec for converter of TPC clusters to HW cluster raw data
 
 #include "ClusterConverterSpec.h"
+#include "Framework/ControlService.h"
 #include "Headers/DataHeader.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/Cluster.h"
@@ -49,6 +50,10 @@ DataProcessorSpec getClusterConverterSpec(bool sendMC)
     auto verbosity = 0;
 
     auto processingFct = [verbosity, sendMC](ProcessingContext& pc) {
+      static bool finished = false;
+      if (finished) {
+        return;
+      }
       auto dataref = pc.inputs().get("clusterin");
       auto const* dataHeader = DataRefUtils::getHeader<o2::header::DataHeader*>(dataref);
       o2::header::DataHeader::SubSpecificationType fanSpec = dataHeader->subSpecification;
@@ -74,6 +79,11 @@ DataProcessorSpec getClusterConverterSpec(bool sendMC)
         std::swap(rawHeaderStack, actual);
         if (sectorHeader->sector < 0) {
           pc.outputs().snapshot(OutputRef{ "clusterout", fanSpec, std::move(rawHeaderStack) }, fanSpec);
+          if (sectorHeader->sector == -1) {
+            // got EOD
+            finished = true;
+            pc.services().get<ControlService>().readyToQuit(false);
+          }
           return;
         }
       }
