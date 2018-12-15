@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
 
-
 set(CMAKE_CXX_STANDARD 14)
 
 set(CMAKE_CXX_FLAGS         "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror")
@@ -15,6 +14,10 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+find_package(OpenCL REQUIRED)
+include_directories(${OpenCL_INCLUDE_DIRS})
+link_directories(${OpenCL_LIBRARY})
 
 include_directories(src)
 include_directories(external)
