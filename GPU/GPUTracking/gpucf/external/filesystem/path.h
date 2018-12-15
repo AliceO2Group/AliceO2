@@ -109,7 +109,7 @@ public:
         if (stat(str().c_str(), &sb) != 0)
             throw std::runtime_error("path::file_size(): cannot stat file \"" + str() + "\"!");
 #endif
-        return (size_t) sb.st_size;
+        return static_cast<size_t>(sb.st_size);
     }
 
     bool is_directory() const {
@@ -243,7 +243,7 @@ public:
 
     bool resize_file(size_t target_length) {
 #if !defined(_WIN32)
-        return ::truncate(str().c_str(), (off_t) target_length) == 0;
+        return ::truncate(str().c_str(), static_cast<off_t>(target_length)) == 0;
 #else
         HANDLE handle = CreateFileW(wstr().c_str(), GENERIC_WRITE, 0, nullptr, 0, FILE_ATTRIBUTE_NORMAL, nullptr);
         if (handle == INVALID_HANDLE_VALUE)
