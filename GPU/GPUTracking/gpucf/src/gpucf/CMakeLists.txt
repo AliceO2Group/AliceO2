@@ -1,6 +1,7 @@
 set(GPUCF_SRC
     "./log.cpp"
     "./errorcodes.cpp"
+    "./ClEnv.cpp"
 
     "./common/Digit.cpp"
 
@@ -9,3 +10,4 @@ set(GPUCF_SRC
 )
 
 add_library(gpucf STATIC ${GPUCF_SRC})
+target_link_libraries(gpucf ${OpenCL_LIBRARY})
