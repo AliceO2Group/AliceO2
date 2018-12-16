@@ -27,8 +27,7 @@ namespace mch
 class MCHDigitizer
 {
  public:
- MCHDigitizer(Int_t mode = 0) : mReadoutWindowCurrent(0)   {
-     init(); };
+  MCHDigitizer(Int_t mode = 0);
   
   ~MCHDigitizer() = default;
 
@@ -67,13 +66,18 @@ class MCHDigitizer
   // digit per pad
   std::vector<Digit> mDigits;
   //
-  static std::map<int,int> mdetID; 
+  //  static std::map<int,int> mdetID;
+
+  std::map<int,int> mdetID;
   
   std::vector<int> mPadIDsbend;//not needed as member...only generate where needed
   std::vector<int> mPadIDsnon;//not needed as member
 
-  static std::vector<mapping::Segmentation> mSegbend;
-  static std::vector<mapping::Segmentation> mSegnon;
+  std::vector<mapping::Segmentation> mSegbend;
+                                                
+ std::vector<mapping::Segmentation> mSegnon;
+
+
 
   
   //proper parameter in aliroot in AliMUONResponseFactory.cxx
