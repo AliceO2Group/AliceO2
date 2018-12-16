@@ -10,6 +10,7 @@
 
 /// @file   ClustererSpec.cxx
 
+#include <fstream>
 #include <vector>
 
 #include "Framework/ControlService.h"
@@ -55,6 +56,13 @@ DataProcessorSpec getClustererSpec()
 
       o2::ITSMFT::Clusterer clusterer;
       clusterer.setGeometry(geom);
+      
+      std::string dict("complete_dictionary.bin");
+      std::ifstream in(dict.c_str(), std::ios::in | std::ios::binary);
+      if (in.good()) {
+	clusterer.loadDictionary(dict);
+        LOG(INFO)<<"ITSClusterer running with a provided dictionary: "<<dict.c_str();
+      }
       clusterer.print();
 	
       std::vector<o2::ITSMFT::CompClusterExt> compClusters; 
