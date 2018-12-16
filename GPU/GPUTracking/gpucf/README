@@ -1,3 +1,4 @@
 Sources for external:
   - filesystem: https://github.com/wjakob/filesystem
   - span-lite:  https://github.com/martinmoene/span-lite
+  - cxxopts:    https://github.com/jarro2783/cxxopts
