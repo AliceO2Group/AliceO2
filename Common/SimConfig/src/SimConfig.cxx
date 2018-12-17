@@ -104,15 +104,19 @@ bool SimConfig::resetFromArguments(int argc, char* argv[])
 
   try {
     bpo::store(parse_command_line(argc, argv, desc), vm);
-    bpo::notify(vm);
-  } catch (const std::exception& ex) {
-    std::cerr << "exception caught\n";
-    return false;
-  }
 
-  // help
-  if (vm.count("help")) {
-    std::cout << desc << std::endl;
+    // help
+    if (vm.count("help")) {
+      std::cout << desc << std::endl;
+      return false;
+    }
+
+    bpo::notify(vm);
+  } catch (const bpo::error& e) {
+    std::cerr << e.what() << "\n\n";
+    std::cerr << "Error parsing command line arguments; Available options:\n";
+
+    std::cerr << desc << std::endl;
     return false;
   }
 
