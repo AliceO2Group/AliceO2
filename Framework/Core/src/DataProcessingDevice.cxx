@@ -531,10 +531,10 @@ bool DataProcessingDevice::tryDispatchComputation()
     monitoringService.send({ (int)((totalProcessedSize / elapsedTimeMs) / 1000), "dpl/processing_rate_mb_s" });
     /// The smallest latency between an input message being created and its processing
     /// starting.
-    monitoringService.send({ (int)latency.minLatency, "dpl/min_input_latency_ms" });
+//    monitoringService.send({ (int)latency.minLatency, "dpl/min_input_latency_ms" });
     /// The largest latency between an input message being created and its processing
     /// starting.
-    monitoringService.send({ (int)latency.maxLatency, "dpl/max_input_latency_ms" });
+//    monitoringService.send({ (int)latency.maxLatency, "dpl/max_input_latency_ms" });
     /// The rate at which we get inputs, i.e. the longest time between one of the inputs being
     /// created and actually reaching the consumer device.
     monitoringService.send({ (int)((totalProcessedSize / latency.maxLatency) / 1000), "dpl/input_rate_mb_s" });
