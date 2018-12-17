@@ -363,6 +363,19 @@ void spawnDevice(DeviceSpec const& spec, std::map<int, size_t>& socket2DeviceInf
   FD_SET(childstderr[0], &childFdset);
 }
 
+void updateMetricsNames(DriverInfo& state, std::vector<DeviceMetricsInfo> const& metricsInfos)
+{
+  // Calculate the unique set of metrics, as available in the metrics service
+  std::set<std::string> allMetricsNames;
+  for (const auto& metricsInfo : metricsInfos) {
+    for (const auto& labelsPairs : metricsInfo.metricLabelsIdx) {
+      allMetricsNames.insert(labelsPairs.first);
+    }
+  }
+  state.availableMetrics.clear();
+  std::copy(allMetricsNames.begin(), allMetricsNames.end(), std::back_inserter(state.availableMetrics));
+}
+
 void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpecs const& specs,
                            DeviceControls& controls, std::vector<DeviceMetricsInfo>& metricsInfos)
 {
@@ -424,6 +437,11 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
                                       &info.variablesViewIndex,
                                       &info.queriesViewIndex });
 
+    auto newMetricCallback = [&updateMetricsViews, &driverInfo, &metricsInfos](std::string const& name, MetricInfo const& metric, int value, size_t metricIndex) {
+      updateMetricsViews(name, metric, value, metricIndex);
+      updateMetricsNames(driverInfo, metricsInfos);
+    };
+
     while ((pos = s.find(delimiter)) != std::string::npos) {
       token = s.substr(0, pos);
       auto logLevel = LogParsingHelpers::parseTokenLevel(token);
@@ -437,7 +455,7 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
         LOG(DEBUG) << "Found metric with key " << match[1] << " and value " << match[3];
         // We use this callback to cache which metrics are needed to provide a
         // the DataRelayer view.
-        DeviceMetricsHelper::processMetric(match, metrics, updateMetricsViews);
+        DeviceMetricsHelper::processMetric(match, metrics, newMetricCallback);
       } else if (logLevel == LogParsingHelpers::LogLevel::Info && parseControl(token, match)) {
         auto command = match[1];
         auto validFor = match[2];

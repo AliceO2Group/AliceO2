@@ -340,7 +340,12 @@ void metricsTableRow(std::vector<ColumnInfo> columnInfos,
   }
 }
 
-void historyBar(gui::WorkspaceGUIState& globalGUIState, size_t rangeBegin, size_t rangeEnd, gui::DeviceGUIState& state, const DeviceSpec& spec, const DeviceMetricsInfo& metricsInfo)
+void historyBar(gui::WorkspaceGUIState& globalGUIState,
+                size_t rangeBegin, size_t rangeEnd,
+                gui::DeviceGUIState& state,
+                DriverInfo const& driverInfo,
+                DeviceSpec const& spec,
+                DeviceMetricsInfo const& metricsInfo)
 {
   bool open = ImGui::TreeNode(state.label.c_str());
   if (open) {
@@ -354,7 +359,7 @@ void historyBar(gui::WorkspaceGUIState& globalGUIState, size_t rangeBegin, size_
     return;
   }
 
-  auto currentMetricName = globalGUIState.availableMetrics[globalGUIState.selectedMetric];
+  auto currentMetricName = driverInfo.availableMetrics[globalGUIState.selectedMetric];
 
   size_t i = DeviceMetricsHelper::metricIdxByName(currentMetricName, metricsInfo);
   // We did not find any plot, skipping this.
@@ -405,7 +410,10 @@ void historyBar(gui::WorkspaceGUIState& globalGUIState, size_t rangeBegin, size_
 }
 
 /// Calculate where to find the coliumns for a give metric
-std::vector<ColumnInfo> calculateTableIndex(gui::WorkspaceGUIState& globalGUIState, int selectedMetric, std::vector<DeviceMetricsInfo> const& metricsInfos)
+std::vector<ColumnInfo> calculateTableIndex(gui::WorkspaceGUIState& globalGUIState,
+                                            int selectedMetric,
+                                            DriverInfo const& driverInfo,
+                                            std::vector<DeviceMetricsInfo> const& metricsInfos)
 {
   std::vector<ColumnInfo> columns;
   for (size_t j = 0; j < globalGUIState.devices.size(); ++j) {
@@ -415,7 +423,7 @@ std::vector<ColumnInfo> calculateTableIndex(gui::WorkspaceGUIState& globalGUISta
       columns.push_back({ MetricType::Int, -1 });
       continue;
     }
-    auto currentMetricName = globalGUIState.availableMetrics[selectedMetric];
+    auto currentMetricName = driverInfo.availableMetrics[selectedMetric];
     size_t idx = DeviceMetricsHelper::metricIdxByName(currentMetricName, metricsInfo);
 
     // We did not find any plot, skipping this.
@@ -430,151 +438,143 @@ std::vector<ColumnInfo> calculateTableIndex(gui::WorkspaceGUIState& globalGUISta
 };
 
 void displayDeviceHistograms(gui::WorkspaceGUIState& state,
+                             DriverInfo const& driverInfo,
                              const std::vector<DeviceInfo>& infos, const std::vector<DeviceSpec>& devices,
                              std::vector<DeviceControl>& controls, const std::vector<DeviceMetricsInfo>& metricsInfos)
 {
   showTopologyNodeGraph(state, infos, devices, controls, metricsInfos);
-  if (state.bottomPaneVisible == true) {
-    ImGui::SetNextWindowPos(ImVec2(0, ImGui::GetIO().DisplaySize.y - state.bottomPaneSize), 0);
-    ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, state.bottomPaneSize), 0);
+  if (state.bottomPaneVisible == false) {
+    return;
+  }
+  ImGui::SetNextWindowPos(ImVec2(0, ImGui::GetIO().DisplaySize.y - state.bottomPaneSize), 0);
+  ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, state.bottomPaneSize), 0);
 
-    // Calculate the unique set of metrics, as available in the metrics service
-    std::set<std::string> allMetricsNames;
-    for (const auto& metricsInfo : metricsInfos) {
-      for (const auto& labelsPairs : metricsInfo.metricLabelsIdx) {
-        allMetricsNames.insert(labelsPairs.first);
+  ImGui::Begin("Devices", nullptr, ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+  ImGui::BeginGroup();
+  char const* currentMetric = nullptr;
+  if (state.selectedMetric != -1) {
+    currentMetric = driverInfo.availableMetrics[state.selectedMetric].c_str();
+  } else {
+    currentMetric = "Click to select metric";
+  }
+  if (ImGui::BeginCombo("###Select metric", currentMetric, 0)) {
+    for (size_t mi = 0; mi < driverInfo.availableMetrics.size(); ++mi) {
+      auto metric = driverInfo.availableMetrics[mi];
+      bool isSelected = mi == state.selectedMetric;
+      if (ImGui::Selectable(driverInfo.availableMetrics[mi].c_str(), isSelected)) {
+        state.selectedMetric = mi;
+      }
+      if (isSelected) {
+        ImGui::SetItemDefaultFocus();
       }
     }
-    state.availableMetrics.clear();
-    std::copy(allMetricsNames.begin(), allMetricsNames.end(), std::back_inserter(state.availableMetrics));
+    ImGui::EndCombo();
+  };
 
-    ImGui::Begin("Devices", nullptr, ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
-    ImGui::BeginGroup();
-    char const* currentMetric = nullptr;
-    if (state.selectedMetric != -1) {
-      currentMetric = state.availableMetrics[state.selectedMetric].c_str();
-    } else {
-      currentMetric = "Click to select metric";
-    }
-    if (ImGui::BeginCombo("###Select metric", currentMetric, 0)) {
-      for (size_t mi = 0; mi < state.availableMetrics.size(); ++mi) {
-        auto metric = state.availableMetrics[mi];
-        bool isSelected = mi == state.selectedMetric;
-        if (ImGui::Selectable(state.availableMetrics[mi].c_str(), isSelected)) {
-          state.selectedMetric = mi;
-        }
-        if (isSelected) {
-          ImGui::SetItemDefaultFocus();
-        }
+  static char const* plotStyles[] = {
+    "lines",
+    "histograms",
+    "sparks",
+    "table"
+  };
+  ImGui::SameLine();
+  static enum MetricsDisplayStyle currentStyle = MetricsDisplayStyle::Lines;
+  ImGui::Combo("##Select style", reinterpret_cast<int*>(&currentStyle), plotStyles, IM_ARRAYSIZE(plotStyles));
+
+  // Calculate the full timestamp range for the selected metric
+  size_t minTime = -1;
+  size_t maxTime = 0;
+  std::string currentMetricName;
+  if (state.selectedMetric >= 0) {
+    currentMetricName = driverInfo.availableMetrics[state.selectedMetric];
+    for (auto& metricInfo : metricsInfos) {
+      size_t mi = DeviceMetricsHelper::metricIdxByName(currentMetricName, metricInfo);
+      if (mi == metricInfo.metricLabelsIdx.size()) {
+        continue;
       }
-      ImGui::EndCombo();
-    };
+      auto& metric = metricInfo.metrics[mi];
+      auto& timestamps = metricInfo.timestamps[mi];
 
-    static char const* plotStyles[] = {
-      "lines",
-      "histograms",
-      "sparks",
-      "table"
-    };
-    ImGui::SameLine();
-    static enum MetricsDisplayStyle currentStyle = MetricsDisplayStyle::Lines;
-    ImGui::Combo("##Select style", reinterpret_cast<int*>(&currentStyle), plotStyles, IM_ARRAYSIZE(plotStyles));
-
-    // Calculate the full timestamp range for the selected metric
-    size_t minTime = -1;
-    size_t maxTime = 0;
-    std::string currentMetricName;
-    if (state.selectedMetric >= 0) {
-      currentMetricName = state.availableMetrics[state.selectedMetric];
-      for (auto& metricInfo : metricsInfos) {
-        size_t mi = DeviceMetricsHelper::metricIdxByName(currentMetricName, metricInfo);
-        if (mi == metricInfo.metricLabelsIdx.size()) {
+      for (size_t ti = 0; ti != metricInfo.timestamps.size(); ++ti) {
+        size_t minRangePos = (metric.pos + ti) % metricInfo.timestamps.size();
+        size_t curMinTime = timestamps[minRangePos];
+        if (curMinTime == 0) {
           continue;
         }
-        auto& metric = metricInfo.metrics[mi];
-        auto& timestamps = metricInfo.timestamps[mi];
-
-        for (size_t ti = 0; ti != metricInfo.timestamps.size(); ++ti) {
-          size_t minRangePos = (metric.pos + ti) % metricInfo.timestamps.size();
-          size_t curMinTime = timestamps[minRangePos];
-          if (curMinTime == 0) {
-            continue;
-          }
-          minTime = minTime < curMinTime ? minTime : curMinTime;
-          if (minTime != 0 && minTime != -1) {
-            break;
-          }
+        minTime = minTime < curMinTime ? minTime : curMinTime;
+        if (minTime != 0 && minTime != -1) {
+          break;
         }
-        size_t maxRangePos = (size_t)(metric.pos) - 1 % metricInfo.timestamps.size();
-        size_t curMaxTime = timestamps[maxRangePos];
-        maxTime = maxTime > curMaxTime ? maxTime : curMaxTime;
       }
+      size_t maxRangePos = (size_t)(metric.pos) - 1 % metricInfo.timestamps.size();
+      size_t curMaxTime = timestamps[maxRangePos];
+      maxTime = maxTime > curMaxTime ? maxTime : curMaxTime;
     }
-    if (minTime != -1) {
-      ImGui::Text("min timestamp: %zu, max timestamp: %zu", minTime, maxTime);
-    }
-    ImGui::EndGroup();
-    if (!currentMetricName.empty()) {
-      switch (currentStyle) {
-        case MetricsDisplayStyle::Histos:
-        case MetricsDisplayStyle::Lines: {
-          displayDeviceMetrics("Metrics",
-                               ImVec2(ImGui::GetIO().DisplaySize.x - 10, state.bottomPaneSize - ImGui::GetItemRectSize().y - 20), currentMetricName, minTime, maxTime, 1024,
-                               currentStyle, devices, metricsInfos);
-        } break;
-        case MetricsDisplayStyle::Sparks: {
-          ImGui::BeginChild("##ScrollingRegion", ImVec2(ImGui::GetIO().DisplaySize.x + state.leftPaneSize + state.rightPaneSize - 10, -ImGui::GetItemsLineHeightWithSpacing()), false,
-                            ImGuiWindowFlags_HorizontalScrollbar);
-          ImGui::Columns(2);
-          ImGui::SetColumnOffset(1, 300);
-          for (size_t i = 0; i < state.devices.size(); ++i) {
-            gui::DeviceGUIState& deviceGUIState = state.devices[i];
-            const DeviceSpec& spec = devices[i];
-            const DeviceMetricsInfo& metricsInfo = metricsInfos[i];
-
-            historyBar(state, minTime, maxTime, deviceGUIState, spec, metricsInfo);
-          }
-          ImGui::Columns(1);
-          ImGui::EndChild();
-        } break;
-        case MetricsDisplayStyle::Table: {
-          ImGui::BeginChild("##ScrollingRegion", ImVec2(ImGui::GetIO().DisplaySize.x + state.leftPaneSize + state.rightPaneSize - 10, -ImGui::GetItemsLineHeightWithSpacing()), false,
-                            ImGuiWindowFlags_HorizontalScrollbar);
-
-          // The +1 is for the timestamp column
-          ImGui::Columns(state.devices.size() + 1);
-          ImGui::TextUnformatted("entry");
-          ImGui::NextColumn();
-          ImVec2 textsize = ImGui::CalcTextSize("extry", NULL, true);
-          float offset = 0.f;
-          offset += std::max(100.f, textsize.x);
-          for (size_t j = 0; j < state.devices.size(); ++j) {
-            gui::DeviceGUIState& deviceGUIState = state.devices[j];
-            const DeviceSpec& spec = devices[j];
-
-            ImGui::SetColumnOffset(-1, offset);
-            textsize = ImGui::CalcTextSize(spec.name.c_str(), NULL, true);
-            offset += std::max(100.f, textsize.x);
-            ImGui::TextUnformatted(spec.name.c_str());
-            ImGui::NextColumn();
-          }
-          ImGui::Separator();
-
-          auto columns = calculateTableIndex(state, state.selectedMetric, metricsInfos);
-
-          // Calculate which columns we want to see.
-          // FIXME: only one column for now.
-          for (size_t i = 0; i < 10; ++i) {
-            metricsTableRow(columns, metricsInfos, i);
-          }
-          ImGui::Columns(1);
-
-          ImGui::EndChild();
-        } break;
-      }
-    }
-    ImGui::End();
   }
+  if (minTime != -1) {
+    ImGui::Text("min timestamp: %zu, max timestamp: %zu", minTime, maxTime);
+  }
+  ImGui::EndGroup();
+  if (!currentMetricName.empty()) {
+    switch (currentStyle) {
+      case MetricsDisplayStyle::Histos:
+      case MetricsDisplayStyle::Lines: {
+        displayDeviceMetrics("Metrics",
+                             ImVec2(ImGui::GetIO().DisplaySize.x - 10, state.bottomPaneSize - ImGui::GetItemRectSize().y - 20), currentMetricName, minTime, maxTime, 1024,
+                             currentStyle, devices, metricsInfos);
+      } break;
+      case MetricsDisplayStyle::Sparks: {
+        ImGui::BeginChild("##ScrollingRegion", ImVec2(ImGui::GetIO().DisplaySize.x + state.leftPaneSize + state.rightPaneSize - 10, -ImGui::GetItemsLineHeightWithSpacing()), false,
+                          ImGuiWindowFlags_HorizontalScrollbar);
+        ImGui::Columns(2);
+        ImGui::SetColumnOffset(1, 300);
+        for (size_t i = 0; i < state.devices.size(); ++i) {
+          gui::DeviceGUIState& deviceGUIState = state.devices[i];
+          const DeviceSpec& spec = devices[i];
+          const DeviceMetricsInfo& metricsInfo = metricsInfos[i];
+
+          historyBar(state, minTime, maxTime, deviceGUIState, driverInfo, spec, metricsInfo);
+        }
+        ImGui::Columns(1);
+        ImGui::EndChild();
+      } break;
+      case MetricsDisplayStyle::Table: {
+        ImGui::BeginChild("##ScrollingRegion", ImVec2(ImGui::GetIO().DisplaySize.x + state.leftPaneSize + state.rightPaneSize - 10, -ImGui::GetItemsLineHeightWithSpacing()), false,
+                          ImGuiWindowFlags_HorizontalScrollbar);
+
+        // The +1 is for the timestamp column
+        ImGui::Columns(state.devices.size() + 1);
+        ImGui::TextUnformatted("entry");
+        ImGui::NextColumn();
+        ImVec2 textsize = ImGui::CalcTextSize("extry", NULL, true);
+        float offset = 0.f;
+        offset += std::max(100.f, textsize.x);
+        for (size_t j = 0; j < state.devices.size(); ++j) {
+          gui::DeviceGUIState& deviceGUIState = state.devices[j];
+          const DeviceSpec& spec = devices[j];
+
+          ImGui::SetColumnOffset(-1, offset);
+          textsize = ImGui::CalcTextSize(spec.name.c_str(), NULL, true);
+          offset += std::max(100.f, textsize.x);
+          ImGui::TextUnformatted(spec.name.c_str());
+          ImGui::NextColumn();
+        }
+        ImGui::Separator();
+
+        auto columns = calculateTableIndex(state, state.selectedMetric, driverInfo, metricsInfos);
+
+        // Calculate which columns we want to see.
+        // FIXME: only one column for now.
+        for (size_t i = 0; i < 10; ++i) {
+          metricsTableRow(columns, metricsInfos, i);
+        }
+        ImGui::Columns(1);
+
+        ImGui::EndChild();
+      } break;
+    }
+  }
+  ImGui::End();
 }
 
 void pushWindowColorDueToStatus(const DeviceInfo& info)
@@ -732,7 +732,7 @@ std::function<void(void)> getGUIDebugger(const std::vector<DeviceInfo>& infos, c
     style.Colors[ImGuiCol_WindowBg] = ImVec4(0x1b / 255.f, 0x1b / 255.f, 0x1b / 255.f, 1.00f);
     style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0x1b / 255.f, 0x1b / 255.f, 0x1b / 255.f, 1.00f);
 
-    displayDeviceHistograms(guiState, infos, devices, controls, metricsInfos);
+    displayDeviceHistograms(guiState, driverInfo, infos, devices, controls, metricsInfos);
     displayDriverInfo(driverInfo, driverControl);
 
     int windowPosStepping = (ImGui::GetIO().DisplaySize.y - 500) / guiState.devices.size();
