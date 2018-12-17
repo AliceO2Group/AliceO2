@@ -30,7 +30,6 @@ struct WorkspaceGUIState {
   int selectedMetric;
   size_t metricMinRange;
   size_t metricMaxRange;
-  std::vector<std::string> availableMetrics;
   std::vector<DeviceGUIState> devices;
   float leftPaneSize;
   float rightPaneSize;
