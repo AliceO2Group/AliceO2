@@ -124,8 +124,7 @@ bool Detector::ProcessHits(FairVolume* v)
   const double enDep = TMath::Max(fMC->Edep(), 0.0) * 1.0e+9;
   // Store those hits with enDep bigger than the ionization potential of the gas mixture for in-flight tracks
   // or store hits of tracks that are entering or exiting
-  int qTot = (int)(enDep / mWion);
-  if (qTot || trkStat) {
+  if ((enDep > mWion) || trkStat) {
     double x, y, z;
     fMC->TrackPosition(x, y, z);
     double time = fMC->TrackTime() * 1e9;
