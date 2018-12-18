@@ -7,11 +7,11 @@ set(SRCS
         src/PadGroup.h
         src/PadGroupType.cxx
         src/PadGroupType.h
-        src/SegmentationCImpl3.cxx
-        src/SegmentationCreator.cxx
-        src/SegmentationCreator.h
-        src/SegmentationImpl3.cxx
-        src/SegmentationImpl3.h
+        src/CathodeSegmentationCImpl3.cxx
+        src/CathodeSegmentationCreator.cxx
+        src/CathodeSegmentationCreator.h
+        src/CathodeSegmentationImpl3.cxx
+        src/CathodeSegmentationImpl3.h
         )
 
 # We add all segmentation creators by default,
@@ -19,7 +19,7 @@ set(SRCS
 # for each executable reaching a given FLP (so it gets only
 # the mapping it needs)
 foreach (segtype RANGE 20)
-    set(SRCS ${SRCS} src/GenSegmentationCreatorForSegType${segtype}.cxx)
+    set(SRCS ${SRCS} src/GenCathodeSegmentationCreatorForSegType${segtype}.cxx)
 endforeach ()
 
 set(LIBRARY_NAME MCHMappingImpl3)
