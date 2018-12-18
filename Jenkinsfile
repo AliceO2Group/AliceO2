@@ -14,7 +14,7 @@ node {
     "mkrzewic",
     "mpuccio",
     "rbx",
-    "sawanzel",
+    "sawenzel",
     "wiechula"
   ]
   echo "Changeset from " + env.CHANGE_AUTHOR
