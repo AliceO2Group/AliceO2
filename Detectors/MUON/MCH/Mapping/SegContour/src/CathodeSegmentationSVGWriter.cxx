@@ -60,7 +60,7 @@ std::string svgCathodeSegmentationDefaultStyle()
 }
 
 void svgCathodeSegmentation(const CathodeSegmentation& seg, SVGWriter& w, bool showdes, bool showdualsampas, bool showpads,
-                     bool showpadchannels)
+                            bool showpadchannels)
 {
   std::vector<Contour<double>> dualSampaContours = getDualSampaContours(seg);
   std::vector<std::vector<Polygon<double>>> dualSampaPads = getPadPolygons(seg);

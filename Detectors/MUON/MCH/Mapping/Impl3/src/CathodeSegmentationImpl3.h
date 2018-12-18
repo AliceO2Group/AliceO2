@@ -40,7 +40,7 @@ class CathodeSegmentation
   using Value = std::pair<Box, unsigned>;
 
   CathodeSegmentation(int segType, bool isBendingPlane, std::vector<PadGroup> padGroups,
-               std::vector<PadGroupType> padGroupTypes, std::vector<std::pair<float, float>> padSizes);
+                      std::vector<PadGroupType> padGroupTypes, std::vector<std::pair<float, float>> padSizes);
 
   /// Return the list of paduids for the pads of the given dual sampa.
   std::vector<int> getPadUids(int dualSampaIds) const;

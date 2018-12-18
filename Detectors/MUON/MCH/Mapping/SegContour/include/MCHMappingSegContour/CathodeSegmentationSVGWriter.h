@@ -29,7 +29,7 @@ class CathodeSegmentation;
 std::string svgCathodeSegmentationDefaultStyle();
 
 void svgCathodeSegmentation(const CathodeSegmentation& seg, o2::mch::contour::SVGWriter& writer, bool showdes, bool showdualsampas,
-                     bool showpads, bool showpadchannels);
+                            bool showpads, bool showpadchannels);
 } // namespace mapping
 } // namespace mch
 } // namespace o2

@@ -52,7 +52,8 @@ class BenchO2 : public benchmark::Fixture
 {
 };
 
-BENCHMARK_DEFINE_F(BenchO2, ctor)(benchmark::State& state)
+BENCHMARK_DEFINE_F(BenchO2, ctor)
+(benchmark::State& state)
 {
   int detElemId = state.range(0);
   bool isBendingPlane = state.range(1);
@@ -85,7 +86,8 @@ static void benchCathodeSegmentationConstructionAll(benchmark::State& state)
 // note: a bench is not a test, so here we assume findPadByPosition is correct,
 // we just time it.
 // so you must have a test of it somewhere else.
-BENCHMARK_DEFINE_F(BenchO2, findPadByPosition)(benchmark::State& state)
+BENCHMARK_DEFINE_F(BenchO2, findPadByPosition)
+(benchmark::State& state)
 {
   int detElemId = state.range(0);
   bool isBendingPlane = state.range(1);

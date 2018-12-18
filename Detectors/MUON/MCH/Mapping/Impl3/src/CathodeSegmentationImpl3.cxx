@@ -103,7 +103,7 @@ void dump(const std::string &msg, const std::vector<int> &v)
 #endif
 
 CathodeSegmentation::CathodeSegmentation(int segType, bool isBendingPlane, std::vector<PadGroup> padGroups,
-                           std::vector<PadGroupType> padGroupTypes, std::vector<std::pair<float, float>> padSizes)
+                                         std::vector<PadGroupType> padGroupTypes, std::vector<std::pair<float, float>> padSizes)
   : mSegType{ segType },
     mIsBendingPlane{ isBendingPlane },
     mPadGroups{ std::move(padGroups) },

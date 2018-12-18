@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
       o2::mch::contour::SVGWriter w(getBBox(seg));
       w.addStyle(svgCathodeSegmentationDefaultStyle());
       svgCathodeSegmentation(seg, w, vm.count("hidedes") == 0, vm.count("hidedualsampas") == 0, vm.count("hidepads") == 0,
-                      vm.count("hidepadchannels") == 0);
+                             vm.count("hidepadchannels") == 0);
       if (!points.empty()) {
         w.svgGroupStart("testPoints");
         w.points(points, 0.2);

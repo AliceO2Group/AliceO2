@@ -113,13 +113,13 @@ void mchCathodeSegmentationForOneDetectionElementOfEachCathodeSegmentationType(M
 void mchCathodeSegmentationForEachDualSampa(MchCathodeSegmentationHandle segHandle, MchDualSampaHandler handler, void* clientData);
 
 void mchCathodeSegmentationForEachPadInDualSampa(MchCathodeSegmentationHandle segHandle, int dualSampaId, MchPadHandler handler,
-                                          void* clientData);
+                                                 void* clientData);
 
 void mchCathodeSegmentationForEachPadInArea(MchCathodeSegmentationHandle segHandle, double xmin, double ymin, double xmax,
-                                     double ymax, MchPadHandler handler, void* clientData);
+                                            double ymax, MchPadHandler handler, void* clientData);
 
 void mchCathodeSegmentationForEachNeighbouringPad(MchCathodeSegmentationHandle segHandle, int paduid, MchPadHandler handler,
-                                           void* userData);
+                                                  void* userData);
 ///@}
 
 #ifdef __cplusplus
