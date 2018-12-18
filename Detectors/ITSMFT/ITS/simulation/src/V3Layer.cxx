@@ -590,11 +590,13 @@ TGeoVolume* V3Layer::createModuleInnerB(const TGeoManager* mgr)
   kapCableVol->SetFillColor(kBlue);
 
   // Build up the module
+  // Chips are rotated by 180deg around Y axis
+  // in order to have the correct X and Z axis orientation
   xpos = -xtot + (static_cast<TGeoBBox*>(chipVol->GetShape()))->GetDX() + sIBFPCWiderXNeg;
   ypos = -ytot + ymod; // = 0 if not kIBModel4
   for (Int_t j = 0; j < sIBChipsPerRow; j++) {
-    zpos = -ztot + j * (2 * zchip + sIBChipZGap) + zchip;
-    modVol->AddNode(chipVol, j, new TGeoTranslation(xpos, ypos, zpos));
+    zpos = ztot - j * (2 * zchip + sIBChipZGap) - zchip;
+    modVol->AddNode(chipVol, j, new TGeoCombiTrans(xpos, ypos, zpos, new TGeoRotation("", 0, 180, 180)));
     mHierarchy[kChip]++;
   }
 
@@ -2013,7 +2015,7 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
 
   ypos -= (ypowbus + ymod);
   for (Int_t j = 0; j < mNumberOfModules; j++) {
-    zpos = -zlen + j * (2 * zmod + sOBModuleGap) + zmod;
+    zpos = zlen - j * (2 * zmod + sOBModuleGap) - zmod;
     halfStaveVol->AddNode(moduleVol, j, new TGeoTranslation(0, ypos, zpos));
     mHierarchy[kModule]++;
   }
@@ -3234,12 +3236,23 @@ TGeoVolume* V3Layer::createModuleOuterB(const TGeoManager* mgr)
 
   xpos = xchip + xGap / 2;
   ypos += (ychip + glueCP->GetDY());
-  for (Int_t k = 0; k < sOBChipsPerRow; k++) // put 7x2 chip into one module
+  // We use two loops here to have the same chip numbering as in HW
+  //   X ^  | 6| 5| 4| 3| 2| 1| 0|
+  // ----|--------------------------> Z
+  //     |  | 7| 8| 9|10|11|12|13|
+  //
+  for (Int_t k = 0; k < sOBChipsPerRow; k++) // put first 7 chip row
+  {
+    zpos = module->GetDZ() - zchip - k * (2 * zchip + zGap);
+    modVol->AddNode(chipVol, k, new TGeoCombiTrans(xpos, ypos, zpos, new TGeoRotation("", 0, 180, 180)));
+    mHierarchy[kChip] += 1;
+  }
+
+  for (Int_t k = 0; k < sOBChipsPerRow; k++) // put second 7 chip row
   {
     zpos = -module->GetDZ() + zchip + k * (2 * zchip + zGap);
-    modVol->AddNode(chipVol, 2 * k, new TGeoTranslation(xpos, ypos, zpos));
-    modVol->AddNode(chipVol, 2 * k + 1, new TGeoCombiTrans(-xpos, ypos, zpos, new TGeoRotation("", 0, 180, 180)));
-    mHierarchy[kChip] += 2;
+    modVol->AddNode(chipVol, k + sOBChipsPerRow, new TGeoTranslation(-xpos, ypos, zpos));
+    mHierarchy[kChip] += 1;
   }
 
   ypos += (ychip + glueFPC->GetDY());
