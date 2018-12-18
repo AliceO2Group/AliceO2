@@ -18,10 +18,14 @@
 // included into another implementation file.
 //
 
-namespace o2 {
-namespace mch {
-namespace mapping {
-namespace impl3 {
+namespace o2
+{
+namespace mch
+{
+namespace mapping
+{
+namespace impl3
+{
 int detElemId2SegType(int detElemId);
 } // namespace impl3
 } // namespace mapping
