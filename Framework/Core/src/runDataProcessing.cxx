@@ -763,6 +763,8 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
   }
   bool guiQuitRequested = false;
 
+  auto frameLast = std::chrono::high_resolution_clock::now();
+  auto inputProcessingLast = frameLast;
   // FIXME: I should really have some way of exiting the
   // parent..
   DriverState current;
@@ -907,11 +909,30 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
           driverInfo.states.push_back(DriverState::RUNNING);
           driverInfo.states.push_back(DriverState::GUI);
         }
-        processChildrenOutput(driverInfo, infos, deviceSpecs, controls, metricsInfos);
+        {
+          usleep(1000); // We wait for 1 millisecond between one processing
+                        // and the other.
+          auto inputProcessingStart = std::chrono::high_resolution_clock::now();
+          auto inputProcessingLatency = inputProcessingStart - inputProcessingLast;
+          processChildrenOutput(driverInfo, infos, deviceSpecs, controls, metricsInfos);
+          auto inputProcessingEnd = std::chrono::high_resolution_clock::now();
+          driverInfo.inputProcessingCost = std::chrono::duration_cast<std::chrono::milliseconds>(inputProcessingEnd - inputProcessingStart).count();
+          driverInfo.inputProcessingLatency = std::chrono::duration_cast<std::chrono::milliseconds>(inputProcessingLatency).count();
+          inputProcessingLast = inputProcessingStart;
+        }
         break;
       case DriverState::GUI:
         if (window) {
-          guiQuitRequested = (pollGUI(window, debugGUICallback) == false);
+          auto frameStart = std::chrono::high_resolution_clock::now();
+          auto frameLatency = frameStart - frameLast;
+          // We want to render at ~60 frames per second, so latency needs to be ~16ms
+          if (std::chrono::duration_cast<std::chrono::milliseconds>(frameLatency).count() > 20) {
+            guiQuitRequested = (pollGUI(window, debugGUICallback) == false);
+            auto frameEnd = std::chrono::high_resolution_clock::now();
+            driverInfo.frameCost = std::chrono::duration_cast<std::chrono::milliseconds>(frameEnd - frameStart).count();
+            driverInfo.frameLatency = std::chrono::duration_cast<std::chrono::milliseconds>(frameLatency).count();
+            frameLast = frameStart;
+          }
         }
         break;
       case DriverState::QUIT_REQUESTED:
