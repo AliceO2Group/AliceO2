@@ -1,4 +1,3 @@
-#include "AliHLTTPCCAStandaloneFramework.h"
 #include "AliGPUReconstruction.h"
 #include "AliHLTArray.h"
 #include "AliHLTTPCCADef.h"
@@ -50,8 +49,8 @@ std::unique_ptr<AliGPUReconstruction> rec;
 int main(int argc, char** argv)
 {
 	void* outputmemory = NULL;
-	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
-	int iEventInTimeframe = 0, nEventsInDirectory = 0;
+	//int iEventInTimeframe = 0;
+	int nEventsInDirectory = 0;
 
 #ifdef FE_DFL_DISABLE_SSE_DENORMS_ENV //Flush and load denormals to zero in any case
 	fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
@@ -119,15 +118,9 @@ int main(int argc, char** argv)
 	if (configStandalone.configQA.inputHistogramsOnly && configStandalone.configQA.compareInputs.size() == 0) {printf("Can only produce QA pdf output when input files are specified!\n"); return(1);}
 	if ((configStandalone.nways & 1) == 0) {printf("nWay setting musst be odd number!\n"); return(1);}
 
-	std::ofstream CPUOut, GPUOut;
 
 	if (configStandalone.eventDisplay) configStandalone.noprompt = 1;
-	if (configStandalone.DebugLevel >= 4)
-	{
-		CPUOut.open("CPU.out");
-		GPUOut.open("GPU.out");
-		configStandalone.OMPThreads = 1;
-	}
+	if (configStandalone.DebugLevel >= 4) configStandalone.OMPThreads = 1;
 #ifdef HLTCA_HAVE_OPENMP
 	if (configStandalone.OMPThreads != -1) omp_set_num_threads(configStandalone.OMPThreads);
 #endif
@@ -167,12 +160,12 @@ int main(int argc, char** argv)
 	
 	AliGPUCASettingsEvent ev = rec->GetEventSettings();
 	AliGPUCASettingsRec recSet;
+	AliGPUCASettingsDeviceProcessing devProc;
 	
 	if (configStandalone.eventGenerator) ev.homemadeEvents = true;
 	if (configStandalone.solenoidBz != -1e6f) ev.solenoidBz = configStandalone.solenoidBz;
 	if (configStandalone.constBz) ev.constBz = true;
 	if (configStandalone.cont) ev.continuousMaxTimeBin = -1;
-
 	if (rec->GetDeviceType() == AliGPUReconstruction::DeviceType::CPU) printf("Standalone Test Framework for CA Tracker - Using CPU\n");
 	else printf("Standalone Test Framework for CA Tracker - Using GPU\n");
 
@@ -182,22 +175,22 @@ int main(int argc, char** argv)
 	recSet.RejectMode = configStandalone.rejectMode;
 	recSet.SearchWindowDZDR = configStandalone.dzdr;
 	if (configStandalone.referenceX < 500.) recSet.TrackReferenceX = configStandalone.referenceX;
-	rec->SetSettings(&ev, &recSet);
-	rec->Init();
+	
+	if (configStandalone.OMPThreads != -1) devProc.nThreads = configStandalone.OMPThreads;
+	devProc.deviceNum = configStandalone.cudaDevice;
+	devProc.debugLevel = configStandalone.DebugLevel;
+	devProc.runQA = configStandalone.qa;
+	devProc.runEventDisplay = configStandalone.eventDisplay;
+	devProc.nDeviceHelperThreads = configStandalone.helperThreads;
+	
+	rec->SetSettings(&ev, &recSet, &devProc);
+	if (rec->Init())
+	{
+		printf("Error initializing AliGPUReconstruction!\n");
+		return 1;
+	}
 
-	if (hlt.Initialize(rec.get()))
-	{
-		printf("Press a key to exit!\n");
-		getchar();
-		return(1);
-	}
-	hlt.SetGPUDebugLevel(configStandalone.DebugLevel, &CPUOut, &GPUOut);
-	hlt.SetRunMerger(configStandalone.merger);
-	for (int i = 0;i < 36;i++)
-	{
-		hlt.InitializeSliceParam(i, &rec->GetParam());
-	}
-	hlt.Merger().SetSliceParam(&rec->GetParam());
+	//hlt.SetRunMerger(configStandalone.merger);
 
 	if (configStandalone.seed == -1)
 	{
@@ -215,8 +208,8 @@ int main(int argc, char** argv)
 	int trainDist = 0;
 	float collisionProbability = 0.;
 	const int orbitRate = 11245;
-	const int driftTime = 93000;
-	const int TPCZ = 250;
+	//const int driftTime = 93000;
+	//const int TPCZ = 250;
 	const int timeOrbit = 1000000000 / orbitRate;
 	const int maxBunchesFull = timeOrbit / configStandalone.configTF.bunchSpacing;
 	const int maxBunches = (timeOrbit - configStandalone.configTF.abortGapTime) / configStandalone.configTF.bunchSpacing;
@@ -263,7 +256,7 @@ int main(int argc, char** argv)
 		{
 			printf("Generating event %d/%d\n", i, configStandalone.NEvents == -1 ? 10 : configStandalone.NEvents);
 			sprintf(dirname, "events/%s/" HLTCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
-			GenerateEvent(hlt.Param(), dirname);
+			//GenerateEvent(hlt.Param(), dirname); TODO!
 		}
 		FinishEventGenerator();
 #endif
@@ -280,8 +273,8 @@ int main(int argc, char** argv)
 			long long int nTracksTotal = 0;
 			long long int nClustersTotal = 0;
 			int nTotalCollisions = 0;
-			long long int eventStride = configStandalone.seed;
-			int simBunchNoRepeatEvent = configStandalone.StartEvent;
+			//long long int eventStride = configStandalone.seed;
+			//int simBunchNoRepeatEvent = configStandalone.StartEvent;
 			std::vector<char> eventUsed(nEventsInDirectory);
 			if (config.noEventRepeat == 2) memset(eventUsed.data(), 0, nEventsInDirectory * sizeof(eventUsed[0]));
 
@@ -291,7 +284,7 @@ int main(int argc, char** argv)
 				if (i != configStandalone.StartEvent) printf("\n");
 				HighResTimer timerLoad;
 				timerLoad.Start();
-				if (config.bunchSim)
+				/*if (config.bunchSim) TODO!
 				{
 					hlt.StartDataReading(0);
 					long long int nBunch = -driftTime / config.bunchSpacing;
@@ -398,7 +391,7 @@ int main(int argc, char** argv)
 										ch[1] = c.fAmp;
 										ch[2] = c.fFlags;
 										ch[3] = c.fSigmaTime2;
-										ch[4] = fabs(c.fZ) / 2.58 /*vDrift*/ / 0.19379844961f /*zBinWidth*/;
+										ch[4] = fabs(c.fZ) / 2.58 / 0.19379844961f; //vDrift / zBinWidth
 										ch[5] = c.fRow - o2rowoffsets[j];
 										float yFactor = iSec < 18 ? -1 : 1;
 										const float ks=o2height[j]/o2width[j]*tan(1.74532925199432948e-01); // tan(10deg)
@@ -443,7 +436,7 @@ int main(int argc, char** argv)
 #endif
 					}
 				}
-				else
+				else*/
 				{
 					char filename[256];
 					sprintf(filename, "events/%s/" HLTCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
@@ -451,12 +444,12 @@ int main(int argc, char** argv)
 					if (r == 0)
 					{
 						printf("Event loaded with new format\n");
-						hlt.ResetMC();
+						//hlt.ResetMC(); TODO!
 						if (rec->mIOPtrs.clustersNative) rec->ConvertNativeToClusterData();
-						for (int iSector = 0;iSector < 36;iSector++) hlt.ClusterData(iSector).SetClusterData(i, rec->mIOPtrs.nClusterData[iSector], rec->mIOPtrs.clusterData[iSector]);
 					}
 					else if (r == -1)
 					{
+						/* TODO!
 #ifdef HLTCA_TPC_GEOMETRY_O2
 						printf("Not attempting old format for O2\n");
 						break;
@@ -507,7 +500,6 @@ int main(int argc, char** argv)
 							shift = 0.;
 						}
 
-						if (config.nMerge == 0 || iEventInTimeframe == 0) hlt.StartDataReading(0);
 						hlt.ReadEvent(in, configStandalone.resetids, config.nMerge > 0, shift);
 						in.close();
 
@@ -525,7 +517,7 @@ int main(int argc, char** argv)
 							{
 								continue;
 							}
-						}
+						}*/
 					}
 					else
 					{
@@ -540,40 +532,29 @@ int main(int argc, char** argv)
 				{
 					if (configStandalone.runs > 1) printf("Run %d\n", j + 1);
 
-					if (configStandalone.DebugLevel >= 4 && configStandalone.cleardebugout)
-					{
-						GPUOut.close();
-						GPUOut.open("GPU.out");
-						CPUOut.close();
-						CPUOut.open("GPU.out");
-					}
-
 					if (configStandalone.outputcontrolmem)
 					{
-						hlt.SetOutputControl((char*) outputmemory, configStandalone.outputcontrolmem);
+						//hlt.SetOutputControl((char*) outputmemory, configStandalone.outputcontrolmem); TODO!
 					}
 
-					int tmpRetVal = hlt.ProcessEvent(j <= configStandalone.runsInit);
+					rec->SetResetTimers(j <= configStandalone.runsInit);
+					int tmpRetVal = rec->RunStandalone();
 					if (configStandalone.configRec.runTRD)
 					{
-						rec->mIOPtrs.nMergedTracks = hlt.Merger().NOutputTracks();
-						rec->mIOPtrs.mergedTracks = (AliHLTTPCGMMergedTrack*) hlt.Merger().OutputTracks();
-						rec->mIOPtrs.nMergedTrackHits = hlt.Merger().NOutputTrackClusters();
-						rec->mIOPtrs.mergedTrackHits = hlt.Merger().Clusters();
 						rec->RunTRDTracking();
 					}
 					
 					int nTracks = 0, nClusters = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0;
-					for (int k = 0;k < hlt.Merger().NOutputTracks();k++)
+					for (int k = 0;k < rec->GetTPCMerger().NOutputTracks();k++)
 					{
-						if (hlt.Merger().OutputTracks()[k].OK())
+						if (rec->GetTPCMerger().OutputTracks()[k].OK())
 						{
 							nTracks++;
-							nAttachedClusters += hlt.Merger().OutputTracks()[k].NClusters();
-							nAttachedClustersFitted += hlt.Merger().OutputTracks()[k].NClustersFitted();
+							nAttachedClusters += rec->GetTPCMerger().OutputTracks()[k].NClusters();
+							nAttachedClustersFitted += rec->GetTPCMerger().OutputTracks()[k].NClustersFitted();
 						}
 					}
-					for (int k = 0;k < 36;k++) nClusters += hlt.ClusterData(k).NumberOfClusters();
+					nClusters = rec->GetTPCMerger().NClusters();
 					printf("Output Tracks: %d (%d/%d attached clusters)\n", nTracks, nAttachedClusters, nAttachedClustersFitted);
 					if (j == 0)
 					{
@@ -611,16 +592,7 @@ breakrun:
 	}
 #endif
 
-	if (configStandalone.DebugLevel >= 4)
-	{
-		CPUOut.close();
-		GPUOut.close();
-	}
-
-	hlt.Merger().Clear();
-	hlt.Merger().SetGPUTracker(NULL);
-
-	hlt.Uninitialize();
+	rec->Finalize();
 
 	if (configStandalone.outputcontrolmem)
 	{

@@ -20,12 +20,12 @@
 class AliHLTTPCCAHitId
 {
   public:
-    GPUhd() void Set( int row, int hit ) { fId = ( hit << 8 ) | row; }
-    GPUhd() int RowIndex() const { return fId & 0xff; }
-    GPUhd() int HitIndex() const { return fId >> 8; }
+	GPUhd() void Set( int row, int hit ) { fId = ( hit << 8 ) | row; }
+	GPUhd() int RowIndex() const { return fId & 0xff; }
+	GPUhd() int HitIndex() const { return fId >> 8; }
 
   private:
-    int fId;
+	int fId;
 };
 
 #endif // ALIHLTTPCCAHITID_H

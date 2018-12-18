@@ -25,7 +25,7 @@ public:
 	
 	float DAlpha;						// angular size
 	float RMin, RMax;					// slice R range
-	float ErrX, ErrY, ErrZ;			// default cluster errors
+	float ErrX, ErrY, ErrZ;				// default cluster errors
 	float PadPitch;						// pad pitch
 	float BzkG;							// constant magnetic field value in kG
 	float ConstBz;						// constant magnetic field value in kG*clight
@@ -33,14 +33,16 @@ public:
 	char AssumeConstantBz;				//Assume a constant magnetic field
 	char ToyMCEventsFlag;				//events were build with home-made event generator
 	char ContinuousTracking;			//Continuous tracking, estimate bz and errors for abs(z) = 125cm during seeding
+	char resetTimers;					//Reset benchmark timers before event processing
+	int debugLevel;						//Debug level
 	int continuousMaxTimeBin;			//Max time bin for continuous tracking
 	float RowX[HLTCA_ROW_COUNT];		// X-coordinate of rows
 	AliGPUCAParamSlice SliceParam[36];
 
 #ifndef HLTCA_GPUCODE
 	void SetDefaults(float solenoidBz);
-	void SetDefaults(const AliGPUCASettingsEvent* e, const AliGPUCASettingsRec* r = NULL);
-	void UpdateEventSettings(const AliGPUCASettingsEvent* e);
+	void SetDefaults(const AliGPUCASettingsEvent* e, const AliGPUCASettingsRec* r = NULL, const AliGPUCASettingsDeviceProcessing* p = NULL);
+	void UpdateEventSettings(const AliGPUCASettingsEvent* e, const AliGPUCASettingsDeviceProcessing* p = NULL);
 	void LoadClusterErrors(bool Print = 0);
 #endif
 	

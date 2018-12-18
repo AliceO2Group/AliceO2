@@ -6,7 +6,6 @@
 //                                                                        *
 //*************************************************************************
 
-
 #ifndef ALIHLTTPCCASLICEOUTPUT_H
 #define ALIHLTTPCCASLICEOUTPUT_H
 
@@ -24,6 +23,7 @@ class AliHLTTPCCASliceOutTrack;
 #define NULL 0
 #endif
 
+struct AliGPUCAOutputControl;
 
 /**
  * @class AliHLTTPCCASliceOutput
@@ -39,55 +39,53 @@ class AliHLTTPCCASliceOutTrack;
 class AliHLTTPCCASliceOutput
 {
   public:
-
-  struct outputControlStruct
-  {
-    outputControlStruct() :  fOutputPtr( NULL ), fOutputMaxSize ( 0 ), fEndOfSpace(0) {}
-    char* volatile fOutputPtr;		//Pointer to Output Space, NULL to allocate output space
-    volatile int fOutputMaxSize;		//Max Size of Output Data if Pointer to output space is given
-    char fEndOfSpace; // end of space flag 
-  };
-
 #if !defined(__OPENCL__)
-  GPUhd() int NTracks()                    const { return fNTracks;              }
-  GPUhd() int NLocalTracks()               const { return fNLocalTracks;         }
-  GPUhd() int NTrackClusters()             const { return fNTrackClusters;       }  
+	GPUhd() int NTracks() const
+	{
+		return fNTracks;
+	}
+	GPUhd() int NLocalTracks() const { return fNLocalTracks; }
+	GPUhd() int NTrackClusters() const { return fNTrackClusters; }
 #ifndef HLTCA_GPUCODE
-  GPUhd() const AliHLTTPCCASliceOutTrack *GetFirstTrack() const { return fMemory; }
-  GPUhd() AliHLTTPCCASliceOutTrack *FirstTrack(){ return fMemory; }
+	GPUhd() const AliHLTTPCCASliceOutTrack *GetFirstTrack() const
+	{
+		return fMemory;
+	}
+	GPUhd() AliHLTTPCCASliceOutTrack *FirstTrack() { return fMemory; }
 #endif
-  GPUhd() size_t Size() const { return(fMemorySize); }
+	GPUhd() size_t Size() const
+	{
+		return (fMemorySize);
+	}
 
-  static int EstimateSize( int nOfTracks, int nOfTrackClusters );
-  static void Allocate(AliHLTTPCCASliceOutput* &ptrOutput, int nTracks, int nTrackHits, outputControlStruct* outputControl);
+	static int EstimateSize(int nOfTracks, int nOfTrackClusters);
+	static void Allocate(AliHLTTPCCASliceOutput *&ptrOutput, int nTracks, int nTrackHits, AliGPUCAOutputControl *outputControl);
 
-  GPUhd() void SetNTracks       ( int v )  { fNTracks = v;        }
-  GPUhd() void SetNLocalTracks  ( int v )  { fNLocalTracks = v;   }
-  GPUhd() void SetNTrackClusters( int v )  { fNTrackClusters = v; }
+	GPUhd() void SetNTracks(int v) { fNTracks = v; }
+	GPUhd() void SetNLocalTracks(int v) { fNLocalTracks = v; }
+	GPUhd() void SetNTrackClusters(int v) { fNTrackClusters = v; }
 
   private:
+	AliHLTTPCCASliceOutput()
+	    : fNTracks(0), fNLocalTracks(0), fNTrackClusters(0), fMemorySize(0) {}
 
-  AliHLTTPCCASliceOutput()
-    : fNTracks( 0 ), fNLocalTracks( 0 ), fNTrackClusters( 0 ), fMemorySize( 0 ){}
-  
-  ~AliHLTTPCCASliceOutput() {}
-  AliHLTTPCCASliceOutput( const AliHLTTPCCASliceOutput& );
-  AliHLTTPCCASliceOutput& operator=( const AliHLTTPCCASliceOutput& ) { return *this; }
+	~AliHLTTPCCASliceOutput() {}
+	AliHLTTPCCASliceOutput(const AliHLTTPCCASliceOutput &);
+	AliHLTTPCCASliceOutput &operator=(const AliHLTTPCCASliceOutput &) { return *this; }
 
-  GPUh() void SetMemorySize(size_t val) { fMemorySize = val; }
+	GPUh() void SetMemorySize(size_t val) { fMemorySize = val; }
 
-  int fNTracks;                   // number of reconstructed tracks
-  int fNLocalTracks;
-  int fNTrackClusters;            // total number of track clusters
-  size_t fMemorySize;	       	// Amount of memory really used
+	int fNTracks; // number of reconstructed tracks
+	int fNLocalTracks;
+	int fNTrackClusters; // total number of track clusters
+	size_t fMemorySize;  // Amount of memory really used
 
-  //Must be last element of this class, user has to make sure to allocate anough memory consecutive to class memory!
-  //This way the whole Slice Output is one consecutive Memory Segment
+	//Must be last element of this class, user has to make sure to allocate anough memory consecutive to class memory!
+	//This way the whole Slice Output is one consecutive Memory Segment
 
 #ifndef HLTCA_GPUCODE
-  AliHLTTPCCASliceOutTrack fMemory[0]; // the memory where the pointers above point into
+	AliHLTTPCCASliceOutTrack fMemory[0]; // the memory where the pointers above point into
 #endif
 #endif
-
 };
-#endif 
+#endif

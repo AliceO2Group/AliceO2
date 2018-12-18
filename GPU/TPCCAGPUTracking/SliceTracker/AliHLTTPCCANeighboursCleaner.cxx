@@ -17,58 +17,65 @@
 //                                                                          *
 //***************************************************************************
 
-
 #include "AliHLTTPCCANeighboursCleaner.h"
-#include "AliTPCCommonMath.h"
 #include "AliHLTTPCCATracker.h"
+#include "AliTPCCommonMath.h"
 
-GPUd() void AliHLTTPCCANeighboursCleaner::Thread
-( int /*nBlocks*/, int nThreads, int iBlock, int iThread, int iSync,
-  GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) &s, GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker )
+GPUd() void AliHLTTPCCANeighboursCleaner::Thread(int /*nBlocks*/, int nThreads, int iBlock, int iThread, int iSync,
+                                                 GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) & s, GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) & tracker)
 {
-  // *
-  // * kill link to the neighbour if the neighbour is not pointed to the cluster
-  // *
+	// *
+	// * kill link to the neighbour if the neighbour is not pointed to the cluster
+	// *
 
-  if ( iSync == 0 ) {
-    if ( iThread == 0 ) {
-      s.fIRow = iBlock + 2;
-      if ( s.fIRow <= HLTCA_ROW_COUNT - 3 ) {
-        s.fIRowUp = s.fIRow + 2;
-        s.fIRowDn = s.fIRow - 2;
-        s.fNHits = tracker.Row( s.fIRow ).NHits();
-      }
-    }
-  } else if ( iSync == 1 ) {
-    if ( s.fIRow <= HLTCA_ROW_COUNT - 3 ) {
+	if (iSync == 0)
+	{
+		if (iThread == 0)
+		{
+			s.fIRow = iBlock + 2;
+			if (s.fIRow <= HLTCA_ROW_COUNT - 3)
+			{
+				s.fIRowUp = s.fIRow + 2;
+				s.fIRowDn = s.fIRow - 2;
+				s.fNHits = tracker.Row(s.fIRow).NHits();
+			}
+		}
+	}
+	else if (iSync == 1)
+	{
+		if (s.fIRow <= HLTCA_ROW_COUNT - 3)
+		{
 #ifdef HLTCA_GPUCODE
-      int Up = s.fIRowUp;
-      int Dn = s.fIRowDn;
-      GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow) &row = tracker.Row( s.fIRow );
-      GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow) &rowUp = tracker.Row( Up );
-      GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow) &rowDn = tracker.Row( Dn );
+			int Up = s.fIRowUp;
+			int Dn = s.fIRowDn;
+			GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow) &row = tracker.Row(s.fIRow);
+			GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow) &rowUp = tracker.Row(Up);
+			GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow) &rowDn = tracker.Row(Dn);
 #else
-      const AliHLTTPCCARow &row = tracker.Row( s.fIRow );
-      const AliHLTTPCCARow &rowUp = tracker.Row( s.fIRowUp );
-      const AliHLTTPCCARow &rowDn = tracker.Row( s.fIRowDn );
+			const AliHLTTPCCARow &row = tracker.Row(s.fIRow);
+			const AliHLTTPCCARow &rowUp = tracker.Row(s.fIRowUp);
+			const AliHLTTPCCARow &rowDn = tracker.Row(s.fIRowDn);
 #endif
 
-      // - look at up link, if it's valid but the down link in the row above doesn't link to us remove
-      //   the link
-      // - look at down link, if it's valid but the up link in the row below doesn't link to us remove
-      //   the link
-      for ( int ih = iThread; ih < s.fNHits; ih += nThreads ) {
-        calink up = tracker.HitLinkUpData( row, ih );
-        if ( up != CALINK_INVAL ) {
-          calink upDn = tracker.HitLinkDownData( rowUp, up );
-          if ( ( upDn != (calink) ih ) ) tracker.SetHitLinkUpData( row, ih, CALINK_INVAL );
-        }
-        calink dn = tracker.HitLinkDownData( row, ih );
-        if ( dn != CALINK_INVAL ) {
-          calink dnUp = tracker.HitLinkUpData( rowDn, dn );
-          if ( dnUp != (calink) ih ) tracker.SetHitLinkDownData( row, ih, CALINK_INVAL );
-        }
-      }
-    }
-  }
+			// - look at up link, if it's valid but the down link in the row above doesn't link to us remove
+			//   the link
+			// - look at down link, if it's valid but the up link in the row below doesn't link to us remove
+			//   the link
+			for (int ih = iThread; ih < s.fNHits; ih += nThreads)
+			{
+				calink up = tracker.HitLinkUpData(row, ih);
+				if (up != CALINK_INVAL)
+				{
+					calink upDn = tracker.HitLinkDownData(rowUp, up);
+					if ((upDn != (calink) ih)) tracker.SetHitLinkUpData(row, ih, CALINK_INVAL);
+				}
+				calink dn = tracker.HitLinkDownData(row, ih);
+				if (dn != CALINK_INVAL)
+				{
+					calink dnUp = tracker.HitLinkUpData(rowDn, dn);
+					if (dnUp != (calink) ih) tracker.SetHitLinkDownData(row, ih, CALINK_INVAL);
+				}
+			}
+		}
+	}
 }

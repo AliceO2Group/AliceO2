@@ -28,60 +28,54 @@
  */
 class AliHLTTPCCATrackLinearisation
 {
-
   public:
+	AliHLTTPCCATrackLinearisation() : fSinPhi( 0 ), fCosPhi( 1 ), fDzDs( 0 ), fQPt( 0 ) {}
+	AliHLTTPCCATrackLinearisation( float SinPhi1, float CosPhi1, float DzDs1, float QPt1 ) : fSinPhi( SinPhi1 ), fCosPhi( CosPhi1 ), fDzDs( DzDs1 ), fQPt( QPt1 ) {}
 
-    AliHLTTPCCATrackLinearisation()
-        : fSinPhi( 0 ), fCosPhi( 1 ), fDzDs( 0 ), fQPt( 0 ) {}
+	GPUd() MEM_CLASS_PRE2() AliHLTTPCCATrackLinearisation( const MEM_LG2(AliHLTTPCCATrackParam) &t );
 
-    AliHLTTPCCATrackLinearisation( float SinPhi1, float CosPhi1, float DzDs1, float QPt1 )
-        : fSinPhi( SinPhi1 ), fCosPhi( CosPhi1 ), fDzDs( DzDs1 ), fQPt( QPt1 ) {}
+	GPUd() void Set( float SinPhi1, float CosPhi1, float DzDs1, float QPt1 );
 
-    GPUd() MEM_CLASS_PRE2() AliHLTTPCCATrackLinearisation( const MEM_LG2(AliHLTTPCCATrackParam) &t );
+	GPUd() float SinPhi()const { return fSinPhi; }
+	GPUd() float CosPhi()const { return fCosPhi; }
+	GPUd() float DzDs()  const { return fDzDs; }
+	GPUd() float QPt()   const { return fQPt; }
 
-    GPUd() void Set( float SinPhi1, float CosPhi1, float DzDs1, float QPt1 );
+	GPUd() float GetSinPhi()const { return fSinPhi; }
+	GPUd() float GetCosPhi()const { return fCosPhi; }
+	GPUd() float GetDzDs()  const { return fDzDs; }
+	GPUd() float GetQPt()   const { return fQPt; }
 
-
-    GPUd() float SinPhi()const { return fSinPhi; }
-    GPUd() float CosPhi()const { return fCosPhi; }
-    GPUd() float DzDs()  const { return fDzDs; }
-    GPUd() float QPt()   const { return fQPt; }
-
-    GPUd() float GetSinPhi()const { return fSinPhi; }
-    GPUd() float GetCosPhi()const { return fCosPhi; }
-    GPUd() float GetDzDs()  const { return fDzDs; }
-    GPUd() float GetQPt()   const { return fQPt; }
-
-    GPUd() void SetSinPhi( float v ) {  fSinPhi = v; }
-    GPUd() void SetCosPhi( float v ) {  fCosPhi = v; }
-    GPUd() void SetDzDs( float v )  {  fDzDs   = v; }
-    GPUd() void SetQPt( float v )   {  fQPt = v; }
+	GPUd() void SetSinPhi( float v ) {  fSinPhi = v; }
+	GPUd() void SetCosPhi( float v ) {  fCosPhi = v; }
+	GPUd() void SetDzDs( float v )  {  fDzDs   = v; }
+	GPUd() void SetQPt( float v )   {  fQPt = v; }
 
   private:
-    float fSinPhi; // SinPhi
-    float fCosPhi; // CosPhi
-    float fDzDs;   // DzDs
-    float fQPt;    // QPt
+	float fSinPhi; // SinPhi
+	float fCosPhi; // CosPhi
+	float fDzDs;   // DzDs
+	float fQPt;    // QPt
 };
 
 
 GPUd() MEM_CLASS_PRE2() inline AliHLTTPCCATrackLinearisation::AliHLTTPCCATrackLinearisation( const MEM_LG2(AliHLTTPCCATrackParam) &t )
-    : fSinPhi( t.SinPhi() ), fCosPhi( 0 ), fDzDs( t.DzDs() ), fQPt( t.QPt() )
+	: fSinPhi( t.SinPhi() ), fCosPhi( 0 ), fDzDs( t.DzDs() ), fQPt( t.QPt() )
 {
-  if ( fSinPhi > HLTCA_MAX_SIN_PHI ) fSinPhi = HLTCA_MAX_SIN_PHI;
-  else if ( fSinPhi < -HLTCA_MAX_SIN_PHI ) fSinPhi = -HLTCA_MAX_SIN_PHI;
-  fCosPhi = CAMath::Sqrt( 1 - fSinPhi * fSinPhi );
-  if ( t.SignCosPhi() < 0 ) fCosPhi = -fCosPhi;
+	if ( fSinPhi > HLTCA_MAX_SIN_PHI ) fSinPhi = HLTCA_MAX_SIN_PHI;
+	else if ( fSinPhi < -HLTCA_MAX_SIN_PHI ) fSinPhi = -HLTCA_MAX_SIN_PHI;
+	fCosPhi = CAMath::Sqrt( 1 - fSinPhi * fSinPhi );
+	if ( t.SignCosPhi() < 0 ) fCosPhi = -fCosPhi;
 }
 
 
 GPUd() inline void AliHLTTPCCATrackLinearisation::Set( float SinPhi1, float CosPhi1,
-    float DzDs1, float QPt1 )
+	float DzDs1, float QPt1 )
 {
-  SetSinPhi( SinPhi1 );
-  SetCosPhi( CosPhi1 );
-  SetDzDs( DzDs1 );
-  SetQPt( QPt1 );
+	SetSinPhi( SinPhi1 );
+	SetCosPhi( CosPhi1 );
+	SetDzDs( DzDs1 );
+	SetQPt( QPt1 );
 }
 
 #endif //ALIHLTTPCCATRACKLINEARISATION_H

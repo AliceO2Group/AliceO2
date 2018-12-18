@@ -18,7 +18,6 @@
 
 #include "AliHLTTPCCAO2Interface.h"
 #include "AliGPUReconstruction.h"
-#include "AliHLTTPCCAStandaloneFramework.h"
 #include <iostream>
 #include <fstream>
 #ifdef HLTCA_HAVE_OPENMP
@@ -28,7 +27,7 @@
 #include "DataFormatsTPC/ClusterNative.h"
 #include "ClusterNativeAccessExt.h"
 
-AliHLTTPCCAO2Interface::AliHLTTPCCAO2Interface() : fInitialized(false), fDumpEvents(false), fContinuous(false), fHLT(NULL), mRec(nullptr)
+AliHLTTPCCAO2Interface::AliHLTTPCCAO2Interface() : fInitialized(false), fDumpEvents(false), fContinuous(false), mRec(nullptr)
 {
 }
 
@@ -40,8 +39,6 @@ AliHLTTPCCAO2Interface::~AliHLTTPCCAO2Interface()
 int AliHLTTPCCAO2Interface::Initialize(const char* options, std::unique_ptr<TPCFastTransform>&& fastTrans)
 {
 	if (fInitialized) return(1);
-	fHLT = &AliHLTTPCCAStandaloneFramework::Instance();
-	if (fHLT == NULL) return(1);
 	float solenoidBz = -5.00668;
 	float refX = 1000.;
 	int nThreads = 1;
@@ -109,8 +106,12 @@ int AliHLTTPCCAO2Interface::Initialize(const char* options, std::unique_ptr<TPCF
 	
 	AliGPUCASettingsRec rec;
 	AliGPUCASettingsEvent ev;
+	AliGPUCASettingsDeviceProcessing devProc;
+	
 	rec.SetDefaults();
 	ev.SetDefaults();
+	devProc.SetDefaults();
+	
 	ev.solenoidBz = solenoidBz;
 	ev.continuousMaxTimeBin = fContinuous ? 0.023 * 5e6 : 0;
 
@@ -118,15 +119,9 @@ int AliHLTTPCCAO2Interface::Initialize(const char* options, std::unique_ptr<TPCF
 	rec.NWaysOuter = true;
 	rec.SearchWindowDZDR = 2.5f;
 	rec.TrackReferenceX = refX;
-	mRec->SetSettings(&ev, &rec);
+	mRec->SetSettings(&ev, &rec, &devProc);
 	mRec->SetTPCFastTransform(std::move(fastTrans));
-	mRec->Init();
-	if (fHLT->Initialize(mRec.get())) return 1;
-	for (int i = 0;i < 36;i++)
-	{
-		fHLT->InitializeSliceParam(i, &mRec->GetParam());
-	}
-	fHLT->Merger().SetSliceParam(&mRec->GetParam());
+	if (mRec->Init()) return 1;
 
 	fInitialized = true;
 	return(0);
@@ -136,10 +131,7 @@ void AliHLTTPCCAO2Interface::Deinitialize()
 {
 	if (fInitialized)
 	{
-		fHLT->Merger().Clear();
-		fHLT->Merger().SetGPUTracker(NULL);
-		fHLT->Uninitialize();
-		fHLT = NULL;
+		mRec->Finalize();
 		mRec.reset();
 	}
 	fInitialized = false;
@@ -165,50 +157,17 @@ int AliHLTTPCCAO2Interface::RunTracking(const o2::TPC::ClusterNativeAccessFullTP
 	
 	mRec->mIOPtrs.clustersNative = inputClusters;
 	mRec->ConvertNativeToClusterData();
-	AliHLTTPCCAClusterData cData[36];
-	for (int i = 0;i < 36;i++) cData[i].SetClusterData(i, mRec->mIOPtrs.nClusterData[i], mRec->mIOPtrs.clusterData[i]);
-	fHLT->SetExternalClusterData(cData);
-	fHLT->ProcessEvent();
-	outputTracks = fHLT->Merger().OutputTracks();
-	nOutputTracks = fHLT->Merger().NOutputTracks();
-	outputTrackClusters = fHLT->Merger().Clusters();
+	mRec->RunStandalone();
+
+	outputTracks = mRec->mIOPtrs.mergedTracks;
+	nOutputTracks = mRec->mIOPtrs.nMergedTracks;
+	outputTrackClusters = mRec->mIOPtrs.mergedTrackHits;
 	const ClusterNativeAccessExt* ext = mRec->GetClusterNativeAccessExt();
-	for (int i = 0;i < fHLT->Merger().NOutputTrackClusters();i++)
+	for (int i = 0;i < mRec->mIOPtrs.nMergedTrackHits;i++)
 	{
-		auto& cl = fHLT->Merger().Clusters()[i];
+		AliHLTTPCGMMergedTrackHit& cl = (AliHLTTPCGMMergedTrackHit&) mRec->mIOPtrs.mergedTrackHits[i];
 		cl.fNum -= ext->clusterOffset[cl.fSlice][cl.fRow];
 	}
-	nEvent++;
-	return(0);
-}
-
-int AliHLTTPCCAO2Interface::RunTracking(const AliHLTTPCCAClusterData* inputClusters, const AliHLTTPCGMMergedTrack* &outputTracks, int &nOutputTracks, const AliHLTTPCGMMergedTrackHit* &outputTrackClusters)
-{
-	static int nEvent = 0;
-	if (!fInitialized) return(1);
-	fHLT->SetExternalClusterData((AliHLTTPCCAClusterData*) inputClusters);
-	
-	if (fDumpEvents)
-	{
-		mRec->ClearIOPointers();
-		for (int i = 0;i < 36;i++)
-		{
-			mRec->mIOPtrs.nClusterData[i] = inputClusters[i].NumberOfClusters();
-			mRec->mIOPtrs.clusterData[i] = ((AliHLTTPCCAClusterData*) inputClusters)[i].Clusters();
-		}
-		
-		char fname[1024];
-		sprintf(fname, "event.%d.dump", nEvent);
-		mRec->DumpData(fname);
-		if (nEvent == 0)
-		{
-			mRec->DumpSettings();
-		}
-	}
-	fHLT->ProcessEvent();
-	outputTracks = fHLT->Merger().OutputTracks();
-	nOutputTracks = fHLT->Merger().NOutputTracks();
-	outputTrackClusters = fHLT->Merger().Clusters();
 	nEvent++;
 	return(0);
 }
@@ -216,7 +175,7 @@ int AliHLTTPCCAO2Interface::RunTracking(const AliHLTTPCCAClusterData* inputClust
 void AliHLTTPCCAO2Interface::GetClusterErrors2( int row, float z, float sinPhi, float DzDs, float &ErrY2, float &ErrZ2 ) const
 {
 	if (!fInitialized) return;
-	fHLT->Param().GetClusterErrors2(row, z, sinPhi, DzDs, ErrY2, ErrZ2);
+	mRec->GetParam().GetClusterErrors2(row, z, sinPhi, DzDs, ErrY2, ErrZ2);
 }
 
 void AliHLTTPCCAO2Interface::Cleanup()

@@ -3,11 +3,17 @@
 #include <mutex>
 #include <string>
 
+#include "include.h"
+
 #ifdef WIN32
 #include <windows.h>
 #include <winbase.h>
 #else
 #include <dlfcn.h>
+#endif
+
+#ifdef HLTCA_HAVE_OPENMP
+#include <omp.h>
 #endif
 
 #include "AliGPUReconstruction.h"
@@ -28,6 +34,18 @@
 #include "AliHLTTPCRawCluster.h"
 #include "ClusterNativeAccessExt.h"
 #include "AliHLTTRDTrackletLabels.h"
+
+#ifdef HLTCA_STANDALONE
+#include <omp.h>
+#include "include.h"
+#ifdef WIN32
+#include <conio.h>
+#else
+#include <pthread.h>
+#include <unistd.h>
+#include "../cmodules/linux_helpers.h"
+#endif
+#endif
 
 #define HLTCA_LOGGING_PRINTF
 #include "AliCAGPULogging.h"
@@ -51,7 +69,7 @@ constexpr AliGPUReconstruction::GeometryType AliGPUReconstruction::geometryType;
 static constexpr unsigned int DUMP_HEADER_SIZE = 4;
 static constexpr char DUMP_HEADER[DUMP_HEADER_SIZE + 1] = "CAv1";
 
-AliGPUReconstruction::AliGPUReconstruction(const AliGPUCASettingsProcessing& cfg) : mIOPtrs(), mIOMem(), mTRDTracker(new AliHLTTRDTracker), mTPCTracker(nullptr), mITSTrackerTraits(nullptr), mTPCFastTransform(nullptr), mClusterNativeAccess(new ClusterNativeAccessExt)
+AliGPUReconstruction::AliGPUReconstruction(const AliGPUCASettingsProcessing& cfg) : mTRDTracker(new AliHLTTRDTracker), mITSTrackerTraits(nullptr), mTPCFastTransform(nullptr), mClusterNativeAccess(new ClusterNativeAccessExt)
 {
 	mProcessingSettings = cfg;
 	mDeviceProcessingSettings.SetDefaults();
@@ -59,24 +77,47 @@ AliGPUReconstruction::AliGPUReconstruction(const AliGPUCASettingsProcessing& cfg
 	mParam.SetDefaults(&mEventSettings);
 	if (mProcessingSettings.deviceType == CPU)
 	{
-		mTPCTracker.reset(new AliHLTTPCCAGPUTracker);
 		mITSTrackerTraits.reset(new o2::ITS::TrackerTraitsCPU);
 	}
+	memset(mSliceOutput, 0, sizeof(mSliceOutput));
 }
 
 AliGPUReconstruction::~AliGPUReconstruction()
 {
 	//Reset these explicitly before the destruction of other members unloads the library
 	mTRDTracker.reset();
-	mTPCTracker.reset();
 	mITSTrackerTraits.reset();
 }
 
 int AliGPUReconstruction::Init()
 {
 	mTRDTracker->Init((AliHLTTRDGeometry*) mTRDGeometry.get()); //Cast is safe, we just add some member functions
+	if (mDeviceProcessingSettings.debugLevel >= 4)
+	{
+		mDebugFile.open(IsGPU() ? "GPU.out" : "CPU.out");
+	}
+	for (unsigned int i = 0;i < NSLICES;i++)
+	{
+		mTPCSliceTrackersCPU[i].Initialize(&mParam, i);
+		mTPCSliceTrackersCPU[i].SetGPUDebugOutput(&mDebugFile);
+		mTPCSliceTrackersCPU[i].SetAliGPUReconstruction(this);
+	}
+	mTPCMergerCPU.Initialize(this);
+	if (InitDevice()) return 1;
+	mInitialized = true;
 	return 0;
 }
+
+int AliGPUReconstruction::Finalize()
+{
+	if (mDeviceProcessingSettings.debugLevel >= 4) mDebugFile.close();
+	ExitDevice();
+	mInitialized = false;
+	return 0;
+}
+
+int AliGPUReconstruction::InitDevice() {return 0;}
+int AliGPUReconstruction::ExitDevice() {return 0;}
 
 AliGPUReconstruction::InOutMemory::InOutMemory()
 {}
@@ -170,7 +211,7 @@ int AliGPUReconstruction::ReadData(const char* filename)
 	(void) r;
 	ReadData(fp, mIOPtrs.clusterData, mIOPtrs.nClusterData, mIOMem.clusterData, InOutPointerType::CLUSTER_DATA);
 	int nClustersTotal = 0;
-	for (int i = 0;i < 36;i++)
+	for (unsigned int i = 0;i < NSLICES;i++)
 	{
 		for (unsigned int j = 0;j < mIOPtrs.nClusterData[i];j++)
 		{
@@ -374,7 +415,7 @@ void AliGPUReconstruction::SetSettings(const AliGPUCASettingsEvent* settings, co
 {
 	mEventSettings = *settings;
 	if (proc) mDeviceProcessingSettings = *proc;
-	mParam.SetDefaults(&mEventSettings, rec);
+	mParam.SetDefaults(&mEventSettings, rec, proc);
 }
 void AliGPUReconstruction::LoadClusterErrors()
 {
@@ -387,6 +428,279 @@ void AliGPUReconstruction::SetTPCFastTransform(std::unique_ptr<TPCFastTransform>
 void AliGPUReconstruction::SetTRDGeometry(const o2::trd::TRDGeometryFlat& geo)
 {
 	mTRDGeometry.reset(new o2::trd::TRDGeometryFlat(geo));
+}
+
+int AliGPUReconstruction::RunStandalone()
+{
+	mStatNEvents++;
+
+#ifdef HLTCA_STANDALONE
+	static HighResTimer timerTracking, timerMerger, timerQA;
+	static int nCount = 0;
+	if (mDeviceProcessingSettings.resetTimers)
+	{
+		timerTracking.Reset();
+		timerMerger.Reset();
+		timerQA.Reset();
+		nCount = 0;
+	}
+	timerTracking.Start();
+#endif
+
+	RunTPCTrackingSlices();
+
+#ifdef HLTCA_STANDALONE
+	timerTracking.Stop();
+#endif
+
+#ifdef HLTCA_STANDALONE
+	timerMerger.Start();
+#endif
+	mTPCMergerCPU.Clear();
+
+	for (unsigned int i = 0; i < NSLICES; i++)
+	{
+		//printf("slice %d clusters %d tracks %d\n", i, fClusterData[i].NumberOfClusters(), mSliceOutput[i]->NTracks());
+		mTPCMergerCPU.SetSliceData(i, mSliceOutput[i]);
+	}
+
+#ifdef HLTCA_GPU_MERGER
+#endif
+	RunTPCTrackingMerger();
+#ifdef HLTCA_STANDALONE
+	timerMerger.Stop();
+#endif
+
+#ifdef HLTCA_STANDALONE
+#ifdef BUILD_QA
+	if (mDeviceProcessingSettings.runQA || (mDeviceProcessingSettings.runEventDisplay && mIOPtrs.nMCInfosTPC))
+	{
+		timerQA.Start();
+		RunQA(!mDeviceProcessingSettings.runQA);
+		timerQA.Stop();
+	}
+#endif
+
+	nCount++;
+#ifndef HLTCA_BUILD_O2_LIB
+	char nAverageInfo[16] = "";
+	if (nCount > 1) sprintf(nAverageInfo, " (%d)", nCount);
+	printf("Tracking Time: %'d us%s\n", (int) (1000000 * timerTracking.GetElapsedTime() / nCount), nAverageInfo);
+	printf("Merging and Refit Time: %'d us\n", (int) (1000000 * timerMerger.GetElapsedTime() / nCount));
+	if (mDeviceProcessingSettings.runQA) printf("QA Time: %'d us\n", (int) (1000000 * timerQA.GetElapsedTime() / nCount));
+#endif
+
+	if (mDeviceProcessingSettings.debugLevel >= 1)
+	{
+		const char *tmpNames[10] = {"Initialisation", "Neighbours Finder", "Neighbours Cleaner", "Starts Hits Finder", "Start Hits Sorter", "Weight Cleaner", "Tracklet Constructor", "Tracklet Selector", "Global Tracking", "Write Output"};
+
+		for (int i = 0; i < 10; i++)
+		{
+			double time = 0;
+			for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++)
+			{
+				time += mTPCSliceTrackersCPU[iSlice].GetTimer(i);
+				mTPCSliceTrackersCPU[iSlice].ResetTimer(i);
+			}
+			time /= NSLICES;
+#ifdef HLTCA_HAVE_OPENMP
+			if (!IsGPU()) time /= omp_get_max_threads();
+#endif
+
+			printf("Execution Time: Task: %20s ", tmpNames[i]);
+			printf("Time: %1.0f us", time * 1000000 / nCount);
+			printf("\n");
+		}
+		printf("Execution Time: Task: %20s Time: %1.0f us\n", "Merger", timerMerger.GetElapsedTime() * 1000000. / nCount);
+		if (!HLTCA_TIMING_SUM)
+		{
+			timerTracking.Reset();
+			timerMerger.Reset();
+			timerQA.Reset();
+			nCount = 0;
+		}
+	}
+
+#ifdef BUILD_EVENT_DISPLAY
+	if (mDeviceProcessingSettings.runEventDisplay)
+	{
+		static int displayActive = 0;
+		if (!displayActive)
+		{
+#ifdef WIN32
+			semLockDisplay = CreateSemaphore(0, 1, 1, 0);
+			HANDLE hThread;
+			if ((hThread = CreateThread(NULL, NULL, &OpenGLMain, NULL, NULL, NULL)) == NULL)
+#else
+			static pthread_t hThread;
+			if (pthread_create(&hThread, NULL, OpenGLMain, NULL))
+#endif
+			{
+				printf("Coult not Create GL Thread...\nExiting...\n");
+			}
+			displayActive = 1;
+		}
+		else
+		{
+#ifdef WIN32
+			ReleaseSemaphore(semLockDisplay, 1, NULL);
+#else
+			pthread_mutex_unlock(&semLockDisplay);
+#endif
+			ShowNextEvent();
+		}
+
+		while (kbhit())
+			getch();
+		printf("Press key for next event!\n");
+
+		int iKey;
+		do
+		{
+#ifdef WIN32
+			Sleep(10);
+#else
+			usleep(10000);
+#endif
+			iKey = kbhit() ? getch() : 0;
+			if (iKey == 'q')
+				exitButton = 2;
+			else if (iKey == 'n')
+				break;
+			else if (iKey)
+			{
+				while (sendKey != 0)
+				{
+#ifdef WIN32
+					Sleep(1);
+#else
+					usleep(1000);
+#endif
+				}
+				sendKey = iKey;
+			}
+		} while (exitButton == 0);
+		if (exitButton == 2)
+		{
+			DisplayExit();
+			return (2);
+		}
+		exitButton = 0;
+		printf("Loading next event\n");
+
+#ifdef WIN32
+		WaitForSingleObject(semLockDisplay, INFINITE);
+#else
+		pthread_mutex_lock(&semLockDisplay);
+#endif
+
+		displayEventNr++;
+	}
+#endif
+#endif
+	return 0;
+}
+
+int AliGPUReconstruction::RunTPCTrackingSlices()
+{
+	bool error = false;
+#ifdef HLTCA_STANDALONE
+	int nLocalTracks = 0, nGlobalTracks = 0, nOutputTracks = 0, nLocalHits = 0, nGlobalHits = 0;
+#endif
+#ifdef HLTCA_HAVE_OPENMP
+	if (mOutputControl.OutputType != AliGPUCAOutputControl::AllocateInternal && omp_get_max_threads() > 1)
+	{
+		CAGPUError("fOutputPtr must not be used with OpenMP\n");
+		return(1);
+	}
+#pragma omp parallel for
+#endif
+	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
+	{
+		if (error) continue;
+		mClusterData[iSlice].SetClusterData(iSlice, mIOPtrs.nClusterData[iSlice], mIOPtrs.clusterData[iSlice]);
+		if (mTPCSliceTrackersCPU[iSlice].ReadEvent(&mClusterData[iSlice]))
+		{
+			error = true;
+			continue;
+		}
+		mTPCSliceTrackersCPU[iSlice].SetOutput(&mSliceOutput[iSlice]);
+		mTPCSliceTrackersCPU[iSlice].Reconstruct();
+		mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNLocalTracks = mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTracks;
+		mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNLocalTrackHits = mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTrackHits;
+		if (!mParam.rec.GlobalTracking)
+		{
+			mTPCSliceTrackersCPU[iSlice].ReconstructOutput();
+#ifdef HLTCA_STANDALONE
+			nOutputTracks += (*mTPCSliceTrackersCPU[iSlice].Output())->NTracks();
+			nLocalTracks += mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTracks;
+#endif
+			if (mDeviceProcessingSettings.runEventDisplay)
+			{
+				mTPCSliceTrackersCPU[iSlice].SetupCommonMemory();
+			}
+		}
+	}
+	if (error) return(1);
+
+	if (mParam.rec.GlobalTracking)
+	{
+		for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
+		{
+			int sliceLeft = (iSlice + (NSLICES / 2 - 1)) % (NSLICES / 2);
+			int sliceRight = (iSlice + 1) % (NSLICES / 2);
+			if (iSlice >= NSLICES / 2)
+			{
+				sliceLeft += NSLICES / 2;
+				sliceRight += NSLICES / 2;
+			}
+			mTPCSliceTrackersCPU[iSlice].PerformGlobalTracking(mTPCSliceTrackersCPU[sliceLeft], mTPCSliceTrackersCPU[sliceRight], mTPCSliceTrackersCPU[sliceLeft].NMaxTracks(), mTPCSliceTrackersCPU[sliceRight].NMaxTracks());
+		}
+		for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
+		{
+			mTPCSliceTrackersCPU[iSlice].ReconstructOutput();
+#ifdef HLTCA_STANDALONE
+			//printf("Slice %d - Tracks: Local %d Global %d - Hits: Local %d Global %d\n", iSlice, mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNLocalTracks, mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTracks, mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNLocalTrackHits, mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTrackHits);
+			nLocalTracks += mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNLocalTracks;
+			nGlobalTracks += mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTracks;
+			nLocalHits += mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNLocalTrackHits;
+			nGlobalHits += mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTrackHits;
+			nOutputTracks += (*mTPCSliceTrackersCPU[iSlice].Output())->NTracks();
+#endif
+			if (mDeviceProcessingSettings.runEventDisplay)
+			{
+				mTPCSliceTrackersCPU[iSlice].SetupCommonMemory();
+			}
+		}
+	}
+	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
+	{
+		if (mTPCSliceTrackersCPU[iSlice].GPUParameters()->fGPUError != 0)
+		{
+			const char* errorMsgs[] = HLTCA_GPU_ERROR_STRINGS;
+			const char* errorMsg = (unsigned) mTPCSliceTrackersCPU[iSlice].GPUParameters()->fGPUError >= sizeof(errorMsgs) / sizeof(errorMsgs[0]) ? "UNKNOWN" : errorMsgs[mTPCSliceTrackersCPU[iSlice].GPUParameters()->fGPUError];
+			printf("Error during tracking: %s\n", errorMsg);
+			return(1);
+		}
+	}
+#ifdef HLTCA_STANDALONE
+	//printf("Slice Tracks Output %d: - Tracks: %d local, %d global -  Hits: %d local, %d global\n", nOutputTracks, nLocalTracks, nGlobalTracks, nLocalHits, nGlobalHits);
+	/*for (unsigned int i = 0;i < NSLICES;i++)
+	{
+		mTPCSliceTrackersCPU[i].DumpOutput(stdout);
+	}*/
+#endif
+	return 0;
+}
+
+int AliGPUReconstruction::RunTPCTrackingMerger()
+{
+	mTPCMergerCPU.Reconstruct();
+	mIOPtrs.mergedTracks = mTPCMergerCPU.OutputTracks();
+	mIOPtrs.nMergedTracks = mTPCMergerCPU.NOutputTracks();
+	mIOPtrs.mergedTrackHits = mTPCMergerCPU.Clusters();
+	mIOPtrs.nMergedTrackHits = mTPCMergerCPU.NOutputTrackClusters();
+	return 0;
 }
 
 int AliGPUReconstruction::RunTRDTracking()
@@ -525,7 +839,7 @@ AliGPUReconstruction::DeviceType AliGPUReconstruction::GetDeviceType(const char*
 #define LIBRARY_PREFIX ""
 #endif
 
-std::shared_ptr<AliGPUReconstruction::LibraryLoader> AliGPUReconstruction::sLibCUDA(new AliGPUReconstruction::LibraryLoader("lib" LIBRARY_PREFIX "TPCCAGPUTracking" "CUDA" LIBRARY_EXTENSION, "AliGPUReconstruction_Create_" "CUDA"));
+std::shared_ptr<AliGPUReconstruction::LibraryLoader> AliGPUReconstruction::sLibCUDA(new AliGPUReconstruction::LibraryLoader("/home/qon/standalone/lib" LIBRARY_PREFIX "TPCCAGPUTracking" "CUDA" LIBRARY_EXTENSION, "AliGPUReconstruction_Create_" "CUDA"));
 std::shared_ptr<AliGPUReconstruction::LibraryLoader> AliGPUReconstruction::sLibHIP(new AliGPUReconstruction::LibraryLoader("lib" LIBRARY_PREFIX "TPCCAGPUTracking" "HIP" LIBRARY_EXTENSION, "AliGPUReconstruction_Create_" "HIP"));
 std::shared_ptr<AliGPUReconstruction::LibraryLoader> AliGPUReconstruction::sLibOCL(new AliGPUReconstruction::LibraryLoader("lib" LIBRARY_PREFIX "TPCCAGPUTracking" "OCL" LIBRARY_EXTENSION, "AliGPUReconstruction_Create_" "OCL"));
 

@@ -80,18 +80,18 @@ endif()
 
 # Sources in alphabetical order
 set(SRCS
-    AliHLTTPCCAGPUTrackerNVCC.cu
     AliGPUReconstructionCUDA.cu
    )
 
 # Headers from sources
 set(CINTHDRS
-    AliHLTTPCCAGPUTrackerNVCC.h
+    AliGPUReconstructionCUDA.h
     )
 
 set(HDRS
     ${CINTHDRS}
     ${CAGPUDIR}/GlobalTracker/AliHLTTPCCAGPUTrackerCommon.h
+    AliGPUReconstructionCUDAInternals.h
   )
 
 #Default cmake build script for AliRoot

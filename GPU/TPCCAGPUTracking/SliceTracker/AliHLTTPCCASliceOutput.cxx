@@ -17,45 +17,45 @@
 //                                                                          *
 //***************************************************************************
 
+#include "AliGPUCAOutputControl.h"
 #include "AliHLTTPCCASliceOutput.h"
+#include "AliTPCCommonMath.h"
 
-int AliHLTTPCCASliceOutput::EstimateSize( int nOfTracks, int nOfTrackClusters )
+int AliHLTTPCCASliceOutput::EstimateSize(int nOfTracks, int nOfTrackClusters)
 {
-  // calculate the amount of memory [bytes] needed for the event
-  return sizeof(AliHLTTPCCASliceOutput) + sizeof(AliHLTTPCCASliceOutTrack) * nOfTracks + sizeof(AliHLTTPCCASliceOutCluster) * nOfTrackClusters;
+	// calculate the amount of memory [bytes] needed for the event
+	return sizeof(AliHLTTPCCASliceOutput) + sizeof(AliHLTTPCCASliceOutTrack) * nOfTracks + sizeof(AliHLTTPCCASliceOutCluster) * nOfTrackClusters;
 }
 
 #ifndef HLTCA_GPUCODE
 
-inline void AssignNoAlignment( int &dst, int &size, int count )
+inline void AssignNoAlignment(int &dst, int &size, int count)
 {
-  // assign memory to the pointer dst
-  dst = size;
-  size = dst + count ;
+	// assign memory to the pointer dst
+	dst = size;
+	size = dst + count;
 }
 
-
-void AliHLTTPCCASliceOutput::Allocate(AliHLTTPCCASliceOutput* &ptrOutput, int nTracks, int nTrackHits, outputControlStruct* outputControl)
+void AliHLTTPCCASliceOutput::Allocate(AliHLTTPCCASliceOutput *&ptrOutput, int nTracks, int nTrackHits, AliGPUCAOutputControl *outputControl)
 {
 	//Allocate All memory needed for slice output
-	const int memsize = EstimateSize(nTracks, nTrackHits);
+	const size_t memsize = EstimateSize(nTracks, nTrackHits);
 
-	if (outputControl->fOutputPtr)
+	if (outputControl->OutputType != AliGPUCAOutputControl::AllocateInternal)
 	{
-		if (outputControl->fOutputMaxSize < memsize)
+		if (outputControl->OutputMaxSize - outputControl->Offset < memsize)
 		{
-			outputControl->fEndOfSpace = 1;
+			outputControl->EndOfSpace = 1;
 			ptrOutput = NULL;
 			return;
 		}
-		ptrOutput = (AliHLTTPCCASliceOutput*) outputControl->fOutputPtr;
-		outputControl->fOutputPtr += memsize;
-		outputControl->fOutputMaxSize -= memsize;
+		ptrOutput = (AliHLTTPCCASliceOutput *) (outputControl->OutputPtr + outputControl->Offset);
+		outputControl->Offset += memsize;
 	}
 	else
 	{
 		if (ptrOutput) free(ptrOutput);
-		ptrOutput = (AliHLTTPCCASliceOutput*) malloc(memsize);
+		ptrOutput = (AliHLTTPCCASliceOutput *) malloc(memsize);
 	}
 	ptrOutput->SetMemorySize(memsize);
 }

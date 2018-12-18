@@ -9,7 +9,6 @@
 #ifndef ALIHLTTPCCAO2INTERFACE_H
 #define ALIHLTTPCCAO2INTERFACE_H
 
-class AliHLTTPCCAStandaloneFramework;
 class AliGPUReconstruction;
 #include <memory>
 #include "AliHLTTPCCAClusterData.h"
@@ -29,7 +28,6 @@ public:
 	void Deinitialize();
 	
 	int RunTracking(const o2::TPC::ClusterNativeAccessFullTPC* inputClusters, const AliHLTTPCGMMergedTrack* &outputTracks, int &nOutputTracks, const AliHLTTPCGMMergedTrackHit* &outputTrackClusters);
-	int RunTracking(const AliHLTTPCCAClusterData* inputClusters, const AliHLTTPCGMMergedTrack* &outputTracks, int &nOutputTracks, const AliHLTTPCGMMergedTrackHit* &outputTrackClusters);
 	void Cleanup();
 	
 	bool GetParamContinuous() {return(fContinuous);}
@@ -42,7 +40,6 @@ private:
 	bool fInitialized;
 	bool fDumpEvents;
 	bool fContinuous;
-	AliHLTTPCCAStandaloneFramework* fHLT;
 	
 	std::unique_ptr<AliGPUReconstruction> mRec;
 };

@@ -10,9 +10,9 @@
 
 //  @file   AliHLTTPCCAGPUTrackerOpenCL.h
 //  @author David Rohr, Sergey Gorbunov
-//  @date   
+//  @date
 //  @brief  TPC CA Tracker for the NVIDIA GPU
-//  @note 
+//  @note
 
 
 #ifndef ALIHLTTPCCAGPUTRACKEROPENCLINTERNALS_H
@@ -21,7 +21,7 @@
 #include <CL/opencl.h>
 #include <CL/cl_ext.h>
 
-struct AliHLTTPCCAGPUTrackerOpenCLInternals
+struct AliGPUReconstructionOCLInternals
 {
 	cl_device_id device;
 	cl_device_id* devices;

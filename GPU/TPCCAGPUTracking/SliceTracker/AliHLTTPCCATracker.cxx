@@ -33,6 +33,7 @@
 #include "AliHLTTPCCATrackletSelector.h"
 #include "AliHLTTPCCAProcess.h"
 #include "AliHLTTPCCAClusterData.h"
+#include "AliGPUCAOutputControl.h"
 
 #include "AliHLTTPCCATrackParam.h"
 
@@ -44,6 +45,8 @@
 #include <string.h>
 #include <cmath>
 #include <algorithm>
+
+#include "AliGPUReconstruction.h"
 #endif
 
 //#define DRAW1
@@ -55,6 +58,43 @@
 ClassImp( AliHLTTPCCATracker )
 
 #if !defined(HLTCA_GPUCODE)
+
+AliHLTTPCCATracker::AliHLTTPCCATracker() :
+#ifdef HLTCA_STANDALONE
+#ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
+	fStageAtSync( NULL ),
+#endif
+	fLinkTmpMemory( NULL ),
+#endif
+	fParam(NULL),
+	fISlice(0),
+	fGPUReconstruction(NULL),
+	fClusterData( 0 ),
+	fData(),
+	fIsGPUTracker( false ),
+	fGPUDebugOut( 0 ),
+	fNMaxTracks( 0 ),
+	fRowStartHitCountOffset( NULL ),
+	fTrackletTmpStartHits( NULL ),
+	fGPUTrackletTemp( NULL ),
+	fRowBlockTracklets( NULL ),
+	fRowBlockPos( NULL ),
+	fBlockStartingTracklet( NULL ),
+	fGPUParametersConst(),
+	fCommonMem( 0 ),
+	fHitMemory( 0 ),
+	fHitMemorySize( 0 ),
+	fTrackletMemory( 0 ),
+	fTrackletMemorySize( 0 ),
+	fTrackMemory( 0 ),
+	fTrackMemorySize( 0 ),
+	fTrackletStartHits( 0 ),
+	fTracklets( 0 ),
+	fTrackletRowHits( NULL ),
+	fTracks( 0 ),
+	fTrackHits( 0 ),
+	fOutput( 0 )
+{}
 
 AliHLTTPCCATracker::~AliHLTTPCCATracker()
 {
@@ -78,14 +118,7 @@ void AliHLTTPCCATracker::Initialize( const AliGPUCAParam *param, int iSlice )
 {
 	fParam = param;
 	fISlice = iSlice;
-	fData.InitializeRows( *fParam );
-
-	StartEvent();
-}
-
-void AliHLTTPCCATracker::StartEvent()
-{
-	// start new event and fresh the memory
+	InitializeRows(fParam);
 
 	SetupCommonMemory();
 }
@@ -382,14 +415,14 @@ void AliHLTTPCCATracker::SetupCommonMemory()
 	fCommonMem->fNTrackHits = 0;
 }
 
-int AliHLTTPCCATracker::ReadEvent( AliHLTTPCCAClusterData *clusterData )
+int AliHLTTPCCATracker::ReadEvent( const AliHLTTPCCAClusterData *clusterData )
 {
 	// read event
 
 	StartTimer(0);
 	fClusterData = clusterData;
 
-	StartEvent();
+	SetupCommonMemory();
 
 	//* Convert input hits, create grids, etc.
 	if (fData.InitFromClusterData( *clusterData ))
@@ -412,7 +445,7 @@ int AliHLTTPCCATracker::ReadEvent( AliHLTTPCCAClusterData *clusterData )
 	return 0;
 }
 
-GPUhd() void  AliHLTTPCCATracker::SetPointersHits( int MaxNHits )
+GPUhd() void AliHLTTPCCATracker::SetPointersHits( int MaxNHits )
 {
 	// set all pointers to the event memory
 
@@ -425,7 +458,7 @@ GPUhd() void  AliHLTTPCCATracker::SetPointersHits( int MaxNHits )
 	fHitMemorySize = mem - fHitMemory;
 }
 
-GPUhd() void  AliHLTTPCCATracker::SetPointersTracklets( int MaxNTracklets )
+GPUhd() void AliHLTTPCCATracker::SetPointersTracklets( int MaxNTracklets )
 {
 	// set all pointers to the tracklets memory
 	char *mem = fTrackletMemory;
@@ -441,7 +474,7 @@ GPUhd() void  AliHLTTPCCATracker::SetPointersTracklets( int MaxNTracklets )
 }
 
 
-GPUhd() void  AliHLTTPCCATracker::SetPointersTracks( int MaxNTracks, int MaxNHits )
+GPUhd() void AliHLTTPCCATracker::SetPointersTracks( int MaxNTracks, int MaxNHits )
 {
 	// set all pointers to the tracks memory
 	char *mem = fTrackMemory;
@@ -459,15 +492,13 @@ GPUhd() void  AliHLTTPCCATracker::SetPointersTracks( int MaxNTracks, int MaxNHit
 GPUh() int AliHLTTPCCATracker::CheckEmptySlice() const
 {
 	//Check if the Slice is empty, if so set the output apropriate and tell the reconstuct procesdure to terminate
-	if ( NHitsTotal() < 1 ) {
-		{
-			AliHLTTPCCASliceOutput::Allocate(*fOutput, 0, 0, fOutputControl);
-			AliHLTTPCCASliceOutput* useOutput = *fOutput;
-			if (useOutput == NULL) return(1);
-			useOutput->SetNTracks( 0 );
-			useOutput->SetNTrackClusters( 0 );
-		}
-
+	if ( NHitsTotal() < 1 )
+	{
+		AliHLTTPCCASliceOutput::Allocate(*fOutput, 0, 0, &fGPUReconstruction->OutputControl());
+		AliHLTTPCCASliceOutput* useOutput = *fOutput;
+		if (useOutput == NULL) return(1);
+		useOutput->SetNTracks( 0 );
+		useOutput->SetNTrackClusters( 0 );
 		return 1;
 	}
 	return 0;
@@ -507,7 +538,7 @@ GPUh() void AliHLTTPCCATracker::DoTracking()
 {
 	fCommonMem->fNTracklets = fCommonMem->fNTracks = fCommonMem->fNTrackHits = 0;
 
-	if (fGPUDebugLevel >= 6)
+	if (fParam->debugLevel >= 6)
 	{
 #ifndef BITWISE_COMPATIBLE_DEBUG_OUTPUT
 		*fGPUDebugOut << std::endl << std::endl << "Slice: " << fISlice << std::endl;
@@ -526,7 +557,7 @@ GPUh() void AliHLTTPCCATracker::DoTracking()
 	memcpy(fLinkTmpMemory, fData.Memory(), fData.MemorySize());
 #endif
 
-	if (fGPUDebugLevel >= 6) DumpLinks(*fGPUDebugOut);
+	if (fParam->debugLevel >= 6) DumpLinks(*fGPUDebugOut);
 
 #ifdef DRAW1
 	if ( NHitsTotal() > 0 ) {
@@ -539,13 +570,13 @@ GPUh() void AliHLTTPCCATracker::DoTracking()
 	RunNeighboursCleaner();
 	StopTimer(2);
 
-	if (fGPUDebugLevel >= 6) DumpLinks(*fGPUDebugOut);
+	if (fParam->debugLevel >= 6) DumpLinks(*fGPUDebugOut);
 
 	StartTimer(3);
 	RunStartHitsFinder();
 	StopTimer(3);
 
-	if (fGPUDebugLevel >= 6) DumpStartHits(*fGPUDebugOut);
+	if (fParam->debugLevel >= 6) DumpStartHits(*fGPUDebugOut);
 
 	StartTimer(5);
 	fData.ClearHitWeights();
@@ -566,11 +597,11 @@ GPUh() void AliHLTTPCCATracker::DoTracking()
 	StartTimer(6);
 	RunTrackletConstructor();
 	StopTimer(6);
-	if (fGPUDebugLevel >= 3) printf("Slice %d, Number of tracklets: %d\n", fISlice, *NTracklets());
+	if (fParam->debugLevel >= 3) printf("Slice %d, Number of tracklets: %d\n", fISlice, *NTracklets());
 
-	if (fGPUDebugLevel >= 6) DumpTrackletHits(*fGPUDebugOut);
+	if (fParam->debugLevel >= 6) DumpTrackletHits(*fGPUDebugOut);
 #ifndef BITWISE_COMPATIBLE_DEBUG_OUTPUT
-	if (fGPUDebugLevel >= 6) DumpHitWeights(*fGPUDebugOut);
+	if (fParam->debugLevel >= 6) DumpHitWeights(*fGPUDebugOut);
 #endif
 
 	//std::cout<<"Slice "<<fISlice<<": NHits="<<NHitsTotal()<<", NTracklets="<<*NTracklets()<<std::endl;
@@ -578,11 +609,11 @@ GPUh() void AliHLTTPCCATracker::DoTracking()
 	StartTimer(7);
 	RunTrackletSelector();
 	StopTimer(7);
-	if (fGPUDebugLevel >= 3) printf("Slice %d, Number of tracks: %d\n", fISlice, *NTracks());
+	if (fParam->debugLevel >= 3) printf("Slice %d, Number of tracks: %d\n", fISlice, *NTracks());
 
 	//std::cout<<"Slice "<<fISlice<<": N start hits/tracklets/tracks = "<<nStartHits<<" "<<nStartHits<<" "<<*fNTracks<<std::endl;
 
-	if (fGPUDebugLevel >= 6) DumpTrackHits(*fGPUDebugOut);
+	if (fParam->debugLevel >= 6) DumpTrackHits(*fGPUDebugOut);
 
 	//std::cout<<"Memory used for slice "<<fParam->ISlice()<<" : "<<fCommonMemorySize/1024./1024.<<" + "<<fHitMemorySize/1024./1024.<<" + "<<fTrackMemorySize/1024./1024.<<" = "<<( fCommonMemorySize+fHitMemorySize+fTrackMemorySize )/1024./1024.<<" Mb "<<std::endl;
 }
@@ -603,12 +634,7 @@ GPUh() void AliHLTTPCCATracker::ReconstructOutput()
 GPUh() void AliHLTTPCCATracker::WriteOutputPrepare()
 {
 	StartTimer(9);
-	if (fOutputControl == NULL)
-	{
-		fOutputControl = new AliHLTTPCCASliceOutput::outputControlStruct;
-		memset((void*) fOutputControl, 0, sizeof(*fOutputControl));
-	}
-	AliHLTTPCCASliceOutput::Allocate(*fOutput, fCommonMem->fNTracks, fCommonMem->fNTrackHits, fOutputControl);
+	AliHLTTPCCASliceOutput::Allocate(*fOutput, fCommonMem->fNTracks, fCommonMem->fNTrackHits, &fGPUReconstruction->OutputControl());
 	StopTimer(9);
 }
 
@@ -716,7 +742,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 	useOutput->SetNTracks( nStoredTracks );
 	useOutput->SetNLocalTracks( nStoredLocalTracks );
 	useOutput->SetNTrackClusters( nStoredHits );
-	if (fGPUDebugLevel >= 3) printf("Slice %d, Output: Tracks %d, local tracks %d, hits %d\n", fISlice, nStoredTracks, nStoredLocalTracks, nStoredHits);
+	if (fParam->debugLevel >= 3) printf("Slice %d, Output: Tracks %d, local tracks %d, hits %d\n", fISlice, nStoredTracks, nStoredLocalTracks, nStoredHits);
 
 	StopTimer(9);
 }
@@ -755,7 +781,7 @@ GPUh() void AliHLTTPCCATracker::WriteTracks( std::ostream &/*out*/ )
 
 GPUh() void AliHLTTPCCATracker::ReadTracks( std::istream &/*in*/ )
 {
-	//* Read tracks  from file -- dummy
+	//* Read tracks from file -- dummy
 }
 
 GPUh() int AliHLTTPCCATracker::PerformGlobalTrackingRun(AliHLTTPCCATracker& sliceNeighbour, int iTrack, int rowIndex, float angle, int direction)
@@ -832,7 +858,7 @@ GPUh() int AliHLTTPCCATracker::PerformGlobalTrackingRun(AliHLTTPCCATracker& slic
 				const calink rowHit = sliceNeighbour.Tracklet(0).RowHit(rowIndex);
 #endif
 				if (rowHit != CALINK_INVAL)
-	    			{
+				{
 					//printf("New track: entry %d, row %d, hitindex %d\n", i, rowIndex, sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets]);
 					sliceNeighbour.fTrackHits[sliceNeighbour.fCommonMem->fNTrackHits + i].Set(rowIndex, rowHit);
 					i--;

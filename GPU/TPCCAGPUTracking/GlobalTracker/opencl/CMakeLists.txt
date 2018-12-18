@@ -52,8 +52,8 @@ add_executable(opencl_compiler ${CAGPUDIR}/Standalone/makefiles/makefile_opencl_
 target_link_libraries(opencl_compiler OpenCL)
 
 #convenience variables
-set(CL_SRC ${CAGPUDIR}/GlobalTracker/opencl/AliHLTTPCCAGPUTrackerOpenCL.cl )
-set(CL_BIN ${CMAKE_CURRENT_BINARY_DIR}/AliHLTTPCCAGPUTrackerOpenCLCode.bin )
+set(CL_SRC ${CAGPUDIR}/GlobalTracker/opencl/AliGPUReconstructionOCL.cl )
+set(CL_BIN ${CMAKE_CURRENT_BINARY_DIR}/AliGPUReconstructionOCLCode.bin )
 set(CL_INC
     -I${CAGPUDIR}/HLTHeaders
     -I${CAGPUDIR}/SliceTracker
@@ -71,13 +71,13 @@ add_custom_command(
 )
 
 add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/AliHLTTPCCAGPUTrackerOpenCLCode.S
-    COMMAND cat ${CAGPUDIR}/Standalone/makefiles/include.S | sed "s/FILENAMEMOD/_makefile_opencl_program_GlobalTracker_opencl_AliHLTTPCCAGPUTrackerOpenCL_cl/g" | sed "s/FILENAMENORMAL/AliHLTTPCCAGPUTrackerOpenCLCode.bin/g" > ${CMAKE_CURRENT_BINARY_DIR}/AliHLTTPCCAGPUTrackerOpenCLCode.S
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/AliGPUReconstructionOCLCode.S
+    COMMAND cat ${CAGPUDIR}/Standalone/makefiles/include.S | sed "s/FILENAMEMOD/_makefile_opencl_program_GlobalTracker_opencl_AliGPUReconstructionOCL_cl/g" | sed "s/FILENAMENORMAL/AliGPUReconstructionOCLCode.bin/g" > ${CMAKE_CURRENT_BINARY_DIR}/AliGPUReconstructionOCLCode.S
     MAIN_DEPENDENCY ${CAGPUDIR}/Standalone/makefiles/include.S
 )
 
 # make cmake compile the assembler file, add proper dependency on included binary code
-set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/AliHLTTPCCAGPUTrackerOpenCLCode.S PROPERTIES LANGUAGE CXX OBJECT_DEPENDS "${CL_BIN};${CAGPUDIR}/Standalone/makefiles/include.S")
+set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/AliGPUReconstructionOCLCode.S PROPERTIES LANGUAGE CXX OBJECT_DEPENDS "${CL_BIN};${CAGPUDIR}/Standalone/makefiles/include.S")
 
 # Module include folder
 include_directories(${CAGPUDIR}/GlobalTracker/opencl
@@ -101,20 +101,19 @@ endif()
 
 # Sources in alphabetical order
 set(SRCS
-    AliHLTTPCCAGPUTrackerOpenCL.cxx
     AliGPUReconstructionOCL.cxx
-    ${CMAKE_CURRENT_BINARY_DIR}/AliHLTTPCCAGPUTrackerOpenCLCode.S
+    ${CMAKE_CURRENT_BINARY_DIR}/AliGPUReconstructionOCLCode.S
    )
 
 # Headers from sources
 set(CINTHDRS
-    AliHLTTPCCAGPUTrackerOpenCL.h
+    AliGPUReconstructionOCL.h
 )
 
 set(HDRS
     ${CINTHDRS}
     ${CAGPUDIR}/GlobalTracker/AliHLTTPCCAGPUTrackerCommon.h
-    AliHLTTPCCAGPUTrackerOpenCLInternals.h
+    AliGPUReconstructionOCLInternals.h
   )
 
 #Default cmake build script for AliRoot

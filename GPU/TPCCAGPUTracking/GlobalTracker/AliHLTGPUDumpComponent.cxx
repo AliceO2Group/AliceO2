@@ -39,8 +39,8 @@
 #include "TPDGCode.h"
 
 AliHLTGPUDumpComponent::AliHLTGPUDumpComponent() : fSolenoidBz(0.f), fRec(NULL), fClusterData(NULL),
-  fFastTransformManager( new ali_tpc_common::tpc_fast_transformation::TPCFastTransformManager ),
-  fCalib(NULL), fRecParam(NULL), fOfflineRecoParam(), fOrigTransform(nullptr), fIsMC(false)
+	fFastTransformManager( new ali_tpc_common::tpc_fast_transformation::TPCFastTransformManager ),
+	fCalib(NULL), fRecParam(NULL), fOfflineRecoParam(), fOrigTransform(nullptr), fIsMC(false)
 {
 	fRec = AliGPUReconstruction::CreateInstance();
 	fClusterData = new AliHLTTPCCAClusterData[36];

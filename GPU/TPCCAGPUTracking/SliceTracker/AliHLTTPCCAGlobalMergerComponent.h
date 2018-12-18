@@ -22,6 +22,7 @@
 #include "AliGPUCAParam.h"
 
 class AliHLTTPCGMMerger;
+class AliGPUReconstruction;
 
 /**
  * @class AliHLTTPCCAGlobalMergerComponent
@@ -40,7 +41,7 @@ class AliHLTTPCCAGlobalMergerComponent : public AliHLTProcessor
     /**
      * Destructs the AliHLTTPCCAGlobalMergerComponent
      */
-    virtual ~AliHLTTPCCAGlobalMergerComponent() {};
+    virtual ~AliHLTTPCCAGlobalMergerComponent();
 
     // Public functions to implement AliHLTComponent's interface.
     // These functions are required for the registration process
@@ -71,7 +72,7 @@ class AliHLTTPCCAGlobalMergerComponent : public AliHLTProcessor
      */
     AliHLTComponent *Spawn();
     
-    static const AliHLTTPCGMMerger* GetCurrentMerger() {return fgCurrentMerger;}
+    static const AliHLTTPCGMMerger* GetCurrentMerger();
 
   protected:
 
@@ -117,17 +118,16 @@ class AliHLTTPCCAGlobalMergerComponent : public AliHLTProcessor
 
     /** the global merger object */
 
-    AliHLTTPCGMMerger *fGlobalMerger; //!
-
     double fSolenoidBz;  // magnetic field
     double fClusterErrorCorrectionY; // correction for the cluster error during pre-fit
     double fClusterErrorCorrectionZ; // correction for the cluster error during pre-fit
 	int fNWays; //Setting for merger
     char fNWaysOuter; //Store outer param after n-way fit
     bool fNoClear;  //Do not clear memory after processing an event
-    static const AliHLTTPCGMMerger* fgCurrentMerger; //Pointer to current merger in case memory is not cleared after processing the event
+    static const AliGPUReconstruction* fgCurrentMergerReconstruction; //Pointer to current merger in case memory is not cleared after processing the event
     AliHLTComponentBenchmark fBenchmark;// benchmark
     AliGPUCAParam fParam; //ca params
+    AliGPUReconstruction* fRec; //AliGPUReconstruction
 
     ClassDef( AliHLTTPCCAGlobalMergerComponent, 0 )
 };

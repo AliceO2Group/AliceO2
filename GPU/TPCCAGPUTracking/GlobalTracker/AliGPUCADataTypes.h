@@ -7,9 +7,9 @@
 
 struct AliGPUCAConstantMem
 {
-    AliGPUCAParam param;
-    AliHLTTPCCATracker tpcTrackers[36];
-    AliHLTTPCGMMerger tpcMerger;
+	AliGPUCAParam param;
+	AliHLTTPCCATracker tpcTrackers[36];
+	AliHLTTPCGMMerger tpcMerger;
 };
 
 #endif

@@ -9,10 +9,10 @@
 #ifndef ALIHLTTPCCANEIGHBOURSCLEANER_H
 #define ALIHLTTPCCANEIGHBOURSCLEANER_H
 
-
 #include "AliHLTTPCCADef.h"
 
-MEM_CLASS_PRE() class AliHLTTPCCATracker;
+MEM_CLASS_PRE()
+class AliHLTTPCCATracker;
 
 /**
  * @class AliHLTTPCCANeighboursCleaner
@@ -21,30 +21,33 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker;
 class AliHLTTPCCANeighboursCleaner
 {
   public:
-    MEM_CLASS_PRE() class AliHLTTPCCASharedMemory
-    {
-        friend class AliHLTTPCCANeighboursCleaner;
-      public:
+	MEM_CLASS_PRE()
+	class AliHLTTPCCASharedMemory
+	{
+		friend class AliHLTTPCCANeighboursCleaner;
+
+	  public:
 #if !defined(HLTCA_GPUCODE)
-        AliHLTTPCCASharedMemory()
-            : fIRow( 0 ), fIRowUp( 0 ), fIRowDn( 0 ), fNHits( 0 ) {}
-        AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
-            : fIRow( 0 ), fIRowUp( 0 ), fIRowDn( 0 ), fNHits( 0 ) {}
-        AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
+		AliHLTTPCCASharedMemory()
+		    : fIRow(0), fIRowUp(0), fIRowDn(0), fNHits(0)
+		{
+		}
+		AliHLTTPCCASharedMemory(const AliHLTTPCCASharedMemory & /*dummy*/)
+		    : fIRow(0), fIRowUp(0), fIRowDn(0), fNHits(0) {}
+		AliHLTTPCCASharedMemory &operator=(const AliHLTTPCCASharedMemory & /*dummy*/) { return *this; }
 #endif //!HLTCA_GPUCODE
 
-      protected:
-        int fIRow; // current row index
-        int fIRowUp; // current row index
-        int fIRowDn; // current row index
-        int fNHits; // number of hits
-    };
+	  protected:
+		int fIRow;   // current row index
+		int fIRowUp; // current row index
+		int fIRowDn; // current row index
+		int fNHits;  // number of hits
+	};
 
-    GPUd() static int NThreadSyncPoints() { return 1; }
+	GPUd() static int NThreadSyncPoints() { return 1; }
 
-    GPUd() static void Thread( int /*nBlocks*/, int nThreads, int iBlock, int iThread, int iSync,
-                               MEM_LOCAL(GPUsharedref() AliHLTTPCCASharedMemory) &smem,  MEM_CONSTANT(GPUconstant() AliHLTTPCCATracker) &tracker );
+	GPUd() static void Thread(int /*nBlocks*/, int nThreads, int iBlock, int iThread, int iSync,
+	                          MEM_LOCAL(GPUsharedref() AliHLTTPCCASharedMemory) & smem, MEM_CONSTANT(GPUconstant() AliHLTTPCCATracker) & tracker);
 };
-
 
 #endif //ALIHLTTPCCANEIGHBOURSCLEANER_H
