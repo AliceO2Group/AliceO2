@@ -66,9 +66,9 @@ class Digit : public DigitBase
  private:
   friend class boost::serialization::access;
 
-  Short_t mTower;      ///< Tower index (absolute cell ID)
   Double_t mAmplitude; ///< Amplitude
   Int_t mLabel;        ///< Index of the corresponding entry/entries in the MC label array
+  Short_t mTower;      ///< Tower index (absolute cell ID)
 
   ClassDefNV(Digit, 1);
 };

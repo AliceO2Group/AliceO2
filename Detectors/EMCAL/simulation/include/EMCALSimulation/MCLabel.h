@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 
-// Declaration of a transient MC label class for TOF
+// Declaration of a transient MC label class for EMCal
 
 #ifndef ALICEO2_EMCAL_MCLABEL_H_
 #define ALICEO2_EMCAL_MCLABEL_H_
