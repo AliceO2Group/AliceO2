@@ -34,7 +34,34 @@ using namespace o2::framework;
     LOG(ERROR) << R"(Test condition ")" #condition R"(" failed)"; \
   }
 
-constexpr int kTreeSize = 10; // elemants to send and write
+class StaticChecker
+{
+ public:
+  StaticChecker() = default;
+  ~StaticChecker()
+  {
+    for (auto const& check : mChecks) {
+      TFile* file = TFile::Open(check.first.c_str());
+      assert(file != nullptr);
+      TTree* tree = file != nullptr ? reinterpret_cast<TTree*>(file->GetObjectChecked("testtree", "TTree")) : nullptr;
+      assert(tree != nullptr);
+      if (tree) {
+        assert(tree->GetEntries() == check.second);
+      }
+    }
+  }
+
+  void addCheck(std::string filename, int entries)
+  {
+    mChecks.emplace_back(filename, entries);
+  }
+
+ private:
+  std::vector<std::pair<std::string, int>> mChecks;
+};
+static StaticChecker sChecker;
+
+static constexpr int sTreeSize = 10; // elements to send and write
 DataProcessorSpec getSourceSpec()
 {
   auto initFct = [](InitContext& ic) {
@@ -42,7 +69,7 @@ DataProcessorSpec getSourceSpec()
     *counter = 0;
 
     auto processingFct = [counter](ProcessingContext& pc) {
-      if (*counter >= kTreeSize) {
+      if (*counter >= sTreeSize) {
         // don't publish more
         return;
       }
@@ -62,61 +89,44 @@ DataProcessorSpec getSourceSpec()
                             AlgorithmSpec(initFct) };
 }
 
-// this is the direct definition of the processor spec, can be generated from
-// MakeRootTreeWriterSpec as shown below
-DataProcessorSpec getSinkSpec()
-{
-  auto initFct = [](InitContext& ic) {
-    std::string fileName = gSystem->TempDirectory();
-    fileName += "/test_RootTreeWriter.root";
-    using Polymorphic = o2::test::Polymorphic;
-    using WriterType = RootTreeWriter;
-    auto writer = std::make_shared<WriterType>(fileName.c_str(), // output file name
-                                               "testtree",       // tree name
-                                               WriterType::BranchDef<Polymorphic>{ "input", "polyobject" },
-                                               WriterType::BranchDef<int>{ "meta", "counter" });
-    auto counter = std::make_shared<int>();
-    *counter = 0;
-
-    // the callback to be set as hook at stop of processing for the framework
-    auto finishWriting = [writer]() { writer->close(); };
-    ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishWriting);
-
-    auto processingFct = [writer, counter](ProcessingContext& pc) {
-      (*writer)(pc.inputs());
-      *counter = *counter + 1;
-      if (*counter >= kTreeSize) {
-        pc.services().get<ControlService>().readyToQuit(true);
-      }
-    };
-
-    return processingFct;
-  };
-
-  return DataProcessorSpec{ "sink",
-                            { InputSpec{ "input", "TST", "SOMEOBJECT" }, //
-                              InputSpec{ "meta", "TST", "METADATA" } },  //
-                            Outputs{},
-                            AlgorithmSpec(initFct) };
-}
-
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   std::string fileName = gSystem->TempDirectory();
-  fileName += "/test_RootTreeWriter.root";
+  fileName += "/test_RootTreeWriter";
+  std::string altFileName = fileName + "_alt.root";
+  fileName += ".root";
+
+  sChecker.addCheck(fileName, 1);
+  sChecker.addCheck(altFileName, sTreeSize);
+
+  auto checkReady = [counter = std::make_shared<int>(0)](auto) -> bool {
+    *counter = *counter + 1;
+    // processing function checks the callback for two inputs -> factor 2
+    // the two last calls have to return true to signal on both inputs
+    return (*counter + 1) >= (2 * sTreeSize);
+  };
 
   using Polymorphic = o2::test::Polymorphic;
   return WorkflowSpec{
     getSourceSpec(),
     MakeRootTreeWriterSpec                                                                      //
     (                                                                                           //
-      "sink",                                                                                   // process name
+      "sink1",                                                                                  // process name
       fileName.c_str(),                                                                         // default file name
       "testtree",                                                                               // default tree name
       1,                                                                                        // default number of events
+      BranchDefinition<Polymorphic>{ InputSpec{ "input", "TST", "SOMEOBJECT" }, "polyobject" }, // branch config
+      BranchDefinition<int>{ InputSpec{ "meta", "TST", "METADATA" }, "counter" }                // branch config
+      )(),                                                                                      // call the generator
+    MakeRootTreeWriterSpec                                                                      //
+    (                                                                                           //
+      "sink2",                                                                                  // process name
+      altFileName.c_str(),                                                                      // default file name
+      "testtree",                                                                               // default tree name
       MakeRootTreeWriterSpec::TerminationPolicy::Workflow,                                      // terminate the workflow
+      MakeRootTreeWriterSpec::TerminationCondition{ checkReady },                               // custom termination condition
       BranchDefinition<Polymorphic>{ InputSpec{ "input", "TST", "SOMEOBJECT" }, "polyobject" }, // branch config
       BranchDefinition<int>{ InputSpec{ "meta", "TST", "METADATA" }, "counter" }                // branch config
       )()                                                                                       // call the generator

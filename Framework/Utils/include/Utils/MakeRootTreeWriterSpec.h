@@ -24,6 +24,8 @@
 #include <vector>
 #include <string>
 #include <stdexcept>
+#include <variant>
+#include <unordered_set>
 
 namespace o2
 {
@@ -154,13 +156,20 @@ namespace framework
 /// callback calculates the index from another piece of information in the
 /// header stack.
 ///
-/// Custom termination condition:
+/// Custom termination condition, either one of:
+///     auto checkProcessing = [](o2::framework::DataRef const& ref, bool& isReady) {
+///       // decide on the DataRef whether to terminate or not
+///       isReady = true;
+///       // return true if the normal processing in this cycle should be carried out
+///       // return false to skip
+///       return false;
+///     };
 ///     auto checkReady = [](o2::framework::DataRef const& ref) {
 ///       // decide on the DataRef whether to terminate or not
 ///       return true;
 ///     };
 /// Now add MakeRootTreeWriterSpec::TerminationCondition{ checkReady } to the constructor
-/// arguments.
+/// arguments. Only one of the callback types can be used with TerminationCondition.
 class MakeRootTreeWriterSpec
 {
  public:
@@ -175,8 +184,15 @@ class MakeRootTreeWriterSpec
   };
 
   struct TerminationCondition {
+    enum struct Action {
+      DoProcessing,
+      SkipProcessing,
+    };
+    // callback to be checked before processing, return value determines whether to process or skip inputs
+    using CheckProcessing = std::function<TerminationCondition::Action(o2::framework::DataRef const&, bool&)>;
+    // callback to be checked after processing to check if process is ready
     using CheckReady = std::function<bool(o2::framework::DataRef const&)>;
-    CheckReady check;
+    std::variant<CheckReady, CheckProcessing> check;
   };
 
   /// unary helper functor to extract the input key from the InputSpec
@@ -216,18 +232,44 @@ class MakeRootTreeWriterSpec
   DataProcessorSpec operator()()
   {
     // this creates the workflow spec
-    auto initFct = [branchNameOptions = mBranchNameOptions, writer = mWriter, TerminationPolicyMap = TerminationPolicyMap, terminationCondition = mTerminationCondition](InitContext& ic) {
+    struct ProcessAttributes {
+      // worker instance
+      std::shared_ptr<WriterType> writer;
+      // keys for branch name options
+      std::vector<std::pair<std::string, std::string>> branchNameOptions;
+      // number of events to be processed
+      int nEvents = -1;
+      // starting with all inputs, every input which has been indicated 'ready' is removed
+      std::unordered_set<std::string> activeInputs;
+      // event counter
+      int counter = 0;
+      // indicate what to terminate upon ready: process or workflow
+      TerminationPolicy terminationPolicy = TerminationPolicy::Process;
+      // custom termination condition
+      TerminationCondition terminationCondition;
+    };
+    auto processAttributes = std::make_shared<ProcessAttributes>();
+    processAttributes->writer = mWriter;
+    processAttributes->branchNameOptions = mBranchNameOptions;
+    processAttributes->terminationCondition = mTerminationCondition;
+
+    // set the list of active inputs, every input which is indecated as 'ready' will be removed from the list
+    // the process is ready if the list is empty
+    for (auto const& input : mInputs) {
+      processAttributes->activeInputs.emplace(input.binding);
+    }
+
+    // the init function is returned to the DPL in order to init the process
+    auto initFct = [processAttributes, TerminationPolicyMap = TerminationPolicyMap](InitContext& ic) {
+      auto& branchNameOptions = processAttributes->branchNameOptions;
       auto filename = ic.options().get<std::string>("outfile");
       auto treename = ic.options().get<std::string>("treename");
-      auto nEvents = ic.options().get<int>("nevents");
-      TerminationPolicy terminationPolicy = TerminationPolicy::Process;
+      processAttributes->nEvents = ic.options().get<int>("nevents");
       try {
-        terminationPolicy = TerminationPolicyMap.at(ic.options().get<std::string>("terminate"));
+        processAttributes->terminationPolicy = TerminationPolicyMap.at(ic.options().get<std::string>("terminate"));
       } catch (std::out_of_range&) {
         throw std::invalid_argument(std::string("invalid termination policy: ") + ic.options().get<std::string>("terminate"));
       }
-      auto counter = std::make_shared<int>();
-      *counter = 0;
       if (filename.empty() || treename.empty()) {
         throw std::invalid_argument("output file name and tree name are mandatory options");
       }
@@ -237,32 +279,72 @@ class MakeRootTreeWriterSpec
           continue;
         }
         auto branchName = ic.options().get<std::string>(branchNameOptions[branchIndex].first.c_str());
-        writer->setBranchName(branchIndex, branchName.c_str());
+        processAttributes->writer->setBranchName(branchIndex, branchName.c_str());
       }
-      writer->init(filename.c_str(), treename.c_str());
+      processAttributes->writer->init(filename.c_str(), treename.c_str());
 
       // the callback to be set as hook at stop of processing for the framework
-      auto finishWriting = [writer]() { writer->close(); };
+      auto finishWriting = [processAttributes]() {
+        processAttributes->writer->close();
+      };
       ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishWriting);
 
-      auto processingFct = [writer, nEvents, counter, terminationPolicy, terminationCondition](ProcessingContext& pc) {
+      auto processingFct = [processAttributes](ProcessingContext& pc) {
+        auto& writer = processAttributes->writer;
+        auto& terminationPolicy = processAttributes->terminationPolicy;
+        auto& terminationCondition = processAttributes->terminationCondition;
+        auto& activeInputs = processAttributes->activeInputs;
+        auto& counter = processAttributes->counter;
+        auto& nEvents = processAttributes->nEvents;
         if (writer->isClosed()) {
           return;
         }
-        (*writer)(pc.inputs());
-        *counter = *counter + 1;
 
-        auto checkTerminationCondition = [terminationCondition](auto const& inputs) {
-          if (terminationCondition.check) {
+        // if the termination condition contains function of type CheckProcessing, this is checked
+        // before the processing, currently implemented logic:
+        // - processing is skipped if this is indicated at least one input
+        // - treated as 'ready' if this is  indicated at least one input
+        auto checkProcessing = [&terminationCondition, &activeInputs](auto const& inputs) {
+          bool doProcessing = true;
+          if (std::holds_alternative<TerminationCondition::CheckProcessing>(terminationCondition.check)) {
+            auto& check = std::get<TerminationCondition::CheckProcessing>(terminationCondition.check);
             for (auto const& ref : inputs) {
-              if (terminationCondition.check(ref)) {
-                return true;
+              bool ready = false;
+              auto iter = activeInputs.find(ref.spec->binding);
+              if (check(ref, ready) == TerminationCondition::Action::SkipProcessing) {
+                // this condition tells us not to process the data any further
+                doProcessing = false;
+              }
+              if (iter != activeInputs.end() && ready) {
+                // this input is ready, remove from active inputs
+                activeInputs.erase(iter);
               }
             }
           }
-          return false;
+          return doProcessing;
         };
-        if ((nEvents >= 0 && *counter == nEvents) || checkTerminationCondition(pc.inputs())) {
+        // if the termination condition contains function of type CheckReady, this is checked
+        // after the processing, treated as 'ready' if indicated by at least one input
+        auto checkReady = [&terminationCondition, &activeInputs](auto const& inputs) {
+          if (std::holds_alternative<TerminationCondition::CheckReady>(terminationCondition.check)) {
+            auto& check = std::get<TerminationCondition::CheckReady>(terminationCondition.check);
+            for (auto const& ref : inputs) {
+              auto iter = activeInputs.find(ref.spec->binding);
+              if (iter != activeInputs.end() && check(ref)) {
+                // this input is ready, remove from active inputs
+                activeInputs.erase(iter);
+              }
+            }
+          }
+          return activeInputs.size() == 0;
+        };
+
+        if (checkProcessing(pc.inputs())) {
+          (*writer)(pc.inputs());
+          counter = counter + 1;
+        }
+
+        if ((nEvents >= 0 && counter == nEvents) || checkReady(pc.inputs())) {
           writer->close();
           pc.services().get<ControlService>().readyToQuit(terminationPolicy == TerminationPolicy::Workflow);
         }
