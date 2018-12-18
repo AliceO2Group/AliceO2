@@ -80,6 +80,13 @@ Use the **`-g extkin`** command line option:
 o2sim -g extkin --extKinFile Kinematics.root ...
 ```
 
+#### 4. **How can I obtained detailed stepping information?**
+Run the simulation (best in version `o2sim_serial`) with a preloaded library:
+```
+MCSTEPLOG_TTREE=1 LD_PRELOAD=$O2_ROOT/lib/libMCStepLogger.so o2sim_serial -j 1 -n 10
+```
+This will produce a file `MCStepLoggerOutput.root` containing detailed information about steps and processes (where, what, ...). The file can be analysed using a special analysis framework. See https://github.com/AliceO2Group/AliceO2/blob/dev/Utilities/MCStepLogger/README.md for more documentation.
+
 ## Development
 
 # Documentation of `digitizer-workflow`
