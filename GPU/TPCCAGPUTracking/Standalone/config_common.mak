@@ -36,11 +36,8 @@ CXXFILES					= SliceTracker/AliHLTTPCCASliceData.cxx \
 								SliceTracker/AliHLTTPCCATrackletSelector.cxx \
 								SliceTracker/AliHLTTPCCAStartHitsFinder.cxx \
 								SliceTracker/AliHLTTPCCAHitArea.cxx \
-								SliceTracker/AliHLTTPCCAGPUTracker.cxx \
 								SliceTracker/AliHLTTPCCATrackParam.cxx \
 								SliceTracker/AliHLTTPCCAClusterData.cxx \
-								SliceTracker/AliHLTTPCCATrackerFramework.cxx \
-								GlobalTracker/AliHLTTPCCAGPUTrackerBase.cxx \
 								GlobalTracker/AliGPUReconstruction.cxx \
 								GlobalTracker/AliGPUReconstructionDeviceBase.cxx \
 								GlobalTracker/AliGPUReconstructionConvert.cxx \
@@ -65,7 +62,6 @@ HLTCA_TRD_CXXFILES			= TRDTracking/AliHLTTRDTrack.cxx \
 
 HLTCA_STANDALONE_CXXFILES	= SliceTracker/AliHLTTPCCATrack.cxx \
 								SliceTracker/AliHLTTPCCATracklet.cxx \
-								SliceTracker/AliHLTTPCCAStandaloneFramework.cxx \
 								SliceTracker/AliHLTTPCCAMCPoint.cxx
 
 CONFIG_CPP					= gnu++17

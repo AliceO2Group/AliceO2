@@ -1,3 +1,8 @@
+#ifndef hasethstrhstr
+#define hasethstrhstr
+
+struct AliGPUCAParam;
+
 //Event display
 #ifdef WIN32
 #include <windows.h>
@@ -49,3 +54,5 @@ static bool clusterRemovable(int cid, bool prot) {return false;}
 extern void InitEventGenerator();
 extern int GenerateEvent(const AliGPUCAParam& sliceParam, char* filename);
 extern void FinishEventGenerator();
+
+#endif

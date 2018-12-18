@@ -46,10 +46,8 @@ set(SRCS
     SliceTracker/AliHLTTPCCAStartHitsFinder.cxx
     SliceTracker/AliHLTTPCCANeighboursCleaner.cxx
     SliceTracker/AliHLTTPCCATracker.cxx
-    SliceTracker/AliHLTTPCCATrackerFramework.cxx
     SliceTracker/AliHLTTPCCASliceData.cxx
     SliceTracker/AliHLTTPCCASliceOutput.cxx
-    SliceTracker/AliHLTTPCCAStandaloneFramework.cxx
     SliceTracker/AliHLTTPCCATrackletConstructor.cxx
     SliceTracker/AliHLTTPCCANeighboursFinder.cxx
     SliceTracker/AliHLTTPCCAGrid.cxx
@@ -57,7 +55,6 @@ set(SRCS
     SliceTracker/AliHLTTPCCAHitArea.cxx
     SliceTracker/AliHLTTPCCAClusterData.cxx
     SliceTracker/AliHLTTPCCARow.cxx
-    SliceTracker/AliHLTTPCCAGPUTracker.cxx
     Merger/AliHLTTPCGMMerger.cxx
     Merger/AliHLTTPCGMSliceTrack.cxx
     Merger/AliHLTTPCGMTrackParam.cxx
@@ -65,7 +62,6 @@ set(SRCS
     Merger/AliHLTTPCGMPropagator.cxx
     Merger/AliHLTTPCGMPolynomialField.cxx
     Merger/AliHLTTPCGMPolynomialFieldManager.cxx
-    GlobalTracker/AliHLTTPCCAGPUTrackerBase.cxx
     TRDTracking/AliHLTTRDTrack.cxx
     TRDTracking/AliHLTTRDTracker.cxx
     TRDTracking/AliHLTTRDTrackletWord.cxx
@@ -102,6 +98,7 @@ set(HDRS
     TRDTracking/AliHLTTRDTrackPoint.h
     TRDTracking/AliHLTTRDTrackletLabels.h
     GlobalTracker/AliGPUCADataTypes.h
+    GlobalTracker/AliGPUCAOutputControl.h
 )
 #Not processed by ROOT
 set(HDRS2

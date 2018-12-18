@@ -2,10 +2,9 @@
 
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCASliceData.h"
-#include "AliHLTTPCCAStandaloneFramework.h"
+#include "AliGPUReconstruction.h"
 #include "AliHLTTPCCATrack.h"
 #include "AliHLTTPCCATracker.h"
-#include "AliHLTTPCCATrackerFramework.h"
 #include "AliHLTTPCGMMergedTrack.h"
 #include "AliHLTTPCGMPropagator.h"
 #include "include.h"

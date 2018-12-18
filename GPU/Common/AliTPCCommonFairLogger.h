@@ -6,7 +6,7 @@
 #include <iostream>
 #define LOG(type) std::cout
 namespace FairLogger {
-    const char* endl = "\n";
+	const char* endl = "\n";
 }
 
 #else

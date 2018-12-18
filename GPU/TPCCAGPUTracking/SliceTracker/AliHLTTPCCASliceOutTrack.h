@@ -6,7 +6,6 @@
 //                                                                        *
 //*************************************************************************
 
-
 #ifndef ALIHLTTPCCASLICEOUTTRACK_H
 #define ALIHLTTPCCASLICEOUTTRACK_H
 
@@ -29,43 +28,42 @@
 class AliHLTTPCCASliceOutTrack
 {
   public:
+	GPUhd() int NClusters() const { return fNClusters; }
+	GPUhd() const AliHLTTPCCABaseTrackParam &Param() const { return fParam; }
+	GPUhd() const AliHLTTPCCASliceOutCluster &Cluster(int i) const { return fClusters[i]; }
+	GPUhd() const AliHLTTPCCASliceOutCluster *Clusters() const { return fClusters; }
 
-    GPUhd() int NClusters()                    const { return fNClusters;       }
-    GPUhd() const AliHLTTPCCABaseTrackParam &Param() const { return fParam;           }
-    GPUhd() const AliHLTTPCCASliceOutCluster &Cluster( int i ) const { return fClusters[i];           }
-    GPUhd() const AliHLTTPCCASliceOutCluster* Clusters() const { return fClusters;           }
+	GPUhd() void SetNClusters(int v) { fNClusters = v; }
+	GPUhd() void SetParam(const AliHLTTPCCABaseTrackParam &v) { fParam = v; }
+	GPUhd() void SetCluster(int i, const AliHLTTPCCASliceOutCluster &v) { fClusters[i] = v; }
 
-    GPUhd() void SetNClusters( int v )                   { fNClusters = v;       }
-    GPUhd() void SetParam( const AliHLTTPCCABaseTrackParam &v ) { fParam = v;           }
-    GPUhd() void SetCluster( int i, const AliHLTTPCCASliceOutCluster &v ) { fClusters[i] = v;           }
-    
-    GPUhd() static int GetSize( int nClust )  { return sizeof(AliHLTTPCCASliceOutTrack)+nClust*sizeof(AliHLTTPCCASliceOutCluster) ;}
+	GPUhd() static int GetSize(int nClust) { return sizeof(AliHLTTPCCASliceOutTrack) + nClust * sizeof(AliHLTTPCCASliceOutCluster); }
 
-	GPUhd() int  LocalTrackId()        const { return fLocalTrackId; }
-	GPUhd() void SetLocalTrackId( int v )        { fLocalTrackId = v; }
+	GPUhd() int LocalTrackId() const { return fLocalTrackId; }
+	GPUhd() void SetLocalTrackId(int v) { fLocalTrackId = v; }
 
-    GPUhd() AliHLTTPCCASliceOutTrack *NextTrack(){
-      return ( AliHLTTPCCASliceOutTrack*)( ((char*)this) + GetSize( fNClusters ) );
-    }
+	GPUhd() AliHLTTPCCASliceOutTrack *NextTrack()
+	{
+		return (AliHLTTPCCASliceOutTrack *) (((char *) this) + GetSize(fNClusters));
+	}
 
-    GPUhd() const AliHLTTPCCASliceOutTrack *GetNextTrack() const{
-      return ( AliHLTTPCCASliceOutTrack*)( ((char*)this) + GetSize( fNClusters ) );
-    }
+	GPUhd() const AliHLTTPCCASliceOutTrack *GetNextTrack() const
+	{
+		return (AliHLTTPCCASliceOutTrack *) (((char *) this) + GetSize(fNClusters));
+	}
 
-	GPUhd() static int MaxTrackId() { return(fgkMaxTrackIdInSlice); }
+	GPUhd() static int MaxTrackId() { return (fgkMaxTrackIdInSlice); }
 
   private:
-
-    AliHLTTPCCABaseTrackParam fParam; //* fitted track parameters at its innermost cluster
-    int fNClusters;             //* number of track clusters
-	int fLocalTrackId;			//See AliHLTPCCATrack.h
+	AliHLTTPCCABaseTrackParam fParam; //* fitted track parameters at its innermost cluster
+	int fNClusters;                   //* number of track clusters
+	int fLocalTrackId;                //See AliHLTPCCATrack.h
 #ifdef HLTCA_STANDALONE
-    AliHLTTPCCASliceOutCluster fClusters[1]; //* track clusters
+	AliHLTTPCCASliceOutCluster fClusters[1]; //* track clusters
 #else
-    AliHLTTPCCASliceOutCluster fClusters[0]; //* track clusters
+	AliHLTTPCCASliceOutCluster fClusters[0]; //* track clusters
 #endif
 	static const int fgkMaxTrackIdInSlice = 4096;
 };
-
 
 #endif

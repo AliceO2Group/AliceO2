@@ -12,7 +12,8 @@
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCAHitId.h"
 
-MEM_CLASS_PRE() class AliHLTTPCCATracker;
+MEM_CLASS_PRE()
+class AliHLTTPCCATracker;
 
 /**
  * @class AliHLTTPCCAStartHitsSorter
@@ -21,30 +22,33 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker;
 class AliHLTTPCCAStartHitsSorter
 {
   public:
-    MEM_CLASS_PRE() class AliHLTTPCCASharedMemory
-    {
-        friend class AliHLTTPCCAStartHitsSorter;
-      public:
-#if !defined(HLTCA_GPUCODE)
-        AliHLTTPCCASharedMemory()
-            : fStartRow( 0 ), fNRows( 0 ), fStartOffset( 0 ) {}
+	MEM_CLASS_PRE()
+	class AliHLTTPCCASharedMemory
+	{
+		friend class AliHLTTPCCAStartHitsSorter;
 
-        AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
-            : fStartRow( 0 ), fNRows( 0 ), fStartOffset( 0 ) {}
-        AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
+	  public:
+#if !defined(HLTCA_GPUCODE)
+		AliHLTTPCCASharedMemory()
+		    : fStartRow(0), fNRows(0), fStartOffset(0)
+		{
+		}
+
+		AliHLTTPCCASharedMemory(const AliHLTTPCCASharedMemory & /*dummy*/)
+		    : fStartRow(0), fNRows(0), fStartOffset(0) {}
+		AliHLTTPCCASharedMemory &operator=(const AliHLTTPCCASharedMemory & /*dummy*/) { return *this; }
 #endif //!HLTCA_GPUCODE
 
-      protected:
-        int fStartRow;		// start row index
-        int fNRows;			// number of rows to process
-		int fStartOffset;	//start offset for hits sorted by this block
-    };
+	  protected:
+		int fStartRow;    // start row index
+		int fNRows;       // number of rows to process
+		int fStartOffset; //start offset for hits sorted by this block
+	};
 
-    GPUd() static int NThreadSyncPoints() { return 1; }
+	GPUd() static int NThreadSyncPoints() { return 1; }
 
-    GPUd() static void Thread( int nBlocks, int nThreads, int iBlock, int iThread, int iSync,
-                               GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) &smem, GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker );
+	GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, int iSync,
+	                          GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) & smem, GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) & tracker);
 };
-
 
 #endif //ALIHLTTPCCASTARTHITSSORTER_H

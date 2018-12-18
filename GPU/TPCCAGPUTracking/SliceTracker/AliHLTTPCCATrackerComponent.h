@@ -15,7 +15,6 @@
 #include "AliHLTAsyncMemberProcessor.h"
 
 class AliHLTTPCCATrackerFramework;
-class AliHLTTPCCASliceOutput;
 class AliHLTTPCCAClusterData;
 class AliGPUReconstruction;
 
@@ -93,7 +92,6 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
     /** the tracker object */
     AliHLTTPCCATrackerFramework* fTracker;                      //! transient
     AliHLTTPCCAClusterData* fClusterData;                       //Storage classes for cluser data in slice
-    AliHLTTPCCASliceOutput* fSliceOutput[fgkNSlices];           //Pointers to slice tracker output structures
 
     /** magnetic field */
     double fSolenoidBz;               // see above

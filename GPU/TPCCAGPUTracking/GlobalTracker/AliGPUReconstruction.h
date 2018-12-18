@@ -4,12 +4,17 @@
 #include <cstddef>
 #include <stdio.h>
 #include <memory>
+#include <fstream>
 
 #include "AliHLTTRDDef.h"
 #include "AliGPUCAParam.h"
 #include "AliGPUCASettings.h"
+#include "AliGPUCAOutputControl.h"
 
 #include "AliHLTTPCCAClusterData.h"
+#include "AliHLTTPCCASliceOutput.h"
+#include "AliHLTTPCCATracker.h"
+#include "AliHLTTPCGMMerger.h"
 class AliHLTTPCCASliceOutput;
 class AliHLTTPCCASliceOutTrack;
 class AliHLTTPCCASliceOutCluster;
@@ -34,6 +39,8 @@ class AliGPUReconstruction
 {
 public:
 	virtual ~AliGPUReconstruction();
+	AliGPUReconstruction(const AliGPUReconstruction&) = delete;
+	AliGPUReconstruction& operator=(const AliGPUReconstruction&) = delete;
 	
 	//General definitions
 	constexpr static size_t MIN_ALIGNMENT = 64;
@@ -58,7 +65,8 @@ public:
 	static AliGPUReconstruction* CreateInstance(int type, bool forceType) {return CreateInstance((DeviceType) type, forceType);}
 	static AliGPUReconstruction* CreateInstance(const char* type, bool forceType);
 	
-	virtual int Init();
+	int Init();
+	int Finalize();
 	
 	//Structures for input and output data
 	struct InOutPointers
@@ -135,27 +143,31 @@ public:
 	{
 		return(getAlignment(reinterpret_cast<size_t>(addr), alignment));
 	}
-	template <class S> static inline S* getPointerWithAlignment(size_t& basePtr, size_t nEntries = 1)
+	template <class S> static inline S* getPointerWithAlignment(size_t& basePtr, size_t nEntries = 1, size_t alignment = MIN_ALIGNMENT)
 	{
 		if (basePtr == 0) basePtr = 1;
-		basePtr += getAlignment(basePtr, alignof(S));
+		basePtr += getAlignment(basePtr, std::max(alignof(S), alignment));
 		S* retVal = (S*) (basePtr);
 		basePtr += nEntries * sizeof(S);
 		return retVal;
 	}
-	template <class S> static inline S* getPointerWithAlignment(void*& basePtr, size_t nEntries = 1)
+	template <class S> static inline S* getPointerWithAlignment(void*& basePtr, size_t nEntries = 1, size_t alignment = MIN_ALIGNMENT)
 	{
-		return getPointerWithAlignment<S>(reinterpret_cast<size_t&>(basePtr), nEntries);
+		return getPointerWithAlignment<S>(reinterpret_cast<size_t&>(basePtr), nEntries, alignment);
 	}
-
-	template <class T, class S> static inline void computePointerWithAlignment(T*& basePtr, S*& objPtr, size_t nEntries = 1, bool runConstructor = false)
+	template <class S> static inline S* getPointerWithAlignmentNoUpdate(void* basePtr, size_t nEntries = 1, size_t alignment = MIN_ALIGNMENT)
 	{
-		objPtr = getPointerWithAlignment<S>(reinterpret_cast<size_t&>(basePtr), nEntries);
+		return getPointerWithAlignment<S>(basePtr, nEntries, alignment);
+	}
+	
+	template <class T, class S> static inline void computePointerWithAlignment(T*& basePtr, S*& objPtr, size_t nEntries = 1, bool runConstructor = false, size_t alignment = MIN_ALIGNMENT)
+	{
+		objPtr = getPointerWithAlignment<S>(reinterpret_cast<size_t&>(basePtr), nEntries, alignment);
 		if (runConstructor)
 		{
-			for (size_t i=0; i<nEntries; ++i)
+			for (size_t i = 0;i < nEntries;i++)
 			{
-				new (objPtr+i) S;
+				new (objPtr + i) S;
 			}
 		}
 	}
@@ -165,10 +177,16 @@ public:
 	
 	//Getters for external usage of tracker classes
 	AliHLTTRDTracker* GetTRDTracker() {return mTRDTracker.get();}
-	AliHLTTPCCAGPUTracker* GetTPCTracker() {return mTPCTracker.get();}
 	o2::ITS::TrackerTraits* GetITSTrackerTraits() {return mITSTrackerTraits.get();}
+	AliHLTTPCCATracker* GetTPCSliceTrackers() {return mTPCSliceTrackersCPU;}
+	const AliHLTTPCCATracker* GetTPCSliceTrackers() const {return mTPCSliceTrackersCPU;}
+	const AliHLTTPCGMMerger& GetTPCMerger() const {return mTPCMergerCPU;}
+	AliHLTTPCGMMerger& GetTPCMerger() {return mTPCMergerCPU;}
 	
 	//Processing functions
+	int RunStandalone();
+	virtual int RunTPCTrackingSlices();
+	virtual int RunTPCTrackingMerger();
 	int RunTRDTracking();
 	
 	//Getters / setters for parameters
@@ -180,14 +198,21 @@ public:
 	const AliGPUCASettingsEvent& GetEventSettings() {return mEventSettings;}
 	const AliGPUCASettingsProcessing& GetProcessingSettings() {return mProcessingSettings;}
 	const AliGPUCASettingsDeviceProcessing& GetDeviceProcessingSettings() {return mDeviceProcessingSettings;}
+	bool IsInitialized() const {return mInitialized;}
 	void SetSettings(float solenoidBz);
 	void SetSettings(const AliGPUCASettingsEvent* settings, const AliGPUCASettingsRec* rec = nullptr, const AliGPUCASettingsDeviceProcessing* proc = nullptr);
 	void SetTPCFastTransform(std::unique_ptr<TPCFastTransform> tpcFastTransform);
 	void SetTRDGeometry(const o2::trd::TRDGeometryFlat& geo);
 	void LoadClusterErrors();
+	void SetResetTimers(bool reset) {mDeviceProcessingSettings.resetTimers = reset;}
+	void SetOutputControl(const AliGPUCAOutputControl& v) {mOutputControl = v;}
+	AliGPUCAOutputControl& OutputControl() {return mOutputControl;}
+	const AliHLTTPCCASliceOutput** SliceOutput() const {return (const AliHLTTPCCASliceOutput**) &mSliceOutput;}
 	
 protected:
 	AliGPUReconstruction(const AliGPUCASettingsProcessing& cfg);			//Constructor
+	virtual int InitDevice();
+	virtual int ExitDevice();
 	
 	//Private helper functions for reading / writing / allocating IO buffer from/to file
 	template <class T> void DumpData(FILE* fp, const T* const* entries, const unsigned int* num, InOutPointerType type);
@@ -203,8 +228,11 @@ protected:
 	
 	//Pointers to tracker classes
 	std::unique_ptr<AliHLTTRDTracker> mTRDTracker;
-	std::unique_ptr<AliHLTTPCCAGPUTracker> mTPCTracker;
 	std::unique_ptr<o2::ITS::TrackerTraits> mITSTrackerTraits;
+	AliHLTTPCCATracker mTPCSliceTrackersCPU[NSLICES];
+	AliHLTTPCGMMerger mTPCMergerCPU;
+	AliHLTTPCCASliceOutput* mSliceOutput[NSLICES];
+	AliHLTTPCCAClusterData mClusterData[NSLICES];
 	
 	//Helpers for loading device library via dlopen
 	class LibraryLoader
@@ -233,10 +261,16 @@ protected:
 	AliGPUCASettingsEvent mEventSettings;										//Event Parameters
 	AliGPUCASettingsProcessing mProcessingSettings;								//Processing Parameters (at constructor level)
 	AliGPUCASettingsDeviceProcessing mDeviceProcessingSettings;					//Processing Parameters (at init level)
+	AliGPUCAOutputControl mOutputControl;										//Controls the output of the individual components
 	
 	std::unique_ptr<TPCFastTransform> mTPCFastTransform;						//Global TPC fast transformation object
-	std::unique_ptr<ClusterNativeAccessExt> mClusterNativeAccess;	//Internal memory for clusterNativeAccess
+	std::unique_ptr<ClusterNativeAccessExt> mClusterNativeAccess;				//Internal memory for clusterNativeAccess
 	std::unique_ptr<o2::trd::TRDGeometryFlat> mTRDGeometry;						//TRD Geometry
+	
+	bool mInitialized = false;
+	std::ofstream mDebugFile;
+	
+	int mStatNEvents = 0;
 };
 
 #endif

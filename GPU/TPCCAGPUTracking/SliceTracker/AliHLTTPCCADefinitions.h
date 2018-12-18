@@ -11,7 +11,7 @@
 
 namespace AliHLTTPCCADefinitions
 {
-  extern const AliHLTComponentDataType fgkTrackletsDataType;
+	extern const AliHLTComponentDataType fgkTrackletsDataType;
 }
 
 #endif //ALIHLTTPCCADEFINITIONS_H

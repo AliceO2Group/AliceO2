@@ -9,7 +9,6 @@
 #include "AliGPUCAParam.h"
 #include "AliHLTTPCGMPhysicalTrackModel.h"
 #include "AliHLTTPCGMPropagator.h"
-#include "AliHLTTPCCAStandaloneFramework.h"
 #include "AliHLTTPCGMMerger.h"
  
 #include "../cmodules/qconfig.h"

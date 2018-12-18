@@ -32,8 +32,8 @@ class AliHLTTPCCAClusterData
 {
   public:
 
-    AliHLTTPCCAClusterData(): fSliceIndex( 0 ), fData( NULL ), fNumberOfClusters(0), fAllocated(0) {}
-    ~AliHLTTPCCAClusterData();
+	AliHLTTPCCAClusterData(): fSliceIndex( 0 ), fData( NULL ), fNumberOfClusters(0), fAllocated(0) {}
+	~AliHLTTPCCAClusterData();
 
     struct Data {
       int fId;
@@ -67,13 +67,6 @@ class AliHLTTPCCAClusterData
     void WriteEvent(std::ostream &out) const;
     template <class T> void ReadEventVector(T* &data, std::istream &in, int MinSize = 0, bool addData = false);
     template <class T> void WriteEventVector(const T* const &data, std::ostream &out) const;
-
-    /**
-     * "remove" one cluster and "add" two new ones, keeping history.
-     */
-    //void Split( int index, /* TODO: need some parameters how to split */ );
-
-    // TODO: some access to history of merges and splits
 
     /**
      * The slice index this data belongs to
@@ -125,11 +118,6 @@ class AliHLTTPCCAClusterData
   private:
     AliHLTTPCCAClusterData(AliHLTTPCCAClusterData&): fSliceIndex( 0 ), fData( NULL ), fNumberOfClusters(0), fAllocated(0) {}
     AliHLTTPCCAClusterData& operator=( const AliHLTTPCCAClusterData& );
-
-    /** TODO
-     * "remove" two clusters and "add" a new one, keeping history.
-     */
-    void Merge( int index1, int index2 );
 
     static bool CompareClusters( const Data &a, const Data &b ) { return ( a.fRow == b.fRow ? (a.fY < b.fY) : (a.fRow < b.fRow) ); }
 

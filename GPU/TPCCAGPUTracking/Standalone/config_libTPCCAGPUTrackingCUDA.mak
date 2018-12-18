@@ -5,8 +5,7 @@ TARGET						= libTPCCAGPUTrackingCUDA
 TARGETTYPE					= LIB
 
 CXXFILES					=
-CUFILES						= GlobalTracker/cuda/AliHLTTPCCAGPUTrackerNVCC.cu \
-								GlobalTracker/cuda/AliGPUReconstructionCUDA.cu
+CUFILES						= GlobalTracker/cuda/AliGPUReconstructionCUDA.cu
 ASMFILES					=
 
 CONFIG_CUDA					= 1

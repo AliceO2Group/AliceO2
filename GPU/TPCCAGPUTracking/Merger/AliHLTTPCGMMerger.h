@@ -9,18 +9,17 @@
 #ifndef ALIHLTTPCGMMERGER_H
 #define ALIHLTTPCGMMERGER_H
 
-#include "AliHLTTPCCADef.h"
 #include "AliGPUCAParam.h"
+#include "AliHLTTPCCADef.h"
 #include "AliHLTTPCGMBorderTrack.h"
-#include "AliHLTTPCGMSliceTrack.h"
-#include "AliHLTTPCCAGPUTracker.h"
-#include "AliHLTTPCGMPolynomialField.h"
 #include "AliHLTTPCGMMergedTrack.h"
+#include "AliHLTTPCGMPolynomialField.h"
+#include "AliHLTTPCGMSliceTrack.h"
 #include "AliTPCCommonDef.h"
 
 #if !defined(HLTCA_GPUCODE)
-#include <iostream>
 #include <cmath>
+#include <iostream>
 #endif //HLTCA_GPUCODE
 
 class AliHLTTPCCASliceTrack;
@@ -28,6 +27,7 @@ class AliHLTTPCCASliceOutput;
 class AliHLTTPCGMCluster;
 class AliHLTTPCGMTrackParam;
 class AliHLTTPCCATracker;
+class AliGPUReconstruction;
 
 /**
  * @class AliHLTTPCGMMerger
@@ -36,110 +36,106 @@ class AliHLTTPCCATracker;
 class AliHLTTPCGMMerger
 {
 
-public:
+  public:
+	AliHLTTPCGMMerger();
+	~AliHLTTPCGMMerger();
 
-  AliHLTTPCGMMerger();
-  ~AliHLTTPCGMMerger();
+	void Initialize(const AliGPUReconstruction *rec, long int TimeStamp = 0, bool isMC = 0);
+	void SetSliceParamPtr(const AliGPUCAParam *param) { fSliceParam = param; }
+    void OverrideSliceTracker(AliHLTTPCCATracker* trk) { fSliceTrackers = trk; }
 
-  void SetSliceParam( const AliGPUCAParam *v, long int TimeStamp=0, bool isMC=0, bool setParamOnly=0 );
+	void Clear();
+	void SetSliceData(int index, const AliHLTTPCCASliceOutput *SliceData);
+	bool Reconstruct();
 
-  void Clear();
-  void SetSliceData( int index, const AliHLTTPCCASliceOutput *SliceData );
-  bool Reconstruct(bool resetTimers = false);
+	int NOutputTracks() const { return fNOutputTracks; }
+	const AliHLTTPCGMMergedTrack *OutputTracks() const { return fOutputTracks; }
 
-  int NOutputTracks() const { return fNOutputTracks; }
-  const AliHLTTPCGMMergedTrack * OutputTracks() const { return fOutputTracks; }
+	GPUhd() const AliGPUCAParam &SliceParam() const { return *fSliceParam; }
 
-  GPUhd() const AliGPUCAParam &SliceParam() const { return *fSliceParam; }
+	GPUd() const AliHLTTPCGMPolynomialField &Field() const { return fField; }
+	GPUhd() const AliHLTTPCGMPolynomialField *pField() const { return &fField; }
+	void SetField(AliHLTTPCGMPolynomialField *field) { fField = *field; }
 
-  void SetGPUTracker(AliHLTTPCCAGPUTracker* gpu) {fGPUTracker = gpu;}
-  void SetDebugLevel(int debug) {fDebugLevel = debug;}
+	int NClusters() const { return (fNClusters); }
+	int NOutputTrackClusters() const { return (fNOutputTrackClusters); }
+	AliHLTTPCGMMergedTrackHit *Clusters() const { return (fClusters); }
+	const int *GlobalClusterIDs() const { return (fGlobalClusterIDs); }
+	const AliHLTTPCCATracker *SliceTrackers() const { return (fSliceTrackers); }
+	int *ClusterAttachment() const { return (fClusterAttachment); }
+	int MaxId() const { return (fMaxID); }
+	unsigned int *TrackOrder() const { return (fTrackOrder); }
 
-  GPUd() const AliHLTTPCGMPolynomialField& Field() const {return fField;}
-  GPUhd() const AliHLTTPCGMPolynomialField* pField() const {return &fField;}
-  void SetField(AliHLTTPCGMPolynomialField* field) {fField = *field;}
+	enum attachTypes {attachAttached = 0x40000000, attachGood = 0x20000000, attachGoodLeg = 0x10000000, attachTube = 0x08000000, attachHighIncl = 0x04000000, attachTrackMask = 0x03FFFFFF, attachFlagMask = 0xFC000000};
 
-  int NClusters() const { return(fNClusters); }
-  int NOutputTrackClusters() const { return(fNOutputTrackClusters); }
-  AliHLTTPCGMMergedTrackHit* Clusters() const {return(fClusters);}
-  const int* GlobalClusterIDs() const {return(fGlobalClusterIDs);}
-  void SetSliceTrackers(const AliHLTTPCCATracker* trk) {fSliceTrackers = trk;}
-  const AliHLTTPCCATracker* SliceTrackers() const {return(fSliceTrackers);}
-  int* ClusterAttachment() const {return(fClusterAttachment);}
-  int MaxId() const {return(fMaxID);}
-  unsigned int* TrackOrder() const {return(fTrackOrder);}
+  private:
+	AliHLTTPCGMMerger(const AliHLTTPCGMMerger &) CON_DELETE;
+	const AliHLTTPCGMMerger &operator=(const AliHLTTPCGMMerger &) const CON_DELETE;
 
-  enum attachTypes {attachAttached = 0x40000000, attachGood = 0x20000000, attachGoodLeg = 0x10000000, attachTube = 0x08000000, attachHighIncl = 0x04000000, attachTrackMask = 0x03FFFFFF, attachFlagMask = 0xFC000000};
+	void MakeBorderTracks(int iSlice, int iBorder, AliHLTTPCGMBorderTrack B[], int &nB, bool fromOrig = false);
 
-private:
-  AliHLTTPCGMMerger( const AliHLTTPCGMMerger& ) CON_DELETE;
-  const AliHLTTPCGMMerger &operator=( const AliHLTTPCGMMerger& ) const CON_DELETE;
+	void MergeBorderTracks(int iSlice1, AliHLTTPCGMBorderTrack B1[], int N1, int iSlice2, AliHLTTPCGMBorderTrack B2[], int N2, int crossCE = 0);
 
-  void MakeBorderTracks( int iSlice, int iBorder, AliHLTTPCGMBorderTrack B[], int &nB, bool fromOrig = false );
+	void ClearMemory();
+	bool AllocateMemory();
+	void UnpackSlices();
+	void MergeCEInit();
+	void MergeCEFill(const AliHLTTPCGMSliceTrack *track, const AliHLTTPCGMMergedTrackHit &cls, int itr);
+	void MergeCE();
+	void MergeWithingSlices();
+	void MergeSlices();
+	void ResolveMergeSlices(bool fromOrig, bool mergeAll);
+	void MergeSlicesStep(int border0, int border1, bool fromOrig);
+	void PrepareClustersForFit();
+	void CollectMergedTracks();
+	void Refit(bool resetTimers);
+	void Finalize();
+	void ClearTrackLinks(int n);
 
-  void MergeBorderTracks( int iSlice1, AliHLTTPCGMBorderTrack B1[], int N1, int iSlice2, AliHLTTPCGMBorderTrack B2[], int N2, int crossCE = 0 );
+	void PrintMergeGraph(AliHLTTPCGMSliceTrack *trk);
+	void CheckMergedTracks();
+	int GetTrackLabel(AliHLTTPCGMBorderTrack &trk);
 
-  void ClearMemory();
-  bool AllocateMemory();
-  void UnpackSlices();
-  void MergeCEInit();
-  void MergeCEFill(const AliHLTTPCGMSliceTrack* track, const AliHLTTPCGMMergedTrackHit& cls, int itr);
-  void MergeCE();
-  void MergeWithingSlices();
-  void MergeSlices();
-  void ResolveMergeSlices(bool fromOrig, bool mergeAll);
-  void MergeSlicesStep(int border0, int border1, bool fromOrig);
-  void PrepareClustersForFit();
-  void CollectMergedTracks();
-  void Refit(bool resetTimers);
-  void Finalize();
-  void ClearTrackLinks(int n);
+	int SliceTrackInfoFirst(int iSlice) { return fSliceTrackInfoIndex[iSlice]; }
+	int SliceTrackInfoLast(int iSlice) { return fSliceTrackInfoIndex[iSlice + 1]; }
+	int SliceTrackInfoGlobalFirst(int iSlice) { return fSliceTrackInfoIndex[fgkNSlices + iSlice]; }
+	int SliceTrackInfoGlobalLast(int iSlice) { return fSliceTrackInfoIndex[fgkNSlices + iSlice + 1]; }
+	int SliceTrackInfoLocalTotal() { return fSliceTrackInfoIndex[fgkNSlices]; }
+	int SliceTrackInfoTotal() { return fSliceTrackInfoIndex[2 * fgkNSlices]; }
 
-  void PrintMergeGraph(AliHLTTPCGMSliceTrack* trk);
-  void CheckMergedTracks();
-  int GetTrackLabel(AliHLTTPCGMBorderTrack& trk);
+	static const int fgkNSlices = 36; //* N slices
+	int fNextSliceInd[fgkNSlices];
+	int fPrevSliceInd[fgkNSlices];
 
-  int SliceTrackInfoFirst(int iSlice) {return fSliceTrackInfoIndex[iSlice];}
-  int SliceTrackInfoLast(int iSlice) {return fSliceTrackInfoIndex[iSlice + 1];}
-  int SliceTrackInfoGlobalFirst(int iSlice) {return fSliceTrackInfoIndex[fgkNSlices + iSlice];}
-  int SliceTrackInfoGlobalLast(int iSlice) {return fSliceTrackInfoIndex[fgkNSlices + iSlice + 1];}
-  int SliceTrackInfoLocalTotal() {return fSliceTrackInfoIndex[fgkNSlices];}
-  int SliceTrackInfoTotal() {return fSliceTrackInfoIndex[2 * fgkNSlices];}
+	AliHLTTPCGMPolynomialField fField;
 
-  static const int fgkNSlices = 36;       //* N slices
-  int fNextSliceInd[fgkNSlices];
-  int fPrevSliceInd[fgkNSlices];
+	const AliGPUCAParam *fSliceParam;                   //* slice parameters (geometry, calibr, etc.)
+	const AliHLTTPCCASliceOutput *fkSlices[fgkNSlices]; //* array of input slice tracks
 
-  AliHLTTPCGMPolynomialField fField;
+	int *fTrackLinks;
+	int fNOutputTracks;
+	int fNOutputTrackClusters;
+	int fNMaxOutputTrackClusters;
+	AliHLTTPCGMMergedTrack *fOutputTracks; //* array of output merged tracks
 
-  const AliGPUCAParam* fSliceParam;           //* slice parameters (geometry, calibr, etc.)
-  const AliHLTTPCCASliceOutput *fkSlices[fgkNSlices]; //* array of input slice tracks
+	AliHLTTPCGMSliceTrack *fSliceTrackInfos; //* additional information for slice tracks
+	int fSliceTrackInfoIndex[fgkNSlices * 2 + 1];
+	int fMaxSliceTracks; // max N tracks in one slice
+	AliHLTTPCGMMergedTrackHit *fClusters;
+	int *fGlobalClusterIDs;
+	int *fClusterAttachment;
+	int fMaxID;
+	unsigned int *fTrackOrder;
+	AliHLTTPCGMBorderTrack *fBorderMemory; // memory for border tracks
+	AliHLTTPCGMBorderTrack *fBorder[fgkNSlices];
+	AliHLTTPCGMBorderTrack::Range *fBorderRangeMemory;       // memory for border tracks
+	AliHLTTPCGMBorderTrack::Range *fBorderRange[fgkNSlices]; // memory for border tracks
+	int fBorderCETracks[2][fgkNSlices];
 
-  int* fTrackLinks;
-  int fNOutputTracks;
-  int fNOutputTrackClusters;
-  int fNMaxOutputTrackClusters;
-  AliHLTTPCGMMergedTrack *fOutputTracks;      //* array of output merged tracks
+	const AliGPUReconstruction *fGPUReconstruction;
+	const AliHLTTPCCATracker *fSliceTrackers;
 
-  AliHLTTPCGMSliceTrack *fSliceTrackInfos;    //* additional information for slice tracks
-  int fSliceTrackInfoIndex[fgkNSlices * 2 + 1];
-  int fMaxSliceTracks;      // max N tracks in one slice
-  AliHLTTPCGMMergedTrackHit *fClusters;
-  int* fGlobalClusterIDs;
-  int* fClusterAttachment;
-  int fMaxID;
-  unsigned int* fTrackOrder;
-  AliHLTTPCGMBorderTrack *fBorderMemory; // memory for border tracks
-  AliHLTTPCGMBorderTrack* fBorder[fgkNSlices];
-  AliHLTTPCGMBorderTrack::Range *fBorderRangeMemory; // memory for border tracks
-  AliHLTTPCGMBorderTrack::Range *fBorderRange[fgkNSlices]; // memory for border tracks
-  int fBorderCETracks[2][fgkNSlices];
-
-  AliHLTTPCCAGPUTracker* fGPUTracker;
-  const AliHLTTPCCATracker* fSliceTrackers;
-  int fDebugLevel;
-
-  int fNClusters;			//Total number of incoming clusters
+	int fNClusters; //Total number of incoming clusters
 };
 
 #endif //ALIHLTTPCGMMERGER_H

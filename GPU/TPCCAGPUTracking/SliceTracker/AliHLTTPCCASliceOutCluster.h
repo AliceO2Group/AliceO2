@@ -6,7 +6,6 @@
 //                                                                        *
 //*************************************************************************
 
-
 #ifndef ALIHLTTPCCASLICEOUTCLUSTER_H
 #define ALIHLTTPCCASLICEOUTCLUSTER_H
 
@@ -20,38 +19,39 @@
 class AliHLTTPCCASliceOutCluster
 {
   public:
+	GPUh() void Set(unsigned int id, unsigned char row, unsigned char flags, unsigned short amp, float x, float y, float z)
+	{
+		fRow = row;
+		fFlags = flags;
+		fAmp = amp;
+		fId = id;
+		fX = x;
+		fY = y;
+		fZ = z;
+	}
 
-  GPUh() void Set( unsigned int id, unsigned char row, unsigned char flags, unsigned short amp, float x, float y, float z ){
-    fRow = row;
-    fFlags = flags;
-    fAmp = amp;
-    fId = id;
-    fX = x; fY = y; fZ = z;
-  }
-
-  GPUh() float GetX() const {return fX;}
-  GPUh() float GetY() const {return fY;}
-  GPUh() float GetZ() const {return fZ;}
-  GPUh() unsigned int GetId() const {return fId; }
-  GPUh() unsigned char GetRow() const {return fRow; }
-  GPUh() unsigned char GetFlags() const {return fFlags; }
-  GPUh() unsigned short GetAmp() const {return fAmp; }
+	GPUh() float GetX() const { return fX; }
+	GPUh() float GetY() const { return fY; }
+	GPUh() float GetZ() const { return fZ; }
+	GPUh() unsigned int GetId() const { return fId; }
+	GPUh() unsigned char GetRow() const { return fRow; }
+	GPUh() unsigned char GetFlags() const { return fFlags; }
+	GPUh() unsigned short GetAmp() const { return fAmp; }
 
   private:
-
-  unsigned int  fId; // Id ( slice, patch, cluster )    
-  unsigned char fRow; // row
-  unsigned char fFlags; //flags
-  unsigned short fAmp; //amplitude
-  float fX;// coordinates
-  float fY;// coordinates
-  float fZ;// coordinates
+	unsigned int fId;     // Id ( slice, patch, cluster )
+	unsigned char fRow;   // row
+	unsigned char fFlags; //flags
+	unsigned short fAmp;  //amplitude
+	float fX;             // coordinates
+	float fY;             // coordinates
+	float fZ;             // coordinates
 
 #ifdef GMPropagatePadRowTime
-public:
-  float fPad;
-  float fTime;
+  public:
+	float fPad;
+	float fTime;
 #endif
 };
 
-#endif 
+#endif

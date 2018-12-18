@@ -21,7 +21,7 @@
 
 
 AliHLTTPCCAMCPoint::AliHLTTPCCAMCPoint()
-    : fX( 0 ), fY( 0 ), fZ( 0 ), fSx( 0 ), fSy( 0 ), fSz( 0 ), fTime( 0 ), fISlice( 0 ), fTrackID( 0 )
+	: fX( 0 ), fY( 0 ), fZ( 0 ), fSx( 0 ), fSy( 0 ), fSz( 0 ), fTime( 0 ), fISlice( 0 ), fTrackID( 0 )
 {
-  //* Default constructor
+	//* Default constructor
 }
