@@ -22,9 +22,9 @@ namespace ITS
 
 namespace RecoWorkflow
 {
-  framework::WorkflowSpec getWorkflow();
+framework::WorkflowSpec getWorkflow();
 }
 
-}
-}
+} // namespace ITS
+} // namespace o2
 #endif

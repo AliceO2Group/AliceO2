@@ -21,5 +21,5 @@ namespace ITS
 /// run ITS cluster finder
 framework::DataProcessorSpec getClustererSpec();
 
-}
-}
+} // namespace ITS
+} // namespace o2

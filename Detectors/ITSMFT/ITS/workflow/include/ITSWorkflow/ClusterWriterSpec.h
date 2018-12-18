@@ -21,5 +21,5 @@ namespace ITS
 /// write ITS clusters a root file
 framework::DataProcessorSpec getClusterWriterSpec();
 
-}
-}
+} // namespace ITS
+} // namespace o2

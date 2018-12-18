@@ -21,5 +21,5 @@ namespace ITS
 /// read simulated ITS digits from a root file
 framework::DataProcessorSpec getDigitReaderSpec();
 
-}
-}
+} // namespace ITS
+} // namespace o2

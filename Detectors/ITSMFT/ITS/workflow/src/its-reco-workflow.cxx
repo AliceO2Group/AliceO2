@@ -14,6 +14,7 @@
 
 using namespace o2::framework;
 
-WorkflowSpec defineDataProcessing(ConfigContext const &) {
+WorkflowSpec defineDataProcessing(ConfigContext const&)
+{
   return std::move(o2::ITS::RecoWorkflow::getWorkflow());
 }

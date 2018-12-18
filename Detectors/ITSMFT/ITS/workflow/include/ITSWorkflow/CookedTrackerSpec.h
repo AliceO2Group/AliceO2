@@ -21,5 +21,5 @@ namespace ITS
 /// run ITS CookedMatrix tracker
 framework::DataProcessorSpec getCookedTrackerSpec();
 
-}
-}
+} // namespace ITS
+} // namespace o2

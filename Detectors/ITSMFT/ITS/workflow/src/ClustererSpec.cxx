@@ -36,68 +36,66 @@ namespace ITS
 
 DataProcessorSpec getClustererSpec()
 {
-  auto proc = [](ProcessingContext &pc) {
-      static bool done=false;
-      if (done) return;
+  auto proc = [](ProcessingContext& pc) {
+    static bool done = false;
+    if (done)
+      return;
 
-      auto digits = pc.inputs().get<const std::vector<o2::ITSMFT::Digit>>("digits");
-      auto labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
+    auto digits = pc.inputs().get<const std::vector<o2::ITSMFT::Digit>>("digits");
+    auto labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
 
-      LOG(INFO)<<"ITSClusterer pulled "<<digits.size()<<" digits, "
-               << labels->getIndexedSize() << " MC label objects";
+    LOG(INFO) << "ITSClusterer pulled " << digits.size() << " digits, "
+              << labels->getIndexedSize() << " MC label objects";
 
-      o2::ITSMFT::DigitPixelReader reader;
-      reader.setDigits(&digits);
-      reader.setDigitsMCTruth(labels.get());
+    o2::ITSMFT::DigitPixelReader reader;
+    reader.setDigits(&digits);
+    reader.setDigitsMCTruth(labels.get());
 
-      o2::Base::GeometryManager::loadGeometry(); // for generating full clusters
-      o2::ITS::GeometryTGeo* geom = o2::ITS::GeometryTGeo::Instance();
-      geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L));
+    o2::Base::GeometryManager::loadGeometry(); // for generating full clusters
+    o2::ITS::GeometryTGeo* geom = o2::ITS::GeometryTGeo::Instance();
+    geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L));
 
-      o2::ITSMFT::Clusterer clusterer;
-      clusterer.setGeometry(geom);
-      
-      std::string dict("complete_dictionary.bin");
-      std::ifstream in(dict.c_str(), std::ios::in | std::ios::binary);
-      if (in.good()) {
-	clusterer.loadDictionary(dict);
-        LOG(INFO)<<"ITSClusterer running with a provided dictionary: "<<dict.c_str();
-      }
-      clusterer.print();
-	
-      std::vector<o2::ITSMFT::CompClusterExt> compClusters; 
-      std::vector<o2::ITSMFT::Cluster> clusters;
-      o2::dataformats::MCTruthContainer<o2::MCCompLabel> clusterLabels;
+    o2::ITSMFT::Clusterer clusterer;
+    clusterer.setGeometry(geom);
 
-      reader.init();
-      clusterer.setNChips(o2::ITSMFT::ChipMappingITS::getNChips());
-      clusterer.process(reader, &clusters, &compClusters, &clusterLabels);
-	
-      LOG(INFO)<<"ITSClusterer pushed "<<clusters.size()<<" clusters";
-      pc.outputs().snapshot(Output{"ITS","COMPCLUSTERS", 0, Lifetime::Timeframe}, compClusters);
-      pc.outputs().snapshot(Output{"ITS","CLUSTERS",     0, Lifetime::Timeframe}, clusters);
-      pc.outputs().snapshot(Output{"ITS","CLUSTERSMCTR", 0, Lifetime::Timeframe}, clusterLabels);
+    std::string dict("complete_dictionary.bin");
+    std::ifstream in(dict.c_str(), std::ios::in | std::ios::binary);
+    if (in.good()) {
+      clusterer.loadDictionary(dict);
+      LOG(INFO) << "ITSClusterer running with a provided dictionary: " << dict.c_str();
+    }
+    clusterer.print();
 
-      done=true;
-      //pc.services().get<ControlService>().readyToQuit(true);
+    std::vector<o2::ITSMFT::CompClusterExt> compClusters;
+    std::vector<o2::ITSMFT::Cluster> clusters;
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> clusterLabels;
+
+    reader.init();
+    clusterer.setNChips(o2::ITSMFT::ChipMappingITS::getNChips());
+    clusterer.process(reader, &clusters, &compClusters, &clusterLabels);
+
+    LOG(INFO) << "ITSClusterer pushed " << clusters.size() << " clusters";
+    pc.outputs().snapshot(Output{ "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe }, compClusters);
+    pc.outputs().snapshot(Output{ "ITS", "CLUSTERS", 0, Lifetime::Timeframe }, clusters);
+    pc.outputs().snapshot(Output{ "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe }, clusterLabels);
+
+    done = true;
+    //pc.services().get<ControlService>().readyToQuit(true);
   };
 
-  return DataProcessorSpec {
+  return DataProcessorSpec{
     "its-clusterer",
     Inputs{
-      InputSpec{"digits", "ITS", "DIGITS",     0, Lifetime::Timeframe},
-      InputSpec{"labels", "ITS", "DIGITSMCTR", 0, Lifetime::Timeframe}
-    },
+      InputSpec{ "digits", "ITS", "DIGITS", 0, Lifetime::Timeframe },
+      InputSpec{ "labels", "ITS", "DIGITSMCTR", 0, Lifetime::Timeframe } },
     Outputs{
-      OutputSpec{"ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe},
-      OutputSpec{"ITS", "CLUSTERS",     0, Lifetime::Timeframe},
-      OutputSpec{"ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe}
-    },
+      OutputSpec{ "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe },
+      OutputSpec{ "ITS", "CLUSTERS", 0, Lifetime::Timeframe },
+      OutputSpec{ "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe } },
     AlgorithmSpec{ proc },
-    Options{
-    }
+    Options{}
   };
 }
-  
-}
-}
+
+} // namespace ITS
+} // namespace o2

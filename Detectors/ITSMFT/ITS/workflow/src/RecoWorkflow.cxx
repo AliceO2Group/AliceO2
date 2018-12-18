@@ -23,11 +23,12 @@ namespace o2
 {
 namespace ITS
 {
-  
+
 namespace RecoWorkflow
 {
 
-framework::WorkflowSpec getWorkflow() {
+framework::WorkflowSpec getWorkflow()
+{
   framework::WorkflowSpec specs;
 
   specs.emplace_back(o2::ITS::getDigitReaderSpec());
@@ -39,8 +40,8 @@ framework::WorkflowSpec getWorkflow() {
 
   return specs;
 }
-  
-}
-  
-}
-}
+
+} // namespace RecoWorkflow
+
+} // namespace ITS
+} // namespace o2

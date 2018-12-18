@@ -38,24 +38,25 @@ namespace ITS
 
 DataProcessorSpec getCookedTrackerSpec()
 {
-  auto init = [](InitContext &ic) {
+  auto init = [](InitContext& ic) {
     auto filename = ic.options().get<std::string>("grp-file");
-    
-    return [filename](ProcessingContext &pc) {
-      static bool done=false;
-      if (done) return;
+
+    return [filename](ProcessingContext& pc) {
+      static bool done = false;
+      if (done)
+        return;
 
       const auto grp = o2::parameters::GRPObject::loadFrom(filename.c_str());
       if (grp) {
         o2::Base::Propagator::initFieldFromGRP(grp);
         auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
-      
+
         auto compClusters = pc.inputs().get<const std::vector<o2::ITSMFT::CompClusterExt>>("compClusters");
         auto clusters = pc.inputs().get<const std::vector<o2::ITSMFT::Cluster>>("clusters");
         auto labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
 
-        LOG(INFO)<<"ITSCookedTracker pulled "<<clusters.size()<<" clusters, "
-                 << labels->getIndexedSize() << " MC label objects";
+        LOG(INFO) << "ITSCookedTracker pulled " << clusters.size() << " clusters, "
+                  << labels->getIndexedSize() << " MC label objects";
 
         o2::Base::GeometryManager::loadGeometry();
         o2::ITS::GeometryTGeo* geom = o2::ITS::GeometryTGeo::Instance();
@@ -68,44 +69,42 @@ DataProcessorSpec getCookedTrackerSpec()
         tracker.setBz(field->solenoidField());
         tracker.setGeometry(geom);
         tracker.setMCTruthContainers(labels.get(), &trackLabels);
-	bool continuous = grp->isDetContinuousReadOut("ITS");
-	LOG(INFO)<<"ITSCookedTracker RO: continuous="<<continuous;
+        bool continuous = grp->isDetContinuousReadOut("ITS");
+        LOG(INFO) << "ITSCookedTracker RO: continuous=" << continuous;
         tracker.setContinuousMode(continuous);
-      
+
         std::vector<std::array<Double_t, 3>> vertices; //FIXME :  run an actual vertex finder !
-        vertices.push_back({0.,0.,0.});
+        vertices.push_back({ 0., 0., 0. });
         tracker.setVertices(vertices);
 
-        tracker.process(clusters,tracks);
-	
-        LOG(INFO)<<"ITSCookedTracker pushed "<<tracks.size()<<" tracks";
-        pc.outputs().snapshot(Output{"ITS","TRACKS",     0, Lifetime::Timeframe}, tracks);
-        pc.outputs().snapshot(Output{"ITS","TRACKSMCTR", 0, Lifetime::Timeframe}, trackLabels);
+        tracker.process(clusters, tracks);
+
+        LOG(INFO) << "ITSCookedTracker pushed " << tracks.size() << " tracks";
+        pc.outputs().snapshot(Output{ "ITS", "TRACKS", 0, Lifetime::Timeframe }, tracks);
+        pc.outputs().snapshot(Output{ "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe }, trackLabels);
       } else {
-	LOG(ERROR)<<"Cannot retrieve GRP from the "<< filename.c_str()<<" file !";
+        LOG(ERROR) << "Cannot retrieve GRP from the " << filename.c_str() << " file !";
       }
-      done=true;
+      done = true;
       //pc.services().get<ControlService>().readyToQuit(true);
     };
   };
 
-  return DataProcessorSpec {
+  return DataProcessorSpec{
     "its-cooked-tracker",
     Inputs{
-      InputSpec{"compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe},
-      InputSpec{"clusters", "ITS", "CLUSTERS",     0, Lifetime::Timeframe},
-      InputSpec{"labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe}
-    },
+      InputSpec{ "compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe },
+      InputSpec{ "clusters", "ITS", "CLUSTERS", 0, Lifetime::Timeframe },
+      InputSpec{ "labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe } },
     Outputs{
-      OutputSpec{"ITS", "TRACKS",     0, Lifetime::Timeframe},
-      OutputSpec{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}
-    },
+      OutputSpec{ "ITS", "TRACKS", 0, Lifetime::Timeframe },
+      OutputSpec{ "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe } },
     AlgorithmSpec{ init },
     Options{
-      {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the output file"}},
+      { "grp-file", VariantType::String, "o2sim_grp.root", { "Name of the output file" } },
     }
   };
 }
-  
-}
-}
+
+} // namespace ITS
+} // namespace o2

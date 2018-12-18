@@ -21,5 +21,5 @@ namespace ITS
 /// run ITS CA tracker
 framework::DataProcessorSpec getTrackerSpec();
 
-}
-}
+} // namespace ITS
+} // namespace o2

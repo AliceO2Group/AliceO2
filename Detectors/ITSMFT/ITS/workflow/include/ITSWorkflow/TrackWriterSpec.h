@@ -21,5 +21,5 @@ namespace ITS
 /// write ITS tracks a root file
 framework::DataProcessorSpec getTrackWriterSpec();
 
-}
-}
+} // namespace ITS
+} // namespace o2
