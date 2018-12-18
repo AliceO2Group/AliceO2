@@ -246,6 +246,8 @@ static void PlotMultiEx(
     return std::tie(values_count, vx0);
   };
 
+  std::vector<ImVec2> path;
+  path.reserve(res_w);
   // We iterate on all the data series.
   for (int data_idx = 0; data_idx < num_datas; ++data_idx) {
     auto [first_valid_index, vx0] = findFirstValidIndexAndValue(datas[data_idx]);
@@ -271,6 +273,8 @@ static void PlotMultiEx(
     };
 
     float hoveredBinPos = (float)(v_hovered) / (float)(item_count);
+    ImVec2 hoveredPos0;
+    ImVec2 hoveredPos1;
     // We iterate on all the items.
     for (int n = 0; n < res_w; n++) {
       float binStart = n * t_step;
@@ -313,7 +317,24 @@ static void PlotMultiEx(
       ImVec2 pos1 = ImLerp(layout.inner_bb.Min, layout.inner_bb.Max, (plot_type == ImGuiPlotType_Lines) ? tp1 : ImVec2(tp1.x, 1.0f));
 
       if (plot_type == ImGuiPlotType_Lines) {
-        window->DrawList->AddLine(pos0, pos1, v_hovered == v1_idx ? col_hovered : col_base);
+        if (path.empty() || memcmp(&path[path.size() - 1], &pos0, 8) != 0) {
+          path.push_back(pos0);
+        } else if (path[path.size() - 1].y == pos0.y) {
+          path[path.size() - 1].x = pos0.x;
+        } else if (path[path.size() - 1].x == pos0.x) {
+          path[path.size() - 1].y = pos0.y;
+        }
+        if (path.empty() || memcmp(&path[path.size() - 1], &pos1, 8) != 0) {
+          path.push_back(pos1);
+        } else if (path[path.size() - 1].y == pos1.y) {
+          path[path.size() - 1].x = pos1.x;
+        } else if (path[path.size() - 1].x == pos1.x) {
+          path[path.size() - 1].y = pos1.y;
+        }
+        if (v_hovered == v1_idx) {
+          hoveredPos0 = pos0;
+          hoveredPos1 = pos1;
+        }
       } else if (plot_type == ImGuiPlotType_Histogram) {
         if (pos1.x >= pos0.x + 2.0f)
           pos1.x -= 1.0f;
@@ -322,6 +343,11 @@ static void PlotMultiEx(
 
       t0 = t1;
       tp0 = tp1;
+    }
+    if (plot_type == ImGuiPlotType_Lines) {
+      window->DrawList->AddPolyline(path.data(), path.size(), col_base, false, 1);
+      path.clear();
+      window->DrawList->AddLine(hoveredPos0, hoveredPos1, col_hovered, 3.f);
     }
   }
   if (ImGui::IsItemHovered()) {
