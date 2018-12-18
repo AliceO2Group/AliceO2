@@ -58,6 +58,15 @@ DataSourceDevice::DataSourceDevice(const DeviceSpec& spec, ServiceRegistry& regi
 void DataSourceDevice::Init() {
   LOG(DEBUG) << "DataSourceDevice::InitTask::START\n";
   LOG(DEBUG) << "Init thread" << pthread_self();
+  // For some reason passing rateLogging does not work anymore.
+  // This makes sure the maximum rate is once per minute.
+  for (auto& x : fChannels) {
+    for (auto& c : x.second) {
+      if (c.GetRateLogging() < 60) {
+        c.UpdateRateLogging(60);
+      }
+    }
+  }
   std::unique_ptr<ParamRetriever> retriever{new FairOptionsRetriever(GetConfig())};
   mConfigRegistry = std::move(std::make_unique<ConfigParamRegistry>(std::move(retriever)));
   if (mInit) {
