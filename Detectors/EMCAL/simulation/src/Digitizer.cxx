@@ -65,7 +65,7 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
       if (!flag) {
         mDigits[id].push_front(digit);
       }
-        
+
       o2::EMCAL::MCLabel label(hit.GetTrackID(), mCurrEvID, mCurrSrcID, mEventTime);
       mMCTruthContainer.addElementRandomAccess(LabelIndex, label);
       auto labels = mMCTruthContainer.getLabels(LabelIndex);

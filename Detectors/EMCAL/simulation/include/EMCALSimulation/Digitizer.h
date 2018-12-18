@@ -76,7 +76,7 @@ class Digitizer : public TObject
   int mCurrEvID = 0;                   ///< current event ID from the manager
 
   std::unordered_map<Int_t, std::deque<Digit>> mDigits; ///< used to sort digits by tower
-  o2::dataformats::MCTruthContainer<o2::EMCAL::MCLabel> mMCTruthContainer; ///< temporary storage for MC truth information
+  o2::dataformats::MCTruthContainer<o2::EMCAL::MCLabel> mMCTruthContainer;    ///< temporary storage for MC truth information
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthOutputContainer; ///< contains MC truth information
 
   ClassDefOverride(Digitizer, 1);

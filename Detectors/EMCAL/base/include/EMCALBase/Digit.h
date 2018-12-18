@@ -33,7 +33,7 @@ class Digit : public DigitBase
  public:
   Digit() = default;
 
-  Digit(Short_t tower, Double_t amplitude, Double_t time, Int_t label=-1);
+  Digit(Short_t tower, Double_t amplitude, Double_t time, Int_t label = -1);
   ~Digit() = default; // override
 
   bool operator<(const Digit& other) const { return getTimeStamp() < other.getTimeStamp(); }
@@ -57,7 +57,7 @@ class Digit : public DigitBase
 
   Double_t GetAmplitude() const { return mAmplitude; }
   void SetAmplitude(Double_t amplitude) { mAmplitude = amplitude; }
-    
+
   Int_t GetLabel() const { return mLabel; }
   void SetLabel(Int_t label) { mLabel = label; }
 

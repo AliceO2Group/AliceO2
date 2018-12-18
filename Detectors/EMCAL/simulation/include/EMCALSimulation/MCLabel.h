@@ -8,7 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 // Declaration of a transient MC label class for EMCal
 
 #ifndef ALICEO2_EMCAL_MCLABEL_H_
