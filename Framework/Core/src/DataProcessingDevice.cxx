@@ -33,6 +33,7 @@ using Monitoring = o2::monitoring::Monitoring;
 using DataHeader = o2::header::DataHeader;
 
 constexpr unsigned int MONITORING_QUEUE_SIZE = 100;
+constexpr unsigned int MIN_RATE_LOGGING = 60;
 
 namespace o2
 {
@@ -90,6 +91,15 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
 /// * Invoke the actual init callback, which returns the processing callback.
 void DataProcessingDevice::Init() {
   LOG(DEBUG) << "DataProcessingDevice::InitTask::START";
+  // For some reason passing rateLogging does not work anymore. 
+  // This makes sure we never have more than one notification per minute.
+  for (auto& x : fChannels) {
+    for (auto& c : x.second) {
+      if (c.GetRateLogging() < MIN_RATE_LOGGING) {
+        c.UpdateRateLogging(MIN_RATE_LOGGING);
+      }
+    }
+  }
   auto optionsRetriever(std::make_unique<FairOptionsRetriever>(GetConfig()));
   mConfigRegistry = std::move(std::make_unique<ConfigParamRegistry>(std::move(optionsRetriever)));
 
