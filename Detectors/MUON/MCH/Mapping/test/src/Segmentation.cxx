@@ -36,8 +36,8 @@ const Segmentation& SegCache(int detElemId)
   if (cache.empty()) {
     auto start = std::chrono::high_resolution_clock::now();
     std::vector<int> deids;
-    forEachDetectionElement([&deids](int detElemId) {
-      deids.push_back(detElemId);
+    forEachDetectionElement([&deids](int deid) {
+      deids.push_back(deid);
     });
     for (auto deid : deids) {
       cache.emplace(deid, new Segmentation(deid));
