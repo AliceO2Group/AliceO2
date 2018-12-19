@@ -23,6 +23,9 @@
 #include "EMCALBase/Geometry.h"
 #include "EMCALBase/GeometryBase.h"
 #include "EMCALBase/Hit.h"
+#include "EMCALSimulation/MCLabel.h"
+
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 namespace o2
 {
@@ -60,7 +63,7 @@ class Digitizer : public TObject
 
   void setGeometry(const o2::EMCAL::Geometry* gm) { mGeometry = gm; }
 
-  Digit hitToDigit(const Hit& hit);
+  Digit hitToDigit(const Hit& hit, const Int_t label);
 
  private:
   const Geometry* mGeometry = nullptr; // EMCAL geometry
@@ -73,6 +76,8 @@ class Digitizer : public TObject
   int mCurrEvID = 0;                   ///< current event ID from the manager
 
   std::unordered_map<Int_t, std::deque<Digit>> mDigits; ///< used to sort digits by tower
+  o2::dataformats::MCTruthContainer<o2::EMCAL::MCLabel> mMCTruthContainer;    ///< temporary storage for MC truth information
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthOutputContainer; ///< contains MC truth information
 
   ClassDefOverride(Digitizer, 1);
 };

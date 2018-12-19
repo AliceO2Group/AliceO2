@@ -39,10 +39,12 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
 {
   digits.clear();
   mDigits.clear();
+  mMCTruthContainer.clear();
 
   for (auto hit : hits) {
     try {
-      Digit digit = hitToDigit(hit);
+      Int_t LabelIndex = mMCTruthContainer.getIndexedSize();
+      Digit digit = hitToDigit(hit, LabelIndex);
       Int_t id = digit.GetTower();
 
       if (id < 0 || id > mGeometry->GetNCells()) {
@@ -54,6 +56,7 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
       for (auto& digit0 : mDigits[id]) {
         if (digit0.canAdd(digit)) {
           digit0 += digit;
+          LabelIndex = digit0.GetLabel();
           flag = true;
           break;
         }
@@ -62,6 +65,11 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
       if (!flag) {
         mDigits[id].push_front(digit);
       }
+
+      o2::EMCAL::MCLabel label(hit.GetTrackID(), mCurrEvID, mCurrSrcID, mEventTime);
+      mMCTruthContainer.addElementRandomAccess(LabelIndex, label);
+      auto labels = mMCTruthContainer.getLabels(LabelIndex);
+      std::sort(labels.begin(), labels.end());
     } catch (InvalidPositionException& e) {
       LOG(ERROR) << "Error in creating the digit: " << e.what() << FairLogger::endl;
     }
@@ -71,11 +79,11 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
 }
 
 //_______________________________________________________________________
-o2::EMCAL::Digit Digitizer::hitToDigit(const Hit& hit)
+o2::EMCAL::Digit Digitizer::hitToDigit(const Hit& hit, const Int_t label)
 {
   Int_t tower = hit.GetDetectorID();
   Double_t amplitude = hit.GetEnergyLoss();
-  Digit digit(tower, amplitude, mEventTime);
+  Digit digit(tower, amplitude, mEventTime, label);
   return digit;
 }
 
@@ -107,6 +115,11 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
 
   for (auto digit : l) {
     digits.push_back(digit);
+  }
+
+  mMCTruthOutputContainer.clear();
+  for (int index = 0; index < mMCTruthContainer.getIndexedSize(); ++index) {
+    mMCTruthOutputContainer.addElements(index, mMCTruthContainer.getLabels(index));
   }
 }
 

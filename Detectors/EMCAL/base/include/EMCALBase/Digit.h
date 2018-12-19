@@ -33,11 +33,12 @@ class Digit : public DigitBase
  public:
   Digit() = default;
 
-  Digit(Int_t tower, Double_t amplitude, Double_t time);
+  Digit(Short_t tower, Double_t amplitude, Double_t time, Int_t label = -1);
   ~Digit() = default; // override
 
   bool operator<(const Digit& other) const { return getTimeStamp() < other.getTimeStamp(); }
   bool operator>(const Digit& other) const { return getTimeStamp() > other.getTimeStamp(); }
+  bool operator==(const Digit& other) const { return getTimeStamp() == other.getTimeStamp(); }
 
   bool canAdd(const Digit other)
   {
@@ -51,19 +52,23 @@ class Digit : public DigitBase
     return lhs;
   }
 
-  Int_t GetTower() const { return mTower; }
-  void SetTower(Int_t tower) { mTower = tower; }
+  Short_t GetTower() const { return mTower; }
+  void SetTower(Short_t tower) { mTower = tower; }
 
   Double_t GetAmplitude() const { return mAmplitude; }
   void SetAmplitude(Double_t amplitude) { mAmplitude = amplitude; }
+
+  Int_t GetLabel() const { return mLabel; }
+  void SetLabel(Int_t label) { mLabel = label; }
 
   void PrintStream(std::ostream& stream) const;
 
  private:
   friend class boost::serialization::access;
 
-  Int_t mTower;        ///< Tower index (absolute cell ID)
   Double_t mAmplitude; ///< Amplitude
+  Int_t mLabel;        ///< Index of the corresponding entry/entries in the MC label array
+  Short_t mTower;      ///< Tower index (absolute cell ID)
 
   ClassDefNV(Digit, 1);
 };
