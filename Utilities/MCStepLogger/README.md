@@ -1,3 +1,5 @@
+### NOTE: The MCStepLogger has moved to https://github.com/AliceO2Group/VMCStepLogger.git
+
 ## MCStepLogger
 
 Detailed debug information about stepping can be directed to standard output using the `LD_PRELOAD` env variable, which "injects" a
