@@ -7,16 +7,15 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef O2_MCH_MAPPING_GENDETELEMID2SEGTYPE_H
-#define O2_MCH_MAPPING_GENDETELEMID2SEGTYPE_H
 
-//
-// This file has been generated. Do not modify it by hand or your changes might
-// be lost.
-//
-// This implementation file cannot be used standalone, i.e. it is intended to be
-// included into another implementation file.
-//
+///
+/// @author  Laurent Aphecetche
+
+#ifndef O2_MCH_MAPPING_CATHODESEGMENTATIONSVGWRITER_H
+#define O2_MCH_MAPPING_CATHODESEGMENTATIONSVGWRITER_H
+
+#include <string>
+#include "MCHContour/SVGWriter.h"
 
 namespace o2
 {
@@ -24,12 +23,15 @@ namespace mch
 {
 namespace mapping
 {
-namespace impl3
-{
-int detElemId2SegType(int detElemId);
-} // namespace impl3
+
+class CathodeSegmentation;
+
+std::string svgCathodeSegmentationDefaultStyle();
+
+void svgCathodeSegmentation(const CathodeSegmentation& seg, o2::mch::contour::SVGWriter& writer, bool showdes, bool showdualsampas,
+                            bool showpads, bool showpadchannels);
 } // namespace mapping
 } // namespace mch
 } // namespace o2
 
-#endif // O2_MCH_MAPPING_GENDETELEMID2SEGTYPE_H
+#endif

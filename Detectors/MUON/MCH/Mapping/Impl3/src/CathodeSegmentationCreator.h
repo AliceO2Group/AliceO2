@@ -7,16 +7,14 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef O2_MCH_MAPPING_GENDETELEMID2SEGTYPE_H
-#define O2_MCH_MAPPING_GENDETELEMID2SEGTYPE_H
 
-//
-// This file has been generated. Do not modify it by hand or your changes might
-// be lost.
-//
-// This implementation file cannot be used standalone, i.e. it is intended to be
-// included into another implementation file.
-//
+///
+/// @author  Laurent Aphecetche
+
+#ifndef O2_MCH_MAPPING_impl3_CATHODESEGMENTATIONCREATOR_H
+#define O2_MCH_MAPPING_impl3_CATHODESEGMENTATIONCREATOR_H
+
+#include "CathodeSegmentationImpl3.h"
 
 namespace o2
 {
@@ -26,10 +24,16 @@ namespace mapping
 {
 namespace impl3
 {
-int detElemId2SegType(int detElemId);
+
+using CathodeSegmentationCreator = CathodeSegmentation* (*)(bool);
+
+void registerCathodeSegmentationCreator(int segType, CathodeSegmentationCreator func);
+
+CathodeSegmentationCreator getCathodeSegmentationCreator(int segType);
+
 } // namespace impl3
 } // namespace mapping
 } // namespace mch
 } // namespace o2
 
-#endif // O2_MCH_MAPPING_GENDETELEMID2SEGTYPE_H
+#endif

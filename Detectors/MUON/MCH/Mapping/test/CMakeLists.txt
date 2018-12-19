@@ -4,7 +4,7 @@ set(BUCKET_NAME mch_mapping_test_bucket)
 # trying to get only one test exe for this module
 O2_GENERATE_EXECUTABLE(
         EXE_NAME test_MCHMappingTest
-        SOURCES src/Segmentation.cxx src/SegmentationLong.cxx 
+        SOURCES src/CathodeSegmentation.cxx src/CathodeSegmentationLong.cxx 
         BUCKET_NAME mch_mapping_test_bucket
 )
 
@@ -14,7 +14,7 @@ add_test(NAME test_MCHMappingTest COMMAND test_MCHMappingTest)
 if (benchmark_FOUND)
     O2_GENERATE_EXECUTABLE(
             EXE_NAME mch-mapping-bench-segmentation3
-            SOURCES src/BenchSegmentation.cxx 
+            SOURCES src/BenchCathodeSegmentation.cxx 
             BUCKET_NAME mch_mapping_test_bucket)
 endif ()
 
