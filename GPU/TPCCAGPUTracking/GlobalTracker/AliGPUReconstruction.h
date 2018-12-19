@@ -137,6 +137,7 @@ public:
 	}
 	template <class S> static inline S* getPointerWithAlignment(size_t& basePtr, size_t nEntries = 1)
 	{
+		if (basePtr == 0) basePtr = 1;
 		basePtr += getAlignment(basePtr, alignof(S));
 		S* retVal = (S*) (basePtr);
 		basePtr += nEntries * sizeof(S);
