@@ -1,4 +1,4 @@
-#
+#!/bin/bash
 o2sim -n 10 -e TGeant3 -g boxgen -m PIPE ITS >& sim.log 
 digitizer-workflow >& digi.log
 #digitizer-workflow --ITStriggered >& digi.log
