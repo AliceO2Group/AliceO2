@@ -11,13 +11,12 @@
 ///
 /// @author  Laurent Aphecetche
 
-#ifndef O2_MCH_MAPPING_SEGMENTATIONCONTOURS_H
-#define O2_MCH_MAPPING_SEGMENTATIONCONTOURS_H
+#include "MCHMappingSegContour/SegmentationContours.h"
+#include "MCHMappingSegContour/CathodeSegmentationContours.h"
+#include "MCHContour/ContourCreator.h"
+#include <iostream>
 
-#include <vector>
-#include "MCHContour/Contour.h"
-#include "MCHContour/BBox.h"
-#include "MCHMappingInterface/Segmentation.h"
+using namespace o2::mch::contour;
 
 namespace o2
 {
@@ -26,11 +25,20 @@ namespace mch
 namespace mapping
 {
 
-o2::mch::contour::Contour<double> getEnvelop(const Segmentation& seg);
+BBox<double> getBBox(const Segmentation& seg) { return getBBox(getEnvelop(seg)); }
 
-o2::mch::contour::BBox<double> getBBox(const Segmentation& seg);
+Contour<double> getEnvelop(const Segmentation& seg)
+{
+  std::vector<Polygon<double>> polygons;
+
+  for (auto& contour : { getEnvelop(seg.NonBending()), getEnvelop(seg.Bending()) }) {
+    for (auto& p : contour.getPolygons()) {
+      polygons.push_back(p);
+    }
+  }
+  return o2::mch::contour::createContour(polygons);
+}
+
 } // namespace mapping
 } // namespace mch
 } // namespace o2
-
-#endif

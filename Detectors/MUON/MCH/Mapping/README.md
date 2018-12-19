@@ -18,24 +18,28 @@ Details are to be found in the interface file or in the doxygen documentation, b
  
 ```c++
 int detElemId{100};
-bool isBendingPlane{true};
 
-o2::mch::mapping::Segmentation seg{detElemId, isBendingPlane};
+o2::mch::mapping::Segmentation seg{detElemId};
 
 double x{1.5};
 double y{18.6};
 
-int paduid = seg.findPadByPosition(x, y);
+int b, nb;
+book found = seg.findPadPairByPosition(x, y, b, nb);
 
-if (seg.isValid(paduid)) {
-  std::cout << "There is a pad at position " << x << "," << y << "\n"
-            << " which belongs to dualSampa " << seg.padDualSampaId(paduid)
-            << " and has a x-size of " << seg.padSizeX(paduid) << " cm\n";
+if (seg.isValid(b)) {
+  std::cout << "There is a bending pad at position " << x << "," << y << "\n"
+            << " which belongs to dualSampa " << seg.padDualSampaId(b)
+            << " and has a x-size of " << seg.padSizeX(b) << " cm\n";
 }
 
-assert(paduid == seg.findPadByFEE(76, 9));
+assert(b == seg.findPadByFEE(76, 9));
   
 ```
+
+Note that cathode-specific segmentations can be retrieved from `Segmentation` 
+objects (using Bending() and NonBending() methods) or created from scratch
+using the `CathodeSegmentation(int detElemId, bool isBendingPlane)` constructor.
 
 # Implementations
 

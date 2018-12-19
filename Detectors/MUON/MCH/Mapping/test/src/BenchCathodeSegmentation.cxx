@@ -39,7 +39,7 @@ std::vector<TestPoint> generateUniformTestPoints(int n, double xmin, double ymin
 
 static void segmentationList(benchmark::internal::Benchmark* b)
 {
-  o2::mch::mapping::forOneDetectionElementOfEachCathodeSegmentationType([&b](int detElemId) {
+  o2::mch::mapping::forOneDetectionElementOfEachSegmentationType([&b](int detElemId) {
     for (auto bending : { true, false }) {
       {
         b->Args({ detElemId, bending });
@@ -66,7 +66,7 @@ BENCHMARK_DEFINE_F(BenchO2, ctor)
 std::vector<int> getDetElemIds()
 {
   std::vector<int> deids;
-  o2::mch::mapping::forOneDetectionElementOfEachCathodeSegmentationType(
+  o2::mch::mapping::forOneDetectionElementOfEachSegmentationType(
     [&deids](int detElemId) { deids.push_back(detElemId); });
   return deids;
 }

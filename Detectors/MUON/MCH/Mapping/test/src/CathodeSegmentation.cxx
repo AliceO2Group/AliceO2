@@ -25,6 +25,7 @@
 #include <boost/test/data/monomorphic.hpp>
 #include <boost/test/data/monomorphic/generators/xrange.hpp>
 #include <boost/test/data/test_case.hpp>
+#include <limits>
 #include <fstream>
 #include <iostream>
 
@@ -32,7 +33,7 @@ using namespace o2::mch::mapping;
 namespace bdata = boost::unit_test::data;
 
 BOOST_AUTO_TEST_SUITE(o2_mch_mapping)
-BOOST_AUTO_TEST_SUITE(segmentation)
+BOOST_AUTO_TEST_SUITE(cathode_segmentation)
 
 BOOST_AUTO_TEST_CASE(NumberOfDetectionElementsIs156)
 {
@@ -43,7 +44,7 @@ BOOST_AUTO_TEST_CASE(NumberOfDetectionElementsIs156)
 
 BOOST_AUTO_TEST_CASE(GetCathodeSegmentationMustNotThrowIfDetElemIdIsValid)
 {
-  forOneDetectionElementOfEachCathodeSegmentationType([](int detElemId) {
+  forOneDetectionElementOfEachSegmentationType([](int detElemId) {
     BOOST_CHECK_NO_THROW(CathodeSegmentation(detElemId, true));
     BOOST_CHECK_NO_THROW(CathodeSegmentation(detElemId, false));
   });
@@ -113,7 +114,7 @@ BOOST_AUTO_TEST_CASE(TotalNofBendingFECInSegTypes)
 {
   int nb{ 0 };
   int nnb{ 0 };
-  forOneDetectionElementOfEachCathodeSegmentationType([&](int detElemId) {
+  forOneDetectionElementOfEachSegmentationType([&](int detElemId) {
     nb += CathodeSegmentation(detElemId, true).nofDualSampas();
     nnb += CathodeSegmentation(detElemId, false).nofDualSampas();
   });
@@ -224,7 +225,7 @@ BOOST_AUTO_TEST_CASE(NofNonBendingFEC)
 BOOST_AUTO_TEST_CASE(CountPadsInCathodeSegmentations)
 {
   int n{ 0 };
-  forOneDetectionElementOfEachCathodeSegmentationType([&n](int detElemId) {
+  forOneDetectionElementOfEachSegmentationType([&n](int detElemId) {
     for (auto plane : { true, false }) {
       CathodeSegmentation seg{ detElemId, plane };
       n += seg.nofPads();
@@ -236,7 +237,7 @@ BOOST_AUTO_TEST_CASE(CountPadsInCathodeSegmentations)
 BOOST_AUTO_TEST_CASE(LoopOnCathodeSegmentations)
 {
   int n{ 0 };
-  forOneDetectionElementOfEachCathodeSegmentationType([&n](int detElemId) {
+  forOneDetectionElementOfEachSegmentationType([&n](int detElemId) {
     n += 2; // two planes (bending, non-bending)
   });
   BOOST_CHECK_EQUAL(n, 42);
@@ -245,12 +246,12 @@ BOOST_AUTO_TEST_CASE(LoopOnCathodeSegmentations)
 BOOST_AUTO_TEST_CASE(DualSampasWithLessThan64Pads)
 {
   std::map<int, int> non64;
-  forOneDetectionElementOfEachCathodeSegmentationType([&non64](int detElemId) {
+  forOneDetectionElementOfEachSegmentationType([&non64](int detElemId) {
     for (auto plane : { true, false }) {
       CathodeSegmentation seg{ detElemId, plane };
       for (int i = 0; i < seg.nofDualSampas(); ++i) {
         int n{ 0 };
-        seg.forEachPadInDualSampa(seg.dualSampaId(i), [&n](int /*paduid*/) { ++n; });
+        seg.forEachPadInDualSampa(seg.dualSampaId(i), [&n](int /*catPadIndex*/) { ++n; });
         if (n != 64) {
           non64[n]++;
         }
@@ -297,14 +298,20 @@ BOOST_AUTO_TEST_CASE(ThrowsIfDualSampaChannelIsNotBetween0And63)
   BOOST_CHECK_THROW(seg.findPadByFEE(102, 64), std::out_of_range);
 }
 
-BOOST_AUTO_TEST_CASE(ReturnsTrueIfPadIsConnected) { BOOST_CHECK_EQUAL(seg.isValid(seg.findPadByFEE(102, 3)), true); }
+BOOST_AUTO_TEST_CASE(ReturnsTrueIfPadIsConnected)
+{
+  BOOST_CHECK_EQUAL(seg.isValid(seg.findPadByFEE(102, 3)), true);
+}
 
 BOOST_AUTO_TEST_CASE(ReturnsFalseIfPadIsNotConnected)
 {
   BOOST_CHECK_EQUAL(seg.isValid(seg.findPadByFEE(214, 14)), false);
 }
 
-BOOST_AUTO_TEST_CASE(HasPadByPosition) { BOOST_CHECK_EQUAL(seg.isValid(seg.findPadByPosition(40.0, 30.0)), true); }
+BOOST_AUTO_TEST_CASE(HasPadByPosition)
+{
+  BOOST_CHECK_EQUAL(seg.isValid(seg.findPadByPosition(40.0, 30.0)), true);
+}
 
 BOOST_AUTO_TEST_CASE(CheckPositionOfOnePadInDE100Bending)
 {

@@ -67,7 +67,7 @@ int main(int argc, char* argv[])
   }
 
   if (vm.count("all")) {
-    o2::mch::mapping::forOneDetectionElementOfEachCathodeSegmentationType(
+    o2::mch::mapping::forOneDetectionElementOfEachSegmentationType(
       [&detElemIds](int detElemId) { detElemIds.push_back(detElemId); });
   }
 

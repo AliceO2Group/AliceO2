@@ -63,7 +63,7 @@ namespace bdata = boost::unit_test::data;
 using Point = std::pair<double, double>;
 
 BOOST_AUTO_TEST_SUITE(o2_mch_mapping)
-BOOST_AUTO_TEST_SUITE(segmentation_long)
+BOOST_AUTO_TEST_SUITE(cathode_segmentation_long)
 
 void dumpToFile(std::string fileName, const CathodeSegmentation& seg, const std::vector<Point>& points)
 {
@@ -130,7 +130,7 @@ int testOnePosition(const o2::mch::mapping::CathodeSegmentation& seg, rapidjson:
 {
   double x = tp["x"].GetDouble();
   double y = tp["y"].GetDouble();
-  int paduid = seg.findPadByPosition(x, y);
+  int catPadIndex = seg.findPadByPosition(x, y);
 
   bool isOutside{ false };
 
@@ -138,18 +138,18 @@ int testOnePosition(const o2::mch::mapping::CathodeSegmentation& seg, rapidjson:
     isOutside = (tp["isoutside"].GetString() == std::string("true"));
   }
 
-  if (seg.isValid(paduid) && isOutside) {
+  if (seg.isValid(catPadIndex) && isOutside) {
     std::cerr << "found a pad where I was not expecting one" << std::endl;
     return 1;
   }
-  if (!seg.isValid(paduid) && !isOutside) {
+  if (!seg.isValid(catPadIndex) && !isOutside) {
     std::cerr << "did not find a pad where I was expecting one" << std::endl;
     return 1;
   }
 
-  if (seg.isValid(paduid)) {
-    double px = seg.padPositionX(paduid);
-    double py = seg.padPositionY(paduid);
+  if (seg.isValid(catPadIndex)) {
+    double px = seg.padPositionX(catPadIndex);
+    double py = seg.padPositionY(catPadIndex);
 
     double ex = tp["px"].GetDouble();
     double ey = tp["py"].GetDouble();
@@ -214,6 +214,26 @@ BOOST_AUTO_TEST_CASE(TestPositions)
     notok += testOnePosition(seg, tp);
   }
   BOOST_TEST(notok == 0);
+}
+
+BOOST_TEST_DECORATOR(*boost::unit_test::label("long"))
+BOOST_AUTO_TEST_CASE(TestCathodeForEachPadAndPadIndexRange)
+{
+  forOneDetectionElementOfEachSegmentationType([](int detElemId) {
+    for (auto plane : { true, false }) {
+      int n = 0;
+      int pmin = std::numeric_limits<int>::max();
+      int pmax = 0;
+      CathodeSegmentation catseg{ detElemId, plane };
+      catseg.forEachPad([&n,&pmin,&pmax](int dePadIndex) {
+        n++;
+        pmin = std::min(pmin,dePadIndex);
+        pmax = std::max(pmax,dePadIndex);
+      });
+      BOOST_CHECK_EQUAL(n, catseg.nofPads());
+      BOOST_CHECK_EQUAL(pmin,0);
+      BOOST_CHECK_EQUAL(pmax,catseg.nofPads()-1);
+    } });
 }
 
 BOOST_AUTO_TEST_SUITE_END()
