@@ -11,6 +11,24 @@
 
 #include <benchmark/benchmark.h>
 
+// This is the fastest we could ever get.
+static void BM_MemcmpBaseline(benchmark::State& state)
+{
+  using namespace o2::framework;
+  std::string metric;
+  std::smatch match;
+  DeviceMetricsInfo info;
+
+  metric = "[METRIC] bkey,0 12 1789372894 hostname=test.cern.ch";
+  for (auto _ : state) {
+    // Parse a simple metric
+    benchmark::DoNotOptimize(metric == "[METRIC] bkey,0 12 1789372894 hostname=test.cern.ch");
+  }
+  state.SetBytesProcessed(state.iterations() * metric.size());
+}
+
+BENCHMARK(BM_MemcmpBaseline);
+
 static void BM_ParseIntMetric(benchmark::State& state)
 {
   using namespace o2::framework;
@@ -23,6 +41,7 @@ static void BM_ParseIntMetric(benchmark::State& state)
     // Parse a simple metric
     DeviceMetricsHelper::parseMetric(metric, match);
   }
+  state.SetBytesProcessed(state.iterations() * metric.size());
 }
 
 BENCHMARK(BM_ParseIntMetric);
@@ -35,11 +54,15 @@ static void BM_ProcessIntMetric(benchmark::State& state)
   DeviceMetricsInfo info;
 
   metric = "[METRIC] bkey,0 12 1789372894 hostname=test.cern.ch";
+  std::vector<std::string> metrics{ 1000, metric };
   // Add the first metric to the store
   for (auto _ : state) {
-    DeviceMetricsHelper::parseMetric(metric, match);
-    DeviceMetricsHelper::processMetric(match, info);
+    for (auto& s : metrics) {
+      DeviceMetricsHelper::parseMetric(s, match);
+      DeviceMetricsHelper::processMetric(match, info);
+    }
   }
+  state.SetBytesProcessed(state.iterations() * metrics.size() * metric.size());
 }
 
 BENCHMARK(BM_ProcessIntMetric);
@@ -56,6 +79,7 @@ static void BM_ParseFloatMetric(benchmark::State& state)
   for (auto _ : state) {
     DeviceMetricsHelper::parseMetric(metric, match);
   }
+  state.SetBytesProcessed(state.iterations() * metric.size());
 }
 
 BENCHMARK(BM_ParseFloatMetric);
@@ -72,6 +96,7 @@ static void BM_ProcessFloatMetric(benchmark::State& state)
     DeviceMetricsHelper::parseMetric(metric, match);
     DeviceMetricsHelper::processMetric(match, info);
   }
+  state.SetBytesProcessed(state.iterations() * metric.size());
 }
 
 BENCHMARK(BM_ProcessFloatMetric);
@@ -89,6 +114,7 @@ static void BM_ProcessStringMetric(benchmark::State& state)
     DeviceMetricsHelper::parseMetric(metric, match);
     DeviceMetricsHelper::processMetric(match, info);
   }
+  state.SetBytesProcessed(state.iterations() * metric.size());
 }
 
 BENCHMARK(BM_ProcessStringMetric);
@@ -104,6 +130,7 @@ static void BM_ProcessMismatchedMetric(benchmark::State& state)
   for (auto _ : state) {
     DeviceMetricsHelper::parseMetric(metric, match);
   }
+  state.SetBytesProcessed(state.iterations() * metric.size());
 }
 
 BENCHMARK(BM_ProcessMismatchedMetric);
