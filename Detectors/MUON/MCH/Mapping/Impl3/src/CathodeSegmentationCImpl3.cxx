@@ -78,7 +78,7 @@ void mchCathodeSegmentationForEachDualSampa(MchCathodeSegmentationHandle segHand
 }
 
 MCHMAPPINGIMPL3_EXPORT
-void mchCathodeSegmentationForOneDetectionElementOfEachCathodeSegmentationType(MchDetectionElementHandler handler, void* clientData)
+void mchCathodeSegmentationForOneDetectionElementOfEachSegmentationType(MchDetectionElementHandler handler, void* clientData)
 {
   for (auto detElemId :
        { 100, 300, 500, 501, 502, 503, 504, 600, 601, 602, 700, 701, 702, 703, 704, 705, 706, 902, 903, 904, 905 }) {
@@ -87,70 +87,70 @@ void mchCathodeSegmentationForOneDetectionElementOfEachCathodeSegmentationType(M
 }
 
 MCHMAPPINGIMPL3_EXPORT
-int mchCathodeSegmentationIsPadValid(MchCathodeSegmentationHandle segHandle, int paduid)
+int mchCathodeSegmentationIsPadValid(MchCathodeSegmentationHandle segHandle, int catPadIndex)
 {
-  return paduid != segHandle->impl->InvalidPadUid;
+  return catPadIndex != segHandle->impl->InvalidCatPadIndex;
 }
 
 MCHMAPPINGIMPL3_EXPORT
 void mchCathodeSegmentationForEachPadInDualSampa(MchCathodeSegmentationHandle segHandle, int dualSampaId, MchPadHandler handler,
                                                  void* clientData)
 {
-  for (auto p : segHandle->impl->getPadUids(dualSampaId)) {
+  for (auto p : segHandle->impl->getCatPadIndexs(dualSampaId)) {
     handler(clientData, p);
   }
 }
 
 MCHMAPPINGIMPL3_EXPORT
-double mchCathodeSegmentationPadPositionX(MchCathodeSegmentationHandle segHandle, int paduid)
+double mchCathodeSegmentationPadPositionX(MchCathodeSegmentationHandle segHandle, int catPadIndex)
 {
-  return segHandle->impl->padPositionX(paduid);
+  return segHandle->impl->padPositionX(catPadIndex);
 }
 
 MCHMAPPINGIMPL3_EXPORT
-double mchCathodeSegmentationPadPositionY(MchCathodeSegmentationHandle segHandle, int paduid)
+double mchCathodeSegmentationPadPositionY(MchCathodeSegmentationHandle segHandle, int catPadIndex)
 {
-  return segHandle->impl->padPositionY(paduid);
+  return segHandle->impl->padPositionY(catPadIndex);
 }
 
 MCHMAPPINGIMPL3_EXPORT
-double mchCathodeSegmentationPadSizeX(MchCathodeSegmentationHandle segHandle, int paduid)
+double mchCathodeSegmentationPadSizeX(MchCathodeSegmentationHandle segHandle, int catPadIndex)
 {
-  return segHandle->impl->padSizeX(paduid);
+  return segHandle->impl->padSizeX(catPadIndex);
 }
 
 MCHMAPPINGIMPL3_EXPORT
-double mchCathodeSegmentationPadSizeY(MchCathodeSegmentationHandle segHandle, int paduid)
+double mchCathodeSegmentationPadSizeY(MchCathodeSegmentationHandle segHandle, int catPadIndex)
 {
-  return segHandle->impl->padSizeY(paduid);
+  return segHandle->impl->padSizeY(catPadIndex);
 }
 
 MCHMAPPINGIMPL3_EXPORT
-int mchCathodeSegmentationPadDualSampaId(MchCathodeSegmentationHandle segHandle, int paduid)
+int mchCathodeSegmentationPadDualSampaId(MchCathodeSegmentationHandle segHandle, int catPadIndex)
 {
-  return segHandle->impl->padDualSampaId(paduid);
+  return segHandle->impl->padDualSampaId(catPadIndex);
 }
 
 MCHMAPPINGIMPL3_EXPORT
-int mchCathodeSegmentationPadDualSampaChannel(MchCathodeSegmentationHandle segHandle, int paduid)
+int mchCathodeSegmentationPadDualSampaChannel(MchCathodeSegmentationHandle segHandle, int catPadIndex)
 {
-  return segHandle->impl->padDualSampaChannel(paduid);
+  return segHandle->impl->padDualSampaChannel(catPadIndex);
 }
 
 MCHMAPPINGIMPL3_EXPORT
 void mchCathodeSegmentationForEachPadInArea(MchCathodeSegmentationHandle segHandle, double xmin, double ymin, double xmax,
                                             double ymax, MchPadHandler handler, void* clientData)
 {
-  for (auto p : segHandle->impl->getPadUids(xmin, ymin, xmax, ymax)) {
+  for (auto p : segHandle->impl->getCatPadIndexs(xmin, ymin, xmax, ymax)) {
     handler(clientData, p);
   }
 }
 
 MCHMAPPINGIMPL3_EXPORT
-void mchCathodeSegmentationForEachNeighbouringPad(MchCathodeSegmentationHandle segHandle, int paduid, MchPadHandler handler,
+void mchCathodeSegmentationForEachNeighbouringPad(MchCathodeSegmentationHandle segHandle, int catPadIndex, MchPadHandler handler,
                                                   void* userData)
 {
-  for (auto p : segHandle->impl->getNeighbouringPadUids(paduid)) {
+  for (auto p : segHandle->impl->getNeighbouringCatPadIndexs(catPadIndex)) {
     handler(userData, p);
   }
 }

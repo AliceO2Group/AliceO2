@@ -51,10 +51,10 @@ CathodeSegmentation* createCathodeSegmentation(int detElemId, bool isBendingPlan
 
 void CathodeSegmentation::fillRtree()
 {
-  int paduid{ 0 };
+  int catPadIndex{ 0 };
 
   for (auto padGroupIndex = 0; padGroupIndex < mPadGroups.size(); ++padGroupIndex) {
-    mPadGroupIndex2PadUidIndex.push_back(paduid);
+    mPadGroupIndex2CatPadIndexIndex.push_back(catPadIndex);
     auto& pg = mPadGroups[padGroupIndex];
     auto& pgt = mPadGroupTypes[pg.mPadGroupTypeId];
     double dx{ mPadSizes[pg.mPadSizeId].first };
@@ -69,11 +69,11 @@ void CathodeSegmentation::fillRtree()
           double ymax = (iy + 1) * dy + pg.mY;
 
           mRtree.insert(std::make_pair(
-            CathodeSegmentation::Box{ CathodeSegmentation::Point(xmin, ymin), CathodeSegmentation::Point(xmax, ymax) }, paduid));
+            CathodeSegmentation::Box{ CathodeSegmentation::Point(xmin, ymin), CathodeSegmentation::Point(xmax, ymax) }, catPadIndex));
 
-          mPadUid2PadGroupIndex.push_back(padGroupIndex);
-          mPadUid2PadGroupTypeFastIndex.push_back(pgt.fastIndex(ix, iy));
-          ++paduid;
+          mCatPadIndex2PadGroupIndex.push_back(padGroupIndex);
+          mCatPadIndex2PadGroupTypeFastIndex.push_back(pgt.fastIndex(ix, iy));
+          ++catPadIndex;
         }
       }
     }
@@ -110,21 +110,21 @@ CathodeSegmentation::CathodeSegmentation(int segType, bool isBendingPlane, std::
     mDualSampaIds{ getUnique(mPadGroups) },
     mPadGroupTypes{ std::move(padGroupTypes) },
     mPadSizes{ std::move(padSizes) },
-    mPadUid2PadGroupIndex{},
-    mPadUid2PadGroupTypeFastIndex{},
-    mPadGroupIndex2PadUidIndex{}
+    mCatPadIndex2PadGroupIndex{},
+    mCatPadIndex2PadGroupTypeFastIndex{},
+    mPadGroupIndex2CatPadIndexIndex{}
 {
   fillRtree();
 }
 
-std::vector<int> CathodeSegmentation::getPadUids(int dualSampaId) const
+std::vector<int> CathodeSegmentation::getCatPadIndexs(int dualSampaId) const
 {
   std::vector<int> pi;
 
   for (auto padGroupIndex = 0; padGroupIndex < mPadGroups.size(); ++padGroupIndex) {
     if (mPadGroups[padGroupIndex].mFECId == dualSampaId) {
       auto& pgt = mPadGroupTypes[mPadGroups[padGroupIndex].mPadGroupTypeId];
-      auto i1 = mPadGroupIndex2PadUidIndex[padGroupIndex];
+      auto i1 = mPadGroupIndex2CatPadIndexIndex[padGroupIndex];
       for (auto i = i1; i < i1 + pgt.getNofPads(); ++i) {
         pi.push_back(i);
       }
@@ -134,98 +134,98 @@ std::vector<int> CathodeSegmentation::getPadUids(int dualSampaId) const
   return pi;
 }
 
-std::vector<int> CathodeSegmentation::getPadUids(double xmin, double ymin, double xmax, double ymax) const
+std::vector<int> CathodeSegmentation::getCatPadIndexs(double xmin, double ymin, double xmax, double ymax) const
 {
   std::vector<CathodeSegmentation::Value> result_n;
   mRtree.query(boost::geometry::index::intersects(CathodeSegmentation::Box({ xmin, ymin }, { xmax, ymax })),
                std::back_inserter(result_n));
-  std::vector<int> paduids;
+  std::vector<int> catPadIndexs;
   for (auto& r : result_n) {
-    paduids.push_back(r.second);
+    catPadIndexs.push_back(r.second);
   }
-  return paduids;
+  return catPadIndexs;
 }
 
-std::vector<int> CathodeSegmentation::getNeighbouringPadUids(int paduid) const
+std::vector<int> CathodeSegmentation::getNeighbouringCatPadIndexs(int catPadIndex) const
 {
-  double x = padPositionX(paduid);
-  double y = padPositionY(paduid);
-  double dx = padSizeX(paduid) / 2.0;
-  double dy = padSizeY(paduid) / 2.0;
+  double x = padPositionX(catPadIndex);
+  double y = padPositionY(catPadIndex);
+  double dx = padSizeX(catPadIndex) / 2.0;
+  double dy = padSizeY(catPadIndex) / 2.0;
 
   const double offset{ 0.1 }; // 1 mm
 
-  auto pads = getPadUids(x - dx - offset, y - dy - offset, x + dx + offset, y + dy + offset);
-  pads.erase(std::remove(begin(pads), end(pads), paduid), end(pads));
+  auto pads = getCatPadIndexs(x - dx - offset, y - dy - offset, x + dx + offset, y + dy + offset);
+  pads.erase(std::remove(begin(pads), end(pads), catPadIndex), end(pads));
   return pads;
 }
 
-double CathodeSegmentation::squaredDistance(int paduid, double x, double y) const
+double CathodeSegmentation::squaredDistance(int catPadIndex, double x, double y) const
 {
-  double px = padPositionX(paduid) - x;
-  double py = padPositionY(paduid) - y;
+  double px = padPositionX(catPadIndex) - x;
+  double py = padPositionY(catPadIndex) - y;
   return px * px + py * py;
 }
 
 int CathodeSegmentation::findPadByPosition(double x, double y) const
 {
   const double epsilon{ 1E-4 };
-  auto pads = getPadUids(x - epsilon, y - epsilon, x + epsilon, y + epsilon);
+  auto pads = getCatPadIndexs(x - epsilon, y - epsilon, x + epsilon, y + epsilon);
 
   double dmin{ std::numeric_limits<double>::max() };
-  int paduid{ InvalidPadUid };
+  int catPadIndex{ InvalidCatPadIndex };
 
   for (auto i = 0; i < pads.size(); ++i) {
     double d{ squaredDistance(pads[i], x, y) };
     if (d < dmin) {
-      paduid = pads[i];
+      catPadIndex = pads[i];
       dmin = d;
     }
   }
 
-  return paduid;
+  return catPadIndex;
 }
 
-const PadGroup& CathodeSegmentation::padGroup(int paduid) const { return gsl::at(mPadGroups, mPadUid2PadGroupIndex[paduid]); }
+const PadGroup& CathodeSegmentation::padGroup(int catPadIndex) const { return gsl::at(mPadGroups, mCatPadIndex2PadGroupIndex[catPadIndex]); }
 
-const PadGroupType& CathodeSegmentation::padGroupType(int paduid) const
+const PadGroupType& CathodeSegmentation::padGroupType(int catPadIndex) const
 {
-  return gsl::at(mPadGroupTypes, padGroup(paduid).mPadGroupTypeId);
+  return gsl::at(mPadGroupTypes, padGroup(catPadIndex).mPadGroupTypeId);
 }
 
 int CathodeSegmentation::findPadByFEE(int dualSampaId, int dualSampaChannel) const
 {
-  for (auto paduid : getPadUids(dualSampaId)) {
-    if (padGroupType(paduid).id(mPadUid2PadGroupTypeFastIndex[paduid]) == dualSampaChannel) {
-      return paduid;
+  for (auto catPadIndex : getCatPadIndexs(dualSampaId)) {
+    if (padGroupType(catPadIndex).id(mCatPadIndex2PadGroupTypeFastIndex[catPadIndex]) == dualSampaChannel) {
+      return catPadIndex;
     }
   }
-  return InvalidPadUid;
+  return InvalidCatPadIndex;
 }
 
-double CathodeSegmentation::padPositionX(int paduid) const
+double CathodeSegmentation::padPositionX(int catPadIndex) const
 {
-  auto& pg = padGroup(paduid);
-  auto& pgt = padGroupType(paduid);
-  return pg.mX + (pgt.ix(mPadUid2PadGroupTypeFastIndex[paduid]) + 0.5) * mPadSizes[pg.mPadSizeId].first;
+  auto& pg = padGroup(catPadIndex);
+  auto& pgt = padGroupType(catPadIndex);
+  return pg.mX + (pgt.ix(mCatPadIndex2PadGroupTypeFastIndex[catPadIndex]) + 0.5) * mPadSizes[pg.mPadSizeId].first;
 }
 
-double CathodeSegmentation::padPositionY(int paduid) const
+double CathodeSegmentation::padPositionY(int catPadIndex) const
 {
-  auto& pg = padGroup(paduid);
-  auto& pgt = padGroupType(paduid);
-  return pg.mY + (pgt.iy(mPadUid2PadGroupTypeFastIndex[paduid]) + 0.5) * mPadSizes[pg.mPadSizeId].second;
+  auto& pg = padGroup(catPadIndex);
+  auto& pgt = padGroupType(catPadIndex);
+  return pg.mY + (pgt.iy(mCatPadIndex2PadGroupTypeFastIndex[catPadIndex]) + 0.5) * mPadSizes[pg.mPadSizeId].second;
 }
 
-double CathodeSegmentation::padSizeX(int paduid) const { return mPadSizes[padGroup(paduid).mPadSizeId].first; }
+double CathodeSegmentation::padSizeX(int catPadIndex) const { return mPadSizes[padGroup(catPadIndex).mPadSizeId].first; }
 
-double CathodeSegmentation::padSizeY(int paduid) const { return mPadSizes[padGroup(paduid).mPadSizeId].second; }
+double CathodeSegmentation::padSizeY(int catPadIndex) const { return mPadSizes[padGroup(catPadIndex).mPadSizeId].second; }
 
-int CathodeSegmentation::padDualSampaId(int paduid) const { return padGroup(paduid).mFECId; }
+int CathodeSegmentation::padDualSampaId(int catPadIndex) const { return padGroup(catPadIndex).mFECId; }
 
-int CathodeSegmentation::padDualSampaChannel(int paduid) const
+int CathodeSegmentation::padDualSampaChannel(int catPadIndex) const
 {
-  return padGroupType(paduid).id(mPadUid2PadGroupTypeFastIndex[paduid]);
+  return padGroupType(catPadIndex).id(mCatPadIndex2PadGroupTypeFastIndex[catPadIndex]);
 }
 
 std::ostream& operator<<(std::ostream& out, const std::pair<float, float>& p)

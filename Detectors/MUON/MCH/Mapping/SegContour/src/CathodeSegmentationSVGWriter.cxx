@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 ///
-/// @author  Laurent Apaduidecetche
+/// @author  Laurent Aphecetche
 
 #include "MCHMappingSegContour/CathodeSegmentationSVGWriter.h"
 #include "MCHMappingInterface/CathodeSegmentation.h"

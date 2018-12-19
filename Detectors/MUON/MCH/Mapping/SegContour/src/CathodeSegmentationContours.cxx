@@ -44,13 +44,13 @@ std::vector<std::vector<int>> getPadChannels(const CathodeSegmentation& seg)
 
   for (auto i = 0; i < seg.nofDualSampas(); ++i) {
     std::vector<int> pads;
-    seg.forEachPadInDualSampa(seg.dualSampaId(i), [&pads, &seg](int paduid) {
-      double x = seg.padPositionX(paduid);
-      double y = seg.padPositionY(paduid);
-      double dx = seg.padSizeX(paduid) / 2.0;
-      double dy = seg.padSizeY(paduid) / 2.0;
+    seg.forEachPadInDualSampa(seg.dualSampaId(i), [&pads, &seg](int catPadIndex) {
+      double x = seg.padPositionX(catPadIndex);
+      double y = seg.padPositionY(catPadIndex);
+      double dx = seg.padSizeX(catPadIndex) / 2.0;
+      double dy = seg.padSizeY(catPadIndex) / 2.0;
 
-      pads.emplace_back(seg.padDualSampaChannel(paduid));
+      pads.emplace_back(seg.padDualSampaChannel(catPadIndex));
     });
     dualSampaPads.push_back(pads);
   }
@@ -61,11 +61,11 @@ std::vector<std::vector<int>> getPadChannels(const CathodeSegmentation& seg)
 std::vector<Polygon<double>> getPadPolygons(const CathodeSegmentation& seg, int dualSampaId)
 {
   std::vector<Polygon<double>> pads;
-  seg.forEachPadInDualSampa(dualSampaId, [&pads, &seg](int paduid) {
-    double x = seg.padPositionX(paduid);
-    double y = seg.padPositionY(paduid);
-    double dx = seg.padSizeX(paduid) / 2.0;
-    double dy = seg.padSizeY(paduid) / 2.0;
+  seg.forEachPadInDualSampa(dualSampaId, [&pads, &seg](int catPadIndex) {
+    double x = seg.padPositionX(catPadIndex);
+    double y = seg.padPositionY(catPadIndex);
+    double dx = seg.padSizeX(catPadIndex) / 2.0;
+    double dy = seg.padSizeY(catPadIndex) / 2.0;
 
     pads.emplace_back(Polygon<double>{
       { x - dx, y - dy }, { x + dx, y - dy }, { x + dx, y + dy }, { x - dx, y + dy }, { x - dx, y - dy } });

@@ -36,7 +36,7 @@ typedef void (*MchDetectionElementHandler)(void* clientData, int detElemId);
 
 typedef void (*MchDualSampaHandler)(void* clientData, int dualSampaId);
 
-typedef void (*MchPadHandler)(void* clientData, int paduid);
+typedef void (*MchPadHandler)(void* clientData, int catPadIndex);
 
 /** @name Creation and destruction of the segmentation handle.
  *
@@ -52,23 +52,23 @@ void mchCathodeSegmentationDestruct(MchCathodeSegmentationHandle segHandle);
 ///@}
 
 /** @name Pad Unique Identifier
- * Pads are identified by a unique integer, paduid.
- * @warning This paduid is only valid within the functions of this library
+ * Pads are identified by a unique integer, catPadIndex.
+ * @warning This catPadIndex is only valid within the functions of this library
  * (to use the query methods padPosition, padSize, etc...).
  * So do _not_ rely on any given value it might take (as it might change
  * between e.g. library versions)
  */
 ///@{
 
-/// Return > 0 if paduid is a valid one or <= 1 if not
-int mchCathodeSegmentationIsPadValid(MchCathodeSegmentationHandle segHandle, int paduid);
+/// Return > 0 if catPadIndex is a valid one or <= 1 if not
+int mchCathodeSegmentationIsPadValid(MchCathodeSegmentationHandle segHandle, int catPadIndex);
 ///@}
 
 /** @name Pad finding.
  * Functions to find a pad.
  * In each case the returned integer
- * represents either a paduid if a pad is found or
- * an integer representing an invalid paduid otherwise.
+ * represents either a catPadIndex if a pad is found or
+ * an integer representing an invalid catPadIndex otherwise.
  * Validity of the returned value can be tested using mchCathodeSegmentationIsPadValid()
  */
 ///@{
@@ -81,25 +81,25 @@ int mchCathodeSegmentationFindPadByFEE(MchCathodeSegmentationHandle segHandle, i
 ///@}
 
 /** @name Pad information retrieval.
- * Given a _valid_ paduid those methods return information
+ * Given a _valid_ catPadIndex those methods return information
  * (position, size, front-end electronics) about that pad.
  *
  * Positions and sizes are in centimetres.
  *
- * If paduid is invalid, you are on your own.
+ * If catPadIndex is invalid, you are on your own.
  */
 /// @{
-double mchCathodeSegmentationPadPositionX(MchCathodeSegmentationHandle segHandle, int paduid);
+double mchCathodeSegmentationPadPositionX(MchCathodeSegmentationHandle segHandle, int catPadIndex);
 
-double mchCathodeSegmentationPadPositionY(MchCathodeSegmentationHandle segHandle, int paduid);
+double mchCathodeSegmentationPadPositionY(MchCathodeSegmentationHandle segHandle, int catPadIndex);
 
-double mchCathodeSegmentationPadSizeX(MchCathodeSegmentationHandle segHandle, int paduid);
+double mchCathodeSegmentationPadSizeX(MchCathodeSegmentationHandle segHandle, int catPadIndex);
 
-double mchCathodeSegmentationPadSizeY(MchCathodeSegmentationHandle segHandle, int paduid);
+double mchCathodeSegmentationPadSizeY(MchCathodeSegmentationHandle segHandle, int catPadIndex);
 
-int mchCathodeSegmentationPadDualSampaId(MchCathodeSegmentationHandle segHandle, int paduid);
+int mchCathodeSegmentationPadDualSampaId(MchCathodeSegmentationHandle segHandle, int catPadIndex);
 
-int mchCathodeSegmentationPadDualSampaChannel(MchCathodeSegmentationHandle segHandle, int paduid);
+int mchCathodeSegmentationPadDualSampaChannel(MchCathodeSegmentationHandle segHandle, int catPadIndex);
 ///@}
 
 /** @name ForEach methods.
@@ -108,7 +108,7 @@ int mchCathodeSegmentationPadDualSampaChannel(MchCathodeSegmentationHandle segHa
 ///@{
 void mchCathodeSegmentationForEachDetectionElement(MchDetectionElementHandler handler, void* clientData);
 
-void mchCathodeSegmentationForOneDetectionElementOfEachCathodeSegmentationType(MchDetectionElementHandler handler, void* clientData);
+void mchCathodeSegmentationForOneDetectionElementOfEachSegmentationType(MchDetectionElementHandler handler, void* clientData);
 
 void mchCathodeSegmentationForEachDualSampa(MchCathodeSegmentationHandle segHandle, MchDualSampaHandler handler, void* clientData);
 
@@ -118,7 +118,9 @@ void mchCathodeSegmentationForEachPadInDualSampa(MchCathodeSegmentationHandle se
 void mchCathodeSegmentationForEachPadInArea(MchCathodeSegmentationHandle segHandle, double xmin, double ymin, double xmax,
                                             double ymax, MchPadHandler handler, void* clientData);
 
-void mchCathodeSegmentationForEachNeighbouringPad(MchCathodeSegmentationHandle segHandle, int paduid, MchPadHandler handler,
+void mchCathodeSegmentationForEachPad(MchCathodeSegmentationHandle segHandle, MchPadHandler handler, void* clientData);
+
+void mchCathodeSegmentationForEachNeighbouringPad(MchCathodeSegmentationHandle segHandle, int catPadIndex, MchPadHandler handler,
                                                   void* userData);
 ///@}
 
