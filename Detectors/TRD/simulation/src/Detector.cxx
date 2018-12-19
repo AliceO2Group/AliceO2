@@ -83,7 +83,7 @@ bool Detector::ProcessHits(FairVolume* v)
   if (cIdCurrent[1] == cIdSensDr) {
     drRegion = true;
   }
-  if (cIdCurrent[2] == cIdSensAm) {
+  if (cIdCurrent[1] == cIdSensAm) {
     amRegion = true;
   }
 
@@ -121,7 +121,7 @@ bool Detector::ProcessHits(FairVolume* v)
   }
   // Calculate the charge according to GEANT Edep
   // Create a new dEdx hit
-  const double enDep = fMC->Edep();
+  const double enDep = TMath::Max(fMC->Edep(), 0.0) * 1.0e+9;
   // Store those hits with enDep bigger than the ionization potential of the gas mixture for in-flight tracks
   // or store hits of tracks that are entering or exiting
   if ((enDep > mWion) || trkStat) {
