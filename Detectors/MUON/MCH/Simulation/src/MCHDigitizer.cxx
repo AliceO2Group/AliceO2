@@ -99,15 +99,13 @@ void MCHDigitizer::process(const std::vector<Hit>* hits, std::vector<Digit>* dig
 }
 
 //______________________________________________________________________
-
 Int_t MCHDigitizer::processHit(const Hit &hit,Double_t event_time)
 {
-
 
   //hit position(cm)
   Float_t pos[3] = { hit.GetX(), hit.GetY(), hit.GetZ() };
   //convert energy to charge, float enough?
-  Float_t charge = etocharge(hit.GetEnergyLoss());
+  Float_t charge = mMuonresponse.etocharge(hit.GetEnergyLoss());
   //time information
   Float_t time = hit.GetTime();//how to trace
   Int_t detID = hit.GetDetectorID();
@@ -116,7 +114,7 @@ Int_t MCHDigitizer::processHit(const Hit &hit,Double_t event_time)
   //# digits for hit
   Int_t ndigits=0;
   
-  Float_t anodpos = getAnod(pos[0],detID);
+  Float_t anodpos = mMuonresponse.getAnod(pos[0],detID);
 
   //TODO: charge sharing between planes,
   //possibility to do random seeding in controlled way
@@ -128,7 +126,7 @@ Int_t MCHDigitizer::processHit(const Hit &hit,Double_t event_time)
   //throw a dice?
   //should be related to electrons fluctuating out/in one/both halves (independent x)
   //  Float_t fracplane = 0.5;//to be replaced by function of annodis
-  Float_t fracplane = chargeCorr();//should become a function of anoddis
+  Float_t fracplane = mMuonresponse.chargeCorr();//should become a function of anoddis
   Float_t chargebend= fracplane*charge;
   Float_t chargenon = charge/fracplane;
   //last line  from Aliroot, not understood why
@@ -136,11 +134,11 @@ Int_t MCHDigitizer::processHit(const Hit &hit,Double_t event_time)
   Float_t signal = 0.0;
 
   //borders of charge gen. 
-  Double_t xMin = anodpos-mQspreadX*0.5;
-  Double_t xMax = anodpos+mQspreadX*0.5;
+  Double_t xMin = anodpos-mMuonresponse.getQspreadX()*0.5;
+  Double_t xMax = anodpos+mMuonresponse.getQspreadX()*0.5;
 
-  Double_t yMin = pos[1]-mQspreadY*0.5;
-  Double_t yMax = pos[1]+mQspreadY*0.5;
+  Double_t yMin = pos[1]-mMuonresponse.getQspreadY()*0.5;
+  Double_t yMax = pos[1]+mMuonresponse.getQspreadY()*0.5;
   
   //pad-borders
   Float_t xmin =0.0;
@@ -170,12 +168,12 @@ Int_t MCHDigitizer::processHit(const Hit &hit,Double_t event_time)
   ymax =  mSegbend[indexID].padPositionY(padidbend)+mSegbend[indexID].padSizeY(padidbend)*0.5;
       
   // 1st step integrate induced charge for each pad
-  signal = chargePad(anodpos,pos[1],xmin,xmax,ymin,ymax,detID,chargebend);
-    if(signal>mChargeThreshold && signal<mChargeSat){
+  signal = mMuonresponse.chargePad(anodpos,pos[1],xmin,xmax,ymin,ymax,detID,chargebend);
+  if(signal>mMuonresponse.getChargeThreshold() && signal<mMuonresponse.getChargeSat()){
       //2nd condition in Aliroot said to be only for backward compatibility
       //to be seen...means that there is no digit, if signal above... strange!
       //2n step TODO: pad response function, electronic response
-      signal = response(detID,signal);
+      signal = mMuonresponse.response(detID,signal);
       mDigits.emplace_back(padidbend,signal);//how trace time?
       ++ndigits;
     }
@@ -188,38 +186,15 @@ Int_t MCHDigitizer::processHit(const Hit &hit,Double_t event_time)
     ymax =  mSegnon[indexID].padPositionY(padidnon)+mSegnon[indexID].padSizeY(padidnon)*0.5;
     
     //retrieve charge for given x,y with Mathieson
-    signal = chargePad(anodpos,pos[1],xmin,xmax,ymin,ymax,detID,chargenon);
-    if(signal>mChargeThreshold && signal<mChargeSat){
-      signal = response(detID,signal);
+    signal = mMuonresponse.chargePad(anodpos,pos[1],xmin,xmax,ymin,ymax,detID,chargenon);
+    if(signal>mMuonresponse.getChargeThreshold() && signal<mMuonresponse.getChargeSat()){
+      signal = mMuonresponse.response(detID,signal);
       mDigits.emplace_back(padidnon,signal);//how is time propagated?
       ++ndigits;
     }
     /*}*/	
-    
-    
+
     return ndigits;
-}
-//_____________________________________________________________________
-Float_t MCHDigitizer::etocharge(Float_t edepos){
-  //Todo convert in charge in number of electrons
-  //equivalent if IntPH in AliMUONResponseV0 in Aliroot
-  //to be clarified:
-  //1) why effective parameterisation with Log?
-  //2) any will to provide random numbers
-  //3) Float in aliroot, Double needed?
-  //with central seed to be reproducible?
-  //TODO: dependence on station
-  //TODO: check slope meaning in thesis
-  Int_t nel = Int_t(edepos*1.e9/27.4);
-  Float_t charge=0;
-  if (nel ==0) nel=1;
-  for (Int_t i=1; i<=nel;i++) {
-    Float_t arg=0.;
-    while(!arg) arg = gRandom->Rndm();
-    charge -= mChargeSlope*TMath::Log(arg);
-    
-  }
-  return charge;
 }
 //_____________________________________________________________________
  std::vector<int> MCHDigitizer::getPadUid(Double_t xMin, Double_t xMax, Double_t yMin, Double_t yMax, bool bend){
@@ -227,51 +202,6 @@ Float_t MCHDigitizer::etocharge(Float_t edepos){
   
   return mPadIDsbend;
 
-}
-
-//_____________________________________________________________________
-Double_t MCHDigitizer::chargePad(Float_t x, Float_t y, Float_t xmin, Float_t xmax, Float_t ymin, Float_t ymax, Int_t detID, Float_t charge ){
-  //see AliMUONResponseV0.cxx (inside DisIntegrate)
-  // and AliMUONMathieson.cxx (IntXY)
-  Int_t station = 0;
-  if(detID>299) station = 1;//wrong numbers!
-  //correct? should take info from segmentation
-  // normalise w.r.t. Pitch
-  xmin *= mInversePitch[station];
-  xmax *= mInversePitch[station];
-  ymin *= mInversePitch[station];
-  ymax *= mInversePitch[station];
-  // The Mathieson function
-  Double_t ux1=mSqrtK3x[station]*TMath::TanH(mK2x[station]*xmin);
-  Double_t ux2=mSqrtK3x[station]*TMath::TanH(mK2x[station]*xmax);
-  
-  Double_t uy1=mSqrtK3y[station]*TMath::TanH(mK2y[station]*ymin);
-  Double_t uy2=mSqrtK3y[station]*TMath::TanH(mK2y[station]*ymax);
-  
-  return 4.*mK4x[station]*(TMath::ATan(ux2)-TMath::ATan(ux1))*
-    mK4y[station]*(TMath::ATan(uy2)-TMath::ATan(uy1))*charge;
-}
-//______________________________________________________________________
-Double_t MCHDigitizer::response(Float_t charge, Int_t detID){
-  //to be done: calculate from induced charge signal
-  return charge;
-}
-//______________________________________________________________________
-Float_t MCHDigitizer::getAnod(Float_t x, Int_t detID){
-
-  Float_t pitch = mInversePitch[1];
-  if(detID<299) pitch = mInversePitch[0]; //guess for numbers!
-  
-  Int_t n = Int_t(x/pitch);
-  Float_t wire = (x>0) ? n+0.5 : n-0.5;
-  return pitch*wire;
-}
-//______________________________________________________________________
-Float_t MCHDigitizer::chargeCorr(){
-  //taken from AliMUONResponseV0
-  //conceptually not at all understood why this should make sense
-  //mChargeCorr not taken
-  return TMath::Exp(gRandom->Gaus(0.0, mChargeCorr/2.0));
 }
 //______________________________________________________________________
 //not clear if needed for DPL or modifications required

@@ -19,6 +19,7 @@ set(SRCS
   src/Stepper.h
   src/Digit.cxx
   src/MCHDigitizer.cxx
+  src/Response.cxx
 )
 
 set(HEADERS
@@ -28,6 +29,7 @@ set(HEADERS
   include/${MODULE_NAME}/Hit.h
   include/${MODULE_NAME}/Digit.h
   include/${MODULE_NAME}/MCHDigitizer.h
+  include/${MODULE_NAME}/Response.h
 )
 
 SET(LINKDEF src/MCHSimulationLinkDef.h)
