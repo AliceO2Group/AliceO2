@@ -258,8 +258,8 @@ void Segmentation::forEachNeighbouringPad(int dePadIndex, CALLABLE&& func) const
   if (!isBendingPad(dePadIndex)) {
     offset = mPadIndexOffset;
   }
-  catSeg->forEachNeighbouringPad(catPadIndex, [&offset, &func](int catPadIndex) {
-    func(catPadIndex + offset);
+  catSeg->forEachNeighbouringPad(catPadIndex, [&offset, &func](int cindex) {
+    func(cindex + offset);
   });
 }
 
