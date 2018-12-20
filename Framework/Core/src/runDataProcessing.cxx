@@ -416,6 +416,7 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
   // TODO: graphical view of the processing?
   assert(infos.size() == controls.size());
   std::smatch match;
+  std::vector<std::pair<char const*, char const*>> metricMatch(4);
   std::string token;
   const std::string delimiter("\n");
   for (size_t di = 0, de = infos.size(); di < de; ++di) {
@@ -451,11 +452,10 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
       // in the GUI.
       // Then we check if it is part of our Poor man control system
       // if yes, we execute the associated command.
-      if (DeviceMetricsHelper::parseMetric(token, match)) {
-        LOG(DEBUG) << "Found metric with key " << match[1] << " and value " << match[3];
+      if (DeviceMetricsHelper::parseMetric(token, metricMatch)) {
         // We use this callback to cache which metrics are needed to provide a
         // the DataRelayer view.
-        DeviceMetricsHelper::processMetric(match, metrics, newMetricCallback);
+        DeviceMetricsHelper::processMetric(metricMatch, metrics, newMetricCallback);
       } else if (logLevel == LogParsingHelpers::LogLevel::Info && parseControl(token, match)) {
         auto command = match[1];
         auto validFor = match[2];

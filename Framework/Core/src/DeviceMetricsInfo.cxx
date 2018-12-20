@@ -25,45 +25,94 @@ namespace framework
 
 // Parses a metric in the form
 //
-// [METRIC] <name>,<type> <value> <timestamp> [<tags>]
-bool DeviceMetricsHelper::parseMetric(const std::string& s, std::smatch& match)
+// [METRIC] <name>,<type> <value> <timestamp> [<tag>,<tag>]
+bool DeviceMetricsHelper::parseMetric(const std::string& s, std::vector<std::pair<char const*, char const*>>& match)
 {
-  static std::regex metricsRE(R"regex(\[METRIC\] ([a-zA-Z0-9/_-]+),(0|1|2|4) ([0-9.a-zA-Z_/" <>()<$:-]+) ([0-9]+))regex", std::regex::optimize);
-  return std::regex_search(s, match, metricsRE);
+  match.clear();
+  /// Must start with "[METRIC] "
+  ///                  012345678
+  constexpr size_t PREFIXSIZE = 9;
+  if (s.size() < PREFIXSIZE) {
+    return false;
+  }
+  if (memcmp(s.data(), "[METRIC] ", 9) != 0) {
+    return false;
+  }
+  char const* comma;           // first comma
+  char const* spaces[256];     // list of spaces
+  char const** space = spaces; // first element to fill
+
+  comma = (char const*)memchr((void*)s.data(), ',', s.size());
+  if (comma == nullptr) {
+    return false;
+  }
+  // Find all spaces
+  char const* nextSpace = s.data();
+  while (space - spaces < 256) {
+    *space = strchr(nextSpace, ' ');
+    if (*space == nullptr) {
+      break;
+    }
+    nextSpace = *space + 1;
+    space++;
+  }
+  // First space should always come before comma
+  if (spaces[0] > comma) {
+    return false;
+  }
+  match.emplace_back(std::make_pair(spaces[0] + 1, comma));
+  // type is alway 1 char after the comma, followed by space
+  if ((spaces[1] - comma) != 2) {
+    return false;
+  }
+  match.emplace_back(std::make_pair(comma + 1, spaces[1]));
+  // We need at least 4 spaces
+  if (space - spaces < 4) {
+    return false;
+  }
+  // Value is between the second and the last but one space
+  match.emplace_back(std::make_pair(spaces[1] + 1, *(space - 2)));
+  // Timestamp is between the last but one and the last space
+  match.emplace_back(std::make_pair(*(space - 2) + 1, *(space - 1)));
+  return true;
 }
 
-bool DeviceMetricsHelper::processMetric(const std::smatch& match,
+bool DeviceMetricsHelper::processMetric(std::vector<std::pair<char const*, char const*>> const& match,
                                         DeviceMetricsInfo& info,
                                         DeviceMetricsHelper::NewMetricCallback newMetricsCallback)
 {
-  auto type = match[2];
-  auto name = match[1];
+  // get the type
   char *ep = nullptr;
-  auto timestamp = strtol(match[4].str().c_str(), &ep, 10);
-  if (ep == nullptr || *ep != '\0') {
+  auto type = strtol(match[1].first, &ep, 10);
+  if (ep == nullptr || *ep != ' ') {
     return false;
   }
-  auto valueMatch = match[3];
+  auto metricType = static_cast<MetricType>(type);
+  // get the timestamp
+  auto timestamp = strtol(match[3].first, &ep, 10);
+  if (ep == nullptr || *ep != ' ') {
+    return false;
+  }
+  std::string const name(match[0].first, match[0].second);
   size_t metricIndex = -1;
-
-  auto metricType = static_cast<MetricType>(std::stoi(type.str(), 0, 10));
 
   int intValue = 0;
   StringMetric stringValue;
   float floatValue = 0;
   switch (metricType) {
     case MetricType::Int:
-      intValue = strtol(valueMatch.str().c_str(), &ep, 10);
-      if (!ep || *ep != '\0') {
+      intValue = strtol(match[2].first, &ep, 10);
+      if (!ep || *ep != ' ') {
         return false;
       }
       break;
     case MetricType::String:
-      strncpy(stringValue.data, valueMatch.str().c_str(), sizeof(stringValue.data) - 1);
+      strncpy(stringValue.data, match[2].first, match[2].second - match[2].first);
+      stringValue.data[std::min(match[2].second - match[2].first, StringMetric::MAX_SIZE - 1)] = '\0';
       break;
     case MetricType::Float:
-      floatValue = strtof(valueMatch.str().c_str(), &ep);
-      if (!ep || *ep != '\0') {
+      floatValue = strtof(match[2].first, &ep);
+      if (!ep || *ep != ' ') {
         return false;
       }
       break;
@@ -77,7 +126,7 @@ bool DeviceMetricsHelper::processMetric(const std::smatch& match,
   auto cmpFn = [](const IndexElement &a, const IndexElement &b) -> bool {
     return std::tie(a.first, a.second) < std::tie(b.first, b.second);
   };
-  IndexElement metricLabelIdx = std::make_pair(name.str(), 0);
+  IndexElement metricLabelIdx = std::make_pair(name, 0);
   auto mi = std::lower_bound(info.metricLabelsIdx.begin(),
                              info.metricLabelsIdx.end(),
                              metricLabelIdx,
@@ -141,10 +190,6 @@ bool DeviceMetricsHelper::processMetric(const std::smatch& match,
 
   switch(metricInfo.type) {
     case MetricType::Int: {
-      intValue = strtol(valueMatch.str().c_str(), &ep, 10);
-      if (!ep || *ep != '\0') {
-        return false;
-      }
       info.intMetrics[metricInfo.storeIdx][metricInfo.pos] = intValue;
       info.max[metricIndex] = std::max(info.max[metricIndex], (float)intValue);
       info.min[metricIndex] = std::min(info.min[metricIndex], (float)intValue);
@@ -162,10 +207,6 @@ bool DeviceMetricsHelper::processMetric(const std::smatch& match,
       metricInfo.pos = (metricInfo.pos + 1) % info.stringMetrics[metricInfo.storeIdx].size();
     } break;
     case MetricType::Float: {
-      floatValue = strtof(valueMatch.str().c_str(), &ep);
-      if (!ep || *ep != '\0') {
-        return false;
-      }
       info.floatMetrics[metricInfo.storeIdx][metricInfo.pos] = floatValue;
       info.max[metricIndex] = std::max(info.max[metricIndex], floatValue);
       info.min[metricIndex] = std::min(info.min[metricIndex], floatValue);
