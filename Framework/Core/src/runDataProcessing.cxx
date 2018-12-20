@@ -369,7 +369,7 @@ void updateMetricsNames(DriverInfo& state, std::vector<DeviceMetricsInfo> const&
   static std::unordered_set<std::string> allMetricsNames;
   for (const auto& metricsInfo : metricsInfos) {
     for (const auto& labelsPairs : metricsInfo.metricLabelsIdx) {
-      allMetricsNames.insert(labelsPairs.first);
+      allMetricsNames.insert(std::string(labelsPairs.label));
     }
   }
   std::vector<std::string> result(allMetricsNames.begin(), allMetricsNames.end());
@@ -417,7 +417,7 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
   // TODO: graphical view of the processing?
   assert(infos.size() == controls.size());
   std::smatch match;
-  std::vector<std::pair<char const*, char const*>> metricMatch(4);
+  ParsedMetricMatch metricMatch;
   std::string token;
   const std::string delimiter("\n");
   bool hasNewMetric = false;

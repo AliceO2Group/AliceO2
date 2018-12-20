@@ -17,7 +17,7 @@ static void BM_MemcmpBaseline(benchmark::State& state)
 {
   using namespace o2::framework;
   std::string metric;
-  std::vector<std::pair<char const*, char const*>> match;
+  ParsedMetricMatch match;
   DeviceMetricsInfo info;
 
   metric = "[METRIC] bkey,0 12 1789372894 hostname=test.cern.ch";
@@ -34,7 +34,7 @@ static void BM_RegexBaseline(benchmark::State& state)
 {
   using namespace o2::framework;
   std::string metric;
-  std::vector<std::pair<char const*, char const*>> match;
+  ParsedMetricMatch match;
   DeviceMetricsInfo info;
   std::regex metricsRE(R"regex(\[METRIC\] ([a-zA-Z0-9/_-]+),(0|1|2|4) ([0-9.a-zA-Z_/" <>()<$:-]+) ([0-9]+))regex", std::regex::optimize);
   metric = "[METRIC] bkey,0 12 1789372894 hostname=test.cern.ch";
@@ -60,7 +60,7 @@ static void BM_ParseIntMetric(benchmark::State& state)
 {
   using namespace o2::framework;
   std::string metric;
-  std::vector<std::pair<char const*, char const*>> match;
+  ParsedMetricMatch match;
   DeviceMetricsInfo info;
 
   metric = "[METRIC] bkey,0 12 1789372894 hostname=test.cern.ch";
@@ -77,7 +77,7 @@ static void BM_ProcessIntMetric(benchmark::State& state)
 {
   using namespace o2::framework;
   std::string metric;
-  std::vector<std::pair<char const*, char const*>> match;
+  ParsedMetricMatch match;
   DeviceMetricsInfo info;
 
   metric = "[METRIC] bkey,0 12 1789372894 hostname=test.cern.ch";
@@ -98,7 +98,7 @@ static void BM_ParseFloatMetric(benchmark::State& state)
 {
   using namespace o2::framework;
   std::string metric;
-  std::vector<std::pair<char const*, char const*>> match;
+  ParsedMetricMatch match;
   DeviceMetricsInfo info;
 
   // Parse a fourth metric, now a float one
@@ -115,7 +115,7 @@ static void BM_ProcessFloatMetric(benchmark::State& state)
 {
   using namespace o2::framework;
   std::string metric;
-  std::vector<std::pair<char const*, char const*>> match;
+  ParsedMetricMatch match;
   DeviceMetricsInfo info;
 
   metric = "[METRIC] key3,2 16.0 1789372894 hostname=test.cern.ch";
@@ -132,7 +132,7 @@ static void BM_ProcessStringMetric(benchmark::State& state)
 {
   using namespace o2::framework;
   std::string metric;
-  std::vector<std::pair<char const*, char const*>> match;
+  ParsedMetricMatch match;
   DeviceMetricsInfo info;
 
   metric = "[METRIC] key3,1 some_string 1789372895 hostname=test.cern.ch";
@@ -150,7 +150,7 @@ static void BM_ProcessMismatchedMetric(benchmark::State& state)
 {
   using namespace o2::framework;
   std::string metric;
-  std::vector<std::pair<char const*, char const*>> match;
+  ParsedMetricMatch match;
   DeviceMetricsInfo info;
 
   metric = "[METRICA] key3,1 some_string 1789372895 hostname=test.cern.ch";
