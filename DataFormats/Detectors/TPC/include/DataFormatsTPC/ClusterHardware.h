@@ -22,10 +22,10 @@ namespace o2
 namespace TPC
 {
 struct ClusterHardware { // Draft of hardware clusters in bit-packed format.
-  // padPre: word 0, bits 0 - 18 (19 bit, two-complement, 4 fixed-point-bits) - Quantity needed to compute the pad.
-  // padPeak: word 0, bits 19-26 (8 bit, unsigned integer) - Offset of padPre.
-  // timePre: word 1, bits 0-18 (19 bit, two-complement, 4 fixed-point-bits) - Quantity needed to compute the time.
-  // timePeak: word 1, bits 19-27 (9 bit, unsigned integer) - Offset of timePre.
+  // padPre: word 0, bits 0 - 19 (20 bit, two-complement, 4 fixed-point-bits) - Quantity needed to compute the pad.
+  // padPeak: word 0, bits 20-27 (8 bit, unsigned integer) - Offset of padPre.
+  // timePre: word 1, bits 0-19 (20 bit, two-complement, 4 fixed-point-bits) - Quantity needed to compute the time.
+  // timePeak: word 1, bits 20-28 (9 bit, unsigned integer) - Offset of timePre.
   // sigmaPadPre: word 2, bits 0-19 (20 bit, unsigned, 4 fixed-point-bits) - Quantity needed to compute the sigma^2 of
   // the pad.
   // sigmaTimePre: word 3, bits 0-19 (20 bit, unsigned, 4 fixed-point-bits) - Quantity needed to compute the
@@ -62,36 +62,36 @@ struct ClusterHardware { // Draft of hardware clusters in bit-packed format.
 
   float getPadPre() const
   {
-    int padPreInt = word0 & 0x7FFFF;
-    if (padPreInt & 0x40000) {
-      padPreInt |= 0xFFF80000;
+    int padPreInt = word0 & 0xFFFFF;
+    if (padPreInt & 0x80000) {
+      padPreInt |= 0xFFF00000;
     }
     return (padPreInt / 16.f);
   }
 
   float getPad() const
   {
-    int padPeak = (word0 & 0x7F80000) >> 19;
+    int padPeak = (word0 & 0xFF00000) >> 20;
     return (getPadPre() / getQTotFloat() + padPeak);
   }
 
   float getTimeLocalPre() const
   {
-    int timePreInt = word1 & 0x7FFFF;
-    if (timePreInt & 0x40000) {
-      timePreInt |= 0xFFF80000;
+    int timePreInt = word1 & 0xFFFFF;
+    if (timePreInt & 0x80000) {
+      timePreInt |= 0xFFF00000;
     }
     return (timePreInt / 16.f);
   }
 
   int getTimePeak() const
   {
-    return (word1 & 0xFF80000) >> 19;
+    return (word1 & 0x1FF00000) >> 20;
   }
 
   float getTimeLocal() const // Returns the local time, not taking into account the time bin offset of the container
   {
-    int timePeak = (word1 & 0xFF80000) >> 19;
+    int timePeak = getTimePeak();
     return (getTimeLocalPre() / getQTotFloat() + timePeak);
   }
 
@@ -128,8 +128,8 @@ struct ClusterHardware { // Draft of hardware clusters in bit-packed format.
     sigmaTime2 = (sigmaTime2 + time / qTot * time / qTot) * qTot;
     int sp = sigmaPad2 * 16.f;
     int st = sigmaTime2 * 16.f;
-    word0 = (p & 0x7FFFF) | ((padPeak & 0xFF) << 19);
-    word1 = (t & 0x7FFFF) | ((timePeak & 0x1FF) << 19);
+    word0 = (p & 0xFFFFF) | ((padPeak & 0xFF) << 20);
+    word1 = (t & 0xFFFFF) | ((timePeak & 0x1FF) << 20);
     word2 = (sp & 0xFFFFF) | ((max & 0x7FF) << 20);
     word3 = (st & 0xFFFFF) | ((row & 0x1F) << 20);
     word4 = (tot & 0x7FFFF) | ((flags & 0xFF) << 19);
@@ -137,8 +137,8 @@ struct ClusterHardware { // Draft of hardware clusters in bit-packed format.
 
   void setCluster(int padPeak, int timePeak, int pPre, int tPre, int sigmaPad2Pre, int sigmaTime2Pre, int qMax, int qTot, int row, int flags)
   {
-    word0 = (pPre & 0x7FFFF) | ((padPeak & 0xFF) << 19);
-    word1 = (tPre & 0x7FFFF) | ((timePeak & 0x1FF) << 19);
+    word0 = (pPre & 0xFFFFF) | ((padPeak & 0xFF) << 20);
+    word1 = (tPre & 0xFFFFF) | ((timePeak & 0x1FF) << 20);
     word2 = (sigmaPad2Pre & 0xFFFFF) | ((qMax & 0x7FF) << 20);
     word3 = (sigmaTime2Pre & 0xFFFFF) | ((row & 0x1F) << 20);
     word4 = (qTot & 0x7FFFF) | ((flags & 0xFF) << 19);
