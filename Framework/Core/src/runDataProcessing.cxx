@@ -366,14 +366,15 @@ void spawnDevice(DeviceSpec const& spec, std::map<int, size_t>& socket2DeviceInf
 void updateMetricsNames(DriverInfo& state, std::vector<DeviceMetricsInfo> const& metricsInfos)
 {
   // Calculate the unique set of metrics, as available in the metrics service
-  std::set<std::string> allMetricsNames;
+  static std::unordered_set<std::string> allMetricsNames;
   for (const auto& metricsInfo : metricsInfos) {
     for (const auto& labelsPairs : metricsInfo.metricLabelsIdx) {
       allMetricsNames.insert(labelsPairs.first);
     }
   }
-  state.availableMetrics.clear();
-  std::copy(allMetricsNames.begin(), allMetricsNames.end(), std::back_inserter(state.availableMetrics));
+  std::vector<std::string> result(allMetricsNames.begin(), allMetricsNames.end());
+  std::sort(result.begin(), result.end());
+  state.availableMetrics.swap(result);
 }
 
 void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpecs const& specs,
@@ -419,6 +420,7 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
   std::vector<std::pair<char const*, char const*>> metricMatch(4);
   std::string token;
   const std::string delimiter("\n");
+  bool hasNewMetric = false;
   for (size_t di = 0, de = infos.size(); di < de; ++di) {
     DeviceInfo& info = infos[di];
     DeviceControl& control = controls[di];
@@ -438,9 +440,9 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
                                       &info.variablesViewIndex,
                                       &info.queriesViewIndex });
 
-    auto newMetricCallback = [&updateMetricsViews, &driverInfo, &metricsInfos](std::string const& name, MetricInfo const& metric, int value, size_t metricIndex) {
+    auto newMetricCallback = [&updateMetricsViews, &driverInfo, &metricsInfos, &hasNewMetric](std::string const& name, MetricInfo const& metric, int value, size_t metricIndex) {
       updateMetricsViews(name, metric, value, metricIndex);
-      updateMetricsNames(driverInfo, metricsInfos);
+      hasNewMetric = true;
     };
 
     while ((pos = s.find(delimiter)) != std::string::npos) {
@@ -496,6 +498,10 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
       s.erase(0, pos + delimiter.length());
     }
     info.unprinted = s;
+  }
+  if (hasNewMetric) {
+    hasNewMetric = false;
+    updateMetricsNames(driverInfo, metricsInfos);
   }
   // FIXME: for the gui to work correctly I would actually need to
   //        run the loop more often and update whenever enough time has
