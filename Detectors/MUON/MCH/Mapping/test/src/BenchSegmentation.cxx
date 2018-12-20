@@ -86,4 +86,3 @@ BENCHMARK(benchSegmentationCtorMap)->Unit(benchmark::kMillisecond);
 BENCHMARK(benchSegmentationCtorMapPtr)->Unit(benchmark::kMillisecond);
 
 BENCHMARK_REGISTER_F(BenchSegO2, ctor)->Apply(segmentationList)->Unit(benchmark::kMicrosecond);
-
