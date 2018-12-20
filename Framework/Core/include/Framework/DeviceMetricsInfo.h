@@ -14,7 +14,6 @@
 #include <array>
 #include <cstddef>
 #include <functional>
-#include <regex>
 #include <string>
 #include <vector>
 
@@ -41,7 +40,8 @@ struct MetricInfo {
 // We keep only fixed lenght strings for metrics, as in the end this is not
 // really needed. They should be nevertheless 0 terminated.
 struct StringMetric {
-  char data[128];
+  static constexpr ptrdiff_t MAX_SIZE = 128;
+  char data[MAX_SIZE];
 };
 
 /// This struct hold information about device metrics when running
@@ -67,14 +67,14 @@ struct DeviceMetricsHelper {
   using NewMetricCallback = std::function<void(std::string const&, MetricInfo const&, int value, size_t metricIndex)>;
 
   /// Helper function to parse a metric string.
-  static bool parseMetric(const std::string& s, std::smatch& match);
+  static bool parseMetric(const std::string& s, std::vector<std::pair<char const*, char const*>>& results);
 
   /// Processes a parsed metric and stores in the backend store.
   ///
   /// @matches is the regexp_matches from the metric identifying regex
   /// @info is the DeviceInfo associated to the device posting the metric
   /// @newMetricsCallback is a callback that will be invoked every time a new metric is added to the list.
-  static bool processMetric(const std::smatch& match,
+  static bool processMetric(std::vector<std::pair<char const*, char const*>> const& results,
                             DeviceMetricsInfo& info,
                             NewMetricCallback newMetricCallback = nullptr);
   static size_t metricIdxByName(const std::string& name,
