@@ -26,9 +26,8 @@ namespace framework
 // Parses a metric in the form
 //
 // [METRIC] <name>,<type> <value> <timestamp> [<tag>,<tag>]
-bool DeviceMetricsHelper::parseMetric(const std::string& s, std::vector<std::pair<char const*, char const*>>& match)
+bool DeviceMetricsHelper::parseMetric(const std::string& s, ParsedMetricMatch& match)
 {
-  match.clear();
   /// Must start with "[METRIC] "
   ///                  012345678
   constexpr size_t PREFIXSIZE = 9;
@@ -60,87 +59,94 @@ bool DeviceMetricsHelper::parseMetric(const std::string& s, std::vector<std::pai
   if (spaces[0] > comma) {
     return false;
   }
-  match.emplace_back(std::make_pair(spaces[0] + 1, comma));
+  match.beginKey = spaces[0] + 1;
+  match.endKey = comma;
   // type is alway 1 char after the comma, followed by space
   if ((spaces[1] - comma) != 2) {
     return false;
   }
-  match.emplace_back(std::make_pair(comma + 1, spaces[1]));
+  char* ep = nullptr;
+  match.type = static_cast<MetricType>(strtol(comma + 1, &ep, 10));
+  if (ep != spaces[1]) {
+    return false;
+  }
   // We need at least 4 spaces
   if (space - spaces < 4) {
     return false;
   }
   // Value is between the second and the last but one space
-  match.emplace_back(std::make_pair(spaces[1] + 1, *(space - 2)));
-  // Timestamp is between the last but one and the last space
-  match.emplace_back(std::make_pair(*(space - 2) + 1, *(space - 1)));
-  return true;
-}
-
-bool DeviceMetricsHelper::processMetric(std::vector<std::pair<char const*, char const*>> const& match,
-                                        DeviceMetricsInfo& info,
-                                        DeviceMetricsHelper::NewMetricCallback newMetricsCallback)
-{
-  // get the type
-  char *ep = nullptr;
-  auto type = strtol(match[1].first, &ep, 10);
-  if (ep == nullptr || *ep != ' ') {
-    return false;
-  }
-  auto metricType = static_cast<MetricType>(type);
-  // get the timestamp
-  auto timestamp = strtol(match[3].first, &ep, 10);
-  if (ep == nullptr || *ep != ' ') {
-    return false;
-  }
-  std::string const name(match[0].first, match[0].second);
-  size_t metricIndex = -1;
-
-  int intValue = 0;
-  StringMetric stringValue;
-  float floatValue = 0;
-  switch (metricType) {
+  switch (match.type) {
     case MetricType::Int:
-      intValue = strtol(match[2].first, &ep, 10);
-      if (!ep || *ep != ' ') {
+      match.intValue = strtol(spaces[1] + 1, &ep, 10);
+      if (ep != *(space - 2)) {
+        return false;
+      }
+      break;
+    case MetricType::Float:
+      match.floatValue = strtof(spaces[1] + 1, &ep);
+      if (ep != *(space - 2)) {
         return false;
       }
       break;
     case MetricType::String:
-      strncpy(stringValue.data, match[2].first, match[2].second - match[2].first);
-      stringValue.data[std::min(match[2].second - match[2].first, StringMetric::MAX_SIZE - 1)] = '\0';
+      match.beginStringValue = spaces[1] + 1;
+      match.endStringValue = *(space - 2);
       break;
+    default:
+      return false;
+  }
+  // Timestamp is between the last but one and the last space
+  match.timestamp = strtol(*(space - 2) + 1, &ep, 10);
+  if (ep != *(space - 1)) {
+    return false;
+  }
+  return true;
+}
+
+bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
+                                        DeviceMetricsInfo& info,
+                                        DeviceMetricsHelper::NewMetricCallback newMetricsCallback)
+{
+  // get the type
+  size_t metricIndex = -1;
+
+  StringMetric stringValue;
+  switch (match.type) {
     case MetricType::Float:
-      floatValue = strtof(match[2].first, &ep);
-      if (!ep || *ep != ' ') {
-        return false;
-      }
+    case MetricType::Int:
       break;
+    case MetricType::String: {
+      auto lastChar = std::min(match.endStringValue - match.beginStringValue, StringMetric::MAX_SIZE - 1);
+      memcpy(stringValue.data, match.beginStringValue, lastChar);
+      stringValue.data[lastChar] = '\0';
+    } break;
     default:
       return false;
       break;
   };
 
   // Find the metric based on the label. Create it if not found.
-  using IndexElement = std::pair<std::string, size_t>;
-  auto cmpFn = [](const IndexElement &a, const IndexElement &b) -> bool {
-    return std::tie(a.first, a.second) < std::tie(b.first, b.second);
+  auto cmpFn = [
+    namePtr = match.beginKey,
+    nameSize = match.endKey - match.beginKey
+  ](MetricLabelIndex const& a, MetricLabelIndex const& b)
+                 ->bool
+  {
+    return strncmp(a.label, namePtr, nameSize) < 0;
   };
-  IndexElement metricLabelIdx = std::make_pair(name, 0);
   auto mi = std::lower_bound(info.metricLabelsIdx.begin(),
                              info.metricLabelsIdx.end(),
-                             metricLabelIdx,
+                             MetricLabelIndex{},
                              cmpFn);
 
   // We could not find the metric, lets insert a new one.
-  if (mi == info.metricLabelsIdx.end()
-      || mi->first != metricLabelIdx.first) {
+  if (mi == info.metricLabelsIdx.end() || (strncmp(mi->label, match.beginKey, std::min(match.endKey - match.beginKey, (long)MetricLabelIndex::MAX_METRIC_LABEL_SIZE - 1)) != 0)) {
     // Create a new metric
     MetricInfo metricInfo;
     metricInfo.pos = 0;
-    metricInfo.type = metricType;
+    metricInfo.type = match.type;
     // Add a new empty buffer for it of the correct kind
-    switch(metricType) {
+    switch (match.type) {
       case MetricType::Int:
         metricInfo.storeIdx = info.intMetrics.size();
         info.intMetrics.emplace_back(std::array<int, 1024>{});
@@ -167,35 +173,39 @@ bool DeviceMetricsHelper::processMetric(std::vector<std::pair<char const*, char 
     // this will require moving the tail of the index,
     // but inserting should happen only once for each metric,
     // so who cares.
-    metricLabelIdx.second = info.metrics.size();
+    MetricLabelIndex metricLabelIdx;
+    auto lastChar = std::min(match.endKey - match.beginKey, (ptrdiff_t)MetricLabelIndex::MAX_METRIC_LABEL_SIZE - 1);
+    memcpy(metricLabelIdx.label, match.beginKey, lastChar);
+    metricLabelIdx.label[lastChar] = '\0';
+    metricLabelIdx.index = info.metrics.size();
     info.metricLabelsIdx.insert(mi, metricLabelIdx);
     // Add the the actual Metric info to the store
     metricIndex = info.metrics.size();
     assert(metricInfo.storeIdx != -1);
-    assert(metricLabelIdx.first.empty() == false);
+    assert(metricLabelIdx.label[0] != '\0');
     if (newMetricsCallback != nullptr) {
-      newMetricsCallback(metricLabelIdx.first, metricInfo, intValue, metricIndex);
+      newMetricsCallback(metricLabelIdx.label, metricInfo, match.intValue, metricIndex);
     }
     info.metrics.push_back(metricInfo);
   } else {
-    metricIndex = mi->second;
+    metricIndex = mi->index;
   }
   assert(metricIndex != -1);
   // We are now guaranteed our metric is present at metricIndex.
   MetricInfo &metricInfo = info.metrics[metricIndex];
 
   //  auto mod = info.timestamps[metricIndex].size();
-  info.minDomain[metricIndex] = std::min(info.minDomain[metricIndex], (size_t)timestamp);
-  info.maxDomain[metricIndex] = std::max(info.maxDomain[metricIndex], (size_t)timestamp);
+  info.minDomain[metricIndex] = std::min(info.minDomain[metricIndex], (size_t)match.timestamp);
+  info.maxDomain[metricIndex] = std::max(info.maxDomain[metricIndex], (size_t)match.timestamp);
 
   switch(metricInfo.type) {
     case MetricType::Int: {
-      info.intMetrics[metricInfo.storeIdx][metricInfo.pos] = intValue;
-      info.max[metricIndex] = std::max(info.max[metricIndex], (float)intValue);
-      info.min[metricIndex] = std::min(info.min[metricIndex], (float)intValue);
+      info.intMetrics[metricInfo.storeIdx][metricInfo.pos] = match.intValue;
+      info.max[metricIndex] = std::max(info.max[metricIndex], (float)match.intValue);
+      info.min[metricIndex] = std::min(info.min[metricIndex], (float)match.intValue);
       // Save the timestamp for the current metric we do it here
       // so that we do not update timestamps for broken metrics
-      info.timestamps[metricIndex][metricInfo.pos] = timestamp;
+      info.timestamps[metricIndex][metricInfo.pos] = match.timestamp;
       // Update the position where to write the next metric
       metricInfo.pos = (metricInfo.pos + 1) % info.intMetrics[metricInfo.storeIdx].size();
     } break;
@@ -203,16 +213,16 @@ bool DeviceMetricsHelper::processMetric(std::vector<std::pair<char const*, char 
       info.stringMetrics[metricInfo.storeIdx][metricInfo.pos] = stringValue;
       // Save the timestamp for the current metric we do it here
       // so that we do not update timestamps for broken metrics
-      info.timestamps[metricIndex][metricInfo.pos] = timestamp;
+      info.timestamps[metricIndex][metricInfo.pos] = match.timestamp;
       metricInfo.pos = (metricInfo.pos + 1) % info.stringMetrics[metricInfo.storeIdx].size();
     } break;
     case MetricType::Float: {
-      info.floatMetrics[metricInfo.storeIdx][metricInfo.pos] = floatValue;
-      info.max[metricIndex] = std::max(info.max[metricIndex], floatValue);
-      info.min[metricIndex] = std::min(info.min[metricIndex], floatValue);
+      info.floatMetrics[metricInfo.storeIdx][metricInfo.pos] = match.floatValue;
+      info.max[metricIndex] = std::max(info.max[metricIndex], match.floatValue);
+      info.min[metricIndex] = std::min(info.min[metricIndex], match.floatValue);
       // Save the timestamp for the current metric we do it here
       // so that we do not update timestamps for broken metrics
-      info.timestamps[metricIndex][metricInfo.pos] = timestamp;
+      info.timestamps[metricIndex][metricInfo.pos] = match.timestamp;
       metricInfo.pos = (metricInfo.pos + 1) % info.floatMetrics[metricInfo.storeIdx].size();
     } break;
     default:
@@ -230,8 +240,8 @@ DeviceMetricsHelper::metricIdxByName(const std::string& name, const DeviceMetric
   size_t i = 0;
   while (i < info.metricLabelsIdx.size()) {
     auto &metricName = info.metricLabelsIdx[i];
-    if (metricName.first == name) {
-      return metricName.second;
+    if (metricName.label == name) {
+      return metricName.index;
     }
     ++i;
   }
