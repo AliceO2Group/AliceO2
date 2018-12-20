@@ -98,7 +98,7 @@ std::vector<Point> checkGaps(const CathodeSegmentation& seg, double xstep = 1.0,
         std::sqrt(o2::mch::contour::squaredDistancePointToPolygon(o2::mch::contour::Vertex<double>{ x, y }, env[0]));
       bool withinEnveloppe = env.contains(x, y) && (distanceToEnveloppe > 1E-5);
       if (withinEnveloppe && !seg.isValid(seg.findPadByPosition(x, y))) {
-        gaps.push_back(std::make_pair(x, y));
+        gaps.emplace_back(x, y);
       }
     }
   }
