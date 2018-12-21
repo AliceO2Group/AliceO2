@@ -138,6 +138,9 @@ class TPCFastTransform :public FlatObject
   void setTimeStamp( long int v)  { mTimeStamp = v; }
 
   /// Gives a reference for external initialization of TPC distortions
+  const TPCDistortionIRS& getDistortion() const { return mDistortion; }
+ 
+  /// Gives a reference for external initialization of TPC distortions
   TPCDistortionIRS& getDistortionNonConst() { return mDistortion; }
 
   /// Finishes initialization: puts everything to the flat buffer, releases temporary memory

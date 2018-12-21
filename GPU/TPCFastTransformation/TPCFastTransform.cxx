@@ -33,6 +33,7 @@ TPCFastTransform::TPCFastTransform()
   mTPCzLengthC(0.f),
   mTimeStamp( 0 ),
   mDistortion(),
+  mApplyDistortion(1),
   mT0( 0.f ),
   mVdrift( 0.f ),
   mVdriftCorrY( 0.f ),
@@ -80,6 +81,7 @@ void TPCFastTransform::cloneFromObject( const TPCFastTransform &obj, char *newFl
   mTPCzLengthC = obj.mTPCzLengthC;
 
   mTimeStamp = obj.mTimeStamp;
+  mApplyDistortion = obj.mApplyDistortion;
   mT0 = obj.mT0;
   mVdrift = obj.mVdrift;
   mVdriftCorrY = obj.mVdriftCorrY;
@@ -141,6 +143,7 @@ void TPCFastTransform::startConstruction( int numberOfRows )
   mTPCzLengthC = 0.f;
   
   mTimeStamp = 0;
+  mApplyDistortion = 1;
 
   mT0 = 0.f;
   mVdrift = 0.f ;

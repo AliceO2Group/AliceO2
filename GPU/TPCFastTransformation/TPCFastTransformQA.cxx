@@ -42,7 +42,7 @@ TPCFastTransformQA::TPCFastTransformQA()
 }
 
 
-int TPCFastTransformQA::doQA( Long_t TimeStamp )
+int TPCFastTransformQA::doQA( const TPCFastTransform &fastTransform )
 {
   const char *fileName = "fastTransformQA.root";
 
@@ -55,20 +55,9 @@ int TPCFastTransformQA::doQA( Long_t TimeStamp )
   AliTPCTransform *origTransform = pCalib->GetTransform();
   if( !origTransform ) return storeError( -3, "TPCFastTransformQA: No TPC transformation found");
  
-  tpcParam->Update();
-  tpcParam->ReadGeoMatrices();
-  
   const AliTPCRecoParam *rec = origTransform->GetCurrentRecoParam();
   if( !rec ) return storeError( -5, "TPCFastTransformQA: No TPC Reco Param set in transformation");
   rec->Print();
-
-
-  origTransform->SetCurrentTimeStamp( static_cast<UInt_t>(TimeStamp) );
-  
-  TPCFastTransform fastTransform;
-  TPCFastTransformManager man;
-  
-  man.create( fastTransform, origTransform, TimeStamp );   
   
   int nSec = tpcParam->GetNSector();
   int lastTimeBin = rec->GetLastBin();
@@ -95,7 +84,7 @@ int TPCFastTransformQA::doQA( Long_t TimeStamp )
       }
     }
     timer1.Stop();
-
+    
     TStopwatch timer2;
     double nCalls2=0;
     double sum2=0;
@@ -135,7 +124,7 @@ int TPCFastTransformQA::doQA( Long_t TimeStamp )
     if( !file || !file->IsOpen() ) return storeError( -1, "Can't recreate QA file !"); 
     file->cd();
     TNtuple *nt = new TNtuple("fastTransformQA", "fastTransformQA", "sec:row:pad:time:x:y:z:fx:fy:fz");
- 
+
     for( Int_t iSec=0; iSec<1; iSec++ ){     
       int nRows = tpcParam->GetNRow(iSec);
       for( int iRow=0; iRow<nRows; iRow++){
@@ -167,6 +156,15 @@ int TPCFastTransformQA::doQA( Long_t TimeStamp )
   return 0;
 }
  
+int TPCFastTransformQA::doQA( Long_t TimeStamp )
+{  
+  TPCFastTransform fastTransform;
+  TPCFastTransformManager man;
+  
+  man.create( fastTransform, nullptr, TimeStamp );   
+
+  return doQA( fastTransform );
+}
 
 }} // namespaces
 
