@@ -39,11 +39,11 @@ class TRDGeometryBase
     }
   }
   GPUd() bool getSMstatus(int sm) const { return (mSMStatus & (0x1 << sm)) != 0; }
-  GPUd() int getDetectorSec(int det) const { return (det % (kNlayer * kNstack)); }
-  GPUd() int getDetectorSec(int layer, int stack) const { return (layer + stack * kNlayer); }
-  GPUd() int getDetector(int layer, int stack, int sector) const { return (layer + stack * kNlayer + sector * kNlayer * kNstack); }
-  GPUd() int getLayer(int det) const { return (det % kNlayer); }
-  GPUd() int getStack(int det) const { return ((det % (kNlayer * kNstack)) / kNlayer); }
+  GPUd() static int getDetectorSec(int det) { return (det % (kNlayer * kNstack)); }
+  GPUd() static int getDetectorSec(int layer, int stack) { return (layer + stack * kNlayer); }
+  GPUd() static int getDetector(int layer, int stack, int sector) { return (layer + stack * kNlayer + sector * kNlayer * kNstack); }
+  GPUd() static int getLayer(int det) { return (det % kNlayer); }
+  GPUd() static int getStack(int det) { return ((det % (kNlayer * kNstack)) / kNlayer); }
   GPUd() int getStack(float z, int layer) const;
 
   GPUd() const TRDPadPlane* getPadPlane(int layer, int stack) const { return &mPadPlanes[getDetectorSec(layer, stack)]; }
