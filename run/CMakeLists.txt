@@ -42,7 +42,7 @@ if (HAVESIMULATION)
   if(NOT APPLE) # THESE TESTS HAVE PROBLEMS ON OUR CI MACHINE
   add_test(NAME o2sim_G4
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim -n 2 -j 2 -m PIPE ITS TPC TRD TOF EMC PHS -e TGeant4 -o o2simG4)
+    COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim -n 2 -j 2 -e TGeant4 -o o2simG4)
   set_tests_properties(o2sim_G4 PROPERTIES PASS_REGULAR_EXPRESSION "SIMULATION RETURNED SUCCESFULLY"
                                            ENVIRONMENT VMCWORKDIR=${CMAKE_SOURCE_DIR} FIXTURES_SETUP G4) 
   set_property(TEST o2sim_G4 APPEND PROPERTY ENVIRONMENT "O2_ROOT=${CMAKE_INSTALL_PREFIX}")
@@ -52,7 +52,7 @@ if (HAVESIMULATION)
   # note that the MT is currently only supported in the non FairMQ version					 
   add_test(NAME o2sim_G4_mt 
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim_serial -n 10 -m PIPE ITS TPC TRD TOF EMC PHS -e TGeant4 --isMT on -o o2simG4MT)
+    COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim_serial -n 1 -e TGeant4 --isMT on -o o2simG4MT)
   set_tests_properties(o2sim_G4_mt PROPERTIES PASS_REGULAR_EXPRESSION "Macro finished succesfully"
                                               ENVIRONMENT VMCWORKDIR=${CMAKE_SOURCE_DIR})
   set_property(TEST o2sim_G4_mt APPEND PROPERTY ENVIRONMENT "O2_ROOT=${CMAKE_INSTALL_PREFIX}")
@@ -65,7 +65,7 @@ if (HAVESIMULATION)
   endif()
   add_test(NAME o2sim_G3
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim -n 2 -j 2 -m PIPE ITS TPC MCH TOF EMC PHS -e TGeant3 -o o2simG3)
+    COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim -n 2 -j 2 -e TGeant3 -o o2simG3)
 
   # set properties for G3 ... we use fixtures to force execution after G4 (since they require multiple CPUs)
   set_tests_properties(o2sim_G3 PROPERTIES PASS_REGULAR_EXPRESSION "SIMULATION RETURNED SUCCESFULLY"
