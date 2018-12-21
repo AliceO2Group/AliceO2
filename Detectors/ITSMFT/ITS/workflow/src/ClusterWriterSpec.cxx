@@ -21,6 +21,7 @@
 #include "DataFormatsITSMFT/Cluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 
 using namespace o2::framework;
 
@@ -45,9 +46,16 @@ DataProcessorSpec getClusterWriterSpec()
         auto clusters = pc.inputs().get<const std::vector<o2::ITSMFT::Cluster>>("clusters");
         auto labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
         auto plabels = labels.get();
+        auto rofs = pc.inputs().get<const std::vector<o2::ITSMFT::ROFRecord>>("ROframes");
+        auto mc2rofs = pc.inputs().get<const std::vector<o2::ITSMFT::MC2ROFRecord>>("MC2ROframes");
 
         LOG(INFO) << "ITSClusterWriter pulled " << clusters.size() << " clusters, "
-                  << labels->getIndexedSize() << " MC label objects";
+                  << labels->getIndexedSize() << " MC label objects, in "
+                  << rofs.size() << " RO frames and "
+                  << mc2rofs.size() << " MC events";
+
+        file.WriteObjectAny(&rofs, "std::vector<o2::ITSMFT::ROFRecord>", "ITSClusterROF");
+        file.WriteObjectAny(&mc2rofs, "std::vector<o2::ITSMFT::MC2ROFRecord>", "ITSClusterMC2ROF");
 
         TTree tree("o2sim", "Tree with ITS clusters");
         tree.Branch("ITSClusterComp", &compClusters);
@@ -70,7 +78,9 @@ DataProcessorSpec getClusterWriterSpec()
     Inputs{
       InputSpec{ "compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe },
       InputSpec{ "clusters", "ITS", "CLUSTERS", 0, Lifetime::Timeframe },
-      InputSpec{ "labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe } },
+      InputSpec{ "labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe },
+      InputSpec{ "ROframes", "ITS", "ITSClusterROF", 0, Lifetime::Timeframe },
+      InputSpec{ "MC2ROframes", "ITS", "ITSClusterMC2ROF", 0, Lifetime::Timeframe } },
     Outputs{},
     AlgorithmSpec{ init },
     Options{

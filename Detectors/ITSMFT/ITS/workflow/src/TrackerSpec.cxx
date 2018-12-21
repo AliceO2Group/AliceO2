@@ -21,6 +21,7 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 
 #include "ITStracking/ROframe.h"
 #include "ITStracking/IOUtils.h"
@@ -58,9 +59,11 @@ DataProcessorSpec getTrackerSpec()
         auto compClusters = pc.inputs().get<const std::vector<o2::ITSMFT::CompClusterExt>>("compClusters");
         auto clusters = pc.inputs().get<const std::vector<o2::ITSMFT::Cluster>>("clusters");
         auto labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
+        auto rofs = pc.inputs().get<const std::vector<o2::ITSMFT::ROFRecord>>("ROframes");
 
         LOG(INFO) << "ITSTracker pulled " << clusters.size() << " clusters, "
-                  << labels->getIndexedSize() << " MC label objects";
+                  << labels->getIndexedSize() << " MC label objects , in "
+                  << rofs.size() << " RO frames";
 
         std::vector<o2::ITS::TrackITS> tracks;
         o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackLabels;
@@ -125,7 +128,8 @@ DataProcessorSpec getTrackerSpec()
     Inputs{
       InputSpec{ "compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe },
       InputSpec{ "clusters", "ITS", "CLUSTERS", 0, Lifetime::Timeframe },
-      InputSpec{ "labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe } },
+      InputSpec{ "labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe },
+      InputSpec{ "ROframes", "ITS", "ITSClusterROF", 0, Lifetime::Timeframe } },
     Outputs{
       OutputSpec{ "ITS", "TRACKS", 0, Lifetime::Timeframe },
       OutputSpec{ "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe } },
