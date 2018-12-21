@@ -37,10 +37,8 @@ TPCFastTransformManager::TPCFastTransformManager()
 
 int  TPCFastTransformManager::create( TPCFastTransform &fastTransform, AliTPCTransform *transform, Long_t TimeStamp )
 {
-  /// Initializes TPCFastTransform object
+  /// Initializes TPCFastTransform object 
  
-  mOrigTransform = transform;
-
   AliTPCcalibDB* pCalib=AliTPCcalibDB::Instance();
   if(!pCalib ) return storeError( -1, "TPCFastTransformManager::Init: No TPC calibration instance found");
 
@@ -49,7 +47,9 @@ int  TPCFastTransformManager::create( TPCFastTransform &fastTransform, AliTPCTra
 
   if( !transform ) transform = pCalib->GetTransform();
   if( !transform ) return storeError( -3, "TPCFastTransformManager::Init: No TPC transformation found");
- 
+
+  mOrigTransform = transform;
+
   tpcParam->Update();
   tpcParam->ReadGeoMatrices();
 

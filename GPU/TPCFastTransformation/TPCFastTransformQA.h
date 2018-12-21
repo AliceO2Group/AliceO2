@@ -54,6 +54,9 @@ class TPCFastTransformQA
 
   /// create fast transformation and perform a quality check
   int doQA( Long_t TimeStamp );
+ 
+  /// create perform quality check
+  int doQA( const TPCFastTransform &fastTransform );
 
  private:
   
