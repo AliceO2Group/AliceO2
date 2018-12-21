@@ -358,29 +358,37 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 	if (CheckMemorySizes(NSLICES)) return(1);
 
 #ifdef WIN32
-	HANDLE* semLock = new HANDLE;
-	*semLock = CreateSemaphore(NULL, 1, 1, SemLockName);
-	if (*semLock == NULL)
+	HANDLE* semLock;
+	if (mDeviceProcessingSettings.globalInitMutex)
 	{
-		CAGPUError("Error creating GPUInit Semaphore");
-		return(1);
+		semLock = new HANDLE;
+		*semLock = CreateSemaphore(NULL, 1, 1, SemLockName);
+		if (*semLock == NULL)
+		{
+			CAGPUError("Error creating GPUInit Semaphore");
+			return(1);
+		}
+		WaitForSingleObject(*semLock, INFINITE);
 	}
-	WaitForSingleObject(*semLock, INFINITE);
 #else
-	sem_t* semLock = sem_open(SemLockName, O_CREAT, 0x01B6, 1);
-	if (semLock == SEM_FAILED)
+	sem_t* semLock;
+	if (mDeviceProcessingSettings.globalInitMutex)
 	{
-		CAGPUError("Error creating GPUInit Semaphore");
-		return(1);
-	}
-	timespec semtime;
-	clock_gettime(CLOCK_REALTIME, &semtime);
-	semtime.tv_sec += 10;
-	while (sem_timedwait(semLock, &semtime) != 0)
-	{
-		CAGPUError("Global Lock for GPU initialisation was not released for 10 seconds, assuming another thread died");
-		CAGPUWarning("Resetting the global lock");
-		sem_post(semLock);
+		semLock = sem_open(SemLockName, O_CREAT, 0x01B6, 1);
+		if (semLock == SEM_FAILED)
+		{
+			CAGPUError("Error creating GPUInit Semaphore");
+			return(1);
+		}
+		timespec semtime;
+		clock_gettime(CLOCK_REALTIME, &semtime);
+		semtime.tv_sec += 10;
+		while (sem_timedwait(semLock, &semtime) != 0)
+		{
+			CAGPUError("Global Lock for GPU initialisation was not released for 10 seconds, assuming another thread died");
+			CAGPUWarning("Resetting the global lock");
+			sem_post(semLock);
+		}
 	}
 #endif
 
@@ -394,7 +402,9 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 	fGPUMemSize = trackerGPUMem + fGPUMergerMaxMemory + HLTCA_GPU_MEMALIGN;
 	fHostMemSize = trackerHostMem + fGPUMergerMaxMemory + HLTCA_GPU_MEMALIGN;
 	int retVal = InitDevice_Runtime();
-	ReleaseGlobalLock(semLock);
+	
+	if (mDeviceProcessingSettings.globalInitMutex) ReleaseGlobalLock(semLock);
+	
 	fGPUMergerMemory = getPointerWithAlignmentNoUpdate<char>(fGPUMemory, trackerGPUMem, HLTCA_GPU_MEMALIGN);
 	fGPUMergerHostMemory = getPointerWithAlignmentNoUpdate<char>(fHostLockedMemory, trackerHostMem, HLTCA_GPU_MEMALIGN);
 	if (retVal)

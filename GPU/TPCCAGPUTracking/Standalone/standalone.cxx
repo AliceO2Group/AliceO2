@@ -182,6 +182,7 @@ int main(int argc, char** argv)
 	devProc.runQA = configStandalone.qa;
 	devProc.runEventDisplay = configStandalone.eventDisplay;
 	devProc.nDeviceHelperThreads = configStandalone.helperThreads;
+	devProc.globalInitMutex = configStandalone.gpuInitMutex;
 	
 	rec->SetSettings(&ev, &recSet, &devProc);
 	if (rec->Init())

@@ -65,6 +65,7 @@ struct AliGPUCASettingsDeviceProcessing
 	int nThreads;						//Numnber of threads on CPU, 0 = auto-detect
 	int deviceNum;						//Device number to use, in case the backend provides multiple devices (-1 = auto-select)
 	int platformNum;					//Platform to use, in case the backend provides multiple platforms (-1 = auto-select)
+	bool globalInitMutex;				//Global mutex to synchronize initialization over multiple instances
 	int nDeviceHelperThreads;			//Additional CPU helper-threads for CPU parts of processing with accelerator
 	int debugLevel;						//Level of debug output
 	int debugMask;						//Mask for debug output dumps to file
