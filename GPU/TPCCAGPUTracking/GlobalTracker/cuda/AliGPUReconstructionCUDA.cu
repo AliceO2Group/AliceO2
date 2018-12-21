@@ -17,8 +17,9 @@
 
 #include "AliGPUCADataTypes.h"
 #include "AliCAGPULogging.h"
-__constant__ char gGPUConstantMemBuffer[sizeof(AliGPUCAConstantMem)];
-__constant__ AliGPUCAConstantMem& gGPUConstantMem = (AliGPUCAConstantMem&) gGPUConstantMemBuffer;
+__constant__ uint4 gGPUConstantMemBuffer[(sizeof(AliGPUCAConstantMem) + sizeof(uint4) - 1) / sizeof(uint4)];
+__constant__ char& gGPUConstantMemBufferChar = (char&) gGPUConstantMemBuffer;
+__constant__ AliGPUCAConstantMem& gGPUConstantMem = (AliGPUCAConstantMem&) gGPUConstantMemBufferChar;
 
 AliGPUCAConstantMem AliGPUCAConstantMemDummy;
 #ifdef HLTCA_GPU_USE_TEXTURES
