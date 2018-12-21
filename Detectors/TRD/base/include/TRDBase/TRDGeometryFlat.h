@@ -11,7 +11,7 @@
 #ifndef O2_TRDGEOMETRYFLAT_H
 #define O2_TRDGEOMETRYFLAT_H
 
-#include <string.h>
+#include <cstring>
 #include "FlatObject.h"
 #include "AliTPCCommonDefGPU.h"
 #include "AliTPCCommonTransform3D.h"
