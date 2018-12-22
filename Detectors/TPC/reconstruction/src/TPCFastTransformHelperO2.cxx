@@ -71,7 +71,7 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
   const static ParameterGas& gasParam = ParameterGas::defaultInstance();
   const static ParameterElectronics& elParam = ParameterElectronics::defaultInstance();
 
-  const double vDrift = (elParam.getZBinWidth() * gasParam.getVdrift());
+  const double vDrift = (elParam.getZBinWidth() * gasParam.getVdrift()); // cm/timebin
 
   // find last calibrated time bin
 
@@ -206,7 +206,7 @@ int TPCFastTransformHelperO2::updateCalibration(ali_tpc_common::tpc_fast_transfo
 
   // find last calibrated time bin
 
-  const double vDrift = elParam.getZBinWidth() * gasParam.getVdrift();
+  const double vDrift = elParam.getZBinWidth() * gasParam.getVdrift(); // cm/timebin
 
   //mLastTimeBin = detParam.getTPClength() / vDrift  + 1;
 
@@ -216,7 +216,8 @@ int TPCFastTransformHelperO2::updateCalibration(ali_tpc_common::tpc_fast_transfo
   // spline distortions for xyz
   // Time-of-flight correction: ldrift += dist-to-vtx*tofCorr
 
-  const double t0 = 0.;
+  const double t0 = elParam.getPeakingTime() / elParam.getZBinWidth();
+
   const double vdCorrY = 0.;
   const double ldCorr = 0.;
   const double tpcAlignmentZ = 0.;
