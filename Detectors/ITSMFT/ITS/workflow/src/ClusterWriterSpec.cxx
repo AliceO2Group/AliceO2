@@ -12,7 +12,6 @@
 
 #include <vector>
 
-#include "TFile.h"
 #include "TTree.h"
 
 #include "Framework/ControlService.h"
@@ -30,49 +29,52 @@ namespace o2
 namespace ITS
 {
 
+void ClusterWriter::init(InitContext& ic)
+{
+  auto filename = ic.options().get<std::string>("its-cluster-outfile");
+  mFile = std::make_unique<TFile>(filename.c_str(), "RECREATE");
+  if (!mFile->IsOpen()) {
+    LOG(ERROR) << "Cannot open the " << filename.c_str() << " file !";
+    mState = 0;
+    return;
+  }
+  mState = 1;
+}
+
+void ClusterWriter::run(ProcessingContext& pc)
+{
+  if (mState != 1)
+    return;
+
+  auto compClusters = pc.inputs().get<const std::vector<o2::ITSMFT::CompClusterExt>>("compClusters");
+  auto clusters = pc.inputs().get<const std::vector<o2::ITSMFT::Cluster>>("clusters");
+  auto labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
+  auto plabels = labels.get();
+  auto rofs = pc.inputs().get<const std::vector<o2::ITSMFT::ROFRecord>>("ROframes");
+  auto mc2rofs = pc.inputs().get<const std::vector<o2::ITSMFT::MC2ROFRecord>>("MC2ROframes");
+
+  LOG(INFO) << "ITSClusterWriter pulled " << clusters.size() << " clusters, "
+            << labels->getIndexedSize() << " MC label objects, in "
+            << rofs.size() << " RO frames and "
+            << mc2rofs.size() << " MC events";
+
+  mFile->WriteObjectAny(&rofs, "std::vector<o2::ITSMFT::ROFRecord>", "ITSClusterROF");
+  mFile->WriteObjectAny(&mc2rofs, "std::vector<o2::ITSMFT::MC2ROFRecord>", "ITSClusterMC2ROF");
+
+  TTree tree("o2sim", "Tree with ITS clusters");
+  tree.Branch("ITSClusterComp", &compClusters);
+  tree.Branch("ITSCluster", &clusters);
+  tree.Branch("ITSClusterMCTruth", &plabels);
+  tree.Fill();
+  tree.Write();
+  mFile->Close();
+
+  mState = 2;
+  //pc.services().get<ControlService>().readyToQuit(true);
+}
+
 DataProcessorSpec getClusterWriterSpec()
 {
-  auto init = [](InitContext& ic) {
-    auto filename = ic.options().get<std::string>("its-cluster-outfile");
-
-    return [filename](ProcessingContext& pc) {
-      static bool done = false;
-      if (done)
-        return;
-
-      TFile file(filename.c_str(), "RECREATE");
-      if (file.IsOpen()) {
-        auto compClusters = pc.inputs().get<const std::vector<o2::ITSMFT::CompClusterExt>>("compClusters");
-        auto clusters = pc.inputs().get<const std::vector<o2::ITSMFT::Cluster>>("clusters");
-        auto labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
-        auto plabels = labels.get();
-        auto rofs = pc.inputs().get<const std::vector<o2::ITSMFT::ROFRecord>>("ROframes");
-        auto mc2rofs = pc.inputs().get<const std::vector<o2::ITSMFT::MC2ROFRecord>>("MC2ROframes");
-
-        LOG(INFO) << "ITSClusterWriter pulled " << clusters.size() << " clusters, "
-                  << labels->getIndexedSize() << " MC label objects, in "
-                  << rofs.size() << " RO frames and "
-                  << mc2rofs.size() << " MC events";
-
-        file.WriteObjectAny(&rofs, "std::vector<o2::ITSMFT::ROFRecord>", "ITSClusterROF");
-        file.WriteObjectAny(&mc2rofs, "std::vector<o2::ITSMFT::MC2ROFRecord>", "ITSClusterMC2ROF");
-
-        TTree tree("o2sim", "Tree with ITS clusters");
-        tree.Branch("ITSClusterComp", &compClusters);
-        tree.Branch("ITSCluster", &clusters);
-        tree.Branch("ITSClusterMCTruth", &plabels);
-        tree.Fill();
-        tree.Write();
-        file.Close();
-
-      } else {
-        LOG(ERROR) << "Cannot open the " << filename.c_str() << " file !";
-      }
-      done = true;
-      //pc.services().get<ControlService>().readyToQuit(true);
-    };
-  };
-
   return DataProcessorSpec{
     "its-cluster-writer",
     Inputs{
@@ -82,7 +84,7 @@ DataProcessorSpec getClusterWriterSpec()
       InputSpec{ "ROframes", "ITS", "ITSClusterROF", 0, Lifetime::Timeframe },
       InputSpec{ "MC2ROframes", "ITS", "ITSClusterMC2ROF", 0, Lifetime::Timeframe } },
     Outputs{},
-    AlgorithmSpec{ init },
+    AlgorithmSpec{ adaptFromTask<ClusterWriter>() },
     Options{
       { "its-cluster-outfile", VariantType::String, "o2clus_its.root", { "Name of the output file" } } }
   };

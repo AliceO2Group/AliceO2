@@ -10,12 +10,30 @@
 
 /// @file   ClusterWriterSpec.h
 
+#include "TFile.h"
+
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/Task.h"
+
+using namespace o2::framework;
 
 namespace o2
 {
 namespace ITS
 {
+
+class ClusterWriter : public Task
+{
+ public:
+  ClusterWriter() = default;
+  ~ClusterWriter() = default;
+  void init(InitContext& ic) final;
+  void run(ProcessingContext& pc) final;
+
+ private:
+  int mState = 0;
+  std::unique_ptr<TFile> mFile = nullptr;
+};
 
 /// create a processor spec
 /// write ITS clusters a root file

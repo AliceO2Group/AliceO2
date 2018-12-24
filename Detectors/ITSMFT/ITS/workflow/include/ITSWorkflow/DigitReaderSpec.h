@@ -10,12 +10,30 @@
 
 /// @file   DigitReaderSpec.h
 
+#include "TFile.h"
+
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/Task.h"
+
+using namespace o2::framework;
 
 namespace o2
 {
 namespace ITS
 {
+
+class DigitReader : public Task
+{
+ public:
+  DigitReader() = default;
+  ~DigitReader() = default;
+  void init(InitContext& ic) final;
+  void run(ProcessingContext& pc) final;
+
+ private:
+  int mState = 0;
+  std::unique_ptr<TFile> mFile = nullptr;
+};
 
 /// create a processor spec
 /// read simulated ITS digits from a root file
