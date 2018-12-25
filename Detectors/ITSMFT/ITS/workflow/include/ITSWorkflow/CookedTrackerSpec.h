@@ -11,11 +11,30 @@
 /// @file   CookedTrackerSpec.h
 
 #include "Framework/DataProcessorSpec.h"
+#include "ITSReconstruction/CookedTracker.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "Framework/Task.h"
+
+using namespace o2::framework;
 
 namespace o2
 {
 namespace ITS
 {
+
+class CookedTrackerDPL : public Task
+{
+ public:
+  CookedTrackerDPL() = default;
+  ~CookedTrackerDPL() = default;
+  void init(InitContext& ic) final;
+  void run(ProcessingContext& pc) final;
+
+ private:
+  int mState = 0;
+  std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;
+  o2::ITS::CookedTracker mTracker;
+};
 
 /// create a processor spec
 /// run ITS CookedMatrix tracker

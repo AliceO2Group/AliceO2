@@ -10,12 +10,33 @@
 
 /// @file   ClustererSpec.h
 
+#include <fstream>
+
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/Task.h"
+
+#include "ITSMFTReconstruction/Clusterer.h"
+
+using namespace o2::framework;
 
 namespace o2
 {
 namespace ITS
 {
+
+class ClustererDPL : public Task
+{
+ public:
+  ClustererDPL() = default;
+  ~ClustererDPL() = default;
+  void init(InitContext& ic) final;
+  void run(ProcessingContext& pc) final;
+
+ private:
+  int mState = 0;
+  std::unique_ptr<std::ifstream> mFile = nullptr;
+  std::unique_ptr<o2::ITSMFT::Clusterer> mClusterer = nullptr;
+};
 
 /// create a processor spec
 /// run ITS cluster finder

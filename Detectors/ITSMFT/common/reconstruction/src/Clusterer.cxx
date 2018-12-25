@@ -11,7 +11,6 @@
 /// \file Clusterer.cxx
 /// \brief Implementation of the ITS cluster finder
 #include <algorithm>
-#include <TTree.h>
 #include "FairLogger.h" // for LOG
 
 #include "ITSMFTBase/SegmentationAlpide.h"
