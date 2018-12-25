@@ -10,6 +10,9 @@
 
 /// @file   DigitReaderSpec.h
 
+#ifndef O2_ITS_DIGITREADER
+#define O2_ITS_DIGITREADER
+
 #include "TFile.h"
 
 #include "Framework/DataProcessorSpec.h"
@@ -41,3 +44,5 @@ framework::DataProcessorSpec getDigitReaderSpec();
 
 } // namespace ITS
 } // namespace o2
+
+#endif /* O2_ITS_DIGITREADER */

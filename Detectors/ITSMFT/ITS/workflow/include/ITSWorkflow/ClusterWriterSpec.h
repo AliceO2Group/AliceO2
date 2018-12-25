@@ -10,6 +10,9 @@
 
 /// @file   ClusterWriterSpec.h
 
+#ifndef O2_ITS_CLUSTERWRITER
+#define O2_ITS_CLUSTERWRITER
+
 #include "TFile.h"
 
 #include "Framework/DataProcessorSpec.h"
@@ -41,3 +44,5 @@ framework::DataProcessorSpec getClusterWriterSpec();
 
 } // namespace ITS
 } // namespace o2
+
+#endif /* O2_ITS_CLUSTERWRITER */

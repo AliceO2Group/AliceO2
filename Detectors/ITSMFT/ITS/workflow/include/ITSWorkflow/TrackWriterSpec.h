@@ -10,6 +10,9 @@
 
 /// @file   TrackWriterSpec.h
 
+#ifndef O2_ITS_TRACKWRITER
+#define O2_ITS_TRACKWRITER
+
 #include "TFile.h"
 
 #include "Framework/DataProcessorSpec.h"
@@ -41,3 +44,5 @@ framework::DataProcessorSpec getTrackWriterSpec();
 
 } // namespace ITS
 } // namespace o2
+
+#endif /* O2_ITS_TRACKWRITER */

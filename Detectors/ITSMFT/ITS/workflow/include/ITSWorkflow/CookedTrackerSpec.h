@@ -10,6 +10,9 @@
 
 /// @file   CookedTrackerSpec.h
 
+#ifndef O2_ITS_COOKEDTRACKERDPL
+#define O2_ITS_COOKEDTRACKERDPL
+
 #include "Framework/DataProcessorSpec.h"
 #include "ITSReconstruction/CookedTracker.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -42,3 +45,5 @@ framework::DataProcessorSpec getCookedTrackerSpec();
 
 } // namespace ITS
 } // namespace o2
+
+#endif /* O2_ITS_COOKEDTRACKERDPL */

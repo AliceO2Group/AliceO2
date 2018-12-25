@@ -10,6 +10,9 @@
 
 /// @file   ClustererSpec.h
 
+#ifndef O2_ITS_CLUSTERERDPL
+#define O2_ITS_CLUSTERERDPL
+
 #include <fstream>
 
 #include "Framework/DataProcessorSpec.h"
@@ -44,3 +47,5 @@ framework::DataProcessorSpec getClustererSpec();
 
 } // namespace ITS
 } // namespace o2
+
+#endif /* O2_ITS_CLUSTERERDPL */

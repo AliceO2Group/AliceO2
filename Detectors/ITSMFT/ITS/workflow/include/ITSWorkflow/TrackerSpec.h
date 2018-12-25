@@ -10,6 +10,9 @@
 
 /// @file   TrackerSpec.h
 
+#ifndef O2_ITS_TRACKERDPL
+#define O2_ITS_TRACKERDPL
+
 #include "Framework/DataProcessorSpec.h"
 
 namespace o2
@@ -23,3 +26,5 @@ framework::DataProcessorSpec getTrackerSpec();
 
 } // namespace ITS
 } // namespace o2
+
+#endif /* O2_ITS_TRACKERDPL */
