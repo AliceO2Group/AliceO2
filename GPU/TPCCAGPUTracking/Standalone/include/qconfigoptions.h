@@ -77,6 +77,7 @@ AddOption(gpuType, const char*, "", "gpuType", 0, "GPU type (CUDA / HIP / OCL)")
 #endif
 AddOption(runGPUforce, bool, true, "gpuForce", 0, "Force usage of the specified GPU device type, no CPU fallback")
 AddOption(gpuInitMutex, bool, false, "gpuInitMutex", 0, "Use mutex to synchronize initialization of multiple GPU instances")
+AddOption(oclGPUonly, bool, false, "oclGPUonly", 0, "Allow only GPU as OpenCL device")
 AddOption(helperThreads, int, 1, "helperThreads", 0, "Number of CPU helper threads for CPU processing")
 AddOption(noprompt, bool, true, "prompt", 0, "Do prompt for keypress before exiting", def(false))
 AddOption(continueOnError, bool, false, "continue", 0, "Continue processing after an error")
