@@ -324,7 +324,7 @@ int AliHLTTPCCASliceData::InitFromClusterData(const AliHLTTPCCAClusterData &data
 		row.fHstepZi = 1.f;
 	}
 
-	AliHLTResizableArray<AliHLTTPCCAHit> binSortedHits(fNumberOfHits + sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v));
+	AliHLTResizableArray<AliHLTTPCCAHit> binSortedHits(fNumberOfHits + sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(unsigned short));
 
 	int gridContentOffset = 0;
 	int hitOffset = 0;
@@ -339,7 +339,7 @@ int AliHLTTPCCASliceData::InitFromClusterData(const AliHLTTPCCAClusterData &data
 		AliHLTTPCCARow &row = fRows[rowIndex];
 		row.fNHits = NumberOfClustersInRow[rowIndex];
 		row.fHitNumberOffset = hitOffset;
-		hitOffset += NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(NumberOfClustersInRow[rowIndex]);
+		hitOffset += NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(unsigned short)>(NumberOfClustersInRow[rowIndex]);
 
 		row.fFirstHitInBinOffset = gridContentOffset;
 
@@ -441,7 +441,7 @@ void AliHLTTPCCASliceData::ClearHitWeights()
 	// clear hit weights
 
 #ifdef ENABLE_VECTORIZATION
-	const int_v v0(Zero);
+	const int v0(Zero);
 	const int *const end = fHitWeights + fNumberOfHits;
 	for (int *mem = fHitWeights; mem < end; mem += v0.Size)
 	{

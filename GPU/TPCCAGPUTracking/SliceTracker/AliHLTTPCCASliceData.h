@@ -28,12 +28,6 @@ template<typename T, int Dim> class AliHLTArray;
 #endif
 #include "AliHLTTPCCAGPUConfig.h"
 
-typedef int int_v;
-typedef unsigned int uint_v;
-typedef short short_v;
-typedef unsigned short ushort_v;
-typedef float float_v;
-
 class AliHLTTPCCAClusterData;
 class AliHLTTPCCAHit;
 
@@ -103,9 +97,9 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
 	/**
 	 * Return the y and z coordinate(s) of the given hit(s).
 	 */
-	MEM_TEMPLATE() GPUd() cahit HitDataY( const MEM_TYPE( AliHLTTPCCARow) &row, const uint_v &hitIndex ) const;
-	MEM_TEMPLATE() GPUd() cahit HitDataZ( const MEM_TYPE( AliHLTTPCCARow) &row, const uint_v &hitIndex ) const;
-	MEM_TEMPLATE() GPUd() cahit2 HitData( const MEM_TYPE( AliHLTTPCCARow) &row, const uint_v &hitIndex ) const;
+	MEM_TEMPLATE() GPUd() cahit HitDataY( const MEM_TYPE( AliHLTTPCCARow) &row, const unsigned int &hitIndex ) const;
+	MEM_TEMPLATE() GPUd() cahit HitDataZ( const MEM_TYPE( AliHLTTPCCARow) &row, const unsigned int &hitIndex ) const;
+	MEM_TEMPLATE() GPUd() cahit2 HitData( const MEM_TYPE( AliHLTTPCCARow) &row, const unsigned int &hitIndex ) const;
 
 	/**
 	 * For a given bin index, content tells how many hits there are in the preceding bins. This maps
@@ -118,13 +112,13 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
 	/**
 	 * If the given weight is higher than what is currently stored replace with the new weight.
 	 */
-	MEM_TEMPLATE() GPUd() void MaximizeHitWeight( const MEM_TYPE( AliHLTTPCCARow)&row, uint_v hitIndex, int_v weight );
-	MEM_TEMPLATE() GPUd() void SetHitWeight( const MEM_TYPE( AliHLTTPCCARow)&row, uint_v hitIndex, int_v weight );
+	MEM_TEMPLATE() GPUd() void MaximizeHitWeight( const MEM_TYPE( AliHLTTPCCARow)&row, unsigned int hitIndex, int weight );
+	MEM_TEMPLATE() GPUd() void SetHitWeight( const MEM_TYPE( AliHLTTPCCARow)&row, unsigned int hitIndex, int weight );
 
 	/**
 	 * Return the maximal weight the given hit got from one tracklet
 	 */
-	MEM_TEMPLATE() GPUd() int_v HitWeight( const MEM_TYPE( AliHLTTPCCARow)&row, uint_v hitIndex ) const;
+	MEM_TEMPLATE() GPUd() int HitWeight( const MEM_TYPE( AliHLTTPCCARow)&row, unsigned int hitIndex ) const;
 
 	/**
 	 * Reset all hit weights to 0.
@@ -134,7 +128,7 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
 	/**
 	 * Returns the index in the original AliHLTTPCCAClusterData object of the given hit
 	 */
-	MEM_TEMPLATE() GPUhd() int_v ClusterDataIndex( const MEM_TYPE( AliHLTTPCCARow)&row, uint_v hitIndex ) const;
+	MEM_TEMPLATE() GPUhd() int ClusterDataIndex( const MEM_TYPE( AliHLTTPCCARow)&row, unsigned int hitIndex ) const;
 
 	/**
 	 * Return the row object for the given row index.
@@ -222,17 +216,17 @@ MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() void MEM_LG(AliHLTTPCCASliceData)::SetHit
 	fLinkDownData[row.fHitNumberOffset + hitIndex] = value;
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() cahit MEM_LG(AliHLTTPCCASliceData)::HitDataY( const MEM_TYPE( AliHLTTPCCARow)&row, const uint_v &hitIndex ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() cahit MEM_LG(AliHLTTPCCASliceData)::HitDataY( const MEM_TYPE( AliHLTTPCCARow)&row, const unsigned int &hitIndex ) const
 {
 	return fHitData[row.fHitNumberOffset + hitIndex].x;
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() cahit MEM_LG(AliHLTTPCCASliceData)::HitDataZ( const MEM_TYPE( AliHLTTPCCARow)&row, const uint_v &hitIndex ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() cahit MEM_LG(AliHLTTPCCASliceData)::HitDataZ( const MEM_TYPE( AliHLTTPCCARow)&row, const unsigned int &hitIndex ) const
 {
 	return fHitData[row.fHitNumberOffset + hitIndex].y;
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() cahit2 MEM_LG(AliHLTTPCCASliceData)::HitData( const MEM_TYPE( AliHLTTPCCARow)&row, const uint_v &hitIndex ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() cahit2 MEM_LG(AliHLTTPCCASliceData)::HitData( const MEM_TYPE( AliHLTTPCCARow)&row, const unsigned int &hitIndex ) const
 {
 	return fHitData[row.fHitNumberOffset + hitIndex];
 }
@@ -242,22 +236,22 @@ MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() calink MEM_LG(AliHLTTPCCASliceData)::Firs
 	return fFirstHitInBin[row.fFirstHitInBinOffset + binIndexes];
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUhdi() int_v MEM_LG(AliHLTTPCCASliceData)::ClusterDataIndex( const MEM_TYPE( AliHLTTPCCARow)&row, uint_v hitIndex ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUhdi() int MEM_LG(AliHLTTPCCASliceData)::ClusterDataIndex( const MEM_TYPE( AliHLTTPCCARow)&row, unsigned int hitIndex ) const
 {
 	return fClusterDataIndex[row.fHitNumberOffset + hitIndex];
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() void MEM_LG(AliHLTTPCCASliceData)::MaximizeHitWeight( const MEM_TYPE( AliHLTTPCCARow)&row, uint_v hitIndex, int_v weight )
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() void MEM_LG(AliHLTTPCCASliceData)::MaximizeHitWeight( const MEM_TYPE( AliHLTTPCCARow)&row, unsigned int hitIndex, int weight )
 {
 	CAMath::AtomicMax( &fHitWeights[row.fHitNumberOffset + hitIndex], weight );
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() void MEM_LG(AliHLTTPCCASliceData)::SetHitWeight( const MEM_TYPE( AliHLTTPCCARow)&row, uint_v hitIndex, int_v weight )
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() void MEM_LG(AliHLTTPCCASliceData)::SetHitWeight( const MEM_TYPE( AliHLTTPCCARow)&row, unsigned int hitIndex, int weight )
 {
 	fHitWeights[row.fHitNumberOffset + hitIndex] = weight;
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() int_v MEM_LG(AliHLTTPCCASliceData)::HitWeight( const MEM_TYPE( AliHLTTPCCARow)&row, uint_v hitIndex ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() int MEM_LG(AliHLTTPCCASliceData)::HitWeight( const MEM_TYPE( AliHLTTPCCARow)&row, unsigned int hitIndex ) const
 {
 	return fHitWeights[row.fHitNumberOffset + hitIndex];
 }
