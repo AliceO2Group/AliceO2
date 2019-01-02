@@ -250,7 +250,13 @@ int AliGPUReconstructionCUDA::InitDevice_Runtime()
 
 	if (mDeviceProcessingSettings.debugLevel >= 1)
 	{
-		GPUFailedMsg(cudaMemset(fGPUMemory, 143, (size_t) fGPUMemSize));
+		if (GPUFailedMsg(cudaMemset(fGPUMemory, 143, (size_t) fGPUMemSize)))
+		{
+			cudaFree(fGPUMemory);
+			cudaDeviceReset();
+			CAGPUError("Error during CUDA memset");
+			return(1);
+		}
 	}
 
 	mInternals->CudaStreams = (cudaStream_t*) malloc(nStreams * sizeof(cudaStream_t));
@@ -338,9 +344,19 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 		return(1);
 	}
 	fGpuTracker[0].fStageAtSync = tmpMem;
-	GPUFailedMsg(cudaMemset(fGpuTracker[0].StageAtSync(), 0, 100000000));
+	if (GPUFailedMsg(cudaMemset(fGpuTracker[0].StageAtSync(), 0, 100000000)))
+	{
+		CAGPUError("Error clearing stageatsync");
+		ResetHelperThreads(0);
+		return 1;
+	}
 #endif
-	GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, &mParam, sizeof(AliGPUCAParam), (char*) &AliGPUCAConstantMemDummy.param - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice, mInternals->CudaStreams[0]));
+	if (GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, &mParam, sizeof(AliGPUCAParam), (char*) &AliGPUCAConstantMemDummy.param - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice, mInternals->CudaStreams[0])))
+	{
+		CAGPUError("Error filling constant buffer");
+		ResetHelperThreads(0);
+		return 1;
+	}
 	
 	void* devPtrConstantMem;
 	if (GPUFailedMsg(cudaGetSymbolAddress(&devPtrConstantMem, gGPUConstantMemBuffer)))
@@ -353,7 +369,12 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 	{
 		fGpuTracker[i].SetParam((AliGPUCAParam*) ((char*) devPtrConstantMem + ((char*) &AliGPUCAConstantMemDummy.param - (char*) &AliGPUCAConstantMemDummy)));
 	}
-	GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, fGpuTracker, sizeof(AliHLTTPCCATracker) * NSLICES, (char*) AliGPUCAConstantMemDummy.tpcTrackers - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice, mInternals->CudaStreams[0]));
+	if (GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, fGpuTracker, sizeof(AliHLTTPCCATracker) * NSLICES, (char*) AliGPUCAConstantMemDummy.tpcTrackers - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice, mInternals->CudaStreams[0])))
+	{
+		CAGPUError("Error filling constant buffer");
+		ResetHelperThreads(0);
+		return 1;
+	}
 	
 	bool globalSymbolDone = false;
 	if (GPUSync("Initialization (1)", 0, 0) RANDOM_ERROR)
@@ -378,9 +399,14 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 
 		//Copy Data to GPU Global Memory
 		mTPCSliceTrackersCPU[iSlice].StartTimer(0);
-		GPUFailedMsg(cudaMemcpyAsync(fGpuTracker[iSlice].CommonMemory(), mTPCSliceTrackersCPU[iSlice].CommonMemory(), mTPCSliceTrackersCPU[iSlice].CommonMemorySize(), cudaMemcpyHostToDevice, mInternals->CudaStreams[useStream]));
-		GPUFailedMsg(cudaMemcpyAsync(fGpuTracker[iSlice].Data().Memory(), mTPCSliceTrackersCPU[iSlice].Data().Memory(), mTPCSliceTrackersCPU[iSlice].Data().GpuMemorySize(), cudaMemcpyHostToDevice, mInternals->CudaStreams[useStream]));
-		GPUFailedMsg(cudaMemcpyAsync(fGpuTracker[iSlice].SliceDataRows(), mTPCSliceTrackersCPU[iSlice].SliceDataRows(), (HLTCA_ROW_COUNT + 1) * sizeof(AliHLTTPCCARow), cudaMemcpyHostToDevice, mInternals->CudaStreams[useStream]));
+		if (GPUFailedMsg(cudaMemcpyAsync(fGpuTracker[iSlice].CommonMemory(), mTPCSliceTrackersCPU[iSlice].CommonMemory(), mTPCSliceTrackersCPU[iSlice].CommonMemorySize(), cudaMemcpyHostToDevice, mInternals->CudaStreams[useStream])) ||
+		    GPUFailedMsg(cudaMemcpyAsync(fGpuTracker[iSlice].Data().Memory(), mTPCSliceTrackersCPU[iSlice].Data().Memory(), mTPCSliceTrackersCPU[iSlice].Data().GpuMemorySize(), cudaMemcpyHostToDevice, mInternals->CudaStreams[useStream])) ||
+		    GPUFailedMsg(cudaMemcpyAsync(fGpuTracker[iSlice].SliceDataRows(), mTPCSliceTrackersCPU[iSlice].SliceDataRows(), (HLTCA_ROW_COUNT + 1) * sizeof(AliHLTTPCCARow), cudaMemcpyHostToDevice, mInternals->CudaStreams[useStream])))
+		{
+			CAGPUError("Error copying data to GPU");
+			ResetHelperThreads(0);
+			return 1;
+		}
 
 		if (mDeviceProcessingSettings.debugLevel >= 4)
 		{
