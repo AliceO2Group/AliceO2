@@ -89,22 +89,36 @@ int AliGPUReconstructionOCL::InitDevice_Runtime()
 
 	cl_platform_id platform;
 	bool found = false;
-	for (unsigned int i_platform = 0;i_platform < num_platforms;i_platform++)
+	if (mDeviceProcessingSettings.platformNum >= 0)
 	{
-		char platform_profile[64], platform_version[64], platform_name[64], platform_vendor[64];
-		clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_PROFILE, 64, platform_profile, NULL);
-		clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_VERSION, 64, platform_version, NULL);
-		clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_NAME, 64, platform_name, NULL);
-		clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_VENDOR, 64, platform_vendor, NULL);
-		if (mDeviceProcessingSettings.debugLevel >= 2) {CAGPUDebug("Available Platform %d: (%s %s) %s %s\n", i_platform, platform_profile, platform_version, platform_vendor, platform_name);}
-		if (strcmp(platform_vendor, "Advanced Micro Devices, Inc.") == 0)
+		if (mDeviceProcessingSettings.platformNum >= (int) num_platforms)
 		{
-			found = true;
-			if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("AMD OpenCL Platform found");
-			platform = platforms[i_platform];
-			break;
+			CAGPUError("Invalid platform specified");
+			return(1);
+		}
+		platform = platforms[mDeviceProcessingSettings.platformNum];
+		found = true;
+	}
+	else
+	{
+		for (unsigned int i_platform = 0;i_platform < num_platforms;i_platform++)
+		{
+			char platform_profile[64], platform_version[64], platform_name[64], platform_vendor[64];
+			clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_PROFILE, 64, platform_profile, NULL);
+			clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_VERSION, 64, platform_version, NULL);
+			clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_NAME, 64, platform_name, NULL);
+			clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_VENDOR, 64, platform_vendor, NULL);
+			if (mDeviceProcessingSettings.debugLevel >= 2) {CAGPUDebug("Available Platform %d: (%s %s) %s %s\n", i_platform, platform_profile, platform_version, platform_vendor, platform_name);}
+			if (strcmp(platform_vendor, "Advanced Micro Devices, Inc.") == 0)
+			{
+				found = true;
+				if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("AMD OpenCL Platform found");
+				platform = platforms[i_platform];
+				break;
+			}
 		}
 	}
+	delete[] platforms;
 	if (found == false)
 	{
 		CAGPUError("Did not find AMD OpenCL Platform");
