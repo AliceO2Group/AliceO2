@@ -183,6 +183,7 @@ int main(int argc, char** argv)
 	devProc.runEventDisplay = configStandalone.eventDisplay;
 	devProc.nDeviceHelperThreads = configStandalone.helperThreads;
 	devProc.globalInitMutex = configStandalone.gpuInitMutex;
+	devProc.gpuDeviceOnly = configStandalone.oclGPUonly;
 	
 	rec->SetSettings(&ev, &recSet, &devProc);
 	if (rec->Init())

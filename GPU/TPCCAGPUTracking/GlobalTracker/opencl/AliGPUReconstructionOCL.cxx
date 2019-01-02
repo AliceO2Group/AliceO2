@@ -131,7 +131,7 @@ int AliGPUReconstructionOCL::InitDevice_Runtime()
 	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("Available OPENCL devices:");
 	for (unsigned int i = 0;i < count;i++)
 	{
-		if (mDeviceProcessingSettings.debugLevel >= 3) {CAGPUDebug("Examining device %d\n", i);}
+		if (mDeviceProcessingSettings.debugLevel >= 3) {CAGPUInfo("Examining device %d\n", i);}
 		cl_uint nbits;
 
 		clGetDeviceInfo(ocl->devices[i], CL_DEVICE_NAME, 64, device_name, NULL);
@@ -140,13 +140,12 @@ int AliGPUReconstructionOCL::InitDevice_Runtime()
 		clGetDeviceInfo(ocl->devices[i], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(freq), &freq, NULL);
 		clGetDeviceInfo(ocl->devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(shaders), &shaders, NULL);
 		clGetDeviceInfo(ocl->devices[i], CL_DEVICE_ADDRESS_BITS, sizeof(nbits), &nbits, NULL);
-		//if (device_type & CL_DEVICE_TYPE_CPU) continue;
-		//if (!(device_type & CL_DEVICE_TYPE_GPU)) continue;
+		if (mDeviceProcessingSettings.gpuDeviceOnly && ((device_type & CL_DEVICE_TYPE_CPU) || !(device_type & CL_DEVICE_TYPE_GPU))) continue;
 		if (nbits / 8 != sizeof(void*)) continue;
 
 		deviceSpeed = (double) freq * (double) shaders;
 		if (device_type & CL_DEVICE_TYPE_GPU) deviceSpeed *= 10;
-		if (mDeviceProcessingSettings.debugLevel >= 2) {CAGPUDebug("Found Device %d: %s %s (Frequency %d, Shaders %d, %d bit) (Speed Value: %lld)\n", i, device_vendor, device_name, (int) freq, (int) shaders, (int) nbits, (long long int) deviceSpeed);}
+		if (mDeviceProcessingSettings.debugLevel >= 2) {CAGPUInfo("Found Device %d: %s %s (Frequency %d, Shaders %d, %d bit) (Speed Value: %lld)\n", i, device_vendor, device_name, (int) freq, (int) shaders, (int) nbits, (long long int) deviceSpeed);}
 
 		if (deviceSpeed > bestDeviceSpeed)
 		{
