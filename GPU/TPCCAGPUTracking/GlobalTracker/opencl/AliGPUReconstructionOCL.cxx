@@ -454,7 +454,12 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Copying Tracker objects to GPU");
 
 	cl_event initEvent;
-	GPUFailedMsg(clEnqueueWriteBuffer(ocl->command_queue[0], ocl->mem_constant, CL_FALSE, 0, sizeof(AliHLTTPCCATracker) * NSLICES, fGpuTracker, 0, NULL, &initEvent));
+	if (GPUFailedMsg(clEnqueueWriteBuffer(ocl->command_queue[0], ocl->mem_constant, CL_FALSE, 0, sizeof(AliHLTTPCCATracker) * NSLICES, fGpuTracker, 0, NULL, &initEvent)))
+	{
+		CAGPUError("Error filling constant memory");
+		ResetHelperThreads(0);
+		return 1;
+	}
 	ocl->cl_queue_event_done[0] = true;
 	for (int i = 1;i < 2;i++) //2 queues for first phase
 	{
