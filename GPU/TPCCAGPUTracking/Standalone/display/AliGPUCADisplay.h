@@ -12,6 +12,7 @@
 class AliHLTTPCCATracker;
 class AliGPUCAParam;
 class AliGPUReconstruction;
+class AliGPUCAQA;
 
 #if !defined(GL_VERSION_4_6) || GL_VERSION_4_6 != 1
 #error Unsupported OpenGL version < 4.6
@@ -22,7 +23,7 @@ class AliGPUCADisplay
 public:
 	static constexpr int fgkNSlices = AliGPUReconstruction::NSLICES;
 	
-	AliGPUCADisplay(AliGPUCADisplayBackend* backend, AliGPUReconstruction* rec);
+	AliGPUCADisplay(AliGPUCADisplayBackend* backend, AliGPUReconstruction* rec, AliGPUCAQA* qa);
 	~AliGPUCADisplay() = default;
 	AliGPUCADisplay(const AliGPUCADisplay&) = delete;
 	
@@ -172,6 +173,7 @@ private:
 	AliGPUCADisplayBackend* mBackend;
 	OpenGLConfig cfg;
 	AliGPUReconstruction* mRec;
+	AliGPUCAQA* mQA;
 	const AliHLTTPCGMMerger& merger;
 
 	GLfb mixBuffer;

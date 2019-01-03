@@ -35,6 +35,7 @@
 #include "ClusterNativeAccessExt.h"
 #include "AliHLTTRDTrackletLabels.h"
 #include "AliGPUCADisplay.h"
+#include "AliGPUCAQA.h"
 
 #ifdef HLTCA_STANDALONE
 #include <omp.h>
@@ -434,7 +435,16 @@ void AliGPUReconstruction::SetTRDGeometry(const o2::trd::TRDGeometryFlat& geo)
 int AliGPUReconstruction::RunStandalone()
 {
 	mStatNEvents++;
-
+	
+#ifdef BUILD_QA
+	const bool needQA = mDeviceProcessingSettings.runQA || (mDeviceProcessingSettings.eventDisplay && mIOPtrs.nMCInfosTPC);
+	if (needQA && mQA == nullptr)
+	{
+		mQA.reset(new AliGPUCAQA(this));
+		mQA->InitQA();
+	}
+#endif
+	
 #ifdef HLTCA_STANDALONE
 	static HighResTimer timerTracking, timerMerger, timerQA;
 	static int nCount = 0;
@@ -474,10 +484,10 @@ int AliGPUReconstruction::RunStandalone()
 
 #ifdef HLTCA_STANDALONE
 #ifdef BUILD_QA
-	if (mDeviceProcessingSettings.runQA || (mDeviceProcessingSettings.eventDisplay && mIOPtrs.nMCInfosTPC))
+	if (needQA)
 	{
 		timerQA.Start();
-		RunQA(!mDeviceProcessingSettings.runQA);
+		mQA->RunQA(!mDeviceProcessingSettings.runQA);
 		timerQA.Stop();
 	}
 #endif
@@ -527,7 +537,7 @@ int AliGPUReconstruction::RunStandalone()
 	{
 		if (mEventDisplay == nullptr)
 		{
-			mEventDisplay.reset(new AliGPUCADisplay(mDeviceProcessingSettings.eventDisplay, this));
+			mEventDisplay.reset(new AliGPUCADisplay(mDeviceProcessingSettings.eventDisplay, this, mQA.get()));
 			mDeviceProcessingSettings.eventDisplay->StartDisplay();
 		}
 		else

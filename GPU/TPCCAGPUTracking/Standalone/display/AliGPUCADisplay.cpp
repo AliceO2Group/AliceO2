@@ -16,6 +16,7 @@
 
 #include "AliHLTTPCCAMCInfo.h"
 #include "AliGPUReconstruction.h"
+#include "AliGPUCAQA.h"
 #include "AliHLTTPCCASliceData.h"
 #include "AliGPUReconstruction.h"
 #include "AliHLTTPCCATrack.h"
@@ -37,7 +38,7 @@
 
 static auto& config = configStandalone.configGL;
 
-AliGPUCADisplay::AliGPUCADisplay(AliGPUCADisplayBackend* backend, AliGPUReconstruction* rec) : mBackend(backend), mRec(rec), merger(rec->GetTPCMerger())
+AliGPUCADisplay::AliGPUCADisplay(AliGPUCADisplayBackend* backend, AliGPUReconstruction* rec, AliGPUCAQA* qa) : mBackend(backend), mRec(rec), mQA(qa), merger(rec->GetTPCMerger())
 {
 	backend->mDisplay = this;
 }
@@ -471,7 +472,7 @@ AliGPUCADisplay::vboList AliGPUCADisplay::DrawClusters(const AliHLTTPCCATracker 
 	for (int cidInSlice = firstCluster;cidInSlice < lastCluster;cidInSlice++)
 	{
 		const int cid = tracker.ClusterData()->Id(cidInSlice);
-		if (hideUnmatchedClusters && SuppressHit(cid)) continue;
+		if (hideUnmatchedClusters && mQA && mQA->SuppressHit(cid)) continue;
 		bool draw = globalPos[cid].w == select;
 
 		if (markAdjacentClusters)
@@ -481,7 +482,7 @@ AliGPUCADisplay::vboList AliGPUCADisplay::DrawClusters(const AliHLTTPCCATracker 
 			{
 				if (markAdjacentClusters >= 16)
 				{
-					if (clusterRemovable(cid, markAdjacentClusters == 17)) draw = select == 8;
+					if (mQA && mQA->clusterRemovable(cid, markAdjacentClusters == 17)) draw = select == 8;
 				}
 				else if ((markAdjacentClusters & 2) && (attach & AliHLTTPCGMMerger::attachTube)) draw = select == 8;
 				else if ((markAdjacentClusters & 1) && (attach & (AliHLTTPCGMMerger::attachGood | AliHLTTPCGMMerger::attachTube)) == 0) draw = select == 8;
@@ -1283,7 +1284,7 @@ int AliGPUCADisplay::DrawGLScene(bool mixAnimation, float animateTime) // Here's
 				unsigned int col = 0;
 				if (nCollisions > 1)
 				{
-					int label = GetMCLabel(i);
+					int label = mQA ? mQA->GetMCLabel(i) : -1;
 					if (label != -1e9 && label < -1) label = -label - 2;
 					while (col < collisionClusters.size() && collisionClusters[col][fgkNSlices] < label) col++;
 				}

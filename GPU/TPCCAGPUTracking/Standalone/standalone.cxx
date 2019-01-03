@@ -1,6 +1,7 @@
 #include "AliGPUReconstruction.h"
 #include "AliHLTArray.h"
 #include "AliHLTTPCCADef.h"
+#include "AliGPUCAQA.h"
 
 #include <iostream>
 #include <fstream>
@@ -256,16 +257,9 @@ int main(int argc, char** argv)
 			configStandalone.configTF.bunchTrainCount, configStandalone.configTF.bunchCount, configStandalone.configTF.bunchSpacing, trainDist, configStandalone.configTF.bunchSpacing, configStandalone.configTF.bunchCount * configStandalone.configTF.bunchTrainCount, maxBunches, maxBunchesFull, collisionProbability, nEventsInDirectory);
 	}
 
-#ifdef BUILD_QA
-	if (configStandalone.qa)
-	{
-		InitQA();
-	}
-#endif
-
 	if (configStandalone.eventGenerator)
 	{
-#ifdef BUILD_QA
+/*#ifdef BUILD_QA
 		char dirname[256];
 		sprintf(dirname, "events/%s/", configStandalone.EventsDir);
 		mkdir(dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
@@ -277,10 +271,12 @@ int main(int argc, char** argv)
 		{
 			printf("Generating event %d/%d\n", i, configStandalone.NEvents == -1 ? 10 : configStandalone.NEvents);
 			sprintf(dirname, "events/%s/" HLTCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
-			//GenerateEvent(hlt.Param(), dirname); TODO!
+			GenerateEvent(hlt.Param(), dirname); TODO!
 		}
 		FinishEventGenerator();
-#endif
+#endif*/
+		printf("Event Generator Disabled\n");
+		return(1);
 	}
 	else
 	{
@@ -609,7 +605,12 @@ breakrun:
 #ifndef WIN32
 		if (configStandalone.fpe) fedisableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
 #endif
-		DrawQAHistograms();
+		if (rec->GetQA() == nullptr)
+		{
+			printf("QA Unavailable\n");
+			return 1;
+		}
+		rec->GetQA()->DrawQAHistograms();
 	}
 #endif
 

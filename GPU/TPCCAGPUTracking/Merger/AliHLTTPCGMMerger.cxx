@@ -29,6 +29,7 @@
 #include "AliHLTTPCGMMerger.h"
 #include "AliGPUReconstruction.h"
 #include "AliGPUReconstructionDeviceBase.h"
+#include "AliGPUCAQA.h"
 
 #include "AliTPCCommonMath.h"
 
@@ -1327,7 +1328,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 		//if (nParts > 1) printf("Merged %d: QPt %f %d parts %d hits\n", fNOutputTracks, p1.QPt(), nParts, nHits);
 
 #if defined(BUILD_QA) && defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE)
-		if (SuppressTrack(fNOutputTracks))
+		if (fGPUReconstruction && fGPUReconstruction->GetQA() && fGPUReconstruction->GetQA()->SuppressTrack(fNOutputTracks))
 		{
 			mergedTrack.SetOK(0);
 			mergedTrack.SetNClusters(0);
