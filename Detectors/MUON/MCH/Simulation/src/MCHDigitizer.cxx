@@ -83,18 +83,18 @@ void MCHDigitizer::init()
 
 //______________________________________________________________________
 
-void MCHDigitizer::process(const std::vector<Hit>* hits, std::vector<Digit>* digits)
+void MCHDigitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
 {
   // hits array of MCH hits for a given simulated event
-  for (auto& hit : *hits) {
+  for (auto& hit : hits) {
     //TODO: check if change for time structure
     processHit(hit, mEventTime);
    } // end loop over hits
   //TODO: merge (new member function, add charge) of digits that are on same pad:
   //things to think about in terms of time costly
 
-    digits->clear();
-    fillOutputContainer(*digits);
+    digits.clear();
+    fillOutputContainer(digits);
 
 }
 
@@ -166,7 +166,8 @@ Int_t MCHDigitizer::processHit(const Hit &hit,Double_t event_time)
   xmax =  mSegbend[indexID].padPositionX(padidbend)+mSegbend[indexID].padSizeX(padidbend)*0.5;
   ymin =  mSegbend[indexID].padPositionY(padidbend)-mSegbend[indexID].padSizeY(padidbend)*0.5;
   ymax =  mSegbend[indexID].padPositionY(padidbend)+mSegbend[indexID].padSizeY(padidbend)*0.5;
-      
+  //what happens if at edge of detector?
+  
   // 1st step integrate induced charge for each pad
   signal = mMuonresponse.chargePad(anodpos,pos[1],xmin,xmax,ymin,ymax,detID,chargebend);
   if(signal>mMuonresponse.getChargeThreshold() && signal<mMuonresponse.getChargeSat()){
@@ -199,7 +200,8 @@ Int_t MCHDigitizer::processHit(const Hit &hit,Double_t event_time)
 //_____________________________________________________________________
  std::vector<int> MCHDigitizer::getPadUid(Double_t xMin, Double_t xMax, Double_t yMin, Double_t yMax, bool bend){
   //to be implemented?
-  
+   //getting pad-ID of xMin if existing?
+   
   return mPadIDsbend;
 
 }

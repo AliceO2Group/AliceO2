@@ -8,10 +8,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization 
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_SIMULATION_MCH_DIGIT_H_
-#define ALICEO2_SIMULATION_MCH_DIGIT_H_
+#ifndef ALICEO2_MCH_DIGIT_H_
+#define ALICEO2_MCH_DIGIT_H_
 
-#include <CommonDataFormat/TimeStamp.h>//TODO compiler doesn't link properly 
+#include "CommonDataFormat/TimeStamp.h"//TODO compiler doesn't link properly
+
+#include <cstdio>
+#include <TMath.h>
+#include <TNamed.h>      //base class                                                                                                                 
+#include <TGeoManager.h> //Instance()                                                                                                                 
+#include <TVector3.h>    //Lors2Mars() Mars2Lors()  
+
 #include "Rtypes.h"
 #include <iosfwd>
 
@@ -28,10 +35,10 @@ class Digit : public DigitBase //: public o2::dataformats::TimeStamp<double>
       Digit(int pad, double adc); //check if need uint32_to
       ~Digit() = default;
       
-      int getPadID() { return mPadID; }
+      int getPadID() const { return mPadID; }
       void setPadID(int pad) { mPadID=pad;}
       
-      double getADC() { return mADC; }
+      double getADC() const { return mADC; }
       void setADC(double adc) { mADC=adc;}
 
       double getTimeStamp() {return mTime;}

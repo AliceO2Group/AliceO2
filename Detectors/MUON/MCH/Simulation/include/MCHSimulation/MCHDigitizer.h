@@ -34,12 +34,13 @@ class MCHDigitizer
 
   void init();
 
-  void process(const std::vector<Hit>* hits, std::vector<Digit>* digits);
+  void process(const std::vector<Hit> hits, std::vector<Digit>& digits);
 
   Double_t getXmin(Int_t detID, Double_t hitX);
   Double_t getXmax(Int_t detID, Double_t hitX);
   Double_t getYmin(Int_t detID, Double_t hitY);
   Double_t getYmax(Int_t detID, Double_t hitY);
+
   
   void setEventTime(double value) { mEventTime = value; }
   void setEventID(Int_t id) { mEventID = id; }
@@ -76,7 +77,6 @@ class MCHDigitizer
   std::vector<mapping::Segmentation> mSegbend;
                                                 
   std::vector<mapping::Segmentation> mSegnon;
-
 
   Response mMuonresponse;
   
