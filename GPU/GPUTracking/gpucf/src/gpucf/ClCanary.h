@@ -1,11 +1,22 @@
 #pragma once
 
-class ClEnv;
+#include <gpucf/Executable.h>
+#include <gpucf/ClEnv.h>
 
-class ClCanary {
+#include <memory>
 
+
+class ClCanary : public Executable {
+    
 public:
-    run(ClEnv &);
+    ClCanary() : Executable("Tests if OpenCL is working as expected.") {}
+
+protected:
+    void setupFlags(args::ArgumentParser &) override;
+    int mainImpl() override;
+
+private:
+    std::unique_ptr<ClEnv::Flags> envFlags;
 
 };
 

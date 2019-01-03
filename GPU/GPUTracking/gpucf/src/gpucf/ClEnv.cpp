@@ -9,23 +9,51 @@
 namespace fs = filesystem;
 
 
-ClEnv::ClEnv(const fs::path &srcDir) 
-        : sourceDir(srcDir) {
+ClEnv::ClEnv(const fs::path &srcDir, size_t gid) 
+        : gpuId(gid) 
+        , sourceDir(srcDir) {
     if (!sourceDir.exists() || !sourceDir.is_directory()) {
         throw std::runtime_error("Directory " + sourceDir.str()
                 + " does not exist or is a file.");
     }
 
-    cl::Platform::get(&platforms); 
+    cl_int err;
+
+    err = cl::Platform::get(&platforms); 
+    ASSERT(err == CL_SUCCESS);
     
+
     ASSERT(!platforms.empty());
-    platforms.front().getDevices(CL_DEVICE_TYPE_GPU, &devices);
+    err = platforms.front().getDevices(CL_DEVICE_TYPE_GPU, &devices);
+    ASSERT(err == CL_SUCCESS);
 
     if (devices.empty()) {
         throw std::runtime_error("Could not find any gpu devices.");
     }
     
-    context = cl::Context(devices);
+    context = cl::Context(devices, nullptr, nullptr, nullptr, &err);
+    ASSERT(err == CL_SUCCESS);
+}
+
+cl::Program ClEnv::buildFromSrc(const fs::path &srcFile) {
+    cl::Program::Sources src = loadSrc(srcFile);
+
+    cl_int err;
+    cl::Program prg(context, src, &err);
+    ASSERT(err == CL_SUCCESS);
+
+    try {
+        prg.build(devices);
+    } catch (const cl::BuildError &) {
+        cl_int buildErr = CL_SUCCESS;
+        auto buildInfo = prg.getBuildInfo<CL_PROGRAM_BUILD_LOG>(&buildErr);
+        for (auto &pair : buildInfo) {
+            std::cerr << pair.second << std::endl << std::endl;
+        }
+        throw std::runtime_error("build failed.");
+    }
+
+    return prg;
 }
 
 cl::Program::Sources ClEnv::loadSrc(const fs::path &srcFile) {
@@ -39,8 +67,7 @@ cl::Program::Sources ClEnv::loadSrc(const fs::path &srcFile) {
     std::string code( (std::istreambuf_iterator<char>(src)),
                       std::istreambuf_iterator<char>());
 
-    cl::Program::Sources source(1, std::make_pair(code.c_str(),
-        code.length() + 1));
+    cl::Program::Sources source({code});
 
     return source;
 }

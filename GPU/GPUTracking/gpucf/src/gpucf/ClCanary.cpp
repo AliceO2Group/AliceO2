@@ -1,22 +1,27 @@
 #include "ClCanary.h"
 
-#include <gpucf/ClEnv.h>
-
-void ClCanary::run(ClEnv &env) {
-
-    cl::Context context = env.getContext();
-    cl::Device device = env.getDevice();
-
-    cl::CommandQueue queue = cl::CommandQueue(context, device);
-
-    cl::Program::Sources source = env.loadSrc("vector_add.cl");
-
-    cl::Buffer bufA = cl::Buffer(context, CL_MEM_READ_ONLY, datasize);
-    cl::Buffer bufB = cl::Buffer(context, CL_MEM_READ_ONLY, datasize);
-    cl::Buffer bufC = cl::Buffer(context, CL_MEM_WRITE_ONLY, datasize);
+#include <gpucf/VectorAdd.h>
+#include <gpucf/log.h>
 
 
-     
+void ClCanary::setupFlags(args::ArgumentParser &parser) {
+    envFlags = std::make_unique<ClEnv::Flags>(parser); 
+}
+
+int ClCanary::mainImpl() {
+    ASSERT(envFlags != nullptr);
+
+    ClEnv env(*envFlags);
+    VectorAdd canary;
+
+    bool ok = canary.run(env);
+
+    if (!ok) {
+        log::Info() << "OpenCL not working as expected.";
+        return 1;
+    }
+
+    return 0;
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:
