@@ -34,6 +34,7 @@
 #include "AliHLTTPCRawCluster.h"
 #include "ClusterNativeAccessExt.h"
 #include "AliHLTTRDTrackletLabels.h"
+#include "AliGPUCADisplay.h"
 
 #ifdef HLTCA_STANDALONE
 #include <omp.h>
@@ -473,7 +474,7 @@ int AliGPUReconstruction::RunStandalone()
 
 #ifdef HLTCA_STANDALONE
 #ifdef BUILD_QA
-	if (mDeviceProcessingSettings.runQA || (mDeviceProcessingSettings.runEventDisplay && mIOPtrs.nMCInfosTPC))
+	if (mDeviceProcessingSettings.runQA || (mDeviceProcessingSettings.eventDisplay && mIOPtrs.nMCInfosTPC))
 	{
 		timerQA.Start();
 		RunQA(!mDeviceProcessingSettings.runQA);
@@ -522,23 +523,12 @@ int AliGPUReconstruction::RunStandalone()
 	}
 
 #ifdef BUILD_EVENT_DISPLAY
-	if (mDeviceProcessingSettings.runEventDisplay)
+	if (mDeviceProcessingSettings.eventDisplay)
 	{
-		static int displayActive = 0;
-		if (!displayActive)
+		if (mEventDisplay == nullptr)
 		{
-#ifdef WIN32
-			semLockDisplay = CreateSemaphore(0, 1, 1, 0);
-			HANDLE hThread;
-			if ((hThread = CreateThread(NULL, NULL, &OpenGLMain, NULL, NULL, NULL)) == NULL)
-#else
-			static pthread_t hThread;
-			if (pthread_create(&hThread, NULL, OpenGLMain, NULL))
-#endif
-			{
-				printf("Coult not Create GL Thread...\nExiting...\n");
-			}
-			displayActive = 1;
+			mEventDisplay.reset(new AliGPUCADisplay(mDeviceProcessingSettings.eventDisplay, this));
+			mDeviceProcessingSettings.eventDisplay->StartDisplay();
 		}
 		else
 		{
@@ -547,11 +537,10 @@ int AliGPUReconstruction::RunStandalone()
 #else
 			pthread_mutex_unlock(&semLockDisplay);
 #endif
-			ShowNextEvent();
+			mEventDisplay->ShowNextEvent();
 		}
 
-		while (kbhit())
-			getch();
+		while (kbhit()) getch();
 		printf("Press key for next event!\n");
 
 		int iKey;
@@ -564,12 +553,12 @@ int AliGPUReconstruction::RunStandalone()
 #endif
 			iKey = kbhit() ? getch() : 0;
 			if (iKey == 'q')
-				exitButton = 2;
+				mDeviceProcessingSettings.eventDisplay->displayControl = 2;
 			else if (iKey == 'n')
 				break;
 			else if (iKey)
 			{
-				while (sendKey != 0)
+				while (mDeviceProcessingSettings.eventDisplay->sendKey != 0)
 				{
 #ifdef WIN32
 					Sleep(1);
@@ -577,15 +566,15 @@ int AliGPUReconstruction::RunStandalone()
 					usleep(1000);
 #endif
 				}
-				sendKey = iKey;
+				mDeviceProcessingSettings.eventDisplay->sendKey = iKey;
 			}
-		} while (exitButton == 0);
-		if (exitButton == 2)
+		} while (mDeviceProcessingSettings.eventDisplay->displayControl == 0);
+		if (mDeviceProcessingSettings.eventDisplay->displayControl == 2)
 		{
-			DisplayExit();
+			mDeviceProcessingSettings.eventDisplay->DisplayExit();
 			return (2);
 		}
-		exitButton = 0;
+		mDeviceProcessingSettings.eventDisplay->displayControl = 0;
 		printf("Loading next event\n");
 
 #ifdef WIN32
@@ -593,8 +582,6 @@ int AliGPUReconstruction::RunStandalone()
 #else
 		pthread_mutex_lock(&semLockDisplay);
 #endif
-
-		displayEventNr++;
 	}
 #endif
 #endif
@@ -635,7 +622,7 @@ int AliGPUReconstruction::RunTPCTrackingSlices()
 			nOutputTracks += (*mTPCSliceTrackersCPU[iSlice].Output())->NTracks();
 			nLocalTracks += mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTracks;
 #endif
-			if (mDeviceProcessingSettings.runEventDisplay)
+			if (!mDeviceProcessingSettings.eventDisplay)
 			{
 				mTPCSliceTrackersCPU[iSlice].SetupCommonMemory();
 			}
@@ -667,7 +654,7 @@ int AliGPUReconstruction::RunTPCTrackingSlices()
 			nGlobalHits += mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTrackHits;
 			nOutputTracks += (*mTPCSliceTrackersCPU[iSlice].Output())->NTracks();
 #endif
-			if (mDeviceProcessingSettings.runEventDisplay)
+			if (!mDeviceProcessingSettings.eventDisplay)
 			{
 				mTPCSliceTrackersCPU[iSlice].SetupCommonMemory();
 			}

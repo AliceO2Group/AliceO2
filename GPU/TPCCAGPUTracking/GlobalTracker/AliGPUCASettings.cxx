@@ -44,7 +44,7 @@ void AliGPUCASettingsDeviceProcessing::SetDefaults()
 	debugLevel = 0;
 	debugMask = -1;
 	resetTimers = 1;
-	runEventDisplay = false;
+	eventDisplay = nullptr;
 	runQA = false;
 	stuckProtection = 0;
 }

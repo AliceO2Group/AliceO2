@@ -28,6 +28,7 @@ class AliHLTTPCCAGPUTracker;
 struct AliHLTTPCRawCluster;
 struct ClusterNativeAccessExt;
 struct AliHLTTRDTrackletLabels;
+class AliGPUCADisplay;
 
 namespace o2 { namespace ITS { class TrackerTraits; }}
 namespace o2 { namespace trd { class TRDGeometryFlat; }}
@@ -262,6 +263,8 @@ protected:
 	AliGPUCASettingsProcessing mProcessingSettings;								//Processing Parameters (at constructor level)
 	AliGPUCASettingsDeviceProcessing mDeviceProcessingSettings;					//Processing Parameters (at init level)
 	AliGPUCAOutputControl mOutputControl;										//Controls the output of the individual components
+	
+	std::unique_ptr<AliGPUCADisplay> mEventDisplay;
 	
 	std::unique_ptr<TPCFastTransform> mTPCFastTransform;						//Global TPC fast transformation object
 	std::unique_ptr<ClusterNativeAccessExt> mClusterNativeAccess;				//Internal memory for clusterNativeAccess

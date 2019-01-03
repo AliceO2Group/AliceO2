@@ -1,4 +1,4 @@
-#include "opengl_backend.h"
+#include "AliGPUCADisplayBackendGlut.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -10,21 +10,21 @@
 pthread_mutex_t semLockDisplay = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t semLockExit = PTHREAD_MUTEX_INITIALIZER;
 
-static volatile bool glutRunning = false;
+static AliGPUCADisplayBackendGlut* me = nullptr;
 
-static void displayFunc(void)
+void AliGPUCADisplayBackendGlut::displayFunc(void)
 {
-	DrawGLScene();
+	me->DrawGLScene();
 	glutSwapBuffers();
 }
 
-static void glutLoopFunc(void)
+void AliGPUCADisplayBackendGlut::glutLoopFunc(void)
 {
-	HandleSendKey();
+	me->HandleSendKey();
 	displayFunc();
 }
 
-int GetKey(int key)
+static int GetKey(int key)
 {
 	if (key == 45) return('-');
 	if (key == 43) return('+');
@@ -34,70 +34,76 @@ int GetKey(int key)
 	return(key);
 }
 
-static void keyboardDownFunc(unsigned char key, int x, int y)
+void AliGPUCADisplayBackendGlut::keyboardDownFunc(unsigned char key, int x, int y)
 {
 	key = GetKey(key);
-	keysShift[key] = glutGetModifiers() & GLUT_ACTIVE_SHIFT;
-	keys[key] = true;
+	me->keysShift[key] = glutGetModifiers() & GLUT_ACTIVE_SHIFT;
+	me->keys[key] = true;
 }
 
-static void keyboardUpFunc(unsigned char key, int x, int y)
+void AliGPUCADisplayBackendGlut::keyboardUpFunc(unsigned char key, int x, int y)
 {
 	key = GetKey(key);
-	HandleKeyRelease(key);
-	keys[key] = false;
-	keysShift[key] = false;
+	me->HandleKeyRelease(key, 0);
+	me->keys[key] = false;
+	me->keysShift[key] = false;
 }
 
-static void mouseFunc(int button, int state, int x, int y)
+void AliGPUCADisplayBackendGlut::ReSizeGLSceneWrapper(int width, int height)
+{
+	me->ReSizeGLScene(width, height);
+}
+
+void AliGPUCADisplayBackendGlut::mouseFunc(int button, int state, int x, int y)
 {
 	if (button == 3)
 	{
-		mouseWheel += 100;
+		me->mouseWheel += 100;
 	}
 	else if (button == 4)
 	{
-		mouseWheel -= 100;
+		me->mouseWheel -= 100;
 	}
 	else if (state == GLUT_DOWN)
 	{
 		if (button == GLUT_LEFT_BUTTON)
 		{
-			mouseDn = true;
+			me->mouseDn = true;
 		}
 		else if (button == GLUT_RIGHT_BUTTON)
 		{
-			mouseDnR = true;
+			me->mouseDnR = true;
 		}
-		mouseDnX = x;
-		mouseDnY = y;
+		me->mouseDnX = x;
+		me->mouseDnY = y;
 	}
 	else if (state == GLUT_UP)
 	{
 		if (button == GLUT_LEFT_BUTTON)
 		{
-			mouseDn = false;
+			me->mouseDn = false;
 		}
 		else if (button == GLUT_RIGHT_BUTTON)
 		{
-			mouseDnR = false;
+			me->mouseDnR = false;
 		}
 	}
 }
 
-static void mouseMoveFunc(int x, int y)
+void AliGPUCADisplayBackendGlut::mouseMoveFunc(int x, int y)
 {
-	mouseMvX = x;
-	mouseMvY = y;
+	me->mouseMvX = x;
+	me->mouseMvY = y;
 }
 
-static void mouseWheelFunc(int button, int dir, int x, int y)
+void AliGPUCADisplayBackendGlut::mouseWheelFunc(int button, int dir, int x, int y)
 {
-	mouseWheel += dir;
+	me->mouseWheel += dir;
 }
 
-void *OpenGLMain(void *ptr)
+void* AliGPUCADisplayBackendGlut::OpenGLMain()
 {
+	me = this;
 	int nopts = 2;
 	char* opts[] = {"progname", "-direct"};
 	glutInit(&nopts, opts);
@@ -111,7 +117,7 @@ void *OpenGLMain(void *ptr)
 
 	glutDisplayFunc(displayFunc);
 	glutIdleFunc(glutLoopFunc);
-	glutReshapeFunc(ReSizeGLScene);
+	glutReshapeFunc(ReSizeGLSceneWrapper);
 	glutKeyboardFunc(keyboardDownFunc);
 	glutKeyboardUpFunc(keyboardUpFunc);
 	glutMouseFunc(mouseFunc);
@@ -130,7 +136,7 @@ void *OpenGLMain(void *ptr)
 	return 0;
 }
 
-void DisplayExit()
+void AliGPUCADisplayBackendGlut::DisplayExit()
 {
 	pthread_mutex_lock(&semLockExit);
 	if (glutRunning) glutLeaveMainLoop();
@@ -138,7 +144,16 @@ void DisplayExit()
 	while (glutRunning) usleep(10000);
 }
 
-void OpenGLPrint(const char* s) {}
-void SwitchFullscreen() {}
-void ToggleMaximized(bool set) {}
-void SetVSync(bool enable) {}
+void AliGPUCADisplayBackendGlut::OpenGLPrint(const char* s) {}
+void AliGPUCADisplayBackendGlut::SwitchFullscreen() {}
+void AliGPUCADisplayBackendGlut::ToggleMaximized(bool set) {}
+void AliGPUCADisplayBackendGlut::SetVSync(bool enable) {}
+
+void AliGPUCADisplayBackendGlut::StartDisplay()
+{
+	static pthread_t hThread;
+	if (pthread_create(&hThread, NULL, OpenGLWrapper, this))
+	{
+		printf("Coult not Create GL Thread...\nExiting...\n");
+	}
+}
