@@ -1,7 +1,7 @@
-#include "opengl_backend.h"
+#include "AliGPUCADisplay.h"
 #include <cmath>
 
-void createQuaternionFromMatrix(float* v, const float* mat)
+void AliGPUCADisplay::createQuaternionFromMatrix(float* v, const float* mat)
 {
 	if (mat[0] > mat[5] && mat[0] > mat[10])
 	{

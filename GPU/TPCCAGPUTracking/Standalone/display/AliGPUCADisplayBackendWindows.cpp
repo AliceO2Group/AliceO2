@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "opengl_backend.h"
+#include "AliGPUCADisplayBackendWindows.h"
 #include <windows.h>
 #include <winbase.h>
 #include <windowsx.h>
@@ -325,7 +325,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
-DWORD WINAPI OpenGLMain(LPVOID tmp)
+DWORD WINAPI OpenGLMain()
 {
 	MSG msg;           // Windows Message Structure
 	BOOL done = FALSE; // Bool Variable To Exit Loop
@@ -381,3 +381,13 @@ void OpenGLPrint(const char* s) {}
 void SwitchFullscreen() {}
 void ToggleMaximized(bool set) {}
 void SetVSync(bool enable) {}
+
+void AliGPUCADisplayBackendWindows::StartDisplay()
+{
+	semLockDisplay = CreateSemaphore(0, 1, 1, 0);
+	HANDLE hThread;
+	if ((hThread = CreateThread(NULL, NULL, &OpenGLWrapper, this, NULL, NULL)) == NULL)
+	{
+		printf("Coult not Create GL Thread...\nExiting...\n");
+	}
+}

@@ -11,22 +11,6 @@ extern void KillGLWindow();
 extern HANDLE semLockDisplay;
 #else
 extern pthread_mutex_t semLockDisplay;
-extern void* OpenGLMain( void* );
-#endif
-
-#ifdef BUILD_EVENT_DISPLAY
-extern void ShowNextEvent();
-extern void DisplayExit();
-extern void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster);
-extern volatile int exitButton;
-extern volatile int displayEventNr;
-extern volatile int sendKey;
-#else
-static void ShowNextEvent() {}
-static void DisplayExit() {}
-static void SetCollisionFirstCluster(unsigned int /*collision*/, int /*slice*/, int /*cluster*/) {}
-static volatile int displayEventNr;
-static volatile int sendKey;
 #endif
 
 //QA

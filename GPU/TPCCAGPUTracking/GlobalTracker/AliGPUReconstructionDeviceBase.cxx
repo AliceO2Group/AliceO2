@@ -358,7 +358,7 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 	if (CheckMemorySizes(NSLICES)) return(1);
 
 #ifdef WIN32
-	HANDLE* semLock;
+	HANDLE* semLock = NULL;
 	if (mDeviceProcessingSettings.globalInitMutex)
 	{
 		semLock = new HANDLE;
@@ -371,7 +371,7 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 		WaitForSingleObject(*semLock, INFINITE);
 	}
 #else
-	sem_t* semLock;
+	sem_t* semLock = NULL;
 	if (mDeviceProcessingSettings.globalInitMutex)
 	{
 		semLock = sem_open(SemLockName, O_CREAT, 0x01B6, 1);

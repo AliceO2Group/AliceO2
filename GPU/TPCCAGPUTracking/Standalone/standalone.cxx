@@ -42,6 +42,15 @@
 #include "DataFormatsTPC/ClusterHardware.h"
 #endif
 
+#ifdef BUILD_EVENT_DISPLAY
+#ifdef WIN32
+#include "AliGPUCADisplayBackendWindows.h"
+#else
+#include "AliGPUCADisplayBackendX11.h"
+#endif
+#include "AliGPUCADisplayBackendGlut.h"
+#endif
+
 std::unique_ptr<AliGPUReconstruction> rec;
 
 //#define BROKEN_EVENTS
@@ -180,7 +189,17 @@ int main(int argc, char** argv)
 	devProc.deviceNum = configStandalone.cudaDevice;
 	devProc.debugLevel = configStandalone.DebugLevel;
 	devProc.runQA = configStandalone.qa;
-	devProc.runEventDisplay = configStandalone.eventDisplay;
+#ifdef BUILD_EVENT_DISPLAY
+	if (configStandalone.eventDisplay)
+	{
+#ifdef WIN32
+		if (configStandalone.eventDisplay == 1) devProc.eventDisplay = new AliGPUCADisplayBackendWindows;
+#else
+		if (configStandalone.eventDisplay == 1) devProc.eventDisplay = new AliGPUCADisplayBackendX11;
+#endif
+		else if (configStandalone.eventDisplay == 2) devProc.eventDisplay = new AliGPUCADisplayBackendGlut;
+	}
+#endif
 	devProc.nDeviceHelperThreads = configStandalone.helperThreads;
 	devProc.globalInitMutex = configStandalone.gpuInitMutex;
 	devProc.gpuDeviceOnly = configStandalone.oclGPUonly;

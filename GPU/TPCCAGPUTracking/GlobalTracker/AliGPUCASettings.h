@@ -2,6 +2,7 @@
 #define ALIGPUCASETTINGS_H
 
 #include "AliTPCCommonMath.h"
+class AliGPUCADisplayBackend;
 
 class AliGPUCASettings
 {
@@ -62,18 +63,18 @@ struct AliGPUCASettingsDeviceProcessing
 		void SetDefaults();
 	#endif
 		
-	int nThreads;						//Numnber of threads on CPU, 0 = auto-detect
-	int deviceNum;						//Device number to use, in case the backend provides multiple devices (-1 = auto-select)
-	int platformNum;					//Platform to use, in case the backend provides multiple platforms (-1 = auto-select)
-	bool globalInitMutex;				//Global mutex to synchronize initialization over multiple instances
-	bool gpuDeviceOnly;				    //Use only GPU as device (i.e. no CPU for OpenCL)
-	int nDeviceHelperThreads;			//Additional CPU helper-threads for CPU parts of processing with accelerator
-	int debugLevel;						//Level of debug output
-	int debugMask;						//Mask for debug output dumps to file
-	int resetTimers;					//Reset timers every event
-	bool runEventDisplay;				//Run event display after processing
-	bool runQA;							//Run QA after processing
-	int stuckProtection;				//Timeout in us, When AMD GPU is stuck, just continue processing and skip tracking, do not crash or stall the chain
+	int nThreads;								//Numnber of threads on CPU, 0 = auto-detect
+	int deviceNum;								//Device number to use, in case the backend provides multiple devices (-1 = auto-select)
+	int platformNum;							//Platform to use, in case the backend provides multiple platforms (-1 = auto-select)
+	bool globalInitMutex;						//Global mutex to synchronize initialization over multiple instances
+	bool gpuDeviceOnly;							//Use only GPU as device (i.e. no CPU for OpenCL)
+	int nDeviceHelperThreads;					//Additional CPU helper-threads for CPU parts of processing with accelerator
+	int debugLevel;								//Level of debug output
+	int debugMask;								//Mask for debug output dumps to file
+	int resetTimers;							//Reset timers every event
+	AliGPUCADisplayBackend* eventDisplay;		//Run event display after processing, ptr to backend
+	bool runQA;									//Run QA after processing
+	int stuckProtection;						//Timeout in us, When AMD GPU is stuck, just continue processing and skip tracking, do not crash or stall the chain
 };
 
 #endif

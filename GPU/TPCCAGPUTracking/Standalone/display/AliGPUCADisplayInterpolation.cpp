@@ -1,7 +1,7 @@
 #include <stdio.h>
-#include "opengl_backend.h"
+#include "AliGPUCADisplay.h"
 
-void opengl_spline::create(const vecpod<float>& x, const vecpod<float>& y)
+void AliGPUCADisplay::opengl_spline::create(const vecpod<float>& x, const vecpod<float>& y)
 {
 	fa.clear();
 	fb.clear();
@@ -37,7 +37,7 @@ void opengl_spline::create(const vecpod<float>& x, const vecpod<float>& y)
 	for (int i = 0;i <= k;i++) fx[i] = x[i];
 }
 
-float opengl_spline::evaluate(float x)
+float AliGPUCADisplay::opengl_spline::evaluate(float x)
 {
 	int base = 0;
 	const int k = fx.size() - 1;

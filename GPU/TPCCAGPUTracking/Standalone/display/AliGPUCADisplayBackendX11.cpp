@@ -1,23 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "opengl_backend.h"
-#include <GL/glx.h>
-#include <pthread.h>
-#include <unistd.h>
-#include <GL/glxext.h>
-pthread_mutex_t semLockDisplay = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t semLockExit = PTHREAD_MUTEX_INITIALIZER;
-static volatile bool displayRunning = false;
+#include "AliGPUCADisplayBackendX11.h"
 
-static GLuint font_base;
-
-Display *g_pDisplay = NULL;
-Window g_window;
-
-PFNGLXSWAPINTERVALEXTPROC glXSwapIntervalEXT = NULL;
-
-int GetKey(int key)
+int AliGPUCADisplayBackendX11::GetKey(int key)
 {
 	if (key == 65453 || key == 45) return('-');
 	if (key == 65451 || key == 43) return('+');
@@ -41,7 +24,7 @@ int GetKey(int key)
 	return(key);
 }
 
-void OpenGLPrint(const char* s)
+void AliGPUCADisplayBackendX11::OpenGLPrint(const char* s)
 {
    if (!glIsList(font_base))
    {
@@ -57,7 +40,7 @@ void OpenGLPrint(const char* s)
    }
 }
 
-void *OpenGLMain(void* /*ptr*/)
+void* AliGPUCADisplayBackendX11::OpenGLMain()
 {
 	XSetWindowAttributes windowAttributes;
 	XVisualInfo *visualInfo = NULL;
@@ -153,7 +136,7 @@ void *OpenGLMain(void* /*ptr*/)
 	ToggleMaximized(true);
 	
 	//Receive signal when window closed
-	Atom WM_DELETE_WINDOW = XInternAtom(g_pDisplay, "WM_DELETE_WINDOW", False); 
+	Atom WM_DELETE_WINDOW = XInternAtom(g_pDisplay, "WM_DELETE_WINDOW", False);
     XSetWMProtocols(g_pDisplay, g_window, &WM_DELETE_WINDOW, 1);
 	
 	//Prepare fonts
@@ -214,7 +197,7 @@ void *OpenGLMain(void* /*ptr*/)
 			{
 				fprintf(stderr, "Error\n");
 			}
-			if (exitButton == 2) break;
+			if (displayControl == 2) break;
 			if (sendKey) needUpdate = 1;
 			if (waitCount++ != 100) needUpdate = 1;
 		} while (!(num_ready_fds || needUpdate));
@@ -222,7 +205,7 @@ void *OpenGLMain(void* /*ptr*/)
 		
 		do
 		{
-			if (exitButton == 2) break;
+			if (displayControl == 2) break;
 			if (!XPending(g_pDisplay))
 			{
 				event.type = Expose;
@@ -325,7 +308,7 @@ void *OpenGLMain(void* /*ptr*/)
 					}
 					else
 					{
-						exitButton = 2;
+						displayControl = 2;
 					}
 				}
 				break;
@@ -333,7 +316,7 @@ void *OpenGLMain(void* /*ptr*/)
 			
 			HandleSendKey();
 		} while (XPending(g_pDisplay)); // Loop to compress events
-		if (exitButton == 2) break;
+		if (displayControl == 2) break;
 
 		DrawGLScene();
 		glXSwapBuffers(g_pDisplay, g_window); // Buffer swap does implicit glFlush
@@ -354,15 +337,15 @@ void *OpenGLMain(void* /*ptr*/)
 	return(NULL);
 }
 
-void DisplayExit()
+void AliGPUCADisplayBackendX11::DisplayExit()
 {
 	pthread_mutex_lock(&semLockExit);
-	if (displayRunning) exitButton = 2;
+	if (displayRunning) displayControl = 2;
 	pthread_mutex_unlock(&semLockExit);
 	while (displayRunning) usleep(10000);
 }
 
-void SwitchFullscreen()
+void AliGPUCADisplayBackendX11::SwitchFullscreen()
 {
 	XEvent xev;
 	memset(&xev, 0, sizeof(xev));
@@ -376,7 +359,7 @@ void SwitchFullscreen()
 	XSendEvent(g_pDisplay, DefaultRootWindow(g_pDisplay), False, SubstructureNotifyMask, &xev);
 }
 
-void ToggleMaximized(bool set)
+void AliGPUCADisplayBackendX11::ToggleMaximized(bool set)
 {
 	XEvent xev;
 	memset(&xev, 0, sizeof(xev));
@@ -390,7 +373,16 @@ void ToggleMaximized(bool set)
 	XSendEvent(g_pDisplay, DefaultRootWindow(g_pDisplay), False, SubstructureNotifyMask, &xev);
 }
 
-void SetVSync(bool enable)
+void AliGPUCADisplayBackendX11::SetVSync(bool enable)
 {
 	glXSwapIntervalEXT(g_pDisplay, glXGetCurrentDrawable(), (int) enable);
+}
+
+void AliGPUCADisplayBackendX11::StartDisplay()
+{
+	static pthread_t hThread;
+	if (pthread_create(&hThread, NULL, OpenGLWrapper, this))
+	{
+		printf("Coult not Create GL Thread...\nExiting...\n");
+	}
 }

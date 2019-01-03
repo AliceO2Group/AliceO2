@@ -26,15 +26,14 @@ CXXFILES					+= standalone.cxx \
 CPPFILES					+= cmodules/qconfig.cpp
 
 ifeq ($(BUILD_EVENT_DISPLAY), 1)
-CPPFILES					+= display/opengl.cpp display/opengl_interpolation.cpp display/opengl_quaternion.cpp
+CPPFILES					+= display/AliGPUCADisplay.cpp display/AliGPUCADisplayBackend.cpp display/AliGPUCADisplayBackendGlut.cpp display/AliGPUCADisplayBackendNone.cpp display/AliGPUCADisplayInterpolation.cpp display/AliGPUCADisplayQuaternion.cpp
 CONFIG_OPENGL				= 1
 CONFIG_X11					= 1
 DEFINES						+= BUILD_EVENT_DISPLAY
 ifeq ($(ARCH_CYGWIN), 1)
-CPPFILES					+= display/opengl_windows.cpp
+CPPFILES					+= display/AliGPUCADisplayBackendWindows.cpp
 else
-CPPFILES					+= display/opengl_x11.cpp
-#CPPFILES					+= display/opengl_x11.cpp optional
+CPPFILES					+= display/AliGPUCADisplayBackendX11.cpp
 endif
 endif
 

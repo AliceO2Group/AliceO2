@@ -1,10 +1,11 @@
+#include "AliGPUCADisplay.h"
 #include "AliHLTTPCCADef.h"
-#include "opengl_backend.h"
 
 #include <vector>
 #include <array>
 #include <tuple>
 #include <memory>
+#include <string.h>
 
 #ifndef WIN32
 #include "bitmapfile.h"
@@ -13,6 +14,8 @@
 #include <omp.h>
 #endif
 
+#include "AliHLTTPCCAMCInfo.h"
+#include "AliGPUReconstruction.h"
 #include "AliHLTTPCCASliceData.h"
 #include "AliGPUReconstruction.h"
 #include "AliHLTTPCCATrack.h"
@@ -28,38 +31,22 @@
 
 #define OPENGL_EMULATE_MULTI_DRAW 0
 
-#define fgkNSlices 36
-volatile int needUpdate = 0;
-void ShowNextEvent() {needUpdate = 1;}
 #define GL_SCALE_FACTOR 100.f
 
-#define TRACK_TYPE_ID_LIMIT 100
 #define SEPERATE_GLOBAL_TRACKS_LIMIT (separateGlobalTracks ? 6 : TRACK_TYPE_ID_LIMIT)
 
-OpenGLConfig cfg;
 static auto& config = configStandalone.configGL;
-AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
-const AliHLTTPCGMMerger &merger = hlt.Merger();
 
-struct DrawArraysIndirectCommand
+AliGPUCADisplay::AliGPUCADisplay(AliGPUCADisplayBackend* backend, AliGPUReconstruction* rec) : mBackend(backend), mRec(rec), merger(rec->GetTPCMerger())
 {
-	DrawArraysIndirectCommand(uint a = 0, uint b = 0, uint c = 0, uint d = 0) : count(a), instanceCount(b), first(c), baseInstance(d) {}
-	uint  count;
-	uint  instanceCount;
-	uint  first;
-	uint  baseInstance;
-};
-GLuint vbo_id[fgkNSlices], indirect_id;
-int indirectSliceOffset[fgkNSlices];
-typedef std::tuple<GLsizei, GLsizei, int> vboList;
-struct GLvertex {GLfloat x, y, z; GLvertex(GLfloat a, GLfloat b, GLfloat c) : x(a), y(b), z(c) {}};
-vecpod<GLvertex> vertexBuffer[fgkNSlices];
-vecpod<GLint> vertexBufferStart[fgkNSlices];
-vecpod<GLsizei> vertexBufferCount[fgkNSlices];
-int drawCalls = 0;
-bool useGLIndirectDraw = true;
-bool useMultiVBO = false;
-inline void drawVertices(const vboList& v, const GLenum t)
+	backend->mDisplay = this;
+}
+
+const AliGPUCAParam& AliGPUCADisplay::param() {return mRec->GetParam();}
+const AliHLTTPCCATracker& AliGPUCADisplay::sliceTracker(int iSlice) {return mRec->GetTPCSliceTrackers()[iSlice];}
+const AliGPUReconstruction::InOutPointers AliGPUCADisplay::ioptrs() {return mRec->mIOPtrs;}
+
+inline void AliGPUCADisplay::drawVertices(const vboList& v, const GLenum t)
 {
 	auto first = std::get<0>(v);
 	auto count = std::get<1>(v);
@@ -86,64 +73,19 @@ inline void drawVertices(const vboList& v, const GLenum t)
 		CHKERR(glMultiDrawArrays(t, vertexBufferStart[iSlice].data() + first, vertexBufferCount[iSlice].data() + first, count));
 	}
 }
-inline void insertVertexList(std::pair<vecpod<GLint>*, vecpod<GLsizei>*>& vBuf, size_t first, size_t last)
+inline void AliGPUCADisplay::insertVertexList(std::pair<vecpod<GLint>*, vecpod<GLsizei>*>& vBuf, size_t first, size_t last)
 {
 	if (first == last) return;
 	vBuf.first->emplace_back(first);
 	vBuf.second->emplace_back(last - first);
 }
-inline void insertVertexList(int iSlice, size_t first, size_t last)
+inline void AliGPUCADisplay::insertVertexList(int iSlice, size_t first, size_t last)
 {
 	std::pair<vecpod<GLint>*, vecpod<GLsizei>*> vBuf(vertexBufferStart + iSlice, vertexBufferCount + iSlice);
 	insertVertexList(vBuf, first, last);
 }
 
-bool invertColors = false;
-const int drawQualityPoint = 0;
-const int drawQualityLine = 0;
-const int drawQualityPerspective = 0;
-const int drawQualityRenderToTexture = 1;
-int drawQualityMSAA = 0;
-int drawQualityDownsampleFSAA = 0;
-bool drawQualityVSync = 0;
-int maxFPSRate = 0;
-
-int testSetting = 0;
-
-bool camLookOrigin = false;
-bool camYUp = false;
-int cameraMode = 0;
-
-float angleRollOrigin = -1e9;
-float maxClusterZ = 0;
-
-int screenshot_scale = 1;
-
-const int init_width = 1024, init_height = 768;
-int screen_width = init_width, screen_height = init_height;
-int render_width = init_width, render_height = init_height;
-
-bool separateGlobalTracks = 0;
-bool propagateLoopers = 0;
-
-float mouseDnX, mouseDnY;
-float mouseMvX, mouseMvY;
-bool mouseDn = false;
-bool mouseDnR = false;
-int mouseWheel = 0;
-bool keys[256] = {false}; // Array Used For The Keyboard Routine
-bool keysShift[256] = {false}; //Shift held when key down
-
-volatile int exitButton = 0;
-volatile int sendKey = 0;
-
-GLfloat currentMatrix[16];
-float xyz[3];
-float angle[3];
-float rphitheta[3];
-float quat[4];
-template <typename... Args> void SetInfo(Args... args);
-void calcXYZ()
+void AliGPUCADisplay::calcXYZ()
 {
 	xyz[0] = -(currentMatrix[0] * currentMatrix[12] + currentMatrix[1] * currentMatrix[13] + currentMatrix[2] * currentMatrix[14]);
 	xyz[1] = -(currentMatrix[4] * currentMatrix[12] + currentMatrix[5] * currentMatrix[13] + currentMatrix[6] * currentMatrix[14]);
@@ -182,54 +124,19 @@ void calcXYZ()
 	}*/
 }
 
-int projectxy = 0;
-
-int markClusters = 0;
-int hideRejectedClusters = 1;
-int hideUnmatchedClusters = 0;
-int hideRejectedTracks = 1;
-int markAdjacentClusters = 0;
-
-vecpod<std::array<int,37>> collisionClusters;
-int nCollisions = 1;
-void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster)
+void AliGPUCADisplay::SetCollisionFirstCluster(unsigned int collision, int slice, int cluster)
 {
 	nCollisions = collision + 1;
 	collisionClusters.resize(nCollisions);
 	collisionClusters[collision][slice] = cluster;
 }
 
-float Xadd = 0;
-float Zadd = 0;
-
-std::unique_ptr<float4[]> globalPosPtr = nullptr;
-float4* globalPos;
-int maxClusters = 0;
-int currentClusters = 0;
-
-volatile int displayEventNr = 0;
-int currentEventNr = -1;
-
-int glDLrecent = 0;
-int updateDLList = 0;
-
-int animate = 0;
-HighResTimer animationTimer;
-int animationFrame = 0;
-int animationLastBase = 0;
-int animateScreenshot = 0;
-int animationExport = 0;
-bool animationChangeConfig = true;
-float animationDelay = 2.f;
-vecpod<float> animateVectors[9];
-vecpod<OpenGLConfig> animateConfig;
-opengl_spline animationSplines[8];
-void animationCloseAngle(float& newangle, float lastAngle)
+void AliGPUCADisplay::animationCloseAngle(float& newangle, float lastAngle)
 {
 	const float delta = lastAngle > newangle ? (2 * M_PI) : (-2 * M_PI);
 	while (fabs(newangle + delta - lastAngle) < fabs(newangle - lastAngle)) newangle += delta;
 }
-void animateCloseQuaternion(float* v, float lastx, float lasty, float lastz, float lastw)
+void AliGPUCADisplay::animateCloseQuaternion(float* v, float lastx, float lasty, float lastz, float lastw)
 {
 	float distPos2 = (lastx - v[0]) * (lastx - v[0]) + (lasty - v[1]) * (lasty - v[1]) + (lastz - v[2]) * (lastz - v[2]) + (lastw - v[3]) * (lastw - v[3]);
 	float distNeg2 = (lastx + v[0]) * (lastx + v[0]) + (lasty + v[1]) * (lasty + v[1]) + (lastz + v[2]) * (lastz + v[2]) + (lastw + v[3]) * (lastw + v[3]);
@@ -238,7 +145,7 @@ void animateCloseQuaternion(float* v, float lastx, float lasty, float lastz, flo
 		for (int i = 0;i < 4;i++) v[i] = -v[i];
 	}
 }
-void setAnimationPoint()
+void AliGPUCADisplay::setAnimationPoint()
 {
 	if (cfg.animationMode & 4) //Spherical
 	{
@@ -279,19 +186,19 @@ void setAnimationPoint()
 	animateVectors[0].emplace_back(delay);
 	animateConfig.emplace_back(cfg);
 }
-void resetAnimation()
+void AliGPUCADisplay::resetAnimation()
 {
 	for (int i = 0;i < 9;i++) animateVectors[i].clear();
 	animateConfig.clear();
 	animate = 0;
 }
-void removeAnimationPoint()
+void AliGPUCADisplay::removeAnimationPoint()
 {
 	if (animateVectors[0].size() == 0) return;
 	for (int i = 0;i < 9;i++) animateVectors[i].pop_back();
 	animateConfig.pop_back();
 }
-void startAnimation()
+void AliGPUCADisplay::startAnimation()
 {
 	for (int i = 0;i < 8;i++) animationSplines[i].create(animateVectors[0], animateVectors[i + 1]);
 	animationTimer.ResetStart();
@@ -300,32 +207,23 @@ void startAnimation()
 	animationLastBase = 0;
 }
 
-volatile int resetScene = 0;
-
-int printInfoText = 1;
-char infoText2[1024];
-HighResTimer infoText2Timer, infoHelpTimer;
-void showInfo(const char* info);
-template <typename... Args> void SetInfo(Args... args)
+template <typename... Args> void AliGPUCADisplay::SetInfo(Args... args)
 {
 	sprintf(infoText2, args...);
 	infoText2Timer.ResetStart();
 }
 
-static constexpr const int N_POINTS_TYPE = 9;
-static constexpr const int N_LINES_TYPE = 6;
-static constexpr const int N_FINAL_TYPE = 4;
-inline void SetColorClusters() { if (cfg.colorCollisions) return; if (invertColors) glColor3f(0, 0.3, 0.7); else glColor3f(0, 0.7, 1.0); }
-inline void SetColorInitLinks() { if (invertColors) glColor3f(0.42, 0.4, 0.1); else glColor3f(0.42, 0.4, 0.1); }
-inline void SetColorLinks() { if (invertColors) glColor3f(0.6, 0.1, 0.1); else glColor3f(0.8, 0.2, 0.2); }
-inline void SetColorSeeds() { if (invertColors) glColor3f(0.6, 0.0, 0.65); else glColor3f(0.8, 0.1, 0.85); }
-inline void SetColorTracklets() { if (invertColors) glColor3f(0, 0, 0); else glColor3f(1, 1, 1); }
-inline void SetColorTracks() { if (invertColors) glColor3f(0.6, 0, 0.1); else glColor3f(0.8, 1., 0.15); }
-inline void SetColorGlobalTracks() { if (invertColors) glColor3f(0.8, 0.2, 0); else glColor3f(1.0, 0.4, 0); }
-inline void SetColorFinal() { if (cfg.colorCollisions) return; if (invertColors) glColor3f(0, 0.6, 0.1); else glColor3f(0, 0.7, 0.2); }
-inline void SetColorGrid() { if (invertColors) glColor3f(0.5, 0.5, 0); else glColor3f(0.7, 0.7, 0.0); }
-inline void SetColorMarked() { if (invertColors) glColor3f(0.8, 0, 0); else glColor3f(1.0, 0.0, 0.0); }
-inline void SetCollisionColor(int col)
+inline void AliGPUCADisplay::SetColorClusters() { if (cfg.colorCollisions) return; if (invertColors) glColor3f(0, 0.3, 0.7); else glColor3f(0, 0.7, 1.0); }
+inline void AliGPUCADisplay::SetColorInitLinks() { if (invertColors) glColor3f(0.42, 0.4, 0.1); else glColor3f(0.42, 0.4, 0.1); }
+inline void AliGPUCADisplay::SetColorLinks() { if (invertColors) glColor3f(0.6, 0.1, 0.1); else glColor3f(0.8, 0.2, 0.2); }
+inline void AliGPUCADisplay::SetColorSeeds() { if (invertColors) glColor3f(0.6, 0.0, 0.65); else glColor3f(0.8, 0.1, 0.85); }
+inline void AliGPUCADisplay::SetColorTracklets() { if (invertColors) glColor3f(0, 0, 0); else glColor3f(1, 1, 1); }
+inline void AliGPUCADisplay::SetColorTracks() { if (invertColors) glColor3f(0.6, 0, 0.1); else glColor3f(0.8, 1., 0.15); }
+inline void AliGPUCADisplay::SetColorGlobalTracks() { if (invertColors) glColor3f(0.8, 0.2, 0); else glColor3f(1.0, 0.4, 0); }
+inline void AliGPUCADisplay::SetColorFinal() { if (cfg.colorCollisions) return; if (invertColors) glColor3f(0, 0.6, 0.1); else glColor3f(0, 0.7, 0.2); }
+inline void AliGPUCADisplay::SetColorGrid() { if (invertColors) glColor3f(0.5, 0.5, 0); else glColor3f(0.7, 0.7, 0.0); }
+inline void AliGPUCADisplay::SetColorMarked() { if (invertColors) glColor3f(0.8, 0, 0); else glColor3f(1.0, 0.0, 0.0); }
+inline void AliGPUCADisplay::SetCollisionColor(int col)
 {
 	int red = (col * 2) % 5;
 	int blue =  (2 + col * 3) % 7;
@@ -335,7 +233,7 @@ inline void SetCollisionColor(int col)
 	glColor3f(red / 4., green / 5., blue / 6.);
 }
 
-void setQuality()
+void AliGPUCADisplay::setQuality()
 {
 	//Doesn't seem to make a difference in this applicattion
 	CHKERR(glHint(GL_POINT_SMOOTH_HINT, drawQualityPoint == 2 ? GL_NICEST : drawQualityPoint == 1 ? GL_DONT_CARE : GL_FASTEST));
@@ -351,7 +249,7 @@ void setQuality()
 	}
 }
 
-void setDepthBuffer()
+void AliGPUCADisplay::setDepthBuffer()
 {
 	if (cfg.depthBuffer)
 	{
@@ -364,16 +262,7 @@ void setDepthBuffer()
 	}
 }
 
-struct GLfb
-{
-	GLuint fb_id = 0, fbCol_id = 0, fbDepth_id = 0;
-	bool tex = false;
-	bool msaa = false;
-	bool depth = false;
-	bool created = false;
-};
-GLfb mixBuffer;
-void createFB_texture(GLuint& id, bool msaa, GLenum storage, GLenum attachment)
+void AliGPUCADisplay::createFB_texture(GLuint& id, bool msaa, GLenum storage, GLenum attachment)
 {
 	GLenum textureType = msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
 	CHKERR(glGenTextures(1, &id));
@@ -391,7 +280,7 @@ void createFB_texture(GLuint& id, bool msaa, GLenum storage, GLenum attachment)
 	CHKERR(glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, textureType, id, 0));
 }
 
-void createFB_renderbuffer(GLuint& id, bool msaa, GLenum storage, GLenum attachment)
+void AliGPUCADisplay::createFB_renderbuffer(GLuint& id, bool msaa, GLenum storage, GLenum attachment)
 {
 	CHKERR(glGenRenderbuffers(1, &id));
 	CHKERR(glBindRenderbuffer(GL_RENDERBUFFER, id));
@@ -400,7 +289,7 @@ void createFB_renderbuffer(GLuint& id, bool msaa, GLenum storage, GLenum attachm
 	CHKERR(glFramebufferRenderbuffer(GL_FRAMEBUFFER, attachment, GL_RENDERBUFFER, id));
 }
 
-void createFB(GLfb& fb, bool tex, bool withDepth, bool msaa)
+void AliGPUCADisplay::createFB(GLfb& fb, bool tex, bool withDepth, bool msaa)
 {
 	fb.tex = tex;
 	fb.depth = withDepth;
@@ -431,7 +320,7 @@ void createFB(GLfb& fb, bool tex, bool withDepth, bool msaa)
 	fb.created = true;
 }
 
-void deleteFB(GLfb& fb)
+void AliGPUCADisplay::deleteFB(GLfb& fb)
 {
 	if (fb.tex) CHKERR(glDeleteTextures(1, &fb.fbCol_id))
 	else CHKERR(glDeleteRenderbuffers(1, &fb.fbCol_id))
@@ -444,8 +333,7 @@ void deleteFB(GLfb& fb)
 	fb.created = false;
 }
 
-vecpod<GLuint> mainBufferStack{0};
-void setFrameBuffer(int updateCurrent = -1, GLuint newID = 0)
+void AliGPUCADisplay::setFrameBuffer(int updateCurrent, GLuint newID)
 {
 	if (updateCurrent == 1) mainBufferStack.push_back(newID);
 	else if (updateCurrent == 2) mainBufferStack.back() = newID;
@@ -464,8 +352,7 @@ void setFrameBuffer(int updateCurrent = -1, GLuint newID = 0)
 	}
 }
 
-GLfb offscreenBuffer, offscreenBufferNoMSAA;
-void UpdateOffscreenBuffers(bool clean = false)
+void AliGPUCADisplay::UpdateOffscreenBuffers(bool clean)
 {
 	if (mixBuffer.created) deleteFB(mixBuffer);
 	if (offscreenBuffer.created) deleteFB(offscreenBuffer);
@@ -492,25 +379,7 @@ void UpdateOffscreenBuffers(bool clean = false)
 	setQuality();
 }
 
-struct threadVertexBuffer
-{
-	vecpod<GLvertex> buffer;
-	vecpod<GLint> start[N_FINAL_TYPE];
-	vecpod<GLsizei> count[N_FINAL_TYPE];
-	std::pair<vecpod<GLint>*, vecpod<GLsizei>*> vBuf[N_FINAL_TYPE];
-	threadVertexBuffer() : buffer()
-	{
-		for (int i = 0;i < N_FINAL_TYPE;i++) {vBuf[i].first = start + i; vBuf[i].second = count + i;}
-	}
-	void clear()
-	{
-		for (int i = 0;i < N_FINAL_TYPE;i++) {start[i].clear(); count[i].clear();}
-	}
-};
-std::vector<threadVertexBuffer> threadBuffers;
-std::vector<std::vector<std::array<std::array<vecpod<int>, 2>, fgkNSlices>>> threadTracks;
-
-void ReSizeGLScene(int width, int height, bool init) // Resize And Initialize The GL Window
+void AliGPUCADisplay::ReSizeGLScene(int width, int height, bool init) // Resize And Initialize The GL Window
 {
 	if (height == 0) // Prevent A Divide By Zero By
 	{
@@ -539,13 +408,13 @@ void ReSizeGLScene(int width, int height, bool init) // Resize And Initialize Th
 	glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrix);
 }
 
-void updateConfig()
+void AliGPUCADisplay::updateConfig()
 {
 	setQuality();
 	setDepthBuffer();
 }
 
-int InitGL()
+int AliGPUCADisplay::InitGL()
 {
 	CHKERR(glewInit());
 
@@ -567,7 +436,7 @@ int InitGL()
 	CHKERR(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));                      // Black Background
 	setDepthBuffer();
 	setQuality();
-	ReSizeGLScene(init_width, init_height, true);
+	ReSizeGLScene(AliGPUCADisplayBackend::init_width, AliGPUCADisplayBackend::init_height, true);
 #ifdef HLTCA_HAVE_OPENMP
 	if (configStandalone.OMPThreads != -1) omp_set_num_threads(configStandalone.OMPThreads);
 	int maxThreads = omp_get_max_threads();
@@ -579,20 +448,20 @@ int InitGL()
 	return(1);                                     // Initialization Went OK
 }
 
-void ExitGL()
+void AliGPUCADisplay::ExitGL()
 {
 	UpdateOffscreenBuffers(true);
 	CHKERR(glDeleteBuffers(36, vbo_id));
 	CHKERR(glDeleteBuffers(1, &indirect_id));
 }
 
-inline void drawPointLinestrip(int iSlice, int cid, int id, int id_limit = TRACK_TYPE_ID_LIMIT)
+inline void AliGPUCADisplay::drawPointLinestrip(int iSlice, int cid, int id, int id_limit)
 {
 	vertexBuffer[iSlice].emplace_back(globalPos[cid].x, globalPos[cid].y, projectxy ? 0 : globalPos[cid].z);
 	if (globalPos[cid].w < id_limit) globalPos[cid].w = id;
 }
 
-vboList DrawClusters(const AliHLTTPCCATracker &tracker, int select, int iCol)
+AliGPUCADisplay::vboList AliGPUCADisplay::DrawClusters(const AliHLTTPCCATracker &tracker, int select, int iCol)
 {
 	int iSlice = tracker.ISlice();
 	size_t startCount = vertexBufferStart[iSlice].size();
@@ -638,7 +507,7 @@ vboList DrawClusters(const AliHLTTPCCATracker &tracker, int select, int iCol)
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
-vboList DrawLinks(const AliHLTTPCCATracker &tracker, int id, bool dodown = false)
+AliGPUCADisplay::vboList AliGPUCADisplay::DrawLinks(const AliHLTTPCCATracker &tracker, int id, bool dodown)
 {
 	int iSlice = tracker.ISlice();
 	if (config.clustersOnly) return(vboList(0, 0, iSlice));
@@ -682,7 +551,7 @@ vboList DrawLinks(const AliHLTTPCCATracker &tracker, int id, bool dodown = false
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
-vboList DrawSeeds(const AliHLTTPCCATracker &tracker)
+AliGPUCADisplay::vboList AliGPUCADisplay::DrawSeeds(const AliHLTTPCCATracker &tracker)
 {
 	int iSlice = tracker.ISlice();
 	if (config.clustersOnly) return(vboList(0, 0, iSlice));
@@ -706,7 +575,7 @@ vboList DrawSeeds(const AliHLTTPCCATracker &tracker)
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
-vboList DrawTracklets(const AliHLTTPCCATracker &tracker)
+AliGPUCADisplay::vboList AliGPUCADisplay::DrawTracklets(const AliHLTTPCCATracker &tracker)
 {
 	int iSlice = tracker.ISlice();
 	if (config.clustersOnly) return(vboList(0, 0, iSlice));
@@ -737,7 +606,7 @@ vboList DrawTracklets(const AliHLTTPCCATracker &tracker)
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
-vboList DrawTracks(const AliHLTTPCCATracker &tracker, int global)
+AliGPUCADisplay::vboList AliGPUCADisplay::DrawTracks(const AliHLTTPCCATracker &tracker, int global)
 {
 	int iSlice = tracker.ISlice();
 	if (config.clustersOnly) return(vboList(0, 0, iSlice));
@@ -758,7 +627,7 @@ vboList DrawTracks(const AliHLTTPCCATracker &tracker, int global)
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
-void DrawFinal(int iSlice, int /*iCol*/, AliHLTTPCGMPropagator* prop, std::array<vecpod<int>, 2>& trackList, threadVertexBuffer& threadBuffer)
+void AliGPUCADisplay::DrawFinal(int iSlice, int /*iCol*/, AliHLTTPCGMPropagator* prop, std::array<vecpod<int>, 2>& trackList, threadVertexBuffer& threadBuffer)
 {
 	auto& vBuf = threadBuffer.vBuf;
 	auto& buffer = threadBuffer.buffer;
@@ -816,21 +685,21 @@ void DrawFinal(int iSlice, int /*iCol*/, AliHLTTPCGMPropagator* prop, std::array
 			size_t startCountInner = vertexBuffer[iSlice].size();
 			for (int inFlyDirection = 0;inFlyDirection < 2;inFlyDirection++)
 			{
-				AliHLTTPCGMPhysicalTrackModel param;
+				AliHLTTPCGMPhysicalTrackModel trkParam;
 				float ZOffset = 0;
 				float x = 0;
 				int slice = iSlice;
-				float alpha = hlt.Param().Alpha(slice);
+				float alpha = param().Alpha(slice);
 				if (iMC == 0)
 				{
-					param.Set(track->GetParam());
+					trkParam.Set(track->GetParam());
 					ZOffset = track->GetParam().GetZOffset();
 					auto cl = merger.Clusters()[track->FirstClusterRef() + lastCluster];
 					x = cl.fX;
 				}
 				else
 				{
-					const AliHLTTPCCAMCInfo& mc = hlt.GetMCInfo()[i];
+					const AliHLTTPCCAMCInfo& mc = ioptrs().mcInfosTPC[i];
 					if (mc.fCharge == 0.f) break;
 					if (mc.fPID < 0) break;
 
@@ -849,46 +718,46 @@ void DrawFinal(int iSlice, int /*iCol*/, AliHLTTPCGMPropagator* prop, std::array
 
 					x = mclocal[0];
 					if (fabs(mc.fZ) > 250) ZOffset = mc.fZ > 0 ? (mc.fZ - 250) : (mc.fZ + 250);
-					param.Set(mclocal[0], mclocal[1], mc.fZ - ZOffset, mclocal[2], mclocal[3], mc.fPz, charge);
+					trkParam.Set(mclocal[0], mclocal[1], mc.fZ - ZOffset, mclocal[2], mclocal[3], mc.fPz, charge);
 				}
-				param.X() += Xadd;
+				trkParam.X() += Xadd;
 				x += Xadd;
-				float z0 = param.Z();
+				float z0 = trkParam.Z();
 				if (iMC && inFlyDirection == 0) buffer.clear();
 				if (x < 1) break;
-				if (fabs(param.SinPhi()) > 1) break;
-				alpha = hlt.Param().Alpha(slice);
+				if (fabs(trkParam.SinPhi()) > 1) break;
+				alpha = param().Alpha(slice);
 				vecpod<GLvertex>& useBuffer = iMC && inFlyDirection == 0 ? buffer : vertexBuffer[iSlice];
 				int nPoints = 0;
 
 				while (nPoints++ < 5000)
 				{
-					if ((inFlyDirection == 0 && x < 0) || (inFlyDirection && x * x + param.Y() * param.Y() > (iMC ? (450 * 450) : (300 * 300)))) break;
-					if (fabs(param.Z() + ZOffset) > maxClusterZ + (iMC ? 0 : 0)) break;
-					if (fabs(param.Z() - z0) > (iMC ? 250 : 250)) break;
+					if ((inFlyDirection == 0 && x < 0) || (inFlyDirection && x * x + trkParam.Y() * trkParam.Y() > (iMC ? (450 * 450) : (300 * 300)))) break;
+					if (fabs(trkParam.Z() + ZOffset) > maxClusterZ + (iMC ? 0 : 0)) break;
+					if (fabs(trkParam.Z() - z0) > (iMC ? 250 : 250)) break;
 					if (inFlyDirection)
 					{
-						if (fabs(param.SinPhi()) > 0.4)
+						if (fabs(trkParam.SinPhi()) > 0.4)
 						{
-							float dalpha = asinf(param.SinPhi());
-							param.Rotate(dalpha);
+							float dalpha = asinf(trkParam.SinPhi());
+							trkParam.Rotate(dalpha);
 							alpha += dalpha;
 						}
-						x = param.X() + 1.f;
+						x = trkParam.X() + 1.f;
 						if (!propagateLoopers)
 						{
-							float diff = fabs(alpha - hlt.Param().Alpha(slice)) / (2. * M_PI);
+							float diff = fabs(alpha - param().Alpha(slice)) / (2. * M_PI);
 							diff -= floor(diff);
 							if (diff > 0.25 && diff < 0.75) break;
 						}
 					}
 					float B[3];
-					prop->GetBxByBz(alpha, param.GetX(), param.GetY(), param.GetZ(), B );
+					prop->GetBxByBz(alpha, trkParam.GetX(), trkParam.GetY(), trkParam.GetZ(), B );
 					float dLp=0;
-					if (param.PropagateToXBxByBz(x, B[0], B[1], B[2], dLp)) break;
-					if (fabs(param.SinPhi()) > 0.9) break;
+					if (trkParam.PropagateToXBxByBz(x, B[0], B[1], B[2], dLp)) break;
+					if (fabs(trkParam.SinPhi()) > 0.9) break;
 					float sa = sinf(alpha), ca = cosf(alpha);
-					useBuffer.emplace_back((ca * param.X() - sa * param.Y()) / GL_SCALE_FACTOR, (ca * param.Y() + sa * param.X()) / GL_SCALE_FACTOR, projectxy ? 0 : (param.Z() + ZOffset) / GL_SCALE_FACTOR);
+					useBuffer.emplace_back((ca * trkParam.X() - sa * trkParam.Y()) / GL_SCALE_FACTOR, (ca * trkParam.Y() + sa * trkParam.X()) / GL_SCALE_FACTOR, projectxy ? 0 : (trkParam.Z() + ZOffset) / GL_SCALE_FACTOR);
 					x += inFlyDirection ? 1 : -1;
 				}
 
@@ -913,7 +782,7 @@ void DrawFinal(int iSlice, int /*iCol*/, AliHLTTPCGMPropagator* prop, std::array
 	}
 }
 
-vboList DrawGrid(const AliHLTTPCCATracker &tracker)
+AliGPUCADisplay::vboList AliGPUCADisplay::DrawGrid(const AliHLTTPCCATracker &tracker)
 {
 	int iSlice = tracker.ISlice();
 	size_t startCount = vertexBufferStart[iSlice].size();
@@ -970,7 +839,7 @@ vboList DrawGrid(const AliHLTTPCCATracker &tracker)
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
-int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All The Drawing
+int AliGPUCADisplay::DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All The Drawing
 {
 	static float fpsscale = 1, fpsscaleadjust = 0;
 
@@ -1006,13 +875,13 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		glLoadIdentity();                                   // Reset The Current Modelview Matrix
 	}
 
-	int mouseWheelTmp = mouseWheel;
-	mouseWheel = 0;
-	bool lookOrigin = camLookOrigin ^ keys[KEY_ALT];
-	bool yUp = camYUp ^ keys[KEY_CTRL] ^ lookOrigin;
+	int mouseWheelTmp = mBackend->mouseWheel;
+	mBackend->mouseWheel = 0;
+	bool lookOrigin = camLookOrigin ^ mBackend->keys[mBackend->KEY_ALT];
+	bool yUp = camYUp ^ mBackend->keys[mBackend->KEY_CTRL] ^ lookOrigin;
 
 	//Calculate rotation / translation scaling factors
-	float scalefactor = keys[KEY_SHIFT] ? 0.2 : 1.0;
+	float scalefactor = mBackend->keys[mBackend->KEY_SHIFT] ? 0.2 : 1.0;
 	float rotatescalefactor = scalefactor * 0.25f;
 	if (cfg.drawSlice != -1)
 	{
@@ -1144,30 +1013,30 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 	}
 	else
 	{
-		float moveZ = scalefactor * ((float) mouseWheelTmp / 150 + (float) (keys['W'] - keys['S']) * (!keys[KEY_SHIFT]) * 0.2 * fpsscale);
-		float moveY = scalefactor * ((float) (keys[KEY_PAGEDOWN] - keys[KEY_PAGEUP]) * 0.2 * fpsscale);
-		float moveX = scalefactor * ((float) (keys['A'] - keys['D']) * (!keys[KEY_SHIFT]) * 0.2 * fpsscale);
-		float rotRoll = rotatescalefactor * fpsscale * 2 * (keys['E'] - keys['F']) * (!keys[KEY_SHIFT]);
-		float rotYaw = rotatescalefactor * fpsscale * 2 * (keys[KEY_RIGHT] - keys[KEY_LEFT]);
-		float rotPitch = rotatescalefactor * fpsscale * 2 * (keys[KEY_DOWN] - keys[KEY_UP]);
+		float moveZ = scalefactor * ((float) mouseWheelTmp / 150 + (float) (mBackend->keys['W'] - mBackend->keys['S']) * (!mBackend->keys[mBackend->KEY_SHIFT]) * 0.2 * fpsscale);
+		float moveY = scalefactor * ((float) (mBackend->keys[mBackend->KEY_PAGEDOWN] - mBackend->keys[mBackend->KEY_PAGEUP]) * 0.2 * fpsscale);
+		float moveX = scalefactor * ((float) (mBackend->keys['A'] - mBackend->keys['D']) * (!mBackend->keys[mBackend->KEY_SHIFT]) * 0.2 * fpsscale);
+		float rotRoll = rotatescalefactor * fpsscale * 2 * (mBackend->keys['E'] - mBackend->keys['F']) * (!mBackend->keys[mBackend->KEY_SHIFT]);
+		float rotYaw = rotatescalefactor * fpsscale * 2 * (mBackend->keys[mBackend->KEY_RIGHT] - mBackend->keys[mBackend->KEY_LEFT]);
+		float rotPitch = rotatescalefactor * fpsscale * 2 * (mBackend->keys[mBackend->KEY_DOWN] - mBackend->keys[mBackend->KEY_UP]);
 
-		if (mouseDnR && mouseDn)
+		if (mBackend->mouseDnR && mBackend->mouseDn)
 		{
-			moveZ += -scalefactor * ((float) mouseMvY - (float) mouseDnY) / 4;
-			rotRoll += rotatescalefactor * ((float) mouseMvX - (float) mouseDnX);
+			moveZ += -scalefactor * ((float) mBackend->mouseMvY - (float) mBackend->mouseDnY) / 4;
+			rotRoll += rotatescalefactor * ((float) mBackend->mouseMvX - (float) mBackend->mouseDnX);
 		}
-		else if (mouseDnR)
+		else if (mBackend->mouseDnR)
 		{
-			moveX += -scalefactor * 0.5 * ((float) mouseDnX - (float) mouseMvX) / 4;
-			moveY += -scalefactor * 0.5 * ((float) mouseMvY - (float) mouseDnY) / 4;
+			moveX += -scalefactor * 0.5 * ((float) mBackend->mouseDnX - (float) mBackend->mouseMvX) / 4;
+			moveY += -scalefactor * 0.5 * ((float) mBackend->mouseMvY - (float) mBackend->mouseDnY) / 4;
 		}
-		else if (mouseDn)
+		else if (mBackend->mouseDn)
 		{
-			rotYaw += rotatescalefactor * ((float) mouseMvX - (float) mouseDnX);
-			rotPitch += rotatescalefactor * ((float) mouseMvY - (float) mouseDnY);
+			rotYaw += rotatescalefactor * ((float) mBackend->mouseMvX - (float) mBackend->mouseDnX);
+			rotPitch += rotatescalefactor * ((float) mBackend->mouseMvY - (float) mBackend->mouseDnY);
 		}
 
-		if (keys['<'] && !keysShift['<'])
+		if (mBackend->keys['<'] && !mBackend->keysShift['<'])
 		{
 			animationDelay += moveX;
 			if (animationDelay < 0.05) animationDelay = 0.05;
@@ -1229,12 +1098,12 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 
 		//Graphichs Options
 		float minSize = 0.4 / (drawQualityDownsampleFSAA > 1 ? drawQualityDownsampleFSAA : 1);
-		int deltaLine = keys['+']*keysShift['+'] - keys['-']*keysShift['-'];
+		int deltaLine = mBackend->keys['+'] * mBackend->keysShift['+'] - mBackend->keys['-'] * mBackend->keysShift['-'];
 		cfg.lineWidth += (float) deltaLine * fpsscale * 0.02 * cfg.lineWidth;
 		if (cfg.lineWidth < minSize) cfg.lineWidth = minSize;
 		if (deltaLine) SetInfo("%s line width: %f", deltaLine > 0 ? "Increasing" : "Decreasing", cfg.lineWidth);
 		minSize *= 2;
-		int deltaPoint = keys['+']*(!keysShift['+']) - keys['-']*(!keysShift['-']);
+		int deltaPoint = mBackend->keys['+']*(!mBackend->keysShift['+']) - mBackend->keys['-'] * (!mBackend->keysShift['-']);
 		cfg.pointSize += (float) deltaPoint * fpsscale * 0.02 * cfg.pointSize;
 		if (cfg.pointSize < minSize) cfg.pointSize = minSize;
 		if (deltaPoint) SetInfo("%s point size: %f", deltaPoint > 0 ? "Increasing" : "Decreasing", cfg.pointSize);
@@ -1247,10 +1116,10 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		calcXYZ();
 	}
 
-	if (mouseDn || mouseDnR)
+	if (mBackend->mouseDn || mBackend->mouseDnR)
 	{
-		mouseDnX = mouseMvX;
-		mouseDnY = mouseMvY;
+		mBackend->mouseDnX = mBackend->mouseMvX;
+		mBackend->mouseDnY = mBackend->mouseMvY;
 	}
 
 	//Open GL Default Values
@@ -1264,14 +1133,14 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 	CHKERR(glLineWidth(cfg.lineWidth * (drawQualityDownsampleFSAA > 1 ? drawQualityDownsampleFSAA : 1)));
 
 	//Extract global cluster information
-	if (updateDLList || displayEventNr != currentEventNr)
+	if (updateDLList)
 	{
 		showTimer = true;
 		timerDraw.ResetStart();
 		currentClusters = 0;
 		for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 		{
-			currentClusters += hlt.Tracker().CPUTracker(iSlice).NHitsTotal();
+			currentClusters += sliceTracker(iSlice).NHitsTotal();
 		}
 
 		if (maxClusters < currentClusters)
@@ -1284,17 +1153,17 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		maxClusterZ = 0;
 		for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 		{
-			const AliHLTTPCCAClusterData &cdata = hlt.ClusterData(iSlice);
-			for (int i = 0;i < cdata.NumberOfClusters();i++)
+			for (unsigned int i = 0;i < ioptrs().nClusterData[iSlice];i++)
 			{
-				const int cid = cdata.Id(i);
+				const auto& cl = ioptrs().clusterData[iSlice][i];
+				const int cid = cl.fId;
 				if (cid >= maxClusters)
 				{
 					printf("Cluster Buffer Size exceeded (id %d max %d)\n", cid, maxClusters);
-					exit(1);
+					return(1);
 				}
 				float4 *ptr = &globalPos[cid];
-				hlt.Tracker().CPUTracker(iSlice).Param().Slice2Global(iSlice, cdata.X(i) + Xadd, cdata.Y(i), cdata.Z(i), &ptr->x, &ptr->y, &ptr->z);
+				sliceTracker(iSlice).Param().Slice2Global(iSlice, cl.fX + Xadd, cl.fY, cl.fZ, &ptr->x, &ptr->y, &ptr->z);
 				if (fabs(ptr->z) > maxClusterZ) maxClusterZ = fabs(ptr->z);
 				if (iSlice < 18)
 				{
@@ -1313,8 +1182,6 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 				ptr->w = 1;
 			}
 		}
-
-		currentEventNr = displayEventNr;
 
 		timerFPS.ResetStart();
 		framesDoneFPS = 0;
@@ -1352,7 +1219,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 #endif
 			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
-				AliHLTTPCCATracker &tracker = (AliHLTTPCCATracker&) hlt.Tracker().CPUTracker(iSlice);
+				AliHLTTPCCATracker &tracker = (AliHLTTPCCATracker&) sliceTracker(iSlice);
 				char *tmpMem;
 				if (tracker.fLinkTmpMemory == NULL)
 				{
@@ -1380,7 +1247,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 #endif
 			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
-				const AliHLTTPCCATracker &tracker = hlt.Tracker().CPUTracker(iSlice);
+				const AliHLTTPCCATracker &tracker = sliceTracker(iSlice);
 
 				glDLlines[iSlice][1] = DrawLinks(tracker, 2);
 				glDLlines[iSlice][2] = DrawSeeds(tracker);
@@ -1395,7 +1262,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 #endif
 			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
-				const AliHLTTPCCATracker &tracker = hlt.Tracker().CPUTracker(iSlice);
+				const AliHLTTPCCATracker &tracker = sliceTracker(iSlice);
 				glDLlines[iSlice][5] = DrawTracks(tracker, 1);
 			}
 
@@ -1425,9 +1292,9 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 #ifdef HLTCA_HAVE_OPENMP
 #pragma omp for
 #endif
-			for (int i = 0;i < hlt.GetNMCInfo();i++)
+			for (unsigned int i = 0;i < ioptrs().nMCInfosTPC;i++)
 			{
-				const AliHLTTPCCAMCInfo& mc = hlt.GetMCInfo()[i];
+				const AliHLTTPCCAMCInfo& mc = ioptrs().mcInfosTPC[i];
 				if (mc.fCharge == 0.f) continue;
 				if (mc.fPID < 0) continue;
 
@@ -1438,7 +1305,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 				unsigned int col = 0;
 				if (nCollisions > 1)
 				{
-					while (col < collisionClusters.size() && collisionClusters[col][fgkNSlices] < i) col++;
+					while (col < collisionClusters.size() && collisionClusters[col][fgkNSlices] < (int) i) col++;
 				}
 				threadTracks[numThread][col][slice][1].emplace_back(i);
 			}
@@ -1475,7 +1342,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 #endif
 			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
-				const AliHLTTPCCATracker &tracker = hlt.Tracker().CPUTracker(iSlice);
+				const AliHLTTPCCATracker &tracker = sliceTracker(iSlice);
 				for (int i = 0;i < N_POINTS_TYPE;i++)
 				{
 					for (int iCol = 0;iCol < nCollisions;iCol++)
@@ -1620,7 +1487,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		}
 		LOOP_SLICE LOOP_COLLISION_COL(drawVertices(GLpoints[iSlice][7][iCol], GL_POINTS));
 	skip3:;
-}
+	}
 
 	if (!config.clustersOnly && !cfg.excludeClusters)
 	{
@@ -1765,7 +1632,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 	return(true);
 }
 
-void DoScreenshot(char *filename, float animateTime)
+void AliGPUCADisplay::DoScreenshot(char *filename, float animateTime)
 {
 	int SCALE_Y = screenshot_scale, SCALE_X = screenshot_scale;
 
@@ -1893,30 +1760,30 @@ const char* HelpText[] = {
 	//FREE: u z
 };
 
-void PrintHelp()
+void AliGPUCADisplay::PrintHelp()
 {
 	infoHelpTimer.ResetStart();
 	for (unsigned int i = 0;i < sizeof(HelpText) / sizeof(HelpText[0]);i++) printf("%s\n", HelpText[i]);
 }
 
-void HandleKeyRelease(int wParam, char key)
+void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 {
-	keys[wParam] = false;
+	mBackend->keys[wParam] = false;
 
 	if (wParam >= 'A' && wParam <= 'Z')
 	{
-		if (keysShift[wParam]) wParam &= ~(int) ('a' ^ 'A');
+		if (mBackend->keysShift[wParam]) wParam &= ~(int) ('a' ^ 'A');
 		else wParam |= (int) ('a' ^ 'A');
 	}
 
 	if (wParam == 13 || wParam == 'n')
 	{
-		exitButton = 1;
+		mBackend->displayControl = 1;
 		SetInfo("Showing next event");
 	}
 	else if (wParam == 27 || wParam == 'q' || wParam == 'Q')
 	{
-		exitButton = 2;
+		mBackend->displayControl = 2;
 		SetInfo("Exiting");
 	}
 	else if (wParam == 'r')
@@ -1924,13 +1791,13 @@ void HandleKeyRelease(int wParam, char key)
 		resetScene = 1;
 		SetInfo("View reset");
 	}
-	else if (wParam == KEY_ALT && keysShift[KEY_ALT])
+	else if (wParam == mBackend->KEY_ALT && mBackend->keysShift[mBackend->KEY_ALT])
 	{
 		camLookOrigin ^= 1;
 		cameraMode = camLookOrigin + 2 * camYUp;
 		SetInfo("Camera locked on origin: %s", camLookOrigin ? "enabled" : "disabled");
 	}
-	else if (wParam == KEY_CTRL && keysShift[KEY_CTRL])
+	else if (wParam == mBackend->KEY_CTRL && mBackend->keysShift[mBackend->KEY_CTRL])
 	{
 		camYUp ^= 1;
 		cameraMode = camLookOrigin + 2 * camYUp;
@@ -1945,9 +1812,9 @@ void HandleKeyRelease(int wParam, char key)
 		const char* modeText[] = {"Descent (free movement)", "Focus locked on origin (y-axis forced upwards)", "Spectator (y-axis forced upwards)", "Focus locked on origin (with free rotation)"};
 		SetInfo("Camera mode %d: %s", cameraMode, modeText[cameraMode]);
 	}
-	else if (wParam == KEY_ALT)
+	else if (wParam == mBackend->KEY_ALT)
 	{
-		keys[KEY_CTRL] = false; //Release CTRL with alt, to avoid orienting along y automatically!
+		mBackend->keys[mBackend->KEY_CTRL] = false; //Release CTRL with alt, to avoid orienting along y automatically!
 	}
 	else if (wParam == 'l')
 	{
@@ -2008,18 +1875,18 @@ void HandleKeyRelease(int wParam, char key)
 	}
 	else if (wParam == 'F')
 	{
-		SwitchFullscreen();
+		mBackend->SwitchFullscreen();
 		SetInfo("Toggling full screen");
 	}
 	else if (wParam == '_')
 	{
-		ToggleMaximized();
+		mBackend->ToggleMaximized();
 		SetInfo("Toggling maximized window");
 	}
 	else if (wParam == 'R')
 	{
-		maxFPSRate ^= 1;
-		SetInfo("FPS rate %s", maxFPSRate ? "not limited" : "limited");
+		mBackend->maxFPSRate ^= 1;
+		SetInfo("FPS rate %s", mBackend->maxFPSRate ? "not limited" : "limited");
 	}
 	else if (wParam == 'H')
 	{
@@ -2130,7 +1997,7 @@ void HandleKeyRelease(int wParam, char key)
 	else if (wParam == 'V')
 	{
 		drawQualityVSync ^= true;
-		SetVSync(drawQualityVSync);
+		mBackend->SetVSync(drawQualityVSync);
 		SetInfo("VSync: %s", drawQualityVSync ? "enabled" : "disabled");
 	}
 	else if (wParam == 'I')
@@ -2361,7 +2228,7 @@ void HandleKeyRelease(int wParam, char key)
 	}
 }
 
-void showInfo(const char* info)
+void AliGPUCADisplay::showInfo(const char* info)
 {
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -2374,7 +2241,7 @@ void showInfo(const char* info)
 	if (invertColors) glColor3f(colorValue, colorValue, colorValue);
 	else glColor3f(colorValue, colorValue, colorValue);
 	glRasterPos2f(40.f, 40.f);
-	OpenGLPrint(info);
+	mBackend->OpenGLPrint(info);
 	if (infoText2Timer.IsRunning())
 	{
 		if (infoText2Timer.GetCurrentElapsedTime() >= 6)
@@ -2385,7 +2252,7 @@ void showInfo(const char* info)
 		{
 			if (infoText2Timer.GetCurrentElapsedTime() >= 5) glColor4f(colorValue, colorValue, colorValue, 6 - infoText2Timer.GetCurrentElapsedTime());
 			glRasterPos2f(40.f, 20.f);
-			OpenGLPrint(infoText2);
+			mBackend->OpenGLPrint(infoText2);
 		}
 	}
 	if (infoHelpTimer.IsRunning())
@@ -2400,7 +2267,7 @@ void showInfo(const char* info)
 			for (unsigned int i = 0;i < sizeof(HelpText) / sizeof(HelpText[0]);i++)
 			{
 				glRasterPos2f(40.f, screen_height - 35 - 20 * (1 + i));
-				OpenGLPrint(HelpText[i]);
+				mBackend->OpenGLPrint(HelpText[i]);
 			}
 		}
 	}
@@ -2409,18 +2276,25 @@ void showInfo(const char* info)
 	glPopMatrix();
 }
 
-void HandleSendKey()
+void AliGPUCADisplay::HandleSendKey()
 {
+	volatile int& sendKey = mBackend->sendKey;
 	if (sendKey)
 	{
 		//fprintf(stderr, "sendKey %d '%c'\n", sendKey, (char) sendKey);
 
 		bool shifted = sendKey >= 'A' && sendKey <= 'Z';
 		if (sendKey >= 'a' && sendKey <= 'z') sendKey ^= 'a' ^ 'A';
-		bool oldShift = keysShift[sendKey];
-		keysShift[sendKey] = shifted;
+		bool oldShift = mBackend->keysShift[sendKey];
+		mBackend->keysShift[sendKey] = shifted;
 		HandleKeyRelease(sendKey, sendKey);
-		keysShift[sendKey] = oldShift;
+		mBackend->keysShift[sendKey] = oldShift;
 		sendKey = 0;
 	}
+}
+
+void AliGPUCADisplay::ShowNextEvent()
+{
+	mBackend->needUpdate = 1;
+	updateDLList = true;
 }
