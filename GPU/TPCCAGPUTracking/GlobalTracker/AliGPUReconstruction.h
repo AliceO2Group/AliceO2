@@ -29,6 +29,7 @@ struct AliHLTTPCRawCluster;
 struct ClusterNativeAccessExt;
 struct AliHLTTRDTrackletLabels;
 class AliGPUCADisplay;
+class AliGPUCAQA;
 
 namespace o2 { namespace ITS { class TrackerTraits; }}
 namespace o2 { namespace trd { class TRDGeometryFlat; }}
@@ -183,6 +184,8 @@ public:
 	const AliHLTTPCCATracker* GetTPCSliceTrackers() const {return mTPCSliceTrackersCPU;}
 	const AliHLTTPCGMMerger& GetTPCMerger() const {return mTPCMergerCPU;}
 	AliHLTTPCGMMerger& GetTPCMerger() {return mTPCMergerCPU;}
+	const AliGPUCAQA* GetQA() const {return mQA.get();}
+	AliGPUCAQA* GetQA() {return mQA.get();}
 	
 	//Processing functions
 	int RunStandalone();
@@ -265,6 +268,7 @@ protected:
 	AliGPUCAOutputControl mOutputControl;										//Controls the output of the individual components
 	
 	std::unique_ptr<AliGPUCADisplay> mEventDisplay;
+	std::unique_ptr<AliGPUCAQA> mQA;
 	
 	std::unique_ptr<TPCFastTransform> mTPCFastTransform;						//Global TPC fast transformation object
 	std::unique_ptr<ClusterNativeAccessExt> mClusterNativeAccess;				//Internal memory for clusterNativeAccess

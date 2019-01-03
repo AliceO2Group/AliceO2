@@ -38,7 +38,8 @@ endif
 endif
 
 ifeq ($(BUILD_QA), 1)
-CPPFILES					+= qa/qa.cpp qa/genEvents.cpp
+CPPFILES					+= qa/AliGPUCAQA.cpp
+#CPPFILES					+= qa/genEvents.cpp #Disabled, since not yet compatible to AliGPUReconstruction
 DEFINES						+= BUILD_QA
 endif
 
