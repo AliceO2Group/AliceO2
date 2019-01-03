@@ -1,21 +1,10 @@
 #include <gpucf/ClCanary.h>
-#include <gpucf/ClEnv.h>
-#include <gpucf/log.h>
 
 
-int main() {
-    try {
-        ClEnv env; 
-        ClCanary canary;
+int main(int argc, const char *argv[]) {
+    ClCanary canary;
 
-        canary.run(env);
-
-        return 0;
-    } catch (const Exception &e) {
-        log::Error() << "Caught exception: " << e.what();
-
-        return 1;
-    }
+    return canary.main(argc, argv);
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

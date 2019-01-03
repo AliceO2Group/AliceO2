@@ -1,7 +1,10 @@
 set(GPUCF_SRC
     "./log.cpp"
     "./errorcodes.cpp"
+    "./ClCanary.cpp"
     "./ClEnv.cpp"
+    "./Executable.cpp"
+    "./VectorAdd.cpp"
 
     "./common/Digit.cpp"
 
