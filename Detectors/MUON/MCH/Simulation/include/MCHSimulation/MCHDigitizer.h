@@ -34,17 +34,13 @@ class MCHDigitizer
 
   void init();
 
-  void process(const std::vector<Hit> hits, std::vector<Digit>& digits);
-
-  Double_t getXmin(Int_t detID, Double_t hitX);
-  Double_t getXmax(Int_t detID, Double_t hitX);
-  Double_t getYmin(Int_t detID, Double_t hitY);
-  Double_t getYmax(Int_t detID, Double_t hitY);
-
+    
+  void setEventTime(double timeNS) { mEventTime = timeNS; }
+  void setEventID(int eventID) { mEventID = eventID; }
+  void setSrcID(int sID) { mSrcID = sID; }
   
-  void setEventTime(double value) { mEventTime = value; }
-  void setEventID(Int_t id) { mEventID = id; }
-  void setSrcID(Int_t id) { mSrcID = id; }
+  //this will process hits and fill the digit vector with digits which are finalized
+  void process(const std::vector<Hit> hits, std::vector<Digit>& digits);
 
   void fillOutputContainer(std::vector<Digit>& digits);
   void flushOutputContainer(std::vector<Digit>& digits); // flush all residual buffered data
@@ -53,10 +49,10 @@ class MCHDigitizer
   bool isContinuous() const { return mContinuous; }
   
  private:  
-  Double_t mEventTime;
-  Int_t mReadoutWindowCurrent;  
-  Int_t mEventID = 0;
-  Int_t mSrcID = 0;
+  double mEventTime;
+  int mReadoutWindowCurrent;  
+  int mEventID = 0;
+  int mSrcID = 0;
   
   bool mContinuous = false; 
 
@@ -81,7 +77,7 @@ class MCHDigitizer
   //seem to be only two different values (st. 1 and st. 2-5)...overhead limited
   //any need for separate values as in old code? in principle not...I think
   
-  Int_t processHit(const Hit& hit, Double_t event_time);
+  int processHit(const Hit& hit, double event_time);
 };
 
 } // namoespace mch
