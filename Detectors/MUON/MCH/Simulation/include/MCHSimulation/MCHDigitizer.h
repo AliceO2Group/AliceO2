@@ -52,8 +52,6 @@ class MCHDigitizer
   void setContinuous(bool val) { mContinuous = val; }
   bool isContinuous() const { return mContinuous; }
   
-  std::vector<int> getPadUid(Double_t xMin, Double_t xMax, Double_t yMin, Double_t yMax, bool bend);
-  
  private:  
   Double_t mEventTime;
   Int_t mReadoutWindowCurrent;  
@@ -71,9 +69,6 @@ class MCHDigitizer
 
   std::map<int,int> mdetID;
   
-  std::vector<int> mPadIDsbend;//not needed as member...only generate where needed
-  std::vector<int> mPadIDsnon;//not needed as member
-
   std::vector<mapping::Segmentation> mSeg;
                                                 
   // std::vector<mapping::Segmentation> mSegnon;
