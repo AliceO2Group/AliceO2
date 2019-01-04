@@ -24,7 +24,7 @@ ClassImp(o2::ITSMFT::BuildTopologyDictionary)
 {
   namespace ITSMFT
   {
-  BuildTopologyDictionary::BuildTopologyDictionary() : mTotClusters(0) {}
+  BuildTopologyDictionary::BuildTopologyDictionary() : mTotClusters{ 0 } {}
 
   void BuildTopologyDictionary::accountTopology(const ClusterTopology& cluster, float dX, float dZ)
   {
@@ -95,7 +95,7 @@ ClassImp(o2::ITSMFT::BuildTopologyDictionary)
   {
     mTopologyFrequency.clear();
     for (auto&& p : mTopologyMap) {
-      mTopologyFrequency.push_back(std::make_pair(p.second.second, p.first));
+      mTopologyFrequency.emplace_back(std::make_pair(p.second.second, p.first));
     }
     std::sort(mTopologyFrequency.begin(), mTopologyFrequency.end(),
               [](const std::pair<unsigned long, unsigned long>& couple1,
@@ -117,7 +117,7 @@ ClassImp(o2::ITSMFT::BuildTopologyDictionary)
   {
     mTopologyFrequency.clear();
     for (auto&& p : mTopologyMap) {
-      mTopologyFrequency.push_back(std::make_pair(p.second.second, p.first));
+      mTopologyFrequency.emplace_back(std::make_pair(p.second.second, p.first));
     }
     std::sort(mTopologyFrequency.begin(), mTopologyFrequency.end(),
               [](const std::pair<unsigned long, unsigned long>& couple1,
@@ -142,7 +142,7 @@ ClassImp(o2::ITSMFT::BuildTopologyDictionary)
       cumulative = 0.99;
     double totFreq = 0.;
     for (auto&& p : mTopologyMap) {
-      mTopologyFrequency.push_back(std::make_pair(p.second.second, p.first));
+      mTopologyFrequency.emplace_back(std::make_pair(p.second.second, p.first));
     }
     std::sort(mTopologyFrequency.begin(), mTopologyFrequency.end(),
               [](const std::pair<unsigned long, unsigned long>& couple1,
@@ -196,7 +196,7 @@ ClassImp(o2::ITSMFT::BuildTopologyDictionary)
       mDictionary.mVectorOfGroupIDs.push_back(gr);
       mDictionary.mFinalMap.insert(std::make_pair(gr.mHash, j));
       if (gr.mPattern.getUsedBytes() == 1)
-        mDictionary.mSmallTopologiesLUT[(gr.mPattern.getRowSpan() - 1) * 255 + (int)gr.mPattern.mBitmap[2]] = j;
+        mDictionary.mSmallTopologiesLUT[(gr.mPattern.getColumnSpan() - 1) * 255 + (int)gr.mPattern.mBitmap[2]] = j;
     }
     // groupRareTopologies based on binning over number of rows and columns (TopologyDictionary::NumberOfRowClasses *
     // NumberOfColClasse)

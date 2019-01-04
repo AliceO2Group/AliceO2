@@ -33,13 +33,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     //
     DataProcessorSpec{
       "rdataframe_producer", //
-      Inputs{},          //
+      Inputs{},              //
       {
         OutputSpec{ { "xz" }, "TES", "RFRAME" }, //
       },
-      AlgorithmSpec{ [](ProcessingContext& ctx) {
+      AlgorithmSpec{ adaptStateless([](DataAllocator& outputs) {
         // We ask the framework for something which can build a Table
-        auto& out = ctx.outputs().make<TableBuilder>(Output{ "TES", "RFRAME" });
+        auto& out = outputs.make<TableBuilder>(Output{ "TES", "RFRAME" });
         // We use RDataFrame to create a few columns with 100 rows.
         // The final action is the one which allows the user to create the
         // output message.
@@ -53,8 +53,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
            .Define("y", "2.f")
            .Define("z", "x+y");
         t.ForeachSlot(out.persist<float, float>({"x", "z"}), {"x", "z"});
-      } } //
-    },    //
+      }) } //
+    },     //
     DataProcessorSpec{
       "rdataframe_consumer", //
       {
@@ -62,39 +62,39 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
       },                                    //
       Outputs{},                            //
       AlgorithmSpec{
-        [](ProcessingContext& ctx) {
-          /// This gets a table handle from the message.
-          auto s = ctx.inputs().get<TableConsumer>("xz");
+        adaptStateless(
+          [](InputRecord& inputs, ControlService& control) {
+            /// This gets a table handle from the message.
+            auto s = inputs.get<TableConsumer>("xz");
 
-          /// From the handle, we construct the actual arrow table
-          /// which is then used as a source for the RDataFrame.
-          /// This is probably easy to change to a:
-          ///
-          /// auto rdf = ctx.inputs().get<RDataSource>("xz");
-          auto table = s->asArrowTable();
-          if (table->num_rows() != 100) {
-            LOG(ERROR) << "Wrong number of entries for the arrow table" << table->num_rows();
-          }
+            /// From the handle, we construct the actual arrow table
+            /// which is then used as a source for the RDataFrame.
+            /// This is probably easy to change to a:
+            ///
+            /// auto rdf = ctx.inputs().get<RDataSource>("xz");
+            auto table = s->asArrowTable();
+            if (table->num_rows() != 100) {
+              LOG(ERROR) << "Wrong number of entries for the arrow table" << table->num_rows();
+            }
 
-          if (table->num_columns() != 2) {
-            LOG(ERROR) << "Wrong number of columns for the arrow table" << table->num_columns();
-          }
+            if (table->num_columns() != 2) {
+              LOG(ERROR) << "Wrong number of columns for the arrow table" << table->num_columns();
+            }
 
-          auto source = std::make_unique<ROOT::RDF::RArrowDS>(s->asArrowTable(), std::vector<std::string>{});
-          ROOT::RDataFrame rdf(std::move(source));
+            auto source = std::make_unique<ROOT::RDF::RArrowDS>(s->asArrowTable(), std::vector<std::string>{});
+            ROOT::RDataFrame rdf(std::move(source));
 
-          if (*rdf.Count() != 100)
-          {
-            LOG(ERROR) << "Wrong number of entries for the DataFrame" << *rdf.Count();
-          }
+            if (*rdf.Count() != 100) {
+              LOG(ERROR) << "Wrong number of entries for the DataFrame" << *rdf.Count();
+            }
 
-          if (*rdf.Mean("z") - 3.f > 0.1f) {
-            LOG(ERROR) << "Wrong average for z";
-          }
+            if (*rdf.Mean("z") - 3.f > 0.1f) {
+              LOG(ERROR) << "Wrong average for z";
+            }
 
-          ctx.services().get<ControlService>().readyToQuit(true);
-        } //
-      }   //
-    }     //
+            control.readyToQuit(true);
+          }) //
+      }      //
+    }        //
   };
 }

@@ -9,13 +9,16 @@
 // or submit itself to any jurisdiction.
 
 
-#include <iostream>
-#include <boost/algorithm/string.hpp>
 
 #include "Framework/InputSpec.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/DataSpecUtils.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/runDataProcessing.h"
+
+#include <boost/algorithm/string.hpp>
+
+#include <iostream>
 
 using namespace o2::framework;
 
@@ -56,37 +59,30 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     DataProcessorSpec{
       "processingStage",
       Inputs{
-        { "dataTPC", "TPC", "CLUSTERS", 0, Lifetime::Timeframe }
-      },
+        { "dataTPC", "TPC", "CLUSTERS", 0, Lifetime::Timeframe } },
       Outputs{
-        { "TPC", "CLUSTERS_P", 0, Lifetime::Timeframe }
-      },
+        { "TPC", "CLUSTERS_P", 0, Lifetime::Timeframe } },
       AlgorithmSpec{
         //CLion says it ambiguous without (AlgorithmSpec::ProcessCallback), but cmake compiles fine anyway.
-        (AlgorithmSpec::ProcessCallback) someProcessingStageAlgorithm
-      }
-    },
+        (AlgorithmSpec::ProcessCallback)someProcessingStageAlgorithm } },
     parallelSize,
     [](DataProcessorSpec& spec, size_t index) {
-      spec.inputs[0].subSpec = index;
+      DataSpecUtils::updateMatchingSubspec(spec.inputs[0], index);
       spec.outputs[0].subSpec = index;
-    }
-  );
+    });
 
   auto inputsDataSampler = mergeInputs(
     { "dataTPC", "TPC", "CLUSTERS", 0, Lifetime::Timeframe },
     parallelSize,
     [](InputSpec& input, size_t index) {
-      input.subSpec = index;
-    }
-  );
+      DataSpecUtils::updateMatchingSubspec(input, index);
+    });
   auto inputsTpcProc = mergeInputs(
     { "dataTPC-proc", "TPC", "CLUSTERS_P", 0, Lifetime::Timeframe },
     parallelSize,
     [](InputSpec& input, size_t index) {
-      input.subSpec = index;
-    }
-  );
+      DataSpecUtils::updateMatchingSubspec(input, index);
+    });
   inputsDataSampler.insert(std::end(inputsDataSampler), std::begin(inputsTpcProc), std::end(inputsTpcProc));
 
   auto dataSampler = DataProcessorSpec{
@@ -103,7 +99,8 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
         for (auto& input : inputs) {
 
           const InputSpec* inputSpec = input.spec;
-          o2::header::DataDescription outputDescription = inputSpec->description;
+          auto matcher = DataSpecUtils::asConcreteDataMatcher(*inputSpec);
+          o2::header::DataDescription outputDescription = matcher.description;
 
           //todo: better sampled data flagging
           size_t len = strlen(outputDescription.str);
@@ -113,13 +110,13 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
           }
 
           Output description{
-            inputSpec->origin,
+            matcher.origin,
             outputDescription,
             0,
             inputSpec->lifetime
           };
 
-          LOG(DEBUG) << "DataSampler sends data from subSpec: " << inputSpec->subSpec;
+          LOG(DEBUG) << "DataSampler sends data from subSpec: " << matcher.subSpec;
 
           const auto* inputHeader = o2::header::get<o2::header::DataHeader*>(input.header);
           auto output = ctx.outputs().make<char>(description, inputHeader->size());
@@ -146,7 +143,8 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
         const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get(
           "dataTPC-sampled").payload);
         const InputSpec* inputSpec = ctx.inputs().get("dataTPC-sampled").spec;
-        LOG(DEBUG) << "qcTask received data with subSpec: " << inputSpec->subSpec;
+        auto matcher = DataSpecUtils::asConcreteDataMatcher(*inputSpec);
+        LOG(DEBUG) << "qcTask received data with subSpec: " << matcher.subSpec;
       }
     }
   };
@@ -157,18 +155,15 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
       { "dataTPC-proc", "TPC", "CLUSTERS_P" },
       parallelSize,
       [](InputSpec& input, size_t index) {
-        input.subSpec = index;
-      }
-    ),
+        DataSpecUtils::updateMatchingSubspec(input, index);
+      }),
     Outputs{},
     AlgorithmSpec{
       [](ProcessingContext& ctx) {
         const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get(
           "dataTPC-proc").payload);
-      }
-    }
+      } }
   };
-
 
   // error in qcTask:
   specs.swap(dataProducers);

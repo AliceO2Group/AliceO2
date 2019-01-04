@@ -62,6 +62,17 @@ Inputs mergeInputs(Inputs inputs,
 /// you.
 DataProcessorSpec timePipeline(DataProcessorSpec original,
                                size_t count);
+
+/// The purpose of this helper is to create a query on the data via a properly formatted
+/// @a matcher string which describes data in terms of the O2 Data Model descriptor.
+///
+/// The syntax of the string is the following:
+///
+/// binding:origin/description/subSpecification%timemodule;...
+///
+/// Each ; delimits an InputSpec.
+std::vector<InputSpec> select(char const* matcher = "");
+
 } // namespace framework
 } // namespace o2
 

@@ -34,6 +34,25 @@ const char* mergerlogname = "mergerlog";
 void cleanup()
 {
   o2::utils::ShmManager::Instance().release();
+
+  // special mode in which we dump the output from various
+  // log files to terminal (mainly interesting for CI mode)
+  if (getenv("ALICE_O2SIM_DUMPLOG")) {
+    std::cerr << "------------- START OF EVENTSERVER LOG ----------" << std::endl;
+    std::stringstream catcommand1;
+    catcommand1 << "cat " << serverlogname << ";";
+    system(catcommand1.str().c_str());
+
+    std::cerr << "------------- START OF SIM WORKER(S) LOG --------" << std::endl;
+    std::stringstream catcommand2;
+    catcommand2 << "cat " << workerlogname << "*;";
+    system(catcommand2.str().c_str());
+
+    std::cerr << "------------- START OF MERGER LOG ---------------" << std::endl;
+    std::stringstream catcommand3;
+    catcommand3 << "cat " << mergerlogname << ";";
+    system(catcommand3.str().c_str());
+  }
 }
 
 // quick cross check of simulation output
@@ -66,6 +85,32 @@ void sighandler(int signal)
     cleanup();
     exit(0);
   }
+}
+
+// monitores a certain incoming pipe and displays new information
+void launchThreadMonitoringEvents(int pipefd, std::string text)
+{
+  static std::vector<std::thread> threads;
+  auto lambda = [pipefd, text]() {
+    int eventcounter;
+    while (1) {
+      ssize_t count = read(pipefd, &eventcounter, sizeof(eventcounter));
+      if (count == -1) {
+        LOG(INFO) << "ERROR READING";
+        if (errno == EINTR) {
+          continue;
+        } else {
+          return;
+        }
+      } else if (count == 0) {
+        break;
+      } else {
+        LOG(INFO) << text.c_str() << eventcounter;
+      }
+    };
+  };
+  threads.push_back(std::thread(lambda));
+  threads.back().detach();
 }
 
 // helper executable to launch all the devices/processes
@@ -109,13 +154,19 @@ int main(int argc, char* argv[])
 
   std::vector<int> childpids;
 
+  int pipe_serverdriver_fd[2];
+  pipe(pipe_serverdriver_fd);
+
   // the server
   int pid = fork();
   if (pid == 0) {
     int fd = open(serverlogname, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+    setenv("ALICE_O2SIMSERVERTODRIVER_PIPE", std::to_string(pipe_serverdriver_fd[1]).c_str(), 1);
+
     dup2(fd, 1); // make stdout go to file
     dup2(fd, 2); // make stderr go to file - you may choose to not do this
                  // or perhaps send stderr to another file
+    close(pipe_serverdriver_fd[0]);
     close(fd);   // fd no longer needed - the dup'ed handles are sufficient
 
     const std::string name("O2PrimaryServerDeviceRunner");
@@ -146,7 +197,9 @@ int main(int argc, char* argv[])
     return 0;
   } else {
     childpids.push_back(pid);
+    close(pipe_serverdriver_fd[1]);
     std::cout << "Spawning particle server on PID " << pid << "; Redirect output to " << serverlogname << "\n";
+    launchThreadMonitoringEvents(pipe_serverdriver_fd[0], "EVENTS DISTRIBUTED : ");
   }
 
   auto internalfork = getenv("ALICE_SIMFORKINTERNAL");
@@ -184,6 +237,9 @@ int main(int argc, char* argv[])
   }
 
   // the hit merger
+  int pipe_mergerdriver_fd[2];
+  pipe(pipe_mergerdriver_fd);
+
   int status, cpid;
   pid = fork();
   if (pid == 0) {
@@ -192,6 +248,8 @@ int main(int argc, char* argv[])
     dup2(fd, 2); // make stderr go to file - you may choose to not do this
                  // or perhaps send stderr to another file
     close(fd);   // fd no longer needed - the dup'ed handles are sufficient
+    close(pipe_mergerdriver_fd[0]);
+    setenv("ALICE_O2SIMMERGERTODRIVER_PIPE", std::to_string(pipe_mergerdriver_fd[1]).c_str(), 1);
 
     const std::string name("O2HitMergerRunner");
     const std::string path = installpath + "/" + name;
@@ -201,6 +259,8 @@ int main(int argc, char* argv[])
   } else {
     std::cout << "Spawning hit merger on PID " << pid << "; Redirect output to " << mergerlogname << "\n";
     childpids.push_back(pid);
+    close(pipe_mergerdriver_fd[1]);
+    launchThreadMonitoringEvents(pipe_mergerdriver_fd[0], "EVENT FINISHED : ");
   }
 
   // wait on merger (which when exiting completes the workflow)

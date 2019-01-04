@@ -282,7 +282,7 @@ TParticle* Stack::PopNextTrack(Int_t& iTrack)
 
 TParticle* Stack::PopPrimaryForTracking(Int_t iPrim)
 {
-  // This function is used by Geant4 to setup their own onternal stack
+  // This function is used by Geant4 to setup their own internal stack
 
   // Remark: Contrary to what the interface name is suggesting
   // this is not a pop operation (but rather a get)

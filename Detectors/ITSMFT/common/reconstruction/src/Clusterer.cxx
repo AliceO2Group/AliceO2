@@ -22,7 +22,7 @@ using namespace o2::ITSMFT;
 using Segmentation = o2::ITSMFT::SegmentationAlpide;
 
 //__________________________________________________
-Clusterer::Clusterer() : mCurr(mColumn2 + 1), mPrev(mColumn1 + 1)
+Clusterer::Clusterer() : mPattIdConverter(), mCurr(mColumn2 + 1), mPrev(mColumn1 + 1)
 {
   std::fill(std::begin(mColumn1), std::end(mColumn1), -1);
   std::fill(std::begin(mColumn2), std::end(mColumn2), -1);
@@ -130,7 +130,7 @@ void Clusterer::updateChip(UInt_t ip)
 {
   const auto pix = mChipData->getData()[ip];
   UShort_t row = pix.getRowDirect(); // can use getRowDirect since the pixel is not masked
-  if (mCol != pix.getCol()) { // switch the buffers
+  if (mCol != pix.getCol()) {        // switch the buffers
     swapColumnBuffers();
     resetColumn(mCurr);
     mNoLeftColumn = false;
@@ -262,7 +262,7 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
         clus.setPixel(ir, ic);
       }
     }
-#endif //_ClusterTopology_
+#endif              //_ClusterTopology_
     if (fullClus) { // do we need conventional clusters with full topology and coordinates?
       fullClus->push_back(clus);
       Cluster& c = fullClus->back();
@@ -279,8 +279,10 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
       c.setErrors(SigmaX2, SigmaY2, 0.f);
     }
 
-    if (compClus) {                     // store compact clusters
-      UShort_t pattID = clus.getNPix(); // HERE we need to attach calculated pattern ID, right now use just Ncl
+    if (compClus) { // store compact clusters
+      unsigned char patt[Cluster::kMaxPatternBytes];
+      clus.getPattern(&patt[0], Cluster::kMaxPatternBytes);
+      UShort_t pattID = mPattIdConverter.findGroupID(clus.getPatternRowSpan(), clus.getPatternColSpan(), patt);
       compClus->emplace_back(rowMin, colMin, pattID, mChipData->getChipID(), mChipData->getROFrame());
     }
 

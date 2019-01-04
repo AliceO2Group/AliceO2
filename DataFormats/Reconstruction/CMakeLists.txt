@@ -7,6 +7,7 @@ set(SRCS
   src/BaseCluster.cxx
   src/TrackTPCITS.cxx
   src/Vertex.cxx
+  src/MatchInfoTOF.cxx
 )
 
 Set(HEADERS
@@ -14,6 +15,7 @@ Set(HEADERS
   include/${MODULE_NAME}/BaseCluster.h
   include/${MODULE_NAME}/TrackTPCITS.h
   include/${MODULE_NAME}/Vertex.h
+  include/${MODULE_NAME}/MatchInfoTOF.h
 )
 
 Set(LINKDEF src/ReconstructionDataFormatsLinkDef.h)

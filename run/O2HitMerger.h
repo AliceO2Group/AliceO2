@@ -119,6 +119,15 @@ class O2HitMerger : public FairMQDevice
     mTmpOutFileName = "o2sim_tmp.root";
     mTmpOutFile = new TFile(mTmpOutFileName.c_str(), "RECREATE");
     mOutTree = new TTree("o2sim", "o2sim");
+
+    // init pipe
+    auto pipeenv = getenv("ALICE_O2SIMMERGERTODRIVER_PIPE");
+    if (pipeenv) {
+      mPipeToDriver = atoi(pipeenv);
+      LOG(INFO) << "ASSIGNED PIPE HANDLE " << mPipeToDriver;
+    } else {
+      LOG(WARNING) << "DID NOT FIND ENVIRONMENT VARIABLE TO INIT PIPE";
+    }
   }
 
   template <typename T, typename V>
@@ -208,6 +217,11 @@ class O2HitMerger : public FairMQDevice
 
     if (isDataComplete<uint32_t>(accum, info.nparts)) {
       LOG(INFO) << "EVERYTHING IS HERE FOR EVENT " << info.eventID << "\n";
+
+      if (mPipeToDriver != -1) {
+        write(mPipeToDriver, &info.eventID, sizeof(info.eventID));
+      }
+
       mEventChecksum += info.eventID;
       // we also need to check if we have all events
       if (isDataComplete<uint32_t>(mEventChecksum, info.maxEvents)) {
@@ -356,6 +370,8 @@ class O2HitMerger : public FairMQDevice
   int mEntries = 0; //! counts the number of entries in the branches
   int mEventChecksum = 0; //! checksum for events
   TStopwatch mTimer;
+
+  int mPipeToDriver = -1;
 
   std::vector<std::unique_ptr<o2::Base::Detector>> mDetectorInstances;
 

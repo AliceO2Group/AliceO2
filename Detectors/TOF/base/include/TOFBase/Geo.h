@@ -94,7 +94,8 @@ class Geo
   static constexpr Float_t DEADTIME = 25E+03;              // Single channel dead time (ps)
   static constexpr Float_t DEADTIMETDC = DEADTIME/TDCBIN; ///< Single channel TDC dead time (ps)
   static constexpr Float_t MATCHINGWINDOW = TDCBIN * 8192; // Matching window  (ps) 2^13=8192
-  static constexpr Float_t READOUTWINDOW = 1000;           // Readout window (ns)
+  //  static constexpr Float_t READOUTWINDOW = 1000;           // Readout window (ns)
+  static constexpr Float_t READOUTWINDOW = 1e9;                    // Readout window (ns) - now put 1s for DPL to work fine, but it will be 29e3
   static constexpr Float_t READOUTWINDOW_INV = 1. / READOUTWINDOW; // Readout window (ns)
 
   static constexpr Float_t ANGLES[NPLATES][NMAXNSTRIP] = { // Strip Tilt Angles

@@ -16,6 +16,7 @@
 
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
+#include <gsl/gsl>
 
 namespace o2
 {
@@ -60,6 +61,13 @@ struct is_messageable : std::conditional<std::is_trivially_copyable<T>::value &&
                                            !is_forced_non_messageable<T>::value, //
                                          std::true_type,
                                          std::false_type>::type {
+};
+
+// FIXME: it apears that gsl:span matches the criteria for being messageable, regardless of the
+// underlying type, but our goal is to identify structures that can be sent without serialization.
+// needs investigation
+template <typename T>
+struct is_messageable<gsl::span<T>> : std::false_type {
 };
 
 // Detect a container by checking on the container properties

@@ -14,6 +14,7 @@
 #include "Framework/DataDescriptorQueryBuilder.h"
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/DataSpecUtils.h"
 #include "Framework/InitContext.h"
 #include "Framework/InitContext.h"
 #include "Framework/InputSpec.h"
@@ -48,7 +49,8 @@ DataProcessorSpec CommonDataProcessors::getGlobalFileSink(std::vector<InputSpec>
     auto [variables, outputMatcher] = DataDescriptorQueryBuilder::buildFromKeepConfig(keepString);
     VariableContext context;
     for (auto& spec : danglingOutputInputs) {
-      if (outputMatcher->match(spec, context)) {
+      auto concrete = DataSpecUtils::asConcreteDataMatcher(spec);
+      if (outputMatcher->match(concrete, context)) {
         hasOutputsToWrite = true;
       }
     }

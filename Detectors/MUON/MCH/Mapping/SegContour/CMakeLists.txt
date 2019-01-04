@@ -2,8 +2,9 @@ O2_SETUP(NAME MCHMappingSegContour)
 set(BUCKET_NAME mch_mapping_segcontour_bucket)
 
 set(SRCS
-        src/SegmentationContours.cxx
-        src/SegmentationSVGWriter.cxx)
+        src/CathodeSegmentationContours.cxx
+        src/CathodeSegmentationSVGWriter.cxx
+        src/SegmentationContours.cxx)
 
 set(LIBRARY_NAME MCHMappingSegContour3)
 

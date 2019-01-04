@@ -22,10 +22,11 @@ namespace o2
 {
 namespace tof
 {
+
 class Digitizer
 {
  public:
-  Digitizer(Int_t mode = 0) : mMode(mode), mReadoutWindowCurrent(0) { init(); };
+  Digitizer(Int_t mode = 0) : mMode(mode) { init(); };
   ~Digitizer() = default;
 
   void init();
@@ -66,6 +67,9 @@ class Digitizer
   void setContinuous(bool val) { mContinuous = val; }
   bool isContinuous() const { return mContinuous; }
 
+  std::vector<std::vector<Digit>>* getDigitPerTimeFrame() { return &mDigitsPerTimeFrame; }
+  std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* getMCTruthPerTimeFrame() { return &mMCTruthOutputContainerPerTimeFrame; }
+
  private:
   // parameters
   Int_t mMode;
@@ -86,7 +90,7 @@ class Digitizer
   Float_t mEffBoundary3;
 
   // info TOF timewindow
-  Int_t mReadoutWindowCurrent;
+  Int_t mReadoutWindowCurrent = 0;
   Double_t mEventTime;
   Int_t mEventID = 0;
   Int_t mSrcID = 0;
@@ -96,7 +100,10 @@ class Digitizer
   // digit info
   //std::vector<Digit>* mDigits;
 
-  static const int MAXWINDOWS = 10; // how many readout windows we can buffer
+  static const int MAXWINDOWS = 2; // how many readout windows we can buffer
+
+  std::vector<std::vector<Digit>> mDigitsPerTimeFrame;
+  std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mMCTruthOutputContainerPerTimeFrame;
 
   int mIcurrentReadoutWindow = 0;
   o2::dataformats::MCTruthContainer<o2::tof::MCLabel> mMCTruthContainer[MAXWINDOWS];
@@ -117,11 +124,13 @@ class Digitizer
 
   o2::dataformats::MCTruthContainer<o2::tof::MCLabel> mFutureMCTruthContainer;
 
-  void fillDigitsInStrip(std::vector<Strip>* strips, o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer, double time, int channel, int tdc, int tot, int nbc, UInt_t istrip, Int_t trackID, Int_t eventID, Int_t sourceID);
+  void fillDigitsInStrip(std::vector<Strip>* strips, o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer, int channel, int tdc, int tot, int nbc, UInt_t istrip, Int_t trackID, Int_t eventID, Int_t sourceID);
 
   Int_t processHit(const HitType& hit, Double_t event_time);
   void addDigit(Int_t channel, UInt_t istrip, Float_t time, Float_t x, Float_t z, Float_t charge, Int_t iX, Int_t iZ, Int_t padZfired,
                 Int_t trackID);
+
+  void checkIfReuseFutureDigits();
 
   bool isMergable(Digit digit1, Digit digit2)
   {

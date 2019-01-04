@@ -14,6 +14,7 @@
 /// @brief  spec definition for a TPC clusterer process
 
 #include "ClustererSpec.h"
+#include "Framework/ControlService.h"
 #include "Headers/DataHeader.h"
 #include "TPCBase/Digit.h"
 #include "TPCReconstruction/HwClusterer.h"
@@ -38,18 +39,9 @@ using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
 /// create a processor spec
 /// runs the TPC HwClusterer in a DPL process with digits and mc as input
-DataProcessorSpec getClustererSpec(bool sendMC, int fanNumber)
+DataProcessorSpec getClustererSpec(bool sendMC)
 {
   std::string processorName = "tpc-clusterer";
-  o2::header::DataHeader::SubSpecificationType fanSpec = 0;
-  if (fanNumber < 0) {
-    // only one instance; set to 0, it is used as subspecification
-    fanNumber = 0;
-  } else {
-    // multiple instances, add number to name
-    processorName += std::to_string(fanNumber);
-    fanSpec = fanNumber;
-  }
 
   constexpr static size_t NSectors = o2::TPC::Sector::MAXSECTOR;
   struct ProcessAttributes {
@@ -57,25 +49,33 @@ DataProcessorSpec getClustererSpec(bool sendMC, int fanNumber)
     MCLabelContainer mctruthArray;
     std::array<std::shared_ptr<o2::TPC::HwClusterer>, NSectors> clusterers;
     int verbosity = 1;
+    bool finished = false;
   };
 
-  auto initFunction = [sendMC, fanSpec](InitContext& ic) {
+  auto initFunction = [sendMC](InitContext& ic) {
     // FIXME: the clusterer needs to be initialized with the sector number, so we need one
     // per sector. Taking a closer look to the HwClusterer, the sector number is only used
     // for calculating the CRU id. This could be achieved by passing the current sector as
     // parameter to the clusterer processing function.
     auto processAttributes = std::make_shared<ProcessAttributes>();
 
-    auto processingFct = [processAttributes, sendMC, fanSpec](ProcessingContext& pc) {
+    auto processingFct = [processAttributes, sendMC](ProcessingContext& pc) {
+      if (processAttributes->finished) {
+        return;
+      }
       auto& clusterArray = processAttributes->clusterArray;
       auto& mctruthArray = processAttributes->mctruthArray;
       auto& clusterers = processAttributes->clusterers;
       auto& verbosity = processAttributes->verbosity;
-      auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(pc.inputs().get("digits"));
+      auto dataref = pc.inputs().get("digits");
+      auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(dataref);
       if (sectorHeader == nullptr) {
         LOG(ERROR) << "sector header missing on header stack";
         return;
       }
+      auto const* dataHeader = DataRefUtils::getHeader<o2::header::DataHeader*>(dataref);
+      o2::header::DataHeader::SubSpecificationType fanSpec = dataHeader->subSpecification;
+
       const auto sector = sectorHeader->sector;
       if (sector < 0) {
         // forward the control information
@@ -85,11 +85,19 @@ DataProcessorSpec getClustererSpec(bool sendMC, int fanNumber)
         if (sendMC) {
           pc.outputs().snapshot(OutputRef{ "clusterlbl", fanSpec, { header } }, fanSpec);
         }
+        if (sectorHeader->sector == -1) {
+          // got EOD
+          processAttributes->finished = true;
+          pc.services().get<ControlService>().readyToQuit(false);
+        }
         return;
       }
-      auto inMCLabels = pc.inputs().get<const MCLabelContainer*>("mclabels");
+      std::unique_ptr<const MCLabelContainer> inMCLabels;
+      if (sendMC) {
+        inMCLabels = std::move(pc.inputs().get<const MCLabelContainer*>("mclabels"));
+      }
       auto inDigits = pc.inputs().get<const std::vector<o2::TPC::Digit>>("digits");
-      if (verbosity > 0) {
+      if (verbosity > 0 && inMCLabels) {
         LOG(INFO) << "received " << inDigits.size() << " digits, "
                   << inMCLabels->getIndexedSize() << " MC label objects";
       }
@@ -127,22 +135,32 @@ DataProcessorSpec getClustererSpec(bool sendMC, int fanNumber)
     return processingFct;
   };
 
-  auto createOutputSpecs = [fanSpec](bool makeMcOutput) {
+  auto createInputSpecs = [](bool makeMcInput) {
+    std::vector<InputSpec> inputSpecs{
+      InputSpec{ "digits", gDataOriginTPC, "DIGITS", 0, Lifetime::Timeframe },
+    };
+    if (makeMcInput) {
+      constexpr o2::header::DataDescription datadesc("DIGITSMCTR");
+      inputSpecs.emplace_back("mclabels", gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
+    }
+    return std::move(inputSpecs);
+  };
+
+  auto createOutputSpecs = [](bool makeMcOutput) {
     std::vector<OutputSpec> outputSpecs{
-      OutputSpec{ { "clusters" }, gDataOriginTPC, "CLUSTERSIM", fanSpec, Lifetime::Timeframe },
+      OutputSpec{ { "clusters" }, gDataOriginTPC, "CLUSTERSIM", 0, Lifetime::Timeframe },
     };
     if (makeMcOutput) {
       OutputLabel label{ "clusterlbl" };
       // FIXME: define common data type specifiers
       constexpr o2::header::DataDescription datadesc("CLUSTERMCLBL");
-      outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, fanSpec, Lifetime::Timeframe);
+      outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
     }
     return std::move(outputSpecs);
   };
 
   return DataProcessorSpec{ processorName,
-                            { InputSpec{ "digits", gDataOriginTPC, "DIGITS", fanSpec, Lifetime::Timeframe },
-                              InputSpec{ "mclabels", gDataOriginTPC, "DIGITSMCTR", fanSpec, Lifetime::Timeframe } },
+                            { createInputSpecs(sendMC) },
                             { createOutputSpecs(sendMC) },
                             AlgorithmSpec(initFunction) };
 }

@@ -13,70 +13,120 @@ namespace framework
 {
 
 inline bool TimesliceId::isValid(TimesliceId const& timeslice) { return timeslice.value != INVALID; }
+inline bool TimesliceSlot::isValid(TimesliceSlot const& slot) { return slot.index != INVALID; }
 
 inline void TimesliceIndex::resize(size_t s)
 {
-  mTimeslices.resize(s, { TimesliceId::INVALID });
+  mVariables.resize(s);
   mDirty.resize(s, false);
 }
 
 inline size_t TimesliceIndex::size() const
 {
-  assert(mTimeslices.size() == mDirty.size());
-  return mTimeslices.size();
+  assert(mVariables.size() == mDirty.size());
+  return mVariables.size();
 }
 
 inline bool TimesliceIndex::isValid(TimesliceSlot const& slot) const
 {
-  return TimesliceId::isValid(mTimeslices[slot.index]);
+  // The first element is always time, which should always be filled after a
+  // successful query, therefore if this is not the case, we return false.
+  assert(mVariables.size() > slot.index);
+  if (std::get_if<uint64_t>(&mVariables[slot.index].get(0))) {
+    return true;
+  }
+  return false;
 }
 
 inline bool TimesliceIndex::isDirty(TimesliceSlot const& slot) const
 {
+  assert(mDirty.size() > slot.index);
   return mDirty[slot.index];
-}
-
-inline bool TimesliceIndex::isObsolete(TimesliceId newTimestamp) const
-{
-  auto slot = getSlotForTimeslice(newTimestamp);
-  auto oldTimestamp = mTimeslices[slot.index];
-  return TimesliceId::isValid(oldTimestamp) && oldTimestamp.value > newTimestamp.value;
 }
 
 inline void TimesliceIndex::markAsDirty(TimesliceSlot slot, bool value)
 {
+  assert(mDirty.size() > slot.index);
   mDirty[slot.index] = value;
-}
-
-inline void TimesliceIndex::markAsObsolete(TimesliceSlot slot)
-{
-  // Invalid slots remain invalid.
-  if (TimesliceId::isValid(mTimeslices[slot.index])) {
-    mTimeslices[slot.index].value += 1;
-  }
 }
 
 inline void TimesliceIndex::markAsInvalid(TimesliceSlot slot)
 {
-  mTimeslices[slot.index] = { TimesliceId::INVALID };
+  assert(mVariables.size() > slot.index);
+  mVariables[slot.index].reset();
 }
 
-inline TimesliceSlot TimesliceIndex::bookTimeslice(TimesliceId timestamp)
+inline void TimesliceIndex::associate(TimesliceId timestamp, TimesliceSlot slot)
 {
-  auto slot = getSlotForTimeslice(timestamp);
-  mTimeslices[slot.index] = timestamp;
+  assert(mVariables.size() > slot.index);
+  mVariables[slot.index].put({0, timestamp.value});
+  mVariables[slot.index].commit();
   mDirty[slot.index] = true;
-  return slot;
 }
 
-inline TimesliceSlot TimesliceIndex::getSlotForTimeslice(TimesliceId timestamp) const
+inline TimesliceSlot TimesliceIndex::findOldestSlot() const
 {
-  return TimesliceSlot{ timestamp.value % mTimeslices.size() };
+  TimesliceSlot oldest{0};
+  auto oldPVal = std::get_if<uint64_t>(&mVariables[oldest.index].get(0));
+  if (oldPVal == nullptr) {
+    return oldest;
+  }
+  uint64_t oldTimestamp = *oldPVal;
+
+  for (size_t i = 1; i < mVariables.size(); ++i) {
+    auto newPVal = std::get_if<uint64_t>(&mVariables[i].get(0));
+    if (newPVal == nullptr) {
+      return TimesliceSlot{i};
+    }
+    uint64_t newTimestamp = *newPVal;
+
+    if (oldTimestamp > newTimestamp) {
+      oldest = TimesliceSlot{i};
+      oldTimestamp = newTimestamp;
+    }
+  }
+  return oldest;
 }
 
 inline TimesliceId TimesliceIndex::getTimesliceForSlot(TimesliceSlot slot) const
 {
-  return mTimeslices[slot.index];
+  assert(mVariables.size() > slot.index);
+  auto pval = std::get_if<uint64_t>(&mVariables[slot.index].get(0));
+  if (pval == nullptr) {
+    return TimesliceId{TimesliceId::INVALID};
+  }
+  return TimesliceId{*pval};
+}
+
+inline data_matcher::VariableContext &TimesliceIndex::getVariablesForSlot(TimesliceSlot slot)
+{
+  assert(mVariables.size() > slot.index);
+  return mVariables[slot.index];
+}
+
+inline TimesliceSlot TimesliceIndex::replaceLRUWith(data_matcher::VariableContext& newContext)
+{
+  auto oldestSlot = findOldestSlot();
+  if (TimesliceIndex::isValid(oldestSlot) == false) {
+    mVariables[oldestSlot.index] = newContext;
+    return oldestSlot;
+  }
+  auto oldTimestamp = std::get_if<uint64_t>(&mVariables[oldestSlot.index].get(0));
+  if (oldTimestamp == nullptr) {
+    mVariables[oldestSlot.index] = newContext;
+    return oldestSlot;
+  }
+
+  auto newTimestamp = std::get_if<uint64_t>(&newContext.get(0));
+  if (newTimestamp == nullptr) {
+    return {TimesliceSlot::INVALID};
+  }
+
+  if (*newTimestamp > *oldTimestamp) {
+    mVariables[oldestSlot.index] = newContext;
+    return oldestSlot;
+  }
+  return {TimesliceSlot::INVALID};
 }
 
 } // namespace framework

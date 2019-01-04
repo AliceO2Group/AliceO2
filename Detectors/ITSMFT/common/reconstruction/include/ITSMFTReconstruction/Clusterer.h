@@ -24,6 +24,7 @@
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "ITSMFTReconstruction/PixelReader.h"
 #include "ITSMFTReconstruction/PixelData.h"
+#include "ITSMFTReconstruction/LookUp.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "Rtypes.h"
 
@@ -89,6 +90,12 @@ class Clusterer
   {
     mChips.resize(n);
     mChipsOld.resize(n);
+  }
+
+  ///< load the dictionary of cluster topologies
+  void loadDictionary(std::string fileName)
+  {
+    mPattIdConverter.loadDictionary(fileName);
   }
 
  private:
@@ -211,6 +218,8 @@ class Clusterer
   TTree* mClusTree = nullptr;                                      //! externally provided tree to write output (if needed)
   std::array<Label, Cluster::maxLabels> mLabelsBuff;               //! temporary buffer for building cluster labels
   std::array<PixelData, Cluster::kMaxPatternBits * 2> mPixArrBuff; //! temporary buffer for pattern calc.
+
+  LookUp mPattIdConverter; //! Convert the cluster topology to the corresponding entry in the dictionary.
 
 #ifdef _PERFORM_TIMING_
   TStopwatch mTimer;

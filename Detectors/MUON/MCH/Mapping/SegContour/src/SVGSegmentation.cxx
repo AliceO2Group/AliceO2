@@ -12,9 +12,9 @@
 /// @author  Laurent Aphecetche
 
 #include "boost/program_options.hpp"
-#include "MCHMappingInterface/Segmentation.h"
-#include "MCHMappingSegContour/SegmentationContours.h"
-#include "MCHMappingSegContour/SegmentationSVGWriter.h"
+#include "MCHMappingInterface/CathodeSegmentation.h"
+#include "MCHMappingSegContour/CathodeSegmentationContours.h"
+#include "MCHMappingSegContour/CathodeSegmentationSVGWriter.h"
 #include "MCHContour/SVGWriter.h"
 #include <fstream>
 #include <iostream>
@@ -85,11 +85,11 @@ int main(int argc, char* argv[])
     for (auto isBendingPlane : { true, false }) {
       std::ofstream out(vm["prefix"].as<std::string>() + "-" + std::to_string(detElemId) + "-" +
                         (isBendingPlane ? "B" : "NB") + ".html");
-      Segmentation seg{ detElemId, isBendingPlane };
+      CathodeSegmentation seg{ detElemId, isBendingPlane };
       o2::mch::contour::SVGWriter w(getBBox(seg));
-      w.addStyle(svgSegmentationDefaultStyle());
-      svgSegmentation(seg, w, vm.count("hidedes") == 0, vm.count("hidedualsampas") == 0, vm.count("hidepads") == 0,
-                      vm.count("hidepadchannels") == 0);
+      w.addStyle(svgCathodeSegmentationDefaultStyle());
+      svgCathodeSegmentation(seg, w, vm.count("hidedes") == 0, vm.count("hidedualsampas") == 0, vm.count("hidepads") == 0,
+                             vm.count("hidepadchannels") == 0);
       if (!points.empty()) {
         w.svgGroupStart("testPoints");
         w.points(points, 0.2);

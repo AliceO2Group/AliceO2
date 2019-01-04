@@ -17,7 +17,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "MCHMappingInterface/Segmentation.h"
+#include "MCHMappingInterface/CathodeSegmentation.h"
 #include "MCHSimulation/Geometry.h"
 #include "MCHSimulation/GeometryTest.h"
 #include "TGeoManager.h"

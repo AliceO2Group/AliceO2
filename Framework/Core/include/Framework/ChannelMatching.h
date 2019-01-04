@@ -13,6 +13,8 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/InputSpec.h"
 #include "Framework/OutputSpec.h"
+#include "Framework/DataSpecUtils.h"
+
 #include <vector>
 #include <string>
 
@@ -44,7 +46,7 @@ struct DomainId {
 struct LogicalChannelDomain {
   LogicalChannelDomain(const InputSpec& spec)
   {
-    name.value = std::string("out_") + spec.origin.as<std::string>() + "_" + spec.description.as<std::string>() + "_" + std::to_string(spec.subSpec);
+    name.value = std::string("out_") + std::string(DataSpecUtils::label(spec));
   }
   DomainId name;
   bool operator<(LogicalChannelDomain const& other) const
@@ -81,14 +83,6 @@ struct PhysicalChannelDomain {
     return this->id.value < other.id.value;
   }
 };
-
-/// @return true if the doma
-/// FIXME: for the moment we require a full match, however matcher could really be
-///        a *-expression or even a regular expression.
-inline bool intersect(const LogicalChannelDomain& targetDomain, const LogicalChannelRange& sourceRange)
-{
-  return targetDomain.name.value == sourceRange.name;
-}
 
 } // namespace framework
 } // namespace o2

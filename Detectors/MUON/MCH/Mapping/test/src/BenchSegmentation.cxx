@@ -15,101 +15,74 @@
 #include <random>
 #include "benchmark/benchmark.h"
 #include "MCHMappingInterface/Segmentation.h"
-#include "MCHMappingSegContour/SegmentationContours.h"
-
-struct TestPoint {
-  double x, y;
-};
-
-std::vector<TestPoint> generateUniformTestPoints(int n, double xmin, double ymin, double xmax, double ymax)
-{
-  std::random_device rd;
-  std::mt19937 mt(rd());
-  std::vector<TestPoint> testPoints;
-
-  testPoints.resize(n);
-  std::uniform_real_distribution<double> distX{ xmin, xmax };
-  std::uniform_real_distribution<double> distY{ ymin, ymax };
-  std::generate(testPoints.begin(), testPoints.end(), [&distX, &distY, &mt] {
-    return TestPoint{ distX(mt), distY(mt) };
-  });
-
-  return testPoints;
-}
 
 static void segmentationList(benchmark::internal::Benchmark* b)
 {
   o2::mch::mapping::forOneDetectionElementOfEachSegmentationType([&b](int detElemId) {
-    for (auto bending : { true, false }) {
-      {
-        b->Args({ detElemId, bending });
-      }
-    }
+    b->Args({ detElemId });
   });
 }
 
-class BenchO2 : public benchmark::Fixture
+class BenchSegO2 : public benchmark::Fixture
 {
 };
 
-BENCHMARK_DEFINE_F(BenchO2, ctor)(benchmark::State& state)
+BENCHMARK_DEFINE_F(BenchSegO2, ctor)
+(benchmark::State& state)
 {
   int detElemId = state.range(0);
-  bool isBendingPlane = state.range(1);
 
   for (auto _ : state) {
-    o2::mch::mapping::Segmentation seg{ detElemId, isBendingPlane };
+    o2::mch::mapping::Segmentation seg{ detElemId };
   }
 }
 
+namespace
+{
 std::vector<int> getDetElemIds()
 {
   std::vector<int> deids;
-  o2::mch::mapping::forOneDetectionElementOfEachSegmentationType(
+  o2::mch::mapping::forEachDetectionElement(
     [&deids](int detElemId) { deids.push_back(detElemId); });
   return deids;
 }
+} // namespace
 
-static void benchSegmentationConstructionAll(benchmark::State& state)
+static void benchSegmentationCtorAll(benchmark::State& state)
 {
   std::vector<int> deids = getDetElemIds();
   for (auto _ : state) {
     for (auto detElemId : deids) {
-      for (auto bending : { true, false }) {
-        o2::mch::mapping::Segmentation seg{ detElemId, bending };
-      }
+      o2::mch::mapping::Segmentation seg{ detElemId };
     }
   }
 }
 
-// note: a bench is not a test, so here we assume findPadByPosition is correct,
-// we just time it.
-// so you must have a test of it somewhere else.
-BENCHMARK_DEFINE_F(BenchO2, findPadByPosition)(benchmark::State& state)
+static void benchSegmentationCtorMap(benchmark::State& state)
 {
-  int detElemId = state.range(0);
-  bool isBendingPlane = state.range(1);
-  o2::mch::mapping::Segmentation seg{ detElemId, isBendingPlane };
-  auto bbox = o2::mch::mapping::getBBox(seg);
+  std::vector<int> deids = getDetElemIds();
+  std::map<int, o2::mch::mapping::Segmentation> cache;
 
-  const int n = 100000;
-  auto testpoints = generateUniformTestPoints(n, bbox.xmin(), bbox.ymin(), bbox.xmax(), bbox.ymax());
-
-  int ntp{ 0 };
   for (auto _ : state) {
-    ntp = 0;
-    for (auto& tp : testpoints) {
-      seg.findPadByPosition(tp.x, tp.y);
-      ++ntp;
+    for (auto detElemId : deids) {
+      cache.emplace(detElemId, o2::mch::mapping::Segmentation(detElemId));
     }
   }
-  state.counters["ntp"] = ntp;
 }
 
-BENCHMARK(benchSegmentationConstructionAll)->Unit(benchmark::kMillisecond);
+static void benchSegmentationCtorMapPtr(benchmark::State& state)
+{
+  std::vector<int> deids = getDetElemIds();
+  std::map<int, o2::mch::mapping::Segmentation*> cache;
 
-BENCHMARK_REGISTER_F(BenchO2, findPadByPosition)->Apply(segmentationList)->Unit(benchmark::kMillisecond);
+  for (auto _ : state) {
+    for (auto detElemId : deids) {
+      cache.emplace(detElemId, new o2::mch::mapping::Segmentation(detElemId));
+    }
+  }
+}
+BENCHMARK(benchSegmentationCtorAll)->Unit(benchmark::kMillisecond);
+BENCHMARK(benchSegmentationCtorMap)->Unit(benchmark::kMillisecond);
+BENCHMARK(benchSegmentationCtorMapPtr)->Unit(benchmark::kMillisecond);
 
-BENCHMARK_REGISTER_F(BenchO2, ctor)->Apply(segmentationList)->Unit(benchmark::kMicrosecond);
-
-BENCHMARK_MAIN();
+BENCHMARK_REGISTER_F(BenchSegO2, ctor)->Apply(segmentationList)->Unit(benchmark::kMicrosecond);

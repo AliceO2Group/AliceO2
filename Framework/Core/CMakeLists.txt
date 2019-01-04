@@ -20,6 +20,7 @@ else()
 endif()
 
 set(SRCS
+    src/AODReaderHelpers.cxx
     src/BoostOptionsRetriever.cxx
     src/ConfigParamsHelper.cxx
     src/CompletionPolicy.cxx
@@ -28,6 +29,7 @@ set(SRCS
     src/ChannelConfigurationPolicy.cxx
     src/ChannelConfigurationPolicyHelpers.cxx
     src/DataAllocator.cxx
+    src/DataDescriptorMatcher.cxx
     src/DataProcessingDevice.cxx
     src/DataProcessingHeader.cxx
     src/DataProcessor.cxx
@@ -40,6 +42,7 @@ set(SRCS
     src/DataSamplingReadoutAdapter.cxx
     src/DataSamplingPolicy.cxx
     src/DataSourceDevice.cxx
+    src/DataSpecUtils.cxx
     src/DeviceMetricsInfo.cxx
     src/DeviceSpec.cxx
     src/DeviceSpecHelpers.cxx
@@ -53,6 +56,7 @@ set(SRCS
     src/FairMQResizableBuffer.cxx
     src/GraphvizHelpers.cxx
     src/InputRecord.cxx
+    src/InputSpec.cxx
     src/DataDescriptorQueryBuilder.cxx
     src/LifetimeHelpers.cxx
     src/LocalRootFileService.cxx
@@ -240,6 +244,7 @@ set(TEST_SRCS
       test/test_LogParsingHelpers.cxx
       test/test_ParallelProducer.cxx
       test/test_PtrHelpers.cxx
+      test/test_Root2ArrowTable.cxx
       test/test_Services.cxx
       test/test_SimpleRDataFrameProcessing.cxx
       test/test_SimpleStatefulProcessing01.cxx

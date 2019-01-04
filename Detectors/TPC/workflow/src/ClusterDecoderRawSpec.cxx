@@ -16,6 +16,7 @@
 #include "ClusterDecoderRawSpec.h"
 #include "Headers/DataHeader.h"
 #include "Framework/DataRefUtils.h"
+#include "Framework/ControlService.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/ClusterHardware.h"
 #include "DataFormatsTPC/Helpers.h"
@@ -46,31 +47,28 @@ using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 /// (sector,globalPadRow)-address, the output is flattend in one single binary buffer
 ///
 /// MC labels are received as MCLabelContainers
-DataProcessorSpec getClusterDecoderRawSpec(bool sendMC, int fanNumber)
+DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
 {
   std::string processorName = "tpc-cluster-decoder";
-  o2::header::DataHeader::SubSpecificationType fanSpec = 0;
-  if (fanNumber < 0) {
-    // only one instance; set to 0, it is used as subspecification
-    fanNumber = 0;
-  } else {
-    // multiple instances, add number to name
-    processorName += std::to_string(fanNumber);
-    fanSpec = fanNumber;
-  }
 
-  auto initFunction = [sendMC, fanSpec](InitContext& ic) {
+  auto initFunction = [sendMC](InitContext& ic) {
     // there is nothing to init at the moment
     auto verbosity = 0;
     auto decoder = std::make_shared<HardwareClusterDecoder>();
 
-    auto processingFct = [verbosity, decoder, sendMC, fanSpec](ProcessingContext& pc) {
+    auto processingFct = [verbosity, decoder, sendMC](ProcessingContext& pc) {
+      static bool finished = false;
+      if (finished) {
+        return;
+      }
       // this will return a span of TPC clusters
       const auto& ref = pc.inputs().get("rawin");
       auto size = o2::framework::DataRefUtils::getPayloadSize(ref);
       if (ref.payload == nullptr) {
         return;
       }
+      auto const* dataHeader = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().get("rawin"));
+      o2::header::DataHeader::SubSpecificationType fanSpec = dataHeader->subSpecification;
 
       // init the stacks for forwarding the sector header
       // FIXME check if there is functionality in the DPL to forward the stack
@@ -94,6 +92,11 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC, int fanNumber)
         std::swap(rawHeaderStack, actual);
         if (sectorHeader->sector < 0) {
           pc.outputs().snapshot(OutputRef{ "clusterout", fanSpec, std::move(rawHeaderStack) }, fanSpec);
+          if (sectorHeader->sector == -1) {
+            // got EOD
+            finished = true;
+            pc.services().get<ControlService>().readyToQuit(false);
+          }
           return;
         }
       }
@@ -198,27 +201,27 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC, int fanNumber)
     return processingFct;
   };
 
-  auto createInputSpecs = [fanSpec](bool makeMcInput) {
+  auto createInputSpecs = [](bool makeMcInput) {
     std::vector<InputSpec> inputSpecs{
-      InputSpec{ { "rawin" }, gDataOriginTPC, "CLUSTERHW", fanSpec, Lifetime::Timeframe },
+      InputSpec{ { "rawin" }, gDataOriginTPC, "CLUSTERHW", 0, Lifetime::Timeframe },
     };
     if (makeMcInput) {
       // FIXME: define common data type specifiers
       constexpr o2::header::DataDescription datadesc("CLUSTERHWMCLBL");
-      inputSpecs.emplace_back(InputSpec{ "mclblin", gDataOriginTPC, datadesc, fanSpec, Lifetime::Timeframe });
+      inputSpecs.emplace_back(InputSpec{ "mclblin", gDataOriginTPC, datadesc, 0, Lifetime::Timeframe });
     }
     return std::move(inputSpecs);
   };
 
-  auto createOutputSpecs = [fanSpec](bool makeMcOutput) {
+  auto createOutputSpecs = [](bool makeMcOutput) {
     std::vector<OutputSpec> outputSpecs{
-      OutputSpec{ { "clusterout" }, gDataOriginTPC, "CLUSTERNATIVE", fanSpec, Lifetime::Timeframe },
+      OutputSpec{ { "clusterout" }, gDataOriginTPC, "CLUSTERNATIVE", 0, Lifetime::Timeframe },
     };
     if (makeMcOutput) {
       OutputLabel label{ "mclblout" };
       // have to use a new data description, routing is only based on origin and decsription
       constexpr o2::header::DataDescription datadesc("CLNATIVEMCLBL");
-      outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, fanSpec, Lifetime::Timeframe);
+      outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
     }
     return std::move(outputSpecs);
   };

@@ -34,7 +34,7 @@ class Clusterer
   using Digit = o2::tof::Digit;
 
  public:
-  Clusterer();
+  Clusterer() = default;
   ~Clusterer() = default;
 
   Clusterer(const Clusterer&) = delete;

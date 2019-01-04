@@ -19,6 +19,8 @@
 
 #include "CommonUtils/BoostSerializer.h"
 
+#include <gsl/gsl>
+
 #include <iterator>
 #include <string>
 #include <vector>
@@ -210,6 +212,27 @@ class InputRecord
   typename std::enable_if<std::is_same<T, char const *>::value, T>::type
   get(char const *binding) const {
     return reinterpret_cast<char const *>(get<DataRef>(binding).payload);
+  }
+
+  /// substitution for span of messageable objects
+  /// Note: there is no check for serialization type for the moment, which means that the method
+  /// can be used to get the raw buffer by simply querying gsl::span<unsigned char>.
+  /// FIXME: there will be std::span in C++20
+  template <typename T>
+  typename std::enable_if<std::is_same<T, gsl::span<typename T::value_type>>::value == true,
+                          gsl::span<typename T::value_type const>>::type
+    get(char const* binding) const
+  {
+    auto&& ref = get<DataRef>(binding);
+    auto header = header::get<const header::DataHeader*>(ref.header);
+    assert(header);
+    using ValueT = typename T::value_type;
+    if (header->payloadSize % sizeof(ValueT)) {
+      throw std::runtime_error("Inconsistent type and payload size at " + std::string(binding) +
+                               ": type size " + std::to_string(sizeof(ValueT)) +
+                               "  payload size " + std::to_string(header->payloadSize));
+    }
+    return gsl::span<ValueT const>(reinterpret_cast<ValueT const*>(ref.payload), header->payloadSize / sizeof(ValueT));
   }
 
   /// substitution for std::string

@@ -13,6 +13,7 @@ set(HEADERS
   include/EMCALSimulation/Detector.h
   include/EMCALSimulation/Digitizer.h
   include/EMCALSimulation/DigitizerTask.h
+  include/EMCALSimulation/MCLabel.h
   include/EMCALSimulation/SpaceFrame.h
 )
 

@@ -14,7 +14,6 @@
 #include "DataFormatsTOF/Cluster.h"
 #include "FairLogger.h"
 
-#include <TMath.h>
 #include <TString.h>
 
 #include <cstdlib>
@@ -23,14 +22,26 @@ using namespace o2::tof;
 
 ClassImp(o2::tof::Cluster);
 
-Cluster::Cluster(std::int16_t sensid, float x, float y, float z, float sy2, float sz2, float syz, float timeRaw, float time, float tot, int L0L1Latency, int deltaBC) : o2::BaseCluster<float>(sensid, x, y, z, sy2, sz2, syz), mTimeRaw(timeRaw), mTime(time), mTot(tot), mL0L1Latency(L0L1Latency), mDeltaBC(deltaBC), mContributingChannels(0)
+Cluster::Cluster(std::int16_t sensid, float x, float y, float z, float sy2, float sz2, float syz, double timeRaw, double time, float tot, int L0L1Latency, int deltaBC) : o2::BaseCluster<float>(sensid, x, y, z, sy2, sz2, syz), mTimeRaw(timeRaw), mTime(time), mTot(tot), mL0L1Latency(L0L1Latency), mDeltaBC(deltaBC), mContributingChannels(0)
 {
 
   // caching R and phi
   mR = TMath::Sqrt(x * x + y * y);
   mPhi = TMath::ATan2(y, x);
+  mSector = (TMath::ATan2(-getY(), -getX()) + TMath::Pi()) * TMath::RadToDeg() * 0.05;
 }
+//______________________________________________________________________
+void Cluster::setBaseData(std::int16_t sensid, float x, float y, float z, float sy2, float sz2, float syz)
+{
+  setSensorID(sensid);
+  setXYZ(x, y, z);
+  setErrors(sy2, sz2, syz);
 
+  // caching R and phi
+  mR = TMath::Sqrt(x * x + y * y);
+  mPhi = TMath::ATan2(y, x);
+  mSector = (TMath::ATan2(-getY(), -getX()) + TMath::Pi()) * TMath::RadToDeg() * 0.05;
+}
 //______________________________________________________________________
 int Cluster::getNumOfContributingChannels() const
 {
@@ -63,7 +74,7 @@ int Cluster::getNumOfContributingChannels() const
 }
 
 //______________________________________________________________________
-std::ostream& operator<<(std::ostream& os, const Cluster& c)
+std::ostream& operator<<(std::ostream& os, Cluster& c)
 {
   os << (o2::BaseCluster<float>&)c;
   os << " TOF cluster: raw time = " << std::scientific << c.getTimeRaw() << ", time = " << std::scientific << c.getTime() << ", Tot = " << std::scientific << c.getTot() << ", L0L1Latency = " << c.getL0L1Latency() << ", deltaBC = " << c.getDeltaBC() << ", R = " << c.getR() << ", mPhi = " << c.getPhi() << ", ContributingChannels = " << c.getNumOfContributingChannels() << "\n";

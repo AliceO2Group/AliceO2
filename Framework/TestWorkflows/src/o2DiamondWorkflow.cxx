@@ -37,15 +37,15 @@ void customize(std::vector<CompletionPolicy> &policies) {
 
 #include "Framework/runDataProcessing.h"
 
-
-AlgorithmSpec simplePipe(std::string const &what, int minDelay) {
-  return AlgorithmSpec{ [what, minDelay](InitContext& ic) {
+AlgorithmSpec simplePipe(std::string const& what, int minDelay)
+{
+  return AlgorithmSpec{ adaptStateful([what, minDelay]() {
     srand(getpid());
-    return [what, minDelay](ProcessingContext& ctx) {
+    return adaptStateless([what, minDelay](DataAllocator& outputs) {
       sleep((rand() % 5) + minDelay);
-      auto bData = ctx.outputs().make<int>(OutputRef{ what }, 1);
-    };
-  } };
+      auto bData = outputs.make<int>(OutputRef{ what }, 1);
+    });
+  }) };
 }
 
 // This is how you can define your processing in a declarative way
@@ -55,13 +55,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const&specs) {
       Inputs{},
       { OutputSpec{ { "a1" }, "TST", "A1" },
         OutputSpec{ { "a2" }, "TST", "A2" } },
-      AlgorithmSpec{
-        [](ProcessingContext& ctx) {
+      AlgorithmSpec{ adaptStateless(
+        [](DataAllocator& outputs, InfoLogger& logger) {
           sleep(rand() % 2);
-          auto aData = ctx.outputs().make<int>(OutputRef{ "a1" }, 1);
-          auto bData = ctx.outputs().make<int>(OutputRef{ "a2" }, 1);
-          ctx.services().get<InfoLogger>().log("This goes to infologger");
-        } } },
+          auto aData = outputs.make<int>(OutputRef{ "a1" }, 1);
+          auto bData = outputs.make<int>(OutputRef{ "a2" }, 1);
+          logger.log("This goes to infologger");
+        }) } },
     { "B",
       { InputSpec{ "x", "TST", "A1" } },
       { OutputSpec{ { "b1" }, "TST", "B1" } },
@@ -76,9 +76,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const&specs) {
         InputSpec{ "c", "TST", "C1" },
       },
       Outputs{},
-      AlgorithmSpec{
-        [](ProcessingContext& ctx) {
-        },
-      } }
+      AlgorithmSpec{ adaptStateless([]() {}) } }
   };
 }

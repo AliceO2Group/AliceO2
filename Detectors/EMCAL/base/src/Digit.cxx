@@ -15,8 +15,8 @@ using namespace o2::EMCAL;
 
 ClassImp(Digit)
 
-  Digit::Digit(Int_t tower, Double_t amplitude, Double_t time)
-  : DigitBase(time), mTower(tower), mAmplitude(amplitude)
+  Digit::Digit(Short_t tower, Double_t amplitude, Double_t time, Int_t label)
+  : DigitBase(time), mTower(tower), mAmplitude(amplitude), mLabel(label)
 {
 }
 
@@ -30,7 +30,7 @@ Digit& Digit::operator+=(const Digit& other)
 
 void Digit::PrintStream(std::ostream& stream) const
 {
-  stream << "EMCAL Digit: Tower " << mTower << ", Time " << getTimeStamp() << " with amplitude " << mAmplitude;
+  stream << "EMCAL Digit: Tower " << mTower << ", Time " << getTimeStamp() << ", Amplitude " << mAmplitude << ", Label " << mLabel;
 }
 
 std::ostream& operator<<(std::ostream& stream, const Digit& digi)

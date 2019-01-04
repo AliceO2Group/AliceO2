@@ -44,12 +44,14 @@ namespace framework
 struct DataProcessingHeader : public header::BaseHeader
 {
   // Required to do the lookup
+  static uint64_t getCreationTime();
   constexpr static const o2::header::HeaderType sHeaderType = "DataFlow";
   static const uint32_t sVersion = 1;
 
   // allows DataHeader::SubSpecificationType to be used as generic type in the code
   using StartTime = uint64_t;
   using Duration = uint64_t;
+  using CreationTime = uint64_t;
 
   ///
   /// data start time
@@ -60,6 +62,8 @@ struct DataProcessingHeader : public header::BaseHeader
   /// data duration
   ///
   Duration duration;
+
+  CreationTime creation;
 
   //___NEVER MODIFY THE ABOVE
   //___NEW STUFF GOES BELOW
@@ -76,9 +80,10 @@ struct DataProcessingHeader : public header::BaseHeader
   }
 
   DataProcessingHeader(StartTime s, Duration d)
-  : BaseHeader(sizeof(DataProcessingHeader), sHeaderType, header::gSerializationMethodNone,sVersion),
-    startTime(s),
-    duration(d)
+    : BaseHeader(sizeof(DataProcessingHeader), sHeaderType, header::gSerializationMethodNone, sVersion),
+      startTime(s),
+      duration(d),
+      creation(getCreationTime())
   {
   }
 

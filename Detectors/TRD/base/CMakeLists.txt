@@ -9,6 +9,7 @@ SET(SRCS
   src/TRDGeometryFlat.cxx
   src/TRDCommonParam.cxx
   src/TRDSimParam.cxx
+  src/Digit.cxx
 )
 
 SET(HEADERS
@@ -18,6 +19,7 @@ SET(HEADERS
   include/${MODULE_NAME}/TRDGeometryFlat.h
   include/${MODULE_NAME}/TRDSimParam.h
   include/${MODULE_NAME}/TRDCommonParam.h
+  include/${MODULE_NAME}/Digit.h
 )
 
 SET(LINKDEF src/TRDBaseLinkDef.h)

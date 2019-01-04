@@ -43,7 +43,7 @@ GeneratorFromFile::GeneratorFromFile(const char* name)
     if (object != nullptr)
       mEventsAvailable++;
   } while (object != nullptr);
-  std::cout << "Found " << mEventsAvailable << " events in this file \n";
+  LOG(INFO) << "Found " << mEventsAvailable << " events in this file \n";
 }
 
 void GeneratorFromFile::SetStartEvent(int start)
@@ -51,7 +51,7 @@ void GeneratorFromFile::SetStartEvent(int start)
   if (start < mEventsAvailable) {
     mEventCounter = start;
   } else {
-    std::cerr << "start event bigger than available events\n";
+    LOG(ERROR) << "start event bigger than available events\n";
   }
 }
 
@@ -62,50 +62,85 @@ bool isOnMassShell(TParticle const& p)
   calculatedmass = (calculatedmass >= 0.) ? std::sqrt(calculatedmass) : -std::sqrt(-calculatedmass);
   const double tol = 1.E-4;
   auto difference = std::abs(nominalmass - calculatedmass);
-  LOG(INFO) << difference << " " << nominalmass << " " << calculatedmass;
+  LOG(DEBUG) << "ISONMASSSHELL INFO" << difference << " " << nominalmass << " " << calculatedmass;
   return std::abs(nominalmass - calculatedmass) < tol;
 }
 
 Bool_t GeneratorFromFile::ReadEvent(FairPrimaryGenerator* primGen)
 {
   if (mEventCounter < mEventsAvailable) {
+    int particlecounter = 0;
+
     // get the tree and the branch
     std::stringstream treestringstr;
     treestringstr << "Event" << mEventCounter << "/TreeK";
     TTree* tree = (TTree*)mEventFile->Get(treestringstr.str().c_str());
-    if (tree == nullptr)
+    if (tree == nullptr) {
       return kFALSE;
+    }
 
     auto branch = tree->GetBranch("Particles");
-    TParticle* primary = new TParticle();
-    branch->SetAddress(&primary);
+    TParticle* particle = nullptr;
+    branch->SetAddress(&particle);
+    LOG(INFO) << "Reading " << branch->GetEntries() << " particles from Kinematics file";
+
+    // read the whole kinematics initially
+    std::vector<TParticle> particles;
     for (int i = 0; i < branch->GetEntries(); ++i) {
-      branch->GetEntry(i); // fill primary
-      auto pdgid = primary->GetPdgCode();
-      auto px = primary->Px();
-      auto py = primary->Py();
-      auto pz = primary->Pz();
-      auto vx = primary->Vx();
-      auto vy = primary->Vy();
-      auto vz = primary->Vz();
+      branch->GetEntry(i);
+      particles.push_back(*particle);
+    }
+
+    // filter the particles from Kinematics.root originally put by a generator
+    // and which are trackable
+    auto isFirstTrackableDescendant = [](TParticle const& p) {
+      // according to the current understanding in AliRoot, we
+      // have status code:
+      // == 0    <--->   particle is put by transportation
+      // == 1    <--->   particle is trackable
+      // != 1 but different from 0    <--->   particle is not directly trackable
+      // Note: This might have to be refined (using other information such as UniqueID)
+      if (p.GetStatusCode() == 1) {
+        return true;
+      }
+      return false;
+    };
+
+    for (int i = 0; i < branch->GetEntries(); ++i) {
+      auto& p = particles[i];
+
+      if (!isFirstTrackableDescendant(p)) {
+        continue;
+      }
+
+      auto pdgid = p.GetPdgCode();
+      auto px = p.Px();
+      auto py = p.Py();
+      auto pz = p.Pz();
+      auto vx = p.Vx();
+      auto vy = p.Vy();
+      auto vz = p.Vz();
 
       // a status of 1 means "trackable" in AliRoot kinematics
-      auto status = primary->GetStatusCode();
+      auto status = p.GetStatusCode();
       bool wanttracking = status == 1;
       if (wanttracking || !mSkipNonTrackable) {
         auto parent = -1;
-        auto e = primary->Energy();
-        auto tof = primary->T();
-        auto weight = primary->GetWeight();
-        if (!isOnMassShell(*primary)) {
+        auto e = p.Energy();
+        auto tof = p.T();
+        auto weight = p.GetWeight();
+        if (!isOnMassShell(p)) {
           LOG(WARNING) << "Skipping " << pdgid << " since off-mass shell";
           continue;
         }
-        LOG(WARNING) << "NOT Skipping " << i << "  " << pdgid << " since off-mass shell";
+        LOG(DEBUG) << "Putting primary " << pdgid << " " << p.GetStatusCode() << " " << p.GetUniqueID();
         primGen->AddTrack(pdgid, px, py, pz, vx, vy, vz, parent, wanttracking, e, tof, weight);
+        particlecounter++;
       }
     }
     mEventCounter++;
+
+    LOG(INFO) << "Event generator put " << particlecounter << " on stack";
     return kTRUE;
   } else {
     LOG(ERROR) << "GeneratorFromFile: Ran out of events\n";

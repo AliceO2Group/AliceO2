@@ -102,9 +102,10 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
                             return dataHeader->subSpecification;
                           },
                           // the branch names are simply built by adding the index
-                          [](std::string base, size_t i) { return base + "_" + std::to_string(i); } });
+                          [](std::string base, size_t i) { return base + "_" + std::to_string(i); } },
+                        RootTreeWriter::BranchDef<const char*>{ "input4", "binarybranch" });
 
-  BOOST_CHECK(writer.getStoreSize() == 2);
+  BOOST_CHECK(writer.getStoreSize() == 3);
 
   // need to mimic a context to actually call the processing
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
@@ -143,6 +144,7 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
   createPlainMessage(o2::header::DataHeader{ "INT", "TST", 0 }, a);
   createSerializedMessage(o2::header::DataHeader{ "CONTAINER", "TST", 0 }, b);
   createSerializedMessage(o2::header::DataHeader{ "CONTAINER", "TST", 1 }, c);
+  createPlainMessage(o2::header::DataHeader{ "BINARY", "TST", 0 }, a);
 
   // Note: InputRecord works on references to the schema and the message vector
   // so we can not specify the schema definition directly in the definition of
@@ -153,7 +155,8 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
   std::vector<InputRoute> schema = {
     { InputSpec{ "input1", "TST", "INT" }, "input1", 0 },       //
     { InputSpec{ "input2", "TST", "CONTAINER" }, "input2", 0 }, //
-    { InputSpec{ "input3", "TST", "CONTAINER" }, "input3", 1 }  //
+    { InputSpec{ "input3", "TST", "CONTAINER" }, "input3", 1 }, //
+    { InputSpec{ "input4", "TST", "BINARY" }, "input4", 0 },    //
   };
 
   auto getter = [&store](size_t i) -> char const* { return static_cast<char const*>(store[i]->GetData()); };

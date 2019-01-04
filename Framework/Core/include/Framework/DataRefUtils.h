@@ -103,11 +103,13 @@ struct DataRefUtils {
     }
     if (result == nullptr) {
       // did not manage to cast the pointer to result
-      // delete object via the class info, at this point we know that the
-      // class info is there, the object could not have been read otherwise
+      // delete object via the class info if available, not the case for all types,
+      // e.g. for standard containers of ROOT objects apparently this is not always
+      // the case
       auto* delfunc = storedClass->GetDelete();
-      assert(delfunc != nullptr);
-      if (delfunc) (*delfunc)(object);
+      if (delfunc) {
+        (*delfunc)(object);
+      }
 
       std::ostringstream ss;
       ss << "Attempting to extract a "

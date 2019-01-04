@@ -79,6 +79,115 @@ struct AlgorithmSpec {
   ErrorCallback onError = nullptr;
 };
 
+template <typename T>
+struct ContextElementTraits {
+  static T& get(ProcessingContext& ctx)
+  {
+    return ctx.services().get<T>();
+  }
+  static T& get(InitContext& ctx)
+  {
+    return ctx.services().get<T>();
+  }
+};
+
+template <>
+struct ContextElementTraits<ConfigParamRegistry const> {
+  static ConfigParamRegistry const& get(InitContext& ctx)
+  {
+    return ctx.options();
+  }
+};
+
+template <>
+struct ContextElementTraits<InputRecord> {
+  static InputRecord& get(ProcessingContext& ctx)
+  {
+    return ctx.inputs();
+  }
+};
+
+template <>
+struct ContextElementTraits<DataAllocator> {
+  static DataAllocator& get(ProcessingContext& ctx)
+  {
+    return ctx.outputs();
+  }
+};
+
+template <typename... CONTEXTELEMENT>
+AlgorithmSpec::ProcessCallback adaptStatelessF(std::function<void(CONTEXTELEMENT&...)> callback)
+{
+  return [callback](ProcessingContext& ctx) {
+    return callback(ContextElementTraits<CONTEXTELEMENT>::get(ctx)...);
+  };
+}
+
+template <typename... CONTEXTELEMENT>
+AlgorithmSpec::InitCallback adaptStatefulF(std::function<AlgorithmSpec::ProcessCallback(CONTEXTELEMENT&...)> callback)
+{
+  return [callback](InitContext& ctx) {
+    return callback(ContextElementTraits<CONTEXTELEMENT>::get(ctx)...);
+  };
+}
+
+template <typename R, typename... ARGS>
+AlgorithmSpec::ProcessCallback adaptStatelessP(R (*callback)(ARGS...))
+{
+  std::function<R(ARGS...)> f = callback;
+  return adaptStatelessF(f);
+}
+
+template <typename T>
+struct memfun_type {
+  using type = void;
+};
+
+template <typename Ret, typename Class, typename... Args>
+struct memfun_type<Ret (Class::*)(Args...) const> {
+  using type = std::function<Ret(Args...)>;
+};
+
+template <typename F>
+typename memfun_type<decltype(&F::operator())>::type
+  FFL(F const& func)
+{ // Function from lambda !
+  return func;
+}
+
+/// This helper allows us to create a process callback without
+/// having to use a context object from which the services and the
+/// inputs hang, but it simply uses templates magic to extract them
+/// from the context itself and pass them by reference. So instead of
+/// writing:
+///
+/// AlgorithmSpec{[](ProcessingContext& ctx) {
+///   ctx.inputs().get<int>("someInt"); // do something with the inputs
+/// }
+/// }
+///
+/// you can simply do:
+///
+/// AlgorithmSpec{[](InputRecord& inputs){
+///   inputs.get<int>("someInt");
+/// }}
+///
+/// Notice you can specify in any order any of InputRecord, DataAllocator,
+/// ConfigParamRegistry or any of the services which are usually hanging
+/// from the ServiceRegistry, e.g. ControlService.
+template <typename LAMBDA>
+AlgorithmSpec::ProcessCallback adaptStateless(LAMBDA l)
+{
+  // MAGIC: this makes the lambda decay into a function / method pointer
+  return adaptStatelessF(FFL(l));
+}
+
+template <typename LAMBDA>
+AlgorithmSpec::InitCallback adaptStateful(LAMBDA l)
+{
+  return adaptStatefulF(FFL(l));
+}
+
 } // namespace framework
 } // namespace o2
 

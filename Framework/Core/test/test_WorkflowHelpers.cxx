@@ -475,3 +475,11 @@ BOOST_AUTO_TEST_CASE(DetermineDanglingOutputs)
   std::vector<InputSpec> expected4{ InputSpec{ "dangling0", "TST", "B" }, InputSpec{ "dangling1", "TST", "C" } };
   BOOST_TEST(dangling4 == expected4, boost::test_tools::per_element());
 }
+
+BOOST_AUTO_TEST_CASE(TEST_SELECT)
+{
+  auto res = o2::framework::select();
+  BOOST_CHECK(res.empty());
+  auto res1 = o2::framework::select("x:TST/C1/0");
+  BOOST_CHECK(res1.size() == 1);
+}

@@ -120,6 +120,9 @@ struct DriverInfo {
   std::vector<ConfigParamSpec> workflowOptions;
   /// The config context. We use a bare pointer because std::observer_ptr is not a thing, yet.
   ConfigContext const* configContext;
+  /// The names for all the metrics which have been collected by this driver.
+  /// Should always be sorted alphabetically to ease insertion.
+  std::vector<std::string> availableMetrics;
 };
 
 } // namespace framework

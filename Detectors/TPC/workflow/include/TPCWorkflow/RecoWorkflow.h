@@ -25,19 +25,31 @@ namespace TPC
 namespace RecoWorkflow
 {
 /// define input and output types of the workflow
-enum struct InputType { Digitizer, // directly read digits from  {TPC:DIGITS}
-                        Digits,    // read digits from file
-                        Clusters,  // read clusters from file
+enum struct InputType { Digitizer,       // directly read digits from  {TPC:DIGITS}
+                        Digits,          // read digits from file
+                        Clusters,        // read clusters from file
+                        DecodedClusters, // read decoded clusters from file
                         Raw };
-enum struct OutputType { Clusters,
+enum struct OutputType { Digits,
+                         Clusters,
                          Raw,
                          DecodedClusters,
                          Tracks };
 
 /// create the workflow for TPC reconstruction
-framework::WorkflowSpec getWorkflow(bool propagateMC = true, int nLanes = 1,                               //
-                                    std::string inputType = "digitizer", std::string outputType = "tracks" //
+framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors,           //
+                                    bool propagateMC = true, unsigned nLanes = 1, //
+                                    std::string const& cfgInput = "digitizer",    //
+                                    std::string const& cfgOutput = "tracks"       //
                                     );
+
+framework::WorkflowSpec getWorkflow(bool propagateMC = true, unsigned nLanes = 1, //
+                                    std::string const& cfgInput = "digitizer",    //
+                                    std::string const& cfgOutput = "tracks"       //
+                                    )
+{
+  return getWorkflow({}, propagateMC, nLanes, cfgInput, cfgOutput);
+}
 
 } // end namespace RecoWorkflow
 } // end namespace TPC

@@ -76,7 +76,9 @@ class Geometry : public TNamed
   static const Double_t sGlueEdge;
   static const Double_t sShiftDDGNDline;
   static const Double_t sShiftline;
-  static const Double_t sRohacell;
+  static const Double_t sGlueRohacellCarbonThickness;
+  static const Double_t sKaptonOnCarbonThickness;
+  static const Double_t sKaptonGlueThickness;
 
   static TGeoHMatrix sTransMFT2ITS; ///< transformation due to the different conventions
 
@@ -86,7 +88,11 @@ class Geometry : public TNamed
 
   void build();
 
-  enum ObjectTypes { HalfType, HalfDiskType, PlaneType, LadderType, SensorType };
+  enum ObjectTypes { HalfType,
+                     HalfDiskType,
+                     PlaneType,
+                     LadderType,
+                     SensorType };
 
   /// \brief Returns Object type based on Unique ID provided
   Int_t getObjectType(UInt_t uniqueID) const { return ((uniqueID >> 16) & 0x7) - 1; };

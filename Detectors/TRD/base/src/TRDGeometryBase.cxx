@@ -13,7 +13,7 @@
 using namespace o2::trd;
 
 //_____________________________________________________________________________
-int TRDGeometryBase::getStack(float z, int layer) const
+GPUd() int TRDGeometryBase::getStack(float z, int layer) const
 {
   //
   // Reconstruct the chamber number from the z position and layer number
@@ -42,7 +42,7 @@ int TRDGeometryBase::getStack(float z, int layer) const
 }
 
 //_____________________________________________________________________________
-bool TRDGeometryBase::isOnBoundary(int det, float y, float z, float eps) const
+GPUd() bool TRDGeometryBase::isOnBoundary(int det, float y, float z, float eps) const
 {
   //
   // Checks whether position is at the boundary of the sensitive volume

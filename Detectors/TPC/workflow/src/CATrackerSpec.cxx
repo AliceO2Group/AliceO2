@@ -15,7 +15,10 @@
 
 #include "CATrackerSpec.h"
 #include "Headers/DataHeader.h"
+#include "Framework/WorkflowSpec.h" // o2::framework::mergeInputs
 #include "Framework/DataRefUtils.h"
+#include "Framework/DataSpecUtils.h"
+#include "Framework/ControlService.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/Helpers.h"
@@ -56,6 +59,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
     std::unique_ptr<o2::TPC::TPCCATracking> tracker;
     int verbosity = 1;
     size_t nParallelInputs = 1;
+    bool readyToQuit = false;
   };
 
   auto initFunction = [processMC, fanIn](InitContext& ic) {
@@ -76,6 +80,9 @@ DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
     }
 
     auto processingFct = [processAttributes, processMC](ProcessingContext& pc) {
+      if (processAttributes->readyToQuit) {
+        return;
+      }
       auto& parser = processAttributes->parser;
       auto& tracker = processAttributes->tracker;
       uint64_t activeSectors = 0;
@@ -98,7 +105,6 @@ DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
           }
           const int& sector = sectorHeader->sector;
           if (sector < 0) {
-            // FIXME: this we have to sort out once the steering is implemented
             continue;
           }
           if (validMcInputs.test(sector)) {
@@ -125,6 +131,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
       std::generate(inputLabels.begin(), inputLabels.end(), [counter = std::make_shared<int>(0)]() { return "input" + std::to_string((*counter)++); });
       auto& validInputs = processAttributes->validInputs;
       auto& inputs = processAttributes->inputs;
+      int operation = 0;
       for (auto& inputLabel : inputLabels) {
         auto ref = pc.inputs().get(inputLabel);
         auto payploadSize = DataRefUtils::getPayloadSize(ref);
@@ -136,7 +143,12 @@ DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
         }
         const int& sector = sectorHeader->sector;
         if (sector < 0) {
-          // FIXME: this we have to sort out once the steering is implemented
+          if (operation < 0 && operation != sector) {
+            // we expect the same operation on all inputs
+            LOG(ERROR) << "inconsistent lane operation, got " << sector << ", expecting " << operation;
+          } else if (operation == 0) {
+            operation = sector;
+          }
           continue;
         }
         if (validInputs.test(sector)) {
@@ -159,15 +171,61 @@ DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
         }
       }
 
+      if (operation == -1) {
+        // EOD is transmitted in the sectorHeader with sector number equal to -1
+        o2::TPC::TPCSectorHeader sh{ -1 };
+        sh.activeSectors = activeSectors;
+        pc.outputs().snapshot(OutputRef{ "output", 0, { sh } }, -1);
+        if (processMC) {
+          pc.outputs().snapshot(OutputRef{ "mclblout", 0, { sh } }, -1);
+        }
+        pc.services().get<ControlService>().readyToQuit(false);
+        processAttributes->readyToQuit = true;
+        return;
+      }
       if (activeSectors == 0 || (activeSectors & validInputs.to_ulong()) != activeSectors ||
           (processMC && (activeSectors & validMcInputs.to_ulong()) != activeSectors)) {
         // not all sectors available
-        // FIXME: do we need to send something
+        // not needed to send something, DPL will simply drop this timeslice, whenever the
+        // data for all sectors is available, the output is sent in that time slice
         return;
       }
       assert(processMC == false || validMcInputs == validInputs);
       if (verbosity > 0) {
-        LOG(INFO) << "running tracking for sectors " << validInputs;
+        // make human readable information from the bitfield
+        std::string bitInfo;
+        auto nActiveBits = validInputs.count();
+        if (((uint64_t)0x1 << nActiveBits) == validInputs.to_ulong() + 1) {
+          // sectors 0 to some upper bound are active
+          bitInfo = "0-" + std::to_string(nActiveBits - 1);
+        } else {
+          int rangeStart = -1;
+          int rangeEnd = -1;
+          for (size_t sector = 0; sector < validInputs.size(); sector++) {
+            if (validInputs.test(sector)) {
+              if (rangeStart < 0) {
+                if (rangeEnd >= 0) {
+                  bitInfo += ",";
+                }
+                bitInfo += std::to_string(sector);
+                if (nActiveBits == 1) {
+                  break;
+                }
+                rangeStart = sector;
+              }
+              rangeEnd = sector;
+            } else {
+              if (rangeStart >= 0 && rangeEnd > rangeStart) {
+                bitInfo += "-" + std::to_string(rangeEnd);
+              }
+              rangeStart = -1;
+            }
+          }
+          if (rangeStart >= 0 && rangeEnd > rangeStart) {
+            bitInfo += "-" + std::to_string(rangeEnd);
+          }
+        }
+        LOG(INFO) << "running tracking for sector(s) " << bitInfo;
       }
       ClusterNativeAccessFullTPC clusterIndex;
       memset(&clusterIndex, 0, sizeof(clusterIndex));
@@ -233,19 +291,23 @@ DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
     return processingFct;
   };
 
+  // FIXME: find out how to handle merge inputs in a simple and intuitive way
+  // changing the binding name of the input in order to identify inputs by unique labels
+  // in the processing. Think about how the processing can be made agnostic of input size,
+  // e.g. by providing a span of inputs under a certain label
   auto createInputSpecs = [fanIn](bool makeMcInput) {
-    std::vector<InputSpec> inputSpecs;
-    for (size_t n = 0; n < fanIn; ++n) {
-      std::string label = "input" + std::to_string(n);
-      inputSpecs.emplace_back(InputSpec{ label, gDataOriginTPC, "CLUSTERNATIVE", n, Lifetime::Timeframe });
-
-      if (makeMcInput) {
-        label = "mclblin" + std::to_string(n);
-        constexpr o2::header::DataDescription datadesc("CLNATIVEMCLBL");
-        inputSpecs.emplace_back(InputSpec{ label, gDataOriginTPC, datadesc, n, Lifetime::Timeframe });
-      }
+    Inputs inputs = { InputSpec{ "input", gDataOriginTPC, "CLUSTERNATIVE", 0, Lifetime::Timeframe } };
+    if (makeMcInput) {
+      inputs.emplace_back(InputSpec{ "mclblin", gDataOriginTPC, "CLNATIVEMCLBL", 0, Lifetime::Timeframe });
     }
-    return std::move(inputSpecs);
+
+    return std::move(mergeInputs(inputs, fanIn,
+                                 [](InputSpec& input, size_t index) {
+                                   // using unique input names for the moment but want to find
+                                   // an input-multiplicity-agnostic way of processing
+                                   input.binding += std::to_string(index);
+                                   DataSpecUtils::updateMatchingSubspec(input, index);
+                                 }));
   };
 
   auto createOutputSpecs = [](bool makeMcOutput) {

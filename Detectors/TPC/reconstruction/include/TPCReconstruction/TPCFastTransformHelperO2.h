@@ -68,6 +68,8 @@ class TPCFastTransformHelperO2
 
   static TPCFastTransformHelperO2* sInstance; // singleton instance
   bool mIsInitialized;                        ///< initialization flag
+
+  ClassDefNV(TPCFastTransformHelperO2, 1);
 };
 } // namespace TPC
 } // namespace o2

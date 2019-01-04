@@ -44,6 +44,7 @@ set(TEST_SRCS
   test/tableview.cxx
   test/pageparser.cxx
   test/test_mpl_tools.cxx
+  test/test_RangeTokenizer.cxx
 )
 
 O2_GENERATE_TESTS(

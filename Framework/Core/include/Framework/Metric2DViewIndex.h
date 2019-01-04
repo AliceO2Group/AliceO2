@@ -25,7 +25,7 @@ struct MetricInfo;
 /// This allows keeping track of the metrics which should be grouped together
 /// in some sort of 2D representation.
 struct Metric2DViewIndex {
-  using Updater = std::function<void(std::string const&, MetricInfo const&, int)>;
+  using Updater = std::function<void(std::string const&, MetricInfo const&, int value, size_t metricIndex)>;
   /// The prefix in the metrics store to be used for the view
   std::string prefix;
   /// The size in X of the metrics
@@ -37,7 +37,8 @@ struct Metric2DViewIndex {
   /// Whether or not the view is ready to be used.
   bool isComplete() const { return (w * h) != 0; }
 
-  static Updater getUpdater(Metric2DViewIndex& view);
+  /// Get the right updated function given a list of Metric views
+  static Updater getUpdater(std::vector<Metric2DViewIndex*> views);
 };
 
 } // namespace framework

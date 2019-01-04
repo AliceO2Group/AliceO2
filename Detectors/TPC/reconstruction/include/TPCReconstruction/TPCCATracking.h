@@ -19,9 +19,7 @@
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/TrackTPC.h"
 
-class TChain;
 class AliHLTTPCCAO2Interface;
-class AliHLTTPCCAClusterData;
 
 namespace o2 { class MCCompLabel; namespace dataformats { template <class T> class MCTruthContainer; }}
 
@@ -52,8 +50,6 @@ public:
   std::unique_ptr<AliHLTTPCCAO2Interface> mTrackingCAO2Interface; //Pointer to Interface class in HLT O2 CA Tracking library.
                                                                   //The tracking code itself is not included in the O2 package, but contained in the CA library.
                                                                   //The TPCCATracking class interfaces this library via this pointer to AliHLTTPCCAO2Interface class.
-  std::unique_ptr<AliHLTTPCCAClusterData[]> mClusterData_UPTR;
-  AliHLTTPCCAClusterData* mClusterData;
 
   TPCCATracking(const TPCCATracking&) = delete;            // Disable copy
   TPCCATracking& operator=(const TPCCATracking&) = delete; // Disable assignment

@@ -50,6 +50,10 @@ struct DeviceInfo {
   bool readyToQuit;
   /// Index for a particular relayer.
   Metric2DViewIndex dataRelayerViewIndex;
+  /// Index for the variables of a given relayer.
+  Metric2DViewIndex variablesViewIndex;
+  /// Index for the queries of each input route.
+  Metric2DViewIndex queriesViewIndex;
 };
 
 } // namespace framework

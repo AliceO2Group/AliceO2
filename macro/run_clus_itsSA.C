@@ -17,8 +17,11 @@
 //
 // Use for RAW mode:
 // root -b -q run_clus_itsSA.C+\(\"o2clus_its.root\",\"dig.raw\"\) 2>&1 | tee clusSARAW.log
+//
+// Use of topology dictionary: flag withDicitonary -> true
+// A dictionary must be generated with the macro CheckTopologies.C
 
-void run_clus_itsSA(std::string outputfile, std::string inputfile, bool raw = false)
+void run_clus_itsSA(std::string outputfile, std::string inputfile, bool raw = false, bool withDictionary = false, std::string dictionaryfile = "complete_dictionary.bin")
 {
   // Initialize logger
   FairLogger* logger = FairLogger::GetLogger();
@@ -32,6 +35,9 @@ void run_clus_itsSA(std::string outputfile, std::string inputfile, bool raw = fa
   Bool_t useMCTruth = kTRUE;  // kFALSE if no comparison with MC needed
   Bool_t entryPerROF = kTRUE; // write single tree entry for every ROF. If false, just 1 entry will be saved
   o2::ITS::ClustererTask* clus = new o2::ITS::ClustererTask(useMCTruth, raw);
+  if (withDictionary) {
+    clus->loadDictionary(dictionaryfile.c_str());
+  }
   clus->getClusterer().setMaskOverflowPixels(true);  // set this to false to switch off masking
   clus->getClusterer().setWantFullClusters(true);    // require clusters with coordinates and full pattern
   clus->getClusterer().setWantCompactClusters(true); // require compact clusters with patternID

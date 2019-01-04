@@ -104,8 +104,8 @@ ClassImp(o2::ITSMFT::ClusterTopology)
       completeHash += ((((unsigned long)extended_pattern[2]) << 24) + (((unsigned long)extended_pattern[3]) << 16) +
                        (((unsigned long)extended_pattern[4]) << 8) + ((unsigned long)extended_pattern[5]));
     } else {
-      std::cout << "ERROR: no fired pixels\n";
-      exit(1);
+      LOG(ERROR) << "No fired pixels in small topology" << FairLogger::endl;
+      throw std::runtime_error("No fired pixels in small topology");
     }
     return completeHash;
   }
@@ -130,8 +130,8 @@ ClassImp(o2::ITSMFT::ClusterTopology)
       completeHash += ((((unsigned long)patt[2]) << 24) + (((unsigned long)patt[3]) << 16) +
                        (((unsigned long)patt[4]) << 8) + ((unsigned long)patt[5]));
     } else {
-      std::cout << "ERROR: no fired pixels\n";
-      exit(1);
+      LOG(ERROR) << "No fired pixels in small topology" << FairLogger::endl;
+      throw std::runtime_error("No fired pixels in small topology");
     }
     return completeHash;
   }

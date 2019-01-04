@@ -88,6 +88,15 @@ class O2PrimaryServerDevice : public FairMQDevice
     // so that we reach the RUNNING state of the server quickly
     // and do not block here
     mGeneratorInitThread = std::thread(&O2PrimaryServerDevice::initGenerator, this);
+
+    // init pipe
+    auto pipeenv = getenv("ALICE_O2SIMSERVERTODRIVER_PIPE");
+    if (pipeenv) {
+      mPipeToDriver = atoi(pipeenv);
+      LOG(INFO) << "ASSIGNED PIPE HANDLE " << mPipeToDriver;
+    } else {
+      LOG(INFO) << "DID NOT FIND ENVIRONMENT VARIABLE TO INIT PIPE";
+    }
   }
 
   // method reacting to requests to get the simulation configuration
@@ -185,6 +194,11 @@ class O2PrimaryServerDevice : public FairMQDevice
     LOG(WARNING) << "Sending " << m.mParticles.size() << " particles\n";
     LOG(WARNING) << "treating ev " << counter << " part " << i.part << " out of " << i.nparts << "\n";
 
+    // feedback to driver if new event started
+    if (mPipeToDriver != -1 && i.part == 1) {
+      write(mPipeToDriver, &counter, sizeof(counter));
+    }
+
     mPartCounter++;
     if (mPartCounter == numberofparts) {
       mNeedNewEvent = true;
@@ -200,7 +214,7 @@ class O2PrimaryServerDevice : public FairMQDevice
 
     // send answer
     if (Send(message, "primary-get") > 0) {
-      LOG(INFO) << "reply send ";
+      LOG(INFO) << "reply send";
       return true;
     }
     return true;
@@ -217,6 +231,7 @@ class O2PrimaryServerDevice : public FairMQDevice
   bool mNeedNewEvent = true;
   int mMaxEvents = 2;
   int mInitialSeed = -1;
+  int mPipeToDriver = -1; // handle for direct piper to driver (to communicate meta info)
 
   std::thread mGeneratorInitThread; //! a thread used to concurrently init the particle generator
 };
