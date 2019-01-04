@@ -41,7 +41,7 @@ std::vector<o2::mch::mapping::Segmentation> createSegmentations()
 }
 } // namespace
 
-MCHDigitizer::MCHDigitizer(Int_t) : mReadoutWindowCurrent(0), mdetID{ createDEMap() }, mSeg{ createSegmentations() } 
+MCHDigitizer::MCHDigitizer(int) : mReadoutWindowCurrent(0), mdetID{ createDEMap() }, mSeg{ createSegmentations() } 
 {
 }
 
@@ -73,57 +73,57 @@ void MCHDigitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digi
 }
 
 //______________________________________________________________________
-Int_t MCHDigitizer::processHit(const Hit &hit,Double_t event_time)
+int MCHDigitizer::processHit(const Hit &hit,double event_time)
 {
 
   //hit position(cm)
-  Float_t pos[3] = { hit.GetX(), hit.GetY(), hit.GetZ() };
+  float pos[3] = { hit.GetX(), hit.GetY(), hit.GetZ() };
   //convert energy to charge, float enough?
-  Float_t charge = mMuonresponse.etocharge(hit.GetEnergyLoss());
+  float charge = mMuonresponse.etocharge(hit.GetEnergyLoss());
   //time information
-  Float_t time = hit.GetTime();//how to trace
-  Int_t detID = hit.GetDetectorID();
+  float time = hit.GetTime();//how to trace
+  int detID = hit.GetDetectorID();
   //get index for this detID
-  Int_t indexID = mdetID.at(detID);
+  int indexID = mdetID.at(detID);
   //# digits for hit
-  Int_t ndigits=0;
+  int ndigits=0;
   
-  Float_t anodpos = mMuonresponse.getAnod(pos[0],detID);
+  float anodpos = mMuonresponse.getAnod(pos[0],detID);
   //TODO/Questions:
   //- charge sharing between planes wrong in Aliroot copied here?
   //- possibility to do random seeding in controlled way? 
   // 100% reproducible if wanted? or already given up on geant level?
   //signal will be around neighbouring anode-wire 
   //distance of impact point and anode, needed for charge sharing
-  Float_t anoddis = TMath::Abs(pos[0]-anodpos);
-   //throw a dice?
+  float anoddis = TMath::Abs(pos[0]-anodpos);
+  //throw a dice?
   //should be related to electrons fluctuating out/in one/both halves (independent x)
-   Float_t fracplane = mMuonresponse.chargeCorr();//should become a function of anoddis
-  Float_t chargebend= fracplane*charge;
-  Float_t chargenon = charge/fracplane;
+  float fracplane = mMuonresponse.chargeCorr();//should become a function of anoddis
+  float chargebend= fracplane*charge;
+  float chargenon = charge/fracplane;
   //last line  from Aliroot, not understood why
   //since charge = charchbend+chargenon and not multiplication
-  Float_t signal = 0.0;
+  float signal = 0.0;
 
   //borders of charge gen. 
-  Double_t xMin = anodpos-mMuonresponse.getQspreadX()*0.5;
-  Double_t xMax = anodpos+mMuonresponse.getQspreadX()*0.5;
+  double xMin = anodpos-mMuonresponse.getQspreadX()*0.5;
+  double xMax = anodpos+mMuonresponse.getQspreadX()*0.5;
 
-  Double_t yMin = pos[1]-mMuonresponse.getQspreadY()*0.5;
-  Double_t yMax = pos[1]+mMuonresponse.getQspreadY()*0.5;
+  double yMin = pos[1]-mMuonresponse.getQspreadY()*0.5;
+  double yMax = pos[1]+mMuonresponse.getQspreadY()*0.5;
   
   //pad-borders
-  Float_t xmin =0.0;
-  Float_t xmax =0.0;
-  Float_t ymin =0.0;
-  Float_t ymax =0.0;
+  float xmin =0.0;
+  float xmax =0.0;
+  float ymin =0.0;
+  float ymax =0.0;
  
   //use DetectorID to get area for signal induction               
  
   //single pad, used only as check...
   //to be seen if needed
-  Int_t padidbendcent=0;
-  Int_t padidnoncent=0;
+  int padidbendcent=0;
+  int padidnoncent=0;
   bool padexists = mSeg[indexID].findPadPairByPosition(anodpos,pos[1],padidbendcent,padidnoncent);
   if(!padexists) return 0; //to be decided if needed
   
