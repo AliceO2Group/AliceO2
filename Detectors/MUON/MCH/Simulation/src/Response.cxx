@@ -42,8 +42,8 @@ double Response::chargePad(float x, float y, float xmin, float xmax, float ymin,
   //see AliMUONResponseV0.cxx (inside DisIntegrate)
   // and AliMUONMathieson.cxx (IntXY)
   int station = 0;
-  if(detID>299) station = 1;//wrong numbers!
-  //correct? should take info from segmentation
+  if(detID>299) station = 1;
+  //see: https://edms.cern.ch/ui/file/1054937/1/ALICE-INT-2009-044.pdf
   // normalise w.r.t. Pitch
   xmin *= mInversePitch[station];
   xmax *= mInversePitch[station];

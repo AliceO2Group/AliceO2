@@ -71,12 +71,11 @@ class Response
   //why this multiplicitation before again division? any number small compared to Float precision?
   const double mK2x[2]     = {1.021026,1.010729};
   const double mSqrtK3x[2] = {0.7000,0.7131};
-  const double mK4x[2]     = {0.0,0.0};
+  const double mK4x[2]     = {0.40934890,0.40357476};
   const double mK2y[2]     = {0.9778207,0.970595};
   const double mSqrtK3y[2] = {0.7550,0.7642};
-  const double mK4y[2]     = {0.0,0.0};
-  //chargecorr 0.11
-  
+  const double mK4y[2]     = {0.38658194,0.38312571};
+    
   //anode-cathode Pitch in 1/cm
   //Station 1 first entry, Station 2-5 second entry
   const float mInversePitch[2] ={1./0.21,1./0.25};
