@@ -4,6 +4,7 @@
 #include "AliGPUCADisplayBackend.h"
 #include "AliGPUReconstruction.h"
 #include "../cmodules/vecpod.h"
+#include "../cmodules/qsem.h"
 #include <GL/glew.h>
 #include <GL/gl.h>
 #include <GL/glext.h>
@@ -65,6 +66,8 @@ public:
 	int InitGL();
 	void ExitGL();
 	void ReSizeGLScene(int width, int height, bool init = false);
+	
+	qSem semLockDisplay;
 
 private:
 	static constexpr const int N_POINTS_TYPE = 9;

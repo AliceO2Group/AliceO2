@@ -24,7 +24,6 @@
 #include "AliHLTTPCGMPropagator.h"
 #include "AliHLTTPCClusterMCData.h"
 #include "AliHLTTPCCAMCInfo.h"
-#include "include.h"
 #include <algorithm>
 #include <cstdio>
 

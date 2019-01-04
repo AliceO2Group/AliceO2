@@ -18,8 +18,6 @@
 #include "TCanvas.h"
 #include "TPad.h"
 
-#include "include.h"
-
 #include <iostream>
 #include <iomanip>
 #include <limits>

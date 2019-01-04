@@ -2,6 +2,7 @@
 #define ALIGPUCADISPLAYBACKENDGLUT_H
 
 #include "AliGPUCADisplayBackend.h"
+#include <pthread.h>
 
 class AliGPUCADisplayBackendGlut : public AliGPUCADisplayBackend
 {
@@ -28,6 +29,7 @@ private:
 	static void ReSizeGLSceneWrapper(int width, int height);
 	
 	volatile bool glutRunning = false;
+	pthread_mutex_t semLockExit = PTHREAD_MUTEX_INITIALIZER;
 };
 
 #endif

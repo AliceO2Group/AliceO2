@@ -15,8 +15,6 @@ LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM); // Declaration For WndProc
 bool active = TRUE;     // Window Active Flag Set To TRUE By Default
 bool fullscreen = TRUE; // Fullscreen Flag Set To Fullscreen Mode By Default
 
-HANDLE semLockDisplay = NULL;
-
 POINT mouseCursorPos;
 
 volatile int mouseReset = false;
@@ -384,7 +382,6 @@ void SetVSync(bool enable) {}
 
 void AliGPUCADisplayBackendWindows::StartDisplay()
 {
-	semLockDisplay = CreateSemaphore(0, 1, 1, 0);
 	HANDLE hThread;
 	if ((hThread = CreateThread(NULL, NULL, &OpenGLWrapper, this, NULL, NULL)) == NULL)
 	{

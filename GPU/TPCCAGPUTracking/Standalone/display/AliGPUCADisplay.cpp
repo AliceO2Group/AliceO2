@@ -23,7 +23,6 @@
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCGMMergedTrack.h"
 #include "AliHLTTPCGMPropagator.h"
-#include "include.h"
 #include "../cmodules/timer.h"
 #include "../cmodules/qconfig.h"
 
@@ -856,11 +855,7 @@ int AliGPUCADisplay::DrawGLScene(bool mixAnimation, float animateTime) // Here's
 	//Make sure event gets not overwritten during display
 	if (animateTime < 0)
 	{
-		#ifdef WIN32
-			WaitForSingleObject(semLockDisplay, INFINITE);
-		#else
-			pthread_mutex_lock(&semLockDisplay);
-		#endif
+		semLockDisplay.Lock();
 	}
 
 	if (!mixAnimation && offscreenBuffer.created)
@@ -1623,12 +1618,10 @@ int AliGPUCADisplay::DrawGLScene(bool mixAnimation, float animateTime) // Here's
 		}
 	}
 
-//Free event
-#ifdef WIN32
-	ReleaseSemaphore(semLockDisplay, 1, NULL);
-#else
-	pthread_mutex_unlock(&semLockDisplay);
-#endif
+	if (animateTime < 0)
+	{
+		semLockDisplay.Unlock();
+	}
 
 	return(true);
 }
