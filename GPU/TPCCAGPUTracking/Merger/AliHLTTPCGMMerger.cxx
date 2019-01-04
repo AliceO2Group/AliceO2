@@ -49,10 +49,6 @@
 #include "AliHLTTPCCAGPUConfig.h"
 #include "MemoryAssignmentHelpers.h"
 
-#if defined(BUILD_QA) && defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE)
-#include "include.h"
-#endif
-
 #define DEBUG 0
 
 static constexpr int kMaxParts = 400;

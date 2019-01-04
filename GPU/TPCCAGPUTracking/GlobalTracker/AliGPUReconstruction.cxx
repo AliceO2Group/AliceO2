@@ -3,8 +3,6 @@
 #include <mutex>
 #include <string>
 
-#include "include.h"
-
 #ifdef WIN32
 #include <windows.h>
 #include <winbase.h>
@@ -39,7 +37,6 @@
 
 #ifdef HLTCA_STANDALONE
 #include <omp.h>
-#include "include.h"
 #ifdef WIN32
 #include <conio.h>
 #else
@@ -542,11 +539,7 @@ int AliGPUReconstruction::RunStandalone()
 		}
 		else
 		{
-#ifdef WIN32
-			ReleaseSemaphore(semLockDisplay, 1, NULL);
-#else
-			pthread_mutex_unlock(&semLockDisplay);
-#endif
+			mEventDisplay->semLockDisplay.Unlock();
 			mEventDisplay->ShowNextEvent();
 		}
 
@@ -562,10 +555,8 @@ int AliGPUReconstruction::RunStandalone()
 			usleep(10000);
 #endif
 			iKey = kbhit() ? getch() : 0;
-			if (iKey == 'q')
-				mDeviceProcessingSettings.eventDisplay->displayControl = 2;
-			else if (iKey == 'n')
-				break;
+			if (iKey == 'q') mDeviceProcessingSettings.eventDisplay->displayControl = 2;
+			else if (iKey == 'n') break;
 			else if (iKey)
 			{
 				while (mDeviceProcessingSettings.eventDisplay->sendKey != 0)
@@ -587,11 +578,7 @@ int AliGPUReconstruction::RunStandalone()
 		mDeviceProcessingSettings.eventDisplay->displayControl = 0;
 		printf("Loading next event\n");
 
-#ifdef WIN32
-		WaitForSingleObject(semLockDisplay, INFINITE);
-#else
-		pthread_mutex_lock(&semLockDisplay);
-#endif
+		mEventDisplay->semLockDisplay.Lock();
 	}
 #endif
 #endif

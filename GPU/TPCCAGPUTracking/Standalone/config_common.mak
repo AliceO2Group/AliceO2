@@ -13,7 +13,7 @@ CC_i686-pc-cygwin			= ICC
 
 INCLUDEPATHS				= include SliceTracker HLTHeaders Merger GlobalTracker TRDTracking Common TPCFastTransformation display qa
 DEFINES						= HLTCA_STANDALONE HLTCA_ENABLE_GPU_TRACKER
-CPPFILES					= cmodules/timer.cpp
+CPPFILES					= cmodules/timer.cpp cmodules/qsem.cpp
 
 EXTRAFLAGSGCC				=
 EXTRAFLAGSLINK				= -rdynamic

@@ -26,7 +26,6 @@ private:
 	virtual void* OpenGLMain();
 	int GetKey(int key);
 	
-	pthread_mutex_t semLockDisplay = PTHREAD_MUTEX_INITIALIZER;
 	pthread_mutex_t semLockExit = PTHREAD_MUTEX_INITIALIZER;
 	volatile bool displayRunning = false;
 

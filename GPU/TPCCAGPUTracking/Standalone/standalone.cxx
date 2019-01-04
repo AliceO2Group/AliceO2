@@ -31,7 +31,6 @@
 
 #include "AliHLTTPCGMMergedTrack.h"
 #include "Interface/outputtrack.h"
-#include "include.h"
 #include "AliGPUCASettings.h"
 #include <vector>
 #include <xmmintrin.h>
