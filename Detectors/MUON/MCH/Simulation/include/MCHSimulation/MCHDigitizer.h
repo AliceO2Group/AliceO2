@@ -74,9 +74,9 @@ class MCHDigitizer
   std::vector<int> mPadIDsbend;//not needed as member...only generate where needed
   std::vector<int> mPadIDsnon;//not needed as member
 
-  std::vector<mapping::Segmentation> mSegbend;
+  std::vector<mapping::Segmentation> mSeg;
                                                 
-  std::vector<mapping::Segmentation> mSegnon;
+  // std::vector<mapping::Segmentation> mSegnon;
 
   Response mMuonresponse;
   

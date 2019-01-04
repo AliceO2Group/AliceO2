@@ -30,18 +30,18 @@ std::map<int, int> createDEMap()
   return m;
 }
 
-std::vector<o2::mch::mapping::Segmentation> createSegmentations(bool bending)
+std::vector<o2::mch::mapping::Segmentation> createSegmentations()
 {
   std::vector<o2::mch::mapping::Segmentation> segs;
 
-  o2::mch::mapping::forEachDetectionElement([&segs, bending](int deid) {
-    segs.emplace_back(deid, bending);
+  o2::mch::mapping::forEachDetectionElement([&segs](int deid) {
+    segs.emplace_back(deid);
   });
   return segs;
 }
 } // namespace
 
-MCHDigitizer::MCHDigitizer(Int_t) : mReadoutWindowCurrent(0), mdetID{ createDEMap() }, mSegbend{ createSegmentations(true) }, mSegnon{ createSegmentations(false) }
+MCHDigitizer::MCHDigitizer(Int_t) : mReadoutWindowCurrent(0), mdetID{ createDEMap() }, mSeg{ createSegmentations() } 
 {
 }
 
@@ -154,18 +154,20 @@ Int_t MCHDigitizer::processHit(const Hit &hit,Double_t event_time)
   //is this available via Segmentation.h interface already?
   
   //TEST with only one pad
-  Int_t padidbend= mSegbend[indexID].findPadByPosition(anodpos,pos[1]);
-  Int_t padidnon= mSegnon[indexID].findPadByPosition(anodpos,pos[1]);
+  Int_t padidbend=0;
+  Int_t padidnon=0;
+  bool padexists = mSeg[indexID].findPadPairByPosition(anodpos,pos[1],padidbend,padidnon);
+  if(!padexists) return 0; //to be decided what to do
   //correct coordinate system? how misalignment enters?
   /*mPadIDsbend = mSegbend.getPadUids(xMin,xMax,yMin,yMax);
     mPadIDsnon  = mSegnon.getPadUids(xMin,xMax,yMin,yMax);
   */
     /* for(auto & padidbend : mPadIDsbend){
     //retrieve coordinates for each pad*/
-  xmin =  mSegbend[indexID].padPositionX(padidbend)-mSegbend[indexID].padSizeX(padidbend)*0.5;
-  xmax =  mSegbend[indexID].padPositionX(padidbend)+mSegbend[indexID].padSizeX(padidbend)*0.5;
-  ymin =  mSegbend[indexID].padPositionY(padidbend)-mSegbend[indexID].padSizeY(padidbend)*0.5;
-  ymax =  mSegbend[indexID].padPositionY(padidbend)+mSegbend[indexID].padSizeY(padidbend)*0.5;
+  xmin =  mSeg[indexID].padPositionX(padidbend)-mSeg[indexID].padSizeX(padidbend)*0.5;
+  xmax =  mSeg[indexID].padPositionX(padidbend)+mSeg[indexID].padSizeX(padidbend)*0.5;
+  ymin =  mSeg[indexID].padPositionY(padidbend)-mSeg[indexID].padSizeY(padidbend)*0.5;
+  ymax =  mSeg[indexID].padPositionY(padidbend)+mSeg[indexID].padSizeY(padidbend)*0.5;
   //what happens if at edge of detector?
   
   // 1st step integrate induced charge for each pad
@@ -181,10 +183,10 @@ Int_t MCHDigitizer::processHit(const Hit &hit,Double_t event_time)
     /*}
 	   for(auto & padidnon : mPadIDsnon){*/
     //retrieve coordinates for each pad
-    xmin =  mSegnon[indexID].padPositionX(padidnon)-mSegnon[indexID].padSizeX(padidnon)*0.5;
-    xmax =  mSegnon[indexID].padPositionX(padidnon)+mSegnon[indexID].padSizeX(padidnon)*0.5;
-    ymin =  mSegnon[indexID].padPositionY(padidnon)-mSegnon[indexID].padSizeY(padidnon)*0.5;
-    ymax =  mSegnon[indexID].padPositionY(padidnon)+mSegnon[indexID].padSizeY(padidnon)*0.5;
+    xmin =  mSeg[indexID].padPositionX(padidnon)-mSeg[indexID].padSizeX(padidnon)*0.5;
+    xmax =  mSeg[indexID].padPositionX(padidnon)+mSeg[indexID].padSizeX(padidnon)*0.5;
+    ymin =  mSeg[indexID].padPositionY(padidnon)-mSeg[indexID].padSizeY(padidnon)*0.5;
+    ymax =  mSeg[indexID].padPositionY(padidnon)+mSeg[indexID].padSizeY(padidnon)*0.5;
     
     //retrieve charge for given x,y with Mathieson
     signal = mMuonresponse.chargePad(anodpos,pos[1],xmin,xmax,ymin,ymax,detID,chargenon);
