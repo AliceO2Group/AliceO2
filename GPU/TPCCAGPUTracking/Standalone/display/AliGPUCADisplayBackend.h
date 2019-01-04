@@ -29,8 +29,8 @@ protected:
 	static void* OpenGLWrapper(void*);
 	
 	static constexpr int init_width = 1024, init_height = 768; //Initial window size, before maximizing
-	
-	static constexpr const char* GL_WINDOW_NAME = "Alice HLT TPC CA Event Display";
+	static constexpr const char* GL_WINDOW_NAME = "Alice HLT TPC CA Event Display"; //Title of event display set by backend
+	//Constant key codes for special keys (to unify different treatment in X11 / Windows / GLUT / etc.)
 	static constexpr int KEY_UP = 1;
 	static constexpr int KEY_DOWN = 2;
 	static constexpr int KEY_LEFT = 3;
@@ -43,15 +43,15 @@ protected:
 	static constexpr int KEY_CTRL = 18;
 
 	//Keyboard / Mouse actions
-	float mouseDnX, mouseDnY;
-	float mouseMvX, mouseMvY;
-	bool mouseDn = false;
-	bool mouseDnR = false;
-	int mouseWheel = 0;
+	bool mouseDn = false; //Mouse button down
+	bool mouseDnR = false; //Right mouse button down
+	float mouseDnX, mouseDnY; //X/Y position where mouse button was pressed
+	float mouseMvX, mouseMvY; //Current mouse pointer position
+	int mouseWheel = 0; //Incremental value of mouse wheel, ca +/- 100 per wheel tick
 	bool keys[256] = {false}; //Array of keys currently pressed
 	bool keysShift[256] = {false}; //Array whether shift was held during key-press
 	
-	int maxFPSRate; //run at highest possible frame rate, do not sleep in between frames
+	int maxFPSRate = 0; //run at highest possible frame rate, do not sleep in between frames
 	
 	AliGPUCADisplay* mDisplay; //Ptr to display, not owning, set by display when it connects to backend
 	
