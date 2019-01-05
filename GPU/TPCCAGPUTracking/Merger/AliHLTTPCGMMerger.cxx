@@ -1323,13 +1323,11 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 
 		//if (nParts > 1) printf("Merged %d: QPt %f %d parts %d hits\n", fNOutputTracks, p1.QPt(), nParts, nHits);
 
-#if defined(BUILD_QA) && defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE)
-		if (fGPUReconstruction && fGPUReconstruction->GetQA() && fGPUReconstruction->GetQA()->SuppressTrack(fNOutputTracks))
+		if (AliGPUCAQA::QAAvailable() && fGPUReconstruction && fGPUReconstruction->GetQA() && fGPUReconstruction->GetQA()->SuppressTrack(fNOutputTracks))
 		{
 			mergedTrack.SetOK(0);
 			mergedTrack.SetNClusters(0);
 		}
-#endif
 
 		bool CEside = (mergedTrack.CSide() != 0) ^ (cl[0].fZ > cl[nHits - 1].fZ);
 		if (mergedTrack.NClusters() && mergedTrack.OK()) MergeCEFill(trackParts[CEside ? lastTrackIndex : firstTrackIndex], cl[CEside ? (nHits - 1) : 0], fNOutputTracks);

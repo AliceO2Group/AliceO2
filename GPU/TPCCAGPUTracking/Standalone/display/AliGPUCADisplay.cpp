@@ -424,7 +424,7 @@ int AliGPUCADisplay::InitGL()
 	if (glVersion[0] < 4 || (glVersion[0] == 4 && glVersion[1] < 6))
 	{
 		printf("Unsupported OpenGL runtime %d.%d < 4.6\n", glVersion[0], glVersion[1]);
-		return(0);
+		return(1);
 	}
 
 	CHKERR(glCreateBuffers(36, vbo_id));
@@ -445,7 +445,7 @@ int AliGPUCADisplay::InitGL()
 #endif
 	threadBuffers.resize(maxThreads);
 	threadTracks.resize(maxThreads);
-	return(1);                                     // Initialization Went OK
+	return(0);                                     // Initialization Went OK
 }
 
 void AliGPUCADisplay::ExitGL()
@@ -1623,7 +1623,7 @@ int AliGPUCADisplay::DrawGLScene(bool mixAnimation, float animateTime) // Here's
 		semLockDisplay.Unlock();
 	}
 
-	return(true);
+	return(0);
 }
 
 void AliGPUCADisplay::DoScreenshot(char *filename, float animateTime)
@@ -2289,6 +2289,12 @@ void AliGPUCADisplay::HandleSendKey()
 
 void AliGPUCADisplay::ShowNextEvent()
 {
+	semLockDisplay.Unlock();
 	mBackend->needUpdate = 1;
 	updateDLList = true;
+}
+
+void AliGPUCADisplay::WaitForNextEvent()
+{
+	semLockDisplay.Lock();
 }

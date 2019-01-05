@@ -35,7 +35,7 @@ elseif(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     set(MODULE AliTPCCAGPUTracking)
 endif()
 
-include_directories(. SliceTracker Merger ../Common ../TPCFastTransformation Standalone/include)
+include_directories(. SliceTracker Merger ../Common ../TPCFastTransformation Standalone Standalone/display Standalone/qa)
 
 #SRCs processed by CINT and added to HDRS
 set(SRCS
@@ -154,7 +154,7 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     
     ALICE_UseVc()
 else() #if we do not build for AliRoot, for the time being we still need some dummy headers for some definitions
-    include_directories(HLTHeaders Standalone/include)
+    include_directories(HLTHeaders)
 endif()
 
 #Some extra files / includes / settings needed for the build for O2
@@ -164,7 +164,29 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
     )
     set(SRCS_NO_CINT ${SRCS_NO_CINT}
         Standalone/cmodules/timer.cpp
+        Standalone/display/AliGPUCADisplayBackend.cpp
     )
+endif()
+
+if (GPUCA_EVENT_DISPLAY)
+    message(STATUS "Building AliTPCCommon Event Display")
+    set(SRCS_NO_CINT ${SRCS_NO_CINT}
+        Standalone/cmodules/qsem.cpp
+        Standalone/display/AliGPUCADisplay.cpp
+        Standalone/display/AliGPUCADisplayQuaternion.cpp
+        Standalone/display/AliGPUCADisplayInterpolation.cpp
+    )
+    add_definitions(-DBUILD_EVENT_DISPLAY)
+else()
+    set(HDRS2 ${HDRS2} Standalone/display/AliGPUCADisplay.h)
+endif()
+
+if (GPUCA_QA)
+    message(STATUS "Building AliTPCCommon QA")
+    set(SRCS_NO_CINT ${SRCS_NO_CINT} Standalone/qa/AliGPUCAQA.cpp)
+    add_definitions(-DBUILD_QA)
+else()
+    set(HDRS2 ${HDRS2} Standalone/qa/AliGPUCAQA.h)
 endif()
 
 string(REPLACE ".cxx" ".h" HDRSSRC "${SRCS}")

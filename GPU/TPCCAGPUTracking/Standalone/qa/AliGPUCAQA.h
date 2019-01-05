@@ -1,10 +1,32 @@
 #ifndef ALIGPUCAQA
 #define ALIGPUCAQA
 
+class AliGPUReconstruction;
+
+#if !defined(BUILD_QA) || defined(HLTCA_GPUCODE)
+
+class AliGPUCAQA
+{
+public:
+	AliGPUCAQA(AliGPUReconstruction* rec) {}
+	~AliGPUCAQA() = default;
+	
+	int InitQA() {return 1;}
+	void RunQA(bool matchOnly = false) {}
+	int DrawQAHistograms() {return 1;}
+	void SetMCTrackRange(int min, int max) {}
+	bool SuppressTrack(int iTrack) const {return false;}
+	bool SuppressHit(int iHit) const {return false;}
+	int GetMCLabel(unsigned int trackId) const {return -1;}
+	bool clusterRemovable(int cid, bool prot) const {return false;}
+	static bool QAAvailable() {return false;}
+};
+
+#else
+
 #include "AliHLTTPCCASettings.h"
 #include <math.h>
 
-class AliGPUReconstruction;
 class TH1F;
 class TH2F;
 class TCanvas;
@@ -23,6 +45,17 @@ public:
 	AliGPUCAQA(AliGPUReconstruction* rec) : mRec(rec) {}
 	~AliGPUCAQA() = default;
 	
+	int InitQA();
+	void RunQA(bool matchOnly = false);
+	int DrawQAHistograms();
+	void SetMCTrackRange(int min, int max);
+	bool SuppressTrack(int iTrack) const;
+	bool SuppressHit(int iHit) const;
+	int GetMCLabel(unsigned int trackId) const;
+	bool clusterRemovable(int cid, bool prot) const;
+	static bool QAAvailable() {return true;}
+	
+private:
 	struct additionalMCParameters
 	{
 		float pt, phi, theta, eta, nWeightCls;
@@ -33,17 +66,7 @@ public:
 		int attached, fakeAttached, adjacent, fakeAdjacent;
 		float pt;
 	};
-	
-	void InitQA();
-	void RunQA(bool matchOnly = false);
-	int DrawQAHistograms();
-	void SetMCTrackRange(int min, int max);
-	bool SuppressTrack(int iTrack) const;
-	bool SuppressHit(int iHit) const;
-	int GetMCLabel(unsigned int trackId) const;
-	bool clusterRemovable(int cid, bool prot) const;
-	
-private:
+
 	void SetAxisSize(TH1F* e);
 	void SetLegend(TLegend* l);
 	double* CreateLogAxis(int nbins, float xmin, float xmax);
@@ -178,11 +201,5 @@ private:
 	int mcTrackMin = -1, mcTrackMax = -1;
 };
 
-#ifndef BUILD_QA
-inline bool AliGPUCAQA::SuppressTrack(int iTrack) const {return false;}
-inline bool AliGPUCAQA::SuppressHit(int iHit) const {return false;}
-inline int AliGPUCAQA::GetMCLabel(unsigned int trackId) const {return -1;};
-inline bool AliGPUCAQA::clusterRemovable(int cid, bool prot) const {return false;}
 #endif
-
 #endif

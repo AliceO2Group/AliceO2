@@ -189,17 +189,17 @@ int main(int argc, char** argv)
 	devProc.deviceNum = configStandalone.cudaDevice;
 	devProc.debugLevel = configStandalone.DebugLevel;
 	devProc.runQA = configStandalone.qa;
-#ifdef BUILD_EVENT_DISPLAY
 	if (configStandalone.eventDisplay)
 	{
+#ifdef BUILD_EVENT_DISPLAY
 #ifdef WIN32
 		if (configStandalone.eventDisplay == 1) devProc.eventDisplay = new AliGPUCADisplayBackendWindows;
 #else
 		if (configStandalone.eventDisplay == 1) devProc.eventDisplay = new AliGPUCADisplayBackendX11;
 #endif
 		else if (configStandalone.eventDisplay == 2) devProc.eventDisplay = new AliGPUCADisplayBackendGlut;
-	}
 #endif
+	}
 	devProc.nDeviceHelperThreads = configStandalone.helperThreads;
 	devProc.globalInitMutex = configStandalone.gpuInitMutex;
 	devProc.gpuDeviceOnly = configStandalone.oclGPUonly;
@@ -258,8 +258,8 @@ int main(int argc, char** argv)
 
 	if (configStandalone.eventGenerator)
 	{
-/*#ifdef BUILD_QA
-		char dirname[256];
+		printf("Event Generator Disabled\n");
+		/*char dirname[256];
 		sprintf(dirname, "events/%s/", configStandalone.EventsDir);
 		mkdir(dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 		rec->DumpSettings(dirname);
@@ -272,9 +272,7 @@ int main(int argc, char** argv)
 			sprintf(dirname, "events/%s/" HLTCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
 			GenerateEvent(hlt.Param(), dirname); TODO!
 		}
-		FinishEventGenerator();
-#endif*/
-		printf("Event Generator Disabled\n");
+		FinishEventGenerator();*/
 		return(1);
 	}
 	else
@@ -368,9 +366,9 @@ int main(int argc, char** argv)
 					}
 					nTotalCollisions += nCollisions;
 					printf("Timeframe statistics: collisions: %d+%d in %d trains (inside / outside), average rate %f (pile up: in bunch %d, in train %d)\n", nCollisions, nBorderCollisions, nTrainCollissions, (float) nCollisions / (float) (config.timeFrameLen - driftTime) * 1e9, nMultipleCollisions, nTrainMultipleCollisions);
-#ifdef BUILD_QA
+
 					if (!config.noBorder) SetMCTrackRange(mcMin, mcMax);
-#endif
+
 					if (config.dumpO2)
 					{
 #if !defined(HAVE_O2HEADERS) | !defined(HLTCA_FULL_CLUSTERDATA)
@@ -598,7 +596,6 @@ int main(int argc, char** argv)
 	}
 breakrun:
 
-#ifdef BUILD_QA
 	if (configStandalone.qa)
 	{
 #ifndef WIN32
@@ -611,7 +608,6 @@ breakrun:
 		}
 		rec->GetQA()->DrawQAHistograms();
 	}
-#endif
 
 	rec->Finalize();
 

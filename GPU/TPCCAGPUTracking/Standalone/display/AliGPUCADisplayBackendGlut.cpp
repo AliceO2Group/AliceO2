@@ -109,7 +109,7 @@ void* AliGPUCADisplayBackendGlut::OpenGLMain()
 	glutCreateWindow(GL_WINDOW_NAME);
 	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 
-	if (!InitGL()) return((void*) -1);
+	if (InitGL()) return((void*) -1);
 	glewInit();
 
 	glutDisplayFunc(displayFunc);
