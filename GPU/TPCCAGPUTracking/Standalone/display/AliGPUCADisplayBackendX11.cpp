@@ -161,7 +161,7 @@ void* AliGPUCADisplayBackendX11::OpenGLMain()
 	}
 
 	// Init OpenGL...
-	InitGL();
+	if (InitGL()) exit(1);
 	
 	XMapWindow(g_pDisplay, g_window);
 	XFlush(g_pDisplay);

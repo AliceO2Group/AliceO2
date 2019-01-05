@@ -180,7 +180,7 @@ int AliGPUCAQA::GetMCLabel(unsigned int trackId) const
 	return(trackId >= trackMCLabels.size() ? MC_LABEL_INVALID : trackMCLabels[trackId]);
 }
 
-void AliGPUCAQA::InitQA()
+int AliGPUCAQA::InitQA()
 {
 	structConfigQA& config = configStandalone.configQA;
 	char name[2048], fname[1024];
@@ -364,6 +364,7 @@ void AliGPUCAQA::InitQA()
 			delete files[i];
 		}
 	}
+	return 0;
 }
 
 void AliGPUCAQA::RunQA(bool matchOnly)

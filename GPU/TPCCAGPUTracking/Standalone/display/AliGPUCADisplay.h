@@ -2,6 +2,31 @@
 #define ALIGPUCADISPLAY_H
 
 #include "AliGPUCADisplayBackend.h"
+class AliGPUReconstruction;
+class AliGPUCAQA;
+
+#ifndef BUILD_EVENT_DISPLAY
+
+class AliGPUCADisplay
+{
+public:
+	AliGPUCADisplay(AliGPUCADisplayBackend* backend, AliGPUReconstruction* rec, AliGPUCAQA* qa) {}
+	~AliGPUCADisplay() = default;
+	AliGPUCADisplay(const AliGPUCADisplay&) = delete;
+	
+	void ShowNextEvent() {}
+	void WaitForNextEvent(){}
+
+	void HandleKeyRelease(int wParam, char key) {}
+	int DrawGLScene(bool mixAnimation = false, float animateTime = -1.f) {return 1;}
+	void HandleSendKey() {}
+	int InitGL() {return 1;}
+	void ExitGL() {}
+	void ReSizeGLScene(int width, int height, bool init = false) {}
+};
+
+#else
+
 #include "AliGPUReconstruction.h"
 #include "../cmodules/vecpod.h"
 #include "../cmodules/qsem.h"
@@ -12,8 +37,6 @@
 
 class AliHLTTPCCATracker;
 class AliGPUCAParam;
-class AliGPUReconstruction;
-class AliGPUCAQA;
 
 #if !defined(GL_VERSION_4_6) || GL_VERSION_4_6 != 1
 #error Unsupported OpenGL version < 4.6
@@ -22,14 +45,31 @@ class AliGPUCAQA;
 class AliGPUCADisplay
 {
 public:
-	static constexpr int fgkNSlices = AliGPUReconstruction::NSLICES;
-	
 	AliGPUCADisplay(AliGPUCADisplayBackend* backend, AliGPUReconstruction* rec, AliGPUCAQA* qa);
 	~AliGPUCADisplay() = default;
 	AliGPUCADisplay(const AliGPUCADisplay&) = delete;
 	
 	void ShowNextEvent();
+	void WaitForNextEvent();
 	
+	void HandleKeyRelease(int wParam, char key);
+	int DrawGLScene(bool mixAnimation = false, float animateTime = -1.f);
+	void HandleSendKey();
+	int InitGL();
+	void ExitGL();
+	void ReSizeGLScene(int width, int height, bool init = false);
+	
+private:
+	static constexpr int fgkNSlices = AliGPUReconstruction::NSLICES;
+	
+	static constexpr const int N_POINTS_TYPE = 9;
+	static constexpr const int N_LINES_TYPE = 6;
+	static constexpr const int N_FINAL_TYPE = 4;
+	static constexpr int TRACK_TYPE_ID_LIMIT = 100;
+	
+	typedef std::tuple<GLsizei, GLsizei, int> vboList;
+	struct GLvertex {GLfloat x, y, z; GLvertex(GLfloat a, GLfloat b, GLfloat c) : x(a), y(b), z(c) {}};
+
 	struct OpenGLConfig
 	{
 		int animationMode = 0;
@@ -59,30 +99,13 @@ public:
 		float pointSize = 2.0;
 		float lineWidth = 1.4;
 	};
-	
-	void HandleKeyRelease(int wParam, char key);
-	int DrawGLScene(bool mixAnimation = false, float animateTime = -1.f);
-	void HandleSendKey();
-	int InitGL();
-	void ExitGL();
-	void ReSizeGLScene(int width, int height, bool init = false);
-	
-	qSem semLockDisplay;
-
-private:
-	static constexpr const int N_POINTS_TYPE = 9;
-	static constexpr const int N_LINES_TYPE = 6;
-	static constexpr const int N_FINAL_TYPE = 4;
-	static constexpr int TRACK_TYPE_ID_LIMIT = 100;
-	
-	typedef std::tuple<GLsizei, GLsizei, int> vboList;
-	struct GLvertex {GLfloat x, y, z; GLvertex(GLfloat a, GLfloat b, GLfloat c) : x(a), y(b), z(c) {}};
 
 	struct DrawArraysIndirectCommand
 	{
 		DrawArraysIndirectCommand(unsigned int a = 0, unsigned int b = 0, unsigned int c = 0, unsigned int d = 0) : count(a), instanceCount(b), first(c), baseInstance(d) {}
 		unsigned int  count;
 		unsigned int  instanceCount;
+
 		unsigned int  first;
 		unsigned int  baseInstance;
 	};
@@ -178,6 +201,7 @@ private:
 	AliGPUReconstruction* mRec;
 	AliGPUCAQA* mQA;
 	const AliHLTTPCGMMerger& merger;
+	qSem semLockDisplay;
 
 	GLfb mixBuffer;
 	
@@ -269,4 +293,5 @@ private:
 	std::vector<std::vector<std::array<std::array<vecpod<int>, 2>, fgkNSlices>>> threadTracks;
 };
 
+#endif
 #endif

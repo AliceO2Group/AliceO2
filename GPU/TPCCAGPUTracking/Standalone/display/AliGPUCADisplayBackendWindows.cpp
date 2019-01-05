@@ -191,7 +191,7 @@ BOOL CreateGLWindow(char *title, int width, int height, int bits, bool fullscree
 	SetFocus(hWnd);               // Sets Keyboard Focus To The Window
 	ReSizeGLScene(width, height); // Set Up Our Perspective GL Screen
 
-	if (!InitGL()) // Initialize Our Newly Created GL Window
+	if (InitGL()) // Initialize Our Newly Created GL Window
 	{
 		KillGLWindow(); // Reset The Display
 		printf("Initialization Failed.\n");

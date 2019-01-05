@@ -433,14 +433,12 @@ int AliGPUReconstruction::RunStandalone()
 {
 	mStatNEvents++;
 	
-#ifdef BUILD_QA
-	const bool needQA = mDeviceProcessingSettings.runQA || (mDeviceProcessingSettings.eventDisplay && mIOPtrs.nMCInfosTPC);
+	const bool needQA = AliGPUCAQA::QAAvailable() && (mDeviceProcessingSettings.runQA || (mDeviceProcessingSettings.eventDisplay && mIOPtrs.nMCInfosTPC));
 	if (needQA && mQA == nullptr)
 	{
 		mQA.reset(new AliGPUCAQA(this));
-		mQA->InitQA();
+		if (mQA->InitQA()) return 1;
 	}
-#endif
 	
 #ifdef HLTCA_STANDALONE
 	static HighResTimer timerTracking, timerMerger, timerQA;
@@ -480,14 +478,12 @@ int AliGPUReconstruction::RunStandalone()
 #endif
 
 #ifdef HLTCA_STANDALONE
-#ifdef BUILD_QA
 	if (needQA)
 	{
 		timerQA.Start();
 		mQA->RunQA(!mDeviceProcessingSettings.runQA);
 		timerQA.Stop();
 	}
-#endif
 
 	nCount++;
 #ifndef HLTCA_BUILD_O2_LIB
@@ -529,7 +525,6 @@ int AliGPUReconstruction::RunStandalone()
 		}
 	}
 
-#ifdef BUILD_EVENT_DISPLAY
 	if (mDeviceProcessingSettings.eventDisplay)
 	{
 		if (mEventDisplay == nullptr)
@@ -539,7 +534,6 @@ int AliGPUReconstruction::RunStandalone()
 		}
 		else
 		{
-			mEventDisplay->semLockDisplay.Unlock();
 			mEventDisplay->ShowNextEvent();
 		}
 
@@ -578,9 +572,8 @@ int AliGPUReconstruction::RunStandalone()
 		mDeviceProcessingSettings.eventDisplay->displayControl = 0;
 		printf("Loading next event\n");
 
-		mEventDisplay->semLockDisplay.Lock();
+		mEventDisplay->WaitForNextEvent();
 	}
-#endif
 #endif
 	return 0;
 }
