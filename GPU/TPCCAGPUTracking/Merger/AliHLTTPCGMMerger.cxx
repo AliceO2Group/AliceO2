@@ -100,8 +100,7 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger() :
 	fPrevSliceInd[ fgkNSlices/2 ] = last;
 
 	fField.Reset(); // set very wrong initial value in order to see if the field was not properly initialised
-
-	Clear();
+	for (int i = 0; i < fgkNSlices; i++) fkSlices[i] = NULL;
 }
 
 AliHLTTPCGMMerger::~AliHLTTPCGMMerger()
@@ -211,13 +210,12 @@ void AliHLTTPCGMMerger::Initialize(const AliGPUReconstruction *rec, long int Tim
 	if (rec->GetDeviceType() == AliGPUReconstruction::DeviceType::CUDA)
 	{
 		fSliceTrackers = nullptr;
-		fGPUReconstruction = rec;
 	}
 	else
 	{
 		fSliceTrackers = rec->GetTPCSliceTrackers();
-		fGPUReconstruction = nullptr;
 	}
+	fGPUReconstruction = rec;
 
 	if (fSliceParam->AssumeConstantBz) AliHLTTPCGMPolynomialFieldManager::GetPolynomialField(AliHLTTPCGMPolynomialFieldManager::kUniform, fSliceParam->BzkG, fField);
 	else AliHLTTPCGMPolynomialFieldManager::GetPolynomialField(fSliceParam->BzkG, fField);
@@ -232,7 +230,6 @@ void AliHLTTPCGMMerger::Initialize(const AliGPUReconstruction *rec, long int Tim
 
 void AliHLTTPCGMMerger::Clear()
 {
-	for (int i = 0; i < fgkNSlices; i++) fkSlices[i] = NULL;
 	ClearMemory();
 }
 
@@ -240,7 +237,7 @@ void AliHLTTPCGMMerger::ClearMemory()
 {
 	delete[] fTrackLinks;
 	delete[] fSliceTrackInfos;
-	if (!fGPUReconstruction)
+	if (!fGPUReconstruction || fGPUReconstruction->GetDeviceType() != AliGPUReconstruction::DeviceType::CUDA)
 	{
 		delete[] fOutputTracks;
 		delete[] fClusters;
@@ -370,7 +367,7 @@ bool AliHLTTPCGMMerger::AllocateMemory()
 	//cout<<"\nMerger: input "<<nTracks<<" tracks, "<<nClusters<<" clusters"<<endl;
 
 	fSliceTrackInfos = new AliHLTTPCGMSliceTrack[nTracks];
-	if (fGPUReconstruction)
+	if (fGPUReconstruction->GetDeviceType() == AliGPUReconstruction::DeviceType::CUDA)
 	{
 		char *hostBaseMem = dynamic_cast<const AliGPUReconstructionDeviceBase *>(fGPUReconstruction)->MergerHostMemory();
 		char *basemem = hostBaseMem;
@@ -1323,7 +1320,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 
 		//if (nParts > 1) printf("Merged %d: QPt %f %d parts %d hits\n", fNOutputTracks, p1.QPt(), nParts, nHits);
 
-		if (AliGPUCAQA::QAAvailable() && fGPUReconstruction && fGPUReconstruction->GetQA() && fGPUReconstruction->GetQA()->SuppressTrack(fNOutputTracks))
+		if (AliGPUCAQA::QAAvailable() && fGPUReconstruction->GetQA() && fGPUReconstruction->GetQA()->SuppressTrack(fNOutputTracks))
 		{
 			mergedTrack.SetOK(0);
 			mergedTrack.SetNClusters(0);
@@ -1359,7 +1356,7 @@ void AliHLTTPCGMMerger::PrepareClustersForFit()
 	unsigned char* sharedCount = new unsigned char[maxId];
 
 #if defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE) && !defined(HLTCA_BUILD_O2_LIB)
-	if (!fGPUReconstruction)
+	if (fGPUReconstruction->GetDeviceType() != AliGPUReconstruction::DeviceType::CUDA)
 	{
 		unsigned int* trackSort = new unsigned int[fNOutputTracks];
 		if (fTrackOrder) delete[] fTrackOrder;
@@ -1392,7 +1389,7 @@ void AliHLTTPCGMMerger::Refit(bool resetTimers)
 {
 	//* final refit
 #ifdef HLTCA_GPU_MERGER
-	if (fGPUReconstruction)
+	if (fGPUReconstruction->GetDeviceType() == AliGPUReconstruction::DeviceType::CUDA)
 	{
 		dynamic_cast<const AliGPUReconstructionDeviceBase*>(fGPUReconstruction)->RefitMergedTracks(this, resetTimers);
 	}
@@ -1414,7 +1411,7 @@ void AliHLTTPCGMMerger::Refit(bool resetTimers)
 
 void AliHLTTPCGMMerger::Finalize()
 {
-	if (fGPUReconstruction) return;
+	if (fGPUReconstruction->GetDeviceType() == AliGPUReconstruction::DeviceType::CUDA) return;
 #if defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE) && !defined(HLTCA_BUILD_O2_LIB)
 	int* trkOrderReverse = new int[fNOutputTracks];
 	for (int i = 0;i < fNOutputTracks;i++) trkOrderReverse[fTrackOrder[i]] = i;
