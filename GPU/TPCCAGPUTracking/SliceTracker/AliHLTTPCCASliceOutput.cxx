@@ -36,7 +36,7 @@ inline void AssignNoAlignment(int &dst, int &size, int count)
 	size = dst + count;
 }
 
-void AliHLTTPCCASliceOutput::Allocate(AliHLTTPCCASliceOutput *&ptrOutput, int nTracks, int nTrackHits, AliGPUCAOutputControl *outputControl)
+void AliHLTTPCCASliceOutput::Allocate(AliHLTTPCCASliceOutput* &ptrOutput, int nTracks, int nTrackHits, AliGPUCAOutputControl *outputControl, void* &internalMemory)
 {
 	//Allocate All memory needed for slice output
 	const size_t memsize = EstimateSize(nTracks, nTrackHits);
@@ -54,8 +54,9 @@ void AliHLTTPCCASliceOutput::Allocate(AliHLTTPCCASliceOutput *&ptrOutput, int nT
 	}
 	else
 	{
-		if (ptrOutput) free(ptrOutput);
-		ptrOutput = (AliHLTTPCCASliceOutput *) malloc(memsize);
+		if (internalMemory) free(internalMemory);
+		internalMemory = malloc(memsize);
+		ptrOutput = (AliHLTTPCCASliceOutput *) internalMemory;
 	}
 	ptrOutput->SetMemorySize(memsize);
 }
