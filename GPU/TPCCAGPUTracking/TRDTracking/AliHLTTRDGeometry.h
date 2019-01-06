@@ -90,6 +90,10 @@ public:
 	GPUd() float GetTiltingAngle() {return 0;}
 	GPUd() float GetRowSize(int row) {return 0;}
 	GPUd() float GetRowPos(int row) {return 0;}
+	GPUd() float GetRow0() {return 0;}
+	GPUd() float GetRowEnd() {return 0;}
+	GPUd() float GetCol0() {return 0;}
+	GPUd() float GetColEnd() {return 0;}
 	GPUd() float GetColPos(int col) {return 0;}
 	GPUd() float GetNrows() {return 0;}
 };
