@@ -9,6 +9,7 @@ class AliGPUCASettings
 public:
 };
 
+//Settings concerning the reconstruction
 struct AliGPUCASettingsRec
 {
 #ifndef HLTCA_GPUCODE
@@ -17,20 +18,21 @@ struct AliGPUCASettingsRec
 	void SetMinTrackPt( float v ){ MaxTrackQPt = CAMath::Abs(v)>0.001 ?1./CAMath::Abs(v) :1./0.001; }
 #endif
 
-	float HitPickUpFactor;				// multiplier for the chi2 window for hit pick up procedure
-	float NeighboursSearchArea;			// area in cm for the search of neighbours
-	float ClusterError2CorrectionY;		// correction for the squared cluster error during tracking
-	float ClusterError2CorrectionZ;		// correction for the squared cluster error during tracking
-	int MinNTrackClusters;				//* required min number of clusters on the track
-	float MaxTrackQPt;					//* required max Q/Pt (==min Pt) of tracks
-	char NWays;							//Do N fit passes in final fit of merger
-	char NWaysOuter;					//Store outer param
-	char RejectMode;					//0: no limit on rejection or missed hits, >0: break after n rejected hits, <0: reject at max -n hits
-	char GlobalTracking;				//Enable Global Tracking (prolong tracks to adjacent sectors to find short segments)
-	float SearchWindowDZDR;				//Use DZDR window for seeding instead of vertex window
-	float TrackReferenceX;				//Transport all tracks to this X after tracking (disabled if > 500)
+	float HitPickUpFactor;						// multiplier for the chi2 window for hit pick up procedure
+	float NeighboursSearchArea;					// area in cm for the search of neighbours
+	float ClusterError2CorrectionY;				// correction for the squared cluster error during tracking
+	float ClusterError2CorrectionZ;				// correction for the squared cluster error during tracking
+	int MinNTrackClusters;						//* required min number of clusters on the track
+	float MaxTrackQPt;							//* required max Q/Pt (==min Pt) of tracks
+	char NWays;									//Do N fit passes in final fit of merger
+	char NWaysOuter;							//Store outer param
+	char RejectMode;							//0: no limit on rejection or missed hits, >0: break after n rejected hits, <0: reject at max -n hits
+	char GlobalTracking;						//Enable Global Tracking (prolong tracks to adjacent sectors to find short segments)
+	float SearchWindowDZDR;						//Use DZDR window for seeding instead of vertex window
+	float TrackReferenceX;						//Transport all tracks to this X after tracking (disabled if > 500)
 };
 
+//Settings describing the events / time frames
 struct AliGPUCASettingsEvent
 {
 #ifndef HLTCA_GPUCODE
@@ -39,12 +41,13 @@ struct AliGPUCASettingsEvent
 #endif
 	
 	//All new members must be sizeof(int)/sizeof(float) for alignment reasons!
-	float solenoidBz;
-	int constBz;
-	int homemadeEvents;
-	int continuousMaxTimeBin; //0 for triggered events, -1 for default of 23ms
+	float solenoidBz;							//solenoid field strength
+	int constBz;								//for test-MC events with constant Bz
+	int homemadeEvents;							//Toy-MC events
+	int continuousMaxTimeBin;					//0 for triggered events, -1 for default of 23ms
 };
 
+//Settings defining the setup of the AliGPUReconstruction processing (basically selecting the device / class instance)
 struct AliGPUCASettingsProcessing
 {
 #ifndef HLTCA_GPUCODE
@@ -52,10 +55,11 @@ struct AliGPUCASettingsProcessing
 	void SetDefaults();
 #endif
 	
-	unsigned int deviceType;
-	char forceDeviceType;
+	unsigned int deviceType;					//Device type, shall use AliGPUReconstructions::DEVICE_TYPE constants, e.g. CPU / CUDA
+	char forceDeviceType;						//Fail if device initialization fails, otherwise falls back to CPU
 };
 
+//Settings steering the processing once the device was selected
 struct AliGPUCASettingsDeviceProcessing
 {
 	#ifndef HLTCA_GPUCODE

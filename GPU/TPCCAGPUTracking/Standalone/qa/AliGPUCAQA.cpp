@@ -84,7 +84,7 @@ static const AliGPUCAQA::configQA& AliGPUCAQA_GetConfig(AliGPUReconstruction* re
 {
 #if !defined(HLTCA_STANDALONE) || defined(HLTCA_BUILD_O2_LIB)
 	static AliGPUCAQA::configQA defaultConfig;
-	if (rec->mConfigQA) return *((AliGPUCAQA::configQA*) rec->mConfigQA);
+	if (rec->mConfigQA) return *((const AliGPUCAQA::configQA*) rec->mConfigQA);
 	else return defaultConfig;
 #else
 	return configStandalone.configQA;

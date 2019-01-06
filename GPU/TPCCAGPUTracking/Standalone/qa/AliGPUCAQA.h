@@ -1,11 +1,7 @@
 #ifndef ALIGPUCAQA
 #define ALIGPUCAQA
 
-#if !defined(HLTCA_STANDALONE) || defined(HLTCA_BUILD_O2_LIB)
-#define QCONFIG_CPP11_INIT
-#endif
-#include "cmodules/qconfig.h"
-
+#include "AliGPUCAQAConfig.h"
 class AliGPUReconstruction;
 
 #if !defined(BUILD_QA) || defined(HLTCA_GPUCODE)
@@ -52,7 +48,7 @@ public:
 	AliGPUCAQA(AliGPUReconstruction* rec);
 	~AliGPUCAQA() = default;
 	
-	typedef structConfigQA configQA;
+	typedef AliGPUCAQAConfig configQA;
 	
 	int InitQA();
 	void RunQA(bool matchOnly = false);
