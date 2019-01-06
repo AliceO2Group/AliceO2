@@ -213,8 +213,8 @@ public:
 	AliGPUCAOutputControl& OutputControl() {return mOutputControl;}
 	const AliHLTTPCCASliceOutput** SliceOutput() const {return (const AliHLTTPCCASliceOutput**) &mSliceOutput;}
 	
-	void* mConfigDisplay = nullptr;												//Abstract pointer to Standalone Display Configuration Structure
-	void* mConfigQA = nullptr;													//Abstract pointer to Standalone QA Configuration Structure
+	const void* mConfigDisplay = nullptr;										//Abstract pointer to Standalone Display Configuration Structure
+	const void* mConfigQA = nullptr;											//Abstract pointer to Standalone QA Configuration Structure
 	
 protected:
 	AliGPUReconstruction(const AliGPUCASettingsProcessing& cfg);				//Constructor

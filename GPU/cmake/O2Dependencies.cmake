@@ -48,8 +48,10 @@ o2_define_bucket(
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/TRDTracking
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Interface
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/HLTHeaders
+    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone/cmodules
-    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone/include
+    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone/display
+    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone/qa
 )
 
 o2_define_bucket(

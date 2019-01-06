@@ -91,6 +91,13 @@ AliGPUReconstruction::~AliGPUReconstruction()
 int AliGPUReconstruction::Init()
 {
 	mTRDTracker->Init((AliHLTTRDGeometry*) mTRDGeometry.get()); //Cast is safe, we just add some member functions
+#ifdef HLTCA_HAVE_OPENMP
+	if (mDeviceProcessingSettings.nThreads <= 0) mDeviceProcessingSettings.nThreads = omp_get_max_threads();
+	else omp_set_num_threads(mDeviceProcessingSettings.nThreads);
+#else
+	mDeviceProcessingSettings.nThreads = 1;
+#endif
+	
 	if (mDeviceProcessingSettings.debugLevel >= 4)
 	{
 		mDebugFile.open(IsGPU() ? "GPU.out" : "CPU.out");

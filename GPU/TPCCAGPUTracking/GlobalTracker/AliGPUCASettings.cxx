@@ -35,7 +35,7 @@ void AliGPUCASettingsProcessing::SetDefaults()
 
 void AliGPUCASettingsDeviceProcessing::SetDefaults()
 {
-	nThreads = 0;
+	nThreads = 1;
 	deviceNum = -1;
 	platformNum = -1;
 	globalInitMutex = false;

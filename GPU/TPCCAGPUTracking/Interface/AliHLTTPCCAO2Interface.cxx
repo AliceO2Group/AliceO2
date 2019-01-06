@@ -18,6 +18,8 @@
 
 #include "AliHLTTPCCAO2Interface.h"
 #include "AliGPUReconstruction.h"
+#include "AliGPUCAConfiguration.h"
+#include "TPCFastTransform.h"
 #include <iostream>
 #include <fstream>
 #ifdef HLTCA_HAVE_OPENMP
@@ -27,13 +29,29 @@
 #include "DataFormatsTPC/ClusterNative.h"
 #include "ClusterNativeAccessExt.h"
 
-AliHLTTPCCAO2Interface::AliHLTTPCCAO2Interface() : fInitialized(false), fDumpEvents(false), fContinuous(false), mRec(nullptr)
+AliHLTTPCCAO2Interface::AliHLTTPCCAO2Interface() : fInitialized(false), fDumpEvents(false), fContinuous(false), mRec(nullptr), mConfig()
 {
 }
 
 AliHLTTPCCAO2Interface::~AliHLTTPCCAO2Interface()
 {
 	Deinitialize();
+}
+
+int AliHLTTPCCAO2Interface::Initialize(const AliGPUCAConfiguration& config, std::unique_ptr<TPCFastTransform>&& fastTrans)
+{
+	if (fInitialized) return(1);
+	mConfig.reset(new AliGPUCAConfiguration(config));
+	fDumpEvents = mConfig->configInterface.dumpEvents;
+	fContinuous = mConfig->configEvent.continuousMaxTimeBin != 0;
+	mRec.reset(AliGPUReconstruction::CreateInstance(mConfig->configProcessing));
+	mRec->mConfigDisplay = &mConfig->configDisplay;
+	mRec->mConfigQA = &mConfig->configQA;
+	mRec->SetSettings(&mConfig->configEvent, &mConfig->configReconstruction, &mConfig->configDeviceProcessing);
+	mRec->SetTPCFastTransform(std::move(fastTrans));
+	if (mRec->Init()) return(1);
+	fInitialized = true;
+	return(0);
 }
 
 int AliHLTTPCCAO2Interface::Initialize(const char* options, std::unique_ptr<TPCFastTransform>&& fastTrans)

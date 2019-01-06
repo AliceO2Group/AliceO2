@@ -39,7 +39,7 @@ static const AliGPUCADisplay::configDisplay& AliGPUCADisplay_GetConfig(AliGPURec
 {
 #if !defined(HLTCA_STANDALONE) || defined(HLTCA_BUILD_O2_LIB)
 	static AliGPUCADisplay::configDisplay defaultConfig;
-	if (rec->mConfigDisplay) return *((AliGPUCADisplay::configDisplay*) rec->mConfigDisplay);
+	if (rec->mConfigDisplay) return *((const AliGPUCADisplay::configDisplay*) rec->mConfigDisplay);
 	else return defaultConfig;
 #else
 	return configStandalone.configGL;

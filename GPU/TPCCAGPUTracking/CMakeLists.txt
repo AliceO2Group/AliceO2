@@ -109,6 +109,8 @@ set(HDRS2
     TRDTracking/AliHLTTRDGeometry.h
     TRDTracking/AliHLTTRDTrackerDebug.h
     TRDTracking/AliHLTTRDInterfaces.h
+    Standalone/display/AliGPUCADisplayConfig.h
+    Standalone/qa/AliGPUCAQAConfig.h
 )
 
 #Some extra files / includes / settings needed for the build for AliRoot
@@ -166,6 +168,7 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
         Standalone/cmodules/timer.cpp
         Standalone/display/AliGPUCADisplayBackend.cpp
     )
+    set (HDRS2 ${HDRS2} Interface/AliGPUCAConfiguration.h)
 endif()
 
 if (GPUCA_EVENT_DISPLAY)
@@ -242,7 +245,7 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
 
     O2_GENERATE_LIBRARY()
     install(FILES ${HDRS} ${HDRS2} DESTINATION include/AliTPCCommon)
-    install(DIRECTORY Standalone/cmodules DESTINATION include/AliTPCCommon/cmodules)
+    install(DIRECTORY Standalone/cmodules DESTINATION include/AliTPCCommon)
 
     set(TEST_SRCS
       ctest/testTPCCAGPUTracking.cxx

@@ -10,13 +10,13 @@
 #define ALIHLTTPCCAO2INTERFACE_H
 
 class AliGPUReconstruction;
-#include <memory>
-#include "AliHLTTPCCAClusterData.h"
+class AliGPUCAConfiguration;
 #include "AliHLTTPCGMMergedTrack.h"
 #include "AliHLTTPCGMMergedTrackHit.h"
-#include "TPCFastTransform.h"
-
+namespace ali_tpc_common { namespace tpc_fast_transformation { class TPCFastTransform;}}
 namespace o2 { namespace TPC { struct ClusterNativeAccessFullTPC; struct ClusterNative;}}
+#include <memory>
+#include "AliHLTTPCCAClusterData.h"
 
 class AliHLTTPCCAO2Interface
 {
@@ -24,7 +24,8 @@ public:
 	AliHLTTPCCAO2Interface();
 	~AliHLTTPCCAO2Interface();
 	
-	int Initialize(const char* options = NULL, std::unique_ptr<ali_tpc_common::tpc_fast_transformation::TPCFastTransform>&& fastTrans = nullptr);
+	int Initialize(const AliGPUCAConfiguration& config, std::unique_ptr<ali_tpc_common::tpc_fast_transformation::TPCFastTransform>&& fastTrans);
+	int Initialize(const char* options, std::unique_ptr<ali_tpc_common::tpc_fast_transformation::TPCFastTransform>&& fastTrans);
 	void Deinitialize();
 	
 	int RunTracking(const o2::TPC::ClusterNativeAccessFullTPC* inputClusters, const AliHLTTPCGMMergedTrack* &outputTracks, int &nOutputTracks, const AliHLTTPCGMMergedTrackHit* &outputTrackClusters);
@@ -42,6 +43,7 @@ private:
 	bool fContinuous;
 	
 	std::unique_ptr<AliGPUReconstruction> mRec;
+	std::unique_ptr<AliGPUCAConfiguration> mConfig;
 };
 
 #endif

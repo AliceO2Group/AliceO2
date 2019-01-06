@@ -1,10 +1,7 @@
 #ifndef ALIGPUCADISPLAY_H
 #define ALIGPUCADISPLAY_H
 
-#if !defined(HLTCA_STANDALONE) || defined(HLTCA_BUILD_O2_LIB)
-#define QCONFIG_CPP11_INIT
-#endif
-#include "cmodules/qconfig.h"
+#include "AliGPUCADisplayConfig.h"
 #include "AliGPUCADisplayBackend.h"
 class AliGPUReconstruction;
 class AliGPUCAQA;
@@ -55,7 +52,7 @@ public:
 	~AliGPUCADisplay() = default;
 	AliGPUCADisplay(const AliGPUCADisplay&) = delete;
 	
-	typedef structConfigGL configDisplay;
+	typedef AliGPUCADisplayConfig configDisplay;
 	
 	void ShowNextEvent();
 	void WaitForNextEvent();
