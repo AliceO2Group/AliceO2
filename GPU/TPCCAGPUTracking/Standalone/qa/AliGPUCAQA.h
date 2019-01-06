@@ -1,6 +1,11 @@
 #ifndef ALIGPUCAQA
 #define ALIGPUCAQA
 
+#if !defined(HLTCA_STANDALONE) || defined(HLTCA_BUILD_O2_LIB)
+#define QCONFIG_CPP11_INIT
+#endif
+#include "cmodules/qconfig.h"
+
 class AliGPUReconstruction;
 
 #if !defined(BUILD_QA) || defined(HLTCA_GPUCODE)
@@ -10,6 +15,8 @@ class AliGPUCAQA
 public:
 	AliGPUCAQA(AliGPUReconstruction* rec) {}
 	~AliGPUCAQA() = default;
+	
+	typedef structConfigQA configQA;
 	
 	int InitQA() {return 1;}
 	void RunQA(bool matchOnly = false) {}
@@ -42,8 +49,10 @@ struct AliHLTTPCClusterMCWeight;
 class AliGPUCAQA
 {
 public:
-	AliGPUCAQA(AliGPUReconstruction* rec) : mRec(rec) {}
+	AliGPUCAQA(AliGPUReconstruction* rec);
 	~AliGPUCAQA() = default;
+	
+	typedef structConfigQA configQA;
 	
 	int InitQA();
 	void RunQA(bool matchOnly = false);
@@ -77,6 +86,7 @@ private:
 	template <class T> T* GetHist(T* &ee, std::vector<TFile*>& tin, int k, int nNewInput);
 	
 	AliGPUReconstruction* mRec;
+	const configQA& config;
 	
 	//-------------------------: Some compile time settings....
 	static const constexpr bool plotroot = 0;

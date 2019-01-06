@@ -199,9 +199,9 @@ public:
 	const AliGPUCAParam& GetParam() const {return mParam;}
 	const TPCFastTransform* GetTPCTransform() const {return mTPCFastTransform.get();}
 	const ClusterNativeAccessExt* GetClusterNativeAccessExt() const {return mClusterNativeAccess.get();}
-	const AliGPUCASettingsEvent& GetEventSettings() {return mEventSettings;}
+	const AliGPUCASettingsEvent& GetEventSettings() const {return mEventSettings;}
 	const AliGPUCASettingsProcessing& GetProcessingSettings() {return mProcessingSettings;}
-	const AliGPUCASettingsDeviceProcessing& GetDeviceProcessingSettings() {return mDeviceProcessingSettings;}
+	const AliGPUCASettingsDeviceProcessing& GetDeviceProcessingSettings() const {return mDeviceProcessingSettings;}
 	bool IsInitialized() const {return mInitialized;}
 	void SetSettings(float solenoidBz);
 	void SetSettings(const AliGPUCASettingsEvent* settings, const AliGPUCASettingsRec* rec = nullptr, const AliGPUCASettingsDeviceProcessing* proc = nullptr);
@@ -213,8 +213,11 @@ public:
 	AliGPUCAOutputControl& OutputControl() {return mOutputControl;}
 	const AliHLTTPCCASliceOutput** SliceOutput() const {return (const AliHLTTPCCASliceOutput**) &mSliceOutput;}
 	
+	void* mConfigDisplay = nullptr;												//Abstract pointer to Standalone Display Configuration Structure
+	void* mConfigQA = nullptr;													//Abstract pointer to Standalone QA Configuration Structure
+	
 protected:
-	AliGPUReconstruction(const AliGPUCASettingsProcessing& cfg);			//Constructor
+	AliGPUReconstruction(const AliGPUCASettingsProcessing& cfg);				//Constructor
 	virtual int InitDevice();
 	virtual int ExitDevice();
 	
