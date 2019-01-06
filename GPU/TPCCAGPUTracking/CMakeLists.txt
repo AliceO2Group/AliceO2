@@ -242,6 +242,7 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
 
     O2_GENERATE_LIBRARY()
     install(FILES ${HDRS} ${HDRS2} DESTINATION include/AliTPCCommon)
+    install(DIRECTORY Standalone/cmodules DESTINATION include/AliTPCCommon/cmodules)
 
     set(TEST_SRCS
       ctest/testTPCCAGPUTracking.cxx
