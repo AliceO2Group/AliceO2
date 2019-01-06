@@ -1782,17 +1782,17 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 	if (wParam == 13 || wParam == 'n')
 	{
 		mBackend->displayControl = 1;
-		SetInfo("Showing next event");
+		SetInfo("Showing next event", 1);
 	}
 	else if (wParam == 27 || wParam == 'q' || wParam == 'Q')
 	{
 		mBackend->displayControl = 2;
-		SetInfo("Exiting");
+		SetInfo("Exiting", 1);
 	}
 	else if (wParam == 'r')
 	{
 		resetScene = 1;
-		SetInfo("View reset");
+		SetInfo("View reset", 1);
 	}
 	else if (wParam == mBackend->KEY_ALT && mBackend->keysShift[mBackend->KEY_ALT])
 	{
@@ -1824,7 +1824,7 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		if (cfg.drawSlice >= (cfg.drawRelatedSlices ? (fgkNSlices / 4 - 1) : (fgkNSlices - 1)))
 		{
 			cfg.drawSlice = -1;
-			SetInfo("Showing all slices");
+			SetInfo("Showing all slices", 1);
 		}
 		else
 		{
@@ -1842,7 +1842,7 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		{
 			cfg.drawSlice--;
 		}
-		if (cfg.drawSlice == -1) SetInfo("Showing all slices");
+		if (cfg.drawSlice == -1) SetInfo("Showing all slices", 1);
 		else SetInfo("Showing slice %d", cfg.drawSlice);
 	}
 	else if (wParam == 'J')
@@ -1855,7 +1855,7 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		if (cfg.showCollision >= nCollisions - 1)
 		{
 			cfg.showCollision = -1;
-			SetInfo("Showing all collisions");
+			SetInfo("Showing all collisions", 1);
 		}
 		else
 		{
@@ -1873,18 +1873,18 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		{
 			cfg.showCollision--;
 		}
-		if (cfg.showCollision == -1) SetInfo("Showing all collisions");
+		if (cfg.showCollision == -1) SetInfo("Showing all collisions", 1);
 		else SetInfo("Showing collision %d", cfg.showCollision);
 	}
 	else if (wParam == 'F')
 	{
 		mBackend->SwitchFullscreen();
-		SetInfo("Toggling full screen");
+		SetInfo("Toggling full screen", 1);
 	}
 	else if (wParam == '_')
 	{
 		mBackend->ToggleMaximized();
-		SetInfo("Toggling maximized window");
+		SetInfo("Toggling maximized window", 1);
 	}
 	else if (wParam == 'R')
 	{
@@ -2038,7 +2038,7 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 	else if (wParam == 'x')
 	{
 		cfg.excludeClusters ^= 1;
-		SetInfo(cfg.excludeClusters ? "Clusters of selected category are excluded from display" : "Clusters are shown");
+		SetInfo(cfg.excludeClusters ? "Clusters of selected category are excluded from display" : "Clusters are shown", 1);
 	}
 	else if (key == '.')
 	{
@@ -2099,11 +2099,11 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		if (animateVectors[0].size() > 1)
 		{
 			startAnimation();
-			SetInfo("Starting animation");
+			SetInfo("Starting animation", 1);
 		}
 		else
 		{
-			SetInfo("Insufficient animation points to start animation");
+			SetInfo("Insufficient animation points to start animation", 1);
 		}
 	}
 	else if (wParam == '>')
@@ -2119,12 +2119,12 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 	else if (wParam == 'X')
 	{
 		resetAnimation();
-		SetInfo("Reset animation points");
+		SetInfo("Reset animation points", 1);
 	}
 	else if (wParam == '\'')
 	{
 		removeAnimationPoint();
-		SetInfo("Removed animation point");
+		SetInfo("Removed animation point", 1);
 	}
 	else if (wParam == 'M')
 	{
@@ -2148,7 +2148,7 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		{
 			printf("Error opening file\n");
 		}
-		SetInfo("Camera position stored to file");
+		SetInfo("Camera position stored to file", 1);
 	}
 	else if (wParam == 'p')
 	{
@@ -2174,7 +2174,7 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		{
 			printf("Error opening file\n");
 		}
-		SetInfo("Camera position loaded from file");
+		SetInfo("Camera position loaded from file", 1);
 	}
 	else if (wParam == 'O')
 	{
@@ -2192,7 +2192,7 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		{
 			printf("Error opening file\n");
 		}
-		SetInfo("Animation path stored to file");
+		SetInfo("Animation path stored to file %s", "glanimation.tmp");
 	}
 	else if (wParam == 'P')
 	{
@@ -2216,12 +2216,12 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		{
 			printf("Error opening file\n");
 		}
-		SetInfo("Animation path loaded from file");
+		SetInfo("Animation path loaded from file %s", "glanimation.tmp");
 	}
 	else if (wParam == 'h')
 	{
 		PrintHelp();
-		SetInfo("Showing help text");
+		SetInfo("Showing help text", 1);
 	}
 	else if (key == '#')
 	{
