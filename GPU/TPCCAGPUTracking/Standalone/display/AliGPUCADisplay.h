@@ -1,6 +1,10 @@
 #ifndef ALIGPUCADISPLAY_H
 #define ALIGPUCADISPLAY_H
 
+#if !defined(HLTCA_STANDALONE) || defined(HLTCA_BUILD_O2_LIB)
+#define QCONFIG_CPP11_INIT
+#endif
+#include "cmodules/qconfig.h"
 #include "AliGPUCADisplayBackend.h"
 class AliGPUReconstruction;
 class AliGPUCAQA;
@@ -13,6 +17,8 @@ public:
 	AliGPUCADisplay(AliGPUCADisplayBackend* backend, AliGPUReconstruction* rec, AliGPUCAQA* qa) {}
 	~AliGPUCADisplay() = default;
 	AliGPUCADisplay(const AliGPUCADisplay&) = delete;
+	
+	typedef structConfigGL configDisplay;
 	
 	void ShowNextEvent() {}
 	void WaitForNextEvent(){}
@@ -48,6 +54,8 @@ public:
 	AliGPUCADisplay(AliGPUCADisplayBackend* backend, AliGPUReconstruction* rec, AliGPUCAQA* qa);
 	~AliGPUCADisplay() = default;
 	AliGPUCADisplay(const AliGPUCADisplay&) = delete;
+	
+	typedef structConfigGL configDisplay;
 	
 	void ShowNextEvent();
 	void WaitForNextEvent();
@@ -197,8 +205,9 @@ private:
 	void createQuaternionFromMatrix(float* v, const float* mat);
 	
 	AliGPUCADisplayBackend* mBackend;
-	OpenGLConfig cfg;
 	AliGPUReconstruction* mRec;
+	const configDisplay& config;
+	OpenGLConfig cfg;
 	AliGPUCAQA* mQA;
 	const AliHLTTPCGMMerger& merger;
 	qSem semLockDisplay;

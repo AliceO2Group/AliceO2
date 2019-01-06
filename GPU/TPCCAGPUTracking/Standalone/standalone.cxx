@@ -1,3 +1,4 @@
+#include "cmodules/qconfig.h"
 #include "AliGPUReconstruction.h"
 #include "AliHLTArray.h"
 #include "AliHLTTPCCADef.h"
@@ -34,8 +35,6 @@
 #include "AliGPUCASettings.h"
 #include <vector>
 #include <xmmintrin.h>
-
-#include "cmodules/qconfig.h"
 
 #ifdef HAVE_O2HEADERS
 #include "DataFormatsTPC/ClusterNative.h"
@@ -132,6 +131,14 @@ int main(int argc, char** argv)
 	if (configStandalone.DebugLevel >= 4) configStandalone.OMPThreads = 1;
 #ifdef HLTCA_HAVE_OPENMP
 	if (configStandalone.OMPThreads != -1) omp_set_num_threads(configStandalone.OMPThreads);
+	else configStandalone.OMPThreads = omp_get_max_threads();
+	if (configStandalone.OMPThreads != omp_get_max_threads())
+	{
+		printf("Cannot set number of OMP threads!\n");
+		return(1);
+	}
+#else
+	configStandalone.OMPThreads = 1;
 #endif
 	if (configStandalone.outputcontrolmem)
 	{
@@ -139,7 +146,7 @@ int main(int argc, char** argv)
 		if (outputmemory == 0)
 		{
 			printf("Memory allocation error\n");
-			exit(1);
+			return(1);
 		}
 	}
 

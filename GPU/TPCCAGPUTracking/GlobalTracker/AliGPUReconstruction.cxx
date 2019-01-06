@@ -590,7 +590,7 @@ int AliGPUReconstruction::RunTPCTrackingSlices()
 		CAGPUError("fOutputPtr must not be used with OpenMP\n");
 		return(1);
 	}
-#pragma omp parallel for
+#pragma omp parallel for num_threads(mDeviceProcessingSettings.nThreads)
 #endif
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 	{

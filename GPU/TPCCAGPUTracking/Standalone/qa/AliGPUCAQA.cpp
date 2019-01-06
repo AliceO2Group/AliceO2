@@ -80,6 +80,22 @@
 #define CHECK_CLUSTER_STATE() CHECK_CLUSTER_STATE_INIT() CHECK_CLUSTER_STATE_CHK_COUNT()
 #define CHECK_CLUSTER_STATE_NOCOUNT() CHECK_CLUSTER_STATE_INIT() CHECK_CLUSTER_STATE_CHK_NOCOUNT()
 
+static const AliGPUCAQA::configQA& AliGPUCAQA_GetConfig(AliGPUReconstruction* rec)
+{
+#if !defined(HLTCA_STANDALONE) || defined(HLTCA_BUILD_O2_LIB)
+	static AliGPUCAQA::configQA defaultConfig;
+	if (rec->mConfigQA) return *((AliGPUCAQA::configQA*) rec->mConfigQA);
+	else return defaultConfig;
+#else
+	return configStandalone.configQA;
+#endif
+}
+
+
+AliGPUCAQA::AliGPUCAQA(AliGPUReconstruction* rec) : mRec(rec), config(AliGPUCAQA_GetConfig(rec))
+{
+}
+
 static bool MCComp(const AliHLTTPCClusterMCWeight& a, const AliHLTTPCClusterMCWeight& b) {return(a.fMCID > b.fMCID);}
 
 bool AliGPUCAQA::clusterRemovable(int cid, bool prot) const
@@ -167,12 +183,12 @@ void AliGPUCAQA::SetMCTrackRange(int min, int max)
 
 bool AliGPUCAQA::SuppressTrack(int iTrack) const
 {
-	return (configStandalone.configQA.matchMCLabels.size() && !goodTracks[nEvents][iTrack]);
+	return (config.matchMCLabels.size() && !goodTracks[nEvents][iTrack]);
 }
 
 bool AliGPUCAQA::SuppressHit(int iHit) const
 {
-	return (configStandalone.configQA.matchMCLabels.size() && !goodHits[nEvents - 1][iHit]);
+	return (config.matchMCLabels.size() && !goodHits[nEvents - 1][iHit]);
 }
 
 int AliGPUCAQA::GetMCLabel(unsigned int trackId) const
@@ -182,7 +198,6 @@ int AliGPUCAQA::GetMCLabel(unsigned int trackId) const
 
 int AliGPUCAQA::InitQA()
 {
-	structConfigQA& config = configStandalone.configQA;
 	char name[2048], fname[1024];
 
 	colorNums = new Color_t[ColorCount];
@@ -382,7 +397,6 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 	clusterParam.resize(mRec->mIOPtrs.nMCLabelsTPC);
 	memset(clusterParam.data(), 0, clusterParam.size() * sizeof(clusterParam[0]));
 	totalFakes = 0;
-	structConfigQA& config = configStandalone.configQA;
 	HighResTimer timer;
 
 	nEvents++;
@@ -522,7 +536,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 		}
 		for (unsigned int i = 0;i < mRec->mIOPtrs.nMCLabelsTPC;i++)
 		{
-			if (configStandalone.runGPU) {printf("WARNING: INCOMPLETE QA with GPU!\n");break;}
+			if (mRec->IsGPU()) {printf("WARNING: INCOMPLETE QA with GPU!\n");break;}
 			if (clusterParam[i].attached == 0 && clusterParam[i].fakeAttached == 0)
 			{
 				int attach = merger.ClusterAttachment()[i];
@@ -763,7 +777,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 		//Fill cluster histograms
 		for (int iTrk = 0;iTrk < merger.NOutputTracks();iTrk++)
 		{
-			if (configStandalone.runGPU) {printf("WARNING: INCOMPLETE QA with GPU!\n");break;}
+			if (mRec->IsGPU()) {printf("WARNING: INCOMPLETE QA with GPU!\n");break;}
 			const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[iTrk];
 			if (!track.OK()) continue;
 			if (trackMCLabels[iTrk] == MC_LABEL_INVALID)
@@ -841,7 +855,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 		}
 		for (unsigned int i = 0;i < mRec->mIOPtrs.nMCLabelsTPC;i++)
 	 	{
-			if (configStandalone.runGPU) {printf("WARNING: INCOMPLETE QA with GPU!\n");break;}
+			if (mRec->IsGPU()) {printf("WARNING: INCOMPLETE QA with GPU!\n");break;}
 			if ((mcTrackMin != -1 && mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[0].fMCID < mcTrackMin) || (mcTrackMax != -1 && mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[0].fMCID >= mcTrackMax)) continue;
 			if (clusterParam[i].attached || clusterParam[i].fakeAttached) continue;
 			int attach = merger.ClusterAttachment()[i];
@@ -954,7 +968,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 
 	for (int i = 0;i < merger.MaxId();i++)
 	{
-		if (configStandalone.runGPU) {printf("WARNING: INCOMPLETE QA with GPU!\n");break;}
+		if (mRec->IsGPU()) {printf("WARNING: INCOMPLETE QA with GPU!\n");break;}
 		int attach = merger.ClusterAttachment()[i];
 		CHECK_CLUSTER_STATE();
 
@@ -1106,7 +1120,6 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 
 void AliGPUCAQA::GetName(char* fname, int k)
 {
-	const structConfigQA& config = configStandalone.configQA;
 	const int nNewInput = config.inputHistogramsOnly ? 0 : 1;
 	if (k || config.inputHistogramsOnly || config.name)
 	{
@@ -1124,7 +1137,6 @@ void AliGPUCAQA::GetName(char* fname, int k)
 
 template <class T> T* AliGPUCAQA::GetHist(T* &ee, std::vector<TFile*>& tin, int k, int nNewInput)
 {
-	const structConfigQA& config = configStandalone.configQA;
 	T* e = ee;
 	if ((config.inputHistogramsOnly || k) && (e = dynamic_cast<T*>(tin[k - nNewInput]->Get(e->GetName()))) == NULL)
 	{
@@ -1140,7 +1152,6 @@ int AliGPUCAQA::DrawQAHistograms()
 	bool mcAvail = mRec->mIOPtrs.nMCInfosTPC && mRec->mIOPtrs.nMCLabelsTPC;
 	char name[2048], fname[1024];
 
-	const structConfigQA& config = configStandalone.configQA;
 	const int nNewInput = config.inputHistogramsOnly ? 0 : 1;
 	const int ConfigNumInputs = nNewInput + config.compareInputs.size();
 

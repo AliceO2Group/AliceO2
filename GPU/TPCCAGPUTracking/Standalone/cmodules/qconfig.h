@@ -121,7 +121,7 @@
 #elif defined(QCONFIG_PRINT)
 	#define AddOption(name, type, default, optname, optnameshort, ...) std::cout << "\t" << qon_mxstr(name) << ": " << tmp.name << "\n";
 	#define AddVariable(name, type, default) std::cout << "\t" << qon_mxstr(name) << ": " << tmp.name << "\n";
-	#define AddOptionSet(name, type, value, optname, optnameshort, ...) 
+	#define AddOptionSet(name, type, value, optname, optnameshort, ...)
 	#define AddOptionVec(name, type, optname, optnameshort, ...) {std::cout << "\t" << qon_mxstr(name) << "[]: "; for (unsigned int i = 0;i < tmp.name.size();i++) {if (i) {std::cout << ", ";} /*std::cout << tmp.name[i];*/} std::cout << "\n";}
 	#define AddOptionArray(name, type, count, default, optname, optnameshort, ...) {std::cout << "\t" << qon_mxstr(name) << "[" << count << "]: " << tmp.name[0]; for (int i = 1;i < count;i++) {std::cout << ", " << tmp.name[i];} std::cout << "\n";}
 	#define AddSubConfig(name, instance)
@@ -131,7 +131,7 @@
 	#define EndConfig() }
 
 #elif defined(QCONFIG_INSTANCE)
-	#define AddOption(name, type, default, optname, optnameshort, help, ...) name(default), 
+	#define AddOption(name, type, default, optname, optnameshort, help, ...) name(default),
 	#define AddVariable(name, type, default) name(default),
 	#define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
 	#define AddOptionVec(name, type, optname, optnameshort, help, ...) name(),
@@ -154,30 +154,43 @@
 	extern int qConfigParse(int argc, const char** argv, const char* filename = NULL);
 	extern void qConfigPrint();
 	namespace qConfig {enum qConfigRetVal {qcrOK = 0, qcrError = 1, qcrMinFailure = 2, qcrMaxFailure = 3, qcrHelp = 4, qcrCmd = 5, qcrArgMissing = 6, qcrArgIncomplete = 7, qcrArrayOverflow = 8};}
-
+	
 #else
 	#ifdef QCONFIG_HEADER_GUARD
 		#define QCONFIG_HEADER_GUARD_NO_INCLUDE
 	#else
 		#define QCONFIG_HEADER_GUARD
-		#define AddOption(name, type, default, optname, optnameshort, help, ...) type name;
-		#define AddVariable(name, type, default) type name;
-		#define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
-		#define AddSubConfig(name, instance) name instance;
-		#define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...) type name[count];
-		#ifdef QCONFIG_GPU
-			#define AddOptionVec(name, type, optname, optnameshort, help, ...) void* name[sizeof(std::vector<type>) / sizeof(void*)];
+
+		#if defined(QCONFIG_CPP11_INIT) && !defined(QCONFIG_GPU)
+			#define AddOption(name, type, default, optname, optnameshort, help, ...) type name = default;
+			#define AddVariable(name, type, default) type name = default;
+			#define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
+			#define AddSubConfig(name, instance) name instance;
+			#define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...) type name[count] = {default};
+			#define AddOptionVec(name, type, optname, optnameshort, help, ...) std::vector<type> name;
 			#define BeginConfig(name, instance) struct name {
 			#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) struct name {
-			struct qConfigDummy{};
+			#define EndConfig() };
 		#else
-			#define AddOptionVec(name, type, optname, optnameshort, help, ...) std::vector<type> name;
-			#define BeginConfig(name, instance) struct name { name(); name(const name& s); name& operator =(const name& s);
-			#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) struct name { name(); name(const name& s); name& operator =(const name& s);
-			;struct qConfigDummy{qConfigDummy() {}};
-			#define QCONFIG_EXTERNS
+			#define AddOption(name, type, default, optname, optnameshort, help, ...) type name;
+			#define AddVariable(name, type, default) type name;
+			#define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
+			#define AddSubConfig(name, instance) name instance;
+			#define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...) type name[count];
+			#define EndConfig() qConfigDummy _qConfigDummy; };
+			#ifdef QCONFIG_GPU
+				#define AddOptionVec(name, type, optname, optnameshort, help, ...) void* name[sizeof(std::vector<type>) / sizeof(void*)];
+				#define BeginConfig(name, instance) struct name {
+				#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) struct name {
+				struct qConfigDummy{};
+			#else
+				#define AddOptionVec(name, type, optname, optnameshort, help, ...) std::vector<type> name;
+				#define BeginConfig(name, instance) struct name { name(); name(const name& s); name& operator =(const name& s);
+				#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) struct name { name(); name(const name& s); name& operator =(const name& s);
+				;struct qConfigDummy{qConfigDummy() {}};
+				#define QCONFIG_EXTERNS
+			#endif
 		#endif
-		#define EndConfig() qConfigDummy _qConfigDummy; };
 	#endif
 #endif
 

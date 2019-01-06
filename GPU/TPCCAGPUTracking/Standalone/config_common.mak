@@ -11,7 +11,7 @@ HIDEECHO					= @
 CC_x86_64-pc-linux-gnu		= GCC
 CC_i686-pc-cygwin			= ICC
 
-INCLUDEPATHS				= include SliceTracker HLTHeaders Merger GlobalTracker TRDTracking Common TPCFastTransformation display qa
+INCLUDEPATHS				= . SliceTracker HLTHeaders Merger GlobalTracker TRDTracking Common TPCFastTransformation display qa
 DEFINES						= HLTCA_STANDALONE HLTCA_ENABLE_GPU_TRACKER
 CPPFILES					= cmodules/timer.cpp cmodules/qsem.cpp
 

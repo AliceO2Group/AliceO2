@@ -189,6 +189,10 @@ else()
     set(HDRS2 ${HDRS2} Standalone/qa/AliGPUCAQA.h)
 endif()
 
+if (GPUCA_EVENT_DISPLAY OR GPUCA_QA)
+    set(HDRS2 ${HDRS2} Standalone/qconfigoptions.h)
+endif()
+
 string(REPLACE ".cxx" ".h" HDRSSRC "${SRCS}")
 set(HDRS ${HDRS} ${HDRSSRC})
 string(REPLACE ".cxx" ".h" HDRSSRC "${SRCS_NO_CINT}")

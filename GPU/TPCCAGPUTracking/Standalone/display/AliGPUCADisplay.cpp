@@ -35,9 +35,18 @@
 
 #define SEPERATE_GLOBAL_TRACKS_LIMIT (separateGlobalTracks ? 6 : TRACK_TYPE_ID_LIMIT)
 
-static auto& config = configStandalone.configGL;
+static const AliGPUCADisplay::configDisplay& AliGPUCADisplay_GetConfig(AliGPUReconstruction* rec)
+{
+#if !defined(HLTCA_STANDALONE) || defined(HLTCA_BUILD_O2_LIB)
+	static AliGPUCADisplay::configDisplay defaultConfig;
+	if (rec->mConfigDisplay) return *((AliGPUCADisplay::configDisplay*) rec->mConfigDisplay);
+	else return defaultConfig;
+#else
+	return configStandalone.configGL;
+#endif
+}
 
-AliGPUCADisplay::AliGPUCADisplay(AliGPUCADisplayBackend* backend, AliGPUReconstruction* rec, AliGPUCAQA* qa) : mBackend(backend), mRec(rec), mQA(qa), merger(rec->GetTPCMerger())
+AliGPUCADisplay::AliGPUCADisplay(AliGPUCADisplayBackend* backend, AliGPUReconstruction* rec, AliGPUCAQA* qa) : mBackend(backend), mRec(rec), config(AliGPUCADisplay_GetConfig(rec)), mQA(qa), merger(rec->GetTPCMerger())
 {
 	backend->mDisplay = this;
 }
@@ -438,8 +447,8 @@ int AliGPUCADisplay::InitGL()
 	setQuality();
 	ReSizeGLScene(AliGPUCADisplayBackend::init_width, AliGPUCADisplayBackend::init_height, true);
 #ifdef HLTCA_HAVE_OPENMP
-	if (configStandalone.OMPThreads != -1) omp_set_num_threads(configStandalone.OMPThreads);
-	int maxThreads = omp_get_max_threads();
+	int maxThreads = mRec->GetDeviceProcessingSettings().nThreads > 1 ? mRec->GetDeviceProcessingSettings().nThreads : 1;
+	omp_set_num_threads(maxThreads);
 #else
 	int maxThreads = 1;
 #endif
@@ -1204,7 +1213,7 @@ int AliGPUCADisplay::DrawGLScene(bool mixAnimation, float animateTime) // Here's
 			for (int i = 0;i < N_FINAL_TYPE;i++) glDLfinal[iSlice].resize(nCollisions);
 		}
 #ifdef HLTCA_HAVE_OPENMP
-#pragma omp parallel
+#pragma omp parallel num_threads(mRec->GetDeviceProcessingSettings().nThreads)
 		{
 			int numThread = omp_get_thread_num();
 			int numThreads = omp_get_num_threads();

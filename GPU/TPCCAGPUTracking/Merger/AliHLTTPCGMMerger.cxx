@@ -1400,7 +1400,7 @@ void AliHLTTPCGMMerger::Refit(bool resetTimers)
 #endif
 	{
 #ifdef HLTCA_HAVE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for num_threads(fGPUReconstruction->GetDeviceProcessingSettings().nThreads)
 #endif
 		for ( int itr = 0; itr < fNOutputTracks; itr++ )
 		{
