@@ -9,7 +9,7 @@ class AliGPUCADisplayBackend
 	friend class AliGPUCADisplay;
 public:
 	AliGPUCADisplayBackend() = default;
-	~AliGPUCADisplayBackend() = default;
+	virtual ~AliGPUCADisplayBackend() = default;
 	
 	virtual void StartDisplay() = 0; //Start the display. This function returns, and should spawn a thread that runs the display, and calls InitGL
 	virtual void DisplayExit() = 0; //Stop the display. Display thread should call ExitGL and the function returns after the thread has terminated

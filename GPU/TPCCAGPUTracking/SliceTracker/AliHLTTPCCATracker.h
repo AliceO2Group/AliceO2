@@ -93,7 +93,7 @@ class AliHLTTPCCATracker
 	MEM_CLASS_PRE2() void Initialize( const MEM_LG2(AliGPUCAParam) *param, int iSlice );
 	MEM_CLASS_PRE2() void InitializeRows( const MEM_LG2(AliGPUCAParam) *param ) { fData.InitializeRows(*param); }
   
-	int CheckEmptySlice() const;
+	int CheckEmptySlice();
 	void WriteOutputPrepare();
 	void WriteOutput();
   
@@ -337,11 +337,12 @@ class AliHLTTPCCATracker
 	GPUglobalref() calink *fTrackletRowHits;			//Hits for each Tracklet in each row
 
 	//
-	GPUglobalref() MEM_GLOBAL(AliHLTTPCCATrack) *fTracks;  // reconstructed tracks
-	GPUglobalref() AliHLTTPCCAHitId *fTrackHits;          // array of track hit numbers
+	GPUglobalref() MEM_GLOBAL(AliHLTTPCCATrack) *fTracks;	// reconstructed tracks
+	GPUglobalref() AliHLTTPCCAHitId *fTrackHits;			// array of track hit numbers
   
 	// output
 	GPUglobalref() AliHLTTPCCASliceOutput **fOutput;		//address of pointer pointing to SliceOutput Object
+	void* fOutputMemory;									//Pointer to output memory if stored internally
   
 	// disable copy
 	AliHLTTPCCATracker( const AliHLTTPCCATracker& );

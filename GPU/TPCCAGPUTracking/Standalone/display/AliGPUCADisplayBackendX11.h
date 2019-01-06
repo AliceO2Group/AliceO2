@@ -14,6 +14,7 @@ class AliGPUCADisplayBackendX11 : public AliGPUCADisplayBackend
 {
 public:
 	AliGPUCADisplayBackendX11() = default;
+	virtual ~AliGPUCADisplayBackendX11() = default;
 	
 	virtual void StartDisplay() override;
 	virtual void DisplayExit() override;

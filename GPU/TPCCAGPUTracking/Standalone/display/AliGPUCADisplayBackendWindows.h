@@ -7,6 +7,7 @@ class AliGPUCADisplayBackendWindows : public AliGPUCADisplayBackend
 {
 public:
 	AliGPUCADisplayBackendWindows() = default;
+	virtual ~AliGPUCADisplayBackendWindows() = default;
 	
 	virtual void StartDisplay() override;
 	virtual void* OpenGLMain(void*) override;

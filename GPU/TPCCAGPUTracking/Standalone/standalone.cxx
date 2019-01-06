@@ -617,6 +617,7 @@ breakrun:
 	}
 
 	rec->Finalize();
+	if (devProc.eventDisplay) delete devProc.eventDisplay;
 
 	if (configStandalone.outputcontrolmem)
 	{

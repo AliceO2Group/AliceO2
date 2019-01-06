@@ -6,7 +6,7 @@
 class AliGPUCADisplayBackendNone : public AliGPUCADisplayBackend
 {
 	AliGPUCADisplayBackendNone() = default;
-	~AliGPUCADisplayBackendNone() = default;
+	virtual ~AliGPUCADisplayBackendNone() = default;
 	
 	virtual void StartDisplay() override {}
 	virtual void DisplayExit() override {}

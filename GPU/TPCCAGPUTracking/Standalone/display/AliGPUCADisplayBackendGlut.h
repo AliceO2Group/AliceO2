@@ -8,6 +8,7 @@ class AliGPUCADisplayBackendGlut : public AliGPUCADisplayBackend
 {
 public:
 	AliGPUCADisplayBackendGlut() = default;
+	virtual ~AliGPUCADisplayBackendGlut() = default;
 	
 	virtual void StartDisplay() override;
 	virtual void DisplayExit() override;

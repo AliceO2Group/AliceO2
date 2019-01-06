@@ -59,7 +59,7 @@ class AliHLTTPCCASliceOutput
 	}
 
 	static int EstimateSize(int nOfTracks, int nOfTrackClusters);
-	static void Allocate(AliHLTTPCCASliceOutput *&ptrOutput, int nTracks, int nTrackHits, AliGPUCAOutputControl *outputControl);
+	static void Allocate(AliHLTTPCCASliceOutput* &ptrOutput, int nTracks, int nTrackHits, AliGPUCAOutputControl *outputControl, void* &internalMemory);
 
 	GPUhd() void SetNTracks(int v) { fNTracks = v; }
 	GPUhd() void SetNLocalTracks(int v) { fNLocalTracks = v; }

@@ -93,7 +93,8 @@ AliHLTTPCCATracker::AliHLTTPCCATracker() :
 	fTrackletRowHits( NULL ),
 	fTracks( 0 ),
 	fTrackHits( 0 ),
-	fOutput( 0 )
+	fOutput( 0 ),
+	fOutputMemory(NULL)
 {}
 
 AliHLTTPCCATracker::~AliHLTTPCCATracker()
@@ -111,6 +112,7 @@ AliHLTTPCCATracker::~AliHLTTPCCATracker()
 #ifdef HLTCA_STANDALONE
 	if (fLinkTmpMemory) delete[] fLinkTmpMemory;
 #endif
+	if (fOutputMemory) free(fOutputMemory);
 }
 
 // ----------------------------------------------------------------------------------
@@ -489,12 +491,13 @@ GPUhd() void AliHLTTPCCATracker::SetPointersTracks( int MaxNTracks, int MaxNHits
 	fTrackMemorySize = mem - fTrackMemory;
 }
 
-GPUh() int AliHLTTPCCATracker::CheckEmptySlice() const
+GPUh() int AliHLTTPCCATracker::CheckEmptySlice()
 {
 	//Check if the Slice is empty, if so set the output apropriate and tell the reconstuct procesdure to terminate
 	if ( NHitsTotal() < 1 )
 	{
-		AliHLTTPCCASliceOutput::Allocate(*fOutput, 0, 0, &fGPUReconstruction->OutputControl());
+		fCommonMem->fNTracks = fCommonMem->fNTrackHits = 0;
+		WriteOutputPrepare();
 		AliHLTTPCCASliceOutput* useOutput = *fOutput;
 		if (useOutput == NULL) return(1);
 		useOutput->SetNTracks( 0 );
@@ -634,7 +637,7 @@ GPUh() void AliHLTTPCCATracker::ReconstructOutput()
 GPUh() void AliHLTTPCCATracker::WriteOutputPrepare()
 {
 	StartTimer(9);
-	AliHLTTPCCASliceOutput::Allocate(*fOutput, fCommonMem->fNTracks, fCommonMem->fNTrackHits, &fGPUReconstruction->OutputControl());
+	AliHLTTPCCASliceOutput::Allocate(*fOutput, fCommonMem->fNTracks, fCommonMem->fNTrackHits, &fGPUReconstruction->OutputControl(), fOutputMemory);
 	StopTimer(9);
 }
 
