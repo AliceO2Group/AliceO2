@@ -19,7 +19,7 @@
 
 #include "AliHLTTPCCARow.h"
 
-#if !defined(HLTCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE)
 AliHLTTPCCARow::AliHLTTPCCARow() : fNHits(0), fX(0), fMaxY(0), fGrid(),
 	fHy0(0), fHz0(0), fHstepY(0), fHstepZ(0), fHstepYi(0), fHstepZi(0),
 	fFullSize(0), fHitNumberOffset(0), fFirstHitInBinOffset(0)

@@ -1,13 +1,13 @@
 #ifndef ALIHLTTRDDEF_H
 #define ALIHLTTRDDEF_H
 
-#ifdef HLTCA_BUILD_ALIROOT_LIB
+#ifdef GPUCA_BUILD_ALIROOT_LIB
 typedef double My_Float;
 #else
 typedef float My_Float;
 #endif
 
-#ifdef HLTCA_BUILD_ALIROOT_LIB
+#ifdef GPUCA_BUILD_ALIROOT_LIB
 #define TRD_TRACK_TYPE_ALIROOT
 #else
 #define TRD_TRACK_TYPE_HLT
@@ -23,7 +23,7 @@ class AliHLTTPCGMTrackParam;
 typedef AliHLTTPCGMTrackParam HLTTRDBaseTrack;
 #endif
 
-#ifdef HLTCA_BUILD_ALIROOT_LIB
+#ifdef GPUCA_BUILD_ALIROOT_LIB
 class AliTrackerBase;
 typedef AliTrackerBase HLTTRDBasePropagator;
 //class AliHLTTPCGMPropagator;
@@ -39,7 +39,7 @@ template <class T> class AliHLTTRDTrack;
 typedef AliHLTTRDTrack<trackInterface<HLTTRDBaseTrack>> HLTTRDTrack;
 typedef propagatorInterface<HLTTRDBasePropagator> HLTTRDPropagator;
 
-#if defined(HLTCA_BUILD_ALIROOT_LIB) || defined(__CLING__) || defined(__ROOTCLING__)
+#if defined(GPUCA_BUILD_ALIROOT_LIB) || defined(__CLING__) || defined(__ROOTCLING__)
 #include "TMath.h"
 #else
 #define Error(...)

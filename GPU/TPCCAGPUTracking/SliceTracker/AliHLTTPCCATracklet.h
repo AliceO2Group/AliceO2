@@ -23,9 +23,9 @@ MEM_CLASS_PRE()
 class AliHLTTPCCATracklet
 {
   public:
-#if !defined(HLTCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE)
 	AliHLTTPCCATracklet() : fNHits(0), fFirstRow(0), fLastRow(0), fParam(), fHitWeight(0){};
-#endif //!HLTCA_GPUCODE
+#endif //!GPUCA_GPUCODE
 
 	GPUhd() int NHits() const
 	{
@@ -61,7 +61,7 @@ class AliHLTTPCCATracklet
 	MEM_LG(AliHLTTPCCABaseTrackParam)
 	fParam; // tracklet parameters
 #ifndef EXTERN_ROW_HITS
-	calink fRowHits[HLTCA_ROW_COUNT + 1]; // hit index for each TPC row
+	calink fRowHits[GPUCA_ROW_COUNT + 1]; // hit index for each TPC row
 #endif                                    //EXTERN_ROW_HITS
 	int fHitWeight;                       //Hit Weight of Tracklet
 };

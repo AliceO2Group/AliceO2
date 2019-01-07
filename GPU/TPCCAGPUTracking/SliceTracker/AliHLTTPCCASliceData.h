@@ -21,7 +21,7 @@
 #include "AliHLTTPCCARow.h"
 #include "AliTPCCommonMath.h"
 #include "AliGPUCAParam.h"
-#ifndef HLTCA_GPUCODE
+#ifndef GPUCA_GPUCODE
 #include "AliHLTArray.h"
 #else
 template<typename T, int Dim> class AliHLTArray;
@@ -41,15 +41,15 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
 {
   public:
 	AliHLTTPCCASliceData() :
-		fIsGpuSliceData(0), fGPUSharedDataReq(0), fFirstRow( 0 ), fLastRow( HLTCA_ROW_COUNT - 1), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMaxZ(0.f), fMemorySize( 0 ), fGpuMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
+		fIsGpuSliceData(0), fGPUSharedDataReq(0), fFirstRow( 0 ), fLastRow( GPUCA_ROW_COUNT - 1), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMaxZ(0.f), fMemorySize( 0 ), fGpuMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
 		,fRows( NULL ), fLinkUpData( 0 ), fLinkDownData( 0 ), fHitData( 0 ), fClusterDataIndex( 0 )
 		, fFirstHitInBin( 0 ), fHitWeights( 0 )
 	{
 	}
 
-#ifndef HLTCA_GPUCODE
+#ifndef GPUCA_GPUCODE
 	~AliHLTTPCCASliceData();
-#endif //!HLTCA_GPUCODE
+#endif //!GPUCA_GPUCODE
 
 	MEM_CLASS_PRE2() void InitializeRows( const MEM_LG2(AliGPUCAParam) &parameters );
 
@@ -156,7 +156,7 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
 	AliHLTTPCCASliceData( const AliHLTTPCCASliceData & );
 	AliHLTTPCCASliceData& operator=( const AliHLTTPCCASliceData & ) ;
 
-#ifndef HLTCA_GPUCODE
+#ifndef GPUCA_GPUCODE
 	void CreateGrid( AliHLTTPCCARow *row, const float2* data, int ClusterDataHitNumberOffset );
 	int PackHitData( AliHLTTPCCARow *row, const AliHLTArray<AliHLTTPCCAHit, 1> &binSortedHits );
 #endif

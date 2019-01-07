@@ -1,22 +1,22 @@
 #ifndef ALIHLTTPCCAGEOMETRY_H
 #define ALIHLTTPCCAGEOMETRY_H
 
-#ifdef HLTCA_BUILD_ALIROOT_LIB
+#ifdef GPUCA_BUILD_ALIROOT_LIB
 #include "AliHLTTPCGeometry.h"
 #define AliHLTTPCCAGeometry AliHLTTPCGeometry
 #else
 
 class AliHLTTPCCAGeometry
 {
-	static double fgX[HLTCA_ROW_COUNT];
+	static double fgX[GPUCA_ROW_COUNT];
 
 public:
 	static double Row2X(int row) {return(fgX[row]);}
 };
 
-#ifdef HLTCA_TPC_GEOMETRY_O2
+#ifdef GPUCA_TPC_GEOMETRY_O2
 
-double AliHLTTPCCAGeometry::fgX[HLTCA_ROW_COUNT] = { 85.225,
+double AliHLTTPCCAGeometry::fgX[GPUCA_ROW_COUNT] = { 85.225,
 	85.975,
 	86.725,
 	87.475,
@@ -172,7 +172,7 @@ double AliHLTTPCCAGeometry::fgX[HLTCA_ROW_COUNT] = { 85.225,
 
 #else
 
-double AliHLTTPCCAGeometry::fgX[HLTCA_ROW_COUNT] = {
+double AliHLTTPCCAGeometry::fgX[GPUCA_ROW_COUNT] = {
 	85.195,
 	85.945,
 	86.695,

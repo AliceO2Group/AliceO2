@@ -24,12 +24,12 @@ MEM_CLASS_PRE()
 class AliHLTTPCCATrack
 {
   public:
-#if !defined(HLTCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE)
 	AliHLTTPCCATrack() : fAlive(0), fFirstHitID(0), fNHits(0), fLocalTrackId(-1), fParam()
 	{
 	}
 	~AliHLTTPCCATrack() {}
-#endif //!HLTCA_GPUCODE
+#endif //!GPUCA_GPUCODE
 
 	GPUhd() char Alive() const
 	{

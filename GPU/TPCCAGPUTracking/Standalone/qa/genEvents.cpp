@@ -215,7 +215,7 @@ int GenerateEvent(const AliGPUCAParam& sliceParam, char* filename)
       //exit(0);
     }
     
-    for( int iRow=0; iRow<HLTCA_ROW_COUNT; iRow++ ){
+    for( int iRow=0; iRow<GPUCA_ROW_COUNT; iRow++ ){
       //if( iRow>=50 ) break; //SG!!!
       float xRow = sliceParam.RowX[iRow];
       // transport to row

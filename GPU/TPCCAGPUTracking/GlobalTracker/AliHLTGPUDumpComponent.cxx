@@ -245,7 +245,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 					pCluster->fFlags = cRaw.GetFlags();
 					if (cRaw.GetSigmaPad2() < kAlmost0 || cRaw.GetSigmaTime2() < kAlmost0) pCluster->fFlags |= AliHLTTPCGMMergedTrackHit::flagSingle;
 					pCluster->fAmp = cRaw.GetCharge();
-#ifdef HLTCA_FULL_CLUSTERDATA
+#ifdef GPUCA_FULL_CLUSTERDATA
 					pCluster->fPad = cRaw.GetPad();
 					pCluster->fTime = cRaw.GetTime();
 					pCluster->fAmpMax = cRaw.GetQMax();
@@ -450,7 +450,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 		fRec->DumpSettings();
 	}
 
-	sprintf(filename, HLTCA_EVDUMP_FILE ".%d.dump", nEvent++);
+	sprintf(filename, GPUCA_EVDUMP_FILE ".%d.dump", nEvent++);
 	fRec->DumpData(filename);
 	return (0);
 }

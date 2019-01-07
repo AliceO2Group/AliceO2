@@ -51,7 +51,7 @@ public:
 	//Definition of the Geometry: Are we AliRoot or O2
 	enum GeometryType : unsigned int {RESERVED_GEOMETRY = 0, ALIROOT = 1, O2 = 2};
 	static constexpr const char* const GEOMETRY_TYPE_NAMES[] = {"INVALID", "ALIROOT", "O2"};
-	#ifdef HLTCA_TPC_GEOMETRY_O2
+	#ifdef GPUCA_TPC_GEOMETRY_O2
 		static constexpr GeometryType geometryType = O2;
 	#else
 		static constexpr GeometryType geometryType = ALIROOT;
@@ -110,7 +110,7 @@ public:
 		~InOutMemory();
 		std::unique_ptr<AliHLTTPCCAClusterData::Data[]> clusterData[NSLICES];
 		std::unique_ptr<AliHLTTPCRawCluster[]> rawClusters[NSLICES];
-		std::unique_ptr<o2::TPC::ClusterNative[]> clustersNative[NSLICES * HLTCA_ROW_COUNT];
+		std::unique_ptr<o2::TPC::ClusterNative[]> clustersNative[NSLICES * GPUCA_ROW_COUNT];
 		std::unique_ptr<AliHLTTPCCASliceOutTrack[]> sliceOutTracks[NSLICES];
 		std::unique_ptr<AliHLTTPCCASliceOutCluster[]> sliceOutClusters[NSLICES];
 		std::unique_ptr<AliHLTTPCClusterMCLabel[]> mcLabelsTPC;

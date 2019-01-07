@@ -123,7 +123,7 @@ class AliHLTTPCGMPropagator
 
 GPUd() inline AliHLTTPCGMPropagator::AliHLTTPCGMPropagator()
     : fField(0), fFieldRegion(TPC), fT(0), fAlpha(0), fT0(), fMaterial(),
-      fSpecialErrors(0), fFitInProjections(1), fToyMCEvents(0), fMaxSinPhi(HLTCA_MAX_SIN_PHI), fStatErrors()
+      fSpecialErrors(0), fFitInProjections(1), fToyMCEvents(0), fMaxSinPhi(GPUCA_MAX_SIN_PHI), fStatErrors()
 {
 }
 

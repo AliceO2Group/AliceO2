@@ -45,7 +45,7 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBzLightNoUpdate(float x, f
 	float pye = fPy - dx * b; // extrapolated py
 	float pxe2 = pt2 - pye * pye;
 
-	if (fPx < (1.f - HLTCA_MAX_SIN_PHI) || pxe2 < (1.f - HLTCA_MAX_SIN_PHI) * (1.f - HLTCA_MAX_SIN_PHI)) return -1; // can not transport to x=x
+	if (fPx < (1.f - GPUCA_MAX_SIN_PHI) || pxe2 < (1.f - GPUCA_MAX_SIN_PHI) * (1.f - GPUCA_MAX_SIN_PHI)) return -1; // can not transport to x=x
 
 	float pxe = CAMath::Sqrt(pxe2); // extrapolated px
 	float pti = 1.f / CAMath::Sqrt(pt2);
@@ -149,7 +149,7 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBxByBz(float x,
 
 	// transport in rotated coordinate system to X''=xe:
 
-	if (t.Px() < (1.f - HLTCA_MAX_SIN_PHI)) t.Px() = 1.f - HLTCA_MAX_SIN_PHI;
+	if (t.Px() < (1.f - GPUCA_MAX_SIN_PHI)) t.Px() = 1.f - GPUCA_MAX_SIN_PHI;
 	if (t.PropagateToXBzLightNoUpdate(xe, bb, dLp) != 0) return -1;
 
 	// rotate coordinate system back to the original R{-1}==R{T}
@@ -168,7 +168,7 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBxByBz(float x,
 	// a small (hopefully) additional step to X=x. Perhaps it may be replaced by linear extrapolation.
 
 	float ddLp = 0;
-	if (t.Px() < (1.f - HLTCA_MAX_SIN_PHI)) t.Px() = 1.f - HLTCA_MAX_SIN_PHI;
+	if (t.Px() < (1.f - GPUCA_MAX_SIN_PHI)) t.Px() = 1.f - GPUCA_MAX_SIN_PHI;
 	if (t.PropagateToXBzLightNoUpdate(x, Bz, ddLp) != 0) return -1;
 
 	dLp += ddLp;
@@ -234,13 +234,13 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToLpBz(float Lp, float Bz)
 	return 0;
 }
 
-#if !defined(HLTCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE)
 #include <iostream>
 #endif
 
 GPUd() void AliHLTTPCGMPhysicalTrackModel::Print() const
 {
-#if !defined(HLTCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE)
 	std::cout << "AliHLTTPCGMPhysicalTrackModel:  x " << fX << " y " << fY << " z " << fZ << " px " << fPx << " py " << fPy << " pz " << fPz << " q " << fQ << std::endl;
 #endif
 }

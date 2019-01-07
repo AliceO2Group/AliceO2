@@ -685,7 +685,7 @@ GPUd() bool MEM_LG(AliHLTTPCCATrackParam)::CheckNumericalQuality() const
 	    //|| ( CAMath::Abs( QPt() ) > 1.e-2 && c[14] > 2. )
 	    ) ok = 0;
 
-	if (CAMath::Abs(SinPhi()) > HLTCA_MAX_SIN_PHI) ok = 0;
+	if (CAMath::Abs(SinPhi()) > GPUCA_MAX_SIN_PHI) ok = 0;
 	if (CAMath::Abs(QPt()) > 1. / 0.05) ok = 0;
 	if (ok)
 	{
@@ -694,7 +694,7 @@ GPUd() bool MEM_LG(AliHLTTPCCATrackParam)::CheckNumericalQuality() const
 	return ok;
 }
 
-#if !defined(HLTCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE)
 #include <iostream>
 #endif
 
@@ -703,7 +703,7 @@ GPUd() void MEM_LG(AliHLTTPCCATrackParam)::Print() const
 {
 	//* print parameters
 
-#if !defined(HLTCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE)
 	std::cout << "track: x=" << GetX() << " c=" << GetSignCosPhi() << ", P= " << GetY() << " " << GetZ() << " " << GetSinPhi() << " " << GetDzDs() << " " << GetQPt() << std::endl;
 	std::cout << "errs2: " << GetErr2Y() << " " << GetErr2Z() << " " << GetErr2SinPhi() << " " << GetErr2DzDs() << " " << GetErr2QPt() << std::endl;
 #endif

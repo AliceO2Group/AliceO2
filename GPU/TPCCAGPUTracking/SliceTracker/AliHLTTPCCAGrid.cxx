@@ -64,7 +64,7 @@ GPUd() int AliHLTTPCCAGrid::GetBin(float Y, float Z) const
 	const int yBin = static_cast<int>((Y - fYMin) * fStepYInv);
 	const int zBin = static_cast<int>((Z - fZMin) * fStepZInv);
 	const int bin = zBin * fNy + yBin;
-#ifndef HLTCA_GPUCODE
+#ifndef GPUCA_GPUCODE
 	assert(bin >= 0);
 	assert(bin < static_cast<int>(fN));
 #endif

@@ -33,7 +33,7 @@ GPUd() void AliHLTTPCCANeighboursCleaner::Thread(int /*nBlocks*/, int nThreads, 
 		if (iThread == 0)
 		{
 			s.fIRow = iBlock + 2;
-			if (s.fIRow <= HLTCA_ROW_COUNT - 3)
+			if (s.fIRow <= GPUCA_ROW_COUNT - 3)
 			{
 				s.fIRowUp = s.fIRow + 2;
 				s.fIRowDn = s.fIRow - 2;
@@ -43,9 +43,9 @@ GPUd() void AliHLTTPCCANeighboursCleaner::Thread(int /*nBlocks*/, int nThreads, 
 	}
 	else if (iSync == 1)
 	{
-		if (s.fIRow <= HLTCA_ROW_COUNT - 3)
+		if (s.fIRow <= GPUCA_ROW_COUNT - 3)
 		{
-#ifdef HLTCA_GPUCODE
+#ifdef GPUCA_GPUCODE
 			int Up = s.fIRowUp;
 			int Dn = s.fIRowDn;
 			GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow) &row = tracker.Row(s.fIRow);

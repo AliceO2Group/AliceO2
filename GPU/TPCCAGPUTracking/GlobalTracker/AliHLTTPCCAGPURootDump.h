@@ -1,7 +1,7 @@
 #ifndef ALIHLTTPCCAGPUROOTDUMP_H
 #define ALIHLTTPCCAGPUROOTDUMP_H
 
-#if (!defined(HLTCA_STANDALONE) || defined(BUILD_QA)) && !defined(HLTCA_GPUCODE)
+#if (!defined(GPUCA_STANDALONE) || defined(BUILD_QA)) && !defined(GPUCA_GPUCODE)
 #include <TTree.h>
 #include <TFile.h>
 #include <TNtuple.h>

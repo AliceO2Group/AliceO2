@@ -385,7 +385,7 @@ class AliHLTArray : public AliHLTInternal::AliHLTArrayBase<T, Dim>
      */
     inline AliHLTArray operator-( int x ) const;
 
-#ifndef HLTCA_GPUCODE
+#ifndef GPUCA_GPUCODE
     template<typename Other> inline AliHLTArray<Other, Dim> ReinterpretCast() const {
       AliHLTArray<Other, Dim> r;
       r.fData = reinterpret_cast<Other *>( Parent::fData );
@@ -527,7 +527,7 @@ class AliHLTFixedArray : public AliHLTArray<typename AliHLTInternal::TypeForAlig
     void *operator new( size_t );
 
     // disable copy
-#ifdef HLTCA_GPUCODE
+#ifdef GPUCA_GPUCODE
 #else
     AliHLTFixedArray( const AliHLTFixedArray & );
     AliHLTFixedArray &operator=( const AliHLTFixedArray & );

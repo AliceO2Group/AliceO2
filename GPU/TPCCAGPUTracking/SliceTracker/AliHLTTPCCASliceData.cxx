@@ -125,15 +125,15 @@ void AliHLTTPCCASliceData::Clear()
 void AliHLTTPCCASliceData::InitializeRows(const AliGPUCAParam &p)
 {
 	// initialisation of rows
-	if (!fRows) fRows = new AliHLTTPCCARow[HLTCA_ROW_COUNT + 1];
-	for (int i = 0; i < HLTCA_ROW_COUNT; ++i)
+	if (!fRows) fRows = new AliHLTTPCCARow[GPUCA_ROW_COUNT + 1];
+	for (int i = 0; i < GPUCA_ROW_COUNT; ++i)
 	{
 		fRows[i].fX = p.RowX[i];
 		fRows[i].fMaxY = CAMath::Tan(p.DAlpha / 2.) * fRows[i].fX;
 	}
 }
 
-#ifndef HLTCA_GPUCODE
+#ifndef GPUCA_GPUCODE
 AliHLTTPCCASliceData::~AliHLTTPCCASliceData()
 {
 	//Standard Destrcutor
@@ -161,14 +161,14 @@ size_t AliHLTTPCCASliceData::SetPointers(const AliHLTTPCCAClusterData *data, boo
 {
 	//Set slice data internal pointers
 
-	int hitMemCount = HLTCA_ROW_COUNT * sizeof(HLTCA_GPU_ROWALIGNMENT) + data->NumberOfClusters();
+	int hitMemCount = GPUCA_ROW_COUNT * sizeof(GPUCA_GPU_ROWALIGNMENT) + data->NumberOfClusters();
 	//Calculate Memory needed to store hits in rows
 
 	const unsigned int kVectorAlignment = 256 /*sizeof( uint4 )*/;
-	fNumberOfHitsPlusAlign = NextMultipleOf<(kVectorAlignment > sizeof(HLTCA_GPU_ROWALIGNMENT) ? kVectorAlignment : sizeof(HLTCA_GPU_ROWALIGNMENT)) / sizeof(int)>(hitMemCount);
+	fNumberOfHitsPlusAlign = NextMultipleOf<(kVectorAlignment > sizeof(GPUCA_GPU_ROWALIGNMENT) ? kVectorAlignment : sizeof(GPUCA_GPU_ROWALIGNMENT)) / sizeof(int)>(hitMemCount);
 	fNumberOfHits = data->NumberOfClusters();
-	const int firstHitInBinSize = (23 + sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(int)) * HLTCA_ROW_COUNT + 4 * fNumberOfHits + 3;
-	//FIXME: sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(int) * HLTCA_ROW_COUNT is way to big and only to ensure to reserve enough memory for GPU Alignment.
+	const int firstHitInBinSize = (23 + sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(int)) * GPUCA_ROW_COUNT + 4 * fNumberOfHits + 3;
+	//FIXME: sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(int) * GPUCA_ROW_COUNT is way to big and only to ensure to reserve enough memory for GPU Alignment.
 	//Might be replaced by correct value
 
 	const int memorySize =
@@ -192,9 +192,9 @@ size_t AliHLTTPCCASliceData::SetPointers(const AliHLTTPCCAClusterData *data, boo
 		}
 		else
 		{
-			if (fMemorySize > HLTCA_GPU_SLICE_DATA_MEMORY)
+			if (fMemorySize > GPUCA_GPU_SLICE_DATA_MEMORY)
 			{
-				printf("Insufficient slice data memory: %lld > %lld\n", (long long int) fMemorySize, (long long int) HLTCA_GPU_SLICE_DATA_MEMORY);
+				printf("Insufficient slice data memory: %lld > %lld\n", (long long int) fMemorySize, (long long int) GPUCA_GPU_SLICE_DATA_MEMORY);
 				return (0);
 			}
 		}
@@ -227,10 +227,10 @@ int AliHLTTPCCASliceData::InitFromClusterData(const AliHLTTPCCAClusterData &data
 	float2 *YZData = new float2[fNumberOfHits];
 	int *tmpHitIndex = new int[fNumberOfHits];
 
-	int RowOffset[HLTCA_ROW_COUNT];
-	int NumberOfClustersInRow[HLTCA_ROW_COUNT];
-	memset(NumberOfClustersInRow, 0, HLTCA_ROW_COUNT * sizeof(NumberOfClustersInRow[0]));
-	fFirstRow = HLTCA_ROW_COUNT;
+	int RowOffset[GPUCA_ROW_COUNT];
+	int NumberOfClustersInRow[GPUCA_ROW_COUNT];
+	memset(NumberOfClustersInRow, 0, GPUCA_ROW_COUNT * sizeof(NumberOfClustersInRow[0]));
+	fFirstRow = GPUCA_ROW_COUNT;
 	fLastRow = 0;
 
 	for (int i = 0; i < fNumberOfHits; i++)
@@ -258,8 +258,8 @@ int AliHLTTPCCASliceData::InitFromClusterData(const AliHLTTPCCAClusterData &data
 	}
 
 	{
-		int RowsFilled[HLTCA_ROW_COUNT];
-		memset(RowsFilled, 0, HLTCA_ROW_COUNT * sizeof(int));
+		int RowsFilled[GPUCA_ROW_COUNT];
+		memset(RowsFilled, 0, GPUCA_ROW_COUNT * sizeof(int));
 		for (int i = 0; i < fNumberOfHits; i++)
 		{
 			float2 tmp;
@@ -272,7 +272,7 @@ int AliHLTTPCCASliceData::InitFromClusterData(const AliHLTTPCCAClusterData &data
 			tmpHitIndex[newIndex] = i;
 		}
 	}
-	if (fFirstRow == HLTCA_ROW_COUNT) fFirstRow = 0;
+	if (fFirstRow == GPUCA_ROW_COUNT) fFirstRow = 0;
 
 	////////////////////////////////////
 	// 1. prepare arrays
@@ -307,7 +307,7 @@ int AliHLTTPCCASliceData::InitFromClusterData(const AliHLTTPCCAClusterData &data
 		row.fHstepYi = 1.f;
 		row.fHstepZi = 1.f;
 	}
-	for (int rowIndex = fLastRow + 1; rowIndex < HLTCA_ROW_COUNT + 1; ++rowIndex)
+	for (int rowIndex = fLastRow + 1; rowIndex < GPUCA_ROW_COUNT + 1; ++rowIndex)
 	{
 		AliHLTTPCCARow &row = fRows[rowIndex];
 		row.fGrid.CreateEmpty();
@@ -324,7 +324,7 @@ int AliHLTTPCCASliceData::InitFromClusterData(const AliHLTTPCCAClusterData &data
 		row.fHstepZi = 1.f;
 	}
 
-	AliHLTResizableArray<AliHLTTPCCAHit> binSortedHits(fNumberOfHits + sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(unsigned short));
+	AliHLTResizableArray<AliHLTTPCCAHit> binSortedHits(fNumberOfHits + sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(unsigned short));
 
 	int gridContentOffset = 0;
 	int hitOffset = 0;
@@ -339,7 +339,7 @@ int AliHLTTPCCASliceData::InitFromClusterData(const AliHLTTPCCAClusterData &data
 		AliHLTTPCCARow &row = fRows[rowIndex];
 		row.fNHits = NumberOfClustersInRow[rowIndex];
 		row.fHitNumberOffset = hitOffset;
-		hitOffset += NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(unsigned short)>(NumberOfClustersInRow[rowIndex]);
+		hitOffset += NextMultipleOf<sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(unsigned short)>(NumberOfClustersInRow[rowIndex]);
 
 		row.fFirstHitInBinOffset = gridContentOffset;
 
@@ -355,7 +355,7 @@ int AliHLTTPCCASliceData::InitFromClusterData(const AliHLTTPCCAClusterData &data
 		}
 
 		int binCreationMemorySizeNew;
-		if ((binCreationMemorySizeNew = numberOfBins * 2 + 6 + row.fNHits + sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(unsigned short) * numberOfRows + 1) > binCreationMemorySize)
+		if ((binCreationMemorySizeNew = numberOfBins * 2 + 6 + row.fNHits + sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(unsigned short) * numberOfRows + 1) > binCreationMemorySize)
 		{
 			binCreationMemorySize = binCreationMemorySizeNew;
 			binCreationMemory.Resize(binCreationMemorySize);
@@ -423,11 +423,11 @@ int AliHLTTPCCASliceData::InitFromClusterData(const AliHLTTPCCAClusterData &data
 		row.fFullSize = nn;
 		gridContentOffset += nn;
 
-		if (NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(calink)>(row.fNHits) + nn > (unsigned) fGPUSharedDataReq)
-			fGPUSharedDataReq = NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(calink)>(row.fNHits) + nn;
+		if (NextMultipleOf<sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(calink)>(row.fNHits) + nn > (unsigned) fGPUSharedDataReq)
+			fGPUSharedDataReq = NextMultipleOf<sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(calink)>(row.fNHits) + nn;
 
 		//Make pointer aligned
-		gridContentOffset = NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(calink)>(gridContentOffset);
+		gridContentOffset = NextMultipleOf<sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(calink)>(gridContentOffset);
 	}
 
 	delete[] YZData;

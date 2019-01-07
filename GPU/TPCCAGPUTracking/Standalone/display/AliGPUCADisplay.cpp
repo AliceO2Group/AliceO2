@@ -10,7 +10,7 @@
 #ifndef WIN32
 #include "bitmapfile.h"
 #endif
-#ifdef HLTCA_HAVE_OPENMP
+#ifdef GPUCA_HAVE_OPENMP
 #include <omp.h>
 #endif
 
@@ -37,7 +37,7 @@
 
 static const AliGPUCADisplay::configDisplay& AliGPUCADisplay_GetConfig(AliGPUReconstruction* rec)
 {
-#if !defined(HLTCA_STANDALONE) || defined(HLTCA_BUILD_O2_LIB)
+#if !defined(GPUCA_STANDALONE) || defined(GPUCA_BUILD_O2_LIB)
 	static AliGPUCADisplay::configDisplay defaultConfig;
 	if (rec->mConfigDisplay) return *((const AliGPUCADisplay::configDisplay*) rec->mConfigDisplay);
 	else return defaultConfig;
@@ -446,7 +446,7 @@ int AliGPUCADisplay::InitGL()
 	setDepthBuffer();
 	setQuality();
 	ReSizeGLScene(AliGPUCADisplayBackend::init_width, AliGPUCADisplayBackend::init_height, true);
-#ifdef HLTCA_HAVE_OPENMP
+#ifdef GPUCA_HAVE_OPENMP
 	int maxThreads = mRec->GetDeviceProcessingSettings().nThreads > 1 ? mRec->GetDeviceProcessingSettings().nThreads : 1;
 	omp_set_num_threads(maxThreads);
 #else
@@ -522,11 +522,11 @@ AliGPUCADisplay::vboList AliGPUCADisplay::DrawLinks(const AliHLTTPCCATracker &tr
 	if (config.clustersOnly) return(vboList(0, 0, iSlice));
 	size_t startCount = vertexBufferStart[iSlice].size();
 	size_t startCountInner = vertexBuffer[iSlice].size();
-	for (int i = 0;i < HLTCA_ROW_COUNT;i++)
+	for (int i = 0;i < GPUCA_ROW_COUNT;i++)
 	{
 		const AliHLTTPCCARow &row = tracker.Data().Row(i);
 
-		if (i < HLTCA_ROW_COUNT - 2)
+		if (i < GPUCA_ROW_COUNT - 2)
 		{
 			const AliHLTTPCCARow &rowUp = tracker.Data().Row(i + 2);
 			for (int j = 0;j < row.NHits();j++)
@@ -796,7 +796,7 @@ AliGPUCADisplay::vboList AliGPUCADisplay::DrawGrid(const AliHLTTPCCATracker &tra
 	int iSlice = tracker.ISlice();
 	size_t startCount = vertexBufferStart[iSlice].size();
 	size_t startCountInner = vertexBuffer[iSlice].size();
-	for (int i = 0;i < HLTCA_ROW_COUNT;i++)
+	for (int i = 0;i < GPUCA_ROW_COUNT;i++)
 	{
 		const AliHLTTPCCARow &row = tracker.Data().Row(i);
 		for (int j = 0;j <= (signed) row.Grid().Ny();j++)
@@ -1212,7 +1212,7 @@ int AliGPUCADisplay::DrawGLScene(bool mixAnimation, float animateTime) // Here's
 			for (int i = 0;i < N_POINTS_TYPE;i++) GLpoints[iSlice][i].resize(nCollisions);
 			for (int i = 0;i < N_FINAL_TYPE;i++) glDLfinal[iSlice].resize(nCollisions);
 		}
-#ifdef HLTCA_HAVE_OPENMP
+#ifdef GPUCA_HAVE_OPENMP
 #pragma omp parallel num_threads(mRec->GetDeviceProcessingSettings().nThreads)
 		{
 			int numThread = omp_get_thread_num();
@@ -1246,7 +1246,7 @@ int AliGPUCADisplay::DrawGLScene(bool mixAnimation, float animateTime) // Here's
 			prop.SetPolynomialField(merger.pField());
 			prop.SetToyMCEventsFlag(merger.SliceParam().ToyMCEventsFlag);
 
-#ifdef HLTCA_HAVE_OPENMP
+#ifdef GPUCA_HAVE_OPENMP
 #pragma omp barrier
 #pragma omp for
 #endif
@@ -1261,7 +1261,7 @@ int AliGPUCADisplay::DrawGLScene(bool mixAnimation, float animateTime) // Here's
 				glDLgrid[iSlice] = DrawGrid(tracker);
 			}
 
-#ifdef HLTCA_HAVE_OPENMP
+#ifdef GPUCA_HAVE_OPENMP
 #pragma omp barrier
 #pragma omp for
 #endif
@@ -1271,12 +1271,12 @@ int AliGPUCADisplay::DrawGLScene(bool mixAnimation, float animateTime) // Here's
 				glDLlines[iSlice][5] = DrawTracks(tracker, 1);
 			}
 
-#ifdef HLTCA_HAVE_OPENMP
+#ifdef GPUCA_HAVE_OPENMP
 #pragma omp barrier
 #endif
 			threadTracks[numThread].resize(nCollisions);
 			for (int i = 0;i < nCollisions;i++) for (int j = 0;j < fgkNSlices;j++) for (int k = 0;k < 2;k++) threadTracks[numThread][i][j][k].clear();
-#ifdef HLTCA_HAVE_OPENMP
+#ifdef GPUCA_HAVE_OPENMP
 #pragma omp for
 #endif
 			for (int i = 0;i < merger.NOutputTracks();i++)
@@ -1294,7 +1294,7 @@ int AliGPUCADisplay::DrawGLScene(bool mixAnimation, float animateTime) // Here's
 				}
 				threadTracks[numThread][col][slice][0].emplace_back(i);
 			}
-#ifdef HLTCA_HAVE_OPENMP
+#ifdef GPUCA_HAVE_OPENMP
 #pragma omp for
 #endif
 			for (unsigned int i = 0;i < ioptrs().nMCInfosTPC;i++)
@@ -1314,7 +1314,7 @@ int AliGPUCADisplay::DrawGLScene(bool mixAnimation, float animateTime) // Here's
 				}
 				threadTracks[numThread][col][slice][1].emplace_back(i);
 			}
-#ifdef HLTCA_HAVE_OPENMP
+#ifdef GPUCA_HAVE_OPENMP
 #pragma omp barrier
 #pragma omp for
 #endif
@@ -1341,7 +1341,7 @@ int AliGPUCADisplay::DrawGLScene(bool mixAnimation, float animateTime) // Here's
 				}
 			}
 
-#ifdef HLTCA_HAVE_OPENMP
+#ifdef GPUCA_HAVE_OPENMP
 #pragma omp barrier
 #pragma omp for
 #endif

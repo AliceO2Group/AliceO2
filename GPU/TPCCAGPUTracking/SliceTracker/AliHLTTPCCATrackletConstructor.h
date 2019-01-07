@@ -27,7 +27,7 @@ public:
 	{
 		friend class AliHLTTPCCATrackletConstructor; //! friend class
 	public:
-#if !defined(HLTCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE)
 		AliHLTTPCCAThreadMemory()
 			: fItr( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fStartRow( 0 ), fEndRow( 0 ), fCurrIH( 0 ), fGo( 0 ), fStage( 0 ), fNHits( 0 ), fNHitsEndRow( 0 ), fNMissed( 0 ), fLastY( 0 ), fLastZ( 0 )
 		{}
@@ -36,7 +36,7 @@ public:
 			: fItr( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fStartRow( 0 ), fEndRow( 0 ), fCurrIH( 0 ), fGo( 0 ), fStage( 0 ), fNHits( 0 ), fNHitsEndRow( 0 ), fNMissed( 0 ), fLastY( 0 ), fLastZ( 0 )
 		{}
 		AliHLTTPCCAThreadMemory& operator=( const AliHLTTPCCAThreadMemory& /*dummy*/ ) { return *this; }
-#endif //!HLTCA_GPUCODE
+#endif //!GPUCA_GPUCODE
 
 	protected:
 		//WARNING: This data is copied element by element in CopyTrackletTempData. Changes to members of this class must be reflected in CopyTrackletTempData!!!
@@ -59,7 +59,7 @@ public:
 	{
 		friend class AliHLTTPCCATrackletConstructor; // friend class
 	public:
-#if !defined(HLTCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE)
 		AliHLTTPCCASharedMemory() : fNextTrackletFirst(0), fNextTrackletCount(0), fNextTrackletFirstRun(0), fNTracklets(0) {
 		}
 
@@ -67,18 +67,18 @@ public:
 		}
 
 		AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
-#endif //HLTCA_GPUCODE
+#endif //GPUCA_GPUCODE
 
 	protected:
-		MEM_LG(AliHLTTPCCARow) fRows[HLTCA_ROW_COUNT]; // rows
+		MEM_LG(AliHLTTPCCARow) fRows[GPUCA_ROW_COUNT]; // rows
 		int fNextTrackletFirst; //First tracklet to be processed by CUDA block during next iteration
 		int fNextTrackletCount; //Number of Tracklets to be processed by CUDA block during next iteration
 		int fNextTrackletFirstRun; //First run for dynamic scheduler?
 		int fNTracklets; // Total number of tracklets
 
-#ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
+#ifdef GPUCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 		int fMaxSync; //temporary shared variable during profile creation
-#endif //HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
+#endif //GPUCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 	};
 
 	MEM_CLASS_PRE2() GPUd() static void InitTracklet( MEM_LG2(AliHLTTPCCATrackParam) &tParam );
@@ -95,14 +95,14 @@ public:
 
 	GPUd() static void DoTracklet(GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker)& tracker, GPUsharedref() AliHLTTPCCATrackletConstructor::MEM_LOCAL(AliHLTTPCCASharedMemory)& sMem, AliHLTTPCCAThreadMemory& rMem);
 
-#ifdef HLTCA_GPUCODE
+#ifdef GPUCA_GPUCODE
 	GPUd() static void AliHLTTPCCATrackletConstructorGPU(GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) *pTracker, GPUsharedref() AliHLTTPCCATrackletConstructor::MEM_LOCAL(AliHLTTPCCASharedMemory)& sMem);
 	GPUd() static void AliHLTTPCCATrackletConstructorSingleSlice(GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) *pTracker, GPUsharedref() AliHLTTPCCATrackletConstructor::MEM_LOCAL(AliHLTTPCCASharedMemory)& sMem);
 	GPUd() static int FetchTracklet(GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker, GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) &sMem);
 #else
 	GPUd() static void AliHLTTPCCATrackletConstructorCPU(AliHLTTPCCATracker &tracker);
 	GPUd() static int AliHLTTPCCATrackletConstructorGlobalTracking(AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam& tParam, int startrow, int increment, int iTracklet);
-#endif //HLTCA_GPUCODE
+#endif //GPUCA_GPUCODE
 };
 
 #endif //ALIHLTTPCCATRACKLETCONSTRUCTOR_H

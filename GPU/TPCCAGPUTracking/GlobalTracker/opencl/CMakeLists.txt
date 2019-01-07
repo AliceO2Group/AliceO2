@@ -19,7 +19,7 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
 elseif(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     set(MODULE AliTPCCAGPUTrackingOpenCL)
 endif()
-add_definitions(-DHLTCA_GPULIBRARY=OPENCL)
+add_definitions(-DGPUCA_GPULIBRARY=OPENCL)
 
 # AMD APP SDK required for OpenCL tracker; it's using specific
 # extensions (currently) not provided by other vendors.

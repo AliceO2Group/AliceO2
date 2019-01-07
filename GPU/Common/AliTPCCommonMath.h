@@ -54,25 +54,25 @@ class AliTPCCommonMath
 
 typedef AliTPCCommonMath CAMath;
 
-#if defined( HLTCA_GPUCODE ) && defined (__CUDACC__)
+#if defined( GPUCA_GPUCODE ) && defined (__CUDACC__)
 	#define choice(c1,c2) c1
 	#define choiceA choice
-#elif defined( HLTCA_GPUCODE ) && defined (__OPENCL__)
+#elif defined( GPUCA_GPUCODE ) && defined (__OPENCL__)
 	#define choice(c1,c2) c1
 	#define choiceA(c1, c2) c2
 #else //Host
 	#define choice(c1,c2) c2
 	#define choiceA choice
-#endif //HLTCA_GPUCODE
+#endif //GPUCA_GPUCODE
 
 GPUdi() float2 AliTPCCommonMath::MakeFloat2(float x, float y)
 {
-#if !defined(HLTCA_GPUCODE) || defined(__OPENCL__)
+#if !defined(GPUCA_GPUCODE) || defined(__OPENCL__)
 	float2 ret = {x, y};
 	return ret;
 #else
 	return make_float2(x, y);
-#endif //HLTCA_GPUCODE
+#endif //GPUCA_GPUCODE
 }
 
 GPUdi() int AliTPCCommonMath::Nint(float x)
@@ -103,12 +103,12 @@ GPUdi() float AliTPCCommonMath::ATan2(float y, float x)
 
 GPUdi() float AliTPCCommonMath::Copysign(float x, float y)
 {
-#if defined(HLTCA_GPUCODE) && !defined(__OPENCL__)
+#if defined(GPUCA_GPUCODE) && !defined(__OPENCL__)
 	return copysignf(x, y);
 #else
 	x = CAMath::Abs(x);
 	return (y >= 0) ? x : -x;
-#endif //HLTCA_GPUCODE
+#endif //GPUCA_GPUCODE
 }
 
 GPUdi() float AliTPCCommonMath::Sin(float x)
@@ -190,54 +190,54 @@ GPUdi() int AliTPCCommonMath::AtomicMinShared ( int *addr, int val ) {return(Ali
 
 GPUdi() int AliTPCCommonMath::AtomicExch( GPUglobalref() int *addr, int val )
 {
-#if defined(HLTCA_GPUCODE) && defined(__OPENCL__)
+#if defined(GPUCA_GPUCODE) && defined(__OPENCL__)
 	return ::atomic_xchg( (volatile __global int*) addr, val );
-#elif defined(HLTCA_GPUCODE) && defined(__CUDACC__)
+#elif defined(GPUCA_GPUCODE) && defined(__CUDACC__)
 	return ::atomicExch( addr, val );
 #else
 	int old = *addr;
 	*addr = val;
 	return old;
-#endif //HLTCA_GPUCODE
+#endif //GPUCA_GPUCODE
 }
 
 GPUdi() int AliTPCCommonMath::AtomicAdd ( GPUglobalref() int *addr, int val )
 {
-#if defined(HLTCA_GPUCODE) && defined(__OPENCL__)
+#if defined(GPUCA_GPUCODE) && defined(__OPENCL__)
 	return ::atomic_add( (volatile __global int*) addr, val );
-#elif defined(HLTCA_GPUCODE) && defined(__CUDACC__)
+#elif defined(GPUCA_GPUCODE) && defined(__CUDACC__)
 	return ::atomicAdd( addr, val );
 #else
 	int old = *addr;
 	*addr += val;
 	return old;
-#endif //HLTCA_GPUCODE
+#endif //GPUCA_GPUCODE
 }
 
 GPUdi() int AliTPCCommonMath::AtomicMax ( GPUglobalref() int *addr, int val )
 {
-#if defined(HLTCA_GPUCODE) && defined(__OPENCL__)
+#if defined(GPUCA_GPUCODE) && defined(__OPENCL__)
 	return ::atomic_max( (volatile __global int*) addr, val );
-#elif defined(HLTCA_GPUCODE) && defined(__CUDACC__)
+#elif defined(GPUCA_GPUCODE) && defined(__CUDACC__)
 	return ::atomicMax( addr, val );
 #else
 	int old = *addr;
 	if ( *addr < val ) *addr = val;
 	return old;
-#endif //HLTCA_GPUCODE
+#endif //GPUCA_GPUCODE
 }
 
 GPUdi() int AliTPCCommonMath::AtomicMin ( GPUglobalref() int *addr, int val )
 {
-#if defined(HLTCA_GPUCODE) && defined(__OPENCL__)
+#if defined(GPUCA_GPUCODE) && defined(__OPENCL__)
 	return ::atomic_min( (volatile __global int*) addr, val );
-#elif defined(HLTCA_GPUCODE) && defined(__CUDACC__)
+#elif defined(GPUCA_GPUCODE) && defined(__CUDACC__)
 	return ::atomicMin( addr, val );
 #else
 	int old = *addr;
 	if ( *addr > val ) *addr = val;
 	return old;
-#endif //HLTCA_GPUCODE
+#endif //GPUCA_GPUCODE
 }
 
 #undef CHOICE

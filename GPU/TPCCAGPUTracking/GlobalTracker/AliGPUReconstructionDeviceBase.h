@@ -18,7 +18,7 @@ protected:
 	AliGPUReconstructionDeviceBase(const AliGPUCASettingsProcessing& cfg);
 	AliGPUCAConstantMem mGPUReconstructors;
     
-#ifdef HLTCA_ENABLE_GPU_TRACKER
+#ifdef GPUCA_ENABLE_GPU_TRACKER
 	virtual int RunTPCTrackingSlices() override = 0;
 
 	virtual int InitDevice() override;
@@ -45,12 +45,12 @@ protected:
 		volatile char fReset;
 	};
 
-	static void* RowMemory(void* const BaseMemory, int iSlice)       { return( ((char*) BaseMemory) + iSlice * sizeof(AliHLTTPCCARow) * (HLTCA_ROW_COUNT + 1) ); }
-	static void* CommonMemory(void* const BaseMemory, int iSlice)    { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + iSlice * AliHLTTPCCATracker::CommonMemorySize() ); }
-	static void* SliceDataMemory(void* const BaseMemory, int iSlice) { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + iSlice * HLTCA_GPU_SLICE_DATA_MEMORY ); }
-	void* GlobalMemory(void* const BaseMemory, int iSlice) const     { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + NSLICES * (HLTCA_GPU_SLICE_DATA_MEMORY) + iSlice * HLTCA_GPU_GLOBAL_MEMORY ); } //in GPU memory, not host memory!!!
-	void* TracksMemory(void* const BaseMemory, int iSlice) const     { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + NSLICES * (HLTCA_GPU_SLICE_DATA_MEMORY) + iSlice * HLTCA_GPU_TRACKS_MEMORY ); } //in host memory, not GPU memory!!!
-	void* TrackerMemory(void* const BaseMemory, int iSlice) const    { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + NSLICES * (HLTCA_GPU_SLICE_DATA_MEMORY + HLTCA_GPU_TRACKS_MEMORY) + iSlice * sizeof(AliHLTTPCCATracker) ); }
+	static void* RowMemory(void* const BaseMemory, int iSlice)       { return( ((char*) BaseMemory) + iSlice * sizeof(AliHLTTPCCARow) * (GPUCA_ROW_COUNT + 1) ); }
+	static void* CommonMemory(void* const BaseMemory, int iSlice)    { return( ((char*) BaseMemory) + GPUCA_GPU_ROWS_MEMORY + iSlice * AliHLTTPCCATracker::CommonMemorySize() ); }
+	static void* SliceDataMemory(void* const BaseMemory, int iSlice) { return( ((char*) BaseMemory) + GPUCA_GPU_ROWS_MEMORY + GPUCA_GPU_COMMON_MEMORY + iSlice * GPUCA_GPU_SLICE_DATA_MEMORY ); }
+	void* GlobalMemory(void* const BaseMemory, int iSlice) const     { return( ((char*) BaseMemory) + GPUCA_GPU_ROWS_MEMORY + GPUCA_GPU_COMMON_MEMORY + NSLICES * (GPUCA_GPU_SLICE_DATA_MEMORY) + iSlice * GPUCA_GPU_GLOBAL_MEMORY ); } //in GPU memory, not host memory!!!
+	void* TracksMemory(void* const BaseMemory, int iSlice) const     { return( ((char*) BaseMemory) + GPUCA_GPU_ROWS_MEMORY + GPUCA_GPU_COMMON_MEMORY + NSLICES * (GPUCA_GPU_SLICE_DATA_MEMORY) + iSlice * GPUCA_GPU_TRACKS_MEMORY ); } //in host memory, not GPU memory!!!
+	void* TrackerMemory(void* const BaseMemory, int iSlice) const    { return( ((char*) BaseMemory) + GPUCA_GPU_ROWS_MEMORY + GPUCA_GPU_COMMON_MEMORY + NSLICES * (GPUCA_GPU_SLICE_DATA_MEMORY + GPUCA_GPU_TRACKS_MEMORY) + iSlice * sizeof(AliHLTTPCCATracker) ); }
     
 	int Reconstruct_Base_Init();
 	int Reconstruct_Base_SliceInit(unsigned int iSlice);
@@ -93,7 +93,7 @@ protected:
 	int fSelectorBlockCount = 0; //GPU blocks used in Tracklet Selector
 	int fConstructorThreadCount = 0;
 
-#ifdef HLTCA_GPU_TIME_PROFILE
+#ifdef GPUCA_GPU_TIME_PROFILE
 	unsigned long long int fProfTimeC, fProfTimeD; //Timing
 #endif
 

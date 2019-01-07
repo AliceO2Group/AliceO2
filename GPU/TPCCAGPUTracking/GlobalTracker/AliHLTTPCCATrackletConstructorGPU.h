@@ -9,14 +9,14 @@ GPUdi() int AliHLTTPCCATrackletConstructor::FetchTracklet(GPUconstant() MEM_CONS
 	{
 		if (sMem.fNextTrackletFirstRun == 1)
 		{
-			sMem.fNextTrackletFirst = (get_group_id(0) - nativeslice) / 36 * HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR;
+			sMem.fNextTrackletFirst = (get_group_id(0) - nativeslice) / 36 * GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR;
 			sMem.fNextTrackletFirstRun = 0;
 		}
 		else
 		{
 			if (tracker.GPUParameters()->fNextTracklet < nTracklets)
 			{
-				const int firstTracklet = CAMath::AtomicAdd(&tracker.GPUParameters()->fNextTracklet, HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR);
+				const int firstTracklet = CAMath::AtomicAdd(&tracker.GPUParameters()->fNextTracklet, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR);
 				if (firstTracklet < nTracklets) sMem.fNextTrackletFirst = firstTracklet;
 				else sMem.fNextTrackletFirst = -2;
 			}
@@ -49,7 +49,7 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(G
 
 		while ((rMem.fItr = FetchTracklet(tracker, sMem)) != -2)
 		{
-			if (rMem.fItr >= 0 && get_local_id(0) < HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR)
+			if (rMem.fItr >= 0 && get_local_id(0) < GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR)
 			{
 				rMem.fItr += get_local_id(0);
 			}
@@ -65,7 +65,7 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(G
 					sMem.fNTracklets = *tracker.NTracklets();
 				}
 
-				for (int i = get_local_id(0);i < HLTCA_ROW_COUNT * sizeof(MEM_PLAIN(AliHLTTPCCARow)) / sizeof(int);i += get_local_size(0))
+				for (int i = get_local_id(0);i < GPUCA_ROW_COUNT * sizeof(MEM_PLAIN(AliHLTTPCCARow)) / sizeof(int);i += get_local_size(0))
 				{
 					reinterpret_cast<GPUsharedref() int*>(&sMem.fRows)[i] = reinterpret_cast<GPUglobalref() int*>(tracker.SliceDataRows())[i];
 				}
@@ -88,7 +88,7 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorSingl
 	GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker = *pTracker;
 
 	if (get_local_id(0) == 0) sMem.fNTracklets = *tracker.NTracklets();
-	for (int i = get_local_id(0);i < HLTCA_ROW_COUNT * sizeof(MEM_PLAIN(AliHLTTPCCARow)) / sizeof(int);i += get_local_size(0))
+	for (int i = get_local_id(0);i < GPUCA_ROW_COUNT * sizeof(MEM_PLAIN(AliHLTTPCCARow)) / sizeof(int);i += get_local_size(0))
 	{
 		reinterpret_cast<GPUsharedref() int*>(&sMem.fRows)[i] = reinterpret_cast<GPUglobalref() int*>(tracker.SliceDataRows())[i];
 	}

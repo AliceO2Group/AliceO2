@@ -30,7 +30,7 @@
 #include "../cmodules/qconfig.h"
 #include "../cmodules/timer.h"
 
-#ifdef HLTCA_MERGER_BY_MC_LABEL
+#ifdef GPUCA_MERGER_BY_MC_LABEL
 	#define CHECK_CLUSTER_STATE_INIT_LEG_BY_MC() \
 	if (!unattached && trackMCLabels[id] != MC_LABEL_INVALID) \
 	{ \
@@ -82,7 +82,7 @@
 
 static const AliGPUCAQA::configQA& AliGPUCAQA_GetConfig(AliGPUReconstruction* rec)
 {
-#if !defined(HLTCA_STANDALONE) || defined(HLTCA_BUILD_O2_LIB)
+#if !defined(GPUCA_STANDALONE) || defined(GPUCA_BUILD_O2_LIB)
 	static AliGPUCAQA::configQA defaultConfig;
 	if (rec->mConfigQA) return *((const AliGPUCAQA::configQA*) rec->mConfigQA);
 	else return defaultConfig;
@@ -417,7 +417,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 		//Assign Track MC Labels
 		timer.Start();
 		bool ompError = false;
-#if defined(HLTCA_HAVE_OPENMP) && DEBUG == 0
+#if defined(GPUCA_HAVE_OPENMP) && DEBUG == 0
 #pragma omp parallel for
 #endif
 		for (int i = 0; i < merger.NOutputTracks(); i++)
@@ -608,7 +608,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 		if (TIMING) printf("QA Time: Compute cluster label weights:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
 		timer.ResetStart();
 
-#ifdef HLTCA_HAVE_OPENMP
+#ifdef GPUCA_HAVE_OPENMP
 #pragma omp parallel for
 #endif
 		for (unsigned int i = 0;i < mRec->mIOPtrs.nMCInfosTPC;i++)

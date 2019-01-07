@@ -322,7 +322,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
 	float d4 = p[4] - fT0.QPt();
 
 	float newSinPhi = t0e.SinPhi() + d2 + j24 * d4;
-	if (fT->NDF() >= 15 && fabs(newSinPhi) > HLTCA_MAX_SIN_PHI) return (-4);
+	if (fT->NDF() >= 15 && fabs(newSinPhi) > GPUCA_MAX_SIN_PHI) return (-4);
 
 	fT0 = t0e;
 	fT->X() = t0e.X();
@@ -501,7 +501,7 @@ GPUd() int AliHLTTPCGMPropagator::GetPropagatedYZ(float x, float &projY, float &
 	float ex = fT0.CosPhi();
 	float ey = fT0.SinPhi();
 	float ey1 = kdx + ey;
-	if (fabs(ey1) > HLTCA_MAX_SIN_PHI) return 1;
+	if (fabs(ey1) > GPUCA_MAX_SIN_PHI) return 1;
 	float ss = ey + ey1;
 	float ex1 = sqrtf(1.f - ey1 * ey1);
 	float cc = ex + ex1;
@@ -568,7 +568,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha
   float d4 = p[4] - fT0.QPt();
 	  
   float newSinPhi = t0e.SinPhi() +  d2           + h24*d4;
-  if (fT->NDF() >= 15 && fabs(newSinPhi) > HLTCA_MAX_SIN_PHI) return(-4);
+  if (fT->NDF() >= 15 && fabs(newSinPhi) > GPUCA_MAX_SIN_PHI) return(-4);
 
   fT0 = t0e;
 

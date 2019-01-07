@@ -635,7 +635,7 @@ void* AliHLTTPCCATrackerComponent::TrackerDoEvent(void* par)
             pCluster->fFlags = cRaw.GetFlags();
             if (cRaw.GetSigmaPad2() < kAlmost0 || cRaw.GetSigmaTime2() < kAlmost0) pCluster->fFlags |= AliHLTTPCGMMergedTrackHit::flagSingle;
             pCluster->fAmp = cRaw.GetCharge();
-#ifdef HLTCA_FULL_CLUSTERDATA
+#ifdef GPUCA_FULL_CLUSTERDATA
             pCluster->fPad = cRaw.GetPad();
             pCluster->fTime = cRaw.GetTime();
             pCluster->fAmpMax = cRaw.GetQMax();

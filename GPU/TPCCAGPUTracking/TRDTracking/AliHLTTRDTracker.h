@@ -18,7 +18,7 @@ class AliHLTTPCGMMerger;
 class AliHLTTRDTracker {
  public:
 
-#ifndef HLTCA_GPUCODE
+#ifndef GPUCA_GPUCODE
   AliHLTTRDTracker();
   AliHLTTRDTracker(const AliHLTTRDTracker &tracker) CON_DELETE;
   AliHLTTRDTracker & operator=(const AliHLTTRDTracker &tracker) CON_DELETE;

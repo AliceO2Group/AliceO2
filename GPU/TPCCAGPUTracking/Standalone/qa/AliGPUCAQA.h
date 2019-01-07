@@ -4,7 +4,7 @@
 #include "AliGPUCAQAConfig.h"
 class AliGPUReconstruction;
 
-#if !defined(BUILD_QA) || defined(HLTCA_GPUCODE)
+#if !defined(BUILD_QA) || defined(GPUCA_GPUCODE)
 
 class AliGPUCAQA
 {

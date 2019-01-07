@@ -62,8 +62,8 @@ class AliHLTTPCCATrackLinearisation
 GPUd() MEM_CLASS_PRE2() inline AliHLTTPCCATrackLinearisation::AliHLTTPCCATrackLinearisation( const MEM_LG2(AliHLTTPCCATrackParam) &t )
 	: fSinPhi( t.SinPhi() ), fCosPhi( 0 ), fDzDs( t.DzDs() ), fQPt( t.QPt() )
 {
-	if ( fSinPhi > HLTCA_MAX_SIN_PHI ) fSinPhi = HLTCA_MAX_SIN_PHI;
-	else if ( fSinPhi < -HLTCA_MAX_SIN_PHI ) fSinPhi = -HLTCA_MAX_SIN_PHI;
+	if ( fSinPhi > GPUCA_MAX_SIN_PHI ) fSinPhi = GPUCA_MAX_SIN_PHI;
+	else if ( fSinPhi < -GPUCA_MAX_SIN_PHI ) fSinPhi = -GPUCA_MAX_SIN_PHI;
 	fCosPhi = CAMath::Sqrt( 1 - fSinPhi * fSinPhi );
 	if ( t.SignCosPhi() < 0 ) fCosPhi = -fCosPhi;
 }

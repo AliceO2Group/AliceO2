@@ -31,9 +31,9 @@ class AliHLTTPCCATrackletSelector
 		int fItr0;          // index of the first track in the block
 		int fNThreadsTotal; // total n threads
 		int fNTracklets;    // n of tracklets
-#if HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
-		AliHLTTPCCAHitId fHits[HLTCA_GPU_THREAD_COUNT_SELECTOR][HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE];
-#endif //HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
+#if GPUCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
+		AliHLTTPCCAHitId fHits[GPUCA_GPU_THREAD_COUNT_SELECTOR][GPUCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE];
+#endif //GPUCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
 	};
 
 	GPUd() static int NThreadSyncPoints() { return 1; }

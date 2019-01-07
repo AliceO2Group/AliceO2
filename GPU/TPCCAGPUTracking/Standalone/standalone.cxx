@@ -12,7 +12,7 @@
 #include <tuple>
 #include <algorithm>
 #include <random>
-#ifdef HLTCA_HAVE_OPENMP
+#ifdef GPUCA_HAVE_OPENMP
 #include <omp.h>
 #endif
 
@@ -129,7 +129,7 @@ int main(int argc, char** argv)
 
 	if (configStandalone.eventDisplay) configStandalone.noprompt = 1;
 	if (configStandalone.DebugLevel >= 4) configStandalone.OMPThreads = 1;
-#ifdef HLTCA_HAVE_OPENMP
+#ifdef GPUCA_HAVE_OPENMP
 	if (configStandalone.OMPThreads != -1) omp_set_num_threads(configStandalone.OMPThreads);
 	else configStandalone.OMPThreads = omp_get_max_threads();
 	if (configStandalone.OMPThreads != omp_get_max_threads())
@@ -247,7 +247,7 @@ int main(int argc, char** argv)
 		{
 			std::ifstream in;
 			char filename[256];
-			sprintf(filename, "events/%s/" HLTCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, nEventsInDirectory);
+			sprintf(filename, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, nEventsInDirectory);
 			in.open(filename, std::ifstream::binary);
 			if (in.fail()) break;
 			in.close();
@@ -276,7 +276,7 @@ int main(int argc, char** argv)
 		for (int i = 0;i < (configStandalone.NEvents == -1 ? 10 : configStandalone.NEvents);i++)
 		{
 			printf("Generating event %d/%d\n", i, configStandalone.NEvents == -1 ? 10 : configStandalone.NEvents);
-			sprintf(dirname, "events/%s/" HLTCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
+			sprintf(dirname, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
 			GenerateEvent(hlt.Param(), dirname); TODO!
 		}
 		FinishEventGenerator();*/
@@ -346,7 +346,7 @@ int main(int argc, char** argv)
 									eventUsed[useEvent] = 1;
 									std::ifstream in;
 									char filename[256];
-									sprintf(filename, "events/%s/" HLTCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, useEvent);
+									sprintf(filename, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, useEvent);
 									in.open(filename, std::ifstream::binary);
 									if (in.fail()) {printf("Unexpected error\n");return(1);}
 									double shift = (double) nBunch * (double) config.bunchSpacing * (double) TPCZ / (double) driftTime;
@@ -378,8 +378,8 @@ int main(int argc, char** argv)
 
 					if (config.dumpO2)
 					{
-#if !defined(HAVE_O2HEADERS) | !defined(HLTCA_FULL_CLUSTERDATA)
-						printf("Error, must be compiled with O2 headers and HLTCA_FULL_CLUSTERDATA to dump O2 clusters\n");
+#if !defined(HAVE_O2HEADERS) | !defined(GPUCA_FULL_CLUSTERDATA)
+						printf("Error, must be compiled with O2 headers and GPUCA_FULL_CLUSTERDATA to dump O2 clusters\n");
 						return(1);
 #else
 						const int o2rowoffsets[11] = {0, 17, 32, 48, 63, 81, 97, 113, 127, 140, 152};
@@ -460,7 +460,7 @@ int main(int argc, char** argv)
 				else*/
 				{
 					char filename[256];
-					sprintf(filename, "events/%s/" HLTCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
+					sprintf(filename, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
 					int r = rec->ReadData(filename);
 					if (r == 0)
 					{
@@ -471,7 +471,7 @@ int main(int argc, char** argv)
 					else if (r == -1)
 					{
 						/* TODO!
-#ifdef HLTCA_TPC_GEOMETRY_O2
+#ifdef GPUCA_TPC_GEOMETRY_O2
 						printf("Not attempting old format for O2\n");
 						break;
 #endif

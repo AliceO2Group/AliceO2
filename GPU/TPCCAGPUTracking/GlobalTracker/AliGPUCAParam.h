@@ -36,10 +36,10 @@ public:
 	char resetTimers;					//Reset benchmark timers before event processing
 	int debugLevel;						//Debug level
 	int continuousMaxTimeBin;			//Max time bin for continuous tracking
-	float RowX[HLTCA_ROW_COUNT];		// X-coordinate of rows
+	float RowX[GPUCA_ROW_COUNT];		// X-coordinate of rows
 	AliGPUCAParamSlice SliceParam[36];
 
-#ifndef HLTCA_GPUCODE
+#ifndef GPUCA_GPUCODE
 	void SetDefaults(float solenoidBz);
 	void SetDefaults(const AliGPUCASettingsEvent* e, const AliGPUCASettingsRec* r = NULL, const AliGPUCASettingsDeviceProcessing* p = NULL);
 	void UpdateEventSettings(const AliGPUCASettingsEvent* e, const AliGPUCASettingsDeviceProcessing* p = NULL);
