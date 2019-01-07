@@ -28,14 +28,6 @@
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "TPCFastTransform.h"
 
-// The AliHLTTPCCAO2Interface.h needs certain macro definitions.
-// The AliHLTTPCCAO2Interface will only be included once here, all O2 TPC tracking will run through this TPCCATracking
-// class.
-// Therefore, the macros are defined here and not globally, in order not to pollute the global namespace
-#define HLTCA_STANDALONE
-#define HAVE_O2HEADERS
-#define HLTCA_TPC_GEOMETRY_O2
-
 // This class is only a wrapper for the actual tracking contained in the HLT O2 CA Tracking library.
 #include "AliHLTTPCCAO2Interface.h"
 
