@@ -19,6 +19,99 @@ namespace framework
 namespace data_matcher
 {
 
+ContextElement::Value const& VariableContext::get(size_t pos) const
+{
+  // First we check if there is any pending update
+  for (size_t i = 0; i < mPerformedUpdates; ++i) {
+    if (mUpdates[i].position == pos) {
+      return mUpdates[i].newValue;
+    }
+  }
+  // Otherwise we return the element.
+  return mElements.at(pos).value;
+}
+
+void VariableContext::commit()
+{
+  for (size_t i = 0; i < mPerformedUpdates; ++i) {
+    mElements[mUpdates[i].position].value = mUpdates[i].newValue;
+  }
+  mPerformedUpdates = 0;
+}
+
+void VariableContext::reset()
+{
+  mPerformedUpdates = 0;
+  for (auto& element : mElements) {
+    element.value = None{};
+  }
+}
+
+bool OriginValueMatcher::match(header::DataHeader const& header, VariableContext& context) const
+{
+  if (auto ref = std::get_if<ContextRef>(&mValue)) {
+    auto& variable = context.get(ref->index);
+    if (auto value = std::get_if<std::string>(&variable)) {
+      return strncmp(header.dataOrigin.str, value->c_str(), 4) == 0;
+    }
+    auto maxSize = strnlen(header.dataOrigin.str, 4);
+    context.put({ ref->index, std::string(header.dataOrigin.str, maxSize) });
+    return true;
+  } else if (auto s = std::get_if<std::string>(&mValue)) {
+    return strncmp(header.dataOrigin.str, s->c_str(), 4) == 0;
+  }
+  throw std::runtime_error("Mismatching type for variable");
+}
+
+bool DescriptionValueMatcher::match(header::DataHeader const& header, VariableContext& context) const
+{
+  if (auto ref = std::get_if<ContextRef>(&mValue)) {
+    auto& variable = context.get(ref->index);
+    if (auto value = std::get_if<std::string>(&variable)) {
+      return strncmp(header.dataDescription.str, value->c_str(), 16) == 0;
+    }
+    auto maxSize = strnlen(header.dataDescription.str, 16);
+    context.put({ ref->index, std::string(header.dataDescription.str, maxSize) });
+    return true;
+  } else if (auto s = std::get_if<std::string>(&this->mValue)) {
+    return strncmp(header.dataDescription.str, s->c_str(), 16) == 0;
+  }
+  throw std::runtime_error("Mismatching type for variable");
+}
+
+bool SubSpecificationTypeValueMatcher::match(header::DataHeader const& header, VariableContext& context) const
+{
+  if (auto ref = std::get_if<ContextRef>(&mValue)) {
+    auto& variable = context.get(ref->index);
+    if (auto value = std::get_if<uint64_t>(&variable)) {
+      return header.subSpecification == *value;
+    }
+    context.put({ ref->index, header.subSpecification });
+    return true;
+  } else if (auto v = std::get_if<uint64_t>(&mValue)) {
+    return header.subSpecification == *v;
+  }
+  throw std::runtime_error("Mismatching type for variable");
+}
+
+/// This will match the timing information which is currently in
+/// the DataProcessingHeader. Notice how we apply the scale to the
+/// actual values found.
+bool StartTimeValueMatcher::match(DataProcessingHeader const& dph, VariableContext& context) const
+{
+  if (auto ref = std::get_if<ContextRef>(&mValue)) {
+    auto& variable = context.get(ref->index);
+    if (auto value = std::get_if<uint64_t>(&variable)) {
+      return (dph.startTime / mScale) == *value;
+    }
+    context.put({ ref->index, dph.startTime / mScale });
+    return true;
+  } else if (auto v = std::get_if<uint64_t>(&mValue)) {
+    return (dph.startTime / mScale) == *v;
+  }
+  throw std::runtime_error("Mismatching type for variable");
+}
+
 DataDescriptorMatcher::DataDescriptorMatcher(DataDescriptorMatcher const& other)
   : mOp{ other.mOp },
     mLeft{ ConstantValueMatcher{ false } },
