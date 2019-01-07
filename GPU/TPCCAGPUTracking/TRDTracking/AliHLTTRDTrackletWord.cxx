@@ -48,7 +48,7 @@ GPUd() AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliHLTTRDTrackletWord 
 {
 }
 
-#ifdef HLTCA_BUILD_ALIROOT_LIB
+#ifdef GPUCA_BUILD_ALIROOT_LIB
 #include "AliTRDtrackletWord.h"
 #include "AliTRDtrackletMCM.h"
 

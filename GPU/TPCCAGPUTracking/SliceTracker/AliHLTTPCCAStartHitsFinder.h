@@ -28,7 +28,7 @@ class AliHLTTPCCAStartHitsFinder
 		friend class AliHLTTPCCAStartHitsFinder;
 
 	  public:
-#if !defined(HLTCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE)
 		AliHLTTPCCASharedMemory()
 		    : fIRow(0), fNHits(0), fNRowStartHits(0)
 		{
@@ -39,7 +39,7 @@ class AliHLTTPCCAStartHitsFinder
 		{
 		}
 		AliHLTTPCCASharedMemory &operator=(const AliHLTTPCCASharedMemory & /*dummy*/) { return *this; }
-#endif //!HLTCA_GPUCODE
+#endif //!GPUCA_GPUCODE
 
 	  protected:
 		int fIRow;          // row index

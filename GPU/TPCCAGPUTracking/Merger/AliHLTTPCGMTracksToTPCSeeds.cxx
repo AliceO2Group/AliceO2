@@ -23,7 +23,7 @@ void AliHLTTPCGMTracksToTPCSeeds::CreateSeedsFromHLTTracks(TObjArray* seeds, Ali
 		AliTPCtrack tr;
 		tr.Set(track.GetParam().GetX(), track.GetAlpha(), track.GetParam().GetPar(), track.GetParam().GetCov());
 		AliTPCseed* seed = new(tpctracker->NextFreeSeed()) AliTPCseed(tr);
-		for (int j = 0;j < HLTCA_ROW_COUNT;j++)
+		for (int j = 0;j < GPUCA_ROW_COUNT;j++)
 		{
 			seed->SetClusterPointer(j, NULL);
 			seed->SetClusterIndex(j, -1);
@@ -65,8 +65,8 @@ void AliHLTTPCGMTracksToTPCSeeds::CreateSeedsFromHLTTracks(TObjArray* seeds, Ali
 
 		seed->SetPoolID(tpctracker->GetLastSeedId());
 		seed->SetIsSeeding(kTRUE);
-		seed->SetSeed1(HLTCA_ROW_COUNT - 1);
-		seed->SetSeed2(HLTCA_ROW_COUNT - 2);
+		seed->SetSeed1(GPUCA_ROW_COUNT - 1);
+		seed->SetSeed2(GPUCA_ROW_COUNT - 2);
 		seed->SetSeedType(0);
 		seed->SetFirstPoint(-1);
 		seed->SetLastPoint(-1);

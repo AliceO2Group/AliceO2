@@ -61,7 +61,7 @@ template<typename T, size_t Alignment> static inline T *AssignMemory( char *&mem
 template<typename T, size_t Alignment> static T *_assignMemory( char *&mem, size_t size )
 {
   STATIC_ASSERT( ( Alignment & ( Alignment - 1 ) ) == 0, Alignment_needs_to_be_a_multiple_of_2 );
-  AlignTo<Alignment < sizeof( HLTCA_GPU_ROWALIGNMENT ) ? sizeof( HLTCA_GPU_ROWALIGNMENT ) : Alignment>( mem );
+  AlignTo<Alignment < sizeof( GPUCA_GPU_ROWALIGNMENT ) ? sizeof( GPUCA_GPU_ROWALIGNMENT ) : Alignment>( mem );
   T *r = reinterpret_cast<T *>( mem );
   mem += size * sizeof( T );
   return r;

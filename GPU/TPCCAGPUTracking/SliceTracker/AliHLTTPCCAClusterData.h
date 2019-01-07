@@ -43,7 +43,7 @@ class AliHLTTPCCAClusterData
       float fY;
       float fZ;
       float fAmp;
-#ifdef HLTCA_FULL_CLUSTERDATA
+#ifdef GPUCA_FULL_CLUSTERDATA
       float fPad;
       float fTime;
       float fAmpMax;

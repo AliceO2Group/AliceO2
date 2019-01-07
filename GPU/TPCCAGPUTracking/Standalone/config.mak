@@ -19,9 +19,9 @@ endif
 SUBTARGETS_CLEAN			+= libTPCCAGPUTrackingOCL.*
 
 CXXFILES					+= standalone.cxx \
-								$(HLTCA_STANDALONE_CXXFILES) \
-								$(HLTCA_MERGER_CXXFILES) \
-								$(HLTCA_TRD_CXXFILES)
+								$(GPUCA_STANDALONE_CXXFILES) \
+								$(GPUCA_MERGER_CXXFILES) \
+								$(GPUCA_TRD_CXXFILES)
 
 CPPFILES					+= cmodules/qconfig.cpp
 

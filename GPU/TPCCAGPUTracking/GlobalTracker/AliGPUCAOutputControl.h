@@ -1,7 +1,7 @@
 #ifndef ALIGPUCAOUTPUTCONTROL_H
 #define ALIGPUCAOUTPUTCONTROL_H
 
-#ifndef HLTCA_GPUCODE
+#ifndef GPUCA_GPUCODE
 #include <cstddef>
 #endif
 

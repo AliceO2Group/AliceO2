@@ -27,9 +27,9 @@ class AliHLTTPCCARow
 	friend class AliHLTTPCCASliceData;
 
   public:
-#if !defined(HLTCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE)
 	AliHLTTPCCARow();
-#endif //!HLTCA_GPUCODE
+#endif //!GPUCA_GPUCODE
 
 	GPUhd() int NHits() const { return fNHits; }
 	GPUhd() float X() const { return fX; }

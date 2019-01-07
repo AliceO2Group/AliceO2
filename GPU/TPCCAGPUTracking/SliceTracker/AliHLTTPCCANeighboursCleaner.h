@@ -27,7 +27,7 @@ class AliHLTTPCCANeighboursCleaner
 		friend class AliHLTTPCCANeighboursCleaner;
 
 	  public:
-#if !defined(HLTCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE)
 		AliHLTTPCCASharedMemory()
 		    : fIRow(0), fIRowUp(0), fIRowDn(0), fNHits(0)
 		{
@@ -35,7 +35,7 @@ class AliHLTTPCCANeighboursCleaner
 		AliHLTTPCCASharedMemory(const AliHLTTPCCASharedMemory & /*dummy*/)
 		    : fIRow(0), fIRowUp(0), fIRowDn(0), fNHits(0) {}
 		AliHLTTPCCASharedMemory &operator=(const AliHLTTPCCASharedMemory & /*dummy*/) { return *this; }
-#endif //!HLTCA_GPUCODE
+#endif //!GPUCA_GPUCODE
 
 	  protected:
 		int fIRow;   // current row index

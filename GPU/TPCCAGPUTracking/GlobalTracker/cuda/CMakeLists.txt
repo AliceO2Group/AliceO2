@@ -21,7 +21,7 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
 elseif(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     set(MODULE AliTPCCAGPUTrackingCUDA)
 endif()
-add_definitions(-DHLTCA_GPULIBRARY=CUDA)
+add_definitions(-DGPUCA_GPULIBRARY=CUDA)
 
 option(CUDA_GCCBIN "GCC binary to use for compiling host part of CUDA code for systems with multiple GCC versions installed"   OFF)
 

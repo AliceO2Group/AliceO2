@@ -17,7 +17,7 @@
 template <typename T> class trackInterface;
 template <typename T> class propagatorInterface;
 
-#ifdef HLTCA_BUILD_ALIROOT_LIB //Interface for AliRoot, build only with AliRoot
+#ifdef GPUCA_BUILD_ALIROOT_LIB //Interface for AliRoot, build only with AliRoot
 #include "AliExternalTrackParam.h"
 #include "AliHLTExternalTrackParam.h"
 #include "AliTrackerBase.h"
@@ -97,7 +97,7 @@ template <> class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 
 #endif
 
-#ifdef HLTCA_BUILD_O2_LIB //Interface for O2, build only with O2
+#ifdef GPUCA_BUILD_O2_LIB //Interface for O2, build only with O2
 //TODO: Implement!
 #endif
 
@@ -149,7 +149,7 @@ template <> class trackInterface<AliHLTTPCGMTrackParam> : public AliHLTTPCGMTrac
         SetCov(j, param.GetCov(j));
       }
     }
-#ifdef HLTCA_BUILD_ALIROOT_LIB
+#ifdef GPUCA_BUILD_ALIROOT_LIB
     trackInterface<AliHLTTPCGMTrackParam>(const AliHLTExternalTrackParam &param) :
       AliHLTTPCGMTrackParam(),
       fAlpha(param.fAlpha)
@@ -206,7 +206,7 @@ template <> class propagatorInterface<AliHLTTPCGMPropagator> : public AliHLTTPCG
       constexpr float kRadLen = 29.532f;
       this->SetMaterial( kRadLen, kRho );
       this->SetPolynomialField( pMerger->pField() );
-      this->SetMaxSinPhi( HLTCA_MAX_SIN_PHI );
+      this->SetMaxSinPhi( GPUCA_MAX_SIN_PHI );
       this->SetToyMCEventsFlag(0);
       this->SetFitInProjections(0);
       this->SelectFieldRegion(AliHLTTPCGMPropagator::FieldRegion::TRD);

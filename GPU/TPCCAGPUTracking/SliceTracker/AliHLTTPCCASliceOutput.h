@@ -14,7 +14,7 @@
 #if !defined(__OPENCL__)
 
 #include <cstdlib>
-#ifndef HLTCA_GPUCODE
+#ifndef GPUCA_GPUCODE
 #include "AliHLTTPCCASliceOutTrack.h"
 #else
 class AliHLTTPCCASliceOutTrack;
@@ -46,7 +46,7 @@ class AliHLTTPCCASliceOutput
 	}
 	GPUhd() int NLocalTracks() const { return fNLocalTracks; }
 	GPUhd() int NTrackClusters() const { return fNTrackClusters; }
-#ifndef HLTCA_GPUCODE
+#ifndef GPUCA_GPUCODE
 	GPUhd() const AliHLTTPCCASliceOutTrack *GetFirstTrack() const
 	{
 		return fMemory;
@@ -83,7 +83,7 @@ class AliHLTTPCCASliceOutput
 	//Must be last element of this class, user has to make sure to allocate anough memory consecutive to class memory!
 	//This way the whole Slice Output is one consecutive Memory Segment
 
-#ifndef HLTCA_GPUCODE
+#ifndef GPUCA_GPUCODE
 	AliHLTTPCCASliceOutTrack fMemory[0]; // the memory where the pointers above point into
 #endif
 #endif

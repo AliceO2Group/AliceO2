@@ -13,7 +13,7 @@
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCAGPUConfig.h"
 
-#if defined(HLTCA_STANDALONE) & !defined(WIN32)
+#if defined(GPUCA_STANDALONE) & !defined(WIN32)
 #include <sched.h>
 #endif
 
@@ -22,7 +22,7 @@
 
 #include "MemoryAssignmentHelpers.h"
 
-#if !defined(HLTCA_STANDALONE) && !defined(HLTCA_GPULIBRARY)
+#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_GPULIBRARY)
 #include "AliHLTDefinitions.h"
 #include "AliHLTSystem.h"
 #endif

@@ -32,7 +32,7 @@
 
 #include "AliTPCCommonRtypes.h"
 
-#if defined(HLTCA_STANDALONE) && !defined(HLTCA_BUILD_ALIROOT_LIB) && !defined(HLTCA_BUILD_O2_LIB)
+#if defined(GPUCA_STANDALONE) && !defined(GPUCA_BUILD_ALIROOT_LIB) && !defined(GPUCA_BUILD_O2_LIB)
 #define TRACKER_KEEP_TEMPDATA
 #endif
 
@@ -97,7 +97,7 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
  * Helper for compile-time verification of correct API usage
  */
 
-#ifndef HLTCA_GPUCODE
+#ifndef GPUCA_GPUCODE
 	namespace
 	{
 		template<bool> struct HLTTPCCA_STATIC_ASSERT_FAILURE;
@@ -112,16 +112,16 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
 		(void) Error_##msg
 #else
 	#define STATIC_ASSERT(a, b)
-#endif //!HLTCA_GPUCODE
+#endif //!GPUCA_GPUCODE
 
 #include "AliHLTTPCCASettings.h"
 #define CALINK_INVAL ((calink) -1)
 struct cahit2{cahit x, y;};
 
-#ifdef HLTCA_FULL_CLUSTERDATA
-	#define HLTCA_EVDUMP_FILE "event_full"
+#ifdef GPUCA_FULL_CLUSTERDATA
+	#define GPUCA_EVDUMP_FILE "event_full"
 #else
-	#define HLTCA_EVDUMP_FILE "event"
+	#define GPUCA_EVDUMP_FILE "event"
 #endif
 
 #ifdef GPUseStatError
@@ -129,10 +129,10 @@ struct cahit2{cahit x, y;};
 #endif
 
 #ifdef GMPropagatePadRowTime //Needs full clusterdata
-	#define HLTCA_FULL_CLUSTERDATA
+	#define GPUCA_FULL_CLUSTERDATA
 #endif
 
-#if defined(HLTCA_STANDALONE) | defined(HLTCA_GPUCODE) //No support for Full Field Propagator or Statistical errors
+#if defined(GPUCA_STANDALONE) | defined(GPUCA_GPUCODE) //No support for Full Field Propagator or Statistical errors
 	#ifdef GMPropagatorUseFullField
 		#undef GMPropagatorUseFullField
 	#endif
@@ -149,13 +149,13 @@ struct cahit2{cahit x, y;};
 	#define SETRowHit(iRow, val) tracklet.SetRowHit(iRow, val)
 #endif
 
-#ifdef HLTCA_GPUCODE
+#ifdef GPUCA_GPUCODE
 	#define MAKESharedRef(vartype, varname, varglobal, varshared) const GPUsharedref() MEM_LOCAL(vartype) &varname = varshared;
 #else
 	#define MAKESharedRef(vartype, varname, varglobal, varshared) const GPUglobalref() MEM_GLOBAL(vartype) &varname = varglobal;
 #endif
 
-#ifdef HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR
+#ifdef GPUCA_GPU_TEXTURE_FETCH_CONSTRUCTOR
 	#define TEXTUREFetchCons(type, texture, address, entry) tex1Dfetch(texture, ((char*) address - tracker.Data().GPUTextureBase()) / sizeof(type) + entry);
 #else
 	#define TEXTUREFetchCons(type, texture, address, entry) address[entry];
@@ -163,18 +163,18 @@ struct cahit2{cahit x, y;};
 
 #endif //ALIHLTTPCCADEF_H
 
-#ifdef HLTCA_CADEBUG
+#ifdef GPUCA_CADEBUG
 	#ifdef CADEBUG
 		#undef CADEBUG
 	#endif
-	#ifdef HLTCA_CADEBUG_ENABLED
-		#undef HLTCA_CADEBUG_ENABLED
+	#ifdef GPUCA_CADEBUG_ENABLED
+		#undef GPUCA_CADEBUG_ENABLED
 	#endif
-	#if HLTCA_CADEBUG == 1 && !defined(HLTCA_GPUCODE)
+	#if GPUCA_CADEBUG == 1 && !defined(GPUCA_GPUCODE)
 		#define CADEBUG(...) __VA_ARGS__
-		#define HLTCA_CADEBUG_ENABLED
+		#define GPUCA_CADEBUG_ENABLED
 	#endif
-	#undef HLTCA_CADEBUG
+	#undef GPUCA_CADEBUG
 #endif
 
 #ifndef CADEBUG

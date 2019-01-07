@@ -14,7 +14,7 @@
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCAGPUConfig.h"
 
-#if !defined(HLTCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE)
 #include <iostream>
 #endif
 
@@ -31,12 +31,12 @@ MEM_CLASS_PRE() class AliHLTTPCCATrackParam;
 class AliHLTTPCCAClusterData;
 MEM_CLASS_PRE() class AliHLTTPCCARow;
 
-#ifdef HLTCA_STANDALONE
-	#ifdef HLTCA_GPUCODE
+#ifdef GPUCA_STANDALONE
+	#ifdef GPUCA_GPUCODE
 		#define GPUCODE
 	#endif
 	#include "../cmodules/timer.h"
-	#ifdef HLTCA_GPUCODE
+	#ifdef GPUCA_GPUCODE
 		#undef GPUCODE
 	#endif
 #endif
@@ -97,10 +97,10 @@ class AliHLTTPCCATracker
 	void WriteOutputPrepare();
 	void WriteOutput();
   
-#if !defined(HLTCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE)
 	void Reconstruct();
 	void ReconstructOutput();
-#endif //!HLTCA_GPUCODE
+#endif //!GPUCA_GPUCODE
 	void DoTracking();
   
 	//Make Reconstruction steps directly callable (Used for GPU debugging)
@@ -169,11 +169,11 @@ class AliHLTTPCCATracker
 	void SetPointersTracks(int MaxNTracks, int MaxNHits);
 	size_t SetPointersSliceData(const AliHLTTPCCAClusterData *data, bool allocate = false) { return(fData.SetPointers(data, allocate)); }
  
-#if !defined(HLTCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE)
 	GPUh() void WriteEvent(std::ostream &out);
 	GPUh() void WriteTracks(std::ostream &out);
 	GPUh() void ReadTracks(std::istream &in);
-#endif //!HLTCA_GPUCODE
+#endif //!GPUCA_GPUCODE
   
 	GPUhd() MakeType(const MEM_LG(AliGPUCAParam)&) Param() const { return *fParam; }
 	GPUhd() MakeType(const MEM_LG(AliGPUCAParam)*) pParam() const { return fParam; }
@@ -263,7 +263,7 @@ class AliHLTTPCCATracker
 
 	void PerformGlobalTracking(AliHLTTPCCATracker& sliceLeft, AliHLTTPCCATracker& sliceRight, int MaxTracksLeft, int MaxTracksRight);
 	
-#ifdef HLTCA_STANDALONE
+#ifdef GPUCA_STANDALONE
 	void StartTimer(int i) {if (fParam->debugLevel) fTimers[i].Start();}
 	void StopTimer(int i) {if (fParam->debugLevel) fTimers[i].Stop();}
 	double GetTimer(int i) {return fTimers[i].GetElapsedTime();}
@@ -275,14 +275,14 @@ class AliHLTTPCCATracker
 	void ResetTimer(int i) {}
 #endif
 
-#if !defined(HLTCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE)
 	GPUh() int PerformGlobalTrackingRun(AliHLTTPCCATracker& sliceNeighbour, int iTrack, int rowIndex, float angle, int direction);
 	void SetGPUDebugOutput(std::ostream *file) {fGPUDebugOut = file;}
 #endif
 
 	//Temporary Variables for Standalone measurements
-#ifdef HLTCA_STANDALONE
-#ifdef  HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
+#ifdef GPUCA_STANDALONE
+#ifdef  GPUCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 	char* fStageAtSync;				//Pointer to array storing current stage for every thread at every sync point
 #endif
 	char *fLinkTmpMemory;				//tmp memory for hits after neighbours finder
@@ -291,7 +291,7 @@ class AliHLTTPCCATracker
   private:
 	GPUglobalref() const MEM_GLOBAL(AliGPUCAParam) *fParam; // parameters
 	int fISlice; //Number of slice
-#ifdef HLTCA_STANDALONE
+#ifdef GPUCA_STANDALONE
 	HighResTimer fTimers[10];
 #endif
   
@@ -303,7 +303,7 @@ class AliHLTTPCCATracker
 	MEM_LG(AliHLTTPCCASliceData) fData; // The SliceData object. It is used to encapsulate the storage in memory from the access
   
 	char fIsGPUTracker; // is it GPU tracker object
-#if !defined(HLTCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE)
 	std::ostream *fGPUDebugOut; // debug stream
 #else
 	void* fGPUDebugOut; //No this is a hack, but I have no better idea.

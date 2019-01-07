@@ -17,7 +17,7 @@
 //                                                                          *
 //***************************************************************************
 
-#define HLTCA_CADEBUG 0
+#define GPUCA_CADEBUG 0
 
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCAGrid.h"
@@ -175,7 +175,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet(int /*nBlocks*/, int 
 					tParam.SetCov(2, err2Z);
 				}
 				float sinPhi, cosPhi;
-				if (r.fNHits >= 10 && CAMath::Abs(tParam.SinPhi()) < HLTCA_MAX_SIN_PHI_LOW)
+				if (r.fNHits >= 10 && CAMath::Abs(tParam.SinPhi()) < GPUCA_MAX_SIN_PHI_LOW)
 				{
 					sinPhi = tParam.SinPhi();
 					cosPhi = CAMath::Sqrt(1 - sinPhi * sinPhi);
@@ -214,7 +214,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet(int /*nBlocks*/, int 
 					}
 				}
 
-				if (!tParam.Filter(y, z, err2Y, err2Z, HLTCA_MAX_SIN_PHI_LOW))
+				if (!tParam.Filter(y, z, err2Y, err2Z, GPUCA_MAX_SIN_PHI_LOW))
 				{
 					SETRowHit(iRow, CALINK_INVAL);
 					break;
@@ -238,7 +238,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet(int /*nBlocks*/, int 
 			r.fStage = 1;
 			r.fLastY = tParam.Y(); //Store last spatial position here to start inward following from here
 			r.fLastZ = tParam.Z();
-			if (CAMath::Abs(tParam.SinPhi()) > HLTCA_MAX_SIN_PHI)
+			if (CAMath::Abs(tParam.SinPhi()) > GPUCA_MAX_SIN_PHI)
 			{
 				r.fGo = 0;
 			}
@@ -260,7 +260,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet(int /*nBlocks*/, int 
 			float x = row.X();
 			float err2Y, err2Z;
 			CADEBUG(printf("%14s: SEA TRACK ROW %3d X %8.3f -", "", iRow, tParam.X()); for (int i = 0; i < 5; i++) printf(" %8.3f", tParam.Par()[i]); printf(" -"); for (int i = 0; i < 15; i++) printf(" %8.3f", tParam.Cov()[i]); printf("\n");)
-			if (!tParam.TransportToX(x, tParam.SinPhi(), tParam.GetCosPhi(), tracker.Param().ConstBz, HLTCA_MAX_SIN_PHI_LOW))
+			if (!tParam.TransportToX(x, tParam.SinPhi(), tParam.GetCosPhi(), tracker.Param().ConstBz, GPUCA_MAX_SIN_PHI_LOW))
 			{
 				r.fGo = 0;
 				SETRowHit(iRow, CALINK_INVAL);
@@ -273,10 +273,10 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet(int /*nBlocks*/, int 
 				break;
 			}
 
-#ifndef HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR
+#ifndef GPUCA_GPU_TEXTURE_FETCH_CONSTRUCTOR
 			GPUglobalref() const cahit2 *hits = tracker.HitData(row);
 			GPUglobalref() const calink *firsthit = tracker.FirstHitInBin(row);
-#endif //!HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR
+#endif //!GPUCA_GPU_TEXTURE_FETCH_CONSTRUCTOR
 			float fY = tParam.GetY();
 			float fZ = tParam.GetZ();
 			calink best = CALINK_INVAL;
@@ -309,7 +309,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet(int /*nBlocks*/, int 
 						float dz = z - fZ;
 						if (dy * dy < sy2 && dz * dz < sz2)
 						{
-							float dds = HLTCA_Y_FACTOR * fabs(dy) + fabs(dz);
+							float dds = GPUCA_Y_FACTOR * fabs(dy) + fabs(dz);
 							if (dds < ds)
 							{
 								ds = dds;
@@ -333,7 +333,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet(int /*nBlocks*/, int 
 			CADEBUG(printf("%14s: SEA Hit %5d, Res %f %f\n", "", best, tParam.Y() - y, tParam.Z() - z);)
 
 			calink oldHit = (r.fStage == 2 && iRow >= r.fStartRow) ? GETRowHit(iRow) : CALINK_INVAL;
-			if (oldHit != best && !tParam.Filter(y, z, err2Y, err2Z, HLTCA_MAX_SIN_PHI_LOW, oldHit != CALINK_INVAL))
+			if (oldHit != best && !tParam.Filter(y, z, err2Y, err2Z, GPUCA_MAX_SIN_PHI_LOW, oldHit != CALINK_INVAL))
 			{
 				SETRowHit(iRow, CALINK_INVAL);
 				break;
@@ -352,7 +352,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet(int /*nBlocks*/, int 
 
 GPUd() void AliHLTTPCCATrackletConstructor::DoTracklet(GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) & tracker, GPUsharedref() AliHLTTPCCATrackletConstructor::MEM_LOCAL(AliHLTTPCCASharedMemory) & s, AliHLTTPCCAThreadMemory &r)
 {
-	int iRow = 0, iRowEnd = HLTCA_ROW_COUNT;
+	int iRow = 0, iRowEnd = GPUCA_ROW_COUNT;
 	MEM_PLAIN(AliHLTTPCCATrackParam)
 	tParam;
 #ifndef EXTERN_ROW_HITS
@@ -393,7 +393,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::DoTracklet(GPUconstant() MEM_CONSTAN
 		else
 		{
 			r.fNMissed = 0;
-			if ((r.fGo = (tParam.TransportToX(tracker.Row(r.fEndRow).X(), tracker.Param().ConstBz, HLTCA_MAX_SIN_PHI) && tParam.Filter(r.fLastY, r.fLastZ, tParam.Err2Y() / 2, tParam.Err2Z() / 2., HLTCA_MAX_SIN_PHI_LOW, true))))
+			if ((r.fGo = (tParam.TransportToX(tracker.Row(r.fEndRow).X(), tracker.Param().ConstBz, GPUCA_MAX_SIN_PHI) && tParam.Filter(r.fLastY, r.fLastZ, tParam.Err2Y() / 2, tParam.Err2Z() / 2., GPUCA_MAX_SIN_PHI_LOW, true))))
 			{
 				CADEBUG(printf("%14s: SEA BACK  ROW %3d X %8.3f -", "", iRow, tParam.X()); for (int i = 0; i < 5; i++) printf(" %8.3f", tParam.Par()[i]); printf(" -"); for (int i = 0; i < 15; i++) printf(" %8.3f", tParam.Cov()[i]); printf("\n");)
 				float err2Y, err2Z;
@@ -410,11 +410,11 @@ GPUd() void AliHLTTPCCATrackletConstructor::DoTracklet(GPUconstant() MEM_CONSTAN
 	}
 }
 
-#ifdef HLTCA_GPUCODE
+#ifdef GPUCA_GPUCODE
 
 #include "AliHLTTPCCATrackletConstructorGPU.h"
 
-#else //HLTCA_GPUCODE
+#else //GPUCA_GPUCODE
 
 GPUd() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorCPU(AliHLTTPCCATracker &tracker)
 {
@@ -440,7 +440,7 @@ GPUd() int AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGlobalT
 	rMem.fStage = 3;
 	rMem.fNHits = rMem.fNMissed = 0;
 	rMem.fGo = 1;
-	while (rMem.fGo && row >= 0 && row < HLTCA_ROW_COUNT)
+	while (rMem.fGo && row >= 0 && row < GPUCA_ROW_COUNT)
 	{
 		UpdateTracklet(1, 1, 0, 0, sMem, rMem, tracker, tParam, row);
 		row += increment;
@@ -449,4 +449,4 @@ GPUd() int AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGlobalT
 	return (rMem.fNHits);
 }
 
-#endif //HLTCA_GPUCODE
+#endif //GPUCA_GPUCODE

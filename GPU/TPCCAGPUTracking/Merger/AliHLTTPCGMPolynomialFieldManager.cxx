@@ -210,7 +210,7 @@ int AliHLTTPCGMPolynomialFieldManager::GetPolynomialField( float nominalFieldkG,
 
 
 
-#if !defined(HLTCA_STANDALONE) & !defined(HLTCA_GPUCODE)
+#if !defined(GPUCA_STANDALONE) & !defined(GPUCA_GPUCODE)
 
 
 #include "AliHLTTPCPolynomFit.h"

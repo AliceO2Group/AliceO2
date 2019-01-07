@@ -28,7 +28,7 @@ class AliHLTTPCCANeighboursFinder
 		friend class AliHLTTPCCANeighboursFinder;
 
 	  public:
-#if !defined(HLTCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE)
 		AliHLTTPCCASharedMemory()
 		    : fNHits(0), fUpNHits(0), fDnNHits(0), fUpDx(0), fDnDx(0), fUpTx(0), fDnTx(0), fIRow(0), fIRowUp(0), fIRowDn(0), fRow(), fRowUp(), fRowDown()
 		{
@@ -37,7 +37,7 @@ class AliHLTTPCCANeighboursFinder
 		AliHLTTPCCASharedMemory(const AliHLTTPCCASharedMemory & /*dummy*/)
 		    : fNHits(0), fUpNHits(0), fDnNHits(0), fUpDx(0), fDnDx(0), fUpTx(0), fDnTx(0), fIRow(0), fIRowUp(0), fIRowDn(0), fRow(), fRowUp(), fRowDown() {}
 		AliHLTTPCCASharedMemory &operator=(const AliHLTTPCCASharedMemory & /*dummy*/) { return *this; }
-#endif //!HLTCA_GPUCODE
+#endif //!GPUCA_GPUCODE
 
 	  protected:
 		int fNHits;   // n hits
@@ -51,9 +51,9 @@ class AliHLTTPCCANeighboursFinder
 		int fIRowUp;  // next row number
 		int fIRowDn;  // previous row number
 #if ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
-#if defined(HLTCA_GPUCODE)
-		float2 fA[HLTCA_GPU_THREAD_COUNT_FINDER][ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
-		calink fB[HLTCA_GPU_THREAD_COUNT_FINDER][ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
+#if defined(GPUCA_GPUCODE)
+		float2 fA[GPUCA_GPU_THREAD_COUNT_FINDER][ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
+		calink fB[GPUCA_GPU_THREAD_COUNT_FINDER][ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
 #else
 		float2 fA[ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
 		calink fB[ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory

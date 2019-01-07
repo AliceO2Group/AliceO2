@@ -22,7 +22,7 @@
 #include "TPCFastTransform.h"
 #include <iostream>
 #include <fstream>
-#ifdef HLTCA_HAVE_OPENMP
+#ifdef GPUCA_HAVE_OPENMP
 #include <omp.h>
 #endif
 
@@ -114,7 +114,7 @@ int AliHLTTPCCAO2Interface::Initialize(const char* options, std::unique_ptr<TPCF
 		}
 	}
 
-#ifdef HLTCA_HAVE_OPENMP
+#ifdef GPUCA_HAVE_OPENMP
 	omp_set_num_threads(nThreads);
 #else
 	if (nThreads != 1) printf("ERROR: Compiled without OpenMP. Cannot set number of threads!\n");

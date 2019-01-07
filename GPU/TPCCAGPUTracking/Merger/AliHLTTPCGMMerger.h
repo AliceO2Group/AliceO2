@@ -17,10 +17,10 @@
 #include "AliHLTTPCGMSliceTrack.h"
 #include "AliTPCCommonDef.h"
 
-#if !defined(HLTCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE)
 #include <cmath>
 #include <iostream>
-#endif //HLTCA_GPUCODE
+#endif //GPUCA_GPUCODE
 
 class AliHLTTPCCASliceTrack;
 class AliHLTTPCCASliceOutput;

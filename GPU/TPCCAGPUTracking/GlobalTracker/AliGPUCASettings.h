@@ -12,7 +12,7 @@ public:
 //Settings concerning the reconstruction
 struct AliGPUCASettingsRec
 {
-#ifndef HLTCA_GPUCODE
+#ifndef GPUCA_GPUCODE
 	AliGPUCASettingsRec() {SetDefaults();}
 	void SetDefaults();
 	void SetMinTrackPt( float v ){ MaxTrackQPt = CAMath::Abs(v)>0.001 ?1./CAMath::Abs(v) :1./0.001; }
@@ -35,7 +35,7 @@ struct AliGPUCASettingsRec
 //Settings describing the events / time frames
 struct AliGPUCASettingsEvent
 {
-#ifndef HLTCA_GPUCODE
+#ifndef GPUCA_GPUCODE
 	AliGPUCASettingsEvent() {SetDefaults();}
 	void SetDefaults();
 #endif
@@ -50,7 +50,7 @@ struct AliGPUCASettingsEvent
 //Settings defining the setup of the AliGPUReconstruction processing (basically selecting the device / class instance)
 struct AliGPUCASettingsProcessing
 {
-#ifndef HLTCA_GPUCODE
+#ifndef GPUCA_GPUCODE
 	AliGPUCASettingsProcessing() {SetDefaults();}
 	void SetDefaults();
 #endif
@@ -62,7 +62,7 @@ struct AliGPUCASettingsProcessing
 //Settings steering the processing once the device was selected
 struct AliGPUCASettingsDeviceProcessing
 {
-	#ifndef HLTCA_GPUCODE
+	#ifndef GPUCA_GPUCODE
 		AliGPUCASettingsDeviceProcessing() {SetDefaults();}
 		void SetDefaults();
 	#endif

@@ -32,7 +32,7 @@ GPUd() void AliHLTTPCCAStartHitsFinder::Thread(int /*nBlocks*/, int nThreads, in
 		{
 			s.fIRow = iBlock + 1;
 			s.fNRowStartHits = 0;
-			if (s.fIRow <= HLTCA_ROW_COUNT - 4)
+			if (s.fIRow <= GPUCA_ROW_COUNT - 4)
 			{
 				s.fNHits = tracker.Row(s.fIRow).NHits();
 			}
@@ -48,12 +48,12 @@ GPUd() void AliHLTTPCCAStartHitsFinder::Thread(int /*nBlocks*/, int nThreads, in
 		{
 			if (tracker.HitLinkDownData(row, ih) == CALINK_INVAL && tracker.HitLinkUpData(row, ih) != CALINK_INVAL && tracker.HitLinkUpData(rowUp, tracker.HitLinkUpData(row, ih)) != CALINK_INVAL)
 			{
-#ifdef HLTCA_GPU_SORT_STARTHITS
-				GPUglobalref() AliHLTTPCCAHitId *const startHits = tracker.TrackletTmpStartHits() + s.fIRow * HLTCA_GPU_MAX_ROWSTARTHITS;
+#ifdef GPUCA_GPU_SORT_STARTHITS
+				GPUglobalref() AliHLTTPCCAHitId *const startHits = tracker.TrackletTmpStartHits() + s.fIRow * GPUCA_GPU_MAX_ROWSTARTHITS;
 				int nextRowStartHits = CAMath::AtomicAddShared(&s.fNRowStartHits, 1);
-				if (nextRowStartHits >= HLTCA_GPU_MAX_TRACKLETS)
+				if (nextRowStartHits >= GPUCA_GPU_MAX_TRACKLETS)
 				{
-					tracker.GPUParameters()->fGPUError = HLTCA_GPU_ERROR_TRACKLET_OVERFLOW;
+					tracker.GPUParameters()->fGPUError = GPUCA_GPU_ERROR_TRACKLET_OVERFLOW;
 					CAMath::AtomicExch(tracker.NTracklets(), 0);
 				}
 #else
@@ -66,15 +66,15 @@ GPUd() void AliHLTTPCCAStartHitsFinder::Thread(int /*nBlocks*/, int nThreads, in
 	}
 	else if (iSync == 2)
 	{
-#ifdef HLTCA_GPU_SORT_STARTHITS
+#ifdef GPUCA_GPU_SORT_STARTHITS
 		if (iThread == 0)
 		{
 			int nOffset = CAMath::AtomicAdd(tracker.NTracklets(), s.fNRowStartHits);
-#ifdef HLTCA_GPUCODE
+#ifdef GPUCA_GPUCODE
 			tracker.RowStartHitCountOffset()[s.fIRow] = s.fNRowStartHits;
-			if (nOffset + s.fNRowStartHits >= HLTCA_GPU_MAX_TRACKLETS)
+			if (nOffset + s.fNRowStartHits >= GPUCA_GPU_MAX_TRACKLETS)
 			{
-				tracker.GPUParameters()->fGPUError = HLTCA_GPU_ERROR_TRACKLET_OVERFLOW;
+				tracker.GPUParameters()->fGPUError = GPUCA_GPU_ERROR_TRACKLET_OVERFLOW;
 				CAMath::AtomicExch(tracker.NTracklets(), 0);
 			}
 #endif

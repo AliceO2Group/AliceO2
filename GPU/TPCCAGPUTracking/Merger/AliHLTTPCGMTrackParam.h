@@ -103,12 +103,12 @@ class AliHLTTPCGMTrackParam
 	GPUd() bool CheckNumericalQuality(float overrideCovYY = -1.) const;
 	GPUd() bool CheckCov() const;
 
-	GPUd() bool Fit(const AliHLTTPCGMMerger *merger, int iTrk, AliHLTTPCGMMergedTrackHit *clusters, int &N, int &NTolerated, float &Alpha, int attempt = 0, float maxSinPhi = HLTCA_MAX_SIN_PHI, AliHLTTPCCAOuterParam *outerParam = NULL);
+	GPUd() bool Fit(const AliHLTTPCGMMerger *merger, int iTrk, AliHLTTPCGMMergedTrackHit *clusters, int &N, int &NTolerated, float &Alpha, int attempt = 0, float maxSinPhi = GPUCA_MAX_SIN_PHI, AliHLTTPCCAOuterParam *outerParam = NULL);
 	GPUd() void MirrorTo(AliHLTTPCGMPropagator &prop, float toY, float toZ, bool inFlyDirection, const AliGPUCAParam &param, unsigned char row, unsigned char clusterState, bool mirrorParameters);
 	GPUd() int MergeDoubleRowClusters(int ihit, int wayDirection, AliHLTTPCGMMergedTrackHit *clusters, const AliGPUCAParam &param, AliHLTTPCGMPropagator &prop, float &xx, float &yy, float &zz, int maxN, float clAlpha, unsigned char &clusterState, bool rejectChi2);
 
 	GPUd() void AttachClustersMirror(const AliHLTTPCGMMerger *Merger, int slice, int iRow, int iTrack, float toY, AliHLTTPCGMPropagator &prop);
-	GPUd() void AttachClustersPropagate(const AliHLTTPCGMMerger *Merger, int slice, int lastRow, int toRow, int iTrack, bool goodLeg, AliHLTTPCGMPropagator &prop, bool inFlyDirection, float maxSinPhi = HLTCA_MAX_SIN_PHI);
+	GPUd() void AttachClustersPropagate(const AliHLTTPCGMMerger *Merger, int slice, int lastRow, int toRow, int iTrack, bool goodLeg, AliHLTTPCGMPropagator &prop, bool inFlyDirection, float maxSinPhi = GPUCA_MAX_SIN_PHI);
 	GPUd() void AttachClusters(const AliHLTTPCGMMerger *Merger, int slice, int iRow, int iTrack, bool goodLeg);
 	GPUd() void AttachClusters(const AliHLTTPCGMMerger *Merger, int slice, int iRow, int iTrack, bool goodLeg, float Y, float Z);
 
@@ -149,12 +149,12 @@ class AliHLTTPCGMTrackParam
 
 	GPUd() static void RefitTrack(AliHLTTPCGMMergedTrack &track, int iTrk, const AliHLTTPCGMMerger *merger, AliHLTTPCGMMergedTrackHit *clusters);
 
-#if !defined(HLTCA_STANDALONE) & !defined(HLTCA_GPUCODE)
+#if !defined(GPUCA_STANDALONE) & !defined(GPUCA_GPUCODE)
 	bool GetExtParam(AliExternalTrackParam &T, double alpha) const;
 	void SetExtParam(const AliExternalTrackParam &T);
 #endif
 
-	GPUd() void ConstrainSinPhi(float limit = HLTCA_MAX_SIN_PHI)
+	GPUd() void ConstrainSinPhi(float limit = GPUCA_MAX_SIN_PHI)
 	{
 		if (fP[2] > limit)
 			fP[2] = limit;

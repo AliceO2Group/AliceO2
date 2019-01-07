@@ -39,7 +39,7 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
 		}
 	} else if ( iSync == 1 ) {
 		int nHits, nFirstTrackHit;
-		AliHLTTPCCAHitId trackHits[HLTCA_ROW_COUNT - HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE];
+		AliHLTTPCCAHitId trackHits[GPUCA_ROW_COUNT - GPUCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE];
 
 		for ( int itr = s.fItr0 + iThread; itr < s.fNTracklets; itr += s.fNThreadsTotal ) {
 
@@ -79,12 +79,12 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
 					bool sharedOK = ( ( nShared < nHits * kMaxShared ) );
 					if ( own || sharedOK ) {//SG!!!
 						gap = 0;
-#if HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
-						if (nHits < HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE)
+#if GPUCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
+						if (nHits < GPUCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE)
 							s.fHits[iThread][nHits].Set( irow, ih );
 						else
-#endif //HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
-							trackHits[nHits - HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE].Set( irow, ih );
+#endif //GPUCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
+							trackHits[nHits - GPUCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE].Set( irow, ih );
 						nHits++;
 						if ( !own ) nShared++;
 					}
@@ -93,13 +93,13 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
 				if ( gap > kMaxRowGap || irow == lastRow ) { // store
 					if ( nHits >= minHits ) { //SG!!!
 						int itrout = CAMath::AtomicAdd( tracker.NTracks(), 1 );
-#ifdef HLTCA_GPUCODE
-						if (itrout >= HLTCA_GPU_MAX_TRACKS)
+#ifdef GPUCA_GPUCODE
+						if (itrout >= GPUCA_GPU_MAX_TRACKS)
 #else
 						if (itrout >= tracker.CommonMemory()->fNTracklets * 2 + 50)
-#endif //HLTCA_GPUCODE
+#endif //GPUCA_GPUCODE
 						{
-							tracker.GPUParameters()->fGPUError = HLTCA_GPU_ERROR_TRACK_OVERFLOW;
+							tracker.GPUParameters()->fGPUError = GPUCA_GPU_ERROR_TRACK_OVERFLOW;
 							CAMath::AtomicExch( tracker.NTracks(), 0 );
 							return;
 						}
@@ -110,15 +110,15 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
 						tracker.Tracks()[itrout].SetFirstHitID(nFirstTrackHit);
 						tracker.Tracks()[itrout].SetNHits(nHits);
 						for ( int jh = 0; jh < nHits; jh++ ) {
-#if HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
-							if (jh < HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE)
+#if GPUCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
+							if (jh < GPUCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE)
 							{
 								tracker.TrackHits()[nFirstTrackHit + jh] = s.fHits[iThread][jh];
 							}
 							else
-#endif //HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
+#endif //GPUCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
 							{
-								tracker.TrackHits()[nFirstTrackHit + jh] = trackHits[jh - HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE];
+								tracker.TrackHits()[nFirstTrackHit + jh] = trackHits[jh - GPUCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE];
 							}
 						}
 					}

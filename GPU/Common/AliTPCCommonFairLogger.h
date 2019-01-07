@@ -1,7 +1,7 @@
 #ifndef ALITPCCOMMONFAIRLOGGER_H
 #define ALITPCCOMMONFAIRLOGGER_H
 
-#if (defined(HLTCA_STANDALONE) && !defined(HLTCA_BUILD_O2_LIB)) || defined(__OPENCL__) || defined(HLTCA_GPULIBRARY)
+#if (defined(GPUCA_STANDALONE) && !defined(GPUCA_BUILD_O2_LIB)) || defined(__OPENCL__) || defined(GPUCA_GPULIBRARY)
 
 #include <iostream>
 #define LOG(type) std::cout

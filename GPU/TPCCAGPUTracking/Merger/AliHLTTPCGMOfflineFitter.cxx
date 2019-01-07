@@ -16,7 +16,7 @@
 //***************************************************************************
 
 
-#if ( !defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE) )
+#if ( !defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE) )
 
 
 #include "AliHLTTPCGMOfflineFitter.h"
@@ -145,7 +145,7 @@ int  AliHLTTPCGMOfflineFitter::CreateTPCclusterMI( const AliHLTTPCGMMergedTrackH
 bool AliHLTTPCGMOfflineFitter::FitOffline( const AliHLTTPCGMPolynomialField* field, AliHLTTPCGMMergedTrack &gmtrack,  AliHLTTPCGMMergedTrackHit* clusters, int &N )
 {
 
-  const float maxSinPhi = HLTCA_MAX_SIN_PHI;
+  const float maxSinPhi = GPUCA_MAX_SIN_PHI;
 
   int maxN = N;
   float covYYUpd = 0.;

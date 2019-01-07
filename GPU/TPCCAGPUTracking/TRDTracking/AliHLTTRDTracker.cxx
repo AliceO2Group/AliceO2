@@ -1,11 +1,11 @@
 //#define ENABLE_HLTTRDDEBUG
 #define ENABLE_WARNING 0
 #define ENABLE_INFO 0
-#ifdef HLTCA_BUILD_ALIROOT_LIB
+#ifdef GPUCA_BUILD_ALIROOT_LIB
 #define ENABLE_HLTMC
 #endif
 
-#ifdef HLTCA_HAVE_OPENMP
+#ifdef GPUCA_HAVE_OPENMP
 #include <omp.h>
 #endif
 
@@ -20,7 +20,7 @@
 #include "AliHLTTPCGMMerger.h"
 #include "AliGPUReconstruction.h"
 
-#ifdef HLTCA_BUILD_ALIROOT_LIB
+#ifdef GPUCA_BUILD_ALIROOT_LIB
 #include "TDatabasePDG.h"
 #include "AliMCParticle.h"
 #include "AliMCEvent.h"
@@ -69,7 +69,7 @@ size_t AliHLTTRDTracker::SetPointersTracks(void *base, int nTracks)
 }
 
 
-#ifndef HLTCA_GPUCODE
+#ifndef GPUCA_GPUCODE
 AliHLTTRDTracker::AliHLTTRDTracker() :
   fBaseDataPtr(nullptr),
   fTrackletsDataPtr(nullptr),
@@ -289,7 +289,7 @@ void AliHLTTRDTracker::DoTracking( HLTTRDTrack *tracksTPC, int *tracksTPClab, in
   fNTracks = 0;
   auto timeStart = std::chrono::high_resolution_clock::now();
 
-#ifdef HLTCA_HAVE_OPENMP
+#ifdef GPUCA_HAVE_OPENMP
   //omp_set_dynamic(0);
   //omp_set_num_threads(1);
 #pragma omp parallel for
@@ -352,7 +352,7 @@ GPUd() void AliHLTTRDTracker::DoTrackingThread( HLTTRDTrack *tracksTPC, int *tra
   FollowProlongation(&prop, t, nTPCtracks, threadId);
   int myTrack;
   {
-    #ifdef HLTCA_HAVE_OPENMP
+    #ifdef GPUCA_HAVE_OPENMP
     #pragma omp atomic capture
     #endif
     myTrack = fNTracks++;
@@ -1008,7 +1008,7 @@ void AliHLTTRDTracker::CountMatches(const int trackID, std::vector<int> *matches
   // important: tracklets far away / pointing in different direction of
   // the track should be rejected (or this has to be done afterwards in analysis)
   //--------------------------------------------------------------------
-#ifndef HLTCA_GPUCODE
+#ifndef GPUCA_GPUCODE
 #ifdef ENABLE_HLTMC
   for (int k = 0; k < kNChambers; k++) {
     int layer = fGeo->GetLayer(k);

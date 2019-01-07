@@ -1,4 +1,4 @@
-#define HLTCA_GPUTYPE_RADEON
+#define GPUCA_GPUTYPE_RADEON
 
 #include "AliGPUReconstructionOCL.h"
 #include "AliGPUReconstructionOCL.h"
@@ -196,9 +196,9 @@ int AliGPUReconstructionOCL::InitDevice_Runtime()
 	cl_uint compute_units;
 	clGetDeviceInfo(ocl->device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &compute_units, NULL);
 	
-	fConstructorBlockCount = compute_units * HLTCA_GPU_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER;
-	fSelectorBlockCount = compute_units * HLTCA_GPU_BLOCK_COUNT_SELECTOR_MULTIPLIER;
-	fConstructorThreadCount = HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR;
+	fConstructorBlockCount = compute_units * GPUCA_GPU_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER;
+	fSelectorBlockCount = compute_units * GPUCA_GPU_BLOCK_COUNT_SELECTOR_MULTIPLIER;
+	fConstructorThreadCount = GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR;
 
 	ocl->context = clCreateContext(NULL, count, ocl->devices, NULL, NULL, &ocl_error);
 	if (ocl_error != CL_SUCCESS)
@@ -240,7 +240,7 @@ int AliGPUReconstructionOCL::InitDevice_Runtime()
 
 		CAGPUDebug("Compiling OpenCL Program\n");
 		//Compile program
-		ocl_error = clBuildProgram(ocl->program, count, ocl->devices, "-I. -Iinclude -ISliceTracker -IHLTHeaders -IMerger -IGlobalTracker -I/home/qon/AMD-APP-SDK-v2.8.1.0-RC-lnx64/include -I/usr/local/cuda/include -DHLTCA_STANDALONE -DBUILD_GPU -D_64BIT -x clc++", NULL, NULL);
+		ocl_error = clBuildProgram(ocl->program, count, ocl->devices, "-I. -Iinclude -ISliceTracker -IHLTHeaders -IMerger -IGlobalTracker -I/home/qon/AMD-APP-SDK-v2.8.1.0-RC-lnx64/include -I/usr/local/cuda/include -DGPUCA_STANDALONE -DBUILD_GPU -D_64BIT -x clc++", NULL, NULL);
 		if (ocl_error != CL_SUCCESS)
 		{
 			CAGPUDebug("OpenCL Error while building program: %d (Compiler options: %s)\n", ocl_error, "");
@@ -494,7 +494,7 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 		clSetKernelArgA(ocl->kernel_row_blocks, 0, ocl->mem_gpu);
 		clSetKernelArgA(ocl->kernel_row_blocks, 1, ocl->mem_constant);
 		clSetKernelArgA(ocl->kernel_row_blocks, 2, iSlice);
-		clExecuteKernelA(ocl->command_queue[2], ocl->kernel_row_blocks, HLTCA_GPU_THREAD_COUNT, HLTCA_GPU_THREAD_COUNT * fConstructorBlockCount, NULL, &initEvent);
+		clExecuteKernelA(ocl->command_queue[2], ocl->kernel_row_blocks, GPUCA_GPU_THREAD_COUNT, GPUCA_GPU_THREAD_COUNT * fConstructorBlockCount, NULL, &initEvent);
 		if (GPUSync("Initialization (2)", 2, iSlice) RANDOM_ERROR)
 		{
 			ResetHelperThreads(1);
@@ -507,7 +507,7 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 				mTPCSliceTrackersCPU[iSlice].CommonMemory(), ocl->cl_queue_event_done[iSlice & 1] ? 0 : 1, ocl->cl_queue_event_done[iSlice & 1] ? NULL : &initEvent, NULL)) ||
 			GPUFailedMsg(clEnqueueWriteBuffer(ocl->command_queue[iSlice & 1], ocl->mem_gpu, CL_FALSE, (char*) fGpuTracker[iSlice].Data().Memory() - (char*) fGPUMemory, mTPCSliceTrackersCPU[iSlice].Data().GpuMemorySize(),
 				mTPCSliceTrackersCPU[iSlice].Data().Memory(), 0, NULL, NULL)) ||
-			GPUFailedMsg(clEnqueueWriteBuffer(ocl->command_queue[iSlice & 1], ocl->mem_gpu, CL_FALSE, (char*) fGpuTracker[iSlice].SliceDataRows() - (char*) fGPUMemory, (HLTCA_ROW_COUNT + 1) * sizeof(AliHLTTPCCARow),
+			GPUFailedMsg(clEnqueueWriteBuffer(ocl->command_queue[iSlice & 1], ocl->mem_gpu, CL_FALSE, (char*) fGpuTracker[iSlice].SliceDataRows() - (char*) fGPUMemory, (GPUCA_ROW_COUNT + 1) * sizeof(AliHLTTPCCARow),
 				mTPCSliceTrackersCPU[iSlice].SliceDataRows(), 0, NULL, NULL)))
 		{
 			CAGPUError("Error copying data to GPU");
@@ -519,7 +519,7 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 		if (mDeviceProcessingSettings.debugLevel >= 4)
 		{
 			if (mDeviceProcessingSettings.debugLevel >= 5) CAGPUInfo("Allocating Debug Output Memory");
-			mTPCSliceTrackersCPU[iSlice].SetGPUTrackerTrackletsMemory(reinterpret_cast<char*> ( new uint4 [ fGpuTracker[iSlice].TrackletMemorySize()/sizeof( uint4 ) + 100] ), HLTCA_GPU_MAX_TRACKLETS);
+			mTPCSliceTrackersCPU[iSlice].SetGPUTrackerTrackletsMemory(reinterpret_cast<char*> ( new uint4 [ fGpuTracker[iSlice].TrackletMemorySize()/sizeof( uint4 ) + 100] ), GPUCA_GPU_MAX_TRACKLETS);
 			mTPCSliceTrackersCPU[iSlice].SetGPUTrackerHitsMemory(reinterpret_cast<char*> ( new uint4 [ fGpuTracker[iSlice].HitMemorySize()/sizeof( uint4 ) + 100]), mClusterData[iSlice].NumberOfClusters() );
 		}
 
@@ -535,7 +535,7 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 		clSetKernelArgA(ocl->kernel_neighbours_finder, 1, ocl->mem_constant);
 		clSetKernelArgA(ocl->kernel_neighbours_finder, 2, iSlice);
 		mTPCSliceTrackersCPU[iSlice].StartTimer(1);
-		clExecuteKernelA(ocl->command_queue[iSlice & 1], ocl->kernel_neighbours_finder, HLTCA_GPU_THREAD_COUNT_FINDER, HLTCA_GPU_THREAD_COUNT_FINDER * HLTCA_ROW_COUNT, NULL);
+		clExecuteKernelA(ocl->command_queue[iSlice & 1], ocl->kernel_neighbours_finder, GPUCA_GPU_THREAD_COUNT_FINDER, GPUCA_GPU_THREAD_COUNT_FINDER * GPUCA_ROW_COUNT, NULL);
 		if (GPUSync("Neighbours finder", iSlice & 1, iSlice) RANDOM_ERROR)
 		{
 			ResetHelperThreads(1);
@@ -555,7 +555,7 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 		clSetKernelArgA(ocl->kernel_neighbours_cleaner, 1, ocl->mem_constant);
 		clSetKernelArgA(ocl->kernel_neighbours_cleaner, 2, iSlice);
 		mTPCSliceTrackersCPU[iSlice].StartTimer(2);
-		clExecuteKernelA(ocl->command_queue[iSlice & 1], ocl->kernel_neighbours_cleaner, HLTCA_GPU_THREAD_COUNT, HLTCA_GPU_THREAD_COUNT * (HLTCA_ROW_COUNT - 2), NULL);
+		clExecuteKernelA(ocl->command_queue[iSlice & 1], ocl->kernel_neighbours_cleaner, GPUCA_GPU_THREAD_COUNT, GPUCA_GPU_THREAD_COUNT * (GPUCA_ROW_COUNT - 2), NULL);
 		if (GPUSync("Neighbours Cleaner", iSlice & 1, iSlice) RANDOM_ERROR)
 		{
 			ResetHelperThreads(1);
@@ -575,7 +575,7 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 		clSetKernelArgA(ocl->kernel_start_hits_finder, 1, ocl->mem_constant);
 		clSetKernelArgA(ocl->kernel_start_hits_finder, 2, iSlice);
 		mTPCSliceTrackersCPU[iSlice].StartTimer(3);
-		clExecuteKernelA(ocl->command_queue[iSlice & 1], ocl->kernel_start_hits_finder, HLTCA_GPU_THREAD_COUNT, HLTCA_GPU_THREAD_COUNT * (HLTCA_ROW_COUNT - 6), NULL);
+		clExecuteKernelA(ocl->command_queue[iSlice & 1], ocl->kernel_start_hits_finder, GPUCA_GPU_THREAD_COUNT, GPUCA_GPU_THREAD_COUNT * (GPUCA_ROW_COUNT - 6), NULL);
 		if (GPUSync("Start Hits Finder", iSlice & 1, iSlice) RANDOM_ERROR)
 		{
 			ResetHelperThreads(1);
@@ -588,7 +588,7 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 		clSetKernelArgA(ocl->kernel_start_hits_sorter, 1, ocl->mem_constant);
 		clSetKernelArgA(ocl->kernel_start_hits_sorter, 2, iSlice);
 		mTPCSliceTrackersCPU[iSlice].StartTimer(4);
-		clExecuteKernelA(ocl->command_queue[iSlice & 1], ocl->kernel_start_hits_sorter, HLTCA_GPU_THREAD_COUNT, HLTCA_GPU_THREAD_COUNT * fConstructorBlockCount, NULL);
+		clExecuteKernelA(ocl->command_queue[iSlice & 1], ocl->kernel_start_hits_sorter, GPUCA_GPU_THREAD_COUNT, GPUCA_GPU_THREAD_COUNT * fConstructorBlockCount, NULL);
 		if (GPUSync("Start Hits Sorter", iSlice & 1, iSlice) RANDOM_ERROR)
 		{
 			ResetHelperThreads(1);
@@ -601,9 +601,9 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 			GPUFailedMsg(clEnqueueReadBuffer(ocl->command_queue[iSlice & 1], ocl->mem_gpu, CL_TRUE, (char*) fGpuTracker[iSlice].CommonMemory() - (char*) fGPUMemory, fGpuTracker[iSlice].CommonMemorySize(),
 				mTPCSliceTrackersCPU[iSlice].CommonMemory(), 0, NULL, NULL) RANDOM_ERROR);
 			if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Obtaining Number of Start Hits from GPU: %d (Slice %d)", *mTPCSliceTrackersCPU[iSlice].NTracklets(), iSlice);
-			if (*mTPCSliceTrackersCPU[iSlice].NTracklets() > HLTCA_GPU_MAX_TRACKLETS RANDOM_ERROR)
+			if (*mTPCSliceTrackersCPU[iSlice].NTracklets() > GPUCA_GPU_MAX_TRACKLETS RANDOM_ERROR)
 			{
-				CAGPUError("HLTCA_GPU_MAX_TRACKLETS constant insuffisant");
+				CAGPUError("GPUCA_GPU_MAX_TRACKLETS constant insuffisant");
 				ResetHelperThreads(1);
 				return(1);
 			}
@@ -616,7 +616,7 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 			if (mDeviceProcessingSettings.debugMask & 32) mTPCSliceTrackersCPU[iSlice].DumpStartHits(mDebugFile);
 		}
 
-		mTPCSliceTrackersCPU[iSlice].SetGPUTrackerTracksMemory((char*) TracksMemory(fHostLockedMemory, iSlice), HLTCA_GPU_MAX_TRACKS, mClusterData[iSlice].NumberOfClusters());
+		mTPCSliceTrackersCPU[iSlice].SetGPUTrackerTracksMemory((char*) TracksMemory(fHostLockedMemory, iSlice), GPUCA_GPU_MAX_TRACKS, mClusterData[iSlice].NumberOfClusters());
 	}
 	clReleaseEvent(initEvent);
 
@@ -638,7 +638,7 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 	clSetKernelArgA(ocl->kernel_tracklet_constructor, 0, ocl->mem_gpu);
 	clSetKernelArgA(ocl->kernel_tracklet_constructor, 1, ocl->mem_constant);
 	mTPCSliceTrackersCPU[0].StartTimer(6);
-	clExecuteKernelA(ocl->command_queue[0], ocl->kernel_tracklet_constructor, HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR, HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR * fConstructorBlockCount, &constructorEvent, initEvents2, 3);
+	clExecuteKernelA(ocl->command_queue[0], ocl->kernel_tracklet_constructor, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR * fConstructorBlockCount, &constructorEvent, initEvents2, 3);
 	for (int i = 0;i < 3;i++)
 	{
 		clReleaseEvent(initEvents2[i]);
@@ -692,10 +692,10 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 	int streamMap[NSLICES];
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice += runSlices)
 	{
-		if (runSlices < HLTCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT) runSlices++;
+		if (runSlices < GPUCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT) runSlices++;
 		runSlices = CAMath::Min(runSlices, NSLICES - iSlice);
 		if (fSelectorBlockCount < runSlices) runSlices = fSelectorBlockCount;
-		if (HLTCA_GPU_NUM_STREAMS && useStream + 1 == HLTCA_GPU_NUM_STREAMS) runSlices = NSLICES - iSlice;
+		if (GPUCA_GPU_NUM_STREAMS && useStream + 1 == GPUCA_GPU_NUM_STREAMS) runSlices = NSLICES - iSlice;
 		if (fSelectorBlockCount < runSlices)
 		{
 			CAGPUError("Insufficient number of blocks for tracklet selector");
@@ -708,7 +708,7 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 		clSetKernelArgA(ocl->kernel_tracklet_selector, 2, iSlice);
 		clSetKernelArgA(ocl->kernel_tracklet_selector, 3, runSlices);
 		mTPCSliceTrackersCPU[iSlice].StartTimer(7);
-		clExecuteKernelA(ocl->command_queue[useStream], ocl->kernel_tracklet_selector, HLTCA_GPU_THREAD_COUNT_SELECTOR, HLTCA_GPU_THREAD_COUNT_SELECTOR * fSelectorBlockCount, NULL);
+		clExecuteKernelA(ocl->command_queue[useStream], ocl->kernel_tracklet_selector, GPUCA_GPU_THREAD_COUNT_SELECTOR, GPUCA_GPU_THREAD_COUNT_SELECTOR * fSelectorBlockCount, NULL);
 		if (GPUSync("Tracklet Selector", iSlice, iSlice) RANDOM_ERROR)
 		{
 			SynchronizeGPU();
@@ -777,7 +777,7 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 
 		if (mTPCSliceTrackersCPU[iSlice].GPUParameters()->fGPUError RANDOM_ERROR)
 		{
-			const char* errorMsgs[] = HLTCA_GPU_ERROR_STRINGS;
+			const char* errorMsgs[] = GPUCA_GPU_ERROR_STRINGS;
 			const char* errorMsg = (unsigned) mTPCSliceTrackersCPU[iSlice].GPUParameters()->fGPUError >= sizeof(errorMsgs) / sizeof(errorMsgs[0]) ? "UNKNOWN" : errorMsgs[mTPCSliceTrackersCPU[iSlice].GPUParameters()->fGPUError];
 			CAGPUError("GPU Tracker returned Error Code %d (%s) in slice %d (Clusters %d)", mTPCSliceTrackersCPU[iSlice].GPUParameters()->fGPUError, errorMsg, iSlice, mTPCSliceTrackersCPU[iSlice].Data().NumberOfHits());
 			ResetHelperThreads(1);

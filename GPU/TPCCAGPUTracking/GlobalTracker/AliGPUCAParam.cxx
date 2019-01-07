@@ -1,13 +1,13 @@
 #include "AliGPUCAParam.h"
 #include "AliHLTTPCCADef.h"
 
-#if !defined(HLTCA_GPUCODE) & !defined(HLTCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE) & !defined(GPUCA_STANDALONE)
 #include "AliTPCClusterParam.h"
 #include "AliTPCcalibDB.h"
 #include <iostream>
 #endif
 
-#if !defined(HLTCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE)
 
 #include "AliHLTTPCCAGeometry.h"
 #include <cstring>
@@ -63,7 +63,7 @@ void AliGPUCAParam::SetDefaults(float solenoidBz)
 		}
 	}
     
-	for (int irow = 0;irow < HLTCA_ROW_COUNT;irow++)
+	for (int irow = 0;irow < GPUCA_ROW_COUNT;irow++)
 	{
 		RowX[irow] = AliHLTTPCCAGeometry::Row2X(irow);
 	}
@@ -128,8 +128,8 @@ void AliGPUCAParam::SetDefaults(const AliGPUCASettingsEvent *e, const AliGPUCASe
 
 #endif
 
-#if !defined(HLTCA_GPUCODE)
-#if defined(HLTCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE)
+#if defined(GPUCA_STANDALONE)
 void AliGPUCAParam::LoadClusterErrors(bool Print)
 {
 }

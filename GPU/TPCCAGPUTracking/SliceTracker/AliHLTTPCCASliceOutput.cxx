@@ -27,7 +27,7 @@ int AliHLTTPCCASliceOutput::EstimateSize(int nOfTracks, int nOfTrackClusters)
 	return sizeof(AliHLTTPCCASliceOutput) + sizeof(AliHLTTPCCASliceOutTrack) * nOfTracks + sizeof(AliHLTTPCCASliceOutCluster) * nOfTrackClusters;
 }
 
-#ifndef HLTCA_GPUCODE
+#ifndef GPUCA_GPUCODE
 
 inline void AssignNoAlignment(int &dst, int &size, int count)
 {

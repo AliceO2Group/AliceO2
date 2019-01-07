@@ -12,7 +12,7 @@ CC_x86_64-pc-linux-gnu		= GCC
 CC_i686-pc-cygwin			= ICC
 
 INCLUDEPATHS				= . SliceTracker HLTHeaders Merger GlobalTracker TRDTracking Common TPCFastTransformation display qa
-DEFINES						= HLTCA_STANDALONE HLTCA_ENABLE_GPU_TRACKER
+DEFINES						= GPUCA_STANDALONE GPUCA_ENABLE_GPU_TRACKER
 CPPFILES					= cmodules/timer.cpp cmodules/qsem.cpp
 
 EXTRAFLAGSGCC				=
@@ -48,7 +48,7 @@ CXXFILES					= SliceTracker/AliHLTTPCCASliceData.cxx \
 								TPCFastTransformation/IrregularSpline1D.cxx \
 								TPCFastTransformation/IrregularSpline2D3D.cxx
 
-HLTCA_MERGER_CXXFILES		= Merger/AliHLTTPCGMMerger.cxx \
+GPUCA_MERGER_CXXFILES		= Merger/AliHLTTPCGMMerger.cxx \
 								Merger/AliHLTTPCGMSliceTrack.cxx \
 								Merger/AliHLTTPCGMPhysicalTrackModel.cxx \
 								Merger/AliHLTTPCGMPolynomialField.cxx \
@@ -56,11 +56,11 @@ HLTCA_MERGER_CXXFILES		= Merger/AliHLTTPCGMMerger.cxx \
 								Merger/AliHLTTPCGMPropagator.cxx \
 								Merger/AliHLTTPCGMTrackParam.cxx
 
-HLTCA_TRD_CXXFILES			= TRDTracking/AliHLTTRDTrack.cxx \
+GPUCA_TRD_CXXFILES			= TRDTracking/AliHLTTRDTrack.cxx \
 								TRDTracking/AliHLTTRDTracker.cxx \
 								TRDTracking/AliHLTTRDTrackletWord.cxx
 
-HLTCA_STANDALONE_CXXFILES	= SliceTracker/AliHLTTPCCATrack.cxx \
+GPUCA_STANDALONE_CXXFILES	= SliceTracker/AliHLTTPCCATrack.cxx \
 								SliceTracker/AliHLTTPCCATracklet.cxx \
 								SliceTracker/AliHLTTPCCAMCPoint.cxx
 
@@ -73,13 +73,13 @@ BUILD_QA					= 0
 endif
 
 ifeq ($(CONFIG_OPENMP), 1)
-DEFINES						+= HLTCA_HAVE_OPENMP
+DEFINES						+= GPUCA_HAVE_OPENMP
 endif
 
 ifeq ($(CONFIG_VC), 1)
 LIBSUSE						+= -lVc
 else
-DEFINES						+= HLTCA_NO_VC
+DEFINES						+= GPUCA_NO_VC
 endif
 
 ifeq ($(LINK_ROOT), 0)
@@ -117,7 +117,7 @@ INCLUDEPATHS					+= O2Headers \
 endif
 
 ifeq ($(CONFIG_O2), 1)
-DEFINES						+= HLTCA_TPC_GEOMETRY_O2
+DEFINES						+= GPUCA_TPC_GEOMETRY_O2
 endif
 
 ALLDEP						+= config_common.mak config_options.mak
