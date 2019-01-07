@@ -20,19 +20,19 @@ ClEnv::ClEnv(const fs::path &srcDir, size_t gid)
     cl_int err;
 
     err = cl::Platform::get(&platforms); 
-    ASSERT(err == CL_SUCCESS);
     
-
     ASSERT(!platforms.empty());
     err = platforms.front().getDevices(CL_DEVICE_TYPE_GPU, &devices);
-    ASSERT(err == CL_SUCCESS);
 
     if (devices.empty()) {
         throw std::runtime_error("Could not find any gpu devices.");
     }
     
     context = cl::Context(devices, nullptr, nullptr, nullptr, &err);
-    ASSERT(err == CL_SUCCESS);
+
+    std::string deviceName;
+    getDevice().getInfo(CL_DEVICE_NAME, &deviceName);
+    log::Info() << "Running on device " << deviceName;
 }
 
 cl::Program ClEnv::buildFromSrc(const fs::path &srcFile) {
@@ -58,6 +58,8 @@ cl::Program ClEnv::buildFromSrc(const fs::path &srcFile) {
 
 cl::Program::Sources ClEnv::loadSrc(const fs::path &srcFile) {
     fs::path file = sourceDir / srcFile; 
+
+    log::Info() << "Opening cl-source " << file;
 
     if (!file.exists()) {
         throw std::runtime_error("Could not find file " + file.str() + "."); 
