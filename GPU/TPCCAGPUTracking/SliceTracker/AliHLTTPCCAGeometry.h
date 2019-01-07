@@ -1,7 +1,7 @@
 #ifndef ALIHLTTPCCAGEOMETRY_H
 #define ALIHLTTPCCAGEOMETRY_H
 
-#ifdef GPUCA_BUILD_ALIROOT_LIB
+#ifdef GPUCA_ALIROOT_LIB
 #include "AliHLTTPCGeometry.h"
 #define AliHLTTPCCAGeometry AliHLTTPCGeometry
 #else

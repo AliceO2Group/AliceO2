@@ -56,11 +56,11 @@ static constexpr int kMaxClusters = 1000;
 
 //#define OFFLINE_FITTER
 
-#if ( defined(GPUCA_STANDALONE) || defined(GPUCA_GPUCODE) )
+#if !defined(GPUCA_ALIROOT_LIB) || defined(GPUCA_GPUCODE)
 #undef OFFLINE_FITTER
 #endif
 
-#if ( defined(OFFLINE_FITTER) )
+#if defined(OFFLINE_FITTER)
 #include "AliHLTTPCGMOfflineFitter.h"
 AliHLTTPCGMOfflineFitter gOfflineFitter;
 #endif
@@ -279,7 +279,6 @@ bool AliHLTTPCGMMerger::Reconstruct()
 		}
 	}
 	int nIter = 1;
-#ifdef GPUCA_STANDALONE
 	HighResTimer timer;
 	static double times[8] = {};
 	static int nCount = 0;
@@ -288,44 +287,26 @@ bool AliHLTTPCGMMerger::Reconstruct()
 		for (unsigned int k = 0; k < sizeof(times) / sizeof(times[0]); k++) times[k] = 0;
 		nCount = 0;
 	}
-#endif
 	//cout<<"Merger..."<<endl;
 	for (int iter = 0; iter < nIter; iter++)
 	{
 		if (!AllocateMemory()) return false;
-#ifdef GPUCA_STANDALONE
 		timer.ResetStart();
-#endif
 		UnpackSlices();
-#ifdef GPUCA_STANDALONE
 		times[0] += timer.GetCurrentElapsedTime(true);
-#endif
 		MergeWithingSlices();
-#ifdef GPUCA_STANDALONE
 		times[1] += timer.GetCurrentElapsedTime(true);
-#endif
 		MergeSlices();
-#ifdef GPUCA_STANDALONE
 		times[2] += timer.GetCurrentElapsedTime(true);
-#endif
 		MergeCEInit();
-#ifdef GPUCA_STANDALONE
 		times[3] += timer.GetCurrentElapsedTime(true);
-#endif
 		CollectMergedTracks();
-#ifdef GPUCA_STANDALONE
 		times[4] += timer.GetCurrentElapsedTime(true);
-#endif
 		MergeCE();
-#ifdef GPUCA_STANDALONE
 		times[3] += timer.GetCurrentElapsedTime(true);
-#endif
 		PrepareClustersForFit();
-#ifdef GPUCA_STANDALONE
 		times[5] += timer.GetCurrentElapsedTime(true);
-#endif
 		Refit(fSliceParam->resetTimers);
-#ifdef GPUCA_STANDALONE
 		times[6] += timer.GetCurrentElapsedTime(true);
 		Finalize();
 		times[7] += timer.GetCurrentElapsedTime(true);
@@ -341,7 +322,6 @@ bool AliHLTTPCGMMerger::Reconstruct()
 			printf("\t\tRefit:\t\t%1.0f us\n", times[6] * 1000000 / nCount);
 			printf("\t\tFinalize:\t%1.0f us\n", times[7] * 1000000 / nCount);
 		}
-#endif
 	}
 	return true;
 }
@@ -910,7 +890,7 @@ void AliHLTTPCGMMerger::MergeCEInit()
 
 void AliHLTTPCGMMerger::MergeCEFill(const AliHLTTPCGMSliceTrack *track, const AliHLTTPCGMMergedTrackHit &cls, int itr)
 {
-#if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_BUILD_O2_LIB)
+#if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 #ifdef MERGE_CE_ROWLIMIT
 	if (cls.fRow < MERGE_CE_ROWLIMIT || cls.fRow >= GPUCA_ROW_COUNT - MERGE_CE_ROWLIMIT) return;
 #endif
@@ -1355,7 +1335,7 @@ void AliHLTTPCGMMerger::PrepareClustersForFit()
 	maxId++;
 	unsigned char* sharedCount = new unsigned char[maxId];
 
-#if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_BUILD_O2_LIB)
+#if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 	if (fGPUReconstruction->GetDeviceType() != AliGPUReconstruction::DeviceType::CUDA)
 	{
 		unsigned int* trackSort = new unsigned int[fNOutputTracks];
@@ -1412,7 +1392,7 @@ void AliHLTTPCGMMerger::Refit(bool resetTimers)
 void AliHLTTPCGMMerger::Finalize()
 {
 	if (fGPUReconstruction->GetDeviceType() == AliGPUReconstruction::DeviceType::CUDA) return;
-#if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_BUILD_O2_LIB)
+#if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 	int* trkOrderReverse = new int[fNOutputTracks];
 	for (int i = 0;i < fNOutputTracks;i++) trkOrderReverse[fTrackOrder[i]] = i;
 	for (int i = 0;i < fNOutputTrackClusters;i++) fClusterAttachment[fClusters[i].fNum] = 0; //Reset adjacent attachment for attached clusters, set correctly below

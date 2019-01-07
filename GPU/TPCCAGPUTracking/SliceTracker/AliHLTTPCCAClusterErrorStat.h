@@ -3,7 +3,7 @@
 
 //#define EXTRACT_RESIDUALS
 
-#if (!defined(GPUCA_STANDALONE) || defined(BUILD_QA)) && !defined(GPUCA_GPUCODE) && defined(EXTRACT_RESIDUALS)
+#if (defined(GPUCA_ALIROOT_LIB) || defined(BUILD_QA)) && !defined(GPUCA_GPUCODE) && defined(EXTRACT_RESIDUALS)
 #include "cagpu/AliHLTTPCCAGPURootDump.h"
 
 struct AliHLTTPCCAClusterErrorStat

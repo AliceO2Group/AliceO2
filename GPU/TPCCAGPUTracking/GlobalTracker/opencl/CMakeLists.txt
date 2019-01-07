@@ -19,7 +19,7 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
 elseif(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     set(MODULE AliTPCCAGPUTrackingOpenCL)
 endif()
-add_definitions(-DGPUCA_GPULIBRARY=OPENCL)
+add_definitions(-DGPUCA_GPULIBRARY=OCL)
 
 # AMD APP SDK required for OpenCL tracker; it's using specific
 # extensions (currently) not provided by other vendors.
@@ -60,13 +60,15 @@ set(CL_INC
     -I${CAGPUDIR}/Merger
     -I${CAGPUDIR}/GlobalTracker
     -I${CAGPUDIR}/TRDTracking
+    -I${CAGPUDIR}/Merger
+    -I${CAGPUDIR}/Standalone
     -I${ALITPCCOMMON_DIR}/sources/Common
 )
 
 # executes OpenCL compiler wrapper to build binary object
 add_custom_command(
     OUTPUT ${CL_BIN}
-    COMMAND opencl_compiler -output-file ${CL_BIN} ${CL_SRC} -- ${CL_INC} -x clc++
+    COMMAND opencl_compiler -output-file ${CL_BIN} ${CL_SRC} -- ${CL_INC} -DGPUCA_GPULIBRARY=OCL -x clc++
     MAIN_DEPENDENCY ${CL_SRC}
 )
 
@@ -86,6 +88,7 @@ include_directories(${CAGPUDIR}/GlobalTracker/opencl
                     ${CAGPUDIR}/SliceTracker
                     ${CAGPUDIR}/TRDTracking
                     ${CAGPUDIR}/Merger
+                    ${CAGPUDIR}/Standalone
                     ${ALITPCCOMMON_DIR}/sources/Common
                     ${CMAKE_CURRENT_BINARY_DIR}
                    )

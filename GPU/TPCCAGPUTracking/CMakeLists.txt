@@ -1,13 +1,11 @@
 cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
 
 if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
-    add_definitions(-DGPUCA_BUILD_ALIROOT_LIB)
-else()
-    add_definitions(-DGPUCA_STANDALONE)
+    add_definitions(-DGPUCA_ALIROOT_LIB)
 endif()
 
 if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
-    add_definitions(-DGPUCA_BUILD_O2_LIB -DGPUCA_TPC_GEOMETRY_O2 -DHAVE_O2HEADERS)
+    add_definitions(-DGPUCA_O2_LIB -DGPUCA_TPC_GEOMETRY_O2 -DHAVE_O2HEADERS)
 endif()
 
 if(OpenMP_CXX_FOUND)
@@ -73,6 +71,7 @@ set(SRCS_NO_CINT
     GlobalTracker/AliGPUReconstructionDeviceBase.cxx
     GlobalTracker/AliGPUReconstructionConvert.cxx
     GlobalTracker/AliGPUCASettings.cxx
+    Standalone/cmodules/timer.cpp
 )
 
 #Extra headers to install
@@ -165,7 +164,6 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
         Interface/AliHLTTPCCAO2Interface.cxx
     )
     set(SRCS_NO_CINT ${SRCS_NO_CINT}
-        Standalone/cmodules/timer.cpp
         Standalone/display/AliGPUCADisplayBackend.cpp
     )
     set (HDRS2 ${HDRS2} Interface/AliGPUCAConfiguration.h)

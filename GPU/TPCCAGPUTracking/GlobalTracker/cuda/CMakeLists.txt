@@ -64,6 +64,7 @@ include_directories(${CAGPUDIR}/GlobalTracker
                     ${CAGPUDIR}/Merger
                     ${CAGPUDIR}/SliceTracker
                     ${CAGPUDIR}/TRDTracking
+                    ${CAGPUDIR}/Standalone
                     ${ALITPCCOMMON_DIR}/sources/Common
                    )
 

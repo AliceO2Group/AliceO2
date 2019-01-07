@@ -60,12 +60,10 @@ ClassImp( AliHLTTPCCATracker )
 #if !defined(GPUCA_GPUCODE)
 
 AliHLTTPCCATracker::AliHLTTPCCATracker() :
-#ifdef GPUCA_STANDALONE
 #ifdef GPUCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 	fStageAtSync( NULL ),
 #endif
 	fLinkTmpMemory( NULL ),
-#endif
 	fParam(NULL),
 	fISlice(0),
 	fGPUReconstruction(NULL),
@@ -109,9 +107,7 @@ AliHLTTPCCATracker::~AliHLTTPCCATracker()
 		fCommonMem = NULL;
 		fHitMemory = fTrackMemory = NULL;
 	}
-#ifdef GPUCA_STANDALONE
 	if (fLinkTmpMemory) delete[] fLinkTmpMemory;
-#endif
 	if (fOutputMemory) free(fOutputMemory);
 }
 
@@ -347,7 +343,6 @@ void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 		if (Tracklets()[j].NHits() == 0);
 		else if (Tracklets()[j].LastRow() > Tracklets()[j].FirstRow() && (Tracklets()[j].FirstRow() >= GPUCA_ROW_COUNT || Tracklets()[j].LastRow() >= GPUCA_ROW_COUNT))
 		{
-#ifdef GPUCA_STANDALONE
 			printf("\nError: Tracklet %d First %d Last %d Hits %d", j, Tracklets()[j].FirstRow(), Tracklets()[j].LastRow(), Tracklets()[j].NHits());
 			out << " (Error: Tracklet " << j << " First " << Tracklets()[j].FirstRow() << " Last " << Tracklets()[j].LastRow() << " Hits " << Tracklets()[j].NHits() << ") ";
 			for (int i = 0;i < GPUCA_ROW_COUNT;i++)
@@ -359,7 +354,6 @@ void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 				out << i << "-" << Tracklets()[j].RowHit(i) << ", ";
 #endif
 			}
-#endif
 		}
 		else if (Tracklets()[j].NHits() && Tracklets()[j].LastRow() >= Tracklets()[j].FirstRow())
 		{

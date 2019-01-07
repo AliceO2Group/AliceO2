@@ -149,7 +149,7 @@ class AliHLTTPCGMTrackParam
 
 	GPUd() static void RefitTrack(AliHLTTPCGMMergedTrack &track, int iTrk, const AliHLTTPCGMMerger *merger, AliHLTTPCGMMergedTrackHit *clusters);
 
-#if !defined(GPUCA_STANDALONE) & !defined(GPUCA_GPUCODE)
+#if defined(GPUCA_ALIROOT_LIB) & !defined(GPUCA_GPUCODE)
 	bool GetExtParam(AliExternalTrackParam &T, double alpha) const;
 	void SetExtParam(const AliExternalTrackParam &T);
 #endif

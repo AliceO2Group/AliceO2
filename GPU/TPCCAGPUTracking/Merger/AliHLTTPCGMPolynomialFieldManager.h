@@ -31,7 +31,7 @@ public:
   static int GetPolynomialField( float nominalFieldkG, AliHLTTPCGMPolynomialField &field );
 
 
-#if !defined(GPUCA_STANDALONE) & !defined(GPUCA_GPUCODE)
+#if defined(GPUCA_ALIROOT_LIB) & !defined(GPUCA_GPUCODE)
 
   /* Get pre-calculated polynomial field for the current ALICE field (if exists)
    */

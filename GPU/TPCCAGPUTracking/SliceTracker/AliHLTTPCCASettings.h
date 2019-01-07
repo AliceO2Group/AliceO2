@@ -41,7 +41,7 @@
 //#define GPUCA_MERGER_BY_MC_LABEL
 #define REPRODUCIBLE_CLUSTER_SORTING
 
-#ifdef GPUCA_BUILD_O2_LIB
+#ifdef GPUCA_O2_LIB
 typedef unsigned int calink;
 typedef unsigned int cahit;
 #else

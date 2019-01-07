@@ -1,7 +1,7 @@
 //#define ENABLE_HLTTRDDEBUG
 #define ENABLE_WARNING 0
 #define ENABLE_INFO 0
-#ifdef GPUCA_BUILD_ALIROOT_LIB
+#ifdef GPUCA_ALIROOT_LIB
 #define ENABLE_HLTMC
 #endif
 
@@ -20,7 +20,7 @@
 #include "AliHLTTPCGMMerger.h"
 #include "AliGPUReconstruction.h"
 
-#ifdef GPUCA_BUILD_ALIROOT_LIB
+#ifdef GPUCA_ALIROOT_LIB
 #include "TDatabasePDG.h"
 #include "AliMCParticle.h"
 #include "AliMCEvent.h"

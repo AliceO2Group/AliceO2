@@ -32,7 +32,7 @@
 
 #include "AliTPCCommonRtypes.h"
 
-#if defined(GPUCA_STANDALONE) && !defined(GPUCA_BUILD_ALIROOT_LIB) && !defined(GPUCA_BUILD_O2_LIB)
+#if defined(GPUCA_STANDALONE)
 #define TRACKER_KEEP_TEMPDATA
 #endif
 
@@ -132,7 +132,7 @@ struct cahit2{cahit x, y;};
 	#define GPUCA_FULL_CLUSTERDATA
 #endif
 
-#if defined(GPUCA_STANDALONE) | defined(GPUCA_GPUCODE) //No support for Full Field Propagator or Statistical errors
+#if defined(GPUCA_STANDALONE) || defined(GPUCA_GPUCODE) //No support for Full Field Propagator or Statistical errors
 	#ifdef GMPropagatorUseFullField
 		#undef GMPropagatorUseFullField
 	#endif

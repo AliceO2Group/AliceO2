@@ -23,8 +23,8 @@
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCGMMergedTrack.h"
 #include "AliHLTTPCGMPropagator.h"
-#include "../cmodules/timer.h"
-#include "../cmodules/qconfig.h"
+#include "cmodules/timer.h"
+#include "cmodules/qconfig.h"
 
 //#define CHKERR(cmd) {cmd;}
 #define CHKERR(cmd) {(cmd); GLenum err = glGetError(); while (err != GL_NO_ERROR) {printf("OpenGL Error %d: %s (%s: %d)\n", err, gluErrorString(err), __FILE__, __LINE__);exit(1);}}
@@ -37,7 +37,7 @@
 
 static const AliGPUCADisplay::configDisplay& AliGPUCADisplay_GetConfig(AliGPUReconstruction* rec)
 {
-#if !defined(GPUCA_STANDALONE) || defined(GPUCA_BUILD_O2_LIB)
+#if !defined(GPUCA_STANDALONE)
 	static AliGPUCADisplay::configDisplay defaultConfig;
 	if (rec->mConfigDisplay) return *((const AliGPUCADisplay::configDisplay*) rec->mConfigDisplay);
 	else return defaultConfig;
