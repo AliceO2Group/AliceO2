@@ -9,6 +9,17 @@
 #ifndef ALIHLTTPCCAO2INTERFACE_H
 #define ALIHLTTPCCAO2INTERFACE_H
 
+//Some defines denoting that we are compiling for O2
+#ifndef HLTCA_STANDALONE
+#define HLTCA_STANDALONE
+#endif
+#ifndef HAVE_O2HEADERS
+#define HAVE_O2HEADERS
+#endif
+#ifndef HLTCA_TPC_GEOMETRY_O2
+#define HLTCA_TPC_GEOMETRY_O2
+#endif
+
 class AliGPUReconstruction;
 class AliGPUCAConfiguration;
 #include "AliHLTTPCGMMergedTrack.h"
