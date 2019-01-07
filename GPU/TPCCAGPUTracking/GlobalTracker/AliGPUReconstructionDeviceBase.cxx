@@ -68,16 +68,12 @@ void* AliGPUReconstructionDeviceBase::helperWrapper(void* arg)
 
 	AliHLTTPCCATracker* tmpTracker = new AliHLTTPCCATracker;
 
-#ifdef GPUCA_STANDALONE
 	if (cls->mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("\tHelper thread %d starting", par->fNum);
-#endif
 
-#if defined(GPUCA_STANDALONE) & !defined(WIN32)
-	cpu_set_t mask;
-	CPU_ZERO(&mask);
-	CPU_SET(par->fNum * 2 + 2, &mask);
+	//cpu_set_t mask;
+	//CPU_ZERO(&mask);
+	//CPU_SET(par->fNum * 2 + 2, &mask);
 	//sched_setaffinity(0, sizeof(mask), &mask);
-#endif
 
 	while(pthread_mutex_lock(&((pthread_mutex_t*) par->fMutex)[0]) == 0 && par->fTerminate == false)
 	{
@@ -137,9 +133,7 @@ void* AliGPUReconstructionDeviceBase::helperWrapper(void* arg)
 ResetHelperThread:
 		cls->ResetThisHelperThread(par);
 	}
-#ifdef GPUCA_STANDALONE
 	if (cls->mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("\tHelper thread %d terminating", par->fNum);
-#endif
 	delete tmpTracker;
 	pthread_mutex_unlock(&((pthread_mutex_t*) par->fMutex)[1]);
 	pthread_exit(NULL);
@@ -348,12 +342,10 @@ int AliGPUReconstructionDeviceBase::GetThread()
 
 int AliGPUReconstructionDeviceBase::InitDevice()
 {
-#if defined(GPUCA_STANDALONE) & !defined(WIN32)
-	cpu_set_t mask;
-	CPU_ZERO(&mask);
-	CPU_SET(0, &mask);
+	//cpu_set_t mask;
+	//CPU_ZERO(&mask);
+	//CPU_SET(0, &mask);
 	//sched_setaffinity(0, sizeof(mask), &mask);
-#endif
 
 	if (CheckMemorySizes(NSLICES)) return(1);
 

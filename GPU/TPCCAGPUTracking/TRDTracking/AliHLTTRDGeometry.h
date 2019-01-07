@@ -1,7 +1,7 @@
 #ifndef ALIHLTTRDGEOMETRY_H
 #define ALIHLTTRDGEOMETRY_H
 
-#ifdef GPUCA_BUILD_ALIROOT_LIB
+#ifdef GPUCA_ALIROOT_LIB
 #include "AliTRDgeometry.h"
 #include "AliTRDpadPlane.h"
 #include "AliGeomManager.h"

@@ -13,3 +13,5 @@ OPENCL_OPTIONS				= -x clc++
 OPENCL_ENVIRONMENT			= GPU_FORCE_64BIT_PTR=1
 
 ALLDEP						+= config_common.mak
+
+DEFINES						+= GPUCA_GPULIBRARY=OCL

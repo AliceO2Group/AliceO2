@@ -27,8 +27,8 @@
 #include <algorithm>
 #include <cstdio>
 
-#include "../cmodules/qconfig.h"
-#include "../cmodules/timer.h"
+#include "cmodules/qconfig.h"
+#include "cmodules/timer.h"
 
 #ifdef GPUCA_MERGER_BY_MC_LABEL
 	#define CHECK_CLUSTER_STATE_INIT_LEG_BY_MC() \
@@ -82,7 +82,7 @@
 
 static const AliGPUCAQA::configQA& AliGPUCAQA_GetConfig(AliGPUReconstruction* rec)
 {
-#if !defined(GPUCA_STANDALONE) || defined(GPUCA_BUILD_O2_LIB)
+#if !defined(GPUCA_STANDALONE)
 	static AliGPUCAQA::configQA defaultConfig;
 	if (rec->mConfigQA) return *((const AliGPUCAQA::configQA*) rec->mConfigQA);
 	else return defaultConfig;

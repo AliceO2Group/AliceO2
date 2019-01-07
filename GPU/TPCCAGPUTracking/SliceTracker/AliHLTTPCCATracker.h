@@ -31,28 +31,13 @@ MEM_CLASS_PRE() class AliHLTTPCCATrackParam;
 class AliHLTTPCCAClusterData;
 MEM_CLASS_PRE() class AliHLTTPCCARow;
 
-#ifdef GPUCA_STANDALONE
-	#ifdef GPUCA_GPUCODE
-		#define GPUCODE
-	#endif
-	#include "../cmodules/timer.h"
-	#ifdef GPUCA_GPUCODE
-		#undef GPUCODE
-	#endif
+#ifdef GPUCA_GPUCODE
+	#define GPUCODE
 #endif
-
-/**
- * @class AliHLTTPCCATracker
- *
- * Slice tracker for ALICE HLT.
- * The class reconstructs tracks in one slice of TPC.
- * The reconstruction algorithm is based on the Cellular Automaton method
- *
- * The CA tracker is designed stand-alone.
- * It is integrated to the HLT framework via AliHLTTPCCATrackerComponent interface.
- * The class is under construction.
- *
- */
+#include "cmodules/timer.h"
+#ifdef GPUCA_GPUCODE
+	#undef GPUCODE
+#endif
 
 class AliHLTTPCCAClusterData;
 
@@ -263,17 +248,10 @@ class AliHLTTPCCATracker
 
 	void PerformGlobalTracking(AliHLTTPCCATracker& sliceLeft, AliHLTTPCCATracker& sliceRight, int MaxTracksLeft, int MaxTracksRight);
 	
-#ifdef GPUCA_STANDALONE
 	void StartTimer(int i) {if (fParam->debugLevel) fTimers[i].Start();}
 	void StopTimer(int i) {if (fParam->debugLevel) fTimers[i].Stop();}
 	double GetTimer(int i) {return fTimers[i].GetElapsedTime();}
 	void ResetTimer(int i) {fTimers[i].Reset();}
-#else
-	void StartTimer(int i) {}
-	void StopTimer(int i) {}
-	double GetTimer(int i) {return 0;}
-	void ResetTimer(int i) {}
-#endif
 
 #if !defined(GPUCA_GPUCODE)
 	GPUh() int PerformGlobalTrackingRun(AliHLTTPCCATracker& sliceNeighbour, int iTrack, int rowIndex, float angle, int direction);
@@ -281,19 +259,15 @@ class AliHLTTPCCATracker
 #endif
 
 	//Temporary Variables for Standalone measurements
-#ifdef GPUCA_STANDALONE
 #ifdef  GPUCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 	char* fStageAtSync;				//Pointer to array storing current stage for every thread at every sync point
 #endif
 	char *fLinkTmpMemory;				//tmp memory for hits after neighbours finder
-#endif
   
   private:
 	GPUglobalref() const MEM_GLOBAL(AliGPUCAParam) *fParam; // parameters
 	int fISlice; //Number of slice
-#ifdef GPUCA_STANDALONE
 	HighResTimer fTimers[10];
-#endif
   
 	AliGPUReconstruction *fGPUReconstruction;
   

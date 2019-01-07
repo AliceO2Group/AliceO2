@@ -1,7 +1,7 @@
 #include "AliHLTTRDTrack.h"
 #include "AliHLTTRDTrackData.h"
 
-#ifdef GPUCA_BUILD_ALIROOT_LIB
+#ifdef GPUCA_ALIROOT_LIB
 #include "AliHLTExternalTrackParam.h"
 
 template <typename T>
@@ -223,10 +223,10 @@ GPUd() void AliHLTTRDTrack<T>::ConvertFrom( const AliHLTTRDTrackDataRecord &t )
   }
 }
 
-#ifdef GPUCA_BUILD_ALIROOT_LIB //Instantiate AliRoot track version
+#ifdef GPUCA_ALIROOT_LIB //Instantiate AliRoot track version
 template class AliHLTTRDTrack<trackInterface<AliExternalTrackParam>>;
 #endif
-#ifdef GPUCA_BUILD_O2_LIB //Instantiate O2 track version
+#ifdef GPUCA_O2_LIB //Instantiate O2 track version
 //Not yet existing
 #endif
 template class AliHLTTRDTrack<trackInterface<AliHLTTPCGMTrackParam>>; //Always instatiate HLT track version

@@ -29,7 +29,7 @@
 #include "AliHLTTPCGMMerger.h"
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCAClusterData.h"
-#ifndef GPUCA_STANDALONE
+#ifdef GPUCA_ALIROOT_LIB
 #include "AliExternalTrackParam.h"
 #endif
 #include "AliGPUCAParam.h"
@@ -363,7 +363,7 @@ GPUd() void AliHLTTPCGMTrackParam::AttachClusters(const AliHLTTPCGMMerger *Merge
 
 GPUd() void AliHLTTPCGMTrackParam::AttachClusters(const AliHLTTPCGMMerger *Merger, int slice, int iRow, int iTrack, bool goodLeg, float Y, float Z)
 {
-#if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_BUILD_O2_LIB)
+#if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 	const AliHLTTPCCATracker &tracker = *(Merger->SliceTrackers() + slice);
 	MAKESharedRef(AliHLTTPCCARow, row, tracker.Row(iRow), s.fRows[iRow]);
 #ifndef GPUCA_GPU_TEXTURE_FETCH_CONSTRUCTOR
@@ -412,7 +412,7 @@ GPUd() void AliHLTTPCGMTrackParam::AttachClusters(const AliHLTTPCGMMerger *Merge
 
 GPUd() void AliHLTTPCGMTrackParam::AttachClustersPropagate(const AliHLTTPCGMMerger *Merger, int slice, int lastRow, int toRow, int iTrack, bool goodLeg, AliHLTTPCGMPropagator &prop, bool inFlyDirection, float maxSinPhi)
 {
-#if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_BUILD_O2_LIB)
+#if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 	int step = toRow > lastRow ? 1 : -1;
 	float xx = fX - Merger->SliceParam().RowX[lastRow];
 	for (int iRow = lastRow + step; iRow != toRow; iRow += step)
@@ -436,7 +436,7 @@ GPUd() bool AliHLTTPCGMTrackParam::FollowCircleChk(float lrFactor, float toY, fl
 
 GPUd() int AliHLTTPCGMTrackParam::FollowCircle(const AliHLTTPCGMMerger *Merger, AliHLTTPCGMPropagator &prop, int slice, int iRow, int iTrack, bool goodLeg, float toAlpha, float toX, float toY, int toSlice, int toRow, bool inFlyDirection)
 {
-#if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_BUILD_O2_LIB)
+#if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 	const AliGPUCAParam &param = Merger->SliceParam();
 	bool right;
 	float dAlpha = toAlpha - prop.GetAlpha();
@@ -526,7 +526,7 @@ GPUd() int AliHLTTPCGMTrackParam::FollowCircle(const AliHLTTPCGMMerger *Merger, 
 
 GPUd() void AliHLTTPCGMTrackParam::AttachClustersMirror(const AliHLTTPCGMMerger* Merger, int slice, int iRow, int iTrack, float toY, AliHLTTPCGMPropagator& prop)
 {
-#if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_BUILD_O2_LIB)
+#if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 	float X = fP[2] > 0 ? fP[0] : -fP[0];
 	float toX = fP[2] > 0 ? toY : -toY;
 	float Y = fP[2] > 0 ? -fX : fX;
@@ -652,7 +652,7 @@ GPUd() bool AliHLTTPCGMTrackParam::CheckNumericalQuality(float overrideCovYY) co
 	return ok;
 }
 
-#if !defined(GPUCA_STANDALONE) & !defined(GPUCA_GPUCODE)
+#if defined(GPUCA_ALIROOT_LIB) & !defined(GPUCA_GPUCODE)
 bool AliHLTTPCGMTrackParam::GetExtParam( AliExternalTrackParam &T, double alpha ) const
 {
 	//* Convert from AliHLTTPCGMTrackParam to AliExternalTrackParam parameterisation,

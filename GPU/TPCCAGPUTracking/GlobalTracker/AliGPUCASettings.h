@@ -73,7 +73,7 @@ struct AliGPUCASettingsDeviceProcessing
 	bool globalInitMutex;						//Global mutex to synchronize initialization over multiple instances
 	bool gpuDeviceOnly;							//Use only GPU as device (i.e. no CPU for OpenCL)
 	int nDeviceHelperThreads;					//Additional CPU helper-threads for CPU parts of processing with accelerator
-	int debugLevel;								//Level of debug output
+	int debugLevel;								//Level of debug output (-1 = silent)
 	int debugMask;								//Mask for debug output dumps to file
 	int resetTimers;							//Reset timers every event
 	AliGPUCADisplayBackend* eventDisplay;		//Run event display after processing, ptr to backend

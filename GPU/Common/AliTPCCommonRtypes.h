@@ -1,7 +1,7 @@
 #ifndef ALITPCCOMMONRTYPES_H
 #define ALITPCCOMMONRTYPES_H
 
-#if defined(GPUCA_STANDALONE) || defined(__OPENCL__) || defined(GPUCA_GPULIBRARY)
+#if !defined(GPUCA_ALIROOT_LIB) || defined(GPUCA_GPULIBRARY)
 	#if !defined(ROOT_Rtypes) && !defined(__CLING__)
 		#define ClassDef(name,id)
 		#define ClassDefNV(name, id)

@@ -62,7 +62,7 @@ texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
 
 #ifdef HAVE_O2HEADERS
 #include "ITStrackingCUDA/TrackerTraitsNV.h"
-#ifndef GPUCA_BUILD_O2_LIB
+#ifndef GPUCA_O2_LIB
 #include "TrackerTraitsNV.cu"
 #include "Context.cu"
 #include "Stream.cu"
@@ -85,9 +85,6 @@ AliGPUReconstructionCUDA::AliGPUReconstructionCUDA(const AliGPUCASettingsProcess
 
 AliGPUReconstructionCUDA::~AliGPUReconstructionCUDA()
 {
-#if defined(GPUCA_STANDALONE) && !defined(GPUCA_BUILD_O2_LIB)
-	mITSTrackerTraits.release();
-#endif
 	delete mInternals;
 }
 

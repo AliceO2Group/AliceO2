@@ -1,14 +1,13 @@
 #include "AliGPUCAParam.h"
 #include "AliHLTTPCCADef.h"
 
-#if !defined(GPUCA_GPUCODE) & !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE) && defined(GPUCA_ALIROOT_LIB)
 #include "AliTPCClusterParam.h"
 #include "AliTPCcalibDB.h"
 #include <iostream>
 #endif
 
 #if !defined(GPUCA_GPUCODE)
-
 #include "AliHLTTPCCAGeometry.h"
 #include <cstring>
 
@@ -129,7 +128,7 @@ void AliGPUCAParam::SetDefaults(const AliGPUCASettingsEvent *e, const AliGPUCASe
 #endif
 
 #if !defined(GPUCA_GPUCODE)
-#if defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_ALIROOT_LIB)
 void AliGPUCAParam::LoadClusterErrors(bool Print)
 {
 }
