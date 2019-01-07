@@ -113,7 +113,8 @@ class VariableContext
   {
     mPerformedUpdates = 0;
     for (auto& element : mElements) {
-      element.value = None{};
+      ContextElement::Value v{None{}};
+      element.value.swap(v);
     }
   }
 
