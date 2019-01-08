@@ -128,30 +128,32 @@ AliGPUReconstruction::InOutMemory::~InOutMemory()
 void AliGPUReconstruction::ClearIOPointers()
 {
 	std::memset((void*) &mIOPtrs, 0, sizeof(mIOPtrs));
-	for (unsigned int i = 0;i < NSLICES;i++)
-	{
-		mIOMem.clusterData[i].reset();
-		mIOMem.rawClusters[i].reset();
-		mIOMem.sliceOutTracks[i].reset();
-		mIOMem.sliceOutClusters[i].reset();
-	}
-	for (unsigned int i = 0;i < NSLICES * GPUCA_ROW_COUNT;i++)
-	{
-		mIOMem.clustersNative[i].reset();
-	}
-	mIOMem.mcLabelsTPC.reset();
-	mIOMem.mcInfosTPC.reset();
-	mIOMem.mergedTracks.reset();
-	mIOMem.mergedTrackHits.reset();
-	mIOMem.trdTracks.reset();
-	mIOMem.trdTracklets.reset();
-	mIOMem.trdTrackletsMC.reset();
+	mIOMem.~InOutMemory();
+	new (&mIOMem) InOutMemory;
 }
 
-void AliGPUReconstruction::DumpData(const char* filename)
+void AliGPUReconstruction::AllocateIOMemory()
 {
-	FILE* fp = fopen(filename, "w+b");
-	if (fp == nullptr) return;
+	for (unsigned int i = 0; i < NSLICES; i++)
+	{
+		AllocateIOMemoryHelper(mIOPtrs.nClusterData[i], mIOPtrs.clusterData[i], mIOMem.clusterData[i]);
+		AllocateIOMemoryHelper(mIOPtrs.nRawClusters[i], mIOPtrs.rawClusters[i], mIOMem.rawClusters[i]);
+		AllocateIOMemoryHelper(mIOPtrs.nSliceOutTracks[i], mIOPtrs.sliceOutTracks[i], mIOMem.sliceOutTracks[i]);
+		AllocateIOMemoryHelper(mIOPtrs.nSliceOutClusters[i], mIOPtrs.sliceOutClusters[i], mIOMem.sliceOutClusters[i]);
+	}
+	AllocateIOMemoryHelper(mIOPtrs.nMCLabelsTPC, mIOPtrs.mcLabelsTPC, mIOMem.mcLabelsTPC);
+	AllocateIOMemoryHelper(mIOPtrs.nMCInfosTPC, mIOPtrs.mcInfosTPC, mIOMem.mcInfosTPC);
+	AllocateIOMemoryHelper(mIOPtrs.nMergedTracks, mIOPtrs.mergedTracks, mIOMem.mergedTracks);
+	AllocateIOMemoryHelper(mIOPtrs.nMergedTrackHits, mIOPtrs.mergedTrackHits, mIOMem.mergedTrackHits);
+	AllocateIOMemoryHelper(mIOPtrs.nTRDTracks, mIOPtrs.trdTracks, mIOMem.trdTracks);
+	AllocateIOMemoryHelper(mIOPtrs.nTRDTracklets, mIOPtrs.trdTracklets, mIOMem.trdTracklets);
+	AllocateIOMemoryHelper(mIOPtrs.nTRDTrackletsMC, mIOPtrs.trdTrackletsMC, mIOMem.trdTrackletsMC);
+}
+
+void AliGPUReconstruction::DumpData(const char *filename)
+{
+	FILE *fp = fopen(filename, "w+b");
+	if (fp ==nullptr) return;
 	fwrite(DUMP_HEADER, 1, DUMP_HEADER_SIZE, fp);
 	fwrite(&geometryType, sizeof(geometryType), 1, fp);
 	DumpData(fp, mIOPtrs.clusterData, mIOPtrs.nClusterData, InOutPointerType::CLUSTER_DATA);
@@ -303,24 +305,6 @@ template <class T> void AliGPUReconstruction::AllocateIOMemoryHelper(unsigned in
 	}
 	u.reset(new T[n]);
 	ptr = u.get();
-}
-
-void AliGPUReconstruction::AllocateIOMemory()
-{
-	for (unsigned int i = 0;i < NSLICES;i++)
-	{
-		AllocateIOMemoryHelper(mIOPtrs.nClusterData[i], mIOPtrs.clusterData[i], mIOMem.clusterData[i]);
-		AllocateIOMemoryHelper(mIOPtrs.nRawClusters[i], mIOPtrs.rawClusters[i], mIOMem.rawClusters[i]);
-		AllocateIOMemoryHelper(mIOPtrs.nSliceOutTracks[i], mIOPtrs.sliceOutTracks[i], mIOMem.sliceOutTracks[i]);
-		AllocateIOMemoryHelper(mIOPtrs.nSliceOutClusters[i], mIOPtrs.sliceOutClusters[i], mIOMem.sliceOutClusters[i]);
-	}
-	AllocateIOMemoryHelper(mIOPtrs.nMCLabelsTPC, mIOPtrs.mcLabelsTPC, mIOMem.mcLabelsTPC);
-	AllocateIOMemoryHelper(mIOPtrs.nMCInfosTPC, mIOPtrs.mcInfosTPC, mIOMem.mcInfosTPC);
-	AllocateIOMemoryHelper(mIOPtrs.nMergedTracks, mIOPtrs.mergedTracks, mIOMem.mergedTracks);
-	AllocateIOMemoryHelper(mIOPtrs.nMergedTrackHits, mIOPtrs.mergedTrackHits, mIOMem.mergedTrackHits);
-	AllocateIOMemoryHelper(mIOPtrs.nTRDTracks, mIOPtrs.trdTracks, mIOMem.trdTracks);
-	AllocateIOMemoryHelper(mIOPtrs.nTRDTracklets, mIOPtrs.trdTracklets, mIOMem.trdTracklets);
-	AllocateIOMemoryHelper(mIOPtrs.nTRDTrackletsMC, mIOPtrs.trdTrackletsMC, mIOMem.trdTrackletsMC);
 }
 
 template <class T> void AliGPUReconstruction::DumpFlatObjectToFile(const T* obj, const char* file)
