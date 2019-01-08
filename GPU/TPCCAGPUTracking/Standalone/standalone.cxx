@@ -162,7 +162,7 @@ int main(int argc, char** argv)
 	if (!configStandalone.eventGenerator)
 	{
 		char filename[256];
-		sprintf(filename, "events/%s/", configStandalone.EventsDir);
+		snprintf(filename, 256, "events/%s/", configStandalone.EventsDir);
 		rec->ReadSettings(filename);
 		printf("Read event settings from dir %s (solenoidBz: %f, home-made events %d, constBz %d)\n", filename, rec->GetEventSettings().solenoidBz, (int) rec->GetEventSettings().homemadeEvents, (int) rec->GetEventSettings().constBz);
 	}
@@ -241,7 +241,7 @@ int main(int argc, char** argv)
 		{
 			std::ifstream in;
 			char filename[256];
-			sprintf(filename, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, nEventsInDirectory);
+			snprintf(filename, 256, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, nEventsInDirectory);
 			in.open(filename, std::ifstream::binary);
 			if (in.fail()) break;
 			in.close();
@@ -261,7 +261,7 @@ int main(int argc, char** argv)
 	{
 		printf("Event Generator Disabled\n");
 		/*char dirname[256];
-		sprintf(dirname, "events/%s/", configStandalone.EventsDir);
+		snprintf(dirname, 256, "events/%s/", configStandalone.EventsDir);
 		mkdir(dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 		rec->DumpSettings(dirname);
 
@@ -270,7 +270,7 @@ int main(int argc, char** argv)
 		for (int i = 0;i < (configStandalone.NEvents == -1 ? 10 : configStandalone.NEvents);i++)
 		{
 			printf("Generating event %d/%d\n", i, configStandalone.NEvents == -1 ? 10 : configStandalone.NEvents);
-			sprintf(dirname, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
+			snprintf(dirname, 256, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
 			GenerateEvent(hlt.Param(), dirname); TODO!
 		}
 		FinishEventGenerator();*/
@@ -340,7 +340,7 @@ int main(int argc, char** argv)
 									eventUsed[useEvent] = 1;
 									std::ifstream in;
 									char filename[256];
-									sprintf(filename, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, useEvent);
+									snprintf(filename, 256, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, useEvent);
 									in.open(filename, std::ifstream::binary);
 									if (in.fail()) {printf("Unexpected error\n");return(1);}
 									double shift = (double) nBunch * (double) config.bunchSpacing * (double) TPCZ / (double) driftTime;
@@ -373,7 +373,7 @@ int main(int argc, char** argv)
 				else*/
 				{
 					char filename[256];
-					sprintf(filename, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
+					snprintf(filename, 256, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
 					int r = rec->ReadData(filename);
 					if (r == 0)
 					{
