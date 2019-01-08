@@ -24,7 +24,6 @@ AddOption(noBorder, bool, false, "noBorder", 0, "Do not simulate border effects 
 AddOption(noEventRepeat, int, 0, "noEventRepeat", 0, "0: Place random events, 1: Place events in timeframe one after another, 2: Place random events but do not repat", def(1))
 AddOption(nTotalInTFEvents, int, 0, "nTotal", 0, "Total number of collisions to be placed in the interior of all time frames (excluding borders)")
 AddOption(eventStride, int, 0, "eventStride", 0, "Do not select random event, but walk over array of events in stride steps")
-AddOption(dumpO2, bool, false, "dumpO2", 0, "Dump time frame for O2 in ClusterHardware format")
 AddHelp("help", 'h')
 EndConfig()
 
