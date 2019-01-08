@@ -667,13 +667,7 @@ void* AliHLTTPCCATrackerComponent::TrackerDoEvent(void* par)
   }
   
   //Prepare Output
-  AliGPUCAOutputControl outputControl;
-  outputControl.OutputType = AliGPUCAOutputControl::UseExternalBuffer;
-  outputControl.OutputPtr = (char*) outputPtr;
-  outputControl.Offset = 0;
-  outputControl.OutputMaxSize = maxBufferSize;
-  outputControl.EndOfSpace = false;
-  fRec->SetOutputControl(outputControl);
+  fRec->SetOutputControl(outputPtr, maxBufferSize);
 
   // reconstruct the event
   fBenchmark.Start(1);

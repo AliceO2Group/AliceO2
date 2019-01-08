@@ -472,10 +472,7 @@ int main(int argc, char** argv)
 				{
 					if (configStandalone.runs > 1) printf("Run %d\n", j + 1);
 
-					if (configStandalone.outputcontrolmem)
-					{
-						//hlt.SetOutputControl((char*) outputmemory, configStandalone.outputcontrolmem); TODO!
-					}
+					if (configStandalone.outputcontrolmem) rec->SetOutputControl(outputmemory, configStandalone.outputcontrolmem);
 
 					rec->SetResetTimers(j <= configStandalone.runsInit);
 					int tmpRetVal = rec->RunStandalone();

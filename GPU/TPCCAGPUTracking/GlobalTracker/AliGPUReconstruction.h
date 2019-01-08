@@ -210,6 +210,7 @@ public:
 	void LoadClusterErrors();
 	void SetResetTimers(bool reset) {mDeviceProcessingSettings.resetTimers = reset;}
 	void SetOutputControl(const AliGPUCAOutputControl& v) {mOutputControl = v;}
+	void SetOutputControl(void* ptr, size_t size);
 	AliGPUCAOutputControl& OutputControl() {return mOutputControl;}
 	const AliHLTTPCCASliceOutput** SliceOutput() const {return (const AliHLTTPCCASliceOutput**) &mSliceOutput;}
 	
