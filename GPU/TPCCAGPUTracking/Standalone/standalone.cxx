@@ -50,15 +50,16 @@
 #include "AliGPUCADisplayBackendGlut.h"
 #endif
 
-std::unique_ptr<AliGPUReconstruction> rec;
-
 //#define BROKEN_EVENTS
+
+std::unique_ptr<AliGPUReconstruction> rec;
+std::unique_ptr<char> outputmemory;
+std::unique_ptr<AliGPUCADisplayBackend> eventDisplay;
+int nEventsInDirectory = 0;
 
 int main(int argc, char** argv)
 {
-	void* outputmemory = NULL;
 	//int iEventInTimeframe = 0;
-	int nEventsInDirectory = 0;
 
 #ifdef FE_DFL_DISABLE_SSE_DENORMS_ENV //Flush and load denormals to zero in any case
 	fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
@@ -140,15 +141,7 @@ int main(int argc, char** argv)
 #else
 	configStandalone.OMPThreads = 1;
 #endif
-	if (configStandalone.outputcontrolmem)
-	{
-		outputmemory = malloc(configStandalone.outputcontrolmem);
-		if (outputmemory == 0)
-		{
-			printf("Memory allocation error\n");
-			return(1);
-		}
-	}
+	if (configStandalone.outputcontrolmem) outputmemory.reset(new char[configStandalone.outputcontrolmem]);
 
 #if !(defined(BUILD_CUDA) || defined(BUILD_OPENCL))
 	if (configStandalone.runGPU)
@@ -200,12 +193,13 @@ int main(int argc, char** argv)
 	{
 #ifdef BUILD_EVENT_DISPLAY
 #ifdef WIN32
-		if (configStandalone.eventDisplay == 1) devProc.eventDisplay = new AliGPUCADisplayBackendWindows;
+		if (configStandalone.eventDisplay == 1) eventDisplay.reset(new AliGPUCADisplayBackendWindows);
 #else
-		if (configStandalone.eventDisplay == 1) devProc.eventDisplay = new AliGPUCADisplayBackendX11;
+		if (configStandalone.eventDisplay == 1) eventDisplay.reset(new AliGPUCADisplayBackendX11);
 #endif
-		else if (configStandalone.eventDisplay == 2) devProc.eventDisplay = new AliGPUCADisplayBackendGlut;
+		else if (configStandalone.eventDisplay == 2) eventDisplay.reset(new AliGPUCADisplayBackendGlut);
 #endif
+		devProc.eventDisplay = eventDisplay.get();
 	}
 	devProc.nDeviceHelperThreads = configStandalone.helperThreads;
 	devProc.globalInitMutex = configStandalone.gpuInitMutex;
@@ -472,7 +466,7 @@ int main(int argc, char** argv)
 				{
 					if (configStandalone.runs > 1) printf("Run %d\n", j + 1);
 
-					if (configStandalone.outputcontrolmem) rec->SetOutputControl(outputmemory, configStandalone.outputcontrolmem);
+					if (configStandalone.outputcontrolmem) rec->SetOutputControl(outputmemory.get(), configStandalone.outputcontrolmem);
 
 					rec->SetResetTimers(j <= configStandalone.runsInit);
 					int tmpRetVal = rec->RunStandalone();
@@ -533,12 +527,6 @@ breakrun:
 	}
 
 	rec->Finalize();
-	if (devProc.eventDisplay) delete devProc.eventDisplay;
-
-	if (configStandalone.outputcontrolmem)
-	{
-		free(outputmemory);
-	}
 
 	if (!configStandalone.noprompt)
 	{
