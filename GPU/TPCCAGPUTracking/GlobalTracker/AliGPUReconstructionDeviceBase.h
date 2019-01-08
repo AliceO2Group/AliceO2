@@ -17,6 +17,7 @@ public:
 protected:
 	AliGPUReconstructionDeviceBase(const AliGPUCASettingsProcessing& cfg);
 	AliGPUCAConstantMem mGPUReconstructors;
+	void* fGPUMergerHostMemory = nullptr;
     
 #ifdef GPUCA_ENABLE_GPU_TRACKER
 	virtual int RunTPCTrackingSlices() override = 0;
@@ -80,7 +81,6 @@ protected:
 	void* fHostLockedMemory = nullptr; //Pointer to Base Adress of Page Locked Host Memory for DMA Transfer
 
 	void* fGPUMergerMemory = nullptr;
-	void* fGPUMergerHostMemory = nullptr;
 	unsigned long long int fGPUMergerMaxMemory = 0;
 
 	unsigned long long int fGPUMemSize = 0;	//Memory Size to allocate on GPU
