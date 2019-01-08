@@ -17,4 +17,3 @@ toSync="."
 
 rsync $rsyncFlags $toSync $remoteTgt:$tgtDir
 
-ssh $remoteTgt "cd $tgtDir; [ -d $buildDir ] || (mkdir $buildDir && cd $buildDir && cmake ..)"
