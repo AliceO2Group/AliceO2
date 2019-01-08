@@ -1595,7 +1595,7 @@ int AliGPUCADisplay::DrawGLScene(bool mixAnimation, float animateTime) // Here's
 
 	if (animate && animateScreenshot && animateTime < 0)
 	{
-		char animateScreenshotFile[32];
+		char animateScreenshotFile[48];
 		sprintf(animateScreenshotFile, "animation%d_%05d.bmp", animationExport, animationFrame);
 		DoScreenshot(animateScreenshotFile, time);
 	}

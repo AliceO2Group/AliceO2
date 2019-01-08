@@ -1123,8 +1123,8 @@ void AliGPUCAQA::GetName(char* fname, int k)
 	const int nNewInput = config.inputHistogramsOnly ? 0 : 1;
 	if (k || config.inputHistogramsOnly || config.name)
 	{
-		if (!(config.inputHistogramsOnly || k)) sprintf(fname, "%s - ", config.name);
-		else if (config.compareInputNames.size() > (unsigned) (k - nNewInput)) sprintf(fname, "%s - ", config.compareInputNames[k - nNewInput]);
+		if (!(config.inputHistogramsOnly || k)) snprintf(fname, 1024, "%s - ", config.name);
+		else if (config.compareInputNames.size() > (unsigned) (k - nNewInput)) snprintf(fname, 1024, "%s - ", config.compareInputNames[k - nNewInput]);
 		else
 		{
 			strcpy(fname, config.compareInputs[k - nNewInput]);
