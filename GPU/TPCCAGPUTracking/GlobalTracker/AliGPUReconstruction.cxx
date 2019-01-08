@@ -414,6 +414,15 @@ void AliGPUReconstruction::SetTRDGeometry(const o2::trd::TRDGeometryFlat& geo)
 	mTRDGeometry.reset(new o2::trd::TRDGeometryFlat(geo));
 }
 
+void AliGPUReconstruction::SetOutputControl(void* ptr, size_t size)
+{
+	AliGPUCAOutputControl outputControl;
+	outputControl.OutputType = AliGPUCAOutputControl::UseExternalBuffer;
+	outputControl.OutputPtr = (char*) ptr;
+	outputControl.OutputMaxSize = size;
+	SetOutputControl(outputControl);
+}
+
 int AliGPUReconstruction::RunStandalone()
 {
 	mStatNEvents++;
