@@ -130,6 +130,7 @@ void AliGPUReconstruction::ClearIOPointers()
 	std::memset((void*) &mIOPtrs, 0, sizeof(mIOPtrs));
 	mIOMem.~InOutMemory();
 	new (&mIOMem) InOutMemory;
+	std::memset((void*) &mClusterNativeAccess, 0, sizeof(mClusterNativeAccess));
 }
 
 void AliGPUReconstruction::AllocateIOMemory()
@@ -141,6 +142,11 @@ void AliGPUReconstruction::AllocateIOMemory()
 		AllocateIOMemoryHelper(mIOPtrs.nSliceOutTracks[i], mIOPtrs.sliceOutTracks[i], mIOMem.sliceOutTracks[i]);
 		AllocateIOMemoryHelper(mIOPtrs.nSliceOutClusters[i], mIOPtrs.sliceOutClusters[i], mIOMem.sliceOutClusters[i]);
 	}
+	for (unsigned int i = 0;i < NSLICES * GPUCA_ROW_COUNT;i++)
+	{
+		AllocateIOMemoryHelper((&mClusterNativeAccess->nClusters[0][0])[i], (&mClusterNativeAccess->clusters[0][0])[i], mIOMem.clustersNative[i]);
+	}
+	mIOPtrs.clustersNative = mClusterNativeAccess.get();
 	AllocateIOMemoryHelper(mIOPtrs.nMCLabelsTPC, mIOPtrs.mcLabelsTPC, mIOMem.mcLabelsTPC);
 	AllocateIOMemoryHelper(mIOPtrs.nMCInfosTPC, mIOPtrs.mcInfosTPC, mIOMem.mcInfosTPC);
 	AllocateIOMemoryHelper(mIOPtrs.nMergedTracks, mIOPtrs.mergedTracks, mIOMem.mergedTracks);
