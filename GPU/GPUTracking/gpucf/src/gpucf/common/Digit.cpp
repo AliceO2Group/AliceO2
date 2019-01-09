@@ -3,7 +3,8 @@
 #include <ostream>
 
 
-std::ostream &operator<<(std::ostream &os, const Digit &d) {
+std::ostream &operator<<(std::ostream &os, const Digit &d) 
+{
     return os << "Digit{ "
        << "charge: " << d.charge << ", "
        << "cru: " << d.cru << ", "

@@ -3,24 +3,30 @@
 #include <iostream>
 
 
-int main(int argc, const char *argv[]) {
+int main(int argc, const char *argv[]) 
+{
     args::ArgumentParser parser("Tets for args lib"); 
     args::HelpFlag help(parser, "help", "Display help menu", {'h', "help"});
     args::Flag foo(parser, "foo", "Foo Flag", {'f', "foo"});
     args::ValueFlag<int> bar(parser, "bar", "Bar Flag", {'b', "bar"});
 
-    try {
+    try 
+    {
         parser.ParseCLI(argc, argv);
-    } catch (const args::Help &) {
+    } 
+    catch (const args::Help &) 
+    {
         std::cout << parser;
         std::exit(0);
     }
 
-    if (foo) {
+    if (foo) 
+    {
         std::cout << "Foo flag set." << std::endl;
     }
 
-    if (bar) {
+    if (bar) 
+    {
         std::cout << "bar = " << args::get(bar) << std::endl;
     }
 

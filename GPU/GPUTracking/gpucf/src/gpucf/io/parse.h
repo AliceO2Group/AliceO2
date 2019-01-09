@@ -9,11 +9,13 @@
 
 #define MATCH_IMPL(str, type, name, strToType) \
     type name; \
-    do { \
+    do \
+    { \
         static std::regex re(#name "\\s*=\\s*([^,\\s]*),?"); \
         std::smatch sm; \
         bool ok = std::regex_search(str, sm, re); \
-        if (!ok) { \
+        if (!ok) \
+        { \
             return false; \
         } \
         name = strToType(sm[1]); \

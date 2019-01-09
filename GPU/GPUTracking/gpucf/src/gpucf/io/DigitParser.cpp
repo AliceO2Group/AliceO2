@@ -9,11 +9,13 @@ std::regex DigitParser::prefix = std::regex("Digit:\\s*(.*)");
 
 
 bool DigitParser::operator()(const std::string &line, 
-        std::vector<Digit> *digits) {
+        std::vector<Digit> *digits) 
+{
     std::smatch sm; 
     bool isDigit = std::regex_match(line, sm, prefix);
 
-    if (!isDigit) {
+    if (!isDigit) 
+    {
         return true;
     }
     ASSERT(sm.size() == 2);

@@ -3,7 +3,8 @@
 #include <iosfwd>
 
 
-struct Digit {
+struct Digit 
+{
     float charge;
     int cru;
     int row;

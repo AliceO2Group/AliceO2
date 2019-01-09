@@ -4,11 +4,13 @@
 #include <gpucf/log.h>
 
 
-void ClCanary::setupFlags(args::ArgumentParser &parser) {
+void ClCanary::setupFlags(args::ArgumentParser &parser) 
+{
     envFlags = std::make_unique<ClEnv::Flags>(parser); 
 }
 
-int ClCanary::mainImpl() {
+int ClCanary::mainImpl() 
+{
     ASSERT(envFlags != nullptr);
 
     ClEnv env(*envFlags);
@@ -16,7 +18,8 @@ int ClCanary::mainImpl() {
 
     bool ok = canary.run(env);
 
-    if (!ok) {
+    if (!ok) 
+    {
         log::Info() << "OpenCL not working as expected.";
         return 1;
     }

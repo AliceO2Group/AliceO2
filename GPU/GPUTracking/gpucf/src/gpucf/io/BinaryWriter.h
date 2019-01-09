@@ -5,15 +5,18 @@
 #include <fstream>
 
 
-class BinaryWriter {
+class BinaryWriter 
+{
     
 public:
     BinaryWriter(const std::string &fName) 
         : file(fName, std::ios::out | std::ios::binary)
-    {}
+    {
+    }
         
     template<typename T>
-    void write(const std::vector<T> &data) {
+    void write(const std::vector<T> &data) 
+    {
         
         size_t bytes = sizeof(T) * data.size();
         

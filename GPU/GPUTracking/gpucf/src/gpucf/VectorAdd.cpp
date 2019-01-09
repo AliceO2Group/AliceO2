@@ -7,19 +7,22 @@
 namespace fs = filesystem;
 
 
-VectorAdd::VectorAdd() {
+VectorAdd::VectorAdd() 
+{
     ASSERT(a.size() == N);
     ASSERT(b.size() == N);
     ASSERT(c.size() == N);
 
-    for (size_t i = 0; i < N; i++) {
+    for (size_t i = 0; i < N; i++) 
+    {
         a[i] = i;
     }
 
     b = a;
 }
 
-bool VectorAdd::run(ClEnv &env) {
+bool VectorAdd::run(ClEnv &env) 
+{
 
     cl::Context context = env.getContext();
     cl::Device device = env.getDevice();
@@ -48,8 +51,10 @@ bool VectorAdd::run(ClEnv &env) {
 
     queue.enqueueReadBuffer(bufC, CL_TRUE, 0, datasize, c.data());
 
-    for (size_t i = 0; i < N; i++) {
-        if (c[i] != a[i] + b[i]) {
+    for (size_t i = 0; i < N; i++) 
+    {
+        if (c[i] != a[i] + b[i]) 
+        {
             return false;
         }
     }

@@ -7,7 +7,8 @@
 #include <vector>
 
 
-class DigitParser {
+class DigitParser 
+{
     
 public:
     
