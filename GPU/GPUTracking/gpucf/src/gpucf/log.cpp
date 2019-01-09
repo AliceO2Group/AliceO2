@@ -1,19 +1,23 @@
 #include "log.h"
 
-namespace log {
+namespace log 
+{
 
-    const char *levelToStr(Level lvl) {
-        switch (lvl) {
-        case Level::Debug: return "[Debug]";
-        case Level::Info:  return "[Info ]";
-        case Level::Error: return "[Error]";
-        }
-        return "";
+const char *levelToStr(Level lvl) 
+{
+    switch (lvl) 
+    {
+    case Level::Debug: return "[Debug]";
+    case Level::Info:  return "[Info ]";
+    case Level::Error: return "[Error]";
     }
+    return "";
+}
 
-    std::ostream &operator<<(std::ostream &o, Level lvl) {
-        return o << levelToStr(lvl);
-    }
+std::ostream &operator<<(std::ostream &o, Level lvl) 
+{
+    return o << levelToStr(lvl);
+}
     
 } // namespace log
 
