@@ -3,6 +3,8 @@
 #include "AliHLTArray.h"
 #include "AliHLTTPCCADef.h"
 #include "AliGPUCAQA.h"
+#include "AliGPUCADisplayBackend.h"
+#include "ClusterNativeAccessExt.h"
 
 #include <iostream>
 #include <fstream>

@@ -84,7 +84,7 @@ endif
 
 ifeq ($(LINK_ROOT), 0)
 ifneq ($(CONFIG_O2DIR), )
-$(warning Cannot use O2DIR without QA)
+$(warning Cannot use O2DIR without ROOT)
 CONFIG_O2DIR =
 endif
 ifeq ($(BUILD_QA), 1)
@@ -95,7 +95,7 @@ endif
 
 ifeq ($(CONFIG_O2DIR), )
 ifeq ($(CONFIG_O2), 1)
-$(warning Cannot build v.s. O2 wihout O2 dir)
+$(warning Cannot build for O2 geometry wihout O2 dir)
 CONFIG_O2 = 0
 endif
 endif
