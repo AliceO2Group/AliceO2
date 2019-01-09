@@ -104,6 +104,16 @@ int AliGPUReconstruction::Init()
 	}
 	mTPCMergerCPU.Initialize(this);
 	if (InitDevice()) return 1;
+	
+	if (AliGPUCAQA::QAAvailable() && (mDeviceProcessingSettings.runQA || mDeviceProcessingSettings.eventDisplay))
+	{
+		mQA.reset(new AliGPUCAQA(this));
+	}
+	if (mDeviceProcessingSettings.eventDisplay)
+	{
+		mEventDisplay.reset(new AliGPUCADisplay(mDeviceProcessingSettings.eventDisplay, this, mQA.get()));
+	}
+
 	mInitialized = true;
 	return 0;
 }
@@ -119,18 +129,17 @@ int AliGPUReconstruction::Finalize()
 int AliGPUReconstruction::InitDevice() {return 0;}
 int AliGPUReconstruction::ExitDevice() {return 0;}
 
-AliGPUReconstruction::InOutMemory::InOutMemory()
-{}
-	
-AliGPUReconstruction::InOutMemory::~InOutMemory()
-{}
+AliGPUReconstruction::InOutMemory::InOutMemory() = default;
+AliGPUReconstruction::InOutMemory::~InOutMemory() = default;
+AliGPUReconstruction::InOutMemory::InOutMemory(AliGPUReconstruction::InOutMemory&&) = default;
+AliGPUReconstruction::InOutMemory& AliGPUReconstruction::InOutMemory::operator=(AliGPUReconstruction::InOutMemory&&) = default;
 
 void AliGPUReconstruction::ClearIOPointers()
 {
 	std::memset((void*) &mIOPtrs, 0, sizeof(mIOPtrs));
 	mIOMem.~InOutMemory();
 	new (&mIOMem) InOutMemory;
-	std::memset((void*) &mClusterNativeAccess, 0, sizeof(mClusterNativeAccess));
+	std::memset((void*) mClusterNativeAccess.get(), 0, sizeof(*mClusterNativeAccess));
 }
 
 void AliGPUReconstruction::AllocateIOMemory()
@@ -267,7 +276,7 @@ template <class T> size_t AliGPUReconstruction::ReadData(FILE* fp, const T** ent
 		numTotal += num[i];
 	}
 	(void) r;
-	printf("Read %d %s\n", (int) numTotal, IOTYPENAMES[type]);
+	if (mDeviceProcessingSettings.debugLevel >= 2) printf("Read %d %s\n", (int) numTotal, IOTYPENAMES[type]);
 	return numTotal;
 }
 
@@ -336,7 +345,7 @@ template <class T> std::unique_ptr<T> AliGPUReconstruction::ReadFlatObjectFromFi
 	r = fread((void*) retVal.get(), 1, size[0], fp);
 	r = fread(buf.get(), 1, size[1], fp);
 	fclose(fp);
-	printf("Read %d bytes from %s\n", (int) r, file);
+	if (mDeviceProcessingSettings.debugLevel >= 2) printf("Read %d bytes from %s\n", (int) r, file);
 	retVal->clearInternalBufferUniquePtr();
 	retVal->setActualBufferAddress(buf.get());
 	retVal->adoptInternalBuffer(std::move(buf));
@@ -363,7 +372,7 @@ template <class T> std::unique_ptr<T> AliGPUReconstruction::ReadStructFromFile(c
 	std::unique_ptr<T> newObj(new T);
 	r = fread(newObj.get(), 1, size, fp);
 	fclose(fp);
-	printf("Read %d bytes from %s\n", (int) r, file);
+	if (mDeviceProcessingSettings.debugLevel >= 2) printf("Read %d bytes from %s\n", (int) r, file);
 	return std::move(newObj);
 }
 
@@ -376,7 +385,7 @@ template <class T> void AliGPUReconstruction::ReadStructFromFile(const char* fil
 	if (r == 0) {fclose(fp); return;}
 	r = fread(obj, 1, size, fp);
 	fclose(fp);
-	printf("Read %d bytes from %s\n", (int) r, file);
+	if (mDeviceProcessingSettings.debugLevel >= 2) printf("Read %d bytes from %s\n", (int) r, file);
 }
 
 void AliGPUReconstruction::ConvertNativeToClusterData()
@@ -434,10 +443,10 @@ int AliGPUReconstruction::RunStandalone()
 	mStatNEvents++;
 	
 	const bool needQA = AliGPUCAQA::QAAvailable() && (mDeviceProcessingSettings.runQA || (mDeviceProcessingSettings.eventDisplay && mIOPtrs.nMCInfosTPC));
-	if (needQA && mQA == nullptr)
+	if (needQA && mQAInitialized == false)
 	{
-		mQA.reset(new AliGPUCAQA(this));
 		if (mQA->InitQA()) return 1;
+		mQAInitialized = true;
 	}
 	
 	static HighResTimer timerTracking, timerMerger, timerQA;
@@ -512,10 +521,10 @@ int AliGPUReconstruction::RunStandalone()
 
 	if (mDeviceProcessingSettings.eventDisplay)
 	{
-		if (mEventDisplay == nullptr)
+		if (!mDisplayRunning)
 		{
-			mEventDisplay.reset(new AliGPUCADisplay(mDeviceProcessingSettings.eventDisplay, this, mQA.get()));
 			mDeviceProcessingSettings.eventDisplay->StartDisplay();
+			mDisplayRunning = true;
 		}
 		else
 		{
@@ -543,6 +552,7 @@ int AliGPUReconstruction::RunStandalone()
 		} while (mDeviceProcessingSettings.eventDisplay->displayControl == 0);
 		if (mDeviceProcessingSettings.eventDisplay->displayControl == 2)
 		{
+			mDisplayRunning = false;
 			mDeviceProcessingSettings.eventDisplay->DisplayExit();
 			return (2);
 		}
@@ -790,8 +800,7 @@ std::shared_ptr<AliGPUReconstruction::LibraryLoader> AliGPUReconstruction::sLibH
 std::shared_ptr<AliGPUReconstruction::LibraryLoader> AliGPUReconstruction::sLibOCL(new AliGPUReconstruction::LibraryLoader("lib" LIBRARY_PREFIX "TPCCAGPUTracking" "OCL" LIBRARY_EXTENSION, "AliGPUReconstruction_Create_" "OCL"));
 
 AliGPUReconstruction::LibraryLoader::LibraryLoader(const char* lib, const char* func) : mLibName(lib), mFuncName(func), mGPULib(nullptr), mGPUEntry(nullptr)
-{
-}
+{}
 
 AliGPUReconstruction::LibraryLoader::~LibraryLoader()
 {

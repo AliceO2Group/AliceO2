@@ -27,10 +27,9 @@ endif
 
 #GCC Compiler Options
 GCCFLAGSOPT						= -O3 $(GCCFLAGSARCH) -fweb -frename-registers -minline-all-stringops -mfpmath=sse -ftracer -funroll-loops -fpeel-loops -fprefetch-loop-arrays -ffast-math -fno-stack-protector
+GCCFLAGSDBG						= -O0
 CLANGFLAGSOPT					= -O3 $(GCCFLAGSARCH) -minline-all-stringops -mfpmath=sse -funroll-loops -ffast-math -fno-stack-protector $(EXTRAFLAGSCLANG)
 CLANGFLAGSDBG					= $(GCCFLAGSDBG) $(EXTRAFLAGSCLANG)
-#-fgcse-sm -fgcse-las -fmodulo-sched -fipa-pta -floop-interchange -floop-block
-GCCFLAGSDBG						= -O0 $(GCCFLAGSARCH)
 GCCWARNINGS						= -Wall -Wextra -Wshadow -Wno-unused-function -Wno-unused-parameter -Wno-unused-local-typedefs -Wno-write-strings
 GCCFLAGSCOMMON					= $(MULTITHREADGCC) -pipe -DGCC_RUNTIME $(GCCPROF) $(GCCWARNINGS) $(EXTRAFLAGSGCC)
 CLANGFLAGSCOMMON				= $(MULTITHREADGCC) -pipe -DGCC_RUNTIME -DCLANG_RUNTIME $(GCCPROF) $(GCCWARNINGS) $(EXTRAFLAGSGCC)

@@ -1,5 +1,6 @@
 #include "cmodules/qconfig.h"
 #include "AliGPUReconstruction.h"
+#include "AliGPUReconstructionTimeframe.h"
 #include "AliHLTArray.h"
 #include "AliHLTTPCCADef.h"
 #include "AliGPUCAQA.h"
@@ -13,7 +14,6 @@
 #include <chrono>
 #include <tuple>
 #include <algorithm>
-#include <random>
 #ifdef GPUCA_HAVE_OPENMP
 #include <omp.h>
 #endif
@@ -57,24 +57,26 @@
 std::unique_ptr<AliGPUReconstruction> rec;
 std::unique_ptr<char> outputmemory;
 std::unique_ptr<AliGPUCADisplayBackend> eventDisplay;
+std::unique_ptr<AliGPUReconstructionTimeframe> tf;
 int nEventsInDirectory = 0;
 
-int main(int argc, char** argv)
+void SetCPUAndOSSettings()
 {
-	//int iEventInTimeframe = 0;
+	#ifdef FE_DFL_DISABLE_SSE_DENORMS_ENV //Flush and load denormals to zero in any case
+		fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
+	#else
+	#ifndef _MM_FLUSH_ZERO_ON
+	#define _MM_FLUSH_ZERO_ON 0x8000
+	#endif
+	#ifndef _MM_DENORMALS_ZERO_ON
+	#define _MM_DENORMALS_ZERO_ON 0x0040
+	#endif
+		_mm_setcsr(_mm_getcsr() | (_MM_FLUSH_ZERO_ON | _MM_DENORMALS_ZERO_ON));
+	#endif
+}
 
-#ifdef FE_DFL_DISABLE_SSE_DENORMS_ENV //Flush and load denormals to zero in any case
-	fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
-#else
-#ifndef _MM_FLUSH_ZERO_ON
-#define _MM_FLUSH_ZERO_ON 0x8000
-#endif
-#ifndef _MM_DENORMALS_ZERO_ON
-#define _MM_DENORMALS_ZERO_ON 0x0040
-#endif
-	_mm_setcsr(_mm_getcsr() | (_MM_FLUSH_ZERO_ON | _MM_DENORMALS_ZERO_ON));
-#endif
-
+int ReadConfiguration(int argc, char** argv)
+{
 	int qcRet = qConfigParse(argc, (const char**) argv);
 	if (qcRet)
 	{
@@ -153,7 +155,11 @@ int main(int argc, char** argv)
 		return(1);
 	}
 #endif
+	return(0);
+}
 
+int SetupReconstruction()
+{
 	rec.reset(AliGPUReconstruction::CreateInstance(configStandalone.runGPU ? configStandalone.gpuType : AliGPUReconstruction::DEVICE_TYPE_NAMES[AliGPUReconstruction::DeviceType::CPU], configStandalone.runGPUforce));
 	if (rec == nullptr)
 	{
@@ -166,7 +172,8 @@ int main(int argc, char** argv)
 		char filename[256];
 		snprintf(filename, 256, "events/%s/", configStandalone.EventsDir);
 		rec->ReadSettings(filename);
-		printf("Read event settings from dir %s (solenoidBz: %f, home-made events %d, constBz %d)\n", filename, rec->GetEventSettings().solenoidBz, (int) rec->GetEventSettings().homemadeEvents, (int) rec->GetEventSettings().constBz);
+		printf("Read event settings from dir %s (solenoidBz: %f, home-made events %d, constBz %d, maxTimeBin %d)\n", filename,
+			rec->GetEventSettings().solenoidBz, (int) rec->GetEventSettings().homemadeEvents, (int) rec->GetEventSettings().constBz, rec->GetEventSettings().continuousMaxTimeBin);
 	}
 	
 	AliGPUCASettingsEvent ev = rec->GetEventSettings();
@@ -177,6 +184,11 @@ int main(int argc, char** argv)
 	if (configStandalone.solenoidBz != -1e6f) ev.solenoidBz = configStandalone.solenoidBz;
 	if (configStandalone.constBz) ev.constBz = true;
 	if (configStandalone.cont) ev.continuousMaxTimeBin = -1;
+	if (ev.continuousMaxTimeBin == 0 && (configStandalone.configTF.nMerge || configStandalone.configTF.bunchSim))
+	{
+		printf("Continuous mode forced\n");
+		ev.continuousMaxTimeBin = -1;
+	}
 	if (rec->GetDeviceType() == AliGPUReconstruction::DeviceType::CPU) printf("Standalone Test Framework for CA Tracker - Using CPU\n");
 	else printf("Standalone Test Framework for CA Tracker - Using GPU\n");
 
@@ -213,6 +225,26 @@ int main(int argc, char** argv)
 		printf("Error initializing AliGPUReconstruction!\n");
 		return 1;
 	}
+	return(0);
+}
+
+int ReadEvent(int n)
+{
+	char filename[256];
+	snprintf(filename, 256, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, n);
+	int r = rec->ReadData(filename);
+	if (r) return r;
+	if (rec->mIOPtrs.clustersNative) rec->ConvertNativeToClusterData();
+	return 0;
+}
+
+int main(int argc, char** argv)
+{
+	SetCPUAndOSSettings();
+
+	if (ReadConfiguration(argc, argv)) return(1);
+
+	if (SetupReconstruction()) return(1);
 
 	//hlt.SetRunMerger(configStandalone.merger);
 
@@ -220,43 +252,24 @@ int main(int argc, char** argv)
 	{
 		std::random_device rd;
 		configStandalone.seed = (int) rd();
-		printf("Using seed %d\n", configStandalone.seed);
+		printf("Using random seed %d\n", configStandalone.seed);
 	}
 
 	srand(configStandalone.seed);
-	std::uniform_real_distribution<double> disUniReal(0., 1.);
-	std::uniform_int_distribution<unsigned long long int> disUniInt;
-	std::mt19937_64 rndGen1(configStandalone.seed);
-	std::mt19937_64 rndGen2(disUniInt(rndGen1));
-
-	int trainDist = 0;
-	float collisionProbability = 0.;
-	const int orbitRate = 11245;
-	//const int driftTime = 93000;
-	//const int TPCZ = 250;
-	const int timeOrbit = 1000000000 / orbitRate;
-	const int maxBunchesFull = timeOrbit / configStandalone.configTF.bunchSpacing;
-	const int maxBunches = (timeOrbit - configStandalone.configTF.abortGapTime) / configStandalone.configTF.bunchSpacing;
-	if (configStandalone.configTF.bunchSim)
+	
+	for (nEventsInDirectory = 0;true;nEventsInDirectory++)
 	{
-		for (nEventsInDirectory = 0;true;nEventsInDirectory++)
-		{
-			std::ifstream in;
-			char filename[256];
-			snprintf(filename, 256, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, nEventsInDirectory);
-			in.open(filename, std::ifstream::binary);
-			if (in.fail()) break;
-			in.close();
-		}
-		if (configStandalone.configTF.bunchCount * configStandalone.configTF.bunchTrainCount > maxBunches)
-		{
-			printf("Invalid timeframe settings: too many colliding bunches requested!\n");
-			return(1);
-		}
-		trainDist = maxBunches / configStandalone.configTF.bunchTrainCount;
-		collisionProbability = (float) configStandalone.configTF.interactionRate * (float) (maxBunchesFull * configStandalone.configTF.bunchSpacing / 1e9f) / (float) (configStandalone.configTF.bunchCount * configStandalone.configTF.bunchTrainCount);
-		printf("Timeframe settings: %d trains of %d bunches, bunch spacing: %d, train spacing: %dx%d, filled bunches %d / %d (%d), collision probability %f, mixing %d events\n",
-			configStandalone.configTF.bunchTrainCount, configStandalone.configTF.bunchCount, configStandalone.configTF.bunchSpacing, trainDist, configStandalone.configTF.bunchSpacing, configStandalone.configTF.bunchCount * configStandalone.configTF.bunchTrainCount, maxBunches, maxBunchesFull, collisionProbability, nEventsInDirectory);
+		std::ifstream in;
+		char filename[256];
+		snprintf(filename, 256, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, nEventsInDirectory);
+		in.open(filename, std::ifstream::binary);
+		if (in.fail()) break;
+		in.close();
+	}
+	
+	if (configStandalone.configTF.bunchSim || configStandalone.configTF.nMerge)
+	{
+		tf.reset(new AliGPUReconstructionTimeframe(rec.get(), ReadEvent, nEventsInDirectory));
 	}
 
 	if (configStandalone.eventGenerator)
@@ -280,186 +293,45 @@ int main(int argc, char** argv)
 	}
 	else
 	{
-		if (1 || configStandalone.eventDisplay || configStandalone.qa) configStandalone.resetids = true; //Force resetting of IDs in standalone mode for the time being, otherwise late cluster attachment in the merger cannot work with the forced cluster ids in the merger.
+		int nEvents = configStandalone.NEvents;
+		if (configStandalone.configTF.bunchSim)
+		{
+			nEvents = configStandalone.NEvents > 0 ? configStandalone.NEvents : 1;
+		}
+		else
+		{
+			if (nEvents == -1 || nEvents > nEventsInDirectory)
+			{
+				if (nEvents >= 0) printf("Only %d events available in directors %s (%d events requested)\n", nEventsInDirectory, configStandalone.EventsDir, nEvents);
+				nEvents = nEventsInDirectory;
+			}
+			nEvents /= (configStandalone.configTF.nMerge > 1 ? configStandalone.configTF.nMerge : 1);
+		}
+
 		for (int jj = 0;jj < configStandalone.runs2;jj++)
 		{
-			auto& config = configStandalone.configTF;
 			if (configStandalone.configQA.inputHistogramsOnly) break;
 			if (configStandalone.runs2 > 1) printf("RUN2: %d\n", jj);
-			int nEventsProcessed = 0;
 			long long int nTracksTotal = 0;
 			long long int nClustersTotal = 0;
-			int nTotalCollisions = 0;
-			//long long int eventStride = configStandalone.seed;
-			//int simBunchNoRepeatEvent = configStandalone.StartEvent;
-			std::vector<char> eventUsed(nEventsInDirectory);
-			if (config.noEventRepeat == 2) memset(eventUsed.data(), 0, nEventsInDirectory * sizeof(eventUsed[0]));
+			int nEventsProcessed = 0;
 
-			for (int i = configStandalone.StartEvent;i < configStandalone.NEvents || configStandalone.NEvents == -1;i++)
+			for (int i = configStandalone.StartEvent;i < nEvents;i++)
 			{
-				if (config.nTotalInTFEvents && nTotalCollisions >= config.nTotalInTFEvents) break;
 				if (i != configStandalone.StartEvent) printf("\n");
 				HighResTimer timerLoad;
 				timerLoad.Start();
-				/*if (config.bunchSim) TODO!
+				if (configStandalone.configTF.bunchSim)
 				{
-					hlt.StartDataReading(0);
-					long long int nBunch = -driftTime / config.bunchSpacing;
-					long long int lastBunch = config.timeFrameLen / config.bunchSpacing;
-					long long int lastTFBunch = lastBunch - driftTime / config.bunchSpacing;
-					int nCollisions = 0, nBorderCollisions = 0, nTrainCollissions = 0, nMultipleCollisions = 0, nTrainMultipleCollisions = 0;
-					int nTrain = 0;
-					int mcMin = -1, mcMax = -1;
-					while (nBunch < lastBunch)
-					{
-						for (int iTrain = 0;iTrain < config.bunchTrainCount && nBunch < lastBunch;iTrain++)
-						{
-							int nCollisionsInTrain = 0;
-							for (int iBunch = 0;iBunch < config.bunchCount && nBunch < lastBunch;iBunch++)
-							{
-								const bool inTF = nBunch >= 0 && nBunch < lastTFBunch && (config.nTotalInTFEvents == 0 || nCollisions < nTotalCollisions + config.nTotalInTFEvents);
-								if (mcMin == -1 && inTF) mcMin = hlt.GetNMCInfo();
-								if (mcMax == -1 && nBunch >= 0 && !inTF) mcMax = hlt.GetNMCInfo();
-								int nInBunchPileUp = 0;
-								double randVal = disUniReal(inTF ? rndGen2 : rndGen1);
-								double p = exp(-collisionProbability);
-								double p2 = p;
-								while (randVal > p)
-								{
-									if (config.noBorder && (nBunch < 0 || nBunch >= lastTFBunch)) break;
-									if (nCollisionsInTrain >= nEventsInDirectory)
-									{
-										printf("Error: insuffient events for mixing!\n");
-										return(1);
-									}
-									if (nCollisionsInTrain == 0 && config.noEventRepeat == 0) memset(eventUsed.data(), 0, nEventsInDirectory * sizeof(eventUsed[0]));
-									if (inTF) nCollisions++;
-									else nBorderCollisions++;
-									int useEvent;
-									if (config.noEventRepeat == 1) useEvent = simBunchNoRepeatEvent;
-									else while (eventUsed[useEvent = (inTF && config.eventStride ? (eventStride += config.eventStride) : disUniInt(inTF ? rndGen2 : rndGen1)) % nEventsInDirectory]);
-									if (config.noEventRepeat) simBunchNoRepeatEvent++;
-									eventUsed[useEvent] = 1;
-									std::ifstream in;
-									char filename[256];
-									snprintf(filename, 256, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, useEvent);
-									in.open(filename, std::ifstream::binary);
-									if (in.fail()) {printf("Unexpected error\n");return(1);}
-									double shift = (double) nBunch * (double) config.bunchSpacing * (double) TPCZ / (double) driftTime;
-									int nClusters = hlt.ReadEvent(in, true, true, shift, 0, (double) config.timeFrameLen * TPCZ / driftTime, true, configStandalone.qa || configStandalone.eventDisplay);
-									printf("Placing event %4d+%d (ID %4d) at z %7.3f (time %'dns) %s(collisions %4d, bunch %6lld, train %3d) (%'10d clusters, %'10d MC labels, %'10d track MC info)\n", nCollisions, nBorderCollisions, useEvent, shift, (int) (nBunch * config.bunchSpacing), inTF ? " inside" : "outside", nCollisions, nBunch, nTrain, nClusters, hlt.GetNMCLabels(), hlt.GetNMCInfo());
-									in.close();
-									nInBunchPileUp++;
-									nCollisionsInTrain++;
-									p2 *= collisionProbability / nInBunchPileUp;
-									p += p2;
-									if (config.noEventRepeat && simBunchNoRepeatEvent >= nEventsInDirectory) nBunch = lastBunch;
-									for (int sl = 0;sl < 36;sl++) SetCollisionFirstCluster(nCollisions + nBorderCollisions - 1, sl, hlt.ClusterData(sl).NumberOfClusters());
-									SetCollisionFirstCluster(nCollisions + nBorderCollisions - 1, 36, hlt.GetNMCInfo());
-								}
-								if (nInBunchPileUp > 1) nMultipleCollisions++;
-								nBunch++;
-							}
-							nBunch += trainDist - config.bunchCount;
-							if (nCollisionsInTrain) nTrainCollissions++;
-							if (nCollisionsInTrain > 1) nTrainMultipleCollisions++;
-							nTrain++;
-						}
-						nBunch += maxBunchesFull - trainDist * config.bunchTrainCount;
-					}
-					nTotalCollisions += nCollisions;
-					printf("Timeframe statistics: collisions: %d+%d in %d trains (inside / outside), average rate %f (pile up: in bunch %d, in train %d)\n", nCollisions, nBorderCollisions, nTrainCollissions, (float) nCollisions / (float) (config.timeFrameLen - driftTime) * 1e9, nMultipleCollisions, nTrainMultipleCollisions);
-
-					if (!config.noBorder) SetMCTrackRange(mcMin, mcMax);
+					if (tf->LoadCreateTimeFrame(i)) break;
 				}
-				else*/
+				else if (configStandalone.configTF.nMerge)
 				{
-					char filename[256];
-					snprintf(filename, 256, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
-					int r = rec->ReadData(filename);
-					if (r == 0)
-					{
-						printf("Event loaded with new format\n");
-						//hlt.ResetMC(); TODO!
-						if (rec->mIOPtrs.clustersNative) rec->ConvertNativeToClusterData();
-					}
-					else if (r == -1)
-					{
-						/* TODO!
-#ifdef GPUCA_TPC_GEOMETRY_O2
-						printf("Not attempting old format for O2\n");
-						break;
-#endif
-						printf("Attempting old format\n");
-						std::ifstream in;
-						in.open(filename, std::ifstream::binary);
-						if (in.fail())
-						{
-							if (i && configStandalone.NEvents == -1) break;
-							printf("Error opening file %s\n", filename);
-							getchar();
-							return(1);
-						}
-						printf("Loading Event %d\n", i);
-
-						float shift;
-						if (config.nMerge && (config.shiftFirstEvent || iEventInTimeframe))
-						{
-							if (config.randomizeDistance)
-							{
-								shift = disUniReal(rndGen2);
-								if (config.shiftFirstEvent)
-								{
-									if (iEventInTimeframe == 0) shift = shift * config.averageDistance;
-									else shift = (iEventInTimeframe + shift) * config.averageDistance;
-								}
-								else
-								{
-									if (iEventInTimeframe == 0) shift = 0;
-									else shift = (iEventInTimeframe - 0.5 + shift) * config.averageDistance;
-								}
-							}
-							else
-							{
-								if (config.shiftFirstEvent)
-								{
-									shift = config.averageDistance * (iEventInTimeframe + 0.5);
-								}
-								else
-								{
-									shift = config.averageDistance * (iEventInTimeframe);
-								}
-							}
-						}
-						else
-						{
-							shift = 0.;
-						}
-
-						hlt.ReadEvent(in, configStandalone.resetids, config.nMerge > 0, shift);
-						in.close();
-
-						for (int sl = 0;sl < 36;sl++) SetCollisionFirstCluster(iEventInTimeframe, sl, hlt.ClusterData(sl).NumberOfClusters());
-						SetCollisionFirstCluster(iEventInTimeframe, 36, hlt.GetNMCInfo());
-
-						if (config.nMerge)
-						{
-							iEventInTimeframe++;
-							if (iEventInTimeframe == config.nMerge || i == configStandalone.NEvents - 1)
-							{
-								iEventInTimeframe = 0;
-							}
-							else
-							{
-								continue;
-							}
-						}*/
-					}
-					else
-					{
-						if (i && configStandalone.NEvents == -1) break;
-						return(1);
-					}
+					if (tf->LoadMergedEvents(i)) break;
+				}
+				else
+				{
+					if (ReadEvent(i)) break;
 				}
 				printf("Loading time: %'d us\n", (int) (1000000 * timerLoad.GetCurrentElapsedTime()));
 
@@ -467,10 +339,9 @@ int main(int argc, char** argv)
 				for (int j = 0;j < configStandalone.runs;j++)
 				{
 					if (configStandalone.runs > 1) printf("Run %d\n", j + 1);
-
 					if (configStandalone.outputcontrolmem) rec->SetOutputControl(outputmemory.get(), configStandalone.outputcontrolmem);
-
 					rec->SetResetTimers(j <= configStandalone.runsInit);
+					
 					int tmpRetVal = rec->RunStandalone();
 					if (configStandalone.configRec.runTRD)
 					{
