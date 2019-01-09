@@ -4,8 +4,6 @@
 #include <sstream>
 #include <vector>
 
-#include "errorcodes.h"
-
 
 namespace log 
 {

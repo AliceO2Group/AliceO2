@@ -23,4 +23,5 @@ link_directories(${OpenCL_LIBRARY})
 
 include_directories(src)
 include_directories(external)
+include_directories(cl)
 add_subdirectory(src)
