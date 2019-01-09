@@ -28,7 +28,7 @@ class AliHLTTPCGMPropagator
 {
   public:
 	/// Enumeration of field regions
-	enum FieldRegion : int
+	enum FieldRegion
 	{
 		TPC = 0, ///< TPC
 		TRD = 1, ///< outer TPC -> outer TRD
