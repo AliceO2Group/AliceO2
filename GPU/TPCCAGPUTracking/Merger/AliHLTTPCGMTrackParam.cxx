@@ -69,14 +69,14 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger *merger, int iTrk
 	unsigned char lastRow = 255;
 	unsigned char lastSlice = 255;
 
-	for (int iWay = 0; iWay < nWays; iWay++)
+	for (int iWay = 0;iWay < nWays;iWay++)
 	{
 		int nMissed = 0, nMissed2 = 0;
 		if (iWay && param.rec.NWaysOuter && iWay == nWays - 1 && outerParam)
 		{
-			for (int i = 0; i < 5; i++) outerParam->fP[i] = fP[i];
+			for (int i = 0;i < 5;i++) outerParam->fP[i] = fP[i];
 			outerParam->fP[1] += fZOffset;
-			for (int i = 0; i < 15; i++) outerParam->fC[i] = fC[i];
+			for (int i = 0;i < 15;i++) outerParam->fC[i] = fC[i];
 			outerParam->fX = fX;
 			outerParam->fAlpha = prop.GetAlpha();
 		}
@@ -381,13 +381,13 @@ GPUd() void AliHLTTPCGMTrackParam::AttachClusters(const AliHLTTPCGMMerger *Merge
 	row.Grid().GetBinArea(Y, Z + fZOffset, tube, tube, bin, ny, nz);
 	float sy2 = tube * tube, sz2 = tube * tube;
 
-	for (int k = 0; k <= nz; k++)
+	for (int k = 0;k <= nz;k++)
 	{
 		int nBinsY = row.Grid().Ny();
 		int mybin = bin + k * nBinsY;
 		unsigned int hitFst = TEXTUREFetchCons(calink, gAliTexRefu, firsthit, mybin);
 		unsigned int hitLst = TEXTUREFetchCons(calink, gAliTexRefu, firsthit, mybin + ny + 1);
-		for (unsigned int ih = hitFst; ih < hitLst; ih++)
+		for (unsigned int ih = hitFst;ih < hitLst;ih++)
 		{
 			assert((signed) ih < row.NHits());
 			cahit2 hh = TEXTUREFetchCons(cahit2, gAliTexRefu2, hits, ih);
@@ -415,7 +415,7 @@ GPUd() void AliHLTTPCGMTrackParam::AttachClustersPropagate(const AliHLTTPCGMMerg
 #if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 	int step = toRow > lastRow ? 1 : -1;
 	float xx = fX - Merger->SliceParam().RowX[lastRow];
-	for (int iRow = lastRow + step; iRow != toRow; iRow += step)
+	for (int iRow = lastRow + step;iRow != toRow;iRow += step)
 	{
 		if (fabs(fP[2]) > maxSinPhi) return;
 		if (fabs(fX) > fabs(fP[0]) * tanf(kSectAngle / 2.f)) return;
@@ -469,7 +469,7 @@ GPUd() int AliHLTTPCGMTrackParam::FollowCircle(const AliHLTTPCGMMerger *Merger, 
 			}
 			CADEBUG(printf("Propagated to y = %f: X %f Z %f SinPhi %f\n", fX, fP[0], fP[1], fP[2]);)
 			int found = 0;
-			for (int j = 0; j < GPUCA_ROW_COUNT && found < 3; j++)
+			for (int j = 0;j < GPUCA_ROW_COUNT && found < 3;j++)
 			{
 				float rowX = Merger->SliceParam().RowX[j];
 				if (fabs(rowX - (-fP[0] * lrFactor)) < 1.5)
@@ -661,8 +661,8 @@ bool AliHLTTPCGMTrackParam::GetExtParam( AliExternalTrackParam &T, double alpha 
 	bool ok = CheckNumericalQuality();
 
 	double par[5], cov[15];
-	for ( int i = 0; i < 5; i++ ) par[i] = fP[i];
-	for ( int i = 0; i < 15; i++ ) cov[i] = fC[i];
+	for ( int i = 0;i < 5;i++ ) par[i] = fP[i];
+	for ( int i = 0;i < 15;i++ ) cov[i] = fC[i];
 
 	if ( par[2] > GPUCA_MAX_SIN_PHI ) par[2] = GPUCA_MAX_SIN_PHI;
 	if ( par[2] < -GPUCA_MAX_SIN_PHI ) par[2] = -GPUCA_MAX_SIN_PHI;
@@ -678,8 +678,8 @@ void AliHLTTPCGMTrackParam::SetExtParam( const AliExternalTrackParam &T )
 {
 	//* Convert from AliExternalTrackParam parameterisation
 
-	for ( int i = 0; i < 5; i++ ) fP[i] = T.GetParameter()[i];
-	for ( int i = 0; i < 15; i++ ) fC[i] = T.GetCovariance()[i];
+	for ( int i = 0;i < 5;i++ ) fP[i] = T.GetParameter()[i];
+	for ( int i = 0;i < 15;i++ ) fC[i] = T.GetCovariance()[i];
 	fX = T.GetX();
 	if ( fP[2] > GPUCA_MAX_SIN_PHI ) fP[2] = GPUCA_MAX_SIN_PHI;
 	if ( fP[2] < -GPUCA_MAX_SIN_PHI ) fP[2] = -GPUCA_MAX_SIN_PHI;

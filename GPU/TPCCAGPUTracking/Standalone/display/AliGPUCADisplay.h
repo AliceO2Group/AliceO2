@@ -19,6 +19,7 @@ public:
 	
 	void ShowNextEvent() {}
 	void WaitForNextEvent(){}
+	void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster) {}
 
 	void HandleKeyRelease(int wParam, char key) {}
 	int DrawGLScene(bool mixAnimation = false, float animateTime = -1.f) {return 1;}
@@ -56,6 +57,7 @@ public:
 	
 	void ShowNextEvent();
 	void WaitForNextEvent();
+	void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster);
 	
 	void HandleKeyRelease(int wParam, char key);
 	int DrawGLScene(bool mixAnimation = false, float animateTime = -1.f);
@@ -161,7 +163,6 @@ private:
 	void insertVertexList(int iSlice, size_t first, size_t last);
 	template <typename... Args> void SetInfo(Args... args);
 	void calcXYZ();
-	void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster);
 	void animationCloseAngle(float& newangle, float lastAngle);
 	void animateCloseQuaternion(float* v, float lastx, float lasty, float lastz, float lastw);
 	void setAnimationPoint();

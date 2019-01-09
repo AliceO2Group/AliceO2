@@ -78,6 +78,7 @@ public:
 			trdTracks(nullptr), nTRDTracks(0), trdTracklets(nullptr), nTRDTracklets(0), trdTrackletsMC(nullptr),
 			nTRDTrackletsMC(0)
 		{}
+		InOutPointers(const InOutPointers&) = default;
 		
 		const AliHLTTPCCAClusterData::Data* clusterData[NSLICES];
 		unsigned int nClusterData[NSLICES];
@@ -108,6 +109,9 @@ public:
 	{
 		InOutMemory();
 		~InOutMemory();
+		InOutMemory(AliGPUReconstruction::InOutMemory&&);
+		InOutMemory& operator=(InOutMemory&&);
+		
 		std::unique_ptr<AliHLTTPCCAClusterData::Data[]> clusterData[NSLICES];
 		std::unique_ptr<AliHLTTPCRawCluster[]> rawClusters[NSLICES];
 		std::unique_ptr<o2::TPC::ClusterNative[]> clustersNative[NSLICES * GPUCA_ROW_COUNT];
@@ -184,6 +188,7 @@ public:
 	const AliHLTTPCCATracker* GetTPCSliceTrackers() const {return mTPCSliceTrackersCPU;}
 	const AliHLTTPCGMMerger& GetTPCMerger() const {return mTPCMergerCPU;}
 	AliHLTTPCGMMerger& GetTPCMerger() {return mTPCMergerCPU;}
+	AliGPUCADisplay* GetEventDisplay() {return mEventDisplay.get();}
 	const AliGPUCAQA* GetQA() const {return mQA.get();}
 	AliGPUCAQA* GetQA() {return mQA.get();}
 	
@@ -272,7 +277,9 @@ protected:
 	AliGPUCAOutputControl mOutputControl;										//Controls the output of the individual components
 	
 	std::unique_ptr<AliGPUCADisplay> mEventDisplay;
+	bool mDisplayRunning = false;
 	std::unique_ptr<AliGPUCAQA> mQA;
+	bool mQAInitialized = false;
 	
 	std::unique_ptr<TPCFastTransform> mTPCFastTransform;						//Global TPC fast transformation object
 	std::unique_ptr<ClusterNativeAccessExt> mClusterNativeAccess;				//Internal memory for clusterNativeAccess

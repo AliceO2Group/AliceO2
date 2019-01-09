@@ -19,6 +19,7 @@ endif
 SUBTARGETS_CLEAN			+= libTPCCAGPUTrackingOCL.*
 
 CXXFILES					+= standalone.cxx \
+								GlobalTracker/AliGPUReconstructionTimeframe.cxx \
 								$(GPUCA_STANDALONE_CXXFILES) \
 								$(GPUCA_MERGER_CXXFILES) \
 								$(GPUCA_TRD_CXXFILES)
