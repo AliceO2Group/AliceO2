@@ -1,17 +1,9 @@
 #include <iostream>
 #include <fstream>
 #include <string.h>
+#include <sys/stat.h>
 
 #include "Rtypes.h"
-#include "AliHLTTPCCAClusterData.h"
-#include "AliHLTTPCCAMCInfo.h"
-#include "AliHLTTPCClusterMCData.h"
-#include "AliGPUCAParam.h"
-#include "AliHLTTPCGMPhysicalTrackModel.h"
-#include "AliHLTTPCGMPropagator.h"
-#include "AliHLTTPCGMMerger.h"
- 
-#include "../cmodules/qconfig.h"
 #include "TRandom.h"
 #include "TH1F.h"
 #include "TFile.h"
@@ -22,24 +14,21 @@
 #include <iomanip>
 #include <limits>
 
+#include "genEvents.h"
+#include "AliHLTTPCCAClusterData.h"
+#include "AliHLTTPCCAMCInfo.h"
+#include "AliHLTTPCClusterMCData.h"
+#include "AliGPUCAParam.h"
+#include "AliHLTTPCGMPhysicalTrackModel.h"
+#include "AliHLTTPCGMPropagator.h"
+#include "AliHLTTPCGMMerger.h"
+#include "AliGPUReconstruction.h"
+ 
+#include "../cmodules/qconfig.h"
+
 using namespace std;
 
-struct GenCluster
-{
-  int fSector;
-  int fRow;
-  int fMCID;
-  float fX;
-  float fY;
-  float fZ;
-  unsigned int fId;
-};
-
-const double kTwoPi = 2 * M_PI;
-const double kSliceDAngle = kTwoPi/18.;
-const double kSliceAngleOffset = kSliceDAngle/2;
-
-int GetSlice( double GlobalPhi )
+int genEvents::GetSlice( double GlobalPhi )
 {
   double phi = GlobalPhi;
   //  std::cout<<" GetSlice: phi = "<<phi<<std::endl;
@@ -49,17 +38,17 @@ int GetSlice( double GlobalPhi )
   return (int) ( phi / kSliceDAngle );
 }
 
-int GetDSlice( double LocalPhi )
+int genEvents::GetDSlice( double LocalPhi )
 {
   return GetSlice( LocalPhi + kSliceAngleOffset );
 }
 
-double GetSliceAngle( int iSlice )
+double genEvents::GetSliceAngle( int iSlice )
 {
   return kSliceAngleOffset + iSlice*kSliceDAngle;
 }
 
-int RecalculateSlice( AliHLTTPCGMPhysicalTrackModel &t, int &iSlice )
+int genEvents::RecalculateSlice( AliHLTTPCGMPhysicalTrackModel &t, int &iSlice )
 {
   double phi = atan2( t.GetY(), t.GetX() );
   //  std::cout<<" recalculate: phi = "<<phi<<std::endl;
@@ -78,7 +67,7 @@ int RecalculateSlice( AliHLTTPCGMPhysicalTrackModel &t, int &iSlice )
   return 1;
 }
 
-double GetGaus( double sigma )
+double genEvents::GetGaus( double sigma )
 {
   double x = 0;
   do{
@@ -88,9 +77,7 @@ double GetGaus( double sigma )
   return x;
 }
 
-static TH1F* hClusterError[3][2]={{0,0},{0,0},{0,0}};
-
-void InitEventGenerator()
+void genEvents::InitEventGenerator()
 {
   const char* rows[3] = {"0-63","128-159","64-127"};
   for( int i=0; i<3; i++){
@@ -107,7 +94,7 @@ void InitEventGenerator()
   }
 }
 
-void FinishEventGenerator()
+void genEvents::FinishEventGenerator()
 {
   TFile* tout = new TFile("generator.root", "RECREATE");
   TCanvas *c = new TCanvas("ClusterErrors","Cluste rErrors",0,0,700,700.*2./3.);
@@ -134,22 +121,14 @@ void FinishEventGenerator()
   }
 }
 
-int GenerateEvent(const AliGPUCAParam& sliceParam, char* filename)
+int genEvents::GenerateEvent(const AliGPUCAParam& sliceParam, char* filename)
 {
+  mRec->ClearIOPointers();
   static int iEvent = -1;
   iEvent++;
   if( iEvent==0 ){
     gRandom->SetSeed(configStandalone.seed);
   }
-
-  std::ofstream out;
-  out.open(filename, std::ofstream::binary);
-  if (out.fail())
-    {
-      printf("Error opening file\n");
-      return(1);
-    }
-
 
   int nTracks = configStandalone.configEG.numberOfTracks; //Number of MC tracks, must be at least as large as the largest fMCID assigned above
   cout<<"NTracks "<<nTracks<<endl;
@@ -162,8 +141,7 @@ int GenerateEvent(const AliGPUCAParam& sliceParam, char* filename)
   AliHLTTPCGMPropagator prop;
   {
     prop.SetToyMCEventsFlag( kTRUE );
-    AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
-    const AliHLTTPCGMMerger &merger = hlt.Merger();
+    const AliHLTTPCGMMerger &merger = mRec->GetTPCMerger();
     prop.SetPolynomialField( merger.pField() );
   }
   
@@ -290,15 +268,18 @@ int GenerateEvent(const AliGPUCAParam& sliceParam, char* filename)
   } // itr
   
   std::vector<AliHLTTPCClusterMCLabel> labels;
+  
+  std::unique_ptr<AliHLTTPCCAClusterData::Data> clSlices[36];
 
   for (int iSector = 0;iSector < 36;iSector++) //HLT Sector numbering, sectors go from 0 to 35, all spanning all rows from 0 to 158.
     {
       int nNumberOfHits = 0;
       for( unsigned int i=0; i<vClusters.size(); i++ ) if( vClusters[i].fSector==iSector ) nNumberOfHits++;
       //For every sector we first have to fill the number of hits in this sector to the file
-      out.write((char*) &nNumberOfHits, sizeof(nNumberOfHits));
+      mRec->mIOPtrs.nClusterData[iSector] = nNumberOfHits;
       
       AliHLTTPCCAClusterData::Data* clusters = new AliHLTTPCCAClusterData::Data[nNumberOfHits];
+      clSlices[iSector].reset(clusters);
       int icl=0;
       for( unsigned int i=0; i<vClusters.size(); i++ ){
 	GenCluster &c = vClusters[i];
@@ -320,19 +301,38 @@ int GenerateEvent(const AliGPUCAParam& sliceParam, char* filename)
 	  labels.push_back( clusterLabel);
 	}
       }
-      out.write((char*) clusters, sizeof(clusters[0]) * nNumberOfHits);
-      delete clusters;
+      mRec->mIOPtrs.clusterData[iSector] = clusters;
     }
   
   //Create vector with cluster MC labels, clusters are counter from 0 to clusterId in the order they have been written above. No separation in slices.
 
-  out.write((const char*) labels.data(), labels.size() * sizeof(labels[0]));
+  mRec->mIOPtrs.nMCLabelsTPC = labels.size();
+  mRec->mIOPtrs.mcLabelsTPC = labels.data();
+
+  mRec->mIOPtrs.nMCInfosTPC = mcInfo.size();
+  mRec->mIOPtrs.mcInfosTPC = mcInfo.data();
+  
+  mRec->DumpData(filename);
   labels.clear();
-  
-  out.write((const char*) &nTracks, sizeof(nTracks));
-  out.write((const char*) mcInfo.data(), nTracks * sizeof(mcInfo[0]));
   mcInfo.clear();
-  
-  out.close();
   return(0);
+}
+
+void genEvents::RunEventGenerator(AliGPUReconstruction* rec)
+{
+    std::unique_ptr<genEvents> gen(new genEvents(rec));
+    char dirname[256];
+    snprintf(dirname, 256, "events/%s/", configStandalone.EventsDir);
+    mkdir(dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    rec->DumpSettings(dirname);
+
+    gen->InitEventGenerator();
+
+    for (int i = 0;i < (configStandalone.NEvents == -1 ? 10 : configStandalone.NEvents);i++)
+    {
+        printf("Generating event %d/%d\n", i, configStandalone.NEvents == -1 ? 10 : configStandalone.NEvents);
+        snprintf(dirname, 256, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
+        gen->GenerateEvent(rec->GetParam(), dirname);
+    }
+    gen->FinishEventGenerator();
 }
