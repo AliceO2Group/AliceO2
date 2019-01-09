@@ -6,6 +6,7 @@
 #include "AliGPUCAQA.h"
 #include "AliGPUCADisplayBackend.h"
 #include "ClusterNativeAccessExt.h"
+#include "genEvents.h"
 
 #include <iostream>
 #include <fstream>
@@ -246,7 +247,7 @@ int main(int argc, char** argv)
 
 	if (SetupReconstruction()) return(1);
 
-	//hlt.SetRunMerger(configStandalone.merger);
+	//hlt.SetRunMerger(configStandalone.merger); //TODO!
 
 	if (configStandalone.seed == -1)
 	{
@@ -274,21 +275,7 @@ int main(int argc, char** argv)
 
 	if (configStandalone.eventGenerator)
 	{
-		printf("Event Generator Disabled\n");
-		/*char dirname[256];
-		snprintf(dirname, 256, "events/%s/", configStandalone.EventsDir);
-		mkdir(dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-		rec->DumpSettings(dirname);
-
-		InitEventGenerator();
-
-		for (int i = 0;i < (configStandalone.NEvents == -1 ? 10 : configStandalone.NEvents);i++)
-		{
-			printf("Generating event %d/%d\n", i, configStandalone.NEvents == -1 ? 10 : configStandalone.NEvents);
-			snprintf(dirname, 256, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
-			GenerateEvent(hlt.Param(), dirname); TODO!
-		}
-		FinishEventGenerator();*/
+		genEvents::RunEventGenerator(rec.get());
 		return(1);
 	}
 	else
