@@ -39,6 +39,10 @@ using TPCFastTransform = ali_tpc_common::tpc_fast_transformation::TPCFastTransfo
 
 class AliGPUReconstruction
 {
+private:
+	class LibraryLoader;
+	std::shared_ptr<LibraryLoader> mMyLib = nullptr; //This must be the first member to ensure correct destructor order!
+	
 public:
 	virtual ~AliGPUReconstruction();
 	AliGPUReconstruction(const AliGPUReconstruction&) = delete;
@@ -247,6 +251,27 @@ protected:
 	AliHLTTPCCASliceOutput* mSliceOutput[NSLICES];
 	AliHLTTPCCAClusterData mClusterData[NSLICES];
 	
+	AliGPUCAParam mParam;														//Reconstruction parameters
+	AliGPUCASettingsEvent mEventSettings;										//Event Parameters
+	AliGPUCASettingsProcessing mProcessingSettings;								//Processing Parameters (at constructor level)
+	AliGPUCASettingsDeviceProcessing mDeviceProcessingSettings;					//Processing Parameters (at init level)
+	AliGPUCAOutputControl mOutputControl;										//Controls the output of the individual components
+	
+	std::unique_ptr<AliGPUCADisplay> mEventDisplay;
+	bool mDisplayRunning = false;
+	std::unique_ptr<AliGPUCAQA> mQA;
+	bool mQAInitialized = false;
+	
+	std::unique_ptr<TPCFastTransform> mTPCFastTransform;						//Global TPC fast transformation object
+	std::unique_ptr<ClusterNativeAccessExt> mClusterNativeAccess;				//Internal memory for clusterNativeAccess
+	std::unique_ptr<o2::trd::TRDGeometryFlat> mTRDGeometry;						//TRD Geometry
+	
+	bool mInitialized = false;
+	std::ofstream mDebugFile;
+	
+	int mStatNEvents = 0;
+
+private:
 	//Helpers for loading device library via dlopen
 	class LibraryLoader
 	{
@@ -268,27 +293,6 @@ protected:
 		void* mGPUEntry;
 	};
 	static std::shared_ptr<LibraryLoader> sLibCUDA, sLibHIP, sLibOCL;
-	std::shared_ptr<LibraryLoader> mMyLib = nullptr;
-	
-	AliGPUCAParam mParam;														//Reconstruction parameters
-	AliGPUCASettingsEvent mEventSettings;										//Event Parameters
-	AliGPUCASettingsProcessing mProcessingSettings;								//Processing Parameters (at constructor level)
-	AliGPUCASettingsDeviceProcessing mDeviceProcessingSettings;					//Processing Parameters (at init level)
-	AliGPUCAOutputControl mOutputControl;										//Controls the output of the individual components
-	
-	std::unique_ptr<AliGPUCADisplay> mEventDisplay;
-	bool mDisplayRunning = false;
-	std::unique_ptr<AliGPUCAQA> mQA;
-	bool mQAInitialized = false;
-	
-	std::unique_ptr<TPCFastTransform> mTPCFastTransform;						//Global TPC fast transformation object
-	std::unique_ptr<ClusterNativeAccessExt> mClusterNativeAccess;				//Internal memory for clusterNativeAccess
-	std::unique_ptr<o2::trd::TRDGeometryFlat> mTRDGeometry;						//TRD Geometry
-	
-	bool mInitialized = false;
-	std::ofstream mDebugFile;
-	
-	int mStatNEvents = 0;
 };
 
 #endif
