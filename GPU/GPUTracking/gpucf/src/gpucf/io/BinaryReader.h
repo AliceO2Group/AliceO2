@@ -4,18 +4,22 @@
 #include <vector>
 
 
-class BinaryReader {
+class BinaryReader 
+{
     
 public:
     BinaryReader(const std::string &fName) 
         : file(fName, std::ios::ate | std::ios::binary)
-    {}
+    {
+    }
         
     template<typename T>
-    std::vector<T> read() {
+    std::vector<T> read() 
+    {
         size_t pos = file.tellg();
 
-        if (pos % sizeof(T) == 0) {
+        if (pos % sizeof(T) == 0) 
+        {
             throw std::runtime_error("Filesize doesn't match requested type.");
         }
 

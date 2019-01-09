@@ -5,16 +5,26 @@
 #include <string>
 
 
-class Executable {
+class Executable 
+{
 
 public:
-    Executable(const std::string &desc) : parser(desc) {}
-    virtual ~Executable() {}
+    Executable(const std::string &desc) 
+        : parser(desc) 
+    {
+    }
+
+    virtual ~Executable() 
+    {
+    }
 
     int main(int argc, const char *argv[]);
 
 protected:
-    virtual void setupFlags(args::ArgumentParser &) {}
+    virtual void setupFlags(args::ArgumentParser &) 
+    {
+    }
+
     virtual int  mainImpl() = 0;
 
 private:

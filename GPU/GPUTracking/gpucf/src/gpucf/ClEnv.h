@@ -10,10 +10,13 @@
 #include <vector>
 
 
-class ClEnv {
+class ClEnv 
+{
 
 public:
-    class Flags {
+    class Flags 
+    {
+
     public:
         args::ValueFlag<std::string> clSrcDir;    
         args::ValueFlag<size_t> gpuId;
@@ -23,15 +26,27 @@ public:
                     {'s', "src"}) 
             , gpuId(group, "gpu id", "Id of the gpu device.", 
                     {'g', "gpu"}, 0)
-        {}
+        {
+        }
+
     };
 
 
     ClEnv(const filesystem::path &srcDir, size_t gpuId=0);
-    ClEnv(Flags &flags) : ClEnv(args::get(flags.clSrcDir), args::get(flags.gpuId)) {}
+    ClEnv(Flags &flags) 
+        : ClEnv(args::get(flags.clSrcDir), args::get(flags.gpuId)) 
+    {
+    }
 
-    cl::Context getContext() const { return context; }
-    cl::Device  getDevice()  const { return devices[gpuId]; }
+    cl::Context getContext() const 
+    { 
+        return context; 
+    }
+
+    cl::Device  getDevice()  const 
+    { 
+        return devices[gpuId]; 
+    }
 
     cl::Program          buildFromSrc(const filesystem::path &srcFile);
     cl::Program::Sources loadSrc(const filesystem::path &srcFile);

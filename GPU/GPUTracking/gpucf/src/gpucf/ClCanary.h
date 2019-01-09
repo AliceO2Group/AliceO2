@@ -6,10 +6,14 @@
 #include <memory>
 
 
-class ClCanary : public Executable {
+class ClCanary : public Executable 
+{
     
 public:
-    ClCanary() : Executable("Tests if OpenCL is working as expected.") {}
+    ClCanary() 
+        : Executable("Tests if OpenCL is working as expected.") 
+    {
+    }
 
 protected:
     void setupFlags(args::ArgumentParser &) override;

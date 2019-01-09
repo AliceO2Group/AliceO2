@@ -1,6 +1,7 @@
 #pragma once
 
-struct Cluster {
+struct Cluster 
+{
     int cru;
     int row;
     int Q;

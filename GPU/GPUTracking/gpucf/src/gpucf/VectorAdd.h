@@ -5,7 +5,8 @@
 
 class ClEnv;
 
-class VectorAdd {
+class VectorAdd 
+{
 
 public:
     VectorAdd();
