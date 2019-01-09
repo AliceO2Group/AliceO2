@@ -85,6 +85,8 @@ AliGPUReconstructionCUDA::AliGPUReconstructionCUDA(const AliGPUCASettingsProcess
 
 AliGPUReconstructionCUDA::~AliGPUReconstructionCUDA()
 {
+	mITSTrackerTraits.reset(nullptr); //Make sure we destroy the ITS tracker before we exit CUDA
+	cudaDeviceReset();
 	delete mInternals;
 }
 
@@ -752,8 +754,6 @@ int AliGPUReconstructionCUDA::ExitDevice_Runtime()
 	}
 
 	cuCtxDestroy(mInternals->CudaContext);
-
-	cudaDeviceReset();
 
 	CAGPUInfo("CUDA Uninitialized");
 	return(0);

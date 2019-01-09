@@ -406,5 +406,6 @@ breakrun:
 		printf("Press a key to exit!\n");
 		getchar();
 	}
+	rec.reset(nullptr);
 	return(0);
 }
