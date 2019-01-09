@@ -32,15 +32,64 @@ namespace o2
 namespace framework
 {
 
+struct BuilderUtils {
+  template <typename BuilderType, typename T>
+  static arrow::Status append(BuilderType& builder, T value)
+  {
+    return builder->Append(value);
+  }
+
+  template <typename BuilderType, typename ITERATOR>
+  static arrow::Status append(BuilderType& builder, std::pair<ITERATOR, ITERATOR> ip)
+  {
+    using ArrowType = typename arrow::stl::ConversionTraits<typename ITERATOR::value_type>::ArrowType;
+    using ValueBuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
+    // FIXME: for the moment we do not fill things.
+    auto status = builder->Append();
+    auto valueBuilder = reinterpret_cast<ValueBuilderType*>(builder->value_builder());
+    return status & valueBuilder->AppendValues(ip.first, ip.second);
+  }
+};
+
 template <typename T>
 struct BuilderMaker {
+  using FillType = T;
   using ArrowType = typename arrow::stl::ConversionTraits<T>::ArrowType;
   using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
 
-  static BuilderType&& make()
+  static std::unique_ptr<BuilderType> make(arrow::MemoryPool* pool)
   {
-    BuilderType builder;
-    return std::move(builder);
+    return std::make_unique<BuilderType>(pool);
+  }
+
+  static std::shared_ptr<arrow::DataType> make_datatype()
+  {
+    return arrow::TypeTraits<ArrowType>::type_singleton();
+  }
+
+  static arrow::Status append(BuilderType& builder, T value)
+  {
+    builder.Append(value);
+  }
+};
+
+template <typename ITERATOR>
+struct BuilderMaker<std::pair<ITERATOR, ITERATOR>> {
+  using FillType = std::pair<ITERATOR, ITERATOR>;
+  using ArrowType = arrow::ListType;
+  using ValueType = typename arrow::stl::ConversionTraits<typename ITERATOR::value_type>::ArrowType;
+  using BuilderType = arrow::ListBuilder;
+  using ValueBuilder = typename arrow::TypeTraits<ValueType>::BuilderType;
+
+  static std::unique_ptr<BuilderType> make(arrow::MemoryPool* pool)
+  {
+    auto valueBuilder = std::make_shared<ValueBuilder>(pool);
+    return std::make_unique<arrow::ListBuilder>(pool, valueBuilder);
+  }
+
+  static std::shared_ptr<arrow::DataType> make_datatype()
+  {
+    return arrow::list(arrow::TypeTraits<ValueType>::type_singleton());
   }
 };
 
@@ -56,11 +105,19 @@ struct BuilderTraits {
   using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
 };
 
+// Support for building tables where each entry is an iterator pair.
+// We map them to an arrow::list for now.
+template <typename ITERATOR>
+struct BuilderTraits<std::pair<ITERATOR, ITERATOR>> {
+  using ArrowType = arrow::ListType;
+  using BuilderType = arrow::ListBuilder;
+};
+
 struct TableBuilderHelpers {
   template <typename... ARGS>
   static auto makeFields(std::vector<std::string> const& names)
   {
-    std::vector<std::shared_ptr<arrow::DataType>> types{ arrow::TypeTraits<typename BuilderMaker<ARGS>::ArrowType>::type_singleton()... };
+    std::vector<std::shared_ptr<arrow::DataType>> types{ BuilderMaker<ARGS>::make_datatype()... };
     std::vector<std::shared_ptr<arrow::Field>> result;
     for (size_t i = 0; i < names.size(); ++i) {
       result.emplace_back(std::make_shared<arrow::Field>(names[i], types[i], true, nullptr));
@@ -72,7 +129,7 @@ struct TableBuilderHelpers {
   template <std::size_t... Is, typename BUILDERS, typename VALUES>
   static bool append(BUILDERS& builders, std::index_sequence<Is...>, VALUES&& values)
   {
-    return (std::get<Is>(builders)->Append(std::get<Is>(values)).ok() && ...);
+    return (BuilderUtils::append(std::get<Is>(builders), std::get<Is>(values)).ok() && ...);
   }
 
   /// Invokes the append method for each entry in the tuple
@@ -117,7 +174,7 @@ class TableBuilder
     using BuildersTuple = typename std::tuple<std::unique_ptr<typename BuilderTraits<ARGS>::BuilderType>...>;
     mSchema = std::make_shared<arrow::Schema>(TableBuilderHelpers::makeFields<ARGS...>(columnNames));
 
-    BuildersTuple* builders = new BuildersTuple(std::make_unique<typename BuilderTraits<ARGS>::BuilderType>(mMemoryPool)...);
+    BuildersTuple* builders = new BuildersTuple(BuilderMaker<ARGS>::make(mMemoryPool)...);
     auto seq = std::make_index_sequence<sizeof...(ARGS)>{};
     TableBuilderHelpers::reserveAll(*builders, 1000, seq);
     mBuilders = builders; // We store the builders
@@ -131,7 +188,8 @@ class TableBuilder
       return arrow::Table::Make(schema, arrays);
     };
     // Callback used to fill the builders
-    return [builders = builders](unsigned int slot, ARGS... args) -> void {
+    return [builders = builders](unsigned int slot, typename BuilderMaker<ARGS>::FillType... args)->void
+    {
       auto status = TableBuilderHelpers::append(*builders, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
       if (status == false) {
         throw std::runtime_error("Unable to append");
