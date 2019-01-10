@@ -58,6 +58,10 @@
 #include "MCHDigitizerSpec.h"
 #include "MCHDigitWriterSpec.h"
 
+// for MID
+#include "MIDDigitizerSpec.h"
+#include "MIDDigitWriterSpec.h"
+
 // GRP
 #include "DataFormatsParameters/GRPObject.h"
 #include "GRPUpdaterSpec.h"
@@ -438,6 +442,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::mch::getMCHDigitizerSpec(fanoutsize++));
     //connect the MUON MCH digit writer
     specs.emplace_back(o2::mch::getMCHDigitWriterSpec());
+  }
+
+  // add MID
+  if (isEnabled(o2::detectors::DetID::MID)) {
+    detList.emplace_back(o2::detectors::DetID::MID);
+    // connect the MID digitization
+    specs.emplace_back(o2::mid::getMIDDigitizerSpec(fanoutsize++));
+    // connect the MID digit writer
+    specs.emplace_back(o2::mid::getMIDDigitWriterSpec());
   }
 
   // GRP updater: must come after all detectors since requires their list
