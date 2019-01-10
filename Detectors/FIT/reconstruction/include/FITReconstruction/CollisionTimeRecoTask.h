@@ -23,7 +23,7 @@ namespace fit
 class CollisionTimeRecoTask
 {
  public:
-  CollisionTimeRecoTask();
+  CollisionTimeRecoTask() = default;
   ~CollisionTimeRecoTask() = default;
   void Process(const Digit& digits, RecPoints& recPoints) const;
   void FinishTask();

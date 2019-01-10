@@ -32,7 +32,6 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
   constexpr Float_t A_side_cable_cmps = 11.; //ns
   constexpr Float_t signal_width = 5.;       // time gate for signal, ns
   constexpr Float_t nPe_in_mip = 250.;       // n ph. e. in one mip
-  mMCPs = (Geometry::NCellsA + Geometry::NCellsC) * 4;
 
   Int_t nlbl = 0; //number of MCtrues
 
@@ -42,11 +41,11 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
   
   //Calculating signal time, amplitude in mean_time +- time_gate --------------
 
-  Float_t cfd[mMCPs] = {};
-  Float_t amp[mMCPs] = {};
-  Float_t ch_signal_nPe[mMCPs] = {};
-  Float_t ch_signal_MIP[mMCPs] = {};
-  Float_t ch_signal_time[mMCPs] = {};
+  Float_t cfd[300] = {};
+  Float_t amp[300] = {};
+  Float_t ch_signal_nPe[300] = {};
+  Float_t ch_signal_MIP[300] = {};
+  Float_t ch_signal_time[300] = {};
   for (auto& hit : *hits) {
     Int_t hit_ch = hit.GetDetectorID();
     Double_t hit_time = hit.GetTime();
@@ -145,10 +144,9 @@ void  Digitizer::setTriggers(  Digit* digit)
   Float_t summ_ampl_A = 0.;
   Float_t summ_ampl_C = 0.;
   Float_t vertex_time;
-  mMCPs = (Geometry::NCellsA + Geometry::NCellsC) * 4;
 
-  Float_t cfd[mMCPs] = {};
-  Float_t amp[mMCPs] = {};
+  Float_t cfd[300] = {};
+  Float_t amp[300] = {};
   for (const auto& d : digit->getChDgData()) {
     Int_t mcp = d.ChId;
     cfd[mcp] = d.CFDTime - mBC_clk_center - mEventTime;

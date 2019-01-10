@@ -16,13 +16,14 @@
 
 
 using namespace o2::fit;
+/*
 //_____________________________________________________________________
 CollisionTimeRecoTask::CollisionTimeRecoTask()
 {
   // at the moment nothing.
 }
 
-
+*/
 
 //_____________________________________________________________________
 void CollisionTimeRecoTask::Process(const Digit& digits,
