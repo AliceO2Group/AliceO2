@@ -733,4 +733,6 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_Init()
 
 const AliHLTTPCCATracker* AliGPUReconstructionDeviceBase::CPUTracker(int iSlice) {return &mTPCSliceTrackersCPU[iSlice];}
 
+int AliGPUReconstructionDeviceBase::GPUMergerAvailable() const {return false;}
+
 #endif //GPUCA_ENABLE_GPU_TRACKER
