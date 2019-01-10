@@ -32,6 +32,7 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
   constexpr Float_t A_side_cable_cmps = 11.; //ns
   constexpr Float_t signal_width = 5.;       // time gate for signal, ns
   constexpr Float_t nPe_in_mip = 250.;       // n ph. e. in one mip
+  mMCPs = (Geometry::NCellsA + Geometry::NCellsC) * 4;
 
   Int_t nlbl = 0; //number of MCtrues
 
@@ -89,15 +90,15 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
       ch_signal_MIP[ch_iter] = amp[ch_iter] + ch_signal_nPe[ch_iter] / nPe_in_mip ;
       ch_signal_time[ch_iter] = (cfd[ch_iter] + ch_signal_time[ch_iter] / (float)ch_signal_nPe[ch_iter] );
       if (cfd[ch_iter] > 0)
-	ch_signal_time[ch_iter] = (cfd[ch_iter] + ch_signal_time[ch_iter] / (float)ch_signal_nPe[ch_iter]) / 2.;
+        ch_signal_time[ch_iter] = (cfd[ch_iter] + ch_signal_time[ch_iter] / (float)ch_signal_nPe[ch_iter]) / 2.;
       else
         ch_signal_time[ch_iter] = ch_signal_time[ch_iter] / (float)ch_signal_nPe[ch_iter];
-      
+
       if (ch_signal_MIP[ch_iter] > mCFD_trsh_mip) {
-	mChDgDataArr.emplace_back(ChannelData{ ch_iter, ch_signal_time[ch_iter], ch_signal_MIP[ch_iter] });
-	LOG(DEBUG) << ch_iter << " : "
-		   << " : " << ch_signal_time[ch_iter] << " : "
-		   << ch_signal_MIP[ch_iter] << " : " << FairLogger::endl;
+        mChDgDataArr.emplace_back(ChannelData{ ch_iter, ch_signal_time[ch_iter], ch_signal_MIP[ch_iter] });
+        LOG(DEBUG) << ch_iter << " : "
+                   << " : " << ch_signal_time[ch_iter] << " : "
+                   << ch_signal_MIP[ch_iter] << " : " << FairLogger::endl;
       }
     }
 
@@ -131,7 +132,7 @@ void  Digitizer::smearCFDtime( Digit* digit)
 //------------------------------------------------------------------------
 void  Digitizer::setTriggers(  Digit* digit)
 {
-   constexpr Double_t BC_clk_center = 12.5; // clk center
+  constexpr Double_t BC_clk_center = 12.5;                // clk center
   constexpr Double_t trg_central_trh = 100.;              // mip
   constexpr Double_t trg_semicentral_trh = 50.;           // mip
   constexpr Double_t trg_vertex_min = - 3.; //ns
@@ -144,6 +145,7 @@ void  Digitizer::setTriggers(  Digit* digit)
   Float_t summ_ampl_A = 0.;
   Float_t summ_ampl_C = 0.;
   Float_t vertex_time;
+  mMCPs = (Geometry::NCellsA + Geometry::NCellsC) * 4;
 
   Float_t cfd[mMCPs] = {};
   Float_t amp[mMCPs] = {};
