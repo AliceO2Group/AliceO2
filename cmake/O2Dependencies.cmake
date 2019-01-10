@@ -1917,6 +1917,7 @@ o2_define_bucket(
     MCHSimulation
     TRDBase
     TRDSimulation
+    MIDSimulation
 )
 
 o2_define_bucket(
