@@ -17,6 +17,7 @@
 #include "FairMQMessage.h"
 #include <FairMQDevice.h>
 #include <FairLogger.h>
+#include <FairMCEventHeader.h>
 #include <SimulationDataFormat/Stack.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <DetectorsCommonDataFormats/DetID.h>
@@ -179,41 +180,44 @@ class O2HitMerger : public FairMQDevice
   }
 
   template <typename T>
+  void fillBranch(std::string const& name, T* ptr)
+  {
+    auto br = o2::Base::getOrMakeBranch(*mOutTree, name.c_str(), &ptr);
+    br->SetAddress(&ptr);
+    br->Fill();
+    br->ResetAddress();
+  }
+
+  template <typename T>
   void consumeData(std::string name, FairMQParts& data, int& index)
   {
     auto decodeddata = o2::Base::decodeTMessage<T*>(data, index);
-    auto br = o2::Base::getOrMakeBranch(*mOutTree, name.c_str(), &decodeddata);
-    br->SetAddress(&decodeddata);
-    br->Fill();
-    br->ResetAddress();
+    fillBranch(name, decodeddata);
     delete decodeddata;
     index++;
   }
 
   // fills a special branch of SubEventInfos in order to keep
   // track of which entry corresponds to which event etc.
+  // also creates the MCEventHeader branch expected for physics analysis
   void fillSubEventInfoEntry(o2::Data::SubEventInfo& info)
   {
     auto infoptr = &info;
-    auto br = o2::Base::getOrMakeBranch(*mOutTree, "SubEventInfo", &infoptr);
-    br->SetAddress(&infoptr);
-    br->Fill();
-    br->ResetAddress();
+    fillBranch("SubEventInfo", infoptr);
+    // a separate branch for MCEventHeader to be backward compatible
+    auto headerptr = &info.mMCEventHeader;
+    fillBranch("MCEventHeader.", headerptr);
   }
 
   bool handleSimData(FairMQParts& data, int /*index*/)
   {
     LOG(INFO) << "SIMDATA channel got " << data.Size() << " parts\n";
 
-    // extract the event info
-    auto infomessage = std::move(data.At(0));
-    o2::Data::SubEventInfo info;
-    // could actually avoid the copy
-    memcpy((void*)&info, infomessage->GetData(), infomessage->GetSize());
-
+    int index = 0;
+    auto infoptr = o2::Base::decodeTMessage<o2::Data::SubEventInfo*>(data, index++);
+    o2::Data::SubEventInfo info = *infoptr;
     auto accum = insertAdd<uint32_t, uint32_t>(mPartsCheckSum, info.eventID, (uint32_t)info.part);
 
-    int index = 1;
     fillSubEventInfoEntry(info);
     consumeData<std::vector<o2::MCTrack>>("MCTrack", data, index);
     consumeData<std::vector<o2::TrackReference>>("TrackRefs", data, index);
@@ -323,6 +327,8 @@ class O2HitMerger : public FairMQDevice
       entrygroups[event].emplace_back(i);
       trackoffsets[event].emplace_back(info->npersistenttracks);
     }
+    LOG(INFO) << "COLLECTING EVENTHEADERS";
+
     // quick check if we need to merge at all
     if (info->maxEvents == infobr->GetEntries()) {
       LOG(INFO) << "NO MERGING NECESSARY";

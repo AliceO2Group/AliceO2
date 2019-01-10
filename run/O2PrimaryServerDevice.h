@@ -168,7 +168,8 @@ class O2PrimaryServerDevice : public FairMQDevice
     i.nparts = numberofparts;
     i.seed = counter + mInitialSeed;
     i.index = m.mParticles.size();
-    m.mEventIDs.emplace_back(i);
+    i.mMCEventHeader = mEventHeader;
+    m.mSubEventInfo = i;
 
     //auto startoffset = (mPartCounter + 1) * mChunkGranularity;
     //auto endoffset = startindex + mChunkGranularity;
