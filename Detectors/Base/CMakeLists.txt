@@ -7,7 +7,6 @@ set(SRCS
   src/GeometryManager.cxx
   src/MaterialManager.cxx
   src/Propagator.cxx
-  src/PID.cxx
   )
 
 Set(HEADERS
@@ -15,7 +14,6 @@ Set(HEADERS
   include/${MODULE_NAME}/GeometryManager.h
   include/${MODULE_NAME}/MaterialManager.h
   include/${MODULE_NAME}/Propagator.h
-  include/${MODULE_NAME}/PID.h
 )
 
 Set(LINKDEF src/DetectorsBaseLinkDef.h)

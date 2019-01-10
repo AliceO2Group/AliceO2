@@ -21,6 +21,4 @@
 #pragma link C++ class o2::Base::GeometryManager::MatBudget + ;
 #pragma link C++ class o2::Base::MaterialManager + ;
 
-#pragma link C++ class o2::Base::PID + ;
-
 #endif

@@ -18,6 +18,7 @@
 #include <string>
 #include "CommonConstants/PhysicsConstants.h"
 #include "ReconstructionDataFormats/Track.h"
+#include "ReconstructionDataFormats/TrackLTIntegral.h"
 
 namespace o2
 {
@@ -43,7 +44,8 @@ class Propagator
   }
 
   bool PropagateToXBxByBz(o2::track::TrackParCov& track, float x, float mass = o2::constants::physics::MassPionCharged,
-                          float maxSnp = 0.85, float maxStep = 2.0, int matCorr = 1, int signCorr = 0);
+                          float maxSnp = 0.85, float maxStep = 2.0, int matCorr = 1,
+                          o2::track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0);
 
   Propagator(Propagator const&) = delete;
   Propagator(Propagator&&) = delete;

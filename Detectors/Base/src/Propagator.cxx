@@ -16,6 +16,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "Field/MagFieldFast.h"
 #include "Field/MagneticField.h"
+#include "MathUtils/Utils.h"
 
 using namespace o2::Base;
 
@@ -45,7 +46,7 @@ Propagator::Propagator()
 
 //_______________________________________________________________________
 bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, float mass, float maxSnp, float maxStep,
-                                    int matCorr, int signCorr)
+                                    int matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr)
 {
   //----------------------------------------------------------------
   //
@@ -55,7 +56,7 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, 
   //
   // mass     - mass used in propagation - used for energy loss correction (if <0 then q=2)
   // maxStep  - maximal step for propagation
-  //
+  // tofInfo  - optional container for track length and PID-dependent TOF integration
   //----------------------------------------------------------------
   const float Epsilon = 0.00001;
   auto dx = xToGo - track.getX();
@@ -74,11 +75,12 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, 
     auto xyz0 = track.getXYZGlo();
     mField->Field(xyz0, b.data());
 
-    if (!track.propagateTo(x, b))
+    if (!track.propagateTo(x, b)) {
       return false;
-    if (maxSnp > 0 && std::abs(track.getSnp()) >= maxSnp)
+    }
+    if (maxSnp > 0 && std::abs(track.getSnp()) >= maxSnp) {
       return false;
-
+    }
     if (matCorr) {
       auto xyz1 = track.getXYZGlo();
       auto mb = GeometryManager::MeanMaterialBudget(xyz0, xyz1);
@@ -86,8 +88,17 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, 
         mb.length = -mb.length;
       }
       //
-      if (!track.correctForMaterial(mb.meanX2X0, mb.meanRho * mb.length, mass))
+      if (!track.correctForMaterial(mb.meanX2X0, mb.meanRho * mb.length, mass)) {
         return false;
+      }
+
+      if (tofInfo) {
+        tofInfo->addStep(mb.length, track); // fill L,ToF info using already calculated step length
+      }
+    } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
+      auto xyz1 = track.getXYZGlo();
+      Vector3D<float> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
+      tofInfo->addStep(stepV.R(), track);
     }
     dx = xToGo - track.getX();
   }
