@@ -15,20 +15,20 @@ class AliGPUReconstructionOCL : public AliGPUReconstructionDeviceBase
 public:
 	virtual ~AliGPUReconstructionOCL();
     
-	virtual int RefitMergedTracks(AliHLTTPCGMMerger* Merger, bool resetTimers) const;
+	virtual int RefitMergedTracks(AliHLTTPCGMMerger* Merger, bool resetTimers) const override;
 
 protected:
 	friend AliGPUReconstruction* AliGPUReconstruction_Create_OCL(const AliGPUCASettingsProcessing& cfg);
 	AliGPUReconstructionOCL(const AliGPUCASettingsProcessing& cfg);
     
-	virtual int InitDevice_Runtime();
-	virtual int RunTPCTrackingSlices();
-	virtual int ExitDevice_Runtime();
+	virtual int InitDevice_Runtime() override;
+	virtual int RunTPCTrackingSlices() override;
+	virtual int ExitDevice_Runtime() override;
 
-	virtual void ActivateThreadContext();
-	virtual void ReleaseThreadContext();
-	virtual void SynchronizeGPU();
-	virtual int GPUSync(const char* state = "UNKNOWN", int sliceLocal = 0, int slice = 0);
+	virtual void ActivateThreadContext() override;
+	virtual void ReleaseThreadContext() override;
+	virtual void SynchronizeGPU() override;
+	virtual int GPUSync(const char* state = "UNKNOWN", int sliceLocal = 0, int slice = 0) override;
 
 private:
 	bool GPUFailedMsgA(int, const char* file, int line);

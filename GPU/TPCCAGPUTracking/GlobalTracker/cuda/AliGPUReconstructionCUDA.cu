@@ -837,7 +837,7 @@ int AliGPUReconstructionCUDA::RefitMergedTracks(AliHLTTPCGMMerger* Merger, bool 
 #endif
 }
 
-int AliGPUReconstructionCUDA::GPUMergerAvailable()
+int AliGPUReconstructionCUDA::GPUMergerAvailable() const
 {
 	return(1);
 }

@@ -26,6 +26,7 @@ protected:
 	virtual int InitDevice_Runtime() = 0;
 	virtual int ExitDevice() override;
 	virtual int ExitDevice_Runtime() = 0;
+	virtual int GPUMergerAvailable() const;
 
 	virtual const AliHLTTPCCATracker* CPUTracker(int iSlice);
 
