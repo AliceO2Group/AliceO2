@@ -240,7 +240,6 @@ int main(int argc, char* argv[])
   int pipe_mergerdriver_fd[2];
   pipe(pipe_mergerdriver_fd);
 
-  int status, cpid;
   pid = fork();
   if (pid == 0) {
     int fd = open(mergerlogname, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
@@ -266,6 +265,7 @@ int main(int argc, char* argv[])
   // wait on merger (which when exiting completes the workflow)
   auto mergerpid = childpids.back();
 
+  int status, cpid;
   // wait just blocks and waits until any child returns; but we make sure to wait until merger is here
   while ((cpid = wait(&status)) != mergerpid) {
     if (WIFSIGNALED(status)) {
