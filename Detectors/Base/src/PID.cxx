@@ -8,19 +8,22 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// @file   PID.cxx
+/// @author Ruben Shahoyan
+/// @brief  particle ids, masses, names class implementation
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "DetectorsBase/PID.h"
+#include <cassert>
+#include "FairLogger.h"
 
-#pragma link C++ class o2::Base::Detector + ;
-#pragma link C++ class o2::Base::Propagator + ;
+using namespace o2::Base;
 
-#pragma link C++ class o2::Base::GeometryManager + ;
-#pragma link C++ class o2::Base::GeometryManager::MatBudget + ;
-#pragma link C++ class o2::Base::MaterialManager + ;
+constexpr const char* PID::sNames[NIDs + 1];
+constexpr const float PID::sMasses[NIDs];
 
-#pragma link C++ class o2::Base::PID + ;
-
-#endif
+//_______________________________
+PID::PID(const char* name) : mID(nameToID(name, First))
+{
+  // construct from the name
+  assert(mID < NIDs);
+}
