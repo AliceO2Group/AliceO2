@@ -52,6 +52,7 @@
 #include "CommonUtils/ShmManager.h"
 #include <map>
 #include <vector>
+#include "signal.h"
 
 namespace o2
 {
@@ -114,6 +115,7 @@ class O2HitMerger : public FairMQDevice
     // query the sim config ... which is used to extract the filenames
     if (o2::devices::O2SimDevice::querySimConfig(fChannels.at("primary-get").at(0))) {
       outfilename = o2::conf::SimConfig::Instance().getOutPrefix() + ".root";
+      mNExpectedEvents = o2::conf::SimConfig::Instance().getNEvents();
     }
     mOutFileName = outfilename.c_str();
     mTmpOutFileName = "o2sim_tmp.root";
@@ -127,6 +129,13 @@ class O2HitMerger : public FairMQDevice
       LOG(INFO) << "ASSIGNED PIPE HANDLE " << mPipeToDriver;
     } else {
       LOG(WARNING) << "DID NOT FIND ENVIRONMENT VARIABLE TO INIT PIPE";
+    }
+
+    // if no data to expect we shut down the device NOW since it would otherwise hang
+    // (because we use OnData and would never receive anything)
+    if (mNExpectedEvents == 0) {
+      LOG(INFO) << "NOT EXPECTING ANY DATA; SHUTTING DOWN";
+      raise(SIGINT);
     }
   }
 
@@ -293,6 +302,9 @@ class O2HitMerger : public FairMQDevice
   // returns false if no merge is necessary; returns true if otherwise
   bool mergeEntries()
   {
+    if (mEntries == 0 || mNExpectedEvents == 0) {
+      return false;
+    }
     LOG(INFO) << "ENTERING MERGING HITS STAGE";
     TStopwatch timer;
     timer.Start();
@@ -369,6 +381,7 @@ class O2HitMerger : public FairMQDevice
 
   int mEntries = 0; //! counts the number of entries in the branches
   int mEventChecksum = 0; //! checksum for events
+  int mNExpectedEvents = 0; //! number of events that we expect to receive
   TStopwatch mTimer;
 
   int mPipeToDriver = -1;
