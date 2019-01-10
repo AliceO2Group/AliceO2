@@ -1,11 +1,11 @@
-#include "AliHLTTRDTrack.h"
-#include "AliHLTTRDTrackData.h"
+#include "AliGPUTRDTrack.h"
+#include "AliGPUTRDTrackData.h"
 
 #ifdef GPUCA_ALIROOT_LIB
 #include "AliHLTExternalTrackParam.h"
 
 template <typename T>
-GPUd() AliHLTTRDTrack<T>::AliHLTTRDTrack(const AliHLTExternalTrackParam &t) :
+GPUd() AliGPUTRDTrack<T>::AliGPUTRDTrack(const AliHLTExternalTrackParam &t) :
   T(t),
   fChi2(0),
   fMass(0),
@@ -30,7 +30,7 @@ GPUd() AliHLTTRDTrack<T>::AliHLTTRDTrack(const AliHLTExternalTrackParam &t) :
 #endif
 
 template <typename T>
-GPUd() AliHLTTRDTrack<T>::AliHLTTRDTrack() :
+GPUd() AliGPUTRDTrack<T>::AliGPUTRDTrack() :
   fChi2(0),
   fMass(0),
   fLabel(-1),
@@ -54,7 +54,7 @@ GPUd() AliHLTTRDTrack<T>::AliHLTTRDTrack() :
 
 
 template <typename T>
-GPUd() AliHLTTRDTrack<T>::AliHLTTRDTrack(const AliHLTTRDTrack<T>& t) :
+GPUd() AliGPUTRDTrack<T>::AliGPUTRDTrack(const AliGPUTRDTrack<T>& t) :
   T(t),
   fChi2( t.fChi2 ),
   fMass( t.fMass ),
@@ -78,7 +78,7 @@ GPUd() AliHLTTRDTrack<T>::AliHLTTRDTrack(const AliHLTTRDTrack<T>& t) :
 }
 
 template <typename T>
-GPUd() AliHLTTRDTrack<T>::AliHLTTRDTrack(const T& t) :
+GPUd() AliGPUTRDTrack<T>::AliGPUTRDTrack(const T& t) :
   T(t),
   fChi2(0),
   fMass(0),
@@ -102,7 +102,7 @@ GPUd() AliHLTTRDTrack<T>::AliHLTTRDTrack(const T& t) :
 }
 
 template <typename T>
-GPUd() AliHLTTRDTrack<T> &AliHLTTRDTrack<T>::operator=(const AliHLTTRDTrack<T>& t)
+GPUd() AliGPUTRDTrack<T> &AliGPUTRDTrack<T>::operator=(const AliGPUTRDTrack<T>& t)
 {
   //------------------------------------------------------------------
   // assignment operator
@@ -129,7 +129,7 @@ GPUd() AliHLTTRDTrack<T> &AliHLTTRDTrack<T>::operator=(const AliHLTTRDTrack<T>& 
 
 
 template <typename T>
-GPUd() int AliHLTTRDTrack<T>::GetNlayers() const
+GPUd() int AliGPUTRDTrack<T>::GetNlayers() const
 {
   //------------------------------------------------------------------
   // returns number of layers in which the track is in active area of TRD
@@ -145,7 +145,7 @@ GPUd() int AliHLTTRDTrack<T>::GetNlayers() const
 
 
 template <typename T>
-GPUd() int AliHLTTRDTrack<T>::GetTracklet(int iLayer) const
+GPUd() int AliGPUTRDTrack<T>::GetTracklet(int iLayer) const
 {
   //------------------------------------------------------------------
   // returns index of attached tracklet in given layer
@@ -158,7 +158,7 @@ GPUd() int AliHLTTRDTrack<T>::GetTracklet(int iLayer) const
 
 
 template <typename T>
-GPUd() int AliHLTTRDTrack<T>::GetNmissingConsecLayers(int iLayer) const
+GPUd() int AliGPUTRDTrack<T>::GetNmissingConsecLayers(int iLayer) const
 {
   //------------------------------------------------------------------
   // returns number of consecutive layers in which the track was
@@ -177,10 +177,10 @@ GPUd() int AliHLTTRDTrack<T>::GetNmissingConsecLayers(int iLayer) const
 
 
 template <typename T>
-GPUd() void AliHLTTRDTrack<T>::ConvertTo( AliHLTTRDTrackDataRecord &t ) const
+GPUd() void AliGPUTRDTrack<T>::ConvertTo( AliGPUTRDTrackDataRecord &t ) const
 {
   //------------------------------------------------------------------
-  // convert to HLT structure
+  // convert to GPU structure
   //------------------------------------------------------------------
   t.fAlpha = T::getAlpha();
   t.fX = T::getX();
@@ -199,10 +199,10 @@ GPUd() void AliHLTTRDTrack<T>::ConvertTo( AliHLTTRDTrackDataRecord &t ) const
 }
 
 template <typename T>
-GPUd() void AliHLTTRDTrack<T>::ConvertFrom( const AliHLTTRDTrackDataRecord &t )
+GPUd() void AliGPUTRDTrack<T>::ConvertFrom( const AliGPUTRDTrackDataRecord &t )
 {
   //------------------------------------------------------------------
-  // convert from HLT structure
+  // convert from GPU structure
   //------------------------------------------------------------------
   T::set(t.fX, t.fAlpha, &(t.fY), t.fC);
   SetTPCtrackId( t.fTPCTrackID );
@@ -224,9 +224,9 @@ GPUd() void AliHLTTRDTrack<T>::ConvertFrom( const AliHLTTRDTrackDataRecord &t )
 }
 
 #ifdef GPUCA_ALIROOT_LIB //Instantiate AliRoot track version
-template class AliHLTTRDTrack<trackInterface<AliExternalTrackParam>>;
+template class AliGPUTRDTrack<trackInterface<AliExternalTrackParam>>;
 #endif
 #ifdef GPUCA_O2_LIB //Instantiate O2 track version
 //Not yet existing
 #endif
-template class AliHLTTRDTrack<trackInterface<AliHLTTPCGMTrackParam>>; //Always instatiate HLT track version
+template class AliGPUTRDTrack<trackInterface<AliHLTTPCGMTrackParam>>; //Always instatiate GPU track version

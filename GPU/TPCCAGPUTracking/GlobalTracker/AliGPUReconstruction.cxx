@@ -28,15 +28,15 @@
 #include "AliHLTTPCCASliceOutCluster.h"
 #include "AliHLTTPCGMMergedTrack.h"
 #include "AliHLTTPCGMMergedTrackHit.h"
-#include "AliHLTTRDTrackletWord.h"
+#include "AliGPUTRDTrackletWord.h"
 #include "AliHLTTPCClusterMCData.h"
 #include "AliHLTTPCCAMCInfo.h"
-#include "AliHLTTRDTrack.h"
-#include "AliHLTTRDTracker.h"
+#include "AliGPUTRDTrack.h"
+#include "AliGPUTRDTracker.h"
 #include "TPCFastTransform.h"
 #include "AliHLTTPCRawCluster.h"
 #include "ClusterNativeAccessExt.h"
-#include "AliHLTTRDTrackletLabels.h"
+#include "AliGPUTRDTrackletLabels.h"
 #include "AliGPUCADisplay.h"
 #include "AliGPUCAQA.h"
 
@@ -62,7 +62,7 @@ constexpr AliGPUReconstruction::GeometryType AliGPUReconstruction::geometryType;
 static constexpr unsigned int DUMP_HEADER_SIZE = 4;
 static constexpr char DUMP_HEADER[DUMP_HEADER_SIZE + 1] = "CAv1";
 
-AliGPUReconstruction::AliGPUReconstruction(const AliGPUCASettingsProcessing& cfg) : mTRDTracker(new AliHLTTRDTracker), mITSTrackerTraits(nullptr), mTPCFastTransform(nullptr), mClusterNativeAccess(new ClusterNativeAccessExt)
+AliGPUReconstruction::AliGPUReconstruction(const AliGPUCASettingsProcessing& cfg) : mTRDTracker(new AliGPUTRDTracker), mITSTrackerTraits(nullptr), mTPCFastTransform(nullptr), mClusterNativeAccess(new ClusterNativeAccessExt)
 {
 	mProcessingSettings = cfg;
 	mDeviceProcessingSettings.SetDefaults();
@@ -84,7 +84,7 @@ AliGPUReconstruction::~AliGPUReconstruction()
 
 int AliGPUReconstruction::Init()
 {
-	mTRDTracker->Init((AliHLTTRDGeometry*) mTRDGeometry.get()); //Cast is safe, we just add some member functions
+	mTRDTracker->Init((AliGPUTRDGeometry*) mTRDGeometry.get()); //Cast is safe, we just add some member functions
 #ifdef GPUCA_HAVE_OPENMP
 	if (mDeviceProcessingSettings.nThreads <= 0) mDeviceProcessingSettings.nThreads = omp_get_max_threads();
 	else omp_set_num_threads(mDeviceProcessingSettings.nThreads);
@@ -662,7 +662,7 @@ int AliGPUReconstruction::RunTPCTrackingMerger()
 int AliGPUReconstruction::RunTRDTracking()
 {
 	if (!mTRDTracker->IsInitialized()) return 1;
-	std::vector<HLTTRDTrack> tracksTPC;
+	std::vector<GPUTRDTrack> tracksTPC;
 	std::vector<int> tracksTPCLab;
 	std::vector<int> tracksTPCId;
 

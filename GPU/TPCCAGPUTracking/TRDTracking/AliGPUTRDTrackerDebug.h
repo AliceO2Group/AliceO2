@@ -1,17 +1,17 @@
-#if defined (ENABLE_HLTTRDDEBUG) && defined(GPUCA_ALIROOT_LIB)
-# ifndef ALIHLTTRDTRACKERDEBUG_H
-# define ALIHLTTRDTRACKERDEBUG_H
+#if defined (ENABLE_GPUTRDDEBUG) && defined(GPUCA_ALIROOT_LIB)
+# ifndef ALIGPUTRDTRACKERDEBUG_H
+# define ALIGPUTRDTRACKERDEBUG_H
 
 #include "TVectorF.h"
 #include "TTreeStream.h"
-#include "AliHLTTRDTrack.h"
+#include "AliGPUTRDTrack.h"
 
 
-class AliHLTTRDTrackerDebug
+class AliGPUTRDTrackerDebug
 {
   public:
-    AliHLTTRDTrackerDebug() { fStreamer = new TTreeSRedirector("TRDhlt.root", "recreate"); }
-    ~AliHLTTRDTrackerDebug() { delete fStreamer; }
+    AliGPUTRDTrackerDebug() { fStreamer = new TTreeSRedirector("TRDhlt.root", "recreate"); }
+    ~AliGPUTRDTrackerDebug() { delete fStreamer; }
 
     int GetSector(float alpha) { if (alpha < 0) { alpha += 2. * M_PI; } return (int) (alpha * 18 / (2. * M_PI)); }
 
@@ -44,14 +44,14 @@ class AliHLTTRDTrackerDebug
             { fNmatch = nMatch; fNfake = nFake; fNrelated = nRelated; }
 
     // track parameters
-    void SetTrackParameter(const HLTTRDTrack &trk, int ly)
+    void SetTrackParameter(const GPUTRDTrack &trk, int ly)
             { fTrackX(ly) = trk.getX(); fTrackY(ly) = trk.getY(); fTrackZ(ly) = trk.getZ(); fTrackPhi(ly) = trk.getSnp(); fTrackLambda(ly) = trk.getTgl(); fTrackPt(ly) = trk.getPt(); fTrackSector(ly) = GetSector(trk.getAlpha());
                 fTrackYerr(ly) = trk.getSigmaY2(); fTrackZerr(ly) = trk.getSigmaZ2(); }
-    void SetTrackParameterNoUp(const HLTTRDTrack &trk, int ly)
+    void SetTrackParameterNoUp(const GPUTRDTrack &trk, int ly)
             { fTrackNoUpX(ly) = trk.getX(); fTrackNoUpY(ly) = trk.getY(); fTrackNoUpZ(ly) = trk.getZ(); fTrackNoUpPhi(ly) = trk.getSnp(); fTrackNoUpLambda(ly) = trk.getTgl();
               fTrackNoUpPt(ly) = trk.getPt(); fTrackNoUpSector(ly) = GetSector(trk.getAlpha()); fTrackNoUpYerr(ly) = trk.getSigmaY2(); fTrackNoUpZerr(ly) = trk.getSigmaZ2(); }
-    void SetTrackParameterReal(const HLTTRDTrack &trk, int ly) { fTrackXReal(ly) = trk.getX(); fTrackYReal(ly) = trk.getY(); fTrackZReal(ly) = trk.getZ(); fTrackSecReal(ly) = GetSector(trk.getAlpha()); }
-    void SetTrack(const HLTTRDTrack &trk) { fChi2 = trk.GetChi2(); fNlayers = trk.GetNlayers(); fNtrklts = trk.GetNtracklets(); fNtrkltsRef = trk.GetNtrackletsOffline(0); fNtrkltsRefMatch = trk.GetNtrackletsOffline(1); fNtrkltsRefRelated = trk.GetNtrackletsOffline(2); fNtrkltsRefFake = trk.GetNtrackletsOffline(3); fTrackIDref = trk.GetLabelOffline();
+    void SetTrackParameterReal(const GPUTRDTrack &trk, int ly) { fTrackXReal(ly) = trk.getX(); fTrackYReal(ly) = trk.getY(); fTrackZReal(ly) = trk.getZ(); fTrackSecReal(ly) = GetSector(trk.getAlpha()); }
+    void SetTrack(const GPUTRDTrack &trk) { fChi2 = trk.GetChi2(); fNlayers = trk.GetNlayers(); fNtrklts = trk.GetNtracklets(); fNtrkltsRef = trk.GetNtrackletsOffline(0); fNtrkltsRefMatch = trk.GetNtrackletsOffline(1); fNtrkltsRefRelated = trk.GetNtrackletsOffline(2); fNtrkltsRefFake = trk.GetNtrackletsOffline(3); fTrackIDref = trk.GetLabelOffline();
                                                 for (int iLy=0; iLy<6; iLy++) { if (trk.GetIsFindable(iLy)) fFindable(iLy) = 1; } }
 
     // tracklet parameters
@@ -220,10 +220,10 @@ class AliHLTTRDTrackerDebug
 
 # endif
 #else
-# ifndef ALIHLTTRDTRACKERDEBUG_H
-# define ALIHLTTRDTRACKERDEBUG_H
+# ifndef ALIGPUTRDTRACKERDEBUG_H
+# define ALIGPUTRDTRACKERDEBUG_H
 
-class AliHLTTRDTrackerDebug
+class AliGPUTRDTrackerDebug
 {
   public:
     GPUd() void ExpandVectors() {}
@@ -234,10 +234,10 @@ class AliHLTTRDTrackerDebug
     GPUd() void SetTrackProperties(int nMatch = 0, int nFake = 0, int nRelated = 0) {}
 
     // track parameters
-    GPUd() void SetTrackParameter(const HLTTRDTrack &trk, int ly) {}
-    GPUd() void SetTrackParameterNoUp(const HLTTRDTrack &trk, int ly) {}
-    GPUd() void SetTrackParameterReal(const HLTTRDTrack &trk, int ly) {}
-    GPUd() void SetTrack(const HLTTRDTrack &trk) {}
+    GPUd() void SetTrackParameter(const GPUTRDTrack &trk, int ly) {}
+    GPUd() void SetTrackParameterNoUp(const GPUTRDTrack &trk, int ly) {}
+    GPUd() void SetTrackParameterReal(const GPUTRDTrack &trk, int ly) {}
+    GPUd() void SetTrack(const GPUTRDTrack &trk) {}
 
     // tracklet parameters
     GPUd() void SetRawTrackletPosition(const float fX, const float (&fYZ)[2], int ly) {}

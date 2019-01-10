@@ -1,9 +1,9 @@
-#ifndef ALIHLTTRDTRACKLETWORD_H
-#define ALIHLTTRDTRACKLETWORD_H
+#ifndef ALIGPUTRDTRACKLETWORD_H
+#define ALIGPUTRDTRACKLETWORD_H
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
-/* $Id: AliHLTTRDTrackletWord.h 27496 2008-07-22 08:35:45Z cblume $ */
+/* $Id: AliGPUTRDTrackletWord.h 27496 2008-07-22 08:35:45Z cblume $ */
 
 //-----------------------------------
 //
@@ -17,21 +17,21 @@ class AliTRDtrackletMCM;
 
 #include "AliHLTTPCCADef.h"
 
-class AliHLTTRDTrackletWord {
+class AliGPUTRDTrackletWord {
  public:
-  GPUd() AliHLTTRDTrackletWord(unsigned int trackletWord = 0);
-  GPUd() AliHLTTRDTrackletWord(unsigned int trackletWord, int hcid, int id);
-  GPUd() AliHLTTRDTrackletWord(const AliHLTTRDTrackletWord &rhs);
-  AliHLTTRDTrackletWord(const AliTRDtrackletWord &rhs);
-  AliHLTTRDTrackletWord(const AliTRDtrackletMCM &rhs);
-  GPUd() ~AliHLTTRDTrackletWord();
-  GPUd() AliHLTTRDTrackletWord& operator=(const AliHLTTRDTrackletWord &rhs);
-  AliHLTTRDTrackletWord& operator=(const AliTRDtrackletMCM &rhs);
+  GPUd() AliGPUTRDTrackletWord(unsigned int trackletWord = 0);
+  GPUd() AliGPUTRDTrackletWord(unsigned int trackletWord, int hcid, int id);
+  GPUd() AliGPUTRDTrackletWord(const AliGPUTRDTrackletWord &rhs);
+  AliGPUTRDTrackletWord(const AliTRDtrackletWord &rhs);
+  AliGPUTRDTrackletWord(const AliTRDtrackletMCM &rhs);
+  GPUd() ~AliGPUTRDTrackletWord();
+  GPUd() AliGPUTRDTrackletWord& operator=(const AliGPUTRDTrackletWord &rhs);
+  AliGPUTRDTrackletWord& operator=(const AliTRDtrackletMCM &rhs);
 
   // ----- Override operators < and > to enable tracklet sorting by HCId -----
-  GPUd() bool operator<(const AliHLTTRDTrackletWord &t) const { return (GetHCId() < t.GetHCId()); }
-  GPUd() bool operator>(const AliHLTTRDTrackletWord &t) const { return (GetHCId() > t.GetHCId()); }
-  GPUd() bool operator<=(const AliHLTTRDTrackletWord &t) const { return (GetHCId() < t.GetHCId()) || (GetHCId() == t.GetHCId()); }
+  GPUd() bool operator<(const AliGPUTRDTrackletWord &t) const { return (GetHCId() < t.GetHCId()); }
+  GPUd() bool operator>(const AliGPUTRDTrackletWord &t) const { return (GetHCId() > t.GetHCId()); }
+  GPUd() bool operator<=(const AliGPUTRDTrackletWord &t) const { return (GetHCId() < t.GetHCId()) || (GetHCId() == t.GetHCId()); }
 
   // ----- Getters for contents of tracklet word -----
   GPUd() int GetYbin() const;

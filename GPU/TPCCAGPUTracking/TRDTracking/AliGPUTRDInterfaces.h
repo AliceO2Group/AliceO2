@@ -3,8 +3,8 @@
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //* See cxx source for full Copyright notice                               *
 
-#ifndef ALIHLTTRDINTERFACES_H
-#define ALIHLTTRDINTERFACES_H
+#ifndef ALIGPUTRDINTERFACES_H
+#define ALIGPUTRDINTERFACES_H
 
 /**
  * @class this is an interface header for making the TRD tracking portable between O2, AliRoot, and HLT standalone framework
@@ -13,7 +13,7 @@
 #include "AliTPCCommonDef.h"
 #include "AliHLTTPCGMMergedTrack.h"
 #include "AliHLTTPCGMTrackParam.h"
-#include "AliHLTTRDDef.h"
+#include "AliGPUTRDDef.h"
 template <typename T> class trackInterface;
 template <typename T> class propagatorInterface;
 

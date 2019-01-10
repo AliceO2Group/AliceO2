@@ -6,7 +6,7 @@
 #include <memory>
 #include <fstream>
 
-#include "AliHLTTRDDef.h"
+#include "AliGPUTRDDef.h"
 #include "AliGPUCAParam.h"
 #include "AliGPUCASettings.h"
 #include "AliGPUCAOutputControl.h"
@@ -20,14 +20,14 @@ class AliHLTTPCCASliceOutTrack;
 class AliHLTTPCCASliceOutCluster;
 class AliHLTTPCGMMergedTrack;
 class AliHLTTPCGMMergedTrackHit;
-class AliHLTTRDTrackletWord;
+class AliGPUTRDTrackletWord;
 class AliHLTTPCClusterMCLabel;
 class AliHLTTPCCAMCInfo;
-class AliHLTTRDTracker;
+class AliGPUTRDTracker;
 class AliHLTTPCCAGPUTracker;
 struct AliHLTTPCRawCluster;
 struct ClusterNativeAccessExt;
-struct AliHLTTRDTrackletLabels;
+struct AliGPUTRDTrackletLabels;
 class AliGPUCADisplay;
 class AliGPUCAQA;
 
@@ -101,11 +101,11 @@ public:
 		unsigned int nMergedTracks;
 		const AliHLTTPCGMMergedTrackHit* mergedTrackHits;
 		unsigned int nMergedTrackHits;
-		const HLTTRDTrack* trdTracks;
+		const GPUTRDTrack* trdTracks;
 		unsigned int nTRDTracks;
-		const AliHLTTRDTrackletWord* trdTracklets;
+		const AliGPUTRDTrackletWord* trdTracklets;
 		unsigned int nTRDTracklets;
-		const AliHLTTRDTrackletLabels* trdTrackletsMC;
+		const AliGPUTRDTrackletLabels* trdTrackletsMC;
 		unsigned int nTRDTrackletsMC;
 	} mIOPtrs;
 
@@ -125,9 +125,9 @@ public:
 		std::unique_ptr<AliHLTTPCCAMCInfo[]> mcInfosTPC;
 		std::unique_ptr<AliHLTTPCGMMergedTrack[]> mergedTracks;
 		std::unique_ptr<AliHLTTPCGMMergedTrackHit[]> mergedTrackHits;
-		std::unique_ptr<HLTTRDTrack[]> trdTracks;
-		std::unique_ptr<AliHLTTRDTrackletWord[]> trdTracklets;
-		std::unique_ptr<AliHLTTRDTrackletLabels[]> trdTrackletsMC;
+		std::unique_ptr<GPUTRDTrack[]> trdTracks;
+		std::unique_ptr<AliGPUTRDTrackletWord[]> trdTracklets;
+		std::unique_ptr<AliGPUTRDTrackletLabels[]> trdTrackletsMC;
 	} mIOMem;
 	
 	//Functionality to dump and read input / output data
@@ -186,7 +186,7 @@ public:
 	void ConvertNativeToClusterData();
 	
 	//Getters for external usage of tracker classes
-	AliHLTTRDTracker* GetTRDTracker() {return mTRDTracker.get();}
+	AliGPUTRDTracker* GetTRDTracker() {return mTRDTracker.get();}
 	o2::ITS::TrackerTraits* GetITSTrackerTraits() {return mITSTrackerTraits.get();}
 	AliHLTTPCCATracker* GetTPCSliceTrackers() {return mTPCSliceTrackersCPU;}
 	const AliHLTTPCCATracker* GetTPCSliceTrackers() const {return mTPCSliceTrackersCPU;}
@@ -244,7 +244,7 @@ protected:
 	template <class T> void ReadStructFromFile(const char* file, T* obj);
 	
 	//Pointers to tracker classes
-	std::unique_ptr<AliHLTTRDTracker> mTRDTracker;
+	std::unique_ptr<AliGPUTRDTracker> mTRDTracker;
 	std::unique_ptr<o2::ITS::TrackerTraits> mITSTrackerTraits;
 	AliHLTTPCCATracker mTPCSliceTrackersCPU[NSLICES];
 	AliHLTTPCGMMerger mTPCMergerCPU;

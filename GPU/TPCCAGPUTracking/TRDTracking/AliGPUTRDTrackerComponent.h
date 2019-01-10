@@ -7,13 +7,13 @@
 //                                                                        *
 //*************************************************************************
 
-///  @file   AliHLTTRDTrackerComponent.h
+///  @file   AliGPUTRDTrackerComponent.h
 ///  @author Marten Ole Schmidt <ole.schmidt@cern.ch>
 ///  @date   May 2016
-///  @brief  A TRD tracker processing component for the HLT
+///  @brief  A TRD tracker processing component for the GPU
 
-#ifndef ALIHLTTRDTRACKERCOMPONENT_H
-#define ALIHLTTRDTRACKERCOMPONENT_H
+#ifndef ALIGPUTRDTRACKERCOMPONENT_H
+#define ALIGPUTRDTRACKERCOMPONENT_H
 
 #include "AliHLTProcessor.h"
 #include "AliHLTComponentBenchmark.h"
@@ -21,11 +21,11 @@
 
 class TH1F;
 class TList;
-class AliHLTTRDTracker;
-class AliHLTTRDGeometry;
+class AliGPUTRDTracker;
+class AliGPUTRDGeometry;
 
 
-class AliHLTTRDTrackerComponent : public AliHLTProcessor {
+class AliGPUTRDTrackerComponent : public AliHLTProcessor {
 public:
 
   /*
@@ -35,16 +35,16 @@ public:
    */
 
   /** constructor */
-  AliHLTTRDTrackerComponent();
+  AliGPUTRDTrackerComponent();
 
   /** dummy copy constructor, defined according to effective C++ style */
-  AliHLTTRDTrackerComponent( const AliHLTTRDTrackerComponent& );
+  AliGPUTRDTrackerComponent( const AliGPUTRDTrackerComponent& );
 
   /** dummy assignment op, but defined according to effective C++ style */
-  AliHLTTRDTrackerComponent& operator=( const AliHLTTRDTrackerComponent& );
+  AliGPUTRDTrackerComponent& operator=( const AliGPUTRDTrackerComponent& );
 
   /** destructor */
-  virtual ~AliHLTTRDTrackerComponent();
+  virtual ~AliGPUTRDTrackerComponent();
 
   /*
    * ---------------------------------------------------------------------------------
@@ -124,15 +124,15 @@ private:
    *                             Members - private
    * ---------------------------------------------------------------------------------
    */
-  AliHLTTRDTracker *fTracker; // the tracker itself
-  AliHLTTRDGeometry *fGeo;       // TRD geometry needed by the tracker
+  AliGPUTRDTracker *fTracker; // the tracker itself
+  AliGPUTRDGeometry *fGeo;       // TRD geometry needed by the tracker
 
   TList* fTrackList;
-  bool fDebugTrackOutput; // output AliHLTTRDTracks instead AliHLTExternalTrackParam
+  bool fDebugTrackOutput; // output AliGPUTRDTracks instead AliHLTExternalTrackParam
   bool fVerboseDebugOutput; // more verbose information is printed
   bool fRequireITStrack;  // only TPC tracks with ITS match are used as seeds for tracking
   AliHLTComponentBenchmark fBenchmark; // benchmark
 
-  ClassDef(AliHLTTRDTrackerComponent, 0)
+  ClassDef(AliGPUTRDTrackerComponent, 0)
 };
 #endif

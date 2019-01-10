@@ -127,7 +127,7 @@ void InitBranches()
     return;
   }
 
-  // for explanations of the variables see AliHLTTRDTrackerDebug.h
+  // for explanations of the variables see AliGPUTRDTrackerDebug.h
   tree->SetBranchAddress("trackID", &trackID);
   tree->SetBranchAddress("labelRef", &trackIDref);
   tree->SetBranchAddress("pdgCode", &trackPID);

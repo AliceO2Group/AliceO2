@@ -1,4 +1,4 @@
-// $Id: AliHLTTRDTrackerComponent.cxx 2016-05-22 16:08:40Z marten $
+// $Id: AliGPUTRDTrackerComponent.cxx 2016-05-22 16:08:40Z marten $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -16,15 +16,15 @@
 //                                                                          *
 //***************************************************************************
 
-///  @file   AliHLTTRDTrackerComponent.cxx
+///  @file   AliGPUTRDTrackerComponent.cxx
 ///  @author Marten Ole Schmidt <ole.schmidt@cern.ch>
 ///  @date   May 2016
-///  @brief  A TRD tracker processing component for the HLT
+///  @brief  A TRD tracker processing component for the GPU
 
 
 /////////////////////////////////////////////////////
 //                                                 //
-// a TRD tracker processing component for the HLT  //
+// a TRD tracker processing component for the GPU  //
 //                                                 //
 /////////////////////////////////////////////////////
 
@@ -36,29 +36,29 @@
 #include "AliESDEvent.h"
 #include "AliHLTErrorGuard.h"
 #include "AliHLTDataTypes.h"
-#include "AliHLTTRDGeometry.h"
-#include "AliHLTTRDTracker.h"
-#include "AliHLTTRDTrack.h"
-#include "AliHLTTRDTrackerComponent.h"
-#include "AliHLTTRDTrackletWord.h"
-#include "AliHLTTRDTrackletLabels.h"
+#include "AliGPUTRDGeometry.h"
+#include "AliGPUTRDTracker.h"
+#include "AliGPUTRDTrack.h"
+#include "AliGPUTRDTrackerComponent.h"
+#include "AliGPUTRDTrackletWord.h"
+#include "AliGPUTRDTrackletLabels.h"
 #include "AliHLTTRDDefinitions.h"
 #include "AliHLTTPCDefinitions.h"
-#include "AliHLTTRDTrackPoint.h"
+#include "AliGPUTRDTrackPoint.h"
 #include "AliHLTGlobalBarrelTrack.h"
 #include "AliExternalTrackParam.h"
 #include "AliHLTExternalTrackParam.h"
 #include "AliHLTTrackMCLabel.h"
-#include "AliHLTTRDTrackData.h"
+#include "AliGPUTRDTrackData.h"
 #include "AliGeomManager.h"
 #include <map>
 #include <vector>
 #include <algorithm>
 
 
-ClassImp(AliHLTTRDTrackerComponent)
+ClassImp(AliGPUTRDTrackerComponent)
 
-AliHLTTRDTrackerComponent::AliHLTTRDTrackerComponent() :
+AliGPUTRDTrackerComponent::AliGPUTRDTrackerComponent() :
   fTracker(0x0),
   fGeo(0x0),
   fTrackList(0x0),
@@ -69,7 +69,7 @@ AliHLTTRDTrackerComponent::AliHLTTRDTrackerComponent() :
 {
 }
 
-AliHLTTRDTrackerComponent::AliHLTTRDTrackerComponent( const AliHLTTRDTrackerComponent& )
+AliGPUTRDTrackerComponent::AliGPUTRDTrackerComponent( const AliGPUTRDTrackerComponent& )
   :
   fTracker(0x0),
   fGeo(0x0),
@@ -84,22 +84,22 @@ AliHLTTRDTrackerComponent::AliHLTTRDTrackerComponent( const AliHLTTRDTrackerComp
   HLTFatal( "copy constructor untested" );
 }
 
-AliHLTTRDTrackerComponent& AliHLTTRDTrackerComponent::operator=( const AliHLTTRDTrackerComponent& )
+AliGPUTRDTrackerComponent& AliGPUTRDTrackerComponent::operator=( const AliGPUTRDTrackerComponent& )
 {
   // see header file for class documentation
   HLTFatal( "assignment operator untested" );
   return *this;
 }
 
-AliHLTTRDTrackerComponent::~AliHLTTRDTrackerComponent() {
+AliGPUTRDTrackerComponent::~AliGPUTRDTrackerComponent() {
   delete fTracker;
 }
 
-const char* AliHLTTRDTrackerComponent::GetComponentID() {
+const char* AliGPUTRDTrackerComponent::GetComponentID() {
   return "TRDTracker";
 }
 
-void AliHLTTRDTrackerComponent::GetInputDataTypes( std::vector<AliHLTComponentDataType>& list) {
+void AliGPUTRDTrackerComponent::GetInputDataTypes( std::vector<AliHLTComponentDataType>& list) {
   list.clear();
   list.push_back( kAliHLTDataTypeTrack|kAliHLTDataOriginITS );
   //list.push_back( kAliHLTDataTypeTrack|kAliHLTDataOriginTPC );
@@ -109,11 +109,11 @@ void AliHLTTRDTrackerComponent::GetInputDataTypes( std::vector<AliHLTComponentDa
   list.push_back( AliHLTTRDDefinitions::fgkTRDMCTrackletDataType );
 }
 
-AliHLTComponentDataType AliHLTTRDTrackerComponent::GetOutputDataType() {
+AliHLTComponentDataType AliGPUTRDTrackerComponent::GetOutputDataType() {
   return kAliHLTMultipleDataType;
 }
 
-int AliHLTTRDTrackerComponent::GetOutputDataTypes(AliHLTComponentDataTypeList& tgtList)
+int AliGPUTRDTrackerComponent::GetOutputDataTypes(AliHLTComponentDataTypeList& tgtList)
 {
   // see header file for class documentation
   tgtList.clear();
@@ -123,18 +123,18 @@ int AliHLTTRDTrackerComponent::GetOutputDataTypes(AliHLTComponentDataTypeList& t
   return tgtList.size();
 }
 
-void AliHLTTRDTrackerComponent::GetOutputDataSize( unsigned long& constBase, double& inputMultiplier ) {
+void AliGPUTRDTrackerComponent::GetOutputDataSize( unsigned long& constBase, double& inputMultiplier ) {
   // define guess for the output data size
   constBase = 1000;       // minimum size
   inputMultiplier = 2.; // size relative to input
 }
 
-AliHLTComponent* AliHLTTRDTrackerComponent::Spawn() {
+AliHLTComponent* AliGPUTRDTrackerComponent::Spawn() {
   // see header file for class documentation
-  return new AliHLTTRDTrackerComponent;
+  return new AliGPUTRDTrackerComponent;
 }
 
-int AliHLTTRDTrackerComponent::ReadConfigurationString(  const char* arguments )
+int AliGPUTRDTrackerComponent::ReadConfigurationString(  const char* arguments )
 {
   // Set configuration parameters for the TRD tracker component from the string
 
@@ -155,7 +155,7 @@ int AliHLTTRDTrackerComponent::ReadConfigurationString(  const char* arguments )
     if ( argument.CompareTo("-debugOutput") == 0 ) {
       fDebugTrackOutput = true;
       fVerboseDebugOutput = true;
-      HLTInfo( "Tracks are dumped in the HLTTRDTrack format" );
+      HLTInfo( "Tracks are dumped in the GPUTRDTrack format" );
       continue;
     }
 
@@ -176,7 +176,7 @@ int AliHLTTRDTrackerComponent::ReadConfigurationString(  const char* arguments )
 
 
 // #################################################################################
-int AliHLTTRDTrackerComponent::DoInit( int argc, const char** argv ) {
+int AliGPUTRDTrackerComponent::DoInit( int argc, const char** argv ) {
   // see header file for class documentation
 
   int iResult=0;
@@ -206,15 +206,15 @@ int AliHLTTRDTrackerComponent::DoInit( int argc, const char** argv ) {
 
   iResult = ReadConfigurationString( arguments.Data() );
 
-  fGeo = new AliHLTTRDGeometry();
+  fGeo = new AliGPUTRDGeometry();
   if (!fGeo) {
     return -ENOMEM;
   }
-  if (!AliHLTTRDGeometry::CheckGeometryAvailable()) {
+  if (!AliGPUTRDGeometry::CheckGeometryAvailable()) {
     HLTError("TRD geometry not available");
     return -EINVAL;
   }
-  fTracker = new AliHLTTRDTracker();
+  fTracker = new AliGPUTRDTracker();
   if (!fTracker) {
     return -ENOMEM;
   }
@@ -229,7 +229,7 @@ int AliHLTTRDTrackerComponent::DoInit( int argc, const char** argv ) {
 
 
 // #################################################################################
-int AliHLTTRDTrackerComponent::DoDeinit() {
+int AliGPUTRDTrackerComponent::DoDeinit() {
   // see header file for class documentation
   delete fTracker;
   fTracker = 0x0;
@@ -239,7 +239,7 @@ int AliHLTTRDTrackerComponent::DoDeinit() {
 }
 
 // #################################################################################
-int AliHLTTRDTrackerComponent::DoEvent
+int AliGPUTRDTrackerComponent::DoEvent
 (
   const AliHLTComponentEventData& evtData,
   const AliHLTComponentBlockData* blocks,
@@ -266,7 +266,7 @@ int AliHLTTRDTrackerComponent::DoEvent
   int iResult=0;
 
   if (fTrackList->GetEntries() != 0) {
-    fTrackList->Clear(); // tracks are owned by AliHLTTRDTracker
+    fTrackList->Clear(); // tracks are owned by AliGPUTRDTracker
   }
 
   int nBlocks = evtData.fBlockCnt;
@@ -275,7 +275,7 @@ int AliHLTTRDTrackerComponent::DoEvent
   AliHLTTracksData *itsData = NULL;
   AliHLTTrackMCData *tpcDataMC = NULL;
 
-  std::vector< HLTTRDTrack > tracksTPC;
+  std::vector< GPUTRDTrack > tracksTPC;
   std::vector< int > tracksTPCLab;
   std::vector< int > tracksTPCId;
 
@@ -283,8 +283,8 @@ int AliHLTTRDTrackerComponent::DoEvent
 
   int nTrackletsTotal = 0;
   int nTrackletsTotalMC = 0;
-  AliHLTTRDTrackletWord *tracklets = NULL;
-  AliHLTTRDTrackletLabels *trackletsMC = NULL;
+  AliGPUTRDTrackletWord *tracklets = NULL;
+  AliGPUTRDTrackletLabels *trackletsMC = NULL;
 
   for (int iBlock = 0; iBlock < nBlocks; iBlock++) {
     if (blocks[iBlock].fDataType == (kAliHLTDataTypeTrack | kAliHLTDataOriginITS) && fRequireITStrack) {
@@ -300,14 +300,14 @@ int AliHLTTRDTrackerComponent::DoEvent
       fBenchmark.AddInput(blocks[iBlock].fSize);
     }
     else if (blocks[iBlock].fDataType == (AliHLTTRDDefinitions::fgkTRDTrackletDataType)) {
-      tracklets = reinterpret_cast<AliHLTTRDTrackletWord*>( blocks[iBlock].fPtr );
-      nTrackletsTotal = blocks[iBlock].fSize / sizeof(AliHLTTRDTrackletWord);
+      tracklets = reinterpret_cast<AliGPUTRDTrackletWord*>( blocks[iBlock].fPtr );
+      nTrackletsTotal = blocks[iBlock].fSize / sizeof(AliGPUTRDTrackletWord);
       fBenchmark.AddInput(blocks[iBlock].fSize);
     }
     else if (blocks[iBlock].fDataType == (AliHLTTRDDefinitions::fgkTRDMCTrackletDataType)) {
       hasMCtracklets = true;
-      trackletsMC = reinterpret_cast<AliHLTTRDTrackletLabels*>( blocks[iBlock].fPtr );
-      nTrackletsTotalMC = blocks[iBlock].fSize / sizeof(AliHLTTRDTrackletLabels);
+      trackletsMC = reinterpret_cast<AliGPUTRDTrackletLabels*>( blocks[iBlock].fPtr );
+      nTrackletsTotalMC = blocks[iBlock].fSize / sizeof(AliGPUTRDTrackletLabels);
       fBenchmark.AddInput(blocks[iBlock].fSize);
     }
   }
@@ -356,7 +356,7 @@ int AliHLTTRDTrackerComponent::DoEvent
     if (itsData != NULL && !itsAvail.at(currOutTrackTPC->fTrackID)) {
       continue;
     }
-    HLTTRDTrack t(*currOutTrackTPC);
+    GPUTRDTrack t(*currOutTrackTPC);
     int mcLabel = -1;
     if (tpcDataMC) {
       if (mcLabels.find(currOutTrackTPC->fTrackID) != mcLabels.end()) {
@@ -394,35 +394,35 @@ int AliHLTTRDTrackerComponent::DoEvent
   fTracker->DoTracking(&(tracksTPC[0]), &(tracksTPCLab[0]), tracksTPC.size());
   fBenchmark.Stop(1);
 
-  HLTTRDTrack *trackArray = fTracker->Tracks();
+  GPUTRDTrack *trackArray = fTracker->Tracks();
   int nTracks = fTracker->NTracks();
-  AliHLTTRDTracker::AliHLTTRDSpacePointInternal *spacePoints = fTracker->SpacePoints();
+  AliGPUTRDTracker::AliGPUTRDSpacePointInternal *spacePoints = fTracker->SpacePoints();
 
-  // TODO delete fTrackList since it only works for TObjects (or use compiler flag after tests with HLT track type)
+  // TODO delete fTrackList since it only works for TObjects (or use compiler flag after tests with GPU track type)
   //for (int iTrack=0; iTrack<nTracks; ++iTrack) {
   //  fTrackList->AddLast(&trackArray[iTrack]);
   //}
 
-  // push back AliHLTTRDTracks for debugging purposes
+  // push back AliGPUTRDTracks for debugging purposes
   if (fDebugTrackOutput) {
     PushBack(fTrackList, (kAliHLTDataTypeTObject | kAliHLTDataOriginTRD), 0x3fffff);
   }
   // push back AliHLTExternalTrackParam (default)
   else {
 
-    AliHLTUInt32_t blockSize = AliHLTTRDTrackData::GetSize( nTracks );
+    AliHLTUInt32_t blockSize = AliGPUTRDTrackData::GetSize( nTracks );
     if (size + blockSize > maxBufferSize) {
       HLTWarning( "Output buffer exceeded for tracks" );
       return -ENOSPC;
     }
 
-    AliHLTTRDTrackData* outTracks = ( AliHLTTRDTrackData* )( outputPtr );
+    AliGPUTRDTrackData* outTracks = ( AliGPUTRDTrackData* )( outputPtr );
     outTracks->fCount = 0;
 
     for (int iTrk=0; iTrk<nTracks; ++iTrk) {
-      HLTTRDTrack &t = trackArray[iTrk];
+      GPUTRDTrack &t = trackArray[iTrk];
       if (t.GetNtracklets() == 0) continue;
-      AliHLTTRDTrackDataRecord &currOutTrack = outTracks->fTracks[outTracks->fCount];
+      AliGPUTRDTrackDataRecord &currOutTrack = outTracks->fTracks[outTracks->fCount];
       t.ConvertTo(currOutTrack);
       outTracks->fCount++;
     }
@@ -442,18 +442,18 @@ int AliHLTTRDTrackerComponent::DoEvent
 
     // space points calculated from tracklets
 
-    blockSize = sizeof(AliHLTTRDTrackPointData) + sizeof(AliHLTTRDTrackPoint) * nTrackletsTotal;
+    blockSize = sizeof(AliGPUTRDTrackPointData) + sizeof(AliGPUTRDTrackPoint) * nTrackletsTotal;
 
     if (size + blockSize > maxBufferSize) {
       HLTWarning( "Output buffer exceeded for space points" );
       return -ENOSPC;
     }
 
-    AliHLTTRDTrackPointData* outTrackPoints = ( AliHLTTRDTrackPointData* )( outputPtr );
+    AliGPUTRDTrackPointData* outTrackPoints = ( AliGPUTRDTrackPointData* )( outputPtr );
     outTrackPoints->fCount = nTrackletsTotal;
 
     { // fill array with 0 for a case..
-      AliHLTTRDTrackPoint empty;
+      AliGPUTRDTrackPoint empty;
       empty.fX[0] = 0;
       empty.fX[1] = 0;
       empty.fX[2] = 0;
@@ -464,12 +464,12 @@ int AliHLTTRDTrackerComponent::DoEvent
     }
 
     for (int i=0; i<nTrackletsTotal; ++i) {
-      const AliHLTTRDTracker::AliHLTTRDSpacePointInternal &sp = spacePoints[i];
+      const AliGPUTRDTracker::AliGPUTRDSpacePointInternal &sp = spacePoints[i];
       int id = sp.fId;
       if( id<0 || id>=nTrackletsTotal ){
 	HLTError("Internal error: wrong space point index %d", id );
       }
-      AliHLTTRDTrackPoint *currOutPoint = &outTrackPoints->fPoints[id];
+      AliGPUTRDTrackPoint *currOutPoint = &outTrackPoints->fPoints[id];
       currOutPoint->fX[0] = sp.fR; // x in sector coordinates
       currOutPoint->fX[1] = sp.fX[0]; // y in sector coordinates
       currOutPoint->fX[2] = sp.fX[1]; // z in sector coordinates
@@ -495,7 +495,7 @@ int AliHLTTRDTrackerComponent::DoEvent
 }
 
 // #################################################################################
-int AliHLTTRDTrackerComponent::Reconfigure(const char* cdbEntry, const char* chainId) {
+int AliGPUTRDTrackerComponent::Reconfigure(const char* cdbEntry, const char* chainId) {
   // see header file for class documentation
 
   int iResult=0;

@@ -31,10 +31,10 @@
 #pragma link C++ class AliHLTTPCGMPolynomialFieldManager+;
 #pragma link C++ class AliHLTTPCClusterStatComponent+;
 
-//#pragma link C++ class AliHLTTRDTrack+; //Templated, should add linkdef for specialization, but with an ifdef for ROOT >= 6 only
-//#pragma link C++ class AliHLTTRDTracker+;
-#pragma link C++ class AliHLTTRDTrackerComponent+;
-//#pragma link C++ class AliHLTTRDTrackletWord+;
-#pragma link C++ class AliHLTTRDTrackletReaderComponent+;
+//#pragma link C++ class AliGPUTRDTrack+; //Templated, should add linkdef for specialization, but with an ifdef for ROOT >= 6 only
+//#pragma link C++ class AliGPUTRDTracker+;
+#pragma link C++ class AliGPUTRDTrackerComponent+;
+//#pragma link C++ class AliGPUTRDTrackletWord+;
+#pragma link C++ class AliGPUTRDTrackletReaderComponent+;
 
 #endif

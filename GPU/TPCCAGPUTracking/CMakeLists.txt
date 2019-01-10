@@ -60,9 +60,9 @@ set(SRCS
     Merger/AliHLTTPCGMPropagator.cxx
     Merger/AliHLTTPCGMPolynomialField.cxx
     Merger/AliHLTTPCGMPolynomialFieldManager.cxx
-    TRDTracking/AliHLTTRDTrack.cxx
-    TRDTracking/AliHLTTRDTracker.cxx
-    TRDTracking/AliHLTTRDTrackletWord.cxx
+    TRDTracking/AliGPUTRDTrack.cxx
+    TRDTracking/AliGPUTRDTracker.cxx
+    TRDTracking/AliGPUTRDTrackletWord.cxx
     GlobalTracker/AliGPUCAParam.cxx
 )
 
@@ -90,12 +90,12 @@ set(HDRS
     Merger/AliHLTTPCGMOfflineStatisticalErrors.h
     Merger/AliHLTTPCGMMergedTrack.h
     Merger/AliHLTTPCGMMergedTrackHit.h
-    TRDTracking/AliHLTTRDDef.h
-    TRDTracking/AliHLTTRDTrackPoint.h
-    TRDTracking/AliHLTTRDTrack.h
-    TRDTracking/AliHLTTRDTrackData.h
-    TRDTracking/AliHLTTRDTrackPoint.h
-    TRDTracking/AliHLTTRDTrackletLabels.h
+    TRDTracking/AliGPUTRDDef.h
+    TRDTracking/AliGPUTRDTrackPoint.h
+    TRDTracking/AliGPUTRDTrack.h
+    TRDTracking/AliGPUTRDTrackData.h
+    TRDTracking/AliGPUTRDTrackPoint.h
+    TRDTracking/AliGPUTRDTrackletLabels.h
     GlobalTracker/AliGPUCADataTypes.h
     GlobalTracker/AliGPUCAOutputControl.h
 )
@@ -105,9 +105,9 @@ set(HDRS2
     SliceTracker/AliHLTTPCCAGeometry.h
     SliceTracker/AliCAGPULogging.h
     SliceTracker/ClusterNativeAccessExt.h
-    TRDTracking/AliHLTTRDGeometry.h
-    TRDTracking/AliHLTTRDTrackerDebug.h
-    TRDTracking/AliHLTTRDInterfaces.h
+    TRDTracking/AliGPUTRDGeometry.h
+    TRDTracking/AliGPUTRDTrackerDebug.h
+    TRDTracking/AliGPUTRDInterfaces.h
     Standalone/display/AliGPUCADisplayConfig.h
     Standalone/qa/AliGPUCAQAConfig.h
 )
@@ -136,8 +136,8 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
         SliceTracker/AliHLTTPCCATrackerComponent.cxx
         Merger/AliHLTTPCGMTracksToTPCSeeds.cxx
         DataCompression/AliHLTTPCClusterStatComponent.cxx
-        TRDTracking/AliHLTTRDTrackerComponent.cxx
-        TRDTracking/AliHLTTRDTrackletReaderComponent.cxx
+        TRDTracking/AliGPUTRDTrackerComponent.cxx
+        TRDTracking/AliGPUTRDTrackletReaderComponent.cxx
 
         GlobalTracker/AliHLTGPUDumpComponent.cxx
     )
