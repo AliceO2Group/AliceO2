@@ -12,7 +12,7 @@
 //* provided "as is" without express or implied warranty.                  *
 //**************************************************************************
 
-/// @file   AliHLTTRDTrackletReaderComponent.cxx
+/// @file   AliGPUTRDTrackletReaderComponent.cxx
 /// @author Felix Rettig, Stefan Kirsch
 /// @date   2012-08-16
 /// @brief  A pre-processing component for TRD tracking/trigger data on FEP-level
@@ -22,11 +22,11 @@
 #include "AliLog.h"
 #include "AliHLTDataTypes.h"
 #include "AliHLTTRDDefinitions.h"
-#include "AliHLTTRDTrackletReaderComponent.h"
+#include "AliGPUTRDTrackletReaderComponent.h"
 #include "AliRawReaderMemory.h"
 #include "AliTRDrawStream.h"
-#include "AliHLTTRDTrackletWord.h"
-#include "AliHLTTRDTrackletLabels.h"
+#include "AliGPUTRDTrackletWord.h"
+#include "AliGPUTRDTrackletLabels.h"
 #include "AliTRDtrackletWord.h"
 #include "AliTRDtrackletMCM.h"
 #include "TTree.h"
@@ -35,14 +35,14 @@
 #include "AliLoader.h"
 #include "AliDataLoader.h"
 
-ClassImp(AliHLTTRDTrackletReaderComponent)
+ClassImp(AliGPUTRDTrackletReaderComponent)
 
 #define LogError( ... ) { HLTError(__VA_ARGS__); if (fDebugLevel >= 1) { DbgLog("ERROR", __VA_ARGS__); } }
 #define LogInfo( ... ) { HLTInfo(__VA_ARGS__); if (fDebugLevel >= 1) { DbgLog("INFO", __VA_ARGS__); } }
 #define LogInspect( ... ) { HLTDebug(__VA_ARGS__); if (fDebugLevel >= 1) { DbgLog("INSPECT", __VA_ARGS__); } }
 #define LogDebug( ... ) { if (fDebugLevel >= 1) { HLTInfo(__VA_ARGS__); DbgLog("DEBUG", __VA_ARGS__); } }
 
-AliHLTTRDTrackletReaderComponent::AliHLTTRDTrackletReaderComponent() :
+AliGPUTRDTrackletReaderComponent::AliGPUTRDTrackletReaderComponent() :
   AliHLTProcessor(),
   fDebugLevel(0),
   fEventId(fgkInvalidEventId),
@@ -53,51 +53,51 @@ AliHLTTRDTrackletReaderComponent::AliHLTTRDTrackletReaderComponent() :
   // constructor
 }
 
-AliHLTTRDTrackletReaderComponent::~AliHLTTRDTrackletReaderComponent() {
+AliGPUTRDTrackletReaderComponent::~AliGPUTRDTrackletReaderComponent() {
   // destructor
 }
 
-const char* AliHLTTRDTrackletReaderComponent::GetComponentID() {
+const char* AliGPUTRDTrackletReaderComponent::GetComponentID() {
   return "TRDTrackletReader";
 }
 
-void AliHLTTRDTrackletReaderComponent::GetInputDataTypes( vector<AliHLTComponentDataType>& list) {
+void AliGPUTRDTrackletReaderComponent::GetInputDataTypes( vector<AliHLTComponentDataType>& list) {
   list.push_back(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginTRD);
   list.push_back(kAliHLTDataTypeAliTreeD|kAliHLTDataOriginTRD);
 }
 
-AliHLTComponentDataType AliHLTTRDTrackletReaderComponent::GetOutputDataType() {
+AliHLTComponentDataType AliGPUTRDTrackletReaderComponent::GetOutputDataType() {
   return kAliHLTMultipleDataType;
 }
 
-int AliHLTTRDTrackletReaderComponent::GetOutputDataTypes(AliHLTComponentDataTypeList& tgtList) {
+int AliGPUTRDTrackletReaderComponent::GetOutputDataTypes(AliHLTComponentDataTypeList& tgtList) {
   tgtList.clear();
   tgtList.push_back(AliHLTTRDDefinitions::fgkTRDTrackletDataType);
   tgtList.push_back(AliHLTTRDDefinitions::fgkTRDMCTrackletDataType);
   return tgtList.size();
 }
 
-void AliHLTTRDTrackletReaderComponent::GetOutputDataSize(unsigned long& constBase, double& inputMultiplier ) {
+void AliGPUTRDTrackletReaderComponent::GetOutputDataSize(unsigned long& constBase, double& inputMultiplier ) {
   constBase = 5000000;
   inputMultiplier = 0;
 }
 
-void AliHLTTRDTrackletReaderComponent::GetOCDBObjectDescription( TMap* const /*targetMap*/) {
+void AliGPUTRDTrackletReaderComponent::GetOCDBObjectDescription( TMap* const /*targetMap*/) {
 }
 
-AliHLTComponent* AliHLTTRDTrackletReaderComponent::Spawn(){
-  return new AliHLTTRDTrackletReaderComponent;
+AliHLTComponent* AliGPUTRDTrackletReaderComponent::Spawn(){
+  return new AliGPUTRDTrackletReaderComponent;
 }
 
-int AliHLTTRDTrackletReaderComponent::Reconfigure(const char* /*cdbEntry*/, const char* /*chainId*/) {
+int AliGPUTRDTrackletReaderComponent::Reconfigure(const char* /*cdbEntry*/, const char* /*chainId*/) {
   return 0;
 }
 
-int AliHLTTRDTrackletReaderComponent::ReadPreprocessorValues(const char* /*modules*/){
+int AliGPUTRDTrackletReaderComponent::ReadPreprocessorValues(const char* /*modules*/){
   return 0;
 }
 
-int AliHLTTRDTrackletReaderComponent::ScanConfigurationArgument(int argc, const char** argv){
+int AliGPUTRDTrackletReaderComponent::ScanConfigurationArgument(int argc, const char** argv){
 
   if (argc <= 0)
     return 0;
@@ -116,7 +116,7 @@ int AliHLTTRDTrackletReaderComponent::ScanConfigurationArgument(int argc, const 
   return 0;
 }
 
-int AliHLTTRDTrackletReaderComponent::DoInit(int argc, const char** argv){
+int AliGPUTRDTrackletReaderComponent::DoInit(int argc, const char** argv){
 
   int iResult = 0;
 
@@ -171,7 +171,7 @@ int AliHLTTRDTrackletReaderComponent::DoInit(int argc, const char** argv){
   return iResult;
 }
 
-int AliHLTTRDTrackletReaderComponent::DoDeinit() {
+int AliGPUTRDTrackletReaderComponent::DoDeinit() {
 
   if (fRawReaderTrd) delete fRawReaderTrd;
   fRawReaderTrd = NULL;
@@ -185,7 +185,7 @@ int AliHLTTRDTrackletReaderComponent::DoDeinit() {
   return 0;
 }
 
-//void AliHLTTRDTrackletReaderComponent::DbgLog(const char* prefix, const char* msg){
+//void AliGPUTRDTrackletReaderComponent::DbgLog(const char* prefix, const char* msg){
 //  AliHLTEventID_t eventNumber = fEventId;
 //  int runNumber = -1;
 //  printf("TRDGM %s-%s: [PRE] %s%s\n",
@@ -195,7 +195,7 @@ int AliHLTTRDTrackletReaderComponent::DoDeinit() {
 //}
 
 
-void AliHLTTRDTrackletReaderComponent::DbgLog(const char* prefix, ...){
+void AliGPUTRDTrackletReaderComponent::DbgLog(const char* prefix, ...){
 #ifdef __TRDHLTDEBUG
   AliHLTEventID_t eventNumber = fEventId;
   int runNumber = -1;
@@ -213,7 +213,7 @@ void AliHLTTRDTrackletReaderComponent::DbgLog(const char* prefix, ...){
 }
 
 
-int AliHLTTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hltEventData,
+int AliGPUTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hltEventData,
               AliHLTComponentTriggerData& /*trigData*/) {
 
   fEventId = hltEventData.fEventID;
@@ -233,8 +233,8 @@ int AliHLTTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hl
     return iResult;
   }
 
-  std::vector<AliHLTTRDTrackletWord> outputTrkls;
-  std::vector<AliHLTTRDTrackletLabels> outputTrklsMC;
+  std::vector<AliGPUTRDTrackletWord> outputTrkls;
+  std::vector<AliGPUTRDTrackletLabels> outputTrklsMC;
 
   { // read raw data
 
@@ -289,7 +289,7 @@ int AliHLTTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hl
 
       HLTInfo("There are %i tracklets in this event\n", nTracklets);
       for (int iTracklet = 0; iTracklet < nTracklets; ++iTracklet) {
-        AliHLTTRDTrackletWord trkl = *((AliTRDtrackletWord*)fTrackletArray->At(iTracklet));
+        AliGPUTRDTrackletWord trkl = *((AliTRDtrackletWord*)fTrackletArray->At(iTracklet));
         trkl.SetId(iTracklet);
         outputTrkls.push_back(trkl);
       }
@@ -359,10 +359,10 @@ int AliHLTTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hl
           HLTWarning("Can not read entry from tracklet branch");
           continue;
         }
-        AliHLTTRDTrackletWord hltTrkl = *trkl;
+        AliGPUTRDTrackletWord hltTrkl = *trkl;
         hltTrkl.SetId(iTracklet);
         outputTrkls.push_back(hltTrkl);
-        AliHLTTRDTrackletLabels trklMC;
+        AliGPUTRDTrackletLabels trklMC;
         trklMC.fLabel[0] = trkl->GetLabel(0);
         trklMC.fLabel[1] = trkl->GetLabel(1);
         trklMC.fLabel[2] = trkl->GetLabel(2);

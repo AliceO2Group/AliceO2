@@ -1,33 +1,33 @@
-#ifndef ALIHLTTRDTRACK_H
-#define ALIHLTTRDTRACK_H
+#ifndef ALIGPUTRDTRACK_H
+#define ALIGPUTRDTRACK_H
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
-#include "AliHLTTRDDef.h"
+#include "AliGPUTRDDef.h"
 #include "AliHLTTPCCADef.h"
 
-class AliHLTTRDTrackDataRecord;
+class AliGPUTRDTrackDataRecord;
 class AliHLTExternalTrackParam;
 
 //_____________________________________________________________________________
 #if defined(__CINT__) || defined(__ROOTCINT__)
-template <typename T> class AliHLTTRDTrack;
+template <typename T> class AliGPUTRDTrack;
 #else
-#include "AliHLTTRDInterfaces.h"
+#include "AliGPUTRDInterfaces.h"
 
 template <typename T>
-class AliHLTTRDTrack : public T
+class AliGPUTRDTrack : public T
 {
  public:
 
-  enum EHLTTRDTrack { kNLayers = 6 };
+  enum EGPUTRDTrack { kNLayers = 6 };
 
-  GPUd() AliHLTTRDTrack();
-  AliHLTTRDTrack(const typename T::baseClass &t ) = delete;
-  GPUd() AliHLTTRDTrack(const AliHLTTRDTrack& t);
-  GPUd() AliHLTTRDTrack(const AliHLTExternalTrackParam& t);
-  GPUd() AliHLTTRDTrack(const T& t);
-  GPUd() AliHLTTRDTrack &operator=(const AliHLTTRDTrack& t);
+  GPUd() AliGPUTRDTrack();
+  AliGPUTRDTrack(const typename T::baseClass &t ) = delete;
+  GPUd() AliGPUTRDTrack(const AliGPUTRDTrack& t);
+  GPUd() AliGPUTRDTrack(const AliHLTExternalTrackParam& t);
+  GPUd() AliGPUTRDTrack(const T& t);
+  GPUd() AliGPUTRDTrack &operator=(const AliGPUTRDTrack& t);
 
   GPUd() int   GetNlayers()                 const;
   GPUd() int   GetTracklet(int iLayer)      const;
@@ -58,8 +58,8 @@ class AliHLTTRDTrack : public T
 
   // conversion to / from HLT track structure
 
-  GPUd() void ConvertTo( AliHLTTRDTrackDataRecord &t ) const;
-  GPUd() void ConvertFrom( const AliHLTTRDTrackDataRecord &t );
+  GPUd() void ConvertTo( AliGPUTRDTrackDataRecord &t ) const;
+  GPUd() void ConvertFrom( const AliGPUTRDTrackDataRecord &t );
 
 
  protected:

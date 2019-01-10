@@ -3,15 +3,15 @@
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //* See cxx source for full Copyright notice                               *
 
-#ifndef ALIHLTTRDTRACKDATA_H
-#define ALIHLTTRDTRACKDATA_H
+#ifndef ALIGPUTRDTRACKDATA_H
+#define ALIGPUTRDTRACKDATA_H
 
 /**
- * @struct AliHLTTRDTrackData
+ * @struct AliGPUTRDTrackData
  * This is a flat data structure (w/o virtual methods, i.e w/o pointer to virtual table) for transporting TRD tracks via network between the components.
  */
 
-struct AliHLTTRDTrackDataRecord
+struct AliGPUTRDTrackDataRecord
 {
   float fAlpha;  // azimuthal angle of reference frame
   float fX;      // x: radial distance
@@ -31,19 +31,19 @@ struct AliHLTTRDTrackDataRecord
   }
 };
 
-typedef struct AliHLTTRDTrackDataRecord AliHLTTRDTrackDataRecord;
+typedef struct AliGPUTRDTrackDataRecord AliGPUTRDTrackDataRecord;
 
-struct AliHLTTRDTrackData {
+struct AliGPUTRDTrackData {
   unsigned int fCount; // number of tracklets
 #if defined(__HP_aCC) || defined(__DECCXX) || defined(__SUNPRO_CC)
-  AliHLTTRDTrackDataRecord fTracks[1]; // array of tracklets
+  AliGPUTRDTrackDataRecord fTracks[1]; // array of tracklets
 #else
-  AliHLTTRDTrackDataRecord fTracks[0]; // array of tracklets
+  AliGPUTRDTrackDataRecord fTracks[0]; // array of tracklets
 #endif
-  static size_t GetSize( unsigned int nTracks ) { return sizeof(AliHLTTRDTrackData) + nTracks*sizeof(AliHLTTRDTrackDataRecord); }
+  static size_t GetSize( unsigned int nTracks ) { return sizeof(AliGPUTRDTrackData) + nTracks*sizeof(AliGPUTRDTrackDataRecord); }
   size_t GetSize() const { return GetSize( fCount ); }
 };
 
-typedef struct AliHLTTRDTrackData AliHLTTRDTrackData;
+typedef struct AliGPUTRDTrackData AliGPUTRDTrackData;
 
 #endif

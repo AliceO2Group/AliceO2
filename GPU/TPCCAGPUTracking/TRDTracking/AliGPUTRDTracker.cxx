@@ -1,8 +1,8 @@
-//#define ENABLE_HLTTRDDEBUG
+//#define ENABLE_GPUTRDDEBUG
 #define ENABLE_WARNING 0
 #define ENABLE_INFO 0
 #ifdef GPUCA_ALIROOT_LIB
-#define ENABLE_HLTMC
+#define ENABLE_GPUMC
 #endif
 
 #ifdef GPUCA_HAVE_OPENMP
@@ -12,11 +12,11 @@
 #include <chrono>
 #include <vector>
 #include <algorithm>
-#include "AliHLTTRDTracker.h"
-#include "AliHLTTRDTrackletWord.h"
-#include "AliHLTTRDGeometry.h"
-#include "AliHLTTRDTrack.h"
-#include "AliHLTTRDTrackerDebug.h"
+#include "AliGPUTRDTracker.h"
+#include "AliGPUTRDTrackletWord.h"
+#include "AliGPUTRDGeometry.h"
+#include "AliGPUTRDTrack.h"
+#include "AliGPUTRDTrackerDebug.h"
 #include "AliHLTTPCGMMerger.h"
 #include "AliGPUReconstruction.h"
 
@@ -31,7 +31,7 @@ static const float piMass = 0.139f;
 
 static const AliHLTTPCGMMerger fgkMerger;
 
-size_t AliHLTTRDTracker::SetPointersBase(void* base, int maxThreads, bool doConstruct)
+size_t AliGPUTRDTracker::SetPointersBase(void* base, int maxThreads, bool doConstruct)
 {
   //--------------------------------------------------------------------
   // Allocate memory for fixed size objects (needs to be done only once)
@@ -45,7 +45,7 @@ size_t AliHLTTRDTracker::SetPointersBase(void* base, int maxThreads, bool doCons
   return ((size_t) base - (size_t) oldBase);
 }
 
-size_t AliHLTTRDTracker::SetPointersTracklets(void *base)
+size_t AliGPUTRDTracker::SetPointersTracklets(void *base)
 {
   //--------------------------------------------------------------------
   // Allocate memory for tracklets and space points
@@ -58,7 +58,7 @@ size_t AliHLTTRDTracker::SetPointersTracklets(void *base)
   return ((size_t) base - (size_t) oldBase);
 }
 
-size_t AliHLTTRDTracker::SetPointersTracks(void *base, int nTracks)
+size_t AliGPUTRDTracker::SetPointersTracks(void *base, int nTracks)
 {
   //--------------------------------------------------------------------
   // Allocate memory for tracks (this is done once per event)
@@ -70,7 +70,7 @@ size_t AliHLTTRDTracker::SetPointersTracks(void *base, int nTracks)
 
 
 #ifndef GPUCA_GPUCODE
-AliHLTTRDTracker::AliHLTTRDTracker() :
+AliGPUTRDTracker::AliGPUTRDTracker() :
   fBaseDataPtr(nullptr),
   fTrackletsDataPtr(nullptr),
   fTracksDataPtr(nullptr),
@@ -101,14 +101,14 @@ AliHLTTRDTracker::AliHLTTRDTracker() :
   fNhypothesis(100),
   fMCEvent(nullptr),
   fMerger(&fgkMerger),
-  fDebug(new AliHLTTRDTrackerDebug())
+  fDebug(new AliGPUTRDTrackerDebug())
 {
   //--------------------------------------------------------------------
   // Default constructor
   //--------------------------------------------------------------------
 }
 
-AliHLTTRDTracker::~AliHLTTRDTracker()
+AliGPUTRDTracker::~AliGPUTRDTracker()
 {
   //--------------------------------------------------------------------
   // Destructor
@@ -121,7 +121,7 @@ AliHLTTRDTracker::~AliHLTTRDTracker()
   delete fDebug;
 }
 
-GPUd() bool AliHLTTRDTracker::Init(AliHLTTRDGeometry *geo)
+GPUd() bool AliGPUTRDTracker::Init(AliGPUTRDGeometry *geo)
 {
   //--------------------------------------------------------------------
   // Initialise tracker
@@ -183,7 +183,7 @@ GPUd() bool AliHLTTRDTracker::Init(AliHLTTRDGeometry *geo)
   return true;
 }
 
-GPUd() void AliHLTTRDTracker::Reset()
+GPUd() void AliGPUTRDTracker::Reset()
 {
   //--------------------------------------------------------------------
   // Reset tracker
@@ -219,7 +219,7 @@ GPUd() void AliHLTTRDTracker::Reset()
   */
 }
 
-GPUd() void AliHLTTRDTracker::StartLoadTracklets(const int nTrklts)
+GPUd() void AliGPUTRDTracker::StartLoadTracklets(const int nTrklts)
 {
   //--------------------------------------------------------------------
   // Prepare tracker for the tracklets
@@ -237,7 +237,7 @@ GPUd() void AliHLTTRDTracker::StartLoadTracklets(const int nTrklts)
   }
 }
 
-GPUd() void AliHLTTRDTracker::LoadTracklet(const AliHLTTRDTrackletWord &tracklet, const int *labels)
+GPUd() void AliGPUTRDTracker::LoadTracklet(const AliGPUTRDTrackletWord &tracklet, const int *labels)
 {
   //--------------------------------------------------------------------
   // Add single tracklet to tracker
@@ -255,7 +255,7 @@ GPUd() void AliHLTTRDTracker::LoadTracklet(const AliHLTTRDTrackletWord &tracklet
   fNtrackletsInChamber[tracklet.GetDetector()]++;
 }
 
-void AliHLTTRDTracker::DoTracking( HLTTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTRDnTrklts, int *tracksTRDlab )
+void AliGPUTRDTracker::DoTracking( GPUTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTRDnTrklts, int *tracksTRDlab )
 {
   //--------------------------------------------------------------------
   // Steering function for the tracking
@@ -319,24 +319,24 @@ void AliHLTTRDTracker::DoTracking( HLTTRDTrack *tracksTPC, int *tracksTPClab, in
 
 #endif
 
-GPUd() void AliHLTTRDTracker::DumpTracks()
+GPUd() void AliGPUTRDTracker::DumpTracks()
 {
   //--------------------------------------------------------------------
   // helper function (only for debugging purposes)
   //--------------------------------------------------------------------
   for (int i=0; i<fNTracks; ++i) {
-    HLTTRDTrack *trk = &(fTracks[i]);
+    GPUTRDTrack *trk = &(fTracks[i]);
     printf("track %i: x=%f, alpha=%f, nTracklets=%i, pt=%f\n", i, trk->getX(), trk->getAlpha(), trk->GetNtracklets(), trk->getPt());
   }
 }
 
-GPUd() void AliHLTTRDTracker::DoTrackingThread( HLTTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int iTrk, int threadId, int *tracksTRDnTrklts, int *tracksTRDlab )
+GPUd() void AliGPUTRDTracker::DoTrackingThread( GPUTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int iTrk, int threadId, int *tracksTRDnTrklts, int *tracksTRDlab )
 {
   //--------------------------------------------------------------------
   // perform the tracking for one track (must be threadsafe)
   //--------------------------------------------------------------------
-  HLTTRDTrack tMI(tracksTPC[iTrk]);
-  HLTTRDTrack *t = &tMI;
+  GPUTRDTrack tMI(tracksTPC[iTrk]);
+  GPUTRDTrack *t = &tMI;
   t->SetTPCtrackId(iTrk);
   t->SetLabel(tracksTPClab[iTrk]);
   if (tracksTRDnTrklts) {
@@ -347,7 +347,7 @@ GPUd() void AliHLTTRDTracker::DoTrackingThread( HLTTRDTrack *tracksTPC, int *tra
   if (tracksTRDlab) {
     t->SetLabelOffline(tracksTRDlab[iTrk]);
   }
-  HLTTRDPropagator prop(fMerger);
+  GPUTRDPropagator prop(fMerger);
   prop.setTrack(t);
   FollowProlongation(&prop, t, nTPCtracks, threadId);
   int myTrack;
@@ -361,7 +361,7 @@ GPUd() void AliHLTTRDTracker::DoTrackingThread( HLTTRDTrack *tracksTPC, int *tra
 }
 
 
-GPUd() bool AliHLTTRDTracker::CalculateSpacePoints()
+GPUd() bool AliGPUTRDTracker::CalculateSpacePoints()
 {
   //--------------------------------------------------------------------
   // Calculates TRD space points in sector tracking coordinates
@@ -383,7 +383,7 @@ GPUd() bool AliHLTTRDTracker::CalculateSpacePoints()
       result = false;
       continue;
     }
-    AliHLTTRDpadPlane *pp = fGeo->GetPadPlane(iDet);
+    AliGPUTRDpadPlane *pp = fGeo->GetPadPlane(iDet);
     float tilt = tanf( M_PI / 180. * pp->GetTiltingAngle());
     float t2 = tilt * tilt; // tan^2 (tilt)
     float c2 = 1. / (1. + t2); // cos^2 (tilt)
@@ -411,7 +411,7 @@ GPUd() bool AliHLTTRDTracker::CalculateSpacePoints()
       fSpacePoints[trkltIdx].fCov[2] = c2 * (t2 * sy2 + sz2);
       fSpacePoints[trkltIdx].fDy = 0.014 * fTracklets[trkltIdx].GetdY();
 
-      int modId   = fGeo->GetSector(iDet) * AliHLTTRDGeometry::kNstack + fGeo->GetStack(iDet); // global TRD stack number
+      int modId   = fGeo->GetSector(iDet) * AliGPUTRDGeometry::kNstack + fGeo->GetStack(iDet); // global TRD stack number
       unsigned short volId = fGeo->GetGeomManagerVolUID(iDet, modId);
       fSpacePoints[trkltIdx].fVolumeId = volId;
       //printf("Space point %i: x=%f, y=%f, z=%f\n", iTrklt, fSpacePoints[trkltIdx].fR, fSpacePoints[trkltIdx].fX[0], fSpacePoints[trkltIdx].fX[1]);
@@ -421,7 +421,7 @@ GPUd() bool AliHLTTRDTracker::CalculateSpacePoints()
 }
 
 
-GPUd() bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDTrack *t, int nTPCtracks, int threadId)
+GPUd() bool AliGPUTRDTracker::FollowProlongation(GPUTRDPropagator *prop, GPUTRDTrack *t, int nTPCtracks, int threadId)
 {
   //--------------------------------------------------------------------
   // Propagate TPC track layerwise through TRD and pick up closest
@@ -447,16 +447,16 @@ GPUd() bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDT
   fDebug->Reset();
   int iTrack = t->GetTPCtrackId();
   t->SetChi2(0.f);
-  AliHLTTRDpadPlane *pad = nullptr;
+  AliGPUTRDpadPlane *pad = nullptr;
 
-#ifdef ENABLE_HLTTRDDEBUG
-  HLTTRDTrack trackNoUp(*t);
+#ifdef ENABLE_GPUTRDDEBUG
+  GPUTRDTrack trackNoUp(*t);
 #endif
 
   // look for matching tracklets via MC label
   int trackID = t->GetLabel();
 
-#ifdef ENABLE_HLTMC
+#ifdef ENABLE_GPUMC
   std::vector<int> matchAvailableAll[kNLayers]; // all available MC tracklet matches for this track
   if (fDebugOutput && trackID > 0 && fMCEvent) {
     CountMatches(trackID, matchAvailableAll);
@@ -660,7 +660,7 @@ GPUd() bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDT
       isOK = true;
     } // end candidate loop
 
-#ifdef ENABLE_HLTMC
+#ifdef ENABLE_GPUMC
     // in case matching tracklet exists in this layer -> store position information for debugging
     if (matchAvailableAll[iLayer].size() > 0 && fDebugOutput) {
       fDebug->SetNmatchAvail(matchAvailableAll[iLayer].size(), iLayer);
@@ -770,7 +770,7 @@ GPUd() bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDT
       My_Float trkltCovUp[3] = { 0. };
       RecalcTrkltCov(tilt, fCandidates[2*iUpdate+nextIdx].getSnp(), pad->GetRowSize(fTracklets[fHypothesis[iUpdate + hypothesisIdxOffset].fTrackletId].GetZbin()), trkltCovUp);
 
-#ifdef ENABLE_HLTTRDDEBUG
+#ifdef ENABLE_GPUTRDDEBUG
       prop->setTrack(&trackNoUp);
       prop->rotate(GetAlphaOfSector(trkltSec));
       prop->PropagateToX(fSpacePoints[fHypothesis[iUpdate + hypothesisIdxOffset].fTrackletId].fR, .8f, 2.f);
@@ -779,7 +779,7 @@ GPUd() bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDT
 #endif
 
       if (!wasTrackStored) {
-#ifdef ENABLE_HLTTRDDEBUG
+#ifdef ENABLE_GPUTRDDEBUG
         fDebug->SetTrackParameterNoUp(trackNoUp, iLayer);
 #endif
         fDebug->SetTrackParameter(fCandidates[2*iUpdate+nextIdx], iLayer);
@@ -862,7 +862,7 @@ GPUd() bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDT
               break;
             }
           }
-#ifdef ENABLE_HLTMC
+#ifdef ENABLE_GPUMC
           if (update[iLy] < 1 && fMCEvent) {
             // no exact match, check in related labels
             bool isRelated = false;
@@ -895,7 +895,7 @@ GPUd() bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDT
         }
       }
       fDebug->SetTrackProperties(nMatching, nFake, nRelated);
-#ifdef ENABLE_HLTMC
+#ifdef ENABLE_GPUMC
       AliMCParticle *mcPartDbg = (AliMCParticle*) fMCEvent->GetTrack(trackID);
       if (mcPartDbg) {
         fDebug->SetMCinfo(mcPartDbg->Xv(), mcPartDbg->Yv(), mcPartDbg->Zv(), mcPartDbg->PdgCode());
@@ -910,7 +910,7 @@ GPUd() bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDT
   return true;
 }
 
-GPUd() int AliHLTTRDTracker::GetDetectorNumber(const float zPos, const float alpha, const int layer) const
+GPUd() int AliGPUTRDTracker::GetDetectorNumber(const float zPos, const float alpha, const int layer) const
 {
   //--------------------------------------------------------------------
   // if track position is within chamber return the chamber number
@@ -925,7 +925,7 @@ GPUd() int AliHLTTRDTracker::GetDetectorNumber(const float zPos, const float alp
   return fGeo->GetDetector(layer, stack, sector);
 }
 
-GPUd() bool AliHLTTRDTracker::AdjustSector(HLTTRDPropagator *prop, HLTTRDTrack *t, const int layer) const
+GPUd() bool AliGPUTRDTracker::AdjustSector(GPUTRDPropagator *prop, GPUTRDTrack *t, const int layer) const
 {
   //--------------------------------------------------------------------
   // rotate track in new sector if necessary and
@@ -963,7 +963,7 @@ GPUd() bool AliHLTTRDTracker::AdjustSector(HLTTRDPropagator *prop, HLTTRDTrack *
   return true;
 }
 
-GPUd() int AliHLTTRDTracker::GetSector(float alpha) const
+GPUd() int AliGPUTRDTracker::GetSector(float alpha) const
 {
   //--------------------------------------------------------------------
   // TRD sector number for reference system alpha
@@ -977,7 +977,7 @@ GPUd() int AliHLTTRDTracker::GetSector(float alpha) const
   return (int) (alpha * kNSectors / (2. * M_PI));
 }
 
-GPUd() float AliHLTTRDTracker::GetAlphaOfSector(const int sec) const
+GPUd() float AliGPUTRDTracker::GetAlphaOfSector(const int sec) const
 {
   //--------------------------------------------------------------------
   // rotation angle for TRD sector sec
@@ -985,7 +985,7 @@ GPUd() float AliHLTTRDTracker::GetAlphaOfSector(const int sec) const
   return (2.0f * M_PI / (float) kNSectors * ((float) sec + 0.5f));
 }
 
-GPUd() void AliHLTTRDTracker::RecalcTrkltCov(const float tilt, const float snp, const float rowSize, My_Float (&cov)[3])
+GPUd() void AliGPUTRDTracker::RecalcTrkltCov(const float tilt, const float snp, const float rowSize, My_Float (&cov)[3])
 {
   //--------------------------------------------------------------------
   // recalculate tracklet covariance taking track phi angle into account
@@ -1000,7 +1000,7 @@ GPUd() void AliHLTTRDTracker::RecalcTrkltCov(const float tilt, const float snp, 
   cov[2] = c2 * (t2 * sy2 + sz2);
 }
 
-void AliHLTTRDTracker::CountMatches(const int trackID, std::vector<int> *matches) const
+void AliGPUTRDTracker::CountMatches(const int trackID, std::vector<int> *matches) const
 {
   //--------------------------------------------------------------------
   // search in all TRD chambers for matching tracklets
@@ -1009,7 +1009,7 @@ void AliHLTTRDTracker::CountMatches(const int trackID, std::vector<int> *matches
   // the track should be rejected (or this has to be done afterwards in analysis)
   //--------------------------------------------------------------------
 #ifndef GPUCA_GPUCODE
-#ifdef ENABLE_HLTMC
+#ifdef ENABLE_GPUMC
   for (int k = 0; k < kNChambers; k++) {
     int layer = fGeo->GetLayer(k);
     for (int iTrklt = 0; iTrklt < fNtrackletsInChamber[k]; iTrklt++) {
@@ -1049,9 +1049,9 @@ void AliHLTTRDTracker::CountMatches(const int trackID, std::vector<int> *matches
 #endif
 }
 
-GPUd() void AliHLTTRDTracker::CheckTrackRefs(const int trackID, bool *findableMC) const
+GPUd() void AliGPUTRDTracker::CheckTrackRefs(const int trackID, bool *findableMC) const
 {
-#ifdef ENABLE_HLTMC
+#ifdef ENABLE_GPUMC
   //--------------------------------------------------------------------
   // loop over all track references for the input trackID and set
   // findableMC to true for each layer in which a track hit exiting
@@ -1107,7 +1107,7 @@ GPUd() void AliHLTTRDTracker::CheckTrackRefs(const int trackID, bool *findableMC
 #endif
 }
 
-GPUd() void AliHLTTRDTracker::FindChambersInRoad(const HLTTRDTrack *t, const float roadY, const float roadZ, const int iLayer, int* det, const float zMax, const float alpha) const
+GPUd() void AliGPUTRDTracker::FindChambersInRoad(const GPUTRDTrack *t, const float roadY, const float roadZ, const int iLayer, int* det, const float zMax, const float alpha) const
 {
   //--------------------------------------------------------------------
   // determine initial chamber where the track ends up
@@ -1127,7 +1127,7 @@ GPUd() void AliHLTTRDTracker::FindChambersInRoad(const HLTTRDTrack *t, const flo
     // chamber unambiguous
     currDet = fGeo->GetDetector(iLayer, currStack, currSec);
     det[nDets++] = currDet;
-    AliHLTTRDpadPlane *pp = fGeo->GetPadPlane(iLayer, currStack);
+    AliGPUTRDpadPlane *pp = fGeo->GetPadPlane(iLayer, currStack);
     int lastPadRow = fGeo->GetRowMax(iLayer, currStack, 0);
     float zCenter = pp->GetRowPos(lastPadRow / 2);
     if ( ( t->getZ() + roadZ ) > pp->GetRowPos(0) || ( t->getZ() - roadZ ) < pp->GetRowPos(lastPadRow) ) {
@@ -1185,7 +1185,7 @@ GPUd() void AliHLTTRDTracker::FindChambersInRoad(const HLTTRDTrack *t, const flo
   }
 }
 
-GPUd() bool AliHLTTRDTracker::IsGeoFindable(const HLTTRDTrack *t, const int layer, const float alpha) const
+GPUd() bool AliGPUTRDTracker::IsGeoFindable(const GPUTRDTrack *t, const int layer, const float alpha) const
 {
   //--------------------------------------------------------------------
   // returns true if track position inside active area of the TRD
@@ -1204,7 +1204,7 @@ GPUd() bool AliHLTTRDTracker::IsGeoFindable(const HLTTRDTrack *t, const int laye
     return false;
   }
 
-  AliHLTTRDpadPlane *pp = fGeo->GetPadPlane(det);
+  AliGPUTRDpadPlane *pp = fGeo->GetPadPlane(det);
   float yMax = pp->GetColEnd();
   float zMax = pp->GetRow0();
   float zMin = pp->GetRowEnd();
@@ -1224,23 +1224,23 @@ GPUd() bool AliHLTTRDTracker::IsGeoFindable(const HLTTRDTrack *t, const int laye
   return true;
 }
 
-GPUd() void AliHLTTRDTracker::SwapTracklets(const int left, const int right)
+GPUd() void AliGPUTRDTracker::SwapTracklets(const int left, const int right)
 {
   //--------------------------------------------------------------------
   // swapping function for tracklets
   //--------------------------------------------------------------------
-  AliHLTTRDTrackletWord tmp = fTracklets[left];
+  AliGPUTRDTrackletWord tmp = fTracklets[left];
   fTracklets[left] = fTracklets[right];
   fTracklets[right] = tmp;
 }
 
-GPUd() int AliHLTTRDTracker::PartitionTracklets(const int left, const int right)
+GPUd() int AliGPUTRDTracker::PartitionTracklets(const int left, const int right)
 {
   //--------------------------------------------------------------------
   // partitioning for tracklets
   //--------------------------------------------------------------------
   const int mid = left + (right - left) / 2;
-  AliHLTTRDTrackletWord pivot = fTracklets[mid];
+  AliGPUTRDTrackletWord pivot = fTracklets[mid];
   SwapTracklets(mid, left);
   int i = left + 1;
   int j = right;
@@ -1259,7 +1259,7 @@ GPUd() int AliHLTTRDTracker::PartitionTracklets(const int left, const int right)
   return i - 1;
 }
 
-GPUd() void AliHLTTRDTracker::SwapHypothesis(const int left, const int right)
+GPUd() void AliGPUTRDTracker::SwapHypothesis(const int left, const int right)
 {
   //--------------------------------------------------------------------
   // swapping function for hypothesis
@@ -1269,7 +1269,7 @@ GPUd() void AliHLTTRDTracker::SwapHypothesis(const int left, const int right)
   fHypothesis[right] = tmp;
 }
 
-GPUd() int AliHLTTRDTracker::PartitionHypothesis(const int left, const int right)
+GPUd() int AliGPUTRDTracker::PartitionHypothesis(const int left, const int right)
 {
   //--------------------------------------------------------------------
   // partitioning for hypothesis
@@ -1299,7 +1299,7 @@ GPUd() int AliHLTTRDTracker::PartitionHypothesis(const int left, const int right
   return i - 1;
 }
 
-GPUd() void AliHLTTRDTracker::Quicksort(const int left, const int right, const int size, const int type)
+GPUd() void AliGPUTRDTracker::Quicksort(const int left, const int right, const int size, const int type)
 {
   //--------------------------------------------------------------------
   // use own quicksort implementation since std::sort not available
@@ -1320,7 +1320,7 @@ GPUd() void AliHLTTRDTracker::Quicksort(const int left, const int right, const i
   Quicksort(part + 1, right, size, type);
 }
 
-GPUd() void AliHLTTRDTracker::SetNCandidates(int n)
+GPUd() void AliGPUTRDTracker::SetNCandidates(int n)
 {
   //--------------------------------------------------------------------
   // set the number of candidates to be used
@@ -1332,13 +1332,13 @@ GPUd() void AliHLTTRDTracker::SetNCandidates(int n)
   }
 }
 
-GPUd() void AliHLTTRDTracker::PrintSettings() const
+GPUd() void AliGPUTRDTracker::PrintSettings() const
 {
   //--------------------------------------------------------------------
   // print current settings to screen
   //--------------------------------------------------------------------
   printf("##############################################################\n");
-  printf("Current settings for HLT TRD tracker:\n");
+  printf("Current settings for GPU TRD tracker:\n");
   printf(" fMaxChi2(%.2f)\n fChi2Penalty(%.2f)\n nCandidates(%i)\n nHypothesisMax(%i)\n maxMissingLayers(%i)\n",
           fMaxChi2, fChi2Penalty, fNCandidates, fNhypothesis, fMaxMissingLy);
   printf(" ptCut = %.2f GeV\n abs(eta) < %.2f\n", fMinPt, fMaxEta);

@@ -13,35 +13,35 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id: AliHLTTRDTrackletWord.cxx 28397 2008-09-02 09:33:00Z cblume $ */
+/* $Id: AliGPUTRDTrackletWord.cxx 28397 2008-09-02 09:33:00Z cblume $ */
 
 ////////////////////////////////////////////////////////////////////////////
 //                                                                        //
-//  A tracklet word in HLT - adapted from AliTRDtrackletWord              //
+//  A tracklet word for GPU tracker- adapted from AliTRDtrackletWord      //
 //                                                                        //
 //                                                                        //
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
-#include "AliHLTTRDTrackletWord.h"
+#include "AliGPUTRDTrackletWord.h"
 #include <new>
 
 
-GPUd() AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(unsigned int trackletWord) :
+GPUd() AliGPUTRDTrackletWord::AliGPUTRDTrackletWord(unsigned int trackletWord) :
   fId(-1),
   fHCId(-1),
   fTrackletWord(trackletWord)
 {
 }
 
-GPUd() AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(unsigned int trackletWord, int hcid, int id) :
+GPUd() AliGPUTRDTrackletWord::AliGPUTRDTrackletWord(unsigned int trackletWord, int hcid, int id) :
   fId(id),
   fHCId(hcid),
   fTrackletWord(trackletWord)
 {
 }
 
-GPUd() AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliHLTTRDTrackletWord &rhs) :
+GPUd() AliGPUTRDTrackletWord::AliGPUTRDTrackletWord(const AliGPUTRDTrackletWord &rhs) :
   fId(rhs.fId),
   fHCId(rhs.fHCId),
   fTrackletWord(rhs.fTrackletWord)
@@ -53,42 +53,42 @@ GPUd() AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliHLTTRDTrackletWord 
 #include "AliTRDtrackletMCM.h"
 
 
-AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliTRDtrackletWord &rhs) :
+AliGPUTRDTrackletWord::AliGPUTRDTrackletWord(const AliTRDtrackletWord &rhs) :
   fId(-1),
   fHCId(rhs.GetHCId()),
   fTrackletWord(rhs.GetTrackletWord())
 {
 }
 
-AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliTRDtrackletMCM &rhs) :
+AliGPUTRDTrackletWord::AliGPUTRDTrackletWord(const AliTRDtrackletMCM &rhs) :
   fId(-1),
   fHCId(rhs.GetHCId()),
   fTrackletWord(rhs.GetTrackletWord())
 {
 }
 
-AliHLTTRDTrackletWord& AliHLTTRDTrackletWord::operator=(const AliTRDtrackletMCM &rhs)
+AliGPUTRDTrackletWord& AliGPUTRDTrackletWord::operator=(const AliTRDtrackletMCM &rhs)
 {
-  this->~AliHLTTRDTrackletWord();
-  new(this) AliHLTTRDTrackletWord(rhs);
+  this->~AliGPUTRDTrackletWord();
+  new(this) AliGPUTRDTrackletWord(rhs);
   return *this;
 }
 
 #endif
 
-GPUd() AliHLTTRDTrackletWord::~AliHLTTRDTrackletWord()
+GPUd() AliGPUTRDTrackletWord::~AliGPUTRDTrackletWord()
 {
 
 }
 
-GPUd() AliHLTTRDTrackletWord& AliHLTTRDTrackletWord::operator=(const AliHLTTRDTrackletWord &rhs)
+GPUd() AliGPUTRDTrackletWord& AliGPUTRDTrackletWord::operator=(const AliGPUTRDTrackletWord &rhs)
 {
-  this->~AliHLTTRDTrackletWord();
-  new(this) AliHLTTRDTrackletWord(rhs);
+  this->~AliGPUTRDTrackletWord();
+  new(this) AliGPUTRDTrackletWord(rhs);
   return *this;
 }
 
-GPUd() int AliHLTTRDTrackletWord::GetYbin() const {
+GPUd() int AliGPUTRDTrackletWord::GetYbin() const {
   // returns (signed) value of Y
   if (fTrackletWord & 0x1000) {
     return -((~(fTrackletWord-1)) & 0x1fff);
@@ -98,7 +98,7 @@ GPUd() int AliHLTTRDTrackletWord::GetYbin() const {
   }
 }
 
-GPUd() int AliHLTTRDTrackletWord::GetdY() const
+GPUd() int AliGPUTRDTrackletWord::GetdY() const
 {
   // returns (signed) value of the deflection length
   if (fTrackletWord & (1 << 19)) {

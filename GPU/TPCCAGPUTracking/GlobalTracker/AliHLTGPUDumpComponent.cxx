@@ -16,8 +16,8 @@
 #include "AliExternalTrackParam.h"
 #include "AliTrackReference.h"
 #include "AliHLTTRDDefinitions.h"
-#include "AliHLTTRDTrackletWord.h"
-#include "AliHLTTRDTrackletLabels.h"
+#include "AliGPUTRDTrackletWord.h"
+#include "AliGPUTRDTrackletLabels.h"
 #include "TPCFastTransform.h"
 #include "TPCFastTransformManager.h"
 #include "AliRecoParam.h"
@@ -169,10 +169,10 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 	const AliHLTTPCClusterXYZData *clustersXYZ[36][6] = {NULL};
 	const AliHLTTPCRawClusterData *clustersRaw[36][6] = {NULL};
 	bool labelsPresent = false;
-	AliHLTTRDTrackletWord *TRDtracklets = NULL;
-    AliHLTTRDTrackletLabels *TRDtrackletsMC = NULL;
+	AliGPUTRDTrackletWord *TRDtracklets = NULL;
+	AliGPUTRDTrackletLabels *TRDtrackletsMC = NULL;
 	int nTRDTrackletsTotal = 0;
-    int nTRDTrackletsMCTotal = 0;
+	int nTRDTrackletsMCTotal = 0;
 
 	for (unsigned long ndx = 0; ndx < evtData.fBlockCnt; ndx++)
 	{
@@ -194,13 +194,13 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 		}
 		else if (pBlock.fDataType == AliHLTTRDDefinitions::fgkTRDTrackletDataType)
 		{
-			TRDtracklets = reinterpret_cast<AliHLTTRDTrackletWord*>(pBlock.fPtr);
-			nTRDTrackletsTotal = pBlock.fSize / sizeof(AliHLTTRDTrackletWord);
+			TRDtracklets = reinterpret_cast<AliGPUTRDTrackletWord*>(pBlock.fPtr);
+			nTRDTrackletsTotal = pBlock.fSize / sizeof(AliGPUTRDTrackletWord);
 		}
 		else if (pBlock.fDataType == (AliHLTTRDDefinitions::fgkTRDMCTrackletDataType))
 		{
-			TRDtrackletsMC = reinterpret_cast<AliHLTTRDTrackletLabels*>(pBlock.fPtr);
-			nTRDTrackletsMCTotal = pBlock.fSize / sizeof(AliHLTTRDTrackletLabels);
+			TRDtrackletsMC = reinterpret_cast<AliGPUTRDTrackletLabels*>(pBlock.fPtr);
+			nTRDTrackletsMCTotal = pBlock.fSize / sizeof(AliGPUTRDTrackletLabels);
 		}
 	}
 	

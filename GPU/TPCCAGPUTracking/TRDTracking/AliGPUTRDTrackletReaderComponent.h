@@ -1,13 +1,13 @@
 //-*- Mode: C++ -*-
 // $Id$
-#ifndef ALIHLTTRDTRACKLETREADERCOMPONENT_H
-#define ALIHLTTRDTRACKLETREADERCOMPONENT_H
+#ifndef ALIGPUTRDTRACKLETREADERCOMPONENT_H
+#define ALIGPUTRDTRACKLETREADERCOMPONENT_H
 
 //* This file is property of and copyright by the ALICE HLT/TRD Project    *
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //* See cxx source for full Copyright notice                               */
 
-/// @file   AliHLTTRDTrackletReaderComponent.h
+/// @file   AliGPUTRDTrackletReaderComponent.h
 /// @author Felix Rettig, Stefan Kirsch
 /// @date   2012-08-16
 /// @brief  A FEP-level pre-processing component for TRD tracking/trigger data
@@ -22,7 +22,7 @@ class AliTRDonlineTrackingDataContainer;
 class TClonesArray;
 
 /**
- * @class AliHLTTRDTrackletReaderComponent
+ * @class AliGPUTRDTrackletReaderComponent
  * Component fetches raw data input objects in DDL format and extracts tracklets.
  *  It also instantiates a RawReader in order to be used with some reconstruction.
  *
@@ -63,10 +63,10 @@ class TClonesArray;
  *
  * @ingroup The component has no output data.
  */
-class AliHLTTRDTrackletReaderComponent : public AliHLTProcessor {
+class AliGPUTRDTrackletReaderComponent : public AliHLTProcessor {
 public:
-  AliHLTTRDTrackletReaderComponent();
-  virtual ~AliHLTTRDTrackletReaderComponent();
+  AliGPUTRDTrackletReaderComponent();
+  virtual ~AliGPUTRDTrackletReaderComponent();
 
   // AliHLTComponent interface functions
   const char* GetComponentID();
@@ -92,9 +92,9 @@ public:
 
 private:
   /** copy constructor prohibited */
-  AliHLTTRDTrackletReaderComponent(const AliHLTTRDTrackletReaderComponent&);
+  AliGPUTRDTrackletReaderComponent(const AliGPUTRDTrackletReaderComponent&);
   /** assignment operator prohibited */
-  AliHLTTRDTrackletReaderComponent& operator=(const AliHLTTRDTrackletReaderComponent&);
+  AliGPUTRDTrackletReaderComponent& operator=(const AliGPUTRDTrackletReaderComponent&);
 
   void DbgLog(const char* prefix, ...);
 
@@ -112,7 +112,7 @@ private:
   AliTRDrawStream*    fRawReaderTrd;                 //! TRD raw stream instance
 
 
-  ClassDef(AliHLTTRDTrackletReaderComponent, 0)
+  ClassDef(AliGPUTRDTrackletReaderComponent, 0)
 };
 
 #endif

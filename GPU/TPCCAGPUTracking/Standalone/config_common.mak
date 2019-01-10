@@ -56,9 +56,9 @@ GPUCA_MERGER_CXXFILES		= Merger/AliHLTTPCGMMerger.cxx \
 								Merger/AliHLTTPCGMPropagator.cxx \
 								Merger/AliHLTTPCGMTrackParam.cxx
 
-GPUCA_TRD_CXXFILES			= TRDTracking/AliHLTTRDTrack.cxx \
-								TRDTracking/AliHLTTRDTracker.cxx \
-								TRDTracking/AliHLTTRDTrackletWord.cxx
+GPUCA_TRD_CXXFILES			= TRDTracking/AliGPUTRDTrack.cxx \
+								TRDTracking/AliGPUTRDTracker.cxx \
+								TRDTracking/AliGPUTRDTrackletWord.cxx
 
 GPUCA_STANDALONE_CXXFILES	= SliceTracker/AliHLTTPCCATrack.cxx \
 								SliceTracker/AliHLTTPCCATracklet.cxx \
