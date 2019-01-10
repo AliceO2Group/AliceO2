@@ -12,14 +12,16 @@
 /// @author Ruben Shahoyan
 /// @brief  particle ids, masses, names class implementation
 
-#include "DetectorsBase/PID.h"
+#include "ReconstructionDataFormats/PID.h"
 #include <cassert>
 #include "FairLogger.h"
 
-using namespace o2::Base;
+using namespace o2::track;
 
 constexpr const char* PID::sNames[NIDs + 1];
 constexpr const float PID::sMasses[NIDs];
+constexpr const float PID::sMasses2Z[NIDs];
+constexpr const int PID::sCharges[NIDs];
 
 //_______________________________
 PID::PID(const char* name) : mID(nameToID(name, First))

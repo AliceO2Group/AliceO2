@@ -115,6 +115,9 @@ class TrackPar
   float getPhi() const;
   float getPhiPos() const;
 
+  float getP2Inv() const;
+  float getP2() const;
+  float getPInv() const;
   float getP() const;
   float getPt() const;
 
@@ -303,11 +306,33 @@ inline float TrackPar::getPhiPos() const
 }
 
 //____________________________________________________________
+inline float TrackPar::getP2Inv() const
+{
+  // return the inverted track momentum^2
+  return getQ2Pt() * getQ2Pt() / (1.f + getTgl() * getTgl());
+}
+
+//____________________________________________________________
+inline float TrackPar::getPInv() const
+{
+  // return the inverted track momentum^2
+  return fabs(getQ2Pt()) / sqrtf(1.f + getTgl() * getTgl());
+}
+
+//____________________________________________________________
+inline float TrackPar::getP2() const
+{
+  // return the track momentum^2
+  auto p2inv = getP2Inv();
+  return (p2inv > o2::constants::math::Almost0) ? 1. / p2inv : o2::constants::math::VeryBig;
+}
+
+//____________________________________________________________
 inline float TrackPar::getP() const
 {
   // return the track momentum
-  float ptI = fabs(getQ2Pt());
-  return (ptI > o2::constants::math::Almost0) ? sqrtf(1.f + getTgl() * getTgl()) / ptI : o2::constants::math::VeryBig;
+  float pInv = getPInv();
+  return (pInv > o2::constants::math::Almost0) ? 1. / pInv : o2::constants::math::VeryBig;
 }
 
 //____________________________________________________________
