@@ -88,22 +88,16 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
     if (ch_signal_nPe[ch_iter] != 0) {
       ch_signal_MIP[ch_iter] = amp[ch_iter] + ch_signal_nPe[ch_iter] / nPe_in_mip ;
       ch_signal_time[ch_iter] = (cfd[ch_iter] + ch_signal_time[ch_iter] / (float)ch_signal_nPe[ch_iter] );
-      if (ch_signal_MIP[ch_iter] > CFD_trsh_mip) {
+      if (cfd[ch_iter] > 0)
+	ch_signal_time[ch_iter] = (cfd[ch_iter] + ch_signal_time[ch_iter] / (float)ch_signal_nPe[ch_iter]) / 2.;
+      else
+        ch_signal_time[ch_iter] = ch_signal_time[ch_iter] / (float)ch_signal_nPe[ch_iter];
+      
+      if (ch_signal_MIP[ch_iter] > mCFD_trsh_mip) {
 	mChDgDataArr.emplace_back(ChannelData{ ch_iter, ch_signal_time[ch_iter], ch_signal_MIP[ch_iter] });
 	LOG(DEBUG) << ch_iter << " : "
 		   << " : " << ch_signal_time[ch_iter] << " : "
-		   << ch_signal_MIP[ch_iter] << " : " << smeared_time << FairLogger::endl;
-
-      if (cfd[ch_iter] > 0)
-        ch_signal_time[ch_iter] = (cfd[ch_iter] + ch_signal_time[ch_iter] / (float)ch_signal_nPe[ch_iter]) / 2.;
-      else
-        ch_signal_time[ch_iter] = ch_signal_time[ch_iter] / (float)ch_signal_nPe[ch_iter];
-
-      if (ch_signal_MIP[ch_iter] > mCFD_trsh_mip) {
-        mChDgDataArr.emplace_back(ChannelData{ ch_iter, ch_signal_time[ch_iter], ch_signal_MIP[ch_iter] });
-        LOG(DEBUG) << ch_iter << " : "
-                   << " : " << ch_signal_time[ch_iter] << " : "
-                   << ch_signal_MIP[ch_iter] << " : " << FairLogger::endl;
+		   << ch_signal_MIP[ch_iter] << " : " << FairLogger::endl;
       }
     }
 
@@ -133,28 +127,11 @@ void  Digitizer::smearCFDtime( Digit* digit)
     }
   }
 }
-  
-void  Digitizer::smearCFDtime( Digit* digit)
-{
-  //smeared CFD time for 50ps
-  constexpr Double_t BC_clk_center = 12.5; // clk center
-  constexpr Double_t CFD_trsh_mip = 0.4;          // = 4[mV] / 10[mV/mip]
-  std::vector<ChannelData> mChDgDataArr;
-  for (const auto& d : digit->getChDgData()) {
-    Int_t mcp = d.ChId;
-    Float_t cfd  = d.CFDTime  - BC_clk_center - mEventTime;
-    Float_t amp = d.QTCAmpl;
-    if (amp > CFD_trsh_mip) {
-      Double_t smeared_time = gRandom->Gaus(cfd, 0.050);
-      mChDgDataArr.emplace_back(ChannelData{ mcp, smeared_time, amp });
-    }
-  }
-}
-  
+
 //------------------------------------------------------------------------
 void  Digitizer::setTriggers(  Digit* digit)
 {
-  constexpr Double_t BC_clk_center = 12.5; // clk center
+   constexpr Double_t BC_clk_center = 12.5; // clk center
   constexpr Double_t trg_central_trh = 100.;              // mip
   constexpr Double_t trg_semicentral_trh = 50.;           // mip
   constexpr Double_t trg_vertex_min = - 3.; //ns
