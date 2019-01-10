@@ -33,6 +33,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
         OutputSpec{ { "TrackExtra" }, "AOD", "TRACKEXTRA" },
         OutputSpec{ { "Muon" }, "AOD", "MUON" },
         OutputSpec{ { "Calo" }, "AOD", "CALO" },
+        OutputSpec{ { "VZero" }, "AOD", "VZERO" },
       },
       o2::framework::readers::AODReaderHelpers::rootFileReaderCallback(),
       { ConfigParamSpec{ "aod-file", VariantType::String, "aod.root", { "Input AOD file" } } } },
@@ -43,7 +44,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
         InputSpec{ "TrackPar", "AOD", "TRACKPAR" },
         InputSpec{ "TrackParCov", "AOD", "TRACKPARCOV" },
         InputSpec{ "TrackExtra", "AOD", "TRACKEXTRA" },
-        InputSpec{ "TrackExtra", "AOD", "CALO" },
+        InputSpec{ "Calo", "AOD", "CALO" },
+        InputSpec{ "Muon", "AOD", "MUON" },
       },
       {},
       AlgorithmSpec{

@@ -99,7 +99,32 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         RootTableBuilderHelpers::convertTTree(extraBuilder, *extraReader,
                                               c0, c1, c2, c3, c4);
       }
-
+      {
+        std::unique_ptr<TTreeReader> muReader = std::make_unique<TTreeReader>("O2mu", infile.get());
+        TTreeReaderValue<int> c0(*muReader, "fID4mu");
+        TTreeReaderValue<float> c1(*muReader, "fInverseBendingMomentum");
+        TTreeReaderValue<float> c2(*muReader, "fThetaX");
+        TTreeReaderValue<float> c3(*muReader, "fThetaY");
+        TTreeReaderValue<float> c4(*muReader, "fZmu");
+        TTreeReaderValue<float> c5(*muReader, "fBendingCoor");
+        TTreeReaderValue<float> c6(*muReader, "fNonBendingCoor");
+        TTreeReaderArray<float> c7(*muReader, "fCovariances");
+        TTreeReaderValue<float> c8(*muReader, "fChi2");
+        TTreeReaderValue<float> c9(*muReader, "fChi2MatchTrigger");
+        TTreeReaderValue<int> c10(*muReader, "fID4vz");
+        auto& muBuilder = ctx.outputs().make<TableBuilder>(Output{ "AOD", "MUON" });
+        RootTableBuilderHelpers::convertTTree(muBuilder, *muReader,
+                                              c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10);
+      }
+      {
+        std::unique_ptr<TTreeReader> vzReader = std::make_unique<TTreeReader>("O2vz", infile.get());
+        TTreeReaderArray<float> c0(*vzReader, "fAdcVZ"); // FIXME: we do not support arrays for now
+        TTreeReaderArray<float> c1(*vzReader, "fTimeVZ");
+        TTreeReaderArray<float> c2(*vzReader, "fWidthVZ");
+        auto& vzBuilder = ctx.outputs().make<TableBuilder>(Output{ "AOD", "VZERO" });
+        RootTableBuilderHelpers::convertTTree(vzBuilder, *vzReader,
+                                              c0, c1, c2);
+      }
     };
   } };
 
