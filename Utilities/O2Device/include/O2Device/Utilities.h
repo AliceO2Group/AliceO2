@@ -44,7 +44,7 @@ using O2Message = FairMQParts;
 //__________________________________________________________________________________________________
 // addDataBlock for generic (compatible) containers, that is contiguous containers using the pmr allocator
 template <typename ContainerT, typename std::enable_if<!std::is_same<ContainerT, FairMQMessagePtr>::value, int>::type = 0>
-bool addDataBlock(O2Message& parts, o2::header::Stack&& inputStack, ContainerT&& inputData, o2::memory_resource::FairMQMemoryResource* targetResource = nullptr)
+bool addDataBlock(O2Message& parts, o2::header::Stack&& inputStack, ContainerT&& inputData, o2::pmr::FairMQMemoryResource* targetResource = nullptr)
 {
   using std::move;
   using std::forward;
@@ -62,7 +62,7 @@ bool addDataBlock(O2Message& parts, o2::header::Stack&& inputStack, ContainerT&&
 // addDataBlock for data already wrapped in FairMQMessagePtr
 // note: since we cannot partially specialize function templates, use SFINAE here instead
 template <typename ContainerT, typename std::enable_if<std::is_same<ContainerT, FairMQMessagePtr>::value, int>::type = 0>
-bool addDataBlock(O2Message& parts, o2::header::Stack&& inputStack, ContainerT&& dataMessage, o2::memory_resource::FairMQMemoryResource* targetResource = nullptr)
+bool addDataBlock(O2Message& parts, o2::header::Stack&& inputStack, ContainerT&& dataMessage, o2::pmr::FairMQMemoryResource* targetResource = nullptr)
 {
   using std::move;
 
