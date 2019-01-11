@@ -127,7 +127,6 @@ class FITDPLDigitizerTask
         LOG(INFO) << "Have " << data.size() << " fired channels ";
         // copy digits into accumulator
         // labelAccum.mergeAtBack(*labels);
-        // LOG(INFO) << "Have " << digits->size() << " digits ";
       }
       mDigitizer.setTriggers(&digit);
       mDigitizer.smearCFDtime(&digit);

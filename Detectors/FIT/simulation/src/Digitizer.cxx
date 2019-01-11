@@ -38,14 +38,13 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
   digit->setTime(mEventTime);
   digit->setBC(mBC);
   digit->setOrbit(mOrbit);
-  
-  //Calculating signal time, amplitude in mean_time +- time_gate --------------
 
-  Float_t cfd[300] = {};
+  //Calculating signal time, amplitude in mean_time +- time_gate --------------
+  Double_t cfd[300] = {};
   Float_t amp[300] = {};
-  Float_t ch_signal_nPe[300] = {};
-  Float_t ch_signal_MIP[300] = {};
-  Float_t ch_signal_time[300] = {};
+  Int_t ch_signal_nPe[300] = {};
+  Double_t ch_signal_MIP[300] = {};
+  Double_t ch_signal_time[300] = {};
   for (auto& hit : *hits) {
     Int_t hit_ch = hit.GetDetectorID();
     Double_t hit_time = hit.GetTime();
@@ -55,9 +54,7 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
     Bool_t is_hit_in_signal_gate = (hit_time > time_compensate - signal_width * .5) &&
                                    (hit_time < time_compensate + signal_width * .5);
 
-    Double_t hit_time_corr = hit_time - time_compensate + mBC_clk_center + mEventTime;
-
-    //  Double_t is_time_in_gate = (hit_time != 0.); //&&(hit_time_corr > -mBC_clk_center)&&(hit_time_corr < mBC_clk_center);
+    Double_t hit_time_corr = hit_time - time_compensate /* + mBC_clk_center + mEventTime*/;
 
     if (/*is_time_in_gate &&*/ is_hit_in_signal_gate) {
       ch_signal_nPe[hit_ch]++;
@@ -86,18 +83,18 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
 
   for (Int_t ch_iter = 0; ch_iter < mMCPs; ch_iter++) {
     if (ch_signal_nPe[ch_iter] != 0) {
-      ch_signal_MIP[ch_iter] = amp[ch_iter] + ch_signal_nPe[ch_iter] / nPe_in_mip ;
-      ch_signal_time[ch_iter] = (cfd[ch_iter] + ch_signal_time[ch_iter] / (float)ch_signal_nPe[ch_iter]);
-      if (cfd[ch_iter] > 0)
-        ch_signal_time[ch_iter] = (cfd[ch_iter] + ch_signal_time[ch_iter] / (float)ch_signal_nPe[ch_iter]) / 2.;
-      else
-        ch_signal_time[ch_iter] = ch_signal_time[ch_iter] / (float)ch_signal_nPe[ch_iter];
+      ch_signal_MIP[ch_iter] = amp[ch_iter] + ch_signal_nPe[ch_iter] / nPe_in_mip;
+      if (cfd[ch_iter] > 0) {
+        cfd[ch_iter] = cfd[ch_iter] - mBC_clk_center - mEventTime;
+        ch_signal_time[ch_iter] = ((cfd[ch_iter] + ch_signal_time[ch_iter] / (float)ch_signal_nPe[ch_iter]) / 2.) + mBC_clk_center + mEventTime;
+      } else
+        ch_signal_time[ch_iter] = (ch_signal_time[ch_iter] / (float)ch_signal_nPe[ch_iter]) + mBC_clk_center + mEventTime;
 
       if (ch_signal_MIP[ch_iter] > mCFD_trsh_mip) {
-        mChDgDataArr.emplace_back(ChannelData{ ch_iter, ch_signal_time[ch_iter], ch_signal_MIP[ch_iter] });
         LOG(DEBUG) << ch_iter << " : "
-                   << " : " << ch_signal_time[ch_iter] << " : "
-                   << ch_signal_MIP[ch_iter] << " : " << FairLogger::endl;
+                   << " : " << ch_signal_time[ch_iter] - mBC_clk_center - mEventTime << " : "
+                   << ch_signal_MIP[ch_iter] << " : " << mEventTime << " cfd " << cfd[ch_iter] << FairLogger::endl;
+        mChDgDataArr.emplace_back(ChannelData{ ch_iter, ch_signal_time[ch_iter], ch_signal_MIP[ch_iter] });
       } else {
         ch_signal_MIP[ch_iter] = 0;
         ch_signal_time[ch_iter] = 0;
@@ -116,10 +113,10 @@ void Digitizer::smearCFDtime(Digit* digit)
   std::vector<ChannelData> mChDgDataArr;
   for (const auto& d : digit->getChDgData()) {
     Int_t mcp = d.ChId;
-    Float_t cfd = d.CFDTime - mBC_clk_center - mEventTime;
+    Double_t cfd = d.CFDTime - mBC_clk_center - mEventTime;
     Float_t amp = d.QTCAmpl;
     if (amp > mCFD_trsh_mip) {
-      Double_t smeared_time = gRandom->Gaus(cfd, 0.050);
+      Double_t smeared_time = gRandom->Gaus(cfd, 0.050) + mBC_clk_center + mEventTime;
       mChDgDataArr.emplace_back(ChannelData{ mcp, smeared_time, amp });
     }
   }
@@ -142,7 +139,7 @@ void Digitizer::setTriggers(Digit* digit)
   Float_t summ_ampl_C = 0.;
   Float_t vertex_time;
 
-  Float_t cfd[300] = {};
+  Double_t cfd[300] = {};
   Float_t amp[300] = {};
   for (const auto& d : digit->getChDgData()) {
     Int_t mcp = d.ChId;
@@ -181,15 +178,13 @@ void Digitizer::setTriggers(Digit* digit)
   // Debug output -------------------------------------------------------------
   LOG(DEBUG) << "\n\nTest digizing data ===================" << FairLogger::endl;
 
-  LOG(DEBUG) << "Event ID: " << mEventID << " Event Time " << mEventTime << FairLogger::endl;
-  //  LOG(DEBUG) << "nClk: " << nClk << " BC Event Time " << BCEventTime << FairLogger::endl;
+  LOG(INFO) << "Event ID: " << mEventID << " Event Time " << mEventTime << FairLogger::endl;
+  LOG(INFO) << "N hit A: " << n_hit_A << " N hit C: " << n_hit_C << " summ ampl A: " << summ_ampl_A
+            << " summ ampl C: " << summ_ampl_C << " mean time A: " << mean_time_A
+            << " mean time C: " << mean_time_C << FairLogger::endl;
 
-  LOG(DEBUG) << "N hit A: " << n_hit_A << " N hit C: " << n_hit_C << " summ ampl A: " << summ_ampl_A
-             << " summ ampl C: " << summ_ampl_C << " mean time A: " << mean_time_A
-             << " mean time C: " << mean_time_C << FairLogger::endl;
-
-  LOG(DEBUG) << "IS A " << is_A << " IS C " << is_C << " is Central " << is_Central
-             << " is SemiCentral " << is_SemiCentral << " is Vertex " << is_Vertex << FairLogger::endl;
+  LOG(INFO) << "IS A " << is_A << " IS C " << is_C << " is Central " << is_Central
+            << " is SemiCentral " << is_SemiCentral << " is Vertex " << is_Vertex << FairLogger::endl;
 
   LOG(DEBUG) << "======================================\n\n"
              << FairLogger::endl;
