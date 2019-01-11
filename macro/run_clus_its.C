@@ -13,7 +13,7 @@
 #include "ITSReconstruction/ClustererTask.h"
 #endif
 
-void run_clus_its(std::string outputfile = "o2clus_its.root", std::string inputfile = "o2digi_its.root", std::string paramfile = "o2sim_par.root")
+void run_clus_its(std::string outputfile = "o2clus_its.root", std::string inputfile = "itsdigits.root", std::string paramfile = "o2sim_par.root")
 {
   // Initialize logger
   FairLogger* logger = FairLogger::GetLogger();
