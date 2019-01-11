@@ -1,5 +1,7 @@
 #include "ClEnv.h"
 
+#include <gpucf/errors/FileErrors.h>
+#include <gpucf/errors/CLErrors.h>
 #include <gpucf/log.h>
 
 #include <fstream>
@@ -13,25 +15,26 @@ ClEnv::ClEnv(const fs::path &srcDir, size_t gid)
     : gpuId(gid) 
     , sourceDir(srcDir) 
 {
-    if (!sourceDir.exists() || !sourceDir.is_directory()) 
+    if (!sourceDir.is_directory()) 
     {
-        throw std::runtime_error("Directory " + sourceDir.str()
-                + " does not exist or is a file.");
+        throw DirectoryNotFoundError(sourceDir);
     }
 
-    cl_int err;
-
-    err = cl::Platform::get(&platforms); 
     
-    ASSERT(!platforms.empty());
-    err = platforms.front().getDevices(CL_DEVICE_TYPE_GPU, &devices);
+    cl::Platform::get(&platforms); 
+    if (platforms.empty())
+    {
+        throw NoPlatformFoundError(); 
+    }
+    
+    platforms.front().getDevices(CL_DEVICE_TYPE_GPU, &devices);
 
     if (devices.empty()) 
     {
-        throw std::runtime_error("Could not find any gpu devices.");
+        throw NoGpuFoundError();
     }
     
-    context = cl::Context(devices, nullptr, nullptr, nullptr, &err);
+    context = cl::Context(devices, nullptr, nullptr, nullptr);
 
     std::string deviceName;
     getDevice().getInfo(CL_DEVICE_NAME, &deviceName);
@@ -42,9 +45,7 @@ cl::Program ClEnv::buildFromSrc(const fs::path &srcFile)
 {
     cl::Program::Sources src = loadSrc(srcFile);
 
-    cl_int err;
-    cl::Program prg(context, src, &err);
-    ASSERT(err == CL_SUCCESS);
+    cl::Program prg(context, src);
 
     try 
     {
@@ -52,13 +53,12 @@ cl::Program ClEnv::buildFromSrc(const fs::path &srcFile)
     } 
     catch (const cl::BuildError &) 
     {
-        cl_int buildErr = CL_SUCCESS;
-        auto buildInfo = prg.getBuildInfo<CL_PROGRAM_BUILD_LOG>(&buildErr);
+        auto buildInfo = prg.getBuildInfo<CL_PROGRAM_BUILD_LOG>();
         for (auto &pair : buildInfo) 
         {
             std::cerr << pair.second << std::endl << std::endl;
         }
-        throw std::runtime_error("build failed.");
+        throw BuildFailedError();
     }
 
     return prg;
@@ -72,7 +72,7 @@ cl::Program::Sources ClEnv::loadSrc(const fs::path &srcFile)
 
     if (!file.exists()) 
     {
-        throw std::runtime_error("Could not find file " + file.str() + "."); 
+        throw FileNotFoundError(file);
     }
 
     std::ifstream src(file.str());

@@ -4,9 +4,9 @@
 #include <gpucf/log.h>
 
 
-void ClCanary::setupFlags(args::ArgumentParser &parser) 
+void ClCanary::setupFlags(args::Group &required, args::Group &optional) 
 {
-    envFlags = std::make_unique<ClEnv::Flags>(parser); 
+    envFlags = std::make_unique<ClEnv::Flags>(required, optional); 
 }
 
 int ClCanary::mainImpl() 
