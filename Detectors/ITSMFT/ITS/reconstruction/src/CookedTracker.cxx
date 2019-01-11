@@ -515,10 +515,7 @@ void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<Tr
 
   while (numOfClustersLeft > 0) {
     nClFrame = loadClusters(clusters);
-    if (!nClFrame) {
-      LOG(FATAL) << "Failed to select any cluster out of " << numOfClustersLeft << " check if cont/trig mode is correct"
-                 << FairLogger::endl;
-    }
+
     numOfClustersLeft -= nClFrame;
     auto end = std::chrono::system_clock::now();
     std::chrono::duration<double> diff = end - start;
@@ -545,12 +542,16 @@ void CookedTracker::processFrame(std::vector<TrackITS>& tracks)
   // This is the main tracking function for single frame, it is assumed that only clusters
   // which may contribute to this frame is loaded
   //--------------------------------------------------------------------
-  LOG(INFO) << "CookedTracker::process(), number of threads: " << mNumOfThreads << FairLogger::endl;
+
+  Int_t numOfClusters = sLayers[kSeedingLayer1].getNumberOfClusters();
+  if (!numOfClusters) {
+    return;
+  }
+  LOG(INFO) << "CookedTracker::process(), number of threads: " << mNumOfThreads << " for " << numOfClusters << " clusters";
 
   std::vector<std::future<std::vector<TrackITS>>> futures(mNumOfThreads);
   std::vector<std::vector<TrackITS>> seedArray(mNumOfThreads);
 
-  Int_t numOfClusters = sLayers[kSeedingLayer1].getNumberOfClusters();
   for (Int_t t = 0, first = 0; t < mNumOfThreads; t++) {
     Int_t rem = t < (numOfClusters % mNumOfThreads) ? 1 : 0;
     Int_t last = first + (numOfClusters / mNumOfThreads) + rem;
