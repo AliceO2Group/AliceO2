@@ -702,6 +702,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
       serviceRegistry.registerService<RawDeviceService>(simpleRawDeviceService.get());
       serviceRegistry.registerService<CallbackService>(callbackService.get());
       serviceRegistry.registerService<TimesliceIndex>(timesliceIndex.get());
+      serviceRegistry.registerService<DeviceSpec>(&spec);
 
       // The decltype stuff is to be able to compile with both new and old
       // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
