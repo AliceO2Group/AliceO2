@@ -269,6 +269,8 @@ class O2HitMerger : public FairMQDevice
     originbr->SetAddress(&incomingdata);
     for (auto& event_entries_pair : entrygroups) {
       const auto& entries = event_entries_pair.second;
+      auto currentevent = event_entries_pair.first;
+      LOG(DEBUG) << "MERGING EVENT " << currentevent;
 
       T* filladdress;
       if (entries.size() == 1) {
@@ -309,14 +311,24 @@ class O2HitMerger : public FairMQDevice
     if (mEntries == 0 || mNExpectedEvents == 0) {
       return false;
     }
+
     LOG(INFO) << "ENTERING MERGING HITS STAGE";
     TStopwatch timer;
     timer.Start();
     // a) find out which entries to merge together
     // we produce a vector<vector<int>>
     auto infobr = mOutTree->GetBranch("SubEventInfo");
+
+    if (infobr->GetEntries() == mNExpectedEvents) {
+      return false;
+    }
+
     std::map<int, std::vector<int>> entrygroups;  // collecting all entries belonging to an event
     std::map<int, std::vector<int>> trackoffsets; // collecting trackoffsets to be applied to correct
+
+    std::vector<FairMCEventHeader> eventheaders; // collecting the event headers
+    eventheaders.reserve(mNExpectedEvents);
+
     // the MC labels (trackID) for hits
     o2::Data::SubEventInfo* info = nullptr;
     infobr->SetAddress(&info);
@@ -326,8 +338,8 @@ class O2HitMerger : public FairMQDevice
       auto event = info->eventID;
       entrygroups[event].emplace_back(i);
       trackoffsets[event].emplace_back(info->npersistenttracks);
+      eventheaders[event] = info->mMCEventHeader;
     }
-    LOG(INFO) << "COLLECTING EVENTHEADERS";
 
     // quick check if we need to merge at all
     if (info->maxEvents == infobr->GetEntries()) {
@@ -352,6 +364,16 @@ class O2HitMerger : public FairMQDevice
     //    }
 
     mergedOutTree->SetEntries(entrygroups.size());
+
+    // put the event headers into the new TTree
+    FairMCEventHeader* headerptr = nullptr;
+    auto headerbr = o2::Base::getOrMakeBranch(*mergedOutTree, "MCEventHeader.", &headerptr);
+    for (int i = 0; i < info->maxEvents; i++) {
+      headerptr = &eventheaders[i];
+      headerbr->Fill();
+    }
+    // attention: We need to make sure that we write everything in the same event order
+    // but iteration over keys of a standard map in C++ is ordered
 
     // b) merge the general data
     merge<std::vector<o2::MCTrack>>("MCTrack", *mOutTree, *mergedOutTree, entrygroups);
