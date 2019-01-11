@@ -134,11 +134,13 @@ using Success = Logger<Level::Info,
       Formatter<Format::Green, Format::Bold>,
       Formatter<Format::Green, Format::Bold>>;
 
+using Error   = Logger<Level::Error,
+      Formatter<Format::Red, Format::Bold>,
+      Formatter<Format::DefaultColor>>; 
+
 class Fail 
     : public ErrorShutdown
-    , public Logger<Level::Error,
-                    Formatter<Format::Red, Format::Bold>,
-                    Formatter<Format::DefaultColor>> 
+    , public Error
 {
 };
 
