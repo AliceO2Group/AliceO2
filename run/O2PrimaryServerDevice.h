@@ -159,6 +159,8 @@ class O2PrimaryServerDevice : public FairMQDevice
 
     auto& prims = mStack.getPrimaries();
     auto numberofparts = (int)std::ceil(prims.size() / (1. * mChunkGranularity));
+    // number of parts should be at least 1 (even if empty)
+    numberofparts = std::max(1, numberofparts);
 
     o2::Data::PrimaryChunk m;
     o2::Data::SubEventInfo i;
