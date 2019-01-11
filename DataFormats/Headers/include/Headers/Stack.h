@@ -33,25 +33,19 @@ namespace header
 ///   - returns a Stack ready to be shipped.
 struct Stack {
 
+  using memory_resource = o2::pmr::memory_resource;
+
  private:
-  static void freefn(void* data, void* hint)
-  {
-    boost::container::pmr::memory_resource* resource = static_cast<boost::container::pmr::memory_resource*>(hint);
-    resource->deallocate(data, 0, 0);
-  }
-
   struct freeobj {
-    freeobj() {}
-    freeobj(boost::container::pmr::memory_resource* mr) : resource(mr) {}
-
-    boost::container::pmr::memory_resource* resource{ nullptr };
-    void operator()(o2::byte* ptr) { Stack::freefn(ptr, resource); }
+    freeobj(memory_resource* mr) : resource(mr) {}
+    memory_resource* resource{ nullptr };
+    void operator()(o2::byte* ptr) { resource->deallocate(ptr, 0, 0); }
   };
 
  public:
   using allocator_type = boost::container::pmr::polymorphic_allocator<o2::byte>;
   using value_type = o2::byte;
-  using BufferType = std::unique_ptr<value_type[], freeobj>;
+  using BufferType = std::unique_ptr<value_type[], freeobj>; //this gives us proper default move semantics for free
 
   Stack() = default;
   Stack(Stack&&) = default;
@@ -64,8 +58,6 @@ struct Stack {
   allocator_type get_allocator() const { return allocator; }
 
   //
-  boost::container::pmr::memory_resource* getFreefnHint() const noexcept { return allocator.resource(); }
-  static auto getFreefn() noexcept { return &freefn; }
 
   /// The magic constructors: take arbitrary number of headers and serialize them
   /// into the buffer buffer allocated by the specified polymorphic allocator. By default
@@ -86,7 +78,7 @@ struct Stack {
     : allocator{ allocatorArg },
       bufferSize{ calculateSize(std::forward<Headers>(headers)...) },
       buffer{ static_cast<o2::byte*>(allocator.resource()->allocate(bufferSize, alignof(std::max_align_t))),
-              freeobj(getFreefnHint()) }
+              freeobj(allocator.resource()) }
   {
     inject(buffer.get(), std::forward<Headers>(headers)...);
   }
@@ -94,7 +86,7 @@ struct Stack {
  private:
   allocator_type allocator{ boost::container::pmr::new_delete_resource() };
   size_t bufferSize{ 0 };
-  BufferType buffer{ nullptr, freeobj{ getFreefnHint() } };
+  BufferType buffer{ nullptr, freeobj{ allocator.resource() } };
 
   template <typename T, typename... Args>
   static size_t calculateSize(T&& h, Args&&... args) noexcept
