@@ -126,8 +126,8 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
     DataProcessingHeader dph{ timestamp, 1 };
 
     auto&& transport = rawDeviceService.device()->GetChannel(sourceChannel, 0).Transport();
-    auto channelAlloc = o2::memory_resource::getTransportAllocator(transport);
-    auto header = o2::memory_resource::getMessage(o2::header::Stack{ channelAlloc, dh, dph });
+    auto channelAlloc = o2::pmr::getTransportAllocator(transport);
+    auto header = o2::pmr::getMessage(o2::header::Stack{ channelAlloc, dh, dph });
     ref.header = std::move(header);
 
     auto payload = rawDeviceService.device()->NewMessage(*counter);

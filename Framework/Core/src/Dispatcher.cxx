@@ -104,8 +104,8 @@ void Dispatcher::sendFairMQ(FairMQDevice* device, const DataRef& inputData, cons
   DataProcessingHeader dphout{ dph->startTime, dph->duration };
   o2::header::Stack headerStack{ dhout, dphout };
 
-  auto channelAlloc = o2::memory_resource::getTransportAllocator(device->Transport());
-  FairMQMessagePtr msgHeaderStack = o2::memory_resource::getMessage(std::move(headerStack), channelAlloc);
+  auto channelAlloc = o2::pmr::getTransportAllocator(device->Transport());
+  FairMQMessagePtr msgHeaderStack = o2::pmr::getMessage(std::move(headerStack), channelAlloc);
 
   char* payloadCopy = new char[dh->payloadSize];
   memcpy(payloadCopy, inputData.payload, dh->payloadSize);

@@ -23,7 +23,7 @@ addDataBlock(O2Message& message, o2::header::Stack&& headerStack, T data);
 - data:
   - ```FairMQMessagePtr``` (```std::unique_ptr<FairMQMessage>```)
   - STL-like container that uses a ```pmr::polymorphic_allocator``` as allocator. Note: this is only efficient if
-    the memory resource used to construct the allocator is ```o2::memory_resource::ChannelResource```, otherwise an implicit copy occurs.
+    the memory resource used to construct the allocator is ```o2::pmr::ChannelResource```, otherwise an implicit copy occurs.
 
 ### forEach()
 Executes a function on each data block within the message.
@@ -39,11 +39,11 @@ the function is a callable object (lambda, functor, std::function) and needs to 
 #### basic example, inside a FairMQDevice:
 ```C++
 // make sure we have the allocator associated with the transport appropriate for the selected channel:
-auto outputChannelAllocator = o2::memory_resource::getTransportAllocator(GetChannel("dataOut").Transport());
+auto outputChannelAllocator = o2::pmr::getTransportAllocator(GetChannel("dataOut").Transport());
 
 //the data
 using namespace boost::container::pmr;
-std::vector<int, polymorphic_allocator<int>> dataVector(polymorphic_allocator<int>{outputChannelAllocator});
+o2::pmr::vector<int> dataVector(outputChannelAllocator);
 dataVector.reserve(10);
 dataVector.push_back(1);
 dataVector.push_back(2);
