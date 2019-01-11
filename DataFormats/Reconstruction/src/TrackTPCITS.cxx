@@ -22,4 +22,6 @@ void TrackTPCITS::print() const
   o2::track::TrackParCov::print();
   printf("Outer param: ");
   mParamOut.print();
+  printf("LTOF: ");
+  mLTOut.print();
 }
