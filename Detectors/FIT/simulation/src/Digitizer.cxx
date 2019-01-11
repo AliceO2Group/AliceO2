@@ -63,8 +63,8 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
       ch_signal_nPe[hit_ch]++;
       ch_signal_time[hit_ch] += hit_time_corr;
     }
-    //charge particles in MCLabel
 
+    //charge particles in MCLabel
     if (hit.GetEnergyLoss() > 0) {
       o2::fit::MCLabel label(hit.GetTrackID(), mEventID, mSrcID, hit_ch);
       int lblCurrent;
@@ -87,7 +87,7 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
   for (Int_t ch_iter = 0; ch_iter < mMCPs; ch_iter++) {
     if (ch_signal_nPe[ch_iter] != 0) {
       ch_signal_MIP[ch_iter] = amp[ch_iter] + ch_signal_nPe[ch_iter] / nPe_in_mip ;
-      ch_signal_time[ch_iter] = (cfd[ch_iter] + ch_signal_time[ch_iter] / (float)ch_signal_nPe[ch_iter] );
+      ch_signal_time[ch_iter] = (cfd[ch_iter] + ch_signal_time[ch_iter] / (float)ch_signal_nPe[ch_iter]);
       if (cfd[ch_iter] > 0)
         ch_signal_time[ch_iter] = (cfd[ch_iter] + ch_signal_time[ch_iter] / (float)ch_signal_nPe[ch_iter]) / 2.;
       else
@@ -98,22 +98,19 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
         LOG(DEBUG) << ch_iter << " : "
                    << " : " << ch_signal_time[ch_iter] << " : "
                    << ch_signal_MIP[ch_iter] << " : " << FairLogger::endl;
+      } else {
+        ch_signal_MIP[ch_iter] = 0;
+        ch_signal_time[ch_iter] = 0;
       }
     }
-
-    //if ampl less than cfd trh adc and cfd has no signal
-    if (ch_signal_MIP[ch_iter] < mCFD_trsh_mip) {
-      ch_signal_MIP[ch_iter] = 0.;
-      ch_signal_time[ch_iter] = 0.;
-    }
   }
- 
+
   digit->setChDgData(std::move(mChDgDataArr));
   
 }
 
 //------------------------------------------------------------------------
-void  Digitizer::smearCFDtime( Digit* digit)
+void Digitizer::smearCFDtime(Digit* digit)
 {
   //smeared CFD time for 50ps
   std::vector<ChannelData> mChDgDataArr;
@@ -129,16 +126,16 @@ void  Digitizer::smearCFDtime( Digit* digit)
 }
 
 //------------------------------------------------------------------------
-void  Digitizer::setTriggers(  Digit* digit)
+void Digitizer::setTriggers(Digit* digit)
 {
   constexpr Double_t BC_clk_center = 12.5;                // clk center
   constexpr Double_t trg_central_trh = 100.;              // mip
   constexpr Double_t trg_semicentral_trh = 50.;           // mip
-  constexpr Double_t trg_vertex_min = - 3.; //ns
-  constexpr Double_t trg_vertex_max =  3.; //ns
+  constexpr Double_t trg_vertex_min = -3.;                //ns
+  constexpr Double_t trg_vertex_max = 3.;                 //ns
 
   // Calculating triggers -----------------------------------------------------
-  Int_t n_hit_A = 0., n_hit_C = 0.;
+  Int_t n_hit_A = 0, n_hit_C = 0;
   Float_t mean_time_A = 0.;
   Float_t mean_time_C = 0.;
   Float_t summ_ampl_A = 0.;
@@ -166,16 +163,15 @@ void  Digitizer::setTriggers(  Digit* digit)
       summ_ampl_C += amp[mcp];
       mean_time_C += cfd[mcp];
     }
-    
   }
-  
-  Bool_t  is_A = n_hit_A > 0;
+
+  Bool_t is_A = n_hit_A > 0;
   Bool_t is_C = n_hit_C > 0;
   Bool_t is_Central = summ_ampl_A + summ_ampl_C >= trg_central_trh;
   Bool_t is_SemiCentral = summ_ampl_A + summ_ampl_C >= trg_semicentral_trh;
-  
-  mean_time_A = is_A ? mean_time_A / n_hit_A : 0.;
-  mean_time_C = is_C ? mean_time_C / n_hit_C : 0.;
+
+  mean_time_A = is_A ? mean_time_A / n_hit_A : 0;
+  mean_time_C = is_C ? mean_time_C / n_hit_C : 0;
   vertex_time = (mean_time_A + mean_time_C) * .5;
   Bool_t is_Vertex = (vertex_time > trg_vertex_min) && (vertex_time < trg_vertex_max);
 

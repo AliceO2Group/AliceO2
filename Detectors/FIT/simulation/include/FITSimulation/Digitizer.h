@@ -39,7 +39,7 @@ class Digitizer
   void setOrbit(Int_t orbit) { mOrbit = orbit; }
 
   void setTriggers(Digit* digit);
-  void smearCFDtime (Digit* digit);
+  void smearCFDtime(Digit* digit);
 
   void init();
   void finish();

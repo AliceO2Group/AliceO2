@@ -18,7 +18,7 @@ ClassImp(o2::fit::ChannelData);
 
 void Digit::printStream(std::ostream& stream) const
 {
-  stream << "FIT Digit: event time " << mTime << " BC " << mBC << " orbit "<< mOrbit <<std::endl;
+  stream << "FIT Digit: event time " << mTime << " BC " << mBC << " orbit " << mOrbit << std::endl;
   stream << "IS A " << mIsA << " IS C " << mIsC << " is Central " << mIsCentral
          << " is SemiCentral " << mIsSemiCentral << " is Vertex " << mIsVertex << std::endl;
 

@@ -65,8 +65,8 @@ class RecPoints
   Float_t mVertex = 0;
   Double_t mEventTime; //event time from Fair for continuous
   std::vector<ChannelData> mTimeAmp;
-  Int_t mBC = 0; /// BC from digits
-  Int_t mOrbit = 0; /// orbit from digits
+  Int_t mBC = 0;    // BC from digits
+  Int_t mOrbit = 0; // orbit from digits
 
   ClassDefNV(RecPoints, 1);
 };

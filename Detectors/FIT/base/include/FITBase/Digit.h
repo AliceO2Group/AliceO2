@@ -78,8 +78,8 @@ class Digit : public DigitBase
   void cleardigits()
   {
     mIsA = mIsC = mIsCentral = mIsSemiCentral = mIsVertex = 0;
-    mChDgDataArr.clear(); }
-    
+    mChDgDataArr.clear();
+  }
 
  private:
   Double_t mTime; // time stamp

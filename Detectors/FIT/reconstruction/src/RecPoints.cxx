@@ -45,7 +45,7 @@ void RecPoints::FillFromDigits(const Digit& digit)
   }
 
   for (Int_t imcp = 0; imcp < nMCPsA; imcp++) {
-    if (cfd[imcp] > - 2 && cfd[imcp] <  2 ) {
+    if (cfd[imcp] > -2 && cfd[imcp] < 2) {
       sideAtime += (cfd[imcp]);
       ndigitsA++;
     }

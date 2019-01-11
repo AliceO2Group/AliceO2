@@ -114,7 +114,6 @@ class FITDPLDigitizerTask
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
-  	
         // get the hits for this event and this source
         hits.clear();
         retrieveHits(mSimChains, "FITHit", part.sourceID, part.entryID, &hits);
@@ -135,7 +134,7 @@ class FITDPLDigitizerTask
       digitAccum.push_back(digit); // we should move it there actually
       LOG(INFO) << "Have " << digitAccum.back().getChDgData().size() << " fired channels ";
       digit.printStream(std::cout);
-   }
+    }
     //    if (mDigitizer.isContinuous()) {
     //      digits->clear();
     //      labels->clear();
