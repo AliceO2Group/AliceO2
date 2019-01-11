@@ -10,9 +10,11 @@ namespace fs = filesystem;
 
 
 ClEnv::ClEnv(const fs::path &srcDir, size_t gid) 
-        : gpuId(gid) 
-        , sourceDir(srcDir) {
-    if (!sourceDir.exists() || !sourceDir.is_directory()) {
+    : gpuId(gid) 
+    , sourceDir(srcDir) 
+{
+    if (!sourceDir.exists() || !sourceDir.is_directory()) 
+    {
         throw std::runtime_error("Directory " + sourceDir.str()
                 + " does not exist or is a file.");
     }
@@ -24,7 +26,8 @@ ClEnv::ClEnv(const fs::path &srcDir, size_t gid)
     ASSERT(!platforms.empty());
     err = platforms.front().getDevices(CL_DEVICE_TYPE_GPU, &devices);
 
-    if (devices.empty()) {
+    if (devices.empty()) 
+    {
         throw std::runtime_error("Could not find any gpu devices.");
     }
     
@@ -35,19 +38,24 @@ ClEnv::ClEnv(const fs::path &srcDir, size_t gid)
     log::Info() << "Running on device " << deviceName;
 }
 
-cl::Program ClEnv::buildFromSrc(const fs::path &srcFile) {
+cl::Program ClEnv::buildFromSrc(const fs::path &srcFile) 
+{
     cl::Program::Sources src = loadSrc(srcFile);
 
     cl_int err;
     cl::Program prg(context, src, &err);
     ASSERT(err == CL_SUCCESS);
 
-    try {
+    try 
+    {
         prg.build(devices);
-    } catch (const cl::BuildError &) {
+    } 
+    catch (const cl::BuildError &) 
+    {
         cl_int buildErr = CL_SUCCESS;
         auto buildInfo = prg.getBuildInfo<CL_PROGRAM_BUILD_LOG>(&buildErr);
-        for (auto &pair : buildInfo) {
+        for (auto &pair : buildInfo) 
+        {
             std::cerr << pair.second << std::endl << std::endl;
         }
         throw std::runtime_error("build failed.");
@@ -56,12 +64,14 @@ cl::Program ClEnv::buildFromSrc(const fs::path &srcFile) {
     return prg;
 }
 
-cl::Program::Sources ClEnv::loadSrc(const fs::path &srcFile) {
+cl::Program::Sources ClEnv::loadSrc(const fs::path &srcFile) 
+{
     fs::path file = sourceDir / srcFile; 
 
     log::Info() << "Opening cl-source " << file;
 
-    if (!file.exists()) {
+    if (!file.exists()) 
+    {
         throw std::runtime_error("Could not find file " + file.str() + "."); 
     }
 
