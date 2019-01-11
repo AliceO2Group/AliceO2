@@ -25,6 +25,7 @@
 #include "ITStracking/ROframe.h"
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/Tracker.h"
+#include "ITStracking/TrackerTraitsCPU.h"
 
 #include "MathUtils/Utils.h"
 
@@ -39,7 +40,8 @@ void run_trac_ca_its(std::string path = "./", std::string outputfile = "o2ca_its
 
   gSystem->Load("libITStracking.so");
 
-  o2::ITS::Tracker tracker(AliGPUReconstruction::CreateInstance()->GetITSTrackerTraits());
+  //o2::ITS::Tracker tracker(AliGPUReconstruction::CreateInstance()->GetITSTrackerTraits());
+  o2::ITS::Tracker tracker(new o2::ITS::TrackerTraitsCPU());
   o2::ITS::ROframe event(0);
 
   if (path.back() != '/') {
@@ -91,12 +93,6 @@ void run_trac_ca_its(std::string path = "./", std::string outputfile = "o2ca_its
   }
   std::vector<o2::ITSMFT::Cluster>* clusters = nullptr;
   itsClusters.SetBranchAddress("ITSCluster", &clusters);
-
-  //  if (!itsClusters.GetBranch("EventHeader.")) {
-  //    LOG(FATAL) << "Did not find the EventHeader branch in the input cluster tree" << FairLogger::endl;
-  //  }
-  //  FairEventHeader* header = nullptr;
-  //  itsClusters.SetBranchAddress("EventHeader.", &header);
 
   if (!itsClusters.GetBranch("ITSClusterMCTruth")) {
     LOG(FATAL) << "Did not find ITS clusters branch ITSClusterMCTruth in the input tree" << FairLogger::endl;
