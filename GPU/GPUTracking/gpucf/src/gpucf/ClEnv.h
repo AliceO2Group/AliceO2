@@ -21,10 +21,10 @@ public:
         args::ValueFlag<std::string> clSrcDir;    
         args::ValueFlag<size_t> gpuId;
 
-        Flags(args::Group &group)
-            : clSrcDir(group, "cl sources", "Base directory of cl source files.",
+        Flags(args::Group &required, args::Group &optional)
+            : clSrcDir(required, "clsrc", "Base directory of cl source files.",
                     {'s', "src"}) 
-            , gpuId(group, "gpu id", "Id of the gpu device.", 
+            , gpuId(optional, "gpuid", "Id of the gpu device.", 
                     {'g', "gpu"}, 0)
         {
         }

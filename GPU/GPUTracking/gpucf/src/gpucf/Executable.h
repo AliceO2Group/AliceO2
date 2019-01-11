@@ -11,6 +11,8 @@ class Executable
 public:
     Executable(const std::string &desc) 
         : parser(desc) 
+        , requiredArgs(parser, "Required Arguments", args::Group::Validators::All)
+        , optionalArgs(parser, "Optional Arguments")
     {
     }
 
@@ -20,8 +22,10 @@ public:
 
     int main(int argc, const char *argv[]);
 
+    void showHelpAndExit();
+
 protected:
-    virtual void setupFlags(args::ArgumentParser &) 
+    virtual void setupFlags(args::Group &, args::Group &) 
     {
     }
 
@@ -29,6 +33,8 @@ protected:
 
 private:
     args::ArgumentParser parser;
+    args::Group requiredArgs;
+    args::Group optionalArgs;
     
 };
 

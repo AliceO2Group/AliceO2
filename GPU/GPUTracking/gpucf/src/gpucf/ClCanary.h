@@ -16,7 +16,7 @@ public:
     }
 
 protected:
-    void setupFlags(args::ArgumentParser &) override;
+    void setupFlags(args::Group &, args::Group &) override;
     int mainImpl() override;
 
 private:
