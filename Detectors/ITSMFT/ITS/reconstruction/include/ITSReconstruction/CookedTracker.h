@@ -145,7 +145,7 @@ class CookedTracker::Layer
   void setR(Double_t r) { mR = r; }
   void unloadClusters();
   void selectClusters(std::vector<Int_t>& s, Float_t phi, Float_t dy, Float_t z, Float_t dz);
-  Int_t findClusterIndex(Double_t z) const;
+  Int_t findClusterIndex(Float_t z) const;
   Float_t getR() const { return mR; }
   const Cluster* getCluster(Int_t i) const { return mClusters[i]; }
   Float_t getAlphaRef(Int_t i) const { return mAlphaRef[i]; }

@@ -59,7 +59,7 @@ const Double_t kmaxChi2PerCluster = 20.;
 const Double_t kmaxChi2PerTrack = 30.;
 // Tracking "road" from layer to layer
 const Double_t kRoadY = 0.2;
-const Double_t kRoadZ = 0.7;
+const Float_t kRoadZ = 0.3;
 // Minimal number of attached clusters
 const Int_t kminNumberOfClusters = 4;
 
@@ -298,78 +298,51 @@ void CookedTracker::makeSeeds(std::vector<TrackITS>& seeds, Int_t first, Int_t l
     //
     //auto lab = (mClsLabels->getLabels(c1-mFirstCluster))[0];
     //
-    Double_t z1 = c1->getZ();
     auto xyz1 = c1->getXYZGloRot(*mGeom);
+    auto z1 = xyz1.Z();
     auto r1 = xyz1.rho();
+
     auto phi1 = layer1.getClusterPhi(n1);
-
-    Double_t zr2 = zv + layer2.getR() / r1 * (z1 - zv);
-    Int_t start2 = layer2.findClusterIndex(zr2 - kzWin);
-
-    for (Int_t n2 = start2; n2 < nClusters2; n2++) {
+    auto tgl=std::abs((z1-zv)/r1);
+    
+    auto zr2 = zv + layer2.getR() / r1 * (z1 - zv);
+    auto phir2 = phi1;
+    auto dz2 = kzWin*(1+2*tgl);
+    
+    std::vector<Int_t> selected2;
+    float dy2=kpWin*layer2.getR();
+    layer2.selectClusters(selected2,phir2,dy2,zr2,dz2);
+    for (auto n2 : selected2) {  
       const Cluster* c2 = layer2.getCluster(n2);
       //
       //if ((mClsLabels->getLabels(c2-mFirstCluster))[0] != lab) continue;
       //
-      Double_t z2 = c2->getZ();
-      if (z2 > (zr2 + kzWin))
-        break; // check in Z
-
-      auto phi2 = layer2.getClusterPhi(n2);
-      auto dphi = std::abs(phi2 - phi1);
-      bool jump = false;
-      
-      if (dphi > kpWin) {
-        if (dphi > kPI) {
-           dphi = k2PI - dphi;
-        }
-	if (dphi > kpWin) {
-           continue; // check in Phi
-	}
-	jump = true;
-      }
-	
       auto xyz2 = c2->getXYZGloRot(*mGeom);
-      Double_t r2 = xyz2.rho();
+      auto z2 = xyz2.Z();
+      auto r2 = xyz2.rho();
+      
       Float_t hcrv = 0.5*f1(xyz1.X(), xyz1.Y(), xyz2.X(), xyz2.Y(), getX(), getY());
 
-      Double_t zr3 = z1 + (layer3.getR() - r1) / (r2 - r1) * (z2 - z1);
-      Double_t dz = kzWin / 2;
+      auto zr3 = z1 + (layer3.getR() - r1) / (r2 - r1) * (z2 - z1);
+      auto phir3 = phi1 + hcrv * (layer3.getR() - r1);
+      auto dz3 = 0.5f*dz2;
 
-      Int_t start3 = layer3.findClusterIndex(zr3 - dz);
-      for (Int_t n3 = start3; n3 < nClusters3; n3++) {
+      std::vector<Int_t> selected3;
+      float dy3=kpWin100*layer3.getR();
+      layer3.selectClusters(selected3,phir3,dy3,zr3,dz3);
+      for (auto n3 : selected3) {
         const Cluster* c3 = layer3.getCluster(n3);
         //
         //if ((mClsLabels->getLabels(c3-mFirstCluster))[0] != lab) continue;
         //
-        Double_t z3 = c3->getZ();
-        if (z3 > (zr3 + dz))
-          break; // check in Z
-
-        auto r3 = c3->getX();
-        auto phir3 = phi1 + hcrv * (r3 - r1);
-        auto phi3 = layer3.getClusterPhi(n3);
-        auto dphi3 = std::abs(phir3 - phi3);
-
-	if (dphi3 > kpWin100) {
-	   if (!jump) continue;
-           if (phir3 > k2PI)
-              phir3 -= k2PI;
-           else if (phir3 < 0)
-              phir3 += k2PI;
-           dphi3 = std::abs(phir3 - phi3);
-           if (dphi3 > kPI) {
-               dphi3 = k2PI - dphi3;
-           }
-	   if (dphi3 > kpWin100) {
-              continue; // check in Phi
-	   }
-	}
+        auto xyz3 = c3->getXYZGloRot(*mGeom);
+        auto z3 = xyz3.Z();
+        auto r3 = xyz3.rho();
+	
+        zr3 = z1 + (r3 - r1) / (r2 - r1) * (z2 - z1);
+        if (std::abs(z3-zr3)>0.2*dz3) continue;
 
         Point3Df txyz2 = c2->getXYZ(); // tracking coordinates
-        //      txyz2.SetX(layer2.getXRef(n2));  // The clusters are already in the tracking frame
-
-        auto xyz3 = c3->getXYZGloRot(*mGeom);
 
         TrackITS seed = cookSeed(xyz1, xyz3, txyz2, layer2.getR(), layer3.getR(), layer2.getAlphaRef(n2), getBz());
 
@@ -441,7 +414,7 @@ void CookedTracker::trackSeeds(std::vector<TrackITS>& seeds)
       phi += 0.5 * crv * (r2 - r1);
       z += tgl / (0.5 * crv) * (TMath::ASin(0.5 * crv * r2) - TMath::ASin(0.5 * crv * r1));
       selec[l].clear();
-      sLayers[l].selectClusters(selec[l], phi, kRoadY, z, kRoadZ);
+      sLayers[l].selectClusters(selec[l], phi, kRoadY, z, kRoadZ*(1+2*std::abs(tgl)));
       r1 = r2;
     }
 
@@ -773,13 +746,13 @@ Bool_t CookedTracker::Layer::insertCluster(const Cluster* c)
   return kTRUE;
 }
 
-Int_t CookedTracker::Layer::findClusterIndex(Double_t z) const
+Int_t CookedTracker::Layer::findClusterIndex(Float_t z) const
 {
   //--------------------------------------------------------------------
   // This function returns the index of the first cluster with its fZ >= "z".
   //--------------------------------------------------------------------
   auto found = std::upper_bound(std::begin(mClusters), std::end(mClusters), z,
-                                [](Double_t zc, const Cluster* c) { return (zc < c->getZ()); });
+                                [](Float_t zc, const Cluster* c) { return (zc < c->getZ()); });
   return found - std::begin(mClusters);
 }
 
