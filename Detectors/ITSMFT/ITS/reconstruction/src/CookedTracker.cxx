@@ -63,6 +63,9 @@ const Double_t kRoadZ = 0.7;
 // Minimal number of attached clusters
 const Int_t kminNumberOfClusters = 4;
 
+const float kPI=3.14159f;
+const float k2PI=2*kPI;
+
 //************************************************
 // TODO:
 //************************************************
@@ -276,7 +279,7 @@ void CookedTracker::makeSeeds(std::vector<TrackITS>& seeds, Int_t first, Int_t l
   // This is the main pattern recongition function.
   // Creates seeds out of two clusters and another point.
   //--------------------------------------------------------------------
-  const Double_t zv = getZ();
+  const float zv = getZ();
 
   Layer& layer1 = sLayers[kSeedingLayer1];
   Layer& layer2 = sLayers[kSeedingLayer2];
@@ -284,7 +287,8 @@ void CookedTracker::makeSeeds(std::vector<TrackITS>& seeds, Int_t first, Int_t l
 
   const Double_t maxC = TMath::Abs(getBz() * B2C / kminPt);
   const Double_t kpWin = TMath::ASin(0.5 * maxC * layer1.getR()) - TMath::ASin(0.5 * maxC * layer2.getR());
-
+  const float kpWin100=kpWin/100;
+  
   // Int_t nClusters1 = layer1.getNumberOfClusters();
   Int_t nClusters2 = layer2.getNumberOfClusters();
   Int_t nClusters3 = layer3.getNumberOfClusters();
@@ -292,11 +296,12 @@ void CookedTracker::makeSeeds(std::vector<TrackITS>& seeds, Int_t first, Int_t l
   for (Int_t n1 = first; n1 < last; n1++) {
     const Cluster* c1 = layer1.getCluster(n1);
     //
-    // Int_t lab=c1->getLabel(0);
+    //auto lab = (mClsLabels->getLabels(c1-mFirstCluster))[0];
     //
     Double_t z1 = c1->getZ();
     auto xyz1 = c1->getXYZGloRot(*mGeom);
-    Double_t r1 = xyz1.rho(), phi1 = layer1.getClusterPhi(n1);
+    auto r1 = xyz1.rho();
+    auto phi1 = layer1.getClusterPhi(n1);
 
     Double_t zr2 = zv + layer2.getR() / r1 * (z1 - zv);
     Int_t start2 = layer2.findClusterIndex(zr2 - kzWin);
@@ -304,19 +309,29 @@ void CookedTracker::makeSeeds(std::vector<TrackITS>& seeds, Int_t first, Int_t l
     for (Int_t n2 = start2; n2 < nClusters2; n2++) {
       const Cluster* c2 = layer2.getCluster(n2);
       //
-      // if (c2->getLabel(0)!=lab) continue;
+      //if ((mClsLabels->getLabels(c2-mFirstCluster))[0] != lab) continue;
       //
       Double_t z2 = c2->getZ();
       if (z2 > (zr2 + kzWin))
         break; // check in Z
 
-      Double_t phi2 = layer2.getClusterPhi(n2);
-      if (TMath::Abs(phi2 - phi1) > kpWin)
-        continue; // check in Phi
-
+      auto phi2 = layer2.getClusterPhi(n2);
+      auto dphi = std::abs(phi2 - phi1);
+      bool jump = false;
+      
+      if (dphi > kpWin) {
+        if (dphi > kPI) {
+           dphi = k2PI - dphi;
+        }
+	if (dphi > kpWin) {
+           continue; // check in Phi
+	}
+	jump = true;
+      }
+	
       auto xyz2 = c2->getXYZGloRot(*mGeom);
       Double_t r2 = xyz2.rho();
-      Double_t crv = f1(xyz1.X(), xyz1.Y(), xyz2.X(), xyz2.Y(), getX(), getY());
+      Float_t hcrv = 0.5*f1(xyz1.X(), xyz1.Y(), xyz2.X(), xyz2.Y(), getX(), getY());
 
       Double_t zr3 = z1 + (layer3.getR() - r1) / (r2 - r1) * (z2 - z1);
       Double_t dz = kzWin / 2;
@@ -325,17 +340,31 @@ void CookedTracker::makeSeeds(std::vector<TrackITS>& seeds, Int_t first, Int_t l
       for (Int_t n3 = start3; n3 < nClusters3; n3++) {
         const Cluster* c3 = layer3.getCluster(n3);
         //
-        // if (c3->getLabel(0)!=lab) continue;
+        //if ((mClsLabels->getLabels(c3-mFirstCluster))[0] != lab) continue;
         //
         Double_t z3 = c3->getZ();
         if (z3 > (zr3 + dz))
           break; // check in Z
 
-        Double_t r3 = c3->getX();
-        Double_t phir3 = phi1 + 0.5 * crv * (r3 - r1);
-        Double_t phi3 = layer3.getClusterPhi(n3);
-        if (TMath::Abs(phir3 - phi3) > kpWin / 100)
-          continue; // check in Phi
+        auto r3 = c3->getX();
+        auto phir3 = phi1 + hcrv * (r3 - r1);
+        auto phi3 = layer3.getClusterPhi(n3);
+        auto dphi3 = std::abs(phir3 - phi3);
+
+	if (dphi3 > kpWin100) {
+	   if (!jump) continue;
+           if (phir3 > k2PI)
+              phir3 -= k2PI;
+           else if (phir3 < 0)
+              phir3 += k2PI;
+           dphi3 = std::abs(phir3 - phi3);
+           if (dphi3 > kPI) {
+               dphi3 = k2PI - dphi3;
+           }
+	   if (dphi3 > kpWin100) {
+              continue; // check in Phi
+	   }
+	}
 
         Point3Df txyz2 = c2->getXYZ(); // tracking coordinates
         //      txyz2.SetX(layer2.getXRef(n2));  // The clusters are already in the tracking frame
@@ -397,11 +426,10 @@ void CookedTracker::trackSeeds(std::vector<TrackITS>& seeds)
     Double_t x = track.getX();
     Double_t y = track.getY();
     Double_t phi = track.getAlpha() + TMath::ATan2(y, x);
-    const Float_t pi2 = 2. * TMath::Pi();
     if (phi < 0.)
-      phi += pi2;
-    else if (phi >= pi2)
-      phi -= pi2;
+      phi += k2PI;
+    else if (phi >= k2PI)
+      phi -= k2PI;
 
     Double_t z = track.getZ();
     Double_t crv = track.getCurvature(getBz());
@@ -705,7 +733,6 @@ void CookedTracker::Layer::init()
             [](const Cluster* c1, const Cluster* c2) { return (c1->getZ() < c2->getZ()); });
 
   Double_t r = 0.;
-  const Float_t pi2 = 2. * TMath::Pi();
   Int_t m = mClusters.size();
   for (Int_t i = 0; i < m; i++) {
     const Cluster* c = mClusters[i];
@@ -717,8 +744,8 @@ void CookedTracker::Layer::init()
     Float_t phi = xyz.Phi();
     BringTo02Pi(phi);
     mPhi.push_back(phi);
-    Int_t s = phi * kNSectors / pi2;
-    mSectors[s].push_back(i);
+    Int_t s = phi * kNSectors / k2PI;
+    mSectors[s].emplace_back(i,c->getZ());
   }
 
   if (m)
@@ -764,37 +791,34 @@ void CookedTracker::Layer::selectClusters(std::vector<Int_t>& selec, Float_t phi
   Float_t zMin = z - dz;
   Float_t zMax = z + dz;
 
-  const Float_t pi2 = 2. * TMath::Pi();
+  if (phi < 0.)
+    phi += k2PI;
+  else if (phi >= k2PI)
+    phi -= k2PI;
+
   Float_t dphi = dy / mR;
 
-  Float_t phiMin = phi - dphi;
-  Float_t phiMax = phi + dphi;
-  Float_t phiRange[2]{ phiMin, phiMax };
+  int smin =  (phi - dphi)/k2PI * kNSectors;
+  int ds = (phi + dphi)/k2PI * kNSectors - smin + 1;
 
-  Int_t n = 0;
-  Int_t sector = -1;
-  for (auto phiM : phiRange) {
-    Int_t s = phiM * kNSectors / pi2;
-    if (s < 0)
-      s += kNSectors;
-    else if (s >= kNSectors)
-      s -= kNSectors;
+  smin = (smin + kNSectors) % kNSectors;
 
-    if (s == sector)
-      break;
-    sector = s;
+  for (int is=0; is<ds; is++) {
+    Int_t s = (smin+is) % kNSectors;
 
-    auto cmp = [this](Double_t zc, Int_t ic) { return (zc < mClusters[ic]->getZ()); };
+    auto cmp = [](Float_t zc, std::pair<int,float>p) { return (zc < p.second); };
     auto imin = std::upper_bound(std::begin(mSectors[s]), std::end(mSectors[s]), zMin, cmp);
     auto imax = std::upper_bound(imin, std::end(mSectors[s]), zMax, cmp);
     for (; imin != imax; imin++) {
-      Int_t i = *imin;
-      Float_t cphi = mPhi[i];
-      if (cphi <= phiMin)
-        continue;
-      if (cphi > phiMax)
-        continue;
-
+      auto [i,z] = *imin;
+      auto cdphi = std::abs(mPhi[i] - phi);
+      if (cdphi > dphi) {
+         if (cdphi > kPI) {
+            cdphi = k2PI - cdphi;
+         }
+         if (cdphi > dphi) 
+            continue; // check in Phi
+      }
       selec.push_back(i);
     }
   }
