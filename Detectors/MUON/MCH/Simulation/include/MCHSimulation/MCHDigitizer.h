@@ -50,7 +50,7 @@ class MCHDigitizer
   
  private:  
   double mEventTime;
-  int mReadoutWindowCurrent;  
+  int mReadoutWindowCurrent{0};  
   int mEventID = 0;
   int mSrcID = 0;
   

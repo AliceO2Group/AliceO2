@@ -41,7 +41,7 @@ std::vector<o2::mch::mapping::Segmentation> createSegmentations()
 }
 } // namespace
 
-MCHDigitizer::MCHDigitizer(int) : mReadoutWindowCurrent(0), mdetID{ createDEMap() }, mSeg{ createSegmentations() } 
+MCHDigitizer::MCHDigitizer(int) :  mdetID{ createDEMap() }, mSeg{ createSegmentations() } 
 {
 }
 
