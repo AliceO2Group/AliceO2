@@ -49,7 +49,8 @@ cl::Program ClEnv::buildFromSrc(const fs::path &srcFile)
 
     try 
     {
-        prg.build(devices);
+        std::string buildOpts = "-Werror -I" + sourceDir.str();
+        prg.build(devices, buildOpts.c_str());
     } 
     catch (const cl::BuildError &) 
     {

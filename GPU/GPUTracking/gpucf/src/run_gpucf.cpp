@@ -1,25 +1,11 @@
-#include <gpucf/io/DigitReader.h>
-#include <gpucf/io/BinaryWriter.h>
-
-#include <iostream>
+#include <gpucf/CfRunner.h>
 
 
-int main(int argc, char *argv[]) 
+int main(int argc, const char *argv[]) 
 {
+    CfRunner cf;
 
-    ASSERT(argc == 2);
-
-    std::string file = argv[1];
-
-    log::Debug() << "Start.";
-
-
-    log::Info() << "Reding text file " << file << ". This could take a while.";
-    DigitReader reader(file);
-
-    log::Info() << "Read " << reader.get().size() << " digits";
-
-    return 0;
+    return cf.main(argc, argv);
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:
