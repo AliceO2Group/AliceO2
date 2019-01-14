@@ -29,7 +29,7 @@
 #include "TPCFastTransform.h"
 
 // This class is only a wrapper for the actual tracking contained in the HLT O2 CA Tracking library.
-#include "AliHLTTPCCAO2Interface.h"
+#include "AliCAGPUO2Interface.h"
 
 using namespace o2::TPC;
 using namespace o2;
@@ -43,7 +43,7 @@ TPCCATracking::~TPCCATracking() { deinitialize(); }
 int TPCCATracking::initialize(const AliGPUCAConfiguration& config)
 {
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
-  mTrackingCAO2Interface.reset(new AliHLTTPCCAO2Interface);
+  mTrackingCAO2Interface.reset(new AliGPUTPCO2Interface);
   int retVal = mTrackingCAO2Interface->Initialize(config, std::move(fastTransform));
   if (retVal) {
     mTrackingCAO2Interface.reset();
@@ -54,7 +54,7 @@ int TPCCATracking::initialize(const AliGPUCAConfiguration& config)
 int TPCCATracking::initialize(const char* options)
 {
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
-  mTrackingCAO2Interface.reset(new AliHLTTPCCAO2Interface);
+  mTrackingCAO2Interface.reset(new AliGPUTPCO2Interface);
   int retVal = mTrackingCAO2Interface->Initialize(options, std::move(fastTransform));
   if (retVal) {
     mTrackingCAO2Interface.reset();
@@ -77,9 +77,9 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
   float vzbinInv = 1.f / vzbin;
   Mapper& mapper = Mapper::instance();
 
-  const AliHLTTPCGMMergedTrack* tracks;
+  const AliGPUTPCGMMergedTrack* tracks;
   int nTracks;
-  const AliHLTTPCGMMergedTrackHit* trackClusters;
+  const AliGPUTPCGMMergedTrackHit* trackClusters;
   int retVal = mTrackingCAO2Interface->RunTracking(&clusters, tracks, nTracks, trackClusters);
   if (retVal == 0) {
     std::vector<std::pair<int, float>> trackSort(nTracks);

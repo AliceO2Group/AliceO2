@@ -20,7 +20,7 @@
 #include "DataFormatsTPC/TrackTPC.h"
 
 class AliGPUCAConfiguration;
-class AliHLTTPCCAO2Interface;
+class AliGPUTPCO2Interface;
 
 namespace o2 { class MCCompLabel; namespace dataformats { template <class T> class MCTruthContainer; }}
 
@@ -49,9 +49,9 @@ public:
   void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const;
 
  private:
-  std::unique_ptr<AliHLTTPCCAO2Interface> mTrackingCAO2Interface; //Pointer to Interface class in HLT O2 CA Tracking library.
+  std::unique_ptr<AliGPUTPCO2Interface> mTrackingCAO2Interface; //Pointer to Interface class in HLT O2 CA Tracking library.
                                                                   //The tracking code itself is not included in the O2 package, but contained in the CA library.
-                                                                  //The TPCCATracking class interfaces this library via this pointer to AliHLTTPCCAO2Interface class.
+                                                                  //The TPCCATracking class interfaces this library via this pointer to AliGPUTPCO2Interface class.
 
   TPCCATracking(const TPCCATracking&) = delete;            // Disable copy
   TPCCATracking& operator=(const TPCCATracking&) = delete; // Disable assignment
