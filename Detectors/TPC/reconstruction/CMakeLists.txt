@@ -3,11 +3,11 @@ option(ENABLE_OPENCL "Build HLT GPU tracker using OpenCL" OFF)
 
 if(DEFINED ALITPCCOMMON_DIR)
     set(ALITPCCOMMON_BUILD_TYPE "O2")
-    add_subdirectory(${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking TPCCAGPUTracking)
+    add_subdirectory(${ALITPCCOMMON_DIR}/sources/CAGPUTracking CAGPUTracking)
     add_subdirectory(${ALITPCCOMMON_DIR}/sources/TPCFastTransformation TPCFastTransformation)
-    include_directories(${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/SliceTracker
-                        ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Merger
-                        ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Interface
+    include_directories(${ALITPCCOMMON_DIR}/sources/CAGPUTracking/SliceTracker
+                        ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/Merger
+                        ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/Interface
                         ${ALITPCCOMMON_DIR}/sources/TPCFastTransformation
                     )
 else()

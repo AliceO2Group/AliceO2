@@ -1089,7 +1089,7 @@ o2_define_bucket(
     Gen
     Base
     TreePlayer
-    O2TPCCAGPUTracking
+    O2CAGPUTracking
     O2TPCFastTransformation
     TPCSimulation
     #the dependency on TPCSimulation should be removed at some point
