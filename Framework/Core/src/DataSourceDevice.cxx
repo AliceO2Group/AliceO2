@@ -17,6 +17,7 @@
 #include "Framework/FairOptionsRetriever.h"
 #include "Framework/FairMQDeviceProxy.h"
 #include "Framework/DataProcessingHeader.h"
+#include "DataProcessingStatus.h"
 #include "Framework/CallbackService.h"
 #include "ScopedExit.h"
 #include <Monitoring/Monitoring.h>
@@ -87,10 +88,10 @@ void DataSourceDevice::Reset() { mServiceRegistry.get<CallbackService>()(Callbac
 
 bool DataSourceDevice::ConditionalRun() {
   auto& monitoring = mServiceRegistry.get<o2::monitoring::Monitoring>();
-  monitoring.send({ 1, "dpl/in_handle_data" });
+  monitoring.send({ DataProcessingStatus::IN_DPL_WRAPPER, "dpl/in_handle_data" });
   ScopedExit metricFlusher([&monitoring] {
-      monitoring.send({ 1, "dpl/in_handle_data" });
-      monitoring.send({ 0, "dpl/in_handle_data" });
+      monitoring.send({ DataProcessingStatus::IN_DPL_WRAPPER, "dpl/in_handle_data" });
+      monitoring.send({ DataProcessingStatus::IN_FAIRMQ, "dpl/in_handle_data" });
       monitoring.flushBuffer(); });
   static const auto reftime = std::chrono::system_clock::now();
   if (mRate > 0.001) {
