@@ -35,11 +35,11 @@ class Configuration : public Param
     static Configuration<Param> instance;
     return instance;
   }
+  Configuration(const Configuration<Param>&) = delete;
+  const Configuration<Param>& operator=(const Configuration<Param>&) = delete;
 
  private:
   Configuration() = default;
-  Configuration(const Configuration<Param>&) = delete;
-  const Configuration<Param>& operator=(const Configuration<Param>&) = delete;
 };
 
 struct TrackingParameters {

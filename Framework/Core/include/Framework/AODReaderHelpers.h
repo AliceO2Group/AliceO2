@@ -22,8 +22,6 @@ namespace readers
 
 struct AODReaderHelpers {
   static AlgorithmSpec rootFileReaderCallback();
-  /// Just to make sure things work, even without a file...
-  static AlgorithmSpec fakeReaderCallback();
 };
 
 } // namespace readers

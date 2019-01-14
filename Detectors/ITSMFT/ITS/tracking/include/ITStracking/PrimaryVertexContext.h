@@ -35,7 +35,7 @@ namespace ITS
 class PrimaryVertexContext
 {
  public:
-  PrimaryVertexContext();
+  PrimaryVertexContext() = default;
 
   virtual ~PrimaryVertexContext() = default;
 

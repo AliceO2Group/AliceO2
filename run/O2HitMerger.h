@@ -17,6 +17,7 @@
 #include "FairMQMessage.h"
 #include <FairMQDevice.h>
 #include <FairLogger.h>
+#include <FairMCEventHeader.h>
 #include <SimulationDataFormat/Stack.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <DetectorsCommonDataFormats/DetID.h>
@@ -52,6 +53,7 @@
 #include "CommonUtils/ShmManager.h"
 #include <map>
 #include <vector>
+#include "signal.h"
 
 namespace o2
 {
@@ -114,6 +116,7 @@ class O2HitMerger : public FairMQDevice
     // query the sim config ... which is used to extract the filenames
     if (o2::devices::O2SimDevice::querySimConfig(fChannels.at("primary-get").at(0))) {
       outfilename = o2::conf::SimConfig::Instance().getOutPrefix() + ".root";
+      mNExpectedEvents = o2::conf::SimConfig::Instance().getNEvents();
     }
     mOutFileName = outfilename.c_str();
     mTmpOutFileName = "o2sim_tmp.root";
@@ -127,6 +130,13 @@ class O2HitMerger : public FairMQDevice
       LOG(INFO) << "ASSIGNED PIPE HANDLE " << mPipeToDriver;
     } else {
       LOG(WARNING) << "DID NOT FIND ENVIRONMENT VARIABLE TO INIT PIPE";
+    }
+
+    // if no data to expect we shut down the device NOW since it would otherwise hang
+    // (because we use OnData and would never receive anything)
+    if (mNExpectedEvents == 0) {
+      LOG(INFO) << "NOT EXPECTING ANY DATA; SHUTTING DOWN";
+      raise(SIGINT);
     }
   }
 
@@ -170,41 +180,44 @@ class O2HitMerger : public FairMQDevice
   }
 
   template <typename T>
+  void fillBranch(std::string const& name, T* ptr)
+  {
+    auto br = o2::Base::getOrMakeBranch(*mOutTree, name.c_str(), &ptr);
+    br->SetAddress(&ptr);
+    br->Fill();
+    br->ResetAddress();
+  }
+
+  template <typename T>
   void consumeData(std::string name, FairMQParts& data, int& index)
   {
     auto decodeddata = o2::Base::decodeTMessage<T*>(data, index);
-    auto br = o2::Base::getOrMakeBranch(*mOutTree, name.c_str(), &decodeddata);
-    br->SetAddress(&decodeddata);
-    br->Fill();
-    br->ResetAddress();
+    fillBranch(name, decodeddata);
     delete decodeddata;
     index++;
   }
 
   // fills a special branch of SubEventInfos in order to keep
   // track of which entry corresponds to which event etc.
+  // also creates the MCEventHeader branch expected for physics analysis
   void fillSubEventInfoEntry(o2::Data::SubEventInfo& info)
   {
     auto infoptr = &info;
-    auto br = o2::Base::getOrMakeBranch(*mOutTree, "SubEventInfo", &infoptr);
-    br->SetAddress(&infoptr);
-    br->Fill();
-    br->ResetAddress();
+    fillBranch("SubEventInfo", infoptr);
+    // a separate branch for MCEventHeader to be backward compatible
+    auto headerptr = &info.mMCEventHeader;
+    fillBranch("MCEventHeader.", headerptr);
   }
 
   bool handleSimData(FairMQParts& data, int /*index*/)
   {
     LOG(INFO) << "SIMDATA channel got " << data.Size() << " parts\n";
 
-    // extract the event info
-    auto infomessage = std::move(data.At(0));
-    o2::Data::SubEventInfo info;
-    // could actually avoid the copy
-    memcpy((void*)&info, infomessage->GetData(), infomessage->GetSize());
-
+    int index = 0;
+    auto infoptr = o2::Base::decodeTMessage<o2::Data::SubEventInfo*>(data, index++);
+    o2::Data::SubEventInfo info = *infoptr;
     auto accum = insertAdd<uint32_t, uint32_t>(mPartsCheckSum, info.eventID, (uint32_t)info.part);
 
-    int index = 1;
     fillSubEventInfoEntry(info);
     consumeData<std::vector<o2::MCTrack>>("MCTrack", data, index);
     consumeData<std::vector<o2::TrackReference>>("TrackRefs", data, index);
@@ -256,6 +269,8 @@ class O2HitMerger : public FairMQDevice
     originbr->SetAddress(&incomingdata);
     for (auto& event_entries_pair : entrygroups) {
       const auto& entries = event_entries_pair.second;
+      auto currentevent = event_entries_pair.first;
+      LOG(DEBUG) << "MERGING EVENT " << currentevent;
 
       T* filladdress;
       if (entries.size() == 1) {
@@ -293,14 +308,27 @@ class O2HitMerger : public FairMQDevice
   // returns false if no merge is necessary; returns true if otherwise
   bool mergeEntries()
   {
+    if (mEntries == 0 || mNExpectedEvents == 0) {
+      return false;
+    }
+
     LOG(INFO) << "ENTERING MERGING HITS STAGE";
     TStopwatch timer;
     timer.Start();
     // a) find out which entries to merge together
     // we produce a vector<vector<int>>
     auto infobr = mOutTree->GetBranch("SubEventInfo");
+
+    if (infobr->GetEntries() == mNExpectedEvents) {
+      return false;
+    }
+
     std::map<int, std::vector<int>> entrygroups;  // collecting all entries belonging to an event
     std::map<int, std::vector<int>> trackoffsets; // collecting trackoffsets to be applied to correct
+
+    std::vector<FairMCEventHeader> eventheaders; // collecting the event headers
+    eventheaders.reserve(mNExpectedEvents);
+
     // the MC labels (trackID) for hits
     o2::Data::SubEventInfo* info = nullptr;
     infobr->SetAddress(&info);
@@ -310,7 +338,9 @@ class O2HitMerger : public FairMQDevice
       auto event = info->eventID;
       entrygroups[event].emplace_back(i);
       trackoffsets[event].emplace_back(info->npersistenttracks);
+      eventheaders[event] = info->mMCEventHeader;
     }
+
     // quick check if we need to merge at all
     if (info->maxEvents == infobr->GetEntries()) {
       LOG(INFO) << "NO MERGING NECESSARY";
@@ -334,6 +364,16 @@ class O2HitMerger : public FairMQDevice
     //    }
 
     mergedOutTree->SetEntries(entrygroups.size());
+
+    // put the event headers into the new TTree
+    FairMCEventHeader* headerptr = nullptr;
+    auto headerbr = o2::Base::getOrMakeBranch(*mergedOutTree, "MCEventHeader.", &headerptr);
+    for (int i = 0; i < info->maxEvents; i++) {
+      headerptr = &eventheaders[i];
+      headerbr->Fill();
+    }
+    // attention: We need to make sure that we write everything in the same event order
+    // but iteration over keys of a standard map in C++ is ordered
 
     // b) merge the general data
     merge<std::vector<o2::MCTrack>>("MCTrack", *mOutTree, *mergedOutTree, entrygroups);
@@ -369,6 +409,7 @@ class O2HitMerger : public FairMQDevice
 
   int mEntries = 0; //! counts the number of entries in the branches
   int mEventChecksum = 0; //! checksum for events
+  int mNExpectedEvents = 0; //! number of events that we expect to receive
   TStopwatch mTimer;
 
   int mPipeToDriver = -1;

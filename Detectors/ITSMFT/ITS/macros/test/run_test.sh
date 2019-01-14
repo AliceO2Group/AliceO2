@@ -10,7 +10,7 @@ mcEngine=TGeant3
 #MC event generator
 mcGener=boxgen
 
-o2sim -n $nEvents -e $mcEngine -g $mcGener -m PIPE ITS >& sim_its.log
+o2sim_serial -n $nEvents -e $mcEngine -g $mcGener -m PIPE ITS >& sim_its.log
 
 root -b -q $O2_ROOT/share/macro/run_digi_its.C+\($rate\) >& digi_its.log
 

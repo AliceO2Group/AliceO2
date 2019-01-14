@@ -86,15 +86,15 @@ namespace header {
 struct RAWDataHeaderV3 {
   union {
     // default value
-    uint64_t word0 = 0x0000ffff00000803;
+    uint64_t word0 = 0x0000ffff00004003;
     //                   | | | |     | version 3
-    //                   | | | |   | 8 64 bit words
+    //                   | | | |   | 8x64 bit words
     //                   | | | | block length 0
     //                   | | invalid FEE id
     //                   | priority bit 0
     struct {
       uint64_t version : 8;        /// bit  0 to  7: header version
-      uint64_t headerSize : 8;     /// bit  9 to 15: header size
+      uint64_t headerSize : 8;     /// bit  8 to 15: header size
       uint64_t blockLength : 16;   /// bit 16 to 31: block length
       uint64_t feeId : 16;         /// bit 32 to 47: FEE identifier
       uint64_t priority : 8;       /// bit 48 to 55: priority bit
@@ -102,7 +102,15 @@ struct RAWDataHeaderV3 {
     };                             ///
   };                               ///
   union {                          ///
-    uint64_t word1 = 0x0;          /// bit  0 to 63: zeroed
+    uint64_t word1 = 0x0;          /// data written by the CRU
+    struct {                       ///
+      uint32_t offsetToNext : 16;  /// bit 64 to 79:  offset to next packet in memory
+      uint32_t memorySize : 16;    /// bit 80 to 95:  memory size
+      uint8_t linkID : 8;          /// bit 96 to 103: link id
+      uint8_t packetCounter : 8;   /// bit 104 to 111: packet counter
+      uint16_t cruID : 12;         /// bit 112 to 123: CRU ID
+      uint8_t zero1 : 4;           /// bit 124 to 127: zeroed
+    };                             ///
   };                               ///
   union {                          ///
     uint64_t word2 = 0x0;          ///

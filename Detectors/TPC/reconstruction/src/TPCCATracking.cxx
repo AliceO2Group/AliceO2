@@ -26,14 +26,7 @@
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/Sector.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
-
-// The AliHLTTPCCAO2Interface.h needs certain macro definitions.
-// The AliHLTTPCCAO2Interface will only be included once here, all O2 TPC tracking will run through this TPCCATracking
-// class.
-// Therefore, the macros are defined here and not globally, in order not to pollute the global namespace
-#define HLTCA_STANDALONE
-#define HAVE_O2HEADERS
-#define HLTCA_TPC_GEOMETRY_O2
+#include "TPCFastTransform.h"
 
 // This class is only a wrapper for the actual tracking contained in the HLT O2 CA Tracking library.
 #include "AliHLTTPCCAO2Interface.h"
@@ -46,6 +39,18 @@ using MCLabelContainer = MCTruthContainer<MCCompLabel>;
 
 TPCCATracking::TPCCATracking() : mTrackingCAO2Interface() {}
 TPCCATracking::~TPCCATracking() { deinitialize(); }
+
+int TPCCATracking::initialize(const AliGPUCAConfiguration& config)
+{
+  std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
+  mTrackingCAO2Interface.reset(new AliHLTTPCCAO2Interface);
+  int retVal = mTrackingCAO2Interface->Initialize(config, std::move(fastTransform));
+  if (retVal) {
+    mTrackingCAO2Interface.reset();
+  }
+  return (retVal);
+}
+
 int TPCCATracking::initialize(const char* options)
 {
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));

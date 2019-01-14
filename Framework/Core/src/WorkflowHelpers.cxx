@@ -9,10 +9,12 @@
 // or submit itself to any jurisdiction.
 #include "WorkflowHelpers.h"
 #include "Framework/AlgorithmSpec.h"
+#include "Framework/AODReaderHelpers.h"
 #include "Framework/ChannelMatching.h"
 #include "Framework/CommonDataProcessors.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DataSpecUtils.h"
+#include "Headers/DataHeader.h"
 #include <algorithm>
 #include <list>
 #include <set>
@@ -121,6 +123,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
       std::this_thread::sleep_for(std::chrono::seconds(2));
     };
   } };
+
   DataProcessorSpec ccdbBackend{ "internal-dpl-ccdb-backend",
                                  {},
                                  {},
@@ -138,6 +141,21 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
                            {},
                            fakeCallback };
 
+  // In case InputSpec of origin AOD are
+  // requested but not available as part of the workflow,
+  // we insert in the configuration something which
+  // reads them from file.
+  //
+  // FIXME: source branch is DataOrigin, for the moment. We should
+  //        make it configurable via ConfigParamsOptions.
+  DataProcessorSpec aodReader{
+    "internal-dpl-aod-reader",
+    {},
+    {},
+    readers::AODReaderHelpers::rootFileReaderCallback(),
+    { ConfigParamSpec{ "aod-file", VariantType::String, "aod.root", { "Input AOD file" } } }
+  };
+
   for (size_t wi = 0; wi < workflow.size(); ++wi) {
     auto& consumer = workflow[wi];
     for (size_t ii = 0; ii < consumer.inputs.size(); ++ii) {
@@ -153,6 +171,12 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
         case Lifetime::Timeframe:
           break;
       }
+      // AODs for now can only be specified with their full
+      // name.
+      auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
+      if (concrete.origin == header::DataOrigin{ "AOD" }) {
+        aodReader.outputs.emplace_back(OutputSpec{ concrete.origin, concrete.description, concrete.subSpec, Lifetime::Timeframe });
+      }
     }
   }
 
@@ -167,6 +191,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
   }
   if (timer.outputs.empty() == false) {
     workflow.push_back(timer);
+  }
+  if (aodReader.outputs.empty() == false) {
+    workflow.push_back(aodReader);
   }
   /// This will inject a file sink so that any dangling
   /// output is actually written to it.

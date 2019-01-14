@@ -14,7 +14,6 @@
 #include <array>
 #include <cstddef>
 #include <functional>
-#include <regex>
 #include <string>
 #include <vector>
 
@@ -24,9 +23,9 @@ namespace framework
 {
 
 enum class MetricType {
-  Int,
-  String,
-  Float,
+  Int = 0,
+  String = 1,
+  Float = 2,
   Unknown
 };
 
@@ -41,7 +40,28 @@ struct MetricInfo {
 // We keep only fixed lenght strings for metrics, as in the end this is not
 // really needed. They should be nevertheless 0 terminated.
 struct StringMetric {
-  char data[128];
+  static constexpr ptrdiff_t MAX_SIZE = 128;
+  char data[MAX_SIZE];
+};
+
+// Also for the keys it does not make much sense to keep more than 256 chars.
+// They should be nevertheless 0 terminated.
+struct MetricLabelIndex {
+  static constexpr size_t MAX_METRIC_LABEL_SIZE = 256 - sizeof(size_t); // Maximum size for a metric name.
+  size_t index;
+  char label[MAX_METRIC_LABEL_SIZE];
+};
+
+/// Temporary struct to hold a metric after it has been parsed.
+struct ParsedMetricMatch {
+  char const* beginKey;
+  char const* endKey;
+  size_t timestamp;
+  MetricType type;
+  int intValue;
+  float floatValue;
+  char const* beginStringValue;
+  char const* endStringValue;
 };
 
 /// This struct hold information about device metrics when running
@@ -57,7 +77,7 @@ struct DeviceMetricsInfo {
   std::vector<float> min;
   std::vector<size_t> minDomain;
   std::vector<size_t> maxDomain;
-  std::vector<std::pair<std::string, size_t>> metricLabelsIdx;
+  std::vector<MetricLabelIndex> metricLabelsIdx;
   std::vector<MetricInfo> metrics;
 };
 
@@ -67,14 +87,14 @@ struct DeviceMetricsHelper {
   using NewMetricCallback = std::function<void(std::string const&, MetricInfo const&, int value, size_t metricIndex)>;
 
   /// Helper function to parse a metric string.
-  static bool parseMetric(const std::string& s, std::smatch& match);
+  static bool parseMetric(const std::string& s, ParsedMetricMatch& results);
 
   /// Processes a parsed metric and stores in the backend store.
   ///
   /// @matches is the regexp_matches from the metric identifying regex
   /// @info is the DeviceInfo associated to the device posting the metric
   /// @newMetricsCallback is a callback that will be invoked every time a new metric is added to the list.
-  static bool processMetric(const std::smatch& match,
+  static bool processMetric(ParsedMetricMatch& results,
                             DeviceMetricsInfo& info,
                             NewMetricCallback newMetricCallback = nullptr);
   static size_t metricIdxByName(const std::string& name,

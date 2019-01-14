@@ -40,7 +40,7 @@ class TrackerTraitsCPU : public TrackerTraits
 {
  public:
   TrackerTraitsCPU() { mPrimaryVertexContext = new PrimaryVertexContext; }
-  virtual ~TrackerTraitsCPU() { delete mPrimaryVertexContext; }
+  ~TrackerTraitsCPU() override { delete mPrimaryVertexContext; }
 
   void computeLayerTracklets() final;
   void computeLayerCells() final;

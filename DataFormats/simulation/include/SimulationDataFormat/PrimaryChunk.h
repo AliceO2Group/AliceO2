@@ -12,6 +12,7 @@
 #define ALICEO2_DATA_PRIMARYCHUNK_H_
 
 #include <cstring>
+#include <FairMCEventHeader.h>
 
 namespace o2
 {
@@ -31,6 +32,9 @@ struct SubEventInfo {
   uint32_t index = 0;
   int32_t npersistenttracks = -1; // the number of persistent tracks for this SubEvent (might be set to cache it)
   // might add more fields (such as which process treated this chunk etc)
+
+  FairMCEventHeader mMCEventHeader; // associated FairMC header for vertex information
+
   ClassDefNV(SubEventInfo, 1);
 };
 
@@ -42,8 +46,8 @@ inline bool operator<(SubEventInfo const& a, SubEventInfo const& b)
 // Encapsulating primaries/tracks as well as the event info
 // to be processed by the simulation processors.
 struct PrimaryChunk {
-  std::vector<SubEventInfo> mEventIDs;
-  std::vector<TParticle> mParticles;
+  SubEventInfo mSubEventInfo;
+  std::vector<TParticle> mParticles; // the particles for this chunk
   ClassDefNV(PrimaryChunk, 1);
 };
 }

@@ -861,7 +861,6 @@ o2_define_bucket(
     ITSMFTBase
     ITSMFTReconstruction
     ITSBase
-    ITSSimulation
     DetectorsBase
     DataFormatsITS
 
@@ -870,7 +869,6 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/reconstruction/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
-    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/simulation/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/ITS/include
 )
 
@@ -906,6 +904,22 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${CUB_ROOT}
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/tracking/include
+)
+
+o2_define_bucket(
+    NAME
+    ITS_workflow_bucket
+
+    DEPENDENCIES
+    Framework
+    its_reconstruction_bucket
+    ITSReconstruction
+    ITStracking
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/workflow/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/reconstruction/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/tracking/include
 )
 

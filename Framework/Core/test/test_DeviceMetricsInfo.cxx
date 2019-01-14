@@ -20,24 +20,24 @@
 BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo) {
   using namespace o2::framework;
   std::string metric;
-  std::smatch match;
+  ParsedMetricMatch match;
   bool result;
   DeviceMetricsInfo info;
 
   // Parse a simple metric
   metric = "[METRIC] bkey,0 12 1789372894 hostname=test.cern.ch";
   result = DeviceMetricsHelper::parseMetric(metric, match);
-  BOOST_CHECK_EQUAL(result, true);
-  BOOST_CHECK_EQUAL(match[2], "0");
-  BOOST_CHECK_EQUAL(match[1].str(), "bkey");
-  BOOST_CHECK_EQUAL(match[4].str(), "1789372894");
-  BOOST_CHECK_EQUAL(match[3].str(), "12");
+  BOOST_REQUIRE_EQUAL(result, true);
+  BOOST_CHECK(strncmp(match.beginKey, "bkey", 4) == 0);
+  BOOST_CHECK_EQUAL(match.timestamp, 1789372894);
+  BOOST_REQUIRE_EQUAL(match.type, MetricType::Int);
+  BOOST_CHECK_EQUAL(match.intValue, 12);
   // Add the first metric to the store
   result = DeviceMetricsHelper::processMetric(match, info);
   BOOST_CHECK_EQUAL(result, true);
   BOOST_CHECK_EQUAL(info.metricLabelsIdx.size(), 1);
-  BOOST_CHECK_EQUAL(info.metricLabelsIdx[0].first, "bkey");
-  BOOST_CHECK_EQUAL(info.metricLabelsIdx[0].second, 0);
+  BOOST_CHECK(strncmp(info.metricLabelsIdx[0].label, "bkey", 4) == 0);
+  BOOST_CHECK_EQUAL(info.metricLabelsIdx[0].index, 0);
   BOOST_CHECK_EQUAL(info.intMetrics.size(), 1);
   BOOST_CHECK_EQUAL(info.floatMetrics.size(), 0);
   BOOST_CHECK_EQUAL(info.timestamps.size(), 1);
@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo) {
   metric = "[METRIC] bkey,0 13 1789372894 hostname=test.cern.ch";
   result = DeviceMetricsHelper::parseMetric(metric, match);
   BOOST_CHECK_EQUAL(result, true);
-  BOOST_CHECK_EQUAL(match[3].str(), "13");
+  BOOST_CHECK_EQUAL(match.intValue, 13);
   result = DeviceMetricsHelper::processMetric(match, info);
   BOOST_CHECK_EQUAL(result, true);
   BOOST_CHECK_EQUAL(info.metricLabelsIdx.size(), 1);

@@ -67,6 +67,10 @@ class ITSMFTDPLDigitizerTask
     LOG(INFO) << mID.getName() << " simulated in "
               << ((mROMode == o2::parameters::GRPObject::CONTINUOUS) ? "CONTINUOUS" : "TRIGGERED")
               << " RO mode";
+
+    auto noise = ic.options().get<float>("noise");
+    LOG(INFO) << "Noise generation (per pixel) " << noise;
+
     // make sure that the geometry is loaded (TODO will this be done centrally?)
     if (!gGeoManager) {
       o2::Base::GeometryManager::loadGeometry();
@@ -90,7 +94,7 @@ class ITSMFTDPLDigitizerTask
     // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
     mDigitizer.getParams().getSignalShape().setParameters(7500., 1100., 450.);
     mDigitizer.getParams().setChargeThreshold(150); // charge threshold in electrons
-    mDigitizer.getParams().setNoisePerPixel(1.e-7); // noise level
+    mDigitizer.getParams().setNoisePerPixel(noise); // noise level
     // init digitizer
     mDigitizer.init();
   }
@@ -339,6 +343,7 @@ DataProcessorSpec getITSDigitizerSpec(int channel)
                               { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
                               { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
                               { "simFileQED", VariantType::String, "", { "Sim (QED) input filename" } },
+                              { "noise", VariantType::Float, 1.e-7f, { "Noise per pixel" } },
                               { (detStr + "triggered").c_str(), VariantType::Bool, false, { "Impose triggered RO mode (default: continuous)" } } } };
 }
 
@@ -360,6 +365,7 @@ DataProcessorSpec getMFTDigitizerSpec(int channel)
                               { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
                               { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
                               { "simFileQED", VariantType::String, "", { "Sim (QED) input filename" } },
+                              { "noise", VariantType::Float, 1.e-7f, { "Noise per pixel" } },
                               { (detStr + "triggered").c_str(), VariantType::Bool, false, { "Impose triggered RO mode (default: continuous)" } } } };
 }
 

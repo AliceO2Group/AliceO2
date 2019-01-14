@@ -36,18 +36,26 @@ BOOST_AUTO_TEST_CASE(TestServiceRegistry) {
   };
 
   struct InterfaceC {
-    virtual bool method() = 0;
+    virtual bool method() const = 0;
+  };
+
+  struct ConcreteC : InterfaceC {
+    bool method() const final { return false; }
   };
 
   ServiceRegistry registry;
   auto service = std::make_unique<ConcreteA>;
   ConcreteA serviceA;
   ConcreteB serviceB;
+  ConcreteC const serviceC;
   registry.registerService<InterfaceA>(&serviceA);
   registry.registerService<InterfaceB>(&serviceB);
+  registry.registerService<InterfaceC>(&serviceC);
   BOOST_CHECK(registry.get<InterfaceA>().method() == true);
   BOOST_CHECK(registry.get<InterfaceB>().method() == false);
-  BOOST_CHECK_THROW(registry.get<InterfaceC>().method(), std::runtime_error);
+  BOOST_CHECK(registry.get<InterfaceC const>().method() == false);
+  BOOST_CHECK_THROW(registry.get<InterfaceA const>(), std::runtime_error);
+  BOOST_CHECK_THROW(registry.get<InterfaceC>(), std::runtime_error);
 }
 
 BOOST_AUTO_TEST_CASE(TestCallbackService)

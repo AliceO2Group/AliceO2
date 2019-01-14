@@ -27,12 +27,11 @@
 #include "ITSMFTReconstruction/LookUp.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "Rtypes.h"
+#include "TTree.h"
 
 #ifdef _PERFORM_TIMING_
 #include <TStopwatch.h>
 #endif
-
-class TTree;
 
 namespace o2
 {

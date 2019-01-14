@@ -8,7 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/runDataProcessing.h"
-#include "Framework/AODReaderHelpers.h"
 
 #include <ROOT/RDataFrame.hxx>
 #include <ROOT/RArrowDS.hxx>
@@ -20,30 +19,20 @@ using namespace o2::framework;
 WorkflowSpec defineDataProcessing(ConfigContext const& specs)
 {
   WorkflowSpec workflow{
-    /// FIXME: for the moment we need to have an explicit declaration
-    ///        of the reader and what to produce. In the future this
-    ///        will not be required, as dangling AOD inputs will be mapped automatically
-    ///        to an AOD Source
-    DataProcessorSpec{
-      "dummy-aod-producer",
-      {},
-      {
-        OutputSpec{ { "TrackPar" }, "AOD", "TRACKPAR" },
-        OutputSpec{ { "TrackParCov" }, "AOD", "TRACKPARCOV" },
-        OutputSpec{ { "TrackExtra" }, "AOD", "TRACKEXTRA" },
-        OutputSpec{ { "Muon" }, "AOD", "MUON" },
-        OutputSpec{ { "Calo" }, "AOD", "CALO" },
-      },
-      o2::framework::readers::AODReaderHelpers::rootFileReaderCallback(),
-      { ConfigParamSpec{ "aod-file", VariantType::String, "aod.root", { "Input AOD file" } } } },
     /// Minimal analysis example
     DataProcessorSpec{
       "dummy-analysis",
       {
+        // Dangling inputs of type AOD will be automatically picked up
+        // by DPL and an extra reader device will be instanciated to
+        // read them.
         InputSpec{ "TrackPar", "AOD", "TRACKPAR" },
         InputSpec{ "TrackParCov", "AOD", "TRACKPARCOV" },
-        InputSpec{ "TrackExtra", "AOD", "TRACKEXTRA" },
-        InputSpec{ "TrackExtra", "AOD", "CALO" },
+        // NOTE: Not needed right now. Uncomment if you want to use them
+        //        InputSpec{ "TrackExtra", "AOD", "TRACKEXTRA" },
+        //        InputSpec{ "Calo", "AOD", "CALO" },
+        //        InputSpec{ "Muon", "AOD", "MUON" },
+        //        InputSpec{ "VZero", "AOD", "VZERO" },
       },
       {},
       AlgorithmSpec{

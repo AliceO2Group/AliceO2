@@ -366,14 +366,15 @@ void spawnDevice(DeviceSpec const& spec, std::map<int, size_t>& socket2DeviceInf
 void updateMetricsNames(DriverInfo& state, std::vector<DeviceMetricsInfo> const& metricsInfos)
 {
   // Calculate the unique set of metrics, as available in the metrics service
-  std::set<std::string> allMetricsNames;
+  static std::unordered_set<std::string> allMetricsNames;
   for (const auto& metricsInfo : metricsInfos) {
     for (const auto& labelsPairs : metricsInfo.metricLabelsIdx) {
-      allMetricsNames.insert(labelsPairs.first);
+      allMetricsNames.insert(std::string(labelsPairs.label));
     }
   }
-  state.availableMetrics.clear();
-  std::copy(allMetricsNames.begin(), allMetricsNames.end(), std::back_inserter(state.availableMetrics));
+  std::vector<std::string> result(allMetricsNames.begin(), allMetricsNames.end());
+  std::sort(result.begin(), result.end());
+  state.availableMetrics.swap(result);
 }
 
 void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpecs const& specs,
@@ -416,8 +417,10 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
   // TODO: graphical view of the processing?
   assert(infos.size() == controls.size());
   std::smatch match;
+  ParsedMetricMatch metricMatch;
   std::string token;
   const std::string delimiter("\n");
+  bool hasNewMetric = false;
   for (size_t di = 0, de = infos.size(); di < de; ++di) {
     DeviceInfo& info = infos[di];
     DeviceControl& control = controls[di];
@@ -437,9 +440,9 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
                                       &info.variablesViewIndex,
                                       &info.queriesViewIndex });
 
-    auto newMetricCallback = [&updateMetricsViews, &driverInfo, &metricsInfos](std::string const& name, MetricInfo const& metric, int value, size_t metricIndex) {
+    auto newMetricCallback = [&updateMetricsViews, &driverInfo, &metricsInfos, &hasNewMetric](std::string const& name, MetricInfo const& metric, int value, size_t metricIndex) {
       updateMetricsViews(name, metric, value, metricIndex);
-      updateMetricsNames(driverInfo, metricsInfos);
+      hasNewMetric = true;
     };
 
     while ((pos = s.find(delimiter)) != std::string::npos) {
@@ -451,11 +454,10 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
       // in the GUI.
       // Then we check if it is part of our Poor man control system
       // if yes, we execute the associated command.
-      if (DeviceMetricsHelper::parseMetric(token, match)) {
-        LOG(DEBUG) << "Found metric with key " << match[1] << " and value " << match[3];
+      if (DeviceMetricsHelper::parseMetric(token, metricMatch)) {
         // We use this callback to cache which metrics are needed to provide a
         // the DataRelayer view.
-        DeviceMetricsHelper::processMetric(match, metrics, newMetricCallback);
+        DeviceMetricsHelper::processMetric(metricMatch, metrics, newMetricCallback);
       } else if (logLevel == LogParsingHelpers::LogLevel::Info && parseControl(token, match)) {
         auto command = match[1];
         auto validFor = match[2];
@@ -496,6 +498,10 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
       s.erase(0, pos + delimiter.length());
     }
     info.unprinted = s;
+  }
+  if (hasNewMetric) {
+    hasNewMetric = false;
+    updateMetricsNames(driverInfo, metricsInfos);
   }
   // FIXME: for the gui to work correctly I would actually need to
   //        run the loop more often and update whenever enough time has
@@ -696,6 +702,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
       serviceRegistry.registerService<RawDeviceService>(simpleRawDeviceService.get());
       serviceRegistry.registerService<CallbackService>(callbackService.get());
       serviceRegistry.registerService<TimesliceIndex>(timesliceIndex.get());
+      serviceRegistry.registerService<DeviceSpec>(&spec);
 
       // The decltype stuff is to be able to compile with both new and old
       // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
@@ -757,6 +764,8 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
   }
   bool guiQuitRequested = false;
 
+  auto frameLast = std::chrono::high_resolution_clock::now();
+  auto inputProcessingLast = frameLast;
   // FIXME: I should really have some way of exiting the
   // parent..
   DriverState current;
@@ -901,11 +910,30 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
           driverInfo.states.push_back(DriverState::RUNNING);
           driverInfo.states.push_back(DriverState::GUI);
         }
-        processChildrenOutput(driverInfo, infos, deviceSpecs, controls, metricsInfos);
+        {
+          usleep(1000); // We wait for 1 millisecond between one processing
+                        // and the other.
+          auto inputProcessingStart = std::chrono::high_resolution_clock::now();
+          auto inputProcessingLatency = inputProcessingStart - inputProcessingLast;
+          processChildrenOutput(driverInfo, infos, deviceSpecs, controls, metricsInfos);
+          auto inputProcessingEnd = std::chrono::high_resolution_clock::now();
+          driverInfo.inputProcessingCost = std::chrono::duration_cast<std::chrono::milliseconds>(inputProcessingEnd - inputProcessingStart).count();
+          driverInfo.inputProcessingLatency = std::chrono::duration_cast<std::chrono::milliseconds>(inputProcessingLatency).count();
+          inputProcessingLast = inputProcessingStart;
+        }
         break;
       case DriverState::GUI:
         if (window) {
-          guiQuitRequested = (pollGUI(window, debugGUICallback) == false);
+          auto frameStart = std::chrono::high_resolution_clock::now();
+          auto frameLatency = frameStart - frameLast;
+          // We want to render at ~60 frames per second, so latency needs to be ~16ms
+          if (std::chrono::duration_cast<std::chrono::milliseconds>(frameLatency).count() > 20) {
+            guiQuitRequested = (pollGUI(window, debugGUICallback) == false);
+            auto frameEnd = std::chrono::high_resolution_clock::now();
+            driverInfo.frameCost = std::chrono::duration_cast<std::chrono::milliseconds>(frameEnd - frameStart).count();
+            driverInfo.frameLatency = std::chrono::duration_cast<std::chrono::milliseconds>(frameLatency).count();
+            frameLast = frameStart;
+          }
         }
         break;
       case DriverState::QUIT_REQUESTED:
