@@ -90,7 +90,7 @@ bool Detector::ProcessHits(FairVolume* v)
   }
 
   // Determine the dectector number
-  int layer, stack, sector, det;
+  int sector, det;
   // The plane number and chamber number
   char cIdChamber[3];
   cIdChamber[0] = cIdCurrent[2];
