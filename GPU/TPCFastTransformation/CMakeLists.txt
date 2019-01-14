@@ -107,7 +107,7 @@ if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "O2")
     install(FILES ${HDRS} DESTINATION include/AliTPCCommon)
 
 #    set(TEST_SRCS
-#      ctest/testTPCCAGPUTracking.cxx
+#      ctest/testCAGPUTracking.cxx
 #    )
 
 #    O2_GENERATE_TESTS(

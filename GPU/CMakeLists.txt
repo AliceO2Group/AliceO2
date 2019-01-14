@@ -4,11 +4,11 @@ project(AliTPCCommon NONE)
 set(MODULE AliTPCCommon)
 
 install(DIRECTORY
-        TPCCAGPUTracking
+        CAGPUTracking
         TPCFastTransformation
         TPCSpaceChargeBase
         Common
         cmake
         DESTINATION sources
-        PATTERN "TPCCAGPUTracking/Standalone/cmodules/.*" EXCLUDE
+        PATTERN "CAGPUTracking/Standalone/cmodules/.*" EXCLUDE
 )

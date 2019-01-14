@@ -26,7 +26,7 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
-    TPCCAGPUTracking_bucket
+    CAGPUTracking_bucket
 
     DEPENDENCIES
     dl
@@ -42,33 +42,33 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
-    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/GlobalTracker
-    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/SliceTracker
-    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Merger
-    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/TRDTracking
-    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Interface
-    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/HLTHeaders
-    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone
-    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone/cmodules
-    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone/display
-    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone/qa
+    ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/GlobalTracker
+    ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/SliceTracker
+    ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/Merger
+    ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/TRDTracking
+    ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/Interface
+    ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/HLTHeaders
+    ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/Standalone
+    ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/Standalone/cmodules
+    ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/Standalone/display
+    ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/Standalone/qa
 )
 
 o2_define_bucket(
     NAME
-    TPCCAGPUTrackingCUDA_bucket
+    CAGPUTrackingCUDA_bucket
 
     DEPENDENCIES
-    TPCCAGPUTracking_bucket
+    CAGPUTracking_bucket
     ITStrackingCUDA
 )
 
 o2_define_bucket(
     NAME
-    TPCCAGPUTrackingOCL_bucket
+    CAGPUTrackingOCL_bucket
 
     DEPENDENCIES
-    TPCCAGPUTracking_bucket
+    CAGPUTracking_bucket
 )
 
 o2_define_bucket(
