@@ -12,6 +12,10 @@ typedef struct Digit_s
     SHARED_INT time;   
 
 #if IS_CL_HOST
+    Digit_s()
+    {
+    }
+
     Digit_s(float _charge, int _cru, int _row, int _pad, int _time)
         : charge(_charge)
         , cru(_cru)

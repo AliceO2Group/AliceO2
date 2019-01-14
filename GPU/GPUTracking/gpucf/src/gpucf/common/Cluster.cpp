@@ -12,8 +12,8 @@ std::ostream &operator<<(std::ostream &os, const Cluster &c)
         << "QMax: " << c.QMax << ", "
         << "padMean: " << c.padMean << ", "
         << "timeMean: " << c.timeMean << ", "
-        << "padMean: " << c.padMean << ", "
-        << "timeMean: " << c.timeMean
+        << "padSigma: " << c.padSigma << ", "
+        << "timeSigma: " << c.timeSigma
         << "}";
 }
 

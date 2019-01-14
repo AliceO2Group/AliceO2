@@ -13,7 +13,7 @@ void GPUClusterFinder::run(ClEnv &env, const std::vector<Digit> &digits)
     // Load kernels
     cl::Program cfprg = env.buildFromSrc("clusterFinder.cl");
     cl::Kernel digitsToChargeMap(cfprg, "digitsToChargeMap");
-    cl::Kernel find3x3Clusters(cfprg, "find3x3Clusters");
+    cl::Kernel find3x3Clusters(cfprg, "findClusters");
 
     log::Info() << "Looking for clusters...";
 
@@ -29,7 +29,7 @@ void GPUClusterFinder::run(ClEnv &env, const std::vector<Digit> &digits)
 
     const size_t numOfRows = getNumOfRows(digits);
     const size_t chargeMapSize  = 
-        numOfRows * TPC_PADS_PER_ROW_BUFFERED * TPC_MAX_TIME_BUFFERED;
+        numOfRows * TPC_PADS_PER_ROW_PADDED * TPC_MAX_TIME_PADDED;
     const size_t chargeMapBytes =  sizeof(cl_float) * chargeMapSize;
     cl::Buffer chargeMap(context, CL_MEM_READ_WRITE, chargeMapBytes);
 
@@ -53,9 +53,10 @@ void GPUClusterFinder::run(ClEnv &env, const std::vector<Digit> &digits)
     queue.enqueueFillBuffer(chargeMap, &zero, 0, chargeMapBytes);
 
     cl::NDRange global(digits.size());
-    queue.enqueueNDRangeKernel(digitsToChargeMap, cl::NullRange, global);
+    cl::NDRange local(16);
+    queue.enqueueNDRangeKernel(digitsToChargeMap, cl::NullRange, global, local);
 
-    queue.enqueueNDRangeKernel(find3x3Clusters, cl::NullRange, global);
+    queue.enqueueNDRangeKernel(find3x3Clusters, cl::NullRange, global, local);
 
     log::Info() << "Copy results back...";
     std::vector<Cluster> clusters(digits.size());
@@ -67,7 +68,7 @@ void GPUClusterFinder::run(ClEnv &env, const std::vector<Digit> &digits)
     queue.enqueueReadBuffer(isClusterCenterBuf, CL_TRUE, 0, isClusterCenterBytes,
             isClusterCenter.data());
 
-    printClusters(isClusterCenter, clusters);
+    printClusters(isClusterCenter, clusters, 10);
 }
 
 size_t GPUClusterFinder::getNumOfRows(const std::vector<Digit> &digits)
@@ -83,7 +84,8 @@ size_t GPUClusterFinder::getNumOfRows(const std::vector<Digit> &digits)
 
 void GPUClusterFinder::printClusters(
         const std::vector<int> &isCenter,
-        const std::vector<Cluster> &clusters)
+        const std::vector<Cluster> &clusters,
+        size_t maxClusters)
 {
     log::Info() << "Printing found clusters";
     ASSERT(isCenter.size() == clusters.size());
@@ -93,11 +95,14 @@ void GPUClusterFinder::printClusters(
         if (isCenter[i])
         {
             log::Info() << clusters[i];
+            maxClusters--;
+            if (maxClusters == 0)
+            {
+                break;
+            }
         }
     }
 }
 
 
-
 // vim: set ts=4 sw=4 sts=4 expandtab:
-
