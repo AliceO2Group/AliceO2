@@ -66,6 +66,8 @@
 
 using namespace o2::framework;
 
+// ------------------------------------------------------------------
+
 // customize the completion policy
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
@@ -86,6 +88,8 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
   policies.push_back({ CompletionPolicy{ "process-any", matcher, policy } });
 }
 
+// ------------------------------------------------------------------
+
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
@@ -99,7 +103,11 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(
     ConfigParamSpec{ "tpc-sectors", VariantType::String, "all", { sectorshelp } });
 
-  std::string skiphelp("Comma separated list of detectors to skip/ignore. (Default is none)");
+  std::string onlyhelp("Comma separated list of detectors to accept. Takes precedence over the skipDet option. (Default is none)");
+  workflowOptions.push_back(
+    ConfigParamSpec{ "onlyDet", VariantType::String, "none", { onlyhelp } });
+
+  std::string skiphelp("Comma separate list of detectors to skip/ignore. (Default is none)");
   workflowOptions.push_back(
     ConfigParamSpec{ "skipDet", VariantType::String, "none", { skiphelp } });
 
@@ -108,6 +116,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(
     ConfigParamSpec{ "tpc-reco-type", VariantType::String, "", { tpcrthelp } });
 }
+
+// ------------------------------------------------------------------
 
 #include "Framework/runDataProcessing.h"
 
@@ -125,6 +135,8 @@ int getNumTPCLanes(std::vector<int> const& sectors, ConfigContext const& configc
   return std::min(lanes, (int)sectors.size());
 }
 
+// ------------------------------------------------------------------
+
 void initTPC()
 {
   // We only want to do this for the DPL master
@@ -140,9 +152,9 @@ void initTPC()
   if (getenv(streamparent.str().c_str())) {
     LOG(DEBUG) << "GEM ALREADY INITIALIZED ... SKIPPING HERE";
     return;
-  } else {
-    LOG(DEBUG) << "INITIALIZING TPC GEMAmplification";
   }
+
+  LOG(DEBUG) << "INITIALIZING TPC GEMAmplification";
   setenv(streamthis.str().c_str(), "ON", 1);
 
   auto& cdb = o2::TPC::CDBInterface::instance();
@@ -151,6 +163,8 @@ void initTPC()
   // in future we should take this from OCDB and just forward per message
   const static auto& ampl = o2::TPC::GEMAmplification::instance();
 }
+
+// ------------------------------------------------------------------
 
 void extractTPCSectors(std::vector<int>& sectors, ConfigContext const& configcontext)
 {
@@ -181,6 +195,8 @@ void extractTPCSectors(std::vector<int>& sectors, ConfigContext const& configcon
   }
 }
 
+// ------------------------------------------------------------------
+
 bool wantCollisionTimePrinter()
 {
   if (const char* f = std::getenv("DPL_COLLISION_TIME_PRINTER")) {
@@ -188,6 +204,8 @@ bool wantCollisionTimePrinter()
   }
   return false;
 }
+
+// ------------------------------------------------------------------
 
 std::shared_ptr<o2::parameters::GRPObject> readGRP(std::string inputGRP = "o2sim_grp.root")
 {
@@ -201,52 +219,125 @@ std::shared_ptr<o2::parameters::GRPObject> readGRP(std::string inputGRP = "o2sim
   return std::shared_ptr<o2::parameters::GRPObject>(grp);
 }
 
+// ------------------------------------------------------------------
+
+// Split a given string on a separator character
+std::vector<std::string> splitString(std::string src, char sep)
+{
+  std::vector<std::string> fields;
+  std::string token;
+  std::istringstream ss(src);
+
+  while (std::getline(ss, token, sep)) {
+    if (!token.empty()) {
+      fields.push_back(token);
+    }
+  }
+
+  return fields;
+}
+// ------------------------------------------------------------------
+
+// Filters detectors based on a white/black list provided via the onlyDet/skipDet CLI args
+struct DetFilterer {
+  // detlist:     A character-separated list of detectors
+  // unsetVal:    The value when the option is unset
+  // separator:   The character that separates the list of detectors defined in option
+  // mustContain: The nature of this DetFilterer. If true, it is a white lister
+  //              i.e. option defines the list of allowed detectors. If false
+  //              it is a black lister i.e defines the list of disallowed detectors.
+  DetFilterer(std::string detlist, std::string unsetVal, char separator, bool doWhiteListing)
+  {
+    // option is not set, nothing to do
+    if (detlist.compare(unsetVal) == 0) {
+      return;
+    }
+
+    std::vector<std::string> tokens = splitString(detlist, separator);
+
+    // Convert a vector of strings to one of o2::detectors::DetID
+    for (auto token : tokens) {
+      ids.emplace_back(token.c_str());
+    }
+
+    isWhiteLister = doWhiteListing;
+  }
+
+  // isSet determines if a detector list was provided
+  // against which to filter
+  bool isSet()
+  {
+    return ids.size() > 0;
+  }
+
+  // accept determines if a given detector should be accepted
+  bool accept(o2::detectors::DetID id)
+  {
+    bool found = std::find(ids.begin(), ids.end(), id) != ids.end();
+    return found == isWhiteLister;
+  }
+
+ private:
+  std::vector<o2::detectors::DetID> ids;
+  bool isWhiteLister; // true = accept only detectors in the ids vector
+};
+
+// Helper function to define a white listing DetFilterer
+DetFilterer whitelister(std::string optionVal, std::string unsetValue, char separator)
+{
+  return DetFilterer(optionVal, unsetValue, separator, true);
+}
+
+// Helper function to define a black listing DetFilterer
+DetFilterer blacklister(std::string optionVal, std::string unsetValue, char separator)
+{
+  return DetFilterer(optionVal, unsetValue, separator, false);
+}
+
+// ------------------------------------------------------------------
+
 /// This function is required to be implemented to define the workflow
 /// specifications
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
-  // reserve one entry which fill be filled with the SimReaderSpec at the end
-  // this places the processor at the beginning of the workflow in the upper left corner of the GUI
+  // Reserve one entry which fill be filled with the SimReaderSpec
+  // at the end. This places the processor at the beginning of the
+  // workflow in the upper left corner of the GUI.
   WorkflowSpec specs(1);
 
-  // we will first of all read the GRP to detect which components need
-  // instantiations
+  // First, read the GRP to detect which components need instantiations
   // (for the moment this assumes the file o2sim_grp.root to be in the current directory)
   const auto grp = readGRP();
   if (!grp) {
     return specs;
   }
 
+  // onlyDet takes precedence on skipDet
+  DetFilterer filterers[2] = {
+    whitelister(configcontext.options().get<std::string>("onlyDet"), "none", ','),
+    blacklister(configcontext.options().get<std::string>("skipDet"), "none", ',')
+  };
+
+  auto accept = [&configcontext, &filterers](o2::detectors::DetID id) {
+    for (auto& f : filterers) {
+      if (f.isSet()) {
+        return f.accept(id);
+      }
+    }
+
+    // accept all if neither onlyDet/skipDet are provided
+    return true;
+  };
+
   // lambda to extract detectors which are enabled in the workflow
   // will complain if user gave wrong input in construction of DetID
-  auto isEnabled = [&configcontext, grp](o2::detectors::DetID id) {
-    auto extractIgnored = [&configcontext]() {
-      auto skipString = configcontext.options().get<std::string>("skipDet");
-      std::vector<o2::detectors::DetID> skipped;
-      if (skipString.compare("none") != 0) {
-        // we expect them to be , separated
-        std::stringstream ss(skipString);
-        std::vector<std::string> stringtokens;
-        while (ss.good()) {
-          std::string substr;
-          getline(ss, substr, ',');
-          stringtokens.push_back(substr);
-        }
-
-        // now try to convert each token to o2::detectors::DetID
-        for (auto& token : stringtokens) {
-          skipped.emplace_back(token.c_str());
-        }
-      }
-      return skipped;
-    };
-
-    static auto skipped = extractIgnored();
-    bool is_skipped = std::find(skipped.begin(), skipped.end(), id) != skipped.end();
-    LOG(INFO) << id.getName() << " is skipped " << is_skipped;
+  auto isEnabled = [&configcontext, &filterers, accept, grp](o2::detectors::DetID id) {
+    auto accepted = accept(id);
     bool is_ingrp = grp->isDetReadOut(id);
-    LOG(INFO) << id.getName() << " is in grp " << is_ingrp;
-    return !is_skipped && is_ingrp;
+    LOG(INFO) << id.getName()
+              << " is in grp? " << (is_ingrp ? "yes" : "no") << ";"
+              << " is skipped? " << (!accepted ? "yes" : "no");
+    return accepted && is_ingrp;
   };
 
   std::vector<o2::detectors::DetID> detList; // list of participating detectors
@@ -262,8 +353,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto tpclanes = std::make_shared<std::vector<int>>();
   // keeps track of which tpc sectors to process
   auto tpcsectors = std::make_shared<std::vector<int>>();
-  if (isEnabled(o2::detectors::DetID::TPC)) {
 
+  if (isEnabled(o2::detectors::DetID::TPC)) {
     extractTPCSectors(*tpcsectors.get(), configcontext);
     auto lanes = getNumTPCLanes(*tpcsectors.get(), configcontext);
     detList.emplace_back(o2::detectors::DetID::TPC);
