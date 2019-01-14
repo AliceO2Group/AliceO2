@@ -27,6 +27,8 @@ private:
 
     void readFrom(const std::string &fName) 
     {
+        log::Info() << "Reading file " << fName;
+
         Parser parser;
         std::ifstream infile(fName); 
 
