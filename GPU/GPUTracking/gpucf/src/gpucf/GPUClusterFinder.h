@@ -15,7 +15,9 @@ public:
 
 private:
     size_t getNumOfRows(const std::vector<Digit> &);
-    void printClusters(const std::vector<int> &, const std::vector<Cluster> &);
+    void printClusters(const std::vector<int> &, 
+                       const std::vector<Cluster> &,
+                       size_t);
 
 };
 
