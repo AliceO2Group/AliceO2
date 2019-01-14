@@ -67,3 +67,6 @@ gphysi.dat
 
 # rbenv files
 .ruby-version
+
+# macOS
+.DS_Store
