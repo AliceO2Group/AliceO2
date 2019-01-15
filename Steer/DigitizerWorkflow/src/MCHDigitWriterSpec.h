@@ -18,7 +18,7 @@ namespace o2
 namespace mch
 {
 
-o2::framework::DataProcessorSpec getMCHWriterSpec();
+o2::framework::DataProcessorSpec getMCHDigitWriterSpec();
 
 } // end namespace mch
 } // end namespace o2
