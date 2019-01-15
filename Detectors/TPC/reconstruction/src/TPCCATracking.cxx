@@ -80,7 +80,7 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
   const AliHLTTPCGMMergedTrack* tracks;
   int nTracks;
   const AliHLTTPCGMMergedTrackHit* trackClusters;
-  int retVal = mTrackingCAO2Interface->RunTracking( (const AliHLTTPCCAClusterData*) &clusters, tracks, nTracks, trackClusters);
+  int retVal = mTrackingCAO2Interface->RunTracking(&clusters, tracks, nTracks, trackClusters);
   if (retVal == 0) {
     std::vector<std::pair<int, float>> trackSort(nTracks);
     int tmp = 0, tmp2 = 0;

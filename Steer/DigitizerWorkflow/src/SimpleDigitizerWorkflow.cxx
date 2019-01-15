@@ -52,6 +52,10 @@
 #include "TRDDigitizerSpec.h"
 #include "TRDDigitWriterSpec.h"
 
+//for MUON MCH
+#include "MCHDigitizerSpec.h"
+#include "MCHDigitWriterSpec.h"
+
 // GRP
 #include "DataFormatsParameters/GRPObject.h"
 #include "GRPUpdaterSpec.h"
@@ -441,6 +445,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::trd::getTRDDigitizerSpec(fanoutsize++));
     // connect the TRD digit writer
     specs.emplace_back(o2::trd::getTRDDigitWriterSpec());
+  }
+
+  //add MUON MCH
+  if (isEnabled(o2::detectors::DetID::MCH)) {
+    detList.emplace_back(o2::detectors::DetID::MCH);
+    //connect the MUON MCH digitization
+    specs.emplace_back(o2::mch::getMCHDigitizerSpec(fanoutsize++));
+    //connect the MUON MCH digit writer
+    specs.emplace_back(o2::mch::getMCHDigitWriterSpec());
   }
 
   // GRP updater: must come after all detectors since requires their list
