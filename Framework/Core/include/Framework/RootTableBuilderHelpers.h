@@ -41,7 +41,7 @@ struct TreeReaderValueTraits {
 template <typename T>
 struct TreeReaderValueTraits<TTreeReaderValue<T>> {
   using Type = typename TTreeReaderValue<T>::NonConstT_t;
-  using ArrowType = typename arrow::stl::ConversionTraits<Type>::ArrowType;
+  using ArrowType = typename o2::framework::detail::ConversionTraits<Type>::ArrowType;
   using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
 };
 
