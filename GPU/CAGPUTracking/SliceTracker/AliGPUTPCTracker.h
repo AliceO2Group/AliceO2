@@ -151,12 +151,6 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	void SetPointersTracks(int MaxNTracks, int MaxNHits);
 	size_t SetPointersSliceData(const AliGPUTPCClusterData *data, bool allocate = false) { return(fData.SetPointers(data, allocate)); }
  
-#if !defined(GPUCA_GPUCODE)
-	GPUh() void WriteEvent(std::ostream &out);
-	GPUh() void WriteTracks(std::ostream &out);
-	GPUh() void ReadTracks(std::istream &in);
-#endif //!GPUCA_GPUCODE
-  
 	GPUhd() MakeType(const MEM_LG(AliGPUCAParam)&) Param() const { return *fParam; }
 	GPUhd() MakeType(const MEM_LG(AliGPUCAParam)*) pParam() const { return fParam; }
 	GPUhd() void SetParam(const MEM_LG(AliGPUCAParam)* p) { fParam = p; }

@@ -17,7 +17,6 @@
 #include "AliGPUTPCClusterData.h"
 #include "AliTPCCommonMath.h"
 #include <algorithm>
-#include "AliHLTArray.h"
 #include "AliGPUTPCGPUConfig.h"
 
 AliGPUTPCClusterData::~AliGPUTPCClusterData()

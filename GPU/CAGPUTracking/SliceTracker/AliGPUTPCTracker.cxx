@@ -734,43 +734,6 @@ GPUh() void AliGPUTPCTracker::WriteOutput()
 	StopTimer(9);
 }
 
-GPUh() void AliGPUTPCTracker::WriteEvent( std::ostream &out )
-{
-	// write event to the file
-	for ( int iRow = 0; iRow < GPUCA_ROW_COUNT; iRow++ ) {
-		out << fData.Row( iRow ).HitNumberOffset() << " " << fData.Row( iRow ).NHits() << std::endl;
-	}
-	out << NHitsTotal() << std::endl;
-
-	AliHLTResizableArray<float> y( NHitsTotal() ), z( NHitsTotal() );
-
-	for ( int iRow = 0; iRow < GPUCA_ROW_COUNT; iRow++ ) {
-		const AliGPUTPCRow &row = Row( iRow );
-		float y0 = row.Grid().YMin();
-		float z0 = row.Grid().ZMin();
-		float stepY = row.HstepY();
-		float stepZ = row.HstepZ();
-		for ( int ih = 0; ih < fData.Row( iRow ).NHits(); ih++ ) {
-			int id = HitInputID( row, ih );
-			y[id] = y0 + HitDataY( row, ih ) * stepY;
-			z[id] = z0 + HitDataZ( row, ih ) * stepZ;
-		}
-	}
-	for ( int ih = 0; ih < NHitsTotal(); ih++ ) {
-		out << y[ih] << " " << z[ih] << std::endl;
-	}
-}
-
-GPUh() void AliGPUTPCTracker::WriteTracks( std::ostream &/*out*/ )
-{
-	//* Write tracks to file --- dummy
-}
-
-GPUh() void AliGPUTPCTracker::ReadTracks( std::istream &/*in*/ )
-{
-	//* Read tracks from file -- dummy
-}
-
 GPUh() int AliGPUTPCTracker::PerformGlobalTrackingRun(AliGPUTPCTracker& sliceNeighbour, int iTrack, int rowIndex, float angle, int direction)
 {
 	/*for (int j = 0;j < fTracks[j].NHits();j++)

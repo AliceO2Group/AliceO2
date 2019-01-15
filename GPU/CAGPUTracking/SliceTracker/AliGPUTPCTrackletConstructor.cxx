@@ -301,7 +301,6 @@ GPUd() void AliGPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int /*
 					unsigned int hitLst = TEXTUREFetchCons(calink, gAliTexRefu, firsthit, mybin + ny + 1);
 					for (unsigned int ih = hitFst; ih < hitLst; ih++)
 					{
-						assert((signed) ih < row.NHits());
 						cahit2 hh = TEXTUREFetchCons(cahit2, gAliTexRefu2, hits, ih);
 						float y = y0 + hh.x * stepY;
 						float z = z0 + hh.y * stepZ;

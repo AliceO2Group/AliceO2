@@ -1,7 +1,6 @@
 #include "cmodules/qconfig.h"
 #include "AliGPUReconstruction.h"
 #include "AliGPUReconstructionTimeframe.h"
-#include "AliHLTArray.h"
 #include "AliGPUTPCDef.h"
 #include "AliGPUCAQA.h"
 #include "AliGPUCADisplayBackend.h"

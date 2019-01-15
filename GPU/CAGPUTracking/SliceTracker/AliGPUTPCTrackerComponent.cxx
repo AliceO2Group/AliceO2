@@ -27,7 +27,6 @@
 #include "AliGPUTPCTrackerComponent.h"
 #include "AliGPUReconstruction.h"
 #include "AliGPUCAParam.h"
-#include "AliHLTArray.h"
 
 #include "AliHLTTPCRawCluster.h"
 #include "AliHLTTPCClusterXYZ.h"

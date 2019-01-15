@@ -15,7 +15,6 @@
 // **************************************************************************
 
 #include "AliGPUCAParam.h"
-#include "AliHLTArray.h"
 #include "AliGPUTPCClusterData.h"
 #include "AliGPUTPCGPUConfig.h"
 #include "AliGPUTPCHit.h"
@@ -23,6 +22,7 @@
 #include "AliGPUReconstruction.h"
 #include <iostream>
 #include <string.h>
+#include "cmodules/vecpod.h"
 
 // calculates an approximation for 1/sqrt(x)
 // Google for 0x5f3759df :)
@@ -78,7 +78,7 @@ inline void AliGPUTPCSliceData::CreateGrid(AliGPUTPCRow *row, const float2 *data
 	                  CAMath::Max(dz * norm, 2.f));
 }
 
-inline int AliGPUTPCSliceData::PackHitData(AliGPUTPCRow *const row, const AliHLTArray<AliGPUTPCHit> &binSortedHits)
+inline int AliGPUTPCSliceData::PackHitData(AliGPUTPCRow *const row, const AliGPUTPCHit* binSortedHits)
 {
 	// hit data packing
 
@@ -164,9 +164,12 @@ size_t AliGPUTPCSliceData::SetPointers(const AliGPUTPCClusterData *data, bool al
 	int hitMemCount = GPUCA_ROW_COUNT * sizeof(GPUCA_GPU_ROWALIGNMENT) + data->NumberOfClusters();
 	//Calculate Memory needed to store hits in rows
 
-	const unsigned int kVectorAlignment = 256 /*sizeof( uint4 )*/;
+	const unsigned int kVectorAlignment = 256;
 	fNumberOfHitsPlusAlign = AliGPUReconstruction::nextMultipleOf<(kVectorAlignment > sizeof(GPUCA_GPU_ROWALIGNMENT) ? kVectorAlignment : sizeof(GPUCA_GPU_ROWALIGNMENT)) / sizeof(int)>(hitMemCount);
 	fNumberOfHits = data->NumberOfClusters();
+	
+	
+	
 	const int firstHitInBinSize = (23 + sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(int)) * GPUCA_ROW_COUNT + 4 * fNumberOfHits + 3;
 	//FIXME: sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(int) * GPUCA_ROW_COUNT is way to big and only to ensure to reserve enough memory for GPU Alignment.
 	//Might be replaced by correct value
@@ -324,15 +327,13 @@ int AliGPUTPCSliceData::InitFromClusterData(const AliGPUTPCClusterData &data)
 		row.fHstepZi = 1.f;
 	}
 
-	AliHLTResizableArray<AliGPUTPCHit> binSortedHits(fNumberOfHits + sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(unsigned short));
+	vecpod<AliGPUTPCHit> binSortedHits(fNumberOfHits + sizeof(GPUCA_GPU_ROWALIGNMENT));
 
 	int gridContentOffset = 0;
 	int hitOffset = 0;
 
 	int binCreationMemorySize = 103 * 2 + fNumberOfHits;
-	AliHLTResizableArray<calink> binCreationMemory(binCreationMemorySize);
-
-	fGPUSharedDataReq = 0;
+	vecpod<calink> binCreationMemory(binCreationMemorySize);
 
 	for (int rowIndex = fFirstRow; rowIndex <= fLastRow; ++rowIndex)
 	{
@@ -354,16 +355,16 @@ int AliGPUTPCSliceData::InitFromClusterData(const AliGPUTPCClusterData &data)
 			return (1);
 		}
 
-		int binCreationMemorySizeNew;
-		if ((binCreationMemorySizeNew = numberOfBins * 2 + 6 + row.fNHits + sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(unsigned short) * numberOfRows + 1) > binCreationMemorySize)
+		int binCreationMemorySizeNew = numberOfBins * 2 + 6 + row.fNHits + sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(unsigned short) * numberOfRows + 1;
+		if (binCreationMemorySizeNew > binCreationMemorySize)
 		{
 			binCreationMemorySize = binCreationMemorySizeNew;
-			binCreationMemory.Resize(binCreationMemorySize);
+			binCreationMemory.resize(binCreationMemorySize);
 		}
 
-		AliHLTArray<calink> c = binCreationMemory;         // number of hits in all previous bins
-		AliHLTArray<calink> bins = c + (numberOfBins + 3); // cache for the bin index for every hit in this row, 3 extra empty bins at the end!!!
-		AliHLTArray<calink> filled = bins + row.fNHits;    // counts how many hits there are per bin
+		calink* c = binCreationMemory.data();          // number of hits in all previous bins
+		calink* bins = c + numberOfBins + 3;           // cache for the bin index for every hit in this row, 3 extra empty bins at the end!!!
+		calink* filled = bins + row.fNHits;            // counts how many hits there are per bin
 
 		for (unsigned int bin = 0; bin < row.fGrid.N() + 3; ++bin)
 		{
@@ -400,7 +401,7 @@ int AliGPUTPCSliceData::InitFromClusterData(const AliGPUTPCClusterData &data)
 			binSortedHits[ind].SetZ(YZData[globalHitIndex].y);
 		}
 
-		if (PackHitData(&row, binSortedHits))
+		if (PackHitData(&row, binSortedHits.data()))
 		{
 			delete[] YZData;
 			delete[] tmpHitIndex;
@@ -416,15 +417,11 @@ int AliGPUTPCSliceData::InitFromClusterData(const AliGPUTPCClusterData &data)
 		const int nn = numberOfBins + grid.Ny() + 3;
 		for (int i = numberOfBins; i < nn; ++i)
 		{
-			assert((signed) row.fFirstHitInBinOffset + i < 23 * numberOfRows + 4 * fNumberOfHits + 3);
 			fFirstHitInBin[row.fFirstHitInBinOffset + i] = a;
 		}
 
 		row.fFullSize = nn;
 		gridContentOffset += nn;
-
-		if (AliGPUReconstruction::nextMultipleOf<sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(calink)>(row.fNHits) + nn > (unsigned) fGPUSharedDataReq)
-			fGPUSharedDataReq = AliGPUReconstruction::nextMultipleOf<sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(calink)>(row.fNHits) + nn;
 
 		//Make pointer aligned
 		gridContentOffset = AliGPUReconstruction::nextMultipleOf<sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(calink)>(gridContentOffset);

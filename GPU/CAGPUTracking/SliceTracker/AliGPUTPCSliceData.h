@@ -22,11 +22,6 @@
 #include "AliTPCCommonMath.h"
 #include "AliGPUCAParam.h"
 #include "AliGPUProcessor.h"
-#ifndef GPUCA_GPUCODE
-#include "AliHLTArray.h"
-#else
-template<typename T, int Dim> class AliHLTArray;
-#endif
 #include "AliGPUTPCGPUConfig.h"
 
 class AliGPUTPCClusterData;
@@ -43,7 +38,7 @@ MEM_CLASS_PRE() class AliGPUTPCSliceData : public AliGPUProcessor
   public:
 	AliGPUTPCSliceData() :
         AliGPUProcessor(),
-		fGPUSharedDataReq(0), fFirstRow( 0 ), fLastRow( GPUCA_ROW_COUNT - 1), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMaxZ(0.f), fMemorySize( 0 ), fGpuMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
+		fFirstRow( 0 ), fLastRow( GPUCA_ROW_COUNT - 1), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMaxZ(0.f), fMemorySize( 0 ), fGpuMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
 		,fRows( NULL ), fLinkUpData( 0 ), fLinkDownData( 0 ), fHitData( 0 ), fClusterDataIndex( 0 )
 		, fFirstHitInBin( 0 ), fHitWeights( 0 )
 	{
@@ -148,7 +143,6 @@ MEM_CLASS_PRE() class AliGPUTPCSliceData : public AliGPUProcessor
 	GPUhi() char* Memory() const {return(fMemory); }
 	GPUhi() size_t MemorySize() const {return(fMemorySize); }
 	GPUhi() size_t GpuMemorySize() const {return(fGpuMemorySize); }
-	GPUhi() int GPUSharedDataReq() const { return fGPUSharedDataReq; }
 #endif
 
 	float MaxZ() const { return fMaxZ; }
@@ -159,10 +153,8 @@ MEM_CLASS_PRE() class AliGPUTPCSliceData : public AliGPUProcessor
 
 #ifndef GPUCA_GPUCODE
 	void CreateGrid( AliGPUTPCRow *row, const float2* data, int ClusterDataHitNumberOffset );
-	int PackHitData( AliGPUTPCRow *row, const AliHLTArray<AliGPUTPCHit, 1> &binSortedHits );
+	int PackHitData( AliGPUTPCRow *row, const AliGPUTPCHit* binSortedHits );
 #endif
-
-	int fGPUSharedDataReq;     //Size of shared memory required for GPU Reconstruction
 
 	int fFirstRow;             //First non-empty row
 	int fLastRow;              //Last non-empty row
