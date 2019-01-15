@@ -133,7 +133,7 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     )
 
     set(SRCS ${SRCS}
-        SliceTracker/AliGPUTPCGlobalMergerComponent.cxx
+        Merger/AliGPUTPCGlobalMergerComponent.cxx
         SliceTracker/AliGPUTPCTrackerComponent.cxx
         Merger/AliGPUTPCGMTracksToTPCSeeds.cxx
         DataCompression/AliHLTTPCClusterStatComponent.cxx
