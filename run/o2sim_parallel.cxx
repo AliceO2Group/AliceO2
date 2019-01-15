@@ -138,6 +138,25 @@ int main(int argc, char* argv[])
   if (!conf.resetFromArguments(argc, argv)) {
     return 1;
   }
+  // in case of zero events asked (only setup geometry etc) we just call the non-distributed version
+  // (otherwise we would need to add more synchronization between the actors)
+  if (conf.getNEvents() <= 0) {
+    LOG(INFO) << "No events to be simulated; Switching to non-distributed mode";
+    const int Nargs = argc + 1;
+    std::string name("o2sim_serial");
+    const char* arguments[Nargs];
+    arguments[0] = name.c_str();
+    for (int i = 1; i < argc; ++i) {
+      arguments[i] = argv[i];
+    }
+    arguments[argc] = nullptr;
+    std::string path = installpath + "/" + name;
+    auto r = execv(path.c_str(), (char* const*)arguments);
+    if (r != 0) {
+      perror(nullptr);
+    }
+    return r;
+  }
 
   // we create the global shared mem pool; just enough to serve
   // n simulation workers
