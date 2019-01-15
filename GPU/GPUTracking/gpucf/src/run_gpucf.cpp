@@ -3,7 +3,7 @@
 
 int main(int argc, const char *argv[]) 
 {
-    CfRunner cf;
+    gpucf::CfRunner cf;
 
     return cf.main(argc, argv);
 }

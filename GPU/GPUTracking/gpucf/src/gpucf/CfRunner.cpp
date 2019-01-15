@@ -1,6 +1,10 @@
 #include "CfRunner.h"
 
+#include <gpucf/ClusterChecker.h>
 #include <gpucf/GPUClusterFinder.h>
+
+
+using namespace gpucf;
 
 
 void CfRunner::setupFlags(args::Group &required, args::Group &optional)
@@ -16,8 +20,10 @@ int CfRunner::mainImpl()
     DigitReader reader(*digitFlags);
 
     GPUClusterFinder cf;
+    std::vector<Cluster> clusters = cf.run(env, reader.get());
 
-    cf.run(env, reader.get());
+    ClusterChecker checker;
+    checker.verify(clusters);
 
     return 0;
 }

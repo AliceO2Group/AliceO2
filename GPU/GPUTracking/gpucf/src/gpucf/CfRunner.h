@@ -6,6 +6,8 @@
 
 #include <memory>
 
+namespace gpucf
+{
 
 class CfRunner : public Executable
 {
@@ -24,6 +26,8 @@ private:
     std::unique_ptr<ClEnv::Flags> envFlags;
     std::unique_ptr<DigitReader::Flags> digitFlags;
 };
+
+}
 
 // vim: set ts=4 sw=4 sts=4 expandtab:
 

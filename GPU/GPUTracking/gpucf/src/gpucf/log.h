@@ -5,6 +5,9 @@
 #include <vector>
 
 
+namespace gpucf
+{
+
 namespace log 
 {
 
@@ -144,7 +147,9 @@ class Fail
 {
 };
 
-}; // namespace log
+} // namespace log
+
+} // namespace gpucf
 
 
 #define ASSERT(cond) \
