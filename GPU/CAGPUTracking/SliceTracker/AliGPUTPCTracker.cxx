@@ -238,9 +238,7 @@ void AliGPUTPCTracker::DumpStartHits(std::ostream &out)
 {
 	//sort start hits and dump to file
 	out << "Start Hits: (Slice" << fISlice << ") (" << *NTracklets() << ")" << std::endl;
-#ifdef GPUCA_GPU_SORT_DUMPDATA
-	qsort(TrackletStartHits(), *NTracklets(), sizeof(AliGPUTPCHitId), StarthitSortComparison);
-#endif
+	if (mRec->GetDeviceProcessingSettings().comparableDebutOutput) qsort(TrackletStartHits(), *NTracklets(), sizeof(AliGPUTPCHitId), StarthitSortComparison);
 	for (int i = 0;i < *NTracklets();i++)
 	{
 		out << TrackletStartHit(i).RowIndex() << "-" << TrackletStartHit(i).HitIndex() << std::endl;
@@ -252,35 +250,25 @@ void AliGPUTPCTracker::DumpTrackHits(std::ostream &out)
 {
 	//dump tracks to file
 	out << "Tracks: (Slice" << fISlice << ") (" << *NTracks() << ")" << std::endl;
-#ifdef GPUCA_GPU_SORT_DUMPDATA
 	for (int k = 0;k < GPUCA_ROW_COUNT;k++)
 	{
 		for (int l = 0;l < Row(k).NHits();l++)
 		{
-#endif
 			for (int j = 0;j < *NTracks();j++)
 			{
 				if (Tracks()[j].NHits() == 0 || !Tracks()[j].Alive()) continue;
-#ifdef GPUCA_GPU_SORT_DUMPDATA
 				if (TrackHits()[Tracks()[j].FirstHitID()].RowIndex() == k && TrackHits()[Tracks()[j].FirstHitID()].HitIndex() == l)
 				{
-#endif
 					for (int i = 0;i < Tracks()[j].NHits();i++)
 					{
 						out << TrackHits()[Tracks()[j].FirstHitID() + i].RowIndex() << "-" << TrackHits()[Tracks()[j].FirstHitID() + i].HitIndex() << ", ";
 					}
-#ifndef BITWISE_COMPATIBLE_DEBUG_OUTPUT
-					out << "(Track: " << j << ")";
-#endif
+					if (!mRec->GetDeviceProcessingSettings().comparableDebutOutput) out << "(Track: " << j << ")";
 					out << std::endl;
-#ifdef GPUCA_GPU_SORT_DUMPDATA
 				}
 			}
-#endif
 		}
-#ifdef GPUCA_GPU_SORT_DUMPDATA
 	}
-#endif
 }
 
 void AliGPUTPCTracker::DumpTrackletHits(std::ostream &out)
@@ -290,42 +278,43 @@ void AliGPUTPCTracker::DumpTrackletHits(std::ostream &out)
 	if( nTracklets<0 ) nTracklets = 0;
 	if( nTracklets>GPUCA_GPU_MAX_TRACKLETS ) nTracklets = GPUCA_GPU_MAX_TRACKLETS;
 	out << "Tracklets: (Slice" << fISlice << ") (" << nTracklets << ")" << std::endl;
-#ifdef GPUCA_GPU_SORT_DUMPDATA
-	AliGPUTPCHitId* tmpIds = new AliGPUTPCHitId[nTracklets];
-	AliGPUTPCTracklet* tmpTracklets = new AliGPUTPCTracklet[nTracklets];
-	memcpy(tmpIds, TrackletStartHits(), nTracklets * sizeof(AliGPUTPCHitId));
-	memcpy(tmpTracklets, Tracklets(), nTracklets * sizeof(AliGPUTPCTracklet));
+	if (mRec->GetDeviceProcessingSettings().comparableDebutOutput)
+	{
+		AliGPUTPCHitId* tmpIds = new AliGPUTPCHitId[nTracklets];
+		AliGPUTPCTracklet* tmpTracklets = new AliGPUTPCTracklet[nTracklets];
+		memcpy(tmpIds, TrackletStartHits(), nTracklets * sizeof(AliGPUTPCHitId));
+		memcpy(tmpTracklets, Tracklets(), nTracklets * sizeof(AliGPUTPCTracklet));
 #ifdef EXTERN_ROW_HITS
-	calink* tmpHits = new calink[nTracklets * GPUCA_ROW_COUNT];
-	memcpy(tmpHits, TrackletRowHits(), nTracklets * GPUCA_ROW_COUNT * sizeof(calink));
+		calink* tmpHits = new calink[nTracklets * GPUCA_ROW_COUNT];
+		memcpy(tmpHits, TrackletRowHits(), nTracklets * GPUCA_ROW_COUNT * sizeof(calink));
 #endif
-	qsort(TrackletStartHits(), nTracklets, sizeof(AliGPUTPCHitId), StarthitSortComparison);
-	for (int i = 0;i < nTracklets; i++ ){
-		for (int j = 0;j < nTracklets; j++ ){
-			if (tmpIds[i].RowIndex() == TrackletStartHit(j).RowIndex() && tmpIds[i].HitIndex() == TrackletStartHit(j).HitIndex() ){
-				memcpy(&Tracklets()[j], &tmpTracklets[i], sizeof(AliGPUTPCTracklet));
+		qsort(TrackletStartHits(), nTracklets, sizeof(AliGPUTPCHitId), StarthitSortComparison);
+		for (int i = 0;i < nTracklets; i++ ){
+			for (int j = 0;j < nTracklets; j++ ){
+				if (tmpIds[i].RowIndex() == TrackletStartHit(j).RowIndex() && tmpIds[i].HitIndex() == TrackletStartHit(j).HitIndex() ){
+					memcpy(&Tracklets()[j], &tmpTracklets[i], sizeof(AliGPUTPCTracklet));
 #ifdef EXTERN_ROW_HITS
-				if (tmpTracklets[i].NHits() ){
-					for (int k = tmpTracklets[i].FirstRow();k <= tmpTracklets[i].LastRow();k++){
-						const int pos = k * nTracklets + j;
-						if (pos < 0 || pos >= GPUCA_GPU_MAX_TRACKLETS * GPUCA_ROW_COUNT){
-							printf("internal error: invalid tracklet position k=%d j=%d pos=%d\n", k, j, pos);
-						} else {
-							fTrackletRowHits[pos] = tmpHits[k * nTracklets + i];
+					if (tmpTracklets[i].NHits() ){
+						for (int k = tmpTracklets[i].FirstRow();k <= tmpTracklets[i].LastRow();k++){
+							const int pos = k * nTracklets + j;
+							if (pos < 0 || pos >= GPUCA_GPU_MAX_TRACKLETS * GPUCA_ROW_COUNT){
+								printf("internal error: invalid tracklet position k=%d j=%d pos=%d\n", k, j, pos);
+							} else {
+								fTrackletRowHits[pos] = tmpHits[k * nTracklets + i];
+							}
 						}
 					}
-				}
 #endif
-				break;
+					break;
+				}
 			}
 		}
-	}
-	delete[] tmpIds;
-	delete[] tmpTracklets;
+		delete[] tmpIds;
+		delete[] tmpTracklets;
 #ifdef EXTERN_ROW_HITS
-	delete[] tmpHits;
+		delete[] tmpHits;
 #endif
-#endif
+	}
 	for (int j = 0;j < nTracklets; j++ )
 	{
 		out << "Tracklet " << std::setw(4) << j << " (Hits: " << std::setw(3) << Tracklets()[j].NHits() << ", Start: " << std::setw(3) << TrackletStartHit(j).RowIndex() << "-" << std::setw(3) << TrackletStartHit(j).HitIndex() << ", Rows: " << (Tracklets()[j].NHits() ? Tracklets()[j].FirstRow() : -1) << " - " << (Tracklets()[j].NHits() ? Tracklets()[j].LastRow() : -1) << ") ";
@@ -527,10 +516,11 @@ GPUh() void AliGPUTPCTracker::DoTracking()
 
 	if (fParam->debugLevel >= 6)
 	{
-#ifndef BITWISE_COMPATIBLE_DEBUG_OUTPUT
-		*fGPUDebugOut << std::endl << std::endl << "Slice: " << fISlice << std::endl;
-		*fGPUDebugOut << "Slice Data:" << std::endl;
-#endif
+		if (!mRec->GetDeviceProcessingSettings().comparableDebutOutput)
+		{
+			*fGPUDebugOut << std::endl << std::endl << "Slice: " << fISlice << std::endl;
+			*fGPUDebugOut << "Slice Data:" << std::endl;
+		}
 		DumpSliceData(*fGPUDebugOut);
 	}
 
@@ -587,9 +577,7 @@ GPUh() void AliGPUTPCTracker::DoTracking()
 	if (fParam->debugLevel >= 3) printf("Slice %d, Number of tracklets: %d\n", fISlice, *NTracklets());
 
 	if (fParam->debugLevel >= 6) DumpTrackletHits(*fGPUDebugOut);
-#ifndef BITWISE_COMPATIBLE_DEBUG_OUTPUT
-	if (fParam->debugLevel >= 6) DumpHitWeights(*fGPUDebugOut);
-#endif
+	if (fParam->debugLevel >= 6 && !mRec->GetDeviceProcessingSettings().comparableDebutOutput) DumpHitWeights(*fGPUDebugOut);
 
 	//std::cout<<"Slice "<<fISlice<<": NHits="<<NHitsTotal()<<", NTracklets="<<*NTracklets()<<std::endl;
 

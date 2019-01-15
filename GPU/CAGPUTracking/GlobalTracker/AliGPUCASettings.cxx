@@ -43,6 +43,7 @@ void AliGPUCASettingsDeviceProcessing::SetDefaults()
 	nDeviceHelperThreads = GPUCA_GPU_DEFAULT_HELPER_THREADS;
 	debugLevel = -1;
 	debugMask = -1;
+	comparableDebutOutput = true;
 	resetTimers = 1;
 	eventDisplay = nullptr;
 	runQA = false;

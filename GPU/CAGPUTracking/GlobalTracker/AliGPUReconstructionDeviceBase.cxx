@@ -622,9 +622,7 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_SliceInit(unsigned int iSli
 
 	if (mDeviceProcessingSettings.debugLevel >= 4)
 	{
-#ifndef BITWISE_COMPATIBLE_DEBUG_OUTPUT
-		mDebugFile << std::endl << std::endl << "Reconstruction: Slice " << iSlice << "/" << NSLICES << std::endl;
-#endif
+		if (!mDeviceProcessingSettings.comparableDebutOutput) mDebugFile << std::endl << std::endl << "Reconstruction: Slice " << iSlice << "/" << NSLICES << std::endl;
 		if (mDeviceProcessingSettings.debugMask & 1) mTPCSliceTrackersCPU[iSlice].DumpSliceData(mDebugFile);
 	}
 
