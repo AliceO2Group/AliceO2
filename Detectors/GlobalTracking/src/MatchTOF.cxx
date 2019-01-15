@@ -99,7 +99,8 @@ void MatchTOF::run()
   }
 
 #ifdef _ALLOW_DEBUG_TREES_
-  mDBGOut.reset();
+  if(mDBGFlags)
+    mDBGOut.reset();
 #endif
 
   mTimerTot.Stop();
@@ -278,7 +279,7 @@ bool MatchTOF::prepareTracks()
     //auto& trc = mTracksWork.back(); // with this we take the TPCITS track propagated to the vertex
     auto& trc = mTracksWork.back().getParamOut(); // with this we take the TPCITS track propagated to the vertex
     auto& intLT = mTracksWork.back().getLTIntegralOut(); // we get the integrated length and time as it was calculated at 70 cm (corresponding to the trc defined above)
-    
+
     // propagate to matching Xref
     trc.getXYZGlo(globalPos);
     LOG(DEBUG) << "Global coordinates Before propagating to 371 cm: globalPos[0] = " << globalPos[0] << ", globalPos[1] = " << globalPos[1] << ", globalPos[2] = " << globalPos[2];
@@ -436,8 +437,6 @@ bool MatchTOF::loadTOFClustersNextChunk()
 void MatchTOF::doMatching(int sec)
 {
   ///< do the real matching per sector
-  Printf("\n\n\n\n\n\n CICCIO \n\n\n\n\n");
-
   mMatchedTracksPairs.clear(); // new sector
 
   //uncomment for local debug
@@ -495,8 +494,10 @@ void MatchTOF::doMatching(int sec)
 																*/
 
 #ifdef _ALLOW_DEBUG_TREES_
-    (*mDBGOut) << "propOK"
-               << "track=" << trefTrk << "\n";
+    if(mDBGFlags){
+      (*mDBGOut) << "propOK"
+		 << "track=" << trefTrk << "\n";
+    }
 #endif
 
     // initializing
@@ -598,7 +599,6 @@ void MatchTOF::doMatching(int sec)
     if (nStripsCrossedInPropagation == 0) {
       continue; // the track never hit a TOF strip during the propagation
     }
-    Printf("CICCIO We will check now the %d TOF clusters", nTOFCls);
     bool foundCluster = false;
     auto labelTPC = (*mTPCLabels)[mTracksSectIndexCache[sec][itrk]];
     for (auto itof = itof0; itof < nTOFCls; itof++) {
@@ -722,7 +722,7 @@ void MatchTOF::selectBestMatches()
 bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float stepInCm, o2::track::TrackLTIntegral& intLT)
 {
   // propagate track to matching reference X
-  const int matCorr = 1;     // material correction method
+  const int matCorr = 0;     // material correction method
   const float tanHalfSector = tan(o2::constants::math::SectorSpanRad / 2);
   bool refReached = false;
   float xStart = trc.getX();
@@ -813,10 +813,12 @@ void MatchTOF::fillTOFmatchTree(const char* trname, int cacheTOF, int sectTOF, i
 
   //  Printf("************** Filling the debug tree with %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %f, %f, %f", cacheTOF, sectTOF, plateTOF, stripTOF, padXTOF, padZTOF, cacheeTrk, crossedStrip, sectPropagation, platePropagation, stripPropagation, padXPropagation, padZPropagation, resX, resZ, res);
 
-  (*mDBGOut) << trname
-             << "clusterTOF=" << cacheTOF << "sectTOF=" << sectTOF << "plateTOF=" << plateTOF << "stripTOF=" << stripTOF << "padXTOF=" << padXTOF << "padZTOF=" << padZTOF
-             << "crossedStrip=" << crossedStrip << "sectPropagation=" << sectPropagation << "platePropagation=" << platePropagation << "stripPropagation=" << stripPropagation << "padXPropagation=" << padXPropagation
-             << "resX=" << resX << "resZ=" << resZ << "res=" << res << "track=" << trk << "intLength=" << intLength << "intTimePion=" << intTimePion << "timeTOF=" << timeTOF << "\n";
+  if(mDBGFlags){
+    (*mDBGOut) << trname
+	       << "clusterTOF=" << cacheTOF << "sectTOF=" << sectTOF << "plateTOF=" << plateTOF << "stripTOF=" << stripTOF << "padXTOF=" << padXTOF << "padZTOF=" << padZTOF
+	       << "crossedStrip=" << crossedStrip << "sectPropagation=" << sectPropagation << "platePropagation=" << platePropagation << "stripPropagation=" << stripPropagation << "padXPropagation=" << padXPropagation
+	       << "resX=" << resX << "resZ=" << resZ << "res=" << res << "track=" << trk << "intLength=" << intLength << "intTimePion=" << intTimePion << "timeTOF=" << timeTOF << "\n";
+  }
   mTimerDBG.Stop();
 }
 
@@ -827,17 +829,19 @@ void MatchTOF::fillTOFmatchTreeWithLabels(const char* trname, int cacheTOF, int 
 
   mTimerDBG.Start(false);
 
-  (*mDBGOut) << trname
-             << "clusterTOF=" << cacheTOF << "sectTOF=" << sectTOF << "plateTOF=" << plateTOF << "stripTOF=" << stripTOF << "padXTOF=" << padXTOF << "padZTOF=" << padZTOF
-             << "crossedStrip=" << crossedStrip << "sectPropagation=" << sectPropagation << "platePropagation=" << platePropagation << "stripPropagation=" << stripPropagation << "padXPropagation=" << padXPropagation
-             << "resX=" << resX << "resZ=" << resZ << "res=" << res << "track=" << trk
-             << "TPClabelTrackID=" << TPClabelTrackID << "TPClabelEventID=" << TPClabelEventID << "TPClabelSourceID=" << TPClabelSourceID
-             << "ITSlabelTrackID=" << ITSlabelTrackID << "ITSlabelEventID=" << ITSlabelEventID << "ITSlabelSourceID=" << ITSlabelSourceID
-             << "TOFlabelTrackID0=" << TOFlabelTrackID0 << "TOFlabelEventID0=" << TOFlabelEventID0 << "TOFlabelSourceID0=" << TOFlabelSourceID0
-             << "TOFlabelTrackID1=" << TOFlabelTrackID1 << "TOFlabelEventID1=" << TOFlabelEventID1 << "TOFlabelSourceID1=" << TOFlabelSourceID1
-             << "TOFlabelTrackID2=" << TOFlabelTrackID2 << "TOFlabelEventID2=" << TOFlabelEventID2 << "TOFlabelSourceID2=" << TOFlabelSourceID2
-	     << "intLength=" << intLength << "intTimePion=" << intTimePion << "timeTOF=" << timeTOF
-             << "\n";
+  if(mDBGFlags){
+    (*mDBGOut) << trname
+	       << "clusterTOF=" << cacheTOF << "sectTOF=" << sectTOF << "plateTOF=" << plateTOF << "stripTOF=" << stripTOF << "padXTOF=" << padXTOF << "padZTOF=" << padZTOF
+	       << "crossedStrip=" << crossedStrip << "sectPropagation=" << sectPropagation << "platePropagation=" << platePropagation << "stripPropagation=" << stripPropagation << "padXPropagation=" << padXPropagation
+	       << "resX=" << resX << "resZ=" << resZ << "res=" << res << "track=" << trk
+	       << "TPClabelTrackID=" << TPClabelTrackID << "TPClabelEventID=" << TPClabelEventID << "TPClabelSourceID=" << TPClabelSourceID
+	       << "ITSlabelTrackID=" << ITSlabelTrackID << "ITSlabelEventID=" << ITSlabelEventID << "ITSlabelSourceID=" << ITSlabelSourceID
+	       << "TOFlabelTrackID0=" << TOFlabelTrackID0 << "TOFlabelEventID0=" << TOFlabelEventID0 << "TOFlabelSourceID0=" << TOFlabelSourceID0
+	       << "TOFlabelTrackID1=" << TOFlabelTrackID1 << "TOFlabelEventID1=" << TOFlabelEventID1 << "TOFlabelSourceID1=" << TOFlabelSourceID1
+	       << "TOFlabelTrackID2=" << TOFlabelTrackID2 << "TOFlabelEventID2=" << TOFlabelEventID2 << "TOFlabelSourceID2=" << TOFlabelSourceID2
+	       << "intLength=" << intLength << "intTimePion=" << intTimePion << "timeTOF=" << timeTOF
+	       << "\n";
+  }
   mTimerDBG.Stop();
 }
 #endif
