@@ -203,7 +203,7 @@ bool AlpideSimResponse::getResponse(float vRow, float vCol, float vDepth, Alpide
   if (!mNBinDpt) {
     LOG(FATAL) << "response object is not initialized" << FairLogger::endl;
   }
-  bool flipCol = false, flipRow = false;
+  bool flipCol = false, flipRow = true;
   if (vDepth < mDptMin || vDepth > mDptMax) return false;
   if (vCol < 0) {
     vCol = -vCol;
@@ -212,7 +212,7 @@ bool AlpideSimResponse::getResponse(float vRow, float vCol, float vDepth, Alpide
   if (vCol > mColMax) return false;
   if (vRow < 0) {
     vRow = -vRow;
-    flipRow = true;
+    flipRow = false;
   }
   if (vRow > mRowMax) return false;
 
@@ -250,10 +250,10 @@ const AlpideRespSimMat* AlpideSimResponse::getResponse(float vRow, float vCol, f
   if (vCol > mColMax) return nullptr;
   if (vRow < 0) {
     vRow = -vRow;
-    flipRow = true;
+    flipRow = false;
   }
   else {
-    flipRow = false;
+    flipRow = true;
   }
   if (vRow > mRowMax) return nullptr;
 
