@@ -21,6 +21,7 @@
 #include "AliGPUTPCRow.h"
 #include "AliTPCCommonMath.h"
 #include "AliGPUCAParam.h"
+#include "AliGPUProcessor.h"
 #ifndef GPUCA_GPUCODE
 #include "AliHLTArray.h"
 #else
@@ -37,11 +38,12 @@ class AliGPUTPCHit;
  * Different architectures implement this for the most efficient loads and stores. All access to the
  * data happens through inline functions so that access to the data has no extra costs.
  */
-MEM_CLASS_PRE() class AliGPUTPCSliceData
+MEM_CLASS_PRE() class AliGPUTPCSliceData : public AliGPUProcessor
 {
   public:
 	AliGPUTPCSliceData() :
-		fIsGpuSliceData(0), fGPUSharedDataReq(0), fFirstRow( 0 ), fLastRow( GPUCA_ROW_COUNT - 1), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMaxZ(0.f), fMemorySize( 0 ), fGpuMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
+        AliGPUProcessor(),
+		fGPUSharedDataReq(0), fFirstRow( 0 ), fLastRow( GPUCA_ROW_COUNT - 1), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMaxZ(0.f), fMemorySize( 0 ), fGpuMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
 		,fRows( NULL ), fLinkUpData( 0 ), fLinkDownData( 0 ), fHitData( 0 ), fClusterDataIndex( 0 )
 		, fFirstHitInBin( 0 ), fHitWeights( 0 )
 	{
@@ -149,7 +151,6 @@ MEM_CLASS_PRE() class AliGPUTPCSliceData
 	GPUhi() int GPUSharedDataReq() const { return fGPUSharedDataReq; }
 #endif
 
-	void SetGpuSliceData() { fIsGpuSliceData = 1; }
 	float MaxZ() const { return fMaxZ; }
 
   private:
@@ -161,7 +162,6 @@ MEM_CLASS_PRE() class AliGPUTPCSliceData
 	int PackHitData( AliGPUTPCRow *row, const AliHLTArray<AliGPUTPCHit, 1> &binSortedHits );
 #endif
 
-	int fIsGpuSliceData;       //Slice Data for GPU Tracker?
 	int fGPUSharedDataReq;     //Size of shared memory required for GPU Reconstruction
 
 	int fFirstRow;             //First non-empty row

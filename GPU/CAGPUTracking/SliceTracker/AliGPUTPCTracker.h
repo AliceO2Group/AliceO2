@@ -24,7 +24,7 @@
 #include "AliGPUTPCSliceOutput.h"
 #include "AliGPUTPCTrackletConstructor.h"
 #include "AliGPUTPCTracklet.h"
-class AliGPUReconstruction;
+#include "AliGPUProcessor.h"
 
 MEM_CLASS_PRE() class AliGPUTPCTrack;
 MEM_CLASS_PRE() class AliGPUTPCTrackParam;
@@ -42,7 +42,7 @@ MEM_CLASS_PRE() class AliGPUTPCRow;
 class AliGPUTPCClusterData;
 
 MEM_CLASS_PRE()
-class AliGPUTPCTracker
+class AliGPUTPCTracker : public AliGPUProcessor
 {
   public:
 	AliGPUTPCTracker();
@@ -96,7 +96,6 @@ class AliGPUTPCTracker
 	void RunTrackletSelector();
   
 	//GPU Tracker Interface
-	void SetGPUTracker();
 #if !defined(__OPENCL__)
 	char* SetGPUTrackerCommonMemory(char* const pGPUMemory);
 	char* SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits);
@@ -114,8 +113,6 @@ class AliGPUTPCTracker
 
 	void SetOutput( AliGPUTPCSliceOutput** out ) { fOutput = out; }
 	int ReadEvent( const AliGPUTPCClusterData *clusterData );
-
-	GPUh() void SetAliGPUReconstruction( AliGPUReconstruction* val) { fGPUReconstruction = val; }
 
 	GPUhd() const AliGPUTPCClusterData *ClusterData() const { return fClusterData; }
 
@@ -269,14 +266,11 @@ class AliGPUTPCTracker
 	int fISlice; //Number of slice
 	HighResTimer fTimers[10];
   
-	AliGPUReconstruction *fGPUReconstruction;
-  
 	/** A pointer to the ClusterData object that the SliceData was created from. This can be used to
 	* merge clusters from inside the SliceTracker code and recreate the SliceData. */
 	GPUglobalref() const AliGPUTPCClusterData *fClusterData; // ^
 	MEM_LG(AliGPUTPCSliceData) fData; // The SliceData object. It is used to encapsulate the storage in memory from the access
   
-	char fIsGPUTracker; // is it GPU tracker object
 #if !defined(GPUCA_GPUCODE)
 	std::ostream *fGPUDebugOut; // debug stream
 #else
