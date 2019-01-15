@@ -163,6 +163,7 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	GPUhd() int ISlice() const { return fISlice; }
   
 	GPUhd() MakeType(const MEM_LG(AliGPUTPCSliceData)&) Data() const { return fData; }
+	GPUhd() MakeType(MEM_LG(AliGPUTPCSliceData)&) Data() { return fData; }
   
 	GPUhd() GPUglobalref() const MEM_GLOBAL(AliGPUTPCRow)& Row( int rowIndex ) const { return fData.Row( rowIndex ); }
   
@@ -255,10 +256,7 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	void SetGPUDebugOutput(std::ostream *file) {fGPUDebugOut = file;}
 #endif
 
-	//Temporary Variables for Standalone measurements
-#ifdef  GPUCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
-	char* fStageAtSync;				//Pointer to array storing current stage for every thread at every sync point
-#endif
+	char* fStageAtSync;					//Temporary performance variable: Pointer to array storing current stage for every thread at every sync point
 	char *fLinkTmpMemory;				//tmp memory for hits after neighbours finder
   
   private:

@@ -397,8 +397,8 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 	
 	if (mDeviceProcessingSettings.globalInitMutex) ReleaseGlobalLock(semLock);
 	
-	fGPUMergerMemory = getPointerWithAlignmentNoUpdate<char>(fGPUMemory, trackerGPUMem, GPUCA_GPU_MEMALIGN);
-	fGPUMergerHostMemory = getPointerWithAlignmentNoUpdate<char>(fHostLockedMemory, trackerHostMem, GPUCA_GPU_MEMALIGN);
+	fGPUMergerMemory = getPointerWithAlignmentNoUpdate<GPUCA_GPU_MEMALIGN, char>(fGPUMemory, trackerGPUMem);
+	fGPUMergerHostMemory = getPointerWithAlignmentNoUpdate<GPUCA_GPU_MEMALIGN, char>(fHostLockedMemory, trackerHostMem);
 	if (retVal)
 	{
 		CAGPUImportant("GPU Tracker initialization failed");
@@ -678,15 +678,15 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_Init()
 
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Initialising GPU Hits Memory");
 		tmpMem = fGpuTracker[iSlice].SetGPUTrackerHitsMemory(tmpMem, mClusterData[iSlice].NumberOfClusters());
-		tmpMem += getAlignment(tmpMem, GPUCA_GPU_MEMALIGN);
+		tmpMem += getAlignment<GPUCA_GPU_MEMALIGN>(tmpMem);
 
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Initialising GPU Tracklet Memory");
 		tmpMem = fGpuTracker[iSlice].SetGPUTrackerTrackletsMemory(tmpMem, GPUCA_GPU_MAX_TRACKLETS);
-		tmpMem += getAlignment(tmpMem, GPUCA_GPU_MEMALIGN);
+		tmpMem += getAlignment<GPUCA_GPU_MEMALIGN>(tmpMem);
 
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Initialising GPU Track Memory");
 		tmpMem = fGpuTracker[iSlice].SetGPUTrackerTracksMemory(tmpMem, GPUCA_GPU_MAX_TRACKS, mClusterData[iSlice].NumberOfClusters());
-		tmpMem += getAlignment(tmpMem, GPUCA_GPU_MEMALIGN);
+		tmpMem += getAlignment<GPUCA_GPU_MEMALIGN>(tmpMem);
 
 		if (fGpuTracker[iSlice].TrackMemorySize() >= GPUCA_GPU_TRACKS_MEMORY RANDOM_ERROR)
 		{

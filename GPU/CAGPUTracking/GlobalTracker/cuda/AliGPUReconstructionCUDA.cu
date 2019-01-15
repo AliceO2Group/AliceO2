@@ -778,8 +778,8 @@ int AliGPUReconstructionCUDA::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool 
 	AliGPUTPCGMMergedTrackHit *clusters;
 	AliGPUTPCGMMergedTrack* tracks;
 
-	AssignMemory(clusters, gpumem, Merger->NOutputTrackClusters());
-	AssignMemory(tracks, gpumem, Merger->NOutputTracks());
+	AliGPUReconstruction::computePointerWithAlignment(gpumem, clusters, Merger->NOutputTrackClusters());
+	AliGPUReconstruction::computePointerWithAlignment(gpumem, tracks, Merger->NOutputTracks());
 
 	if ((size_t) (gpumem - (char*) fGPUMergerMemory) > (size_t) fGPUMergerMaxMemory)
 	{
