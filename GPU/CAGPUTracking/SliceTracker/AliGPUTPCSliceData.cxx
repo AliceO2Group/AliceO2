@@ -20,7 +20,7 @@
 #include "AliGPUTPCGPUConfig.h"
 #include "AliGPUTPCHit.h"
 #include "AliGPUTPCSliceData.h"
-#include "MemoryAssignmentHelpers.h"
+#include "AliGPUReconstruction.h"
 #include <iostream>
 #include <string.h>
 
@@ -165,7 +165,7 @@ size_t AliGPUTPCSliceData::SetPointers(const AliGPUTPCClusterData *data, bool al
 	//Calculate Memory needed to store hits in rows
 
 	const unsigned int kVectorAlignment = 256 /*sizeof( uint4 )*/;
-	fNumberOfHitsPlusAlign = NextMultipleOf<(kVectorAlignment > sizeof(GPUCA_GPU_ROWALIGNMENT) ? kVectorAlignment : sizeof(GPUCA_GPU_ROWALIGNMENT)) / sizeof(int)>(hitMemCount);
+	fNumberOfHitsPlusAlign = AliGPUReconstruction::nextMultipleOf<(kVectorAlignment > sizeof(GPUCA_GPU_ROWALIGNMENT) ? kVectorAlignment : sizeof(GPUCA_GPU_ROWALIGNMENT)) / sizeof(int)>(hitMemCount);
 	fNumberOfHits = data->NumberOfClusters();
 	const int firstHitInBinSize = (23 + sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(int)) * GPUCA_ROW_COUNT + 4 * fNumberOfHits + 3;
 	//FIXME: sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(int) * GPUCA_ROW_COUNT is way to big and only to ensure to reserve enough memory for GPU Alignment.
@@ -175,7 +175,7 @@ size_t AliGPUTPCSliceData::SetPointers(const AliGPUTPCClusterData *data, bool al
 	    // LinkData, HitData
 	    fNumberOfHitsPlusAlign * 2 * (sizeof(cahit) + sizeof(calink)) +
 	    // FirstHitInBin
-	    NextMultipleOf<kVectorAlignment>((firstHitInBinSize) * sizeof(int)) +
+	    AliGPUReconstruction::nextMultipleOf<kVectorAlignment>((firstHitInBinSize) * sizeof(int)) +
 	    // HitWeights, ClusterDataIndex
 	    fNumberOfHitsPlusAlign * 2 * sizeof(int);
 
@@ -201,15 +201,15 @@ size_t AliGPUTPCSliceData::SetPointers(const AliGPUTPCClusterData *data, bool al
 	}
 
 	char *mem = fMemory;
-	AssignMemory(fLinkUpData, mem, fNumberOfHitsPlusAlign);
-	AssignMemory(fLinkDownData, mem, fNumberOfHitsPlusAlign);
-	AssignMemory(fHitData, mem, fNumberOfHitsPlusAlign);
-	AssignMemory(fFirstHitInBin, mem, firstHitInBinSize);
+	AliGPUReconstruction::computePointerWithAlignment(mem, fLinkUpData, fNumberOfHitsPlusAlign);
+	AliGPUReconstruction::computePointerWithAlignment(mem, fLinkDownData, fNumberOfHitsPlusAlign);
+	AliGPUReconstruction::computePointerWithAlignment(mem, fHitData, fNumberOfHitsPlusAlign);
+	AliGPUReconstruction::computePointerWithAlignment(mem, fFirstHitInBin, firstHitInBinSize);
 	fGpuMemorySize = mem - fMemory;
 
 	//Memory Allocated below will not be copied to GPU but instead be initialized on the gpu itself. Therefore it must not be copied to GPU!
-	AssignMemory(fHitWeights, mem, fNumberOfHitsPlusAlign);
-	AssignMemory(fClusterDataIndex, mem, fNumberOfHitsPlusAlign);
+	AliGPUReconstruction::computePointerWithAlignment(mem, fHitWeights, fNumberOfHitsPlusAlign);
+	AliGPUReconstruction::computePointerWithAlignment(mem, fClusterDataIndex, fNumberOfHitsPlusAlign);
 	return (mem - fMemory);
 }
 
@@ -339,7 +339,7 @@ int AliGPUTPCSliceData::InitFromClusterData(const AliGPUTPCClusterData &data)
 		AliGPUTPCRow &row = fRows[rowIndex];
 		row.fNHits = NumberOfClustersInRow[rowIndex];
 		row.fHitNumberOffset = hitOffset;
-		hitOffset += NextMultipleOf<sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(unsigned short)>(NumberOfClustersInRow[rowIndex]);
+		hitOffset += AliGPUReconstruction::nextMultipleOf<sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(unsigned short)>(NumberOfClustersInRow[rowIndex]);
 
 		row.fFirstHitInBinOffset = gridContentOffset;
 
@@ -423,11 +423,11 @@ int AliGPUTPCSliceData::InitFromClusterData(const AliGPUTPCClusterData &data)
 		row.fFullSize = nn;
 		gridContentOffset += nn;
 
-		if (NextMultipleOf<sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(calink)>(row.fNHits) + nn > (unsigned) fGPUSharedDataReq)
-			fGPUSharedDataReq = NextMultipleOf<sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(calink)>(row.fNHits) + nn;
+		if (AliGPUReconstruction::nextMultipleOf<sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(calink)>(row.fNHits) + nn > (unsigned) fGPUSharedDataReq)
+			fGPUSharedDataReq = AliGPUReconstruction::nextMultipleOf<sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(calink)>(row.fNHits) + nn;
 
 		//Make pointer aligned
-		gridContentOffset = NextMultipleOf<sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(calink)>(gridContentOffset);
+		gridContentOffset = AliGPUReconstruction::nextMultipleOf<sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(calink)>(gridContentOffset);
 	}
 
 	delete[] YZData;

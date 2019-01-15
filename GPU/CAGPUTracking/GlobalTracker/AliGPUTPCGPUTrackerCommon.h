@@ -17,8 +17,6 @@
 #include <iostream>
 #include <fstream>
 
-#include "MemoryAssignmentHelpers.h"
-
 #if defined(GPUCA_ALIROOT_LIB) && !defined(GPUCA_GPULIBRARY)
 #include "AliHLTDefinitions.h"
 #include "AliHLTSystem.h"

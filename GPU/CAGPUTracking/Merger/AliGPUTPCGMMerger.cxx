@@ -47,7 +47,6 @@
 #include <algorithm>
 
 #include "AliGPUTPCGPUConfig.h"
-#include "MemoryAssignmentHelpers.h"
 
 #define DEBUG 0
 
@@ -350,8 +349,8 @@ bool AliGPUTPCGMMerger::AllocateMemory()
 	{
 		char *hostBaseMem = dynamic_cast<const AliGPUReconstructionDeviceBase *>(mRec)->MergerHostMemory();
 		char *basemem = hostBaseMem;
-		AssignMemory(fClusters, basemem, fNMaxOutputTrackClusters);
-		AssignMemory(fOutputTracks, basemem, nTracks);
+		AliGPUReconstruction::computePointerWithAlignment(basemem, fClusters, fNMaxOutputTrackClusters);
+		AliGPUReconstruction::computePointerWithAlignment(basemem, fOutputTracks, nTracks);
 		if ((size_t)(basemem - hostBaseMem) > GPUCA_GPU_MERGER_MEMORY)
 		{
 			printf("Insufficient memory for track merger %lld > %lld\n", (long long int) (basemem - hostBaseMem), (long long int) GPUCA_GPU_MERGER_MEMORY);

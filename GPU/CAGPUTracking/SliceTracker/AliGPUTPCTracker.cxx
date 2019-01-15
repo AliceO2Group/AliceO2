@@ -22,7 +22,6 @@
 #include "AliGPUTPCTrack.h"
 #include "AliGPUTPCTracklet.h"
 #include "AliTPCCommonMath.h"
-#include "MemoryAssignmentHelpers.h"
 
 #include "AliGPUTPCHitArea.h"
 #include "AliGPUTPCNeighboursFinder.h"
@@ -61,9 +60,7 @@ ClassImp( AliGPUTPCTracker )
 
 AliGPUTPCTracker::AliGPUTPCTracker() :
 	AliGPUProcessor(),
-#ifdef GPUCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 	fStageAtSync( NULL ),
-#endif
 	fLinkTmpMemory( NULL ),
 	fParam(NULL),
 	fISlice(0),
@@ -113,7 +110,6 @@ AliGPUTPCTracker::~AliGPUTPCTracker()
 // ----------------------------------------------------------------------------------
 void AliGPUTPCTracker::Initialize( const AliGPUCAParam *param, int iSlice )
 {
-	fData.InitGPUProcessor(mRec, mGPUProcessorType);
 	fParam = param;
 	fISlice = iSlice;
 	InitializeRows(fParam);
@@ -135,8 +131,8 @@ char* AliGPUTPCTracker::SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits)
 	fHitMemory = (char*) pGPUMemory;
 	SetPointersHits(MaxNHits);
 	pGPUMemory += fHitMemorySize;
-	AssignMemory(fTrackletTmpStartHits, pGPUMemory, GPUCA_ROW_COUNT * GPUCA_GPU_MAX_ROWSTARTHITS);
-	AssignMemory(fRowStartHitCountOffset, pGPUMemory, GPUCA_ROW_COUNT);
+	AliGPUReconstruction::computePointerWithAlignment(pGPUMemory, fTrackletTmpStartHits, GPUCA_ROW_COUNT * GPUCA_GPU_MAX_ROWSTARTHITS);
+	AliGPUReconstruction::computePointerWithAlignment(pGPUMemory, fRowStartHitCountOffset, GPUCA_ROW_COUNT);
 
 	return(pGPUMemory);
 }
@@ -442,7 +438,7 @@ GPUhd() void AliGPUTPCTracker::SetPointersHits( int MaxNHits )
 	char *mem = fHitMemory;
 
 	// extra arrays for tpc clusters
-	AssignMemory( fTrackletStartHits, mem, MaxNHits);
+	AliGPUReconstruction::computePointerWithAlignment( mem, fTrackletStartHits, MaxNHits);
 
 	// calculate the size
 	fHitMemorySize = mem - fHitMemory;
@@ -455,9 +451,9 @@ GPUhd() void AliGPUTPCTracker::SetPointersTracklets( int MaxNTracklets )
 
 	// memory for tracklets
 
-	AssignMemory( fTracklets, mem, MaxNTracklets );
+	AliGPUReconstruction::computePointerWithAlignment( mem, fTracklets, MaxNTracklets );
 #ifdef EXTERN_ROW_HITS
-	AssignMemory( fTrackletRowHits, mem, MaxNTracklets * GPUCA_ROW_COUNT);
+	AliGPUReconstruction::computePointerWithAlignment( mem, fTrackletRowHits, MaxNTracklets * GPUCA_ROW_COUNT);
 #endif
 
 	fTrackletMemorySize = mem - fTrackletMemory;
@@ -471,8 +467,8 @@ GPUhd() void AliGPUTPCTracker::SetPointersTracks( int MaxNTracks, int MaxNHits )
 
 	// memory for selected tracks
 
-	AssignMemory( fTracks, mem, MaxNTracks );
-	AssignMemory( fTrackHits, mem, 2 * MaxNHits );
+	AliGPUReconstruction::computePointerWithAlignment( mem, fTracks, MaxNTracks );
+	AliGPUReconstruction::computePointerWithAlignment( mem, fTrackHits, 2 * MaxNHits );
 
 	// calculate the size
 

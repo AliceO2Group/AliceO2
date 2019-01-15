@@ -142,37 +142,42 @@ public:
 	void ReadSettings(const char* dir = "");
 	
 	//Helpers for memory allocation
-	static inline size_t getAlignment(size_t addr, size_t alignment = MIN_ALIGNMENT)
+	template <size_t alignment = MIN_ALIGNMENT> static inline constexpr size_t getAlignment(size_t addr)
 	{
+		static_assert((alignment & (alignment - 1)) == 0, "Invalid alignment, not power of 2");
 		if (alignment <= 1) return 0;
 		size_t mod = addr & (alignment - 1);
 		if (mod == 0) return 0;
 		return (alignment - mod);
 	}
-	static inline size_t getAlignment(void* addr, size_t alignment = MIN_ALIGNMENT)
+	template <size_t alignment = MIN_ALIGNMENT> static inline constexpr size_t nextMultipleOf(size_t size)
 	{
-		return(getAlignment(reinterpret_cast<size_t>(addr), alignment));
+		return size + getAlignment<alignment>(size);
 	}
-	template <class S> static inline S* getPointerWithAlignment(size_t& basePtr, size_t nEntries = 1, size_t alignment = MIN_ALIGNMENT)
+	template <size_t alignment = MIN_ALIGNMENT> static inline constexpr size_t getAlignment(void* addr)
+	{
+		return(getAlignment<alignment>(reinterpret_cast<size_t>(addr)));
+	}
+	template <size_t alignment = MIN_ALIGNMENT, class S> static inline constexpr S* getPointerWithAlignment(size_t& basePtr, size_t nEntries = 1)
 	{
 		if (basePtr == 0) basePtr = 1;
-		basePtr += getAlignment(basePtr, std::max(alignof(S), alignment));
+		basePtr += getAlignment<std::max(alignof(S), alignment)>(basePtr);
 		S* retVal = (S*) (basePtr);
 		basePtr += nEntries * sizeof(S);
 		return retVal;
 	}
-	template <class S> static inline S* getPointerWithAlignment(void*& basePtr, size_t nEntries = 1, size_t alignment = MIN_ALIGNMENT)
+	template <size_t alignment = MIN_ALIGNMENT, class S> static inline constexpr S* getPointerWithAlignment(void*& basePtr, size_t nEntries = 1)
 	{
-		return getPointerWithAlignment<S>(reinterpret_cast<size_t&>(basePtr), nEntries, alignment);
+		return getPointerWithAlignment<alignment, S>(reinterpret_cast<size_t&>(basePtr), nEntries);
 	}
-	template <class S> static inline S* getPointerWithAlignmentNoUpdate(void* basePtr, size_t nEntries = 1, size_t alignment = MIN_ALIGNMENT)
+	template <size_t alignment = MIN_ALIGNMENT, class S = char> static inline constexpr S* getPointerWithAlignmentNoUpdate(void* basePtr, size_t nEntries = 1)
 	{
-		return getPointerWithAlignment<S>(basePtr, nEntries, alignment);
+		return getPointerWithAlignment<alignment, S>(basePtr, nEntries);
 	}
 	
-	template <class T, class S> static inline void computePointerWithAlignment(T*& basePtr, S*& objPtr, size_t nEntries = 1, bool runConstructor = false, size_t alignment = MIN_ALIGNMENT)
+	template <size_t alignment = MIN_ALIGNMENT, class T, class S> static inline void computePointerWithAlignment(T*& basePtr, S*& objPtr, size_t nEntries = 1, bool runConstructor = false)
 	{
-		objPtr = getPointerWithAlignment<S>(reinterpret_cast<size_t&>(basePtr), nEntries, alignment);
+		objPtr = getPointerWithAlignment<alignment, S>(reinterpret_cast<size_t&>(basePtr), nEntries);
 		if (runConstructor)
 		{
 			for (size_t i = 0;i < nEntries;i++)
