@@ -82,7 +82,6 @@ AliGPUTPCGMMerger::AliGPUTPCGMMerger() :
 	fTrackOrder(NULL),
 	fBorderMemory(0),
 	fBorderRangeMemory(0),
-	fGPUReconstruction(NULL),
 	fSliceTrackers(NULL),
 	fNClusters(0)
 {
@@ -204,18 +203,18 @@ int AliGPUTPCGMMerger::GetTrackLabel(AliGPUTPCGMBorderTrack &trk)
 #endif
 //END DEBUG CODE
 
-void AliGPUTPCGMMerger::Initialize(const AliGPUReconstruction *rec, long int TimeStamp, bool isMC)
+void AliGPUTPCGMMerger::Initialize(AliGPUReconstruction* rec, AliGPUProcessor::ProcessorType type, long int TimeStamp, bool isMC)
 {
-	fSliceParam = &rec->GetParam();
-	if (rec->GetDeviceType() == AliGPUReconstruction::DeviceType::CUDA)
+	InitGPUProcessor(rec, type);
+	fSliceParam = &mRec->GetParam();
+	if (mRec->GetDeviceType() == AliGPUReconstruction::DeviceType::CUDA)
 	{
 		fSliceTrackers = nullptr;
 	}
 	else
 	{
-		fSliceTrackers = rec->GetTPCSliceTrackers();
+		fSliceTrackers = mRec->GetTPCSliceTrackers();
 	}
-	fGPUReconstruction = rec;
 
 	if (fSliceParam->AssumeConstantBz) AliGPUTPCGMPolynomialFieldManager::GetPolynomialField(AliGPUTPCGMPolynomialFieldManager::kUniform, fSliceParam->BzkG, fField);
 	else AliGPUTPCGMPolynomialFieldManager::GetPolynomialField(fSliceParam->BzkG, fField);
@@ -237,7 +236,7 @@ void AliGPUTPCGMMerger::ClearMemory()
 {
 	delete[] fTrackLinks;
 	delete[] fSliceTrackInfos;
-	if (!fGPUReconstruction || fGPUReconstruction->GetDeviceType() != AliGPUReconstruction::DeviceType::CUDA)
+	if (mGPUProcessorType == PROCESSOR_TYPE_CPU)
 	{
 		delete[] fOutputTracks;
 		delete[] fClusters;
@@ -347,9 +346,9 @@ bool AliGPUTPCGMMerger::AllocateMemory()
 	//cout<<"\nMerger: input "<<nTracks<<" tracks, "<<nClusters<<" clusters"<<endl;
 
 	fSliceTrackInfos = new AliGPUTPCGMSliceTrack[nTracks];
-	if (fGPUReconstruction->GetDeviceType() == AliGPUReconstruction::DeviceType::CUDA)
+	if (mGPUProcessorType != PROCESSOR_TYPE_CPU)
 	{
-		char *hostBaseMem = dynamic_cast<const AliGPUReconstructionDeviceBase *>(fGPUReconstruction)->MergerHostMemory();
+		char *hostBaseMem = dynamic_cast<const AliGPUReconstructionDeviceBase *>(mRec)->MergerHostMemory();
 		char *basemem = hostBaseMem;
 		AssignMemory(fClusters, basemem, fNMaxOutputTrackClusters);
 		AssignMemory(fOutputTracks, basemem, nTracks);
@@ -1300,7 +1299,7 @@ void AliGPUTPCGMMerger::CollectMergedTracks()
 
 		//if (nParts > 1) printf("Merged %d: QPt %f %d parts %d hits\n", fNOutputTracks, p1.QPt(), nParts, nHits);
 
-		if (AliGPUCAQA::QAAvailable() && fGPUReconstruction->GetQA() && fGPUReconstruction->GetQA()->SuppressTrack(fNOutputTracks))
+		if (AliGPUCAQA::QAAvailable() && mRec->GetQA() && mRec->GetQA()->SuppressTrack(fNOutputTracks))
 		{
 			mergedTrack.SetOK(0);
 			mergedTrack.SetNClusters(0);
@@ -1336,7 +1335,7 @@ void AliGPUTPCGMMerger::PrepareClustersForFit()
 	unsigned char* sharedCount = new unsigned char[maxId];
 
 #if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
-	if (fGPUReconstruction->GetDeviceType() != AliGPUReconstruction::DeviceType::CUDA)
+	if (mRec->GetDeviceType() != AliGPUReconstruction::DeviceType::CUDA)
 	{
 		unsigned int* trackSort = new unsigned int[fNOutputTracks];
 		if (fTrackOrder) delete[] fTrackOrder;
@@ -1369,15 +1368,15 @@ void AliGPUTPCGMMerger::Refit(bool resetTimers)
 {
 	//* final refit
 #ifdef GPUCA_GPU_MERGER
-	if (fGPUReconstruction->GetDeviceType() == AliGPUReconstruction::DeviceType::CUDA)
+	if (mRec->GetDeviceType() == AliGPUReconstruction::DeviceType::CUDA)
 	{
-		dynamic_cast<const AliGPUReconstructionDeviceBase*>(fGPUReconstruction)->RefitMergedTracks(this, resetTimers);
+		dynamic_cast<const AliGPUReconstructionDeviceBase*>(mRec)->RefitMergedTracks(this, resetTimers);
 	}
   else
 #endif
 	{
 #ifdef GPUCA_HAVE_OPENMP
-#pragma omp parallel for num_threads(fGPUReconstruction->GetDeviceProcessingSettings().nThreads)
+#pragma omp parallel for num_threads(mRec->GetDeviceProcessingSettings().nThreads)
 #endif
 		for ( int itr = 0; itr < fNOutputTracks; itr++ )
 		{
@@ -1391,7 +1390,7 @@ void AliGPUTPCGMMerger::Refit(bool resetTimers)
 
 void AliGPUTPCGMMerger::Finalize()
 {
-	if (fGPUReconstruction->GetDeviceType() == AliGPUReconstruction::DeviceType::CUDA) return;
+	if (mRec->GetDeviceType() == AliGPUReconstruction::DeviceType::CUDA) return;
 #if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 	int* trkOrderReverse = new int[fNOutputTracks];
 	for (int i = 0;i < fNOutputTracks;i++) trkOrderReverse[fTrackOrder[i]] = i;

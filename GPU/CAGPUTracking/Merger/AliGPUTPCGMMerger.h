@@ -16,6 +16,7 @@
 #include "AliGPUTPCGMPolynomialField.h"
 #include "AliGPUTPCGMSliceTrack.h"
 #include "AliTPCCommonDef.h"
+#include "AliGPUProcessor.h"
 
 #if !defined(GPUCA_GPUCODE)
 #include <cmath>
@@ -27,20 +28,19 @@ class AliGPUTPCSliceOutput;
 class AliGPUTPCGMCluster;
 class AliGPUTPCGMTrackParam;
 class AliGPUTPCTracker;
-class AliGPUReconstruction;
 
 /**
  * @class AliGPUTPCGMMerger
  *
  */
-class AliGPUTPCGMMerger
+class AliGPUTPCGMMerger : public AliGPUProcessor
 {
 
   public:
 	AliGPUTPCGMMerger();
 	~AliGPUTPCGMMerger();
 
-	void Initialize(const AliGPUReconstruction *rec, long int TimeStamp = 0, bool isMC = 0);
+	void Initialize(AliGPUReconstruction* rec, AliGPUProcessor::ProcessorType type, long int TimeStamp = 0, bool isMC = 0);
 	void SetSliceParamPtr(const AliGPUCAParam *param) { fSliceParam = param; }
     void OverrideSliceTracker(AliGPUTPCTracker* trk) { fSliceTrackers = trk; }
 
@@ -132,7 +132,6 @@ class AliGPUTPCGMMerger
 	AliGPUTPCGMBorderTrack::Range *fBorderRange[fgkNSlices]; // memory for border tracks
 	int fBorderCETracks[2][fgkNSlices];
 
-	const AliGPUReconstruction *fGPUReconstruction;
 	const AliGPUTPCTracker *fSliceTrackers;
 
 	int fNClusters; //Total number of incoming clusters

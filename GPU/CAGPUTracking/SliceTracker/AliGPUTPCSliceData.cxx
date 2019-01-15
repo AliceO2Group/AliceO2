@@ -139,12 +139,12 @@ AliGPUTPCSliceData::~AliGPUTPCSliceData()
 	//Standard Destrcutor
 	if (fRows)
 	{
-		if (!fIsGpuSliceData) delete[] fRows;
+		if (mGPUProcessorType == PROCESSOR_TYPE_CPU) delete[] fRows;
 		fRows = NULL;
 	}
 	if (fMemory)
 	{
-		if (!fIsGpuSliceData) delete[] fMemory;
+		if (mGPUProcessorType == PROCESSOR_TYPE_CPU) delete[] fMemory;
 		fMemory = NULL;
 	}
 }
@@ -182,7 +182,7 @@ size_t AliGPUTPCSliceData::SetPointers(const AliGPUTPCClusterData *data, bool al
 	fMemorySize = memorySize + 4;
 	if (allocate)
 	{
-		if (!fIsGpuSliceData)
+		if (mGPUProcessorType == PROCESSOR_TYPE_CPU)
 		{
 			if (fMemory)
 			{

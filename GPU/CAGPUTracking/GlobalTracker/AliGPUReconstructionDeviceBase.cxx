@@ -410,7 +410,6 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 
 	for (unsigned int i = 0;i < NSLICES;i++)
 	{
-		mTPCSliceTrackersCPU[i].SetGPUTracker();
 		mTPCSliceTrackersCPU[i].SetGPUTrackerCommonMemory((char*) CommonMemory(fHostLockedMemory, i));
 		mTPCSliceTrackersCPU[i].SetGPUSliceDataMemory(SliceDataMemory(fHostLockedMemory, i), RowMemory(fHostLockedMemory, i));
 		mTPCSliceTrackersCPU[i].InitializeRows(&mParam);
@@ -668,7 +667,7 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_Init()
 		mClusterData[iSlice].SetClusterData(iSlice, mIOPtrs.nClusterData[iSlice], mIOPtrs.clusterData[iSlice]);
 
 		//Make this a GPU Tracker
-		fGpuTracker[iSlice].SetGPUTracker();
+		fGpuTracker[iSlice].InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
 		fGpuTracker[iSlice].SetGPUTrackerCommonMemory((char*) CommonMemory(fGPUMemory, iSlice));
 		fGpuTracker[iSlice].SetGPUSliceDataMemory(SliceDataMemory(fGPUMemory, iSlice), RowMemory(fGPUMemory, iSlice));
 		fGpuTracker[iSlice].SetPointersSliceData(&mClusterData[iSlice], false);

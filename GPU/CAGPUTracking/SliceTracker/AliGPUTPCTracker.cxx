@@ -60,16 +60,15 @@ ClassImp( AliGPUTPCTracker )
 #if !defined(GPUCA_GPUCODE)
 
 AliGPUTPCTracker::AliGPUTPCTracker() :
+	AliGPUProcessor(),
 #ifdef GPUCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 	fStageAtSync( NULL ),
 #endif
 	fLinkTmpMemory( NULL ),
 	fParam(NULL),
 	fISlice(0),
-	fGPUReconstruction(NULL),
 	fClusterData( 0 ),
 	fData(),
-	fIsGPUTracker( false ),
 	fGPUDebugOut( 0 ),
 	fNMaxTracks( 0 ),
 	fRowStartHitCountOffset( NULL ),
@@ -98,14 +97,14 @@ AliGPUTPCTracker::AliGPUTPCTracker() :
 AliGPUTPCTracker::~AliGPUTPCTracker()
 {
 	// destructor
-	if (!fIsGPUTracker)
+	if (mGPUProcessorType == PROCESSOR_TYPE_CPU)
 	{
 		if (fCommonMem) delete fCommonMem;
 		if (fHitMemory) delete[] fHitMemory;
 		if (fTrackletMemory) delete[] fTrackletMemory;
 		if (fTrackMemory) delete[] fTrackMemory;
 		fCommonMem = NULL;
-		fHitMemory = fTrackMemory = NULL;
+		fHitMemory = fTrackletMemory = fTrackMemory = NULL;
 	}
 	if (fLinkTmpMemory) delete[] fLinkTmpMemory;
 	if (fOutputMemory) free(fOutputMemory);
@@ -114,18 +113,12 @@ AliGPUTPCTracker::~AliGPUTPCTracker()
 // ----------------------------------------------------------------------------------
 void AliGPUTPCTracker::Initialize( const AliGPUCAParam *param, int iSlice )
 {
+	fData.InitGPUProcessor(mRec, mGPUProcessorType);
 	fParam = param;
 	fISlice = iSlice;
 	InitializeRows(fParam);
 
 	SetupCommonMemory();
-}
-
-void AliGPUTPCTracker::SetGPUTracker()
-{
-	//Make this a GPU Tracker
-	fIsGPUTracker = true;
-	fData.SetGpuSliceData();
 }
 
 char* AliGPUTPCTracker::SetGPUTrackerCommonMemory(char* const pGPUMemory)
@@ -390,11 +383,9 @@ void AliGPUTPCTracker::SetupCommonMemory()
 {
 	// set up common memory
 
-	if (!fIsGPUTracker)
+	if (mGPUProcessorType == PROCESSOR_TYPE_CPU)
 	{
 		if ( !fCommonMem ) {
-			// the 1600 extra bytes are not used unless fCommonMemorySize increases with a later event
-			//fCommonMemory = reinterpret_cast<char*> ( new uint4 [ fCommonMemorySize/sizeof( uint4 ) + 100] );
 			fCommonMem = new commonMemoryStruct;
 		}
 
@@ -406,9 +397,12 @@ void AliGPUTPCTracker::SetupCommonMemory()
 	fHitMemory = fTrackletMemory = fTrackMemory = 0;
 
 	fData.Clear();
-	fCommonMem->fNTracklets = 0;
-	fCommonMem->fNTracks = 0 ;
-	fCommonMem->fNTrackHits = 0;
+	if (fCommonMem)
+	{
+		fCommonMem->fNTracklets = 0;
+		fCommonMem->fNTracks = 0 ;
+		fCommonMem->fNTrackHits = 0;
+	}
 }
 
 int AliGPUTPCTracker::ReadEvent( const AliGPUTPCClusterData *clusterData )
@@ -431,7 +425,7 @@ int AliGPUTPCTracker::ReadEvent( const AliGPUTPCClusterData *clusterData )
 		printf("Need to set continuous tracking mode for data outside of the TPC volume!\n");
 		return 1;
 	}
-	if (!fIsGPUTracker)
+	if (mGPUProcessorType == PROCESSOR_TYPE_CPU)
 	{
 		SetPointersHits( fData.NumberOfHits() ); // to calculate the size
 		fHitMemory = reinterpret_cast<char*> ( new uint4 [ fHitMemorySize/sizeof( uint4 ) + 100] );
@@ -579,7 +573,7 @@ GPUh() void AliGPUTPCTracker::DoTracking()
 	fData.ClearHitWeights();
 	StopTimer(5);
 
-	if (!fIsGPUTracker)
+	if (mGPUProcessorType == PROCESSOR_TYPE_CPU)
 	{
 		SetPointersTracklets( fCommonMem->fNTracklets * 2 ); // to calculate the size
 		fTrackletMemory = reinterpret_cast<char*> ( new uint4 [ fTrackletMemorySize/sizeof( uint4 ) + 100] );
@@ -631,7 +625,7 @@ GPUh() void AliGPUTPCTracker::ReconstructOutput()
 GPUh() void AliGPUTPCTracker::WriteOutputPrepare()
 {
 	StartTimer(9);
-	AliGPUTPCSliceOutput::Allocate(*fOutput, fCommonMem->fNTracks, fCommonMem->fNTrackHits, &fGPUReconstruction->OutputControl(), fOutputMemory);
+	AliGPUTPCSliceOutput::Allocate(*fOutput, fCommonMem->fNTracks, fCommonMem->fNTrackHits, &mRec->OutputControl(), fOutputMemory);
 	StopTimer(9);
 }
 

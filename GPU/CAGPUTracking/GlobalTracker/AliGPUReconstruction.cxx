@@ -84,6 +84,7 @@ AliGPUReconstruction::~AliGPUReconstruction()
 
 int AliGPUReconstruction::Init()
 {
+	AliGPUProcessor::ProcessorType processorType = IsGPU() ? AliGPUProcessor::PROCESSOR_TYPE_SLAVE : AliGPUProcessor::PROCESSOR_TYPE_CPU;
 	mTRDTracker->Init((AliGPUTRDGeometry*) mTRDGeometry.get()); //Cast is safe, we just add some member functions
 #ifdef GPUCA_HAVE_OPENMP
 	if (mDeviceProcessingSettings.nThreads <= 0) mDeviceProcessingSettings.nThreads = omp_get_max_threads();
@@ -98,11 +99,11 @@ int AliGPUReconstruction::Init()
 	}
 	for (unsigned int i = 0;i < NSLICES;i++)
 	{
+		mTPCSliceTrackersCPU[i].InitGPUProcessor(this, processorType);
 		mTPCSliceTrackersCPU[i].Initialize(&mParam, i);
 		mTPCSliceTrackersCPU[i].SetGPUDebugOutput(&mDebugFile);
-		mTPCSliceTrackersCPU[i].SetAliGPUReconstruction(this);
 	}
-	mTPCMergerCPU.Initialize(this);
+	mTPCMergerCPU.Initialize(this, processorType);
 	if (InitDevice()) return 1;
 	
 	if (AliGPUCAQA::QAAvailable() && (mDeviceProcessingSettings.runQA || mDeviceProcessingSettings.eventDisplay))
