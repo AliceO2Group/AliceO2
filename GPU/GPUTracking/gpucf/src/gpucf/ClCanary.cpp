@@ -4,6 +4,9 @@
 #include <gpucf/log.h>
 
 
+using namespace gpucf;
+
+
 void ClCanary::setupFlags(args::Group &required, args::Group &optional) 
 {
     envFlags = std::make_unique<ClEnv::Flags>(required, optional); 

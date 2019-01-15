@@ -4,6 +4,9 @@
 #include <vector>
 
 
+namespace gpucf
+{
+
 class CsvFile 
 {
 
@@ -56,5 +59,7 @@ private:
     std::vector<Column> cols;
 
 };
+
+}
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

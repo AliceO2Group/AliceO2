@@ -6,19 +6,28 @@
 #include <vector>
 
 
+namespace gpucf
+{
+
 class ClEnv;
 
 class GPUClusterFinder
 {
 public:
-    void run(ClEnv &, const std::vector<Digit> &);
+    std::vector<Cluster> run(ClEnv &, const std::vector<Digit> &);
 
 private:
-    size_t getNumOfRows(const std::vector<Digit> &);
-    void printClusters(const std::vector<int> &, 
-                       const std::vector<Cluster> &,
-                       size_t);
+    static void printClusters(
+            const std::vector<int> &, 
+            const std::vector<Cluster> &,
+            size_t);
+
+    static std::vector<Cluster> filterCluster(
+            const std::vector<int> &,
+            const std::vector<Cluster> &);
 
 };
+
+}
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

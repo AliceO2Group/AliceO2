@@ -1,19 +1,21 @@
 #include "GPUClusterFinder.h"
 
 #include <gpucf/ClEnv.h>
+#include <gpucf/ChargeMap.h>
 #include <gpucf/log.h>
 
-#include <shared/tpc.h>
+
+using namespace gpucf;
 
 
-void GPUClusterFinder::run(ClEnv &env, const std::vector<Digit> &digits)
+std::vector<Cluster> GPUClusterFinder::run(ClEnv &env, const std::vector<Digit> &digits)
 {
     cl::Context context = env.getContext();
 
     // Load kernels
     cl::Program cfprg = env.buildFromSrc("clusterFinder.cl");
-    cl::Kernel digitsToChargeMap(cfprg, "digitsToChargeMap");
     cl::Kernel find3x3Clusters(cfprg, "findClusters");
+
 
     log::Info() << "Looking for clusters...";
 
@@ -27,34 +29,26 @@ void GPUClusterFinder::run(ClEnv &env, const std::vector<Digit> &digits)
     const size_t clusterBytes = sizeof(Cluster) * digits.size();
     cl::Buffer clusterBuffer(context, CL_MEM_READ_WRITE, clusterBytes);
 
-    const size_t numOfRows = getNumOfRows(digits);
-    const size_t chargeMapSize  = 
-        numOfRows * TPC_PADS_PER_ROW_PADDED * TPC_MAX_TIME_PADDED;
-    const size_t chargeMapBytes =  sizeof(cl_float) * chargeMapSize;
-    cl::Buffer chargeMap(context, CL_MEM_READ_WRITE, chargeMapBytes);
+
+    ChargeMap chargeMap(context, cfprg, digits);
+
 
     // Set kernel args
-    digitsToChargeMap.setArg(0, digitBuffer);
-    digitsToChargeMap.setArg(1, chargeMap);
-
-    find3x3Clusters.setArg(0, chargeMap);
+    find3x3Clusters.setArg(0, chargeMap.get());
     find3x3Clusters.setArg(1, digitBuffer);
     find3x3Clusters.setArg(2, isClusterCenterBuf);
     find3x3Clusters.setArg(3, clusterBuffer);
 
     // Setup queue
     cl::Device  device  = env.getDevice();
-    cl::CommandQueue queue = cl::CommandQueue(context, device);
+    cl::CommandQueue queue (context, device);
 
     queue.enqueueWriteBuffer(digitBuffer, CL_FALSE, 0, digitBytes, 
             digits.data());
 
-    const cl_float zero = 0;
-    queue.enqueueFillBuffer(chargeMap, &zero, 0, chargeMapBytes);
-
     cl::NDRange global(digits.size());
     cl::NDRange local(16);
-    queue.enqueueNDRangeKernel(digitsToChargeMap, cl::NullRange, global, local);
+    chargeMap.enqueueFill(queue, digitBuffer, global, local);
 
     queue.enqueueNDRangeKernel(find3x3Clusters, cl::NullRange, global, local);
 
@@ -64,23 +58,16 @@ void GPUClusterFinder::run(ClEnv &env, const std::vector<Digit> &digits)
     queue.enqueueReadBuffer(clusterBuffer, CL_TRUE, 0, clusterBytes, 
             clusters.data());
 
+    static_assert(sizeof(cl_int) == sizeof(int));
     std::vector<int> isClusterCenter(digits.size());
     queue.enqueueReadBuffer(isClusterCenterBuf, CL_TRUE, 0, isClusterCenterBytes,
             isClusterCenter.data());
 
     printClusters(isClusterCenter, clusters, 10);
+
+    return filterCluster(isClusterCenter, clusters);
 }
 
-size_t GPUClusterFinder::getNumOfRows(const std::vector<Digit> &digits)
-{
-    size_t numOfRows = 0;
-    for (const Digit &digit : digits)
-    {
-        numOfRows = std::max(numOfRows, static_cast<size_t>(digit.row));
-    }
-
-    return numOfRows+1;
-}
 
 void GPUClusterFinder::printClusters(
         const std::vector<int> &isCenter,
@@ -102,6 +89,23 @@ void GPUClusterFinder::printClusters(
             }
         }
     }
+}
+
+std::vector<Cluster> GPUClusterFinder::filterCluster(
+        const std::vector<int> &isCenter,
+        const std::vector<Cluster> &clusters)
+{
+    std::vector<Cluster> actualClusters; 
+
+    for (size_t i = 0; i < clusters.size(); i++)
+    {
+        if (isCenter[i])
+        {
+            actualClusters.push_back(clusters[i]);
+        }
+    }
+
+    return actualClusters;
 }
 
 
