@@ -1,0 +1,1 @@
+#include "AliGPUMemoryResource.h"

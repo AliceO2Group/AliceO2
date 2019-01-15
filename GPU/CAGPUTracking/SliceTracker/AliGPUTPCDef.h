@@ -32,10 +32,6 @@
 
 #include "AliTPCCommonRtypes.h"
 
-#if defined(GPUCA_STANDALONE)
-#define TRACKER_KEEP_TEMPDATA
-#endif
-
 #include "AliTPCCommonDef.h"
 
 enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };

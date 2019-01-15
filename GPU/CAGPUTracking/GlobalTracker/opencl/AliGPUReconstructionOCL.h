@@ -30,6 +30,9 @@ protected:
 	virtual void SynchronizeGPU() override;
 	virtual int GPUSync(const char* state = "UNKNOWN", int sliceLocal = 0, int slice = 0) override;
 
+	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream) override;
+	virtual int TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream) override;
+
 private:
 	bool GPUFailedMsgA(int, const char* file, int line);
 	AliGPUReconstructionOCLInternals* ocl;

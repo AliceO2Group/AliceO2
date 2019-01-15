@@ -1,8 +1,3 @@
-#ifndef QCONFIGOPTIONS_H
-#define QCONFIGOPTIONS_H
-typedef std::tuple<const char*, int> tupleGpuOpt;
-#endif
-
 BeginSubConfig(structConfigGL, configGL, configStandalone, "GL", 'g', "OpenGL display settings")
 AddOption(clustersOnly, bool, false, "clustersOnly", 0, "Visualize clusters only")
 AddHelp("help", 'h')
@@ -109,7 +104,7 @@ AddOption(solenoidBz, float, -1e6f, "solenoidBz", 0, "Field strength of solenoid
 AddOption(constBz, bool, false, "constBz", 0, "Force constand Bz")
 AddOption(referenceX, float, 500.f, "referenceX", 0, "Reference X position to transport track to after fit")
 AddOption(rejectMode, char, 5, "rejectMode", 0, "Merger Reject Mode")
-AddOptionVec(gpuOptions, tupleGpuOpt, "gpuOpt", 0, "Options for GPU tracker")
+AddOption(allocationStrategy, int, 0, "allocationStrategy", 0, "Memory Allocation Stragegy (0 = auto, 1 = individual allocations, 2 = single global allocation)")
 AddOption(printSettings, bool, false, "printSettings", 0, "Print all settings")
 AddHelp("help", 'h')
 AddHelpAll("helpall", 'H')

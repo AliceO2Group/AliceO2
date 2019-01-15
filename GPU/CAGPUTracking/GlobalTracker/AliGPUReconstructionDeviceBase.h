@@ -33,6 +33,11 @@ protected:
 	virtual void ActivateThreadContext() = 0;
 	virtual void ReleaseThreadContext() = 0;
 	virtual void SynchronizeGPU() = 0;
+	
+	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream) = 0;
+	virtual int TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream) = 0;
+	int TransferMemoryResourcesToGPU(AliGPUProcessor* proc, int stream, bool all = false);
+	int TransferMemoryResourcesToHost(AliGPUProcessor* proc, int stream, bool all = false);
 
 	struct helperParam
 	{
@@ -78,6 +83,7 @@ protected:
 	static void* helperWrapper(void*);
 
 	AliGPUTPCTracker *fGpuTracker = nullptr; //Tracker Objects that will be used on the GPU
+	AliGPUTPCGMMerger* fGpuMerger = nullptr;
 	void* fGPUMemory = nullptr; //Pointer to GPU Memory Base Adress
 	void* fHostLockedMemory = nullptr; //Pointer to Base Adress of Page Locked Host Memory for DMA Transfer
 

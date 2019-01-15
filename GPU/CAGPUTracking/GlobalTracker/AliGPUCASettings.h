@@ -80,6 +80,8 @@ struct AliGPUCASettingsDeviceProcessing
 	AliGPUCADisplayBackend* eventDisplay;		//Run event display after processing, ptr to backend
 	bool runQA;									//Run QA after processing
 	int stuckProtection;						//Timeout in us, When AMD GPU is stuck, just continue processing and skip tracking, do not crash or stall the chain
+	int memoryAllocationStrategy;				//0 = auto, 1 = new/delete per resource (default for CPU), 2 = big chunk single allocation (default for device)
+	bool keepAllMemory;							//Allocate all memory on both device and host, and do not reuse
 };
 
 #endif

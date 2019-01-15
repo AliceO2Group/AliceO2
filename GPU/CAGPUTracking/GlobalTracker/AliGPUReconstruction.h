@@ -5,11 +5,13 @@
 #include <stdio.h>
 #include <memory>
 #include <fstream>
+#include <vector>
 
 #include "AliGPUTRDDef.h"
 #include "AliGPUCAParam.h"
 #include "AliGPUCASettings.h"
 #include "AliGPUCAOutputControl.h"
+#include "AliGPUMemoryResource.h"
 
 #include "AliGPUTPCClusterData.h"
 #include "AliGPUTPCSliceOutput.h"
@@ -39,9 +41,10 @@ using TPCFastTransform = ali_tpc_common::tpc_fast_transformation::TPCFastTransfo
 
 class AliGPUReconstruction
 {
-private:
-	class LibraryLoader;
-	std::shared_ptr<LibraryLoader> mMyLib = nullptr; //This must be the first member to ensure correct destructor order!
+protected:
+	class LibraryLoader; //These must be the first members to ensure correct destructor order!
+	std::shared_ptr<LibraryLoader> mMyLib = nullptr;
+	std::vector<AliGPUMemoryResource> mMemoryResources;
 	
 public:
 	virtual ~AliGPUReconstruction();
@@ -55,11 +58,11 @@ public:
 	//Definition of the Geometry: Are we AliRoot or O2
 	enum GeometryType : unsigned int {RESERVED_GEOMETRY = 0, ALIROOT = 1, O2 = 2};
 	static constexpr const char* const GEOMETRY_TYPE_NAMES[] = {"INVALID", "ALIROOT", "O2"};
-	#ifdef GPUCA_TPC_GEOMETRY_O2
-		static constexpr GeometryType geometryType = O2;
-	#else
-		static constexpr GeometryType geometryType = ALIROOT;
-	#endif
+#ifdef GPUCA_TPC_GEOMETRY_O2
+	static constexpr GeometryType geometryType = O2;
+#else
+	static constexpr GeometryType geometryType = ALIROOT;
+#endif
 	
 	enum DeviceType : unsigned int {INVALID_DEVICE = 0, CPU = 1, CUDA = 2, HIP = 3, OCL = 4};
 	static constexpr const char* const DEVICE_TYPE_NAMES[] = {"INVALID", "CPU", "CUDA", "HIP", "OCL"};
@@ -154,6 +157,10 @@ public:
 	{
 		return size + getAlignment<alignment>(size);
 	}
+	template <size_t alignment = MIN_ALIGNMENT> static inline constexpr void* alignPointer(void* ptr)
+	{
+		return(reinterpret_cast<void*>(nextMultipleOf<alignment>(reinterpret_cast<size_t>(ptr))));
+	}
 	template <size_t alignment = MIN_ALIGNMENT> static inline constexpr size_t getAlignment(void* addr)
 	{
 		return(getAlignment<alignment>(reinterpret_cast<size_t>(addr)));
@@ -170,10 +177,6 @@ public:
 	{
 		return getPointerWithAlignment<alignment, S>(reinterpret_cast<size_t&>(basePtr), nEntries);
 	}
-	template <size_t alignment = MIN_ALIGNMENT, class S = char> static inline constexpr S* getPointerWithAlignmentNoUpdate(void* basePtr, size_t nEntries = 1)
-	{
-		return getPointerWithAlignment<alignment, S>(basePtr, nEntries);
-	}
 	
 	template <size_t alignment = MIN_ALIGNMENT, class T, class S> static inline void computePointerWithAlignment(T*& basePtr, S*& objPtr, size_t nEntries = 1, bool runConstructor = false)
 	{
@@ -186,6 +189,18 @@ public:
 			}
 		}
 	}
+	
+	AliGPUMemoryResource& Res(int num) {return mMemoryResources[num];}
+	template <class T> int RegisterMemoryAllocation(T* proc, void* (T::* setPtr)(void*), AliGPUMemoryResource::MemoryType type)
+	{
+		mMemoryResources.emplace_back(proc, static_cast<void* (AliGPUProcessor::*)(void*)>(setPtr), type);
+		return mMemoryResources.size() - 1;
+	}
+	size_t AllocateRegisteredMemory(AliGPUProcessor* proc);
+	size_t AllocateRegisteredMemory(int res);
+	void FreeRegisteredMemory(AliGPUProcessor* proc);
+	void FreeRegisteredMemory(int res);
+	void ClearAllocatedMemory();
 	
 	//Converter functions
 	void ConvertNativeToClusterData();
@@ -236,6 +251,9 @@ protected:
 	virtual int InitDevice();
 	virtual int ExitDevice();
 	
+	//Private helper functions for memory management
+	static size_t AllocateRegisteredMemoryHelper(AliGPUMemoryResource* res, void* &ptr, void* &memorypool, void* memorybase, size_t memorysize, void* (AliGPUMemoryResource::*SetPointers)(void*));
+	
 	//Private helper functions for reading / writing / allocating IO buffer from/to file
 	template <class T> void DumpData(FILE* fp, const T* const* entries, const unsigned int* num, InOutPointerType type);
 	template <class T> size_t ReadData(FILE* fp, const T** entries, unsigned int* num, std::unique_ptr<T[]>* mem, InOutPointerType type);
@@ -275,8 +293,14 @@ protected:
 	std::ofstream mDebugFile;
 	
 	int mStatNEvents = 0;
+	
+	void* mHostMemoryBase = nullptr;
+	void* mHostMemoryPool = nullptr;
+	size_t mHostMemorySize = 0;
+	void* mDeviceMemoryBase = nullptr;
+	void* mDeviceMemoryPool = nullptr;
+	size_t mDeviceMemorySize = 0;
 
-private:
 	//Helpers for loading device library via dlopen
 	class LibraryLoader
 	{

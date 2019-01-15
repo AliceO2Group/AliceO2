@@ -202,9 +202,8 @@ int AliGPUTPCGMMerger::GetTrackLabel(AliGPUTPCGMBorderTrack &trk)
 #endif
 //END DEBUG CODE
 
-void AliGPUTPCGMMerger::Initialize(AliGPUReconstruction* rec, AliGPUProcessor::ProcessorType type, long int TimeStamp, bool isMC)
+void AliGPUTPCGMMerger::Initialize(long int TimeStamp, bool isMC)
 {
-	InitGPUProcessor(rec, type);
 	fSliceParam = &mRec->GetParam();
 	if (mRec->GetDeviceType() == AliGPUReconstruction::DeviceType::CUDA)
 	{

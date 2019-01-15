@@ -23,12 +23,6 @@
 #include "AliGPUTPCTracker.h"
 #include "AliTPCCommonMath.h"
 
-//#define DRAW
-
-#ifdef DRAW
-#include "AliGPUTPCDisplay.h"
-#endif //DRAW
-
 GPUd() void AliGPUTPCNeighboursFinder::Thread(int /*nBlocks*/, int nThreads, int iBlock, int iThread, int iSync,
                                                 GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) & s, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) & tracker)
 {
@@ -273,22 +267,10 @@ GPUd() void AliGPUTPCNeighboursFinder::Thread(int /*nBlocks*/, int nThreads, int
 						linkDn = bestDn;
 					}
 				}
-#ifdef DRAW
-				std::cout << "n NeighUp = " << nNeighUp << ", n NeighDn = " << nNeighDn << std::endl;
-#endif //DRAW
 			}
 
 			tracker.SetHitLinkUpData(row, ih, linkUp);
 			tracker.SetHitLinkDownData(row, ih, linkDn);
-#ifdef DRAW
-			std::cout << "Links for row " << s.fIRow << ", hit " << ih << ": " << linkUp << " " << linkDn << std::endl;
-			if (s.fIRow == 22 && ih == 5)
-			{
-				AliGPUTPCDisplay::Instance().DrawSliceLink(s.fIRow, ih, -1, -1, 1);
-				AliGPUTPCDisplay::Instance().DrawSliceHit(s.fIRow, ih, kBlue, 1.);
-				AliGPUTPCDisplay::Instance().Ask();
-			}
-#endif //DRAW
 		}
 	}
 }

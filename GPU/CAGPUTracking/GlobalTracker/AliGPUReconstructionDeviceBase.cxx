@@ -165,7 +165,7 @@ void AliGPUReconstructionDeviceBase::ReleaseGlobalLock(void* sem)
 int AliGPUReconstructionDeviceBase::CheckMemorySizes(int sliceCount)
 {
 	//Check constants for correct memory sizes
-	if (sizeof(AliGPUTPCTracker) * sliceCount > GPUCA_GPU_TRACKER_OBJECT_MEMORY)
+	if (sizeof(AliGPUTPCTracker) * sliceCount + sizeof(AliGPUTPCGMMerger) > GPUCA_GPU_TRACKER_OBJECT_MEMORY)
 	{
 		CAGPUError("Insufficiant Tracker Object Memory for %d slices", sliceCount);
 		return(1);
@@ -195,12 +195,12 @@ int AliGPUReconstructionDeviceBase::CheckMemorySizes(int sliceCount)
 
 int AliGPUReconstructionDeviceBase::ReadEvent(int iSlice, int threadId)
 {
-	mTPCSliceTrackersCPU[iSlice].SetGPUSliceDataMemory(SliceDataMemory(fHostLockedMemory, iSlice), RowMemory(fHostLockedMemory, iSlice));
+	mTPCSliceTrackersCPU[iSlice].SetGPUSliceDataMemory(RowMemory(fHostLockedMemory, iSlice));
 #ifdef GPUCA_GPU_TIME_PROFILE
 	unsigned long long int a, b;
 	AliGPUTPCTracker::StandaloneQueryTime(&a);
 #endif
-	if (mTPCSliceTrackersCPU[iSlice].ReadEvent(&mClusterData[iSlice])) return(1);
+	if (mTPCSliceTrackersCPU[iSlice].ReadEvent()) return(1);
 #ifdef GPUCA_GPU_TIME_PROFILE
 	AliGPUTPCTracker::StandaloneQueryTime(&b);
 	CAGPUInfo("Read %d %f %f\n", threadId, ((double) b - (double) a) / (double) fProfTimeC, ((double) a - (double) fProfTimeD) / (double) fProfTimeC);
@@ -340,6 +340,24 @@ int AliGPUReconstructionDeviceBase::GetThread()
 #endif
 }
 
+int AliGPUReconstructionDeviceBase::TransferMemoryResourcesToGPU(AliGPUProcessor* proc, int stream, bool all)
+{
+	if (proc->mMemoryResInput != -1) if (TransferMemoryResourceToGPU(&mMemoryResources[proc->mMemoryResInput], stream)) return 1;
+	if ((all || mDeviceProcessingSettings.keepAllMemory) && proc->mMemoryResOutput != -1) if (TransferMemoryResourceToGPU(&mMemoryResources[proc->mMemoryResOutput], stream)) return 1;
+	if ((mDeviceProcessingSettings.keepAllMemory) && proc->mMemoryResScratch != -1) if (TransferMemoryResourceToGPU(&mMemoryResources[proc->mMemoryResScratch], stream)) return 1;
+	if ((mDeviceProcessingSettings.keepAllMemory) && proc->mMemoryResScratchHost != -1) if (TransferMemoryResourceToGPU(&mMemoryResources[proc->mMemoryResScratchHost], stream)) return 1;
+	return 0;
+}
+
+int AliGPUReconstructionDeviceBase::TransferMemoryResourcesToHost(AliGPUProcessor* proc, int stream, bool all)
+{
+	if (proc->mMemoryResOutput != -1) if (TransferMemoryResourceToHost(&mMemoryResources[proc->mMemoryResOutput], stream)) return 1;
+	if ((all || mDeviceProcessingSettings.keepAllMemory) && proc->mMemoryResInput != -1) if (TransferMemoryResourceToHost(&mMemoryResources[proc->mMemoryResInput], stream)) return 1;
+	if ((mDeviceProcessingSettings.keepAllMemory) && proc->mMemoryResScratch != -1) if (TransferMemoryResourceToHost(&mMemoryResources[proc->mMemoryResScratch], stream)) return 1;
+	if ((mDeviceProcessingSettings.keepAllMemory) && proc->mMemoryResScratchHost != -1) if (TransferMemoryResourceToHost(&mMemoryResources[proc->mMemoryResScratchHost], stream)) return 1;
+	return 0;
+}
+
 int AliGPUReconstructionDeviceBase::InitDevice()
 {
 	//cpu_set_t mask;
@@ -348,6 +366,11 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 	//sched_setaffinity(0, sizeof(mask), &mask);
 
 	if (CheckMemorySizes(NSLICES)) return(1);
+	if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL)
+	{
+		CAGPUError("Individual memory allocation strategy unsupported for device\n");
+		return(1);
+	}
 
 #ifdef WIN32
 	HANDLE* semLock = NULL;
@@ -391,14 +414,20 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 #endif
 	const size_t trackerGPUMem  = GPUCA_GPU_ROWS_MEMORY + GPUCA_GPU_COMMON_MEMORY + NSLICES * (GPUCA_GPU_SLICE_DATA_MEMORY + GPUCA_GPU_GLOBAL_MEMORY);
 	const size_t trackerHostMem = GPUCA_GPU_ROWS_MEMORY + GPUCA_GPU_COMMON_MEMORY + NSLICES * (GPUCA_GPU_SLICE_DATA_MEMORY + GPUCA_GPU_TRACKS_MEMORY) + GPUCA_GPU_TRACKER_OBJECT_MEMORY;
-	fGPUMemSize = trackerGPUMem + fGPUMergerMaxMemory + GPUCA_GPU_MEMALIGN;
-	fHostMemSize = trackerHostMem + fGPUMergerMaxMemory + GPUCA_GPU_MEMALIGN;
+	fGPUMemSize = trackerGPUMem + fGPUMergerMaxMemory + GPUCA_GPU_MEMALIGN + GPUCA_GPU_MEMORY_SIZE;
+	fHostMemSize = trackerHostMem + fGPUMergerMaxMemory + GPUCA_GPU_MEMALIGN + GPUCA_HOST_MEMORY_SIZE;
 	int retVal = InitDevice_Runtime();
 	
 	if (mDeviceProcessingSettings.globalInitMutex) ReleaseGlobalLock(semLock);
 	
-	fGPUMergerMemory = getPointerWithAlignmentNoUpdate<GPUCA_GPU_MEMALIGN, char>(fGPUMemory, trackerGPUMem);
-	fGPUMergerHostMemory = getPointerWithAlignmentNoUpdate<GPUCA_GPU_MEMALIGN, char>(fHostLockedMemory, trackerHostMem);
+	mDeviceMemoryBase = (char*) fGPUMemory + trackerGPUMem + fGPUMergerMaxMemory;
+	mHostMemoryBase = (char*) fHostLockedMemory + trackerHostMem + fGPUMergerMaxMemory;
+	mDeviceMemorySize = GPUCA_GPU_MEMORY_SIZE;
+	mHostMemorySize = GPUCA_HOST_MEMORY_SIZE;
+	ClearAllocatedMemory();
+
+	fGPUMergerMemory = (char*) fGPUMemory + trackerGPUMem;
+	fGPUMergerHostMemory = (char*) fHostLockedMemory + trackerHostMem;
 	if (retVal)
 	{
 		CAGPUImportant("GPU Tracker initialization failed");
@@ -407,13 +436,17 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 
 	//Don't run constructor / destructor here, this will be just local memcopy of Tracker in GPU Memory
 	fGpuTracker = (AliGPUTPCTracker*) TrackerMemory(fHostLockedMemory, 0);
+	fGpuMerger = (AliGPUTPCGMMerger*) TrackerMemory(fHostLockedMemory, 36);
 
 	for (unsigned int i = 0;i < NSLICES;i++)
 	{
+		fGpuTracker[i].InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE, &mTPCSliceTrackersCPU[i]);
+		fGpuTracker[i].Data().InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE, &mTPCSliceTrackersCPU[i].Data());
 		mTPCSliceTrackersCPU[i].SetGPUTrackerCommonMemory((char*) CommonMemory(fHostLockedMemory, i));
-		mTPCSliceTrackersCPU[i].SetGPUSliceDataMemory(SliceDataMemory(fHostLockedMemory, i), RowMemory(fHostLockedMemory, i));
+		mTPCSliceTrackersCPU[i].SetGPUSliceDataMemory(RowMemory(fHostLockedMemory, i));
 		mTPCSliceTrackersCPU[i].InitializeRows(&mParam);
 	}
+	fGpuMerger->InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE, &mTPCMergerCPU);
 
 	if (StartHelperThreads()) return(1);
 
@@ -464,7 +497,142 @@ int AliGPUReconstructionDeviceBase::ExitDevice()
 	for (unsigned int i = 0;i < NSLICES;i++) pthread_mutex_destroy(&((pthread_mutex_t*) fSliceGlobalMutexes)[i]);
 	free(fSliceGlobalMutexes);
 
-	return(ExitDevice_Runtime());
+	int retVal = ExitDevice_Runtime();
+	mHostMemoryPool = mHostMemoryBase = mDeviceMemoryPool = mDeviceMemoryBase = nullptr;
+	mHostMemorySize = mDeviceMemorySize = 0;
+
+	return retVal;
+}
+
+int AliGPUReconstructionDeviceBase::Reconstruct_Base_Init()
+{
+	if (fThreadId != GetThread())
+	{
+		CAGPUDebug("CUDA thread changed, migrating context, Previous Thread: %d, New Thread: %d", fThreadId, GetThread());
+		fThreadId = GetThread();
+	}
+
+	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("Running GPU Tracker");
+
+	ActivateThreadContext();
+	memcpy((void*) fGpuTracker, (void*) mTPCSliceTrackersCPU, sizeof(AliGPUTPCTracker) * NSLICES);
+
+	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Allocating GPU Tracker memory and initializing constants");
+
+#ifdef GPUCA_GPU_TIME_PROFILE
+	AliGPUTPCTracker::StandaloneQueryFreq(&fProfTimeC);
+	AliGPUTPCTracker::StandaloneQueryTime(&fProfTimeD);
+#endif
+
+	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
+	{
+		mClusterData[iSlice].SetClusterData(iSlice, mIOPtrs.nClusterData[iSlice], mIOPtrs.clusterData[iSlice]);
+
+		//Make this a GPU Tracker
+		fGpuTracker[iSlice].InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
+		fGpuTracker[iSlice].SetGPUTrackerCommonMemory((char*) CommonMemory(fGPUMemory, iSlice));
+		fGpuTracker[iSlice].SetGPUSliceDataMemory(RowMemory(fGPUMemory, iSlice));
+		mTPCSliceTrackersCPU[iSlice].Data().SetClusterData(&mClusterData[iSlice]);
+		fGpuTracker[iSlice].Data().SetClusterData(&mClusterData[iSlice]);
+		if (mTPCSliceTrackersCPU[iSlice].Data().AllocateMemory())
+		{
+			ResetHelperThreads(0);
+			return(1);
+		}
+		fGpuTracker[iSlice].GPUParametersConst()->fGPUMem = (char*) fGPUMemory;
+
+		//Set Pointers to GPU Memory
+		char* tmpMem = (char*) GlobalMemory(fGPUMemory, iSlice);
+
+		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Initialising GPU Hits Memory");
+		tmpMem = fGpuTracker[iSlice].SetGPUTrackerHitsMemory(tmpMem, mClusterData[iSlice].NumberOfClusters());
+		tmpMem += getAlignment<GPUCA_GPU_MEMALIGN>(tmpMem);
+
+		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Initialising GPU Tracklet Memory");
+		tmpMem = fGpuTracker[iSlice].SetGPUTrackerTrackletsMemory(tmpMem, GPUCA_GPU_MAX_TRACKLETS);
+		tmpMem += getAlignment<GPUCA_GPU_MEMALIGN>(tmpMem);
+
+		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Initialising GPU Track Memory");
+		tmpMem = fGpuTracker[iSlice].SetGPUTrackerTracksMemory(tmpMem, GPUCA_GPU_MAX_TRACKS, mClusterData[iSlice].NumberOfClusters());
+		tmpMem += getAlignment<GPUCA_GPU_MEMALIGN>(tmpMem);
+
+		if (fGpuTracker[iSlice].TrackMemorySize() >= GPUCA_GPU_TRACKS_MEMORY RANDOM_ERROR)
+		{
+			CAGPUError("Insufficiant Track Memory");
+			ResetHelperThreads(0);
+			return(1);
+		}
+
+		if ((size_t) (tmpMem - (char*) GlobalMemory(fGPUMemory, iSlice)) > GPUCA_GPU_GLOBAL_MEMORY RANDOM_ERROR)
+		{
+			CAGPUError("Insufficiant Global Memory (%lld < %lld)", (long long int) (size_t) (tmpMem - (char*) GlobalMemory(fGPUMemory, iSlice)), (long long int) GPUCA_GPU_GLOBAL_MEMORY);
+			ResetHelperThreads(0);
+			return(1);
+		}
+
+		if (mDeviceProcessingSettings.debugLevel >= 3)
+		{
+			CAGPUInfo("GPU Global Memory Used: %lld/%lld, Page Locked Tracks Memory used: %lld / %lld", (long long int) (tmpMem - (char*) GlobalMemory(fGPUMemory, iSlice)), (long long int) GPUCA_GPU_GLOBAL_MEMORY, (long long int) fGpuTracker[iSlice].TrackMemorySize(), (long long int) GPUCA_GPU_TRACKS_MEMORY);
+		}
+
+		//Initialize Startup Constants
+		*mTPCSliceTrackersCPU[iSlice].NTracklets() = 0;
+		*mTPCSliceTrackersCPU[iSlice].NTracks() = 0;
+		*mTPCSliceTrackersCPU[iSlice].NTrackHits() = 0;
+		fGpuTracker[iSlice].GPUParametersConst()->fGPUFixedBlockCount = (int) NSLICES > fConstructorBlockCount ? ((int) iSlice < fConstructorBlockCount) : fConstructorBlockCount * (iSlice + 1) / NSLICES - fConstructorBlockCount * (iSlice) / NSLICES;
+		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Blocks for Slice %d: %d", iSlice, fGpuTracker[iSlice].GPUParametersConst()->fGPUFixedBlockCount);
+		fGpuTracker[iSlice].GPUParametersConst()->fGPUiSlice = iSlice;
+		mTPCSliceTrackersCPU[iSlice].GPUParameters()->fGPUError = 0;
+		mTPCSliceTrackersCPU[iSlice].GPUParameters()->fNextTracklet = ((fConstructorBlockCount + NSLICES - 1 - iSlice) / NSLICES) * fConstructorThreadCount;
+		fGpuTracker[iSlice].SetGPUTextureBase(mDeviceMemoryBase);
+	}
+
+	for (int i = 0;i < mDeviceProcessingSettings.nDeviceHelperThreads;i++)
+	{
+		fHelperParams[i].fDone = 0;
+		fHelperParams[i].fError = 0;
+		fHelperParams[i].fPhase = 0;
+		pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[0]);
+	}
+
+	return(0);
+}
+
+int AliGPUReconstructionDeviceBase::Reconstruct_Base_SliceInit(unsigned int iSlice)
+{
+	//Initialize GPU Slave Tracker
+	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Creating Slice Data (Slice %d)", iSlice);
+	if (iSlice % (mDeviceProcessingSettings.nDeviceHelperThreads + 1) == 0)
+	{
+		if (ReadEvent(iSlice, 0))
+		{
+			CAGPUError("Error reading event");
+			ResetHelperThreads(1);
+			return(1);
+		}
+	}
+	else
+	{
+		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Waiting for helper thread %d", iSlice % (mDeviceProcessingSettings.nDeviceHelperThreads + 1) - 1);
+		while(fHelperParams[iSlice % (mDeviceProcessingSettings.nDeviceHelperThreads + 1) - 1].fDone < (int) iSlice);
+		if (fHelperParams[iSlice % (mDeviceProcessingSettings.nDeviceHelperThreads + 1) - 1].fError)
+		{
+			ResetHelperThreads(1);
+			return(1);
+		}
+	}
+
+	if (mDeviceProcessingSettings.debugLevel >= 4)
+	{
+		if (!mDeviceProcessingSettings.comparableDebutOutput) mDebugFile << std::endl << std::endl << "Reconstruction: Slice " << iSlice << "/" << NSLICES << std::endl;
+		if (mDeviceProcessingSettings.debugMask & 1) mTPCSliceTrackersCPU[iSlice].DumpSliceData(mDebugFile);
+	}
+
+	if (mDeviceProcessingSettings.debugLevel >= 3)
+	{
+		CAGPUInfo("GPU Slice Data Memory Used: Input %lld / Scratch %lld", (long long int) mTPCSliceTrackersCPU[iSlice].Data().InputMemorySize(), (long long int) mTPCSliceTrackersCPU[iSlice].Data().ScratchMemorySize());
+	}
+	return(0);
 }
 
 int AliGPUReconstructionDeviceBase::Reconstruct_Base_FinishSlices(unsigned int iSlice)
@@ -522,6 +690,37 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_FinishSlices(unsigned int i
 	return(0);
 }
 
+int AliGPUReconstructionDeviceBase::Reconstruct_Base_StartGlobal(char*& tmpMemoryGlobalTracking)
+{
+	if (mParam.rec.GlobalTracking)
+	{
+		int tmpmemSize = sizeof(AliGPUTPCTracklet)
+#ifdef EXTERN_ROW_HITS
+		+ GPUCA_ROW_COUNT * sizeof(int)
+#endif
+		+ 16;
+		tmpMemoryGlobalTracking = (char*) malloc(tmpmemSize * NSLICES);
+		for (unsigned int i = 0;i < NSLICES;i++)
+		{
+			fSliceLeftGlobalReady[i] = 0;
+			fSliceRightGlobalReady[i] = 0;
+		}
+		memset(fGlobalTrackingDone, 0, NSLICES);
+		memset(fWriteOutputDone, 0, NSLICES);
+
+		for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
+		{
+			mTPCSliceTrackersCPU[iSlice].SetGPUTrackerTrackletsMemory(tmpMemoryGlobalTracking + (tmpmemSize * iSlice), 1);
+		}
+	}
+	for (int i = 0;i < mDeviceProcessingSettings.nDeviceHelperThreads;i++)
+	{
+		fHelperParams[i].fPhase = 1;
+		pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[0]);
+	}
+	return(0);
+}
+
 int AliGPUReconstructionDeviceBase::Reconstruct_Base_Finalize(char*& tmpMemoryGlobalTracking)
 {
 	if (mParam.rec.GlobalTracking)
@@ -562,169 +761,6 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_Finalize(char*& tmpMemoryGl
 	}
 
 	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("GPU Reconstruction finished");
-	return(0);
-}
-
-int AliGPUReconstructionDeviceBase::Reconstruct_Base_StartGlobal(char*& tmpMemoryGlobalTracking)
-{
-	if (mParam.rec.GlobalTracking)
-	{
-		int tmpmemSize = sizeof(AliGPUTPCTracklet)
-#ifdef EXTERN_ROW_HITS
-		+ GPUCA_ROW_COUNT * sizeof(int)
-#endif
-		+ 16;
-		tmpMemoryGlobalTracking = (char*) malloc(tmpmemSize * NSLICES);
-		for (unsigned int i = 0;i < NSLICES;i++)
-		{
-			fSliceLeftGlobalReady[i] = 0;
-			fSliceRightGlobalReady[i] = 0;
-		}
-		memset(fGlobalTrackingDone, 0, NSLICES);
-		memset(fWriteOutputDone, 0, NSLICES);
-
-		for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
-		{
-			mTPCSliceTrackersCPU[iSlice].SetGPUTrackerTrackletsMemory(tmpMemoryGlobalTracking + (tmpmemSize * iSlice), 1);
-		}
-	}
-	for (int i = 0;i < mDeviceProcessingSettings.nDeviceHelperThreads;i++)
-	{
-		fHelperParams[i].fPhase = 1;
-		pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[0]);
-	}
-	return(0);
-}
-
-int AliGPUReconstructionDeviceBase::Reconstruct_Base_SliceInit(unsigned int iSlice)
-{
-	//Initialize GPU Slave Tracker
-	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Creating Slice Data (Slice %d)", iSlice);
-	if (iSlice % (mDeviceProcessingSettings.nDeviceHelperThreads + 1) == 0)
-	{
-		if (ReadEvent(iSlice, 0))
-		{
-			CAGPUError("Error reading event");
-			ResetHelperThreads(1);
-			return(1);
-		}
-	}
-	else
-	{
-		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Waiting for helper thread %d", iSlice % (mDeviceProcessingSettings.nDeviceHelperThreads + 1) - 1);
-		while(fHelperParams[iSlice % (mDeviceProcessingSettings.nDeviceHelperThreads + 1) - 1].fDone < (int) iSlice);
-		if (fHelperParams[iSlice % (mDeviceProcessingSettings.nDeviceHelperThreads + 1) - 1].fError)
-		{
-			ResetHelperThreads(1);
-			return(1);
-		}
-	}
-
-	if (mDeviceProcessingSettings.debugLevel >= 4)
-	{
-		if (!mDeviceProcessingSettings.comparableDebutOutput) mDebugFile << std::endl << std::endl << "Reconstruction: Slice " << iSlice << "/" << NSLICES << std::endl;
-		if (mDeviceProcessingSettings.debugMask & 1) mTPCSliceTrackersCPU[iSlice].DumpSliceData(mDebugFile);
-	}
-
-	if (mTPCSliceTrackersCPU[iSlice].Data().MemorySize() > GPUCA_GPU_SLICE_DATA_MEMORY RANDOM_ERROR)
-	{
-		CAGPUError("Insufficiant Slice Data Memory: Slice %d, Needed %lld, Available %lld", iSlice, (long long int) mTPCSliceTrackersCPU[iSlice].Data().MemorySize(), (long long int) GPUCA_GPU_SLICE_DATA_MEMORY);
-		ResetHelperThreads(1);
-		return(1);
-	}
-
-	if (mDeviceProcessingSettings.debugLevel >= 3)
-	{
-		CAGPUInfo("GPU Slice Data Memory Used: %lld/%lld", (long long int) mTPCSliceTrackersCPU[iSlice].Data().MemorySize(), (long long int) GPUCA_GPU_SLICE_DATA_MEMORY);
-	}
-	return(0);
-}
-
-int AliGPUReconstructionDeviceBase::Reconstruct_Base_Init()
-{
-	if (fThreadId != GetThread())
-	{
-		CAGPUDebug("CUDA thread changed, migrating context, Previous Thread: %d, New Thread: %d", fThreadId, GetThread());
-		fThreadId = GetThread();
-	}
-
-	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("Running GPU Tracker");
-
-	ActivateThreadContext();
-	memcpy((void*) fGpuTracker, (void*) mTPCSliceTrackersCPU, sizeof(AliGPUTPCTracker) * NSLICES);
-
-	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Allocating GPU Tracker memory and initializing constants");
-
-#ifdef GPUCA_GPU_TIME_PROFILE
-	AliGPUTPCTracker::StandaloneQueryFreq(&fProfTimeC);
-	AliGPUTPCTracker::StandaloneQueryTime(&fProfTimeD);
-#endif
-
-	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
-	{
-		mClusterData[iSlice].SetClusterData(iSlice, mIOPtrs.nClusterData[iSlice], mIOPtrs.clusterData[iSlice]);
-
-		//Make this a GPU Tracker
-		fGpuTracker[iSlice].InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
-		fGpuTracker[iSlice].SetGPUTrackerCommonMemory((char*) CommonMemory(fGPUMemory, iSlice));
-		fGpuTracker[iSlice].SetGPUSliceDataMemory(SliceDataMemory(fGPUMemory, iSlice), RowMemory(fGPUMemory, iSlice));
-		fGpuTracker[iSlice].SetPointersSliceData(&mClusterData[iSlice], false);
-		fGpuTracker[iSlice].GPUParametersConst()->fGPUMem = (char*) fGPUMemory;
-
-		//Set Pointers to GPU Memory
-		char* tmpMem = (char*) GlobalMemory(fGPUMemory, iSlice);
-
-		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Initialising GPU Hits Memory");
-		tmpMem = fGpuTracker[iSlice].SetGPUTrackerHitsMemory(tmpMem, mClusterData[iSlice].NumberOfClusters());
-		tmpMem += getAlignment<GPUCA_GPU_MEMALIGN>(tmpMem);
-
-		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Initialising GPU Tracklet Memory");
-		tmpMem = fGpuTracker[iSlice].SetGPUTrackerTrackletsMemory(tmpMem, GPUCA_GPU_MAX_TRACKLETS);
-		tmpMem += getAlignment<GPUCA_GPU_MEMALIGN>(tmpMem);
-
-		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Initialising GPU Track Memory");
-		tmpMem = fGpuTracker[iSlice].SetGPUTrackerTracksMemory(tmpMem, GPUCA_GPU_MAX_TRACKS, mClusterData[iSlice].NumberOfClusters());
-		tmpMem += getAlignment<GPUCA_GPU_MEMALIGN>(tmpMem);
-
-		if (fGpuTracker[iSlice].TrackMemorySize() >= GPUCA_GPU_TRACKS_MEMORY RANDOM_ERROR)
-		{
-			CAGPUError("Insufficiant Track Memory");
-			ResetHelperThreads(0);
-			return(1);
-		}
-
-		if ((size_t) (tmpMem - (char*) GlobalMemory(fGPUMemory, iSlice)) > GPUCA_GPU_GLOBAL_MEMORY RANDOM_ERROR)
-		{
-			CAGPUError("Insufficiant Global Memory (%lld < %lld)", (long long int) (size_t) (tmpMem - (char*) GlobalMemory(fGPUMemory, iSlice)), (long long int) GPUCA_GPU_GLOBAL_MEMORY);
-			ResetHelperThreads(0);
-			return(1);
-		}
-
-		if (mDeviceProcessingSettings.debugLevel >= 3)
-		{
-			CAGPUInfo("GPU Global Memory Used: %lld/%lld, Page Locked Tracks Memory used: %lld / %lld", (long long int) (tmpMem - (char*) GlobalMemory(fGPUMemory, iSlice)), (long long int) GPUCA_GPU_GLOBAL_MEMORY, (long long int) fGpuTracker[iSlice].TrackMemorySize(), (long long int) GPUCA_GPU_TRACKS_MEMORY);
-		}
-
-		//Initialize Startup Constants
-		*mTPCSliceTrackersCPU[iSlice].NTracklets() = 0;
-		*mTPCSliceTrackersCPU[iSlice].NTracks() = 0;
-		*mTPCSliceTrackersCPU[iSlice].NTrackHits() = 0;
-		fGpuTracker[iSlice].GPUParametersConst()->fGPUFixedBlockCount = (int) NSLICES > fConstructorBlockCount ? ((int) iSlice < fConstructorBlockCount) : fConstructorBlockCount * (iSlice + 1) / NSLICES - fConstructorBlockCount * (iSlice) / NSLICES;
-		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Blocks for Slice %d: %d", iSlice, fGpuTracker[iSlice].GPUParametersConst()->fGPUFixedBlockCount);
-		fGpuTracker[iSlice].GPUParametersConst()->fGPUiSlice = iSlice;
-		mTPCSliceTrackersCPU[iSlice].GPUParameters()->fGPUError = 0;
-		mTPCSliceTrackersCPU[iSlice].GPUParameters()->fNextTracklet = ((fConstructorBlockCount + NSLICES - 1 - iSlice) / NSLICES) * fConstructorThreadCount;
-		fGpuTracker[iSlice].SetGPUTextureBase(fGpuTracker[0].Data().Memory());
-	}
-
-	for (int i = 0;i < mDeviceProcessingSettings.nDeviceHelperThreads;i++)
-	{
-		fHelperParams[i].fDone = 0;
-		fHelperParams[i].fError = 0;
-		fHelperParams[i].fPhase = 0;
-		pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[0]);
-	}
-
 	return(0);
 }
 

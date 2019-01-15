@@ -75,6 +75,7 @@ endif
 ifeq ($(GCCCUDA), )
 GCCCUDA							= $(GCC3264)
 endif
+CCCUDAOPTS						+= -Wno-parentheses
 
 MKDIR							= $(HIDEECHOB) mkdir -p `echo $@ | sed 's,/[a-zA-Z0-9._-]*$$,,'` `echo $@ | sed 's,/[a-zA-Z0-9._-]*$$,,'`
 
@@ -209,7 +210,7 @@ $(WORKPATH)/c/%.$(OBJ):			%.c $(ALLDEP)
 								$(CC) $(INCLUDEPATHSUSE) $(DEFINESUSE) $(FILEFLAGS$<) $(COMPILEONLY) $< $(COMPILEOUTPUT)
 
 $(WORKPATH)/cu/%.$(OBJ):		$(WORKPATH)/cu/%.cpp $(ALLDEP)
-								$(CCCUDA) $(INCLUDEPATHSUSE) $(DEFINESUSE) $(FILEFLAGS$<) $(COMPILEONLY) $< $(COMPILEOUTPUT)
+								$(CCCUDA) $(CCCUDAOPTS) $(INCLUDEPATHSUSE) $(DEFINESUSE) $(FILEFLAGS$<) $(COMPILEONLY) $< $(COMPILEOUTPUT)
 
 $(WORKPATH)/cu/%.cpp:			%.cu $(ALLDEP)
 								$(NVCC) $(NVCCFLAGSUSE) $(NVCCFLAGSDC) $(CUDAINCLUDEPATHS) $(CUDADEFINES) $(FILEFLAGS$<) --cuda --output-file "$@" $<
