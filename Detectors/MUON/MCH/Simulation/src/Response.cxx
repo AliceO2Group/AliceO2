@@ -35,6 +35,8 @@ float Response::etocharge(float edepos){
     charge -= mChargeSlope*TMath::Log(arg);
     
   }
+  //translate to fC roughly, equivalent to AliMUONConstants::DefaultADC2MV()*AliMUONConstants::DefaultA0()*AliMUONConstants::DefaultCapa() multiplication in aliroot
+  charge *= 0.61*1.25*0.2;// put this in header as constants?
   return charge;
 }
 //_____________________________________________________________________
@@ -49,13 +51,17 @@ double Response::chargePad(float x, float y, float xmin, float xmax, float ymin,
   xmax *= mInversePitch[station];
   ymin *= mInversePitch[station];
   ymax *= mInversePitch[station];
+      
   // The Mathieson function
   double ux1=mSqrtK3x[station]*TMath::TanH(mK2x[station]*xmin);
-  double ux2=mSqrtK3x[station]*TMath::TanH(mK2x[station]*xmax);
-  
+  double ux2=mSqrtK3x[station]*TMath::TanH(mK2x[station]*xmax)+0.001;
+    
   double uy1=mSqrtK3y[station]*TMath::TanH(mK2y[station]*ymin);
-  double uy2=mSqrtK3y[station]*TMath::TanH(mK2y[station]*ymax);
-  
+  double uy2=mSqrtK3y[station]*TMath::TanH(mK2y[station]*ymax)+0.001;
+  std::cout <<"ux1 " << ux1 << "ux2 "<< ux2 << "uy1 " << uy1 << "uy2 " << uy2 << std::endl;
+  std::cout <<"charge " << charge << std::endl;
+  std::cout <<"charge signal " << 4.*mK4x[station]*(TMath::ATan(ux2)-TMath::ATan(ux1))*
+    mK4y[station]*(TMath::ATan(uy2)-TMath::ATan(uy1))*charge <<std::endl;
   return 4.*mK4x[station]*(TMath::ATan(ux2)-TMath::ATan(ux1))*
     mK4y[station]*(TMath::ATan(uy2)-TMath::ATan(uy1))*charge;
 }

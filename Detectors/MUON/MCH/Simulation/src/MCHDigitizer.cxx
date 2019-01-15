@@ -87,7 +87,7 @@ int MCHDigitizer::processHit(const Hit &hit,double event_time)
   int indexID = mdetID.at(detID);
   //# digits for hit
   int ndigits=0;
-  
+
   float anodpos = mMuonresponse.getAnod(pos[0],detID);
   //TODO/Questions:
   //- charge sharing between planes wrong in Aliroot copied here?
@@ -108,7 +108,6 @@ int MCHDigitizer::processHit(const Hit &hit,double event_time)
   //borders of charge gen. 
   double xMin = anodpos-mMuonresponse.getQspreadX()*0.5;
   double xMax = anodpos+mMuonresponse.getQspreadX()*0.5;
-
   double yMin = pos[1]-mMuonresponse.getQspreadY()*0.5;
   double yMax = pos[1]+mMuonresponse.getQspreadY()*0.5;
   
@@ -119,7 +118,6 @@ int MCHDigitizer::processHit(const Hit &hit,double event_time)
   float ymax =0.0;
  
   //use DetectorID to get area for signal induction               
- 
   //single pad, used only as check...
   //to be seen if needed
   int padidbendcent=0;
@@ -133,18 +131,18 @@ int MCHDigitizer::processHit(const Hit &hit,double event_time)
   std::vector<int> padIDsnon;
 
   //retrieve pads with signal
-  mSeg[indexID].Bending().forEachPadInArea(xMin,xMax,yMin,yMax, [&padIDsbend](int padid){
+  mSeg[indexID].Bending().forEachPadInArea(xMin,yMin,xMax,yMax, [&padIDsbend](int padid){
       padIDsbend.emplace_back(padid); });
-  mSeg[indexID].NonBending().forEachPadInArea(xMin,xMax,yMin,yMax, [&padIDsnon](int padid){
+  mSeg[indexID].NonBending().forEachPadInArea(xMin,yMin,xMax,yMax, [&padIDsnon](int padid){
       padIDsnon.emplace_back(padid); });
 
   //induce signal pad-by-pad: bending
   for(auto & padidbend : padIDsbend){
     //retrieve coordinates for each pad
-  xmin =  mSeg[indexID].padPositionX(padidbend)-mSeg[indexID].padSizeX(padidbend)*0.5;
-  xmax =  mSeg[indexID].padPositionX(padidbend)+mSeg[indexID].padSizeX(padidbend)*0.5;
-  ymin =  mSeg[indexID].padPositionY(padidbend)-mSeg[indexID].padSizeY(padidbend)*0.5;
-  ymax =  mSeg[indexID].padPositionY(padidbend)+mSeg[indexID].padSizeY(padidbend)*0.5;
+    xmin =  mSeg[indexID].padPositionX(padidbend)-mSeg[indexID].padSizeX(padidbend)*0.5;
+    xmax =  mSeg[indexID].padPositionX(padidbend)+mSeg[indexID].padSizeX(padidbend)*0.5;
+    ymin =  mSeg[indexID].padPositionY(padidbend)-mSeg[indexID].padSizeY(padidbend)*0.5;
+    ymax =  mSeg[indexID].padPositionY(padidbend)+mSeg[indexID].padSizeY(padidbend)*0.5;
   // 1st step integrate induced charge for each pad
   signal = mMuonresponse.chargePad(anodpos,pos[1],xmin,xmax,ymin,ymax,detID,chargebend);
   if(signal>mMuonresponse.getChargeThreshold() && signal<mMuonresponse.getChargeSat()){
@@ -174,7 +172,6 @@ int MCHDigitizer::processHit(const Hit &hit,double event_time)
       ++ndigits;
     }
   }	
-  
   return ndigits;
 }
 //______________________________________________________________________
@@ -190,7 +187,6 @@ void MCHDigitizer::fillOutputContainer(std::vector<Digit>& digits)
   for (; iter != mDigits.end(); ++iter) {
     digits.emplace_back(*iter);
   }
-  
   mDigits.erase(itBeg, iter);
 }
 //______________________________________________________________________
