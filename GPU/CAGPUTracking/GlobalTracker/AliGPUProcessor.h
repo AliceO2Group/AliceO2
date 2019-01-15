@@ -12,7 +12,8 @@ public:
 
 	AliGPUProcessor();
 	void InitGPUProcessor(AliGPUReconstruction* rec, ProcessorType type);
-	
+	AliGPUProcessor(const AliGPUProcessor&) CON_DEFAULT;
+
 protected:
 	AliGPUReconstruction* mRec;
 	ProcessorType mGPUProcessorType;

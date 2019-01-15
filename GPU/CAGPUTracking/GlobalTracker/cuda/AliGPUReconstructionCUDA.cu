@@ -620,9 +620,7 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 		if (mDeviceProcessingSettings.debugLevel >= 4)
 		{
 			GPUFailedMsg(cudaMemcpy(mTPCSliceTrackersCPU[iSlice].Data().HitWeights(), fGpuTracker[iSlice].Data().HitWeights(), mTPCSliceTrackersCPU[iSlice].Data().NumberOfHitsPlusAlign() * sizeof(int), cudaMemcpyDeviceToHost));
-#ifndef BITWISE_COMPATIBLE_DEBUG_OUTPUT
-			if (mDeviceProcessingSettings.debugMask & 256) mTPCSliceTrackersCPU[iSlice].DumpHitWeights(mDebugFile);
-#endif
+			if (mDeviceProcessingSettings.debugMask & 256 && !mDeviceProcessingSettings.comparableDebutOutput) mTPCSliceTrackersCPU[iSlice].DumpHitWeights(mDebugFile);
 			if (mDeviceProcessingSettings.debugMask & 512) mTPCSliceTrackersCPU[iSlice].DumpTrackHits(mDebugFile);
 		}
 

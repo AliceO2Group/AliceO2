@@ -75,6 +75,7 @@ struct AliGPUCASettingsDeviceProcessing
 	int nDeviceHelperThreads;					//Additional CPU helper-threads for CPU parts of processing with accelerator
 	int debugLevel;								//Level of debug output (-1 = silent)
 	int debugMask;								//Mask for debug output dumps to file
+	bool comparableDebutOutput;					//Make CPU and GPU debug output comparable (sort / skip concurrent parts)
 	int resetTimers;							//Reset timers every event
 	AliGPUCADisplayBackend* eventDisplay;		//Run event display after processing, ptr to backend
 	bool runQA;									//Run QA after processing

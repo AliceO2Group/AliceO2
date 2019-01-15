@@ -240,7 +240,7 @@ int AliGPUReconstructionOCL::InitDevice_Runtime()
 
 		CAGPUDebug("Compiling OpenCL Program\n");
 		//Compile program
-		ocl_error = clBuildProgram(ocl->program, count, ocl->devices, "-I. -Iinclude -ISliceTracker -IHLTHeaders -IMerger -IGlobalTracker -I/home/qon/AMD-APP-SDK-v2.8.1.0-RC-lnx64/include -I/usr/local/cuda/include -DGPUCA_STANDALONE -DBUILD_GPU -D_64BIT -x clc++", NULL, NULL);
+		ocl_error = clBuildProgram(ocl->program, count, ocl->devices, "-I. -Iinclude -ISliceTracker -IHLTHeaders -IMerger -IGlobalTracker -I/home/qon/AMD-APP-SDK-v2.8.1.0-RC-lnx64/include -DGPUCA_STANDALONE -DBUILD_GPU -D_64BIT -x clc++", NULL, NULL);
 		if (ocl_error != CL_SUCCESS)
 		{
 			CAGPUDebug("OpenCL Error while building program: %d (Compiler options: %s)\n", ocl_error, "");
@@ -767,11 +767,11 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 		if (mDeviceProcessingSettings.debugLevel >= 4)
 		{
 			SynchronizeGPU();
-#ifndef BITWISE_COMPATIBLE_DEBUG_OUTPUT
-			//GPUFailedMsg(cudaMemcpy(mTPCSliceTrackersCPU[iSlice].Data().HitWeights(), fGpuTracker[iSlice].Data().HitWeights(), mTPCSliceTrackersCPU[iSlice].Data().NumberOfHitsPlusAlign() * sizeof(int), cudaMemcpyDeviceToHost));
-			GPUFailedMsg(clEnqueueReadBuffer(ocl->command_queue[0], ocl->mem_gpu, CL_TRUE, (char*) fGpuTracker[iSlice].TrackletMemory() - (char*) fGPUMemory, fGpuTracker[iSlice].TrackletMemorySize(), mTPCSliceTrackersCPU[iSlice].TrackletMemory(), 0, NULL, NULL));
-			if (mDeviceProcessingSettings.debugMask & 256) mTPCSliceTrackersCPU[iSlice].DumpHitWeights(mDebugFile);
-#endif
+			if (!mDeviceProcessingSettings.comparableDebutOutput)
+			{
+				GPUFailedMsg(clEnqueueReadBuffer(ocl->command_queue[0], ocl->mem_gpu, CL_TRUE, (char*) fGpuTracker[iSlice].Data().HitWeights() - (char*) fGPUMemory, fGpuTracker[iSlice].Data().NumberOfHitsPlusAlign() * sizeof(int), mTPCSliceTrackersCPU[iSlice].Data().HitWeights(), 0, NULL, NULL));
+				if (mDeviceProcessingSettings.debugMask & 256) mTPCSliceTrackersCPU[iSlice].DumpHitWeights(mDebugFile);
+			}
 			if (mDeviceProcessingSettings.debugMask & 512) mTPCSliceTrackersCPU[iSlice].DumpTrackHits(mDebugFile);
 		}
 

@@ -76,8 +76,6 @@
 
 //#define GPUCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE		//Output Profiling Data for Tracklet Constructor Tracklet Scheduling
 //#define GPUCA_GPU_TIME_PROFILE						//Output Time Profiling Data for asynchronous DMA transfer
-#define BITWISE_COMPATIBLE_DEBUG_OUTPUT					//Make Debug Output of CPU and GPU bitwise compatible for comparison, also enable SORT_DUMPDATA!
-#define GPUCA_GPU_SORT_DUMPDATA							//Sort Start Hits etc before dumping to file
 
 #define GPUCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE 12
 #define GPUCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT 8		//Currently must be smaller than avaiable MultiProcessors on GPU or will result in wrong results
