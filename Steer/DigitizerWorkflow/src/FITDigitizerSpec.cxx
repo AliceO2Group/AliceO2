@@ -123,7 +123,7 @@ class FITDPLDigitizerTask
         labels.clear();
         // digits.clear();
         mDigitizer.process(&hits, &digit);
- 	auto data = digit.getChDgData();
+        auto data = digit.getChDgData();
         LOG(INFO) << "Have " << data.size() << " fired channels ";
         // copy digits into accumulator
         // labelAccum.mergeAtBack(*labels);

@@ -81,7 +81,7 @@ void Detector::ConstructGeometry()
 
   int nCellsA = Geometry::NCellsA;
   int nCellsC = Geometry::NCellsC;
- 
+
   Geometry geometry;
   TVector3 centerMCP = geometry.centerMCP(2);
   Matrix(idrotm[901], 90., 0., 90., 90., 180., 0.);

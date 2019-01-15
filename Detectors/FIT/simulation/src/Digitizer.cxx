@@ -73,11 +73,11 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
     }
   }
 
-  // sum  different sources 
+  // sum  different sources
   std::vector<ChannelData> mChDgDataArr;
   for (const auto& d : digit->getChDgData()) {
     Int_t mcp = d.ChId;
-    cfd[mcp] = d.CFDTime; 
+    cfd[mcp] = d.CFDTime;
     amp[mcp] = d.QTCAmpl;
   }
 
@@ -103,7 +103,6 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
   }
 
   digit->setChDgData(std::move(mChDgDataArr));
-  
 }
 
 //------------------------------------------------------------------------
@@ -120,16 +119,17 @@ void Digitizer::smearCFDtime(Digit* digit)
       mChDgDataArr.emplace_back(ChannelData{ mcp, smeared_time, amp });
     }
   }
+  digit->setChDgData(std::move(mChDgDataArr));
 }
 
 //------------------------------------------------------------------------
 void Digitizer::setTriggers(Digit* digit)
 {
-  constexpr Double_t BC_clk_center = 12.5;                // clk center
-  constexpr Double_t trg_central_trh = 100.;              // mip
-  constexpr Double_t trg_semicentral_trh = 50.;           // mip
-  constexpr Double_t trg_vertex_min = -3.;                //ns
-  constexpr Double_t trg_vertex_max = 3.;                 //ns
+  constexpr Double_t BC_clk_center = 12.5;      // clk center
+  constexpr Double_t trg_central_trh = 100.;    // mip
+  constexpr Double_t trg_semicentral_trh = 50.; // mip
+  constexpr Double_t trg_vertex_min = -3.;      //ns
+  constexpr Double_t trg_vertex_max = 3.;       //ns
 
   // Calculating triggers -----------------------------------------------------
   Int_t n_hit_A = 0, n_hit_C = 0;

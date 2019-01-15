@@ -30,9 +30,9 @@ void RecPoints::FillFromDigits(const Digit& digit)
   Float_t cfd[nMCPs] = {}, amp[nMCPs] = {};
   Float_t sideAtime = 0, sideCtime = 0;
 
-  mEventTime = digit.getTime();
   mBC = digit.getBC();
   mOrbit = digit.getOrbit();
+  mEventTime = o2::InteractionRecord::bc2ns(mBC, mOrbit);
 
   Float_t BCEventTime = 12.5;
 
