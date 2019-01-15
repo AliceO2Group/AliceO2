@@ -31,6 +31,36 @@ namespace o2
 {
 namespace framework
 {
+namespace detail
+{
+// This is needed by Arrow 0.12.0 which dropped
+//
+//      using ArrowType = ArrowType_;
+//
+// from ARROW_STL_CONVERSION
+template <typename T>
+struct ConversionTraits {
+};
+
+#define O2_ARROW_STL_CONVERSION(c_type, ArrowType_) \
+  template <>                                       \
+  struct ConversionTraits<c_type> {                 \
+    using ArrowType = ::arrow::ArrowType_;          \
+  };
+
+O2_ARROW_STL_CONVERSION(bool, BooleanType)
+O2_ARROW_STL_CONVERSION(int8_t, Int8Type)
+O2_ARROW_STL_CONVERSION(int16_t, Int16Type)
+O2_ARROW_STL_CONVERSION(int32_t, Int32Type)
+O2_ARROW_STL_CONVERSION(int64_t, Int64Type)
+O2_ARROW_STL_CONVERSION(uint8_t, UInt8Type)
+O2_ARROW_STL_CONVERSION(uint16_t, UInt16Type)
+O2_ARROW_STL_CONVERSION(uint32_t, UInt32Type)
+O2_ARROW_STL_CONVERSION(uint64_t, UInt64Type)
+O2_ARROW_STL_CONVERSION(float, FloatType)
+O2_ARROW_STL_CONVERSION(double, DoubleType)
+O2_ARROW_STL_CONVERSION(std::string, StringType)
+}
 
 struct BuilderUtils {
   template <typename BuilderType, typename T>
@@ -42,7 +72,7 @@ struct BuilderUtils {
   template <typename BuilderType, typename ITERATOR>
   static arrow::Status append(BuilderType& builder, std::pair<ITERATOR, ITERATOR> ip)
   {
-    using ArrowType = typename arrow::stl::ConversionTraits<typename ITERATOR::value_type>::ArrowType;
+    using ArrowType = typename detail::ConversionTraits<typename ITERATOR::value_type>::ArrowType;
     using ValueBuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
     // FIXME: for the moment we do not fill things.
     auto status = builder->Append();
@@ -54,7 +84,7 @@ struct BuilderUtils {
 template <typename T>
 struct BuilderMaker {
   using FillType = T;
-  using ArrowType = typename arrow::stl::ConversionTraits<T>::ArrowType;
+  using ArrowType = typename detail::ConversionTraits<T>::ArrowType;
   using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
 
   static std::unique_ptr<BuilderType> make(arrow::MemoryPool* pool)
@@ -77,7 +107,7 @@ template <typename ITERATOR>
 struct BuilderMaker<std::pair<ITERATOR, ITERATOR>> {
   using FillType = std::pair<ITERATOR, ITERATOR>;
   using ArrowType = arrow::ListType;
-  using ValueType = typename arrow::stl::ConversionTraits<typename ITERATOR::value_type>::ArrowType;
+  using ValueType = typename detail::ConversionTraits<typename ITERATOR::value_type>::ArrowType;
   using BuilderType = arrow::ListBuilder;
   using ValueBuilder = typename arrow::TypeTraits<ValueType>::BuilderType;
 
@@ -101,7 +131,7 @@ auto make_builders()
 
 template <typename T>
 struct BuilderTraits {
-  using ArrowType = typename arrow::stl::ConversionTraits<T>::ArrowType;
+  using ArrowType = typename detail::ConversionTraits<T>::ArrowType;
   using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
 };
 
