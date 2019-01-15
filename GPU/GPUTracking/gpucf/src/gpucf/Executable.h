@@ -5,6 +5,9 @@
 #include <string>
 
 
+namespace gpucf
+{
+
 class Executable 
 {
 
@@ -37,5 +40,7 @@ private:
     args::Group optionalArgs;
     
 };
+
+}
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

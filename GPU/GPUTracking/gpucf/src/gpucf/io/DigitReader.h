@@ -6,6 +6,9 @@
 #include <args/args.hxx>
 
 
+namespace gpucf
+{
+
 class DigitReader : public DataReader<Digit, DigitParser>
 {
 
@@ -35,5 +38,7 @@ public:
     }
     
 };
+
+} // namespace gpucf
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

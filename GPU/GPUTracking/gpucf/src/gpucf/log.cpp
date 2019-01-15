@@ -1,6 +1,12 @@
 #include "log.h"
 
-namespace log 
+
+using namespace gpucf::log;
+
+
+namespace gpucf
+{
+namespace log
 {
 
 const char *levelToStr(Level lvl) 
@@ -18,8 +24,11 @@ std::ostream &operator<<(std::ostream &o, Level lvl)
 {
     return o << levelToStr(lvl);
 }
-    
+
+
 } // namespace log
+
+} // namespace gpucf
 
 // vim: set ts=4 sw=4 sts=4 expandtab:
 

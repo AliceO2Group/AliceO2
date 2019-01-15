@@ -3,7 +3,7 @@
 
 int main(int argc, const char *argv[]) 
 {
-    ClCanary canary;
+    gpucf::ClCanary canary;
 
     return canary.main(argc, argv);
 }

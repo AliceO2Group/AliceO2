@@ -15,6 +15,7 @@ typedef struct Cluster_s
     SHARED_FLOAT timeSigma;
 } Cluster;
 
+
 #endif //!defined(SHARED_CLUSTER_H)
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

@@ -8,6 +8,7 @@
 #include <stdexcept>
 
 
+using namespace gpucf;
 namespace fs = filesystem;
 
 

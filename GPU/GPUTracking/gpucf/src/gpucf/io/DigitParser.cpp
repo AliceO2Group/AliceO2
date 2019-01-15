@@ -5,6 +5,9 @@
 #include <gpucf/log.h>
 
 
+using namespace gpucf;
+
+
 std::regex DigitParser::prefix = std::regex("Digit:\\s*(.*)");
 
 

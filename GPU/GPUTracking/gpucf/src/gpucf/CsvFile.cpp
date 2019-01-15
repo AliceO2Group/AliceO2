@@ -3,6 +3,9 @@
 #include <sstream>
 
 
+using namespace gpucf;
+
+
 std::string CsvFile::str() const {
 
     std::stringstream ss;

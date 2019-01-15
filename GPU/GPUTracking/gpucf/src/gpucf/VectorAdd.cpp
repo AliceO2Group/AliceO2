@@ -4,6 +4,8 @@
 #include <gpucf/log.h>
 
 
+using namespace gpucf;
+
 namespace fs = filesystem;
 
 

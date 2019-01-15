@@ -1,8 +1,10 @@
 set(GPUCF_SRC
     "./log.cpp"
     "./CfRunner.cpp"
+    "./ChargeMap.cpp"
     "./ClCanary.cpp"
     "./ClEnv.cpp"
+    "./ClusterChecker.cpp"
     "./Executable.cpp"
     "./VectorAdd.cpp"
     "./GPUClusterFinder.cpp"
