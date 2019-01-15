@@ -1,8 +1,12 @@
 #include "Executable.h"
 
+#include <gpucf/cl.h>
 #include <gpucf/log.h>
 
 #include <iostream>
+
+
+using namespace gpucf;
 
 
 int Executable::main(int argc, const char *argv[]) 
@@ -24,7 +28,16 @@ int Executable::main(int argc, const char *argv[])
         showHelpAndExit();
     }
 
-    return mainImpl();
+
+    try
+    {
+        return mainImpl();
+    }
+    catch(const cl::Error &err)
+    {
+        log::Error() << "Caught cl::Error: " << err.what() << "(" << err.err() << ")";
+        throw err;
+    }
 }
 
 void Executable::showHelpAndExit()

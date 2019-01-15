@@ -6,6 +6,9 @@
 #include <memory>
 
 
+namespace gpucf
+{
+
 class ClCanary : public Executable 
 {
     
@@ -23,5 +26,8 @@ private:
     std::unique_ptr<ClEnv::Flags> envFlags;
 
 };
+
+};
+
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

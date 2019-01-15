@@ -9,11 +9,12 @@
 
 #define DIGIT_CHARGE(map, digit) CHARGE(map, digit.row, digit.pad, digit.time)
 
-constant int CHARGE_THRESHOLD = 2;
-constant int OUTER_CHARGE_THRESHOLD = 0;
+constant float CHARGE_THRESHOLD = 2;
+constant float OUTER_CHARGE_THRESHOLD = 0;
 
 constant int2 LEQ_NEIGHBORS[4] = {(int2)(-1, -1), (int2)(-1, 0), (int2)(0, -1), (int2)(1, -1)};
 constant int2 LQ_NEIGHBORS[4]  = {(int2)(-1, 1), (int2)(0, 1), (int2)(1, 1), (int2)(0, 1)};
+
 
 Cluster newCluster()
 {
@@ -44,7 +45,7 @@ void updateClusterOuter(
     float innerCharge = CHARGE(chargeMap, row, pad+dpIn, time+dtIn);
     float outerCharge = CHARGE(chargeMap, row, pad+dpOut, time+dtOut);
 
-    if (   innerCharge > CHARGE_THRESHOLD 
+    if (   innerCharge >       CHARGE_THRESHOLD 
         && outerCharge > OUTER_CHARGE_THRESHOLD) 
     {
         updateCluster(cluster, outerCharge, dpOut, dtOut);
@@ -144,6 +145,30 @@ void finalizeCluster(Cluster *myCluster, const Digit *myDigit)
 }
 
 
+kernel
+void testStructCopy(
+        global const Digit   *digits,
+        global const float   *chargeMap,
+        global       Cluster *clusters)
+{
+    int idx = get_global_id(0);
+
+    Digit myDigit = digits[idx]; 
+
+    Cluster myCluster;
+
+    myCluster.cru = myDigit.cru;
+    myCluster.row = myDigit.row;
+    myCluster.Q        = DIGIT_CHARGE(chargeMap, myDigit);
+    myCluster.QMax     = myDigit.charge;
+    myCluster.padMean  = myDigit.pad;
+    myCluster.timeMean = myDigit.time;
+    myCluster.padSigma = myDigit.pad;
+    myCluster.timeMean = myDigit.time;
+
+    clusters[idx] = myCluster;
+}
+
 
 kernel
 void digitsToChargeMap(
@@ -155,7 +180,6 @@ void digitsToChargeMap(
 
     DIGIT_CHARGE(chargeMap, myDigit) = myDigit.charge;
 }
-
 
 kernel
 void findClusters(

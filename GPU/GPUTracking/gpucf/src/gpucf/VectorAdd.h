@@ -3,6 +3,9 @@
 #include <array>
 
 
+namespace gpucf
+{
+
 class ClEnv;
 
 class VectorAdd 
@@ -20,5 +23,7 @@ private:
     std::array<int, N> b;
     std::array<int, N> c;
 };
+
+}
 
 // vim: set ts=4 sw=4 sts=4 expandtab:
