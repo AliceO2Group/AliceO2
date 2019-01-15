@@ -389,7 +389,6 @@ GPUd() void AliGPUTPCGMTrackParam::AttachClusters(const AliGPUTPCGMMerger *Merge
 		unsigned int hitLst = TEXTUREFetchCons(calink, gAliTexRefu, firsthit, mybin + ny + 1);
 		for (unsigned int ih = hitFst;ih < hitLst;ih++)
 		{
-			assert((signed) ih < row.NHits());
 			cahit2 hh = TEXTUREFetchCons(cahit2, gAliTexRefu2, hits, ih);
 			int id = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, ih));
 			int *weight = &Merger->ClusterAttachment()[id];
