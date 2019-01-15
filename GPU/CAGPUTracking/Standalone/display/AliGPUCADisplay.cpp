@@ -1225,18 +1225,9 @@ int AliGPUCADisplay::DrawGLScene(bool mixAnimation, float animateTime) // Here's
 			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
 				AliGPUTPCTracker &tracker = (AliGPUTPCTracker&) sliceTracker(iSlice);
-				char *tmpMem;
-				if (tracker.fLinkTmpMemory == NULL)
-				{
-					if (tracker.Data().NumberOfHits()) printf("Need to set TRACKER_KEEP_TEMPDATA for visualizing PreLinks!\n");
-					continue;
-				}
-				tmpMem = tracker.Data().Memory();
-				tracker.SetGPUSliceDataMemory((void *) tracker.fLinkTmpMemory, tracker.Data().Rows());
-				tracker.SetPointersSliceData(tracker.ClusterData());
+				tracker.Data().SetPointers((void *) tracker.fLinkTmpMemory);
 				glDLlines[iSlice][0] = DrawLinks(tracker, 1, true);
-				tracker.SetGPUSliceDataMemory(tmpMem, tracker.Data().Rows());
-				tracker.SetPointersSliceData(tracker.ClusterData());
+				tracker.Data().SetPointers(tracker.Data().Memory());
 			}
 			AliGPUTPCGMPropagator prop;
 			const float kRho = 1.025e-3;//0.9e-3;

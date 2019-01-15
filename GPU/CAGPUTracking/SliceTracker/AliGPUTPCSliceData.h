@@ -23,6 +23,7 @@
 #include "AliGPUCAParam.h"
 #include "AliGPUProcessor.h"
 #include "AliGPUTPCGPUConfig.h"
+#include "AliGPUMemoryResource.h"
 
 class AliGPUTPCClusterData;
 class AliGPUTPCHit;
@@ -38,9 +39,8 @@ MEM_CLASS_PRE() class AliGPUTPCSliceData : public AliGPUProcessor
   public:
 	AliGPUTPCSliceData() :
         AliGPUProcessor(),
-		fFirstRow( 0 ), fLastRow( GPUCA_ROW_COUNT - 1), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMaxZ(0.f), fMemorySize( 0 ), fGpuMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
-		,fRows( NULL ), fLinkUpData( 0 ), fLinkDownData( 0 ), fHitData( 0 ), fClusterDataIndex( 0 )
-		, fFirstHitInBin( 0 ), fHitWeights( 0 )
+		fFirstRow(0), fLastRow(GPUCA_ROW_COUNT - 1), fNumberOfHits(0), fNumberOfHitsPlusAlign(0), fMaxZ(0.f),
+        fGPUTextureBase(0), fRows(0), fLinkUpData(0), fLinkDownData(0), fClusterData(0)
 	{
 	}
 
@@ -55,14 +55,14 @@ MEM_CLASS_PRE() class AliGPUTPCSliceData : public AliGPUProcessor
 	 * data.
 	 */
 
-	void SetGPUSliceDataMemory(void* const pSliceMemory, void* const pRowMemory);
-	size_t SetPointers(const AliGPUTPCClusterData *data, bool allocate = false);
-	int InitFromClusterData( const AliGPUTPCClusterData &data );
-
-	/**
-	 * Clear the slice data (e.g. for an empty slice)
-	 */
-	void Clear();
+	void SetGPUSliceDataMemory(void* const pRowMemory);
+    void SetClusterData(const AliGPUTPCClusterData *data);
+    int AllocateMemory();
+	void* SetPointersInput(void* mem);
+    void* SetPointersScratch(void* mem);
+    void* SetPointersScratchHost(void* mem);
+    void RegisterMemoryAllocation();
+	int InitFromClusterData();
 
 	/**
 	 * Return the number of hits in this slice.
@@ -86,10 +86,8 @@ MEM_CLASS_PRE() class AliGPUTPCSliceData : public AliGPUProcessor
 
 	MEM_TEMPLATE() GPUd() void SetHitLinkUpData  ( const MEM_TYPE(AliGPUTPCRow) &row, const calink &hitIndex, const calink &value );
 	MEM_TEMPLATE() GPUd() void SetHitLinkDownData( const MEM_TYPE(AliGPUTPCRow) &row, const calink &hitIndex, const calink &value );
-	/**
-	 * Reset all links to -1.
-	 */
-	void ClearLinks();
+
+	//void ClearLinks();
 
 	/**
 	 * Return the y and z coordinate(s) of the given hit(s).
@@ -135,14 +133,12 @@ MEM_CLASS_PRE() class AliGPUTPCSliceData : public AliGPUProcessor
 
 	GPUhdi() GPUglobalref() int* HitWeights() const {return(fHitWeights); }
 
-	GPUhdi() void SetGPUTextureBase(char* const val) {fGPUTextureBase = val;}
-	GPUhdi() char* GPUTextureBase() const { return(fGPUTextureBase); }
-	GPUhdi() char* GPUTextureBaseConst() const { return(fGPUTextureBase); }
+	GPUhdi() void SetGPUTextureBase(void* const val) {fGPUTextureBase = val;}
+	GPUhdi() char* GPUTextureBase() const { return((char*) fGPUTextureBase); }
+	GPUhdi() char* GPUTextureBaseConst() const { return((char*) fGPUTextureBase); }
 
 #if !defined(__OPENCL__)
-	GPUhi() char* Memory() const {return(fMemory); }
-	GPUhi() size_t MemorySize() const {return(fMemorySize); }
-	GPUhi() size_t GpuMemorySize() const {return(fGpuMemorySize); }
+    GPUhi() const AliGPUTPCClusterData* ClusterData() const {return fClusterData;}
 #endif
 
 	float MaxZ() const { return fMaxZ; }
@@ -164,10 +160,7 @@ MEM_CLASS_PRE() class AliGPUTPCSliceData : public AliGPUProcessor
     
 	float fMaxZ;
 
-	size_t fMemorySize;           // size of the allocated memory in bytes
-	size_t fGpuMemorySize;        // size of Memory needed to be transfered to GPU
-	GPUglobalref() char *fMemory;             // pointer to the allocated memory where all the following arrays reside in
-	GPUglobalref() char *fGPUTextureBase;     // pointer to start of GPU texture
+	GPUglobalref() void *fGPUTextureBase;     // pointer to start of GPU texture
 
 	GPUglobalref() MEM_GLOBAL(AliGPUTPCRow) *fRows;     // The row objects needed for most accessor functions
 
@@ -186,6 +179,7 @@ MEM_CLASS_PRE() class AliGPUTPCSliceData : public AliGPUProcessor
 
 	GPUglobalref() int *fHitWeights;          // the weight of the longest tracklet crossed the cluster
 
+    GPUglobalref() const AliGPUTPCClusterData *fClusterData;
 };
 
 MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() calink MEM_LG(AliGPUTPCSliceData)::HitLinkUpData  ( const MEM_TYPE( AliGPUTPCRow)&row, const calink &hitIndex ) const

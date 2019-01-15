@@ -48,4 +48,6 @@ void AliGPUCASettingsDeviceProcessing::SetDefaults()
 	eventDisplay = nullptr;
 	runQA = false;
 	stuckProtection = 0;
+	memoryAllocationStrategy = 0;
+	keepAllMemory = false;
 }

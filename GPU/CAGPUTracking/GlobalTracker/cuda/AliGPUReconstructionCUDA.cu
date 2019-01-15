@@ -399,7 +399,7 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 		//Copy Data to GPU Global Memory
 		mTPCSliceTrackersCPU[iSlice].StartTimer(0);
 		if (GPUFailedMsg(cudaMemcpyAsync(fGpuTracker[iSlice].CommonMemory(), mTPCSliceTrackersCPU[iSlice].CommonMemory(), mTPCSliceTrackersCPU[iSlice].CommonMemorySize(), cudaMemcpyHostToDevice, mInternals->CudaStreams[useStream])) ||
-		    GPUFailedMsg(cudaMemcpyAsync(fGpuTracker[iSlice].Data().Memory(), mTPCSliceTrackersCPU[iSlice].Data().Memory(), mTPCSliceTrackersCPU[iSlice].Data().GpuMemorySize(), cudaMemcpyHostToDevice, mInternals->CudaStreams[useStream])) ||
+		    TransferMemoryResourcesToGPU(&mTPCSliceTrackersCPU[iSlice].Data(), useStream) ||
 		    GPUFailedMsg(cudaMemcpyAsync(fGpuTracker[iSlice].SliceDataRows(), mTPCSliceTrackersCPU[iSlice].SliceDataRows(), (GPUCA_ROW_COUNT + 1) * sizeof(AliGPUTPCRow), cudaMemcpyHostToDevice, mInternals->CudaStreams[useStream])))
 		{
 			CAGPUError("Error copying data to GPU");
@@ -440,7 +440,7 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 
 		if (mDeviceProcessingSettings.debugLevel >= 4)
 		{
-			GPUFailedMsg(cudaMemcpy(mTPCSliceTrackersCPU[iSlice].Data().Memory(), fGpuTracker[iSlice].Data().Memory(), mTPCSliceTrackersCPU[iSlice].Data().GpuMemorySize(), cudaMemcpyDeviceToHost));
+			TransferMemoryResourcesToHost(&mTPCSliceTrackersCPU[iSlice].Data(), -1, true);
 			if (mDeviceProcessingSettings.debugMask & 2) mTPCSliceTrackersCPU[iSlice].DumpLinks(mDebugFile);
 		}
 
@@ -456,7 +456,7 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 
 		if (mDeviceProcessingSettings.debugLevel >= 4)
 		{
-			GPUFailedMsg(cudaMemcpy(mTPCSliceTrackersCPU[iSlice].Data().Memory(), fGpuTracker[iSlice].Data().Memory(), mTPCSliceTrackersCPU[iSlice].Data().GpuMemorySize(), cudaMemcpyDeviceToHost));
+			TransferMemoryResourcesToHost(&mTPCSliceTrackersCPU[iSlice].Data(), -1, true);
 			if (mDeviceProcessingSettings.debugMask & 4) mTPCSliceTrackersCPU[iSlice].DumpLinks(mDebugFile);
 		}
 
@@ -833,6 +833,18 @@ int AliGPUReconstructionCUDA::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool 
 	cuCtxPopCurrent((CUcontext*) &mInternals->CudaContext);
 	return(0);
 #endif
+}
+
+int AliGPUReconstructionCUDA::TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream)
+{
+	if (stream == -1) return GPUFailedMsg(cudaMemcpy(res->PtrDevice(), res->Ptr(), res->Size(), cudaMemcpyHostToDevice));
+	else return GPUFailedMsg(cudaMemcpyAsync(res->PtrDevice(), res->Ptr(), res->Size(), cudaMemcpyHostToDevice, mInternals->CudaStreams[stream]));
+}
+
+int AliGPUReconstructionCUDA::TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream)
+{
+	if (stream == -1) return GPUFailedMsg(cudaMemcpy(res->Ptr(), res->PtrDevice(), res->Size(), cudaMemcpyDeviceToHost));
+	return GPUFailedMsg(cudaMemcpyAsync(res->Ptr(), res->PtrDevice(), res->Size(), cudaMemcpyDeviceToHost, mInternals->CudaStreams[stream]));
 }
 
 int AliGPUReconstructionCUDA::GPUMergerAvailable() const

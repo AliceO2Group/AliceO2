@@ -29,8 +29,8 @@
 static inline float fastInvSqrt(float _x)
 {
 	// the function calculates fast inverse sqrt
-
-	union {
+	union
+	{
 		float f;
 		int i;
 	} x = {_x};
@@ -43,7 +43,6 @@ static inline float fastInvSqrt(float _x)
 inline void AliGPUTPCSliceData::CreateGrid(AliGPUTPCRow *row, const float2 *data, int ClusterDataHitNumberOffset)
 {
 	// grid creation
-
 	if (row->NHits() <= 0)
 	{ // no hits or invalid data
 		// grid coordinates don't matter, since there are no hits
@@ -81,7 +80,6 @@ inline void AliGPUTPCSliceData::CreateGrid(AliGPUTPCRow *row, const float2 *data
 inline int AliGPUTPCSliceData::PackHitData(AliGPUTPCRow *const row, const AliGPUTPCHit* binSortedHits)
 {
 	// hit data packing
-
 	static const float maxVal = (((long long int) 1 << CAMath::Min(24, sizeof(cahit) * 8)) - 1); //Stay within float precision in any case!
 	static const float packingConstant = 1.f / (maxVal - 2.);
 	const float y0 = row->fGrid.YMin();
@@ -117,11 +115,6 @@ inline int AliGPUTPCSliceData::PackHitData(AliGPUTPCRow *const row, const AliGPU
 	return 0;
 }
 
-void AliGPUTPCSliceData::Clear()
-{
-	fNumberOfHits = 0;
-}
-
 void AliGPUTPCSliceData::InitializeRows(const AliGPUCAParam &p)
 {
 	// initialisation of rows
@@ -142,89 +135,76 @@ AliGPUTPCSliceData::~AliGPUTPCSliceData()
 		if (mGPUProcessorType == PROCESSOR_TYPE_CPU) delete[] fRows;
 		fRows = NULL;
 	}
-	if (fMemory)
-	{
-		if (mGPUProcessorType == PROCESSOR_TYPE_CPU) delete[] fMemory;
-		fMemory = NULL;
-	}
 }
 #endif
 
-GPUh() void AliGPUTPCSliceData::SetGPUSliceDataMemory(void *const pSliceMemory, void *const pRowMemory)
+GPUh() void AliGPUTPCSliceData::SetGPUSliceDataMemory(void *const pRowMemory)
 {
 	//Set Pointer to slice data memory to external memory
-	fMemory = (char *) pSliceMemory;
 	fRows = (AliGPUTPCRow *) pRowMemory;
 }
 
-size_t AliGPUTPCSliceData::SetPointers(const AliGPUTPCClusterData *data, bool allocate)
+void AliGPUTPCSliceData::SetClusterData(const AliGPUTPCClusterData *data)
 {
-	//Set slice data internal pointers
-
+	fClusterData = data;
 	int hitMemCount = GPUCA_ROW_COUNT * sizeof(GPUCA_GPU_ROWALIGNMENT) + data->NumberOfClusters();
-	//Calculate Memory needed to store hits in rows
-
 	const unsigned int kVectorAlignment = 256;
 	fNumberOfHitsPlusAlign = AliGPUReconstruction::nextMultipleOf<(kVectorAlignment > sizeof(GPUCA_GPU_ROWALIGNMENT) ? kVectorAlignment : sizeof(GPUCA_GPU_ROWALIGNMENT)) / sizeof(int)>(hitMemCount);
 	fNumberOfHits = data->NumberOfClusters();
-	
-	
-	
-	const int firstHitInBinSize = (23 + sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(int)) * GPUCA_ROW_COUNT + 4 * fNumberOfHits + 3;
-	//FIXME: sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(int) * GPUCA_ROW_COUNT is way to big and only to ensure to reserve enough memory for GPU Alignment.
-	//Might be replaced by correct value
+}
 
-	const int memorySize =
-	    // LinkData, HitData
-	    fNumberOfHitsPlusAlign * 2 * (sizeof(cahit) + sizeof(calink)) +
-	    // FirstHitInBin
-	    AliGPUReconstruction::nextMultipleOf<kVectorAlignment>((firstHitInBinSize) * sizeof(int)) +
-	    // HitWeights, ClusterDataIndex
-	    fNumberOfHitsPlusAlign * 2 * sizeof(int);
-
-	fMemorySize = memorySize + 4;
-	if (allocate)
+int AliGPUTPCSliceData::AllocateMemory()
+{
+	try
 	{
-		if (mGPUProcessorType == PROCESSOR_TYPE_CPU)
-		{
-			if (fMemory)
-			{
-				delete[] fMemory;
-			}
-			fMemory = new char[fMemorySize]; // kVectorAlignment];
-		}
-		else
-		{
-			if (fMemorySize > GPUCA_GPU_SLICE_DATA_MEMORY)
-			{
-				printf("Insufficient slice data memory: %lld > %lld\n", (long long int) fMemorySize, (long long int) GPUCA_GPU_SLICE_DATA_MEMORY);
-				return (0);
-			}
-		}
+		mRec->AllocateRegisteredMemory(this);
 	}
+	catch (const std::bad_alloc& e)
+	{
+		printf("Insufficient slice data memory\n");
+		return 1;
+	}
+	return 0;
+}
 
-	char *mem = fMemory;
+void* AliGPUTPCSliceData::SetPointersInput(void* mem)
+{
+	const int firstHitInBinSize = (23 + sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(int)) * GPUCA_ROW_COUNT + 4 * fNumberOfHits + 3;
+	
 	AliGPUReconstruction::computePointerWithAlignment(mem, fLinkUpData, fNumberOfHitsPlusAlign);
 	AliGPUReconstruction::computePointerWithAlignment(mem, fLinkDownData, fNumberOfHitsPlusAlign);
 	AliGPUReconstruction::computePointerWithAlignment(mem, fHitData, fNumberOfHitsPlusAlign);
 	AliGPUReconstruction::computePointerWithAlignment(mem, fFirstHitInBin, firstHitInBinSize);
-	fGpuMemorySize = mem - fMemory;
-
-	//Memory Allocated below will not be copied to GPU but instead be initialized on the gpu itself. Therefore it must not be copied to GPU!
-	AliGPUReconstruction::computePointerWithAlignment(mem, fHitWeights, fNumberOfHitsPlusAlign);
-	AliGPUReconstruction::computePointerWithAlignment(mem, fClusterDataIndex, fNumberOfHitsPlusAlign);
-	return (mem - fMemory);
+	return (mem);
 }
 
-int AliGPUTPCSliceData::InitFromClusterData(const AliGPUTPCClusterData &data)
+void* AliGPUTPCSliceData::SetPointersScratch(void* mem)
 {
-	// initialisation from cluster data
+	//Memory Allocated below will not be copied to GPU but instead be initialized on the gpu itself. Therefore it must not be copied to GPU!
+	AliGPUReconstruction::computePointerWithAlignment(mem, fHitWeights, fNumberOfHitsPlusAlign);
+	return (mem);
+}
 
+void* AliGPUTPCSliceData::SetPointersScratchHost(void* mem)
+{
+	//Memory Allocated below will not be copied to GPU but instead be initialized on the gpu itself. Therefore it must not be copied to GPU!
+	AliGPUReconstruction::computePointerWithAlignment(mem, fClusterDataIndex, fNumberOfHitsPlusAlign);
+	return (mem);
+}
+
+void AliGPUTPCSliceData::RegisterMemoryAllocation()
+{
+	mMemoryResInput = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersInput, AliGPUMemoryResource::MEMORY_INPUT);
+	mMemoryResScratch = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersScratch, AliGPUMemoryResource::MEMORY_SCRATCH);
+	mMemoryResScratchHost = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersScratchHost, AliGPUMemoryResource::MEMORY_SCRATCH_HOST);
+}
+
+int AliGPUTPCSliceData::InitFromClusterData()
+{
 	////////////////////////////////////
 	// 0. sort rows
 	////////////////////////////////////
-
-	fNumberOfHits = data.NumberOfClusters();
+	
 	fMaxZ = 0.f;
 
 	float2 *YZData = new float2[fNumberOfHits];
@@ -238,7 +218,7 @@ int AliGPUTPCSliceData::InitFromClusterData(const AliGPUTPCClusterData &data)
 
 	for (int i = 0; i < fNumberOfHits; i++)
 	{
-		const int tmpRow = data.RowNumber(i);
+		const int tmpRow = fClusterData->RowNumber(i);
 		NumberOfClustersInRow[tmpRow]++;
 		if (tmpRow > fLastRow) fLastRow = tmpRow;
 		if (tmpRow < fFirstRow) fFirstRow = tmpRow;
@@ -266,10 +246,10 @@ int AliGPUTPCSliceData::InitFromClusterData(const AliGPUTPCClusterData &data)
 		for (int i = 0; i < fNumberOfHits; i++)
 		{
 			float2 tmp;
-			tmp.x = data.Y(i);
-			tmp.y = data.Z(i);
+			tmp.x = fClusterData->Y(i);
+			tmp.y = fClusterData->Z(i);
 			if (fabs(tmp.y) > fMaxZ) fMaxZ = fabs(tmp.y);
-			int tmpRow = data.RowNumber(i);
+			int tmpRow = fClusterData->RowNumber(i);
 			int newIndex = RowOffset[tmpRow] + (RowsFilled[tmpRow])++;
 			YZData[newIndex] = tmp;
 			tmpHitIndex[newIndex] = i;
@@ -278,22 +258,10 @@ int AliGPUTPCSliceData::InitFromClusterData(const AliGPUTPCClusterData &data)
 	if (fFirstRow == GPUCA_ROW_COUNT) fFirstRow = 0;
 
 	////////////////////////////////////
-	// 1. prepare arrays
-	////////////////////////////////////
-
-	const int numberOfRows = fLastRow - fFirstRow + 1;
-
-	if (SetPointers(&data, true) == 0)
-	{
-		delete[] YZData;
-		delete[] tmpHitIndex;
-		return 1;
-	}
-
-	////////////////////////////////////
 	// 2. fill HitData and FirstHitInBin
 	////////////////////////////////////
 
+	const int numberOfRows = fLastRow - fFirstRow + 1;
 	for (int rowIndex = 0; rowIndex < fFirstRow; ++rowIndex)
 	{
 		AliGPUTPCRow &row = fRows[rowIndex];
@@ -436,7 +404,6 @@ int AliGPUTPCSliceData::InitFromClusterData(const AliGPUTPCClusterData &data)
 void AliGPUTPCSliceData::ClearHitWeights()
 {
 	// clear hit weights
-
 #ifdef ENABLE_VECTORIZATION
 	const int v0(Zero);
 	const int *const end = fHitWeights + fNumberOfHits;
@@ -452,10 +419,9 @@ void AliGPUTPCSliceData::ClearHitWeights()
 #endif
 }
 
-void AliGPUTPCSliceData::ClearLinks()
+/*void AliGPUTPCSliceData::ClearLinks()
 {
 	// link cleaning
-
 	for (int i = 0; i < fNumberOfHits; ++i)
 	{
 		fLinkUpData[i] = CALINK_INVAL;
@@ -464,4 +430,4 @@ void AliGPUTPCSliceData::ClearLinks()
 	{
 		fLinkDownData[i] = CALINK_INVAL;
 	}
-}
+}*/

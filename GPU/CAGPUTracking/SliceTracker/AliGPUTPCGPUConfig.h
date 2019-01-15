@@ -46,28 +46,17 @@
 #define GPUCA_GPU_THREAD_COUNT_FINDER 256
 #define GPUCA_GPU_NUM_STREAMS 0
 #define GPUCA_GPU_USE_TEXTURES
-#else
-#define GPUCA_GPU_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER ??error
-#define GPUCA_GPU_BLOCK_COUNT_SELECTOR_MULTIPLIER ??error
-#define GPUCA_GPU_THREAD_COUNT ??error
-#define GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR ??error
-#define GPUCA_GPU_THREAD_COUNT_SELECTOR ??error
-#define GPUCA_GPU_THREAD_COUNT_FINDER ??error
-#define GPUCA_GPU_NUM_STREAMS ??error
+#elif defined(GPUCA_GPUCODE)
+#error GPU TYPE NOT SET
 #endif
 
 #define GPUCA_GPU_DEFAULT_HELPER_THREADS 2				//Number of helper threads to speed up initialization/output
-
-//GPU Parameters
-#define GPUCA_GPU_WARP_SIZE 32
-#define GPUCA_GPU_REGS 64
 
 #ifdef GPUCA_STANDALONE
 #define GPUCA_GPU_MERGER								//Use GPU Merger
 #endif
 
 #define GPUCA_GPU_ROWALIGNMENT uint4					//Align Row Hits and Grid
-#define GPUCA_GPU_ROWCOPY int							//must not be bigger than row alignment!!!
 
 #ifdef GPUCA_GPU_USE_TEXTURES
 #define GPUCA_GPU_TEXTURE_FETCH_CONSTRUCTOR				//Fetch data through texture cache
@@ -95,6 +84,8 @@
 #define GPUCA_GPU_MERGER_MEMORY				((size_t) 600 * 1024 * 1024)		//Memory for track merger
 #define GPUCA_GPU_MEMALIGN					((size_t)       1024 * 1024)		//Alignment of memory blocks, all constants above must be multiple of this!!!
 #define GPUCA_GPU_MEMALIGN_SMALL			((size_t)         64 * 1024)		//Alignment of small blocks, GPUCA_GPU_MEMALIGN must be multiple of this!!!
+#define GPUCA_GPU_MEMORY_SIZE				((size_t) 500 * 1024 * 1024)		//Size of memory allocated on Device
+#define GPUCA_HOST_MEMORY_SIZE				((size_t) 500 * 1024 * 1024)		//Size of memory allocated on Host
 
 //Make sure options do not interfere
 

@@ -48,12 +48,6 @@
 #include "AliGPUReconstruction.h"
 #endif
 
-//#define DRAW1
-
-#ifdef DRAW1
-#include "AliGPUTPCDisplay.h"
-#endif //DRAW1
-
 ClassImp( AliGPUTPCTracker )
 
 #if !defined(GPUCA_GPUCODE)
@@ -64,7 +58,6 @@ AliGPUTPCTracker::AliGPUTPCTracker() :
 	fLinkTmpMemory( NULL ),
 	fParam(NULL),
 	fISlice(0),
-	fClusterData( 0 ),
 	fData(),
 	fGPUDebugOut( 0 ),
 	fNMaxTracks( 0 ),
@@ -381,7 +374,6 @@ void AliGPUTPCTracker::SetupCommonMemory()
 
 	fHitMemory = fTrackletMemory = fTrackMemory = 0;
 
-	fData.Clear();
 	if (fCommonMem)
 	{
 		fCommonMem->fNTracklets = 0;
@@ -390,17 +382,16 @@ void AliGPUTPCTracker::SetupCommonMemory()
 	}
 }
 
-int AliGPUTPCTracker::ReadEvent( const AliGPUTPCClusterData *clusterData )
+int AliGPUTPCTracker::ReadEvent()
 {
 	// read event
 
 	StartTimer(0);
-	fClusterData = clusterData;
-
+	
 	SetupCommonMemory();
 
 	//* Convert input hits, create grids, etc.
-	if (fData.InitFromClusterData( *clusterData ))
+	if (fData.InitFromClusterData())
 	{
 		printf("Error initializing from cluster data\n");
 		return 1;
@@ -528,20 +519,14 @@ GPUh() void AliGPUTPCTracker::DoTracking()
 	RunNeighboursFinder();
 	StopTimer(1);
 
-#ifdef TRACKER_KEEP_TEMPDATA
-	if (fLinkTmpMemory) delete[] fLinkTmpMemory;
-	fLinkTmpMemory = new char[fData.MemorySize()];
-	memcpy(fLinkTmpMemory, fData.Memory(), fData.MemorySize());
-#endif
+	if (mRec->GetDeviceProcessingSettings().keepAllMemory)
+	{
+		if (fLinkTmpMemory) delete[] fLinkTmpMemory;
+		fLinkTmpMemory = new char[fData.ScratchMemorySize()];
+		memcpy(fLinkTmpMemory, fData.ScratchMemory(), fData.ScratchMemorySize());
+	}
 
 	if (fParam->debugLevel >= 6) DumpLinks(*fGPUDebugOut);
-
-#ifdef DRAW1
-	if ( NHitsTotal() > 0 ) {
-		AliGPUTPCDisplay::Instance().DrawSliceLinks( -1, -1, 1 );
-		AliGPUTPCDisplay::Instance().Ask();
-	}
-#endif //DRAW1
 
 	StartTimer(2);
 	RunNeighboursCleaner();
@@ -674,7 +659,7 @@ GPUh() void AliGPUTPCTracker::WriteOutput()
 #ifdef GPUCA_ARRAY_BOUNDS_CHECKS
 			if (ih >= row.NHits() || ih < 0)
 			{
-				printf("Array out of bounds access (Sector Row) (Hit %d / %d - NumC %d): Sector %d Row %d Index %d\n", ith, iTrack.NHits(), fClusterData->NumberOfClusters(), fISlice, iRow, ih);
+				printf("Array out of bounds access (Sector Row) (Hit %d / %d - NumC %d): Sector %d Row %d Index %d\n", ith, iTrack.NHits(), NHitsTotal(), fISlice, iRow, ih);
 				fflush(stdout);
 				continue;
 			}
@@ -682,25 +667,25 @@ GPUh() void AliGPUTPCTracker::WriteOutput()
 			int clusterIndex = fData.ClusterDataIndex( row, ih );
 
 #ifdef GPUCA_ARRAY_BOUNDS_CHECKS
-			if (clusterIndex >= fClusterData->NumberOfClusters() || clusterIndex < 0)
+			if (clusterIndex >= NHitsTotal() || clusterIndex < 0)
 			{
-				printf("Array out of bounds access (Cluster Data) (Hit %d / %d - NumC %d): Sector %d Row %d Hit %d, Clusterdata Index %d\n", ith, iTrack.NHits(), fClusterData->NumberOfClusters(), fISlice, iRow, ih, clusterIndex);
+				printf("Array out of bounds access (Cluster Data) (Hit %d / %d - NumC %d): Sector %d Row %d Hit %d, Clusterdata Index %d\n", ith, iTrack.NHits(), NHitsTotal(), fISlice, iRow, ih, clusterIndex);
 				fflush(stdout);
 				continue;
 			}
 #endif
 
-			float origX = fClusterData->X( clusterIndex );
-			float origY = fClusterData->Y( clusterIndex );
-			float origZ = fClusterData->Z( clusterIndex );
-			int id = fClusterData->Id( clusterIndex );
-			unsigned char flags = fClusterData->Flags( clusterIndex );
-			unsigned short amp = fClusterData->Amp( clusterIndex );
+			float origX = fData.ClusterData()->X( clusterIndex );
+			float origY = fData.ClusterData()->Y( clusterIndex );
+			float origZ = fData.ClusterData()->Z( clusterIndex );
+			int id = fData.ClusterData()->Id( clusterIndex );
+			unsigned char flags = fData.ClusterData()->Flags( clusterIndex );
+			unsigned short amp = fData.ClusterData()->Amp( clusterIndex );
 			AliGPUTPCSliceOutCluster c;
 			c.Set( id, iRow, flags, amp, origX, origY, origZ );
 #ifdef GMPropagatePadRowTime
-			c.fPad = fClusterData->GetClusterData( clusterIndex )->fPad;
-			c.fTime = fClusterData->GetClusterData( clusterIndex )->fTime;
+			c.fPad = fData.ClusterData()->GetClusterData( clusterIndex )->fPad;
+			c.fTime = fData.ClusterData()->GetClusterData( clusterIndex )->fTime;
 #endif
 			out->SetCluster( nClu, c );
 			nClu++;

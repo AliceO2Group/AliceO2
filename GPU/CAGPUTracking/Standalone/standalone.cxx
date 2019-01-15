@@ -218,6 +218,7 @@ int SetupReconstruction()
 	devProc.nDeviceHelperThreads = configStandalone.helperThreads;
 	devProc.globalInitMutex = configStandalone.gpuInitMutex;
 	devProc.gpuDeviceOnly = configStandalone.oclGPUonly;
+	devProc.memoryAllocationStrategy = configStandalone.allocationStrategy;
 	
 	rec->SetSettings(&ev, &recSet, &devProc);
 	if (rec->Init())

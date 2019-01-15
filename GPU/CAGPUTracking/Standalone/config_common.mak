@@ -43,6 +43,7 @@ CXXFILES					= SliceTracker/AliGPUTPCSliceData.cxx \
 								GlobalTracker/AliGPUReconstructionConvert.cxx \
 								GlobalTracker/AliGPUCAParam.cxx \
 								GlobalTracker/AliGPUProcessor.cxx \
+								GlobalTracker/AliGPUMemoryResource.cxx \
 								GlobalTracker/AliGPUCASettings.cxx \
 								TPCFastTransformation/TPCFastTransform.cxx \
 								TPCFastTransformation/TPCDistortionIRS.cxx \

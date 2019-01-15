@@ -112,9 +112,9 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	void DumpOutput(FILE* out);	//Similar for output
 
 	void SetOutput( AliGPUTPCSliceOutput** out ) { fOutput = out; }
-	int ReadEvent( const AliGPUTPCClusterData *clusterData );
+	int ReadEvent();
 
-	GPUhd() const AliGPUTPCClusterData *ClusterData() const { return fClusterData; }
+	GPUh() const AliGPUTPCClusterData *ClusterData() const { return fData.ClusterData(); }
 
 	GPUh() void ClearSliceDataHitWeights() {fData.ClearHitWeights();}
 	GPUh() MakeType(const MEM_LG(AliGPUTPCRow)&) Row( const AliGPUTPCHitId &HitId ) const { return fData.Row(HitId.RowIndex()); }
@@ -130,7 +130,7 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	GPUh() char* TrackMemory() {return(fTrackMemory); }
 	GPUh() size_t TrackMemorySize() const {return(fTrackMemorySize); }
 
-	GPUh() void SetGPUSliceDataMemory(void* const pSliceMemory, void* const pRowMemory) { fData.SetGPUSliceDataMemory(pSliceMemory, pRowMemory); }
+	GPUh() void SetGPUSliceDataMemory(void* const pRowMemory) { fData.SetGPUSliceDataMemory(pRowMemory); }
 
 #endif
   
@@ -149,7 +149,6 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	void SetPointersHits(int MaxNHits);
 	void SetPointersTracklets(int MaxNTracklets);
 	void SetPointersTracks(int MaxNTracks, int MaxNHits);
-	size_t SetPointersSliceData(const AliGPUTPCClusterData *data, bool allocate = false) { return(fData.SetPointers(data, allocate)); }
  
 	GPUhd() MakeType(const MEM_LG(AliGPUCAParam)&) Param() const { return *fParam; }
 	GPUhd() MakeType(const MEM_LG(AliGPUCAParam)*) pParam() const { return fParam; }
@@ -230,7 +229,7 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	GPUhd() GPUglobalref() StructGPUParameters* GPUParameters() const {return(&fCommonMem->fGPUParameters);}
 	GPUhd() MakeType(MEM_LG(StructGPUParametersConst)*) GPUParametersConst() {return(&fGPUParametersConst);}
 	GPUhd() MakeType(MEM_LG(const StructGPUParametersConst)*) GetGPUParametersConst() const {return(&fGPUParametersConst);}
-	GPUhd() void SetGPUTextureBase(char* val) { fData.SetGPUTextureBase(val); }
+	GPUhd() void SetGPUTextureBase(void* val) { fData.SetGPUTextureBase(val); }
 
 	struct trackSortData
 	{
@@ -260,7 +259,6 @@ class AliGPUTPCTracker : public AliGPUProcessor
   
 	/** A pointer to the ClusterData object that the SliceData was created from. This can be used to
 	* merge clusters from inside the SliceTracker code and recreate the SliceData. */
-	GPUglobalref() const AliGPUTPCClusterData *fClusterData; // ^
 	MEM_LG(AliGPUTPCSliceData) fData; // The SliceData object. It is used to encapsulate the storage in memory from the access
   
 #if !defined(GPUCA_GPUCODE)

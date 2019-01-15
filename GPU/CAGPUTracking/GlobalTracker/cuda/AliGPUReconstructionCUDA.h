@@ -30,6 +30,9 @@ protected:
 	virtual void ReleaseThreadContext() override;
 	virtual void SynchronizeGPU() override;
 	virtual int GPUSync(const char* state = "UNKNOWN", int stream = -1, int slice = 0) override;
+	
+	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream) override;
+	virtual int TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream) override;
 
 private:
 	AliGPUReconstructionCUDAInternals* mInternals;
