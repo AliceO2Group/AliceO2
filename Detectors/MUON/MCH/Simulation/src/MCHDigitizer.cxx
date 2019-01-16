@@ -144,7 +144,7 @@ int MCHDigitizer::processHit(const Hit &hit,double event_time)
     ymin =  mSeg[indexID].padPositionY(padidbend)-mSeg[indexID].padSizeY(padidbend)*0.5;
     ymax =  mSeg[indexID].padPositionY(padidbend)+mSeg[indexID].padSizeY(padidbend)*0.5;
   // 1st step integrate induced charge for each pad
-  signal = mMuonresponse.chargePad(anodpos,pos[1],xmin,xmax,ymin,ymax,detID,chargebend);
+  signal = mMuonresponse.chargePad(xmin,xmax,ymin,ymax,detID,chargebend);
   if(signal>mMuonresponse.getChargeThreshold() && signal<mMuonresponse.getChargeSat()){
     //translate charge in signal
     signal = mMuonresponse.response(detID,signal);
@@ -162,7 +162,7 @@ int MCHDigitizer::processHit(const Hit &hit,double event_time)
     ymax =  mSeg[indexID].padPositionY(padidnon)+mSeg[indexID].padSizeY(padidnon)*0.5;
     
     // 1st step integrate induced charge for each pad
-    signal = mMuonresponse.chargePad(anodpos,pos[1],xmin,xmax,ymin,ymax,detID,chargenon);
+    signal = mMuonresponse.chargePad(xmin,xmax,ymin,ymax,detID,chargenon);
     //check if signal above threshold
     if(signal>mMuonresponse.getChargeThreshold() && signal<mMuonresponse.getChargeSat()){
       //translate charge in signal

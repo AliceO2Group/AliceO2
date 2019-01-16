@@ -31,7 +31,7 @@ class Response
   float getChargeSat(){ return mChargeSat;};
   float getChargeThreshold(){ return mChargeThreshold;};
   float etocharge(float edepos);  
-  double chargePad(float x, float y, float xmin, float xmax, float ymin, float ymax, int detID, float charge);
+  double chargePad(float xmin, float xmax, float ymin, float ymax, int detID, float charge);
   double response(float charge, int detID);
   float getAnod(float x, int detID);
   float chargeCorr();

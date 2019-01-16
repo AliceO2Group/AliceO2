@@ -40,7 +40,7 @@ float Response::etocharge(float edepos){
   return charge;
 }
 //_____________________________________________________________________
-double Response::chargePad(float x, float y, float xmin, float xmax, float ymin, float ymax, int detID, float charge ){
+double Response::chargePad( float xmin, float xmax, float ymin, float ymax, int detID, float charge ){
   //see AliMUONResponseV0.cxx (inside DisIntegrate)
   // and AliMUONMathieson.cxx (IntXY)
   int station = 0;
