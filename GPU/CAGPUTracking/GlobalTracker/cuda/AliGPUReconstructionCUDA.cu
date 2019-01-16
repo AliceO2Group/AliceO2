@@ -270,6 +270,15 @@ int AliGPUReconstructionCUDA::InitDevice_Runtime()
 			return(1);
 		}
 	}
+	
+	void* devPtrConstantMem;
+	if (GPUFailedMsg(cudaGetSymbolAddress(&devPtrConstantMem, gGPUConstantMemBuffer)))
+	{
+		CAGPUError("Error getting ptr to constant memory");
+		ResetHelperThreads(0);
+		return 1;
+	}
+	mDeviceParam = (AliGPUCAParam*) ((char*) devPtrConstantMem + ((char*) &AliGPUCAConstantMemDummy.param - (char*) &AliGPUCAConstantMemDummy));
 
 	cuCtxPopCurrent(&mInternals->CudaContext);
 	CAGPUInfo("CUDA Initialisation successfull (Device %d: %s, Thread %d, %lld bytes used)", fDeviceId, cudaDeviceProp.name, fThreadId, fGPUMemSize);
@@ -357,17 +366,6 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 		return 1;
 	}
 	
-	void* devPtrConstantMem;
-	if (GPUFailedMsg(cudaGetSymbolAddress(&devPtrConstantMem, gGPUConstantMemBuffer)))
-	{
-		CAGPUError("Error getting ptr to constant memory");
-		ResetHelperThreads(0);
-		return 1;
-	}
-	for (unsigned int i = 0;i < NSLICES;i++)
-	{
-		fGpuTracker[i].SetParam((AliGPUCAParam*) ((char*) devPtrConstantMem + ((char*) &AliGPUCAConstantMemDummy.param - (char*) &AliGPUCAConstantMemDummy)));
-	}
 	if (GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, fGpuTracker, sizeof(AliGPUTPCTracker) * NSLICES, (char*) AliGPUCAConstantMemDummy.tpcTrackers - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice, mInternals->CudaStreams[0])))
 	{
 		CAGPUError("Error filling constant buffer");

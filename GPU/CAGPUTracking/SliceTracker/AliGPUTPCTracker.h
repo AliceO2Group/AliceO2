@@ -137,13 +137,13 @@ class AliGPUTPCTracker : public AliGPUProcessor
   
 	MEM_CLASS_PRE2() GPUd() void GetErrors2( int iRow,  const MEM_LG2(AliGPUTPCTrackParam) &t, float &ErrY2, float &ErrZ2 ) const
 	{
-		//fParam.GetClusterErrors2( iRow, fParam.GetContinuousTracking() != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
-		fParam->GetClusterRMS2( iRow, fParam->ContinuousTracking != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
+		//mParam.GetClusterErrors2( iRow, mParam.GetContinuousTracking() != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
+		mParam->GetClusterRMS2( iRow, mParam->ContinuousTracking != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
 	}
 	GPUd() void GetErrors2( int iRow, float z, float sinPhi, float DzDs, float &ErrY2, float &ErrZ2 ) const
 	{
-		//fParam.GetClusterErrors2( iRow, fParam.GetContinuousTracking() != 0. ? 125. : z, sinPhi, DzDs, ErrY2, ErrZ2 );
-		fParam->GetClusterRMS2( iRow, fParam->ContinuousTracking != 0. ? 125. : z, sinPhi, DzDs, ErrY2, ErrZ2 );
+		//mParam.GetClusterErrors2( iRow, mParam.GetContinuousTracking() != 0. ? 125. : z, sinPhi, DzDs, ErrY2, ErrZ2 );
+		mParam->GetClusterRMS2( iRow, mParam->ContinuousTracking != 0. ? 125. : z, sinPhi, DzDs, ErrY2, ErrZ2 );
 	}
   
 	void SetupCommonMemory();
@@ -151,9 +151,8 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	void SetPointersTracklets(int MaxNTracklets);
 	void SetPointersTracks(int MaxNTracks, int MaxNHits);
  
-	GPUhd() MakeType(const MEM_LG(AliGPUCAParam)&) Param() const { return *fParam; }
-	GPUhd() MakeType(const MEM_LG(AliGPUCAParam)*) pParam() const { return fParam; }
-	GPUhd() void SetParam(const MEM_LG(AliGPUCAParam)* p) { fParam = p; }
+	GPUhd() MakeType(const MEM_LG(AliGPUCAParam)&) Param() const { return *mParam; }
+	GPUhd() MakeType(const MEM_LG(AliGPUCAParam)*) pParam() const { return mParam; }
 	GPUhd() int ISlice() const { return fISlice; }
   
 	GPUhd() MakeType(const MEM_LG(AliGPUTPCSliceData)&) Data() const { return fData; }
@@ -240,8 +239,8 @@ class AliGPUTPCTracker : public AliGPUProcessor
 
 	void PerformGlobalTracking(AliGPUTPCTracker& sliceLeft, AliGPUTPCTracker& sliceRight, int MaxTracksLeft, int MaxTracksRight);
 	
-	void StartTimer(int i) {if (fParam->debugLevel) fTimers[i].Start();}
-	void StopTimer(int i) {if (fParam->debugLevel) fTimers[i].Stop();}
+	void StartTimer(int i) {if (mParam->debugLevel) fTimers[i].Start();}
+	void StopTimer(int i) {if (mParam->debugLevel) fTimers[i].Stop();}
 	double GetTimer(int i) {return fTimers[i].GetElapsedTime();}
 	void ResetTimer(int i) {fTimers[i].Reset();}
 
@@ -254,7 +253,6 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	char *fLinkTmpMemory;				//tmp memory for hits after neighbours finder
   
   private:
-	GPUglobalref() const MEM_GLOBAL(AliGPUCAParam) *fParam; // parameters
 	int fISlice; //Number of slice
 	HighResTimer fTimers[10];
   

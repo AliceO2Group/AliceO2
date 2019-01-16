@@ -104,7 +104,6 @@ int AliGPUReconstruction::Init()
 	if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_AUTO) mDeviceProcessingSettings.memoryAllocationStrategy = IsGPU() ? AliGPUMemoryResource::ALLOCATION_GLOBAL : AliGPUMemoryResource::ALLOCATION_INDIVIDUAL;
 	if (mDeviceProcessingSettings.eventDisplay) mDeviceProcessingSettings.keepAllMemory = true;
 		
-	mTRDTracker->Init((AliGPUTRDGeometry*) mTRDGeometry.get()); //Cast is safe, we just add some member functions
 #ifdef GPUCA_HAVE_OPENMP
 	if (mDeviceProcessingSettings.nThreads <= 0) mDeviceProcessingSettings.nThreads = omp_get_max_threads();
 	else omp_set_num_threads(mDeviceProcessingSettings.nThreads);
@@ -119,11 +118,9 @@ int AliGPUReconstruction::Init()
 	for (unsigned int i = 0;i < NSLICES;i++)
 	{
 		mTPCSliceTrackersCPU[i].Data().RegisterMemoryAllocation();
-		mTPCSliceTrackersCPU[i].Initialize(&mParam, i);
-		mTPCSliceTrackersCPU[i].SetGPUDebugOutput(&mDebugFile);
 	}
-	mTPCMergerCPU.Initialize();
 	if (InitDevice()) return 1;
+	if (InitializeProcessors()) return 1;
 	
 	if (AliGPUCAQA::QAAvailable() && (mDeviceProcessingSettings.runQA || mDeviceProcessingSettings.eventDisplay))
 	{
@@ -164,6 +161,19 @@ int AliGPUReconstruction::ExitDevice()
 		mHostMemoryPool = mHostMemoryBase = nullptr;
 		mHostMemorySize = 0;
 	}
+	return 0;
+}
+
+int AliGPUReconstruction::InitializeProcessors()
+{
+	for (unsigned int i = 0;i < NSLICES;i++)
+	{
+		mTPCSliceTrackersCPU[i].Initialize(&mParam, i);
+		mTPCSliceTrackersCPU[i].SetGPUDebugOutput(&mDebugFile);
+	}
+	mTPCMergerCPU.Initialize();
+	mTRDTracker->Init((AliGPUTRDGeometry*) mTRDGeometry.get()); //Cast is safe, we just add some member functions
+
 	return 0;
 }
 
