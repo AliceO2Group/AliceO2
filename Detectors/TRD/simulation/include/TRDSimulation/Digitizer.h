@@ -18,6 +18,7 @@ namespace o2
 {
 namespace trd
 {
+
 class Digitizer
 {
  public:
@@ -31,9 +32,18 @@ class Digitizer
   void setSrcID(int sourceID) { mSrcID = sourceID; }
 
  private:
+  TRDGeometry* mGeom = nullptr;
+
+  int hitLoopBegin;
+
   double mTime = 0.;
   int mEventID = 0;
   int mSrcID = 0;
+  bool SortHits(std::vector<o2::trd::HitType>&);
+  bool GetHitContainer(const int, const std::vector<o2::trd::HitType>&,
+                       std::vector<o2::trd::HitType>&);
+  bool CheckHitContainer(const int, const std::vector<o2::trd::HitType>&);
+  bool ConvertHits(int det, const std::vector<o2::trd::HitType>&, int&);
 };
 } // namespace trd
 } // namespace o2
