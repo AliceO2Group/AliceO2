@@ -18,13 +18,14 @@
 #include <iostream>
 #endif
 
-#include "AliGPUCAParam.h"
 #include "AliGPUTPCHitId.h"
 #include "AliGPUTPCSliceData.h"
 #include "AliGPUTPCSliceOutput.h"
 #include "AliGPUTPCTrackletConstructor.h"
 #include "AliGPUTPCTracklet.h"
 #include "AliGPUProcessor.h"
+
+MEM_CLASS_PRE() class AliGPUCAParam;
 
 MEM_CLASS_PRE() class AliGPUTPCTrack;
 MEM_CLASS_PRE() class AliGPUTPCTrackParam;

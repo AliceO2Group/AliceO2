@@ -28,6 +28,7 @@ CONFIG_LTO					= 1
 CXXFILES					= SliceTracker/AliGPUTPCSliceData.cxx \
 								SliceTracker/AliGPUTPCSliceOutput.cxx \
 								SliceTracker/AliGPUTPCTracker.cxx \
+								SliceTracker/AliGPUTPCTrackerDump.cxx \
 								SliceTracker/AliGPUTPCRow.cxx \
 								SliceTracker/AliGPUTPCNeighboursFinder.cxx \
 								SliceTracker/AliGPUTPCNeighboursCleaner.cxx \
