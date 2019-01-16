@@ -65,11 +65,11 @@ class Response
   //just take different
   //Station 1 first entry, Station 2-5 second entry
   // Mathieson parameters from L.Kharmandarian's thesis, page 190
-   //  fKy2 = TMath::Pi() / 2. * (1. - 0.5 * fSqrtKy3);
+   //  fKy2 = TMath::Pi() / 2. * (1. - 0.5 * fSqrtKy3);//AliMUONMathieson::SetSqrtKx3AndDeriveKx2Kx4(Float_t SqrtKx3)
   //  Float_t cy1 = fKy2 * fSqrtKy3 / 4. / TMath::ATan(Double_t(fSqrtKy3));
   //  fKy4 = cy1 / fKy2 / fSqrtKy3; //this line from AliMUONMathieson::SetSqrtKy3AndDeriveKy2Ky4
   //why this multiplicitation before again division? any number small compared to Float precision?
-  const double mK2x[2]     = {1.021026,1.010729};
+  const double mK2x[2]     = {1.021026,1.010729};//here problem...
   const double mSqrtK3x[2] = {0.7000,0.7131};
   const double mK4x[2]     = {0.40934890,0.40357476};
   const double mK2y[2]     = {0.9778207,0.970595};
