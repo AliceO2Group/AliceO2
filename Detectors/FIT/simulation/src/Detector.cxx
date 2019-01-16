@@ -35,6 +35,7 @@ ClassImp(Detector);
 
 Detector::Detector(Bool_t Active)
   : o2::Base::DetImpl<Detector>("FIT", Active), mIdSens1(0), mPMTeff(nullptr), mHits(o2::utils::createSimVector<HitType>())
+
 {
   // Gegeo  = GetGeometry() ;
 
@@ -58,6 +59,7 @@ void Detector::InitializeO2Detector()
   if (v == nullptr) {
     LOG(WARN) << "@@@@ Sensitive volume 0REG not found!!!!!!!!";
   } else {
+
     AddSensitiveVolume(v);
   }
 }
@@ -82,7 +84,6 @@ void Detector::ConstructGeometry()
 
   Geometry geometry;
   TVector3 centerMCP = geometry.centerMCP(2);
-
   Matrix(idrotm[901], 90., 0., 90., 90., 180., 0.);
 
   // C side Concave Geometry
@@ -267,7 +268,6 @@ void Detector::SetOneMCP(TGeoVolume* ins)
       ins->AddNode(topref, ntops, new TGeoTranslation(xin, yin, z));
       z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + preg[2];
       ins->AddNode(cat, ntops, new TGeoTranslation(xin, yin, z));
-      // cat->Print();
     }
   }
   // Al top

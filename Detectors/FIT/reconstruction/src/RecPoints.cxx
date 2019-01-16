@@ -12,6 +12,7 @@
 #include "FITBase/Geometry.h"
 #include <cassert>
 #include <iostream>
+#include <CommonDataFormat/InteractionRecord.h>
 
 using namespace o2::fit;
 
@@ -29,24 +30,22 @@ void RecPoints::FillFromDigits(const Digit& digit)
   Float_t cfd[nMCPs] = {}, amp[nMCPs] = {};
   Float_t sideAtime = 0, sideCtime = 0;
 
-  Float_t eventTimeFromDigits = digit.getTime();
-  constexpr Double_t BC_clk = 25.;                //ns event clk lenght
-  constexpr Double_t BC_clk_center = BC_clk / 2.; // clk center
-  Int_t nClk = floor(eventTimeFromDigits / BC_clk);
-  Double_t BCEventTime = eventTimeFromDigits - BC_clk * nClk;
-  mEventTime = BC_clk_center + BCEventTime;
-  //   std::cout << " Event Time from digits" << eventTimeFromDigits <<" BCEventTime "<<BCEventTime<< " mEveentTime "<< mEventTime<<std::endl;
+  mBC = digit.getBC();
+  mOrbit = digit.getOrbit();
+  mEventTime = o2::InteractionRecord::bc2ns(mBC, mOrbit);
+
+  Float_t BCEventTime = 12.5;
+
   for (const auto& d : digit.getChDgData()) {
     Int_t mcp = d.ChId;
-    cfd[mcp] = d.CFDTime /*- BC_clk_center - BCEventTime*/;
+    cfd[mcp] = d.CFDTime - mEventTime - BCEventTime;
     amp[mcp] = d.QTCAmpl;
     mTimeAmp.push_back(ChannelData{ mcp, cfd[mcp], amp[mcp] });
-    //   LOG(DEBUG) << " mcp " << mcp<<" time "<< cfd[mcp]<<  FairLogger::endl;
+    //  LOG(DEBUG) << " mcp " << mcp<<" time "<< cfd[mcp]<<" amplitude "<< amp[mcp] << FairLogger::endl;
   }
 
   for (Int_t imcp = 0; imcp < nMCPsA; imcp++) {
-    if (cfd[imcp] > (BC_clk_center + BCEventTime - 2) &&
-        cfd[imcp] < (BC_clk_center + BCEventTime + 2)) {
+    if (cfd[imcp] > -2 && cfd[imcp] < 2) {
       sideAtime += (cfd[imcp]);
       ndigitsA++;
     }

@@ -13,30 +13,23 @@
 #ifndef ALICEO2_FIT_COLLISIONTIMERECOTASK_H
 #define ALICEO2_FIT_COLLISIONTIMERECOTASK_H
 
-#include "FairTask.h"
+#include <vector>
 #include "FITBase/Digit.h"
 #include "FITReconstruction/RecPoints.h"
 namespace o2
 {
 namespace fit
 {
-class CollisionTimeRecoTask : public FairTask
+class CollisionTimeRecoTask
 {
  public:
-  CollisionTimeRecoTask();
-  ~CollisionTimeRecoTask() override;
-  InitStatus Init() override;
-  void Exec(Option_t* option) override;
-  void FinishTask() override;
+  CollisionTimeRecoTask() = default;
+  ~CollisionTimeRecoTask() = default;
+  void Process(const Digit& digits, RecPoints& recPoints) const;
+  void FinishTask();
 
  private:
-  //const std::vector<Digit>* mDigitsArray = nullptr; ///< Array of digits
-  const Digit* mEventDigit = nullptr; ///<
-  Bool_t mContinuous = kFALSE;        ///< flag to do continuous simulation
-  RecPoints* mRecPoints = nullptr;
-  Int_t mEventID = 0; ///< current event id from the source
-
-  ClassDefOverride(CollisionTimeRecoTask, 1);
+  ClassDefNV(CollisionTimeRecoTask, 1);
 };
 } // namespace fit
 } // namespace o2

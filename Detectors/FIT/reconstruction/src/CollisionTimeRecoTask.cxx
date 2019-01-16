@@ -12,66 +12,29 @@
 /// \brief Implementation of the FIT reconstruction task
 
 #include "FITReconstruction/CollisionTimeRecoTask.h"
-#include "FITBase/Digit.h"
-#include "FITReconstruction/RecPoints.h"
-
 #include "FairLogger.h"      // for LOG
-#include "FairRootManager.h" // for FairRootManager
 
-ClassImp(o2::fit::CollisionTimeRecoTask);
 
 using namespace o2::fit;
+/*
 //_____________________________________________________________________
-CollisionTimeRecoTask::CollisionTimeRecoTask() : FairTask("FITCollisionTimeRecoTask")
+CollisionTimeRecoTask::CollisionTimeRecoTask()
 {
-  //here
+  // at the moment nothing.
 }
 
+*/
+
 //_____________________________________________________________________
-CollisionTimeRecoTask::~CollisionTimeRecoTask()
+void CollisionTimeRecoTask::Process(const Digit& digits,
+                                    RecPoints& recPoints) const
 {
-  if (mRecPoints) {
-    delete mRecPoints;
-  }
-}
-
-/// \brief Init function
-/// Inititializes the clusterer and connects input and output container
-InitStatus CollisionTimeRecoTask::Init()
-{
-  FairRootManager* mgr = FairRootManager::Instance();
-  if (!mgr) {
-    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
-    return kERROR;
-  }
-
-  //mDigitsArray = mgr->InitObjectAs<const std::vector<o2::fit::Digit>*>("FITDigit");
-  mEventDigit = mgr->InitObjectAs<const Digit*>("FITDigit");
-  //  if (!mDigitsArray) {
-  //    LOG(ERROR) << "FIT digits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
-  //    return kERROR;
-  //  }
-
-  // Register output container
-  mgr->RegisterAny("FITRecPoints", mRecPoints, kTRUE);
-
-  return kSUCCESS;
-}
-//_____________________________________________________________________
-void CollisionTimeRecoTask::Exec(Option_t* option)
-{
-  LOG(DEBUG) << "Running reconstruction on new event" << FairLogger::endl;
-  FairRootManager* mgr = FairRootManager::Instance();
-
-  mRecPoints->FillFromDigits(*mEventDigit);
-  mEventID++;
+  LOG(INFO) << "Running reconstruction on new event" << FairLogger::endl;
+  recPoints.FillFromDigits(digits);
 }
 //________________________________________________________
 void CollisionTimeRecoTask::FinishTask()
 {
   // finalize digitization, if needed, flash remaining digits
-  if (!mContinuous)
-    return;
-  FairRootManager* mgr = FairRootManager::Instance();
-  mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
+  // if (!mContinuous)   return;
 }
