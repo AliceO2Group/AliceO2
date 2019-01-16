@@ -131,8 +131,6 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	GPUh() char* TrackMemory() {return(fTrackMemory); }
 	GPUh() size_t TrackMemorySize() const {return(fTrackMemorySize); }
 
-	GPUh() void SetGPUSliceDataMemory(void* const pRowMemory) { fData.SetGPUSliceDataMemory(pRowMemory); }
-
 #endif
   
 	MEM_CLASS_PRE2() GPUd() void GetErrors2( int iRow,  const MEM_LG2(AliGPUTPCTrackParam) &t, float &ErrY2, float &ErrZ2 ) const

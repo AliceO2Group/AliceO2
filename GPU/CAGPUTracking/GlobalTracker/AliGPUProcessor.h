@@ -39,10 +39,11 @@ protected:
 	AliGPUProcessor* mDeviceProcessor;
 	GPUglobalref() const MEM_GLOBAL(AliGPUCAParam) *mParam;
 	
-	int mMemoryResInput;
-	int mMemoryResOutput;
-    int mMemoryResScratch;
-    int mMemoryResScratchHost;
+	short mMemoryResInput;
+	short mMemoryResOutput;
+    short mMemoryResScratch;
+    short mMemoryResScratchHost;
+	short mMemoryResPermanent;
 };
 
 #endif

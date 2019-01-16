@@ -118,30 +118,15 @@ inline int AliGPUTPCSliceData::PackHitData(AliGPUTPCRow *const row, const AliGPU
 void AliGPUTPCSliceData::InitializeRows(const AliGPUCAParam &p)
 {
 	// initialisation of rows
-	if (!fRows) fRows = new AliGPUTPCRow[GPUCA_ROW_COUNT + 1];
+	for (int i = 0; i < GPUCA_ROW_COUNT + 1; ++i)
+	{
+		new(&fRows[i]) AliGPUTPCRow;
+	}
 	for (int i = 0; i < GPUCA_ROW_COUNT; ++i)
 	{
 		fRows[i].fX = p.RowX[i];
 		fRows[i].fMaxY = CAMath::Tan(p.DAlpha / 2.) * fRows[i].fX;
 	}
-}
-
-#ifndef GPUCA_GPUCODE
-AliGPUTPCSliceData::~AliGPUTPCSliceData()
-{
-	//Standard Destrcutor
-	if (fRows)
-	{
-		if (mGPUProcessorType == PROCESSOR_TYPE_CPU) delete[] fRows;
-		fRows = NULL;
-	}
-}
-#endif
-
-GPUh() void AliGPUTPCSliceData::SetGPUSliceDataMemory(void *const pRowMemory)
-{
-	//Set Pointer to slice data memory to external memory
-	fRows = (AliGPUTPCRow *) pRowMemory;
 }
 
 void AliGPUTPCSliceData::SetClusterData(const AliGPUTPCClusterData *data)
@@ -170,26 +155,31 @@ int AliGPUTPCSliceData::AllocateMemory()
 void* AliGPUTPCSliceData::SetPointersInput(void* mem)
 {
 	const int firstHitInBinSize = (23 + sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(int)) * GPUCA_ROW_COUNT + 4 * fNumberOfHits + 3;
-	
 	AliGPUReconstruction::computePointerWithAlignment(mem, fLinkUpData, fNumberOfHitsPlusAlign);
 	AliGPUReconstruction::computePointerWithAlignment(mem, fLinkDownData, fNumberOfHitsPlusAlign);
 	AliGPUReconstruction::computePointerWithAlignment(mem, fHitData, fNumberOfHitsPlusAlign);
 	AliGPUReconstruction::computePointerWithAlignment(mem, fFirstHitInBin, firstHitInBinSize);
-	return (mem);
+	return mem;
 }
 
 void* AliGPUTPCSliceData::SetPointersScratch(void* mem)
 {
 	//Memory Allocated below will not be copied to GPU but instead be initialized on the gpu itself. Therefore it must not be copied to GPU!
 	AliGPUReconstruction::computePointerWithAlignment(mem, fHitWeights, fNumberOfHitsPlusAlign);
-	return (mem);
+	return mem;
 }
 
 void* AliGPUTPCSliceData::SetPointersScratchHost(void* mem)
 {
 	//Memory Allocated below will not be copied to GPU but instead be initialized on the gpu itself. Therefore it must not be copied to GPU!
 	AliGPUReconstruction::computePointerWithAlignment(mem, fClusterDataIndex, fNumberOfHitsPlusAlign);
-	return (mem);
+	return mem;
+}
+
+void* AliGPUTPCSliceData::SetPointersPermanent(void* mem)
+{
+	AliGPUReconstruction::computePointerWithAlignment(mem, fRows, GPUCA_ROW_COUNT + 1);
+	return mem;
 }
 
 void AliGPUTPCSliceData::RegisterMemoryAllocation()
@@ -197,6 +187,7 @@ void AliGPUTPCSliceData::RegisterMemoryAllocation()
 	mMemoryResInput = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersInput, AliGPUMemoryResource::MEMORY_INPUT);
 	mMemoryResScratch = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersScratch, AliGPUMemoryResource::MEMORY_SCRATCH);
 	mMemoryResScratchHost = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersScratchHost, AliGPUMemoryResource::MEMORY_SCRATCH_HOST);
+	mMemoryResPermanent = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersPermanent, AliGPUMemoryResource::MEMORY_PERMANENT);
 }
 
 int AliGPUTPCSliceData::InitFromClusterData()

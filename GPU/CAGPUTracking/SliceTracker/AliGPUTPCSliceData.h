@@ -38,14 +38,14 @@ MEM_CLASS_PRE() class AliGPUTPCSliceData : public AliGPUProcessor
 {
   public:
 	AliGPUTPCSliceData() :
-        AliGPUProcessor(),
+		AliGPUProcessor(),
 		fFirstRow(0), fLastRow(GPUCA_ROW_COUNT - 1), fNumberOfHits(0), fNumberOfHitsPlusAlign(0), fMaxZ(0.f),
-        fGPUTextureBase(0), fRows(0), fLinkUpData(0), fLinkDownData(0), fClusterData(0)
+		fGPUTextureBase(0), fRows(0), fLinkUpData(0), fLinkDownData(0), fClusterData(0)
 	{
 	}
 
 #ifndef GPUCA_GPUCODE
-	~AliGPUTPCSliceData();
+	~AliGPUTPCSliceData() CON_DEFAULT;
 #endif //!GPUCA_GPUCODE
 
 	MEM_CLASS_PRE2() void InitializeRows( const MEM_LG2(AliGPUCAParam) &parameters );
@@ -55,13 +55,13 @@ MEM_CLASS_PRE() class AliGPUTPCSliceData : public AliGPUProcessor
 	 * data.
 	 */
 
-	void SetGPUSliceDataMemory(void* const pRowMemory);
-    void SetClusterData(const AliGPUTPCClusterData *data);
-    int AllocateMemory();
+	void SetClusterData(const AliGPUTPCClusterData *data);
+	int AllocateMemory();
 	void* SetPointersInput(void* mem);
-    void* SetPointersScratch(void* mem);
-    void* SetPointersScratchHost(void* mem);
-    void RegisterMemoryAllocation();
+	void* SetPointersScratch(void* mem);
+	void* SetPointersScratchHost(void* mem);
+    void* SetPointersPermanent(void* mem);
+	void RegisterMemoryAllocation();
 	int InitFromClusterData();
 
 	/**

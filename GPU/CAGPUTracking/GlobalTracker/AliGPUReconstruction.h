@@ -190,16 +190,17 @@ public:
 		}
 	}
 	
-	AliGPUMemoryResource& Res(int num) {return mMemoryResources[num];}
-	template <class T> int RegisterMemoryAllocation(T* proc, void* (T::* setPtr)(void*), AliGPUMemoryResource::MemoryType type)
+	AliGPUMemoryResource& Res(short num) {return mMemoryResources[num];}
+	template <class T> short RegisterMemoryAllocation(T* proc, void* (T::* setPtr)(void*), AliGPUMemoryResource::MemoryType type)
 	{
 		mMemoryResources.emplace_back(proc, static_cast<void* (AliGPUProcessor::*)(void*)>(setPtr), type);
+		if (mMemoryResources.size() == 32768) throw std::bad_alloc();
 		return mMemoryResources.size() - 1;
 	}
 	size_t AllocateRegisteredMemory(AliGPUProcessor* proc);
-	size_t AllocateRegisteredMemory(int res);
+	size_t AllocateRegisteredMemory(short res);
 	void FreeRegisteredMemory(AliGPUProcessor* proc);
-	void FreeRegisteredMemory(int res);
+	void FreeRegisteredMemory(short res);
 	void ClearAllocatedMemory();
 	
 	//Converter functions
@@ -254,6 +255,7 @@ protected:
 	
 	//Private helper functions for memory management
 	static size_t AllocateRegisteredMemoryHelper(AliGPUMemoryResource* res, void* &ptr, void* &memorypool, void* memorybase, size_t memorysize, void* (AliGPUMemoryResource::*SetPointers)(void*));
+	size_t AllocateRegisteredPermanentMemory();
 	
 	//Private helper functions for reading / writing / allocating IO buffer from/to file
 	template <class T> void DumpData(FILE* fp, const T* const* entries, const unsigned int* num, InOutPointerType type);
@@ -296,9 +298,11 @@ protected:
 	int mStatNEvents = 0;
 	
 	void* mHostMemoryBase = nullptr;
+	void* mHostMemoryPermanent = nullptr;
 	void* mHostMemoryPool = nullptr;
 	size_t mHostMemorySize = 0;
 	void* mDeviceMemoryBase = nullptr;
+	void* mDeviceMemoryPermanent = nullptr;
 	void* mDeviceMemoryPool = nullptr;
 	size_t mDeviceMemorySize = 0;
 
