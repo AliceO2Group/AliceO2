@@ -76,6 +76,10 @@ set(SRCS_NO_CINT
     Standalone/cmodules/timer.cpp
 )
 
+set(SRCS_NO_H
+    SliceTracker/AliGPUTPCTrackerDump.cxx
+)
+
 #Extra headers to install
 set(HDRS
     SliceTracker/AliGPUTPCDef.h
@@ -176,6 +180,8 @@ if (GPUCA_EVENT_DISPLAY)
     set(SRCS_NO_CINT ${SRCS_NO_CINT}
         Standalone/cmodules/qsem.cpp
         Standalone/display/AliGPUCADisplay.cpp
+    )
+    set(SRCS_NO_H ${SRCS_NO_H}
         Standalone/display/AliGPUCADisplayQuaternion.cpp
         Standalone/display/AliGPUCADisplayInterpolation.cpp
     )
@@ -200,7 +206,7 @@ string(REPLACE ".cxx" ".h" HDRSSRC "${SRCS}")
 set(HDRS ${HDRS} ${HDRSSRC})
 string(REPLACE ".cxx" ".h" HDRSSRC "${SRCS_NO_CINT}")
 set(HDRS2 ${HDRS2} ${HDRSSRC})
-set(SRCS ${SRCS} ${SRCS_NO_CINT})
+set(SRCS ${SRCS} ${SRCS_NO_CINT} ${SRCS_NO_H})
 
 #Default cmake build script for AliRoot
 if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
