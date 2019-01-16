@@ -18,22 +18,26 @@ public:
 
     public:
         args::ValueFlag<std::string> infile;
+        args::ValueFlag<int> workers;
 
-        Flags(args::Group &required, args::Group &)
-            : infile(required, "digitFile", "File of digits.",
+        Flags(args::Group &required, args::Group &optional)
+            : infile(required, "File", "File of digits.",
                     {'d', "digits"})
+            , workers(optional, "N", 
+                "Number of workers that parse the digit file. (default=4)",
+                {'w', "workers"}, 4)
         {
         }
         
     };
 
-    DigitReader(const std::string &file) 
-        : DataReader<Digit, DigitParser>(file)
+    DigitReader(const std::string &file, size_t numWorkers) 
+        : DataReader<Digit, DigitParser>(file, numWorkers)
     {
     }
 
     DigitReader(Flags &flags)
-        : DigitReader(args::get(flags.infile))
+        : DigitReader(args::get(flags.infile), args::get(flags.workers))
     {
     }
     

@@ -16,4 +16,7 @@ set(GPUCF_SRC
 )
 
 add_library(gpucf STATIC ${GPUCF_SRC})
-target_link_libraries(gpucf ${OpenCL_LIBRARY})
+target_link_libraries(gpucf 
+    ${OpenCL_LIBRARY}
+    pthread
+    )
