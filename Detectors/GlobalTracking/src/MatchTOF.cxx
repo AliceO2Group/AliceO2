@@ -606,16 +606,16 @@ void MatchTOF::doMatching(int sec)
       auto& trefTOF = mTOFClusWork[cacheTOF[itof]];
       // compare the times of the track and the TOF clusters - remember that they both are ordered in time!
       //Printf("trefTOF.getTime() = %f, maxTrkTime = %f, minTrkTime = %f", trefTOF.getTime(), maxTrkTime, minTrkTime);
-      /* This part is commented out for now, as we don't want to have any check on the time enabled
-	 if (trefTOF.getTime() < minTrkTime) { // this cluster has a time that is too small for the current track, we will get to the next one
-	 Printf("In trefTOF.getTime() < minTrkTime");
-	 itof0 = itof+1; // but for the next track that we will check, we will ignore this cluster (the time is anyway too small)
-	 //continue;
-	 }
-	 if (trefTOF.getTime() > maxTrkTime) { // no more TOF clusters can be matched to this track
-	 //	break;
+
+      if (trefTOF.getTime() < minTrkTime) { // this cluster has a time that is too small for the current track, we will get to the next one
+	//Printf("In trefTOF.getTime() < minTrkTime");
+	itof0 = itof+1; // but for the next track that we will check, we will ignore this cluster (the time is anyway too small)
+	continue;
       }
-      */
+      if (trefTOF.getTime() > maxTrkTime) { // no more TOF clusters can be matched to this track
+	break;
+      }
+      
       int mainChannel = trefTOF.getMainContributingChannel();
       int indices[5];
       Geo::getVolumeIndices(mainChannel, indices);
