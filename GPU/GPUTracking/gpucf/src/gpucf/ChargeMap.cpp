@@ -8,14 +8,10 @@
 using namespace gpucf;
 
 
-ChargeMap::ChargeMap(
-              cl::Context         context, 
-              cl::Program         prg, 
-        const std::vector<Digit> &digits)
+ChargeMap::ChargeMap(cl::Context context, cl::Program prg, size_t numOfRows)
 {
     digitsToChargeMap = std::make_unique<cl::Kernel>(prg, "digitsToChargeMap"); 
 
-    const size_t numOfRows = getNumOfRows(digits);
     log::Info() << "Found " << numOfRows << " rows";
 
     const size_t chargeMapSize  = 
@@ -32,24 +28,12 @@ void ChargeMap::enqueueFill(
         cl::NDRange      global,
         cl::NDRange      local)
 {
-    /* cl_float zero = 0; */
     queue.enqueueFillBuffer(*chargeMap, 0.0f, 0, chargeMapBytes);
 
     digitsToChargeMap->setArg(0, digits);
     digitsToChargeMap->setArg(1, *chargeMap);
 
     queue.enqueueNDRangeKernel(*digitsToChargeMap, cl::NullRange, global, local);
-}
-
-size_t ChargeMap::getNumOfRows(const std::vector<Digit> &digits)
-{
-    size_t numOfRows = 0;
-    for (const Digit &digit : digits)
-    {
-        numOfRows = std::max(numOfRows, static_cast<size_t>(digit.row));
-    }
-
-    return numOfRows+1;
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:
