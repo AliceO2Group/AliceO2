@@ -139,38 +139,45 @@ int MCHDigitizer::processHit(const Hit &hit,double event_time)
   //induce signal pad-by-pad: bending
   for(auto & padidbend : padIDsbend){
     //retrieve coordinates for each pad
-    xmin =  mSeg[indexID].padPositionX(padidbend)-mSeg[indexID].padSizeX(padidbend)*0.5;
-    xmax =  mSeg[indexID].padPositionX(padidbend)+mSeg[indexID].padSizeX(padidbend)*0.5;
-    ymin =  mSeg[indexID].padPositionY(padidbend)-mSeg[indexID].padSizeY(padidbend)*0.5;
-    ymax =  mSeg[indexID].padPositionY(padidbend)+mSeg[indexID].padSizeY(padidbend)*0.5;
+    xmin =  (anodpos-mSeg[indexID].padPositionX(padidbend))-mSeg[indexID].padSizeX(padidbend)*0.5;
+    xmax =  xmin+mSeg[indexID].padSizeX(padidbend);
+    ymin =  (pos[1]-mSeg[indexID].padPositionY(padidbend))-mSeg[indexID].padSizeY(padidbend)*0.5;
+    ymax =  ymin+mSeg[indexID].padSizeY(padidbend);
   // 1st step integrate induced charge for each pad
+    
   signal = mMuonresponse.chargePad(xmin,xmax,ymin,ymax,detID,chargebend);
-  if(signal>mMuonresponse.getChargeThreshold() && signal<mMuonresponse.getChargeSat()){
-    //translate charge in signal
-    signal = mMuonresponse.response(detID,signal);
-    //write digit
-    mDigits.emplace_back(padidbend,signal);//how trace time?
-    ++ndigits;
-  }
+  std::cout << "signal before response " <<  signal <<std::endl;
+  // if(signal>mMuonresponse.getChargeThreshold()
+  //&&     signal<mMuonresponse.getChargeSat()//not yet tuned
+  //  ){
+  //translate charge in signal
+  signal = mMuonresponse.response(signal,detID);
+  //write digit
+  mDigits.emplace_back(padidbend,signal);//how trace time?
+  ++ndigits;
+  //  }
   }
   //induce signal pad-by-pad: nonbending
   for(auto & padidnon : padIDsnon){
     //retrieve coordinates for each pad
-    xmin =  mSeg[indexID].padPositionX(padidnon)-mSeg[indexID].padSizeX(padidnon)*0.5;
-    xmax =  mSeg[indexID].padPositionX(padidnon)+mSeg[indexID].padSizeX(padidnon)*0.5;
-    ymin =  mSeg[indexID].padPositionY(padidnon)-mSeg[indexID].padSizeY(padidnon)*0.5;
-    ymax =  mSeg[indexID].padPositionY(padidnon)+mSeg[indexID].padSizeY(padidnon)*0.5;
+    xmin =  (anodpos-mSeg[indexID].padPositionX(padidnon))-mSeg[indexID].padSizeX(padidnon)*0.5;
+    xmax =  xmin+mSeg[indexID].padSizeX(padidnon);
+    ymin =  (pos[1]-mSeg[indexID].padPositionY(padidnon))-mSeg[indexID].padSizeY(padidnon)*0.5;
+    ymax =  ymin+mSeg[indexID].padSizeY(padidnon);
     
     // 1st step integrate induced charge for each pad
     signal = mMuonresponse.chargePad(xmin,xmax,ymin,ymax,detID,chargenon);
+    std::cout	<< "signal before response " <<	 signal <<std::endl;
     //check if signal above threshold
-    if(signal>mMuonresponse.getChargeThreshold() && signal<mMuonresponse.getChargeSat()){
-      //translate charge in signal
-      signal = mMuonresponse.response(detID,signal);
-      //write digit
-      mDigits.emplace_back(padidnon,signal);//how trace time?
-      ++ndigits;
-    }
+    // if(signal>mMuonresponse.getChargeThreshold()
+       //&& signal<mMuonresponse.getChargeSat()//not yet tuned
+    // ){
+    //translate charge in signal
+    signal = mMuonresponse.response(signal,detID);
+    //write digit
+    mDigits.emplace_back(padidnon,signal);//how trace time?
+    ++ndigits;
+    // }
   }	
   return ndigits;
 }

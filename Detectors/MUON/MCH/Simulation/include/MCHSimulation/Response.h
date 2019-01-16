@@ -51,7 +51,7 @@ class Response
   const float mChargeCorr = 0.11;// number from line 122
   //of AliMUONResponseFactory.cxx
 
-  const float mChargeThreshold= 1e-4;
+  const float mChargeThreshold= 1e-4; 
   //AliMUONResponseV0.cxx constr.
   const float mChargeSat=0.61*1.25*0.2;
   //from AliMUONResponseV0.cxx
