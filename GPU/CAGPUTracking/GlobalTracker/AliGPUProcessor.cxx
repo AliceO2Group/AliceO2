@@ -4,7 +4,7 @@
 
 AliGPUProcessor::AliGPUProcessor() :
 	mRec(NULL), mGPUProcessorType(PROCESSOR_TYPE_CPU), mDeviceProcessor(NULL), mParam(NULL),
-	mMemoryResInput(-1), mMemoryResOutput(-1), mMemoryResScratch(-1), mMemoryResScratchHost(-1)
+	mMemoryResInput(-1), mMemoryResOutput(-1), mMemoryResScratch(-1), mMemoryResScratchHost(-1), mMemoryResPermanent(-1)
 {
 }
 
@@ -14,6 +14,7 @@ AliGPUProcessor::~AliGPUProcessor()
 	if (mMemoryResOutput != -1) mRec->FreeRegisteredMemory(mMemoryResOutput);
 	if (mMemoryResScratch != -1) mRec->FreeRegisteredMemory(mMemoryResScratch);
 	if (mMemoryResScratchHost != -1) mRec->FreeRegisteredMemory(mMemoryResScratchHost);
+	if (mMemoryResPermanent != -1) mRec->FreeRegisteredMemory(mMemoryResPermanent);
 }
 
 void AliGPUProcessor::InitGPUProcessor(AliGPUReconstruction* rec, AliGPUProcessor::ProcessorType type, AliGPUProcessor* slaveProcessor)

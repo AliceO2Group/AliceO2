@@ -120,6 +120,7 @@ int AliGPUReconstruction::Init()
 		mTPCSliceTrackersCPU[i].Data().RegisterMemoryAllocation();
 	}
 	if (InitDevice()) return 1;
+	AllocateRegisteredPermanentMemory();
 	if (InitializeProcessors()) return 1;
 	
 	if (AliGPUCAQA::QAAvailable() && (mDeviceProcessingSettings.runQA || mDeviceProcessingSettings.eventDisplay))
@@ -147,7 +148,7 @@ int AliGPUReconstruction::InitDevice()
 {
 	if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_GLOBAL)
 	{
-		mHostMemoryBase = operator new(GPUCA_HOST_MEMORY_SIZE);
+		mHostMemoryPermanent = mHostMemoryBase = operator new(GPUCA_HOST_MEMORY_SIZE);
 		mHostMemorySize = GPUCA_HOST_MEMORY_SIZE;
 		ClearAllocatedMemory();
 	}
@@ -158,7 +159,7 @@ int AliGPUReconstruction::ExitDevice()
 	if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_GLOBAL)
 	{
 		operator delete(mHostMemoryBase);
-		mHostMemoryPool = mHostMemoryBase = nullptr;
+		mHostMemoryPool = mHostMemoryBase = mHostMemoryPermanent = nullptr;
 		mHostMemorySize = 0;
 	}
 	return 0;
@@ -227,10 +228,22 @@ template <class T> void AliGPUReconstruction::AllocateIOMemoryHelper(unsigned in
 size_t AliGPUReconstruction::AllocateRegisteredMemory(AliGPUProcessor* proc)
 {
 	size_t total = 0;
+	if (proc->mMemoryResInput != -1) total += AllocateRegisteredMemory(proc->mMemoryResInput);
+	if (proc->mMemoryResOutput != -1) total += AllocateRegisteredMemory(proc->mMemoryResOutput);
+	if (proc->mMemoryResScratch != -1) total += AllocateRegisteredMemory(proc->mMemoryResScratch);
+	if (proc->mMemoryResScratchHost != -1) total += AllocateRegisteredMemory(proc->mMemoryResScratchHost);
+	return total;
+}
+
+size_t AliGPUReconstruction::AllocateRegisteredPermanentMemory()
+{
+	int total = 0;
 	for (unsigned int i = 0;i < mMemoryResources.size();i++)
 	{
-		if (mMemoryResources[i].mProcessor == proc) total += AllocateRegisteredMemory(i);
+		if (mMemoryResources[i].mType == AliGPUMemoryResource::MEMORY_PERMANENT) total += AllocateRegisteredMemory(i);
 	}
+	mHostMemoryPermanent = mHostMemoryPool;
+	mDeviceMemoryPermanent = mDeviceMemoryPool;
 	return total;
 }
 
@@ -245,7 +258,7 @@ size_t AliGPUReconstruction::AllocateRegisteredMemoryHelper(AliGPUMemoryResource
 	return(retVal);
 }
 
-size_t AliGPUReconstruction::AllocateRegisteredMemory(int ires)
+size_t AliGPUReconstruction::AllocateRegisteredMemory(short ires)
 {
 	AliGPUMemoryResource* res = &mMemoryResources[ires];
 	if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL)
@@ -288,7 +301,7 @@ void AliGPUReconstruction::FreeRegisteredMemory(AliGPUProcessor* proc)
 	}
 }
 
-void AliGPUReconstruction::FreeRegisteredMemory(int ires)
+void AliGPUReconstruction::FreeRegisteredMemory(short ires)
 {
 	AliGPUMemoryResource* res = &mMemoryResources[ires];
 	if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL) operator delete(res->mPtr);
@@ -299,10 +312,10 @@ void AliGPUReconstruction::ClearAllocatedMemory()
 {
 	for (unsigned int i = 0;i < mMemoryResources.size();i++)
 	{
-		FreeRegisteredMemory(i);
+		if (mMemoryResources[i].mType != AliGPUMemoryResource::MEMORY_PERMANENT) FreeRegisteredMemory(i);
 	}
-	mHostMemoryPool = alignPointer<GPUCA_GPU_MEMALIGN>(mHostMemoryBase);
-	mDeviceMemoryPool = alignPointer<GPUCA_GPU_MEMALIGN>(mDeviceMemoryBase);
+	mHostMemoryPool = alignPointer<GPUCA_GPU_MEMALIGN>(mHostMemoryPermanent);
+	mDeviceMemoryPool = alignPointer<GPUCA_GPU_MEMALIGN>(mDeviceMemoryPermanent);
 }
 
 void AliGPUReconstruction::DumpData(const char *filename)
@@ -571,6 +584,8 @@ int AliGPUReconstruction::RunStandalone()
 {
 	mStatNEvents++;
 	
+	ClearAllocatedMemory();
+	
 	const bool needQA = AliGPUCAQA::QAAvailable() && (mDeviceProcessingSettings.runQA || (mDeviceProcessingSettings.eventDisplay && mIOPtrs.nMCInfosTPC));
 	if (needQA && mQAInitialized == false)
 	{
@@ -621,6 +636,10 @@ int AliGPUReconstruction::RunStandalone()
 	
 	if (mDeviceProcessingSettings.debugLevel >= 1)
 	{
+		if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_GLOBAL)
+			printf("Memory Allocation: Host %'lld / %'lld, Device %'lld / %'lld, %d chunks\n",
+			(long long int) ((char*) mHostMemoryPool - (char*) mHostMemoryBase), (long long int) mHostMemorySize, (long long int) ((char*) mDeviceMemoryPool - (char*) mDeviceMemoryBase), (long long int) mDeviceMemorySize, (int) mMemoryResources.size());
+		
 		const char *tmpNames[10] = {"Initialisation", "Neighbours Finder", "Neighbours Cleaner", "Starts Hits Finder", "Start Hits Sorter", "Weight Cleaner", "Tracklet Constructor", "Tracklet Selector", "Global Tracking", "Write Output"};
 
 		for (int i = 0; i < 10; i++)

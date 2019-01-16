@@ -10,7 +10,7 @@ class AliGPUMemoryResource
 	friend class AliGPUReconstructionDeviceBase;
 	
 public:
-	enum MemoryType {MEMORY_INPUT = 0, MEMORY_SCRATCH = 1, MEMORY_OUTPUT = 2, MEMORY_SCRATCH_HOST = 3};
+	enum MemoryType {MEMORY_INPUT = 0, MEMORY_SCRATCH = 1, MEMORY_OUTPUT = 2, MEMORY_SCRATCH_HOST = 3, MEMORY_PERMANENT = 4, MEMORY_CUSTOM = 5};
 	enum AllocationType {ALLOCATION_AUTO = 0, ALLOCATION_INDIVIDUAL = 1, ALLOCATION_GLOBAL = 2};
 	
 #ifndef GPUCA_GPUCODE

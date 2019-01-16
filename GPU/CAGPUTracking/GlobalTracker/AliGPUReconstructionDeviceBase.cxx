@@ -195,7 +195,6 @@ int AliGPUReconstructionDeviceBase::CheckMemorySizes(int sliceCount)
 
 int AliGPUReconstructionDeviceBase::ReadEvent(int iSlice, int threadId)
 {
-	mTPCSliceTrackersCPU[iSlice].SetGPUSliceDataMemory(RowMemory(fHostLockedMemory, iSlice));
 #ifdef GPUCA_GPU_TIME_PROFILE
 	unsigned long long int a, b;
 	AliGPUTPCTracker::StandaloneQueryTime(&a);
@@ -346,6 +345,7 @@ int AliGPUReconstructionDeviceBase::TransferMemoryResourcesToGPU(AliGPUProcessor
 	if ((all || mDeviceProcessingSettings.keepAllMemory) && proc->mMemoryResOutput != -1) if (TransferMemoryResourceToGPU(&mMemoryResources[proc->mMemoryResOutput], stream)) return 1;
 	if ((mDeviceProcessingSettings.keepAllMemory) && proc->mMemoryResScratch != -1) if (TransferMemoryResourceToGPU(&mMemoryResources[proc->mMemoryResScratch], stream)) return 1;
 	if ((mDeviceProcessingSettings.keepAllMemory) && proc->mMemoryResScratchHost != -1) if (TransferMemoryResourceToGPU(&mMemoryResources[proc->mMemoryResScratchHost], stream)) return 1;
+	if (proc->mMemoryResPermanent != -1) if (TransferMemoryResourceToGPU(&mMemoryResources[proc->mMemoryResPermanent], stream)) return 1;
 	return 0;
 }
 
@@ -355,6 +355,7 @@ int AliGPUReconstructionDeviceBase::TransferMemoryResourcesToHost(AliGPUProcesso
 	if ((all || mDeviceProcessingSettings.keepAllMemory) && proc->mMemoryResInput != -1) if (TransferMemoryResourceToHost(&mMemoryResources[proc->mMemoryResInput], stream)) return 1;
 	if ((mDeviceProcessingSettings.keepAllMemory) && proc->mMemoryResScratch != -1) if (TransferMemoryResourceToHost(&mMemoryResources[proc->mMemoryResScratch], stream)) return 1;
 	if ((mDeviceProcessingSettings.keepAllMemory) && proc->mMemoryResScratchHost != -1) if (TransferMemoryResourceToHost(&mMemoryResources[proc->mMemoryResScratchHost], stream)) return 1;
+	if (proc->mMemoryResPermanent != -1) if (TransferMemoryResourceToGPU(&mMemoryResources[proc->mMemoryResPermanent], stream)) return 1;
 	return 0;
 }
 
@@ -420,8 +421,8 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 	
 	if (mDeviceProcessingSettings.globalInitMutex) ReleaseGlobalLock(semLock);
 	
-	mDeviceMemoryBase = (char*) fGPUMemory + trackerGPUMem + fGPUMergerMaxMemory;
-	mHostMemoryBase = (char*) fHostLockedMemory + trackerHostMem + fGPUMergerMaxMemory;
+	mDeviceMemoryBase = mDeviceMemoryPermanent = (char*) fGPUMemory + trackerGPUMem + fGPUMergerMaxMemory;
+	mHostMemoryBase = mHostMemoryPermanent = (char*) fHostLockedMemory + trackerHostMem + fGPUMergerMaxMemory;
 	mDeviceMemorySize = GPUCA_GPU_MEMORY_SIZE;
 	mHostMemorySize = GPUCA_HOST_MEMORY_SIZE;
 	ClearAllocatedMemory();
@@ -443,7 +444,6 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 		fGpuTracker[i].InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE, &mTPCSliceTrackersCPU[i]);
 		fGpuTracker[i].Data().InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE, &mTPCSliceTrackersCPU[i].Data());
 		mTPCSliceTrackersCPU[i].SetGPUTrackerCommonMemory((char*) CommonMemory(fHostLockedMemory, i));
-		mTPCSliceTrackersCPU[i].SetGPUSliceDataMemory(RowMemory(fHostLockedMemory, i));
 	}
 	fGpuMerger->InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE, &mTPCMergerCPU);
 
@@ -497,7 +497,7 @@ int AliGPUReconstructionDeviceBase::ExitDevice()
 	free(fSliceGlobalMutexes);
 
 	int retVal = ExitDevice_Runtime();
-	mHostMemoryPool = mHostMemoryBase = mDeviceMemoryPool = mDeviceMemoryBase = nullptr;
+	mHostMemoryPool = mHostMemoryBase = mDeviceMemoryPool = mDeviceMemoryBase = mHostMemoryPermanent = mDeviceMemoryPermanent = nullptr;
 	mHostMemorySize = mDeviceMemorySize = 0;
 
 	return retVal;
@@ -531,7 +531,6 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_Init()
 		fGpuTracker[iSlice].InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
 		fGpuTracker[iSlice].Data().InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
 		fGpuTracker[iSlice].SetGPUTrackerCommonMemory((char*) CommonMemory(fGPUMemory, iSlice));
-		fGpuTracker[iSlice].SetGPUSliceDataMemory(RowMemory(fGPUMemory, iSlice));
 		mTPCSliceTrackersCPU[iSlice].Data().SetClusterData(&mClusterData[iSlice]);
 		fGpuTracker[iSlice].Data().SetClusterData(&mClusterData[iSlice]);
 		if (mTPCSliceTrackersCPU[iSlice].Data().AllocateMemory())
