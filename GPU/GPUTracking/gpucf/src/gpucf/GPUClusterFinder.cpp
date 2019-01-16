@@ -3,6 +3,7 @@
 #include <gpucf/ClEnv.h>
 #include <gpucf/ChargeMap.h>
 #include <gpucf/log.h>
+#include <gpucf/RowInfo.h>
 
 
 using namespace gpucf;
@@ -10,55 +11,67 @@ using namespace gpucf;
 
 std::vector<Cluster> GPUClusterFinder::run(ClEnv &env, const std::vector<Digit> &digits)
 {
+    static_assert(sizeof(cl_int) == sizeof(int));
+
     cl::Context context = env.getContext();
 
     // Load kernels
     cl::Program cfprg = env.buildFromSrc("clusterFinder.cl");
-    cl::Kernel find3x3Clusters(cfprg, "findClusters");
-
+    cl::Kernel findClusters(cfprg, "findClusters");
 
     log::Info() << "Looking for clusters...";
 
     // Create buffers
     const size_t digitBytes = sizeof(Digit) * digits.size();
-    cl::Buffer digitBuffer(context, CL_MEM_READ_ONLY, digitBytes);
+    cl::Buffer digitBuf(context, CL_MEM_READ_ONLY, digitBytes);
+
+    const std::vector<int> globalToLocalRow = 
+        RowInfo::globalRowToLocalRowMap();
+    const size_t numOfRows = globalToLocalRow.size();
+    cl::Buffer globalToLocalRowBuf(
+            context,
+            CL_MEM_READ_ONLY,
+            sizeof(cl_int) * numOfRows);
 
     const size_t isClusterCenterBytes = sizeof(cl_int) * digits.size();
     cl::Buffer isClusterCenterBuf(context, CL_MEM_WRITE_ONLY, isClusterCenterBytes);
 
     const size_t clusterBytes = sizeof(Cluster) * digits.size();
-    cl::Buffer clusterBuffer(context, CL_MEM_READ_WRITE, clusterBytes);
+    cl::Buffer clusterBuf(context, CL_MEM_READ_WRITE, clusterBytes);
 
 
-    ChargeMap chargeMap(context, cfprg, digits);
+    ChargeMap chargeMap(context, cfprg, numOfRows);
 
 
     // Set kernel args
-    find3x3Clusters.setArg(0, chargeMap.get());
-    find3x3Clusters.setArg(1, digitBuffer);
-    find3x3Clusters.setArg(2, isClusterCenterBuf);
-    find3x3Clusters.setArg(3, clusterBuffer);
+    findClusters.setArg(0, chargeMap.get());
+    findClusters.setArg(1, digitBuf);
+    findClusters.setArg(2, globalToLocalRowBuf);
+    findClusters.setArg(3, isClusterCenterBuf);
+    findClusters.setArg(4, clusterBuf);
 
     // Setup queue
     cl::Device  device  = env.getDevice();
     cl::CommandQueue queue (context, device);
 
-    queue.enqueueWriteBuffer(digitBuffer, CL_FALSE, 0, digitBytes, 
+    queue.enqueueWriteBuffer(globalToLocalRowBuf, CL_FALSE, 0, 
+            sizeof(cl_int) * numOfRows, globalToLocalRow.data());
+
+    queue.enqueueWriteBuffer(digitBuf, CL_FALSE, 0, digitBytes, 
             digits.data());
 
     cl::NDRange global(digits.size());
     cl::NDRange local(16);
-    chargeMap.enqueueFill(queue, digitBuffer, global, local);
+    chargeMap.enqueueFill(queue, digitBuf, global, local);
 
-    queue.enqueueNDRangeKernel(find3x3Clusters, cl::NullRange, global, local);
+    queue.enqueueNDRangeKernel(findClusters, cl::NullRange, global, local);
 
     log::Info() << "Copy results back...";
     std::vector<Cluster> clusters(digits.size());
     ASSERT(clusters.size() * sizeof(Cluster) == clusterBytes);
-    queue.enqueueReadBuffer(clusterBuffer, CL_TRUE, 0, clusterBytes, 
+    queue.enqueueReadBuffer(clusterBuf, CL_TRUE, 0, clusterBytes, 
             clusters.data());
 
-    static_assert(sizeof(cl_int) == sizeof(int));
     std::vector<int> isClusterCenter(digits.size());
     queue.enqueueReadBuffer(isClusterCenterBuf, CL_TRUE, 0, isClusterCenterBytes,
             isClusterCenter.data());
@@ -74,14 +87,14 @@ void GPUClusterFinder::printClusters(
         const std::vector<Cluster> &clusters,
         size_t maxClusters)
 {
-    log::Info() << "Printing found clusters";
+    log::Debug() << "Printing found clusters";
     ASSERT(isCenter.size() == clusters.size());
     for (size_t i = 0; i < isCenter.size(); i++)
     {
         ASSERT(isCenter[i] == 0 || isCenter[i] == 1);
         if (isCenter[i])
         {
-            log::Info() << clusters[i];
+            log::Debug() << clusters[i];
             maxClusters--;
             if (maxClusters == 0)
             {
