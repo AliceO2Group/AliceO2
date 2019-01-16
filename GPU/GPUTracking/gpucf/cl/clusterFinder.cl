@@ -112,7 +112,10 @@ bool tryBuild3x3Cluster(
     return isClusterCenter;
 }
 
-void finalizeCluster(Cluster *myCluster, const Digit *myDigit)
+void finalizeCluster(
+                     Cluster *myCluster, 
+               const Digit   *myDigit, 
+        global const int     *globalToLocalRow)
 {
     myCluster->Q += myDigit->charge;
 
@@ -141,7 +144,7 @@ void finalizeCluster(Cluster *myCluster, const Digit *myDigit)
     myCluster->padSigma  = padSigma;
 
     myCluster->cru = myDigit->cru;
-    myCluster->row = myDigit->row;
+    myCluster->row = globalToLocalRow[myDigit->row];
 }
 
 
@@ -185,6 +188,7 @@ kernel
 void findClusters(
          global const float   *chargeMap,
          global const Digit   *digits,
+         global const int     *globalToLocalRow,
          global       int     *digitIsClusterCenter,
          global       Cluster *clusters)
 {
@@ -217,7 +221,7 @@ void findClusters(
                        myDigit.pad,
                        myDigit.time);
 
-    finalizeCluster(&myCluster, &myDigit);
+    finalizeCluster(&myCluster, &myDigit, globalToLocalRow);
 
 
     clusters[idx] = myCluster;

@@ -11,7 +11,7 @@ class ChargeMap
 {
 
 public:
-    ChargeMap(cl::Context, cl::Program, const std::vector<Digit> &);
+    ChargeMap(cl::Context, cl::Program, size_t);
 
     cl::Buffer get() const
     {

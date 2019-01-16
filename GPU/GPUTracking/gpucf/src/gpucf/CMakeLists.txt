@@ -6,8 +6,9 @@ set(GPUCF_SRC
     "./ClEnv.cpp"
     "./ClusterChecker.cpp"
     "./Executable.cpp"
-    "./VectorAdd.cpp"
     "./GPUClusterFinder.cpp"
+    "./RowInfo.cpp"
+    "./VectorAdd.cpp"
 
     "./common/Digit.cpp"
     "./common/Cluster.cpp"
