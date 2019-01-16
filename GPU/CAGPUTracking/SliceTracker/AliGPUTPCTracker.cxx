@@ -54,7 +54,6 @@ AliGPUTPCTracker::AliGPUTPCTracker() :
 	AliGPUProcessor(),
 	fStageAtSync( NULL ),
 	fLinkTmpMemory( NULL ),
-	fParam(NULL),
 	fISlice(0),
 	fData(),
 	fGPUDebugOut( 0 ),
@@ -101,9 +100,9 @@ AliGPUTPCTracker::~AliGPUTPCTracker()
 // ----------------------------------------------------------------------------------
 void AliGPUTPCTracker::Initialize( const AliGPUCAParam *param, int iSlice )
 {
-	fParam = param;
+	mParam = param;
 	fISlice = iSlice;
-	InitializeRows(fParam);
+	InitializeRows(mParam);
 
 	SetupCommonMemory();
 }
@@ -186,7 +185,7 @@ int AliGPUTPCTracker::ReadEvent()
 		printf("Error initializing from cluster data\n");
 		return 1;
 	}
-	if (fData.MaxZ() > 300 && !fParam->ContinuousTracking)
+	if (fData.MaxZ() > 300 && !mParam->ContinuousTracking)
 	{
 		printf("Need to set continuous tracking mode for data outside of the TPC volume!\n");
 		return 1;
@@ -295,7 +294,7 @@ GPUh() void AliGPUTPCTracker::DoTracking()
 {
 	fCommonMem->fNTracklets = fCommonMem->fNTracks = fCommonMem->fNTrackHits = 0;
 
-	if (fParam->debugLevel >= 6)
+	if (mParam->debugLevel >= 6)
 	{
 		if (!mRec->GetDeviceProcessingSettings().comparableDebutOutput)
 		{
@@ -316,19 +315,19 @@ GPUh() void AliGPUTPCTracker::DoTracking()
 		memcpy(fLinkTmpMemory, fData.ScratchMemory(), fData.ScratchMemorySize());
 	}
 
-	if (fParam->debugLevel >= 6) DumpLinks(*fGPUDebugOut);
+	if (mParam->debugLevel >= 6) DumpLinks(*fGPUDebugOut);
 
 	StartTimer(2);
 	RunNeighboursCleaner();
 	StopTimer(2);
 
-	if (fParam->debugLevel >= 6) DumpLinks(*fGPUDebugOut);
+	if (mParam->debugLevel >= 6) DumpLinks(*fGPUDebugOut);
 
 	StartTimer(3);
 	RunStartHitsFinder();
 	StopTimer(3);
 
-	if (fParam->debugLevel >= 6) DumpStartHits(*fGPUDebugOut);
+	if (mParam->debugLevel >= 6) DumpStartHits(*fGPUDebugOut);
 
 	StartTimer(5);
 	fData.ClearHitWeights();
@@ -349,19 +348,19 @@ GPUh() void AliGPUTPCTracker::DoTracking()
 	StartTimer(6);
 	RunTrackletConstructor();
 	StopTimer(6);
-	if (fParam->debugLevel >= 3) printf("Slice %d, Number of tracklets: %d\n", fISlice, *NTracklets());
+	if (mParam->debugLevel >= 3) printf("Slice %d, Number of tracklets: %d\n", fISlice, *NTracklets());
 
-	if (fParam->debugLevel >= 6) DumpTrackletHits(*fGPUDebugOut);
-	if (fParam->debugLevel >= 6 && !mRec->GetDeviceProcessingSettings().comparableDebutOutput) DumpHitWeights(*fGPUDebugOut);
+	if (mParam->debugLevel >= 6) DumpTrackletHits(*fGPUDebugOut);
+	if (mParam->debugLevel >= 6 && !mRec->GetDeviceProcessingSettings().comparableDebutOutput) DumpHitWeights(*fGPUDebugOut);
 
 	StartTimer(7);
 	RunTrackletSelector();
 	StopTimer(7);
-	if (fParam->debugLevel >= 3) printf("Slice %d, Number of tracks: %d\n", fISlice, *NTracks());
+	if (mParam->debugLevel >= 3) printf("Slice %d, Number of tracks: %d\n", fISlice, *NTracks());
 
-	if (fParam->debugLevel >= 6) DumpTrackHits(*fGPUDebugOut);
+	if (mParam->debugLevel >= 6) DumpTrackHits(*fGPUDebugOut);
 
-	//std::cout<<"Memory used for slice "<<fParam->ISlice()<<" : "<<fCommonMemorySize/1024./1024.<<" + "<<fHitMemorySize/1024./1024.<<" + "<<fTrackMemorySize/1024./1024.<<" = "<<( fCommonMemorySize+fHitMemorySize+fTrackMemorySize )/1024./1024.<<" Mb "<<std::endl;
+	//std::cout<<"Memory used for slice "<<mParam->ISlice()<<" : "<<fCommonMemorySize/1024./1024.<<" + "<<fHitMemorySize/1024./1024.<<" + "<<fTrackMemorySize/1024./1024.<<" = "<<( fCommonMemorySize+fHitMemorySize+fTrackMemorySize )/1024./1024.<<" Mb "<<std::endl;
 }
 
 GPUh() void AliGPUTPCTracker::Reconstruct()
@@ -486,7 +485,7 @@ GPUh() void AliGPUTPCTracker::WriteOutput()
 	useOutput->SetNTracks( nStoredTracks );
 	useOutput->SetNLocalTracks( nStoredLocalTracks );
 	useOutput->SetNTrackClusters( nStoredHits );
-	if (fParam->debugLevel >= 3) printf("Slice %d, Output: Tracks %d, local tracks %d, hits %d\n", fISlice, nStoredTracks, nStoredLocalTracks, nStoredHits);
+	if (mParam->debugLevel >= 3) printf("Slice %d, Output: Tracks %d, local tracks %d, hits %d\n", fISlice, nStoredTracks, nStoredLocalTracks, nStoredHits);
 
 	StopTimer(9);
 }
@@ -519,7 +518,7 @@ GPUh() int AliGPUTPCTracker::PerformGlobalTrackingRun(AliGPUTPCTracker& sliceNei
 	do
 	{
 		rowIndex += direction;
-		if (!tParam.TransportToX(sliceNeighbour.Row(rowIndex).X(), t0, fParam->ConstBz, GPUCA_MAX_SIN_PHI)) return(0); //Reuse t0 linearization until we are in the next sector
+		if (!tParam.TransportToX(sliceNeighbour.Row(rowIndex).X(), t0, mParam->ConstBz, GPUCA_MAX_SIN_PHI)) return(0); //Reuse t0 linearization until we are in the next sector
 		//printf("Transported X %f Y %f Z %f SinPhi %f DzDs %f QPt %f SignCosPhi %f (MaxY %f)\n", tParam.X(), tParam.Y(), tParam.Z(), tParam.SinPhi(), tParam.DzDs(), tParam.QPt(), tParam.SignCosPhi(), sliceNeighbour.Row(rowIndex).MaxY());
 		if (--maxRowGap == 0) return(0);
 	} while (fabs(tParam.Y()) > sliceNeighbour.Row(rowIndex).MaxY());
@@ -548,7 +547,7 @@ GPUh() int AliGPUTPCTracker::PerformGlobalTrackingRun(AliGPUTPCTracker& sliceNei
 				{
 					//printf("New track: entry %d, row %d, hitindex %d\n", i, rowIndex, sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets]);
 					sliceNeighbour.fTrackHits[sliceNeighbour.fCommonMem->fNTrackHits + i].Set(rowIndex, rowHit);
-					//if (i == 0) tParam.TransportToX(sliceNeighbour.Row(rowIndex).X(), fParam->ConstBz(), GPUCA_MAX_SIN_PHI); //Use transport with new linearisation, we have changed the track in between - NOT needed, fitting will always start at outer end of global track!
+					//if (i == 0) tParam.TransportToX(sliceNeighbour.Row(rowIndex).X(), mParam->ConstBz(), GPUCA_MAX_SIN_PHI); //Use transport with new linearisation, we have changed the track in between - NOT needed, fitting will always start at outer end of global track!
 					i++;
 				}
 				rowIndex ++;
@@ -613,14 +612,14 @@ GPUh() void AliGPUTPCTracker::PerformGlobalTracking(AliGPUTPCTracker& sliceLeft,
 				else if (Y < -row.MaxY() * GLOBAL_TRACKING_Y_RANGE_LOWER_LEFT)
 				{
 					//printf("Track %d, lower row %d, left border (%f of %f)\n", i, fTrackHits[tmpHit].RowIndex(), Y, -row.MaxY());
-					ll += PerformGlobalTrackingRun(sliceLeft, i, rowIndex, -fParam->DAlpha, -1);
+					ll += PerformGlobalTrackingRun(sliceLeft, i, rowIndex, -mParam->DAlpha, -1);
 				}
 				if (sliceRight.NHitsTotal() < 1) {}
 				else if (sliceRight.fCommonMem->fNTracks >= MaxTracksRight) {printf("Insufficient memory for global tracking (%d:r %d / %d)\n", fISlice, sliceRight.fCommonMem->fNTracks, MaxTracksRight);}
 				else if (Y > row.MaxY() * GLOBAL_TRACKING_Y_RANGE_LOWER_RIGHT)
 				{
 					//printf("Track %d, lower row %d, right border (%f of %f)\n", i, fTrackHits[tmpHit].RowIndex(), Y, row.MaxY());
-					lr += PerformGlobalTrackingRun(sliceRight, i, rowIndex, fParam->DAlpha, -1);
+					lr += PerformGlobalTrackingRun(sliceRight, i, rowIndex, mParam->DAlpha, -1);
 				}
 			}
 		}
@@ -637,14 +636,14 @@ GPUh() void AliGPUTPCTracker::PerformGlobalTracking(AliGPUTPCTracker& sliceLeft,
 				else if (Y < -row.MaxY() * GLOBAL_TRACKING_Y_RANGE_UPPER_LEFT)
 				{
 					//printf("Track %d, upper row %d, left border (%f of %f)\n", i, fTrackHits[tmpHit].RowIndex(), Y, -row.MaxY());
-					ul += PerformGlobalTrackingRun(sliceLeft, i, rowIndex, -fParam->DAlpha, 1);
+					ul += PerformGlobalTrackingRun(sliceLeft, i, rowIndex, -mParam->DAlpha, 1);
 				}
 				if (sliceRight.NHitsTotal() < 1) {}
 				else if (sliceRight.fCommonMem->fNTracks >= MaxTracksRight) {printf("Insufficient memory for global tracking (%d:r %d / %d)\n", fISlice, sliceRight.fCommonMem->fNTracks, MaxTracksRight);}
 				else if (Y > row.MaxY() * GLOBAL_TRACKING_Y_RANGE_UPPER_RIGHT)
 				{
 					//printf("Track %d, upper row %d, right border (%f of %f)\n", i, fTrackHits[tmpHit].RowIndex(), Y, row.MaxY());
-					ur += PerformGlobalTrackingRun(sliceRight, i, rowIndex, fParam->DAlpha, 1);
+					ur += PerformGlobalTrackingRun(sliceRight, i, rowIndex, mParam->DAlpha, 1);
 				}
 			}
 		}
@@ -658,7 +657,7 @@ GPUh() void AliGPUTPCTracker::PerformGlobalTracking(AliGPUTPCTracker& sliceLeft,
 	sliceLeft.fTrackletRowHits = lnkLeft;sliceRight.fTrackletRowHits = lnkRight;
 #endif
 	StopTimer(8);
-	//printf("Global Tracking Result: Slide %2d: LL %3d LR %3d UL %3d UR %3d\n", fParam->ISlice(), ll, lr, ul, ur);
+	//printf("Global Tracking Result: Slide %2d: LL %3d LR %3d UL %3d UR %3d\n", mParam->ISlice(), ll, lr, ul, ur);
 }
 
 #endif

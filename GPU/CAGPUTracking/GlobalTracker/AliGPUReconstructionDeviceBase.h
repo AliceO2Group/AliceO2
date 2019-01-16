@@ -12,6 +12,7 @@ public:
 	virtual ~AliGPUReconstructionDeviceBase() override = default;
 
 	char* MergerHostMemory() const {return((char*) fGPUMergerHostMemory);}
+	const AliGPUCAParam* DeviceParam() const {return mDeviceParam;}
 	virtual int RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers) const = 0;
 
 protected:
@@ -89,6 +90,8 @@ protected:
 
 	void* fGPUMergerMemory = nullptr;
 	unsigned long long int fGPUMergerMaxMemory = 0;
+	
+	AliGPUCAParam* mDeviceParam = nullptr;
 
 	unsigned long long int fGPUMemSize = 0;	//Memory Size to allocate on GPU
 	unsigned long long int fHostMemSize = 0; //Memory Size to allocate on Host

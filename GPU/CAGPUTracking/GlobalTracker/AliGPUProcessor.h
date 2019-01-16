@@ -2,12 +2,14 @@
 #define ALIGPUPROCESSOR_H
 
 #include "AliTPCCommonDef.h"
+#include "AliGPUTPCDef.h"
 
 #ifndef GPUCA_GPUCODE
 #include <cstddef>
 #endif
 
 class AliGPUReconstruction;
+MEM_CLASS_PRE() class AliGPUCAParam;
 
 class AliGPUProcessor
 {
@@ -22,6 +24,7 @@ public:
 	AliGPUProcessor();
 	~AliGPUProcessor();
 	AliGPUProcessor(const AliGPUProcessor&) CON_DELETE;
+	AliGPUProcessor& operator= (const AliGPUProcessor&) CON_DELETE;
 	void InitGPUProcessor(AliGPUReconstruction* rec, ProcessorType type = PROCESSOR_TYPE_CPU, AliGPUProcessor* slaveProcessor = NULL);
 #endif
 
@@ -34,6 +37,7 @@ protected:
 	AliGPUReconstruction* mRec;
 	ProcessorType mGPUProcessorType;
 	AliGPUProcessor* mDeviceProcessor;
+	GPUglobalref() const MEM_GLOBAL(AliGPUCAParam) *mParam;
 	
 	int mMemoryResInput;
 	int mMemoryResOutput;

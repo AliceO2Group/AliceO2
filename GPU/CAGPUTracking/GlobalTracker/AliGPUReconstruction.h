@@ -250,6 +250,7 @@ protected:
 	AliGPUReconstruction(const AliGPUCASettingsProcessing& cfg);				//Constructor
 	virtual int InitDevice();
 	virtual int ExitDevice();
+	int InitializeProcessors();
 	
 	//Private helper functions for memory management
 	static size_t AllocateRegisteredMemoryHelper(AliGPUMemoryResource* res, void* &ptr, void* &memorypool, void* memorybase, size_t memorysize, void* (AliGPUMemoryResource::*SetPointers)(void*));

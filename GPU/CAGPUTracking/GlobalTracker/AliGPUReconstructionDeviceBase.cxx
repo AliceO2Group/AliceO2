@@ -444,7 +444,6 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 		fGpuTracker[i].Data().InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE, &mTPCSliceTrackersCPU[i].Data());
 		mTPCSliceTrackersCPU[i].SetGPUTrackerCommonMemory((char*) CommonMemory(fHostLockedMemory, i));
 		mTPCSliceTrackersCPU[i].SetGPUSliceDataMemory(RowMemory(fHostLockedMemory, i));
-		mTPCSliceTrackersCPU[i].InitializeRows(&mParam);
 	}
 	fGpuMerger->InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE, &mTPCMergerCPU);
 
@@ -530,6 +529,7 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_Init()
 
 		//Make this a GPU Tracker
 		fGpuTracker[iSlice].InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
+		fGpuTracker[iSlice].Data().InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
 		fGpuTracker[iSlice].SetGPUTrackerCommonMemory((char*) CommonMemory(fGPUMemory, iSlice));
 		fGpuTracker[iSlice].SetGPUSliceDataMemory(RowMemory(fGPUMemory, iSlice));
 		mTPCSliceTrackersCPU[iSlice].Data().SetClusterData(&mClusterData[iSlice]);

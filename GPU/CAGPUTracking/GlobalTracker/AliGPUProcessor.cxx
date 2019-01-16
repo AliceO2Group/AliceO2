@@ -1,8 +1,9 @@
 #include "AliGPUProcessor.h"
 #include "AliGPUReconstruction.h"
+#include "AliGPUReconstructionDeviceBase.h"
 
 AliGPUProcessor::AliGPUProcessor() :
-	mRec(NULL), mGPUProcessorType(PROCESSOR_TYPE_CPU), mDeviceProcessor(NULL),
+	mRec(NULL), mGPUProcessorType(PROCESSOR_TYPE_CPU), mDeviceProcessor(NULL), mParam(NULL),
 	mMemoryResInput(-1), mMemoryResOutput(-1), mMemoryResScratch(-1), mMemoryResScratchHost(-1)
 {
 }
@@ -20,6 +21,7 @@ void AliGPUProcessor::InitGPUProcessor(AliGPUReconstruction* rec, AliGPUProcesso
 	mRec = rec;
 	mGPUProcessorType = type;
 	if (slaveProcessor) slaveProcessor->mDeviceProcessor = this;
+	mParam = type == PROCESSOR_TYPE_DEVICE ? ((AliGPUReconstructionDeviceBase*) rec)->DeviceParam() : &rec->GetParam();
 }
 
 void* AliGPUProcessor::InputMemory() const {return(mRec->Res(mMemoryResInput).Ptr()); }
