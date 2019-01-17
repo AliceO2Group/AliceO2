@@ -73,7 +73,7 @@ class TRDCalPadStatus
   };
   Bool_t CheckStatus(Int_t d, Int_t col, Int_t row, Int_t bitMask) const;
 
-  TRDCalSingleChamberStatus* getCalROC(Int_t d) const { return fROC[d]; };
+  TRDCalSingleChamberStatus* getCalROC(Int_t d) const { return mROC[d]; };
   TRDCalSingleChamberStatus* getCalROC(Int_t p, Int_t c, Int_t s) const;
 
   // Plot functions

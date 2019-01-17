@@ -29,7 +29,7 @@ using namespace o2::trd;
 
 //____________________________________________________________________________________
 ArrayADC::ArrayADC()
-  : mNdet(0), mNrow(0), mNcol(0), mNumberOmChannels(0), mNtime(0), mNAdim(0), mADC(0)
+  : mNdet(0), mNrow(0), mNcol(0), mNumberOfChannels(0), mNtime(0), mNAdim(0), mADC(0)
 {
   //
   // ArrayADC demault constructor
@@ -40,7 +40,7 @@ ArrayADC::ArrayADC()
 
 //____________________________________________________________________________________
 ArrayADC::ArrayADC(Int_t nrow, Int_t ncol, Int_t ntime)
-  : mNdet(0), mNrow(0), mNcol(0), mNumberOmChannels(0), mNtime(0), mNAdim(0), mADC(0)
+  : mNdet(0), mNrow(0), mNcol(0), mNumberOfChannels(0), mNtime(0), mNAdim(0), mADC(0)
 {
   //
   // ArrayADC constructor
@@ -52,7 +52,7 @@ ArrayADC::ArrayADC(Int_t nrow, Int_t ncol, Int_t ntime)
 
 //____________________________________________________________________________________
 ArrayADC::ArrayADC(const ArrayADC& b)
-  : mNdet(b.mNdet), mNrow(b.mNrow), mNcol(b.mNcol), mNumberOmChannels(b.mNumberOmChannels), mNtime(b.mNtime), mNAdim(b.mNAdim), mADC(b.mADC) //this will do the copy, due to begin a vector
+  : mNdet(b.mNdet), mNrow(b.mNrow), mNcol(b.mNcol), mNumberOfChannels(b.mNumberOfChannels), mNtime(b.mNtime), mNAdim(b.mNAdim), mADC(b.mADC) //this will do the copy, due to begin a vector
 {
   //
   // ArrayADC copy constructor
@@ -82,7 +82,7 @@ ArrayADC& ArrayADC::operator=(const ArrayADC& b)
   mNdet = b.mNdet;
   mNrow = b.mNrow;
   mNcol = b.mNcol;
-  mNumberOmChannels = b.mNumberOfChannels;
+  mNumberOfChannels = b.mNumberOfChannels;
   mNtime = b.mNtime;
   mNAdim = b.mNAdim;
   mADC = b.mADC; //.resize(mNAdim); // resize incase b.mADC is bigger than this one;

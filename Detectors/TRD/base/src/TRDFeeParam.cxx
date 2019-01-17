@@ -44,7 +44,7 @@ using namespace o2::trd;
 
 //_____________________________________________________________________________
 
-TRDFeeParam* TRDFeeParam::fgInstance = 0;
+TRDFeeParam* TRDFeeParam::mgInstance = 0;
 Bool_t TRDFeeParam::mgTerminated = kFALSE;
 Bool_t TRDFeeParam::mgTracklet = kTRUE;
 Bool_t TRDFeeParam::mgRejectMultipleTracklets = kFALSE;
@@ -439,10 +439,10 @@ void TRDFeeParam::setRAWversion(Int_t rawver)
 {
   //
   // Set raw data version (major number only)
-  // Maximum available number is preset in fgkMaxRAWversion
+  // Maximum available number is preset in mgkMaxRAWversion
   //
 
-  if (rawver >= 0 && rawver <= fgkMaxRAWversion) {
+  if (rawver >= 0 && rawver <= mgkMaxRAWversion) {
     mRAWversion = rawver;
   } else {
     LOG(ERROR) << "Raw version is out of range: " << rawver;

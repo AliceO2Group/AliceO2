@@ -35,7 +35,7 @@ using namespace o2::trd;
 
 //_____________________________________________________________________________
 TRDSignalIndex::TRDSignalIndex()
-  : mDet(-1), mLayer(-1), mStack(-1), mSM(-1), mBoolIndex(NULL), mSortedIndex(NULL), mMaxLimit(0), mPositionRC(0), mCountRC(1), mSortedWasInit(kmALSE), mCurrRow(0), mCurrCol(0), mCurrTbin(0), mNrows(0), mNcols(0), mNtbins(0)
+  : mDet(-1), mLayer(-1), mStack(-1), mSM(-1), mBoolIndex(NULL), mSortedIndex(NULL), mMaxLimit(0), mPositionRC(0), mCountRC(1), mSortedWasInit(kFALSE), mCurrRow(0), mCurrCol(0), mCurrTbin(0), mNrows(0), mNcols(0), mNtbins(0)
 {
   //
   // Default contructor
@@ -46,7 +46,7 @@ TRDSignalIndex::TRDSignalIndex()
 
 //_____________________________________________________________________________
 TRDSignalIndex::TRDSignalIndex(Int_t nrow, Int_t ncol, Int_t ntime)
-  : mDet(-1), mLayer(-1), mStack(-1), mSM(-1), mBoolIndex(NULL), mSortedIndex(NULL), mMaxLimit(0), mPositionRC(0), mCountRC(1), mSortedWasInit(kmALSE), mCurrRow(0), mCurrCol(0), mCurrTbin(0), mNrows(0), mNcols(0), mNtbins(0)
+  : mDet(-1), mLayer(-1), mStack(-1), mSM(-1), mBoolIndex(NULL), mSortedIndex(NULL), mMaxLimit(0), mPositionRC(0), mCountRC(1), mSortedWasInit(kFALSE), mCurrRow(0), mCurrCol(0), mCurrTbin(0), mNrows(0), mNcols(0), mNtbins(0)
 {
   //
   // Not the default contructor... hmmm...
