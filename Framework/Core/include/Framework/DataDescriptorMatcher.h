@@ -273,7 +273,7 @@ class DataDescriptorMatcher
 // GCC 7.3.0 std::variant implementation as described by:
 // https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=877838
 #ifndef __CLING__
-#include "DataDescriptorMatcher.inl"
+#include "DataDescriptorMatcher.inc"
 #endif
 
 #endif // o2_framework_DataDescriptorMatcher_H_INCLUDED

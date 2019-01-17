@@ -82,5 +82,5 @@ class TimesliceIndex
 } // namespace framework
 } // namespace o2
 
-#include "TimesliceIndex.inl"
+#include "TimesliceIndex.inc"
 #endif // FRAMEWORK_TIMESLICEINDEX_H
