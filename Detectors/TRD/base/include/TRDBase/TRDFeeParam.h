@@ -72,62 +72,62 @@ class TRDFeeParam
   static Short_t getRobAB(UShort_t robsel, UShort_t linkpair); // Returns the chamber side (A=0, B=0) of a ROB
 
   // geometry
-  static Float_t getSamplingFrequency() { return (Float_t)fgkLHCfrequency / 4000000.0; }
-  static Int_t getNmcmRob() { return fgkNmcmRob; }
-  static Int_t getNmcmRobInRow() { return fgkNmcmRobInRow; }
-  static Int_t getNmcmRobInCol() { return fgkNmcmRobInCol; }
-  static Int_t getNrobC0() { return fgkNrobC0; }
-  static Int_t getNrobC1() { return fgkNrobC1; }
-  static Int_t getNadcMcm() { return fgkNadcMcm; }
-  static Int_t getNcol() { return fgkNcol; }
-  static Int_t getNcolMcm() { return fgkNcolMcm; }
-  static Int_t getNrowC0() { return fgkNrowC0; }
-  static Int_t getNrowC1() { return fgkNrowC1; }
+  static Float_t getSamplingFrequency() { return (Float_t)mgkLHCfrequency / 4000000.0; }
+  static Int_t getNmcmRob() { return mgkNmcmRob; }
+  static Int_t getNmcmRobInRow() { return mgkNmcmRobInRow; }
+  static Int_t getNmcmRobInCol() { return mgkNmcmRobInCol; }
+  static Int_t getNrobC0() { return mgkNrobC0; }
+  static Int_t getNrobC1() { return mgkNrobC1; }
+  static Int_t getNadcMcm() { return mgkNadcMcm; }
+  static Int_t getNcol() { return mgkNcol; }
+  static Int_t getNcolMcm() { return mgkNcolMcm; }
+  static Int_t getNrowC0() { return mgkNrowC0; }
+  static Int_t getNrowC1() { return mgkNrowC1; }
 
   // tracklet simulation
-  Bool_t getTracklet() const { return fgTracklet; }
-  static void setTracklet(Bool_t trackletSim = kTRUE) { fgTracklet = trackletSim; }
-  Bool_t getRejectMultipleTracklets() const { return fgRejectMultipleTracklets; }
-  static void setRejectMultipleTracklets(Bool_t rej = kTRUE) { fgRejectMultipleTracklets = rej; }
-  Bool_t getUseMisalignCorr() const { return fgUseMisalignCorr; }
-  static void setUseMisalignCorr(Bool_t misalign = kTRUE) { fgUseMisalignCorr = misalign; }
-  Bool_t getUseTimeOffset() const { return fgUseTimeOffset; }
-  static void setUseTimeOffset(Bool_t timeOffset = kTRUE) { fgUseTimeOffset = timeOffset; }
+  Bool_t getTracklet() const { return mgTracklet; }
+  static void setTracklet(Bool_t trackletSim = kTRUE) { mgTracklet = trackletSim; }
+  Bool_t getRejectMultipleTracklets() const { return mgRejectMultipleTracklets; }
+  static void setRejectMultipleTracklets(Bool_t rej = kTRUE) { mgRejectMultipleTracklets = rej; }
+  Bool_t getUseMisalignCorr() const { return mgUseMisalignCorr; }
+  static void setUseMisalignCorr(Bool_t misalign = kTRUE) { mgUseMisalignCorr = misalign; }
+  Bool_t getUseTimeOffset() const { return mgUseTimeOffset; }
+  static void setUseTimeOffset(Bool_t timeOffset = kTRUE) { mgUseTimeOffset = timeOffset; }
 
   // Concerning raw data format
-  Int_t getRAWversion() const { return fRAWversion; }
+  Int_t getRAWversion() const { return mRAWversion; }
   void setRAWversion(Int_t rawver);
 
  protected:
-  static TRDFeeParam* fgInstance; // Singleton instance
-  static Bool_t fgTerminated;     // Defines if this class has already been terminated
+  static TRDmeeParam* mgInstance; // Singleton instance
+  static Bool_t mgTerminated;     // Defines if this class has already been terminated
 
-  TRDCommonParam* fCP; // TRD common parameters class
+  TRDCommonParam* mCP; // TRD common parameters class
 
   // Remark: ISO C++ allows initialization of static const values only for integer.
 
   // Basic Geometrical numbers
-  static const Int_t fgkLHCfrequency = 40079000; // [Hz] LHC clock (should be moved to STEER?)
-  static const Int_t fgkNmcmRob = 16;            // Number of MCMs per ROB         (old fgkMCMmax)
-  static const Int_t fgkNmcmRobInRow = 4;        // Number of MCMs per ROB in row dir. (old fgkMCMrow)
-  static const Int_t fgkNmcmRobInCol = 4;        // Number of MCMs per ROB in col dir. (old fgkMCMrow)
-  static const Int_t fgkNrobC0 = 6;              // Number of ROBs per C0 chamber  (old fgkROBmaxC0)
-  static const Int_t fgkNrobC1 = 8;              // Number of ROBs per C1 chamber  (old fgkROBmaxC1)
-  static const Int_t fgkNadcMcm = 21;            // Number of ADC channels per MCM (old fgkADCmax)
-  static const Int_t fgkNcol = 144;              // Number of pads per padplane row(old fgkColmax)
-  static const Int_t fgkNcolMcm = 18;            // Number of pads per MCM         (old fgkPadmax)
-  static const Int_t fgkNrowC0 = 12;             // Number of Rows per C0 chamber  (old fgkRowmaxC0)
-  static const Int_t fgkNrowC1 = 16;             // Number of Rows per C1 chamber  (old fgkRowmaxC1)
+  static const Int_t mgkLHCfrequency = 40079000; // [Hz] LHC clock 
+  static const Int_t mgkNmcmRob = 16;            // Number of MCMs per ROB  
+  static const Int_t mgkNmcmRobInRow = 4;        // Number of MCMs per ROB in row dir.
+  static const Int_t mgkNmcmRobInCol = 4;        // Number of MCMs per ROB in col dir.
+  static const Int_t mgkNrobC0 = 6;              // Number of ROBs per C0 chamber 
+  static const Int_t mgkNrobC1 = 8;              // Number of ROBs per C1 chamber 
+  static const Int_t mgkNadcMcm = 21;            // Number of ADC channels per MCM 
+  static const Int_t mgkNcol = 144;              // Number of pads per padplane row
+  static const Int_t mgkNcolMcm = 18;            // Number of pads per MCM        
+  static const Int_t mgkNrowC0 = 12;             // Number of Rows per C0 chamber 
+  static const Int_t mgkNrowC1 = 16;             // Number of Rows per C1 chamber
 
   // Tracklet  processing on/off
-  static Bool_t fgTracklet;                // tracklet processing
-  static Bool_t fgRejectMultipleTracklets; // only accept best tracklet if found more than once
-  static Bool_t fgUseMisalignCorr;         // add correction for mis-alignment in y
-  static Bool_t fgUseTimeOffset;           // add time offset in calculation of fit sums
+  static Bool_t mgTracklet;                // tracklet processing
+  static Bool_t mgRejectMultipleTracklets; // only accept best tracklet if found more than once
+  static Bool_t mgUseMisalignCorr;         // add correction for mis-alignment in y
+  static Bool_t mgUseTimeOffset;           // add time offset in calculation of fit sums
 
   // For raw production
-  Int_t fRAWversion;                       // Raw data production version
-  static const Int_t fgkMaxRAWversion = 3; // Maximum raw version number supported
+  Int_t mRAWversion;                       // Raw data production version
+  static const Int_t mgkMaxRAWversion = 3; // Maximum raw version number supported
 
  private:
   TRDFeeParam();

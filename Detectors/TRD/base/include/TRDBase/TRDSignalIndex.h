@@ -70,11 +70,11 @@ class TRDSignalIndex
 
   Bool_t CheckSorting(Int_t& row, Int_t& col);
 
-  Int_t getCurrentRow() const { return fCurrRow; }
-  Int_t getCurrentCol() const { return fCurrCol; }
-  Int_t getCurrentTbin() const { return fCurrTbin; }
+  Int_t getCurrentRow() const { return mCurrRow; }
+  Int_t getCurrentCol() const { return mCurrCol; }
+  Int_t getCurrentTbin() const { return mCurrTbin; }
 
-  Bool_t IsBoolIndex(Int_t row, Int_t col) const { return fBoolIndex[row * fNcols + col]; };
+  Bool_t IsBoolIndex(Int_t row, Int_t col) const { return mBoolIndex[row * mNcols + col]; };
   void InitSortedIndex();
 
   // Clear the array, actually destroy and recreate w/o allocating
@@ -82,52 +82,52 @@ class TRDSignalIndex
   // Return kTRUE if array allocated and there is no need to call allocate
   Bool_t IsAllocated() const
   {
-    if (!fBoolIndex)
+    if (!mBoolIndex)
       return kFALSE;
-    if (fMaxLimit <= 0)
+    if (mMaxLimit <= 0)
       return kFALSE;
     else
       return kTRUE;
   }
 
-  void setSM(const Int_t ix) { fSM = ix; }
-  void setStack(const Int_t ix) { fStack = ix; }
-  void setLayer(const Int_t ix) { fLayer = ix; }
-  void setDetNumber(const Int_t ix) { fDet = ix; }
+  void setSM(const Int_t ix) { mSM = ix; }
+  void setStack(const Int_t ix) { mStack = ix; }
+  void setLayer(const Int_t ix) { mLayer = ix; }
+  void setDetNumber(const Int_t ix) { mDet = ix; }
 
-  Int_t getDetNumber() const { return fDet; }                  // get Det number
-  Int_t getLayer() const { return fLayer; }                    // Layer position of the chamber in TRD
-  Int_t getStack() const { return fStack; }                    // Stack position of the chamber in TRD
-  Int_t getSM() const { return fSM; }                          // Super module of the TRD
-  Short_t* getArray() const { return (Short_t*)fSortedIndex; } // get the array pointer for god knows what reason
-  Int_t getNoOfIndexes() const { return fCountRC - 1; }
+  Int_t getDetNumber() const { return mDet; }                  // get Det number
+  Int_t getLayer() const { return mLayer; }                    // Layer position of the chamber in TRD
+  Int_t getStack() const { return mStack; }                    // Stack position of the chamber in TRD
+  Int_t getSM() const { return mSM; }                          // Super module of the TRD
+  Short_t* getArray() const { return (Short_t*)mSortedIndex; } // get the array pointer for god knows what reason
+  Int_t getNoOfIndexes() const { return mCountRC - 1; }
 
-  Bool_t HasEntry() const { return fCountRC > 1 ? kTRUE : kFALSE; } // Return status if has an entry
+  Bool_t HasEntry() const { return mCountRC > 1 ? kTRUE : kFALSE; } // Return status if has an entry
 
-  Int_t getNrow() const { return fNrows; }   // get Nrows
-  Int_t getNcol() const { return fNcols; }   // get Ncols
-  Int_t getNtime() const { return fNtbins; } // get Ntbins
+  Int_t getNrow() const { return mNrows; }   // get Nrows
+  Int_t getNcol() const { return mNcols; }   // get Ncols
+  Int_t getNtime() const { return mNtbins; } // get Ntbins
 
  private:
-  Int_t fDet;   //  Detector number
-  Int_t fLayer; //  Layer position in the full TRD
-  Int_t fStack; //  Stack position in the full TRD
-  Int_t fSM;    //  Super module - position in the full TRD
+  Int_t mDet;   //  Detector number
+  Int_t mLayer; //  Layer position in the full TRD
+  Int_t mStack; //  Stack position in the full TRD
+  Int_t mSM;    //  Super module - position in the full TRD
 
-  Bool_t* fBoolIndex;    //  Indices
-  RowCol* fSortedIndex;  //  Sorted indices
-  Int_t fMaxLimit;       //  Max number of things in the array
-  Int_t fPositionRC;     //  Position in the SortedIndex
-  Int_t fCountRC;        //  the number of added rc combinations
-  Bool_t fSortedWasInit; //  Was SortedIndex initialized?
+  Bool_t* mBoolIndex;    //  Indices
+  RowCol* mSortedIndex;  //  Sorted indices
+  Int_t mMaxLimit;       //  Max number of things in the array
+  Int_t mPositionRC;     //  Position in the SortedIndex
+  Int_t mCountRC;        //  the number of added rc combinations
+  Bool_t mSortedWasInit; //  Was SortedIndex initialized?
 
-  Int_t fCurrRow;  //  Last Row read out of SortedIndex
-  Int_t fCurrCol;  //  Last Col read out of SortedIndex
-  Int_t fCurrTbin; //  Last outgiven Tbin
+  Int_t mCurrRow;  //  Last Row read out of SortedIndex
+  Int_t mCurrCol;  //  Last Col read out of SortedIndex
+  Int_t mCurrTbin; //  Last outgiven Tbin
 
-  Int_t fNrows;  //  Number of rows in the chamber
-  Int_t fNcols;  //  Number of cols in the chamber
-  Int_t fNtbins; //  Number of tbins in the chamber
+  Int_t mNrows;  //  Number of rows in the chamber
+  Int_t mNcols;  //  Number of cols in the chamber
+  Int_t mNtbins; //  Number of tbins in the chamber
 
   ClassDefNV(TRDSignalIndex, 1) //  Data container for one TRD detector segment
 };
@@ -138,13 +138,13 @@ void TRDSignalIndex::AddIndexRC(const Int_t row, const Int_t col)
   // Adds RC combination to array
   //
 
-  const Int_t num = row * fNcols + col;
-  if (fBoolIndex[num])
+  const Int_t num = row * mNcols + col;
+  if (mBoolIndex[num])
     return;
-  fBoolIndex[num] = kTRUE;
-  fSortedIndex[fCountRC].s.col = col;
-  fSortedIndex[fCountRC].s.row = row;
-  fCountRC++;
+  mBoolIndex[num] = kTRUE;
+  mSortedIndex[mCountRC].s.col = col;
+  mSortedIndex[mCountRC].s.row = row;
+  mCountRC++;
 }
 
 Bool_t TRDSignalIndex::NextRCIndex(Int_t& row, Int_t& col)
@@ -156,10 +156,10 @@ Bool_t TRDSignalIndex::NextRCIndex(Int_t& row, Int_t& col)
   if (!IsAllocated())
     return kFALSE;
 
-  if (fSortedIndex[fPositionRC].rc > -1) {
-    row = fCurrRow = fSortedIndex[fPositionRC].s.row;
-    col = fCurrCol = fSortedIndex[fPositionRC].s.col;
-    fPositionRC++;
+  if (mSortedIndex[mPositionRC].rc > -1) {
+    row = mCurrRow = mSortedIndex[mPositionRC].s.row;
+    col = mCurrCol = mSortedIndex[mPositionRC].s.col;
+    mPositionRC++;
     return kTRUE;
   } else
     return CheckSorting(row, col);

@@ -26,7 +26,7 @@ using namespace o2::trd;
 
 //_____________________________________________________________________________
 TRDCalSingleChamberStatus::TRDCalSingleChamberStatus()
-  : fPla(0), fCha(0), fNrows(0), fNcols(0), fNchannels(0), fData(0)
+  : mPla(0), mCha(0), mNrows(0), mNcols(0), mNchannels(0), mData(0)
 {
   //
   // Default constructor
@@ -35,7 +35,7 @@ TRDCalSingleChamberStatus::TRDCalSingleChamberStatus()
 
 //_____________________________________________________________________________
 TRDCalSingleChamberStatus::TRDCalSingleChamberStatus(Int_t p, Int_t c, Int_t cols)
-  : fPla(p), fCha(c), fNrows(0), fNcols(cols), fNchannels(0), fData(0)
+  : mPla(p), mCha(c), mNrows(0), mNcols(cols), mNchannels(0), mData(0)
 {
   //
   // Constructor that initializes a given pad plane type
@@ -48,79 +48,79 @@ TRDCalSingleChamberStatus::TRDCalSingleChamberStatus(Int_t p, Int_t c, Int_t col
     case 0:
       if (c == 2) {
         // L0C0 type
-        fNrows = 12;
+        mNrows = 12;
       } else {
         // L0C1 type
-        fNrows = 16;
+        mNrows = 16;
       }
       break;
     case 1:
       if (c == 2) {
         // L1C0 type
-        fNrows = 12;
+        mNrows = 12;
       } else {
         // L1C1 type
-        fNrows = 16;
+        mNrows = 16;
       }
       break;
     case 2:
       if (c == 2) {
         // L2C0 type
-        fNrows = 12;
+        mNrows = 12;
       } else {
         // L2C1 type
-        fNrows = 16;
+        mNrows = 16;
       }
       break;
     case 3:
       if (c == 2) {
         // L3C0 type
-        fNrows = 12;
+        mNrows = 12;
       } else {
         // L3C1 type
-        fNrows = 16;
+        mNrows = 16;
       }
       break;
     case 4:
       if (c == 2) {
         // L4C0 type
-        fNrows = 12;
+        mNrows = 12;
       } else {
         // L4C1 type
-        fNrows = 16;
+        mNrows = 16;
       }
       break;
     case 5:
       if (c == 2) {
         // L5C0 type
-        fNrows = 12;
+        mNrows = 12;
       } else {
         // L5C1 type
-        fNrows = 16;
+        mNrows = 16;
       }
       break;
   };
 
-  fNchannels = fNrows * fNcols;
-  if (fNchannels != 0) {
-    fData = new Char_t[fNchannels];
+  mNchannels = mNrows * mNcols;
+  if (mNchannels != 0) {
+    mData = new Char_t[mNchannels];
   }
-  for (Int_t i = 0; i < fNchannels; ++i) {
-    fData[i] = 0;
+  for (Int_t i = 0; i < mNchannels; ++i) {
+    mData[i] = 0;
   }
 }
 
 //_____________________________________________________________________________
 TRDCalSingleChamberStatus::TRDCalSingleChamberStatus(const TRDCalSingleChamberStatus& c)
-  : fPla(c.fPla), fCha(c.fCha), fNrows(c.fNrows), fNcols(c.fNcols), fNchannels(c.fNchannels), fData(0)
+  : mPla(c.mPla), mCha(c.mCha), mNrows(c.mNrows), mNcols(c.mNcols), mNchannels(c.mNchannels), mData(0)
 {
   //
   // TRDCalSingleChamberStatus copy constructor
   //
 
-  fData = new Char_t[fNchannels];
-  for (Int_t iBin = 0; iBin < fNchannels; iBin++) {
-    fData[iBin] = ((TRDCalSingleChamberStatus&)c).fData[iBin];
+  mData = new Char_t[mNchannels];
+  for (Int_t iBin = 0; iBin < mNchannels; iBin++) {
+    mData[iBin] = ((TRDCalSingleChamberStatus&)c).mData[iBin];
   }
 }
 
@@ -131,9 +131,9 @@ TRDCalSingleChamberStatus::~TRDCalSingleChamberStatus()
   // TRDCalSingleChamberStatus destructor
   //
 
-  if (fData) {
-    delete[] fData;
-    fData = 0;
+  if (mData) {
+    delete[] mData;
+    mData = 0;
   }
 }
 
@@ -148,18 +148,18 @@ TRDCalSingleChamberStatus& TRDCalSingleChamberStatus::operator=(const TRDCalSing
     return *this;
   }
 
-  fPla = c.fPla;
-  fCha = c.fCha;
-  fNrows = c.fNrows;
-  fNcols = c.fNcols;
-  fNchannels = c.fNchannels;
+  mPla = c.mPla;
+  mCha = c.mCha;
+  mNrows = c.mNrows;
+  mNcols = c.mNcols;
+  mNchannels = c.mNchannels;
 
-  if (fData) {
-    delete[] fData;
+  if (mData) {
+    delete[] mData;
   }
-  fData = new Char_t[fNchannels];
-  for (Int_t iBin = 0; iBin < fNchannels; iBin++) {
-    fData[iBin] = c.fData[iBin];
+  mData = new Char_t[mNchannels];
+  for (Int_t iBin = 0; iBin < mNchannels; iBin++) {
+    mData[iBin] = c.mData[iBin];
   }
 
   return *this;
@@ -174,19 +174,19 @@ void TRDCalSingleChamberStatus::Copy(TRDCalSingleChamberStatus& c) const
 
   Int_t iBin = 0;
 
-  c.fPla = fPla;
-  c.fCha = fCha;
+  c.mPla = mPla;
+  c.mCha = mCha;
 
-  c.fNrows = fNrows;
-  c.fNcols = fNcols;
+  c.mNrows = mNrows;
+  c.mNcols = mNcols;
 
-  c.fNchannels = fNchannels;
+  c.mNchannels = mNchannels;
 
-  if (c.fData) {
-    delete[] c.fData;
+  if (c.mData) {
+    delete[] c.mData;
   }
-  c.fData = new Char_t[fNchannels];
-  for (iBin = 0; iBin < fNchannels; iBin++) {
-    c.fData[iBin] = fData[iBin];
+  c.mData = new Char_t[mNchannels];
+  for (iBin = 0; iBin < mNchannels; iBin++) {
+    c.mData[iBin] = mData[iBin];
   }
 }

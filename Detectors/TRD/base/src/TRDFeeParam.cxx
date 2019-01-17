@@ -16,7 +16,7 @@
 //  parameters, constants, and mapping.                                   //
 //                                                                        //
 //  New release on 2007/08/17:                                            //
-//   The default raw data version (now fRAWversion ) is set to 3          //
+//   The default raw data version (now mRAWversion ) is set to 3          //
 //   in the constructor because version 3 raw data read and write         //
 //   are fully debugged.                                                  //
 //                                                                        //
@@ -45,11 +45,11 @@ using namespace o2::trd;
 //_____________________________________________________________________________
 
 TRDFeeParam* TRDFeeParam::fgInstance = 0;
-Bool_t TRDFeeParam::fgTerminated = kFALSE;
-Bool_t TRDFeeParam::fgTracklet = kTRUE;
-Bool_t TRDFeeParam::fgRejectMultipleTracklets = kFALSE;
-Bool_t TRDFeeParam::fgUseMisalignCorr = kFALSE;
-Bool_t TRDFeeParam::fgUseTimeOffset = kFALSE;
+Bool_t TRDFeeParam::mgTerminated = kFALSE;
+Bool_t TRDFeeParam::mgTracklet = kTRUE;
+Bool_t TRDFeeParam::mgRejectMultipleTracklets = kFALSE;
+Bool_t TRDFeeParam::mgUseMisalignCorr = kFALSE;
+Bool_t TRDFeeParam::mgUseTimeOffset = kFALSE;
 
 //_____________________________________________________________________________
 TRDFeeParam* TRDFeeParam::Instance()
@@ -58,15 +58,15 @@ TRDFeeParam* TRDFeeParam::Instance()
   // Instance constructor
   //
 
-  if (fgTerminated != kFALSE) {
+  if (mgTerminated != kFALSE) {
     return 0;
   }
 
-  if (fgInstance == 0) {
-    fgInstance = new TRDFeeParam();
+  if (mgInstance == 0) {
+    mgInstance = new TRDFeeParam();
   }
 
-  return fgInstance;
+  return mgInstance;
 }
 
 //_____________________________________________________________________________
@@ -76,28 +76,28 @@ void TRDFeeParam::Terminate()
   // Terminate the class and release memory
   //
 
-  fgTerminated = kTRUE;
+  mgTerminated = kTRUE;
 
-  if (fgInstance != 0) {
-    delete fgInstance;
-    fgInstance = 0;
+  if (mgInstance != 0) {
+    delete mgInstance;
+    mgInstance = 0;
   }
 }
 
 //_____________________________________________________________________________
 TRDFeeParam::TRDFeeParam()
-  : fCP(0), fRAWversion(3)
+  : mCP(0), mRAWversion(3)
 {
   //
   // Default constructor
   //
 
-  fCP = TRDCommonParam::Instance();
+  mCP = TRDCommonParam::Instance();
 }
 
 //_____________________________________________________________________________
 TRDFeeParam::TRDFeeParam(TRootIoCtor*)
-  : fCP(0), fRAWversion(0)
+  : mCP(0), mRAWversion(0)
 {
   //
   // IO constructor
@@ -106,7 +106,7 @@ TRDFeeParam::TRDFeeParam(TRootIoCtor*)
 
 //_____________________________________________________________________________
 TRDFeeParam::TRDFeeParam(const TRDFeeParam& p)
-  : fCP(p.fCP), fRAWversion(p.fRAWversion)
+  : mCP(p.mCP), mRAWversion(p.mRAWversion)
 {
   //
   // TRDFeeParam copy constructor
@@ -142,8 +142,8 @@ void TRDFeeParam::Copy(TRDFeeParam& p) const
   // Copy function
   //
 
-  ((TRDFeeParam&)p).fCP = fCP;
-  ((TRDFeeParam&)p).fRAWversion = fRAWversion;
+  ((TRDFeeParam&)p).mCP = mCP;
+  ((TRDFeeParam&)p).mRAWversion = mRAWversion;
 }
 
 //_____________________________________________________________________________
@@ -153,7 +153,7 @@ Int_t TRDFeeParam::getPadRowFromMCM(Int_t irob, Int_t imcm) const
   // Return on which pad row this mcm sits
   //
 
-  return fgkNmcmRobInRow * (irob / 2) + imcm / fgkNmcmRobInCol;
+  return mgkNmcmRobInRow * (irob / 2) + imcm / mgkNmcmRobInCol;
 }
 
 //_____________________________________________________________________________
@@ -172,11 +172,11 @@ Int_t TRDFeeParam::getPadColFromADC(Int_t irob, Int_t imcm, Int_t iadc) const
   // http://wiki.kip.uni-heidelberg.de/ti/TRD/index.php/Image:ROB_MCM_numbering.pdf
   //
 
-  if (iadc < 0 || iadc > fgkNadcMcm)
+  if (iadc < 0 || iadc > mgkNadcMcm)
     return -100;
-  Int_t mcmcol = imcm % fgkNmcmRobInCol + getRobSide(irob) * fgkNmcmRobInCol; // MCM column number on ROC [0..7]
-  Int_t padcol = mcmcol * fgkNcolMcm + fgkNcolMcm + 1 - iadc;
-  if (padcol < 0 || padcol >= fgkNcol)
+  Int_t mcmcol = imcm % mgkNmcmRobInCol + getRobSide(irob) * mgkNmcmRobInCol; // MCM column number on ROC [0..7]
+  Int_t padcol = mcmcol * mgkNcolMcm + mgkNcolMcm + 1 - iadc;
+  if (padcol < 0 || padcol >= mgkNcol)
     return -1; // this is commented because of reason above OK
 
   return padcol;
@@ -191,10 +191,10 @@ Int_t TRDFeeParam::getExtendedPadColFromADC(Int_t irob, Int_t imcm, Int_t iadc) 
   // so we have to introduce new virtual pad numbering scheme for this purpose.
   //
 
-  if (iadc < 0 || iadc > fgkNadcMcm)
+  if (iadc < 0 || iadc > mgkNadcMcm)
     return -100;
-  Int_t mcmcol = imcm % fgkNmcmRobInCol + getRobSide(irob) * fgkNmcmRobInCol; // MCM column number on ROC [0..7]
-  Int_t padcol = mcmcol * fgkNadcMcm + fgkNcolMcm + 2 - iadc;
+  Int_t mcmcol = imcm % mgkNmcmRobInCol + getRobSide(irob) * mgkNmcmRobInCol; // MCM column number on ROC [0..7]
+  Int_t padcol = mcmcol * mgkNadcMcm + mgkNcolMcm + 2 - iadc;
 
   return padcol;
 }
@@ -207,10 +207,10 @@ Int_t TRDFeeParam::getMCMfromPad(Int_t irow, Int_t icol) const
   // Return -1 for error.
   //
 
-  if (irow < 0 || icol < 0 || irow > fgkNrowC1 || icol > fgkNcol)
+  if (irow < 0 || icol < 0 || irow > mgkNrowC1 || icol > mgkNcol)
     return -1;
 
-  return (icol % (fgkNcol / 2)) / fgkNcolMcm + fgkNmcmRobInCol * (irow % fgkNmcmRobInRow);
+  return (icol % (mgkNcol / 2)) / mgkNcolMcm + mgkNmcmRobInCol * (irow % mgkNmcmRobInRow);
 }
 
 //_____________________________________________________________________________
@@ -221,7 +221,7 @@ Int_t TRDFeeParam::getMCMfromSharedPad(Int_t irow, Int_t icol) const
   // Return -1 for error.
   //
 
-  if (irow < 0 || icol < 0 || irow > fgkNrowC1 || icol > fgkNcol + 8 * 3)
+  if (irow < 0 || icol < 0 || irow > mgkNrowC1 || icol > mgkNcol + 8 * 3)
     return -1;
 
   Int_t adc = 20 - (icol % 18) - 1;
@@ -240,7 +240,7 @@ Int_t TRDFeeParam::getMCMfromSharedPad(Int_t irow, Int_t icol) const
       break;
   }
 
-  return (icol % (fgkNcol / 2)) / fgkNcolMcm + fgkNmcmRobInCol * (irow % fgkNmcmRobInRow);
+  return (icol % (mgkNcol / 2)) / mgkNcolMcm + mgkNmcmRobInCol * (irow % mgkNmcmRobInRow);
 }
 
 //_____________________________________________________________________________
@@ -250,7 +250,7 @@ Int_t TRDFeeParam::getROBfromPad(Int_t irow, Int_t icol) const
   // Return on which rob this pad is
   //
 
-  return (irow / fgkNmcmRobInRow) * 2 + getColSide(icol);
+  return (irow / mgkNmcmRobInRow) * 2 + getColSide(icol);
 }
 
 //_____________________________________________________________________________
@@ -261,9 +261,9 @@ Int_t TRDFeeParam::getROBfromSharedPad(Int_t irow, Int_t icol) const
   //
 
   if (icol < 72)
-    return (irow / fgkNmcmRobInRow) * 2 + getColSide(icol + 5);
+    return (irow / mgkNmcmRobInRow) * 2 + getColSide(icol + 5);
   else
-    return (irow / fgkNmcmRobInRow) * 2 + getColSide(icol - 5);
+    return (irow / mgkNmcmRobInRow) * 2 + getColSide(icol - 5);
 }
 
 //_____________________________________________________________________________
@@ -273,7 +273,7 @@ Int_t TRDFeeParam::getRobSide(Int_t irob) const
   // Return on which side this rob sits (A side = 0, B side = 1)
   //
 
-  if (irob < 0 || irob >= fgkNrobC1)
+  if (irob < 0 || irob >= mgkNrobC1)
     return -1;
 
   return irob % 2;
@@ -286,10 +286,10 @@ Int_t TRDFeeParam::getColSide(Int_t icol) const
   // Return on which side this column sits (A side = 0, B side = 1)
   //
 
-  if (icol < 0 || icol >= fgkNcol)
+  if (icol < 0 || icol >= mgkNcol)
     return -1;
 
-  return icol / (fgkNcol / 2);
+  return icol / (mgkNcol / 2);
 }
 
 UInt_t TRDFeeParam::AliToExtAli(Int_t rob, Int_t aliid)
@@ -443,7 +443,7 @@ void TRDFeeParam::setRAWversion(Int_t rawver)
   //
 
   if (rawver >= 0 && rawver <= fgkMaxRAWversion) {
-    fRAWversion = rawver;
+    mRAWversion = rawver;
   } else {
     LOG(ERROR) << "Raw version is out of range: " << rawver;
   }

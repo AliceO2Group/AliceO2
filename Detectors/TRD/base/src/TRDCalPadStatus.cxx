@@ -38,7 +38,7 @@ TRDCalPadStatus::TRDCalPadStatus()
   //
 
   for (Int_t idet = 0; idet < kNdet; idet++) {
-    fROC[idet] = 0;
+    mROC[idet] = 0;
   }
 }
 
@@ -54,12 +54,12 @@ TRDCalPadStatus::TRDCalPadStatus(const Text_t* name, const Text_t* title)
       for (Int_t icha = 0; icha < kNcham; icha++) {
         Int_t idet = o2::trd::TRDGeometry::getDetector(ipla, icha, isec);
         //    Int_t idet = fgeom.getDetector(ipla,icha,isec);//TRDGeometryBase::getDetector(ipla,icha,isec);
-        fROC[idet] = new TRDCalSingleChamberStatus(ipla, icha, 144);
+        mROC[idet] = new TRDCalSingleChamberStatus(ipla, icha, 144);
       }
     }
   }
-  fName = name;
-  fTitle = title;
+  mName = name;
+  mTitle = title;
 }
 
 //_____________________________________________________________________________
@@ -80,9 +80,9 @@ TRDCalPadStatus::~TRDCalPadStatus()
   //
 
   for (Int_t idet = 0; idet < kNdet; idet++) {
-    if (fROC[idet]) {
-      delete fROC[idet];
-      fROC[idet] = 0;
+    if (mROC[idet]) {
+      delete mROC[idet];
+      mROC[idet] = 0;
     }
   }
 }
@@ -107,8 +107,8 @@ void TRDCalPadStatus::Copy(TRDCalPadStatus& c) const
   //
 
   for (Int_t idet = 0; idet < kNdet; idet++) {
-    if (fROC[idet]) {
-      fROC[idet]->Copy(*((TRDCalPadStatus&)c).fROC[idet]);
+    if (mROC[idet]) {
+      mROC[idet]->Copy(*((TRDCalPadStatus&)c).mROC[idet]);
     }
   }
 }
@@ -135,8 +135,8 @@ TRDCalSingleChamberStatus* TRDCalPadStatus::getCalROC(Int_t p, Int_t c, Int_t s)
   // Returns the readout chamber of this pad
   //
   //TRDGeometry fgeom;
-  //return fROC[fgeom.getDetector(p,c,s)];
-  return fROC[o2::trd::TRDGeometry::getDetector(p, c, s)];
+  //return mROC[fgeom.getDetector(p,c,s)];
+  return mROC[o2::trd::TRDGeometry::getDetector(p, c, s)];
 }
 
 //_____________________________________________________________________________
@@ -157,9 +157,9 @@ TH1F* TRDCalPadStatus::MakeHisto1D()
   his->GetXaxis()->SetBinLabel(6, "NotConnected");
 
   for (Int_t idet = 0; idet < kNdet; idet++) {
-    if (fROC[idet]) {
-      for (Int_t ichannel = 0; ichannel < fROC[idet]->getNchannels(); ichannel++) {
-        Int_t status = (Int_t)fROC[idet]->getStatus(ichannel);
+    if (mROC[idet]) {
+      for (Int_t ichannel = 0; ichannel < mROC[idet]->getNchannels(); ichannel++) {
+        Int_t status = (Int_t)mROC[idet]->getStatus(ichannel);
         if (status == 2)
           status = 1;
         if (status == 4)
@@ -200,8 +200,8 @@ TH2F* TRDCalPadStatus::MakeHisto2DSmPl(Int_t sm, Int_t pl)
 
   for (Int_t k = 0; k < kNcham; k++) {
     Int_t det = offsetsmpl + k * 6;
-    if (fROC[det]) {
-      TRDCalSingleChamberStatus* calRoc = fROC[det];
+    if (mROC[det]) {
+      TRDCalSingleChamberStatus* calRoc = mROC[det];
       for (Int_t icol = 0; icol < calRoc->getNcols(); icol++) {
         for (Int_t irow = 0; irow < calRoc->getNrows(); irow++) {
           Int_t binz = 0;

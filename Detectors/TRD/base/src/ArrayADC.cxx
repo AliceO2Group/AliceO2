@@ -29,10 +29,10 @@ using namespace o2::trd;
 
 //____________________________________________________________________________________
 ArrayADC::ArrayADC()
-  : fNdet(0), fNrow(0), fNcol(0), fNumberOfChannels(0), fNtime(0), fNAdim(0), fADC(0)
+  : mNdet(0), mNrow(0), mNcol(0), mNumberOmChannels(0), mNtime(0), mNAdim(0), mADC(0)
 {
   //
-  // ArrayADC default constructor
+  // ArrayADC demault constructor
   //
 
   CreateLut();
@@ -40,7 +40,7 @@ ArrayADC::ArrayADC()
 
 //____________________________________________________________________________________
 ArrayADC::ArrayADC(Int_t nrow, Int_t ncol, Int_t ntime)
-  : fNdet(0), fNrow(0), fNcol(0), fNumberOfChannels(0), fNtime(0), fNAdim(0), fADC(0)
+  : mNdet(0), mNrow(0), mNcol(0), mNumberOmChannels(0), mNtime(0), mNAdim(0), mADC(0)
 {
   //
   // ArrayADC constructor
@@ -52,7 +52,7 @@ ArrayADC::ArrayADC(Int_t nrow, Int_t ncol, Int_t ntime)
 
 //____________________________________________________________________________________
 ArrayADC::ArrayADC(const ArrayADC& b)
-  : fNdet(b.fNdet), fNrow(b.fNrow), fNcol(b.fNcol), fNumberOfChannels(b.fNumberOfChannels), fNtime(b.fNtime), fNAdim(b.fNAdim), fADC(b.fADC) //this will do the copy, due to begin a vector
+  : mNdet(b.mNdet), mNrow(b.mNrow), mNcol(b.mNcol), mNumberOmChannels(b.mNumberOmChannels), mNtime(b.mNtime), mNAdim(b.mNAdim), mADC(b.mADC) //this will do the copy, due to begin a vector
 {
   //
   // ArrayADC copy constructor
@@ -79,13 +79,13 @@ ArrayADC& ArrayADC::operator=(const ArrayADC& b)
   if (this == &b) {
     return *this;
   }
-  fNdet = b.fNdet;
-  fNrow = b.fNrow;
-  fNcol = b.fNcol;
-  fNumberOfChannels = b.fNumberOfChannels;
-  fNtime = b.fNtime;
-  fNAdim = b.fNAdim;
-  fADC = b.fADC; //.resize(fNAdim); // resize incase b.fADC is bigger than this one;
+  mNdet = b.mNdet;
+  mNrow = b.mNrow;
+  mNcol = b.mNcol;
+  mNumberOmChannels = b.mNumberOfChannels;
+  mNtime = b.mNtime;
+  mNAdim = b.mNAdim;
+  mADC = b.mADC; //.resize(mNAdim); // resize incase b.mADC is bigger than this one;
 
   return *this;
 }
@@ -98,16 +98,16 @@ void ArrayADC::Allocate(Int_t nrow, Int_t ncol, Int_t ntime)
   // Row*NumberOfNecessaryMCMs*ADCchannelsInMCM*Time
   //
 
-  fNrow = nrow;
-  fNcol = ncol;
-  fNtime = ntime;
+  mNrow = nrow;
+  mNcol = ncol;
+  mNtime = ntime;
   Int_t adcchannelspermcm = TRDFeeParam::getNadcMcm();
   Int_t padspermcm = TRDFeeParam::getNcolMcm();
-  Int_t numberofmcms = fNcol / padspermcm;
-  fNumberOfChannels = numberofmcms * adcchannelspermcm;
-  fNAdim = nrow * fNumberOfChannels * ntime;
+  Int_t numberofmcms = mNcol / padspermcm;
+  mNumberOfChannels = numberofmcms * adcchannelspermcm;
+  mNAdim = nrow * mNumberOfChannels * ntime;
 
-  fADC.clear();
+  mADC.clear();
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -120,10 +120,10 @@ Short_t* ArrayADC::getDataAddress(Int_t nrow, Int_t ncol, Int_t ntime) const
   // get the address of the given pad
   //
   // TODO is this function okay given a resize etc. of a vector can move its underlying storage ?
-  Int_t corrcolumn = fgLutPadNumbering[ncol];
-  Int_t offset = (nrow * fNumberOfChannels + corrcolumn) * fNtime + ntime;
-  Short_t* fADCptr = (Short_t*)fADC.data();
-  return &fADCptr[offset];
+  Int_t corrcolumn = mgLutPadNumbering[ncol];
+  Int_t offset = (nrow * mNumberOfChannels + corrcolumn) * mNtime + ntime;
+  Short_t* mADCptr = (Short_t*)mADC.data();
+  return &mADCptr[offset];
 }
 //________________________________________________________________________________
 Short_t ArrayADC::getData(Int_t nrow, Int_t ncol, Int_t ntime) const
@@ -134,9 +134,9 @@ Short_t ArrayADC::getData(Int_t nrow, Int_t ncol, Int_t ntime) const
   // the method getDataByAdcCol
   //
 
-  Int_t corrcolumn = fgLutPadNumbering[ncol];
+  Int_t corrcolumn = mgLutPadNumbering[ncol];
 
-  return fADC[(nrow * fNumberOfChannels + corrcolumn) * fNtime + ntime];
+  return mADC[(nrow * mNumberOfChannels + corrcolumn) * mNtime + ntime];
 }
 //________________________________________________________________________________
 void ArrayADC::setData(Int_t nrow, Int_t ncol, Int_t ntime, Short_t value)
@@ -147,16 +147,16 @@ void ArrayADC::setData(Int_t nrow, Int_t ncol, Int_t ntime, Short_t value)
   // the method setDataByAdcCol
   //
 
-  Int_t colnumb = fgLutPadNumbering[ncol];
+  Int_t colnumb = mgLutPadNumbering[ncol];
 
-  fADC[(nrow * fNumberOfChannels + colnumb) * fNtime + ntime] = value;
+  mADC[(nrow * mNumberOfChannels + colnumb) * mNtime + ntime] = value;
 }
 
 void ArrayADC::getData(Int_t r, Int_t c, Int_t t, Int_t n, Short_t* vals) const
 {
-  Int_t colNum = fgLutPadNumbering[c];
-  for (Int_t ic = n, idx = (r * fNumberOfChannels + colNum) * fNtime + t; ic--; idx += fNtime)
-    vals[ic] = fADC[idx];
+  Int_t colNum = mgLutPadNumbering[c];
+  for (Int_t ic = n, idx = (r * mNumberOfChannels + colNum) * mNtime + t; ic--; idx += mNtime)
+    vals[ic] = mADC[idx];
 }
 
 //____________________________________________________________________________________
@@ -287,7 +287,7 @@ void ArrayADC::Compress()
   // Compress the array
   //
 
-  if (fNAdim != fNrow * fNumberOfChannels * fNtime) {
+  if (mNAdim != mNrow * mNumberOfChannels * mNtime) {
     LOG(INFO) << "The ADC array is already compressed";
     return;
   }
@@ -306,11 +306,11 @@ void ArrayADC::Compress()
   longm.clear();
   longz.clear();
 
-  for (Int_t i = 0; i < fNAdim; i++) {
+  for (Int_t i = 0; i < mNAdim; i++) {
     j = 0;
-    if (fADC[i] == -1) {
-      for (k = i; k < fNAdim; k++) {
-        if ((fADC[k] == -1) && (j < 16000)) {
+    if (mADC[i] == -1) {
+      for (k = i; k < mNAdim; k++) {
+        if ((mADC[k] == -1) && (j < 16000)) {
           j = j + 1;
           longm[r] = j;
         } else {
@@ -320,9 +320,9 @@ void ArrayADC::Compress()
       r = r + 1;
     }
     l = 16001;
-    if (fADC[i] == 0) {
-      for (k = i; k < fNAdim; k++) {
-        if ((fADC[k] == 0) && (l < 32767)) {
+    if (mADC[i] == 0) {
+      for (k = i; k < mNAdim; k++) {
+        if ((mADC[k] == 0) && (l < 32767)) {
           l = l + 1;
           longz[s] = l;
         } else {
@@ -331,14 +331,14 @@ void ArrayADC::Compress()
       }
       s = s + 1;
     }
-    if (fADC[i] > 0) {
+    if (mADC[i] > 0) {
       i = i + 1;
     }
     i = i + j + (l - 16001 - 1);
   }
 
   //Calculate the size of the compressed array
-  for (Int_t i = 0; i < fNAdim; i++) {
+  for (Int_t i = 0; i < mNAdim; i++) {
     if (longm[i] != 0) {
       counter = counter + longm[i] - 1;
     }
@@ -348,23 +348,23 @@ void ArrayADC::Compress()
   }
 
   Int_t counterTwo = 0;
-  newDim = fNAdim - counter; //Dimension of the compressed array
+  newDim = mNAdim - counter; //Dimension of the compressed array
   std::vector<Short_t> buffer(newDim);
 
   //Fill the buffer of the compressed array
   Int_t g = 0;
   Int_t h = 0;
   for (Int_t i = 0; i < newDim; i++) {
-    if (counterTwo < fNAdim) {
-      if (fADC[counterTwo] > 0) {
-        buffer[i] = fADC[counterTwo];
+    if (counterTwo < mNAdim) {
+      if (mADC[counterTwo] > 0) {
+        buffer[i] = mADC[counterTwo];
       }
-      if (fADC[counterTwo] == -1) {
+      if (mADC[counterTwo] == -1) {
         buffer[i] = -(longm[g]);
         counterTwo = counterTwo + longm[g] - 1;
         g++;
       }
-      if (fADC[counterTwo] == 0) {
+      if (mADC[counterTwo] == 0) {
         buffer[i] = -(longz[h]);
         counterTwo = counterTwo + (longz[h] - 16001) - 1;
         h++;
@@ -374,9 +374,9 @@ void ArrayADC::Compress()
   }
 
   //Copy the buffer
-  fADC.resize(newDim);
-  fNAdim = newDim;
-  fADC = buffer;
+  mADC.resize(newDim);
+  mNAdim = newDim;
+  mADC = buffer;
 }
 
 //____________________________________________________________________________________
@@ -388,8 +388,8 @@ void ArrayADC::Expand()
 
   //Check if the array has not been already expanded
   Int_t verif = 0;
-  for (Int_t i = 0; i < fNAdim; i++) {
-    if (fADC[i] < -1) {
+  for (Int_t i = 0; i < mNAdim; i++) {
+    if (mADC[i] < -1) {
       verif++;
     }
   }
@@ -400,27 +400,27 @@ void ArrayADC::Expand()
   }
 
   Int_t dimexp = 0;
-  std::vector<Int_t> longz(fNAdim);
-  std::vector<Int_t> longm(fNAdim);
+  std::vector<Int_t> longz(mNAdim);
+  std::vector<Int_t> longm(mNAdim);
 
   //Initialize arrays
   longz.clear();
   longm.clear();
   Int_t r2 = 0;
   Int_t r3 = 0;
-  for (Int_t i = 0; i < fNAdim; i++) {
-    if ((fADC[i] < 0) && (fADC[i] >= -16000)) {
-      longm[r2] = -fADC[i];
+  for (Int_t i = 0; i < mNAdim; i++) {
+    if ((mADC[i] < 0) && (mADC[i] >= -16000)) {
+      longm[r2] = -mADC[i];
       r2++;
     }
-    if (fADC[i] < -16000) {
-      longz[r3] = -fADC[i] - 16001;
+    if (mADC[i] < -16000) {
+      longz[r3] = -mADC[i] - 16001;
       r3++;
     }
   }
 
   //Calculate the new dimensions of the array
-  for (Int_t i = 0; i < fNAdim; i++) {
+  for (Int_t i = 0; i < mNAdim; i++) {
     if (longm[i] != 0) {
       dimexp = dimexp + longm[i] - 1;
     }
@@ -428,7 +428,7 @@ void ArrayADC::Expand()
       dimexp = dimexp + longz[i] - 1;
     }
   }
-  dimexp = dimexp + fNAdim;
+  dimexp = dimexp + mNAdim;
 
   //Write in the buffer the new array
   Int_t contaexp = 0;
@@ -437,17 +437,17 @@ void ArrayADC::Expand()
   std::vector<Short_t> buffer;
 
   for (Int_t i = 0; i < dimexp; i++) {
-    if (fADC[contaexp] > 0) {
-      buffer[i] = fADC[contaexp];
+    if (mADC[contaexp] > 0) {
+      buffer[i] = mADC[contaexp];
     }
-    if ((fADC[contaexp] < 0) && (fADC[contaexp] >= -16000)) {
+    if ((mADC[contaexp] < 0) && (mADC[contaexp] >= -16000)) {
       for (Int_t j = 0; j < longm[h]; j++) {
         buffer[i + j] = -1;
       }
       i = i + longm[h] - 1;
       h++;
     }
-    if (fADC[contaexp] < -16000) {
+    if (mADC[contaexp] < -16000) {
       for (Int_t j = 0; j < longz[l]; j++) {
         buffer[i + j] = 0;
       }
@@ -457,9 +457,9 @@ void ArrayADC::Expand()
     contaexp++;
   }
   //Copy the buffer
-  fADC.resize(dimexp);
-  fNAdim = dimexp;
-  fADC = buffer;
+  mADC.resize(dimexp);
+  mNAdim = dimexp;
+  mADC = buffer;
 }
 //____________________________________________________________________________________
 void ArrayADC::DeleteNegatives()
@@ -470,9 +470,9 @@ void ArrayADC::DeleteNegatives()
   //Produced during digitization into zero.
   //
 
-  for (Int_t a = 0; a < fNAdim; a++) {
-    if (fADC[a] == -1) {
-      fADC[a] = 0;
+  for (Int_t a = 0; a < mNAdim; a++) {
+    if (mADC[a] == -1) {
+      mADC[a] = 0;
     }
   }
 }
@@ -484,7 +484,7 @@ void ArrayADC::Reset()
   // The array keeps the same dimensions as before
   //
 
-  std::fill(fADC.begin(), fADC.end(), 0);
+  std::fill(mADC.begin(), mADC.end(), 0);
 }
 //________________________________________________________________________________
 void ArrayADC::ConditionalReset(TRDSignalIndex* idx)
@@ -495,14 +495,14 @@ void ArrayADC::ConditionalReset(TRDSignalIndex* idx)
   //
 
   if (idx->getNoOfIndexes() > 25)
-    std::fill(fADC.begin(), fADC.begin() + fNAdim, 0);
+    std::fill(mADC.begin(), mADC.begin() + mNAdim, 0);
   else {
     Int_t row, col;
     while (idx->NextRCIndex(row, col)) {
-      Int_t colnumb = fgLutPadNumbering[col];
-      auto fADCiterator = fADC.begin();
-      auto offset = fADCiterator + fNtime * (row * fNumberOfChannels + colnumb);
-      std::fill(offset, offset + fNtime, 0);
+      Int_t colnumb = mgLutPadNumbering[col];
+      auto mADCiterator = mADC.begin();
+      auto offset = mADCiterator + mNtime * (row * mNumberOfChannels + colnumb);
+      std::fill(offset, offset + mNtime, 0);
     }
   }
 }
@@ -515,16 +515,16 @@ void ArrayADC::CreateLut()
   // pad numbering and mcm channel numbering
   //
 
-  fgLutPadNumbering.resize(TRDFeeParam::getNcol());
+  mgLutPadNumbering.resize(TRDFeeParam::getNcol());
 
-  std::fill(fgLutPadNumbering.begin(), fgLutPadNumbering.begin() + TRDFeeParam::getNcol(), 0);
+  std::fill(mgLutPadNumbering.begin(), mgLutPadNumbering.begin() + TRDFeeParam::getNcol(), 0);
 
   for (Int_t mcm = 0; mcm < 8; mcm++) {
     Int_t lowerlimit = 0 + mcm * 18;
     Int_t upperlimit = 18 + mcm * 18;
     Int_t shiftposition = 1 + 3 * mcm;
     for (Int_t index = lowerlimit; index < upperlimit; index++) {
-      fgLutPadNumbering[index] = index + shiftposition;
+      mgLutPadNumbering[index] = index + shiftposition;
     }
   }
 }

@@ -81,17 +81,17 @@ class TRDCalPadStatus
   TH2F* MakeHisto2DSmPl(Int_t sm, Int_t pl);
   void PlotHistos2DSm(Int_t sm, const Char_t* name);
 
-  std::string getTitle() { return fTitle; };
-  std::string getName() { return fName; };
-  void setTitle(const std::string newTitle) { fTitle = newTitle; };
-  void setName(const std::string newName) { fName = newName; };
+  std::string getTitle() { return mTitle; };
+  std::string getName() { return mName; };
+  void setTitle(const std::string newTitle) { mTitle = newTitle; };
+  void setName(const std::string newName) { mName = newName; };
 
  protected:
-  TRDCalSingleChamberStatus* fROC[kNdet]; //  Array of ROC objects which contain the values per pad
+  TRDCalSingleChamberStatus* mROC[kNdet]; //  Array of ROC objects which contain the values per pad
 
  private:
-  std::string fName;
-  std::string fTitle;
+  std::string mName;
+  std::string mTitle;
   ClassDefNV(TRDCalPadStatus, 1) //  TRD calibration class for the single pad status
 };
 } //namespace trd

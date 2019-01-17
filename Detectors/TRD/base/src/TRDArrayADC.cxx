@@ -27,11 +27,11 @@
 
 using namespace o2::trd;
 
-Short_t* TRDArrayADC::fgLutPadNumbering = 0x0;
+Short_t* TRDArrayADC::mgLutPadNumbering = 0x0;
 
 //____________________________________________________________________________________
 TRDArrayADC::TRDArrayADC()
-  : fNdet(0), fNrow(0), fNcol(0), fNumberOfChannels(0), fNtime(0), fNAdim(0), fADC(0)
+  : mNdet(0), mNrow(0), mNcol(0), mNumberOfChannels(0), mNtime(0), mNAdim(0), mADC(0)
 {
   //
   // TRDArrayADC default constructor
@@ -42,7 +42,7 @@ TRDArrayADC::TRDArrayADC()
 
 //____________________________________________________________________________________
 TRDArrayADC::TRDArrayADC(Int_t nrow, Int_t ncol, Int_t ntime)
-  : fNdet(0), fNrow(0), fNcol(0), fNumberOfChannels(0), fNtime(0), fNAdim(0), fADC(0)
+  : mNdet(0), mNrow(0), mNcol(0), mNumberOfChannels(0), mNtime(0), mNAdim(0), mADC(0)
 {
   //
   // TRDArrayADC constructor
@@ -54,14 +54,14 @@ TRDArrayADC::TRDArrayADC(Int_t nrow, Int_t ncol, Int_t ntime)
 
 //____________________________________________________________________________________
 TRDArrayADC::TRDArrayADC(const TRDArrayADC& b)
-  : fNdet(b.fNdet), fNrow(b.fNrow), fNcol(b.fNcol), fNumberOfChannels(b.fNumberOfChannels), fNtime(b.fNtime), fNAdim(b.fNAdim), fADC(0)
+  : mNdet(b.mNdet), mNrow(b.mNrow), mNcol(b.mNcol), mNumberOfChannels(b.mNumberOfChannels), mNtime(b.mNtime), mNAdim(b.mNAdim), mADC(0)
 {
   //
   // TRDArrayADC copy constructor
   //
 
-  fADC = new Short_t[fNAdim];
-  memcpy(fADC, b.fADC, fNAdim * sizeof(Short_t));
+  mADC = new Short_t[mNAdim];
+  memcpy(mADC, b.mADC, mNAdim * sizeof(Short_t));
 }
 
 //____________________________________________________________________________________
@@ -71,8 +71,8 @@ TRDArrayADC::~TRDArrayADC()
   // TRDArrayADC destructor
   //
 
-  delete[] fADC;
-  fADC = 0;
+  delete[] mADC;
+  mADC = 0;
 }
 
 //____________________________________________________________________________________
@@ -85,17 +85,17 @@ TRDArrayADC& TRDArrayADC::operator=(const TRDArrayADC& b)
   if (this == &b) {
     return *this;
   }
-  if (fADC) {
-    delete[] fADC;
+  if (mADC) {
+    delete[] mADC;
   }
-  fNdet = b.fNdet;
-  fNrow = b.fNrow;
-  fNcol = b.fNcol;
-  fNumberOfChannels = b.fNumberOfChannels;
-  fNtime = b.fNtime;
-  fNAdim = b.fNAdim;
-  fADC = new Short_t[fNAdim];
-  memcpy(fADC, b.fADC, fNAdim * sizeof(Short_t));
+  mNdet = b.mNdet;
+  mNrow = b.mNrow;
+  mNcol = b.mNcol;
+  mNumberOfChannels = b.mNumberOfChannels;
+  mNtime = b.mNtime;
+  mNAdim = b.mNAdim;
+  mADC = new Short_t[mNAdim];
+  memcpy(mADC, b.mADC, mNAdim * sizeof(Short_t));
 
   return *this;
 }
@@ -108,22 +108,22 @@ void TRDArrayADC::Allocate(Int_t nrow, Int_t ncol, Int_t ntime)
   // Row*NumberOfNecessaryMCMs*ADCchannelsInMCM*Time
   //
 
-  fNrow = nrow;
-  fNcol = ncol;
-  fNtime = ntime;
+  mNrow = nrow;
+  mNcol = ncol;
+  mNtime = ntime;
   Int_t adcchannelspermcm = TRDFeeParam::getNadcMcm();
   Int_t padspermcm = TRDFeeParam::getNcolMcm();
-  Int_t numberofmcms = fNcol / padspermcm;
-  fNumberOfChannels = numberofmcms * adcchannelspermcm;
-  fNAdim = nrow * fNumberOfChannels * ntime;
+  Int_t numberofmcms = mNcol / padspermcm;
+  mNumberOfChannels = numberofmcms * adcchannelspermcm;
+  mNAdim = nrow * mNumberOfChannels * ntime;
 
-  if (fADC) {
-    delete[] fADC;
+  if (mADC) {
+    delete[] mADC;
   }
 
-  fADC = new Short_t[fNAdim];
-  //std::fill(fADC.begin(), myVector.end(), 0);
-  memset(fADC, 0, sizeof(Short_t) * fNAdim);
+  mADC = new Short_t[mNAdim];
+  //std::fill(mADC.begin(), myVector.end(), 0);
+  memset(mADC, 0, sizeof(Short_t) * mNAdim);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -136,9 +136,9 @@ Short_t* TRDArrayADC::getDataAddress(Int_t nrow, Int_t ncol, Int_t ntime) const
   // get the address of the given pad
   //
 
-  Int_t corrcolumn = fgLutPadNumbering[ncol];
+  Int_t corrcolumn = mgLutPadNumbering[ncol];
 
-  return &fADC[(nrow * fNumberOfChannels + corrcolumn) * fNtime + ntime];
+  return &mADC[(nrow * mNumberOfChannels + corrcolumn) * mNtime + ntime];
 }
 //________________________________________________________________________________
 Short_t TRDArrayADC::getData(Int_t nrow, Int_t ncol, Int_t ntime) const
@@ -149,9 +149,9 @@ Short_t TRDArrayADC::getData(Int_t nrow, Int_t ncol, Int_t ntime) const
   // the method getDataByAdcCol
   //
 
-  Int_t corrcolumn = fgLutPadNumbering[ncol];
+  Int_t corrcolumn = mgLutPadNumbering[ncol];
 
-  return fADC[(nrow * fNumberOfChannels + corrcolumn) * fNtime + ntime];
+  return mADC[(nrow * mNumberOfChannels + corrcolumn) * mNtime + ntime];
 }
 //________________________________________________________________________________
 void TRDArrayADC::setData(Int_t nrow, Int_t ncol, Int_t ntime, Short_t value)
@@ -162,16 +162,16 @@ void TRDArrayADC::setData(Int_t nrow, Int_t ncol, Int_t ntime, Short_t value)
   // the method setDataByAdcCol
   //
 
-  Int_t colnumb = fgLutPadNumbering[ncol];
+  Int_t colnumb = mgLutPadNumbering[ncol];
 
-  fADC[(nrow * fNumberOfChannels + colnumb) * fNtime + ntime] = value;
+  mADC[(nrow * mNumberOfChannels + colnumb) * mNtime + ntime] = value;
 }
 
 void TRDArrayADC::getData(Int_t r, Int_t c, Int_t t, Int_t n, Short_t* vals) const
 {
-  Int_t colNum = fgLutPadNumbering[c];
-  for (Int_t ic = n, idx = (r * fNumberOfChannels + colNum) * fNtime + t; ic--; idx += fNtime)
-    vals[ic] = fADC[idx];
+  Int_t colNum = mgLutPadNumbering[c];
+  for (Int_t ic = n, idx = (r * mNumberOfChannels + colNum) * mNtime + t; ic--; idx += mNtime)
+    vals[ic] = mADC[idx];
 }
 
 //____________________________________________________________________________________
@@ -302,7 +302,7 @@ void TRDArrayADC::Compress()
   // Compress the array
   //
 
-  if (fNAdim != fNrow * fNumberOfChannels * fNtime) {
+  if (mNAdim != mNrow * mNumberOfChannels * mNtime) {
     LOG(INFO) << "The ADC array is already compressed";
     return;
   }
@@ -315,19 +315,19 @@ void TRDArrayADC::Compress()
   Int_t s = 0;
   Int_t k = 0;
 
-  Int_t* longm = new Int_t[fNAdim];
-  Int_t* longz = new Int_t[fNAdim];
+  Int_t* longm = new Int_t[mNAdim];
+  Int_t* longz = new Int_t[mNAdim];
 
-  if (longz && longm && fADC) {
+  if (longz && longm && mADC) {
 
-    memset(longz, 0, sizeof(Int_t) * fNAdim);
-    memset(longm, 0, sizeof(Int_t) * fNAdim);
+    memset(longz, 0, sizeof(Int_t) * mNAdim);
+    memset(longm, 0, sizeof(Int_t) * mNAdim);
 
-    for (Int_t i = 0; i < fNAdim; i++) {
+    for (Int_t i = 0; i < mNAdim; i++) {
       j = 0;
-      if (fADC[i] == -1) {
-        for (k = i; k < fNAdim; k++) {
-          if ((fADC[k] == -1) && (j < 16000)) {
+      if (mADC[i] == -1) {
+        for (k = i; k < mNAdim; k++) {
+          if ((mADC[k] == -1) && (j < 16000)) {
             j = j + 1;
             longm[r] = j;
           } else {
@@ -337,9 +337,9 @@ void TRDArrayADC::Compress()
         r = r + 1;
       }
       l = 16001;
-      if (fADC[i] == 0) {
-        for (k = i; k < fNAdim; k++) {
-          if ((fADC[k] == 0) && (l < 32767)) {
+      if (mADC[i] == 0) {
+        for (k = i; k < mNAdim; k++) {
+          if ((mADC[k] == 0) && (l < 32767)) {
             l = l + 1;
             longz[s] = l;
           } else {
@@ -348,14 +348,14 @@ void TRDArrayADC::Compress()
         }
         s = s + 1;
       }
-      if (fADC[i] > 0) {
+      if (mADC[i] > 0) {
         i = i + 1;
       }
       i = i + j + (l - 16001 - 1);
     }
 
     //Calculate the size of the compressed array
-    for (Int_t i = 0; i < fNAdim; i++) {
+    for (Int_t i = 0; i < mNAdim; i++) {
       if (longm[i] != 0) {
         counter = counter + longm[i] - 1;
       }
@@ -365,7 +365,7 @@ void TRDArrayADC::Compress()
     }
 
     Int_t counterTwo = 0;
-    newDim = fNAdim - counter; //Dimension of the compressed array
+    newDim = mNAdim - counter; //Dimension of the compressed array
     Short_t* buffer = new Short_t[newDim];
 
     if (buffer) {
@@ -374,16 +374,16 @@ void TRDArrayADC::Compress()
       Int_t g = 0;
       Int_t h = 0;
       for (Int_t i = 0; i < newDim; i++) {
-        if (counterTwo < fNAdim) {
-          if (fADC[counterTwo] > 0) {
-            buffer[i] = fADC[counterTwo];
+        if (counterTwo < mNAdim) {
+          if (mADC[counterTwo] > 0) {
+            buffer[i] = mADC[counterTwo];
           }
-          if (fADC[counterTwo] == -1) {
+          if (mADC[counterTwo] == -1) {
             buffer[i] = -(longm[g]);
             counterTwo = counterTwo + longm[g] - 1;
             g++;
           }
-          if (fADC[counterTwo] == 0) {
+          if (mADC[counterTwo] == 0) {
             buffer[i] = -(longz[h]);
             counterTwo = counterTwo + (longz[h] - 16001) - 1;
             h++;
@@ -393,12 +393,12 @@ void TRDArrayADC::Compress()
       }
 
       //Copy the buffer
-      delete[] fADC;
-      fADC = 0;
-      fADC = new Short_t[newDim];
-      fNAdim = newDim;
+      delete[] mADC;
+      mADC = 0;
+      mADC = new Short_t[newDim];
+      mNAdim = newDim;
       for (Int_t i = 0; i < newDim; i++) {
-        fADC[i] = buffer[i];
+        mADC[i] = buffer[i];
       }
 
       //Delete auxiliary arrays
@@ -424,12 +424,12 @@ void TRDArrayADC::Expand()
   // Expand the array
   //
 
-  if (fADC) {
+  if (mADC) {
 
     //Check if the array has not been already expanded
     Int_t verif = 0;
-    for (Int_t i = 0; i < fNAdim; i++) {
-      if (fADC[i] < -1) {
+    for (Int_t i = 0; i < mNAdim; i++) {
+      if (mADC[i] < -1) {
         verif++;
       }
     }
@@ -440,29 +440,29 @@ void TRDArrayADC::Expand()
     }
 
     Int_t dimexp = 0;
-    Int_t* longz = new Int_t[fNAdim];
-    Int_t* longm = new Int_t[fNAdim];
+    Int_t* longz = new Int_t[mNAdim];
+    Int_t* longm = new Int_t[mNAdim];
 
     if (longz && longm) {
 
       //Initialize arrays
-      memset(longz, 0, sizeof(Int_t) * fNAdim);
-      memset(longm, 0, sizeof(Int_t) * fNAdim);
+      memset(longz, 0, sizeof(Int_t) * mNAdim);
+      memset(longm, 0, sizeof(Int_t) * mNAdim);
       Int_t r2 = 0;
       Int_t r3 = 0;
-      for (Int_t i = 0; i < fNAdim; i++) {
-        if ((fADC[i] < 0) && (fADC[i] >= -16000)) {
-          longm[r2] = -fADC[i];
+      for (Int_t i = 0; i < mNAdim; i++) {
+        if ((mADC[i] < 0) && (mADC[i] >= -16000)) {
+          longm[r2] = -mADC[i];
           r2++;
         }
-        if (fADC[i] < -16000) {
-          longz[r3] = -fADC[i] - 16001;
+        if (mADC[i] < -16000) {
+          longz[r3] = -mADC[i] - 16001;
           r3++;
         }
       }
 
       //Calculate the new dimensions of the array
-      for (Int_t i = 0; i < fNAdim; i++) {
+      for (Int_t i = 0; i < mNAdim; i++) {
         if (longm[i] != 0) {
           dimexp = dimexp + longm[i] - 1;
         }
@@ -470,7 +470,7 @@ void TRDArrayADC::Expand()
           dimexp = dimexp + longz[i] - 1;
         }
       }
-      dimexp = dimexp + fNAdim;
+      dimexp = dimexp + mNAdim;
 
       //Write in the buffer the new array
       Int_t contaexp = 0;
@@ -479,17 +479,17 @@ void TRDArrayADC::Expand()
       Short_t* bufferE = new Short_t[dimexp];
       if (bufferE) {
         for (Int_t i = 0; i < dimexp; i++) {
-          if (fADC[contaexp] > 0) {
-            bufferE[i] = fADC[contaexp];
+          if (mADC[contaexp] > 0) {
+            bufferE[i] = mADC[contaexp];
           }
-          if ((fADC[contaexp] < 0) && (fADC[contaexp] >= -16000)) {
+          if ((mADC[contaexp] < 0) && (mADC[contaexp] >= -16000)) {
             for (Int_t j = 0; j < longm[h]; j++) {
               bufferE[i + j] = -1;
             }
             i = i + longm[h] - 1;
             h++;
           }
-          if (fADC[contaexp] < -16000) {
+          if (mADC[contaexp] < -16000) {
             for (Int_t j = 0; j < longz[l]; j++) {
               bufferE[i + j] = 0;
             }
@@ -499,11 +499,11 @@ void TRDArrayADC::Expand()
           contaexp++;
         }
         //Copy the buffer
-        delete[] fADC;
-        fADC = new Short_t[dimexp];
-        fNAdim = dimexp;
+        delete[] mADC;
+        mADC = new Short_t[dimexp];
+        mNAdim = dimexp;
         for (Int_t i = 0; i < dimexp; i++) {
-          fADC[i] = bufferE[i];
+          mADC[i] = bufferE[i];
         }
 
         delete[] bufferE;
@@ -524,9 +524,9 @@ void TRDArrayADC::DeleteNegatives()
   //Produced during digitization into zero.
   //
 
-  for (Int_t a = 0; a < fNAdim; a++) {
-    if (fADC[a] == -1) {
-      fADC[a] = 0;
+  for (Int_t a = 0; a < mNAdim; a++) {
+    if (mADC[a] == -1) {
+      mADC[a] = 0;
     }
   }
 }
@@ -538,7 +538,7 @@ void TRDArrayADC::Reset()
   // The array keeps the same dimensions as before
   //
 
-  memset(fADC, 0, sizeof(Short_t) * fNAdim);
+  memset(mADC, 0, sizeof(Short_t) * mNAdim);
 }
 //________________________________________________________________________________
 void TRDArrayADC::ConditionalReset(TRDSignalIndex* idx)
@@ -549,12 +549,12 @@ void TRDArrayADC::ConditionalReset(TRDSignalIndex* idx)
   //
 
   if (idx->getNoOfIndexes() > 25)
-    memset(fADC, 0, sizeof(Short_t) * fNAdim);
+    memset(mADC, 0, sizeof(Short_t) * mNAdim);
   else {
     Int_t row, col;
     while (idx->NextRCIndex(row, col)) {
-      Int_t colnumb = fgLutPadNumbering[col];
-      memset(&fADC[(row * fNumberOfChannels + colnumb) * fNtime], 0, fNtime);
+      Int_t colnumb = mgLutPadNumbering[col];
+      memset(&mADC[(row * mNumberOfChannels + colnumb) * mNtime], 0, mNtime);
     }
   }
 }
@@ -567,18 +567,18 @@ void TRDArrayADC::CreateLut()
   // pad numbering and mcm channel numbering
   //
 
-  if (fgLutPadNumbering)
+  if (mgLutPadNumbering)
     return;
 
-  fgLutPadNumbering = new Short_t[TRDFeeParam::getNcol()];
-  memset(fgLutPadNumbering, 0, sizeof(Short_t) * TRDFeeParam::getNcol());
+  mgLutPadNumbering = new Short_t[TRDFeeParam::getNcol()];
+  memset(mgLutPadNumbering, 0, sizeof(Short_t) * TRDFeeParam::getNcol());
 
   for (Int_t mcm = 0; mcm < 8; mcm++) {
     Int_t lowerlimit = 0 + mcm * 18;
     Int_t upperlimit = 18 + mcm * 18;
     Int_t shiftposition = 1 + 3 * mcm;
     for (Int_t index = lowerlimit; index < upperlimit; index++) {
-      fgLutPadNumbering[index] = index + shiftposition;
+      mgLutPadNumbering[index] = index + shiftposition;
     }
   }
 }

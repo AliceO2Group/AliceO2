@@ -48,26 +48,26 @@ class TRDCalSingleChamberStatus
   Bool_t IsBridgedLeft(Int_t col, Int_t row) const { return ((getStatus(col, row) & kPadBridgedLeft) ? kTRUE : kFALSE); };
   Bool_t IsBridgedRight(Int_t col, Int_t row) const { return ((getStatus(col, row) & kPadBridgedRight) ? kTRUE : kFALSE); };
   Bool_t IsNotConnected(Int_t col, Int_t row) const { return ((getStatus(col, row) & kNotConnected) ? kTRUE : kFALSE); };
-  Int_t getNrows() const { return fNrows; };
-  Int_t getNcols() const { return fNcols; };
+  Int_t getNrows() const { return mNrows; };
+  Int_t getNcols() const { return mNcols; };
 
-  Int_t getChannel(Int_t col, Int_t row) const { return row + col * fNrows; };
-  Int_t getNchannels() const { return fNchannels; };
-  Char_t getStatus(Int_t ich) const { return fData[ich]; };
-  Char_t getStatus(Int_t col, Int_t row) const { return fData[getChannel(col, row)]; };
+  Int_t getChannel(Int_t col, Int_t row) const { return row + col * mNrows; };
+  Int_t getNchannels() const { return mNchannels; };
+  Char_t getStatus(Int_t ich) const { return mData[ich]; };
+  Char_t getStatus(Int_t col, Int_t row) const { return mData[getChannel(col, row)]; };
 
   void setStatus(Int_t ich, Char_t vd) { fData[ich] = vd; };
-  void setStatus(Int_t col, Int_t row, Char_t vd) { fData[getChannel(col, row)] = vd; };
+  void setStatus(Int_t col, Int_t row, Char_t vd) { mData[getChannel(col, row)] = vd; };
 
  protected:
-  Int_t fPla; //  Plane number
-  Int_t fCha; //  Chamber number
+  Int_t mPla; //  Plane number
+  Int_t mCha; //  Chamber number
 
-  Int_t fNrows; //  Number of rows
-  Int_t fNcols; //  Number of columns
+  Int_t mNrows; //  Number of rows
+  Int_t mNcols; //  Number of columns
 
-  Int_t fNchannels; //  Number of channels
-  Char_t* fData;    //[fNchannels] Data
+  Int_t mNchannels; //  Number of channels
+  Char_t* mData;    //[fNchannels] Data
 
   ClassDefNV(TRDCalSingleChamberStatus, 1) //  TRD ROC calibration class
 };

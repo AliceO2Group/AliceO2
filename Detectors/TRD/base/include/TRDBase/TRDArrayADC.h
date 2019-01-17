@@ -38,16 +38,16 @@ class TRDArrayADC
   TRDArrayADC& operator=(const TRDArrayADC& b);
 
   void Allocate(Int_t nrow, Int_t ncol, Int_t ntime);
-  void setNdet(Int_t ndet) { fNdet = ndet; };
-  Int_t getNdet() const { return fNdet; };
+  void setNdet(Int_t ndet) { mNdet = ndet; };
+  Int_t getNdet() const { return mNdet; };
   void setDataByAdcCol(Int_t nrow, Int_t ncol, Int_t ntime, Short_t value)
   {
-    fADC[(nrow * fNumberOfChannels + ncol) * fNtime + ntime] = value;
+    mADC[(nrow * mNumberOfChannels + ncol) * mNtime + ntime] = value;
   }
-  Bool_t HasData() const { return fNtime ? 1 : 0; };
+  Bool_t HasData() const { return mNtime ? 1 : 0; };
   Short_t getDataByAdcCol(Int_t nrow, Int_t ncol, Int_t ntime) const
   {
-    return fADC[(nrow * fNumberOfChannels + ncol) * fNtime + ntime];
+    return mADC[(nrow * mNumberOfChannels + ncol) * mNtime + ntime];
   };
   inline void getData(Int_t r, Int_t c, Int_t t, Int_t n, Short_t* vals) const;
   Short_t getDataBits(Int_t nrow, Int_t ncol, Int_t ntime) const;
@@ -56,10 +56,10 @@ class TRDArrayADC
   Bool_t IsPadCorrupted(Int_t nrow, Int_t ncol, Int_t ntime);
   void Compress();
   void Expand();
-  Int_t getNtime() const { return fNtime; };
-  Int_t getNrow() const { return fNrow; };
-  Int_t getNcol() const { return fNcol; };
-  Int_t getDim() const { return fNAdim; };
+  Int_t getNtime() const { return mNtime; };
+  Int_t getNrow() const { return mNrow; };
+  Int_t getNcol() const { return mNcol; };
+  Int_t getDim() const { return mNAdim; };
   void DeleteNegatives();
   void Reset();
   void ConditionalReset(TRDSignalIndex* idx);
@@ -69,16 +69,16 @@ class TRDArrayADC
   static void CreateLut();
 
  protected:
-  Int_t fNdet;             //ID number of the chamber
-  Int_t fNrow;             //Number of rows
-  Int_t fNcol;             //Number of columns(pads)
-  Int_t fNumberOfChannels; //  Number of MCM channels per row
-  Int_t fNtime;            //Number of time bins
-  Int_t fNAdim;            //Dimension of the ADC array
-                           //  std::vector<Short_t> fADC;  //[fNAdim]   //Pointer to adc values
-  Short_t* fADC;           //[fNAdim]   //Pointer to adc values
-  //static std::vector<Short_t> fgLutPadNumbering;   //  [fNcol] Look Up Table
-  static Short_t* fgLutPadNumbering; //  [fNcol] Look Up Table
+  Int_t mNdet;             //ID number of the chamber
+  Int_t mNrow;             //Number of rows
+  Int_t mNcol;             //Number of columns(pads)
+  Int_t mNumberOfChannels; //  Number of MCM channels per row
+  Int_t mNtime;            //Number of time bins
+  Int_t mNAdim;            //Dimension of the ADC array
+                           //  std::vector<Short_t> mADC;  //[mNAdim]   //Pointer to adc values
+  Short_t* mADC;           //[mNAdim]   //Pointer to adc values
+  //static std::vector<Short_t> mgLutPadNumbering;   //  [mNcol] Look Up Table
+  static Short_t* mgLutPadNumbering; //  [mNcol] Look Up Table
   ClassDefNV(TRDArrayADC, 1)           //ADC container class
 };
 
