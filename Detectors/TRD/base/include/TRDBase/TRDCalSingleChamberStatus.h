@@ -56,7 +56,7 @@ class TRDCalSingleChamberStatus
   Char_t getStatus(Int_t ich) const { return mData[ich]; };
   Char_t getStatus(Int_t col, Int_t row) const { return mData[getChannel(col, row)]; };
 
-  void setStatus(Int_t ich, Char_t vd) { fData[ich] = vd; };
+  void setStatus(Int_t ich, Char_t vd) { mData[ich] = vd; };
   void setStatus(Int_t col, Int_t row, Char_t vd) { mData[getChannel(col, row)] = vd; };
 
  protected:

@@ -58,7 +58,7 @@ ArrayADC::ArrayADC(const ArrayADC& b)
   // ArrayADC copy constructor
   //
 
-  //copy done by vector constructor for fADC
+  //copy done by vector constructor for mADC
 }
 
 //____________________________________________________________________________________
@@ -119,11 +119,8 @@ Short_t* ArrayADC::getDataAddress(Int_t nrow, Int_t ncol, Int_t ntime) const
   //
   // get the address of the given pad
   //
-  // TODO is this function okay given a resize etc. of a vector can move its underlying storage ?
-  Int_t corrcolumn = mgLutPadNumbering[ncol];
-  Int_t offset = (nrow * mNumberOfChannels + corrcolumn) * mNtime + ntime;
-  Short_t* mADCptr = (Short_t*)mADC.data();
-  return &mADCptr[offset];
+  LOG (FATAL) << "You requested a now depricated function : ArrayADC::getDataAddress("<< nrow <<","<<ncol<<","<<ntime;
+  return 0;
 }
 //________________________________________________________________________________
 Short_t ArrayADC::getData(Int_t nrow, Int_t ncol, Int_t ntime) const

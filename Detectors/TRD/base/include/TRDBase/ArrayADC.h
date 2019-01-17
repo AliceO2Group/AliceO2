@@ -42,12 +42,12 @@ class ArrayADC
   Int_t getNdet() const { return mNdet; };
   void setDataByAdcCol(Int_t nrow, Int_t ncol, Int_t ntime, Short_t value)
   {
-    fADC[(nrow * mNumberOfChannels + ncol) * mNtime + ntime] = value;
+    mADC[(nrow * mNumberOfChannels + ncol) * mNtime + ntime] = value;
   }
   Bool_t HasData() const { return mNtime ? 1 : 0; };
   Short_t getDataByAdcCol(Int_t nrow, Int_t ncol, Int_t ntime) const
   {
-    return fADC[(nrow * mNumberOfChannels + ncol) * mNtime + ntime];
+    return mADC[(nrow * mNumberOfChannels + ncol) * mNtime + ntime];
   };
   inline void getData(Int_t r, Int_t c, Int_t t, Int_t n, Short_t* vals) const;
   Short_t getDataBits(Int_t nrow, Int_t ncol, Int_t ntime) const;

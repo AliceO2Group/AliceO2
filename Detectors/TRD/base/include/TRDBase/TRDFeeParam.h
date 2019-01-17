@@ -99,7 +99,7 @@ class TRDFeeParam
   void setRAWversion(Int_t rawver);
 
  protected:
-  static TRDmeeParam* mgInstance; // Singleton instance
+  static TRDFeeParam* mgInstance; // Singleton instance
   static Bool_t mgTerminated;     // Defines if this class has already been terminated
 
   TRDCommonParam* mCP; // TRD common parameters class
