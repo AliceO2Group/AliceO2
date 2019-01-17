@@ -610,12 +610,15 @@ o2_define_bucket(
     detectors_base_bucket
     DetectorsBase
     RIO
+    SimConfig
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/Common/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include/
+    ${CMAKE_SOURCE_DIR}/Common/SimConfig/include/
+
     ${MS_GSL_INCLUDE_DIR}
 )
 

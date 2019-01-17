@@ -316,7 +316,7 @@ void Stack::finishCurrentPrimary()
   int neglected = 0;
   std::vector<int> indicesKept;
   for (const auto& particle : mParticles) {
-    if (particle.getStore()) {
+    if (particle.getStore() || !mPruneKinematics) {
       // map the global track index to the new persistent index
       // FIXME: only fill the map for non-trivial mappings in which mTransportedIDs[index]!=mTracks->size();
       mIndexMap[mTransportedIDs[index]] = mTracks->size();

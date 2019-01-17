@@ -12,6 +12,7 @@
 #include "TGeant3.h"
 #include "TGeant3TGeo.h"
 #include "SimulationDataFormat/Stack.h"
+#include "SimulationDataFormat/StackParam.h"
 #include <iostream>
 #include "FairLogger.h"
 #include "FairModule.h"

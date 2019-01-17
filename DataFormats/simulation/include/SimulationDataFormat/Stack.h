@@ -154,6 +154,7 @@ class Stack : public FairGenericStack
 
   /// Modifiers
   void StoreSecondaries(Bool_t choice = kTRUE) { mStoreSecondaries = choice; }
+  void pruneKinematics(bool choice = true) { mPruneKinematics = choice; }
   void setMinHits(Int_t min) { mMinHits = min; }
   void SetEnergyCut(Double_t eMin) { mEnergyCut = eMin; }
   void StoreMothers(Bool_t choice = kTRUE) { mStoreMothers = choice; }
@@ -246,6 +247,7 @@ class Stack : public FairGenericStack
   /// Variables defining the criteria for output selection
   Bool_t mStoreMothers;
   Bool_t mStoreSecondaries;
+  bool mPruneKinematics = false; // whether or not we filter the output kinematics
   Int_t mMinHits;
   Double32_t mEnergyCut;
 
