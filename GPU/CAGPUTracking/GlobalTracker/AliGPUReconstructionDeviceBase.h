@@ -16,9 +16,12 @@ public:
 	virtual int RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers) const = 0;
 
 protected:
+	typedef void deviceEvent;
+	
 	AliGPUReconstructionDeviceBase(const AliGPUCASettingsProcessing& cfg);
 	AliGPUCAConstantMem mGPUReconstructors;
 	void* fGPUMergerHostMemory = nullptr;
+	AliGPUCAParam* mDeviceParam = nullptr;
     
 #ifdef GPUCA_ENABLE_GPU_TRACKER
 	virtual int RunTPCTrackingSlices() override = 0;
@@ -35,10 +38,12 @@ protected:
 	virtual void ReleaseThreadContext() = 0;
 	virtual void SynchronizeGPU() = 0;
 	
-	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream) = 0;
-	virtual int TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream) = 0;
+	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) = 0;
+	virtual int TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) = 0;
 	int TransferMemoryResourcesToGPU(AliGPUProcessor* proc, int stream, bool all = false);
 	int TransferMemoryResourcesToHost(AliGPUProcessor* proc, int stream, bool all = false);
+	int TransferMemoryResourceLinkToGPU(short res, int stream, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr);
+	int TransferMemoryResourceLinkToHost(short res, int stream, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr);
 
 	struct helperParam
 	{
@@ -52,19 +57,20 @@ protected:
 		volatile char fError;
 		volatile char fReset;
 	};
+	
+	struct AliGPUProcessorWorkers : public AliGPUProcessor
+	{
+		AliGPUTPCTracker *fGpuTracker = nullptr; //Tracker Objects that will be used on the GPU
+		AliGPUTPCGMMerger* fGpuMerger = nullptr;
+		void* SetPointersDeviceProcessor(void* mem);
+		short mMemoryResWorkers;
+	};
 
-	static void* RowMemory(void* const BaseMemory, int iSlice)       { return( ((char*) BaseMemory) + iSlice * sizeof(AliGPUTPCRow) * (GPUCA_ROW_COUNT + 1) ); }
-	static void* CommonMemory(void* const BaseMemory, int iSlice)    { return( ((char*) BaseMemory) + GPUCA_GPU_ROWS_MEMORY + iSlice * AliGPUTPCTracker::CommonMemorySize() ); }
-	static void* SliceDataMemory(void* const BaseMemory, int iSlice) { return( ((char*) BaseMemory) + GPUCA_GPU_ROWS_MEMORY + GPUCA_GPU_COMMON_MEMORY + iSlice * GPUCA_GPU_SLICE_DATA_MEMORY ); }
-	void* GlobalMemory(void* const BaseMemory, int iSlice) const     { return( ((char*) BaseMemory) + GPUCA_GPU_ROWS_MEMORY + GPUCA_GPU_COMMON_MEMORY + NSLICES * (GPUCA_GPU_SLICE_DATA_MEMORY) + iSlice * GPUCA_GPU_GLOBAL_MEMORY ); } //in GPU memory, not host memory!!!
-	void* TracksMemory(void* const BaseMemory, int iSlice) const     { return( ((char*) BaseMemory) + GPUCA_GPU_ROWS_MEMORY + GPUCA_GPU_COMMON_MEMORY + NSLICES * (GPUCA_GPU_SLICE_DATA_MEMORY) + iSlice * GPUCA_GPU_TRACKS_MEMORY ); } //in host memory, not GPU memory!!!
-	void* TrackerMemory(void* const BaseMemory, int iSlice) const    { return( ((char*) BaseMemory) + GPUCA_GPU_ROWS_MEMORY + GPUCA_GPU_COMMON_MEMORY + NSLICES * (GPUCA_GPU_SLICE_DATA_MEMORY + GPUCA_GPU_TRACKS_MEMORY) + iSlice * sizeof(AliGPUTPCTracker) ); }
-    
 	int Reconstruct_Base_Init();
 	int Reconstruct_Base_SliceInit(unsigned int iSlice);
-	int Reconstruct_Base_StartGlobal(char*& tmpMemoryGlobalTracking);
+	int Reconstruct_Base_StartGlobal();
 	int Reconstruct_Base_FinishSlices(unsigned int iSlice);
-	int Reconstruct_Base_Finalize(char*& tmpMemoryGlobalTracking);
+	int Reconstruct_Base_Finalize();
 
 	int ReadEvent(int iSlice, int threadId);
 	void WriteOutput(int iSlice, int threadId);
@@ -77,22 +83,22 @@ protected:
 
 	int GetThread();
 	void ReleaseGlobalLock(void* sem);
-	int CheckMemorySizes(int sliceCount);
 
 	virtual int GPUSync(const char* state = "UNKNOWN", int stream = -1, int slice = 0) = 0;
 
 	static void* helperWrapper(void*);
+	
+	AliGPUProcessorWorkers workers;
+	AliGPUProcessorWorkers workersDevice;
+	AliGPUTPCTracker* &fGpuTracker = workers.fGpuTracker;
+	AliGPUTPCGMMerger* &fGpuMerger = workers.fGpuMerger;
 
-	AliGPUTPCTracker *fGpuTracker = nullptr; //Tracker Objects that will be used on the GPU
-	AliGPUTPCGMMerger* fGpuMerger = nullptr;
 	void* fGPUMemory = nullptr; //Pointer to GPU Memory Base Adress
 	void* fHostLockedMemory = nullptr; //Pointer to Base Adress of Page Locked Host Memory for DMA Transfer
 
 	void* fGPUMergerMemory = nullptr;
 	unsigned long long int fGPUMergerMaxMemory = 0;
 	
-	AliGPUCAParam* mDeviceParam = nullptr;
-
 	unsigned long long int fGPUMemSize = 0;	//Memory Size to allocate on GPU
 	unsigned long long int fHostMemSize = 0; //Memory Size to allocate on Host
 

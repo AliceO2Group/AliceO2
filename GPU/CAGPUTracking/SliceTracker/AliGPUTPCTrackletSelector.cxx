@@ -31,13 +31,17 @@ GPUd() void AliGPUTPCTrackletSelector::Thread
 {
 	// select best tracklets and kill clones
 
-	if ( iSync == 0 ) {
-		if ( iThread == 0 ) {
+	if ( iSync == 0 )
+    {
+		if ( iThread == 0 )
+        {
 			s.fNTracklets = *tracker.NTracklets();
 			s.fNThreadsTotal = nThreads * nBlocks;
 			s.fItr0 = nThreads * iBlock;
 		}
-	} else if ( iSync == 1 ) {
+	}
+    else if ( iSync == 1 )
+    {
 		int nHits, nFirstTrackHit;
 		AliGPUTPCHitId trackHits[GPUCA_ROW_COUNT - GPUCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE];
 
@@ -73,11 +77,13 @@ GPUd() void AliGPUTPCTrackletSelector::Thread
 #else
 				calink ih = tracklet.RowHit( irow );
 #endif //EXTERN_ROW_HITS
-				if ( ih != CALINK_INVAL ) {
+				if ( ih != CALINK_INVAL )
+                {
 					GPUglobalref() const MEM_GLOBAL(AliGPUTPCRow) &row = tracker.Row( irow );
 					bool own = ( tracker.HitWeight( row, ih ) <= w );
 					bool sharedOK = ( ( nShared < nHits * kMaxShared ) );
-					if ( own || sharedOK ) {//SG!!!
+					if ( own || sharedOK )
+                    {//SG!!!
 						gap = 0;
 #if GPUCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
 						if (nHits < GPUCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE)
@@ -90,8 +96,10 @@ GPUd() void AliGPUTPCTrackletSelector::Thread
 					}
 				}
 
-				if ( gap > kMaxRowGap || irow == lastRow ) { // store
-					if ( nHits >= minHits ) { //SG!!!
+				if ( gap > kMaxRowGap || irow == lastRow )
+                { // store
+					if ( nHits >= minHits )
+                    {
 						int itrout = CAMath::AtomicAdd( tracker.NTracks(), 1 );
 #ifdef GPUCA_GPUCODE
 						if (itrout >= GPUCA_GPU_MAX_TRACKS)
@@ -109,7 +117,8 @@ GPUd() void AliGPUTPCTrackletSelector::Thread
 						tracker.Tracks()[itrout].SetParam(tracklet.Param());
 						tracker.Tracks()[itrout].SetFirstHitID(nFirstTrackHit);
 						tracker.Tracks()[itrout].SetNHits(nHits);
-						for ( int jh = 0; jh < nHits; jh++ ) {
+						for ( int jh = 0; jh < nHits; jh++ )
+                        {
 #if GPUCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
 							if (jh < GPUCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE)
 							{

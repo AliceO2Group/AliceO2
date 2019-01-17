@@ -28,17 +28,12 @@
 class AliGPUTPCClusterData;
 class AliGPUTPCHit;
 
-/**
- * Data abstraction class for the Slice Tracker.
- *
- * Different architectures implement this for the most efficient loads and stores. All access to the
- * data happens through inline functions so that access to the data has no extra costs.
- */
 MEM_CLASS_PRE() class AliGPUTPCSliceData : public AliGPUProcessor
 {
-  public:
+public:
 	AliGPUTPCSliceData() :
 		AliGPUProcessor(),
+		mMemoryResInput(-1), mMemoryResScratch(-1), mMemoryResScratchHost(-1), mMemoryResRows(-1),
 		fFirstRow(0), fLastRow(GPUCA_ROW_COUNT - 1), fNumberOfHits(0), fNumberOfHitsPlusAlign(0), fMaxZ(0.f),
 		fGPUTextureBase(0), fRows(0), fLinkUpData(0), fLinkDownData(0), fClusterData(0)
 	{
@@ -56,12 +51,17 @@ MEM_CLASS_PRE() class AliGPUTPCSliceData : public AliGPUProcessor
 	 */
 
 	void SetClusterData(const AliGPUTPCClusterData *data);
-	int AllocateMemory();
 	void* SetPointersInput(void* mem);
 	void* SetPointersScratch(void* mem);
 	void* SetPointersScratchHost(void* mem);
-    void* SetPointersPermanent(void* mem);
+	void* SetPointersRows(void* mem);
 	void RegisterMemoryAllocation();
+    
+	short MemoryResInput() {return mMemoryResInput;}
+	short MemoryResScratch() {return mMemoryResScratch;}
+	short MemoryResScratchHost() {return mMemoryResScratchHost;}
+	short MemoryResRows() {return mMemoryResRows;}
+    
 	int InitFromClusterData();
 
 	/**
@@ -86,8 +86,6 @@ MEM_CLASS_PRE() class AliGPUTPCSliceData : public AliGPUProcessor
 
 	MEM_TEMPLATE() GPUd() void SetHitLinkUpData  ( const MEM_TYPE(AliGPUTPCRow) &row, const calink &hitIndex, const calink &value );
 	MEM_TEMPLATE() GPUd() void SetHitLinkDownData( const MEM_TYPE(AliGPUTPCRow) &row, const calink &hitIndex, const calink &value );
-
-	//void ClearLinks();
 
 	/**
 	 * Return the y and z coordinate(s) of the given hit(s).
@@ -152,6 +150,11 @@ MEM_CLASS_PRE() class AliGPUTPCSliceData : public AliGPUProcessor
 	int PackHitData( AliGPUTPCRow *row, const AliGPUTPCHit* binSortedHits );
 #endif
 
+	short mMemoryResInput;
+	short mMemoryResScratch;
+	short mMemoryResScratchHost;
+	short mMemoryResRows;
+
 	int fFirstRow;             //First non-empty row
 	int fLastRow;              //Last non-empty row
 
@@ -179,7 +182,7 @@ MEM_CLASS_PRE() class AliGPUTPCSliceData : public AliGPUProcessor
 
 	GPUglobalref() int *fHitWeights;          // the weight of the longest tracklet crossed the cluster
 
-    GPUglobalref() const AliGPUTPCClusterData *fClusterData;
+	GPUglobalref() const AliGPUTPCClusterData *fClusterData;
 };
 
 MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() calink MEM_LG(AliGPUTPCSliceData)::HitLinkUpData  ( const MEM_TYPE( AliGPUTPCRow)&row, const calink &hitIndex ) const

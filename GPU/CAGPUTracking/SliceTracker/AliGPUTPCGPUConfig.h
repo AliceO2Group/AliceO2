@@ -75,17 +75,17 @@
 
 #define GPUCA_GPU_TRACKER_CONSTANT_MEM 65000			//Amount of Constant Memory to reserve
 
-#define GPUCA_GPU_TRACKER_OBJECT_MEMORY		((size_t)       1024 * 1024)		//Total amount of Memory to reserve for GPU Tracker Objects
-#define GPUCA_GPU_ROWS_MEMORY				((size_t)       1024 * 1024)		//Total amount of Memory to reserve for GPU Row Parameters
-#define GPUCA_GPU_COMMON_MEMORY				((size_t)       1024 * 1024)		//Total amount of Memory to reserve for CommomMemoryStruct on GPU
-#define GPUCA_GPU_SLICE_DATA_MEMORY			((size_t)  50 * 1024 * 1024)		//Amount of Slice Data Memory to reserve per Slice on GPU
-#define GPUCA_GPU_GLOBAL_MEMORY				((size_t) 100 * 1024 * 1024)		//Amount of global temporary Memory to reserve per Slice on GPU
-#define GPUCA_GPU_TRACKS_MEMORY				((size_t)  10 * 1024 * 1024)		//Amount of Memory to reserve for Final Tracks per Slice on Host as Page Locked Memory
-#define GPUCA_GPU_MERGER_MEMORY				((size_t) 600 * 1024 * 1024)		//Memory for track merger
-#define GPUCA_GPU_MEMALIGN					((size_t)       1024 * 1024)		//Alignment of memory blocks, all constants above must be multiple of this!!!
-#define GPUCA_GPU_MEMALIGN_SMALL			((size_t)         64 * 1024)		//Alignment of small blocks, GPUCA_GPU_MEMALIGN must be multiple of this!!!
-#define GPUCA_GPU_MEMORY_SIZE				((size_t) 500 * 1024 * 1024)		//Size of memory allocated on Device
-#define GPUCA_HOST_MEMORY_SIZE				((size_t) 500 * 1024 * 1024)		//Size of memory allocated on Host
+#define GPUCA_GPU_TRACKER_OBJECT_MEMORY		((size_t)         1024 * 1024)		//Total amount of Memory to reserve for GPU Tracker Objects
+#define GPUCA_GPU_ROWS_MEMORY				((size_t)         1024 * 1024)		//Total amount of Memory to reserve for GPU Row Parameters
+#define GPUCA_GPU_COMMON_MEMORY				((size_t)         1024 * 1024)		//Total amount of Memory to reserve for CommomMemoryStruct on GPU
+#define GPUCA_GPU_SLICE_DATA_MEMORY			((size_t)    20 * 1024 * 1024)		//Amount of Slice Data Memory to reserve per Slice on GPU
+#define GPUCA_GPU_GLOBAL_MEMORY				((size_t)    50 * 1024 * 1024)		//Amount of global temporary Memory to reserve per Slice on GPU
+#define GPUCA_GPU_TRACKS_MEMORY				((size_t)    10 * 1024 * 1024)		//Amount of Memory to reserve for Final Tracks per Slice on Host as Page Locked Memory
+#define GPUCA_GPU_MERGER_MEMORY				((size_t)   100 * 1024 * 1024)		//Memory for track merger
+#define GPUCA_GPU_MEMALIGN					((size_t)           64 * 1024)		//Alignment of memory blocks, all constants above must be multiple of this!!!
+#define GPUCA_GPU_MEMALIGN_SMALL			((size_t)           64 * 1024)		//Alignment of small blocks, GPUCA_GPU_MEMALIGN must be multiple of this!!!
+#define GPUCA_GPU_MEMORY_SIZE				((size_t)  2048 * 1024 * 1024)		//Size of memory allocated on Device
+#define GPUCA_HOST_MEMORY_SIZE				((size_t)  2048 * 1024 * 1024)		//Size of memory allocated on Host
 
 //Make sure options do not interfere
 

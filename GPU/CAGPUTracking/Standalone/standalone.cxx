@@ -54,8 +54,8 @@
 
 //#define BROKEN_EVENTS
 
-std::unique_ptr<AliGPUReconstruction> rec;
-std::unique_ptr<char> outputmemory;
+AliGPUReconstruction* rec;
+std::unique_ptr<char[]> outputmemory;
 std::unique_ptr<AliGPUCADisplayBackend> eventDisplay;
 std::unique_ptr<AliGPUReconstructionTimeframe> tf;
 int nEventsInDirectory = 0;
@@ -160,13 +160,6 @@ int ReadConfiguration(int argc, char** argv)
 
 int SetupReconstruction()
 {
-	rec.reset(AliGPUReconstruction::CreateInstance(configStandalone.runGPU ? configStandalone.gpuType : AliGPUReconstruction::DEVICE_TYPE_NAMES[AliGPUReconstruction::DeviceType::CPU], configStandalone.runGPUforce));
-	if (rec == nullptr)
-	{
-		printf("Error initializing AliGPUReconstruction\n");
-		return(1);
-	}
-
 	if (!configStandalone.eventGenerator)
 	{
 		char filename[256];
@@ -197,6 +190,7 @@ int SetupReconstruction()
 	recSet.NWaysOuter = configStandalone.nwaysouter;
 	recSet.RejectMode = configStandalone.rejectMode;
 	recSet.SearchWindowDZDR = configStandalone.dzdr;
+	recSet.GlobalTracking = configStandalone.configRec.globalTracking;
 	if (configStandalone.referenceX < 500.) recSet.TrackReferenceX = configStandalone.referenceX;
 	
 	if (configStandalone.OMPThreads != -1) devProc.nThreads = configStandalone.OMPThreads;
@@ -241,9 +235,19 @@ int ReadEvent(int n)
 
 int main(int argc, char** argv)
 {
+	std::unique_ptr<AliGPUReconstruction> recUnique;
+
 	SetCPUAndOSSettings();
 
 	if (ReadConfiguration(argc, argv)) return(1);
+
+	recUnique.reset(AliGPUReconstruction::CreateInstance(configStandalone.runGPU ? configStandalone.gpuType : AliGPUReconstruction::DEVICE_TYPE_NAMES[AliGPUReconstruction::DeviceType::CPU], configStandalone.runGPUforce));
+	rec = recUnique.get();
+	if (rec == nullptr)
+	{
+		printf("Error initializing AliGPUReconstruction\n");
+		return(1);
+	}
 
 	if (SetupReconstruction()) return(1);
 
@@ -270,12 +274,12 @@ int main(int argc, char** argv)
 	
 	if (configStandalone.configTF.bunchSim || configStandalone.configTF.nMerge)
 	{
-		tf.reset(new AliGPUReconstructionTimeframe(rec.get(), ReadEvent, nEventsInDirectory));
+		tf.reset(new AliGPUReconstructionTimeframe(rec, ReadEvent, nEventsInDirectory));
 	}
 
 	if (configStandalone.eventGenerator)
 	{
-		genEvents::RunEventGenerator(rec.get());
+		genEvents::RunEventGenerator(rec);
 		return(1);
 	}
 	else
@@ -393,6 +397,5 @@ breakrun:
 		printf("Press a key to exit!\n");
 		getchar();
 	}
-	rec.reset(nullptr);
 	return(0);
 }

@@ -138,45 +138,29 @@ void AliGPUTPCSliceData::SetClusterData(const AliGPUTPCClusterData *data)
 	fNumberOfHits = data->NumberOfClusters();
 }
 
-int AliGPUTPCSliceData::AllocateMemory()
-{
-	try
-	{
-		mRec->AllocateRegisteredMemory(this);
-	}
-	catch (const std::bad_alloc& e)
-	{
-		printf("Insufficient slice data memory\n");
-		return 1;
-	}
-	return 0;
-}
-
 void* AliGPUTPCSliceData::SetPointersInput(void* mem)
 {
 	const int firstHitInBinSize = (23 + sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(int)) * GPUCA_ROW_COUNT + 4 * fNumberOfHits + 3;
-	AliGPUReconstruction::computePointerWithAlignment(mem, fLinkUpData, fNumberOfHitsPlusAlign);
-	AliGPUReconstruction::computePointerWithAlignment(mem, fLinkDownData, fNumberOfHitsPlusAlign);
 	AliGPUReconstruction::computePointerWithAlignment(mem, fHitData, fNumberOfHitsPlusAlign);
 	AliGPUReconstruction::computePointerWithAlignment(mem, fFirstHitInBin, firstHitInBinSize);
+	AliGPUReconstruction::computePointerWithAlignment(mem, fLinkUpData, fNumberOfHitsPlusAlign);
+	AliGPUReconstruction::computePointerWithAlignment(mem, fLinkDownData, fNumberOfHitsPlusAlign);
 	return mem;
 }
 
 void* AliGPUTPCSliceData::SetPointersScratch(void* mem)
 {
-	//Memory Allocated below will not be copied to GPU but instead be initialized on the gpu itself. Therefore it must not be copied to GPU!
 	AliGPUReconstruction::computePointerWithAlignment(mem, fHitWeights, fNumberOfHitsPlusAlign);
 	return mem;
 }
 
 void* AliGPUTPCSliceData::SetPointersScratchHost(void* mem)
 {
-	//Memory Allocated below will not be copied to GPU but instead be initialized on the gpu itself. Therefore it must not be copied to GPU!
 	AliGPUReconstruction::computePointerWithAlignment(mem, fClusterDataIndex, fNumberOfHitsPlusAlign);
 	return mem;
 }
 
-void* AliGPUTPCSliceData::SetPointersPermanent(void* mem)
+void* AliGPUTPCSliceData::SetPointersRows(void* mem)
 {
 	AliGPUReconstruction::computePointerWithAlignment(mem, fRows, GPUCA_ROW_COUNT + 1);
 	return mem;
@@ -184,10 +168,10 @@ void* AliGPUTPCSliceData::SetPointersPermanent(void* mem)
 
 void AliGPUTPCSliceData::RegisterMemoryAllocation()
 {
-	mMemoryResInput = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersInput, AliGPUMemoryResource::MEMORY_INPUT);
-	mMemoryResScratch = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersScratch, AliGPUMemoryResource::MEMORY_SCRATCH);
-	mMemoryResScratchHost = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersScratchHost, AliGPUMemoryResource::MEMORY_SCRATCH_HOST);
-	mMemoryResPermanent = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersPermanent, AliGPUMemoryResource::MEMORY_PERMANENT);
+	mMemoryResInput = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersInput, AliGPUMemoryResource::MEMORY_INPUT, "SliceInput");
+	mMemoryResScratch = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersScratch, AliGPUMemoryResource::MEMORY_SCRATCH, "SliceLinks");
+	mMemoryResScratchHost = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersScratchHost, AliGPUMemoryResource::MEMORY_SCRATCH_HOST, "SliceIds");
+	mMemoryResRows = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersRows, AliGPUMemoryResource::MEMORY_PERMANENT, "SliceRows");
 }
 
 int AliGPUTPCSliceData::InitFromClusterData()
@@ -409,16 +393,3 @@ void AliGPUTPCSliceData::ClearHitWeights()
 	}
 #endif
 }
-
-/*void AliGPUTPCSliceData::ClearLinks()
-{
-	// link cleaning
-	for (int i = 0; i < fNumberOfHits; ++i)
-	{
-		fLinkUpData[i] = CALINK_INVAL;
-	}
-	for (int i = 0; i < fNumberOfHits; ++i)
-	{
-		fLinkDownData[i] = CALINK_INVAL;
-	}
-}*/

@@ -46,8 +46,10 @@ MEM_CLASS_PRE()
 class AliGPUTPCTracker : public AliGPUProcessor
 {
   public:
+#ifndef __OPENCL__
 	AliGPUTPCTracker();
 	~AliGPUTPCTracker();
+#endif
 
 	struct StructGPUParameters
 	{
@@ -76,7 +78,7 @@ class AliGPUTPCTracker : public AliGPUProcessor
 		StructGPUParameters fGPUParameters; // GPU parameters
 	};
   
-	MEM_CLASS_PRE2() void Initialize( const MEM_LG2(AliGPUCAParam) *param, int iSlice );
+	MEM_CLASS_PRE2() void Initialize( int iSlice );
 	MEM_CLASS_PRE2() void InitializeRows( const MEM_LG2(AliGPUCAParam) *param ) { fData.InitializeRows(*param); }
   
 	int CheckEmptySlice();
@@ -98,11 +100,6 @@ class AliGPUTPCTracker : public AliGPUProcessor
   
 	//GPU Tracker Interface
 #if !defined(__OPENCL__)
-	char* SetGPUTrackerCommonMemory(char* const pGPUMemory);
-	char* SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits);
-	char* SetGPUTrackerTrackletsMemory(char* pGPUMemory, int MaxNTracklets);
-	char* SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTracks, int MaxNHits);
-  
 	//Debugging Stuff
 	void DumpSliceData(std::ostream &out);	//Dump Input Slice Data
 	void DumpLinks(std::ostream &out);		//Dump all links to file (for comparison after NeighboursFinder/Cleaner)
@@ -123,34 +120,41 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	GPUhd() AliGPUTPCSliceOutput** Output() const { return fOutput; }
 
 	GPUh() GPUglobalref() commonMemoryStruct *CommonMemory() const {return(fCommonMem); }
-	GPUh() static size_t CommonMemorySize() { return(sizeof(AliGPUTPCTracker::commonMemoryStruct)); }
-	GPUh() GPUglobalref() char* HitMemory() const {return(fHitMemory); }
-	GPUh() size_t HitMemorySize() const {return(fHitMemorySize); }
-	GPUh() char* TrackletMemory() {return(fTrackletMemory); }
-	GPUh() size_t TrackletMemorySize() const {return(fTrackletMemorySize); }
-	GPUh() char* TrackMemory() {return(fTrackMemory); }
-	GPUh() size_t TrackMemorySize() const {return(fTrackMemorySize); }
 
 #endif
   
 	MEM_CLASS_PRE2() GPUd() void GetErrors2( int iRow,  const MEM_LG2(AliGPUTPCTrackParam) &t, float &ErrY2, float &ErrZ2 ) const
 	{
-		//mParam.GetClusterErrors2( iRow, mParam.GetContinuousTracking() != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
-		mParam->GetClusterRMS2( iRow, mParam->ContinuousTracking != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
+		//mCAParam.GetClusterErrors2( iRow, mCAParam.GetContinuousTracking() != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
+		mCAParam->GetClusterRMS2( iRow, mCAParam->ContinuousTracking != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
 	}
 	GPUd() void GetErrors2( int iRow, float z, float sinPhi, float DzDs, float &ErrY2, float &ErrZ2 ) const
 	{
-		//mParam.GetClusterErrors2( iRow, mParam.GetContinuousTracking() != 0. ? 125. : z, sinPhi, DzDs, ErrY2, ErrZ2 );
-		mParam->GetClusterRMS2( iRow, mParam->ContinuousTracking != 0. ? 125. : z, sinPhi, DzDs, ErrY2, ErrZ2 );
+		//mCAParam.GetClusterErrors2( iRow, mCAParam.GetContinuousTracking() != 0. ? 125. : z, sinPhi, DzDs, ErrY2, ErrZ2 );
+		mCAParam->GetClusterRMS2( iRow, mCAParam->ContinuousTracking != 0. ? 125. : z, sinPhi, DzDs, ErrY2, ErrZ2 );
 	}
   
 	void SetupCommonMemory();
-	void SetPointersHits(int MaxNHits);
-	void SetPointersTracklets(int MaxNTracklets);
-	void SetPointersTracks(int MaxNTracks, int MaxNHits);
+	
+	void* SetPointersScratch(void* mem);
+	void* SetPointersScratchHost(void* mem);
+	void* SetPointersCommon(void* mem);
+	void* SetPointersTracklets(void* mem);
+	void* SetPointersTracks(void* mem);
+	void* SetPointersTrackHits(void* mem);
+	void RegisterMemoryAllocation();
+	
+	short MemoryResScratch() {return mMemoryResScratch;}
+	short MemoryResScratchHost() {return mMemoryResScratchHost;}
+	short MemoryResCommon() {return mMemoryResCommon;}
+	short MemoryResTracklets() {return mMemoryResTracklets;}
+	short MemoryResTracks() {return mMemoryResTracks;}
+	short MemoryResTrackHits() {return mMemoryResTrackHits;}
+
+	void SetMaxData();
  
-	GPUhd() MakeType(const MEM_LG(AliGPUCAParam)&) Param() const { return *mParam; }
-	GPUhd() MakeType(const MEM_LG(AliGPUCAParam)*) pParam() const { return mParam; }
+	GPUhd() MakeType(const MEM_LG(AliGPUCAParam)&) Param() const { return *mCAParam; }
+	GPUhd() MakeType(const MEM_LG(AliGPUCAParam)*) pParam() const { return mCAParam; }
 	GPUhd() int ISlice() const { return fISlice; }
   
 	GPUhd() MakeType(const MEM_LG(AliGPUTPCSliceData)&) Data() const { return fData; }
@@ -237,20 +241,21 @@ class AliGPUTPCTracker : public AliGPUProcessor
 
 	void PerformGlobalTracking(AliGPUTPCTracker& sliceLeft, AliGPUTPCTracker& sliceRight, int MaxTracksLeft, int MaxTracksRight);
 	
-	void StartTimer(int i) {if (mParam->debugLevel) fTimers[i].Start();}
-	void StopTimer(int i) {if (mParam->debugLevel) fTimers[i].Stop();}
+	void StartTimer(int i) {if (mCAParam->debugLevel) fTimers[i].Start();}
+	void StopTimer(int i) {if (mCAParam->debugLevel) fTimers[i].Stop();}
 	double GetTimer(int i) {return fTimers[i].GetElapsedTime();}
 	void ResetTimer(int i) {fTimers[i].Reset();}
+	void* LinkTmpMemory() {return fLinkTmpMemory;}
 
 #if !defined(GPUCA_GPUCODE)
 	GPUh() int PerformGlobalTrackingRun(AliGPUTPCTracker& sliceNeighbour, int iTrack, int rowIndex, float angle, int direction);
 	void SetGPUDebugOutput(std::ostream *file) {fGPUDebugOut = file;}
 #endif
 
-	char* fStageAtSync;					//Temporary performance variable: Pointer to array storing current stage for every thread at every sync point
-	char *fLinkTmpMemory;				//tmp memory for hits after neighbours finder
-  
   private:
+	char* fStageAtSync;					//Temporary performance variable: Pointer to array storing current stage for every thread at every sync point
+	char* fLinkTmpMemory;				//tmp memory for hits after neighbours finder
+
 	int fISlice; //Number of slice
 	HighResTimer fTimers[10];
   
@@ -263,38 +268,32 @@ class AliGPUTPCTracker : public AliGPUProcessor
 #else
 	void* fGPUDebugOut; //No this is a hack, but I have no better idea.
 #endif
+	int fNMaxStartHits;
+	int fNMaxTracklets;
 	int fNMaxTracks;
+	int fNMaxTrackHits;
+	short mMemoryResScratch;
+	short mMemoryResScratchHost;
+	short mMemoryResCommon;
+	short mMemoryResTracklets;
+	short mMemoryResTracks;
+	short mMemoryResTrackHits;
 
 	//GPU Temp Arrays
 	GPUglobalref() int* fRowStartHitCountOffset;				//Offset, length and new offset of start hits in row
 	GPUglobalref() AliGPUTPCHitId *fTrackletTmpStartHits;	//Unsorted start hits
 	GPUglobalref() char* fGPUTrackletTemp;					//Temp Memory for GPU Tracklet Constructor
-	GPUglobalref() int* fRowBlockTracklets;					//Reference which tracklet is processed in which rowblock next
-	GPUglobalref() int4* fRowBlockPos;							//x is last tracklet to be processed, y is last tracklet already processed, z is last tracklet to be processed in next iteration, w is initial x value to check if tracklet must be initialized
-	GPUglobalref() uint2* fBlockStartingTracklet;			// First Tracklet that is to be processed by current GPU MP
 
 	MEM_LG(StructGPUParametersConst) fGPUParametersConst; // Parameters for GPU if this is a GPU tracker
 
 	// event
 	GPUglobalref() commonMemoryStruct *fCommonMem; // common event memory
-  
-	GPUglobalref() char *fHitMemory; // event memory for hits
-	size_t   fHitMemorySize; // size of the event memory for hits [bytes]
-
-	GPUglobalref() char *fTrackletMemory;	//event memory for tracklets
-	size_t fTrackletMemorySize; //size of the event memory for tracklets
-
-	GPUglobalref() char *fTrackMemory; // event memory for tracks
-	size_t   fTrackMemorySize; // size of the event memory for tracks [bytes]
-
 	GPUglobalref() AliGPUTPCHitId *fTrackletStartHits;   // start hits for the tracklets
 	GPUglobalref() MEM_GLOBAL(AliGPUTPCTracklet) *fTracklets; // tracklets
 	GPUglobalref() calink *fTrackletRowHits;			//Hits for each Tracklet in each row
-
-	//
 	GPUglobalref() MEM_GLOBAL(AliGPUTPCTrack) *fTracks;	// reconstructed tracks
 	GPUglobalref() AliGPUTPCHitId *fTrackHits;			// array of track hit numbers
-  
+	
 	// output
 	GPUglobalref() AliGPUTPCSliceOutput **fOutput;		//address of pointer pointing to SliceOutput Object
 	void* fOutputMemory;									//Pointer to output memory if stored internally

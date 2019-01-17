@@ -191,12 +191,13 @@ public:
 	}
 	
 	AliGPUMemoryResource& Res(short num) {return mMemoryResources[num];}
-	template <class T> short RegisterMemoryAllocation(T* proc, void* (T::* setPtr)(void*), AliGPUMemoryResource::MemoryType type)
+	template <class T> short RegisterMemoryAllocation(T* proc, void* (T::* setPtr)(void*), AliGPUMemoryResource::MemoryType type, const char* name = "")
 	{
-		mMemoryResources.emplace_back(proc, static_cast<void* (AliGPUProcessor::*)(void*)>(setPtr), type);
+		mMemoryResources.emplace_back(proc, static_cast<void* (AliGPUProcessor::*)(void*)>(setPtr), type, name);
 		if (mMemoryResources.size() == 32768) throw std::bad_alloc();
 		return mMemoryResources.size() - 1;
 	}
+	size_t AllocateMemoryResources();
 	size_t AllocateRegisteredMemory(AliGPUProcessor* proc);
 	size_t AllocateRegisteredMemory(short res);
 	void FreeRegisteredMemory(AliGPUProcessor* proc);
@@ -254,7 +255,7 @@ protected:
 	int InitializeProcessors();
 	
 	//Private helper functions for memory management
-	static size_t AllocateRegisteredMemoryHelper(AliGPUMemoryResource* res, void* &ptr, void* &memorypool, void* memorybase, size_t memorysize, void* (AliGPUMemoryResource::*SetPointers)(void*));
+	size_t AllocateRegisteredMemoryHelper(AliGPUMemoryResource* res, void* &ptr, void* &memorypool, void* memorybase, size_t memorysize, void* (AliGPUMemoryResource::*SetPointers)(void*));
 	size_t AllocateRegisteredPermanentMemory();
 	
 	//Private helper functions for reading / writing / allocating IO buffer from/to file
