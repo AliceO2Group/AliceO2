@@ -29,9 +29,12 @@ BOOST_AUTO_TEST_CASE(TrackLTIntegral)
   auto trc1 = trc;
   trc1.setTgl(0.5);
   o2::track::TrackLTIntegral lt, lt1;
-  for (int i = 0; i < 100; i++) {
+  const int nStep = 100;
+  const float dx2x0 = 0.01f;
+  for (int i = 0; i < nStep; i++) {
     lt.addStep(1., trc);
     lt1.addStep(1., trc1);
+    lt1.addX2X0(dx2x0);
   }
   trc.printParam();
   lt.print();
@@ -43,6 +46,7 @@ BOOST_AUTO_TEST_CASE(TrackLTIntegral)
     BOOST_CHECK(tc < lt.getTOF(i));            // nothing is faster than the light
     BOOST_CHECK(lt1.getTOF(i) < lt.getTOF(i)); // higher P track is faster
   }
+  BOOST_CHECK_CLOSE(lt1.getX2X0(), nStep * dx2x0, 1e-4);
 }
 
 } // namespace o2
