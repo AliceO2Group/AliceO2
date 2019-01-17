@@ -7,10 +7,12 @@ set(SRCS
   src/MCTrack.cxx
   src/MCCompLabel.cxx
   src/RunContext.cxx
+  src/StackParam.cxx
 )
 
 Set(HEADERS
     include/${MODULE_NAME}/Stack.h
+    include/${MODULE_NAME}/StackParam.h
     include/${MODULE_NAME}/MCTrack.h
     include/${MODULE_NAME}/BaseHits.h
     include/${MODULE_NAME}/MCTruthContainer.h

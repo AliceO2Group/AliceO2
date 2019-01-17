@@ -23,6 +23,8 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::Data::Stack + ;
+#pragma link C++ class o2::sim::StackParam+;
+#pragma link C++ class o2::conf::ConfigurableParamHelper<o2::sim::StackParam>+;
 #pragma link C++ class o2::MCTrackT < double > +;
 #pragma link C++ class o2::MCTrackT < float > +;
 #pragma link C++ class o2::MCTrack + ;

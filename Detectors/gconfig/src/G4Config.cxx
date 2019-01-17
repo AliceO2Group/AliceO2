@@ -10,6 +10,7 @@
 
 #include "FairRunSim.h"
 #include "SimulationDataFormat/Stack.h"
+#include "SimulationDataFormat/StackParam.h"
 #include <iostream>
 #include "FairLogger.h"
 #include "TGeant4.h"
