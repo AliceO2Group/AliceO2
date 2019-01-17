@@ -143,13 +143,13 @@ void* AliGPUTPCSliceData::SetPointersInput(void* mem)
 	const int firstHitInBinSize = (23 + sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(int)) * GPUCA_ROW_COUNT + 4 * fNumberOfHits + 3;
 	AliGPUReconstruction::computePointerWithAlignment(mem, fHitData, fNumberOfHitsPlusAlign);
 	AliGPUReconstruction::computePointerWithAlignment(mem, fFirstHitInBin, firstHitInBinSize);
-	AliGPUReconstruction::computePointerWithAlignment(mem, fLinkUpData, fNumberOfHitsPlusAlign);
-	AliGPUReconstruction::computePointerWithAlignment(mem, fLinkDownData, fNumberOfHitsPlusAlign);
 	return mem;
 }
 
 void* AliGPUTPCSliceData::SetPointersScratch(void* mem)
 {
+	AliGPUReconstruction::computePointerWithAlignment(mem, fLinkUpData, fNumberOfHitsPlusAlign);
+	AliGPUReconstruction::computePointerWithAlignment(mem, fLinkDownData, fNumberOfHitsPlusAlign);
 	AliGPUReconstruction::computePointerWithAlignment(mem, fHitWeights, fNumberOfHitsPlusAlign);
 	return mem;
 }
