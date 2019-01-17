@@ -52,31 +52,11 @@ BOOST_AUTO_TEST_CASE(SAMPA_saturation_test)
   cdb.setUseDefaults();
   const SAMPAProcessing& sampa = SAMPAProcessing::instance();
 
-  std::string file = "SAMPA_saturation.dat";
-  std::string inputDir;
-  const char* aliceO2env = std::getenv("O2_ROOT");
-  if (aliceO2env) {
-    inputDir = aliceO2env;
-  }
-  inputDir += "/share/Detectors/TPC/files/";
+  std::vector<float> ADCin = {{ 1.f, 50.f, 100.f, 1000.f, 1023.f, 1024.f, 2000.f, 10000.f }};
+  std::vector<float> ADCout = {{ 1.f, 50.f, 100.f, 1000.f, 1023.f, 1023.f, 1023.f, 1023.f }};
 
-  std::ifstream saturationFile(inputDir + file, std::ifstream::in);
-  if (!saturationFile) {
-    LOG(FATAL) << "TPC::SAMPAProcessing - Input file '" << inputDir + file
-               << "' does not exist! No SAMPA saturation curve loaded!" << FairLogger::endl;
-    BOOST_CHECK(false);
-  }
-  std::vector<std::pair<float, float>> saturation;
-  for (std::string line; std::getline(saturationFile, line);) {
-    float x, y;
-    std::istringstream is(line);
-    while (is >> x >> y) {
-      saturation.emplace_back(x, y);
-    }
-  }
-
-  for (int i = 0; i < saturation.size(); ++i) {
-    BOOST_CHECK(saturation[i].second == sampa.getADCSaturation(saturation[i].first));
+  for (size_t i = 0; i < ADCin.size(); ++i) {
+    BOOST_CHECK(sampa.getADCSaturation(ADCin[i]) == ADCout[i]);
   }
 }
 

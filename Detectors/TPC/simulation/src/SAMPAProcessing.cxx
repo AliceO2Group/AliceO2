@@ -23,10 +23,9 @@
 
 using namespace o2::TPC;
 
-SAMPAProcessing::SAMPAProcessing() : mSaturationSpline(), mRandomNoiseRing(RandomRing::RandomType::Gaus)
+SAMPAProcessing::SAMPAProcessing() : mRandomNoiseRing(RandomRing::RandomType::Gaus)
 {
   updateParameters();
-  importSaturationCurve("SAMPA_saturation.dat");
 }
 
 SAMPAProcessing::~SAMPAProcessing() = default;
@@ -39,40 +38,6 @@ void SAMPAProcessing::updateParameters()
   mEleParam = &(cdb.getParameterElectronics());
   mPedestalMap = &(cdb.getPedestals());
   mNoiseMap = &(cdb.getNoise());
-}
-
-bool SAMPAProcessing::importSaturationCurve(std::string file)
-{
-  std::string inputDir;
-  const char* aliceO2env = std::getenv("O2_ROOT");
-  if (aliceO2env) {
-    inputDir = aliceO2env;
-  }
-  inputDir += "/share/Detectors/TPC/files/";
-
-  std::ifstream saturationFile(inputDir + file, std::ifstream::in);
-  if (!saturationFile) {
-    LOG(FATAL) << "TPC::SAMPAProcessing - Input file '" << inputDir + file
-               << "' does not exist! No SAMPA saturation curve loaded!" << FairLogger::endl;
-    return false;
-  }
-  std::vector<std::pair<float, float>> saturation;
-  for (std::string line; std::getline(saturationFile, line);) {
-    float x, y;
-    std::istringstream is(line);
-    while (is >> x >> y) {
-      saturation.emplace_back(x, y);
-    }
-  }
-  const int nPoints = saturation.size();
-  double xSat[nPoints], ySat[nPoints];
-  for (int i = 0; i < nPoints; ++i) {
-    xSat[i] = saturation[i].first;
-    ySat[i] = saturation[i].second;
-  }
-
-  mSaturationSpline = std::unique_ptr<TSpline3>(new TSpline3("SAMPA saturation", xSat, ySat, nPoints, "b2e2", 0, 0));
-  return true;
 }
 
 void SAMPAProcessing::getShapedSignal(float ADCsignal, float driftTime, std::vector<float>& signalArray) const
