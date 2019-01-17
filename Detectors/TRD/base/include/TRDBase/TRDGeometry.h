@@ -30,7 +30,7 @@ class TRDGeometry : public TRDGeometryBase, public o2::detectors::DetMatrixCache
 {
  public:
   TRDGeometry();
-  virtual ~TRDGeometry() override = default;
+  ~TRDGeometry() override = default;
 
   void createGeometry(std::vector<int> const& idtmed);
   void addAlignableVolumes() const;
@@ -42,7 +42,7 @@ class TRDGeometry : public TRDGeometryBase, public o2::detectors::DetMatrixCache
   std::vector<std::string> const& getSensitiveTRDVolumes() const { return mSensitiveVolumeNames; }
 
  protected:
-  virtual void fillMatrixCache(int mask) override;
+  void fillMatrixCache(int mask) override;
 
  private:
   void createVolumes(std::vector<int> const& idtmed);

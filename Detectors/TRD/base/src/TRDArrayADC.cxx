@@ -1,4 +1,3 @@
-
 // Copyright CERN and copyright holders of ALICE O2. This software is
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
@@ -27,11 +26,10 @@
 
 using namespace o2::trd;
 
-Short_t* TRDArrayADC::mgLutPadNumbering = 0x0;
+Short_t* TRDArrayADC::mgLutPadNumbering = nullptr;
 
 //____________________________________________________________________________________
 TRDArrayADC::TRDArrayADC()
-  : mNdet(0), mNrow(0), mNcol(0), mNumberOfChannels(0), mNtime(0), mNAdim(0), mADC(0)
 {
   //
   // TRDArrayADC default constructor
@@ -42,7 +40,6 @@ TRDArrayADC::TRDArrayADC()
 
 //____________________________________________________________________________________
 TRDArrayADC::TRDArrayADC(Int_t nrow, Int_t ncol, Int_t ntime)
-  : mNdet(0), mNrow(0), mNcol(0), mNumberOfChannels(0), mNtime(0), mNAdim(0), mADC(0)
 {
   //
   // TRDArrayADC constructor
@@ -72,7 +69,7 @@ TRDArrayADC::~TRDArrayADC()
   //
 
   delete[] mADC;
-  mADC = 0;
+  mADC = nullptr;
 }
 
 //____________________________________________________________________________________
@@ -394,7 +391,7 @@ void TRDArrayADC::Compress()
 
       //Copy the buffer
       delete[] mADC;
-      mADC = 0;
+      mADC = nullptr;
       mADC = new Short_t[newDim];
       mNAdim = newDim;
       for (Int_t i = 0; i < newDim; i++) {
@@ -403,17 +400,17 @@ void TRDArrayADC::Compress()
 
       //Delete auxiliary arrays
       delete[] buffer;
-      buffer = 0;
+      buffer = nullptr;
     }
   }
 
   if (longz) {
     delete[] longz;
-    longz = 0;
+    longz = nullptr;
   }
   if (longm) {
     delete[] longm;
-    longm = 0;
+    longm = nullptr;
   }
 }
 

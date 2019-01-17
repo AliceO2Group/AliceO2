@@ -38,7 +38,7 @@ TRDCalPadStatus::TRDCalPadStatus()
   //
 
   for (Int_t idet = 0; idet < kNdet; idet++) {
-    mROC[idet] = 0;
+    mROC[idet] = nulllptr;
   }
 }
 
@@ -82,7 +82,7 @@ TRDCalPadStatus::~TRDCalPadStatus()
   for (Int_t idet = 0; idet < kNdet; idet++) {
     if (mROC[idet]) {
       delete mROC[idet];
-      mROC[idet] = 0;
+      mROC[idet] = nullptr;
     }
   }
 }
@@ -147,7 +147,7 @@ TH1F* TRDCalPadStatus::MakeHisto1D()
   //
 
   char name[1000];
-  snprintf(name, 1000, "%s Pad 1D", getTitle());
+  snprintf(name, 1000, "%s Pad 1D", getTitle().c_str());
   TH1F* his = new TH1F(name, name, 6, -0.5, 5.5);
   his->GetXaxis()->SetBinLabel(1, "Good");
   his->GetXaxis()->SetBinLabel(2, "Masked");

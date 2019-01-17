@@ -1,4 +1,3 @@
-
 // Copyright CERN and copyright holders of ALICE O2. This software is
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
@@ -102,7 +101,7 @@ class TRDFeeParam
   static TRDFeeParam* mgInstance; // Singleton instance
   static Bool_t mgTerminated;     // Defines if this class has already been terminated
 
-  TRDCommonParam* mCP; // TRD common parameters class
+  TRDCommonParam* mCP=nullptr; // TRD common parameters class
 
   // Remark: ISO C++ allows initialization of static const values only for integer.
 
@@ -126,7 +125,7 @@ class TRDFeeParam
   static Bool_t mgUseTimeOffset;           // add time offset in calculation of fit sums
 
   // For raw production
-  Int_t mRAWversion;                       // Raw data production version
+  Int_t mRAWversion{3};                       // Raw data production version
   static const Int_t mgkMaxRAWversion = 3; // Maximum raw version number supported
 
  private:

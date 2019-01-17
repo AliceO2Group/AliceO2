@@ -1,4 +1,3 @@
-
 // Copyright CERN and copyright holders of ALICE O2. This software is
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
@@ -44,7 +43,7 @@ using namespace o2::trd;
 
 //_____________________________________________________________________________
 
-TRDFeeParam* TRDFeeParam::mgInstance = 0;
+TRDFeeParam* TRDFeeParam::mgInstance = nullptr;
 Bool_t TRDFeeParam::mgTerminated = kFALSE;
 Bool_t TRDFeeParam::mgTracklet = kTRUE;
 Bool_t TRDFeeParam::mgRejectMultipleTracklets = kFALSE;
@@ -59,10 +58,10 @@ TRDFeeParam* TRDFeeParam::Instance()
   //
 
   if (mgTerminated != kFALSE) {
-    return 0;
+    return nullptr;
   }
 
-  if (mgInstance == 0) {
+  if (mgInstance == nullptr) {
     mgInstance = new TRDFeeParam();
   }
 
@@ -78,7 +77,7 @@ void TRDFeeParam::Terminate()
 
   mgTerminated = kTRUE;
 
-  if (mgInstance != 0) {
+  if (mgInstance != nullptr) {
     delete mgInstance;
     mgInstance = 0;
   }
@@ -86,7 +85,6 @@ void TRDFeeParam::Terminate()
 
 //_____________________________________________________________________________
 TRDFeeParam::TRDFeeParam()
-  : mCP(0), mRAWversion(3)
 {
   //
   // Default constructor
@@ -97,7 +95,6 @@ TRDFeeParam::TRDFeeParam()
 
 //_____________________________________________________________________________
 TRDFeeParam::TRDFeeParam(TRootIoCtor*)
-  : mCP(0), mRAWversion(0)
 {
   //
   // IO constructor
@@ -106,20 +103,16 @@ TRDFeeParam::TRDFeeParam(TRootIoCtor*)
 
 //_____________________________________________________________________________
 TRDFeeParam::TRDFeeParam(const TRDFeeParam& p)
-  : mCP(p.mCP), mRAWversion(p.mRAWversion)
 {
   //
   // TRDFeeParam copy constructor
   //
+  mRAWversion=p.mRAWversion;
+  mCP=p.mCP;
 }
 
 //_____________________________________________________________________________
-TRDFeeParam::~TRDFeeParam()
-{
-  //
-  // TRDFeeParam destructor
-  //
-}
+TRDFeeParam::~TRDFeeParam() = default;
 
 //_____________________________________________________________________________
 TRDFeeParam& TRDFeeParam::operator=(const TRDFeeParam& p)

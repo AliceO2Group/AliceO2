@@ -1,4 +1,3 @@
-
 // Copyright CERN and copyright holders of ALICE O2. This software is
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
@@ -109,25 +108,25 @@ class TRDSignalIndex
   Int_t getNtime() const { return mNtbins; } // get Ntbins
 
  private:
-  Int_t mDet;   //  Detector number
-  Int_t mLayer; //  Layer position in the full TRD
-  Int_t mStack; //  Stack position in the full TRD
-  Int_t mSM;    //  Super module - position in the full TRD
+  Int_t mDet{-1};   //  Detector number
+  Int_t mLayer{-1}; //  Layer position in the full TRD
+  Int_t mStack{-1}; //  Stack position in the full TRD
+  Int_t mSM{-1};    //  Super module - position in the full TRD
 
   Bool_t* mBoolIndex;    //  Indices
   RowCol* mSortedIndex;  //  Sorted indices
-  Int_t mMaxLimit;       //  Max number of things in the array
-  Int_t mPositionRC;     //  Position in the SortedIndex
-  Int_t mCountRC;        //  the number of added rc combinations
+  Int_t mMaxLimit{0};       //  Max number of things in the array
+  Int_t mPositionRC{0};     //  Position in the SortedIndex
+  Int_t mCountRC{1};        //  the number of added rc combinations
   Bool_t mSortedWasInit; //  Was SortedIndex initialized?
 
-  Int_t mCurrRow;  //  Last Row read out of SortedIndex
-  Int_t mCurrCol;  //  Last Col read out of SortedIndex
-  Int_t mCurrTbin; //  Last outgiven Tbin
+  Int_t mCurrRow{0};  //  Last Row read out of SortedIndex
+  Int_t mCurrCol{0};  //  Last Col read out of SortedIndex
+  Int_t mCurrTbin{0}; //  Last outgiven Tbin
 
-  Int_t mNrows;  //  Number of rows in the chamber
-  Int_t mNcols;  //  Number of cols in the chamber
-  Int_t mNtbins; //  Number of tbins in the chamber
+  Int_t mNrows{0};  //  Number of rows in the chamber
+  Int_t mNcols{0};  //  Number of cols in the chamber
+  Int_t mNtbins{0}; //  Number of tbins in the chamber
 
   ClassDefNV(TRDSignalIndex, 1) //  Data container for one TRD detector segment
 };

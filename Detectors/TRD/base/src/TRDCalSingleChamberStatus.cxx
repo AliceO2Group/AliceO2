@@ -1,4 +1,3 @@
-
 // Copyright CERN and copyright holders of ALICE O2. This software is
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
@@ -26,7 +25,6 @@ using namespace o2::trd;
 
 //_____________________________________________________________________________
 TRDCalSingleChamberStatus::TRDCalSingleChamberStatus()
-  : mPla(0), mCha(0), mNrows(0), mNcols(0), mNchannels(0), mData(0)
 {
   //
   // Default constructor
@@ -35,7 +33,7 @@ TRDCalSingleChamberStatus::TRDCalSingleChamberStatus()
 
 //_____________________________________________________________________________
 TRDCalSingleChamberStatus::TRDCalSingleChamberStatus(Int_t p, Int_t c, Int_t cols)
-  : mPla(p), mCha(c), mNrows(0), mNcols(cols), mNchannels(0), mData(0)
+  : mPla(p), mCha(c), mNcols(cols)
 {
   //
   // Constructor that initializes a given pad plane type
@@ -112,7 +110,7 @@ TRDCalSingleChamberStatus::TRDCalSingleChamberStatus(Int_t p, Int_t c, Int_t col
 
 //_____________________________________________________________________________
 TRDCalSingleChamberStatus::TRDCalSingleChamberStatus(const TRDCalSingleChamberStatus& c)
-  : mPla(c.mPla), mCha(c.mCha), mNrows(c.mNrows), mNcols(c.mNcols), mNchannels(c.mNchannels), mData(0)
+  : mPla(c.mPla), mCha(c.mCha), mNrows(c.mNrows), mNcols(c.mNcols), mNchannels(c.mNchannels), mData(nullptr)
 {
   //
   // TRDCalSingleChamberStatus copy constructor
@@ -133,7 +131,7 @@ TRDCalSingleChamberStatus::~TRDCalSingleChamberStatus()
 
   if (mData) {
     delete[] mData;
-    mData = 0;
+    mData = nullptr;
   }
 }
 

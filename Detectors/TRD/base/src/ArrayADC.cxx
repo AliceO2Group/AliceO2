@@ -1,4 +1,3 @@
-
 // Copyright CERN and copyright holders of ALICE O2. This software is
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
@@ -27,9 +26,7 @@
 
 using namespace o2::trd;
 
-//____________________________________________________________________________________
 ArrayADC::ArrayADC()
-  : mNdet(0), mNrow(0), mNcol(0), mNumberOfChannels(0), mNtime(0), mNAdim(0), mADC(0)
 {
   //
   // ArrayADC demault constructor
@@ -40,7 +37,6 @@ ArrayADC::ArrayADC()
 
 //____________________________________________________________________________________
 ArrayADC::ArrayADC(Int_t nrow, Int_t ncol, Int_t ntime)
-  : mNdet(0), mNrow(0), mNcol(0), mNumberOfChannels(0), mNtime(0), mNAdim(0), mADC(0)
 {
   //
   // ArrayADC constructor
@@ -62,12 +58,7 @@ ArrayADC::ArrayADC(const ArrayADC& b)
 }
 
 //____________________________________________________________________________________
-ArrayADC::~ArrayADC()
-{
-  //
-  // ArrayADC destructor
-  //
-}
+ArrayADC::~ArrayADC() = default;
 
 //____________________________________________________________________________________
 ArrayADC& ArrayADC::operator=(const ArrayADC& b)
@@ -120,7 +111,7 @@ Short_t* ArrayADC::getDataAddress(Int_t nrow, Int_t ncol, Int_t ntime) const
   // get the address of the given pad
   //
   LOG (FATAL) << "You requested a now depricated function : ArrayADC::getDataAddress("<< nrow <<","<<ncol<<","<<ntime;
-  return 0;
+  return nullptr;
 }
 //________________________________________________________________________________
 Short_t ArrayADC::getData(Int_t nrow, Int_t ncol, Int_t ntime) const

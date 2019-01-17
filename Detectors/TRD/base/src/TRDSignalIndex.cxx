@@ -1,4 +1,3 @@
-
 // Copyright CERN and copyright holders of ALICE O2. This software is
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
@@ -35,7 +34,6 @@ using namespace o2::trd;
 
 //_____________________________________________________________________________
 TRDSignalIndex::TRDSignalIndex()
-  : mDet(-1), mLayer(-1), mStack(-1), mSM(-1), mBoolIndex(NULL), mSortedIndex(NULL), mMaxLimit(0), mPositionRC(0), mCountRC(1), mSortedWasInit(kFALSE), mCurrRow(0), mCurrCol(0), mCurrTbin(0), mNrows(0), mNcols(0), mNtbins(0)
 {
   //
   // Default contructor
@@ -46,7 +44,6 @@ TRDSignalIndex::TRDSignalIndex()
 
 //_____________________________________________________________________________
 TRDSignalIndex::TRDSignalIndex(Int_t nrow, Int_t ncol, Int_t ntime)
-  : mDet(-1), mLayer(-1), mStack(-1), mSM(-1), mBoolIndex(NULL), mSortedIndex(NULL), mMaxLimit(0), mPositionRC(0), mCountRC(1), mSortedWasInit(kFALSE), mCurrRow(0), mCurrCol(0), mCurrTbin(0), mNrows(0), mNcols(0), mNtbins(0)
 {
   //
   // Not the default contructor... hmmm...
@@ -79,12 +76,12 @@ TRDSignalIndex::~TRDSignalIndex()
 
   if (mBoolIndex) {
     delete[] mBoolIndex;
-    mBoolIndex = NULL;
+    mBoolIndex = nullptr;
   }
 
   if (mSortedIndex) {
     delete[] mSortedIndex;
-    mSortedIndex = NULL;
+    mSortedIndex = nullptr;
   }
 }
 
@@ -181,11 +178,11 @@ void TRDSignalIndex::Allocate(const Int_t nrow, const Int_t ncol, const Int_t nt
 
   if (mBoolIndex) {
     delete[] mBoolIndex;
-    mBoolIndex = NULL;
+    mBoolIndex = nullptr;
   }
   if (mSortedIndex) {
     delete[] mSortedIndex;
-    mSortedIndex = NULL;
+    mSortedIndex = nullptr;
   }
 
   mBoolIndex = new Bool_t[mMaxLimit];
