@@ -124,14 +124,6 @@ class SAMPAProcessing
  private:
   SAMPAProcessing();
 
-  std::unique_ptr<TSpline3> mSaturationSpline; ///< TSpline3 which holds the saturation curve
-
-  /// Import the saturation curve from a .dat file to a TSpline3
-  /// \param file Name of the .dat file
-  /// \param spline TSpline3 to which the saturation curve will be written
-  /// \return Boolean if succesful or not
-  bool importSaturationCurve(std::string file);
-
   const ParameterGas* mGasParam;         ///< Caching of the parameter class to avoid multiple CDB calls
   const ParameterDetector* mDetParam;    ///< Caching of the parameter class to avoid multiple CDB calls
   const ParameterElectronics* mEleParam; ///< Caching of the parameter class to avoid multiple CDB calls
@@ -183,12 +175,10 @@ inline float SAMPAProcessing::makeSignal(float ADCcounts, const CRU& cru, const 
 
 inline float SAMPAProcessing::getADCSaturation(const float signal) const
 {
-  /// \todo Performance of TSpline?
-  const float saturatedSignal = mSaturationSpline->Eval(signal);
   const float adcSaturation = mEleParam->getADCSaturation();
-  if (saturatedSignal > adcSaturation - 1)
+  if (signal > adcSaturation - 1)
     return adcSaturation - 1;
-  return saturatedSignal;
+  return signal;
 }
 
 template <typename T>
