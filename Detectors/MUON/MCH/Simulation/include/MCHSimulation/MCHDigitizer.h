@@ -20,12 +20,11 @@
 
 #include "TGeoManager.h"
 
-
 namespace o2
 {
 namespace mch
 {
-  
+
 class MCHDigitizer
 {
  public:
@@ -35,23 +34,23 @@ class MCHDigitizer
 
   void init();
 
-    
+
   void setEventTime(double timeNS) { mEventTime = timeNS; }
   void setEventID(int eventID) { mEventID = eventID; }
   void setSrcID(int sID) { mSrcID = sID; }
-  
-  //this will process hits and fill the digit vector with digits which are finalized
+
+  //process hits: fill digit vector with digits
   void process(const std::vector<Hit> hits, std::vector<Digit>& digits);
 
   void fillOutputContainer(std::vector<Digit>& digits);
-  void flushOutputContainer(std::vector<Digit>& digits); // flush all residual buffered data
+  void flushOutputContainer(std::vector<Digit>& digits); 
 
   void setContinuous(bool val) { mContinuous = val; }
   bool isContinuous() const { return mContinuous; }
   
  private:  
   double mEventTime;
-  int mReadoutWindowCurrent{0};  
+  int mReadoutWindowCurrent{ 0 };  
   int mEventID = 0;
   int mSrcID = 0;
   
@@ -61,28 +60,17 @@ class MCHDigitizer
   const static int mNdE = 156;
   // digit per pad
   std::vector<Digit> mDigits;
-  //
-  //  static std::map<int,int> mdetID;
 
-  std::map<int,int> mdetID;
-  
+  std::map<int, int> mdetID;
+
   std::vector<mapping::Segmentation> mSeg;
-                                                
-  // std::vector<mapping::Segmentation> mSegnon;
 
+  //member with parameters and signal generation
   Response mMuonresponse;
 
-  const TGeoManager gMgr = TGeoManager("MCH-ONLY", "ALICE MCH Standalone Geometry");
-  
-  //proper parameter in aliroot in AliMUONResponseFactory.cxx
-  //to be discussed n-sigma to be put, use detID to choose value?
-  //anything in segmentation foreseen?
-  //seem to be only two different values (st. 1 and st. 2-5)...overhead limited
-  //any need for separate values as in old code? in principle not...I think
-  
   int processHit(const Hit& hit, double event_time);
 };
 
-} // namoespace mch
+} // namespace mch
 } // namespace o2
 #endif
