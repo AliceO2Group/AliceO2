@@ -84,8 +84,6 @@ int ReadConfiguration(int argc, char** argv)
 		return(1);
 	}
 	if (configStandalone.printSettings) qConfigPrint();
-
-	if (configStandalone.eventDisplay) configStandalone.runGPU = 0;
 #ifndef WIN32
 	setlocale(LC_ALL, "");
 	if (configStandalone.affinity != -1)

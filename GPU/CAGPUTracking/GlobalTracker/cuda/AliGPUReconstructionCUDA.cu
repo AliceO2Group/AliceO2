@@ -429,9 +429,10 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 		}
 		mTPCSliceTrackersCPU[iSlice].StopTimer(1);
 
-		if (mDeviceProcessingSettings.debugLevel >= 4)
+		if (mDeviceProcessingSettings.keepAllMemory == true)
 		{
 			TransferMemoryResourcesToHost(&mTPCSliceTrackersCPU[iSlice].Data(), -1, true);
+			memcpy(mTPCSliceTrackersCPU[iSlice].LinkTmpMemory(), Res(mTPCSliceTrackersCPU[iSlice].Data().MemoryResScratch()).Ptr(), Res(mTPCSliceTrackersCPU[iSlice].Data().MemoryResScratch()).Size());
 			if (mDeviceProcessingSettings.debugMask & 2) mTPCSliceTrackersCPU[iSlice].DumpLinks(mDebugFile);
 		}
 
@@ -600,7 +601,7 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 			return(1);
 		}
 
-		if (mDeviceProcessingSettings.debugLevel >= 4)
+		if (mDeviceProcessingSettings.keepAllMemory == true)
 		{
 			TransferMemoryResourcesToHost(&mTPCSliceTrackersCPU[iSlice], -1, true);
 			if (mDeviceProcessingSettings.debugMask & 256 && !mDeviceProcessingSettings.comparableDebutOutput) mTPCSliceTrackersCPU[iSlice].DumpHitWeights(mDebugFile);
