@@ -51,6 +51,7 @@ AddHelp("help", 'h')
 EndConfig()
 
 BeginSubConfig(structConfigRec, configRec, configStandalone, "REC", 0, "Reconstruction settings")
+AddOption(globalTracking, bool, true, "globalTracking", 0, "Enable global tracking")
 AddOption(runTRD, bool, false, "trd", 0, "Enable TRD processing")
 AddHelp("help", 'h')
 EndConfig()

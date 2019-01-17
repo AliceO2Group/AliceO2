@@ -14,8 +14,8 @@ public:
 	enum AllocationType {ALLOCATION_AUTO = 0, ALLOCATION_INDIVIDUAL = 1, ALLOCATION_GLOBAL = 2};
 	
 #ifndef GPUCA_GPUCODE
-	AliGPUMemoryResource(AliGPUProcessor* proc, void* (AliGPUProcessor::*setPtr)(void*), MemoryType type) :
-		mProcessor(proc), mPtr(nullptr), mPtrDevice(nullptr), mSetPointers(setPtr), mType(type), mSize(0)
+	AliGPUMemoryResource(AliGPUProcessor* proc, void* (AliGPUProcessor::*setPtr)(void*), MemoryType type, const char* name = "") :
+		mProcessor(proc), mPtr(nullptr), mPtrDevice(nullptr), mSetPointers(setPtr), mType(type), mSize(0), mName(name)
 	{
 	}
 	AliGPUMemoryResource(const AliGPUMemoryResource&) CON_DEFAULT;
@@ -27,6 +27,7 @@ public:
 	void* Ptr() {return mPtr;}
 	void* PtrDevice() {return mPtrDevice;}
 	size_t Size() const {return mSize;}
+	const char* Name() const {return mName;}
 #endif
 
 private:
@@ -36,6 +37,7 @@ private:
 	void* (AliGPUProcessor::* mSetPointers)(void*);
 	MemoryType mType;
 	size_t mSize;
+	const char* mName;
 };
 
 #endif

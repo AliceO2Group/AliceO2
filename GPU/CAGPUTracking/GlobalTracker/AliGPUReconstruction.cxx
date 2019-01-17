@@ -1,5 +1,6 @@
 #include <cstring>
 #include <stdio.h>
+#include <iostream>
 #include <mutex>
 #include <string>
 
@@ -102,7 +103,7 @@ AliGPUReconstruction::~AliGPUReconstruction()
 int AliGPUReconstruction::Init()
 {
 	if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_AUTO) mDeviceProcessingSettings.memoryAllocationStrategy = IsGPU() ? AliGPUMemoryResource::ALLOCATION_GLOBAL : AliGPUMemoryResource::ALLOCATION_INDIVIDUAL;
-	if (mDeviceProcessingSettings.eventDisplay) mDeviceProcessingSettings.keepAllMemory = true;
+	if (mDeviceProcessingSettings.debugLevel >= 4) mDeviceProcessingSettings.keepAllMemory = true;
 		
 #ifdef GPUCA_HAVE_OPENMP
 	if (mDeviceProcessingSettings.nThreads <= 0) mDeviceProcessingSettings.nThreads = omp_get_max_threads();
@@ -118,9 +119,11 @@ int AliGPUReconstruction::Init()
 	for (unsigned int i = 0;i < NSLICES;i++)
 	{
 		mTPCSliceTrackersCPU[i].Data().RegisterMemoryAllocation();
+		mTPCSliceTrackersCPU[i].RegisterMemoryAllocation();
 	}
 	if (InitDevice()) return 1;
 	AllocateRegisteredPermanentMemory();
+	
 	if (InitializeProcessors()) return 1;
 	
 	if (AliGPUCAQA::QAAvailable() && (mDeviceProcessingSettings.runQA || mDeviceProcessingSettings.eventDisplay))
@@ -169,7 +172,7 @@ int AliGPUReconstruction::InitializeProcessors()
 {
 	for (unsigned int i = 0;i < NSLICES;i++)
 	{
-		mTPCSliceTrackersCPU[i].Initialize(&mParam, i);
+		mTPCSliceTrackersCPU[i].Initialize(i);
 		mTPCSliceTrackersCPU[i].SetGPUDebugOutput(&mDebugFile);
 	}
 	mTPCMergerCPU.Initialize();
@@ -227,23 +230,27 @@ template <class T> void AliGPUReconstruction::AllocateIOMemoryHelper(unsigned in
 
 size_t AliGPUReconstruction::AllocateRegisteredMemory(AliGPUProcessor* proc)
 {
+	if (mDeviceProcessingSettings.debugLevel >= 5) printf("Allocating memory %p\n", proc);
 	size_t total = 0;
-	if (proc->mMemoryResInput != -1) total += AllocateRegisteredMemory(proc->mMemoryResInput);
-	if (proc->mMemoryResOutput != -1) total += AllocateRegisteredMemory(proc->mMemoryResOutput);
-	if (proc->mMemoryResScratch != -1) total += AllocateRegisteredMemory(proc->mMemoryResScratch);
-	if (proc->mMemoryResScratchHost != -1) total += AllocateRegisteredMemory(proc->mMemoryResScratchHost);
+	for (unsigned int i = 0;i < mMemoryResources.size();i++)
+	{
+		if ((proc == nullptr || mMemoryResources[i].mProcessor == proc) && mMemoryResources[i].mType != AliGPUMemoryResource::MEMORY_CUSTOM) total += AllocateRegisteredMemory(i);
+	}
+	if (mDeviceProcessingSettings.debugLevel >= 5) printf("Allocating memory done\n");
 	return total;
 }
 
 size_t AliGPUReconstruction::AllocateRegisteredPermanentMemory()
 {
+	if (mDeviceProcessingSettings.debugLevel >= 5) printf("Allocating Permanent Memory\n");
 	int total = 0;
 	for (unsigned int i = 0;i < mMemoryResources.size();i++)
 	{
-		if (mMemoryResources[i].mType == AliGPUMemoryResource::MEMORY_PERMANENT) total += AllocateRegisteredMemory(i);
+		if (mMemoryResources[i].mType == AliGPUMemoryResource::MEMORY_PERMANENT && mMemoryResources[i].mPtr == nullptr) total += AllocateRegisteredMemory(i);
 	}
 	mHostMemoryPermanent = mHostMemoryPool;
 	mDeviceMemoryPermanent = mDeviceMemoryPool;
+	if (mDeviceProcessingSettings.debugLevel >= 5) printf("Permanent Memory Done\n");
 	return total;
 }
 
@@ -252,15 +259,23 @@ size_t AliGPUReconstruction::AllocateRegisteredMemoryHelper(AliGPUMemoryResource
 	if (memorypool == nullptr) {printf("Memory pool uninitialized\n");throw std::bad_alloc();}
 	ptr = memorypool;
 	memorypool = (char*) ((res->*setPtr)(memorypool));
-	if ((size_t) ((char*) memorypool - (char*) memorybase) > memorysize) {printf("Memory pool size exceeded\n");throw std::bad_alloc();}
+	if ((size_t) ((char*) memorypool - (char*) memorybase) > memorysize) {std::cout << "Memory pool size exceeded (" << res->mName << ": " << (char*) memorypool - (char*) memorybase << " < " << memorysize << "\n"; throw std::bad_alloc();}
 	size_t retVal = (char*) memorypool - (char*) ptr;
 	memorypool = (void*) ((char*) memorypool + getAlignment<GPUCA_GPU_MEMALIGN>(memorypool));
+	if (mDeviceProcessingSettings.debugLevel >= 5) std::cout << "Allocated " << res->mName << ": " << retVal << " - available: " << memorysize - ((char*) memorypool - (char*) memorybase) << "\n";
 	return(retVal);
 }
 
 size_t AliGPUReconstruction::AllocateRegisteredMemory(short ires)
 {
 	AliGPUMemoryResource* res = &mMemoryResources[ires];
+	if (res->mType == AliGPUMemoryResource::MEMORY_PERMANENT && res->mPtr != nullptr)
+	{
+		res->SetPointers(res->mPtr);
+		if (IsGPU()) res->SetDevicePointers(res->mPtrDevice);
+
+		return res->mSize;
+	}
 	if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL)
 	{
 		if (res->mPtr) operator delete(res->mPtr);
@@ -270,13 +285,14 @@ size_t AliGPUReconstruction::AllocateRegisteredMemory(short ires)
 	}
 	else
 	{
+		if (res->mPtr != nullptr) {printf("Double allocation!\n"); throw std::bad_alloc();}
 		if (!IsGPU() || res->mType != AliGPUMemoryResource::MEMORY_SCRATCH || mDeviceProcessingSettings.keepAllMemory)
 		{
 			res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, mHostMemoryPool, mHostMemoryBase, mHostMemorySize, &AliGPUMemoryResource::SetPointers);
 		}
-		if (IsGPU() && (res->mType != AliGPUMemoryResource::MEMORY_SCRATCH_HOST || mDeviceProcessingSettings.keepAllMemory))
+		if (IsGPU() && res->mType != AliGPUMemoryResource::MEMORY_SCRATCH_HOST)
 		{
-			if (res->mProcessor->mDeviceProcessor == nullptr) {printf("Device Processor not set\n"); throw std::bad_alloc();}
+			if (res->mProcessor->mDeviceProcessor == nullptr) {printf("Device Processor not set (%s)\n", res->mName); throw std::bad_alloc();}
 			size_t size = AllocateRegisteredMemoryHelper(res, res->mPtrDevice, mDeviceMemoryPool, mDeviceMemoryBase, mDeviceMemorySize, &AliGPUMemoryResource::SetDevicePointers);
 			
 			if (res->mType == AliGPUMemoryResource::MEMORY_SCRATCH && !mDeviceProcessingSettings.keepAllMemory)
@@ -297,7 +313,7 @@ void AliGPUReconstruction::FreeRegisteredMemory(AliGPUProcessor* proc)
 {
 	for (unsigned int i = 0;i < mMemoryResources.size();i++)
 	{
-		if (mMemoryResources[i].mProcessor == proc) FreeRegisteredMemory(i);
+		if ((proc == nullptr || mMemoryResources[i].mProcessor == proc) && mMemoryResources[i].mType != AliGPUMemoryResource::MEMORY_CUSTOM) FreeRegisteredMemory(i);
 	}
 }
 
@@ -604,7 +620,7 @@ int AliGPUReconstruction::RunStandalone()
 	}
 
 	timerTracking.Start();
-	RunTPCTrackingSlices();
+	if (RunTPCTrackingSlices()) return 1;
 	timerTracking.Stop();
 
 	timerMerger.Start();
@@ -614,7 +630,7 @@ int AliGPUReconstruction::RunStandalone()
 		//printf("slice %d clusters %d tracks %d\n", i, fClusterData[i].NumberOfClusters(), mSliceOutput[i]->NTracks());
 		mTPCMergerCPU.SetSliceData(i, mSliceOutput[i]);
 	}
-	RunTPCTrackingMerger();
+	if (RunTPCTrackingMerger()) return 1;
 	timerMerger.Stop();
 
 	if (needQA)
@@ -730,7 +746,12 @@ int AliGPUReconstruction::RunTPCTrackingSlices()
 		if (error) continue;
 		mClusterData[iSlice].SetClusterData(iSlice, mIOPtrs.nClusterData[iSlice], mIOPtrs.clusterData[iSlice]);
 		mTPCSliceTrackersCPU[iSlice].Data().SetClusterData(&mClusterData[iSlice]);
-		if (mTPCSliceTrackersCPU[iSlice].Data().AllocateMemory() || mTPCSliceTrackersCPU[iSlice].ReadEvent())
+		mTPCSliceTrackersCPU[iSlice].SetMaxData();
+	}
+	AllocateRegisteredMemory(nullptr);
+	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
+	{
+		if (mTPCSliceTrackersCPU[iSlice].ReadEvent())
 		{
 			CAGPUError("Error initializing cluster data\n");
 			error = true;

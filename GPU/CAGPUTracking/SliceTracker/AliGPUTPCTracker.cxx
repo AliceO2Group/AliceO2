@@ -57,21 +57,21 @@ AliGPUTPCTracker::AliGPUTPCTracker() :
 	fISlice(0),
 	fData(),
 	fGPUDebugOut( 0 ),
+	fNMaxStartHits( 0 ),
+	fNMaxTracklets( 0 ),
 	fNMaxTracks( 0 ),
+	fNMaxTrackHits( 0 ),
+	mMemoryResScratch( -1 ),
+	mMemoryResScratchHost( -1 ),
+	mMemoryResCommon( -1 ),
+	mMemoryResTracklets( -1 ),
+	mMemoryResTracks( -1 ),
+	mMemoryResTrackHits( -1 ),
 	fRowStartHitCountOffset( NULL ),
 	fTrackletTmpStartHits( NULL ),
 	fGPUTrackletTemp( NULL ),
-	fRowBlockTracklets( NULL ),
-	fRowBlockPos( NULL ),
-	fBlockStartingTracklet( NULL ),
 	fGPUParametersConst(),
 	fCommonMem( 0 ),
-	fHitMemory( 0 ),
-	fHitMemorySize( 0 ),
-	fTrackletMemory( 0 ),
-	fTrackletMemorySize( 0 ),
-	fTrackMemory( 0 ),
-	fTrackMemorySize( 0 ),
 	fTrackletStartHits( 0 ),
 	fTracklets( 0 ),
 	fTrackletRowHits( NULL ),
@@ -80,103 +80,105 @@ AliGPUTPCTracker::AliGPUTPCTracker() :
 	fOutput( 0 ),
 	fOutputMemory(NULL)
 {}
-
+	
 AliGPUTPCTracker::~AliGPUTPCTracker()
 {
-	// destructor
-	if (mGPUProcessorType == PROCESSOR_TYPE_CPU)
-	{
-		if (fCommonMem) delete fCommonMem;
-		if (fHitMemory) delete[] fHitMemory;
-		if (fTrackletMemory) delete[] fTrackletMemory;
-		if (fTrackMemory) delete[] fTrackMemory;
-		fCommonMem = NULL;
-		fHitMemory = fTrackletMemory = fTrackMemory = NULL;
-	}
-	if (fLinkTmpMemory) delete[] fLinkTmpMemory;
 	if (fOutputMemory) free(fOutputMemory);
 }
 
 // ----------------------------------------------------------------------------------
-void AliGPUTPCTracker::Initialize( const AliGPUCAParam *param, int iSlice )
+void AliGPUTPCTracker::Initialize( int iSlice )
 {
-	mParam = param;
 	fISlice = iSlice;
-	InitializeRows(mParam);
+	InitializeRows(mCAParam);
 
 	SetupCommonMemory();
 }
 
-char* AliGPUTPCTracker::SetGPUTrackerCommonMemory(char* const pGPUMemory)
+void* AliGPUTPCTracker::SetPointersScratch(void* mem)
 {
-	//Set up common Memory Pointer for GPU Tracker
-	fCommonMem = (commonMemoryStruct*) pGPUMemory;
-	return(pGPUMemory + sizeof(commonMemoryStruct));
+	AliGPUReconstruction::computePointerWithAlignment( mem, fTrackletStartHits, fNMaxStartHits);
+	if (mRec->GetDeviceProcessingSettings().memoryAllocationStrategy != AliGPUMemoryResource::ALLOCATION_INDIVIDUAL)
+	{
+		mem = SetPointersTracklets(mem);
+	}
+	if (mRec->IsGPU())
+	{
+		AliGPUReconstruction::computePointerWithAlignment(mem, fTrackletTmpStartHits, GPUCA_ROW_COUNT * GPUCA_GPU_MAX_ROWSTARTHITS);
+		AliGPUReconstruction::computePointerWithAlignment(mem, fRowStartHitCountOffset, GPUCA_ROW_COUNT);
+	}
+	return mem;
 }
 
-
-char* AliGPUTPCTracker::SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits)
+void* AliGPUTPCTracker::SetPointersScratchHost(void* mem)
 {
-	//Set up Hits Memory Pointers for GPU Tracker
-	fHitMemory = (char*) pGPUMemory;
-	SetPointersHits(MaxNHits);
-	pGPUMemory += fHitMemorySize;
-	AliGPUReconstruction::computePointerWithAlignment(pGPUMemory, fTrackletTmpStartHits, GPUCA_ROW_COUNT * GPUCA_GPU_MAX_ROWSTARTHITS);
-	AliGPUReconstruction::computePointerWithAlignment(pGPUMemory, fRowStartHitCountOffset, GPUCA_ROW_COUNT);
-
-	return(pGPUMemory);
+	AliGPUReconstruction::computePointerWithAlignment(mem, fLinkTmpMemory, mRec->Res(fData.MemoryResInput()).Size());
+	return mem;
 }
 
-char* AliGPUTPCTracker::SetGPUTrackerTrackletsMemory(char* pGPUMemory, int MaxNTracks)
+void* AliGPUTPCTracker::SetPointersCommon(void* mem)
 {
-	//Set up Tracklet Memory Pointers for GPU Tracker
-	fTrackletMemory = (char*) pGPUMemory;
-	SetPointersTracklets(MaxNTracks);
-	pGPUMemory += fTrackletMemorySize;
-	return(pGPUMemory);
+	AliGPUReconstruction::computePointerWithAlignment(mem, fCommonMem, 1);
+	return mem;
 }
 
-char* AliGPUTPCTracker::SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTracks, int MaxNHits )
+void AliGPUTPCTracker::RegisterMemoryAllocation()
 {
-	//Set up Tracks Memory Pointer for GPU Tracker
-	fTrackMemory = (char*) pGPUMemory;
-	SetPointersTracks(MaxNTracks, MaxNHits);
-	pGPUMemory += fTrackMemorySize;
+	mMemoryResScratch = mRec->RegisterMemoryAllocation(this, &AliGPUTPCTracker::SetPointersScratch, AliGPUMemoryResource::MEMORY_SCRATCH, "TrackerScratch");
+	mMemoryResScratchHost = mRec->RegisterMemoryAllocation(this, &AliGPUTPCTracker::SetPointersScratchHost, AliGPUMemoryResource::MEMORY_SCRATCH_HOST, "TrackerHost");
+	mMemoryResCommon = mRec->RegisterMemoryAllocation(this, &AliGPUTPCTracker::SetPointersCommon, AliGPUMemoryResource::MEMORY_PERMANENT, "TrackerCommon");
+	
+	auto type = AliGPUMemoryResource::MEMORY_OUTPUT;
+	if (mRec->GetDeviceProcessingSettings().memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL)
+	{	//For individual scheme, we allocate tracklets separately, and change the type for the following allocations to custom
+		type =  AliGPUMemoryResource::MEMORY_CUSTOM;
+		mMemoryResTracklets = mRec->RegisterMemoryAllocation(this, &AliGPUTPCTracker::SetPointersTracklets, type, "TrackerTracklets");
+	}
+	mMemoryResTracks = mRec->RegisterMemoryAllocation(this, &AliGPUTPCTracker::SetPointersTracks, type, "TrackerTracks");
+	mMemoryResTrackHits = mRec->RegisterMemoryAllocation(this, &AliGPUTPCTracker::SetPointersTrackHits, type, "TrackerTrackHits");
+}
 
-	return(pGPUMemory);
+GPUhd() void* AliGPUTPCTracker::SetPointersTracklets(void* mem)
+{
+	AliGPUReconstruction::computePointerWithAlignment(mem, fTracklets, fNMaxTracklets);
+#ifdef EXTERN_ROW_HITS
+	AliGPUReconstruction::computePointerWithAlignment(mem, fTrackletRowHits, fNMaxTracklets * GPUCA_ROW_COUNT);
+#endif
+	return mem;
+}
+
+GPUhd() void* AliGPUTPCTracker::SetPointersTracks(void* mem)
+{
+	AliGPUReconstruction::computePointerWithAlignment(mem, fTracks, fNMaxTracks);
+	return mem;
+}
+
+GPUhd() void* AliGPUTPCTracker::SetPointersTrackHits(void* mem)
+{
+	AliGPUReconstruction::computePointerWithAlignment(mem, fTrackHits, fNMaxTrackHits);
+	return mem;
+}
+
+void AliGPUTPCTracker::SetMaxData()
+{
+	fNMaxStartHits = fData.NumberOfHits();
+	fNMaxTracklets = GPUCA_GPU_MAX_TRACKLETS;
+	fNMaxTracks = GPUCA_GPU_MAX_TRACKS;
+	fNMaxTrackHits = fData.NumberOfHits() + 1000;
+	if (mRec->IsGPU())
+	{
+		if (fNMaxStartHits > GPUCA_GPU_MAX_ROWSTARTHITS * GPUCA_ROW_COUNT) fNMaxStartHits = GPUCA_GPU_MAX_ROWSTARTHITS * GPUCA_ROW_COUNT;
+	}
 }
 
 void AliGPUTPCTracker::SetupCommonMemory()
 {
-	// set up common memory
-
-	if (mGPUProcessorType == PROCESSOR_TYPE_CPU)
-	{
-		if ( !fCommonMem ) {
-			fCommonMem = new commonMemoryStruct;
-		}
-
-		if (fHitMemory)	delete[] fHitMemory;
-		if (fTrackletMemory) delete[] fTrackletMemory;
-		if (fTrackMemory) delete[] fTrackMemory;
-	}
-
-	fHitMemory = fTrackletMemory = fTrackMemory = 0;
-
-	if (fCommonMem)
-	{
-		fCommonMem->fNTracklets = 0;
-		fCommonMem->fNTracks = 0 ;
-		fCommonMem->fNTrackHits = 0;
-	}
+	new(fCommonMem) commonMemoryStruct;
 }
 
 int AliGPUTPCTracker::ReadEvent()
 {
-	// read event
-
 	StartTimer(0);
-	
 	SetupCommonMemory();
 
 	//* Convert input hits, create grids, etc.
@@ -185,63 +187,17 @@ int AliGPUTPCTracker::ReadEvent()
 		printf("Error initializing from cluster data\n");
 		return 1;
 	}
-	if (fData.MaxZ() > 300 && !mParam->ContinuousTracking)
+	if (fData.MaxZ() > 300 && !mCAParam->ContinuousTracking)
 	{
 		printf("Need to set continuous tracking mode for data outside of the TPC volume!\n");
 		return 1;
 	}
-	if (mGPUProcessorType == PROCESSOR_TYPE_CPU)
+	if (mRec->GetDeviceProcessingSettings().memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL)
 	{
-		SetPointersHits( fData.NumberOfHits() ); // to calculate the size
-		fHitMemory = reinterpret_cast<char*> ( new uint4 [ fHitMemorySize/sizeof( uint4 ) + 100] );
+		fNMaxStartHits = fData.NumberOfHits();
 	}
-	SetPointersHits( fData.NumberOfHits() ); // set pointers for hits
 	StopTimer(0);
 	return 0;
-}
-
-GPUhd() void AliGPUTPCTracker::SetPointersHits( int MaxNHits )
-{
-	// set all pointers to the event memory
-
-	char *mem = fHitMemory;
-
-	// extra arrays for tpc clusters
-	AliGPUReconstruction::computePointerWithAlignment( mem, fTrackletStartHits, MaxNHits);
-
-	// calculate the size
-	fHitMemorySize = mem - fHitMemory;
-}
-
-GPUhd() void AliGPUTPCTracker::SetPointersTracklets( int MaxNTracklets )
-{
-	// set all pointers to the tracklets memory
-	char *mem = fTrackletMemory;
-
-	// memory for tracklets
-
-	AliGPUReconstruction::computePointerWithAlignment( mem, fTracklets, MaxNTracklets );
-#ifdef EXTERN_ROW_HITS
-	AliGPUReconstruction::computePointerWithAlignment( mem, fTrackletRowHits, MaxNTracklets * GPUCA_ROW_COUNT);
-#endif
-
-	fTrackletMemorySize = mem - fTrackletMemory;
-}
-
-
-GPUhd() void AliGPUTPCTracker::SetPointersTracks( int MaxNTracks, int MaxNHits )
-{
-	// set all pointers to the tracks memory
-	char *mem = fTrackMemory;
-
-	// memory for selected tracks
-
-	AliGPUReconstruction::computePointerWithAlignment( mem, fTracks, MaxNTracks );
-	AliGPUReconstruction::computePointerWithAlignment( mem, fTrackHits, 2 * MaxNHits );
-
-	// calculate the size
-
-	fTrackMemorySize = mem - fTrackMemory;
 }
 
 GPUh() int AliGPUTPCTracker::CheckEmptySlice()
@@ -294,7 +250,7 @@ GPUh() void AliGPUTPCTracker::DoTracking()
 {
 	fCommonMem->fNTracklets = fCommonMem->fNTracks = fCommonMem->fNTrackHits = 0;
 
-	if (mParam->debugLevel >= 6)
+	if (mCAParam->debugLevel >= 6)
 	{
 		if (!mRec->GetDeviceProcessingSettings().comparableDebutOutput)
 		{
@@ -310,57 +266,51 @@ GPUh() void AliGPUTPCTracker::DoTracking()
 
 	if (mRec->GetDeviceProcessingSettings().keepAllMemory)
 	{
-		if (fLinkTmpMemory) delete[] fLinkTmpMemory;
-		fLinkTmpMemory = new char[fData.ScratchMemorySize()];
-		memcpy(fLinkTmpMemory, fData.ScratchMemory(), fData.ScratchMemorySize());
+		memcpy(fLinkTmpMemory, mRec->Res(fData.MemoryResInput()).Ptr(), mRec->Res(fData.MemoryResInput()).Size());
 	}
 
-	if (mParam->debugLevel >= 6) DumpLinks(*fGPUDebugOut);
+	if (mCAParam->debugLevel >= 6) DumpLinks(*fGPUDebugOut);
 
 	StartTimer(2);
 	RunNeighboursCleaner();
 	StopTimer(2);
 
-	if (mParam->debugLevel >= 6) DumpLinks(*fGPUDebugOut);
+	if (mCAParam->debugLevel >= 6) DumpLinks(*fGPUDebugOut);
 
 	StartTimer(3);
 	RunStartHitsFinder();
 	StopTimer(3);
 
-	if (mParam->debugLevel >= 6) DumpStartHits(*fGPUDebugOut);
+	if (mCAParam->debugLevel >= 6) DumpStartHits(*fGPUDebugOut);
 
 	StartTimer(5);
 	fData.ClearHitWeights();
 	StopTimer(5);
 
-	if (mGPUProcessorType == PROCESSOR_TYPE_CPU)
+	if (mRec->GetDeviceProcessingSettings().memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL)
 	{
-		SetPointersTracklets( fCommonMem->fNTracklets * 2 ); // to calculate the size
-		fTrackletMemory = reinterpret_cast<char*> ( new uint4 [ fTrackletMemorySize/sizeof( uint4 ) + 100] );
+		fNMaxTracklets = fCommonMem->fNTracklets * 2;
 		fNMaxTracks = fCommonMem->fNTracklets * 2 + 50;
-		SetPointersTracks( fNMaxTracks, NHitsTotal() ); // to calculate the size
-		fTrackMemory = reinterpret_cast<char*> ( new uint4 [ fTrackMemorySize/sizeof( uint4 ) + 100] );
+		fNMaxTrackHits = fNMaxStartHits * 2;
+		mRec->AllocateRegisteredMemory(mMemoryResTracklets);
+		mRec->AllocateRegisteredMemory(mMemoryResTracks);
+		mRec->AllocateRegisteredMemory(mMemoryResTrackHits);
 	}
-
-	SetPointersTracklets( fCommonMem->fNTracklets * 2 ); // set pointers for tracklets
-	SetPointersTracks( fCommonMem->fNTracklets * 2 + 50, NHitsTotal() ); // set pointers for tracks
 
 	StartTimer(6);
 	RunTrackletConstructor();
 	StopTimer(6);
-	if (mParam->debugLevel >= 3) printf("Slice %d, Number of tracklets: %d\n", fISlice, *NTracklets());
+	if (mCAParam->debugLevel >= 3) printf("Slice %d, Number of tracklets: %d\n", fISlice, *NTracklets());
 
-	if (mParam->debugLevel >= 6) DumpTrackletHits(*fGPUDebugOut);
-	if (mParam->debugLevel >= 6 && !mRec->GetDeviceProcessingSettings().comparableDebutOutput) DumpHitWeights(*fGPUDebugOut);
+	if (mCAParam->debugLevel >= 6) DumpTrackletHits(*fGPUDebugOut);
+	if (mCAParam->debugLevel >= 6 && !mRec->GetDeviceProcessingSettings().comparableDebutOutput) DumpHitWeights(*fGPUDebugOut);
 
 	StartTimer(7);
 	RunTrackletSelector();
 	StopTimer(7);
-	if (mParam->debugLevel >= 3) printf("Slice %d, Number of tracks: %d\n", fISlice, *NTracks());
+	if (mCAParam->debugLevel >= 3) printf("Slice %d, Number of tracks: %d\n", fISlice, *NTracks());
 
-	if (mParam->debugLevel >= 6) DumpTrackHits(*fGPUDebugOut);
-
-	//std::cout<<"Memory used for slice "<<mParam->ISlice()<<" : "<<fCommonMemorySize/1024./1024.<<" + "<<fHitMemorySize/1024./1024.<<" + "<<fTrackMemorySize/1024./1024.<<" = "<<( fCommonMemorySize+fHitMemorySize+fTrackMemorySize )/1024./1024.<<" Mb "<<std::endl;
+	if (mCAParam->debugLevel >= 6) DumpTrackHits(*fGPUDebugOut);
 }
 
 GPUh() void AliGPUTPCTracker::Reconstruct()
@@ -485,7 +435,7 @@ GPUh() void AliGPUTPCTracker::WriteOutput()
 	useOutput->SetNTracks( nStoredTracks );
 	useOutput->SetNLocalTracks( nStoredLocalTracks );
 	useOutput->SetNTrackClusters( nStoredHits );
-	if (mParam->debugLevel >= 3) printf("Slice %d, Output: Tracks %d, local tracks %d, hits %d\n", fISlice, nStoredTracks, nStoredLocalTracks, nStoredHits);
+	if (mCAParam->debugLevel >= 3) printf("Slice %d, Output: Tracks %d, local tracks %d, hits %d\n", fISlice, nStoredTracks, nStoredLocalTracks, nStoredHits);
 
 	StopTimer(9);
 }
@@ -518,7 +468,7 @@ GPUh() int AliGPUTPCTracker::PerformGlobalTrackingRun(AliGPUTPCTracker& sliceNei
 	do
 	{
 		rowIndex += direction;
-		if (!tParam.TransportToX(sliceNeighbour.Row(rowIndex).X(), t0, mParam->ConstBz, GPUCA_MAX_SIN_PHI)) return(0); //Reuse t0 linearization until we are in the next sector
+		if (!tParam.TransportToX(sliceNeighbour.Row(rowIndex).X(), t0, mCAParam->ConstBz, GPUCA_MAX_SIN_PHI)) return(0); //Reuse t0 linearization until we are in the next sector
 		//printf("Transported X %f Y %f Z %f SinPhi %f DzDs %f QPt %f SignCosPhi %f (MaxY %f)\n", tParam.X(), tParam.Y(), tParam.Z(), tParam.SinPhi(), tParam.DzDs(), tParam.QPt(), tParam.SignCosPhi(), sliceNeighbour.Row(rowIndex).MaxY());
 		if (--maxRowGap == 0) return(0);
 	} while (fabs(tParam.Y()) > sliceNeighbour.Row(rowIndex).MaxY());
@@ -547,7 +497,7 @@ GPUh() int AliGPUTPCTracker::PerformGlobalTrackingRun(AliGPUTPCTracker& sliceNei
 				{
 					//printf("New track: entry %d, row %d, hitindex %d\n", i, rowIndex, sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets]);
 					sliceNeighbour.fTrackHits[sliceNeighbour.fCommonMem->fNTrackHits + i].Set(rowIndex, rowHit);
-					//if (i == 0) tParam.TransportToX(sliceNeighbour.Row(rowIndex).X(), mParam->ConstBz(), GPUCA_MAX_SIN_PHI); //Use transport with new linearisation, we have changed the track in between - NOT needed, fitting will always start at outer end of global track!
+					//if (i == 0) tParam.TransportToX(sliceNeighbour.Row(rowIndex).X(), mCAParam->ConstBz(), GPUCA_MAX_SIN_PHI); //Use transport with new linearisation, we have changed the track in between - NOT needed, fitting will always start at outer end of global track!
 					i++;
 				}
 				rowIndex ++;
@@ -612,14 +562,14 @@ GPUh() void AliGPUTPCTracker::PerformGlobalTracking(AliGPUTPCTracker& sliceLeft,
 				else if (Y < -row.MaxY() * GLOBAL_TRACKING_Y_RANGE_LOWER_LEFT)
 				{
 					//printf("Track %d, lower row %d, left border (%f of %f)\n", i, fTrackHits[tmpHit].RowIndex(), Y, -row.MaxY());
-					ll += PerformGlobalTrackingRun(sliceLeft, i, rowIndex, -mParam->DAlpha, -1);
+					ll += PerformGlobalTrackingRun(sliceLeft, i, rowIndex, -mCAParam->DAlpha, -1);
 				}
 				if (sliceRight.NHitsTotal() < 1) {}
 				else if (sliceRight.fCommonMem->fNTracks >= MaxTracksRight) {printf("Insufficient memory for global tracking (%d:r %d / %d)\n", fISlice, sliceRight.fCommonMem->fNTracks, MaxTracksRight);}
 				else if (Y > row.MaxY() * GLOBAL_TRACKING_Y_RANGE_LOWER_RIGHT)
 				{
 					//printf("Track %d, lower row %d, right border (%f of %f)\n", i, fTrackHits[tmpHit].RowIndex(), Y, row.MaxY());
-					lr += PerformGlobalTrackingRun(sliceRight, i, rowIndex, mParam->DAlpha, -1);
+					lr += PerformGlobalTrackingRun(sliceRight, i, rowIndex, mCAParam->DAlpha, -1);
 				}
 			}
 		}
@@ -636,14 +586,14 @@ GPUh() void AliGPUTPCTracker::PerformGlobalTracking(AliGPUTPCTracker& sliceLeft,
 				else if (Y < -row.MaxY() * GLOBAL_TRACKING_Y_RANGE_UPPER_LEFT)
 				{
 					//printf("Track %d, upper row %d, left border (%f of %f)\n", i, fTrackHits[tmpHit].RowIndex(), Y, -row.MaxY());
-					ul += PerformGlobalTrackingRun(sliceLeft, i, rowIndex, -mParam->DAlpha, 1);
+					ul += PerformGlobalTrackingRun(sliceLeft, i, rowIndex, -mCAParam->DAlpha, 1);
 				}
 				if (sliceRight.NHitsTotal() < 1) {}
 				else if (sliceRight.fCommonMem->fNTracks >= MaxTracksRight) {printf("Insufficient memory for global tracking (%d:r %d / %d)\n", fISlice, sliceRight.fCommonMem->fNTracks, MaxTracksRight);}
 				else if (Y > row.MaxY() * GLOBAL_TRACKING_Y_RANGE_UPPER_RIGHT)
 				{
 					//printf("Track %d, upper row %d, right border (%f of %f)\n", i, fTrackHits[tmpHit].RowIndex(), Y, row.MaxY());
-					ur += PerformGlobalTrackingRun(sliceRight, i, rowIndex, mParam->DAlpha, 1);
+					ur += PerformGlobalTrackingRun(sliceRight, i, rowIndex, mCAParam->DAlpha, 1);
 				}
 			}
 		}
@@ -657,7 +607,7 @@ GPUh() void AliGPUTPCTracker::PerformGlobalTracking(AliGPUTPCTracker& sliceLeft,
 	sliceLeft.fTrackletRowHits = lnkLeft;sliceRight.fTrackletRowHits = lnkRight;
 #endif
 	StopTimer(8);
-	//printf("Global Tracking Result: Slide %2d: LL %3d LR %3d UL %3d UR %3d\n", mParam->ISlice(), ll, lr, ul, ur);
+	//printf("Global Tracking Result: Slide %2d: LL %3d LR %3d UL %3d UR %3d\n", mCAParam->ISlice(), ll, lr, ul, ur);
 }
 
 #endif
