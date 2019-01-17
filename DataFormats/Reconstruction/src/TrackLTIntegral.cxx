@@ -17,7 +17,7 @@ using namespace o2::track;
 //_____________________________________________________
 void TrackLTIntegral::print() const
 {
-  printf("L(cm): %6.2f, TOF(ps): ", getL());
+  printf("L(cm): %6.2f, X2X0: %5.3f TOF(ps): ", getL(), getX2X0());
   for (int i = 0; i < getNTOFs(); i++) {
     printf(" %7.1f |", getTOF(i));
   }

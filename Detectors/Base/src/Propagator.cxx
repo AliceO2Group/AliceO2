@@ -92,6 +92,7 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, 
 
       if (tofInfo) {
         tofInfo->addStep(mb.length, track); // fill L,ToF info using already calculated step length
+        tofInfo->addX2X0(mb.meanX2X0);
       }
     } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
       auto xyz1 = track.getXYZGlo();
@@ -148,6 +149,7 @@ bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float 
 
       if (tofInfo) {
         tofInfo->addStep(mb.length, track); // fill L,ToF info using already calculated step length
+        tofInfo->addX2X0(mb.meanX2X0);
       }
     } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
       auto xyz1 = track.getXYZGlo();
