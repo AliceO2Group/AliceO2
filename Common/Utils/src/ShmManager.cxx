@@ -17,7 +17,7 @@
  */
 
 #include "CommonUtils/ShmManager.h"
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <sys/shm.h>
 #include <sys/ipc.h>
 #include <algorithm>
