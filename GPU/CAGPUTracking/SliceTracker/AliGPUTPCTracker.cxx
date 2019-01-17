@@ -112,7 +112,7 @@ void* AliGPUTPCTracker::SetPointersScratch(void* mem)
 
 void* AliGPUTPCTracker::SetPointersScratchHost(void* mem)
 {
-	AliGPUReconstruction::computePointerWithAlignment(mem, fLinkTmpMemory, mRec->Res(fData.MemoryResInput()).Size());
+	AliGPUReconstruction::computePointerWithAlignment(mem, fLinkTmpMemory, mRec->Res(fData.MemoryResScratch()).Size());
 	return mem;
 }
 
@@ -266,7 +266,7 @@ GPUh() void AliGPUTPCTracker::DoTracking()
 
 	if (mRec->GetDeviceProcessingSettings().keepAllMemory)
 	{
-		memcpy(fLinkTmpMemory, mRec->Res(fData.MemoryResInput()).Ptr(), mRec->Res(fData.MemoryResInput()).Size());
+		memcpy(fLinkTmpMemory, mRec->Res(fData.MemoryResScratch()).Ptr(), mRec->Res(fData.MemoryResScratch()).Size());
 	}
 
 	if (mCAParam->debugLevel >= 6) DumpLinks(*fGPUDebugOut);
