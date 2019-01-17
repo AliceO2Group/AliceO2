@@ -13,11 +13,12 @@
  
 #include "MCHSimulation/Digit.h"
 #include "MCHSimulation/Detector.h"
+#include "MCHSimulation/Geometry.h"
 #include "MCHSimulation/Hit.h"
 #include "MCHSimulation/Response.h"
 #include "MCHMappingInterface/Segmentation.h"
 
-
+#include "TGeoManager.h"
 
 
 namespace o2
@@ -70,6 +71,8 @@ class MCHDigitizer
   // std::vector<mapping::Segmentation> mSegnon;
 
   Response mMuonresponse;
+
+  const TGeoManager gMgr = TGeoManager("MCH-ONLY", "ALICE MCH Standalone Geometry");
   
   //proper parameter in aliroot in AliMUONResponseFactory.cxx
   //to be discussed n-sigma to be put, use detID to choose value?

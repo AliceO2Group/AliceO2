@@ -13,8 +13,10 @@
 #include "TMath.h"
 #include "TProfile2D.h"
 #include "TRandom.h"
+
 #include <algorithm>
 #include <cassert>
+
 
 using namespace o2::mch;
 
@@ -77,9 +79,17 @@ int MCHDigitizer::processHit(const Hit &hit,double event_time)
 {
 
   //hit position(cm)
-  float pos[3] = { hit.GetX(), hit.GetY(), hit.GetZ() };
+  //float pos[3] = { hit.GetX(), hit.GetY(), hit.GetZ() };
+  Vector3D<float> pos(hit.GetX(),hit.GetY(),hit.GetZ());
+  //hit has global coordinates
   //convert energy to charge, float enough?
   float charge = mMuonresponse.etocharge(hit.GetEnergyLoss());
+  std::cout << "charge " << charge << std::endl;
+  std::cout << "pos.X() " << pos.X() << std::endl;
+  std::cout << "pos.Y() " << pos.Y() << std::endl;
+  std::cout << "pos.Z() " << pos.Z() << std::endl;
+
+
   //time information
   float time = hit.GetTime();//how to trace
   int detID = hit.GetDetectorID();
@@ -87,18 +97,25 @@ int MCHDigitizer::processHit(const Hit &hit,double event_time)
   int indexID = mdetID.at(detID);
   //# digits for hit
   int ndigits=0;
-
-  float anodpos = mMuonresponse.getAnod(pos[0],detID);
+  //transformation from local to global
+  // auto t = o2::mch::getTransformation(detID, gMgr);
+  //get trafo from global to local
+  //  t.Invert();
+  // t(pos);
+  
+  float anodpos = mMuonresponse.getAnod(pos.X(),detID);//already local needed?
+  std::cout << "anodpos " << anodpos << std::endl; 
   //TODO/Questions:
   //- charge sharing between planes wrong in Aliroot copied here?
   //- possibility to do random seeding in controlled way? 
   // 100% reproducible if wanted? or already given up on geant level?
   //signal will be around neighbouring anode-wire 
   //distance of impact point and anode, needed for charge sharing
-  float anoddis = TMath::Abs(pos[0]-anodpos);
+  float anoddis = TMath::Abs(pos.X()-anodpos);
   //throw a dice?
   //should be related to electrons fluctuating out/in one/both halves (independent x)
   float fracplane = mMuonresponse.chargeCorr();//should become a function of anoddis
+  std::cout << "fracplane " << fracplane << std::endl;
   float chargebend= fracplane*charge;
   float chargenon = charge/fracplane;
   //last line  from Aliroot, not understood why
@@ -108,9 +125,14 @@ int MCHDigitizer::processHit(const Hit &hit,double event_time)
   //borders of charge gen. 
   double xMin = anodpos-mMuonresponse.getQspreadX()*0.5;
   double xMax = anodpos+mMuonresponse.getQspreadX()*0.5;
-  double yMin = pos[1]-mMuonresponse.getQspreadY()*0.5;
-  double yMax = pos[1]+mMuonresponse.getQspreadY()*0.5;
-  
+  double yMin = pos.Y()-mMuonresponse.getQspreadY()*0.5;
+  double yMax = pos.Y()+mMuonresponse.getQspreadY()*0.5;
+  std::cout << " xMin " << xMin << std::endl;
+  std::cout << " xMax " << xMax << std::endl;
+  std::cout << " yMin " << yMin << std::endl;
+  std::cout << " yMax " << yMax << std::endl;
+
+
   //pad-borders
   float xmin =0.0;
   float xmax =0.0;
@@ -122,7 +144,10 @@ int MCHDigitizer::processHit(const Hit &hit,double event_time)
   //to be seen if needed
   int padidbendcent=0;
   int padidnoncent=0;
-  bool padexists = mSeg[indexID].findPadPairByPosition(anodpos,pos[1],padidbendcent,padidnoncent);
+  bool padexists = mSeg[indexID].findPadPairByPosition(anodpos,pos.Y(),padidbendcent,padidnoncent);
+  std::cout << "padexists " << padexists << std::endl;
+  std::cout << "padidbendcent " << padidbendcent << std::endl;
+  std::cout << "padidnoncent "	<< padidnoncent << std::endl;
   if(!padexists) return 0; //to be decided if needed
   
   //need to keep both electros separated since afterwards signal generation on each plane
@@ -141,7 +166,7 @@ int MCHDigitizer::processHit(const Hit &hit,double event_time)
     //retrieve coordinates for each pad
     xmin =  (anodpos-mSeg[indexID].padPositionX(padidbend))-mSeg[indexID].padSizeX(padidbend)*0.5;
     xmax =  xmin+mSeg[indexID].padSizeX(padidbend);
-    ymin =  (pos[1]-mSeg[indexID].padPositionY(padidbend))-mSeg[indexID].padSizeY(padidbend)*0.5;
+    ymin =  (pos.Y()-mSeg[indexID].padPositionY(padidbend))-mSeg[indexID].padSizeY(padidbend)*0.5;
     ymax =  ymin+mSeg[indexID].padSizeY(padidbend);
   // 1st step integrate induced charge for each pad
     
@@ -162,7 +187,7 @@ int MCHDigitizer::processHit(const Hit &hit,double event_time)
     //retrieve coordinates for each pad
     xmin =  (anodpos-mSeg[indexID].padPositionX(padidnon))-mSeg[indexID].padSizeX(padidnon)*0.5;
     xmax =  xmin+mSeg[indexID].padSizeX(padidnon);
-    ymin =  (pos[1]-mSeg[indexID].padPositionY(padidnon))-mSeg[indexID].padSizeY(padidnon)*0.5;
+    ymin =  (pos.Y()-mSeg[indexID].padPositionY(padidnon))-mSeg[indexID].padSizeY(padidnon)*0.5;
     ymax =  ymin+mSeg[indexID].padSizeY(padidnon);
     
     // 1st step integrate induced charge for each pad

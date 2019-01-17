@@ -47,16 +47,20 @@ double Response::chargePad( float xmin, float xmax, float ymin, float ymax, int 
   if(detID>299) station = 1;
   //see: https://edms.cern.ch/ui/file/1054937/1/ALICE-INT-2009-044.pdf
   // normalise w.r.t. Pitch
+  std::cout <<"xmin " << xmin << "xmax "<< xmax << "ymin " << ymin << "ymax " << ymax << std::endl;
+
   xmin *= mInversePitch[station];
   xmax *= mInversePitch[station];
   ymin *= mInversePitch[station];
   ymax *= mInversePitch[station];
+  std::cout <<"xmin " << xmin << "xmax "<< xmax << "ymin " << ymin << "ymax " << ymax << std::endl;
+
     // The Mathieson function
   double ux1=mSqrtK3x[station]*TMath::TanH(mK2x[station]*xmin);
-  double ux2=mSqrtK3x[station]*TMath::TanH(mK2x[station]*xmax);//fine, gives always one
-    
+  double ux2=mSqrtK3x[station]*TMath::TanH(mK2x[station]*xmax);
   double uy1=mSqrtK3y[station]*TMath::TanH(mK2y[station]*ymin);
   double uy2=mSqrtK3y[station]*TMath::TanH(mK2y[station]*ymax);
+  std::cout <<"ux1 " << ux1 << "ux2 "<< ux2 << "uy1 " << uy1 << "uy2 " << uy2 << std::endl;
   
   return 4.*mK4x[station]*(TMath::ATan(ux2)-TMath::ATan(ux1))*
     mK4y[station]*(TMath::ATan(uy2)-TMath::ATan(uy1))*charge;
