@@ -528,7 +528,7 @@ void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<Tr
     unloadClusters();
     end = std::chrono::system_clock::now();
     diff = end - start;
-    LOG(INFO) << "Processing time for single frame " << mROFrame << " : " << diff.count() << " s" << FairLogger::endl;
+    LOG(INFO) << "Processing time/clusters for single frame " << mROFrame << " : " << diff.count() << " / "<<nClFrame<<" s" << FairLogger::endl;
 
     start = end;
     if (mContinuousMode)
