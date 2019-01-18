@@ -191,21 +191,21 @@ public:
 	}
 	
 	AliGPUMemoryResource& Res(short num) {return mMemoryResources[num];}
-	template <class T> short RegisterMemoryAllocation(T* proc, void* (T::* setPtr)(void*), AliGPUMemoryResource::MemoryType type, const char* name = "")
+	template <class T> short RegisterMemoryAllocation(T* proc, void* (T::* setPtr)(void*), int type, const char* name = "")
 	{
 		if (!(type & (AliGPUMemoryResource::MEMORY_HOST | AliGPUMemoryResource::MEMORY_GPU)))
 		{
 			if ((type & AliGPUMemoryResource::MEMORY_SCRATCH) && !mDeviceProcessingSettings.keepAllMemory)
 			{
-				type = (AliGPUMemoryResource::MemoryType) (type | (IsGPU() ? AliGPUMemoryResource::MEMORY_GPU : AliGPUMemoryResource::MEMORY_HOST));
+				type |= (IsGPU() ? AliGPUMemoryResource::MEMORY_GPU : AliGPUMemoryResource::MEMORY_HOST);
 			}
 			else
 			{
-				type = (AliGPUMemoryResource::MemoryType) (type | AliGPUMemoryResource::MEMORY_HOST | AliGPUMemoryResource::MEMORY_GPU);
+				type |= AliGPUMemoryResource::MEMORY_HOST | AliGPUMemoryResource::MEMORY_GPU;
 			}
 		}
-		if (!IsGPU()) type = (AliGPUMemoryResource::MemoryType) (type & ~AliGPUMemoryResource::MEMORY_GPU);
-		mMemoryResources.emplace_back(proc, static_cast<void* (AliGPUProcessor::*)(void*)>(setPtr), type, name);
+		if (!IsGPU()) type &= ~AliGPUMemoryResource::MEMORY_GPU;
+		mMemoryResources.emplace_back(proc, static_cast<void* (AliGPUProcessor::*)(void*)>(setPtr), (AliGPUMemoryResource::MemoryType) type, name);
 		if (mMemoryResources.size() == 32768) throw std::bad_alloc();
 		return mMemoryResources.size() - 1;
 	}
@@ -215,6 +215,8 @@ public:
 	void FreeRegisteredMemory(AliGPUProcessor* proc);
 	void FreeRegisteredMemory(short res);
 	void ClearAllocatedMemory();
+	void ResetRegisteredMemoryPointers(AliGPUProcessor* proc);
+	void ResetRegisteredMemoryPointers(short res);
 	
 	//Converter functions
 	void ConvertNativeToClusterData();

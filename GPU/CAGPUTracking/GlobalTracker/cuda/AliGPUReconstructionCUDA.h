@@ -15,7 +15,7 @@ class AliGPUReconstructionCUDA : public AliGPUReconstructionDeviceBase
 public:
 	virtual ~AliGPUReconstructionCUDA();
 
-	virtual int RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers) const override;
+	virtual int RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers) override;
     
 protected:
 	friend AliGPUReconstruction* AliGPUReconstruction_Create_CUDA(const AliGPUCASettingsProcessing& cfg);
@@ -31,8 +31,8 @@ protected:
 	virtual void SynchronizeGPU() override;
 	virtual int GPUSync(const char* state = "UNKNOWN", int stream = -1, int slice = 0) override;
 	
-	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) override;
-	virtual int TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) override;
+	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) override;
+	virtual int TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) override;
 
 private:
 	AliGPUReconstructionCUDAInternals* mInternals;

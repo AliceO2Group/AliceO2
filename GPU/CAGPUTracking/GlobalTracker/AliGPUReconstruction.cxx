@@ -279,9 +279,7 @@ size_t AliGPUReconstruction::AllocateRegisteredMemory(short ires)
 	AliGPUMemoryResource* res = &mMemoryResources[ires];
 	if ((res->mType & AliGPUMemoryResource::MEMORY_PERMANENT) && res->mPtr != nullptr)
 	{
-		res->SetPointers(res->mPtr);
-		if (IsGPU() && (res->mType & AliGPUMemoryResource::MEMORY_GPU)) res->SetDevicePointers(res->mPtrDevice);
-
+		ResetRegisteredMemoryPointers(ires);
 		return res->mSize;
 	}
 	if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL)
@@ -293,7 +291,7 @@ size_t AliGPUReconstruction::AllocateRegisteredMemory(short ires)
 	}
 	else
 	{
-		if (res->mPtr != nullptr) {printf("Double allocation!\n"); throw std::bad_alloc();}
+		if (res->mPtr != nullptr) {printf("Double allocation! (%s)\n", res->mName); throw std::bad_alloc();}
 		if (!IsGPU() || (res->mType & AliGPUMemoryResource::MEMORY_HOST) || mDeviceProcessingSettings.keepAllMemory)
 		{
 			res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, mHostMemoryPool, mHostMemoryBase, mHostMemorySize, &AliGPUMemoryResource::SetPointers);
@@ -309,12 +307,27 @@ size_t AliGPUReconstruction::AllocateRegisteredMemory(short ires)
 			}
 			else if (size != res->mSize)
 			{
-				printf("Inconsistent device memory allocation\n");
+				printf("Inconsistent device memory allocation (%s)\n", res->mName);
 				throw std::bad_alloc();
 			}
 		}
 	}
 	return res->mSize;
+}
+
+void AliGPUReconstruction::ResetRegisteredMemoryPointers(AliGPUProcessor* proc)
+{
+	for (unsigned int i = 0;i < mMemoryResources.size();i++)
+	{
+		if ((proc == nullptr || mMemoryResources[i].mProcessor == proc) && !(mMemoryResources[i].mType & AliGPUMemoryResource::MEMORY_CUSTOM)) ResetRegisteredMemoryPointers(i);
+	}
+}
+
+void AliGPUReconstruction::ResetRegisteredMemoryPointers(short ires)
+{
+	AliGPUMemoryResource* res = &mMemoryResources[ires];
+	res->SetPointers(res->mPtr);
+	if (IsGPU() && (res->mType & AliGPUMemoryResource::MEMORY_GPU)) res->SetDevicePointers(res->mPtrDevice);
 }
 
 void AliGPUReconstruction::FreeRegisteredMemory(AliGPUProcessor* proc)
@@ -633,7 +646,6 @@ int AliGPUReconstruction::RunStandalone()
 	timerTracking.Stop();
 
 	timerMerger.Start();
-	mTPCMergerCPU.Clear();
 	for (unsigned int i = 0; i < NSLICES; i++)
 	{
 		//printf("slice %d clusters %d tracks %d\n", i, fClusterData[i].NumberOfClusters(), mSliceOutput[i]->NTracks());
