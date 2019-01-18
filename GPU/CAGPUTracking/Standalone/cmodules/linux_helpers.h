@@ -3,6 +3,7 @@
 
 #include <termios.h>
 #include <unistd.h>
+#include <sys/ioctl.h>
 
 static inline int getch()
 {
@@ -18,20 +19,15 @@ static inline int getch()
 
 static inline int kbhit()
 {
-   struct termios term, oterm;
-   int fd = 0;
-   int c = 0;
-   tcgetattr(fd, &oterm);
-   term = oterm;
-   term.c_lflag = term.c_lflag & (!ICANON);
-   term.c_cc[VMIN] = 0;
-   term.c_cc[VTIME] = 1;
-   tcsetattr(fd, TCSANOW, &term);
-   c = getchar();
-   tcsetattr(fd, TCSANOW, &oterm);
-   if (c != -1)
-   ungetc(c, stdin);
-   return ((c != -1) ? 1 : 0);
+	termios term;
+	tcgetattr(0, &term);
+	termios term2 = term;
+	term2.c_lflag &= ~ICANON;
+	tcsetattr(0, TCSANOW, &term2);
+	int byteswaiting;
+	ioctl(0, FIONREAD, &byteswaiting);
+	tcsetattr(0, TCSANOW, &term);
+	return byteswaiting > 0;
 }
 
 static void inline Sleep(int msecs)
