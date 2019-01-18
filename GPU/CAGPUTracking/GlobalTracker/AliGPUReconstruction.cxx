@@ -93,8 +93,8 @@ AliGPUReconstruction::~AliGPUReconstruction()
 	{
 		for (unsigned int i = 0;i < mMemoryResources.size();i++)
 		{
-			operator delete(mMemoryResources[i].mPtr);
-			mMemoryResources[i].mPtr = nullptr;
+			operator delete(mMemoryResources[i].mPtrDevice);
+			mMemoryResources[i].mPtr = mMemoryResources[i].mPtrDevice = nullptr;
 		}
 	}
 }
@@ -280,14 +280,15 @@ size_t AliGPUReconstruction::AllocateRegisteredMemory(short ires)
 	if ((res->mType & AliGPUMemoryResource::MEMORY_PERMANENT) && res->mPtr != nullptr)
 	{
 		ResetRegisteredMemoryPointers(ires);
-		return res->mSize;
 	}
-	if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL)
+	else if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL)
 	{
-		if (res->mPtr) operator delete(res->mPtr);
+		if (res->mPtrDevice) operator delete(res->mPtrDevice);
 		res->mSize = (size_t) res->SetPointers((void*) 1) - 1;
-		res->mPtr = operator new(res->mSize);
+		res->mPtrDevice = operator new(res->mSize + MIN_ALIGNMENT);
+		res->mPtr = alignPointer(res->mPtrDevice);
 		res->SetPointers(res->mPtr);
+		if (mDeviceProcessingSettings.debugLevel >= 5) std::cout << "Allocated " << res->mName << ": " << res->mSize << "\n";
 	}
 	else
 	{
@@ -341,7 +342,7 @@ void AliGPUReconstruction::FreeRegisteredMemory(AliGPUProcessor* proc)
 void AliGPUReconstruction::FreeRegisteredMemory(short ires)
 {
 	AliGPUMemoryResource* res = &mMemoryResources[ires];
-	if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL) operator delete(res->mPtr);
+	if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL) operator delete(res->mPtrDevice);
 	res->mPtr = nullptr;
 	res->mPtrDevice = nullptr;
 }
