@@ -280,7 +280,7 @@ int AliGPUReconstructionOCL::InitDevice_Runtime()
 	ocl->kernel_tracklet_constructor = clCreateKernel(ocl->program, "AliGPUTPCTrackletConstructorGPU", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 6");return(1);}
 	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("OpenCL kernels created successfully");
 
-	ocl->mem_gpu = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE, fGPUMemSize, NULL, &ocl_error);
+	ocl->mem_gpu = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE, mDeviceMemorySize, NULL, &ocl_error);
 	if (ocl_error != CL_SUCCESS)
 	{
 		CAGPUError("OPENCL Memory Allocation Error");
@@ -314,9 +314,9 @@ int AliGPUReconstructionOCL::InitDevice_Runtime()
 	}
 	if (clEnqueueMigrateMemObjects(ocl->command_queue[0], 1, &ocl->mem_gpu, 0, 0, NULL, NULL) != CL_SUCCESS) quit("Error migrating buffer");
 
-	if (mDeviceProcessingSettings.debugLevel >= 1) CAGPUInfo("GPU Memory used: %lld", fGPUMemSize);
+	if (mDeviceProcessingSettings.debugLevel >= 1) CAGPUInfo("GPU Memory used: %lld", (long long int) mDeviceMemorySize);
 
-	ocl->mem_host = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, fHostMemSize, NULL, &ocl_error);
+	ocl->mem_host = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, mHostMemorySize, NULL, &ocl_error);
 	if (ocl_error != CL_SUCCESS) quit("Error allocating pinned host memory");
 
 	const char* krnlGetPtr = "__kernel void krnlGetPtr(__global char* gpu_mem, __global size_t* host_mem) {if (get_global_id(0) == 0) *host_mem = (size_t) gpu_mem;}";
@@ -341,28 +341,28 @@ int AliGPUReconstructionOCL::InitDevice_Runtime()
 	clReleaseProgram(program);
 
 	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("Mapping hostmemory");
-	ocl->mem_host_ptr = clEnqueueMapBuffer(ocl->command_queue[0], ocl->mem_host, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, fHostMemSize, 0, NULL, NULL, &ocl_error);
+	ocl->mem_host_ptr = clEnqueueMapBuffer(ocl->command_queue[0], ocl->mem_host, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, mHostMemorySize, 0, NULL, NULL, &ocl_error);
 	if (ocl_error != CL_SUCCESS)
 	{
 		CAGPUError("Error allocating Page Locked Host Memory");
 		return(1);
 	}
-	fHostLockedMemory = ocl->mem_host_ptr;
-	if (mDeviceProcessingSettings.debugLevel >= 1) CAGPUInfo("Host Memory used: %lld", fHostMemSize);
+	mHostMemoryBase = ocl->mem_host_ptr;
+	if (mDeviceProcessingSettings.debugLevel >= 1) CAGPUInfo("Host Memory used: %lld", (long long int) mHostMemorySize);
 
 	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("Obtained Pointer to GPU Memory: %p", *((void**) ocl->mem_host_ptr));
-	fGPUMemory = *((void**) ocl->mem_host_ptr);
+	mDeviceMemoryBase = *((void**) ocl->mem_host_ptr);
 
 	if (mDeviceProcessingSettings.debugLevel >= 1)
 	{
-		memset(ocl->mem_host_ptr, 0, fHostMemSize);
+		memset(ocl->mem_host_ptr, 0, mHostMemorySize);
 	}
 
 	ocl->selector_events = new cl_event[NSLICES];
 	
 	mDeviceParam = &mParam;
 
-	CAGPUInfo("OPENCL Initialisation successfull (%d: %s %s (Frequency %d, Shaders %d) Thread %d, %lld bytes used)", bestDevice, device_vendor, device_name, (int) freq, (int) shaders, fThreadId, (long long int) fGPUMemSize);
+	CAGPUInfo("OPENCL Initialisation successfull (%d: %s %s (Frequency %d, Shaders %d) Thread %d, %lld bytes used)", bestDevice, device_vendor, device_name, (int) freq, (int) shaders, fThreadId, (long long int) mDeviceMemorySize);
 
 	return(0);
 }
@@ -775,11 +775,11 @@ int AliGPUReconstructionOCL::ExitDevice_Runtime()
 	const int nStreams = 3;
 	for (int i = 0;i < nStreams;i++) clFinish(ocl->command_queue[i]);
 
-	if (fGPUMemory)
+	if (mDeviceMemoryBase)
 	{
 		clReleaseMemObject(ocl->mem_gpu);
 		clReleaseMemObject(ocl->mem_constant);
-		fGPUMemory = NULL;
+		mDeviceMemoryBase = NULL;
 
 		clReleaseKernel(ocl->kernel_neighbours_finder);
 		clReleaseKernel(ocl->kernel_neighbours_cleaner);
@@ -789,7 +789,7 @@ int AliGPUReconstructionOCL::ExitDevice_Runtime()
 		clReleaseKernel(ocl->kernel_tracklet_selector);
 		clReleaseKernel(ocl->kernel_row_blocks);
 	}
-	if (fHostLockedMemory)
+	if (mHostMemoryBase)
 	{
 		clEnqueueUnmapMemObject(ocl->command_queue[0], ocl->mem_host, ocl->mem_host_ptr, 0, NULL, NULL);
 		ocl->mem_host_ptr = NULL;
@@ -799,7 +799,7 @@ int AliGPUReconstructionOCL::ExitDevice_Runtime()
 		}
 		clReleaseMemObject(ocl->mem_host);
 		fGpuTracker = NULL;
-		fHostLockedMemory = NULL;
+		mHostMemoryBase = NULL;
 	}
 
 	if (ocl->selector_events)
@@ -822,13 +822,13 @@ int AliGPUReconstructionOCL::ExitDevice_Runtime()
 
 int AliGPUReconstructionOCL::TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream, int nEvents, deviceEvent* evList, deviceEvent* ev)
 {
-	return GPUFailedMsg(clEnqueueWriteBuffer(ocl->command_queue[stream == -1 ? 0 : stream], ocl->mem_gpu, stream >= 0, (char*) res->PtrDevice() - (char*) fGPUMemory, res->Size(), res->Ptr(), nEvents, (cl_event*) evList, (cl_event*) ev));
+	return GPUFailedMsg(clEnqueueWriteBuffer(ocl->command_queue[stream == -1 ? 0 : stream], ocl->mem_gpu, stream >= 0, (char*) res->PtrDevice() - (char*) mDeviceMemoryBase, res->Size(), res->Ptr(), nEvents, (cl_event*) evList, (cl_event*) ev));
 
 }
 
 int AliGPUReconstructionOCL::TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream, int nEvents, deviceEvent* evList, deviceEvent* ev)
 {
-	return GPUFailedMsg(clEnqueueReadBuffer(ocl->command_queue[stream == -1 ? 0 : stream], ocl->mem_gpu, stream >= 0, (char*) res->PtrDevice() - (char*) fGPUMemory, res->Size(), res->Ptr(), nEvents, (cl_event*) evList, (cl_event*) ev));
+	return GPUFailedMsg(clEnqueueReadBuffer(ocl->command_queue[stream == -1 ? 0 : stream], ocl->mem_gpu, stream >= 0, (char*) res->PtrDevice() - (char*) mDeviceMemoryBase, res->Size(), res->Ptr(), nEvents, (cl_event*) evList, (cl_event*) ev));
 }
 
 int AliGPUReconstructionOCL::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers)

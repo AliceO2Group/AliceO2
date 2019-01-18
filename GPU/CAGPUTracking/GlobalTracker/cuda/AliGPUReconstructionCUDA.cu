@@ -143,7 +143,7 @@ int AliGPUReconstructionCUDA::InitDevice_Runtime()
 		const char* deviceFailure = "";
 		if (cudaDeviceProp.major >= 9) {deviceOK = false; deviceFailure = "Invalid Revision";}
 		else if (cudaDeviceProp.major < reqVerMaj || (cudaDeviceProp.major == reqVerMaj && cudaDeviceProp.minor < reqVerMin)) {deviceOK = false; deviceFailure = "Too low device revision";}
-		else if (free < (size_t) (fGPUMemSize + 100 * 1024 + 1024)) {deviceOK = false; deviceFailure = "Insufficient GPU memory";}
+		else if (free < mDeviceMemorySize) {deviceOK = false; deviceFailure = "Insufficient GPU memory";}
 
 		if (mDeviceProcessingSettings.debugLevel >= 0) CAGPUImportant("%s%2d: %s (Rev: %d.%d - Mem Avail %lld / %lld)%s %s", deviceOK ? " " : "[", i, cudaDeviceProp.name, cudaDeviceProp.major, cudaDeviceProp.minor, (long long int) free, (long long int) cudaDeviceProp.totalGlobalMem, deviceOK ? " " : " ]", deviceOK ? "" : deviceFailure);
 		deviceSpeed = (double) cudaDeviceProp.multiProcessorCount * (double) cudaDeviceProp.clockRate * (double) cudaDeviceProp.warpSize * (double) free * (double) cudaDeviceProp.major * (double) cudaDeviceProp.major;
@@ -163,7 +163,7 @@ int AliGPUReconstructionCUDA::InitDevice_Runtime()
 	if (bestDevice == -1)
 	{
 		CAGPUWarning("No %sCUDA Device available, aborting CUDA Initialisation", count ? "appropriate " : "");
-		CAGPUImportant("Requiring Revision %d.%d, Mem: %lld", reqVerMaj, reqVerMin, fGPUMemSize + 100 * 1024 * 1024);
+		CAGPUImportant("Requiring Revision %d.%d, Mem: %lld", reqVerMaj, reqVerMin, (long long int) mDeviceMemorySize);
 		return(1);
 	}
 
@@ -231,27 +231,27 @@ int AliGPUReconstructionCUDA::InitDevice_Runtime()
 		return(1);
 	}
 
-	if (fGPUMemSize > cudaDeviceProp.totalGlobalMem || GPUFailedMsg(cudaMalloc(&fGPUMemory, (size_t) fGPUMemSize)))
+	if (mDeviceMemorySize > cudaDeviceProp.totalGlobalMem || GPUFailedMsg(cudaMalloc(&mDeviceMemoryBase, mDeviceMemorySize)))
 	{
 		CAGPUError("CUDA Memory Allocation Error");
 		cudaDeviceReset();
 		return(1);
 	}
-	if (mDeviceProcessingSettings.debugLevel >= 1) CAGPUInfo("GPU Memory used: %lld", fGPUMemSize);
-	if (GPUFailedMsg(cudaMallocHost(&fHostLockedMemory, fHostMemSize)))
+	if (mDeviceProcessingSettings.debugLevel >= 1) CAGPUInfo("GPU Memory used: %lld", (long long int) mDeviceMemorySize);
+	if (GPUFailedMsg(cudaMallocHost(&mHostMemoryBase, mHostMemorySize)))
 	{
-		cudaFree(fGPUMemory);
+		cudaFree(mDeviceMemoryBase);
 		cudaDeviceReset();
 		CAGPUError("Error allocating Page Locked Host Memory");
 		return(1);
 	}
-	if (mDeviceProcessingSettings.debugLevel >= 1) CAGPUInfo("Host Memory used: %lld", fHostMemSize);
+	if (mDeviceProcessingSettings.debugLevel >= 1) CAGPUInfo("Host Memory used: %lld", (long long int) mHostMemorySize);
 
 	if (mDeviceProcessingSettings.debugLevel >= 1)
 	{
-		if (GPUFailedMsg(cudaMemset(fGPUMemory, 143, (size_t) fGPUMemSize)))
+		if (GPUFailedMsg(cudaMemset(mDeviceMemoryBase, 143, mDeviceMemorySize)))
 		{
-			cudaFree(fGPUMemory);
+			cudaFree(mDeviceMemoryBase);
 			cudaDeviceReset();
 			CAGPUError("Error during CUDA memset");
 			return(1);
@@ -263,8 +263,8 @@ int AliGPUReconstructionCUDA::InitDevice_Runtime()
 	{
 		if (GPUFailedMsg(cudaStreamCreate(&mInternals->CudaStreams[i])))
 		{
-			cudaFree(fGPUMemory);
-			cudaFreeHost(fHostLockedMemory);
+			cudaFree(mDeviceMemoryBase);
+			cudaFreeHost(mHostMemoryBase);
 			cudaDeviceReset();
 			CAGPUError("Error creating CUDA Stream");
 			return(1);
@@ -281,7 +281,7 @@ int AliGPUReconstructionCUDA::InitDevice_Runtime()
 	mDeviceParam = (AliGPUCAParam*) ((char*) devPtrConstantMem + ((char*) &AliGPUCAConstantMemDummy.param - (char*) &AliGPUCAConstantMemDummy));
 
 	cuCtxPopCurrent(&mInternals->CudaContext);
-	CAGPUInfo("CUDA Initialisation successfull (Device %d: %s, Thread %d, %lld bytes used)", fDeviceId, cudaDeviceProp.name, fThreadId, fGPUMemSize);
+	CAGPUInfo("CUDA Initialisation successfull (Device %d: %s, Thread %d, %lld/%lld bytes used)", fDeviceId, cudaDeviceProp.name, fThreadId, (long long int) mHostMemorySize, (long long int) mDeviceMemorySize);
 
 	return(0);
 }
@@ -708,12 +708,12 @@ int AliGPUReconstructionCUDA::ExitDevice_Runtime()
 	cuCtxPushCurrent(mInternals->CudaContext);
 
 	cudaDeviceSynchronize();
-	if (fGPUMemory)
+	if (mDeviceMemoryBase)
 	{
-		cudaFree(fGPUMemory);
-		fGPUMemory = NULL;
+		cudaFree(mDeviceMemoryBase);
+		mDeviceMemoryBase = NULL;
 	}
-	if (fHostLockedMemory)
+	if (mHostMemoryBase)
 	{
 		int nStreams = GPUCA_GPU_NUM_STREAMS == 0 ? 3 : GPUCA_GPU_NUM_STREAMS;
 		for (int i = 0;i < nStreams;i++)
@@ -722,7 +722,7 @@ int AliGPUReconstructionCUDA::ExitDevice_Runtime()
 		}
 		free(mInternals->CudaStreams);
 		fGpuTracker = NULL;
-		cudaFreeHost(fHostLockedMemory);
+		cudaFreeHost(mHostMemoryBase);
 	}
 
 	if (GPUFailedMsg(cudaDeviceReset()))

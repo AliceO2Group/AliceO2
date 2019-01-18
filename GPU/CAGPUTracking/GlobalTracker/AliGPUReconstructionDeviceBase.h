@@ -93,15 +93,6 @@ protected:
 	AliGPUTPCTracker* &fGpuTracker = workers.fGpuTracker;
 	AliGPUTPCGMMerger* &fGpuMerger = workers.fGpuMerger;
 
-	void* fGPUMemory = nullptr; //Pointer to GPU Memory Base Adress
-	void* fHostLockedMemory = nullptr; //Pointer to Base Adress of Page Locked Host Memory for DMA Transfer
-
-	void* fGPUMergerMemory = nullptr;
-	unsigned long long int fGPUMergerMaxMemory = 0;
-	
-	unsigned long long int fGPUMemSize = 0;	//Memory Size to allocate on GPU
-	unsigned long long int fHostMemSize = 0; //Memory Size to allocate on Host
-
 	int fThreadId = -1; //Thread ID that is valid for the local CUDA context
     int fDeviceId = -1; //Device ID used by backend
 
