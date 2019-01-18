@@ -14,7 +14,6 @@
  * @author Michael Winn, Laurent Aphecetche
  */
 
-
 #include "MCHSimulation/Response.h"
 
 #include "TMath.h"
@@ -34,21 +33,22 @@ float Response::etocharge(float edepos)
   //with central seed to be reproducible?
   //TODO: dependence on station
   //TODO: check slope meaning in thesis
-  int nel = int( edepos*1.e9 / 27.4 );
-  float charge=0;
-  if (nel ==0) nel = 1;
-  for (int i=1; i<=nel; i++) {
-    float arg=0.;
-    while (!arg) arg = gRandom->Rndm();
+  int nel = int(edepos * 1.e9 / 27.4);
+  float charge = 0;
+  if (nel == 0)
+    nel = 1;
+  for (int i = 1; i <= nel; i++) {
+    float arg = 0.;
+    while (!arg)
+      arg = gRandom->Rndm();
     charge -= mChargeSlope * TMath::Log(arg);
-    
   }
   //translate to fC roughly, equivalent to AliMUONConstants::DefaultADC2MV()*AliMUONConstants::DefaultA0()*AliMUONConstants::DefaultCapa() multiplication in aliroot
-  charge *= 0.61 * 1.25 * 0.2;// put this in header as constants?
+  charge *= 0.61 * 1.25 * 0.2; // put this in header as constants?
   return charge;
 }
 //_____________________________________________________________________
-double Response::chargePad(float xmin, float xmax, float ymin, float ymax, int detID, float charge )
+double Response::chargePad(float xmin, float xmax, float ymin, float ymax, int detID, float charge)
 {
   //see AliMUONResponseV0.cxx (inside DisIntegrate)
   // and AliMUONMathieson.cxx (IntXY)
@@ -68,10 +68,9 @@ double Response::chargePad(float xmin, float xmax, float ymin, float ymax, int d
   double ux2 = mSqrtK3x[station] * TMath::TanH(mK2x[station] * xmax);
   double uy1 = mSqrtK3y[station] * TMath::TanH(mK2y[station] * ymin);
   double uy2 = mSqrtK3y[station] * TMath::TanH(mK2y[station] * ymax);
-  
-  
-  return 4. * mK4x[station] * ( TMath::ATan(ux2) - TMath::ATan(ux1)) *
-    mK4y[station] * ( TMath::ATan(uy2) - TMath::ATan(uy1) ) * charge;
+
+  return 4. * mK4x[station] * (TMath::ATan(ux2) - TMath::ATan(ux1)) *
+         mK4y[station] * (TMath::ATan(uy2) - TMath::ATan(uy1)) * charge;
 }
 //______________________________________________________________________
 double Response::response(float charge, int detID)
@@ -83,10 +82,11 @@ double Response::response(float charge, int detID)
 float Response::getAnod(float x, int detID)
 {
   float pitch = mInversePitch[1];
-  if ( detID<299 ) pitch = mInversePitch[0]; //guess for numbers!
-  
+  if (detID < 299)
+    pitch = mInversePitch[0]; //guess for numbers!
+
   int n = Int_t(x / pitch);
-  float wire = ( x>0 ) ? n + 0.5 : n - 0.5;
+  float wire = (x > 0) ? n + 0.5 : n - 0.5;
   return pitch * wire;
 }
 //______________________________________________________________________
@@ -95,7 +95,5 @@ float Response::chargeCorr()
   //taken from AliMUONResponseV0
   //conceptually not at all understood why this should make sense
   //mChargeCorr not taken
-  return TMath::Exp( gRandom->Gaus(0.0, mChargeCorr / 2.0) );
+  return TMath::Exp(gRandom->Gaus(0.0, mChargeCorr / 2.0));
 }
-
-

@@ -281,7 +281,7 @@ int MessageFormat::readO2Format(const vector<BufferDesc_t>& list, std::vector<Bl
 vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTComponentBlockData* blocks,
                                                                   unsigned count, unsigned totalPayloadSize,
                                                                   const AliHLTComponentEventData* evtData,
-                                                                  boost::signals2::signal<unsigned char* (unsigned int)> *cbAllocate)
+                                                                  boost::signals2::signal<unsigned char*(unsigned int)>* cbAllocate)
 {
   // O2 output mode does not support event info struct
   // for the moment simply ignore it, not sure if this is the best

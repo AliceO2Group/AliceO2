@@ -15,7 +15,7 @@
 
 #ifndef O2_MCH_SIMULATION_MCHDIGITIZER_H_
 #define O2_MCH_SIMULATION_MCHDIGITIZER_H_
- 
+
 #include "MCHSimulation/Digit.h"
 #include "MCHSimulation/Detector.h"
 #include "MCHSimulation/Geometry.h"
@@ -34,11 +34,10 @@ class MCHDigitizer
 {
  public:
   MCHDigitizer(Int_t mode = 0);
-  
+
   ~MCHDigitizer() = default;
 
   void init();
-
 
   void setEventTime(double timeNS) { mEventTime = timeNS; }
   void setEventID(int eventID) { mEventID = eventID; }
@@ -48,18 +47,18 @@ class MCHDigitizer
   void process(const std::vector<Hit> hits, std::vector<Digit>& digits);
 
   void fillOutputContainer(std::vector<Digit>& digits);
-  void flushOutputContainer(std::vector<Digit>& digits); 
+  void flushOutputContainer(std::vector<Digit>& digits);
 
   void setContinuous(bool val) { mContinuous = val; }
   bool isContinuous() const { return mContinuous; }
-  
- private:  
+
+ private:
   double mEventTime;
-  int mReadoutWindowCurrent{ 0 };  
+  int mReadoutWindowCurrent{ 0 };
   int mEventID = 0;
   int mSrcID = 0;
-  
-  bool mContinuous = false; 
+
+  bool mContinuous = false;
 
   //number of detector elements
   const static int mNdE = 156;

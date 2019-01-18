@@ -21,25 +21,22 @@ namespace o2
 namespace mch
 {
 
-  template <typename T>
-    using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
+template <typename T>
+using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-  
-  o2::framework::DataProcessorSpec getMCHDigitWriterSpec(){
-    using InputSpec = framework::InputSpec;
-    using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
-    return MakeRootTreeWriterSpec("MCHDigitWriter",
+o2::framework::DataProcessorSpec getMCHDigitWriterSpec()
+{
+  using InputSpec = framework::InputSpec;
+  using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
+  return MakeRootTreeWriterSpec("MCHDigitWriter",
                                 "mchdigits.root",
                                 "o2sim",
                                 1,
-				  BranchDefinition<std::vector<o2::mch::Digit>>{ InputSpec{ "input", "MCH", "DIGITS" }, "MCHDigit" }
-                                // add more branch definitions (for example Monte Carlo labels here)                                    
+                                BranchDefinition<std::vector<o2::mch::Digit>>{ InputSpec{ "input", "MCH", "DIGITS" }, "MCHDigit" }
+                                // add more branch definitions (for example Monte Carlo labels here)
                                 )();
+}
 
-  }
-
-
- 
 } // end namespace mch
 } // end namespace o2
 

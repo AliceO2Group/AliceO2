@@ -17,7 +17,6 @@
 #include <algorithm>
 #include <cassert>
 
-
 using namespace o2::mch;
 
 namespace
@@ -43,7 +42,7 @@ std::vector<o2::mch::mapping::Segmentation> createSegmentations()
 }
 } // namespace
 
-MCHDigitizer::MCHDigitizer(int) : mdetID{ createDEMap() }, mSeg{ createSegmentations() } 
+MCHDigitizer::MCHDigitizer(int) : mdetID{ createDEMap() }, mSeg{ createSegmentations() }
 {
 }
 
@@ -73,11 +72,11 @@ void MCHDigitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digi
 }
 
 //______________________________________________________________________
-int MCHDigitizer::processHit(const Hit &hit, double event_time)
+int MCHDigitizer::processHit(const Hit& hit, double event_time)
 {
 
   //hit position(cm)
-  Point3D<float> pos(hit.GetX(),hit.GetY(),hit.GetZ());
+  Point3D<float> pos(hit.GetX(), hit.GetY(), hit.GetZ());
   //hit has global coordinates
   //convert energy to charge, float enough?
   float charge = mMuonresponse.etocharge(hit.GetEnergyLoss());
@@ -90,7 +89,7 @@ int MCHDigitizer::processHit(const Hit &hit, double event_time)
   int indexID = mdetID.at(detID);
   //# digits for hit
   int ndigits = 0;
-  
+
   //transformation from global to local
   auto t = o2::mch::getTransformation(detID, *gGeoManager);
   Point3D<float> lpos;
@@ -106,18 +105,18 @@ int MCHDigitizer::processHit(const Hit &hit, double event_time)
   float fracplane = mMuonresponse.chargeCorr();
   //should become a function of anoddis
   //std::cout << "fracplane " << fracplane << std::endl;
-  float chargebend= fracplane * charge;
+  float chargebend = fracplane * charge;
   float chargenon = charge / fracplane;
   //last line  from Aliroot, not understood why
   //since charge = charchbend+chargenon and not multiplication
   float signal = 0.0;
 
-  //borders of charge gen. 
+  //borders of charge gen.
   double xMin = anodpos - mMuonresponse.getQspreadX() * 0.5;
   double xMax = anodpos + mMuonresponse.getQspreadX() * 0.5;
   double yMin = lpos.Y() - mMuonresponse.getQspreadY() * 0.5;
   double yMax = lpos.Y() + mMuonresponse.getQspreadY() * 0.5;
-  
+
   //pad-borders
   float xmin = 0.0;
   float xmax = 0.0;
@@ -129,9 +128,9 @@ int MCHDigitizer::processHit(const Hit &hit, double event_time)
   int padidbendcent = 0;
   int padidnoncent = 0;
   bool padexists = mSeg[indexID].findPadPairByPosition(anodpos, lpos.Y(), padidbendcent, padidnoncent);
-  if(!padexists)
+  if (!padexists)
     return 0; //to be decided if needed
-  
+
   //need to keep both electros separated since afterwards signal generation on each plane
   //how misalignment enters?
   std::vector<int> padIDsbend;
@@ -144,11 +143,11 @@ int MCHDigitizer::processHit(const Hit &hit, double event_time)
   //induce signal pad-by-pad: bending
   for (auto& padidbend : padIDsbend) {
     //retrieve coordinates for each pad
-    xmin =  (anodpos - mSeg[indexID].padPositionX(padidbend)) - mSeg[indexID].padSizeX(padidbend) * 0.5;
-    xmax =  xmin + mSeg[indexID].padSizeX(padidbend);
-    ymin =  (lpos.Y() - mSeg[indexID].padPositionY(padidbend)) - mSeg[indexID].padSizeY(padidbend) * 0.5;
-    ymax =  ymin + mSeg[indexID].padSizeY(padidbend);
-    
+    xmin = (anodpos - mSeg[indexID].padPositionX(padidbend)) - mSeg[indexID].padSizeX(padidbend) * 0.5;
+    xmax = xmin + mSeg[indexID].padSizeX(padidbend);
+    ymin = (lpos.Y() - mSeg[indexID].padPositionY(padidbend)) - mSeg[indexID].padSizeY(padidbend) * 0.5;
+    ymax = ymin + mSeg[indexID].padSizeY(padidbend);
+
     // 1st step integrate induced charge for each pad
     signal = mMuonresponse.chargePad(xmin, xmax, ymin, ymax, detID, chargebend);
     // if(signal>mMuonresponse.getChargeThreshold()
@@ -164,10 +163,10 @@ int MCHDigitizer::processHit(const Hit &hit, double event_time)
   //induce signal pad-by-pad: nonbending
   for (auto& padidnon : padIDsnon) {
     //retrieve coordinates for each pad
-    xmin =  (anodpos - mSeg[indexID].padPositionX(padidnon)) - mSeg[indexID].padSizeX(padidnon) * 0.5;
-    xmax =  xmin + mSeg[indexID].padSizeX(padidnon);
-    ymin =  (lpos.Y() - mSeg[indexID].padPositionY(padidnon)) - mSeg[indexID].padSizeY(padidnon) * 0.5;
-    ymax =  ymin + mSeg[indexID].padSizeY(padidnon);
+    xmin = (anodpos - mSeg[indexID].padPositionX(padidnon)) - mSeg[indexID].padSizeX(padidnon) * 0.5;
+    xmax = xmin + mSeg[indexID].padSizeX(padidnon);
+    ymin = (lpos.Y() - mSeg[indexID].padPositionY(padidnon)) - mSeg[indexID].padSizeY(padidnon) * 0.5;
+    ymax = ymin + mSeg[indexID].padSizeY(padidnon);
 
     // 1st step integrate induced charge for each pad
     signal = mMuonresponse.chargePad(xmin, xmax, ymin, ymax, detID, chargenon);
@@ -191,7 +190,7 @@ void MCHDigitizer::fillOutputContainer(std::vector<Digit>& digits)
   // filling the digit container
   if (mDigits.empty())
     return;
-  
+
   auto itBeg = mDigits.begin();
   auto iter = itBeg;
   for (; iter != mDigits.end(); ++iter) {
@@ -205,4 +204,3 @@ void MCHDigitizer::flushOutputContainer(std::vector<Digit>& digits)
   //not clear if neede in DPL
   fillOutputContainer(digits);
 }
-
