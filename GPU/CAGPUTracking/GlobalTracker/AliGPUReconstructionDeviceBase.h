@@ -13,7 +13,7 @@ public:
 
 	char* MergerHostMemory() const {return((char*) fGPUMergerHostMemory);}
 	const AliGPUCAParam* DeviceParam() const {return mDeviceParam;}
-	virtual int RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers) const = 0;
+	virtual int RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers) = 0;
 
 protected:
 	typedef void deviceEvent;
@@ -38,12 +38,12 @@ protected:
 	virtual void ReleaseThreadContext() = 0;
 	virtual void SynchronizeGPU() = 0;
 	
-	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) = 0;
-	virtual int TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) = 0;
-	int TransferMemoryResourcesToGPU(AliGPUProcessor* proc, int stream, bool all = false);
-	int TransferMemoryResourcesToHost(AliGPUProcessor* proc, int stream, bool all = false);
-	int TransferMemoryResourceLinkToGPU(short res, int stream, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr);
-	int TransferMemoryResourceLinkToHost(short res, int stream, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr);
+	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) = 0;
+	virtual int TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) = 0;
+	int TransferMemoryResourcesToGPU(AliGPUProcessor* proc, int stream = -1, bool all = false);
+	int TransferMemoryResourcesToHost(AliGPUProcessor* proc, int stream = -1, bool all = false);
+	int TransferMemoryResourceLinkToGPU(short res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr);
+	int TransferMemoryResourceLinkToHost(short res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr);
 
 	struct helperParam
 	{

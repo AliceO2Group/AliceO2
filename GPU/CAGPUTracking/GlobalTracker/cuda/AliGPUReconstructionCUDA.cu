@@ -737,7 +737,7 @@ int AliGPUReconstructionCUDA::ExitDevice_Runtime()
 	return(0);
 }
 
-int AliGPUReconstructionCUDA::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers) const
+int AliGPUReconstructionCUDA::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers)
 {
 #ifndef GPUCA_GPU_MERGER
 	CAGPUError("GPUCA_GPU_MERGER compile flag not set");
@@ -752,45 +752,28 @@ int AliGPUReconstructionCUDA::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool 
 		for (unsigned int k = 0;k < sizeof(times) / sizeof(times[0]);k++) times[k] = 0;
 		nCount = 0;
 	}
-	char* gpumem = (char*) fGPUMergerMemory;
-	AliGPUTPCGMMergedTrackHit *clusters;
-	AliGPUTPCGMMergedTrack* tracks;
-
-	AliGPUReconstruction::computePointerWithAlignment(gpumem, clusters, Merger->NOutputTrackClusters());
-	AliGPUReconstruction::computePointerWithAlignment(gpumem, tracks, Merger->NOutputTracks());
-
-	if ((size_t) (gpumem - (char*) fGPUMergerMemory) > (size_t) fGPUMergerMaxMemory)
-	{
-		CAGPUError("Insufficiant GPU Merger Memory");
-	}
-
 	cuCtxPushCurrent(mInternals->CudaContext);
 
 	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("Running GPU Merger (%d/%d)", Merger->NOutputTrackClusters(), Merger->NClusters());
 	timer.Start();
-	AliGPUTPCGMMerger* gpuMerger = (AliGPUTPCGMMerger*) new char[sizeof(AliGPUTPCGMMerger)]; //We don't want constructor / destructor!
-	memcpy((void*) gpuMerger, Merger, sizeof(AliGPUTPCGMMerger));
 
-	void* devPtrConstantMem;
-	if (GPUFailedMsg(cudaGetSymbolAddress(&devPtrConstantMem, gGPUConstantMemBuffer)))
-	{
-		CAGPUError("Error getting ptr to constant memory");
-		return 1;
-	}
-	gpuMerger->InitGPUProcessor((AliGPUReconstruction*) this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
+	memcpy((void*) fGpuMerger, (void*) Merger, sizeof(AliGPUTPCGMMerger));
 
-	GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, gpuMerger, sizeof(*Merger), (char*) &AliGPUCAConstantMemDummy.tpcMerger - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice));
-	delete[] (char*) gpuMerger;
-	GPUFailedMsg(cudaMemcpy(clusters, Merger->Clusters(), Merger->NOutputTrackClusters() * sizeof(clusters[0]), cudaMemcpyHostToDevice));
-	GPUFailedMsg(cudaMemcpy(tracks, Merger->OutputTracks(), Merger->NOutputTracks() * sizeof(AliGPUTPCGMMergedTrack), cudaMemcpyHostToDevice));
+	fGpuMerger->InitGPUProcessor((AliGPUReconstruction*) this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
+	ResetRegisteredMemoryPointers(Merger->MemoryResRefit());
+	
+	GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, fGpuMerger, sizeof(*Merger), (char*) &AliGPUCAConstantMemDummy.tpcMerger - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice));
+	TransferMemoryResourceLinkToGPU(Merger->MemoryResRefit());
 	times[0] += timer.GetCurrentElapsedTime(true);
-	RefitTracks<<<fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT>>>(tracks, Merger->NOutputTracks(), clusters);
+	
+	RefitTracks<<<fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT>>>(fGpuMerger->OutputTracks(), Merger->NOutputTracks(), fGpuMerger->Clusters());
 	GPUFailedMsg(cudaDeviceSynchronize());
 	times[1] += timer.GetCurrentElapsedTime(true);
-	GPUFailedMsg(cudaMemcpy(Merger->Clusters(), clusters, Merger->NOutputTrackClusters() * sizeof(clusters[0]), cudaMemcpyDeviceToHost));
-	GPUFailedMsg(cudaMemcpy((void*) Merger->OutputTracks(), tracks, Merger->NOutputTracks() * sizeof(AliGPUTPCGMMergedTrack), cudaMemcpyDeviceToHost));
+	
+	TransferMemoryResourceLinkToHost(Merger->MemoryResRefit());
 	GPUFailedMsg(cudaDeviceSynchronize());
 	times[2] += timer.GetCurrentElapsedTime();
+	
 	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("GPU Merger Finished");
 	nCount++;
 

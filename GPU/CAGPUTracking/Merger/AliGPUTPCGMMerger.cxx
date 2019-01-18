@@ -67,21 +67,25 @@ AliGPUTPCGMOfflineFitter gOfflineFitter;
 AliGPUTPCGMMerger::AliGPUTPCGMMerger() :
 	fField(),
 	fTrackLinks(NULL),
+	fNMaxSliceTracks(0),
+	fNMaxTracks(0),
+	fNMaxSingleSliceTracks(0),
+	fNMaxOutputTrackClusters( 0 ),
+	mMemoryResMerger(-1),
+	mMemoryResRefit(-1),
+	fMaxID(0),
+	fNClusters(0),
 	fNOutputTracks( 0 ),
 	fNOutputTrackClusters( 0 ),
-	fNMaxOutputTrackClusters( 0 ),
 	fOutputTracks( 0 ),
 	fSliceTrackInfos( 0 ),
-	fMaxSliceTracks(0),
 	fClusters(NULL),
 	fGlobalClusterIDs(NULL),
 	fClusterAttachment(NULL),
-	fMaxID(0),
 	fTrackOrder(NULL),
 	fBorderMemory(0),
 	fBorderRangeMemory(0),
-	fSliceTrackers(NULL),
-	fNClusters(0)
+	fSliceTrackers(NULL)
 {
 	//* constructor
 
@@ -98,12 +102,6 @@ AliGPUTPCGMMerger::AliGPUTPCGMMerger() :
 
 	fField.Reset(); // set very wrong initial value in order to see if the field was not properly initialised
 	for (int i = 0; i < fgkNSlices; i++) fkSlices[i] = NULL;
-}
-
-AliGPUTPCGMMerger::~AliGPUTPCGMMerger()
-{
-	//* destructor
-	ClearMemory();
 }
 
 //DEBUG CODE
@@ -221,42 +219,49 @@ void AliGPUTPCGMMerger::InitializeProcessor()
 #endif
 }
 
+void* AliGPUTPCGMMerger::SetPointersHostOnly(void* mem)
+{
+	AliGPUReconstruction::computePointerWithAlignment(mem, fSliceTrackInfos, fNMaxSliceTracks);
+	if (!fSliceTrackers) AliGPUReconstruction::computePointerWithAlignment(mem, fGlobalClusterIDs, fNMaxOutputTrackClusters);
+	AliGPUReconstruction::computePointerWithAlignment(mem, fBorderMemory, fNMaxSliceTracks);
+	AliGPUReconstruction::computePointerWithAlignment(mem, fBorderRangeMemory, 2 * fNMaxSliceTracks);
+	AliGPUReconstruction::computePointerWithAlignment(mem, fTrackLinks, fNMaxSliceTracks);
+	int nTracks = 0;
+	for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
+	{
+		fBorder[iSlice] = fBorderMemory + nTracks;
+		fBorderRange[iSlice] = fBorderRangeMemory + 2 * nTracks;
+		nTracks += fkSlices[iSlice]->NTracks();
+	}
+	return mem;
+}
+
+void* AliGPUTPCGMMerger::SetPointersGPURefit(void* mem)
+{
+	AliGPUReconstruction::computePointerWithAlignment(mem, fOutputTracks, fNMaxTracks);
+	AliGPUReconstruction::computePointerWithAlignment(mem, fClusters, fNMaxOutputTrackClusters);
+	return mem;
+}
+
 void AliGPUTPCGMMerger::RegisterMemoryAllocation()
 {
+	mMemoryResMerger = mRec->RegisterMemoryAllocation(this, &AliGPUTPCGMMerger::SetPointersHostOnly, AliGPUMemoryResource::MEMORY_CUSTOM | AliGPUMemoryResource::MEMORY_SCRATCH | AliGPUMemoryResource::MEMORY_HOST, "Merger");
+	mMemoryResRefit = mRec->RegisterMemoryAllocation(this, &AliGPUTPCGMMerger::SetPointersGPURefit, AliGPUMemoryResource::MEMORY_CUSTOM | AliGPUMemoryResource::MEMORY_INOUT, "Refit");
 }
 
-void AliGPUTPCGMMerger::Clear()
+void AliGPUTPCGMMerger::SetMaxData()
 {
-	ClearMemory();
-}
-
-void AliGPUTPCGMMerger::ClearMemory()
-{
-	delete[] fTrackLinks;
-	delete[] fSliceTrackInfos;
-	if (mGPUProcessorType == PROCESSOR_TYPE_CPU)
+	fNMaxSliceTracks = 0;
+	fNClusters = 0;
+	fNMaxSingleSliceTracks = 0;
+	for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
 	{
-		delete[] fOutputTracks;
-		delete[] fClusters;
+		fNMaxSliceTracks += fkSlices[iSlice]->NTracks();
+		fNClusters += fkSlices[iSlice]->NTrackClusters();
+		if (fNMaxSingleSliceTracks < fkSlices[iSlice]->NTracks()) fNMaxSingleSliceTracks = fkSlices[iSlice]->NTracks();
 	}
-	delete[] fGlobalClusterIDs;
-	delete[] fBorderMemory;
-	delete[] fBorderRangeMemory;
-
-	delete[] fTrackOrder;
-	delete[] fClusterAttachment;
-
-	fTrackLinks = NULL;
-	fNOutputTracks = 0;
-	fOutputTracks = NULL;
-	fSliceTrackInfos = NULL;
-	fMaxSliceTracks = 0;
-	fClusters = NULL;
-	fGlobalClusterIDs = NULL;
-	fBorderMemory = NULL;
-	fBorderRangeMemory = NULL;
-	fTrackOrder = NULL;
-	fClusterAttachment = NULL;
+	fNMaxOutputTrackClusters = fNClusters * 1.1f + 1000;
+	fNMaxTracks = fNMaxSliceTracks;
 }
 
 void AliGPUTPCGMMerger::SetSliceData(int index, const AliGPUTPCSliceOutput *sliceData)
@@ -275,7 +280,6 @@ bool AliGPUTPCGMMerger::Reconstruct()
 			return false;
 		}
 	}
-	int nIter = 1;
 	HighResTimer timer;
 	static double times[8] = {};
 	static int nCount = 0;
@@ -285,94 +289,43 @@ bool AliGPUTPCGMMerger::Reconstruct()
 		nCount = 0;
 	}
 	//cout<<"Merger..."<<endl;
-	for (int iter = 0; iter < nIter; iter++)
+	SetMaxData();
+	if (mRec->IsGPU()) memcpy((void*) mDeviceProcessor, this, sizeof(*this));
+	mRec->AllocateRegisteredMemory(mMemoryResMerger);
+	mRec->AllocateRegisteredMemory(mMemoryResRefit);
+	
+	timer.ResetStart();
+	UnpackSlices();
+	times[0] += timer.GetCurrentElapsedTime(true);
+	MergeWithingSlices();
+	times[1] += timer.GetCurrentElapsedTime(true);
+	MergeSlices();
+	times[2] += timer.GetCurrentElapsedTime(true);
+	MergeCEInit();
+	times[3] += timer.GetCurrentElapsedTime(true);
+	CollectMergedTracks();
+	times[4] += timer.GetCurrentElapsedTime(true);
+	MergeCE();
+	times[3] += timer.GetCurrentElapsedTime(true);
+	PrepareClustersForFit();
+	times[5] += timer.GetCurrentElapsedTime(true);
+	Refit(mCAParam->resetTimers);
+	times[6] += timer.GetCurrentElapsedTime(true);
+	Finalize();
+	times[7] += timer.GetCurrentElapsedTime(true);
+	nCount++;
+	if (mCAParam->debugLevel > 0)
 	{
-		if (!AllocateMemory()) return false;
-		timer.ResetStart();
-		UnpackSlices();
-		times[0] += timer.GetCurrentElapsedTime(true);
-		MergeWithingSlices();
-		times[1] += timer.GetCurrentElapsedTime(true);
-		MergeSlices();
-		times[2] += timer.GetCurrentElapsedTime(true);
-		MergeCEInit();
-		times[3] += timer.GetCurrentElapsedTime(true);
-		CollectMergedTracks();
-		times[4] += timer.GetCurrentElapsedTime(true);
-		MergeCE();
-		times[3] += timer.GetCurrentElapsedTime(true);
-		PrepareClustersForFit();
-		times[5] += timer.GetCurrentElapsedTime(true);
-		Refit(mCAParam->resetTimers);
-		times[6] += timer.GetCurrentElapsedTime(true);
-		Finalize();
-		times[7] += timer.GetCurrentElapsedTime(true);
-		nCount++;
-		if (mCAParam->debugLevel > 0)
-		{
-			printf("Merge Time:\tUnpack Slices:\t%1.0f us\n", times[0] * 1000000 / nCount);
-			printf("\t\tMerge Within:\t%1.0f us\n", times[1] * 1000000 / nCount);
-			printf("\t\tMerge Slices:\t%1.0f us\n", times[2] * 1000000 / nCount);
-			printf("\t\tMerge CE:\t%1.0f us\n", times[3] * 1000000 / nCount);
-			printf("\t\tCollect:\t%1.0f us\n", times[4] * 1000000 / nCount);
-			printf("\t\tClusters:\t%1.0f us\n", times[5] * 1000000 / nCount);
-			printf("\t\tRefit:\t\t%1.0f us\n", times[6] * 1000000 / nCount);
-			printf("\t\tFinalize:\t%1.0f us\n", times[7] * 1000000 / nCount);
-		}
+		printf("Merge Time:\tUnpack Slices:\t%1.0f us\n", times[0] * 1000000 / nCount);
+		printf("\t\tMerge Within:\t%1.0f us\n", times[1] * 1000000 / nCount);
+		printf("\t\tMerge Slices:\t%1.0f us\n", times[2] * 1000000 / nCount);
+		printf("\t\tMerge CE:\t%1.0f us\n", times[3] * 1000000 / nCount);
+		printf("\t\tCollect:\t%1.0f us\n", times[4] * 1000000 / nCount);
+		printf("\t\tClusters:\t%1.0f us\n", times[5] * 1000000 / nCount);
+		printf("\t\tRefit:\t\t%1.0f us\n", times[6] * 1000000 / nCount);
+		printf("\t\tFinalize:\t%1.0f us\n", times[7] * 1000000 / nCount);
 	}
 	return true;
-}
-
-bool AliGPUTPCGMMerger::AllocateMemory()
-{
-	//* memory allocation
-
-	ClearMemory();
-
-	int nTracks = 0;
-	fNClusters = 0;
-	fMaxSliceTracks = 0;
-
-	for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
-	{
-		nTracks += fkSlices[iSlice]->NTracks();
-		fNClusters += fkSlices[iSlice]->NTrackClusters();
-		if (fMaxSliceTracks < fkSlices[iSlice]->NTracks()) fMaxSliceTracks = fkSlices[iSlice]->NTracks();
-	}
-	fNMaxOutputTrackClusters = fNClusters * 1.1f + 1000;
-
-	//cout<<"\nMerger: input "<<nTracks<<" tracks, "<<nClusters<<" clusters"<<endl;
-
-	fSliceTrackInfos = new AliGPUTPCGMSliceTrack[nTracks];
-	if (mGPUProcessorType != PROCESSOR_TYPE_CPU)
-	{
-		char *hostBaseMem = dynamic_cast<const AliGPUReconstructionDeviceBase *>(mRec)->MergerHostMemory();
-		char *basemem = hostBaseMem;
-		AliGPUReconstruction::computePointerWithAlignment(basemem, fClusters, fNMaxOutputTrackClusters);
-		AliGPUReconstruction::computePointerWithAlignment(basemem, fOutputTracks, nTracks);
-		if ((size_t)(basemem - hostBaseMem) > GPUCA_GPU_MERGER_MEMORY)
-		{
-			printf("Insufficient memory for track merger %lld > %lld\n", (long long int) (basemem - hostBaseMem), (long long int) GPUCA_GPU_MERGER_MEMORY);
-			return (false);
-		}
-	}
-	else
-	{
-		fOutputTracks = new AliGPUTPCGMMergedTrack[nTracks];
-		fClusters = new AliGPUTPCGMMergedTrackHit[fNMaxOutputTrackClusters];
-	}
-	if (!fSliceTrackers) fGlobalClusterIDs = new int[fNMaxOutputTrackClusters];
-	fBorderMemory = new AliGPUTPCGMBorderTrack[nTracks];
-	fBorderRangeMemory = new AliGPUTPCGMBorderTrack::Range[2 * nTracks];
-	nTracks = 0;
-	for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
-	{
-		fBorder[iSlice] = fBorderMemory + nTracks;
-		fBorderRange[iSlice] = fBorderRangeMemory + 2 * nTracks;
-		nTracks += fkSlices[iSlice]->NTracks();
-	}
-	fTrackLinks = new int[nTracks];
-	return (fOutputTracks != NULL && fSliceTrackInfos != NULL && fClusters != NULL && fBorderMemory != NULL && fBorderRangeMemory != NULL && fTrackLinks != NULL);
 }
 
 void AliGPUTPCGMMerger::ClearTrackLinks(int n)
@@ -1368,7 +1321,7 @@ void AliGPUTPCGMMerger::Refit(bool resetTimers)
 #ifdef GPUCA_GPU_MERGER
 	if (mRec->GetDeviceType() == AliGPUReconstruction::DeviceType::CUDA)
 	{
-		dynamic_cast<const AliGPUReconstructionDeviceBase*>(mRec)->RefitMergedTracks(this, resetTimers);
+		dynamic_cast<AliGPUReconstructionDeviceBase*>(mRec)->RefitMergedTracks(this, resetTimers);
 	}
   else
 #endif

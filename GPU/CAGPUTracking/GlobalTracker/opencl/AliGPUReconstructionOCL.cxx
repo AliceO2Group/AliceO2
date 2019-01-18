@@ -831,7 +831,7 @@ int AliGPUReconstructionOCL::TransferMemoryResourceToHost(AliGPUMemoryResource* 
 	return GPUFailedMsg(clEnqueueReadBuffer(ocl->command_queue[stream == -1 ? 0 : stream], ocl->mem_gpu, stream >= 0, (char*) res->PtrDevice() - (char*) fGPUMemory, res->Size(), res->Ptr(), nEvents, (cl_event*) evList, (cl_event*) ev));
 }
 
-int AliGPUReconstructionOCL::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers) const
+int AliGPUReconstructionOCL::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers)
 {
 	CAGPUFatal("Not implemented in OpenCL (Merger)");
 	return(1);
