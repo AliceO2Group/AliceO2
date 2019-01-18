@@ -38,7 +38,7 @@ TRDCalPadStatus::TRDCalPadStatus()
   //
 
   for (Int_t idet = 0; idet < kNdet; idet++) {
-    mROC[idet] = nulllptr;
+    mROC[idet] = 0;
   }
 }
 

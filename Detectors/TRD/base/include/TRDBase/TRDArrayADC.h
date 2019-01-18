@@ -78,7 +78,7 @@ class TRDArrayADC
                            //  std::vector<Short_t> mADC;  //[mNAdim]   //Pointer to adc values
   Short_t* mADC=nullptr;           //[mNAdim]   //Pointer to adc values
   //static std::vector<Short_t> mgLutPadNumbering;   //  [mNcol] Look Up Table
-  static Short_t* mgLutPadNumbering=nullptr; //  [mNcol] Look Up Table
+  static Short_t* mgLutPadNumbering; //  [mNcol] Look Up Table
   ClassDefNV(TRDArrayADC, 1)           //ADC container class
 };
 
