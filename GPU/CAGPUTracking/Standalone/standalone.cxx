@@ -48,6 +48,7 @@
 #include "AliGPUCADisplayBackendWindows.h"
 #else
 #include "AliGPUCADisplayBackendX11.h"
+#include "AliGPUCADisplayBackendGlfw.h"
 #endif
 #include "AliGPUCADisplayBackendGlut.h"
 #endif
@@ -202,6 +203,7 @@ int SetupReconstruction()
 		if (configStandalone.eventDisplay == 1) eventDisplay.reset(new AliGPUCADisplayBackendWindows);
 #else
 		if (configStandalone.eventDisplay == 1) eventDisplay.reset(new AliGPUCADisplayBackendX11);
+		if (configStandalone.eventDisplay == 3) eventDisplay.reset(new AliGPUCADisplayBackendGlfw);
 #endif
 		else if (configStandalone.eventDisplay == 2) eventDisplay.reset(new AliGPUCADisplayBackendGlut);
 #endif

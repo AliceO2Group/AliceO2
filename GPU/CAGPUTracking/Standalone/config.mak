@@ -29,12 +29,15 @@ CPPFILES					+= cmodules/qconfig.cpp
 ifeq ($(BUILD_EVENT_DISPLAY), 1)
 CPPFILES					+= display/AliGPUCADisplay.cpp display/AliGPUCADisplayBackend.cpp display/AliGPUCADisplayBackendGlut.cpp display/AliGPUCADisplayBackendNone.cpp display/AliGPUCADisplayInterpolation.cpp display/AliGPUCADisplayQuaternion.cpp
 CONFIG_OPENGL				= 1
+CONFIG_GLUT					= 1
+CONFIG_GLFW					= 1
 CONFIG_X11					= 1
 DEFINES						+= BUILD_EVENT_DISPLAY
 ifeq ($(ARCH_CYGWIN), 1)
 CPPFILES					+= display/AliGPUCADisplayBackendWindows.cpp
 else
 CPPFILES					+= display/AliGPUCADisplayBackendX11.cpp
+CPPFILES					+= display/AliGPUCADisplayBackendGlfw.cpp
 endif
 endif
 

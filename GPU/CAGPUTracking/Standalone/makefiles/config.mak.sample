@@ -18,7 +18,7 @@ CC_i686-pc-cygwin			= ICC
 
 EXTRAFLAGSGCC				= -Weffc++
 EXTRAOBJFILES				= objfile.obj
-EXTRAFLAGSLINK				= 
+EXTRAFLAGSLINK				=
 EXTRADEPS					= non_obj_file_required.dat
 
 INCLUDEPATHS				= include subdir/include
@@ -32,6 +32,8 @@ CONFIG_DIRECTX				= 1
 CONFIG_OPENCL				= 1
 CONFIG_OPENGL				= 0
 CONFIG_OPENMP				= 0
+CONFIG_GLUT					= 0
+CONFIG_GLFW					= 0
 CONFIG_GDB					= 1 #by default
 CONFIG_CAL					= 0
 #CONFIG_X11					=
@@ -61,7 +63,7 @@ RESOURCEFILES				= myresource.dat
 CLFILES						= opencl_file.cl
 CFILES						= sample.c
 
-QTFILES						= 
+QTFILES						=
 QTCPPFILES					=
 
 OPENCL_OPTIONS				= -x clc++

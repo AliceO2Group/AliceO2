@@ -137,7 +137,13 @@ COMMONINCLUDEPATHS				+= $(AMDPATH)/include/CAL
 LIBPATHSUSE						+= -L$(AMDLIBPATH)
 endif
 ifeq ("$(CONFIG_OPENGL)", "1")
-LIBSUSE							+= -lGL -lGLU -lglut -lGLEW
+LIBSUSE							+= -lGL -lGLU -lGLEW
+ifeq ("$(CONFIG_GLUT)", "1")
+LIBSUSE							+= -lglut
+endif
+ifeq ("$(CONFIG_GLFW)", "1")
+LIBSUSE							+= -lglfw
+endif
 endif
 ifeq ("$(CONFIG_X11)", "1")
 LIBSUSE							+= -lX11
