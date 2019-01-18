@@ -15,6 +15,8 @@
 #include <arrow/type_traits.h>
 #include <arrow/table.h>
 #include <arrow/builder.h>
+
+#include <functional>
 #include <vector>
 #include <string>
 #include <memory>
