@@ -42,6 +42,7 @@
 #include <string.h>
 #include <cmath>
 #include <algorithm>
+#include <stdexcept>
 
 #include "AliGPUReconstruction.h"
 #endif
@@ -54,7 +55,7 @@ AliGPUTPCTracker::AliGPUTPCTracker() :
 	AliGPUProcessor(),
 	fStageAtSync( NULL ),
 	fLinkTmpMemory( NULL ),
-	fISlice(0),
+	fISlice(-1),
 	fData(),
 	fGPUDebugOut( 0 ),
 	fNMaxStartHits( 0 ),
@@ -87,11 +88,14 @@ AliGPUTPCTracker::~AliGPUTPCTracker()
 }
 
 // ----------------------------------------------------------------------------------
-void AliGPUTPCTracker::Initialize( int iSlice )
+void AliGPUTPCTracker::SetSlice(int iSlice)
 {
 	fISlice = iSlice;
+}
+void AliGPUTPCTracker::InitializeProcessor()
+{
+	if (fISlice < 0) throw std::runtime_error("Slice not set");
 	InitializeRows(mCAParam);
-
 	SetupCommonMemory();
 }
 

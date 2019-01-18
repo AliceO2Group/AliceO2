@@ -76,13 +76,12 @@ AliGPUReconstruction::AliGPUReconstruction(const AliGPUCASettingsProcessing& cfg
 	}
 	memset(mSliceOutput, 0, sizeof(mSliceOutput));
 	
-	AliGPUProcessor::ProcessorType processorType = IsGPU() ? AliGPUProcessor::PROCESSOR_TYPE_SLAVE : AliGPUProcessor::PROCESSOR_TYPE_CPU;
 	for (unsigned int i = 0;i < NSLICES;i++)
 	{
-		mTPCSliceTrackersCPU[i].InitGPUProcessor(this, processorType);
-		mTPCSliceTrackersCPU[i].Data().InitGPUProcessor(this, processorType);
+		RegisterGPUProcessor(&mTPCSliceTrackersCPU[i].Data());
+		RegisterGPUProcessor(&mTPCSliceTrackersCPU[i]);
 	}
-	mTPCMergerCPU.InitGPUProcessor(this, processorType);
+	RegisterGPUProcessor(&mTPCMergerCPU);
 }
 
 AliGPUReconstruction::~AliGPUReconstruction()
@@ -118,14 +117,12 @@ int AliGPUReconstruction::Init()
 	{
 		mDebugFile.open(IsGPU() ? "GPU.out" : "CPU.out");
 	}
-	for (unsigned int i = 0;i < NSLICES;i++)
+	for (unsigned int i = 0;i < mProcessors.size();i++)
 	{
-		mTPCSliceTrackersCPU[i].Data().RegisterMemoryAllocation();
-		mTPCSliceTrackersCPU[i].RegisterMemoryAllocation();
+		(mProcessors[i].proc->*(mProcessors[i].RegisterMemoryAllocation))();
 	}
 	if (InitDevice()) return 1;
 	AllocateRegisteredPermanentMemory();
-	
 	if (InitializeProcessors()) return 1;
 	
 	if (AliGPUCAQA::QAAvailable() && (mDeviceProcessingSettings.runQA || mDeviceProcessingSettings.eventDisplay))
@@ -174,13 +171,22 @@ int AliGPUReconstruction::InitializeProcessors()
 {
 	for (unsigned int i = 0;i < NSLICES;i++)
 	{
-		mTPCSliceTrackersCPU[i].Initialize(i);
+		mTPCSliceTrackersCPU[i].SetSlice(i);
 		mTPCSliceTrackersCPU[i].SetGPUDebugOutput(&mDebugFile);
 	}
-	mTPCMergerCPU.Initialize();
+	for (unsigned int i = 0;i < mProcessors.size();i++)
+	{
+		(mProcessors[i].proc->*(mProcessors[i].InitializeProcessor))();
+	}
+	mTPCMergerCPU.InitializeProcessor();
 	mTRDTracker->Init((AliGPUTRDGeometry*) mTRDGeometry.get()); //Cast is safe, we just add some member functions
 
 	return 0;
+}
+
+void AliGPUReconstruction::RegisterGPUDeviceProcessor(AliGPUProcessor* proc, AliGPUProcessor* slaveProcessor)
+{
+	proc->InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE, slaveProcessor);
 }
 
 AliGPUReconstruction::InOutMemory::InOutMemory() = default;

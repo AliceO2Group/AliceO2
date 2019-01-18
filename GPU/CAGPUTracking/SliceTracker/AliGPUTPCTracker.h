@@ -78,7 +78,8 @@ class AliGPUTPCTracker : public AliGPUProcessor
 		StructGPUParameters fGPUParameters; // GPU parameters
 	};
   
-	MEM_CLASS_PRE2() void Initialize( int iSlice );
+	MEM_CLASS_PRE2() void SetSlice(int iSlice);
+	MEM_CLASS_PRE2() void InitializeProcessor();
 	MEM_CLASS_PRE2() void InitializeRows( const MEM_LG2(AliGPUCAParam) *param ) { fData.InitializeRows(*param); }
   
 	int CheckEmptySlice();

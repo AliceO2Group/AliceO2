@@ -115,6 +115,9 @@ inline int AliGPUTPCSliceData::PackHitData(AliGPUTPCRow *const row, const AliGPU
 	return 0;
 }
 
+void AliGPUTPCSliceData::InitializeProcessor()
+{}
+	
 void AliGPUTPCSliceData::InitializeRows(const AliGPUCAParam &p)
 {
 	// initialisation of rows

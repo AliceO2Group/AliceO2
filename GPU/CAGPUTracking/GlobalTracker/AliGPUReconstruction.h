@@ -248,6 +248,15 @@ public:
 	const void* mConfigDisplay = nullptr;										//Abstract pointer to Standalone Display Configuration Structure
 	const void* mConfigQA = nullptr;											//Abstract pointer to Standalone QA Configuration Structure
 	
+	//Registration of GPU Processors
+	template <class T> void RegisterGPUProcessor(T* proc)
+	{
+		mProcessors.emplace_back(proc, static_cast<void (AliGPUProcessor::*)()>(&T::RegisterMemoryAllocation), static_cast<void (AliGPUProcessor::*)()>(&T::InitializeProcessor));
+		AliGPUProcessor::ProcessorType processorType = IsGPU() ? AliGPUProcessor::PROCESSOR_TYPE_SLAVE : AliGPUProcessor::PROCESSOR_TYPE_CPU;
+		proc->InitGPUProcessor(this, processorType);
+	}
+	void RegisterGPUDeviceProcessor(AliGPUProcessor* proc, AliGPUProcessor* slaveProcessor);
+	
 protected:
 	AliGPUReconstruction(const AliGPUCASettingsProcessing& cfg);				//Constructor
 	virtual int InitDevice();
@@ -306,6 +315,16 @@ protected:
 	void* mDeviceMemoryPermanent = nullptr;
 	void* mDeviceMemoryPool = nullptr;
 	size_t mDeviceMemorySize = 0;
+	
+	//Management for AliGPUProcessors
+	struct ProcessorData
+	{
+		ProcessorData(AliGPUProcessor* p, void (AliGPUProcessor::* r)(), void (AliGPUProcessor::* i)()) : proc(p), RegisterMemoryAllocation(r), InitializeProcessor(i) {}
+		AliGPUProcessor* proc;
+		void (AliGPUProcessor::* RegisterMemoryAllocation)();
+		void (AliGPUProcessor::* InitializeProcessor)();
+	};
+	std::vector<ProcessorData> mProcessors;
 
 	//Helpers for loading device library via dlopen
 	class LibraryLoader

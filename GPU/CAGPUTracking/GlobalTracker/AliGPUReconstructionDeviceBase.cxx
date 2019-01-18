@@ -425,10 +425,10 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 	AllocateRegisteredMemory(workers.mMemoryResWorkers);
 	for (unsigned int i = 0;i < NSLICES;i++)
 	{
-		fGpuTracker[i].InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE, &mTPCSliceTrackersCPU[i]);
-		fGpuTracker[i].Data().InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE, &mTPCSliceTrackersCPU[i].Data());
+		RegisterGPUDeviceProcessor(&fGpuTracker[i], &mTPCSliceTrackersCPU[i]);
+		RegisterGPUDeviceProcessor(&fGpuTracker[i].Data(), &mTPCSliceTrackersCPU[i].Data());
 	}
-	fGpuMerger->InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE, &mTPCMergerCPU);
+	RegisterGPUDeviceProcessor(fGpuMerger, &mTPCMergerCPU);
 
 	if (StartHelperThreads()) return(1);
 
@@ -514,13 +514,15 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_Init()
 	AliGPUTPCTracker::StandaloneQueryTime(&fProfTimeD);
 #endif
 
+	for (unsigned int i = 0;i < mProcessors.size();i++)
+	{
+		if (mProcessors[i].proc->mDeviceProcessor) mProcessors[i].proc->mDeviceProcessor->InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
+	}
+
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 	{
 		mClusterData[iSlice].SetClusterData(iSlice, mIOPtrs.nClusterData[iSlice], mIOPtrs.clusterData[iSlice]);
 
-		//Make this a GPU Tracker
-		fGpuTracker[iSlice].InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
-		fGpuTracker[iSlice].Data().InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
 		mTPCSliceTrackersCPU[iSlice].Data().SetClusterData(&mClusterData[iSlice]);
 		fGpuTracker[iSlice].Data().SetClusterData(&mClusterData[iSlice]);
 		mTPCSliceTrackersCPU[iSlice].SetMaxData();
