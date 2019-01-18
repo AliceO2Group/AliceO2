@@ -1472,7 +1472,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/DataFormats/common/include
-    ${CMAKE_SOURCE_DIR}/Detectors/FIT/base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/FIT/common/base/include
 
  )
 
@@ -1490,6 +1490,7 @@ o2_define_bucket(
     Matrix
     Physics
     FITBase
+    T0Base
     DetectorsBase
     detectors_base_bucket
     SimulationDataFormat
@@ -1501,9 +1502,11 @@ o2_define_bucket(
     ${FAIRROOT_INCLUDE_DIR}
     ${ROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
-    ${CMAKE_SOURCE_DIR}/Detectors/FIT/base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/FIT/common/base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/FIT/T0/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/Simulation/include
-    ${CMAKE_SOURCE_DIR}/Detectors/FIT/Simulations/include
+    ${CMAKE_SOURCE_DIR}/Detectors/FIT/common/simulation/include
+    ${CMAKE_SOURCE_DIR}/Detectors/FIT/T0/simulation/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
 )
@@ -1570,8 +1573,8 @@ o2_define_bucket(
     ${FAIRROOT_INCLUDE_DIR}
     ${ROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
-    ${CMAKE_SOURCE_DIR}/Detectors/FIT/base/include
-    ${CMAKE_SOURCE_DIR}/Detectors/FIT/reconstruction/include
+    ${CMAKE_SOURCE_DIR}/Detectors/FIT/common/base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/FIT/T0/reconstruction/include
     ${CMAKE_SOURCE_DIR}/Detectors/FITsimulation/include
 )
 
@@ -1795,6 +1798,7 @@ o2_define_bucket(
     EMCALSimulation
     TOFSimulation
     FITSimulation
+    T0Simulation
     HMPIDSimulation
     PHOSSimulation
     PHOSReconstruction
@@ -1828,6 +1832,7 @@ o2_define_bucket(
     TOFSimulation
     TOFReconstruction
     FITSimulation
+    T0Simulation
     EMCALSimulation
     HMPIDBase
     HMPIDSimulation

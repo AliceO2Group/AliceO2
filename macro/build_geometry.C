@@ -29,7 +29,7 @@
 #include <EMCALSimulation/Detector.h>
 #include <TOFSimulation/Detector.h>
 #include <TRDSimulation/Detector.h>
-#include <FITSimulation/Detector.h>
+#include <T0Simulation/Detector.h>
 #include <HMPIDSimulation/Detector.h>
 #include <PHOSSimulation/Detector.h>
 #include <ZDCSimulation/Detector.h>
@@ -185,7 +185,7 @@ void build_geometry(FairRunSim* run = nullptr)
 
   if (isActivated("FIT")) {
     // FIT
-    run->AddModule(new o2::fit::Detector(true));
+    run->AddModule(new o2::t0::Detector(true));
   }
 
   if (isActivated("HMP")) {

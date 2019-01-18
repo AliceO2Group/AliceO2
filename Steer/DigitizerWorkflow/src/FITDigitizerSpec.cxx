@@ -18,6 +18,7 @@
 #include "Steer/HitProcessingManager.h" // for RunContext
 #include "TChain.h"
 #include "FITSimulation/Digitizer.h"
+#include "T0Simulation/DigitizationParameters.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "Framework/Task.h"
@@ -70,10 +71,10 @@ class FITDPLDigitizerTask
       mSimChains.back()->AddFile(signalfilename.c_str());
     }
 
-    mDigitizer.init();
+    mT0Digitizer.init();
     const bool isContinuous = ic.options().get<int>("pileup");
-    // mDigitizer.setContinuous(isContinuous);
-    // mDigitizer.setMCTruthContainer(labels.get());
+    // mT0Digitizer.setContinuous(isContinuous);
+    // mT0Digitizer.setMCTruthContainer(labels.get());
   }
 
   void run(framework::ProcessingContext& pc)
@@ -97,7 +98,7 @@ class FITDPLDigitizerTask
 
     LOG(INFO) << "CALLING FIT DIGITIZATION";
 
-    static std::vector<o2::fit::HitType> hits;
+    static std::vector<o2::t0::HitType> hits;
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum;
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels;
     o2::fit::Digit digit;
@@ -107,9 +108,9 @@ class FITDPLDigitizerTask
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < timesview.size(); ++collID) {
-      mDigitizer.setEventTime(timesview[collID].timeNS);
-      mDigitizer.setOrbit(timesview[collID].orbit);
-      mDigitizer.setBC(timesview[collID].bc);
+      mT0Digitizer.setEventTime(timesview[collID].timeNS);
+      mT0Digitizer.setOrbit(timesview[collID].orbit);
+      mT0Digitizer.setBC(timesview[collID].bc);
       digit.cleardigits();
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
@@ -122,19 +123,19 @@ class FITDPLDigitizerTask
         // call actual digitization procedure
         labels.clear();
         // digits.clear();
-        mDigitizer.process(&hits, &digit);
+        mT0Digitizer.process(&hits, &digit);
         auto data = digit.getChDgData();
         LOG(INFO) << "Have " << data.size() << " fired channels ";
         // copy digits into accumulator
         // labelAccum.mergeAtBack(*labels);
       }
-      mDigitizer.setTriggers(&digit);
-      mDigitizer.smearCFDtime(&digit);
+      mT0Digitizer.setTriggers(&digit);
+      mT0Digitizer.smearCFDtime(&digit);
       digitAccum.push_back(digit); // we should move it there actually
       LOG(INFO) << "Have " << digitAccum.back().getChDgData().size() << " fired channels ";
       digit.printStream(std::cout);
     }
-    //    if (mDigitizer.isContinuous()) {
+    //    if (mT0Digitizer.isContinuous()) {
     //      digits->clear();
     //      labels->clear();
     //      digitizer->flushOutputContainer(*digits.get());
@@ -162,7 +163,8 @@ class FITDPLDigitizerTask
   Bool_t mContinuous = kFALSE;  ///< flag to do continuous simulation
   double mFairTimeUnitInNS = 1; ///< Fair time unit in ns
 
-  Digitizer mDigitizer; ///< Digitizer
+  Digitizer mT0Digitizer{ o2::t0::T0DigitizationParameters() }; ///< Digitizer
+  //Digitizer mV0Digitizer; ///< Digitizer
   // RS: at the moment using hardcoded flag for continuos readout
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
 
