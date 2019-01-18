@@ -66,7 +66,6 @@ AliGPUTPCGMOfflineFitter gOfflineFitter;
 
 AliGPUTPCGMMerger::AliGPUTPCGMMerger() :
 	fField(),
-	fSliceParam(NULL),
 	fTrackLinks(NULL),
 	fNOutputTracks( 0 ),
 	fNOutputTrackClusters( 0 ),
@@ -204,7 +203,6 @@ int AliGPUTPCGMMerger::GetTrackLabel(AliGPUTPCGMBorderTrack &trk)
 
 void AliGPUTPCGMMerger::InitializeProcessor()
 {
-	fSliceParam = &mRec->GetParam();
 	if (mRec->GetDeviceType() == AliGPUReconstruction::DeviceType::CUDA)
 	{
 		fSliceTrackers = nullptr;
@@ -214,12 +212,12 @@ void AliGPUTPCGMMerger::InitializeProcessor()
 		fSliceTrackers = mRec->GetTPCSliceTrackers();
 	}
 
-	if (fSliceParam->AssumeConstantBz) AliGPUTPCGMPolynomialFieldManager::GetPolynomialField(AliGPUTPCGMPolynomialFieldManager::kUniform, fSliceParam->BzkG, fField);
-	else AliGPUTPCGMPolynomialFieldManager::GetPolynomialField(fSliceParam->BzkG, fField);
+	if (mCAParam->AssumeConstantBz) AliGPUTPCGMPolynomialFieldManager::GetPolynomialField(AliGPUTPCGMPolynomialFieldManager::kUniform, mCAParam->BzkG, fField);
+	else AliGPUTPCGMPolynomialFieldManager::GetPolynomialField(mCAParam->BzkG, fField);
 
 #if (defined(OFFLINE_FITTER))
 	#error NOT WORKING, TIMESTAMP NOT SET
-	gOfflineFitter.Initialize(*fSliceParam, TimeStamp, isMC);
+	gOfflineFitter.Initialize(*mCAParam, TimeStamp, isMC);
 #endif
 }
 
@@ -281,7 +279,7 @@ bool AliGPUTPCGMMerger::Reconstruct()
 	HighResTimer timer;
 	static double times[8] = {};
 	static int nCount = 0;
-	if (fSliceParam->resetTimers || !GPUCA_TIMING_SUM)
+	if (mCAParam->resetTimers || !GPUCA_TIMING_SUM)
 	{
 		for (unsigned int k = 0; k < sizeof(times) / sizeof(times[0]); k++) times[k] = 0;
 		nCount = 0;
@@ -305,12 +303,12 @@ bool AliGPUTPCGMMerger::Reconstruct()
 		times[3] += timer.GetCurrentElapsedTime(true);
 		PrepareClustersForFit();
 		times[5] += timer.GetCurrentElapsedTime(true);
-		Refit(fSliceParam->resetTimers);
+		Refit(mCAParam->resetTimers);
 		times[6] += timer.GetCurrentElapsedTime(true);
 		Finalize();
 		times[7] += timer.GetCurrentElapsedTime(true);
 		nCount++;
-		if (fSliceParam->debugLevel > 0)
+		if (mCAParam->debugLevel > 0)
 		{
 			printf("Merge Time:\tUnpack Slices:\t%1.0f us\n", times[0] * 1000000 / nCount);
 			printf("\t\tMerge Within:\t%1.0f us\n", times[1] * 1000000 / nCount);
@@ -405,7 +403,7 @@ void AliGPUTPCGMMerger::UnpackSlices()
 
 		fSliceTrackInfoIndex[iSlice] = nTracksCurrent;
 
-		float alpha = fSliceParam->Alpha(iSlice);
+		float alpha = mCAParam->Alpha(iSlice);
 		const AliGPUTPCSliceOutput &slice = *(fkSlices[iSlice]);
 		const AliGPUTPCSliceOutTrack *sliceTr = slice.GetFirstTrack();
 
@@ -413,7 +411,7 @@ void AliGPUTPCGMMerger::UnpackSlices()
 		{
 			AliGPUTPCGMSliceTrack &track = fSliceTrackInfos[nTracksCurrent];
 			track.Set(sliceTr, alpha, iSlice);
-			if (!track.FilterErrors(*fSliceParam, GPUCA_MAX_SIN_PHI, 0.1f)) continue;
+			if (!track.FilterErrors(*mCAParam, GPUCA_MAX_SIN_PHI, 0.1f)) continue;
 			if (DEBUG) printf("INPUT Slice %d, Track %d, QPt %f DzDs %f\n", iSlice, itr, track.QPt(), track.DzDs());
 			track.SetPrevNeighbour(-1);
 			track.SetNextNeighbour(-1);
@@ -430,7 +428,7 @@ void AliGPUTPCGMMerger::UnpackSlices()
 	{
 		fSliceTrackInfoIndex[fgkNSlices + iSlice] = nTracksCurrent;
 
-		float alpha = fSliceParam->Alpha(iSlice);
+		float alpha = mCAParam->Alpha(iSlice);
 		const AliGPUTPCSliceOutput &slice = *(fkSlices[iSlice]);
 		const AliGPUTPCSliceOutTrack *sliceTr = firstGlobalTracks[iSlice];
 		for (int itr = slice.NLocalTracks(); itr < slice.NTracks(); itr++, sliceTr = sliceTr->GetNextTrack())
@@ -458,11 +456,11 @@ void AliGPUTPCGMMerger::MakeBorderTracks(int iSlice, int iBorder, AliGPUTPCGMBor
 	//* prepare slice tracks for merging with next/previous/same sector
 	//* each track transported to the border line
 
-	float fieldBz = fSliceParam->ConstBz;
+	float fieldBz = mCAParam->ConstBz;
 
 	nB = 0;
 
-	float dAlpha = fSliceParam->DAlpha / 2;
+	float dAlpha = mCAParam->DAlpha / 2;
 	float x0 = 0;
 
 	if ( iBorder == 0 ) { // transport to the left edge of the sector and rotate horisontally
@@ -470,13 +468,13 @@ void AliGPUTPCGMMerger::MakeBorderTracks(int iSlice, int iBorder, AliGPUTPCGMBor
 	} else if ( iBorder == 1 ) { // transport to the right edge of the sector and rotate horisontally
 		dAlpha = -dAlpha - CAMath::Pi() / 2 ;
 	} else if ( iBorder == 2 ) { // transport to the middle of the sector and rotate vertically to the border on the left
-		x0 = fSliceParam->RowX[ 63 ];
+		x0 = mCAParam->RowX[ 63 ];
 	} else if ( iBorder == 3 ) { // transport to the middle of the sector and rotate vertically to the border on the right
 		dAlpha = -dAlpha;
-		x0 = fSliceParam->RowX[ 63 ];
+		x0 = mCAParam->RowX[ 63 ];
 	} else if ( iBorder == 4 ) { // transport to the middle of the sßector, w/o rotation
 		dAlpha = 0;
-		x0 = fSliceParam->RowX[ 63 ];
+		x0 = mCAParam->RowX[ 63 ];
 	}
 
 	const float maxSin = CAMath::Sin(60. / 180. * CAMath::Pi());
@@ -641,7 +639,7 @@ void AliGPUTPCGMMerger::MergeBorderTracks(int iSlice1, AliGPUTPCGMBorderTrack B1
 
 void AliGPUTPCGMMerger::MergeWithingSlices()
 {
-	float x0 = fSliceParam->RowX[ 63 ];
+	float x0 = mCAParam->RowX[ 63 ];
 	const float maxSin = CAMath::Sin( 60. / 180.*CAMath::Pi() );
 
 	ClearTrackLinks(SliceTrackInfoLocalTotal());
@@ -652,7 +650,7 @@ void AliGPUTPCGMMerger::MergeWithingSlices()
 		{
 			AliGPUTPCGMSliceTrack &track = fSliceTrackInfos[itr];
 			AliGPUTPCGMBorderTrack &b = fBorder[iSlice][nBord];
-			if (track.TransportToX(x0, fSliceParam->ConstBz, b, maxSin))
+			if (track.TransportToX(x0, mCAParam->ConstBz, b, maxSin))
 			{
 				b.SetTrackID( itr );
 				if (DEBUG) {printf("WITHIN SLICE %d Track %d - ", iSlice, itr);for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Par()[i]);} printf(" - ");for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Cov()[i]);} printf("\n");}
@@ -893,13 +891,13 @@ void AliGPUTPCGMMerger::MergeCEFill(const AliGPUTPCGMSliceTrack *track, const Al
 #ifdef MERGE_CE_ROWLIMIT
 	if (cls.fRow < MERGE_CE_ROWLIMIT || cls.fRow >= GPUCA_ROW_COUNT - MERGE_CE_ROWLIMIT) return;
 #endif
-	if (!fSliceParam->ContinuousTracking && fabs(cls.fZ) > 10) return;
+	if (!mCAParam->ContinuousTracking && fabs(cls.fZ) > 10) return;
 	int slice = track->Slice();
 	for (int attempt = 0; attempt < 2; attempt++)
 	{
 		AliGPUTPCGMBorderTrack &b = attempt == 0 ? fBorder[slice][fBorderCETracks[0][slice]] : fBorder[slice][fkSlices[slice]->NTracks() - 1 - fBorderCETracks[1][slice]];
-		const float x0 = attempt == 0 ? fSliceParam->RowX[63] : cls.fX;
-		if(track->TransportToX(x0, fSliceParam->ConstBz, b, GPUCA_MAX_SIN_PHI_LOW))
+		const float x0 = attempt == 0 ? mCAParam->RowX[63] : cls.fX;
+		if(track->TransportToX(x0, mCAParam->ConstBz, b, GPUCA_MAX_SIN_PHI_LOW))
 		{
 			b.SetTrackID(itr);
 			b.SetNClusters(fOutputTracks[itr].NClusters());
@@ -965,7 +963,7 @@ void AliGPUTPCGMMerger::MergeCE()
 				reverse[1] = (fClusters[trk[1]->FirstClusterRef()].fZ < fClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].fZ) ^ (trk[1]->CSide() > 0);
 			}
 
-			if (fSliceParam->ContinuousTracking)
+			if (mCAParam->ContinuousTracking)
 			{
 				const float z0 = trk[0]->CSide() ? std::max(fClusters[trk[0]->FirstClusterRef()].fZ, fClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].fZ) :
 					std::min(fClusters[trk[0]->FirstClusterRef()].fZ, fClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].fZ);
@@ -1278,7 +1276,7 @@ void AliGPUTPCGMMerger::CollectMergedTracks()
 		mergedTrack.SetCSide(p2.CSide());
 
 		AliGPUTPCGMBorderTrack b;
-		if (p2.TransportToX(cl[0].fX, fSliceParam->ConstBz, b, GPUCA_MAX_SIN_PHI, false))
+		if (p2.TransportToX(cl[0].fX, mCAParam->ConstBz, b, GPUCA_MAX_SIN_PHI, false))
 		{
 			p1.X() = cl[0].fX;
 			p1.Y() = b.Par()[0];

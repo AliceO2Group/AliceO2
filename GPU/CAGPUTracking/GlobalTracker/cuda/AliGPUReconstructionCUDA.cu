@@ -777,7 +777,7 @@ int AliGPUReconstructionCUDA::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool 
 		CAGPUError("Error getting ptr to constant memory");
 		return 1;
 	}
-	gpuMerger->SetSliceParamPtr((AliGPUCAParam*) ((char*) devPtrConstantMem + ((char*) &AliGPUCAConstantMemDummy.param - (char*) &AliGPUCAConstantMemDummy)));
+	gpuMerger->InitGPUProcessor((AliGPUReconstruction*) this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
 
 	GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, gpuMerger, sizeof(*Merger), (char*) &AliGPUCAConstantMemDummy.tpcMerger - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice));
 	delete[] (char*) gpuMerger;
