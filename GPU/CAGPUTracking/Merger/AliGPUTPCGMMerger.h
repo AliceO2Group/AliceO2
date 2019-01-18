@@ -42,7 +42,6 @@ class AliGPUTPCGMMerger : public AliGPUProcessor
 
 	void InitializeProcessor();
     void RegisterMemoryAllocation();
-	void SetSliceParamPtr(const AliGPUCAParam *param) { fSliceParam = param; }
     void OverrideSliceTracker(AliGPUTPCTracker* trk) { fSliceTrackers = trk; }
 
 	void Clear();
@@ -52,7 +51,7 @@ class AliGPUTPCGMMerger : public AliGPUProcessor
 	int NOutputTracks() const { return fNOutputTracks; }
 	const AliGPUTPCGMMergedTrack *OutputTracks() const { return fOutputTracks; }
 
-	GPUhd() const AliGPUCAParam &SliceParam() const { return *fSliceParam; }
+	GPUhd() const AliGPUCAParam &SliceParam() const { return *mCAParam; }
 
 	GPUd() const AliGPUTPCGMPolynomialField &Field() const { return fField; }
 	GPUhd() const AliGPUTPCGMPolynomialField *pField() const { return &fField; }
@@ -110,7 +109,6 @@ class AliGPUTPCGMMerger : public AliGPUProcessor
 
 	AliGPUTPCGMPolynomialField fField;
 
-	const AliGPUCAParam *fSliceParam;                   //* slice parameters (geometry, calibr, etc.)
 	const AliGPUTPCSliceOutput *fkSlices[fgkNSlices]; //* array of input slice tracks
 
 	int *fTrackLinks;
