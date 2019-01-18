@@ -63,7 +63,7 @@ double Response::chargePad(float xmin, float xmax, float ymin, float ymax, int d
   ymin *= mInversePitch[station];
   ymax *= mInversePitch[station];
 
-  // The Mathieson function
+  // The Mathieson function integral
   double ux1 = mSqrtK3x[station] * TMath::TanH(mK2x[station] * xmin);
   double ux2 = mSqrtK3x[station] * TMath::TanH(mK2x[station] * xmax);
   double uy1 = mSqrtK3y[station] * TMath::TanH(mK2y[station] * ymin);

@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/** @file MCHDigitizer.h
+/** @file Digitizer.h
  * C++  MCH Digitizer.
  * @author Michael Winn, Laurent Aphecetche
  */
@@ -30,12 +30,12 @@ namespace o2
 namespace mch
 {
 
-class MCHDigitizer
+class Digitizer
 {
  public:
-  MCHDigitizer(Int_t mode = 0);
+  Digitizer(Int_t mode = 0);
 
-  ~MCHDigitizer() = default;
+  ~Digitizer() = default;
 
   void init();
 

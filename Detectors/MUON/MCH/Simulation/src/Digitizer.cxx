@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "MCHSimulation/MCHDigitizer.h"
+#include "MCHSimulation/Digitizer.h"
 
 #include "TMath.h"
 #include "TProfile2D.h"
@@ -42,11 +42,11 @@ std::vector<o2::mch::mapping::Segmentation> createSegmentations()
 }
 } // namespace
 
-MCHDigitizer::MCHDigitizer(int) : mdetID{ createDEMap() }, mSeg{ createSegmentations() }
+Digitizer::Digitizer(int) : mdetID{ createDEMap() }, mSeg{ createSegmentations() }
 {
 }
 
-void MCHDigitizer::init()
+void Digitizer::init()
 {
   // To be done:
   //1) add a test
@@ -58,7 +58,7 @@ void MCHDigitizer::init()
 
 //______________________________________________________________________
 
-void MCHDigitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
+void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
 {
   //array of MCH hits for a given simulated event
   for (auto& hit : hits) {
@@ -72,7 +72,7 @@ void MCHDigitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digi
 }
 
 //______________________________________________________________________
-int MCHDigitizer::processHit(const Hit& hit, double event_time)
+int Digitizer::processHit(const Hit& hit, double event_time)
 {
 
   //hit position(cm)
@@ -185,7 +185,7 @@ int MCHDigitizer::processHit(const Hit& hit, double event_time)
 }
 //______________________________________________________________________
 //not clear if needed for DPL or modifications required
-void MCHDigitizer::fillOutputContainer(std::vector<Digit>& digits)
+void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
 {
   // filling the digit container
   if (mDigits.empty())
@@ -199,7 +199,7 @@ void MCHDigitizer::fillOutputContainer(std::vector<Digit>& digits)
   mDigits.erase(itBeg, iter);
 }
 //______________________________________________________________________
-void MCHDigitizer::flushOutputContainer(std::vector<Digit>& digits)
+void Digitizer::flushOutputContainer(std::vector<Digit>& digits)
 { // flush all residual buffered data
   //not clear if neede in DPL
   fillOutputContainer(digits);

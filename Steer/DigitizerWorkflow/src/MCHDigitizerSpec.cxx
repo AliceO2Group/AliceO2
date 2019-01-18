@@ -22,7 +22,7 @@
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "MCHSimulation/Digit.h"
-#include "MCHSimulation/MCHDigitizer.h"
+#include "MCHSimulation/Digitizer.h"
 #include "MCHSimulation/Detector.h"
 #include "DetectorsBase/GeometryManager.h"
 
@@ -132,7 +132,7 @@ class MCHDPLDigitizerTask
   }
 
  private:
-  MCHDigitizer mDigitizer;
+  Digitizer mDigitizer;
   std::vector<TChain*> mSimChains;
   // RS: at the moment using hardcoded flag for continuos readout
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode

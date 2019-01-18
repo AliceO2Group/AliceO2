@@ -40,13 +40,10 @@ class Digit : public DigitBase
   double getADC() const { return mADC; }
   void setADC(double adc) { mADC = adc; }
 
-  double getTimeStamp() { return mTime; }
-  void setTimeStamp(double time) { mTime = time; }
 
  private:
   int mPadID;
   double mADC;
-  double mTime;
 
   ClassDefNV(Digit, 1);
 }; //class Digit
