@@ -14,7 +14,7 @@ namespace o2
 {
 namespace mch
 {
-  
+
 std::ostream& operator<<(std::ostream& stream, const DigitStruct& digit)
 {
   stream << "{uid = " << digit.uid << ", index = " << digit.index << ", adc = " << digit.adc << "}";

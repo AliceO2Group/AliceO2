@@ -12,13 +12,11 @@
 /// @author P. Pillot
 /// @brief Structures defining the digits and the data blocks to hold them
 
-#ifndef DETECTORS_MUON_MCH_BASE_INCLUDE_MCHBASE_DIGITBLOCK_H_
-#define DETECTORS_MUON_MCH_BASE_INCLUDE_MCHBASE_DIGITBLOCK_H_
+#ifndef ALICEO2_MCH_DIGITBLOCK_H_
+#define ALICEO2_MCH_DIGITBLOCK_H_
 
 #include <cstdint>
 #include <ostream>
-
-#include "Rtypes.h"
 
 namespace o2
 {
@@ -44,7 +42,6 @@ struct DataBlockHeader {
  */
 struct DigitStruct {
 
-  
   uint32_t uid;   // Digit ID in the current mapping (from OCDB)
   uint16_t index; // Digit index in the new mapping (produced internally)
   uint16_t adc;   // ADC value of signal
@@ -52,7 +49,6 @@ struct DigitStruct {
   bool operator==(const DigitStruct& that) const { return (uid == that.uid && index == that.index && adc == that.adc); }
 
   bool operator!=(const DigitStruct& that) const { return not this->operator==(that); }
-  ClassDefNV(DigitStruct,1);
 };
 
 /**
@@ -68,7 +64,6 @@ struct DigitBlock {
   bool operator==(const DigitBlock& that) const;
 
   bool operator!=(const DigitBlock& that) const { return not this->operator==(that); }
-  ClassDefNV(DigitBlock, 1);
 };
 
 /**
