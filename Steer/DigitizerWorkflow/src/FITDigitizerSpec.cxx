@@ -94,7 +94,7 @@ class FITDPLDigitizerTask
 
     LOG(INFO) << "CALLING FIT DIGITIZATION";
 
-    static std::vector<o2::fit::HitType> hits;
+    static std::vector<o2::t0::HitType> hits;
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum;
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels;
     o2::fit::Digit digit;
@@ -104,9 +104,9 @@ class FITDPLDigitizerTask
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < timesview.size(); ++collID) {
-      mDigitizer.setEventTime(timesview[collID].timeNS);
-      mDigitizer.setOrbit(timesview[collID].orbit);
-      mDigitizer.setBC(timesview[collID].bc);
+      mT0Digitizer.setEventTime(timesview[collID].timeNS);
+      mT0Digitizer.setOrbit(timesview[collID].orbit);
+      mT0Digitizer.setBC(timesview[collID].bc);
       digit.cleardigits();
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)

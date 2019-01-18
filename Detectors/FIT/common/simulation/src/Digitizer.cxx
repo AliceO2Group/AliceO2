@@ -25,6 +25,7 @@ using namespace o2::fit;
 ClassImp(Digitizer);
 
 void Digitizer::process(const std::vector<o2::fit::HitType>* hits, Digit* digit)
+
 {
   //parameters constants TO DO: move to class
 
@@ -107,6 +108,7 @@ void Digitizer::smearCFDtime(Digit* digit)
     if (amp > parameters.mCFD_trsh_mip) {
       Double_t smeared_time = gRandom->Gaus(cfd, 0.050) + parameters.mBC_clk_center + mEventTime;
       mChDgDataArr.emplace_back(ChannelData{ mcp, smeared_time, amp, numpart });
+
     }
   }
   digit->setChDgData(std::move(mChDgDataArr));

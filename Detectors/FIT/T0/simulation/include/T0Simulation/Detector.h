@@ -17,7 +17,6 @@
 #include "SimulationDataFormat/BaseHits.h"
 #include "DetectorsBase/Detector.h" // for Detector
 #include "T0Base/Geometry.h"
-//#include "CommonUtils/ShmAllocator.h"
 #include "FITSimulation/HitType.h"
 
 class FairModule;
@@ -29,6 +28,7 @@ class TGraph;
 namespace o2
 {
 namespace t0
+
 {
 class Geometry;
 }
