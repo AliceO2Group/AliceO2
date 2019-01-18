@@ -135,7 +135,7 @@ void AliGPUTPCTracker::RegisterMemoryAllocation()
 	auto type = AliGPUMemoryResource::MEMORY_OUTPUT;
 	if (mRec->GetDeviceProcessingSettings().memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL)
 	{	//For individual scheme, we allocate tracklets separately, and change the type for the following allocations to custom
-		type =  AliGPUMemoryResource::MEMORY_CUSTOM;
+		type = AliGPUMemoryResource::MEMORY_CUSTOM;
 		mMemoryResTracklets = mRec->RegisterMemoryAllocation(this, &AliGPUTPCTracker::SetPointersTracklets, type, "TrackerTracklets");
 	}
 	mMemoryResTracks = mRec->RegisterMemoryAllocation(this, &AliGPUTPCTracker::SetPointersTracks, type, "TrackerTracks");

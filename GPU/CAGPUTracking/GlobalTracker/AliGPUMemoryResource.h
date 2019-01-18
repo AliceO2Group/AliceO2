@@ -10,14 +10,13 @@ class AliGPUMemoryResource
 	friend class AliGPUReconstructionDeviceBase;
 	
 public:
-	enum MemoryType {MEMORY_INPUT = 0, MEMORY_SCRATCH = 1, MEMORY_OUTPUT = 2, MEMORY_SCRATCH_HOST = 3, MEMORY_PERMANENT = 4, MEMORY_CUSTOM = 5};
+	enum MemoryType {MEMORY_HOST = 1, MEMORY_GPU = 2, MEMORY_INPUT = 7, MEMORY_OUTPUT = 11, MEMORY_INOUT = 15, MEMORY_SCRATCH = 16, MEMORY_SCRATCH_HOST = 17, MEMORY_PERMANENT = 32, MEMORY_CUSTOM = 64};
 	enum AllocationType {ALLOCATION_AUTO = 0, ALLOCATION_INDIVIDUAL = 1, ALLOCATION_GLOBAL = 2};
 	
 #ifndef GPUCA_GPUCODE
 	AliGPUMemoryResource(AliGPUProcessor* proc, void* (AliGPUProcessor::*setPtr)(void*), MemoryType type, const char* name = "") :
 		mProcessor(proc), mPtr(nullptr), mPtrDevice(nullptr), mSetPointers(setPtr), mType(type), mSize(0), mName(name)
-	{
-	}
+	{}
 	AliGPUMemoryResource(const AliGPUMemoryResource&) CON_DEFAULT;
 #endif
 	
