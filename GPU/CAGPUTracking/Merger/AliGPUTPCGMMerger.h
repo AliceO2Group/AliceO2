@@ -38,7 +38,7 @@ class AliGPUTPCGMMerger : public AliGPUProcessor
 
   public:
 	AliGPUTPCGMMerger();
-	~AliGPUTPCGMMerger() CON_DEFAULT;
+	~AliGPUTPCGMMerger();
 
 	void InitializeProcessor();
 	void RegisterMemoryAllocation();

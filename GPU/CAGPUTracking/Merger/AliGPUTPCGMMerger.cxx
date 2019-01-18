@@ -104,6 +104,11 @@ AliGPUTPCGMMerger::AliGPUTPCGMMerger() :
 	for (int i = 0; i < fgkNSlices; i++) fkSlices[i] = NULL;
 }
 
+AliGPUTPCGMMerger::~AliGPUTPCGMMerger()
+{
+	if (fClusterAttachment) delete[] fClusterAttachment;
+}
+
 //DEBUG CODE
 #if defined(GPUCA_MERGER_BY_MC_LABEL) || DEBUG == 1
 void AliGPUTPCGMMerger::CheckMergedTracks()

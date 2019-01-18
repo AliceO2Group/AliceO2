@@ -394,30 +394,20 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 
 	fThreadId = GetThread();
 
-#ifdef GPUCA_GPU_MERGER
-	fGPUMergerMaxMemory = GPUCA_GPU_MERGER_MEMORY;
-#endif
-	const size_t trackerGPUMem  = GPUCA_GPU_ROWS_MEMORY + GPUCA_GPU_COMMON_MEMORY + NSLICES * (GPUCA_GPU_SLICE_DATA_MEMORY + GPUCA_GPU_GLOBAL_MEMORY);
-	const size_t trackerHostMem = GPUCA_GPU_ROWS_MEMORY + GPUCA_GPU_COMMON_MEMORY + NSLICES * (GPUCA_GPU_SLICE_DATA_MEMORY + GPUCA_GPU_TRACKS_MEMORY) + GPUCA_GPU_TRACKER_OBJECT_MEMORY;
-	fGPUMemSize = trackerGPUMem + fGPUMergerMaxMemory + GPUCA_GPU_MEMALIGN + GPUCA_GPU_MEMORY_SIZE;
-	fHostMemSize = trackerHostMem + fGPUMergerMaxMemory + GPUCA_GPU_MEMALIGN + GPUCA_HOST_MEMORY_SIZE;
-	int retVal = InitDevice_Runtime();
-	
-	if (mDeviceProcessingSettings.globalInitMutex) ReleaseGlobalLock(semLock);
-	
-	mDeviceMemoryBase = mDeviceMemoryPermanent = (char*) fGPUMemory + trackerGPUMem + fGPUMergerMaxMemory;
-	mHostMemoryBase = mHostMemoryPermanent = (char*) fHostLockedMemory + trackerHostMem + fGPUMergerMaxMemory;
 	mDeviceMemorySize = GPUCA_GPU_MEMORY_SIZE;
 	mHostMemorySize = GPUCA_HOST_MEMORY_SIZE;
-	ClearAllocatedMemory();
-
-	fGPUMergerMemory = (char*) fGPUMemory + trackerGPUMem;
-	fGPUMergerHostMemory = (char*) fHostLockedMemory + trackerHostMem;
+	int retVal = InitDevice_Runtime();
 	if (retVal)
 	{
 		CAGPUImportant("GPU Tracker initialization failed");
 		return(1);
 	}
+	
+	if (mDeviceProcessingSettings.globalInitMutex) ReleaseGlobalLock(semLock);
+	
+	mDeviceMemoryPermanent = mDeviceMemoryBase;
+	mHostMemoryPermanent = mHostMemoryBase;
+	ClearAllocatedMemory();
 
 	workers.InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_SLAVE);
 	workersDevice.InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE, &workers);
@@ -541,7 +531,7 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_Init()
 	
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 	{
-		fGpuTracker[iSlice].GPUParametersConst()->fGPUMem = (char*) fGPUMemory;
+		fGpuTracker[iSlice].GPUParametersConst()->fGPUMem = (char*) mDeviceMemoryBase;
 		//Initialize Startup Constants
 		*mTPCSliceTrackersCPU[iSlice].NTracklets() = 0;
 		*mTPCSliceTrackersCPU[iSlice].NTracks() = 0;
