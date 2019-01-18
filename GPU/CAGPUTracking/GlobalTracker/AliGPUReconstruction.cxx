@@ -242,7 +242,7 @@ size_t AliGPUReconstruction::AllocateRegisteredMemory(AliGPUProcessor* proc)
 	size_t total = 0;
 	for (unsigned int i = 0;i < mMemoryResources.size();i++)
 	{
-		if ((proc == nullptr || mMemoryResources[i].mProcessor == proc) && mMemoryResources[i].mType != AliGPUMemoryResource::MEMORY_CUSTOM) total += AllocateRegisteredMemory(i);
+		if ((proc == nullptr || mMemoryResources[i].mProcessor == proc) && !(mMemoryResources[i].mType & AliGPUMemoryResource::MEMORY_CUSTOM)) total += AllocateRegisteredMemory(i);
 	}
 	if (mDeviceProcessingSettings.debugLevel >= 5) printf("Allocating memory done\n");
 	return total;
@@ -254,7 +254,7 @@ size_t AliGPUReconstruction::AllocateRegisteredPermanentMemory()
 	int total = 0;
 	for (unsigned int i = 0;i < mMemoryResources.size();i++)
 	{
-		if (mMemoryResources[i].mType == AliGPUMemoryResource::MEMORY_PERMANENT && mMemoryResources[i].mPtr == nullptr) total += AllocateRegisteredMemory(i);
+		if ((mMemoryResources[i].mType & AliGPUMemoryResource::MEMORY_PERMANENT) && mMemoryResources[i].mPtr == nullptr) total += AllocateRegisteredMemory(i);
 	}
 	mHostMemoryPermanent = mHostMemoryPool;
 	mDeviceMemoryPermanent = mDeviceMemoryPool;
@@ -277,10 +277,10 @@ size_t AliGPUReconstruction::AllocateRegisteredMemoryHelper(AliGPUMemoryResource
 size_t AliGPUReconstruction::AllocateRegisteredMemory(short ires)
 {
 	AliGPUMemoryResource* res = &mMemoryResources[ires];
-	if (res->mType == AliGPUMemoryResource::MEMORY_PERMANENT && res->mPtr != nullptr)
+	if ((res->mType & AliGPUMemoryResource::MEMORY_PERMANENT) && res->mPtr != nullptr)
 	{
 		res->SetPointers(res->mPtr);
-		if (IsGPU()) res->SetDevicePointers(res->mPtrDevice);
+		if (IsGPU() && (res->mType & AliGPUMemoryResource::MEMORY_GPU)) res->SetDevicePointers(res->mPtrDevice);
 
 		return res->mSize;
 	}
@@ -294,16 +294,16 @@ size_t AliGPUReconstruction::AllocateRegisteredMemory(short ires)
 	else
 	{
 		if (res->mPtr != nullptr) {printf("Double allocation!\n"); throw std::bad_alloc();}
-		if (!IsGPU() || res->mType != AliGPUMemoryResource::MEMORY_SCRATCH || mDeviceProcessingSettings.keepAllMemory)
+		if (!IsGPU() || (res->mType & AliGPUMemoryResource::MEMORY_HOST) || mDeviceProcessingSettings.keepAllMemory)
 		{
 			res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, mHostMemoryPool, mHostMemoryBase, mHostMemorySize, &AliGPUMemoryResource::SetPointers);
 		}
-		if (IsGPU() && res->mType != AliGPUMemoryResource::MEMORY_SCRATCH_HOST)
+		if (IsGPU() && (res->mType & AliGPUMemoryResource::MEMORY_GPU))
 		{
 			if (res->mProcessor->mDeviceProcessor == nullptr) {printf("Device Processor not set (%s)\n", res->mName); throw std::bad_alloc();}
 			size_t size = AllocateRegisteredMemoryHelper(res, res->mPtrDevice, mDeviceMemoryPool, mDeviceMemoryBase, mDeviceMemorySize, &AliGPUMemoryResource::SetDevicePointers);
 			
-			if (res->mType == AliGPUMemoryResource::MEMORY_SCRATCH && !mDeviceProcessingSettings.keepAllMemory)
+			if (!(res->mType & AliGPUMemoryResource::MEMORY_HOST))
 			{
 				res->mSize = size;
 			}
@@ -321,7 +321,7 @@ void AliGPUReconstruction::FreeRegisteredMemory(AliGPUProcessor* proc)
 {
 	for (unsigned int i = 0;i < mMemoryResources.size();i++)
 	{
-		if ((proc == nullptr || mMemoryResources[i].mProcessor == proc) && mMemoryResources[i].mType != AliGPUMemoryResource::MEMORY_CUSTOM) FreeRegisteredMemory(i);
+		if ((proc == nullptr || mMemoryResources[i].mProcessor == proc) && !(mMemoryResources[i].mType & AliGPUMemoryResource::MEMORY_CUSTOM)) FreeRegisteredMemory(i);
 	}
 }
 
@@ -330,13 +330,14 @@ void AliGPUReconstruction::FreeRegisteredMemory(short ires)
 	AliGPUMemoryResource* res = &mMemoryResources[ires];
 	if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL) operator delete(res->mPtr);
 	res->mPtr = nullptr;
+	res->mPtrDevice = nullptr;
 }
 
 void AliGPUReconstruction::ClearAllocatedMemory()
 {
 	for (unsigned int i = 0;i < mMemoryResources.size();i++)
 	{
-		if (mMemoryResources[i].mType != AliGPUMemoryResource::MEMORY_PERMANENT) FreeRegisteredMemory(i);
+		if (!(mMemoryResources[i].mType & AliGPUMemoryResource::MEMORY_PERMANENT)) FreeRegisteredMemory(i);
 	}
 	mHostMemoryPool = alignPointer<GPUCA_GPU_MEMALIGN>(mHostMemoryPermanent);
 	mDeviceMemoryPool = alignPointer<GPUCA_GPU_MEMALIGN>(mDeviceMemoryPermanent);
