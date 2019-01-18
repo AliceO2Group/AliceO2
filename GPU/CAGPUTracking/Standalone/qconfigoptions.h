@@ -88,7 +88,7 @@ AddOption(runs2, int, 1, "runsExternal", 0, "Number of iterations to perform (re
 AddOption(runsInit, int, 0, "runsInit", 0, "Number of initial iterations excluded from average", min(0))
 AddOption(EventsDir, const char*, "pp", "events", 'e', "Directory with events to process", message("Reading events from Directory events/%s"))
 AddOption(OMPThreads, int, -1, "omp", 't', "Number of OMP threads to run (-1: all)", min(-1), message("Using %d OMP threads"))
-AddOption(eventDisplay, int, 0, "display", 'd', "Show standalone event display", def(1)) //1: default display (Windows / X11), 2: glut
+AddOption(eventDisplay, int, 0, "display", 'd', "Show standalone event display", def(1)) //1: default display (Windows / X11), 2: glut, 3: glfw
 AddOption(qa, bool, false, "qa", 'q', "Enable tracking QA", message("Running QA: %s"))
 AddOption(eventGenerator, bool, false, "eventGenerator", 0, "Run event generator")
 AddOption(nways, int, 3, "NWays", 0, "Use n-way track-fit", min(1))

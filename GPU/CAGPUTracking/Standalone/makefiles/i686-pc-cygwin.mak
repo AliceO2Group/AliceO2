@@ -1,4 +1,4 @@
-#Set these Compiler Paths and Variables to your needs! 
+#Set these Compiler Paths and Variables to your needs!
 VSPATH							:= ${VS140COMNTOOLS}../..
 VSPATH6							:= c:/Utility/Speeches/Visual Studio 6
 ICCPATH							:= ${ICPP_COMPILER17}
@@ -43,12 +43,12 @@ LINKFLAGS64						= $(LINKFLAGSCOMMON) /machine:X64
 PREHEADER						= /Fp"$@.pch" /Fd"$@.pdb"
 CFLAGSCOMMON					= $(PREHEADER) /nologo /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /W3 $(MULTITHREAD)
 CFLAGS32						= $(CFLAGSCOMMON)
-CFLAGS64						= $(CFLAGSCOMMON) /D "_WIN64" /D "_AMD64_" /D "_X64_" 
+CFLAGS64						= $(CFLAGSCOMMON) /D "_WIN64" /D "_AMD64_" /D "_X64_"
 DEBUGFLAGS						= /EHs /Zi /Od /D "DEBUG_RUNTIME"
 
 GCCFLAGS32						+= -mrtd
 
-INTELQPROF						= 
+INTELQPROF						=
 #/Qprof_gen, /Qprof_use
 
 #Intel Compiler Options
@@ -65,7 +65,7 @@ INTELFLAGSBASE					= /EHsc /D "INTEL_RUNTIME" /Qprof_dir$(WORKPATH) $(MULTITHREA
 INTELFLAGSCOMMON				= $(INTELFLAGSBASE) $(INTELFLAGSUSE)
 INTELFLAGS32					= $(INTELFLAGSCOMMON) /Oy /Gr
 INTELFLAGS64					= $(INTELFLAGSCOMMON)
-# /Zd /Zi /Qvec_report0 
+# /Zd /Zi /Qvec_report0
 
 #VectorC Compiler Options
 VECTORCOPTIMIZED				= /ssecalls /optimize 10 /max /target p4 /autoinline 4096 /vc /Ob2 /Oi /Ot
@@ -200,11 +200,14 @@ LIBSUSE							+= amstrmid.lib msacm32.lib vfw32.lib winmm.lib
 endif
 
 ifeq ("$(CONFIG_OPENGL)", "1")
-LIBSUSE							+= opengl32.lib glu32.lib freeglut.lib
+LIBSUSE							+= opengl32.lib glu32.lib
 ifeq ($(ARCHBITS), 64)
 LIBSUSE							+= glew64.lib
 else
 LIBSUSE							+= glew32.lib
+endif
+ifeq ("$(CONFIG_GLUT)", "1")
+LIBSUSE							+= freeglut.lib
 endif
 endif
 
@@ -278,7 +281,7 @@ COMPILEOUTPUT					= $(COMPILEOUTPUTBASE)"$@"
 LINKOUTPUT						= /Out:"$@"
 COMPILEONLY						= /c
 ASMONLY							= /c
-PRECOMPILEONLY					= /EP 
+PRECOMPILEONLY					= /EP
 endif
 OBJ								= obj
 
