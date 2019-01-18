@@ -17,6 +17,7 @@
 #pragma link C++ class o2::t0::CollisionTimeRecoTask + ;
 #pragma link C++ class o2::t0::RecPoints + ;
 #pragma link C++ class std::vector < o2::t0::RecPoints > +;
+
 #pragma link C++ class o2::t0::Channel + ;
 
 #endif

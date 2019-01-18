@@ -15,10 +15,6 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::t0::Detector + ;
-//#pragma link C++ class o2::t0::DigitizerTask + ;
-//#pragma link C++ class o2::t0::HitType + ;
-//#pragma link C++ class vector < o2::t0::HitType > +;
-
 #pragma link C++ class o2::Base::DetImpl < o2::t0::Detector > +;
 
 #endif

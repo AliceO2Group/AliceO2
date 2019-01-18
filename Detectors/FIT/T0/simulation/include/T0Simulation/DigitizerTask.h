@@ -59,12 +59,12 @@ class DigitizerTask : public FairTask
   Digitizer mDigitizer;                                     ///< Digitizer
   const std::vector<o2::t0::HitType>* mHitsArray = nullptr; ///< Array of MC hits
 
-  TBranch* mQEDBranch = nullptr;                                //! optional special branch of hits from QED collitions
-  const std::vector<o2::fit::HitType>* mHitsArrayQED = nullptr; //! array of MC hits from ED
-  float mQEDEntryTimeBinNS = 0.f;                               ///< every entry in the QED branch integrates QED for so many nanosec.
-  double mLastQEDTimeNS = 0.;                                   ///< center of the time-bin of last added QED bg slot (entry of mQEDBranch)
-  int mLastQEDEntry = -1;                                       ///< last used QED entry
-  UChar_t mQEDSourceID = 0;                                     ///< MC ID source of the QED (stored in the labels)
+  TBranch* mQEDBranch = nullptr;                               //! optional special branch of hits from QED collitions
+  const std::vector<o2::t0::HitType>* mHitsArrayQED = nullptr; //! array of MC hits from ED
+  float mQEDEntryTimeBinNS = 0.f;                              ///< every entry in the QED branch integrates QED for so many nanosec.
+  double mLastQEDTimeNS = 0.;                                  ///< center of the time-bin of last added QED bg slot (entry of mQEDBranch)
+  int mLastQEDEntry = -1;                                      ///< last used QED entry
+  UChar_t mQEDSourceID = 0;                                    ///< MC ID source of the QED (stored in the labels)
 
   o2::fit::Digit* mEventDigit = nullptr;
   o2::dataformats::MCTruthContainer<o2::fit::MCLabel> mMCTruthArray;                      //! Labels containter
