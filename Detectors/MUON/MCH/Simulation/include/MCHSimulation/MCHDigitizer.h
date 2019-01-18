@@ -8,6 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/** @file MCHDigitizer.h
+ * C++  MCH Digitizer.
+ * @author Michael Winn, Laurent Aphecetche
+ */
+
 #ifndef O2_MCH_SIMULATION_MCHDIGITIZER_H_
 #define O2_MCH_SIMULATION_MCHDIGITIZER_H_
  

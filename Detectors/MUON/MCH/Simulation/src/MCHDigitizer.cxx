@@ -9,7 +9,6 @@
 // or submit itself to any jurisdiction.
 
 #include "MCHSimulation/MCHDigitizer.h"
-#include "MCHSimulation/GeometryTest.h"
 
 #include "TMath.h"
 #include "TProfile2D.h"
@@ -82,51 +81,31 @@ int MCHDigitizer::processHit(const Hit &hit, double event_time)
   //hit has global coordinates
   //convert energy to charge, float enough?
   float charge = mMuonresponse.etocharge(hit.GetEnergyLoss());
-  std::cout << "charge " << charge << std::endl;
-  std::cout << "pos.X() " << pos.X() << std::endl;
-  std::cout << "pos.Y() " << pos.Y() << std::endl;
-  std::cout << "pos.Z() " << pos.Z() << std::endl;
-
+  //std::cout << "charge " << charge << std::endl;
 
   //time information
-  float time = hit.GetTime(); //how to trace
+  float time = hit.GetTime(); //to be used for pile-up
   int detID = hit.GetDetectorID();
   //get index for this detID
   int indexID = mdetID.at(detID);
   //# digits for hit
   int ndigits = 0;
   
-  std::cout << "gGeoManager=" << gGeoManager<< std::endl;
-  std::cout << "topVolume=" << gGeoManager->GetTopVolume() << std::endl;
-  std::cout << "topVolume=" << gGeoManager->GetTopVolume()->GetName() << std::endl;
-
-  std::ostringstream str;
-  o2::mch::test::showGeometryAsTextTree("/cave", 2, str);
-  std::cout << str.str() << "\n";
-  //transformation from local to global
+  //transformation from global to local
   auto t = o2::mch::getTransformation(detID, *gGeoManager);
   Point3D<float> lpos;
   t.MasterToLocal(pos, lpos);
-  //get trafo from global to local
-  std::cout << "pos=" << pos << "\n";
-  std::cout << "lpos=" << lpos << "\n";
-  
-  std::cout << "lpos.Y() " << lpos.Y() << std::endl;
-  std::cout << "lpos.Z() " << lpos.Z() << std::endl;
-  
-  float anodpos = mMuonresponse.getAnod(pos.X(),detID);
-  std::cout << "anodpos " << anodpos << std::endl; 
+
+  float anodpos = mMuonresponse.getAnod(lpos.X(), detID);
+
   //TODO/Questions:
-  //- charge sharing between planes wrong in Aliroot copied here?
   //- possibility to do random seeding in controlled way?
-  // 100% reproducible if wanted? or already given up on geant level?
-  //signal will be around neighbouring anode-wire
   //distance of impact point and anode, needed for charge sharing
   float anoddis = TMath::Abs(pos.X() - anodpos);
   //should be related to electrons fluctuating out/in one/both halves (independent x)
   float fracplane = mMuonresponse.chargeCorr();
   //should become a function of anoddis
-  std::cout << "fracplane " << fracplane << std::endl;
+  //std::cout << "fracplane " << fracplane << std::endl;
   float chargebend= fracplane * charge;
   float chargenon = charge / fracplane;
   //last line  from Aliroot, not understood why
@@ -136,13 +115,9 @@ int MCHDigitizer::processHit(const Hit &hit, double event_time)
   //borders of charge gen. 
   double xMin = anodpos - mMuonresponse.getQspreadX() * 0.5;
   double xMax = anodpos + mMuonresponse.getQspreadX() * 0.5;
-  double yMin = pos.Y() - mMuonresponse.getQspreadY() * 0.5;
-  double yMax = pos.Y() + mMuonresponse.getQspreadY() * 0.5;
-  std::cout << " xMin " << xMin << std::endl;
-  std::cout << " xMax " << xMax << std::endl;
-  std::cout << " yMin " << yMin << std::endl;
-  std::cout << " yMax " << yMax << std::endl;
-
+  double yMin = lpos.Y() - mMuonresponse.getQspreadY() * 0.5;
+  double yMax = lpos.Y() + mMuonresponse.getQspreadY() * 0.5;
+  
   //pad-borders
   float xmin = 0.0;
   float xmax = 0.0;
@@ -153,10 +128,7 @@ int MCHDigitizer::processHit(const Hit &hit, double event_time)
   //single pad as check
   int padidbendcent = 0;
   int padidnoncent = 0;
-  bool padexists = mSeg[indexID].findPadPairByPosition(anodpos,pos.Y(), padidbendcent, padidnoncent);
-  std::cout << "padexists " << padexists << std::endl;
-  std::cout << "padidbendcent " << padidbendcent << std::endl;
-  std::cout << "padidnoncent "	<< padidnoncent << std::endl;
+  bool padexists = mSeg[indexID].findPadPairByPosition(anodpos, lpos.Y(), padidbendcent, padidnoncent);
   if(!padexists)
     return 0; //to be decided if needed
   
@@ -174,33 +146,31 @@ int MCHDigitizer::processHit(const Hit &hit, double event_time)
     //retrieve coordinates for each pad
     xmin =  (anodpos - mSeg[indexID].padPositionX(padidbend)) - mSeg[indexID].padSizeX(padidbend) * 0.5;
     xmax =  xmin + mSeg[indexID].padSizeX(padidbend);
-    ymin =  (pos.Y() - mSeg[indexID].padPositionY(padidbend)) - mSeg[indexID].padSizeY(padidbend) * 0.5;
+    ymin =  (lpos.Y() - mSeg[indexID].padPositionY(padidbend)) - mSeg[indexID].padSizeY(padidbend) * 0.5;
     ymax =  ymin + mSeg[indexID].padSizeY(padidbend);
     
     // 1st step integrate induced charge for each pad
     signal = mMuonresponse.chargePad(xmin, xmax, ymin, ymax, detID, chargebend);
-  std::cout << "signal before response " <<  signal << std::endl;
-  // if(signal>mMuonresponse.getChargeThreshold()
-  //&&     signal<mMuonresponse.getChargeSat()//not yet tuned
-  //  ) {
-  //translate charge in signal
-  signal = mMuonresponse.response(signal, detID);
-  //write digit
-  mDigits.emplace_back(padidbend, signal);
-  ++ndigits;
-  //  }
+    // if(signal>mMuonresponse.getChargeThreshold()
+    //&&     signal<mMuonresponse.getChargeSat()//not yet tuned
+    //  ) {
+    //translate charge in signal
+    signal = mMuonresponse.response(signal, detID);
+    //write digit
+    mDigits.emplace_back(padidbend, signal);
+    ++ndigits;
+    //  }
   }
   //induce signal pad-by-pad: nonbending
   for (auto& padidnon : padIDsnon) {
     //retrieve coordinates for each pad
     xmin =  (anodpos - mSeg[indexID].padPositionX(padidnon)) - mSeg[indexID].padSizeX(padidnon) * 0.5;
     xmax =  xmin + mSeg[indexID].padSizeX(padidnon);
-    ymin =  (pos.Y() - mSeg[indexID].padPositionY(padidnon)) - mSeg[indexID].padSizeY(padidnon) * 0.5;
+    ymin =  (lpos.Y() - mSeg[indexID].padPositionY(padidnon)) - mSeg[indexID].padSizeY(padidnon) * 0.5;
     ymax =  ymin + mSeg[indexID].padSizeY(padidnon);
 
     // 1st step integrate induced charge for each pad
     signal = mMuonresponse.chargePad(xmin, xmax, ymin, ymax, detID, chargenon);
-    std::cout	<< "signal before response " <<	 signal << std::endl;
     //check if signal above threshold
     // if(signal>mMuonresponse.getChargeThreshold()
     //&& signal<mMuonresponse.getChargeSat()//not yet tuned

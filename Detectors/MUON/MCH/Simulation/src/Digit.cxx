@@ -8,19 +8,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "MCHSimulation/Digit.h" //check if proper path
-//check if anything else, like mapping needed
-//to be added later: MC-truth and cluster-info
-//maybe: bool whether after or before FEE simu?
-
-#include <iostream>
+#include "MCHSimulation/Digit.h"
 
 using namespace o2::mch;
 
-ClassImp(o2::mch::Digit);// does not work...
+ClassImp(o2::mch::Digit);
 
 
-Digit::Digit(int pad, double adc)//check if long etc for pad needed, need uint32_t
+Digit::Digit(int pad, double adc)
   : mPadID(pad), mADC(adc)
 {
 }
