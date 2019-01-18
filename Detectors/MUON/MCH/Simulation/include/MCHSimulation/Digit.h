@@ -40,7 +40,6 @@ class Digit : public DigitBase
   double getADC() const { return mADC; }
   void setADC(double adc) { mADC = adc; }
 
-
  private:
   int mPadID;
   double mADC;
