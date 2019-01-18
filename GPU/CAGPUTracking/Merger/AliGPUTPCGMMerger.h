@@ -40,7 +40,8 @@ class AliGPUTPCGMMerger : public AliGPUProcessor
 	AliGPUTPCGMMerger();
 	~AliGPUTPCGMMerger();
 
-	void Initialize(long int TimeStamp = 0, bool isMC = 0);
+	void InitializeProcessor();
+    void RegisterMemoryAllocation();
 	void SetSliceParamPtr(const AliGPUCAParam *param) { fSliceParam = param; }
     void OverrideSliceTracker(AliGPUTPCTracker* trk) { fSliceTrackers = trk; }
 

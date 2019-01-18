@@ -202,7 +202,7 @@ int AliGPUTPCGMMerger::GetTrackLabel(AliGPUTPCGMBorderTrack &trk)
 #endif
 //END DEBUG CODE
 
-void AliGPUTPCGMMerger::Initialize(long int TimeStamp, bool isMC)
+void AliGPUTPCGMMerger::InitializeProcessor()
 {
 	fSliceParam = &mRec->GetParam();
 	if (mRec->GetDeviceType() == AliGPUReconstruction::DeviceType::CUDA)
@@ -220,9 +220,11 @@ void AliGPUTPCGMMerger::Initialize(long int TimeStamp, bool isMC)
 #if (defined(OFFLINE_FITTER))
 	#error NOT WORKING, TIMESTAMP NOT SET
 	gOfflineFitter.Initialize(*fSliceParam, TimeStamp, isMC);
-#else
-	(void) (TimeStamp + isMC); //Suppress warning
 #endif
+}
+
+void AliGPUTPCGMMerger::RegisterMemoryAllocation()
+{
 }
 
 void AliGPUTPCGMMerger::Clear()

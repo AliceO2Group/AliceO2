@@ -14,6 +14,7 @@ MEM_CLASS_PRE() class AliGPUCAParam;
 class AliGPUProcessor
 {
 	friend class AliGPUReconstruction;
+	friend class AliGPUReconstructionDeviceBase;
 	friend class AliGPUMemoryResource;
 	
 public:
@@ -24,14 +25,17 @@ public:
 	~AliGPUProcessor();
 	AliGPUProcessor(const AliGPUProcessor&) CON_DELETE;
 	AliGPUProcessor& operator= (const AliGPUProcessor&) CON_DELETE;
-	void InitGPUProcessor(AliGPUReconstruction* rec, ProcessorType type = PROCESSOR_TYPE_CPU, AliGPUProcessor* slaveProcessor = NULL);
 #endif
 
 protected:
+#ifndef GPUCA_GPUCODE
+	void InitGPUProcessor(AliGPUReconstruction* rec, ProcessorType type = PROCESSOR_TYPE_CPU, AliGPUProcessor* slaveProcessor = NULL);
+#endif
+
 	AliGPUReconstruction* mRec;
 	ProcessorType mGPUProcessorType;
 	AliGPUProcessor* mDeviceProcessor;
 	GPUglobalref() const MEM_GLOBAL(AliGPUCAParam) *mCAParam;
-	};
+};
 
 #endif

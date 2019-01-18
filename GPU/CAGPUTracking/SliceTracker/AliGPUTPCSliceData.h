@@ -43,6 +43,7 @@ public:
 	~AliGPUTPCSliceData() CON_DEFAULT;
 #endif //!GPUCA_GPUCODE
 
+	MEM_CLASS_PRE2() void InitializeProcessor();
 	MEM_CLASS_PRE2() void InitializeRows( const MEM_LG2(AliGPUCAParam) &parameters );
 
 	/**
