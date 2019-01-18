@@ -190,7 +190,7 @@ void build_geometry(FairRunSim* run = nullptr)
   }
 
 // TODO: Fix this typo ("T0"->"V0"), after fixing the o2::v0::Detector constructor - so that it does not cause o2sim crash
-  if (isActivated("T0")) {
+  if (isActivated("V0")) {
     // FIT-V0
     run->AddModule(new o2::v0::Detector(true));
   }

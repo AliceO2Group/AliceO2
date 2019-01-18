@@ -29,6 +29,31 @@ class TGraph;
 namespace o2
 {
 namespace t0
+<<<<<<< HEAD:Detectors/FIT/T0/simulation/include/T0Simulation/Detector.h
+=======
+{
+class HitType : public o2::BasicXYZEHit<float>
+{
+ public:
+  using BasicXYZEHit<float>::BasicXYZEHit;
+};
+} // namespace t0
+} // namespace o2
+
+#ifdef USESHM
+namespace std
+{
+template <>
+class allocator<o2::t0::HitType> : public o2::utils::ShmAllocator<o2::t0::HitType>
+{
+};
+} // namespace std
+#endif
+
+namespace o2
+{
+namespace t0
+>>>>>>> first separation T0 V0:Detectors/FIT/T0/simulation/include/T0Simulation/Detector.h
 {
 class Geometry;
 }

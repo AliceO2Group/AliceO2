@@ -19,7 +19,10 @@ inline o2::fit::DigitizationParameters T0DigitizationParameters()
   result.mTime_trg_gate = 4.;                                 // ns
   result.mAmpThreshold = 100;                                 // number of photoelectrons
   result.mTimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
+<<<<<<< HEAD
   result.mIsT0 = true;
+=======
+>>>>>>> first separation T0 V0
 
   return result;
 }

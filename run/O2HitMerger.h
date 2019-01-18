@@ -467,12 +467,17 @@ void O2HitMerger::initDetInstances()
       mDetectorInstances[i] = std::move(std::make_unique<o2::tof::Detector>(true));
       counter++;
     }
+<<<<<<< HEAD
     if (i == DetID::T0) {
       mDetectorInstances[i] = std::move(std::make_unique<o2::t0::Detector>(true));
       counter++;
     }
     if (i == DetID::V0) {
       mDetectorInstances[i] = std::move(std::make_unique<o2::v0::Detector>(true));
+=======
+    if (i == DetID::FIT) {
+      mDetectorInstances[i] = std::move(std::make_unique<o2::t0::Detector>(true));
+>>>>>>> first separation T0 V0
       counter++;
     }
     if (i == DetID::MCH) {

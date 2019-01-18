@@ -76,6 +76,7 @@ void Digitizer::process(const std::vector<o2::fit::HitType>* hits, Digit* digit)
   }
 }
 
+<<<<<<< HEAD:Detectors/FIT/common/simulation/src/Digitizer.cxx
 void Digitizer::computeAverage(Digit& digit)
 {
   constexpr Float_t nPe_in_mip = 250.; // n ph. e. in one mip
@@ -86,6 +87,7 @@ void Digitizer::computeAverage(Digit& digit)
     ch_data.CFDTime /= ch_data.numberOfParticles;
     if (parameters.mIsT0)
       ch_data.QTCAmpl = ch_data.numberOfParticles / nPe_in_mip;
+
   }
   channel_data.erase(std::remove_if(channel_data.begin(), channel_data.end(),
                                     [this](ChannelData const& ch_data) {
