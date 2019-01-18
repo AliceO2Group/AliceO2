@@ -33,7 +33,6 @@ namespace tcp {
   {
     TRDArrayADC data = new TRDArrayADC();
     //set bits as corrupted and see if they are detected correctly
-    
   }
 }
 }
