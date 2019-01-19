@@ -12,7 +12,7 @@ public:
 	virtual void StartDisplay() override;
 	virtual void* OpenGLMain(void*) override;
 	virtual void DisplayExit() override;
-	virtual void SwitchFullscreen() override;
+	virtual void SwitchFullscreen(bool set) override;
 	virtual void ToggleMaximized(bool set) override;
 	virtual void SetVSync(bool enable) override;
 	virtual void OpenGLPrint(const char* s) override;
