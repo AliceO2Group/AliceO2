@@ -709,7 +709,7 @@ int AliGPUReconstruction::RunStandalone()
 	{
 		if (!mDisplayRunning)
 		{
-			mDeviceProcessingSettings.eventDisplay->StartDisplay();
+			mEventDisplay->StartDisplay();
 			mDisplayRunning = true;
 		}
 		else

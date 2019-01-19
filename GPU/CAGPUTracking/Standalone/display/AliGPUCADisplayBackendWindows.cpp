@@ -376,7 +376,7 @@ DWORD WINAPI OpenGLMain()
 
 void DisplayExit() {}
 void OpenGLPrint(const char* s) {}
-void SwitchFullscreen() {}
+void SwitchFullscreen(bool set) {}
 void ToggleMaximized(bool set) {}
 void SetVSync(bool enable) {}
 

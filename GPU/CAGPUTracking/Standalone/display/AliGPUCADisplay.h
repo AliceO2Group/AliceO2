@@ -17,11 +17,12 @@ public:
 	
 	typedef structConfigGL configDisplay;
 	
+	void StartDisplay();
 	void ShowNextEvent() {}
 	void WaitForNextEvent(){}
 	void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster) {}
 
-	void HandleKeyRelease(int wParam, char key) {}
+	void HandleKeyRelease(unsigned char key) {}
 	int DrawGLScene(bool mixAnimation = false, float animateTime = -1.f) {return 1;}
 	void HandleSendKey() {}
 	int InitGL() {return 1;}
@@ -55,11 +56,12 @@ public:
 	
 	typedef AliGPUCADisplayConfig configDisplay;
 	
+	void StartDisplay();
 	void ShowNextEvent();
 	void WaitForNextEvent();
 	void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster);
 	
-	void HandleKeyRelease(int wParam, char key);
+	void HandleKeyRelease(unsigned char key);
 	int DrawGLScene(bool mixAnimation = false, float animateTime = -1.f);
 	void HandleSendKey();
 	int InitGL();
@@ -230,8 +232,10 @@ private:
 	const int drawQualityRenderToTexture = 1;
 	int drawQualityMSAA = 0;
 	int drawQualityDownsampleFSAA = 0;
-	bool drawQualityVSync = 0;
-
+	bool drawQualityVSync = false;
+	bool maximized = true;
+	bool fullscreen = false;
+	
 	int testSetting = 0;
 
 	bool camLookOrigin = false;

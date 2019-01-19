@@ -1760,44 +1760,36 @@ void AliGPUCADisplay::PrintHelp()
 	for (unsigned int i = 0;i < sizeof(HelpText) / sizeof(HelpText[0]);i++) printf("%s\n", HelpText[i]);
 }
 
-void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
+void AliGPUCADisplay::HandleKeyRelease(unsigned char key)
 {
-	mBackend->keys[wParam] = false;
-
-	if (wParam >= 'A' && wParam <= 'Z')
-	{
-		if (mBackend->keysShift[wParam]) wParam &= ~(int) ('a' ^ 'A');
-		else wParam |= (int) ('a' ^ 'A');
-	}
-
-	if (wParam == 13 || wParam == 'n')
+	if (key == 13 || key == 'n')
 	{
 		mBackend->displayControl = 1;
 		SetInfo("Showing next event", 1);
 	}
-	else if (wParam == 27 || wParam == 'q' || wParam == 'Q')
+	else if (key == 27 || key == 'q' || key == 'Q' || key == mBackend->KEY_ESCAPE)
 	{
 		mBackend->displayControl = 2;
 		SetInfo("Exiting", 1);
 	}
-	else if (wParam == 'r')
+	else if (key == 'r')
 	{
 		resetScene = 1;
 		SetInfo("View reset", 1);
 	}
-	else if (wParam == mBackend->KEY_ALT && mBackend->keysShift[mBackend->KEY_ALT])
+	else if (key == mBackend->KEY_ALT && mBackend->keysShift[mBackend->KEY_ALT])
 	{
 		camLookOrigin ^= 1;
 		cameraMode = camLookOrigin + 2 * camYUp;
 		SetInfo("Camera locked on origin: %s", camLookOrigin ? "enabled" : "disabled");
 	}
-	else if (wParam == mBackend->KEY_CTRL && mBackend->keysShift[mBackend->KEY_CTRL])
+	else if (key == mBackend->KEY_CTRL && mBackend->keysShift[mBackend->KEY_CTRL])
 	{
 		camYUp ^= 1;
 		cameraMode = camLookOrigin + 2 * camYUp;
 		SetInfo("Camera locked on y-axis facing upwards: %s", camYUp ? "enabled" : "disabled");
 	}
-	else if (wParam == 'm')
+	else if (key == 'm')
 	{
 		cameraMode++;
 		if (cameraMode == 4) cameraMode = 0;
@@ -1806,11 +1798,11 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		const char* modeText[] = {"Descent (free movement)", "Focus locked on origin (y-axis forced upwards)", "Spectator (y-axis forced upwards)", "Focus locked on origin (with free rotation)"};
 		SetInfo("Camera mode %d: %s", cameraMode, modeText[cameraMode]);
 	}
-	else if (wParam == mBackend->KEY_ALT)
+	else if (key == mBackend->KEY_ALT)
 	{
 		mBackend->keys[mBackend->KEY_CTRL] = false; //Release CTRL with alt, to avoid orienting along y automatically!
 	}
-	else if (wParam == 'l')
+	else if (key == 'l')
 	{
 		if (cfg.drawSlice >= (cfg.drawRelatedSlices ? (fgkNSlices / 4 - 1) : (fgkNSlices - 1)))
 		{
@@ -1823,7 +1815,7 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 			SetInfo("Showing slice %d", cfg.drawSlice);
 		}
 	}
-	else if (wParam == 'k')
+	else if (key == 'k')
 	{
 		if (cfg.drawSlice <= -1)
 		{
@@ -1836,12 +1828,12 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		if (cfg.drawSlice == -1) SetInfo("Showing all slices", 1);
 		else SetInfo("Showing slice %d", cfg.drawSlice);
 	}
-	else if (wParam == 'J')
+	else if (key == 'J')
 	{
 		cfg.drawRelatedSlices ^= 1;
 		SetInfo("Drawing of related slices %s", cfg.drawRelatedSlices ? "enabled" : "disabled");
 	}
-	else if (wParam == 'L')
+	else if (key == 'L')
 	{
 		if (cfg.showCollision >= nCollisions - 1)
 		{
@@ -1854,7 +1846,7 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 			SetInfo("Showing collision %d", cfg.showCollision);
 		}
 	}
-	else if (wParam == 'K')
+	else if (key == 'K')
 	{
 		if (cfg.showCollision <= -1)
 		{
@@ -1867,34 +1859,36 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		if (cfg.showCollision == -1) SetInfo("Showing all collisions", 1);
 		else SetInfo("Showing collision %d", cfg.showCollision);
 	}
-	else if (wParam == 'F')
+	else if (key == 'F')
 	{
-		mBackend->SwitchFullscreen();
-		SetInfo("Toggling full screen", 1);
+		fullscreen ^= 1;
+		mBackend->SwitchFullscreen(fullscreen);
+		SetInfo("Toggling full screen (%d)", (int) fullscreen);
 	}
-	else if (wParam == '_')
+	else if (key == '_')
 	{
-		mBackend->ToggleMaximized();
-		SetInfo("Toggling maximized window", 1);
+		maximized ^= 1;
+		mBackend->ToggleMaximized(maximized);
+		SetInfo("Toggling maximized window (%d)", (int) maximized);
 	}
-	else if (wParam == 'R')
+	else if (key == 'R')
 	{
 		mBackend->maxFPSRate ^= 1;
 		SetInfo("FPS rate %s", mBackend->maxFPSRate ? "not limited" : "limited");
 	}
-	else if (wParam == 'H')
+	else if (key == 'H')
 	{
 		printInfoText += 1;
 		printInfoText &= 3;
 		SetInfo("Info text display - console: %s, onscreen %s", (printInfoText & 2) ? "enabled" : "disabled", (printInfoText & 1) ? "enabled" : "disabled");
 	}
-	else if (wParam == 'j')
+	else if (key == 'j')
 	{
 		separateGlobalTracks ^= 1;
 		SetInfo("Seperated display of global tracks %s", separateGlobalTracks ? "enabled" : "disabled");
 		updateDLList = true;
 	}
-	else if (wParam == 'c')
+	else if (key == 'c')
 	{
 		if (markClusters == 0) markClusters = 1;
 		else if (markClusters >= 0x20) markClusters = 0;
@@ -1902,7 +1896,7 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		SetInfo("Cluster flag highlight mask set to %d (%s)", markClusters, markClusters == 0 ? "off" : markClusters == 1 ? "split pad" : markClusters == 2 ? "split time" : markClusters == 4 ? "edge" : markClusters == 8 ? "singlePad" : markClusters == 0x10 ? "reject distance" : "reject error");
 		updateDLList = true;
 	}
-	else if (wParam == 'B')
+	else if (key == 'B')
 	{
 		markAdjacentClusters++;
 		if (markAdjacentClusters == 5) markAdjacentClusters = 7;
@@ -1913,58 +1907,58 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		else SetInfo("Marking adjacent clusters (%d): rejected %s, tube %s, looper leg %s, low Pt %s", markAdjacentClusters, markAdjacentClusters & 1 ? "yes" : " no", markAdjacentClusters & 2 ? "yes" : " no", markAdjacentClusters & 4 ? "yes" : " no", markAdjacentClusters & 8 ? "yes" : " no");
 		updateDLList = true;
 	}
-	else if (wParam == 'C')
+	else if (key == 'C')
 	{
 		cfg.colorCollisions ^= 1;
 		SetInfo("Color coding of collisions %s", cfg.colorCollisions ? "enabled" : "disabled");
 	}
-	else if (wParam == 'V')
+	else if (key == 'V')
 	{
 		cfg.colorClusters ^= 1;
 		SetInfo("Color coding for seed / trrack attachmend %s", cfg.colorClusters ? "enabled" : "disabled");
 	}
-	else if (wParam == 'E')
+	else if (key == 'E')
 	{
 		cfg.propagateTracks += 1;
 		if (cfg.propagateTracks == 4) cfg.propagateTracks = 0;
 		const char* infoText[] = {"Hits connected", "Hits connected and propagated to vertex", "Reconstructed track propagated inwards and outwards", "Monte Carlo track"};
 		SetInfo("Display of propagated tracks: %s", infoText[cfg.propagateTracks]);
 	}
-	else if (wParam == 'G')
+	else if (key == 'G')
 	{
 		propagateLoopers ^= 1;
 		SetInfo("Propagation of loopers %s", propagateLoopers ? "enabled" : "disabled");
 		updateDLList = true;
 	}
-	else if (wParam == 'v')
+	else if (key == 'v')
 	{
 		hideRejectedClusters ^= 1;
 		SetInfo("Rejected clusters are %s", hideRejectedClusters ? "hidden" : "shown");
 		updateDLList = true;
 	}
-	else if (wParam == 'b')
+	else if (key == 'b')
 	{
 		hideUnmatchedClusters ^= 1;
 		SetInfo("Unmatched clusters are %s", hideRejectedClusters ? "hidden" : "shown");
 		updateDLList = true;
 	}
-	else if (wParam == 'i')
+	else if (key == 'i')
 	{
 		projectxy ^= 1;
 		SetInfo("Projection onto xy plane %s", projectxy ? "enabled" : "disabled");
 		updateDLList = true;
 	}
-	else if (wParam == 'S')
+	else if (key == 'S')
 	{
 		cfg.smoothPoints ^= true;
 		SetInfo("Smoothing of points %s", cfg.smoothPoints ? "enabled" : "disabled");
 	}
-	else if (wParam == 'A')
+	else if (key == 'A')
 	{
 		cfg.smoothLines ^= true;
 		SetInfo("Smoothing of lines %s", cfg.smoothLines ? "enabled" : "disabled");
 	}
-	else if (wParam == 'D')
+	else if (key == 'D')
 	{
 		cfg.depthBuffer ^= true;
 		GLint depthBits;
@@ -1972,7 +1966,7 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		SetInfo("Depth buffer (z-buffer, %d bits) %s", depthBits, cfg.depthBuffer ? "enabled" : "disabled");
 		setDepthBuffer();
 	}
-	else if (wParam == 'W')
+	else if (key == 'W')
 	{
 		drawQualityMSAA*= 2;
 		if (drawQualityMSAA < 2) drawQualityMSAA = 2;
@@ -1980,7 +1974,7 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		UpdateOffscreenBuffers();
 		SetInfo("Multisampling anti-aliasing factor set to %d", drawQualityMSAA);
 	}
-	else if (wParam == 'U')
+	else if (key == 'U')
 	{
 		drawQualityDownsampleFSAA++;
 		if (drawQualityDownsampleFSAA == 1) drawQualityDownsampleFSAA = 2;
@@ -1988,13 +1982,13 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		UpdateOffscreenBuffers();
 		SetInfo("Downsampling anti-aliasing factor set to %d", drawQualityDownsampleFSAA);
 	}
-	else if (wParam == 'V')
+	else if (key == 'V')
 	{
 		drawQualityVSync ^= true;
 		mBackend->SetVSync(drawQualityVSync);
 		SetInfo("VSync: %s", drawQualityVSync ? "enabled" : "disabled");
 	}
-	else if (wParam == 'I')
+	else if (key == 'I')
 	{
 		useGLIndirectDraw ^= true;
 		SetInfo("OpenGL Indirect Draw %s", useGLIndirectDraw ? "enabled" : "disabled");
@@ -2021,12 +2015,12 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		if (invertColors) {CHKERR(glClearColor(1.0f, 1.0f, 1.0f, 1.0f));}
 		else {CHKERR(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));}
 	}
-	else if (wParam == 'g')
+	else if (key == 'g')
 	{
 		cfg.drawGrid ^= 1;
 		SetInfo("Fast Cluster Search Grid %s", cfg.drawGrid ? "shown" : "hidden");
 	}
-	else if (wParam == 'x')
+	else if (key == 'x')
 	{
 		cfg.excludeClusters ^= 1;
 		SetInfo(cfg.excludeClusters ? "Clusters of selected category are excluded from display" : "Clusters are shown", 1);
@@ -2037,39 +2031,39 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		SetInfo("Rejected tracks are %s", hideRejectedTracks ? "hidden" : "shown");
 		updateDLList = true;
 	}
-	else if (wParam == '1')
+	else if (key == '1')
 	{
 		cfg.drawClusters ^= 1;
 	}
-	else if (wParam == '2')
+	else if (key == '2')
 	{
 		cfg.drawInitLinks ^= 1;
 	}
-	else if (wParam == '3')
+	else if (key == '3')
 	{
 		cfg.drawLinks ^= 1;
 	}
-	else if (wParam == '4')
+	else if (key == '4')
 	{
 		cfg.drawSeeds ^= 1;
 	}
-	else if (wParam == '5')
+	else if (key == '5')
 	{
 		cfg.drawTracklets ^= 1;
 	}
-	else if (wParam == '6')
+	else if (key == '6')
 	{
 		cfg.drawTracks ^= 1;
 	}
-	else if (wParam == '7')
+	else if (key == '7')
 	{
 		cfg.drawGlobalTracks ^= 1;
 	}
-	else if (wParam == '8')
+	else if (key == '8')
 	{
 		cfg.drawFinal ^= 1;
 	}
-	else if (wParam == 't')
+	else if (key == 't')
 	{
 		printf("Taking screenshot\n");
 		static int nScreenshot = 1;
@@ -2078,15 +2072,15 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		DoScreenshot(fname);
 		SetInfo("Taking screenshot (%s)", fname);
 	}
-	else if (wParam == 'Z')
+	else if (key == 'Z')
 	{
 		screenshot_scale += 1;
 		if (screenshot_scale == 5) screenshot_scale = 1;
 		SetInfo("Screenshot scaling factor set to %d", screenshot_scale);
 	}
-	else if (wParam == 'y' || wParam == 'T')
+	else if (key == 'y' || key == 'T')
 	{
-		if ((animateScreenshot = wParam == 'T')) animationExport++;
+		if ((animateScreenshot = key == 'T')) animationExport++;
 		if (animateVectors[0].size() > 1)
 		{
 			startAnimation();
@@ -2097,27 +2091,27 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 			SetInfo("Insufficient animation points to start animation", 1);
 		}
 	}
-	else if (wParam == '>')
+	else if (key == '>')
 	{
 		animationChangeConfig ^= 1;
 		SetInfo("Interpolating visualization settings during animation %s", animationChangeConfig ? "enabled" : "disabled");
 	}
-	else if (wParam == 'Y')
+	else if (key == 'Y')
 	{
 		setAnimationPoint();
 		SetInfo("Added animation point (%d points, %6.2f seconds)", (int) animateVectors[0].size(), animateVectors[0].back());
 	}
-	else if (wParam == 'X')
+	else if (key == 'X')
 	{
 		resetAnimation();
 		SetInfo("Reset animation points", 1);
 	}
-	else if (wParam == '\'')
+	else if (key == '\'')
 	{
 		removeAnimationPoint();
 		SetInfo("Removed animation point", 1);
 	}
-	else if (wParam == 'M')
+	else if (key == 'M')
 	{
 		cfg.animationMode++;
 		if (cfg.animationMode == 7) cfg.animationMode = 0;
@@ -2125,7 +2119,7 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		if (cfg.animationMode == 6) SetInfo("Animation mode %d - Centered on origin", cfg.animationMode);
 		else SetInfo("Animation mode %d - Position: %s, Direction: %s", cfg.animationMode, cfg.animationMode & 2 ? "Spherical (spherical rotation)" : cfg.animationMode & 4 ? "Spherical (Euler angles)" : "Cartesian", cfg.animationMode & 1 ? "Euler angles" : "Quaternion");
 	}
-	else if (wParam == 'o')
+	else if (key == 'o')
 	{
 		FILE *ftmp = fopen("glpos.tmp", "w+b");
 		if (ftmp)
@@ -2141,7 +2135,7 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		}
 		SetInfo("Camera position stored to file", 1);
 	}
-	else if (wParam == 'p')
+	else if (key == 'p')
 	{
 		GLfloat tmp[16];
 		FILE *ftmp = fopen("glpos.tmp", "rb");
@@ -2167,7 +2161,7 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		}
 		SetInfo("Camera position loaded from file", 1);
 	}
-	else if (wParam == 'O')
+	else if (key == 'O')
 	{
 		FILE *ftmp = fopen("glanimation.tmp", "w+b");
 		if (ftmp)
@@ -2185,7 +2179,7 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		}
 		SetInfo("Animation path stored to file %s", "glanimation.tmp");
 	}
-	else if (wParam == 'P')
+	else if (key == 'P')
 	{
 		FILE *ftmp = fopen("glanimation.tmp", "rb");
 		if (ftmp)
@@ -2209,17 +2203,17 @@ void AliGPUCADisplay::HandleKeyRelease(int wParam, char key)
 		}
 		SetInfo("Animation path loaded from file %s", "glanimation.tmp");
 	}
-	else if (wParam == 'h')
+	else if (key == 'h')
 	{
 		PrintHelp();
 		SetInfo("Showing help text", 1);
 	}
-	else if (key == '#')
+	/*else if (key == '#')
 	{
 		testSetting++;
 		SetInfo("Debug test variable set to %d", testSetting);
 		updateDLList = true;
-	}
+	}*/
 }
 
 void AliGPUCADisplay::showInfo(const char* info)
@@ -2278,11 +2272,12 @@ void AliGPUCADisplay::HandleSendKey()
 		//fprintf(stderr, "sendKey %d '%c'\n", sendKey, (char) sendKey);
 
 		bool shifted = sendKey >= 'A' && sendKey <= 'Z';
-		if (sendKey >= 'a' && sendKey <= 'z') sendKey ^= 'a' ^ 'A';
-		bool oldShift = mBackend->keysShift[sendKey];
-		mBackend->keysShift[sendKey] = shifted;
-		HandleKeyRelease(sendKey, sendKey);
-		mBackend->keysShift[sendKey] = oldShift;
+		int press = sendKey;
+		if (press >= 'a' && press <= 'z') press += 'A' - 'a';
+		bool oldShift = mBackend->keysShift[press];
+		mBackend->keysShift[press] = shifted;
+		HandleKeyRelease(sendKey);
+		mBackend->keysShift[press] = oldShift;
 		sendKey = 0;
 	}
 }
@@ -2297,4 +2292,9 @@ void AliGPUCADisplay::ShowNextEvent()
 void AliGPUCADisplay::WaitForNextEvent()
 {
 	semLockDisplay.Lock();
+}
+
+void AliGPUCADisplay::StartDisplay()
+{
+	mBackend->StartDisplay();
 }

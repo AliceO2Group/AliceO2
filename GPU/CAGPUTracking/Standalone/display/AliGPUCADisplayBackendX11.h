@@ -18,7 +18,7 @@ public:
 	
 	virtual void StartDisplay() override;
 	virtual void DisplayExit() override;
-	virtual void SwitchFullscreen() override;
+	virtual void SwitchFullscreen(bool set) override;
 	virtual void ToggleMaximized(bool set) override;
 	virtual void SetVSync(bool enable) override;
 	virtual void OpenGLPrint(const char* s) override;
@@ -26,6 +26,7 @@ public:
 private:
 	virtual void* OpenGLMain();
 	int GetKey(int key);
+	void GetKey(XEvent& event, int& keyOut, int& keyPressOut);
 	
 	pthread_mutex_t semLockExit = PTHREAD_MUTEX_INITIALIZER;
 	volatile bool displayRunning = false;

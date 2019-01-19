@@ -13,8 +13,8 @@ public:
 	
 	virtual void StartDisplay() = 0; //Start the display. This function returns, and should spawn a thread that runs the display, and calls InitGL
 	virtual void DisplayExit() = 0; //Stop the display. Display thread should call ExitGL and the function returns after the thread has terminated
-	virtual void SwitchFullscreen() = 0; //Toggle full-screen mode
-	virtual void ToggleMaximized(bool set = false) = 0; //Maximize window
+	virtual void SwitchFullscreen(bool set) = 0; //Toggle full-screen mode
+	virtual void ToggleMaximized(bool set) = 0; //Maximize window
 	virtual void SetVSync(bool enable) = 0; //Enable / disable vsync
 	
 	virtual void OpenGLPrint(const char* s) = 0; //Print text on the display (needs the backend to build the font)
@@ -37,10 +37,27 @@ protected:
 	static constexpr int KEY_RIGHT = 4;
 	static constexpr int KEY_PAGEUP = 5;
 	static constexpr int KEY_PAGEDOWN = 6;
-	static constexpr int KEY_SPACE = 13;
-	static constexpr int KEY_SHIFT = 16;
-	static constexpr int KEY_ALT = 17;
-	static constexpr int KEY_CTRL = 18;
+	static constexpr int KEY_SPACE = 7;
+	static constexpr int KEY_SHIFT = 8;
+	static constexpr int KEY_ALT = 9;
+	static constexpr int KEY_CTRL = 10;
+	static constexpr int KEY_F1 = 11;
+	static constexpr int KEY_F2 = 12;
+	static constexpr int KEY_F3 = 26;
+	static constexpr int KEY_F4 = 14;
+	static constexpr int KEY_F5 = 15;
+	static constexpr int KEY_F6 = 16;
+	static constexpr int KEY_F7 = 17;
+	static constexpr int KEY_F8 = 18;
+	static constexpr int KEY_F9 = 19;
+	static constexpr int KEY_F10 = 20;
+	static constexpr int KEY_F11 = 21;
+	static constexpr int KEY_F12 = 22;
+	static constexpr int KEY_HOME = 23;
+	static constexpr int KEY_END = 24;
+	static constexpr int KEY_INSERT = 25;
+	static constexpr int KEY_ESCAPE = 27;
+	static constexpr int KEY_ENTER = 13;
 
 	//Keyboard / Mouse actions
 	bool mouseDn = false; //Mouse button down
@@ -55,7 +72,7 @@ protected:
 	
 	AliGPUCADisplay* mDisplay; //Ptr to display, not owning, set by display when it connects to backend
 	
-	void HandleKeyRelease(int wParam, char key); //Callback for handling key presses
+	void HandleKeyRelease(unsigned char key); //Callback for handling key presses
 	int DrawGLScene(bool mixAnimation = false, float animateTime = -1.f); //Callback to draw the GL scene
 	void HandleSendKey(); //Optional callback to handle sendKey variable
 	void ReSizeGLScene(int width, int height); //Callback when GL window is resized

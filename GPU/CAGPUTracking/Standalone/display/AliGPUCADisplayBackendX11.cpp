@@ -2,26 +2,57 @@
 
 int AliGPUCADisplayBackendX11::GetKey(int key)
 {
-	if (key == 65453 || key == 45) return('-');
-	if (key == 65451 || key == 43) return('+');
-	if (key == 65505) return(KEY_SHIFT); //Shift
-	if (key == 65513) return(KEY_ALT); //ALT
-	if (key == 65027) return(KEY_ALT); //R ALT
-	if (key == 65507) return(KEY_CTRL); //L CTRL
-	if (key == 65508) return(KEY_CTRL); //R CTRL
-	if (key == 65362) return(KEY_UP); //UP
-	if (key == 65364) return(KEY_DOWN); //DOWN
-	if (key == 65361) return(KEY_LEFT); //LEFT
-	if (key == 65363) return(KEY_RIGHT); //RIGHT
-	if (key == 65365) return(KEY_PAGEUP); //LEFT
-	if (key == 65366) return(KEY_PAGEDOWN); //RIGHT
-	if (key == 65307) return('Q'); //ESC
-	if (key == 32) return(KEY_SPACE); //Space
+	if (key == 65453) return('-');
+	if (key == 65451) return('+');
+	if (key == 65505 || key == 65506) return(KEY_SHIFT);
+	if (key == 65513 || key == 65027) return(KEY_ALT);
+	if (key == 65507 || key == 65508) return(KEY_CTRL);
+	if (key == 65362) return(KEY_UP);
+	if (key == 65364) return(KEY_DOWN);
+	if (key == 65361) return(KEY_LEFT);
+	if (key == 65363) return(KEY_RIGHT);
+	if (key == 65365) return(KEY_PAGEUP);
+	if (key == 65366) return(KEY_PAGEDOWN);
+	if (key == 65307) return(KEY_ESCAPE);
+	if (key == 65293) return(KEY_ENTER);
+	if (key == 65367) return(KEY_END);
+	if (key == 65360) return(KEY_HOME);
+	if (key == 65379) return(KEY_INSERT);
+	if (key == 65470) return(KEY_F1);
+	if (key == 65471) return(KEY_F2);
+	if (key == 65472) return(KEY_F3);
+	if (key == 65473) return(KEY_F4);
+	if (key == 65474) return(KEY_F5);
+	if (key == 65475) return(KEY_F6);
+	if (key == 65476) return(KEY_F7);
+	if (key == 65477) return(KEY_F8);
+	if (key == 65478) return(KEY_F9);
+	if (key == 65479) return(KEY_F10);
+	if (key == 65480) return(KEY_F11);
+	if (key == 65481) return(KEY_F12);
+	if (key == 32) return(KEY_SPACE);
 	if (key > 255) return(0);
-	
-	if (key >= 'a' && key <= 'z') key += 'A' - 'a';
-	
-	return(key);
+	return 0;
+}
+
+void AliGPUCADisplayBackendX11::GetKey(XEvent& event, int& keyOut, int& keyPressOut)
+{
+	char tmpString[9];
+	KeySym sym;
+	if (XLookupString(&event.xkey, tmpString, 8, &sym, NULL) == 0) tmpString[0] = 0;
+	int specialKey = GetKey(sym);
+	int localeKey = tmpString[0];
+	//printf("Key: keycode %d -> sym %d (%c) key %d (%c) special %d (%c)\n", event.xkey.keycode, (int) sym, (char) sym, (int) localeKey, localeKey, specialKey, (char) specialKey);
+
+	if (specialKey)
+	{
+		keyOut = keyPressOut = specialKey;
+	}
+	else
+	{
+		keyOut = keyPressOut = localeKey;
+		if (keyPressOut >= 'a' && keyPressOut <= 'z') keyPressOut += 'A' - 'a';
+	}
 }
 
 void AliGPUCADisplayBackendX11::OpenGLPrint(const char* s)
@@ -261,23 +292,20 @@ void* AliGPUCADisplayBackendX11::OpenGLMain()
 
 				case KeyPress:
 				{
-					KeySym sym = XLookupKeysym(&event.xkey, 0);
-					int wParam = GetKey(sym);
-					//fprintf(stderr, "KeyPress event %d --> %d (%c) -> %d (%c), %d\n", event.xkey.keycode, (int) sym, (char) (sym > 27 ? sym : ' '), wParam, (char) wParam, (int) keys[16]);
-					keys[wParam] = true;
-					keysShift[wParam] = keys[KEY_SHIFT];
+					int handleKey = 0, keyPress = 0;
+					GetKey(event, handleKey, keyPress);
+					keysShift[keyPress] = keys[KEY_SHIFT];
+					keys[keyPress] = true;
 				}
 				break;
 
 				case KeyRelease:
 				{
-					char tmpString[9];
-					KeySym sym;
-					if (XLookupString(&event.xkey, tmpString, 8, &sym, NULL) == 0) tmpString[0] = 0;
-					int wParam = GetKey(sym);
-					//fprintf(stderr, "KeyRelease event %d -> %d (%c) -> %d (%c), %d   -   Char: %c\n", event.xkey.keycode, (int) sym, (char) (sym > 27 ? sym : ' '), wParam, (char) wParam, (int) keysShift[wParam], tmpString[0]);
-					HandleKeyRelease(wParam, tmpString[0]);
-					keysShift[wParam] = false;
+					int handleKey = 0, keyPress = 0;
+					GetKey(event, handleKey, keyPress);
+					HandleKeyRelease(handleKey);
+					keys[keyPress] = false;
+					keysShift[keyPress] = false;
 				}
 				break;
 
@@ -345,7 +373,7 @@ void AliGPUCADisplayBackendX11::DisplayExit()
 	while (displayRunning) usleep(10000);
 }
 
-void AliGPUCADisplayBackendX11::SwitchFullscreen()
+void AliGPUCADisplayBackendX11::SwitchFullscreen(bool set)
 {
 	XEvent xev;
 	memset(&xev, 0, sizeof(xev));
