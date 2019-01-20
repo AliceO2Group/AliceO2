@@ -4,16 +4,18 @@
 
 
 #define CHARGE(map, row, pad, time) \
-    map[TPC_PADS_PER_ROW_PADDED*TPC_MAX_TIME_PADDED*row \
-         +TPC_MAX_TIME_PADDED*(pad+PADDING)+time+PADDING]
+    map[TPC_PADS_PER_ROW_PADDED*TPC_MAX_TIME_PADDED*(row) \
+         +TPC_MAX_TIME_PADDED*((pad)+PADDING)+(time)+PADDING]
 
 #define DIGIT_CHARGE(map, digit) CHARGE(map, digit.row, digit.pad, digit.time)
+
 
 constant float CHARGE_THRESHOLD = 2;
 constant float OUTER_CHARGE_THRESHOLD = 0;
 
-constant int2 LEQ_NEIGHBORS[4] = {(int2)(-1, -1), (int2)(-1, 0), (int2)(0, -1), (int2)(1, -1)};
-constant int2 LQ_NEIGHBORS[4]  = {(int2)(-1, 1), (int2)(0, 1), (int2)(1, 1), (int2)(0, 1)};
+constant int HALF_NEIGHBORS_NUM = 4;
+constant int2 LEQ_NEIGHBORS[HALF_NEIGHBORS_NUM] = {(int2)(-1, -1), (int2)(-1, 0), (int2)(0, -1), (int2)(1, -1)};
+constant int2 LQ_NEIGHBORS[HALF_NEIGHBORS_NUM]  = {(int2)(-1, 1), (int2)(0, 1), (int2)(1, 1), (int2)(0, 1)};
 
 
 Cluster newCluster()
@@ -91,21 +93,21 @@ bool tryBuild3x3Cluster(
     bool isClusterCenter = true; 
     float myCharge = CHARGE(chargeMap, row, pad, time);
 
-    for (int i = 0; i < sizeof(LEQ_NEIGHBORS)/sizeof(int2); i++)
+    for (int i = 0; i < HALF_NEIGHBORS_NUM; i++)
     {
         int dp = LEQ_NEIGHBORS[i].x;
         int dt = LEQ_NEIGHBORS[i].y;
         float otherCharge = CHARGE(chargeMap, row, pad+dp, time+dt);
-        isClusterCenter &= (otherCharge <= myCharge);
+        /* isClusterCenter &= (otherCharge <= myCharge); */
         updateCluster(cluster, otherCharge, dp, dt);
     }
 
-    for (int i = 0; i < sizeof(LQ_NEIGHBORS)/sizeof(int2); i++)
+    for (int i = 0; i < HALF_NEIGHBORS_NUM; i++)
     {
         int dp = LQ_NEIGHBORS[i].x;
         int dt = LQ_NEIGHBORS[i].y;
         float otherCharge = CHARGE(chargeMap, row, pad+dp, time+dt);
-        isClusterCenter &= (otherCharge < myCharge);
+        /* isClusterCenter &= (otherCharge < myCharge); */
         updateCluster(cluster, otherCharge, dp, dt);
     }
 
