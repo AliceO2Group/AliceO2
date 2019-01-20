@@ -2,15 +2,23 @@
 
 #include <gpucf/log.h>
 
+#include <algorithm>
 #include <cmath>
 
 
 using gpucf::ClusterChecker;
 
 
-bool ClusterChecker::verify(const std::vector<Cluster> &clusters)
+bool ClusterChecker::verify(
+        const std::vector<Cluster> &clusters,
+        const std::vector<Cluster> &truth)
 {
     gpucf::log::Info() << "Reviewing found clusters...";
+
+    size_t correctClusters = countCorrectClusters(clusters, truth);
+    gpucf::log::Info() << "Found " << clusters.size() << " clusters.";
+    gpucf::log::Info() << "Groundtruth has " << truth.size() << " clusters.";
+    gpucf::log::Info() << correctClusters << " correct clusters.";
 
     size_t brokenClusters = 0;
     size_t nansFound = 0;
@@ -20,13 +28,28 @@ bool ClusterChecker::verify(const std::vector<Cluster> &clusters)
         nansFound      += hasNaN(cluster);
     }
 
-    gpucf::log::Info() << "Found " << clusters.size() << " clusters.";    
-    gpucf::log::Info() << "Found " << nansFound << " NaNs.";
-    gpucf::log::Info() << "Found " << brokenClusters << " other weird entries.";
+    gpucf::log::Debug() << "Found " << nansFound << " NaNs.";
+    gpucf::log::Debug() << "Found " << brokenClusters << " other weird entries.";
 
     bool ok = (brokenClusters == 0) && (nansFound == 0);
 
     return ok;
+}
+
+size_t ClusterChecker::countCorrectClusters(
+        const std::vector<Cluster> &clusters, 
+        const std::vector<Cluster> &truth)
+{
+    size_t correctClusters = 0;
+    for (const Cluster &cluster : clusters)
+    {
+        if (std::find(truth.begin(), truth.end(), cluster) != truth.end())
+        {
+            correctClusters++; 
+        }
+    }
+
+    return correctClusters;
 }
 
 bool ClusterChecker::hasNaN(const Cluster &c)

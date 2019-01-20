@@ -13,6 +13,7 @@ set(GPUCF_SRC
     "./common/Digit.cpp"
     "./common/Cluster.cpp"
 
+    "./io/ClusterParser.cpp"
     "./io/DigitParser.cpp"
 )
 
