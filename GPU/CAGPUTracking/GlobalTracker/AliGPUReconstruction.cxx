@@ -403,6 +403,43 @@ int AliGPUReconstruction::ReadData(const char* filename)
 	ClearIOPointers();
 	FILE* fp = fopen(filename, "rb");
 	if (fp == nullptr) return(1);
+	
+	/*int nTotal = 0;
+	int nRead;
+	for (int i = 0;i < 36;i++)
+	{
+		int nHits;
+		nRead = fread(&nHits, sizeof(nHits), 1, fp);
+		mIOPtrs.nClusterData[i] = nHits;
+		AllocateIOMemoryHelper(nHits, mIOPtrs.clusterData[i], mIOMem.clusterData[i]);
+		nRead = fread(mIOMem.clusterData[i].get(), sizeof(*mIOPtrs.clusterData[i]), nHits, fp);
+		for (int j = 0;j < nHits;j++)
+		{
+			mIOMem.clusterData[i][j].fId = nTotal++;
+		}
+	}
+	printf("Read %d hits\n", nTotal);
+	mIOPtrs.nMCLabelsTPC = nTotal;
+	AllocateIOMemoryHelper(nTotal, mIOPtrs.mcLabelsTPC, mIOMem.mcLabelsTPC);
+	nRead = fread(mIOMem.mcLabelsTPC.get(), sizeof(*mIOPtrs.mcLabelsTPC), nTotal, fp);
+	if (nRead != nTotal)
+	{
+		mIOPtrs.nMCLabelsTPC = 0;
+	}
+	else
+	{
+		printf("Read %d MC labels\n", nTotal);
+		int nTracks;
+		nRead = fread(&nTracks, sizeof(nTracks), 1, fp);
+		if (nRead)
+		{
+			mIOPtrs.nMCInfosTPC = nTracks;
+			AllocateIOMemoryHelper(nTracks, mIOPtrs.mcInfosTPC, mIOMem.mcInfosTPC);
+			nRead = fread(mIOMem.mcInfosTPC.get(), sizeof(*mIOPtrs.mcInfosTPC), nTracks, fp);
+			printf("Read %d MC Infos\n", nTracks);
+		}
+	}*/
+	
 	char buf[DUMP_HEADER_SIZE + 1] = "";
 	size_t r = fread(buf, 1, DUMP_HEADER_SIZE, fp);
 	if (strncmp(DUMP_HEADER, buf, DUMP_HEADER_SIZE))
