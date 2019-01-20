@@ -83,7 +83,7 @@ AddOption(cudaDevice, int, -1, "gpuDevice", 0, "Set GPU device to use (-1: autom
 AddOption(StartEvent, int, 0, "s", 's', "First event to process", min(0))
 AddOption(NEvents, int, -1, "n", 'n', "Number of events to process (-1; all)", min(0))
 AddOption(merger, int, 1, "runMerger", 0, "Run track merging / refit", min(0), max(1))
-AddOption(runs, int, 1, "runs", 'r', "Number of iterations to perform (repeat each event)", min(1))
+AddOption(runs, int, 1, "runs", 'r', "Number of iterations to perform (repeat each event)", min(0))
 AddOption(runs2, int, 1, "runsExternal", 0, "Number of iterations to perform (repeat full processing)", min(1))
 AddOption(runsInit, int, 0, "runsInit", 0, "Number of initial iterations excluded from average", min(0))
 AddOption(EventsDir, const char*, "pp", "events", 'e', "Directory with events to process", message("Reading events from Directory events/%s"))
