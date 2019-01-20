@@ -166,9 +166,7 @@ void* AliGPUCADisplayBackendGlfw::OpenGLMain()
 	{
 		HandleSendKey();
 		DrawGLScene();
-
 		glfwSwapBuffers(window);
-
 		glfwPollEvents();
 	}
 

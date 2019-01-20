@@ -24,7 +24,7 @@ public:
 
 	void HandleKeyRelease(unsigned char key) {}
 	int DrawGLScene(bool mixAnimation = false, float animateTime = -1.f) {return 1;}
-	void HandleSendKey() {}
+	void HandleSendKey(int key) {}
 	int InitGL() {return 1;}
 	void ExitGL() {}
 	void ReSizeGLScene(int width, int height, bool init = false) {}
@@ -63,7 +63,7 @@ public:
 	
 	void HandleKeyRelease(unsigned char key);
 	int DrawGLScene(bool mixAnimation = false, float animateTime = -1.f);
-	void HandleSendKey();
+	void HandleSendKey(int key);
 	int InitGL();
 	void ExitGL();
 	void ReSizeGLScene(int width, int height, bool init = false);

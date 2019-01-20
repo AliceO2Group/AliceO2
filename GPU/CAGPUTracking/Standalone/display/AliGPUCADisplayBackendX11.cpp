@@ -237,6 +237,7 @@ void* AliGPUCADisplayBackendX11::OpenGLMain()
 		do
 		{
 			if (displayControl == 2) break;
+			HandleSendKey();
 			if (!XPending(g_pDisplay))
 			{
 				event.type = Expose;
@@ -245,7 +246,6 @@ void* AliGPUCADisplayBackendX11::OpenGLMain()
 			{
 				XNextEvent(g_pDisplay, &event);
 			}
-			
 			switch (event.type)
 			{
 				case ButtonPress:
@@ -341,8 +341,6 @@ void* AliGPUCADisplayBackendX11::OpenGLMain()
 				}
 				break;
 			}
-			
-			HandleSendKey();
 		} while (XPending(g_pDisplay)); // Loop to compress events
 		if (displayControl == 2) break;
 
