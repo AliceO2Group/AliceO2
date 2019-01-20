@@ -137,6 +137,11 @@ void* AliGPUCADisplayBackendGlfw::OpenGLMain()
 	if (!glfwInit()) return((void*) -1);
 	glfwSetErrorCallback(error_callback);
 	
+	glfwWindowHint(GLFW_MAXIMIZED, 1);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 0);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 	window = glfwCreateWindow(init_width, init_height, GL_WINDOW_NAME, NULL, NULL);
 	if (!window)
 	{
@@ -144,7 +149,6 @@ void* AliGPUCADisplayBackendGlfw::OpenGLMain()
 		return((void*) -1);
 	}
 	glfwMakeContextCurrent(window);
-	ToggleMaximized(true);
 	
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetMouseButtonCallback(window, mouseButton_callback);

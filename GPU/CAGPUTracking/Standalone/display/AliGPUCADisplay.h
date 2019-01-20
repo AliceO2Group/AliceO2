@@ -226,9 +226,6 @@ private:
 	bool useMultiVBO = false;
 	
 	bool invertColors = false;
-	const int drawQualityPoint = 0;
-	const int drawQualityLine = 0;
-	const int drawQualityPerspective = 0;
 	const int drawQualityRenderToTexture = 1;
 	int drawQualityMSAA = 0;
 	int drawQualityDownsampleFSAA = 0;
