@@ -25,7 +25,7 @@ public:
                     {'d', "digits"})
             , workers(optional, "N", 
                 "Number of workers that parse the digit file. (default=4)",
-                {'w', "workers"}, 4)
+                {'w', "dworkers"}, 4)
         {
         }
         
