@@ -1719,14 +1719,6 @@ const char* HelpText[] = {
 	"[C]                           Colorcode clusters of different collisions",
 	"[v]                           Hide rejected clusters from tracks",
 	"[b]                           Hide all clusters not belonging or related to matched tracks",
-	"[1]                           Show Clusters",
-	"[2]                           Show Links that were removed",
-	"[3]                           Show Links that remained in Neighbors Cleaner",
-	"[4]                           Show Seeds (Start Hits)",
-	"[5]                           Show Tracklets",
-	"[6]                           Show Tracks (after Tracklet Selector)",
-	"[7]                           Show Global Track Segments",
-	"[8]                           Show Final Merged Tracks (after Track Merger)",
 	"[j]                           Show global tracks as additional segments of final tracks",
 	"[E] / [G]                     Extrapolate tracks / loopers",
 	"[t] / [T]                     Take Screenshot / Record animation to pictures",
@@ -1747,7 +1739,7 @@ const char* HelpText[] = {
 	"[MOUSE 1+2]                   Zoom / Rotate",
 	"[SHIFT]                       Slow Zoom / Move / Rotate",
 	"[ALT] / [CTRL] / [m]          Focus camera on origin / orient y-axis upwards (combine with [SHIFT] to lock) / Cycle through modes",
-	"[1] ... [8] / [V]             Enable display of clusters, preseeds, seeds, starthits, tracklets, tracks, global tracks, merged tracks / Show assigned clusters in colors"
+	"[1] ... [8] / [N]             Enable display of clusters, preseeds, seeds, starthits, tracklets, tracks, global tracks, merged tracks / Show assigned clusters in colors"
 	//FREE: u z
 };
 
@@ -1909,7 +1901,7 @@ void AliGPUCADisplay::HandleKeyRelease(unsigned char key)
 		cfg.colorCollisions ^= 1;
 		SetInfo("Color coding of collisions %s", cfg.colorCollisions ? "enabled" : "disabled");
 	}
-	else if (key == 'V')
+	else if (key == 'N')
 	{
 		cfg.colorClusters ^= 1;
 		SetInfo("Color coding for seed / trrack attachmend %s", cfg.colorClusters ? "enabled" : "disabled");
