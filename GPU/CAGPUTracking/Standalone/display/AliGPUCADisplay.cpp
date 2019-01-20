@@ -245,9 +245,6 @@ inline void AliGPUCADisplay::SetCollisionColor(int col)
 void AliGPUCADisplay::setQuality()
 {
 	//Doesn't seem to make a difference in this applicattion
-	CHKERR(glHint(GL_POINT_SMOOTH_HINT, drawQualityPoint == 2 ? GL_NICEST : drawQualityPoint == 1 ? GL_DONT_CARE : GL_FASTEST));
-	CHKERR(glHint(GL_LINE_SMOOTH_HINT, drawQualityLine == 2 ? GL_NICEST : drawQualityLine == 1 ? GL_DONT_CARE : GL_FASTEST));
-	CHKERR(glHint(GL_PERSPECTIVE_CORRECTION_HINT, drawQualityPerspective == 2 ? GL_NICEST : drawQualityPerspective == 1 ? GL_DONT_CARE : GL_FASTEST));
 	if (drawQualityMSAA > 1)
 	{
 		CHKERR(glEnable(GL_MULTISAMPLE))
