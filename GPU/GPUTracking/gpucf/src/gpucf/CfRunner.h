@@ -2,9 +2,11 @@
 
 #include <gpucf/Executable.h>
 #include <gpucf/ClEnv.h>
+#include <gpucf/io/ClusterReader.h>
 #include <gpucf/io/DigitReader.h>
 
 #include <memory>
+
 
 namespace gpucf
 {
@@ -25,6 +27,7 @@ protected:
 private:
     std::unique_ptr<ClEnv::Flags> envFlags;
     std::unique_ptr<DigitReader::Flags> digitFlags;
+    std::unique_ptr<ClusterReader::Flags> clusterFlags;
 };
 
 }
