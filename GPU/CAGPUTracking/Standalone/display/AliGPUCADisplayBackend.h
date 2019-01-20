@@ -16,13 +16,13 @@ public:
 	virtual void SwitchFullscreen(bool set) = 0; //Toggle full-screen mode
 	virtual void ToggleMaximized(bool set) = 0; //Maximize window
 	virtual void SetVSync(bool enable) = 0; //Enable / disable vsync
-	
+	virtual bool EnableSendKey(); //Request external keys (e.g. from terminal)
 	virtual void OpenGLPrint(const char* s) = 0; //Print text on the display (needs the backend to build the font)
 
 	//volatile variables to exchange control informations between display and backend
 	volatile int displayControl = 0; //Control for next event (=1) or quit (=2)
 	volatile int sendKey = 0; //Key sent by external entity (usually console), may be ignored by backend.
-	volatile int needUpdate = 0; //flag that backend shall update the GL content, and call DrawGLScene
+	volatile int needUpdate = 0; //flag that backend shall update the GL window, and call DrawGLScene
 
 protected:
 	virtual void* OpenGLMain() = 0;
@@ -74,7 +74,7 @@ protected:
 	
 	void HandleKeyRelease(unsigned char key); //Callback for handling key presses
 	int DrawGLScene(bool mixAnimation = false, float animateTime = -1.f); //Callback to draw the GL scene
-	void HandleSendKey(); //Optional callback to handle sendKey variable
+	void HandleSendKey(); //Optional callback to handle key press from external source (e.g. stdin by default)
 	void ReSizeGLScene(int width, int height); //Callback when GL window is resized
 	int InitGL(); //Callback to initialize the GL Display (to be called in StartDisplay)
 	void ExitGL(); //Callback to clean up the GL Display

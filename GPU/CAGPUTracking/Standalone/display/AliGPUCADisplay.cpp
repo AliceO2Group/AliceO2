@@ -2261,22 +2261,18 @@ void AliGPUCADisplay::showInfo(const char* info)
 	glPopMatrix();
 }
 
-void AliGPUCADisplay::HandleSendKey()
+void AliGPUCADisplay::HandleSendKey(int key)
 {
-	volatile int& sendKey = mBackend->sendKey;
-	if (sendKey)
-	{
-		//fprintf(stderr, "sendKey %d '%c'\n", sendKey, (char) sendKey);
+	//fprintf(stderr, "key %d '%c'\n", key, (char) key);
 
-		bool shifted = sendKey >= 'A' && sendKey <= 'Z';
-		int press = sendKey;
-		if (press >= 'a' && press <= 'z') press += 'A' - 'a';
-		bool oldShift = mBackend->keysShift[press];
-		mBackend->keysShift[press] = shifted;
-		HandleKeyRelease(sendKey);
-		mBackend->keysShift[press] = oldShift;
-		sendKey = 0;
-	}
+	bool shifted = key >= 'A' && key <= 'Z';
+	int press = key;
+	if (press >= 'a' && press <= 'z') press += 'A' - 'a';
+	bool oldShift = mBackend->keysShift[press];
+	mBackend->keysShift[press] = shifted;
+	HandleKeyRelease(key);
+	mBackend->keysShift[press] = oldShift;
+	key = 0;
 }
 
 void AliGPUCADisplay::ShowNextEvent()

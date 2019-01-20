@@ -724,16 +724,19 @@ int AliGPUReconstruction::RunStandalone()
 		do
 		{
 			Sleep(10);
-			iKey = kbhit() ? getch() : 0;
-			if (iKey == 'q') mDeviceProcessingSettings.eventDisplay->displayControl = 2;
-			else if (iKey == 'n') break;
-			else if (iKey)
+			if (mDeviceProcessingSettings.eventDisplay->EnableSendKey())
 			{
-				while (mDeviceProcessingSettings.eventDisplay->sendKey != 0)
+				iKey = kbhit() ? getch() : 0;
+				if (iKey == 'q') mDeviceProcessingSettings.eventDisplay->displayControl = 2;
+				else if (iKey == 'n') break;
+				else if (iKey)
 				{
-					Sleep(1);
+					while (mDeviceProcessingSettings.eventDisplay->sendKey != 0)
+					{
+						Sleep(1);
+					}
+					mDeviceProcessingSettings.eventDisplay->sendKey = iKey;
 				}
-				mDeviceProcessingSettings.eventDisplay->sendKey = iKey;
 			}
 		} while (mDeviceProcessingSettings.eventDisplay->displayControl == 0);
 		if (mDeviceProcessingSettings.eventDisplay->displayControl == 2)
