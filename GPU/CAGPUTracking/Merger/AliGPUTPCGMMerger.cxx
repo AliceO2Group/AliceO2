@@ -1344,6 +1344,11 @@ void AliGPUTPCGMMerger::Refit(bool resetTimers)
 	}
 }
 
+void AliGPUTPCGMMerger::Clear()
+{
+	mRec->FreeRegisteredMemory(this, true);
+}
+
 void AliGPUTPCGMMerger::Finalize()
 {
 	if (mRec->GetDeviceType() == AliGPUReconstruction::DeviceType::CUDA) return;

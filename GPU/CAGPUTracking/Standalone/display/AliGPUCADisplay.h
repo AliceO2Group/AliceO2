@@ -17,7 +17,7 @@ public:
 	
 	typedef structConfigGL configDisplay;
 	
-	void StartDisplay();
+	void StartDisplay() {}
 	void ShowNextEvent() {}
 	void WaitForNextEvent(){}
 	void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster) {}

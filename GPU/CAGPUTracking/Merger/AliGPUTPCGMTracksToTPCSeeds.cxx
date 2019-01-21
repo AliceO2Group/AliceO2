@@ -33,14 +33,14 @@ void AliGPUTPCGMTracksToTPCSeeds::CreateSeedsFromHLTTracks(TObjArray* seeds, Ali
 		int lastleg = -1;
 		for (int j = track.NClusters() - 1;j >= 0;j--)
 		{
-			AliGPUTPCGMMergedTrackHit& cls = merger->Clusters()[track.FirstClusterRef() + j];
+			const AliGPUTPCGMMergedTrackHit& cls = merger->Clusters()[track.FirstClusterRef() + j];
 			if (cls.fState & AliGPUTPCGMMergedTrackHit::flagReject) continue;
 			if (lastrow != -1 && (cls.fRow < lastrow || cls.fLeg != lastleg)) break;
 			if (cls.fRow == lastrow) continue;
 			
 			AliTPCtrackerRow& row = tpctracker->GetRow(cls.fSlice % 18, cls.fRow);
 			unsigned int clIndexOffline = 0;
-			AliTPCclusterMI* clOffline = row.FindNearest2(cls.fY, cls.fZ, 0.01f, 0.01f, clIndexOffline); 
+			AliTPCclusterMI* clOffline = row.FindNearest2(cls.fY, cls.fZ, 0.01f, 0.01f, clIndexOffline);
 			if (!clOffline) continue;
 			clIndexOffline = row.GetIndex(clIndexOffline);
 			

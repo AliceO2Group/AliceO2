@@ -212,7 +212,7 @@ public:
 	size_t AllocateMemoryResources();
 	size_t AllocateRegisteredMemory(AliGPUProcessor* proc);
 	size_t AllocateRegisteredMemory(short res);
-	void FreeRegisteredMemory(AliGPUProcessor* proc);
+	void FreeRegisteredMemory(AliGPUProcessor* proc, bool freeCustom = false);
 	void FreeRegisteredMemory(short res);
 	void ClearAllocatedMemory();
 	void ResetRegisteredMemoryPointers(AliGPUProcessor* proc);

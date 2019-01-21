@@ -614,4 +614,9 @@ GPUh() void AliGPUTPCTracker::PerformGlobalTracking(AliGPUTPCTracker& sliceLeft,
 	//printf("Global Tracking Result: Slide %2d: LL %3d LR %3d UL %3d UR %3d\n", mCAParam->ISlice(), ll, lr, ul, ur);
 }
 
+void AliGPUTPCTracker::Clear()
+{
+	mRec->FreeRegisteredMemory(this, true);
+}
+
 #endif
