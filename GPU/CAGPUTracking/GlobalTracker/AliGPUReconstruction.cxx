@@ -178,7 +178,6 @@ int AliGPUReconstruction::InitializeProcessors()
 	{
 		(mProcessors[i].proc->*(mProcessors[i].InitializeProcessor))();
 	}
-	mTPCMergerCPU.InitializeProcessor();
 	mTRDTracker->Init((AliGPUTRDGeometry*) mTRDGeometry.get()); //Cast is safe, we just add some member functions
 
 	return 0;
