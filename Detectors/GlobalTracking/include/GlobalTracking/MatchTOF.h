@@ -23,6 +23,7 @@
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
+#include "ReconstructionDataFormats/CalibInfoTOF.h"
 #include "CommonDataFormat/EvIndex.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "CommonUtils/TreeStreamRedirector.h"
@@ -82,6 +83,9 @@ class MatchTOF
   ///< set output tree to write matched tracks
   void setOutputTree(TTree* tr) { mOutputTree = tr; }
 
+  ///< set output tree to write calibration infos
+  void setOutputTreeCalib(TTree* tr) { mOutputTreeCalib = tr; }
+
   ///< set input branch names for the input from the tree
   void setTrackBranchName(const std::string& nm) { mTracksBranchName = nm; }
   void setTPCTrackBranchName(const std::string& nm) { mTPCTracksBranchName = nm; }
@@ -93,6 +97,7 @@ class MatchTOF
   void setOutTPCMCTruthBranchName(const std::string& nm) { mOutTPCMCTruthBranchName = nm; }
   void setOutITSMCTruthBranchName(const std::string& nm) { mOutITSMCTruthBranchName = nm; }
   void setOutTracksBranchName(const std::string& nm) { mOutTracksBranchName = nm; }
+  void setOutCalibBranchName(const std::string& nm) { mOutCalibBranchName = nm; }
 
   ///< get input branch names for the input from the tree
   const std::string& getTracksBranchName() const { return mTracksBranchName; }
@@ -193,6 +198,8 @@ class MatchTOF
 
   TTree* mOutputTree = nullptr; ///< output tree for matched tracks
 
+  TTree* mOutputTreeCalib = nullptr; ///< output tree for calibration infos
+
   ///>>>------ these are input arrays which should not be modified by the matching code
   //           since this info is provided by external device
   std::vector<o2::dataformats::TrackTPCITS>* mTracksArrayInp = nullptr; ///< input tracks
@@ -219,6 +226,9 @@ class MatchTOF
   ///<array of track-TOFCluster pairs from the matching
   std::vector<std::pair<int, o2::dataformats::MatchInfoTOF>> mMatchedTracksPairs;
 
+  ///<array of TOFChannel calibration info
+  std::vector<o2::dataformats::CalibInfoTOF> mCalibInfoTOF;
+
   ///<array of matched TOFCluster with matching information (residuals, expected times...) with the corresponding vector of indices
   //std::vector<o2::dataformats::MatchInfoTOF> mMatchedTracks;
   std::vector<std::pair<int, o2::dataformats::MatchInfoTOF>> mMatchedTracks; // this is the output of the matching
@@ -238,6 +248,7 @@ class MatchTOF
   std::string mTOFMCTruthBranchName = "TOFClusterMCTruth";  ///< name of branch containing TOF clusters labels
   std::string mTOFClusterBranchName = "TOFCluster";         ///< name of branch containing input ITS clusters
   std::string mOutTracksBranchName = "TOFMatchInfo";        ///< name of branch containing output matched tracks
+  std::string mOutCalibBranchName = "TOFCalibInfo";        ///< name of branch containing output calibration infos
   std::string mOutTOFMCTruthBranchName = "MatchTOFMCTruth"; ///< name of branch containing TOF labels for output matched tracks
   std::string mOutTPCMCTruthBranchName = "MatchTPCMCTruth"; ///< name of branch containing TOF labels for output matched tracks
   std::string mOutITSMCTruthBranchName = "MatchITSMCTruth"; ///< name of branch containing TOF labels for output matched tracks

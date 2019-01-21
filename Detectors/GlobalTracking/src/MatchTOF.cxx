@@ -96,6 +96,7 @@ void MatchTOF::run()
       mTimerTot.Start(false);
     }
     mOutputTree->Fill();
+    if(mOutputTreeCalib) mOutputTreeCalib->Fill();
   }
 
 #ifdef _ALLOW_DEBUG_TREES_
@@ -121,7 +122,7 @@ void MatchTOF::init()
 
   attachInputTrees();
 
-  // create output branch
+  // create output branch with track-tof matching
   if (mOutputTree) {
     mOutputTree->Branch(mOutTracksBranchName.data(), &mMatchedTracks);
     LOG(INFO) << "Matched tracks will be stored in " << mOutTracksBranchName << " branch of tree "
@@ -137,6 +138,15 @@ void MatchTOF::init()
 
   } else {
     LOG(ERROR) << "Output tree is not attached, matched tracks will not be stored";
+  }
+
+  // create output branch for calibration info
+  if (mOutputTreeCalib) {
+    mOutputTreeCalib->Branch(mOutCalibBranchName.data(), &mCalibInfoTOF);
+    LOG(INFO) << "Calib infos will be stored in " << mOutCalibBranchName << " branch of tree "
+              << mOutputTreeCalib->GetName();
+  } else {
+    LOG(INFO) << "Calib Output tree is not attached, calib infos will not be stored";
   }
 
 #ifdef _ALLOW_DEBUG_TREES_
@@ -693,6 +703,13 @@ void MatchTOF::selectBestMatches()
     mMatchedTracksIndex[matchingPair.first] = mMatchedTracks.size();                                      // index of the MatchInfoTOF correspoding to this track
     mMatchedClustersIndex[matchingPair.second.getTOFClIndex()] = mMatchedTracksIndex[matchingPair.first]; // index of the track that was matched to this cluster
     mMatchedTracks.push_back(matchingPair);                                                               // array of MatchInfoTOF
+    
+    // add also calibration infos ciao
+    mCalibInfoTOF.emplace_back(mTOFClusWork[matchingPair.second.getTOFClIndex()].getMainContributingChannel(),
+			    mTOFClusWork[matchingPair.second.getTOFClIndex()].getTimeRaw(),
+			       mTOFClusWork[matchingPair.second.getTOFClIndex()].getTimeRaw() - matchingPair.second.getLTIntegralOut().getTOF(o2::track::PID::Pion) - int(mTOFClusWork[matchingPair.second.getTOFClIndex()].getTimeRaw()*o2::constants::lhc::LHCRFFreq*1.E-13)*o2::constants::lhc::LHCBunchSpacingNS*1.E3,
+			    mTOFClusWork[matchingPair.second.getTOFClIndex()].getTot());
+
     const auto& labelTPC = (*mTPCLabels)[matchingPair.first];
     LOG(DEBUG) << "labelTPC: trackID = " << labelTPC.getTrackID() << ", eventID = " << labelTPC.getEventID() << ", sourceID = " << labelTPC.getSourceID();
     const auto& labelITS = (*mITSLabels)[matchingPair.first];
@@ -722,7 +739,7 @@ void MatchTOF::selectBestMatches()
 bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float stepInCm, o2::track::TrackLTIntegral& intLT)
 {
   // propagate track to matching reference X
-  const int matCorr = 0;     // material correction method
+  const int matCorr = 1;     // material correction method
   const float tanHalfSector = tan(o2::constants::math::SectorSpanRad / 2);
   bool refReached = false;
   float xStart = trc.getX();
