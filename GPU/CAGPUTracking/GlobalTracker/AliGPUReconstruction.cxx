@@ -779,6 +779,7 @@ int AliGPUReconstruction::RunStandalone()
 		{
 			mDisplayRunning = false;
 			mDeviceProcessingSettings.eventDisplay->DisplayExit();
+			mDeviceProcessingSettings.eventDisplay = nullptr;
 			return (2);
 		}
 		mDeviceProcessingSettings.eventDisplay->displayControl = 0;

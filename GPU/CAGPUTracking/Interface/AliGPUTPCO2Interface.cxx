@@ -26,6 +26,13 @@
 #include <omp.h>
 #endif
 
+#ifdef BUILD_EVENT_DISPLAY
+#include "AliGPUCADisplayBackendGlfw.h"
+#else
+#include "AliGPUCADisplayBackend.h"
+class AliGPUCADisplayBackendGlfw : public AliGPUCADisplayBackend {};
+#endif
+
 #include "DataFormatsTPC/ClusterNative.h"
 #include "ClusterNativeAccessExt.h"
 
@@ -82,6 +89,13 @@ int AliGPUTPCO2Interface::Initialize(const char* options, std::unique_ptr<TPCFas
 				fDumpEvents = true;
 				printf("Dumping of input events enabled\n");
 			}
+#ifdef BUILD_EVENT_DISPLAY
+			else if (strncmp(optPtr, "display", optLen) == 0)
+			{
+				mDisplayBackend.reset(new AliGPUCADisplayBackendGlfw);
+				printf("Event display enabled\n");
+			}
+#endif
 			else if (optLen > 3 && strncmp(optPtr, "bz=", 3) == 0)
 			{
 				sscanf(optPtr + 3, "%f", &solenoidBz);
@@ -137,6 +151,9 @@ int AliGPUTPCO2Interface::Initialize(const char* options, std::unique_ptr<TPCFas
 	rec.NWaysOuter = true;
 	rec.SearchWindowDZDR = 2.5f;
 	rec.TrackReferenceX = refX;
+	
+	devProc.eventDisplay = mDisplayBackend.get();
+	
 	mRec->SetSettings(&ev, &rec, &devProc);
 	mRec->SetTPCFastTransform(std::move(fastTrans));
 	if (mRec->Init()) return 1;

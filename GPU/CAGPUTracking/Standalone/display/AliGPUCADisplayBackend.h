@@ -17,7 +17,7 @@ public:
 	virtual void ToggleMaximized(bool set) = 0; //Maximize window
 	virtual void SetVSync(bool enable) = 0; //Enable / disable vsync
 	virtual bool EnableSendKey(); //Request external keys (e.g. from terminal)
-	virtual void OpenGLPrint(const char* s) = 0; //Print text on the display (needs the backend to build the font)
+	virtual void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a) = 0; //Print text on the display (needs the backend to build the font)
 
 	//volatile variables to exchange control informations between display and backend
 	volatile int displayControl = 0; //Control for next event (=1) or quit (=2)

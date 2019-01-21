@@ -39,6 +39,11 @@ o2_define_bucket(
     TPCFastTransformation_bucket
     O2TPCFastTransformation
     data_format_TPC_bucket
+    Gpad
+    RIO
+    Graf
+    glfw_bucket
+    DebugGUI
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
@@ -52,6 +57,7 @@ o2_define_bucket(
     ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/Standalone/cmodules
     ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/Standalone/display
     ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/Standalone/qa
+    ${CMAKE_SOURCE_DIR}/Framework/Core/include
 )
 
 o2_define_bucket(

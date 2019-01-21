@@ -1,16 +1,28 @@
 #include "AliGPUCADisplayBackendGlfw.h"
 
-//#ifdef GPUCA_O2_LIB
+//#ifdef GPUCA_O2_LIB //Use GL3W for O2, GLEW otherwise
 //#include "../src/GL/gl3w.h"
 //#else
 #include <GL/glew.h>
 //#endif
+
+#ifdef GPUCA_O2_LIB //Hack: we have to define this in order to initialize gl3w, cannot include the header as it clashes with glew
+extern "C" int gl3wInit();
+#endif
+
 #include <GLFW/glfw3.h>
 
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
+
+#ifdef GPUCA_O2_LIB
+#include "../src/imgui.h"
+#include "../src/imgui_impl_glfw_gl3.h"
+#include "Framework/DebugGUI.h"
+#endif
+
 static AliGPUCADisplayBackendGlfw* me = nullptr;
 
 int AliGPUCADisplayBackendGlfw::GetKey(int key)
@@ -82,7 +94,6 @@ void AliGPUCADisplayBackendGlfw::key_callback(GLFWwindow* window, int key, int s
 	}
 	else if (action == GLFW_RELEASE)
 	{
-		printf("Handling %d %c\n", handleKey, (char) handleKey);
 		me->HandleKeyRelease(handleKey);
 		me->keys[keyPress] = false;
 		me->keysShift[keyPress] = false;
@@ -133,6 +144,10 @@ void AliGPUCADisplayBackendGlfw::resize_callback(GLFWwindow* window, int width, 
 	me->ReSizeGLScene(width, height);
 }
 
+void AliGPUCADisplayBackendGlfw::DisplayLoop()
+{
+	me->DrawGLScene();
+}
 
 int AliGPUCADisplayBackendGlfw::OpenGLMain()
 {
@@ -164,13 +179,26 @@ int AliGPUCADisplayBackendGlfw::OpenGLMain()
 	GlfwRunning = true;
 	pthread_mutex_unlock(&semLockExit);
 	
-#ifdef GPUCA_O2_LIB
-	if (gl3wInit()) return(-1);
-#else
+//#ifdef GPUCA_O2_LIB //Use GL3W for O2, GLEW otherwise
+//	if (gl3wInit()) return(-1);
+//#else
 	if (glewInit()) return(-1);
-#endif
-	if (InitGL()) return(1);
+//#endif
 
+#ifdef GPUCA_O2_LIB
+	if (gl3wInit()) return(-1); //Hack: We have to initialize gl3w as well, as the DebugGUI uses it.
+#endif
+
+	if (InitGL()) return(1);
+#ifdef GPUCA_O2_LIB
+	ImGui_ImplGlfwGL3_Init(window, false);
+#endif
+
+#ifdef GPUCA_O2_LIB
+	while (o2::framework::pollGUI(window, DisplayLoop))
+	{
+	}
+#else
 	while (!glfwWindowShouldClose(window))
 	{
 		HandleSendKey();
@@ -178,9 +206,13 @@ int AliGPUCADisplayBackendGlfw::OpenGLMain()
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
+#endif
 
 	displayControl = 2;
 	pthread_mutex_lock(&semLockExit);
+#ifdef GPUCA_O2_LIB
+	ImGui_ImplGlfwGL3_Shutdown();
+#endif
 	glfwDestroyWindow(window);
 	glfwTerminate();
 	GlfwRunning = false;
@@ -197,9 +229,13 @@ void AliGPUCADisplayBackendGlfw::DisplayExit()
 	while (GlfwRunning) usleep(10000);
 }
 
-void AliGPUCADisplayBackendGlfw::OpenGLPrint(const char* s)
+void AliGPUCADisplayBackendGlfw::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a)
 {
-	
+	glColor4f(r, g, b, a);
+	glRasterPos2f(x, y);
+#ifdef GPUCA_O2_LIB
+	ImGui::Text("%s", s);
+#endif
 }
 
 void AliGPUCADisplayBackendGlfw::SwitchFullscreen(bool set)
@@ -239,4 +275,13 @@ int AliGPUCADisplayBackendGlfw::StartDisplay()
 		return(1);
 	}
 	return(0);
+}
+
+bool AliGPUCADisplayBackendGlfw::EnableSendKey()
+{
+#ifdef GPUCA_O2_LIB
+	return false;
+#else
+	return true;
+#endif
 }

@@ -2250,10 +2250,7 @@ void AliGPUCADisplay::showInfo(const char* info)
 	gluOrtho2D(0.f, screen_width, 0.f, screen_height);
 	glViewport(0, 0, screen_width, screen_height);
 	float colorValue = invertColors ? 0.f : 1.f;
-	if (invertColors) glColor3f(colorValue, colorValue, colorValue);
-	else glColor3f(colorValue, colorValue, colorValue);
-	glRasterPos2f(40.f, 40.f);
-	mBackend->OpenGLPrint(info);
+	mBackend->OpenGLPrint(info, 40.f, 40.f, colorValue, colorValue, colorValue, 1);
 	if (infoText2Timer.IsRunning())
 	{
 		if (infoText2Timer.GetCurrentElapsedTime() >= 6)
@@ -2262,9 +2259,7 @@ void AliGPUCADisplay::showInfo(const char* info)
 		}
 		else
 		{
-			if (infoText2Timer.GetCurrentElapsedTime() >= 5) glColor4f(colorValue, colorValue, colorValue, 6 - infoText2Timer.GetCurrentElapsedTime());
-			glRasterPos2f(40.f, 20.f);
-			mBackend->OpenGLPrint(infoText2);
+			mBackend->OpenGLPrint(infoText2, 40.f, 20.f, colorValue, colorValue, colorValue, 6 - infoText2Timer.GetCurrentElapsedTime());
 		}
 	}
 	if (infoHelpTimer.IsRunning())
@@ -2275,11 +2270,9 @@ void AliGPUCADisplay::showInfo(const char* info)
 		}
 		else
 		{
-			if (infoHelpTimer.GetCurrentElapsedTime() >= 5) glColor4f(colorValue, colorValue, colorValue, 6 - infoHelpTimer.GetCurrentElapsedTime());
 			for (unsigned int i = 0;i < sizeof(HelpText) / sizeof(HelpText[0]);i++)
 			{
-				glRasterPos2f(40.f, screen_height - 35 - 20 * (1 + i));
-				mBackend->OpenGLPrint(HelpText[i]);
+				mBackend->OpenGLPrint(HelpText[i], 40.f, screen_height - 35 - 20 * (1 + i), colorValue, colorValue, colorValue, infoHelpTimer.GetCurrentElapsedTime() >= 5 ? (6 - infoHelpTimer.GetCurrentElapsedTime()) : 1);
 			}
 		}
 	}
