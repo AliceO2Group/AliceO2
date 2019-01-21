@@ -331,11 +331,11 @@ void AliGPUReconstruction::ResetRegisteredMemoryPointers(short ires)
 	if (IsGPU() && (res->mType & AliGPUMemoryResource::MEMORY_GPU)) res->SetDevicePointers(res->mPtrDevice);
 }
 
-void AliGPUReconstruction::FreeRegisteredMemory(AliGPUProcessor* proc)
+void AliGPUReconstruction::FreeRegisteredMemory(AliGPUProcessor* proc, bool freeCustom)
 {
 	for (unsigned int i = 0;i < mMemoryResources.size();i++)
 	{
-		if ((proc == nullptr || mMemoryResources[i].mProcessor == proc) && !(mMemoryResources[i].mType & AliGPUMemoryResource::MEMORY_CUSTOM)) FreeRegisteredMemory(i);
+		if ((proc == nullptr || mMemoryResources[i].mProcessor == proc) && (freeCustom || !(mMemoryResources[i].mType & AliGPUMemoryResource::MEMORY_CUSTOM))) FreeRegisteredMemory(i);
 	}
 }
 

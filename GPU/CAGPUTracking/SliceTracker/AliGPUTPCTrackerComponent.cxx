@@ -673,6 +673,10 @@ void* AliGPUTPCTrackerComponent::TrackerDoEvent(void* par)
   fRec->RunTPCTrackingSlices();
   fBenchmark.Stop(1);
   HLTInfo("Processed %d clusters", nClustersTotal);
+  for (int i = 0;i < 36;i++)
+  {
+      fRec->GetTPCSliceTrackers()[i].Clear();
+  }
 
   int ret = 0;
   size = 0;
