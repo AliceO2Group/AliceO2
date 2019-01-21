@@ -378,7 +378,6 @@ int AliGPUTRDTrackerComponent::DoEvent
   }
 
   fTracker->Reset();
-  fTracker->StartLoadTracklets(nTrackletsTotal);
 
   // loop over all tracklets
   for (int iTracklet=0; iTracklet<nTrackletsTotal; ++iTracklet){
@@ -389,9 +388,13 @@ int AliGPUTRDTrackerComponent::DoEvent
 	    fTracker->LoadTracklet(tracklets[iTracklet], trackletsMC[iTracklet].fLabel);
     }
   }
+  // loop over all tracks
+  for (unsigned int iTrack = 0; iTrack < tracksTPC.size(); ++iTrack) {
+    fTracker->LoadTrack(tracksTPC[iTrack], tracksTPCLab[iTrack]);
+  }
 
   fBenchmark.Start(1);
-  fTracker->DoTracking(&(tracksTPC[0]), &(tracksTPCLab[0]), tracksTPC.size());
+  fTracker->DoTracking();
   fBenchmark.Stop(1);
 
   GPUTRDTrack *trackArray = fTracker->Tracks();

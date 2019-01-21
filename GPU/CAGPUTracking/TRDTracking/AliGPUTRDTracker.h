@@ -4,9 +4,13 @@
  * See cxx source for full Copyright notice                               */
 
 #include "AliTPCCommonDef.h"
+#include "AliGPUProcessor.h"
 #include "AliGPUTRDDef.h"
 #include "AliGPUTPCDef.h"
 #include "AliGPUTRDTrackerDebug.h"
+#include "AliGPUTRDTrack.h"
+
+#include <vector>
 
 class AliGPUTRDTrackletWord;
 class AliGPUTRDGeometry;
@@ -15,7 +19,7 @@ class AliMCEvent;
 class AliGPUTPCGMMerger;
 
 //-------------------------------------------------------------------------
-class AliGPUTRDTracker {
+class AliGPUTRDTracker : public AliGPUProcessor {
  public:
 
 #ifndef GPUCA_GPUCODE
@@ -52,18 +56,36 @@ class AliGPUTRDTracker {
     Hypothesis() : fLayers(0), fCandidateId(-1), fTrackletId(-1), fChi2(9999.f) {}
   };
 
-  size_t SetPointersBase(void* base, int maxThreads = 1, bool doConstruct = false);
-  size_t SetPointersTracklets(void* base);
-  size_t SetPointersTracks(void *base, int nTracks);
+  void SetMaxData();
+  void RegisterMemoryAllocation();
+	void InitializeProcessor();
+
+  void* SetPointersBase(void* base);
+  void* SetPointersTracklets(void* base);
+  void* SetPointersTracks(void *base);
+
+  short MemoryPermanent() const { return fMemoryPermanent; }
+  short MemoryTracklets() const { return fMemoryTracklets; }
+  short MemoryTracks()    const { return fMemoryTracks; }
 
   GPUd() bool Init(AliGPUTRDGeometry *geo = nullptr);
+  GPUhd() void SetGeometry(AliGPUTRDGeometry* geo) {fGeo = geo;}
   GPUd() void Reset();
-  GPUd() void StartLoadTracklets(const int nTrklts);
   GPUd() void LoadTracklet(const AliGPUTRDTrackletWord &tracklet, const int *labels = 0x0);
-  void DoTracking(GPUTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTRDnTrklts = 0x0, int *tracksTRDlab = 0x0);
-  GPUd() void DoTrackingThread(GPUTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int iTrk, int threadId, int *tracksTRDnTrklts = 0x0, int *tracksTRDlab = 0x0);
+  template<class T> GPUd() void LoadTrack(const T &trk, const int label = -1) {
+    if (fNTracks >= fNMaxTracks) {
+      printf("Error: Track dropped (no memory available) -> must not happen\n");
+      exit(1);
+    }
+    new (&fTracks[fNTracks++]) GPUTRDTrack(trk);
+    if (label >= 0) {
+        fTracks[fNTracks-1].SetLabel(label);
+    }
+  }
+  void DoTracking();
+  GPUd() void DoTrackingThread(int iTrk, const AliGPUTPCGMMerger* merger, int threadId = 0);
   GPUd() bool CalculateSpacePoints();
-  GPUd() bool FollowProlongation(GPUTRDPropagator *prop, GPUTRDTrack *t, int nTPCtracks, int threadId);
+  GPUd() bool FollowProlongation(GPUTRDPropagator *prop, GPUTRDTrack *t, int threadId);
   GPUd() int GetDetectorNumber(const float zPos, const float alpha, const int layer) const;
   GPUd() bool AdjustSector(GPUTRDPropagator *prop, GPUTRDTrack *t, const int layer) const;
   GPUd() int GetSector(float alpha) const;
@@ -109,17 +131,18 @@ class AliGPUTRDTracker {
 
  protected:
 
-  void* fBaseDataPtr;                         // pointer to allocated memory block with base data
-  void* fTrackletsDataPtr;                    // pointer to allocated memory block with tracklet data
-  void* fTracksDataPtr;                       // pointer to allocated memory block with tracks for I/O
   float *fR;                                  // rough radial position of each TRD layer
   bool fIsInitialized;                        // flag is set upon initialization
+  short fMemoryPermanent;
+  short fMemoryTracklets;
+  short fMemoryTracks;
+  int fNMaxTracks;
+  int fNMaxSpacePoints;
   GPUTRDTrack *fTracks;                       // array of trd-updated tracks
   int fNCandidates;                           // max. track hypothesis per layer
   int fNTracks;                               // number of TPC tracks to be matched
   int fNEvents;                               // number of processed events
   AliGPUTRDTrackletWord *fTracklets;          // array of all tracklets, later sorted by HCId
-  int fNtrackletsMax;                         // max number of tracklets
   int fMaxThreads;                            // maximum number of supported threads
   int fNTracklets;                            // total number of tracklets in event
   int *fNtrackletsInChamber;                  // number of tracklets in each chamber

@@ -15,10 +15,11 @@
 #include "AliGPUTRDTracker.h"
 #include "AliGPUTRDTrackletWord.h"
 #include "AliGPUTRDGeometry.h"
-#include "AliGPUTRDTrack.h"
 #include "AliGPUTRDTrackerDebug.h"
-#include "AliGPUTPCGMMerger.h"
 #include "AliGPUReconstruction.h"
+#include "AliGPUMemoryResource.h"
+
+class AliGPUTPCGMMerger;
 
 #ifdef GPUCA_ALIROOT_LIB
 #include "TDatabasePDG.h"
@@ -29,59 +30,83 @@ static const float piMass = TDatabasePDG::Instance()->GetParticle(211)->Mass();
 static const float piMass = 0.139f;
 #endif
 
-static const AliGPUTPCGMMerger fgkMerger;
+#ifndef GPUCA_GPUCODE
+void AliGPUTRDTracker::SetMaxData()
+{
+  fNMaxTracks = mRec->mIOPtrs.nMergedTracks;
+  fNMaxSpacePoints = mRec->mIOPtrs.nTRDTracklets;
+  if (mRec->IsGPU())
+  {
+    fNMaxTracks = 30000;
+    fNMaxSpacePoints = 60000;
+  }
+}
 
-size_t AliGPUTRDTracker::SetPointersBase(void* base, int maxThreads, bool doConstruct)
+void AliGPUTRDTracker::RegisterMemoryAllocation()
+{
+  fMemoryPermanent = mRec->RegisterMemoryAllocation(this, &AliGPUTRDTracker::SetPointersBase, AliGPUMemoryResource::MEMORY_PERMANENT, "TRDInitialize");
+  fMemoryTracklets = mRec->RegisterMemoryAllocation(this, &AliGPUTRDTracker::SetPointersTracklets, AliGPUMemoryResource::MEMORY_INPUT, "TRDTracklets");
+  auto type = AliGPUMemoryResource::MEMORY_INOUT;
+  if (mRec->GetDeviceProcessingSettings().memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL) {
+    type = AliGPUMemoryResource::MEMORY_CUSTOM;
+  }
+  fMemoryTracks = mRec->RegisterMemoryAllocation(this, &AliGPUTRDTracker::SetPointersTracks, type, "TRDTracks");
+}
+
+void AliGPUTRDTracker::InitializeProcessor()
+{
+  Init((AliGPUTRDGeometry*) mRec->GetTRDGeometry());
+}
+
+void* AliGPUTRDTracker::SetPointersBase(void* base)
 {
   //--------------------------------------------------------------------
   // Allocate memory for fixed size objects (needs to be done only once)
   //--------------------------------------------------------------------
-  void* oldBase = base;
+  fMaxThreads = mRec->GetMaxThreads();
   AliGPUReconstruction::computePointerWithAlignment(base, fR, kNLayers);
   AliGPUReconstruction::computePointerWithAlignment(base, fNtrackletsInChamber, kNChambers);
   AliGPUReconstruction::computePointerWithAlignment(base, fTrackletIndexArray, kNChambers);
-  AliGPUReconstruction::computePointerWithAlignment(base, fHypothesis, fNhypothesis * maxThreads);
-  AliGPUReconstruction::computePointerWithAlignment(base, fCandidates, fNCandidates * 2 * maxThreads, doConstruct);
-  return ((size_t) base - (size_t) oldBase);
+  AliGPUReconstruction::computePointerWithAlignment(base, fHypothesis, fNhypothesis * fMaxThreads);
+  AliGPUReconstruction::computePointerWithAlignment(base, fCandidates, fNCandidates * 2 * fMaxThreads);
+  return base;
 }
 
-size_t AliGPUTRDTracker::SetPointersTracklets(void *base)
+void* AliGPUTRDTracker::SetPointersTracklets(void *base)
 {
   //--------------------------------------------------------------------
   // Allocate memory for tracklets and space points
   // (size might change for different events)
   //--------------------------------------------------------------------
-  void *oldBase = base;
-  AliGPUReconstruction::computePointerWithAlignment(base, fTracklets, fNtrackletsMax);
-  AliGPUReconstruction::computePointerWithAlignment(base, fSpacePoints, fNtrackletsMax);
-  AliGPUReconstruction::computePointerWithAlignment(base, fTrackletLabels, 3*fNtrackletsMax);
-  return ((size_t) base - (size_t) oldBase);
+  AliGPUReconstruction::computePointerWithAlignment(base, fTracklets, fNMaxSpacePoints);
+  AliGPUReconstruction::computePointerWithAlignment(base, fSpacePoints, fNMaxSpacePoints);
+  AliGPUReconstruction::computePointerWithAlignment(base, fTrackletLabels, 3*fNMaxSpacePoints);
+  return base;
 }
 
-size_t AliGPUTRDTracker::SetPointersTracks(void *base, int nTracks)
+void* AliGPUTRDTracker::SetPointersTracks(void *base)
 {
   //--------------------------------------------------------------------
   // Allocate memory for tracks (this is done once per event)
   //--------------------------------------------------------------------
-  void *oldBase = base;
-  AliGPUReconstruction::computePointerWithAlignment(base, fTracks, nTracks);
-  return ((size_t) base - (size_t) oldBase);
+  AliGPUReconstruction::computePointerWithAlignment(base, fTracks, fNMaxTracks);
+  return base;
 }
 
 
-#ifndef GPUCA_GPUCODE
 AliGPUTRDTracker::AliGPUTRDTracker() :
-  fBaseDataPtr(nullptr),
-  fTrackletsDataPtr(nullptr),
-  fTracksDataPtr(nullptr),
   fR(nullptr),
   fIsInitialized(false),
+  fMemoryPermanent(-1),
+  fMemoryTracklets(-1),
+  fMemoryTracks(-1),
+  fNMaxTracks(0),
+  fNMaxSpacePoints(0),
   fTracks(nullptr),
   fNCandidates(1),
   fNTracks(0),
   fNEvents(0),
   fTracklets(nullptr),
-  fNtrackletsMax(1000),
   fMaxThreads(100),
   fNTracklets(0),
   fNtrackletsInChamber(nullptr),
@@ -100,7 +125,6 @@ AliGPUTRDTracker::AliGPUTRDTracker() :
   fZCorrCoefNRC(1.4),
   fNhypothesis(100),
   fMCEvent(nullptr),
-  fMerger(&fgkMerger),
   fDebug(new AliGPUTRDTrackerDebug())
 {
   //--------------------------------------------------------------------
@@ -113,11 +137,6 @@ AliGPUTRDTracker::~AliGPUTRDTracker()
   //--------------------------------------------------------------------
   // Destructor
   //--------------------------------------------------------------------
-  if (fIsInitialized) {
-    free(fBaseDataPtr);
-    free(fTrackletsDataPtr);
-    free(fTracksDataPtr);
-  }
   delete fDebug;
 }
 
@@ -133,21 +152,11 @@ GPUd() bool AliGPUTRDTracker::Init(AliGPUTRDGeometry *geo)
 
   fGeo = geo;
 
-  size_t sizeBase = SetPointersBase(nullptr, fMaxThreads);
-  fBaseDataPtr = malloc(sizeBase);
-  if (!fBaseDataPtr) {
-    Error("Init", "memory allocation failed");
-    return false;
+#ifdef GPUCA_ALIROOT_LIB
+  for (int iCandidate = 0; iCandidate < fNCandidates * 2 * fMaxThreads; ++iCandidate) {
+    new(&fCandidates[iCandidate]) GPUTRDTrack;
   }
-  SetPointersBase(fBaseDataPtr, fMaxThreads, true);
-
-  size_t sizeTracklets = SetPointersTracklets(nullptr);
-  fTrackletsDataPtr = malloc(sizeTracklets);
-  if (!fTrackletsDataPtr) {
-    Error("Init", "memory allocation failed");
-    return false;
-  }
-  SetPointersTracklets(fTrackletsDataPtr);
+#endif
 
   for (int iDet=0; iDet<kNChambers; ++iDet) {
     fNtrackletsInChamber[iDet] = 0;
@@ -189,7 +198,8 @@ GPUd() void AliGPUTRDTracker::Reset()
   // Reset tracker
   //--------------------------------------------------------------------
   fNTracklets = 0;
-  for (int i=0; i<fNtrackletsMax; ++i) {
+  fNTracks = 0;
+  for (int i=0; i<fNMaxSpacePoints; ++i) {
     fTracklets[i] = 0x0;
     fSpacePoints[i].fR        = 0.;
     fSpacePoints[i].fX[0]     = 0.;
@@ -208,33 +218,6 @@ GPUd() void AliGPUTRDTracker::Reset()
     fNtrackletsInChamber[iDet] = 0;
     fTrackletIndexArray[iDet] = -1;
   }
-  /*
-  // FIXME temporary reset helper arrays, not needed for production
-  for (int iHypo=0; iHypo<fNhypothesis*fMaxThreads; ++iHypo) {
-    fHypothesis[iHypo].fCandidateId = -2;
-    fHypothesis[iHypo].fTrackletId = -2;
-    fHypothesis[iHypo].fLayers = 0;
-    fHypothesis[iHypo].fChi2 = 0.f;
-  }
-  */
-}
-
-GPUd() void AliGPUTRDTracker::StartLoadTracklets(const int nTrklts)
-{
-  //--------------------------------------------------------------------
-  // Prepare tracker for the tracklets
-  // - adjust array size if nTrklts > nTrkltsMax
-  //--------------------------------------------------------------------
-  if (nTrklts > fNtrackletsMax) {
-    free(fTrackletsDataPtr);
-    fNtrackletsMax += nTrklts - fNtrackletsMax;
-    size_t sizeTracklets = SetPointersTracklets(nullptr);
-    fTrackletsDataPtr = malloc(sizeTracklets);
-    if (!fTrackletsDataPtr) {
-      Error("StartLoadTracklets", "memory allocation for output data failed");
-    }
-    SetPointersTracklets(fTrackletsDataPtr);
-  }
 }
 
 GPUd() void AliGPUTRDTracker::LoadTracklet(const AliGPUTRDTrackletWord &tracklet, const int *labels)
@@ -242,7 +225,7 @@ GPUd() void AliGPUTRDTracker::LoadTracklet(const AliGPUTRDTrackletWord &tracklet
   //--------------------------------------------------------------------
   // Add single tracklet to tracker
   //--------------------------------------------------------------------
-  if (fNTracklets >= fNtrackletsMax ) {
+  if (fNTracklets >= fNMaxSpacePoints ) {
     Error("LoadTracklet", "Running out of memory for tracklets, skipping tracklet(s). This should actually never happen.");
     return;
   }
@@ -255,12 +238,11 @@ GPUd() void AliGPUTRDTracker::LoadTracklet(const AliGPUTRDTrackletWord &tracklet
   fNtrackletsInChamber[tracklet.GetDetector()]++;
 }
 
-void AliGPUTRDTracker::DoTracking( GPUTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTRDnTrklts, int *tracksTRDlab )
+void AliGPUTRDTracker::DoTracking()
 {
   //--------------------------------------------------------------------
   // Steering function for the tracking
   //--------------------------------------------------------------------
-
 
   // sort tracklets and fill index array
   Quicksort(0, fNTracklets - 1, fNTracklets);
@@ -276,45 +258,50 @@ void AliGPUTRDTracker::DoTracking( GPUTRDTrack *tracksTPC, int *tracksTPClab, in
     Error("DoTracking", "Space points for at least one chamber could not be calculated");
   }
 
-  if (fTracksDataPtr) {
-    free(fTracksDataPtr);
-  }
-  size_t sizeTracks = SetPointersTracks(nullptr, nTPCtracks);
-  fTracksDataPtr = malloc(sizeTracks);
-  if (!fTracksDataPtr) {
-    Error("DoTracking", "memory allocation failed");
-    return;
-  }
-  SetPointersTracks(fTracksDataPtr, nTPCtracks);
-  fNTracks = 0;
   auto timeStart = std::chrono::high_resolution_clock::now();
 
+  if (mRec->IsGPU())
+  {
+    mRec->DoTRDGPUTracking();
+  }
+  else
+  {
 #ifdef GPUCA_HAVE_OPENMP
-  //omp_set_dynamic(0);
-  //omp_set_num_threads(1);
 #pragma omp parallel for
-  for (int i=0; i<nTPCtracks; ++i) {
+  for (int iTrk=0; iTrk<fNTracks; ++iTrk) {
     if (omp_get_num_threads() > fMaxThreads) {
       Error("DoTracking", "number of parallel threads too high, aborting tracking");
       // break statement not possible in OpenMP for loop
-      i = nTPCtracks;
+      iTrk = fNTracks;
       continue;
     }
-    int threadId = omp_get_thread_num();
-    DoTrackingThread(tracksTPC, tracksTPClab, nTPCtracks, i, threadId, tracksTRDnTrklts, tracksTRDlab);
+    DoTrackingThread(iTrk, &mRec->GetTPCMerger(), omp_get_thread_num());
   }
 #else
-  for (int i=0; i<nTPCtracks; ++i) {
-    int threadId = 0;
-    DoTrackingThread(tracksTPC, tracksTPClab, nTPCtracks, i, threadId, tracksTRDnTrklts, tracksTRDlab);
+  for (int iTrk=0; iTrk<fNTracks; ++iTrk) {
+    DoTrackingThread(iTrk, &mRec->GetTPCMerger());
   }
 #endif
+  }
 
   auto duration = std::chrono::high_resolution_clock::now() - timeStart;
   //std::cout << "--->  -----> -------> ---------> Time for event " << fNEvents << ": " << std::chrono::duration_cast<std::chrono::milliseconds>(duration).count() << " ms" << std::endl;
 
   //DumpTracks();
   fNEvents++;
+}
+
+#endif
+
+
+#ifdef GPUCA_GPUCODE
+
+GPUg() void DoTrdTrackingGPU()
+{
+  for (int i = get_global_id(0);i < gGPUConstantMem.trdTracker.NTracks();i += get_global_size(0))
+  {
+    gGPUConstantMem.trdTracker.DoTrackingThread(i, &gGPUConstantMem.tpcMerger, get_global_id(0));
+  }
 }
 
 #endif
@@ -330,34 +317,14 @@ GPUd() void AliGPUTRDTracker::DumpTracks()
   }
 }
 
-GPUd() void AliGPUTRDTracker::DoTrackingThread( GPUTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int iTrk, int threadId, int *tracksTRDnTrklts, int *tracksTRDlab )
+GPUd() void AliGPUTRDTracker::DoTrackingThread(int iTrk, const AliGPUTPCGMMerger* merger, int threadId)
 {
   //--------------------------------------------------------------------
   // perform the tracking for one track (must be threadsafe)
   //--------------------------------------------------------------------
-  GPUTRDTrack tMI(tracksTPC[iTrk]);
-  GPUTRDTrack *t = &tMI;
-  t->SetTPCtrackId(iTrk);
-  t->SetLabel(tracksTPClab[iTrk]);
-  if (tracksTRDnTrklts) {
-    for (int i=0; i<4; ++i) {
-      t->SetNtrackletsOffline(i, tracksTRDnTrklts[iTrk*4+i]);
-    }
-  }
-  if (tracksTRDlab) {
-    t->SetLabelOffline(tracksTRDlab[iTrk]);
-  }
-  GPUTRDPropagator prop(fMerger);
-  prop.setTrack(t);
-  FollowProlongation(&prop, t, nTPCtracks, threadId);
-  int myTrack;
-  {
-    #ifdef GPUCA_HAVE_OPENMP
-    #pragma omp atomic capture
-    #endif
-    myTrack = fNTracks++;
-  }
-  fTracks[myTrack] = *t;
+  GPUTRDPropagator prop(merger);
+  prop.setTrack(&(fTracks[iTrk]));
+  FollowProlongation(&prop, &(fTracks[iTrk]), threadId);
 }
 
 
@@ -421,7 +388,7 @@ GPUd() bool AliGPUTRDTracker::CalculateSpacePoints()
 }
 
 
-GPUd() bool AliGPUTRDTracker::FollowProlongation(GPUTRDPropagator *prop, GPUTRDTrack *t, int nTPCtracks, int threadId)
+GPUd() bool AliGPUTRDTracker::FollowProlongation(GPUTRDPropagator *prop, GPUTRDTrack *t, int threadId)
 {
   //--------------------------------------------------------------------
   // Propagate TPC track layerwise through TRD and pick up closest
@@ -478,7 +445,7 @@ GPUd() bool AliGPUTRDTracker::FollowProlongation(GPUTRDPropagator *prop, GPUTRDT
   float roadZ = 0.f;
   const int nMaxChambersToSearch = 4;
 
-  fDebug->SetGeneralInfo(fNEvents, nTPCtracks, iTrack, trackID, t->getPt());
+  fDebug->SetGeneralInfo(fNEvents, fNTracks, iTrack, trackID, t->getPt());
 
   for (int iLayer=0; iLayer<kNLayers; ++iLayer) {
     int nCurrHypothesis = 0;

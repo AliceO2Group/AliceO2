@@ -239,6 +239,7 @@ public:
 	int RunTRDTracking();
 	virtual int RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers);
 	virtual int GPUMergerAvailable() const;
+	virtual int DoTRDGPUTracking() { printf("Does only work on GPU\n"); exit(1); }
 	
 	//Getters / setters for parameters
 	DeviceType GetDeviceType() const {return (DeviceType) mProcessingSettings.deviceType;}
@@ -255,12 +256,14 @@ public:
 	void SetSettings(const AliGPUCASettingsEvent* settings, const AliGPUCASettingsRec* rec = nullptr, const AliGPUCASettingsDeviceProcessing* proc = nullptr);
 	void SetTPCFastTransform(std::unique_ptr<TPCFastTransform> tpcFastTransform);
 	void SetTRDGeometry(const o2::trd::TRDGeometryFlat& geo);
+	const o2::trd::TRDGeometryFlat *GetTRDGeometry() {return mTRDGeometry.get();}
 	void LoadClusterErrors();
 	void SetResetTimers(bool reset) {mDeviceProcessingSettings.resetTimers = reset;}
 	void SetOutputControl(const AliGPUCAOutputControl& v) {mOutputControl = v;}
 	void SetOutputControl(void* ptr, size_t size);
 	AliGPUCAOutputControl& OutputControl() {return mOutputControl;}
 	const AliGPUTPCSliceOutput** SliceOutput() const {return (const AliGPUTPCSliceOutput**) &mSliceOutput;}
+	virtual int GetMaxThreads();
 	
 	const void* mConfigDisplay = nullptr;										//Abstract pointer to Standalone Display Configuration Structure
 	const void* mConfigQA = nullptr;											//Abstract pointer to Standalone QA Configuration Structure

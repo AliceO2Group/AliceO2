@@ -40,6 +40,7 @@
 #elif defined(GPUCA_GPUCODE)
 #error GPU TYPE NOT SET
 #endif
+#define GPUCA_GPU_THREAD_COUNT_TRD 512
 
 #define GPUCA_GPU_DEFAULT_HELPER_THREADS 2				//Number of helper threads to speed up initialization/output
 
