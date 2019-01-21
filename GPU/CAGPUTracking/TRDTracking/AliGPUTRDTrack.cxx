@@ -37,7 +37,7 @@ GPUd() AliGPUTRDTrack<T>::AliGPUTRDTrack() :
   fTPCtrackId(0),
   fNtracklets(0),
   fNmissingConsecLayers(0),
-  fLabelOffline(0),
+  fLabelOffline(-1),
   fIsStopped(false)
 {
   //------------------------------------------------------------------

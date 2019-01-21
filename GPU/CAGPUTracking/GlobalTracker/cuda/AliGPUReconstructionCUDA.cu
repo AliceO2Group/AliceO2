@@ -701,6 +701,37 @@ int AliGPUReconstructionCUDA::ExitDevice_Runtime()
 	return(0);
 }
 
+int AliGPUReconstructionCUDA::DoTRDGPUTracking()
+{
+#ifndef GPUCA_GPU_MERGER
+	CAGPUError("GPUCA_GPU_MERGER compile flag not set");
+	return(1);
+#else
+	cuCtxPushCurrent(mInternals->CudaContext);
+	memcpy((void*) fGpuTrdTracker, (void*) mTRDTracker.get(), sizeof(*fGpuTrdTracker));
+
+	fGpuTrdTracker->InitGPUProcessor((AliGPUReconstruction*) this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
+	ResetRegisteredMemoryPointers(fGpuTrdTracker);
+	fGpuTrdTracker->SetGeometry((AliGPUTRDGeometry*) workersDevice.fTrdGeometry);
+
+	GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, fGpuTrdTracker, sizeof(*fGpuTrdTracker), (char*) &AliGPUCAConstantMemDummy.trdTracker - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice));
+
+	TransferMemoryResourcesToGPU(fGpuTrdTracker);
+
+	DoTrdTrackingGPU<<<fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT_TRD>>>();
+	GPUFailedMsg(cudaDeviceSynchronize());
+
+	TransferMemoryResourcesToHost(fGpuTrdTracker);
+	GPUFailedMsg(cudaDeviceSynchronize());
+
+	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("GPU TRD tracker Finished");
+
+
+	cuCtxPopCurrent((CUcontext*) &mInternals->CudaContext);
+	return(0);
+#endif
+}
+
 int AliGPUReconstructionCUDA::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers)
 {
 #ifndef GPUCA_GPU_MERGER

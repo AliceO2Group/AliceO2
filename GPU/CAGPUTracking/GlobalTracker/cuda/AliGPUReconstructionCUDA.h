@@ -14,6 +14,7 @@ class AliGPUReconstructionCUDA : public AliGPUReconstructionDeviceBase
 {
 public:
 	virtual ~AliGPUReconstructionCUDA();
+	virtual int DoTRDGPUTracking() override;
 	virtual int RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers) override;
 	virtual int GPUMergerAvailable() const override;
     
