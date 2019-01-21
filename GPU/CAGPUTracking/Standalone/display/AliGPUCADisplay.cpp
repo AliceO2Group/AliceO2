@@ -1,6 +1,13 @@
+//#ifdef GPUCA_O2_LIB
+//#include "../src/GL/gl3w.h"
+//#else
+#include <GL/glew.h>
+//#endif
+
 #include "AliGPUCADisplay.h"
 #include "AliGPUTPCDef.h"
 
+#include <GL/glu.h>
 #include <vector>
 #include <array>
 #include <tuple>
@@ -422,12 +429,12 @@ void AliGPUCADisplay::updateConfig()
 	setDepthBuffer();
 }
 
-int AliGPUCADisplay::InitGL()
+int AliGPUCADisplay::InitGL(bool initFailure)
 {
-	int retVal = 0;
+	int retVal = initFailure;
 	try
 	{
-		retVal = InitGL_internal();
+		if (!initFailure) retVal = InitGL_internal();
 	}
 	catch (const std::runtime_error& e)
 	{
@@ -439,8 +446,6 @@ int AliGPUCADisplay::InitGL()
 
 int AliGPUCADisplay::InitGL_internal()
 {
-	CHKERR(glewInit());
-
 	int glVersion[2] = {0, 0};
 	glGetIntegerv(GL_MAJOR_VERSION, &glVersion[0]);
 	glGetIntegerv(GL_MINOR_VERSION, &glVersion[1]);

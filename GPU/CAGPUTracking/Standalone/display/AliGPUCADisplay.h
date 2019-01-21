@@ -25,7 +25,7 @@ public:
 	void HandleKeyRelease(unsigned char key) {}
 	int DrawGLScene(bool mixAnimation = false, float animateTime = -1.f) {return 1;}
 	void HandleSendKey(int key) {}
-	int InitGL() {return 1;}
+	int InitGL(bool initFailure = false) {return 1;}
 	void ExitGL() {}
 	void ReSizeGLScene(int width, int height, bool init = false) {}
 };
@@ -35,10 +35,9 @@ public:
 #include "AliGPUReconstruction.h"
 #include "../cmodules/vecpod.h"
 #include "../cmodules/qsem.h"
-#include <GL/glew.h>
+
 #include <GL/gl.h>
 #include <GL/glext.h>
-#include <GL/glu.h>
 
 class AliGPUTPCTracker;
 class AliGPUCAParam;
@@ -64,7 +63,7 @@ public:
 	void HandleKeyRelease(unsigned char key);
 	int DrawGLScene(bool mixAnimation = false, float animateTime = -1.f);
 	void HandleSendKey(int key);
-	int InitGL();
+	int InitGL(bool initFailure = false);
 	void ExitGL();
 	void ReSizeGLScene(int width, int height, bool init = false);
 	

@@ -10,7 +10,6 @@ public:
 	virtual ~AliGPUCADisplayBackendWindows() = default;
 	
 	virtual int StartDisplay() override;
-	virtual void* OpenGLMain(void*) override;
 	virtual void DisplayExit() override;
 	virtual void SwitchFullscreen(bool set) override;
 	virtual void ToggleMaximized(bool set) override;
@@ -18,7 +17,7 @@ public:
 	virtual void OpenGLPrint(const char* s) override;
 
 private:
-	virtual DWORD WINAPI OpenGLMain()
+	virtual int OpenGLMain();
 };
 
 #endif

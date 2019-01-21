@@ -18,7 +18,7 @@ public:
 	virtual void OpenGLPrint(const char* s) override;
 	
 private:
-	virtual void* OpenGLMain() override;
+	virtual int OpenGLMain() override;
 	
 	static void displayFunc(void);
 	static void glutLoopFunc(void);

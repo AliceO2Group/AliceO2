@@ -24,7 +24,7 @@ public:
 	virtual void OpenGLPrint(const char* s) override;
 
 private:
-	virtual void* OpenGLMain();
+	virtual int OpenGLMain();
 	int GetKey(int key);
 	void GetKey(XEvent& event, int& keyOut, int& keyPressOut);
 	

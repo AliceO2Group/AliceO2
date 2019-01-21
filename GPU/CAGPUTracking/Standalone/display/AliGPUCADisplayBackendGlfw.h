@@ -20,7 +20,7 @@ public:
 	virtual void OpenGLPrint(const char* s) override;
 	
 private:
-	virtual void* OpenGLMain() override;
+	virtual int OpenGLMain() override;
 	
 	static void GlfwLoopFunc(void);
 	static void error_callback(int error, const char* description);

@@ -1,6 +1,10 @@
 #include "AliGPUCADisplayBackendGlfw.h"
 
+//#ifdef GPUCA_O2_LIB
+//#include "../src/GL/gl3w.h"
+//#else
 #include <GL/glew.h>
+//#endif
 #include <GLFW/glfw3.h>
 
 #include <stdio.h>
@@ -130,11 +134,11 @@ void AliGPUCADisplayBackendGlfw::resize_callback(GLFWwindow* window, int width, 
 }
 
 
-void* AliGPUCADisplayBackendGlfw::OpenGLMain()
+int AliGPUCADisplayBackendGlfw::OpenGLMain()
 {
 	me = this;
 	
-	if (!glfwInit()) return((void*) -1);
+	if (!glfwInit()) return(-1);
 	glfwSetErrorCallback(error_callback);
 	
 	glfwWindowHint(GLFW_MAXIMIZED, 1);
@@ -146,7 +150,7 @@ void* AliGPUCADisplayBackendGlfw::OpenGLMain()
 	if (!window)
 	{
 		glfwTerminate();
-		return((void*) -1);
+		return(-1);
 	}
 	glfwMakeContextCurrent(window);
 	
@@ -160,12 +164,17 @@ void* AliGPUCADisplayBackendGlfw::OpenGLMain()
 	GlfwRunning = true;
 	pthread_mutex_unlock(&semLockExit);
 	
-	if (InitGL()) return((void*) -1);
+#ifdef GPUCA_O2_LIB
+	if (gl3wInit()) return(-1);
+#else
+	if (glewInit()) return(-1);
+#endif
+	if (InitGL()) return(1);
 
 	while (!glfwWindowShouldClose(window))
 	{
 		HandleSendKey();
-		DrawGLScene();
+		if (DrawGLScene()) return(1);
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
