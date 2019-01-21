@@ -16,9 +16,8 @@
 #ifndef O2_MID_COLUMNDATA_H
 #define O2_MID_COLUMNDATA_H
 
-#include <boost/serialization/access.hpp>
-#include <boost/serialization/array.hpp>
 #include <cstdint>
+#include <iostream>
 #include <array>
 
 namespace o2
@@ -27,42 +26,37 @@ namespace mid
 {
 /// Column data structure for MID
 struct ColumnData {
-  uint8_t deId;                     ///< Index of the detection element
-  uint8_t columnId;                 ///< Column in DE
-  std::array<uint16_t, 5> patterns; ///< patterns
+  uint8_t deId = 0;                 ///< Index of the detection element
+  uint8_t columnId = 0;             ///< Column in DE
+  std::array<uint16_t, 5> patterns; ///< Strip patterns
 
-  /// Sets the pattern
-  void setPattern(uint16_t pattern, int cathode, int line) { patterns[(cathode == 1) ? 4 : line] = pattern; }
-  /// Gets the pattern
-  uint16_t getPattern(int cathode, int line) { return patterns[(cathode == 1) ? 4 : line]; }
-  void addStrip(int strip, int cathode, int line) { patterns[(cathode == 1) ? 4 : line] |= (1 << strip); }
-  /// Sets the non-bending plane pattern
-  void setNonBendPattern(uint16_t pattern) { patterns[4] = pattern; }
-  /// Gets the non-bending plane pattern
-  uint16_t getNonBendPattern() { return patterns[4]; }
   /// Sets the bending plane pattern
   void setBendPattern(uint16_t pattern, int line) { patterns[line] = pattern; }
   /// Gets the bending plane pattern
-  uint16_t getBendPattern(int line) { return patterns[line]; }
+  uint16_t getBendPattern(int line) const { return patterns[line]; }
 
-  /// Checks if strip is fired
-  bool isStripFired(int istrip, int cathode, int line) { return patterns[(cathode == 1) ? 4 : line] & (1 << istrip); }
+  /// Sets the non-bending plane pattern
+  void setNonBendPattern(uint16_t pattern) { patterns[4] = pattern; }
+  /// Gets the non-bending plane pattern
+  uint16_t getNonBendPattern() const { return patterns[4]; }
+
+  void setPattern(uint16_t pattern, int cathode, int line);
+  uint16_t getPattern(int cathode, int line) const;
+
+  void addStrip(int strip, int cathode, int line);
+
   /// Checks if strip is fired in the non-bending plane
-  bool isNBPStripFired(int istrip) { return isStripFired(istrip, 1, 0); }
+  bool isNBPStripFired(int istrip) const { return patterns[4] & (1 << istrip); }
   /// Checks if strip is fired in the bending plane
-  bool isBPStripFired(int istrip, uint16_t line) { return isStripFired(istrip, 0, line); }
+  bool isBPStripFired(int istrip, int line) const { return patterns[line] & (1 << istrip); }
 
-  friend class boost::serialization::access;
-
-  /// Serializes the struct
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    ar& deId;
-    ar& columnId;
-    ar& patterns;
-  }
+  bool isStripFired(int istrip, int cathode, int line) const;
 };
+
+ColumnData operator|(const ColumnData& col1, const ColumnData& col2);
+ColumnData& operator|=(ColumnData& col1, const ColumnData& col2);
+std::ostream& operator<<(std::ostream& os, const ColumnData& col);
+
 } // namespace mid
 } // namespace o2
 
