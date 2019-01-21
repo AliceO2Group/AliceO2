@@ -73,7 +73,7 @@ bool Detector::ProcessHits(FairVolume* v)
       Int_t idch = tmpname.Atoi(); //retrieve the chamber number
       Float_t xl, yl;
       Param::Instance()->Mars2Lors(idch, x, xl, yl);      //take LORS position
-      AddHit(x[0], x[0], x[0], hitTime, etot, tid, idch); //HIT for photon, position at P, etot will be set to Q
+      AddHit(x[0], x[1], x[2], hitTime, etot, tid, idch); //HIT for photon, position at P, etot will be set to Q
       GenFee(etot);                                       //generate feedback photons etot is modified in hit ctor to Q of hit
     }                                                     //photon hit PC and DE >0
     return kTRUE;
@@ -114,7 +114,7 @@ bool Detector::ProcessHits(FairVolume* v)
       Param::Instance()->Mars2Lors(idch, out, xl, yl); //take LORS position
       if (eloss > 0) {
         // HIT for MIP, position near anod plane, eloss will be set to Q
-        AddHit(out[0], out[0], out[0], hitTime, eloss, tid, idch);
+        AddHit(out[0], out[1], out[2], hitTime, eloss, tid, idch);
         GenFee(eloss); //generate feedback photons
         eloss = 0;
       }
