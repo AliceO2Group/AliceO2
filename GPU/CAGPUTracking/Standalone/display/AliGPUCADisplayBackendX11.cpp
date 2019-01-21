@@ -1,3 +1,4 @@
+#include <GL/glew.h>
 #include "AliGPUCADisplayBackendX11.h"
 
 int AliGPUCADisplayBackendX11::GetKey(int key)
@@ -71,7 +72,7 @@ void AliGPUCADisplayBackendX11::OpenGLPrint(const char* s)
    }
 }
 
-void* AliGPUCADisplayBackendX11::OpenGLMain()
+int AliGPUCADisplayBackendX11::OpenGLMain()
 {
 	XSetWindowAttributes windowAttributes;
 	XVisualInfo *visualInfo = NULL;
@@ -87,21 +88,21 @@ void* AliGPUCADisplayBackendX11::OpenGLMain()
 	if (g_pDisplay == NULL)
 	{
 		fprintf(stderr, "glxsimple: %s\n", "could not open display");
-		exit(1);
+		return(-1);
 	}
 
 	// Make sure OpenGL's GLX extension supported
 	if (!glXQueryExtension(g_pDisplay, &errorBase, &eventBase))
 	{
 		fprintf(stderr, "glxsimple: %s\n", "X server has no OpenGL GLX extension");
-		exit(1);
+		return(-1);
 	}
 	
 	const char* glxExt = glXQueryExtensionsString(g_pDisplay, DefaultScreen(g_pDisplay));
 	if (strstr(glxExt, "GLX_EXT_swap_control") == NULL)
 	{
 		fprintf(stderr, "No vsync support!\n");
-		exit(1);
+		return(-1);
 	}
 
 	//Require MSAA, double buffering, and Depth buffer
@@ -129,7 +130,7 @@ void* AliGPUCADisplayBackendX11::OpenGLMain()
 	if (fbc == NULL || fbcount == 0)
 	{
 		fprintf(stderr, "Failed to get MSAA GLXFBConfig\n");
-		exit(1);
+		return(-1);
 	}
 	fbconfig = fbc[0];
 	XFree(fbc);
@@ -138,7 +139,7 @@ void* AliGPUCADisplayBackendX11::OpenGLMain()
 	if (visualInfo == NULL)
 	{
 		fprintf(stderr, "glxsimple: %s\n", "no RGB visual with depth buffer");
-		exit(1);
+		return(-1);
 	}
 
 	// Create an OpenGL rendering context
@@ -146,7 +147,7 @@ void* AliGPUCADisplayBackendX11::OpenGLMain()
 	if (glxContext == NULL)
 	{
 		fprintf(stderr, "glxsimple: %s\n", "could not create rendering context");
-		exit(1);
+		return(-1);
 	}
 	
 	Window win = RootWindow(g_pDisplay, visualInfo->screen);
@@ -175,14 +176,14 @@ void* AliGPUCADisplayBackendX11::OpenGLMain()
     if (!glIsList(font_base))
 	{
        fprintf(stderr, "Out of display lists.\n");
-       exit(1);
+       return(-1);
     }
 	const char* f = "fixed";
 	XFontStruct* font_info = XLoadQueryFont(g_pDisplay, f);
 	if (!font_info)
 	{
-		fprintf(stderr, "XLoadQueryFont failed - Exiting.\n");
-		exit(1);
+		fprintf(stderr, "XLoadQueryFont failed.\n");
+		return(-1);
 	}
 	else
 	{
@@ -192,7 +193,7 @@ void* AliGPUCADisplayBackendX11::OpenGLMain()
 	}
 
 	// Init OpenGL...
-	if (InitGL()) exit(1);
+	if (glewInit()) return(-1);
 	
 	XMapWindow(g_pDisplay, g_window);
 	XFlush(g_pDisplay);
@@ -203,9 +204,11 @@ void* AliGPUCADisplayBackendX11::OpenGLMain()
 	if (glXSwapIntervalEXT == NULL)
 	{
 		fprintf(stderr, "Cannot enable vsync\n");
-		exit(1);
+		return(-1);
 	}
 	glXSwapIntervalEXT(g_pDisplay, glXGetCurrentDrawable(), 0);
+	
+	if (InitGL()) return(1);
 	
 	pthread_mutex_lock(&semLockExit);
 	displayRunning = true;
@@ -360,7 +363,7 @@ void* AliGPUCADisplayBackendX11::OpenGLMain()
 	displayRunning = false;
 	pthread_mutex_unlock(&semLockExit);
 		
-	return(NULL);
+	return(0);
 }
 
 void AliGPUCADisplayBackendX11::DisplayExit()

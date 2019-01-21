@@ -154,7 +154,7 @@ void AliGPUCADisplayBackendGlut::mouseWheelFunc(int button, int dir, int x, int 
 	me->mouseWheel += dir;
 }
 
-void* AliGPUCADisplayBackendGlut::OpenGLMain()
+int AliGPUCADisplayBackendGlut::OpenGLMain()
 {
 	me = this;
 	int nopts = 2;
@@ -165,7 +165,8 @@ void* AliGPUCADisplayBackendGlut::OpenGLMain()
 	glutCreateWindow(GL_WINDOW_NAME);
 	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 
-	if (InitGL()) return((void*) -1);
+	if (glewInit()) return(-1);
+	if (InitGL()) return(1);
 
 	glutDisplayFunc(displayFunc);
 	glutIdleFunc(glutLoopFunc);

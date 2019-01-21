@@ -25,7 +25,7 @@ public:
 	volatile int needUpdate = 0; //flag that backend shall update the GL window, and call DrawGLScene
 
 protected:
-	virtual void* OpenGLMain() = 0;
+	virtual int OpenGLMain() = 0;
 	static void* OpenGLWrapper(void*);
 	
 	static constexpr int init_width = 1024, init_height = 768; //Initial window size, before maximizing
@@ -76,7 +76,7 @@ protected:
 	int DrawGLScene(bool mixAnimation = false, float animateTime = -1.f); //Callback to draw the GL scene
 	void HandleSendKey(); //Optional callback to handle key press from external source (e.g. stdin by default)
 	void ReSizeGLScene(int width, int height); //Callback when GL window is resized
-	int InitGL(); //Callback to initialize the GL Display (to be called in StartDisplay)
+	int InitGL(bool initFailure = false); //Callback to initialize the GL Display (to be called in StartDisplay)
 	void ExitGL(); //Callback to clean up the GL Display
 };
 

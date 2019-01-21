@@ -5,6 +5,7 @@
 #include <windows.h>
 #include <winbase.h>
 #include <windowsx.h>
+#include <GL/glew.h>
 
 HDC hDC = NULL;                                       // Private GDI Device Context
 HGLRC hRC = NULL;                                     // Permanent Rendering Context
@@ -191,13 +192,6 @@ BOOL CreateGLWindow(char *title, int width, int height, int bits, bool fullscree
 	SetFocus(hWnd);               // Sets Keyboard Focus To The Window
 	ReSizeGLScene(width, height); // Set Up Our Perspective GL Screen
 
-	if (InitGL()) // Initialize Our Newly Created GL Window
-	{
-		KillGLWindow(); // Reset The Display
-		printf("Initialization Failed.\n");
-		return FALSE; // Return FALSE
-	}
-
 	return TRUE; // Success
 }
 
@@ -323,7 +317,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
-DWORD WINAPI OpenGLMain()
+int AliGPUCADisplayBackendWindows::OpenGLMain()
 {
 	MSG msg;           // Windows Message Structure
 	BOOL done = FALSE; // Bool Variable To Exit Loop
@@ -331,10 +325,18 @@ DWORD WINAPI OpenGLMain()
 	// Ask The User Which Screen Mode They Prefer
 	fullscreen = FALSE; // Windowed Mode
 
+	if (glewInit()) return(-1);
 	// Create Our OpenGL Window
 	if (!CreateGLWindow(GL_WINDOW_NAME, init_width, init_height, 32, fullscreen))
 	{
-		return 0; // Quit If Window Was Not Created
+		return -1;
+	}
+	
+	if (InitGL())
+	{
+		KillGLWindow(); // Reset The Display
+		printf("Initialization Failed.\n");
+		return 1;
 	}
 
 	while (!done) // Loop That Runs While done=FALSE
@@ -371,7 +373,7 @@ DWORD WINAPI OpenGLMain()
 
 	// Shutdown
 	KillGLWindow();      // Kill The Window
-	return (msg.wParam); // Exit The Program
+	return (0); // Exit The Program
 }
 
 void DisplayExit() {}
