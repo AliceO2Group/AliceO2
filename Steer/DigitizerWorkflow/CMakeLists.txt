@@ -38,8 +38,8 @@ O2_GENERATE_EXECUTABLE(
   src/EMCALDigitWriterSpec.cxx
   src/HMPIDDigitizerSpec.cxx
   src/HMPIDDigitWriterSpec.cxx
+  src/MCHDigitizerSpec.cxx
   src/TRDDigitizerSpec.cxx
-# src/TRDDigitWriterSpec.cxx
   src/GRPUpdaterSpec.cxx
 
   BUCKET_NAME ${MODULE_BUCKET_NAME}

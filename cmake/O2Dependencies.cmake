@@ -1883,6 +1883,8 @@ o2_define_bucket(
     EMCALSimulation
     HMPIDBase
     HMPIDSimulation
+    MCHBase
+    MCHSimulation
     TRDBase
     TRDSimulation
 )
@@ -2032,7 +2034,10 @@ o2_define_bucket(
     detectors_base_bucket
     SimulationDataFormat
     RapidJSON
-
+    mch_mapping_interface_bucket
+    mch_mapping_impl3_bucket
+    MCHMappingImpl3
+    
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
