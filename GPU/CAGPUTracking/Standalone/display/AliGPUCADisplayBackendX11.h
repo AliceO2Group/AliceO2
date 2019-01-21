@@ -16,7 +16,7 @@ public:
 	AliGPUCADisplayBackendX11() = default;
 	virtual ~AliGPUCADisplayBackendX11() = default;
 	
-	virtual void StartDisplay() override;
+	virtual int StartDisplay() override;
 	virtual void DisplayExit() override;
 	virtual void SwitchFullscreen(bool set) override;
 	virtual void ToggleMaximized(bool set) override;
