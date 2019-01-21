@@ -77,8 +77,8 @@
 
 #define GPUCA_GPU_MEMALIGN					((size_t)           64 * 1024)		//Alignment of memory blocks, all constants above must be multiple of this!!!
 #define GPUCA_GPU_MEMALIGN_SMALL			((size_t)           64 * 1024)		//Alignment of small blocks, GPUCA_GPU_MEMALIGN must be multiple of this!!!
-#define GPUCA_GPU_MEMORY_SIZE				((size_t)  2048 * 1024 * 1024)		//Size of memory allocated on Device
-#define GPUCA_HOST_MEMORY_SIZE				((size_t)  2048 * 1024 * 1024)		//Size of memory allocated on Host
+#define GPUCA_GPU_MEMORY_SIZE				((size_t)  4096 * 1024 * 1024)		//Size of memory allocated on Device
+#define GPUCA_HOST_MEMORY_SIZE				((size_t)  4096 * 1024 * 1024)		//Size of memory allocated on Host
 
 //Make sure options do not interfere
 
