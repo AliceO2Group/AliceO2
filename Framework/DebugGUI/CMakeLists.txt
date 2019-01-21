@@ -18,7 +18,7 @@ if (GLFW_FOUND)
         src/gl3w.c
         src/Sokol3DUtils.cxx
         src/GL3DUtils.cxx
-        src/HandMade3dImpl.cxx
+        src/HandMade3DImpl.cxx
         src/DebugGUI.cxx
       )
 else()
