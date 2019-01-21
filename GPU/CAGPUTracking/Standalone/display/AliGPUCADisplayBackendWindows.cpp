@@ -380,11 +380,13 @@ void SwitchFullscreen(bool set) {}
 void ToggleMaximized(bool set) {}
 void SetVSync(bool enable) {}
 
-void AliGPUCADisplayBackendWindows::StartDisplay()
+int AliGPUCADisplayBackendWindows::StartDisplay()
 {
 	HANDLE hThread;
 	if ((hThread = CreateThread(NULL, NULL, &OpenGLWrapper, this, NULL, NULL)) == NULL)
 	{
-		printf("Coult not Create GL Thread...\nExiting...\n");
+		printf("Coult not Create GL Thread...\n");
+		return(1);
 	}
+	return(0);
 }

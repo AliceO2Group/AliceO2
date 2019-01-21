@@ -8,7 +8,7 @@ class AliGPUCADisplayBackendNone : public AliGPUCADisplayBackend
 	AliGPUCADisplayBackendNone() = default;
 	virtual ~AliGPUCADisplayBackendNone() = default;
 	
-	virtual void StartDisplay() override {}
+	virtual int StartDisplay() override {return 1;}
 	virtual void DisplayExit() override {}
 	virtual void SwitchFullscreen(bool set) override {}
 	virtual void ToggleMaximized(bool set) override {}

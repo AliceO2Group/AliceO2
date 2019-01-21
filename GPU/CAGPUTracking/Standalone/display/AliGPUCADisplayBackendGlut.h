@@ -10,7 +10,7 @@ public:
 	AliGPUCADisplayBackendGlut() = default;
 	virtual ~AliGPUCADisplayBackendGlut() = default;
 	
-	virtual void StartDisplay() override;
+	virtual int StartDisplay() override;
 	virtual void DisplayExit() override;
 	virtual void SwitchFullscreen(bool set) override;
 	virtual void ToggleMaximized(bool set) override;

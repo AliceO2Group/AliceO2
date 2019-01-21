@@ -746,7 +746,7 @@ int AliGPUReconstruction::RunStandalone()
 	{
 		if (!mDisplayRunning)
 		{
-			mEventDisplay->StartDisplay();
+			if (mEventDisplay->StartDisplay()) return(1);
 			mDisplayRunning = true;
 		}
 		else

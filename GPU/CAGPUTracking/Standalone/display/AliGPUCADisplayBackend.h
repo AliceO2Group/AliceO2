@@ -11,7 +11,7 @@ public:
 	AliGPUCADisplayBackend() = default;
 	virtual ~AliGPUCADisplayBackend() = default;
 	
-	virtual void StartDisplay() = 0; //Start the display. This function returns, and should spawn a thread that runs the display, and calls InitGL
+	virtual int StartDisplay() = 0; //Start the display. This function returns, and should spawn a thread that runs the display, and calls InitGL
 	virtual void DisplayExit() = 0; //Stop the display. Display thread should call ExitGL and the function returns after the thread has terminated
 	virtual void SwitchFullscreen(bool set) = 0; //Toggle full-screen mode
 	virtual void ToggleMaximized(bool set) = 0; //Maximize window

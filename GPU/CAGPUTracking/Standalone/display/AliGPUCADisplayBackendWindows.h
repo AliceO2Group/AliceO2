@@ -9,7 +9,7 @@ public:
 	AliGPUCADisplayBackendWindows() = default;
 	virtual ~AliGPUCADisplayBackendWindows() = default;
 	
-	virtual void StartDisplay() override;
+	virtual int StartDisplay() override;
 	virtual void* OpenGLMain(void*) override;
 	virtual void DisplayExit() override;
 	virtual void SwitchFullscreen(bool set) override;

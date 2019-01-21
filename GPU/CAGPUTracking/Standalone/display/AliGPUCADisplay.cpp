@@ -6,9 +6,11 @@
 #include <tuple>
 #include <memory>
 #include <string.h>
+#include <stdexcept>
 
 #ifndef WIN32
 #include "bitmapfile.h"
+#include "../cmodules/linux_helpers.h"
 #endif
 #ifdef GPUCA_HAVE_OPENMP
 #include <omp.h>
@@ -421,6 +423,21 @@ void AliGPUCADisplay::updateConfig()
 }
 
 int AliGPUCADisplay::InitGL()
+{
+	int retVal = 0;
+	try
+	{
+		retVal = InitGL_internal();
+	}
+	catch (const std::runtime_error& e)
+	{
+		retVal = 1;
+	}
+	initResult = retVal == 0 ? 1 : -1;
+	return(retVal);
+}
+
+int AliGPUCADisplay::InitGL_internal()
 {
 	CHKERR(glewInit());
 
@@ -845,7 +862,20 @@ AliGPUCADisplay::vboList AliGPUCADisplay::DrawGrid(const AliGPUTPCTracker &track
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
-int AliGPUCADisplay::DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All The Drawing
+int AliGPUCADisplay::DrawGLScene(bool mixAnimation, float animateTime)
+{
+	try
+	{
+		if (DrawGLScene_internal(mixAnimation, animateTime)) return(1);
+	}
+	catch (const std::runtime_error& e)
+	{
+		return(1);
+	}
+	return(0);
+}
+
+int AliGPUCADisplay::DrawGLScene_internal(bool mixAnimation, float animateTime) // Here's Where We Do All The Drawing
 {
 	static float fpsscale = 1, fpsscaleadjust = 0;
 
@@ -937,12 +967,12 @@ int AliGPUCADisplay::DrawGLScene(bool mixAnimation, float animateTime) // Here's
 				{
 					setFrameBuffer(1, mixBuffer.fb_id);
 					glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Clear Screen And Depth Buffer
-					DrawGLScene(true, time);
+					DrawGLScene_internal(true, time);
 					setFrameBuffer();
 				}
 				else
 				{
-					DrawGLScene(true, time);
+					DrawGLScene_internal(true, time);
 					CHKERR(glBlitNamedFramebuffer(mainBufferStack.back(), mixBuffer.fb_id, 0, 0, render_width, render_height, 0, 0, render_width, render_height, GL_COLOR_BUFFER_BIT, GL_NEAREST));
 					glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Clear Screen And Depth Buffer
 				}
@@ -2279,7 +2309,9 @@ void AliGPUCADisplay::WaitForNextEvent()
 	semLockDisplay.Lock();
 }
 
-void AliGPUCADisplay::StartDisplay()
+int AliGPUCADisplay::StartDisplay()
 {
-	mBackend->StartDisplay();
+	if (mBackend->StartDisplay()) return(1);
+	while (initResult == 0) Sleep(10);
+	return(initResult != 1);
 }

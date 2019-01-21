@@ -221,11 +221,13 @@ void AliGPUCADisplayBackendGlfw::SetVSync(bool enable)
 	glfwSwapInterval(enable);
 }
 
-void AliGPUCADisplayBackendGlfw::StartDisplay()
+int AliGPUCADisplayBackendGlfw::StartDisplay()
 {
 	static pthread_t hThread;
 	if (pthread_create(&hThread, NULL, OpenGLWrapper, this))
 	{
-		printf("Coult not Create GL Thread...\nExiting...\n");
+		printf("Coult not Create GL Thread...\n");
+		return(1);
 	}
+	return(0);
 }

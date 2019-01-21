@@ -17,7 +17,7 @@ public:
 	
 	typedef structConfigGL configDisplay;
 	
-	void StartDisplay() {}
+	int StartDisplay() {return 1;}
 	void ShowNextEvent() {}
 	void WaitForNextEvent(){}
 	void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster) {}
@@ -56,7 +56,7 @@ public:
 	
 	typedef AliGPUCADisplayConfig configDisplay;
 	
-	void StartDisplay();
+	int StartDisplay();
 	void ShowNextEvent();
 	void WaitForNextEvent();
 	void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster);
@@ -157,6 +157,8 @@ private:
 		bool verbose = false;
 	};
 	
+	int DrawGLScene_internal(bool mixAnimation, float animateTime);
+	int InitGL_internal();
 	const AliGPUCAParam& param();
 	const AliGPUTPCTracker& sliceTracker(int iSlice);
 	const AliGPUReconstruction::InOutPointers ioptrs();
@@ -299,6 +301,7 @@ private:
 	GLfb offscreenBuffer, offscreenBufferNoMSAA;
 	std::vector<threadVertexBuffer> threadBuffers;
 	std::vector<std::vector<std::array<std::array<vecpod<int>, 2>, fgkNSlices>>> threadTracks;
+	volatile int initResult = 0;
 };
 
 #endif
