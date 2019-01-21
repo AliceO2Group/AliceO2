@@ -39,7 +39,12 @@ class HMPIDDigitizer
   std::vector<o2::hmpid::Digit> mSummable;
   std::vector<o2::hmpid::Digit> mFinal;
 
-  // other stuff needed for digitizaton
+  std::vector<o2::hmpid::Digit> mDigits;
+  static constexpr int HMPID_NUMBEROFPADS = 161280;
+  std::array<short, HMPID_NUMBEROFPADS> mIndexForPad = { -1 }; //! mapping of pad to digit index
+  std::vector<int> mInvolvedPads; //! list of pads where digits created
+
+  // other stuff needed for digitization
 
   ClassDefNV(HMPIDDigitizer, 1);
 };
