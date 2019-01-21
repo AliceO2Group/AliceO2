@@ -17,10 +17,12 @@ public:
 	virtual void SwitchFullscreen(bool set) override;
 	virtual void ToggleMaximized(bool set) override;
 	virtual void SetVSync(bool enable) override;
-	virtual void OpenGLPrint(const char* s) override;
+	virtual void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a) override;
+	virtual bool EnableSendKey() override;
 	
 private:
 	virtual int OpenGLMain() override;
+	static void DisplayLoop();
 	
 	static void GlfwLoopFunc(void);
 	static void error_callback(int error, const char* description);

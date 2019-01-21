@@ -377,7 +377,7 @@ int AliGPUCADisplayBackendWindows::OpenGLMain()
 }
 
 void DisplayExit() {}
-void OpenGLPrint(const char* s) {}
+void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a) {}
 void SwitchFullscreen(bool set) {}
 void ToggleMaximized(bool set) {}
 void SetVSync(bool enable) {}

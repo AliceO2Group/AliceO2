@@ -180,6 +180,7 @@ if (GPUCA_EVENT_DISPLAY)
     set(SRCS_NO_CINT ${SRCS_NO_CINT}
         Standalone/cmodules/qsem.cpp
         Standalone/display/AliGPUCADisplay.cpp
+        Standalone/display/AliGPUCADisplayBackendGlfw.cpp
     )
     set(SRCS_NO_H ${SRCS_NO_H}
         Standalone/display/AliGPUCADisplayQuaternion.cpp
@@ -264,5 +265,8 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
     )
     if (OpenMP_CXX_FOUND)
         target_link_libraries(${MODULE} OpenMP::OpenMP_CXX)
+    endif()
+    if (GPUCA_EVENT_DISPLAY)
+        target_link_libraries(${MODULE} -lGL -lGLU -lGLEW)
     endif()
 endif()

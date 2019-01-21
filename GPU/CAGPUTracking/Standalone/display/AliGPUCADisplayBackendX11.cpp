@@ -56,20 +56,22 @@ void AliGPUCADisplayBackendX11::GetKey(XEvent& event, int& keyOut, int& keyPress
 	}
 }
 
-void AliGPUCADisplayBackendX11::OpenGLPrint(const char* s)
+void AliGPUCADisplayBackendX11::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a)
 {
-   if (!glIsList(font_base))
-   {
-      fprintf(stderr, "print string: Bad display list.\n");
-      exit (1);
-   }
-   else if (s && strlen(s))
-   {
-      glPushAttrib(GL_LIST_BIT);
-      glListBase(font_base);
-      glCallLists(strlen(s), GL_UNSIGNED_BYTE, (GLubyte*) s);
-      glPopAttrib();
-   }
+	glColor4f(r, g, b, a);
+	glRasterPos2f(x, y);
+	if (!glIsList(font_base))
+	{
+		fprintf(stderr, "print string: Bad display list.\n");
+		exit (1);
+	}
+	else if (s && strlen(s))
+	{
+		glPushAttrib(GL_LIST_BIT);
+		glListBase(font_base);
+		glCallLists(strlen(s), GL_UNSIGNED_BYTE, (GLubyte*) s);
+		glPopAttrib();
+	}
 }
 
 int AliGPUCADisplayBackendX11::OpenGLMain()

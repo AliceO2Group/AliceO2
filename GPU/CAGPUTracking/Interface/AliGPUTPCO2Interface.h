@@ -22,6 +22,7 @@
 
 class AliGPUReconstruction;
 class AliGPUCAConfiguration;
+class AliGPUCADisplayBackendGlfw;
 #include "AliGPUTPCGMMergedTrack.h"
 #include "AliGPUTPCGMMergedTrackHit.h"
 namespace ali_tpc_common { namespace tpc_fast_transformation { class TPCFastTransform;}}
@@ -55,6 +56,7 @@ private:
 	
 	std::unique_ptr<AliGPUReconstruction> mRec;
 	std::unique_ptr<AliGPUCAConfiguration> mConfig;
+	std::unique_ptr<AliGPUCADisplayBackendGlfw> mDisplayBackend;
 };
 
 #endif
