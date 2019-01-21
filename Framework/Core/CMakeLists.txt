@@ -220,9 +220,6 @@ O2_GENERATE_EXECUTABLE(
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
 
-target_compile_options(Framework PUBLIC -O0 -g -fno-omit-frame-pointer)
-target_compile_options(test_SimpleDataProcessingDevice01 PUBLIC -O0 -g -fno-omit-frame-pointer)
-
 Install(FILES test/test_DataSampling.json DESTINATION share/tests/)
 
 set(TEST_SRCS
