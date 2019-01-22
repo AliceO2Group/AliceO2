@@ -40,12 +40,12 @@ class AliGPUTPCSliceOutput
 {
   public:
 #if !defined(__OPENCL__)
-	GPUhd() int NTracks() const
+	GPUhd() unsigned int NTracks() const
 	{
 		return fNTracks;
 	}
-	GPUhd() int NLocalTracks() const { return fNLocalTracks; }
-	GPUhd() int NTrackClusters() const { return fNTrackClusters; }
+	GPUhd() unsigned int NLocalTracks() const { return fNLocalTracks; }
+	GPUhd() unsigned int NTrackClusters() const { return fNTrackClusters; }
 #ifndef GPUCA_GPUCODE
 	GPUhd() const AliGPUTPCSliceOutTrack *GetFirstTrack() const
 	{
@@ -58,12 +58,12 @@ class AliGPUTPCSliceOutput
 		return (fMemorySize);
 	}
 
-	static int EstimateSize(int nOfTracks, int nOfTrackClusters);
+	static unsigned int EstimateSize(unsigned int nOfTracks, unsigned int nOfTrackClusters);
 	static void Allocate(AliGPUTPCSliceOutput* &ptrOutput, int nTracks, int nTrackHits, AliGPUCAOutputControl *outputControl, void* &internalMemory);
 
-	GPUhd() void SetNTracks(int v) { fNTracks = v; }
-	GPUhd() void SetNLocalTracks(int v) { fNLocalTracks = v; }
-	GPUhd() void SetNTrackClusters(int v) { fNTrackClusters = v; }
+	GPUhd() void SetNTracks(unsigned int v) { fNTracks = v; }
+	GPUhd() void SetNLocalTracks(unsigned int v) { fNLocalTracks = v; }
+	GPUhd() void SetNTrackClusters(unsigned int v) { fNTrackClusters = v; }
 
   private:
 	AliGPUTPCSliceOutput()
@@ -75,9 +75,9 @@ class AliGPUTPCSliceOutput
 
 	GPUh() void SetMemorySize(size_t val) { fMemorySize = val; }
 
-	int fNTracks; // number of reconstructed tracks
-	int fNLocalTracks;
-	int fNTrackClusters; // total number of track clusters
+	unsigned int fNTracks; // number of reconstructed tracks
+	unsigned int fNLocalTracks;
+	unsigned int fNTrackClusters; // total number of track clusters
 	size_t fMemorySize;  // Amount of memory really used
 
 	//Must be last element of this class, user has to make sure to allocate anough memory consecutive to class memory!

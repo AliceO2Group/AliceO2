@@ -34,7 +34,7 @@ public:
 	AliGPUTPCSliceData() :
 		AliGPUProcessor(),
 		mMemoryResInput(-1), mMemoryResScratch(-1), mMemoryResScratchHost(-1), mMemoryResRows(-1),
-		fFirstRow(0), fLastRow(GPUCA_ROW_COUNT - 1), fNumberOfHits(0), fNumberOfHitsPlusAlign(0), fMaxZ(0.f),
+		fFirstRow(0), fLastRow(GPUCA_ROW_COUNT - 1), fNumberOfHits(0), fNumberOfHitsPlusAlign(0), fClusterIdOffset(0), fMaxZ(0.f),
 		fGPUTextureBase(0), fRows(0), fLinkUpData(0), fLinkDownData(0), fClusterData(0)
 	{
 	}
@@ -51,7 +51,7 @@ public:
 	 * data.
 	 */
 
-	void SetClusterData(const AliGPUTPCClusterData *data);
+	void SetClusterData(const AliGPUTPCClusterData *data, int clusterIdOffset);
 	void* SetPointersInput(void* mem);
 	void* SetPointersScratch(void* mem);
 	void* SetPointersScratchHost(void* mem);
@@ -60,7 +60,6 @@ public:
     
 	short MemoryResInput() {return mMemoryResInput;}
 	short MemoryResScratch() {return mMemoryResScratch;}
-	short MemoryResScratchHost() {return mMemoryResScratchHost;}
 	short MemoryResRows() {return mMemoryResRows;}
     
 	int InitFromClusterData();
@@ -70,6 +69,7 @@ public:
 	 */
 	GPUhd() int NumberOfHits() const { return fNumberOfHits; }
 	GPUhd() int NumberOfHitsPlusAlign() const { return fNumberOfHitsPlusAlign; }
+	GPUhd() int ClusterIdOffset() const { return fClusterIdOffset; }
 
 	/**
 	 * Access to the hit links.
@@ -161,6 +161,7 @@ public:
 
 	int fNumberOfHits;         // the number of hits in this slice
 	int fNumberOfHitsPlusAlign;
+	int fClusterIdOffset;
     
 	float fMaxZ;
 

@@ -674,7 +674,7 @@ void AliGPUCADisplay::DrawFinal(int iSlice, int /*iCol*/, AliGPUTPCGMPropagator*
 
 			size_t startCountInner = vertexBuffer[iSlice].size();
 			bool drawing = false;
-			for (int k = 0;k < track->NClusters();k++)
+			for (unsigned int k = 0;k < track->NClusters();k++)
 			{
 				if (hideRejectedClusters && (merger.Clusters()[track->FirstClusterRef() + k].fState & AliGPUTPCGMMergedTrackHit::flagReject)) continue;
 				int cid = merger.Clusters()[track->FirstClusterRef() + k].fNum;

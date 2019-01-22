@@ -237,6 +237,8 @@ public:
 	virtual int RunTPCTrackingSlices();
 	virtual int RunTPCTrackingMerger();
 	int RunTRDTracking();
+	virtual int RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers);
+	virtual int GPUMergerAvailable() const;
 	
 	//Getters / setters for parameters
 	DeviceType GetDeviceType() const {return (DeviceType) mProcessingSettings.deviceType;}

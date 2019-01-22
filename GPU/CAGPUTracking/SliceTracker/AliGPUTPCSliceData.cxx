@@ -132,13 +132,14 @@ void AliGPUTPCSliceData::InitializeRows(const AliGPUCAParam &p)
 	}
 }
 
-void AliGPUTPCSliceData::SetClusterData(const AliGPUTPCClusterData *data)
+void AliGPUTPCSliceData::SetClusterData(const AliGPUTPCClusterData *data, int clusterIdOffset)
 {
 	fClusterData = data;
 	int hitMemCount = GPUCA_ROW_COUNT * sizeof(GPUCA_GPU_ROWALIGNMENT) + data->NumberOfClusters();
 	const unsigned int kVectorAlignment = 256;
 	fNumberOfHitsPlusAlign = AliGPUReconstruction::nextMultipleOf<(kVectorAlignment > sizeof(GPUCA_GPU_ROWALIGNMENT) ? kVectorAlignment : sizeof(GPUCA_GPU_ROWALIGNMENT)) / sizeof(int)>(hitMemCount);
 	fNumberOfHits = data->NumberOfClusters();
+	fClusterIdOffset = clusterIdOffset;
 }
 
 void* AliGPUTPCSliceData::SetPointersInput(void* mem)
@@ -146,6 +147,10 @@ void* AliGPUTPCSliceData::SetPointersInput(void* mem)
 	const int firstHitInBinSize = (23 + sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(int)) * GPUCA_ROW_COUNT + 4 * fNumberOfHits + 3;
 	AliGPUReconstruction::computePointerWithAlignment(mem, fHitData, fNumberOfHitsPlusAlign);
 	AliGPUReconstruction::computePointerWithAlignment(mem, fFirstHitInBin, firstHitInBinSize);
+	if (mRec->GPUMergerAvailable())
+	{
+		mem = SetPointersScratchHost(mem);
+	}
 	return mem;
 }
 
@@ -173,7 +178,7 @@ void AliGPUTPCSliceData::RegisterMemoryAllocation()
 {
 	mMemoryResInput = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersInput, AliGPUMemoryResource::MEMORY_INPUT, "SliceInput");
 	mMemoryResScratch = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersScratch, AliGPUMemoryResource::MEMORY_SCRATCH, "SliceLinks");
-	mMemoryResScratchHost = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersScratchHost, AliGPUMemoryResource::MEMORY_SCRATCH_HOST, "SliceIds");
+	if (!mRec->GPUMergerAvailable()) mMemoryResScratchHost = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersScratchHost, AliGPUMemoryResource::MEMORY_SCRATCH_HOST, "SliceIds");
 	mMemoryResRows = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersRows, AliGPUMemoryResource::MEMORY_PERMANENT, "SliceRows");
 }
 

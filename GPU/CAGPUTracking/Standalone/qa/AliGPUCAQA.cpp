@@ -411,6 +411,12 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 	std::vector<int> &labelBuffer = mcLabelBuffer[nEvents - 1];
 
 	bool mcAvail = mRec->mIOPtrs.nMCInfosTPC && mRec->mIOPtrs.nMCLabelsTPC;
+	
+	if (mcAvail && mRec->GetParam().rec.NonConsecutiveIDs)
+	{
+		printf("QA incompatible to non-consecutive MC labels\n");
+		return;
+	}
 
 	if (mcAvail)
 	{
@@ -426,7 +432,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 			int nClusters = 0;
 			const AliGPUTPCGMMergedTrack &track = merger.OutputTracks()[i];
 			std::vector<AliHLTTPCClusterMCWeight> labels;
-			for (int k = 0;k < track.NClusters();k++)
+			for (unsigned int k = 0;k < track.NClusters();k++)
 			{
 				if (merger.Clusters()[track.FirstClusterRef() + k].fState & AliGPUTPCGMMergedTrackHit::flagReject) continue;
 				nClusters++;
@@ -495,7 +501,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 			if (!track.OK()) continue;
 			if (trackMCLabels[i] == MC_LABEL_INVALID)
 			{
-				for (int k = 0;k < track.NClusters();k++)
+				for (unsigned int k = 0;k < track.NClusters();k++)
 				{
 					if (merger.Clusters()[track.FirstClusterRef() + k].fState & AliGPUTPCGMMergedTrackHit::flagReject) continue;
 					clusterParam[merger.Clusters()[track.FirstClusterRef() + k].fNum].fakeAttached++;
@@ -505,7 +511,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 			int label = trackMCLabels[i] < 0 ? (-trackMCLabels[i] - 2) : trackMCLabels[i];
 			if (mcTrackMin == -1 || (label >= mcTrackMin && label < mcTrackMax))
 			{
-				for (int k = 0;k < track.NClusters();k++)
+				for (unsigned int k = 0;k < track.NClusters();k++)
 				{
 					if (merger.Clusters()[track.FirstClusterRef() + k].fState & AliGPUTPCGMMergedTrackHit::flagReject) continue;
 					int hitId = merger.Clusters()[track.FirstClusterRef() + k].fNum;
@@ -536,7 +542,6 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 		}
 		for (unsigned int i = 0;i < mRec->mIOPtrs.nMCLabelsTPC;i++)
 		{
-			if (mRec->IsGPU()) {printf("WARNING: INCOMPLETE QA with GPU!\n");break;}
 			if (clusterParam[i].attached == 0 && clusterParam[i].fakeAttached == 0)
 			{
 				int attach = merger.ClusterAttachment()[i];
@@ -571,7 +576,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 				}
 
 				const AliGPUTPCGMMergedTrack &track = merger.OutputTracks()[i];
-				for (int j = 0;j < track.NClusters();j++)
+				for (unsigned int j = 0;j < track.NClusters();j++)
 				{
 					int hitId = merger.Clusters()[track.FirstClusterRef() + j].fNum;
 					int mcID = mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[0].fMCID;
@@ -777,12 +782,11 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 		//Fill cluster histograms
 		for (int iTrk = 0;iTrk < merger.NOutputTracks();iTrk++)
 		{
-			if (mRec->IsGPU()) {printf("WARNING: INCOMPLETE QA with GPU!\n");break;}
 			const AliGPUTPCGMMergedTrack &track = merger.OutputTracks()[iTrk];
 			if (!track.OK()) continue;
 			if (trackMCLabels[iTrk] == MC_LABEL_INVALID)
 			{
-				for (int k = 0;k < track.NClusters();k++)
+				for (unsigned int k = 0;k < track.NClusters();k++)
 				{
 					if (merger.Clusters()[track.FirstClusterRef() + k].fState & AliGPUTPCGMMergedTrackHit::flagReject) continue;
 					int hitId = merger.Clusters()[track.FirstClusterRef() + k].fNum;
@@ -827,7 +831,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 			}
 			int label = trackMCLabels[iTrk] < 0 ? (-trackMCLabels[iTrk] - 2) : trackMCLabels[iTrk];
 			if (mcTrackMin != -1 && (label < mcTrackMin || label >= mcTrackMax)) continue;
-			for (int k = 0;k < track.NClusters();k++)
+			for (unsigned int k = 0;k < track.NClusters();k++)
 			{
 				if (merger.Clusters()[track.FirstClusterRef() + k].fState & AliGPUTPCGMMergedTrackHit::flagReject) continue;
 				int hitId = merger.Clusters()[track.FirstClusterRef() + k].fNum;
@@ -855,7 +859,6 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 		}
 		for (unsigned int i = 0;i < mRec->mIOPtrs.nMCLabelsTPC;i++)
 	 	{
-			if (mRec->IsGPU()) {printf("WARNING: INCOMPLETE QA with GPU!\n");break;}
 			if ((mcTrackMin != -1 && mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[0].fMCID < mcTrackMin) || (mcTrackMax != -1 && mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[0].fMCID >= mcTrackMax)) continue;
 			if (clusterParam[i].attached || clusterParam[i].fakeAttached) continue;
 			int attach = merger.ClusterAttachment()[i];
@@ -968,7 +971,6 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 
 	for (int i = 0;i < merger.MaxId();i++)
 	{
-		if (mRec->IsGPU()) {printf("WARNING: INCOMPLETE QA with GPU!\n");break;}
 		int attach = merger.ClusterAttachment()[i];
 		CHECK_CLUSTER_STATE();
 
@@ -1036,7 +1038,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 		{
 			const AliGPUTPCGMMergedTrack &track = merger.OutputTracks()[i];
 			if (!track.OK()) continue;
-			for (int k = 0;k < track.NClusters();k++)
+			for (unsigned int k = 0;k < track.NClusters();k++)
 			{
 				if (merger.Clusters()[track.FirstClusterRef() + k].fState & AliGPUTPCGMMergedTrackHit::flagReject) continue;
 				int hitId = merger.Clusters()[track.FirstClusterRef() + k].fNum;

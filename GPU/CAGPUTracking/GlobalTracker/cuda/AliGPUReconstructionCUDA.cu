@@ -756,6 +756,7 @@ int AliGPUReconstructionCUDA::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool 
 
 	fGpuMerger->InitGPUProcessor((AliGPUReconstruction*) this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
 	ResetRegisteredMemoryPointers(Merger->MemoryResRefit());
+	fGpuMerger->OverrideSliceTracker((AliGPUTPCTracker*) (((char*) mDeviceParam) + ((char*) &AliGPUCAConstantMemDummy.tpcTrackers[0] - (char*) &AliGPUCAConstantMemDummy)));
 	
 	GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, fGpuMerger, sizeof(*Merger), (char*) &AliGPUCAConstantMemDummy.tpcMerger - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice));
 	TransferMemoryResourceLinkToGPU(Merger->MemoryResRefit());
