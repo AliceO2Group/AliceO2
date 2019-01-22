@@ -38,7 +38,7 @@ class Digitizer
   int mEventID = 0;
   int mSrcID = 0;
 
-  float mWion;      //  Ionization potential
+  float mWion; //  Ionization potential
   // int hitLoopBegin; // Helper variable for sorting hits
 
   bool SortHits(std::vector<o2::trd::HitType>&);
