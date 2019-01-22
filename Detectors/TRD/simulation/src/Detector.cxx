@@ -26,6 +26,14 @@ Detector::Detector(Bool_t active)
   : o2::Base::DetImpl<Detector>("TRD", active)
 {
   mHits = o2::utils::createSimVector<HitType>();
+  if (TRDCommonParam::Instance()->IsXenon()) {
+    mWion = 23.53; // Ionization energy XeCO2 (85/15)
+  } else if (TRDCommonParam::Instance()->IsArgon()) {
+    mWion = 27.21; // Ionization energy ArCO2 (82/18)
+  } else {
+    LOG(FATAL) << "Wrong gas mixture" << FairLogger::endl;
+    // add hard exit here!
+  }
 }
 
 Detector::Detector(const Detector& rhs)
@@ -42,7 +50,7 @@ Detector::Detector(const Detector& rhs)
   } else if (TRDCommonParam::Instance()->IsArgon()) {
     mWion = 27.21; // Ionization energy ArCO2 (82/18)
   } else {
-    LOG(FATAL) << "Wrong gas mixture";
+    LOG(FATAL) << "Wrong gas mixture" << FairLogger::endl;
     // add hard exit here!
   }
 }
