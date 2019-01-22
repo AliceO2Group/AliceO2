@@ -21,21 +21,13 @@
 #include "AliGPUTPCSliceOutput.h"
 #include "AliTPCCommonMath.h"
 
-int AliGPUTPCSliceOutput::EstimateSize(int nOfTracks, int nOfTrackClusters)
+unsigned int AliGPUTPCSliceOutput::EstimateSize(unsigned int nOfTracks, unsigned int nOfTrackClusters)
 {
 	// calculate the amount of memory [bytes] needed for the event
 	return sizeof(AliGPUTPCSliceOutput) + sizeof(AliGPUTPCSliceOutTrack) * nOfTracks + sizeof(AliGPUTPCSliceOutCluster) * nOfTrackClusters;
 }
 
 #ifndef GPUCA_GPUCODE
-
-inline void AssignNoAlignment(int &dst, int &size, int count)
-{
-	// assign memory to the pointer dst
-	dst = size;
-	size = dst + count;
-}
-
 void AliGPUTPCSliceOutput::Allocate(AliGPUTPCSliceOutput* &ptrOutput, int nTracks, int nTrackHits, AliGPUCAOutputControl *outputControl, void* &internalMemory)
 {
 	//Allocate All memory needed for slice output

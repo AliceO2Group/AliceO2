@@ -803,17 +803,19 @@ int AliGPUReconstruction::RunTPCTrackingSlices()
 		CAGPUError("fOutputPtr must not be used with multiple threads\n");
 		return(1);
 	}
-#ifdef GPUCA_HAVE_OPENMP
-#pragma omp parallel for num_threads(mDeviceProcessingSettings.nThreads)
-#endif
+	int offset = 0;
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 	{
 		if (error) continue;
 		mClusterData[iSlice].SetClusterData(iSlice, mIOPtrs.nClusterData[iSlice], mIOPtrs.clusterData[iSlice]);
-		mTPCSliceTrackersCPU[iSlice].Data().SetClusterData(&mClusterData[iSlice]);
+		mTPCSliceTrackersCPU[iSlice].Data().SetClusterData(&mClusterData[iSlice], offset);
 		mTPCSliceTrackersCPU[iSlice].SetMaxData();
+		offset += mIOPtrs.nClusterData[iSlice];
 	}
 	AllocateRegisteredMemory(nullptr);
+	#ifdef GPUCA_HAVE_OPENMP
+	#pragma omp parallel for num_threads(mDeviceProcessingSettings.nThreads)
+	#endif
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 	{
 		if (mTPCSliceTrackersCPU[iSlice].ReadEvent())
@@ -928,6 +930,9 @@ int AliGPUReconstruction::RunTRDTracking()
 	
 	return 0;
 }
+
+int AliGPUReconstruction::GPUMergerAvailable() const {return false;}
+int AliGPUReconstruction::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers) {throw std::runtime_error("GPU Merger not available");}
 
 AliGPUReconstruction* AliGPUReconstruction::CreateInstance(DeviceType type, bool forceType)
 {

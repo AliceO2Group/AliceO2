@@ -71,6 +71,7 @@ AliGPUTPCGMMerger::AliGPUTPCGMMerger() :
 	fNMaxTracks(0),
 	fNMaxSingleSliceTracks(0),
 	fNMaxOutputTrackClusters( 0 ),
+	fNMaxClusters( 0 ),
 	mMemoryResMerger(-1),
 	mMemoryResRefit(-1),
 	fMaxID(0),
@@ -83,6 +84,7 @@ AliGPUTPCGMMerger::AliGPUTPCGMMerger() :
 	fGlobalClusterIDs(NULL),
 	fClusterAttachment(NULL),
 	fTrackOrder(NULL),
+	fTmpMem(0),
 	fBorderMemory(0),
 	fBorderRangeMemory(0),
 	fSliceTrackers(NULL)
@@ -102,11 +104,6 @@ AliGPUTPCGMMerger::AliGPUTPCGMMerger() :
 
 	fField.Reset(); // set very wrong initial value in order to see if the field was not properly initialised
 	for (int i = 0; i < fgkNSlices; i++) fkSlices[i] = NULL;
-}
-
-AliGPUTPCGMMerger::~AliGPUTPCGMMerger()
-{
-	if (fClusterAttachment) delete[] fClusterAttachment;
 }
 
 //DEBUG CODE
@@ -223,6 +220,9 @@ void* AliGPUTPCGMMerger::SetPointersHostOnly(void* mem)
 	AliGPUReconstruction::computePointerWithAlignment(mem, fBorderMemory, fNMaxSliceTracks);
 	AliGPUReconstruction::computePointerWithAlignment(mem, fBorderRangeMemory, 2 * fNMaxSliceTracks);
 	AliGPUReconstruction::computePointerWithAlignment(mem, fTrackLinks, fNMaxSliceTracks);
+	size_t tmpSize = std::max(fNMaxSingleSliceTracks * fgkNSlices * sizeof(int), fNMaxTracks * sizeof(int) + fNMaxClusters * sizeof(char));
+	AliGPUReconstruction::computePointerWithAlignment(mem, fTmpMem, tmpSize);
+	
 	int nTracks = 0;
 	for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
 	{
@@ -237,6 +237,9 @@ void* AliGPUTPCGMMerger::SetPointersGPURefit(void* mem)
 {
 	AliGPUReconstruction::computePointerWithAlignment(mem, fOutputTracks, fNMaxTracks);
 	AliGPUReconstruction::computePointerWithAlignment(mem, fClusters, fNMaxOutputTrackClusters);
+	AliGPUReconstruction::computePointerWithAlignment(mem, fTrackOrder, fNMaxTracks);
+	AliGPUReconstruction::computePointerWithAlignment(mem, fClusterAttachment, fNMaxClusters);
+
 	return mem;
 }
 
@@ -259,6 +262,9 @@ void AliGPUTPCGMMerger::SetMaxData()
 	}
 	fNMaxOutputTrackClusters = fNClusters * 1.1f + 1000;
 	fNMaxTracks = fNMaxSliceTracks;
+	fNMaxClusters = 0;
+	if (fSliceTrackers) for (int i = 0;i < fgkNSlices;i++) fNMaxClusters += fSliceTrackers[i].NHitsTotal();
+	else fNMaxClusters = fNClusters;
 }
 
 void AliGPUTPCGMMerger::SetSliceData(int index, const AliGPUTPCSliceOutput *sliceData)
@@ -285,7 +291,7 @@ bool AliGPUTPCGMMerger::Reconstruct()
 		for (unsigned int k = 0; k < sizeof(times) / sizeof(times[0]); k++) times[k] = 0;
 		nCount = 0;
 	}
-	//cout<<"Merger..."<<endl;
+
 	SetMaxData();
 	if (mRec->IsGPU()) memcpy((void*) mDeviceProcessor, this, sizeof(*this));
 	mRec->AllocateRegisteredMemory(mMemoryResMerger);
@@ -338,15 +344,17 @@ void AliGPUTPCGMMerger::UnpackSlices()
 
 	const AliGPUTPCSliceOutTrack *firstGlobalTracks[fgkNSlices];
 
-	int maxSliceTracks = 0;
+	unsigned int maxSliceTracks = 0;
 	for (int i = 0; i < fgkNSlices; i++)
 	{
 		firstGlobalTracks[i] = 0;
 		if (fkSlices[i]->NLocalTracks() > maxSliceTracks) maxSliceTracks = fkSlices[i]->NLocalTracks();
 	}
+	
+	if (maxSliceTracks > fNMaxSingleSliceTracks) throw std::runtime_error("fNMaxSingleSliceTracks too small");
 
-	int *TrackIds = new int[maxSliceTracks * fgkNSlices];
-	for (int i = 0; i < maxSliceTracks * fgkNSlices; i++) TrackIds[i] = -1;
+	int *TrackIds = (int*) fTmpMem;
+	for (unsigned int i = 0; i < maxSliceTracks * fgkNSlices; i++) TrackIds[i] = -1;
 
 	for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
 	{
@@ -357,7 +365,7 @@ void AliGPUTPCGMMerger::UnpackSlices()
 		const AliGPUTPCSliceOutput &slice = *(fkSlices[iSlice]);
 		const AliGPUTPCSliceOutTrack *sliceTr = slice.GetFirstTrack();
 
-		for (int itr = 0; itr < slice.NLocalTracks(); itr++, sliceTr = sliceTr->GetNextTrack())
+		for (unsigned int itr = 0; itr < slice.NLocalTracks(); itr++, sliceTr = sliceTr->GetNextTrack())
 		{
 			AliGPUTPCGMSliceTrack &track = fSliceTrackInfos[nTracksCurrent];
 			track.Set(sliceTr, alpha, iSlice);
@@ -381,7 +389,7 @@ void AliGPUTPCGMMerger::UnpackSlices()
 		float alpha = mCAParam->Alpha(iSlice);
 		const AliGPUTPCSliceOutput &slice = *(fkSlices[iSlice]);
 		const AliGPUTPCSliceOutTrack *sliceTr = firstGlobalTracks[iSlice];
-		for (int itr = slice.NLocalTracks(); itr < slice.NTracks(); itr++, sliceTr = sliceTr->GetNextTrack())
+		for (unsigned int itr = slice.NLocalTracks(); itr < slice.NTracks(); itr++, sliceTr = sliceTr->GetNextTrack())
 		{
 			int localId = TrackIds[(sliceTr->LocalTrackId() >> 24) * maxSliceTracks + (sliceTr->LocalTrackId() & 0xFFFFFF)];
 			if (localId == -1) continue;
@@ -397,8 +405,6 @@ void AliGPUTPCGMMerger::UnpackSlices()
 		}
 	}
 	fSliceTrackInfoIndex[2 * fgkNSlices] = nTracksCurrent;
-
-	delete[] TrackIds;
 }
 
 void AliGPUTPCGMMerger::MakeBorderTracks(int iSlice, int iBorder, AliGPUTPCGMBorderTrack B[], int &nB, bool fromOrig)
@@ -927,7 +933,7 @@ void AliGPUTPCGMMerger::MergeCE()
 			for (int k = 1;k >= 0;k--)
 			{
 				if (reverse[k]) for (int j = trk[k]->NClusters() - 1;j >= 0;j--) fClusters[fNOutputTrackClusters++] = fClusters[trk[k]->FirstClusterRef() + j];
-				else for (int j = 0;j < trk[k]->NClusters();j++) fClusters[fNOutputTrackClusters++] = fClusters[trk[k]->FirstClusterRef() + j];
+				else for (unsigned int j = 0;j < trk[k]->NClusters();j++) fClusters[fNOutputTrackClusters++] = fClusters[trk[k]->FirstClusterRef() + j];
 			}
 			trk[1]->SetFirstClusterRef(newRef);
 			trk[1]->SetNClusters(trk[0]->NClusters() + trk[1]->NClusters());
@@ -1274,43 +1280,37 @@ void AliGPUTPCGMMerger::PrepareClustersForFit()
 			maxId += fSliceTrackers[i].NHitsTotal();
 		}
 	}
-	maxId++;
-	unsigned char* sharedCount = new unsigned char[maxId];
+	if (maxId > fNMaxClusters) throw std::runtime_error("fNMaxClusters too small");
+	fMaxID = maxId;
+
+	unsigned int* trackSort = (unsigned int*) fTmpMem;
+	unsigned char* sharedCount = (unsigned char*) (trackSort + fNOutputTracks);
 
 	if (!mCAParam->rec.NonConsecutiveIDs)
 	{
-		unsigned int* trackSort = new unsigned int[fNOutputTracks];
-		if (fTrackOrder) delete[] fTrackOrder;
-		if (fClusterAttachment) delete[] fClusterAttachment;
-		fTrackOrder = new unsigned int[fNOutputTracks];
-		fClusterAttachment = new int[maxId];
-		fMaxID = maxId;
 		for (int i = 0;i < fNOutputTracks;i++) trackSort[i] = i;
 		std::sort(trackSort, trackSort + fNOutputTracks, AliGPUTPCGMMerger_CompareTracks(fOutputTracks));
 		memset(fClusterAttachment, 0, maxId * sizeof(fClusterAttachment[0]));
 		for (int i = 0;i < fNOutputTracks;i++) fTrackOrder[trackSort[i]] = i;
 		for (int i = 0;i < fNOutputTrackClusters;i++) fClusterAttachment[fClusters[i].fNum] = attachAttached | attachGood;
-		delete[] trackSort;
-	
+		for (unsigned int k = 0;k < maxId;k++) sharedCount[k] = 0;
+		for (int k = 0;k < fNOutputTrackClusters;k++)
+		{
+			sharedCount[fClusters[k].fNum] = (sharedCount[fClusters[k].fNum] << 1) | 1;
+		}
+		for (int k = 0;k < fNOutputTrackClusters;k++)
+		{
+			if (sharedCount[fClusters[k].fNum] > 1) fClusters[k].fState |= AliGPUTPCGMMergedTrackHit::flagShared;
+		}
 	}
-	for (unsigned int k = 0;k < maxId;k++) sharedCount[k] = 0;
-	for (int k = 0;k < fNOutputTrackClusters;k++)
-	{
-		sharedCount[fClusters[k].fNum] = (sharedCount[fClusters[k].fNum] << 1) | 1;
-	}
-	for (int k = 0;k < fNOutputTrackClusters;k++)
-	{
-		if (sharedCount[fClusters[k].fNum] > 1) fClusters[k].fState |= AliGPUTPCGMMergedTrackHit::flagShared;
-	}
-	delete[] sharedCount;
 }
 
 void AliGPUTPCGMMerger::Refit(bool resetTimers)
 {
 	//* final refit
-	if (mRec->IsGPU() && ((AliGPUReconstructionDeviceBase*) mRec)->GPUMergerAvailable())
+	if (mRec->IsGPU() && mRec->GPUMergerAvailable())
 	{
-		dynamic_cast<AliGPUReconstructionDeviceBase*>(mRec)->RefitMergedTracks(this, resetTimers);
+		mRec->RefitMergedTracks(this, resetTimers);
 	}
 	else
 	{
@@ -1343,7 +1343,7 @@ void AliGPUTPCGMMerger::Finalize()
 	}
 	else
 	{
-		int* trkOrderReverse = new int[fNOutputTracks];
+		int* trkOrderReverse = (int*) fTmpMem;
 		for (int i = 0;i < fNOutputTracks;i++) trkOrderReverse[fTrackOrder[i]] = i;
 		for (int i = 0;i < fNOutputTrackClusters;i++) fClusterAttachment[fClusters[i].fNum] = 0; //Reset adjacent attachment for attached clusters, set correctly below
 		for (int i = 0;i < fNOutputTracks;i++)
@@ -1351,7 +1351,7 @@ void AliGPUTPCGMMerger::Finalize()
 			const AliGPUTPCGMMergedTrack& trk = fOutputTracks[i];
 			if (!trk.OK() || trk.NClusters() == 0) continue;
 			char goodLeg = fClusters[trk.FirstClusterRef() + trk.NClusters() - 1].fLeg;
-			for (int j = 0;j < trk.NClusters();j++)
+			for (unsigned int j = 0;j < trk.NClusters();j++)
 			{
 				int id = fClusters[trk.FirstClusterRef() + j].fNum;
 				int weight = fTrackOrder[i] | attachAttached;
@@ -1366,8 +1366,6 @@ void AliGPUTPCGMMerger::Finalize()
 		{
 			fClusterAttachment[i] = (fClusterAttachment[i] & attachFlagMask) | trkOrderReverse[fClusterAttachment[i] & attachTrackMask];
 		}
-		delete[] trkOrderReverse;
-		delete[] fTrackOrder;
 	}
 	fTrackOrder = NULL;
 }

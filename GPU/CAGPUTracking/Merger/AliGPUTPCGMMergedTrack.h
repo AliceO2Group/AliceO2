@@ -22,9 +22,9 @@ class AliGPUTPCGMMergedTrack
 {
  public:
 
-	GPUd() int NClusters()                         const { return fNClusters;       }
-	GPUd() int NClustersFitted()                   const { return fNClustersFitted; }
-	GPUd() int FirstClusterRef()                   const { return fFirstClusterRef; }
+	GPUd() unsigned int NClusters()                const { return fNClusters;       }
+	GPUd() unsigned int NClustersFitted()          const { return fNClustersFitted; }
+	GPUd() unsigned int FirstClusterRef()          const { return fFirstClusterRef; }
 	GPUd() const AliGPUTPCGMTrackParam &GetParam() const { return fParam;           }
 	GPUd() float GetAlpha()                        const { return fAlpha;           }
 	GPUd() AliGPUTPCGMTrackParam &Param()                { return fParam;           }
@@ -59,13 +59,13 @@ class AliGPUTPCGMMergedTrack
 	AliGPUTPCGMTrackParam fParam; //* fitted track parameters
 	AliGPUTPCGMTrackParam::AliGPUTPCOuterParam fOuterParam; //* outer param
 
-	float fAlpha;                 //* alpha angle
-	float fLastX; //* outer X
-	float fLastY; //* outer Y
-	float fLastZ; //* outer Z
-	int fFirstClusterRef;         //* index of the first track cluster in corresponding cluster arrays
-	int fNClusters;               //* number of track clusters
-	int fNClustersFitted;         //* number of clusters used in fit
+	float fAlpha;                   //* alpha angle
+	float fLastX;                   //* outer X
+	float fLastY;                   //* outer Y
+	float fLastZ;                   //* outer Z
+	unsigned int fFirstClusterRef;  //* index of the first track cluster in corresponding cluster arrays
+	unsigned int fNClusters;        //* number of track clusters
+	unsigned int fNClustersFitted;  //* number of clusters used in fit
 	unsigned char fFlags;
 };
 

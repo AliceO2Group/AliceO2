@@ -364,9 +364,8 @@ GPUd() void AliGPUTPCGMTrackParam::AttachClusters(const AliGPUTPCGMMerger *Merge
 GPUd() void AliGPUTPCGMTrackParam::AttachClusters(const AliGPUTPCGMMerger *Merger, int slice, int iRow, int iTrack, bool goodLeg, float Y, float Z)
 {
 	if (Merger->SliceParam().rec.NonConsecutiveIDs) return;
-#if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 	const AliGPUTPCTracker &tracker = *(Merger->SliceTrackers() + slice);
-	MAKESharedRef(AliGPUTPCRow, row, tracker.Row(iRow), s.fRows[iRow]);
+	const AliGPUTPCRow &row = tracker.Row(iRow);
 #ifndef GPUCA_GPU_TEXTURE_FETCH_CONSTRUCTOR
 	GPUglobalref() const cahit2 *hits = tracker.HitData(row);
 	GPUglobalref() const calink *firsthit = tracker.FirstHitInBin(row);
@@ -391,7 +390,7 @@ GPUd() void AliGPUTPCGMTrackParam::AttachClusters(const AliGPUTPCGMMerger *Merge
 		for (unsigned int ih = hitFst;ih < hitLst;ih++)
 		{
 			cahit2 hh = TEXTUREFetchCons(cahit2, gAliTexRefu2, hits, ih);
-			int id = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, ih));
+			int id = tracker.Data().ClusterIdOffset() + tracker.Data().ClusterDataIndex(row, ih);
 			int *weight = &Merger->ClusterAttachment()[id];
 			if (*weight & AliGPUTPCGMMerger::attachGood) continue;
 			float y = y0 + hh.x * stepY;
@@ -407,13 +406,11 @@ GPUd() void AliGPUTPCGMTrackParam::AttachClusters(const AliGPUTPCGMMerger *Merge
 			}
 		}
 	}
-#endif
 }
 
 GPUd() void AliGPUTPCGMTrackParam::AttachClustersPropagate(const AliGPUTPCGMMerger *Merger, int slice, int lastRow, int toRow, int iTrack, bool goodLeg, AliGPUTPCGMPropagator &prop, bool inFlyDirection, float maxSinPhi)
 {
 	if (Merger->SliceParam().rec.NonConsecutiveIDs) return;
-#if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 	int step = toRow > lastRow ? 1 : -1;
 	float xx = fX - Merger->SliceParam().RowX[lastRow];
 	for (int iRow = lastRow + step;iRow != toRow;iRow += step)
@@ -425,7 +422,6 @@ GPUd() void AliGPUTPCGMTrackParam::AttachClustersPropagate(const AliGPUTPCGMMerg
 		CADEBUG(printf("Attaching in row %d\n", iRow);)
 		AttachClusters(Merger, slice, iRow, iTrack, goodLeg);
 	}
-#endif
 }
 
 GPUd() bool AliGPUTPCGMTrackParam::FollowCircleChk(float lrFactor, float toY, float toX, bool up, bool right)
@@ -438,7 +434,6 @@ GPUd() bool AliGPUTPCGMTrackParam::FollowCircleChk(float lrFactor, float toY, fl
 GPUd() int AliGPUTPCGMTrackParam::FollowCircle(const AliGPUTPCGMMerger *Merger, AliGPUTPCGMPropagator &prop, int slice, int iRow, int iTrack, bool goodLeg, float toAlpha, float toX, float toY, int toSlice, int toRow, bool inFlyDirection)
 {
 	if (Merger->SliceParam().rec.NonConsecutiveIDs) return 1;
-#if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 	const AliGPUCAParam &param = Merger->SliceParam();
 	bool right;
 	float dAlpha = toAlpha - prop.GetAlpha();
@@ -521,15 +516,11 @@ GPUd() int AliGPUTPCGMTrackParam::FollowCircle(const AliGPUTPCGMMerger *Merger, 
 	if (prop.PropagateToXAlpha(toX, prop.GetAlpha(), inFlyDirection)) fX = toX;
 	CADEBUG(printf("Final position: Alpha %f X %f Y %f Z %f SinPhi %f DzDs %f\n", prop.GetAlpha(), fX, fP[0], fP[1], fP[2], fP[3]);)
 	return(0);
-#else
-	return(1);
-#endif
 }
 
 GPUd() void AliGPUTPCGMTrackParam::AttachClustersMirror(const AliGPUTPCGMMerger* Merger, int slice, int iRow, int iTrack, float toY, AliGPUTPCGMPropagator& prop)
 {
 	if (Merger->SliceParam().rec.NonConsecutiveIDs) return;
-#if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 	float X = fP[2] > 0 ? fP[0] : -fP[0];
 	float toX = fP[2] > 0 ? toY : -toY;
 	float Y = fP[2] > 0 ? -fX : fX;
@@ -577,7 +568,6 @@ GPUd() void AliGPUTPCGMTrackParam::AttachClustersMirror(const AliGPUTPCGMMerger*
 			}
 		}
 	}
-#endif
 }
 
 GPUd() void AliGPUTPCGMTrackParam::ShiftZ(const AliGPUTPCGMPolynomialField* field, const AliGPUTPCGMMergedTrackHit* clusters, const AliGPUCAParam &param, int N)
@@ -713,7 +703,7 @@ GPUd() void AliGPUTPCGMTrackParam::RefitTrack(AliGPUTPCGMMergedTrack &track, int
 
 		if (!ok && ++attempt < nAttempts)
 		{
-			for (int i = 0;i < track.NClusters();i++) clusters[track.FirstClusterRef() + i].fState &= AliGPUTPCGMMergedTrackHit::hwcfFlags;
+			for (unsigned int i = 0;i < track.NClusters();i++) clusters[track.FirstClusterRef() + i].fState &= AliGPUTPCGMMergedTrackHit::hwcfFlags;
 			CADEBUG(printf("Track rejected, running refit\n");)
 			continue;
 		}

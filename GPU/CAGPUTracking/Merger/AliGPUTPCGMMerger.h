@@ -38,7 +38,7 @@ class AliGPUTPCGMMerger : public AliGPUProcessor
 
   public:
 	AliGPUTPCGMMerger();
-	~AliGPUTPCGMMerger();
+	~AliGPUTPCGMMerger() CON_DEFAULT;
 
 	void InitializeProcessor();
 	void RegisterMemoryAllocation();
@@ -50,7 +50,7 @@ class AliGPUTPCGMMerger : public AliGPUProcessor
 
 	void SetSliceData(int index, const AliGPUTPCSliceOutput *SliceData);
 	bool Reconstruct();
-    void Clear();
+	void Clear();
 
 	int NOutputTracks() const { return fNOutputTracks; }
 	const AliGPUTPCGMMergedTrack *OutputTracks() const { return fOutputTracks; }
@@ -66,10 +66,10 @@ class AliGPUTPCGMMerger : public AliGPUProcessor
 	int NOutputTrackClusters() const { return (fNOutputTrackClusters); }
 	const AliGPUTPCGMMergedTrackHit *Clusters() const { return (fClusters); }
 	AliGPUTPCGMMergedTrackHit *Clusters() { return (fClusters); }
-	const AliGPUTPCTracker *SliceTrackers() const { return (fSliceTrackers); }
-	int *ClusterAttachment() const { return (fClusterAttachment); }
+	GPUhd() const AliGPUTPCTracker *SliceTrackers() const { return (fSliceTrackers); }
+	GPUhd() int *ClusterAttachment() const { return (fClusterAttachment); }
 	int MaxId() const { return (fMaxID); }
-	unsigned int *TrackOrder() const { return (fTrackOrder); }
+	GPUhd() unsigned int *TrackOrder() const { return (fTrackOrder); }
 
 	enum attachTypes {attachAttached = 0x40000000, attachGood = 0x20000000, attachGoodLeg = 0x10000000, attachTube = 0x08000000, attachHighIncl = 0x04000000, attachTrackMask = 0x03FFFFFF, attachFlagMask = 0xFC000000};
 	
@@ -119,10 +119,11 @@ class AliGPUTPCGMMerger : public AliGPUProcessor
 
 	int *fTrackLinks;
 	
-	int fNMaxSliceTracks;
-	int fNMaxTracks;
-	int fNMaxSingleSliceTracks; // max N tracks in one slice
-	int fNMaxOutputTrackClusters;
+	unsigned int fNMaxSliceTracks; //maximum number of incoming slice tracks
+	unsigned int fNMaxTracks; //maximum number of output tracks
+	unsigned int fNMaxSingleSliceTracks; // max N tracks in one slice
+	unsigned int fNMaxOutputTrackClusters; //max number of clusters in output tracks (double-counting shared clusters)
+	unsigned int fNMaxClusters; //max total unique clusters (in event)
 	
 	short mMemoryResMerger;
 	short mMemoryResRefit;
@@ -139,6 +140,7 @@ class AliGPUTPCGMMerger : public AliGPUProcessor
 	int *fGlobalClusterIDs;
 	int *fClusterAttachment;
 	unsigned int *fTrackOrder;
+	char* fTmpMem;
 	AliGPUTPCGMBorderTrack *fBorderMemory; // memory for border tracks
 	AliGPUTPCGMBorderTrack *fBorder[fgkNSlices];
 	AliGPUTPCGMBorderTrack::Range *fBorderRangeMemory;       // memory for border tracks

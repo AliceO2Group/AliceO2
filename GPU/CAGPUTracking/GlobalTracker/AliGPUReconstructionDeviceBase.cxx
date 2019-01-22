@@ -509,14 +509,15 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_Init()
 		if (mProcessors[i].proc->mDeviceProcessor) mProcessors[i].proc->mDeviceProcessor->InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
 	}
 
+	int offset = 0;
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 	{
 		mClusterData[iSlice].SetClusterData(iSlice, mIOPtrs.nClusterData[iSlice], mIOPtrs.clusterData[iSlice]);
-
-		mTPCSliceTrackersCPU[iSlice].Data().SetClusterData(&mClusterData[iSlice]);
-		fGpuTracker[iSlice].Data().SetClusterData(&mClusterData[iSlice]);
+		mTPCSliceTrackersCPU[iSlice].Data().SetClusterData(&mClusterData[iSlice], offset);
+		fGpuTracker[iSlice].Data().SetClusterData(&mClusterData[iSlice], offset);
 		mTPCSliceTrackersCPU[iSlice].SetMaxData();
 		fGpuTracker[iSlice].SetMaxData();
+		offset += mIOPtrs.nClusterData[iSlice];
 	}
 	try
 	{
@@ -704,7 +705,5 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_Finalize()
 }
 
 const AliGPUTPCTracker* AliGPUReconstructionDeviceBase::CPUTracker(int iSlice) {return &mTPCSliceTrackersCPU[iSlice];}
-
-int AliGPUReconstructionDeviceBase::GPUMergerAvailable() const {return false;}
 
 #endif //GPUCA_ENABLE_GPU_TRACKER

@@ -11,7 +11,7 @@ void AliGPUTPCTracker::DumpOutput(FILE* out)
 {
 	fprintf(out, "Slice %d\n", fISlice);
 	const AliGPUTPCSliceOutTrack* track = (*(Output()))->GetFirstTrack();
-	for (int j = 0;j < (*(Output()))->NTracks();j++)
+	for (unsigned int j = 0;j < (*(Output()))->NTracks();j++)
 	{
 		fprintf(out, "Track %d (%d): ", j, track->NClusters());
 		for (int k = 0;k < track->NClusters();k++)
