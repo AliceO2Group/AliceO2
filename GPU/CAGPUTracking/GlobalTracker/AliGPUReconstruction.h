@@ -13,7 +13,6 @@
 #include "AliGPUCAOutputControl.h"
 #include "AliGPUMemoryResource.h"
 
-#include "AliGPUTPCClusterData.h"
 #include "AliGPUTPCSliceOutput.h"
 #include "AliGPUTPCTracker.h"
 #include "AliGPUTPCGMMerger.h"
@@ -27,6 +26,7 @@ class AliHLTTPCClusterMCLabel;
 class AliGPUTPCMCInfo;
 class AliGPUTRDTracker;
 class AliGPUTPCGPUTracker;
+class AliGPUTPCClusterData;
 struct AliHLTTPCRawCluster;
 struct ClusterNativeAccessExt;
 struct AliGPUTRDTrackletLabels;
@@ -87,7 +87,7 @@ public:
 		{}
 		InOutPointers(const InOutPointers&) = default;
 		
-		const AliGPUTPCClusterData::Data* clusterData[NSLICES];
+		const AliGPUTPCClusterData* clusterData[NSLICES];
 		unsigned int nClusterData[NSLICES];
 		const AliHLTTPCRawCluster* rawClusters[NSLICES];
 		unsigned int nRawClusters[NSLICES];
@@ -119,7 +119,7 @@ public:
 		InOutMemory(AliGPUReconstruction::InOutMemory&&);
 		InOutMemory& operator=(InOutMemory&&);
 		
-		std::unique_ptr<AliGPUTPCClusterData::Data[]> clusterData[NSLICES];
+		std::unique_ptr<AliGPUTPCClusterData[]> clusterData[NSLICES];
 		std::unique_ptr<AliHLTTPCRawCluster[]> rawClusters[NSLICES];
 		std::unique_ptr<o2::TPC::ClusterNative[]> clustersNative[NSLICES * GPUCA_ROW_COUNT];
 		std::unique_ptr<AliGPUTPCSliceOutTrack[]> sliceOutTracks[NSLICES];
@@ -301,7 +301,6 @@ protected:
 	AliGPUTPCTracker mTPCSliceTrackersCPU[NSLICES];
 	AliGPUTPCGMMerger mTPCMergerCPU;
 	AliGPUTPCSliceOutput* mSliceOutput[NSLICES];
-	AliGPUTPCClusterData mClusterData[NSLICES];
 	
 	AliGPUCAParam mParam;														//Reconstruction parameters
 	AliGPUCASettingsEvent mEventSettings;										//Event Parameters

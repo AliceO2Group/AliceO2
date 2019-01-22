@@ -1,8 +1,9 @@
 #include "AliGPUReconstructionConvert.h"
 #include "TPCFastTransform.h"
+#include "AliGPUTPCClusterData.h"
 #include "ClusterNativeAccessExt.h"
 
-void AliGPUReconstructionConvert::ConvertNativeToClusterData(ClusterNativeAccessExt* native, std::unique_ptr<AliGPUTPCClusterData::Data[]>* clusters, unsigned int* nClusters, const TPCFastTransform* transform, int continuousMaxTimeBin)
+void AliGPUReconstructionConvert::ConvertNativeToClusterData(ClusterNativeAccessExt* native, std::unique_ptr<AliGPUTPCClusterData[]>* clusters, unsigned int* nClusters, const TPCFastTransform* transform, int continuousMaxTimeBin)
 {
 #ifdef HAVE_O2HEADERS
 	memset(nClusters, 0, NSLICES * sizeof(nClusters[0]));
@@ -15,7 +16,7 @@ void AliGPUReconstructionConvert::ConvertNativeToClusterData(ClusterNativeAccess
 			nClSlice += native->nClusters[i][j];
 		}
 		nClusters[i] = nClSlice;
-		clusters[i].reset(new AliGPUTPCClusterData::Data[nClSlice]);
+		clusters[i].reset(new AliGPUTPCClusterData[nClSlice]);
 		nClSlice = 0;
 		for (int j = 0;j < o2::TPC::Constants::MAXGLOBALPADROW;j++)
 		{

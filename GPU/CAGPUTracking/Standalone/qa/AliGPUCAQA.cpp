@@ -24,6 +24,7 @@
 #include "AliGPUTPCGMPropagator.h"
 #include "AliHLTTPCClusterMCData.h"
 #include "AliGPUTPCMCInfo.h"
+#include "AliGPUTPCClusterData.h"
 #include <algorithm>
 #include <cstdio>
 

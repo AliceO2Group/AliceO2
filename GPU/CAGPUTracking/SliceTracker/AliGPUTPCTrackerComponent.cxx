@@ -54,7 +54,6 @@ ClassImp( AliGPUTPCTrackerComponent )
 
   AliGPUTPCTrackerComponent::AliGPUTPCTrackerComponent()
   :
-  fClusterData( NULL ),
   fSolenoidBz( 0 ),
   fMinNTrackClusters( -1 ),
   fMinTrackPt(MIN_TRACK_PT_DEFAULT),
@@ -85,7 +84,6 @@ ClassImp( AliGPUTPCTrackerComponent )
 AliGPUTPCTrackerComponent::AliGPUTPCTrackerComponent( const AliGPUTPCTrackerComponent& )
   :
   AliHLTProcessor(),
-  fClusterData( NULL ),
   fSolenoidBz( 0 ),
   fMinNTrackClusters( -1 ),
   fMinTrackPt( MIN_TRACK_PT_DEFAULT ),
@@ -120,8 +118,7 @@ AliGPUTPCTrackerComponent& AliGPUTPCTrackerComponent::operator=( const AliGPUTPC
 AliGPUTPCTrackerComponent::~AliGPUTPCTrackerComponent()
 {
   // see header file for class documentation
-  if (fClusterData) delete[] fClusterData;
-  if (fRec) delete fRec;
+    if (fRec) delete fRec;
 }
 
 //
@@ -414,7 +411,6 @@ void* AliGPUTPCTrackerComponent::TrackerInit(void* par)
     //Create tracker instance and set parameters
     fRec = AliGPUReconstruction::CreateInstance(fAllowGPU ? fGPUType.Data() : "CPU", true);
     if (fRec == NULL) return((void*) -1);
-    fClusterData = new AliGPUTPCClusterData[fgkNSlices];
 
     ConfigureSlices();
     return(NULL);
@@ -452,8 +448,6 @@ int AliGPUTPCTrackerComponent::DoInit( int argc, const char** argv )
 
 void* AliGPUTPCTrackerComponent::TrackerExit(void* par)
 {
-    if (fClusterData) delete[] fClusterData;
-    fClusterData = NULL;
     if (fRec) delete fRec;
     fRec = NULL;
     return(NULL);
@@ -586,6 +580,9 @@ void* AliGPUTPCTrackerComponent::TrackerDoEvent(void* par)
     }
   }
   
+  AliGPUTPCClusterData* clusterData[36] = {NULL};
+  int nClusters[36] = {0};
+  
   int nClustersTotal = 0;
   for (int slice = 0;slice < fgkNSlices;slice++)
   {
@@ -597,16 +594,17 @@ void* AliGPUTPCTrackerComponent::TrackerDoEvent(void* par)
     if (nClustersSliceTotal > 500000)
     {
       HLTWarning( "Too many clusters in tracker input: Slice %d, Number of Clusters %d, slice not included in tracking", slice, nClustersSliceTotal );
-      fClusterData[slice].StartReading(slice, 0);
+      nClusters[slice] = nClustersSliceTotal;
     }
     else if (nClustersSliceTotal == 0)
     {
-      fClusterData[slice].StartReading(slice, 0);
+      nClusters[slice] = nClustersSliceTotal;
     }
     else
     {
-      fClusterData[slice].StartReading( slice, nClustersSliceTotal );
-      AliGPUTPCClusterData::Data* pCluster = fClusterData[slice].Clusters();
+      clusterData[slice] = new AliGPUTPCClusterData[nClustersSliceTotal];
+      nClusters[slice] = nClustersSliceTotal;
+      AliGPUTPCClusterData* pCluster = clusterData[slice];
       for (int patch = 0;patch < 6;patch++)
       {
         if (clustersXYZ[slice][patch] != NULL && clustersRaw[slice][patch] != NULL)
@@ -646,9 +644,9 @@ void* AliGPUTPCTrackerComponent::TrackerDoEvent(void* par)
           }
         }
       }
-      fClusterData[slice].SetNumberOfClusters(pCluster - fClusterData[slice].Clusters());
-      nClustersTotal += fClusterData[slice].NumberOfClusters();
-      HLTDebug("Read %d->%d hits for slice %d", nClustersSliceTotal, fClusterData[slice].NumberOfClusters(), slice );
+      nClusters[slice] = pCluster - clusterData[slice];
+      nClustersTotal += nClusters[slice];
+      HLTDebug("Read %d->%d hits for slice %d", nClustersSliceTotal, clusterData[slice].NumberOfClusters(), slice );
     }
   }
   
@@ -662,8 +660,8 @@ void* AliGPUTPCTrackerComponent::TrackerDoEvent(void* par)
   fRec->ClearIOPointers();
   for (int i = 0;i < 36;i++)
   {
-      fRec->mIOPtrs.clusterData[i] = fClusterData[i].Clusters();
-      fRec->mIOPtrs.nClusterData[i] = fClusterData[i].NumberOfClusters();
+      fRec->mIOPtrs.clusterData[i] = clusterData[i];
+      fRec->mIOPtrs.nClusterData[i] = nClusters[i];
   }
   
   //Prepare Output
@@ -702,6 +700,8 @@ void* AliGPUTPCTrackerComponent::TrackerDoEvent(void* par)
       }
     }
   }
+  
+  for (int i = 0;i < 36;i++) if (clusterData[i]) delete[] clusterData[i];
   
   fBenchmark.Stop(0);
   HLTInfo(fBenchmark.GetStatistics());

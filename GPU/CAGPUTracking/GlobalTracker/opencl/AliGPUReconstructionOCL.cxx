@@ -32,7 +32,6 @@ namespace o2 { namespace ITS { class TrackerTraits {}; class TrackerTraitsCPU : 
 #include "AliGPUTPCStartHitsFinder.h"
 #include "AliGPUTPCStartHitsSorter.h"
 #include "AliGPUTPCTrackletConstructor.h"
-#include "AliGPUTPCClusterData.h"
 
 #include "AliGPUCADataTypes.h"
 

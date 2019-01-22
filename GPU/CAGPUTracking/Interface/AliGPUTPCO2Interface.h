@@ -28,7 +28,6 @@ class AliGPUCADisplayBackendGlfw;
 namespace ali_tpc_common { namespace tpc_fast_transformation { class TPCFastTransform;}}
 namespace o2 { namespace TPC { struct ClusterNativeAccessFullTPC; struct ClusterNative;}}
 #include <memory>
-#include "AliGPUTPCClusterData.h"
 
 class AliGPUTPCO2Interface
 {
