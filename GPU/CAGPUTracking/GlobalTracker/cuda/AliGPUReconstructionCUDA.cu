@@ -811,7 +811,11 @@ int AliGPUReconstructionCUDA::TransferMemoryResourceToHost(AliGPUMemoryResource*
 
 int AliGPUReconstructionCUDA::GPUMergerAvailable() const
 {
+#ifdef GPUCA_GPU_MERGER
 	return(1);
+#else
+	return(0);
+#endif
 }
 
 void AliGPUReconstructionCUDA::ActivateThreadContext()

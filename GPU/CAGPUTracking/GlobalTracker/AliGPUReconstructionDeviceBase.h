@@ -12,6 +12,7 @@ public:
 	char* MergerHostMemory() const {return((char*) fGPUMergerHostMemory);}
 	const AliGPUCAParam* DeviceParam() const {return mDeviceParam;}
 	virtual int RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers) = 0;
+	virtual int GPUMergerAvailable() const;
 
 protected:
 	typedef void deviceEvent;
@@ -28,7 +29,6 @@ protected:
 	virtual int InitDevice_Runtime() = 0;
 	virtual int ExitDevice() override;
 	virtual int ExitDevice_Runtime() = 0;
-	virtual int GPUMergerAvailable() const;
 
 	virtual const AliGPUTPCTracker* CPUTracker(int iSlice);
 
