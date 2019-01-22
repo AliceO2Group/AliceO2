@@ -26,6 +26,7 @@
 #include <FairMQLogger.h>
 #include <memory> // for make_shared
 #include <vector>
+#include <numeric>   // std::accumulate
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -52,26 +53,23 @@ DataProcessorSpec getClustererSpec(bool sendMC)
     bool finished = false;
   };
 
-  auto initFunction = [sendMC](InitContext& ic) {
+  auto initFunction = [](InitContext& ic) {
     // FIXME: the clusterer needs to be initialized with the sector number, so we need one
     // per sector. Taking a closer look to the HwClusterer, the sector number is only used
     // for calculating the CRU id. This could be achieved by passing the current sector as
     // parameter to the clusterer processing function.
     auto processAttributes = std::make_shared<ProcessAttributes>();
 
-    auto processingFct = [processAttributes, sendMC](ProcessingContext& pc) {
-      if (processAttributes->finished) {
-        return;
-      }
+    auto processSectorFunction = [processAttributes](ProcessingContext& pc, std::string inputKey, std::string labelKey) -> bool {
       auto& clusterArray = processAttributes->clusterArray;
       auto& mctruthArray = processAttributes->mctruthArray;
       auto& clusterers = processAttributes->clusterers;
       auto& verbosity = processAttributes->verbosity;
-      auto dataref = pc.inputs().get("digits");
+      auto dataref = pc.inputs().get(inputKey);
       auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(dataref);
       if (sectorHeader == nullptr) {
         LOG(ERROR) << "sector header missing on header stack";
-        return;
+        return false;
       }
       auto const* dataHeader = DataRefUtils::getHeader<o2::header::DataHeader*>(dataref);
       o2::header::DataHeader::SubSpecificationType fanSpec = dataHeader->subSpecification;
@@ -81,22 +79,17 @@ DataProcessorSpec getClustererSpec(bool sendMC)
         // forward the control information
         // FIXME define and use flags in TPCSectorHeader
         o2::TPC::TPCSectorHeader header{ sector };
-        pc.outputs().snapshot(OutputRef{ "clusters", fanSpec, { header } }, fanSpec);
-        if (sendMC) {
-          pc.outputs().snapshot(OutputRef{ "clusterlbl", fanSpec, { header } }, fanSpec);
+        pc.outputs().snapshot(Output{ gDataOriginTPC, "CLUSTERSIM", fanSpec, Lifetime::Timeframe, { header } }, fanSpec);
+        if (!labelKey.empty()) {
+          pc.outputs().snapshot(Output{ gDataOriginTPC, "CLUSTERMCLBL", fanSpec, Lifetime::Timeframe, { header } }, fanSpec);
         }
-        if (sectorHeader->sector == -1) {
-          // got EOD
-          processAttributes->finished = true;
-          pc.services().get<ControlService>().readyToQuit(false);
-        }
-        return;
+        return (sectorHeader->sector == -1);
       }
       std::unique_ptr<const MCLabelContainer> inMCLabels;
-      if (sendMC) {
-        inMCLabels = std::move(pc.inputs().get<const MCLabelContainer*>("mclabels"));
+      if (!labelKey.empty()) {
+        inMCLabels = std::move(pc.inputs().get<const MCLabelContainer*>(labelKey.c_str()));
       }
-      auto inDigits = pc.inputs().get<const std::vector<o2::TPC::Digit>>("digits");
+      auto inDigits = pc.inputs().get<const std::vector<o2::TPC::Digit>>(inputKey.c_str());
       if (verbosity > 0 && inMCLabels) {
         LOG(INFO) << "received " << inDigits.size() << " digits, "
                   << inMCLabels->getIndexedSize() << " MC label objects";
@@ -121,17 +114,51 @@ DataProcessorSpec getClustererSpec(bool sendMC)
       const std::vector<o2::TPC::Digit> emptyDigits;
       clusterer->finishProcess(emptyDigits, nullptr, false); // keep here the false, otherwise the clusters are lost of they are not stored in the meantime
       if (verbosity > 0) {
-        LOG(INFO) << "clusterer produced " << clusterArray.size() << " cluster(s)";
-        if (sendMC) {
+        LOG(INFO) << "clusterer produced "
+                  << std::accumulate(clusterArray.begin(), clusterArray.end(), size_t(0), [](size_t l, auto const& r) { return l + r.getContainer()->numberOfClusters; })
+                  << " cluster(s)";
+        if (!labelKey.empty()) {
           LOG(INFO) << "clusterer produced " << mctruthArray.getIndexedSize() << " MC label object(s)";
         }
       }
-      pc.outputs().snapshot(OutputRef{ "clusters", fanSpec, { *sectorHeader } }, clusterArray);
-      if (sendMC) {
-        pc.outputs().snapshot(OutputRef{ "clusterlbl", fanSpec, { *sectorHeader } }, mctruthArray);
+      pc.outputs().snapshot(Output{ gDataOriginTPC, "CLUSTERSIM", fanSpec, Lifetime::Timeframe, { *sectorHeader } }, clusterArray);
+      if (!labelKey.empty()) {
+        pc.outputs().snapshot(Output{ gDataOriginTPC, "CLUSTERMCLBL", fanSpec, Lifetime::Timeframe, { *sectorHeader } }, mctruthArray);
       }
+      return false;
     };
 
+    auto processingFct = [processAttributes, processSectorFunction](ProcessingContext& pc) {
+      if (processAttributes->finished) {
+        return;
+      }
+
+      struct SectorInputDesc {
+        std::string inputKey = "";
+        std::string labelKey = "";
+      };
+      std::map<o2::header::DataHeader::SubSpecificationType, SectorInputDesc> inputs;
+      for (auto const& inputRef : pc.inputs()) {
+        auto const* dataHeader = DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
+        assert(dataHeader);
+        if (dataHeader->dataOrigin == gDataOriginTPC && dataHeader->dataDescription == o2::header::DataDescription("DIGITS")) {
+          inputs[dataHeader->subSpecification].inputKey = inputRef.spec->binding;
+        } else if (dataHeader->dataOrigin == gDataOriginTPC && dataHeader->dataDescription == o2::header::DataDescription("DIGITSMCTR")) {
+          inputs[dataHeader->subSpecification].labelKey = inputRef.spec->binding;
+        }
+      }
+      bool finished = true;
+      for (auto const& input : inputs) {
+        if (!processSectorFunction(pc, input.second.inputKey, input.second.labelKey)) {
+          finished = false;
+        }
+      }
+      if (finished) {
+        // got EOD on all inputs
+        processAttributes->finished = true;
+        pc.services().get<ControlService>().readyToQuit(false);
+      }
+    };
     return processingFct;
   };
 
