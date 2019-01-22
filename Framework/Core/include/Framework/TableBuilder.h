@@ -101,7 +101,7 @@ struct BuilderMaker {
 
   static arrow::Status append(BuilderType& builder, T value)
   {
-    builder.Append(value);
+    return builder.Append(value);
   }
 };
 

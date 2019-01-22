@@ -10,6 +10,7 @@
 #include "ChannelSpecHelpers.h"
 #include <ostream>
 #include <cassert>
+#include <stdexcept>
 
 namespace o2
 {
@@ -28,6 +29,7 @@ char const* ChannelSpecHelpers::typeAsString(enum ChannelType type)
     case ChannelType::Pull:
       return "pull";
   }
+  throw std::runtime_error("Unknown ChannelType");
 }
 
 char const* ChannelSpecHelpers::methodAsString(enum ChannelMethod method)
@@ -38,7 +40,7 @@ char const* ChannelSpecHelpers::methodAsString(enum ChannelMethod method)
     case ChannelMethod::Connect:
       return "connect";
   }
-  assert(false);
+  throw std::runtime_error("Unknown ChannelMethod");
 }
 
 char const* ChannelSpecHelpers::methodAsUrl(enum ChannelMethod method)
