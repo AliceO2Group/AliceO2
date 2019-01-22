@@ -95,12 +95,12 @@ AliGPUReconstruction* AliGPUReconstruction_Create_CUDA(const AliGPUCASettingsPro
 	return new AliGPUReconstructionCUDA(cfg);
 }
 
-bool AliGPUReconstructionCUDA::GPUFailedMsgA(const long long int error, const char* file, int line) const
+int AliGPUReconstructionCUDA::GPUFailedMsgA(const long long int error, const char* file, int line) const
 {
 	//Check for CUDA Error and in the case of an error display the corresponding error string
-	if (error == cudaSuccess) return(false);
+	if (error == cudaSuccess) return(0);
 	CAGPUWarning("CUDA Error: %lld / %s (%s:%d)", error, cudaGetErrorString((cudaError_t) error), file, line);
-	return(true);
+	return(1);
 }
 
 int AliGPUReconstructionCUDA::InitDevice_Runtime()
@@ -109,7 +109,6 @@ int AliGPUReconstructionCUDA::InitDevice_Runtime()
 
 	cudaDeviceProp cudaDeviceProp;
 
-#ifndef CUDA_DEVICE_EMULATION
 	int count, bestDevice = -1;
 	double bestDeviceSpeed = -1, deviceSpeed;
 	if (GPUFailedMsg(cudaGetDeviceCount(&count)))
@@ -118,13 +117,8 @@ int AliGPUReconstructionCUDA::InitDevice_Runtime()
 		return(1);
 	}
 	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("Available CUDA devices:");
-#if defined(GPUCA_GPUTYPE_FERMI) || defined(GPUCA_GPUTYPE_KEPLER)
 	const int reqVerMaj = 2;
 	const int reqVerMin = 0;
-#else
-	const int reqVerMaj = 1;
-	const int reqVerMin = 2;
-#endif
 	for (int i = 0;i < count;i++)
 	{
 		if (mDeviceProcessingSettings.debugLevel >= 4) printf("Examining device %d\n", i);
@@ -145,19 +139,17 @@ int AliGPUReconstructionCUDA::InitDevice_Runtime()
 		else if (cudaDeviceProp.major < reqVerMaj || (cudaDeviceProp.major == reqVerMaj && cudaDeviceProp.minor < reqVerMin)) {deviceOK = false; deviceFailure = "Too low device revision";}
 		else if (free < mDeviceMemorySize) {deviceOK = false; deviceFailure = "Insufficient GPU memory";}
 
-		if (mDeviceProcessingSettings.debugLevel >= 0) CAGPUImportant("%s%2d: %s (Rev: %d.%d - Mem Avail %lld / %lld)%s %s", deviceOK ? " " : "[", i, cudaDeviceProp.name, cudaDeviceProp.major, cudaDeviceProp.minor, (long long int) free, (long long int) cudaDeviceProp.totalGlobalMem, deviceOK ? " " : " ]", deviceOK ? "" : deviceFailure);
 		deviceSpeed = (double) cudaDeviceProp.multiProcessorCount * (double) cudaDeviceProp.clockRate * (double) cudaDeviceProp.warpSize * (double) free * (double) cudaDeviceProp.major * (double) cudaDeviceProp.major;
-		if (deviceOK)
+		if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUImportant("Device %s%2d: %s (Rev: %d.%d - Mem Avail %lld / %lld)%s %s", deviceOK ? " " : "[", i, cudaDeviceProp.name, cudaDeviceProp.major, cudaDeviceProp.minor, (long long int) free, (long long int) cudaDeviceProp.totalGlobalMem, deviceOK ? " " : " ]", deviceOK ? "" : deviceFailure);
+		if (!deviceOK) continue;
+		if (deviceSpeed > bestDeviceSpeed)
 		{
-			if (deviceSpeed > bestDeviceSpeed)
-			{
-				bestDevice = i;
-				bestDeviceSpeed = deviceSpeed;
-			}
-			else
-			{
-				if (mDeviceProcessingSettings.debugLevel >= 0) CAGPUInfo("Skipping: Speed %f < %f\n", deviceSpeed, bestDeviceSpeed);
-			}
+			bestDevice = i;
+			bestDeviceSpeed = deviceSpeed;
+		}
+		else
+		{
+			if (mDeviceProcessingSettings.debugLevel >= 0) CAGPUInfo("Skipping: Speed %f < %f\n", deviceSpeed, bestDeviceSpeed);
 		}
 	}
 	if (bestDevice == -1)
@@ -167,13 +159,18 @@ int AliGPUReconstructionCUDA::InitDevice_Runtime()
 		return(1);
 	}
 
-	if (mDeviceProcessingSettings.deviceNum == -1)
-		fDeviceId = bestDevice;
-	else
-		fDeviceId = mDeviceProcessingSettings.deviceNum;
-#else
-	fDeviceId = 0;
-#endif
+	if (mDeviceProcessingSettings.deviceNum > -1)
+	{
+		if (mDeviceProcessingSettings.deviceNum < (signed) count)
+		{
+			bestDevice = mDeviceProcessingSettings.deviceNum;
+		}
+		else
+		{
+			CAGPUWarning("Requested device ID %d non existend, falling back to default device id %d", mDeviceProcessingSettings.deviceNum, bestDevice);
+		}
+	}
+	fDeviceId = bestDevice;
 
 	cudaGetDeviceProperties(&cudaDeviceProp ,fDeviceId );
 
@@ -249,6 +246,7 @@ int AliGPUReconstructionCUDA::InitDevice_Runtime()
 
 	if (mDeviceProcessingSettings.debugLevel >= 1)
 	{
+		memset(mHostMemoryBase, 0, mHostMemorySize);
 		if (GPUFailedMsg(cudaMemset(mDeviceMemoryBase, 143, mDeviceMemorySize)))
 		{
 			cudaFree(mDeviceMemoryBase);
@@ -298,7 +296,7 @@ int AliGPUReconstructionCUDA::GPUSync(const char* state, int stream, int slice)
 		CAGPUError("Cuda Error %s while running kernel (%s) (Stream %d; %d/%d)", cudaGetErrorString(cuErr), state, stream, slice, NSLICES);
 		return(1);
 	}
-	if (GPUFailedMsg(cudaDeviceSynchronize()))
+	if (SynchronizeGPU())
 	{
 		CAGPUError("CUDA Error while synchronizing (%s) (Stream %d; %d/%d)", state, stream, slice, NSLICES);
 		return(1);
@@ -321,6 +319,11 @@ __global__ void PreInitRowBlocks(int* const SliceDataHitWeights, int nSliceDataH
 int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 {
 	//Primary reconstruction function
+	if (fGPUStuck)
+	{
+		CAGPUWarning("This GPU is stuck, processing of tracking for this event is skipped!");
+		return(1);
+	}
 	if (Reconstruct_Base_Init()) return(1);
 
 #ifdef GPUCA_GPU_USE_TEXTURES
@@ -361,14 +364,14 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 #endif
 	if (GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, &mParam, sizeof(AliGPUCAParam), (char*) &AliGPUCAConstantMemDummy.param - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice, mInternals->CudaStreams[0])))
 	{
-		CAGPUError("Error filling constant buffer");
+		CAGPUError("Error writing to constant memory");
 		ResetHelperThreads(0);
 		return 1;
 	}
 	
 	if (GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, fGpuTracker, sizeof(AliGPUTPCTracker) * NSLICES, (char*) AliGPUCAConstantMemDummy.tpcTrackers - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice, mInternals->CudaStreams[0])))
 	{
-		CAGPUError("Error filling constant buffer");
+		CAGPUError("Error writing to constant memory");
 		ResetHelperThreads(0);
 		return 1;
 	}
@@ -429,7 +432,7 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 		}
 		mTPCSliceTrackersCPU[iSlice].StopTimer(1);
 
-		if (mDeviceProcessingSettings.keepAllMemory == true)
+		if (mDeviceProcessingSettings.keepAllMemory)
 		{
 			TransferMemoryResourcesToHost(&mTPCSliceTrackersCPU[iSlice].Data(), -1, true);
 			memcpy(mTPCSliceTrackersCPU[iSlice].LinkTmpMemory(), Res(mTPCSliceTrackersCPU[iSlice].Data().MemoryResScratch()).Ptr(), Res(mTPCSliceTrackersCPU[iSlice].Data().MemoryResScratch()).Size());
@@ -509,14 +512,14 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 	}
 
 #ifdef GPUCA_GPU_CONSTRUCTOR_SINGLE_SLICE
-	cudaDeviceSynchronize();
+	SynchronizeGPU();
 #else
 	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Tracklet Constructor");
 	mTPCSliceTrackersCPU[0].StartTimer(6);
 	AliGPUTPCTrackletConstructorGPU<<<fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR>>>();
 	if (GPUSync("Tracklet Constructor", -1, 0) RANDOM_ERROR)
 	{
-		cudaDeviceSynchronize();
+		SynchronizeGPU;
 		cuCtxPopCurrent(&mInternals->CudaContext);
 		return(1);
 	}
@@ -554,7 +557,7 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 		AliGPUTPCProcessMulti<AliGPUTPCTrackletSelector><<<fSelectorBlockCount, GPUCA_GPU_THREAD_COUNT_SELECTOR, 0, mInternals->CudaStreams[useStream]>>>(iSlice, runSlices);
 		if (GPUSync("Tracklet Selector", iSlice, iSlice) RANDOM_ERROR)
 		{
-			cudaDeviceSynchronize();
+			SynchronizeGPU();
 			cuCtxPopCurrent(&mInternals->CudaContext);
 			return(1);
 		}
@@ -601,7 +604,7 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 			return(1);
 		}
 
-		if (mDeviceProcessingSettings.keepAllMemory == true)
+		if (mDeviceProcessingSettings.keepAllMemory)
 		{
 			TransferMemoryResourcesToHost(&mTPCSliceTrackersCPU[iSlice], -1, true);
 			if (mDeviceProcessingSettings.debugMask & 256 && !mDeviceProcessingSettings.comparableDebutOutput) mTPCSliceTrackersCPU[iSlice].DumpHitWeights(mDebugFile);
@@ -707,7 +710,7 @@ int AliGPUReconstructionCUDA::ExitDevice_Runtime()
 	//Uninitialize CUDA
 	cuCtxPushCurrent(mInternals->CudaContext);
 
-	cudaDeviceSynchronize();
+	SynchronizeGPU();
 	if (mDeviceMemoryBase)
 	{
 		cudaFree(mDeviceMemoryBase);
@@ -723,6 +726,7 @@ int AliGPUReconstructionCUDA::ExitDevice_Runtime()
 		free(mInternals->CudaStreams);
 		fGpuTracker = NULL;
 		cudaFreeHost(mHostMemoryBase);
+		mHostMemoryBase = NULL;
 	}
 
 	if (GPUFailedMsg(cudaDeviceReset()))
@@ -767,11 +771,11 @@ int AliGPUReconstructionCUDA::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool 
 	times[0] += timer.GetCurrentElapsedTime(true);
 	
 	RefitTracks<<<fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT>>>(fGpuMerger->OutputTracks(), Merger->NOutputTracks(), fGpuMerger->Clusters());
-	GPUFailedMsg(cudaDeviceSynchronize());
+	if (SynchronizeGPU()) return(1);
 	times[1] += timer.GetCurrentElapsedTime(true);
 	
 	TransferMemoryResourceLinkToHost(Merger->MemoryResRefit());
-	GPUFailedMsg(cudaDeviceSynchronize());
+	if (SynchronizeGPU()) return(1);
 	times[2] += timer.GetCurrentElapsedTime();
 	
 	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("GPU Merger Finished");
@@ -828,7 +832,8 @@ void AliGPUReconstructionCUDA::ReleaseThreadContext()
 	cuCtxPopCurrent(&mInternals->CudaContext);
 }
 
-void AliGPUReconstructionCUDA::SynchronizeGPU()
+int AliGPUReconstructionCUDA::SynchronizeGPU()
 {
-	cudaDeviceSynchronize();
+	GPUFailedMsg(cudaDeviceSynchronize());
+	return(0);
 }

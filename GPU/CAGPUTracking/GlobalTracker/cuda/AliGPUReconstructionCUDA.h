@@ -28,7 +28,7 @@ protected:
 
 	virtual void ActivateThreadContext() override;
 	virtual void ReleaseThreadContext() override;
-	virtual void SynchronizeGPU() override;
+	virtual int SynchronizeGPU() override;
 	virtual int GPUSync(const char* state = "UNKNOWN", int stream = -1, int slice = 0) override;
 	
 	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) override;
@@ -36,7 +36,7 @@ protected:
 
 private:
 	AliGPUReconstructionCUDAInternals* mInternals;
-	bool GPUFailedMsgA(const long long int error, const char* file, int line) const;
+	int GPUFailedMsgA(const long long int error, const char* file, int line) const;
 };
 
 #endif
