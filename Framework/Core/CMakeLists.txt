@@ -54,6 +54,7 @@ set(SRCS
     src/FairOptionsRetriever.cxx
     src/FairMQDeviceProxy.cxx
     src/FairMQResizableBuffer.cxx
+    src/FreePortFinder.cxx
     src/GraphvizHelpers.cxx
     src/InputRecord.cxx
     src/InputSpec.cxx
@@ -96,6 +97,7 @@ set(HEADERS
       include/Framework/ServiceRegistry.h
       include/Framework/DeviceExecution.h
       include/Framework/DebugGUI.h
+      include/Framework/FreePortFinder.h
       include/Framework/TypeTraits.h
       include/Framework/PaletteHelpers.h
       include/Framework/ConfigParamSpec.h

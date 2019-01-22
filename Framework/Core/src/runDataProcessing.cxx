@@ -23,6 +23,7 @@
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/FrameworkGUIDebugger.h"
+#include "Framework/FreePortFinder.h"
 #include "Framework/LocalRootFileService.h"
 #include "Framework/LogParsingHelpers.h"
 #include "Framework/ParallelContext.h"
@@ -76,53 +77,7 @@
 #include <netinet/ip.h>
 
 using namespace o2::monitoring;
-
 using namespace AliceO2::InfoLogger;
-
-/// Helper class to find a free port.
-class FreePortFinder
-{
- public:
-  FreePortFinder(unsigned short initialPort, unsigned short finalPort, unsigned short step)
-    : mInitialPort{ initialPort },
-      mFinalPort{ finalPort },
-      mStep{ step },
-      mSocket{ socket(AF_INET, SOCK_STREAM, 0) }
-  {
-  }
-
-  void scan()
-  {
-    struct sockaddr_in addr;
-    for (mPort = mInitialPort; mPort < mFinalPort; mPort += mStep) {
-      memset(&addr, 0, sizeof(addr));
-      addr.sin_family = AF_INET;
-      addr.sin_addr.s_addr = INADDR_ANY;
-      addr.sin_port = htons(mPort);
-      if (bind(mSocket, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-        LOG(WARN) << "Port range [" << mPort << ", " << mPort + mStep
-                  << "] already taken. Skipping";
-        continue;
-      }
-      LOG(INFO) << "Using port range [" << mPort << ", " << mPort + mStep << "]";
-      break;
-    }
-  }
-
-  ~FreePortFinder()
-  {
-    close(mSocket);
-  }
-  unsigned short port() { return mPort + 1; }
-  unsigned short range() { return mStep; }
-
- private:
-  int mSocket;
-  unsigned short mInitialPort;
-  unsigned short mFinalPort;
-  unsigned short mStep;
-  unsigned short mPort;
-};
 
 using namespace o2::framework;
 namespace bpo = boost::program_options;
