@@ -7,8 +7,8 @@ typedef struct Cluster_s
 {
     SHARED_INT cru;
     SHARED_INT row;
-    SHARED_INT Q;
-    SHARED_INT QMax;
+    SHARED_FLOAT Q;
+    SHARED_FLOAT QMax;
     SHARED_FLOAT padMean;
     SHARED_FLOAT timeMean;
     SHARED_FLOAT padSigma;
@@ -19,7 +19,7 @@ typedef struct Cluster_s
     {
     }
 
-    Cluster_s(int _cru, int _row, int _Q, int _QMax, 
+    Cluster_s(int _cru, int _row, float _Q, float _QMax, 
             float _padMean, float _timeMean, float _padSigma, float _timeSigma)
         : cru(_cru)
         , row(_row)

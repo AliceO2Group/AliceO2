@@ -1,9 +1,7 @@
 #pragma once
 
-#include <gpucf/Executable.h>
+#include <gpucf/executable/Executable.h>
 #include <gpucf/ClEnv.h>
-
-#include <memory>
 
 
 namespace gpucf
