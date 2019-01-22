@@ -50,10 +50,12 @@ class ClusterHardwareContainerFixedSize
   // We cannot use a union because that prevents ROOT streaming, so we just block 8 kb and reinterpret_cast to
   // ClusterHardwareContainer
  public:
-  ClusterHardwareContainer* getContainer() { return (reinterpret_cast<ClusterHardwareContainer*>(this)); }
-  int getMaxNumberOfClusters()
+  ClusterHardwareContainer* getContainer() { return (reinterpret_cast<ClusterHardwareContainer*>(mFixSize)); }
+  ClusterHardwareContainer const* getContainer() const { return (reinterpret_cast<ClusterHardwareContainer const*>(mFixSize)); }
+  constexpr int getMaxNumberOfClusters()
   {
-    return ((sizeof(*this) - sizeof(ClusterHardwareContainer)) / sizeof(ClusterHardware));
+    static_assert(sizeof(*this) == sizeof(mFixSize));
+    return ((sizeof(mFixSize) - sizeof(ClusterHardwareContainer)) / sizeof(ClusterHardware));
   }
   ClusterHardwareContainerFixedSize() { memset(this, 0, size); }
  private:
