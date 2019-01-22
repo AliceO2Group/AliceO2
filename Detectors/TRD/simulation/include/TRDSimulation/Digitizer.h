@@ -34,16 +34,19 @@ class Digitizer
  private:
   TRDGeometry* mGeom = nullptr;
 
-  int hitLoopBegin;
-
   double mTime = 0.;
   int mEventID = 0;
   int mSrcID = 0;
+
+  float mWion;      //  Ionization potential
+  int hitLoopBegin; // Helper variable for sorting hits
+
   bool SortHits(std::vector<o2::trd::HitType>&);
   bool GetHitContainer(const int, const std::vector<o2::trd::HitType>&,
                        std::vector<o2::trd::HitType>&);
   bool CheckHitContainer(const int, const std::vector<o2::trd::HitType>&);
   bool ConvertHits(int det, const std::vector<o2::trd::HitType>&, int&);
+  bool Diffusion(float, double, double, double&, double&, double&);
 };
 } // namespace trd
 } // namespace o2

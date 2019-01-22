@@ -145,7 +145,7 @@ bool Detector::ProcessHits(FairVolume* v)
   if ((enDep > mWion) || trkStat) {
     double x, y, z;
     fMC->TrackPosition(x, y, z);
-    double time = fMC->TrackTime() * 1e9;
+    double time = fMC->TrackTime() * 1e6;
     o2::Data::Stack* stack = (o2::Data::Stack*)fMC->GetStack();
     const int trackID = stack->GetCurrentTrackNumber();
     addHit(x, y, z, time, enDep, trackID, det);
