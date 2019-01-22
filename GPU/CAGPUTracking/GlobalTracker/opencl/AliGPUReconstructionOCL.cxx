@@ -369,14 +369,11 @@ int AliGPUReconstructionOCL::GPUSync(const char* state, int stream, int slice)
 	//Wait for OPENCL-Kernel to finish and check for OPENCL errors afterwards
 
 	if (mDeviceProcessingSettings.debugLevel == 0) return(0);
-	for (unsigned int i = 0;i < NSLICES;i++)
-	{
-		if (stream != -1) i = stream;
-		clFinish(mInternals->command_queue[i]);
-		if (stream != -1) break;
-	}
+	int retVal = 0;
+	if (stream != -1) retVal = GPUFailedMsg(clFinish(mInternals->command_queue[stream]));
+	else retVal = SynchronizeGPU();
 	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("GPU Sync Done");
-	return(0);
+	return(retVal);
 }
 
 int AliGPUReconstructionOCL::RunTPCTrackingSlices()
@@ -599,7 +596,7 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 		OCLsetKernelParameters(mInternals->kernel_tracklet_selector, mInternals->mem_gpu, mInternals->mem_constant, iSlice, runSlices);
 		mTPCSliceTrackersCPU[iSlice].StartTimer(7);
 		clExecuteKernelA(mInternals->command_queue[useStream], mInternals->kernel_tracklet_selector, GPUCA_GPU_THREAD_COUNT_SELECTOR, GPUCA_GPU_THREAD_COUNT_SELECTOR * fSelectorBlockCount, NULL);
-		if (GPUSync("Tracklet Selector", iSlice, iSlice) RANDOM_ERROR)
+		if (GPUSync("Tracklet Selector", useStream, iSlice) RANDOM_ERROR)
 		{
 			SynchronizeGPU();
 			return(1);
