@@ -19,7 +19,6 @@ namespace fit
 {
 
 o2::framework::DataProcessorSpec getT0DigitWriterSpec();
-//o2::framework::DataProcessorSpec getMFTDigitWriterSpec();
 
 } // namespace fit
 } // end namespace o2

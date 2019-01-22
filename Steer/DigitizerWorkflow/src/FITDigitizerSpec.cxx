@@ -115,6 +115,7 @@ class FITDPLDigitizerTask
         // get the hits for this event and this source
         hits.clear();
         retrieveHits(mSimChains, part.sourceID, part.entryID, &hits);
+
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found " << hits.size() << " hits ";
 
         // call actual digitization procedure
@@ -147,7 +148,8 @@ class FITDPLDigitizerTask
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
     pc.outputs().snapshot(Output{ mOrigin, "DIGITS", 0, Lifetime::Timeframe }, digitAccum);
     // pc.outputs().snapshot(Output{ "FIT", "DIGITSMCTR", 0, Lifetime::Timeframe }, labelAccum);
-    LOG(INFO) << "FIT: " << mID.getName() << " Sending ROMode= " << mROMode << " to GRPUpdater";
+
+    LOG(INFO) << "FIT: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{ mOrigin, "ROMode", 0, Lifetime::Timeframe }, mROMode);
     timer.Stop();
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
@@ -200,6 +202,20 @@ class FITT0DPLDigitizerTask : public FITDPLDigitizerTask
     mID = DETID;
     mOrigin = DETOR;
     std::cout << " @@@@ DETOR FITT0DPLDigitizerTask " << mOrigin << " " << mID.getName() << std::endl;
+  }
+};
+
+//_______________________________________________
+class FITT0DPLDigitizerTask : public FITDPLDigitizerTask
+{
+ public:
+  // FIXME: origina should be extractable from the DetID, the problem is 3d party header dependencies
+  static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::T0;
+  static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginT0;
+  FITT0DPLDigitizerTask()
+  {
+    mID = DETID;
+    mOrigin = DETOR;
   }
 };
 
