@@ -31,7 +31,7 @@ Detector::Detector(Bool_t active)
   } else if (TRDCommonParam::Instance()->IsArgon()) {
     mWion = 27.21; // Ionization energy ArCO2 (82/18)
   } else {
-    LOG(FATAL) << "Wrong gas mixture" << FairLogger::endl;
+    LOG(FATAL) << "Wrong gas mixture";
     // add hard exit here!
   }
 }
@@ -50,7 +50,7 @@ Detector::Detector(const Detector& rhs)
   } else if (TRDCommonParam::Instance()->IsArgon()) {
     mWion = 27.21; // Ionization energy ArCO2 (82/18)
   } else {
-    LOG(FATAL) << "Wrong gas mixture" << FairLogger::endl;
+    LOG(FATAL) << "Wrong gas mixture";
     // add hard exit here!
   }
 }

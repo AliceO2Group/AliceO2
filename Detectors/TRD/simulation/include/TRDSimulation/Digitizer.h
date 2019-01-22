@@ -39,14 +39,13 @@ class Digitizer
   int mSrcID = 0;
 
   float mWion; //  Ionization potential
-  // int hitLoopBegin; // Helper variable for sorting hits
 
-  bool SortHits(std::vector<o2::trd::HitType>&);
-  bool GetHitContainer(const int, const std::vector<o2::trd::HitType>&,
-                       std::vector<o2::trd::HitType>&);
-  bool CheckHitContainer(const int, const std::vector<o2::trd::HitType>&);
-  bool ConvertHits(int det, const std::vector<o2::trd::HitType>&, int&);
-  bool Diffusion(float, double, double, double&, double&, double&);
+  std::vector<o2::trd::HitType> mHitContainer; // The container of hits in a given detector
+
+  bool getHitContainer(const int, const std::vector<o2::trd::HitType>&,
+                       std::vector<o2::trd::HitType>&); // True if there are hits in the detector
+  bool convertHits(int det, const std::vector<o2::trd::HitType>&, int&); // True if hit-to-signal conversion is successful
+  bool diffusion(float, double, double, double&, double&, double&); // True if diffusion is applied successfully 
 };
 } // namespace trd
 } // namespace o2

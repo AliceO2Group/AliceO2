@@ -50,21 +50,11 @@ void Digitizer::process(std::vector<o2::trd::HitType> const& hits, std::vector<o
    const int nTimeBins = calibration->GetNumberOfTimeBinsDCS();
   */
 
-  // Create a copy of the Hit vector and sort its elements according to the detector number
-  // I was thinking about making a list and push ordered items at hit creation:
-  // Creating an ordered list + casting a list to vector is O(n) and O(n), then in total O(n^2),
-  // Pushing hits to vector + sorting vector is O(1) and O(n*log(n)), so O(n*log(n)) in total
-  // std::vector<o2::trd::HitType> hitCont = hits;
-  // if (!SortHits(hitCont)) {
-  //   LOG(FATAL) << "Hits sorting failed" << FairLogger::endl;
-  //   return;
-  // }
-
   // Loop over all TRD detectors
-  // Get the a hit container for all the hits in a given detector then call ConvertHits for a given detector (0 - 539)
+  // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
   const int kNdet = 540; // Get this from TRD Geometry
   int totalNumberOfProcessedHits = 0;
-  LOG(INFO) << "Start of processing " << hits.size() << " hits" << FairLogger::endl;
+  LOG(INFO) << "Start of processing " << hits.size() << " hits";
   for (int det = 0; det < kNdet; ++det) {
     // Loop over all TRD detectors
 
@@ -79,39 +69,27 @@ void Digitizer::process(std::vector<o2::trd::HitType> const& hits, std::vector<o
     }
     */
 
-    // Hits are sorted for each detector, but you dont know how many hits each detector got
-    // if (!GetHitContainer(det, hitCont, hitContInDet) ||
-    //     !CheckHitContainer(det, hitContInDet)) {
-    //   break;
-    // }
-
     // Skip detectors without hits
-    std::vector<o2::trd::HitType> hitContainer;
-    if (!GetHitContainer(det, hits, hitContainer)) {
+    if (!getHitContainer(det, hits, mHitContainer)) {
       // move to next det if no hits are found for this det
       continue;
     }
-    totalNumberOfProcessedHits += hitContainer.size();
+    totalNumberOfProcessedHits += mHitContainer.size();
     int signals; // dummy variable for now
-    ConvertHits(det, hitContainer, signals);
+    convertHits(det, mHitContainer, signals);
 
-    hitContainer.clear();
+    mHitContainer.clear();
     digits.emplace_back();
   } // end of loop over detectors
-  LOG(INFO) << "End of processing " << totalNumberOfProcessedHits << " hits" << FairLogger::endl;
+  LOG(INFO) << "End of processing " << totalNumberOfProcessedHits << " hits";
 }
 
-// Maybe this will be removed, I need to analise the time complexity
-bool Digitizer::SortHits(std::vector<o2::trd::HitType>& hitCont)
+bool Digitizer::getHitContainer(const int det, const std::vector<o2::trd::HitType>& hits, std::vector<o2::trd::HitType>& hitContainer)
 {
-  std::sort(hitCont.begin(), hitCont.end(), [](const auto& a, const auto& b) {
-    return a.GetDetectorID() < b.GetDetectorID();
-  });
-  return true;
-}
-
-bool Digitizer::GetHitContainer(const int det, const std::vector<o2::trd::HitType>& hits, std::vector<o2::trd::HitType>& hitContainer)
-{
+  //
+  // Fills the hit vector for hits in detector number det
+  // Returns false if there are no hits in the dectector
+  //
   for (const auto& hit : hits) {
     if (hit.GetDetectorID() == det) {
       hitContainer.push_back(hit);
@@ -123,37 +101,12 @@ bool Digitizer::GetHitContainer(const int det, const std::vector<o2::trd::HitTyp
   return true;
 }
 
-// bool Digitizer::GetHitContainer(const int det, const std::vector<o2::trd::HitType>& hitCont, std::vector<o2::trd::HitType>& hitContInDet)
-// {
-//   for (int i = hitLoopBegin; i < hitCont.size(); ++i) {
-//     auto hit = hitCont.at(i);
-//     if (hit.GetDetectorID() != det) {
-//       hitLoopBegin = i;
-//       break;
-//     }
-//     hitContInDet.push_back(hit);
-//   }
-//   return true;
-// }
-
-bool Digitizer::CheckHitContainer(const int det, const std::vector<o2::trd::HitType>& hitContInDet)
-{
-  for (const auto& hit : hitContInDet) {
-    if (det != hit.GetDetectorID()) {
-      LOG(FATAL) << "Digitizer::CheckHitContainer() Something when wront at the TRD digitizer" << FairLogger::endl;
-      LOG(FATAL) << "Digitizer::CheckHitContainer() DET = " << det << " and GetDetectorID = " << hit.GetDetectorID() << FairLogger::endl;
-      return false;
-    }
-  }
-  return true;
-}
-
-bool Digitizer::ConvertHits(int det, const std::vector<o2::trd::HitType>& hits, int& arraySignal)
+bool Digitizer::convertHits(int det, const std::vector<o2::trd::HitType>& hits, int& arraySignal)
 {
   //
   // Convert the detector-wise sorted hits to detector signals
   //
-  LOG(INFO) << "Start converting " << hits.size() << " hits for detector " << det << FairLogger::endl;
+  LOG(INFO) << "Start converting " << hits.size() << " hits for detector " << det;
 
   // Dummy signal for now
   arraySignal = -1;
@@ -182,15 +135,15 @@ bool Digitizer::ConvertHits(int det, const std::vector<o2::trd::HitType>& hits, 
   TRDCommonParam* commonParam = TRDCommonParam::Instance();
   // TRDCalibDB *calibration = TRDCalibDB::Instace();
   if (!simParam) {
-    LOG(FATAL) << "TRD Simulation Parameters not available" << FairLogger::endl;
+    LOG(FATAL) << "TRD Simulation Parameters not available";
     return false;
   }
   if (!commonParam) {
-    LOG(FATAL) << "TRD Common Parameters not available" << FairLogger::endl;
+    LOG(FATAL) << "TRD Common Parameters not available";
     return false;
   }
   // if (!calibration) {
-  //   LOG(FATAL) << "TRD Calibration database not available" << FairLogger::endl;
+  //   LOG(FATAL) << "TRD Calibration database not available";
   //   return false;
   // }
 
@@ -316,7 +269,7 @@ bool Digitizer::ConvertHits(int det, const std::vector<o2::trd::HitType>& hits, 
 
       // Apply diffusion smearing
       if (simParam->DiffusionOn()) {
-        if (!Diffusion(driftVelocity, absDriftLength, calExBDetValue, locR, locC, locT)) {
+        if (!diffusion(driftVelocity, absDriftLength, calExBDetValue, locR, locC, locT)) {
           continue;
         }
       }
@@ -462,7 +415,7 @@ bool Digitizer::ConvertHits(int det, const std::vector<o2::trd::HitType>& hits, 
   return true;
 }
 
-bool Digitizer::Diffusion(float vdrift, double absdriftlength, double exbvalue, double& lRow, double& lCol, double& lTime)
+bool Digitizer::diffusion(float vdrift, double absdriftlength, double exbvalue, double& lRow, double& lCol, double& lTime)
 {
   //
   // Applies the diffusion smearing to the position of a single electron.
