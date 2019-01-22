@@ -9,4 +9,14 @@ struct AliGPUReconstructionCUDAInternals
 	cudaStream_t* CudaStreams; //Pointer to array of CUDA Streams
 };
 
+#define GPUFailedMsg(x) GPUFailedMsgA(x, __FILE__, __LINE__)
+
+static int GPUFailedMsgA(const long long int error, const char* file, int line)
+{
+	//Check for CUDA Error and in the case of an error display the corresponding error string
+	if (error == cudaSuccess) return(0);
+	printf("CUDA Error: %lld / %s (%s:%d)\n", error, cudaGetErrorString((cudaError_t) error), file, line);
+	return(1);
+}
+
 #endif

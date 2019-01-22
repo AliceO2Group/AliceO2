@@ -1,7 +1,6 @@
 #define GPUCA_GPUTYPE_RADEON
 
 #include "AliGPUReconstructionOCL.h"
-#include "AliGPUReconstructionOCL.h"
 
 #ifdef HAVE_O2HEADERS
 #include "ITStracking/TrackerTraitsCPU.h"
@@ -66,14 +65,6 @@ AliGPUReconstructionOCL::~AliGPUReconstructionOCL()
 AliGPUReconstruction* AliGPUReconstruction_Create_OCL(const AliGPUCASettingsProcessing& cfg)
 {
 	return new AliGPUReconstructionOCL(cfg);
-}
-
-int AliGPUReconstructionOCL::GPUFailedMsgA(int error, const char* file, int line)
-{
-	//Check for OPENCL Error and in the case of an error display the corresponding error string
-	if (error == CL_SUCCESS) return(0);
-	CAGPUWarning("OCL Error: %d / %s (%s:%d)", error, opencl_error_string(error), file, line);
-	return(1);
 }
 
 int AliGPUReconstructionOCL::InitDevice_Runtime()
@@ -341,10 +332,8 @@ int AliGPUReconstructionOCL::InitDevice_Runtime()
 	}
 	cl_kernel kernel = clCreateKernel(program, "krnlGetPtr", &ocl_error);
 	if (ocl_error != CL_SUCCESS) quit("Error creating kernel");
-	clSetKernelArg(kernel, 0, sizeof(cl_mem), &mInternals->mem_gpu);
-	clSetKernelArg(kernel, 1, sizeof(cl_mem), &mInternals->mem_host);
-	size_t local_size = 16, global_size = 16;
-	if (clEnqueueNDRangeKernel(mInternals->command_queue[0], kernel, 1, NULL, &global_size, &local_size, 0, NULL, NULL) != CL_SUCCESS) quit("Error executing kernel");
+	OCLsetKernelParameters(kernel, mInternals->mem_gpu, mInternals->mem_host);
+	clExecuteKernelA(mInternals->command_queue[0], kernel, 16, 16, NULL);
 	clFinish(mInternals->command_queue[0]);
 	clReleaseKernel(kernel);
 	clReleaseProgram(program);
@@ -390,16 +379,6 @@ int AliGPUReconstructionOCL::GPUSync(const char* state, int stream, int slice)
 	return(0);
 }
 
-template <class T> static inline cl_int clSetKernelArgA(cl_kernel krnl, cl_uint num, T arg)
-{
-	return(clSetKernelArg(krnl, num, sizeof(T), &arg));
-}
-
-static inline cl_int clExecuteKernelA(cl_command_queue queue, cl_kernel krnl, size_t local_size, size_t global_size, cl_event* pEvent, cl_event* wait = NULL, cl_int nWaitEvents = 1)
-{
-	return(clEnqueueNDRangeKernel(queue, krnl, 1, NULL, &global_size, &local_size, wait == NULL ? 0 : nWaitEvents, wait, pEvent));
-}
-
 int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 {
 	//Primary reconstruction function
@@ -438,9 +417,7 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 
 		//Initialize temporary memory where needed
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Copying Slice Data to GPU and initializing temporary memory");
-		clSetKernelArgA(mInternals->kernel_row_blocks, 0, mInternals->mem_gpu);
-		clSetKernelArgA(mInternals->kernel_row_blocks, 1, mInternals->mem_constant);
-		clSetKernelArgA(mInternals->kernel_row_blocks, 2, iSlice);
+		OCLsetKernelParameters(mInternals->kernel_row_blocks, mInternals->mem_gpu, mInternals->mem_constant, iSlice);
 		clExecuteKernelA(mInternals->command_queue[2], mInternals->kernel_row_blocks, GPUCA_GPU_THREAD_COUNT, GPUCA_GPU_THREAD_COUNT * fConstructorBlockCount, NULL, &initEvent);
 		if (GPUSync("Initialization (2)", 2, iSlice) RANDOM_ERROR)
 		{
@@ -468,9 +445,7 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 		mTPCSliceTrackersCPU[iSlice].StopTimer(0);
 
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Neighbours Finder (Slice %d/%d)", iSlice, NSLICES);
-		clSetKernelArgA(mInternals->kernel_neighbours_finder, 0, mInternals->mem_gpu);
-		clSetKernelArgA(mInternals->kernel_neighbours_finder, 1, mInternals->mem_constant);
-		clSetKernelArgA(mInternals->kernel_neighbours_finder, 2, iSlice);
+		OCLsetKernelParameters(mInternals->kernel_neighbours_finder, mInternals->mem_gpu, mInternals->mem_constant, iSlice);
 		mTPCSliceTrackersCPU[iSlice].StartTimer(1);
 		clExecuteKernelA(mInternals->command_queue[iSlice & 1], mInternals->kernel_neighbours_finder, GPUCA_GPU_THREAD_COUNT_FINDER, GPUCA_GPU_THREAD_COUNT_FINDER * GPUCA_ROW_COUNT, NULL);
 		if (GPUSync("Neighbours finder", iSlice & 1, iSlice) RANDOM_ERROR)
@@ -488,9 +463,7 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 		}
 
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Neighbours Cleaner (Slice %d/%d)", iSlice, NSLICES);
-		clSetKernelArgA(mInternals->kernel_neighbours_cleaner, 0, mInternals->mem_gpu);
-		clSetKernelArgA(mInternals->kernel_neighbours_cleaner, 1, mInternals->mem_constant);
-		clSetKernelArgA(mInternals->kernel_neighbours_cleaner, 2, iSlice);
+		OCLsetKernelParameters(mInternals->kernel_neighbours_cleaner, mInternals->mem_gpu, mInternals->mem_constant, iSlice);
 		mTPCSliceTrackersCPU[iSlice].StartTimer(2);
 		clExecuteKernelA(mInternals->command_queue[iSlice & 1], mInternals->kernel_neighbours_cleaner, GPUCA_GPU_THREAD_COUNT, GPUCA_GPU_THREAD_COUNT * (GPUCA_ROW_COUNT - 2), NULL);
 		if (GPUSync("Neighbours Cleaner", iSlice & 1, iSlice) RANDOM_ERROR)
@@ -507,9 +480,7 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 		}
 
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Start Hits Finder (Slice %d/%d)", iSlice, NSLICES);
-		clSetKernelArgA(mInternals->kernel_start_hits_finder, 0, mInternals->mem_gpu);
-		clSetKernelArgA(mInternals->kernel_start_hits_finder, 1, mInternals->mem_constant);
-		clSetKernelArgA(mInternals->kernel_start_hits_finder, 2, iSlice);
+		OCLsetKernelParameters(mInternals->kernel_start_hits_finder, mInternals->mem_gpu, mInternals->mem_constant, iSlice);
 		mTPCSliceTrackersCPU[iSlice].StartTimer(3);
 		clExecuteKernelA(mInternals->command_queue[iSlice & 1], mInternals->kernel_start_hits_finder, GPUCA_GPU_THREAD_COUNT, GPUCA_GPU_THREAD_COUNT * (GPUCA_ROW_COUNT - 6), NULL);
 		if (GPUSync("Start Hits Finder", iSlice & 1, iSlice) RANDOM_ERROR)
@@ -520,9 +491,7 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 		mTPCSliceTrackersCPU[iSlice].StopTimer(3);
 
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Start Hits Sorter (Slice %d/%d)", iSlice, NSLICES);
-		clSetKernelArgA(mInternals->kernel_start_hits_sorter, 0, mInternals->mem_gpu);
-		clSetKernelArgA(mInternals->kernel_start_hits_sorter, 1, mInternals->mem_constant);
-		clSetKernelArgA(mInternals->kernel_start_hits_sorter, 2, iSlice);
+		OCLsetKernelParameters(mInternals->kernel_start_hits_sorter, mInternals->mem_gpu, mInternals->mem_constant, iSlice);
 		mTPCSliceTrackersCPU[iSlice].StartTimer(4);
 		clExecuteKernelA(mInternals->command_queue[iSlice & 1], mInternals->kernel_start_hits_sorter, GPUCA_GPU_THREAD_COUNT, GPUCA_GPU_THREAD_COUNT * fConstructorBlockCount, NULL);
 		if (GPUSync("Start Hits Sorter", iSlice & 1, iSlice) RANDOM_ERROR)
@@ -566,8 +535,7 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 	}
 
 	cl_event constructorEvent;
-	clSetKernelArgA(mInternals->kernel_tracklet_constructor, 0, mInternals->mem_gpu);
-	clSetKernelArgA(mInternals->kernel_tracklet_constructor, 1, mInternals->mem_constant);
+	OCLsetKernelParameters(mInternals->kernel_tracklet_constructor, mInternals->mem_gpu, mInternals->mem_constant);
 	mTPCSliceTrackersCPU[0].StartTimer(6);
 	clExecuteKernelA(mInternals->command_queue[0], mInternals->kernel_tracklet_constructor, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR * fConstructorBlockCount, &constructorEvent, initEvents2, 3);
 	for (int i = 0;i < 3;i++)
@@ -628,10 +596,7 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 			return(1);
 		}
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running HLT Tracklet selector (Stream %d, Slice %d to %d)", useStream, iSlice, iSlice + runSlices);
-		clSetKernelArgA(mInternals->kernel_tracklet_selector, 0, mInternals->mem_gpu);
-		clSetKernelArgA(mInternals->kernel_tracklet_selector, 1, mInternals->mem_constant);
-		clSetKernelArgA(mInternals->kernel_tracklet_selector, 2, iSlice);
-		clSetKernelArgA(mInternals->kernel_tracklet_selector, 3, runSlices);
+		OCLsetKernelParameters(mInternals->kernel_tracklet_selector, mInternals->mem_gpu, mInternals->mem_constant, iSlice, runSlices);
 		mTPCSliceTrackersCPU[iSlice].StartTimer(7);
 		clExecuteKernelA(mInternals->command_queue[useStream], mInternals->kernel_tracklet_selector, GPUCA_GPU_THREAD_COUNT_SELECTOR, GPUCA_GPU_THREAD_COUNT_SELECTOR * fSelectorBlockCount, NULL);
 		if (GPUSync("Tracklet Selector", iSlice, iSlice) RANDOM_ERROR)

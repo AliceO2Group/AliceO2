@@ -4,8 +4,6 @@
 #include "AliGPUReconstruction.h"
 #include "AliGPUCADataTypes.h"
 
-#define GPUFailedMsg(x) GPUFailedMsgA(x, __FILE__, __LINE__)
-
 class AliGPUReconstructionDeviceBase : public AliGPUReconstruction
 {
 public:
