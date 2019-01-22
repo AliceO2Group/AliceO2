@@ -3,7 +3,6 @@
 #ifndef WIN32
 #include <unistd.h>
 #endif
-#include "AliGPUTPCClusterData.h"
 #include "AliGPUTPCGPUTrackerCommon.h"
 
 #include "AliGPUTPCDef.h"
@@ -512,9 +511,8 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_Init()
 	int offset = 0;
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 	{
-		mClusterData[iSlice].SetClusterData(iSlice, mIOPtrs.nClusterData[iSlice], mIOPtrs.clusterData[iSlice]);
-		mTPCSliceTrackersCPU[iSlice].Data().SetClusterData(&mClusterData[iSlice], offset);
-		fGpuTracker[iSlice].Data().SetClusterData(&mClusterData[iSlice], offset);
+		mTPCSliceTrackersCPU[iSlice].Data().SetClusterData(mIOPtrs.clusterData[iSlice], mIOPtrs.nClusterData[iSlice], offset);
+		fGpuTracker[iSlice].Data().SetClusterData(mIOPtrs.clusterData[iSlice], mIOPtrs.nClusterData[iSlice], offset);
 		mTPCSliceTrackersCPU[iSlice].SetMaxData();
 		fGpuTracker[iSlice].SetMaxData();
 		offset += mIOPtrs.nClusterData[iSlice];

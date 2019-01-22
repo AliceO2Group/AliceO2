@@ -40,8 +40,6 @@ MEM_CLASS_PRE() class AliGPUTPCRow;
 	#undef GPUCODE
 #endif
 
-class AliGPUTPCClusterData;
-
 MEM_CLASS_PRE()
 class AliGPUTPCTracker : public AliGPUProcessor
 {

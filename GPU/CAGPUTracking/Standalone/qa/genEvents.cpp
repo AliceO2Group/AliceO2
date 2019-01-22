@@ -269,7 +269,7 @@ int genEvents::GenerateEvent(const AliGPUCAParam& sliceParam, char* filename)
   
   std::vector<AliHLTTPCClusterMCLabel> labels;
   
-  std::unique_ptr<AliGPUTPCClusterData::Data> clSlices[36];
+  std::unique_ptr<AliGPUTPCClusterData> clSlices[36];
 
   for (int iSector = 0;iSector < 36;iSector++) //HLT Sector numbering, sectors go from 0 to 35, all spanning all rows from 0 to 158.
     {
@@ -278,7 +278,7 @@ int genEvents::GenerateEvent(const AliGPUCAParam& sliceParam, char* filename)
       //For every sector we first have to fill the number of hits in this sector to the file
       mRec->mIOPtrs.nClusterData[iSector] = nNumberOfHits;
       
-      AliGPUTPCClusterData::Data* clusters = new AliGPUTPCClusterData::Data[nNumberOfHits];
+      AliGPUTPCClusterData* clusters = new AliGPUTPCClusterData[nNumberOfHits];
       clSlices[iSector].reset(clusters);
       int icl=0;
       for( unsigned int i=0; i<vClusters.size(); i++ ){

@@ -808,8 +808,7 @@ int AliGPUReconstruction::RunTPCTrackingSlices()
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 	{
 		if (error) continue;
-		mClusterData[iSlice].SetClusterData(iSlice, mIOPtrs.nClusterData[iSlice], mIOPtrs.clusterData[iSlice]);
-		mTPCSliceTrackersCPU[iSlice].Data().SetClusterData(&mClusterData[iSlice], offset);
+		mTPCSliceTrackersCPU[iSlice].Data().SetClusterData(mIOPtrs.clusterData[iSlice], mIOPtrs.nClusterData[iSlice], offset);
 		mTPCSliceTrackersCPU[iSlice].SetMaxData();
 		offset += mIOPtrs.nClusterData[iSlice];
 	}

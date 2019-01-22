@@ -132,13 +132,13 @@ void AliGPUTPCSliceData::InitializeRows(const AliGPUCAParam &p)
 	}
 }
 
-void AliGPUTPCSliceData::SetClusterData(const AliGPUTPCClusterData *data, int clusterIdOffset)
+void AliGPUTPCSliceData::SetClusterData(const AliGPUTPCClusterData *data, int nClusters, int clusterIdOffset)
 {
 	fClusterData = data;
-	int hitMemCount = GPUCA_ROW_COUNT * sizeof(GPUCA_GPU_ROWALIGNMENT) + data->NumberOfClusters();
+	int hitMemCount = GPUCA_ROW_COUNT * sizeof(GPUCA_GPU_ROWALIGNMENT) + nClusters;
 	const unsigned int kVectorAlignment = 256;
 	fNumberOfHitsPlusAlign = AliGPUReconstruction::nextMultipleOf<(kVectorAlignment > sizeof(GPUCA_GPU_ROWALIGNMENT) ? kVectorAlignment : sizeof(GPUCA_GPU_ROWALIGNMENT)) / sizeof(int)>(hitMemCount);
-	fNumberOfHits = data->NumberOfClusters();
+	fNumberOfHits = nClusters;
 	fClusterIdOffset = clusterIdOffset;
 }
 
@@ -201,7 +201,7 @@ int AliGPUTPCSliceData::InitFromClusterData()
 
 	for (int i = 0; i < fNumberOfHits; i++)
 	{
-		const int tmpRow = fClusterData->RowNumber(i);
+		const int tmpRow = fClusterData[i].fRow;
 		NumberOfClustersInRow[tmpRow]++;
 		if (tmpRow > fLastRow) fLastRow = tmpRow;
 		if (tmpRow < fFirstRow) fFirstRow = tmpRow;
@@ -229,10 +229,10 @@ int AliGPUTPCSliceData::InitFromClusterData()
 		for (int i = 0; i < fNumberOfHits; i++)
 		{
 			float2 tmp;
-			tmp.x = fClusterData->Y(i);
-			tmp.y = fClusterData->Z(i);
+			tmp.x = fClusterData[i].fY;
+			tmp.y = fClusterData[i].fZ;
 			if (fabs(tmp.y) > fMaxZ) fMaxZ = fabs(tmp.y);
-			int tmpRow = fClusterData->RowNumber(i);
+			int tmpRow = fClusterData[i].fRow;
 			int newIndex = RowOffset[tmpRow] + (RowsFilled[tmpRow])++;
 			YZData[newIndex] = tmp;
 			tmpHitIndex[newIndex] = i;

@@ -43,7 +43,7 @@ class AliHLTGPUDumpComponent : public AliHLTProcessor
 
 	float fSolenoidBz;
 	AliGPUReconstruction* fRec;
-	AliGPUTPCClusterData* fClusterData;
+	AliGPUTPCClusterData* fClusterData[36];
 	ali_tpc_common::tpc_fast_transformation::TPCFastTransformManager* fFastTransformManager;
 	AliTPCcalibDB* fCalib;
 	AliTPCRecoParam* fRecParam;

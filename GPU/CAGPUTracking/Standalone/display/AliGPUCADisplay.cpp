@@ -32,6 +32,7 @@
 #include "AliGPUTPCTracker.h"
 #include "AliGPUTPCGMMergedTrack.h"
 #include "AliGPUTPCGMPropagator.h"
+#include "AliGPUTPCClusterData.h"
 #include "cmodules/timer.h"
 #include "cmodules/qconfig.h"
 
@@ -498,7 +499,7 @@ AliGPUCADisplay::vboList AliGPUCADisplay::DrawClusters(const AliGPUTPCTracker &t
 	const int lastCluster = (nCollisions > 1 && iCol + 1 < nCollisions) ? collisionClusters[iCol][iSlice] : tracker.Data().NumberOfHits();
 	for (int cidInSlice = firstCluster;cidInSlice < lastCluster;cidInSlice++)
 	{
-		const int cid = tracker.ClusterData()->Id(cidInSlice);
+		const int cid = tracker.ClusterData()[cidInSlice].fId;
 		if (hideUnmatchedClusters && mQA && mQA->SuppressHit(cid)) continue;
 		bool draw = globalPos[cid].w == select;
 
@@ -522,7 +523,7 @@ AliGPUCADisplay::vboList AliGPUCADisplay::DrawClusters(const AliGPUTPCTracker &t
 		}
 		else if (markClusters)
 		{
-			const short flags = tracker.ClusterData()->Flags(cidInSlice);
+			const short flags = tracker.ClusterData()[cidInSlice].fFlags;
 			const bool match = flags & markClusters;
 			draw = (select == 8) ? (match) : (draw && !match);
 		}
@@ -552,8 +553,8 @@ AliGPUCADisplay::vboList AliGPUCADisplay::DrawLinks(const AliGPUTPCTracker &trac
 			{
 				if (tracker.Data().HitLinkUpData(row, j) != CALINK_INVAL)
 				{
-					const int cid1 = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, j));
-					const int cid2 = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(rowUp, tracker.Data().HitLinkUpData(row, j)));
+					const int cid1 = tracker.ClusterData()[tracker.Data().ClusterDataIndex(row, j)].fId;
+					const int cid2 = tracker.ClusterData()[tracker.Data().ClusterDataIndex(rowUp, tracker.Data().HitLinkUpData(row, j))].fId;
 					drawPointLinestrip(iSlice, cid1, id);
 					drawPointLinestrip(iSlice, cid2, id);
 				}
@@ -567,8 +568,8 @@ AliGPUCADisplay::vboList AliGPUCADisplay::DrawLinks(const AliGPUTPCTracker &trac
 			{
 				if (tracker.Data().HitLinkDownData(row, j) != CALINK_INVAL)
 				{
-					const int cid1 = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, j));
-					const int cid2 = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(rowDown, tracker.Data().HitLinkDownData(row, j)));
+					const int cid1 = tracker.ClusterData()[tracker.Data().ClusterDataIndex(row, j)].fId;
+					const int cid2 = tracker.ClusterData()[tracker.Data().ClusterDataIndex(rowDown, tracker.Data().HitLinkDownData(row, j))].fId;
 					drawPointLinestrip(iSlice, cid1, id);
 					drawPointLinestrip(iSlice, cid2, id);
 				}
@@ -593,7 +594,7 @@ AliGPUCADisplay::vboList AliGPUCADisplay::DrawSeeds(const AliGPUTPCTracker &trac
 		do
 		{
 			const AliGPUTPCRow &row = tracker.Data().Row(ir);
-			const int cid = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, ih));
+			const int cid = tracker.ClusterData()[tracker.Data().ClusterDataIndex(row, ih)].fId;
 			drawPointLinestrip(iSlice, cid, 3);
 			ir += 2;
 			ih = tracker.Data().HitLinkUpData(row, ih);
@@ -624,7 +625,7 @@ AliGPUCADisplay::vboList AliGPUCADisplay::DrawTracklets(const AliGPUTPCTracker &
 			if (rowHit != CALINK_INVAL)
 			{
 				const AliGPUTPCRow &row = tracker.Data().Row(j);
-				const int cid = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, rowHit));
+				const int cid = tracker.ClusterData()[tracker.Data().ClusterDataIndex(row, rowHit)].fId;
 				oldpos = globalPos[cid];
 				drawPointLinestrip(iSlice, cid, 4);
 			}
@@ -647,7 +648,7 @@ AliGPUCADisplay::vboList AliGPUCADisplay::DrawTracks(const AliGPUTPCTracker &tra
 		{
 			const AliGPUTPCHitId &hit = tracker.TrackHits()[track.FirstHitID() + j];
 			const AliGPUTPCRow &row = tracker.Data().Row(hit.RowIndex());
-			const int cid = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, hit.HitIndex()));
+			const int cid = tracker.ClusterData()[tracker.Data().ClusterDataIndex(row, hit.HitIndex())].fId;
 			drawPointLinestrip(iSlice, cid, 5 + global);
 		}
 		insertVertexList(tracker.ISlice(), startCountInner, vertexBuffer[iSlice].size());

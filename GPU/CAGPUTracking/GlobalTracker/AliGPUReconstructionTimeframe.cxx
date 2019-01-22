@@ -4,6 +4,7 @@
 #include "AliGPUCAQA.h"
 #include "AliHLTTPCClusterMCData.h"
 #include "AliGPUTPCMCInfo.h"
+#include "AliGPUTPCClusterData.h"
 #include "ClusterNativeAccessExt.h"
 
 #include <stdio.h>

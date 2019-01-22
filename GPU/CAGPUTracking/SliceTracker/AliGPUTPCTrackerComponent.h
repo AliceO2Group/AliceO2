@@ -91,7 +91,6 @@ class AliGPUTPCTrackerComponent : public AliHLTProcessor
 
     /** the tracker object */
     AliGPUTPCTrackerFramework* fTracker;                      //! transient
-    AliGPUTPCClusterData* fClusterData;                       //Storage classes for cluser data in slice
 
     /** magnetic field */
     double fSolenoidBz;               // see above

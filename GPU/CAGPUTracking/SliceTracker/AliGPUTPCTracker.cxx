@@ -412,17 +412,17 @@ GPUh() void AliGPUTPCTracker::WriteOutput()
 			}
 #endif
 
-			float origX = fData.ClusterData()->X( clusterIndex );
-			float origY = fData.ClusterData()->Y( clusterIndex );
-			float origZ = fData.ClusterData()->Z( clusterIndex );
-			int id = fData.ClusterData()->Id( clusterIndex );
-			unsigned char flags = fData.ClusterData()->Flags( clusterIndex );
-			unsigned short amp = fData.ClusterData()->Amp( clusterIndex );
+			float origX = fData.ClusterData()[clusterIndex].fX;
+			float origY = fData.ClusterData()[clusterIndex].fY;
+			float origZ = fData.ClusterData()[clusterIndex].fZ;
+			int id = fData.ClusterData()[clusterIndex].fId;
+			unsigned char flags = fData.ClusterData()[clusterIndex].fFlags;
+			unsigned short amp = fData.ClusterData()[clusterIndex].fAmp;
 			AliGPUTPCSliceOutCluster c;
 			c.Set( id, iRow, flags, amp, origX, origY, origZ );
 #ifdef GMPropagatePadRowTime
-			c.fPad = fData.ClusterData()->GetClusterData( clusterIndex )->fPad;
-			c.fTime = fData.ClusterData()->GetClusterData( clusterIndex )->fTime;
+			c.fPad = fData.ClusterData()[clusterIndex].fPad;
+			c.fTime = fData.ClusterData()[clusterIndex].fTime;
 #endif
 			out->SetCluster( nClu, c );
 			nClu++;
