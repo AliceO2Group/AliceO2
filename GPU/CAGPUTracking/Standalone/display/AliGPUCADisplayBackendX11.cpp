@@ -308,7 +308,7 @@ int AliGPUCADisplayBackendX11::OpenGLMain()
 				{
 					int handleKey = 0, keyPress = 0;
 					GetKey(event, handleKey, keyPress);
-					HandleKeyRelease(handleKey);
+					if (keys[keyPress]) HandleKeyRelease(handleKey);
 					keys[keyPress] = false;
 					keysShift[keyPress] = false;
 				}

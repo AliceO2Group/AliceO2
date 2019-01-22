@@ -75,7 +75,7 @@ void AliGPUCADisplayBackendGlut::keyboardUpFunc(unsigned char key, int x, int y)
 {
 	int handleKey = 0, keyPress = 0;
 	GetKey(key, handleKey, keyPress, false);
-	me->HandleKeyRelease(handleKey);
+	if (me->keys[keyPress]) me->HandleKeyRelease(handleKey);
 	me->keys[keyPress] = false;
 	me->keysShift[keyPress] = false;
 }
@@ -92,7 +92,7 @@ void AliGPUCADisplayBackendGlut::specialUpFunc(int key, int x, int y)
 {
 	int handleKey = 0, keyPress = 0;
 	GetKey(key, handleKey, keyPress, true);
-	me->HandleKeyRelease(handleKey);
+	if (me->keys[keyPress]) me->HandleKeyRelease(handleKey);
 	me->keys[keyPress] = false;
 	me->keysShift[keyPress] = false;
 }

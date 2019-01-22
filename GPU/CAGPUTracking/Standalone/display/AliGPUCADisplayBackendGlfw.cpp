@@ -94,7 +94,7 @@ void AliGPUCADisplayBackendGlfw::key_callback(GLFWwindow* window, int key, int s
 	}
 	else if (action == GLFW_RELEASE)
 	{
-		me->HandleKeyRelease(handleKey);
+		if (me->keys[keyPress]) me->HandleKeyRelease(handleKey);
 		me->keys[keyPress] = false;
 		me->keysShift[keyPress] = false;
 	}

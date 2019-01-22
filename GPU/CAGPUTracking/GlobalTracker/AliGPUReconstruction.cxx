@@ -753,8 +753,11 @@ int AliGPUReconstruction::RunStandalone()
 			mEventDisplay->ShowNextEvent();
 		}
 
-		while (kbhit()) getch();
-		printf("Press key for next event!\n");
+		if (mDeviceProcessingSettings.eventDisplay->EnableSendKey())
+		{
+			while (kbhit()) getch();
+			printf("Press key for next event!\n");
+		}
 
 		int iKey;
 		do
