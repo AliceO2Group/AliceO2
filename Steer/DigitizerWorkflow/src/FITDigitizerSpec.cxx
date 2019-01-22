@@ -71,7 +71,7 @@ class FITDPLDigitizerTask
       mSimChains.back()->AddFile(signalfilename.c_str());
     }
 
-    mT0Digitizer.init();
+    if (mID == o2::detectors::DetID::T0)   mT0Digitizer.init();
     const bool isContinuous = ic.options().get<int>("pileup");
     // mT0Digitizer.setContinuous(isContinuous);
     // mT0Digitizer.setMCTruthContainer(labels.get());
@@ -117,7 +117,7 @@ class FITDPLDigitizerTask
       for (auto& part : eventParts[collID]) {
         // get the hits for this event and this source
         hits.clear();
-        retrieveHits(mSimChains, "FITHit", part.sourceID, part.entryID, &hits);
+        retrieveHits(mSimChains, "FITT0Hit", part.sourceID, part.entryID, &hits);
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found " << hits.size() << " hits ";
 
         // call actual digitization procedure
@@ -147,10 +147,10 @@ class FITDPLDigitizerTask
 
     // LOG(INFO) << "Have " << labelAccum.getNElements() << " TOF labels ";
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
-    pc.outputs().snapshot(Output{ "FIT", "DIGITS", 0, Lifetime::Timeframe }, digitAccum);
+    pc.outputs().snapshot(Output{ mOrigin, "DIGITS", 0, Lifetime::Timeframe }, digitAccum);
     // pc.outputs().snapshot(Output{ "FIT", "DIGITSMCTR", 0, Lifetime::Timeframe }, labelAccum);
     LOG(INFO) << "FIT: Sending ROMode= " << mROMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{ "FIT", "ROMode", 0, Lifetime::Timeframe }, mROMode);
+    pc.outputs().snapshot(Output{ mOrigin, "ROMode", 0, Lifetime::Timeframe }, mROMode);
     timer.Stop();
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
 
@@ -159,10 +159,12 @@ class FITDPLDigitizerTask
     finished = true;
   }
 
- private:
+  // private:
+ protected:
   Bool_t mContinuous = kFALSE;  ///< flag to do continuous simulation
   double mFairTimeUnitInNS = 1; ///< Fair time unit in ns
-
+  o2::detectors::DetID mID;
+  o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
   Digitizer mT0Digitizer{ o2::t0::T0DigitizationParameters() }; ///< Digitizer
   //Digitizer mV0Digitizer; ///< Digitizer
   // RS: at the moment using hardcoded flag for continuos readout
@@ -171,18 +173,37 @@ class FITDPLDigitizerTask
   std::vector<TChain*> mSimChains;
 };
 
-o2::framework::DataProcessorSpec getFITDigitizerSpec(int channel)
+//_______________________________________________
+class FITT0DPLDigitizerTask : public FITDPLDigitizerTask
+{
+ public:
+  // FIXME: origina should be extractable from the DetID, the problem is 3d party header dependencies
+  static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::T0;
+  static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginT0;
+  FITT0DPLDigitizerTask()
+  {
+    mID = DETID;
+    mOrigin = DETOR;
+  }
+};
+
+constexpr o2::detectors::DetID::ID FITT0DPLDigitizerTask::DETID;
+constexpr o2::header::DataOrigin FITT0DPLDigitizerTask::DETOR;
+
+o2::framework::DataProcessorSpec getFITT0DigitizerSpec(int channel)
 {
   // create the full data processor spec using
   //  a name identifier
   //  input description
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
-  return DataProcessorSpec{
-    "FITDigitizer", Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
-    Outputs{ OutputSpec{ "FIT", "DIGITS", 0, Lifetime::Timeframe },
-             /*OutputSpec{ "FIT", "DIGITSMCTR", 0, Lifetime::Timeframe }*/
-             OutputSpec{ "FIT", "ROMode", 0, Lifetime::Timeframe } },
+  std::string detStr = o2::detectors::DetID::getName(FITT0DPLDigitizerTask::DETID);
+  auto detOrig = FITT0DPLDigitizerTask::DETOR;
+  return DataProcessorSpec{ (detStr + "Digitizer").c_str(),
+      Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
+      Outputs{ OutputSpec{ detOrig, "DIGITS", 0, Lifetime::Timeframe },
+             /*OutputSpec{ detOrig "FIT", "DIGITSMCTR", 0, Lifetime::Timeframe }*/
+             OutputSpec{  detOrig, "ROMode", 0, Lifetime::Timeframe } },
     AlgorithmSpec{ adaptFromTask<FITDPLDigitizerTask>() },
     Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
              { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },

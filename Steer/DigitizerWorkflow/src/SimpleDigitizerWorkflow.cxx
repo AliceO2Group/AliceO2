@@ -399,13 +399,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::tof::getTOFClusterWriterSpec());
   }
 
-  // the FIT part
-  if (isEnabled(o2::detectors::DetID::FIT)) {
-    detList.emplace_back(o2::detectors::DetID::FIT);
+  // the FIT T0 part
+  if (isEnabled(o2::detectors::DetID::T0)) {
+    detList.emplace_back(o2::detectors::DetID::T0);
     // connect the FIT digitization
-    specs.emplace_back(o2::fit::getFITDigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::fit::getFITT0DigitizerSpec(fanoutsize++));
     // connect the FIT digit writer
-    specs.emplace_back(o2::fit::getFITDigitWriterSpec());
+    specs.emplace_back(o2::fit::getT0DigitWriterSpec());
   }
 
   // the EMCal part

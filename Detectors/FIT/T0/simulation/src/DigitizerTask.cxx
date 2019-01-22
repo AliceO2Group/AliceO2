@@ -22,7 +22,7 @@ ClassImp(o2::t0::DigitizerTask);
 using namespace o2::fit;
 using namespace o2::t0;
 
-DigitizerTask::DigitizerTask() : FairTask("FITDigitizerTask"), mDigitizer() {}
+DigitizerTask::DigitizerTask() : FairTask("T0DigitizerTask"), mDigitizer() {}
 DigitizerTask::~DigitizerTask()
 {
   if (mEventDigit)
@@ -50,7 +50,7 @@ InitStatus DigitizerTask::Init()
   mDigitizer.setMCLabels(mMCTruthArrayPtr);
 
   // Register output container
-  mgr->RegisterAny("FITDigit", mEventDigit, kTRUE);
+  mgr->RegisterAny("FITT0Digit", mEventDigit, kTRUE);
   // mMCTruthArray = new typename std::remove_pointer<decltype(mMCTruthArray)>::type;
   mgr->RegisterAny("FITDigitMCTruth", mMCTruthArrayPtr, kTRUE);
   mDigitizer.init();

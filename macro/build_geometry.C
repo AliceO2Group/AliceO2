@@ -183,7 +183,7 @@ void build_geometry(FairRunSim* run = nullptr)
     run->AddModule(new o2::phos::Detector(true));
   }
 
-  if (isActivated("FIT")) {
+  if (isActivated("T0")) {
     // FIT
     run->AddModule(new o2::t0::Detector(true));
   }
