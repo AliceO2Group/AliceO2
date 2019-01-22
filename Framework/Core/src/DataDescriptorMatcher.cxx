@@ -291,6 +291,7 @@ bool DataDescriptorMatcher::match(char const* d, VariableContext& context) const
     case Op::Just:
       return leftValue;
   }
+  throw std::runtime_error("Bad parsing tree");
 };
 
 bool DataDescriptorMatcher::operator==(DataDescriptorMatcher const& other) const
