@@ -35,7 +35,6 @@ protected:
 
 private:
 	AliGPUReconstructionOCLInternals* mInternals;
-	int GPUFailedMsgA(int, const char* file, int line);
 };
 
 #endif

@@ -75,6 +75,35 @@ static const char* opencl_error_string(int errorcode)
 	}
 }
 
+#define GPUFailedMsg(x) GPUFailedMsgA(x, __FILE__, __LINE__)
+
+static int GPUFailedMsgA(int error, const char* file, int line)
+{
+	//Check for OPENCL Error and in the case of an error display the corresponding error string
+	if (error == CL_SUCCESS) return(0);
+	printf("OCL Error: %d / %s (%s:%d)\n", error, opencl_error_string(error), file, line);
+	return(1);
+}
+
+static inline int OCLsetKernelParameters_helper(cl_kernel &k,int i) {return 0;}
+ 
+template<typename T, typename... Args> static inline int OCLsetKernelParameters_helper(cl_kernel &kernel, int i, const T &firstParameter, const Args& ...restOfParameters)
+{
+	GPUFailedMsg(clSetKernelArg(kernel, i, sizeof(T), &firstParameter));
+	return OCLsetKernelParameters_helper(kernel, i + 1, restOfParameters...);
+}
+ 
+template<typename... Args> static inline int OCLsetKernelParameters(cl_kernel &kernel, const Args& ...args)
+{
+	return OCLsetKernelParameters_helper(kernel, 0, args...);
+}
+
+static inline int clExecuteKernelA(cl_command_queue queue, cl_kernel krnl, size_t local_size, size_t global_size, cl_event* pEvent, cl_event* wait = NULL, cl_int nWaitEvents = 1)
+{
+	GPUFailedMsg(clEnqueueNDRangeKernel(queue, krnl, 1, NULL, &global_size, &local_size, wait == NULL ? 0 : nWaitEvents, wait, pEvent));
+	return 0;
+}
+
 struct AliGPUReconstructionOCLInternals
 {
 	cl_device_id device;

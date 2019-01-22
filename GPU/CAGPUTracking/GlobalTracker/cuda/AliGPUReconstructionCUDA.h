@@ -36,7 +36,6 @@ protected:
 
 private:
 	AliGPUReconstructionCUDAInternals* mInternals;
-	int GPUFailedMsgA(const long long int error, const char* file, int line) const;
 };
 
 #endif

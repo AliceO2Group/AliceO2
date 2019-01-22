@@ -95,14 +95,6 @@ AliGPUReconstruction* AliGPUReconstruction_Create_CUDA(const AliGPUCASettingsPro
 	return new AliGPUReconstructionCUDA(cfg);
 }
 
-int AliGPUReconstructionCUDA::GPUFailedMsgA(const long long int error, const char* file, int line) const
-{
-	//Check for CUDA Error and in the case of an error display the corresponding error string
-	if (error == cudaSuccess) return(0);
-	CAGPUWarning("CUDA Error: %lld / %s (%s:%d)", error, cudaGetErrorString((cudaError_t) error), file, line);
-	return(1);
-}
-
 int AliGPUReconstructionCUDA::InitDevice_Runtime()
 {
 	//Find best CUDA device, initialize and allocate memory
