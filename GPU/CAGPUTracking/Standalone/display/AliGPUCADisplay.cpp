@@ -1786,7 +1786,7 @@ void AliGPUCADisplay::PrintHelp()
 
 void AliGPUCADisplay::HandleKeyRelease(unsigned char key)
 {
-	if (key == 13 || key == 'n')
+	if (key == mBackend->KEY_ENTER || key == 'n')
 	{
 		mBackend->displayControl = 1;
 		SetInfo("Showing next event", 1);
