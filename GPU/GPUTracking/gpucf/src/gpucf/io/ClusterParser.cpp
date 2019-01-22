@@ -27,8 +27,8 @@ bool ClusterParser::operator()(const std::string &line,
 
     MATCH_INT(clusterMembers, cru);
     MATCH_INT(clusterMembers, row);
-    MATCH_INT(clusterMembers, Q);
-    MATCH_INT(clusterMembers, Qmax);
+    MATCH_FLOAT(clusterMembers, Q);
+    MATCH_FLOAT(clusterMembers, Qmax);
     MATCH_FLOAT(clusterMembers, padMean);
     MATCH_FLOAT(clusterMembers, timeMean);
     MATCH_FLOAT(clusterMembers, padSigma);

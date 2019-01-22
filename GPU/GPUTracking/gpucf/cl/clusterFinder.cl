@@ -15,7 +15,7 @@ constant float OUTER_CHARGE_THRESHOLD = 0;
 
 constant int HALF_NEIGHBORS_NUM = 4;
 constant int2 LEQ_NEIGHBORS[HALF_NEIGHBORS_NUM] = {(int2)(-1, -1), (int2)(-1, 0), (int2)(0, -1), (int2)(1, -1)};
-constant int2 LQ_NEIGHBORS[HALF_NEIGHBORS_NUM]  = {(int2)(-1, 1), (int2)(0, 1), (int2)(1, 1), (int2)(0, 1)};
+constant int2 LQ_NEIGHBORS[HALF_NEIGHBORS_NUM]  = {(int2)(-1, 1), (int2)(1, 0), (int2)(1, 1), (int2)(0, 1)};
 
 
 Cluster newCluster()
@@ -98,7 +98,7 @@ bool tryBuild3x3Cluster(
         int dp = LEQ_NEIGHBORS[i].x;
         int dt = LEQ_NEIGHBORS[i].y;
         float otherCharge = CHARGE(chargeMap, row, pad+dp, time+dt);
-        /* isClusterCenter &= (otherCharge <= myCharge); */
+        isClusterCenter &= (otherCharge <= myCharge);
         updateCluster(cluster, otherCharge, dp, dt);
     }
 
@@ -107,7 +107,7 @@ bool tryBuild3x3Cluster(
         int dp = LQ_NEIGHBORS[i].x;
         int dt = LQ_NEIGHBORS[i].y;
         float otherCharge = CHARGE(chargeMap, row, pad+dp, time+dt);
-        /* isClusterCenter &= (otherCharge < myCharge); */
+        isClusterCenter &= (otherCharge < myCharge);
         updateCluster(cluster, otherCharge, dp, dt);
     }
 
@@ -119,7 +119,7 @@ void finalizeCluster(
                const Digit   *myDigit, 
         global const int     *globalToLocalRow)
 {
-    myCluster->Q += myDigit->charge;
+    /* myCluster->Q += myDigit->charge; */
 
     float totalCharge = myCluster->Q;
     float padMean     = myCluster->padMean;
