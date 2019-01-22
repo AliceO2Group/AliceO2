@@ -642,7 +642,7 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 			if (tmpSlice < NSLICES) GPUFailedMsg(clGetEventInfo(mInternals->selector_events[tmpSlice], CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(eventdone), &eventdone, NULL));
 		}
 
-		if (GPUFailedMsg(clFinish(mInternals->command_queue[streamMap[tmpSlice]])) RANDOM_ERROR)
+		if (GPUFailedMsg(clFinish(mInternals->command_queue[streamMap[iSlice]])) RANDOM_ERROR)
 		{
 			ResetHelperThreads(1);
 			ActivateThreadContext();
