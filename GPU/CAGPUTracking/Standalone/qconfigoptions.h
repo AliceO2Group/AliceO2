@@ -53,6 +53,7 @@ EndConfig()
 BeginSubConfig(structConfigRec, configRec, configStandalone, "REC", 0, "Reconstruction settings")
 AddOption(globalTracking, bool, true, "globalTracking", 0, "Enable global tracking")
 AddOption(runTRD, bool, false, "trd", 0, "Enable TRD processing")
+AddOption(disableRefitAttachment, int, 0, "refitAttachmentMask", 0, "Mask to disable certain attachment steps during refit")
 AddHelp("help", 'h')
 EndConfig()
 

@@ -32,6 +32,7 @@ struct AliGPUCASettingsRec
 	float SearchWindowDZDR;						//Use DZDR window for seeding instead of vertex window
 	float TrackReferenceX;						//Transport all tracks to this X after tracking (disabled if > 500)
 	char NonConsecutiveIDs;						//Non-consecutive cluster IDs as in HLT, disables features that need access to slice data in TPC merger
+	unsigned char DisableRefitAttachment;		//Bitmask to disable cluster attachment steps in refit: 1: attachment, 2: propagation, 4: loop following, 8: mirroring
 };
 
 //Settings describing the events / time frames

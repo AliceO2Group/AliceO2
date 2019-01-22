@@ -190,6 +190,7 @@ int SetupReconstruction()
 	recSet.RejectMode = configStandalone.rejectMode;
 	recSet.SearchWindowDZDR = configStandalone.dzdr;
 	recSet.GlobalTracking = configStandalone.configRec.globalTracking;
+	recSet.DisableRefitAttachment = configStandalone.configRec.disableRefitAttachment;
 	if (configStandalone.referenceX < 500.) recSet.TrackReferenceX = configStandalone.referenceX;
 	
 	if (configStandalone.OMPThreads != -1) devProc.nThreads = configStandalone.OMPThreads;
