@@ -36,7 +36,7 @@ protected:
 
 	virtual void ActivateThreadContext() = 0;
 	virtual void ReleaseThreadContext() = 0;
-	virtual void SynchronizeGPU() = 0;
+	virtual int SynchronizeGPU() = 0;
 	
 	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) = 0;
 	virtual int TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) = 0;
