@@ -43,7 +43,7 @@ DataProcessorSpec sim_its_ALP3() {
   return {
     "sim_its_ALP3",
     Inputs{},
-    {
+    Outputs{
       OutputSpec{"ITS", "HITS"}
     },
     AlgorithmSpec{

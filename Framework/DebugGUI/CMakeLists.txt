@@ -73,5 +73,3 @@ O2_GENERATE_EXECUTABLE(
 add_test(NAME test_DebugGUI_test_ImGUIHeadless COMMAND test_DebugGUI_test_ImGUIHeadless)
 target_link_libraries(test_DebugGUI_test_ImGUIHeadless Boost::unit_test_framework)
 set_tests_properties(test_DebugGUI_test_ImGUIHeadless PROPERTIES TIMEOUT 30)
-
-target_compile_options(DebugGUI PUBLIC -O0 -g -fno-omit-frame-pointer)
