@@ -21,7 +21,6 @@ using namespace o2::trd;
 
 Digitizer::Digitizer()
 {
-  hitLoopBegin = 0;
   // Check if you need more initialization
   mGeom = new TRDGeometry();
 
