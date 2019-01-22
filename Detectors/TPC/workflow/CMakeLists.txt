@@ -16,7 +16,6 @@ set(SRCS
    src/RecoWorkflow.cxx
    src/PublisherSpec.cxx
    src/ClustererSpec.cxx
-   src/ClusterConverterSpec.cxx
    src/ClusterDecoderRawSpec.cxx
    src/CATrackerSpec.cxx
    )

@@ -27,6 +27,7 @@
 #include <memory> // for make_shared
 #include <vector>
 #include <numeric>   // std::accumulate
+#include <algorithm> // std::copy
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -46,7 +47,7 @@ DataProcessorSpec getClustererSpec(bool sendMC)
 
   constexpr static size_t NSectors = o2::TPC::Sector::MAXSECTOR;
   struct ProcessAttributes {
-    std::vector<o2::TPC::Cluster> clusterArray;
+    std::vector<o2::TPC::ClusterHardwareContainer8kb> clusterArray;
     MCLabelContainer mctruthArray;
     std::array<std::shared_ptr<o2::TPC::HwClusterer>, NSectors> clusterers;
     int verbosity = 1;
@@ -79,9 +80,9 @@ DataProcessorSpec getClustererSpec(bool sendMC)
         // forward the control information
         // FIXME define and use flags in TPCSectorHeader
         o2::TPC::TPCSectorHeader header{ sector };
-        pc.outputs().snapshot(Output{ gDataOriginTPC, "CLUSTERSIM", fanSpec, Lifetime::Timeframe, { header } }, fanSpec);
+        pc.outputs().snapshot(Output{ gDataOriginTPC, "CLUSTERHW", fanSpec, Lifetime::Timeframe, { header } }, fanSpec);
         if (!labelKey.empty()) {
-          pc.outputs().snapshot(Output{ gDataOriginTPC, "CLUSTERMCLBL", fanSpec, Lifetime::Timeframe, { header } }, fanSpec);
+          pc.outputs().snapshot(Output{ gDataOriginTPC, "CLUSTERHWMCLBL", fanSpec, Lifetime::Timeframe, { header } }, fanSpec);
         }
         return (sectorHeader->sector == -1);
       }
@@ -121,9 +122,12 @@ DataProcessorSpec getClustererSpec(bool sendMC)
           LOG(INFO) << "clusterer produced " << mctruthArray.getIndexedSize() << " MC label object(s)";
         }
       }
-      pc.outputs().snapshot(Output{ gDataOriginTPC, "CLUSTERSIM", fanSpec, Lifetime::Timeframe, { *sectorHeader } }, clusterArray);
+      // FIXME: that should be a case for pmr, want to send the content of the vector as a binary
+      // block by using move semantics
+      auto outputPages = pc.outputs().make<ClusterHardwareContainer8kb>(Output{ gDataOriginTPC, "CLUSTERHW", fanSpec, Lifetime::Timeframe, { *sectorHeader } }, clusterArray.size());
+      std::copy(clusterArray.begin(), clusterArray.end(), outputPages.begin());
       if (!labelKey.empty()) {
-        pc.outputs().snapshot(Output{ gDataOriginTPC, "CLUSTERMCLBL", fanSpec, Lifetime::Timeframe, { *sectorHeader } }, mctruthArray);
+        pc.outputs().snapshot(Output{ gDataOriginTPC, "CLUSTERHWMCLBL", fanSpec, Lifetime::Timeframe, { *sectorHeader } }, mctruthArray);
       }
       return false;
     };
@@ -175,12 +179,12 @@ DataProcessorSpec getClustererSpec(bool sendMC)
 
   auto createOutputSpecs = [](bool makeMcOutput) {
     std::vector<OutputSpec> outputSpecs{
-      OutputSpec{ { "clusters" }, gDataOriginTPC, "CLUSTERSIM", 0, Lifetime::Timeframe },
+      OutputSpec{ { "clusters" }, gDataOriginTPC, "CLUSTERHW", 0, Lifetime::Timeframe },
     };
     if (makeMcOutput) {
       OutputLabel label{ "clusterlbl" };
       // FIXME: define common data type specifiers
-      constexpr o2::header::DataDescription datadesc("CLUSTERMCLBL");
+      constexpr o2::header::DataDescription datadesc("CLUSTERHWMCLBL");
       outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
     }
     return std::move(outputSpecs);
