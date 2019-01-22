@@ -31,6 +31,9 @@ class Digit : public DigitBase
   Digit(float charge) : mQ(charge) {}
   float getCharge() const { return mQ; }
   int getPadID() const { return mPad; }
+  // convenience conversion to x-y pad coordinates
+  int getPx() const { return Param::A2X(mPad); }
+  int getPy() const { return Param::A2Y(mPad); }
 
   static void getPadAndTotalCharge(HitType const& hit, int& chamber, int& pc, int& px, int& py, float& totalcharge)
   {
@@ -110,7 +113,7 @@ class Digit : public DigitBase
     return 4. * Digit::IntPartMathiX(localX, pad) * Digit::IntPartMathiY(localY, pad);
   }
 
-  ClassDefNV(Digit, 1);
+  ClassDefNV(Digit, 2);
 };
 
 } // namespace hmpid

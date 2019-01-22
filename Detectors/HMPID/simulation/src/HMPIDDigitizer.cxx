@@ -15,6 +15,20 @@ using namespace o2::hmpid;
 
 ClassImp(HMPIDDigitizer);
 
+float HMPIDDigitizer::getThreshold(o2::hmpid::Digit const& digiti) const {
+  // TODO: implement like in AliRoot some thresholding depending on conditions ...
+  return 4.;
+}
+
+// applies threshold to digits; removes the ones below a certain charge threshold
+void HMPIDDigitizer::zeroSuppress(std::vector<o2::hmpid::Digit> const& digits, std::vector<o2::hmpid::Digit>& newdigits) {
+	for(auto& digit: digits) {
+	  if(digit.getCharge() >= getThreshold(digit)) {
+         newdigits.push_back(digit);
+	  }
+	}
+}
+
 // this will process hits and fill the digit vector with digits which are finalized
 void HMPIDDigitizer::process(std::vector<o2::hmpid::HitType> const& hits, std::vector<o2::hmpid::Digit>& digits)
 {
@@ -27,9 +41,10 @@ void HMPIDDigitizer::process(std::vector<o2::hmpid::HitType> const& hits, std::v
   // }
 
   // clear lookup structures
-  for (auto& pad : mInvolvedPads) {
-    mIndexForPad[pad] = -1;
-  }
+  //for (auto& pad : mInvolvedPads) {
+//    mIndexForPad[pad] = -1;
+//  }
+  mIndexForPad.clear();
   mInvolvedPads.clear();
 
   for (auto& hit : hits) {
@@ -59,20 +74,29 @@ void HMPIDDigitizer::process(std::vector<o2::hmpid::HitType> const& hits, std::v
 
     LOG(INFO) << "DIGIT ON MAINPAD " <<  Param::Abs(chamber, pc, px, py) << " TOTAL CHARGE " << totalQ;
 
+
     for (auto& pad : allpads) {
-      auto index = mIndexForPad[pad];
+	  auto iter = mIndexForPad.find(pad);
+	  int index = -1;
+	  if (iter != mIndexForPad.end()) {
+  	    index = iter->second;
+	  }
+      // auto index = mIndexForPad[pad];
       float fraction = Digit::getFractionalContributionForPad(hit, pad);
       LOG(INFO) << "FRACTION ON PAD " << pad << " IS " << fraction;
       if (index != -1) {
-        // digit exists ... reuse
-        auto& digit = mDigits[index];
-        digit.addCharge(totalQ * fraction);
+         // digit exists ... reuse
+         auto& digit = mDigits[index];
+         digit.addCharge(totalQ * fraction);
       } else {
-        // create digit ... and register
-        mDigits.emplace_back(pad, totalQ * fraction);
-        mIndexForPad[pad] = mDigits.size() - 1;
-        mInvolvedPads.emplace_back(pad);
+         // create digit ... and register
+         mDigits.emplace_back(pad, totalQ * fraction);
+         mIndexForPad[pad] = mDigits.size() - 1;
+         mInvolvedPads.emplace_back(pad);
       }
     }
   }
+
+  //
+  zeroSuppress(mDigits, digits);
 }

@@ -31,6 +31,11 @@ class HMPIDDigitizer
   void process(std::vector<o2::hmpid::HitType> const&, std::vector<o2::hmpid::Digit>& digit);
 
  private:
+
+  void zeroSuppress(std::vector<o2::hmpid::Digit> const& digits, std::vector<o2::hmpid::Digit>& newdigits);
+  float getThreshold(o2::hmpid::Digit const&) const; // gives back threshold to apply for a certain digit
+                                              // (using noise and other tables for pad)
+
   double mTime = 0.;
   int mEventID = 0;
   int mSrcID = 0;
@@ -39,9 +44,13 @@ class HMPIDDigitizer
   std::vector<o2::hmpid::Digit> mSummable;
   std::vector<o2::hmpid::Digit> mFinal;
 
-  std::vector<o2::hmpid::Digit> mDigits;
-  static constexpr int HMPID_NUMBEROFPADS = 161280;
-  std::array<short, HMPID_NUMBEROFPADS> mIndexForPad = { -1 }; //! mapping of pad to digit index
+  std::vector<o2::hmpid::Digit> mDigits; // internal store for digits
+
+  //static constexpr int HMPID_NUMBEROFPADS = 161280;
+  //std::array<short, HMPID_NUMBEROFPADS> mIndexForPad = { -1 }; //! mapping of pad to digit index
+
+  std::map<int, short> mIndexForPad; //! logarithmic mapping of pad to digit index
+
   std::vector<int> mInvolvedPads; //! list of pads where digits created
 
   // other stuff needed for digitization
