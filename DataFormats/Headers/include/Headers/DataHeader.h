@@ -590,7 +590,10 @@ constexpr o2::header::DataOrigin gDataOriginCPV{ "CPV" };
 constexpr o2::header::DataOrigin gDataOriginCTP{ "CTP" };
 constexpr o2::header::DataOrigin gDataOriginEMC{ "EMC" };
 constexpr o2::header::DataOrigin gDataOriginT0{ "T0" };
+<<<<<<< HEAD
 constexpr o2::header::DataOrigin gDataOriginV0{ "V0" };
+=======
+>>>>>>> T0 simulation works with this
 constexpr o2::header::DataOrigin gDataOriginHMP{ "HMP" };
 constexpr o2::header::DataOrigin gDataOriginITS{ "ITS" };
 constexpr o2::header::DataOrigin gDataOriginMCH{ "MCH" };

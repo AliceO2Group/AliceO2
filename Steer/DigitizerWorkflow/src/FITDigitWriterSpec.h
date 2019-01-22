@@ -21,7 +21,13 @@ namespace fit
 o2::framework::DataProcessorSpec getT0DigitWriterSpec();
 //o2::framework::DataProcessorSpec getMFTDigitWriterSpec();
 
+<<<<<<< HEAD
 } // namespace fit
 } // end namespace o2
 
+=======
+} // end namespace itsmft
+} // end namespace o2
+ 
+>>>>>>> T0 simulation works with this
 #endif /* STEER_DIGITIZERWORKFLOW_ITSMFTDIGITWRITER_H_ */
