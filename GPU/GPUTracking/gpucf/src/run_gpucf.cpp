@@ -1,4 +1,4 @@
-#include <gpucf/CfRunner.h>
+#include <gpucf/executable/CfRunner.h>
 
 
 int main(int argc, const char *argv[]) 

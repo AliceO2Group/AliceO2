@@ -9,7 +9,7 @@
 using namespace gpucf;
 
 
-std::vector<Cluster> GPUClusterFinder::run(ClEnv &env, const std::vector<Digit> &digits)
+GPUClusterFinder::Result GPUClusterFinder::run(ClEnv &env, const std::vector<Digit> &digits)
 {
     static_assert(sizeof(cl_int) == sizeof(int));
 
@@ -78,7 +78,12 @@ std::vector<Cluster> GPUClusterFinder::run(ClEnv &env, const std::vector<Digit> 
 
     printClusters(isClusterCenter, clusters, 10);
 
-    return filterCluster(isClusterCenter, clusters);
+    clusters = filterCluster(isClusterCenter, clusters);
+    std::vector<Digit> peaks = findPeaks(isClusterCenter, digits);
+
+    log::Info() << "Found " << clusters.size() << " clusters.";
+
+    return Result{clusters, peaks};
 }
 
 
@@ -121,5 +126,21 @@ std::vector<Cluster> GPUClusterFinder::filterCluster(
     return actualClusters;
 }
 
+std::vector<Digit> GPUClusterFinder::findPeaks(
+        const std::vector<int> &isCenter,
+        const std::vector<Digit> &digits)
+{
+    std::vector<Digit> peaks;    
+
+    for (size_t i = 0; i < digits.size(); i++)
+    {
+        if (isCenter[i])
+        {
+            peaks.push_back(digits[i]);
+        }
+    }
+
+    return peaks;
+}
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

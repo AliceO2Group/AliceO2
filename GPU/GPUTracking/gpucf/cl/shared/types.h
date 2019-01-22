@@ -19,6 +19,8 @@
 
 #define SHARED_INT   CL_PREFIX(int)
 #define SHARED_FLOAT CL_PREFIX(float)
+#define SHARED_UCHAR CL_PREFIX(uchar)
+#define SHARED_HALF  CL_PREFIX(half)
 
 
 #endif //!defined(SHARED_TYPES_H)

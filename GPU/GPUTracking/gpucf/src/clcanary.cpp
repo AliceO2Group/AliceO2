@@ -1,4 +1,4 @@
-#include <gpucf/ClCanary.h>
+#include <gpucf/executable/ClCanary.h>
 
 
 int main(int argc, const char *argv[]) 

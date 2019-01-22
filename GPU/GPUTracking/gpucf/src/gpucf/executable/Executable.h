@@ -2,6 +2,7 @@
 
 #include <args/args.hxx>
 
+#include <memory>
 #include <string>
 
 
@@ -28,6 +29,13 @@ public:
     void showHelpAndExit();
 
 protected:
+    using StringFlag = args::ValueFlag<std::string>;
+
+    template<typename T>
+    using OptValueFlag = std::unique_ptr<args::ValueFlag<T>>;
+    using OptStringFlag = OptValueFlag<std::string>;
+
+
     virtual void setupFlags(args::Group &, args::Group &) 
     {
     }

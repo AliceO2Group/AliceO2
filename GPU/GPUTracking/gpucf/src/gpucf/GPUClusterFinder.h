@@ -14,7 +14,13 @@ class ClEnv;
 class GPUClusterFinder
 {
 public:
-    std::vector<Cluster> run(ClEnv &, const std::vector<Digit> &);
+    struct Result
+    {
+        std::vector<Cluster> clusters;
+        std::vector<Digit>  peaks;
+    };
+
+    Result run(ClEnv &, const std::vector<Digit> &);
 
 private:
     static void printClusters(
@@ -25,6 +31,10 @@ private:
     static std::vector<Cluster> filterCluster(
             const std::vector<int> &,
             const std::vector<Cluster> &);
+
+    static std::vector<Digit> findPeaks(
+            const std::vector<int> &,
+            const std::vector<Digit> &);
 
 };
 
