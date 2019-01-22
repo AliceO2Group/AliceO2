@@ -206,15 +206,7 @@ int AliGPUTPCGMMerger::GetTrackLabel(AliGPUTPCGMBorderTrack &trk)
 
 void AliGPUTPCGMMerger::InitializeProcessor()
 {
-	if (mRec->IsGPU() && ((AliGPUReconstructionDeviceBase*) mRec)->GPUMergerAvailable())
-	{
-		fSliceTrackers = nullptr;
-	}
-	else
-	{
-		fSliceTrackers = mRec->GetTPCSliceTrackers();
-	}
-
+	fSliceTrackers = mRec->GetTPCSliceTrackers();
 	if (mCAParam->AssumeConstantBz) AliGPUTPCGMPolynomialFieldManager::GetPolynomialField(AliGPUTPCGMPolynomialFieldManager::kUniform, mCAParam->BzkG, fField);
 	else AliGPUTPCGMPolynomialFieldManager::GetPolynomialField(mCAParam->BzkG, fField);
 
@@ -227,7 +219,7 @@ void AliGPUTPCGMMerger::InitializeProcessor()
 void* AliGPUTPCGMMerger::SetPointersHostOnly(void* mem)
 {
 	AliGPUReconstruction::computePointerWithAlignment(mem, fSliceTrackInfos, fNMaxSliceTracks);
-	if (!fSliceTrackers) AliGPUReconstruction::computePointerWithAlignment(mem, fGlobalClusterIDs, fNMaxOutputTrackClusters);
+	if (mCAParam->rec.NonConsecutiveIDs) AliGPUReconstruction::computePointerWithAlignment(mem, fGlobalClusterIDs, fNMaxOutputTrackClusters);
 	AliGPUReconstruction::computePointerWithAlignment(mem, fBorderMemory, fNMaxSliceTracks);
 	AliGPUReconstruction::computePointerWithAlignment(mem, fBorderRangeMemory, 2 * fNMaxSliceTracks);
 	AliGPUReconstruction::computePointerWithAlignment(mem, fTrackLinks, fNMaxSliceTracks);
@@ -845,7 +837,7 @@ void AliGPUTPCGMMerger::MergeCEInit()
 
 void AliGPUTPCGMMerger::MergeCEFill(const AliGPUTPCGMSliceTrack *track, const AliGPUTPCGMMergedTrackHit &cls, int itr)
 {
-#if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
+	if (mCAParam->rec.NonConsecutiveIDs) return;
 #ifdef MERGE_CE_ROWLIMIT
 	if (cls.fRow < MERGE_CE_ROWLIMIT || cls.fRow >= GPUCA_ROW_COUNT - MERGE_CE_ROWLIMIT) return;
 #endif
@@ -871,7 +863,6 @@ void AliGPUTPCGMMerger::MergeCEFill(const AliGPUTPCGMSliceTrack *track, const Al
 			break;
 		}
 	}
-#endif
 }
 
 void AliGPUTPCGMMerger::MergeCE()
@@ -1204,7 +1195,7 @@ void AliGPUTPCGMMerger::CollectMergedTracks()
 			cl[i].fY = trackClusters[i].GetY();
 			cl[i].fZ = trackClusters[i].GetZ();
 			cl[i].fRow = trackClusters[i].GetRow();
-			if (fSliceTrackers) //We already have global consecutive numbers from the slice tracker, and we need to keep them for late cluster attachment
+			if (!mCAParam->rec.NonConsecutiveIDs) //We already have global consecutive numbers from the slice tracker, and we need to keep them for late cluster attachment
 			{
 				cl[i].fNum = trackClusters[i].GetId();
 			}
@@ -1272,26 +1263,21 @@ void AliGPUTPCGMMerger::CollectMergedTracks()
 void AliGPUTPCGMMerger::PrepareClustersForFit()
 {
 	unsigned int maxId = 0;
-	if (fSliceTrackers)
+	if (mCAParam->rec.NonConsecutiveIDs)
 	{
-		for (int i = 0;i < fgkNSlices;i++)
-		{
-			for (int j = 0;j < fSliceTrackers[i].ClusterData()->NumberOfClusters();j++)
-			{
-				unsigned int id = fSliceTrackers[i].ClusterData()->Id(j);
-				if (id > maxId) maxId = id;
-			}
-		}
+		maxId = fNOutputTrackClusters;
 	}
 	else
 	{
-		maxId = fNOutputTrackClusters;
+		for (int i = 0;i < fgkNSlices;i++)
+		{
+			maxId += fSliceTrackers[i].NHitsTotal();
+		}
 	}
 	maxId++;
 	unsigned char* sharedCount = new unsigned char[maxId];
 
-#if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
-	if (!(mRec->IsGPU() && ((AliGPUReconstructionDeviceBase*) mRec)->GPUMergerAvailable()))
+	if (!mCAParam->rec.NonConsecutiveIDs)
 	{
 		unsigned int* trackSort = new unsigned int[fNOutputTracks];
 		if (fTrackOrder) delete[] fTrackOrder;
@@ -1305,9 +1291,8 @@ void AliGPUTPCGMMerger::PrepareClustersForFit()
 		for (int i = 0;i < fNOutputTracks;i++) fTrackOrder[trackSort[i]] = i;
 		for (int i = 0;i < fNOutputTrackClusters;i++) fClusterAttachment[fClusters[i].fNum] = attachAttached | attachGood;
 		delete[] trackSort;
+	
 	}
-#endif
-
 	for (unsigned int k = 0;k < maxId;k++) sharedCount[k] = 0;
 	for (int k = 0;k < fNOutputTrackClusters;k++)
 	{
@@ -1349,33 +1334,40 @@ void AliGPUTPCGMMerger::Clear()
 
 void AliGPUTPCGMMerger::Finalize()
 {
-	if (mRec->IsGPU() && ((AliGPUReconstructionDeviceBase*) mRec)->GPUMergerAvailable()) return;
-#if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
-	int* trkOrderReverse = new int[fNOutputTracks];
-	for (int i = 0;i < fNOutputTracks;i++) trkOrderReverse[fTrackOrder[i]] = i;
-	for (int i = 0;i < fNOutputTrackClusters;i++) fClusterAttachment[fClusters[i].fNum] = 0; //Reset adjacent attachment for attached clusters, set correctly below
-	for (int i = 0;i < fNOutputTracks;i++)
+	if (mCAParam->rec.NonConsecutiveIDs)
 	{
-		const AliGPUTPCGMMergedTrack& trk = fOutputTracks[i];
-		if (!trk.OK() || trk.NClusters() == 0) continue;
-		char goodLeg = fClusters[trk.FirstClusterRef() + trk.NClusters() - 1].fLeg;
-		for (int j = 0;j < trk.NClusters();j++)
+		for (int i = 0;i < fNOutputTrackClusters;i++)
 		{
-			int id = fClusters[trk.FirstClusterRef() + j].fNum;
-			int weight = fTrackOrder[i] | attachAttached;
-			unsigned char clusterState = fClusters[trk.FirstClusterRef() + j].fState;
-			if (!(clusterState & AliGPUTPCGMMergedTrackHit::flagReject)) weight |= attachGood;
-			else if (clusterState & AliGPUTPCGMMergedTrackHit::flagNotFit) weight |= attachHighIncl;
-			if (fClusters[trk.FirstClusterRef() + j].fLeg == goodLeg) weight |= attachGoodLeg;
-			CAMath::AtomicMax(&fClusterAttachment[id], weight);
+			fClusters[i].fNum = fGlobalClusterIDs[i];
 		}
 	}
-	for (int i = 0;i < fMaxID;i++) if (fClusterAttachment[i] != 0)
+	else
 	{
-		fClusterAttachment[i] = (fClusterAttachment[i] & attachFlagMask) | trkOrderReverse[fClusterAttachment[i] & attachTrackMask];
+		int* trkOrderReverse = new int[fNOutputTracks];
+		for (int i = 0;i < fNOutputTracks;i++) trkOrderReverse[fTrackOrder[i]] = i;
+		for (int i = 0;i < fNOutputTrackClusters;i++) fClusterAttachment[fClusters[i].fNum] = 0; //Reset adjacent attachment for attached clusters, set correctly below
+		for (int i = 0;i < fNOutputTracks;i++)
+		{
+			const AliGPUTPCGMMergedTrack& trk = fOutputTracks[i];
+			if (!trk.OK() || trk.NClusters() == 0) continue;
+			char goodLeg = fClusters[trk.FirstClusterRef() + trk.NClusters() - 1].fLeg;
+			for (int j = 0;j < trk.NClusters();j++)
+			{
+				int id = fClusters[trk.FirstClusterRef() + j].fNum;
+				int weight = fTrackOrder[i] | attachAttached;
+				unsigned char clusterState = fClusters[trk.FirstClusterRef() + j].fState;
+				if (!(clusterState & AliGPUTPCGMMergedTrackHit::flagReject)) weight |= attachGood;
+				else if (clusterState & AliGPUTPCGMMergedTrackHit::flagNotFit) weight |= attachHighIncl;
+				if (fClusters[trk.FirstClusterRef() + j].fLeg == goodLeg) weight |= attachGoodLeg;
+				CAMath::AtomicMax(&fClusterAttachment[id], weight);
+			}
+		}
+		for (int i = 0;i < fMaxID;i++) if (fClusterAttachment[i] != 0)
+		{
+			fClusterAttachment[i] = (fClusterAttachment[i] & attachFlagMask) | trkOrderReverse[fClusterAttachment[i] & attachTrackMask];
+		}
+		delete[] trkOrderReverse;
+		delete[] fTrackOrder;
 	}
-	delete[] trkOrderReverse;
-	delete[] fTrackOrder;
 	fTrackOrder = NULL;
-#endif
 }

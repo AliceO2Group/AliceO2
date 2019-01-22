@@ -358,6 +358,7 @@ int AliGPUReconstructionOCL::InitDevice_Runtime()
 	mInternals->selector_events = new cl_event[NSLICES];
 	
 	mDeviceParam = &mParam;
+	printf("WARNING: Device param set to host, needs fixing\n");
 
 	CAGPUInfo("OPENCL Initialisation successfull (%d: %s %s (Frequency %d, Shaders %d) Thread %d, %lld bytes used)", bestDevice, device_vendor, device_name, (int) freq, (int) shaders, fThreadId, (long long int) mDeviceMemorySize);
 

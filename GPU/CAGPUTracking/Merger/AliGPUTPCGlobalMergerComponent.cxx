@@ -291,6 +291,7 @@ int AliGPUTPCGlobalMergerComponent::Configure( const char* cdbEntry, const char*
   if( fClusterErrorCorrectionZ>1.e-4 ) rec.ClusterError2CorrectionZ = fClusterErrorCorrectionZ*fClusterErrorCorrectionZ;
   rec.NWays = fNWays;
   rec.NWaysOuter = fNWaysOuter;
+  rec.NonConsecutiveIDs = true;
   fRec->SetSettings(&ev, &rec, &devProc);
   fRec->LoadClusterErrors();
   fRec->Init();
@@ -434,7 +435,7 @@ int AliGPUTPCGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &evt
 	for ( int i = 0; i < track.NClusters(); i++ )
 	{
 	  if (fRec->GetTPCMerger().Clusters()[track.FirstClusterRef() + i].fState & AliGPUTPCGMMergedTrackHit::flagReject) continue;
-	  currOutTrack->fPointIDs[currOutTrack->fNPoints++] = fRec->GetTPCMerger().GlobalClusterIDs()[fRec->GetTPCMerger().Clusters()[track.FirstClusterRef() + i].fNum];
+	  currOutTrack->fPointIDs[currOutTrack->fNPoints++] = fRec->GetTPCMerger().Clusters()[track.FirstClusterRef() + i].fNum;
 	}
 	dSize = sizeof( AliHLTExternalTrackParam ) + currOutTrack->fNPoints * sizeof( unsigned int );
 	

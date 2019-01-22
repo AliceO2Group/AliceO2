@@ -363,6 +363,7 @@ GPUd() void AliGPUTPCGMTrackParam::AttachClusters(const AliGPUTPCGMMerger *Merge
 
 GPUd() void AliGPUTPCGMTrackParam::AttachClusters(const AliGPUTPCGMMerger *Merger, int slice, int iRow, int iTrack, bool goodLeg, float Y, float Z)
 {
+	if (Merger->SliceParam().rec.NonConsecutiveIDs) return;
 #if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 	const AliGPUTPCTracker &tracker = *(Merger->SliceTrackers() + slice);
 	MAKESharedRef(AliGPUTPCRow, row, tracker.Row(iRow), s.fRows[iRow]);
@@ -411,6 +412,7 @@ GPUd() void AliGPUTPCGMTrackParam::AttachClusters(const AliGPUTPCGMMerger *Merge
 
 GPUd() void AliGPUTPCGMTrackParam::AttachClustersPropagate(const AliGPUTPCGMMerger *Merger, int slice, int lastRow, int toRow, int iTrack, bool goodLeg, AliGPUTPCGMPropagator &prop, bool inFlyDirection, float maxSinPhi)
 {
+	if (Merger->SliceParam().rec.NonConsecutiveIDs) return;
 #if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 	int step = toRow > lastRow ? 1 : -1;
 	float xx = fX - Merger->SliceParam().RowX[lastRow];
@@ -435,6 +437,7 @@ GPUd() bool AliGPUTPCGMTrackParam::FollowCircleChk(float lrFactor, float toY, fl
 
 GPUd() int AliGPUTPCGMTrackParam::FollowCircle(const AliGPUTPCGMMerger *Merger, AliGPUTPCGMPropagator &prop, int slice, int iRow, int iTrack, bool goodLeg, float toAlpha, float toX, float toY, int toSlice, int toRow, bool inFlyDirection)
 {
+	if (Merger->SliceParam().rec.NonConsecutiveIDs) return 1;
 #if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 	const AliGPUCAParam &param = Merger->SliceParam();
 	bool right;
@@ -525,6 +528,7 @@ GPUd() int AliGPUTPCGMTrackParam::FollowCircle(const AliGPUTPCGMMerger *Merger, 
 
 GPUd() void AliGPUTPCGMTrackParam::AttachClustersMirror(const AliGPUTPCGMMerger* Merger, int slice, int iRow, int iTrack, float toY, AliGPUTPCGMPropagator& prop)
 {
+	if (Merger->SliceParam().rec.NonConsecutiveIDs) return;
 #if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 	float X = fP[2] > 0 ? fP[0] : -fP[0];
 	float toX = fP[2] > 0 ? toY : -toY;
