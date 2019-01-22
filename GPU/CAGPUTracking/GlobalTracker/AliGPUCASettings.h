@@ -18,6 +18,7 @@ struct AliGPUCASettingsRec
 	void SetMinTrackPt( float v ){ MaxTrackQPt = CAMath::Abs(v)>0.001 ?1./CAMath::Abs(v) :1./0.001; }
 #endif
 
+	//There must be no bool in here, use char, as sizeof(bool) is compiler dependent and fails on GPUs!!!!!!
 	float HitPickUpFactor;						// multiplier for the chi2 window for hit pick up procedure
 	float NeighboursSearchArea;					// area in cm for the search of neighbours
 	float ClusterError2CorrectionY;				// correction for the squared cluster error during tracking
@@ -30,6 +31,7 @@ struct AliGPUCASettingsRec
 	char GlobalTracking;						//Enable Global Tracking (prolong tracks to adjacent sectors to find short segments)
 	float SearchWindowDZDR;						//Use DZDR window for seeding instead of vertex window
 	float TrackReferenceX;						//Transport all tracks to this X after tracking (disabled if > 500)
+	char NonConsecutiveIDs;						//Non-consecutive cluster IDs as in HLT, disables features that need access to slice data in TPC merger
 };
 
 //Settings describing the events / time frames

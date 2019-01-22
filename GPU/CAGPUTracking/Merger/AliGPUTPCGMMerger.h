@@ -66,7 +66,6 @@ class AliGPUTPCGMMerger : public AliGPUProcessor
 	int NOutputTrackClusters() const { return (fNOutputTrackClusters); }
 	const AliGPUTPCGMMergedTrackHit *Clusters() const { return (fClusters); }
 	AliGPUTPCGMMergedTrackHit *Clusters() { return (fClusters); }
-	const int *GlobalClusterIDs() const { return (fGlobalClusterIDs); }
 	const AliGPUTPCTracker *SliceTrackers() const { return (fSliceTrackers); }
 	int *ClusterAttachment() const { return (fClusterAttachment); }
 	int MaxId() const { return (fMaxID); }

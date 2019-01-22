@@ -402,6 +402,7 @@ void AliGPUTPCTrackerComponent::ConfigureSlices()
   devProc.nDeviceHelperThreads = fGPUHelperThreads;
   rec.GlobalTracking = fGlobalTracking;
   devProc.stuckProtection = fGPUStuckProtection;
+  rec.NonConsecutiveIDs = true;
   
   fRec->SetSettings(&ev, &rec, &devProc);
   fRec->LoadClusterErrors();

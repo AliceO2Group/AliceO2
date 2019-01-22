@@ -12,11 +12,12 @@ void AliGPUCASettingsRec::SetDefaults()
 	MinNTrackClusters = -1;
 	MaxTrackQPt = 1.f / MIN_TRACK_PT_DEFAULT;
 	NWays = 1;
-	NWaysOuter = 0;
+	NWaysOuter = false;
 	RejectMode = 5;
-	GlobalTracking = 1;
+	GlobalTracking = true;
 	SearchWindowDZDR = 0.f;
 	TrackReferenceX = 1000.f;
+	NonConsecutiveIDs = false;
 }
 
 void AliGPUCASettingsEvent::SetDefaults()
