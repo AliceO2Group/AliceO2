@@ -1,11 +1,9 @@
 #pragma once
 
-#include <gpucf/Executable.h>
+#include <gpucf/executable/Executable.h>
 #include <gpucf/ClEnv.h>
-#include <gpucf/io/ClusterReader.h>
-#include <gpucf/io/DigitReader.h>
 
-#include <memory>
+#include <nonstd/optional.hpp>
 
 
 namespace gpucf
@@ -26,8 +24,10 @@ protected:
 
 private:
     std::unique_ptr<ClEnv::Flags> envFlags;
-    std::unique_ptr<DigitReader::Flags> digitFlags;
-    std::unique_ptr<ClusterReader::Flags> clusterFlags;
+    OptStringFlag digitFile;
+    OptStringFlag clusterResultFile;
+    OptStringFlag peakFile;
+
 };
 
 }
