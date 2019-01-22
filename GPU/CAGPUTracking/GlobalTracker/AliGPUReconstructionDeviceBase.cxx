@@ -590,7 +590,6 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_FinishSlices(unsigned int i
 {
 	mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNLocalTracks = mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTracks;
 	mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNLocalTrackHits = mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTrackHits;
-	if (mParam.rec.GlobalTracking) mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTracklets = 1;
 
 	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Data ready for slice %d, helper thread %d", iSlice, iSlice % (mDeviceProcessingSettings.nDeviceHelperThreads + 1));
 	fSliceOutputReady = iSlice;
@@ -695,7 +694,7 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_Finalize()
 		{
 			for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 			{
-				CAGPUDebug("Slice %d - Tracks: Local %d Global %d - Hits: Local %d Global %d\n", iSlice, mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNLocalTracks, mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTracks, mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNLocalTrackHits, mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTrackHits);
+				CAGPUInfo("Slice %d - Tracks: Local %d Global %d - Hits: Local %d Global %d", iSlice, mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNLocalTracks, mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTracks, mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNLocalTrackHits, mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTrackHits);
 			}
 		}
 	}

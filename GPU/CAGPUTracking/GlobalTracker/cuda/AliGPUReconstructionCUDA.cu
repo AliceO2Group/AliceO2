@@ -616,7 +616,6 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 
 		if (Reconstruct_Base_FinishSlices(iSlice)) return(1);
 	}
-
 	if (Reconstruct_Base_Finalize()) return(1);
 
 	/*for (unsigned int i = 0;i < NSLICES;i++)
