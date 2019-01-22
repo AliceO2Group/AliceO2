@@ -105,6 +105,7 @@ int AliGPUReconstruction::Init()
 	if (mDeviceProcessingSettings.eventDisplay) mDeviceProcessingSettings.keepAllMemory = true;
 	if (mDeviceProcessingSettings.debugLevel >= 4) mDeviceProcessingSettings.keepAllMemory = true;
 	if (mDeviceProcessingSettings.debugLevel < 6) mDeviceProcessingSettings.debugMask = 0;
+	if (mParam.rec.NonConsecutiveIDs) mParam.rec.DisableRefitAttachment = 0xFF;
 		
 #ifdef GPUCA_HAVE_OPENMP
 	if (mDeviceProcessingSettings.nThreads <= 0) mDeviceProcessingSettings.nThreads = omp_get_max_threads();

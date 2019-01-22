@@ -18,6 +18,7 @@ void AliGPUCASettingsRec::SetDefaults()
 	SearchWindowDZDR = 0.f;
 	TrackReferenceX = 1000.f;
 	NonConsecutiveIDs = false;
+	DisableRefitAttachment = 0;
 }
 
 void AliGPUCASettingsEvent::SetDefaults()
