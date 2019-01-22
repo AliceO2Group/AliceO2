@@ -34,7 +34,7 @@ using o2::t0::Geometry;
 ClassImp(Detector);
 
 Detector::Detector(Bool_t Active)
-  : o2::Base::DetImpl<Detector>("FIT", Active), mIdSens1(0), mPMTeff(nullptr), mHits(o2::utils::createSimVector<HitType>())
+  : o2::Base::DetImpl<Detector>("T0", Active), mIdSens1(0), mPMTeff(nullptr), mHits(o2::utils::createSimVector<HitType>())
 
 {
   // Gegeo  = GetGeometry() ;
@@ -384,7 +384,7 @@ void Detector::DefineOpticalProperties()
   const char* aliceO2env = std::getenv("O2_ROOT");
   if (aliceO2env)
     inputDir = aliceO2env;
-  inputDir += "/share/Detectors/FIT/files/";
+  inputDir += "/share/Detectors/T0/files/";
 
   TString optPropPath = inputDir + "quartzOptProperties.txt";
   optPropPath = gSystem->ExpandPathName(optPropPath.Data()); // Expand $(ALICE_ROOT) into real system path
