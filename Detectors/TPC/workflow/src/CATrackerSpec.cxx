@@ -43,7 +43,7 @@ namespace TPC
 
 using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
-DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
+DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& inputIds)
 {
   constexpr static size_t NSectors = o2::TPC::Sector::MAXSECTOR;
   using ClusterGroupParser = o2::algorithm::ForwardParser<o2::TPC::ClusterGroupHeader>;
@@ -58,16 +58,16 @@ DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
     std::unique_ptr<ClusterGroupParser> parser;
     std::unique_ptr<o2::TPC::TPCCATracking> tracker;
     int verbosity = 1;
-    size_t nParallelInputs = 1;
+    std::vector<int> inputIds;
     bool readyToQuit = false;
   };
 
-  auto initFunction = [processMC, fanIn](InitContext& ic) {
+  auto initFunction = [processMC, inputIds](InitContext& ic) {
     auto options = ic.options().get<std::string>("tracker-options");
 
     auto processAttributes = std::make_shared<ProcessAttributes>();
     {
-      processAttributes->nParallelInputs = fanIn;
+      processAttributes->inputIds = inputIds;
       auto& parser = processAttributes->parser;
       auto& tracker = processAttributes->tracker;
       parser = std::make_unique<ClusterGroupParser>();
@@ -93,9 +93,8 @@ DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
       auto& mcInputs = processAttributes->mcInputs;
       if (processMC) {
         // we can later extend this to multiple inputs
-        std::vector<std::string> inputLabels(processAttributes->nParallelInputs);
-        std::generate(inputLabels.begin(), inputLabels.end(), [counter = std::make_shared<int>(0)]() { return "mclblin" + std::to_string((*counter)++); });
-        for (auto& inputLabel : inputLabels) {
+        for (auto const& inputId : processAttributes->inputIds) {
+          std::string inputLabel = "mclblin" + std::to_string(inputId);
           auto ref = pc.inputs().get(inputLabel);
           auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(ref);
           if (sectorHeader == nullptr) {
@@ -127,12 +126,11 @@ DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
         }
       }
 
-      std::vector<std::string> inputLabels(processAttributes->nParallelInputs);
-      std::generate(inputLabels.begin(), inputLabels.end(), [counter = std::make_shared<int>(0)]() { return "input" + std::to_string((*counter)++); });
       auto& validInputs = processAttributes->validInputs;
       auto& inputs = processAttributes->inputs;
       int operation = 0;
-      for (auto& inputLabel : inputLabels) {
+      for (auto const& inputId : processAttributes->inputIds) {
+        std::string inputLabel = "input" + std::to_string(inputId);
         auto ref = pc.inputs().get(inputLabel);
         auto payploadSize = DataRefUtils::getPayloadSize(ref);
         auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(ref);
@@ -295,18 +293,18 @@ DataProcessorSpec getCATrackerSpec(bool processMC, size_t fanIn)
   // changing the binding name of the input in order to identify inputs by unique labels
   // in the processing. Think about how the processing can be made agnostic of input size,
   // e.g. by providing a span of inputs under a certain label
-  auto createInputSpecs = [fanIn](bool makeMcInput) {
+  auto createInputSpecs = [inputIds](bool makeMcInput) {
     Inputs inputs = { InputSpec{ "input", gDataOriginTPC, "CLUSTERNATIVE", 0, Lifetime::Timeframe } };
     if (makeMcInput) {
       inputs.emplace_back(InputSpec{ "mclblin", gDataOriginTPC, "CLNATIVEMCLBL", 0, Lifetime::Timeframe });
     }
 
-    return std::move(mergeInputs(inputs, fanIn,
-                                 [](InputSpec& input, size_t index) {
+    return std::move(mergeInputs(inputs, inputIds.size(),
+                                 [inputIds](InputSpec& input, size_t index) {
                                    // using unique input names for the moment but want to find
                                    // an input-multiplicity-agnostic way of processing
-                                   input.binding += std::to_string(index);
-                                   DataSpecUtils::updateMatchingSubspec(input, index);
+                                   input.binding += std::to_string(inputIds[index]);
+                                   DataSpecUtils::updateMatchingSubspec(input, inputIds[index]);
                                  }));
   };
 

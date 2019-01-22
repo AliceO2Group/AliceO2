@@ -16,7 +16,10 @@
 /// @brief  Workflow definition for the TPC reconstruction
 
 #include "Framework/WorkflowSpec.h"
+#include <vector>
 #include <string>
+#include <numeric> // std::iota
+
 namespace o2
 {
 namespace TPC
@@ -36,17 +39,33 @@ enum struct OutputType { Digits,
 
 /// create the workflow for TPC reconstruction
 framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors,           //
+                                    std::vector<int> const& laneConfiguration,    //
                                     bool propagateMC = true, unsigned nLanes = 1, //
                                     std::string const& cfgInput = "digitizer",    //
                                     std::string const& cfgOutput = "tracks"       //
                                     );
+
+framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors,           //
+                                    bool propagateMC = true, unsigned nLanes = 1, //
+                                    std::string const& cfgInput = "digitizer",    //
+                                    std::string const& cfgOutput = "tracks"       //
+                                    )
+{
+  // create a default lane configuration with ids [0, nLanes-1]
+  std::vector<int> laneConfiguration(nLanes);
+  std::iota(laneConfiguration.begin(), laneConfiguration.end(), 0);
+  return getWorkflow(tpcSectors, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput);
+}
 
 framework::WorkflowSpec getWorkflow(bool propagateMC = true, unsigned nLanes = 1, //
                                     std::string const& cfgInput = "digitizer",    //
                                     std::string const& cfgOutput = "tracks"       //
                                     )
 {
-  return getWorkflow({}, propagateMC, nLanes, cfgInput, cfgOutput);
+  // create a default lane configuration with ids [0, nLanes-1]
+  std::vector<int> laneConfiguration(nLanes);
+  std::iota(laneConfiguration.begin(), laneConfiguration.end(), 0);
+  return getWorkflow({}, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput);
 }
 
 } // end namespace RecoWorkflow

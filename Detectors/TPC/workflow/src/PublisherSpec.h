@@ -39,7 +39,7 @@ struct PublisherConf {
   OutputSpec dataoutput;
   OutputSpec mcoutput;
   std::vector<int> tpcSectors;
-  size_t fanOut = 1;
+  std::vector<int> outputIds;
 };
 
 /// create a processor spec
