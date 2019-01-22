@@ -14,8 +14,8 @@ class AliGPUReconstructionCUDA : public AliGPUReconstructionDeviceBase
 {
 public:
 	virtual ~AliGPUReconstructionCUDA();
-
 	virtual int RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers) override;
+	virtual int GPUMergerAvailable() const override;
     
 protected:
 	friend AliGPUReconstruction* AliGPUReconstruction_Create_CUDA(const AliGPUCASettingsProcessing& cfg);
@@ -24,7 +24,6 @@ protected:
 	virtual int InitDevice_Runtime() override;
 	virtual int RunTPCTrackingSlices() override;
 	virtual int ExitDevice_Runtime() override;
-	virtual int GPUMergerAvailable() const override;
 
 	virtual void ActivateThreadContext() override;
 	virtual void ReleaseThreadContext() override;

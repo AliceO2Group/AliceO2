@@ -206,7 +206,7 @@ int AliGPUTPCGMMerger::GetTrackLabel(AliGPUTPCGMBorderTrack &trk)
 
 void AliGPUTPCGMMerger::InitializeProcessor()
 {
-	if (mRec->GetDeviceType() == AliGPUReconstruction::DeviceType::CUDA)
+	if (mRec->IsGPU() && ((AliGPUReconstructionDeviceBase*) mRec)->GPUMergerAvailable())
 	{
 		fSliceTrackers = nullptr;
 	}
@@ -1291,7 +1291,7 @@ void AliGPUTPCGMMerger::PrepareClustersForFit()
 	unsigned char* sharedCount = new unsigned char[maxId];
 
 #if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
-	if (mRec->GetDeviceType() != AliGPUReconstruction::DeviceType::CUDA)
+	if (!(mRec->IsGPU() && ((AliGPUReconstructionDeviceBase*) mRec)->GPUMergerAvailable()))
 	{
 		unsigned int* trackSort = new unsigned int[fNOutputTracks];
 		if (fTrackOrder) delete[] fTrackOrder;
@@ -1323,13 +1323,11 @@ void AliGPUTPCGMMerger::PrepareClustersForFit()
 void AliGPUTPCGMMerger::Refit(bool resetTimers)
 {
 	//* final refit
-#ifdef GPUCA_GPU_MERGER
-	if (mRec->GetDeviceType() == AliGPUReconstruction::DeviceType::CUDA)
+	if (mRec->IsGPU() && ((AliGPUReconstructionDeviceBase*) mRec)->GPUMergerAvailable())
 	{
 		dynamic_cast<AliGPUReconstructionDeviceBase*>(mRec)->RefitMergedTracks(this, resetTimers);
 	}
-  else
-#endif
+	else
 	{
 #ifdef GPUCA_HAVE_OPENMP
 #pragma omp parallel for num_threads(mRec->GetDeviceProcessingSettings().nThreads)
@@ -1351,7 +1349,7 @@ void AliGPUTPCGMMerger::Clear()
 
 void AliGPUTPCGMMerger::Finalize()
 {
-	if (mRec->GetDeviceType() == AliGPUReconstruction::DeviceType::CUDA) return;
+	if (mRec->IsGPU() && ((AliGPUReconstructionDeviceBase*) mRec)->GPUMergerAvailable()) return;
 #if defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 	int* trkOrderReverse = new int[fNOutputTracks];
 	for (int i = 0;i < fNOutputTracks;i++) trkOrderReverse[fTrackOrder[i]] = i;
