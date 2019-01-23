@@ -29,22 +29,36 @@ FreePortFinder::FreePortFinder(unsigned short initialPort, unsigned short finalP
 {
 }
 
-void FreePortFinder::scan()
+bool FreePortFinder::testPort(int port) const
 {
   struct sockaddr_in addr;
+  memset(&addr, 0, sizeof(addr));
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = INADDR_ANY;
+  addr.sin_port = htons(port);
+  return bind(mSocket, (struct sockaddr*)&addr, sizeof(addr)) == 0;
+}
+
+void FreePortFinder::scan()
+{
   for (mPort = mInitialPort; mPort < mFinalPort; mPort += mStep) {
-    memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = INADDR_ANY;
-    addr.sin_port = htons(mPort);
-    if (bind(mSocket, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-      LOG(WARN) << "Port range [" << mPort << ", " << mPort + mStep
-                << "] already taken. Skipping";
+    if (!testPort(mPort)) {
+      if (mVerbose) {
+        LOG(WARN) << "Port range [" << mPort << ", " << mPort + mStep
+                  << "] already taken. Skipping";
+      }
       continue;
     }
-    LOG(INFO) << "Using port range [" << mPort << ", " << mPort + mStep << "]";
+    if (mVerbose) {
+      LOG(INFO) << "Using port range [" << mPort << ", " << mPort + mStep << "]";
+    }
     break;
   }
+}
+
+void FreePortFinder::setVerbose(bool v)
+{
+  mVerbose = v;
 }
 
 FreePortFinder::~FreePortFinder()
@@ -52,8 +66,8 @@ FreePortFinder::~FreePortFinder()
   close(mSocket);
 }
 
-unsigned short FreePortFinder::port() { return mPort + 1; }
-unsigned short FreePortFinder::range() { return mStep; }
+unsigned short FreePortFinder::port() const { return mPort + 1; }
+unsigned short FreePortFinder::range() const { return mStep; }
 
 } // namespace framework
 } // namespace o2
