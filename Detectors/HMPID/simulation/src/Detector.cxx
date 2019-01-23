@@ -53,6 +53,7 @@ void Detector::InitializeO2Detector()
 bool Detector::ProcessHits(FairVolume* v)
 {
   TString volname = fMC->CurrentVolName();
+  auto stack = (o2::Data::Stack*)fMC->GetStack();
 
   //Treat photons
   //photon (Ckov or feedback) hits on module PC (Hpad)
@@ -75,6 +76,7 @@ bool Detector::ProcessHits(FairVolume* v)
       Param::Instance()->Mars2Lors(idch, x, xl, yl);      //take LORS position
       AddHit(x[0], x[1], x[2], hitTime, etot, tid, idch); //HIT for photon, position at P, etot will be set to Q
       GenFee(etot);                                       //generate feedback photons etot is modified in hit ctor to Q of hit
+      stack->addHit(GetDetId());
     }                                                     //photon hit PC and DE >0
     return kTRUE;
   } //photon hit PC
@@ -83,7 +85,6 @@ bool Detector::ProcessHits(FairVolume* v)
   static Float_t eloss; //need to store mip parameters between different steps
   static Double_t in[3];
 
-  auto stack = (o2::Data::Stack*)fMC->GetStack();
 
   if (fMC->IsTrackEntering() && fMC->TrackCharge() && volname.Contains("Hpad")) {
     //Trackref stored when entering in the pad volume
@@ -116,10 +117,13 @@ bool Detector::ProcessHits(FairVolume* v)
         // HIT for MIP, position near anod plane, eloss will be set to Q
         AddHit(out[0], out[1], out[2], hitTime, eloss, tid, idch);
         GenFee(eloss); //generate feedback photons
+        stack->addHit(GetDetId());
         eloss = 0;
       }
-    } else                  //just going inside
+    } else {
+      //just going inside
       eloss += fMC->Edep(); //collect this step eloss
+    }
     return kTRUE;
   } //MIP in GAP
 
