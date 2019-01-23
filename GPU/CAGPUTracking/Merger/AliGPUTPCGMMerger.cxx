@@ -319,14 +319,14 @@ bool AliGPUTPCGMMerger::Reconstruct()
 	nCount++;
 	if (mCAParam->debugLevel > 0)
 	{
-		printf("Merge Time:\tUnpack Slices:\t%1.0f us\n", times[0] * 1000000 / nCount);
-		printf("\t\tMerge Within:\t%1.0f us\n", times[1] * 1000000 / nCount);
-		printf("\t\tMerge Slices:\t%1.0f us\n", times[2] * 1000000 / nCount);
-		printf("\t\tMerge CE:\t%1.0f us\n", times[3] * 1000000 / nCount);
-		printf("\t\tCollect:\t%1.0f us\n", times[4] * 1000000 / nCount);
-		printf("\t\tClusters:\t%1.0f us\n", times[5] * 1000000 / nCount);
-		printf("\t\tRefit:\t\t%1.0f us\n", times[6] * 1000000 / nCount);
-		printf("\t\tFinalize:\t%1.0f us\n", times[7] * 1000000 / nCount);
+		printf("Merge Time:\tUnpack Slices:\t%'7d us\n", (int) (times[0] * 1000000 / nCount));
+		printf("\t\tMerge Within:\t%'7d us\n", (int) (times[1] * 1000000 / nCount));
+		printf("\t\tMerge Slices:\t%'7d us\n", (int) (times[2] * 1000000 / nCount));
+		printf("\t\tMerge CE:\t%'7d us\n", (int) (times[3] * 1000000 / nCount));
+		printf("\t\tCollect:\t%'7d us\n", (int) (times[4] * 1000000 / nCount));
+		printf("\t\tClusters:\t%'7d us\n", (int) (times[5] * 1000000 / nCount));
+		printf("\t\tRefit:\t\t%'7d us\n", (int) (times[6] * 1000000 / nCount));
+		printf("\t\tFinalize:\t%'7d us\n", (int) (times[7] * 1000000 / nCount));
 	}
 	return true;
 }

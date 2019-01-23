@@ -746,10 +746,10 @@ int AliGPUReconstructionCUDA::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool 
 	{
 		int copysize = 4 * Merger->NOutputTrackClusters() * sizeof(float) + Merger->NOutputTrackClusters() * sizeof(unsigned int) + Merger->NOutputTracks() * sizeof(AliGPUTPCGMMergedTrack) + 6 * sizeof(float) + sizeof(AliGPUCAParam);
 		double speed = (double) copysize / times[0] * nCount / 1e9;
-		printf("GPU Fit:\tCopy To:\t%1.0f us (%lf GB/s)\n", times[0] * 1000000 / nCount, speed);
-		printf("\t\tFit:\t%1.0f us\n", times[1] * 1000000 / nCount);
+		printf("GPU Fit:\tCopy To:\t%'7d us (%6.3f GB/s)\n", (int) (times[0] * 1000000 / nCount), speed);
+		printf("\t\tFit:\t\t%'7d us\n", (int) (times[1] * 1000000 / nCount));
 		speed = (double) copysize / times[2] * nCount / 1e9;
-		printf("\t\tCopy From:\t%1.0f us (%lf GB/s)\n", times[2] * 1000000 / nCount, speed);
+		printf("\t\tCopy From:\t%'7d us (%6.3f GB/s)\n", (int) (times[2] * 1000000 / nCount), speed);
 	}
 
 	if (!GPUCA_TIMING_SUM)
