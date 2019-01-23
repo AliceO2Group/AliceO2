@@ -203,9 +203,11 @@ if (GPUCA_EVENT_DISPLAY OR GPUCA_QA)
     set(HDRS2 ${HDRS2} Standalone/qconfigoptions.h)
 endif()
 
-string(REPLACE ".cxx" ".h" HDRSSRC "${SRCS}")
+string(REPLACE ".cxx" ".h" HDRSSRCA "${SRCS}")
+string(REPLACE ".cpp" ".h" HDRSSRC "${HDRSSRCA}")
 set(HDRS ${HDRS} ${HDRSSRC})
-string(REPLACE ".cxx" ".h" HDRSSRC "${SRCS_NO_CINT}")
+string(REPLACE ".cxx" ".h" HDRSSRCA "${SRCS_NO_CINT}")
+string(REPLACE ".cpp" ".h" HDRSSRC "${HDRSSRCA}")
 set(HDRS2 ${HDRS2} ${HDRSSRC})
 set(SRCS ${SRCS} ${SRCS_NO_CINT} ${SRCS_NO_H})
 
@@ -241,6 +243,7 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
             LIBRARY DESTINATION lib)
 
     install(FILES ${HDRS} ${HDRS2} DESTINATION include)
+    install(DIRECTORY Standalone/cmodules DESTINATION include)
 endif()
 
 #Default cmake build script for O2
