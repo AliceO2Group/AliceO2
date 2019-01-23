@@ -13,11 +13,13 @@ set(SRCS
    src/TrackTPC.cxx
    src/Cluster.cxx
    src/TPCSectorHeader.cxx
+   src/ClusterNativeHelper.cxx
 )
 
 set(HEADERS
    include/${MODULE_NAME}/ClusterGroupAttribute.h
    include/${MODULE_NAME}/ClusterNative.h
+   include/${MODULE_NAME}/ClusterNativeHelper.h
    include/${MODULE_NAME}/ClusterHardware.h
    include/${MODULE_NAME}/Helpers.h
    include/${MODULE_NAME}/TrackTPC.h

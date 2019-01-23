@@ -16,7 +16,6 @@
 #include <cstdint>
 #include <vector>
 #include <cstddef>   // for size_t
-#include <stdexcept> // for runtime_error
 #include "DataFormatsTPC/Constants.h"
 #include "DataFormatsTPC/ClusterGroupAttribute.h"
 
@@ -143,23 +142,6 @@ struct ClusterNativeAccessFullTPC {
   unsigned int nClusters[o2::TPC::Constants::MAXSECTOR][o2::TPC::Constants::MAXGLOBALPADROW];
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clustersMCTruth[o2::TPC::Constants::MAXSECTOR]
                                                                      [o2::TPC::Constants::MAXGLOBALPADROW];
-
-  // add clusters from a flattened buffer starting with ClusterGroupAttribute followed by the
-  // array of ClusterNative, the number of clusters is determined from the size of the buffer
-  // FIXME: add mc labels
-  template <typename AttributeT = ClusterGroupAttribute>
-  void addFlatBuffer(unsigned char* buffer, size_t size)
-  {
-    if (buffer == nullptr || size < sizeof(AttributeT) || (size - sizeof(AttributeT)) % sizeof(ClusterNative) != 0) {
-      // this is not a valid message
-      throw std::runtime_error("incompatible message size");
-    }
-    const auto& groupAttribute = *reinterpret_cast<AttributeT*>(buffer);
-    auto nofClusters = (size - sizeof(AttributeT)) / sizeof(ClusterNative);
-    auto ptrClusters = reinterpret_cast<ClusterNative*>(buffer + sizeof(groupAttribute));
-    clusters[groupAttribute.sector][groupAttribute.globalPadRow] = ptrClusters;
-    nClusters[groupAttribute.sector][groupAttribute.globalPadRow] = nofClusters;
-  }
 };
 }
 }
