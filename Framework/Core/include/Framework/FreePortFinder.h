@@ -21,11 +21,15 @@ class FreePortFinder
   FreePortFinder(unsigned short initialPort, unsigned short finalPort, unsigned short step);
   /// Start the scan.
   void scan();
+  /// Test one specific port
+  bool testPort(int port) const;
   ~FreePortFinder();
   /// Get the first port in the selected range
-  unsigned short port();
+  unsigned short port() const;
   /// Get the range size
-  unsigned short range();
+  unsigned short range() const;
+  // set verbose mode
+  void setVerbose(bool b);
 
  private:
   int mSocket;
@@ -33,6 +37,7 @@ class FreePortFinder
   unsigned short mFinalPort;
   unsigned short mStep;
   unsigned short mPort;
+  bool mVerbose = true; // whether scan() reports about progress and final port found
 };
 
 } // namespace framework
