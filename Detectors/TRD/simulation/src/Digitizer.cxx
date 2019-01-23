@@ -69,6 +69,7 @@ void Digitizer::process(std::vector<o2::trd::HitType> const& hits, std::vector<o
     }
     */
 
+    mHitContainer.clear();
     // Skip detectors without hits
     if (!getHitContainer(det, hits, mHitContainer)) {
       // move to next det if no hits are found for this det
@@ -78,7 +79,6 @@ void Digitizer::process(std::vector<o2::trd::HitType> const& hits, std::vector<o
     int signals; // dummy variable for now
     convertHits(det, mHitContainer, signals);
 
-    mHitContainer.clear();
     digits.emplace_back();
   } // end of loop over detectors
   LOG(INFO) << "End of processing " << totalNumberOfProcessedHits << " hits";
