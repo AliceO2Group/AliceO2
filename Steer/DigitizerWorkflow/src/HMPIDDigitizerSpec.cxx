@@ -93,6 +93,7 @@ class HMPIDDPLDigitizerTask
 
     auto& eventParts = context->getEventParts();
     std::vector<o2::hmpid::Digit> digitsAccum; // accumulator for digits
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum; // timeframe accumulator for labels
 
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
@@ -111,17 +112,18 @@ class HMPIDDPLDigitizerTask
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found HMP " << hits.size() << " hits ";
 
         std::vector<o2::hmpid::Digit> digits; // digits which get filled
+        o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels; // labels which get filled
+        mDigitizer.setLabelContainer(&labels);
 
         mDigitizer.process(hits, digits);
         LOG(INFO) << "HMPID obtained " << digits.size() << " digits ";
-        for (auto& d : digits) {
-          LOG(INFO) << "CHARGE " << d.getCharge();
-          LOG(INFO) << "PAD " << d.getPadID();
-        }
+        LOG(INFO) << "NUMBER OF LABEL OBTAINED " << labels.getNElements();
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
+        labelAccum.mergeAtBack(labels);
       }
     }
     pc.outputs().snapshot(Output{ "HMP", "DIGITS", 0, Lifetime::Timeframe }, digitsAccum);
+    pc.outputs().snapshot(Output{ "HMP", "DIGITLBL", 0, Lifetime::Timeframe }, labelAccum);
 
     LOG(INFO) << "HMP: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{ "HMP", "ROMode", 0, Lifetime::Timeframe }, mROMode);
@@ -150,6 +152,7 @@ o2::framework::DataProcessorSpec getHMPIDDigitizerSpec(int channel)
     Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
 
     Outputs{ OutputSpec{ "HMP", "DIGITS", 0, Lifetime::Timeframe },
+             OutputSpec{ "HMP", "DIGITLBL", 0, Lifetime::Timeframe },
              OutputSpec{ "HMP", "ROMode", 0, Lifetime::Timeframe } },
 
     AlgorithmSpec{ adaptFromTask<HMPIDDPLDigitizerTask>() },

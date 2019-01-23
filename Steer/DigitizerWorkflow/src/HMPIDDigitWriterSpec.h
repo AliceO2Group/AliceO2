@@ -15,6 +15,8 @@
 #include "Utils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
 #include "HMPIDBase/Digit.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 
 namespace o2
 {
@@ -32,9 +34,8 @@ o2::framework::DataProcessorSpec getHMPIDDigitWriterSpec()
                                 "hmpiddigits.root",
                                 "o2sim",
                                 1,
-                                BranchDefinition<std::vector<o2::hmpid::Digit>>{ InputSpec{ "input", "HMP", "DIGITS" }, "HMPDigit" }
-                                // add more branch definitions (for example Monte Carlo labels here)
-                                )();
+                                BranchDefinition<std::vector<o2::hmpid::Digit>>{ InputSpec{ "digitinput", "HMP", "DIGITS" }, "HMPDigit" },
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{ InputSpec{ "labelinput", "HMP", "DIGITLBL" }, "HMPDigitLabels" })();
 }
 
 } // end namespace hmpid
