@@ -21,3 +21,15 @@
 #include "AliHLTDefinitions.h"
 #include "AliHLTSystem.h"
 #endif
+
+#include "TPCFastTransform.h"
+
+#ifdef HAVE_O2HEADERS
+#include "ITStracking/TrackerTraitsCPU.h"
+#include "TRDBase/TRDGeometryFlat.h"
+#else
+namespace o2 { namespace ITS { class TrackerTraits {}; class TrackerTraitsCPU : public TrackerTraits {}; }}
+namespace o2 { namespace trd { struct TRDGeometryFlat {}; }}
+#endif
+using namespace o2::ITS;
+using namespace o2::trd;

@@ -4,7 +4,7 @@
 #include "AliGPUReconstructionCUDAInternals.h"
 
 #define GPUCA_GPUTYPE_PASCAL
-#include "AliGPUTPCGPUTrackerCommon.h"
+#include "AliGPUReconstructionCommon.h"
 #define get_global_id(dim) (blockIdx.x * blockDim.x + threadIdx.x)
 #define get_global_size(dim) (blockDim.x * gridDim.x)
 #define get_num_groups(dim) (gridDim.x)
@@ -70,7 +70,7 @@ texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
 #include "Utils.cu"
 #endif
 #else
-namespace o2 { namespace ITS { class TrackerTraits {}; class TrackerTraitsNV : public TrackerTraits {}; }}
+namespace o2 { namespace ITS { class TrackerTraitsNV : public TrackerTraits {}; }}
 #endif
 
 #define RANDOM_ERROR

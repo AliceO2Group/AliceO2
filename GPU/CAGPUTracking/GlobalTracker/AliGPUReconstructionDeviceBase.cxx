@@ -3,9 +3,8 @@
 #ifndef WIN32
 #include <unistd.h>
 #endif
-#include "AliGPUTPCGPUTrackerCommon.h"
+#include "AliGPUReconstructionCommon.h"
 
-#include "AliGPUTPCDef.h"
 #include "AliGPUTPCTracker.h"
 #include "AliCAGPULogging.h"
 #include "AliGPUTPCSliceOutput.h"
@@ -411,13 +410,21 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 	workers.InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_SLAVE);
 	workersDevice.InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE, &workers);
 	workers.mMemoryResWorkers = RegisterMemoryAllocation(&workers, &AliGPUProcessorWorkers::SetPointersDeviceProcessor, AliGPUMemoryResource::MEMORY_PERMANENT, "Workers");
+	workers.mMemoryResFlat = RegisterMemoryAllocation(&workers, &AliGPUProcessorWorkers::SetPointersFlatObjects, AliGPUMemoryResource::MEMORY_PERMANENT, "Workers");
 	AllocateRegisteredMemory(workers.mMemoryResWorkers);
+	AllocateRegisteredMemory(workers.mMemoryResFlat);
 	for (unsigned int i = 0;i < NSLICES;i++)
 	{
 		RegisterGPUDeviceProcessor(&fGpuTracker[i], &mTPCSliceTrackersCPU[i]);
 		RegisterGPUDeviceProcessor(&fGpuTracker[i].Data(), &mTPCSliceTrackersCPU[i].Data());
 	}
 	RegisterGPUDeviceProcessor(fGpuMerger, &mTPCMergerCPU);
+	if (PrepareFlatObjects())
+	{
+		CAGPUError("Error preparing flat objects on GPU");
+		ExitDevice_Runtime();
+		return(1);
+	}
 
 	if (StartHelperThreads()) return(1);
 
@@ -465,6 +472,38 @@ void* AliGPUReconstructionDeviceBase::AliGPUProcessorWorkers::SetPointersDeviceP
 	AliGPUReconstruction::computePointerWithAlignment(mem, fGpuTracker, NSLICES);
 	AliGPUReconstruction::computePointerWithAlignment(mem, fGpuMerger, 1);
 	return mem;
+}
+
+void* AliGPUReconstructionDeviceBase::AliGPUProcessorWorkers::SetPointersFlatObjects(void* mem)
+{
+	if (mRec->GetTPCTransform())
+	{
+		AliGPUReconstruction::computePointerWithAlignment(mem, fTpcTransform, 1);
+		AliGPUReconstruction::computePointerWithAlignment(mem, fTpcTransformBuffer, mRec->GetTPCTransform()->getFlatBufferSize());
+	}
+	if (mRec->GetTRDGeometry())
+	{
+		AliGPUReconstruction::computePointerWithAlignment(mem, fTrdGeometry, 1);
+	}
+	return mem;
+}
+
+int AliGPUReconstructionDeviceBase::PrepareFlatObjects()
+{
+	if (mTPCFastTransform)
+	{
+		memcpy((void*) workers.fTpcTransform, (void*) mTPCFastTransform.get(), sizeof(*mTPCFastTransform));
+		memcpy((void*) workers.fTpcTransformBuffer, (void*) mTPCFastTransform->getFlatBufferPtr(), mTPCFastTransform->getFlatBufferSize());
+		workers.fTpcTransform->clearInternalBufferUniquePtr();
+		workers.fTpcTransform->setFutureBufferAddress(workersDevice.fTpcTransformBuffer);
+	}
+	if (mTRDGeometry)
+	{
+		memcpy((void*) workers.fTrdGeometry, (void*) mTRDGeometry.get(), sizeof(*mTRDGeometry));
+		workers.fTrdGeometry->clearInternalBufferUniquePtr();
+	}
+	if (TransferMemoryResourceLinkToGPU(workers.mMemoryResFlat)) return 1;
+	return 0;
 }
 
 int AliGPUReconstructionDeviceBase::ExitDevice()

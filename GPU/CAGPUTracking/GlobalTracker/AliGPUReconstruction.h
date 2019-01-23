@@ -245,6 +245,7 @@ public:
 	bool IsGPU() const {return GetDeviceType() != INVALID_DEVICE && GetDeviceType() != CPU;}
 	const AliGPUCAParam& GetParam() const {return mParam;}
 	const TPCFastTransform* GetTPCTransform() const {return mTPCFastTransform.get();}
+	const o2::trd::TRDGeometryFlat* GetTRDGeometry() const {return mTRDGeometry.get();}
 	const ClusterNativeAccessExt* GetClusterNativeAccessExt() const {return mClusterNativeAccess.get();}
 	const AliGPUCASettingsEvent& GetEventSettings() const {return mEventSettings;}
 	const AliGPUCASettingsProcessing& GetProcessingSettings() {return mProcessingSettings;}
@@ -313,8 +314,8 @@ protected:
 	std::unique_ptr<AliGPUCAQA> mQA;
 	bool mQAInitialized = false;
 	
-	std::unique_ptr<TPCFastTransform> mTPCFastTransform;						//Global TPC fast transformation object
 	std::unique_ptr<ClusterNativeAccessExt> mClusterNativeAccess;				//Internal memory for clusterNativeAccess
+	std::unique_ptr<TPCFastTransform> mTPCFastTransform;						//Global TPC fast transformation object
 	std::unique_ptr<o2::trd::TRDGeometryFlat> mTRDGeometry;						//TRD Geometry
 	
 	bool mInitialized = false;

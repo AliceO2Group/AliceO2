@@ -83,13 +83,7 @@ set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/AliGPUReconstructionOCLC
 
 # Module include folder
 include_directories(${CAGPUDIR}/GlobalTracker/opencl
-                    ${CAGPUDIR}/GlobalTracker
                     ${CAGPUDIR}/Standalone/makefiles
-                    ${CAGPUDIR}/SliceTracker
-                    ${CAGPUDIR}/TRDTracking
-                    ${CAGPUDIR}/Merger
-                    ${CAGPUDIR}/Standalone
-                    ${ALITPCCOMMON_DIR}/sources/Common
                     ${CMAKE_CURRENT_BINARY_DIR}
                    )
 
