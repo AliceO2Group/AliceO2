@@ -12,7 +12,7 @@
 /// \brief Implementation of the Condition class (CDB object) containing the condition and its metadata
 
 #include "CCDB/Condition.h"
-#include <FairLogger.h>  // for LOG
+#include <fairlogger/Logger.h> // for LOG
 #include <cstddef>      // for NULL
 
 namespace o2
@@ -99,7 +99,7 @@ Condition::~Condition()
 void Condition::printId() const
 {
 
-  LOG(INFO) << mId.ToString().Data() << FairLogger::endl;
+  LOG(INFO) << mId.ToString().Data();
 }
 
 Int_t Condition::Compare(const TObject *obj) const

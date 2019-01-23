@@ -10,7 +10,7 @@
 
 //  The SAX XML file handler used in the CDBManager                       //
 #include "CCDB/XmlHandler.h"
-#include <FairLogger.h>   // for LOG
+#include <fairlogger/Logger.h> // for LOG
 #include <TList.h>        // for TList
 #include <TXMLAttr.h>     // for TXMLAttr
 
@@ -67,7 +67,7 @@ void XmlHandler::OnStartDocument()
 {
   // if something should happen right at the beginning of the
   // XML document, this must happen here
-  LOG(INFO) << "Reading XML file for LHCPeriod <-> Run Range correspondence" << FairLogger::endl;
+  LOG(INFO) << "Reading XML file for LHCPeriod <-> Run Range correspondence";
 }
 
 void XmlHandler::OnEndDocument()
@@ -82,26 +82,26 @@ void XmlHandler::OnStartElement(const char *name, const TList *attributes)
 
   // set the current system if necessary
   TString strName(name);
-  LOG(DEBUG) << "name = " << strName.Data() << FairLogger::endl;
+  LOG(DEBUG) << "name = " << strName.Data();
   Int_t startRun = -1;
   Int_t endRun = -1;
   TXMLAttr *attr;
   TIter next(attributes);
   while ((attr = (TXMLAttr *) next())) {
     TString attrName = attr->GetName();
-    LOG(DEBUG) << "Name = " << attrName.Data() << FairLogger::endl;
+    LOG(DEBUG) << "Name = " << attrName.Data();
     if (attrName == "StartIdRunRange") {
       startRun = (Int_t) (((TString) (attr->GetValue())).Atoi());
-      LOG(DEBUG) << "startRun = " << startRun << FairLogger::endl;
+      LOG(DEBUG) << "startRun = " << startRun;
     }
     if (attrName == "EndIdRunRange") {
       endRun = (Int_t) (((TString) (attr->GetValue())).Atoi());
-      LOG(DEBUG) << "endRun = " << endRun << FairLogger::endl;
+      LOG(DEBUG) << "endRun = " << endRun;
     }
     if (attrName == "OCDBFolder") {
       if (mRun >= startRun && mRun <= endRun && startRun != -1 && endRun != -1) {
         mOCDBFolder = (TString) (attr->GetValue());
-        LOG(DEBUG) << "OCDBFolder = " << mOCDBFolder.Data() << FairLogger::endl;
+        LOG(DEBUG) << "OCDBFolder = " << mOCDBFolder.Data();
         mStartIdRunRange = startRun;
         mEndIdRunRange = endRun;
       }
@@ -114,7 +114,7 @@ void XmlHandler::OnEndElement(const char *name)
 {
   // do everything that needs to be done when an end tag of an element is found
   TString strName(name);
-  LOG(DEBUG) << "name = " << strName.Data() << FairLogger::endl;
+  LOG(DEBUG) << "name = " << strName.Data();
 }
 
 void XmlHandler::OnCharacters(const char *characters)
@@ -122,7 +122,7 @@ void XmlHandler::OnCharacters(const char *characters)
   // copy the text content of an XML element
   // mContent = characters;
   TString strCharacters(characters);
-  LOG(DEBUG) << "characters = " << strCharacters.Data() << FairLogger::endl;
+  LOG(DEBUG) << "characters = " << strCharacters.Data();
 }
 
 void XmlHandler::OnComment(const char * /*text*/)
@@ -133,19 +133,19 @@ void XmlHandler::OnComment(const char * /*text*/)
 void XmlHandler::OnWarning(const char *text)
 {
   // process warnings here
-  LOG(INFO) << "Warning: " << text << FairLogger::endl;
+  LOG(INFO) << "Warning: " << text;
 }
 
 void XmlHandler::OnError(const char *text)
 {
   // process errors here
-  LOG(ERROR) << "Error: " << text << FairLogger::endl;
+  LOG(ERROR) << "Error: " << text;
 }
 
 void XmlHandler::OnFatalError(const char *text)
 {
   // process fatal errors here
-  LOG(FATAL) << "Fatal error: " << text << FairLogger::endl;
+  LOG(FATAL) << "Fatal error: " << text;
 }
 
 void XmlHandler::OnCdataBlock(const char * /*text*/, Int_t /*len*/)
