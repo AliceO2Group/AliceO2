@@ -28,7 +28,6 @@ class TGraph;
 namespace o2
 {
 namespace t0
-
 {
 class Geometry;
 }

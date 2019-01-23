@@ -94,7 +94,7 @@ class FITDPLDigitizerTask
 
     LOG(INFO) << "CALLING FIT DIGITIZATION";
 
-    static std::vector<o2::t0::HitType> hits;
+    static std::vector<o2::fit::HitType> hits;
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum;
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels;
     o2::fit::Digit digit;
@@ -114,8 +114,12 @@ class FITDPLDigitizerTask
       for (auto& part : eventParts[collID]) {
         // get the hits for this event and this source
         hits.clear();
+<<<<<<< HEAD
         retrieveHits(mSimChains, part.sourceID, part.entryID, &hits);
 
+=======
+        retrieveHits(mSimChains, "T0Hit", part.sourceID, part.entryID, &hits);
+>>>>>>> move Hit to common
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found " << hits.size() << " hits ";
 
         // call actual digitization procedure
@@ -203,9 +207,9 @@ class FITT0DPLDigitizerTask : public FITDPLDigitizerTask
     mOrigin = DETOR;
     std::cout << " @@@@ DETOR FITT0DPLDigitizerTask " << mOrigin << " " << mID.getName() << std::endl;
   }
+
 };
 
-//_______________________________________________
 class FITT0DPLDigitizerTask : public FITDPLDigitizerTask
 {
  public:
@@ -216,6 +220,7 @@ class FITT0DPLDigitizerTask : public FITDPLDigitizerTask
   {
     mID = DETID;
     mOrigin = DETOR;
+    std::cout << " @@@@ DETOR FITT0DPLDigitizerTask " << mOrigin << " " << mID.getName() << std::endl;
   }
 };
 
@@ -232,6 +237,7 @@ o2::framework::DataProcessorSpec getFITT0DigitizerSpec(int channel)
   std::string detStr = o2::detectors::DetID::getName(FITT0DPLDigitizerTask::DETID);
   auto detOrig = FITT0DPLDigitizerTask::DETOR;
   std::cout << "@@@@ getFITT0DigitizerSpec " << detStr << " dteOrig " << detOrig << std::endl;
+
   return DataProcessorSpec{
     (detStr + "Digitizer").c_str(),
     Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
