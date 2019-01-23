@@ -719,11 +719,9 @@ int AliGPUReconstruction::RunStandalone()
 			time /= NSLICES;
 			if (!IsGPU()) time /= mDeviceProcessingSettings.nThreads;
 
-			printf("Execution Time: Task: %20s ", tmpNames[i]);
-			printf("Time: %1.0f us", time * 1000000 / nCount);
-			printf("\n");
+			printf("Execution Time: Task: %20s Time: %'7d us\n", tmpNames[i], (int) (time * 1000000 / nCount));
 		}
-		printf("Execution Time: Task: %20s Time: %1.0f us\n", "Merger", timerMerger.GetElapsedTime() * 1000000. / nCount);
+		printf("Execution Time: Task: %20s Time: %'7d us\n", "Merger", (int) (timerMerger.GetElapsedTime() * 1000000. / nCount));
 		if (!GPUCA_TIMING_SUM)
 		{
 			timerTracking.Reset();
@@ -890,6 +888,9 @@ int AliGPUReconstruction::RunTPCTrackingMerger()
 
 int AliGPUReconstruction::RunTRDTracking()
 {
+	HighResTimer timer;
+	timer.Start();
+	
 	if (!mTRDTracker->IsInitialized()) return 1;
 	std::vector<GPUTRDTrack> tracksTPC;
 	std::vector<int> tracksTPCLab;
@@ -918,6 +919,10 @@ int AliGPUReconstruction::RunTRDTracking()
 	mTRDTracker->DoTracking(&(tracksTPC[0]), &(tracksTPCLab[0]), tracksTPC.size());
 	
 	printf("TRD Tracker reconstructed %d tracks\n", mTRDTracker->NTracks());
+	if (mDeviceProcessingSettings.debugLevel >= 1)
+	{
+		printf("TRD tracking time: %'d us\n", (int) (1000000 * timer.GetCurrentElapsedTime()));
+	}
 	
 	return 0;
 }
