@@ -24,7 +24,7 @@ using namespace o2::fit;
 
 ClassImp(Digitizer);
 
-void Digitizer::process(const std::vector<o2::t0::HitType>* hits, Digit* digit)
+void Digitizer::process(const std::vector<o2::fit::HitType>* hits, Digit* digit)
 {
   //parameters constants TO DO: move to class
 
@@ -204,7 +204,9 @@ void Digitizer::initParameters()
   // murmur
 }
 //_______________________________________________________________________
-void Digitizer::init() {}
+void Digitizer::init() {
+  std::cout<<" @@@ Digitizer::init "<<std::endl;
+}
 
 //_______________________________________________________________________
 void Digitizer::finish() {}
