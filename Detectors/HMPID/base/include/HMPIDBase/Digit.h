@@ -28,7 +28,8 @@ class Digit : public DigitBase
 {
  public:
   Digit() = default;
-  Digit(float charge) : mQ(charge) {}
+  Digit(double time, int pad, float charge) : DigitBase(time), mPad(pad), mQ(charge) {}
+
   float getCharge() const { return mQ; }
   int getPadID() const { return mPad; }
   // convenience conversion to x-y pad coordinates
@@ -60,8 +61,6 @@ class Digit : public DigitBase
     // calculate charge fraction in given pad
     return Digit::InMathieson(localX, localY, somepad);
   }
-
-  Digit(int pad, float charge) : mPad(pad), mQ(charge) {}
 
   // add charge to existing digit
   void addCharge(float q) { mQ += q; }

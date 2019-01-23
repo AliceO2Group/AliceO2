@@ -95,33 +95,54 @@ class HMPIDDPLDigitizerTask
     std::vector<o2::hmpid::Digit> digitsAccum; // accumulator for digits
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum; // timeframe accumulator for labels
 
+    auto flushDigitsAndLabels = [this, &digitsAccum, &labelAccum]() {
+      // flush previous buffer
+      mDigits.clear();
+      mLabels.clear();
+      mDigitizer.flush(mDigits);
+      LOG(INFO) << "HMPID flushed " << mDigits.size() << " digits at this time ";
+      LOG(INFO) << "NUMBER OF LABEL OBTAINED " << mLabels.getNElements();
+      std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(digitsAccum));
+      labelAccum.mergeAtBack(mLabels);
+    };
+
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < irecords.size(); ++collID) {
-      mDigitizer.setEventTime(irecords[collID].timeNS);
 
-      // for each collision, loop over the constituents event and source IDs
-      // (background signal merging is basically taking place here)
-      for (auto& part : eventParts[collID]) {
-        mDigitizer.setEventID(part.entryID);
-        mDigitizer.setSrcID(part.sourceID);
+      // try to start new readout cycle by setting the trigger time
+      auto triggeraccepted = mDigitizer.setTriggerTime(irecords[collID].timeNS);
+      if (triggeraccepted) {
+        flushDigitsAndLabels(); // flush previous readout cycle
+      }
 
-        // get the hits for this event and this source
-        std::vector<o2::hmpid::HitType> hits;
-        retrieveHits(mSimChains, "HMPHit", part.sourceID, part.entryID, &hits);
-        LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found HMP " << hits.size() << " hits ";
+      auto withinactivetime = mDigitizer.setEventTime(irecords[collID].timeNS);
+      if (withinactivetime) {
+        // for each collision, loop over the constituents event and source IDs
+        // (background signal merging is basically taking place here)
+        for (auto& part : eventParts[collID]) {
+          mDigitizer.setEventID(part.entryID);
+          mDigitizer.setSrcID(part.sourceID);
 
-        std::vector<o2::hmpid::Digit> digits; // digits which get filled
-        o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels; // labels which get filled
-        mDigitizer.setLabelContainer(&labels);
+          // get the hits for this event and this source
+          std::vector<o2::hmpid::HitType> hits;
+          retrieveHits(mSimChains, "HMPHit", part.sourceID, part.entryID, &hits);
+          LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found HMP " << hits.size() << " hits ";
 
-        mDigitizer.process(hits, digits);
-        LOG(INFO) << "HMPID obtained " << digits.size() << " digits ";
-        LOG(INFO) << "NUMBER OF LABEL OBTAINED " << labels.getNElements();
-        std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
-        labelAccum.mergeAtBack(labels);
+          mDigitizer.setLabelContainer(&mLabels);
+          mLabels.clear();
+          mDigits.clear();
+
+          mDigitizer.process(hits, mDigits);
+        }
+      } else {
+        LOG(INFO) << "COLLISION " << collID << "FALLS WITHIN A DEAD TIME";
       }
     }
+    // final flushing step; getting everything not yet written out
+    flushDigitsAndLabels();
+
+    // send out to next stage
     pc.outputs().snapshot(Output{ "HMP", "DIGITS", 0, Lifetime::Timeframe }, digitsAccum);
     pc.outputs().snapshot(Output{ "HMP", "DIGITLBL", 0, Lifetime::Timeframe }, labelAccum);
 
@@ -136,7 +157,10 @@ class HMPIDDPLDigitizerTask
  private:
   HMPIDDigitizer mDigitizer;
   std::vector<TChain*> mSimChains;
-  // RS: at the moment using hardcoded flag for continuos readout
+  std::vector<o2::hmpid::Digit> mDigits;
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels; // labels which get filled
+
+  // RS: at the moment using hardcoded flag for continuous readout
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
 };
 

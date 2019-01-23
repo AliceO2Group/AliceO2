@@ -40,12 +40,24 @@ void HMPIDDigitizer::zeroSuppress(std::vector<o2::hmpid::Digit> const& digits, s
   }
 }
 
-// this will process hits and fill the digit vector with digits which are finalized
-void HMPIDDigitizer::process(std::vector<o2::hmpid::HitType> const& hits, std::vector<o2::hmpid::Digit>& digits)
+void HMPIDDigitizer::flush(std::vector<o2::hmpid::Digit>& digits)
+{
+  // flushing and finalizing digits in the workspace
+  zeroSuppress(mDigits, digits, mTmpLabelContainer, mRegisteredLabelContainer);
+  reset();
+}
+
+void HMPIDDigitizer::reset()
 {
   mIndexForPad.clear();
   mInvolvedPads.clear();
+  mDigits.clear();
+  mTmpLabelContainer.clear();
+}
 
+// this will process hits and fill the digit vector with digits which are finalized
+void HMPIDDigitizer::process(std::vector<o2::hmpid::HitType> const& hits, std::vector<o2::hmpid::Digit>& digits)
+{
   for (auto& hit : hits) {
     int chamber, pc, px, py;
     float totalQ;
@@ -96,7 +108,7 @@ void HMPIDDigitizer::process(std::vector<o2::hmpid::HitType> const& hits, std::v
         }
       } else {
         // create digit ... and register
-        mDigits.emplace_back(pad, totalQ * fraction);
+        mDigits.emplace_back(mCurrentTriggerTime, pad, totalQ * fraction);
         mIndexForPad[pad] = mDigits.size() - 1;
         mInvolvedPads.emplace_back(pad);
 
@@ -107,7 +119,4 @@ void HMPIDDigitizer::process(std::vector<o2::hmpid::HitType> const& hits, std::v
       }
     }
   }
-
-  // apply zero suppression (removes digits in the noise)
-  zeroSuppress(mDigits, digits, mTmpLabelContainer, mRegisteredLabelContainer);
 }
