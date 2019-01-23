@@ -10,11 +10,7 @@ set(HEADERS
     include/${MODULE_NAME}/Geometry.h
     )
 
-<<<<<<< HEAD
-=======
-
->>>>>>> first separation T0 V0
-Set(LINKDEF src/T0BaseLinkDef.h)
+  Set(LINKDEF src/T0BaseLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME fit_base_bucket)
 

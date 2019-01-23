@@ -76,7 +76,6 @@ void Digitizer::process(const std::vector<o2::fit::HitType>* hits, Digit* digit)
   }
 }
 
-<<<<<<< HEAD:Detectors/FIT/common/simulation/src/Digitizer.cxx
 void Digitizer::computeAverage(Digit& digit)
 {
   constexpr Float_t nPe_in_mip = 250.; // n ph. e. in one mip
@@ -199,6 +198,7 @@ void Digitizer::initParameters()
 void Digitizer::init()
 {
   std::cout << " @@@ Digitizer::init " << std::endl;
+
 }
 
 //_______________________________________________________________________

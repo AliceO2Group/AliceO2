@@ -94,7 +94,7 @@ class FITDPLDigitizerTask
 
     LOG(INFO) << "CALLING FIT DIGITIZATION";
 
-    static std::vector<o2::t0::HitType> hits;
+    static std::vector<o2::fit::HitType> hits;
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum;
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels;
     o2::fit::Digit digit;
