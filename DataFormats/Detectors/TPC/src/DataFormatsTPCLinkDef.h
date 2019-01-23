@@ -30,5 +30,10 @@
 #pragma link C++ class o2::TPC::Cluster + ;
 #pragma link C++ class std::vector < o2::TPC::Cluster > +;
 #pragma link C++ class std::vector < o2::TPC::TrackTPC > +;
+#pragma link C++ class o2::TPC::ClusterNativeHelper + ;
+#pragma link C++ class o2::TPC::ClusterNativeHelper::Reader + ;
+#pragma link C++ class o2::TPC::ClusterNativeHelper::TreeWriter + ;
+#pragma link C++ class o2::TPC::ClusterNativeHelper::TreeWriter::BranchData + ;
+#pragma link C++ class std::vector < o2::TPC::ClusterNativeHelper::TreeWriter::BranchData > +;
 
 #endif
