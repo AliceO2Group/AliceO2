@@ -11,7 +11,7 @@
 //  defines the run validity range of the object:                  //
 //  [mFirstRun, mLastRun]                                          //
 #include "CCDB/IdRunRange.h"
-#include <FairLogger.h>  // for LOG
+#include <fairlogger/Logger.h> // for LOG
 
 using namespace o2::ccdb;
 
@@ -37,12 +37,12 @@ Bool_t IdRunRange::isOverlappingWith(const IdRunRange &other) const
   // check if this runRange overlaps other runRange
 
   if (!(isValid() && other.isValid())) {
-    LOG(ERROR) << "Comparing invalid run ranges!" << FairLogger::endl;
+    LOG(ERROR) << "Comparing invalid run ranges!";
     return kFALSE;
   }
 
   if (isAnyRange() || other.isAnyRange()) {
-    LOG(ERROR) << "Comparing unspecified ranges!" << FairLogger::endl;
+    LOG(ERROR) << "Comparing unspecified ranges!";
     return kFALSE;
   }
 
@@ -55,7 +55,7 @@ Bool_t IdRunRange::isSupersetOf(const IdRunRange &other) const
   // check if this runRange contains other runRange
 
   if (!(isValid() && other.isValid())) {
-    LOG(ERROR) << "Comparing invalid run ranges!" << FairLogger::endl;
+    LOG(ERROR) << "Comparing invalid run ranges!";
     return kFALSE;
   }
 

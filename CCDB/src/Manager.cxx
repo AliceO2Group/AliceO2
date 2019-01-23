@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "CCDB/Manager.h"
-#include <FairLogger.h>    // for LOG
+#include <fairlogger/Logger.h> // for LOG
 #include <TGrid.h>         // for gGrid, TGrid
 #include <TKey.h>          // for TKey
 #include <TMessage.h>      // for TMessage
@@ -58,7 +58,7 @@ void Manager::init()
   registerFactory(new LocalStorageFactory());
   // GridStorageFactory is registered only if AliEn libraries are enabled in Root
   if (!gSystem->Exec("root-config --has-alien 2>/dev/null |grep yes 2>&1 > /dev/null")) { // returns 0 if yes
-    LOG(INFO) << "AliEn classes enabled in Root. GridStorage factory registered." << FairLogger::endl;
+    LOG(INFO) << "AliEn classes enabled in Root. GridStorage factory registered.";
     registerFactory(new GridStorageFactory());
   }
 }
@@ -78,7 +78,7 @@ void Manager::initFromCache(TMap *entryCache, Int_t run)
   // mCondition is the new owner of the cache
   mConditionCache.SetOwnerKeyValue(kTRUE, kTRUE);
   entryCache->SetOwnerKeyValue(kFALSE, kFALSE);
-  LOG(INFO) << mConditionCache.GetEntries() << " cache entries have been loaded" << FairLogger::endl;
+  LOG(INFO) << mConditionCache.GetEntries() << " cache entries have been loaded";
 }
 
 void Manager::dumpToSnapshotFile(const char *snapshotFileName, Bool_t singleKeys) const
@@ -92,13 +92,12 @@ void Manager::dumpToSnapshotFile(const char *snapshotFileName, Bool_t singleKeys
   // open the file
   TFile *f = TFile::Open(snapshotFileName, "RECREATE");
   if (!f || f->IsZombie()) {
-    LOG(ERROR) << "Cannot open file " << snapshotFileName << FairLogger::endl;
+    LOG(ERROR) << "Cannot open file " << snapshotFileName;
     return;
   }
 
-  LOG(INFO) << "Dumping entriesMap (entries'cache) with " << mConditionCache.GetEntries() << " entries!"
-            << FairLogger::endl;
-  LOG(INFO) << "Dumping entriesList with " << mIds->GetEntries() << "entries!" << FairLogger::endl;
+  LOG(INFO) << "Dumping entriesMap (entries'cache) with " << mConditionCache.GetEntries() << " entries!";
+  LOG(INFO) << "Dumping entriesList with " << mIds->GetEntries() << "entries!";
 
   f->cd();
   if (singleKeys) {
@@ -135,12 +134,12 @@ void Manager::dumpToLightSnapshotFile(const char *lightSnapshotFileName) const
   // open the file
   TFile *f = TFile::Open(lightSnapshotFileName, "RECREATE");
   if (!f || f->IsZombie()) {
-    LOG(ERROR) << "Cannot open file " << lightSnapshotFileName << FairLogger::endl;
+    LOG(ERROR) << "Cannot open file " << lightSnapshotFileName;
     return;
   }
 
-  LOG(INFO) << "Dumping map of storages with " << mStorageMap->GetEntries() << " entries!" << FairLogger::endl;
-  LOG(INFO) << "Dumping entriesList with " << mIds->GetEntries() << " entries!" << FairLogger::endl;
+  LOG(INFO) << "Dumping map of storages with " << mStorageMap->GetEntries() << " entries!";
+  LOG(INFO) << "Dumping entriesList with " << mIds->GetEntries() << " entries!";
   f->WriteObject(mStorageMap, "cdbStoragesMap");
   f->WriteObject(mIds, "CDBidsList");
 
@@ -156,7 +155,7 @@ Bool_t Manager::initFromSnapshot(const char *snapshotFileName, Bool_t overwrite)
 
   // if the manager is locked it cannot initialize from a snapshot
   if (mLock) {
-    LOG(ERROR) << "Being locked I cannot initialize from the snapshot!" << FairLogger::endl;
+    LOG(ERROR) << "Being locked I cannot initialize from the snapshot!";
     return kFALSE;
   }
 
@@ -166,7 +165,7 @@ Bool_t Manager::initFromSnapshot(const char *snapshotFileName, Bool_t overwrite)
     if (!gGrid) {
       TGrid::Connect("alien://", "");
       if (!gGrid) {
-        LOG(ERROR) << "Connection to alien failed!" << FairLogger::endl;
+        LOG(ERROR) << "Connection to alien failed!";
         return kFALSE;
       }
     }
@@ -174,7 +173,7 @@ Bool_t Manager::initFromSnapshot(const char *snapshotFileName, Bool_t overwrite)
 
   TFile *f = TFile::Open(snapshotFileName);
   if (!f || f->IsZombie()) {
-    LOG(ERROR) << "Cannot open file " << snapshotFileName << FairLogger::endl;
+    LOG(ERROR) << "Cannot open file " << snapshotFileName;
     return kFALSE;
   }
 
@@ -190,7 +189,7 @@ Bool_t Manager::initFromSnapshot(const char *snapshotFileName, Bool_t overwrite)
     break;
   }
   if (!entriesMap || entriesMap->GetEntries() == 0) {
-    LOG(ERROR) << "Cannot get valid map of CDB entries from snapshot file" << FairLogger::endl;
+    LOG(ERROR) << "Cannot get valid map of CDB entries from snapshot file";
     return kFALSE;
   }
 
@@ -206,7 +205,7 @@ Bool_t Manager::initFromSnapshot(const char *snapshotFileName, Bool_t overwrite)
     break;
   }
   if (!idsList || idsList->GetEntries() == 0) {
-    LOG(ERROR) << "Cannot get valid list of CDB entries from snapshot file" << FairLogger::endl;
+    LOG(ERROR) << "Cannot get valid list of CDB entries from snapshot file";
     return kFALSE;
   }
 
@@ -233,7 +232,7 @@ Bool_t Manager::initFromSnapshot(const char *snapshotFileName, Bool_t overwrite)
     }
     if (!correspondingId) {
       LOG(ERROR) << R"(id for ")" << path.Data()
-                 << R"(" not found in the snapshot (while entry was). This entry is skipped!)" << FairLogger::endl;
+                 << R"(" not found in the snapshot (while entry was). This entry is skipped!)";
       break;
     }
     Bool_t cached = mConditionCache.Contains(path.Data());
@@ -250,7 +249,7 @@ Bool_t Manager::initFromSnapshot(const char *snapshotFileName, Bool_t overwrite)
     if (overwrite) {
       if (cached || registeredId) {
         LOG(WARNING) << R"(An entry was already cached for ")" << path.Data()
-                     << R"(". Removing it before caching from snapshot)" << FairLogger::endl;
+                     << R"(". Removing it before caching from snapshot)";
         unloadFromCache(path.Data());
       }
       mConditionCache.Add(pair->Key(), pair->Value());
@@ -259,7 +258,7 @@ Bool_t Manager::initFromSnapshot(const char *snapshotFileName, Bool_t overwrite)
     } else {
       if (cached || registeredId) {
         LOG(WARNING) << R"(An entry was already cached for ")" << path.Data()
-                     << R"(". Not adding this object from snapshot)" << FairLogger::endl;
+                     << R"(". Not adding this object from snapshot)";
       } else {
         mConditionCache.Add(pair->Key(), pair->Value());
         mIds->Add(id);
@@ -273,7 +272,7 @@ Bool_t Manager::initFromSnapshot(const char *snapshotFileName, Bool_t overwrite)
   entriesMap->SetOwnerKeyValue(kFALSE, kFALSE);
   mIds->SetOwner(kTRUE);
   idsList->SetOwner(kFALSE);
-  LOG(INFO) << nAdded << " new (entry,id) cached. Total number " << mConditionCache.GetEntries() << FairLogger::endl;
+  LOG(INFO) << nAdded << " new (entry,id) cached. Total number " << mConditionCache.GetEntries();
 
   f->Close();
   delete f;
@@ -354,7 +353,7 @@ void Manager::putActiveStorage(StorageParameters *param, Storage *storage)
   // put a storage object into the list of active storages
 
   mActiveStorages.Add(param, storage);
-  LOG(DEBUG) << "Active storages: " << mActiveStorages.GetEntries() << FairLogger::endl;
+  LOG(DEBUG) << "Active storages: " << mActiveStorages.GetEntries();
 }
 
 void Manager::registerFactory(StorageFactory *factory)
@@ -435,7 +434,7 @@ void Manager::alienToCvmfsUri(TString &uriString) const
         entryValue.Replace(0, 36, "/cvmfs/alice-ocdb.cern.ch/calibration/MC");
       } else {
         LOG(FATAL) << "Environment variable for cvmfs OCDB folder set for an invalid OCDB storage:\n   "
-                   << entryValue.Data() << FairLogger::endl;
+                   << entryValue.Data();
       }
     } else {
       newUriString += entryKey;
@@ -467,7 +466,7 @@ Storage *Manager::getStorage(const char *dbString)
 
   StorageParameters *param = createStorageParameter(dbString);
   if (!param) {
-    LOG(ERROR) << "Failed to activate requested storage! Check URI: " << dbString << FairLogger::endl;
+    LOG(ERROR) << "Failed to activate requested storage! Check URI: " << dbString;
     return nullptr;
   }
 
@@ -492,8 +491,7 @@ Storage *Manager::getStorage(const StorageParameters *param)
   if (mLock) {
     if (mDefaultStorage) {
       LOG(FATAL) << "Lock is ON, and default storage is already set: cannot reset it or activate "
-                    "more storages!"
-                 << FairLogger::endl;
+                    "more storages!";
     }
   }
 
@@ -516,7 +514,7 @@ Storage *Manager::getStorage(const StorageParameters *param)
     }
   }
 
-  LOG(ERROR) << "Failed to activate requested storage! Check URI: " << param->getUri().Data() << FairLogger::endl;
+  LOG(ERROR) << "Failed to activate requested storage! Check URI: " << param->getUri().Data();
 
   return nullptr;
 }
@@ -569,7 +567,7 @@ Bool_t Manager::drain(Condition *entry)
 {
   // drain retrieved object to drain storage
 
-  LOG(DEBUG) << "draining into drain storage..." << FairLogger::endl;
+  LOG(DEBUG) << "draining into drain storage...";
   return mdrainStorage->putObject(entry);
 }
 
@@ -604,8 +602,7 @@ void Manager::setDefaultStorage(const char *storageUri)
   TString uriTemp(storageUri);
   if (uriTemp == "raw://") {
     mRaw = kTRUE; // read then by setRun to check if the method has to be called again with expanded uri
-    LOG(INFO) << "Setting the run-number will set the corresponding OCDB for raw data reconstruction."
-              << FairLogger::endl;
+    LOG(INFO) << "Setting the run-number will set the corresponding OCDB for raw data reconstruction.";
     return;
   }
 
@@ -618,7 +615,7 @@ void Manager::setDefaultStorage(const char *storageUri)
   }
 
   if (bckStorage && (mDefaultStorage != bckStorage)) {
-    LOG(WARNING) << "Existing default storage replaced: clearing cache!" << FairLogger::endl;
+    LOG(WARNING) << "Existing default storage replaced: clearing cache!";
     clearCache();
   }
 
@@ -641,7 +638,7 @@ void Manager::setDefaultStorage(const StorageParameters *param)
   }
 
   if (bckStorage && (mDefaultStorage != bckStorage)) {
-    LOG(WARNING) << "Existing default storage replaced: clearing cache!" << FairLogger::endl;
+    LOG(WARNING) << "Existing default storage replaced: clearing cache!";
     clearCache();
   }
 
@@ -659,8 +656,7 @@ void Manager::setDefaultStorage(Storage *storage)
   if (mLock) {
     if (mDefaultStorage) {
       LOG(FATAL) << "Lock is ON, and default storage is already set: cannot reset it or activate "
-                    "more storages!"
-                 << FairLogger::endl;
+                    "more storages!";
     }
   }
 
@@ -674,7 +670,7 @@ void Manager::setDefaultStorage(Storage *storage)
   mDefaultStorage = storage;
 
   if (bckStorage && (mDefaultStorage != bckStorage)) {
-    LOG(WARNING) << "Existing default storage replaced: clearing cache!" << FairLogger::endl;
+    LOG(WARNING) << "Existing default storage replaced: clearing cache!";
     clearCache();
   }
 
@@ -695,21 +691,20 @@ void Manager::validateCvmfsCase() const
   //    of valid files for the given run.
 
   if (!mCvmfsOcdb.BeginsWith("/cvmfs")) //!!!! to be commented out for testing
-    LOG(FATAL) << "OCDB_PATH set to an invalid path: " << mCvmfsOcdb.Data() << FairLogger::endl;
+    LOG(FATAL) << "OCDB_PATH set to an invalid path: " << mCvmfsOcdb.Data();
 
   TString cvmfsUri(mCvmfsOcdb);
   gSystem->ExpandPathName(cvmfsUri);
   if (gSystem->AccessPathName(cvmfsUri))
-    LOG(FATAL) << "OCDB_PATH set to an invalid path: " << cvmfsUri.Data() << FairLogger::endl;
+    LOG(FATAL) << "OCDB_PATH set to an invalid path: " << cvmfsUri.Data();
 
   // check that we find the two scripts we need
 
-  LOG(DEBUG) << "OCDB_PATH envvar is set. Changing OCDB storage from alien:// to local:///cvmfs type."
-             << FairLogger::endl;
+  LOG(DEBUG) << "OCDB_PATH envvar is set. Changing OCDB storage from alien:// to local:///cvmfs type.";
   cvmfsUri = cvmfsUri.Strip(TString::kTrailing, '/');
   cvmfsUri.Append("/bin/getOCDBFilesPerRun.sh");
   if (gSystem->AccessPathName(cvmfsUri))
-    LOG(FATAL) << "Cannot find valid script: " << cvmfsUri.Data() << FairLogger::endl;
+    LOG(FATAL) << "Cannot find valid script: " << cvmfsUri.Data();
 }
 
 void Manager::setDefaultStorageFromRun(Int_t run)
@@ -720,8 +715,7 @@ void Manager::setDefaultStorageFromRun(Int_t run)
   if (mLock) {
     if (mDefaultStorage) {
       LOG(FATAL) << "Lock is ON, and default storage is already set: cannot activate default "
-                    "storage from run number"
-                 << FairLogger::endl;
+                    "storage from run number";
     }
   }
 
@@ -739,7 +733,7 @@ void Manager::setDefaultStorageFromRun(Int_t run)
 
   setDefaultStorage(mLhcPeriod.Data());
   if (!mDefaultStorage)
-    LOG(FATAL) << mLhcPeriod.Data() << " storage not there! Please check!" << FairLogger::endl;
+    LOG(FATAL) << mLhcPeriod.Data() << " storage not there! Please check!";
 }
 
 void Manager::getLHCPeriodAgainstAlienFile(Int_t run, TString &lhcPeriod, Int_t &startRun, Int_t &endRun)
@@ -750,7 +744,7 @@ void Manager::getLHCPeriodAgainstAlienFile(Int_t run, TString &lhcPeriod, Int_t 
   if (!gGrid) {
     TGrid::Connect("alien://", "");
     if (!gGrid) {
-      LOG(ERROR) << "Connection to alien failed!" << FairLogger::endl;
+      LOG(ERROR) << "Connection to alien failed!";
       return;
     }
   }
@@ -759,18 +753,18 @@ void Manager::getLHCPeriodAgainstAlienFile(Int_t run, TString &lhcPeriod, Int_t 
   rndname += "OCDBFolderXML.";
   rndname += uuid.AsString();
   rndname += ".xml";
-  LOG(DEBUG) << "file to be copied = " << sOcdbFolderXmlFile.Data() << FairLogger::endl;
+  LOG(DEBUG) << "file to be copied = " << sOcdbFolderXmlFile.Data();
   if (!TFile::Cp(sOcdbFolderXmlFile.Data(), rndname.Data())) {
-    LOG(FATAL) << "Cannot make a local copy of OCDBFolder xml file in " << rndname.Data() << FairLogger::endl;
+    LOG(FATAL) << "Cannot make a local copy of OCDBFolder xml file in " << rndname.Data();
   }
   XmlHandler *saxcdb = new XmlHandler();
   saxcdb->setRun(run);
   TSAXParser *saxParser = new TSAXParser();
   saxParser->ConnectToHandler(" Handler", saxcdb);
   saxParser->ParseFile(rndname.Data());
-  LOG(INFO) << " LHC folder = " << saxcdb->getOcdbFolder().Data() << FairLogger::endl;
-  LOG(INFO) << " LHC period start run = " << saxcdb->getStartIdRunRange() << FairLogger::endl;
-  LOG(INFO) << " LHC period end run = " << saxcdb->getEndIdRunRange() << FairLogger::endl;
+  LOG(INFO) << " LHC folder = " << saxcdb->getOcdbFolder().Data();
+  LOG(INFO) << " LHC period start run = " << saxcdb->getStartIdRunRange();
+  LOG(INFO) << " LHC period end run = " << saxcdb->getEndIdRunRange();
   lhcPeriod = saxcdb->getOcdbFolder();
   startRun = saxcdb->getStartIdRunRange();
   endRun = saxcdb->getEndIdRunRange();
@@ -786,7 +780,7 @@ void Manager::getLHCPeriodAgainstCvmfsFile(Int_t run, TString &lhcPeriod, Int_t 
   getYearScript = getYearScript.Strip(TString::kTrailing, '/');
   getYearScript.Append("/bin/getUriFromYear.sh");
   if (gSystem->AccessPathName(getYearScript))
-    LOG(FATAL) << "Cannot find valid script: " << getYearScript.Data() << FairLogger::endl;
+    LOG(FATAL) << "Cannot find valid script: " << getYearScript.Data();
   TString inoutFile(gSystem->WorkingDirectory());
   inoutFile += "/uri_range_";
   inoutFile += TString::Itoa(run, 10);
@@ -794,16 +788,16 @@ void Manager::getLHCPeriodAgainstCvmfsFile(Int_t run, TString &lhcPeriod, Int_t 
   command += ' ';
   command += TString::Itoa(run, 10);
   command += Form(" > %s", inoutFile.Data());
-  LOG(DEBUG) << R"(Running command: ")" << command.Data() << R"(")" << FairLogger::endl;
+  LOG(DEBUG) << R"(Running command: ")" << command.Data() << R"(")";
   Int_t result = gSystem->Exec(command.Data());
   if (result != 0) {
-    LOG(FATAL) << R"(Was not able to execute ")" << command.Data() << R"(")" << FairLogger::endl;
+    LOG(FATAL) << R"(Was not able to execute ")" << command.Data() << R"(")";
   }
 
   // now read the file with the uri and first and last run
   std::ifstream file(inoutFile.Data());
   if (!file.is_open()) {
-    LOG(FATAL) << R"(Error opening file ")" << inoutFile.Data() << R"("!)" << FairLogger::endl;
+    LOG(FATAL) << R"(Error opening file ")" << inoutFile.Data() << R"("!)";
   }
   TString line;
   TObjArray *oStringsArray = nullptr;
@@ -830,12 +824,12 @@ void Manager::unsetDefaultStorage()
   // if lock is ON, action is forbidden!
   if (mLock) {
     if (mDefaultStorage) {
-      LOG(FATAL) << "Lock is ON: cannot unset default storage!" << FairLogger::endl;
+      LOG(FATAL) << "Lock is ON: cannot unset default storage!";
     }
   }
 
   if (mDefaultStorage) {
-    LOG(WARNING) << "Clearing cache!" << FairLogger::endl;
+    LOG(WARNING) << "Clearing cache!";
     clearCache();
   }
 
@@ -869,20 +863,19 @@ void Manager::setSpecificStorage(const char *calibType, const StorageParameters 
   // specific storages map
 
   if (!mDefaultStorage && !mRaw) {
-    LOG(ERROR) << "Please activate a default storage first!" << FairLogger::endl;
+    LOG(ERROR) << "Please activate a default storage first!";
     return;
   }
 
   IdPath aPath(calibType);
   if (!aPath.isValid()) {
-    LOG(ERROR) << "Not a valid path: " << calibType << FairLogger::endl;
+    LOG(ERROR) << "Not a valid path: " << calibType;
     return;
   }
 
   TObjString *objCalibType = new TObjString(aPath.getPathString());
   if (mSpecificStorages.Contains(objCalibType)) {
-    LOG(WARNING) << R"(Storage ")" << calibType << R"(" already activated! It will be replaced by the new one)"
-                 << FairLogger::endl;
+    LOG(WARNING) << R"(Storage ")" << calibType << R"(" already activated! It will be replaced by the new one)";
     StorageParameters *checkPar = dynamic_cast<StorageParameters *>(mSpecificStorages.GetValue(calibType));
     if (checkPar) {
       delete checkPar;
@@ -917,7 +910,7 @@ Storage *Manager::getSpecificStorage(const char *calibType)
 
   StorageParameters *checkPar = (StorageParameters *) mSpecificStorages.GetValue(calibPath.getPathString());
   if (!checkPar) {
-    LOG(ERROR) << calibType << " storage not found!" << FairLogger::endl;
+    LOG(ERROR) << calibType << " storage not found!";
     return nullptr;
   } else {
     return getStorage(checkPar);
@@ -957,8 +950,7 @@ Condition *Manager::getCondition(const IdPath &path, Int_t runNumber, Int_t vers
   if (runNumber < 0) {
     // RunNumber is not specified. Try with mRun
     if (mRun < 0) {
-      LOG(ERROR) << "Run number neither specified in query nor set in  Manager! Use  Manager::setRun."
-                 << FairLogger::endl;
+      LOG(ERROR) << "Run number neither specified in query nor set in  Manager! Use  Manager::setRun.";
       return nullptr;
     }
     runNumber = mRun;
@@ -981,21 +973,21 @@ Condition *Manager::getCondition(const ConditionId &queryId, Bool_t forceCaching
   // check if queryId's path and runRange are valid
   // queryId is invalid also if version is not specified and subversion is!
   if (!queryId.isValid()) {
-    LOG(ERROR) << "Invalid query: " << queryId.ToString().Data() << FairLogger::endl;
+    LOG(ERROR) << "Invalid query: " << queryId.ToString().Data();
     return nullptr;
   }
 
   // query is not specified if path contains wildcard or run range= [-1,-1]
   if (!queryId.isSpecified()) {
-    LOG(ERROR) << "Unspecified query: " << queryId.ToString().Data() << FairLogger::endl;
+    LOG(ERROR) << "Unspecified query: " << queryId.ToString().Data();
     return nullptr;
   }
 
   if (mLock && !(mRun >= queryId.getFirstRun() && mRun <= queryId.getLastRun()))
-    LOG(FATAL) << "Lock is ON: cannot use different run number than the internal one!" << FairLogger::endl;
+    LOG(FATAL) << "Lock is ON: cannot use different run number than the internal one!";
 
   if (mCache && !(mRun >= queryId.getFirstRun() && mRun <= queryId.getLastRun()))
-    LOG(WARNING) << "Run number explicitly set in query: CDB cache temporarily disabled!" << FairLogger::endl;
+    LOG(WARNING) << "Run number explicitly set in query: CDB cache temporarily disabled!";
 
   Condition *entry = nullptr;
 
@@ -1004,7 +996,7 @@ Condition *Manager::getCondition(const ConditionId &queryId, Bool_t forceCaching
     entry = (Condition *) mConditionCache.GetValue(queryId.getPathString());
   }
   if (entry) {
-    LOG(DEBUG) << "Object " << queryId.getPathString().Data() << " retrieved from cache !!" << FairLogger::endl;
+    LOG(DEBUG) << "Object " << queryId.getPathString().Data() << " retrieved from cache !!";
     return entry;
   }
 
@@ -1015,8 +1007,7 @@ Condition *Manager::getCondition(const ConditionId &queryId, Bool_t forceCaching
     if (mSnapshotMode && queryId.getFirstRun() == mRun) {
       entry = getConditionFromSnapshot(queryId.getPathString());
       if (entry) {
-        LOG(INFO) << R"(Object ")" << queryId.getPathString().Data() << R"(" retrieved from the snapshot.)"
-                  << FairLogger::endl;
+        LOG(INFO) << R"(Object ")" << queryId.getPathString().Data() << R"(" retrieved from the snapshot.)";
         if (queryId.getFirstRun() == mRun) { // no need to check mCache, mSnapshotMode not possible otherwise
           cacheCondition(queryId.getPathString(), entry);
         }
@@ -1033,7 +1024,7 @@ Condition *Manager::getCondition(const ConditionId &queryId, Bool_t forceCaching
   // Condition is not in cache (and, in case we are in snapshot mode, not in the snapshot either)
   // => retrieve it from the storage and cache it!!
   if (!mDefaultStorage) {
-    LOG(ERROR) << "No storage set!" << FairLogger::endl;
+    LOG(ERROR) << "No storage set!";
     return nullptr;
   }
 
@@ -1045,19 +1036,19 @@ Condition *Manager::getCondition(const ConditionId &queryId, Bool_t forceCaching
     UInt_t uId = aPar->GetUniqueID();
     version = Int_t(uId & 0xffff) - 1;
     subVersion = Int_t(uId >> 16) - 1;
-    LOG(DEBUG) << "Looking into storage: " << str.Data() << FairLogger::endl;
+    LOG(DEBUG) << "Looking into storage: " << str.Data();
   } else {
     aStorage = getDefaultStorage();
-    LOG(DEBUG) << "Looking into default storage" << FairLogger::endl;
+    LOG(DEBUG) << "Looking into default storage";
   }
 
   ConditionId finalQueryId(queryId);
   if (version >= 0) {
-    LOG(DEBUG) << "Specific version set to: " << version << FairLogger::endl;
+    LOG(DEBUG) << "Specific version set to: " << version;
     finalQueryId.setVersion(version);
   }
   if (subVersion >= 0) {
-    LOG(DEBUG) << "Specific subversion set to: " << subVersion << FairLogger::endl;
+    LOG(DEBUG) << "Specific subversion set to: " << subVersion;
     finalQueryId.setSubVersion(subVersion);
   }
   entry = aStorage->getObject(finalQueryId);
@@ -1080,12 +1071,12 @@ Condition *Manager::getConditionFromSnapshot(const char *path)
   TString sPath(path);
   sPath.ReplaceAll("/", "*");
   if (!mSnapshotFile) {
-    LOG(ERROR) << "No snapshot file is open!" << FairLogger::endl;
+    LOG(ERROR) << "No snapshot file is open!";
     return nullptr;
   }
   Condition *entry = dynamic_cast<Condition *>(mSnapshotFile->Get(sPath.Data()));
   if (!entry) {
-    LOG(DEBUG) << R"(Cannot get a CDB entry for ")" << path << R"(" from snapshot file)" << FairLogger::endl;
+    LOG(DEBUG) << R"(Cannot get a CDB entry for ")" << path << R"(" from snapshot file)";
     return nullptr;
   }
 
@@ -1097,7 +1088,7 @@ Bool_t Manager::setSnapshotMode(const char *snapshotFileName)
   // set the manager in snapshot mode
 
   if (!mCache) {
-    LOG(ERROR) << "Cannot set the CDB manage in snapshot mode if the cache is not active!" << FairLogger::endl;
+    LOG(ERROR) << "Cannot set the CDB manage in snapshot mode if the cache is not active!";
     return kFALSE;
   }
 
@@ -1107,7 +1098,7 @@ Bool_t Manager::setSnapshotMode(const char *snapshotFileName)
     if (!gGrid) {
       TGrid::Connect("alien://", "");
       if (!gGrid) {
-        LOG(ERROR) << "Connection to alien failed!" << FairLogger::endl;
+        LOG(ERROR) << "Connection to alien failed!";
         return kFALSE;
       }
     }
@@ -1115,11 +1106,11 @@ Bool_t Manager::setSnapshotMode(const char *snapshotFileName)
 
   mSnapshotFile = TFile::Open(snapshotFileName);
   if (!mSnapshotFile || mSnapshotFile->IsZombie()) {
-    LOG(ERROR) << "Cannot open file " << snapshotFileName << FairLogger::endl;
+    LOG(ERROR) << "Cannot open file " << snapshotFileName;
     return kFALSE;
   }
 
-  LOG(INFO) << "The CDB manager is set in snapshot mode!" << FairLogger::endl;
+  LOG(INFO) << "The CDB manager is set in snapshot mode!";
   mSnapshotMode = kTRUE;
   return kTRUE;
 }
@@ -1150,7 +1141,7 @@ Int_t Manager::getStartRunLHCPeriod()
   // for the current period
   // if set
   if (mStartRunLhcPeriod == -1)
-    LOG(WARNING) << "Run-range not yet set for the current LHC period." << FairLogger::endl;
+    LOG(WARNING) << "Run-range not yet set for the current LHC period.";
   return mStartRunLhcPeriod;
 }
 
@@ -1160,7 +1151,7 @@ Int_t Manager::getEndRunLHCPeriod()
   // for the current period
   // if set
   if (mEndRunLhcPeriod == -1)
-    LOG(WARNING) << "Run-range not yet set for the current LHC period." << FairLogger::endl;
+    LOG(WARNING) << "Run-range not yet set for the current LHC period.";
   return mEndRunLhcPeriod;
 }
 
@@ -1169,7 +1160,7 @@ TString Manager::getLHCPeriod()
   // get the current LHC period string
   //
   if (mLhcPeriod.IsWhitespace() || mLhcPeriod.IsNull())
-    LOG(WARNING) << "LHC period (OCDB folder) not yet set" << FairLogger::endl;
+    LOG(WARNING) << "LHC period (OCDB folder) not yet set";
   return mLhcPeriod;
 }
 
@@ -1181,8 +1172,7 @@ ConditionId *Manager::getId(const IdPath &path, Int_t runNumber, Int_t version, 
   if (runNumber < 0) {
     // RunNumber is not specified. Try with mRun
     if (mRun < 0) {
-      LOG(ERROR) << "Run number neither specified in query nor set in  Manager! Use  Manager::setRun."
-                 << FairLogger::endl;
+      LOG(ERROR) << "Run number neither specified in query nor set in  Manager! Use  Manager::setRun.";
       return nullptr;
     }
     runNumber = mRun;
@@ -1205,25 +1195,25 @@ ConditionId *Manager::getId(const ConditionId &query)
   // User must delete returned object!
 
   if (!mDefaultStorage) {
-    LOG(ERROR) << "No storage set!" << FairLogger::endl;
+    LOG(ERROR) << "No storage set!";
     return nullptr;
   }
 
   // check if query's path and runRange are valid
   // query is invalid also if version is not specified and subversion is!
   if (!query.isValid()) {
-    LOG(ERROR) << "Invalid query: " << query.ToString().Data() << FairLogger::endl;
+    LOG(ERROR) << "Invalid query: " << query.ToString().Data();
     return nullptr;
   }
 
   // query is not specified if path contains wildcard or run range= [-1,-1]
   if (!query.isSpecified()) {
-    LOG(ERROR) << "Unspecified query: " << query.ToString().Data() << FairLogger::endl;
+    LOG(ERROR) << "Unspecified query: " << query.ToString().Data();
     return nullptr;
   }
 
   if (mCache && query.getFirstRun() != mRun)
-    LOG(WARNING) << "Run number explicitly set in query: CDB cache temporarily disabled!" << FairLogger::endl;
+    LOG(WARNING) << "Run number explicitly set in query: CDB cache temporarily disabled!";
 
   Condition *entry = nullptr;
 
@@ -1233,7 +1223,7 @@ ConditionId *Manager::getId(const ConditionId &query)
   }
 
   if (entry) {
-    LOG(DEBUG) << "Object " << query.getPathString().Data() << " retrieved from cache !!" << FairLogger::endl;
+    LOG(DEBUG) << "Object " << query.getPathString().Data() << " retrieved from cache !!";
     return dynamic_cast<ConditionId *>(entry->getId().Clone());
   }
 
@@ -1244,11 +1234,11 @@ ConditionId *Manager::getId(const ConditionId &query)
   if (aPar) {
     aStorage = getStorage(aPar);
     TString str = aPar->getUri();
-    LOG(DEBUG) << "Looking into storage: " << str.Data() << FairLogger::endl;
+    LOG(DEBUG) << "Looking into storage: " << str.Data();
 
   } else {
     aStorage = getDefaultStorage();
-    LOG(DEBUG) << "Looking into default storage" << FairLogger::endl;
+    LOG(DEBUG) << "Looking into default storage";
   }
 
   return aStorage->getId(query);
@@ -1261,8 +1251,7 @@ TList *Manager::getAllObjects(const IdPath &path, Int_t runNumber, Int_t version
   if (runNumber < 0) {
     // RunNumber is not specified. Try with mRun
     if (mRun < 0) {
-      LOG(ERROR) << "Run number neither specified in query nor set in  Manager! Use  Manager::setRun."
-                 << FairLogger::endl;
+      LOG(ERROR) << "Run number neither specified in query nor set in  Manager! Use  Manager::setRun.";
       return nullptr;
     }
     runNumber = mRun;
@@ -1287,39 +1276,39 @@ TList *Manager::getAllObjects(const ConditionId &query)
   //            To get an object from cache use getObject() function
 
   if (!mDefaultStorage) {
-    LOG(ERROR) << "No storage set!" << FairLogger::endl;
+    LOG(ERROR) << "No storage set!";
     return nullptr;
   }
 
   if (!query.isValid()) {
-    LOG(ERROR) << "Invalid query: " << query.ToString().Data() << FairLogger::endl;
+    LOG(ERROR) << "Invalid query: " << query.ToString().Data();
     return nullptr;
   }
 
   if ((mSpecificStorages.GetEntries() > 0) && query.getPathString().BeginsWith('*')) {
     // if specific storages are active a query with "*" is ambiguous
-    LOG(ERROR) << "Query too generic in this context!" << FairLogger::endl;
+    LOG(ERROR) << "Query too generic in this context!";
     return nullptr;
   }
 
   if (query.isAnyRange()) {
-    LOG(ERROR) << "Unspecified run or runrange: " << query.ToString().Data() << FairLogger::endl;
+    LOG(ERROR) << "Unspecified run or runrange: " << query.ToString().Data();
     return nullptr;
   }
 
   if (mLock && query.getFirstRun() != mRun)
-    LOG(FATAL) << "Lock is ON: cannot use different run number than the internal one!" << FairLogger::endl;
+    LOG(FATAL) << "Lock is ON: cannot use different run number than the internal one!";
 
   StorageParameters *aPar = selectSpecificStorage(query.getPathString());
 
   Storage *aStorage;
   if (aPar) {
     aStorage = getStorage(aPar);
-    LOG(DEBUG) << "Looking into storage: " << aPar->getUri().Data() << FairLogger::endl;
+    LOG(DEBUG) << "Looking into storage: " << aPar->getUri().Data();
 
   } else {
     aStorage = getDefaultStorage();
-    LOG(DEBUG) << "Looking into default storage: " << aStorage->getUri().Data() << FairLogger::endl;
+    LOG(DEBUG) << "Looking into default storage: " << aStorage->getUri().Data();
   }
 
   TList *result = nullptr;
@@ -1332,20 +1321,20 @@ TList *Manager::getAllObjects(const ConditionId &query)
 
   // loop on result to check whether entries should be re-queried with specific storages
   if (mSpecificStorages.GetEntries() > 0 && !(mSpecificStorages.GetEntries() == 1 && aPar)) {
-    LOG(INFO) << "Now look into all other specific storages..." << FairLogger::endl;
+    LOG(INFO) << "Now look into all other specific storages...";
 
     TIter iter(result);
     Condition *chkCondition = nullptr;
 
     while ((chkCondition = dynamic_cast<Condition *>(iter.Next()))) {
       ConditionId &chkId = chkCondition->getId();
-      LOG(DEBUG) << "Checking id " << chkId.getPathString().Data() << " " << FairLogger::endl;
+      LOG(DEBUG) << "Checking id " << chkId.getPathString().Data() << " ";
       StorageParameters *chkPar = selectSpecificStorage(chkId.getPathString());
       if (!chkPar || aPar == chkPar) {
         continue;
       }
       Storage *chkStorage = getStorage(chkPar);
-      LOG(DEBUG) << "Found specific storage! " << chkPar->getUri().Data() << FairLogger::endl;
+      LOG(DEBUG) << "Found specific storage! " << chkPar->getUri().Data();
 
       chkId.setIdRunRange(query.getFirstRun(), query.getLastRun());
       UInt_t uId = chkPar->GetUniqueID();
@@ -1379,10 +1368,10 @@ TList *Manager::getAllObjects(const ConditionId &query)
     }
 
     Int_t nEntries = result->GetEntries();
-    LOG(INFO) << "After look into other specific storages, result list is:" << FairLogger::endl;
+    LOG(INFO) << "After look into other specific storages, result list is:";
     for (int i = 0; i < nEntries; i++) {
       Condition *entry = (Condition *) result->At(i);
-      LOG(INFO) << entry->getId().ToString().Data() << FairLogger::endl;
+      LOG(INFO) << entry->getId().ToString().Data();
     }
   }
 
@@ -1407,7 +1396,7 @@ Bool_t Manager::putObject(TObject *object, const ConditionId &id, ConditionMetaD
   // store an  Condition object into the database
 
   if (object == nullptr) {
-    LOG(ERROR) << "Null Condition! No storage will be done!" << FairLogger::endl;
+    LOG(ERROR) << "Null Condition! No storage will be done!";
     return kFALSE;
   }
 
@@ -1420,27 +1409,27 @@ Bool_t Manager::putCondition(Condition *entry, const char *mirrors)
   // store an  Condition object into the database
 
   if (!mDefaultStorage) {
-    LOG(ERROR) << "No storage set!" << FairLogger::endl;
+    LOG(ERROR) << "No storage set!";
     return kFALSE;
   }
 
   if (!entry) {
-    LOG(ERROR) << "No entry!" << FairLogger::endl;
+    LOG(ERROR) << "No entry!";
     return kFALSE;
   }
 
   if (entry->getObject() == nullptr) {
-    LOG(ERROR) << "No valid object in CDB entry!" << FairLogger::endl;
+    LOG(ERROR) << "No valid object in CDB entry!";
     return kFALSE;
   }
 
   if (!entry->getId().isValid()) {
-    LOG(ERROR) << "Invalid entry ID: " << entry->getId().ToString().Data() << FairLogger::endl;
+    LOG(ERROR) << "Invalid entry ID: " << entry->getId().ToString().Data();
     return kFALSE;
   }
 
   if (!entry->getId().isSpecified()) {
-    LOG(ERROR) << "Unspecified entry ID: " << entry->getId().ToString().Data() << FairLogger::endl;
+    LOG(ERROR) << "Unspecified entry ID: " << entry->getId().ToString().Data();
     return kFALSE;
   }
 
@@ -1455,7 +1444,7 @@ Bool_t Manager::putCondition(Condition *entry, const char *mirrors)
     aStorage = getDefaultStorage();
   }
 
-  LOG(DEBUG) << "Storing object into storage: " << aStorage->getUri().Data() << FairLogger::endl;
+  LOG(DEBUG) << "Storing object into storage: " << aStorage->getUri().Data();
 
   TString strMirrors(mirrors);
   Bool_t result = kFALSE;
@@ -1477,8 +1466,7 @@ void Manager::setMirrorSEs(const char *mirrors)
   // set mirror Storage Elements for the default storage, if it is of type "alien"
   if (mDefaultStorage->getStorageType() != "alien") {
     LOG(INFO)
-      << R"(The default storage is not of type "alien". Settings for Storage Elements are not taken into account!)"
-      << FairLogger::endl;
+      << R"(The default storage is not of type "alien". Settings for Storage Elements are not taken into account!)";
     return;
   }
   mDefaultStorage->setMirrorSEs(mirrors);
@@ -1489,8 +1477,7 @@ const char *Manager::getMirrorSEs() const
   // get mirror Storage Elements for the default storage, if it is of type "alien"
   if (mDefaultStorage->getStorageType() != "alien") {
     LOG(INFO)
-      << R"(The default storage is not of type "alien". Settings for Storage Elements are not taken into account!)"
-      << FairLogger::endl;
+      << R"(The default storage is not of type "alien". Settings for Storage Elements are not taken into account!)";
     return "";
   }
   return mDefaultStorage->getMirrorSEs();
@@ -1503,14 +1490,14 @@ void Manager::cacheCondition(const char *path, Condition *entry)
   Condition *chkCondition = dynamic_cast<Condition *>(mConditionCache.GetValue(path));
 
   if (chkCondition) {
-    LOG(DEBUG) << "Object " << path << " already in cache !!" << FairLogger::endl;
+    LOG(DEBUG) << "Object " << path << " already in cache !!";
     return;
   } else {
-    LOG(DEBUG) << "Caching entry " << path << FairLogger::endl;
+    LOG(DEBUG) << "Caching entry " << path;
   }
 
   mConditionCache.Add(new TObjString(path), entry);
-  LOG(DEBUG) << "Cache entries: " << mConditionCache.GetEntries() << FairLogger::endl;
+  LOG(DEBUG) << "Cache entries: " << mConditionCache.GetEntries();
 }
 
 void Manager::print(Option_t * /*option*/) const
@@ -1539,7 +1526,7 @@ void Manager::print(Option_t * /*option*/) const
   if (mdrainStorage) {
     output += Form("*** drain Storage URI: %s\n", mdrainStorage->getUri().Data());
   }
-  LOG(INFO) << output.Data() << FairLogger::endl;
+  LOG(INFO) << output.Data();
 }
 
 void Manager::setRun(Int_t run)
@@ -1552,7 +1539,7 @@ void Manager::setRun(Int_t run)
   }
 
   if (mLock && mRun >= 0) {
-    LOG(FATAL) << "Lock is ON, cannot reset run number!" << FairLogger::endl;
+    LOG(FATAL) << "Lock is ON, cannot reset run number!";
   }
 
   mRun = run;
@@ -1561,7 +1548,7 @@ void Manager::setRun(Int_t run)
     // here the LHCPeriod xml file is parsed; the string containing the correct period is returned;
     // the default storage is set
     if (mStartRunLhcPeriod <= run && mEndRunLhcPeriod >= run) {
-      LOG(INFO) << "LHCPeriod alien folder for current run already in memory" << FairLogger::endl;
+      LOG(INFO) << "LHCPeriod alien folder for current run already in memory";
     } else {
       setDefaultStorageFromRun(mRun);
       if (mConditionCache.GetEntries() != 0) {
@@ -1578,7 +1565,7 @@ void Manager::clearCache()
 {
   // clear  Condition cache
 
-  LOG(DEBUG) << "Cache entries to be deleted: " << mConditionCache.GetEntries() << FairLogger::endl;
+  LOG(DEBUG) << "Cache entries to be deleted: " << mConditionCache.GetEntries();
 
   /*
   // To clean entries one by one
@@ -1588,13 +1575,13 @@ void Manager::clearCache()
 
   TObjString* key = dynamic_cast<TObjString*> (pair->Key());
    Condition* entry = dynamic_cast< Condition*> (pair->Value());
-  LOG(DEBUG) << "Deleting entry: " << key->GetName() << FairLogger::endl;
+  LOG(DEBUG) << "Deleting entry: " << key->GetName();
   if (entry) delete entry;
   delete mConditionCache.Remove(key);
   }
   */
   mConditionCache.DeleteAll();
-  LOG(DEBUG) << "After deleting - Cache entries: " << mConditionCache.GetEntries() << FairLogger::endl;
+  LOG(DEBUG) << "After deleting - Cache entries: " << mConditionCache.GetEntries();
 }
 
 void Manager::unloadFromCache(const char *path)
@@ -1603,7 +1590,7 @@ void Manager::unloadFromCache(const char *path)
   // that is remove the entry from the cache and the id from the list of ids
   //
   if (!mActiveStorages.GetEntries()) {
-    LOG(DEBUG) << R"(No active storages. Object ")" << path << R"(" is not unloaded from cache)" << FairLogger::endl;
+    LOG(DEBUG) << R"(No active storages. Object ")" << path << R"(" is not unloaded from cache)";
     return;
   }
 
@@ -1614,7 +1601,7 @@ void Manager::unloadFromCache(const char *path)
 
   if (!queryPath.isWildcard()) { // path is not wildcard, get it directly from the cache and unload it!
     if (mConditionCache.Contains(path)) {
-      LOG(DEBUG) << R"(Unloading object ")" << path << R"(" from cache and from list of ids)" << FairLogger::endl;
+      LOG(DEBUG) << R"(Unloading object ")" << path << R"(" from cache and from list of ids)";
       TObjString pathStr(path);
       delete mConditionCache.Remove(&pathStr);
       // we do not remove from the list of ConditionId's (it's not very coherent but we leave the
@@ -1627,9 +1614,9 @@ void Manager::unloadFromCache(const char *path)
          delete mIds->Remove(id);
          }*/
     } else {
-      LOG(WARNING) << R"(Cache does not contain object ")" << path << R"("!)" << FairLogger::endl;
+      LOG(WARNING) << R"(Cache does not contain object ")" << path << R"("!)";
     }
-    LOG(DEBUG) << "Cache entries: " << mConditionCache.GetEntries() << FairLogger::endl;
+    LOG(DEBUG) << "Cache entries: " << mConditionCache.GetEntries();
     return;
   }
 
@@ -1642,8 +1629,7 @@ void Manager::unloadFromCache(const char *path)
     IdPath entryPath = pair->Key()->GetName();
     if (queryPath.isSupersetOf(entryPath)) {
       LOG(DEBUG) << R"(Unloading object ")" << entryPath.getPathString().Data()
-                 << R"(" from cache and from list of ids)"
-                 << FairLogger::endl;
+                 << R"(" from cache and from list of ids)";
       TObjString pathStr(entryPath.getPathString());
       delete mConditionCache.Remove(&pathStr);
       removed++;
@@ -1662,8 +1648,7 @@ void Manager::unloadFromCache(const char *path)
          }*/
     }
   }
-  LOG(DEBUG) << "Cache entries and ids removed: " << removed << " Remaining: " << mConditionCache.GetEntries()
-             << FairLogger::endl;
+  LOG(DEBUG) << "Cache entries and ids removed: " << removed << " Remaining: " << mConditionCache.GetEntries();
 }
 
 void Manager::destroyActiveStorages()
@@ -1695,17 +1680,17 @@ void Manager::queryStorages()
   // its list.
 
   if (mRun < 0) {
-    LOG(ERROR) << "Run number not yet set! Use  Manager::setRun." << FairLogger::endl;
+    LOG(ERROR) << "Run number not yet set! Use  Manager::setRun.";
     return;
   }
   if (!mDefaultStorage) {
-    LOG(ERROR) << "Default storage is not set! Use  Manager::setDefaultStorage" << FairLogger::endl;
+    LOG(ERROR) << "Default storage is not set! Use  Manager::setDefaultStorage";
     return;
   }
   if (mDefaultStorage->getStorageType() == "alien" || mDefaultStorage->getStorageType() == "local") {
     mDefaultStorage->queryStorages(mRun);
     //} else {
-    //  LOG(DEBUG) << "Skipping query for valid files, it used only in grid..." << FairLogger::endl;
+    //  LOG(DEBUG) << "Skipping query for valid files, it used only in grid...";
   }
 
   TIter iter(&mSpecificStorages);
@@ -1714,12 +1699,12 @@ void Manager::queryStorages()
   while ((aCalibType = dynamic_cast<TObjString *>(iter.Next()))) {
     aPar = (StorageParameters *) mSpecificStorages.GetValue(aCalibType);
     if (aPar) {
-      LOG(DEBUG) << "Querying specific storage " << aCalibType->GetName() << FairLogger::endl;
+      LOG(DEBUG) << "Querying specific storage " << aCalibType->GetName();
       Storage *aStorage = getStorage(aPar);
       if (aStorage->getStorageType() == "alien" || aStorage->getStorageType() == "local") {
         aStorage->queryStorages(mRun, aCalibType->GetName());
       } else {
-        LOG(DEBUG) << "Skipping query for valid files, it is used only in grid..." << FairLogger::endl;
+        LOG(DEBUG) << "Skipping query for valid files, it is used only in grid...";
       }
     }
   }
@@ -1808,8 +1793,7 @@ ULong64_t Manager::setLock(Bool_t lock, ULong64_t key)
     if (mKey) {
       // Lock has a user - check his key
       if (mKey != key) {
-        LOG(FATAL) << "Wrong key provided to lock CDB. Please remove CDB lock access from your code !"
-                   << FairLogger::endl;
+        LOG(FATAL) << "Wrong key provided to lock CDB. Please remove CDB lock access from your code !";
         return 0;
       }
     }
@@ -1820,7 +1804,7 @@ ULong64_t Manager::setLock(Bool_t lock, ULong64_t key)
   }
   // User wants to unlock - check the provided key
   if (key != mKey) {
-    LOG(FATAL) << "Lock is ON: wrong key provided" << FairLogger::endl;
+    LOG(FATAL) << "Lock is ON: wrong key provided";
     return 0;
   }
   mLock = kFALSE;

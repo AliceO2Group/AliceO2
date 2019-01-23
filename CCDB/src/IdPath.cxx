@@ -11,7 +11,7 @@
 //  Path string identifying the object:                            //
 //  (example: "ZDC/Calib/Pedestals")                               //
 #include "CCDB/IdPath.h"
-#include <FairLogger.h>  // for LOG
+#include <fairlogger/Logger.h> // for LOG
 #include <TObjArray.h>   // for TObjArray
 #include <TObjString.h>  // for TObjString
 #include <TRegexp.h>     // for TRegexp
@@ -56,7 +56,7 @@ IdPath::IdPath(const char *level0, const char *level1, const char *level2)
     mValid = kTRUE;
   } else {
     mValid = kFALSE;
-    LOG(ERROR) << R"(Invalid  Path ")" << level0 << "/" << level1 << "/" << level2 << R"("!)" << FairLogger::endl;
+    LOG(ERROR) << R"(Invalid  Path ")" << level0 << "/" << level1 << "/" << level2 << R"("!)";
   }
 
   init();
@@ -132,7 +132,7 @@ void IdPath::InitPath()
   }
 
   if (!mValid) {
-    LOG(INFO) << R"(Invalid  Path ")" << mPath.Data() << R"("!)" << FairLogger::endl;
+    LOG(INFO) << R"(Invalid  Path ")" << mPath.Data() << R"("!)";
   } else {
     mPath = Form("%s/%s/%s", mLevel0.Data(), mLevel1.Data(), mLevel2.Data());
   }

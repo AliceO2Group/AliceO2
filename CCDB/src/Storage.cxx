@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "CCDB/Storage.h"
-#include <FairLogger.h>         // for LOG
+#include <fairlogger/Logger.h> // for LOG
 #include <TH1.h>                // for TH1
 #include <TKey.h>               // for TKey
 #include <TNtuple.h>            // for TNtuple
@@ -59,7 +59,7 @@ void Storage::getSelection(/*const*/ ConditionId *id)
   while ((aSelection = (ConditionId *) iter.Next())) {
     // check if selection element contains id's path and run (range)
     if (aSelection->isSupersetOf(*id)) {
-      LOG(DEBUG) << "Using selection criterion: " << aSelection->ToString().Data() << " " << FairLogger::endl;
+      LOG(DEBUG) << "Using selection criterion: " << aSelection->ToString().Data() << " ";
       // return required version and subversion
 
       id->setVersion(aSelection->getVersion());
@@ -69,7 +69,7 @@ void Storage::getSelection(/*const*/ ConditionId *id)
   }
 
   // no valid element is found in the list of selection criteria -> return
-  LOG(DEBUG) << "Looking for objects with most recent version" << FairLogger::endl;
+  LOG(DEBUG) << "Looking for objects with most recent version";
   return;
 }
 
@@ -97,7 +97,7 @@ void Storage::readSelectionFromFile(const char *fileName)
     }
   }
   delete list;
-  LOG(INFO) << "Selection criteria list filled with " << mSelections.GetEntries() << " entries" << FairLogger::endl;
+  LOG(INFO) << "Selection criteria list filled with " << mSelections.GetEntries() << " entries";
   printSelectionList();
 }
 
@@ -114,8 +114,8 @@ void Storage::addSelection(const ConditionId &selection)
   const ConditionId *anId;
   while ((anId = (ConditionId *) iter.Next())) {
     if (selection.isSupersetOf(*anId)) {
-      LOG(WARNING) << "This selection is more general than a previous one and will hide it!" << FairLogger::endl;
-      LOG(WARNING) << (anId->ToString()).Data() << FairLogger::endl;
+      LOG(WARNING) << "This selection is more general than a previous one and will hide it!";
+      LOG(WARNING) << (anId->ToString()).Data();
       mSelections.AddBefore(anId, new ConditionId(selection));
       return;
     }
@@ -189,7 +189,7 @@ void Storage::printSelectionList()
   // loop on the list of selection criteria
   int index = 0;
   while ((aSelection = (ConditionId *) iter.Next())) {
-    LOG(INFO) << "index " << index++ << " -> selection: " << aSelection->ToString().Data() << FairLogger::endl;
+    LOG(INFO) << "index " << index++ << " -> selection: " << aSelection->ToString().Data();
   }
 }
 
@@ -200,13 +200,13 @@ Condition *Storage::getObject(const ConditionId &query)
   // check if query's path and runRange are valid
   // query is invalid also if version is not specified and subversion is!
   if (!query.isValid()) {
-    LOG(ERROR) << "Invalid query: " << query.ToString().Data() << FairLogger::endl;
+    LOG(ERROR) << "Invalid query: " << query.ToString().Data();
     return nullptr;
   }
 
   // query is not specified if path contains wildcard or runrange = [-1,-1]
   if (!query.isSpecified()) {
-    LOG(ERROR) << "Unspecified query: " << query.ToString().Data() << FairLogger::endl;
+    LOG(ERROR) << "Unspecified query: " << query.ToString().Data();
     return nullptr;
   }
 
@@ -247,12 +247,12 @@ TList *Storage::getAllObjects(const ConditionId &query)
   // get multiple  Condition objects from the database
 
   if (!query.isValid()) {
-    LOG(ERROR) << "Invalid query: " << query.ToString().Data() << FairLogger::endl;
+    LOG(ERROR) << "Invalid query: " << query.ToString().Data();
     return nullptr;
   }
 
   if (query.isAnyRange()) {
-    LOG(ERROR) << "Unspecified run or runrange: " << query.ToString().Data() << FairLogger::endl;
+    LOG(ERROR) << "Unspecified run or runrange: " << query.ToString().Data();
     return nullptr;
   }
 
@@ -268,10 +268,10 @@ TList *Storage::getAllObjects(const ConditionId &query)
 
   Int_t nEntries = result->GetEntries();
 
-  LOG(INFO) << nEntries << " objects retrieved. Request was: " << query.ToString().Data() << FairLogger::endl;
+  LOG(INFO) << nEntries << " objects retrieved. Request was: " << query.ToString().Data();
   for (int i = 0; i < nEntries; i++) {
     Condition *entry = (Condition *) result->At(i);
-    LOG(INFO) << entry->getId().ToString().Data() << FairLogger::endl;
+    LOG(INFO) << entry->getId().ToString().Data();
   }
 
   // if drain storage is set, drain entries into drain storage
@@ -306,13 +306,13 @@ ConditionId *Storage::getId(const ConditionId &query)
   // check if query's path and runRange are valid
   // query is invalid also if version is not specified and subversion is!
   if (!query.isValid()) {
-    LOG(ERROR) << "Invalid query: " << query.ToString().Data() << FairLogger::endl;
+    LOG(ERROR) << "Invalid query: " << query.ToString().Data();
     return nullptr;
   }
 
   // query is not specified if path contains wildcard or runrange = [-1,-1]
   if (!query.isSpecified()) {
-    LOG(ERROR) << "Unspecified query: " << query.ToString().Data() << FairLogger::endl;
+    LOG(ERROR) << "Unspecified query: " << query.ToString().Data();
     return nullptr;
   }
 
@@ -340,7 +340,7 @@ Bool_t Storage::putObject(TObject *object, ConditionId &id, ConditionMetaData *m
   // store an  Condition object into the database
 
   if (object == nullptr) {
-    LOG(ERROR) << "Null Condition! No storage will be done!" << FairLogger::endl;
+    LOG(ERROR) << "Null Condition! No storage will be done!";
     return kFALSE;
   }
 
@@ -354,22 +354,22 @@ Bool_t Storage::putObject(Condition *entry, const char *mirrors)
   // store an  Condition object into the database
 
   if (!entry) {
-    LOG(ERROR) << "No entry!" << FairLogger::endl;
+    LOG(ERROR) << "No entry!";
     return kFALSE;
   }
 
   if (entry->getObject() == nullptr) {
-    LOG(ERROR) << "No valid object in CDB entry!" << FairLogger::endl;
+    LOG(ERROR) << "No valid object in CDB entry!";
     return kFALSE;
   }
 
   if (!entry->getId().isValid()) {
-    LOG(ERROR) << "Invalid entry ID: " << entry->getId().ToString().Data() << FairLogger::endl;
+    LOG(ERROR) << "Invalid entry ID: " << entry->getId().ToString().Data();
     return kFALSE;
   }
 
   if (!entry->getId().isSpecified()) {
-    LOG(ERROR) << "Unspecified entry ID: " << entry->getId().ToString().Data() << FairLogger::endl;
+    LOG(ERROR) << "Unspecified entry ID: " << entry->getId().ToString().Data();
     return kFALSE;
   }
 
@@ -392,7 +392,7 @@ void Storage::queryStorages(Int_t run, const char *pathFilter, Int_t version, Co
 
   mPathFilter = pathFilter;
   if (!mPathFilter.isValid()) {
-    LOG(ERROR) << "Filter not valid: " << pathFilter << FairLogger::endl;
+    LOG(ERROR) << "Filter not valid: " << pathFilter;
     mPathFilter = "*";
     return;
   }
@@ -400,18 +400,16 @@ void Storage::queryStorages(Int_t run, const char *pathFilter, Int_t version, Co
   mVersion = version;
 
   LOG(INFO) << "Querying files valid for run " << mRun << R"( and path ")" << pathFilter << R"(" into CDB storage ")"
-            << mType.Data() << "://" << mBaseFolder.Data() << R"(")" << FairLogger::endl;
+            << mType.Data() << "://" << mBaseFolder.Data() << R"(")";
 
   // In mValidFileIds, clear id for the same 3level path, if any
-  LOG(DEBUG) << R"(Clearing list of CDB ConditionId's previously loaded for path ")" << pathFilter << R"(")"
-             << FairLogger::endl;
+  LOG(DEBUG) << R"(Clearing list of CDB ConditionId's previously loaded for path ")" << pathFilter << R"(")";
   IdPath filter(pathFilter);
   for (Int_t i = mValidFileIds.GetEntries() - 1; i >= 0; --i) {
     ConditionId *rmMe = dynamic_cast<ConditionId *>(mValidFileIds.At(i));
     IdPath rmPath = rmMe->getPathString();
     if (filter.isSupersetOf(rmPath)) {
-      LOG(DEBUG) << R"(Removing id ")" << rmPath.getPathString().Data() << R"(" matching: ")" << pathFilter << R"(")"
-                 << FairLogger::endl;
+      LOG(DEBUG) << R"(Removing id ")" << rmPath.getPathString().Data() << R"(" matching: ")" << pathFilter << R"(")";
       delete mValidFileIds.RemoveAt(i);
     }
   }
@@ -426,7 +424,7 @@ void Storage::queryStorages(Int_t run, const char *pathFilter, Int_t version, Co
 
   queryValidFiles();
 
-  LOG(INFO) << mValidFileIds.GetEntries() << " valid files found!" << FairLogger::endl;
+  LOG(INFO) << mValidFileIds.GetEntries() << " valid files found!";
 }
 
 void Storage::printrQueryStorages()
@@ -434,7 +432,7 @@ void Storage::printrQueryStorages()
   // print parameters used to load list of CDB ConditionId's (mRun, mPathFilter, mVersion)
 
   ConditionId paramId(mPathFilter, mRun, mRun, mVersion);
-  LOG(INFO) << "**** queryStorages Parameters **** \n\t\"" << paramId.ToString().Data() << R"(")" << FairLogger::endl;
+  LOG(INFO) << "**** queryStorages Parameters **** \n\t\"" << paramId.ToString().Data() << R"(")";
 
   if (mConditionMetaDataFilter) {
     mConditionMetaDataFilter->printConditionMetaData();
@@ -449,7 +447,7 @@ void Storage::printrQueryStorages()
     message += Form("\t%s\n", anId->ToString().Data());
   }
   message += Form("\n\tTotal: %d objects found\n", mValidFileIds.GetEntriesFast());
-  LOG(INFO) << message.Data() << FairLogger::endl;
+  LOG(INFO) << message.Data();
 }
 
 void Storage::setMirrorSEs(const char *mirrors)
@@ -461,10 +459,10 @@ void Storage::setMirrorSEs(const char *mirrors)
   if (storageType != "alien") {
     LOG(WARNING) << R"(The current storage is of type ")" << storageType.Data() << R"(". Setting of SEs to ")"
                  << mirrors
-                 << R"(" skipped!)" << FairLogger::endl;
+                 << R"(" skipped!)";
     return;
   }
-  LOG(ERROR) << "We should never get here!!  GridStorage must have masked this virtual method!" << FairLogger::endl;
+  LOG(ERROR) << "We should never get here!!  GridStorage must have masked this virtual method!";
   return;
 }
 
@@ -476,10 +474,10 @@ const char *Storage::getMirrorSEs() const
   TString storageType = getStorageType();
   if (storageType != "alien") {
     LOG(WARNING) << R"(The current storage is of type ")" << storageType.Data()
-                 << R"(" and cannot handle SEs. Returning empty string!)" << FairLogger::endl;
+                 << R"(" and cannot handle SEs. Returning empty string!)";
     return "";
   }
-  LOG(ERROR) << "We should never get here!!  GridStorage must have masked this virtual method!" << FairLogger::endl;
+  LOG(ERROR) << "We should never get here!!  GridStorage must have masked this virtual method!";
   return "";
 }
 
@@ -489,14 +487,14 @@ void Storage::loadTreeFromFile(Condition *entry) const
 
   TObject *obj = (TObject *) entry->getObject();
   if (!obj) {
-    LOG(ERROR) << "Cannot retrieve the object:" << FairLogger::endl;
+    LOG(ERROR) << "Cannot retrieve the object:";
     entry->printConditionMetaData();
     return;
   }
 
   if (!strcmp(obj->ClassName(), TTree::Class_Name())) {
 
-    LOG(WARNING) << "Condition contains a TTree! Loading baskets..." << FairLogger::endl;
+    LOG(WARNING) << "Condition contains a TTree! Loading baskets...";
 
     TTree *tree = dynamic_cast<TTree *>(obj);
 
@@ -508,7 +506,7 @@ void Storage::loadTreeFromFile(Condition *entry) const
     tree->SetDirectory(nullptr);
   } else if (!strcmp(obj->ClassName(), TNtuple::Class_Name())) {
 
-    LOG(WARNING) << "Condition contains a TNtuple! Loading baskets..." << FairLogger::endl;
+    LOG(WARNING) << "Condition contains a TNtuple! Loading baskets...";
 
     TNtuple *ntu = dynamic_cast<TNtuple *>(obj);
 
