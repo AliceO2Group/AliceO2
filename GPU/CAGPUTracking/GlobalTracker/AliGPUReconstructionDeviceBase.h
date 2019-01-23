@@ -57,11 +57,18 @@ protected:
 	
 	struct AliGPUProcessorWorkers : public AliGPUProcessor
 	{
-		AliGPUTPCTracker *fGpuTracker = nullptr; //Tracker Objects that will be used on the GPU
+		AliGPUTPCTracker *fGpuTracker = nullptr;
 		AliGPUTPCGMMerger* fGpuMerger = nullptr;
+		TPCFastTransform* fTpcTransform = nullptr;
+		char* fTpcTransformBuffer = nullptr;
+		o2::trd::TRDGeometryFlat* fTrdGeometry = nullptr;
 		void* SetPointersDeviceProcessor(void* mem);
-		short mMemoryResWorkers;
+		void* SetPointersFlatObjects(void* mem);
+		short mMemoryResWorkers = -1;
+		short mMemoryResFlat = -1;
 	};
+	
+	int PrepareFlatObjects();
 
 	int Reconstruct_Base_Init();
 	int Reconstruct_Base_SliceInit(unsigned int iSlice);
@@ -85,8 +92,8 @@ protected:
 
 	static void* helperWrapper(void*);
 	
-	AliGPUProcessorWorkers workers;
-	AliGPUProcessorWorkers workersDevice;
+	AliGPUProcessorWorkers workers; //Host copy of tracker objects that will be used on the GPU
+	AliGPUProcessorWorkers workersDevice; //tracker objects that will be used on the GPU
 	AliGPUTPCTracker* &fGpuTracker = workers.fGpuTracker;
 	AliGPUTPCGMMerger* &fGpuMerger = workers.fGpuMerger;
 

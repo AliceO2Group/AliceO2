@@ -22,6 +22,7 @@
 
 #include "AliGPUReconstruction.h"
 #include "AliGPUReconstructionConvert.h"
+#include "AliGPUReconstructionCommon.h"
 
 #include "AliGPUTPCClusterData.h"
 #include "AliGPUTPCSliceOutput.h"
@@ -34,7 +35,6 @@
 #include "AliGPUTPCMCInfo.h"
 #include "AliGPUTRDTrack.h"
 #include "AliGPUTRDTracker.h"
-#include "TPCFastTransform.h"
 #include "AliHLTTPCRawCluster.h"
 #include "ClusterNativeAccessExt.h"
 #include "AliGPUTRDTrackletLabels.h"
@@ -45,17 +45,6 @@
 #define GPUCA_LOGGING_PRINTF
 #include "AliCAGPULogging.h"
 
-#ifdef HAVE_O2HEADERS
-#include "ITStracking/TrackerTraitsCPU.h"
-#include "TRDBase/TRDGeometryFlat.h"
-#else
-namespace o2 { namespace ITS { class TrackerTraits {}; class TrackerTraitsCPU : public TrackerTraits {}; }}
-namespace o2 { namespace trd { struct TRDGeometryFlat {}; }}
-#endif
-using namespace o2::ITS;
-using namespace o2::TPC;
-using namespace o2::trd;
-
 constexpr const char* const AliGPUReconstruction::DEVICE_TYPE_NAMES[];
 constexpr const char* const AliGPUReconstruction::GEOMETRY_TYPE_NAMES[];
 constexpr const char* const AliGPUReconstruction::IOTYPENAMES[];
@@ -64,7 +53,9 @@ constexpr AliGPUReconstruction::GeometryType AliGPUReconstruction::geometryType;
 static constexpr unsigned int DUMP_HEADER_SIZE = 4;
 static constexpr char DUMP_HEADER[DUMP_HEADER_SIZE + 1] = "CAv1";
 
-AliGPUReconstruction::AliGPUReconstruction(const AliGPUCASettingsProcessing& cfg) : mTRDTracker(new AliGPUTRDTracker), mITSTrackerTraits(nullptr), mTPCFastTransform(nullptr), mClusterNativeAccess(new ClusterNativeAccessExt)
+using namespace o2::TPC;
+
+AliGPUReconstruction::AliGPUReconstruction(const AliGPUCASettingsProcessing& cfg) : mTRDTracker(new AliGPUTRDTracker), mITSTrackerTraits(nullptr), mClusterNativeAccess(new ClusterNativeAccessExt), mTPCFastTransform(nullptr), mTRDGeometry(nullptr)
 {
 	mProcessingSettings = cfg;
 	mDeviceProcessingSettings.SetDefaults();

@@ -13,6 +13,8 @@ if(OpenMP_CXX_FOUND)
     add_definitions(-DGPUCA_HAVE_OPENMP)
 endif()
 
+include_directories(. SliceTracker Merger GlobalTracker TRDTracking ../Common ../TPCFastTransformation Standalone)
+
 if (ENABLE_CUDA OR ENABLE_OPENCL)
     if (CMAKE_SYSTEM_NAME MATCHES Darwin)
         message(WARNING "GPU Tracking disabled on MacOS")
@@ -33,7 +35,7 @@ elseif(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     set(MODULE AliCAGPUTracking)
 endif()
 
-include_directories(. SliceTracker Merger ../Common ../TPCFastTransformation Standalone Standalone/display Standalone/qa)
+include_directories(Standalone/display Standalone/qa)
 
 #SRCs processed by CINT and added to HDRS
 set(SRCS
@@ -104,6 +106,7 @@ set(HDRS
     TRDTracking/AliGPUTRDTrackletLabels.h
     GlobalTracker/AliGPUCADataTypes.h
     GlobalTracker/AliGPUCAOutputControl.h
+    GlobalTracker/AliGPUReconstructionCommon.h
 )
 #Not processed by ROOT
 set(HDRS2

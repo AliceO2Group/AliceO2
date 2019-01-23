@@ -2,18 +2,12 @@
 
 #include "AliGPUReconstructionOCL.h"
 
-#ifdef HAVE_O2HEADERS
-#include "ITStracking/TrackerTraitsCPU.h"
-#else
-namespace o2 { namespace ITS { class TrackerTraits {}; class TrackerTraitsCPU : public TrackerTraits {}; }}
-#endif
-
 #include "AliGPUCADataTypes.h"
 #include "AliCAGPULogging.h"
 
 #include <string.h>
 #include "AliGPUReconstructionOCLInternals.h"
-#include "AliGPUTPCGPUTrackerCommon.h"
+#include "AliGPUReconstructionCommon.h"
 
 #include "AliGPUTPCTrackParam.h"
 #include "AliGPUTPCTrack.h"

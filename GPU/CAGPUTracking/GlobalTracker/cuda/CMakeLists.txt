@@ -59,14 +59,7 @@ message( STATUS "Building CAGPUTracking with CUDA support" )
 set(CAGPUDIR ${ALITPCCOMMON_DIR}/sources/CAGPUTracking)
 
 # Module include folder
-include_directories(${CAGPUDIR}/GlobalTracker
-                    ${CAGPUDIR}/GlobalTracker/cuda
-                    ${CAGPUDIR}/Merger
-                    ${CAGPUDIR}/SliceTracker
-                    ${CAGPUDIR}/TRDTracking
-                    ${CAGPUDIR}/Standalone
-                    ${ALITPCCOMMON_DIR}/sources/Common
-                   )
+include_directories(${CAGPUDIR}/GlobalTracker/cuda)
 
 # Additional include folders in alphabetical order except ROOT
 include_directories(SYSTEM ${ROOT_INCLUDE_DIR})
