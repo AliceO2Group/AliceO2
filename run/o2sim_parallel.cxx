@@ -101,6 +101,7 @@ bool updatePorts(std::string configfilename)
   int portend = 50000;
   int step = 2; // we need 2 ports
   o2::framework::FreePortFinder finder(portstart, portend, step);
+  finder.setVerbose(false); // disable verbose output
   finder.scan();
   auto newserverport = finder.port();
   auto newmergerport = newserverport + 1;
