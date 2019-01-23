@@ -706,8 +706,7 @@ void MatchTOF::selectBestMatches()
     
     // add also calibration infos ciao
     mCalibInfoTOF.emplace_back(mTOFClusWork[matchingPair.second.getTOFClIndex()].getMainContributingChannel(),
-			    mTOFClusWork[matchingPair.second.getTOFClIndex()].getTimeRaw(),
-			       mTOFClusWork[matchingPair.second.getTOFClIndex()].getTimeRaw() - matchingPair.second.getLTIntegralOut().getTOF(o2::track::PID::Pion) - int(mTOFClusWork[matchingPair.second.getTOFClIndex()].getTimeRaw()*o2::constants::lhc::LHCRFFreq*1.E-13)*o2::constants::lhc::LHCBunchSpacingNS*1.E3,
+			       mTOFClusWork[matchingPair.second.getTOFClIndex()].getTimeRaw() - matchingPair.second.getLTIntegralOut().getTOF(o2::track::PID::Pion),
 			    mTOFClusWork[matchingPair.second.getTOFClIndex()].getTot());
 
     const auto& labelTPC = (*mTPCLabels)[matchingPair.first];
