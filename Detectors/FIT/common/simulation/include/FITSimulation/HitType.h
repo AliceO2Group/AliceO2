@@ -15,6 +15,7 @@ class HitType : public o2::BasicXYZEHit<float>
   using BasicXYZEHit<float>::BasicXYZEHit;
 };
 } // namespace fit
+
 } // namespace o2
 
 #endif

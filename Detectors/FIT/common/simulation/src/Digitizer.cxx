@@ -196,9 +196,14 @@ void Digitizer::initParameters()
   // murmur
 }
 //_______________________________________________________________________
+<<<<<<< HEAD
 void Digitizer::init()
 {
   std::cout << " @@@ Digitizer::init " << std::endl;
+=======
+void Digitizer::init() {
+  std::cout<<" @@@ Digitizer::init "<<std::endl;
+>>>>>>> move Hit to common
 }
 
 //_______________________________________________________________________
