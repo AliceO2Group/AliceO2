@@ -29,7 +29,7 @@ class Digitizer
   ~Digitizer() = default;
 
   //void process(const std::vector<HitType>* hits, std::vector<Digit>* digits);
-  void process(const std::vector<o2::t0::HitType>* hits, Digit* digit);
+  void process(const std::vector<o2::fit::HitType>* hits, Digit* digit);
 
   void initParameters();
   // void printParameters();

@@ -44,10 +44,11 @@ class FITDPLDigitWriter
   void init(framework::InitContext& ic)
   {
     std::string detStrL = mID.getName();
-    std::transform(detStrL.begin(), detStrL.end(), detStrL.begin(), ::tolower);
+     std::transform(detStrL.begin(), detStrL.end(), detStrL.begin(), ::tolower);
 
     auto filename = ic.options().get<std::string>((detStrL + "-digit-outfile").c_str());
     auto treename = ic.options().get<std::string>("treename");
+    std::cout<<" @@@ FITDPLDigitWriter " <<detStrL<<" file "<<filename<<" tree "<<treename <<std::endl;
 
     mOutFile = std::make_unique<TFile>(filename.c_str(), "RECREATE");
     if (!mOutFile || mOutFile->IsZombie()) {

@@ -34,7 +34,7 @@ using o2::t0::Geometry;
 ClassImp(Detector);
 
 Detector::Detector(Bool_t Active)
-  : o2::Base::DetImpl<Detector>("T0", Active), mIdSens1(0), mPMTeff(nullptr), mHits(o2::utils::createSimVector<HitType>())
+  : o2::Base::DetImpl<Detector> ("T0", Active), mIdSens1(0), mPMTeff(nullptr), mHits(o2::utils::createSimVector<o2::fit::HitType>())
 
 {
   // Gegeo  = GetGeometry() ;
@@ -43,7 +43,7 @@ Detector::Detector(Bool_t Active)
 }
 
 Detector::Detector(const Detector& rhs)
-  : o2::Base::DetImpl<Detector>(rhs), mIdSens1(rhs.mIdSens1), mPMTeff(rhs.mPMTeff), mHits(o2::utils::createSimVector<HitType>())
+  : o2::Base::DetImpl<Detector> (rhs), mIdSens1(rhs.mIdSens1), mPMTeff(rhs.mPMTeff), mHits(o2::utils::createSimVector<o2::fit::HitType>())
 {
 }
 
@@ -309,7 +309,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   return kFALSE;
 }
 
-HitType* Detector::AddHit(float x, float y, float z, float time, float energy, Int_t trackId, Int_t detId)
+o2::fit::HitType* Detector::AddHit(float x, float y, float z, float time, float energy, Int_t trackId, Int_t detId)
 {
   mHits->emplace_back(x, y, z, time, energy, trackId, detId);
   auto stack = (o2::Data::Stack*)fMC->GetStack();
