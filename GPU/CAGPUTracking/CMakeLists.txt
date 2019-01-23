@@ -243,7 +243,7 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
             LIBRARY DESTINATION lib)
 
     install(FILES ${HDRS} ${HDRS2} DESTINATION include)
-    install(DIRECTORY Standalone/cmodules DESTINATION include)
+    install(DIRECTORY Standalone/cmodules DESTINATION include FILES_MATCHING PATTERN *.h)
 endif()
 
 #Default cmake build script for O2
@@ -255,7 +255,7 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
 
     O2_GENERATE_LIBRARY()
     install(FILES ${HDRS} ${HDRS2} DESTINATION include/AliTPCCommon)
-    install(DIRECTORY Standalone/cmodules DESTINATION include/AliTPCCommon)
+    install(DIRECTORY Standalone/cmodules DESTINATION include/AliTPCCommon FILES_MATCHING PATTERN *.h)
 
     set(TEST_SRCS
       ctest/testCAGPUTracking.cxx
