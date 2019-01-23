@@ -1,0 +1,4 @@
+set(TEST_SRC
+    "${CMAKE_CURRENT_SOURCE_DIR}/ObjectTest.cpp"
+    PARENT_SCOPE
+)

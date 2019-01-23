@@ -3,37 +3,34 @@
 
 #include "types.h"
 
-typedef struct Cluster_s
+typedef struct FloatCluster_s
 {
-    SHARED_INT cru;
-    SHARED_INT row;
     SHARED_FLOAT Q;
     SHARED_FLOAT QMax;
     SHARED_FLOAT padMean;
     SHARED_FLOAT timeMean;
     SHARED_FLOAT padSigma;
     SHARED_FLOAT timeSigma;
+    SHARED_INT cru;
+    SHARED_INT row;
+} FloatCluster;
 
-#if IS_CL_HOST
-    Cluster_s()
-    {
-    }
+#define FLOAT_CLUSTER_SIZE 32
 
-    Cluster_s(int _cru, int _row, float _Q, float _QMax, 
-            float _padMean, float _timeMean, float _padSigma, float _timeSigma)
-        : cru(_cru)
-        , row(_row)
-        , Q(_Q)
-        , QMax(_QMax)
-        , padMean(_padMean)
-        , timeMean(_timeMean)
-        , padSigma(_padSigma)
-        , timeSigma(_timeSigma)
-    {
-    }
-#endif
 
-} Cluster;
+typedef struct HalfCluster_s
+{
+    SHARED_HALF Q;
+    SHARED_HALF QMax;
+    SHARED_HALF padMean;
+    SHARED_HALF timeMean;
+    SHARED_HALF padSigma;
+    SHARED_HALF timeSigma;
+    SHARED_UCHAR cru;
+    SHARED_UCHAR row;
+} HalfCluster;
+
+#define HALF_CLUSTER_SIZE 14
 
 
 #endif //!defined(SHARED_CLUSTER_H)
