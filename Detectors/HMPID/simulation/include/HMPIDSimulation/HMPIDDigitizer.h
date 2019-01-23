@@ -45,7 +45,7 @@ class HMPIDDigitizer
                     o2::dataformats::MCTruthContainer<o2::MCCompLabel>* newlabels);
 
   float getThreshold(o2::hmpid::Digit const&) const; // gives back threshold to apply for a certain digit
-                                              // (using noise and other tables for pad)
+                                                     // (using noise and other tables for pad)
 
   double mTime = 0.;
   int mEventID = 0;
@@ -65,7 +65,7 @@ class HMPIDDigitizer
   std::vector<int> mInvolvedPads; //! list of pads where digits created
 
   // other stuff needed for digitization
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mTmpLabelContainer; // temp label container as workspace
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mTmpLabelContainer;                   // temp label container as workspace
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mRegisteredLabelContainer = nullptr; // label container to be filled
 
   ClassDefNV(HMPIDDigitizer, 1);
