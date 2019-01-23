@@ -23,11 +23,13 @@ protected:
     
 	virtual int InitDevice_Runtime() override;
 	virtual int RunTPCTrackingSlices() override;
+	int RunTPCTrackingSlices_internal();
 	virtual int ExitDevice_Runtime() override;
 
 	virtual void ActivateThreadContext() override;
 	virtual void ReleaseThreadContext() override;
 	virtual int SynchronizeGPU() override;
+	virtual int DoStuckProtection(int stream, void* event) override;
 	virtual int GPUSync(const char* state = "UNKNOWN", int sliceLocal = 0, int slice = 0) override;
 
 	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) override;

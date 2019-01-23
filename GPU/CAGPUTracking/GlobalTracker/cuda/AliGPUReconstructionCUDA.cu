@@ -270,7 +270,7 @@ int AliGPUReconstructionCUDA::InitDevice_Runtime()
 	}
 	mDeviceParam = (AliGPUCAParam*) ((char*) devPtrConstantMem + ((char*) &AliGPUCAConstantMemDummy.param - (char*) &AliGPUCAConstantMemDummy));
 
-	cuCtxPopCurrent(&mInternals->CudaContext);
+	ReleaseThreadContext();
 	CAGPUInfo("CUDA Initialisation successfull (Device %d: %s, Thread %d, %lld/%lld bytes used)", fDeviceId, cudaDeviceProp.name, fThreadId, (long long int) mHostMemorySize, (long long int) mDeviceMemorySize);
 
 	return(0);
@@ -310,6 +310,18 @@ __global__ void PreInitRowBlocks(int* const SliceDataHitWeights, int nSliceDataH
 
 int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 {
+	int retVal = RunTPCTrackingSlices_internal();
+	if (retVal) SynchronizeGPU();
+	if (retVal >= 2)
+	{
+		ResetHelperThreads(retVal >= 3);
+	}
+	ReleaseThreadContext();
+	return(retVal != 0);
+}
+
+int AliGPUReconstructionCUDA::RunTPCTrackingSlices_internal()
+{
 	//Primary reconstruction function
 	if (fGPUStuck)
 	{
@@ -317,24 +329,7 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 		return(1);
 	}
 	if (Reconstruct_Base_Init()) return(1);
-
-#ifdef GPUCA_GPU_USE_TEXTURES
-	cudaChannelFormatDesc channelDescu2 = cudaCreateChannelDesc<cahit2>();
-	size_t offset;
-	if (GPUFailedMsg(cudaBindTexture(&offset, &gAliTexRefu2, fGpuTracker[0].Data().Memory(), &channelDescu2, NSLICES * GPUCA_GPU_SLICE_DATA_MEMORY)) || offset RANDOM_ERROR)
-	{
-		CAGPUError("Error binding CUDA Texture cahit2 (Offset %d)", (int) offset);
-		ResetHelperThreads(0);
-		return(1);
-	}
-	cudaChannelFormatDesc channelDescu = cudaCreateChannelDesc<calink>();
-	if (GPUFailedMsg(cudaBindTexture(&offset, &gAliTexRefu, fGpuTracker[0].Data().Memory(), &channelDescu, NSLICES * GPUCA_GPU_SLICE_DATA_MEMORY)) || offset RANDOM_ERROR)
-	{
-		CAGPUError("Error binding CUDA Texture calink (Offset %d)", (int) offset);
-		ResetHelperThreads(0);
-		return(1);
-	}
-#endif
+	if (PrepareTextures()) return(2);
 
 	//Copy Tracker Object to GPU Memory
 	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Copying Tracker objects to GPU");
@@ -343,36 +338,31 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 	if (GPUFailedMsg(cudaMalloc(&tmpMem, 100000000)))
 	{
 		CAGPUError("Error allocating CUDA profile memory");
-		ResetHelperThreads(0);
-		return(1);
+		return(2);
 	}
 	fGpuTracker[0].fStageAtSync = tmpMem;
 	if (GPUFailedMsg(cudaMemset(fGpuTracker[0].StageAtSync(), 0, 100000000)))
 	{
 		CAGPUError("Error clearing stageatsync");
-		ResetHelperThreads(0);
-		return 1;
+		return(2);
 	}
 #endif
 	if (GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, &mParam, sizeof(AliGPUCAParam), (char*) &AliGPUCAConstantMemDummy.param - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice, mInternals->CudaStreams[0])))
 	{
 		CAGPUError("Error writing to constant memory");
-		ResetHelperThreads(0);
-		return 1;
+		return(2);
 	}
 	
 	if (GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, fGpuTracker, sizeof(AliGPUTPCTracker) * NSLICES, (char*) AliGPUCAConstantMemDummy.tpcTrackers - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice, mInternals->CudaStreams[0])))
 	{
 		CAGPUError("Error writing to constant memory");
-		ResetHelperThreads(0);
-		return 1;
+		return(2);
 	}
 	
 	bool globalSymbolDone = false;
 	if (GPUSync("Initialization (1)", 0, 0) RANDOM_ERROR)
 	{
-		ResetHelperThreads(0);
-		return(1);
+		return(2);
 	}
 
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
@@ -385,8 +375,7 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 		PreInitRowBlocks<<<fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT, 0, mInternals->CudaStreams[GPUCA_GPU_NUM_STREAMS == 0 ? 2 : useStream]>>>(fGpuTracker[iSlice].Data().HitWeights(), mTPCSliceTrackersCPU[iSlice].Data().NumberOfHitsPlusAlign());
 		if (GPUSync("Initialization (2)", 2, iSlice) RANDOM_ERROR)
 		{
-			ResetHelperThreads(1);
-			return(1);
+			return(3);
 		}
 
 		//Copy Data to GPU Global Memory
@@ -396,8 +385,7 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 			TransferMemoryResourceLinkToGPU(mTPCSliceTrackersCPU[iSlice].MemoryResCommon(), useStream))
 		{
 			CAGPUError("Error copying data to GPU");
-			ResetHelperThreads(0);
-			return 1;
+			return(3);
 		}
 
 		if (GPUCA_GPU_NUM_STREAMS && useStream && globalSymbolDone == false)
@@ -408,8 +396,7 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 
 		if (GPUSync("Initialization (3)", useStream, iSlice) RANDOM_ERROR)
 		{
-			ResetHelperThreads(1);
-			return(1);
+			return(3);
 		}
 		mTPCSliceTrackersCPU[iSlice].StopTimer(0);
 
@@ -419,8 +406,7 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 
 		if (GPUSync("Neighbours finder", useStream, iSlice) RANDOM_ERROR)
 		{
-			ResetHelperThreads(1);
-			return(1);
+			return(3);
 		}
 		mTPCSliceTrackersCPU[iSlice].StopTimer(1);
 
@@ -436,8 +422,7 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 		AliGPUTPCProcess<AliGPUTPCNeighboursCleaner> <<<GPUCA_ROW_COUNT - 2, GPUCA_GPU_THREAD_COUNT, 0, mInternals->CudaStreams[useStream]>>>(iSlice);
 		if (GPUSync("Neighbours Cleaner", useStream, iSlice) RANDOM_ERROR)
 		{
-			ResetHelperThreads(1);
-			return(1);
+			return(3);
 		}
 		mTPCSliceTrackersCPU[iSlice].StopTimer(2);
 
@@ -452,8 +437,7 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 		AliGPUTPCProcess<AliGPUTPCStartHitsFinder> <<<GPUCA_ROW_COUNT - 6, GPUCA_GPU_THREAD_COUNT, 0, mInternals->CudaStreams[useStream]>>>(iSlice);
 		if (GPUSync("Start Hits Finder", useStream, iSlice) RANDOM_ERROR)
 		{
-			ResetHelperThreads(1);
-			return(1);
+			return(3);
 		}
 		mTPCSliceTrackersCPU[iSlice].StopTimer(3);
 
@@ -462,8 +446,7 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 		AliGPUTPCProcess<AliGPUTPCStartHitsSorter> <<<fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT, 0, mInternals->CudaStreams[useStream]>>>(iSlice);
 		if (GPUSync("Start Hits Sorter", useStream, iSlice) RANDOM_ERROR)
 		{
-			ResetHelperThreads(1);
-			return(1);
+			return(3);
 		}
 		mTPCSliceTrackersCPU[iSlice].StopTimer(4);
 
@@ -474,8 +457,7 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 			if (*mTPCSliceTrackersCPU[iSlice].NTracklets() > GPUCA_GPU_MAX_TRACKLETS RANDOM_ERROR)
 			{
 				CAGPUError("GPUCA_GPU_MAX_TRACKLETS constant insuffisant");
-				ResetHelperThreads(1);
-				return(1);
+				return(3);
 			}
 		}
 
@@ -491,8 +473,7 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 		AliGPUTPCTrackletConstructorSingleSlice<<<fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR, 0, mInternals->CudaStreams[useStream]>>>(iSlice);
 		if (GPUSync("Tracklet Constructor", useStream, iSlice) RANDOM_ERROR)
 		{
-			ResetHelperThreads(1);
-			return(1);
+			return(3);
 		}
 		mTPCSliceTrackersCPU[iSlice].StopTimer(6);
 #endif
@@ -511,8 +492,6 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 	AliGPUTPCTrackletConstructorGPU<<<fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR>>>();
 	if (GPUSync("Tracklet Constructor", -1, 0) RANDOM_ERROR)
 	{
-		SynchronizeGPU;
-		cuCtxPopCurrent(&mInternals->CudaContext);
 		return(1);
 	}
 	mTPCSliceTrackersCPU[0].StopTimer(6);
@@ -540,7 +519,6 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 		if (fSelectorBlockCount < runSlices)
 		{
 			CAGPUError("Insufficient number of blocks for tracklet selector");
-			cuCtxPopCurrent(&mInternals->CudaContext);
 			return(1);
 		}
 
@@ -549,28 +527,23 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 		AliGPUTPCProcessMulti<AliGPUTPCTrackletSelector><<<fSelectorBlockCount, GPUCA_GPU_THREAD_COUNT_SELECTOR, 0, mInternals->CudaStreams[useStream]>>>(iSlice, runSlices);
 		if (GPUSync("Tracklet Selector", iSlice, iSlice) RANDOM_ERROR)
 		{
-			SynchronizeGPU();
-			cuCtxPopCurrent(&mInternals->CudaContext);
 			return(1);
 		}
 		mTPCSliceTrackersCPU[iSlice].StopTimer(7);
-		for (unsigned int k = iSlice;k < iSlice + runSlices;k++) streamMap[k] = useStream;
+		for (unsigned int k = iSlice;k < iSlice + runSlices;k++)
+		{
+			if (TransferMemoryResourceLinkToHost(mTPCSliceTrackersCPU[k].MemoryResCommon(), useStream) RANDOM_ERROR)
+			{
+				return(3);
+			}
+			streamMap[k] = useStream;
+		}
 		useStream++;
 	}
 
 	fSliceOutputReady = 0;
 
 	if (Reconstruct_Base_StartGlobal()) return(1);
-
-	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
-	{
-		if (TransferMemoryResourceLinkToHost(mTPCSliceTrackersCPU[iSlice].MemoryResCommon(), streamMap[iSlice]) RANDOM_ERROR)
-		{
-			ResetHelperThreads(1);
-			ActivateThreadContext();
-			return(1);
-		}
-	}
 
 	unsigned int tmpSlice = 0;
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
@@ -591,9 +564,7 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 		useStream = GPUCA_GPU_NUM_STREAMS ? streamMap[iSlice] : iSlice;
 		if (GPUFailedMsg(cudaStreamSynchronize(mInternals->CudaStreams[useStream])) RANDOM_ERROR)
 		{
-			ResetHelperThreads(1);
-			ActivateThreadContext();
-			return(1);
+			return(3);
 		}
 
 		if (mDeviceProcessingSettings.keepAllMemory)
@@ -609,8 +580,7 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 			const char* errorMsg = (unsigned) mTPCSliceTrackersCPU[iSlice].GPUParameters()->fGPUError >= sizeof(errorMsgs) / sizeof(errorMsgs[0]) ? "UNKNOWN" : errorMsgs[mTPCSliceTrackersCPU[iSlice].GPUParameters()->fGPUError];
 			CAGPUError("GPU Tracker returned Error Code %d (%s) in slice %d (Clusters %d)", mTPCSliceTrackersCPU[iSlice].GPUParameters()->fGPUError, errorMsg, iSlice, mTPCSliceTrackersCPU[iSlice].Data().NumberOfHits());
 
-			ResetHelperThreads(1);
-			return(1);
+			return(3);
 		}
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Tracks Transfered: %d / %d", *mTPCSliceTrackersCPU[iSlice].NTracks(), *mTPCSliceTrackersCPU[iSlice].NTrackHits());
 
@@ -692,14 +662,13 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 	free(stageAtSync);
 #endif
 
-	cuCtxPopCurrent(&mInternals->CudaContext);
 	return(0);
 }
 
 int AliGPUReconstructionCUDA::ExitDevice_Runtime()
 {
 	//Uninitialize CUDA
-	cuCtxPushCurrent(mInternals->CudaContext);
+	ActivateThreadContext();
 
 	SynchronizeGPU();
 	if (mDeviceMemoryBase)
@@ -747,7 +716,7 @@ int AliGPUReconstructionCUDA::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool 
 		for (unsigned int k = 0;k < sizeof(times) / sizeof(times[0]);k++) times[k] = 0;
 		nCount = 0;
 	}
-	cuCtxPushCurrent(mInternals->CudaContext);
+	ActivateThreadContext();
 
 	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("Running GPU Merger (%d/%d)", Merger->NOutputTrackClusters(), Merger->NClusters());
 	timer.Start();
@@ -789,7 +758,7 @@ int AliGPUReconstructionCUDA::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool 
 		nCount = 0;
 	}
 
-	cuCtxPopCurrent((CUcontext*) &mInternals->CudaContext);
+	ReleaseThreadContext();
 	return(0);
 #endif
 }
@@ -831,5 +800,25 @@ void AliGPUReconstructionCUDA::ReleaseThreadContext()
 int AliGPUReconstructionCUDA::SynchronizeGPU()
 {
 	GPUFailedMsg(cudaDeviceSynchronize());
+	return(0);
+}
+
+int AliGPUReconstructionCUDA::PrepareTextures()
+{
+#ifdef GPUCA_GPU_USE_TEXTURES
+	cudaChannelFormatDesc channelDescu2 = cudaCreateChannelDesc<cahit2>();
+	size_t offset;
+	if (GPUFailedMsg(cudaBindTexture(&offset, &gAliTexRefu2, fGpuTracker[0].Data().Memory(), &channelDescu2, NSLICES * GPUCA_GPU_SLICE_DATA_MEMORY)) || offset RANDOM_ERROR)
+	{
+		CAGPUError("Error binding CUDA Texture cahit2 (Offset %d)", (int) offset);
+		return(2);
+	}
+	cudaChannelFormatDesc channelDescu = cudaCreateChannelDesc<calink>();
+	if (GPUFailedMsg(cudaBindTexture(&offset, &gAliTexRefu, fGpuTracker[0].Data().Memory(), &channelDescu, NSLICES * GPUCA_GPU_SLICE_DATA_MEMORY)) || offset RANDOM_ERROR)
+	{
+		CAGPUError("Error binding CUDA Texture calink (Offset %d)", (int) offset);
+		return(2);
+	}
+#endif
 	return(0);
 }

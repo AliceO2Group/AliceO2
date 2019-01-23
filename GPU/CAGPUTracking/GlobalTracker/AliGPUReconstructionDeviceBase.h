@@ -35,6 +35,9 @@ protected:
 	virtual void ReleaseThreadContext() = 0;
 	virtual int SynchronizeGPU() = 0;
 	
+	virtual int PrepareTextures();
+	virtual int DoStuckProtection(int stream, void* event);
+	
 	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) = 0;
 	virtual int TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) = 0;
 	int TransferMemoryResourcesToGPU(AliGPUProcessor* proc, int stream = -1, bool all = false);
