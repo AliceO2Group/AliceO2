@@ -37,7 +37,6 @@ O2_GENERATE_EXECUTABLE(
   src/EMCALDigitizerSpec.cxx
   src/EMCALDigitWriterSpec.cxx
   src/HMPIDDigitizerSpec.cxx
-  src/HMPIDDigitWriterSpec.cxx
   src/MCHDigitizerSpec.cxx
   src/TRDDigitizerSpec.cxx
   src/GRPUpdaterSpec.cxx

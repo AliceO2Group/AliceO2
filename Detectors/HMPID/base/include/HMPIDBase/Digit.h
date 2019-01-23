@@ -31,48 +31,60 @@ class Digit : public DigitBase
   Digit(float charge) : mQ(charge) {}
   float getCharge() const { return mQ; }
   int getPadID() const { return mPad; }
+  // convenience conversion to x-y pad coordinates
+  int getPx() const { return Param::A2X(mPad); }
+  int getPy() const { return Param::A2Y(mPad); }
 
-  Digit(HitType const& hit)
+  static void getPadAndTotalCharge(HitType const& hit, int& chamber, int& pc, int& px, int& py, float& totalcharge)
   {
-    int pc, px, py;
+    float localX;
+    float localY;
+    chamber = hit.GetDetectorID();
+    double tmp[3] = { hit.GetX(), hit.GetY(), hit.GetZ() };
+    Param::Instance()->Mars2Lors(chamber, tmp, localX, localY);
+    Param::Lors2Pad(localX, localY, pc, px, py);
+
+    totalcharge = Digit::QdcTot(hit.GetEnergyLoss(), hit.GetTime(), pc, px, py, localX, localY);
+  }
+
+  static float getFractionalContributionForPad(HitType const& hit, int somepad)
+  {
     float localX;
     float localY;
 
     // chamber number is in detID
     const auto chamber = hit.GetDetectorID();
-
     double tmp[3] = { hit.GetX(), hit.GetY(), hit.GetZ() };
+    // converting chamber id and hit coordiates to local coordinates
     Param::Instance()->Mars2Lors(chamber, tmp, localX, localY);
-
-    Param::Lors2Pad(localX, localY, pc, px, py);
-
-    // TODO: check if this digit is valid
-    // mark as invalid otherwise
-
-    // calculate pad id
-    mPad = Param::Abs(chamber, pc, px, py);
-
-    // calculate charge
-    mQ = /*fQHit **/ InMathieson(localX, localY);
-
-    // what about time stamp??
+    // calculate charge fraction in given pad
+    return Digit::InMathieson(localX, localY, somepad);
   }
+
+  Digit(int pad, float charge) : mPad(pad), mQ(charge) {}
+
+  // add charge to existing digit
+  void addCharge(float q) { mQ += q; }
 
  private:
   float mQ = 0.;
   int mPad = 0.; // -1 indicates invalid digit
 
-  float LorsX() const { return Param::LorsX(Param::A2P(mPad), Param::A2X(mPad)); } //center of the pad x, [cm]
-  float LorsY() const { return Param::LorsY(Param::A2P(mPad), Param::A2Y(mPad)); } //center of the pad y, [cm]
+  static float LorsX(int pad) { return Param::LorsX(Param::A2P(pad), Param::A2X(pad)); } //center of the pad x, [cm]
+  static float LorsY(int pad) { return Param::LorsY(Param::A2P(pad), Param::A2Y(pad)); } //center of the pad y, [cm]
 
-  float IntPartMathiX(float x) const
+  // determines the total charge created by a hit
+  // might modify the localX, localY coordiates associated to the hit
+  static float QdcTot(float e, float time, int pc, int px, int py, float& localX, float& localY);
+
+  static float IntPartMathiX(float x, int pad)
   {
     // Integration of Mathieson.
     // This is the answer to electrostatic problem of charge distrubution in MWPC described elsewhere. (NIM A370(1988)602-603)
     // Arguments: x,y- position of the center of Mathieson distribution
     //  Returns: a charge fraction [0-1] imposed into the pad
-    auto shift1 = -LorsX() + 0.5 * Param::SizePadX();
-    auto shift2 = -LorsX() - 0.5 * Param::SizePadX();
+    auto shift1 = -LorsX(pad) + 0.5 * Param::SizePadX();
+    auto shift2 = -LorsX(pad) - 0.5 * Param::SizePadX();
 
     auto ux1 = Param::SqrtK3x() * TMath::TanH(Param::K2x() * (x + shift1) / Param::PitchAnodeCathode());
     auto ux2 = Param::SqrtK3x() * TMath::TanH(Param::K2x() * (x + shift2) / o2::hmpid::Param::PitchAnodeCathode());
@@ -81,14 +93,14 @@ class Digit : public DigitBase
   }
   //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-  Double_t IntPartMathiY(Double_t y) const
+  static Double_t IntPartMathiY(Double_t y, int pad)
   {
     // Integration of Mathieson.
     // This is the answer to electrostatic problem of charge distrubution in MWPC described elsewhere. (NIM A370(1988)602-603)
     // Arguments: x,y- position of the center of Mathieson distribution
     //  Returns: a charge fraction [0-1] imposed into the pad
-    Double_t shift1 = -LorsY() + 0.5 * o2::hmpid::Param::SizePadY();
-    Double_t shift2 = -LorsY() - 0.5 * o2::hmpid::Param::SizePadY();
+    Double_t shift1 = -LorsY(pad) + 0.5 * o2::hmpid::Param::SizePadY();
+    Double_t shift2 = -LorsY(pad) - 0.5 * o2::hmpid::Param::SizePadY();
 
     Double_t uy1 = Param::SqrtK3y() * TMath::TanH(Param::K2y() * (y + shift1) / Param::PitchAnodeCathode());
     Double_t uy2 = Param::SqrtK3y() * TMath::TanH(Param::K2y() * (y + shift2) / Param::PitchAnodeCathode());
@@ -96,12 +108,12 @@ class Digit : public DigitBase
     return Param::K4y() * (TMath::ATan(uy2) - TMath::ATan(uy1));
   }
 
-  float InMathieson(float localX, float localY) const
+  static float InMathieson(float localX, float localY, int pad)
   {
-    return 4. * IntPartMathiX(localX) * IntPartMathiY(localY);
+    return 4. * Digit::IntPartMathiX(localX, pad) * Digit::IntPartMathiY(localY, pad);
   }
 
-  ClassDefNV(Digit, 1);
+  ClassDefNV(Digit, 2);
 };
 
 } // namespace hmpid
