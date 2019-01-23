@@ -53,6 +53,7 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calibrat
 
   outFile.cd();
   outTree.Write();
+  calib.getLHCphaseHisto()->Write();
   outFile.Close();
 
 }

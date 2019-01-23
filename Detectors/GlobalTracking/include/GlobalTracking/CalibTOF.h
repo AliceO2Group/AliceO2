@@ -25,6 +25,7 @@
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "TOFBase/Geo.h"
 #include "ReconstructionDataFormats/PID.h"
+#include "TH1F.h"
 
 class TTree;
 
@@ -61,6 +62,8 @@ class CalibTOF
   ///< print settings
   void print() const;
 
+  TH1F *getLHCphaseHisto() {return mHistoLHCphase;}
+
   /*
 #ifdef _ALLOW_DEBUG_TREES_
   enum DebugFlagTypes : UInt_t {
@@ -94,6 +97,9 @@ class CalibTOF
   */
 
  private:
+  // objects needed for calibration
+  TH1F *mHistoLHCphase = nullptr;
+
   void attachInputTrees();
   bool loadTOFCalibInfo();
 
@@ -104,6 +110,7 @@ class CalibTOF
   // Data members
 
   bool mInitDone = false; ///< flag init already done
+  int mCurrTOFInfoTreeEntry = -1;
 
   ///========== Parameters to be set externally, e.g. from CCDB ====================
 

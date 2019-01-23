@@ -21,6 +21,8 @@
 
 #include "GlobalTracking/CalibTOF.h"
 
+#include "CommonConstants/LHCConstants.h"
+
 using namespace o2::globaltracking;
 
 ClassImp(CalibTOF);
@@ -35,8 +37,15 @@ void CalibTOF::run()
   }
 
   mTimerTot.Start();
+  
+  while(loadTOFCalibInfo()){ // fill here all histos you need 
+    // ...
+    doCalib(0, -1); // flag: 0=LHC phase, 1=channel offset+problematic(return value), 2=time-slewing
 
-  // to be implemented
+  }
+
+  // fit and extract calibration parameters once histos are filled
+  // ...
 
 #ifdef _ALLOW_DEBUG_TREES_
   if(mDBGFlags)
@@ -79,6 +88,9 @@ void CalibTOF::init()
 
   mInitDone = true;
 
+  // prepare histos
+  mHistoLHCphase = new TH1F("hLHCphase",";clock offset (ps)",1000,-24400,24400);
+
   {
     mTimerTot.Stop();
     mTimerTot.Reset();
@@ -116,25 +128,44 @@ void CalibTOF::attachInputTrees()
   mTreeTOFCalibInfo->SetBranchAddress(mTOFCalibInfoBranchName.data(), &mTOFCalibInfo);
   LOG(INFO) << "Attached tracksTOF calib info " << mTOFCalibInfoBranchName << " branch with " << mTreeTOFCalibInfo->GetEntries()
             << " entries";
+
+  mCurrTOFInfoTreeEntry = -1;
 }
 
 //______________________________________________
 bool CalibTOF::loadTOFCalibInfo()
 {
-  ///< load next chunk of clusters to be matched to TOF
+  ///< load next chunk of TOF infos
   printf("Loading TOF calib infos: number of entries in tree = %lld\n", mTreeTOFCalibInfo->GetEntries());
 
-  // to be implemented
+  while (++mCurrTOFInfoTreeEntry < mTreeTOFCalibInfo->GetEntries()) {
+    mTreeTOFCalibInfo->GetEntry(mCurrTOFInfoTreeEntry);
+    LOG(INFO) << "Loading TOF calib info entry " << mCurrTOFInfoTreeEntry << " -> " << mTOFCalibInfo->size()<< " infos";
+
+    if (!mTOFCalibInfo->size()) {
+      continue;
+    }
+    return true;
+  }
+  --mCurrTOFInfoTreeEntry;
 
   return false;
 }
 //______________________________________________
 int CalibTOF::doCalib(int flag, int channel)
 {
+  static double bc = 1.e13 / o2::constants::lhc::LHCRFFreq; // bunch crossing period (ps)
+  static double bc_inv = 1./bc;
+
   int status = 0;
 
-  // to be implemented
+  // implemented for flag=0, channel=-1 (-1 means all!)
+  for(auto infotof=mTOFCalibInfo->begin(); infotof != mTOFCalibInfo->end(); infotof++){
+    double dtime = infotof->getDeltaTimePi();
+    dtime -= int(dtime*bc_inv + 0.5)*bc;
 
+    mHistoLHCphase->Fill(dtime);
+  }
   return status;
 }
 
