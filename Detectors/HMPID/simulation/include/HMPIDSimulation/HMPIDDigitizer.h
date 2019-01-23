@@ -25,7 +25,37 @@ namespace hmpid
 class HMPIDDigitizer
 {
  public:
-  void setEventTime(double timeNS) { mTime = timeNS; }
+  // set event time and return true if it is within the active hold/data-taking time
+  // or false otherwise (in which case we don't need to do digitization)
+  bool setEventTime(double timeNS)
+  {
+    if ((timeNS - mCurrentTriggerTime) > TRACKHOLDTIME) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+
+  // set a trigger; returns true if accepted or false if busy
+  // (assuming some extern decision on this time)
+  bool setTriggerTime(double timeNS)
+  {
+    if (mReadoutCounter == -1) {
+      // for the first trigger no busy check necessary
+      mCurrentTriggerTime = timeNS;
+      mReadoutCounter++;
+      return true;
+    } else {
+      if ((timeNS - mCurrentTriggerTime) > BUSYTIME) {
+        mCurrentTriggerTime = timeNS;
+        mReadoutCounter++;
+        return true;
+      } else {
+        return false;
+      }
+    }
+  }
+
   void setEventID(int eventID) { mEventID = eventID; }
   void setSrcID(int sID) { mSrcID = sID; }
 
@@ -39,6 +69,11 @@ class HMPIDDigitizer
   // this will process hits and fill the digit vector with digits which are finalized
   void process(std::vector<o2::hmpid::HitType> const&, std::vector<o2::hmpid::Digit>& digit);
 
+  // flush accumulated digits into the given container
+  void flush(std::vector<o2::hmpid::Digit>& digit);
+  // reset internal data structures
+  void reset();
+
  private:
   void zeroSuppress(std::vector<o2::hmpid::Digit> const& digits, std::vector<o2::hmpid::Digit>& newdigits,
                     o2::dataformats::MCTruthContainer<o2::MCCompLabel> const& labels,
@@ -47,22 +82,20 @@ class HMPIDDigitizer
   float getThreshold(o2::hmpid::Digit const&) const; // gives back threshold to apply for a certain digit
                                                      // (using noise and other tables for pad)
 
-  double mTime = 0.;
+  double mCurrentTriggerTime = 0.;
   int mEventID = 0;
   int mSrcID = 0;
 
-  // internal buffers for digits
-  std::vector<o2::hmpid::Digit> mSummable;
-  std::vector<o2::hmpid::Digit> mFinal;
-
   std::vector<o2::hmpid::Digit> mDigits; // internal store for digits
 
-  //static constexpr int HMPID_NUMBEROFPADS = 161280;
-  //std::array<short, HMPID_NUMBEROFPADS> mIndexForPad = { -1 }; //! mapping of pad to digit index
+  constexpr static double TRACKHOLDTIME = 1200; // defines the window for pile-up after a trigger received in nanoseconds
+  constexpr static double BUSYTIME = 22000;     // the time for which no new trigger can be received in nanoseconds
 
   std::map<int, short> mIndexForPad; //! logarithmic mapping of pad to digit index
 
   std::vector<int> mInvolvedPads; //! list of pads where digits created
+
+  int mReadoutCounter = -1;
 
   // other stuff needed for digitization
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mTmpLabelContainer;                   // temp label container as workspace
