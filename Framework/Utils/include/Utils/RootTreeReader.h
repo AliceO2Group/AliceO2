@@ -80,6 +80,11 @@ struct DefaultKey {
 ///     // increment the reader and invoke it for the processing context
 ///     (++reader)(pc);
 ///   };
+///
+/// The reader supports the binary format of the RootTreeWriter as counterpart.
+/// Binary data is stored as vector of char alongside with a branch storing the
+/// size, as both indicator and consistency check.
+///
 /// Note that `reader` has to be set up in the init callback and it must
 /// be static there to persist. It can also be a shared_pointer, which then
 /// requires additional dereferencing in the syntax. The processing lambda has
@@ -90,7 +95,15 @@ class GenericRootTreeReader
  public:
   using self_type = GenericRootTreeReader<KeyType>;
   using key_type = KeyType;
+  // The RootTreeWriter/Reader support storage of binary data as a vector of char.
+  // This allows to store e.g. raw data or some intermediate binary data alongside
+  // with ROOT objects like the MC labels.
+  using BinaryDataStoreType = std::vector<char>;
 
+  enum struct PublishingMode {
+    Single,
+    Loop,
+  };
   // the key must not be of type const char* to make sure that the variable argument
   // list of the constructor can be parsed
   static_assert(std::is_same<KeyType, const char*>::value == false, "the key type must not be const char*");
@@ -100,26 +113,12 @@ class GenericRootTreeReader
 
   /// constructor
   /// @param treename  name of tree to process
-  /// variable argument list of file names followed by pairs of KeyType and branch name
+  /// variable argument list of file names (const char*), the number of entries to publish (int), or
+  /// the publishing mode, followed by pairs of KeyType and branch name
   template <typename... Args>
   GenericRootTreeReader(const char* treename, // name of the tree to read from
                         Args&&... args)       // file names, followed by branch info
     : mInput(treename)
-  {
-    mInput.SetCacheSize(0);
-    parseConstructorArgs(std::forward<Args>(args)...);
-  }
-
-  /// constructor
-  /// @param treename  name of tree to process
-  /// @nMaxEntries maximum number of entries to be processed
-  /// variable argument list of file names followed by pairs of KeyType and branch name
-  template <typename... Args>
-  GenericRootTreeReader(const char* treename, // name of the tree to read from
-                        int nMaxEntries,      // max number of entries to be read
-                        Args&&... args)       // file names, followed by branch info
-    : mInput(treename),
-      mMaxEntries(nMaxEntries)
   {
     mInput.SetCacheSize(0);
     parseConstructorArgs(std::forward<Args>(args)...);
@@ -136,21 +135,25 @@ class GenericRootTreeReader
   /// @return true if data is available
   bool next()
   {
-    if ((mEntry + 1) >= mNEntries || mNEntries == 0) {
-      // TODO: decide what to do, maybe different modes can be supported
-      // e.g. loop or single shot mode
-      if (mEntry < mNEntries) {
-        ++mEntry;
+    if ((mReadEntry + 1) >= mNEntries || mNEntries == 0) {
+      if (mPublishingMode == PublishingMode::Single) {
+        // stop here
+        if (mReadEntry < mNEntries) {
+          mReadEntry = mNEntries;
+        }
+        return false;
+      }
+      // start over in loop mode
+      mReadEntry = -1;
+    }
+    if (mMaxEntries > 0 && (mNofPublished + 1) >= mMaxEntries) {
+      if (mReadEntry < mNEntries) {
+        mReadEntry = mNEntries;
       }
       return false;
     }
-    if (mMaxEntries > 0 && (mEntry + 1) >= mMaxEntries) {
-      if (mEntry < mNEntries) {
-        ++mEntry;
-      }
-      return false;
-    }
-    ++mEntry;
+    ++mReadEntry;
+    ++mNofPublished;
     return true;
   }
 
@@ -189,30 +192,34 @@ class GenericRootTreeReader
   template <typename F>
   bool process(F&& snapshot) const
   {
-    if (mEntry >= mNEntries || mNEntries == 0 || (mMaxEntries > 0 && mEntry >= mMaxEntries)) {
+    if (mReadEntry >= mNEntries || mNEntries == 0 || (mMaxEntries > 0 && mNofPublished >= mMaxEntries)) {
       return false;
     }
 
     for (auto& spec : mBranchSpecs) {
       char* data = nullptr;
       spec.second->branch->SetAddress(&data);
-      spec.second->branch->GetEntry(mEntry);
+      spec.second->branch->GetEntry(mReadEntry);
       if (spec.second->sizebranch == nullptr) {
-        snapshot(spec.first, ROOTSerializedByClass(*data, spec.second->classinfo));
+        snapshot(spec.first, std::move(ROOTSerializedByClass(*data, spec.second->classinfo)));
       } else {
         size_t datasize = 0;
         spec.second->sizebranch->SetAddress(&datasize);
-        spec.second->sizebranch->GetEntry(mEntry);
-        auto* buffer = reinterpret_cast<std::vector<char>*>(data);
+        spec.second->sizebranch->GetEntry(mReadEntry);
+        auto* buffer = reinterpret_cast<BinaryDataStoreType*>(data);
         if (buffer->size() == datasize) {
           LOG(INFO) << "branch " << spec.second->name << ": publishing binary chunk of " << datasize << " bytes(s)";
-          snapshot(spec.first, *buffer);
+          snapshot(spec.first, std::move(*buffer));
         } else {
           LOG(ERROR) << "branch " << spec.second->name << ": inconsitent size of binary chunk "
                      << buffer->size() << " vs " << datasize;
-          std::vector<char> empty;
+          BinaryDataStoreType empty;
           snapshot(spec.first, empty);
         }
+      }
+      auto* delfunc = spec.second->classinfo->GetDelete();
+      if (delfunc) {
+        (*delfunc)(data);
       }
       spec.second->branch->DropBaskets("all");
     }
@@ -222,7 +229,7 @@ class GenericRootTreeReader
   /// return the number of published entries
   int getCount() const
   {
-    return mEntry + 1;
+    return mNofPublished + 1;
   }
 
  private:
@@ -244,21 +251,22 @@ class GenericRootTreeReader
       mBranchSpecs.back().second->branch = branch;
       std::string sizebranchName = std::string(branchName) + "Size";
       auto sizebranch = mInput.GetBranch(sizebranchName.c_str());
+      auto* classinfo = TClass::GetClass(branch->GetClassName());
       if (!sizebranch) {
-        mBranchSpecs.back().second->classinfo = TClass::GetClass(branch->GetClassName());
+        if (classinfo == nullptr) {
+          throw std::runtime_error(std::string("can not find class description for branch ") + branchName);
+        }
         LOG(INFO) << "branch set up: " << branchName;
       } else {
-        auto* classinfo = TClass::GetClass(branch->GetClassName());
-        if (classinfo == nullptr || classinfo != TClass::GetClass(typeid(std::vector<char>))) {
+        if (classinfo == nullptr || classinfo != TClass::GetClass(typeid(BinaryDataStoreType))) {
           throw std::runtime_error("mismatching class type, expecting std::vector<char> for binary branch");
         }
         mBranchSpecs.back().second->sizebranch = sizebranch;
         LOG(INFO) << "binary branch set up: " << branchName;
       }
+      mBranchSpecs.back().second->classinfo = classinfo;
     } else {
-      std::string msg("can not find branch ");
-      msg += branchName;
-      throw std::runtime_error(msg);
+      throw std::runtime_error(std::string("can not find branch ") + branchName);
     }
   }
 
@@ -273,9 +281,30 @@ class GenericRootTreeReader
   }
 
   /// helper function to recursively parse constructor arguments
+  /// handles the number-of-entries argument, stops when the first key
+  /// is found
+  template <typename T, typename... Args>
+  typename std::enable_if_t<std::is_same<T, int>::value == true> parseConstructorArgs(T nMaxEntries, Args&&... args)
+  {
+    mMaxEntries = nMaxEntries;
+    parseConstructorArgs(std::forward<Args>(args)...);
+  }
+
+  /// helper function to recursively parse constructor arguments
+  /// handles the publishing mode argument, stops when the first key
+  /// is found
+  template <typename T, typename... Args>
+  typename std::enable_if_t<std::is_same<T, PublishingMode>::value == true> parseConstructorArgs(T mode, Args&&... args)
+  {
+    mPublishingMode = mode;
+    parseConstructorArgs(std::forward<Args>(args)...);
+  }
+
+  /// helper function to recursively parse constructor arguments
   /// parse the branch definitions with key and branch name.
   template <typename T, typename... Args>
-  void parseConstructorArgs(T key, const char* name, Args&&... args)
+  typename std::enable_if_t<std::is_same<T, int>::value == false && std::is_same<T, PublishingMode>::value == false>
+  parseConstructorArgs(T key, const char* name, Args&&... args)
   {
     if (name != nullptr && *name != 0) {
       // add branch spec if the name is not empty
@@ -293,10 +322,14 @@ class GenericRootTreeReader
   std::vector<std::pair<KeyType, std::unique_ptr<BranchSpec>>> mBranchSpecs;
   /// number of entries in the tree
   int mNEntries = 0;
-  /// current entry
-  int mEntry = -1;
+  /// current read position
+  int mReadEntry = -1;
+  /// nof of published entries
+  int mNofPublished = -1;
   /// maximum number of entries to be processed
   int mMaxEntries = -1;
+  /// publishing mode
+  PublishingMode mPublishingMode = PublishingMode::Single;
 };
 
 using RootTreeReader = GenericRootTreeReader<rtr::DefaultKey>;
