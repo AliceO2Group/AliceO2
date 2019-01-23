@@ -3,30 +3,29 @@
 
 #include "types.h"
 
-typedef struct Digit_s
+typedef struct FloatDigit_s
 {
     SHARED_FLOAT charge;
     SHARED_INT cru;
     SHARED_INT row;
     SHARED_INT pad;
     SHARED_INT time;   
+} FloatDigit;
 
-#if IS_CL_HOST
-    Digit_s()
-    {
-    }
+#define FLOAT_DIGIT_SIZE 20
 
-    Digit_s(float _charge, int _cru, int _row, int _pad, int _time)
-        : charge(_charge)
-        , cru(_cru)
-        , row(_row)
-        , pad(_pad)
-        , time(_time)
-    {
-    }
-#endif
 
-} Digit;
+typedef struct HalfDigit_s
+{
+    SHARED_HALF charge; 
+    SHARED_USHORT time;
+    SHARED_USHORT pad;
+    SHARED_UCHAR cru;
+    SHARED_UCHAR row;
+} HalfDigit;
+
+#define HALF_DIGIT_SIZE 8
+
 
 #endif //!defined(SHARED_DIGIT_H)
 
