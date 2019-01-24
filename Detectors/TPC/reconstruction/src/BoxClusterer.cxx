@@ -94,7 +94,7 @@
 #include "TPCBase/Digit.h"
 #include "TPCReconstruction/ClusterContainer.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "TMath.h"
 #include "TError.h"   // for R__ASSERT()
 
@@ -328,7 +328,7 @@ void BoxClusterer::findLocalMaxima(const Int_t iCRU)
         //      }
         //      std::cout << std::endl;
         //    }
-        ////    LOG(INFO) << *cluster << FairLogger::endl;
+        ////    LOG(info) << *cluster;
       }
     } // end loop over signals
   } // end loop over rows

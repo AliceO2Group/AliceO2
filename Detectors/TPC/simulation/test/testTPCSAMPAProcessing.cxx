@@ -23,7 +23,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 namespace o2
 {

@@ -14,7 +14,7 @@
 #ifndef ALICEO2_TPC_SYNCPATTERNMONITOR_H_
 #define ALICEO2_TPC_SYNCPATTERNMONITOR_H_
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <iosfwd>
 #include <iomanip>
 #include <array>
@@ -118,12 +118,12 @@ void SyncPatternMonitor::checkWord(const short hw, const short pos) {
 };
 
 inline
-void SyncPatternMonitor::patternFound(const short hw) { 
-  LOG(DEBUG) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? " low" : "high") << "): "
-     << "SYNC found at Position " << hw << " in checked half word #" << mCheckedWords << FairLogger::endl;
+void SyncPatternMonitor::patternFound(const short hw) {
+  LOG(debug) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? " low" : "high") << "): "
+             << "SYNC found at Position " << hw << " in checked half word #" << mCheckedWords;
   if (mPatternFound) {
-    LOG(WARNING) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? " low" : "high") << "): "
-      << "SYNC was already found" << FairLogger::endl;
+    LOG(warn) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? " low" : "high") << "): "
+              << "SYNC was already found";
   }
   mPatternFound = true; 
   mPosition = SYNC_START; 

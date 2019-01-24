@@ -19,7 +19,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 using namespace o2::TPC;
 

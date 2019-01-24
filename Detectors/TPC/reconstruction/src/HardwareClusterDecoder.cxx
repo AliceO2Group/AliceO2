@@ -18,7 +18,7 @@
 #include "TPCBase/Mapper.h"
 #include <algorithm>
 #include <vector>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -46,7 +46,7 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
     {
       if (outMCLabels && inputClusters[i].second > 1)
       {
-        LOG(ERROR) << "Decoding of ClusterHardware to ClusterNative with MC labels is yet only support for single 8kb pages of ClusterHardwareContainer\n";
+        LOG(error) << "Decoding of ClusterHardware to ClusterNative with MC labels is yet only support for single 8kb pages of ClusterHardwareContainer\n";
         return(1);
       }
       for (int j = 0;j < inputClusters[i].second;j++)

@@ -33,7 +33,7 @@
 #include <iosfwd>
 #include <iomanip>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 namespace o2{
 namespace TPC{

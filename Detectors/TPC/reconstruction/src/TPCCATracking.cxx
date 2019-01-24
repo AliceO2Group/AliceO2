@@ -13,7 +13,7 @@
 
 #include "TPCReconstruction/TPCCATracking.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "ReconstructionDataFormats/Track.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"

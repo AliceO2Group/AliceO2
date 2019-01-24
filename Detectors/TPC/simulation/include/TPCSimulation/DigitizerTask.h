@@ -17,7 +17,7 @@
 
 #include <cstdio>
 #include <string>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "FairTask.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "TPCBase/Sector.h"
@@ -162,12 +162,12 @@ class DigitizerTask : public FairTask
 
 inline void DigitizerTask::setDebugOutput(TString debugString)
 {
-  LOG(INFO) << "TPC - Debug output enabled for: ";
+  LOG(info) << "TPC - Debug output enabled for: ";
   if (debugString.Contains("DigitMCDebug")) {
-    LOG(INFO) << "DigitMC, ";
+    LOG(info) << "DigitMC, ";
     mDigitDebugOutput = true;
   }
-  LOG(INFO) << "\n";
+  LOG(info) << "\n";
 }
 
 inline void DigitizerTask::setContinuousReadout(bool isContinuous)

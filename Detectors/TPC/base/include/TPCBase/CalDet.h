@@ -17,7 +17,7 @@
 #include <boost/format.hpp>
 #include <boost/range/combine.hpp>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/Mapper.h"
@@ -159,7 +159,7 @@ inline const CalDet<T>& CalDet<T>::operator+=(const CalDet& other)
   // make sure the calibration objects have the same substructure
   // TODO: perhaps make it independed of this
   if (mPadSubset != other.mPadSubset) {
-    LOG(ERROR) << "Pad subste type of the objects it not compatible" << FairLogger::endl;
+    LOG(error) << "Pad subste type of the objects it not compatible";
     return *this;
   }
 
@@ -176,7 +176,7 @@ inline const CalDet<T>& CalDet<T>::operator-=(const CalDet& other)
   // make sure the calibration objects have the same substructure
   // TODO: perhaps make it independed of this
   if (mPadSubset != other.mPadSubset) {
-    LOG(ERROR) << "Pad subste type of the objects it not compatible" << FairLogger::endl;
+    LOG(error) << "Pad subste type of the objects it not compatible";
     return *this;
   }
 
@@ -193,7 +193,7 @@ inline const CalDet<T>& CalDet<T>::operator*=(const CalDet& other)
   // make sure the calibration objects have the same substructure
   // TODO: perhaps make it independed of this
   if (mPadSubset != other.mPadSubset) {
-    LOG(ERROR) << "Pad subste type of the objects it not compatible" << FairLogger::endl;
+    LOG(error) << "Pad subste type of the objects it not compatible";
     return *this;
   }
 
@@ -210,7 +210,7 @@ inline const CalDet<T>& CalDet<T>::operator/=(const CalDet& other)
   // make sure the calibration objects have the same substructure
   // TODO: perhaps make it independed of this
   if (mPadSubset != other.mPadSubset) {
-    LOG(ERROR) << "Pad subste type of the objects it not compatible" << FairLogger::endl;
+    LOG(error) << "Pad subste type of the objects it not compatible";
     return *this;
   }
 

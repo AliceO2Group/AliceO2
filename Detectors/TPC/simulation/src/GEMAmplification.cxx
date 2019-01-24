@@ -18,7 +18,7 @@
 #include <TFile.h>
 #include "TPCBase/CDBInterface.h"
 #include <fstream>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 using namespace o2::TPC;
 using boost::format;
@@ -46,10 +46,10 @@ GEMAmplification::GEMAmplification()
   TFile* outfile;
   auto cacheexists = fileexists(polyaFileName);
   if (cacheexists) {
-    LOG(INFO) << "TPC GEM SETUP FROM EXISTING CACHE";
+    LOG(info) << "TPC GEM SETUP FROM EXISTING CACHE";
     outfile = TFile::Open(polyaFileName);
   } else {
-    LOG(INFO) << "TPC GEM SETUP : INITIALIZATION FROM SCRATCH";
+    LOG(info) << "TPC GEM SETUP : INITIALIZATION FROM SCRATCH";
     outfile = TFile::Open(polyaFileName, "CREATE");
   }
 
@@ -80,7 +80,7 @@ GEMAmplification::GEMAmplification()
   mRandomGaus.initialize(RandomRing::RandomType::Gaus);
   mRandomFlat.initialize(RandomRing::RandomType::Flat);
   watch.Stop();
-  LOG(INFO) << "TPC GEM SETUP (POLYA-DISTRIBUTION) TOOK " << watch.CpuTime();
+  LOG(info) << "TPC GEM SETUP (POLYA-DISTRIBUTION) TOOK " << watch.CpuTime();
 }
 
 GEMAmplification::~GEMAmplification() = default;

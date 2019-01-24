@@ -11,7 +11,7 @@
 #include "TPCReconstruction/ClusterContainer.h"
 #include "DataFormatsTPC/Cluster.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include <cassert>
 
 using namespace o2::TPC;

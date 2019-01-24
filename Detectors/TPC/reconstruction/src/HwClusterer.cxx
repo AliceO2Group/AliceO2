@@ -18,7 +18,7 @@
 #include "DataFormatsTPC/Cluster.h"
 #include "DataFormatsTPC/ClusterHardware.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include <cassert>
 #include <limits>
@@ -59,7 +59,7 @@ HwClusterer::HwClusterer(
     mClusterArray(clusterOutputContainer),
     mPlainClusterArray(clusterOutputSimple)
 {
-  LOG(DEBUG) << "Enter Initializer of HwClusterer" << FairLogger::endl;
+  LOG(debug) << "Enter Initializer of HwClusterer";
 
   // Given sector ID must be within 0 and 35 for a proper CRU ID calculation
   assert(sectorid >= 0 && sectorid < 36);
@@ -264,7 +264,7 @@ void HwClusterer::process(std::vector<o2::TPC::Digit> const& digits, MCLabelCont
     finishFrame(true);
 
   if (digits.size() != 0)
-    LOG(DEBUG) << "Event ranged from time bin " << digits.front().getTimeStamp() << " to " << digits.back().getTimeStamp() << "." << FairLogger::endl;
+    LOG(debug) << "Event ranged from time bin " << digits.front().getTimeStamp() << " to " << digits.back().getTimeStamp() << ".";
 }
 
 //______________________________________________________________________________
