@@ -33,7 +33,7 @@ struct AliGPUTRDTrackletLabels;
 class AliGPUCADisplay;
 class AliGPUCAQA;
 
-namespace o2 { namespace ITS { class TrackerTraits; }}
+namespace o2 { namespace ITS { class TrackerTraits; class VertexerTraits; }}
 namespace o2 { namespace trd { class TRDGeometryFlat; }}
 namespace o2 { namespace TPC { struct ClusterNativeAccessFullTPC; struct ClusterNative; }}
 namespace ali_tpc_common { namespace tpc_fast_transformation { class TPCFastTransform; }}
@@ -181,6 +181,7 @@ public:
 	//Getters for external usage of tracker classes
 	AliGPUTRDTracker* GetTRDTracker() {return &mWorkers->trdTracker;}
 	o2::ITS::TrackerTraits* GetITSTrackerTraits() {return mITSTrackerTraits.get();}
+	o2::ITS::VertexerTraits* GetITSVertexerTraits() {return mITSVertexerTraits.get();}
 	AliGPUTPCTracker* GetTPCSliceTrackers() {return mWorkers->tpcTrackers;}
 	const AliGPUTPCTracker* GetTPCSliceTrackers() const {return mWorkers->tpcTrackers;}
 	const AliGPUTPCGMMerger& GetTPCMerger() const {return mWorkers->tpcMerger;}
@@ -267,6 +268,7 @@ protected:
 	//Pointers to tracker classes
 	std::unique_ptr<AliGPUCAWorkers> mWorkers;
 	std::unique_ptr<o2::ITS::TrackerTraits> mITSTrackerTraits;
+	std::unique_ptr<o2::ITS::VertexerTraits> mITSVertexerTraits;
 	AliGPUTPCSliceOutput* mSliceOutput[NSLICES];
 	
 	AliGPUCAParam mParam;														//Reconstruction parameters

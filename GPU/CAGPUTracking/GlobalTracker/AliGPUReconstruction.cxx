@@ -55,7 +55,8 @@ static constexpr char DUMP_HEADER[DUMP_HEADER_SIZE + 1] = "CAv1";
 
 using namespace o2::TPC;
 
-AliGPUReconstruction::AliGPUReconstruction(const AliGPUCASettingsProcessing& cfg) : mWorkers(new AliGPUCAWorkers), mITSTrackerTraits(nullptr), mClusterNativeAccess(new ClusterNativeAccessExt), mTPCFastTransform(nullptr), mTRDGeometry(nullptr)
+AliGPUReconstruction::AliGPUReconstruction(const AliGPUCASettingsProcessing& cfg) : mWorkers(new AliGPUCAWorkers), mITSTrackerTraits(nullptr), mITSVertexerTraits(nullptr),  mClusterNativeAccess(new ClusterNativeAccessExt), mTPCFastTransform(nullptr),
+	mTRDGeometry(nullptr)
 {
 	mProcessingSettings = cfg;
 	mDeviceProcessingSettings.SetDefaults();
@@ -64,6 +65,7 @@ AliGPUReconstruction::AliGPUReconstruction(const AliGPUCASettingsProcessing& cfg
 	if (mProcessingSettings.deviceType == CPU)
 	{
 		mITSTrackerTraits.reset(new o2::ITS::TrackerTraitsCPU);
+		mITSVertexerTraits.reset(new o2::ITS::VertexerTraits);
 	}
 	memset(mSliceOutput, 0, sizeof(mSliceOutput));
 	
@@ -81,6 +83,7 @@ AliGPUReconstruction::~AliGPUReconstruction()
 	//Reset these explicitly before the destruction of other members unloads the library
 	mWorkers.reset();
 	mITSTrackerTraits.reset();
+	mITSVertexerTraits.reset();
 	if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL)
 	{
 		for (unsigned int i = 0;i < mMemoryResources.size();i++)
