@@ -76,8 +76,11 @@ void Digitizer::process(std::vector<o2::trd::HitType> const& hits, std::vector<o
       continue;
     }
     totalNumberOfProcessedHits += mHitContainer.size();
-    int signals; // dummy variable for now
-    convertHits(det, mHitContainer, signals);
+    int signals = 0; // dummy variable for now
+    if (!convertHits(det, mHitContainer, signals)) {
+      LOG(INFO) << "TRD converstion of hits failed for detector " << det;
+      signals = 0; //
+    }
 
     digits.emplace_back();
   } // end of loop over detectors
