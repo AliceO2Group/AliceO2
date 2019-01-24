@@ -6,14 +6,14 @@
 #include "DetectorsPassive/Cave.h"
 #include "DetectorsPassive/FrameStructure.h"
 #include "EMCALSimulation/Detector.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "FairRunSim.h"
 #endif
 
 void PutEmcalInTop()
 {
   // minimal macro to test setup of the geometry
-  FairLogger::GetLogger()->SetLogScreenLevel("DEBUG3");
+  fair::Logger::SetConsoleSeverity("DEBUG3");
 
   TString dir = getenv("VMCWORKDIR");
   TString geom_dir = dir + "/Detectors/Geometry/";
