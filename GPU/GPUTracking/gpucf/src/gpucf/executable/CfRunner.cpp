@@ -7,6 +7,11 @@
 using namespace gpucf;
 
 
+CfRunner::CfRunner()
+    : Executable("Runs the GPU cluster finder.")
+{
+}
+
 void CfRunner::setupFlags(args::Group &required, args::Group &optional)
 {
     envFlags  = std::make_unique<ClEnv::Flags>(required, optional); 
