@@ -4,7 +4,7 @@
 #include <TStopwatch.h>
 //#include "DataFormatsParameters/GRPObject.h"
 #include "FairFileSource.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "FairRunAna.h"
 //#include "FairRuntimeDb.h"
 #include "FairParRootFileIo.h"
@@ -17,10 +17,10 @@ void run_clu_phos(std::string outputfile = "o2clu.root", std::string inputfile =
                   std::string paramfile = "AliceO2_TGeant3.phos.params_10.root")
 {
   // Initialize logger
-  FairLogger* logger = FairLogger::GetLogger();
-  logger->SetLogVerbosityLevel("LOW");
-  //  logger->SetLogScreenLevel("INFO");
-  logger->SetLogScreenLevel("DEBUG");
+
+  fair::Logger::SetVerbosity("LOW");
+  //  fair::Logger::SetConsoleSeverity("INFO");
+  fair::Logger::SetConsoleSeverity("DEBUG");
 
   // Setup timer
   TStopwatch timer;

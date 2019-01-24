@@ -4,7 +4,7 @@
 #include <TStopwatch.h>
 //#include "DataFormatsParameters/GRPObject.h"
 #include "FairFileSource.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "FairRunAna.h"
 //#include "FairRuntimeDb.h"
 #include "FairParRootFileIo.h"
@@ -22,10 +22,10 @@ void run_digi_phos(std::string outputfile = "o2dig.root",
   // if rate>0 then continuous simulation for this rate will be performed
 
   // Initialize logger
-  FairLogger* logger = FairLogger::GetLogger();
-  logger->SetLogVerbosityLevel("LOW");
-  //  logger->SetLogScreenLevel("INFO");
-  logger->SetLogScreenLevel("DEBUG");
+
+  fair::Logger::SetVerbosity("LOW");
+  //  fair::Logger::SetConsoleSeverity("INFO");
+  fair::Logger::SetConsoleSeverity("DEBUG");
 
   // Setup timer
   TStopwatch timer;

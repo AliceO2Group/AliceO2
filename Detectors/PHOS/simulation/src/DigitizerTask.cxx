@@ -14,7 +14,7 @@
 #include "PHOSBase/Hit.h"
 #include "PHOSSimulation/Digitizer.h"
 
-#include "FairLogger.h"      // for LOG
+#include <fairlogger/Logger.h> // for LOG
 #include "FairRootManager.h" // for FairRootManager
 #include "FairTask.h"        // for FairTask, InitStatus
 #include "Rtypes.h"          // for DigitizerTask::Class, ClassDef, etc
@@ -43,13 +43,13 @@ InitStatus DigitizerTask::Init()
 {
   FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
-    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(error) << "Could not instantiate FairRootManager. Exiting ...";
     return kERROR;
   }
 
   mHitsArray = mgr->InitObjectAs<const std::vector<o2::phos::Hit>*>("PHSHit");
   if (!mHitsArray) {
-    LOG(ERROR) << "PHOS hits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(error) << "PHOS hits not registered in the FairRootManager. Exiting ...";
     return kERROR;
   }
 
@@ -72,7 +72,7 @@ void DigitizerTask::Exec(Option_t* option)
     mDigitsArray->clear();
   mDigitizer.setEventTime(mgr->GetEventTime());
 
-  LOG(DEBUG) << "Running digitization on new event " << mEventID << " from source " << mSourceID << FairLogger::endl;
+  LOG(debug) << "Running digitization on new event " << mEventID << " from source " << mSourceID;
   mDigitizer.setCurrSrcID(mSourceID);
   mDigitizer.setCurrEvID(mEventID);
 
