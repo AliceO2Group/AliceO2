@@ -875,10 +875,13 @@ int AliGPUReconstruction::RunTPCTrackingSlices()
 		}
 	}
 	//printf("Slice Tracks Output %d: - Tracks: %d local, %d global -  Hits: %d local, %d global\n", nOutputTracks, nLocalTracks, nGlobalTracks, nLocalHits, nGlobalHits);
-	/*for (unsigned int i = 0;i < NSLICES;i++)
+	if (mDeviceProcessingSettings.debugMask & 1024)
 	{
-		mTPCSliceTrackersCPU[i].DumpOutput(stdout);
-	}*/
+		for (unsigned int i = 0;i < NSLICES;i++)
+		{
+			mTPCSliceTrackersCPU[i].DumpOutput(stdout);
+		}
+	}
 	return 0;
 }
 

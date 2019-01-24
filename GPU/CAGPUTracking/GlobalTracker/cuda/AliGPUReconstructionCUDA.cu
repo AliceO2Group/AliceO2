@@ -333,20 +333,7 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices_internal()
 
 	//Copy Tracker Object to GPU Memory
 	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Copying Tracker objects to GPU");
-#ifdef GPUCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
-	char* tmpMem;
-	if (GPUFailedMsg(cudaMalloc(&tmpMem, 100000000)))
-	{
-		CAGPUError("Error allocating CUDA profile memory");
-		return(2);
-	}
-	fGpuTracker[0].fStageAtSync = tmpMem;
-	if (GPUFailedMsg(cudaMemset(fGpuTracker[0].StageAtSync(), 0, 100000000)))
-	{
-		CAGPUError("Error clearing stageatsync");
-		return(2);
-	}
-#endif
+	if (PrepareProfile()) return 2;
 	if (GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, &mParam, sizeof(AliGPUCAParam), (char*) &AliGPUCAConstantMemDummy.param - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice, mInternals->CudaStreams[0])))
 	{
 		CAGPUError("Error writing to constant memory");
@@ -588,79 +575,15 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices_internal()
 	}
 	if (Reconstruct_Base_Finalize()) return(1);
 
-	/*for (unsigned int i = 0;i < NSLICES;i++)
+	if (DoProfile()) return(1);
+	
+	if (mDeviceProcessingSettings.debugMask & 1024)
 	{
-		mTPCSliceTrackersCPU[i].DumpOutput(stdout);
-	}*/
-
-	/*static int runnum = 0;
-	std::ofstream tmpOut;
-	char buffer[1024];
-	sprintf(buffer, "GPUtracks%d.out", runnum++);
-	tmpOut.open(buffer);
-	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
-	{
-		mTPCSliceTrackersCPU[iSlice].DumpTrackHits(tmpOut);
-	}
-	tmpOut.close();*/
-
-#ifdef GPUCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
-	char* stageAtSync = (char*) malloc(100000000);
-	GPUFailedMsg(cudaMemcpy(stageAtSync, fGpuTracker[0].StageAtSync(), 100 * 1000 * 1000, cudaMemcpyDeviceToHost));
-	cudaFree(fGpuTracker[0].StageAtSync());
-
-	FILE* fp = fopen("profile.txt", "w+");
-	FILE* fp2 = fopen("profile.bmp", "w+b");
-	int nEmptySync = 0, fEmpty;
-
-	const int bmpheight = 8192;
-	BITMAPFILEHEADER bmpFH;
-	BITMAPINFOHEADER bmpIH;
-	ZeroMemory(&bmpFH, sizeof(bmpFH));
-	ZeroMemory(&bmpIH, sizeof(bmpIH));
-
-	bmpFH.bfType = 19778; //"BM"
-	bmpFH.bfSize = sizeof(bmpFH) + sizeof(bmpIH) + (fConstructorBlockCount * GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR / 32 * 33 - 1) * bmpheight ;
-	bmpFH.bfOffBits = sizeof(bmpFH) + sizeof(bmpIH);
-
-	bmpIH.biSize = sizeof(bmpIH);
-	bmpIH.biWidth = fConstructorBlockCount * GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR / 32 * 33 - 1;
-	bmpIH.biHeight = bmpheight;
-	bmpIH.biPlanes = 1;
-	bmpIH.biBitCount = 32;
-
-	fwrite(&bmpFH, 1, sizeof(bmpFH), fp2);
-	fwrite(&bmpIH, 1, sizeof(bmpIH), fp2);
-
-	for (int i = 0;i < bmpheight * fConstructorBlockCount * GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR;i += fConstructorBlockCount * GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR)
-	{
-		fEmpty = 1;
-		for (int j = 0;j < fConstructorBlockCount * GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR;j++)
+		for (unsigned int i = 0;i < NSLICES;i++)
 		{
-			fprintf(fp, "%d\t", stageAtSync[i + j]);
-			int color = 0;
-			if (stageAtSync[i + j] == 1) color = RGB(255, 0, 0);
-			if (stageAtSync[i + j] == 2) color = RGB(0, 255, 0);
-			if (stageAtSync[i + j] == 3) color = RGB(0, 0, 255);
-			if (stageAtSync[i + j] == 4) color = RGB(255, 255, 0);
-			fwrite(&color, 1, sizeof(int), fp2);
-			if (j > 0 && j % 32 == 0)
-			{
-				color = RGB(255, 255, 255);
-				fwrite(&color, 1, 4, fp2);
-			}
-			if (stageAtSync[i + j]) fEmpty = 0;
+			mTPCSliceTrackersCPU[i].DumpOutput(stdout);
 		}
-		fprintf(fp, "\n");
-		if (fEmpty) nEmptySync++;
-		else nEmptySync = 0;
-		//if (nEmptySync == GPUCA_GPU_SCHED_ROW_STEP + 2) break;
 	}
-
-	fclose(fp);
-	fclose(fp2);
-	free(stageAtSync);
-#endif
 
 	return(0);
 }
@@ -852,4 +775,85 @@ int AliGPUReconstructionCUDA::PrepareTextures()
 	}
 #endif
 	return(0);
+}
+
+int AliGPUReconstructionCUDA::PrepareProfile()
+{
+#ifdef GPUCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
+	char* tmpMem;
+	if (GPUFailedMsg(cudaMalloc(&tmpMem, 100000000)))
+	{
+		CAGPUError("Error allocating CUDA profile memory");
+		return(2);
+	}
+	fGpuTracker[0].fStageAtSync = tmpMem;
+	if (GPUFailedMsg(cudaMemset(fGpuTracker[0].StageAtSync(), 0, 100000000)))
+	{
+		CAGPUError("Error clearing stageatsync");
+		return(2);
+	}
+#endif
+	return 0;
+}
+
+int AliGPUReconstructionCUDA::DoProfile()
+{
+#ifdef GPUCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
+	char* stageAtSync = (char*) malloc(100000000);
+	GPUFailedMsg(cudaMemcpy(stageAtSync, fGpuTracker[0].StageAtSync(), 100 * 1000 * 1000, cudaMemcpyDeviceToHost));
+	cudaFree(fGpuTracker[0].StageAtSync());
+
+	FILE* fp = fopen("profile.txt", "w+");
+	FILE* fp2 = fopen("profile.bmp", "w+b");
+	int nEmptySync = 0, fEmpty;
+
+	const int bmpheight = 8192;
+	BITMAPFILEHEADER bmpFH;
+	BITMAPINFOHEADER bmpIH;
+	ZeroMemory(&bmpFH, sizeof(bmpFH));
+	ZeroMemory(&bmpIH, sizeof(bmpIH));
+
+	bmpFH.bfType = 19778; //"BM"
+	bmpFH.bfSize = sizeof(bmpFH) + sizeof(bmpIH) + (fConstructorBlockCount * GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR / 32 * 33 - 1) * bmpheight ;
+	bmpFH.bfOffBits = sizeof(bmpFH) + sizeof(bmpIH);
+
+	bmpIH.biSize = sizeof(bmpIH);
+	bmpIH.biWidth = fConstructorBlockCount * GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR / 32 * 33 - 1;
+	bmpIH.biHeight = bmpheight;
+	bmpIH.biPlanes = 1;
+	bmpIH.biBitCount = 32;
+
+	fwrite(&bmpFH, 1, sizeof(bmpFH), fp2);
+	fwrite(&bmpIH, 1, sizeof(bmpIH), fp2);
+
+	for (int i = 0;i < bmpheight * fConstructorBlockCount * GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR;i += fConstructorBlockCount * GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR)
+	{
+		fEmpty = 1;
+		for (int j = 0;j < fConstructorBlockCount * GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR;j++)
+		{
+			fprintf(fp, "%d\t", stageAtSync[i + j]);
+			int color = 0;
+			if (stageAtSync[i + j] == 1) color = RGB(255, 0, 0);
+			if (stageAtSync[i + j] == 2) color = RGB(0, 255, 0);
+			if (stageAtSync[i + j] == 3) color = RGB(0, 0, 255);
+			if (stageAtSync[i + j] == 4) color = RGB(255, 255, 0);
+			fwrite(&color, 1, sizeof(int), fp2);
+			if (j > 0 && j % 32 == 0)
+			{
+				color = RGB(255, 255, 255);
+				fwrite(&color, 1, 4, fp2);
+			}
+			if (stageAtSync[i + j]) fEmpty = 0;
+		}
+		fprintf(fp, "\n");
+		if (fEmpty) nEmptySync++;
+		else nEmptySync = 0;
+		//if (nEmptySync == GPUCA_GPU_SCHED_ROW_STEP + 2) break;
+	}
+
+	fclose(fp);
+	fclose(fp2);
+	free(stageAtSync);
+#endif
+	return 0;
 }
