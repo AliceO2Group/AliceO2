@@ -11,7 +11,7 @@
 //#include <TVector3.h>
 #include "FITBase/Geometry.h"
 
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <sstream>
 
 ClassImp(o2::fit::Geometry);

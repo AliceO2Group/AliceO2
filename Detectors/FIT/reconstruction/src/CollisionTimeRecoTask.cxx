@@ -12,8 +12,7 @@
 /// \brief Implementation of the FIT reconstruction task
 
 #include "FITReconstruction/CollisionTimeRecoTask.h"
-#include "FairLogger.h"      // for LOG
-
+#include <fairlogger/Logger.h> // for LOG
 
 using namespace o2::fit;
 /*
@@ -29,7 +28,7 @@ CollisionTimeRecoTask::CollisionTimeRecoTask()
 void CollisionTimeRecoTask::Process(const Digit& digits,
                                     RecPoints& recPoints) const
 {
-  LOG(INFO) << "Running reconstruction on new event" << FairLogger::endl;
+  LOG(info) << "Running reconstruction on new event";
   recPoints.FillFromDigits(digits);
 }
 //________________________________________________________

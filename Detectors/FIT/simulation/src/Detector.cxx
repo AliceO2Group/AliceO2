@@ -17,7 +17,7 @@
 #include "TVector3.h"
 
 #include "FairRootManager.h" // for FairRootManager
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "FairVolume.h"
 
 #include "FairRootManager.h"
@@ -57,7 +57,7 @@ void Detector::InitializeO2Detector()
   // FIXME: we need to register the sensitive volumes with FairRoot
   TGeoVolume* v = gGeoManager->GetVolume("0REG");
   if (v == nullptr) {
-    LOG(WARN) << "@@@@ Sensitive volume 0REG not found!!!!!!!!";
+    LOG(warn) << "@@@@ Sensitive volume 0REG not found!!!!!!!!";
   } else {
 
     AddSensitiveVolume(v);
@@ -66,7 +66,7 @@ void Detector::InitializeO2Detector()
 
 void Detector::ConstructGeometry()
 {
-  LOG(DEBUG) << "Creating FIT geometry\n";
+  LOG(debug) << "Creating FIT geometry\n";
   CreateMaterials();
 
   Float_t zdetA = 333;
@@ -209,7 +209,7 @@ void Detector::ConstructGeometry()
 
 void Detector::ConstructOpGeometry()
 {
-  LOG(DEBUG) << "Creating FIT optical geometry properties";
+  LOG(debug) << "Creating FIT optical geometry properties";
 
   DefineOpticalProperties();
 }
@@ -391,7 +391,7 @@ void Detector::DefineOpticalProperties()
 
   if (ReadOptProperties(optPropPath.Data()) < 0) {
     // Error reading file
-    LOG(ERROR) << "Could not read FIT optical properties" << FairLogger::endl;
+    LOG(error) << "Could not read FIT optical properties";
     return;
   }
   Int_t nBins = mPhotonEnergyD.size();

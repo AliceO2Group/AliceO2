@@ -3,7 +3,7 @@
 
 #include <TStopwatch.h>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "FairRunAna.h"
 #include "FairFileSource.h"
 #include "FairRuntimeDb.h"
@@ -18,9 +18,9 @@ void run_digi_fit(Int_t nEvents = 10, Float_t rate = 50.e3)
   // if rate>0 then continuous simulation for this rate will be performed
 
   // Initialize logger
-  FairLogger* logger = FairLogger::GetLogger();
-  logger->SetLogVerbosityLevel("LOW");
-  logger->SetLogScreenLevel("DEBUG");
+
+  fair::Logger::SetVerbosity("LOW");
+  fair::Logger::SetConsoleSeverity("DEBUG");
 
   // Input and output file name
   std::stringstream inputfile, outputfile, paramfile;
