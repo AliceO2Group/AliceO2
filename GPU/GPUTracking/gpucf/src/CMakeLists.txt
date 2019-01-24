@@ -7,6 +7,9 @@ target_link_libraries(run_gpucf gpucf)
 add_executable(clcanary "clcanary.cpp")
 target_link_libraries(clcanary gpucf)
 
+add_executable(subgroupinfo "subgroupinfo.cpp")
+target_link_libraries(subgroupinfo gpucf)
+
 add_executable(args_test "args_test.cpp")
 
 add_executable(testbench 

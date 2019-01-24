@@ -15,6 +15,7 @@ set(GPUCF_SRC
     "./executable/CfRunner.cpp"
     "./executable/ClCanary.cpp"
     "./executable/Executable.cpp"
+    "./executable/SubGroupInfo.cpp"
 )
 
 add_library(gpucf STATIC ${GPUCF_SRC})

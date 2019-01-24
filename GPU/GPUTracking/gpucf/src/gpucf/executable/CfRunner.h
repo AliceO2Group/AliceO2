@@ -13,10 +13,7 @@ class CfRunner : public Executable
 {
     
 public:
-    CfRunner()
-        : Executable("Runs the GPU cluster finder.")
-    {
-    }
+    CfRunner();
 
 protected:
     void setupFlags(args::Group &, args::Group &) override;
