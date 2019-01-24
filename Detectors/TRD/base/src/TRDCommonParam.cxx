@@ -21,7 +21,7 @@
 #include <TMath.h>
 //#include "AliMagF.h"
 
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include "TRDBase/TRDCommonParam.h"
 #include "TRDBase/TRDGeometry.h"
 
@@ -285,7 +285,7 @@ double TRDCommonParam::TimeStruct(float vdrift, double dist, double z)
   const int kz2 = kz1 + 1;
 
   if ((r1 < 0) || (r1 > 37) || (kz1 < 0) || (kz1 > 10)) {
-    LOG(INFO) << Form("Indices out of range: dist=%.2f, z=%.2f, r1=%d, kz1=%d", dist, z, r1, kz1);
+    LOG(info) << Form("Indices out of range: dist=%.2f, z=%.2f, r1=%d, kz1=%d", dist, z, r1, kz1);
   }
 
   const float ky111 = mTimeStruct1[r1 + 38 * kz1];
@@ -351,10 +351,10 @@ void TRDCommonParam::SampleTimeStruct(float vdrift)
   fVDsmp[7] = 2.134;
 
   if (vdrift < fVDsmp[0]) {
-    LOG(INFO) << Form("Drift Velocity too small (%.3f<%.3f)", vdrift, fVDsmp[0]);
+    LOG(info) << Form("Drift Velocity too small (%.3f<%.3f)", vdrift, fVDsmp[0]);
     vdrift = fVDsmp[0];
   } else if (vdrift > fVDsmp[7]) {
-    LOG(INFO) << Form("Drift Velocity too large (%.3f>%.3f)", vdrift, fVDsmp[6]);
+    LOG(info) << Form("Drift Velocity too large (%.3f>%.3f)", vdrift, fVDsmp[6]);
     vdrift = fVDsmp[7];
   }
 
