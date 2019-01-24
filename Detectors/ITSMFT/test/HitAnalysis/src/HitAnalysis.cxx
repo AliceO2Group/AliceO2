@@ -18,7 +18,7 @@
 
 #include "HitAnalysis/HitAnalysis.h"
 
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 
 #include "TH1.h" // for TH1, TH1D, TH1F
 #include "TMath.h"
@@ -69,13 +69,13 @@ InitStatus HitAnalysis::Init()
   // Get the FairRootManager
   FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
-    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(error) << "Could not instantiate FairRootManager. Exiting ...";
     return kERROR;
   }
 
   mHits = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Hit>*>("ITSHit");
   if (!mHits) {
-    LOG(ERROR) << "ITS points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(error) << "ITS points not registered in the FairRootManager. Exiting ...";
     return kERROR;
   }
 

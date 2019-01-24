@@ -11,7 +11,7 @@
 /// \file DigiParams.cxx
 /// \brief Implementation of the ITS digitization steering params
 
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 #include "ITSMFTSimulation/DigiParams.h"
 #include <cassert>
 
@@ -50,9 +50,9 @@ void DigiParams::setChargeThreshold(int v, float frac2Account)
   if (mMinChargeToAccount < 0 || mMinChargeToAccount > mChargeThreshold) {
     mMinChargeToAccount = mChargeThreshold;
   }
-  LOG(INFO) << "Set Alpide charge threshold to " << mChargeThreshold
+  LOG(info) << "Set Alpide charge threshold to " << mChargeThreshold
             << ", single hit will be accounted from " << mMinChargeToAccount
-            << " electrons" << FairLogger::endl;
+            << " electrons";
 }
 
 //______________________________________________

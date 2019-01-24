@@ -12,7 +12,7 @@
 /// \brief Class for the virtual segmentation of the ALICE Muon Forward Tracker
 /// \author Raphael Tieulent <raphael.tieulent@cern.ch>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "MFTBase/LadderSegmentation.h"
 #include "MFTBase/HalfDiskSegmentation.h"
@@ -44,7 +44,7 @@ Segmentation::Segmentation(const Char_t* nameGeomFile) : TNamed(), mHalves(nullp
   delete halfBottom;
   delete halfTop;
 
-  LOG(DEBUG1) << "MFT segmentation set!" << FairLogger::endl;
+  LOG(debug1) << "MFT segmentation set!";
 }
 
 //_____________________________________________________________________________
@@ -63,7 +63,7 @@ Segmentation::~Segmentation()
 //_____________________________________________________________________________
 HalfSegmentation* Segmentation::getHalf(Int_t iHalf) const
 {
-  LOG(DEBUG) << Form("Ask for half %d (of %d and %d)", iHalf, Bottom, Top);
+  LOG(debug) << Form("Ask for half %d (of %d and %d)", iHalf, Bottom, Top);
 
   return ((iHalf == Top || iHalf == Bottom) ? ((HalfSegmentation*)mHalves->At(iHalf)) : nullptr);
 }

@@ -18,7 +18,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
-#include "FairLogger.h"   // for LOG
+#include <fairlogger/Logger.h> // for LOG
 
 using o2::ITSMFT::SegmentationAlpide;
 using namespace o2::ITS;

@@ -17,7 +17,7 @@
 
 #include "TNamed.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 class TGeoVolume;
 class TGeoCompositeShape;

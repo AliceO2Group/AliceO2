@@ -19,7 +19,7 @@
 #include "TGeoCompositeShape.h"
 #include "TGeoBoolNode.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 #include "ITSMFTSimulation/AlpideChip.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
@@ -53,7 +53,7 @@ Ladder::Ladder(LadderSegmentation* segmentation)
   : TNamed(segmentation->GetName(), segmentation->GetName()), mSegmentation(segmentation), mFlex(nullptr)
 {
 
-  LOG(DEBUG1) << "Ladder " << Form("creating : %s", GetName()) << FairLogger::endl;
+  LOG(debug1) << "Ladder " << Form("creating : %s", GetName());
   mLadderVolume = new TGeoVolumeAssembly(GetName());
 }
 
@@ -151,7 +151,7 @@ void Ladder::createSensors()
     masterglue[1] -= shape->GetDY();
     masterglue[2] -= shape->GetDZ();
 
-    LOG(DEBUG1) << "CreateSensors " << Form("adding chip %s_%d ", namePrefixS.Data(), ichip) << FairLogger::endl;
+    LOG(debug1) << "CreateSensors " << Form("adding chip %s_%d ", namePrefixS.Data(), ichip);
     // chipPos->Print();
 
     TGeoTranslation* trans = new TGeoTranslation(master[0], master[1], master[2]);

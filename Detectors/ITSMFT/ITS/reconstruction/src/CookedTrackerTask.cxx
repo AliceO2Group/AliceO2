@@ -19,7 +19,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
-#include "FairLogger.h"      // for LOG
+#include <fairlogger/Logger.h> // for LOG
 #include "FairRootManager.h" // for FairRootManager
 
 ClassImp(o2::ITS::CookedTrackerTask)
@@ -55,13 +55,13 @@ InitStatus CookedTrackerTask::Init()
 {
   FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
-    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(error) << "Could not instantiate FairRootManager. Exiting ...";
     return kERROR;
   }
 
   mClustersArray = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Cluster>*>("ITSCluster");
   if (!mClustersArray) {
-    LOG(ERROR) << "ITS clusters not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(error) << "ITS clusters not registered in the FairRootManager. Exiting ...";
     return kERROR;
   }
 
@@ -73,7 +73,7 @@ InitStatus CookedTrackerTask::Init()
     mgr->RegisterAny("ITSTrackMCTruth", mTrkLabels, kTRUE);
     mClsLabels = mgr->InitObjectAs<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("ITSClusterMCTruth");
     if (!mClsLabels) {
-      LOG(ERROR) << "ITS cluster labels not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+      LOG(error) << "ITS cluster labels not registered in the FairRootManager. Exiting ...";
       return kERROR;
     }
     mVertexer.setMCTruthContainer(mClsLabels);
@@ -95,7 +95,7 @@ void CookedTrackerTask::Exec(Option_t* option)
     mTracksArray->clear();
   if (mTrkLabels)
     mTrkLabels->clear();
-  LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
+  LOG(debug) << "Running digitization on new event";
 
   std::vector<std::array<Double_t, 3>> vertices;
   mVertexer.process(*mClustersArray, vertices);
