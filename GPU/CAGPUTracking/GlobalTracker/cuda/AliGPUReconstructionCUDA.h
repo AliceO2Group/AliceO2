@@ -32,6 +32,8 @@ protected:
 	virtual int SynchronizeGPU() override;
 	virtual int GPUSync(const char* state = "UNKNOWN", int stream = -1, int slice = 0) override;
 	virtual int PrepareTextures() override;
+	virtual int PrepareProfile() override;
+	virtual int DoProfile() override;
 	
 	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) override;
 	virtual int TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) override;

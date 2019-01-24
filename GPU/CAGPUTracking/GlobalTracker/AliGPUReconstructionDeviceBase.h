@@ -39,6 +39,8 @@ protected:
 	
 	virtual int PrepareTextures();
 	virtual int DoStuckProtection(int stream, void* event);
+	virtual int PrepareProfile();
+	virtual int DoProfile();
 	
 	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) = 0;
 	virtual int TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) = 0;
