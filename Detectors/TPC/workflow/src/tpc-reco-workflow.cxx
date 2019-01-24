@@ -57,6 +57,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   auto tpcSectors = o2::RangeTokenizer::tokenize<int>(cfgc.options().get<std::string>("tpc-sectors"));
   return o2::TPC::RecoWorkflow::getWorkflow(tpcSectors,                                    //
+                                            tpcSectors,                                    //
                                             not cfgc.options().get<bool>("disable-mc"),    //
                                             cfgc.options().get<int>("tpc-lanes"),          //
                                             cfgc.options().get<std::string>("input-type"), //
