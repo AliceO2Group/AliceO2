@@ -79,7 +79,7 @@ struct BuilderUtils {
     // FIXME: for the moment we do not fill things.
     auto status = builder->Append();
     auto valueBuilder = reinterpret_cast<ValueBuilderType*>(builder->value_builder());
-    return status & valueBuilder->AppendValues(ip.first, ip.second);
+    return status & valueBuilder->AppendValues(&*ip.first, std::distance(ip.first, ip.second));
   }
 };
 
