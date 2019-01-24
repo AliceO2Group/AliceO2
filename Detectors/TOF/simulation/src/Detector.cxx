@@ -12,7 +12,7 @@
 #include "TMath.h"
 #include "TString.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "FairVolume.h"
 #include "FairRootManager.h"
 
@@ -69,7 +69,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   float pos2x, pos2y, pos2z;
   fMC->TrackPosition(pos2x, pos2y, pos2z);
   Float_t radius = std::sqrt(pos2x * pos2x + pos2y * pos2y);
-  LOG(DEBUG) << "Process hit in TOF volume ar R=" << radius << " - Z=" << pos2z;
+  LOG(debug) << "Process hit in TOF volume ar R=" << radius << " - Z=" << pos2z;
 
   Float_t enDep = fMC->Edep();
   if (enDep < 1E-8)
@@ -93,7 +93,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     stack->addHit(GetDetId());
   } else {
     mHits->back().SetEnergyLoss(mHits->back().GetEnergyLoss() + newhit.GetEnergyLoss());
-    // LOG(INFO)<<"Merging hit "<<"\n";
+    // LOG(info)<<"Merging hit "<<"\n";
     //  <<mHits->back().GetId()<<"with new hit "<<newhit.GetId()<<"\n";
   }
   mLastChannelID = channel;
@@ -302,7 +302,7 @@ void Detector::ConstructGeometry()
   Float_t xTof = Geo::STRIPLENGTH + 2.5, yTof = Geo::RMAX - Geo::RMIN, zTof = Geo::ZLENA;
   DefineGeometry(xTof, yTof, zTof);
 
-  LOG(INFO) << "Loaded TOF geometry";
+  LOG(info) << "Loaded TOF geometry";
 }
 
 void Detector::EndOfEvent() { Reset(); }
@@ -1857,7 +1857,7 @@ void Detector::addAlignableVolumes() const
   for (Int_t isect = 0; isect < Geo::NSECTORS; isect++) {
     for (Int_t istr = 1; istr <= Geo::NSTRIPXSECTOR; istr++) {
       modUID = o2::Base::GeometryManager::getSensID(idTOF, modnum++);
-      LOG(DEBUG) << "modUID: " << modUID;
+      LOG(debug) << "modUID: " << modUID;
 
       if (mTOFSectors[isect] == -1)
         continue;
@@ -1890,24 +1890,24 @@ void Detector::addAlignableVolumes() const
       symName += snSTRIP;
       symName += Form("%02d", istr);
 
-      LOG(DEBUG) << "--------------------------------------------"
+      LOG(debug) << "--------------------------------------------"
                  << "\n";
-      LOG(DEBUG) << "Alignable object" << imod << "\n";
-      LOG(DEBUG) << "volPath=" << volPath << "\n";
-      LOG(DEBUG) << "symName=" << symName << "\n";
-      LOG(DEBUG) << "--------------------------------------------"
+      LOG(debug) << "Alignable object" << imod << "\n";
+      LOG(debug) << "volPath=" << volPath << "\n";
+      LOG(debug) << "symName=" << symName << "\n";
+      LOG(debug) << "--------------------------------------------"
                  << "\n";
 
-      LOG(DEBUG) << "Check for alignable entry: " << symName;
+      LOG(debug) << "Check for alignable entry: " << symName;
 
       if (!gGeoManager->SetAlignableEntry(symName.Data(), volPath.Data(), modUID)) {
-        LOG(ERROR) << "Alignable entry " << symName << " NOT set";
+        LOG(error) << "Alignable entry " << symName << " NOT set";
       }
-      LOG(DEBUG) << "Alignable entry " << symName << " set";
+      LOG(debug) << "Alignable entry " << symName << " set";
 
       // T2L matrices for alignment
       TGeoPNEntry* e = gGeoManager->GetAlignableEntryByUID(modUID);
-      LOG(DEBUG) << "Got TGeoPNEntry " << e;
+      LOG(debug) << "Got TGeoPNEntry " << e;
 
       if (e) {
         TGeoHMatrix* globMatrix = e->GetGlobalOrig();

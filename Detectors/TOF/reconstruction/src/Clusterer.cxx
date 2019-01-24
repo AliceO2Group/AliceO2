@@ -11,7 +11,7 @@
 /// \file Clusterer.cxx
 /// \brief Implementation of the TOF cluster finder
 #include <algorithm>
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 #include "DataFormatsTOF/Cluster.h"
 #include "TOFReconstruction/Clusterer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -26,14 +26,14 @@ void Clusterer::process(DataReader& reader, std::vector<Cluster>& clusters, MCLa
   int totNumDigits = 0;
 
   while (reader.getNextStripData(mStripData)) {
-    LOG(DEBUG) << "TOFClusterer got Strip " << mStripData.stripID << " with Ndigits "
+    LOG(debug) << "TOFClusterer got Strip " << mStripData.stripID << " with Ndigits "
                << mStripData.digits.size();
     totNumDigits += mStripData.digits.size();
 
     processStrip(clusters, digitMCTruth);
   }
 
-  LOG(DEBUG) << "We had " << totNumDigits << " digits in this event";
+  LOG(debug) << "We had " << totNumDigits << " digits in this event";
 }
 
 //__________________________________________________
@@ -48,7 +48,7 @@ void Clusterer::processStrip(std::vector<Cluster>& clusters, MCLabelContainer co
   Int_t ieta, ieta2, ieta3; // it is the number of padz-row increasing along the various strips
 
   for (int idig = 0; idig < mStripData.digits.size(); idig++) {
-    //    LOG(DEBUG) << "Checking digit " << idig;
+    //    LOG(debug) << "Checking digit " << idig;
     Digit* dig = &mStripData.digits[idig];
     if (dig->isUsedInCluster())
       continue; // the digit was already used to build a cluster
@@ -56,11 +56,11 @@ void Clusterer::processStrip(std::vector<Cluster>& clusters, MCLabelContainer co
     mNumberOfContributingDigits = 0;
     dig->getPhiAndEtaIndex(iphi, ieta);
     if (mStripData.digits.size() > 1)
-      LOG(DEBUG) << "idig = " << idig;
+      LOG(debug) << "idig = " << idig;
 
     // first we make a cluster out of the digit
     int noc = clusters.size();
-    //    LOG(DEBUG) << "noc = " << noc << "\n";
+    //    LOG(debug) << "noc = " << noc << "\n";
     clusters.emplace_back();
     Cluster& c = clusters[noc];
     addContributingDigit(dig);
@@ -72,14 +72,14 @@ void Clusterer::processStrip(std::vector<Cluster>& clusters, MCLabelContainer co
         continue; // the digit was already used to build a cluster
       // check if the TOF time are close enough to be merged; if not, it means that nothing else will contribute to the cluster (since digits are ordered in time)
       float timeDigNext = digNext->getTDC() * Geo::TDCBIN; // we assume it calibrated (for now); in ps
-      LOG(DEBUG) << "Time difference = " << timeDigNext - timeDig;
+      LOG(debug) << "Time difference = " << timeDigNext - timeDig;
       if (timeDigNext - timeDig > 500 /*in ps*/)
         break;
       digNext->getPhiAndEtaIndex(iphi2, ieta2);
 
       // check if the fired pad are close in space
-      LOG(DEBUG) << "phi difference = " << iphi - iphi2;
-      LOG(DEBUG) << "eta difference = " << ieta - ieta2;
+      LOG(debug) << "phi difference = " << iphi - iphi2;
+      LOG(debug) << "eta difference = " << ieta - ieta2;
       if ((TMath::Abs(iphi - iphi2) > 1) || (TMath::Abs(ieta - ieta2) > 1))
         continue;
 
@@ -99,7 +99,7 @@ void Clusterer::addContributingDigit(Digit* dig)
   // adding a digit to the array that stores the contributing ones
 
   if (mNumberOfContributingDigits == 6) {
-    LOG(ERROR) << "The cluster has already 6 digits associated to it, we cannot add more; returning without doing anything";
+    LOG(error) << "The cluster has already 6 digits associated to it, we cannot add more; returning without doing anything";
   }
   mContributingDigit[mNumberOfContributingDigits] = dig;
   mNumberOfContributingDigits++;
@@ -165,10 +165,10 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
       } else if (deltaEta == -1) { // the digit is UP wrt the cluster
         mask = Cluster::kUp;
       } else { // impossible!!
-        LOG(DEBUG) << " Check what is going on, the digit you are trying to merge to the cluster must be in a different channels... ";
+        LOG(debug) << " Check what is going on, the digit you are trying to merge to the cluster must be in a different channels... ";
       }
     } else { // impossible!!! We checked above...
-      LOG(DEBUG) << " Check what is going on, the digit you are trying to merge to the cluster is too far from the cluster, you should have not got here... ";
+      LOG(debug) << " Check what is going on, the digit you are trying to merge to the cluster is too far from the cluster, you should have not got here... ";
     }
     c.addBitInContributingChannels(mask);
   }

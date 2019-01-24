@@ -11,7 +11,7 @@
 #include "TOFBase/Geo.h"
 #include "TGeoManager.h"
 #include "TMath.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "DetectorsBase/GeometryManager.h"
 
 ClassImp(o2::tof::Geo);
@@ -30,7 +30,7 @@ Float_t Geo::mRotationMatrixPlateStrip[NPLATES][NMAXNSTRIP][3][3];
 
 void Geo::Init()
 {
-  LOG(INFO) << "tof::Geo: Initialization of TOF rotation parameters";
+  LOG(info) << "tof::Geo: Initialization of TOF rotation parameters";
 
   Double_t rotationAngles[6] =
     { 90., 90. /*+ (isector + 0.5) * PHISEC*/, 0., 0., 90., 0 /* + (isector + 0.5) * PHISEC*/ };
@@ -158,7 +158,7 @@ void Geo::getPos(Int_t* det, Float_t* pos)
   Char_t path[200];
   getVolumePath(det, path);
   if (!gGeoManager) {
-    LOG(ERROR) << " no TGeo! Loading it"
+    LOG(error) << " no TGeo! Loading it"
                << "\n";
     o2::Base::GeometryManager::loadGeometry();
   }
@@ -290,14 +290,16 @@ Int_t Geo::getStripNumberPerSM(Int_t iplate, Int_t istrip)
                   );
 
   if (iplate<0 || iplate>=NPLATES)
-    LOG(ERROR) << "getStripNumberPerSM : " << "Wrong plate number in TOF (" << iplate << ")!\n";
+    LOG(error) << "getStripNumberPerSM : "
+               << "Wrong plate number in TOF (" << iplate << ")!\n";
 
   if (
       (iplate==2 && (istrip<0 || istrip>=NSTRIPA))
       ||
       (iplate!=2 && (istrip<0 || istrip>=NSTRIPC))
       )
-    LOG(ERROR) << "getStripNumberPerSM : " << " Wrong strip number in TOF (strip=" << istrip << " in the plate= " << iplate << ")!\n";
+    LOG(error) << "getStripNumberPerSM : "
+               << " Wrong strip number in TOF (strip=" << istrip << " in the plate= " << iplate << ")!\n";
 
   Int_t stripOffset = 0;
   switch (iplate) {
@@ -327,7 +329,7 @@ Int_t Geo::getStripNumberPerSM(Int_t iplate, Int_t istrip)
 void Geo::fromGlobalToSector(Float_t* pos, Int_t isector)
 {
   if (isector == -1) {
-    //LOG(ERROR) << "Sector Index not valid (-1)\n";
+    //LOG(error) << "Sector Index not valid (-1)\n";
     return;
   }
 

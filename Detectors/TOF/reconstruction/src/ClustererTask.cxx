@@ -17,7 +17,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
-#include "FairLogger.h"      // for LOG
+#include <fairlogger/Logger.h> // for LOG
 #include "FairRootManager.h" // for FairRootManager
 
 ClassImp(o2::tof::ClustererTask);
@@ -50,13 +50,13 @@ InitStatus ClustererTask::Init()
 {
   FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
-    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(error) << "Could not instantiate FairRootManager. Exiting ...";
     return kERROR;
   }
 
   const std::vector<o2::tof::Digit>* arr = mgr->InitObjectAs<const std::vector<o2::tof::Digit>*>("TOFDigit");
   if (!arr) {
-    LOG(ERROR) << "TOF digits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(error) << "TOF digits not registered in the FairRootManager. Exiting ...";
     return kERROR;
   }
   mReader.setDigitArray(arr);
@@ -65,7 +65,7 @@ InitStatus ClustererTask::Init()
     mDigitMCTruth =
       mgr->InitObjectAs<const dataformats::MCTruthContainer<MCCompLabel>*>("TOFDigitMCTruth");
     if (!mDigitMCTruth) {
-      LOG(ERROR) << "TOF MC Truth not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+      LOG(error) << "TOF MC Truth not registered in the FairRootManager. Exiting ...";
       return kERROR;
     }
   }
@@ -89,7 +89,7 @@ void ClustererTask::Exec(Option_t* option)
     mClustersArray->clear();
   if (mClsLabels)
     mClsLabels->clear();
-  LOG(DEBUG) << "Running clusterization on new event" << FairLogger::endl;
+  LOG(debug) << "Running clusterization on new event";
 
   mClusterer.process(mReader, *mClustersArray, mDigitMCTruth);
 }

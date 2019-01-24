@@ -14,7 +14,7 @@
 #include "TOFSimulation/DigitizerTask.h"
 #include "MathUtils/Utils.h"
 
-#include "FairLogger.h"      // for LOG
+#include <fairlogger/Logger.h> // for LOG
 #include "FairRootManager.h" // for FairRootManager
 
 ClassImp(o2::tof::DigitizerTask);
@@ -35,13 +35,13 @@ InitStatus DigitizerTask::Init()
 {
   FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
-    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(error) << "Could not instantiate FairRootManager. Exiting ...";
     return kERROR;
   }
 
   mHitsArray = mgr->InitObjectAs<const std::vector<o2::tof::HitType>*>("TOFHit");
   if (!mHitsArray) {
-    LOG(ERROR) << "TOF hits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(error) << "TOF hits not registered in the FairRootManager. Exiting ...";
     return kERROR;
   }
 
@@ -78,14 +78,14 @@ void DigitizerTask::Exec(Option_t* option)
   mDigitizer.setMCTruthContainer(mMCTruthArray);
 
   // the type of digitization is steered by the DigiParams object of the Digitizer
-  LOG(DEBUG) << "Running digitization on new event " << mEventID << " from source " << mSourceID << FairLogger::endl;
+  LOG(debug) << "Running digitization on new event " << mEventID << " from source " << mSourceID;
 
   /// RS: ATTENTION: this is just a trick until we clarify how the hits from different source are
   /// provided and identified.
   mDigitizer.setSrcID(mSourceID);
   mDigitizer.setEventID(mEventID);
 
-  LOG(INFO) << "Digitizing " << mHitsArray->size() << " hits \n";
+  LOG(info) << "Digitizing " << mHitsArray->size() << " hits \n";
   mDigitizer.process(mHitsArray, mDigitsArray);
 
   mEventID++;
