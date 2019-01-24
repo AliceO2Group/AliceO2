@@ -12,27 +12,42 @@
 /// \brief
 ///
 
-#ifndef VERTEXERTRAITS_H_
-#define VERTEXERTRAITS_H_
+#ifndef O2_ITS_TRACKING_VERTEXER_TRAITS_H_
+#define O2_ITS_TRACKING_VERTEXER_TRAITS_H_
 
 #include "ITStracking/Configuration.h"
 #include <array>
 #include <vector>
 
 #include "ITStracking/Cluster.h"
-#include "ITStracking/ROframe.h"
 #include "ClusterLines.h"
-#include "ReconstructionDataFormats/Vertex.h"
 
 namespace o2
 {
+
 namespace ITS
 {
 
-using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
+class ROframe;
+
 using Constants::IndexTable::PhiBins;
 using Constants::IndexTable::ZBins;
 using Constants::ITS::LayersNumberVertexer;
+
+struct lightVertex {
+  lightVertex(float x, float y, float z, std::array<float, 6> rms2, float avgdis2, int cont, int stamp);
+  float mX;
+  float mY;
+  float mZ;
+  std::array<float, 6> mRMS2;
+  float mAvgDistance2;
+  int mContributors;
+  int mTimeStamp;
+};
+
+inline lightVertex::lightVertex(float x, float y, float z, std::array<float, 6> rms2, float avgdis2, int cont, int stamp) : mX(x), mY(y), mZ(z), mRMS2(rms2), mAvgDistance2(avgdis2), mContributors(cont), mTimeStamp(stamp)
+{
+}
 
 class VertexerTraits
 {
@@ -42,22 +57,20 @@ class VertexerTraits
 
   // virtual vertexer interface
   virtual void reset();
-  virtual void initialise(const ROframe&);
+  virtual void initialise(ROframe*);
   virtual void computeTracklets(const bool useMCLabel = false);
   virtual void computeVertices();
 
   void updateVertexingParameters(const VertexingParameters& vrtPar);
-  std::vector<Vertex> exportVertices() { return mVertices; }
-
   static const std::vector<std::pair<int, int>> selectClusters(const std::array<int, ZBins * PhiBins + 1>& indexTable,
                                                                const std::array<int, 4>& selectedBinsRect);
-  std::vector<Vertex> getVertices() const { return mVertices; }
+  std::vector<lightVertex> getVertices() const { return mVertices; }
   void dumpVertexerTraits();
 
  protected:
   VertexingParameters mVrtParams;
   std::array<std::array<int, ZBins * PhiBins + 1>, LayersNumberVertexer> mIndexTables;
-  std::vector<Vertex> mVertices;
+  std::vector<lightVertex> mVertices;
 
   // Frame related quantities
   o2::ITS::ROframe* mEvent;
@@ -77,4 +90,4 @@ inline void VertexerTraits::updateVertexingParameters(const VertexingParameters&
 
 } // namespace ITS
 } // namespace o2
-#endif /* VERTEXERTRAITS_H_ */
+#endif /* O2_ITS_TRACKING_VERTEXER_TRAITS_H_ */

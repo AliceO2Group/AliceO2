@@ -28,10 +28,11 @@ Vertexer::Vertexer(VertexerTraits* traits)
   mTraits = traits;
 }
 
-void Vertexer::clustersToVertices(const ROframe& event, std::ostream& timeBenchmarkOutputStream)
+void Vertexer::clustersToVertices(ROframe& event, std::ostream& timeBenchmarkOutputStream)
 {
+  ROframe* eventptr = &event;
   float total{ 0.f };
-  total += evaluateTask(&Vertexer::initialiseVertexer, "Vertexer initialisation", timeBenchmarkOutputStream, event);
+  total += evaluateTask(&Vertexer::initialiseVertexer, "Vertexer initialisation", timeBenchmarkOutputStream, eventptr);
   total += evaluateTask(&Vertexer::findTracklets, "Tracklet finding", timeBenchmarkOutputStream, false);
   total += evaluateTask(&Vertexer::findVertices, "Vertex finding", timeBenchmarkOutputStream);
 }

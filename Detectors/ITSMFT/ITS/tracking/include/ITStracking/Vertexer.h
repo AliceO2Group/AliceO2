@@ -12,8 +12,8 @@
 /// \brief
 ///
 
-#ifndef VERTEXER_H_
-#define VERTEXER_H_
+#ifndef O2_ITS_TRACKING_VERTEXER_H_
+#define O2_ITS_TRACKING_VERTEXER_H_
 
 #include <chrono>
 #include <fstream>
@@ -42,21 +42,21 @@ class Vertexer
 
   Vertexer(const Vertexer&) = delete;
   Vertexer& operator=(const Vertexer&) = delete;
-  //virtual ~Vertexer();
 
   void setROframe(const uint32_t ROframe) { mROframe = ROframe; }
   void setParameters(const VertexingParameters& verPar) { mVertParams = verPar; }
 
   uint32_t getROFrame() const { return mROframe; }
-  std::vector<Vertex> getVertices();
+  std::vector<Vertex> exportVertices();
   VertexingParameters getVertParameters() const { return mVertParams; }
   VertexerTraits* getTraits() const { return mTraits; };
 
-  void clustersToVertices(const ROframe&, std::ostream& = std::cout);
+  void clustersToVertices(ROframe&, std::ostream& = std::cout);
   template <typename... T>
   void initialiseVertexer(T&&... args);
   void findTracklets(const bool useMCLabel = false);
   void findVertices();
+  // void writeEvent(ROframe*);
 
   // Utils
   void dumpTraits();
@@ -64,6 +64,7 @@ class Vertexer
   float evaluateTask(void (Vertexer::*)(T...), const char*, std::ostream& ostream, T&&... args);
 
  private:
+  // ROframe* mFrame;
   std::uint32_t mROframe = 0;
   VertexerTraits* mTraits = nullptr;
   VertexingParameters mVertParams;
@@ -80,9 +81,13 @@ void Vertexer::dumpTraits()
   mTraits->dumpVertexerTraits();
 }
 
-std::vector<Vertex> Vertexer::getVertices()
+std::vector<Vertex> Vertexer::exportVertices()
 {
-  std::vector<Vertex> vertices = mTraits->exportVertices();
+  std::vector<Vertex> vertices;
+  for (auto& vertex : mTraits->getVertices()) {
+    vertices.emplace_back(Point3D<float>(vertex.mX, vertex.mY, vertex.mZ), vertex.mRMS2, vertex.mContributors, vertex.mAvgDistance2);
+    vertices.back().setTimeStamp(vertex.mTimeStamp);
+  }
   return vertices;
 }
 

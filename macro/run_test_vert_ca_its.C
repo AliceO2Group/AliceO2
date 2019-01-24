@@ -39,7 +39,11 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
+#include "AliGPUReconstruction.h"
+
 R__LOAD_LIBRARY(libITStracking)
+// R__LOAD_LIBRARY(libTPCReconstruction)
+// gSystem->Load("libTPCReconstruction")
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
@@ -119,11 +123,15 @@ int run_test_vert_ca_its(const int inspEvt = -1,
 
   const int stopAt = (inspEvt == -1) ? itsClusters.GetEntries() : inspEvt + 1;
   o2::ITS::ROframe frame(-123);
-  o2::ITS::VertexerTraits* traits = new o2::ITS::VertexerTraits();
-  o2::ITS::Vertexer vertexer(traits);
+
+  // o2::ITS::Vertexer vertexer(AliGPUReconstruction::CreateInstance()->GetITSVerterTraits());
+  AliGPUReconstruction* instance = AliGPUReconstruction::CreateInstance();
+  o2::ITS::VertexerTraits* traits = instance->GetITSVertexerTraits();
+  std::cout << "macro -> traits ptr -> " << traits << std::endl;
+  // traits->dumpVertexerTraits();
 
   std::uint32_t ROframe{ 0 };
-  vertexer.setROframe(ROframe);
+  // vertexer.setROframe(ROframe);
   for (int iEvent = (inspEvt == -1) ? 0 : inspEvt; iEvent < stopAt; ++iEvent) {
     itsClusters.GetEntry(iEvent);
     mcHeaderTree.GetEntry(iEvent);
@@ -136,9 +144,12 @@ int run_test_vert_ca_its(const int inspEvt = -1,
     } else {
       o2::ITS::IOUtils::loadEventData(frame, clusters, labels);
     }
-    vertexer.clustersToVertices(frame);
-    std::vector<Vertex> vertITS = vertexer.getVertices();
-    verticesITS->swap(vertITS);
+    // vertexer.clustersToVertices(frame);
+    // ROframe* frameptr = &frame;
+    // vertexer.initialiseVertexer(&frame);
+    // vertexer.dumpTraits();
+    // std::vector<Vertex> vertITS = vertexer.exportVertices();
+    // verticesITS->swap(vertITS);
     outTree.Fill();
   } // loop on events
   outTree.Write();

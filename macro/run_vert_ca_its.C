@@ -38,10 +38,6 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
-using o2::ITS::Cluster;
-using o2::ITS::Line;
-using o2::ITS::MathUtils::calculatePhiCoordinate;
-using o2::ITS::MathUtils::calculateRCoordinate;
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 void run_vert_ca_its(const int inspEvt = -1, bool useMC = false,
