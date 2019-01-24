@@ -1,5 +1,5 @@
-#include "shared/Cluster.h"
-#include "shared/Digit.h"
+#include "config.h"
+
 #include "shared/tpc.h"
 
 
