@@ -15,6 +15,7 @@
 #include "ITStracking/VertexerTraits.h"
 #include "ITStracking/ROframe.h"
 #include "ITStracking/ClusterLines.h"
+// #include "ReconstructionDataFormats/Vertex.h"
 
 #include <iostream>
 
@@ -45,12 +46,12 @@ void VertexerTraits::reset()
   mMaxDirectorCosine3 = 0.f;
 }
 
-void VertexerTraits::initialise(const ROframe& event)
+void VertexerTraits::initialise(ROframe* event)
 {
   reset();
-  mEvent = const_cast<o2::ITS::ROframe*>(&event);
+  mEvent = event;
   for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumberVertexer; ++iLayer) {
-    const auto& currentLayer{ event.getClustersOnLayer(iLayer) };
+    const auto& currentLayer{ event->getClustersOnLayer(iLayer) };
     const size_t clustersNum{ currentLayer.size() };
     if (clustersNum > 0) {
       mClusters[iLayer].clear();
@@ -289,16 +290,15 @@ void VertexerTraits::computeVertices()
     if (mTrackletClusters[iCluster].getVertex()[0] * mTrackletClusters[iCluster].getVertex()[0] +
           mTrackletClusters[iCluster].getVertex()[1] * mTrackletClusters[iCluster].getVertex()[1] <
         1.98 * 1.98) {
-      mVertices.emplace_back(
-        Point3D<float>{ mTrackletClusters[iCluster].getVertex()[0], mTrackletClusters[iCluster].getVertex()[1],
-                        mTrackletClusters[iCluster].getVertex()[2] },
-        mTrackletClusters[iCluster].getRMS2(),        // Symm matrix. Diagonal: RMS2 components,
-                                                      // off-diagonal: square mean of projections on planes.
-        mTrackletClusters[iCluster].getSize(),        // Contributors
-        mTrackletClusters[iCluster].getAvgDistance2() // In place of chi2
-        );
-      mVertices.back().setTimeStamp(mEvent->getROFrameId());
-      mEvent->addPrimaryVertex(mVertices.back().getX(), mVertices.back().getY(), mVertices.back().getZ());
+      mVertices.emplace_back(mTrackletClusters[iCluster].getVertex()[0],
+                             mTrackletClusters[iCluster].getVertex()[1],
+                             mTrackletClusters[iCluster].getVertex()[2],
+                             mTrackletClusters[iCluster].getRMS2(),         // Symm matrix. Diagonal: RMS2 components,
+                                                                            // off-diagonal: square mean of projections on planes.
+                             mTrackletClusters[iCluster].getSize(),         // Contributors
+                             mTrackletClusters[iCluster].getAvgDistance2(), // In place of chi2
+                             mEvent->getROFrameId());
+      mEvent->addPrimaryVertex(mVertices.back().mX, mVertices.back().mY, mVertices.back().mZ);
     }
   }
 }

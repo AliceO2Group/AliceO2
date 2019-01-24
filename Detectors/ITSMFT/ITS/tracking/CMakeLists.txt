@@ -33,7 +33,6 @@ set(NO_DICT_HEADERS
     include/${MODULE_NAME}/Config.h
     include/${MODULE_NAME}/Definitions.h
     include/${MODULE_NAME}/TrackerTraits.h
-    # include/${MODULE_NAME}/VertexerTraits.h
     include/${MODULE_NAME}/Tracklet.h
     )
 
