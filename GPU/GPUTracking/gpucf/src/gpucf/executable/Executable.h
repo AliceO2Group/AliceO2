@@ -30,10 +30,12 @@ public:
 
 protected:
     using StringFlag = args::ValueFlag<std::string>;
+    using IntFlag    = args::ValueFlag<int>;
 
     template<typename T>
-    using OptValueFlag = std::unique_ptr<args::ValueFlag<T>>;
+    using OptValueFlag  = std::unique_ptr<args::ValueFlag<T>>;
     using OptStringFlag = OptValueFlag<std::string>;
+    using OptIntFlag    = OptValueFlag<int>;
 
 
     virtual void setupFlags(args::Group &, args::Group &) 
