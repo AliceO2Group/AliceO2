@@ -31,7 +31,7 @@
 #include "MIDTestingSimTools/TrackGenerator.h"
 #include "MIDTracking/Tracker.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 namespace o2
 {

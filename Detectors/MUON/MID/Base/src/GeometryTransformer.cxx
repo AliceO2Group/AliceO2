@@ -20,7 +20,7 @@
 #include "TMath.h"
 #include "Math/GenVector/RotationX.h"
 #include "Math/GenVector/RotationY.h"
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "MIDBase/Constants.h"
 
 namespace o2
@@ -63,7 +63,8 @@ void GeometryTransformer::init()
         int deId = Constants::getDEId(isRight, ichamber, irpc);
         ROOT::Math::Translation3D trans(xPos, yPos, zPos);
         mTransformations[deId] = planeTrans * planeRot * trans * rot;
-        LOG(DEBUG) << "DeID " << deId << "\n" << mTransformations[deId];
+        LOG(debug) << "DeID " << deId << "\n"
+                   << mTransformations[deId];
       }
     }
   }

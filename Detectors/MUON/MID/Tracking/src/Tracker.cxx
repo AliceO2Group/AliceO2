@@ -15,7 +15,7 @@
 #include "MIDTracking/Tracker.h"
 
 #include <cmath>
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 #include "MIDBase/Constants.h"
 
 namespace o2
@@ -96,7 +96,7 @@ bool Tracker::loadClusters(const std::vector<Cluster2D>& clusters)
     cl.sigmaX2 = currData.sigmaX2;
     cl.sigmaY2 = currData.sigmaY2;
 
-    LOG(DEBUG) << "deId " << deId << " pos: (" << currData.xCoor << ", " << currData.yCoor << ") err2: ("
+    LOG(debug) << "deId " << deId << " pos: (" << currData.xCoor << ", " << currData.yCoor << ") err2: ("
                << currData.sigmaX2 << ", " << currData.sigmaY2 << ") => (" << cl.position.x() << "," << cl.position.y()
                << "," << cl.position.z() << ")";
   }
@@ -162,9 +162,9 @@ bool Tracker::processSide(bool isRight, bool isInward)
           track.setClusterMatched(secondCh, getClusterId(cl2.id, deId2));
           track.setClusterMatched(3 - firstCh, 0);
           track.setClusterMatched(3 - secondCh, 0);
-          LOG(DEBUG) << deId1 << " - " << deId2;
-          LOG(DEBUG) << "Position: " << track.getPosition();
-          // LOG(DEBUG) << "Covariance: " << track.getCovarianceParameters();
+          LOG(debug) << deId1 << " - " << deId2;
+          LOG(debug) << "Position: " << track.getPosition();
+          // LOG(debug) << "Covariance: " << track.getCovarianceParameters();
           followTrack(track, isRight, isInward);
         } // loop on clusters in second plane
       }   // loop on RPCs in second plane
@@ -186,7 +186,7 @@ bool Tracker::makeTrackSeed(Track& track, const Cluster3D& cl1, const Cluster3D&
   double nonBendingImpactParamErr = std::sqrt(
     (cl1.position.z() * cl1.position.z() * cl2.sigmaX2 + cl2.position.z() * cl2.position.z() * cl1.sigmaX2) / dZ2);
   if ((nonBendingImpactParam - mSigmaCut * nonBendingImpactParamErr) > mImpactParamCut) {
-    LOG(DEBUG) << "NB slope: " << nonBendingSlope << " NB impact param: " << nonBendingImpactParam << " - " << mSigmaCut
+    LOG(debug) << "NB slope: " << nonBendingSlope << " NB impact param: " << nonBendingImpactParam << " - " << mSigmaCut
                << " * " << nonBendingImpactParamErr << " > " << mImpactParamCut;
     return false;
   }
@@ -267,7 +267,7 @@ bool Tracker::findNextCluster(const Track& track, bool isRight, bool isInward, i
         nFiredChambers = depth;
         bestChi2 = sumChi2;
         bestTrack = newTrack;
-        LOG(DEBUG) << "DeId " << deId << "  cluster " << icl << "  nFiredChambers " << nFiredChambers << "  chi2 "
+        LOG(debug) << "DeId " << deId << "  cluster " << icl << "  nFiredChambers " << nFiredChambers << "  chi2 "
                    << bestChi2;
       }
     } // loop on clusters
@@ -299,7 +299,7 @@ double Tracker::tryOneCluster(const Track& track, const Cluster3D& cluster, Trac
     double err2 = covParams[icoor] + dZ2 * covParams[icoor + 2] + 2. * dZ * covParams[icoor + 4] + cerr2[icoor];
     double distMax = mSigmaCut * std::sqrt(2. * err2) + 4.;
     if (std::abs(dist[icoor]) > distMax) {
-      LOG(DEBUG) << "Coordinate " << icoor << "  cl " << cpos[icoor] << " tr " << newPos[icoor] << " err "
+      LOG(debug) << "Coordinate " << icoor << "  cl " << cpos[icoor] << " tr " << newPos[icoor] << " err "
                  << std::sqrt(err2);
       return 2. * mMaxChi2;
     }
@@ -396,7 +396,7 @@ void Tracker::finalizeTrack(Track& track)
   }
   track.setChi2(chi2);
   track.setNDF(ndf);
-  LOG(DEBUG) << track;
+  LOG(debug) << track;
 }
 
 //______________________________________________________________________________
@@ -428,11 +428,11 @@ bool Tracker::addTrack(const Track& track)
       // The new track is compatible with an existing one
       if (chi2OverNDF < checkTrack.getChi2OverNDF()) {
         // The new track is more precise than the old one: replace it!
-        LOG(DEBUG) << "Replacing track " << checkTrack << "\n with " << track;
+        LOG(debug) << "Replacing track " << checkTrack << "\n with " << track;
         checkTrack = track;
         return true;
       } else {
-        LOG(DEBUG) << "Rejecting track " << track << "\n compatible with " << checkTrack;
+        LOG(debug) << "Rejecting track " << track << "\n compatible with " << checkTrack;
         // The new track is less precise than the old one: reject it
         return false;
       }

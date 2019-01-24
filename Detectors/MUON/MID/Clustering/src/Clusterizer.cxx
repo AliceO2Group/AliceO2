@@ -15,7 +15,7 @@
 #include "MIDClustering/Clusterizer.h"
 #include <cassert>
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 namespace o2
 {
@@ -144,11 +144,11 @@ void Clusterizer::preClusterizeNBP(PatternStruct& de)
           pc->firstColumn = icolumn;
           pc->area[icolumn] = mMapping.stripByLocation(istrip, 1, 0, icolumn, de.deId);
           limit = pc->area[icolumn].getXmax();
-          LOG(DEBUG) << "New precluster NBP: DE  " << de.deId;
+          LOG(debug) << "New precluster NBP: DE  " << de.deId;
         }
         pc->lastColumn = icolumn;
         pc->area[icolumn].setXmax(limit);
-        LOG(DEBUG) << "  adding col " << icolumn << "  strip " << istrip << "  (" << pc->area[icolumn].getXmin() << ", "
+        LOG(debug) << "  adding col " << icolumn << "  strip " << istrip << "  (" << pc->area[icolumn].getXmin() << ", "
                    << pc->area[icolumn].getXmax() << ") (" << pc->area[icolumn].getYmin() << ", "
                    << pc->area[icolumn].getYmax() << ")";
       } else {
@@ -186,10 +186,10 @@ void Clusterizer::preClusterizeBP(PatternStruct& de)
             pc->lastColumn = icolumn;
             pc->area[icolumn] = mMapping.stripByLocation(istrip, 0, iline, icolumn, de.deId);
             limit = pc->area[icolumn].getYmax();
-            LOG(DEBUG) << "New precluster BP: DE  " << de.deId << "  icolumn " << icolumn;
+            LOG(debug) << "New precluster BP: DE  " << de.deId << "  icolumn " << icolumn;
           }
           pc->area[icolumn].setYmax(limit);
-          LOG(DEBUG) << "  adding line " << iline << "  strip " << istrip << "  (" << pc->area[icolumn].getXmin()
+          LOG(debug) << "  adding line " << iline << "  strip " << istrip << "  (" << pc->area[icolumn].getXmin()
                      << ", " << pc->area[icolumn].getXmax() << ") (" << pc->area[icolumn].getYmin() << ", "
                      << pc->area[icolumn].getYmax() << ")";
         } else {
@@ -205,7 +205,7 @@ void Clusterizer::preClusterizeBP(PatternStruct& de)
 void Clusterizer::makeClusters(const int& deIndex)
 {
   /// Makes the clusters and stores it
-  LOG(DEBUG) << "Clusterizing " << deIndex;
+  LOG(debug) << "Clusterizing " << deIndex;
 
   // loop over pre-clusters in the non-bending plane
   for (int inb = 0; inb < mNPreClusters[7]; ++inb) {
@@ -223,7 +223,7 @@ void Clusterizer::makeClusters(const int& deIndex)
       // The NBP pre-cluster spans different columns.
       // The BP contour is therefore a serie of neighbour rectangles
       std::vector<std::vector<PreCluster*>> pcBneighbours;
-      LOG(DEBUG) << "Spanning non-bend: " << icolumn << " -> " << pcNB.lastColumn;
+      LOG(debug) << "Spanning non-bend: " << icolumn << " -> " << pcNB.lastColumn;
       buildListOfNeighbours(icolumn, pcNB.lastColumn, pcBneighbours);
       for (auto& pcBlist : pcBneighbours) {
         makeCluster(pcBlist, deIndex, &pcNB);
@@ -274,7 +274,7 @@ void Clusterizer::makeCluster(PreCluster& clBend, PreCluster& clNonBend, const i
   clBend.paired = 1;
   clNonBend.paired = 1;
 
-  LOG(DEBUG) << "pos: (" << cl.xCoor << ", " << cl.yCoor << ") err2: (" << cl.sigmaX2 << ", " << cl.sigmaY2 << ")";
+  LOG(debug) << "pos: (" << cl.xCoor << ", " << cl.yCoor << ") err2: (" << cl.sigmaX2 << ", " << cl.sigmaY2 << ")";
 }
 
 //______________________________________________________________________________
@@ -313,7 +313,7 @@ void Clusterizer::makeCluster(std::vector<PreCluster*>& pcBlist, const int& deIn
     }
     // area = dx * dy
     sumArea += delta[0] * delta[1];
-    LOG(DEBUG) << "Area += " << delta[0] * delta[1] << " => " << sumArea;
+    LOG(debug) << "Area += " << delta[0] * delta[1] << " => " << sumArea;
     for (int iplane = 0; iplane < 2; ++iplane) {
       for (int ip = 0; ip < 2; ++ip) {
         // second momentum = x_i * x_i * dy
@@ -321,7 +321,7 @@ void Clusterizer::makeCluster(std::vector<PreCluster*>& pcBlist, const int& deIn
         x2[iplane][ip] += currX2;
         // third momentum = x_i * x_i * x_i * dy
         x3[iplane][ip] += currX2 * dim[iplane][ip];
-        LOG(DEBUG) << "x[" << iplane << "][" << ip << "] => val " << dim[iplane][ip] << " delta " << delta[1 - iplane]
+        LOG(debug) << "x[" << iplane << "][" << ip << "] => val " << dim[iplane][ip] << " delta " << delta[1 - iplane]
                    << " => x2 " << x2[iplane][ip] << " x3 " << x3[iplane][ip];
       }
     }
@@ -340,7 +340,7 @@ void Clusterizer::makeCluster(std::vector<PreCluster*>& pcBlist, const int& deIn
   cl.sigmaX2 = (float)sigma2[0];
   cl.sigmaY2 = (float)sigma2[1];
 
-  LOG(DEBUG) << "pos: (" << cl.xCoor << ", " << cl.yCoor << ") err2: (" << cl.sigmaX2 << ", " << cl.sigmaY2 << ")";
+  LOG(debug) << "pos: (" << cl.xCoor << ", " << cl.yCoor << ") err2: (" << cl.sigmaX2 << ", " << cl.sigmaY2 << ")";
 }
 
 //______________________________________________________________________________
@@ -348,22 +348,22 @@ bool Clusterizer::buildListOfNeighbours(int icolumn, int lastColumn, std::vector
                                         bool skipPaired, int currentList)
 {
   /// Build list of neighbours
-  LOG(DEBUG) << "Building list of neighbours in (" << icolumn << ", " << lastColumn << ")";
+  LOG(debug) << "Building list of neighbours in (" << icolumn << ", " << lastColumn << ")";
   for (int jcolumn = icolumn; jcolumn <= lastColumn; ++jcolumn) {
     for (int ib = 0; ib < mNPreClusters[jcolumn]; ++ib) {
       PreCluster* pcB = &mPreClusters[jcolumn][ib];
       if (skipPaired && pcB->paired > 0) {
-        LOG(DEBUG) << "Column " << jcolumn << "  ib " << ib << "  is already paired => skipPaired";
+        LOG(debug) << "Column " << jcolumn << "  ib " << ib << "  is already paired => skipPaired";
         continue;
       }
       if (currentList >= neighbours.size()) {
         // We are starting a new series of neighbour
         // Let's make sure the pre-cluster is not already part of another list
         if (pcB->paired == 2) {
-          LOG(DEBUG) << "Column " << jcolumn << "  ib " << ib << "  is already in a list";
+          LOG(debug) << "Column " << jcolumn << "  ib " << ib << "  is already in a list";
           continue;
         }
-        LOG(DEBUG) << "New list " << currentList;
+        LOG(debug) << "New list " << currentList;
         neighbours.emplace_back(std::vector<PreCluster*>());
       }
       std::vector<PreCluster*>& neighList = neighbours[currentList];
@@ -375,7 +375,7 @@ bool Clusterizer::buildListOfNeighbours(int icolumn, int lastColumn, std::vector
           continue;
       }
       pcB->paired = 2;
-      LOG(DEBUG) << "  adding column " << jcolumn << "  ib " << ib << "  to " << currentList;
+      LOG(debug) << "  adding column " << jcolumn << "  ib " << ib << "  to " << currentList;
       neighList.push_back(pcB);
       buildListOfNeighbours(jcolumn + 1, lastColumn, neighbours, skipPaired, currentList);
       ++currentList;

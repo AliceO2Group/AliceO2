@@ -27,7 +27,7 @@
 #include <random>
 #include "MIDClustering/Clusterizer.h"
 
-#include "FairLogger.h"
+#include <fairlogger/Logger.h>
 
 namespace o2
 {
