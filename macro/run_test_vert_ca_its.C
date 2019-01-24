@@ -149,11 +149,11 @@ int run_test_vert_ca_its(const int inspEvt = -1,
       o2::ITS::IOUtils::loadEventData(frame, clusters, labels);
     }
     // vertexer.clustersToVertices(frame);
-    // ROframe* frameptr = &frame;
-    // vertexer.initialiseVertexer(&frame);
-    // vertexer.dumpTraits();
-    // std::vector<Vertex> vertITS = vertexer.exportVertices();
-    // verticesITS->swap(vertITS);
+    ROframe* frameptr = &frame;
+    vertexer.initialiseVertexer(&frame);
+    vertexer.dumpTraits();
+    std::vector<Vertex> vertITS = vertexer.exportVertices();
+    verticesITS->swap(vertITS);
     outTree.Fill();
   } // loop on events
   outTree.Write();
