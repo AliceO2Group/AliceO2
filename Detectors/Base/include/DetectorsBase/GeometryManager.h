@@ -22,7 +22,7 @@
 #include <TObject.h> // for TObject
 #include <string>
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "FairLogger.h" // for LOG
+#include <fairlogger/Logger.h> // for LOG
 #include "MathUtils/Cartesian3D.h"
 
 class TGeoHMatrix; // lines 11-11

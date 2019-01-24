@@ -19,7 +19,7 @@
 #include <TList.h>
 #include <iostream>
 #include <utility>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -230,7 +230,7 @@ void MaterialManager::printMedia() const
 
 void MaterialManager::printProcesses() const
 {
-  LOG(INFO) << "Print process settings of media.";
+  LOG(info) << "Print process settings of media.";
   std::cout << "Default process settings:\n";
   for (auto& p : mDefaultProcessMap) {
     auto it = mProcessIDToName.find(p.first);
@@ -255,7 +255,7 @@ void MaterialManager::printProcesses() const
 
 void MaterialManager::printCuts() const
 {
-  LOG(INFO) << "Print cut settings of media.";
+  LOG(info) << "Print cut settings of media.";
   std::cout << "Default cut settings:\n";
   for (auto& c : mDefaultCutMap) {
     auto it = mCutIDToName.find(c.first);
@@ -293,7 +293,7 @@ void MaterialManager::insertTGeoMedium(std::string modname, int localindex)
   auto list = gGeoManager->GetListOfMedia();
   mTGeoMediumMap[p] = (TGeoMedium*)list->At(list->GetEntries() - 1);
 
-  LOG(DEBUG) << "mapping " << modname << " " << localindex << " to " << mTGeoMediumMap[p]->GetName();
+  LOG(debug) << "mapping " << modname << " " << localindex << " to " << mTGeoMediumMap[p]->GetName();
 }
 
 void MaterialManager::insertMediumName(const char* uniquename, int index)
@@ -308,7 +308,7 @@ TGeoMedium* MaterialManager::getTGeoMedium(std::string const& modname, int local
   auto p = std::make_pair(modname, localindex);
   auto iter = mTGeoMediumMap.find(p);
   if (iter == mTGeoMediumMap.end()) {
-    LOG(WARNING) << "No medium registered for " << modname << " index " << localindex << "\n";
+    LOG(warn) << "No medium registered for " << modname << " index " << localindex << "\n";
     return nullptr;
   }
   return iter->second;
