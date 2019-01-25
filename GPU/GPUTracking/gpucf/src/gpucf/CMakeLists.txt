@@ -1,5 +1,7 @@
 set(GPUCF_SRC
     "./log.cpp"
+    "./cl.cpp"
+
     "./ChargeMap.cpp"
     "./DataSet.cpp"
     "./ClEnv.cpp"

@@ -18,6 +18,8 @@ public:
     void read(const filesystem::path &);
     void write(const filesystem::path &) const;
 
+    std::vector<Object> get() const;
+
     template<class T>
     void serialize(const std::vector<T> &in)
     {

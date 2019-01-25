@@ -2,6 +2,7 @@
 
 #include <gpucf/common/float.h>
 
+#include <cmath>
 #include <ostream>
 #include <sstream>
 
@@ -15,6 +16,7 @@ static_assert(sizeof(HalfCluster) == HALF_CLUSTER_SIZE);
 
 
 Cluster::Cluster()
+    : Cluster(0,0,0,0,0,0,0,0)
 {
 }
 
@@ -32,17 +34,6 @@ Cluster::Cluster(int _cru, int _row, float q, float qmax, float _padMean,
 }
 
 
-bool Cluster::operator==(const Cluster &c2) const
-{
-    return cru == c2.cru
-             && row == c2.row
-             && FLOAT_EQ(Q, c2.Q)
-             && FLOAT_EQ(QMax, c2.QMax)
-             && FLOAT_EQ(padMean, c2.padMean)
-             && FLOAT_EQ(timeMean, c2.timeMean)
-             && FLOAT_EQ(padSigma, c2.padSigma)
-             && FLOAT_EQ(timeSigma, c2.timeSigma);
-}
 
 Object Cluster::serialize() const
 {
@@ -70,6 +61,42 @@ void Cluster::deserialize(const Object &obj)
     GET_FLOAT(obj, timeMean);
     GET_FLOAT(obj, padSigma);
     GET_FLOAT(obj, timeSigma);
+}
+
+bool Cluster::hasNaN() const
+{
+    return std::isnan(cru) 
+             || std::isnan(row)
+             || std::isnan(Q)
+             || std::isnan(QMax)
+             || std::isnan(padMean)
+             || std::isnan(timeMean)
+             || std::isnan(padSigma)
+             || std::isnan(timeSigma);
+}
+
+bool Cluster::hasNegativeEntries() const
+{
+    return cru < 0
+             || row < 0
+             || Q < 0
+             || QMax < 0
+             || padMean < 0
+             || timeMean < 0
+             || padSigma < 0
+             || timeSigma < 0; 
+}
+
+bool Cluster::operator==(const Cluster &c2) const
+{
+    return cru == c2.cru
+             && row == c2.row
+             && FLOAT_EQ(Q, c2.Q)
+             && FLOAT_EQ(QMax, c2.QMax)
+             && FLOAT_EQ(padMean, c2.padMean)
+             && FLOAT_EQ(timeMean, c2.timeMean)
+             && FLOAT_EQ(padSigma, c2.padSigma)
+             && FLOAT_EQ(timeSigma, c2.timeSigma);
 }
 
 std::ostream &gpucf::operator<<(std::ostream &os, const Cluster &c)

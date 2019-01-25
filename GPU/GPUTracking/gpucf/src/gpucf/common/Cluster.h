@@ -18,9 +18,11 @@ public:
     Cluster();
     Cluster(int, int, float, float, float, float, float, float);
 
-
     Object serialize() const;
     void deserialize(const Object &);
+
+    bool hasNaN() const;
+    bool hasNegativeEntries() const;
 
     bool operator==(const Cluster &) const;
 };
