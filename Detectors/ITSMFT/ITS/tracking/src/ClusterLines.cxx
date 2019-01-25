@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include <cmath>
+#include <algorithm>
 #include "ITStracking/ClusterLines.h"
 
 namespace o2
@@ -16,16 +17,14 @@ namespace o2
 namespace ITS
 {
 
-Line::Line() : originPoint{}, weightMatrix{ std::array<float, 6>{ 1., 0., 0., 1., 0., 1. } }, cosinesDirector{}
-{
-  // Nothing to do
-}
-
 Line::Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint)
-  : originPoint{ firstPoint }, weightMatrix{ std::array<float, 6>{ 1., 0., 0., 1., 0., 1. } } // dummy, ATM
+  : weightMatrix{  1., 0., 0., 1., 0., 1. } // dummy, ATM
 {
-  for (int index{ 0 }; index < 3; ++index)
+  for (int index{ 0 }; index < 3; ++index) {
+    originPoint[index] = firstPoint.data()[index];
     cosinesDirector[index] = secondPoint[index] - firstPoint[index];
+  }
+
   float inverseNorm{ 1.f / std::sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
                                      cosinesDirector[2] * cosinesDirector[2]) };
   for (int index{ 0 }; index < 3; ++index)
@@ -76,7 +75,9 @@ float Line::getDCA(const Line& firstLine, const Line& secondLine, const float pr
   if (norm > precision) {
     return std::abs(distance / std::sqrt(norm));
   } else {
-    return getDistanceFromPoint(firstLine, secondLine.originPoint);
+    std::array<float, 3> stdOriginPoint;
+    std::copy_n(secondLine.originPoint, 3, stdOriginPoint.begin());
+    return getDistanceFromPoint(firstLine, stdOriginPoint);
   }
 }
 

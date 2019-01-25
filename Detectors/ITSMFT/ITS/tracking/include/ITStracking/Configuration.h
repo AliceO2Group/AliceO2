@@ -133,22 +133,14 @@ inline MemoryParameters& MemoryParameters::operator=(const MemoryParameters& t)
 }
 
 struct VertexingParameters {
-  VertexingParameters();
-
-  float mZCut = 0.005f;
-  float mPhiCut = 0.002f;
-  float mPairCut = 0.04f;
-  float mClusterCut = 0.8f;
-  int mClusterContributorsCut = 5;
-  int mPhiSpan;
-  int mZSpan;
+  float zCut = 0.002f;   //0.002f
+  float phiCut = 0.05f; //0.005f
+  float pairCut = 0.04f;
+  float clusterCut = 0.8f;
+  int clusterContributorsCut = 16;
+  int phiSpan = -1;
+  int zSpan = -1;
 };
-
-inline VertexingParameters::VertexingParameters()
-{
-  mPhiSpan = static_cast<int>(std::ceil(Constants::IndexTable::PhiBins * mPhiCut / Constants::Math::TwoPi));
-  mZSpan = static_cast<int>(std::ceil(mZCut * Constants::IndexTable::InverseZBinSize()[0]));
-}
 
 } // namespace ITS
 } // namespace o2

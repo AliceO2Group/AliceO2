@@ -91,26 +91,28 @@ Vector<T>::Vector(const int capacity, const int initialSize) : Vector{ nullptr, 
 template <typename T>
 Vector<T>::Vector(const T* const source, const int size, const int initialSize) : mCapacity{ size }, mIsWeak{ false }
 {
-  try {
+  if (size > 0) {
+    try {
 
-    Utils::Host::gpuMalloc(reinterpret_cast<void**>(&mArrayPointer), size * sizeof(T));
-    Utils::Host::gpuMalloc(reinterpret_cast<void**>(&mDeviceSize), sizeof(int));
+      Utils::Host::gpuMalloc(reinterpret_cast<void**>(&mArrayPointer), size * sizeof(T));
+      Utils::Host::gpuMalloc(reinterpret_cast<void**>(&mDeviceSize), sizeof(int));
 
-    if (source != nullptr) {
+      if (source != nullptr) {
 
-      Utils::Host::gpuMemcpyHostToDevice(mArrayPointer, source, size * sizeof(T));
-      Utils::Host::gpuMemcpyHostToDevice(mDeviceSize, &size, sizeof(int));
+        Utils::Host::gpuMemcpyHostToDevice(mArrayPointer, source, size * sizeof(T));
+        Utils::Host::gpuMemcpyHostToDevice(mDeviceSize, &size, sizeof(int));
 
-    } else {
+      } else {
 
-      Utils::Host::gpuMemcpyHostToDevice(mDeviceSize, &initialSize, sizeof(int));
+        Utils::Host::gpuMemcpyHostToDevice(mDeviceSize, &initialSize, sizeof(int));
+      }
+
+    } catch (...) {
+
+      destroy();
+
+      throw;
     }
-
-  } catch (...) {
-
-    destroy();
-
-    throw;
   }
 }
 
@@ -214,7 +216,7 @@ void Vector<T>::reset(const T* const source, const int size, const int initialSi
 }
 
 template <typename T>
-void Vector<T>::copyIntoVector(std::vector<T>& destinationArray, const int size)
+void Vector<T>::copyIntoVector(std::vector<T>& destinationVector, const int size)
 {
 
   T* hostPrimitivePointer = nullptr;
@@ -224,7 +226,7 @@ void Vector<T>::copyIntoVector(std::vector<T>& destinationArray, const int size)
     hostPrimitivePointer = static_cast<T*>(malloc(size * sizeof(T)));
     Utils::Host::gpuMemcpyDeviceToHost(hostPrimitivePointer, mArrayPointer, size * sizeof(T));
 
-    destinationArray = std::move(std::vector<T>(hostPrimitivePointer, hostPrimitivePointer + size));
+    destinationVector = std::move(std::vector<T>(hostPrimitivePointer, hostPrimitivePointer + size));
 
   } catch (...) {
 
@@ -297,8 +299,8 @@ GPU_DEVICE void Vector<T>::emplace(const int index, Args&&... arguments)
 
   new (mArrayPointer + index) T(std::forward<Args>(arguments)...);
 }
-}
-}
-}
+} // namespace GPU
+} // namespace ITS
+} // namespace o2
 
 #endif /* TRAKINGITSU_INCLUDE_GPU_VECTOR_H_ */

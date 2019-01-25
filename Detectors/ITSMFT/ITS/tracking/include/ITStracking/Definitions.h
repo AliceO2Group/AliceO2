@@ -57,6 +57,7 @@
 
 #define MATH_ABS abs
 #define MATH_ATAN2 atan2
+#define MATH_CEIL ceil
 #define MATH_MAX max
 #define MATH_MIN min
 #define MATH_SQRT sqrt
@@ -79,6 +80,7 @@ typedef cudaStream_t GPUStream;
 
 #define MATH_ABS std::abs
 #define MATH_ATAN2 std::atan2
+#define MATH_CEIL std::ceil
 #define MATH_MAX std::max
 #define MATH_MIN std::min
 #define MATH_SQRT std::sqrt

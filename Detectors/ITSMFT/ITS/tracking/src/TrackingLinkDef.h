@@ -7,17 +7,16 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-///
-/// \file VertexerCPU.cxx
-/// \brief
-///
 
-#include "ITStracking/VertexerTraitsCPU.h"
+#ifdef __CLING__
 
-namespace o2
-{
-namespace ITS
-{
+#pragma link
 
-} // namespace ITS
-} // namespace o2
+#pragma link off all globals;
+#pragma link off all classes;
+#pragma link off all functions;
+
+#pragma link C++ class o2::ITS::ClusterLines +;
+#pragma link C++ class o2::ITS::Tracklet +;
+
+#endif
