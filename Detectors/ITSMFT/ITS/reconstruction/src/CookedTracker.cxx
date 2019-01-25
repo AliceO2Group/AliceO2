@@ -18,6 +18,7 @@
 //-------------------------------------------------------------------------
 #include <chrono>
 #include <future>
+#include <map>
 
 #include <TGeoGlobalMagField.h>
 #include <TMath.h>
@@ -94,11 +95,8 @@ Label CookedTracker::cookLabel(TrackITS& t, Float_t wrong) const
   // A label<0 indicates that some of the clusters are wrongly assigned.
   //--------------------------------------------------------------------
   Int_t noc = t.getNumberOfClusters();
-  std::array<Label, Cluster::maxLabels * CookedTracker::kNLayers> lb;
-  std::array<Int_t, Cluster::maxLabels * CookedTracker::kNLayers> mx;
-
-  int nLabels = 0;
-
+  std::map<Label,int> map;
+  
   for (int i = noc; i--;) {
     Int_t index = t.getClusterIndex(i);
     const Cluster* c = getCluster(index);
@@ -109,28 +107,15 @@ Label CookedTracker::cookLabel(TrackITS& t, Float_t wrong) const
       if (lab.isEmpty())
         break; // all following labels will be empty also
       // was this label already accounted for ?
-      bool add = true;
-      for (int j = nLabels; j--;) {
-        if (lb[j] == lab) {
-          add = false;
-          mx[j]++; // just increment counter
-          break;
-        }
-      }
-      if (add) {
-        lb[nLabels] = lab;
-        mx[nLabels] = 1;
-        nLabels++;
-      }
+      map[lab]++;
     }
   }
   Label lab;
   Int_t maxL = 0; // find most encountered label
-  for (int i = nLabels; i--;) {
-    if (mx[i] > maxL) {
-      maxL = mx[i];
-      lab = lb[i];
-    }
+  for (auto [label, count] : map) {
+    if (count <= maxL) continue;
+    maxL = count;
+    lab = label;
   }
 
   if ((1. - Float_t(maxL) / noc) > wrong) {
