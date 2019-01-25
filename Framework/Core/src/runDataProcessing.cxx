@@ -15,7 +15,6 @@
 #include "Framework/ConfigContext.h"
 #include "Framework/DataProcessingDevice.h"
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/DataSourceDevice.h"
 #include "Framework/DebugGUI.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceExecution.h"
@@ -662,13 +661,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
       // The decltype stuff is to be able to compile with both new and old
       // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
       decltype(r.fDevice) device;
-      if (spec.inputs.empty()) {
-        LOG(DEBUG) << spec.id << " is a source\n";
-        device = std::move(make_matching<decltype(device), DataSourceDevice>(spec, serviceRegistry));
-      } else {
-        LOG(DEBUG) << spec.id << " is a processor\n";
-        device = std::move(make_matching<decltype(device), DataProcessingDevice>(spec, serviceRegistry));
-      }
+      device = std::move(make_matching<decltype(device), DataProcessingDevice>(spec, serviceRegistry));
 
       serviceRegistry.get<RawDeviceService>().setDevice(device.get());
       r.fDevice = std::move(device);

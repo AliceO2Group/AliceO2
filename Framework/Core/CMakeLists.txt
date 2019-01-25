@@ -265,6 +265,7 @@ set(TEST_SRCS
       test/test_SimpleStatefulProcessing01.cxx
       test/test_SimpleStringProcessing.cxx
       #test/test_SingleDataSource.cxx
+      #test/test_SimpleTimer.cxx
       test/test_SuppressionGenerator.cxx
       test/test_TimesliceIndex.cxx
       test/test_TMessageSerializer.cxx

@@ -481,14 +481,12 @@ DataRelayer::setPipelineLength(size_t s) {
   mTimesliceIndex.resize(s);
   mVariableContextes.resize(s);
   auto numInputTypes = mDistinctRoutesIndex.size();
-  assert(numInputTypes);
   mCache.resize(numInputTypes * mTimesliceIndex.size());
   mMetrics.send({ (int)numInputTypes, "data_relayer/h" });
   mMetrics.send({ (int)mTimesliceIndex.size(), "data_relayer/w" });
   sMetricsNames.resize(mCache.size());
   for (size_t i = 0; i < sMetricsNames.size(); ++i) {
     sMetricsNames[i] = std::string("data_relayer/") + std::to_string(i);
-    //mMetrics.send({ 0, sMetricsNames[i] });
   }
   // There is maximum 16 variables available. We keep them row-wise so that
   // that we can take mod 16 of the index to understand which variable we
