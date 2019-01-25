@@ -1,5 +1,7 @@
 #include "DataSet.h"
 
+#include <gpucf/errors/FileErrors.h>
+
 #include <filesystem/path.h>
 
 #include <fstream>
@@ -11,7 +13,13 @@ namespace fs = filesystem;
 
 void DataSet::read(const fs::path &file)
 {
+    if (!file.exists())
+    {
+        throw FileNotFoundError(file); 
+    }
+
     objs.clear();
+
 
     std::ifstream in(file.str());
 
