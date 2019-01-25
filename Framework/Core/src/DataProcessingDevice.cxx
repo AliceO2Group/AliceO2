@@ -548,6 +548,10 @@ bool DataProcessingDevice::tryDispatchComputation()
     monitoringService.send({ (int)latency.maxLatency, "dpl/max_input_latency_ms" });
     /// The rate at which we get inputs, i.e. the longest time between one of the inputs being
     /// created and actually reaching the consumer device.
+    if (latency.maxLatency != 0) {
+      // avoid division by zero by assuming at least one ms of latency.
+      latency.maxLatency = 1;
+    }
     monitoringService.send({ (int)((totalProcessedSize / latency.maxLatency) / 1000), "dpl/input_rate_mb_s" });
 
     // We forward inputs only when we consume them. If we simply Process them,
