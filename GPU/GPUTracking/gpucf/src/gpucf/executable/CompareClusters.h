@@ -1,31 +1,27 @@
 #pragma once
 
 #include <gpucf/executable/Executable.h>
-#include <gpucf/ClEnv.h>
 
 
 namespace gpucf
 {
 
-class CfRunner : public Executable
+class CompareClusters : public Executable
 {
-    
+
 public:
-    CfRunner();
+    CompareClusters();
 
 protected:
     void setupFlags(args::Group &, args::Group &) override;
     int mainImpl() override;
 
 private:
-    std::unique_ptr<ClEnv::Flags> envFlags;
-    OptStringFlag digitFile;
-    OptStringFlag clusterResultFile;
-    OptStringFlag peakFile;
-
+    OptStringFlag truthFile;
+    OptStringFlag clusterFile;
+    
 };
 
-}
+} // namespace gpucf
 
 // vim: set ts=4 sw=4 sts=4 expandtab:
-
