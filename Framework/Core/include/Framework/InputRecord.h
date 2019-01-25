@@ -370,19 +370,26 @@ class InputRecord
 
   /// substitution for container of non-messageable objects with ROOT dictionary
   /// Notice that this will return a copy of the actual contents of the buffer, because
-  /// the buffer is actually serialised. The extracted container is returned by std::move
+  /// the buffer is actually serialised. The extracted container is swaped to local,
+  /// container, C++11 and beyond will implicitly apply return value optimization.
   /// @return std container object
   template <class T>
   typename std::enable_if<is_container<T>::value == true &&          //
                             has_root_dictionary<T>::value == true && //
                             is_messageable<T>::value == false,       //
-                          T const&>::type                            //
+                          T>::type                                   //
     get(char const* binding) const
   {
+    using NonConstT = typename std::remove_const<T>::type;
     auto ref = this->get(binding);
     // we expect the unique_ptr to hold an object, exception should have been thrown
     // otherwise
-    return std::move(*(DataRefUtils::as<T>(ref).release()));
+    auto object = DataRefUtils::as<NonConstT>(ref);
+    // need to swap the content of the deserialized container to a local variable to force return
+    // value optimization
+    NonConstT container;
+    std::swap(container, *object);
+    return container;
   }
 
   /// substitution for pointer to messageable objects with ROOT dictionary
