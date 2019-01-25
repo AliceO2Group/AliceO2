@@ -15,9 +15,6 @@ public:
             const std::vector<Cluster> &truth);
 
 private:
-    static bool hasNaN(const Cluster &);
-    static bool hasWeirdEntries(const Cluster &);
-
     size_t countCorrectClusters(
             const std::vector<Cluster> &,
             const std::vector<Cluster> &);
