@@ -17,6 +17,7 @@
 #include "ITStracking/ROframe.h"
 #include "ITStracking/ClusterLines.h"
 #include "ITStracking/IndexTableUtils.h"
+#include "ITStracking/VertexerTraits.h"
 
 namespace o2
 {
@@ -28,18 +29,15 @@ Vertexer::Vertexer(VertexerTraits* traits)
   mTraits = traits;
 }
 
-void Vertexer::clustersToVertices(ROframe& event, std::ostream& timeBenchmarkOutputStream)
+float Vertexer::clustersToVertices(ROframe& event, const bool useMc, std::ostream& timeBenchmarkOutputStream)
 {
   ROframe* eventptr = &event;
   float total{ 0.f };
   total += evaluateTask(&Vertexer::initialiseVertexer, "Vertexer initialisation", timeBenchmarkOutputStream, eventptr);
-  total += evaluateTask(&Vertexer::findTracklets, "Tracklet finding", timeBenchmarkOutputStream, false);
+  total += evaluateTask(&Vertexer::findTracklets, "Tracklet finding", timeBenchmarkOutputStream, useMc);
   total += evaluateTask(&Vertexer::findVertices, "Vertex finding", timeBenchmarkOutputStream);
-}
 
-void Vertexer::findTracklets(const bool useMCLabels)
-{
-  mTraits->computeTracklets(useMCLabels);
+  return total;
 }
 
 void Vertexer::findVertices()

@@ -118,6 +118,7 @@ void run_vert_ca_its(const int inspEvt = -1, bool useMC = false,
 
   TH1I timet("trackleting_duration", "trackleting_duration", 100, 0, 4000);
   TH1I timev("vertexing_duration", "vertexing_duration", 100, 0, 4000);
+  TH1I timea("total_duration", "total_duration", 100, 0, 4000);
   std::uint32_t roFrame = 0;
 
   const int stopAt = (inspEvt == -1) ? itsClusters.GetEntries() : inspEvt + 1;
@@ -125,12 +126,13 @@ void run_vert_ca_its(const int inspEvt = -1, bool useMC = false,
     int idx{ 0 };
     itsClusters.GetEntry(iEvent);
     mcHeaderTree.GetEntry(iEvent);
-
+    bool registr=false;
     if (isContITS) {
       int nclLeft = clusters->size();
       while (nclLeft > 0) {
         int nclUsed = o2::ITS::IOUtils::loadROFrameData(roFrame, frame, clusters, labels);
         if (nclUsed) {
+          registr=false;
           cout << " ROFrame " << roFrame << std::endl;
           start = std::chrono::system_clock::now();
           o2::ITS::VertexerBase vertexer(frame);
@@ -155,6 +157,9 @@ void run_vert_ca_its(const int inspEvt = -1, bool useMC = false,
           std::cout << "\tTotal: " << instance_time + initiali_time + tracking_time + vertexin_time << "ms\n";
           std::cout << "\ttracklets found: " << vertexer.getTracklets().size() << std::endl;
           std::cout << "\tvertices found: " << verticesITS->size() << std::endl;
+          if (verticesITS->size() > 0 ) {
+	    registr=true;
+          }
           nclLeft -= nclUsed;
         }
         roFrame++;
@@ -188,11 +193,15 @@ void run_vert_ca_its(const int inspEvt = -1, bool useMC = false,
       std::cout << "\tvertices found: " << verticesITS->size() << std::endl;
       outTree.Fill();
     }
-    timet.Fill(tracking_time);
-    timev.Fill(vertexin_time);
+    if (registr){
+      timet.Fill(tracking_time);
+      timev.Fill(vertexin_time);
+      timea.Fill(instance_time + initiali_time + tracking_time + vertexin_time);
+    }
   } // loop on events
   timet.Write();
   timev.Write();
+  timea.Write();
   outTree.Write();
   // verTupleResiduals->Write();
   // evtDumpFromVtxer->Write();

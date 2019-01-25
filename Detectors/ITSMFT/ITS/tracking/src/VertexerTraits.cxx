@@ -15,8 +15,6 @@
 #include "ITStracking/VertexerTraits.h"
 #include "ITStracking/ROframe.h"
 #include "ITStracking/ClusterLines.h"
-// #include "ReconstructionDataFormats/Vertex.h"
-
 #include <iostream>
 
 namespace o2
@@ -31,30 +29,44 @@ using Constants::ITS::LayersZCoordinate;
 using Constants::Math::TwoPi;
 using IndexTableUtils::getZBinIndex;
 
-VertexerTraits::VertexerTraits() : mVrtParams{},
-                                   mAverageClustersRadii{ std::array<float, 3>{ 0.f, 0.f, 0.f } },
+VertexerTraits::VertexerTraits() : mAverageClustersRadii{ std::array<float, 3>{ 0.f, 0.f, 0.f } },
                                    mMaxDirectorCosine3{ 0.f }
 {
+  // CUDA does not allow for dynamic initialization -> no constructor for VertexingParams
+  mVrtParams.phiSpan = static_cast<int>(std::ceil(Constants::IndexTable::PhiBins * mVrtParams.phiCut /
+                                         Constants::Math::TwoPi));
+  mVrtParams.zSpan = static_cast<int>(std::ceil(mVrtParams.zCut * Constants::IndexTable::InverseZBinSize()[0]));
+  setIsGPU(false);
 }
 
 void VertexerTraits::reset()
 {
+  for (int iLayer{0}; iLayer< Constants::ITS::LayersNumberVertexer; ++iLayer) {
+    mClusters[iLayer].clear();
+    mIndexTables[iLayer].fill(0);
+  }
+
   mTracklets.clear();
   mTrackletClusters.clear();
   mVertices.clear();
+  mComb01.clear();
+  mComb12.clear();
   mAverageClustersRadii = { 0.f, 0.f, 0.f };
   mMaxDirectorCosine3 = 0.f;
 }
 
-void VertexerTraits::initialise(ROframe* event)
+std::vector<int> VertexerTraits::getMClabelsLayer(const int layer) const
 {
-  reset();
+  return mEvent->getTracksId(layer);
+}
+
+void VertexerTraits::arrangeClusters(ROframe* event)
+{
   mEvent = event;
   for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumberVertexer; ++iLayer) {
     const auto& currentLayer{ event->getClustersOnLayer(iLayer) };
     const size_t clustersNum{ currentLayer.size() };
     if (clustersNum > 0) {
-      mClusters[iLayer].clear();
       if (clustersNum > mClusters[iLayer].capacity()) {
         mClusters[iLayer].reserve(clustersNum);
       }
@@ -82,9 +94,6 @@ void VertexerTraits::initialise(ROframe* event)
         mIndexTables[iLayer][iBin] = static_cast<int>(clustersNum);
       }
     }
-    //else {
-    //   mAverageClustersRadii[iLayer] = LayersRCoordinate()[iLayer];
-    // }
   }
   mDeltaRadii10 = mAverageClustersRadii[1] - mAverageClustersRadii[0];
   mDeltaRadii21 = mAverageClustersRadii[2] - mAverageClustersRadii[1];
@@ -112,11 +121,12 @@ const std::vector<std::pair<int, int>> VertexerTraits::selectClusters(const std:
 }
 
 void VertexerTraits::computeTracklets(const bool useMCLabel)
-{
+{ 
+  if (useMCLabel) std::cout<<"Running in MOntecarlo check mode\n";
   std::vector<std::pair<int, int>> clusters0, clusters2;
-  std::vector<bool> usedCluster2Flags, usedCluster0Flags;
-  usedCluster2Flags.resize(mClusters[2].size(), false);
-  usedCluster0Flags.resize(mClusters[0].size(), false);
+  // std::vector<bool> mUsedClusters[1], mUsedClusters[0];
+  mUsedClusters[1].resize(mClusters[2].size(), false);
+  mUsedClusters[0].resize(mClusters[0].size(), false);
 
   for (int iBin1{ 0 }; iBin1 < ZBins * PhiBins; ++iBin1) {
 
@@ -131,20 +141,20 @@ void VertexerTraits::computeTracklets(const bool useMCLabel)
     int PhiBin1{ static_cast<int>(iBin1 / ZBins) };
     clusters0 = selectClusters(
       mIndexTables[0],
-      std::array<int, 4>{ ZBinLow0, (PhiBin1 - mVrtParams.mPhiSpan < 0) ? PhiBins + (PhiBin1 - mVrtParams.mPhiSpan) : PhiBin1 - mVrtParams.mPhiSpan,
+      std::array<int, 4>{ ZBinLow0, (PhiBin1 - mVrtParams.phiSpan < 0) ? PhiBins + (PhiBin1 - mVrtParams.phiSpan) : PhiBin1 - mVrtParams.phiSpan,
                           ZBinHigh0,
-                          (PhiBin1 + mVrtParams.mPhiSpan > PhiBins) ? PhiBin1 + mVrtParams.mPhiSpan - PhiBins : PhiBin1 + mVrtParams.mPhiSpan });
+                          (PhiBin1 + mVrtParams.phiSpan > PhiBins) ? PhiBin1 + mVrtParams.phiSpan - PhiBins : PhiBin1 + mVrtParams.phiSpan });
 
     for (int iCluster1{ mIndexTables[1][iBin1] }; iCluster1 < mIndexTables[1][iBin1 + 1]; ++iCluster1) {
       bool trackFound = false;
       for (int iRow0{ 0 }; iRow0 < clusters0.size(); ++iRow0) {
         for (int iCluster0{ std::get<0>(clusters0[iRow0]) };
              iCluster0 < std::get<0>(clusters0[iRow0]) + std::get<1>(clusters0[iRow0]); ++iCluster0) {
-          if (usedCluster0Flags[iCluster0])
+          if (mUsedClusters[0][iCluster0])
             continue;
-          if (std::abs(mClusters[0][iCluster0].phiCoordinate - mClusters[1][iCluster1].phiCoordinate) < mVrtParams.mPhiCut ||
+          if (std::abs(mClusters[0][iCluster0].phiCoordinate - mClusters[1][iCluster1].phiCoordinate) < mVrtParams.phiCut ||
               std::abs(mClusters[0][iCluster0].phiCoordinate - mClusters[1][iCluster1].phiCoordinate) >
-                TwoPi - mVrtParams.mPhiCut) {
+                TwoPi - mVrtParams.phiCut) {
             float ZProjection{ mClusters[0][iCluster0].zCoordinate +
                                (mAverageClustersRadii[2] - mClusters[0][iCluster0].rCoordinate) *
                                  (mClusters[1][iCluster1].zCoordinate - mClusters[0][iCluster0].zCoordinate) /
@@ -153,18 +163,18 @@ void VertexerTraits::computeTracklets(const bool useMCLabel)
                                     (mClusters[0][iCluster0].rCoordinate) *
                                       (mClusters[1][iCluster1].zCoordinate - mClusters[0][iCluster0].zCoordinate) /
                                       (mClusters[1][iCluster1].rCoordinate - mClusters[0][iCluster0].rCoordinate) };
-            if (std::abs(ZProjection) > (LayersZCoordinate()[0] + mVrtParams.mZCut))
+            if (std::abs(ZProjection) > (LayersZCoordinate()[0] + mVrtParams.zCut))
               continue;
             int ZProjectionBin{ (ZProjection < -LayersZCoordinate()[0])
                                   ? 0
                                   : (ZProjection > LayersZCoordinate()[0]) ? ZBins - 1
                                                                            : getZBinIndex(2, ZProjection) };
-            int ZBinLow2{ (ZProjectionBin - mVrtParams.mZSpan < 0) ? 0 : ZProjectionBin - mVrtParams.mZSpan };
-            int ZBinHigh2{ (ZProjectionBin + mVrtParams.mZSpan > ZBins - 1) ? ZBins - 1 : ZProjectionBin + mVrtParams.mZSpan };
+            int ZBinLow2{ (ZProjectionBin - mVrtParams.zSpan < 0) ? 0 : ZProjectionBin - mVrtParams.zSpan };
+            int ZBinHigh2{ (ZProjectionBin + mVrtParams.zSpan > ZBins - 1) ? ZBins - 1 : ZProjectionBin + mVrtParams.zSpan };
             // int ZBinLow2  { 0 };
             // int ZBinHigh2  { ZBins - 1 };
-            int PhiBinLow2{ (PhiBin1 - mVrtParams.mPhiSpan < 0) ? PhiBins + PhiBin1 - mVrtParams.mPhiSpan : PhiBin1 - mVrtParams.mPhiSpan };
-            int PhiBinHigh2{ (PhiBin1 + mVrtParams.mPhiSpan > PhiBins - 1) ? PhiBin1 + mVrtParams.mPhiSpan - PhiBins : PhiBin1 + mVrtParams.mPhiSpan };
+            int PhiBinLow2{ (PhiBin1 - mVrtParams.phiSpan < 0) ? PhiBins + PhiBin1 - mVrtParams.phiSpan : PhiBin1 - mVrtParams.phiSpan };
+            int PhiBinHigh2{ (PhiBin1 + mVrtParams.phiSpan > PhiBins - 1) ? PhiBin1 + mVrtParams.phiSpan - PhiBins : PhiBin1 + mVrtParams.phiSpan };
             // int PhiBinLow2{ 0 };
             // int PhiBinHigh2{ PhiBins - 1 };
             clusters2 =
@@ -172,7 +182,7 @@ void VertexerTraits::computeTracklets(const bool useMCLabel)
             for (int iRow2{ 0 }; iRow2 < clusters2.size(); ++iRow2) {
               for (int iCluster2{ std::get<0>(clusters2[iRow2]) };
                    iCluster2 < std::get<0>(clusters2[iRow2]) + std::get<1>(clusters2[iRow2]); ++iCluster2) {
-                if (usedCluster2Flags[iCluster2])
+                if (mUsedClusters[1][iCluster2])
                   continue;
                 float ZProjectionRefined{
                   mClusters[0][iCluster0].zCoordinate +
@@ -188,15 +198,15 @@ void VertexerTraits::computeTracklets(const bool useMCLabel)
                 float absDeltaPhi{ std::abs(mClusters[2][iCluster2].phiCoordinate -
                                             mClusters[1][iCluster1].phiCoordinate) };
                 float absDeltaZ{ std::abs(mClusters[2][iCluster2].zCoordinate - ZProjectionRefined) };
-                if (absDeltaZ < mVrtParams.mZCut && ((absDeltaPhi < mVrtParams.mPhiCut || std::abs(absDeltaPhi - TwoPi) < mVrtParams.mPhiCut) && testMC)) {
+                if (absDeltaZ < mVrtParams.zCut && ((absDeltaPhi < mVrtParams.phiCut || std::abs(absDeltaPhi - TwoPi) < mVrtParams.phiCut) && testMC)) {
                   mTracklets.emplace_back(Line{
                     std::array<float, 3>{ mClusters[0][iCluster0].xCoordinate, mClusters[0][iCluster0].yCoordinate,
                                           mClusters[0][iCluster0].zCoordinate },
                     std::array<float, 3>{ mClusters[1][iCluster1].xCoordinate, mClusters[1][iCluster1].yCoordinate,
                                           mClusters[1][iCluster1].zCoordinate } });
                   if (std::abs(mTracklets.back().cosinesDirector[2]) < mMaxDirectorCosine3) {
-                    usedCluster0Flags[iCluster0] = true;
-                    usedCluster2Flags[iCluster2] = true;
+                    mUsedClusters[0][iCluster0] = true;
+                    mUsedClusters[1][iCluster2] = true;
                     trackFound = true;
                     break;
                   } else {
@@ -229,7 +239,7 @@ void VertexerTraits::computeVertices()
     for (int tracklet2{ tracklet1 + 1 }; tracklet2 < numTracklets; ++tracklet2) {
       if (usedTracklets[tracklet2])
         continue;
-      if (Line::getDCA(mTracklets[tracklet1], mTracklets[tracklet2]) <= mVrtParams.mPairCut) {
+      if (Line::getDCA(mTracklets[tracklet1], mTracklets[tracklet2]) <= mVrtParams.pairCut) {
         mTrackletClusters.emplace_back(tracklet1, mTracklets[tracklet1], tracklet2, mTracklets[tracklet2]);
         std::array<float, 3> tmpVertex{ mTrackletClusters.back().getVertex() };
         if (tmpVertex[0] * tmpVertex[0] + tmpVertex[1] * tmpVertex[1] > 4.f) {
@@ -241,7 +251,7 @@ void VertexerTraits::computeVertices()
         for (int tracklet3{ 0 }; tracklet3 < numTracklets; ++tracklet3) {
           if (usedTracklets[tracklet3])
             continue;
-          if (Line::getDistanceFromPoint(mTracklets[tracklet3], tmpVertex) < mVrtParams.mPairCut) {
+          if (Line::getDistanceFromPoint(mTracklets[tracklet3], tmpVertex) < mVrtParams.pairCut) {
             mTrackletClusters.back().add(tracklet3, mTracklets[tracklet3]);
             usedTracklets[tracklet3] = true;
             tmpVertex = mTrackletClusters.back().getVertex();
@@ -251,6 +261,7 @@ void VertexerTraits::computeVertices()
       }
     }
   }
+
   std::sort(mTrackletClusters.begin(), mTrackletClusters.end(),
             [](ClusterLines& cluster1, ClusterLines& cluster2) { return cluster1.getSize() > cluster2.getSize(); });
   int noClusters{ static_cast<int>(mTrackletClusters.size()) };
@@ -259,12 +270,12 @@ void VertexerTraits::computeVertices()
     std::array<float, 3> vertex2{};
     for (int iCluster2{ iCluster1 + 1 }; iCluster2 < noClusters; ++iCluster2) {
       vertex2 = mTrackletClusters[iCluster2].getVertex();
-      if (std::abs(vertex1[2] - vertex2[2]) < mVrtParams.mClusterCut) {
+      if (std::abs(vertex1[2] - vertex2[2]) < mVrtParams.clusterCut) {
 
         float distance{ (vertex1[0] - vertex2[0]) * (vertex1[0] - vertex2[0]) +
                         (vertex1[1] - vertex2[1]) * (vertex1[1] - vertex2[1]) +
                         (vertex1[2] - vertex2[2]) * (vertex1[2] - vertex2[2]) };
-        if (distance <= mVrtParams.mPairCut * mVrtParams.mPairCut) {
+        if (distance <= mVrtParams.pairCut * mVrtParams.pairCut) {
           for (auto label : mTrackletClusters[iCluster2].getLabels()) {
             mTrackletClusters[iCluster1].add(label, mTracklets[label]);
             vertex1 = mTrackletClusters[iCluster1].getVertex();
@@ -277,7 +288,7 @@ void VertexerTraits::computeVertices()
     }
   }
   for (int iCluster{ 0 }; iCluster < noClusters; ++iCluster) {
-    if (mTrackletClusters[iCluster].getSize() < mVrtParams.mClusterContributorsCut && noClusters > 1) {
+    if (mTrackletClusters[iCluster].getSize() < mVrtParams.clusterContributorsCut && noClusters > 1) {
       mTrackletClusters.erase(mTrackletClusters.begin() + iCluster);
       noClusters--;
       continue;
@@ -308,8 +319,13 @@ void VertexerTraits::dumpVertexerTraits()
   std::cout << "Dump traits:" << std::endl;
   std::cout << "Tracklets found: " << mTracklets.size() << std::endl;
   std::cout << "Clusters of tracklets: " << mTrackletClusters.size() << std::endl;
-  std::cout << "mVrtParams.mPairCut: " << mVrtParams.mPairCut << std::endl;
+  std::cout << "mVrtParams.pairCut: " << mVrtParams.pairCut << std::endl;
   std::cout << "Vertices found: " << mVertices.size() << std::endl;
+}
+
+VertexerTraits* createVertexerTraits()
+{
+  return new VertexerTraits;
 }
 
 } // namespace ITS

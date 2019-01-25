@@ -18,7 +18,6 @@
 #include <chrono>
 #include <fstream>
 #include <iomanip>
-#include <iosfwd>
 #include <array>
 #include <iosfwd>
 
@@ -27,6 +26,11 @@
 #include "ITStracking/Configuration.h"
 #include "ITStracking/VertexerTraits.h"
 #include "ReconstructionDataFormats/Vertex.h"
+
+// debug
+#include "ITStracking/ClusterLines.h"
+#include "ITStracking/Tracklet.h"
+#include "ITStracking/Cluster.h"
 
 namespace o2
 {
@@ -51,20 +55,28 @@ class Vertexer
   VertexingParameters getVertParameters() const { return mVertParams; }
   VertexerTraits* getTraits() const { return mTraits; };
 
-  void clustersToVertices(ROframe&, std::ostream& = std::cout);
+  float clustersToVertices(ROframe&, const bool useMc = false, std::ostream& = std::cout);
+
   template <typename... T>
   void initialiseVertexer(T&&... args);
-  void findTracklets(const bool useMCLabel = false);
+
+  template <typename...T>
+  void findTracklets(T&&... args);
+
   void findVertices();
-  // void writeEvent(ROframe*);
 
   // Utils
   void dumpTraits();
   template <typename... T>
   float evaluateTask(void (Vertexer::*)(T...), const char*, std::ostream& ostream, T&&... args);
 
+  // debug, TBR
+  std::vector<Line> getLines() const;
+  std::vector<Tracklet> getTracklets01() const;
+  std::vector<Tracklet> getTracklets12() const;
+  std::array<std::vector<Cluster>, 3> getClusters() const;
+
  private:
-  // ROframe* mFrame;
   std::uint32_t mROframe = 0;
   VertexerTraits* mTraits = nullptr;
   VertexingParameters mVertParams;
@@ -76,6 +88,12 @@ void Vertexer::initialiseVertexer(T&&... args)
   mTraits->initialise(std::forward<T>(args)...);
 }
 
+template <typename... T>
+void Vertexer::findTracklets(T&&... args)
+{
+  mTraits->computeTracklets(std::forward<T>(args)...);
+}
+
 void Vertexer::dumpTraits()
 {
   mTraits->dumpVertexerTraits();
@@ -85,6 +103,7 @@ std::vector<Vertex> Vertexer::exportVertices()
 {
   std::vector<Vertex> vertices;
   for (auto& vertex : mTraits->getVertices()) {
+    std::cout << "Emplacing vertex with: " << vertex.mContributors << " contribs" << std::endl;
     vertices.emplace_back(Point3D<float>(vertex.mX, vertex.mY, vertex.mZ), vertex.mRMS2, vertex.mContributors, vertex.mAvgDistance2);
     vertices.back().setTimeStamp(vertex.mTimeStamp);
   }
@@ -115,6 +134,27 @@ float Vertexer::evaluateTask(void (Vertexer::*task)(T...), const char* taskName,
   }
 
   return diff;
+}
+
+// DEBUG
+inline std::vector<Line> Vertexer::getLines() const
+{
+  return mTraits->mTracklets;
+}
+
+inline std::vector<Tracklet> Vertexer::getTracklets01() const
+{
+  return mTraits->mComb01;
+}
+
+inline std::vector<Tracklet> Vertexer::getTracklets12() const
+{
+  return mTraits->mComb12;
+}
+
+inline std::array<std::vector<Cluster>, 3> Vertexer::getClusters() const
+{
+  return mTraits->mClusters;
 }
 
 } // namespace ITS
