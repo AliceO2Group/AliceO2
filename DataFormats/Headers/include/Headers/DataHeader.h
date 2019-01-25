@@ -626,7 +626,7 @@ struct DataIdentifier
   DataDescription dataDescription;
   DataOrigin dataOrigin;
   DataIdentifier();
-  DataIdentifier(const DataIdentifier&);
+  DataIdentifier(const DataIdentifier&) = default;
   template<std::size_t N, std::size_t M>
   DataIdentifier(const char (&desc)[N], const char (&origin)[M])
     : dataDescription(desc), dataOrigin(origin)
