@@ -1,0 +1,168 @@
+%
+% ---------------------------------------------------------------
+% define new commands/symbols
+% ---------------------------------------------------------------
+%
+% General stuff
+%
+\hyphenation{ALICE}
+\hyphenation{ATLAS}
+\hyphenation{ALSIM}
+\hyphenation{SPSLC}
+\hyphenation{between}
+\hyphenation{basis}
+\hyphenation{robust}
+\hyphenation{cables}
+\hyphenation{below}
+\hyphenation{because}
+\hyphenation{every rectan-gular}
+\newcommand{\Lumi}{\ensuremath{\cal{L}}}
+%
+\newcommand{\clearemptydoublepage}{\newpage{\pagestyle{empty}\cleardoublepage}}
+\newcommand{\HRule}{\rule{0.4\linewidth}{0.3mm}}
+\newcommand{\cinst}[2]{$^{\protect\mathrm{#1)}}$~#2\par}
+\newcommand{\crefi}[1]{$^{\protect\mathrm{#1)}}$}
+\newcommand{\crefii}[2]{$^{\protect\mathrm{#1,#2)}}$}
+\newcommand{\Rule}{\rule[-.7ex]{0ex}{2.9ex}}
+\newcommand{\rbox}[1]{\raisebox{1.5ex}[-1.5ex]{#1}}
+%
+% symbols...
+%
+\newcommand{\mrm}{\mathrm}
+\newcommand{\pt}{\ensuremath{p_{\mathrm{t}}} }
+\newcommand{\et}{\ensuremath{E_{\mathrm{T}}}}
+%\newcommand {\pT} {\mbox{$p_{\rm t}$}}
+\newcommand{\mt}{\ensuremath{m_{\mathrm{t}}}}
+\newcommand{\minv}{\mbox{$m_{\ee}$}}
+\newcommand{\ee}{\mbox{e$^+$e$^-$}}
+\newcommand {\rap} {\mbox{$\left | y \right | $}}
+%\newcommand{\sigee}{\raisebox{0.2ex}{$\sigma_E$}/\raisebox{-0.4ex}{\kern0.1em$E$}}
+\newcommand{\sigee}{$\sigma_E$/$E$}
+\newcommand{\dd}{\mrm{d}}
+% ... &
+\newcommand{\eg}{{e.g.~\@\xspace}}
+\newcommand{\ie}{i.e.\@\xspace}
+\newcommand{\elm}{e.m.\@\xspace}
+
+%\def\mt{\relax \ifmmode m_{\mathrm{t}} \else $m_{\mathrm{t}}$\@\xspace\fi}
+%\def\pt{\relax \ifmmode p_{\mathrm{t}} \else \mbox{$p_{\mathrm{t}}$}\xspace\fi}
+%
+% units of measure
+%
+\newcommand {\lum} {\, \mbox{${\rm cm}^{-2} {\rm s}^{-1}$}}
+\newcommand {\barn} {\, \mbox{${\rm barn}$}}
+\newcommand {\m} {\, \mbox{${\rm m}$}}
+\newcommand {\bstar} {\, \mbox{$\beta^{*}$}}
+\newcommand {\hour} {\, \mbox{${\rm h}$}}
+\newcommand{\dg}{\mbox{$^\circ$}}
+%\newcommand {\grad} {\mbox{$^{\circ}$}}
+\newcommand {\mass} {\mbox{\rm GeV$\kern-0.15em /\kern-0.12em c^2$}}
+\newcommand {\tev} {\mbox{${\rm TeV}$}}
+\newcommand {\gev} {\mbox{${\rm GeV}$}}
+\newcommand {\mev} {\mbox{${\rm MeV}$}}
+\newcommand {\kev} {\mbox{${\rm keV}$}}
+\newcommand {\mom} {\mbox{\rm GeV$\kern-0.15em /\kern-0.12em c$}}
+\newcommand {\mum} {\mbox{$\mu {\rm m}$}}
+\newcommand {\gmom} {\mbox{\rm GeV$\kern-0.15em /\kern-0.12em c$}}
+\newcommand {\mmass} {\mbox{\rm MeV$\kern-0.15em /\kern-0.12em c^2$}}
+\newcommand {\mmom} {\mbox{\rm MeV$\kern-0.15em /\kern-0.12em c$}}
+\newcommand {\nb} {\mbox{\rm nb}}
+\newcommand {\musec} {\mbox{$\mu {\rm s}$}}
+\newcommand {\cm} {\mbox{${\rm cm}$}}
+\newcommand {\mm} {\mbox{${\rm mm}$}}
+\newcommand {\cmq} {\mbox{${\rm cm}^{2}$}}
+\newcommand {\dens} {\mbox{${\rm g}/{\rm cm}^{3}$}}
+%
+% Particles
+%
+\newcommand{\pizero}{\mbox{$\mathrm {\pi^0}$}}
+\newcommand{\K}{\mbox{$\mathrm {K}$}}
+\newcommand{\Kzs}{\mbox{$\mathrm {K^0_S}$}}
+\newcommand{\KzS}{\mbox{$\mathrm {K^0_S}$}}
+\newcommand{\KzL}{\mbox{$\mathrm {K^0_L}$}}
+\newcommand{\Jpsi} {\mbox{J\kern-0.05em /\kern-0.05em$\psi$}\xspace}
+\newcommand{\psip} {\mbox{$\psi^\prime$}\xspace}
+\newcommand{\Ups} {\mbox{$\Upsilon$}\xspace}
+\newcommand{\Upsp} {\mbox{$\Upsilon^\prime$}\xspace}
+\newcommand{\Upspp} {\mbox{$\Upsilon^{\prime\prime}$}\xspace}
+\newcommand{\qqbar} {\mbox{$q\bar{q}$}\xspace}
+
+%\newcommand{\qqbar}{\mbox{$\mathrm {q\overline{q}}$}}
+\newcommand{\ppbar}{\mbox{$\mathrm {p\overline{p}}$}}
+\newcommand{\ccbar}{\mbox{$\mathrm {c\overline{c}}$}}
+\newcommand{\bbbar}{\mbox{$\mathrm {b\overline{b}}$}}
+\newcommand{\sbbbar}{\mbox{$\scriptstyle\mathrm {b\overline{b}}$}}
+\newcommand{\ttbar}{\mbox{$\mathrm {t\overline{t}}$}}
+\newcommand{\sttbar}{\mbox{$\scriptstyle\mathrm {t\overline{t}}$}}
+\newcommand{\BBbar}{\mbox{$\mathrm {B\overline{B}}$}}
+\newcommand{\Bzd}{\mbox{$\mathrm {B^0_d}$}}
+\newcommand{\Bbzd}{\mbox{$\mathrm {\overline{B}^0_d}$}}
+\newcommand{\Bzs}{\mbox{$\mathrm {B^0_s}$}}
+\newcommand{\Bbzs}{\mbox{$\mathrm {\overline{B}^0_s}$}}
+\newcommand{\gaga}{\mbox{$\mathrm {\gamma\gamma}$}}
+%
+% Bibliography stuff
+%
+\def\NIM#1#2#3{Nucl. Instr. Meth. {\bf #1}\ (#2)\ #3}
+\def\IEEE#1#2#3{IEEE Trans. Nucl. Sci. {\bf #1}\ (#2)\ #3}
+\def\NP#1#2#3{Nucl. Phys. {\bf #1}\ (#2)\ #3}
+\def\PL#1#2#3{Phys. Lett. {\bf #1}\ (#2)\ #3}
+\def\PR#1#2#3{Phys. Rev. {\bf #1}\ (#2)\ #3}
+\def\PRL#1#2#3{Phys. Rev. Lett. {\bf #1}\ (#2)\ #3}
+\def\ZP#1#2#3{Z. Phys. {\bf #1}\ (#2)\ #3}
+\def\EJP#1#2#3{Eur. J. Phys. {\bf #1}\ (#2)\ #3}
+\def\JPG#1#2#3{J. Phys. G: Nucl. Part. Phys. {\bf #1}\ (#2)\ #3}
+\def\RMP#1#2#3{Rev. Mod. Phys. {\bf #1}\ (#2)\ #3}
+\def\ARNPS#1#2#3{Ann. Rev. Nucl. Part. Sc. {\bf #1}\ (#2)\ #3}
+\def\PRP#1#2#3{Phys. Rep. {\bf #1}\ (#2)\ #3}
+\def\RPP#1#2#3{Rep. on Progr. in Phys. {\bf #1}\ (#2)\ #3}
+%\def\#1#2#3{ {\bf #1}\ (#2)\ #3}
+
+\def\ALI#1#2{ALICE Internal Note {\sc #1--#2}}
+\def\ALIC#1#2#3{ALICE Internal Note {\sc #1--#2 (#3)}}
+\def\subNIM{submitted to Nucl. Instr. Meth.}
+\def\subIEEE{submitted to IEEE Trans. Nucl. Sci.}
+\def\subNP{submitted to Nucl. Phys.}
+\def\subPL{submitted to Phys. Lett.}
+\def\subPR{submitted to Phys. Rev.}
+\def\subPRL{submitted to Phys. Rev. Lett.}
+\def\subEJP{submitted to Eur. J. Phys.}
+%\def\tosubNIM{to be submitted to Nucl. Instrum. Methods}
+%\def\tosubNP{to be submitted to Nucl. Phys.}
+%\def\tosubPL{to be submitted to Phys. Lett.}
+%\def\tosubPR{to be submitted to Phys. Rev.}
+%\def\tosubPRL{to be submitted to Phys. Rev. Lett.}
+%\def\tosubZP{to be submitted to Z. Phys.}
+%
+% Gases
+%
+\def\xea{\mbox{Xe,CH$_4$ (10\%)}}
+\def\xeb{\mbox{Xe,CO$_2$ (10\%)}}
+\def\xec{\mbox{Xe,CO$_2$ (15\%)}}
+\def\xed{\mbox{Xe,CO$_2$ (20\%)}}
+%
+% other things...
+%
+\def\tvi{\vrule height 12pt depth 5pt width 0pt}
+\def\vphant{\vphantom{{{1\over{2}}\over{{1\over{2}}}}}}
+\def\dis{\displaystyle}
+
+\newlength{\digitwidth} \settowidth{\digitwidth}{\rm 0}
+\newlength{\ql} \newlength{\qll} \newlength{\qlll}  \newlength{\qllll}
+\newlength{\qlp} \newlength{\qllp} \newlength{\qlllp} \newlength{\qllllp}
+\settowidth{\ql}{0} \settowidth{\qll}{00} \settowidth{\qlll}{000}  \settowidth{\qllll}{0000}
+\settowidth{\qlp}{.0} \settowidth{\qllp}{.00} \settowidth{\qlllp}{.000} \settowidth{\qllllp}{.0000}
+\newlength{\qlup} \newlength{\qlupp}
+\settowidth{\qlup}{$^{\prime}$} \settowidth{\qlupp}{$^{\prime\prime}$}
+%
+% ---------------------------------------------------------
+% - End of Definitions
+% ---------------------------------------------------------
+
+
+
+
+
+
+
+
