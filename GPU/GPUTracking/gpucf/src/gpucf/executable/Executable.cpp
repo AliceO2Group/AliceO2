@@ -35,7 +35,8 @@ int Executable::main(int argc, const char *argv[])
     }
     catch(const cl::Error &err)
     {
-        log::Error() << "Caught cl::Error: " << err.what() << "(" << err.err() << ")";
+        log::Error() << "Caught cl::Error: " << err.what() 
+                     << "(" << clErrToStr(err.err()) << ")";
         throw err;
     }
 }

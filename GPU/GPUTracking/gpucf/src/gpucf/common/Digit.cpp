@@ -13,6 +13,7 @@ static_assert(sizeof(HalfDigit) == HALF_DIGIT_SIZE);
 
 
 Digit::Digit()
+    : Digit(0, 0, 0, 0, 0)
 {
 }
 
