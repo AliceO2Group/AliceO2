@@ -2,7 +2,7 @@
 
 #include <gpucf/Object.h>
 
-#include <filesystem/fwd.h>
+#include <filesystem/path.h>
 
 #include <string>
 #include <vector>
