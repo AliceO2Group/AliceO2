@@ -16,6 +16,7 @@ set(GPUCF_SRC
 
     "./executable/CfRunner.cpp"
     "./executable/ClCanary.cpp"
+    "./executable/CompareClusters.cpp"
     "./executable/Executable.cpp"
     "./executable/SubGroupInfo.cpp"
 )
