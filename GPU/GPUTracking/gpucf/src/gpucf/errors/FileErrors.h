@@ -14,19 +14,20 @@ public:
     FileError(const filesystem::path &f)
         : file(f)
     {
-    }
-
-    const char *what() const noexcept override
-    {
         std::stringstream ss;
         ss << "Could not find " << ((isDirectory) ? "directory" : "file")
            << file.str() << ".";
 
-        return ss.str().c_str();
-        
+        msg = ss.str();
+    }
+
+    const char *what() const noexcept override
+    {
+        return msg.c_str();
     }
 
 private:
+    std::string msg;
     filesystem::path file;
 
 };
