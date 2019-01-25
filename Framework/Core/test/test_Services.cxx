@@ -44,7 +44,6 @@ BOOST_AUTO_TEST_CASE(TestServiceRegistry) {
   };
 
   ServiceRegistry registry;
-  auto service = std::make_unique<ConcreteA>;
   ConcreteA serviceA;
   ConcreteB serviceB;
   ConcreteC const serviceC;

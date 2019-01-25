@@ -139,11 +139,11 @@ struct ExpirationHandlerHelpers {
       throw std::runtime_error("InputSpec for Enumeration must be fully qualified");
     }
     // We copy the matcher to avoid lifetime issues.
-    return [ matcher = *m, sourceChannel ](ConfigParamRegistry const&) {
+    return [ matcher = *m, sourceChannel ](ConfigParamRegistry const&)
+    {
       return LifetimeHelpers::enumerate(matcher, sourceChannel);
     };
   }
-
 
   static InputRoute::DanglingConfigurator danglingTransientConfigurator()
   {

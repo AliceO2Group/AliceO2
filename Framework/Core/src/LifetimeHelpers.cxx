@@ -54,9 +54,9 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
       if (*last > end) {
         return;
       }
-      auto slot = TimesliceSlot{si};
+      auto slot = TimesliceSlot{ si };
       if (index.isValid(slot) == false) {
-        TimesliceId timestamp{*last};
+        TimesliceId timestamp{ *last };
         *last += step;
         index.associate(timestamp, slot);
       }

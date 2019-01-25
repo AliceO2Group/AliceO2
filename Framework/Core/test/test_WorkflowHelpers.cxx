@@ -196,7 +196,10 @@ BOOST_AUTO_TEST_CASE(TestWorkflowHelpers)
 BOOST_AUTO_TEST_CASE(TestSimpleConnection)
 {
   std::vector<InputSpec> expectedInputs = { InputSpec{ "y", "TST", "A" } };
-  std::vector<OutputSpec> expectedOutputs = { OutputSpec{ "TST", "A" } };
+  std::vector<OutputSpec> expectedOutputs = {
+    OutputSpec{ "TST", "A" },
+    OutputSpec{ "DPL", "ENUM", 0, Lifetime::Enumeration }
+  };
   WorkflowSpec workflow{
     { "A",
       {},
@@ -213,9 +216,13 @@ BOOST_AUTO_TEST_CASE(TestSimpleConnection)
                                   outputs,
                                   availableForwardsInfo);
   std::vector<DeviceConnectionEdge> expectedEdges{
+    { 2, 0, 0, 0, 1, 0, false, ConnectionKind::Out },
     { 0, 1, 0, 0, 0, 0, false, ConnectionKind::Out },
   };
   BOOST_REQUIRE_EQUAL(expectedOutputs.size(), outputs.size());
+  for (size_t oi = 0, oe = expectedOutputs.size(); oi != oe; ++oi) {
+    BOOST_CHECK(expectedOutputs[oi].lifetime == outputs[oi].lifetime);
+  }
   BOOST_REQUIRE_EQUAL(expectedEdges.size(), logicalEdges.size());
   for (size_t ei = 0, ee = expectedEdges.size(); ei != ee; ++ei) {
     BOOST_CHECK_EQUAL(expectedEdges[ei].consumer, logicalEdges[ei].consumer);
@@ -233,16 +240,12 @@ BOOST_AUTO_TEST_CASE(TestSimpleConnection)
 BOOST_AUTO_TEST_CASE(TestSimpleForward)
 {
   std::vector<InputSpec> expectedInputs = { InputSpec{ "y", "TST", "A" } };
-  std::vector<OutputSpec> expectedOutputs = { OutputSpec{ "TST", "A" } };
+  std::vector<OutputSpec> expectedOutputs = { OutputSpec{ "TST", "A" }, OutputSpec{ "DPL", "TIMER", 0, Lifetime::Timer } };
   WorkflowSpec workflow{
-    { "A",
-      {},
-      Outputs{ expectedOutputs[0] } },
+    { "A", {}, Outputs{ expectedOutputs[0] } },
     { "B", { expectedInputs[0] } },
-    { "C",
-      { expectedInputs[0] } },
-    { "D",
-      { expectedInputs[0] } }
+    { "C", { expectedInputs[0] } },
+    { "D", { expectedInputs[0] } }
   };
   std::vector<DeviceConnectionEdge> logicalEdges;
   std::vector<OutputSpec> outputs;
@@ -255,6 +258,7 @@ BOOST_AUTO_TEST_CASE(TestSimpleForward)
                                   availableForwardsInfo);
 
   std::vector<DeviceConnectionEdge> expectedEdges{
+    { 4, 0, 0, 0, 1, 0, false, ConnectionKind::Out },
     { 0, 1, 0, 0, 0, 0, false, ConnectionKind::Out },
     { 1, 2, 0, 0, 0, 0, true, ConnectionKind::Out },
     { 2, 3, 0, 0, 0, 0, true, ConnectionKind::Out },
@@ -286,6 +290,7 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction)
   };
 
   std::vector<DeviceConnectionEdge> expected{
+    { 3, 0, 0, 0, 2, 0, false, ConnectionKind::Out },
     { 0, 1, 0, 0, 0, 0, false, ConnectionKind::Out },
     { 0, 1, 1, 0, 0, 0, false, ConnectionKind::Out },
     { 0, 1, 2, 0, 0, 0, false, ConnectionKind::Out },
@@ -309,13 +314,13 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction)
   WorkflowHelpers::constructGraph(workflow, logicalEdges,
                                   outputs,
                                   availableForwardsInfo);
-
-  BOOST_CHECK_EQUAL(outputs.size(), 2); // FIXME: Is this what we actually want? We need
-                                        // different matchers depending on the different timeframe ID.
   Outputs expectedOutputs = {
     OutputSpec{ "TST", "A" },
     OutputSpec{ "TST", "B" },
+    OutputSpec{ "DPL", "ENUM", 0, Lifetime::Enumeration },
   };
+  BOOST_CHECK_EQUAL(outputs.size(), expectedOutputs.size()); // FIXME: Is this what we actually want? We need
+                                                             // different matchers depending on the different timeframe ID.
 
   for (size_t i = 0; i < outputs.size(); ++i) {
     BOOST_CHECK(outputs[i].description == expectedOutputs[i].description);
@@ -334,12 +339,14 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction)
   std::vector<size_t> inIndex;
   std::vector<size_t> outIndex;
   WorkflowHelpers::sortEdges(inIndex, outIndex, logicalEdges);
+  // Notice that zero is at the end because the first edge in the topological
+  // sort is the timer and that gets added last.
   std::vector<size_t> expectedOutIndex{
-    0, 1, 2, 3, 6, 4, 7, 5, 8
+    1, 2, 3, 4, 7, 5, 8, 6, 9, 0
   };
 
   std::vector<size_t> expectedInIndex{
-    0, 1, 2, 3, 4, 5, 6, 7, 8
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9
   };
 
   BOOST_CHECK_EQUAL(expectedOutIndex.size(), outIndex.size());
@@ -355,7 +362,8 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction)
                                                         outIndex);
 
   std::vector<EdgeAction> expectedActionsOut{
-    EdgeAction{ true, true },
+    EdgeAction{ true, true }, // timer device with first timer channel
+    EdgeAction{ true, true }, // actual first edge
     EdgeAction{ false, true },
     EdgeAction{ false, true },
     EdgeAction{ true, true },
@@ -373,7 +381,8 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction)
   }
 
   std::vector<EdgeAction> expectedActionsIn{
-    EdgeAction{ true, true },
+    EdgeAction{ true, true }, // timer device with first timer channel
+    EdgeAction{ true, true }, // actual first edge
     EdgeAction{ true, true },
     EdgeAction{ true, true },
     EdgeAction{ true, true },
