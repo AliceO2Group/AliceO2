@@ -327,7 +327,7 @@ class O2HitMerger : public FairMQDevice
     std::map<int, std::vector<int>> trackoffsets; // collecting trackoffsets to be applied to correct
 
     std::vector<FairMCEventHeader> eventheaders; // collecting the event headers
-    eventheaders.reserve(mNExpectedEvents);
+    eventheaders.resize(mNExpectedEvents);
 
     // the MC labels (trackID) for hits
     o2::Data::SubEventInfo* info = nullptr;
@@ -338,7 +338,9 @@ class O2HitMerger : public FairMQDevice
       auto event = info->eventID;
       entrygroups[event].emplace_back(i);
       trackoffsets[event].emplace_back(info->npersistenttracks);
-      eventheaders[event] = info->mMCEventHeader;
+      assert(event <= mNExpectedEvents && event >= 1);
+      LOG(INFO) << event << " " << mNExpectedEvents;
+      eventheaders[event - 1] = info->mMCEventHeader;
     }
 
     // quick check if we need to merge at all
@@ -366,10 +368,10 @@ class O2HitMerger : public FairMQDevice
     mergedOutTree->SetEntries(entrygroups.size());
 
     // put the event headers into the new TTree
-    FairMCEventHeader* headerptr = nullptr;
-    auto headerbr = o2::Base::getOrMakeBranch(*mergedOutTree, "MCEventHeader.", &headerptr);
+    FairMCEventHeader header;
+    auto headerbr = o2::Base::getOrMakeBranch(*mergedOutTree, "MCEventHeader.", &header);
     for (int i = 0; i < info->maxEvents; i++) {
-      headerptr = &eventheaders[i];
+      header = eventheaders[i];
       headerbr->Fill();
     }
     // attention: We need to make sure that we write everything in the same event order
