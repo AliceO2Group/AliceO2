@@ -28,6 +28,12 @@ struct ConcreteDataMatcher;
 /// from the dataflow, but from some other source or trigger, e.g.,
 /// in the case condition data or time based triggers.
 struct LifetimeHelpers {
+  /// Callback which does nothing, waiting for data to arrive.
+  static ExpirationHandler::Creator dataDrivenCreation();
+  /// Callback which creates a new timeslice when timer
+  /// expires and there is not a compatible datadriven callback
+  /// available.
+  static ExpirationHandler::Creator timeDrivenCreation(std::chrono::microseconds period);
   /// Callback which never expires records. To be used with, e.g.
   /// Lifetime::Timeframe.
   static ExpirationHandler::Checker expireNever();
@@ -35,8 +41,8 @@ struct LifetimeHelpers {
   /// Lifetime::Transient.
   static ExpirationHandler::Checker expireAlways();
   /// Callback which expires records with the rate given by @a period, in
-  /// milliseconds.
-  static ExpirationHandler::Checker expireTimed(std::chrono::milliseconds period);
+  /// microseconds.
+  static ExpirationHandler::Checker expireTimed(std::chrono::microseconds period);
 
   /// Does nothing. Use this for cases where you do not want to do anything
   /// when records expire. This is the default behavior for data (which never

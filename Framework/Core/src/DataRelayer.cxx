@@ -115,12 +115,12 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
 void DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& expirationHandlers,
                                         ServiceRegistry& services)
 {
+  // Create any slot for the time based fields
+  for (size_t hi = 0; hi < expirationHandlers.size(); ++hi) {
+    expirationHandlers[hi].creator(mTimesliceIndex);
+  }
+  // Expire the records as needed.
   for (size_t ti = 0; ti < mTimesliceIndex.size(); ++ti) {
-    // FIXME: for the moment we need to have at least one data input before we
-    //        can invoke the dangling inputs helpers.
-    //        This is useful for stuff like conditions or histograms, but not
-    //        (yet) for timers. For those we would need to have a mechanism
-    //        to create valid timeslices.
     TimesliceSlot slot{ ti };
     if (mTimesliceIndex.isValid(slot) == false) {
       continue;
@@ -382,7 +382,12 @@ DataRelayer::getReadyToProcess() {
   // structure will probably result in a larger footprint in any case.
   // Also notice that ai == inputsNumber only when we reach the end of the
   // iteration, that means we have found all the required bits.
-  assert(numInputTypes != 0);
+  //
+  // Notice that the only time numInputTypes is 0 is when we are a dummy
+  // device created as a source for timers / conditions.
+  if (numInputTypes == 0) {
+    return {};
+  }
   size_t cacheLines = cache.size() / numInputTypes;
   assert(cacheLines * numInputTypes == cache.size());
 

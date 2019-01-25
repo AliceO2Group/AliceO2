@@ -27,18 +27,21 @@ class ConfigParamRegistry;
 
 /// This uniquely identifies a route to from which data matching @a matcher
 /// input spec gets to the device. In case of time pipelining @a timeslice
-/// refers to the timeslice associated to this route. The The two callbacks
-/// @danglingChecker and @expirationHandler are used to decide wether or not
-/// the input should be created without having incoming data associated to it
-/// and if yes, how.  By default inputs are never considered valid and they are
-/// never created from nothing.
+/// refers to the timeslice associated to this route. The three callbacks @a
+/// creatorConfigurator, @a danglingChecker and @a expirationHandler are used
+/// to respectively create new empty timeslices, decide wether or not the input
+/// should be created without having incoming data associated to it and if yes,
+/// how.  By default inputs are never considered valid and they are never
+/// created from nothing.
 struct InputRoute {
+  using CreationConfigurator = std::function<ExpirationHandler::Creator(ConfigParamRegistry const&)>;
   using DanglingConfigurator = std::function<ExpirationHandler::Checker(ConfigParamRegistry const&)>;
   using ExpirationConfigurator = std::function<ExpirationHandler::Handler(ConfigParamRegistry const&)>;
 
   InputSpec matcher;
   std::string sourceChannel;
   size_t timeslice;
+  CreationConfigurator creatorConfigurator = nullptr;
   DanglingConfigurator danglingConfigurator = nullptr;
   ExpirationConfigurator expirationConfigurator = nullptr;
 };
