@@ -43,17 +43,23 @@ void cleanup()
     std::cerr << "------------- START OF EVENTSERVER LOG ----------" << std::endl;
     std::stringstream catcommand1;
     catcommand1 << "cat " << serverlogname << ";";
-    system(catcommand1.str().c_str());
+    if (system(catcommand1.str().c_str()) != 0) {
+      LOG(WARN) << "error executing system call";
+    }
 
     std::cerr << "------------- START OF SIM WORKER(S) LOG --------" << std::endl;
     std::stringstream catcommand2;
     catcommand2 << "cat " << workerlogname << "*;";
-    system(catcommand2.str().c_str());
+    if (system(catcommand2.str().c_str()) != 0) {
+      LOG(WARN) << "error executing system call";
+    }
 
     std::cerr << "------------- START OF MERGER LOG ---------------" << std::endl;
     std::stringstream catcommand3;
     catcommand3 << "cat " << mergerlogname << ";";
-    system(catcommand3.str().c_str());
+    if (system(catcommand3.str().c_str()) != 0) {
+      LOG(WARN) << "error executing system call";
+    }
   }
 }
 
@@ -175,7 +181,9 @@ int main(int argc, char* argv[])
   std::string localconfig = std::string("o2simtopology_") + std::to_string(getpid()) + std::string(".json");
   std::stringstream cpcmd;
   cpcmd << "cp " << configss.str() << " " << localconfig;
-  system(cpcmd.str().c_str());
+  if (system(cpcmd.str().c_str()) != 0) {
+    LOG(WARN) << "error executing system call";
+  }
   updatePorts(localconfig.c_str());
 
   auto& conf = o2::conf::SimConfig::Instance();
@@ -218,7 +226,9 @@ int main(int argc, char* argv[])
   std::vector<int> childpids;
 
   int pipe_serverdriver_fd[2];
-  pipe(pipe_serverdriver_fd);
+  if (pipe(pipe_serverdriver_fd) != 0) {
+    perror("problem in creating pipe");
+  }
 
   // the server
   int pid = fork();
@@ -301,7 +311,9 @@ int main(int argc, char* argv[])
 
   // the hit merger
   int pipe_mergerdriver_fd[2];
-  pipe(pipe_mergerdriver_fd);
+  if (pipe(pipe_mergerdriver_fd) != 0) {
+    perror("problem in creating pipe");
+  }
 
   pid = fork();
   if (pid == 0) {
