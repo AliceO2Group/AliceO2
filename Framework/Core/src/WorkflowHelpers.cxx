@@ -185,7 +185,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
         } break;
         case Lifetime::Enumeration: {
           auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
-          timer.outputs.emplace_back(OutputSpec{ concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
+          timer.outputs.emplace_back(OutputSpec{ concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration });
         } break;
         case Lifetime::Condition:
         case Lifetime::QA:

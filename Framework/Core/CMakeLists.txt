@@ -41,7 +41,6 @@ set(SRCS
     src/DataSamplingConditionFactory.cxx
     src/DataSamplingReadoutAdapter.cxx
     src/DataSamplingPolicy.cxx
-    src/DataSourceDevice.cxx
     src/DataSpecUtils.cxx
     src/DeviceMetricsInfo.cxx
     src/DeviceSpec.cxx
@@ -132,7 +131,6 @@ set(HEADERS
       include/Framework/OutputSpec.h
       include/Framework/ChannelSpec.h
       include/Framework/ChannelConfigurationPolicy.h
-      include/Framework/DataSourceDevice.h
       include/Framework/SimpleRawDeviceService.h
       include/Framework/ExternalFairMQDeviceProxy.h
       include/Framework/ControlService.h
