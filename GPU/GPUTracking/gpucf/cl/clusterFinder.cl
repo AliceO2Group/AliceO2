@@ -119,7 +119,7 @@ void finalizeCluster(
                const Digit   *myDigit, 
         global const int     *globalToLocalRow)
 {
-    /* myCluster->Q += myDigit->charge; */
+    myCluster->Q += myDigit->charge;
 
     float totalCharge = myCluster->Q;
     float padMean     = myCluster->padMean;
