@@ -7,23 +7,42 @@ const std::array<int, RowInfo::regionNum> RowInfo::rowsPerRegion =
     { 17, 15, 16, 15, 18, 16, 16, 14, 13, 12 };
 
 
-std::vector<int> RowInfo::globalRowToLocalRowMap()
+const RowInfo &RowInfo::instance()
 {
-    std::vector<int> globalToLocalRow(numOfRows());
+    static RowInfo theInstance;
+
+    return theInstance;
+}
+
+
+RowInfo::RowInfo()
+    : globalToLocalMap(numOfRows())
+    , localToGlobalMap(regionNum)
+{
     int globalRow = 0;
-    for (int rows : rowsPerRegion)
+    for (int region = 0; region < regionNum; region++)
     {
+        int rows = rowsPerRegion[region];
         for (int localRow  = 0; localRow < rows; localRow++)
         {
-            globalToLocalRow[globalRow] = localRow;
+            globalToLocalMap[globalRow] = localRow;
+            localToGlobalMap[region].push_back(globalRow);
             globalRow++;
         }
     }
-
-    return globalToLocalRow;
 }
 
-int RowInfo::numOfRows()
+int RowInfo::globalToLocal(int row) const
+{
+    return globalToLocalMap.at(row);
+}
+
+int RowInfo::localToGlobal(int cru, int row) const
+{
+    return localToGlobalMap.at(cru).at(row);
+}
+
+int RowInfo::numOfRows() const
 {
     return std::accumulate(rowsPerRegion.begin(), rowsPerRegion.end(), 0); 
 }

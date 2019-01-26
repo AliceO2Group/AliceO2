@@ -39,8 +39,8 @@ int CompareClusters::mainImpl()
    clusterSet.read(clusterFile->Get());
    std::vector<Cluster> clusters = clusterSet.deserialize<Cluster>();
 
-   ClusterChecker cc;
-   cc.verify(clusters, truth);
+   ClusterChecker cc(truth);
+   cc.verify(clusters);
 
    return 0;
 }
