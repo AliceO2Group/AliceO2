@@ -21,7 +21,7 @@ namespace fit
 o2::framework::DataProcessorSpec getT0DigitWriterSpec();
 //o2::framework::DataProcessorSpec getMFTDigitWriterSpec();
 
-} // end namespace itsmft
+} // namespace fit
 } // end namespace o2
- 
+
 #endif /* STEER_DIGITIZERWORKFLOW_ITSMFTDIGITWRITER_H_ */

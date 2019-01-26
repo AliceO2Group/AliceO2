@@ -25,7 +25,7 @@
 #include <memory> // for make_shared, make_unique, unique_ptr
 #include <vector>
 #include <string>
-#include <algorithm> 
+#include <algorithm>
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -44,11 +44,11 @@ class FITDPLDigitWriter
   void init(framework::InitContext& ic)
   {
     std::string detStrL = mID.getName();
-     std::transform(detStrL.begin(), detStrL.end(), detStrL.begin(), ::tolower);
+    std::transform(detStrL.begin(), detStrL.end(), detStrL.begin(), ::tolower);
 
     auto filename = ic.options().get<std::string>((detStrL + "-digit-outfile").c_str());
     auto treename = ic.options().get<std::string>("treename");
-    std::cout<<" @@@ FITDPLDigitWriter " <<detStrL<<" file "<<filename<<" tree "<<treename <<std::endl;
+    std::cout << " @@@ FITDPLDigitWriter " << detStrL << " file " << filename << " tree " << treename << std::endl;
 
     mOutFile = std::make_unique<TFile>(filename.c_str(), "RECREATE");
     if (!mOutFile || mOutFile->IsZombie()) {
@@ -154,6 +154,5 @@ DataProcessorSpec getT0DigitWriterSpec()
   };
 }
 
- 
 } // end namespace fit
 } // end namespace o2

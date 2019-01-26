@@ -28,10 +28,9 @@ void Digitizer::process(const std::vector<o2::fit::HitType>* hits, Digit* digit)
 {
   //parameters constants TO DO: move to class
 
-  constexpr Float_t C_side_cable_cmps = 2.8; //ns
-  constexpr Float_t A_side_cable_cmps = 11.; //ns
-  constexpr Float_t signal_width = 5.;       // time gate for signal, ns
-  constexpr Float_t nPe_in_mip = 250.;       // n ph. e. in one mip
+  constexpr Float_t C_side_cable_cmps = 2.877; //ns
+  constexpr Float_t A_side_cable_cmps = 11.08; //ns
+  constexpr Float_t signal_width = 5.;         // time gate for signal, ns
 
   Int_t nlbl = 0; //number of MCtrues
 
@@ -40,11 +39,13 @@ void Digitizer::process(const std::vector<o2::fit::HitType>* hits, Digit* digit)
   digit->setOrbit(mOrbit);
 
   //Calculating signal time, amplitude in mean_time +- time_gate --------------
-  Double_t cfd[300] = {};
-  Float_t amp[300] = {};
-  Int_t ch_signal_nPe[300] = {};
-  Double_t ch_signal_MIP[300] = {};
-  Double_t ch_signal_time[300] = {};
+  std::vector<ChannelData>& channel_data = digit->getChDgData();
+  if (channel_data.size() == 0) {
+    channel_data.reserve(parameters.mMCPs);
+    for (int i = 0; i < parameters.mMCPs; ++i)
+      channel_data.emplace_back(ChannelData{ i, 0, 0, 0 });
+  }
+  assert(digit->getChDgData().size() == parameters.mMCPs);
   for (auto& hit : *hits) {
     Int_t hit_ch = hit.GetDetectorID();
     Double_t hit_time = hit.GetTime();
@@ -56,9 +57,10 @@ void Digitizer::process(const std::vector<o2::fit::HitType>* hits, Digit* digit)
 
     Double_t hit_time_corr = hit_time - time_compensate /* + mBC_clk_center + mEventTime*/;
 
-    if (/*is_time_in_gate &&*/ is_hit_in_signal_gate) {
-      ch_signal_nPe[hit_ch]++;
-      ch_signal_time[hit_ch] += hit_time_corr;
+    if (is_hit_in_signal_gate) {
+      channel_data[hit_ch].numberOfParticles++;
+      channel_data[hit_ch].QTCAmpl += hit.GetEnergyLoss();
+      channel_data[hit_ch].CFDTime += hit_time_corr;
     }
 
     //charge particles in MCLabel
@@ -72,37 +74,24 @@ void Digitizer::process(const std::vector<o2::fit::HitType>* hits, Digit* digit)
       }
     }
   }
+}
 
-  // sum  different sources
-  std::vector<ChannelData> mChDgDataArr;
-  for (const auto& d : digit->getChDgData()) {
-    Int_t mcp = d.ChId;
-    cfd[mcp] = d.CFDTime;
-    amp[mcp] = d.QTCAmpl;
+void Digitizer::computeAverage(Digit& digit)
+{
+  constexpr Float_t nPe_in_mip = 250.; // n ph. e. in one mip
+  auto& channel_data = digit.getChDgData();
+  for (auto& ch_data : channel_data) {
+    if (ch_data.numberOfParticles == 0)
+      continue;
+    ch_data.CFDTime /= ch_data.numberOfParticles;
+    if (parameters.mIsT0)
+      ch_data.QTCAmpl = ch_data.numberOfParticles / nPe_in_mip;
   }
-
-  for (Int_t ch_iter = 0; ch_iter < parameters.mMCPs; ch_iter++) {
-    if (ch_signal_nPe[ch_iter] != 0) {
-      ch_signal_MIP[ch_iter] = amp[ch_iter] + ch_signal_nPe[ch_iter] / nPe_in_mip;
-      if (cfd[ch_iter] > 0) {
-        cfd[ch_iter] = cfd[ch_iter] - parameters.mBC_clk_center - mEventTime;
-        ch_signal_time[ch_iter] = ((cfd[ch_iter] + ch_signal_time[ch_iter] / (float)ch_signal_nPe[ch_iter]) / 2.) + parameters.mBC_clk_center + mEventTime;
-      } else
-        ch_signal_time[ch_iter] = (ch_signal_time[ch_iter] / (float)ch_signal_nPe[ch_iter]) + parameters.mBC_clk_center + mEventTime;
-
-      if (ch_signal_MIP[ch_iter] > parameters.mCFD_trsh_mip) {
-        LOG(DEBUG) << ch_iter << " : "
-                   << " : " << ch_signal_time[ch_iter] - parameters.mBC_clk_center - mEventTime << " : "
-                   << ch_signal_MIP[ch_iter] << " : " << mEventTime << " cfd " << cfd[ch_iter] << FairLogger::endl;
-        mChDgDataArr.emplace_back(ChannelData{ ch_iter, ch_signal_time[ch_iter], ch_signal_MIP[ch_iter] });
-      } else {
-        ch_signal_MIP[ch_iter] = 0;
-        ch_signal_time[ch_iter] = 0;
-      }
-    }
-  }
-
-  digit->setChDgData(std::move(mChDgDataArr));
+  channel_data.erase(std::remove_if(channel_data.begin(), channel_data.end(),
+                                    [this](ChannelData const& ch_data) {
+                                      return ch_data.QTCAmpl < parameters.mCFD_trsh_mip;
+                                    }),
+                     channel_data.end());
 }
 
 //------------------------------------------------------------------------
@@ -112,11 +101,12 @@ void Digitizer::smearCFDtime(Digit* digit)
   std::vector<ChannelData> mChDgDataArr;
   for (const auto& d : digit->getChDgData()) {
     Int_t mcp = d.ChId;
-    Double_t cfd = d.CFDTime - parameters.mBC_clk_center - mEventTime;
+    Double_t cfd = d.CFDTime;
     Float_t amp = d.QTCAmpl;
+    int numpart = d.numberOfParticles;
     if (amp > parameters.mCFD_trsh_mip) {
       Double_t smeared_time = gRandom->Gaus(cfd, 0.050) + parameters.mBC_clk_center + mEventTime;
-      mChDgDataArr.emplace_back(ChannelData{ mcp, smeared_time, amp });
+      mChDgDataArr.emplace_back(ChannelData{ mcp, smeared_time, amp, numpart });
     }
   }
   digit->setChDgData(std::move(mChDgDataArr));
@@ -143,7 +133,7 @@ void Digitizer::setTriggers(Digit* digit)
   Float_t amp[300] = {};
   for (const auto& d : digit->getChDgData()) {
     Int_t mcp = d.ChId;
-    cfd[mcp] = d.CFDTime - parameters.mBC_clk_center - mEventTime;
+    cfd[mcp] = d.CFDTime;
     amp[mcp] = d.QTCAmpl;
     if (amp[mcp] < parameters.mCFD_trsh_mip)
       continue;
@@ -204,8 +194,9 @@ void Digitizer::initParameters()
   // murmur
 }
 //_______________________________________________________________________
-void Digitizer::init() {
-  std::cout<<" @@@ Digitizer::init "<<std::endl;
+void Digitizer::init()
+{
+  std::cout << " @@@ Digitizer::init " << std::endl;
 }
 
 //_______________________________________________________________________
