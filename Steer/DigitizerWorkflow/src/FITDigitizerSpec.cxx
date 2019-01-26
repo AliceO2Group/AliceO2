@@ -104,9 +104,9 @@ class FITDPLDigitizerTask
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < timesview.size(); ++collID) {
-      mT0Digitizer.setEventTime(timesview[collID].timeNS);
-      mT0Digitizer.setOrbit(timesview[collID].orbit);
-      mT0Digitizer.setBC(timesview[collID].bc);
+      mDigitizer.setEventTime(timesview[collID].timeNS);
+      mDigitizer.setOrbit(timesview[collID].orbit);
+      mDigitizer.setBC(timesview[collID].bc);
       digit.cleardigits();
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)

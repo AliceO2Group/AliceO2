@@ -44,8 +44,8 @@ Detector::Detector(Bool_t Active)
 
 Detector::Detector(const Detector& rhs)
   : o2::Base::DetImpl<Detector>(rhs), mIdSens1(rhs.mIdSens1), mPMTeff(rhs.mPMTeff), mHits(o2::utils::createSimVector<o2::fit::HitType>())
-
 {
+
 }
 
 Detector::~Detector()

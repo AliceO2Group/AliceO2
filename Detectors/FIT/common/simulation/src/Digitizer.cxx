@@ -198,7 +198,6 @@ void Digitizer::initParameters()
 void Digitizer::init()
 {
   std::cout << " @@@ Digitizer::init " << std::endl;
-
 }
 
 //_______________________________________________________________________
