@@ -16,7 +16,10 @@ class HitType : public o2::BasicXYZEHit<float>
 };
 
 } // namespace fit
+<<<<<<< HEAD
 
+=======
+>>>>>>> T0 digitzation as a part of FIT
 } // namespace o2
 
 #endif

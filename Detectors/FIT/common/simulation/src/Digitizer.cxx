@@ -109,7 +109,6 @@ void Digitizer::smearCFDtime(Digit* digit)
     if (amp > parameters.mCFD_trsh_mip) {
       Double_t smeared_time = gRandom->Gaus(cfd, 0.050) + parameters.mBC_clk_center + mEventTime;
       mChDgDataArr.emplace_back(ChannelData{ mcp, smeared_time, amp, numpart });
-
     }
   }
   digit->setChDgData(std::move(mChDgDataArr));
@@ -197,16 +196,10 @@ void Digitizer::initParameters()
   // murmur
 }
 //_______________________________________________________________________
-<<<<<<< HEAD
 void Digitizer::init()
 {
   std::cout << " @@@ Digitizer::init " << std::endl;
-=======
-void Digitizer::init() {
-  std::cout<<" @@@ Digitizer::init "<<std::endl;
->>>>>>> move Hit to common
 }
-
 //_______________________________________________________________________
 void Digitizer::finish() {}
 /*
