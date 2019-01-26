@@ -26,7 +26,6 @@ class FairVolume;
 class TGeoVolume;
 class TGraph;
 
-
 namespace o2
 {
 namespace t0

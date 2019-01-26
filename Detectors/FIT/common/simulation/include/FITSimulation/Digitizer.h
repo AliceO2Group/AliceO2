@@ -30,6 +30,7 @@ class Digitizer
 
   //void process(const std::vector<HitType>* hits, std::vector<Digit>* digits);
   void process(const std::vector<o2::fit::HitType>* hits, Digit* digit);
+  void computeAverage(Digit& digit);
 
   void initParameters();
   // void printParameters();
@@ -58,14 +59,6 @@ class Digitizer
   Double_t mEventTime; // timestamp
 
   DigitizationParameters parameters;
-  /*
-  Float_t mBC_clk_center = 12.5;                             // clk center
-  Int_t mMCPs = (Geometry::NCellsA + Geometry::NCellsC) * 4; //number of MCPs
-  Float_t mCFD_trsh_mip = 0.4;                               // = 4[mV] / 10[mV/mip]
-  Float_t mTime_trg_gate = 4.;                               // ns
-  Int_t mAmpThreshold = 100;                                 // number of photoelectrons
-  Float_t mTimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
-  */
 
   o2::dataformats::MCTruthContainer<o2::fit::MCLabel>* mMCLabels = nullptr;
 

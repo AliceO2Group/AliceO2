@@ -14,7 +14,7 @@ class HitType : public o2::BasicXYZEHit<float>
  public:
   using BasicXYZEHit<float>::BasicXYZEHit;
 };
-} // namespace t0
+} // namespace fit
 } // namespace o2
 
 #endif
@@ -22,8 +22,8 @@ class HitType : public o2::BasicXYZEHit<float>
 #ifdef USESHM
 namespace std
 {
-  template <>
-  class allocator<o2::fit::HitType> : public o2::utils::ShmAllocator<o2::fit::HitType>
+template <>
+class allocator<o2::fit::HitType> : public o2::utils::ShmAllocator<o2::fit::HitType>
 {
 };
 } // namespace std

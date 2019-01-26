@@ -24,7 +24,8 @@ struct ChannelData {
   Int_t ChId;       //channel Id
   Double_t CFDTime; //time in ns, 0 at lhc clk center
   Double_t QTCAmpl; // Amplitude in mips
-  ClassDefNV(ChannelData, 1);
+  int numberOfParticles;
+  ClassDefNV(ChannelData, 2);
 };
 
 /// \class Digit
@@ -71,6 +72,7 @@ class Digit : public DigitBase
   }
 
   const std::vector<ChannelData>& getChDgData() const { return mChDgDataArr; }
+  std::vector<ChannelData>& getChDgData() { return mChDgDataArr; }
   void setChDgData(const std::vector<ChannelData>& ChDgDataArr) { mChDgDataArr = ChDgDataArr; }
   void setChDgData(std::vector<ChannelData>&& ChDgDataArr) { mChDgDataArr = std::move(ChDgDataArr); }
 
