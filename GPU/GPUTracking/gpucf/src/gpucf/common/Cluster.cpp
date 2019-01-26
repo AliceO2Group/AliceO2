@@ -1,5 +1,6 @@
 #include "Cluster.h"
 
+#include <gpucf/RowInfo.h>
 #include <gpucf/common/float.h>
 
 #include <cmath>
@@ -13,6 +14,10 @@ using namespace gpucf;
 static_assert(sizeof(FloatCluster) == FLOAT_CLUSTER_SIZE);
 static_assert(sizeof(Cluster) == sizeof(FloatCluster));
 static_assert(sizeof(HalfCluster) == HALF_CLUSTER_SIZE);
+
+static_assert(Cluster::floatMemberNum <= sizeof(Cluster::Field) * 8);
+
+static_assert(Cluster::Field_all == 0b00111111);
 
 
 Cluster::Cluster()
@@ -75,6 +80,11 @@ bool Cluster::hasNaN() const
              || std::isnan(timeSigma);
 }
 
+int Cluster::globalRow() const
+{
+    return RowInfo::instance().localToGlobal(cru, row);
+}
+
 bool Cluster::hasNegativeEntries() const
 {
     return cru < 0
@@ -87,16 +97,27 @@ bool Cluster::hasNegativeEntries() const
              || timeSigma < 0; 
 }
 
-bool Cluster::operator==(const Cluster &c2) const
+bool Cluster::operator==(const Cluster &other) const
 {
-    return cru == c2.cru
-             && row == c2.row
-             && FLOAT_EQ(Q, c2.Q)
-             && FLOAT_EQ(QMax, c2.QMax)
-             && FLOAT_EQ(padMean, c2.padMean)
-             && FLOAT_EQ(timeMean, c2.timeMean)
-             && FLOAT_EQ(padSigma, c2.padSigma)
-             && FLOAT_EQ(timeSigma, c2.timeSigma);
+    return eq(other, FEQ_EPSILON, Field_all);
+}
+
+bool Cluster::eq(const Cluster &other, float epsilon, FieldMask mask) const
+{
+    return cru == other.cru
+        && row == other.row
+        && (floatEq(Q, other.Q, epsilon)             
+                || !(mask & Field_Q))
+        && (floatEq(QMax, other.QMax, epsilon)
+                || !(mask & Field_QMax))
+        && (floatEq(timeMean, other.timeMean, epsilon)
+                || !(mask & Field_timeMean))
+        && (floatEq(padMean, other.padMean, epsilon)
+                || !(mask & Field_padMean))
+        && (floatEq(timeSigma, other.timeSigma, epsilon)
+                || !(mask & Field_timeSigma))
+        && (floatEq(padSigma, other.padSigma, epsilon)  
+                || !(mask & Field_padSigma));
 }
 
 std::ostream &gpucf::operator<<(std::ostream &os, const Cluster &c)
