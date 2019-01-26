@@ -26,7 +26,7 @@ GPUClusterFinder::Result GPUClusterFinder::run(ClEnv &env, const std::vector<Dig
     cl::Buffer digitBuf(context, CL_MEM_READ_ONLY, digitBytes);
 
     const std::vector<int> globalToLocalRow = 
-        RowInfo::globalRowToLocalRowMap();
+        RowInfo::instance().globalToLocalMap;
     const size_t numOfRows = globalToLocalRow.size();
     cl::Buffer globalToLocalRowBuf(
             context,

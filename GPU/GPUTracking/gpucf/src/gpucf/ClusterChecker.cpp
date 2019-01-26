@@ -1,23 +1,153 @@
 #include "ClusterChecker.h"
 
 #include <gpucf/log.h>
+#include <gpucf/common/float.h>
 
 #include <algorithm>
 
 
-using gpucf::ClusterChecker;
+using namespace gpucf;
+
+
+void ClusterChecker::ClusterMap::add(const Cluster &c)
+{
+    clusters[c.globalRow()].push_back(c);
+}
+
+void ClusterChecker::ClusterMap::addAll(nonstd::span<const Cluster> cs)
+{
+    for (const Cluster &c : cs)
+    {
+        add(c);
+    }
+}
+
+size_t ClusterChecker::ClusterMap::size() const
+{
+    size_t totalSize = 0;
+
+    for (const auto &p : clusters)
+    {
+        totalSize += p.second.size();
+    }
+
+    return totalSize;
+}
+
+bool ClusterChecker::ClusterMap::contains(
+        const Cluster &c) const
+{
+    auto tgtEntry = clusters.find(c.globalRow());
+
+    if (tgtEntry == clusters.end())
+    {
+        return false;
+    }
+
+    const std::vector<Cluster> &tgtRow = tgtEntry->second;
+
+    auto lookup = std::find_if(tgtRow.begin(), tgtRow.end(), 
+            [&](const Cluster &c2) { return c.eq(c2, epsilon, mask); });
+
+    return lookup != tgtRow.end();
+}
+
+nonstd::optional<Cluster> ClusterChecker::ClusterMap::tryLookup(
+        const Cluster &c) const
+{
+    auto tgtEntry = clusters.find(c.globalRow());
+
+    if (tgtEntry == clusters.end())
+    {
+        return nonstd::nullopt;
+    }
+
+    const std::vector<Cluster> &tgtRow = tgtEntry->second;
+
+    auto lookup = std::find_if(tgtRow.begin(), tgtRow.end(), 
+            [&](const Cluster &c2) { return c.eq(c2, epsilon, mask); });
+
+    if (lookup == tgtRow.end())
+    {
+        return nonstd::nullopt;
+    }
+
+    return *lookup;
+}
+
+void ClusterChecker::ClusterMap::setClusterEqParams(
+        float epsilon, 
+        Cluster::FieldMask mask)
+{
+    this->epsilon = epsilon;
+    this->mask    = mask; 
+}
+
+
+ClusterChecker::ClusterChecker(nonstd::span<const Cluster> t)
+{
+    truth.addAll(t); 
+}
 
 
 bool ClusterChecker::verify(
-        const std::vector<Cluster> &clusters,
-        const std::vector<Cluster> &truth)
+        nonstd::span<const Cluster> clusters, 
+        bool showExamples)
 {
     gpucf::log::Info() << "Reviewing found clusters...";
 
-    size_t correctClusters = countCorrectClusters(clusters, truth);
     gpucf::log::Info() << "Found " << clusters.size() << " clusters.";
     gpucf::log::Info() << "Groundtruth has " << truth.size() << " clusters.";
-    gpucf::log::Info() << correctClusters << " correct clusters.";
+
+    truth.setClusterEqParams(FEQ_EPSILON, Cluster::Field_all);
+    std::vector<Cluster> wrongClusters = findWrongClusters(clusters);
+    gpucf::log::Info() << clusters.size() - wrongClusters.size() 
+                       << " correct clusters.";
+
+    gpucf::log::Info() << "Testing remaining " << wrongClusters.size() 
+                       << " clusters with relaxed equality tests.";
+
+    findAndLogTruth(
+        wrongClusters,
+        "Eq with bigger epsilon",
+        showExamples,
+        FEQ_EPSILON * 2,
+        Cluster::Field_all);
+
+    findAndLogTruth(
+        wrongClusters,
+        "Eq without field Q",
+        showExamples,
+        FEQ_EPSILON,
+        Cluster::Field_all ^ Cluster::Field_Q);
+
+    findAndLogTruth(
+        wrongClusters,
+        "Eq without field QMax",
+        showExamples,
+        FEQ_EPSILON,
+        Cluster::Field_all ^ Cluster::Field_QMax);
+
+    findAndLogTruth(
+        wrongClusters,
+        "Eq without field padSigma",
+        showExamples,
+        FEQ_EPSILON,
+        Cluster::Field_all ^ Cluster::Field_padSigma);
+
+    findAndLogTruth(
+        wrongClusters,
+        "Eq without field timeSigma",
+        showExamples,
+        FEQ_EPSILON,
+        Cluster::Field_all ^ Cluster::Field_timeSigma);
+
+    findAndLogTruth(
+        wrongClusters,
+        "Eq only with timeMean and padMean",
+        showExamples,
+        FEQ_EPSILON,
+        Cluster::Field_timeMean | Cluster::Field_padMean);
 
     size_t brokenClusters = 0;
     size_t nansFound = 0;
@@ -35,20 +165,60 @@ bool ClusterChecker::verify(
     return ok;
 }
 
-size_t ClusterChecker::countCorrectClusters(
-        const std::vector<Cluster> &clusters, 
-        const std::vector<Cluster> &truth)
+std::vector<Cluster> ClusterChecker::findWrongClusters(
+        nonstd::span<const Cluster> clusters)
 {
-    size_t correctClusters = 0;
+    std::vector<Cluster> wrongCluster;
     for (const Cluster &cluster : clusters)
     {
-        if (std::find(truth.begin(), truth.end(), cluster) != truth.end())
+        if (!truth.contains(cluster))
         {
-            correctClusters++; 
+            wrongCluster.push_back(cluster);
         }
     }
 
-    return correctClusters;
+    return wrongCluster;
+}
+
+std::vector<ClusterChecker::ClusterPair> ClusterChecker::findTruth(
+        nonstd::span<const Cluster> clusters)
+{
+    std::vector<ClusterPair> withTruth;
+    for (const Cluster &cluster : clusters)
+    {
+        auto optTruth = truth.tryLookup(cluster); 
+        if (optTruth != nonstd::nullopt)
+        {
+            withTruth.push_back({*optTruth, cluster});
+        }
+    }
+    return withTruth;
+}
+
+void ClusterChecker::findAndLogTruth(
+        nonstd::span<const Cluster> clusters,
+        const std::string &testPrefix,
+        bool showExample,
+        float epsilon,
+        Cluster::FieldMask mask)
+{
+    truth.setClusterEqParams(epsilon, mask);    
+
+    std::vector<ClusterPair> withTruth = findTruth(clusters);
+
+    log::Info() << testPrefix << ": " << withTruth.size();
+
+
+    if (showExample && !withTruth.empty())
+    {
+        constexpr size_t maxExamples = 5;
+        for (size_t i = 0; i < std::min(withTruth.size(), maxExamples); i++)
+        {
+            log::Debug() << "Example " << i << ": ";
+            log::Debug() << "Truth: " << withTruth[i].first;
+            log::Debug() << "GPU:   " << withTruth[i].second;
+        }
+    }
 }
 
 
