@@ -42,10 +42,6 @@ public:
 class AliGPUTPCTracker;
 class AliGPUCAParam;
 
-#if !defined(GL_VERSION_4_6) || GL_VERSION_4_6 != 1
-#error Unsupported OpenGL version < 4.6
-#endif
-
 class AliGPUCADisplay
 {
 public:
@@ -164,7 +160,12 @@ private:
 	void drawVertices(const vboList& v, const GLenum t);
 	void insertVertexList(std::pair<vecpod<GLint>*, vecpod<GLsizei>*>& vBuf, size_t first, size_t last);
 	void insertVertexList(int iSlice, size_t first, size_t last);
-	template <typename... Args> void SetInfo(Args... args);
+	template <typename... Args> void SetInfo(Args... args)
+	{
+		snprintf(infoText2, 1024, args...);
+		infoText2Timer.ResetStart();
+	}
+	void PrintGLHelpText(float colorValue);
 	void calcXYZ();
 	void animationCloseAngle(float& newangle, float lastAngle);
 	void animateCloseQuaternion(float* v, float lastx, float lasty, float lastz, float lastw);

@@ -27,7 +27,7 @@ CXXFILES					+= standalone.cxx \
 CPPFILES					+= cmodules/qconfig.cpp
 
 ifeq ($(BUILD_EVENT_DISPLAY), 1)
-CPPFILES					+= display/AliGPUCADisplay.cpp display/AliGPUCADisplayBackend.cpp display/AliGPUCADisplayBackendGlut.cpp display/AliGPUCADisplayBackendNone.cpp display/AliGPUCADisplayInterpolation.cpp display/AliGPUCADisplayQuaternion.cpp
+CPPFILES					+= display/AliGPUCADisplay.cpp display/AliGPUCADisplayBackend.cpp display/AliGPUCADisplayBackendGlut.cpp display/AliGPUCADisplayBackendNone.cpp display/AliGPUCADisplayInterpolation.cpp display/AliGPUCADisplayQuaternion.cpp display/AliGPUCADisplayKeys.cpp
 CONFIG_OPENGL				= 1
 CONFIG_GLUT					= 1
 CONFIG_GLFW					= 1
