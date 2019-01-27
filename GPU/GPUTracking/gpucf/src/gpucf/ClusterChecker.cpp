@@ -47,7 +47,10 @@ bool ClusterChecker::ClusterMap::contains(
     const std::vector<Cluster> &tgtRow = tgtEntry->second;
 
     auto lookup = std::find_if(tgtRow.begin(), tgtRow.end(), 
-            [&](const Cluster &c2) { return c.eq(c2, epsilon, mask); });
+            [&](const Cluster &c2) 
+            { 
+                return c.eq(c2, epsilonSmall, epsilonBig, mask); 
+            });
 
     return lookup != tgtRow.end();
 }
@@ -65,7 +68,10 @@ nonstd::optional<Cluster> ClusterChecker::ClusterMap::tryLookup(
     const std::vector<Cluster> &tgtRow = tgtEntry->second;
 
     auto lookup = std::find_if(tgtRow.begin(), tgtRow.end(), 
-            [&](const Cluster &c2) { return c.eq(c2, epsilon, mask); });
+            [&](const Cluster &c2) 
+            { 
+                return c.eq(c2, epsilonSmall, epsilonBig, mask); 
+            });
 
     if (lookup == tgtRow.end())
     {
@@ -76,11 +82,13 @@ nonstd::optional<Cluster> ClusterChecker::ClusterMap::tryLookup(
 }
 
 void ClusterChecker::ClusterMap::setClusterEqParams(
-        float epsilon, 
+        float epsilonSmall, 
+        float epsilonBig,
         Cluster::FieldMask mask)
 {
-    this->epsilon = epsilon;
-    this->mask    = mask; 
+    this->epsilonSmall = epsilonSmall;
+    this->epsilonBig   = epsilonBig;
+    this->mask         = mask; 
 }
 
 
@@ -99,7 +107,10 @@ bool ClusterChecker::verify(
     gpucf::log::Info() << "Found " << clusters.size() << " clusters.";
     gpucf::log::Info() << "Groundtruth has " << truth.size() << " clusters.";
 
-    truth.setClusterEqParams(FEQ_EPSILON, Cluster::Field_all);
+    truth.setClusterEqParams(
+            FEQ_EPSILON_SMALL, 
+            FEQ_EPSILON_BIG, 
+            Cluster::Field_all);
     std::vector<Cluster> wrongClusters = findWrongClusters(clusters);
     gpucf::log::Info() << clusters.size() - wrongClusters.size() 
                        << " correct clusters.";
@@ -111,42 +122,48 @@ bool ClusterChecker::verify(
         wrongClusters,
         "Eq with bigger epsilon",
         showExamples,
-        FEQ_EPSILON * 2,
+        FEQ_EPSILON_SMALL * 2,
+        FEQ_EPSILON_BIG * 2,
         Cluster::Field_all);
 
     findAndLogTruth(
         wrongClusters,
         "Eq without field Q",
         showExamples,
-        FEQ_EPSILON,
+        FEQ_EPSILON_SMALL,
+        FEQ_EPSILON_BIG,
         Cluster::Field_all ^ Cluster::Field_Q);
 
     findAndLogTruth(
         wrongClusters,
         "Eq without field QMax",
         showExamples,
-        FEQ_EPSILON,
+        FEQ_EPSILON_SMALL,
+        FEQ_EPSILON_BIG,
         Cluster::Field_all ^ Cluster::Field_QMax);
 
     findAndLogTruth(
         wrongClusters,
         "Eq without field padSigma",
         showExamples,
-        FEQ_EPSILON,
+        FEQ_EPSILON_SMALL,
+        FEQ_EPSILON_BIG,
         Cluster::Field_all ^ Cluster::Field_padSigma);
 
     findAndLogTruth(
         wrongClusters,
         "Eq without field timeSigma",
         showExamples,
-        FEQ_EPSILON,
+        FEQ_EPSILON_SMALL,
+        FEQ_EPSILON_BIG,
         Cluster::Field_all ^ Cluster::Field_timeSigma);
 
     findAndLogTruth(
         wrongClusters,
         "Eq only with timeMean and padMean",
         showExamples,
-        FEQ_EPSILON,
+        FEQ_EPSILON_SMALL,
+        FEQ_EPSILON_BIG,
         Cluster::Field_timeMean | Cluster::Field_padMean);
 
     size_t brokenClusters = 0;
@@ -199,10 +216,11 @@ void ClusterChecker::findAndLogTruth(
         nonstd::span<const Cluster> clusters,
         const std::string &testPrefix,
         bool showExample,
-        float epsilon,
+        float epsilonSmall,
+        float epsilonBig,
         Cluster::FieldMask mask)
 {
-    truth.setClusterEqParams(epsilon, mask);    
+    truth.setClusterEqParams(epsilonSmall, epsilonBig, mask);    
 
     std::vector<ClusterPair> withTruth = findTruth(clusters);
 
