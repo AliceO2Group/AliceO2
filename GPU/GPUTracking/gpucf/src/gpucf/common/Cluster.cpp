@@ -99,24 +99,28 @@ bool Cluster::hasNegativeEntries() const
 
 bool Cluster::operator==(const Cluster &other) const
 {
-    return eq(other, FEQ_EPSILON, Field_all);
+    return eq(other, FEQ_EPSILON_SMALL, FEQ_EPSILON_BIG, Field_all);
 }
 
-bool Cluster::eq(const Cluster &other, float epsilon, FieldMask mask) const
+bool Cluster::eq(
+        const Cluster &other, 
+        float epsilonSmall, 
+        float epsilonBig, 
+        FieldMask mask) const
 {
     return cru == other.cru
         && row == other.row
-        && (floatEq(Q, other.Q, epsilon)             
+        && (floatEq(Q, other.Q, epsilonBig) 
                 || !(mask & Field_Q))
-        && (floatEq(QMax, other.QMax, epsilon)
+        && (floatEq(QMax, other.QMax, epsilonSmall)
                 || !(mask & Field_QMax))
-        && (floatEq(timeMean, other.timeMean, epsilon)
+        && (floatEq(timeMean, other.timeMean, epsilonSmall)
                 || !(mask & Field_timeMean))
-        && (floatEq(padMean, other.padMean, epsilon)
+        && (floatEq(padMean, other.padMean, epsilonSmall)
                 || !(mask & Field_padMean))
-        && (floatEq(timeSigma, other.timeSigma, epsilon)
+        && (floatEq(timeSigma, other.timeSigma, epsilonSmall)
                 || !(mask & Field_timeSigma))
-        && (floatEq(padSigma, other.padSigma, epsilon)  
+        && (floatEq(padSigma, other.padSigma, epsilonSmall)
                 || !(mask & Field_padSigma));
 }
 
