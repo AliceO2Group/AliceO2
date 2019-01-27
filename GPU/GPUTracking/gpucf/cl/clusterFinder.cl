@@ -169,7 +169,7 @@ void finalizeCluster(
     padMean  += myDigit->pad;
     timeMean += myDigit->time;
 
-    myCluster->QMax      = myDigit->charge;
+    myCluster->QMax      = round(myDigit->charge);
     myCluster->padMean   = padMean;
     myCluster->timeMean  = timeMean;
     myCluster->timeSigma = timeSigma;
