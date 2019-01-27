@@ -16,7 +16,7 @@ PADDING = 2
 NUM_OF_ROWS = 152
 PADS_PER_ROW = 138
 PADS_PER_ROW_PADDED = PADS_PER_ROW + 2*PADDING
-MAX_TIME = 1000
+MAX_TIME = 1400
 MAX_TIME_PADDED = MAX_TIME + 2*PADDING
 
 DIGIT_COLOR = QColor('cornflowerblue')
@@ -55,46 +55,58 @@ def makeGlobalToLocalRow(rowsPerRegion):
 GLOBAL_TO_LOCAL_ROW = makeGlobalToLocalRow([17, 15, 16, 15, 18, 16, 16, 14, 13, 12])
 
 
+def readAsDict(fName):
+    dicts = []
+    with open(fName, 'r') as infile:
+        for line in infile:
+            line = ''.join(line.split())
+            typeAndFields = line.split(':')
+            if len(typeAndFields) != 2:
+                continue
+            res = {}
+            type_ = typeAndFields[0]
+            res['__type__'] = type_
+            fields = typeAndFields[1]
+            ok = True
+            for keyValPair in fields.split(','):
+                keyAndVal = keyValPair.split('=')
+                if len(keyAndVal) != 2:
+                    ok = False
+                    break
+                key = keyAndVal[0]
+                val = keyAndVal[1]
+                res[key] = val
+            if ok:
+                dicts.append(res)
+    return dicts
 
 def readDigits(fName):
     digits = []
-    with open(fName, 'r') as digitFile:
-        for line in digitFile:
-            match = re.match(DIGIT_REGEX, line)
-
-            if match is None:
-                continue
-
-            charge = float(match.group(1))
-            cru = int(match.group(2))
-            row = int(match.group(3))
-            row = GLOBAL_TO_LOCAL_ROW[row]
-            pad = int(match.group(4))
-            time = int(match.group(5))
-            digits.append(Digit(charge, cru, row, pad, time))
+    for dict_ in readAsDict(fName):
+        charge = float(dict_['charge'])
+        cru = int(dict_['cru'])
+        row = int(dict_['row'])
+        row = GLOBAL_TO_LOCAL_ROW[row]
+        pad = int(dict_['pad'])
+        time = int(dict_['time'])
+        digits.append(Digit(charge, cru, row, pad, time))
     return digits
 
 
 def readClusters(fName):
     clusters = []
-    with open(fName, 'r') as clusterFile:
-        for line in clusterFile:
-            match = re.match(CLUSTER_REGEX, line)
+    for dict_ in readAsDict(fName):
+        cru = int(dict_['cru'])
+        row = int(dict_['row'])
+        Q = float(dict_['Q'])
+        QMax = float(dict_['QMax'])
+        padMean = float(dict_['padMean'])
+        timeMean = float(dict_['timeMean'])
+        padSigma = float(dict_['padSigma'])
+        timeSigma = float(dict_['timeSigma'])
 
-            if match is None:
-                continue
-
-            cru = int(match.group(1))
-            row = int(match.group(2))
-            Q = float(match.group(3))
-            QMax = float(match.group(4))
-            padMean = float(match.group(5))
-            timeMean = float(match.group(6))
-            padSigma = float(match.group(7))
-            timeSigma = float(match.group(8))
-
-            clusters.append(Cluster(cru, row, Q, QMax, padMean, 
-                timeMean, padSigma, timeSigma))
+        clusters.append(Cluster(cru, row, Q, QMax, padMean, 
+            timeMean, padSigma, timeSigma))
 
     return clusters
 
@@ -105,20 +117,16 @@ def filterByRow(clusters, cru, localRow):
 
 class GridCanvas:
 
-    def __init__(self, widthOfCell, heightOfCell, cellsPerRow, cellsPerColumn):
-        assert heightOfCell > 0
-        assert widthOfCell > 0
-        assert cellsPerRow > 0
-        assert cellsPerColumn > 0
+    def __init__(self, startPad, startTime, padWidth, timeWidth, 
+            cellPadWidth, cellTimeWidth):
 
-        self.heightOfCell = heightOfCell
-        self.widthOfCell = widthOfCell
-        self.cellsPerRow = cellsPerRow
-        self.cellsPerColumn = cellsPerColumn
+        self.startPad = startPad
+        self.startTime = startTime
+        self.padWidth = padWidth
+        self.timeWidth = timeWidth
+        self.cellPadWidth = cellPadWidth
+        self.cellTimeWidth = cellTimeWidth
         self.gridLineDiameter = 1
-
-        assert self.heightOfCell > self.gridLineDiameter
-        assert self.widthOfCell > self.gridLineDiameter
 
         self.image = QImage(self.widthPx(), 
                             self.heightPx(), 
@@ -126,10 +134,10 @@ class GridCanvas:
         self.painter = QPainter(self.image)
 
     def widthPx(self):
-        return self.widthOfCell * self.cellsPerRow
+        return self.cellTimeWidth * self.timeWidth
 
     def heightPx(self):
-        return self.heightOfCell * self.cellsPerColumn
+        return self.cellPadWidth * self.padWidth
 
     def fill(self, col: QColor):
         self.image.fill(col)
@@ -137,45 +145,62 @@ class GridCanvas:
 
     def _drawGrid(self):
         self.painter.setPen(QColor('black'))
-        for x in range(0, self.widthPx(), self.widthOfCell):
+        for x in range(0, self.widthPx(), self.cellTimeWidth):
+            x -= self.cellPadWidth/2
             self.painter.drawLine(x, 0, x, self.heightPx())
-        for y in range(0, self.heightPx(), self.heightOfCell):
+        for y in range(0, self.heightPx(), self.cellPadWidth):
+            y -= self.cellTimeWidth/2
             self.painter.drawLine(0, y, self.widthPx(), y)
 
-    def fillCell(self, x, y, col: QColor):
-        assert x >= 0 and x < self.cellsPerRow
-        assert y >= 0 and y < self.cellsPerColumn
-        
-        self.painter.fillRect(x*self.widthOfCell+1, 
-                              y*self.heightOfCell+1,
-                              self.widthOfCell - 1,
-                              self.heightOfCell - 1,
+    def fillCell(self, pad, time, col: QColor):
+        pad -= self.startPad
+        time -= self.startTime
+
+        self.painter.fillRect(pad*self.cellPadWidth+1-self.cellPadWidth/2,
+                              time*self.cellTimeWidth+1-self.cellTimeWidth/2, 
+                              self.cellPadWidth - 1,
+                              self.cellTimeWidth - 1,
                               col)
 
-    def drawEllipse(self, x, y, width, height, col: QColor):
-        x *= self.widthOfCell
-        y *= self.heightOfCell
-        width *= self.widthOfCell
-        height *= self.heightOfCell
+    def drawEllipse(self, padCenter, timeCenter, padWidth, timeWidth, 
+            col: QColor):
+        padCenter -= self.startPad
+        timeCenter -= self.startTime
+        padCenter *= self.cellPadWidth
+        timeCenter *= self.cellTimeWidth
+        padWidth *= self.cellPadWidth
+        timeWidth *= self.cellTimeWidth
 
         self.painter.setPen(col)
-        self.painter.drawEllipse(QPointF(x, y), width, height)
+        self.painter.drawEllipse(
+                QPointF(padCenter, timeCenter), 
+                padWidth, timeWidth)
 
     def drawDigits(self, digits, col: QColor):
         for digit in digits:
-            self.fillCell(digit.time, digit.pad, col)
+            if self.pointInGrid(digit.pad, digit.time):
+                print(digit)
+                self.fillCell(digit.pad, digit.time, col)
 
     def drawClusters(self, clusters, col: QColor):
         for cluster in clusters:
-            self.drawEllipse(cluster.timeMean, 
-                             cluster.padMean, 
-                             cluster.timeSigma,
-                             cluster.padSigma,
-                             col)
+            if self.pointInGrid(cluster.padMean, cluster.timeMean):
+                print(cluster)
+                self.drawEllipse(cluster.padMean, 
+                                 cluster.timeMean, 
+                                 cluster.padSigma,
+                                 cluster.timeSigma,
+                                 col)
 
     def save(self, fname):
         self.painter.end()
         self.image.save(fname)
+
+    def pointInGrid(self, pad, time):
+        return pad >= self.startPad \
+           and time >= self.startTime \
+           and pad < self.startPad + self.padWidth \
+           and time < self.startTime + self.timeWidth
 
 
 def main():
@@ -190,8 +215,12 @@ def main():
     parser.add_argument('-r', '--row', type=int, help='local row to paint', required=True)
     parser.add_argument('-c', '--cru', type=int, help='cru of local row', required=True)
     parser.add_argument('-o', '--out', help='outfile', required=True)
-    parser.add_argument('-p', '--padPx', type=int, help='Pixel per pad', default=16)
-    parser.add_argument('-t', '--timePx', type=int, help='Pixel per time slice', default=16)
+    parser.add_argument('-p', '--pad', type=int, help='Start pad', required=True)
+    parser.add_argument('-t', '--time', type=int, help='Start time', required=True)
+    parser.add_argument('-pw', '--padWidth', type=int, help='pad width', required=True)
+    parser.add_argument('-tw', '--timeWidth', type=int, help='time width', required=True)
+    parser.add_argument('-px', '--padPx', type=int, help='Pixel per pad', default=16)
+    parser.add_argument('-tx', '--timePx', type=int, help='Pixel per time slice', default=16)
 
     app = QApplication(sys.argv)
 
@@ -215,7 +244,9 @@ def main():
     print("Found {} clusters and {} ground truth clusters in this row.".format(
         len(calcClusters), len(truthClusters)))
 
-    grid = GridCanvas(args.timePx, args.padPx, MAX_TIME, PADS_PER_ROW) 
+    grid = GridCanvas(args.pad, args.time, 
+                      args.padWidth, args.timeWidth, 
+                      args.timePx, args.padPx)
     grid.fill(QColor('white'))
 
     print('Drawing {} digits...'.format(len(digits)))
@@ -227,7 +258,9 @@ def main():
         peaks = filterByRow(peaks, args.cru, args.row)
         grid.drawDigits(peaks, PEAK_COLOR)
 
+    print('Drawing cluster...')
     grid.drawClusters(calcClusters, GPU_CLUSTER_COLOR)
+    print('Drawing ground truth...')
     grid.drawClusters(truthClusters, TRUTH_CLUSTER_COLOR)
 
     grid.save(args.out)
