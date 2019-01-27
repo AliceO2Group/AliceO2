@@ -61,22 +61,52 @@ void extendTo5x5Cluster(
                      int      pad,
                      int      time)
 {
+    // Add charges in top left corner:
+    // O O o o o
+    // O I i i o
+    // o i c i o
+    // o i i i o
+    // o o o o o
     updateClusterOuter(chargeMap, myCluster, row, pad, time, -1, -1, -2, -1);
     updateClusterOuter(chargeMap, myCluster, row, pad, time, -1, -1, -2, -2);
     updateClusterOuter(chargeMap, myCluster, row, pad, time, -1, -1, -1, -2);
 
+    // Add charges in top right corner:
+    // o o o O O
+    // o i i I O
+    // o i c i o
+    // o i i i o
+    // o o o o o
     updateClusterOuter(chargeMap, myCluster, row, pad, time, 1, -1, 1, -2);
     updateClusterOuter(chargeMap, myCluster, row, pad, time, 1, -1, 2, -2);
     updateClusterOuter(chargeMap, myCluster, row, pad, time, 1, -1, 2, -1);
 
-    updateClusterOuter(chargeMap, myCluster, row, pad, time, 1, 1, -2, 1);
-    updateClusterOuter(chargeMap, myCluster, row, pad, time, 1, 1, -2, 2);
-    updateClusterOuter(chargeMap, myCluster, row, pad, time, 1, 1, -1, 2);
+    // Add charges in bottom right corner:
+    // o o o o o
+    // o i i i o
+    // o i c i o
+    // o i i I O
+    // o o o O O
+    updateClusterOuter(chargeMap, myCluster, row, pad, time, 1, 1, 2, 1);
+    updateClusterOuter(chargeMap, myCluster, row, pad, time, 1, 1, 2, 2);
+    updateClusterOuter(chargeMap, myCluster, row, pad, time, 1, 1, 1, 2);
 
+    // Add charges in bottom left corner:
+    // o o o o o
+    // o i i i o
+    // o i c i o
+    // O I i i o
+    // O O o o o
     updateClusterOuter(chargeMap, myCluster, row, pad, time, -1, 1, -2, 1);
     updateClusterOuter(chargeMap, myCluster, row, pad, time, -1, 1, -2, 2);
     updateClusterOuter(chargeMap, myCluster, row, pad, time, -1, 1, -1, 2);
 
+    // Add remaining charges:
+    // o o O o o
+    // o i I i o
+    // O I c I O
+    // o i I i o
+    // o o O o o
     updateClusterOuter(chargeMap, myCluster, row, pad, time, 0, -1, 0, -2);
     updateClusterOuter(chargeMap, myCluster, row, pad, time, 1,  0, 2, 0);
     updateClusterOuter(chargeMap, myCluster, row, pad, time, 0,  1, 0, 2);

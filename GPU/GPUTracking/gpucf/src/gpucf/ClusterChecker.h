@@ -34,14 +34,15 @@ private:
         bool contains(const Cluster &) const;
         nonstd::optional<Cluster> tryLookup(const Cluster &) const;
 
-        void setClusterEqParams(float, Cluster::FieldMask);
+        void setClusterEqParams(float, float, Cluster::FieldMask);
 
         size_t size() const;
         
     private:
         std::unordered_map<int, std::vector<Cluster>> clusters;
 
-        float epsilon = FEQ_EPSILON;
+        float epsilonSmall = FEQ_EPSILON_SMALL;
+        float epsilonBig   = FEQ_EPSILON_BIG;
         Cluster::FieldMask mask = Cluster::Field_all;
     };
 
@@ -54,6 +55,7 @@ private:
             nonstd::span<const Cluster>,
             const std::string &testPrefix,
             bool showExample,
+            float,
             float,
             Cluster::FieldMask);
 

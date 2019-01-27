@@ -49,7 +49,7 @@ public:
 
     bool operator==(const Cluster &) const;
 
-    bool eq(const Cluster &, float epsilon, FieldMask) const;
+    bool eq(const Cluster &, float, float, FieldMask) const;
 };
 
 std::ostream &operator<<(std::ostream &, const Cluster &);
