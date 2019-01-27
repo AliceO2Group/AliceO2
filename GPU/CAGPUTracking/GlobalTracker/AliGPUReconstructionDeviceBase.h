@@ -13,7 +13,7 @@ public:
 	const AliGPUCAParam* DeviceParam() const {return mDeviceParam;}
 	virtual int RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers) override = 0;
 	
-	virtual int GetMaxThreads();
+	virtual int GetMaxThreads() override;
 
 protected:
 	typedef void deviceEvent;

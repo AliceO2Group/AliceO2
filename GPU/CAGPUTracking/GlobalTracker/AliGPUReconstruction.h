@@ -145,7 +145,7 @@ public:
 	void ReadSettings(const char* dir = "");
 	
 	//Helpers for memory allocation
-	template <size_t alignment = MIN_ALIGNMENT> static inline constexpr size_t getAlignment(size_t addr)
+	template <size_t alignment = MIN_ALIGNMENT> static inline size_t getAlignment(size_t addr)
 	{
 		static_assert((alignment & (alignment - 1)) == 0, "Invalid alignment, not power of 2");
 		if (alignment <= 1) return 0;
@@ -153,19 +153,19 @@ public:
 		if (mod == 0) return 0;
 		return (alignment - mod);
 	}
-	template <size_t alignment = MIN_ALIGNMENT> static inline constexpr size_t nextMultipleOf(size_t size)
+	template <size_t alignment = MIN_ALIGNMENT> static inline size_t nextMultipleOf(size_t size)
 	{
 		return size + getAlignment<alignment>(size);
 	}
-	template <size_t alignment = MIN_ALIGNMENT> static inline constexpr void* alignPointer(void* ptr)
+	template <size_t alignment = MIN_ALIGNMENT> static inline void* alignPointer(void* ptr)
 	{
 		return(reinterpret_cast<void*>(nextMultipleOf<alignment>(reinterpret_cast<size_t>(ptr))));
 	}
-	template <size_t alignment = MIN_ALIGNMENT> static inline constexpr size_t getAlignment(void* addr)
+	template <size_t alignment = MIN_ALIGNMENT> static inline size_t getAlignment(void* addr)
 	{
 		return(getAlignment<alignment>(reinterpret_cast<size_t>(addr)));
 	}
-	template <size_t alignment = MIN_ALIGNMENT, class S> static inline constexpr S* getPointerWithAlignment(size_t& basePtr, size_t nEntries = 1)
+	template <size_t alignment = MIN_ALIGNMENT, class S> static inline S* getPointerWithAlignment(size_t& basePtr, size_t nEntries = 1)
 	{
 		if (basePtr == 0) basePtr = 1;
 		basePtr += getAlignment<std::max(alignof(S), alignment)>(basePtr);
@@ -173,7 +173,7 @@ public:
 		basePtr += nEntries * sizeof(S);
 		return retVal;
 	}
-	template <size_t alignment = MIN_ALIGNMENT, class S> static inline constexpr S* getPointerWithAlignment(void*& basePtr, size_t nEntries = 1)
+	template <size_t alignment = MIN_ALIGNMENT, class S> static inline S* getPointerWithAlignment(void*& basePtr, size_t nEntries = 1)
 	{
 		return getPointerWithAlignment<alignment, S>(reinterpret_cast<size_t&>(basePtr), nEntries);
 	}

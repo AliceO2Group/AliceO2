@@ -506,11 +506,13 @@ int AliGPUReconstructionDeviceBase::PrepareFlatObjects()
 		workers.fTpcTransform->clearInternalBufferUniquePtr();
 		workers.fTpcTransform->setFutureBufferAddress(workersDevice.fTpcTransformBuffer);
 	}
+#ifndef GPUCA_ALIROOT_LIB
 	if (mTRDGeometry)
 	{
 		memcpy((void*) workers.fTrdGeometry, (void*) mTRDGeometry.get(), sizeof(*mTRDGeometry));
 		workers.fTrdGeometry->clearInternalBufferUniquePtr();
 	}
+#endif
 	if (TransferMemoryResourceLinkToGPU(workers.mMemoryResFlat)) return 1;
 	return 0;
 }
