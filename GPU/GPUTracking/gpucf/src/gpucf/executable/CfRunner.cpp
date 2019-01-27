@@ -1,6 +1,7 @@
 #include "CfRunner.h"
 
 #include <gpucf/DataSet.h>
+#include <gpucf/log.h>
 #include <gpucf/GPUClusterFinder.h>
 
 
@@ -45,8 +46,11 @@ int CfRunner::mainImpl()
 
     if (*peakFile)
     {
+        log::Info() << "Writing " << cfRes.peaks.size() 
+                    << " peaks to file " << peakFile->Get();
         DataSet peaks;
         peaks.serialize(cfRes.peaks);
+        peaks.write(peakFile->Get());
     }
 
     return 0;
