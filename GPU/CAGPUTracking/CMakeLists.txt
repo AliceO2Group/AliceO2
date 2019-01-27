@@ -188,6 +188,7 @@ if (GPUCA_EVENT_DISPLAY)
     set(SRCS_NO_H ${SRCS_NO_H}
         Standalone/display/AliGPUCADisplayQuaternion.cpp
         Standalone/display/AliGPUCADisplayInterpolation.cpp
+        Standalone/display/AliGPUCADisplayKeys.cpp
     )
     add_definitions(-DBUILD_EVENT_DISPLAY)
 else()
