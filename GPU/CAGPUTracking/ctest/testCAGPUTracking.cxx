@@ -3,7 +3,7 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
-#include "AliGPUTPCO2Interface.h"
+#include "AliCAGPUO2Interface.h"
 #include "TPCFastTransform.h"
 #include "AliGPUCAConfiguration.h"
 #include "AliGPUReconstruction.h"
