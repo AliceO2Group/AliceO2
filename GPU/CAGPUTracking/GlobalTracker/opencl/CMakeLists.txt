@@ -65,10 +65,15 @@ set(CL_INC
     -I${ALITPCCOMMON_DIR}/sources/Common
 )
 
+foreach (def ${DEFINITIONS})
+  set(CL_DEF ${CL_DEF} -D${def})
+endforeach()
+
+
 # executes OpenCL compiler wrapper to build binary object
 add_custom_command(
     OUTPUT ${CL_BIN}
-    COMMAND opencl_compiler -output-file ${CL_BIN} ${CL_SRC} -- ${CL_INC} -DGPUCA_GPULIBRARY=OCL -x clc++
+    COMMAND opencl_compiler -output-file ${CL_BIN} ${CL_SRC} -- ${CL_INC} ${CL_DEF} -x clc++
     MAIN_DEPENDENCY ${CL_SRC}
 )
 
