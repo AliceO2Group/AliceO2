@@ -64,8 +64,8 @@ const Float_t kRoadZ = 0.3;
 // Minimal number of attached clusters
 const Int_t kminNumberOfClusters = 4;
 
-const float kPI=3.14159f;
-const float k2PI=2*kPI;
+const float kPI = 3.14159f;
+const float k2PI = 2 * kPI;
 
 //************************************************
 // TODO:
@@ -95,8 +95,8 @@ Label CookedTracker::cookLabel(TrackITS& t, Float_t wrong) const
   // A label<0 indicates that some of the clusters are wrongly assigned.
   //--------------------------------------------------------------------
   Int_t noc = t.getNumberOfClusters();
-  std::map<Label,int> map;
-  
+  std::map<Label, int> map;
+
   for (int i = noc; i--;) {
     Int_t index = t.getClusterIndex(i);
     const Cluster* c = getCluster(index);
@@ -112,8 +112,9 @@ Label CookedTracker::cookLabel(TrackITS& t, Float_t wrong) const
   }
   Label lab;
   Int_t maxL = 0; // find most encountered label
-  for (auto [label, count] : map) {
-    if (count <= maxL) continue;
+  for (auto[label, count] : map) {
+    if (count <= maxL)
+      continue;
     maxL = count;
     lab = label;
   }
@@ -272,8 +273,8 @@ void CookedTracker::makeSeeds(std::vector<TrackITS>& seeds, Int_t first, Int_t l
 
   const Double_t maxC = TMath::Abs(getBz() * B2C / kminPt);
   const Double_t kpWin = TMath::ASin(0.5 * maxC * layer1.getR()) - TMath::ASin(0.5 * maxC * layer2.getR());
-  const float kpWin100=kpWin/100;
-  
+  const float kpWin100 = kpWin / 100;
+
   // Int_t nClusters1 = layer1.getNumberOfClusters();
   Int_t nClusters2 = layer2.getNumberOfClusters();
   Int_t nClusters3 = layer3.getNumberOfClusters();
@@ -288,16 +289,16 @@ void CookedTracker::makeSeeds(std::vector<TrackITS>& seeds, Int_t first, Int_t l
     auto r1 = xyz1.rho();
 
     auto phi1 = layer1.getClusterPhi(n1);
-    auto tgl=std::abs((z1-zv)/r1);
-    
+    auto tgl = std::abs((z1 - zv) / r1);
+
     auto zr2 = zv + layer2.getR() / r1 * (z1 - zv);
     auto phir2 = phi1;
-    auto dz2 = kzWin*(1+2*tgl);
-    
+    auto dz2 = kzWin * (1 + 2 * tgl);
+
     std::vector<Int_t> selected2;
-    float dy2=kpWin*layer2.getR();
-    layer2.selectClusters(selected2,phir2,dy2,zr2,dz2);
-    for (auto n2 : selected2) {  
+    float dy2 = kpWin * layer2.getR();
+    layer2.selectClusters(selected2, phir2, dy2, zr2, dz2);
+    for (auto n2 : selected2) {
       const Cluster* c2 = layer2.getCluster(n2);
       //
       //if ((mClsLabels->getLabels(c2-mFirstCluster))[0] != lab) continue;
@@ -305,16 +306,16 @@ void CookedTracker::makeSeeds(std::vector<TrackITS>& seeds, Int_t first, Int_t l
       auto xyz2 = c2->getXYZGloRot(*mGeom);
       auto z2 = xyz2.Z();
       auto r2 = xyz2.rho();
-      
-      Float_t hcrv = 0.5*f1(xyz1.X(), xyz1.Y(), xyz2.X(), xyz2.Y(), getX(), getY());
+
+      Float_t hcrv = 0.5 * f1(xyz1.X(), xyz1.Y(), xyz2.X(), xyz2.Y(), getX(), getY());
 
       auto zr3 = z1 + (layer3.getR() - r1) / (r2 - r1) * (z2 - z1);
       auto phir3 = phi1 + hcrv * (layer3.getR() - r1);
-      auto dz3 = 0.5f*dz2;
+      auto dz3 = 0.5f * dz2;
 
       std::vector<Int_t> selected3;
-      float dy3=kpWin100*layer3.getR();
-      layer3.selectClusters(selected3,phir3,dy3,zr3,dz3);
+      float dy3 = kpWin100 * layer3.getR();
+      layer3.selectClusters(selected3, phir3, dy3, zr3, dz3);
       for (auto n3 : selected3) {
         const Cluster* c3 = layer3.getCluster(n3);
         //
@@ -323,9 +324,10 @@ void CookedTracker::makeSeeds(std::vector<TrackITS>& seeds, Int_t first, Int_t l
         auto xyz3 = c3->getXYZGloRot(*mGeom);
         auto z3 = xyz3.Z();
         auto r3 = xyz3.rho();
-	
+
         zr3 = z1 + (r3 - r1) / (r2 - r1) * (z2 - z1);
-        if (std::abs(z3-zr3)>0.2*dz3) continue;
+        if (std::abs(z3 - zr3) > 0.2 * dz3)
+          continue;
 
         Point3Df txyz2 = c2->getXYZ(); // tracking coordinates
 
@@ -399,7 +401,7 @@ void CookedTracker::trackSeeds(std::vector<TrackITS>& seeds)
       phi += 0.5 * crv * (r2 - r1);
       z += tgl / (0.5 * crv) * (TMath::ASin(0.5 * crv * r2) - TMath::ASin(0.5 * crv * r1));
       selec[l].clear();
-      sLayers[l].selectClusters(selec[l], phi, kRoadY, z, kRoadZ*(1+2*std::abs(tgl)));
+      sLayers[l].selectClusters(selec[l], phi, kRoadY, z, kRoadZ * (1 + 2 * std::abs(tgl)));
       r1 = r2;
     }
 
@@ -514,7 +516,7 @@ void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<Tr
     unloadClusters();
     end = std::chrono::system_clock::now();
     diff = end - start;
-    LOG(INFO) << "Processing time/clusters for single frame " << mROFrame << " : " << diff.count() << " / "<<nClFrame<<" s" << FairLogger::endl;
+    LOG(INFO) << "Processing time/clusters for single frame " << mROFrame << " : " << diff.count() << " / " << nClFrame << " s" << FairLogger::endl;
 
     start = end;
     if (mContinuousMode)
@@ -703,7 +705,7 @@ void CookedTracker::Layer::init()
     BringTo02Pi(phi);
     mPhi.push_back(phi);
     Int_t s = phi * kNSectors / k2PI;
-    mSectors[s].emplace_back(i,c->getZ());
+    mSectors[s].emplace_back(i, c->getZ());
   }
 
   if (m)
@@ -756,26 +758,26 @@ void CookedTracker::Layer::selectClusters(std::vector<Int_t>& selec, Float_t phi
 
   Float_t dphi = dy / mR;
 
-  int smin =  (phi - dphi)/k2PI * kNSectors;
-  int ds = (phi + dphi)/k2PI * kNSectors - smin + 1;
+  int smin = (phi - dphi) / k2PI * kNSectors;
+  int ds = (phi + dphi) / k2PI * kNSectors - smin + 1;
 
   smin = (smin + kNSectors) % kNSectors;
 
-  for (int is=0; is<ds; is++) {
-    Int_t s = (smin+is) % kNSectors;
+  for (int is = 0; is < ds; is++) {
+    Int_t s = (smin + is) % kNSectors;
 
-    auto cmp = [](Float_t zc, std::pair<int,float>p) { return (zc < p.second); };
+    auto cmp = [](Float_t zc, std::pair<int, float> p) { return (zc < p.second); };
     auto imin = std::upper_bound(std::begin(mSectors[s]), std::end(mSectors[s]), zMin, cmp);
     auto imax = std::upper_bound(imin, std::end(mSectors[s]), zMax, cmp);
     for (; imin != imax; imin++) {
-      auto [i,z] = *imin;
+      auto[i, zz] = *imin;
       auto cdphi = std::abs(mPhi[i] - phi);
       if (cdphi > dphi) {
-         if (cdphi > kPI) {
-            cdphi = k2PI - cdphi;
-         }
-         if (cdphi > dphi) 
-            continue; // check in Phi
+        if (cdphi > kPI) {
+          cdphi = k2PI - cdphi;
+        }
+        if (cdphi > dphi)
+          continue; // check in Phi
       }
       selec.push_back(i);
     }

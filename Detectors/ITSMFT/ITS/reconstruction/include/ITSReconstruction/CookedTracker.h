@@ -161,7 +161,7 @@ class CookedTracker::Layer
   std::vector<const Cluster*> mClusters;        ///< All clusters
   std::vector<Float_t> mAlphaRef;               ///< alpha of the reference plane
   std::vector<Float_t> mPhi;                    ///< cluster phi
-  std::vector<std::pair<int,float>> mSectors[kNSectors];///< Cluster indices sector-by-sector
+  std::vector<std::pair<int, float>> mSectors[kNSectors]; ///< Cluster indices sector-by-sector
 };
 } // namespace ITS
 } // namespace o2
