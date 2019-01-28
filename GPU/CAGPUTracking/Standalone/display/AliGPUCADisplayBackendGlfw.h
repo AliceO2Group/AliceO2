@@ -17,7 +17,7 @@ public:
 	virtual void SwitchFullscreen(bool set) override;
 	virtual void ToggleMaximized(bool set) override;
 	virtual void SetVSync(bool enable) override;
-	virtual void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a) override;
+	virtual void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
 	virtual bool EnableSendKey() override;
 	
 private:
@@ -40,8 +40,8 @@ private:
 	pthread_mutex_t semLockExit = PTHREAD_MUTEX_INITIALIZER;
 	int window_x = 0;
 	int window_y = 0;
-	int window_width = 0;
-	int window_height = 0;
+	int window_width = init_width;
+	int window_height = init_height;
 };
 
 #endif

@@ -146,7 +146,16 @@ void AliGPUCADisplayBackendGlfw::resize_callback(GLFWwindow* window, int width, 
 
 void AliGPUCADisplayBackendGlfw::DisplayLoop()
 {
+#ifdef GPUCA_O2_LIB
+	ImGui::SetNextWindowPos(ImVec2(0, 0));
+	ImGui::SetNextWindowSize(ImVec2(me->display_width, me->display_height));
+	ImGui::SetNextWindowBgAlpha(0.f);
+	ImGui::Begin("Console", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+#endif
 	me->DrawGLScene();
+#ifdef GPUCA_O2_LIB
+	ImGui::End();
+#endif
 }
 
 int AliGPUCADisplayBackendGlfw::OpenGLMain()
@@ -229,12 +238,13 @@ void AliGPUCADisplayBackendGlfw::DisplayExit()
 	while (GlfwRunning) usleep(10000);
 }
 
-void AliGPUCADisplayBackendGlfw::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a)
+void AliGPUCADisplayBackendGlfw::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
 {
-	glColor4f(r, g, b, a);
-	glRasterPos2f(x, y);
 #ifdef GPUCA_O2_LIB
-	ImGui::Text("%s", s);
+	if (fromBotton) y = ImGui::GetWindowHeight() - y;
+	y -= 20;
+	ImGui::SetCursorPos(ImVec2(x, y));
+	ImGui::TextColored(ImVec4(r, g, b, a), "%s", s);
 #endif
 }
 

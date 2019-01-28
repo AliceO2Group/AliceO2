@@ -521,6 +521,6 @@ void AliGPUCADisplay::PrintGLHelpText(float colorValue)
 {
 	for (unsigned int i = 0;i < sizeof(HelpText) / sizeof(HelpText[0]);i++)
 	{
-		mBackend->OpenGLPrint(HelpText[i], 40.f, screen_height - 35 - 20 * (1 + i), colorValue, colorValue, colorValue, infoHelpTimer.GetCurrentElapsedTime() >= 5 ? (6 - infoHelpTimer.GetCurrentElapsedTime()) : 1);
+		mBackend->OpenGLPrint(HelpText[i], 40.f, 35 + 20 * (1 + i), colorValue, colorValue, colorValue, infoHelpTimer.GetCurrentElapsedTime() >= 5 ? (6 - infoHelpTimer.GetCurrentElapsedTime()) : 1, false);
 	}
 }

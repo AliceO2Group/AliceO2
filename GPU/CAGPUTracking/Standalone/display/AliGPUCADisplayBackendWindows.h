@@ -14,7 +14,7 @@ public:
 	virtual void SwitchFullscreen(bool set) override;
 	virtual void ToggleMaximized(bool set) override;
 	virtual void SetVSync(bool enable) override;
-	virtual void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a) override;
+	virtual void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
 
 private:
 	virtual int OpenGLMain();
