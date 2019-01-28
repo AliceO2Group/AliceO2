@@ -101,7 +101,7 @@ class TRDFeeParam
   static TRDFeeParam* mgInstance; // Singleton instance
   static Bool_t mgTerminated;     // Defines if this class has already been terminated
 
-  TRDCommonParam* mCP=nullptr; // TRD common parameters class
+  TRDCommonParam* mCP = nullptr; // TRD common parameters class
 
   // Remark: ISO C++ allows initialization of static const values only for integer.
 
