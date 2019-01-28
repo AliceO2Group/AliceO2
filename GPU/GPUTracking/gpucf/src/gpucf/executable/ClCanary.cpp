@@ -1,7 +1,7 @@
 #include "ClCanary.h"
 
 #include <gpucf/VectorAdd.h>
-#include <gpucf/log.h>
+#include <gpucf/common/log.h>
 
 
 using namespace gpucf;

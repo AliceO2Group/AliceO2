@@ -1,7 +1,7 @@
 #include "CompareClusters.h"
 
 #include <gpucf/ClusterChecker.h>
-#include <gpucf/DataSet.h>
+#include <gpucf/common/DataSet.h>
 
 
 using namespace gpucf;

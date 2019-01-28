@@ -1,5 +1,6 @@
 #include "DataSet.h"
 
+#include <gpucf/common/log.h>
 #include <gpucf/errors/FileErrors.h>
 
 #include <filesystem/path.h>
@@ -13,13 +14,14 @@ namespace fs = filesystem;
 
 void DataSet::read(const fs::path &file)
 {
+    log::Info() << "Reading file " << file;
+
     if (!file.exists())
     {
         throw FileNotFoundError(file); 
     }
 
     objs.clear();
-
 
     std::ifstream in(file.str());
 
@@ -37,6 +39,8 @@ void DataSet::read(const fs::path &file)
 
 void DataSet::write(const fs::path &file) const
 {
+    log::Info() << "Writing to file " << file;
+
     std::ofstream out(file.str());
 
     for (const Object &obj : objs)

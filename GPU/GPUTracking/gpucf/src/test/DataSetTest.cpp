@@ -1,6 +1,6 @@
 #include <catch2/catch.hpp>
 
-#include <gpucf/DataSet.h>
+#include <gpucf/common/DataSet.h>
 
 
 using namespace gpucf;

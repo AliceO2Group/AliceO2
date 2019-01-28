@@ -1,8 +1,8 @@
 #include "ClEnv.h"
 
+#include <gpucf/common/log.h>
 #include <gpucf/errors/FileErrors.h>
 #include <gpucf/errors/CLErrors.h>
-#include <gpucf/log.h>
 
 #include <fstream>
 #include <stdexcept>

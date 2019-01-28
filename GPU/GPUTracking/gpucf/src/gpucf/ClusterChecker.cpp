@@ -1,7 +1,7 @@
 #include "ClusterChecker.h"
 
-#include <gpucf/log.h>
 #include <gpucf/common/float.h>
+#include <gpucf/common/log.h>
 
 #include <algorithm>
 

@@ -1,8 +1,8 @@
 #include "CfRunner.h"
 
-#include <gpucf/DataSet.h>
-#include <gpucf/log.h>
-#include <gpucf/GPUClusterFinder.h>
+#include <gpucf/common/DataSet.h>
+#include <gpucf/common/log.h>
+#include <gpucf/gpu/GPUClusterFinder.h>
 
 
 using namespace gpucf;
@@ -31,26 +31,22 @@ int CfRunner::mainImpl()
     ClEnv env(*envFlags); 
 
     DataSet digitSet;
-    
     digitSet.read(args::get(*digitFile));
 
-    std::vector<Digit> digits = digitSet.deserialize<Digit>();
-
     GPUClusterFinder cf;
-    auto cfRes = cf.run(env, digits);
+    cf.setup(env, digitSet);
+    auto cfRes = cf.run();
 
-    DataSet clusterSet;
-
-    clusterSet.serialize(cfRes.clusters);
-    clusterSet.write(args::get(*clusterResultFile));
+    cfRes.result.write(args::get(*clusterResultFile));
 
     if (*peakFile)
     {
-        log::Info() << "Writing " << cfRes.peaks.size() 
+        auto peaks = cf.getPeaks();
+        log::Info() << "Writing " << peaks.size()
                     << " peaks to file " << peakFile->Get();
-        DataSet peaks;
-        peaks.serialize(cfRes.peaks);
-        peaks.write(peakFile->Get());
+        DataSet peakSet;
+        peakSet.serialize<Digit>(peaks);
+        peakSet.write(peakFile->Get());
     }
 
     return 0;

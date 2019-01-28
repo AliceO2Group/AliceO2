@@ -1,7 +1,7 @@
 #include "Cluster.h"
 
-#include <gpucf/RowInfo.h>
 #include <gpucf/common/float.h>
+#include <gpucf/common/RowInfo.h>
 
 #include <cmath>
 #include <ostream>
