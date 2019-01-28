@@ -34,6 +34,8 @@ enum struct ChannelType {
 
 /// This describes an input channel. Since they are point to
 /// point connections, there is not much to say about them.
+/// Notice that this should be considered read only once it
+/// has been created.
 struct InputChannelSpec {
   std::string name;
   enum ChannelType type;

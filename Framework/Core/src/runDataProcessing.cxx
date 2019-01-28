@@ -26,6 +26,7 @@
 #include "Framework/DeviceInfo.h"
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/DeviceState.h"
 #include "Framework/FrameworkGUIDebugger.h"
 #include "Framework/FreePortFinder.h"
 #include "Framework/LocalRootFileService.h"
@@ -624,6 +625,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
     std::unique_ptr<InfoLogger> infoLoggerService;
     std::unique_ptr<InfoLoggerContext> infoLoggerContext;
     std::unique_ptr<TimesliceIndex> timesliceIndex;
+    std::unique_ptr<DeviceState> deviceState;
 
     auto afterConfigParsingCallback = [&localRootFileService,
                                        &textControlService,
@@ -635,9 +637,11 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
                                        &spec,
                                        &serviceRegistry,
                                        &infoLoggerContext,
+                                       &deviceState,
                                        &timesliceIndex](fair::mq::DeviceRunner& r) {
       localRootFileService = std::make_unique<LocalRootFileService>();
-      textControlService = std::make_unique<TextControlService>();
+      deviceState = std::make_unique<DeviceState>();
+      textControlService = std::make_unique<TextControlService>(serviceRegistry, *deviceState.get());
       parallelContext = std::make_unique<ParallelContext>(spec.rank, spec.nSlots);
       simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr);
       callbackService = std::make_unique<CallbackService>();
@@ -668,7 +672,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
       // The decltype stuff is to be able to compile with both new and old
       // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
       decltype(r.fDevice) device;
-      device = std::move(make_matching<decltype(device), DataProcessingDevice>(spec, serviceRegistry));
+      device = std::move(make_matching<decltype(device), DataProcessingDevice>(spec, serviceRegistry, *deviceState.get()));
 
       serviceRegistry.get<RawDeviceService>().setDevice(device.get());
       r.fDevice = std::move(device);

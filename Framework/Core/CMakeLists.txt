@@ -44,6 +44,8 @@ o2_add_library(Framework
                        src/DataDescriptorQueryBuilder.cxx
                        src/DataProcessingDevice.cxx
                        src/DataProcessingHeader.cxx
+                       src/DataProcessingHelpers.cxx
+                       src/SourceInfoHeader.cxx
                        src/DataProcessor.cxx
                        src/DataRelayer.cxx
                        src/DataSampling.cxx
