@@ -26,6 +26,14 @@ Detector::Detector(Bool_t active)
   : o2::Base::DetImpl<Detector>("TRD", active)
 {
   mHits = o2::utils::createSimVector<HitType>();
+  if (TRDCommonParam::Instance()->IsXenon()) {
+    mWion = 23.53; // Ionization energy XeCO2 (85/15)
+  } else if (TRDCommonParam::Instance()->IsArgon()) {
+    mWion = 27.21; // Ionization energy ArCO2 (82/18)
+  } else {
+    LOG(FATAL) << "Wrong gas mixture";
+    // add hard exit here!
+  }
 }
 
 Detector::Detector(const Detector& rhs)
@@ -145,7 +153,7 @@ bool Detector::ProcessHits(FairVolume* v)
   if ((enDep > mWion) || trkStat) {
     double x, y, z;
     fMC->TrackPosition(x, y, z);
-    double time = fMC->TrackTime() * 1e9;
+    double time = fMC->TrackTime() * 1e6;
     o2::Data::Stack* stack = (o2::Data::Stack*)fMC->GetStack();
     const int trackID = stack->GetCurrentTrackNumber();
     addHit(x, y, z, time, enDep, trackID, det);
