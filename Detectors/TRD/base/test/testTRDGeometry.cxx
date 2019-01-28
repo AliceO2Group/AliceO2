@@ -23,19 +23,18 @@
 #include <string>
 #include "TRDBase/TRDGeometry.h"
 
-namespace o2 
+namespace o2
 {
-namespace trd 
+namespace trd
 {
 
-  /// \brief Test the TRDGeometry class 
-  //
-  /// 
+/// \brief Test the TRDGeometry class
+//
+///
 BOOST_AUTO_TEST_CASE(TRDGeometrytest1)
 {
   TRDGeometry& geom = TRDGeometry::instance();
-
 }
 
-}
-}
+} // namespace trd
+} // namespace o2

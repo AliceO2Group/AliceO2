@@ -117,7 +117,7 @@ class TRDSignalIndex
   RowCol* mSortedIndex;   //  Sorted indices
   Int_t mMaxLimit{ 0 };   //  Max number of things in the array
   Int_t mPositionRC{ 0 }; //  Position in the SortedIndex
-  Int_t mCountRC{1};      //  the number of added rc combinations
+  Int_t mCountRC{ 1 };    //  the number of added rc combinations
   Bool_t mSortedWasInit;  //  Was SortedIndex initialized?
 
   Int_t mCurrRow{ 0 };  //  Last Row read out of SortedIndex

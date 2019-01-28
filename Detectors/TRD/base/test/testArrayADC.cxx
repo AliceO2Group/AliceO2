@@ -23,9 +23,9 @@
 #include <string>
 #include "TRDBase/TRDArrayADC.h"
 
-namespace o2 
+namespace o2
 {
-namespace tcp 
+namespace tcp
 {
 
 /// \brief Test the arrayadc class operation
@@ -37,5 +37,5 @@ BOOST_AUTO_TEST_CASE(ArrayADCtest1)
   //set bits as corrupted and see if they are detected correctly
 }
 
-}
-}
+} // namespace tcp
+} // namespace o2
