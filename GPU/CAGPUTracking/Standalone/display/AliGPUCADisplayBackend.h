@@ -17,7 +17,7 @@ public:
 	virtual void ToggleMaximized(bool set) = 0; //Maximize window
 	virtual void SetVSync(bool enable) = 0; //Enable / disable vsync
 	virtual bool EnableSendKey(); //Request external keys (e.g. from terminal)
-	virtual void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a) = 0; //Print text on the display (needs the backend to build the font)
+	virtual void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) = 0; //Print text on the display (needs the backend to build the font)
 
 	//volatile variables to exchange control informations between display and backend
 	volatile int displayControl = 0; //Control for next event (=1) or quit (=2)
@@ -67,6 +67,8 @@ protected:
 	int mouseWheel = 0; //Incremental value of mouse wheel, ca +/- 100 per wheel tick
 	bool keys[256] = {false}; //Array of keys currently pressed
 	bool keysShift[256] = {false}; //Array whether shift was held during key-press
+	int display_height = init_height;
+	int display_width = init_width;
 	
 	int maxFPSRate = 0; //run at highest possible frame rate, do not sleep in between frames
 	

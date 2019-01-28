@@ -20,7 +20,7 @@ void AliGPUCADisplayBackend::HandleSendKey()
 
 void AliGPUCADisplayBackend::HandleKeyRelease(unsigned char key) {mDisplay->HandleKeyRelease(key);}
 int AliGPUCADisplayBackend::DrawGLScene(bool mixAnimation, float animateTime) {return mDisplay->DrawGLScene(mixAnimation, animateTime);}
-void AliGPUCADisplayBackend::ReSizeGLScene(int width, int height) {mDisplay->ReSizeGLScene(width, height);}
+void AliGPUCADisplayBackend::ReSizeGLScene(int width, int height) {display_height = height; display_width = width; mDisplay->ReSizeGLScene(width, height);}
 int AliGPUCADisplayBackend::InitGL(bool initFailure) {return mDisplay->InitGL(initFailure);}
 void AliGPUCADisplayBackend::ExitGL() {return mDisplay->ExitGL();}
 bool AliGPUCADisplayBackend::EnableSendKey() {return true;}

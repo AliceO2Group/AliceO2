@@ -56,8 +56,9 @@ void AliGPUCADisplayBackendX11::GetKey(XEvent& event, int& keyOut, int& keyPress
 	}
 }
 
-void AliGPUCADisplayBackendX11::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a)
+void AliGPUCADisplayBackendX11::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
 {
+	if (!fromBotton) y = display_height - y;
 	glColor4f(r, g, b, a);
 	glRasterPos2f(x, y);
 	if (!glIsList(font_base))
@@ -328,7 +329,6 @@ int AliGPUCADisplayBackendX11::OpenGLMain()
 
 				case ConfigureNotify:
 				{
-					glViewport(0, 0, event.xconfigure.width, event.xconfigure.height);
 					ReSizeGLScene(event.xconfigure.width, event.xconfigure.height);
 				}
 				break;

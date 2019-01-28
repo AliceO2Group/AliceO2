@@ -201,8 +201,9 @@ void AliGPUCADisplayBackendGlut::DisplayExit()
 	while (glutRunning) usleep(10000);
 }
 
-void AliGPUCADisplayBackendGlut::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a)
+void AliGPUCADisplayBackendGlut::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
 {
+	if (!fromBotton) y = display_height - y;
 	glColor4f(r, g, b, a);
 	glRasterPos2f(x, y);
 	glutBitmapString( GLUT_BITMAP_HELVETICA_12, (const unsigned char*) s);
