@@ -132,6 +132,8 @@ DataProcessorSpec getSourceSpec()
     pmrvec.reserve(100);
     pmrvec.emplace_back(o2::test::TriviallyCopyable{1, 2, 3});
     pc.outputs().adoptContainer(pmrOutputSpec, std::move(pmrvec));
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   };
 
   return DataProcessorSpec{"source", // name of the processor

@@ -9,12 +9,17 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/AODReaderHelpers.h"
+#include "DataProcessingHelpers.h"
 #include "Framework/RootTableBuilderHelpers.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ControlService.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/SourceInfoHeader.h"
+#include "Framework/ChannelInfo.h"
+#include "Framework/Logger.h"
+
 #include <FairMQDevice.h>
 #include <ROOT/RDataFrame.hxx>
 #include <TFile.h>
@@ -161,11 +166,15 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
     auto counter = std::make_shared<int>(0);
     return adaptStateless([readMask,
                            counter,
-                           filenames](DataAllocator& outputs, ControlService& ctrl, RawDeviceService& service) {
+                           filenames,
+                           spec](DataAllocator& outputs, ControlService& ctrl, RawDeviceService& service) {
       if (*counter >= filenames.size()) {
         LOG(info) << "All input files processed";
+        for (auto& channel : spec.outputChannels) {
+          DataProcessingHelpers::sendEndOfStream(*service.device(), channel);
+        }
         ctrl.readyToQuit(QuitRequest::Me);
-        service.device()->WaitFor(std::chrono::seconds(1));
+        service.device()->WaitFor(std::chrono::milliseconds(1000));
         return;
       }
       auto f = filenames[*counter];
@@ -188,6 +197,7 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
           continue;
         }
         ungetc(c, pipe);
+
         std::shared_ptr<arrow::RecordBatchReader> reader;
         auto input = std::make_shared<FileStream>(pipe);
         auto readerStatus = arrow::ipc::RecordBatchStreamReader::Open(input.get(), &reader);

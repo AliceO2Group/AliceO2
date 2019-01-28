@@ -18,6 +18,8 @@ namespace o2
 namespace framework
 {
 
+class EndOfStreamContext;
+
 // A service that data processors can register callback functions invoked by the
 // framework at defined steps in the process flow
 class CallbackService
@@ -25,11 +27,15 @@ class CallbackService
  public:
   /// the defined processing steps at which a callback can be invoked
   enum class Id {
-    Start,    /**< Invoked before the inner loop is started */
-    Stop,     /**< Invoked when the device is about to be stoped */
-    Reset,    /**< Invoked on device rest */
-    Idle,     /**< Invoked when there was no computation scheduled */
-    ClockTick /**< Invoked every iteration of the inner loop */
+    Start,     /**< Invoked before the inner loop is started */
+    Stop,      /**< Invoked when the device is about to be stoped */
+    Reset,     /**< Invoked on device rest */
+    Idle,      /**< Invoked when there was no computation scheduled */
+    ClockTick, /**< Invoked every iteration of the inner loop */
+    /// Invoked when we are notified that no further data will arrive.
+    /// Notice that one could have more "EndOfData" notifications. Because
+    /// we could be signaled by control that the data flow restarted.
+    EndOfStream
   };
 
   template <typename T, T... v>
@@ -44,14 +50,16 @@ class CallbackService
   using ResetCallback = std::function<void()>;
   using IdleCallback = std::function<void()>;
   using ClockTickCallback = std::function<void()>;
+  using EndOfStreamCallback = std::function<void(EndOfStreamContext&)>;
 
-  using Callbacks = CallbackRegistry<Id,                                                //
-                                     RegistryPair<Id, Id::Start, StartCallback>,        //
-                                     RegistryPair<Id, Id::Stop, StopCallback>,          //
-                                     RegistryPair<Id, Id::Reset, ResetCallback>,        //
-                                     RegistryPair<Id, Id::Idle, IdleCallback>,          //
-                                     RegistryPair<Id, Id::ClockTick, ClockTickCallback> //
-                                     >;                                                 //
+  using Callbacks = CallbackRegistry<Id,                                                    //
+                                     RegistryPair<Id, Id::Start, StartCallback>,            //
+                                     RegistryPair<Id, Id::Stop, StopCallback>,              //
+                                     RegistryPair<Id, Id::Reset, ResetCallback>,            //
+                                     RegistryPair<Id, Id::Idle, IdleCallback>,              //
+                                     RegistryPair<Id, Id::ClockTick, ClockTickCallback>,    //
+                                     RegistryPair<Id, Id::EndOfStream, EndOfStreamCallback> //
+                                     >;                                                     //
 
   // set callback for specified processing step
   template <typename U>
