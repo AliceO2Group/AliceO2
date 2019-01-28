@@ -31,7 +31,7 @@
 #include <TGeoPhysicalNode.h>
 #include <TMath.h>
 #include <TVirtualMC.h>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 
 #include "DetectorsBase/GeometryManager.h"
 #include "TRDBase/TRDGeometry.h"
@@ -438,6 +438,6 @@ void TRDFeeParam::setRAWversion(Int_t rawver)
   if (rawver >= 0 && rawver <= mgkMaxRAWversion) {
     mRAWversion = rawver;
   } else {
-    LOG(ERROR) << "Raw version is out of range: " << rawver;
+    LOG(error) << "Raw version is out of range: " << rawver;
   }
 }

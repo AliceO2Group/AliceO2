@@ -22,7 +22,6 @@
 #include <TGeoPhysicalNode.h>
 #include <TMath.h>
 #include <TVirtualMC.h>
-#include <FairLogger.h>
 
 #include "DetectorsBase/GeometryManager.h"
 #include "TRDBase/TRDGeometry.h"

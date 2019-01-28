@@ -19,7 +19,6 @@
 #include <TMath.h>
 #include <Rtypes.h>
 #include "TRDBase/TRDCommonParam.h"
-#include <FairLogger.h>
 
 using namespace o2::trd;
 

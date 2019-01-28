@@ -17,7 +17,7 @@
 
 #include <TMath.h>
 #include <Rtypes.h>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include "TRDBase/TRDCommonParam.h"
 #include "TRDBase/ArrayADC.h"
 #include "TRDBase/TRDCalPadStatus.h"
@@ -110,7 +110,7 @@ Short_t* ArrayADC::getDataAddress(Int_t nrow, Int_t ncol, Int_t ntime) const
   //
   // get the address of the given pad
   //
-  LOG (FATAL) << "You requested a now depricated function : ArrayADC::getDataAddress("<< nrow <<","<<ncol<<","<<ntime;
+  LOG (fatal) << "You requested a now depricated function : ArrayADC::getDataAddress("<< nrow <<","<<ncol<<","<<ntime;
   return nullptr;
 }
 //________________________________________________________________________________
@@ -276,7 +276,7 @@ void ArrayADC::Compress()
   //
 
   if (mNAdim != mNrow * mNumberOfChannels * mNtime) {
-    LOG(INFO) << "The ADC array is already compressed";
+    LOG(info) << "The ADC array is already compressed";
     return;
   }
 
@@ -383,7 +383,7 @@ void ArrayADC::Expand()
   }
 
   if (verif == 0) {
-    LOG(INFO) << "Nothing to expand";
+    LOG(info) << "Nothing to expand";
     return;
   }
 

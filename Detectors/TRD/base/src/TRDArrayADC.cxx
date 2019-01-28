@@ -18,7 +18,7 @@
 #include <TMath.h>
 #include <Rtypes.h>
 #include "TRDBase/TRDCommonParam.h"
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include "TRDBase/TRDArrayADC.h"
 #include "TRDBase/TRDCalPadStatus.h"
 #include "TRDBase/TRDFeeParam.h"
@@ -300,7 +300,7 @@ void TRDArrayADC::Compress()
   //
 
   if (mNAdim != mNrow * mNumberOfChannels * mNtime) {
-    LOG(INFO) << "The ADC array is already compressed";
+    LOG(info) << "The ADC array is already compressed";
     return;
   }
 
@@ -432,7 +432,7 @@ void TRDArrayADC::Expand()
     }
 
     if (verif == 0) {
-      LOG(INFO) << "Nothing to expand";
+      LOG(info) << "Nothing to expand";
       return;
     }
 
