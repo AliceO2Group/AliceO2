@@ -20,6 +20,7 @@
 #include "DataFormatsTPC/Helpers.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/ClusterNative.h"
+#include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "TPCReconstruction/TPCCATracking.h"
 
 #include "AliGPUCAConfiguration.h"
@@ -78,7 +79,7 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
     cont[i].clusters[0].qTot = 50;
   }
   std::unique_ptr<ClusterNativeAccessFullTPC> clusters =
-    TPCClusterFormatHelper::accessNativeContainerArray(cont, nullptr);
+    ClusterNativeHelper::createClusterNativeIndex(cont, nullptr);
 
   int retVal = tracker.runTracking(*clusters, &tracks, nullptr);
   BOOST_CHECK_EQUAL(retVal, 0);

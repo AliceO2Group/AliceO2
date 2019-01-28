@@ -16,6 +16,7 @@
 /// @author Matthias Richter
 
 #include "DataFormatsTPC/ClusterNative.h"
+#include "DataFormatsTPC/ClusterGroupAttribute.h"
 #include "DataFormatsTPC/Constants.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -32,6 +33,35 @@ namespace o2
 namespace TPC
 {
 using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+
+/// @struct ClusterNativeContainer
+/// A container class for a collection of ClusterNative object
+/// belonging to a row.
+/// The struct inherits the sector and globalPadRow members of ClusterGroupAttribute.
+///
+/// Not for permanent storage.
+///
+struct ClusterNativeContainer : public ClusterGroupAttribute {
+  using attribute_type = ClusterGroupAttribute;
+  using value_type = ClusterNative;
+
+  static bool sortComparison(const ClusterNative& a, const ClusterNative& b)
+  {
+    if (a.getTimePacked() != b.getTimePacked()) {
+      return (a.getTimePacked() < b.getTimePacked());
+    } else {
+      return (a.padPacked < b.padPacked);
+    }
+  }
+
+  size_t getFlatSize() const { return sizeof(attribute_type) + clusters.size() * sizeof(value_type); }
+
+  const value_type* data() const { return clusters.data(); }
+
+  value_type* data() { return clusters.data(); }
+
+  std::vector<ClusterNative> clusters;
+};
 
 /// @class ClusterNativeHelper utility class for TPC native clusters
 /// This class supports the following utility functionality for handling of
@@ -60,6 +90,12 @@ class ClusterNativeHelper
   /// convert clusters stored in binary cluster native format to a tree and write to root file
   /// the cluster parameters are stored in the tree together with sector and padrow numbers.
   static void convert(const char* fromFile, const char* toFile, const char* toTreeName = "tpcnative");
+
+  // Helper function to create a ClusterNativeAccessFullTPC structure from a std::vector of ClusterNative containers
+  // This is not contained in the ClusterNative class itself to reduce the dependencies of the class
+  static std::unique_ptr<ClusterNativeAccessFullTPC> createClusterNativeIndex(
+    std::vector<ClusterNativeContainer>& clusters,
+    std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* mcTruth = nullptr);
 
   // add clusters from a flattened buffer starting with an attribute, e.g. ClusterGroupAttribute followed
   // by the array of ClusterNative, the number of clusters is determined from the size of the buffer

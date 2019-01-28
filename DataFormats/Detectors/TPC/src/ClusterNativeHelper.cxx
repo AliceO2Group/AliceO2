@@ -54,6 +54,21 @@ void ClusterNativeHelper::convert(const char* fromFile, const char* toFile, cons
   writer.close();
 }
 
+std::unique_ptr<ClusterNativeAccessFullTPC> ClusterNativeHelper::createClusterNativeIndex(
+  std::vector<ClusterNativeContainer>& clusters,
+  std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* mcTruth)
+{
+  std::unique_ptr<ClusterNativeAccessFullTPC> retVal(new ClusterNativeAccessFullTPC);
+  memset(retVal.get(), 0, sizeof(*retVal));
+  for (int i = 0; i < clusters.size(); i++) {
+    retVal->clusters[clusters[i].sector][clusters[i].globalPadRow] = clusters[i].clusters.data();
+    retVal->nClusters[clusters[i].sector][clusters[i].globalPadRow] = clusters[i].clusters.size();
+    if (mcTruth)
+      retVal->clustersMCTruth[clusters[i].sector][clusters[i].globalPadRow] = &(*mcTruth)[i];
+  }
+  return (std::move(retVal));
+}
+
 ClusterNativeHelper::Reader::~Reader()
 {
   clear();
