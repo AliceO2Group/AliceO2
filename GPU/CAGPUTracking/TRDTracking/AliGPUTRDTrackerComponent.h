@@ -15,6 +15,10 @@
 #ifndef ALIGPUTRDTRACKERCOMPONENT_H
 #define ALIGPUTRDTRACKERCOMPONENT_H
 
+#ifndef GPUCA_ALIROOT_LIB
+#define GPUCA_ALIROOT_LIB
+#endif
+
 #include "AliHLTProcessor.h"
 #include "AliHLTComponentBenchmark.h"
 #include "AliHLTDataTypes.h"

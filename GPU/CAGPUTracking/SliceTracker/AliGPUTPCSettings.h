@@ -1,6 +1,14 @@
 #ifndef ALIHLTTPCCASETTINGS_H
 #define ALIHLTTPCCASETTINGS_H
 
+#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB) && !defined(GPUCA_O2_LIB)
+#error You are using the CA GPU tracking without defining the build type (O2/AliRoot/Standalone). If you are running ROOT macro, please include AliGPUTPCO2Interface.h first!
+#endif
+
+#if defined(GPUCA_ALIROOT_LIB) && defined(GPUCA_O2_LIB)
+#error Invalid Compile Definitions!
+#endif
+
 #define EXTERN_ROW_HITS
 #define TRACKLET_SELECTOR_MIN_HITS(QPT) (fabs(QPT) > 10 ? 10 : (fabs(QPT) > 5 ? 15 : 29)) //Minimum hits should depend on Pt, low Pt tracks can have few hits. 29 Hits default, 15 for < 200 mev, 10 for < 100 mev
 
