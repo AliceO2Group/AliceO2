@@ -18,7 +18,6 @@
 #include <memory>
 #include <cstring> // for memset
 #include "DataFormatsTPC/ClusterHardware.h"
-#include "DataFormatsTPC/ClusterNative.h"
 
 namespace o2
 {
@@ -34,16 +33,6 @@ namespace o2
 {
 namespace TPC
 {
-class TPCClusterFormatHelper
-{
- public:
-  // Helper function to create a ClusterNativeAccessFullTPC structure from a std::vector of ClusterNative containers
-  // This is not contained in the ClusterNative class itself to reduce the dependencies of the class
-  static std::unique_ptr<ClusterNativeAccessFullTPC> accessNativeContainerArray(
-    std::vector<ClusterNativeContainer>& clusters,
-    std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* mcTruth = nullptr);
-};
-
 template <unsigned int size>
 class ClusterHardwareContainerFixedSize
 {

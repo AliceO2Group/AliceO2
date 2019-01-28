@@ -14,6 +14,7 @@
 #include "TPCReconstruction/HardwareClusterDecoder.h"
 #include "DataFormatsTPC/ClusterHardware.h"
 #include "DataFormatsTPC/ClusterNative.h"
+#include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "DataFormatsTPC/Constants.h"
 #include "TPCBase/Mapper.h"
 #include <algorithm>

@@ -20,6 +20,7 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/ControlService.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
+#include "DataFormatsTPC/ClusterGroupAttribute.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "TPCReconstruction/TPCCATracking.h"

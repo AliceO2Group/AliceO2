@@ -14,10 +14,8 @@
 #ifndef ALICEO2_DATAFORMATSTPC_CLUSTERNATIVE_H
 #define ALICEO2_DATAFORMATSTPC_CLUSTERNATIVE_H
 #include <cstdint>
-#include <vector>
 #include <cstddef>   // for size_t
 #include "DataFormatsTPC/Constants.h"
-#include "DataFormatsTPC/ClusterGroupAttribute.h"
 
 namespace o2
 {
@@ -103,36 +101,6 @@ struct ClusterNative {
     }
     sigmaPadPacked = tmp;
   }
-};
-
-/**
- * \struct ClusterNativeContainer
- * A container class for a collection of ClusterNative object
- * belonging to a row.
- * The struct inherits the sector and globalPadRow members of ClusterGroupAttribute.
- *
- * Not for permanent storage.
- */
-struct ClusterNativeContainer : public ClusterGroupAttribute {
-  using attribute_type = ClusterGroupAttribute;
-  using value_type = ClusterNative;
-
-  static bool sortComparison(const ClusterNative& a, const ClusterNative& b)
-  {
-    if (a.getTimePacked() != b.getTimePacked()) {
-      return (a.getTimePacked() < b.getTimePacked());
-    } else {
-      return (a.padPacked < b.padPacked);
-    }
-  }
-
-  size_t getFlatSize() const { return sizeof(attribute_type) + clusters.size() * sizeof(value_type); }
-
-  const value_type* data() const { return clusters.data(); }
-
-  value_type* data() { return clusters.data(); }
-
-  std::vector<ClusterNative> clusters;
 };
 
 // This is an index struct to access TPC clusters inside sectors and rows. It shall not own the data, but just point to
