@@ -25,7 +25,7 @@ MEM_CLASS_PRE() class AliGPUTPCRow;
 
 #define SemLockName "AliceHLTTPCCAGPUTrackerInitLockSem"
 
-AliGPUReconstructionDeviceBase::AliGPUReconstructionDeviceBase(const AliGPUCASettingsProcessing& cfg) : AliGPUReconstruction(cfg)
+AliGPUReconstructionDeviceBase::AliGPUReconstructionDeviceBase(const AliGPUCASettingsProcessing& cfg) : AliGPUReconstructionCPU(cfg)
 {
 }
 

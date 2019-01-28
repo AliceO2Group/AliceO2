@@ -70,6 +70,7 @@ set(SRCS
 
 set(SRCS_NO_CINT
     GlobalTracker/AliGPUReconstruction.cxx
+    GlobalTracker/AliGPUReconstructionImpl.cxx
     GlobalTracker/AliGPUReconstructionDeviceBase.cxx
     GlobalTracker/AliGPUReconstructionConvert.cxx
     GlobalTracker/AliGPUCASettings.cxx

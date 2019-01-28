@@ -15,7 +15,6 @@ class AliGPUProcessor
 {
 	friend class AliGPUReconstruction;
 	friend class AliGPUReconstructionDeviceBase;
-	friend class AliGPUReconstructionCUDA;
 	friend class AliGPUMemoryResource;
 	
 public:
@@ -28,11 +27,11 @@ public:
 	AliGPUProcessor& operator= (const AliGPUProcessor&) CON_DELETE;
 #endif
 
-protected:
 #ifndef __OPENCL__
 	void InitGPUProcessor(AliGPUReconstruction* rec, ProcessorType type = PROCESSOR_TYPE_CPU, AliGPUProcessor* slaveProcessor = NULL);
 #endif
 
+protected:
 	AliGPUReconstruction* mRec;
 	ProcessorType mGPUProcessorType;
 	AliGPUProcessor* mDeviceProcessor;

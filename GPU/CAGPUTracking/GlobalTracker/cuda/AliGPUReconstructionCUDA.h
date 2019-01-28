@@ -10,17 +10,16 @@ extern "C" __declspec(dllexport) AliGPUReconstruction* AliGPUReconstruction_Crea
 extern "C" AliGPUReconstruction* AliGPUReconstruction_Create_CUDA(const AliGPUCASettingsProcessing& cfg);
 #endif
 
-class AliGPUReconstructionCUDA : public AliGPUReconstructionDeviceBase
+class AliGPUReconstructionCUDABackend : public AliGPUReconstructionDeviceBase
 {
 public:
-	virtual ~AliGPUReconstructionCUDA();
+	virtual ~AliGPUReconstructionCUDABackend();
 	virtual int DoTRDGPUTracking() override;
 	virtual int RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers) override;
 	virtual int GPUMergerAvailable() const override;
     
 protected:
-	friend AliGPUReconstruction* AliGPUReconstruction_Create_CUDA(const AliGPUCASettingsProcessing& cfg);
-	AliGPUReconstructionCUDA(const AliGPUCASettingsProcessing& cfg);
+	AliGPUReconstructionCUDABackend(const AliGPUCASettingsProcessing& cfg);
     
 	virtual int InitDevice_Runtime() override;
 	virtual int RunTPCTrackingSlices() override;
@@ -37,9 +36,16 @@ protected:
 	
 	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) override;
 	virtual int TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) override;
+	
+	template <class T, typename... Args> void runKernelBackend(int nBlocks, int nThreads, bool device, Args&... args)
+	{
+		printf("Running kernel CUDA\n");
+	}
 
 private:
 	AliGPUReconstructionCUDAInternals* mInternals;
 };
+
+using AliGPUReconstructionCUDA = AliGPUReconstructionImpl<AliGPUReconstructionCUDABackend>;
 
 #endif
