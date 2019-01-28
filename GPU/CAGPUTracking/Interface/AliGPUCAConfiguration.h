@@ -1,6 +1,16 @@
 #ifndef ALIGPUCACONFIGURATION_H
 #define ALIGPUCACONFIGURATION_H
 
+#ifndef GPUCA_O2_LIB
+#define GPUCA_O2_LIB
+#endif
+#ifndef HAVE_O2HEADERS
+#define HAVE_O2HEADERS
+#endif
+#ifndef GPUCA_TPC_GEOMETRY_O2
+#define GPUCA_TPC_GEOMETRY_O2
+#endif
+
 #include <memory>
 #include "AliGPUCASettings.h"
 #include "AliGPUCADisplayConfig.h"
