@@ -1,7 +1,7 @@
 #include "Executable.h"
 
 #include <gpucf/cl.h>
-#include <gpucf/log.h>
+#include <gpucf/common/log.h>
 
 #include <iostream>
 
