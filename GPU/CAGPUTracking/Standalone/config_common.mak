@@ -40,6 +40,7 @@ CXXFILES					= SliceTracker/AliGPUTPCSliceData.cxx \
 								SliceTracker/AliGPUTPCTrackParam.cxx \
 								SliceTracker/AliGPUTPCClusterData.cxx \
 								GlobalTracker/AliGPUReconstruction.cxx \
+								GlobalTracker/AliGPUReconstructionImpl.cxx \
 								GlobalTracker/AliGPUReconstructionDeviceBase.cxx \
 								GlobalTracker/AliGPUReconstructionConvert.cxx \
 								GlobalTracker/AliGPUCAParam.cxx \

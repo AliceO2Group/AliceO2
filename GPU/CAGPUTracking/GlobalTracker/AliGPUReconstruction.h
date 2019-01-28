@@ -234,9 +234,9 @@ public:
 	
 	//Processing functions
 	int RunStandalone();
-	virtual int RunTPCTrackingSlices();
-	virtual int RunTPCTrackingMerger();
-	int RunTRDTracking();
+	virtual int RunTPCTrackingSlices() = 0;
+	virtual int RunTPCTrackingMerger() = 0;
+	virtual int RunTRDTracking() = 0;
 	virtual int RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers);
 	virtual int GPUMergerAvailable() const;
 	virtual int DoTRDGPUTracking() { printf("Does only work on GPU\n"); exit(1); }

@@ -1,10 +1,10 @@
 #ifndef ALIGPURECONSTRUCTIONDEVICEBASE_H
 #define ALIGPURECONSTRUCTIONDEVICEBASE_H
 
-#include "AliGPUReconstruction.h"
+#include "AliGPUReconstructionImpl.h"
 #include "AliGPUCADataTypes.h"
 
-class AliGPUReconstructionDeviceBase : public AliGPUReconstruction
+class AliGPUReconstructionDeviceBase : public AliGPUReconstructionCPU
 {
 public:
 	virtual ~AliGPUReconstructionDeviceBase() override;

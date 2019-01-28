@@ -39,7 +39,7 @@ extern "C" char _makefile_opencl_program_GlobalTracker_opencl_AliGPUReconstructi
 #define RANDOM_ERROR
 //#define RANDOM_ERROR || rand() % 500 == 1
 
-AliGPUReconstructionOCL::AliGPUReconstructionOCL(const AliGPUCASettingsProcessing& cfg) : AliGPUReconstructionDeviceBase(cfg)
+AliGPUReconstructionOCLBackend::AliGPUReconstructionOCLBackend(const AliGPUCASettingsProcessing& cfg) : AliGPUReconstructionDeviceBase(cfg)
 {
 	mInternals = new AliGPUReconstructionOCLInternals;
 	mProcessingSettings.deviceType = OCL;
@@ -50,7 +50,7 @@ AliGPUReconstructionOCL::AliGPUReconstructionOCL(const AliGPUCASettingsProcessin
 	mInternals->devices = NULL;
 }
 
-AliGPUReconstructionOCL::~AliGPUReconstructionOCL()
+AliGPUReconstructionOCLBackend::~AliGPUReconstructionOCLBackend()
 {
 	delete mInternals;
 }
@@ -60,7 +60,7 @@ AliGPUReconstruction* AliGPUReconstruction_Create_OCL(const AliGPUCASettingsProc
 	return new AliGPUReconstructionOCL(cfg);
 }
 
-int AliGPUReconstructionOCL::InitDevice_Runtime()
+int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 {
 	//Find best OPENCL device, initialize and allocate memory
 
@@ -358,7 +358,7 @@ int AliGPUReconstructionOCL::InitDevice_Runtime()
 	return(0);
 }
  
-int AliGPUReconstructionOCL::GPUSync(const char* state, int stream, int slice)
+int AliGPUReconstructionOCLBackend::GPUSync(const char* state, int stream, int slice)
 {
 	//Wait for OPENCL-Kernel to finish and check for OPENCL errors afterwards
 
@@ -370,7 +370,7 @@ int AliGPUReconstructionOCL::GPUSync(const char* state, int stream, int slice)
 	return(retVal);
 }
 
-int AliGPUReconstructionOCL::RunTPCTrackingSlices()
+int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices()
 {
 	int retVal = RunTPCTrackingSlices_internal();
 	if (retVal) SynchronizeGPU();
@@ -382,7 +382,7 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices()
 	return(retVal != 0);
 }
 
-int AliGPUReconstructionOCL::RunTPCTrackingSlices_internal()
+int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 {
 	//Primary reconstruction function
 	if (fGPUStuck)
@@ -644,7 +644,7 @@ int AliGPUReconstructionOCL::RunTPCTrackingSlices_internal()
 	return(0);
 }
 
-int AliGPUReconstructionOCL::ExitDevice_Runtime()
+int AliGPUReconstructionOCLBackend::ExitDevice_Runtime()
 {
 	//Uninitialize OPENCL
 
@@ -696,7 +696,7 @@ int AliGPUReconstructionOCL::ExitDevice_Runtime()
 	return(0);
 }
 
-int AliGPUReconstructionOCL::TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream, int nEvents, deviceEvent* evList, deviceEvent* ev)
+int AliGPUReconstructionOCLBackend::TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream, int nEvents, deviceEvent* evList, deviceEvent* ev)
 {
 	if (mDeviceProcessingSettings.debugLevel >= 3) stream = -1;
 	if (mDeviceProcessingSettings.debugLevel >= 3) printf("Copying to GPU: %s\n", res->Name());
@@ -704,7 +704,7 @@ int AliGPUReconstructionOCL::TransferMemoryResourceToGPU(AliGPUMemoryResource* r
 	return GPUFailedMsg(clEnqueueWriteBuffer(mInternals->command_queue[stream == -1 ? 0 : stream], mInternals->mem_gpu, stream >= 0, (char*) res->PtrDevice() - (char*) mDeviceMemoryBase, res->Size(), res->Ptr(), nEvents, (cl_event*) evList, (cl_event*) ev));
 }
 
-int AliGPUReconstructionOCL::TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream, int nEvents, deviceEvent* evList, deviceEvent* ev)
+int AliGPUReconstructionOCLBackend::TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream, int nEvents, deviceEvent* evList, deviceEvent* ev)
 {
 	if (mDeviceProcessingSettings.debugLevel >= 3) stream = -1;
 	if (mDeviceProcessingSettings.debugLevel >= 3) printf("Copying to Host: %s\n", res->Name());
@@ -712,21 +712,21 @@ int AliGPUReconstructionOCL::TransferMemoryResourceToHost(AliGPUMemoryResource* 
 	return GPUFailedMsg(clEnqueueReadBuffer(mInternals->command_queue[stream == -1 ? 0 : stream], mInternals->mem_gpu, stream >= 0, (char*) res->PtrDevice() - (char*) mDeviceMemoryBase, res->Size(), res->Ptr(), nEvents, (cl_event*) evList, (cl_event*) ev));
 }
 
-int AliGPUReconstructionOCL::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers)
+int AliGPUReconstructionOCLBackend::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers)
 {
 	CAGPUFatal("Not implemented in OpenCL (Merger)");
 	return(1);
 }
 
-void AliGPUReconstructionOCL::ActivateThreadContext()
+void AliGPUReconstructionOCLBackend::ActivateThreadContext()
 {
 }
 
-void AliGPUReconstructionOCL::ReleaseThreadContext()
+void AliGPUReconstructionOCLBackend::ReleaseThreadContext()
 {
 }
 
-int AliGPUReconstructionOCL::DoStuckProtection(int stream, void* event)
+int AliGPUReconstructionOCLBackend::DoStuckProtection(int stream, void* event)
 {
 	if (mDeviceProcessingSettings.stuckProtection)
 	{
@@ -751,7 +751,7 @@ int AliGPUReconstructionOCL::DoStuckProtection(int stream, void* event)
 	return 0;
 }
 
-int AliGPUReconstructionOCL::SynchronizeGPU()
+int AliGPUReconstructionOCLBackend::SynchronizeGPU()
 {
 	const int nStreams = 3;
 	for (int i = 0;i < nStreams;i++) GPUFailedMsg(clFinish(mInternals->command_queue[i]));

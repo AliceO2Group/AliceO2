@@ -76,14 +76,14 @@ namespace o2 { namespace ITS { class TrackerTraitsNV : public TrackerTraits {}; 
 #define RANDOM_ERROR
 //#define RANDOM_ERROR || rand() % 500 == 1
 
-AliGPUReconstructionCUDA::AliGPUReconstructionCUDA(const AliGPUCASettingsProcessing& cfg) : AliGPUReconstructionDeviceBase(cfg)
+AliGPUReconstructionCUDABackend::AliGPUReconstructionCUDABackend(const AliGPUCASettingsProcessing& cfg) : AliGPUReconstructionDeviceBase(cfg)
 {
 	mInternals = new AliGPUReconstructionCUDAInternals;
 	mProcessingSettings.deviceType = CUDA;
 	mITSTrackerTraits.reset(new o2::ITS::TrackerTraitsNV);
 }
 
-AliGPUReconstructionCUDA::~AliGPUReconstructionCUDA()
+AliGPUReconstructionCUDABackend::~AliGPUReconstructionCUDABackend()
 {
 	mITSTrackerTraits.reset(nullptr); //Make sure we destroy the ITS tracker before we exit CUDA
 	cudaDeviceReset();
@@ -95,7 +95,7 @@ AliGPUReconstruction* AliGPUReconstruction_Create_CUDA(const AliGPUCASettingsPro
 	return new AliGPUReconstructionCUDA(cfg);
 }
 
-int AliGPUReconstructionCUDA::InitDevice_Runtime()
+int AliGPUReconstructionCUDABackend::InitDevice_Runtime()
 {
 	//Find best CUDA device, initialize and allocate memory
 
@@ -276,7 +276,7 @@ int AliGPUReconstructionCUDA::InitDevice_Runtime()
 	return(0);
 }
 
-int AliGPUReconstructionCUDA::GPUSync(const char* state, int stream, int slice)
+int AliGPUReconstructionCUDABackend::GPUSync(const char* state, int stream, int slice)
 {
 	//Wait for CUDA-Kernel to finish and check for CUDA errors afterwards
 
@@ -308,7 +308,7 @@ __global__ void PreInitRowBlocks(int* const SliceDataHitWeights, int nSliceDataH
 		sliceDataHitWeights4[i] = i0;
 }
 
-int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
+int AliGPUReconstructionCUDABackend::RunTPCTrackingSlices()
 {
 	int retVal = RunTPCTrackingSlices_internal();
 	if (retVal) SynchronizeGPU();
@@ -320,7 +320,7 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices()
 	return(retVal != 0);
 }
 
-int AliGPUReconstructionCUDA::RunTPCTrackingSlices_internal()
+int AliGPUReconstructionCUDABackend::RunTPCTrackingSlices_internal()
 {
 	//Primary reconstruction function
 	if (fGPUStuck)
@@ -588,7 +588,7 @@ int AliGPUReconstructionCUDA::RunTPCTrackingSlices_internal()
 	return(0);
 }
 
-int AliGPUReconstructionCUDA::ExitDevice_Runtime()
+int AliGPUReconstructionCUDABackend::ExitDevice_Runtime()
 {
 	//Uninitialize CUDA
 	ActivateThreadContext();
@@ -624,7 +624,7 @@ int AliGPUReconstructionCUDA::ExitDevice_Runtime()
 	return(0);
 }
 
-int AliGPUReconstructionCUDA::DoTRDGPUTracking()
+int AliGPUReconstructionCUDABackend::DoTRDGPUTracking()
 {
 #ifndef GPUCA_GPU_MERGER
 	CAGPUError("GPUCA_GPU_MERGER compile flag not set");
@@ -655,7 +655,7 @@ int AliGPUReconstructionCUDA::DoTRDGPUTracking()
 #endif
 }
 
-int AliGPUReconstructionCUDA::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers)
+int AliGPUReconstructionCUDABackend::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers)
 {
 #ifndef GPUCA_GPU_MERGER
 	CAGPUError("GPUCA_GPU_MERGER compile flag not set");
@@ -717,7 +717,7 @@ int AliGPUReconstructionCUDA::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool 
 #endif
 }
 
-int AliGPUReconstructionCUDA::TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream, int nEvents, deviceEvent* evList, deviceEvent* ev)
+int AliGPUReconstructionCUDABackend::TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream, int nEvents, deviceEvent* evList, deviceEvent* ev)
 {
 	if (mDeviceProcessingSettings.debugLevel >= 3) stream = -1;
 	if (mDeviceProcessingSettings.debugLevel >= 3) printf("Copying to GPU: %s\n", res->Name());
@@ -725,7 +725,7 @@ int AliGPUReconstructionCUDA::TransferMemoryResourceToGPU(AliGPUMemoryResource* 
 	else return GPUFailedMsg(cudaMemcpyAsync(res->PtrDevice(), res->Ptr(), res->Size(), cudaMemcpyHostToDevice, mInternals->CudaStreams[stream]));
 }
 
-int AliGPUReconstructionCUDA::TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream, int nEvents, deviceEvent* evList, deviceEvent* ev)
+int AliGPUReconstructionCUDABackend::TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream, int nEvents, deviceEvent* evList, deviceEvent* ev)
 {
 	if (mDeviceProcessingSettings.debugLevel >= 3) stream = -1;
 	if (mDeviceProcessingSettings.debugLevel >= 3) printf("Copying to Host: %s\n", res->Name());
@@ -733,7 +733,7 @@ int AliGPUReconstructionCUDA::TransferMemoryResourceToHost(AliGPUMemoryResource*
 	return GPUFailedMsg(cudaMemcpyAsync(res->Ptr(), res->PtrDevice(), res->Size(), cudaMemcpyDeviceToHost, mInternals->CudaStreams[stream]));
 }
 
-int AliGPUReconstructionCUDA::GPUMergerAvailable() const
+int AliGPUReconstructionCUDABackend::GPUMergerAvailable() const
 {
 #ifdef GPUCA_GPU_MERGER
 	return(1);
@@ -742,22 +742,22 @@ int AliGPUReconstructionCUDA::GPUMergerAvailable() const
 #endif
 }
 
-void AliGPUReconstructionCUDA::ActivateThreadContext()
+void AliGPUReconstructionCUDABackend::ActivateThreadContext()
 {
 	cuCtxPushCurrent(mInternals->CudaContext);
 }
-void AliGPUReconstructionCUDA::ReleaseThreadContext()
+void AliGPUReconstructionCUDABackend::ReleaseThreadContext()
 {
 	cuCtxPopCurrent(&mInternals->CudaContext);
 }
 
-int AliGPUReconstructionCUDA::SynchronizeGPU()
+int AliGPUReconstructionCUDABackend::SynchronizeGPU()
 {
 	GPUFailedMsg(cudaDeviceSynchronize());
 	return(0);
 }
 
-int AliGPUReconstructionCUDA::PrepareTextures()
+int AliGPUReconstructionCUDABackend::PrepareTextures()
 {
 #ifdef GPUCA_GPU_USE_TEXTURES
 	cudaChannelFormatDesc channelDescu2 = cudaCreateChannelDesc<cahit2>();
@@ -777,7 +777,7 @@ int AliGPUReconstructionCUDA::PrepareTextures()
 	return(0);
 }
 
-int AliGPUReconstructionCUDA::PrepareProfile()
+int AliGPUReconstructionCUDABackend::PrepareProfile()
 {
 #ifdef GPUCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 	char* tmpMem;
@@ -796,7 +796,7 @@ int AliGPUReconstructionCUDA::PrepareProfile()
 	return 0;
 }
 
-int AliGPUReconstructionCUDA::DoProfile()
+int AliGPUReconstructionCUDABackend::DoProfile()
 {
 #ifdef GPUCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 	char* stageAtSync = (char*) malloc(100000000);
