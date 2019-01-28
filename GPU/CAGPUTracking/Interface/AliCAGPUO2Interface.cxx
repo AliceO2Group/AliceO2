@@ -16,7 +16,7 @@
 //                                                                          *
 //***************************************************************************
 
-#include "AliGPUTPCO2Interface.h"
+#include "AliCAGPUO2Interface.h"
 #include "AliGPUReconstruction.h"
 #include "AliGPUCAConfiguration.h"
 #include "TPCFastTransform.h"

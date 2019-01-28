@@ -6,8 +6,8 @@
 //                                                                        *
 //*************************************************************************
 
-#ifndef ALIHLTTPCCAO2INTERFACE_H
-#define ALIHLTTPCCAO2INTERFACE_H
+#ifndef ALICAGPUO2INTERFACE_H
+#define ALICAGPUO2INTERFACE_H
 
 //Some defines denoting that we are compiling for O2
 #ifndef GPUCA_O2_LIB

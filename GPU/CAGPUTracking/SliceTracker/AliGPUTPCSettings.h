@@ -2,7 +2,7 @@
 #define ALIHLTTPCCASETTINGS_H
 
 #if !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB) && !defined(GPUCA_O2_LIB)
-#error You are using the CA GPU tracking without defining the build type (O2/AliRoot/Standalone). If you are running ROOT macro, please include AliGPUTPCO2Interface.h first!
+#error You are using the CA GPU tracking without defining the build type (O2/AliRoot/Standalone). If you are running ROOT macro, please include AliCAGPUO2Interface.h first!
 #endif
 
 #if defined(GPUCA_ALIROOT_LIB) && defined(GPUCA_O2_LIB)
