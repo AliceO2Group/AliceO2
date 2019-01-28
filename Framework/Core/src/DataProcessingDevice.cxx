@@ -251,17 +251,14 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
       auto pi = hi*2;
       auto dh = o2::header::get<DataHeader*>(parts.At(pi)->GetData());
       if (!dh) {
-        LOG(ERROR) << "Header is not a DataHeader?";
-        return false;
+        throw std::runtime_error("Header is not a DataHeader?");
       }
       if (dh->payloadSize != parts.At(pi+1)->GetSize()) {
-        LOG(ERROR) << "DataHeader payloadSize mismatch";
-        return false;
+        throw std::runtime_error("DataHeader payloadSize mismatch");
       }
       auto dph = o2::header::get<DataProcessingHeader*>(parts.At(pi)->GetData());
       if (!dph) {
-        LOG(ERROR) << "Header stack does not contain DataProcessingHeader";
-        return false;
+        throw std::runtime_error("Header stack does not contain DataProcessingHeader");
       }
     }
     return true;
