@@ -8,16 +8,31 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/TextControlService.h"
+#include "Framework/DeviceSpec.h"
+#include "Framework/DeviceState.h"
+#include "Framework/ServiceRegistry.h"
+#include "Framework/RawDeviceService.h"
 #include "Framework/Logger.h"
+#include "DataProcessingHelpers.h"
 #include <string>
 #include <string_view>
 #include <regex>
 #include <iostream>
 
-namespace o2
+namespace o2::framework
 {
-namespace framework
+
+TextControlService::TextControlService(ServiceRegistry& registry, DeviceState& deviceState)
+  : mRegistry{registry},
+    mDeviceState{deviceState}
 {
+}
+
+// This will send an end of stream to all the devices downstream.
+void TextControlService::endOfStream()
+{
+  mDeviceState.streaming = DeviceState::StreamingState::EndOfStreaming;
+}
 
 // All we do is to printout
 void TextControlService::readyToQuit(QuitRequest what)
@@ -28,9 +43,11 @@ void TextControlService::readyToQuit(QuitRequest what)
   mOnce = true;
   switch (what) {
     case QuitRequest::All:
+      mDeviceState.quitRequested = true;
       LOG(INFO) << "CONTROL_ACTION: READY_TO_QUIT_ALL";
       break;
     case QuitRequest::Me:
+      mDeviceState.quitRequested = true;
       LOG(INFO) << "CONTROL_ACTION: READY_TO_QUIT_ME";
       break;
   }
@@ -42,5 +59,4 @@ bool parseControl(std::string const& s, std::smatch& match)
   return std::regex_search(s, match, controlRE);
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

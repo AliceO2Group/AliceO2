@@ -17,11 +17,15 @@
 namespace o2::framework
 {
 
+class ServiceRegistry;
+class DeviceState;
+
 /// A service that data processors can use to talk to control and ask for
 /// their own state change or others.
 class TextControlService : public ControlService
 {
  public:
+  TextControlService(ServiceRegistry& registry, DeviceState& deviceState);
   /// Tell the control that I am ready to quit. This will be
   /// done by printing (only once)
   ///
@@ -37,8 +41,12 @@ class TextControlService : public ControlService
   /// child.
   void readyToQuit(QuitRequest all = QuitRequest::Me) final;
 
+  void endOfStream() final;
+
  private:
   bool mOnce = false;
+  ServiceRegistry& mRegistry;
+  DeviceState& mDeviceState;
 };
 
 bool parseControl(std::string const& s, std::smatch& match);
