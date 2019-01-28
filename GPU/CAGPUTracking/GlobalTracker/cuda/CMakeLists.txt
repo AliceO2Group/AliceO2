@@ -21,7 +21,7 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
 elseif(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     set(MODULE AliCAGPUTrackingCUDA)
 endif()
-add_definitions(-DGPUCA_GPULIBRARY=CUDA)
+set(DEFINITIONS ${DEFINITIONS} GPUCA_GPULIBRARY=CUDA)
 
 option(CUDA_GCCBIN "GCC binary to use for compiling host part of CUDA code for systems with multiple GCC versions installed"   OFF)
 
@@ -87,6 +87,10 @@ set(HDRS
     ${CAGPUDIR}/GlobalTracker/AliGPUTPCGPUTrackerCommon.h
     AliGPUReconstructionCUDAInternals.h
   )
+
+foreach (def ${DEFINITIONS})
+  add_definitions(-D${def})
+endforeach()
 
 #Default cmake build script for AliRoot
 if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")

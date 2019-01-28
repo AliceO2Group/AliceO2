@@ -58,6 +58,8 @@ o2_define_bucket(
     ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/Standalone/display
     ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/Standalone/qa
     ${CMAKE_SOURCE_DIR}/Framework/Core/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/tracking/include
+    ${CMAKE_SOURCE_DIR}/Detectors/TRD/base/include
 )
 
 o2_define_bucket(
