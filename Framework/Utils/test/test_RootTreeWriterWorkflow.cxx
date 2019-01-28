@@ -125,6 +125,8 @@ DataProcessorSpec getSourceSpec()
     auto processingFct = [counter](ProcessingContext& pc) {
       if (*counter >= sTreeSize) {
         // don't publish more
+        pc.services().get<ControlService>().endOfStream();
+        pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
         return;
       }
       o2::test::Polymorphic a(*counter);

@@ -9,9 +9,12 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/WorkflowSpec.h"
+#include "Framework/CallbackService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataAllocator.h"
+#include "Framework/RawDeviceService.h"
+#include "Framework/EndOfStreamContext.h"
 #include "Framework/InputRecord.h"
 #include "Framework/InputSpec.h"
 #include "Framework/OutputSpec.h"
@@ -20,6 +23,7 @@
 #include "Framework/Logger.h"
 #include "Framework/DispatchPolicy.h"
 #include "Framework/DeviceSpec.h"
+#include <FairMQDevice.h>
 #include <chrono>
 #include <cstring>
 #include <iostream>
@@ -64,20 +68,23 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     producerOutputs.emplace_back(OutputSpec{"PROD", "CHANNEL", subspec, Lifetime::Timeframe});
   }
 
-  auto producerFct = [subspecs](ProcessingContext& pc) {
-    static bool ready = false;
-    if (ready) {
-      return;
-    }
+  auto producerFct = adaptStateless([subspecs](DataAllocator& outputs, RawDeviceService& device, ControlService& control) {
+    // static bool ready = false;
+    // if (ready) {
+    //   return;
+    // }
+
     for (auto const& subspec : subspecs) {
       //pc.outputs().make<MyDataType>(Output{ "PROD", "CHANNEL", subspec, Lifetime::Timeframe }) = subspec;
-      pc.outputs().snapshot(Output{"PROD", "CHANNEL", subspec, Lifetime::Timeframe}, subspec);
-      std::cout << "publishing channel " << subspec << std::endl;
-      sleep(1);
+      outputs.snapshot(Output{"PROD", "CHANNEL", subspec, Lifetime::Timeframe}, subspec);
+      //  std::cout << "publishing channel " << subspec << std::endl;
+      device.device()->WaitFor(std::chrono::milliseconds(1000));
     }
-    ready = true;
-    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-  };
+    control.endOfStream();
+    control.readyToQuit(QuitRequest::Me);
+    // ready = true;
+  });
+
   auto processorFct = [](ProcessingContext& pc) {
     int nActiveInputs = 0;
     for (auto const& input : pc.inputs()) {
@@ -97,14 +104,17 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     input.binding += std::to_string(subspecs[index]);
     DataSpecUtils::updateMatchingSubspec(input, subspecs[index]);
   };
-  auto sinkFct = [](ProcessingContext& pc) {
-    for (auto const& input : pc.inputs()) {
-      auto& data = pc.inputs().get<MyDataType>(input.spec->binding.c_str());
-      std::cout << "received channel " << data << std::endl;
-    }
-    sleep(2);
-    pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
-  };
+
+  auto sinkFct = adaptStateful([](CallbackService& callbacks) {
+    callbacks.set(CallbackService::Id::EndOfStream, [](EndOfStreamContext& context) {
+      context.services().get<ControlService>().readyToQuit(QuitRequest::All);
+    });
+    return adaptStateless([](InputRecord& inputs) {
+      for (auto const& input : inputs) {
+        auto& data = inputs.get<MyDataType>(input.spec->binding.c_str());
+        std::cout << "received channel " << data << std::endl;
+      } });
+  });
 
   std::vector<DataProcessorSpec> workflow = parallelPipeline(
     std::vector<DataProcessorSpec>{DataProcessorSpec{
