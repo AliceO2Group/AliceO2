@@ -107,8 +107,8 @@ TRDFeeParam::TRDFeeParam(const TRDFeeParam& p)
   //
   // TRDFeeParam copy constructor
   //
-  mRAWversion=p.mRAWversion;
-  mCP=p.mCP;
+  mRAWversion = p.mRAWversion;
+  mCP = p.mCP;
 }
 
 //_____________________________________________________________________________

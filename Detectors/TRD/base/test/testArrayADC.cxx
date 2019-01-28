@@ -23,16 +23,19 @@
 #include <string>
 #include "TRDBase/TRDArrayADC.h"
 
-namespace o2 {
-namespace tcp {
+namespace o2 
+{
+namespace tcp 
+{
 
-  /// \brief Test the arrayadc class operation
-  //
-  /// check the bit manipulations
-  BOOST_AUTO_TEST_CASE(ArrayADCtest1)
-  {
-    TRDArrayADC data = new TRDArrayADC();
-    //set bits as corrupted and see if they are detected correctly
-  }
+/// \brief Test the arrayadc class operation
+//
+/// check the bit manipulations
+BOOST_AUTO_TEST_CASE(ArrayADCtest1)
+{
+  TRDArrayADC data = new TRDArrayADC();
+  //set bits as corrupted and see if they are detected correctly
+}
+
 }
 }

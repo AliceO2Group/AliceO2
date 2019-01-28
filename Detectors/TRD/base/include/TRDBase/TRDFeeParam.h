@@ -106,16 +106,16 @@ class TRDFeeParam
   // Remark: ISO C++ allows initialization of static const values only for integer.
 
   // Basic Geometrical numbers
-  static const Int_t mgkLHCfrequency = 40079000; // [Hz] LHC clock 
-  static const Int_t mgkNmcmRob = 16;            // Number of MCMs per ROB  
+  static const Int_t mgkLHCfrequency = 40079000; // [Hz] LHC clock
+  static const Int_t mgkNmcmRob = 16;            // Number of MCMs per ROB
   static const Int_t mgkNmcmRobInRow = 4;        // Number of MCMs per ROB in row dir.
   static const Int_t mgkNmcmRobInCol = 4;        // Number of MCMs per ROB in col dir.
-  static const Int_t mgkNrobC0 = 6;              // Number of ROBs per C0 chamber 
-  static const Int_t mgkNrobC1 = 8;              // Number of ROBs per C1 chamber 
-  static const Int_t mgkNadcMcm = 21;            // Number of ADC channels per MCM 
+  static const Int_t mgkNrobC0 = 6;              // Number of ROBs per C0 chamber
+  static const Int_t mgkNrobC1 = 8;              // Number of ROBs per C1 chamber
+  static const Int_t mgkNadcMcm = 21;            // Number of ADC channels per MCM
   static const Int_t mgkNcol = 144;              // Number of pads per padplane row
-  static const Int_t mgkNcolMcm = 18;            // Number of pads per MCM        
-  static const Int_t mgkNrowC0 = 12;             // Number of Rows per C0 chamber 
+  static const Int_t mgkNcolMcm = 18;            // Number of pads per MCM
+  static const Int_t mgkNrowC0 = 12;             // Number of Rows per C0 chamber
   static const Int_t mgkNrowC1 = 16;             // Number of Rows per C1 chamber
 
   // Tracklet  processing on/off
@@ -125,7 +125,7 @@ class TRDFeeParam
   static Bool_t mgUseTimeOffset;           // add time offset in calculation of fit sums
 
   // For raw production
-  Int_t mRAWversion{3};                       // Raw data production version
+  Int_t mRAWversion{ 3 };                  // Raw data production version
   static const Int_t mgkMaxRAWversion = 3; // Maximum raw version number supported
 
  private:

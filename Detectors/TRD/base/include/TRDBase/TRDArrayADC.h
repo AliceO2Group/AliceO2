@@ -69,17 +69,16 @@ class TRDArrayADC
   static void CreateLut();
 
  protected:
-  Int_t mNdet{0};             //ID number of the chamber
-  Int_t mNrow{0};             //Number of rows
-  Int_t mNcol{0};             //Number of columns(pads)
-  Int_t mNumberOfChannels{0}; //  Number of MCM channels per row
-  Int_t mNtime{0};            //Number of time bins
-  Int_t mNAdim{0};            //Dimension of the ADC array
-                           //  std::vector<Short_t> mADC;  //[mNAdim]   //Pointer to adc values
-  Short_t* mADC=nullptr;           //[mNAdim]   //Pointer to adc values
-  //static std::vector<Short_t> mgLutPadNumbering;   //  [mNcol] Look Up Table
+  Int_t mNdet{ 0 };             //ID number of the chamber
+  Int_t mNrow{ 0 };             //Number of rows
+  Int_t mNcol{ 0 };             //Number of columns(pads)
+  Int_t mNumberOfChannels{ 0 }; //  Number of MCM channels per row
+  Int_t mNtime{ 0 };            //Number of time bins
+  Int_t mNAdim{ 0 };            //Dimension of the ADC array
+                                //  std::vector<Short_t> mADC;  //[mNAdim]   //Pointer to adc values
+  Short_t* mADC = nullptr;        //[mNAdim]   //Pointer to adc values
   static Short_t* mgLutPadNumbering; //  [mNcol] Look Up Table
-  ClassDefNV(TRDArrayADC, 1)           //ADC container class
+  ClassDefNV(TRDArrayADC, 1)         //ADC container class
 };
 
 } // end of namespace trd

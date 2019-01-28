@@ -110,7 +110,7 @@ Short_t* ArrayADC::getDataAddress(Int_t nrow, Int_t ncol, Int_t ntime) const
   //
   // get the address of the given pad
   //
-  LOG (fatal) << "You requested a now depricated function : ArrayADC::getDataAddress("<< nrow <<","<<ncol<<","<<ntime;
+  LOG(fatal) << "You requested a now depricated function : ArrayADC::getDataAddress(" << nrow << "," << ncol << "," << ntime;
   return nullptr;
 }
 //________________________________________________________________________________

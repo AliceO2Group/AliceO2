@@ -69,12 +69,12 @@ class ArrayADC
   void CreateLut();
 
  protected:
-  Int_t mNdet{0};                            //ID number of the chamber
-  Int_t mNrow{0};                            //Number of rows
-  Int_t mNcol{0};                            //Number of columns(pads)
-  Int_t mNumberOfChannels{0};                //  Number of MCM channels per row
-  Int_t mNtime{0};                           //Number of time bins
-  Int_t mNAdim{0};                           //Dimension of the ADC array
+  Int_t mNdet{ 0 };                       //ID number of the chamber
+  Int_t mNrow{ 0 };                       //Number of rows
+  Int_t mNcol{ 0 };                       //Number of columns(pads)
+  Int_t mNumberOfChannels{ 0 };           //  Number of MCM channels per row
+  Int_t mNtime{ 0 };                      //Number of time bins
+  Int_t mNAdim{ 0 };                      //Dimension of the ADC array
   std::vector<Short_t> mADC;              //[fNAdim]   //Pointer to adc values
   std::vector<Short_t> mgLutPadNumbering; //  [fNcol] Look Up Table
   ClassDefNV(ArrayADC, 1)                 //ADC container class
