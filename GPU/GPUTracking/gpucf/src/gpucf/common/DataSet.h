@@ -1,6 +1,6 @@
 #pragma once
 
-#include <gpucf/Object.h>
+#include <gpucf/common/Object.h>
 
 #include <filesystem/path.h>
 

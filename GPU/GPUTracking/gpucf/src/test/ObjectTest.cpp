@@ -1,6 +1,6 @@
 #include <catch2/catch.hpp>
 
-#include <gpucf/Object.h>
+#include <gpucf/common/Object.h>
 
 
 using namespace gpucf;
