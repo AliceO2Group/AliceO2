@@ -10,6 +10,10 @@
 #ifndef ALIHLTTPCCATRACKERCOMPONENT_H
 #define ALIHLTTPCCATRACKERCOMPONENT_H
 
+#ifndef GPUCA_ALIROOT_LIB
+#define GPUCA_ALIROOT_LIB
+#endif
+
 #include "AliHLTProcessor.h"
 #include "AliHLTComponentBenchmark.h"
 #include "AliHLTAsyncMemberProcessor.h"

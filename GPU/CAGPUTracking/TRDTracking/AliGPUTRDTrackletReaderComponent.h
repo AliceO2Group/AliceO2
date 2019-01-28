@@ -13,6 +13,10 @@
 /// @brief  A FEP-level pre-processing component for TRD tracking/trigger data
 /// @ingroup alihlt_trd_components
 
+#ifndef GPUCA_ALIROOT_LIB
+#define GPUCA_ALIROOT_LIB
+#endif
+
 #include "AliHLTProcessor.h"
 
 class AliRawReaderMemory;

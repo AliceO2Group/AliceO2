@@ -17,6 +17,10 @@
 /// @brief  HLT TPC CA global merger component.
 ///
 
+#ifndef GPUCA_ALIROOT_LIB
+#define GPUCA_ALIROOT_LIB
+#endif
+
 #include "AliHLTProcessor.h"
 #include "AliHLTComponentBenchmark.h"
 #include "AliGPUCAParam.h"
