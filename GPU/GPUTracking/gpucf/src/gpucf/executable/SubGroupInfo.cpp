@@ -1,6 +1,6 @@
 #include "SubGroupInfo.h"
 
-#include <gpucf/log.h>
+#include <gpucf/common/log.h>
 
 
 using namespace gpucf;

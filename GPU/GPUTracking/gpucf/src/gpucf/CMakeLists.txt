@@ -1,24 +1,25 @@
 set(GPUCF_SRC
-    "./log.cpp"
     "./cl.cpp"
 
-    "./ChargeMap.cpp"
-    "./DataSet.cpp"
     "./ClEnv.cpp"
     "./ClusterChecker.cpp"
-    "./GPUClusterFinder.cpp"
-    "./Object.cpp"
-    "./RowInfo.cpp"
     "./VectorAdd.cpp"
     
-    "./common/Digit.cpp"
     "./common/Cluster.cpp"
+    "./common/DataSet.cpp"
+    "./common/Digit.cpp"
+    "./common/log.cpp"
+    "./common/Object.cpp"
+    "./common/RowInfo.cpp"
 
     "./executable/CfRunner.cpp"
     "./executable/ClCanary.cpp"
     "./executable/CompareClusters.cpp"
     "./executable/Executable.cpp"
     "./executable/SubGroupInfo.cpp"
+
+    "./gpu/GPUAlgorithm.cpp"
+    "./gpu/GPUClusterFinder.cpp"
 )
 
 add_library(gpucf STATIC ${GPUCF_SRC})

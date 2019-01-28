@@ -1,7 +1,7 @@
 #include "VectorAdd.h"
 
 #include <gpucf/ClEnv.h>
-#include <gpucf/log.h>
+#include <gpucf/common/log.h>
 
 
 using namespace gpucf;
