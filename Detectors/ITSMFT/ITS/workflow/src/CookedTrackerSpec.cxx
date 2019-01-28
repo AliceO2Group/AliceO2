@@ -37,6 +37,8 @@ namespace ITS
 
 void CookedTrackerDPL::init(InitContext& ic)
 {
+  auto nthreads = ic.options().get<int>("nthreads");
+  mTracker.setNumberOfThreads(nthreads);
   auto filename = ic.options().get<std::string>("grp-file");
   const auto grp = o2::parameters::GRPObject::loadFrom(filename.c_str());
   if (grp) {
@@ -110,6 +112,7 @@ DataProcessorSpec getCookedTrackerSpec()
     AlgorithmSpec{ adaptFromTask<CookedTrackerDPL>() },
     Options{
       { "grp-file", VariantType::String, "o2sim_grp.root", { "Name of the output file" } },
+      { "nthreads", VariantType::Int, 1, { "Number of threads" } },
     }
   };
 }
