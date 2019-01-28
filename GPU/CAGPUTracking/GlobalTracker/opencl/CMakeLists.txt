@@ -19,7 +19,7 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
 elseif(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     set(MODULE AliCAGPUTrackingOpenCL)
 endif()
-add_definitions(-DGPUCA_GPULIBRARY=OCL)
+set(DEFINITIONS ${DEFINITIONS} GPUCA_GPULIBRARY=OCL)
 
 # AMD APP SDK required for OpenCL tracker; it's using specific
 # extensions (currently) not provided by other vendors.
@@ -112,6 +112,10 @@ set(HDRS
     ${CAGPUDIR}/GlobalTracker/AliGPUTPCGPUTrackerCommon.h
     AliGPUReconstructionOCLInternals.h
   )
+
+foreach (def ${DEFINITIONS})
+  add_definitions(-D${def})
+endforeach()
 
 #Default cmake build script for AliRoot
 if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
