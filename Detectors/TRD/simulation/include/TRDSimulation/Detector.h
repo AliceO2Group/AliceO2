@@ -16,7 +16,7 @@
 #include "SimulationDataFormat/BaseHits.h"
 #include "CommonUtils/ShmAllocator.h"
 
-class FairVolume;
+#include "TRDSimulation/TRsim.h"
 
 namespace o2
 {
@@ -49,7 +49,7 @@ class TRDGeometry;
 class Detector : public o2::Base::DetImpl<Detector>
 {
  public:
-  Detector(Bool_t active=true);
+  Detector(Bool_t active = true);
 
   ~Detector() override;
 
@@ -87,6 +87,9 @@ class Detector : public o2::Base::DetImpl<Detector>
   template <typename T>
   void addHit(T x, T y, T z, T time, T energy, int trackId, int detId);
 
+  // Create TR hits
+  void CreateTRhit(int);
+
   std::vector<HitType>* mHits = nullptr; ///!< Collection of TRD hits
 
   float mFoilDensity;
@@ -94,6 +97,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   float mGasDensity;
 
   bool mTRon;  //  Switch for TR simulation
+  TRsim* mTR;  // TR simulation
   float mWion; //  Ionization potential
 
   TRDGeometry* mGeom = nullptr;
@@ -110,7 +114,7 @@ void Detector::addHit(T x, T y, T z, T time, T energy, int trackId, int detId)
 }
 
 } // end namespace trd
-} // end global namespace
+} // namespace o2
 
 #ifdef USESHM
 namespace o2

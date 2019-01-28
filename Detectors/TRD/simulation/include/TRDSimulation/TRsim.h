@@ -26,93 +26,87 @@
 
 class TH1D;
 
-// class FairModule;
-
 class TRsim : public TObject
 {
  public:
   TRsim();
-  // TRsim(const TRsim& s);
-  // TRsim(FairModule* mod, int foil, int gap);
-  virtual ~TRsim();
-  TRsim& operator=(const TRsim& s);
-  virtual void Copy(TObject& s) const;
-  virtual void Init();
-  virtual int CreatePhotons(int pdg, float p, int& nPhoton, float* ePhoton);
-  virtual int TrPhotons(float p, float mass, int& nPhoton, float* ePhoton);
-  virtual double Sigma(double energykeV);
-  virtual double Interpolate(double energyMeV, double* en, const double* const mu, int n);
-  virtual int Locate(double* xv, int n, double xval, int& kl, double& dx);
-  virtual double Omega(float rho, float z, float a) { return (28.8 * TMath::Sqrt(rho * z / a)); };
-  virtual int SelectNFoils(float p) const;
+  ~TRsim();
+  void init();
+  int createPhotons(int pdg, float p, std::vector<float>& ePhoton);
+  int calculatePhotons(float p, float mass, std::vector<float>& ePhoton);
+  double getSigma(double energykeV);
+  double interpolate(double energyMeV, double* en, const double* const mu, int n);
+  int locate(double* xv, int n, double xval, int& kl, double& dx);
+  double getOmega(float rho, float z, float a) { return (28.8 * TMath::Sqrt(rho * z / a)); };
+  int selectNFoils(float p) const;
 
-  void SetFoilThick(float t)
+  void setFoilThick(float t)
   {
     mFoilThick = t;
-    SetSigma();
+    setSigma();
   };
-  void SetGapThick(float t)
+  void setGapThick(float t)
   {
     mGapThick = t;
-    SetSigma();
+    setSigma();
   };
-  void SetFoilDens(float d)
+  void setFoilDens(float d)
   {
     mFoilDens = d;
-    mFoilOmega = Omega(mFoilDens, mFoilZ, mFoilA);
-    SetSigma();
+    mFoilOmega = getOmega(mFoilDens, mFoilZ, mFoilA);
+    setSigma();
   };
-  void SetFoilZ(float z)
+  void setFoilZ(float z)
   {
     mFoilZ = z;
-    mFoilOmega = Omega(mFoilDens, mFoilZ, mFoilA);
+    mFoilOmega = getOmega(mFoilDens, mFoilZ, mFoilA);
   };
-  void SetFoilA(float a)
+  void setFoilA(float a)
   {
     mFoilA = a;
-    mFoilOmega = Omega(mFoilDens, mFoilZ, mFoilA);
+    mFoilOmega = getOmega(mFoilDens, mFoilZ, mFoilA);
   };
-  void SetGapDens(float d)
+  void setGapDens(float d)
   {
     mGapDens = d;
-    mGapOmega = Omega(mGapDens, mGapZ, mGapA);
-    SetSigma();
+    mGapOmega = getOmega(mGapDens, mGapZ, mGapA);
+    setSigma();
   };
-  void SetGapZ(float z)
+  void setGapZ(float z)
   {
     mGapZ = z;
-    mGapOmega = Omega(mGapDens, mGapZ, mGapA);
+    mGapOmega = getOmega(mGapDens, mGapZ, mGapA);
   };
-  void SetGapA(float a)
+  void setGapA(float a)
   {
     mGapA = a;
-    mGapOmega = Omega(mGapDens, mGapZ, mGapA);
+    mGapOmega = getOmega(mGapDens, mGapZ, mGapA);
   };
-  void SetTemp(float t)
+  void setTemp(float t)
   {
     mTemp = t;
-    SetSigma();
+    setSigma();
   };
-  void SetSigma();
+  void setSigma();
 
-  virtual double GetMuPo(double energyMeV);
-  virtual double GetMuCO(double energyMeV);
-  virtual double GetMuXe(double energyMeV);
-  virtual double GetMuAr(double energyMeV);
-  virtual double GetMuMy(double energyMeV);
-  virtual double GetMuN2(double energyMeV);
-  virtual double GetMuO2(double energyMeV);
-  virtual double GetMuHe(double energyMeV);
-  virtual double GetMuAi(double energyMeV);
+  double getMuPo(double energyMeV);
+  double getMuCO(double energyMeV);
+  double getMuXe(double energyMeV);
+  double getMuAr(double energyMeV);
+  double getMuMy(double energyMeV);
+  double getMuN2(double energyMeV);
+  double getMuO2(double energyMeV);
+  double getMuHe(double energyMeV);
+  double getMuAi(double energyMeV);
 
-  float GetFoilThick() const { return mFoilThick; };
-  float GetGapThick() const { return mGapThick; };
-  float GetFoilDens() const { return mFoilDens; };
-  float GetGapDens() const { return mGapDens; };
-  double GetFoilOmega() const { return mFoilOmega; };
-  double GetGapOmega() const { return mGapOmega; };
-  float GetTemp() const { return mTemp / 273.16; };
-  TH1D* GetSpectrum() const { return mSpectrum; };
+  float getFoilThick() const { return mFoilThick; };
+  float getGapThick() const { return mGapThick; };
+  float getFoilDens() const { return mFoilDens; };
+  float getGapDens() const { return mGapDens; };
+  double getFoilgetOmega() const { return mFoilOmega; };
+  double getGapgetOmega() const { return mGapOmega; };
+  float getTemp() const { return mTemp / 273.16; };
+  TH1D* getSpectrum() const { return mSpectrum; };
 
  protected:
   int mNFoilsDim;    //  Dimension of the NFoils array
