@@ -636,12 +636,12 @@ int AliGPUReconstructionCUDABackend::DoTRDGPUTracking()
 
 	GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, fGpuTrdTracker, sizeof(*fGpuTrdTracker), (char*) &AliGPUCAConstantMemDummy.trdTracker - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice));
 
-	TransferMemoryResourcesToGPU(fGpuTrdTracker);
+	TransferMemoryResourcesToGPU(mTRDTracker.get());
 
 	DoTrdTrackingGPU<<<fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT_TRD>>>();
 	GPUFailedMsg(cudaDeviceSynchronize());
 
-	TransferMemoryResourcesToHost(fGpuTrdTracker);
+	TransferMemoryResourcesToHost(mTRDTracker.get());
 	GPUFailedMsg(cudaDeviceSynchronize());
 
 	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("GPU TRD tracker Finished");
