@@ -26,35 +26,7 @@ class AliGPUTPCTracker;
 
 #if defined(__CUDACC__)
 
-template <class TProcess>
-GPUg() void AliGPUTPCProcess(int iSlice)
-{
-	AliGPUTPCTracker &tracker = gGPUConstantMem.tpcTrackers[iSlice];
-	GPUshared() typename TProcess::AliGPUTPCSharedMemory smem;
 
-	for (int iSync = 0; iSync <= TProcess::NThreadSyncPoints(); iSync++)
-	{
-		GPUsync();
-		TProcess::Thread(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), iSync, smem, tracker);
-	}
-}
-
-template <class TProcess>
-GPUg() void AliGPUTPCProcessMulti(int firstSlice, int nSliceCount)
-{
-	const int iSlice = nSliceCount * (get_group_id(0) + (get_num_groups(0) % nSliceCount != 0 && nSliceCount * (get_group_id(0) + 1) % get_num_groups(0) != 0)) / get_num_groups(0);
-	const int nSliceBlockOffset = get_num_groups(0) * iSlice / nSliceCount;
-	const int sliceBlockId = get_group_id(0) - nSliceBlockOffset;
-	const int sliceGridDim = get_num_groups(0) * (iSlice + 1) / nSliceCount - get_num_groups(0) * (iSlice) / nSliceCount;
-	AliGPUTPCTracker &tracker = gGPUConstantMem.tpcTrackers[firstSlice + iSlice];
-	GPUshared() typename TProcess::AliGPUTPCSharedMemory smem;
-
-	for (int iSync = 0; iSync <= TProcess::NThreadSyncPoints(); iSync++)
-	{
-		GPUsync();
-		TProcess::Thread(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), iSync, smem, tracker);
-	}
-}
 
 #elif defined(__OPENCL__) //__OPENCL__
 

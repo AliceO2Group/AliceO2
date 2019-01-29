@@ -76,6 +76,48 @@ namespace o2 { namespace ITS { class TrackerTraitsNV : public TrackerTraits {}; 
 #define RANDOM_ERROR
 //#define RANDOM_ERROR || rand() % 500 == 1
 
+template <class TProcess> GPUg() void AliGPUTPCProcess(int iSlice)
+{
+	AliGPUTPCTracker &tracker = gGPUConstantMem.tpcTrackers[iSlice];
+	GPUshared() typename TProcess::AliGPUTPCSharedMemory smem;
+
+	for (int iSync = 0; iSync <= TProcess::NThreadSyncPoints(); iSync++)
+	{
+		GPUsync();
+		TProcess::Thread(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), iSync, smem, tracker);
+	}
+}
+
+template <class TProcess> GPUg() void AliGPUTPCProcessMulti(int firstSlice, int nSliceCount)
+{
+	const int iSlice = nSliceCount * (get_group_id(0) + (get_num_groups(0) % nSliceCount != 0 && nSliceCount * (get_group_id(0) + 1) % get_num_groups(0) != 0)) / get_num_groups(0);
+	const int nSliceBlockOffset = get_num_groups(0) * iSlice / nSliceCount;
+	const int sliceBlockId = get_group_id(0) - nSliceBlockOffset;
+	const int sliceGridDim = get_num_groups(0) * (iSlice + 1) / nSliceCount - get_num_groups(0) * (iSlice) / nSliceCount;
+	AliGPUTPCTracker &tracker = gGPUConstantMem.tpcTrackers[firstSlice + iSlice];
+	GPUshared() typename TProcess::AliGPUTPCSharedMemory smem;
+
+	for (int iSync = 0; iSync <= TProcess::NThreadSyncPoints(); iSync++)
+	{
+		GPUsync();
+		TProcess::Thread(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), iSync, smem, tracker);
+	}
+}
+
+template <class T, typename... Args> int AliGPUReconstructionCUDABackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const Args&... args)
+{
+	if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelBackend<T> (x, y, args...);
+	if (y.start == y.end)
+	{
+		AliGPUTPCProcess<T> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(y.start);
+	}
+	else
+	{
+		AliGPUTPCProcessMulti<T> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>> (y.start, y.end - y.start);
+	}
+	return 0;
+}
+
 AliGPUReconstructionCUDABackend::AliGPUReconstructionCUDABackend(const AliGPUCASettingsProcessing& cfg) : AliGPUReconstructionDeviceBase(cfg)
 {
 	mInternals = new AliGPUReconstructionCUDAInternals;
@@ -389,7 +431,8 @@ int AliGPUReconstructionCUDABackend::RunTPCTrackingSlices_internal()
 
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Neighbours Finder (Slice %d/%d)", iSlice, NSLICES);
 		mWorkers->tpcTrackers[iSlice].StartTimer(1);
-		AliGPUTPCProcess<AliGPUTPCNeighboursFinder> <<<GPUCA_ROW_COUNT, GPUCA_GPU_THREAD_COUNT_FINDER, 0, mInternals->CudaStreams[useStream]>>>(iSlice);
+		runKernel<AliGPUTPCNeighboursFinder>({GPUCA_ROW_COUNT, GPUCA_GPU_THREAD_COUNT_FINDER, useStream}, {iSlice});
+
 
 		if (GPUSync("Neighbours finder", useStream, iSlice) RANDOM_ERROR)
 		{
@@ -406,7 +449,7 @@ int AliGPUReconstructionCUDABackend::RunTPCTrackingSlices_internal()
 
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Neighbours Cleaner (Slice %d/%d)", iSlice, NSLICES);
 		mWorkers->tpcTrackers[iSlice].StartTimer(2);
-		AliGPUTPCProcess<AliGPUTPCNeighboursCleaner> <<<GPUCA_ROW_COUNT - 2, GPUCA_GPU_THREAD_COUNT, 0, mInternals->CudaStreams[useStream]>>>(iSlice);
+		runKernel<AliGPUTPCNeighboursCleaner>({GPUCA_ROW_COUNT - 2, GPUCA_GPU_THREAD_COUNT, useStream}, {iSlice});
 		if (GPUSync("Neighbours Cleaner", useStream, iSlice) RANDOM_ERROR)
 		{
 			return(3);
@@ -421,7 +464,8 @@ int AliGPUReconstructionCUDABackend::RunTPCTrackingSlices_internal()
 
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Start Hits Finder (Slice %d/%d)", iSlice, NSLICES);
 		mWorkers->tpcTrackers[iSlice].StartTimer(3);
-		AliGPUTPCProcess<AliGPUTPCStartHitsFinder> <<<GPUCA_ROW_COUNT - 6, GPUCA_GPU_THREAD_COUNT, 0, mInternals->CudaStreams[useStream]>>>(iSlice);
+		runKernel<AliGPUTPCStartHitsFinder>({GPUCA_ROW_COUNT - 6, GPUCA_GPU_THREAD_COUNT, useStream}, {iSlice});
+		
 		if (GPUSync("Start Hits Finder", useStream, iSlice) RANDOM_ERROR)
 		{
 			return(3);
@@ -430,7 +474,7 @@ int AliGPUReconstructionCUDABackend::RunTPCTrackingSlices_internal()
 
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Start Hits Sorter (Slice %d/%d)", iSlice, NSLICES);
 		mWorkers->tpcTrackers[iSlice].StartTimer(4);
-		AliGPUTPCProcess<AliGPUTPCStartHitsSorter> <<<fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT, 0, mInternals->CudaStreams[useStream]>>>(iSlice);
+		runKernel<AliGPUTPCStartHitsSorter>({fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT, useStream}, {iSlice});
 		if (GPUSync("Start Hits Sorter", useStream, iSlice) RANDOM_ERROR)
 		{
 			return(3);
@@ -511,7 +555,8 @@ int AliGPUReconstructionCUDABackend::RunTPCTrackingSlices_internal()
 
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running HLT Tracklet selector (Stream %d, Slice %d to %d)", useStream, iSlice, iSlice + runSlices);
 		mWorkers->tpcTrackers[iSlice].StartTimer(7);
-		AliGPUTPCProcessMulti<AliGPUTPCTrackletSelector><<<fSelectorBlockCount, GPUCA_GPU_THREAD_COUNT_SELECTOR, 0, mInternals->CudaStreams[useStream]>>>(iSlice, runSlices);
+		runKernel<AliGPUTPCTrackletSelector>({fSelectorBlockCount, GPUCA_GPU_THREAD_COUNT_SELECTOR, useStream}, {iSlice, iSlice + runSlices});
+
 		if (GPUSync("Tracklet Selector", iSlice, iSlice) RANDOM_ERROR)
 		{
 			return(1);
