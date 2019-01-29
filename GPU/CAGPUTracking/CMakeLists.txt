@@ -44,6 +44,7 @@ set(SRCS
     SliceTracker/AliGPUTPCTrackParam.cxx
     SliceTracker/AliGPUTPCTracklet.cxx
     SliceTracker/AliGPUTPCStartHitsFinder.cxx
+    SliceTracker/AliGPUTPCStartHitsSorter.cxx
     SliceTracker/AliGPUTPCNeighboursCleaner.cxx
     SliceTracker/AliGPUTPCTracker.cxx
     SliceTracker/AliGPUTPCSliceData.cxx
@@ -111,7 +112,6 @@ set(HDRS
 )
 #Not processed by ROOT
 set(HDRS2
-    SliceTracker/AliGPUTPCProcess.h
     SliceTracker/AliGPUTPCGeometry.h
     SliceTracker/AliCAGPULogging.h
     SliceTracker/ClusterNativeAccessExt.h

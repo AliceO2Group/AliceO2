@@ -36,6 +36,7 @@ CXXFILES					= SliceTracker/AliGPUTPCSliceData.cxx \
 								SliceTracker/AliGPUTPCTrackletConstructor.cxx \
 								SliceTracker/AliGPUTPCTrackletSelector.cxx \
 								SliceTracker/AliGPUTPCStartHitsFinder.cxx \
+								SliceTracker/AliGPUTPCStartHitsSorter.cxx \
 								SliceTracker/AliGPUTPCHitArea.cxx \
 								SliceTracker/AliGPUTPCTrackParam.cxx \
 								SliceTracker/AliGPUTPCClusterData.cxx \

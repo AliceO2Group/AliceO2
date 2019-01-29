@@ -26,7 +26,6 @@ GPUd() void AliGPUTPCStartHitsSorter::Thread
 	//Sorts the Start Hits by Row Index
 	if ( iSync == 0 ) {
 		if ( iThread == 0 ) {
-			const int gpuFixedBlockCount = tracker.GPUParametersConst()->fGPUFixedBlockCount;
 			const int tmpNRows = GPUCA_ROW_COUNT - 6;
 			const int nRows = iBlock == (nBlocks - 1) ? (tmpNRows - (tmpNRows / nBlocks) * (nBlocks - 1)) : (tmpNRows / nBlocks);
 			const int nStartRow = (tmpNRows / nBlocks) * iBlock + 1;
