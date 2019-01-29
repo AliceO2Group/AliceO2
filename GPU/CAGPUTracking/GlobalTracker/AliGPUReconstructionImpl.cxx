@@ -61,8 +61,6 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 		trk.SetOutput(&mSliceOutput[iSlice]);
 		if (trk.CheckEmptySlice()) continue;
 
-
-
 		trk.SetupCommonMemory();
 
 		if (mParam.debugLevel >= 6)
@@ -93,7 +91,7 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 		if (mParam.debugLevel >= 6) trk.DumpLinks(mDebugFile);
 
 		trk.StartTimer(3);
-		runKernel<AliGPUTPCStartHitsFinder>({GPUCA_ROW_COUNT - 4, 1, 0}, {iSlice}); //Why not -6?
+		runKernel<AliGPUTPCStartHitsFinder>({GPUCA_ROW_COUNT - 6, 1, 0}, {iSlice}); //Why not -6?
 		trk.StopTimer(3);
 
 		if (mParam.debugLevel >= 6) trk.DumpStartHits(mDebugFile);
@@ -125,11 +123,6 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 		if (mParam.debugLevel >= 3) printf("Slice %d, Number of tracks: %d\n", iSlice, *trk.NTracks());
 
 		if (mParam.debugLevel >= 6) trk.DumpTrackHits(mDebugFile);
-
-
-
-
-
 
 		trk.CommonMemory()->fNLocalTracks = trk.CommonMemory()->fNTracks;
 		trk.CommonMemory()->fNLocalTrackHits = trk.CommonMemory()->fNTrackHits;
