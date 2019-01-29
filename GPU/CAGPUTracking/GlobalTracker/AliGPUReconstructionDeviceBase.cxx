@@ -318,7 +318,7 @@ int AliGPUReconstructionDeviceBase::TransferMemoryResourcesToGPU(AliGPUProcessor
 	{
 		AliGPUMemoryResource& res = mMemoryResources[i];
 		if (proc && res.mProcessor != proc) continue;
-		if (!(res.mType & AliGPUMemoryResource::MEMORY_GPU) || (res.mType & AliGPUMemoryResource::MEMORY_CUSTOM)) continue;
+		if (!(res.mType & AliGPUMemoryResource::MEMORY_GPU) || (res.mType & AliGPUMemoryResource::MEMORY_CUSTOM_TRANSFER)) continue;
 		if (!mDeviceProcessingSettings.keepAllMemory && !(all && !(res.mType & AliGPUMemoryResource::MEMORY_OUTPUT)) && !(res.mType & AliGPUMemoryResource::MEMORY_INPUT)) continue;
 		if (TransferMemoryResourceToGPU(&mMemoryResources[i], stream)) return 1;
 	}
@@ -331,7 +331,7 @@ int AliGPUReconstructionDeviceBase::TransferMemoryResourcesToHost(AliGPUProcesso
 	{
 		AliGPUMemoryResource& res = mMemoryResources[i];
 		if (proc && res.mProcessor != proc) continue;
-		if (!(res.mType & AliGPUMemoryResource::MEMORY_GPU) || (res.mType & AliGPUMemoryResource::MEMORY_CUSTOM)) continue;
+		if (!(res.mType & AliGPUMemoryResource::MEMORY_GPU) || (res.mType & AliGPUMemoryResource::MEMORY_CUSTOM_TRANSFER)) continue;
 		if (!mDeviceProcessingSettings.keepAllMemory && !(all && !(res.mType & AliGPUMemoryResource::MEMORY_INPUT)) && !(res.mType & AliGPUMemoryResource::MEMORY_OUTPUT)) continue;
 		if (TransferMemoryResourceToHost(&mMemoryResources[i], stream)) return 1;
 	}
