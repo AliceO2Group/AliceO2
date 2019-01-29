@@ -64,11 +64,11 @@ void* AliGPUTRDTracker::SetPointersBase(void* base)
   // Allocate memory for fixed size objects (needs to be done only once)
   //--------------------------------------------------------------------
   fMaxThreads = mRec->GetMaxThreads();
-  AliGPUReconstruction::computePointerWithAlignment(base, fR, kNLayers);
-  AliGPUReconstruction::computePointerWithAlignment(base, fNtrackletsInChamber, kNChambers);
-  AliGPUReconstruction::computePointerWithAlignment(base, fTrackletIndexArray, kNChambers);
-  AliGPUReconstruction::computePointerWithAlignment(base, fHypothesis, fNhypothesis * fMaxThreads);
-  AliGPUReconstruction::computePointerWithAlignment(base, fCandidates, fNCandidates * 2 * fMaxThreads);
+  computePointerWithAlignment(base, fR, kNLayers);
+  computePointerWithAlignment(base, fNtrackletsInChamber, kNChambers);
+  computePointerWithAlignment(base, fTrackletIndexArray, kNChambers);
+  computePointerWithAlignment(base, fHypothesis, fNhypothesis * fMaxThreads);
+  computePointerWithAlignment(base, fCandidates, fNCandidates * 2 * fMaxThreads);
   return base;
 }
 
@@ -78,9 +78,9 @@ void* AliGPUTRDTracker::SetPointersTracklets(void *base)
   // Allocate memory for tracklets and space points
   // (size might change for different events)
   //--------------------------------------------------------------------
-  AliGPUReconstruction::computePointerWithAlignment(base, fTracklets, fNMaxSpacePoints);
-  AliGPUReconstruction::computePointerWithAlignment(base, fSpacePoints, fNMaxSpacePoints);
-  AliGPUReconstruction::computePointerWithAlignment(base, fTrackletLabels, 3*fNMaxSpacePoints);
+  computePointerWithAlignment(base, fTracklets, fNMaxSpacePoints);
+  computePointerWithAlignment(base, fSpacePoints, fNMaxSpacePoints);
+  computePointerWithAlignment(base, fTrackletLabels, 3*fNMaxSpacePoints);
   return base;
 }
 
@@ -89,7 +89,7 @@ void* AliGPUTRDTracker::SetPointersTracks(void *base)
   //--------------------------------------------------------------------
   // Allocate memory for tracks (this is done once per event)
   //--------------------------------------------------------------------
-  AliGPUReconstruction::computePointerWithAlignment(base, fTracks, fNMaxTracks);
+  computePointerWithAlignment(base, fTracks, fNMaxTracks);
   return base;
 }
 

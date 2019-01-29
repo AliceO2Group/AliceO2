@@ -101,28 +101,28 @@ void AliGPUTPCTracker::InitializeProcessor()
 
 void* AliGPUTPCTracker::SetPointersScratch(void* mem)
 {
-	AliGPUReconstruction::computePointerWithAlignment( mem, fTrackletStartHits, fNMaxStartHits);
+	computePointerWithAlignment( mem, fTrackletStartHits, fNMaxStartHits);
 	if (mRec->GetDeviceProcessingSettings().memoryAllocationStrategy != AliGPUMemoryResource::ALLOCATION_INDIVIDUAL)
 	{
 		mem = SetPointersTracklets(mem);
 	}
 	if (mRec->IsGPU())
 	{
-		AliGPUReconstruction::computePointerWithAlignment(mem, fTrackletTmpStartHits, GPUCA_ROW_COUNT * GPUCA_GPU_MAX_ROWSTARTHITS);
-		AliGPUReconstruction::computePointerWithAlignment(mem, fRowStartHitCountOffset, GPUCA_ROW_COUNT);
+		computePointerWithAlignment(mem, fTrackletTmpStartHits, GPUCA_ROW_COUNT * GPUCA_GPU_MAX_ROWSTARTHITS);
+		computePointerWithAlignment(mem, fRowStartHitCountOffset, GPUCA_ROW_COUNT);
 	}
 	return mem;
 }
 
 void* AliGPUTPCTracker::SetPointersScratchHost(void* mem)
 {
-	AliGPUReconstruction::computePointerWithAlignment(mem, fLinkTmpMemory, mRec->Res(fData.MemoryResScratch()).Size());
+	computePointerWithAlignment(mem, fLinkTmpMemory, mRec->Res(fData.MemoryResScratch()).Size());
 	return mem;
 }
 
 void* AliGPUTPCTracker::SetPointersCommon(void* mem)
 {
-	AliGPUReconstruction::computePointerWithAlignment(mem, fCommonMem, 1);
+	computePointerWithAlignment(mem, fCommonMem, 1);
 	return mem;
 }
 
@@ -144,22 +144,22 @@ void AliGPUTPCTracker::RegisterMemoryAllocation()
 
 GPUhd() void* AliGPUTPCTracker::SetPointersTracklets(void* mem)
 {
-	AliGPUReconstruction::computePointerWithAlignment(mem, fTracklets, fNMaxTracklets);
+	computePointerWithAlignment(mem, fTracklets, fNMaxTracklets);
 #ifdef EXTERN_ROW_HITS
-	AliGPUReconstruction::computePointerWithAlignment(mem, fTrackletRowHits, fNMaxTracklets * GPUCA_ROW_COUNT);
+	computePointerWithAlignment(mem, fTrackletRowHits, fNMaxTracklets * GPUCA_ROW_COUNT);
 #endif
 	return mem;
 }
 
 GPUhd() void* AliGPUTPCTracker::SetPointersTracks(void* mem)
 {
-	AliGPUReconstruction::computePointerWithAlignment(mem, fTracks, fNMaxTracks);
+	computePointerWithAlignment(mem, fTracks, fNMaxTracks);
 	return mem;
 }
 
 GPUhd() void* AliGPUTPCTracker::SetPointersTrackHits(void* mem)
 {
-	AliGPUReconstruction::computePointerWithAlignment(mem, fTrackHits, fNMaxTrackHits);
+	computePointerWithAlignment(mem, fTrackHits, fNMaxTrackHits);
 	return mem;
 }
 

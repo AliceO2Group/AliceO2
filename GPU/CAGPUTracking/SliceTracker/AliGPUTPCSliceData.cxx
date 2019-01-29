@@ -137,7 +137,7 @@ void AliGPUTPCSliceData::SetClusterData(const AliGPUTPCClusterData *data, int nC
 	fClusterData = data;
 	int hitMemCount = GPUCA_ROW_COUNT * sizeof(GPUCA_GPU_ROWALIGNMENT) + nClusters;
 	const unsigned int kVectorAlignment = 256;
-	fNumberOfHitsPlusAlign = AliGPUReconstruction::nextMultipleOf<(kVectorAlignment > sizeof(GPUCA_GPU_ROWALIGNMENT) ? kVectorAlignment : sizeof(GPUCA_GPU_ROWALIGNMENT)) / sizeof(int)>(hitMemCount);
+	fNumberOfHitsPlusAlign = nextMultipleOf<(kVectorAlignment > sizeof(GPUCA_GPU_ROWALIGNMENT) ? kVectorAlignment : sizeof(GPUCA_GPU_ROWALIGNMENT)) / sizeof(int)>(hitMemCount);
 	fNumberOfHits = nClusters;
 	fClusterIdOffset = clusterIdOffset;
 }
@@ -145,8 +145,8 @@ void AliGPUTPCSliceData::SetClusterData(const AliGPUTPCClusterData *data, int nC
 void* AliGPUTPCSliceData::SetPointersInput(void* mem)
 {
 	const int firstHitInBinSize = (23 + sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(int)) * GPUCA_ROW_COUNT + 4 * fNumberOfHits + 3;
-	AliGPUReconstruction::computePointerWithAlignment(mem, fHitData, fNumberOfHitsPlusAlign);
-	AliGPUReconstruction::computePointerWithAlignment(mem, fFirstHitInBin, firstHitInBinSize);
+	computePointerWithAlignment(mem, fHitData, fNumberOfHitsPlusAlign);
+	computePointerWithAlignment(mem, fFirstHitInBin, firstHitInBinSize);
 	if (mRec->GPUMergerAvailable())
 	{
 		mem = SetPointersScratchHost(mem);
@@ -156,21 +156,21 @@ void* AliGPUTPCSliceData::SetPointersInput(void* mem)
 
 void* AliGPUTPCSliceData::SetPointersScratch(void* mem)
 {
-	AliGPUReconstruction::computePointerWithAlignment(mem, fLinkUpData, fNumberOfHitsPlusAlign);
-	AliGPUReconstruction::computePointerWithAlignment(mem, fLinkDownData, fNumberOfHitsPlusAlign);
-	AliGPUReconstruction::computePointerWithAlignment(mem, fHitWeights, fNumberOfHitsPlusAlign);
+	computePointerWithAlignment(mem, fLinkUpData, fNumberOfHitsPlusAlign);
+	computePointerWithAlignment(mem, fLinkDownData, fNumberOfHitsPlusAlign);
+	computePointerWithAlignment(mem, fHitWeights, fNumberOfHitsPlusAlign);
 	return mem;
 }
 
 void* AliGPUTPCSliceData::SetPointersScratchHost(void* mem)
 {
-	AliGPUReconstruction::computePointerWithAlignment(mem, fClusterDataIndex, fNumberOfHitsPlusAlign);
+	computePointerWithAlignment(mem, fClusterDataIndex, fNumberOfHitsPlusAlign);
 	return mem;
 }
 
 void* AliGPUTPCSliceData::SetPointersRows(void* mem)
 {
-	AliGPUReconstruction::computePointerWithAlignment(mem, fRows, GPUCA_ROW_COUNT + 1);
+	computePointerWithAlignment(mem, fRows, GPUCA_ROW_COUNT + 1);
 	return mem;
 }
 
@@ -291,7 +291,7 @@ int AliGPUTPCSliceData::InitFromClusterData()
 		AliGPUTPCRow &row = fRows[rowIndex];
 		row.fNHits = NumberOfClustersInRow[rowIndex];
 		row.fHitNumberOffset = hitOffset;
-		hitOffset += AliGPUReconstruction::nextMultipleOf<sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(unsigned short)>(NumberOfClustersInRow[rowIndex]);
+		hitOffset += nextMultipleOf<sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(unsigned short)>(NumberOfClustersInRow[rowIndex]);
 
 		row.fFirstHitInBinOffset = gridContentOffset;
 
@@ -375,7 +375,7 @@ int AliGPUTPCSliceData::InitFromClusterData()
 		gridContentOffset += nn;
 
 		//Make pointer aligned
-		gridContentOffset = AliGPUReconstruction::nextMultipleOf<sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(calink)>(gridContentOffset);
+		gridContentOffset = nextMultipleOf<sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(calink)>(gridContentOffset);
 	}
 
 	delete[] YZData;
