@@ -4,12 +4,15 @@
 #include <sstream>
 #include <vector>
 
+#include <CL/cl_platform.h>
+
 
 namespace gpucf
 {
-
 namespace log 
 {
+
+std::string clErrToStr(cl_int);
 
 enum class Level 
 {
@@ -148,14 +151,9 @@ class Fail
 };
 
 } // namespace log
-
 } // namespace gpucf
 
 
 #define ASSERT(cond) \
     if (!(cond)) log::Fail() << __FILE__ ":" << __LINE__ \
-    << ": Failed assertion " #cond
-
-#define CATCH_CL(err) \
-    ASSERT(err == CL_SUCCESS) << "\n\n Encountered OpenCL error: " \
-    << PrintCLError(err)
+                << ": Failed assertion " #cond
