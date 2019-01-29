@@ -11,12 +11,19 @@
 class AliGPUTRDTracker {void SetMaxData(){}};
 #endif
 
-struct AliGPUCAConstantMem
+struct AliGPUCAWorkers
 {
-	AliGPUCAParam param;
 	AliGPUTPCTracker tpcTrackers[36];
 	AliGPUTPCGMMerger tpcMerger;
 	AliGPUTRDTracker trdTracker;
 };
+
+struct AliGPUCAConstants
+{
+	AliGPUCAParam param;
+};
+
+struct AliGPUCAConstantMem : public AliGPUCAConstants, public AliGPUCAWorkers
+{};
 
 #endif

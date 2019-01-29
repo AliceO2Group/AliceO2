@@ -36,7 +36,7 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 	{
 		if (error) continue;
-		mTPCSliceTrackersCPU[iSlice].Data().SetClusterData(mIOPtrs.clusterData[iSlice], mIOPtrs.nClusterData[iSlice], offset);
+		mWorkers->tpcTrackers[iSlice].Data().SetClusterData(mIOPtrs.clusterData[iSlice], mIOPtrs.nClusterData[iSlice], offset);
 		offset += mIOPtrs.nClusterData[iSlice];
 	}
 	PrepareEvent();
@@ -45,24 +45,24 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 #endif
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 	{
-		if (mTPCSliceTrackersCPU[iSlice].ReadEvent())
+		if (mWorkers->tpcTrackers[iSlice].ReadEvent())
 		{
 			CAGPUError("Error initializing cluster data\n");
 			error = true;
 			continue;
 		}
-		mTPCSliceTrackersCPU[iSlice].SetOutput(&mSliceOutput[iSlice]);
-		mTPCSliceTrackersCPU[iSlice].Reconstruct();
-		mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNLocalTracks = mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTracks;
-		mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNLocalTrackHits = mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTrackHits;
+		mWorkers->tpcTrackers[iSlice].SetOutput(&mSliceOutput[iSlice]);
+		mWorkers->tpcTrackers[iSlice].Reconstruct();
+		mWorkers->tpcTrackers[iSlice].CommonMemory()->fNLocalTracks = mWorkers->tpcTrackers[iSlice].CommonMemory()->fNTracks;
+		mWorkers->tpcTrackers[iSlice].CommonMemory()->fNLocalTrackHits = mWorkers->tpcTrackers[iSlice].CommonMemory()->fNTrackHits;
 		if (!mParam.rec.GlobalTracking)
 		{
-			mTPCSliceTrackersCPU[iSlice].ReconstructOutput();
-			//nOutputTracks += (*mTPCSliceTrackersCPU[iSlice].Output())->NTracks();
-			//nLocalTracks += mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTracks;
+			mWorkers->tpcTrackers[iSlice].ReconstructOutput();
+			//nOutputTracks += (*mWorkers->tpcTrackers[iSlice].Output())->NTracks();
+			//nLocalTracks += mWorkers->tpcTrackers[iSlice].CommonMemory()->fNTracks;
 			if (!mDeviceProcessingSettings.eventDisplay)
 			{
-				mTPCSliceTrackersCPU[iSlice].SetupCommonMemory();
+				mWorkers->tpcTrackers[iSlice].SetupCommonMemory();
 			}
 		}
 	}
@@ -79,29 +79,29 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 				sliceLeft += NSLICES / 2;
 				sliceRight += NSLICES / 2;
 			}
-			mTPCSliceTrackersCPU[iSlice].PerformGlobalTracking(mTPCSliceTrackersCPU[sliceLeft], mTPCSliceTrackersCPU[sliceRight], mTPCSliceTrackersCPU[sliceLeft].NMaxTracks(), mTPCSliceTrackersCPU[sliceRight].NMaxTracks());
+			mWorkers->tpcTrackers[iSlice].PerformGlobalTracking(mWorkers->tpcTrackers[sliceLeft], mWorkers->tpcTrackers[sliceRight], mWorkers->tpcTrackers[sliceLeft].NMaxTracks(), mWorkers->tpcTrackers[sliceRight].NMaxTracks());
 		}
 		for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 		{
-			mTPCSliceTrackersCPU[iSlice].ReconstructOutput();
-			//printf("Slice %d - Tracks: Local %d Global %d - Hits: Local %d Global %d\n", iSlice, mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNLocalTracks, mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTracks, mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNLocalTrackHits, mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTrackHits);
-			//nLocalTracks += mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNLocalTracks;
-			//nGlobalTracks += mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTracks;
-			//nLocalHits += mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNLocalTrackHits;
-			//nGlobalHits += mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTrackHits;
-			//nOutputTracks += (*mTPCSliceTrackersCPU[iSlice].Output())->NTracks();
+			mWorkers->tpcTrackers[iSlice].ReconstructOutput();
+			//printf("Slice %d - Tracks: Local %d Global %d - Hits: Local %d Global %d\n", iSlice, mWorkers->tpcTrackers[iSlice].CommonMemory()->fNLocalTracks, mWorkers->tpcTrackers[iSlice].CommonMemory()->fNTracks, mWorkers->tpcTrackers[iSlice].CommonMemory()->fNLocalTrackHits, mWorkers->tpcTrackers[iSlice].CommonMemory()->fNTrackHits);
+			//nLocalTracks += mWorkers->tpcTrackers[iSlice].CommonMemory()->fNLocalTracks;
+			//nGlobalTracks += mWorkers->tpcTrackers[iSlice].CommonMemory()->fNTracks;
+			//nLocalHits += mWorkers->tpcTrackers[iSlice].CommonMemory()->fNLocalTrackHits;
+			//nGlobalHits += mWorkers->tpcTrackers[iSlice].CommonMemory()->fNTrackHits;
+			//nOutputTracks += (*mWorkers->tpcTrackers[iSlice].Output())->NTracks();
 			if (!mDeviceProcessingSettings.eventDisplay)
 			{
-				mTPCSliceTrackersCPU[iSlice].SetupCommonMemory();
+				mWorkers->tpcTrackers[iSlice].SetupCommonMemory();
 			}
 		}
 	}
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 	{
-		if (mTPCSliceTrackersCPU[iSlice].GPUParameters()->fGPUError != 0)
+		if (mWorkers->tpcTrackers[iSlice].GPUParameters()->fGPUError != 0)
 		{
 			const char* errorMsgs[] = GPUCA_GPU_ERROR_STRINGS;
-			const char* errorMsg = (unsigned) mTPCSliceTrackersCPU[iSlice].GPUParameters()->fGPUError >= sizeof(errorMsgs) / sizeof(errorMsgs[0]) ? "UNKNOWN" : errorMsgs[mTPCSliceTrackersCPU[iSlice].GPUParameters()->fGPUError];
+			const char* errorMsg = (unsigned) mWorkers->tpcTrackers[iSlice].GPUParameters()->fGPUError >= sizeof(errorMsgs) / sizeof(errorMsgs[0]) ? "UNKNOWN" : errorMsgs[mWorkers->tpcTrackers[iSlice].GPUParameters()->fGPUError];
 			CAGPUError("Error during tracking: %s\n", errorMsg);
 			return(1);
 		}
@@ -111,7 +111,7 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 	{
 		for (unsigned int i = 0;i < NSLICES;i++)
 		{
-			mTPCSliceTrackersCPU[i].DumpOutput(stdout);
+			mWorkers->tpcTrackers[i].DumpOutput(stdout);
 		}
 	}
 	return 0;
@@ -119,11 +119,11 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 
 int AliGPUReconstructionCPU::RunTPCTrackingMerger()
 {
-	mTPCMergerCPU.Reconstruct();
-	mIOPtrs.mergedTracks = mTPCMergerCPU.OutputTracks();
-	mIOPtrs.nMergedTracks = mTPCMergerCPU.NOutputTracks();
-	mIOPtrs.mergedTrackHits = mTPCMergerCPU.Clusters();
-	mIOPtrs.nMergedTrackHits = mTPCMergerCPU.NOutputTrackClusters();
+	mWorkers->tpcMerger.Reconstruct();
+	mIOPtrs.mergedTracks = mWorkers->tpcMerger.OutputTracks();
+	mIOPtrs.nMergedTracks = mWorkers->tpcMerger.NOutputTracks();
+	mIOPtrs.mergedTrackHits = mWorkers->tpcMerger.Clusters();
+	mIOPtrs.nMergedTrackHits = mWorkers->tpcMerger.NOutputTrackClusters();
 	return 0;
 }
 
@@ -132,7 +132,7 @@ int AliGPUReconstructionCPU::RunTRDTracking()
 	HighResTimer timer;
 	timer.Start();
 	
-	if (!mTRDTracker->IsInitialized()) return 1;
+	if (!mWorkers->trdTracker.IsInitialized()) return 1;
 	std::vector<GPUTRDTrack> tracksTPC;
 	std::vector<int> tracksTPCLab;
 	std::vector<int> tracksTPCId;
@@ -148,28 +148,28 @@ int AliGPUReconstructionCPU::RunTRDTracking()
 		tracksTPCLab.push_back(-1);
 	}
 
-	mTRDTracker->Reset();
+	mWorkers->trdTracker.Reset();
 
-	mTRDTracker->SetMaxData();
+	mWorkers->trdTracker.SetMaxData();
 	if (GetDeviceProcessingSettings().memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL)
 	{
-		AllocateRegisteredMemory(mTRDTracker->MemoryTracks());
-		AllocateRegisteredMemory(mTRDTracker->MemoryTracklets());
+		AllocateRegisteredMemory(mWorkers->trdTracker.MemoryTracks());
+		AllocateRegisteredMemory(mWorkers->trdTracker.MemoryTracklets());
 	}
 
 	for (unsigned int iTracklet = 0;iTracklet < mIOPtrs.nTRDTracklets;++iTracklet)
 	{
-		if (mTRDTracker->LoadTracklet(mIOPtrs.trdTracklets[iTracklet], mIOPtrs.trdTrackletsMC ? mIOPtrs.trdTrackletsMC[iTracklet].fLabel : nullptr)) return 1;
+		if (mWorkers->trdTracker.LoadTracklet(mIOPtrs.trdTracklets[iTracklet], mIOPtrs.trdTrackletsMC ? mIOPtrs.trdTrackletsMC[iTracklet].fLabel : nullptr)) return 1;
 	}
 
 	for (unsigned int iTrack = 0; iTrack < tracksTPC.size(); ++iTrack)
 	{
-		if (mTRDTracker->LoadTrack(tracksTPC[iTrack], tracksTPCLab[iTrack])) return 1;
+		if (mWorkers->trdTracker.LoadTrack(tracksTPC[iTrack], tracksTPCLab[iTrack])) return 1;
 	}
 
-	mTRDTracker->DoTracking();
+	mWorkers->trdTracker.DoTracking();
 	
-	printf("TRD Tracker reconstructed %d tracks\n", mTRDTracker->NTracks());
+	printf("TRD Tracker reconstructed %d tracks\n", mWorkers->trdTracker.NTracks());
 	if (mDeviceProcessingSettings.debugLevel >= 1)
 	{
 		printf("TRD tracking time: %'d us\n", (int) (1000000 * timer.GetCurrentElapsedTime()));

@@ -64,12 +64,10 @@ protected:
 	
 	struct AliGPUProcessorWorkers : public AliGPUProcessor
 	{
-		AliGPUTPCTracker *fGpuTracker = nullptr;
-		AliGPUTPCGMMerger* fGpuMerger = nullptr;
+		AliGPUCAWorkers* mWorkersProc = nullptr;
 		TPCFastTransform* fTpcTransform = nullptr;
 		char* fTpcTransformBuffer = nullptr;
 		o2::trd::TRDGeometryFlat* fTrdGeometry = nullptr;
-		AliGPUTRDTracker* fGpuTrdTracker = nullptr;
 		void* SetPointersDeviceProcessor(void* mem);
 		void* SetPointersFlatObjects(void* mem);
 		short mMemoryResWorkers = -1;
@@ -100,11 +98,10 @@ protected:
 
 	static void* helperWrapper(void*);
 	
-	AliGPUProcessorWorkers workers; //Host copy of tracker objects that will be used on the GPU
-	AliGPUProcessorWorkers workersDevice; //tracker objects that will be used on the GPU
-	AliGPUTPCTracker* &fGpuTracker = workers.fGpuTracker;
-	AliGPUTPCGMMerger* &fGpuMerger = workers.fGpuMerger;
-	AliGPUTRDTracker* &fGpuTrdTracker = workers.fGpuTrdTracker;
+	AliGPUProcessorWorkers mProcShadow; //Host copy of tracker objects that will be used on the GPU
+	AliGPUProcessorWorkers mProcDevice; //tracker objects that will be used on the GPU
+	AliGPUCAWorkers* &mWorkersShadow = mProcShadow.mWorkersProc;
+	AliGPUCAWorkers* &mWorkersDevice = mProcDevice.mWorkersProc;
 
 	int fThreadId = -1; //Thread ID that is valid for the local CUDA context
     int fDeviceId = -1; //Device ID used by backend
