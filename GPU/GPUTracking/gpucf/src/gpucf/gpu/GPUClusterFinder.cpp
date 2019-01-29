@@ -10,6 +10,11 @@
 using namespace gpucf;
 
 
+GPUClusterFinder::GPUClusterFinder()
+    : GPUAlgorithm("NaiveClusterFinder")
+{
+}
+
 std::vector<Digit> GPUClusterFinder::getPeaks() const
 {
     return peaks;

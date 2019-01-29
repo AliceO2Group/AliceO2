@@ -21,6 +21,12 @@ find_package(OpenCL REQUIRED)
 include_directories(${OpenCL_INCLUDE_DIRS})
 link_directories(${OpenCL_LIBRARY})
 
+add_definitions(
+    -DCL_HPP_ENABLE_EXCEPTIONS
+    -DCL_TARGET_OPENCL_VERSION=200
+    -DCL_HPP_TARGET_OPENCL_VERSION=200
+)
+
 include_directories(src)
 include_directories(external)
 include_directories(cl)
