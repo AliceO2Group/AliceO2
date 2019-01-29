@@ -1,7 +1,7 @@
 #pragma once
 
-#include <gpucf/common/Digit.h>
 #include <gpucf/common/Cluster.h>
+#include <gpucf/common/Digit.h>
 #include <gpucf/gpu/GPUAlgorithm.h>
 
 #include <memory>

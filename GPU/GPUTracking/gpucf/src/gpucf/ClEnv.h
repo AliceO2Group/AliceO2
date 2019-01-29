@@ -1,6 +1,6 @@
 #pragma once
 
-#include <gpucf/cl.h>
+#include <CL/cl2.hpp>
 
 #include <args/args.hxx>
 #include <filesystem/path.h>
