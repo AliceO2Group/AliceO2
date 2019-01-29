@@ -262,7 +262,7 @@ size_t AliGPUReconstruction::AllocateRegisteredMemoryHelper(AliGPUMemoryResource
 	memorypool = (char*) ((res->*setPtr)(memorypool));
 	if ((size_t) ((char*) memorypool - (char*) memorybase) > memorysize) {std::cout << "Memory pool size exceeded (" << res->mName << ": " << (char*) memorypool - (char*) memorybase << " < " << memorysize << "\n"; throw std::bad_alloc();}
 	size_t retVal = (char*) memorypool - (char*) ptr;
-	memorypool = (void*) ((char*) memorypool + getAlignment<GPUCA_GPU_MEMALIGN>(memorypool));
+	memorypool = (void*) ((char*) memorypool + AliGPUProcessor::getAlignment<GPUCA_GPU_MEMALIGN>(memorypool));
 	if (mDeviceProcessingSettings.debugLevel >= 5) std::cout << "Allocated " << res->mName << ": " << retVal << " - available: " << memorysize - ((char*) memorypool - (char*) memorybase) << "\n";
 	return(retVal);
 }
@@ -278,8 +278,8 @@ size_t AliGPUReconstruction::AllocateRegisteredMemory(short ires)
 	{
 		if (res->mPtrDevice) operator delete(res->mPtrDevice);
 		res->mSize = (size_t) res->SetPointers((void*) 1) - 1;
-		res->mPtrDevice = operator new(res->mSize + MIN_ALIGNMENT);
-		res->mPtr = alignPointer(res->mPtrDevice);
+		res->mPtrDevice = operator new(res->mSize + AliGPUProcessor::MIN_ALIGNMENT);
+		res->mPtr = AliGPUProcessor::alignPointer(res->mPtrDevice);
 		res->SetPointers(res->mPtr);
 		if (mDeviceProcessingSettings.debugLevel >= 5) std::cout << "Allocated " << res->mName << ": " << res->mSize << "\n";
 	}
@@ -346,8 +346,8 @@ void AliGPUReconstruction::ClearAllocatedMemory()
 	{
 		if (!(mMemoryResources[i].mType & AliGPUMemoryResource::MEMORY_PERMANENT)) FreeRegisteredMemory(i);
 	}
-	mHostMemoryPool = alignPointer<GPUCA_GPU_MEMALIGN>(mHostMemoryPermanent);
-	mDeviceMemoryPool = alignPointer<GPUCA_GPU_MEMALIGN>(mDeviceMemoryPermanent);
+	mHostMemoryPool = AliGPUProcessor::alignPointer<GPUCA_GPU_MEMALIGN>(mHostMemoryPermanent);
+	mDeviceMemoryPool = AliGPUProcessor::alignPointer<GPUCA_GPU_MEMALIGN>(mDeviceMemoryPermanent);
 }
 
 void AliGPUReconstruction::DumpData(const char *filename)

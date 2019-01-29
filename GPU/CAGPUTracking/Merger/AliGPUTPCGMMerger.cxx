@@ -215,13 +215,13 @@ void AliGPUTPCGMMerger::InitializeProcessor()
 
 void* AliGPUTPCGMMerger::SetPointersHostOnly(void* mem)
 {
-	AliGPUReconstruction::computePointerWithAlignment(mem, fSliceTrackInfos, fNMaxSliceTracks);
-	if (mCAParam->rec.NonConsecutiveIDs) AliGPUReconstruction::computePointerWithAlignment(mem, fGlobalClusterIDs, fNMaxOutputTrackClusters);
-	AliGPUReconstruction::computePointerWithAlignment(mem, fBorderMemory, fNMaxSliceTracks);
-	AliGPUReconstruction::computePointerWithAlignment(mem, fBorderRangeMemory, 2 * fNMaxSliceTracks);
-	AliGPUReconstruction::computePointerWithAlignment(mem, fTrackLinks, fNMaxSliceTracks);
+	computePointerWithAlignment(mem, fSliceTrackInfos, fNMaxSliceTracks);
+	if (mCAParam->rec.NonConsecutiveIDs) computePointerWithAlignment(mem, fGlobalClusterIDs, fNMaxOutputTrackClusters);
+	computePointerWithAlignment(mem, fBorderMemory, fNMaxSliceTracks);
+	computePointerWithAlignment(mem, fBorderRangeMemory, 2 * fNMaxSliceTracks);
+	computePointerWithAlignment(mem, fTrackLinks, fNMaxSliceTracks);
 	size_t tmpSize = std::max(fNMaxSingleSliceTracks * fgkNSlices * sizeof(int), fNMaxTracks * sizeof(int) + fNMaxClusters * sizeof(char));
-	AliGPUReconstruction::computePointerWithAlignment(mem, fTmpMem, tmpSize);
+	computePointerWithAlignment(mem, fTmpMem, tmpSize);
 	
 	int nTracks = 0;
 	for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
@@ -235,10 +235,10 @@ void* AliGPUTPCGMMerger::SetPointersHostOnly(void* mem)
 
 void* AliGPUTPCGMMerger::SetPointersGPURefit(void* mem)
 {
-	AliGPUReconstruction::computePointerWithAlignment(mem, fOutputTracks, fNMaxTracks);
-	AliGPUReconstruction::computePointerWithAlignment(mem, fClusters, fNMaxOutputTrackClusters);
-	AliGPUReconstruction::computePointerWithAlignment(mem, fTrackOrder, fNMaxTracks);
-	AliGPUReconstruction::computePointerWithAlignment(mem, fClusterAttachment, fNMaxClusters);
+	computePointerWithAlignment(mem, fOutputTracks, fNMaxTracks);
+	computePointerWithAlignment(mem, fClusters, fNMaxOutputTrackClusters);
+	computePointerWithAlignment(mem, fTrackOrder, fNMaxTracks);
+	computePointerWithAlignment(mem, fClusterAttachment, fNMaxClusters);
 
 	return mem;
 }

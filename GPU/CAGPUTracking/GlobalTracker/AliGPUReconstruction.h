@@ -52,7 +52,6 @@ public:
 	AliGPUReconstruction& operator=(const AliGPUReconstruction&) = delete;
 	
 	//General definitions
-	constexpr static size_t MIN_ALIGNMENT = 64;
 	constexpr static unsigned int NSLICES = 36;
 
 	//Definition of the Geometry: Are we AliRoot or O2
@@ -145,51 +144,6 @@ public:
 	void ReadSettings(const char* dir = "");
 	
 	//Helpers for memory allocation
-	template <size_t alignment = MIN_ALIGNMENT> static inline size_t getAlignment(size_t addr)
-	{
-		static_assert((alignment & (alignment - 1)) == 0, "Invalid alignment, not power of 2");
-		if (alignment <= 1) return 0;
-		size_t mod = addr & (alignment - 1);
-		if (mod == 0) return 0;
-		return (alignment - mod);
-	}
-	template <size_t alignment = MIN_ALIGNMENT> static inline size_t nextMultipleOf(size_t size)
-	{
-		return size + getAlignment<alignment>(size);
-	}
-	template <size_t alignment = MIN_ALIGNMENT> static inline void* alignPointer(void* ptr)
-	{
-		return(reinterpret_cast<void*>(nextMultipleOf<alignment>(reinterpret_cast<size_t>(ptr))));
-	}
-	template <size_t alignment = MIN_ALIGNMENT> static inline size_t getAlignment(void* addr)
-	{
-		return(getAlignment<alignment>(reinterpret_cast<size_t>(addr)));
-	}
-	template <size_t alignment = MIN_ALIGNMENT, class S> static inline S* getPointerWithAlignment(size_t& basePtr, size_t nEntries = 1)
-	{
-		if (basePtr == 0) basePtr = 1;
-		basePtr += getAlignment<std::max(alignof(S), alignment)>(basePtr);
-		S* retVal = (S*) (basePtr);
-		basePtr += nEntries * sizeof(S);
-		return retVal;
-	}
-	template <size_t alignment = MIN_ALIGNMENT, class S> static inline S* getPointerWithAlignment(void*& basePtr, size_t nEntries = 1)
-	{
-		return getPointerWithAlignment<alignment, S>(reinterpret_cast<size_t&>(basePtr), nEntries);
-	}
-	
-	template <size_t alignment = MIN_ALIGNMENT, class T, class S> static inline void computePointerWithAlignment(T*& basePtr, S*& objPtr, size_t nEntries = 1, bool runConstructor = false)
-	{
-		objPtr = getPointerWithAlignment<alignment, S>(reinterpret_cast<size_t&>(basePtr), nEntries);
-		if (runConstructor)
-		{
-			for (size_t i = 0;i < nEntries;i++)
-			{
-				new (objPtr + i) S;
-			}
-		}
-	}
-	
 	AliGPUMemoryResource& Res(short num) {return mMemoryResources[num];}
 	template <class T> short RegisterMemoryAllocation(T* proc, void* (T::* setPtr)(void*), int type, const char* name = "")
 	{

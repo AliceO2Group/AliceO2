@@ -477,9 +477,9 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 void* AliGPUReconstructionDeviceBase::AliGPUProcessorWorkers::SetPointersDeviceProcessor(void* mem)
 {
 	//Don't run constructor / destructor here, this will be just local memcopy of Processors in GPU Memory
-	AliGPUReconstruction::computePointerWithAlignment(mem, fGpuTracker, NSLICES);
-	AliGPUReconstruction::computePointerWithAlignment(mem, fGpuMerger, 1);
-	AliGPUReconstruction::computePointerWithAlignment(mem, fGpuTrdTracker, 1);
+	computePointerWithAlignment(mem, fGpuTracker, NSLICES);
+	computePointerWithAlignment(mem, fGpuMerger, 1);
+	computePointerWithAlignment(mem, fGpuTrdTracker, 1);
 	return mem;
 }
 
@@ -487,12 +487,12 @@ void* AliGPUReconstructionDeviceBase::AliGPUProcessorWorkers::SetPointersFlatObj
 {
 	if (mRec->GetTPCTransform())
 	{
-		AliGPUReconstruction::computePointerWithAlignment(mem, fTpcTransform, 1);
-		AliGPUReconstruction::computePointerWithAlignment(mem, fTpcTransformBuffer, mRec->GetTPCTransform()->getFlatBufferSize());
+		computePointerWithAlignment(mem, fTpcTransform, 1);
+		computePointerWithAlignment(mem, fTpcTransformBuffer, mRec->GetTPCTransform()->getFlatBufferSize());
 	}
 	if (mRec->GetTRDGeometry())
 	{
-		AliGPUReconstruction::computePointerWithAlignment(mem, fTrdGeometry, 1);
+		computePointerWithAlignment(mem, fTrdGeometry, 1);
 	}
 	return mem;
 }
