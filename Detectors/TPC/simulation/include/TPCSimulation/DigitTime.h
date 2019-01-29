@@ -64,6 +64,7 @@ class DigitTime
   /// \param cru CRU ID
   /// \param timeBin Time bin
   /// \param commonMode Common mode value of that specific ROC
+  template <DigitzationMode MODE>
   void fillOutputContainer(std::vector<Digit>* output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
                            std::vector<DigitMCMetaData>* debug, const Sector& sector, TimeBin timeBin,
                            float commonMode = 0.f);
@@ -96,6 +97,20 @@ inline float DigitTime::getCommonMode(const CRU& cru) const
   const auto nPads = mapper.getNumberOfPads(gemStack);
   return mCommonMode[gemStack] /
          static_cast<float>(nPads); /// simple case when there is no external capacitance on the ROC;
+}
+
+template <DigitzationMode MODE>
+inline void DigitTime::fillOutputContainer(std::vector<Digit>* output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
+                                           std::vector<DigitMCMetaData>* debug, const Sector& sector, TimeBin timeBin,
+                                           float commonMode)
+{
+  static Mapper& mapper = Mapper::instance();
+  GlobalPadNumber globalPad = 0;
+  for (auto& pad : mGlobalPads) {
+    const int cru = mapper.getCRU(sector, globalPad);
+    pad.fillOutputContainer<MODE>(output, mcTruth, debug, cru, timeBin, globalPad, getCommonMode(cru));
+    ++globalPad;
+  }
 }
 }
 }

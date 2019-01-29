@@ -15,6 +15,8 @@
 #include "TPCSimulation/DigitContainer.h"
 #include "FairLogger.h"
 #include "TPCBase/Mapper.h"
+#include "TPCBase/CDBInterface.h"
+#include "TPCBase/ParameterElectronics.h"
 
 using namespace o2::TPC;
 
@@ -51,7 +53,28 @@ void DigitContainer::fillOutputContainer(std::vector<Digit>* output,
       if (!isContinuous && timeBin > mTmaxTriggered)
         continue;
       ++nProcessedTimeBins;
-      time.fillOutputContainer(output, mcTruth, debug, mSector, timeBin);
+      auto& cdb = CDBInterface::instance();
+      auto& eleParam = cdb.getParameterElectronics();
+      const auto digitizationMode = eleParam.getDigitizationMode();
+
+      switch (digitizationMode) {
+        case DigitzationMode::FullMode: {
+          time.fillOutputContainer<DigitzationMode::FullMode>(output, mcTruth, debug, mSector, timeBin);
+          break;
+        }
+        case DigitzationMode::SubtractPedestal: {
+          time.fillOutputContainer<DigitzationMode::SubtractPedestal>(output, mcTruth, debug, mSector, timeBin);
+          break;
+        }
+        case DigitzationMode::NoSaturation: {
+          time.fillOutputContainer<DigitzationMode::NoSaturation>(output, mcTruth, debug, mSector, timeBin);
+          break;
+        }
+        case DigitzationMode::PropagateADC: {
+          time.fillOutputContainer<DigitzationMode::PropagateADC>(output, mcTruth, debug, mSector, timeBin);
+          break;
+        }
+      }
     } else {
       break;
     }
