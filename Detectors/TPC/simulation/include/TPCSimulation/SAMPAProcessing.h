@@ -66,6 +66,7 @@ class SAMPAProcessing
   /// \param sector Sector number
   /// \param globalPadInSector global pad number in the sector
   /// \return ADC value after application of noise, pedestal and saturation
+  template <DigitzationMode MODE>
   float makeSignal(float ADCcounts, const int sector, const int globalPadInSector, float& pedestal, float& noise);
 
   /// A delta signal is shaped by the FECs and thus spread over several time bins
@@ -140,13 +141,14 @@ inline T SAMPAProcessing::getADCvalue(T nElectrons) const
   return nElectrons * conversion;
 }
 
+template <DigitzationMode MODE>
 inline float SAMPAProcessing::makeSignal(float ADCcounts, const int sector, const int globalPadInSector,
                                          float& pedestal, float& noise)
 {
   float signal = ADCcounts;
   pedestal = getPedestal(sector, globalPadInSector);
   noise = getNoise(sector, globalPadInSector);
-  switch (mEleParam->getDigitizationMode()) {
+  switch (MODE) {
     case DigitzationMode::FullMode: {
       signal += noise;
       signal += pedestal;

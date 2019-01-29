@@ -15,15 +15,20 @@
 #ifndef ALICEO2_TPC_DigitGlobalPad_H_
 #define ALICEO2_TPC_DigitGlobalPad_H_
 
-#include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
-#include "TPCBase/CRU.h"
-#include "DataFormatsTPC/Defs.h"
-#include "TPCBase/Digit.h"
-#include "TPCSimulation/DigitMCMetaData.h"
+#include <map>
+#include <vector>
+
 #include "TTree.h" // for TTree destructor
 
-#include <map>
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "DataFormatsTPC/Defs.h"
+#include "TPCBase/CRU.h"
+#include "TPCBase/Digit.h"
+#include "TPCBase/Mapper.h"
+#include "TPCBase/ParameterElectronics.h"
+#include "TPCSimulation/DigitMCMetaData.h"
+#include "TPCSimulation/SAMPAProcessing.h"
 
 namespace o2
 {
@@ -67,6 +72,7 @@ class DigitGlobalPad
   /// \param row Row ID
   /// \param pad Pad ID
   /// \param commonMode Common mode value of that specific ROC
+  template <DigitzationMode MODE>
   void fillOutputContainer(std::vector<Digit>* output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
                            std::vector<DigitMCMetaData>* debug, const CRU& cru, TimeBin timeBin,
                            GlobalPadNumber globalPad, float commonMode = 0.f);
@@ -78,7 +84,7 @@ class DigitGlobalPad
   /// \return true, if trackID, eventID and sourceID are the same
   bool compareMClabels(const MCCompLabel& label1, const MCCompLabel& label2) const;
 
-  float mChargePad; ///< Total accumulated charge on that GlobalPad for a given time bin
+  float mChargePad;                                  ///< Total accumulated charge on that GlobalPad for a given time bin
   std::vector<std::pair<MCCompLabel, int>> mMClabel; ///< vector to accumulate the MC labels
 };
 
@@ -110,6 +116,45 @@ inline bool DigitGlobalPad::compareMClabels(const MCCompLabel& label1, const MCC
 {
   return (label1.getEventID() == label2.getEventID() && label1.getTrackID() == label2.getTrackID() &&
           label1.getSourceID() == label2.getSourceID());
+}
+
+template <DigitzationMode MODE>
+inline void DigitGlobalPad::fillOutputContainer(std::vector<Digit>* output,
+                                                dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
+                                                std::vector<DigitMCMetaData>* debug, const CRU& cru, TimeBin timeBin,
+                                                GlobalPadNumber globalPad, float commonMode)
+{
+  const static Mapper& mapper = Mapper::instance();
+  static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
+  const PadPos pad = mapper.padPos(globalPad);
+
+  /// The charge accumulated on that pad is converted into ADC counts, saturation of the SAMPA is applied and a Digit
+  /// is created in written out
+  const float totalADC = mChargePad - commonMode; // common mode is subtracted here in order to properly apply noise,
+                                                  // pedestals and saturation of the SAMPA
+
+  float noise, pedestal;
+  const float mADC = sampaProcessing.makeSignal<MODE>(totalADC, cru.sector(), globalPad, pedestal, noise);
+
+  /// only write out the data if there is actually charge on that pad
+  if (mADC > 0 && mChargePad > 0) {
+
+    /// Sort the MC labels according to their occurrence
+    using P = std::pair<MCCompLabel, int>;
+    std::sort(mMClabel.begin(), mMClabel.end(), [](const P& a, const P& b) { return a.second > b.second; });
+
+    /// Write out the Digit
+    const auto digiPos = output->size();
+    output->emplace_back(cru, mADC, pad.getRow(), pad.getPad(), timeBin); /// create Digit and append to container
+
+    for (auto& mcLabel : mMClabel) {
+      mcTruth.addElement(digiPos, mcLabel.first); /// add MCTruth output
+    }
+
+    if (debug != nullptr) {
+      debug->emplace_back(mChargePad, commonMode, pedestal, noise); /// create DigitMCMetaData
+    }
+  }
 }
 }
 }

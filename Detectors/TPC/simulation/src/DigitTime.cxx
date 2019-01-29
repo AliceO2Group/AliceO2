@@ -13,19 +13,5 @@
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/DigitTime.h"
-#include "TPCBase/Mapper.h"
 
 using namespace o2::TPC;
-
-void DigitTime::fillOutputContainer(std::vector<Digit>* output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
-                                    std::vector<DigitMCMetaData>* debug, const Sector& sector, TimeBin timeBin,
-                                    float commonMode)
-{
-  static Mapper& mapper = Mapper::instance();
-  GlobalPadNumber globalPad = 0;
-  for (auto& pad : mGlobalPads) {
-    const int cru = mapper.getCRU(sector, globalPad);
-    pad.fillOutputContainer(output, mcTruth, debug, cru, timeBin, globalPad, getCommonMode(cru));
-    ++globalPad;
-  }
-}

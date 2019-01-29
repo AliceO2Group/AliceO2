@@ -13,50 +13,5 @@
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/DigitGlobalPad.h"
-#include "TPCBase/Mapper.h"
-#include "TPCSimulation/SAMPAProcessing.h"
-
-#include <boost/bind.hpp>
-#include <boost/range/adaptor/reversed.hpp>
-
-#include <vector>
 
 using namespace o2::TPC;
-
-void DigitGlobalPad::fillOutputContainer(std::vector<Digit>* output,
-                                         dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
-                                         std::vector<DigitMCMetaData>* debug, const CRU& cru, TimeBin timeBin,
-                                         GlobalPadNumber globalPad, float commonMode)
-{
-  const static Mapper& mapper = Mapper::instance();
-  static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
-  const PadPos pad = mapper.padPos(globalPad);
-
-  /// The charge accumulated on that pad is converted into ADC counts, saturation of the SAMPA is applied and a Digit
-  /// is created in written out
-  const float totalADC = mChargePad - commonMode; // common mode is subtracted here in order to properly apply noise,
-                                                  // pedestals and saturation of the SAMPA
-
-  float noise, pedestal;
-  const float mADC = sampaProcessing.makeSignal(totalADC, cru.sector(), globalPad, pedestal, noise);
-
-  /// only write out the data if there is actually charge on that pad
-  if (mADC > 0 && mChargePad > 0) {
-
-    /// Sort the MC labels according to their occurrence
-    using P = std::pair<MCCompLabel, int>;
-    std::sort(mMClabel.begin(), mMClabel.end(), [](const P& a, const P& b) { return a.second > b.second; });
-
-    /// Write out the Digit
-    const auto digiPos = output->size();
-    output->emplace_back(cru, mADC, pad.getRow(), pad.getPad(), timeBin); /// create Digit and append to container
-
-    for (auto& mcLabel : mMClabel) {
-      mcTruth.addElement(digiPos, mcLabel.first); /// add MCTruth output
-    }
-
-    if (debug != nullptr) {
-      debug->emplace_back(mChargePad, commonMode, pedestal, noise); /// create DigitMCMetaData
-    }
-  }
-}
