@@ -46,6 +46,24 @@ ExpirationHandler::Creator LifetimeHelpers::dataDrivenCreation()
   };
 }
 
+ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, size_t end, size_t step)
+{
+  auto last = std::make_shared<size_t>(start);
+  return [start, end, step, last](TimesliceIndex& index) -> void {
+    for (size_t si = 0; si < index.size(); si++) {
+      if (*last > end) {
+        return;
+      }
+      auto slot = TimesliceSlot{si};
+      if (index.isValid(slot) == false) {
+        TimesliceId timestamp{*last};
+        *last += step;
+        index.associate(timestamp, slot);
+      }
+    }
+  };
+}
+
 ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds period)
 {
   auto start = getCurrentTime();

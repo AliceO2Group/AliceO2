@@ -54,6 +54,19 @@ struct ExpirationHandlerHelpers {
     };
   }
 
+  static InputRoute::CreationConfigurator enumDrivenConfigurator(InputSpec const& matcher)
+  {
+    return [matcher](ConfigParamRegistry const& options) {
+      std::string startName = std::string{ "start-value-" } + matcher.binding;
+      std::string endName = std::string{ "end-value-" } + matcher.binding;
+      std::string stepName = std::string{ "step-value-" } + matcher.binding;
+      auto start = options.get<int>(startName.c_str());
+      auto stop = options.get<int>(endName.c_str());
+      auto step = options.get<int>(stepName.c_str());
+      return LifetimeHelpers::enumDrivenCreation(start, stop, step);
+    };
+  }
+
   static InputRoute::DanglingConfigurator danglingTimeframeConfigurator()
   {
     return [](ConfigParamRegistry const&) { return LifetimeHelpers::expireNever(); };
@@ -102,6 +115,13 @@ struct ExpirationHandlerHelpers {
     };
   }
 
+  static InputRoute::DanglingConfigurator danglingEnumerationConfigurator(InputSpec const& matcher)
+  {
+    return [matcher](ConfigParamRegistry const& options) {
+      return LifetimeHelpers::expireAlways();
+    };
+  }
+
   static InputRoute::ExpirationConfigurator expiringTimerConfigurator(InputSpec const& spec, std::string const& sourceChannel)
   {
     auto m = std::get_if<ConcreteDataMatcher>(&spec.matcher);
@@ -111,6 +131,19 @@ struct ExpirationHandlerHelpers {
     // We copy the matcher to avoid lifetime issues.
     return [ matcher = *m, sourceChannel ](ConfigParamRegistry const&) { return LifetimeHelpers::enumerate(matcher, sourceChannel); };
   }
+
+  static InputRoute::ExpirationConfigurator expiringEnumerationConfigurator(InputSpec const& spec, std::string const& sourceChannel)
+  {
+    auto m = std::get_if<ConcreteDataMatcher>(&spec.matcher);
+    if (m == nullptr) {
+      throw std::runtime_error("InputSpec for Enumeration must be fully qualified");
+    }
+    // We copy the matcher to avoid lifetime issues.
+    return [ matcher = *m, sourceChannel ](ConfigParamRegistry const&) {
+      return LifetimeHelpers::enumerate(matcher, sourceChannel);
+    };
+  }
+
 
   static InputRoute::DanglingConfigurator danglingTransientConfigurator()
   {
@@ -470,6 +503,11 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
         creationConfigurator = ExpirationHandlerHelpers::timeDrivenConfigurator(inputSpec);
         danglingConfigurator = ExpirationHandlerHelpers::danglingTimerConfigurator(inputSpec);
         expirationConfigurator = ExpirationHandlerHelpers::expiringTimerConfigurator(inputSpec, sourceChannel);
+        break;
+      case Lifetime::Enumeration:
+        creationConfigurator = ExpirationHandlerHelpers::enumDrivenConfigurator(inputSpec);
+        danglingConfigurator = ExpirationHandlerHelpers::danglingEnumerationConfigurator(inputSpec);
+        expirationConfigurator = ExpirationHandlerHelpers::expiringEnumerationConfigurator(inputSpec, sourceChannel);
         break;
       case Lifetime::Transient:
         creationConfigurator = ExpirationHandlerHelpers::dataDrivenConfigurator();
