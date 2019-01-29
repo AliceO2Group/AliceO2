@@ -5,6 +5,8 @@
 #include <gpucf/errors/FileErrors.h>
 #include <gpucf/gpu/GPUClusterFinder.h>
 
+#include <fstream>
+
 
 using namespace gpucf;
 namespace fs = filesystem;
@@ -84,7 +86,9 @@ void Benchmark::run(size_t N)
 
         fs::path tgtFile = makeBenchmarkFilename(algName);
         log::Info() << "Writing results to " << tgtFile;
-        measurements.write(algName);
+
+        std::ofstream out(tgtFile.str());
+        out << measurements.str();
     }
 }
 

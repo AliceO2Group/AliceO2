@@ -2,8 +2,6 @@
 
 #include <gpucf/common/Measurements.h>
 
-#include <filesystem/path.h>
-
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -22,14 +20,22 @@ public:
 
     std::string str() const;
 
-    void write(const filesystem::path &);
-         
 private:
-    using Column = std::vector<std::string>;
+    struct Column
+    {
+        std::string head;
+        std::vector<std::string> entries;
+
+        Column(const std::string &);
+    };
 
     std::string seperator;
 
-    std::unordered_map<std::string, Column> cols;
+    std::unordered_map<std::string, size_t> columnLookup; 
+    std::vector<Column> columns;
+
+    std::string suffix(size_t) const;
+
 };
 
 }

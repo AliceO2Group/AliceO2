@@ -1,6 +1,7 @@
 #include "GPUClusterFinder.h"
 
 #include <gpucf/ClEnv.h>
+#include <gpucf/common/Event.h>
 #include <gpucf/common/log.h>
 #include <gpucf/common/RowInfo.h>
 
@@ -69,39 +70,71 @@ GPUAlgorithm::Result GPUClusterFinder::runImpl()
 
     log::Info() << "Looking for clusters...";
 
+    // Events for profiling
+    Event digitsToDevice;
+    Event zeroChargeMap;
+    Event writeDigitsToChargeMap;
+    Event clusterFinder;
+    Event clustersToHost;
+
     // Setup queue
-    cl::CommandQueue queue(context, device);
+    cl::CommandQueue queue(context, device, CL_QUEUE_PROFILING_ENABLE);
 
     ASSERT(globalToLocalRowBufSize > 0);
     queue.enqueueWriteBuffer(globalToLocalRowBuf, CL_FALSE, 0, 
             globalToLocalRowBufSize, globalToLocalRow.data());
 
     ASSERT(digitsBufSize > 0);
-    queue.enqueueWriteBuffer(digitsBuf, CL_FALSE, 0, digitsBufSize, 
-            digits.data());
+    queue.enqueueWriteBuffer(digitsBuf, 
+                             CL_FALSE, 
+                             0, 
+                             digitsBufSize, 
+                             digits.data(), 
+                             nullptr, 
+                             digitsToDevice.get());
 
     ASSERT(chargeMapSize > 0);
-    queue.enqueueFillBuffer(chargeMap, 0.0f, 0, chargeMapSize);
+    queue.enqueueFillBuffer(chargeMap, 
+                            0.0f, 
+                            0, 
+                            chargeMapSize, 
+                            nullptr, 
+                            zeroChargeMap.get());
 
     cl::NDRange global(digits.size());
     cl::NDRange local(16);
 
     digitsToChargeMap.setArg(0, digitsBuf);
     digitsToChargeMap.setArg(1, chargeMap);
-    queue.enqueueNDRangeKernel(digitsToChargeMap, cl::NullRange, global, local);
+    queue.enqueueNDRangeKernel(digitsToChargeMap, 
+                               cl::NullRange, 
+                               global, 
+                               local,
+                               nullptr,
+                               writeDigitsToChargeMap.get());
 
     findClusters.setArg(0, chargeMap);
     findClusters.setArg(1, digitsBuf);
     findClusters.setArg(2, globalToLocalRowBuf);
     findClusters.setArg(3, isPeakBuf);
     findClusters.setArg(4, clusterBuf);
-    queue.enqueueNDRangeKernel(findClusters, cl::NullRange, global, local);
+    queue.enqueueNDRangeKernel(findClusters, 
+                               cl::NullRange,
+                               global,
+                               local,
+                               nullptr,
+                               clusterFinder.get());
 
     log::Info() << "Copy results back...";
     std::vector<Cluster> clusters(digits.size());
     ASSERT(clusters.size() * sizeof(Cluster) == clusterBufSize);
-    queue.enqueueReadBuffer(clusterBuf, CL_TRUE, 0, clusterBufSize, 
-            clusters.data());
+    queue.enqueueReadBuffer(clusterBuf, 
+                            CL_TRUE, 
+                            0, 
+                            clusterBufSize, 
+                            clusters.data(),
+                            nullptr,
+                            clustersToHost.get());
 
     std::vector<int> isClusterCenter(digits.size());
     ASSERT(isClusterCenter.size() * sizeof(int) == isPeakBufSize);
@@ -120,7 +153,17 @@ GPUAlgorithm::Result GPUClusterFinder::runImpl()
     DataSet res;
     res.serialize(clusters);
 
-    return GPUAlgorithm::Result{res, Measurements()};
+    Measurements measurements =
+    {
+        {"digitsToDevice", digitsToDevice.executionTimeMs()},   
+        {"zeroChargeMap", zeroChargeMap.executionTimeMs()},   
+        {"writeDigitsToChargeMap", 
+            writeDigitsToChargeMap.executionTimeMs()},   
+        {"clusterFinder", clusterFinder.executionTimeMs()},   
+        {"clustersToHost", clustersToHost.executionTimeMs()},   
+    };
+
+    return GPUAlgorithm::Result{res, measurements};
 }
 
 

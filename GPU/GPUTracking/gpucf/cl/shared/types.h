@@ -13,7 +13,7 @@
 #if IS_CL_DEVICE
 #  define CL_PREFIX(type) type
 #else
-#  include <gpucf/cl.h>
+#  include <CL/cl_platform.h>
 #  define CL_PREFIX(type) cl_ ## type
 #endif
 
