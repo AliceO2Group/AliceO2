@@ -37,10 +37,7 @@ protected:
 	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) override;
 	virtual int TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) override;
 	
-	template <class T, typename... Args> void runKernelBackend(int nBlocks, int nThreads, bool device, Args&... args)
-	{
-		printf("Running kernel CUDA\n");
-	}
+	template <class T, typename... Args> int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const Args&... args);
 
 private:
 	AliGPUReconstructionCUDAInternals* mInternals;

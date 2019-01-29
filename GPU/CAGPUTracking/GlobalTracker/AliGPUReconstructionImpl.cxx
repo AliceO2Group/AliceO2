@@ -18,6 +18,7 @@
 #include "AliGPUCADisplay.h"
 #include "AliGPUCAQA.h"
 #include "AliGPUMemoryResource.h"
+#include "AliGPUCADataTypes.h"
 
 #define GPUCA_LOGGING_PRINTF
 #include "AliCAGPULogging.h"
