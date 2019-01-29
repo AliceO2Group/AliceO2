@@ -1,11 +1,13 @@
 set(GPUCF_SRC
     "./ClEnv.cpp"
     "./ClusterChecker.cpp"
+    "./CsvFile.cpp"
     "./VectorAdd.cpp"
     
     "./common/Cluster.cpp"
     "./common/DataSet.cpp"
     "./common/Digit.cpp"
+    "./common/Event.cpp"
     "./common/log.cpp"
     "./common/Object.cpp"
     "./common/RowInfo.cpp"
