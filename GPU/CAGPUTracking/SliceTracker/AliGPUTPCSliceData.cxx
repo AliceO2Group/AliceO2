@@ -135,11 +135,15 @@ void AliGPUTPCSliceData::InitializeRows(const AliGPUCAParam &p)
 void AliGPUTPCSliceData::SetClusterData(const AliGPUTPCClusterData *data, int nClusters, int clusterIdOffset)
 {
 	fClusterData = data;
-	int hitMemCount = GPUCA_ROW_COUNT * sizeof(GPUCA_GPU_ROWALIGNMENT) + nClusters;
-	const unsigned int kVectorAlignment = 256;
-	fNumberOfHitsPlusAlign = nextMultipleOf<(kVectorAlignment > sizeof(GPUCA_GPU_ROWALIGNMENT) ? kVectorAlignment : sizeof(GPUCA_GPU_ROWALIGNMENT)) / sizeof(int)>(hitMemCount);
 	fNumberOfHits = nClusters;
 	fClusterIdOffset = clusterIdOffset;
+}
+
+void AliGPUTPCSliceData::SetMaxData()
+{
+	int hitMemCount = GPUCA_ROW_COUNT * sizeof(GPUCA_GPU_ROWALIGNMENT) + fNumberOfHits;
+	const unsigned int kVectorAlignment = 256;
+	fNumberOfHitsPlusAlign = nextMultipleOf<(kVectorAlignment > sizeof(GPUCA_GPU_ROWALIGNMENT) ? kVectorAlignment : sizeof(GPUCA_GPU_ROWALIGNMENT)) / sizeof(int)>(hitMemCount);
 }
 
 void* AliGPUTPCSliceData::SetPointersInput(void* mem)

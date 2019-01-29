@@ -50,7 +50,6 @@ class AliGPUTPCGMMerger : public AliGPUProcessor
 
 	void SetSliceData(int index, const AliGPUTPCSliceOutput *SliceData);
 	bool Reconstruct();
-	void Clear();
 
 	int NOutputTracks() const { return fNOutputTracks; }
 	const AliGPUTPCGMMergedTrack *OutputTracks() const { return fOutputTracks; }

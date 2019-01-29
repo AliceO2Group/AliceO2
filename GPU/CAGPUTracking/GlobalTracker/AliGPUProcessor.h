@@ -30,6 +30,7 @@ public:
 
 #ifndef __OPENCL__
 	void InitGPUProcessor(AliGPUReconstruction* rec, ProcessorType type = PROCESSOR_TYPE_CPU, AliGPUProcessor* slaveProcessor = NULL);
+	void Clear();
 
 	//Helpers for memory allocation
 	constexpr static size_t MIN_ALIGNMENT = 64;

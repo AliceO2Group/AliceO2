@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <stdio.h>
+#include <cstring>
 #include <memory>
 #include <fstream>
 #include <vector>
@@ -171,6 +172,7 @@ public:
 	void ClearAllocatedMemory();
 	void ResetRegisteredMemoryPointers(AliGPUProcessor* proc);
 	void ResetRegisteredMemoryPointers(short res);
+	void PrepareEvent();
 	
 	//Converter functions
 	void ConvertNativeToClusterData();
@@ -225,9 +227,17 @@ public:
 	//Registration of GPU Processors
 	template <class T> void RegisterGPUProcessor(T* proc)
 	{
-		mProcessors.emplace_back(proc, static_cast<void (AliGPUProcessor::*)()>(&T::RegisterMemoryAllocation), static_cast<void (AliGPUProcessor::*)()>(&T::InitializeProcessor));
+		mProcessors.emplace_back(proc, static_cast<void (AliGPUProcessor::*)()>(&T::RegisterMemoryAllocation), static_cast<void (AliGPUProcessor::*)()>(&T::InitializeProcessor), static_cast<void (AliGPUProcessor::*)()>(&T::SetMaxData));
 		AliGPUProcessor::ProcessorType processorType = IsGPU() ? AliGPUProcessor::PROCESSOR_TYPE_SLAVE : AliGPUProcessor::PROCESSOR_TYPE_CPU;
 		proc->InitGPUProcessor(this, processorType);
+	}
+	template <class T> void SetupGPUProcessor(T* proc)
+	{
+		static_assert(sizeof(T) > sizeof(AliGPUProcessor), "Need to setup derrived class");
+		std::memcpy((void*) proc->mDeviceProcessor, (const void*) proc, sizeof(*proc));
+		proc->mDeviceProcessor->InitGPUProcessor((AliGPUReconstruction*) this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
+		ResetRegisteredMemoryPointers(proc);
+
 	}
 	void RegisterGPUDeviceProcessor(AliGPUProcessor* proc, AliGPUProcessor* slaveProcessor);
 	
@@ -292,10 +302,11 @@ protected:
 	//Management for AliGPUProcessors
 	struct ProcessorData
 	{
-		ProcessorData(AliGPUProcessor* p, void (AliGPUProcessor::* r)(), void (AliGPUProcessor::* i)()) : proc(p), RegisterMemoryAllocation(r), InitializeProcessor(i) {}
+		ProcessorData(AliGPUProcessor* p, void (AliGPUProcessor::* r)(), void (AliGPUProcessor::* i)(), void (AliGPUProcessor::* d)()) : proc(p), RegisterMemoryAllocation(r), InitializeProcessor(i), SetMaxData(d) {}
 		AliGPUProcessor* proc;
 		void (AliGPUProcessor::* RegisterMemoryAllocation)();
 		void (AliGPUProcessor::* InitializeProcessor)();
+		void (AliGPUProcessor::* SetMaxData)();
 	};
 	std::vector<ProcessorData> mProcessors;
 

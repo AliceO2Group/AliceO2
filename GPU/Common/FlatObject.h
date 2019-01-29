@@ -326,7 +326,7 @@ inline void FlatObject::cloneFromObject( const FlatObject &obj, char *newFlatBuf
   } else {
     mFlatBufferContainer.reset();
   }
-  std::memcpy( (void*) newFlatBufferPtr, (void*) oldFlatBufferPtr, obj.mFlatBufferSize );
+  std::memcpy( (void*) newFlatBufferPtr, (const void*) oldFlatBufferPtr, obj.mFlatBufferSize );
  
   mFlatBufferSize = obj.mFlatBufferSize;
   mFlatBufferPtr = newFlatBufferPtr;
@@ -363,7 +363,7 @@ inline void FlatObject::moveBufferTo( char *newFlatBufferPtr )
     newFlatBufferPtr = mFlatBufferContainer.get();
 
   }
-  std::memcpy( (void*) newFlatBufferPtr, (void*) mFlatBufferPtr, mFlatBufferSize );
+  std::memcpy( (void*) newFlatBufferPtr, (const void*) mFlatBufferPtr, mFlatBufferSize );
   mFlatBufferPtr = newFlatBufferPtr;
   if( mFlatBufferPtr!=mFlatBufferContainer.get() ){
     mFlatBufferContainer.reset();

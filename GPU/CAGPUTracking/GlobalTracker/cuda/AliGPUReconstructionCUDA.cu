@@ -631,10 +631,7 @@ int AliGPUReconstructionCUDABackend::DoTRDGPUTracking()
 	return(1);
 #else
 	cuCtxPushCurrent(mInternals->CudaContext);
-	memcpy((void*) fGpuTrdTracker, (void*) mTRDTracker.get(), sizeof(*fGpuTrdTracker));
-
-	fGpuTrdTracker->InitGPUProcessor((AliGPUReconstruction*) this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
-	ResetRegisteredMemoryPointers(fGpuTrdTracker);
+	SetupGPUProcessor(mTRDTracker.get());
 	fGpuTrdTracker->SetGeometry((AliGPUTRDGeometry*) workersDevice.fTrdGeometry);
 
 	GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, fGpuTrdTracker, sizeof(*fGpuTrdTracker), (char*) &AliGPUCAConstantMemDummy.trdTracker - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice));
@@ -675,10 +672,7 @@ int AliGPUReconstructionCUDABackend::RefitMergedTracks(AliGPUTPCGMMerger* Merger
 	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("Running GPU Merger (%d/%d)", Merger->NOutputTrackClusters(), Merger->NClusters());
 	timer.Start();
 
-	memcpy((void*) fGpuMerger, (void*) Merger, sizeof(AliGPUTPCGMMerger));
-
-	fGpuMerger->InitGPUProcessor((AliGPUReconstruction*) this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
-	ResetRegisteredMemoryPointers(Merger->MemoryResRefit());
+	SetupGPUProcessor(Merger);
 	fGpuMerger->OverrideSliceTracker((AliGPUTPCTracker*) (((char*) mDeviceParam) + ((char*) &AliGPUCAConstantMemDummy.tpcTrackers[0] - (char*) &AliGPUCAConstantMemDummy)));
 	
 	GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, fGpuMerger, sizeof(*Merger), (char*) &AliGPUCAConstantMemDummy.tpcMerger - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice));

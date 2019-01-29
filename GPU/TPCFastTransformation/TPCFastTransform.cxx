@@ -41,15 +41,15 @@ TPCFastTransform::TPCFastTransform()
   mTOFcorr( 0.f ),
   mPrimVtxZ( 0.f ),
   mTPCalignmentZ( 0.f )
-{  
+{
   // Default Constructor: creates an empty uninitialized object
   double dAlpha = 2.*M_PI/NumberOfSlices;
   for( int i=0; i<NumberOfSlices; i++){
     SliceInfo &s = mSliceInfos[i];
     double alpha = dAlpha*(i + 0.5);
-    s.sinAlpha = sin(alpha); 
+    s.sinAlpha = sin(alpha);
     s.cosAlpha = cos(alpha);
-  } 
+  }
 }
 
 
@@ -99,7 +99,7 @@ void TPCFastTransform::cloneFromObject( const TPCFastTransform &obj, char *newFl
   
 void TPCFastTransform::moveBufferTo( char *newFlatBufferPtr )
 {
-  /// See FlatObject for description   
+  /// See FlatObject for description
   const char *oldFlatBufferPtr = mFlatBufferPtr;
   FlatObject::moveBufferTo( newFlatBufferPtr );
   relocateBufferPointers( oldFlatBufferPtr, mFlatBufferPtr );
@@ -121,7 +121,7 @@ void TPCFastTransform::setFutureBufferAddress( char* futureFlatBufferPtr )
 
   mRowInfoPtr =  FlatObject::relocatePointer( oldFlatBufferPtr, futureFlatBufferPtr, mRowInfoPtr );
   char *distBuffer = FlatObject::relocatePointer( oldFlatBufferPtr, futureFlatBufferPtr, mDistortion.getFlatBufferPtr() );
-  mDistortion.setFutureBufferAddress( distBuffer );  
+  mDistortion.setFutureBufferAddress( distBuffer );
   FlatObject::setFutureBufferAddress( futureFlatBufferPtr );
 }
 
@@ -136,7 +136,7 @@ void TPCFastTransform::startConstruction( int numberOfRows )
 
   mNumberOfRows = numberOfRows;
   
-  mConstructionRowInfoBuffer.reset( new RowInfo[ numberOfRows ] ); 
+  mConstructionRowInfoBuffer.reset( new RowInfo[ numberOfRows ] );
   mConstructionCounter = 0;
 
   mTPCzLengthA = 0.f;
@@ -172,12 +172,12 @@ void TPCFastTransform::setTPCgeometry( float tpcZlengthSideA, float tpcZlengthSi
   mConstructionMask |= ConstructionExtraState::GeometryIsSet;
 }
 
-void TPCFastTransform::setCalibration( long int timeStamp, float t0, float vDrift, float vDriftCorrY, 
+void TPCFastTransform::setCalibration( long int timeStamp, float t0, float vDrift, float vDriftCorrY,
 				       float lDriftCorr, float tofCorr, float primVtxZ, float tpcAlignmentZ )
 {
   /// Sets all drift calibration parameters and the time stamp
   ///
-  /// It must be called once during initialization, 
+  /// It must be called once during initialization,
   /// but also may be called after to reset these parameters.
 
   mTimeStamp = timeStamp;
@@ -205,13 +205,13 @@ void TPCFastTransform::finishConstruction()
   size_t rowsSize = sizeof(RowInfo)*mNumberOfRows;
   size_t distortionOffset = FlatObject::alignSize( rowsSize, mDistortion.getBufferAlignmentBytes() );
   
-  FlatObject::finishConstruction( distortionOffset + mDistortion.getFlatBufferSize() );  
+  FlatObject::finishConstruction( distortionOffset + mDistortion.getFlatBufferSize() );
 
   mRowInfoPtr = reinterpret_cast< const RowInfo* > ( mFlatBufferPtr );
 
   char *distBuffer = mFlatBufferPtr + distortionOffset;
 
-  memcpy( (void*) mRowInfoPtr, mConstructionRowInfoBuffer.get(), rowsSize );
+  memcpy( (void*) mRowInfoPtr, (const void*) mConstructionRowInfoBuffer.get(), rowsSize );
 
   mDistortion.moveBufferTo( distBuffer);
 
@@ -222,4 +222,3 @@ void TPCFastTransform::finishConstruction()
 
 }// namespace
 }// namespace
-
