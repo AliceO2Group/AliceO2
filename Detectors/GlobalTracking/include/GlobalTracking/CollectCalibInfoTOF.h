@@ -35,7 +35,7 @@ class CollectCalibInfoTOF
   using Geo = o2::tof::Geo;
 
  public:
-  static constexpr int MAXNUMBEROFHITS = 5;
+  static constexpr int MAXNUMBEROFHITS = 256;
 
   ///< collect the CalibInfo for the TOF channels
   void run();

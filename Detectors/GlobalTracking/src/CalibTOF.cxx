@@ -37,7 +37,7 @@ void CalibTOF::run(int flag)
   mTimerTot.Start();
 
   if (flag == 0) { // LHC phase --> we will use all the entries in the tree
-    while(loadTOFCalibInfo()){ // fill here all histos you need 
+    while(loadTOFCollectedCalibInfo()){ // fill here all histos you need 
       fillLHCphaseCalibInput(); // we will fill the input for the LHC phase calibration
     }
     doLHCPhaseCalib();
@@ -45,7 +45,7 @@ void CalibTOF::run(int flag)
   else { // channel offset + problematic (flag = 1), or time slewing (flag = 2)
     for (int ich = 0; ich < o2::tof::Geo::NCHANNELS; ich++){
       mCurrTOFInfoTreeEntry = ich - o2::tof::Geo::NCHANNELS;
-      while(loadTOFCalibInfo(o2::tof::Geo::NCHANNELS)){ // fill here all histos you need 
+      while(loadTOFCollectedCalibInfo(o2::tof::Geo::NCHANNELS)){ // fill here all histos you need 
 	fillChannelCalibInput(); // we will fill the input for the channel-level calibration
       }
       doChannelLevelCalibration(flag);
@@ -128,7 +128,7 @@ void CalibTOF::attachInputTrees()
 }
 
 //______________________________________________
-bool CalibTOF::loadTOFCalibInfo(int increment)
+bool CalibTOF::loadTOFCollectedCalibInfo(int increment)
 {
   ///< load next chunk of TOF infos
   printf("Loading TOF calib infos: number of entries in tree = %lld\n", mTreeCollectedCalibInfoTOF->GetEntries());
@@ -152,21 +152,43 @@ bool CalibTOF::loadTOFCalibInfo(int increment)
 //______________________________________________
 int CalibTOF::doCalib(int flag, int channel)
 {
+}
+//______________________________________________
 
-  
-
+void CalibTOF::fillLHCphaseCalibInput(){
+  // we will fill the input for the LHC phase calibration
   static double bc = 1.e13 / o2::constants::lhc::LHCRFFreq; // bunch crossing period (ps)
   static double bc_inv = 1./bc;
-
+  
   int status = 0;
-
+  
   // implemented for flag=0, channel=-1 (-1 means all!)
   for(auto infotof = mCalibInfoTOF->begin(); infotof != mCalibInfoTOF->end(); infotof++){
     double dtime = infotof->getDeltaTimePi();
     dtime -= int(dtime*bc_inv + 0.5)*bc;
-
+    
     mHistoLHCphase->Fill(dtime);
   }
-  return status;
+  
+}
+//______________________________________________
+
+void CalibTOF::doLHCPhaseCalib(){
+  // calibrate with respect LHC phase
+}
+//______________________________________________
+
+void CalibTOF::fillChannelCalibInput(){
+  // we will fill the input for the channel-level calibration
+}
+//______________________________________________
+
+void CalibTOF::doChannelLevelCalibration(int flag){
+  // calibrate single channel from histos
+}
+//______________________________________________
+
+void CalibTOF::resetChannelLevelHistos(int flag){
+  // reset signle channel histos
 }
 

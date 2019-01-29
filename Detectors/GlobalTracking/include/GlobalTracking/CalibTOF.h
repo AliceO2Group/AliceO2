@@ -37,7 +37,7 @@ class CalibTOF
 
  public:
   ///< calibrate using the provided input
-  void run();
+  void run(int flag);
 
   ///< perform all initializations
   void init();
@@ -63,6 +63,13 @@ class CalibTOF
 
 
  private:
+  void fillLHCphaseCalibInput(); // we will fill the input for the LHC phase calibration
+  void doLHCPhaseCalib(); // calibrate with respect LHC phase
+  void fillChannelCalibInput(); // we will fill the input for the channel-level calibration
+  void doChannelLevelCalibration(int flag); // calibrate single channel from histos
+  void resetChannelLevelHistos(int flag); // reset signle channel histos
+ 
+
   // objects needed for calibration
   TH1F *mHistoLHCphase = nullptr;
 
@@ -82,7 +89,7 @@ class CalibTOF
 
   // to be done later
 
-  TTree* mTreeCalibInfoTOF = nullptr; ///< input tree with Calib infos
+  TTree* mTreeCollectedCalibInfoTOF = nullptr; ///< input tree with Calib infos
 
   TTree* mOutputTree = nullptr; ///< output tree for matched tracks
 

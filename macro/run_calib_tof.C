@@ -14,8 +14,8 @@
 #include "GlobalTracking/CalibTOF.h"
 #endif
 
-void run_calib_tof(std::string path = "./", std::string outputfile = "o2calibration_tof.root",
-		   std::string inputfileCalib = "o2calib_tof.root")
+void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparams_tof.root",
+		   std::string inputfileCalib = "o2calibration_tof.root")
 {
 
   o2::globaltracking::CalibTOF calib;
@@ -26,9 +26,9 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calibrat
   }
 
   //>>>---------- attach input data --------------->>>
-  TChain tofCalibInfo("calibTOF");
+  TChain tofCalibInfo("calibrationTOF");
   tofCalibInfo.AddFile((path + inputfileCalib).data());
-  calib.setInputTreeTOFCalibInfo(&tofCalibInfo);
+  calib.setInputTreeTOFCollectedCalibInfo(&tofCalibInfo);
 
   //<<<---------- attach input data ---------------<<<
 
@@ -49,7 +49,7 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calibrat
   */
   calib.init();
 
-  calib.run();
+  calib.run(0);
 
   outFile.cd();
   outTree.Write();
