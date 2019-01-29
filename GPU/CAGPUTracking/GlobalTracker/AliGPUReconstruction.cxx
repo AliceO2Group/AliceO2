@@ -279,7 +279,7 @@ size_t AliGPUReconstruction::AllocateRegisteredMemory(short ires)
 		if (res->mPtrDevice) operator delete(res->mPtrDevice);
 		res->mSize = (size_t) res->SetPointers((void*) 1) - 1;
 		res->mPtrDevice = operator new(res->mSize + AliGPUProcessor::MIN_ALIGNMENT);
-		res->mPtr = AliGPUProcessor::alignPointer(res->mPtrDevice);
+		res->mPtr = AliGPUProcessor::alignPointer<AliGPUProcessor::MIN_ALIGNMENT>(res->mPtrDevice);
 		res->SetPointers(res->mPtr);
 		if (mDeviceProcessingSettings.debugLevel >= 5) std::cout << "Allocated " << res->mName << ": " << res->mSize << "\n";
 	}
@@ -307,6 +307,26 @@ size_t AliGPUReconstruction::AllocateRegisteredMemory(short ires)
 		}
 	}
 	return res->mSize;
+}
+
+void* AliGPUReconstruction::AllocateUnmanagedMemory(size_t size, int type)
+{
+	if (type != AliGPUMemoryResource::MEMORY_HOST && (!IsGPU() || type != AliGPUMemoryResource::MEMORY_GPU)) throw std::bad_alloc();
+	if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL)
+	{
+		mUnmanagedChunks.emplace_back(new char[size + AliGPUProcessor::MIN_ALIGNMENT]);
+		return AliGPUProcessor::alignPointer<AliGPUProcessor::MIN_ALIGNMENT>(mUnmanagedChunks.back().get());
+	}
+	else
+	{
+		void* pool = type == AliGPUMemoryResource::MEMORY_GPU ? mDeviceMemoryPool : mHostMemoryPool;
+		void* base = type == AliGPUMemoryResource::MEMORY_GPU ? mDeviceMemoryBase : mHostMemoryBase;
+		size_t poolsize = type == AliGPUMemoryResource::MEMORY_GPU ? mDeviceMemorySize : mHostMemorySize;
+		char* retVal;
+		AliGPUProcessor::computePointerWithAlignment(pool, retVal, size);
+		if ((size_t) ((char*) pool - (char*) base) > poolsize) throw std::bad_alloc();
+		return retVal;
+	}
 }
 
 void AliGPUReconstruction::ResetRegisteredMemoryPointers(AliGPUProcessor* proc)
@@ -348,6 +368,7 @@ void AliGPUReconstruction::ClearAllocatedMemory()
 	}
 	mHostMemoryPool = AliGPUProcessor::alignPointer<GPUCA_GPU_MEMALIGN>(mHostMemoryPermanent);
 	mDeviceMemoryPool = AliGPUProcessor::alignPointer<GPUCA_GPU_MEMALIGN>(mDeviceMemoryPermanent);
+	mUnmanagedChunks.clear();
 }
 
 void AliGPUReconstruction::PrepareEvent()
