@@ -50,7 +50,7 @@ int AliGPUReconstructionDeviceBase::GlobalTracking(int iSlice, int threadId, Ali
 	}
 	while (fSliceOutputReady < iSlice || fSliceOutputReady < sliceLeft || fSliceOutputReady < sliceRight)
 	{
-		if (hParam != NULL && hParam->fReset) return(1);
+		if (hParam != nullptr && hParam->fReset) return(1);
 	}
 
 	pthread_mutex_lock(&((pthread_mutex_t*) fSliceGlobalMutexes)[sliceLeft]);
@@ -140,8 +140,8 @@ ResetHelperThread:
 	if (cls->mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("\tHelper thread %d terminating", par->fNum);
 	delete tmpTracker;
 	pthread_mutex_unlock(&((pthread_mutex_t*) par->fMutex)[1]);
-	pthread_exit(NULL);
-	return(NULL);
+	pthread_exit(nullptr);
+	return(nullptr);
 }
 
 void AliGPUReconstructionDeviceBase::ResetThisHelperThread(AliGPUReconstructionDeviceBase::helperParam* par)
@@ -156,7 +156,7 @@ void AliGPUReconstructionDeviceBase::ReleaseGlobalLock(void* sem)
 	//Release the global named semaphore that locks GPU Initialization
 #ifdef WIN32
 	HANDLE* h = (HANDLE*) sem;
-	ReleaseSemaphore(*h, 1, NULL);
+	ReleaseSemaphore(*h, 1, nullptr);
 	CloseHandle(*h);
 	delete h;
 #else
@@ -218,7 +218,7 @@ int AliGPUReconstructionDeviceBase::StartHelperThreads()
 	if (nThreads)
 	{
 		fHelperParams = new helperParam[nThreads];
-		if (fHelperParams == NULL)
+		if (fHelperParams == nullptr)
 		{
 			CAGPUError("Memory allocation error");
 			ExitDevice();
@@ -231,7 +231,7 @@ int AliGPUReconstructionDeviceBase::StartHelperThreads()
 			fHelperParams[i].fReset = false;
 			fHelperParams[i].fNum = i;
 			fHelperParams[i].fMutex = malloc(2 * sizeof(pthread_mutex_t));
-			if (fHelperParams[i].fMutex == NULL)
+			if (fHelperParams[i].fMutex == nullptr)
 			{
 				CAGPUError("Memory allocation error");
 				ExitDevice();
@@ -239,7 +239,7 @@ int AliGPUReconstructionDeviceBase::StartHelperThreads()
 			}
 			for (int j = 0;j < 2;j++)
 			{
-				if (pthread_mutex_init(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j], NULL))
+				if (pthread_mutex_init(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j], nullptr))
 				{
 					CAGPUError("Error creating pthread mutex");
 					ExitDevice();
@@ -250,7 +250,7 @@ int AliGPUReconstructionDeviceBase::StartHelperThreads()
 			}
 			fHelperParams[i].fThreadId = (void*) malloc(sizeof(pthread_t));
 
-			if (pthread_create((pthread_t*) fHelperParams[i].fThreadId, NULL, helperWrapper, &fHelperParams[i]))
+			if (pthread_create((pthread_t*) fHelperParams[i].fThreadId, nullptr, helperWrapper, &fHelperParams[i]))
 			{
 				CAGPUError("Error starting slave thread");
 				ExitDevice();
@@ -279,7 +279,7 @@ int AliGPUReconstructionDeviceBase::StopHelperThreads()
 				CAGPUError("Error locking mutex");
 				return(1);
 			}
-			if (pthread_join( *((pthread_t*) fHelperParams[i].fThreadId), NULL))
+			if (pthread_join( *((pthread_t*) fHelperParams[i].fThreadId), nullptr))
 			{
 				CAGPUError("Error waiting for thread to terminate");
 				return(1);
@@ -341,12 +341,12 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 	}
 
 #ifdef WIN32
-	HANDLE* semLock = NULL;
+	HANDLE* semLock = nullptr;
 	if (mDeviceProcessingSettings.globalInitMutex)
 	{
 		semLock = new HANDLE;
-		*semLock = CreateSemaphore(NULL, 1, 1, SemLockName);
-		if (*semLock == NULL)
+		*semLock = CreateSemaphore(nullptr, 1, 1, SemLockName);
+		if (*semLock == nullptr)
 		{
 			CAGPUError("Error creating GPUInit Semaphore");
 			return(1);
@@ -354,7 +354,7 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 		WaitForSingleObject(*semLock, INFINITE);
 	}
 #else
-	sem_t* semLock = NULL;
+	sem_t* semLock = nullptr;
 	if (mDeviceProcessingSettings.globalInitMutex)
 	{
 		semLock = sem_open(SemLockName, O_CREAT, 0x01B6, 1);
@@ -416,14 +416,14 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 	if (StartHelperThreads()) return(1);
 
 	fHelperMemMutex = malloc(sizeof(pthread_mutex_t));
-	if (fHelperMemMutex == NULL)
+	if (fHelperMemMutex == nullptr)
 	{
 		CAGPUError("Memory allocation error");
 		ExitDevice_Runtime();
 		return(1);
 	}
 
-	if (pthread_mutex_init((pthread_mutex_t*) fHelperMemMutex, NULL))
+	if (pthread_mutex_init((pthread_mutex_t*) fHelperMemMutex, nullptr))
 	{
 		CAGPUError("Error creating pthread mutex");
 		ExitDevice_Runtime();
@@ -432,7 +432,7 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 	}
 
 	fSliceGlobalMutexes = malloc(sizeof(pthread_mutex_t) * NSLICES);
-	if (fSliceGlobalMutexes == NULL)
+	if (fSliceGlobalMutexes == nullptr)
 	{
 		CAGPUError("Memory allocation error");
 		ExitDevice_Runtime();
@@ -440,7 +440,7 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 	}
 	for (unsigned int i = 0;i < NSLICES;i++)
 	{
-		if (pthread_mutex_init(&((pthread_mutex_t*) fSliceGlobalMutexes)[i], NULL))
+		if (pthread_mutex_init(&((pthread_mutex_t*) fSliceGlobalMutexes)[i], nullptr))
 		{
 			CAGPUError("Error creating pthread mutex");
 			ExitDevice_Runtime();
@@ -628,7 +628,7 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_FinishSlices(unsigned int i
 		{
 			int tmpId = iSlice % (NSLICES / 2) - 1;
 			if (iSlice >= NSLICES / 2) tmpId += NSLICES / 2;
-			GlobalTracking(tmpId, 0, NULL);
+			GlobalTracking(tmpId, 0, nullptr);
 			fGlobalTrackingDone[tmpId] = 1;
 		}
 		for (unsigned int tmpSlice3a = 0;tmpSlice3a < iSlice;tmpSlice3a += mDeviceProcessingSettings.nDeviceHelperThreads + 1)
@@ -647,7 +647,7 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_FinishSlices(unsigned int i
 
 			if (tmpSlice3 % (NSLICES / 2) != 1 && fGlobalTrackingDone[tmpSlice3] == 0 && sliceLeft < iSlice && sliceRight < iSlice)
 			{
-				GlobalTracking(tmpSlice3, 0, NULL);
+				GlobalTracking(tmpSlice3, 0, nullptr);
 				fGlobalTrackingDone[tmpSlice3] = 1;
 			}
 
@@ -697,7 +697,7 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_Finalize()
 		{
 			unsigned int tmpSlice3 = (tmpSlice3a + 1);
 			if (tmpSlice3 % (NSLICES / 2) < 1) tmpSlice3 -= (NSLICES / 2);
-			if (fGlobalTrackingDone[tmpSlice3] == 0) GlobalTracking(tmpSlice3, 0, NULL);
+			if (fGlobalTrackingDone[tmpSlice3] == 0) GlobalTracking(tmpSlice3, 0, nullptr);
 		}
 		for (unsigned int tmpSlice3a = 0;tmpSlice3a < NSLICES;tmpSlice3a += mDeviceProcessingSettings.nDeviceHelperThreads + 1)
 		{

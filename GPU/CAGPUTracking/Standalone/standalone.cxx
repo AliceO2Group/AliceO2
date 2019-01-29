@@ -9,8 +9,8 @@
 
 #include <iostream>
 #include <fstream>
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 #include <chrono>
 #include <tuple>
 #include <algorithm>
@@ -22,13 +22,11 @@
 #include <unistd.h>
 #include <sched.h>
 #include <signal.h>
-#include <cstdio>
-#include <cstring>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/select.h>
 #include <fenv.h>
-#include <locale.h>
+#include <clocale>
 #include <sys/stat.h>
 #endif
 

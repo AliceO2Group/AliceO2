@@ -7,10 +7,10 @@
 #include "AliGPUTPCClusterData.h"
 #include "ClusterNativeAccessExt.h"
 
-#include <stdio.h>
+#include <cstdio>
 #include <exception>
 #include <memory>
-#include <string.h>
+#include <cstring>
 
 #include "cmodules/qconfig.h"
 

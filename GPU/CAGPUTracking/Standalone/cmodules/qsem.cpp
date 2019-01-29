@@ -1,5 +1,5 @@
-#include <errno.h>
-#include <stdio.h>
+#include <cerrno>
+#include <cstdio>
 
 #include "qsem.h"
 

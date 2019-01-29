@@ -1,5 +1,8 @@
 #include <GL/glew.h>
 #include "AliGPUCADisplayBackendX11.h"
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 int AliGPUCADisplayBackendX11::GetKey(int key)
 {

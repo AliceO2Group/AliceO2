@@ -17,8 +17,8 @@
 //                                                                          *
 //***************************************************************************
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 #include "AliGPUTPCSliceOutTrack.h"
 #include "AliGPUTPCTracker.h"
 #include "AliGPUTPCClusterData.h"

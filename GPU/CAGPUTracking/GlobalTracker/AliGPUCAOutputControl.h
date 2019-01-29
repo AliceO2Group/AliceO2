@@ -8,8 +8,10 @@
 struct AliGPUCAOutputControl
 {
 	enum OutputTypeStruct {AllocateInternal = 0, UseExternalBuffer = 1, ControlledExternal = 2};
-	
-	AliGPUCAOutputControl() : OutputPtr(NULL), Offset(0), OutputMaxSize(0), OutputType(AllocateInternal), EndOfSpace(0) {}
+#ifndef __OPENCL__
+	AliGPUCAOutputControl() : OutputPtr(nullptr), Offset(0), OutputMaxSize(0), OutputType(AllocateInternal), EndOfSpace(0) {}
+#endif
+
 	const char* OutputPtr;				//Pointer to Output Space
 	volatile size_t Offset;				//Offset to write into output pointer
 	size_t OutputMaxSize;				//Max Size of Output Data if Pointer to output space is given

@@ -39,7 +39,7 @@
 #endif
 
 #include <cmath>
-#include <stdlib.h>
+#include <cstdlib>
 
 CADEBUG(int cadebug_nTracks = 0;)
 

@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 
 #ifndef STD_OUT
 #define STD_OUT stdout

@@ -45,9 +45,9 @@ AliGPUReconstructionOCLBackend::AliGPUReconstructionOCLBackend(const AliGPUCASet
 	mProcessingSettings.deviceType = OCL;
 	mITSTrackerTraits.reset(new o2::ITS::TrackerTraitsCPU);
 
-	mHostMemoryBase = NULL;
-	mInternals->selector_events = NULL;
-	mInternals->devices = NULL;
+	mHostMemoryBase = nullptr;
+	mInternals->selector_events = nullptr;
+	mInternals->devices = nullptr;
 }
 
 AliGPUReconstructionOCLBackend::~AliGPUReconstructionOCLBackend()
@@ -66,14 +66,14 @@ int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 
 	cl_int ocl_error;
 	cl_uint num_platforms;
-	if (clGetPlatformIDs(0, NULL, &num_platforms) != CL_SUCCESS) quit("Error getting OpenCL Platform Count");
+	if (clGetPlatformIDs(0, nullptr, &num_platforms) != CL_SUCCESS) quit("Error getting OpenCL Platform Count");
 	if (num_platforms == 0) quit("No OpenCL Platform found");
 	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("%d OpenCL Platforms found", num_platforms);
 	
 	//Query platforms
 	cl_platform_id* platforms = new cl_platform_id[num_platforms];
-	if (platforms == NULL) quit("Memory allocation error");
-	if (clGetPlatformIDs(num_platforms, platforms, NULL) != CL_SUCCESS) quit("Error getting OpenCL Platforms");
+	if (platforms == nullptr) quit("Memory allocation error");
+	if (clGetPlatformIDs(num_platforms, platforms, nullptr) != CL_SUCCESS) quit("Error getting OpenCL Platforms");
 
 	cl_platform_id platform;
 	bool found = false;
@@ -92,10 +92,10 @@ int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 		for (unsigned int i_platform = 0;i_platform < num_platforms;i_platform++)
 		{
 			char platform_profile[64], platform_version[64], platform_name[64], platform_vendor[64];
-			clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_PROFILE, 64, platform_profile, NULL);
-			clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_VERSION, 64, platform_version, NULL);
-			clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_NAME, 64, platform_name, NULL);
-			clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_VENDOR, 64, platform_vendor, NULL);
+			clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_PROFILE, 64, platform_profile, nullptr);
+			clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_VERSION, 64, platform_version, nullptr);
+			clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_NAME, 64, platform_name, nullptr);
+			clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_VENDOR, 64, platform_vendor, nullptr);
 			if (mDeviceProcessingSettings.debugLevel >= 2) {CAGPUDebug("Available Platform %d: (%s %s) %s %s\n", i_platform, platform_profile, platform_version, platform_vendor, platform_name);}
 			if (strcmp(platform_vendor, "Advanced Micro Devices, Inc.") == 0)
 			{
@@ -115,7 +115,7 @@ int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 
 	cl_uint count, bestDevice = (cl_uint) -1;
 	double bestDeviceSpeed = -1, deviceSpeed;
-	if (GPUFailedMsg(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, NULL, &count)))
+	if (GPUFailedMsg(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, nullptr, &count)))
 	{
 		CAGPUError("Error getting OPENCL Device Count");
 		return(1);
@@ -123,8 +123,8 @@ int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 
 	//Query devices
 	mInternals->devices = new cl_device_id[count];
-	if (mInternals->devices == NULL) quit("Memory allocation error");
-	if (clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, count, mInternals->devices, NULL) != CL_SUCCESS) quit("Error getting OpenCL devices");
+	if (mInternals->devices == nullptr) quit("Memory allocation error");
+	if (clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, count, mInternals->devices, nullptr) != CL_SUCCESS) quit("Error getting OpenCL devices");
 
 	char device_vendor[64], device_name[64];
 	cl_device_type device_type;
@@ -136,12 +136,12 @@ int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 		if (mDeviceProcessingSettings.debugLevel >= 3) {CAGPUInfo("Examining device %d\n", i);}
 		cl_uint nbits;
 
-		clGetDeviceInfo(mInternals->devices[i], CL_DEVICE_NAME, 64, device_name, NULL);
-		clGetDeviceInfo(mInternals->devices[i], CL_DEVICE_VENDOR, 64, device_vendor, NULL);
-		clGetDeviceInfo(mInternals->devices[i], CL_DEVICE_TYPE, sizeof(cl_device_type), &device_type, NULL);
-		clGetDeviceInfo(mInternals->devices[i], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(freq), &freq, NULL);
-		clGetDeviceInfo(mInternals->devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(shaders), &shaders, NULL);
-		clGetDeviceInfo(mInternals->devices[i], CL_DEVICE_ADDRESS_BITS, sizeof(nbits), &nbits, NULL);
+		clGetDeviceInfo(mInternals->devices[i], CL_DEVICE_NAME, 64, device_name, nullptr);
+		clGetDeviceInfo(mInternals->devices[i], CL_DEVICE_VENDOR, 64, device_vendor, nullptr);
+		clGetDeviceInfo(mInternals->devices[i], CL_DEVICE_TYPE, sizeof(cl_device_type), &device_type, nullptr);
+		clGetDeviceInfo(mInternals->devices[i], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(freq), &freq, nullptr);
+		clGetDeviceInfo(mInternals->devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(shaders), &shaders, nullptr);
+		clGetDeviceInfo(mInternals->devices[i], CL_DEVICE_ADDRESS_BITS, sizeof(nbits), &nbits, nullptr);
 		int deviceOK = true;
 		const char* deviceFailure = "";
 		if (mDeviceProcessingSettings.gpuDeviceOnly && ((device_type & CL_DEVICE_TYPE_CPU) || !(device_type & CL_DEVICE_TYPE_GPU))) {deviceOK = false; deviceFailure = "No GPU device";}
@@ -179,21 +179,21 @@ int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 	}
 	mInternals->device = mInternals->devices[bestDevice];
 
-	clGetDeviceInfo(mInternals->device, CL_DEVICE_NAME, 64, device_name, NULL);
-	clGetDeviceInfo(mInternals->device, CL_DEVICE_VENDOR, 64, device_vendor, NULL);
-	clGetDeviceInfo(mInternals->device, CL_DEVICE_TYPE, sizeof(cl_device_type), &device_type, NULL);
-	clGetDeviceInfo(mInternals->device, CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(freq), &freq, NULL);
-	clGetDeviceInfo(mInternals->device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(shaders), &shaders, NULL);
+	clGetDeviceInfo(mInternals->device, CL_DEVICE_NAME, 64, device_name, nullptr);
+	clGetDeviceInfo(mInternals->device, CL_DEVICE_VENDOR, 64, device_vendor, nullptr);
+	clGetDeviceInfo(mInternals->device, CL_DEVICE_TYPE, sizeof(cl_device_type), &device_type, nullptr);
+	clGetDeviceInfo(mInternals->device, CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(freq), &freq, nullptr);
+	clGetDeviceInfo(mInternals->device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(shaders), &shaders, nullptr);
 	if (mDeviceProcessingSettings.debugLevel >= 2) {CAGPUDebug("Using OpenCL device %d: %s %s (Frequency %d, Shaders %d)\n", bestDevice, device_vendor, device_name, (int) freq, (int) shaders);}
 
 	cl_uint compute_units;
-	clGetDeviceInfo(mInternals->device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &compute_units, NULL);
+	clGetDeviceInfo(mInternals->device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &compute_units, nullptr);
 	
 	fConstructorBlockCount = compute_units * GPUCA_GPU_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER;
 	fSelectorBlockCount = compute_units * GPUCA_GPU_BLOCK_COUNT_SELECTOR_MULTIPLIER;
 	fConstructorThreadCount = GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR;
 
-	mInternals->context = clCreateContext(NULL, count, mInternals->devices, NULL, NULL, &ocl_error);
+	mInternals->context = clCreateContext(nullptr, count, mInternals->devices, nullptr, nullptr, &ocl_error);
 	if (ocl_error != CL_SUCCESS)
 	{
 		CAGPUError("Could not create OPENCL Device Context!");
@@ -205,7 +205,7 @@ int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 		char* file = "GlobalTracker/opencl/AliGPUReconstructionOCL.cl";
 		CAGPUDebug("Reading source file %s\n", file);
 		FILE* fp = fopen(file, "rb");
-		if (fp == NULL)
+		if (fp == nullptr)
 		{
 			CAGPUDebug("Cannot open %s\n", file);
 			return(1);
@@ -215,7 +215,7 @@ int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 		fseek(fp, 0, SEEK_SET);
 
 		char* buffer = (char*) malloc(file_size + 1);
-		if (buffer == NULL)
+		if (buffer == nullptr)
 		{
 			quit("Memory allocation error");
 		}
@@ -228,12 +228,12 @@ int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 
 		CAGPUDebug("Creating OpenCL Program Object\n");
 		//Create OpenCL program object
-		mInternals->program = clCreateProgramWithSource(mInternals->context, (cl_uint) 1, (const char**) &buffer, NULL, &ocl_error);
+		mInternals->program = clCreateProgramWithSource(mInternals->context, (cl_uint) 1, (const char**) &buffer, nullptr, &ocl_error);
 		if (ocl_error != CL_SUCCESS) quit("Error creating program object");
 
 		CAGPUDebug("Compiling OpenCL Program\n");
 		//Compile program
-		ocl_error = clBuildProgram(mInternals->program, count, mInternals->devices, "-I. -Iinclude -ISliceTracker -IHLTHeaders -IMerger -IGlobalTracker -I/home/qon/AMD-APP-SDK-v2.8.1.0-RC-lnx64/include -DGPUCA_STANDALONE -DBUILD_GPU -D_64BIT -x clc++", NULL, NULL);
+		ocl_error = clBuildProgram(mInternals->program, count, mInternals->devices, "-I. -Iinclude -ISliceTracker -IHLTHeaders -IMerger -IGlobalTracker -I/home/qon/AMD-APP-SDK-v2.8.1.0-RC-lnx64/include -DGPUCA_STANDALONE -DBUILD_GPU -D_64BIT -x clc++", nullptr, nullptr);
 		if (ocl_error != CL_SUCCESS)
 		{
 			CAGPUDebug("OpenCL Error while building program: %d (Compiler options: %s)\n", ocl_error, "");
@@ -241,14 +241,14 @@ int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 			for (unsigned int i = 0;i < count;i++)
 			{
 				cl_build_status status;
-				clGetProgramBuildInfo(mInternals->program, mInternals->devices[i], CL_PROGRAM_BUILD_STATUS, sizeof(status), &status, NULL);
+				clGetProgramBuildInfo(mInternals->program, mInternals->devices[i], CL_PROGRAM_BUILD_STATUS, sizeof(status), &status, nullptr);
 				if (status == CL_BUILD_ERROR)
 				{
 					size_t log_size;
-					clGetProgramBuildInfo(mInternals->program, mInternals->devices[i], CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+					clGetProgramBuildInfo(mInternals->program, mInternals->devices[i], CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size);
 					char* build_log = (char*) malloc(log_size + 1);
-					if (build_log == NULL) quit("Memory allocation error");
-					clGetProgramBuildInfo(mInternals->program, mInternals->devices[i], CL_PROGRAM_BUILD_LOG, log_size, build_log, NULL);
+					if (build_log == nullptr) quit("Memory allocation error");
+					clGetProgramBuildInfo(mInternals->program, mInternals->devices[i], CL_PROGRAM_BUILD_LOG, log_size, build_log, nullptr);
 					CAGPUDebug("Build Log (device %d):\n\n%s\n\n", i, build_log);
 					free(build_log);
 				}
@@ -273,7 +273,7 @@ int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 	mInternals->kernel_tracklet_constructor = clCreateKernel(mInternals->program, "AliGPUTPCTrackletConstructorGPU", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 6");return(1);}
 	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("OpenCL kernels created successfully");
 
-	mInternals->mem_gpu = clCreateBuffer(mInternals->context, CL_MEM_READ_WRITE, mDeviceMemorySize, NULL, &ocl_error);
+	mInternals->mem_gpu = clCreateBuffer(mInternals->context, CL_MEM_READ_WRITE, mDeviceMemorySize, nullptr, &ocl_error);
 	if (ocl_error != CL_SUCCESS)
 	{
 		CAGPUError("OPENCL Memory Allocation Error");
@@ -281,7 +281,7 @@ int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 		return(1);
 	}
 
-	mInternals->mem_constant = clCreateBuffer(mInternals->context, CL_MEM_READ_ONLY, sizeof(AliGPUCAConstantMem), NULL, &ocl_error);
+	mInternals->mem_constant = clCreateBuffer(mInternals->context, CL_MEM_READ_ONLY, sizeof(AliGPUCAConstantMem), nullptr, &ocl_error);
 	if (ocl_error != CL_SUCCESS)
 	{
 		CAGPUError("OPENCL Constant Memory Allocation Error");
@@ -299,40 +299,40 @@ int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 	for (unsigned int i = 0;i < nStreams;i++)
 	{
 #ifdef CL_VERSION_2_0
-		mInternals->command_queue[i] = clCreateCommandQueueWithProperties(mInternals->context, mInternals->device, NULL, &ocl_error);
+		mInternals->command_queue[i] = clCreateCommandQueueWithProperties(mInternals->context, mInternals->device, nullptr, &ocl_error);
 #else
 		mInternals->command_queue[i] = clCreateCommandQueue(mInternals->context, mInternals->device, 0, &ocl_error);
 #endif
 		if (ocl_error != CL_SUCCESS) quit("Error creating OpenCL command queue");
 	}
-	if (clEnqueueMigrateMemObjects(mInternals->command_queue[0], 1, &mInternals->mem_gpu, 0, 0, NULL, NULL) != CL_SUCCESS) quit("Error migrating buffer");
+	if (clEnqueueMigrateMemObjects(mInternals->command_queue[0], 1, &mInternals->mem_gpu, 0, 0, nullptr, nullptr) != CL_SUCCESS) quit("Error migrating buffer");
 
 	if (mDeviceProcessingSettings.debugLevel >= 1) CAGPUInfo("GPU Memory used: %lld", (long long int) mDeviceMemorySize);
 
-	mInternals->mem_host = clCreateBuffer(mInternals->context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, mHostMemorySize, NULL, &ocl_error);
+	mInternals->mem_host = clCreateBuffer(mInternals->context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, mHostMemorySize, nullptr, &ocl_error);
 	if (ocl_error != CL_SUCCESS) quit("Error allocating pinned host memory");
 
 	const char* krnlGetPtr = "__kernel void krnlGetPtr(__global char* gpu_mem, __global size_t* host_mem) {if (get_global_id(0) == 0) *host_mem = (size_t) gpu_mem;}";
-	cl_program program = clCreateProgramWithSource(mInternals->context, 1, (const char**) &krnlGetPtr, NULL, &ocl_error);
+	cl_program program = clCreateProgramWithSource(mInternals->context, 1, (const char**) &krnlGetPtr, nullptr, &ocl_error);
 	if (ocl_error != CL_SUCCESS) quit("Error creating program object");
-	ocl_error = clBuildProgram(program, 1, &mInternals->device, "", NULL, NULL);
+	ocl_error = clBuildProgram(program, 1, &mInternals->device, "", nullptr, nullptr);
 	if (ocl_error != CL_SUCCESS)
 	{
 		char build_log[16384];
-		clGetProgramBuildInfo(program, mInternals->device, CL_PROGRAM_BUILD_LOG, 16384, build_log, NULL);
+		clGetProgramBuildInfo(program, mInternals->device, CL_PROGRAM_BUILD_LOG, 16384, build_log, nullptr);
 		CAGPUImportant("Build Log:\n\n%s\n\n", build_log);
 		quit("Error compiling program");
 	}
 	cl_kernel kernel = clCreateKernel(program, "krnlGetPtr", &ocl_error);
 	if (ocl_error != CL_SUCCESS) quit("Error creating kernel");
 	OCLsetKernelParameters(kernel, mInternals->mem_gpu, mInternals->mem_host);
-	clExecuteKernelA(mInternals->command_queue[0], kernel, 16, 16, NULL);
+	clExecuteKernelA(mInternals->command_queue[0], kernel, 16, 16, nullptr);
 	clFinish(mInternals->command_queue[0]);
 	clReleaseKernel(kernel);
 	clReleaseProgram(program);
 
 	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("Mapping hostmemory");
-	mHostMemoryBase = clEnqueueMapBuffer(mInternals->command_queue[0], mInternals->mem_host, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, mHostMemorySize, 0, NULL, NULL, &ocl_error);
+	mHostMemoryBase = clEnqueueMapBuffer(mInternals->command_queue[0], mInternals->mem_host, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, mHostMemorySize, 0, nullptr, nullptr, &ocl_error);
 	if (ocl_error != CL_SUCCESS)
 	{
 		CAGPUError("Error allocating Page Locked Host Memory");
@@ -397,7 +397,7 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Copying Tracker objects to GPU");
 
 	cl_event initEvent;
-	if (GPUFailedMsg(clEnqueueWriteBuffer(mInternals->command_queue[0], mInternals->mem_constant, CL_FALSE, 0, sizeof(AliGPUTPCTracker) * NSLICES, fGpuTracker, 0, NULL, &initEvent)))
+	if (GPUFailedMsg(clEnqueueWriteBuffer(mInternals->command_queue[0], mInternals->mem_constant, CL_FALSE, 0, sizeof(AliGPUTPCTracker) * NSLICES, fGpuTracker, 0, nullptr, &initEvent)))
 	{
 		CAGPUError("Error writing to constant memory");
 		return(2);
@@ -420,7 +420,7 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 		//Initialize temporary memory where needed
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Copying Slice Data to GPU and initializing temporary memory");
 		OCLsetKernelParameters(mInternals->kernel_row_blocks, mInternals->mem_gpu, mInternals->mem_constant, iSlice);
-		clExecuteKernelA(mInternals->command_queue[2], mInternals->kernel_row_blocks, GPUCA_GPU_THREAD_COUNT, GPUCA_GPU_THREAD_COUNT * fConstructorBlockCount, NULL, &initEvent);
+		clExecuteKernelA(mInternals->command_queue[2], mInternals->kernel_row_blocks, GPUCA_GPU_THREAD_COUNT, GPUCA_GPU_THREAD_COUNT * fConstructorBlockCount, nullptr, &initEvent);
 		if (GPUSync("Initialization (2)", 2, iSlice) RANDOM_ERROR)
 		{
 			return(3);
@@ -428,7 +428,7 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 
 		//Copy Data to GPU Global Memory
 		mTPCSliceTrackersCPU[iSlice].StartTimer(0);
-		if (TransferMemoryResourceLinkToGPU(mTPCSliceTrackersCPU[iSlice].Data().MemoryResInput(), iSlice & 1, mInternals->cl_queue_event_done[iSlice & 1] ? 0 : 1, mInternals->cl_queue_event_done[iSlice & 1] ? NULL : &initEvent, NULL) ||
+		if (TransferMemoryResourceLinkToGPU(mTPCSliceTrackersCPU[iSlice].Data().MemoryResInput(), iSlice & 1, mInternals->cl_queue_event_done[iSlice & 1] ? 0 : 1, mInternals->cl_queue_event_done[iSlice & 1] ? nullptr : &initEvent, nullptr) ||
 			TransferMemoryResourceLinkToGPU(mTPCSliceTrackersCPU[iSlice].Data().MemoryResRows(), iSlice & 1) ||
 			TransferMemoryResourceLinkToGPU(mTPCSliceTrackersCPU[iSlice].MemoryResCommon(), iSlice & 1))
 		{
@@ -446,7 +446,7 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Neighbours Finder (Slice %d/%d)", iSlice, NSLICES);
 		OCLsetKernelParameters(mInternals->kernel_neighbours_finder, mInternals->mem_gpu, mInternals->mem_constant, iSlice);
 		mTPCSliceTrackersCPU[iSlice].StartTimer(1);
-		clExecuteKernelA(mInternals->command_queue[iSlice & 1], mInternals->kernel_neighbours_finder, GPUCA_GPU_THREAD_COUNT_FINDER, GPUCA_GPU_THREAD_COUNT_FINDER * GPUCA_ROW_COUNT, NULL);
+		clExecuteKernelA(mInternals->command_queue[iSlice & 1], mInternals->kernel_neighbours_finder, GPUCA_GPU_THREAD_COUNT_FINDER, GPUCA_GPU_THREAD_COUNT_FINDER * GPUCA_ROW_COUNT, nullptr);
 		if (GPUSync("Neighbours finder", iSlice & 1, iSlice) RANDOM_ERROR)
 		{
 			return(3);
@@ -463,7 +463,7 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Neighbours Cleaner (Slice %d/%d)", iSlice, NSLICES);
 		OCLsetKernelParameters(mInternals->kernel_neighbours_cleaner, mInternals->mem_gpu, mInternals->mem_constant, iSlice);
 		mTPCSliceTrackersCPU[iSlice].StartTimer(2);
-		clExecuteKernelA(mInternals->command_queue[iSlice & 1], mInternals->kernel_neighbours_cleaner, GPUCA_GPU_THREAD_COUNT, GPUCA_GPU_THREAD_COUNT * (GPUCA_ROW_COUNT - 2), NULL);
+		clExecuteKernelA(mInternals->command_queue[iSlice & 1], mInternals->kernel_neighbours_cleaner, GPUCA_GPU_THREAD_COUNT, GPUCA_GPU_THREAD_COUNT * (GPUCA_ROW_COUNT - 2), nullptr);
 		if (GPUSync("Neighbours Cleaner", iSlice & 1, iSlice) RANDOM_ERROR)
 		{
 			return(3);
@@ -479,7 +479,7 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Start Hits Finder (Slice %d/%d)", iSlice, NSLICES);
 		OCLsetKernelParameters(mInternals->kernel_start_hits_finder, mInternals->mem_gpu, mInternals->mem_constant, iSlice);
 		mTPCSliceTrackersCPU[iSlice].StartTimer(3);
-		clExecuteKernelA(mInternals->command_queue[iSlice & 1], mInternals->kernel_start_hits_finder, GPUCA_GPU_THREAD_COUNT, GPUCA_GPU_THREAD_COUNT * (GPUCA_ROW_COUNT - 6), NULL);
+		clExecuteKernelA(mInternals->command_queue[iSlice & 1], mInternals->kernel_start_hits_finder, GPUCA_GPU_THREAD_COUNT, GPUCA_GPU_THREAD_COUNT * (GPUCA_ROW_COUNT - 6), nullptr);
 		if (GPUSync("Start Hits Finder", iSlice & 1, iSlice) RANDOM_ERROR)
 		{
 			return(3);
@@ -489,7 +489,7 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Start Hits Sorter (Slice %d/%d)", iSlice, NSLICES);
 		OCLsetKernelParameters(mInternals->kernel_start_hits_sorter, mInternals->mem_gpu, mInternals->mem_constant, iSlice);
 		mTPCSliceTrackersCPU[iSlice].StartTimer(4);
-		clExecuteKernelA(mInternals->command_queue[iSlice & 1], mInternals->kernel_start_hits_sorter, GPUCA_GPU_THREAD_COUNT, GPUCA_GPU_THREAD_COUNT * fConstructorBlockCount, NULL);
+		clExecuteKernelA(mInternals->command_queue[iSlice & 1], mInternals->kernel_start_hits_sorter, GPUCA_GPU_THREAD_COUNT, GPUCA_GPU_THREAD_COUNT * fConstructorBlockCount, nullptr);
 		if (GPUSync("Start Hits Sorter", iSlice & 1, iSlice) RANDOM_ERROR)
 		{
 			return(3);
@@ -525,7 +525,7 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 	cl_event initEvents2[3];
 	for (int i = 0;i < 3;i++)
 	{
-		clEnqueueMarkerWithWaitList(mInternals->command_queue[i], 0, NULL, &initEvents2[i]);
+		clEnqueueMarkerWithWaitList(mInternals->command_queue[i], 0, nullptr, &initEvents2[i]);
 	}
 
 	cl_event constructorEvent;
@@ -571,7 +571,7 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running HLT Tracklet selector (Stream %d, Slice %d to %d)", useStream, iSlice, iSlice + runSlices);
 		OCLsetKernelParameters(mInternals->kernel_tracklet_selector, mInternals->mem_gpu, mInternals->mem_constant, iSlice, runSlices);
 		mTPCSliceTrackersCPU[iSlice].StartTimer(7);
-		clExecuteKernelA(mInternals->command_queue[useStream], mInternals->kernel_tracklet_selector, GPUCA_GPU_THREAD_COUNT_SELECTOR, GPUCA_GPU_THREAD_COUNT_SELECTOR * fSelectorBlockCount, NULL);
+		clExecuteKernelA(mInternals->command_queue[useStream], mInternals->kernel_tracklet_selector, GPUCA_GPU_THREAD_COUNT_SELECTOR, GPUCA_GPU_THREAD_COUNT_SELECTOR * fSelectorBlockCount, nullptr);
 		if (GPUSync("Tracklet Selector", useStream, iSlice) RANDOM_ERROR)
 		{
 			return(1);
@@ -579,7 +579,7 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 		mTPCSliceTrackersCPU[iSlice].StopTimer(7);
 		for (unsigned int k = iSlice;k < iSlice + runSlices;k++)
 		{
-			if (TransferMemoryResourceLinkToHost(mTPCSliceTrackersCPU[k].MemoryResCommon(), useStream, 0, NULL, &mInternals->selector_events[k]))
+			if (TransferMemoryResourceLinkToHost(mTPCSliceTrackersCPU[k].MemoryResCommon(), useStream, 0, nullptr, &mInternals->selector_events[k]))
 			{
 				CAGPUImportant("Error transferring number of tracks from GPU to host");
 				return(3);
@@ -600,7 +600,7 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Transfering Tracks from GPU to Host");
 		cl_int eventdone;
 
-		if (tmpSlice < NSLICES) GPUFailedMsg(clGetEventInfo(mInternals->selector_events[tmpSlice], CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(eventdone), &eventdone, NULL));
+		if (tmpSlice < NSLICES) GPUFailedMsg(clGetEventInfo(mInternals->selector_events[tmpSlice], CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(eventdone), &eventdone, nullptr));
 		while (tmpSlice < NSLICES && (tmpSlice == iSlice ? (clFinish(mInternals->command_queue[streamMap[tmpSlice]]) == CL_SUCCESS) : (eventdone == CL_COMPLETE)))
 		{
 			if (*mTPCSliceTrackersCPU[tmpSlice].NTracks() > 0)
@@ -609,7 +609,7 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 				TransferMemoryResourceLinkToHost(mTPCSliceTrackersCPU[tmpSlice].MemoryResTrackHits(), streamMap[tmpSlice]);
 			}
 			tmpSlice++;
-			if (tmpSlice < NSLICES) GPUFailedMsg(clGetEventInfo(mInternals->selector_events[tmpSlice], CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(eventdone), &eventdone, NULL));
+			if (tmpSlice < NSLICES) GPUFailedMsg(clGetEventInfo(mInternals->selector_events[tmpSlice], CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(eventdone), &eventdone, nullptr));
 		}
 
 		if (GPUFailedMsg(clFinish(mInternals->command_queue[streamMap[iSlice]])) RANDOM_ERROR)
@@ -655,7 +655,7 @@ int AliGPUReconstructionOCLBackend::ExitDevice_Runtime()
 	{
 		clReleaseMemObject(mInternals->mem_gpu);
 		clReleaseMemObject(mInternals->mem_constant);
-		mDeviceMemoryBase = NULL;
+		mDeviceMemoryBase = nullptr;
 
 		clReleaseKernel(mInternals->kernel_neighbours_finder);
 		clReleaseKernel(mInternals->kernel_neighbours_cleaner);
@@ -667,26 +667,26 @@ int AliGPUReconstructionOCLBackend::ExitDevice_Runtime()
 	}
 	if (mHostMemoryBase)
 	{
-		clEnqueueUnmapMemObject(mInternals->command_queue[0], mInternals->mem_host, mHostMemoryBase, 0, NULL, NULL);
-		mHostMemoryBase = NULL;
+		clEnqueueUnmapMemObject(mInternals->command_queue[0], mInternals->mem_host, mHostMemoryBase, 0, nullptr, nullptr);
+		mHostMemoryBase = nullptr;
 		for (int i = 0;i < nStreams;i++)
 		{
 			clReleaseCommandQueue(mInternals->command_queue[i]);
 		}
 		clReleaseMemObject(mInternals->mem_host);
-		fGpuTracker = NULL;
-		mHostMemoryBase = NULL;
+		fGpuTracker = nullptr;
+		mHostMemoryBase = nullptr;
 	}
 
 	if (mInternals->selector_events)
 	{
 		delete[] mInternals->selector_events;
-		mInternals->selector_events = NULL;
+		mInternals->selector_events = nullptr;
 	}
 	if (mInternals->devices)
 	{
 		delete[] mInternals->devices;
-		mInternals->devices = NULL;
+		mInternals->devices = nullptr;
 	}
 
 	clReleaseProgram(mInternals->program);
@@ -734,7 +734,7 @@ int AliGPUReconstructionOCLBackend::DoStuckProtection(int stream, void* event)
 		for (int i = 0;i <= mDeviceProcessingSettings.stuckProtection / 50;i++)
 		{
 			usleep(50);
-			clGetEventInfo(* (cl_event*) event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(tmp), &tmp, NULL);
+			clGetEventInfo(* (cl_event*) event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(tmp), &tmp, nullptr);
 			if (tmp == CL_COMPLETE) break;
 		}
 		if (tmp != CL_COMPLETE)
