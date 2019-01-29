@@ -55,7 +55,7 @@ int AliGPUReconstructionDeviceBase::GlobalTracking(int iSlice, int threadId, Ali
 
 	pthread_mutex_lock(&((pthread_mutex_t*) fSliceGlobalMutexes)[sliceLeft]);
 	pthread_mutex_lock(&((pthread_mutex_t*) fSliceGlobalMutexes)[sliceRight]);
-	mTPCSliceTrackersCPU[iSlice].PerformGlobalTracking(mTPCSliceTrackersCPU[sliceLeft], mTPCSliceTrackersCPU[sliceRight], GPUCA_GPU_MAX_TRACKS, GPUCA_GPU_MAX_TRACKS);
+	mWorkers->tpcTrackers[iSlice].PerformGlobalTracking(mWorkers->tpcTrackers[sliceLeft], mWorkers->tpcTrackers[sliceRight], GPUCA_GPU_MAX_TRACKS, GPUCA_GPU_MAX_TRACKS);
 	pthread_mutex_unlock(&((pthread_mutex_t*) fSliceGlobalMutexes)[sliceLeft]);
 	pthread_mutex_unlock(&((pthread_mutex_t*) fSliceGlobalMutexes)[sliceRight]);
 
@@ -172,7 +172,7 @@ int AliGPUReconstructionDeviceBase::ReadEvent(int iSlice, int threadId)
 	unsigned long long int a, b;
 	AliGPUTPCTracker::StandaloneQueryTime(&a);
 #endif
-	if (mTPCSliceTrackersCPU[iSlice].ReadEvent()) return(1);
+	if (mWorkers->tpcTrackers[iSlice].ReadEvent()) return(1);
 #ifdef GPUCA_GPU_TIME_PROFILE
 	AliGPUTPCTracker::StandaloneQueryTime(&b);
 	CAGPUInfo("Read %d %f %f\n", threadId, ((double) b - (double) a) / (double) fProfTimeC, ((double) a - (double) fProfTimeD) / (double) fProfTimeC);
@@ -183,15 +183,15 @@ int AliGPUReconstructionDeviceBase::ReadEvent(int iSlice, int threadId)
 void AliGPUReconstructionDeviceBase::WriteOutput(int iSlice, int threadId)
 {
 	if (mDeviceProcessingSettings.debugLevel >= 3) {CAGPUDebug("GPU Tracker running WriteOutput for slice %d on thread %d\n", iSlice, threadId);}
-	mTPCSliceTrackersCPU[iSlice].SetOutput(&mSliceOutput[iSlice]);
+	mWorkers->tpcTrackers[iSlice].SetOutput(&mSliceOutput[iSlice]);
 #ifdef GPUCA_GPU_TIME_PROFILE
 	unsigned long long int a, b;
 	AliGPUTPCTracker::StandaloneQueryTime(&a);
 #endif
 	if (mDeviceProcessingSettings.nDeviceHelperThreads) pthread_mutex_lock((pthread_mutex_t*) fHelperMemMutex);
-	mTPCSliceTrackersCPU[iSlice].WriteOutputPrepare();
+	mWorkers->tpcTrackers[iSlice].WriteOutputPrepare();
 	if (mDeviceProcessingSettings.nDeviceHelperThreads) pthread_mutex_unlock((pthread_mutex_t*) fHelperMemMutex);
-	mTPCSliceTrackersCPU[iSlice].WriteOutput();
+	mWorkers->tpcTrackers[iSlice].WriteOutput();
 #ifdef GPUCA_GPU_TIME_PROFILE
 	AliGPUTPCTracker::StandaloneQueryTime(&b);
 	CAGPUInfo("Write %d %f %f\n", threadId, ((double) b - (double) a) / (double) fProfTimeC, ((double) a - (double) fProfTimeD) / (double) fProfTimeC);
@@ -392,26 +392,26 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 	mHostMemoryPermanent = mHostMemoryBase;
 	ClearAllocatedMemory();
 
-	workers.InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_SLAVE);
-	workersDevice.InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE, &workers);
-	workers.mMemoryResWorkers = RegisterMemoryAllocation(&workers, &AliGPUProcessorWorkers::SetPointersDeviceProcessor, AliGPUMemoryResource::MEMORY_PERMANENT, "Workers");
-	workers.mMemoryResFlat = RegisterMemoryAllocation(&workers, &AliGPUProcessorWorkers::SetPointersFlatObjects, AliGPUMemoryResource::MEMORY_PERMANENT, "Workers");
-	AllocateRegisteredMemory(workers.mMemoryResWorkers);
-	memcpy((void*) workers.fGpuTrdTracker, (const void*) mTRDTracker.get(), sizeof(*mTRDTracker));
-	AllocateRegisteredMemory(workers.mMemoryResFlat);
+	mProcShadow.InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_SLAVE);
+	mProcDevice.InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE, &mProcShadow);
+	mProcShadow.mMemoryResWorkers = RegisterMemoryAllocation(&mProcShadow, &AliGPUProcessorWorkers::SetPointersDeviceProcessor, AliGPUMemoryResource::MEMORY_PERMANENT, "Workers");
+	mProcShadow.mMemoryResFlat = RegisterMemoryAllocation(&mProcShadow, &AliGPUProcessorWorkers::SetPointersFlatObjects, AliGPUMemoryResource::MEMORY_PERMANENT, "Workers");
+	AllocateRegisteredMemory(mProcShadow.mMemoryResWorkers);
+	memcpy((void*) &mWorkersShadow->trdTracker, (const void*) &mWorkers->trdTracker, sizeof(mWorkers->trdTracker));
+	AllocateRegisteredMemory(mProcShadow.mMemoryResFlat);
 	for (unsigned int i = 0;i < NSLICES;i++)
 	{
-		RegisterGPUDeviceProcessor(&fGpuTracker[i], &mTPCSliceTrackersCPU[i]);
-		RegisterGPUDeviceProcessor(&fGpuTracker[i].Data(), &mTPCSliceTrackersCPU[i].Data());
+		RegisterGPUDeviceProcessor(&mWorkersShadow->tpcTrackers[i], &mWorkers->tpcTrackers[i]);
+		RegisterGPUDeviceProcessor(&mWorkersShadow->tpcTrackers[i].Data(), &mWorkers->tpcTrackers[i].Data());
 	}
-	RegisterGPUDeviceProcessor(fGpuMerger, &mTPCMergerCPU);
+	RegisterGPUDeviceProcessor(&mWorkersShadow->tpcMerger, &mWorkers->tpcMerger);
 	if (PrepareFlatObjects())
 	{
 		CAGPUError("Error preparing flat objects on GPU");
 		ExitDevice_Runtime();
 		return(1);
 	}
-	RegisterGPUDeviceProcessor(fGpuTrdTracker, mTRDTracker.get());
+	RegisterGPUDeviceProcessor(&mWorkersShadow->trdTracker, &mWorkers->trdTracker);
 
 	if (StartHelperThreads()) return(1);
 
@@ -456,9 +456,7 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 void* AliGPUReconstructionDeviceBase::AliGPUProcessorWorkers::SetPointersDeviceProcessor(void* mem)
 {
 	//Don't run constructor / destructor here, this will be just local memcopy of Processors in GPU Memory
-	computePointerWithAlignment(mem, fGpuTracker, NSLICES);
-	computePointerWithAlignment(mem, fGpuMerger, 1);
-	computePointerWithAlignment(mem, fGpuTrdTracker, 1);
+	computePointerWithAlignment(mem, mWorkersProc, 1);
 	return mem;
 }
 
@@ -480,19 +478,19 @@ int AliGPUReconstructionDeviceBase::PrepareFlatObjects()
 {
 	if (mTPCFastTransform)
 	{
-		memcpy((void*) workers.fTpcTransform, (const void*) mTPCFastTransform.get(), sizeof(*mTPCFastTransform));
-		memcpy((void*) workers.fTpcTransformBuffer, (const void*) mTPCFastTransform->getFlatBufferPtr(), mTPCFastTransform->getFlatBufferSize());
-		workers.fTpcTransform->clearInternalBufferUniquePtr();
-		workers.fTpcTransform->setFutureBufferAddress(workersDevice.fTpcTransformBuffer);
+		memcpy((void*) mProcShadow.fTpcTransform, (const void*) mTPCFastTransform.get(), sizeof(*mTPCFastTransform));
+		memcpy((void*) mProcShadow.fTpcTransformBuffer, (const void*) mTPCFastTransform->getFlatBufferPtr(), mTPCFastTransform->getFlatBufferSize());
+		mProcShadow.fTpcTransform->clearInternalBufferUniquePtr();
+		mProcShadow.fTpcTransform->setFutureBufferAddress(mProcDevice.fTpcTransformBuffer);
 	}
 #ifndef GPUCA_ALIROOT_LIB
 	if (mTRDGeometry)
 	{
-		memcpy((void*) workers.fTrdGeometry, (const void*) mTRDGeometry.get(), sizeof(*mTRDGeometry));
-		workers.fTrdGeometry->clearInternalBufferUniquePtr();
+		memcpy((void*) mProcShadow.fTrdGeometry, (const void*) mTRDGeometry.get(), sizeof(*mTRDGeometry));
+		mProcShadow.fTrdGeometry->clearInternalBufferUniquePtr();
 	}
 #endif
-	if (TransferMemoryResourceLinkToGPU(workers.mMemoryResFlat)) return 1;
+	if (TransferMemoryResourceLinkToGPU(mProcShadow.mMemoryResFlat)) return 1;
 	return 0;
 }
 
@@ -506,6 +504,7 @@ int AliGPUReconstructionDeviceBase::ExitDevice()
 	free(fSliceGlobalMutexes);
 
 	int retVal = ExitDevice_Runtime();
+	mWorkersShadow = mWorkersDevice = nullptr;
 	mHostMemoryPool = mHostMemoryBase = mDeviceMemoryPool = mDeviceMemoryBase = mHostMemoryPermanent = mDeviceMemoryPermanent = nullptr;
 	mHostMemorySize = mDeviceMemorySize = 0;
 
@@ -529,13 +528,11 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_Init()
 	int offset = 0;
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 	{
-		mTPCSliceTrackersCPU[iSlice].Data().SetClusterData(mIOPtrs.clusterData[iSlice], mIOPtrs.nClusterData[iSlice], offset);
+		mWorkers->tpcTrackers[iSlice].Data().SetClusterData(mIOPtrs.clusterData[iSlice], mIOPtrs.nClusterData[iSlice], offset);
 		offset += mIOPtrs.nClusterData[iSlice];
 	}
 	
-	memcpy((void*) fGpuTracker, (const void*) mTPCSliceTrackersCPU, sizeof(AliGPUTPCTracker) * NSLICES);
-	memcpy((void*) fGpuTrdTracker, (const void*) mTRDTracker.get(), sizeof(*fGpuTrdTracker));
-	memcpy((void*) fGpuMerger, (const void*) &mTPCMergerCPU, sizeof(AliGPUTPCGMMerger));
+	memcpy((void*) mWorkersShadow, (const void*) mWorkers.get(), sizeof(*mWorkers));
 	for (unsigned int i = 0;i < mProcessors.size();i++)
 	{
 		if (mProcessors[i].proc->mDeviceProcessor) mProcessors[i].proc->mDeviceProcessor->InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
@@ -559,16 +556,16 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_Init()
 	
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 	{
-		fGpuTracker[iSlice].GPUParametersConst()->fGPUMem = (char*) mDeviceMemoryBase;
+		mWorkersShadow->tpcTrackers[iSlice].GPUParametersConst()->fGPUMem = (char*) mDeviceMemoryBase;
 		//Initialize Startup Constants
-		*mTPCSliceTrackersCPU[iSlice].NTracklets() = 0;
-		*mTPCSliceTrackersCPU[iSlice].NTracks() = 0;
-		*mTPCSliceTrackersCPU[iSlice].NTrackHits() = 0;
-		fGpuTracker[iSlice].GPUParametersConst()->fGPUFixedBlockCount = (int) NSLICES > fConstructorBlockCount ? ((int) iSlice < fConstructorBlockCount) : fConstructorBlockCount * (iSlice + 1) / NSLICES - fConstructorBlockCount * (iSlice) / NSLICES;
-		fGpuTracker[iSlice].GPUParametersConst()->fGPUiSlice = iSlice;
-		mTPCSliceTrackersCPU[iSlice].GPUParameters()->fGPUError = 0;
-		mTPCSliceTrackersCPU[iSlice].GPUParameters()->fNextTracklet = ((fConstructorBlockCount + NSLICES - 1 - iSlice) / NSLICES) * fConstructorThreadCount;
-		fGpuTracker[iSlice].SetGPUTextureBase(mDeviceMemoryBase);
+		*mWorkers->tpcTrackers[iSlice].NTracklets() = 0;
+		*mWorkers->tpcTrackers[iSlice].NTracks() = 0;
+		*mWorkers->tpcTrackers[iSlice].NTrackHits() = 0;
+		mWorkersShadow->tpcTrackers[iSlice].GPUParametersConst()->fGPUFixedBlockCount = (int) NSLICES > fConstructorBlockCount ? ((int) iSlice < fConstructorBlockCount) : fConstructorBlockCount * (iSlice + 1) / NSLICES - fConstructorBlockCount * (iSlice) / NSLICES;
+		mWorkersShadow->tpcTrackers[iSlice].GPUParametersConst()->fGPUiSlice = iSlice;
+		mWorkers->tpcTrackers[iSlice].GPUParameters()->fGPUError = 0;
+		mWorkers->tpcTrackers[iSlice].GPUParameters()->fNextTracklet = ((fConstructorBlockCount + NSLICES - 1 - iSlice) / NSLICES) * fConstructorThreadCount;
+		mWorkersShadow->tpcTrackers[iSlice].SetGPUTextureBase(mDeviceMemoryBase);
 	}
 
 	for (int i = 0;i < mDeviceProcessingSettings.nDeviceHelperThreads;i++)
@@ -609,15 +606,15 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_SliceInit(unsigned int iSli
 	if (mDeviceProcessingSettings.debugLevel >= 4)
 	{
 		if (!mDeviceProcessingSettings.comparableDebutOutput) mDebugFile << std::endl << std::endl << "Reconstruction: Slice " << iSlice << "/" << NSLICES << std::endl;
-		if (mDeviceProcessingSettings.debugMask & 1) mTPCSliceTrackersCPU[iSlice].DumpSliceData(mDebugFile);
+		if (mDeviceProcessingSettings.debugMask & 1) mWorkers->tpcTrackers[iSlice].DumpSliceData(mDebugFile);
 	}
 	return(0);
 }
 
 int AliGPUReconstructionDeviceBase::Reconstruct_Base_FinishSlices(unsigned int iSlice)
 {
-	mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNLocalTracks = mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTracks;
-	mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNLocalTrackHits = mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTrackHits;
+	mWorkers->tpcTrackers[iSlice].CommonMemory()->fNLocalTracks = mWorkers->tpcTrackers[iSlice].CommonMemory()->fNTracks;
+	mWorkers->tpcTrackers[iSlice].CommonMemory()->fNLocalTrackHits = mWorkers->tpcTrackers[iSlice].CommonMemory()->fNTrackHits;
 
 	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Data ready for slice %d, helper thread %d", iSlice, iSlice % (mDeviceProcessingSettings.nDeviceHelperThreads + 1));
 	fSliceOutputReady = iSlice;
@@ -722,7 +719,7 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_Finalize()
 		{
 			for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 			{
-				CAGPUInfo("Slice %d - Tracks: Local %d Global %d - Hits: Local %d Global %d", iSlice, mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNLocalTracks, mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTracks, mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNLocalTrackHits, mTPCSliceTrackersCPU[iSlice].CommonMemory()->fNTrackHits);
+				CAGPUInfo("Slice %d - Tracks: Local %d Global %d - Hits: Local %d Global %d", iSlice, mWorkers->tpcTrackers[iSlice].CommonMemory()->fNLocalTracks, mWorkers->tpcTrackers[iSlice].CommonMemory()->fNTracks, mWorkers->tpcTrackers[iSlice].CommonMemory()->fNLocalTrackHits, mWorkers->tpcTrackers[iSlice].CommonMemory()->fNTrackHits);
 			}
 		}
 	}
@@ -731,7 +728,7 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_Finalize()
 	return(0);
 }
 
-const AliGPUTPCTracker* AliGPUReconstructionDeviceBase::CPUTracker(int iSlice) {return &mTPCSliceTrackersCPU[iSlice];}
+const AliGPUTPCTracker* AliGPUReconstructionDeviceBase::CPUTracker(int iSlice) {return &mWorkers->tpcTrackers[iSlice];}
 
 int AliGPUReconstructionDeviceBase::PrepareTextures()
 {

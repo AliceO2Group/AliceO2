@@ -13,10 +13,9 @@
 #include "AliGPUCASettings.h"
 #include "AliGPUCAOutputControl.h"
 #include "AliGPUMemoryResource.h"
-
+#include "AliGPUCADataTypes.h"
 #include "AliGPUTPCSliceOutput.h"
-#include "AliGPUTPCTracker.h"
-#include "AliGPUTPCGMMerger.h"
+
 class AliGPUTPCSliceOutput;
 class AliGPUTPCSliceOutTrack;
 class AliGPUTPCSliceOutCluster;
@@ -180,12 +179,12 @@ public:
 	void ConvertNativeToClusterData();
 	
 	//Getters for external usage of tracker classes
-	AliGPUTRDTracker* GetTRDTracker() {return mTRDTracker.get();}
+	AliGPUTRDTracker* GetTRDTracker() {return &mWorkers->trdTracker;}
 	o2::ITS::TrackerTraits* GetITSTrackerTraits() {return mITSTrackerTraits.get();}
-	AliGPUTPCTracker* GetTPCSliceTrackers() {return mTPCSliceTrackersCPU;}
-	const AliGPUTPCTracker* GetTPCSliceTrackers() const {return mTPCSliceTrackersCPU;}
-	const AliGPUTPCGMMerger& GetTPCMerger() const {return mTPCMergerCPU;}
-	AliGPUTPCGMMerger& GetTPCMerger() {return mTPCMergerCPU;}
+	AliGPUTPCTracker* GetTPCSliceTrackers() {return mWorkers->tpcTrackers;}
+	const AliGPUTPCTracker* GetTPCSliceTrackers() const {return mWorkers->tpcTrackers;}
+	const AliGPUTPCGMMerger& GetTPCMerger() const {return mWorkers->tpcMerger;}
+	AliGPUTPCGMMerger& GetTPCMerger() {return mWorkers->tpcMerger;}
 	AliGPUCADisplay* GetEventDisplay() {return mEventDisplay.get();}
 	const AliGPUCAQA* GetQA() const {return mQA.get();}
 	AliGPUCAQA* GetQA() {return mQA.get();}
@@ -266,10 +265,8 @@ protected:
 	template <class T> void ReadStructFromFile(const char* file, T* obj);
 	
 	//Pointers to tracker classes
-	std::unique_ptr<AliGPUTRDTracker> mTRDTracker;
+	std::unique_ptr<AliGPUCAWorkers> mWorkers;
 	std::unique_ptr<o2::ITS::TrackerTraits> mITSTrackerTraits;
-	AliGPUTPCTracker mTPCSliceTrackersCPU[NSLICES];
-	AliGPUTPCGMMerger mTPCMergerCPU;
 	AliGPUTPCSliceOutput* mSliceOutput[NSLICES];
 	
 	AliGPUCAParam mParam;														//Reconstruction parameters
