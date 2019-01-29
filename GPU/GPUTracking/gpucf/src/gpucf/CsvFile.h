@@ -1,6 +1,11 @@
 #pragma once
 
+#include <gpucf/common/Measurements.h>
+
+#include <filesystem/path.h>
+
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 
@@ -11,53 +16,20 @@ class CsvFile
 {
 
 public:
-    CsvFile(char sep=',') 
-        : seperator(sep) 
-    {
-    }
+    CsvFile(const std::string &sep=",");
 
-    template<typename T>
-    void addColumn(const std::string &name, const std::vector<T> &vals) 
-    {
-
-        if (vals.empty()) 
-        {
-            throw std::runtime_error("Csv columns can not be empty.");
-        }
-
-        cols.emplace_back(); 
-
-        auto &newCol = cols.back();
-
-        if (colSize == 0) 
-        {
-            colSize = vals.size() + 1;
-        }
-
-        if (colSize != vals.size() + 1) 
-        {
-            throw std::runtime_error("New column has the wrong size.");    
-        }
-
-        newCol.reserve(colSize);
-
-        newCol.push_back(name);
-        for (const T &val : vals) 
-        {
-            newCol.push_back(std::to_string(val));    
-        }
-    }
+    void add(const Measurements &);
 
     std::string str() const;
+
+    void write(const filesystem::path &);
          
 private:
-    using Column = std::vector<std::string> values;
+    using Column = std::vector<std::string>;
 
     std::string seperator;
-    size_t colSize = 0;
 
-    std::vector<Column> cols;
-
+    std::unordered_map<std::string, Column> cols;
 };
 
 }

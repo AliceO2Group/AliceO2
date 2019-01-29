@@ -4,6 +4,8 @@
 #include <gpucf/common/DataSet.h>
 #include <gpucf/common/Measurements.h>
 
+#include <string>
+
 
 namespace gpucf
 {
@@ -17,9 +19,13 @@ public:
         Measurements profiling; 
     };
 
+    GPUAlgorithm(const std::string &);
+
     void setup(ClEnv &, const DataSet &);
 
     Result run();
+
+    std::string getName() const;
     
 protected:
     virtual void setupImpl(ClEnv &, const DataSet &) = 0;
@@ -27,7 +33,8 @@ protected:
 
 private:
     bool isSetup = false;
- 
+
+    std::string name;
 };
     
 } // namespace gpucf

@@ -1,6 +1,4 @@
 set(GPUCF_SRC
-    "./cl.cpp"
-
     "./ClEnv.cpp"
     "./ClusterChecker.cpp"
     "./VectorAdd.cpp"
@@ -12,6 +10,7 @@ set(GPUCF_SRC
     "./common/Object.cpp"
     "./common/RowInfo.cpp"
 
+    "./executable/Benchmark.cpp"
     "./executable/CfRunner.cpp"
     "./executable/ClCanary.cpp"
     "./executable/CompareClusters.cpp"

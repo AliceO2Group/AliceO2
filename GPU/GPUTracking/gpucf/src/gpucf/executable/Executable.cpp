@@ -28,7 +28,6 @@ int Executable::main(int argc, const char *argv[])
         showHelpAndExit();
     }
 
-
     try
     {
         return mainImpl();
@@ -36,7 +35,7 @@ int Executable::main(int argc, const char *argv[])
     catch(const cl::Error &err)
     {
         log::Error() << "Caught cl::Error: " << err.what() 
-                     << "(" << clErrToStr(err.err()) << ")";
+                     << "(" << log::clErrToStr(err.err()) << ")";
         throw err;
     }
 }

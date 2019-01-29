@@ -17,6 +17,8 @@ class GPUClusterFinder : public GPUAlgorithm
 {
 
 public:
+    GPUClusterFinder();
+
     std::vector<Digit> getPeaks() const;
 
 protected:
