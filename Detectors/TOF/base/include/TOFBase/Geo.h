@@ -73,6 +73,8 @@ class Geo
   static constexpr Int_t NSTRIPS = NSECTORS * NSTRIPXSECTOR;
   static constexpr Int_t NPLATES = 5;
 
+  static constexpr int NCHANNELS = NSTRIPS*NPADS;
+
   static constexpr Float_t MAXHZTOF = 370.6;      // Max half z-size of TOF (cm)
   static constexpr Float_t ZLENA = MAXHZTOF * 2.; // length (cm) of the A module
   static constexpr Float_t ZLENB = 146.5;         // length (cm) of the B module

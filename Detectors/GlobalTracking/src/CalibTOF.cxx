@@ -11,8 +11,6 @@
 #include <cassert>
 
 #include "FairLogger.h"
-#include "Field/MagneticField.h"
-#include "Field/MagFieldFast.h"
 #include "TOFBase/Geo.h"
 
 #include <TFile.h>
@@ -28,7 +26,7 @@ using namespace o2::globaltracking;
 ClassImp(CalibTOF);
 
 //______________________________________________
-void CalibTOF::run()
+void CalibTOF::run(int flag)
 {
   ///< running the matching
 
@@ -37,20 +35,24 @@ void CalibTOF::run()
   }
 
   mTimerTot.Start();
-  
-  while(loadTOFCalibInfo()){ // fill here all histos you need 
-    // ...
-    doCalib(0, -1); // flag: 0=LHC phase, 1=channel offset+problematic(return value), 2=time-slewing
 
+  if (flag == 0) { // LHC phase --> we will use all the entries in the tree
+    while(loadTOFCalibInfo()){ // fill here all histos you need 
+      fillLHCphaseCalibInput(); // we will fill the input for the LHC phase calibration
+    }
+    doLHCPhaseCalib();
   }
-
-  // fit and extract calibration parameters once histos are filled
-  // ...
-
-#ifdef _ALLOW_DEBUG_TREES_
-  if(mDBGFlags)
-    mDBGOut.reset();
-#endif
+  else { // channel offset + problematic (flag = 1), or time slewing (flag = 2)
+    for (int ich = 0; ich < o2::tof::Geo::NCHANNELS; ich++){
+      mCurrTOFInfoTreeEntry = ich - o2::tof::Geo::NCHANNELS;
+      while(loadTOFCalibInfo(o2::tof::Geo::NCHANNELS)){ // fill here all histos you need 
+	fillChannelCalibInput(); // we will fill the input for the channel-level calibration
+      }
+      doChannelLevelCalibration(flag);
+      resetChannelLevelHistos(flag);
+    }
+    
+  }
 
   mTimerTot.Stop();
   printf("Timing:\n");
@@ -70,7 +72,7 @@ void CalibTOF::init()
 
   attachInputTrees();
 
-  // create output branch with track-tof matching
+  // create output branch with output -- for now this is empty
   if (mOutputTree) {
     //    mOutputTree->Branch(mOutputBranchName.data(), &mXXXXXXX);
     //    LOG(INFO) << "Matched tracks will be stored in " << mOutputBranchName << " branch of tree "
@@ -78,13 +80,6 @@ void CalibTOF::init()
   } else {
     LOG(ERROR) << "Output tree is not attached, matched tracks will not be stored";
   }
-
-#ifdef _ALLOW_DEBUG_TREES_
-  // debug streamer
-  if (mDBGFlags) {
-    mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>(mDebugTreeFileName.data(), "recreate");
-  }
-#endif
 
   mInitDone = true;
 
@@ -118,49 +113,55 @@ void CalibTOF::attachInputTrees()
 {
   ///< attaching the input tree
 
-  if (!mTreeTOFCalibInfo) {
-    LOG(FATAL) << "Input tree with TOF calib infos is not set";
+  if (!mTreeCollectedCalibInfoTOF) {
+    LOG(FATAL) << "Input tree with collected TOF calib infos is not set";
   }
 
-  if (!mTreeTOFCalibInfo->GetBranch(mTOFCalibInfoBranchName.data())) {
-    LOG(FATAL) << "Did not find TOF calib info branch " << mTOFCalibInfoBranchName << " in the input tree";
+  if (!mTreeCollectedCalibInfoTOF->GetBranch(mCollectedCalibInfoTOFBranchName.data())) {
+    LOG(FATAL) << "Did not find collected TOF calib info branch " << mCollectedCalibInfoTOFBranchName << " in the input tree";
   }
-  mTreeTOFCalibInfo->SetBranchAddress(mTOFCalibInfoBranchName.data(), &mTOFCalibInfo);
-  LOG(INFO) << "Attached tracksTOF calib info " << mTOFCalibInfoBranchName << " branch with " << mTreeTOFCalibInfo->GetEntries()
+  mTreeCollectedCalibInfoTOF->SetBranchAddress(mCollectedCalibInfoTOFBranchName.data(), &mCalibInfoTOF);
+  LOG(INFO) << "Attached tracksTOF calib info " << mCollectedCalibInfoTOFBranchName << " branch with " << mTreeCollectedCalibInfoTOF->GetEntries()
             << " entries";
 
   mCurrTOFInfoTreeEntry = -1;
 }
 
 //______________________________________________
-bool CalibTOF::loadTOFCalibInfo()
+bool CalibTOF::loadTOFCalibInfo(int increment)
 {
   ///< load next chunk of TOF infos
-  printf("Loading TOF calib infos: number of entries in tree = %lld\n", mTreeTOFCalibInfo->GetEntries());
+  printf("Loading TOF calib infos: number of entries in tree = %lld\n", mTreeCollectedCalibInfoTOF->GetEntries());
 
-  while (++mCurrTOFInfoTreeEntry < mTreeTOFCalibInfo->GetEntries()) {
-    mTreeTOFCalibInfo->GetEntry(mCurrTOFInfoTreeEntry);
-    LOG(INFO) << "Loading TOF calib info entry " << mCurrTOFInfoTreeEntry << " -> " << mTOFCalibInfo->size()<< " infos";
-
-    if (!mTOFCalibInfo->size()) {
+  mCurrTOFInfoTreeEntry += increment;
+  
+  while (mCurrTOFInfoTreeEntry < mTreeCollectedCalibInfoTOF->GetEntries()) {
+    mTreeCollectedCalibInfoTOF->GetEntry(mCurrTOFInfoTreeEntry);
+    LOG(INFO) << "Loading TOF calib info entry " << mCurrTOFInfoTreeEntry << " -> " << mCalibInfoTOF->size()<< " infos";
+    
+    if (!mCalibInfoTOF->size()) {
+      mCurrTOFInfoTreeEntry += increment;
       continue;
     }
     return true;
   }
-  --mCurrTOFInfoTreeEntry;
+  mCurrTOFInfoTreeEntry -= increment;
 
   return false;
 }
 //______________________________________________
 int CalibTOF::doCalib(int flag, int channel)
 {
+
+  
+
   static double bc = 1.e13 / o2::constants::lhc::LHCRFFreq; // bunch crossing period (ps)
   static double bc_inv = 1./bc;
 
   int status = 0;
 
   // implemented for flag=0, channel=-1 (-1 means all!)
-  for(auto infotof=mTOFCalibInfo->begin(); infotof != mTOFCalibInfo->end(); infotof++){
+  for(auto infotof = mCalibInfoTOF->begin(); infotof != mCalibInfoTOF->end(); infotof++){
     double dtime = infotof->getDeltaTimePi();
     dtime -= int(dtime*bc_inv + 0.5)*bc;
 
@@ -169,57 +170,3 @@ int CalibTOF::doCalib(int flag, int channel)
   return status;
 }
 
-#ifdef _ALLOW_DEBUG_TREES_
-//______________________________________________
-void CalibTOF::setDebugFlag(UInt_t flag, bool on)
-{
-  ///< set debug stream flag
-  if (on) {
-    mDBGFlags |= flag;
-  } else {
-    mDBGFlags &= ~flag;
-  }
-}
-/*
-//_________________________________________________________
-void CalibTOF::fillTOFmatchTree(const char* trname, int cacheTOF, int sectTOF, int plateTOF, int stripTOF, int padXTOF, int padZTOF, int cacheeTrk, int crossedStrip, int sectPropagation, int platePropagation, int stripPropagation, int padXPropagation, int padZPropagation, float resX, float resZ, float res, o2::dataformats::TrackTPCITS& trk, float intLength, float intTimePion, float timeTOF)
-{
-  ///< fill debug tree for TOF tracks matching check
-
-  mTimerDBG.Start(false);
-
-  //  Printf("************** Filling the debug tree with %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %f, %f, %f", cacheTOF, sectTOF, plateTOF, stripTOF, padXTOF, padZTOF, cacheeTrk, crossedStrip, sectPropagation, platePropagation, stripPropagation, padXPropagation, padZPropagation, resX, resZ, res);
-
-  if(mDBGFlags){
-    (*mDBGOut) << trname
-	       << "clusterTOF=" << cacheTOF << "sectTOF=" << sectTOF << "plateTOF=" << plateTOF << "stripTOF=" << stripTOF << "padXTOF=" << padXTOF << "padZTOF=" << padZTOF
-	       << "crossedStrip=" << crossedStrip << "sectPropagation=" << sectPropagation << "platePropagation=" << platePropagation << "stripPropagation=" << stripPropagation << "padXPropagation=" << padXPropagation
-	       << "resX=" << resX << "resZ=" << resZ << "res=" << res << "track=" << trk << "intLength=" << intLength << "intTimePion=" << intTimePion << "timeTOF=" << timeTOF << "\n";
-  }
-  mTimerDBG.Stop();
-}
-
-//_________________________________________________________
-void CalibTOF::fillTOFmatchTreeWithLabels(const char* trname, int cacheTOF, int sectTOF, int plateTOF, int stripTOF, int padXTOF, int padZTOF, int cacheeTrk, int crossedStrip, int sectPropagation, int platePropagation, int stripPropagation, int padXPropagation, int padZPropagation, float resX, float resZ, float res, o2::dataformats::TrackTPCITS& trk, int TPClabelTrackID, int TPClabelEventID, int TPClabelSourceID, int ITSlabelTrackID, int ITSlabelEventID, int ITSlabelSourceID, int TOFlabelTrackID0, int TOFlabelEventID0, int TOFlabelSourceID0, int TOFlabelTrackID1, int TOFlabelEventID1, int TOFlabelSourceID1, int TOFlabelTrackID2, int TOFlabelEventID2, int TOFlabelSourceID2, float intLength, float intTimePion, float timeTOF)
-{
-  ///< fill debug tree for TOF tracks matching check
-
-  mTimerDBG.Start(false);
-
-  if(mDBGFlags){
-    (*mDBGOut) << trname
-	       << "clusterTOF=" << cacheTOF << "sectTOF=" << sectTOF << "plateTOF=" << plateTOF << "stripTOF=" << stripTOF << "padXTOF=" << padXTOF << "padZTOF=" << padZTOF
-	       << "crossedStrip=" << crossedStrip << "sectPropagation=" << sectPropagation << "platePropagation=" << platePropagation << "stripPropagation=" << stripPropagation << "padXPropagation=" << padXPropagation
-	       << "resX=" << resX << "resZ=" << resZ << "res=" << res << "track=" << trk
-	       << "TPClabelTrackID=" << TPClabelTrackID << "TPClabelEventID=" << TPClabelEventID << "TPClabelSourceID=" << TPClabelSourceID
-	       << "ITSlabelTrackID=" << ITSlabelTrackID << "ITSlabelEventID=" << ITSlabelEventID << "ITSlabelSourceID=" << ITSlabelSourceID
-	       << "TOFlabelTrackID0=" << TOFlabelTrackID0 << "TOFlabelEventID0=" << TOFlabelEventID0 << "TOFlabelSourceID0=" << TOFlabelSourceID0
-	       << "TOFlabelTrackID1=" << TOFlabelTrackID1 << "TOFlabelEventID1=" << TOFlabelEventID1 << "TOFlabelSourceID1=" << TOFlabelSourceID1
-	       << "TOFlabelTrackID2=" << TOFlabelTrackID2 << "TOFlabelEventID2=" << TOFlabelEventID2 << "TOFlabelSourceID2=" << TOFlabelSourceID2
-	       << "intLength=" << intLength << "intTimePion=" << intTimePion << "timeTOF=" << timeTOF
-	       << "\n";
-  }
-  mTimerDBG.Stop();
-}
-*/
-#endif

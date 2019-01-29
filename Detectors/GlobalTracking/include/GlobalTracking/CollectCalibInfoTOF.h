@@ -12,8 +12,8 @@
 /// \brief Class to perform TOF calibration
 /// \author Francesco.Noferini@cern.ch, Chiara.Zampolli@cern.ch
 
-#ifndef ALICEO2_GLOBTRACKING_CALIBTOF_
-#define ALICEO2_GLOBTRACKING_CALIBTOF_
+#ifndef ALICEO2_GLOBTRACKING_COLLECTCALIBINFOTOF_
+#define ALICEO2_GLOBTRACKING_COLLECTCALIBINFOTOF_
 
 #include <Rtypes.h>
 #include <array>
@@ -22,7 +22,6 @@
 #include <TStopwatch.h>
 #include "ReconstructionDataFormats/CalibInfoTOF.h"
 #include "TOFBase/Geo.h"
-#include "TH1F.h"
 
 class TTree;
 
@@ -31,46 +30,47 @@ namespace o2
 
 namespace globaltracking
 {
-class CalibTOF
+class CollectCalibInfoTOF
 {
   using Geo = o2::tof::Geo;
 
  public:
-  ///< calibrate using the provided input
+  static constexpr int MAXNUMBEROFHITS = 5;
+
+  ///< collect the CalibInfo for the TOF channels
   void run();
 
   ///< perform all initializations
   void init();
 
   ///< set tree/chain containing TOF calib info
-  void setInputTreeTOFCollectedCalibInfo(TTree* tree) { mTreeCollectedCalibInfoTOF = tree; }
+  void setInputTreeTOFCalibInfo(TTree* tree) { mTreeTOFCalibInfo = tree; }
 
-  ///< set output tree to write calibration objects
+  ///< set output tree to write matched tracks
   void setOutputTree(TTree* tr) { mOutputTree = tr; }
 
   ///< set input branch names for the input from the tree
-  void setCollectedCalibInfoTOFBranchName(const std::string& nm) { mCollectedCalibInfoTOFBranchName = nm; }
+  void setTOFCalibInfoBranchName(const std::string& nm) { mTOFCalibInfoBranchName = nm; }
   void setOutputBranchName(const std::string& nm) { mOutputBranchName = nm; }
 
   ///< get input branch names for the input from the tree
-  const std::string& getCollectedCalibInfoTOFBranchName() const { return mCollectedCalibInfoTOFBranchName; }
+  const std::string& getTOFCalibInfoBranchName() const { return mTOFCalibInfoBranchName; }
   const std::string& getOutputBranchName() const { return mOutputBranchName; }
 
   ///< print settings
   void print() const;
 
-  TH1F *getLHCphaseHisto() {return mHistoLHCphase;}
-
-
  private:
-  // objects needed for calibration
-  TH1F *mHistoLHCphase = nullptr;
 
   void attachInputTrees();
-  bool loadTOFCollectedCalibInfo(int increment = 1);
+  bool loadTOFCalibInfo();
 
-  int doCalib(int flag, int channel = -1); // flag: 0=LHC phase, 1=channel offset+problematic(return value), 2=time-slewing
+  ///< add CalibInfoTOF for a specific channel
+  void addHit(o2::dataformats::CalibInfoTOF& calibInfoTOF);
 
+  ///< fill the output tree
+  void fillTree();
+  
   //================================================================
 
   // Data members
@@ -82,22 +82,23 @@ class CalibTOF
 
   // to be done later
 
-  TTree* mTreeCalibInfoTOF = nullptr; ///< input tree with Calib infos
+  TTree* mTreeTOFCalibInfo = nullptr; ///< input tree with Calib infos
 
   TTree* mOutputTree = nullptr; ///< output tree for matched tracks
 
-  ///>>>------ these are input arrays which should not be modified by the matching code
+  ///>>>------ these are input arrays which should not be modified by the calibration code
   //           since this info is provided by external device
-  std::vector<o2::dataformats::CalibInfoTOF>* mCalibInfoTOF = nullptr; ///< input TOF matching info
+  std::vector<o2::dataformats::CalibInfoTOF>* mTOFCalibInfo = nullptr; ///< input TOF calib info
   /// <<<-----
+  std::vector<o2::dataformats::CalibInfoTOF> mTOFCollectedCalibInfo[Geo::NCHANNELS]; ///< output TOF calibration info
+  std::vector<o2::dataformats::CalibInfoTOF>* mTOFCalibInfoOut = nullptr; ///< this is the pointer to the CalibInfo of a specific channel that we need to fill the output tree
 
-  std::string mCollectedCalibInfoTOFBranchName = "TOFCollectedCalibInfo";   ///< name of branch containing input TOF calib infos
-  std::string mOutputBranchName = "TOFCalibParam";        ///< name of branch containing output
-
+  std::string mTOFCalibInfoBranchName = "TOFCalibInfo";   ///< name of branch containing input TOF calib infos
+  std::string mOutputBranchName = "TOFCollectedCalibInfo";        ///< name of branch containing output
 
   TStopwatch mTimerTot;
   TStopwatch mTimerDBG;
-  ClassDefNV(CalibTOF, 1);
+  ClassDefNV(CollectCalibInfoTOF, 1);
 };
 } // namespace globaltracking
 } // namespace o2
