@@ -11,7 +11,7 @@ AliGPUProcessor::~AliGPUProcessor()
 {
 	if (mRec && mRec->GetDeviceProcessingSettings().memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL)
 	{
-		mRec->FreeRegisteredMemory(this);
+		Clear();
 	}
 }
 
@@ -21,4 +21,9 @@ void AliGPUProcessor::InitGPUProcessor(AliGPUReconstruction* rec, AliGPUProcesso
 	mGPUProcessorType = type;
 	if (slaveProcessor) slaveProcessor->mDeviceProcessor = this;
 	mCAParam = type == PROCESSOR_TYPE_DEVICE ? ((AliGPUReconstructionDeviceBase*) rec)->DeviceParam() : &rec->GetParam();
+}
+
+void AliGPUProcessor::Clear()
+{
+	mRec->FreeRegisteredMemory(this, true);
 }

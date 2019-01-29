@@ -89,7 +89,6 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	void ReconstructOutput();
 #endif //!GPUCA_GPUCODE
 	void DoTracking();
-	void Clear();
   
 	//Make Reconstruction steps directly callable (Used for GPU debugging)
 	void RunNeighboursFinder();

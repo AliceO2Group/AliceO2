@@ -51,6 +51,7 @@ public:
 	 * data.
 	 */
 
+	void SetMaxData();
 	void SetClusterData(const AliGPUTPCClusterData *data, int nClusters, int clusterIdOffset);
 	void* SetPointersInput(void* mem);
 	void* SetPointersScratch(void* mem);

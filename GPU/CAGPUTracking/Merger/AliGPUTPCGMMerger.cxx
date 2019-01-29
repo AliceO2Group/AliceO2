@@ -256,6 +256,7 @@ void AliGPUTPCGMMerger::SetMaxData()
 	fNMaxSingleSliceTracks = 0;
 	for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
 	{
+		if (!fkSlices[iSlice]) continue;
 		fNMaxSliceTracks += fkSlices[iSlice]->NTracks();
 		fNClusters += fkSlices[iSlice]->NTrackClusters();
 		if (fNMaxSingleSliceTracks < fkSlices[iSlice]->NTracks()) fNMaxSingleSliceTracks = fkSlices[iSlice]->NTracks();
@@ -293,7 +294,7 @@ bool AliGPUTPCGMMerger::Reconstruct()
 	}
 
 	SetMaxData();
-	if (mRec->IsGPU()) memcpy((void*) mDeviceProcessor, this, sizeof(*this));
+	if (mRec->IsGPU()) memcpy((void*) mDeviceProcessor, (const void*) this, sizeof(*this));
 	mRec->AllocateRegisteredMemory(mMemoryResMerger);
 	mRec->AllocateRegisteredMemory(mMemoryResRefit);
 	
@@ -1325,11 +1326,6 @@ void AliGPUTPCGMMerger::Refit(bool resetTimers)
 #endif
 		}
 	}
-}
-
-void AliGPUTPCGMMerger::Clear()
-{
-	mRec->FreeRegisteredMemory(this, true);
 }
 
 void AliGPUTPCGMMerger::Finalize()

@@ -313,7 +313,7 @@ void AliGPUReconstruction::ResetRegisteredMemoryPointers(AliGPUProcessor* proc)
 {
 	for (unsigned int i = 0;i < mMemoryResources.size();i++)
 	{
-		if ((proc == nullptr || mMemoryResources[i].mProcessor == proc) && !(mMemoryResources[i].mType & AliGPUMemoryResource::MEMORY_CUSTOM)) ResetRegisteredMemoryPointers(i);
+		if (proc == nullptr || mMemoryResources[i].mProcessor == proc) ResetRegisteredMemoryPointers(i);
 	}
 }
 
@@ -348,6 +348,17 @@ void AliGPUReconstruction::ClearAllocatedMemory()
 	}
 	mHostMemoryPool = AliGPUProcessor::alignPointer<GPUCA_GPU_MEMALIGN>(mHostMemoryPermanent);
 	mDeviceMemoryPool = AliGPUProcessor::alignPointer<GPUCA_GPU_MEMALIGN>(mDeviceMemoryPermanent);
+}
+
+void AliGPUReconstruction::PrepareEvent()
+{
+	ClearAllocatedMemory();
+	for (unsigned int i = 0;i < mProcessors.size();i++)
+	{
+		(mProcessors[i].proc->*(mProcessors[i].SetMaxData))();
+		if (mProcessors[i].proc->mDeviceProcessor) (mProcessors[i].proc->mDeviceProcessor->*(mProcessors[i].SetMaxData))();
+	}
+	AllocateRegisteredMemory(nullptr);
 }
 
 void AliGPUReconstruction::DumpData(const char *filename)
@@ -657,8 +668,6 @@ int AliGPUReconstruction::GetMaxThreads()
 int AliGPUReconstruction::RunStandalone()
 {
 	mStatNEvents++;
-	
-	ClearAllocatedMemory();
 	
 	const bool needQA = AliGPUCAQA::QAAvailable() && (mDeviceProcessingSettings.runQA || (mDeviceProcessingSettings.eventDisplay && mIOPtrs.nMCInfosTPC));
 	if (needQA && mQAInitialized == false)

@@ -37,10 +37,9 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 	{
 		if (error) continue;
 		mTPCSliceTrackersCPU[iSlice].Data().SetClusterData(mIOPtrs.clusterData[iSlice], mIOPtrs.nClusterData[iSlice], offset);
-		mTPCSliceTrackersCPU[iSlice].SetMaxData();
 		offset += mIOPtrs.nClusterData[iSlice];
 	}
-	AllocateRegisteredMemory(nullptr);
+	PrepareEvent();
 #ifdef GPUCA_HAVE_OPENMP
 #pragma omp parallel for num_threads(mDeviceProcessingSettings.nThreads)
 #endif
