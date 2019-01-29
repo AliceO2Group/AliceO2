@@ -71,16 +71,17 @@ class AliGPUTRDTracker : public AliGPUProcessor {
   GPUd() bool Init(AliGPUTRDGeometry *geo = nullptr);
   GPUhd() void SetGeometry(AliGPUTRDGeometry* geo) {fGeo = geo;}
   GPUd() void Reset();
-  GPUd() void LoadTracklet(const AliGPUTRDTrackletWord &tracklet, const int *labels = 0x0);
-  template<class T> GPUd() void LoadTrack(const T &trk, const int label = -1) {
+  GPUd() int LoadTracklet(const AliGPUTRDTrackletWord &tracklet, const int *labels = 0x0);
+  template<class T> GPUd() int LoadTrack(const T &trk, const int label = -1) {
     if (fNTracks >= fNMaxTracks) {
       printf("Error: Track dropped (no memory available) -> must not happen\n");
-      exit(1);
+      return(1);
     }
     new (&fTracks[fNTracks++]) GPUTRDTrack(trk);
     if (label >= 0) {
         fTracks[fNTracks-1].SetLabel(label);
     }
+    return(0);
   }
   void DoTracking();
   GPUd() void DoTrackingThread(int iTrk, const AliGPUTPCGMMerger* merger, int threadId = 0);

@@ -382,10 +382,10 @@ int AliGPUTRDTrackerComponent::DoEvent
   // loop over all tracklets
   for (int iTracklet=0; iTracklet<nTrackletsTotal; ++iTracklet){
     if (!hasMCtracklets) {
-	    fTracker->LoadTracklet(tracklets[iTracklet]);
+	    if (fTracker->LoadTracklet(tracklets[iTracklet])) return -EINVAL;
     }
     else {
-	    fTracker->LoadTracklet(tracklets[iTracklet], trackletsMC[iTracklet].fLabel);
+	    if (fTracker->LoadTracklet(tracklets[iTracklet], trackletsMC[iTracklet].fLabel)) return -EINVAL;
     }
   }
   // loop over all tracks
