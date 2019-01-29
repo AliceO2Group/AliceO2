@@ -44,10 +44,10 @@ protected:
 	
 	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) = 0;
 	virtual int TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) = 0;
-	int TransferMemoryResourcesToGPU(AliGPUProcessor* proc, int stream = -1, bool all = false);
-	int TransferMemoryResourcesToHost(AliGPUProcessor* proc, int stream = -1, bool all = false);
-	int TransferMemoryResourceLinkToGPU(short res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr);
-	int TransferMemoryResourceLinkToHost(short res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr);
+	int TransferMemoryResourcesToGPU(AliGPUProcessor* proc, int stream = -1, bool all = false) {return TransferMemoryResourcesHelper(proc, stream, all, true);}
+	int TransferMemoryResourcesToHost(AliGPUProcessor* proc, int stream = -1, bool all = false) {return TransferMemoryResourcesHelper(proc, stream, all, false);}
+	int TransferMemoryResourceLinkToGPU(short res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) {return TransferMemoryResourceToGPU(&mMemoryResources[res], stream, nEvents, evList, ev);}
+	int TransferMemoryResourceLinkToHost(short res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) {return TransferMemoryResourceToHost(&mMemoryResources[res], stream, nEvents, evList, ev);}
 
 	struct helperParam
 	{
@@ -136,6 +136,9 @@ protected:
 	int fNSlaveThreads = 0;	//Number of slave threads currently active
 
 	int fGPUStuck = 0;		//Marks that the GPU is stuck, skip future events
+	
+private:
+	int TransferMemoryResourcesHelper(AliGPUProcessor* proc, int stream, bool all, bool toGPU);
 #endif
 };
 

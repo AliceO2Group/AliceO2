@@ -312,40 +312,19 @@ int AliGPUReconstructionDeviceBase::GetThread()
 #endif
 }
 
-int AliGPUReconstructionDeviceBase::TransferMemoryResourcesToGPU(AliGPUProcessor* proc, int stream, bool all)
+int AliGPUReconstructionDeviceBase::TransferMemoryResourcesHelper(AliGPUProcessor* proc, int stream, bool all, bool toGPU)
 {
+	int inc = toGPU ? AliGPUMemoryResource::MEMORY_INPUT : AliGPUMemoryResource::MEMORY_OUTPUT;
+	int exc = toGPU ? AliGPUMemoryResource::MEMORY_OUTPUT : AliGPUMemoryResource::MEMORY_INPUT;
 	for (unsigned int i = 0;i < mMemoryResources.size();i++)
 	{
 		AliGPUMemoryResource& res = mMemoryResources[i];
 		if (proc && res.mProcessor != proc) continue;
 		if (!(res.mType & AliGPUMemoryResource::MEMORY_GPU) || (res.mType & AliGPUMemoryResource::MEMORY_CUSTOM_TRANSFER)) continue;
-		if (!mDeviceProcessingSettings.keepAllMemory && !(all && !(res.mType & AliGPUMemoryResource::MEMORY_OUTPUT)) && !(res.mType & AliGPUMemoryResource::MEMORY_INPUT)) continue;
-		if (TransferMemoryResourceToGPU(&mMemoryResources[i], stream)) return 1;
+		if (!mDeviceProcessingSettings.keepAllMemory && !(all && !(res.mType & exc)) && !(res.mType & inc)) continue;
+		if (toGPU ? TransferMemoryResourceToGPU(&mMemoryResources[i], stream) : TransferMemoryResourceToHost(&mMemoryResources[i], stream)) return 1;
 	}
 	return 0;
-}
-
-int AliGPUReconstructionDeviceBase::TransferMemoryResourcesToHost(AliGPUProcessor* proc, int stream, bool all)
-{
-	for (unsigned int i = 0;i < mMemoryResources.size();i++)
-	{
-		AliGPUMemoryResource& res = mMemoryResources[i];
-		if (proc && res.mProcessor != proc) continue;
-		if (!(res.mType & AliGPUMemoryResource::MEMORY_GPU) || (res.mType & AliGPUMemoryResource::MEMORY_CUSTOM_TRANSFER)) continue;
-		if (!mDeviceProcessingSettings.keepAllMemory && !(all && !(res.mType & AliGPUMemoryResource::MEMORY_INPUT)) && !(res.mType & AliGPUMemoryResource::MEMORY_OUTPUT)) continue;
-		if (TransferMemoryResourceToHost(&mMemoryResources[i], stream)) return 1;
-	}
-	return 0;
-}
-
-int AliGPUReconstructionDeviceBase::TransferMemoryResourceLinkToGPU(short res, int stream, int nEvents, deviceEvent* evList, deviceEvent* ev)
-{
-	return TransferMemoryResourceToGPU(&mMemoryResources[res], stream, nEvents, evList, ev);
-}
-
-int AliGPUReconstructionDeviceBase::TransferMemoryResourceLinkToHost(short res, int stream, int nEvents, deviceEvent* evList, deviceEvent* ev)
-{
-	return TransferMemoryResourceToHost(&mMemoryResources[res], stream, nEvents, evList, ev);
 }
 
 int AliGPUReconstructionDeviceBase::InitDevice()

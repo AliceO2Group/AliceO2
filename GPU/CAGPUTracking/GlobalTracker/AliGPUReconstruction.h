@@ -46,6 +46,7 @@ protected:
 	class LibraryLoader; //These must be the first members to ensure correct destructor order!
 	std::shared_ptr<LibraryLoader> mMyLib = nullptr;
 	std::vector<AliGPUMemoryResource> mMemoryResources;
+	std::vector<std::unique_ptr<char[]>> mUnmanagedChunks;
 	
 public:
 	virtual ~AliGPUReconstruction();
@@ -167,6 +168,7 @@ public:
 	size_t AllocateMemoryResources();
 	size_t AllocateRegisteredMemory(AliGPUProcessor* proc);
 	size_t AllocateRegisteredMemory(short res);
+	void* AllocateUnmanagedMemory(size_t size, int type);
 	void FreeRegisteredMemory(AliGPUProcessor* proc, bool freeCustom = false);
 	void FreeRegisteredMemory(short res);
 	void ClearAllocatedMemory();
