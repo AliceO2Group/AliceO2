@@ -333,28 +333,31 @@ int main(int argc, char** argv)
 					rec->SetResetTimers(j <= configStandalone.runsInit);
 					
 					int tmpRetVal = rec->RunStandalone();
-					if (configStandalone.configRec.runTRD)
+					if (tmpRetVal == 0 && configStandalone.configRec.runTRD)
 					{
-						rec->RunTRDTracking();
+						tmpRetVal = rec->RunTRDTracking();
 					}
 					
-					int nTracks = 0, nClusters = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0;
-					for (int k = 0;k < rec->GetTPCMerger().NOutputTracks();k++)
+					if (tmpRetVal == 0)
 					{
-						if (rec->GetTPCMerger().OutputTracks()[k].OK())
+						int nTracks = 0, nClusters = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0;
+						for (int k = 0;k < rec->GetTPCMerger().NOutputTracks();k++)
 						{
-							nTracks++;
-							nAttachedClusters += rec->GetTPCMerger().OutputTracks()[k].NClusters();
-							nAttachedClustersFitted += rec->GetTPCMerger().OutputTracks()[k].NClustersFitted();
+							if (rec->GetTPCMerger().OutputTracks()[k].OK())
+							{
+								nTracks++;
+								nAttachedClusters += rec->GetTPCMerger().OutputTracks()[k].NClusters();
+								nAttachedClustersFitted += rec->GetTPCMerger().OutputTracks()[k].NClustersFitted();
+							}
 						}
-					}
-					nClusters = rec->GetTPCMerger().NClusters();
-					printf("Output Tracks: %d (%d/%d attached clusters)\n", nTracks, nAttachedClusters, nAttachedClustersFitted);
-					if (j == 0)
-					{
-						nTracksTotal += nTracks;
-						nClustersTotal += nClusters;
-						nEventsProcessed++;
+						nClusters = rec->GetTPCMerger().NClusters();
+						printf("Output Tracks: %d (%d/%d attached clusters)\n", nTracks, nAttachedClusters, nAttachedClustersFitted);
+						if (j == 0)
+						{
+							nTracksTotal += nTracks;
+							nClustersTotal += nClusters;
+							nEventsProcessed++;
+						}
 					}
 					if (tmpRetVal == 2)
 					{

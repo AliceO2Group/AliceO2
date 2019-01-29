@@ -37,8 +37,8 @@ void AliGPUTRDTracker::SetMaxData()
   fNMaxSpacePoints = mRec->mIOPtrs.nTRDTracklets;
   if (mRec->IsGPU())
   {
-    fNMaxTracks = 30000;
-    fNMaxSpacePoints = 60000;
+    fNMaxTracks = 50000;
+    fNMaxSpacePoints = 100000;
   }
 }
 
@@ -220,14 +220,14 @@ GPUd() void AliGPUTRDTracker::Reset()
   }
 }
 
-GPUd() void AliGPUTRDTracker::LoadTracklet(const AliGPUTRDTrackletWord &tracklet, const int *labels)
+GPUd() int AliGPUTRDTracker::LoadTracklet(const AliGPUTRDTrackletWord &tracklet, const int *labels)
 {
   //--------------------------------------------------------------------
   // Add single tracklet to tracker
   //--------------------------------------------------------------------
   if (fNTracklets >= fNMaxSpacePoints ) {
     Error("LoadTracklet", "Running out of memory for tracklets, skipping tracklet(s). This should actually never happen.");
-    return;
+    return 1;
   }
   if (labels) {
     for (int i=0; i<3; ++i) {
@@ -236,6 +236,7 @@ GPUd() void AliGPUTRDTracker::LoadTracklet(const AliGPUTRDTrackletWord &tracklet
   }
   fTracklets[fNTracklets++] = tracklet;
   fNtrackletsInChamber[tracklet.GetDetector()]++;
+  return 0;
 }
 
 void AliGPUTRDTracker::DoTracking()

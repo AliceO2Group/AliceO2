@@ -159,13 +159,12 @@ int AliGPUReconstructionCPU::RunTRDTracking()
 
 	for (unsigned int iTracklet = 0;iTracklet < mIOPtrs.nTRDTracklets;++iTracklet)
 	{
-		if (mIOPtrs.trdTrackletsMC) mTRDTracker->LoadTracklet(mIOPtrs.trdTracklets[iTracklet], mIOPtrs.trdTrackletsMC[iTracklet].fLabel);
-		else mTRDTracker->LoadTracklet(mIOPtrs.trdTracklets[iTracklet]);
+		if (mTRDTracker->LoadTracklet(mIOPtrs.trdTracklets[iTracklet], mIOPtrs.trdTrackletsMC ? mIOPtrs.trdTrackletsMC[iTracklet].fLabel : nullptr)) return 1;
 	}
 
 	for (unsigned int iTrack = 0; iTrack < tracksTPC.size(); ++iTrack)
 	{
-		mTRDTracker->LoadTrack(tracksTPC[iTrack], tracksTPCLab[iTrack]);
+		if (mTRDTracker->LoadTrack(tracksTPC[iTrack], tracksTPCLab[iTrack])) return 1;
 	}
 
 	mTRDTracker->DoTracking();
