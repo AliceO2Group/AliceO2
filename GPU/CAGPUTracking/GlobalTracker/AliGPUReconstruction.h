@@ -330,6 +330,9 @@ protected:
 		void* mGPUEntry;
 	};
 	static std::shared_ptr<LibraryLoader> sLibCUDA, sLibHIP, sLibOCL;
+	
+private:
+	static AliGPUReconstruction* AliGPUReconstruction_Create_CPU(const AliGPUCASettingsProcessing& cfg);
 };
 
 #endif

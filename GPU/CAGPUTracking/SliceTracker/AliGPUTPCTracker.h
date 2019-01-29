@@ -85,17 +85,8 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	void WriteOutput();
   
 #if !defined(GPUCA_GPUCODE)
-	void Reconstruct();
 	void ReconstructOutput();
 #endif //!GPUCA_GPUCODE
-	void DoTracking();
-  
-	//Make Reconstruction steps directly callable (Used for GPU debugging)
-	void RunNeighboursFinder();
-	void RunNeighboursCleaner();
-	void RunStartHitsFinder();
-	void RunTrackletConstructor();
-	void RunTrackletSelector();
   
 	//GPU Tracker Interface
 #if !defined(__OPENCL__)
@@ -151,6 +142,7 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	short MemoryResTrackHits() {return mMemoryResTrackHits;}
 
 	void SetMaxData();
+	void UpdateMaxData();
  
 	GPUhd() MakeType(const MEM_LG(AliGPUCAParam)&) Param() const { return *mCAParam; }
 	GPUhd() MakeType(const MEM_LG(AliGPUCAParam)*) pParam() const { return mCAParam; }
@@ -248,7 +240,6 @@ class AliGPUTPCTracker : public AliGPUProcessor
 
 #if !defined(GPUCA_GPUCODE)
 	GPUh() int PerformGlobalTrackingRun(AliGPUTPCTracker& sliceNeighbour, int iTrack, int rowIndex, float angle, int direction);
-	void SetGPUDebugOutput(std::ostream *file) {fGPUDebugOut = file;}
 #endif
 
   private:
@@ -262,11 +253,6 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	* merge clusters from inside the SliceTracker code and recreate the SliceData. */
 	MEM_LG(AliGPUTPCSliceData) fData; // The SliceData object. It is used to encapsulate the storage in memory from the access
   
-#if !defined(GPUCA_GPUCODE)
-	std::ostream *fGPUDebugOut; // debug stream
-#else
-	void* fGPUDebugOut; //No this is a hack, but I have no better idea.
-#endif
 	int fNMaxStartHits;
 	int fNMaxTracklets;
 	int fNMaxTracks;

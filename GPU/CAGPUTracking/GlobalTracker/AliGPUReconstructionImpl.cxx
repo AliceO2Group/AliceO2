@@ -23,6 +23,11 @@
 #define GPUCA_LOGGING_PRINTF
 #include "AliCAGPULogging.h"
 
+AliGPUReconstruction* AliGPUReconstruction::AliGPUReconstruction_Create_CPU(const AliGPUCASettingsProcessing& cfg)
+{
+	return new AliGPUReconstructionCPU(cfg);
+}
+
 int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 {
 	bool error = false;
@@ -46,24 +51,96 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 #endif
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 	{
-		if (mWorkers->tpcTrackers[iSlice].ReadEvent())
+		AliGPUTPCTracker& trk = mWorkers->tpcTrackers[iSlice];
+		if (trk.ReadEvent())
 		{
 			CAGPUError("Error initializing cluster data\n");
 			error = true;
 			continue;
 		}
-		mWorkers->tpcTrackers[iSlice].SetOutput(&mSliceOutput[iSlice]);
-		mWorkers->tpcTrackers[iSlice].Reconstruct();
-		mWorkers->tpcTrackers[iSlice].CommonMemory()->fNLocalTracks = mWorkers->tpcTrackers[iSlice].CommonMemory()->fNTracks;
-		mWorkers->tpcTrackers[iSlice].CommonMemory()->fNLocalTrackHits = mWorkers->tpcTrackers[iSlice].CommonMemory()->fNTrackHits;
+		trk.SetOutput(&mSliceOutput[iSlice]);
+		if (trk.CheckEmptySlice()) continue;
+
+
+
+		trk.SetupCommonMemory();
+
+		if (mParam.debugLevel >= 6)
+		{
+			if (!mDeviceProcessingSettings.comparableDebutOutput)
+			{
+				mDebugFile << std::endl << std::endl << "Slice: " << iSlice << std::endl;
+				mDebugFile << "Slice Data:" << std::endl;
+			}
+			trk.DumpSliceData(mDebugFile);
+		}
+
+		trk.StartTimer(1);
+		runKernel<AliGPUTPCNeighboursFinder>({GPUCA_ROW_COUNT, 1, 0}, {iSlice});
+		trk.StopTimer(1);
+
+		if (mDeviceProcessingSettings.keepAllMemory)
+		{
+			memcpy(trk.LinkTmpMemory(), Res(trk.Data().MemoryResScratch()).Ptr(), Res(trk.Data().MemoryResScratch()).Size());
+		}
+
+		if (mParam.debugLevel >= 6) trk.DumpLinks(mDebugFile);
+
+		trk.StartTimer(2);
+		runKernel<AliGPUTPCNeighboursCleaner>({GPUCA_ROW_COUNT - 2, 1, 0}, {iSlice});
+		trk.StopTimer(2);
+
+		if (mParam.debugLevel >= 6) trk.DumpLinks(mDebugFile);
+
+		trk.StartTimer(3);
+		runKernel<AliGPUTPCStartHitsFinder>({GPUCA_ROW_COUNT - 4, 1, 0}, {iSlice}); //Why not -6?
+		trk.StopTimer(3);
+
+		if (mParam.debugLevel >= 6) trk.DumpStartHits(mDebugFile);
+
+		trk.StartTimer(5);
+		trk.Data().ClearHitWeights();
+		trk.StopTimer(5);
+
+		if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL)
+		{
+			trk.UpdateMaxData();
+			AllocateRegisteredMemory(trk.MemoryResTracklets());
+			AllocateRegisteredMemory(trk.MemoryResTracks());
+			AllocateRegisteredMemory(trk.MemoryResTrackHits());
+		}
+
+		trk.StartTimer(6);
+		//runKernel<AliGPUTPCNeighboursFinder>({GPUCA_ROW_COUNT, 1, 0}, {iSlice});
+		AliGPUTPCTrackletConstructor::AliGPUTPCTrackletConstructorCPU(trk);
+		trk.StopTimer(6);
+		if (mParam.debugLevel >= 3) printf("Slice %d, Number of tracklets: %d\n", iSlice, *trk.NTracklets());
+
+		if (mParam.debugLevel >= 6) trk.DumpTrackletHits(mDebugFile);
+		if (mParam.debugLevel >= 6 && !mDeviceProcessingSettings.comparableDebutOutput) trk.DumpHitWeights(mDebugFile);
+
+		trk.StartTimer(7);
+		runKernel<AliGPUTPCTrackletSelector>({1, 1, 0}, {iSlice});
+		trk.StopTimer(7);
+		if (mParam.debugLevel >= 3) printf("Slice %d, Number of tracks: %d\n", iSlice, *trk.NTracks());
+
+		if (mParam.debugLevel >= 6) trk.DumpTrackHits(mDebugFile);
+
+
+
+
+
+
+		trk.CommonMemory()->fNLocalTracks = trk.CommonMemory()->fNTracks;
+		trk.CommonMemory()->fNLocalTrackHits = trk.CommonMemory()->fNTrackHits;
 		if (!mParam.rec.GlobalTracking)
 		{
-			mWorkers->tpcTrackers[iSlice].ReconstructOutput();
-			//nOutputTracks += (*mWorkers->tpcTrackers[iSlice].Output())->NTracks();
-			//nLocalTracks += mWorkers->tpcTrackers[iSlice].CommonMemory()->fNTracks;
+			trk.ReconstructOutput();
+			//nOutputTracks += (*trk.Output())->NTracks();
+			//nLocalTracks += trk.CommonMemory()->fNTracks;
 			if (!mDeviceProcessingSettings.eventDisplay)
 			{
-				mWorkers->tpcTrackers[iSlice].SetupCommonMemory();
+				trk.SetupCommonMemory();
 			}
 		}
 	}

@@ -37,8 +37,6 @@ texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
 #include "AliGPUCAParam.cxx"
 #include "AliGPUTPCTracker.cxx"
 
-#include "AliGPUTPCProcess.h"
-
 #include "AliGPUTPCTrackletSelector.cxx"
 #include "AliGPUTPCNeighboursFinder.cxx"
 #include "AliGPUTPCNeighboursCleaner.cxx"
@@ -76,7 +74,7 @@ namespace o2 { namespace ITS { class TrackerTraitsNV : public TrackerTraits {}; 
 #define RANDOM_ERROR
 //#define RANDOM_ERROR || rand() % 500 == 1
 
-template <class TProcess> GPUg() void AliGPUTPCProcess(int iSlice)
+template <class TProcess> GPUg() void runKernelCUDA(int iSlice)
 {
 	AliGPUTPCTracker &tracker = gGPUConstantMem.tpcTrackers[iSlice];
 	GPUshared() typename TProcess::AliGPUTPCSharedMemory smem;
@@ -88,7 +86,7 @@ template <class TProcess> GPUg() void AliGPUTPCProcess(int iSlice)
 	}
 }
 
-template <class TProcess> GPUg() void AliGPUTPCProcessMulti(int firstSlice, int nSliceCount)
+template <class TProcess> GPUg() void runKernelCUDAMulti(int firstSlice, int nSliceCount)
 {
 	const int iSlice = nSliceCount * (get_group_id(0) + (get_num_groups(0) % nSliceCount != 0 && nSliceCount * (get_group_id(0) + 1) % get_num_groups(0) != 0)) / get_num_groups(0);
 	const int nSliceBlockOffset = get_num_groups(0) * iSlice / nSliceCount;
@@ -109,11 +107,11 @@ template <class T, typename... Args> int AliGPUReconstructionCUDABackend::runKer
 	if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelBackend<T> (x, y, args...);
 	if (y.start == y.end)
 	{
-		AliGPUTPCProcess<T> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(y.start);
+		runKernelCUDA<T> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(y.start);
 	}
 	else
 	{
-		AliGPUTPCProcessMulti<T> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>> (y.start, y.end - y.start);
+		runKernelCUDAMulti<T> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>> (y.start, y.end - y.start);
 	}
 	return 0;
 }

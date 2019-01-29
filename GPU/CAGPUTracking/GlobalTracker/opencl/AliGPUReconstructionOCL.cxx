@@ -18,8 +18,6 @@
 #include "AliGPUCAParam.h"
 #include "AliGPUTPCTracker.h"
 
-#include "AliGPUTPCProcess.h"
-
 #include "AliGPUTPCTrackletSelector.h"
 #include "AliGPUTPCNeighboursFinder.h"
 #include "AliGPUTPCNeighboursCleaner.h"

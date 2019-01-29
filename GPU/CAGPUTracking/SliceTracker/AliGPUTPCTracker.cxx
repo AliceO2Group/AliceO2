@@ -24,15 +24,10 @@
 #include "AliTPCCommonMath.h"
 
 #include "AliGPUTPCHitArea.h"
-#include "AliGPUTPCNeighboursFinder.h"
-#include "AliGPUTPCNeighboursCleaner.h"
-#include "AliGPUTPCStartHitsFinder.h"
-#include "AliGPUTPCTrackletConstructor.h"
-#include "AliGPUTPCTrackLinearisation.h"
-#include "AliGPUTPCTrackletSelector.h"
-#include "AliGPUTPCProcess.h"
 #include "AliGPUTPCClusterData.h"
 #include "AliGPUCAOutputControl.h"
+#include "AliGPUTPCTrackletConstructor.h"
+#include "AliGPUTPCTrackLinearisation.h"
 
 #include "AliGPUTPCTrackParam.h"
 
@@ -57,7 +52,6 @@ AliGPUTPCTracker::AliGPUTPCTracker() :
 	fLinkTmpMemory( NULL ),
 	fISlice(-1),
 	fData(),
-	fGPUDebugOut( 0 ),
 	fNMaxStartHits( 0 ),
 	fNMaxTracklets( 0 ),
 	fNMaxTracks( 0 ),
@@ -175,6 +169,13 @@ void AliGPUTPCTracker::SetMaxData()
 	}
 }
 
+void AliGPUTPCTracker::UpdateMaxData()
+{
+	fNMaxTracklets = fCommonMem->fNTracklets * 2;
+	fNMaxTracks = fCommonMem->fNTracklets * 2 + 50;
+	fNMaxTrackHits = fNMaxStartHits * 2;
+}
+
 void AliGPUTPCTracker::SetupCommonMemory()
 {
 	new(fCommonMem) commonMemoryStruct;
@@ -218,110 +219,6 @@ GPUh() int AliGPUTPCTracker::CheckEmptySlice()
 		return 1;
 	}
 	return 0;
-}
-
-void AliGPUTPCTracker::RunNeighboursFinder()
-{
-	//Run the CPU Neighbours Finder
-	AliGPUTPCProcess<AliGPUTPCNeighboursFinder>( GPUCA_ROW_COUNT, 1, *this );
-}
-
-void AliGPUTPCTracker::RunNeighboursCleaner()
-{
-	//Run the CPU Neighbours Cleaner
-	AliGPUTPCProcess<AliGPUTPCNeighboursCleaner>( GPUCA_ROW_COUNT - 2, 1, *this );
-}
-
-void AliGPUTPCTracker::RunStartHitsFinder()
-{
-	//Run the CPU Start Hits Finder
-	AliGPUTPCProcess<AliGPUTPCStartHitsFinder>( GPUCA_ROW_COUNT - 4, 1, *this );
-}
-
-void AliGPUTPCTracker::RunTrackletConstructor()
-{
-	//Run CPU Tracklet Constructor
-	AliGPUTPCTrackletConstructor::AliGPUTPCTrackletConstructorCPU(*this);
-}
-
-void AliGPUTPCTracker::RunTrackletSelector()
-{
-	//Run CPU Tracklet Selector
-	AliGPUTPCProcess<AliGPUTPCTrackletSelector>( 1, fCommonMem->fNTracklets, *this );
-}
-
-GPUh() void AliGPUTPCTracker::DoTracking()
-{
-	fCommonMem->fNTracklets = fCommonMem->fNTracks = fCommonMem->fNTrackHits = 0;
-
-	if (mCAParam->debugLevel >= 6)
-	{
-		if (!mRec->GetDeviceProcessingSettings().comparableDebutOutput)
-		{
-			*fGPUDebugOut << std::endl << std::endl << "Slice: " << fISlice << std::endl;
-			*fGPUDebugOut << "Slice Data:" << std::endl;
-		}
-		DumpSliceData(*fGPUDebugOut);
-	}
-
-	StartTimer(1);
-	RunNeighboursFinder();
-	StopTimer(1);
-
-	if (mRec->GetDeviceProcessingSettings().keepAllMemory)
-	{
-		memcpy(fLinkTmpMemory, mRec->Res(fData.MemoryResScratch()).Ptr(), mRec->Res(fData.MemoryResScratch()).Size());
-	}
-
-	if (mCAParam->debugLevel >= 6) DumpLinks(*fGPUDebugOut);
-
-	StartTimer(2);
-	RunNeighboursCleaner();
-	StopTimer(2);
-
-	if (mCAParam->debugLevel >= 6) DumpLinks(*fGPUDebugOut);
-
-	StartTimer(3);
-	RunStartHitsFinder();
-	StopTimer(3);
-
-	if (mCAParam->debugLevel >= 6) DumpStartHits(*fGPUDebugOut);
-
-	StartTimer(5);
-	fData.ClearHitWeights();
-	StopTimer(5);
-
-	if (mRec->GetDeviceProcessingSettings().memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL)
-	{
-		fNMaxTracklets = fCommonMem->fNTracklets * 2;
-		fNMaxTracks = fCommonMem->fNTracklets * 2 + 50;
-		fNMaxTrackHits = fNMaxStartHits * 2;
-		mRec->AllocateRegisteredMemory(mMemoryResTracklets);
-		mRec->AllocateRegisteredMemory(mMemoryResTracks);
-		mRec->AllocateRegisteredMemory(mMemoryResTrackHits);
-	}
-
-	StartTimer(6);
-	RunTrackletConstructor();
-	StopTimer(6);
-	if (mCAParam->debugLevel >= 3) printf("Slice %d, Number of tracklets: %d\n", fISlice, *NTracklets());
-
-	if (mCAParam->debugLevel >= 6) DumpTrackletHits(*fGPUDebugOut);
-	if (mCAParam->debugLevel >= 6 && !mRec->GetDeviceProcessingSettings().comparableDebutOutput) DumpHitWeights(*fGPUDebugOut);
-
-	StartTimer(7);
-	RunTrackletSelector();
-	StopTimer(7);
-	if (mCAParam->debugLevel >= 3) printf("Slice %d, Number of tracks: %d\n", fISlice, *NTracks());
-
-	if (mCAParam->debugLevel >= 6) DumpTrackHits(*fGPUDebugOut);
-}
-
-GPUh() void AliGPUTPCTracker::Reconstruct()
-{
-
-	if (CheckEmptySlice()) return;
-	DoTracking();
 }
 
 GPUh() void AliGPUTPCTracker::ReconstructOutput()

@@ -23,7 +23,6 @@
 #include "AliGPUReconstruction.h"
 #include "AliGPUReconstructionConvert.h"
 #include "AliGPUReconstructionCommon.h"
-#include "AliGPUReconstructionImpl.h"
 
 #include "AliGPUTPCClusterData.h"
 #include "AliGPUTPCSliceOutput.h"
@@ -166,7 +165,6 @@ int AliGPUReconstruction::InitializeProcessors()
 	for (unsigned int i = 0;i < NSLICES;i++)
 	{
 		mWorkers->tpcTrackers[i].SetSlice(i);
-		mWorkers->tpcTrackers[i].SetGPUDebugOutput(&mDebugFile);
 	}
 	for (unsigned int i = 0;i < mProcessors.size();i++)
 	{
@@ -838,7 +836,7 @@ AliGPUReconstruction* AliGPUReconstruction::CreateInstance(const AliGPUCASetting
 	unsigned int type = cfg.deviceType;
 	if (type == DeviceType::CPU)
 	{
-		retVal = new AliGPUReconstructionCPU(cfg);
+		retVal = AliGPUReconstruction_Create_CPU(cfg);
 	}
 	else if (type == DeviceType::CUDA)
 	{
