@@ -28,7 +28,7 @@ public:
 #else
 
 #include "AliGPUTPCSettings.h"
-#include <math.h>
+#include <cmath>
 
 class TH1F;
 class TH2F;

@@ -1,8 +1,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "CL/opencl.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -86,7 +86,7 @@ int main(int argc, char** argv)
 	//Query devices
 	cl_device_id* devices = new cl_device_id[pinfo.count];
 	if (devices == NULL) quit("Memory allocation error");
-	if (clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, pinfo.count, devices, NULL) != CL_SUCCESS) quit("Error getting OpenCL devices"); 
+	if (clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, pinfo.count, devices, NULL) != CL_SUCCESS) quit("Error getting OpenCL devices");
 
 	_makefiles_opencl_device_info dinfo;
 	cl_device_type device_type;

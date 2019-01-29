@@ -1,9 +1,6 @@
 #ifndef ALIGPUCADISPLAYBACKENDX11_H
 #define ALIGPUCADISPLAYBACKENDX11_H
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "AliGPUCADisplayBackend.h"
 #include <GL/glx.h>
 #include <pthread.h>

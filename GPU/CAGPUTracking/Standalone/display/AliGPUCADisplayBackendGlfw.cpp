@@ -12,8 +12,8 @@ extern "C" int gl3wInit();
 
 #include <GLFW/glfw3.h>
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 #include <unistd.h>
 #include <pthread.h>
 

@@ -1,7 +1,7 @@
 #include "qmalloc.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #ifdef _WIN32
 #include <windows.h>

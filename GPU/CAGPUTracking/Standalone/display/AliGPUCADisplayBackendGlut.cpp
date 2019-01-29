@@ -1,7 +1,7 @@
 #include "AliGPUCADisplayBackendGlut.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <unistd.h>

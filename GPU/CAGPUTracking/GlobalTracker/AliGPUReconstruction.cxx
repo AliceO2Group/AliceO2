@@ -1,5 +1,5 @@
 #include <cstring>
-#include <stdio.h>
+#include <cstdio>
 #include <iostream>
 #include <mutex>
 #include <string>
@@ -906,7 +906,7 @@ AliGPUReconstruction::DeviceType AliGPUReconstruction::GetDeviceType(const char*
 #ifdef WIN32
 #define LIBRARY_EXTENSION ".dll"
 #define LIBRARY_TYPE HMODULE
-#define LIBRARY_LOAD(name) LoadLibraryEx(name, NULL, NULL)
+#define LIBRARY_LOAD(name) LoadLibraryEx(name, nullptr, nullptr)
 #define LIBRARY_CLOSE FreeLibrary
 #define LIBRARY_FUNCTION GetProcAddress
 #else
@@ -946,7 +946,7 @@ int AliGPUReconstruction::LibraryLoader::LoadLibrary()
 	
 	LIBRARY_TYPE hGPULib;
 	hGPULib = LIBRARY_LOAD(mLibName);
-	if (hGPULib == NULL)
+	if (hGPULib == nullptr)
 	{
 		#ifndef WIN32
 			CAGPUImportant("The following error occured during dlopen: %s", dlerror());
@@ -957,7 +957,7 @@ int AliGPUReconstruction::LibraryLoader::LoadLibrary()
 	else
 	{
 		void* createFunc = LIBRARY_FUNCTION(hGPULib, mFuncName);
-		if (createFunc == NULL)
+		if (createFunc == nullptr)
 		{
 			CAGPUError("Error fetching entry function in GPU library\n");
 			LIBRARY_CLOSE(hGPULib);

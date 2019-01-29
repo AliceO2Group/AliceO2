@@ -2,7 +2,7 @@
 #define ALIGPURECONSTRUCTION_H
 
 #include <cstddef>
-#include <stdio.h>
+#include <cstdio>
 #include <cstring>
 #include <memory>
 #include <fstream>

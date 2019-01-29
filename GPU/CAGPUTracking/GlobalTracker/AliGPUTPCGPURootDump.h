@@ -41,8 +41,8 @@ public:
 	template <typename... Args> void Branch(Args... args) {internal_Branch<T>::Branch(fTree, args...);}
 private:
 
-	TFile* fFile = NULL;
-	T* fTree = NULL;
+	TFile* fFile = nullptr;
+	T* fTree = nullptr;
 };
 #else
 template <class T> class AliGPUTPCGPURootDump

@@ -1,4 +1,4 @@
-#include <stdlib.h>
+#include <cstdlib>
 
 #ifndef QMALLOC_H
 #define QMALLOC_H
@@ -13,7 +13,7 @@ public:
 	static void* __cdecl qMalloc(size_t size, bool huge, bool executable, bool locked, void* alloc_addr = NULL, int interleave = false);
 	static int __cdecl qFree(void* ptr);
 
-private:	
+private:
 	static int qMallocCount;
 	static int qMallocUsed;
 	struct qMallocData

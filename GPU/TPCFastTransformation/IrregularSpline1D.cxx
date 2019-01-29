@@ -16,7 +16,7 @@
 
 
 #include "IrregularSpline1D.h"
-#include <math.h>
+#include <cmath>
 #include <vector>
 
 namespace ali_tpc_common {
@@ -35,7 +35,7 @@ IrregularSpline1D::IrregularSpline1D()
 
 void IrregularSpline1D::destroy()
 {
-  /// See FlatObject for description   
+  /// See FlatObject for description
   mNumberOfKnots = 0;
   mNumberOfAxisBins = 0;
   mBin2KnotMapOffset = 0;
@@ -44,16 +44,16 @@ void IrregularSpline1D::destroy()
 
 void IrregularSpline1D::cloneFromObject( const IrregularSpline1D &obj, char *newFlatBufferPtr )
 {
-  /// See FlatObject for description      
+  /// See FlatObject for description
   FlatObject::cloneFromObject( obj, newFlatBufferPtr );
   mNumberOfKnots =  obj.mNumberOfKnots;
   mNumberOfAxisBins = obj.mNumberOfAxisBins;
-  mBin2KnotMapOffset = obj.mBin2KnotMapOffset;   
+  mBin2KnotMapOffset = obj.mBin2KnotMapOffset;
 }
    
 
 
-void IrregularSpline1D::construct( int numberOfKnots, const float inputKnots[], int numberOfAxisBins )  
+void IrregularSpline1D::construct( int numberOfKnots, const float inputKnots[], int numberOfAxisBins )
 {
   /// Constructor.
   /// Initialises the spline with a grid with numberOfKnots knots in the interval [0,1]
@@ -93,12 +93,12 @@ void IrregularSpline1D::construct( int numberOfKnots, const float inputKnots[], 
 
     vKnotBins.push_back( lastBin ); // obligatory knot at 1.0
 
-    if( vKnotBins.size() < 5 ){ // too less knots, make a grid with 5 knots 
+    if( vKnotBins.size() < 5 ){ // too less knots, make a grid with 5 knots
       vKnotBins.clear();
       vKnotBins.push_back(0);
       vKnotBins.push_back( (int) roundf( 0.25*numberOfAxisBins ) );
-      vKnotBins.push_back( (int) roundf( 0.50*numberOfAxisBins ));      
-      vKnotBins.push_back( (int) roundf( 0.75*numberOfAxisBins ));      
+      vKnotBins.push_back( (int) roundf( 0.50*numberOfAxisBins ));
+      vKnotBins.push_back( (int) roundf( 0.75*numberOfAxisBins ));
       vKnotBins.push_back(lastBin);
     }
   }
@@ -124,7 +124,7 @@ void IrregularSpline1D::construct( int numberOfKnots, const float inputKnots[], 
     s[i].scaleL2 = 0.; // undefined
     s[i].scaleR2 = (x3-2.)/(x3-1.);
     s[i].scaleR3 = 1./(x3*(x3-1.));
-  } 
+  }
 
   for( int i=1; i<mNumberOfKnots-2; i++){
     double du = (s[i+1].u - s[i].u);
@@ -135,12 +135,12 @@ void IrregularSpline1D::construct( int numberOfKnots, const float inputKnots[], 
     s[i].scaleL2 = x0/(x0-1.);
     s[i].scaleR2 = (x3-2.)/(x3-1.);
     s[i].scaleR3 = 1./(x3*(x3-1.));
-  } 
+  }
    
   { // values will not be used, we define them for consistency
     int i = mNumberOfKnots-2;
     double du = (s[i+1].u - s[i].u);
-    double x0 = (s[i-1].u - s[i].u)/du;    
+    double x0 = (s[i-1].u - s[i].u)/du;
     s[i].scale  = 1./du;
     s[i].scaleL0 = -1./(x0*(x0-1.));
     s[i].scaleL2 = x0/(x0-1.);
@@ -159,7 +159,7 @@ void IrregularSpline1D::construct( int numberOfKnots, const float inputKnots[], 
 
   // Set up map (U bin) -> (knot index)
 
-  int* map = getBin2KnotMapNonConst(); 
+  int* map = getBin2KnotMapNonConst();
 
   int iKnotMin = 1;
   int iKnotMax = mNumberOfKnots-3;
@@ -184,4 +184,3 @@ void IrregularSpline1D::construct( int numberOfKnots, const float inputKnots[], 
 
 }// namespace
 }// namespace
-
