@@ -22,7 +22,8 @@ enum struct Lifetime {
   Condition,
   QA,
   Transient,
-  Timer
+  Timer,
+  Enumeration
 };
 
 } // namespace framework
