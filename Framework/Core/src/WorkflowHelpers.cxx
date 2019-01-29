@@ -14,6 +14,7 @@
 #include "Framework/CommonDataProcessors.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/ControlService.h"
 #include "Headers/DataHeader.h"
 #include <algorithm>
 #include <list>
@@ -116,10 +117,13 @@ std::vector<TopoIndexInfo>
 
 void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
 {
-  auto fakeCallback = AlgorithmSpec{ [](InitContext&) {
+  auto fakeCallback = AlgorithmSpec{ [](InitContext& ic) {
     LOG(INFO) << "This is not a real device, merely a placeholder for external inputs";
     LOG(INFO) << "To be hidden / removed at some point.";
-    return [](ProcessingContext& ctx) {
+    // mark this dummy process as ready-to-quit
+    ic.services().get<ControlService>().readyToQuit(false);
+    return [](ProcessingContext&) {
+      // this callback is never called since there is no expiring input
       std::this_thread::sleep_for(std::chrono::seconds(2));
     };
   } };
