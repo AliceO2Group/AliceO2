@@ -1,10 +1,11 @@
+#include <cuda.h>
+#include <sm_20_atomic_functions.h>
 #define GPUCA_GPUTYPE_PASCAL
 
 #include "AliGPUReconstructionCUDA.h"
 #include "AliGPUReconstructionCUDAInternals.h"
-
-#define GPUCA_GPUTYPE_PASCAL
 #include "AliGPUReconstructionCommon.h"
+
 #define get_global_id(dim) (blockIdx.x * blockDim.x + threadIdx.x)
 #define get_global_size(dim) (blockDim.x * gridDim.x)
 #define get_num_groups(dim) (gridDim.x)
@@ -12,11 +13,6 @@
 #define get_local_size(dim) (blockDim.x)
 #define get_group_id(dim) (blockIdx.x)
 
-#include <cuda.h>
-#include <sm_20_atomic_functions.h>
-
-#include "AliGPUCADataTypes.h"
-#include "AliCAGPULogging.h"
 __constant__ uint4 gGPUConstantMemBuffer[(sizeof(AliGPUCAConstantMem) + sizeof(uint4) - 1) / sizeof(uint4)];
 __constant__ char& gGPUConstantMemBufferChar = (char&) gGPUConstantMemBuffer;
 __constant__ AliGPUCAConstantMem& gGPUConstantMem = (AliGPUCAConstantMem&) gGPUConstantMemBufferChar;
@@ -26,52 +22,13 @@ texture<cahit2, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu2;
 texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
 #endif
 
-//Include CXX Files, GPUd() macro will then produce CUDA device code out of the tracker source code
-#include "AliGPUTPCTrackParam.cxx"
-#include "AliGPUTPCTrack.cxx"
-
-#include "AliGPUTPCHitArea.cxx"
-#include "AliGPUTPCGrid.cxx"
-#include "AliGPUTPCRow.cxx"
-#include "AliGPUCAParam.cxx"
-#include "AliGPUTPCTracker.cxx"
-
-#include "AliGPUTPCTrackletSelector.cxx"
-#include "AliGPUTPCNeighboursFinder.cxx"
-#include "AliGPUTPCNeighboursCleaner.cxx"
-#include "AliGPUTPCStartHitsFinder.cxx"
-#include "AliGPUTPCStartHitsSorter.cxx"
-#include "AliGPUTPCTrackletConstructor.cxx"
-
-#ifdef GPUCA_GPU_MERGER
-#include "AliGPUTPCGMMerger.h"
-#include "AliGPUTPCGMTrackParam.cxx"
-#include "AliGPUTPCGMPhysicalTrackModel.cxx"
-#include "AliGPUTPCGMPropagator.cxx"
-
-#include "AliGPUTRDTrack.cxx"
-#include "AliGPUTRDTracker.cxx"
-#include "AliGPUTRDTrackletWord.cxx"
-#ifdef HAVE_O2HEADERS
-#include "TRDGeometryBase.cxx"
-#endif
-#endif
-
 #ifdef HAVE_O2HEADERS
 #include "ITStrackingCUDA/TrackerTraitsNV.h"
-#ifndef GPUCA_O2_LIB
-#include "TrackerTraitsNV.cu"
-#include "Context.cu"
-#include "Stream.cu"
-#include "DeviceStoreNV.cu"
-#include "Utils.cu"
-#endif
 #else
 namespace o2 { namespace ITS { class TrackerTraitsNV : public TrackerTraits {}; }}
 #endif
 
-#define RANDOM_ERROR
-//#define RANDOM_ERROR || rand() % 500 == 1
+#include "AliGPUDeviceKernels.h"
 
 template <class TProcess> GPUg() void runKernelCUDA(int iSlice)
 {

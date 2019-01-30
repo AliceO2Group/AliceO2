@@ -21,7 +21,7 @@
 #include "AliGPUTPCHitId.h"
 #include "AliGPUTPCSliceData.h"
 #include "AliGPUTPCSliceOutput.h"
-#include "AliGPUTPCTrackletConstructor.h"
+#include "AliGPUTPCTrackParam.h"
 #include "AliGPUTPCTracklet.h"
 #include "AliGPUProcessor.h"
 

@@ -5,13 +5,6 @@
 #include "AliGPUCADataTypes.h"
 #include <stdexcept>
 
-class AliGPUTPCNeighboursFinder;
-class AliGPUTPCNeighboursCleaner;
-class AliGPUTPCStartHitsFinder;
-class AliGPUTPCStartHitsSorter;
-class AliGPUTPCTrackletConstructor;
-class AliGPUTPCTrackletSelector;
-
 #include "AliGPUTPCNeighboursFinder.h"
 #include "AliGPUTPCNeighboursCleaner.h"
 #include "AliGPUTPCStartHitsFinder.h"

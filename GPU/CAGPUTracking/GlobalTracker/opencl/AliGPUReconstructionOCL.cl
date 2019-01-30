@@ -7,21 +7,7 @@
 #endif
 #define assert(param)
 
-#include "AliGPUTPCTrackParam.cxx"
-#include "AliGPUTPCTrack.cxx"
-
-#include "AliGPUTPCHitArea.cxx"
-#include "AliGPUTPCGrid.cxx"
-#include "AliGPUTPCRow.cxx"
-#include "AliGPUCAParam.cxx"
-#include "AliGPUTPCTracker.cxx"
-
-#include "AliGPUTPCTrackletSelector.cxx"
-#include "AliGPUTPCNeighboursFinder.cxx"
-#include "AliGPUTPCNeighboursCleaner.cxx"
-#include "AliGPUTPCStartHitsFinder.cxx"
-#include "AliGPUTPCStartHitsSorter.cxx"
-#include "AliGPUTPCTrackletConstructor.cxx"
+#include "AliGPUDeviceKernels.h"
 
 #include "AliGPUCADataTypes.h"
 

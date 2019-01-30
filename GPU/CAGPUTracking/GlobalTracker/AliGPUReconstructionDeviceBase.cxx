@@ -1,12 +1,7 @@
 #include "AliGPUReconstructionDeviceBase.h"
-#include <string.h>
-#ifndef _WIN32
-#include <unistd.h>
-#endif
 #include "AliGPUReconstructionCommon.h"
 
 #include "AliGPUTPCTracker.h"
-#include "AliCAGPULogging.h"
 #include "AliGPUTPCSliceOutput.h"
 
 #ifdef __CINT__
@@ -16,10 +11,9 @@ typedef int cudaError_t
 #else
 #include <pthread.h>
 #include <errno.h>
+#include <unistd.h>
 #endif
-
-#define RANDOM_ERROR
-//#define RANDOM_ERROR || rand() % 500 == 1
+#include <string.h>
 
 MEM_CLASS_PRE() class AliGPUTPCRow;
 
