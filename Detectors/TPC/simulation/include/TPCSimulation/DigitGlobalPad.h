@@ -95,6 +95,7 @@ inline void DigitGlobalPad::addDigit(const MCCompLabel& label, float signal)
     if (compareMClabels(label, mcLabel.first)) {
       ++mcLabel.second;
       isKnown = true;
+      break;
     }
   }
   if (!isKnown) {
