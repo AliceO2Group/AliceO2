@@ -13,9 +13,9 @@
 /// @author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 ///
 
-/// @brief  Ring with random number following a gaussian distribution
+/// @brief  Ring with random number
 ///
-/// This class creates a set of random gaus numbers.
+/// This class creates a set of random numbers.
 /// The idea is to create a set of random numbers that can be
 /// reused in order to save computing time.
 /// The numbers can then be used as a continuous stream in
@@ -30,132 +30,121 @@
 #include <boost/format.hpp>
 
 #include "Vc/Vc"
-#include <vector>
+#include <array>
 
 #include "TF1.h"
 #include "TRandom.h"
 
-using float_v=Vc::float_v;
+using float_v = Vc::float_v;
 
-namespace o2 {
-namespace TPC {
+namespace o2
+{
+namespace TPC
+{
 
+template <size_t N = float_v::size() * 100000>
 class RandomRing
 {
-  public:
-    enum class RandomType : char {
-      Gaus,                  ///< Gaussian distribution
-      Flat,                  ///< Flat distribution
-      CustomTF1,             ///< Custom TF1 function to be used
-      None                   ///< Not selected, yet
-    };
-    /// constructor
-    /// @param [in] size size of the ring buffer
-    RandomRing();
+ public:
+  enum class RandomType : char {
+    Gaus,     ///< Gaussian distribution
+    Flat,     ///< Flat distribution
+    CustomTF1 ///< Custom TF1 function to be used
+  };
 
-    /// constructor
-    /// @param [in] randomType type of the random generator
-    /// @param [in] size size of the ring buffer
-    RandomRing(const RandomType randomType, const size_t size = 500000);
+  /// disallow copy constructor
+  RandomRing(const RandomRing&) = delete;
 
-    /// constructor accepting TF1
-    /// @param [in] function TF1 function
-    /// @param [in] size size of the ring buffer
-    RandomRing(TF1 &function, const size_t size = 500000);
+  /// disallow assignment operator
+  void operator=(const RandomRing&) = delete;
 
-    /// initialisation of the random ring
-    /// @param [in] randomType type of the random generator
-    /// @param [in] size size of the ring buffer
-    void initialize(const RandomType randomType = RandomType::Gaus, const size_t size = 500000);
+  /// constructor
+  /// @param [in] randomType type of the random generator
+  RandomRing(const RandomType randomType = RandomType::Gaus);
 
-    /// initialisation of the random ring
-    /// @param [in] randomType type of the random generator
-    /// @param [in] size size of the ring buffer
-    void initialize(TF1 &function, const size_t size = 500000);
+  /// constructor accepting TF1
+  /// @param [in] function TF1 function
+  RandomRing(TF1& function);
 
-    /// next random value from the ring buffer
-    /// This function return a value from the ring buffer
-    /// and increases the buffer position
-    /// @return next random value
-    float getNextValue()
-    {
-      const float value = mRandomNumbers[mRingPosition];
-      ++mRingPosition %= mRandomNumbers.size();
-      return value;
+  /// initialisation of the random ring
+  /// @param [in] randomType type of the random generator
+  void initialize(const RandomType randomType = RandomType::Gaus);
+
+  /// initialisation of the random ring
+  /// @param [in] randomType type of the random generator
+  void initialize(TF1& function);
+
+  /// next random value from the ring buffer
+  /// This function return a value from the ring buffer
+  /// and increases the buffer position
+  /// @return next random value
+  float getNextValue()
+  {
+    const float value = mRandomNumbers[mRingPosition];
+    ++mRingPosition;
+    if (mRingPosition >= mRandomNumbers.size()) {
+      mRingPosition = 0;
     }
+    return value;
+  }
 
-    /// next vector with random values
-    /// This function retuns a Vc vector with random numbers to be
-    /// used for vectorised programming and increases the buffer
-    /// position by the size of the vector
-    /// @return vector with random values
-    float_v getNextValueVc()
-    {
-      const float_v value = float_v(&mRandomNumbers[mRingPosition]);
-      mRingPosition += float_v::size();
-      mRingPosition %= mRandomNumbers.size();
-      return value;
+  /// next vector with random values
+  /// This function retuns a Vc vector with random numbers to be
+  /// used for vectorised programming and increases the buffer
+  /// position by the size of the vector
+  /// @return vector with random values
+  float_v getNextValueVc()
+  {
+    const float_v value = float_v(&mRandomNumbers[mRingPosition]);
+    mRingPosition += float_v::size();
+    if (mRingPosition >= mRandomNumbers.size()) {
+      mRingPosition = 0;
     }
+    return value;
+  }
 
-    /// position in the ring buffer
-    /// @return position in the ring buffer
-    unsigned int getRingPosition() const { return  mRingPosition; }
+  /// position in the ring buffer
+  /// @return position in the ring buffer
+  unsigned int getRingPosition() const { return mRingPosition; }
 
-  private:
-    // =========================================================================
-    // ===| members |===========================================================
-    //
+ private:
+  // =========================================================================
+  // ===| members |===========================================================
+  //
 
-    RandomType mRandomType;                                   ///< Type of random numbers used
-    std::vector<float, Vc::Allocator<float>> mRandomNumbers;  ///< Ring with random gaus numbers
-    unsigned int mRingPosition;                               ///< presently accessed position in the ring
-
-    // =========================================================================
-    // ===| functions |=========================================================
-    //
-
-    /// disallow copy constructor
-    RandomRing(const RandomRing &);
-
-    /// disallow assignment operator
-    void operator=(const RandomRing &) {}
+  RandomType mRandomType;              ///< Type of random numbers used
+  std::array<float, N> mRandomNumbers; ///< Ring with random gaus numbers
+  size_t mRingPosition;                ///< presently accessed position in the ring
 
 }; // end class RandomRing
 
 //______________________________________________________________________________
-inline RandomRing::RandomRing()
-  : mRandomType(RandomType::None),
-    mRandomNumbers(),
-    mRingPosition(float_v::size())
-{
-  initialize(RandomType::None, float_v::size());
-}
-
-//______________________________________________________________________________
-inline RandomRing::RandomRing(const RandomType randomType, const size_t size)
+template <size_t N>
+inline RandomRing<N>::RandomRing(const RandomType randomType)
   : mRandomType(randomType),
-    mRandomNumbers(size),
+    mRandomNumbers(),
     mRingPosition(0)
 
 {
-  initialize(randomType, size);
+  initialize(randomType);
 }
 
 //______________________________________________________________________________
-inline RandomRing::RandomRing(TF1 &function, const size_t size)
+template <size_t N>
+inline RandomRing<N>::RandomRing(TF1& function)
   : mRandomType(RandomType::CustomTF1),
-    mRandomNumbers(size),
+    mRandomNumbers(),
     mRingPosition(0)
 {
-  initialize(function, size);
+  initialize(function);
 }
 
 //______________________________________________________________________________
-inline void RandomRing::initialize(const RandomType randomType, const size_t size)
+template <size_t N>
+inline void RandomRing<N>::initialize(const RandomType randomType)
 {
-  mRandomNumbers.resize(size);
 
-  for (auto &v : mRandomNumbers) {
+  for (auto& v : mRandomNumbers) {
     // TODO: configurable mean and sigma
     switch (randomType) {
       case RandomType::Gaus: {
@@ -175,15 +164,13 @@ inline void RandomRing::initialize(const RandomType randomType, const size_t siz
 }
 
 //______________________________________________________________________________
-inline void RandomRing::initialize(TF1 &function, const size_t size)
+template <size_t N>
+inline void RandomRing<N>::initialize(TF1& function)
 {
-  mRandomNumbers.resize(size);
-
-  for (auto &v : mRandomNumbers) {
+  for (auto& v : mRandomNumbers) {
     v = function.GetRandom();
   }
 }
-
 
 } // namespace TPC
 } // namespace AliceO2

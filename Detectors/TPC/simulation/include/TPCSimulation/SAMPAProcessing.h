@@ -130,7 +130,7 @@ class SAMPAProcessing
   const ParameterElectronics* mEleParam; ///< Caching of the parameter class to avoid multiple CDB calls
   const CalPad* mNoiseMap;               ///< Caching of the parameter class to avoid multiple CDB calls
   const CalPad* mPedestalMap;            ///< Caching of the parameter class to avoid multiple CDB calls
-  RandomRing mRandomNoiseRing;           ///< Ring with random number for noise
+  RandomRing<> mRandomNoiseRing;         ///< Ring with random number for noise
 };
 
 template <typename T>

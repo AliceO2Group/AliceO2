@@ -19,11 +19,9 @@
 
 using namespace o2::TPC;
 
-ElectronTransport::ElectronTransport() : mRandomGaus(), mRandomFlat()
+ElectronTransport::ElectronTransport() : mRandomGaus(), mRandomFlat(RandomRing<>::RandomType::Flat)
 {
   updateParameters();
-  mRandomGaus.initialize(RandomRing::RandomType::Gaus);
-  mRandomFlat.initialize(RandomRing::RandomType::Flat);
 }
 
 ElectronTransport::~ElectronTransport() = default;
