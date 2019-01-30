@@ -561,7 +561,7 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_Init()
 		*mWorkers->tpcTrackers[iSlice].NTracklets() = 0;
 		*mWorkers->tpcTrackers[iSlice].NTracks() = 0;
 		*mWorkers->tpcTrackers[iSlice].NTrackHits() = 0;
-		mWorkersShadow->tpcTrackers[iSlice].GPUParametersConst()->fGPUFixedBlockCount = (int) NSLICES > fConstructorBlockCount ? ((int) iSlice < fConstructorBlockCount) : fConstructorBlockCount * (iSlice + 1) / NSLICES - fConstructorBlockCount * (iSlice) / NSLICES;
+		mWorkersShadow->tpcTrackers[iSlice].GPUParametersConst()->fGPUFixedBlockCount = NSLICES > fConstructorBlockCount ? (iSlice < fConstructorBlockCount) : fConstructorBlockCount * (iSlice + 1) / NSLICES - fConstructorBlockCount * (iSlice) / NSLICES;
 		mWorkersShadow->tpcTrackers[iSlice].GPUParametersConst()->fGPUiSlice = iSlice;
 		mWorkers->tpcTrackers[iSlice].GPUParameters()->fGPUError = 0;
 		mWorkers->tpcTrackers[iSlice].GPUParameters()->fNextTracklet = ((fConstructorBlockCount + NSLICES - 1 - iSlice) / NSLICES) * fConstructorThreadCount;

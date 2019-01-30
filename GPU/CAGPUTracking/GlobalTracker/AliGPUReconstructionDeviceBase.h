@@ -106,9 +106,9 @@ protected:
 	int fThreadId = -1; //Thread ID that is valid for the local CUDA context
     int fDeviceId = -1; //Device ID used by backend
 
-	int fConstructorBlockCount = 0; //GPU blocks used in Tracklet Constructor
-	int fSelectorBlockCount = 0; //GPU blocks used in Tracklet Selector
-	int fConstructorThreadCount = 0;
+	unsigned int fConstructorBlockCount = 0; //GPU blocks used in Tracklet Constructor
+	unsigned int fSelectorBlockCount = 0; //GPU blocks used in Tracklet Selector
+	unsigned int fConstructorThreadCount = 0;
 
 #ifdef GPUCA_GPU_TIME_PROFILE
 	unsigned long long int fProfTimeC, fProfTimeD; //Timing

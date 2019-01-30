@@ -26,20 +26,20 @@ template <class T> class classArgument {};
 enum class krnlDeviceType : int {CPU = 0, Device = 1, Auto = -1};
 struct krnlExec
 {
-	krnlExec(int b, int t, int s, krnlDeviceType d = krnlDeviceType::Auto) : nBlocks(b), nThreads(t), stream(s), device(d) {}
-	int nBlocks;
-	int nThreads;
+	krnlExec(unsigned int b, unsigned int t, int s, krnlDeviceType d = krnlDeviceType::Auto) : nBlocks(b), nThreads(t), stream(s), device(d) {}
+	unsigned int nBlocks;
+	unsigned int nThreads;
 	int stream;
 	krnlDeviceType device;
 };
 struct krnlRunRange
 {
-	krnlRunRange() : start(0), end(0) {}
-	krnlRunRange(unsigned int a) : start(a), end(a) {}
-	krnlRunRange(unsigned int s, unsigned int e) : start(s), end(e) {}
+	krnlRunRange() : start(0), num(1) {}
+	krnlRunRange(unsigned int a) : start(a), num(1) {}
+	krnlRunRange(unsigned int s, unsigned int n) : start(s), num(n) {}
 	
 	unsigned int start;
-	unsigned int end;
+	unsigned int num;
 };
 } //End Namespace
 
@@ -71,14 +71,14 @@ protected:
 	template <class T, typename... Args> inline int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const Args&... args)
 	{
 		if (x.device == krnlDeviceType::Device) throw std::runtime_error("Cannot run device kernel on host");
-		for (unsigned int k = y.start;k < y.end;k++)
+		for (unsigned int k = 0;k < y.num;k++)
 		{
-			for (int iB = 0; iB < x.nBlocks; iB++)
+			for (unsigned int iB = 0; iB < x.nBlocks; iB++)
 			{
 				typename T::AliGPUTPCSharedMemory smem;
 				for (int iS = 0; iS <= T::NThreadSyncPoints(); iS++)
 				{
-					T::Thread(x.nBlocks, 1, iB, 0, iS, smem, mWorkers->tpcTrackers[k]);
+					T::Thread(x.nBlocks, 1, iB, 0, iS, smem, mWorkers->tpcTrackers[y.start + k]);
 				}
 			}
 		}

@@ -556,7 +556,7 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 		}
 	}
 
-	int runSlices = 0;
+	unsigned int runSlices = 0;
 	int useStream = 0;
 	int streamMap[NSLICES];
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice += runSlices)
