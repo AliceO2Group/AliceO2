@@ -4,15 +4,16 @@
 #endif
 #define assert(param)
 
-#ifdef WIN32
-#else
+#ifndef WIN32
 #include <sys/syscall.h>
 #include <semaphore.h>
 #include <fcntl.h>
 #include <sched.h>
 #endif
+
 #include "AliGPUTPCDef.h"
 #include "AliGPUTPCGPUConfig.h"
+#include "AliCAGPULogging.h"
 
 #include <iostream>
 #include <fstream>
@@ -33,3 +34,6 @@ namespace o2 { namespace trd { struct TRDGeometryFlat {}; }}
 #endif
 using namespace o2::ITS;
 using namespace o2::trd;
+
+#define RANDOM_ERROR
+//#define RANDOM_ERROR || rand() % 500 == 1

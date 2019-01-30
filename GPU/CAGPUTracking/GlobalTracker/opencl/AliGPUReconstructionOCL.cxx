@@ -1,41 +1,16 @@
 #define GPUCA_GPUTYPE_RADEON
 
 #include "AliGPUReconstructionOCL.h"
-
-#include "AliGPUCADataTypes.h"
-#include "AliCAGPULogging.h"
-
-#include <string.h>
 #include "AliGPUReconstructionOCLInternals.h"
 #include "AliGPUReconstructionCommon.h"
 
-#include "AliGPUTPCTrackParam.h"
-#include "AliGPUTPCTrack.h"
-
-#include "AliGPUTPCHitArea.h"
-#include "AliGPUTPCGrid.h"
-#include "AliGPUTPCRow.h"
-#include "AliGPUCAParam.h"
-#include "AliGPUTPCTracker.h"
-
-#include "AliGPUTPCTrackletSelector.h"
-#include "AliGPUTPCNeighboursFinder.h"
-#include "AliGPUTPCNeighboursCleaner.h"
-#include "AliGPUTPCStartHitsFinder.h"
-#include "AliGPUTPCStartHitsSorter.h"
-#include "AliGPUTPCTrackletConstructor.h"
-
-#include "AliGPUCADataTypes.h"
-
+#include <string.h>
 #include <unistd.h>
 
 #include "../makefiles/opencl_obtain_program.h"
 extern "C" char _makefile_opencl_program_GlobalTracker_opencl_AliGPUReconstructionOCL_cl[];
 
 #define quit(msg) {CAGPUError(msg);return(1);}
-
-#define RANDOM_ERROR
-//#define RANDOM_ERROR || rand() % 500 == 1
 
 AliGPUReconstructionOCLBackend::AliGPUReconstructionOCLBackend(const AliGPUCASettingsProcessing& cfg) : AliGPUReconstructionDeviceBase(cfg)
 {

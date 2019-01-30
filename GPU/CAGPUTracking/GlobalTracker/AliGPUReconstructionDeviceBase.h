@@ -2,7 +2,6 @@
 #define ALIGPURECONSTRUCTIONDEVICEBASE_H
 
 #include "AliGPUReconstructionImpl.h"
-#include "AliGPUCADataTypes.h"
 
 class AliGPUReconstructionDeviceBase : public AliGPUReconstructionCPU
 {

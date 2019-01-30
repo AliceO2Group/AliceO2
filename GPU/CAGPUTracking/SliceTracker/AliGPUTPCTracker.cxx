@@ -20,10 +20,8 @@
 #include "AliGPUTPCTracker.h"
 #include "AliGPUTPCRow.h"
 #include "AliGPUTPCTrack.h"
-#include "AliGPUTPCTracklet.h"
 #include "AliTPCCommonMath.h"
 
-#include "AliGPUTPCHitArea.h"
 #include "AliGPUTPCClusterData.h"
 #include "AliGPUCAOutputControl.h"
 #include "AliGPUTPCTrackletConstructor.h"
