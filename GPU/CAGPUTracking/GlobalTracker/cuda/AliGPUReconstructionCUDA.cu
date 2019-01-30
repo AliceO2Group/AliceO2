@@ -21,7 +21,6 @@ __constant__ uint4 gGPUConstantMemBuffer[(sizeof(AliGPUCAConstantMem) + sizeof(u
 __constant__ char& gGPUConstantMemBufferChar = (char&) gGPUConstantMemBuffer;
 __constant__ AliGPUCAConstantMem& gGPUConstantMem = (AliGPUCAConstantMem&) gGPUConstantMemBufferChar;
 
-AliGPUCAConstantMem AliGPUCAConstantMemDummy;
 #ifdef GPUCA_GPU_USE_TEXTURES
 texture<cahit2, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu2;
 texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
@@ -308,7 +307,7 @@ int AliGPUReconstructionCUDABackend::InitDevice_Runtime()
 		ResetHelperThreads(0);
 		return 1;
 	}
-	mDeviceParam = (AliGPUCAParam*) ((char*) devPtrConstantMem + ((char*) &AliGPUCAConstantMemDummy.param - (char*) &AliGPUCAConstantMemDummy));
+	mDeviceConstantMem = (AliGPUCAConstantMem*) devPtrConstantMem;
 
 	ReleaseThreadContext();
 	CAGPUInfo("CUDA Initialisation successfull (Device %d: %s, Thread %d, %lld/%lld bytes used)", fDeviceId, cudaDeviceProp.name, fThreadId, (long long int) mHostMemorySize, (long long int) mDeviceMemorySize);
@@ -374,13 +373,13 @@ int AliGPUReconstructionCUDABackend::RunTPCTrackingSlices_internal()
 	//Copy Tracker Object to GPU Memory
 	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Copying Tracker objects to GPU");
 	if (PrepareProfile()) return 2;
-	if (GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, &mParam, sizeof(AliGPUCAParam), (char*) &AliGPUCAConstantMemDummy.param - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice, mInternals->CudaStreams[0])))
+	if (GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, &mParam, sizeof(AliGPUCAParam), (char*) &mDeviceConstantMem->param - (char*) mDeviceConstantMem, cudaMemcpyHostToDevice, mInternals->CudaStreams[0])))
 	{
 		CAGPUError("Error writing to constant memory");
 		return(2);
 	}
 	
-	if (GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, mWorkersShadow->tpcTrackers, sizeof(AliGPUTPCTracker) * NSLICES, (char*) AliGPUCAConstantMemDummy.tpcTrackers - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice, mInternals->CudaStreams[0])))
+	if (GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, mWorkersShadow->tpcTrackers, sizeof(AliGPUTPCTracker) * NSLICES, (char*) mDeviceConstantMem->tpcTrackers - (char*) mDeviceConstantMem, cudaMemcpyHostToDevice, mInternals->CudaStreams[0])))
 	{
 		CAGPUError("Error writing to constant memory");
 		return(2);
@@ -676,7 +675,7 @@ int AliGPUReconstructionCUDABackend::DoTRDGPUTracking()
 	SetupGPUProcessor(&mWorkers->trdTracker);
 	mWorkersShadow->trdTracker.SetGeometry((AliGPUTRDGeometry*) mProcDevice.fTrdGeometry);
 
-	GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, &mWorkersShadow->trdTracker, sizeof(mWorkersShadow->trdTracker), (char*) &AliGPUCAConstantMemDummy.trdTracker - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice));
+	GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, &mWorkersShadow->trdTracker, sizeof(mWorkersShadow->trdTracker), (char*) &mDeviceConstantMem->trdTracker - (char*) mDeviceConstantMem, cudaMemcpyHostToDevice));
 
 	TransferMemoryResourcesToGPU(&mWorkers->trdTracker);
 
@@ -715,9 +714,9 @@ int AliGPUReconstructionCUDABackend::RefitMergedTracks(AliGPUTPCGMMerger* Merger
 	timer.Start();
 
 	SetupGPUProcessor(Merger);
-	mWorkersShadow->tpcMerger.OverrideSliceTracker((AliGPUTPCTracker*) (((char*) mDeviceParam) + ((char*) &AliGPUCAConstantMemDummy.tpcTrackers[0] - (char*) &AliGPUCAConstantMemDummy)));
+	mWorkersShadow->tpcMerger.OverrideSliceTracker(mDeviceConstantMem->tpcTrackers);
 	
-	GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, &mWorkersShadow->tpcMerger, sizeof(mWorkersShadow->tpcMerger), (char*) &AliGPUCAConstantMemDummy.tpcMerger - (char*) &AliGPUCAConstantMemDummy, cudaMemcpyHostToDevice));
+	GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, &mWorkersShadow->tpcMerger, sizeof(mWorkersShadow->tpcMerger), (char*) &mDeviceConstantMem->tpcMerger - (char*) mDeviceConstantMem, cudaMemcpyHostToDevice));
 	TransferMemoryResourceLinkToGPU(Merger->MemoryResRefit());
 	times[0] += timer.GetCurrentElapsedTime(true);
 	

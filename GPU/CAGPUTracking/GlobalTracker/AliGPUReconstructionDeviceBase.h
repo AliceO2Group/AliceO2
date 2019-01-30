@@ -10,7 +10,7 @@ public:
 	virtual ~AliGPUReconstructionDeviceBase() override;
 
 	char* MergerHostMemory() const {return((char*) fGPUMergerHostMemory);}
-	const AliGPUCAParam* DeviceParam() const {return mDeviceParam;}
+	const AliGPUCAParam* DeviceParam() const {return &mDeviceConstantMem->param;}
 	virtual int RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers) override = 0;
 	
 	virtual int GetMaxThreads() override;
@@ -21,7 +21,7 @@ protected:
 	AliGPUReconstructionDeviceBase(const AliGPUCASettingsProcessing& cfg);
 	AliGPUCAConstantMem mGPUReconstructors;
 	void* fGPUMergerHostMemory = nullptr;
-	AliGPUCAParam* mDeviceParam = nullptr;
+	AliGPUCAConstantMem* mDeviceConstantMem = nullptr;
     
 #ifdef GPUCA_ENABLE_GPU_TRACKER
 	virtual int RunTPCTrackingSlices() override = 0;

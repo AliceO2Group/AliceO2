@@ -304,13 +304,14 @@ int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 		if (ocl_error != CL_SUCCESS) quit("Error creating OpenCL command queue");
 	}
 	if (clEnqueueMigrateMemObjects(mInternals->command_queue[0], 1, &mInternals->mem_gpu, 0, 0, nullptr, nullptr) != CL_SUCCESS) quit("Error migrating buffer");
+	if (clEnqueueMigrateMemObjects(mInternals->command_queue[0], 1, &mInternals->mem_constant, 0, 0, nullptr, nullptr) != CL_SUCCESS) quit("Error migrating buffer");
 
 	if (mDeviceProcessingSettings.debugLevel >= 1) CAGPUInfo("GPU Memory used: %lld", (long long int) mDeviceMemorySize);
 
 	mInternals->mem_host = clCreateBuffer(mInternals->context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, mHostMemorySize, nullptr, &ocl_error);
 	if (ocl_error != CL_SUCCESS) quit("Error allocating pinned host memory");
 
-	const char* krnlGetPtr = "__kernel void krnlGetPtr(__global char* gpu_mem, __global size_t* host_mem) {if (get_global_id(0) == 0) *host_mem = (size_t) gpu_mem;}";
+	const char* krnlGetPtr = "__kernel void krnlGetPtr(__global char* gpu_mem, __global char* constant_mem, __global size_t* host_mem) {if (get_global_id(0) == 0) {host_mem[0] = (size_t) gpu_mem; host_mem[1] = (size_t) constant_mem;}}";
 	cl_program program = clCreateProgramWithSource(mInternals->context, 1, (const char**) &krnlGetPtr, nullptr, &ocl_error);
 	if (ocl_error != CL_SUCCESS) quit("Error creating program object");
 	ocl_error = clBuildProgram(program, 1, &mInternals->device, "", nullptr, nullptr);
@@ -323,7 +324,7 @@ int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 	}
 	cl_kernel kernel = clCreateKernel(program, "krnlGetPtr", &ocl_error);
 	if (ocl_error != CL_SUCCESS) quit("Error creating kernel");
-	OCLsetKernelParameters(kernel, mInternals->mem_gpu, mInternals->mem_host);
+	OCLsetKernelParameters(kernel, mInternals->mem_gpu, mInternals->mem_constant, mInternals->mem_host);
 	clExecuteKernelA(mInternals->command_queue[0], kernel, 16, 16, nullptr);
 	clFinish(mInternals->command_queue[0]);
 	clReleaseKernel(kernel);
@@ -339,7 +340,8 @@ int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 	if (mDeviceProcessingSettings.debugLevel >= 1) CAGPUInfo("Host Memory used: %lld", (long long int) mHostMemorySize);
 
 	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("Obtained Pointer to GPU Memory: %p", *((void**) mHostMemoryBase));
-	mDeviceMemoryBase = *((void**) mHostMemoryBase);
+	mDeviceMemoryBase = ((void**) mHostMemoryBase)[0];
+	mDeviceConstantMem = (AliGPUCAConstantMem*) ((void**) mHostMemoryBase)[1];
 
 	if (mDeviceProcessingSettings.debugLevel >= 1)
 	{
@@ -348,9 +350,6 @@ int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 
 	mInternals->selector_events = new cl_event[NSLICES];
 	
-	mDeviceParam = &mParam;
-	printf("WARNING: Device param set to host, needs fixing\n");
-
 	CAGPUInfo("OPENCL Initialisation successfull (%d: %s %s (Frequency %d, Shaders %d) Thread %d, %lld bytes used)", bestDevice, device_vendor, device_name, (int) freq, (int) shaders, fThreadId, (long long int) mDeviceMemorySize);
 
 	return(0);
@@ -395,7 +394,12 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Copying Tracker objects to GPU");
 
 	cl_event initEvent;
-	if (GPUFailedMsg(clEnqueueWriteBuffer(mInternals->command_queue[0], mInternals->mem_constant, CL_FALSE, 0, sizeof(AliGPUTPCTracker) * NSLICES, mWorkersShadow->tpcTrackers, 0, nullptr, &initEvent)))
+	if (GPUFailedMsg(clEnqueueWriteBuffer(mInternals->command_queue[0], mInternals->mem_constant, CL_FALSE, (char*) &mDeviceConstantMem->param - (char*) mDeviceConstantMem, sizeof(mParam), &mParam, 0, nullptr, nullptr)))
+	{
+		CAGPUError("Error writing to constant memory");
+		return(2);
+	}
+	if (GPUFailedMsg(clEnqueueWriteBuffer(mInternals->command_queue[0], mInternals->mem_constant, CL_FALSE, (char*) mDeviceConstantMem->tpcTrackers - (char*) mDeviceConstantMem, sizeof(AliGPUTPCTracker) * NSLICES, mWorkersShadow->tpcTrackers, 0, nullptr, &initEvent)))
 	{
 		CAGPUError("Error writing to constant memory");
 		return(2);
