@@ -16,6 +16,7 @@
 
 #include "TPCSimulation/Digitizer.h"
 #include "TPCBase/ParameterDetector.h"
+#include "TPCBase/ParameterGEM.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGas.h"
 #include "TPCSimulation/ElectronTransport.h"
@@ -35,58 +36,24 @@ ClassImp(o2::TPC::Digitizer)
 bool o2::TPC::Digitizer::mIsContinuous = true;
 
 Digitizer::Digitizer()
-  : mDigitContainer(nullptr),
+  : mDigitContainer(),
     mSpaceChargeHandler(nullptr),
+    mSector(-1),
+    mEventTime(0.f),
     mUseSCDistortions(false)
 {
 }
 
-Digitizer::~Digitizer() { delete mDigitContainer; }
-
 void Digitizer::init()
 {
-  mDigitContainer = new DigitContainer();
-
   // Calculate distortion lookup tables if initial space-charge density is provided
   if (mUseSCDistortions) {
     mSpaceChargeHandler->init();
   }
 }
 
-DigitContainer* Digitizer::Process(const Sector& sector, const std::vector<o2::TPC::HitGroup>& hits, int eventID,
-                                   float eventTime)
-{
-  if (!mIsContinuous) {
-    eventTime = 0.f;
-  }
-  /// TODO: if eventtime-lastUpdate>=one space-charge time slice
-  ///  1) Propagate current space-charge density
-  ///  2) recalculate distortion lookup tables with updated space-charge density
-  for (auto& inputgroup : hits) {
-    ProcessHitGroup(inputgroup, sector, eventTime, eventID);
-  }
-  return mDigitContainer;
-}
-
-DigitContainer* Digitizer::Process2(const Sector& sector, const std::vector<std::vector<o2::TPC::HitGroup>*>& hits,
-                                    const std::vector<o2::TPC::TPCHitGroupID>& hitids,
-                                    const o2::steer::RunContext& context)
-{
-  const auto& interactRecords = context.getEventRecords();
-
-  for (auto& id : hitids) {
-    const auto hitvector = hits[id.storeindex];
-    auto& group = (*hitvector)[id.groupID];
-    auto& MCrecord = interactRecords[id.entry];
-    float evTime = mIsContinuous ? MCrecord.timeNS * 0.001f : 0.f;
-    ProcessHitGroup(group, sector, evTime, id.entry, id.sourceID);
-  }
-
-  return mDigitContainer;
-}
-
-void Digitizer::ProcessHitGroup(const HitGroup& inputgroup, const Sector& sector, const float eventTime,
-                                const int eventID, const int sourceID)
+void Digitizer::process(const std::vector<o2::TPC::HitGroup>& hits,
+                        const int eventID, const int sourceID)
 {
   const static Mapper& mapper = Mapper::instance();
   const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
@@ -103,77 +70,85 @@ void Digitizer::ProcessHitGroup(const HitGroup& inputgroup, const Sector& sector
   static std::vector<float> signalArray;
   signalArray.resize(nShapedPoints);
 
-  const int MCTrackID = inputgroup.GetTrackID();
-  for (size_t hitindex = 0; hitindex < inputgroup.getSize(); ++hitindex) {
-    const auto& eh = inputgroup.getHit(hitindex);
+  for (auto& hitGroup : hits) {
+    const int MCTrackID = hitGroup.GetTrackID();
+    for (size_t hitindex = 0; hitindex < hitGroup.getSize(); ++hitindex) {
+      const auto& eh = hitGroup.getHit(hitindex);
 
-    GlobalPosition3D posEle(eh.GetX(), eh.GetY(), eh.GetZ());
+      GlobalPosition3D posEle(eh.GetX(), eh.GetY(), eh.GetZ());
 
-    // Distort the electron position in case space-charge distortions are used
-    if (mUseSCDistortions) {
-      mSpaceChargeHandler->distortElectron(posEle);
-    }
+      // Distort the electron position in case space-charge distortions are used
+      if (mUseSCDistortions) {
+        mSpaceChargeHandler->distortElectron(posEle);
+      }
 
-    /// Remove electrons that end up more than three sigma of the hit's average diffusion away from the current sector
-    /// boundary
-    if (electronTransport.isCompletelyOutOfSectorCoarseElectronDrift(posEle, sector)) {
-      continue;
-    }
+      /// Remove electrons that end up more than three sigma of the hit's average diffusion away from the current sector
+      /// boundary
+      if (electronTransport.isCompletelyOutOfSectorCoarseElectronDrift(posEle, mSector)) {
+        continue;
+      }
 
-    /// The energy loss stored corresponds to nElectrons
-    const int nPrimaryElectrons = static_cast<int>(eh.GetEnergyLoss());
-
-    /// TODO: add primary ions to space-charge density
-
-    /// Loop over electrons
-    for (int iEle = 0; iEle < nPrimaryElectrons; ++iEle) {
-
-      /// Drift and Diffusion
+      /// The energy loss stored corresponds to nElectrons
+      const int nPrimaryElectrons = static_cast<int>(eh.GetEnergyLoss());
+      const float hitTime = eh.GetTime() * 0.001; /// in us
       float driftTime = 0.f;
-      const GlobalPosition3D posEleDiff = electronTransport.getElectronDrift(posEle, driftTime);
-      const float absoluteTime = driftTime + eventTime + eh.GetTime() * 0.001; /// in us
 
-      /// Attachment
-      if (electronTransport.isElectronAttachment(driftTime)) {
-        continue;
-      }
+      /// TODO: add primary ions to space-charge density
 
-      /// Remove electrons that end up outside the active volume
-      if (std::abs(posEleDiff.Z()) > detParam.getTPClength()) {
-        continue;
-      }
+      /// Loop over electrons
+      for (int iEle = 0; iEle < nPrimaryElectrons; ++iEle) {
 
-      /// Compute digit position and check for validity
-      const DigitPos digiPadPos = mapper.findDigitPosFromGlobalPosition(posEleDiff);
-      if (!digiPadPos.isValid()) {
-        continue;
-      }
+        /// Drift and Diffusion
+        const GlobalPosition3D posEleDiff = electronTransport.getElectronDrift(posEle, driftTime);
+        const float absoluteTime = driftTime + mEventTime + hitTime; /// in us
 
-      /// Remove digits the end up outside the currently produced sector
-      if (digiPadPos.getCRU().sector() != sector) {
-        continue;
-      }
+        /// Attachment
+        if (electronTransport.isElectronAttachment(driftTime)) {
+          continue;
+        }
 
-      /// Electron amplification
-      const int nElectronsGEM = gemAmplification.getStackAmplification(digiPadPos.getCRU(), digiPadPos.getPadPos());
-      if (nElectronsGEM == 0) {
-        continue;
-      }
+        /// Remove electrons that end up outside the active volume
+        if (std::abs(posEleDiff.Z()) > detParam.getTPClength()) {
+          continue;
+        }
 
-      const GlobalPadNumber globalPad = mapper.globalPadNumber(digiPadPos.getGlobalPadPos());
-      const float ADCsignal = sampaProcessing.getADCvalue(static_cast<float>(nElectronsGEM));
-      sampaProcessing.getShapedSignal(ADCsignal, absoluteTime, signalArray);
-      for (float i = 0; i < nShapedPoints; ++i) {
-        const float time = absoluteTime + i * eleParam.getZBinWidth();
+        /// Compute digit position and check for validity
+        const DigitPos digiPadPos = mapper.findDigitPosFromGlobalPosition(posEleDiff);
+        if (!digiPadPos.isValid()) {
+          continue;
+        }
+
+        /// Remove digits the end up outside the currently produced sector
+        if (digiPadPos.getCRU().sector() != mSector) {
+          continue;
+        }
+
+        /// Electron amplification
+        const int nElectronsGEM = gemAmplification.getStackAmplification(digiPadPos.getCRU(), digiPadPos.getPadPos());
+        if (nElectronsGEM == 0) {
+          continue;
+        }
+
+        const GlobalPadNumber globalPad = mapper.globalPadNumber(digiPadPos.getGlobalPadPos());
+        const float ADCsignal = sampaProcessing.getADCvalue(static_cast<float>(nElectronsGEM));
         const MCCompLabel label(MCTrackID, eventID, sourceID);
-        mDigitContainer->addDigit(label, digiPadPos.getCRU(), sampaProcessing.getTimeBinFromTime(time), globalPad,
-                                  signalArray[i]);
+        sampaProcessing.getShapedSignal(ADCsignal, absoluteTime, signalArray);
+        for (float i = 0; i < nShapedPoints; ++i) {
+          const float time = absoluteTime + i * eleParam.getZBinWidth();
+          mDigitContainer.addDigit(label, digiPadPos.getCRU(), sampaProcessing.getTimeBinFromTime(time), globalPad,
+                                   signalArray[i]);
+        }
+        /// TODO: add ion backflow to space-charge density
       }
-
-      /// TODO: add ion backflow to space-charge density
+      /// end of loop over electrons
     }
-    /// end of loop over electrons
   }
+}
+
+void Digitizer::flush(std::vector<o2::TPC::Digit>& digits,
+                      o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels, bool finalFlush)
+{
+  mDigitContainer.fillOutputContainer(digits, labels, mSector, mEventTime, mIsContinuous, finalFlush);
 }
 
 void Digitizer::enableSCDistortions(SpaceCharge::SCDistortionType distortionType, TH3* hisInitialSCDensity, int nZSlices, int nPhiBins, int nRBins)

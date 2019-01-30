@@ -41,7 +41,6 @@ BOOST_AUTO_TEST_CASE(DigitContainer_test1)
   DigitContainer digitContainer;
   dataformats::MCTruthContainer<MCCompLabel> mMCTruthArray;
   digitContainer.reset();
-  digitContainer.setup(0);
 
   const std::vector<int> MCevent = { 1, 250, 3, 62, 1000 };
   const std::vector<int> MCtrack = { 22, 3, 4, 23, 523 };
@@ -60,13 +59,13 @@ BOOST_AUTO_TEST_CASE(DigitContainer_test1)
 
   /// here the raw pointer is needed owed to the internal handling of the TClonesArrays in FairRoot
   /// Usually the mDigitsArray is what is registered to the FairRootManager
-  auto* mDigitsArray = new std::vector<Digit>;
-  digitContainer.fillOutputContainer(mDigitsArray, mMCTruthArray, nullptr, 1000);
+  std::vector<Digit> mDigitsArray;
+  digitContainer.fillOutputContainer(mDigitsArray, mMCTruthArray, 0, 0, true, true);
 
-  BOOST_CHECK(cru.size() == mDigitsArray->size());
+  BOOST_CHECK(cru.size() == mDigitsArray.size());
 
   int digits = 0;
-  for (auto& digit : *mDigitsArray) {
+  for (auto& digit : mDigitsArray) {
     const int trueDigit = timeMapping[digits];
     gsl::span<const o2::MCCompLabel> mcArray = mMCTruthArray.getLabels(digits);
     for (int j = 0; j < static_cast<int>(mcArray.size()); ++j) {
@@ -82,8 +81,6 @@ BOOST_AUTO_TEST_CASE(DigitContainer_test1)
     //    BOOST_CHECK(digit.getCharge() == static_cast<int>(sampa.getADCSaturation(nEle[trueDigit])));
     ++digits;
   }
-
-  delete mDigitsArray;
 }
 
 /// \brief Test of the DigitContainer
@@ -98,7 +95,6 @@ BOOST_AUTO_TEST_CASE(DigitContainer_test2)
   const SAMPAProcessing& sampa = SAMPAProcessing::instance();
   DigitContainer digitContainer;
   digitContainer.reset();
-  digitContainer.setup(0);
   dataformats::MCTruthContainer<MCCompLabel> mMCTruthArray;
 
   const std::vector<int> MCevent = { 1, 62, 1, 62, 62, 50, 62, 1, 1, 1 };
@@ -121,16 +117,13 @@ BOOST_AUTO_TEST_CASE(DigitContainer_test2)
 
   /// here the raw pointer is needed owed to the internal handling of the TClonesArrays in FairRoot
   /// Usually the mDigitsArray is what is registered to the FairRootManager
-  auto* mDigitsArray = new std::vector<o2::TPC::Digit>;
-  auto* mDigitsDebugArray = new std::vector<o2::TPC::DigitMCMetaData>;
-  digitContainer.fillOutputContainer(mDigitsArray, mMCTruthArray, mDigitsDebugArray, 1000);
+  std::vector<Digit> mDigitsArray;
+  digitContainer.fillOutputContainer(mDigitsArray, mMCTruthArray, 0, 0, true, true);
 
-  BOOST_CHECK(mDigitsArray->size() == 1);
-  BOOST_CHECK(mDigitsArray->size() == mDigitsDebugArray->size());
+  BOOST_CHECK(mDigitsArray.size() == 1);
 
   int digits = 0;
-  for (auto& digit : *mDigitsArray) {
-    auto& digitMetaData = mDigitsDebugArray->at(digits);
+  for (auto& digit : mDigitsArray) {
     gsl::span<const o2::MCCompLabel> mcArray = mMCTruthArray.getLabels(digits);
     for (int j = 0; j < static_cast<int>(mcArray.size()); ++j) {
       BOOST_CHECK(mMCTruthArray.getElement(mMCTruthArray.getMCTruthHeader(digits).index + j).getTrackID() ==
@@ -148,8 +141,6 @@ BOOST_AUTO_TEST_CASE(DigitContainer_test2)
     //      1E-4);
     ++digits;
   }
-
-  delete mDigitsArray;
 }
 }
 }

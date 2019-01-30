@@ -57,42 +57,47 @@ class Digitizer
   Digitizer();
 
   /// Destructor
-  ~Digitizer();
+  ~Digitizer() = default;
 
   /// Initializer
   void init();
 
-  /// Steer conversion of points to digits
-  /// \param sector Sector to be processed
-  /// \param hits Container with TPC hit groups
-  /// \param eventID ID of the processed event
-  /// \param eventTime Time of the bunch crossing of the processed event
-  /// \return digits container
-  DigitContainer* Process(const Sector& sector, const std::vector<o2::TPC::HitGroup>& hits, int eventID,
-                          float eventTime);
-
-  /// Steer conversion of points to digits
-  /// \param sector Sector to be processed
-  /// \param hits Container with sorted TPC hit groups
-  /// \param hitids Container with additional information which hit groups to process
-  /// \param context Container with event information
-  /// \return digits container
-  DigitContainer* Process2(const Sector& sector, const std::vector<std::vector<o2::TPC::HitGroup>*>& hits,
-                           const std::vector<o2::TPC::TPCHitGroupID>& hitids, const o2::steer::RunContext& context);
-
   /// Process a single hit group
-  /// \param inputgroup Hit group to be processed
-  /// \param sector Sector to be processed
-  /// \param eventTime Time of the event to be processed
+  /// \param hits Container with TPC hit groups
   /// \param eventID ID of the event to be processed
-  void ProcessHitGroup(const HitGroup& inputgroup, const Sector& sector, const float eventTime, const int eventID,
-                       const int sourceID = 0);
+  /// \param sourceID ID of the source to be processed
+  void process(const std::vector<o2::TPC::HitGroup>& hits, const int eventID,
+               const int sourceID = 0);
 
-  DigitContainer* getDigitContainer() const { return mDigitContainer; }
+  /// Flush the data
+  /// \param digits Container for the digits
+  /// \param labels Container for the MC labels
+  /// \param finalFlush Flag whether the whole container is dumped
+  void flush(std::vector<o2::TPC::Digit>& digits,
+             o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels, bool finalFlush = false);
+
+  /// Set the sector to be processed
+  /// \param sec Sector to be processed
+  void setSector(Sector sec)
+  {
+    mSector = sec;
+    mDigitContainer.reset();
+  }
+
+  /// Set the start time of the first event
+  /// \param time Time of the first event
+  void setStartTime(TimeBin time) { mDigitContainer.setStartTime(time); }
+
+  /// Set the time of the event to be processed
+  /// \param time Time of the event
+  void setEventTime(float time) { mEventTime = time; }
 
   /// Switch for triggered / continuous readout
   /// \param isContinuous - false for triggered readout, true for continuous readout
   static void setContinuousReadout(bool isContinuous) { mIsContinuous = isContinuous; }
+
+  /// Option to retrieve triggered / continuous readout
+  static bool isContinuousReadout() { return mIsContinuous; }
 
   /// Enable the use of space-charge distortions
   /// \param distortionType select the type of space-charge distortions (constant or realistic)
@@ -106,8 +111,10 @@ class Digitizer
   Digitizer(const Digitizer&);
   Digitizer& operator=(const Digitizer&);
 
-  DigitContainer* mDigitContainer;                  ///< Container for the Digits
+  DigitContainer mDigitContainer;                   ///< Container for the Digits
   std::unique_ptr<SpaceCharge> mSpaceChargeHandler; ///< Handler of space-charge distortions
+  Sector mSector;                                   ///< ID of the currently processed sector
+  float mEventTime;                                 ///< Time of the currently processed event
   static bool mIsContinuous;                        ///< Switch for continuous readout
   bool mUseSCDistortions;                           ///< Flag to switch on the use of space-charge distortions
 

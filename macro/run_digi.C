@@ -12,8 +12,6 @@
 #include "FairParRootFileIo.h"
 
 #include "ITSSimulation/DigitizerTask.h"
-
-#include "TPCSimulation/DigitizerTask.h"
 #endif
 
 void run_digi(Int_t nEvents = 2, TString mcEngine = "TGeant3"){
@@ -48,10 +46,6 @@ void run_digi(Int_t nEvents = 2, TString mcEngine = "TGeant3"){
         // Setup digitizer
         //o2::ITS::DigitizerTask *digi = new o2::ITS::DigitizerTask;
         //fRun->AddTask(digi);
-
-        o2::TPC::DigitizerTask *digiTPC = new o2::TPC::DigitizerTask;
-        //digiTPC->setHitFileName("/data/Work/software/aliroot/master/src/test/ppbench/HitDump.root");
-        fRun->AddTask(digiTPC);
 
         fRun->Init();
 

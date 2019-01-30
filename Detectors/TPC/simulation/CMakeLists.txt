@@ -18,7 +18,6 @@ set(SRCS
    src/DigitContainer.cxx
    src/DigitGlobalPad.cxx
    src/Digitizer.cxx
-   src/DigitizerTask.cxx
    src/DigitTime.cxx
    src/ElectronTransport.cxx
    src/GEMAmplification.cxx
@@ -34,7 +33,6 @@ set(HEADERS
    include/${MODULE_NAME}/DigitContainer.h
    include/${MODULE_NAME}/DigitGlobalPad.h
    include/${MODULE_NAME}/Digitizer.h
-   include/${MODULE_NAME}/DigitizerTask.h
    include/${MODULE_NAME}/DigitTime.h
    include/${MODULE_NAME}/ElectronTransport.h
    include/${MODULE_NAME}/GEMAmplification.h
