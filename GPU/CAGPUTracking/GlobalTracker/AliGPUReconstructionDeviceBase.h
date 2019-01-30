@@ -14,7 +14,7 @@ public:
 	
 	virtual int GetMaxThreads() override;
 
-protected:	
+protected:
 	AliGPUReconstructionDeviceBase(const AliGPUCASettingsProcessing& cfg);
 	AliGPUCAConstantMem mGPUReconstructors;
 	void* fGPUMergerHostMemory = nullptr;
@@ -41,6 +41,7 @@ protected:
 	
 	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) = 0;
 	virtual int TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) = 0;
+	virtual int WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) = 0;
 	int TransferMemoryResourcesToGPU(AliGPUProcessor* proc, int stream = -1, bool all = false) {return TransferMemoryResourcesHelper(proc, stream, all, true);}
 	int TransferMemoryResourcesToHost(AliGPUProcessor* proc, int stream = -1, bool all = false) {return TransferMemoryResourcesHelper(proc, stream, all, false);}
 	int TransferMemoryResourceLinkToGPU(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) {return TransferMemoryResourceToGPU(&mMemoryResources[res], stream, ev, evList, nEvents);}

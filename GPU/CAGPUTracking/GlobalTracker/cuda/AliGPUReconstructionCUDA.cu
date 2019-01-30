@@ -315,17 +315,9 @@ int AliGPUReconstructionCUDABackend::RunTPCTrackingSlices_internal()
 	//Copy Tracker Object to GPU Memory
 	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Copying Tracker objects to GPU");
 	if (PrepareProfile()) return 2;
-	if (GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, &mParam, sizeof(AliGPUCAParam), (char*) &mDeviceConstantMem->param - (char*) mDeviceConstantMem, cudaMemcpyHostToDevice, mInternals->CudaStreams[0])))
-	{
-		CAGPUError("Error writing to constant memory");
-		return(2);
-	}
 	
-	if (GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, mWorkersShadow->tpcTrackers, sizeof(AliGPUTPCTracker) * NSLICES, (char*) mDeviceConstantMem->tpcTrackers - (char*) mDeviceConstantMem, cudaMemcpyHostToDevice, mInternals->CudaStreams[0])))
-	{
-		CAGPUError("Error writing to constant memory");
-		return(2);
-	}
+	if (WriteToConstantMemory((char*) &mDeviceConstantMem->param - (char*) mDeviceConstantMem, &mParam, sizeof(AliGPUCAParam), 0)) return 2;
+	if (WriteToConstantMemory((char*) mDeviceConstantMem->tpcTrackers - (char*) mDeviceConstantMem, mWorkersShadow->tpcTrackers, sizeof(AliGPUTPCTracker) * NSLICES, 0)) return 2;
 	
 	bool globalSymbolDone = false;
 	if (GPUSync("Initialization (1)", 0, 0) RANDOM_ERROR)
@@ -725,6 +717,20 @@ int AliGPUReconstructionCUDABackend::TransferMemoryResourceToHost(AliGPUMemoryRe
 		for (int k = 0;k < nEvents;k++) if (GPUFailedMsg(cudaStreamWaitEvent(mInternals->CudaStreams[stream], ((cudaEvent_t*) evList)[k], 0))) return 1;
 		if (GPUFailedMsg(cudaMemcpyAsync(res->Ptr(), res->PtrDevice(), res->Size(), cudaMemcpyDeviceToHost, mInternals->CudaStreams[stream]))) return 1;
 		if (ev && GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*) ev, mInternals->CudaStreams[stream]))) return 1;
+	}
+	if (ev && stream != -1) return GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*) ev, mInternals->CudaStreams[stream]));
+	return 0;
+}
+
+int AliGPUReconstructionCUDABackend::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev)
+{
+	int retVal = 0;
+	if (stream == -1) retVal = cudaMemcpyToSymbol(gGPUConstantMemBuffer, src, size, offset, cudaMemcpyHostToDevice);
+	else retVal = cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, src, size, offset, cudaMemcpyHostToDevice, mInternals->CudaStreams[stream]);
+	if (GPUFailedMsg(retVal))
+	{
+		CAGPUError("Error writing to constant memory");
+		return 1;
 	}
 	if (ev && stream != -1) return GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*) ev, mInternals->CudaStreams[stream]));
 	return 0;
