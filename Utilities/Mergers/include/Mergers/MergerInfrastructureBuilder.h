@@ -49,7 +49,7 @@ class MergerInfrastructureBuilder
   /// \brief Default constructor.
   MergerInfrastructureBuilder();
   /// \brief Default destructor.
-  ~MergerInfrastructureBuilder();
+  ~MergerInfrastructureBuilder() = default;
 
   // todo: consider another interface - showing to the builder dataprocessorspecs which should be joined together
   void setInfrastructureName(std::string name);

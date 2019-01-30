@@ -39,7 +39,7 @@ class MergerBuilder
   /// \brief Default constructor.
   MergerBuilder();
   /// \brief Default destructor.
-  ~MergerBuilder();
+  ~MergerBuilder() = default;
 
   void setName(std::string);
   void setInputSpecs(const framework::Inputs&);
@@ -68,8 +68,8 @@ class MergerBuilder
 
  private:
   std::string mName;
-  size_t mId;
-  size_t mLayer;
+  size_t mId{ 0 };
+  size_t mLayer{ 1 };
   framework::Inputs mInputSpecs;
   framework::OutputSpec mOutputSpec;
   MergerConfig mConfig;

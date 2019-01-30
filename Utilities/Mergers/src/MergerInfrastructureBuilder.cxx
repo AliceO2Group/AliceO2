@@ -28,10 +28,6 @@ MergerInfrastructureBuilder::MergerInfrastructureBuilder() : mOutputSpec{ header
 {
 }
 
-MergerInfrastructureBuilder::~MergerInfrastructureBuilder()
-{
-}
-
 void MergerInfrastructureBuilder::setInfrastructureName(std::string name)
 {
   mInfrastructureName = name;

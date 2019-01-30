@@ -21,13 +21,8 @@ namespace mergers
 {
 
 //todo: consider storing raw header and payload (not sure if it is deleted by framework)
-MergerCache::MergerCache(bool overwrite) : mCache{}, mOverwrite(overwrite), mTimerPosition(-1), mCachedInputs(0), mUpdatedInputs(0)
+MergerCache::MergerCache(bool overwrite) : mCache{}, mOverwrite(overwrite)
 {
-}
-
-MergerCache::~MergerCache()
-{
-  // todo: safely delete collections
 }
 
 void MergerCache::init(const framework::InputRecord& inputs)

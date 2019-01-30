@@ -24,15 +24,9 @@ namespace mergers
 {
 
 MergerBuilder::MergerBuilder() : mName("INVALID"),
-                                 mId(0),
-                                 mLayer(1),
                                  mInputSpecs{},
                                  mOutputSpec{ header::gDataOriginInvalid, header::gDataDescriptionInvalid },
                                  mConfig{}
-{
-}
-
-MergerBuilder::~MergerBuilder()
 {
 }
 

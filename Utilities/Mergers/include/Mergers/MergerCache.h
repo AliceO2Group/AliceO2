@@ -48,7 +48,7 @@ class MergerCache
   /// \brief Default constructor. When overwrite == true, only one object per input is stored.
   MergerCache(bool overwrite = true);
   /// \brief Default destructor.
-  ~MergerCache();
+  ~MergerCache() = default;
 
   /// \brief Initializes the cache by seeing the size and contents of DPL's InputRecord
   void init(const framework::InputRecord& inputs);
@@ -81,11 +81,11 @@ class MergerCache
   // when active, cache keeps only one entry per queue (per input)
   bool mOverwrite;
   // keeps the index of the timer in the InputRecord
-  int mTimerPosition;
+  int mTimerPosition{ -1 };
   // counts how many inputs have some corresponding objects cached
-  size_t mCachedInputs;
+  size_t mCachedInputs{ 0 };
   // counts how many inputs have been updated since the last time the flag was cleared (last publication)
-  size_t mUpdatedInputs;
+  size_t mUpdatedInputs{ 0 };
 };
 
 } // namespace mergers
