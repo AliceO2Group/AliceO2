@@ -25,13 +25,10 @@ void DigitContainer::addDigit(const MCCompLabel& label, const CRU& cru, TimeBin 
 {
   mEffectiveTimeBin = timeBin - mFirstTimeBin;
   if (mEffectiveTimeBin < 0.) {
-    LOG(FATAL) << "TPC DigitCRU buffer misaligned "
+    LOG(FATAL) << "TPC DigitTime buffer misaligned "
                << "for hit " << label.getTrackID() << " CRU " << cru << " TimeBin " << timeBin << " First TimeBin "
                << mFirstTimeBin << " Global pad " << globalPad;
     return;
-  }
-  if (cru.sector() != mSector) {
-    LOG(FATAL) << "Digit for wrong sector " << cru.sector() << " added in sector " << mSector;
   }
   /// If time bin outside specified range, the range of the vector is extended by one full drift time.
   while (mTimeBins.size() <= mEffectiveTimeBin) {
@@ -40,18 +37,18 @@ void DigitContainer::addDigit(const MCCompLabel& label, const CRU& cru, TimeBin 
   mTimeBins[mEffectiveTimeBin].addDigit(label, cru, globalPad, signal);
 }
 
-void DigitContainer::fillOutputContainer(std::vector<Digit>* output,
-                                         dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
-                                         std::vector<DigitMCMetaData>* debug, TimeBin eventTime, bool isContinuous)
+void DigitContainer::fillOutputContainer(std::vector<Digit>& output,
+                                         dataformats::MCTruthContainer<MCCompLabel>& mcTruth, const Sector& sector, TimeBin eventTime, bool isContinuous, bool finalFlush)
 {
   int nProcessedTimeBins = 0;
-  TimeBin timeBin = mFirstTimeBin;
+  TimeBin timeBin = (isContinuous) ? mFirstTimeBin : 0;
   for (auto& time : mTimeBins) {
     /// the time bins between the last event and the timing of this event are uncorrelated and can be written out
     /// OR the readout is triggered (i.e. not continuous) and we can dump everything in any case, as long it is within one drift time interval
-    if ((nProcessedTimeBins + mFirstTimeBin < eventTime) || !isContinuous) {
-      if (!isContinuous && timeBin > mTmaxTriggered)
+    if ((nProcessedTimeBins + mFirstTimeBin < eventTime) || !isContinuous || finalFlush) {
+      if (!isContinuous && timeBin > mTmaxTriggered) {
         continue;
+      }
       ++nProcessedTimeBins;
       auto& cdb = CDBInterface::instance();
       auto& eleParam = cdb.getParameterElectronics();
@@ -59,19 +56,19 @@ void DigitContainer::fillOutputContainer(std::vector<Digit>* output,
 
       switch (digitizationMode) {
         case DigitzationMode::FullMode: {
-          time.fillOutputContainer<DigitzationMode::FullMode>(output, mcTruth, debug, mSector, timeBin);
+          time.fillOutputContainer<DigitzationMode::FullMode>(output, mcTruth, sector, timeBin);
           break;
         }
         case DigitzationMode::SubtractPedestal: {
-          time.fillOutputContainer<DigitzationMode::SubtractPedestal>(output, mcTruth, debug, mSector, timeBin);
+          time.fillOutputContainer<DigitzationMode::SubtractPedestal>(output, mcTruth, sector, timeBin);
           break;
         }
         case DigitzationMode::NoSaturation: {
-          time.fillOutputContainer<DigitzationMode::NoSaturation>(output, mcTruth, debug, mSector, timeBin);
+          time.fillOutputContainer<DigitzationMode::NoSaturation>(output, mcTruth, sector, timeBin);
           break;
         }
         case DigitzationMode::PropagateADC: {
-          time.fillOutputContainer<DigitzationMode::PropagateADC>(output, mcTruth, debug, mSector, timeBin);
+          time.fillOutputContainer<DigitzationMode::PropagateADC>(output, mcTruth, sector, timeBin);
           break;
         }
       }
@@ -85,8 +82,5 @@ void DigitContainer::fillOutputContainer(std::vector<Digit>* output,
     while (nProcessedTimeBins--) {
       mTimeBins.pop_front();
     }
-  }
-  if (!isContinuous) {
-    mFirstTimeBin = 0;
   }
 }

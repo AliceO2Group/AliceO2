@@ -24,7 +24,7 @@ O2_GENERATE_EXECUTABLE(
   src/SimpleDigitizerWorkflow.cxx
   src/SimReaderSpec.cxx
   src/CollisionTimePrinter.cxx
-  src/TPCDriftTimeDigitizerSpec.cxx
+  src/TPCDigitizerSpec.cxx
   src/TPCDigitRootWriterSpec.cxx
   src/ITSMFTDigitizerSpec.cxx
   src/ITSMFTDigitWriterSpec.cxx

@@ -18,7 +18,7 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 
 // for TPC
-#include "TPCDriftTimeDigitizerSpec.h"
+#include "TPCDigitizerSpec.h"
 #include "TPCDigitRootWriterSpec.h"
 #include "TPCBase/Sector.h"
 #include "TPCBase/CDBInterface.h"
@@ -364,7 +364,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     detList.emplace_back(o2::detectors::DetID::TPC);
 
     for (int l = 0; l < lanes; ++l) {
-      specs.emplace_back(o2::steer::getTPCDriftTimeDigitizer(fanoutsize));
+      specs.emplace_back(o2::TPC::getTPCDigitizerSpec(fanoutsize, (l == 0)));
       tpclanes->emplace_back(fanoutsize); // this records that TPC is "listening under this subchannel"
       fanoutsize++;
     }
