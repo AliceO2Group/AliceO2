@@ -386,8 +386,6 @@ int AliGPUReconstructionCUDABackend::RunTPCTrackingSlices_internal()
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Neighbours Finder (Slice %d/%d)", iSlice, NSLICES);
 		mWorkers->tpcTrackers[iSlice].StartTimer(1);
 		runKernel<AliGPUTPCNeighboursFinder>({GPUCA_ROW_COUNT, GPUCA_GPU_THREAD_COUNT_FINDER, useStream}, {iSlice});
-
-
 		if (GPUSync("Neighbours finder", useStream, iSlice) RANDOM_ERROR)
 		{
 			return(3);

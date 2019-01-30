@@ -12,6 +12,27 @@ extern "C" char _makefile_opencl_program_GlobalTracker_opencl_AliGPUReconstructi
 
 #define quit(msg) {CAGPUError(msg);return(1);}
 
+template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCNeighboursFinder, cl_kernel>() {return mInternals->kernel_neighbours_finder;}
+template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCNeighboursCleaner, cl_kernel>() {return mInternals->kernel_neighbours_cleaner;}
+template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCStartHitsFinder, cl_kernel>() {return mInternals->kernel_start_hits_finder;}
+template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCStartHitsSorter, cl_kernel>() {return mInternals->kernel_start_hits_sorter;}
+template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCTrackletConstructor, cl_kernel>() {return mInternals->kernel_tracklet_constructor;}
+template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCTrackletSelector, cl_kernel>() {return mInternals->kernel_tracklet_selector;}
+
+template <class T, typename... Args> int AliGPUReconstructionOCLBackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const Args&... args)
+{
+	if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelBackend<T>(x, y, args...);
+	if (y.num == 1)
+	{
+		if (OCLsetKernelParameters(getKernelObject<T, cl_kernel>(), mInternals->mem_gpu, mInternals->mem_constant, y.start, args...)) return 1;
+	}
+	else
+	{
+		if (OCLsetKernelParameters(getKernelObject<T, cl_kernel>(), mInternals->mem_gpu, mInternals->mem_constant, y.start, y.num, args...)) return 1;
+	}
+	return clExecuteKernelA(mInternals->command_queue[x.stream], getKernelObject<T, cl_kernel>(), x.nThreads, x.nThreads * x.nBlocks, nullptr);
+}
+
 AliGPUReconstructionOCLBackend::AliGPUReconstructionOCLBackend(const AliGPUCASettingsProcessing& cfg) : AliGPUReconstructionDeviceBase(cfg)
 {
 	mInternals = new AliGPUReconstructionOCLInternals;
@@ -393,6 +414,8 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 	{
 		if (Reconstruct_Base_SliceInit(iSlice)) return(1);
+		
+		int useStream = iSlice & 1;
 
 		//Initialize temporary memory where needed
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Copying Slice Data to GPU and initializing temporary memory");
@@ -405,26 +428,25 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 
 		//Copy Data to GPU Global Memory
 		mWorkers->tpcTrackers[iSlice].StartTimer(0);
-		if (TransferMemoryResourceLinkToGPU(mWorkers->tpcTrackers[iSlice].Data().MemoryResInput(), iSlice & 1, mInternals->cl_queue_event_done[iSlice & 1] ? 0 : 1, mInternals->cl_queue_event_done[iSlice & 1] ? nullptr : &initEvent, nullptr) ||
-			TransferMemoryResourceLinkToGPU(mWorkers->tpcTrackers[iSlice].Data().MemoryResRows(), iSlice & 1) ||
-			TransferMemoryResourceLinkToGPU(mWorkers->tpcTrackers[iSlice].MemoryResCommon(), iSlice & 1))
+		if (TransferMemoryResourceLinkToGPU(mWorkers->tpcTrackers[iSlice].Data().MemoryResInput(), useStream, mInternals->cl_queue_event_done[useStream] ? 0 : 1, mInternals->cl_queue_event_done[useStream] ? nullptr : &initEvent, nullptr) ||
+			TransferMemoryResourceLinkToGPU(mWorkers->tpcTrackers[iSlice].Data().MemoryResRows(), useStream) ||
+			TransferMemoryResourceLinkToGPU(mWorkers->tpcTrackers[iSlice].MemoryResCommon(), useStream))
 		{
 			CAGPUError("Error copying data to GPU");
 			return(3);
 		}
-		mInternals->cl_queue_event_done[iSlice & 1] = true;
+		mInternals->cl_queue_event_done[useStream] = true;
 
-		if (GPUSync("Initialization (3)", iSlice & 1, iSlice) RANDOM_ERROR)
+		if (GPUSync("Initialization (3)", useStream, iSlice) RANDOM_ERROR)
 		{
 			return(3);
 		}
 		mWorkers->tpcTrackers[iSlice].StopTimer(0);
 
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Neighbours Finder (Slice %d/%d)", iSlice, NSLICES);
-		OCLsetKernelParameters(mInternals->kernel_neighbours_finder, mInternals->mem_gpu, mInternals->mem_constant, iSlice);
 		mWorkers->tpcTrackers[iSlice].StartTimer(1);
-		clExecuteKernelA(mInternals->command_queue[iSlice & 1], mInternals->kernel_neighbours_finder, GPUCA_GPU_THREAD_COUNT_FINDER, GPUCA_GPU_THREAD_COUNT_FINDER * GPUCA_ROW_COUNT, nullptr);
-		if (GPUSync("Neighbours finder", iSlice & 1, iSlice) RANDOM_ERROR)
+		runKernel<AliGPUTPCNeighboursFinder>({GPUCA_ROW_COUNT, GPUCA_GPU_THREAD_COUNT_FINDER, useStream}, {iSlice});
+		if (GPUSync("Neighbours finder", useStream, iSlice) RANDOM_ERROR)
 		{
 			return(3);
 		}
@@ -438,10 +460,9 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 		}
 
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Neighbours Cleaner (Slice %d/%d)", iSlice, NSLICES);
-		OCLsetKernelParameters(mInternals->kernel_neighbours_cleaner, mInternals->mem_gpu, mInternals->mem_constant, iSlice);
 		mWorkers->tpcTrackers[iSlice].StartTimer(2);
-		clExecuteKernelA(mInternals->command_queue[iSlice & 1], mInternals->kernel_neighbours_cleaner, GPUCA_GPU_THREAD_COUNT, GPUCA_GPU_THREAD_COUNT * (GPUCA_ROW_COUNT - 2), nullptr);
-		if (GPUSync("Neighbours Cleaner", iSlice & 1, iSlice) RANDOM_ERROR)
+		runKernel<AliGPUTPCNeighboursCleaner>({GPUCA_ROW_COUNT - 2, GPUCA_GPU_THREAD_COUNT, useStream}, {iSlice});
+		if (GPUSync("Neighbours Cleaner", useStream, iSlice) RANDOM_ERROR)
 		{
 			return(3);
 		}
@@ -454,20 +475,18 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 		}
 
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Start Hits Finder (Slice %d/%d)", iSlice, NSLICES);
-		OCLsetKernelParameters(mInternals->kernel_start_hits_finder, mInternals->mem_gpu, mInternals->mem_constant, iSlice);
 		mWorkers->tpcTrackers[iSlice].StartTimer(3);
-		clExecuteKernelA(mInternals->command_queue[iSlice & 1], mInternals->kernel_start_hits_finder, GPUCA_GPU_THREAD_COUNT, GPUCA_GPU_THREAD_COUNT * (GPUCA_ROW_COUNT - 6), nullptr);
-		if (GPUSync("Start Hits Finder", iSlice & 1, iSlice) RANDOM_ERROR)
+		runKernel<AliGPUTPCStartHitsFinder>({GPUCA_ROW_COUNT - 6, GPUCA_GPU_THREAD_COUNT, useStream}, {iSlice});
+		if (GPUSync("Start Hits Finder", useStream, iSlice) RANDOM_ERROR)
 		{
 			return(3);
 		}
 		mWorkers->tpcTrackers[iSlice].StopTimer(3);
 
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Start Hits Sorter (Slice %d/%d)", iSlice, NSLICES);
-		OCLsetKernelParameters(mInternals->kernel_start_hits_sorter, mInternals->mem_gpu, mInternals->mem_constant, iSlice);
 		mWorkers->tpcTrackers[iSlice].StartTimer(4);
-		clExecuteKernelA(mInternals->command_queue[iSlice & 1], mInternals->kernel_start_hits_sorter, GPUCA_GPU_THREAD_COUNT, GPUCA_GPU_THREAD_COUNT * fConstructorBlockCount, nullptr);
-		if (GPUSync("Start Hits Sorter", iSlice & 1, iSlice) RANDOM_ERROR)
+		runKernel<AliGPUTPCStartHitsSorter>({fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT, useStream}, {iSlice});
+		if (GPUSync("Start Hits Sorter", useStream, iSlice) RANDOM_ERROR)
 		{
 			return(3);
 		}
@@ -546,9 +565,8 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 			return(1);
 		}
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running HLT Tracklet selector (Stream %d, Slice %d to %d)", useStream, iSlice, iSlice + runSlices);
-		OCLsetKernelParameters(mInternals->kernel_tracklet_selector, mInternals->mem_gpu, mInternals->mem_constant, iSlice, runSlices);
 		mWorkers->tpcTrackers[iSlice].StartTimer(7);
-		clExecuteKernelA(mInternals->command_queue[useStream], mInternals->kernel_tracklet_selector, GPUCA_GPU_THREAD_COUNT_SELECTOR, GPUCA_GPU_THREAD_COUNT_SELECTOR * fSelectorBlockCount, nullptr);
+		runKernel<AliGPUTPCTrackletSelector>({fSelectorBlockCount, GPUCA_GPU_THREAD_COUNT_SELECTOR, useStream}, {iSlice, runSlices});
 		if (GPUSync("Tracklet Selector", useStream, iSlice) RANDOM_ERROR)
 		{
 			return(1);
