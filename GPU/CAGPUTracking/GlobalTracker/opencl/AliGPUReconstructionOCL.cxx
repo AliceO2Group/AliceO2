@@ -396,16 +396,8 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 	if (PrepareProfile()) return 2;
 
 	cl_event initEvent;
-	if (GPUFailedMsg(clEnqueueWriteBuffer(mInternals->command_queue[0], mInternals->mem_constant, CL_FALSE, (char*) &mDeviceConstantMem->param - (char*) mDeviceConstantMem, sizeof(mParam), &mParam, 0, nullptr, nullptr)))
-	{
-		CAGPUError("Error writing to constant memory");
-		return(2);
-	}
-	if (GPUFailedMsg(clEnqueueWriteBuffer(mInternals->command_queue[0], mInternals->mem_constant, CL_FALSE, (char*) mDeviceConstantMem->tpcTrackers - (char*) mDeviceConstantMem, sizeof(AliGPUTPCTracker) * NSLICES, mWorkersShadow->tpcTrackers, 0, nullptr, &initEvent)))
-	{
-		CAGPUError("Error writing to constant memory");
-		return(2);
-	}
+	if (WriteToConstantMemory((char*) &mDeviceConstantMem->param - (char*) mDeviceConstantMem, &mParam, sizeof(AliGPUCAParam), 0)) return 2;
+	if (WriteToConstantMemory((char*) mDeviceConstantMem->tpcTrackers - (char*) mDeviceConstantMem, mWorkersShadow->tpcTrackers, sizeof(AliGPUTPCTracker) * NSLICES, 0, &initEvent)) return 2;
 	mInternals->cl_queue_event_done[0] = true;
 	for (int i = 1;i < 2;i++) //2 queues for first phase
 	{
@@ -640,6 +632,16 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 	for (unsigned int iSlice2 = 0;iSlice2 < NSLICES;iSlice2++) clReleaseEvent(mInternals->selector_events[iSlice2]);
 
 	if (Reconstruct_Base_Finalize()) return(1);
+	
+	if (DoProfile()) return(1);
+	
+	if (mDeviceProcessingSettings.debugMask & 1024)
+	{
+		for (unsigned int i = 0;i < NSLICES;i++)
+		{
+			mWorkers->tpcTrackers[i].DumpOutput(stdout);
+		}
+	}
 
 	return(0);
 }
@@ -701,7 +703,7 @@ int AliGPUReconstructionOCLBackend::TransferMemoryResourceToGPU(AliGPUMemoryReso
 	if (mDeviceProcessingSettings.debugLevel >= 3) stream = -1;
 	if (mDeviceProcessingSettings.debugLevel >= 3) printf("Copying to GPU: %s\n", res->Name());
 	if (stream == -1) SynchronizeGPU();
-	return GPUFailedMsg(clEnqueueWriteBuffer(mInternals->command_queue[stream == -1 ? 0 : stream], mInternals->mem_gpu, stream >= 0, (char*) res->PtrDevice() - (char*) mDeviceMemoryBase, res->Size(), res->Ptr(), nEvents, (cl_event*) evList, (cl_event*) ev));
+	return GPUFailedMsg(clEnqueueWriteBuffer(mInternals->command_queue[stream == -1 ? 0 : stream], mInternals->mem_gpu, stream == -1, (char*) res->PtrDevice() - (char*) mDeviceMemoryBase, res->Size(), res->Ptr(), nEvents, (cl_event*) evList, (cl_event*) ev));
 }
 
 int AliGPUReconstructionOCLBackend::TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents)
@@ -710,7 +712,18 @@ int AliGPUReconstructionOCLBackend::TransferMemoryResourceToHost(AliGPUMemoryRes
 	if (mDeviceProcessingSettings.debugLevel >= 3) stream = -1;
 	if (mDeviceProcessingSettings.debugLevel >= 3) printf("Copying to Host: %s\n", res->Name());
 	if (stream == -1) SynchronizeGPU();
-	return GPUFailedMsg(clEnqueueReadBuffer(mInternals->command_queue[stream == -1 ? 0 : stream], mInternals->mem_gpu, stream >= 0, (char*) res->PtrDevice() - (char*) mDeviceMemoryBase, res->Size(), res->Ptr(), nEvents, (cl_event*) evList, (cl_event*) ev));
+	return GPUFailedMsg(clEnqueueReadBuffer(mInternals->command_queue[stream == -1 ? 0 : stream], mInternals->mem_gpu, stream == -1, (char*) res->PtrDevice() - (char*) mDeviceMemoryBase, res->Size(), res->Ptr(), nEvents, (cl_event*) evList, (cl_event*) ev));
+}
+
+int AliGPUReconstructionOCLBackend::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev)
+{
+	if (stream == -1) SynchronizeGPU();
+	if (GPUFailedMsg(clEnqueueWriteBuffer(mInternals->command_queue[stream == -1 ? 0 : stream], mInternals->mem_constant, stream == -1, offset, size, src, 0, nullptr, (cl_event*) ev)))
+	{
+		CAGPUError("Error writing to constant memory");
+		return 1;
+	}
+	return 0;
 }
 
 int AliGPUReconstructionOCLBackend::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers)
