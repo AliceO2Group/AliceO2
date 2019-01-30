@@ -46,20 +46,20 @@ using Point3Df = Point3D<float>;
 // Constants hardcoded for the moment:
 //************************************************
 // seed "windows" in z and phi: makeSeeds
-const Double_t kzWin = 0.33;
-const Double_t kminPt = 0.05;
+const Float_t kzWin = 0.33;
+const Float_t kminPt = 0.05;
 // Maximal accepted impact parameters for the seeds
-const Double_t kmaxDCAxy = 3.;
-const Double_t kmaxDCAz = 3.;
+const Float_t kmaxDCAxy = 3.;
+const Float_t kmaxDCAz = 3.;
 // Layers for the seeding
 const Int_t kSeedingLayer1 = 6, kSeedingLayer2 = 4, kSeedingLayer3 = 5;
 // Space point resolution
-const Double_t kSigma2 = 0.0005 * 0.0005;
+const Float_t kSigma2 = 0.0005 * 0.0005;
 // Max accepted chi2
-const Double_t kmaxChi2PerCluster = 20.;
-const Double_t kmaxChi2PerTrack = 30.;
+const Float_t kmaxChi2PerCluster = 20.;
+const Float_t kmaxChi2PerTrack = 30.;
 // Tracking "road" from layer to layer
-const Double_t kRoadY = 0.2;
+const Float_t kRoadY = 0.2;
 const Float_t kRoadZ = 0.3;
 // Minimal number of attached clusters
 const Int_t kminNumberOfClusters = 4;
@@ -95,7 +95,7 @@ Label CookedTracker::cookLabel(TrackITS& t, Float_t wrong) const
   // A label<0 indicates that some of the clusters are wrongly assigned.
   //--------------------------------------------------------------------
   Int_t noc = t.getNumberOfClusters();
-  std::map<Label, int> map;
+  std::map<Label, int> labelOccurence;
 
   for (int i = noc; i--;) {
     Int_t index = t.getClusterIndex(i);
@@ -107,12 +107,12 @@ Label CookedTracker::cookLabel(TrackITS& t, Float_t wrong) const
       if (lab.isEmpty())
         break; // all following labels will be empty also
       // was this label already accounted for ?
-      map[lab]++;
+      labelOccurence[lab]++;
     }
   }
   Label lab;
   Int_t maxL = 0; // find most encountered label
-  for (auto[label, count] : map) {
+  for (auto[label, count] : labelOccurence) {
     if (count <= maxL)
       continue;
     maxL = count;
