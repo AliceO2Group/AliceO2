@@ -30,7 +30,7 @@ namespace o2 { namespace ITS { class TrackerTraitsNV : public TrackerTraits {}; 
 
 #include "AliGPUDeviceKernels.h"
 
-template <class TProcess> GPUg() void runKernelCUDA(int iSlice)
+template <class TProcess, typename... Args> GPUg() void runKernelCUDA(int iSlice, Args... args)
 {
 	AliGPUTPCTracker &tracker = gGPUConstantMem.tpcTrackers[iSlice];
 	GPUshared() typename TProcess::AliGPUTPCSharedMemory smem;
@@ -38,11 +38,11 @@ template <class TProcess> GPUg() void runKernelCUDA(int iSlice)
 	for (int iSync = 0; iSync <= TProcess::NThreadSyncPoints(); iSync++)
 	{
 		GPUsync();
-		TProcess::Thread(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), iSync, smem, tracker);
+		TProcess::Thread(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), iSync, smem, tracker, args...);
 	}
 }
 
-template <class TProcess> GPUg() void runKernelCUDAMulti(int firstSlice, int nSliceCount)
+template <class TProcess, typename... Args> GPUg() void runKernelCUDAMulti(int firstSlice, int nSliceCount, Args... args)
 {
 	const int iSlice = nSliceCount * (get_group_id(0) + (get_num_groups(0) % nSliceCount != 0 && nSliceCount * (get_group_id(0) + 1) % get_num_groups(0) != 0)) / get_num_groups(0);
 	const int nSliceBlockOffset = get_num_groups(0) * iSlice / nSliceCount;
@@ -54,7 +54,7 @@ template <class TProcess> GPUg() void runKernelCUDAMulti(int firstSlice, int nSl
 	for (int iSync = 0; iSync <= TProcess::NThreadSyncPoints(); iSync++)
 	{
 		GPUsync();
-		TProcess::Thread(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), iSync, smem, tracker);
+		TProcess::Thread(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), iSync, smem, tracker, args...);
 	}
 }
 
@@ -63,11 +63,11 @@ template <class T, typename... Args> int AliGPUReconstructionCUDABackend::runKer
 	if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelBackend<T> (x, y, args...);
 	if (y.num == 1)
 	{
-		runKernelCUDA<T> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(y.start);
+		runKernelCUDA<T> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(y.start, args...);
 	}
 	else
 	{
-		runKernelCUDAMulti<T> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>> (y.start, y.num);
+		runKernelCUDAMulti<T> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>> (y.start, y.num, args...);
 	}
 	return 0;
 }
