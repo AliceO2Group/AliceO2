@@ -59,6 +59,7 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
     auto clbrName = ic.options().get<std::string>(config.databranch.option.c_str());
     auto mcbrName = ic.options().get<std::string>(config.mcbranch.option.c_str());
     auto nofEvents = ic.options().get<int>("nevents");
+    auto publishingMode = nofEvents == -1 ? RootTreeReader::PublishingMode::Single : RootTreeReader::PublishingMode::Loop;
 
     auto processAttributes = std::make_shared<ProcessAttributes>();
     {
@@ -98,8 +99,9 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
         auto& mco = config.mcoutput;
         if (propagateMC) {
           readers[sector] = std::make_shared<RootTreeReader>(treename.c_str(), // tree name
-                                                             nofEvents,        // number of entries to publish
                                                              filename.c_str(), // input file name
+                                                             nofEvents,        // number of entries to publish
+                                                             publishingMode,
                                                              Output{ dto.origin, dto.description, subSpec, persistency },
                                                              clusterbranchname.c_str(), // name of cluster branch
                                                              Output{ mco.origin, mco.description, subSpec, persistency },
@@ -107,8 +109,9 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
                                                              );
         } else {
           readers[sector] = std::make_shared<RootTreeReader>(treename.c_str(), // tree name
-                                                             nofEvents,        // number of entries to publish
                                                              filename.c_str(), // input file name
+                                                             nofEvents,        // number of entries to publish
+                                                             publishingMode,
                                                              Output{ dto.origin, dto.description, subSpec, persistency },
                                                              clusterbranchname.c_str() // name of cluster branch
                                                              );
