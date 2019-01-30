@@ -33,9 +33,7 @@ inline void swap(Segmentation& a, Segmentation& b)
   swap(a.mPadIndexOffset, b.mPadIndexOffset);
 }
 
-inline Segmentation::Segmentation(const Segmentation& seg) : mBending{ seg.mBending }, mNonBending{ seg.mNonBending }, mDetElemId{ seg.mDetElemId }, mPadIndexOffset{ seg.mPadIndexOffset }
-{
-}
+inline Segmentation::Segmentation(const Segmentation& seg) = default;
 
 inline Segmentation::Segmentation(const Segmentation&& seg) : mBending{ std::move(seg.mBending) }, mNonBending{ std::move(seg.mNonBending) }, mDetElemId{ seg.mDetElemId }, mPadIndexOffset{ seg.mPadIndexOffset }
 {
