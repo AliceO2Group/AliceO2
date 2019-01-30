@@ -30,7 +30,6 @@ AliGPUReconstruction* AliGPUReconstruction::AliGPUReconstruction_Create_CPU(cons
 
 int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 {
-	bool error = false;
 	//int nLocalTracks = 0, nGlobalTracks = 0, nOutputTracks = 0, nLocalHits = 0, nGlobalHits = 0;
 
 	if (mOutputControl.OutputType != AliGPUCAOutputControl::AllocateInternal && mDeviceProcessingSettings.nThreads > 1)
@@ -41,11 +40,12 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 	int offset = 0;
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 	{
-		if (error) continue;
 		mWorkers->tpcTrackers[iSlice].Data().SetClusterData(mIOPtrs.clusterData[iSlice], mIOPtrs.nClusterData[iSlice], offset);
 		offset += mIOPtrs.nClusterData[iSlice];
 	}
 	PrepareEvent();
+
+	bool error = false;
 #ifdef GPUCA_HAVE_OPENMP
 #pragma omp parallel for num_threads(mDeviceProcessingSettings.nThreads)
 #endif
@@ -60,8 +60,6 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 		}
 		trk.SetOutput(&mSliceOutput[iSlice]);
 		if (trk.CheckEmptySlice()) continue;
-
-		trk.SetupCommonMemory();
 
 		if (mParam.debugLevel >= 6)
 		{

@@ -104,13 +104,13 @@ template <class TProcess> GPUg() void runKernelCUDAMulti(int firstSlice, int nSl
 template <class T, typename... Args> int AliGPUReconstructionCUDABackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const Args&... args)
 {
 	if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelBackend<T> (x, y, args...);
-	if (y.start == y.end)
+	if (y.num == 1)
 	{
 		runKernelCUDA<T> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(y.start);
 	}
 	else
 	{
-		runKernelCUDAMulti<T> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>> (y.start, y.end - y.start);
+		runKernelCUDAMulti<T> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>> (y.start, y.num);
 	}
 	return 0;
 }
@@ -535,7 +535,7 @@ int AliGPUReconstructionCUDABackend::RunTPCTrackingSlices_internal()
 		}
 	}
 
-	int runSlices = 0;
+	unsigned int runSlices = 0;
 	int useStream = 0;
 	int streamMap[NSLICES];
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice += runSlices)
@@ -552,7 +552,7 @@ int AliGPUReconstructionCUDABackend::RunTPCTrackingSlices_internal()
 
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running HLT Tracklet selector (Stream %d, Slice %d to %d)", useStream, iSlice, iSlice + runSlices);
 		mWorkers->tpcTrackers[iSlice].StartTimer(7);
-		runKernel<AliGPUTPCTrackletSelector>({fSelectorBlockCount, GPUCA_GPU_THREAD_COUNT_SELECTOR, useStream}, {iSlice, iSlice + runSlices});
+		runKernel<AliGPUTPCTrackletSelector>({fSelectorBlockCount, GPUCA_GPU_THREAD_COUNT_SELECTOR, useStream}, {iSlice, runSlices});
 
 		if (GPUSync("Tracklet Selector", iSlice, iSlice) RANDOM_ERROR)
 		{

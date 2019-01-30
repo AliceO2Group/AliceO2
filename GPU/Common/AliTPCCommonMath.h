@@ -24,6 +24,8 @@ class AliTPCCommonMath
 	GPUhd() static float Max( float x, float y );
 	GPUhd() static int Min( int x, int y );
 	GPUhd() static int Max( int x, int y );
+	GPUhd() static int Min( unsigned int x, unsigned int y );
+	GPUhd() static int Max( unsigned int x, unsigned int y );
 	GPUd() static float Sqrt( float x );
 	GPUd() static float Abs( float x );
 	GPUd() static double Abs( double x );
@@ -142,6 +144,16 @@ GPUhdi() int AliTPCCommonMath::Min(int x, int y)
 }
 
 GPUhdi() int AliTPCCommonMath::Max(int x, int y)
+{
+	return choiceA(max(x, y), (x > y ? x : y));
+}
+
+GPUhdi() int AliTPCCommonMath::Min(unsigned int x, unsigned int y)
+{
+	return choiceA(min(x, y), (x < y ? x : y));
+}
+
+GPUhdi() int AliTPCCommonMath::Max(unsigned int x, unsigned int y)
 {
 	return choiceA(max(x, y), (x > y ? x : y));
 }
