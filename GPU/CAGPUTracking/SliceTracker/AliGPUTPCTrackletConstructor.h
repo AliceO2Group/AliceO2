@@ -104,8 +104,7 @@ public:
 	GPUd() static int AliGPUTPCTrackletConstructorGlobalTracking(AliGPUTPCTracker &tracker, AliGPUTPCTrackParam& tParam, int startrow, int increment, int iTracklet);
 #endif //GPUCA_GPUCODE
 
-	GPUd() static int NThreadSyncPoints() { return 2; }
-	GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, int iSync, MEM_LOCAL(GPUsharedref() AliGPUTPCSharedMemory) &smem, MEM_CONSTANT(GPUconstant() AliGPUTPCTracker) &tracker);
+	GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, MEM_LOCAL(GPUsharedref() AliGPUTPCSharedMemory) &smem, MEM_CONSTANT(GPUconstant() AliGPUTPCTracker) &tracker);
 
 };
 

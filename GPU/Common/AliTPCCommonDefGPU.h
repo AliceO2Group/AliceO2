@@ -18,7 +18,7 @@
 	#define GPUhdi() inline
 	#define GPUg() __kernel
 	#define GPUshared() __local
-	#define GPUsync() barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE)
+	#define GPUbarrier() barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE)
 #elif defined(__CUDACC__) //Defines for CUDA
 	#define GPUd() __device__
 	#define GPUdi() __device__ inline
@@ -28,7 +28,7 @@
 	#define GPUhdi() __host__ __device__ inline
 	#define GPUg() __global__
 	#define GPUshared() __shared__
-	#define GPUsync() __syncthreads()
+	#define GPUbarrier() __syncthreads()
 #else //Defines for Host
 	#define GPUd()
 	#define GPUdi() inline
@@ -38,7 +38,7 @@
 	#define GPUhdi() inline
 	#define GPUg() INVALID_TRIGGER_ERROR_NO_HOST_CODE
 	#define GPUshared()
-	#define GPUsync()
+	#define GPUbarrier()
 
 	struct float4 { float x, y, z, w; };
 	struct float3 { float x, y, z; };

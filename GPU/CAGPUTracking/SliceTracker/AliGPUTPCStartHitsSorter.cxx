@@ -20,38 +20,36 @@
 #include "AliGPUTPCTracker.h"
 
 GPUd() void AliGPUTPCStartHitsSorter::Thread
-( int nBlocks, int nThreads, int iBlock, int iThread, int iSync,
- GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &s, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker )
+( int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &s, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker )
 {
 	//Sorts the Start Hits by Row Index
-	if ( iSync == 0 ) {
-		if ( iThread == 0 ) {
-			const int tmpNRows = GPUCA_ROW_COUNT - 6;
-			const int nRows = iBlock == (nBlocks - 1) ? (tmpNRows - (tmpNRows / nBlocks) * (nBlocks - 1)) : (tmpNRows / nBlocks);
-			const int nStartRow = (tmpNRows / nBlocks) * iBlock + 1;
-			int startOffset2 = 0;
+	if ( iThread == 0 ) {
+		const int tmpNRows = GPUCA_ROW_COUNT - 6;
+		const int nRows = iBlock == (nBlocks - 1) ? (tmpNRows - (tmpNRows / nBlocks) * (nBlocks - 1)) : (tmpNRows / nBlocks);
+		const int nStartRow = (tmpNRows / nBlocks) * iBlock + 1;
+		int startOffset2 = 0;
 
-			for (int ir = 1;ir < GPUCA_ROW_COUNT - 5;ir++)
-			{
-				if (ir < nStartRow) startOffset2 += tracker.RowStartHitCountOffset()[ir];
-			}
-			s.fStartOffset = startOffset2;
-			s.fNRows = nRows;
-			s.fStartRow = nStartRow;
-		}
-	} else if ( iSync == 1 ) {
-		int startOffset = s.fStartOffset;
-		for (int ir = 0;ir < s.fNRows;ir++)
+		for (int ir = 1;ir < GPUCA_ROW_COUNT - 5;ir++)
 		{
-			GPUglobalref() AliGPUTPCHitId *const startHits = tracker.TrackletStartHits();
-			GPUglobalref() AliGPUTPCHitId *const tmpStartHits = tracker.TrackletTmpStartHits() + (s.fStartRow + ir) * GPUCA_GPU_MAX_ROWSTARTHITS;
-			const int tmpLen = tracker.RowStartHitCountOffset()[ir + s.fStartRow];			//Length of hits in row stored by StartHitsFinder
-
-			for (int j = iThread;j < tmpLen;j += nThreads)
-			{
-				startHits[startOffset + j] = tmpStartHits[j];
-			}
-			startOffset += tmpLen;
+			if (ir < nStartRow) startOffset2 += tracker.RowStartHitCountOffset()[ir];
 		}
+		s.fStartOffset = startOffset2;
+		s.fNRows = nRows;
+		s.fStartRow = nStartRow;
+	}
+    GPUbarrier();
+    
+	int startOffset = s.fStartOffset;
+	for (int ir = 0;ir < s.fNRows;ir++)
+	{
+		GPUglobalref() AliGPUTPCHitId *const startHits = tracker.TrackletStartHits();
+		GPUglobalref() AliGPUTPCHitId *const tmpStartHits = tracker.TrackletTmpStartHits() + (s.fStartRow + ir) * GPUCA_GPU_MAX_ROWSTARTHITS;
+		const int tmpLen = tracker.RowStartHitCountOffset()[ir + s.fStartRow];			//Length of hits in row stored by StartHitsFinder
+
+		for (int j = iThread;j < tmpLen;j += nThreads)
+		{
+			startHits[startOffset + j] = tmpStartHits[j];
+		}
+		startOffset += tmpLen;
 	}
 }

@@ -409,7 +409,7 @@ GPUd() void AliGPUTPCTrackletConstructor::DoTracklet(GPUconstant() MEM_CONSTANT(
 	}
 }
 
-GPUd() void AliGPUTPCTrackletConstructor::Thread(int /*nBlocks*/, int nThreads, int iBlock, int iThread, int iSync, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &s, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker)
+GPUd() void AliGPUTPCTrackletConstructor::Thread(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &s, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker)
 {
 	
 }

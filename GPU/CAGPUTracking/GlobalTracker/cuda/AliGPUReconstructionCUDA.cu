@@ -28,12 +28,7 @@ template <class TProcess, typename... Args> GPUg() void runKernelCUDA(int iSlice
 {
 	AliGPUTPCTracker &tracker = gGPUConstantMem.tpcTrackers[iSlice];
 	GPUshared() typename TProcess::AliGPUTPCSharedMemory smem;
-
-	for (int iSync = 0; iSync <= TProcess::NThreadSyncPoints(); iSync++)
-	{
-		GPUsync();
-		TProcess::Thread(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), iSync, smem, tracker, args...);
-	}
+	TProcess::Thread(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, tracker, args...);
 }
 
 template <class TProcess, typename... Args> GPUg() void runKernelCUDAMulti(int firstSlice, int nSliceCount, Args... args)
@@ -44,12 +39,7 @@ template <class TProcess, typename... Args> GPUg() void runKernelCUDAMulti(int f
 	const int sliceGridDim = get_num_groups(0) * (iSlice + 1) / nSliceCount - get_num_groups(0) * (iSlice) / nSliceCount;
 	AliGPUTPCTracker &tracker = gGPUConstantMem.tpcTrackers[firstSlice + iSlice];
 	GPUshared() typename TProcess::AliGPUTPCSharedMemory smem;
-
-	for (int iSync = 0; iSync <= TProcess::NThreadSyncPoints(); iSync++)
-	{
-		GPUsync();
-		TProcess::Thread(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), iSync, smem, tracker, args...);
-	}
+	TProcess::Thread(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, tracker, args...);
 }
 
 template <class T, typename... Args> int AliGPUReconstructionCUDABackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
