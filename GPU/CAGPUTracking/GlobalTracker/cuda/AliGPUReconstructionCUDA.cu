@@ -61,7 +61,7 @@ template <class TProcess, typename... Args> GPUg() void runKernelCUDAMulti(int f
 template <class T, typename... Args> int AliGPUReconstructionCUDABackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const Args&... args)
 {
 	if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelBackend<T> (x, y, args...);
-	if (y.num == 1)
+	if (y.num <= 1)
 	{
 		runKernelCUDA<T> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(y.start, args...);
 	}

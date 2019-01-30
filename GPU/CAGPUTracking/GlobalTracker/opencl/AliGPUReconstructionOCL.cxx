@@ -22,7 +22,7 @@ template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPC
 template <class T, typename... Args> int AliGPUReconstructionOCLBackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const Args&... args)
 {
 	if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelBackend<T>(x, y, args...);
-	if (y.num == 1)
+	if (y.num == 0)
 	{
 		if (OCLsetKernelParameters(getKernelObject<T, cl_kernel>(), mInternals->mem_gpu, mInternals->mem_constant, y.start, args...)) return 1;
 	}
