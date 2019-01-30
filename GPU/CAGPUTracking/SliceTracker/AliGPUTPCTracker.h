@@ -104,7 +104,6 @@ class AliGPUTPCTracker : public AliGPUProcessor
 
 	GPUh() const AliGPUTPCClusterData *ClusterData() const { return fData.ClusterData(); }
 
-	GPUh() void ClearSliceDataHitWeights() {fData.ClearHitWeights();}
 	GPUh() MakeType(const MEM_LG(AliGPUTPCRow)&) Row( const AliGPUTPCHitId &HitId ) const { return fData.Row(HitId.RowIndex()); }
 
 	GPUhd() AliGPUTPCSliceOutput** Output() const { return fOutput; }

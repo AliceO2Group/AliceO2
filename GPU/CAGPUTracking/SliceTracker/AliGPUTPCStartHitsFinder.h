@@ -50,7 +50,7 @@ class AliGPUTPCStartHitsFinder
 	GPUd() static int NThreadSyncPoints() { return 2; }
 
 	GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, int iSync,
-	                          MEM_LOCAL(GPUsharedref() AliGPUTPCSharedMemory) & smem, MEM_CONSTANT(GPUconstant() AliGPUTPCTracker) & tracker);
+	                          MEM_LOCAL(GPUsharedref() AliGPUTPCSharedMemory) &smem, MEM_CONSTANT(GPUconstant() AliGPUTPCTracker) &tracker);
 };
 
 #endif //ALIHLTTPCCASTARTHITSFINDER_H

@@ -116,11 +116,6 @@ public:
 	MEM_TEMPLATE() GPUd() int HitWeight( const MEM_TYPE( AliGPUTPCRow)&row, unsigned int hitIndex ) const;
 
 	/**
-	 * Reset all hit weights to 0.
-	 */
-	void ClearHitWeights();
-
-	/**
 	 * Returns the index in the original AliGPUTPCClusterData object of the given hit
 	 */
 	MEM_TEMPLATE() GPUhd() int ClusterDataIndex( const MEM_TYPE( AliGPUTPCRow)&row, unsigned int hitIndex ) const;

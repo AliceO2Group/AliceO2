@@ -95,7 +95,7 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 		if (mParam.debugLevel >= 6) trk.DumpStartHits(mDebugFile);
 
 		trk.StartTimer(5);
-		trk.Data().ClearHitWeights();
+		runKernel<AliGPUMemClean16>({1, 1, 0}, {}, {}, trk.Data().HitWeights(), trk.Data().NumberOfHitsPlusAlign() * sizeof(*trk.Data().HitWeights()));
 		trk.StopTimer(5);
 
 		if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL)

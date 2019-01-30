@@ -6,13 +6,6 @@
 #include "AliGPUReconstructionCUDAInternals.h"
 #include "AliGPUReconstructionCommon.h"
 
-#define get_global_id(dim) (blockIdx.x * blockDim.x + threadIdx.x)
-#define get_global_size(dim) (blockDim.x * gridDim.x)
-#define get_num_groups(dim) (gridDim.x)
-#define get_local_id(dim) (threadIdx.x)
-#define get_local_size(dim) (blockDim.x)
-#define get_group_id(dim) (blockIdx.x)
-
 __constant__ uint4 gGPUConstantMemBuffer[(sizeof(AliGPUCAConstantMem) + sizeof(uint4) - 1) / sizeof(uint4)];
 __constant__ char& gGPUConstantMemBufferChar = (char&) gGPUConstantMemBuffer;
 __constant__ AliGPUCAConstantMem& gGPUConstantMem = (AliGPUCAConstantMem&) gGPUConstantMemBufferChar;
@@ -28,6 +21,7 @@ texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
 namespace o2 { namespace ITS { class TrackerTraitsNV : public TrackerTraits {}; }}
 #endif
 
+#define DEVICE_KERNELS_PRE
 #include "AliGPUDeviceKernels.h"
 
 template <class TProcess, typename... Args> GPUg() void runKernelCUDA(int iSlice, Args... args)
@@ -295,17 +289,6 @@ int AliGPUReconstructionCUDABackend::GPUSync(const char* state, int stream, int 
 	return(0);
 }
 
-__global__ void PreInitRowBlocks(int* const SliceDataHitWeights, int nSliceDataHits)
-{
-	//Initialize GPU RowBlocks and HitWeights
-	int4* const sliceDataHitWeights4 = (int4*) SliceDataHitWeights;
-	const int stride = get_global_size(0);
-	int4 i0;
-	i0.x = i0.y = i0.z = i0.w = 0;
-	for (int i = get_global_id(0);i < nSliceDataHits * sizeof(int) / sizeof(int4);i += stride)
-		sliceDataHitWeights4[i] = i0;
-}
-
 int AliGPUReconstructionCUDABackend::RunTPCTrackingSlices()
 {
 	int retVal = RunTPCTrackingSlices_internal();
@@ -357,7 +340,7 @@ int AliGPUReconstructionCUDABackend::RunTPCTrackingSlices_internal()
 		int useStream = GPUCA_GPU_NUM_STREAMS == 0 ? (iSlice & 1) : (iSlice % GPUCA_GPU_NUM_STREAMS);
 		//Initialize temporary memory where needed
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Copying Slice Data to GPU and initializing temporary memory");
-		PreInitRowBlocks<<<fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT, 0, mInternals->CudaStreams[GPUCA_GPU_NUM_STREAMS == 0 ? 2 : useStream]>>>(mWorkersShadow->tpcTrackers[iSlice].Data().HitWeights(), mWorkers->tpcTrackers[iSlice].Data().NumberOfHitsPlusAlign());
+		runKernel<AliGPUMemClean16>({fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT, GPUCA_GPU_NUM_STREAMS == 0 ? 2 : useStream}, {}, {}, mWorkersShadow->tpcTrackers[iSlice].Data().HitWeights(), mWorkersShadow->tpcTrackers[iSlice].Data().NumberOfHitsPlusAlign() * sizeof(*mWorkersShadow->tpcTrackers[iSlice].Data().HitWeights()));
 		if (GPUSync("Initialization (2)", 2, iSlice) RANDOM_ERROR)
 		{
 			return(3);
@@ -419,7 +402,6 @@ int AliGPUReconstructionCUDABackend::RunTPCTrackingSlices_internal()
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Start Hits Finder (Slice %d/%d)", iSlice, NSLICES);
 		mWorkers->tpcTrackers[iSlice].StartTimer(3);
 		runKernel<AliGPUTPCStartHitsFinder>({GPUCA_ROW_COUNT - 6, GPUCA_GPU_THREAD_COUNT, useStream}, {iSlice});
-		
 		if (GPUSync("Start Hits Finder", useStream, iSlice) RANDOM_ERROR)
 		{
 			return(3);
@@ -510,7 +492,6 @@ int AliGPUReconstructionCUDABackend::RunTPCTrackingSlices_internal()
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running HLT Tracklet selector (Stream %d, Slice %d to %d)", useStream, iSlice, iSlice + runSlices);
 		mWorkers->tpcTrackers[iSlice].StartTimer(7);
 		runKernel<AliGPUTPCTrackletSelector>({fSelectorBlockCount, GPUCA_GPU_THREAD_COUNT_SELECTOR, useStream}, {iSlice, runSlices});
-
 		if (GPUSync("Tracklet Selector", iSlice, iSlice) RANDOM_ERROR)
 		{
 			return(1);
@@ -520,6 +501,7 @@ int AliGPUReconstructionCUDABackend::RunTPCTrackingSlices_internal()
 		{
 			if (TransferMemoryResourceLinkToHost(mWorkers->tpcTrackers[k].MemoryResCommon(), useStream) RANDOM_ERROR)
 			{
+				CAGPUImportant("Error transferring number of tracks from GPU to host");
 				return(3);
 			}
 			streamMap[k] = useStream;
