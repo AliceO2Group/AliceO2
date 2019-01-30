@@ -12,14 +12,11 @@
  *
  */
 
-#ifdef _WIN32
-	#define WIN32
-#endif
-
 #include "AliTPCCommonRtypes.h"
-
 #include "AliTPCCommonDef.h"
+#include "AliGPUTPCSettings.h"
 
+//Special macros for OpenCL 1.2 version
 enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
 #if defined(__OPENCL__)
 	template<LocalOrGlobal, typename L, typename G, typename C, typename P> struct MakeTypeHelper;
@@ -96,7 +93,6 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
 	#define STATIC_ASSERT(a, b)
 #endif //!GPUCA_GPUCODE
 
-#include "AliGPUTPCSettings.h"
 #define CALINK_INVAL ((calink) -1)
 struct cahit2{cahit x, y;};
 

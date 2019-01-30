@@ -4,7 +4,7 @@
 class AliGPUReconstruction;
 class AliGPUCAParam;
 class AliGPUTPCGMPhysicalTrackModel;
-#if !defined(BUILD_QA) || defined(WIN32)
+#if !defined(BUILD_QA) || defined(_WIN32)
 class genEvents
 {
 public:

@@ -1,6 +1,6 @@
 #include "AliGPUReconstructionDeviceBase.h"
 #include <string.h>
-#ifndef WIN32
+#ifndef _WIN32
 #include <unistd.h>
 #endif
 #include "AliGPUReconstructionCommon.h"
@@ -11,7 +11,7 @@
 
 #ifdef __CINT__
 typedef int cudaError_t
-#elif defined(WIN32)
+#elif defined(_WIN32)
 #include "../cmodules/pthread_mutex_win32_wrapper.h"
 #else
 #include <pthread.h>
@@ -154,7 +154,7 @@ void AliGPUReconstructionDeviceBase::ResetThisHelperThread(AliGPUReconstructionD
 void AliGPUReconstructionDeviceBase::ReleaseGlobalLock(void* sem)
 {
 	//Release the global named semaphore that locks GPU Initialization
-#ifdef WIN32
+#ifdef _WIN32
 	HANDLE* h = (HANDLE*) sem;
 	ReleaseSemaphore(*h, 1, nullptr);
 	CloseHandle(*h);
@@ -305,7 +305,7 @@ int AliGPUReconstructionDeviceBase::StopHelperThreads()
 int AliGPUReconstructionDeviceBase::GetThread()
 {
 	//Get Thread ID
-#ifdef WIN32
+#ifdef _WIN32
 	return((int) (size_t) GetCurrentThread());
 #else
 	return((int) syscall (SYS_gettid));
@@ -340,7 +340,7 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 		return(1);
 	}
 
-#ifdef WIN32
+#ifdef _WIN32
 	HANDLE* semLock = nullptr;
 	if (mDeviceProcessingSettings.globalInitMutex)
 	{

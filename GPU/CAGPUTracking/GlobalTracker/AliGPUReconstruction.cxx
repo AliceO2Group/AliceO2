@@ -4,7 +4,7 @@
 #include <mutex>
 #include <string>
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <windows.h>
 #include <winbase.h>
 #include <conio.h>
@@ -901,7 +901,7 @@ AliGPUReconstruction::DeviceType AliGPUReconstruction::GetDeviceType(const char*
 	return INVALID_DEVICE;
 }
 
-#ifdef WIN32
+#ifdef _WIN32
 #define LIBRARY_EXTENSION ".dll"
 #define LIBRARY_TYPE HMODULE
 #define LIBRARY_LOAD(name) LoadLibraryEx(name, nullptr, nullptr)
@@ -946,7 +946,7 @@ int AliGPUReconstruction::LibraryLoader::LoadLibrary()
 	hGPULib = LIBRARY_LOAD(mLibName);
 	if (hGPULib == nullptr)
 	{
-		#ifndef WIN32
+		#ifndef _WIN32
 			CAGPUImportant("The following error occured during dlopen: %s", dlerror());
 		#endif
 		CAGPUError("Error Opening cagpu library for GPU Tracker (%s)", mLibName);

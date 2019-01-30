@@ -15,7 +15,7 @@
 #include <string.h>
 #include <stdexcept>
 
-#ifndef WIN32
+#ifndef _WIN32
 #include "bitmapfile.h"
 #include "../cmodules/linux_helpers.h"
 #endif

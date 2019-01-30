@@ -4,7 +4,7 @@
 #include "AliGPUReconstructionDeviceBase.h"
 #include "AliGPUReconstructionOCLInternals.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 extern "C" __declspec(dllexport) AliGPUReconstruction* AliGPUReconstruction_Create_OCLconst AliGPUCASettingsProcessing& cfg);
 #else
 extern "C" AliGPUReconstruction* AliGPUReconstruction_Create_OCL(const AliGPUCASettingsProcessing& cfg);
