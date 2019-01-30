@@ -23,6 +23,7 @@
 #include "ReconstructionDataFormats/CalibInfoTOF.h"
 #include "TOFBase/Geo.h"
 #include "TH1F.h"
+#include <TF1.h>
 
 class TTree;
 
@@ -65,13 +66,14 @@ class CalibTOF
  private:
   void fillLHCphaseCalibInput(); // we will fill the input for the LHC phase calibration
   void doLHCPhaseCalib(); // calibrate with respect LHC phase
-  void fillChannelCalibInput(); // we will fill the input for the channel-level calibration
+  void fillChannelCalibInput(float offset=0); // we will fill the input for the channel-level calibration
   void doChannelLevelCalibration(int flag); // calibrate single channel from histos
   void resetChannelLevelHistos(int flag); // reset signle channel histos
  
 
   // objects needed for calibration
   TH1F *mHistoLHCphase = nullptr;
+  TH1F *mHistoChOffsetTemp = nullptr;
 
   void attachInputTrees();
   bool loadTOFCollectedCalibInfo(int increment = 1);
@@ -100,7 +102,19 @@ class CalibTOF
 
   std::string mCollectedCalibInfoTOFBranchName = "TOFCollectedCalibInfo";   ///< name of branch containing input TOF calib infos
   std::string mOutputBranchName = "TOFCalibParam";        ///< name of branch containing output
+  // output calibration
+  float mLHCphase=0; ///< outputt LHC phase in ps
+  float mLHCphaseErr=0; ///< outputt LHC phase in ps
+  int mNChannels=Geo::NCHANNELS;      // needed to give the size to the branches of channels
+  float mCalibChannelOffset[Geo::NCHANNELS]; ///< output TOF channel offset in ps
+  float mCalibChannelOffsetErr[Geo::NCHANNELS]; ///< output TOF channel offset in ps
 
+  // previous calibration read from CCDB
+  float mInitialCalibChannelOffset[Geo::NCHANNELS]; ///< output TOF channel offset in ps
+
+
+  TF1 *mFuncLHCphase = nullptr;
+  TF1 *mFuncChOffset = nullptr;
 
   TStopwatch mTimerTot;
   TStopwatch mTimerDBG;
