@@ -23,7 +23,6 @@
 #include <boost/test/data/test_case.hpp>
 #include <fstream>
 #include <iostream>
-#include <chrono>
 
 using namespace o2::mch::mapping;
 namespace bdata = boost::unit_test::data;
@@ -34,7 +33,6 @@ const Segmentation& SegCache(int detElemId)
 {
   static std::map<int, Segmentation*> cache;
   if (cache.empty()) {
-    auto start = std::chrono::high_resolution_clock::now();
     std::vector<int> deids;
     forEachDetectionElement([&deids](int deid) {
       deids.push_back(deid);
@@ -42,9 +40,6 @@ const Segmentation& SegCache(int detElemId)
     for (auto deid : deids) {
       cache.emplace(deid, new Segmentation(deid));
     }
-    auto end = std::chrono::high_resolution_clock::now();
-    auto elapsedTime =
-      std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
   }
   auto f = cache.find(detElemId);
   return *(f->second);
@@ -182,6 +177,30 @@ BOOST_AUTO_TEST_CASE(NumberOfSegmentationsMustBe21)
     n++;
   });
   BOOST_CHECK_EQUAL(n, 21);
+}
+
+BOOST_AUTO_TEST_CASE(CheckPadOffsetsAfterCopy)
+{
+  forEachDetectionElement([](int detElemId) {
+    bool ok{ true };
+    auto s = SegCache(detElemId);
+    auto seg = s;
+    for (auto padid = 0; padid < seg.bending().nofPads(); padid++) {
+      if (seg.isBendingPad(padid) != true) {
+        ok = false;
+        break;
+      }
+    }
+    BOOST_CHECK_MESSAGE(ok == true, "inconsistent isBendingPad for bending plane");
+    ok = true;
+    for (auto padid = seg.bending().nofPads(); padid < seg.nofPads(); padid++) {
+      if (seg.isBendingPad(padid) != false) {
+        ok = false;
+        break;
+      }
+    }
+    BOOST_CHECK_MESSAGE(ok == true, "inconsistent isBendingPad for non-bending plane");
+  });
 }
 
 struct SEG {
