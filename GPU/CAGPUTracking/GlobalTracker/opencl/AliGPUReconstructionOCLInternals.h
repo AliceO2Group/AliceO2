@@ -82,7 +82,7 @@ static int GPUFailedMsgA(int error, const char* file, int line)
 	//Check for OPENCL Error and in the case of an error display the corresponding error string
 	if (error == CL_SUCCESS) return(0);
 	printf("OCL Error: %d / %s (%s:%d)\n", error, opencl_error_string(error), file, line);
-	return(1);
+	throw std::runtime_error("OpenCL Failure");
 }
 
 static inline int OCLsetKernelParameters_helper(cl_kernel &k,int i) {return 0;}
