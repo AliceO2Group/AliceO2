@@ -18,7 +18,7 @@
 #include <omp.h>
 #endif
 
-#ifndef WIN32
+#ifndef _WIN32
 #include <unistd.h>
 #include <sched.h>
 #include <signal.h>
@@ -42,7 +42,7 @@
 #endif
 
 #ifdef BUILD_EVENT_DISPLAY
-#ifdef WIN32
+#ifdef _WIN32
 #include "AliGPUCADisplayBackendWindows.h"
 #else
 #include "AliGPUCADisplayBackendX11.h"
@@ -83,7 +83,7 @@ int ReadConfiguration(int argc, char** argv)
 		return(1);
 	}
 	if (configStandalone.printSettings) qConfigPrint();
-#ifndef WIN32
+#ifndef _WIN32
 	setlocale(LC_ALL, "");
 	if (configStandalone.affinity != -1)
 	{
@@ -198,7 +198,7 @@ int SetupReconstruction()
 	if (configStandalone.eventDisplay)
 	{
 #ifdef BUILD_EVENT_DISPLAY
-#ifdef WIN32
+#ifdef _WIN32
 		if (configStandalone.eventDisplay == 1) eventDisplay.reset(new AliGPUCADisplayBackendWindows);
 #else
 		if (configStandalone.eventDisplay == 1) eventDisplay.reset(new AliGPUCADisplayBackendX11);
@@ -381,7 +381,7 @@ breakrun:
 
 	if (configStandalone.qa)
 	{
-#ifndef WIN32
+#ifndef _WIN32
 		if (configStandalone.fpe) fedisableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
 #endif
 		if (rec->GetQA() == nullptr)

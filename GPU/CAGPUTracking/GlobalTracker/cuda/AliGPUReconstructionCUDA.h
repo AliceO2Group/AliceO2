@@ -4,7 +4,7 @@
 #include "AliGPUReconstructionDeviceBase.h"
 class AliGPUReconstructionCUDAInternals;
 
-#ifdef WIN32
+#ifdef _WIN32
 extern "C" __declspec(dllexport) AliGPUReconstruction* AliGPUReconstruction_Create_CUDA(const AliGPUCASettingsProcessing& cfg);
 #else
 extern "C" AliGPUReconstruction* AliGPUReconstruction_Create_CUDA(const AliGPUCASettingsProcessing& cfg);

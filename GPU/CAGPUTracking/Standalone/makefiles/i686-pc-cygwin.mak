@@ -285,7 +285,7 @@ PRECOMPILEONLY					= /EP
 endif
 OBJ								= obj
 
-DEFINESARCH						= "WIN32"
+DEFINESARCH						= "_WIN32"
 
 NVCCARCHS						:= `for i in $(CUDAVERSION); do echo -n -gencode arch BAT_SPECIAL_EQ compute_$$i BAT_SPECIAL_KOMMA code BAT_SPECIAL_EQ sm_$$i\ ;done`
 NVCC_GREP						= "^#line\|^$$"
