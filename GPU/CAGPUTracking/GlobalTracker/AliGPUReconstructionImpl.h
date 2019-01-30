@@ -15,6 +15,8 @@
 namespace AliGPUReconstruction_krnlHelpers {
 template <class T> class classArgument {};
 
+typedef void deviceEvent; //We use only pointers anyway, and since cl_event and cudaEvent_t are actually pointers, we can cast them to deviceEvent* this way.
+
 enum class krnlDeviceType : int {CPU = 0, Device = 1, Auto = -1};
 struct krnlExec
 {
@@ -33,6 +35,14 @@ struct krnlRunRange
 	unsigned int start;
 	unsigned int num;
 };
+constexpr static krnlRunRange krnlRunRangeNone(0, (unsigned int) -1);
+struct krnlEvent
+{
+	krnlEvent(deviceEvent* e = nullptr, deviceEvent* el = nullptr, int n = 0) : ev(e), evList(el), nEvents(n) {}
+	deviceEvent* ev;
+	deviceEvent* evList;
+	int nEvents;
+};
 } //End Namespace
 
 using namespace AliGPUReconstruction_krnlHelpers;
@@ -45,12 +55,12 @@ public:
 	AliGPUReconstructionImpl() = default;
 
 protected:
-	virtual int runKernelImpl(classArgument<AliGPUTPCNeighboursFinder>, const krnlExec& x, const krnlRunRange& y) {return T::template runKernelBackend<AliGPUTPCNeighboursFinder>(x, y);}
-	virtual int runKernelImpl(classArgument<AliGPUTPCNeighboursCleaner>, const krnlExec& x, const krnlRunRange& y) {return T::template runKernelBackend<AliGPUTPCNeighboursCleaner>(x, y);}
-	virtual int runKernelImpl(classArgument<AliGPUTPCStartHitsFinder>, const krnlExec& x, const krnlRunRange& y) {return T::template runKernelBackend<AliGPUTPCStartHitsFinder>(x, y);}
-	virtual int runKernelImpl(classArgument<AliGPUTPCStartHitsSorter>, const krnlExec& x, const krnlRunRange& y) {return T::template runKernelBackend<AliGPUTPCStartHitsSorter>(x, y);}
-	virtual int runKernelImpl(classArgument<AliGPUTPCTrackletConstructor>, const krnlExec& x, const krnlRunRange& y) {return T::template runKernelBackend<AliGPUTPCTrackletConstructor>(x, y);}
-	virtual int runKernelImpl(classArgument<AliGPUTPCTrackletSelector>, const krnlExec& x, const krnlRunRange& y) {return T::template runKernelBackend<AliGPUTPCTrackletSelector>(x, y);}
+	virtual int runKernelImpl(classArgument<AliGPUTPCNeighboursFinder>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) {return T::template runKernelBackend<AliGPUTPCNeighboursFinder>(x, y, z);}
+	virtual int runKernelImpl(classArgument<AliGPUTPCNeighboursCleaner>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) {return T::template runKernelBackend<AliGPUTPCNeighboursCleaner>(x, y, z);}
+	virtual int runKernelImpl(classArgument<AliGPUTPCStartHitsFinder>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) {return T::template runKernelBackend<AliGPUTPCStartHitsFinder>(x, y, z);}
+	virtual int runKernelImpl(classArgument<AliGPUTPCStartHitsSorter>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) {return T::template runKernelBackend<AliGPUTPCStartHitsSorter>(x, y, z);}
+	virtual int runKernelImpl(classArgument<AliGPUTPCTrackletConstructor>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) {return T::template runKernelBackend<AliGPUTPCTrackletConstructor>(x, y, z);}
+	virtual int runKernelImpl(classArgument<AliGPUTPCTrackletSelector>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) {return T::template runKernelBackend<AliGPUTPCTrackletSelector>(x, y, z);}
 };
 
 class AliGPUReconstructionCPUBackend : public AliGPUReconstruction
@@ -60,10 +70,10 @@ public:
 	
 protected:
 	AliGPUReconstructionCPUBackend(const AliGPUCASettingsProcessing& cfg) : AliGPUReconstruction(cfg) {}
-	template <class T, typename... Args> inline int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const Args&... args)
+	template <class T, typename... Args> inline int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
 	{
 		if (x.device == krnlDeviceType::Device) throw std::runtime_error("Cannot run device kernel on host");
-		unsigned int num = y.num == 0 ? 1 : y.num;
+		unsigned int num = y.num == 0 || y.num == (unsigned int) -1 ? 1 : y.num;
 		for (unsigned int k = 0;k < num;k++)
 		{
 			for (unsigned int iB = 0; iB < x.nBlocks; iB++)
@@ -86,9 +96,9 @@ class AliGPUReconstructionCPU : public AliGPUReconstructionImpl<AliGPUReconstruc
 public:
 	virtual ~AliGPUReconstructionCPU() = default;
 	
-	template <class S, typename... Args> inline int runKernel(const krnlExec& x, const krnlRunRange& y, const Args&... args)
+	template <class S, typename... Args> inline int runKernel(const krnlExec& x, const krnlRunRange& y = krnlRunRange(0, -1), const krnlEvent& z = krnlEvent(), const Args&... args)
 	{
-		return runKernelImpl(classArgument<S>(), x, y, args...);
+		return runKernelImpl(classArgument<S>(), x, y, z, args...);
 	}
 	
 	virtual int RunTPCTrackingSlices();

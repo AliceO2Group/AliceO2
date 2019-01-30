@@ -31,10 +31,10 @@ protected:
 	virtual int DoStuckProtection(int stream, void* event) override;
 	virtual int GPUSync(const char* state = "UNKNOWN", int sliceLocal = 0, int slice = 0) override;
 
-	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) override;
-	virtual int TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) override;
+	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override;
+	virtual int TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override;
 	
-	template <class T, typename... Args> int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const Args&... args);
+	template <class T, typename... Args> int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args);
 
 private:
 	template <class T, class S> S& getKernelObject();

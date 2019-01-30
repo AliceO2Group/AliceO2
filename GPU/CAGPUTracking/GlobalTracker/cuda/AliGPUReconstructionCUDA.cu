@@ -58,9 +58,9 @@ template <class TProcess, typename... Args> GPUg() void runKernelCUDAMulti(int f
 	}
 }
 
-template <class T, typename... Args> int AliGPUReconstructionCUDABackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const Args&... args)
+template <class T, typename... Args> int AliGPUReconstructionCUDABackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
 {
-	if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelBackend<T> (x, y, args...);
+	if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelBackend<T> (x, y, z, args...);
 	if (y.num <= 1)
 	{
 		runKernelCUDA<T> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(y.start, args...);
@@ -707,16 +707,18 @@ int AliGPUReconstructionCUDABackend::RefitMergedTracks(AliGPUTPCGMMerger* Merger
 #endif
 }
 
-int AliGPUReconstructionCUDABackend::TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream, int nEvents, deviceEvent* evList, deviceEvent* ev)
+int AliGPUReconstructionCUDABackend::TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents)
 {
+	//if (evList == nullptr) nEvents = 0;
 	if (mDeviceProcessingSettings.debugLevel >= 3) stream = -1;
 	if (mDeviceProcessingSettings.debugLevel >= 3) printf("Copying to GPU: %s\n", res->Name());
 	if (stream == -1) return GPUFailedMsg(cudaMemcpy(res->PtrDevice(), res->Ptr(), res->Size(), cudaMemcpyHostToDevice));
 	else return GPUFailedMsg(cudaMemcpyAsync(res->PtrDevice(), res->Ptr(), res->Size(), cudaMemcpyHostToDevice, mInternals->CudaStreams[stream]));
 }
 
-int AliGPUReconstructionCUDABackend::TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream, int nEvents, deviceEvent* evList, deviceEvent* ev)
+int AliGPUReconstructionCUDABackend::TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents)
 {
+	//if (evList == nullptr) nEvents = 0;
 	if (mDeviceProcessingSettings.debugLevel >= 3) stream = -1;
 	if (mDeviceProcessingSettings.debugLevel >= 3) printf("Copying to Host: %s\n", res->Name());
 	if (stream == -1) return GPUFailedMsg(cudaMemcpy(res->Ptr(), res->PtrDevice(), res->Size(), cudaMemcpyDeviceToHost));

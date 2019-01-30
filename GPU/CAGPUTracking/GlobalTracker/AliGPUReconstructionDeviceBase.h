@@ -14,9 +14,7 @@ public:
 	
 	virtual int GetMaxThreads() override;
 
-protected:
-	typedef void deviceEvent;
-	
+protected:	
 	AliGPUReconstructionDeviceBase(const AliGPUCASettingsProcessing& cfg);
 	AliGPUCAConstantMem mGPUReconstructors;
 	void* fGPUMergerHostMemory = nullptr;
@@ -41,12 +39,12 @@ protected:
 	virtual int PrepareProfile();
 	virtual int DoProfile();
 	
-	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) = 0;
-	virtual int TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) = 0;
+	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) = 0;
+	virtual int TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) = 0;
 	int TransferMemoryResourcesToGPU(AliGPUProcessor* proc, int stream = -1, bool all = false) {return TransferMemoryResourcesHelper(proc, stream, all, true);}
 	int TransferMemoryResourcesToHost(AliGPUProcessor* proc, int stream = -1, bool all = false) {return TransferMemoryResourcesHelper(proc, stream, all, false);}
-	int TransferMemoryResourceLinkToGPU(short res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) {return TransferMemoryResourceToGPU(&mMemoryResources[res], stream, nEvents, evList, ev);}
-	int TransferMemoryResourceLinkToHost(short res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) {return TransferMemoryResourceToHost(&mMemoryResources[res], stream, nEvents, evList, ev);}
+	int TransferMemoryResourceLinkToGPU(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) {return TransferMemoryResourceToGPU(&mMemoryResources[res], stream, ev, evList, nEvents);}
+	int TransferMemoryResourceLinkToHost(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) {return TransferMemoryResourceToHost(&mMemoryResources[res], stream, ev, evList, nEvents);}
 
 	struct helperParam
 	{

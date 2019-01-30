@@ -19,10 +19,14 @@ template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPC
 template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCTrackletConstructor, cl_kernel>() {return mInternals->kernel_tracklet_constructor;}
 template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCTrackletSelector, cl_kernel>() {return mInternals->kernel_tracklet_selector;}
 
-template <class T, typename... Args> int AliGPUReconstructionOCLBackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const Args&... args)
+template <class T, typename... Args> int AliGPUReconstructionOCLBackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
 {
-	if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelBackend<T>(x, y, args...);
-	if (y.num == 0)
+	if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelBackend<T>(x, y, z, args...);
+	if (y.num == (unsigned int) -1)
+	{
+		if (OCLsetKernelParameters(getKernelObject<T, cl_kernel>(), mInternals->mem_gpu, mInternals->mem_constant, args...)) return 1;
+	}
+	else if (y.num == 0)
 	{
 		if (OCLsetKernelParameters(getKernelObject<T, cl_kernel>(), mInternals->mem_gpu, mInternals->mem_constant, y.start, args...)) return 1;
 	}
@@ -30,7 +34,7 @@ template <class T, typename... Args> int AliGPUReconstructionOCLBackend::runKern
 	{
 		if (OCLsetKernelParameters(getKernelObject<T, cl_kernel>(), mInternals->mem_gpu, mInternals->mem_constant, y.start, y.num, args...)) return 1;
 	}
-	return clExecuteKernelA(mInternals->command_queue[x.stream], getKernelObject<T, cl_kernel>(), x.nThreads, x.nThreads * x.nBlocks, nullptr);
+	return clExecuteKernelA(mInternals->command_queue[x.stream], getKernelObject<T, cl_kernel>(), x.nThreads, x.nThreads * x.nBlocks, (cl_event*) z.ev, (cl_event*) z.evList, z.nEvents);
 }
 
 AliGPUReconstructionOCLBackend::AliGPUReconstructionOCLBackend(const AliGPUCASettingsProcessing& cfg) : AliGPUReconstructionDeviceBase(cfg)
@@ -428,7 +432,7 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 
 		//Copy Data to GPU Global Memory
 		mWorkers->tpcTrackers[iSlice].StartTimer(0);
-		if (TransferMemoryResourceLinkToGPU(mWorkers->tpcTrackers[iSlice].Data().MemoryResInput(), useStream, mInternals->cl_queue_event_done[useStream] ? 0 : 1, mInternals->cl_queue_event_done[useStream] ? nullptr : &initEvent, nullptr) ||
+		if (TransferMemoryResourceLinkToGPU(mWorkers->tpcTrackers[iSlice].Data().MemoryResInput(), useStream, nullptr, mInternals->cl_queue_event_done[useStream] ? nullptr : &initEvent) ||
 			TransferMemoryResourceLinkToGPU(mWorkers->tpcTrackers[iSlice].Data().MemoryResRows(), useStream) ||
 			TransferMemoryResourceLinkToGPU(mWorkers->tpcTrackers[iSlice].MemoryResCommon(), useStream))
 		{
@@ -525,9 +529,8 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 	}
 
 	cl_event constructorEvent;
-	OCLsetKernelParameters(mInternals->kernel_tracklet_constructor, mInternals->mem_gpu, mInternals->mem_constant);
 	mWorkers->tpcTrackers[0].StartTimer(6);
-	clExecuteKernelA(mInternals->command_queue[0], mInternals->kernel_tracklet_constructor, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR * fConstructorBlockCount, &constructorEvent, initEvents2, 3);
+	runKernel<AliGPUTPCTrackletConstructor>({fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR, 0}, krnlRunRangeNone, {&constructorEvent, initEvents2, 3});
 	for (int i = 0;i < 3;i++)
 	{
 		clReleaseEvent(initEvents2[i]);
@@ -574,7 +577,7 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 		mWorkers->tpcTrackers[iSlice].StopTimer(7);
 		for (unsigned int k = iSlice;k < iSlice + runSlices;k++)
 		{
-			if (TransferMemoryResourceLinkToHost(mWorkers->tpcTrackers[k].MemoryResCommon(), useStream, 0, nullptr, &mInternals->selector_events[k]))
+			if (TransferMemoryResourceLinkToHost(mWorkers->tpcTrackers[k].MemoryResCommon(), useStream, &mInternals->selector_events[k]))
 			{
 				CAGPUImportant("Error transferring number of tracks from GPU to host");
 				return(3);
@@ -690,16 +693,18 @@ int AliGPUReconstructionOCLBackend::ExitDevice_Runtime()
 	return(0);
 }
 
-int AliGPUReconstructionOCLBackend::TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream, int nEvents, deviceEvent* evList, deviceEvent* ev)
+int AliGPUReconstructionOCLBackend::TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents)
 {
+	if (evList == nullptr) nEvents = 0;
 	if (mDeviceProcessingSettings.debugLevel >= 3) stream = -1;
 	if (mDeviceProcessingSettings.debugLevel >= 3) printf("Copying to GPU: %s\n", res->Name());
 	if (stream == -1) SynchronizeGPU();
 	return GPUFailedMsg(clEnqueueWriteBuffer(mInternals->command_queue[stream == -1 ? 0 : stream], mInternals->mem_gpu, stream >= 0, (char*) res->PtrDevice() - (char*) mDeviceMemoryBase, res->Size(), res->Ptr(), nEvents, (cl_event*) evList, (cl_event*) ev));
 }
 
-int AliGPUReconstructionOCLBackend::TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream, int nEvents, deviceEvent* evList, deviceEvent* ev)
+int AliGPUReconstructionOCLBackend::TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents)
 {
+	if (evList == nullptr) nEvents = 0;
 	if (mDeviceProcessingSettings.debugLevel >= 3) stream = -1;
 	if (mDeviceProcessingSettings.debugLevel >= 3) printf("Copying to Host: %s\n", res->Name());
 	if (stream == -1) SynchronizeGPU();
