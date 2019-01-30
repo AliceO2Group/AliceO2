@@ -137,8 +137,8 @@ int Digitizer::processHit(const Hit& hit, double event_time)
   std::vector<int> padIDsnon;
 
   //retrieve pads with signal
-  mSeg[indexID].Bending().forEachPadInArea(xMin, yMin, xMax, yMax, [&padIDsbend](int padid) { padIDsbend.emplace_back(padid); });
-  mSeg[indexID].NonBending().forEachPadInArea(xMin, yMin, xMax, yMax, [&padIDsnon](int padid) { padIDsnon.emplace_back(padid); });
+  mSeg[indexID].bending().forEachPadInArea(xMin, yMin, xMax, yMax, [&padIDsbend](int padid) { padIDsbend.emplace_back(padid); });
+  mSeg[indexID].nonBending().forEachPadInArea(xMin, yMin, xMax, yMax, [&padIDsnon](int padid) { padIDsnon.emplace_back(padid); });
 
   //induce signal pad-by-pad: bending
   for (auto& padidbend : padIDsbend) {

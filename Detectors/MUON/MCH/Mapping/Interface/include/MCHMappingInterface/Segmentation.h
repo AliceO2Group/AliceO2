@@ -60,49 +60,13 @@ class Segmentation
 {
  public:
   /// This ctor throws if deid is invalid
-  Segmentation(int deid) : mDetElemId{ deid }, mBending{ CathodeSegmentation(deid, true) }, mNonBending{ CathodeSegmentation(deid, false) }, mPadIndexOffset{ mBending.nofPads() } {}
-
-  bool operator==(const Segmentation& rhs) const
-  {
-    return mDetElemId == rhs.mDetElemId;
-  }
-
-  bool operator!=(const Segmentation& rhs) const { return !(rhs == *this); }
-
-  friend void swap(Segmentation& a, Segmentation& b)
-  {
-    using std::swap;
-    swap(a.mDetElemId, b.mDetElemId);
-  }
-
-  Segmentation(const Segmentation& seg) : mBending{ seg.mBending }, mNonBending{ seg.mNonBending }
-  {
-    mDetElemId = seg.mDetElemId;
-  }
-
-  Segmentation(const Segmentation&& seg) : mBending{ std::move(seg.mBending) }, mNonBending{ std::move(seg.mNonBending) }
-  {
-    mDetElemId = seg.mDetElemId;
-  }
-  Segmentation& operator=(Segmentation seg)
-  {
-    swap(*this, seg);
-    return *this;
-  }
+  Segmentation(int deid);
 
   /** @name Some general characteristics of this segmentation. */
   ///@{
-  int detElemId() const { return mDetElemId; }
-  int nofPads() const { return mBending.nofPads() + mNonBending.nofPads(); }
-  int nofDualSampas() const { return mBending.nofDualSampas() + mNonBending.nofDualSampas(); }
-  ///@}
-
-  /** @name Access to individual cathode segmentations. 
-    * Not needed in most cases.
-    */
-  ///@{
-  const CathodeSegmentation& Bending() const { return mBending; }
-  const CathodeSegmentation& NonBending() const { return mNonBending; }
+  int detElemId() const;
+  int nofPads() const;
+  int nofDualSampas() const;
   ///@}
 
   /** @name Pad finding.
@@ -155,6 +119,21 @@ class Segmentation
   void forEachPadInArea(double xmin, double ymin, double xmax, double ymax, CALLABLE&& func) const;
   ///@}
 
+  /** @name Access to individual cathode segmentations. 
+    * Not needed in most cases.
+    */
+  ///@{
+  const CathodeSegmentation& bending() const;
+  const CathodeSegmentation& nonBending() const;
+  ///@}
+
+  bool operator==(const Segmentation& rhs) const;
+  bool operator!=(const Segmentation& rhs) const;
+  friend void swap(Segmentation& a, Segmentation& b);
+  Segmentation(const Segmentation& seg);
+  Segmentation(const Segmentation&& seg);
+  Segmentation& operator=(Segmentation seg);
+
  private:
   int padC2DE(int catPadIndex, bool isBending) const;
   void catSegPad(int dePadIndex, const CathodeSegmentation*& catseg, int& padcuid) const;
@@ -166,164 +145,10 @@ class Segmentation
   int mPadIndexOffset = 0;
 };
 
-inline int Segmentation::findPadByFEE(int dualSampaId, int dualSampaChannel) const
-{
-  bool isBending = dualSampaId < 1024;
-  int catPadIndex;
-  if (isBending) {
-    catPadIndex = mBending.findPadByFEE(dualSampaId, dualSampaChannel);
-    if (!mBending.isValid(catPadIndex)) {
-      return -1;
-    }
-  } else {
-    catPadIndex = mNonBending.findPadByFEE(dualSampaId, dualSampaChannel);
-    if (!mNonBending.isValid(catPadIndex)) {
-      return -1;
-    }
-  }
-  return padC2DE(catPadIndex, isBending);
-}
-
-inline bool Segmentation::isValid(int dePadIndex) const
-{
-  if (dePadIndex < mPadIndexOffset) {
-    return mBending.isValid(dePadIndex);
-  }
-  return mNonBending.isValid(dePadIndex - mPadIndexOffset);
-}
-
-inline int Segmentation::padC2DE(int catPadIndex, bool isBending) const
-{
-  if (isBending) {
-    return catPadIndex;
-  }
-  return catPadIndex + mPadIndexOffset;
-}
-
-inline void Segmentation::catSegPad(int dePadIndex, const CathodeSegmentation*& catseg, int& padcuid) const
-{
-  if (!isValid(dePadIndex)) {
-    catseg = nullptr;
-    return;
-  }
-  if (dePadIndex < mPadIndexOffset) {
-    catseg = &mBending;
-    padcuid = dePadIndex;
-    return;
-  }
-  catseg = &mNonBending;
-  padcuid = dePadIndex - mPadIndexOffset;
-}
-
-inline bool Segmentation::findPadPairByPosition(double x, double y, int& b, int& nb) const
-{
-  b = mBending.findPadByPosition(x, y);
-  nb = mNonBending.findPadByPosition(x, y);
-  if (!mBending.isValid(b) || !mNonBending.isValid(nb)) {
-    return false;
-  }
-  b = padC2DE(b, true);
-  nb = padC2DE(nb, false);
-  return true;
-}
-
-template <typename CALLABLE>
-void Segmentation::forEachPad(CALLABLE&& func) const
-{
-  mBending.forEachPad(func);
-  int offset{ mPadIndexOffset };
-  mNonBending.forEachPad([&offset, &func](int catPadIndex) {
-    func(catPadIndex + offset);
-  });
-}
-
-template <typename CALLABLE>
-void Segmentation::forEachPadInArea(double xmin, double ymin, double xmax, double ymax, CALLABLE&& func) const
-{
-  mBending.forEachPadInArea(xmin, ymin, xmax, ymax, func);
-  int offset{ mPadIndexOffset };
-  mNonBending.forEachPadInArea(xmin, ymin, xmax, ymax, [&offset, &func](int catPadIndex) {
-    func(catPadIndex + offset);
-  });
-}
-
-template <typename CALLABLE>
-void Segmentation::forEachNeighbouringPad(int dePadIndex, CALLABLE&& func) const
-{
-  const CathodeSegmentation* catSeg{ nullptr };
-  int catPadIndex;
-  catSegPad(dePadIndex, catSeg, catPadIndex);
-
-  int offset{ 0 };
-  if (!isBendingPad(dePadIndex)) {
-    offset = mPadIndexOffset;
-  }
-  catSeg->forEachNeighbouringPad(catPadIndex, [&offset, &func](int cindex) {
-    func(cindex + offset);
-  });
-}
-
-inline std::string Segmentation::padAsString(int dePadIndex) const
-{
-  if (!isValid(dePadIndex)) {
-    return "invalid pad with index=" + std::to_string(dePadIndex);
-  }
-  const CathodeSegmentation* catSeg{ nullptr };
-  int catPadIndex;
-  catSegPad(dePadIndex, catSeg, catPadIndex);
-  return catSeg->padAsString(catPadIndex);
-}
-
-inline int Segmentation::padDualSampaId(int dePadIndex) const
-{
-  const CathodeSegmentation* catSeg{ nullptr };
-  int catPadIndex;
-  catSegPad(dePadIndex, catSeg, catPadIndex);
-  return catSeg->padDualSampaId(catPadIndex);
-}
-
-inline int Segmentation::padDualSampaChannel(int dePadIndex) const
-{
-  const CathodeSegmentation* catSeg{ nullptr };
-  int catPadIndex;
-  catSegPad(dePadIndex, catSeg, catPadIndex);
-  return catSeg->padDualSampaChannel(catPadIndex);
-}
-
-inline double Segmentation::padPositionX(int dePadIndex) const
-{
-  const CathodeSegmentation* catSeg{ nullptr };
-  int catPadIndex;
-  catSegPad(dePadIndex, catSeg, catPadIndex);
-  return catSeg->padPositionX(catPadIndex);
-}
-
-inline double Segmentation::padPositionY(int dePadIndex) const
-{
-  const CathodeSegmentation* catSeg{ nullptr };
-  int catPadIndex;
-  catSegPad(dePadIndex, catSeg, catPadIndex);
-  return catSeg->padPositionY(catPadIndex);
-}
-
-inline double Segmentation::padSizeX(int dePadIndex) const
-{
-  const CathodeSegmentation* catSeg{ nullptr };
-  int catPadIndex;
-  catSegPad(dePadIndex, catSeg, catPadIndex);
-  return catSeg->padSizeX(catPadIndex);
-}
-
-inline double Segmentation::padSizeY(int dePadIndex) const
-{
-  const CathodeSegmentation* catSeg{ nullptr };
-  int catPadIndex;
-  catSegPad(dePadIndex, catSeg, catPadIndex);
-  return catSeg->padSizeY(catPadIndex);
-}
-
 } // namespace mapping
 } // namespace mch
 } // namespace o2
+
+#include "Segmentation.inl"
 
 #endif
