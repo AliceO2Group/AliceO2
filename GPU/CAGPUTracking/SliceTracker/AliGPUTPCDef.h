@@ -16,20 +16,6 @@
 	#define WIN32
 #endif
 
-#if defined(WIN32) && defined(INTEL_RUNTIME)
-	#pragma warning(disable : 1786)
-	#pragma warning(disable : 1478)
-	#pragma warning(disable : 161)
-	#pragma warning(disable : 94)
-	#pragma warning(disable : 1229)
-#endif
-
-#if defined(WIN32) && defined(VSNET_RUNTIME)
-	#pragma warning(disable : 4616)
-	#pragma warning(disable : 4996)
-	#pragma warning(disable : 1684)
-#endif
-
 #include "AliTPCCommonRtypes.h"
 
 #include "AliTPCCommonDef.h"
