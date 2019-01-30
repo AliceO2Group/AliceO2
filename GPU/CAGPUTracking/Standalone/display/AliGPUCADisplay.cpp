@@ -41,7 +41,7 @@
 #endif
 
 //#define CHKERR(cmd) {cmd;}
-#define CHKERR(cmd) {(cmd); GLenum err = glGetError(); while (err != GL_NO_ERROR) {printf("OpenGL Error %d: %s (%s: %d)\n", err, gluErrorString(err), __FILE__, __LINE__);exit(1);}}
+#define CHKERR(cmd) {(cmd); GLenum err = glGetError(); while (err != GL_NO_ERROR) {printf("OpenGL Error %d: %s (%s: %d)\n", err, gluErrorString(err), __FILE__, __LINE__);throw std::runtime_error("OpenGL Failure");}}
 
 #define OPENGL_EMULATE_MULTI_DRAW 0
 
