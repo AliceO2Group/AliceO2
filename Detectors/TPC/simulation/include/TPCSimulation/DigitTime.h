@@ -107,8 +107,10 @@ inline void DigitTime::fillOutputContainer(std::vector<Digit>* output, dataforma
   static Mapper& mapper = Mapper::instance();
   GlobalPadNumber globalPad = 0;
   for (auto& pad : mGlobalPads) {
-    const int cru = mapper.getCRU(sector, globalPad);
-    pad.fillOutputContainer<MODE>(output, mcTruth, debug, cru, timeBin, globalPad, getCommonMode(cru));
+    if (pad.getChargePad() > 0.) {
+      const int cru = mapper.getCRU(sector, globalPad);
+      pad.fillOutputContainer<MODE>(output, mcTruth, debug, cru, timeBin, globalPad, getCommonMode(cru));
+    }
     ++globalPad;
   }
 }
