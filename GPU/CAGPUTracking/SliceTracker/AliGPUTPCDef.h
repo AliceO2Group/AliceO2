@@ -16,6 +16,25 @@
 #include "AliTPCCommonDef.h"
 #include "AliGPUTPCSettings.h"
 
+//Macros for GRID dimension
+#if defined(__CUDACC__)
+	#define get_global_id(dim) (blockIdx.x * blockDim.x + threadIdx.x)
+	#define get_global_size(dim) (blockDim.x * gridDim.x)
+	#define get_num_groups(dim) (gridDim.x)
+	#define get_local_id(dim) (threadIdx.x)
+	#define get_local_size(dim) (blockDim.x)
+	#define get_group_id(dim) (blockIdx.x)
+#elif defined(__OPENCL__)
+	//Using OpenCL defaults
+#else
+	#define get_global_id(dim) iBlock
+	#define get_global_size(dim) nBlocks
+	#define get_num_groups(dim) nBlocks
+	#define get_local_id(dim) 0
+	#define get_local_size(dim) 1
+	#define get_group_id(dim) iBlock
+#endif
+
 //Special macros for OpenCL 1.2 version
 enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
 #if defined(__OPENCL__)

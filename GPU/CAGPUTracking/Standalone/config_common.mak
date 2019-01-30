@@ -48,6 +48,7 @@ CXXFILES					= SliceTracker/AliGPUTPCSliceData.cxx \
 								GlobalTracker/AliGPUProcessor.cxx \
 								GlobalTracker/AliGPUMemoryResource.cxx \
 								GlobalTracker/AliGPUCASettings.cxx \
+								GlobalTracker/AliGPUGeneralKernels.cxx \
 								TPCFastTransformation/TPCFastTransform.cxx \
 								TPCFastTransformation/TPCDistortionIRS.cxx \
 								TPCFastTransformation/IrregularSpline1D.cxx \

@@ -18,6 +18,7 @@ template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPC
 template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCStartHitsSorter, cl_kernel>() {return mInternals->kernel_start_hits_sorter;}
 template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCTrackletConstructor, cl_kernel>() {return mInternals->kernel_tracklet_constructor;}
 template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCTrackletSelector, cl_kernel>() {return mInternals->kernel_tracklet_selector;}
+template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUMemClean16, cl_kernel>() {return mInternals->kernel_memclean16;}
 
 template <class T, typename... Args> int AliGPUReconstructionOCLBackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
 {
@@ -262,7 +263,7 @@ int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 	}
 	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("OpenCL program loaded successfully");
 
-	mInternals->kernel_row_blocks = clCreateKernel(mInternals->program, "PreInitRowBlocks", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 1");return(1);}
+	mInternals->kernel_memclean16 = clCreateKernel(mInternals->program, "KernelMemClean16", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 1");return(1);}
 	mInternals->kernel_neighbours_finder = clCreateKernel(mInternals->program, "AliGPUTPCProcess_AliGPUTPCNeighboursFinder", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 1");return(1);}
 	mInternals->kernel_neighbours_cleaner = clCreateKernel(mInternals->program, "AliGPUTPCProcess_AliGPUTPCNeighboursCleaner", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 2");return(1);}
 	mInternals->kernel_start_hits_finder = clCreateKernel(mInternals->program, "AliGPUTPCProcess_AliGPUTPCStartHitsFinder", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 3");return(1);}
@@ -392,6 +393,7 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 
 	//Copy Tracker Object to GPU Memory
 	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Copying Tracker objects to GPU");
+	if (PrepareProfile()) return 2;
 
 	cl_event initEvent;
 	if (GPUFailedMsg(clEnqueueWriteBuffer(mInternals->command_queue[0], mInternals->mem_constant, CL_FALSE, (char*) &mDeviceConstantMem->param - (char*) mDeviceConstantMem, sizeof(mParam), &mParam, 0, nullptr, nullptr)))
@@ -423,8 +425,7 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 
 		//Initialize temporary memory where needed
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Copying Slice Data to GPU and initializing temporary memory");
-		OCLsetKernelParameters(mInternals->kernel_row_blocks, mInternals->mem_gpu, mInternals->mem_constant, iSlice);
-		clExecuteKernelA(mInternals->command_queue[2], mInternals->kernel_row_blocks, GPUCA_GPU_THREAD_COUNT, GPUCA_GPU_THREAD_COUNT * fConstructorBlockCount, nullptr, &initEvent);
+		runKernel<AliGPUMemClean16>({fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT, 2}, krnlRunRangeNone, {&initEvent}, mWorkersShadow->tpcTrackers[iSlice].Data().HitWeights(), mWorkersShadow->tpcTrackers[iSlice].Data().NumberOfHitsPlusAlign() * sizeof(*mWorkersShadow->tpcTrackers[iSlice].Data().HitWeights()));
 		if (GPUSync("Initialization (2)", 2, iSlice) RANDOM_ERROR)
 		{
 			return(3);
@@ -567,6 +568,7 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 			CAGPUError("Insufficient number of blocks for tracklet selector");
 			return(1);
 		}
+		
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running HLT Tracklet selector (Stream %d, Slice %d to %d)", useStream, iSlice, iSlice + runSlices);
 		mWorkers->tpcTrackers[iSlice].StartTimer(7);
 		runKernel<AliGPUTPCTrackletSelector>({fSelectorBlockCount, GPUCA_GPU_THREAD_COUNT_SELECTOR, useStream}, {iSlice, runSlices});
@@ -661,7 +663,7 @@ int AliGPUReconstructionOCLBackend::ExitDevice_Runtime()
 		clReleaseKernel(mInternals->kernel_start_hits_sorter);
 		clReleaseKernel(mInternals->kernel_tracklet_constructor);
 		clReleaseKernel(mInternals->kernel_tracklet_selector);
-		clReleaseKernel(mInternals->kernel_row_blocks);
+		clReleaseKernel(mInternals->kernel_memclean16);
 	}
 	if (mHostMemoryBase)
 	{

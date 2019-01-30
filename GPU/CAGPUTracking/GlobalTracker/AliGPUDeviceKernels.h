@@ -1,6 +1,8 @@
 #ifndef ALIGPUDEVICEKERNELS_H
 #define ALIGPUDEVICEKERNELS_H
 
+#include "AliGPUTPCDef.h"
+
 #include "AliGPUTPCTrackParam.cxx"
 #include "AliGPUTPCTrack.cxx"
 
@@ -16,6 +18,8 @@
 #include "AliGPUTPCStartHitsFinder.cxx"
 #include "AliGPUTPCStartHitsSorter.cxx"
 #include "AliGPUTPCTrackletConstructor.cxx"
+
+#include "AliGPUGeneralKernels.cxx"
 
 #ifndef __OPENCL__
 	#ifdef GPUCA_GPU_MERGER

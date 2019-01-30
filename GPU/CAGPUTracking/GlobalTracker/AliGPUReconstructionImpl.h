@@ -11,6 +11,7 @@
 #include "AliGPUTPCStartHitsSorter.h"
 #include "AliGPUTPCTrackletConstructor.h"
 #include "AliGPUTPCTrackletSelector.h"
+#include "AliGPUGeneralKernels.h"
 
 namespace AliGPUReconstruction_krnlHelpers {
 template <class T> class classArgument {};
@@ -61,6 +62,7 @@ protected:
 	virtual int runKernelImpl(classArgument<AliGPUTPCStartHitsSorter>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) {return T::template runKernelBackend<AliGPUTPCStartHitsSorter>(x, y, z);}
 	virtual int runKernelImpl(classArgument<AliGPUTPCTrackletConstructor>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) {return T::template runKernelBackend<AliGPUTPCTrackletConstructor>(x, y, z);}
 	virtual int runKernelImpl(classArgument<AliGPUTPCTrackletSelector>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) {return T::template runKernelBackend<AliGPUTPCTrackletSelector>(x, y, z);}
+	virtual int runKernelImpl(classArgument<AliGPUMemClean16>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, void* ptr, unsigned long size) {return T::template runKernelBackend<AliGPUMemClean16>(x, y, z, ptr, size);}
 };
 
 class AliGPUReconstructionCPUBackend : public AliGPUReconstruction
@@ -96,7 +98,7 @@ class AliGPUReconstructionCPU : public AliGPUReconstructionImpl<AliGPUReconstruc
 public:
 	virtual ~AliGPUReconstructionCPU() = default;
 	
-	template <class S, typename... Args> inline int runKernel(const krnlExec& x, const krnlRunRange& y = krnlRunRange(0, -1), const krnlEvent& z = krnlEvent(), const Args&... args)
+	template <class S, typename... Args> inline int runKernel(const krnlExec& x, const krnlRunRange& y = krnlRunRangeNone, const krnlEvent& z = krnlEvent(), const Args&... args)
 	{
 		return runKernelImpl(classArgument<S>(), x, y, z, args...);
 	}

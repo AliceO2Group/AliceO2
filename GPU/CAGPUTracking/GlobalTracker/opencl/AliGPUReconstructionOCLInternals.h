@@ -118,7 +118,7 @@ struct AliGPUReconstructionOCLInternals
 	cl_event* selector_events;
 	cl_program program;
 
-	cl_kernel kernel_neighbours_finder, kernel_neighbours_cleaner, kernel_start_hits_finder, kernel_start_hits_sorter, kernel_tracklet_constructor, kernel_tracklet_selector, kernel_row_blocks;
+	cl_kernel kernel_neighbours_finder, kernel_neighbours_cleaner, kernel_start_hits_finder, kernel_start_hits_sorter, kernel_tracklet_constructor, kernel_tracklet_selector, kernel_memclean16;
 };
 
 static_assert(std::is_convertible<cl_event, void*>::value, "OpenCL event type incompatible to deviceEvent");

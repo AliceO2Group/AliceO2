@@ -48,7 +48,7 @@ class AliGPUTPCStartHitsSorter
 	GPUd() static int NThreadSyncPoints() { return 1; }
 
 	GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, int iSync,
-	                          GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) & smem, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) & tracker);
+	                          GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &smem, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker);
 };
 
 #endif //ALIHLTTPCCASTARTHITSSORTER_H

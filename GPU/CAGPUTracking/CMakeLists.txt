@@ -77,6 +77,7 @@ set(SRCS_NO_CINT
     GlobalTracker/AliGPUCASettings.cxx
     GlobalTracker/AliGPUProcessor.cxx
     GlobalTracker/AliGPUMemoryResource.cxx
+    GlobalTracker/AliGPUGeneralKernels.cxx
     Standalone/cmodules/timer.cpp
 )
 

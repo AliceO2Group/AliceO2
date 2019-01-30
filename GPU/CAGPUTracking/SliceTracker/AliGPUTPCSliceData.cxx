@@ -162,7 +162,7 @@ void* AliGPUTPCSliceData::SetPointersScratch(void* mem)
 {
 	computePointerWithAlignment(mem, fLinkUpData, fNumberOfHitsPlusAlign);
 	computePointerWithAlignment(mem, fLinkDownData, fNumberOfHitsPlusAlign);
-	computePointerWithAlignment(mem, fHitWeights, fNumberOfHitsPlusAlign);
+	computePointerWithAlignment(mem, fHitWeights, fNumberOfHitsPlusAlign + 16 / sizeof(*fHitWeights));
 	return mem;
 }
 
@@ -386,22 +386,4 @@ int AliGPUTPCSliceData::InitFromClusterData()
 	delete[] tmpHitIndex;
 
 	return (0);
-}
-
-void AliGPUTPCSliceData::ClearHitWeights()
-{
-	// clear hit weights
-#ifdef ENABLE_VECTORIZATION
-	const int v0(Zero);
-	const int *const end = fHitWeights + fNumberOfHits;
-	for (int *mem = fHitWeights; mem < end; mem += v0.Size)
-	{
-		v0.store(mem);
-	}
-#else
-	for (int i = 0; i < fNumberOfHitsPlusAlign; ++i)
-	{
-		fHitWeights[i] = 0;
-	}
-#endif
 }
