@@ -23,7 +23,7 @@
 
 using namespace o2::TPC;
 
-SAMPAProcessing::SAMPAProcessing() : mRandomNoiseRing(RandomRing::RandomType::Gaus)
+SAMPAProcessing::SAMPAProcessing() : mRandomNoiseRing()
 {
   updateParameters();
 }

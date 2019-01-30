@@ -75,9 +75,9 @@ class ElectronTransport
 
   /// Circular random buffer containing random values of the Gauss distribution to take into account diffusion of the
   /// electrons
-  RandomRing mRandomGaus;
+  RandomRing<> mRandomGaus;
   /// Circular random buffer containing flat random values to take into account electron attachment during drift
-  RandomRing mRandomFlat;
+  RandomRing<> mRandomFlat;
 
   std::array<double, 18> mSinsPerSector{
     { 0, 0.3420201433256687129080830800376133993268, 0.6427876096865392518964199553010985255241,

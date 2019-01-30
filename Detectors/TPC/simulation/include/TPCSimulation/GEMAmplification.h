@@ -87,11 +87,11 @@ class GEMAmplification
 
   /// Circular random buffer containing random Gaus values for gain fluctuation if the number of electrons is larger
   /// (central limit theorem)
-  RandomRing mRandomGaus;
+  RandomRing<> mRandomGaus;
   /// Circular random buffer containing flat random values for the collection/extraction
-  RandomRing mRandomFlat;
+  RandomRing<> mRandomFlat;
   /// Container with random Polya distributions, one for each GEM in the stack
-  std::array<RandomRing, 4> mGain;
+  std::array<RandomRing<>, 4> mGain;
 
   const ParameterGEM* mGEMParam; ///< Caching of the parameter class to avoid multiple CDB calls
   const ParameterGas* mGasParam; ///< Caching of the parameter class to avoid multiple CDB calls

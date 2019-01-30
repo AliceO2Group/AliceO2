@@ -25,7 +25,7 @@ using boost::format;
 
 GEMAmplification::GEMAmplification()
   : mRandomGaus(),
-    mRandomFlat(),
+    mRandomFlat(RandomRing<>::RandomType::Flat),
     mGain()
 {
   updateParameters();
@@ -77,8 +77,6 @@ GEMAmplification::GEMAmplification()
 
   if (outfile)
     outfile->Close();
-  mRandomGaus.initialize(RandomRing::RandomType::Gaus);
-  mRandomFlat.initialize(RandomRing::RandomType::Flat);
   watch.Stop();
   LOG(INFO) << "TPC GEM SETUP (POLYA-DISTRIBUTION) TOOK " << watch.CpuTime();
 }
