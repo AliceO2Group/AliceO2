@@ -3,27 +3,35 @@
 
 #include "AliGPUTPCTracker.h"
 #include "AliGPUCAParam.h"
-#include "AliGPUTPCGMMerger.h"
 
-#if !defined(GPUCA_GPULIBRARY) || !defined(GPUCA_ALIROOT_LIB)
+#if !defined(__OPENCL__)
+#include "AliGPUTPCGMMerger.h"
+#else
+class AliGPUTPCGMMerger {};
+#endif
+
+#if !defined(__OPENCL__) && (!defined(GPUCA_GPULIBRARY) || !defined(GPUCA_ALIROOT_LIB))
 #include "AliGPUTRDTracker.h"
 #else
 class AliGPUTRDTracker {void SetMaxData(){}};
 #endif
 
+MEM_CLASS_PRE()
 struct AliGPUCAWorkers
 {
-	AliGPUTPCTracker tpcTrackers[36];
+	MEM_LG(AliGPUTPCTracker) tpcTrackers[36];
 	AliGPUTPCGMMerger tpcMerger;
 	AliGPUTRDTracker trdTracker;
 };
 
+MEM_CLASS_PRE()
 struct AliGPUCAConstants
 {
-	AliGPUCAParam param;
+	MEM_LG(AliGPUCAParam) param;
 };
 
-struct AliGPUCAConstantMem : public AliGPUCAConstants, public AliGPUCAWorkers
+MEM_CLASS_PRE()
+struct AliGPUCAConstantMem : public MEM_LG(AliGPUCAConstants), public MEM_LG(AliGPUCAWorkers)
 {};
 
 #endif
