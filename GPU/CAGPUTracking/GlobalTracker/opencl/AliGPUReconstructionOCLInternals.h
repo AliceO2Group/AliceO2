@@ -76,14 +76,19 @@ static const char* opencl_error_string(int errorcode)
 }
 
 #define GPUFailedMsg(x) GPUFailedMsgA(x, __FILE__, __LINE__)
+#define GPUFailedMsgI(x) GPUFailedMsgAI(x, __FILE__, __LINE__)
 
-static int GPUFailedMsgA(int error, const char* file, int line)
+static int GPUFailedMsgAI(int error, const char* file, int line)
 {
 	//Check for OPENCL Error and in the case of an error display the corresponding error string
 	if (error == CL_SUCCESS) return(0);
 	printf("OCL Error: %d / %s (%s:%d)\n", error, opencl_error_string(error), file, line);
-	//throw std::runtime_error("OpenCL Failure");
 	return 1;
+}
+
+static void GPUFailedMsgA(const long long int error, const char* file, int line)
+{
+	if (GPUFailedMsgAI(error, file, line)) throw std::runtime_error("CUDA Failure");
 }
 
 static inline int OCLsetKernelParameters_helper(cl_kernel &k,int i) {return 0;}
