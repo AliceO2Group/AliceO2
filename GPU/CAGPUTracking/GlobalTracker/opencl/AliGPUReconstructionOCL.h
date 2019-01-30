@@ -34,14 +34,11 @@ protected:
 	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) override;
 	virtual int TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream = -1, int nEvents = 0, deviceEvent* evList = nullptr, deviceEvent* ev = nullptr) override;
 	
-	template <class T, typename... Args> int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const Args&... args)
-	{
-		if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelBackend<T>(x, y, args...);
-		printf("Running kernel OCL\n");
-		return 0;
-	}
+	template <class T, typename... Args> int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const Args&... args);
 
 private:
+	template <class T, class S> S& getKernelObject();
+	
 	AliGPUReconstructionOCLInternals* mInternals;
 };
 
