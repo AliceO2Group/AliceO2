@@ -81,10 +81,7 @@ protected:
 			for (unsigned int iB = 0; iB < x.nBlocks; iB++)
 			{
 				typename T::AliGPUTPCSharedMemory smem;
-				for (int iS = 0; iS <= T::NThreadSyncPoints(); iS++)
-				{
-					T::Thread(x.nBlocks, 1, iB, 0, iS, smem, mWorkers->tpcTrackers[y.start + k], args...);
-				}
+				T::Thread(x.nBlocks, 1, iB, 0, smem, mWorkers->tpcTrackers[y.start + k], args...);
 			}
 		}
 		return 0;

@@ -4,7 +4,7 @@ GPUdi() int AliGPUTPCTrackletConstructor::FetchTracklet(GPUconstant() MEM_CONSTA
 {
 	const int nativeslice = get_group_id(0) % 36;
 	const int nTracklets = *tracker.NTracklets();
-	GPUsync();
+	GPUbarrier();
 	if (get_local_id(0) == 0)
 	{
 		if (sMem.fNextTrackletFirstRun == 1)
@@ -26,7 +26,7 @@ GPUdi() int AliGPUTPCTrackletConstructor::FetchTracklet(GPUconstant() MEM_CONSTA
 			}
 		}
 	}
-	GPUsync();
+	GPUbarrier();
 	return (sMem.fNextTrackletFirst);
 }
 
@@ -69,7 +69,7 @@ GPUdi() void AliGPUTPCTrackletConstructor::AliGPUTPCTrackletConstructorGPU(GPUco
 				{
 					reinterpret_cast<GPUsharedref() int*>(&sMem.fRows)[i] = reinterpret_cast<GPUglobalref() int*>(tracker.SliceDataRows())[i];
 				}
-				GPUsync();
+				GPUbarrier();
 				currentSlice = mySlice;
 			}
 
@@ -92,7 +92,7 @@ GPUdi() void AliGPUTPCTrackletConstructor::AliGPUTPCTrackletConstructorSingleSli
 	{
 		reinterpret_cast<GPUsharedref() int*>(&sMem.fRows)[i] = reinterpret_cast<GPUglobalref() int*>(tracker.SliceDataRows())[i];
 	}
-	GPUsync();
+	GPUbarrier();
 
 	AliGPUTPCThreadMemory rMem;
 	for (rMem.fItr = get_global_id(0);rMem.fItr < sMem.fNTracklets;rMem.fItr += get_global_size(0))

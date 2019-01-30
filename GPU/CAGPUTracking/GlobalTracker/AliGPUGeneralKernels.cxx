@@ -1,6 +1,6 @@
 #include "AliGPUGeneralKernels.h"
 
-GPUd() void AliGPUMemClean16::Thread(int nBlocks, int nThreads, int iBlock, int iThread, int iSync, GPUsharedref() AliGPUTPCSharedMemory &smem, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker, GPUglobalref() void* ptr, unsigned long size)
+GPUd() void AliGPUMemClean16::Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() AliGPUTPCSharedMemory &smem, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker, GPUglobalref() void* ptr, unsigned long size)
 {
 	const unsigned long stride = get_global_size(0);
 	int4 i0;

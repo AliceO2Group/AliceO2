@@ -44,10 +44,7 @@ class AliGPUTPCNeighboursCleaner
 		int fNHits;  // number of hits
 	};
 
-	GPUd() static int NThreadSyncPoints() { return 1; }
-
-	GPUd() static void Thread(int /*nBlocks*/, int nThreads, int iBlock, int iThread, int iSync,
-	                          MEM_LOCAL(GPUsharedref() AliGPUTPCSharedMemory) &smem, MEM_CONSTANT(GPUconstant() AliGPUTPCTracker) &tracker);
+	GPUd() static void Thread(int /*nBlocks*/, int nThreads, int iBlock, int iThread, MEM_LOCAL(GPUsharedref() AliGPUTPCSharedMemory) &smem, MEM_CONSTANT(GPUconstant() AliGPUTPCTracker) &tracker);
 };
 
 #endif //ALIHLTTPCCANEIGHBOURSCLEANER_H

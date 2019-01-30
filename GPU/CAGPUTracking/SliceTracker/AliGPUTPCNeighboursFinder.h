@@ -63,10 +63,7 @@ class AliGPUTPCNeighboursFinder
 		fRow, fRowUp, fRowDown;
 	};
 
-	GPUd() static int NThreadSyncPoints() { return 2; }
-
-	GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, int iSync,
-	                          MEM_LOCAL(GPUsharedref() AliGPUTPCSharedMemory) &smem, MEM_CONSTANT(GPUconstant() AliGPUTPCTracker) &tracker);
+	GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, MEM_LOCAL(GPUsharedref() AliGPUTPCSharedMemory) &smem, MEM_CONSTANT(GPUconstant() AliGPUTPCTracker) &tracker);
 };
 
 #endif //ALIHLTTPCCANEIGHBOURSFINDER_H
