@@ -965,6 +965,22 @@ o2_define_bucket(
     )
 
 o2_define_bucket(
+  NAME
+  mergers_bucket
+
+  DEPENDENCIES
+  Base
+  Headers
+  Framework
+  Core
+  Hist
+
+  INCLUDE_DIRECTORIES
+  ${CMAKE_SOURCE_DIR}/Framework/Core/include
+  ${CMAKE_SOURCE_DIR}/Utilities/Mergers/include
+)
+
+o2_define_bucket(
     NAME
     QC_base_bucket
 
