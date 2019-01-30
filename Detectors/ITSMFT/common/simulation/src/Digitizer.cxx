@@ -356,7 +356,7 @@ void Digitizer::registerDigits(ChipDigitsContainer& chip, UInt_t roFrame, float 
     if (!pd) {
       chip.addDigit(key, roFr, row, col, nEleROF, lbl);
     } else { // there is already a digit at this slot, account as PreDigitExtra contribution
-      pd->charge += nEle;
+      pd->charge += nEleROF;
       if (pd->labelRef.label == lbl) { // don't store the same label twice
         continue;
       }
