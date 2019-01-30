@@ -10,7 +10,6 @@
 #include "AliGPUTPCStartHitsFinder.h"
 #include "AliGPUTPCStartHitsSorter.h"
 #include "AliGPUTPCTrackletConstructor.h"
-#include "AliGPUTPCTrackLinearisation.h"
 #include "AliGPUTPCTrackletSelector.h"
 
 namespace AliGPUReconstruction_krnlHelpers {
@@ -71,7 +70,7 @@ protected:
 				typename T::AliGPUTPCSharedMemory smem;
 				for (int iS = 0; iS <= T::NThreadSyncPoints(); iS++)
 				{
-					T::Thread(x.nBlocks, 1, iB, 0, iS, smem, mWorkers->tpcTrackers[y.start + k]);
+					T::Thread(x.nBlocks, 1, iB, 0, iS, smem, mWorkers->tpcTrackers[y.start + k], args...);
 				}
 			}
 		}
