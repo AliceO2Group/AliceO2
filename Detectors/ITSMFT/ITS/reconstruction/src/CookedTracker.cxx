@@ -329,7 +329,7 @@ void CookedTracker::makeSeeds(std::vector<TrackITS>& seeds, Int_t first, Int_t l
         if (std::abs(z3 - zr3) > 0.2 * dz3)
           continue;
 
-        Point3Df txyz2 = c2->getXYZ(); // tracking coordinates
+        const Point3Df& txyz2 = c2->getXYZ(); // tracking coordinates
 
         TrackITS seed = cookSeed(xyz1, xyz3, txyz2, layer2.getR(), layer3.getR(), layer2.getAlphaRef(n2), getBz());
 
@@ -383,21 +383,18 @@ void CookedTracker::trackSeeds(std::vector<TrackITS>& seeds)
   }
 
   for (auto& track : seeds) {
-    Double_t x = track.getX();
-    Double_t y = track.getY();
-    Double_t phi = track.getAlpha() + TMath::ATan2(y, x);
-    if (phi < 0.)
-      phi += k2PI;
-    else if (phi >= k2PI)
-      phi -= k2PI;
+    auto x = track.getX();
+    auto y = track.getY();
+    Float_t phi = track.getAlpha() + TMath::ATan2(y, x);
+    BringTo02Pi(phi);
 
-    Double_t z = track.getZ();
-    Double_t crv = track.getCurvature(getBz());
-    Double_t tgl = track.getTgl();
-    Double_t r1 = sLayers[kSeedingLayer2].getR();
+    auto z = track.getZ();
+    auto crv = track.getCurvature(getBz());
+    auto tgl = track.getTgl();
+    Float_t r1 = sLayers[kSeedingLayer2].getR();
 
     for (Int_t l = kSeedingLayer2 - 1; l >= 0; l--) {
-      Double_t r2 = sLayers[l].getR();
+      Float_t r2 = sLayers[l].getR();
       phi += 0.5 * crv * (r2 - r1);
       z += tgl / (0.5 * crv) * (TMath::ASin(0.5 * crv * r2) - TMath::ASin(0.5 * crv * r1));
       selec[l].clear();
@@ -751,10 +748,7 @@ void CookedTracker::Layer::selectClusters(std::vector<Int_t>& selec, Float_t phi
   Float_t zMin = z - dz;
   Float_t zMax = z + dz;
 
-  if (phi < 0.)
-    phi += k2PI;
-  else if (phi >= k2PI)
-    phi -= k2PI;
+  BringTo02Pi(phi);
 
   Float_t dphi = dy / mR;
 
