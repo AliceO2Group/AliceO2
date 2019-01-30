@@ -262,10 +262,10 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReader(int event
   ProcessStatus status = ProcessStatus::Ok;
 
   mProcessedTimeBins = 0;
-  int processedReaders = 0;
+  size_t processedReaders = 0;
   bool hasData = false;
 
-  uint64_t lastEvent = 0;
+  int64_t lastEvent = 0;
   for (auto& reader_ptr : mRawReaders) {
     auto reader = reader_ptr.get();
 
@@ -340,7 +340,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReader(int event
     return ProcessStatus::NoMoreData;
   } else if (processedReaders < mRawReaders.size()) {
     status = ProcessStatus::Truncated;
-  } else if (mPresentEventNumber == lastEvent) {
+  } else if (mPresentEventNumber == size_t(lastEvent)) {
     status = ProcessStatus::LastEvent;
   }
 
@@ -361,10 +361,10 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int st
   ProcessStatus status = ProcessStatus::Ok;
 
   mProcessedTimeBins = 0;
-  int processedReaders = 0;
+  size_t processedReaders = 0;
   bool hasData = false;
 
-  uint64_t lastEvent = 0;
+  int64_t lastEvent = 0;
   for (auto& reader_ptr : mRawReadersCRU) {
     auto reader = reader_ptr.get();
 
@@ -438,7 +438,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int st
     return ProcessStatus::NoMoreData;
   } else if (processedReaders < mRawReadersCRU.size()) {
     status = ProcessStatus::Truncated;
-  } else if (mPresentEventNumber == lastEvent) {
+  } else if (mPresentEventNumber == size_t(lastEvent)) {
     status = ProcessStatus::LastEvent;
   }
 
