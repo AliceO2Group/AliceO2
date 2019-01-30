@@ -72,27 +72,6 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
 	#define MEM_TYPE4(type) type
 #endif
 
-/*
- * Helper for compile-time verification of correct API usage
- */
-
-#ifndef GPUCA_GPUCODE
-	namespace
-	{
-		template<bool> struct HLTTPCCA_STATIC_ASSERT_FAILURE;
-		template<> struct HLTTPCCA_STATIC_ASSERT_FAILURE<true> {};
-	}
-
-	#define HLTTPCCA_STATIC_ASSERT_CONCAT_HELPER(a, b) a##b
-	#define HLTTPCCA_STATIC_ASSERT_CONCAT(a, b) HLTTPCCA_STATIC_ASSERT_CONCAT_HELPER(a, b)
-	#define STATIC_ASSERT(cond, msg) \
-		typedef HLTTPCCA_STATIC_ASSERT_FAILURE<cond> HLTTPCCA_STATIC_ASSERT_CONCAT(_STATIC_ASSERTION_FAILED_##msg, __LINE__); \
-		HLTTPCCA_STATIC_ASSERT_CONCAT(_STATIC_ASSERTION_FAILED_##msg, __LINE__) Error_##msg; \
-		(void) Error_##msg
-#else
-	#define STATIC_ASSERT(a, b)
-#endif //!GPUCA_GPUCODE
-
 #define CALINK_INVAL ((calink) -1)
 struct cahit2{cahit x, y;};
 
