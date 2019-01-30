@@ -114,7 +114,7 @@ int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 
 	cl_uint count, bestDevice = (cl_uint) -1;
 	double bestDeviceSpeed = -1, deviceSpeed;
-	if (GPUFailedMsg(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, nullptr, &count)))
+	if (GPUFailedMsgI(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, nullptr, &count)))
 	{
 		CAGPUError("Error getting OPENCL Device Count");
 		return(1);
@@ -361,11 +361,10 @@ int AliGPUReconstructionOCLBackend::GPUSync(const char* state, int stream, int s
 	//Wait for OPENCL-Kernel to finish and check for OPENCL errors afterwards
 
 	if (mDeviceProcessingSettings.debugLevel == 0) return(0);
-	int retVal = 0;
-	if (stream != -1) retVal = GPUFailedMsg(clFinish(mInternals->command_queue[stream]));
-	else retVal = SynchronizeGPU();
+	if (stream != -1) GPUFailedMsg(clFinish(mInternals->command_queue[stream]));
+	else if (SynchronizeGPU()) return 1;
 	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("GPU Sync Done");
-	return(retVal);
+	return(0);
 }
 
 int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices()
@@ -604,11 +603,7 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 			if (tmpSlice < NSLICES) GPUFailedMsg(clGetEventInfo(mInternals->selector_events[tmpSlice], CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(eventdone), &eventdone, nullptr));
 		}
 
-		if (GPUFailedMsg(clFinish(mInternals->command_queue[streamMap[iSlice]])) RANDOM_ERROR)
-		{
-			for (unsigned int iSlice2 = 0;iSlice2 < NSLICES;iSlice2++) clReleaseEvent(mInternals->selector_events[iSlice2]);
-			return(3);
-		}
+		GPUFailedMsg(clFinish(mInternals->command_queue[streamMap[iSlice]]));
 
 		if (mDeviceProcessingSettings.keepAllMemory)
 		{
@@ -703,7 +698,8 @@ int AliGPUReconstructionOCLBackend::TransferMemoryResourceToGPU(AliGPUMemoryReso
 	if (mDeviceProcessingSettings.debugLevel >= 3) stream = -1;
 	if (mDeviceProcessingSettings.debugLevel >= 3) printf("Copying to GPU: %s\n", res->Name());
 	if (stream == -1) SynchronizeGPU();
-	return GPUFailedMsg(clEnqueueWriteBuffer(mInternals->command_queue[stream == -1 ? 0 : stream], mInternals->mem_gpu, stream == -1, (char*) res->PtrDevice() - (char*) mDeviceMemoryBase, res->Size(), res->Ptr(), nEvents, (cl_event*) evList, (cl_event*) ev));
+	GPUFailedMsg(clEnqueueWriteBuffer(mInternals->command_queue[stream == -1 ? 0 : stream], mInternals->mem_gpu, stream == -1, (char*) res->PtrDevice() - (char*) mDeviceMemoryBase, res->Size(), res->Ptr(), nEvents, (cl_event*) evList, (cl_event*) ev));
+	return 0;
 }
 
 int AliGPUReconstructionOCLBackend::TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents)
@@ -712,17 +708,14 @@ int AliGPUReconstructionOCLBackend::TransferMemoryResourceToHost(AliGPUMemoryRes
 	if (mDeviceProcessingSettings.debugLevel >= 3) stream = -1;
 	if (mDeviceProcessingSettings.debugLevel >= 3) printf("Copying to Host: %s\n", res->Name());
 	if (stream == -1) SynchronizeGPU();
-	return GPUFailedMsg(clEnqueueReadBuffer(mInternals->command_queue[stream == -1 ? 0 : stream], mInternals->mem_gpu, stream == -1, (char*) res->PtrDevice() - (char*) mDeviceMemoryBase, res->Size(), res->Ptr(), nEvents, (cl_event*) evList, (cl_event*) ev));
+	GPUFailedMsg(clEnqueueReadBuffer(mInternals->command_queue[stream == -1 ? 0 : stream], mInternals->mem_gpu, stream == -1, (char*) res->PtrDevice() - (char*) mDeviceMemoryBase, res->Size(), res->Ptr(), nEvents, (cl_event*) evList, (cl_event*) ev));
+	return 0;
 }
 
 int AliGPUReconstructionOCLBackend::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev)
 {
 	if (stream == -1) SynchronizeGPU();
-	if (GPUFailedMsg(clEnqueueWriteBuffer(mInternals->command_queue[stream == -1 ? 0 : stream], mInternals->mem_constant, stream == -1, offset, size, src, 0, nullptr, (cl_event*) ev)))
-	{
-		CAGPUError("Error writing to constant memory");
-		return 1;
-	}
+	GPUFailedMsg(clEnqueueWriteBuffer(mInternals->command_queue[stream == -1 ? 0 : stream], mInternals->mem_constant, stream == -1, offset, size, src, 0, nullptr, (cl_event*) ev));
 	return 0;
 }
 

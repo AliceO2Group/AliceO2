@@ -55,7 +55,7 @@ template <class TProcess, typename... Args> GPUg() void runKernelCUDAMulti(int f
 template <class T, typename... Args> int AliGPUReconstructionCUDABackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
 {
 	if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelBackend<T> (x, y, z, args...);
-	if (z.evList) for (int k = 0;k < z.nEvents;k++) if (GPUFailedMsg(cudaStreamWaitEvent(mInternals->CudaStreams[x.stream], ((cudaEvent_t*) z.evList)[k], 0))) return 1;
+	if (z.evList) for (int k = 0;k < z.nEvents;k++) GPUFailedMsg(cudaStreamWaitEvent(mInternals->CudaStreams[x.stream], ((cudaEvent_t*) z.evList)[k], 0));
 	if (y.num <= 1)
 	{
 		runKernelCUDA<T> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(y.start, args...);
@@ -64,7 +64,7 @@ template <class T, typename... Args> int AliGPUReconstructionCUDABackend::runKer
 	{
 		runKernelCUDAMulti<T> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>> (y.start, y.num, args...);
 	}
-	if (z.ev && GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*) z.ev, mInternals->CudaStreams[x.stream]))) return 1;
+	if (z.ev) GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*) z.ev, mInternals->CudaStreams[x.stream]));
 	return 0;
 }
 
@@ -95,7 +95,7 @@ int AliGPUReconstructionCUDABackend::InitDevice_Runtime()
 
 	int count, bestDevice = -1;
 	double bestDeviceSpeed = -1, deviceSpeed;
-	if (GPUFailedMsg(cudaGetDeviceCount(&count)))
+	if (GPUFailedMsgI(cudaGetDeviceCount(&count)))
 	{
 		CAGPUError("Error getting CUDA Device Count");
 		return(1);
@@ -115,7 +115,7 @@ int AliGPUReconstructionCUDABackend::InitDevice_Runtime()
 		if(cuMemGetInfo(&free, &total)) std::cout << "Error\n";
 		cuCtxDestroy(tmpContext);
 		if (mDeviceProcessingSettings.debugLevel >= 4) printf("Obtained current memory usage for device %d\n", i);
-		if (GPUFailedMsg(cudaGetDeviceProperties(&cudaDeviceProp, i))) continue;
+		if (GPUFailedMsgI(cudaGetDeviceProperties(&cudaDeviceProp, i))) continue;
 		if (mDeviceProcessingSettings.debugLevel >= 4) printf("Obtained device properties for device %d\n", i);
 		int deviceOK = true;
 		const char* deviceFailure = "";
@@ -212,14 +212,14 @@ int AliGPUReconstructionCUDABackend::InitDevice_Runtime()
 		return(1);
 	}
 
-	if (mDeviceMemorySize > cudaDeviceProp.totalGlobalMem || GPUFailedMsg(cudaMalloc(&mDeviceMemoryBase, mDeviceMemorySize)))
+	if (mDeviceMemorySize > cudaDeviceProp.totalGlobalMem || GPUFailedMsgI(cudaMalloc(&mDeviceMemoryBase, mDeviceMemorySize)))
 	{
 		CAGPUError("CUDA Memory Allocation Error");
 		cudaDeviceReset();
 		return(1);
 	}
 	if (mDeviceProcessingSettings.debugLevel >= 1) CAGPUInfo("GPU Memory used: %lld", (long long int) mDeviceMemorySize);
-	if (GPUFailedMsg(cudaMallocHost(&mHostMemoryBase, mHostMemorySize)))
+	if (GPUFailedMsgI(cudaMallocHost(&mHostMemoryBase, mHostMemorySize)))
 	{
 		cudaFree(mDeviceMemoryBase);
 		cudaDeviceReset();
@@ -231,7 +231,7 @@ int AliGPUReconstructionCUDABackend::InitDevice_Runtime()
 	if (mDeviceProcessingSettings.debugLevel >= 1)
 	{
 		memset(mHostMemoryBase, 0, mHostMemorySize);
-		if (GPUFailedMsg(cudaMemset(mDeviceMemoryBase, 143, mDeviceMemorySize)))
+		if (GPUFailedMsgI(cudaMemset(mDeviceMemoryBase, 143, mDeviceMemorySize)))
 		{
 			cudaFree(mDeviceMemoryBase);
 			cudaDeviceReset();
@@ -243,7 +243,7 @@ int AliGPUReconstructionCUDABackend::InitDevice_Runtime()
 	mInternals->CudaStreams = (cudaStream_t*) malloc(nStreams * sizeof(cudaStream_t));
 	for (int i = 0;i < nStreams;i++)
 	{
-		if (GPUFailedMsg(cudaStreamCreate(&mInternals->CudaStreams[i])))
+		if (GPUFailedMsgI(cudaStreamCreate(&mInternals->CudaStreams[i])))
 		{
 			cudaFree(mDeviceMemoryBase);
 			cudaFreeHost(mHostMemoryBase);
@@ -254,7 +254,7 @@ int AliGPUReconstructionCUDABackend::InitDevice_Runtime()
 	}
 	
 	void* devPtrConstantMem;
-	if (GPUFailedMsg(cudaGetSymbolAddress(&devPtrConstantMem, gGPUConstantMemBuffer)))
+	if (GPUFailedMsgI(cudaGetSymbolAddress(&devPtrConstantMem, gGPUConstantMemBuffer)))
 	{
 		CAGPUError("Error getting ptr to constant memory");
 		ResetHelperThreads(0);
@@ -522,10 +522,7 @@ int AliGPUReconstructionCUDABackend::RunTPCTrackingSlices_internal()
 		}
 
 		useStream = GPUCA_GPU_NUM_STREAMS ? streamMap[iSlice] : iSlice;
-		if (GPUFailedMsg(cudaStreamSynchronize(mInternals->CudaStreams[useStream])) RANDOM_ERROR)
-		{
-			return(3);
-		}
+		GPUFailedMsg(cudaStreamSynchronize(mInternals->CudaStreams[useStream]));
 
 		if (mDeviceProcessingSettings.keepAllMemory)
 		{
@@ -584,7 +581,7 @@ int AliGPUReconstructionCUDABackend::ExitDevice_Runtime()
 		mHostMemoryBase = nullptr;
 	}
 
-	if (GPUFailedMsg(cudaDeviceReset()))
+	if (GPUFailedMsgI(cudaDeviceReset()))
 	{
 		CAGPUError("Could not uninitialize GPU");
 		return(1);
@@ -690,14 +687,14 @@ int AliGPUReconstructionCUDABackend::TransferMemoryResourceToGPU(AliGPUMemoryRes
 	if (mDeviceProcessingSettings.debugLevel >= 3) printf("Copying to GPU: %s\n", res->Name());
 	if (stream == -1)
 	{
-		if (GPUFailedMsg(cudaMemcpy(res->PtrDevice(), res->Ptr(), res->Size(), cudaMemcpyHostToDevice))) return 1;
+		GPUFailedMsg(cudaMemcpy(res->PtrDevice(), res->Ptr(), res->Size(), cudaMemcpyHostToDevice));
 	}
 	else
 	{
 		if (evList == nullptr) nEvents = 0;
-		for (int k = 0;k < nEvents;k++) if (GPUFailedMsg(cudaStreamWaitEvent(mInternals->CudaStreams[stream], ((cudaEvent_t*) evList)[k], 0))) return 1;
-		if (GPUFailedMsg(cudaMemcpyAsync(res->PtrDevice(), res->Ptr(), res->Size(), cudaMemcpyHostToDevice, mInternals->CudaStreams[stream]))) return 1;
-		if (ev && GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*) ev, mInternals->CudaStreams[stream]))) return 1;
+		for (int k = 0;k < nEvents;k++) GPUFailedMsg(cudaStreamWaitEvent(mInternals->CudaStreams[stream], ((cudaEvent_t*) evList)[k], 0));
+		GPUFailedMsg(cudaMemcpyAsync(res->PtrDevice(), res->Ptr(), res->Size(), cudaMemcpyHostToDevice, mInternals->CudaStreams[stream]));
+		if (ev) GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*) ev, mInternals->CudaStreams[stream]));
 	}
 	return 0;
 }
@@ -709,30 +706,23 @@ int AliGPUReconstructionCUDABackend::TransferMemoryResourceToHost(AliGPUMemoryRe
 	if (mDeviceProcessingSettings.debugLevel >= 3) printf("Copying to Host: %s\n", res->Name());
 	if (stream == -1)
 	{
-		if (GPUFailedMsg(cudaMemcpy(res->Ptr(), res->PtrDevice(), res->Size(), cudaMemcpyDeviceToHost))) return 1;
+		GPUFailedMsg(cudaMemcpy(res->Ptr(), res->PtrDevice(), res->Size(), cudaMemcpyDeviceToHost));
 	}
 	else
 	{
 		if (evList == nullptr) nEvents = 0;
-		for (int k = 0;k < nEvents;k++) if (GPUFailedMsg(cudaStreamWaitEvent(mInternals->CudaStreams[stream], ((cudaEvent_t*) evList)[k], 0))) return 1;
-		if (GPUFailedMsg(cudaMemcpyAsync(res->Ptr(), res->PtrDevice(), res->Size(), cudaMemcpyDeviceToHost, mInternals->CudaStreams[stream]))) return 1;
-		if (ev && GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*) ev, mInternals->CudaStreams[stream]))) return 1;
+		for (int k = 0;k < nEvents;k++) GPUFailedMsg(cudaStreamWaitEvent(mInternals->CudaStreams[stream], ((cudaEvent_t*) evList)[k], 0));
+		GPUFailedMsg(cudaMemcpyAsync(res->Ptr(), res->PtrDevice(), res->Size(), cudaMemcpyDeviceToHost, mInternals->CudaStreams[stream]));
+		if (ev) GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*) ev, mInternals->CudaStreams[stream]));
 	}
-	if (ev && stream != -1) return GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*) ev, mInternals->CudaStreams[stream]));
 	return 0;
 }
 
 int AliGPUReconstructionCUDABackend::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev)
 {
-	int retVal = 0;
-	if (stream == -1) retVal = cudaMemcpyToSymbol(gGPUConstantMemBuffer, src, size, offset, cudaMemcpyHostToDevice);
-	else retVal = cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, src, size, offset, cudaMemcpyHostToDevice, mInternals->CudaStreams[stream]);
-	if (GPUFailedMsg(retVal))
-	{
-		CAGPUError("Error writing to constant memory");
-		return 1;
-	}
-	if (ev && stream != -1) return GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*) ev, mInternals->CudaStreams[stream]));
+	if (stream == -1) GPUFailedMsg(cudaMemcpyToSymbol(gGPUConstantMemBuffer, src, size, offset, cudaMemcpyHostToDevice));
+	else GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, src, size, offset, cudaMemcpyHostToDevice, mInternals->CudaStreams[stream]));
+	if (ev && stream != -1) GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*) ev, mInternals->CudaStreams[stream]));
 	return 0;
 }
 
@@ -765,17 +755,9 @@ int AliGPUReconstructionCUDABackend::PrepareTextures()
 #ifdef GPUCA_GPU_USE_TEXTURES
 	cudaChannelFormatDesc channelDescu2 = cudaCreateChannelDesc<cahit2>();
 	size_t offset;
-	if (GPUFailedMsg(cudaBindTexture(&offset, &gAliTexRefu2, mWorkersShadow->tpcTrackers[0].Data().Memory(), &channelDescu2, NSLICES * GPUCA_GPU_SLICE_DATA_MEMORY)) || offset RANDOM_ERROR)
-	{
-		CAGPUError("Error binding CUDA Texture cahit2 (Offset %d)", (int) offset);
-		return(2);
-	}
+	GPUFailedMsg(cudaBindTexture(&offset, &gAliTexRefu2, mWorkersShadow->tpcTrackers[0].Data().Memory(), &channelDescu2, NSLICES * GPUCA_GPU_SLICE_DATA_MEMORY));
 	cudaChannelFormatDesc channelDescu = cudaCreateChannelDesc<calink>();
-	if (GPUFailedMsg(cudaBindTexture(&offset, &gAliTexRefu, mWorkersShadow->tpcTrackers[0].Data().Memory(), &channelDescu, NSLICES * GPUCA_GPU_SLICE_DATA_MEMORY)) || offset RANDOM_ERROR)
-	{
-		CAGPUError("Error binding CUDA Texture calink (Offset %d)", (int) offset);
-		return(2);
-	}
+	GPUFailedMsg(cudaBindTexture(&offset, &gAliTexRefu, mWorkersShadow->tpcTrackers[0].Data().Memory(), &channelDescu, NSLICES * GPUCA_GPU_SLICE_DATA_MEMORY));
 #endif
 	return(0);
 }
@@ -784,17 +766,9 @@ int AliGPUReconstructionCUDABackend::PrepareProfile()
 {
 #ifdef GPUCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 	char* tmpMem;
-	if (GPUFailedMsg(cudaMalloc(&tmpMem, 100000000)))
-	{
-		CAGPUError("Error allocating CUDA profile memory");
-		return(2);
-	}
+	GPUFailedMsg(cudaMalloc(&tmpMem, 100000000));
 	mWorkersShadow->tpcTrackers[0].fStageAtSync = tmpMem;
-	if (GPUFailedMsg(cudaMemset(mWorkersShadow->tpcTrackers[0].StageAtSync(), 0, 100000000)))
-	{
-		CAGPUError("Error clearing stageatsync");
-		return(2);
-	}
+	GPUFailedMsg(cudaMemset(mWorkersShadow->tpcTrackers[0].StageAtSync(), 0, 100000000));
 #endif
 	return 0;
 }
