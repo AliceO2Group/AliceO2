@@ -61,6 +61,7 @@ template <class TProcess, typename... Args> GPUg() void runKernelCUDAMulti(int f
 template <class T, typename... Args> int AliGPUReconstructionCUDABackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
 {
 	if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelBackend<T> (x, y, z, args...);
+	if (z.evList) for (int k = 0;k < z.nEvents;k++) if (GPUFailedMsg(cudaStreamWaitEvent(mInternals->CudaStreams[x.stream], ((cudaEvent_t*) z.evList)[k], 0))) return 1;
 	if (y.num <= 1)
 	{
 		runKernelCUDA<T> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(y.start, args...);
@@ -69,6 +70,7 @@ template <class T, typename... Args> int AliGPUReconstructionCUDABackend::runKer
 	{
 		runKernelCUDAMulti<T> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>> (y.start, y.num, args...);
 	}
+	if (z.ev && GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*) z.ev, mInternals->CudaStreams[x.stream]))) return 1;
 	return 0;
 }
 
@@ -712,8 +714,18 @@ int AliGPUReconstructionCUDABackend::TransferMemoryResourceToGPU(AliGPUMemoryRes
 	//if (evList == nullptr) nEvents = 0;
 	if (mDeviceProcessingSettings.debugLevel >= 3) stream = -1;
 	if (mDeviceProcessingSettings.debugLevel >= 3) printf("Copying to GPU: %s\n", res->Name());
-	if (stream == -1) return GPUFailedMsg(cudaMemcpy(res->PtrDevice(), res->Ptr(), res->Size(), cudaMemcpyHostToDevice));
-	else return GPUFailedMsg(cudaMemcpyAsync(res->PtrDevice(), res->Ptr(), res->Size(), cudaMemcpyHostToDevice, mInternals->CudaStreams[stream]));
+	if (stream == -1)
+	{
+		if (GPUFailedMsg(cudaMemcpy(res->PtrDevice(), res->Ptr(), res->Size(), cudaMemcpyHostToDevice))) return 1;
+	}
+	else
+	{
+		if (evList == nullptr) nEvents = 0;
+		for (int k = 0;k < nEvents;k++) if (GPUFailedMsg(cudaStreamWaitEvent(mInternals->CudaStreams[stream], ((cudaEvent_t*) evList)[k], 0))) return 1;
+		if (GPUFailedMsg(cudaMemcpyAsync(res->PtrDevice(), res->Ptr(), res->Size(), cudaMemcpyHostToDevice, mInternals->CudaStreams[stream]))) return 1;
+		if (ev && GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*) ev, mInternals->CudaStreams[stream]))) return 1;
+	}
+	return 0;
 }
 
 int AliGPUReconstructionCUDABackend::TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents)
@@ -721,8 +733,19 @@ int AliGPUReconstructionCUDABackend::TransferMemoryResourceToHost(AliGPUMemoryRe
 	//if (evList == nullptr) nEvents = 0;
 	if (mDeviceProcessingSettings.debugLevel >= 3) stream = -1;
 	if (mDeviceProcessingSettings.debugLevel >= 3) printf("Copying to Host: %s\n", res->Name());
-	if (stream == -1) return GPUFailedMsg(cudaMemcpy(res->Ptr(), res->PtrDevice(), res->Size(), cudaMemcpyDeviceToHost));
-	return GPUFailedMsg(cudaMemcpyAsync(res->Ptr(), res->PtrDevice(), res->Size(), cudaMemcpyDeviceToHost, mInternals->CudaStreams[stream]));
+	if (stream == -1)
+	{
+		if (GPUFailedMsg(cudaMemcpy(res->Ptr(), res->PtrDevice(), res->Size(), cudaMemcpyDeviceToHost))) return 1;
+	}
+	else
+	{
+		if (evList == nullptr) nEvents = 0;
+		for (int k = 0;k < nEvents;k++) if (GPUFailedMsg(cudaStreamWaitEvent(mInternals->CudaStreams[stream], ((cudaEvent_t*) evList)[k], 0))) return 1;
+		if (GPUFailedMsg(cudaMemcpyAsync(res->Ptr(), res->PtrDevice(), res->Size(), cudaMemcpyDeviceToHost, mInternals->CudaStreams[stream]))) return 1;
+		if (ev && GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*) ev, mInternals->CudaStreams[stream]))) return 1;
+	}
+	if (ev && stream != -1) return GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*) ev, mInternals->CudaStreams[stream]));
+	return 0;
 }
 
 int AliGPUReconstructionCUDABackend::GPUMergerAvailable() const
