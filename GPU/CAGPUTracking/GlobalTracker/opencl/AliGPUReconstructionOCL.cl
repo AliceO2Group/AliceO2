@@ -18,7 +18,7 @@ GPUg() void KernelMemClean16(DEVICE_KERNELS_PRE unsigned long ptr, unsigned long
 	GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &pTracker = pConstant->tpcTrackers[0];
 	if (gpu_mem != pTracker.GPUParametersConst()->fGPUMem) return;
 	GPUshared() typename AliGPUMemClean16::AliGPUTPCSharedMemory smem;
-	AliGPUMemClean16::Thread( get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, pTracker, (GPUglobalref() void*) ptr, size);
+	AliGPUMemClean16::template Thread<0>( get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, pTracker, (GPUglobalref() void*) (void*) ptr, size);
 }
 
 GPUg() void AliGPUTPCProcess_AliGPUTPCNeighboursFinder(DEVICE_KERNELS_PRE int iSlice)
@@ -26,7 +26,7 @@ GPUg() void AliGPUTPCProcess_AliGPUTPCNeighboursFinder(DEVICE_KERNELS_PRE int iS
 	GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &pTracker = pConstant->tpcTrackers[iSlice];
 	if (gpu_mem != pTracker.GPUParametersConst()->fGPUMem) return;
 	GPUshared() typename AliGPUTPCNeighboursFinder::MEM_LOCAL(AliGPUTPCSharedMemory) smem;
-	AliGPUTPCNeighboursFinder::Thread( get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, pTracker);
+	AliGPUTPCNeighboursFinder::template Thread<0>( get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, pTracker);
 }
 
 GPUg() void AliGPUTPCProcess_AliGPUTPCNeighboursCleaner(DEVICE_KERNELS_PRE int iSlice)
@@ -34,7 +34,7 @@ GPUg() void AliGPUTPCProcess_AliGPUTPCNeighboursCleaner(DEVICE_KERNELS_PRE int i
 	GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &pTracker = pConstant->tpcTrackers[iSlice];
 	if (gpu_mem != pTracker.GPUParametersConst()->fGPUMem) return;
 	GPUshared() typename AliGPUTPCNeighboursCleaner::MEM_LOCAL(AliGPUTPCSharedMemory) smem;
-	AliGPUTPCNeighboursCleaner::Thread( get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, pTracker);
+	AliGPUTPCNeighboursCleaner::template Thread<0>( get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, pTracker);
 }
 
 GPUg() void AliGPUTPCProcess_AliGPUTPCStartHitsFinder(DEVICE_KERNELS_PRE int iSlice)
@@ -42,7 +42,7 @@ GPUg() void AliGPUTPCProcess_AliGPUTPCStartHitsFinder(DEVICE_KERNELS_PRE int iSl
 	GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &pTracker = pConstant->tpcTrackers[iSlice];
 	if (gpu_mem != pTracker.GPUParametersConst()->fGPUMem) return;
 	GPUshared() typename AliGPUTPCStartHitsFinder::MEM_LOCAL(AliGPUTPCSharedMemory) smem;
-	AliGPUTPCStartHitsFinder::Thread( get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, pTracker);
+	AliGPUTPCStartHitsFinder::template Thread<0>( get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, pTracker);
 }
 
 GPUg() void AliGPUTPCProcess_AliGPUTPCStartHitsSorter(DEVICE_KERNELS_PRE int iSlice)
@@ -50,7 +50,7 @@ GPUg() void AliGPUTPCProcess_AliGPUTPCStartHitsSorter(DEVICE_KERNELS_PRE int iSl
 	GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &pTracker = pConstant->tpcTrackers[iSlice];
 	if (gpu_mem != pTracker.GPUParametersConst()->fGPUMem) return;
 	GPUshared() typename AliGPUTPCStartHitsSorter::MEM_LOCAL(AliGPUTPCSharedMemory) smem;
-	AliGPUTPCStartHitsSorter::Thread( get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, pTracker);
+	AliGPUTPCStartHitsSorter::template Thread<0>( get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, pTracker);
 }
 
 GPUg() void AliGPUTPCProcessMulti_AliGPUTPCTrackletSelector(DEVICE_KERNELS_PRE int firstSlice, int nSliceCount)
@@ -62,14 +62,21 @@ GPUg() void AliGPUTPCProcessMulti_AliGPUTPCTrackletSelector(DEVICE_KERNELS_PRE i
 	GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &pTracker = pConstant->tpcTrackers[firstSlice + iSlice];
 	if (gpu_mem != pTracker.GPUParametersConst()->fGPUMem) return;
 	GPUshared() typename AliGPUTPCTrackletSelector::MEM_LOCAL(AliGPUTPCSharedMemory) smem;
-	AliGPUTPCTrackletSelector::Thread( sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, pTracker);
+	AliGPUTPCTrackletSelector::template Thread<0>( sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, pTracker);
 }
 
-GPUg() void AliGPUTPCTrackletConstructorGPU(DEVICE_KERNELS_PREA)
+GPUg() void AliGPUTPCProcess_AliGPUTPCTrackletConstructor0(DEVICE_KERNELS_PRE int iSlice)
 {
-	//GPU Wrapper for AliGPUTPCTrackletConstructor::AliGPUTPCTrackletConstructorGPU
-	GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) *pTracker = pConstant->tpcTrackers;
-	if (gpu_mem != pTracker[0].GPUParametersConst()->fGPUMem) return;
-	GPUshared() AliGPUTPCTrackletConstructor::MEM_LOCAL(AliGPUTPCSharedMemory) sMem;
-	AliGPUTPCTrackletConstructor::AliGPUTPCTrackletConstructorGPU(pTracker, sMem);
+	GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &pTracker = pConstant->tpcTrackers[iSlice];
+	if (gpu_mem != pTracker.GPUParametersConst()->fGPUMem) return;
+	GPUshared() typename AliGPUTPCTrackletConstructor::MEM_LOCAL(AliGPUTPCSharedMemory) smem;
+	AliGPUTPCTrackletConstructor::template Thread<0>( get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, pTracker);
+}
+
+GPUg() void AliGPUTPCProcess_AliGPUTPCTrackletConstructor1(DEVICE_KERNELS_PREA)
+{
+	GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &pTracker = pConstant->tpcTrackers[0];
+	if (gpu_mem != pTracker.GPUParametersConst()->fGPUMem) return;
+	GPUshared() typename AliGPUTPCTrackletConstructor::MEM_LOCAL(AliGPUTPCSharedMemory) smem;
+	AliGPUTPCTrackletConstructor::template Thread<1>( get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, pTracker);
 }

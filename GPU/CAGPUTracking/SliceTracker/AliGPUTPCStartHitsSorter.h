@@ -45,7 +45,7 @@ class AliGPUTPCStartHitsSorter
 		int fStartOffset; //start offset for hits sorted by this block
 	};
 
-	GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &smem, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker);
+	template <int iKernel = 0> GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &smem, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker);
 };
 
 #endif //ALIHLTTPCCASTARTHITSSORTER_H

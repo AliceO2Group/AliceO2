@@ -19,8 +19,7 @@
 #include "AliGPUTPCStartHitsSorter.h"
 #include "AliGPUTPCTracker.h"
 
-GPUd() void AliGPUTPCStartHitsSorter::Thread
-( int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &s, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker )
+template <> GPUd() void AliGPUTPCStartHitsSorter::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &s, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker)
 {
 	//Sorts the Start Hits by Row Index
 	if ( iThread == 0 ) {

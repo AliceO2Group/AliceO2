@@ -21,7 +21,7 @@
 #include "AliGPUTPCTracker.h"
 #include "AliTPCCommonMath.h"
 
-GPUd() void AliGPUTPCNeighboursCleaner::Thread(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) & s, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) & tracker)
+template <> GPUd() void AliGPUTPCNeighboursCleaner::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) & s, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) & tracker)
 {
 	// *
 	// * kill link to the neighbour if the neighbour is not pointed to the cluster

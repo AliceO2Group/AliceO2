@@ -107,8 +107,7 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 		}
 
 		trk.StartTimer(6);
-		//runKernel<AliGPUTPCNeighboursFinder>({GPUCA_ROW_COUNT, 1, 0}, {iSlice});
-		AliGPUTPCTrackletConstructor::AliGPUTPCTrackletConstructorCPU(trk);
+		runKernel<AliGPUTPCTrackletConstructor>({1, 1, 0}, {iSlice});
 		trk.StopTimer(6);
 		if (mParam.debugLevel >= 3) printf("Slice %d, Number of tracklets: %d\n", iSlice, *trk.NTracklets());
 
