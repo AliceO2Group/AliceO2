@@ -8,6 +8,7 @@ buildDir="build/"
 
 rsyncBlacklist="--exclude=$buildDir \
                 --exclude=.git/ \
+                --exclude=measurements \
                 --exclude=*.bin \
                 --exclude=*.swp \
                 --exclude=tags" 

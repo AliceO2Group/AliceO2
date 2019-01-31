@@ -14,9 +14,12 @@ public:
     static const std::array<int, regionNum> rowsPerRegion;
 
     std::vector<int>              globalToLocalMap;
+    std::vector<int>              globalRowToCruMap;
     std::vector<std::vector<int>> localToGlobalMap;
 
     RowInfo();
+
+    int globalRowToCru(int) const;
 
     int globalToLocal(int) const;
 
