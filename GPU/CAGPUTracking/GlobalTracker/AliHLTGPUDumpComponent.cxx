@@ -163,9 +163,9 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 	}
 
 	//Prepare everything for all slices
-	const AliHLTTPCClusterMCData *clusterLabels[36][6] = {NULL};
-	const AliHLTTPCClusterXYZData *clustersXYZ[36][6] = {NULL};
-	const AliHLTTPCRawClusterData *clustersRaw[36][6] = {NULL};
+	const AliHLTTPCClusterMCData *clusterLabels[NSLICES][NPATCHES] = {NULL};
+	const AliHLTTPCClusterXYZData *clustersXYZ[NSLICES][NPATCHES] = {NULL};
+	const AliHLTTPCRawClusterData *clustersRaw[NSLICES][NPATCHES] = {NULL};
 	bool labelsPresent = false;
 	AliGPUTRDTrackletWord *TRDtracklets = NULL;
 	AliGPUTRDTrackletLabels *TRDtrackletsMC = NULL;
@@ -202,11 +202,11 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 		}
 	}
 	
-	std::vector<AliHLTTPCRawCluster> rawClusters[36];
-	std::vector<AliGPUTPCClusterData> clusterData[36];
+	std::vector<AliHLTTPCRawCluster> rawClusters[NSLICES];
+	std::vector<AliGPUTPCClusterData> clusterData[NSLICES];
 
 	int nClustersTotal = 0;
-	for (int slice = 0;slice < 36;slice++)
+	for (int slice = 0;slice < NSLICES;slice++)
 	{
 		int nClustersSliceTotal = 0;
 		clusterData[slice].clear();
@@ -265,7 +265,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 	if (nClustersTotal < 100) return (0);
 	fRec->ClearIOPointers();
 
-	for (int i = 0;i < 36;i++)
+	for (int i = 0;i < NSLICES;i++)
 	{
 		fRec->mIOPtrs.nClusterData[i] = clusterData[i].size();
 		fRec->mIOPtrs.clusterData[i] = clusterData[i].data();
@@ -280,10 +280,10 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 	if (labelsPresent)
 	{
 		//Write cluster labels
-		for (int iSlice = 0; iSlice < 36; iSlice++)
+		for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++)
 		{
 			AliGPUTPCClusterData *pCluster = clusterData[iSlice].data();
-			for (int iPatch = 0; iPatch < 6; iPatch++)
+			for (unsigned int iPatch = 0; iPatch < NPATCHES; iPatch++)
 			{
 				if (clusterLabels[iSlice][iPatch] == NULL || clustersXYZ[iSlice][iPatch] == NULL || clusterLabels[iSlice][iPatch]->fCount != clustersXYZ[iSlice][iPatch]->fCount) continue;
 				const AliHLTTPCClusterXYZData &clXYZ = *clustersXYZ[iSlice][iPatch];

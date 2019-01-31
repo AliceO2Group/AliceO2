@@ -269,9 +269,9 @@ int genEvents::GenerateEvent(const AliGPUCAParam& sliceParam, char* filename)
   
   std::vector<AliHLTTPCClusterMCLabel> labels;
   
-  std::unique_ptr<AliGPUTPCClusterData> clSlices[36];
+  std::unique_ptr<AliGPUTPCClusterData> clSlices[AliGPUReconstruction::NSLICES];
 
-  for (int iSector = 0;iSector < 36;iSector++) //HLT Sector numbering, sectors go from 0 to 35, all spanning all rows from 0 to 158.
+  for (int iSector = 0;iSector < (int) AliGPUReconstruction::NSLICES;iSector++) //HLT Sector numbering, sectors go from 0 to 35, all spanning all rows from 0 to 158.
     {
       int nNumberOfHits = 0;
       for( unsigned int i=0; i<vClusters.size(); i++ ) if( vClusters[i].fSector==iSector ) nNumberOfHits++;

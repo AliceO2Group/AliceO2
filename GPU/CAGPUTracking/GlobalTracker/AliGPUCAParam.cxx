@@ -82,14 +82,14 @@ void AliGPUCAParam::SetDefaults(float solenoidBz)
 	constexpr float plusZmax = 249.778;
 	constexpr float minusZmin = -249.645;
 	constexpr float minusZmax = -0.0799937;
-	for (int i = 0;i < 36;i++)
+	for (int i = 0;i < GPUCA_NSLICES;i++)
 	{
-		const bool zPlus = (i < 18);
+		const bool zPlus = (i < GPUCA_NSLICES / 2);
 		SliceParam[i].ZMin = zPlus ? plusZmin : minusZmin;
 		SliceParam[i].ZMax = zPlus ? plusZmax : minusZmax;
 		int tmp = i;
-		if (tmp >= 18) tmp -= 18;
-		if (tmp >= 9) tmp -= 18;
+		if (tmp >= GPUCA_NSLICES / 2) tmp -= GPUCA_NSLICES / 2;
+		if (tmp >= GPUCA_NSLICES / 4) tmp -= GPUCA_NSLICES / 2;
 		SliceParam[i].Alpha = 0.174533 + DAlpha * tmp;
 		SliceParam[i].CosAlpha = CAMath::Cos(SliceParam[i].Alpha);
 		SliceParam[i].SinAlpha = CAMath::Sin(SliceParam[i].Alpha);

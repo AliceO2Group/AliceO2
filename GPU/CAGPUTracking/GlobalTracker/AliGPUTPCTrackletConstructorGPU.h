@@ -2,14 +2,14 @@
 
 GPUdi() int AliGPUTPCTrackletConstructor::FetchTracklet(GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &sMem)
 {
-	const int nativeslice = get_group_id(0) % 36;
+	const int nativeslice = get_group_id(0) % GPUCA_NSLICES;
 	const int nTracklets = *tracker.NTracklets();
 	GPUbarrier();
 	if (get_local_id(0) == 0)
 	{
 		if (sMem.fNextTrackletFirstRun == 1)
 		{
-			sMem.fNextTrackletFirst = (get_group_id(0) - nativeslice) / 36 * GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR;
+			sMem.fNextTrackletFirst = (get_group_id(0) - nativeslice) / GPUCA_NSLICES * GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR;
 			sMem.fNextTrackletFirstRun = 0;
 		}
 		else
@@ -32,8 +32,7 @@ GPUdi() int AliGPUTPCTrackletConstructor::FetchTracklet(GPUconstant() MEM_CONSTA
 
 GPUdi() void AliGPUTPCTrackletConstructor::AliGPUTPCTrackletConstructorGPU(GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) *pTracker, GPUsharedref() AliGPUTPCTrackletConstructor::MEM_LOCAL(AliGPUTPCSharedMemory)& sMem)
 {
-	const int nSlices = 36;
-	int mySlice = get_group_id(0) % nSlices;
+	int mySlice = get_group_id(0) % GPUCA_NSLICES;
 	int currentSlice = -1;
 
 	if (get_local_id(0) == 0)
@@ -41,7 +40,7 @@ GPUdi() void AliGPUTPCTrackletConstructor::AliGPUTPCTrackletConstructorGPU(GPUco
 		sMem.fNextTrackletFirstRun = 1;
 	}
 
-	for (int iSlice = 0;iSlice < nSlices;iSlice++)
+	for (unsigned int iSlice = 0;iSlice < GPUCA_NSLICES;iSlice++)
 	{
 		GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker = pTracker[mySlice];
 
@@ -79,7 +78,7 @@ GPUdi() void AliGPUTPCTrackletConstructor::AliGPUTPCTrackletConstructorGPU(GPUco
 				DoTracklet(tracker, sMem, rMem);
 			}
 		}
-		if (++mySlice >= nSlices) mySlice = 0;
+		if (++mySlice >= GPUCA_NSLICES) mySlice = 0;
 	}
 }
 

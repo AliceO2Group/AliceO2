@@ -21,6 +21,9 @@ class AliHLTTPCClusterStatComponent : public AliHLTProcessor, public AliOptionPa
   /** destructor */
   virtual ~AliHLTTPCClusterStatComponent();
 
+  static const unsigned int NSLICES = 36;
+  static const unsigned int NPATCHES = 6;
+
   struct AliHLTTPCTrackHelperStruct
   {
     int fID;

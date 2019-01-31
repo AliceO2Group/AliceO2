@@ -45,6 +45,7 @@
 #else
 #define GPUCA_ROW_COUNT 159
 #endif
+#define GPUCA_NSLICES 36
 
 //#define GPUCA_MERGER_BY_MC_LABEL
 #define REPRODUCIBLE_CLUSTER_SORTING

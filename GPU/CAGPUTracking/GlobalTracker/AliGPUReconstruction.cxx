@@ -429,7 +429,7 @@ int AliGPUReconstruction::ReadData(const char* filename)
 	
 	/*int nTotal = 0;
 	int nRead;
-	for (int i = 0;i < 36;i++)
+	for (int i = 0;i < NSLICES;i++)
 	{
 		int nHits;
 		nRead = fread(&nHits, sizeof(nHits), 1, fp);

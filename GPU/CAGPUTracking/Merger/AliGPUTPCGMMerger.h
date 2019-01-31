@@ -108,7 +108,7 @@ class AliGPUTPCGMMerger : public AliGPUProcessor
 	int SliceTrackInfoLocalTotal() { return fSliceTrackInfoIndex[fgkNSlices]; }
 	int SliceTrackInfoTotal() { return fSliceTrackInfoIndex[2 * fgkNSlices]; }
 
-	static const int fgkNSlices = 36; //* N slices
+	static const int fgkNSlices = GPUCA_NSLICES; //* N slices
 	int fNextSliceInd[fgkNSlices];
 	int fPrevSliceInd[fgkNSlices];
 

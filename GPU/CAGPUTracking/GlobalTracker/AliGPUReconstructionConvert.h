@@ -2,6 +2,7 @@
 #define ALIGPURECONSTRUCTIONCONVERT_H
 
 #include <memory>
+#include "AliGPUTPCSettings.h"
 class AliGPUTPCClusterData;
 
 struct ClusterNativeAccessExt;
@@ -11,7 +12,7 @@ using TPCFastTransform = ali_tpc_common::tpc_fast_transformation::TPCFastTransfo
 class AliGPUReconstructionConvert
 {
 public:
-	constexpr static unsigned int NSLICES = 36;
+	constexpr static unsigned int NSLICES = GPUCA_NSLICES;
 	static void ConvertNativeToClusterData(ClusterNativeAccessExt* native, std::unique_ptr<AliGPUTPCClusterData[]>* clusters, unsigned int* nClusters, const TPCFastTransform* transform, int continuousMaxTimeBin = 0);
 };
 

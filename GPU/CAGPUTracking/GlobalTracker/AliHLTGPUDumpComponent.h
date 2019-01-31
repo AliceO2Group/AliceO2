@@ -18,6 +18,9 @@ namespace ali_tpc_common { namespace tpc_fast_transformation {
 class AliHLTGPUDumpComponent : public AliHLTProcessor
 {
   public:
+	static const unsigned int NSLICES = 36;
+	static const unsigned int NPATCHES = 6;
+	
 	AliHLTGPUDumpComponent();
 
 	AliHLTGPUDumpComponent( const AliHLTGPUDumpComponent& ) CON_DELETE;
@@ -43,7 +46,7 @@ class AliHLTGPUDumpComponent : public AliHLTProcessor
 
 	float fSolenoidBz;
 	AliGPUReconstruction* fRec;
-	AliGPUTPCClusterData* fClusterData[36];
+	AliGPUTPCClusterData* fClusterData[NSLICES];
 	ali_tpc_common::tpc_fast_transformation::TPCFastTransformManager* fFastTransformManager;
 	AliTPCcalibDB* fCalib;
 	AliTPCRecoParam* fRecParam;
