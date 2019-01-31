@@ -21,12 +21,15 @@
 #ifndef ALICEO2_TRD_TRSIM_H_
 #define ALICEO2_TRD_TRSIM_H_
 
-#include <TObject.h>
 #include <TMath.h>
 
 class TH1D;
 
-class TRsim : public TObject
+namespace o2
+{
+namespace trd
+{
+class TRsim
 {
  public:
   TRsim();
@@ -109,26 +112,28 @@ class TRsim : public TObject
   TH1D* getSpectrum() const { return mSpectrum; };
 
  protected:
-  int mNFoilsDim;    //  Dimension of the NFoils array
-  int* mNFoils;      //[mNFoilsDim] Number of foils in the radiator stack
-  double* mNFoilsUp; //[mNFoilsDim] Upper momenta for a given number of foils
-  float mFoilThick;  //  Thickness of the foils (cm)
-  float mGapThick;   //  Thickness of the gaps between the foils (cm)
-  float mFoilDens;   //  Density of the radiator foils (g/cm^3)
-  float mGapDens;    //  Density of the gas in the radiator gaps (g/cm^3)
-  double mFoilOmega; //  Plasma frequency of the radiator foils
-  double mGapOmega;  //  Plasma frequency of the gas in the radiator gaps
-  float mFoilZ;      //  Z of the foil material
-  float mGapZ;       //  Z of the gas in the gaps
-  float mFoilA;      //  A of the foil material
-  float mGapA;       //  A of the gas in the gaps
-  float mTemp;       //  Temperature of the radiator gas (Kelvin)
-  int mSpNBins;      //  Number of bins of the TR spectrum
-  float mSpRange;    //  Range of the TR spectrum
-  float mSpBinWidth; //  Bin width of the TR spectrum
-  float mSpLower;    //  Lower border of the TR spectrum
-  float mSpUpper;    //  Upper border of the TR spectrum
-  double* mSigma;    //[mSpNBins] Array of sigma values
-  TH1D* mSpectrum;   //! TR photon energy spectrum
+  static constexpr int mNFoilsDim = 7;      // Dimension of the NFoils array
+  std::array<int, mNFoilsDim> mNFoils;      // [mNFoilsDim] Number of foils in the radiator stack
+  std::array<double, mNFoilsDim> mNFoilsUp; // [mNFoilsDim] Upper momenta for a given number of foils
+  float mFoilThick;                         // Thickness of the foils (cm)
+  float mGapThick;                          // Thickness of the gaps between the foils (cm)
+  float mFoilDens;                          // Density of the radiator foils (g/cm^3)
+  float mGapDens;                           // Density of the gas in the radiator gaps (g/cm^3)
+  double mFoilOmega;                        // Plasma frequency of the radiator foils
+  double mGapOmega;                         // Plasma frequency of the gas in the radiator gaps
+  float mFoilZ;                             // Z of the foil material
+  float mGapZ;                              // Z of the gas in the gaps
+  float mFoilA;                             // A of the foil material
+  float mGapA;                              // A of the gas in the gaps
+  float mTemp;                              // Temperature of the radiator gas (Kelvin)
+  static constexpr int mSpNBins = 200;      // Number of bins of the TR spectrum
+  static constexpr float mSpRange = 100;    // Range of the TR spectrum
+  float mSpBinWidth;                        // Bin width of the TR spectrum
+  float mSpLower;                           // Lower border of the TR spectrum
+  float mSpUpper;                           // Upper border of the TR spectrum
+  std::array<double, mSpNBins> mSigma;      // [mSpNBins] Array of sigma values
+  TH1D* mSpectrum;                          // TR photon energy spectrum
 };
+} // namespace trd
+} // namespace o2
 #endif

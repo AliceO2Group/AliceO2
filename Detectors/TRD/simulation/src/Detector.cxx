@@ -23,7 +23,9 @@
 using namespace o2::trd;
 
 Detector::Detector(Bool_t active)
-  : o2::Base::DetImpl<Detector>("TRD", active)
+  : o2::Base::DetImpl<Detector>("TRD", active),
+    mTRon(true),
+    mTR{}
 {
   mHits = o2::utils::createSimVector<HitType>();
   if (TRDCommonParam::Instance()->IsXenon()) {
@@ -32,14 +34,10 @@ Detector::Detector(Bool_t active)
     mWion = 27.21; // Ionization energy ArCO2 (82/18)
   } else {
     LOG(FATAL) << "Wrong gas mixture";
-    // add hard exit here!
   }
-  mTRon = true;
   // Switch on TR simulation as default
   if (!mTRon) {
     LOG(INFO) << "TR simulation off";
-  } else {
-    mTR = new TRsim();
   }
 }
 
@@ -50,7 +48,8 @@ Detector::Detector(const Detector& rhs)
     mGasNobleFraction(rhs.mGasNobleFraction),
     mGasDensity(rhs.mGasDensity),
     mGeom(rhs.mGeom),
-    mTRon(true)
+    mTRon(true),
+    mTR{}
 {
   if (TRDCommonParam::Instance()->IsXenon()) {
     mWion = 23.53; // Ionization energy XeCO2 (85/15)
@@ -63,8 +62,6 @@ Detector::Detector(const Detector& rhs)
   // Switch on TR simulation as default
   if (!mTRon) {
     LOG(FATAL) << "TR simulation off";
-  } else {
-    mTR = new TRsim();
   }
 }
 
@@ -137,7 +134,7 @@ bool Detector::ProcessHits(FairVolume* v)
     // Create the hits from TR photons if electron/positron is entering the drift volume
     const bool ele = (TMath::Abs(fMC->TrackPid()) == 11); // electron PDG code.
     if (mTRon && ele) {
-      CreateTRhit(det);
+      createTRhit(det);
     }
     trkStat = 1;
   } else if (amRegion && fMC->IsTrackExiting()) {
@@ -162,7 +159,7 @@ bool Detector::ProcessHits(FairVolume* v)
   return false;
 }
 
-void Detector::CreateTRhit(int det)
+void Detector::createTRhit(int det)
 {
   //
   // Creates an electron cluster from a TR photon.
@@ -175,11 +172,11 @@ void Detector::CreateTRhit(int det)
   // Maximum number of TR photons per track
   constexpr int mMaxNumberOfTRPhotons = 50; // Make this a class member?
 
-  TLorentzVector mom;
-  fMC->TrackMomentum(mom);
-  float pTot = mom.Rho();
-  std::vector<float> photonEnergyContainer;            // energy in keV
-  mTR->createPhotons(11, pTot, photonEnergyContainer); // Create TR photons
+  double px, py, pz, etot;
+  fMC->TrackMomentum(px, py, pz, etot);
+  float pTot = TMath::Sqrt(px * px + py * py + pz * pz);
+  std::vector<float> photonEnergyContainer;           // energy in keV
+  mTR.createPhotons(11, pTot, photonEnergyContainer); // Create TR photons
   if (photonEnergyContainer.size() > mMaxNumberOfTRPhotons) {
     LOG(FATAL) << "Boundary error: nTR = " << photonEnergyContainer.size() << ", mMaxNumberOfTRPhotons = " << mMaxNumberOfTRPhotons;
   }
@@ -191,7 +188,7 @@ void Detector::CreateTRhit(int det)
     double absLength = 0.0;
     double sigma = 0.0;
     // Take the absorbtion in the entrance window into account
-    double muMy = mTR->getMuMy(energyMeV);
+    double muMy = mTR.getMuMy(energyMeV);
     sigma = muMy * mFoilDensity;
     if (sigma > 0.0) {
       absLength = gRandom->Exp(1.0 / sigma);
@@ -205,14 +202,14 @@ void Detector::CreateTRhit(int det)
     // Gas-mixture (Xe/CO2)
     double muNo = 0.0;
     if (TRDCommonParam::Instance()->IsXenon()) {
-      muNo = mTR->getMuXe(energyMeV);
+      muNo = mTR.getMuXe(energyMeV);
     } else if (TRDCommonParam::Instance()->IsArgon()) {
-      muNo = mTR->getMuAr(energyMeV);
+      muNo = mTR.getMuAr(energyMeV);
     }
-    double muCO = mTR->getMuCO(energyMeV);
+    double muCO = mTR.getMuCO(energyMeV);
     double fGasNobleFraction = 1;
     double fGasDensity = 1;
-    sigma = (fGasNobleFraction * muNo + (1.0 - fGasNobleFraction) * muCO) * fGasDensity * mTR->getTemp();
+    sigma = (fGasNobleFraction * muNo + (1.0 - fGasNobleFraction) * muCO) * fGasDensity * mTR.getTemp();
 
     // The distance after which the energy of the TR photon
     // is deposited.
@@ -226,11 +223,12 @@ void Detector::CreateTRhit(int det)
     }
 
     // The position of the absorbtion
-    TLorentzVector pos;
-    fMC->TrackPosition(pos);
-    double x = pos[0] + mom[0] / pTot * absLength;
-    double y = pos[1] + mom[1] / pTot * absLength;
-    double z = pos[2] + mom[2] / pTot * absLength;
+    float xp, yp, zp;
+    fMC->TrackPosition(xp, yp, zp);
+    float invpTot = 1. / pTot;
+    double x = xp + px * invpTot * absLength;
+    double y = yp + py * invpTot * absLength;
+    double z = zp + pz * invpTot * absLength;
 
     // Add the hit to the array. TR photon hits are marked by negative energy (and not by charge)
     double tof = fMC->TrackTime() * 1e6;

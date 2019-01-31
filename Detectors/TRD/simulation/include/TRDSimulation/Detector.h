@@ -88,7 +88,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   void addHit(T x, T y, T z, T time, T energy, int trackId, int detId);
 
   // Create TR hits
-  void CreateTRhit(int);
+  void createTRhit(int);
 
   std::vector<HitType>* mHits = nullptr; ///!< Collection of TRD hits
 
@@ -96,9 +96,10 @@ class Detector : public o2::Base::DetImpl<Detector>
   float mGasNobleFraction;
   float mGasDensity;
 
-  bool mTRon;  //  Switch for TR simulation
-  TRsim* mTR;  // TR simulation
-  float mWion; //  Ionization potential
+  bool mTRon; // Switch for TR simulation
+  TRsim mTR;  // TR simulation
+
+  float mWion; // Ionization potential
 
   TRDGeometry* mGeom = nullptr;
 
@@ -113,7 +114,7 @@ void Detector::addHit(T x, T y, T z, T time, T energy, int trackId, int detId)
   mHits->emplace_back(x, y, z, time, energy, trackId, detId);
 }
 
-} // end namespace trd
+} // namespace trd
 } // namespace o2
 
 #ifdef USESHM

@@ -49,30 +49,10 @@
 
 #include "FairModule.h"
 
+using namespace o2::trd;
+
 //_____________________________________________________________________________
 TRsim::TRsim()
-  : TObject(),
-    mNFoilsDim(0),
-    mNFoils(0),
-    mNFoilsUp(0),
-    mFoilThick(0),
-    mGapThick(0),
-    mFoilDens(0),
-    mGapDens(0),
-    mFoilOmega(0),
-    mGapOmega(),
-    mFoilZ(0),
-    mGapZ(0),
-    mFoilA(0),
-    mGapA(0),
-    mTemp(0),
-    mSpNBins(0),
-    mSpRange(0),
-    mSpBinWidth(0),
-    mSpLower(0),
-    mSpUpper(0),
-    mSigma(0),
-    mSpectrum(0)
 {
   //
   // TRsim default constructor
@@ -87,23 +67,6 @@ TRsim::~TRsim()
   //
   // TRsim destructor
   //
-
-  if (mSigma) {
-    delete[] mSigma;
-    mSigma = 0;
-  }
-  if (mNFoils) {
-    delete[] mNFoils;
-    mNFoils = 0;
-  }
-  if (mNFoilsUp) {
-    delete[] mNFoilsUp;
-    mNFoilsUp = 0;
-  }
-  if (mSpectrum) {
-    delete mSpectrum;
-    mSpectrum = 0;
-  }
 }
 
 //_____________________________________________________________________________
@@ -115,12 +78,6 @@ void TRsim::init()
   // with gaps of 80 mu filled with N2.
   //
 
-  mNFoilsDim = 7;
-
-  if (mNFoils) {
-    delete[] mNFoils;
-  }
-  mNFoils = new int[mNFoilsDim];
   mNFoils[0] = 170;
   mNFoils[1] = 225;
   mNFoils[2] = 275;
@@ -129,10 +86,6 @@ void TRsim::init()
   mNFoils[5] = 340;
   mNFoils[6] = 350;
 
-  if (mNFoilsUp) {
-    delete[] mNFoilsUp;
-  }
-  mNFoilsUp = new double[mNFoilsDim];
   mNFoilsUp[0] = 1.25;
   mNFoilsUp[1] = 1.75;
   mNFoilsUp[2] = 2.50;
@@ -142,21 +95,19 @@ void TRsim::init()
   mNFoilsUp[6] = 10000.0;
 
   mFoilThick = 0.0013;
-  mFoilDens = 0.92;
-  mFoilZ = 5.28571;
-  mFoilA = 10.4286;
-  mFoilOmega = getOmega(mFoilDens, mFoilZ, mFoilA);
-
   mGapThick = 0.0060;
+  mFoilDens = 0.92;
   mGapDens = 0.00125;
-  mGapZ = 7.0;
-  mGapA = 14.00674;
-  mGapOmega = getOmega(mGapDens, mGapZ, mGapA);
 
+  mFoilZ = 5.28571;
+  mGapZ = 7.0;
+  mFoilA = 10.4286;
+  mGapA = 14.00674;
   mTemp = 293.16;
 
-  mSpNBins = 200;
-  mSpRange = 100;
+  mFoilOmega = getOmega(mFoilDens, mFoilZ, mFoilA);
+  mGapOmega = getOmega(mGapDens, mGapZ, mGapA);
+
   mSpBinWidth = mSpRange / mSpNBins;
   mSpLower = 1.0 - 0.5 * mSpBinWidth;
   mSpUpper = mSpLower + mSpRange;
@@ -330,11 +281,6 @@ void TRsim::setSigma()
   //
   // Sets the absorbtion crosssection for the energies of the TR spectrum
   //
-
-  if (mSigma) {
-    delete[] mSigma;
-  }
-  mSigma = new double[mSpNBins];
 
   for (int iBin = 0; iBin < mSpNBins; iBin++) {
     double energykeV = iBin * mSpBinWidth + 1.0;
