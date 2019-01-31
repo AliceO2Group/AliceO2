@@ -17,6 +17,7 @@
 
 #include "TPCBase/Mapper.h"
 #include "TPCSimulation/DigitGlobalPad.h"
+#include "SimulationDataFormat/LabelContainer.h"
 
 namespace o2
 {
@@ -70,13 +71,27 @@ class DigitTime
  private:
   std::array<float, GEMSTACKSPERSECTOR> mCommonMode;                 ///< Common mode container - 4 GEM ROCs per sector
   std::array<DigitGlobalPad, Mapper::getPadsInSector()> mGlobalPads; ///< Pad Container for the ADC value
+  int mDigitCounter = 0;                                             ///< counts the number of digits in this timebin
+
+  o2::dataformats::LabelContainer<std::pair<MCCompLabel, int>, false> mLabels;
+  // std::deque<int> mOccupiedPads; // iterable container of occupied pads
 };
 
-inline DigitTime::DigitTime() : mCommonMode(), mGlobalPads() { mCommonMode.fill(0); }
+inline DigitTime::DigitTime() : mCommonMode(), mGlobalPads()
+{
+  mCommonMode.fill(0);
+  mLabels.reserve(Mapper::getPadsInSector() / 3);
+}
 
 inline void DigitTime::addDigit(const MCCompLabel& label, const CRU& cru, GlobalPadNumber globalPad, float signal)
 {
-  mGlobalPads[globalPad].addDigit(label, signal);
+  auto& paddigit = mGlobalPads[globalPad];
+  if (paddigit.getID() == -1) {
+    // this means we have a new digit
+    paddigit.setID(mDigitCounter++);
+    // could also register this pad in a vector of digits
+  }
+  paddigit.addDigit(label, signal, mLabels);
   mCommonMode[cru.gemStack()] += signal;
 }
 
@@ -107,7 +122,7 @@ inline void DigitTime::fillOutputContainer(std::vector<Digit>& output, dataforma
   for (auto& pad : mGlobalPads) {
     if (pad.getChargePad() > 0.) {
       const int cru = mapper.getCRU(sector, globalPad);
-      pad.fillOutputContainer<MODE>(output, mcTruth, cru, timeBin, globalPad, getCommonMode(cru));
+      pad.fillOutputContainer<MODE>(output, mcTruth, cru, timeBin, globalPad, mLabels, getCommonMode(cru));
     }
     ++globalPad;
   }
