@@ -16,7 +16,7 @@ class CsvFile
 public:
     CsvFile(const std::string &sep=",");
 
-    void add(const Measurements &);
+    void add(const std::vector<Measurement> &);
 
     std::string str() const;
 
