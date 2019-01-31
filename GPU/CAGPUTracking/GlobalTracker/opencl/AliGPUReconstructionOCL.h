@@ -21,8 +21,6 @@ protected:
 	AliGPUReconstructionOCLBackend(const AliGPUCASettingsProcessing& cfg);
     
 	virtual int InitDevice_Runtime() override;
-	virtual int RunTPCTrackingSlices() override;
-	int RunTPCTrackingSlices_internal();
 	virtual int ExitDevice_Runtime() override;
 
 	virtual void ActivateThreadContext() override;
