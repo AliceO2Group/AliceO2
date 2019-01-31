@@ -137,8 +137,8 @@ void SpaceCharge::init()
   auto o2field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
   float bzField = o2field->solenoidField(); // magnetic field in kGauss
   /// TODO is there a faster way to get the drift velocity
-  const static ParameterGas& gasParam = ParameterGas::defaultInstance();
-  float vDrift = gasParam.getVdrift(); // drift velocity in cm/us
+  auto& gasParam = ParameterGas::Instance();
+  float vDrift = gasParam.DriftV; // drift velocity in cm/us
   /// TODO fix hard coded values (ezField, t1, t2): export to Constants.h or get from somewhere?
   float t1 = 1.;
   float t2 = 1.;

@@ -71,10 +71,10 @@ void TPCCATracking::deinitialize()
 int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::vector<TrackTPC>* outputTracks,
                                MCLabelContainer* outputTracksMCTruth)
 {
-  const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
-  const static ParameterGas& gasParam = ParameterGas::defaultInstance();
-  const static ParameterElectronics& elParam = ParameterElectronics::defaultInstance();
-  float vzbin = (elParam.getZBinWidth() * gasParam.getVdrift());
+  auto& detParam = ParameterDetector::Instance();
+  auto& gasParam = ParameterGas::Instance();
+  auto& elParam = ParameterElectronics::Instance();
+  float vzbin = (elParam.ZbinWidth * gasParam.DriftV);
   float vzbinInv = 1.f / vzbin;
   Mapper& mapper = Mapper::instance();
 
@@ -142,10 +142,10 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
           // tBwd = min(|zLow|,|zAbs|))/vzbin          = drift time from CE till cluster current Z
           //
           if (zLowAbs < zHighAbs) {
-            tFwd = (detParam.getTPClength() - zHighAbs) * vzbinInv;
+            tFwd = (detParam.TPClength - zHighAbs) * vzbinInv;
             tBwd = zLowAbs * vzbinInv;
           } else {
-            tFwd = (detParam.getTPClength() - zLowAbs) * vzbinInv;
+            tFwd = (detParam.TPClength - zLowAbs) * vzbinInv;
             tBwd = zHighAbs * vzbinInv;
           }
         }
@@ -236,9 +236,9 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
 
 float TPCCATracking::getPseudoVDrift()
 {
-  const static ParameterGas& gasParam = ParameterGas::defaultInstance();
-  const static ParameterElectronics& elParam = ParameterElectronics::defaultInstance();
-  return (elParam.getZBinWidth() * gasParam.getVdrift());
+  auto& gasParam = ParameterGas::Instance();
+  auto& elParam = ParameterElectronics::Instance();
+  return (elParam.ZbinWidth * gasParam.DriftV);
 }
 
 void TPCCATracking::GetClusterErrors2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const

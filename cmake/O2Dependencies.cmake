@@ -1086,6 +1086,7 @@ o2_define_bucket(
     SimulationDataFormat
     CommonDataFormat
     DataFormatsTPC
+    SimConfig
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
@@ -1093,6 +1094,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/DataFormats/common/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include
+    ${CMAKE_SOURCE_DIR}/Common/SimConfig/include
 )
 
 o2_define_bucket(

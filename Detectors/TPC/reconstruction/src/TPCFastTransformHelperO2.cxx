@@ -67,14 +67,14 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
     init();
   }
 
-  const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
-  const static ParameterGas& gasParam = ParameterGas::defaultInstance();
-  const static ParameterElectronics& elParam = ParameterElectronics::defaultInstance();
+  auto& detParam = ParameterDetector::Instance();
+  const static ParameterGas& gasParam = ParameterGas::Instance();
+  const static ParameterElectronics& elParam = ParameterElectronics::Instance();
 
-  const double vDrift = (elParam.getZBinWidth() * gasParam.getVdrift()); // cm/timebin
+  const double vDrift = (elParam.ZbinWidth * gasParam.DriftV); // cm/timebin
 
   // find last calibrated time bin
-  const double lastTimeBin = detParam.getTPClength() / vDrift + 1;
+  const double lastTimeBin = detParam.TPClength / vDrift + 1;
 
   const Mapper& mapper = Mapper::instance();
 
@@ -86,8 +86,8 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
 
   distortion.startConstruction(nRows, 1);
 
-  float tpcZlengthSideA = detParam.getTPClength();
-  float tpcZlengthSideC = detParam.getTPClength();
+  float tpcZlengthSideA = detParam.TPClength;
+  float tpcZlengthSideC = detParam.TPClength;
 
   fastTransform.setTPCgeometry(tpcZlengthSideA, tpcZlengthSideC);
   distortion.setTPCgeometry(tpcZlengthSideA, tpcZlengthSideC);
@@ -185,9 +185,9 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
 
   // search for the calibration database ...
 
-  const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
-  const static ParameterGas& gasParam = ParameterGas::defaultInstance();
-  const static ParameterElectronics& elParam = ParameterElectronics::defaultInstance();
+  auto& detParam = ParameterDetector::Instance();
+  const static ParameterGas& gasParam = ParameterGas::Instance();
+  const static ParameterElectronics& elParam = ParameterElectronics::Instance();
 
   // calibration found, set the initialized status back
 
@@ -205,7 +205,7 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
 
   // find last calibrated time bin
 
-  const double vDrift = elParam.getZBinWidth() * gasParam.getVdrift(); // cm/timebin
+  const double vDrift = elParam.ZbinWidth * gasParam.DriftV; // cm/timebin
 
   //mLastTimeBin = detParam.getTPClength() / vDrift  + 1;
 
@@ -215,7 +215,7 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
   // spline distortions for xyz
   // Time-of-flight correction: ldrift += dist-to-vtx*tofCorr
 
-  const double t0 = elParam.getPeakingTime() / elParam.getZBinWidth();
+  const double t0 = elParam.PeakingTime / elParam.ZbinWidth;
 
   const double vdCorrY = 0.;
   const double ldCorr = 0.;

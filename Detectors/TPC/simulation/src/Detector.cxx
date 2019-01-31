@@ -144,7 +144,7 @@ void Detector::SetSpecialPhysicsCuts()
 Bool_t Detector::ProcessHits(FairVolume* vol)
 {
   mStepCounter++;
-  const static ParameterGas& gasParam = ParameterGas::defaultInstance();
+  auto& gasParam = ParameterGas::Instance();
 
   /* This method is called from the MC stepping for the sensitive volume only */
   //   LOG(INFO) << "tpc::ProcessHits" << FairLogger::endl;
@@ -210,22 +210,22 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
   // ---| number of primary ionisations per cm |---
   const double primaryElectronsPerCM =
-    gasParam.getNprim() * BetheBlochAleph(static_cast<float>(betaGamma), gasParam.getBetheBlochParam(0),
-                                          gasParam.getBetheBlochParam(1), gasParam.getBetheBlochParam(2),
-                                          gasParam.getBetheBlochParam(3), gasParam.getBetheBlochParam(4));
+    gasParam.Nprim * BetheBlochAleph(static_cast<float>(betaGamma), gasParam.BetheBlochParam[0],
+                                     gasParam.BetheBlochParam[1], gasParam.BetheBlochParam[2],
+                                     gasParam.BetheBlochParam[3], gasParam.BetheBlochParam[4]);
 
   // ---| mean number of collisions and random for this event |---
   const double meanNcoll = stepSize * trackCharge * trackCharge * primaryElectronsPerCM;
   const int nColl = static_cast<int>(fMC->GetRandom()->Poisson(meanNcoll));
 
   // Variables needed to generate random powerlaw distributed energy loss
-  const double alpha_p1 = 1. - gasParam.getExp(); // NA49/G3 value
+  const double alpha_p1 = 1. - gasParam.Exp; // NA49/G3 value
   const double oneOverAlpha_p1 = 1. / alpha_p1;
-  const double eMin = gasParam.getIpot();
-  const double eMax = gasParam.getEend();
+  const double eMin = gasParam.Ipot;
+  const double eMax = gasParam.Eend;
   const double kMin = TMath::Power(eMin, alpha_p1);
   const double kMax = TMath::Power(eMax, alpha_p1);
-  const double wIon = gasParam.getWion();
+  const double wIon = gasParam.Wion;
 
   for (Int_t n = 0; n < nColl; n++) {
     // Use GEANT3 / NA49 expression:

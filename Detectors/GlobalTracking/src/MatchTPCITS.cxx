@@ -150,12 +150,12 @@ void MatchTPCITS::init()
 
   mSectEdgeMargin2 = mCrudeAbsDiffCut[o2::track::kY] * mCrudeAbsDiffCut[o2::track::kY]; ///< precalculated ^2
 
-  const auto& gasParam = o2::tpc::ParameterGas::defaultInstance();
-  const auto& elParam = o2::tpc::ParameterElectronics::defaultInstance();
-  const auto& detParam = o2::tpc::ParameterDetector::defaultInstance();
-  mTPCTBinMUS = elParam.getZBinWidth();
-  mTPCVDrift0 = gasParam.getVdrift();
-  mTPCZMax = detParam.getTPClength();
+  auto& gasParam = o2::tpc::ParameterGas::Instance();
+  auto& elParam = o2::tpc::ParameterElectronics::Instance();
+  auto& detParam = o2::tpc::ParameterDetector::Instance();
+  mTPCTBinMUS = elParam.ZbinWidth;
+  mTPCVDrift0 = gasParam.DriftV;
+  mTPCZMax = detParam.TPClength;
 
   assert(mITSROFrameLengthMUS > 0.0f);
   mITSROFramePhaseOffset = mITSROFrameOffsetMUS / mITSROFrameLengthMUS;
