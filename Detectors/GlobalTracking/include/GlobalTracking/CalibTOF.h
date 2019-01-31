@@ -23,6 +23,7 @@
 #include "ReconstructionDataFormats/CalibInfoTOF.h"
 #include "TOFBase/Geo.h"
 #include "TH1F.h"
+#include "TH2F.h"
 #include <TF1.h>
 
 class TTree;
@@ -35,8 +36,11 @@ namespace globaltracking
 class CalibTOF
 {
   using Geo = o2::tof::Geo;
-
+  
  public:
+  static constexpr int NSTRIPPERSTEP = 9;
+  static constexpr int NPADSPERSTEP = Geo::NPADS * NSTRIPPERSTEP;
+
   ///< calibrate using the provided input
   void run(int flag);
 
@@ -61,19 +65,24 @@ class CalibTOF
   void print() const;
 
   TH1F *getLHCphaseHisto() {return mHistoLHCphase;}
-
+  TH1F *getChOffsetHisto(int ipad){return mHistoChOffsetTemp[ipad];}
+  TH2F *getChTimeSleewingHisto(int ipad){return mHistoChTimeSleewingTemp[ipad];};
+  TH2F *getChTimeSleewingHistoAll(){return mHistoChTimeSleewingAll;};
 
  private:
   void fillLHCphaseCalibInput(); // we will fill the input for the LHC phase calibration
   void doLHCPhaseCalib(); // calibrate with respect LHC phase
-  void fillChannelCalibInput(float offset=0); // we will fill the input for the channel-level calibration
-  void doChannelLevelCalibration(int flag); // calibrate single channel from histos
+  void fillChannelCalibInput(float offset, int ipad); // we will fill the input for the channel-level calibration
+  void fillChannelTimeSleewingCalib(float offset, int ipad);// we will fill the input for the channel-time-sleewing calibration
+  void doChannelLevelCalibration(int flag,int ipad); // calibrate single channel from histos
   void resetChannelLevelHistos(int flag); // reset signle channel histos
  
 
   // objects needed for calibration
   TH1F *mHistoLHCphase = nullptr;
-  TH1F *mHistoChOffsetTemp = nullptr;
+  TH1F *mHistoChOffsetTemp[NPADSPERSTEP];  // to fill all pads of a strip simultaneosly 
+  TH2F *mHistoChTimeSleewingTemp[NPADSPERSTEP];  // to fill all pads of a strip simultaneosly 
+  TH2F *mHistoChTimeSleewingAll; // time sleewing all channels
 
   void attachInputTrees();
   bool loadTOFCollectedCalibInfo(int increment = 1);

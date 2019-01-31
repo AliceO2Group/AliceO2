@@ -46,18 +46,37 @@ void CalibTOF::run(int flag)
   }
   //  else { // channel offset + problematic (flag = 1), or time slewing (flag = 2)
   if(flag == 0){ // for the moment compute everything idependetly of the flag
-    for (int ich = 0; ich < o2::tof::Geo::NCHANNELS/10; ich++){
-      if(!(ich%100)) printf("channel %i\n",ich);
-      mCurrTOFInfoTreeEntry = ich - o2::tof::Geo::NCHANNELS;
-      while(loadTOFCollectedCalibInfo(o2::tof::Geo::NCHANNELS)){ // fill here all histos you need 
-	fillChannelCalibInput(mInitialCalibChannelOffset[ich]); // we will fill the input for the channel-level calibration
-      }
-      if(mHistoChOffsetTemp->GetEntries() > 30){
-	doChannelLevelCalibration(flag);
-	mCalibChannelOffset[ich] = mFuncChOffset->GetParameter(1) + mInitialCalibChannelOffset[ich];
-	mCalibChannelOffsetErr[ich] = mFuncChOffset->GetParError(1);
-      }
+    for (int ich = 0; ich < o2::tof::Geo::NCHANNELS; ich+=NPADSPERSTEP){
       resetChannelLevelHistos(flag);
+      printf("strip %i\n",ich/96);
+      mCurrTOFInfoTreeEntry = ich - 1;
+      int ipad=0;
+      int entryNext = mCurrTOFInfoTreeEntry + o2::tof::Geo::NCHANNELS;
+
+      while(loadTOFCollectedCalibInfo()){ // fill here all histos you need 
+	fillChannelCalibInput(mInitialCalibChannelOffset[ich+ipad],ipad); // we will fill the input for the channel-level calibration
+	doChannelLevelCalibration(flag,ipad);
+	mCalibChannelOffset[ich+ipad] = mFuncChOffset->GetParameter(1) + mInitialCalibChannelOffset[ich+ipad];
+	mCalibChannelOffsetErr[ich+ipad] = mFuncChOffset->GetParError(1);
+
+	// now fill 2D histo for time-sleewing using current channel offset
+	fillChannelTimeSleewingCalib(mCalibChannelOffset[ich+ipad],ipad); // we will fill the input for the channel-time-sleewing calibration
+
+	ipad++;
+	if(ipad == NPADSPERSTEP){
+	  ipad = 0;
+	  mCurrTOFInfoTreeEntry = entryNext;
+	  entryNext += o2::tof::Geo::NCHANNELS;
+	}
+      }
+
+      for(ipad = 0; ipad < NPADSPERSTEP; ipad++){
+	if(mHistoChOffsetTemp[ipad]->GetEntries() > 30){
+	  doChannelLevelCalibration(flag,ipad);
+	  mCalibChannelOffset[ich+ipad] = mFuncChOffset->GetParameter(1) + mInitialCalibChannelOffset[ich+ipad];
+	  mCalibChannelOffsetErr[ich+ipad] = mFuncChOffset->GetParError(1);
+	}
+      }
     }
     
   }
@@ -106,8 +125,11 @@ void CalibTOF::init()
 
   // prepare histos
   mHistoLHCphase = new TH1F("hLHCphase",";clock offset (ps)",1000,-24400,24400);
-  mHistoChOffsetTemp  = new TH1F("hLHCchOffsetTemp",";channel offset (ps)",1000,-24400,24400);
-
+  for(int ipad=0;ipad < NPADSPERSTEP;ipad++){
+    mHistoChOffsetTemp[ipad]  = new TH1F(Form("hLHCchOffsetTemp%i",ipad),";channel offset (ps)",1000,-24400,24400);
+    mHistoChTimeSleewingTemp[ipad]  = new TH2F(Form("hLHCchTimneSleewingTemp%i",ipad),";tot (ns);channel offset (ps)",100,0,50,1000,-24400,24400);
+  }
+  mHistoChTimeSleewingAll = new TH2F("hLHCchTimneSleewingAll",";tot (ns);channel offset (ps)",100,0,50,1000,-24400,24400);
   {
     mTimerTot.Stop();
     mTimerTot.Reset();
@@ -157,16 +179,11 @@ bool CalibTOF::loadTOFCollectedCalibInfo(int increment)
   //  printf("Loading TOF calib infos: number of entries in tree = %lld\n", mTreeCollectedCalibInfoTOF->GetEntries());
 
   mCurrTOFInfoTreeEntry += increment;
-  while (mCurrTOFInfoTreeEntry < mTreeCollectedCalibInfoTOF->GetEntries()
-    && mCurrTOFInfoTreeEntry < o2::tof::Geo::NCHANNELS) {
+  while (mCurrTOFInfoTreeEntry < mTreeCollectedCalibInfoTOF->GetEntries()){
+	 //    && mCurrTOFInfoTreeEntry < o2::tof::Geo::NCHANNELS) {
     mTreeCollectedCalibInfoTOF->GetEntry(mCurrTOFInfoTreeEntry);
-    //    LOG(INFO) << "Loading TOF calib info entry " << mCurrTOFInfoTreeEntry << " -> " << mCalibInfoTOF->size()<< " infos";
-    
-    if (!mCalibInfoTOF->size()) {
-      mCurrTOFInfoTreeEntry += increment;
-      continue;
-    }
-    
+    //LOG(INFO) << "Loading TOF calib info entry " << mCurrTOFInfoTreeEntry << " -> " << mCalibInfoTOF->size()<< " infos";
+        
     return true;
   }
   mCurrTOFInfoTreeEntry -= increment;
@@ -209,9 +226,8 @@ void CalibTOF::doLHCPhaseCalib(){
 }
 //______________________________________________
 
-void CalibTOF::fillChannelCalibInput(float offset){
+void CalibTOF::fillChannelCalibInput(float offset,int ipad){
   // we will fill the input for the channel-level calibration
-  // we will fill the input for the LHC phase calibration
   static double bc = 1.e13 / o2::constants::lhc::LHCRFFreq; // bunch crossing period (ps)
   static double bc_inv = 1./bc;
     
@@ -220,28 +236,47 @@ void CalibTOF::fillChannelCalibInput(float offset){
     double dtime = infotof->getDeltaTimePi();
     dtime -= int(dtime*bc_inv + 0.5)*bc;
     
-    mHistoChOffsetTemp->Fill(dtime);
+    mHistoChOffsetTemp[ipad]->Fill(dtime);
   }
 }
 //______________________________________________
 
-void CalibTOF::doChannelLevelCalibration(int flag){
+void CalibTOF::fillChannelTimeSleewingCalib(float offset, int ipad){
+// we will fill the input for the channel-time-sleewing calibration
+  static double bc = 1.e13 / o2::constants::lhc::LHCRFFreq; // bunch crossing period (ps)
+  static double bc_inv = 1./bc;
+    
+  // implemented for flag=0, channel=-1 (-1 means all!)
+  for(auto infotof = mCalibInfoTOF->begin(); infotof != mCalibInfoTOF->end(); infotof++){
+    double dtime = infotof->getDeltaTimePi();
+    dtime -= int(dtime*bc_inv + 0.5)*bc;
+    
+    mHistoChTimeSleewingTemp[ipad]->Fill(infotof->getTot(),dtime);
+    mHistoChTimeSleewingAll->Fill(infotof->getTot(),dtime);
+  }
+}
+//______________________________________________
+
+void CalibTOF::doChannelLevelCalibration(int flag,int ipad){
   // calibrate single channel from histos
    if(!mFuncChOffset){
     mFuncChOffset = new TF1("fLHCchOffset","gaus");
     mFuncChOffset->SetParLimits(2,100,400);
   }
   mFuncChOffset->SetParameter(0,100);
-  mFuncChOffset->SetParameter(1,mHistoChOffsetTemp->GetMean());
+  mFuncChOffset->SetParameter(1,mHistoChOffsetTemp[ipad]->GetMean());
   mFuncChOffset->SetParameter(2,200);
 
-  mHistoChOffsetTemp->Fit(mFuncChOffset,"WW","Q"); 
-  mHistoChOffsetTemp->Fit(mFuncChOffset,"","Q",mFuncChOffset->GetParameter(1)-600,mFuncChOffset->GetParameter(1)+400); 
+  mHistoChOffsetTemp[ipad]->Fit(mFuncChOffset,"WW","Q"); 
+  mHistoChOffsetTemp[ipad]->Fit(mFuncChOffset,"","Q",mFuncChOffset->GetParameter(1)-600,mFuncChOffset->GetParameter(1)+400); 
 }
 //______________________________________________
 
 void CalibTOF::resetChannelLevelHistos(int flag){
   // reset signle channel histos
-  mHistoChOffsetTemp->Reset();
+  for(int ipad=0;ipad < NPADSPERSTEP;ipad++){
+    mHistoChOffsetTemp[ipad]->Reset();
+    mHistoChTimeSleewingTemp[ipad]->Reset();
+  }
 }
 
