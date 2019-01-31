@@ -18,6 +18,7 @@
 #include <array>
 #include <climits>
 #include <vector>
+#include <cmath>
 
 #include "ITStracking/Constants.h"
 
@@ -35,11 +36,11 @@ class Configuration : public Param
     static Configuration<Param> instance;
     return instance;
   }
+  Configuration(const Configuration<Param>&) = delete;
+  const Configuration<Param>& operator=(const Configuration<Param>&) = delete;
 
  private:
   Configuration() = default;
-  Configuration(const Configuration<Param>&) = delete;
-  const Configuration<Param>& operator=(const Configuration<Param>&) = delete;
 };
 
 struct TrackingParameters {
@@ -129,6 +130,24 @@ inline MemoryParameters& MemoryParameters::operator=(const MemoryParameters& t)
   for (int iT = 0; iT < Constants::ITS::TrackletsPerRoad; ++iT)
     this->TrackletsMemoryCoefficients[iT] = t.TrackletsMemoryCoefficients[iT];
   return *this;
+}
+
+struct VertexingParameters {
+  VertexingParameters();
+
+  float mZCut = 0.005f;
+  float mPhiCut = 0.002f;
+  float mPairCut = 0.04f;
+  float mClusterCut = 0.8f;
+  int mClusterContributorsCut = 5;
+  int mPhiSpan;
+  int mZSpan;
+};
+
+inline VertexingParameters::VertexingParameters()
+{
+  mPhiSpan = static_cast<int>(std::ceil(Constants::IndexTable::PhiBins * mPhiCut / Constants::Math::TwoPi));
+  mZSpan = static_cast<int>(std::ceil(mZCut * Constants::IndexTable::InverseZBinSize()[0]));
 }
 
 } // namespace ITS

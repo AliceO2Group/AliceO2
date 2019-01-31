@@ -27,6 +27,8 @@
 #include "DetectorsPassive/Cave.h"
 #include "Generators/GeneratorFromFile.h"
 #include "TPCSimulation/Detector.h"
+#include "Framework/OutputSpec.h"
+#include <vector>
 
 using namespace o2::framework;
 
@@ -42,9 +44,7 @@ DataProcessorSpec sim_tpc() {
   return {
     "sim_tpc",
     Inputs{},
-    {
-      OutputSpec{"TPC", "GEN"}
-    },
+    Outputs{OutputSpec{"TPC", "GEN"}},
     AlgorithmSpec{
       [](InitContext &setup) {
         int nEvents = setup.options().get<int>("nEvents");

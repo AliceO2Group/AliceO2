@@ -27,7 +27,7 @@ class Digit;
 class DigitMCMetaData;
 
 /// \class DigitTime
-/// This is the third class of the intermediate Digit Containers, in which all incoming electrons from the hits are
+/// This is the second class of the intermediate Digit Containers, in which all incoming electrons from the hits are
 /// sorted into after amplification
 /// The structure assures proper sorting of the Digits when later on written out for further processing.
 /// This class holds the individual Pad Row containers and is contained within the CRU Container.
@@ -60,13 +60,12 @@ class DigitTime
   /// Fill output vector
   /// \param output Output container
   /// \param mcTruth MC Truth container
-  /// \param debug Optional debug output container
   /// \param cru CRU ID
   /// \param timeBin Time bin
   /// \param commonMode Common mode value of that specific ROC
-  void fillOutputContainer(std::vector<Digit>* output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
-                           std::vector<DigitMCMetaData>* debug, const Sector& sector, TimeBin timeBin,
-                           float commonMode = 0.f);
+  template <DigitzationMode MODE>
+  void fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
+                           const Sector& sector, TimeBin timeBin, float commonMode = 0.f);
 
  private:
   std::array<float, GEMSTACKSPERSECTOR> mCommonMode;                 ///< Common mode container - 4 GEM ROCs per sector
@@ -97,7 +96,23 @@ inline float DigitTime::getCommonMode(const CRU& cru) const
   return mCommonMode[gemStack] /
          static_cast<float>(nPads); /// simple case when there is no external capacitance on the ROC;
 }
+
+template <DigitzationMode MODE>
+inline void DigitTime::fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
+                                           const Sector& sector, TimeBin timeBin,
+                                           float commonMode)
+{
+  static Mapper& mapper = Mapper::instance();
+  GlobalPadNumber globalPad = 0;
+  for (auto& pad : mGlobalPads) {
+    if (pad.getChargePad() > 0.) {
+      const int cru = mapper.getCRU(sector, globalPad);
+      pad.fillOutputContainer<MODE>(output, mcTruth, cru, timeBin, globalPad, getCommonMode(cru));
+    }
+    ++globalPad;
+  }
 }
-}
+} // namespace TPC
+} // namespace o2
 
 #endif // ALICEO2_TPC_DigitTime_H_

@@ -46,16 +46,12 @@ class DigitContainer
   /// Destructor
   ~DigitContainer() = default;
 
-  /// Set up the container
-  /// \param sector Sector to be processed
-  void setup(const Sector& sector);
-
   /// Reset the container
   void reset();
 
-  /// Set the first time bin for computing mEffectiveTimeBin
-  /// \param firstTB First time bin to be processed
-  void setFirstTimeBin(TimeBin firstTB) { mFirstTimeBin = firstTB; }
+  /// Set the start time of the first event
+  /// \param time Time of the first event
+  void setStartTime(TimeBin time) { mFirstTimeBin = time; }
 
   /// Add digit to the container
   /// \param eventID MC Event ID
@@ -69,30 +65,23 @@ class DigitContainer
   /// Fill output vector
   /// \param output Output container
   /// \param mcTruth MC Truth container
-  /// \param debug Optional debug output container
+  /// \param sector Sector to be processed
   /// \param eventTime time stamp of the event
   /// \param isContinuous Switch for continuous readout
-  void fillOutputContainer(std::vector<Digit>* output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
-                           std::vector<DigitMCMetaData>* debug, TimeBin eventTime = 0, bool isContinuous = true);
+  /// \param finalFlush Flag whether the whole container is dumped
+  void fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth, const Sector& sector, TimeBin eventTime = 0, bool isContinuous = true, bool finalFlush = false);
 
  private:
-  Sector mSector;                  ///< ID of the currently processed sector
   TimeBin mFirstTimeBin;           ///< First time bin to consider
   TimeBin mEffectiveTimeBin;       ///< Effective time bin of that digit
   TimeBin mTmaxTriggered;          ///< Maximum time bin in case of triggered mode (hard cut at average drift speed with additional margin)
   std::deque<DigitTime> mTimeBins; ///< Time bin Container for the ADC value
 };
 
-inline DigitContainer::DigitContainer() : mSector(-1), mFirstTimeBin(0), mEffectiveTimeBin(0), mTmaxTriggered(0), mTimeBins(500)
+inline DigitContainer::DigitContainer() : mFirstTimeBin(0), mEffectiveTimeBin(0), mTmaxTriggered(0), mTimeBins(500)
 {
   const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
   mTmaxTriggered = detParam.getMaxTimeBinTriggered();
-}
-
-inline void DigitContainer::setup(const Sector& sector)
-{
-  reset();
-  mSector = sector;
 }
 
 inline void DigitContainer::reset()
@@ -103,7 +92,7 @@ inline void DigitContainer::reset()
     time.reset();
   }
 }
-}
-}
+} // namespace TPC
+} // namespace o2
 
 #endif // ALICEO2_TPC_DigitContainer_H_

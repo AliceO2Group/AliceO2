@@ -247,6 +247,8 @@ class MakeRootTreeWriterSpec
       TerminationPolicy terminationPolicy = TerminationPolicy::Process;
       // custom termination condition
       TerminationCondition terminationCondition;
+      // the total number of served branches on the n inputs
+      size_t nofBranches;
     };
     auto processAttributes = std::make_shared<ProcessAttributes>();
     processAttributes->writer = mWriter;
@@ -258,6 +260,7 @@ class MakeRootTreeWriterSpec
     for (auto const& input : mInputs) {
       processAttributes->activeInputs.emplace(input.binding);
     }
+    processAttributes->nofBranches = mNofBranches;
 
     // the init function is returned to the DPL in order to init the process
     auto initFct = [processAttributes, TerminationPolicyMap = TerminationPolicyMap](InitContext& ic) {
@@ -265,6 +268,11 @@ class MakeRootTreeWriterSpec
       auto filename = ic.options().get<std::string>("outfile");
       auto treename = ic.options().get<std::string>("treename");
       processAttributes->nEvents = ic.options().get<int>("nevents");
+      if (processAttributes->nEvents > 0 && processAttributes->activeInputs.size() != processAttributes->nofBranches) {
+        LOG(WARNING) << "the n inputs serve in total m branches with n != m, this means that there will be data for\n"
+                     << "different branches on the same input. Be aware that the --nevents option might lead to incomplete\n"
+                     << "data in the output file as the number of processed input sets is counted";
+      }
       try {
         processAttributes->terminationPolicy = TerminationPolicyMap.at(ic.options().get<std::string>("terminate"));
       } catch (std::out_of_range&) {
@@ -444,6 +452,7 @@ class MakeRootTreeWriterSpec
   {
     mInputs.insert(mInputs.end(), def.keys.begin(), def.keys.end());
     mBranchNameOptions.emplace_back(def.optionKey, def.branchName);
+    mNofBranches += def.nofBranches;
     parseConstructorArgs<N + 1>(std::forward<Args>(args)...);
     if (N == 0) {
       mWriter = std::make_shared<WriterType>(nullptr, nullptr, std::forward<BranchDefinition<T>>(def), std::forward<Args>(args)...);
@@ -465,6 +474,7 @@ class MakeRootTreeWriterSpec
   int mDefaultNofEvents = -1;
   std::string mDefaultTerminationPolicy = "process";
   TerminationCondition mTerminationCondition;
+  size_t mNofBranches = 0;
 };
 }
 }

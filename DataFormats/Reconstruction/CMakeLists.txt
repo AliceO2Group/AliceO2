@@ -8,7 +8,9 @@ set(SRCS
   src/TrackTPCITS.cxx
   src/Vertex.cxx
   src/MatchInfoTOF.cxx
-)
+  src/TrackLTIntegral.cxx
+  src/PID.cxx
+ )
 
 Set(HEADERS
   include/${MODULE_NAME}/Track.h
@@ -16,6 +18,8 @@ Set(HEADERS
   include/${MODULE_NAME}/TrackTPCITS.h
   include/${MODULE_NAME}/Vertex.h
   include/${MODULE_NAME}/MatchInfoTOF.h
+  include/${MODULE_NAME}/TrackLTIntegral.h
+  include/${MODULE_NAME}/PID.h
 )
 
 Set(LINKDEF src/ReconstructionDataFormatsLinkDef.h)
@@ -27,6 +31,7 @@ O2_GENERATE_LIBRARY()
 
 set(TEST_SRCS
   test/testVertex.cxx
+  test/testLTOFIntegration.cxx
 )
 
 O2_GENERATE_TESTS(

@@ -27,7 +27,7 @@ BOOST_AUTO_TEST_CASE(test_rdh)
   BOOST_CHECK(defaultRDH.blockLength == 0);
   BOOST_CHECK(defaultRDH.feeId == 0xffff);
   //BOOST_CHECK(defaultRDH.linkId == 0xff);
-  BOOST_CHECK(defaultRDH.headerSize == 8); // header size in 64 bit words
+  BOOST_CHECK(defaultRDH.headerSize == 64); // header size in 64 bytes = 8*64 bit words
 
   using byte = unsigned char;
   std::array<byte, sizeof(RDH)> buffer;

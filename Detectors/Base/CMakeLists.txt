@@ -7,7 +7,7 @@ set(SRCS
   src/GeometryManager.cxx
   src/MaterialManager.cxx
   src/Propagator.cxx
-)
+  )
 
 Set(HEADERS
   include/${MODULE_NAME}/Detector.h

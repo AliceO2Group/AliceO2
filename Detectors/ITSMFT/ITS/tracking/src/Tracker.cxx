@@ -327,7 +327,6 @@ void Tracker::findTracks(const ROframe& event)
         continue;
       }
       mPrimaryVertexContext->markUsedCluster(iLayer, track.getClusterIndex(iLayer));
-      track.setExternalClusterIndex(iLayer, event.getClusterExternalIndex(iLayer, track.getClusterIndex(iLayer)));
     }
     mTracks.emplace_back(track);
   }
@@ -549,6 +548,8 @@ void Tracker::computeTracksMClabels(const ROframe& event)
           count = 1;
         }
       }
+
+      track.setExternalClusterIndex(iCluster, event.getClusterExternalIndex(iCluster, index));
     }
 
     if (isFakeTrack)

@@ -1,15 +1,17 @@
-
 // common piece of code to setup stack and register
 // with VMC instances
 template <typename T, typename R>
-void stackSetup(T* vmc, R* run) {
+void stackSetup(T* vmc, R* run)
+{
   // create the O2 vmc stack instance
   auto st = new o2::Data::Stack();
   st->setMinHits(1);
-  st->StoreSecondaries(kTRUE);
+  auto& stackparam = o2::sim::StackParam::Instance();
+  st->StoreSecondaries(stackparam.storeSecondaries);
+  st->pruneKinematics(stackparam.pruneKine);
   vmc->SetStack(st);
 
-/*
+  /*
   // register the stack as an observer on FinishPrimary events (managed by Cave)
   bool foundCave = false;
   auto modules = run->GetListOfModules();

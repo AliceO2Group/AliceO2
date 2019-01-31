@@ -107,7 +107,7 @@ int InteractionSampler::simulateInteractingBC()
   for (int i = ncoll; i--;) {
     double tInBC = 0; // tInBC should be in the vicinity of the BC
     do {
-      tInBC = gRandom->Gaus(mBCTimeRMS);
+      tInBC = gRandom->Gaus(0.,mBCTimeRMS);
     } while (std::abs(tInBC) > o2::constants::lhc::LHCBunchSpacingNS / 2.1);
     mTimeInBC.push_back(tInBC);
   }

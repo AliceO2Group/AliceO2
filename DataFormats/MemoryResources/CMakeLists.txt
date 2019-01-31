@@ -11,6 +11,7 @@ set(SRCS
 
 set(HEADERS
   include/${MODULE_NAME}/MemoryResources.h
+  include/${MODULE_NAME}/observer_ptr.h
 )
 
 set(LIBRARY_NAME ${MODULE_NAME})
@@ -20,6 +21,7 @@ O2_GENERATE_LIBRARY()
 
 set(TEST_SRCS
   test/testMemoryResources.cxx
+  test/test_observer_ptr.cxx
 )
 
 O2_GENERATE_TESTS(

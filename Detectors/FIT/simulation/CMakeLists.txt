@@ -7,6 +7,7 @@ set(SRCS
   src/Digitizer.cxx
   src/DigitizerTask.cxx
   )
+
 set(HEADERS
     include/${MODULE_NAME}/Detector.h
     include/${MODULE_NAME}/Digitizer.h

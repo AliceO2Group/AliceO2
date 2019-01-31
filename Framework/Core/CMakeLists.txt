@@ -54,6 +54,7 @@ set(SRCS
     src/FairOptionsRetriever.cxx
     src/FairMQDeviceProxy.cxx
     src/FairMQResizableBuffer.cxx
+    src/FreePortFinder.cxx
     src/GraphvizHelpers.cxx
     src/InputRecord.cxx
     src/InputSpec.cxx
@@ -96,6 +97,7 @@ set(HEADERS
       include/Framework/ServiceRegistry.h
       include/Framework/DeviceExecution.h
       include/Framework/DebugGUI.h
+      include/Framework/FreePortFinder.h
       include/Framework/TypeTraits.h
       include/Framework/PaletteHelpers.h
       include/Framework/ConfigParamSpec.h
@@ -206,8 +208,19 @@ O2_GENERATE_EXECUTABLE(
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
 
-target_compile_options(Framework PUBLIC -O0 -g -fno-omit-frame-pointer)
-target_compile_options(test_SimpleDataProcessingDevice01 PUBLIC -O0 -g -fno-omit-frame-pointer)
+O2_GENERATE_EXECUTABLE(
+  EXE_NAME "test_DebugGUISokol"
+  SOURCES test/test_DebugGUISokol.cxx
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${MODULE_BUCKET_NAME}
+)
+
+O2_GENERATE_EXECUTABLE(
+  EXE_NAME "test_DebugGUIGL"
+  SOURCES test/test_DebugGUIGL.cxx
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${MODULE_BUCKET_NAME}
+)
 
 Install(FILES test/test_DataSampling.json DESTINATION share/tests/)
 
@@ -218,7 +231,8 @@ set(TEST_SRCS
       test/test_CallbackRegistry.cxx
       test/test_CallbackService.cxx
       test/test_ChannelSpecHelpers.cxx
-      test/test_CustomGUI.cxx
+      test/test_CustomGUISokol.cxx
+      test/test_CustomGUIGL.cxx
       test/test_CompletionPolicy.cxx
       test/test_DanglingInputs.cxx
       test/test_DanglingOutputs.cxx

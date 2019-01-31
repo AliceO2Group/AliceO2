@@ -25,13 +25,19 @@
 #include "ITStracking/ROframe.h"
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/Tracker.h"
+#include "ITStracking/TrackerTraitsCPU.h"
+#include "ITStracking/VertexerBase.h"
 
 #include "MathUtils/Utils.h"
 
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
-void run_trac_ca_its(std::string path = "./", std::string outputfile = "o2ca_its.root",
+using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
+
+void run_trac_ca_its(bool useITSVertex = false,
+                     std::string path = "./",
+                     std::string outputfile = "o2ca_its.root",
                      std::string inputClustersITS = "o2clus_its.root", std::string inputGeom = "O2geometry.root",
                      std::string inputGRP = "o2sim_grp.root", std::string simfilename = "o2sim.root",
                      std::string paramfilename = "o2sim_par.root")
@@ -39,7 +45,8 @@ void run_trac_ca_its(std::string path = "./", std::string outputfile = "o2ca_its
 
   gSystem->Load("libITStracking.so");
 
-  o2::ITS::Tracker tracker(AliGPUReconstruction::CreateInstance()->GetITSTrackerTraits());
+  //o2::ITS::Tracker tracker(AliGPUReconstruction::CreateInstance()->GetITSTrackerTraits());
+  o2::ITS::Tracker tracker(new o2::ITS::TrackerTraitsCPU());
   o2::ITS::ROframe event(0);
 
   if (path.back() != '/') {
@@ -92,12 +99,6 @@ void run_trac_ca_its(std::string path = "./", std::string outputfile = "o2ca_its
   std::vector<o2::ITSMFT::Cluster>* clusters = nullptr;
   itsClusters.SetBranchAddress("ITSCluster", &clusters);
 
-  //  if (!itsClusters.GetBranch("EventHeader.")) {
-  //    LOG(FATAL) << "Did not find the EventHeader branch in the input cluster tree" << FairLogger::endl;
-  //  }
-  //  FairEventHeader* header = nullptr;
-  //  itsClusters.SetBranchAddress("EventHeader.", &header);
-
   if (!itsClusters.GetBranch("ITSClusterMCTruth")) {
     LOG(FATAL) << "Did not find ITS clusters branch ITSClusterMCTruth in the input tree" << FairLogger::endl;
   }
@@ -128,7 +129,25 @@ void run_trac_ca_its(std::string path = "./", std::string outputfile = "o2ca_its
           cout << "Event " << iEvent << " ROFrame " << roFrame << std::endl;
           // Attention: in the continuous mode cluster entry ID does not give the physics event ID
           // so until we use real vertexer, we have to work with vertex at origin
-          event.addPrimaryVertex(0.f, 0.f, 0.f);
+          if (useITSVertex) {
+            o2::ITS::VertexerBase vertexer(event);
+            vertexer.setROFrame(roFrame);
+            vertexer.initialise({ 0.005, 0.002, 0.04, 0.8, 5 });
+            // set to true to use MC check
+            vertexer.findTracklets(false);
+            vertexer.findVertices();
+            std::vector<Vertex> vertITS = vertexer.getVertices();
+            if (!vertITS.empty()) {
+              // Using only the first vertex in the list
+              cout << " - Reconstructed vertexer: x = " << vertITS[0].getX() << " y = " << vertITS[0].getY() << " x = " << vertITS[0].getZ() << std::endl;
+              event.addPrimaryVertex(vertITS[0].getX(), vertITS[0].getY(), vertITS[0].getZ());
+            } else {
+              cout << " - Vertex not reconstructed, tracking skipped" << std::endl;
+              ;
+            }
+          } else {
+            event.addPrimaryVertex(0.f, 0.f, 0.f);
+          }
           tracker.setROFrame(roFrame);
           tracker.clustersToTracks(event);
           tracksITS->swap(tracker.getTracks());
@@ -141,7 +160,24 @@ void run_trac_ca_its(std::string path = "./", std::string outputfile = "o2ca_its
     } else { // triggered mode
       cout << "Event " << iEvent << std::endl;
       o2::ITS::IOUtils::loadEventData(event, clusters, labels);
-      event.addPrimaryVertex(mcHeader->GetX(), mcHeader->GetY(), mcHeader->GetZ());
+      if (useITSVertex) {
+        o2::ITS::VertexerBase vertexer(event);
+        vertexer.setROFrame(roFrame);
+        vertexer.initialise({ 0.005, 0.002, 0.04, 0.8, 5 });
+        // set to true to use MC check
+        vertexer.findTracklets(false);
+        vertexer.findVertices();
+        std::vector<Vertex> vertITS = vertexer.getVertices();
+        // Using only the first vertex in the list
+        if (!vertITS.empty()) {
+          cout << " - Reconstructed vertex: x = " << vertITS[0].getX() << " y = " << vertITS[0].getY() << " x = " << vertITS[0].getZ() << std::endl;
+          event.addPrimaryVertex(vertITS[0].getX(), vertITS[0].getY(), vertITS[0].getZ());
+        } else {
+          cout << " - Vertex not reconstructed, tracking skipped" << std::endl;
+        }
+      } else {
+        event.addPrimaryVertex(mcHeader->GetX(), mcHeader->GetY(), mcHeader->GetZ());
+      }
       tracker.clustersToTracks(event);
       tracksITS->swap(tracker.getTracks());
       *trackLabels = tracker.getTrackLabels(); /// FIXME: assignment ctor is not optimal.

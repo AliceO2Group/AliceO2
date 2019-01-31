@@ -39,10 +39,7 @@ struct ContextRef {
 
   /// Two context refs are the same if they point to the
   /// same element in the context
-  bool operator==(ContextRef const& other) const
-  {
-    return index == other.index;
-  }
+  inline bool operator==(ContextRef const& other) const;
 };
 
 /// An element of the matching context. Context itself is really a vector of
@@ -51,8 +48,8 @@ struct ContextRef {
 /// it in the O2 DataHeader, however we could add it later on.
 struct ContextElement {
   using Value = std::variant<uint64_t, std::string, None>;
-  std::string label;                               /// The name of the variable contained in this element.
-  Value value = None{};                            /// The actual contents of the element.
+  std::string label;    /// The name of the variable contained in this element.
+  Value value = None{}; /// The actual contents of the element.
 };
 
 struct ContextUpdate {
@@ -66,56 +63,25 @@ constexpr int MAX_UPDATES_PER_QUERY = 16;
 class VariableContext
 {
  public:
-  VariableContext()
-    : mPerformedUpdates{ 0 }
-  {
-  }
+  inline VariableContext();
 
-  ContextElement::Value const& get(size_t pos) const
-  {
-    // First we check if there is any pending update
-    for (size_t i = 0; i < mPerformedUpdates; ++i) {
-      if (mUpdates[i].position == pos) {
-        return mUpdates[i].newValue;
-      }
-    }
-    // Otherwise we return the element.
-    return mElements.at(pos).value;
-  }
+  ContextElement::Value const& get(size_t pos) const;
 
-  void put(ContextUpdate&& update)
-  {
-    mUpdates[mPerformedUpdates++] = std::move(update);
-  }
+  inline void put(ContextUpdate&& update);
 
   /// Use this after a query to actually commit the matched fields.  Notice the
   /// old matches remain there, but we do not need to clean them up as we have
   /// reset the counter. Use this after a successful query to persist matches
   /// variables and speedup subsequent lookups.
-  void commit()
-  {
-    for (size_t i = 0; i < mPerformedUpdates; ++i) {
-      mElements[mUpdates[i].position].value = mUpdates[i].newValue;
-    }
-    mPerformedUpdates = 0;
-  }
+  void commit();
 
   /// Discard the updates. Use this after a failed query if you do not want to
   /// retain partial matches.
-  void discard()
-  {
-    mPerformedUpdates = 0;
-  }
+  inline void discard();
 
   /// Reset the all the variables and updates, without having to
   /// tear down the context.
-  void reset()
-  {
-    mPerformedUpdates = 0;
-    for (auto& element : mElements) {
-      element.value = None{};
-    }
-  }
+  void reset();
 
  private:
   /* We make this class fixed size to avoid memory churning while 
@@ -134,44 +100,16 @@ template <typename T>
 class ValueHolder
 {
  public:
-  ValueHolder(T const& s)
-    : mValue{ s }
-  {
-  }
+  inline ValueHolder(T const& s);
+
   /// This means that the matcher will fill a variable in the context if
   /// the ref points to none or use the dereferenced value, if not.
-  ValueHolder(ContextRef variableId)
-    : mValue{ variableId }
-  {
-  }
+  inline ValueHolder(ContextRef variableId);
 
-  bool operator==(ValueHolder<T> const& other) const
-  {
-    auto s1 = std::get_if<T>(&mValue);
-    auto s2 = std::get_if<T>(&other.mValue);
+  inline bool operator==(ValueHolder<T> const& other) const;
 
-    if (s1 && s2) {
-      return *s1 == *s2;
-    }
-
-    auto c1 = std::get_if<ContextRef>(&mValue);
-    auto c2 = std::get_if<ContextRef>(&other.mValue);
-    if (c1 && c2) {
-      return *c1 == *c2;
-    }
-
-    return false;
-  }
-
-  friend std::ostream& operator<<(std::ostream& os, ValueHolder<T> const& holder)
-  {
-    if (auto value = std::get_if<T>(&holder.mValue)) {
-      os << *value;
-    } else if (auto context = std::get_if<ContextRef>(&holder.mValue)) {
-      os << "$" << context->index;
-    }
-    return os;
-  }
+  template <typename V>
+  friend std::ostream& operator<<(std::ostream& os, ValueHolder<V> const& holder);
 
  protected:
   std::variant<T, ContextRef> mValue;
@@ -181,146 +119,58 @@ class ValueHolder
 class OriginValueMatcher : public ValueHolder<std::string>
 {
  public:
-  OriginValueMatcher(std::string const& s)
-    : ValueHolder{ s }
-  {
-  }
+  inline OriginValueMatcher(std::string const& s);
+  inline OriginValueMatcher(ContextRef variableId);
 
-  OriginValueMatcher(ContextRef variableId)
-    : ValueHolder{ variableId }
-  {
-  }
-
-  bool match(header::DataHeader const& header, VariableContext& context) const
-  {
-    if (auto ref = std::get_if<ContextRef>(&mValue)) {
-      auto& variable = context.get(ref->index);
-      if (auto value = std::get_if<std::string>(&variable)) {
-        return strncmp(header.dataOrigin.str, value->c_str(), 4) == 0;
-      }
-      auto maxSize = strnlen(header.dataOrigin.str, 4);
-      context.put({ ref->index, std::string(header.dataOrigin.str, maxSize) });
-      return true;
-    } else if (auto s = std::get_if<std::string>(&mValue)) {
-      return strncmp(header.dataOrigin.str, s->c_str(), 4) == 0;
-    }
-    throw std::runtime_error("Mismatching type for variable");
-  }
+  bool match(header::DataHeader const& header, VariableContext& context) const;
 };
 
 /// Something which can be matched against a header::DataDescription
 class DescriptionValueMatcher : public ValueHolder<std::string>
 {
  public:
-  DescriptionValueMatcher(std::string const& s)
-    : ValueHolder{ s }
-  {
-  }
+  inline DescriptionValueMatcher(std::string const& s);
 
-  DescriptionValueMatcher(ContextRef variableId)
-    : ValueHolder{ variableId }
-  {
-  }
+  inline DescriptionValueMatcher(ContextRef variableId);
 
-  bool match(header::DataHeader const& header, VariableContext& context) const
-  {
-    if (auto ref = std::get_if<ContextRef>(&mValue)) {
-      auto& variable = context.get(ref->index);
-      if (auto value = std::get_if<std::string>(&variable)) {
-        return strncmp(header.dataDescription.str, value->c_str(), 16) == 0;
-      }
-      auto maxSize = strnlen(header.dataDescription.str, 16);
-      context.put({ ref->index, std::string(header.dataDescription.str, maxSize) });
-      return true;
-    } else if (auto s = std::get_if<std::string>(&this->mValue)) {
-      return strncmp(header.dataDescription.str, s->c_str(), 16) == 0;
-    }
-    throw std::runtime_error("Mismatching type for variable");
-  }
+  bool match(header::DataHeader const& header, VariableContext& context) const;
 };
 
 /// Something which can be matched against a header::SubSpecificationType
 class SubSpecificationTypeValueMatcher : public ValueHolder<uint64_t>
 {
  public:
-  SubSpecificationTypeValueMatcher(ContextRef variableId)
-    : ValueHolder{ variableId }
-  {
-  }
+  inline SubSpecificationTypeValueMatcher(ContextRef variableId);
 
   /// The passed string @a s is the expected numerical value for
   /// the SubSpecification type.
-  SubSpecificationTypeValueMatcher(std::string const& s)
-    : ValueHolder<uint64_t>{ strtoull(s.c_str(), nullptr, 10) }
-  {
-  }
+  inline SubSpecificationTypeValueMatcher(std::string const& s);
 
   /// This means that the matcher is looking for a constant.
-  SubSpecificationTypeValueMatcher(uint64_t v)
-    : ValueHolder<uint64_t>{ v }
-  {
-  }
+  inline SubSpecificationTypeValueMatcher(uint64_t v);
 
-  bool match(header::DataHeader const& header, VariableContext& context) const
-  {
-    if (auto ref = std::get_if<ContextRef>(&mValue)) {
-      auto& variable = context.get(ref->index);
-      if (auto value = std::get_if<uint64_t>(&variable)) {
-        return header.subSpecification == *value;
-      }
-      context.put({ ref->index, header.subSpecification });
-      return true;
-    } else if (auto v = std::get_if<uint64_t>(&mValue)) {
-      return header.subSpecification == *v;
-    }
-    throw std::runtime_error("Mismatching type for variable");
-  }
+  bool match(header::DataHeader const& header, VariableContext& context) const;
 };
 
 /// Matcher on actual time, as reported in the DataProcessingHeader
 class StartTimeValueMatcher : public ValueHolder<uint64_t>
 {
  public:
-  StartTimeValueMatcher(ContextRef variableId, uint64_t scale = 1)
-    : ValueHolder{ variableId },
-      mScale{ scale }
-  {
-  }
+  inline StartTimeValueMatcher(ContextRef variableId, uint64_t scale = 1);
 
   /// The passed string @a s is the expected numerical value for
   /// the SubSpecification type.
-  StartTimeValueMatcher(std::string const& s, uint64_t scale = 1)
-    : ValueHolder<uint64_t>{ strtoull(s.c_str(), nullptr, 10) },
-      mScale{ scale }
-  {
-  }
+  inline StartTimeValueMatcher(std::string const& s, uint64_t scale = 1);
 
   /// This means that the matcher is looking for a constant.
   /// We will divide the input by scale so that we can map
   /// quantities with different granularities to the same record.
-  StartTimeValueMatcher(uint64_t v, uint64_t scale = 1)
-    : ValueHolder<uint64_t>{ v / scale },
-      mScale{ scale }
-  {
-  }
+  inline StartTimeValueMatcher(uint64_t v, uint64_t scale = 1);
 
   /// This will match the timing information which is currently in
   /// the DataProcessingHeader. Notice how we apply the scale to the
   /// actual values found.
-  bool match(DataProcessingHeader const& dph, VariableContext& context) const
-  {
-    if (auto ref = std::get_if<ContextRef>(&mValue)) {
-      auto& variable = context.get(ref->index);
-      if (auto value = std::get_if<uint64_t>(&variable)) {
-        return (dph.startTime / mScale) == *value;
-      }
-      context.put({ ref->index, dph.startTime / mScale });
-      return true;
-    } else if (auto v = std::get_if<uint64_t>(&mValue)) {
-      return (dph.startTime / mScale) == *v;
-    }
-    throw std::runtime_error("Mismatching type for variable");
-  }
+  bool match(DataProcessingHeader const& dph, VariableContext& context) const;
 
  private:
   uint64_t mScale;
@@ -331,20 +181,11 @@ class ConstantValueMatcher
  public:
   /// The passed string @a s is the expected numerical value for
   /// the SubSpecification type.
-  ConstantValueMatcher(bool value)
-  {
-    mValue = value;
-  }
+  inline ConstantValueMatcher(bool value);
 
-  bool match() const
-  {
-    return mValue;
-  }
+  inline bool match() const;
 
-  bool operator==(ConstantValueMatcher const& other) const
-  {
-    return mValue == other.mValue;
-  }
+  inline bool operator==(ConstantValueMatcher const& other) const;
 
  private:
   bool mValue;
@@ -427,5 +268,12 @@ class DataDescriptorMatcher
 } // namespace data_matcher
 } // namespace framework
 } // namespace o2
+
+// This is to work around CLING issues when parsing
+// GCC 7.3.0 std::variant implementation as described by:
+// https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=877838
+#ifndef __CLING__
+#include "DataDescriptorMatcher.inc"
+#endif
 
 #endif // o2_framework_DataDescriptorMatcher_H_INCLUDED

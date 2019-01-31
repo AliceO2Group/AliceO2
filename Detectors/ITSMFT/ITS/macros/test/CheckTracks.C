@@ -71,11 +71,22 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
   Int_t tf = 0, nrec = 0;
   Int_t lastEventID = -1;
   Int_t nev = mcTree->GetEntries();
-  TH1D* den = new TH1D("den", ";#it{p}_{T} (GeV/#it{c});Den", 100, 0.01, 10);
-  TH1D* num = new TH1D("num", ";#it{p}_{T} (GeV/#it{c});Num", 100, 0.01, 10);
+
+  Int_t nb = 100;
+  Double_t xbins[nb + 1], ptcutl = 0.01, ptcuth = 10.;
+  Double_t a = TMath::Log(ptcuth / ptcutl) / nb;
+  for (Int_t i = 0; i <= nb; i++)
+    xbins[i] = ptcutl * TMath::Exp(i * a);
+  TH1D* num = new TH1D("num", ";#it{p}_{T} (GeV/#it{c});Efficiency (fake-track rate)", nb, xbins);
+  num->Sumw2();
+  TH1D* fak = new TH1D("fak", ";#it{p}_{T} (GeV/#it{c});Fak", nb, xbins);
+  fak->Sumw2();
+  TH1D* den = new TH1D("den", ";#it{p}_{T} (GeV/#it{c});Den", nb, xbins);
+  den->Sumw2();
+
   for (Int_t n = 0; n < nev; n++) {
     std::cout << "\nMC event " << n << '/' << nev << std::endl;
-    Int_t nGen = 0, nGoo = 0;
+    Int_t nGen = 0, nGoo = 0, nFak = 0;
     mcTree->GetEvent(n);
     Int_t nmc = mcArr->size();
     Int_t nmcrefs = mcTrackRefs->size();
@@ -106,7 +117,7 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
 
       int ok = 0;
       // Check the availability of clusters
-      for (int i = 0; i < clusArr->size(); i++) {
+      for (uint i = 0; i < clusArr->size(); i++) {
         const Cluster& c = (*clusArr)[i];
         auto lab = (clusLabArr->getLabels(i))[0];
         if (lab.getEventID() != n)
@@ -190,6 +201,9 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
         if (label > 0) {
           nGoo++; // Good found tracks for the efficiency calculation
           num->Fill(mcPt);
+        } else {
+          nFak++; // Fake-track rate calculation
+          fak->Fill(mcPt);
         }
       }
 
@@ -197,8 +211,11 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
         mcZOut, recZOut, mcPhiOut, recPhiOut, mcThetaOut, recThetaOut, mcPhi, recPhi, mcLam, recLam, mcPt, recPt, ip[0],
         ip[1], label);
     }
-    Float_t eff = (nGen > 0) ? nGoo / Float_t(nGen) : -1.;
-    std::cout << "Good found tracks: " << nGoo << ",  efficiency: " << eff << std::endl;
+    if (nGen > 0) {
+      Float_t eff = nGoo / Float_t(nGen);
+      Float_t rat = nFak / Float_t(nGen);
+      std::cout << "Good found tracks: " << nGoo << ",  efficiency: " << eff << ",  fake-track rate: " << rat << std::endl;
+    }
   }
 
   // "recPt>0" means "found tracks only"
@@ -215,9 +232,15 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
   nt->Draw("mcPhiOut-recPhiOut", "recPt>0 && label>0");
   new TCanvas;
   nt->Draw("mcThetaOut-recThetaOut", "recPt>0 && label>0");
-  new TCanvas;
-  num->Divide(den);
-  num->Draw();
+  TCanvas* c1 = new TCanvas;
+  c1->SetLogx();
+  c1->SetGridx();
+  c1->SetGridy();
+  num->Divide(num, den, 1, 1, "b");
+  num->Draw("histe");
+  fak->Divide(fak, den, 1, 1, "b");
+  fak->SetLineColor(2);
+  fak->Draw("histesame");
   f->Write();
   f->Close();
 }

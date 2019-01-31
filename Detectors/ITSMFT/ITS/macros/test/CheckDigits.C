@@ -22,7 +22,7 @@
 
 using namespace o2::Base;
 
-void CheckDigits(std::string digifile = "o2digi_its.root", std::string hitfile = "o2sim.root", std::string inputGeom = "O2geometry.root", std::string paramfile = "o2sim_par.root")
+void CheckDigits(std::string digifile = "itsdigits.root", std::string hitfile = "o2sim.root", std::string inputGeom = "O2geometry.root", std::string paramfile = "o2sim_par.root")
 {
   using o2::ITSMFT::Digit;
   using o2::ITSMFT::Hit;

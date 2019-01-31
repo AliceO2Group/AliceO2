@@ -26,6 +26,14 @@ Detector::Detector(Bool_t active)
   : o2::Base::DetImpl<Detector>("TRD", active)
 {
   mHits = o2::utils::createSimVector<HitType>();
+  if (TRDCommonParam::Instance()->IsXenon()) {
+    mWion = 23.53; // Ionization energy XeCO2 (85/15)
+  } else if (TRDCommonParam::Instance()->IsArgon()) {
+    mWion = 27.21; // Ionization energy ArCO2 (82/18)
+  } else {
+    LOG(FATAL) << "Wrong gas mixture";
+    // add hard exit here!
+  }
 }
 
 Detector::Detector(const Detector& rhs)
@@ -78,18 +86,36 @@ bool Detector::ProcessHits(FairVolume* v)
   bool amRegion = false;
   const TString cIdSensDr = "J";
   const TString cIdSensAm = "K";
-  TString cIdCurrent = fMC->CurrentVolName();
-  // LOG(DEBUG) << "TRD::Detector::ProcessHits() \t cIdCurrent = " << cIdCurrent;
+  const TString cIdCurrent = fMC->CurrentVolName();
   if (cIdCurrent[1] == cIdSensDr) {
     drRegion = true;
   }
   if (cIdCurrent[1] == cIdSensAm) {
     amRegion = true;
   }
-
   if (!drRegion && !amRegion) {
     return false;
   }
+
+  // Determine the dectector number
+  int sector, det;
+  // The plane number and chamber number
+  char cIdChamber[3];
+  cIdChamber[0] = cIdCurrent[2];
+  cIdChamber[1] = cIdCurrent[3];
+  cIdChamber[2] = 0;
+  // The det-sec number (0 – 29)
+  const int idChamber = mGeom->getDetectorSec(atoi(cIdChamber));
+  // The sector number (0 - 17), according to the standard coordinate system
+  TString cIdPath = fMC->CurrentVolPath();
+  char cIdSector[3];
+  cIdSector[0] = cIdPath[21];
+  cIdSector[1] = cIdPath[22];
+  cIdSector[2] = 0;
+  sector = atoi(cIdSector);
+  // The detector number (0 – 539)
+  det = mGeom->getDetector(mGeom->getLayer(idChamber),
+                           mGeom->getStack(idChamber), sector);
 
   // 0: InFlight 1: Entering 2: Exiting
   int trkStat = 0;
@@ -127,11 +153,10 @@ bool Detector::ProcessHits(FairVolume* v)
   if ((enDep > mWion) || trkStat) {
     double x, y, z;
     fMC->TrackPosition(x, y, z);
-    double time = fMC->TrackTime() * 1e9;
+    double time = fMC->TrackTime() * 1e6;
     o2::Data::Stack* stack = (o2::Data::Stack*)fMC->GetStack();
     const int trackID = stack->GetCurrentTrackNumber();
-    const int sensID = v->getMCid();
-    addHit(x, y, z, time, enDep, trackID, sensID);
+    addHit(x, y, z, time, enDep, trackID, det);
     stack->addHit(GetDetId());
     return true;
   }

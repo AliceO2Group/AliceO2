@@ -16,6 +16,7 @@
 #define ALICEO2_TRACKTPCITS_H
 
 #include "ReconstructionDataFormats/Track.h"
+#include "ReconstructionDataFormats/TrackLTIntegral.h"
 #include "CommonDataFormat/EvIndex.h"
 #include "CommonDataFormat/TimeStamp.h"
 
@@ -61,6 +62,9 @@ class TrackTPCITS : public o2::track::TrackParCov
   o2::track::TrackParCov& getParamOut() { return mParamOut; }
   const o2::track::TrackParCov& getParamOut() const { return mParamOut; }
 
+  o2::track::TrackLTIntegral& getLTIntegralOut() { return mLTOut; }
+  const o2::track::TrackLTIntegral& getLTIntegralOut() const { return mLTOut; }
+
   void print() const;
 
  private:
@@ -70,6 +74,7 @@ class TrackTPCITS : public o2::track::TrackParCov
   float mChi2Match = 0.f; ///< chi2 of the match
   timeEst mTimeMUS;       ///< time estimate in ns
   o2::track::TrackParCov mParamOut; ///< refitted outer parameter
+  o2::track::TrackLTIntegral mLTOut; ///< L,TOF integral calculated during the outward refit
   ClassDefNV(TrackTPCITS, 2);
 };
 }

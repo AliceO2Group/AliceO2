@@ -10,7 +10,7 @@
 
 //  access class to a DataBase in a dump storage (single file)     //
 #include "CCDB/FileStorage.h"
-#include <FairLogger.h>   // for LOG
+#include <fairlogger/Logger.h> // for LOG
 #include <TFile.h>        // for TFile
 #include <TKey.h>         // for TKey
 #include <TObjString.h>   // for TObjString
@@ -29,11 +29,11 @@ FileStorage::FileStorage(const char *dbFile, Bool_t readOnly) : mFile(nullptr), 
   // opening file
   mFile = TFile::Open(dbFile, mReadOnly ? "READ" : "UPDATE");
   if (!mFile) {
-    LOG(ERROR) << R"(Can't open file ")" << dbFile << R"(")" << FairLogger::endl;
+    LOG(ERROR) << R"(Can't open file ")" << dbFile << R"(")";
   } else {
-    LOG(ERROR) << R"(File ")" << dbFile << R"(" opened)" << FairLogger::endl;
+    LOG(ERROR) << R"(File ")" << dbFile << R"(" opened)";
     if (mReadOnly)
-      LOG(DEBUG) << "in read-only mode" << FairLogger::endl;
+      LOG(DEBUG) << "in read-only mode";
   }
 
   mType = "dump";
@@ -60,7 +60,7 @@ Bool_t FileStorage::keyNameToId(const char *keyname, IdRunRange &runRange, Int_t
   TRegexp keyPattern("^Run[0-9]+_[0-9]+_v[0-9]+_s[0-9]+$");
   keyPattern.Index(keyname, &mSize);
   if (!mSize) {
-    LOG(DEBUG) << R"(Bad keyname ")" << keyname << R"(".)" << FairLogger::endl;
+    LOG(DEBUG) << R"(Bad keyname ")" << keyname << R"(".)";
     return kFALSE;
   }
 
@@ -86,18 +86,17 @@ Bool_t FileStorage::idToKeyName(const IdRunRange &runRange, Int_t version, Int_t
   // build key name from  ConditionId data (run range, version, subVersion)
 
   if (!runRange.isValid()) {
-    LOG(DEBUG) << "Invalid run range [" << runRange.getFirstRun() << "," << runRange.getLastRun() << "]."
-               << FairLogger::endl;
+    LOG(DEBUG) << "Invalid run range [" << runRange.getFirstRun() << "," << runRange.getLastRun() << "].";
     return kFALSE;
   }
 
   if (version < 0) {
-    LOG(DEBUG) << R"(Invalid version ')" << version << R"('.)" << FairLogger::endl;
+    LOG(DEBUG) << R"(Invalid version ')" << version << R"('.)";
     return kFALSE;
   }
 
   if (subVersion < 0) {
-    LOG(DEBUG) << R"(Invalid subversion ')" << subVersion << R"('.)" << FairLogger::endl;
+    LOG(DEBUG) << R"(Invalid subversion ')" << subVersion << R"('.)";
     return kFALSE;
   }
 
@@ -134,7 +133,7 @@ Bool_t FileStorage::makeDir(const TString &path)
 
     TDirectory *aDir = gDirectory->mkdir(dirName, "");
     if (!aDir) {
-      LOG(ERROR) << R"(Can't create directory ")" << dirName.Data() << R"("!)" << FairLogger::endl;
+      LOG(ERROR) << R"(Can't create directory ")" << dirName.Data() << R"("!)";
       delete strArray;
 
       return kFALSE;
@@ -167,7 +166,7 @@ Bool_t FileStorage::prepareId(ConditionId &id)
       const char *keyName = key->GetName();
 
       if (!keyNameToId(keyName, aIdRunRange, aVersion, aSubVersion)) {
-        LOG(DEBUG) << "Bad keyname <" << keyName << ">!I'll skip it." << FairLogger::endl;
+        LOG(DEBUG) << "Bad keyname <" << keyName << ">!I'll skip it.";
         continue;
       }
 
@@ -198,7 +197,7 @@ Bool_t FileStorage::prepareId(ConditionId &id)
       const char *keyName = key->GetName();
 
       if (!keyNameToId(keyName, aIdRunRange, aVersion, aSubVersion)) {
-        LOG(DEBUG) << "Bad keyname <" << keyName << ">!I'll skip it." << FairLogger::endl;
+        LOG(DEBUG) << "Bad keyname <" << keyName << ">!I'll skip it.";
         continue;
       }
 
@@ -215,23 +214,20 @@ Bool_t FileStorage::prepareId(ConditionId &id)
   TString lastStorage = id.getLastStorage();
   if (lastStorage.Contains(TString("grid"), TString::kIgnoreCase) && id.getSubVersion() > 0) {
     LOG(ERROR) << "GridStorage to FileStorage Storage error! local object with version v" << id.getVersion() << "_s"
-               << id.getSubVersion() - 1 << " found:" << FairLogger::endl;
-    LOG(ERROR) << "this object has been already transferred from GridStorage (check v" << id.getVersion() << "_s0)!"
-               << FairLogger::endl;
+               << id.getSubVersion() - 1 << " found:";
+    LOG(ERROR) << "this object has been already transferred from GridStorage (check v" << id.getVersion() << "_s0)!";
     return kFALSE;
   }
 
   if (lastStorage.Contains(TString("new"), TString::kIgnoreCase) && id.getSubVersion() > 0) {
-    LOG(DEBUG) << "A NEW object is being stored with version v" << id.getVersion() << "_s" << id.getSubVersion()
-               << FairLogger::endl;
+    LOG(DEBUG) << "A NEW object is being stored with version v" << id.getVersion() << "_s" << id.getSubVersion();
     LOG(DEBUG) << "and it will hide previously stored object with v" << id.getVersion() << "_s"
-               << id.getSubVersion() - 1 << "!" << FairLogger::endl;
+               << id.getSubVersion() - 1 << "!";
   }
 
   if (!lastIdRunRange.isAnyRange() && !(lastIdRunRange.isEqual(&id.getIdRunRange())))
     LOG(WARNING) << "Run range modified w.r.t. previous version (Run" << lastIdRunRange.getFirstRun() << "_"
-                 << lastIdRunRange.getLastRun() << "_v" << id.getVersion() << "_s" << id.getSubVersion() - 1 << ")"
-                 << FairLogger::endl;
+                 << lastIdRunRange.getLastRun() << "_v" << id.getVersion() << "_s" << id.getSubVersion() - 1 << ")";
 
   return kTRUE;
 }
@@ -279,7 +275,7 @@ ConditionId *FileStorage::getId(const ConditionId &query)
         result->setLastRun(aIdRunRange.getLastRun());
       } else if (result->getVersion() == aVersion && result->getSubVersion() == aSubVersion) {
         LOG(ERROR) << "More than one object valid for run " << query.getFirstRun() << ", version " << aVersion << "_"
-                   << aSubVersion << "!" << FairLogger::endl;
+                   << aSubVersion << "!";
 
         delete result;
         return nullptr;
@@ -310,7 +306,7 @@ ConditionId *FileStorage::getId(const ConditionId &query)
 
       if (result->getSubVersion() == aSubVersion) {
         LOG(ERROR) << "More than one object valid for run " << query.getFirstRun() << " version " << aVersion << "_"
-                   << aSubVersion << "!" << FairLogger::endl;
+                   << aSubVersion << "!";
         delete result;
         return nullptr;
       }
@@ -344,7 +340,7 @@ ConditionId *FileStorage::getId(const ConditionId &query)
 
       if (result->getVersion() == aVersion && result->getSubVersion() == aSubVersion) {
         LOG(ERROR) << "More than one object valid for run " << query.getFirstRun() << " version " << aVersion << "_"
-                   << aSubVersion << "!" << FairLogger::endl;
+                   << aSubVersion << "!";
         delete result;
         return nullptr;
       }
@@ -365,7 +361,7 @@ Condition *FileStorage::getCondition(const ConditionId &queryId)
   TDirectory::TContext context(gDirectory, mFile);
 
   if (!(mFile && mFile->IsOpen())) {
-    LOG(ERROR) << "FileStorage is not initialized properly" << FairLogger::endl;
+    LOG(ERROR) << "FileStorage is not initialized properly";
     return nullptr;
   }
 
@@ -384,7 +380,7 @@ Condition *FileStorage::getCondition(const ConditionId &queryId)
 
   TString keyname;
   if (!idToKeyName(dataId->getIdRunRange(), dataId->getVersion(), dataId->getSubVersion(), keyname)) {
-    LOG(DEBUG) << "Bad ID encountered! Subnormal error!" << FairLogger::endl;
+    LOG(DEBUG) << "Bad ID encountered! Subnormal error!";
     delete dataId;
     return nullptr;
   }
@@ -395,13 +391,13 @@ Condition *FileStorage::getCondition(const ConditionId &queryId)
 
   TObject *anObject = gDirectory->Get(keyname);
   if (!anObject) {
-    LOG(DEBUG) << "Bad storage data: NULL entry object!" << FairLogger::endl;
+    LOG(DEBUG) << "Bad storage data: NULL entry object!";
     delete dataId;
     return nullptr;
   }
 
   if (Condition::Class() != anObject->IsA()) {
-    LOG(DEBUG) << "Bad storage data: Invalid entry object!" << FairLogger::endl;
+    LOG(DEBUG) << "Bad storage data: Invalid entry object!";
     delete dataId;
     return nullptr;
   }
@@ -419,7 +415,7 @@ ConditionId *FileStorage::getConditionId(const ConditionId &queryId)
   TDirectory::TContext context(gDirectory, mFile);
 
   if (!(mFile && mFile->IsOpen())) {
-    LOG(ERROR) << "FileStorage is not initialized properly" << FairLogger::endl;
+    LOG(ERROR) << "FileStorage is not initialized properly";
     return nullptr;
   }
 
@@ -500,7 +496,7 @@ TList *FileStorage::getAllEntries(const ConditionId &queryId)
   TDirectory::TContext context(gDirectory, mFile);
 
   if (!(mFile && mFile->IsOpen())) {
-    LOG(ERROR) << "FileStorage is not initialized properly" << FairLogger::endl;
+    LOG(ERROR) << "FileStorage is not initialized properly";
     return nullptr;
   }
 
@@ -531,25 +527,24 @@ Bool_t FileStorage::putCondition(Condition *entry, const char *mirrors)
   TDirectory::TContext context(gDirectory, mFile);
 
   if (!(mFile && mFile->IsOpen())) {
-    LOG(ERROR) << "FileStorage is not initialized properly" << FairLogger::endl;
+    LOG(ERROR) << "FileStorage is not initialized properly";
     return kFALSE;
   }
 
   if (mReadOnly) {
-    LOG(ERROR) << "FileStorage is read only!" << FairLogger::endl;
+    LOG(ERROR) << "FileStorage is read only!";
     return kFALSE;
   }
 
   TString mirrorsString(mirrors);
   if (!mirrorsString.IsNull())
-    LOG(WARNING) << "LocalStorage storage cannot take mirror SEs into account. They will be ignored." <<
-                 FairLogger::endl;
+    LOG(WARNING) << "LocalStorage storage cannot take mirror SEs into account. They will be ignored.";
 
   ConditionId &id = entry->getId();
 
   if (!gDirectory->cd(id.getPathString())) {
     if (!makeDir(id.getPathString())) {
-      LOG(ERROR) << R"(Can't open directory ")" << id.getPathString().Data() << R"("!)" << FairLogger::endl;
+      LOG(ERROR) << R"(Can't open directory ")" << id.getPathString().Data() << R"("!)";
       return kFALSE;
     }
   }
@@ -562,19 +557,19 @@ Bool_t FileStorage::putCondition(Condition *entry, const char *mirrors)
   // build keyname from entry's id
   TString keyname;
   if (!idToKeyName(id.getIdRunRange(), id.getVersion(), id.getSubVersion(), keyname)) {
-    LOG(ERROR) << "Invalid ID encountered! Subnormal error!" << FairLogger::endl;
+    LOG(ERROR) << "Invalid ID encountered! Subnormal error!";
     return kFALSE;
   }
 
   // write object (key name: Run#firstRun_#lastRun_v#version_s#subVersion)
   Bool_t result = gDirectory->WriteTObject(entry, keyname);
   if (!result) {
-    LOG(ERROR) << R"(Can't write entry to file ")" << mFile->GetName() << R"(")" << FairLogger::endl;
+    LOG(ERROR) << R"(Can't write entry to file ")" << mFile->GetName() << R"(")";
   }
 
   if (result) {
-    LOG(INFO) << "CDB object stored into file " << mFile->GetName() << FairLogger::endl;
-    LOG(INFO) << "TDirectory/key name: " << id.getPathString().Data() << "/" << keyname.Data() << FairLogger::endl;
+    LOG(INFO) << "CDB object stored into file " << mFile->GetName();
+    LOG(INFO) << "TDirectory/key name: " << id.getPathString().Data() << "/" << keyname.Data();
   }
 
   return result;
@@ -589,7 +584,7 @@ TList *FileStorage::getIdListFromFile(const char *fileName)
   }
   TFile *file = TFile::Open(turl);
   if (!file) {
-    LOG(ERROR) << "Can't open selection file <" << turl.Data() << ">!" << FairLogger::endl;
+    LOG(ERROR) << "Can't open selection file <" << turl.Data() << ">!";
     return nullptr;
   }
   file->cd();
@@ -623,7 +618,7 @@ Bool_t FileStorage::hasConditionType(const char *path) const
 
   TDirectory::TContext context(gDirectory, mFile);
   if (!(mFile && mFile->IsOpen())) {
-    LOG(ERROR) << "FileStorage is not initialized properly" << FairLogger::endl;
+    LOG(ERROR) << "FileStorage is not initialized properly";
     return kFALSE;
   }
 
@@ -635,14 +630,14 @@ void FileStorage::queryValidFiles()
   // Query the CDB for files valid for  Storage::mRun
   // fills list mValidFileIds with  ConditionId objects created from file name
 
-  LOG(ERROR) << "Not yet (and maybe never) implemented" << FairLogger::endl;
+  LOG(ERROR) << "Not yet (and maybe never) implemented";
 }
 
 Bool_t FileStorage::idToFilename(const ConditionId & /*id*/, TString & /*filename*/) const
 {
   // build file name from  ConditionId (path, run range, version) and mDBFolder
 
-  LOG(ERROR) << "Not implemented" << FairLogger::endl;
+  LOG(ERROR) << "Not implemented";
   return kFALSE;
 }
 
@@ -650,8 +645,7 @@ void FileStorage::setRetry(Int_t /* nretry */, Int_t /* initsec */)
 {
   // Function to set the exponential retry for putting entries in the OCDB
   LOG(INFO) << "This function sets the exponential retry for putting entries in the OCDB - to be "
-               "used ONLY for  GridStorage --> returning without doing anything"
-            << FairLogger::endl;
+               "used ONLY for  GridStorage --> returning without doing anything";
   return;
 }
 

@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(HeatmapTest)
     ImGui::NewFrame();
 
     gui::displayDataRelayer(metrics, deviceInfo, size);
-    std::smatch match;
+    ParsedMetricMatch match;
     std::vector<std::string> dummyHeatmapMetrics = {
       "[METRIC] data_relayer/w,0 2 1789372894 hostname=test.cern.ch"
       "[METRIC] data_relayer/h,0 2 1789372894 hostname=test.cern.ch"

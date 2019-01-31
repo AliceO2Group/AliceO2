@@ -18,6 +18,7 @@ namespace o2
 {
 namespace trd
 {
+
 class Digitizer
 {
  public:
@@ -31,9 +32,20 @@ class Digitizer
   void setSrcID(int sourceID) { mSrcID = sourceID; }
 
  private:
+  TRDGeometry* mGeom = nullptr;
+
   double mTime = 0.;
   int mEventID = 0;
   int mSrcID = 0;
+
+  float mWion; //  Ionization potential
+
+  std::vector<o2::trd::HitType> mHitContainer; // The container of hits in a given detector
+
+  bool getHitContainer(const int, const std::vector<o2::trd::HitType>&,
+                       std::vector<o2::trd::HitType>&);              // True if there are hits in the detector
+  bool convertHits(int, const std::vector<o2::trd::HitType>&, int&); // True if hit-to-signal conversion is successful
+  bool diffusion(float, double, double, double&, double&, double&);  // True if diffusion is applied successfully
 };
 } // namespace trd
 } // namespace o2

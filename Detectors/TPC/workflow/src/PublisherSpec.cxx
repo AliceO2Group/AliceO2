@@ -39,13 +39,13 @@ namespace TPC
 /// branch name is configurable, sector number is apended as extension '_n'
 DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC)
 {
-  if (config.tpcSectors.size() == 0 || config.fanOut == 0) {
-    throw std::invalid_argument("need TPC sector configuration and fan out size");
+  if (config.tpcSectors.size() == 0 || config.outputIds.size() == 0) {
+    throw std::invalid_argument("need TPC sector and output id configuration");
   }
   constexpr static size_t NSectors = o2::TPC::Sector::MAXSECTOR;
   struct ProcessAttributes {
-    size_t nParallelReaders = 1;
     std::vector<int> sectors;
+    std::vector<int> outputIds;
     uint64_t activeSectors = 0;
     std::array<std::shared_ptr<RootTreeReader>, NSectors> readers;
     bool terminateOnEod = false;
@@ -62,13 +62,14 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
 
     auto processAttributes = std::make_shared<ProcessAttributes>();
     {
-      processAttributes->nParallelReaders = config.fanOut;
       processAttributes->terminateOnEod = ic.options().get<bool>("terminate-on-eod");
       auto& sectors = processAttributes->sectors;
       auto& activeSectors = processAttributes->activeSectors;
       auto& readers = processAttributes->readers;
+      auto& outputIds = processAttributes->outputIds;
 
       sectors = config.tpcSectors;
+      outputIds = config.outputIds;
       for (auto const& s : sectors) {
         // set the mask of active sectors
         if (s >= NSectors) {
@@ -85,11 +86,12 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
       // TODO: parallelism on sectors needs to be implemented as selector in the reader
       // the data is now in parallel branches, as first attempt use an array of readers
       constexpr auto persistency = Lifetime::Timeframe;
-      o2::header::DataHeader::SubSpecificationType lane = 0;
+      auto outputId = outputIds.begin();
       for (size_t sector = 0; sector < NSectors; ++sector) {
         if ((activeSectors & ((uint64_t)0x1 << sector)) == 0) {
           continue;
         }
+        o2::header::DataHeader::SubSpecificationType subSpec = *outputId;
         std::string clusterbranchname = clbrName + "_" + std::to_string(sector);
         std::string mcbranchname = mcbrName + "_" + std::to_string(sector);
         auto& dto = config.dataoutput;
@@ -98,21 +100,21 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
           readers[sector] = std::make_shared<RootTreeReader>(treename.c_str(), // tree name
                                                              nofEvents,        // number of entries to publish
                                                              filename.c_str(), // input file name
-                                                             Output{ dto.origin, dto.description, lane, persistency },
+                                                             Output{ dto.origin, dto.description, subSpec, persistency },
                                                              clusterbranchname.c_str(), // name of cluster branch
-                                                             Output{ mco.origin, mco.description, lane, persistency },
+                                                             Output{ mco.origin, mco.description, subSpec, persistency },
                                                              mcbranchname.c_str() // name of mc label branch
                                                              );
         } else {
           readers[sector] = std::make_shared<RootTreeReader>(treename.c_str(), // tree name
                                                              nofEvents,        // number of entries to publish
                                                              filename.c_str(), // input file name
-                                                             Output{ dto.origin, dto.description, lane, persistency },
+                                                             Output{ dto.origin, dto.description, subSpec, persistency },
                                                              clusterbranchname.c_str() // name of cluster branch
                                                              );
         }
-        if (++lane >= processAttributes->nParallelReaders) {
-          lane = 0;
+        if (++outputId == outputIds.end()) {
+          outputId = outputIds.begin();
         }
       }
     }
@@ -164,7 +166,7 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
         *index = 0;
       }
       int operation = -2;
-      for (size_t lane = 0; lane < processAttributes->nParallelReaders; ++lane) {
+      for (size_t lane = 0; lane < processAttributes->outputIds.size(); ++lane) {
         if (!publish()) {
           // need to publish a dummy packet
           // FIXME define and use flags in the TPCSectorHeader, for now using the same schema as
@@ -172,10 +174,11 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
           if (lane == 0) {
             operation = -1;
           }
+          o2::header::DataHeader::SubSpecificationType subSpec = processAttributes->outputIds[lane];
           o2::TPC::TPCSectorHeader header{ operation };
-          pc.outputs().snapshot(OutputRef{ "output", lane, { header } }, lane);
+          pc.outputs().snapshot(OutputRef{ "output", subSpec, { header } }, subSpec);
           if (propagateMC) {
-            pc.outputs().snapshot(OutputRef{ "outputMC", lane, { header } }, lane);
+            pc.outputs().snapshot(OutputRef{ "outputMC", subSpec, { header } }, subSpec);
           }
         }
       }
@@ -192,10 +195,11 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
 
   auto createOutputSpecs = [&config, propagateMC]() {
     std::vector<OutputSpec> outputSpecs;
-    for (size_t n = 0; n < config.fanOut; ++n) {
-      outputSpecs.emplace_back(OutputSpec{ { "output" }, config.dataoutput.origin, config.dataoutput.description, n, Lifetime::Timeframe });
+    for (size_t n = 0; n < config.outputIds.size(); ++n) {
+      o2::header::DataHeader::SubSpecificationType subSpec = config.outputIds[n];
+      outputSpecs.emplace_back(OutputSpec{ { "output" }, config.dataoutput.origin, config.dataoutput.description, subSpec, Lifetime::Timeframe });
       if (propagateMC) {
-        outputSpecs.emplace_back(OutputSpec{ { "outputMC" }, config.mcoutput.origin, config.mcoutput.description, n, Lifetime::Timeframe });
+        outputSpecs.emplace_back(OutputSpec{ { "outputMC" }, config.mcoutput.origin, config.mcoutput.description, subSpec, Lifetime::Timeframe });
       }
     }
     return std::move(outputSpecs);

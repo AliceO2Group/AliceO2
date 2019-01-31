@@ -42,7 +42,6 @@ class RecPoints
   }
   ~RecPoints() = default;
 
-  //void FillFromDigits(const std::vector<Digit>& digits);
   void FillFromDigits(const Digit& digit);
   Float_t GetCollisionTime(int side) const { return mCollisionTime[side]; }
   void setCollisionTime(Float_t time, int side) { mCollisionTime[side] = time; }
@@ -54,6 +53,8 @@ class RecPoints
   void setVertex(Float_t vertex) { mVertex = vertex; }
 
   void SetMgrEventTime(Double_t time) { mEventTime = time; }
+  void setBC(Int_t bc) { mBC = bc; }
+  void setOrbit(Int_t orbit) { mOrbit = orbit; }
 
   const std::vector<ChannelData>& getChDgData() const { return mTimeAmp; }
   void setChDgData(const std::vector<ChannelData>& TimeAmp) { mTimeAmp = TimeAmp; }
@@ -64,7 +65,8 @@ class RecPoints
   Float_t mVertex = 0;
   Double_t mEventTime; //event time from Fair for continuous
   std::vector<ChannelData> mTimeAmp;
-  Int_t mEventID = 0; ///< current event id from the source
+  Int_t mBC = 0;    // BC from digits
+  Int_t mOrbit = 0; // orbit from digits
 
   ClassDefNV(RecPoints, 1);
 };

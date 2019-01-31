@@ -22,6 +22,7 @@
 #include <DetectorsBase/Detector.h>
 #include <CommonUtils/ShmManager.h>
 #include <cassert>
+#include <FairMCEventHeader.h>
 
 namespace o2
 {
@@ -54,15 +55,21 @@ void O2MCApplication::initLate()
 
 void O2MCApplication::attachSubEventInfo(FairMQParts& parts, o2::Data::SubEventInfo const& info) const
 {
-  parts.AddPart(std::move(mSimDataChannel->NewSimpleMessage(info)));
+  // parts.AddPart(std::move(mSimDataChannel->NewSimpleMessage(info)));
+  o2::Base::attachTMessage(info, *mSimDataChannel, parts);
 }
 
 // helper function to fetch data from FairRootManager branch and serialize it
 // returns handle to container
 template <typename T>
-const T* attachBranch(std::string name, FairMQChannel& channel, FairMQParts& parts)
+const T* attachBranch(std::string const& name, FairMQChannel& channel, FairMQParts& parts)
 {
   auto mgr = FairRootManager::Instance();
+  // check if branch is present
+  if (mgr->GetBranchId(name) == -1) {
+    LOG(ERROR) << "Branch " << name << " not found";
+    return nullptr;
+  }
   auto data = mgr->InitObjectAs<const T*>(name.c_str());
   if (data) {
     o2::Base::attachTMessage(*data, channel, parts);

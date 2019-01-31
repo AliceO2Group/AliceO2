@@ -18,7 +18,6 @@
 #include <memory>
 #include <cstring> // for memset
 #include "DataFormatsTPC/ClusterHardware.h"
-#include "DataFormatsTPC/ClusterNative.h"
 
 namespace o2
 {
@@ -34,26 +33,18 @@ namespace o2
 {
 namespace TPC
 {
-class TPCClusterFormatHelper
-{
- public:
-  // Helper function to create a ClusterNativeAccessFullTPC structure from a std::vector of ClusterNative containers
-  // This is not contained in the ClusterNative class itself to reduce the dependencies of the class
-  static std::unique_ptr<ClusterNativeAccessFullTPC> accessNativeContainerArray(
-    std::vector<ClusterNativeContainer>& clusters,
-    std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* mcTruth = nullptr);
-};
-
 template <unsigned int size>
 class ClusterHardwareContainerFixedSize
 {
   // We cannot use a union because that prevents ROOT streaming, so we just block 8 kb and reinterpret_cast to
   // ClusterHardwareContainer
  public:
-  ClusterHardwareContainer* getContainer() { return (reinterpret_cast<ClusterHardwareContainer*>(this)); }
-  int getMaxNumberOfClusters()
+  ClusterHardwareContainer* getContainer() { return (reinterpret_cast<ClusterHardwareContainer*>(mFixSize)); }
+  ClusterHardwareContainer const* getContainer() const { return (reinterpret_cast<ClusterHardwareContainer const*>(mFixSize)); }
+  constexpr int getMaxNumberOfClusters()
   {
-    return ((sizeof(*this) - sizeof(ClusterHardwareContainer)) / sizeof(ClusterHardware));
+    static_assert(sizeof(*this) == sizeof(mFixSize));
+    return ((sizeof(mFixSize) - sizeof(ClusterHardwareContainer)) / sizeof(ClusterHardware));
   }
   ClusterHardwareContainerFixedSize() { memset(this, 0, size); }
  private:

@@ -11,7 +11,6 @@
 /// \file Clusterer.cxx
 /// \brief Implementation of the ITS cluster finder
 #include <algorithm>
-#include <TTree.h>
 #include "FairLogger.h" // for LOG
 
 #include "ITSMFTBase/SegmentationAlpide.h"
@@ -271,10 +270,9 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
         x += mPixArrBuff[i].getRowDirect();
         z += mPixArrBuff[i].getCol();
       }
-      Point3D<float> xyzLoc(Segmentation::getFirstRowCoordinate() + x * Segmentation::PitchRow / npix, 0.f,
-                            Segmentation::getFirstColCoordinate() + z * Segmentation::PitchCol / npix);
-      auto xyzTra =
-        mGeometry->getMatrixT2L(mChipData->getChipID()) ^ (xyzLoc); // inverse transform from Local to Tracking frame
+      Point3D<float> xyzLoc;
+      Segmentation::detectorToLocalUnchecked(x / npix, z / npix, xyzLoc);
+      auto xyzTra = mGeometry->getMatrixT2L(mChipData->getChipID()) ^ (xyzLoc); // inverse transform from Local to Tracking frame
       c.setPos(xyzTra);
       c.setErrors(SigmaX2, SigmaY2, 0.f);
     }

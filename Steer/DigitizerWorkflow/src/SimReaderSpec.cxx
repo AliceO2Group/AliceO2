@@ -79,18 +79,23 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
     static int counter = 0;
 
     static bool finished = false;
+    static bool tpc_end_messagesent = false;
     if (finished) {
-      // we need to send this in a different time slice
-      // send message telling tpc workers that they can terminate
-      for (const auto& channel : *tpcsubchannels.get()) {
-        // -1 is marker for end of work
-        o2::TPC::TPCSectorHeader header{ -1 };
-        header.activeSectors = activeSectors;
-        pc.outputs().snapshot(
-          OutputRef{ "collisioncontext", static_cast<SubSpecificationType>(channel), { header } },
-          context);
+      if (!tpc_end_messagesent) {
+        // we need to send this in a different time slice
+        // send message telling tpc workers that they can terminate
+        // do this only one
+        for (const auto& channel : *tpcsubchannels.get()) {
+          // -1 is marker for end of work
+          o2::TPC::TPCSectorHeader header{ -1 };
+          header.activeSectors = activeSectors;
+          pc.outputs().snapshot(
+            OutputRef{ "collisioncontext", static_cast<SubSpecificationType>(channel), { header } },
+            context);
+        }
+        tpc_end_messagesent = true;
       }
-      // do this only one
+      // now mark the reader as ready to finish
       pc.services().get<ControlService>().readyToQuit(false);
       return;
     }

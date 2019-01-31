@@ -17,6 +17,7 @@
 #include <vector>
 #include "TPCReconstruction/DigitalCurrentClusterIntegrator.h"
 #include "DataFormatsTPC/ClusterNative.h"
+#include "DataFormatsTPC/ClusterNativeHelper.h"
 
 namespace o2
 {

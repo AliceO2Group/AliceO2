@@ -29,5 +29,3 @@ O2_GENERATE_TESTS(
   BUCKET_NAME ${BUCKET_NAME}
   TEST_SRCS "test/test_Arrow01.cxx"
 )
-
-target_compile_options(test_ArrowTests_test_Arrow01 PUBLIC -O0 -g -fno-omit-frame-pointer)

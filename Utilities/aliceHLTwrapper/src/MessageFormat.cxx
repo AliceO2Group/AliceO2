@@ -134,7 +134,7 @@ int MessageFormat::addMessage(uint8_t* buffer, unsigned size)
   return mBlockDescriptors.size() - count;
 }
 
-int MessageFormat::addMessages(const vector<BufferDesc_t>& list)
+int MessageFormat::addMessages(const std::vector<BufferDesc_t>& list)
 {
   // add list of messages
   int totalCount = 0;
@@ -163,13 +163,13 @@ int MessageFormat::addMessages(const vector<BufferDesc_t>& list)
 }
 
 int MessageFormat::readBlockSequence(uint8_t* buffer, unsigned size,
-                                     vector<BlockDescriptor>& descriptorList) const
+                                     std::vector<BlockDescriptor>& descriptorList) const
 {
   // read a sequence of blocks consisting of AliHLTComponentBlockData followed by payload
   // from a buffer
   if (buffer == nullptr) return 0;
   unsigned position = 0;
-  vector<BlockDescriptor> input;
+  std::vector<BlockDescriptor> input;
   while (position + sizeof(AliHLTComponentBlockData) < size) {
     AliHLTComponentBlockData* p = reinterpret_cast<AliHLTComponentBlockData*>(buffer + position);
     if (p->fStructSize == 0 ||                         // no valid header
@@ -199,7 +199,7 @@ int MessageFormat::readBlockSequence(uint8_t* buffer, unsigned size,
 }
 
 int MessageFormat::readHOMERFormat(uint8_t* buffer, unsigned size,
-                                   vector<BlockDescriptor>& descriptorList) const
+                                   std::vector<BlockDescriptor>& descriptorList) const
 {
   // read message payload in HOMER format
   if (mpFactory == nullptr) const_cast<MessageFormat*>(this)->mpFactory = new o2::alice_hlt::HOMERFactory;
@@ -224,7 +224,7 @@ int MessageFormat::readHOMERFormat(uint8_t* buffer, unsigned size,
   return nofBlocks;
 }
 
-int MessageFormat::readO2Format(const vector<BufferDesc_t>& list, std::vector<BlockDescriptor>& descriptorList, HeartbeatHeader& hbh, HeartbeatTrailer& hbt) const
+int MessageFormat::readO2Format(const std::vector<BufferDesc_t>& list, std::vector<BlockDescriptor>& descriptorList, HeartbeatHeader& hbh, HeartbeatTrailer& hbt) const
 {
   int partNumber = 0;
   const o2::header::DataHeader* dh = nullptr;
@@ -278,10 +278,10 @@ int MessageFormat::readO2Format(const vector<BufferDesc_t>& list, std::vector<Bl
   return list.size()/2;
 }
 
-vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTComponentBlockData* blocks,
-                                                                  unsigned count, unsigned totalPayloadSize,
-                                                                  const AliHLTComponentEventData* evtData,
-                                                                  boost::signals2::signal<unsigned char* (unsigned int)> *cbAllocate)
+std::vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTComponentBlockData* blocks,
+                                                                       unsigned count, unsigned totalPayloadSize,
+                                                                       const AliHLTComponentEventData* evtData,
+                                                                       boost::signals2::signal<unsigned char*(unsigned int)>* cbAllocate)
 {
   // O2 output mode does not support event info struct
   // for the moment simply ignore it, not sure if this is the best

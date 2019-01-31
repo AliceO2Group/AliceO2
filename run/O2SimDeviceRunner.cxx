@@ -153,14 +153,23 @@ int main(int argc, char* argv[])
 {
   auto internalfork = getenv("ALICE_SIMFORKINTERNAL");
   if (internalfork) {
+    // retrieve published port numbers
+    auto serverportenv = getenv("ALICE_O2SIM_SERVERPORT");
+    if (!serverportenv) {
+      LOG(FATAL) << "NEED SERVER PORT PUBLISHED";
+    }
+    auto mergerportenv = getenv("ALICE_O2SIM_MERGERPORT");
+    if (!mergerportenv) {
+      LOG(FATAL) << "NEED MERGER PORT PUBLISHED";
+    }
 
-    std::string serveraddress("tcp://localhost:25005");
-    std::string mergeraddress("tcp://localhost:25009");
+    std::string serveraddress("tcp://localhost:" + std::string(serverportenv));
+    std::string mergeraddress("tcp://localhost:" + std::string(mergerportenv));
     auto host = getenv("ALICE_SIMMAINHOST");
     if (host) {
       // argv[1] is supposed to be an IP address or hostname
-      serveraddress = "tcp://" + std::string(host) + ":25005";
-      mergeraddress = "tcp://" + std::string(host) + ":25009";
+      serveraddress = "tcp://" + std::string(host) + ":" + std::string(serverportenv);
+      mergeraddress = "tcp://" + std::string(host) + ":" + std::string(mergerportenv);
     }
     LOG(INFO) << serveraddress;
     LOG(INFO) << mergeraddress;

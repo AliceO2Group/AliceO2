@@ -16,12 +16,14 @@
 #include <string>
 #include <boost/format.hpp>
 #include <boost/range/combine.hpp>
+#include <cassert>
 
 #include "FairLogger.h"
 
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/Mapper.h"
 #include "TPCBase/ROC.h"
+#include "TPCBase/Sector.h"
 #include "TPCBase/CalArray.h"
 
 using boost::format;
@@ -58,6 +60,10 @@ class CalDet
   const CalType& getCalArray(size_t position) const { return mData[position]; }
   CalType& getCalArray(size_t position) { return mData[position]; }
 
+  ///
+  ///
+  const T getValue(const int sec, const int globalPadInSector) const;
+
   /// \todo return value of T& not possible if a default value should be returned, e.g. T{}:
   ///       warning: returning reference to temporary
   const T getValue(const ROC roc, const size_t row, const size_t pad) const;
@@ -85,6 +91,23 @@ class CalDet
   /// initialize the data array depending on what is set as PadSubset
   void initData();
 };
+
+//______________________________________________________________________________
+template <class T>
+inline const T CalDet<T>::getValue(const int sector, const int globalPadInSector) const
+{
+  // This shold be a temporary speedup, a proper restructuring of Mapper and CalDet/CalArray is needed.
+  // The default granularity for the moment should be ROC, for the assumptions below this should be assured
+  assert(mPadSubset == PadSubset::ROC);
+  int roc = sector;
+  int padInROC = globalPadInSector;
+  const int padsInIROC = Mapper::getPadsInIROC();
+  if (globalPadInSector >= padsInIROC) {
+    roc += Mapper::getNumberOfIROCs();
+    padInROC -= padsInIROC;
+  }
+  return mData[roc].getValue(padInROC);
+}
 
 //______________________________________________________________________________
 template <class T>

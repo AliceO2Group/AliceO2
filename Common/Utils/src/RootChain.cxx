@@ -12,7 +12,7 @@
 
 #include "CommonUtils/RootChain.h"
 #include <TString.h>
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <fstream>
 
 using namespace o2::utils;
@@ -20,16 +20,15 @@ using namespace o2::utils;
 std::unique_ptr<TChain> RootChain::load(const std::string trName, const std::string inpFile)
 {
   // create chain from the single root file or list of files
-  FairLogger* logger = FairLogger::GetLogger();
   std::unique_ptr<TChain> chain;
   if (trName.empty() || inpFile.empty()) {
-    LOG(ERROR) << "Tree name or input file is not provided" << FairLogger::endl;
+    LOG(ERROR) << "Tree name or input file is not provided";
     return chain;
   }
   chain = std::make_unique<TChain>(trName.data());
   addFile(chain.get(), inpFile);
   LOG(INFO) << "Created chain " << chain->GetName() << " with " << chain->GetEntries()
-            << " from " << inpFile << FairLogger::endl;
+            << " from " << inpFile;
   return chain;
 }
 
@@ -38,12 +37,12 @@ void RootChain::addFile(TChain* ch, const std::string inp)
   // add root file or files from the list extracted from the inp text file
   TString inpS = inp.data();
   if (inpS.EndsWith(".root")) {
-    LOG(INFO) << "Adding " << inp << FairLogger::endl;
+    LOG(INFO) << "Adding " << inp;
     ch->AddFile(inp.data());
   } else {
     std::ifstream inpF(inpS.Data());
     if (!inpF.good()) {
-      LOG(ERROR) << "Failed to open input file " << inp << " as a text one" << FairLogger::endl;
+      LOG(ERROR) << "Failed to open input file " << inp << " as a text one";
       return;
     }
     //

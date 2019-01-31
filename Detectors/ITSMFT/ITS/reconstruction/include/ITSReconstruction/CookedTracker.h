@@ -145,7 +145,7 @@ class CookedTracker::Layer
   void setR(Double_t r) { mR = r; }
   void unloadClusters();
   void selectClusters(std::vector<Int_t>& s, Float_t phi, Float_t dy, Float_t z, Float_t dz);
-  Int_t findClusterIndex(Double_t z) const;
+  Int_t findClusterIndex(Float_t z) const;
   Float_t getR() const { return mR; }
   const Cluster* getCluster(Int_t i) const { return mClusters[i]; }
   Float_t getAlphaRef(Int_t i) const { return mAlphaRef[i]; }
@@ -161,7 +161,7 @@ class CookedTracker::Layer
   std::vector<const Cluster*> mClusters;        ///< All clusters
   std::vector<Float_t> mAlphaRef;               ///< alpha of the reference plane
   std::vector<Float_t> mPhi;                    ///< cluster phi
-  std::vector<Int_t> mSectors[kNSectors];       ///< Cluster indices sector-by-sector
+  std::vector<std::pair<int, float>> mSectors[kNSectors]; ///< Cluster indices sector-by-sector
 };
 } // namespace ITS
 } // namespace o2

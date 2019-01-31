@@ -63,10 +63,11 @@ class SAMPAProcessing
 
   /// Make the full signal including noise and pedestals from the OCDB
   /// \param ADCcounts ADC value of the signal (common mode already subtracted)
-  /// \param cru CRU of the signal
-  /// \param padPos PadPos of the signal
+  /// \param sector Sector number
+  /// \param globalPadInSector global pad number in the sector
   /// \return ADC value after application of noise, pedestal and saturation
-  float makeSignal(float ADCcounts, const CRU& cru, const PadPos& pos, float& pedestal, float& noise);
+  template <DigitzationMode MODE>
+  float makeSignal(float ADCcounts, const int sector, const int globalPadInSector, float& pedestal, float& noise);
 
   /// A delta signal is shaped by the FECs and thus spread over several time bins
   /// This function returns an array with the signal spread into the following time bins
@@ -113,31 +114,23 @@ class SAMPAProcessing
   /// \param cru CRU of the channel of interest
   /// \param padPos PadPos of the channel of interest
   /// \return Noise on the channel of interest
-  float getNoise(const CRU& cru, const PadPos& pos);
+  float getNoise(const int sector, const int globalPadInSector);
 
   /// Get the pedestal for a given channel
   /// \param cru CRU of the channel of interest
   /// \param padPos PadPos of the channel of interest
   /// \return Pedestal on the channel of interest
-  float getPedestal(const CRU& cru, const PadPos& pos) const;
+  float getPedestal(const int sector, const int globalPadInSector) const;
 
  private:
   SAMPAProcessing();
-
-  std::unique_ptr<TSpline3> mSaturationSpline; ///< TSpline3 which holds the saturation curve
-
-  /// Import the saturation curve from a .dat file to a TSpline3
-  /// \param file Name of the .dat file
-  /// \param spline TSpline3 to which the saturation curve will be written
-  /// \return Boolean if succesful or not
-  bool importSaturationCurve(std::string file);
 
   const ParameterGas* mGasParam;         ///< Caching of the parameter class to avoid multiple CDB calls
   const ParameterDetector* mDetParam;    ///< Caching of the parameter class to avoid multiple CDB calls
   const ParameterElectronics* mEleParam; ///< Caching of the parameter class to avoid multiple CDB calls
   const CalPad* mNoiseMap;               ///< Caching of the parameter class to avoid multiple CDB calls
   const CalPad* mPedestalMap;            ///< Caching of the parameter class to avoid multiple CDB calls
-  RandomRing mRandomNoiseRing;           ///< Ring with random number for noise
+  RandomRing<> mRandomNoiseRing;         ///< Ring with random number for noise
 };
 
 template <typename T>
@@ -148,13 +141,14 @@ inline T SAMPAProcessing::getADCvalue(T nElectrons) const
   return nElectrons * conversion;
 }
 
-inline float SAMPAProcessing::makeSignal(float ADCcounts, const CRU& cru, const PadPos& pos,
+template <DigitzationMode MODE>
+inline float SAMPAProcessing::makeSignal(float ADCcounts, const int sector, const int globalPadInSector,
                                          float& pedestal, float& noise)
 {
   float signal = ADCcounts;
-  pedestal = getPedestal(cru, pos);
-  noise = getNoise(cru, pos);
-  switch (mEleParam->getDigitizationMode()) {
+  pedestal = getPedestal(sector, globalPadInSector);
+  noise = getNoise(sector, globalPadInSector);
+  switch (MODE) {
     case DigitzationMode::FullMode: {
       signal += noise;
       signal += pedestal;
@@ -183,12 +177,10 @@ inline float SAMPAProcessing::makeSignal(float ADCcounts, const CRU& cru, const 
 
 inline float SAMPAProcessing::getADCSaturation(const float signal) const
 {
-  /// \todo Performance of TSpline?
-  const float saturatedSignal = mSaturationSpline->Eval(signal);
   const float adcSaturation = mEleParam->getADCSaturation();
-  if (saturatedSignal > adcSaturation - 1)
+  if (signal > adcSaturation - 1)
     return adcSaturation - 1;
-  return saturatedSignal;
+  return signal;
 }
 
 template <typename T>
@@ -233,14 +225,14 @@ inline float SAMPAProcessing::getTimeBinTime(float time) const
   return getTimeFromBin(timeBin);
 }
 
-inline float SAMPAProcessing::getNoise(const CRU& cru, const PadPos& pos)
+inline float SAMPAProcessing::getNoise(const int sector, const int globalPadInSector)
 {
-  return mRandomNoiseRing.getNextValue() * mNoiseMap->getValue(cru, pos.getRow(), pos.getPad());
+  return mRandomNoiseRing.getNextValue() * mNoiseMap->getValue(sector, globalPadInSector);
 }
 
-inline float SAMPAProcessing::getPedestal(const CRU& cru, const PadPos& pos) const
+inline float SAMPAProcessing::getPedestal(const int sector, const int globalPadInSector) const
 {
-  return mPedestalMap->getValue(cru, pos.getRow(), pos.getPad());
+  return mPedestalMap->getValue(sector, globalPadInSector);
 }
 }
 }

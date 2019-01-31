@@ -16,7 +16,6 @@
 
 #include "DataFormatsParameters/GRPObject.h"
 
-#include "TPCSimulation/DigitizerTask.h"
 #include "ITSSimulation/DigitizerTask.h"
 #endif
 
@@ -65,11 +64,6 @@ void run_digi_all(float rate = 100e3, std::string outputfile = "o2dig.root", std
   digiITS->setFairTimeUnitInNS(1.0);     // tell in which units (wrt nanosecond) FAIR timestamps are
   digiITS->setAlpideROFramLength(5000.); // ALPIDE RO frame in ns
   run->AddTask(digiITS);
-
-  o2::TPC::DigitizerTask* digiTPC = new o2::TPC::DigitizerTask;
-  digiTPC->setContinuousReadout(rate > 0);
-  digiTPC->setDebugOutput("DigitMCDebug");
-  run->AddTask(digiTPC);
 
   //-----------
   run->Init();

@@ -7,72 +7,116 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \file Vertexer.h
+/// \brief
+///
 
-#ifndef O2_ITSMFT_RECONSTRUCTION_CA_VERTEXER_H_
-#define O2_ITSMFT_RECONSTRUCTION_CA_VERTEXER_H_
+#ifndef O2_ITS_TRACKING_VERTEXER_H_
+#define O2_ITS_TRACKING_VERTEXER_H_
 
-#include <vector>
+#include <chrono>
+#include <fstream>
+#include <iomanip>
+#include <iosfwd>
 #include <array>
-#include <tuple>
+#include <iosfwd>
 
-#include "ITStracking/Constants.h"
-#include "ITStracking/Definitions.h"
-#include "ITStracking/ClusterLines.h"
 #include "ITStracking/ROframe.h"
+#include "ITStracking/Constants.h"
+#include "ITStracking/Configuration.h"
+#include "ITStracking/VertexerTraits.h"
 #include "ReconstructionDataFormats/Vertex.h"
 
 namespace o2
 {
 namespace ITS
 {
-class Cluster;
-class Line;
+
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 class Vertexer
 {
  public:
-  explicit Vertexer(const ROframe& event);
-  virtual ~Vertexer();
+  Vertexer(VertexerTraits* traits);
+
   Vertexer(const Vertexer&) = delete;
   Vertexer& operator=(const Vertexer&) = delete;
-  void initialise(const float zCut, const float phiCut, const float pairCut, const float clusterCut,
-                  const int clusterContributorsCut);
-  void initialise(const std::tuple<float, float, float, float, int> initParams);
+
+  void setROframe(const uint32_t ROframe) { mROframe = ROframe; }
+  void setParameters(const VertexingParameters& verPar) { mVertParams = verPar; }
+
+  uint32_t getROFrame() const { return mROframe; }
+  std::vector<Vertex> exportVertices();
+  VertexingParameters getVertParameters() const { return mVertParams; }
+  VertexerTraits* getTraits() const { return mTraits; };
+
+  void clustersToVertices(ROframe&, std::ostream& = std::cout);
+  template <typename... T>
+  void initialiseVertexer(T&&... args);
   void findTracklets(const bool useMCLabel = false);
   void findVertices();
-  void setROFrame(std::uint32_t f) { mROFrame = f; }
-  std::uint32_t getROFrame() const { return mROFrame; }
-  inline std::vector<Line> const getTracklets() const { return mTracklets; }
-  inline std::array<std::vector<Cluster>, Constants::ITS::LayersNumberVertexer> getClusters() const { return mClusters; }
-  static const std::vector<std::pair<int, int>> selectClusters(
-    const std::array<int, Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins + 1>& indexTable,
-    const std::array<int, 4>& selectedBinsRect);
-  std::array<std::vector<Cluster>, Constants::ITS::LayersNumberVertexer> mClusters;
-  std::vector<Vertex> getVertices() const { return mVertices; }
+  // void writeEvent(ROframe*);
 
- protected:
-  bool mVertexerInitialised{ false };
-  bool mTrackletsFound{ false };
-  std::vector<bool> mUsedTracklets;
-  float mDeltaRadii10, mDeltaRadii21;
-  float mZCut, mPhiCut, mPairCut, mClusterCut, mMaxDirectorCosine3;
-  int mClusterContributorsCut;
-  int mPhiSpan, mZSpan;
-  std::array<float, 3> mAverageClustersRadii;
-  std::array<float, Constants::ITS::LayersNumber> mITSRadii;
-  float mZBinSize;
-  ROframe mEvent;
-  std::vector<Vertex> mVertices;
-  std::array<std::array<int, Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins + 1>,
-             Constants::ITS::LayersNumberVertexer>
-    mIndexTables;
-  std::uint32_t mROFrame = 0;
-  std::vector<Line> mTracklets;
-  std::vector<ClusterLines> mTrackletClusters;
+  // Utils
+  void dumpTraits();
+  template <typename... T>
+  float evaluateTask(void (Vertexer::*)(T...), const char*, std::ostream& ostream, T&&... args);
+
+ private:
+  // ROframe* mFrame;
+  std::uint32_t mROframe = 0;
+  VertexerTraits* mTraits = nullptr;
+  VertexingParameters mVertParams;
 };
+
+template <typename... T>
+void Vertexer::initialiseVertexer(T&&... args)
+{
+  mTraits->initialise(std::forward<T>(args)...);
+}
+
+void Vertexer::dumpTraits()
+{
+  mTraits->dumpVertexerTraits();
+}
+
+std::vector<Vertex> Vertexer::exportVertices()
+{
+  std::vector<Vertex> vertices;
+  for (auto& vertex : mTraits->getVertices()) {
+    vertices.emplace_back(Point3D<float>(vertex.mX, vertex.mY, vertex.mZ), vertex.mRMS2, vertex.mContributors, vertex.mAvgDistance2);
+    vertices.back().setTimeStamp(vertex.mTimeStamp);
+  }
+  return vertices;
+}
+
+template <typename... T>
+float Vertexer::evaluateTask(void (Vertexer::*task)(T...), const char* taskName, std::ostream& ostream,
+                             T&&... args)
+{
+  float diff{ 0.f };
+
+  if (Constants::DoTimeBenchmarks) {
+    auto start = std::chrono::high_resolution_clock::now();
+    (this->*task)(std::forward<T>(args)...);
+    auto end = std::chrono::high_resolution_clock::now();
+
+    std::chrono::duration<double, std::milli> diff_t{ end - start };
+    diff = diff_t.count();
+
+    if (taskName == nullptr) {
+      ostream << diff << "\t";
+    } else {
+      ostream << std::setw(2) << " - " << taskName << " completed in: " << diff << " ms" << std::endl;
+    }
+  } else {
+    (this->*task)(std::forward<T>(args)...);
+  }
+
+  return diff;
+}
 
 } // namespace ITS
 } // namespace o2
-
-#endif /* O2_ITSMFT_RECONSTRUCTION_CA_VERTEXER_H_ */
+#endif

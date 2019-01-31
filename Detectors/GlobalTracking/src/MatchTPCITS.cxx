@@ -1106,6 +1106,10 @@ void MatchTPCITS::refitWinners()
 bool MatchTPCITS::refitTrackITSTPC(int iITS)
 {
   ///< refit in inward direction the pair of TPC and ITS tracks
+
+  const float maxStep = 2.f; // max propagation step (TODO: tune)
+  const int matCorr = 1;     // material correction method
+
   const auto& tITS = mITSWork[iITS];
   if (tITS.matchID < 0 || isDisabledITS(mMatchesITS[tITS.matchID])) {
     return false; // no match
@@ -1121,7 +1125,7 @@ bool MatchTPCITS::refitTrackITSTPC(int iITS)
 
   auto itsTrOrig = (*mITSTracksArrayInp)[tITS.source.getIndex()]; // currently we store clusterIDs in the track
 
-  mMatchedTracks.emplace_back(tTPC, itsTrOrig.getParamOut()); // create a copy of TPC track at xRef
+  mMatchedTracks.emplace_back(tTPC, tITS); // create a copy of TPC track at xRef
   auto& trfit = mMatchedTracks.back();
   // in continuos mode the Z of TPC track is meaningless, unless it is CE crossing
   // track (currently absent, TODO)
@@ -1140,7 +1144,12 @@ bool MatchTPCITS::refitTrackITSTPC(int iITS)
     const auto& clus = (*mITSClustersArrayInp)[itsTrOrig.getClusterIndex(icl)];
     float alpha = geom->getSensorRefAlpha(clus.getSensorID()), x = clus.getX();
     if (!trfit.rotate(alpha) ||
-        !propagator->PropagateToXBxByBz(trfit, x, o2::constants::physics::MassPionCharged, MaxSnp, 2., 1)) {
+        // note: here we also calculate the L,T integral (in the inward direction, but this is irrelevant)
+        // note: we should eventually use TPC pid in the refit (TODO)
+        // note: since we are at small R, we can use field BZ component at origin rather than 3D field
+        // !propagator->PropagateToXBxByBz(trfit, x, o2::constants::physics::MassPionCharged,
+        !propagator->propagateToX(trfit, x, propagator->getNominalBz(), o2::constants::physics::MassPionCharged,
+                                  MaxSnp, maxStep, matCorr, &trfit.getLTIntegralOut())) {
       break;
     }
     chi2 += trfit.getPredictedChi2(static_cast<const o2::BaseCluster<float>&>(clus));
@@ -1157,6 +1166,13 @@ bool MatchTPCITS::refitTrackITSTPC(int iITS)
     tTPC.print();
     mMatchedTracks.pop_back(); // destroy failed track
     return false;
+  }
+
+  // we need to update the LTOF integral by the distance to the "primary vertex"
+  const Point3D<float> vtxDummy; // at the moment using dummy vertex: TODO use MeanVertex constraint instead
+  if (!propagator->propagateToDCA(vtxDummy, trfit, propagator->getNominalBz(), o2::constants::physics::MassPionCharged,
+                                  maxStep, matCorr, &trfit.getLTIntegralOut())) {
+    LOG(ERROR) << "LTOF integral might be incorrect";
   }
 
   // refit ITS outer trackparam outward into the TPC

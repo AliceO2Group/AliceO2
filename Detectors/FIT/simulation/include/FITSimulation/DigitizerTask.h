@@ -66,11 +66,7 @@ class DigitizerTask : public FairTask
   int mLastQEDEntry = -1;                                       ///< last used QED entry
   UChar_t mQEDSourceID = 0;                                     ///< MC ID source of the QED (stored in the labels)
 
-  Digit* mEventDigit = nullptr;                                                           ///< one digit for one event
-                                                                                          //std::vector<o2::fit::Digit>* mDigitsArray = nullptr;       ///< Array of digits
-                                                                                          //  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mMCTruthArray = nullptr;
-                                                                                          // o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthArray;                      //! Labels containter
-                                                                                          //  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mMCTruthArrayPtr = &mMCTruthArray; //! Labels containter pointer
+  Digit* mEventDigit = nullptr;
   o2::dataformats::MCTruthContainer<o2::fit::MCLabel> mMCTruthArray;                      //! Labels containter
   o2::dataformats::MCTruthContainer<o2::fit::MCLabel>* mMCTruthArrayPtr = &mMCTruthArray; //! Labels containter pointer
 

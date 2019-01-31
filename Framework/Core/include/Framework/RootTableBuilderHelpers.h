@@ -20,6 +20,7 @@
 
 #include <TTreeReader.h>
 #include <TTreeReaderValue.h>
+#include <TTreeReaderArray.h>
 
 #include <vector>
 #include <string>
@@ -30,13 +31,39 @@ namespace o2
 {
 namespace framework
 {
+
+template <typename T>
+struct TreeReaderValueTraits {
+};
+
 /// Trait class to go from a set of TTreeReaderValues to
 /// arrow types.
-template <typename TTREEREADERVALUE>
-struct TreeReaderValueTraits {
-  using Type = typename TTREEREADERVALUE::NonConstT_t;
-  using ArrowType = typename arrow::stl::ConversionTraits<Type>::ArrowType;
+template <typename T>
+struct TreeReaderValueTraits<TTreeReaderValue<T>> {
+  using Type = typename TTreeReaderValue<T>::NonConstT_t;
+  using ArrowType = typename o2::framework::detail::ConversionTraits<Type>::ArrowType;
   using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
+};
+
+template <typename VALUE>
+struct TreeReaderValueTraits<TTreeReaderArray<VALUE>> {
+  using Iterator = typename TTreeReaderArray<VALUE>::iterator;
+  using Type = std::pair<Iterator, Iterator>;
+  using ArrowType = arrow::ListType;
+};
+
+struct ValueExtractor {
+  template <typename T>
+  static T deref(TTreeReaderValue<T>& rv)
+  {
+    return *rv;
+  }
+
+  template <typename T>
+  static std::pair<typename TTreeReaderArray<T>::iterator, typename TTreeReaderArray<T>::iterator> deref(TTreeReaderArray<T>& rv)
+  {
+    return std::make_pair(rv.begin(), rv.end());
+  }
 };
 
 struct RootTableBuilderHelpers {
@@ -49,7 +76,7 @@ struct RootTableBuilderHelpers {
     auto filler = builder.persist<typename TreeReaderValueTraits<TTREEREADERVALUE>::Type...>(branchNames);
     reader.Restart();
     while (reader.Next()) {
-      filler(0, *values...);
+      filler(0, ValueExtractor::deref(values)...);
     }
   }
 };

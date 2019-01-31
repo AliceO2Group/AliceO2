@@ -21,7 +21,6 @@
 #pragma link C++ class o2::TPC::DigitContainer + ;
 #pragma link C++ class o2::TPC::DigitGlobalPad + ;
 #pragma link C++ class o2::TPC::Digitizer + ;
-#pragma link C++ class o2::TPC::DigitizerTask + ;
 #pragma link C++ class o2::TPC::DigitTime + ;
 #pragma link C++ class o2::TPC::ElectronTransport + ;
 #pragma link C++ class o2::TPC::GEMAmplification + ;

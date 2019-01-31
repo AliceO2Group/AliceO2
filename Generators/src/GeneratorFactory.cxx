@@ -55,6 +55,14 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     boxGen->SetPRange(100.0, 100.0);
     boxGen->SetPhiRange(0., 360.);
     primGen->AddGenerator(boxGen);
+  } else if (genconfig.compare("hmpidgun") == 0) {
+    // a simple "box" generator for forward muons
+    LOG(INFO) << "Init hmpid gun generator";
+    auto boxGen = new FairBoxGenerator(-211, 100); /* mu- */
+    boxGen->SetEtaRange(-0.5, 0.5);
+    boxGen->SetPRange(2, 5.0);
+    boxGen->SetPhiRange(-5., 60.);
+    primGen->AddGenerator(boxGen);
   } else if (genconfig.compare("fwpigen") == 0) {
     // a simple "box" generator for forward pions
     LOG(INFO) << "Init box forward muons generator";

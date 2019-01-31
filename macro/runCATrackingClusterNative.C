@@ -21,6 +21,7 @@
 #include "TTree.h"
 
 #include "DataFormatsTPC/ClusterNative.h"
+#include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -83,7 +84,7 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile, TString op
   fin.Close();
 
   std::unique_ptr<ClusterNativeAccessFullTPC> clusters =
-    TPCClusterFormatHelper::accessNativeContainerArray(cont, doMC ? &contMC : nullptr);
+    ClusterNativeHelper::createClusterNativeIndex(cont, doMC ? &contMC : nullptr);
 
   vector<TrackTPC> tracks;
   MCLabelContainer tracksMC;

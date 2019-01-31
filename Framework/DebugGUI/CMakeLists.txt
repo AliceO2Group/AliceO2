@@ -16,11 +16,15 @@ if (GLFW_FOUND)
   set(GUI_BACKEND
         src/imgui_impl_glfw_gl3.cpp
         src/gl3w.c
+        src/Sokol3DUtils.cxx
+        src/GL3DUtils.cxx
+        src/HandMade3DImpl.cxx
         src/DebugGUI.cxx
       )
 else()
   set(MODULE_BUCKET_NAME headless_bucket)
   set(GUI_BACKEND
+        src/Dummy3DUtils.cxx
         src/DummyDebugGUI.cxx
       )
 endif()
@@ -69,5 +73,3 @@ O2_GENERATE_EXECUTABLE(
 add_test(NAME test_DebugGUI_test_ImGUIHeadless COMMAND test_DebugGUI_test_ImGUIHeadless)
 target_link_libraries(test_DebugGUI_test_ImGUIHeadless Boost::unit_test_framework)
 set_tests_properties(test_DebugGUI_test_ImGUIHeadless PROPERTIES TIMEOUT 30)
-
-target_compile_options(DebugGUI PUBLIC -O0 -g -fno-omit-frame-pointer)
