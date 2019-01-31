@@ -18,7 +18,7 @@ CsvFile::CsvFile(const std::string &sep)
 {
 }
 
-void CsvFile::add(const Measurements &measurements)
+void CsvFile::add(const std::vector<Measurement> &measurements)
 {
     for (const auto &m : measurements)
     {
