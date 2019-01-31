@@ -27,9 +27,9 @@ Digitizer::Digitizer()
 
   // Get the Ionization energy
   if (TRDCommonParam::Instance()->IsXenon()) {
-    mWion = 23.53; // Ionization energy XeCO2 (85/15)
+    setWion(23.53); // Ionization energy XeCO2 (85/15)
   } else if (TRDCommonParam::Instance()->IsArgon()) {
-    mWion = 27.21; // Ionization energy ArCO2 (82/18)
+    setWion(27.21); // Ionization energy ArCO2 (82/18)
   } else {
     LOG(FATAL) << "Wrong gas mixture";
     // add hard exit here!
@@ -420,7 +420,7 @@ bool Digitizer::convertHits(const int det, const std::vector<o2::trd::HitType>& 
   return true;
 }
 
-bool Digitizer::convertSignals(const int det, int& arraySignal)
+bool Digitizer::convertSignalsToDigits(const int det, int& arraySignal)
 {
   //
   // Converstion of signals to digits

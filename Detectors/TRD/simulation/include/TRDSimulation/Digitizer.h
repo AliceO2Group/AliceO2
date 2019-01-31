@@ -39,14 +39,16 @@ class Digitizer
   int mSrcID = 0;
 
   float mWion;   //  Ionization potential
-  bool mSDigits; // true :convert signals to summable digits, false by default
+  bool mSDigits; // true: convert signals to summable digits, false by default
 
   std::vector<o2::trd::HitType> mHitContainer; // The container of hits in a given detector
+
+  void setWion(float w) { mWion = w; } // Set the Ionization potential
 
   bool getHitContainer(const int, const std::vector<o2::trd::HitType>&, std::vector<o2::trd::HitType>&); // True if there are hits in the detector
   // Digitization chaing methods
   bool convertHits(const int, const std::vector<o2::trd::HitType>&, int&); // True if hit-to-signal conversion is successful
-  bool convertSignals(const int, int&);                                    // True if signal-to-digit conversion is successful
+  bool convertSignalsToDigits(const int, int&);                            // True if signal-to-digit conversion is successful
   bool convertSignalsToSDigits(const int, int&);                           // True if singal-to-sdigit conversion is successful
   bool convertSignalsToADC(const int, int&);                               // True if signal-to-ADC conversion is successful
   bool diffusion(float, double, double, double&, double&, double&);        // True if diffusion is applied successfully
