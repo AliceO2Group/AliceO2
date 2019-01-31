@@ -46,7 +46,7 @@ template <class T, int I, typename... Args> int AliGPUReconstructionCUDABackend:
 {
 	if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelBackend<T, I> (x, y, z, args...);
 	if (z.evList) for (int k = 0;k < z.nEvents;k++) GPUFailedMsg(cudaStreamWaitEvent(mInternals->CudaStreams[x.stream], ((cudaEvent_t*) z.evList)[k], 0));
-	if (y.num <= 1)
+	if (y.num <= 1 || y.num == (unsigned int) -1)
 	{
 		runKernelCUDA<T, I> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(y.start, args...);
 	}
@@ -167,11 +167,8 @@ int AliGPUReconstructionCUDABackend::InitDevice_Runtime()
 		CAGPUInfo("multiProcessorCount = %d", cudaDeviceProp.multiProcessorCount);
 		CAGPUInfo("textureAlignment = %lld", (unsigned long long int) cudaDeviceProp.textureAlignment);
 	}
-#ifdef GPUCA_GPU_CONSTRUCTOR_SINGLE_SLICE
-	fConstructorBlockCount = cudaDeviceProp.multiProcessorCount;
-#else
-	fConstructorBlockCount = cudaDeviceProp.multiProcessorCount * GPUCA_GPU_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER;
-#endif
+
+	fConstructorBlockCount = cudaDeviceProp.multiProcessorCount * (mDeviceProcessingSettings.trackletConstructorInPipeline ? 1 : GPUCA_GPU_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER);
 	fConstructorThreadCount = GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR;
 	fSelectorBlockCount = cudaDeviceProp.multiProcessorCount * GPUCA_GPU_BLOCK_COUNT_SELECTOR_MULTIPLIER;
 
@@ -189,7 +186,7 @@ int AliGPUReconstructionCUDABackend::InitDevice_Runtime()
 	}
 #endif
 
-	mNStreams = std::max(GPUCA_GPU_NUM_STREAMS, 3);
+	mNStreams = std::max(mDeviceProcessingSettings.nStreams, 3);
 
 	if (cuCtxCreate(&mInternals->CudaContext, CU_CTX_SCHED_AUTO, fDeviceId) != CUDA_SUCCESS)
 	{
@@ -392,16 +389,17 @@ int AliGPUReconstructionCUDABackend::RunTPCTrackingSlices_internal()
 			if (mDeviceProcessingSettings.debugMask & 32) mWorkers->tpcTrackers[iSlice].DumpStartHits(mDebugFile);
 		}
 
-#ifdef GPUCA_GPU_CONSTRUCTOR_SINGLE_SLICE
-		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Tracklet Constructor (Slice %d/%d)", iSlice, NSLICES)
-		mWorkers->tpcTrackers[iSlice].StartTimer(6);
-		runKernel<AliGPUTPCTrackletConstructor>({fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR, useStream}, {iSlice});
-		if (GPUDebug("Tracklet Constructor", useStream, iSlice) RANDOM_ERROR)
+		if (mDeviceProcessingSettings.trackletConstructorInPipeline)
 		{
-			return(3);
+			if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Tracklet Constructor (Slice %d/%d)", iSlice, NSLICES)
+			mWorkers->tpcTrackers[iSlice].StartTimer(6);
+			runKernel<AliGPUTPCTrackletConstructor>({fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR, useStream}, {iSlice});
+			if (GPUDebug("Tracklet Constructor", useStream, iSlice) RANDOM_ERROR)
+			{
+				return(3);
+			}
+			mWorkers->tpcTrackers[iSlice].StopTimer(6);
 		}
-		mWorkers->tpcTrackers[iSlice].StopTimer(6);
-#endif
 	}
 	ReleaseEvent(&mEvents.init);
 
@@ -410,19 +408,22 @@ int AliGPUReconstructionCUDABackend::RunTPCTrackingSlices_internal()
 		pthread_mutex_lock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[1]);
 	}
 
-#ifdef GPUCA_GPU_CONSTRUCTOR_SINGLE_SLICE
-	SynchronizeGPU();
-#else
-	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Tracklet Constructor");
-	mWorkers->tpcTrackers[0].StartTimer(6);
-	runKernel<AliGPUTPCTrackletConstructor, 1>({fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR, 0}, krnlRunRangeNone);
-	if (GPUDebug("Tracklet Constructor", -1, 0) RANDOM_ERROR)
+	if (mDeviceProcessingSettings.trackletConstructorInPipeline)
 	{
-		return(1);
+		SynchronizeGPU();
 	}
-	mWorkers->tpcTrackers[0].StopTimer(6);
-#endif //GPUCA_GPU_CONSTRUCTOR_SINGLE_SLICE
-	ReleaseEvent(&mEvents.constructor);
+	else
+	{
+		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Tracklet Constructor");
+		mWorkers->tpcTrackers[0].StartTimer(6);
+		runKernel<AliGPUTPCTrackletConstructor, 1>({fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR, 0}, krnlRunRangeNone);
+		if (GPUDebug("Tracklet Constructor", -1, 0) RANDOM_ERROR)
+		{
+			return(1);
+		}
+		mWorkers->tpcTrackers[0].StopTimer(6);
+		ReleaseEvent(&mEvents.constructor);
+	}
 
 	if (mDeviceProcessingSettings.debugLevel >= 4)
 	{
@@ -690,6 +691,11 @@ void AliGPUReconstructionCUDABackend::WriteToConstantMemory(size_t offset, const
 }
 
 void AliGPUReconstructionCUDABackend::ReleaseEvent(deviceEvent* ev) {}
+
+void AliGPUReconstructionCUDABackend::RecordMarker(deviceEvent* ev, int stream)
+{
+	GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*) ev, mInternals->CudaStreams[stream]));
+}
 
 int AliGPUReconstructionCUDABackend::GPUMergerAvailable() const
 {

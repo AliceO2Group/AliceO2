@@ -213,6 +213,10 @@ int SetupReconstruction()
 	devProc.gpuDeviceOnly = configStandalone.oclGPUonly;
 	devProc.memoryAllocationStrategy = configStandalone.allocationStrategy;
 	
+	if (configStandalone.configProc.nStreams >= 0) devProc.nStreams = configStandalone.configProc.nStreams;
+	if (configStandalone.configProc.constructorPipeline >= 0) devProc.trackletConstructorInPipeline = configStandalone.configProc.constructorPipeline;
+	if (configStandalone.configProc.selectorPipeline >= 0) devProc.trackletSelectorInPipeline = configStandalone.configProc.selectorPipeline;
+	
 	rec->SetSettings(&ev, &recSet, &devProc);
 	if (rec->Init())
 	{

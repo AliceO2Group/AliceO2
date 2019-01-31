@@ -333,6 +333,12 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 		CAGPUError("Individual memory allocation strategy unsupported for device\n");
 		return(1);
 	}
+	if (mDeviceProcessingSettings.nStreams > GPUCA_GPU_MAX_STREAMS)
+	{
+		CAGPUError("Too many straems requested %d > %d\n", mDeviceProcessingSettings.nStreams, GPUCA_GPU_MAX_STREAMS);
+		return(1);
+	}
+	if (!mDeviceProcessingSettings.trackletConstructorInPipeline) mDeviceProcessingSettings.trackletSelectorInPipeline = false;
 
 #ifdef _WIN32
 	HANDLE* semLock = nullptr;

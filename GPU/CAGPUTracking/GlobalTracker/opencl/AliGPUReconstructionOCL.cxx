@@ -291,7 +291,7 @@ int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 		return(1);
 	}
 
-	mNStreams = std::max(GPUCA_GPU_NUM_STREAMS, 3);
+	mNStreams = std::max(mDeviceProcessingSettings.nStreams, 3);
 
 	for (int i = 0;i < mNStreams;i++)
 	{
@@ -484,6 +484,18 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 			TransferMemoryResourcesToHost(&mWorkers->tpcTrackers[iSlice], -1, true);
 			if (mDeviceProcessingSettings.debugMask & 32) mWorkers->tpcTrackers[iSlice].DumpStartHits(mDebugFile);
 		}
+		
+		if (mDeviceProcessingSettings.trackletConstructorInPipeline)
+		{
+			if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Tracklet Constructor (Slice %d/%d)", iSlice, NSLICES)
+			mWorkers->tpcTrackers[iSlice].StartTimer(6);
+			runKernel<AliGPUTPCTrackletConstructor>({fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR, useStream}, {iSlice});
+			if (GPUDebug("Tracklet Constructor", useStream, iSlice) RANDOM_ERROR)
+			{
+				return(3);
+			}
+			mWorkers->tpcTrackers[iSlice].StopTimer(6);
+		}
 	}
 	ReleaseEvent(&mEvents.init);
 
@@ -492,26 +504,31 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 		pthread_mutex_lock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[1]);
 	}
 
-	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Tracklet Constructor");
-
-	for (int i = 0;i < mNStreams;i++)
+	if (mDeviceProcessingSettings.trackletConstructorInPipeline)
 	{
-		clEnqueueMarkerWithWaitList(mInternals->command_queue[i], 0, nullptr, (cl_event*) &mEvents.stream[i]);
+		SynchronizeGPU();
 	}
-
-	mWorkers->tpcTrackers[0].StartTimer(6);
-	runKernel<AliGPUTPCTrackletConstructor, 1>({fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR, 0}, krnlRunRangeNone, {&mEvents.constructor, mEvents.stream, mNStreams});
-	for (int i = 0;i < mNStreams;i++)
+	else
 	{
-		ReleaseEvent(&mEvents.stream[i]);
+		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Tracklet Constructor");
+		for (int i = 0;i < mNStreams;i++)
+		{
+			RecordMarker(&mEvents.stream[i], i);
+		}
+		mWorkers->tpcTrackers[0].StartTimer(6);
+		runKernel<AliGPUTPCTrackletConstructor, 1>({fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR, 0}, krnlRunRangeNone, {&mEvents.constructor, mEvents.stream, mNStreams});
+		for (int i = 0;i < mNStreams;i++)
+		{
+			ReleaseEvent(&mEvents.stream[i]);
+		}
+		if (GPUDebug("Tracklet Constructor", 0, 0) RANDOM_ERROR)
+		{
+			return(1);
+		}
+		mWorkers->tpcTrackers[0].StopTimer(6);
+		SynchronizeEvents(&mEvents.constructor);
+		ReleaseEvent(&mEvents.constructor);
 	}
-	if (GPUDebug("Tracklet Constructor", 0, 0) RANDOM_ERROR)
-	{
-		return(1);
-	}
-	mWorkers->tpcTrackers[0].StopTimer(6);
-	if (DoStuckProtection(0, &mEvents.constructor)) return(1);
-	ReleaseEvent(&mEvents.constructor);
 
 	if (mDeviceProcessingSettings.debugLevel >= 4)
 	{
@@ -685,6 +702,11 @@ void AliGPUReconstructionOCLBackend::WriteToConstantMemory(size_t offset, const 
 void AliGPUReconstructionOCLBackend::ReleaseEvent(deviceEvent* ev)
 {
 	GPUFailedMsg(clReleaseEvent(*(cl_event*) ev));
+}
+
+void AliGPUReconstructionOCLBackend::RecordMarker(deviceEvent* ev, int stream)
+{
+	GPUFailedMsg(clEnqueueMarkerWithWaitList(mInternals->command_queue[stream], 0, nullptr, (cl_event*) ev));
 }
 
 int AliGPUReconstructionOCLBackend::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers)
