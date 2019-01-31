@@ -58,6 +58,7 @@ void Digitizer::process(const std::vector<o2::TPC::HitGroup>& hits,
   const static Mapper& mapper = Mapper::instance();
   const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
   const static ParameterElectronics& eleParam = ParameterElectronics::defaultInstance();
+  const static ParameterGEM& gemParam = ParameterGEM::defaultInstance();
 
   static GEMAmplification& gemAmplification = GEMAmplification::instance();
   gemAmplification.updateParameters();
@@ -67,6 +68,7 @@ void Digitizer::process(const std::vector<o2::TPC::HitGroup>& hits,
   sampaProcessing.updateParameters();
 
   const int nShapedPoints = eleParam.getNShapedPoints();
+  const auto amplificationMode = gemParam.getAmplificationMode();
   static std::vector<float> signalArray;
   signalArray.resize(nShapedPoints);
 
@@ -124,7 +126,7 @@ void Digitizer::process(const std::vector<o2::TPC::HitGroup>& hits,
         }
 
         /// Electron amplification
-        const int nElectronsGEM = gemAmplification.getStackAmplification(digiPadPos.getCRU(), digiPadPos.getPadPos());
+        const int nElectronsGEM = gemAmplification.getStackAmplification(digiPadPos.getCRU(), digiPadPos.getPadPos(), amplificationMode);
         if (nElectronsGEM == 0) {
           continue;
         }

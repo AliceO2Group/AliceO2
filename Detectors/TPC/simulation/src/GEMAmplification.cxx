@@ -42,17 +42,18 @@ GEMAmplification::GEMAmplification()
     return infile.good();
   };
 
-  const char* polyaFileName = "tpc_polyadist.root";
+  const char* polyaFileName = "tpc_GEM_polya.root";
   TFile* outfile;
   auto cacheexists = fileexists(polyaFileName);
   if (cacheexists) {
-    LOG(INFO) << "TPC GEM SETUP FROM EXISTING CACHE";
+    LOG(INFO) << "TPC: GEM setup from existing cache";
     outfile = TFile::Open(polyaFileName);
   } else {
-    LOG(INFO) << "TPC GEM SETUP : INITIALIZATION FROM SCRATCH";
+    LOG(INFO) << "TPC: GEM setup - initialization from scratch";
     outfile = TFile::Open(polyaFileName, "CREATE");
   }
 
+  /// Set the polya distribution for the individual GEMs
   for (int i = 0; i < 4; ++i) {
     float s = mGEMParam->getAbsoluteGain(i + 1) / kappa;
     polya % kappa % s % s % (kappa - 1) % s;
@@ -75,10 +76,30 @@ GEMAmplification::GEMAmplification()
     delete polyaDistribution;
   }
 
+  /// Set the polya distribution for the full stack
+  const float gainStack = mGEMParam->getTotalGainStack();
+  const float kappaStack = mGEMParam->getKappaStack();
+  const float sStack = gainStack / kappaStack;
+  polya % kappaStack % sStack % sStack % (kappaStack - 1) % sStack;
+  std::string name = polya.str();
+  o2::Base::CachingTF1* polyaDistribution = nullptr;
+  if (!cacheexists) {
+    polyaDistribution = new o2::Base::CachingTF1("polya", name.c_str(), 0, 50000);
+    polyaDistribution->SetNpx(50000);
+  } else {
+    polyaDistribution = (o2::Base::CachingTF1*)outfile->Get("polyaStack");
+  }
+  mGainFullStack.initialize(*polyaDistribution);
+
+  if (!cacheexists) {
+    outfile->WriteTObject(polyaDistribution, "polyaStack");
+  }
+  delete polyaDistribution;
+
   if (outfile)
     outfile->Close();
   watch.Stop();
-  LOG(INFO) << "TPC GEM SETUP (POLYA-DISTRIBUTION) TOOK " << watch.CpuTime();
+  LOG(INFO) << "TPC: GEM setup (polya) took " << watch.CpuTime();
 }
 
 GEMAmplification::~GEMAmplification() = default;
@@ -103,11 +124,16 @@ int GEMAmplification::getStackAmplification(int nElectrons)
   return nElectronsGEM4;
 }
 
-int GEMAmplification::getStackAmplification(const CRU& cru, const PadPos& pos, int nElectrons)
+int GEMAmplification::getEffectiveStackAmplification(int nElectrons)
 {
-  /// Additionally to the electron amplification the final number of electrons is multiplied by the local gain on the
-  /// pad
-  return static_cast<int>(static_cast<float>(getStackAmplification(nElectrons)) * mGainMap->getValue(cru, pos.getRow(), pos.getPad()));
+  /// We start with an arbitrary number of electrons given to the first amplification stage
+  /// The amplification in the GEM stack is handled for each electron individually and the amplification
+  /// in the stack is handled in an effective manner
+  int nElectronsGEM = 0;
+  for (int i = 0; i < nElectrons; ++i) {
+    nElectronsGEM += mGainFullStack.getNextValue();
+  }
+  return nElectronsGEM;
 }
 
 int GEMAmplification::getSingleGEMAmplification(int nElectrons, int GEM)
@@ -168,8 +194,6 @@ int GEMAmplification::getElectronLosses(int nElectrons, float probability)
            electronsFloat * probability + 0.5;
   } else {
     /// Explicit handling of the probability for each individual electron
-    /// \todo For further amplification of the process one could also just draw a random number from a binomial
-    /// distribution, but it should be checked whether this is faster
     int nElectronsOut = 0;
     for (int i = 0; i < nElectrons; ++i) {
       if (mRandomFlat.getNextValue() < probability) {

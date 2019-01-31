@@ -173,6 +173,7 @@ inline float SAMPAProcessing::makeSignal(float ADCcounts, const int sector, cons
       break;
     }
   }
+  return signal;
 }
 
 inline float SAMPAProcessing::getADCSaturation(const float signal) const
