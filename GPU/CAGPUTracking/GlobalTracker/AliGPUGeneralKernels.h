@@ -14,7 +14,7 @@ class AliGPUMemClean16
 	{
 	};
 
-	GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() AliGPUTPCSharedMemory &smem, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker, GPUglobalref() void* ptr, unsigned long size);
+	template <int iKernel = 0> GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() AliGPUTPCSharedMemory &smem, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker, GPUglobalref() void* ptr, unsigned long size);
 };
 
 #endif

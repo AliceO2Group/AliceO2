@@ -36,7 +36,7 @@ class AliGPUTPCTrackletSelector
 #endif //GPUCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
 	};
 
-	GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, MEM_LOCAL(GPUsharedref() AliGPUTPCSharedMemory) & smem, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) & tracker);
+	template <int iKernel = 0> GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, MEM_LOCAL(GPUsharedref() AliGPUTPCSharedMemory) & smem, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) & tracker);
 };
 
 #endif //ALIHLTTPCCATRACKLETSELECTOR_H

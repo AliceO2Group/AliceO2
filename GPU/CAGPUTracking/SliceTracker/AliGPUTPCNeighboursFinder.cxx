@@ -23,7 +23,7 @@
 #include "AliGPUTPCTracker.h"
 #include "AliTPCCommonMath.h"
 
-GPUd() void AliGPUTPCNeighboursFinder::Thread(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) & s, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) & tracker)
+template <> GPUd() void AliGPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) & s, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) & tracker)
 {
 	//* find neighbours
 

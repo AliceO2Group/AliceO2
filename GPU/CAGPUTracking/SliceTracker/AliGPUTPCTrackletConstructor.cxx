@@ -409,33 +409,118 @@ GPUd() void AliGPUTPCTrackletConstructor::DoTracklet(GPUconstant() MEM_CONSTANT(
 	}
 }
 
-GPUd() void AliGPUTPCTrackletConstructor::Thread(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &s, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker)
+template <> GPUd() void AliGPUTPCTrackletConstructor::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &sMem, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker)
 {
-	
-}
-
+	if (get_local_id(0) == 0) sMem.fNTracklets = *tracker.NTracklets();
 #ifdef GPUCA_GPUCODE
-
-#include "AliGPUTPCTrackletConstructorGPU.h"
-
-#else //GPUCA_GPUCODE
-
-GPUd() void AliGPUTPCTrackletConstructor::AliGPUTPCTrackletConstructorCPU(AliGPUTPCTracker &tracker)
-{
-	//Tracklet constructor simple CPU Function that does not neew a scheduler
-	GPUshared() AliGPUTPCSharedMemory sMem;
-	sMem.fNTracklets = *tracker.NTracklets();
-	for (int iTracklet = 0; iTracklet < *tracker.NTracklets(); iTracklet++)
+	for (int i = get_local_id(0);i < GPUCA_ROW_COUNT * sizeof(MEM_PLAIN(AliGPUTPCRow)) / sizeof(int);i += get_local_size(0))
 	{
-		AliGPUTPCThreadMemory rMem;
-		rMem.fItr = iTracklet;
-		rMem.fGo = 1;
+		reinterpret_cast<GPUsharedref() int*>(&sMem.fRows)[i] = reinterpret_cast<GPUglobalref() int*>(tracker.SliceDataRows())[i];
+	}
+#endif
+	GPUbarrier();
 
+	AliGPUTPCThreadMemory rMem;
+	for (rMem.fItr = get_global_id(0);rMem.fItr < sMem.fNTracklets;rMem.fItr += get_global_size(0))
+	{
+		rMem.fGo = 1;
 		DoTracklet(tracker, sMem, rMem);
 	}
 }
 
-GPUd() int AliGPUTPCTrackletConstructor::AliGPUTPCTrackletConstructorGlobalTracking(AliGPUTPCTracker &tracker, AliGPUTPCTrackParam &tParam, int row, int increment, int iTracklet)
+template <> GPUd() void AliGPUTPCTrackletConstructor::Thread<1>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &sMem, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker0)
+{
+#ifdef GPUCA_GPUCODE
+	GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) *pTracker = &tracker0;
+	
+	int mySlice = get_group_id(0) % GPUCA_NSLICES;
+	int currentSlice = -1;
+
+	if (get_local_id(0) == 0)
+	{
+		sMem.fNextTrackletFirstRun = 1;
+	}
+
+	for (unsigned int iSlice = 0;iSlice < GPUCA_NSLICES;iSlice++)
+	{
+		GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker = pTracker[mySlice];
+
+		AliGPUTPCThreadMemory rMem;
+
+		while ((rMem.fItr = FetchTracklet(tracker, sMem)) != -2)
+		{
+			if (rMem.fItr >= 0 && get_local_id(0) < GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR)
+			{
+				rMem.fItr += get_local_id(0);
+			}
+			else
+			{
+				rMem.fItr = -1;
+			}
+
+			if (mySlice != currentSlice)
+			{
+				if (get_local_id(0) == 0)
+				{
+					sMem.fNTracklets = *tracker.NTracklets();
+				}
+
+				for (int i = get_local_id(0);i < GPUCA_ROW_COUNT * sizeof(MEM_PLAIN(AliGPUTPCRow)) / sizeof(int);i += get_local_size(0))
+				{
+					reinterpret_cast<GPUsharedref() int*>(&sMem.fRows)[i] = reinterpret_cast<GPUglobalref() int*>(tracker.SliceDataRows())[i];
+				}
+				GPUbarrier();
+				currentSlice = mySlice;
+			}
+
+			if (rMem.fItr >= 0 && rMem.fItr < sMem.fNTracklets)
+			{
+				rMem.fGo = true;
+				DoTracklet(tracker, sMem, rMem);
+			}
+		}
+		if (++mySlice >= GPUCA_NSLICES) mySlice = 0;
+	}
+#else
+	throw std::logic_error("Not supported on CPU");
+#endif
+}
+
+#ifdef GPUCA_GPUCODE
+
+GPUdi() int AliGPUTPCTrackletConstructor::FetchTracklet(GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &sMem)
+{
+	const int nativeslice = get_group_id(0) % GPUCA_NSLICES;
+	const int nTracklets = *tracker.NTracklets();
+	GPUbarrier();
+	if (get_local_id(0) == 0)
+	{
+		if (sMem.fNextTrackletFirstRun == 1)
+		{
+			sMem.fNextTrackletFirst = (get_group_id(0) - nativeslice) / GPUCA_NSLICES * GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR;
+			sMem.fNextTrackletFirstRun = 0;
+		}
+		else
+		{
+			if (tracker.GPUParameters()->fNextTracklet < nTracklets)
+			{
+				const int firstTracklet = CAMath::AtomicAdd(&tracker.GPUParameters()->fNextTracklet, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR);
+				if (firstTracklet < nTracklets) sMem.fNextTrackletFirst = firstTracklet;
+				else sMem.fNextTrackletFirst = -2;
+			}
+			else
+			{
+				sMem.fNextTrackletFirst = -2;
+			}
+		}
+	}
+	GPUbarrier();
+	return (sMem.fNextTrackletFirst);
+}
+
+#else //GPUCA_GPUCODE
+
+int AliGPUTPCTrackletConstructor::AliGPUTPCTrackletConstructorGlobalTracking(AliGPUTPCTracker &tracker, AliGPUTPCTrackParam &tParam, int row, int increment, int iTracklet)
 {
 	AliGPUTPCThreadMemory rMem;
 	GPUshared() AliGPUTPCSharedMemory sMem;

@@ -24,14 +24,14 @@ namespace o2 { namespace ITS { class TrackerTraitsNV : public TrackerTraits {}; 
 #define DEVICE_KERNELS_PRE
 #include "AliGPUDeviceKernels.h"
 
-template <class TProcess, typename... Args> GPUg() void runKernelCUDA(int iSlice, Args... args)
+template <class TProcess, int I, typename... Args> GPUg() void runKernelCUDA(int iSlice, Args... args)
 {
 	AliGPUTPCTracker &tracker = gGPUConstantMem.tpcTrackers[iSlice];
 	GPUshared() typename TProcess::AliGPUTPCSharedMemory smem;
-	TProcess::Thread(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, tracker, args...);
+	TProcess::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, tracker, args...);
 }
 
-template <class TProcess, typename... Args> GPUg() void runKernelCUDAMulti(int firstSlice, int nSliceCount, Args... args)
+template <class TProcess, int I, typename... Args> GPUg() void runKernelCUDAMulti(int firstSlice, int nSliceCount, Args... args)
 {
 	const int iSlice = nSliceCount * (get_group_id(0) + (get_num_groups(0) % nSliceCount != 0 && nSliceCount * (get_group_id(0) + 1) % get_num_groups(0) != 0)) / get_num_groups(0);
 	const int nSliceBlockOffset = get_num_groups(0) * iSlice / nSliceCount;
@@ -39,20 +39,20 @@ template <class TProcess, typename... Args> GPUg() void runKernelCUDAMulti(int f
 	const int sliceGridDim = get_num_groups(0) * (iSlice + 1) / nSliceCount - get_num_groups(0) * (iSlice) / nSliceCount;
 	AliGPUTPCTracker &tracker = gGPUConstantMem.tpcTrackers[firstSlice + iSlice];
 	GPUshared() typename TProcess::AliGPUTPCSharedMemory smem;
-	TProcess::Thread(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, tracker, args...);
+	TProcess::template Thread<I>(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, tracker, args...);
 }
 
-template <class T, typename... Args> int AliGPUReconstructionCUDABackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
+template <class T, int I, typename... Args> int AliGPUReconstructionCUDABackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
 {
-	if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelBackend<T> (x, y, z, args...);
+	if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelBackend<T, I> (x, y, z, args...);
 	if (z.evList) for (int k = 0;k < z.nEvents;k++) GPUFailedMsg(cudaStreamWaitEvent(mInternals->CudaStreams[x.stream], ((cudaEvent_t*) z.evList)[k], 0));
 	if (y.num <= 1)
 	{
-		runKernelCUDA<T> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(y.start, args...);
+		runKernelCUDA<T, I> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(y.start, args...);
 	}
 	else
 	{
-		runKernelCUDAMulti<T> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>> (y.start, y.num, args...);
+		runKernelCUDAMulti<T, I> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>> (y.start, y.num, args...);
 	}
 	if (z.ev) GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*) z.ev, mInternals->CudaStreams[x.stream]));
 	return 0;
@@ -395,7 +395,7 @@ int AliGPUReconstructionCUDABackend::RunTPCTrackingSlices_internal()
 #ifdef GPUCA_GPU_CONSTRUCTOR_SINGLE_SLICE
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Tracklet Constructor (Slice %d/%d)", iSlice, NSLICES)
 		mWorkers->tpcTrackers[iSlice].StartTimer(6);
-		AliGPUTPCTrackletConstructorSingleSlice<<<fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR, 0, mInternals->CudaStreams[useStream]>>>(iSlice);
+		runKernel<AliGPUTPCTrackletConstructor>({fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR, useStream}, {iSlice});
 		if (GPUDebug("Tracklet Constructor", useStream, iSlice) RANDOM_ERROR)
 		{
 			return(3);
@@ -415,7 +415,7 @@ int AliGPUReconstructionCUDABackend::RunTPCTrackingSlices_internal()
 #else
 	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Tracklet Constructor");
 	mWorkers->tpcTrackers[0].StartTimer(6);
-	AliGPUTPCTrackletConstructorGPU<<<fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR>>>();
+	runKernel<AliGPUTPCTrackletConstructor, 1>({fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR, 0}, krnlRunRangeNone);
 	if (GPUDebug("Tracklet Constructor", -1, 0) RANDOM_ERROR)
 	{
 		return(1);

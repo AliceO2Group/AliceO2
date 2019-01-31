@@ -47,7 +47,7 @@ class AliGPUTPCStartHitsFinder
 		int fNRowStartHits; //start hits found in the row
 	};
 
-	GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, MEM_LOCAL(GPUsharedref() AliGPUTPCSharedMemory) &smem, MEM_CONSTANT(GPUconstant() AliGPUTPCTracker) &tracker);
+	template <int iKernel = 0> GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, MEM_LOCAL(GPUsharedref() AliGPUTPCSharedMemory) &smem, MEM_CONSTANT(GPUconstant() AliGPUTPCTracker) &tracker);
 };
 
 #endif //ALIHLTTPCCASTARTHITSFINDER_H

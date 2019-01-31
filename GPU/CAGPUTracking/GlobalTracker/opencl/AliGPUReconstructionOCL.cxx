@@ -12,30 +12,32 @@ extern "C" char _makefile_opencl_program_GlobalTracker_opencl_AliGPUReconstructi
 
 #define quit(msg) {CAGPUError(msg);return(1);}
 
-template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCNeighboursFinder, cl_kernel>() {return mInternals->kernel_neighbours_finder;}
-template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCNeighboursCleaner, cl_kernel>() {return mInternals->kernel_neighbours_cleaner;}
-template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCStartHitsFinder, cl_kernel>() {return mInternals->kernel_start_hits_finder;}
-template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCStartHitsSorter, cl_kernel>() {return mInternals->kernel_start_hits_sorter;}
-template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCTrackletConstructor, cl_kernel>() {return mInternals->kernel_tracklet_constructor;}
-template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCTrackletSelector, cl_kernel>() {return mInternals->kernel_tracklet_selector;}
-template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUMemClean16, cl_kernel>() {return mInternals->kernel_memclean16;}
+template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCNeighboursFinder>() {return mInternals->kernel_neighbours_finder;}
+template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCNeighboursCleaner>() {return mInternals->kernel_neighbours_cleaner;}
+template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCStartHitsFinder>() {return mInternals->kernel_start_hits_finder;}
+template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCStartHitsSorter>() {return mInternals->kernel_start_hits_sorter;}
+template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCTrackletConstructor>() {return mInternals->kernel_tracklet_constructor0;}
+template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCTrackletConstructor, 1>() {return mInternals->kernel_tracklet_constructor1;}
+template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCTrackletSelector>() {return mInternals->kernel_tracklet_selector;}
+template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUMemClean16>() {return mInternals->kernel_memclean16;}
 
-template <class T, typename... Args> int AliGPUReconstructionOCLBackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
+template <class T, int I, typename... Args> int AliGPUReconstructionOCLBackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
 {
-	if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelBackend<T>(x, y, z, args...);
+	if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelBackend<T, I>(x, y, z, args...);
+	cl_kernel k = getKernelObject<T, I, cl_kernel>();
 	if (y.num == (unsigned int) -1)
 	{
-		if (OCLsetKernelParameters(getKernelObject<T, cl_kernel>(), mInternals->mem_gpu, mInternals->mem_constant, args...)) return 1;
+		if (OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, args...)) return 1;
 	}
 	else if (y.num == 0)
 	{
-		if (OCLsetKernelParameters(getKernelObject<T, cl_kernel>(), mInternals->mem_gpu, mInternals->mem_constant, y.start, args...)) return 1;
+		if (OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, y.start, args...)) return 1;
 	}
 	else
 	{
-		if (OCLsetKernelParameters(getKernelObject<T, cl_kernel>(), mInternals->mem_gpu, mInternals->mem_constant, y.start, y.num, args...)) return 1;
+		if (OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, y.start, y.num, args...)) return 1;
 	}
-	return clExecuteKernelA(mInternals->command_queue[x.stream], getKernelObject<T, cl_kernel>(), x.nThreads, x.nThreads * x.nBlocks, (cl_event*) z.ev, (cl_event*) z.evList, z.nEvents);
+	return clExecuteKernelA(mInternals->command_queue[x.stream], k, x.nThreads, x.nThreads * x.nBlocks, (cl_event*) z.ev, (cl_event*) z.evList, z.nEvents);
 }
 
 AliGPUReconstructionOCLBackend::AliGPUReconstructionOCLBackend(const AliGPUCASettingsProcessing& cfg) : AliGPUReconstructionDeviceBase(cfg)
@@ -262,13 +264,14 @@ int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 	}
 	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("OpenCL program loaded successfully");
 
-	mInternals->kernel_memclean16 = clCreateKernel(mInternals->program, "KernelMemClean16", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 1");return(1);}
+	mInternals->kernel_memclean16 = clCreateKernel(mInternals->program, "KernelMemClean16", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 0");return(1);}
 	mInternals->kernel_neighbours_finder = clCreateKernel(mInternals->program, "AliGPUTPCProcess_AliGPUTPCNeighboursFinder", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 1");return(1);}
 	mInternals->kernel_neighbours_cleaner = clCreateKernel(mInternals->program, "AliGPUTPCProcess_AliGPUTPCNeighboursCleaner", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 2");return(1);}
 	mInternals->kernel_start_hits_finder = clCreateKernel(mInternals->program, "AliGPUTPCProcess_AliGPUTPCStartHitsFinder", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 3");return(1);}
 	mInternals->kernel_start_hits_sorter = clCreateKernel(mInternals->program, "AliGPUTPCProcess_AliGPUTPCStartHitsSorter", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 4");return(1);}
-	mInternals->kernel_tracklet_selector = clCreateKernel(mInternals->program, "AliGPUTPCProcessMulti_AliGPUTPCTrackletSelector", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 5");return(1);}
-	mInternals->kernel_tracklet_constructor = clCreateKernel(mInternals->program, "AliGPUTPCTrackletConstructorGPU", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 6");return(1);}
+	mInternals->kernel_tracklet_constructor0 = clCreateKernel(mInternals->program, "AliGPUTPCProcess_AliGPUTPCTrackletConstructor0", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 5");return(1);}
+	mInternals->kernel_tracklet_constructor1 = clCreateKernel(mInternals->program, "AliGPUTPCProcess_AliGPUTPCTrackletConstructor1", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 7");return(1);}
+	mInternals->kernel_tracklet_selector = clCreateKernel(mInternals->program, "AliGPUTPCProcessMulti_AliGPUTPCTrackletSelector", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 6");return(1);}
 	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("OpenCL kernels created successfully");
 
 	mInternals->mem_gpu = clCreateBuffer(mInternals->context, CL_MEM_READ_WRITE, mDeviceMemorySize, nullptr, &ocl_error);
@@ -497,7 +500,7 @@ int AliGPUReconstructionOCLBackend::RunTPCTrackingSlices_internal()
 	}
 
 	mWorkers->tpcTrackers[0].StartTimer(6);
-	runKernel<AliGPUTPCTrackletConstructor>({fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR, 0}, krnlRunRangeNone, {&mEvents.constructor, mEvents.stream, mNStreams});
+	runKernel<AliGPUTPCTrackletConstructor, 1>({fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT_CONSTRUCTOR, 0}, krnlRunRangeNone, {&mEvents.constructor, mEvents.stream, mNStreams});
 	for (int i = 0;i < mNStreams;i++)
 	{
 		ReleaseEvent(&mEvents.stream[i]);
@@ -625,7 +628,8 @@ int AliGPUReconstructionOCLBackend::ExitDevice_Runtime()
 		clReleaseKernel(mInternals->kernel_neighbours_cleaner);
 		clReleaseKernel(mInternals->kernel_start_hits_finder);
 		clReleaseKernel(mInternals->kernel_start_hits_sorter);
-		clReleaseKernel(mInternals->kernel_tracklet_constructor);
+		clReleaseKernel(mInternals->kernel_tracklet_constructor0);
+		clReleaseKernel(mInternals->kernel_tracklet_constructor1);
 		clReleaseKernel(mInternals->kernel_tracklet_selector);
 		clReleaseKernel(mInternals->kernel_memclean16);
 	}
