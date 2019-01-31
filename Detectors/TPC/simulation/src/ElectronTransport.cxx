@@ -28,21 +28,20 @@ ElectronTransport::~ElectronTransport() = default;
 
 void ElectronTransport::updateParameters()
 {
-  auto& cdb = CDBInterface::instance();
-  mGasParam = &(cdb.getParameterGas());
-  mDetParam = &(cdb.getParameterDetector());
+  mGasParam = &(ParameterGas::Instance());
+  mDetParam = &(ParameterDetector::Instance());
 }
 
 GlobalPosition3D ElectronTransport::getElectronDrift(GlobalPosition3D posEle, float& driftTime)
 {
   /// For drift lengths shorter than 1 mm, the drift length is set to that value
-  float driftl = mDetParam->getTPClength() - std::abs(posEle.Z());
+  float driftl = mDetParam->TPClength - std::abs(posEle.Z());
   if (driftl < 0.01) {
     driftl = 0.01;
   }
   driftl = std::sqrt(driftl);
-  const float sigT = driftl * mGasParam->getDiffT();
-  const float sigL = driftl * mGasParam->getDiffL();
+  const float sigT = driftl * mGasParam->DiffT;
+  const float sigL = driftl * mGasParam->DiffL;
 
   /// The position is smeared by a Gaussian with mean around the actual position and a width according to the diffusion
   /// coefficient times sqrt(drift length)
@@ -68,14 +67,14 @@ GlobalPosition3D ElectronTransport::getElectronDrift(GlobalPosition3D posEle, fl
 bool ElectronTransport::isCompletelyOutOfSectorCoarseElectronDrift(GlobalPosition3D posEle, const Sector& sector) const
 {
   /// For drift lengths shorter than 1 mm, the drift length is set to that value
-  float driftl = mDetParam->getTPClength() - std::abs(posEle.Z());
+  float driftl = mDetParam->TPClength - std::abs(posEle.Z());
   if (driftl < 0.01) {
     driftl = 0.01;
   }
   driftl = std::sqrt(driftl);
 
   /// Three sigma of the expected average transverse diffusion
-  const float threeSigmaT = 3.f * driftl * mGasParam->getDiffT();
+  const float threeSigmaT = 3.f * driftl * mGasParam->DiffT;
 
   auto& mapper = Mapper::instance();
   return mapper.isOutOfSector(posEle, sector, threeSigmaT);

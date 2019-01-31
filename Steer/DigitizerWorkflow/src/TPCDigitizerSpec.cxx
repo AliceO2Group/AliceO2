@@ -83,10 +83,6 @@ class TPCDPLDigitizerTask
   {
     LOG(INFO) << "Initializing TPC digitization";
 
-    /// For the time being use the defaults for the CDB
-    auto& cdb = o2::tpc::CDBInterface::instance();
-    cdb.setUseDefaults();
-
     auto useDistortions = ic.options().get<int>("distortionType");
     auto gridSizeString = ic.options().get<std::string>("gridSize");
     auto triggeredMode = ic.options().get<bool>("TPCtriggered");
@@ -159,6 +155,10 @@ class TPCDPLDigitizerTask
       return;
     }
     LOG(INFO) << "Processing TPC digitization";
+
+    /// For the time being use the defaults for the CDB
+    auto& cdb = o2::tpc::CDBInterface::instance();
+    cdb.setUseDefaults();
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");

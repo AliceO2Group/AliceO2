@@ -35,11 +35,11 @@ BOOST_AUTO_TEST_CASE(SAMPA_ADC_test)
 {
   auto& cdb = CDBInterface::instance();
   cdb.setUseDefaults();
-  const ParameterElectronics& eleParam = cdb.getParameterElectronics();
+  auto& eleParam = ParameterElectronics::Instance();
   const SAMPAProcessing& sampa = SAMPAProcessing::instance();
   BOOST_CHECK_CLOSE(sampa.getADCvalue(1000.f),
-                    1000.f * eleParam.getElectronCharge() * 1.e15 * eleParam.getChipGain() *
-                      eleParam.getADCSaturation() / eleParam.getADCDynamicRange(),
+                    1000.f * eleParam.ElectronCharge * 1.e15 * eleParam.ChipGain *
+                      eleParam.ADCsaturation / eleParam.ADCdynamicRange,
                     1E-5);
 }
 
@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_CASE(SAMPA_Gamma4_test)
 {
   auto& cdb = CDBInterface::instance();
   cdb.setUseDefaults();
-  const ParameterElectronics& eleParam = cdb.getParameterElectronics();
+  auto& eleParam = ParameterElectronics::Instance();
   const SAMPAProcessing& sampa = SAMPAProcessing::instance();
   float timeInit[4] = { 0.1, 3.3, 1.f, 90.5 };
   float startTimeInit[4] = { 0.f, 3.f, 0.f, 90.f };
@@ -80,10 +80,10 @@ BOOST_AUTO_TEST_CASE(SAMPA_Gamma4_test)
   }
   /// @todo here one should consider to load an exemplary wave form of a real SAMPA pulse (once available)
   /// and compare to the outcome of the Digitization
-  Vc::float_v adcValue = 55.f * ADC * Vc::exp(-4.f * (time - startTime) / eleParam.getPeakingTime()) *
-                         (time - startTime) / eleParam.getPeakingTime() * (time - startTime) /
-                         eleParam.getPeakingTime() * (time - startTime) / eleParam.getPeakingTime() *
-                         (time - startTime) / eleParam.getPeakingTime();
+  Vc::float_v adcValue = 55.f * ADC * Vc::exp(-4.f * (time - startTime) / eleParam.PeakingTime) *
+                         (time - startTime) / eleParam.PeakingTime * (time - startTime) /
+                         eleParam.PeakingTime * (time - startTime) / eleParam.PeakingTime *
+                         (time - startTime) / eleParam.PeakingTime;
   Vc::float_v signal = sampa.getGamma4(time, startTime, ADC);
   for (int i = 0; i < 4; ++i) {
     float currentSignal = signal[i];
@@ -97,11 +97,11 @@ BOOST_AUTO_TEST_CASE(SAMPA_Conversion_test)
 {
   auto& cdb = CDBInterface::instance();
   cdb.setUseDefaults();
-  const ParameterElectronics& eleParam = cdb.getParameterElectronics();
-  const ParameterDetector& detParam = cdb.getParameterDetector();
+  auto& eleParam = ParameterElectronics::Instance();
+  auto& detParam = ParameterDetector::Instance();
   static SAMPAProcessing& sampa = SAMPAProcessing::instance();
-  BOOST_CHECK(sampa.getTimeBin(detParam.getTPClength()) == 0);
-  BOOST_CHECK_CLOSE(sampa.getZfromTimeBin(0, Side::A), detParam.getTPClength(), 1E-6);
+  BOOST_CHECK(sampa.getTimeBin(detParam.TPClength) == 0);
+  BOOST_CHECK_CLOSE(sampa.getZfromTimeBin(0, Side::A), detParam.TPClength, 1E-6);
 }
 }
 }

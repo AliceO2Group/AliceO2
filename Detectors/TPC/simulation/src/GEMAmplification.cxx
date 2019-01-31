@@ -32,7 +32,7 @@ GEMAmplification::GEMAmplification()
 
   TStopwatch watch;
   watch.Start();
-  const float sigmaOverMu = mGasParam->getSigmaOverMu();
+  const float sigmaOverMu = mGasParam->SigmaOverMu;
   const float kappa = 1 / (sigmaOverMu * sigmaOverMu);
   boost::format polya("1/(TMath::Gamma(%1%)*%2%) * TMath::Power(x/%3%, %4%) * TMath::Exp(-x/%5%)");
 
@@ -55,12 +55,12 @@ GEMAmplification::GEMAmplification()
 
   /// Set the polya distribution for the individual GEMs
   for (int i = 0; i < 4; ++i) {
-    float s = mGEMParam->getAbsoluteGain(i + 1) / kappa;
+    float s = mGEMParam->AbsoluteGain[i] / kappa;
     polya % kappa % s % s % (kappa - 1) % s;
     std::string name = polya.str();
     o2::base::CachingTF1* polyaDistribution = nullptr;
     if (!cacheexists) {
-      polyaDistribution = new o2::base::CachingTF1("polya", name.c_str(), 0, 10.f * mGEMParam->getAbsoluteGain(i + 1));
+      polyaDistribution = new o2::base::CachingTF1("polya", name.c_str(), 0, 10.f * mGEMParam->AbsoluteGain[i]);
       /// this dramatically alters the speed with which the filling is executed...
       /// without this, the distribution makes discrete steps at every int
       polyaDistribution->SetNpx(100000);
@@ -77,9 +77,9 @@ GEMAmplification::GEMAmplification()
   }
 
   /// Set the polya distribution for the full stack
-  const float gainStack = mGEMParam->getTotalGainStack();
-  const float kappaStack = mGEMParam->getKappaStack();
-  const float effStack = mGEMParam->getEfficiencyStack();
+  const float gainStack = mGEMParam->TotalGainStack;
+  const float kappaStack = mGEMParam->KappaStack;
+  const float effStack = mGEMParam->EfficiencyStack;
   const float sStack = gainStack / (kappaStack * (1.f - effStack));
   polya % kappaStack % sStack % sStack % (kappaStack - 1) % sStack;
   std::string name = polya.str();
@@ -108,8 +108,8 @@ GEMAmplification::~GEMAmplification() = default;
 void GEMAmplification::updateParameters()
 {
   auto& cdb = CDBInterface::instance();
-  mGEMParam = &(cdb.getParameterGEM());
-  mGasParam = &(cdb.getParameterGas());
+  mGEMParam = &(ParameterGEM::Instance());
+  mGasParam = &(ParameterGas::Instance());
   mGainMap = &(cdb.getGainMap());
 }
 
@@ -118,10 +118,10 @@ int GEMAmplification::getStackAmplification(int nElectrons)
   /// We start with an arbitrary number of electrons given to the first amplification stage
   /// The amplification in the GEM stack is handled for each electron individually and the resulting amplified
   /// electrons are passed to the next amplification stage.
-  const int nElectronsGEM1 = getSingleGEMAmplification(nElectrons, 1);
-  const int nElectronsGEM2 = getSingleGEMAmplification(nElectronsGEM1, 2);
-  const int nElectronsGEM3 = getSingleGEMAmplification(nElectronsGEM2, 3);
-  const int nElectronsGEM4 = getSingleGEMAmplification(nElectronsGEM3, 4);
+  const int nElectronsGEM1 = getSingleGEMAmplification(nElectrons, 0);
+  const int nElectronsGEM2 = getSingleGEMAmplification(nElectronsGEM1, 1);
+  const int nElectronsGEM3 = getSingleGEMAmplification(nElectronsGEM2, 2);
+  const int nElectronsGEM4 = getSingleGEMAmplification(nElectronsGEM3, 3);
   return nElectronsGEM4;
 }
 
@@ -132,7 +132,7 @@ int GEMAmplification::getEffectiveStackAmplification(int nElectrons)
   /// in the stack is handled in an effective manner
   int nElectronsGEM = 0;
   for (int i = 0; i < nElectrons; ++i) {
-    if (mRandomFlat.getNextValue() < mGEMParam->getEfficiencyStack()) {
+    if (mRandomFlat.getNextValue() < mGEMParam->EfficiencyStack) {
       continue;
     }
     nElectronsGEM += mGainFullStack.getNextValue();
@@ -149,9 +149,9 @@ int GEMAmplification::getSingleGEMAmplification(int nElectrons, int GEM)
   /// The effective gain, and thus the overall amplification of the GEM is then given by
   /// G_eff  = ε_coll * G_abs * ε_extr
   /// Each of the three processes is handled by a sub-routine
-  int collectionGEM = getElectronLosses(nElectrons, mGEMParam->getCollectionEfficiency(GEM));
+  int collectionGEM = getElectronLosses(nElectrons, mGEMParam->CollectionEfficiency[GEM]);
   int amplificationGEM = getGEMMultiplication(collectionGEM, GEM);
-  int extractionGEM = getElectronLosses(amplificationGEM, mGEMParam->getExtractionEfficiency(GEM));
+  int extractionGEM = getElectronLosses(amplificationGEM, mGEMParam->ExtractionEfficiency[GEM]);
   return extractionGEM;
 }
 
@@ -167,15 +167,15 @@ int GEMAmplification::getGEMMultiplication(int nElectrons, int GEM)
     ///a Gaussian for all electrons
     /// The mean is given by nElectrons * G_abs and the width by sqrt(nElectrons) * Sigma/Mu (Polya) * G_abs
     return ((mRandomGaus.getNextValue() * std::sqrt(static_cast<float>(nElectrons)) *
-             mGasParam->getSigmaOverMu()) +
+             mGasParam->SigmaOverMu) +
             nElectrons) *
-           mGEMParam->getAbsoluteGain(GEM);
+           mGEMParam->AbsoluteGain[GEM];
   } else {
     /// Otherwise we compute the gain fluctuations as the convolution of many single electron amplification
     /// fluctuations
     int electronsOut = 0;
     for (int i = 0; i < nElectrons; ++i) {
-      electronsOut += mGain[GEM - 1].getNextValue();
+      electronsOut += mGain[GEM].getNextValue();
     }
     return electronsOut;
   }

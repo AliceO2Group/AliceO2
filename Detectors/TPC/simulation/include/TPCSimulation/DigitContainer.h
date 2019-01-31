@@ -22,6 +22,7 @@
 #include "TPCBase/ParameterDetector.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGas.h"
+#include "TPCBase/CDBInterface.h"
 
 namespace o2
 {
@@ -84,8 +85,8 @@ class DigitContainer
 
 inline DigitContainer::DigitContainer()
 {
-  const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
-  mTmaxTriggered = detParam.getMaxTimeBinTriggered();
+  auto& detParam = ParameterDetector::Instance();
+  mTmaxTriggered = detParam.TmaxTriggered;
 }
 
 inline void DigitContainer::reset()
