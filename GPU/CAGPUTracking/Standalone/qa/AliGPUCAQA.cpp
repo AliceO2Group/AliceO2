@@ -1031,7 +1031,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 	if (config.csvDump)
 	{
 		int totalNCls = mRec->mIOPtrs.nMCLabelsTPC;
-		if (totalNCls == 0) for (int iSlice = 0; iSlice < 36; iSlice++) totalNCls += mRec->mIOPtrs.nClusterData[iSlice];
+		if (totalNCls == 0) for (unsigned int iSlice = 0; iSlice < AliGPUReconstruction::NSLICES; iSlice++) totalNCls += mRec->mIOPtrs.nClusterData[iSlice];
 
 		std::vector<float> clusterInfo(totalNCls);
 		memset(clusterInfo.data(), 0, clusterInfo.size() * sizeof(clusterInfo[0]));
@@ -1053,7 +1053,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 		FILE* fp = fopen(fname, "w+");
 		fprintf(fp, "x;y;z;reconstructedPt;individualMomentum;individualTransverseMomentum;trackLabel1;trackLabel2;trackLabel3;removed\n\n");
 		int dumpClTot = 0, dumpClLeft = 0, dumpClRem = 0;
-		for (int iSlice = 0; iSlice < 36; iSlice++)
+		for (unsigned int iSlice = 0; iSlice < AliGPUReconstruction::NSLICES; iSlice++)
 		{
 			for (unsigned int i = 0; i < mRec->mIOPtrs.nClusterData[iSlice]; i++)
 			{

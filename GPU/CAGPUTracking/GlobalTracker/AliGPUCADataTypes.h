@@ -19,7 +19,7 @@ class AliGPUTRDTracker {void SetMaxData(){}};
 MEM_CLASS_PRE()
 struct AliGPUCAWorkers
 {
-	MEM_LG(AliGPUTPCTracker) tpcTrackers[36];
+	MEM_LG(AliGPUTPCTracker) tpcTrackers[GPUCA_NSLICES];
 	AliGPUTPCGMMerger tpcMerger;
 	AliGPUTRDTracker trdTracker;
 };

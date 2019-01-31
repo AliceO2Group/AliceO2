@@ -555,9 +555,9 @@ void* AliGPUTPCTrackerComponent::TrackerDoEvent(void* par)
   }
 
   //Prepare everything for all slices
-  const AliHLTTPCClusterMCData* clusterLabels[36][6] = {NULL};
-  const AliHLTTPCClusterXYZData* clustersXYZ[36][6] = {NULL};
-  const AliHLTTPCRawClusterData* clustersRaw[36][6] = {NULL};
+  const AliHLTTPCClusterMCData* clusterLabels[fgkNSlices][fgkNPatches] = {NULL};
+  const AliHLTTPCClusterXYZData* clustersXYZ[fgkNSlices][fgkNPatches] = {NULL};
+  const AliHLTTPCRawClusterData* clustersRaw[fgkNSlices][fgkNPatches] = {NULL};
   bool labelsPresent = false;
   
   for ( unsigned long ndx = 0; ndx < evtData.fBlockCnt; ndx++ )
@@ -580,8 +580,8 @@ void* AliGPUTPCTrackerComponent::TrackerDoEvent(void* par)
     }
   }
   
-  AliGPUTPCClusterData* clusterData[36] = {NULL};
-  int nClusters[36] = {0};
+  AliGPUTPCClusterData* clusterData[fgkNSlices] = {NULL};
+  int nClusters[fgkNSlices] = {0};
   
   int nClustersTotal = 0;
   for (int slice = 0;slice < fgkNSlices;slice++)
@@ -658,7 +658,7 @@ void* AliGPUTPCTrackerComponent::TrackerDoEvent(void* par)
   }
   
   fRec->ClearIOPointers();
-  for (int i = 0;i < 36;i++)
+  for (int i = 0;i < fgkNSlices;i++)
   {
       fRec->mIOPtrs.clusterData[i] = clusterData[i];
       fRec->mIOPtrs.nClusterData[i] = nClusters[i];
@@ -672,7 +672,7 @@ void* AliGPUTPCTrackerComponent::TrackerDoEvent(void* par)
   fRec->RunTPCTrackingSlices();
   fBenchmark.Stop(1);
   HLTInfo("Processed %d clusters", nClustersTotal);
-  for (int i = 0;i < 36;i++)
+  for (int i = 0;i < fgkNSlices;i++)
   {
       fRec->GetTPCSliceTrackers()[i].Clear();
   }
@@ -701,7 +701,7 @@ void* AliGPUTPCTrackerComponent::TrackerDoEvent(void* par)
     }
   }
   
-  for (int i = 0;i < 36;i++) if (clusterData[i]) delete[] clusterData[i];
+  for (int i = 0;i < fgkNSlices;i++) if (clusterData[i]) delete[] clusterData[i];
   
   fBenchmark.Stop(0);
   HLTInfo(fBenchmark.GetStatistics());

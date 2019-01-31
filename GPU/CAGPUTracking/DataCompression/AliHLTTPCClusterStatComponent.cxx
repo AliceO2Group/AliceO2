@@ -189,7 +189,7 @@ void AliHLTTPCClusterStatComponent::TransformReverse(int slice, int row, float y
 	float padWidth = 0;
 	float padLength = 0;
 	float maxPad = 0;
-	float sign = slice < 18 ? 1 : -1;
+	float sign = slice < NSLICES / 2 ? 1 : -1;
 	float zwidth;
 
 	int sector;
@@ -204,7 +204,7 @@ void AliHLTTPCClusterStatComponent::TransformReverse(int slice, int row, float y
 	}
 	else
 	{
-		sector = slice + 36;
+		sector = slice + NSLICES;
 		sectorrow = row - AliGPUTPCGeometry::GetNRowLow();
 		maxPad = param->GetNPadsUp(sectorrow);
 		padLength = param->GetPadPitchLength(sector, sectorrow);
@@ -228,7 +228,7 @@ void AliHLTTPCClusterStatComponent::TransformForward(int slice, int row, float p
 	float padWidth = 0;
 	float padLength = 0;
 	float maxPad = 0;
-	float sign = slice < 18 ? 1 : -1;
+	float sign = slice < NSLICES / 2 ? 1 : -1;
 	float zwidth;
 
 	int sector;
@@ -243,7 +243,7 @@ void AliHLTTPCClusterStatComponent::TransformForward(int slice, int row, float p
 	}
 	else
 	{
-		sector = slice + 36;
+		sector = slice + NSLICES;
 		sectorrow = row - AliGPUTPCGeometry::GetNRowLow();
 		maxPad = param->GetNPadsUp(sectorrow);
 		padLength = param->GetPadPitchLength(sector, sectorrow);
@@ -284,12 +284,12 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 	}
 	int nBlocks = evtData.fBlockCnt;
 
-	AliHLTTPCRawClusterData *clustersArray[36][6];
-	AliHLTTPCClusterXYZData *clustersTransformedArray[36][6];
-	AliHLTTPCTrackHelperStruct *clustersTrackIDArray[36][6];
-	memset(clustersArray, 0, 36 * 6 * sizeof(void *));
-	memset(clustersTransformedArray, 0, 36 * 6 * sizeof(void *));
-	memset(clustersTrackIDArray, 0, 36 * 6 * sizeof(void *));
+	AliHLTTPCRawClusterData *clustersArray[NSLICES][NPATCHES];
+	AliHLTTPCClusterXYZData *clustersTransformedArray[NSLICES][NPATCHES];
+	AliHLTTPCTrackHelperStruct *clustersTrackIDArray[NSLICES][NPATCHES];
+	memset(clustersArray, 0, NSLICES * NPATCHES * sizeof(void *));
+	memset(clustersTransformedArray, 0, NSLICES * NPATCHES * sizeof(void *));
+	memset(clustersTrackIDArray, 0, NSLICES * NPATCHES * sizeof(void *));
 
 	AliHLTTracksData *tracks = NULL;
 
@@ -422,8 +422,8 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 				}
                 
 				float alpha = slice;
-				if (alpha > 18) alpha -= 18;
-				if (alpha > 9) alpha -= 18;
+				if (alpha > NSLICES / 2) alpha -= NSLICES / 2;
+				if (alpha > NSLICES / 4) alpha -= NSLICES / 2;
 				alpha = (alpha + 0.5f) * M_PI / 9.f;
 				btrack.CalculateCrossingPoint(x, alpha /* Better use btrack.GetAlpha() ?? */, y, z);
 
@@ -531,9 +531,9 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 		}
 	}
 
-	for (int is = 0; is < 36; is++)
+	for (unsigned int is = 0; is < NSLICES; is++)
 	{
-		for (int ip = 0; ip < 6; ip++)
+		for (unsigned int ip = 0; ip < NPATCHES; ip++)
 		{
 			AliHLTTPCRawClusterData *clusters = clustersArray[is][ip];
 			AliHLTTPCClusterXYZData *clustersTransformed = clustersTransformedArray[is][ip];
@@ -575,7 +575,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 
 					/*float xyzOrig[3], xyzLocGlob[3];
 					{
-						int sector = AliGPUTPCGeometry::GetNRowLow() ? is : is + 36;
+						int sector = AliGPUTPCGeometry::GetNRowLow() ? is : is + NSLICES;
 						int sectorrow = AliGPUTPCGeometry::GetNRowLow() ? row : row - AliGPUTPCGeometry::GetNRowLow();
 
 						Double_t xx[] = {(double) sectorrow, cluster.GetPad(), cluster.GetTime()};
@@ -642,8 +642,8 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 		}
 	}
 
-	for (int is = 0; is < 36; is++)
-		for (int ip = 0; ip < 6; ip++)
+	for (unsigned int is = 0; is < NSLICES; is++)
+		for (unsigned int ip = 0; ip < NPATCHES; ip++)
 			if (clustersTrackIDArray[is][ip]) delete[] clustersTrackIDArray[is][ip];
 
 	int total = fTotal == 0 ? 1 : fTotal;

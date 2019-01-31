@@ -454,7 +454,7 @@ int AliGPUCADisplay::InitGL_internal()
 		return(1);
 	}
 
-	CHKERR(glCreateBuffers(36, vbo_id));
+	CHKERR(glCreateBuffers(AliGPUReconstruction::NSLICES, vbo_id));
 	CHKERR(glBindBuffer(GL_ARRAY_BUFFER, vbo_id[0]));
 	CHKERR(glGenBuffers(1, &indirect_id));
 	CHKERR(glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirect_id));
@@ -477,7 +477,7 @@ int AliGPUCADisplay::InitGL_internal()
 void AliGPUCADisplay::ExitGL()
 {
 	UpdateOffscreenBuffers(true);
-	CHKERR(glDeleteBuffers(36, vbo_id));
+	CHKERR(glDeleteBuffers(AliGPUReconstruction::NSLICES, vbo_id));
 	CHKERR(glDeleteBuffers(1, &indirect_id));
 }
 

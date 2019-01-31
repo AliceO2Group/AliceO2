@@ -53,7 +53,7 @@ public:
 	AliGPUReconstruction& operator=(const AliGPUReconstruction&) = delete;
 	
 	//General definitions
-	constexpr static unsigned int NSLICES = 36;
+	constexpr static unsigned int NSLICES = GPUCA_NSLICES;
 
 	//Definition of the Geometry: Are we AliRoot or O2
 	enum GeometryType : unsigned int {RESERVED_GEOMETRY = 0, ALIROOT = 1, O2 = 2};
