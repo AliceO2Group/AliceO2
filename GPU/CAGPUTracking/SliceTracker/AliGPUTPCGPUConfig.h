@@ -42,6 +42,8 @@
 #endif
 #define GPUCA_GPU_THREAD_COUNT_TRD 512
 
+#define GPUCA_GPU_MAX_STREAMS 32
+
 #define GPUCA_GPU_DEFAULT_HELPER_THREADS 2				//Number of helper threads to speed up initialization/output
 
 #ifdef GPUCA_STANDALONE

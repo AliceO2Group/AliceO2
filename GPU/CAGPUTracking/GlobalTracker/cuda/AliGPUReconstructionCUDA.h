@@ -28,15 +28,20 @@ protected:
 
 	virtual void ActivateThreadContext() override;
 	virtual void ReleaseThreadContext() override;
-	virtual int SynchronizeGPU() override;
-	virtual int GPUSync(const char* state = "UNKNOWN", int stream = -1, int slice = 0) override;
+	virtual void SynchronizeGPU() override;
+	virtual int GPUDebug(const char* state = "UNKNOWN", int stream = -1, int slice = 0) override;
+	virtual void SynchronizeStream(int stream) override;
+	virtual void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) override;
+	virtual int IsEventDone(deviceEvent* evList, int nEvents = 1) override;
+	
 	virtual int PrepareTextures() override;
 	virtual int PrepareProfile() override;
 	virtual int DoProfile() override;
 	
-	virtual int WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) override;
-	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override;
-	virtual int TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override;
+	virtual void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) override;
+	virtual void TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override;
+	virtual void TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override;
+	virtual void ReleaseEvent(deviceEvent* ev) override;
 	
 	template <class T, typename... Args> int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args);
 

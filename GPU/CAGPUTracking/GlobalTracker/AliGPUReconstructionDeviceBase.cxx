@@ -306,7 +306,7 @@ int AliGPUReconstructionDeviceBase::GetThread()
 #endif
 }
 
-int AliGPUReconstructionDeviceBase::TransferMemoryResourcesHelper(AliGPUProcessor* proc, int stream, bool all, bool toGPU)
+void AliGPUReconstructionDeviceBase::TransferMemoryResourcesHelper(AliGPUProcessor* proc, int stream, bool all, bool toGPU)
 {
 	int inc = toGPU ? AliGPUMemoryResource::MEMORY_INPUT : AliGPUMemoryResource::MEMORY_OUTPUT;
 	int exc = toGPU ? AliGPUMemoryResource::MEMORY_OUTPUT : AliGPUMemoryResource::MEMORY_INPUT;
@@ -316,9 +316,9 @@ int AliGPUReconstructionDeviceBase::TransferMemoryResourcesHelper(AliGPUProcesso
 		if (proc && res.mProcessor != proc) continue;
 		if (!(res.mType & AliGPUMemoryResource::MEMORY_GPU) || (res.mType & AliGPUMemoryResource::MEMORY_CUSTOM_TRANSFER)) continue;
 		if (!mDeviceProcessingSettings.keepAllMemory && !(all && !(res.mType & exc)) && !(res.mType & inc)) continue;
-		if (toGPU ? TransferMemoryResourceToGPU(&mMemoryResources[i], stream) : TransferMemoryResourceToHost(&mMemoryResources[i], stream)) return 1;
+		if (toGPU) TransferMemoryResourceToGPU(&mMemoryResources[i], stream);
+		else TransferMemoryResourceToHost(&mMemoryResources[i], stream);
 	}
-	return 0;
 }
 
 int AliGPUReconstructionDeviceBase::InitDevice()
@@ -484,7 +484,7 @@ int AliGPUReconstructionDeviceBase::PrepareFlatObjects()
 		mProcShadow.fTrdGeometry->clearInternalBufferUniquePtr();
 	}
 #endif
-	if (TransferMemoryResourceLinkToGPU(mProcShadow.mMemoryResFlat)) return 1;
+	TransferMemoryResourceLinkToGPU(mProcShadow.mMemoryResFlat);
 	return 0;
 }
 

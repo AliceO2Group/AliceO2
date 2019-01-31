@@ -39,7 +39,7 @@ struct krnlRunRange
 static const krnlRunRange krnlRunRangeNone(0, (unsigned int) -1);
 struct krnlEvent
 {
-	krnlEvent(deviceEvent* e = nullptr, deviceEvent* el = nullptr, int n = 0) : ev(e), evList(el), nEvents(n) {}
+	krnlEvent(deviceEvent* e = nullptr, deviceEvent* el = nullptr, int n = 1) : ev(e), evList(el), nEvents(n) {}
 	deviceEvent* ev;
 	deviceEvent* evList;
 	int nEvents;
