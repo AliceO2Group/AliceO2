@@ -22,6 +22,7 @@
 
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/LabelContainer.h"
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/CRU.h"
 #include "TPCBase/Digit.h"
@@ -61,7 +62,11 @@ class DigitGlobalPad
   /// \param eventID MC Event ID
   /// \param trackID MC Track ID
   /// \param signal Charge of the digit in ADC counts
-  void addDigit(const MCCompLabel& label, float signal);
+  void addDigit(const MCCompLabel& label, float signal,
+                o2::dataformats::LabelContainer<std::pair<MCCompLabel, int>, false>&);
+
+  void setID(int id) { mID = id; }
+  int getID() const { return mID; }
 
   /// Fill output vector
   /// \param output Output container
@@ -72,7 +77,10 @@ class DigitGlobalPad
   /// \param commonMode Common mode value of that specific ROC
   template <DigitzationMode MODE>
   void fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
-                           const CRU& cru, TimeBin timeBin, GlobalPadNumber globalPad, float commonMode = 0.f);
+                           const CRU& cru, TimeBin timeBin,
+                           GlobalPadNumber globalPad,
+                           o2::dataformats::LabelContainer<std::pair<MCCompLabel, int>, false>& labelContainer,
+                           float commonMode = 0.f);
 
  private:
   /// Compare two MC labels regarding trackID, eventID and sourceID
@@ -82,24 +90,28 @@ class DigitGlobalPad
   bool compareMClabels(const MCCompLabel& label1, const MCCompLabel& label2) const;
 
   float mChargePad;                                  ///< Total accumulated charge on that GlobalPad for a given time bin
-  std::vector<std::pair<MCCompLabel, int>> mMClabel; ///< vector to accumulate the MC labels
+  int mID = -1;                                      ///< ID of this digit to refer into labels (-1 means not initialized)
 };
 
-inline DigitGlobalPad::DigitGlobalPad() : mChargePad(0.), mMClabel() {}
+inline DigitGlobalPad::DigitGlobalPad() : mChargePad(0.) {}
 
-inline void DigitGlobalPad::addDigit(const MCCompLabel& label, float signal)
+inline void DigitGlobalPad::addDigit(const MCCompLabel& label, float signal,
+                                     o2::dataformats::LabelContainer<std::pair<MCCompLabel, int>, false>& labels)
 {
   bool isKnown = false;
-  // MCCompLabel tempLabel(trackID, eventID);
-  for (auto& mcLabel : mMClabel) {
+  auto view = labels.getLabels(mID);
+  for (auto& mcLabel : view) {
     if (compareMClabels(label, mcLabel.first)) {
       ++mcLabel.second;
       isKnown = true;
       break;
     }
   }
+
+  //
   if (!isKnown) {
-    mMClabel.emplace_back(label, 1);
+    std::pair<MCCompLabel, int> newlabel(label, 1);
+    labels.addLabel(mID, newlabel);
   }
   mChargePad += signal;
 }
@@ -107,7 +119,6 @@ inline void DigitGlobalPad::addDigit(const MCCompLabel& label, float signal)
 inline void DigitGlobalPad::reset()
 {
   mChargePad = 0;
-  mMClabel.clear();
 }
 
 inline bool DigitGlobalPad::compareMClabels(const MCCompLabel& label1, const MCCompLabel& label2) const
@@ -119,11 +130,15 @@ inline bool DigitGlobalPad::compareMClabels(const MCCompLabel& label1, const MCC
 template <DigitzationMode MODE>
 inline void DigitGlobalPad::fillOutputContainer(std::vector<Digit>& output,
                                                 dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
-                                                const CRU& cru, TimeBin timeBin, GlobalPadNumber globalPad, float commonMode)
+                                                const CRU& cru, TimeBin timeBin,
+                                                GlobalPadNumber globalPad,
+                                                o2::dataformats::LabelContainer<std::pair<MCCompLabel, int>, false>& labels,
+                                                float commonMode)
 {
   const static Mapper& mapper = Mapper::instance();
   static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
   const PadPos pad = mapper.padPos(globalPad);
+  static std::vector<std::pair<MCCompLabel, int>> labelCollector; // static workspace container for sorting
 
   /// The charge accumulated on that pad is converted into ADC counts, saturation of the SAMPA is applied and a Digit
   /// is created in written out
@@ -135,16 +150,22 @@ inline void DigitGlobalPad::fillOutputContainer(std::vector<Digit>& output,
 
   /// only write out the data if there is actually charge on that pad
   if (mADC > 0 && mChargePad > 0) {
-
-    /// Sort the MC labels according to their occurrence
-    using P = std::pair<MCCompLabel, int>;
-    std::sort(mMClabel.begin(), mMClabel.end(), [](const P& a, const P& b) { return a.second > b.second; });
+    auto labelview = labels.getLabels(mID);
 
     /// Write out the Digit
     const auto digiPos = output.size();
     output.emplace_back(cru, mADC, pad.getRow(), pad.getPad(), timeBin); /// create Digit and append to container
 
-    for (auto& mcLabel : mMClabel) {
+    labelCollector.clear();
+    for (auto& mcLabel : labelview) {
+      labelCollector.push_back(mcLabel);
+    }
+    if (labelview.size() > 1) {
+      /// Sort the MC labels according to their occurrence
+      using P = std::pair<MCCompLabel, int>;
+      std::sort(labelCollector.begin(), labelCollector.end(), [](const P& a, const P& b) { return a.second > b.second; });
+    }
+    for (auto& mcLabel : labelCollector) {
       mcTruth.addElement(digiPos, mcLabel.first); /// add MCTruth output
     }
   }

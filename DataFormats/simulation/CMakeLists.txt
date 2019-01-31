@@ -20,6 +20,7 @@ Set(HEADERS
     include/${MODULE_NAME}/TrackReference.h
     include/${MODULE_NAME}/PrimaryChunk.h
     include/${MODULE_NAME}/RunContext.h
+    include/${MODULE_NAME}/LabelContainer.h
 )
 
 Set(LINKDEF src/SimulationDataLinkDef.h)
