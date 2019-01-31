@@ -162,15 +162,7 @@ void AliGPUReconstructionDeviceBase::ReleaseGlobalLock(void* sem)
 
 int AliGPUReconstructionDeviceBase::ReadEvent(int iSlice, int threadId)
 {
-#ifdef GPUCA_GPU_TIME_PROFILE
-	unsigned long long int a, b;
-	AliGPUTPCTracker::StandaloneQueryTime(&a);
-#endif
 	if (mWorkers->tpcTrackers[iSlice].ReadEvent()) return(1);
-#ifdef GPUCA_GPU_TIME_PROFILE
-	AliGPUTPCTracker::StandaloneQueryTime(&b);
-	CAGPUInfo("Read %d %f %f\n", threadId, ((double) b - (double) a) / (double) fProfTimeC, ((double) a - (double) fProfTimeD) / (double) fProfTimeC);
-#endif
 	return(0);
 }
 
@@ -178,18 +170,10 @@ void AliGPUReconstructionDeviceBase::WriteOutput(int iSlice, int threadId)
 {
 	if (mDeviceProcessingSettings.debugLevel >= 3) {CAGPUDebug("GPU Tracker running WriteOutput for slice %d on thread %d\n", iSlice, threadId);}
 	mWorkers->tpcTrackers[iSlice].SetOutput(&mSliceOutput[iSlice]);
-#ifdef GPUCA_GPU_TIME_PROFILE
-	unsigned long long int a, b;
-	AliGPUTPCTracker::StandaloneQueryTime(&a);
-#endif
 	if (mDeviceProcessingSettings.nDeviceHelperThreads) pthread_mutex_lock((pthread_mutex_t*) fHelperMemMutex);
 	mWorkers->tpcTrackers[iSlice].WriteOutputPrepare();
 	if (mDeviceProcessingSettings.nDeviceHelperThreads) pthread_mutex_unlock((pthread_mutex_t*) fHelperMemMutex);
 	mWorkers->tpcTrackers[iSlice].WriteOutput();
-#ifdef GPUCA_GPU_TIME_PROFILE
-	AliGPUTPCTracker::StandaloneQueryTime(&b);
-	CAGPUInfo("Write %d %f %f\n", threadId, ((double) b - (double) a) / (double) fProfTimeC, ((double) a - (double) fProfTimeD) / (double) fProfTimeC);
-#endif
 	if (mDeviceProcessingSettings.debugLevel >= 3) {CAGPUDebug("GPU Tracker finished WriteOutput for slice %d on thread %d\n", iSlice, threadId);}
 }
 
@@ -557,11 +541,6 @@ int AliGPUReconstructionDeviceBase::RunTPCTrackingSlices_internal()
 		if (mProcessors[i].proc->mDeviceProcessor) mProcessors[i].proc->mDeviceProcessor->InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
 	}
 
-#ifdef GPUCA_GPU_TIME_PROFILE
-	AliGPUTPCTracker::StandaloneQueryFreq(&fProfTimeC);
-	AliGPUTPCTracker::StandaloneQueryTime(&fProfTimeD);
-#endif
-
 	try
 	{
 		PrepareEvent();
@@ -569,8 +548,7 @@ int AliGPUReconstructionDeviceBase::RunTPCTrackingSlices_internal()
 	catch (const std::bad_alloc& e)
 	{
 		printf("Memory Allocation Error\n");
-		ResetHelperThreads(0);
-		return(1);
+		return(2);
 	}
 	
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
@@ -623,8 +601,7 @@ int AliGPUReconstructionDeviceBase::RunTPCTrackingSlices_internal()
 			if (ReadEvent(iSlice, 0))
 			{
 				CAGPUError("Error reading event");
-				ResetHelperThreads(1);
-				return(1);
+				return(3);
 			}
 		}
 		else
@@ -633,8 +610,7 @@ int AliGPUReconstructionDeviceBase::RunTPCTrackingSlices_internal()
 			while(fHelperParams[iSlice % (mDeviceProcessingSettings.nDeviceHelperThreads + 1) - 1].fDone < (int) iSlice);
 			if (fHelperParams[iSlice % (mDeviceProcessingSettings.nDeviceHelperThreads + 1) - 1].fError)
 			{
-				ResetHelperThreads(1);
-				return(1);
+				return(3);
 			}
 		}
 

@@ -53,7 +53,6 @@
 #endif
 
 //#define GPUCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE		//Output Profiling Data for Tracklet Constructor Tracklet Scheduling
-//#define GPUCA_GPU_TIME_PROFILE						//Output Time Profiling Data for asynchronous DMA transfer
 
 #define GPUCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE 12
 #define GPUCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT 8		//Currently must be smaller than avaiable MultiProcessors on GPU or will result in wrong results
