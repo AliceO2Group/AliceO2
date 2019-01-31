@@ -52,4 +52,7 @@ void AliGPUCASettingsDeviceProcessing::SetDefaults()
 	stuckProtection = 0;
 	memoryAllocationStrategy = 0;
 	keepAllMemory = false;
+	nStreams = 8;
+	trackletConstructorInPipeline = true;
+	trackletSelectorInPipeline = false;
 }

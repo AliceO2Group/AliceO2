@@ -42,6 +42,7 @@ protected:
 	virtual void TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override;
 	virtual void TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override;
 	virtual void ReleaseEvent(deviceEvent* ev) override;
+	virtual void RecordMarker(deviceEvent* ev, int stream) override;
 	
 	template <class T, int I = 0, typename... Args> int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args);
 
