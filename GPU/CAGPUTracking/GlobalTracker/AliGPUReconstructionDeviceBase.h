@@ -32,20 +32,26 @@ protected:
 
 	virtual void ActivateThreadContext() = 0;
 	virtual void ReleaseThreadContext() = 0;
-	virtual int SynchronizeGPU() = 0;
+	virtual void SynchronizeGPU() = 0;
+	virtual void SynchronizeStream(int stream) = 0;
+	virtual void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) = 0;
+	virtual int IsEventDone(deviceEvent* evList, int nEvents = 1) = 0;
+	virtual int GPUDebug(const char* state = "UNKNOWN", int stream = -1, int slice = 0) = 0;
 	
 	virtual int PrepareTextures();
 	virtual int DoStuckProtection(int stream, void* event);
 	virtual int PrepareProfile();
 	virtual int DoProfile();
 	
-	virtual int TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) = 0;
-	virtual int TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) = 0;
-	virtual int WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) = 0;
-	int TransferMemoryResourcesToGPU(AliGPUProcessor* proc, int stream = -1, bool all = false) {return TransferMemoryResourcesHelper(proc, stream, all, true);}
-	int TransferMemoryResourcesToHost(AliGPUProcessor* proc, int stream = -1, bool all = false) {return TransferMemoryResourcesHelper(proc, stream, all, false);}
-	int TransferMemoryResourceLinkToGPU(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) {return TransferMemoryResourceToGPU(&mMemoryResources[res], stream, ev, evList, nEvents);}
-	int TransferMemoryResourceLinkToHost(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) {return TransferMemoryResourceToHost(&mMemoryResources[res], stream, ev, evList, nEvents);}
+	virtual void TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) = 0;
+	virtual void TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) = 0;
+	virtual void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) = 0;
+	virtual void ReleaseEvent(deviceEvent* ev) = 0;
+	
+	void TransferMemoryResourcesToGPU(AliGPUProcessor* proc, int stream = -1, bool all = false) {TransferMemoryResourcesHelper(proc, stream, all, true);}
+	void TransferMemoryResourcesToHost(AliGPUProcessor* proc, int stream = -1, bool all = false) {TransferMemoryResourcesHelper(proc, stream, all, false);}
+	void TransferMemoryResourceLinkToGPU(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) {TransferMemoryResourceToGPU(&mMemoryResources[res], stream, ev, evList, nEvents);}
+	void TransferMemoryResourceLinkToHost(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) {TransferMemoryResourceToHost(&mMemoryResources[res], stream, ev, evList, nEvents);}
 
 	struct helperParam
 	{
@@ -72,6 +78,14 @@ protected:
 		short mMemoryResFlat = -1;
 	};
 	
+	template <class T> struct eventStruct
+	{
+		T selector[NSLICES];
+		T stream[GPUCA_GPU_MAX_STREAMS];
+		T init;
+		T constructor;
+	};
+	
 	int PrepareFlatObjects();
 
 	int Reconstruct_Base_Init();
@@ -91,8 +105,6 @@ protected:
 
 	int GetThread();
 	void ReleaseGlobalLock(void* sem);
-
-	virtual int GPUSync(const char* state = "UNKNOWN", int stream = -1, int slice = 0) = 0;
 
 	static void* helperWrapper(void*);
 	
@@ -132,8 +144,12 @@ protected:
 
 	int fGPUStuck = 0;		//Marks that the GPU is stuck, skip future events
 	
+	int mNStreams = 0;
+	eventStruct<void*> mEvents;
+	bool mStreamInit[GPUCA_GPU_MAX_STREAMS] = {false};
+
 private:
-	int TransferMemoryResourcesHelper(AliGPUProcessor* proc, int stream, bool all, bool toGPU);
+	void TransferMemoryResourcesHelper(AliGPUProcessor* proc, int stream, bool all, bool toGPU);
 #endif
 };
 

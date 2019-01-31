@@ -6,7 +6,7 @@
 struct AliGPUReconstructionCUDAInternals
 {
 	CUcontext CudaContext; //Pointer to CUDA context
-	cudaStream_t* CudaStreams; //Pointer to array of CUDA Streams
+	cudaStream_t CudaStreams[GPUCA_GPU_MAX_STREAMS]; //Pointer to array of CUDA Streams
 };
 
 #define GPUFailedMsg(x) GPUFailedMsgA(x, __FILE__, __LINE__)

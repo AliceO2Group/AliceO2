@@ -88,7 +88,7 @@ static int GPUFailedMsgAI(int error, const char* file, int line)
 
 static void GPUFailedMsgA(const long long int error, const char* file, int line)
 {
-	if (GPUFailedMsgAI(error, file, line)) throw std::runtime_error("CUDA Failure");
+	if (GPUFailedMsgAI(error, file, line)) throw std::runtime_error("OpenCL Failure");
 }
 
 static inline int OCLsetKernelParameters_helper(cl_kernel &k,int i) {return 0;}
@@ -115,12 +115,10 @@ struct AliGPUReconstructionOCLInternals
 	cl_device_id device;
 	cl_device_id* devices;
 	cl_context context;
-	cl_command_queue command_queue[36];
-	char cl_queue_event_done[36];
+	cl_command_queue command_queue[GPUCA_GPU_MAX_STREAMS];
 	cl_mem mem_gpu;
 	cl_mem mem_constant;
 	cl_mem mem_host;
-	cl_event* selector_events;
 	cl_program program;
 
 	cl_kernel kernel_neighbours_finder, kernel_neighbours_cleaner, kernel_start_hits_finder, kernel_start_hits_sorter, kernel_tracklet_constructor, kernel_tracklet_selector, kernel_memclean16;
