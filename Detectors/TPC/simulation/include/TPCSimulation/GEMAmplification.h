@@ -53,13 +53,19 @@ class GEMAmplification
   /// \return Number of electrons after amplification in a full stack of four GEM foils
   int getStackAmplification(int nElectrons = 1);
 
+  /// Compute the number of electrons after amplification in an effective single-stage amplification
+  /// \param nElectrons Number of electrons arriving at the first amplification stage (GEM1)
+  /// \return Number of electrons after amplification in an  effective single-stage amplification
+  int getEffectiveStackAmplification(int nElectrons = 1);
+
   /// Compute the number of electrons after amplification in a full stack of four GEM foils
   /// taking into account local variations of the electron amplification
   /// \param nElectrons Number of electrons arriving at the first amplification stage (GEM1)
   /// \param cru CRU where the electron arrives
   /// \param pos PadPos where the electron arrives
+  /// \param mode Amplification mode (full or effective)
   /// \return Number of electrons after amplification in a full stack of four GEM foils
-  int getStackAmplification(const CRU& cru, const PadPos& pos, int nElectrons = 1);
+  int getStackAmplification(const CRU& cru, const PadPos& pos, const AmplificationMode mode, int nElectrons = 1);
 
   /// Compute the number of electrons after amplification in a single GEM foil
   /// taking into account collection and extraction efficiencies and fluctuations of the GEM amplification
@@ -92,12 +98,33 @@ class GEMAmplification
   RandomRing<> mRandomFlat;
   /// Container with random Polya distributions, one for each GEM in the stack
   std::array<RandomRing<>, 4> mGain;
+  /// Container with random Polya distributions for the full stack amplification
+  RandomRing<> mGainFullStack;
 
   const ParameterGEM* mGEMParam; ///< Caching of the parameter class to avoid multiple CDB calls
   const ParameterGas* mGasParam; ///< Caching of the parameter class to avoid multiple CDB calls
   const CalPad* mGainMap;        ///< Caching of the parameter class to avoid multiple CDB calls
 };
+
+inline int GEMAmplification::getStackAmplification(const CRU& cru, const PadPos& pos, const AmplificationMode mode, int nElectrons)
+{
+  /// Additionally to the electron amplification the final number of electrons is multiplied by the local gain on the
+  /// pad
+  switch (mode) {
+    case AmplificationMode::FullMode: {
+      return static_cast<int>(static_cast<float>(getStackAmplification(nElectrons)) *
+                              mGainMap->getValue(cru, pos.getRow(), pos.getPad()));
+      break;
+    }
+    case AmplificationMode::EffectiveMode: {
+      return static_cast<int>(static_cast<float>(getEffectiveStackAmplification(nElectrons)) *
+                              mGainMap->getValue(cru, pos.getRow(), pos.getPad()));
+      break;
+    }
+  }
+  return nElectrons;
 }
-}
+} // namespace TPC
+} // namespace o2
 
 #endif // ALICEO2_TPC_GEMAmplification_H_

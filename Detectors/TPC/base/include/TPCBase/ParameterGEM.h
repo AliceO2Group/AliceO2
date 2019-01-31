@@ -20,11 +20,17 @@
 #define ALICEO2_TPC_ParameterGEM_H_
 
 #include <array>
+#include <cmath>
 
 namespace o2
 {
 namespace TPC
 {
+
+enum class AmplificationMode : char {
+  FullMode = 0,      ///< Full 4-GEM simulation of all efficiencies etc.
+  EffectiveMode = 1, ///< Effective amplification mode using one polya distribution only
+};
 
 /// \class ParameterGEM
 
@@ -150,6 +156,18 @@ class ParameterGEM
     mExtractionEfficiency[gem - 1] = extrEff;
   }
 
+  /// Set the total gain of the stack for the EffectiveMode
+  /// \param totGain Total gain of the stack for the EffectiveMode
+  void setTotalGainStack(float totGain) { mTotalGainStack = totGain; }
+
+  /// Get the variable steering the energy resolution of the full stack for the EffectiveMode
+  /// \param kappa Variable steering the energy resolution of the full stack for the EffectiveMode
+  void setKappaStack(float kappa) { mKappaStack = kappa; }
+
+  /// Get the amplification mode to be used
+  /// \param mode Amplification mode to be used
+  void setAmplificationMode(AmplificationMode mode) { mAmplificationMode = mode; }
+
   /// Get the geometry type of a given GEM in the stack
   /// \param GEM GEM of interest in the stack (1 - 4)
   /// \return Geometry type (0 standard, 1 medium, 2 large)
@@ -214,6 +232,18 @@ class ParameterGEM
     return mExtractionEfficiency[gem - 1];
   }
 
+  /// Get the total gain of the stack for the EffectiveMode
+  /// \return Total gain of the stack for the EffectiveMode
+  float getTotalGainStack() const { return mTotalGainStack; }
+
+  /// Get the variable steering the energy resolution of the full stack for the EffectiveMode
+  /// \return Variable steering the energy resolution of the full stack for the EffectiveMode
+  float getKappaStack() const { return mKappaStack; }
+
+  /// Get the amplification mode to be used
+  /// \return Amplification mode to be used
+  AmplificationMode getAmplificationMode() const { return mAmplificationMode; }
+
  private:
   /// \todo Remove hard-coded number of GEMs in a stack
   std::array<int, 4> mGeometry;               ///< GEM geometry (0 standard, 1 medium, 2 large)
@@ -223,6 +253,9 @@ class ParameterGEM
   std::array<float, 4> mAbsoluteGain;         ///< Absolute gain
   std::array<float, 4> mCollectionEfficiency; ///< Collection efficiency
   std::array<float, 4> mExtractionEfficiency; ///< Extraction efficiency
+  float mTotalGainStack;                      ///< Total gain of the stack for the EffectiveMode
+  float mKappaStack;                          ///< Variable steering the energy resolution of the full stack for the EffectiveMode
+  AmplificationMode mAmplificationMode;       ///< Amplification mode [FullMode / EffectiveMode]
 };
 
 inline void ParameterGEM::setGeometry(int geom1, int geom2, int geom3, int geom4)
