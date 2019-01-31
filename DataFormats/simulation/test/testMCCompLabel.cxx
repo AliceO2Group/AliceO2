@@ -25,22 +25,16 @@ BOOST_AUTO_TEST_CASE(MCCompLabel_test)
   BOOST_CHECK(!lbUndef.isSet()); // test invalid label status
 
   int ev = 200, src = 10;
-  std::unordered_map<MCCompLabel, int> labelMap;
   for (int tr=-100;tr<200;tr+=150) {
     MCCompLabel lb(tr, ev, src);
     std::cout << "Input:   [" << src << '/' << ev << '/'
               << std::setw(6) << tr << ']' << std::endl;
     std::cout << "Encoded: " << lb << " (packed: " << ULong_t(lb) << ")" << std::endl;
-    labelMap[lb] = tr;
     int trE, evE, srcE;
     lb.get(trE, evE, srcE);
     std::cout << "Decoded: [" << srcE << '/' << evE << '/'
               << std::setw(6) << trE << ']' << std::endl;
 
     BOOST_CHECK(tr == trE && ev == evE && src == srcE);
-  }
-
-  for (auto& [key, value] : labelMap) {
-    BOOST_CHECK(key.getTrackID() == value);
   }
 }

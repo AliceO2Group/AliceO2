@@ -25,6 +25,8 @@ class MCCompLabel
 
   ULong64_t mLabel = NotSet; ///< MC label encoding MCtrack ID and MCevent origin
 
+  void checkFieldConsistensy();
+
  public:
   // number of bits reserved for MC track ID, DON'T modify this, since the
   // track ID might be negative
@@ -32,11 +34,6 @@ class MCCompLabel
   static constexpr int nbitsEvID = 19; // number of bits reserved for MC event ID
   static constexpr int nbitsSrcID = 8; // number of bits reserved for MC source ID
   // the rest of the bits is reserved at the moment
-
-  // check if the fields are defined consistently
-  static_assert(nbitsTrackID == sizeof(int) * 8, "TrackID must have int size");
-  static_assert(nbitsTrackID + nbitsEvID + nbitsSrcID <= sizeof(ULong64_t) * 8,
-                "Fields cannot be stored in 64 bits");
 
   // mask to extract MC track ID
   static constexpr ULong64_t maskTrackID = (ul0x1 << nbitsTrackID) - 1;
@@ -104,18 +101,5 @@ class MCCompLabel
 }
 
 std::ostream& operator<<(std::ostream& os, const o2::MCCompLabel& c);
-
-namespace std
-{
-// defining std::hash for MCCompLabel in order to be used with unordered_maps
-template <>
-struct hash<o2::MCCompLabel> {
- public:
-  size_t operator()(o2::MCCompLabel const& label) const
-  {
-    return static_cast<uint64_t>(label);
-  }
-};
-} // namespace std
 
 #endif
