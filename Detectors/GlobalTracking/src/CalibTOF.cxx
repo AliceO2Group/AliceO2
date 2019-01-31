@@ -21,6 +21,8 @@
 
 #include "CommonConstants/LHCConstants.h"
 
+#include "TMath.h"
+
 using namespace o2::globaltracking;
 
 ClassImp(CalibTOF);
@@ -70,13 +72,50 @@ void CalibTOF::run(int flag)
 	}
       }
 
+      TFile fout(Form("timesleewingTOF%06i.root",ich/96),"RECREATE");
+
       for(ipad = 0; ipad < NPADSPERSTEP; ipad++){
 	if(mHistoChOffsetTemp[ipad]->GetEntries() > 30){
 	  doChannelLevelCalibration(flag,ipad);
 	  mCalibChannelOffset[ich+ipad] = mFuncChOffset->GetParameter(1) + mInitialCalibChannelOffset[ich+ipad];
 	  mCalibChannelOffsetErr[ich+ipad] = mFuncChOffset->GetParError(1);
+
+	  //	  mHistoChTimeSleewingTemp[ipad]->FitSlicesY(mFuncChOffset,0,-1,0,"R");
+
+	  int ibin0=1;
+	  int nbin=0;
+	  float xval[1000];
+	  float val[1000];
+	  float eval[1000];
+	  for(int ibin=ibin0;ibin<=mHistoChTimeSleewingTemp[ipad]->GetNbinsX();ibin++){
+	    TH1D *h = mHistoChTimeSleewingTemp[ipad]->ProjectionY("tempProjTimeSlewingFit",ibin0,ibin);
+	    if(h->GetEntries() < 50) continue;
+	    
+	    h->Fit(mFuncChOffset,"WW","");
+	    h->Fit(mFuncChOffset,"","",mFuncChOffset->GetParameter(1)-600,mFuncChOffset->GetParameter(1)+400);
+	    printf("%i) value = %f %f\n",ibin,mFuncChOffset->GetParameter(1),mFuncChOffset->GetParError(1));
+	    xval[nbin] = mHistoChTimeSleewingTemp[ipad]->GetXaxis()->GetBinCenter(ibin0)- mHistoChTimeSleewingTemp[ipad]->GetXaxis()->GetBinWidth(ibin0)*0.5;
+	    xval[nbin+1] = mHistoChTimeSleewingTemp[ipad]->GetXaxis()->GetBinCenter(ibin)+mHistoChTimeSleewingTemp[ipad]->GetXaxis()->GetBinWidth(ibin)*0.5;
+	    val[nbin] = mFuncChOffset->GetParameter(1);
+	    eval[nbin] = mFuncChOffset->GetParError(1);
+	    nbin++;
+	    ibin0=ibin+1;
+	  }
+	  
+	  if(nbin){
+	    mProjTimeSlewingTemp = new TH1D(Form("pad%02i",ipad),"",nbin,xval);
+	    
+	    for(int ibin=1;ibin<=nbin;ibin++){
+	      mProjTimeSlewingTemp->SetBinContent(ibin,mFuncChOffset->GetParameter(1));
+	      mProjTimeSlewingTemp->SetBinError(ibin,mFuncChOffset->GetParError(1));
+	    }
+	    mProjTimeSlewingTemp->Write();
+	    mHistoChTimeSleewingTemp[ipad]->Write();
+	  }
 	}
       }
+      fout.Close();
+      
     }
     
   }
@@ -127,9 +166,9 @@ void CalibTOF::init()
   mHistoLHCphase = new TH1F("hLHCphase",";clock offset (ps)",1000,-24400,24400);
   for(int ipad=0;ipad < NPADSPERSTEP;ipad++){
     mHistoChOffsetTemp[ipad]  = new TH1F(Form("hLHCchOffsetTemp%i",ipad),";channel offset (ps)",1000,-24400,24400);
-    mHistoChTimeSleewingTemp[ipad]  = new TH2F(Form("hLHCchTimneSleewingTemp%i",ipad),";tot (ns);channel offset (ps)",100,0,50,1000,-24400,24400);
+    mHistoChTimeSleewingTemp[ipad]  = new TH2F(Form("hLHCchTimneSleewingTemp%i",ipad),";tot (ns);channel offset (ps)",20,0,50,200,-24400,24400);
   }
-  mHistoChTimeSleewingAll = new TH2F("hLHCchTimneSleewingAll",";tot (ns);channel offset (ps)",100,0,50,1000,-24400,24400);
+  mHistoChTimeSleewingAll = new TH2F("hLHCchTimneSleewingAll",";tot (ns);channel offset (ps)",20,0,50,200,-24400,24400);
   {
     mTimerTot.Stop();
     mTimerTot.Reset();
@@ -251,7 +290,7 @@ void CalibTOF::fillChannelTimeSleewingCalib(float offset, int ipad){
     double dtime = infotof->getDeltaTimePi();
     dtime -= int(dtime*bc_inv + 0.5)*bc;
     
-    mHistoChTimeSleewingTemp[ipad]->Fill(infotof->getTot(),dtime);
+    mHistoChTimeSleewingTemp[ipad]->Fill(TMath::Min(infotof->getTot(),50.),dtime);
     mHistoChTimeSleewingAll->Fill(infotof->getTot(),dtime);
   }
 }

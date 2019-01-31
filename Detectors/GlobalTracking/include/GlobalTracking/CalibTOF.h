@@ -23,8 +23,10 @@
 #include "ReconstructionDataFormats/CalibInfoTOF.h"
 #include "TOFBase/Geo.h"
 #include "TH1F.h"
+#include "TH1D.h"
 #include "TH2F.h"
-#include <TF1.h>
+#include "TF1.h"
+#include "TFile.h"
 
 class TTree;
 
@@ -83,6 +85,8 @@ class CalibTOF
   TH1F *mHistoChOffsetTemp[NPADSPERSTEP];  // to fill all pads of a strip simultaneosly 
   TH2F *mHistoChTimeSleewingTemp[NPADSPERSTEP];  // to fill all pads of a strip simultaneosly 
   TH2F *mHistoChTimeSleewingAll; // time sleewing all channels
+
+  TH1D *mProjTimeSlewingTemp; // temporary histo for time slewing
 
   void attachInputTrees();
   bool loadTOFCollectedCalibInfo(int increment = 1);
