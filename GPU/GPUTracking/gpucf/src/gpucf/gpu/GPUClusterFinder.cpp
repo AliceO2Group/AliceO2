@@ -153,11 +153,11 @@ GPUAlgorithm::Result GPUClusterFinder::runImpl()
     DataSet res;
     res.serialize(clusters);
 
-    Measurements measurements =
+    std::vector<Measurement> measurements =
     {
         {"digitsToDevice", digitsToDevice.executionTimeMs()},   
         {"zeroChargeMap", zeroChargeMap.executionTimeMs()},   
-        {"writeDigitsToChargeMap", 
+        {"fillChargeMap", 
             writeDigitsToChargeMap.executionTimeMs()},   
         {"clusterFinder", clusterFinder.executionTimeMs()},   
         {"clustersToHost", clustersToHost.executionTimeMs()},   

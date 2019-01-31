@@ -16,7 +16,7 @@ public:
     struct Result
     {
         DataSet result;
-        Measurements profiling; 
+        std::vector<Measurement> profiling; 
     };
 
     GPUAlgorithm(const std::string &);

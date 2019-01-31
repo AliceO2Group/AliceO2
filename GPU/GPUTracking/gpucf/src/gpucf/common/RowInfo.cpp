@@ -27,9 +27,15 @@ RowInfo::RowInfo()
         {
             globalToLocalMap[globalRow] = localRow;
             localToGlobalMap[region].push_back(globalRow);
+            globalRowToCruMap.push_back(region);
             globalRow++;
         }
     }
+}
+
+int RowInfo::globalRowToCru(int row) const
+{
+    return globalRowToCruMap.at(row);
 }
 
 int RowInfo::globalToLocal(int row) const

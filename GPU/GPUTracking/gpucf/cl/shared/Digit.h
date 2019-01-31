@@ -6,13 +6,14 @@
 typedef struct FloatDigit_s
 {
     SHARED_FLOAT charge;
-    SHARED_INT cru;
-    SHARED_INT row;
-    SHARED_INT pad;
-    SHARED_INT time;   
+    SHARED_USHORT time;
+    SHARED_UCHAR pad;
+    SHARED_UCHAR cru;
+    SHARED_UCHAR row;
+    SHARED_UCHAR padding[3]; // Explicit padding to keep struct 4 byte aligned
 } FloatDigit;
 
-#define FLOAT_DIGIT_SIZE 20
+#define FLOAT_DIGIT_SIZE 12
 
 
 typedef struct HalfDigit_s

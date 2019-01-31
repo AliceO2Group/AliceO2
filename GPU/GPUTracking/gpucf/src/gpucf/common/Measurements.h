@@ -6,7 +6,7 @@
 namespace gpucf
 {
 
-    using Measurements = std::unordered_map<std::string, float>;
+    using Measurement = std::pair<std::string, float>;
     
 } // namespace gpucf
 
