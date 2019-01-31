@@ -511,8 +511,27 @@ int AliGPUReconstructionDeviceBase::ExitDevice()
 	return retVal;
 }
 
-int AliGPUReconstructionDeviceBase::Reconstruct_Base_Init()
+int AliGPUReconstructionDeviceBase::RunTPCTrackingSlices()
 {
+	int retVal = RunTPCTrackingSlices_internal();
+	if (retVal) SynchronizeGPU();
+	if (retVal >= 2)
+	{
+		ResetHelperThreads(retVal >= 3);
+	}
+	ReleaseThreadContext();
+	return(retVal != 0);
+}
+
+int AliGPUReconstructionDeviceBase::RunTPCTrackingSlices_internal()
+{
+	//Primary reconstruction function
+	if (fGPUStuck)
+	{
+		CAGPUWarning("This GPU is stuck, processing of tracking for this event is skipped!");
+		return(1);
+	}
+	
 	if (fThreadId != GetThread())
 	{
 		CAGPUDebug("CUDA thread changed, migrating context, Previous Thread: %d, New Thread: %d", fThreadId, GetThread());
@@ -575,98 +594,227 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_Init()
 		fHelperParams[i].fPhase = 0;
 		pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[0]);
 	}
+	
+	if (PrepareTextures()) return(2);
 
-	return(0);
-}
-
-int AliGPUReconstructionDeviceBase::Reconstruct_Base_SliceInit(unsigned int iSlice)
-{
-	//Initialize GPU Slave Tracker
-	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Creating Slice Data (Slice %d)", iSlice);
-	if (iSlice % (mDeviceProcessingSettings.nDeviceHelperThreads + 1) == 0)
+	//Copy Tracker Object to GPU Memory
+	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Copying Tracker objects to GPU");
+	if (PrepareProfile()) return 2;
+	
+	WriteToConstantMemory((char*) &mDeviceConstantMem->param - (char*) mDeviceConstantMem, &mParam, sizeof(AliGPUCAParam), mNStreams - 1);
+	WriteToConstantMemory((char*) mDeviceConstantMem->tpcTrackers - (char*) mDeviceConstantMem, mWorkersShadow->tpcTrackers, sizeof(AliGPUTPCTracker) * NSLICES, mNStreams - 1, &mEvents.init);
+	
+	for (int i = 0;i < mNStreams - 1;i++)
 	{
-		if (ReadEvent(iSlice, 0))
+		mStreamInit[i] = false;
+	}
+	mStreamInit[mNStreams - 1] = true;
+
+	if (GPUDebug("Initialization (1)", 0, 0) RANDOM_ERROR)
+	{
+		return(2);
+	}
+
+	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
+	{
+		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Creating Slice Data (Slice %d)", iSlice);
+		if (iSlice % (mDeviceProcessingSettings.nDeviceHelperThreads + 1) == 0)
 		{
-			CAGPUError("Error reading event");
-			ResetHelperThreads(1);
-			return(1);
+			if (ReadEvent(iSlice, 0))
+			{
+				CAGPUError("Error reading event");
+				ResetHelperThreads(1);
+				return(1);
+			}
 		}
+		else
+		{
+			if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Waiting for helper thread %d", iSlice % (mDeviceProcessingSettings.nDeviceHelperThreads + 1) - 1);
+			while(fHelperParams[iSlice % (mDeviceProcessingSettings.nDeviceHelperThreads + 1) - 1].fDone < (int) iSlice);
+			if (fHelperParams[iSlice % (mDeviceProcessingSettings.nDeviceHelperThreads + 1) - 1].fError)
+			{
+				ResetHelperThreads(1);
+				return(1);
+			}
+		}
+
+		if (mDeviceProcessingSettings.debugLevel >= 4)
+		{
+			if (!mDeviceProcessingSettings.comparableDebutOutput) mDebugFile << std::endl << std::endl << "Reconstruction: Slice " << iSlice << "/" << NSLICES << std::endl;
+			if (mDeviceProcessingSettings.debugMask & 1) mWorkers->tpcTrackers[iSlice].DumpSliceData(mDebugFile);
+		}
+		
+		int useStream = (iSlice % mNStreams);
+		//Initialize temporary memory where needed
+		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Copying Slice Data to GPU and initializing temporary memory");
+		runKernel<AliGPUMemClean16>({fBlockCount, fThreadCount, useStream}, krnlRunRangeNone, {}, mWorkersShadow->tpcTrackers[iSlice].Data().HitWeights(), mWorkersShadow->tpcTrackers[iSlice].Data().NumberOfHitsPlusAlign() * sizeof(*mWorkersShadow->tpcTrackers[iSlice].Data().HitWeights()));
+		if (GPUDebug("Initialization (2)", 2, iSlice) RANDOM_ERROR)
+		{
+			return(3);
+		}
+
+		//Copy Data to GPU Global Memory
+		mWorkers->tpcTrackers[iSlice].StartTimer(0);
+		TransferMemoryResourceLinkToGPU(mWorkers->tpcTrackers[iSlice].Data().MemoryResInput(), useStream);
+		TransferMemoryResourceLinkToGPU(mWorkers->tpcTrackers[iSlice].Data().MemoryResRows(), useStream);
+		TransferMemoryResourceLinkToGPU(mWorkers->tpcTrackers[iSlice].MemoryResCommon(), useStream);
+
+		if (GPUDebug("Initialization (3)", useStream, iSlice) RANDOM_ERROR)
+		{
+			return(3);
+		}
+		mWorkers->tpcTrackers[iSlice].StopTimer(0);
+
+		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Neighbours Finder (Slice %d/%d)", iSlice, NSLICES);
+		mWorkers->tpcTrackers[iSlice].StartTimer(1);
+		runKernel<AliGPUTPCNeighboursFinder>({GPUCA_ROW_COUNT, fFinderThreadCount, useStream}, {iSlice}, {nullptr, mStreamInit[useStream] ? nullptr : &mEvents.init});
+		if (GPUDebug("Neighbours finder", useStream, iSlice) RANDOM_ERROR)
+		{
+			return(3);
+		}
+		mWorkers->tpcTrackers[iSlice].StopTimer(1);
+		mStreamInit[useStream] = true;
+
+		if (mDeviceProcessingSettings.keepAllMemory)
+		{
+			TransferMemoryResourcesToHost(&mWorkers->tpcTrackers[iSlice].Data(), -1, true);
+			memcpy(mWorkers->tpcTrackers[iSlice].LinkTmpMemory(), Res(mWorkers->tpcTrackers[iSlice].Data().MemoryResScratch()).Ptr(), Res(mWorkers->tpcTrackers[iSlice].Data().MemoryResScratch()).Size());
+			if (mDeviceProcessingSettings.debugMask & 2) mWorkers->tpcTrackers[iSlice].DumpLinks(mDebugFile);
+		}
+
+		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Neighbours Cleaner (Slice %d/%d)", iSlice, NSLICES);
+		mWorkers->tpcTrackers[iSlice].StartTimer(2);
+		runKernel<AliGPUTPCNeighboursCleaner>({GPUCA_ROW_COUNT - 2, fThreadCount, useStream}, {iSlice});
+		if (GPUDebug("Neighbours Cleaner", useStream, iSlice) RANDOM_ERROR)
+		{
+			return(3);
+		}
+		mWorkers->tpcTrackers[iSlice].StopTimer(2);
+
+		if (mDeviceProcessingSettings.debugLevel >= 4)
+		{
+			TransferMemoryResourcesToHost(&mWorkers->tpcTrackers[iSlice].Data(), -1, true);
+			if (mDeviceProcessingSettings.debugMask & 4) mWorkers->tpcTrackers[iSlice].DumpLinks(mDebugFile);
+		}
+
+		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Start Hits Finder (Slice %d/%d)", iSlice, NSLICES);
+		mWorkers->tpcTrackers[iSlice].StartTimer(3);
+		runKernel<AliGPUTPCStartHitsFinder>({GPUCA_ROW_COUNT - 6, fThreadCount, useStream}, {iSlice});
+		if (GPUDebug("Start Hits Finder", useStream, iSlice) RANDOM_ERROR)
+		{
+			return(3);
+		}
+		mWorkers->tpcTrackers[iSlice].StopTimer(3);
+
+		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Start Hits Sorter (Slice %d/%d)", iSlice, NSLICES);
+		mWorkers->tpcTrackers[iSlice].StartTimer(4);
+		runKernel<AliGPUTPCStartHitsSorter>({fBlockCount, fThreadCount, useStream}, {iSlice});
+		if (GPUDebug("Start Hits Sorter", useStream, iSlice) RANDOM_ERROR)
+		{
+			return(3);
+		}
+		mWorkers->tpcTrackers[iSlice].StopTimer(4);
+
+		if (mDeviceProcessingSettings.debugLevel >= 2)
+		{
+			TransferMemoryResourceLinkToHost(mWorkers->tpcTrackers[iSlice].MemoryResCommon(), -1);
+			if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Obtaining Number of Start Hits from GPU: %d (Slice %d)", *mWorkers->tpcTrackers[iSlice].NTracklets(), iSlice);
+			if (*mWorkers->tpcTrackers[iSlice].NTracklets() > GPUCA_GPU_MAX_TRACKLETS RANDOM_ERROR)
+			{
+				CAGPUError("GPUCA_GPU_MAX_TRACKLETS constant insuffisant");
+				return(3);
+			}
+		}
+
+		if (mDeviceProcessingSettings.debugLevel >= 4 && *mWorkers->tpcTrackers[iSlice].NTracklets())
+		{
+			TransferMemoryResourcesToHost(&mWorkers->tpcTrackers[iSlice], -1, true);
+			if (mDeviceProcessingSettings.debugMask & 32) mWorkers->tpcTrackers[iSlice].DumpStartHits(mDebugFile);
+		}
+
+		if (mDeviceProcessingSettings.trackletConstructorInPipeline)
+		{
+			if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Tracklet Constructor (Slice %d/%d)", iSlice, NSLICES)
+			mWorkers->tpcTrackers[iSlice].StartTimer(6);
+			runKernel<AliGPUTPCTrackletConstructor>({fConstructorBlockCount, fConstructorThreadCount, useStream}, {iSlice});
+			if (GPUDebug("Tracklet Constructor", useStream, iSlice) RANDOM_ERROR)
+			{
+				return(3);
+			}
+			mWorkers->tpcTrackers[iSlice].StopTimer(6);
+		}
+	}
+	ReleaseEvent(&mEvents.init);
+
+	for (int i = 0;i < mDeviceProcessingSettings.nDeviceHelperThreads;i++)
+	{
+		pthread_mutex_lock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[1]);
+	}
+
+	if (mDeviceProcessingSettings.trackletConstructorInPipeline)
+	{
+		SynchronizeGPU();
 	}
 	else
 	{
-		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Waiting for helper thread %d", iSlice % (mDeviceProcessingSettings.nDeviceHelperThreads + 1) - 1);
-		while(fHelperParams[iSlice % (mDeviceProcessingSettings.nDeviceHelperThreads + 1) - 1].fDone < (int) iSlice);
-		if (fHelperParams[iSlice % (mDeviceProcessingSettings.nDeviceHelperThreads + 1) - 1].fError)
+		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Tracklet Constructor");
+		for (int i = 0;i < mNStreams;i++)
 		{
-			ResetHelperThreads(1);
+			RecordMarker(&mEvents.stream[i], i);
+		}
+		mWorkers->tpcTrackers[0].StartTimer(6);
+		runKernel<AliGPUTPCTrackletConstructor, 1>({fConstructorBlockCount, fConstructorThreadCount, 0}, krnlRunRangeNone, {&mEvents.constructor, mEvents.stream, mNStreams});
+		for (int i = 0;i < mNStreams;i++)
+		{
+			ReleaseEvent(&mEvents.stream[i]);
+		}
+		if (GPUDebug("Tracklet Constructor", 0, 0) RANDOM_ERROR)
+		{
 			return(1);
 		}
+		mWorkers->tpcTrackers[0].StopTimer(6);
+		SynchronizeEvents(&mEvents.constructor);
+		ReleaseEvent(&mEvents.constructor);
 	}
 
 	if (mDeviceProcessingSettings.debugLevel >= 4)
 	{
-		if (!mDeviceProcessingSettings.comparableDebutOutput) mDebugFile << std::endl << std::endl << "Reconstruction: Slice " << iSlice << "/" << NSLICES << std::endl;
-		if (mDeviceProcessingSettings.debugMask & 1) mWorkers->tpcTrackers[iSlice].DumpSliceData(mDebugFile);
+		for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
+		{
+			TransferMemoryResourcesToHost(&mWorkers->tpcTrackers[iSlice], -1, true);
+			CAGPUInfo("Obtained %d tracklets", *mWorkers->tpcTrackers[iSlice].NTracklets());
+			if (mDeviceProcessingSettings.debugMask & 128) mWorkers->tpcTrackers[iSlice].DumpTrackletHits(mDebugFile);
+		}
 	}
-	return(0);
-}
 
-int AliGPUReconstructionDeviceBase::Reconstruct_Base_FinishSlices(unsigned int iSlice)
-{
-	mWorkers->tpcTrackers[iSlice].CommonMemory()->fNLocalTracks = mWorkers->tpcTrackers[iSlice].CommonMemory()->fNTracks;
-	mWorkers->tpcTrackers[iSlice].CommonMemory()->fNLocalTrackHits = mWorkers->tpcTrackers[iSlice].CommonMemory()->fNTrackHits;
-
-	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Data ready for slice %d, helper thread %d", iSlice, iSlice % (mDeviceProcessingSettings.nDeviceHelperThreads + 1));
-	fSliceOutputReady = iSlice;
-
-	if (mParam.rec.GlobalTracking)
+	unsigned int runSlices = 0;
+	int useStream = 0;
+	int streamMap[NSLICES];
+	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice += runSlices)
 	{
-		if (iSlice % (NSLICES / 2) == 2)
+		if (runSlices < GPUCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT) runSlices++;
+		runSlices = CAMath::Min(runSlices, NSLICES - iSlice);
+		if (fSelectorBlockCount < runSlices) runSlices = fSelectorBlockCount;
+
+		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running HLT Tracklet selector (Stream %d, Slice %d to %d)", useStream, iSlice, iSlice + runSlices);
+		mWorkers->tpcTrackers[iSlice].StartTimer(7);
+		runKernel<AliGPUTPCTrackletSelector>({fSelectorBlockCount, fSelectorThreadCount, useStream}, {iSlice, runSlices});
+		if (GPUDebug("Tracklet Selector", useStream, iSlice) RANDOM_ERROR)
 		{
-			int tmpId = iSlice % (NSLICES / 2) - 1;
-			if (iSlice >= NSLICES / 2) tmpId += NSLICES / 2;
-			GlobalTracking(tmpId, 0, nullptr);
-			fGlobalTrackingDone[tmpId] = 1;
+			return(1);
 		}
-		for (unsigned int tmpSlice3a = 0;tmpSlice3a < iSlice;tmpSlice3a += mDeviceProcessingSettings.nDeviceHelperThreads + 1)
+		mWorkers->tpcTrackers[iSlice].StopTimer(7);
+		for (unsigned int k = iSlice;k < iSlice + runSlices;k++)
 		{
-			unsigned int tmpSlice3 = tmpSlice3a + 1;
-			if (tmpSlice3 % (NSLICES / 2) < 1) tmpSlice3 -= (NSLICES / 2);
-			if (tmpSlice3 >= iSlice) break;
-
-			unsigned int sliceLeft = (tmpSlice3 + (NSLICES / 2 - 1)) % (NSLICES / 2);
-			unsigned int sliceRight = (tmpSlice3 + 1) % (NSLICES / 2);
-			if (tmpSlice3 >= (int) NSLICES / 2)
-			{
-				sliceLeft += NSLICES / 2;
-				sliceRight += NSLICES / 2;
-			}
-
-			if (tmpSlice3 % (NSLICES / 2) != 1 && fGlobalTrackingDone[tmpSlice3] == 0 && sliceLeft < iSlice && sliceRight < iSlice)
-			{
-				GlobalTracking(tmpSlice3, 0, nullptr);
-				fGlobalTrackingDone[tmpSlice3] = 1;
-			}
-
-			if (fWriteOutputDone[tmpSlice3] == 0 && fSliceLeftGlobalReady[tmpSlice3] && fSliceRightGlobalReady[tmpSlice3])
-			{
-				WriteOutput(tmpSlice3, 0);
-				fWriteOutputDone[tmpSlice3] = 1;
-			}
+			TransferMemoryResourceLinkToHost(mWorkers->tpcTrackers[k].MemoryResCommon(), useStream, &mEvents.selector[k]);
+			streamMap[k] = useStream;
 		}
+		useStream++;
+		if (useStream >= mNStreams) useStream = 0;
 	}
-	else
-	{
-		if (iSlice % (mDeviceProcessingSettings.nDeviceHelperThreads + 1) == 0)
-		{
-			WriteOutput(iSlice, 0);
-		}
-	}
-	return(0);
-}
 
-int AliGPUReconstructionDeviceBase::Reconstruct_Base_StartGlobal()
-{
+	fSliceOutputReady = 0;
+
 	if (mParam.rec.GlobalTracking)
 	{
 		for (unsigned int i = 0;i < NSLICES;i++)
@@ -683,11 +831,101 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_StartGlobal()
 		fHelperParams[i].fPhase = 1;
 		pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[0]);
 	}
-	return(0);
-}
 
-int AliGPUReconstructionDeviceBase::Reconstruct_Base_Finalize()
-{
+	bool transferRunning[NSLICES];
+	for (unsigned int i = 0;i < NSLICES;i++) transferRunning[i] = true;
+	unsigned int tmpSlice = 0;
+	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
+	{
+		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Transfering Tracks from GPU to Host");
+
+		if (tmpSlice == iSlice) SynchronizeEvents(&mEvents.selector[iSlice]);
+		while (tmpSlice < NSLICES && (tmpSlice == iSlice || IsEventDone(&mEvents.selector[tmpSlice])))
+		{
+			ReleaseEvent(&mEvents.selector[tmpSlice]);
+			if (*mWorkers->tpcTrackers[tmpSlice].NTracks() > 0)
+			{
+				TransferMemoryResourceLinkToHost(mWorkers->tpcTrackers[tmpSlice].MemoryResTracks(), streamMap[tmpSlice]);
+				TransferMemoryResourceLinkToHost(mWorkers->tpcTrackers[tmpSlice].MemoryResTrackHits(), streamMap[tmpSlice], &mEvents.selector[tmpSlice]);
+			}
+			else
+			{
+				transferRunning[tmpSlice] = false;
+			}
+			tmpSlice++;
+		}
+
+		if (mDeviceProcessingSettings.keepAllMemory)
+		{
+			TransferMemoryResourcesToHost(&mWorkers->tpcTrackers[iSlice], -1, true);
+			if (mDeviceProcessingSettings.debugMask & 256 && !mDeviceProcessingSettings.comparableDebutOutput) mWorkers->tpcTrackers[iSlice].DumpHitWeights(mDebugFile);
+			if (mDeviceProcessingSettings.debugMask & 512) mWorkers->tpcTrackers[iSlice].DumpTrackHits(mDebugFile);
+		}
+
+		if (mWorkers->tpcTrackers[iSlice].GPUParameters()->fGPUError RANDOM_ERROR)
+		{
+			const char* errorMsgs[] = GPUCA_GPU_ERROR_STRINGS;
+			const char* errorMsg = (unsigned) mWorkers->tpcTrackers[iSlice].GPUParameters()->fGPUError >= sizeof(errorMsgs) / sizeof(errorMsgs[0]) ? "UNKNOWN" : errorMsgs[mWorkers->tpcTrackers[iSlice].GPUParameters()->fGPUError];
+			CAGPUError("GPU Tracker returned Error Code %d (%s) in slice %d (Clusters %d)", mWorkers->tpcTrackers[iSlice].GPUParameters()->fGPUError, errorMsg, iSlice, mWorkers->tpcTrackers[iSlice].Data().NumberOfHits());
+			for (unsigned int iSlice2 = 0;iSlice2 < NSLICES;iSlice2++) if (transferRunning[iSlice2]) ReleaseEvent(&mEvents.selector[iSlice2]);
+			return(3);
+		}
+
+		if (transferRunning[iSlice]) SynchronizeEvents(&mEvents.selector[iSlice]);
+		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Tracks Transfered: %d / %d", *mWorkers->tpcTrackers[iSlice].NTracks(), *mWorkers->tpcTrackers[iSlice].NTrackHits());
+		
+		mWorkers->tpcTrackers[iSlice].CommonMemory()->fNLocalTracks = mWorkers->tpcTrackers[iSlice].CommonMemory()->fNTracks;
+		mWorkers->tpcTrackers[iSlice].CommonMemory()->fNLocalTrackHits = mWorkers->tpcTrackers[iSlice].CommonMemory()->fNTrackHits;
+
+		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Data ready for slice %d, helper thread %d", iSlice, iSlice % (mDeviceProcessingSettings.nDeviceHelperThreads + 1));
+		fSliceOutputReady = iSlice;
+
+		if (mParam.rec.GlobalTracking)
+		{
+			if (iSlice % (NSLICES / 2) == 2)
+			{
+				int tmpId = iSlice % (NSLICES / 2) - 1;
+				if (iSlice >= NSLICES / 2) tmpId += NSLICES / 2;
+				GlobalTracking(tmpId, 0, nullptr);
+				fGlobalTrackingDone[tmpId] = 1;
+			}
+			for (unsigned int tmpSlice3a = 0;tmpSlice3a < iSlice;tmpSlice3a += mDeviceProcessingSettings.nDeviceHelperThreads + 1)
+			{
+				unsigned int tmpSlice3 = tmpSlice3a + 1;
+				if (tmpSlice3 % (NSLICES / 2) < 1) tmpSlice3 -= (NSLICES / 2);
+				if (tmpSlice3 >= iSlice) break;
+
+				unsigned int sliceLeft = (tmpSlice3 + (NSLICES / 2 - 1)) % (NSLICES / 2);
+				unsigned int sliceRight = (tmpSlice3 + 1) % (NSLICES / 2);
+				if (tmpSlice3 >= (int) NSLICES / 2)
+				{
+					sliceLeft += NSLICES / 2;
+					sliceRight += NSLICES / 2;
+				}
+
+				if (tmpSlice3 % (NSLICES / 2) != 1 && fGlobalTrackingDone[tmpSlice3] == 0 && sliceLeft < iSlice && sliceRight < iSlice)
+				{
+					GlobalTracking(tmpSlice3, 0, nullptr);
+					fGlobalTrackingDone[tmpSlice3] = 1;
+				}
+
+				if (fWriteOutputDone[tmpSlice3] == 0 && fSliceLeftGlobalReady[tmpSlice3] && fSliceRightGlobalReady[tmpSlice3])
+				{
+					WriteOutput(tmpSlice3, 0);
+					fWriteOutputDone[tmpSlice3] = 1;
+				}
+			}
+		}
+		else
+		{
+			if (iSlice % (mDeviceProcessingSettings.nDeviceHelperThreads + 1) == 0)
+			{
+				WriteOutput(iSlice, 0);
+			}
+		}
+	}
+	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++) if (transferRunning[iSlice]) ReleaseEvent(&mEvents.selector[iSlice]);
+
 	if (mParam.rec.GlobalTracking)
 	{
 		for (unsigned int tmpSlice3a = 0;tmpSlice3a < NSLICES;tmpSlice3a += mDeviceProcessingSettings.nDeviceHelperThreads + 1)
@@ -724,7 +962,18 @@ int AliGPUReconstructionDeviceBase::Reconstruct_Base_Finalize()
 		}
 	}
 
+	if (DoProfile()) return(1);
+	
+	if (mDeviceProcessingSettings.debugMask & 1024)
+	{
+		for (unsigned int i = 0;i < NSLICES;i++)
+		{
+			mWorkers->tpcTrackers[i].DumpOutput(stdout);
+		}
+	}
+
 	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("GPU Reconstruction finished");
+
 	return(0);
 }
 
@@ -752,7 +1001,7 @@ int AliGPUReconstructionDeviceBase::DoProfile()
 
 int AliGPUReconstructionDeviceBase::GetMaxThreads()
 {
-	int retVal = GPUCA_GPU_THREAD_COUNT_TRD * fConstructorBlockCount;
+	int retVal = fTRDThreadCount * fBlockCount;
 	return std::max(retVal, AliGPUReconstruction::GetMaxThreads());
 }
 

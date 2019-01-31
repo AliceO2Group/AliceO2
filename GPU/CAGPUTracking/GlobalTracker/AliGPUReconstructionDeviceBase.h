@@ -21,7 +21,8 @@ protected:
 	AliGPUCAConstantMem* mDeviceConstantMem = nullptr;
     
 #ifdef GPUCA_ENABLE_GPU_TRACKER
-	virtual int RunTPCTrackingSlices() override = 0;
+	virtual int RunTPCTrackingSlices() override;
+	int RunTPCTrackingSlices_internal();
 
 	virtual int InitDevice() override;
 	virtual int InitDevice_Runtime() = 0;
@@ -89,12 +90,6 @@ protected:
 	
 	int PrepareFlatObjects();
 
-	int Reconstruct_Base_Init();
-	int Reconstruct_Base_SliceInit(unsigned int iSlice);
-	int Reconstruct_Base_StartGlobal();
-	int Reconstruct_Base_FinishSlices(unsigned int iSlice);
-	int Reconstruct_Base_Finalize();
-
 	int ReadEvent(int iSlice, int threadId);
 	void WriteOutput(int iSlice, int threadId);
 	int GlobalTracking(int iSlice, int threadId, helperParam* hParam);
@@ -117,9 +112,14 @@ protected:
 	int fThreadId = -1; //Thread ID that is valid for the local CUDA context
     int fDeviceId = -1; //Device ID used by backend
 
-	unsigned int fConstructorBlockCount = 0; //GPU blocks used in Tracklet Constructor
-	unsigned int fSelectorBlockCount = 0; //GPU blocks used in Tracklet Selector
+	unsigned int fBlockCount = 0;                 //Default GPU block count
+	unsigned int fThreadCount = 0;                //Default GPU thread count
+	unsigned int fConstructorBlockCount = 0;      //GPU blocks used in Tracklet Constructor
+	unsigned int fSelectorBlockCount = 0;         //GPU blocks used in Tracklet Selector
 	unsigned int fConstructorThreadCount = 0;
+	unsigned int fSelectorThreadCount = 0;
+	unsigned int fFinderThreadCount = 0;
+	unsigned int fTRDThreadCount = 0;
 
 #ifdef GPUCA_GPU_TIME_PROFILE
 	unsigned long long int fProfTimeC, fProfTimeD; //Timing
