@@ -31,8 +31,6 @@ using namespace o2::TPC;
 using namespace o2;
 using namespace o2::dataformats;
 
-using MCLabelContainer = MCTruthContainer<MCCompLabel>;
-
 int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHardwareContainer*, std::size_t>>& inputClusters, std::vector<ClusterNativeContainer>& outputClusters, const std::vector<MCLabelContainer>* inMCLabels, std::vector<MCLabelContainer>* outMCLabels)
 {
   if (mIntegrator == nullptr) mIntegrator.reset(new DigitalCurrentClusterIntegrator);
