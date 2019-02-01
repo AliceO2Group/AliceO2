@@ -124,8 +124,6 @@ public:
     mHitsTVctr.emplace_back(time);
     mHitsEVctr.emplace_back(e);
 #endif
-    mZAbsMax = std::max(std::abs(z), mZAbsMax);
-    mZAbsMin = std::min(std::abs(z), mZAbsMin);
   }
 
   size_t getSize() const {
@@ -175,8 +173,6 @@ public:
  vec_t mHitsTVctr;
  vec_t mHitsEVctr;
 #endif
-  float mZAbsMin = 1E10; // minimal abs z position of all hits in this group
-  float mZAbsMax = 0.;   // maximal z position of all hits in this group
   ClassDefNV(HitGroup, 1);
 };
 
