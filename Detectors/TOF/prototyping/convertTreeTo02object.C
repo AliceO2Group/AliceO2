@@ -14,7 +14,7 @@ void convertTreeTo02object(){
     //for (int ientry = 1; ientry <= 3; ientry++){
     t->GetEntry(ientry);
     for (int i = 0; i < t->GetLeaf("nhits")->GetValue(); i++){
-      mCalibInfoTOF.emplace_back(t->GetLeaf("index")->GetValue(i), t->GetLeaf("time")->GetValue(i) - t->GetLeaf("texp")->GetValue(i), t->GetLeaf("tot")->GetValue(i) );
+      mCalibInfoTOF.emplace_back(t->GetLeaf("index")->GetValue(i), t->GetLeaf("timestamp")->GetValue(), t->GetLeaf("time")->GetValue(i) - t->GetLeaf("texp")->GetValue(i), t->GetLeaf("tot")->GetValue(i) );
     }
     tout->Fill();
     mCalibInfoTOF.clear();

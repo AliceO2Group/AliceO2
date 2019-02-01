@@ -69,7 +69,7 @@ void CollectCalibInfoTOF::init()
     LOG(INFO) << "Accumulated calib info TOF will be stored in " << mOutputBranchName << " branch of tree "
 	      << mOutputTree->GetName();
   } else {
-    LOG(ERROR) << "Output tree is not attached, accumulated CalibInfoTOF will not be stored";
+    LOG(ERROR) << "Output tree is not attached, accumulated CalibInfoTOFshort will not be stored";
   }
   mInitDone = true;
 
@@ -139,7 +139,7 @@ void CollectCalibInfoTOF::addHit(o2::dataformats::CalibInfoTOF& calibInfo){
   ///< This is the method that fills the array of calibInfoTOF and also
   ///< decides whether to fill the output tree or not
 
-  mTOFCollectedCalibInfo[calibInfo.getTOFChIndex()].push_back(calibInfo);
+  mTOFCollectedCalibInfo[calibInfo.getTOFChIndex()].emplace_back(calibInfo.getTimestamp(), calibInfo.getDeltaTimePi(), calibInfo.getTot(), calibInfo.getFlags());
   if (mTOFCollectedCalibInfo[calibInfo.getTOFChIndex()].size() == MAXNUMBEROFHITS) { // the current channel has arrived to the limit of hits that we can store between two fills --> filling the tree
     fillTree();
   }

@@ -88,11 +88,15 @@ void CalibTOF::run(int flag)
 	  float val[1000];
 	  float eval[1000];
 	  for(int ibin = ibin0; ibin <= mHistoChTimeSlewingTemp[ipad]->GetNbinsX(); ibin++){
+	    if(ibin <  mHistoChTimeSlewingTemp[ipad]->GetNbinsX()){ // if the integral of the next bins is lower than the threshold let's continue (to include also that entries in the last bin)
+	      TH1D *hLast = mHistoChTimeSlewingTemp[ipad]->ProjectionY("tempProjTimeSlewingLast", ibin+1, mHistoChTimeSlewingTemp[ipad]->GetNbinsX());
+	      if (hLast->GetEntries() < 50) continue;
+	    }
 	    TH1D *h = mHistoChTimeSlewingTemp[ipad]->ProjectionY("tempProjTimeSlewingFit", ibin0, ibin);
 	    if (h->GetEntries() < 50) continue;
-	    //h->Fit(mFuncChOffset, "WW", "");
-	    //h->Fit(mFuncChOffset, "", "", mFuncChOffset->GetParameter(1)-600, mFuncChOffset->GetParameter(1)+400);
-	    h->Fit(mFuncChOffset, "", "", h->GetMean()-600, h->GetMean()+400);
+	    h->Fit(mFuncChOffset, "WW", "");
+	    h->Fit(mFuncChOffset, "", "", mFuncChOffset->GetParameter(1)-600, mFuncChOffset->GetParameter(1)+400);
+	    //	    h->Fit(mFuncChOffset, "", "", h->GetMean()-600, h->GetMean()+400);
 	    printf("%i) value = %f %f\n", ibin, mFuncChOffset->GetParameter(1), mFuncChOffset->GetParError(1));
 	    xval[nbin] = mHistoChTimeSlewingTemp[ipad]->GetXaxis()->GetBinCenter(ibin0) - mHistoChTimeSlewingTemp[ipad]->GetXaxis()->GetBinWidth(ibin0)*0.5;
 	    xval[nbin+1] = mHistoChTimeSlewingTemp[ipad]->GetXaxis()->GetBinCenter(ibin) + mHistoChTimeSlewingTemp[ipad]->GetXaxis()->GetBinWidth(ibin)*0.5;

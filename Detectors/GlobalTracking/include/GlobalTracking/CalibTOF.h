@@ -20,7 +20,7 @@
 #include <vector>
 #include <string>
 #include <TStopwatch.h>
-#include "ReconstructionDataFormats/CalibInfoTOF.h"
+#include "ReconstructionDataFormats/CalibInfoTOFshort.h"
 #include "TOFBase/Geo.h"
 #include "TH1F.h"
 #include "TH1D.h"
@@ -110,7 +110,7 @@ class CalibTOF
 
   ///>>>------ these are input arrays which should not be modified by the matching code
   //           since this info is provided by external device
-  std::vector<o2::dataformats::CalibInfoTOF>* mCalibInfoTOF = nullptr; ///< input TOF matching info
+  std::vector<o2::dataformats::CalibInfoTOFshort>* mCalibInfoTOF = nullptr; ///< input TOF matching info
   /// <<<-----
 
   std::string mCollectedCalibInfoTOFBranchName = "TOFCollectedCalibInfo";   ///< name of branch containing input TOF calib infos

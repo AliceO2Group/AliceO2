@@ -706,6 +706,7 @@ void MatchTOF::selectBestMatches()
     
     // add also calibration infos ciao
     mCalibInfoTOF.emplace_back(mTOFClusWork[matchingPair.second.getTOFClIndex()].getMainContributingChannel(),
+			       int(mTOFClusWork[matchingPair.second.getTOFClIndex()].getTimeRaw()*1E12), // add time stamp
 			       mTOFClusWork[matchingPair.second.getTOFClIndex()].getTimeRaw() - matchingPair.second.getLTIntegralOut().getTOF(o2::track::PID::Pion),
 			    mTOFClusWork[matchingPair.second.getTOFClIndex()].getTot());
 

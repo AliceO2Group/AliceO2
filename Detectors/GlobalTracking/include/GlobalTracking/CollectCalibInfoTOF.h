@@ -21,6 +21,7 @@
 #include <string>
 #include <TStopwatch.h>
 #include "ReconstructionDataFormats/CalibInfoTOF.h"
+#include "ReconstructionDataFormats/CalibInfoTOFshort.h"
 #include "TOFBase/Geo.h"
 
 class TTree;
@@ -90,8 +91,8 @@ class CollectCalibInfoTOF
   //           since this info is provided by external device
   std::vector<o2::dataformats::CalibInfoTOF>* mTOFCalibInfo = nullptr; ///< input TOF calib info
   /// <<<-----
-  std::vector<o2::dataformats::CalibInfoTOF> mTOFCollectedCalibInfo[Geo::NCHANNELS]; ///< output TOF calibration info
-  std::vector<o2::dataformats::CalibInfoTOF>* mTOFCalibInfoOut = nullptr; ///< this is the pointer to the CalibInfo of a specific channel that we need to fill the output tree
+  std::vector<o2::dataformats::CalibInfoTOFshort> mTOFCollectedCalibInfo[Geo::NCHANNELS]; ///< output TOF calibration info
+  std::vector<o2::dataformats::CalibInfoTOFshort>* mTOFCalibInfoOut = nullptr; ///< this is the pointer to the CalibInfo of a specific channel that we need to fill the output tree
 
   std::string mTOFCalibInfoBranchName = "TOFCalibInfo";   ///< name of branch containing input TOF calib infos
   std::string mOutputBranchName = "TOFCollectedCalibInfo";        ///< name of branch containing output
