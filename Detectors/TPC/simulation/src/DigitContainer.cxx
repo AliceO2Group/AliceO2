@@ -20,39 +20,22 @@
 
 using namespace o2::TPC;
 
-void DigitContainer::addDigit(const MCCompLabel& label, const CRU& cru, TimeBin timeBin, GlobalPadNumber globalPad,
-                              float signal)
-{
-  mEffectiveTimeBin = timeBin - mFirstTimeBin;
-  if (mEffectiveTimeBin < 0.) {
-    LOG(FATAL) << "TPC DigitTime buffer misaligned "
-               << "for hit " << label.getTrackID() << " CRU " << cru << " TimeBin " << timeBin << " First TimeBin "
-               << mFirstTimeBin << " Global pad " << globalPad;
-    return;
-  }
-  /// If time bin outside specified range, the range of the vector is extended by one full drift time.
-  while (mTimeBins.size() <= mEffectiveTimeBin) {
-    mTimeBins.resize(mTimeBins.size() + 500);
-  }
-  mTimeBins[mEffectiveTimeBin].addDigit(label, cru, globalPad, signal);
-}
-
 void DigitContainer::fillOutputContainer(std::vector<Digit>& output,
-                                         dataformats::MCTruthContainer<MCCompLabel>& mcTruth, const Sector& sector, TimeBin eventTime, bool isContinuous, bool finalFlush)
+                                         dataformats::MCTruthContainer<MCCompLabel>& mcTruth, const Sector& sector, TimeBin eventTimeBin, bool isContinuous, bool finalFlush)
 {
+  auto& cdb = CDBInterface::instance();
+  auto& eleParam = cdb.getParameterElectronics();
+  const auto digitizationMode = eleParam.getDigitizationMode();
   int nProcessedTimeBins = 0;
   TimeBin timeBin = (isContinuous) ? mFirstTimeBin : 0;
   for (auto& time : mTimeBins) {
     /// the time bins between the last event and the timing of this event are uncorrelated and can be written out
     /// OR the readout is triggered (i.e. not continuous) and we can dump everything in any case, as long it is within one drift time interval
-    if ((nProcessedTimeBins + mFirstTimeBin < eventTime) || !isContinuous || finalFlush) {
+    if ((nProcessedTimeBins + mFirstTimeBin < eventTimeBin) || !isContinuous || finalFlush) {
       if (!isContinuous && timeBin > mTmaxTriggered) {
         continue;
       }
       ++nProcessedTimeBins;
-      auto& cdb = CDBInterface::instance();
-      auto& eleParam = cdb.getParameterElectronics();
-      const auto digitizationMode = eleParam.getDigitizationMode();
 
       switch (digitizationMode) {
         case DigitzationMode::FullMode: {

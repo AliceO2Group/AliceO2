@@ -72,6 +72,9 @@ void Digitizer::process(const std::vector<o2::TPC::HitGroup>& hits,
   static std::vector<float> signalArray;
   signalArray.resize(nShapedPoints);
 
+  /// Reserve space in the digit container for the current event
+  mDigitContainer.reserve(sampaProcessing.getTimeBinFromTime(mEventTime));
+
   for (auto& hitGroup : hits) {
     const int MCTrackID = hitGroup.GetTrackID();
     for (size_t hitindex = 0; hitindex < hitGroup.getSize(); ++hitindex) {
@@ -150,7 +153,8 @@ void Digitizer::process(const std::vector<o2::TPC::HitGroup>& hits,
 void Digitizer::flush(std::vector<o2::TPC::Digit>& digits,
                       o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels, bool finalFlush)
 {
-  mDigitContainer.fillOutputContainer(digits, labels, mSector, mEventTime, mIsContinuous, finalFlush);
+  static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
+  mDigitContainer.fillOutputContainer(digits, labels, mSector, sampaProcessing.getTimeBinFromTime(mEventTime), mIsContinuous, finalFlush);
 }
 
 void Digitizer::enableSCDistortions(SpaceCharge::SCDistortionType distortionType, TH3* hisInitialSCDensity, int nZSlices, int nPhiBins, int nRBins)

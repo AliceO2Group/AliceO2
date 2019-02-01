@@ -49,6 +49,9 @@ class DigitContainer
   /// Reset the container
   void reset();
 
+  /// Reserve space in the container for a given event
+  void reserve(TimeBin eventTimeBin);
+
   /// Set the start time of the first event
   /// \param time Time of the first event
   void setStartTime(TimeBin time) { mFirstTimeBin = time; }
@@ -69,16 +72,17 @@ class DigitContainer
   /// \param eventTime time stamp of the event
   /// \param isContinuous Switch for continuous readout
   /// \param finalFlush Flag whether the whole container is dumped
-  void fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth, const Sector& sector, TimeBin eventTime = 0, bool isContinuous = true, bool finalFlush = false);
+  void fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth, const Sector& sector, TimeBin eventTimeBin = 0, bool isContinuous = true, bool finalFlush = false);
 
  private:
   TimeBin mFirstTimeBin;           ///< First time bin to consider
   TimeBin mEffectiveTimeBin;       ///< Effective time bin of that digit
   TimeBin mTmaxTriggered;          ///< Maximum time bin in case of triggered mode (hard cut at average drift speed with additional margin)
+  TimeBin mOffset;                 ///< Size of the container for one event
   std::deque<DigitTime> mTimeBins; ///< Time bin Container for the ADC value
 };
 
-inline DigitContainer::DigitContainer() : mFirstTimeBin(0), mEffectiveTimeBin(0), mTmaxTriggered(0), mTimeBins(500)
+inline DigitContainer::DigitContainer() : mFirstTimeBin(0), mEffectiveTimeBin(0), mTmaxTriggered(0), mOffset(600), mTimeBins(600)
 {
   const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
   mTmaxTriggered = detParam.getMaxTimeBinTriggered();
@@ -92,6 +96,21 @@ inline void DigitContainer::reset()
     time.reset();
   }
 }
+
+inline void DigitContainer::reserve(TimeBin eventTimeBin)
+{
+  if (mTimeBins.size() < mOffset + eventTimeBin - mFirstTimeBin) {
+    mTimeBins.resize(mOffset + eventTimeBin - mFirstTimeBin);
+  }
+}
+
+inline void DigitContainer::addDigit(const MCCompLabel& label, const CRU& cru, TimeBin timeBin, GlobalPadNumber globalPad,
+                                     float signal)
+{
+  mEffectiveTimeBin = timeBin - mFirstTimeBin;
+  mTimeBins[mEffectiveTimeBin].addDigit(label, cru, globalPad, signal);
+}
+
 } // namespace TPC
 } // namespace o2
 
