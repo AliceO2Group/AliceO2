@@ -117,8 +117,13 @@ void Digitizer::process(const std::vector<o2::TPC::HitGroup>& hits,
           continue;
         }
 
+        /// When the electron is not in the sector we're processing, abandon
+        if (mapper.isOutOfSector(posEleDiff, mSector)) {
+          continue;
+        }
+
         /// Compute digit position and check for validity
-        const DigitPos digiPadPos = mapper.findDigitPosFromGlobalPosition(posEleDiff);
+        const DigitPos digiPadPos = mapper.findDigitPosFromGlobalPosition(posEleDiff, mSector);
         if (!digiPadPos.isValid()) {
           continue;
         }

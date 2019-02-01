@@ -97,7 +97,6 @@ class Mapper
     return mMapPadOffsetPerRow[row + rowOffset] + pad - padOffset;
   }
 
-
   /// return the global pad number in a region for region, row, pad
   /// \return global pad number in a region for region, row, pad
   /// \todo add check for row and pad limits
@@ -325,7 +324,9 @@ class Mapper
 
   const DigitPos findDigitPosFromLocalPosition(const LocalPosition3D& pos, const Sector& sec) const;
   const DigitPos findDigitPosFromGlobalPosition(const GlobalPosition3D& pos) const;
+  const DigitPos findDigitPosFromGlobalPosition(const GlobalPosition3D& pos, const Sector& sector) const;
 
+  bool isOutOfSector(GlobalPosition3D posEle, const Sector& sector, const float margin = 0.f) const;
 
   static constexpr unsigned short getNumberOfIROCs() { return 36; }
   static constexpr unsigned short getNumberOfOROCs() { return 36; }
@@ -490,11 +491,33 @@ class Mapper
       0.8660254037844383745436971366871148347855, 0.9848077530122080203156542665965389460325 }
   };
 
+  static constexpr std::array<double, SECTORSPERSIDE> SinsPerSectorNotShifted{
+    { 0, 0.3420201433256687129080830800376133993268, 0.6427876096865392518964199553010985255241,
+      0.8660254037844385965883020617184229195118, 0.9848077530122080203156542665965389460325,
+      0.9848077530122080203156542665965389460325, 0.866025403784438707610604524234076961875,
+      0.6427876096865394739410248803324066102505, 0.3420201433256688794415367738110944628716, 0.,
+      -0.3420201433256686573969318487797863781452, -0.6427876096865392518964199553010985255241,
+      -0.8660254037844383745436971366871148347855, -0.9848077530122080203156542665965389460325,
+      -0.9848077530122081313379567291121929883957, -0.8660254037844385965883020617184229195118,
+      -0.6427876096865395849633273428480606526136, -0.3420201433256686018857806175219593569636 }
+  }; ///< Array of sin for all sectors
+
+  static constexpr std::array<double, SECTORSPERSIDE> CosinsPerSectorNotShifted{
+    { 1, 0.9396926207859084279050421173451468348503, 0.7660444431189780134516809084743726998568,
+      0.5000000000000001110223024625156540423632, 0.1736481776669304144533612088707741349936,
+      -0.1736481776669303034310587463551200926304, -0.4999999999999997779553950749686919152737,
+      -0.7660444431189779024293784459587186574936, -0.9396926207859083168827396548294927924871, -1,
+      -0.9396926207859084279050421173451468348503, -0.7660444431189780134516809084743726998568,
+      -0.5000000000000004440892098500626161694527, -0.1736481776669303311866343619840336032212,
+      0.1736481776669299703641513588081579655409, 0.5000000000000001110223024625156540423632,
+      0.7660444431189777914070759834430646151304, 0.9396926207859084279050421173451468348503 }
+  }; ///< Array of cos for all sectors
+
   // ===| Pad Mappings |========================================================
   std::vector<PadPos> mMapGlobalPadToPadPos;  ///< mapping of global pad number to row and pad
   std::vector<PadCentre> mMapGlobalPadCentre; ///< pad coordinates
   std::map<PadPos, GlobalPadNumber>
-    mMapPadPosGlobalPad; ///< mapping pad position to global pad number, most probably needs to be changed to speed up
+    mMapPadPosGlobalPad;                     ///< mapping pad position to global pad number, most probably needs to be changed to speed up
   std::vector<int> mMapFECIDGlobalPad;       ///< mapping sector global FEC id to global pad number
   std::vector<FECInfo> mMapGlobalPadFECInfo; ///< map global pad number to FEC info
 
@@ -540,9 +563,29 @@ inline const DigitPos Mapper::findDigitPosFromGlobalPosition(const GlobalPositio
 
   return findDigitPosFromLocalPosition(posLoc, sec);
 }
-
-
+inline const DigitPos Mapper::findDigitPosFromGlobalPosition(const GlobalPosition3D& pos, const Sector& sector) const
+{
+  LocalPosition3D posLoc = GlobalToLocal(pos, sector);
+  return findDigitPosFromLocalPosition(posLoc, sector);
 }
+
+inline bool Mapper::isOutOfSector(GlobalPosition3D posEle, const Sector& sector, const float margin) const
+{
+  int secRight = int(sector);
+  int secLeft = int(Sector::getLeft(sector));
+  const float dSectorBoundaryRight = -SinsPerSectorNotShifted[secRight % SECTORSPERSIDE] * posEle.X() + CosinsPerSectorNotShifted[secRight % SECTORSPERSIDE] * posEle.Y();
+  const float dSectorBoundaryLeft = -SinsPerSectorNotShifted[secLeft % SECTORSPERSIDE] * posEle.X() + CosinsPerSectorNotShifted[secLeft % SECTORSPERSIDE] * posEle.Y();
+
+  if ((dSectorBoundaryLeft > 0 && dSectorBoundaryRight < 0) || (dSectorBoundaryLeft < 0 && dSectorBoundaryRight > 0)) {
+    return false;
+  }
+  if (std::abs(dSectorBoundaryLeft) > margin && std::abs(dSectorBoundaryRight) > margin) {
+    return true;
+  }
+  return false;
 }
+
+} // namespace TPC
+} // namespace o2
 
 #endif
