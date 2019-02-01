@@ -77,16 +77,6 @@ bool ElectronTransport::isCompletelyOutOfSectorCoarseElectronDrift(GlobalPositio
   /// Three sigma of the expected average transverse diffusion
   const float threeSigmaT = 3.f * driftl * mGasParam->getDiffT();
 
-  int secRight = int(sector);
-  int secLeft = int(Sector::getLeft(sector));
-  const float dSectorBoundaryRight = -mSinsPerSector[secRight % SECTORSPERSIDE] * posEle.X() + mCosinsPerSector[secRight % SECTORSPERSIDE] * posEle.Y();
-  const float dSectorBoundaryLeft = -mSinsPerSector[secLeft % SECTORSPERSIDE] * posEle.X() + mCosinsPerSector[secLeft % SECTORSPERSIDE] * posEle.Y();
-
-  if ((dSectorBoundaryLeft > 0 && dSectorBoundaryRight < 0) || (dSectorBoundaryLeft < 0 && dSectorBoundaryRight > 0)) {
-    return false;
-  }
-  if (std::abs(dSectorBoundaryLeft) > threeSigmaT && std::abs(dSectorBoundaryRight) > threeSigmaT) {
-    return true;
-  }
-  return false;
+  auto& mapper = Mapper::instance();
+  return mapper.isOutOfSector(posEle, sector, threeSigmaT);
 }
