@@ -52,10 +52,10 @@ void Digitizer::process(std::vector<o2::trd::HitType> const& hits, std::vector<o
 
   // Loop over all TRD detectors
   // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
-  const int kNdet = 540; // Get this from TRD Geometry
+  const int Ndet = 540; // Get this from TRD Geometry
   int totalNumberOfProcessedHits = 0;
   LOG(INFO) << "Start of processing " << hits.size() << " hits";
-  for (int det = 0; det < kNdet; ++det) {
+  for (int det = 0; det < Ndet; ++det) {
     // Loop over all TRD detectors
 
     // Jump to the next detector if the detector is
