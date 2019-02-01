@@ -23,9 +23,7 @@
 using namespace o2::trd;
 
 Detector::Detector(Bool_t active)
-  : o2::Base::DetImpl<Detector>("TRD", active),
-    mTRon(true),
-    mTR{}
+  : o2::Base::DetImpl<Detector>("TRD", active)
 {
   mHits = o2::utils::createSimVector<HitType>();
   if (TRDCommonParam::Instance()->IsXenon()) {
@@ -47,9 +45,7 @@ Detector::Detector(const Detector& rhs)
     mFoilDensity(rhs.mFoilDensity),
     mGasNobleFraction(rhs.mGasNobleFraction),
     mGasDensity(rhs.mGasDensity),
-    mGeom(rhs.mGeom),
-    mTRon(true),
-    mTR{}
+    mGeom(rhs.mGeom)
 {
   if (TRDCommonParam::Instance()->IsXenon()) {
     mWion = 23.53; // Ionization energy XeCO2 (85/15)
@@ -178,7 +174,7 @@ void Detector::createTRhit(int det)
   std::vector<float> photonEnergyContainer;           // energy in keV
   mTR.createPhotons(11, pTot, photonEnergyContainer); // Create TR photons
   if (photonEnergyContainer.size() > mMaxNumberOfTRPhotons) {
-    LOG(FATAL) << "Boundary error: nTR = " << photonEnergyContainer.size() << ", mMaxNumberOfTRPhotons = " << mMaxNumberOfTRPhotons;
+    LOG(ERROR) << "Boundary error: nTR = " << photonEnergyContainer.size() << ", mMaxNumberOfTRPhotons = " << mMaxNumberOfTRPhotons;
   }
 
   // Loop through the TR photons

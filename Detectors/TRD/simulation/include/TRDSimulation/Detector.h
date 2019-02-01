@@ -96,8 +96,8 @@ class Detector : public o2::Base::DetImpl<Detector>
   float mGasNobleFraction;
   float mGasDensity;
 
-  bool mTRon; // Switch for TR simulation
-  TRsim mTR;  // TR simulation
+  static const bool mTRon = true; // Switch for TR simulation
+  TRsim mTR;                      // Access to TR simulation
 
   float mWion; // Ionization potential
 
