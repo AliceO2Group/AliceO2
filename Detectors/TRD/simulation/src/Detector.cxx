@@ -177,7 +177,7 @@ void Detector::createTRhit(int det)
   double px, py, pz, etot;
   fMC->TrackMomentum(px, py, pz, etot);
   float pTot = TMath::Sqrt(px * px + py * py + pz * pz);
-  std::vector<float> photonEnergyContainer;           // energy in keV
+  std::vector<float> photonEnergyContainer;            // energy in keV
   mTR->createPhotons(11, pTot, photonEnergyContainer); // Create TR photons
   if (photonEnergyContainer.size() > mMaxNumberOfTRPhotons) {
     LOG(ERROR) << "Boundary error: nTR = " << photonEnergyContainer.size() << ", mMaxNumberOfTRPhotons = " << mMaxNumberOfTRPhotons;
