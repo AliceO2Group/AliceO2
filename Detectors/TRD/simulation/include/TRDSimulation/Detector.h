@@ -18,6 +18,8 @@
 
 #include "TRDSimulation/TRsim.h"
 
+class FairVolume;
+
 namespace o2
 {
 namespace trd
@@ -96,8 +98,8 @@ class Detector : public o2::Base::DetImpl<Detector>
   float mGasNobleFraction;
   float mGasDensity;
 
-  static const bool mTRon = true; // Switch for TR simulation
-  TRsim mTR;                      // Access to TR simulation
+  bool mTRon; // Switch for TR simulation
+  TRsim* mTR; // Access to TR simulation
 
   float mWion; // Ionization potential
 

@@ -34,8 +34,11 @@ Detector::Detector(Bool_t active)
     LOG(FATAL) << "Wrong gas mixture";
   }
   // Switch on TR simulation as default
+  mTRon = true;
   if (!mTRon) {
     LOG(INFO) << "TR simulation off";
+  } else {
+    mTR = new TRsim();
   }
 }
 
@@ -56,8 +59,11 @@ Detector::Detector(const Detector& rhs)
     // add hard exit here!
   }
   // Switch on TR simulation as default
+  mTRon = true;
   if (!mTRon) {
-    LOG(FATAL) << "TR simulation off";
+    LOG(INFO) << "TR simulation off";
+  } else {
+    mTR = new TRsim();
   }
 }
 
@@ -172,7 +178,7 @@ void Detector::createTRhit(int det)
   fMC->TrackMomentum(px, py, pz, etot);
   float pTot = TMath::Sqrt(px * px + py * py + pz * pz);
   std::vector<float> photonEnergyContainer;           // energy in keV
-  mTR.createPhotons(11, pTot, photonEnergyContainer); // Create TR photons
+  mTR->createPhotons(11, pTot, photonEnergyContainer); // Create TR photons
   if (photonEnergyContainer.size() > mMaxNumberOfTRPhotons) {
     LOG(ERROR) << "Boundary error: nTR = " << photonEnergyContainer.size() << ", mMaxNumberOfTRPhotons = " << mMaxNumberOfTRPhotons;
   }
@@ -184,7 +190,7 @@ void Detector::createTRhit(int det)
     double absLength = 0.0;
     double sigma = 0.0;
     // Take the absorbtion in the entrance window into account
-    double muMy = mTR.getMuMy(energyMeV);
+    double muMy = mTR->getMuMy(energyMeV);
     sigma = muMy * mFoilDensity;
     if (sigma > 0.0) {
       absLength = gRandom->Exp(1.0 / sigma);
@@ -198,14 +204,14 @@ void Detector::createTRhit(int det)
     // Gas-mixture (Xe/CO2)
     double muNo = 0.0;
     if (TRDCommonParam::Instance()->IsXenon()) {
-      muNo = mTR.getMuXe(energyMeV);
+      muNo = mTR->getMuXe(energyMeV);
     } else if (TRDCommonParam::Instance()->IsArgon()) {
-      muNo = mTR.getMuAr(energyMeV);
+      muNo = mTR->getMuAr(energyMeV);
     }
-    double muCO = mTR.getMuCO(energyMeV);
+    double muCO = mTR->getMuCO(energyMeV);
     double fGasNobleFraction = 1;
     double fGasDensity = 1;
-    sigma = (fGasNobleFraction * muNo + (1.0 - fGasNobleFraction) * muCO) * fGasDensity * mTR.getTemp();
+    sigma = (fGasNobleFraction * muNo + (1.0 - fGasNobleFraction) * muCO) * fGasDensity * mTR->getTemp();
 
     // The distance after which the energy of the TR photon
     // is deposited.
