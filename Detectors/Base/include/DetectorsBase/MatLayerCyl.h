@@ -122,6 +122,11 @@ class MatLayerCyl : public flatObject
   void flatten(char* newPtr);
   void fixPointers(char* oldPtr, char* newPtr);
 
+  /// Gives minimal alignment in bytes required for the class object
+  static constexpr size_t getClassAlignmentBytes() { return 8; }
+  /// Gives minimal alignment in bytes required for the flat buffer
+  static constexpr size_t getBufferAlignmentBytes() { return 8; }
+
  protected:
   int getNCells() const { return getNZBins() * getNPhiSlices(); }
   float getDZInv() const { return mDZInv; }
@@ -148,11 +153,12 @@ class MatLayerCyl : public flatObject
 
   static std::size_t estimateFlatBufferSize(int nPhiBins, int nPhiSlices, int nZBins)
   {
-    return                                    //sizeof(MatLayerCyl) +
-      nPhiBins * sizeof(short)                // mPhiBin2Slice
-      + nPhiSlices * sizeof(float) * 2        // mSliceCos + mSliceSin
-      + nPhiSlices * nZBins * sizeof(MatCell) // mCells
-      ;
+    size_t sz = 0;
+    sz += alignSize(sz + nPhiBins * sizeof(short), getBufferAlignmentBytes());              // mPhiBin2Slice
+    sz += alignSize(sz + nPhiSlices * sizeof(float), getBufferAlignmentBytes());            // mSliceCos
+    sz += alignSize(sz + nPhiSlices * sizeof(float), getBufferAlignmentBytes());            // mSliceSin
+    sz += alignSize(sz + nPhiSlices * nZBins * sizeof(MatCell), getBufferAlignmentBytes()); // mSliceSin
+    return sz;
   }
 
   //------------------------------------------------------
