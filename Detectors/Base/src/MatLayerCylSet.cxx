@@ -216,11 +216,14 @@ void MatLayerCylSet::print(bool data) const
 //________________________________________________________________________________
 std::size_t MatLayerCylSet::estimateFlatBufferSize() const
 {
-  std::size_t sz = sizeof(MatLayerCylSetLayout);
-  sz += (get()->mNRIntervals + 1) * sizeof(float) + get()->mNRIntervals * sizeof(int) +
-        get()->mNLayers * sizeof(MatLayerCyl);
+  std::size_t sz = alignSize(sizeof(MatLayerCylSetLayout), getBufferAlignmentBytes()); // hold data members
+
+  sz = alignSize(sz + get()->mNLayers * sizeof(MatLayerCyl), MatLayerCyl::getClassAlignmentBytes());
+  sz = alignSize(sz + (get()->mNRIntervals + 1) * sizeof(float), getBufferAlignmentBytes());
+  sz = alignSize(sz + get()->mNRIntervals * sizeof(int), getBufferAlignmentBytes());
+
   for (int i = 0; i < getNLayers(); i++) {
-    sz += getLayer(i).estimateFlatBufferSize();
+    sz = alignSize(sz + getLayer(i).estimateFlatBufferSize(), getBufferAlignmentBytes());
   }
   return sz;
 }
@@ -397,24 +400,23 @@ void MatLayerCylSet::flatten()
   mFlatBufferSize = sz;
   int nLr = getNLayers();
 
-  auto offs = sizeof(MatLayerCylSetLayout); // account for the alignment
+  auto offs = alignSize(sizeof(MatLayerCylSetLayout), getBufferAlignmentBytes()); // account for the alignment
   // move array of layer pointers to the flat array
   delete[] resizeArray(get()->mLayers, nLr, nLr, (MatLayerCyl*)(mFlatBufferPtr + offs));
-  offs += nLr * sizeof(MatLayerCyl); // account for the alignment
+  offs = alignSize(offs + nLr * sizeof(MatLayerCyl), MatLayerCyl::getClassAlignmentBytes()); // account for the alignment
 
   // move array of R2 boundaries to the flat array
   delete[] resizeArray(get()->mR2Intervals, nLr + 1, nLr + 1, (float*)(mFlatBufferPtr + offs));
-  offs += (nLr + 1) * sizeof(float); // account for the alignment
+  offs = alignSize(offs + (nLr + 1) * sizeof(float), getBufferAlignmentBytes()); // account for the alignment
 
   // move array of R2 boundaries to the flat array
   delete[] resizeArray(get()->mInterval2LrID, nLr, nLr, (int*)(mFlatBufferPtr + offs));
-  offs += nLr * sizeof(int); // account for the alignment
+  offs = alignSize(offs + nLr * sizeof(int), getBufferAlignmentBytes()); // account for the alignment
 
   for (int il = 0; il < nLr; il++) {
     MatLayerCyl& lr = get()->mLayers[il];
     lr.flatten(mFlatBufferPtr + offs);
-    //    get()->mLayers[il] = flatObject::relocatePointer((char*)get()->mLayers[il], mFlatBufferPtr+offs, get()->mLayers[il]);
-    offs += lr.getFlatBufferSize(); // account for the alignment
+    offs = alignSize(offs + lr.getFlatBufferSize(), getBufferAlignmentBytes()); // account for the alignment
   }
   mConstructionMask = Constructed;
 }
@@ -461,8 +463,9 @@ void MatLayerCylSet::fixPointers(char* newBasePtr)
   } else {
     mFlatBufferPtr = mFlatBufferContainer; // impose pointer after reading from file
   }
-  char* newPtr = mFlatBufferPtr + sizeof(MatLayerCylSetLayout); // correct pointer on MatLayerCyl*
-  char* oldPtr = reinterpret_cast<char*>(get()->mLayers);       // old pointer read from the file
+  auto offs = alignSize(sizeof(MatLayerCylSetLayout), getBufferAlignmentBytes()); // account for the alignment
+  char* newPtr = mFlatBufferPtr + offs;                                           // correct pointer on MatLayerCyl*
+  char* oldPtr = reinterpret_cast<char*>(get()->mLayers);                         // old pointer read from the file
   fixPointers(oldPtr, newPtr);
 }
 

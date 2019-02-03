@@ -84,13 +84,14 @@ void MatLayerCyl::initSegmentation(float rMin, float rMax, float zHalfSpan, int 
   for (int i = nphi; i--;) {
     mPhiBin2Slice[i] = i; // fill with trivial mapping
   }
-  offs += nphi * sizeof(short); // account for alignment
+
+  offs = alignSize(offs + nphi * sizeof(short), getBufferAlignmentBytes()); // account for alignment
 
   resizeArray(mSliceCos, 0, nphi, reinterpret_cast<float*>(mFlatBufferPtr + offs)); // in the beginning nslice = nphi
-  offs += nphi * sizeof(float);                                                     // account for alignment
+  offs = alignSize(offs + nphi * sizeof(float), getBufferAlignmentBytes());         // account for alignment
 
   resizeArray(mSliceSin, 0, nphi, reinterpret_cast<float*>(mFlatBufferPtr + offs)); // in the beginning nslice = nphi
-  offs += nphi * sizeof(float);                                                     // account for alignment
+  offs = alignSize(offs + nphi * sizeof(float), getBufferAlignmentBytes());         // account for alignment
 
   for (int i = nphi; i--;) {
     mSliceCos[i] = std::cos(getPhiBinMin(i));
@@ -227,10 +228,11 @@ void MatLayerCyl::optimizePhiSlices(float maxRelDiff)
 
   // relocate arrays to avoid spaces after optimization
   // mSliceCos pointer does not change, but sliceSin needs to be relocated
-  char* dst = (char*)(mSliceCos + newSl); // account for alignment
+  auto offs = alignSize(newSl * sizeof(float), getBufferAlignmentBytes());
+  char* dst = ((char*)mSliceCos) + offs; // account for alignment
   resizeArray(mSliceSin, getNPhiBins(), newSl, reinterpret_cast<float*>(dst));
   // adjust mCells array
-  dst = (char*)(mSliceSin + newSl); // account for alignment
+  dst = ((char*)mSliceSin) + newSl; // account for alignment
   resizeArray(mCells, getNPhiBins() * getNZBins(), newSl * getNZBins(), reinterpret_cast<MatCell*>(dst));
   mFlatBufferSize = estimateFlatBufferSize();
   LOG(INFO) << "Updated Nslices = " << getNPhiSlices();
