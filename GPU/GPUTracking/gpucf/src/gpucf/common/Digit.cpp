@@ -9,7 +9,8 @@ using namespace gpucf;
 
 static_assert(sizeof(FloatDigit) == FLOAT_DIGIT_SIZE);
 static_assert(sizeof(Digit) == sizeof(FloatDigit));
-static_assert(sizeof(HalfDigit) == HALF_DIGIT_SIZE);
+static_assert(sizeof(PackedDigit) == PACKED_DIGIT_SIZE);
+/* static_assert(sizeof(HalfDigit) == HALF_DIGIT_SIZE); */
 
 
 Digit::Digit()
