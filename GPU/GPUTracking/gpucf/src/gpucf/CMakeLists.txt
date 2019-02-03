@@ -21,6 +21,7 @@ set(GPUCF_SRC
 
     "./gpu/GPUAlgorithm.cpp"
     "./gpu/GPUClusterFinder.cpp"
+    "./gpu/StreamCompaction.cpp"
 )
 
 add_library(gpucf STATIC ${GPUCF_SRC})
