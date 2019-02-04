@@ -47,9 +47,6 @@ const float kCopperHalfThickness = 0.002 / 2.;
 const float kNomexHalfThickness = 0.88 / 2.;
 const float kAluminiumHalfThickness = 0.06 / 2.;
 
-/// RPC y position in the first chamber
-const float kRPCypos[] = { 0.0000, 68.1530, 135.6953, 204.4590, 271.3907, 272.6120, 203.5430, 136.3060, 67.8477 };
-
 TGeoVolume* createRPC(const char* type, int iChamber)
 {
   /// Function building a resisitive plate chamber (RPC), the detection element of the MID, of a given type and for the given chamber number.
@@ -62,7 +59,6 @@ TGeoVolume* createRPC(const char* type, int iChamber)
   double halfLength = (!strcmp(type, "short")) ? Constants::sRPCShortHalfLength : Constants::sRPCHalfLength;
   halfLength *= Constants::sScaleFactors[iChamber];
   double halfHeight = Constants::getRPCHalfHeight(iChamber);
-  halfHeight *= Constants::sScaleFactors[iChamber];
 
   /// create the volume of each material (a box by default)
 
@@ -214,7 +210,7 @@ TGeoVolume* createRPC(const char* type, int iChamber)
 
 TGeoVolume* createChamber(int iChamber)
 {
-  /// Function a trigger chamber, an assembly of RPCs (and services)
+  /// Function creating a trigger chamber, an assembly of RPCs (and services)
 
   auto chamber = new TGeoVolumeAssembly(Form("SC1%d", iChamber + 1));
 
@@ -231,35 +227,64 @@ TGeoVolume* createChamber(int iChamber)
   auto rotY = new TGeoRotation("rotY", 90., 180., 90., 90., 180., 0.);
   auto rotZ = new TGeoRotation("rotZ", 90., 180., 90., 270., 0., 0.);
 
-  // place them on the chamber
-  for (int iRPC = 0; iRPC < Constants::sNRPCLines; iRPC++) {
-    x = (iRPC == 0) ? Constants::sRPCShortCenterPos : Constants::sRPCCenterPos;
-    x *= Constants::sScaleFactors[iChamber];
-    y = kRPCypos[iRPC] * Constants::sScaleFactors[iChamber];
+  // RPC node
+  int deId = 0;
 
-    switch (iRPC) {
-      case 0: // short
-        chamber->AddNode(shortRPC, 0, new TGeoTranslation(x, y, z));
-        chamber->AddNode(shortRPC, 9, new TGeoCombiTrans(-x, -y, -z, rotY));
-        break;
-      case 1: // cut
-        chamber->AddNode(cutRPC, 1, new TGeoTranslation(x, y, z));
-        chamber->AddNode(cutRPC, 17, new TGeoCombiTrans(x, -y, z, rotX));
-        break;
-      case 8: // cut
-        chamber->AddNode(cutRPC, 8, new TGeoCombiTrans(-x, y, z, rotY));
-        chamber->AddNode(cutRPC, 10, new TGeoCombiTrans(-x, -y, z, rotZ));
-        break;
-      default: // long
-        if (iRPC >= 5)
-          x *= -1;
-        chamber->AddNode(longRPC, iRPC, new TGeoTranslation(x, y, z));
-        chamber->AddNode(longRPC, 2 * Constants::sNRPCLines - iRPC, new TGeoCombiTrans(x, -y, z, rotX));
-        break;
-    }
+  // place the RPCs on both side of the chamber
+  for (int iside = 0; iside < 2; iside++) {
 
-    z *= -1; // switch the z side for the next RPC placement
-  }
+    bool isRight = (iside == 0);
+    double xSign = (isRight) ? 1. : -1.;
+
+    // place the RPCs
+    for (int iRPC = 0; iRPC < Constants::sNRPCLines; iRPC++) {
+
+      deId = Constants::getDEId(isRight, iChamber, iRPC);
+      x = xSign * Constants::getRPCCenterPosX(iChamber, iRPC);
+      double zSign = (iRPC % 2 == 0) ? 1. : -1;
+      if (!isRight) {
+        zSign *= -1.;
+      }
+      z = zSign * Constants::sRPCZShift;
+      double newZ = Constants::sDefaultChamberZ[0] + z;
+      double oldZ = Constants::sDefaultChamberZ[0] - z;
+      y = Constants::getRPCHalfHeight(iChamber) * (iRPC - 4) * (1. + newZ / oldZ);
+
+      // ID convention (from bottom to top of the chamber) : long, long, long, cut, short, cut, long, long, long
+      switch (iRPC) {
+        case 4: // short
+          if (isRight) {
+            chamber->AddNode(shortRPC, deId, new TGeoTranslation(x, y, z));
+          } else {
+            chamber->AddNode(shortRPC, deId, new TGeoCombiTrans(x, y, z, rotY));
+          }
+          break;
+        case 5: // cut
+          if (isRight) {
+            chamber->AddNode(cutRPC, deId, new TGeoTranslation(x, y, z));
+          } else {
+            chamber->AddNode(cutRPC, deId, new TGeoCombiTrans(x, y, z, rotY));
+          }
+          break;
+        case 3: // cut
+          if (isRight) {
+            chamber->AddNode(cutRPC, deId, new TGeoCombiTrans(x, y, z, rotX));
+          } else {
+            chamber->AddNode(cutRPC, deId, new TGeoCombiTrans(x, y, z, rotZ));
+          }
+          break;
+        default: // long
+          if (isRight) {
+            chamber->AddNode(longRPC, deId, new TGeoTranslation(x, y, z));
+          } else {
+            chamber->AddNode(longRPC, deId, new TGeoCombiTrans(x, y, z, rotY));
+          }
+          break;
+      }
+
+    } // end of the loop over the number of RPC lines
+
+  } // end of the side loop
 
   return chamber;
 }
@@ -273,7 +298,7 @@ void createGeometry(TGeoVolume& topVolume)
   // create and place the trigger chambers
   for (int iCh = 0; iCh < Constants::sNChambers; iCh++) {
 
-    topVolume.AddNode(createChamber(iCh), 1, new TGeoCombiTrans(0., 0., Constants::sDefaultChamberZ[iCh], rot));
+    topVolume.AddNode(createChamber(iCh), 20 + iCh, new TGeoCombiTrans(0., 0., Constants::sDefaultChamberZ[iCh], rot));
   }
 }
 
