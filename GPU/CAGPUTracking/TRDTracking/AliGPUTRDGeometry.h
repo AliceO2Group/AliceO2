@@ -102,6 +102,7 @@ class AliGPUTRDGeometry
 {
 public:
 	GPUd() static bool CheckGeometryAvailable() {return false;}
+	void clearInternalBufferUniquePtr() {}
 
 	//Make sub-functionality available directly in AliGPUTRDGeometry
 	GPUd() float GetPadPlaneWidthIPad(int det) {return 0;}

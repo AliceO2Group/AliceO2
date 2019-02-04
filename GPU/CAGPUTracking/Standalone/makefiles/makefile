@@ -28,7 +28,7 @@ endif
 #GCC Compiler Options
 GCCFLAGSOPT						= -O3 $(GCCFLAGSARCH) -fweb -frename-registers -minline-all-stringops -mfpmath=sse -ftracer -funroll-loops -fpeel-loops -fprefetch-loop-arrays -ffast-math -fno-stack-protector
 GCCFLAGSDBG						= -O0
-CLANGFLAGSOPT					= -O3 $(GCCFLAGSARCH) -minline-all-stringops -mfpmath=sse -funroll-loops -ffast-math -fno-stack-protector $(EXTRAFLAGSCLANG)
+CLANGFLAGSOPT					= -O3 $(GCCFLAGSARCH) -minline-all-stringops -funroll-loops -ffast-math -fno-stack-protector $(EXTRAFLAGSCLANG)
 CLANGFLAGSDBG					= $(GCCFLAGSDBG) $(EXTRAFLAGSCLANG)
 GCCWARNINGS						= -Wall -Wextra -Wshadow -Wno-unused-function -Wno-unused-parameter -Wno-unused-local-typedefs -Wno-write-strings
 GCCFLAGSCOMMON					= $(MULTITHREADGCC) -pipe -DGCC_RUNTIME $(GCCPROF) $(GCCWARNINGS) $(EXTRAFLAGSGCC)
@@ -221,7 +221,7 @@ $(WORKPATH)/cu/%.cpp:			%.cu $(ALLDEP)
 								$(NVCC) $(NVCCFLAGSUSE) $(NVCCFLAGSDC) $(CUDAINCLUDEPATHS) $(CUDADEFINES) $(FILEFLAGS$<) --cuda --output-file "$@" $<
 								
 $(WORKPATH)/hip/%.$(OBJ):		%.hip.cpp $(ALLDEP)
-								$(HIPCC) --amdgpu-target=gfx900 $(CLANGFLAGFSUSE) $(CLANGFLAGSCOMMON) $(GCCINCLUDEPATHS) $(GCCDEFINES) $(COMPILETARGETTYPE) $(FILEFLAGS$<) -Wno-unused-command-line-argument -Wno-invalid-constexpr -c $< -o $@
+								$(HIPCC) --amdgpu-target=gfx900 $(CLANGFLAGSUSE) $(CLANGFLAGSCOMMON) $(GCCINCLUDEPATHS) $(GCCDEFINES) $(COMPILETARGETTYPE) $(FILEFLAGS$<) -Wno-unused-command-line-argument -Wno-invalid-constexpr -c $< -o $@
 
 $(WORKPATH)/asm/%.$(OBJ):		$(WORKPATH)/asm/%.asm $(ALLDEP)
 								$(ASM) $(COMPILEOUTPUT) $(ASMONLY) $<
