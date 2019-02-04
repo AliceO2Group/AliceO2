@@ -478,7 +478,7 @@ void MatLayerCylSet::fixPointers(char* oldPtr, char* newPtr)
   get()->mInterval2LrID = flatObject::relocatePointer(oldPtr, newPtr, get()->mInterval2LrID);
 
   for (int i = 0; i < getNLayers(); i++) {
-    get()->mLayers[i].mFlatBufferPtr = flatObject::relocatePointer(oldPtr, newPtr, get()->mLayers[i].mFlatBufferPtr);
+    get()->mLayers[i].setFlatPointer(flatObject::relocatePointer(oldPtr, newPtr, get()->mLayers[i].getFlatBufferPtr()));
     get()->mLayers[i].fixPointers(oldPtr, newPtr);
   }
 }

@@ -298,7 +298,6 @@ class flatObject
   }
 
  protected:
- public: // RS TODO : remove
   /// _______________  Data members  _______________________________________________
 
   /// Enumeration of construction states
