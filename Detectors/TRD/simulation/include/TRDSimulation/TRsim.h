@@ -132,7 +132,7 @@ class TRsim
   float mSpLower;                           // Lower border of the TR spectrum
   float mSpUpper;                           // Upper border of the TR spectrum
   std::array<double, mSpNBins> mSigma;      // [mSpNBins] Array of sigma values
-  TH1D* mSpectrum;                          // TR photon energy spectrum
+  TH1D* mSpectrum = nullptr;                // TR photon energy spectrum
 };
 } // namespace trd
 } // namespace o2
