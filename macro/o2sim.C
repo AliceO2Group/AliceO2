@@ -96,7 +96,8 @@ FairRunSim* o2sim_init(bool asservice)
     // create a link of expected file name to actually produced file
     // (deletes link if previously existing)
     unlink("O2geometry.root");
-    symlink(geomss.str().c_str(), "O2geometry.root");
+    if (symlink(geomss.str().c_str(), "O2geometry.root")) {
+    }
   }
   std::time_t runStart = std::time(nullptr);
 
