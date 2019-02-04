@@ -126,7 +126,7 @@ inline bool DigitGlobalPad::compareMClabels(const MCCompLabel& label1, const MCC
   // we compare directly on the bare label (in which eventID, labelID etc. are encoded)
   // this avoids any logical operator on the label; optimization motivated from an Intel VTune analysis
   // (note that this is also faster than using the operator= of MCCompLabel)
-  return label1.getRawLabel() == label2.getRawLabel();
+  return label1.getRawValue() == label2.getRawValue();
 }
 
 template <DigitzationMode MODE>
