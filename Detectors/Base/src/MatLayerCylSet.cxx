@@ -12,18 +12,17 @@
 /// \brief Implementation of the wrapper for the set of cylindrical material layers
 
 #include "DetectorsBase/MatLayerCylSet.h"
-#include "DetectorsBase/Ray.h"
 #include "CommonConstants/MathConstants.h"
 #include <FairLogger.h>
 
-#ifndef _COMPILED_ON_GPU_ // this part is unvisible on GPU version
+#ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
 #include <TFile.h>
 #include "CommonUtils/TreeStreamRedirector.h"
-#endif // !_COMPILED_ON_GPU_
+#endif // !GPUCA_GPUCODE
 
 using namespace o2::Base;
 
-#ifndef _COMPILED_ON_GPU_ // this part is unvisible on GPU version
+#ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
 
 //________________________________________________________________________________
 void MatLayerCylSet::addLayer(float rmin, float rmax, float zmax, float dz, float drphi)
@@ -192,8 +191,6 @@ void MatLayerCylSet::optimizePhiSlices(float maxRelDiff)
   // flatten();  // RS: TODO
 }
 
-#endif //!_COMPILED_ON_GPU_
-
 //________________________________________________________________________________
 void MatLayerCylSet::print(bool data) const
 {
@@ -212,6 +209,8 @@ void MatLayerCylSet::print(bool data) const
   printf("%.2f < R < %.2f  %d layers with total size %.2f MB\n", getRMin(), getRMax(), getNLayers(),
          float(getFlatBufferSize()) / 1024 / 1024);
 }
+
+#endif //!GPUCA_GPUCODE
 
 //________________________________________________________________________________
 std::size_t MatLayerCylSet::estimateFlatBufferSize() const
@@ -232,16 +231,8 @@ std::size_t MatLayerCylSet::estimateFlatBufferSize() const
 MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, float x1, float y1, float z1) const
 {
   // get material budget traversed on the line between point0 and point1
-  Point3D<float> point0(x0, y0, z0), point1(x1, y1, z1);
-  return getMatBudget(point0, point1);
-}
-
-//_________________________________________________________________________________________________
-MatBudget MatLayerCylSet::getMatBudget(const Point3D<float>& point0, const Point3D<float>& point1) const
-{
-  // get material budget traversed on the line between point0 and point1
   MatBudget rval;
-  Ray ray(point0, point1);
+  Ray ray(x0, y0, z0, x1, y1, z1);
   short lmin, lmax; // get innermost and outermost relevant layer
   if (!getLayersRange(ray, lmin, lmax)) {
     return rval;
@@ -297,11 +288,11 @@ MatBudget MatLayerCylSet::getMatBudget(const Point3D<float>& point0, const Point
             rval.meanX2X0 += cell.meanX2X0 * step;
             rval.length += step;
 
-            auto pos0 = ray.getPos(tStartZ);
-            auto pos1 = ray.getPos(tEndZ);
+            float pos0[3] = { ray.getPos(tStartZ, 0), ray.getPos(tStartZ, 1), ray.getPos(tStartZ, 2) };
+            float pos1[3] = { ray.getPos(tEndZ, 0), ray.getPos(tEndZ, 1), ray.getPos(tEndZ, 2) };
             printf("Lr#%3d / cross#%d : account %f<t<%f at phiSlice %d | Zbin: %3d (%3d) |[%+e %+e +%e]:[%+e %+e %+e]\n",
                    lrID, ic, tEndZ, tStartZ, phiID % lr.getNPhiSlices(), zID, zIDLast,
-                   pos0.X(), pos0.Y(), pos0.Z(), pos1.X(), pos1.Y(), pos1.Z());
+                   pos0[0], pos0[1], pos0[2], pos1[0], pos1[1], pos1[2]);
             tStartZ = tEndZ;
             zID += stepZID;
           } while (checkMoreZ);
@@ -312,11 +303,11 @@ MatBudget MatLayerCylSet::getMatBudget(const Point3D<float>& point0, const Point
           rval.meanX2X0 += cell.meanX2X0 * step;
           rval.length += step;
 
-          auto pos0 = ray.getPos(tStartPhi);
-          auto pos1 = ray.getPos(tEndPhi);
+          float pos0[3] = { ray.getPos(tStartPhi, 0), ray.getPos(tStartPhi, 1), ray.getPos(tStartPhi, 2) };
+          float pos1[3] = { ray.getPos(tEndPhi, 0), ray.getPos(tEndPhi, 1), ray.getPos(tEndPhi, 2) };
           printf("Lr#%3d / cross#%d : account %f<t<%f at phiSlice %d | Zbin: %3d ----- |[%+e %+e +%e]:[%+e %+e %+e]\n",
                  lrID, ic, tEndPhi, tStartPhi, phiID % lr.getNPhiSlices(), zID,
-                 pos0.X(), pos0.Y(), pos0.Z(), pos1.X(), pos1.Y(), pos1.Z());
+                 pos0[0], pos0[1], pos0[2], pos1[0], pos1[1], pos1[2]);
         }
         //
         tStartPhi = tEndPhi;
@@ -388,6 +379,8 @@ int MatLayerCylSet::searchSegment(float val, int low, int high) const
   return mid;
 }
 
+#ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
+
 void MatLayerCylSet::flatten()
 {
   // make object flat: move all content to single internally allocated buffer
@@ -425,9 +418,10 @@ void MatLayerCylSet::flatten()
 void MatLayerCylSet::moveBufferTo(char* newFlatBufferPtr)
 {
   /// sets buffer pointer to the new address, move the buffer content there.
-  moveBufferTo(newFlatBufferPtr);
+  flatObject::moveBufferTo(newFlatBufferPtr);
   setActualBufferAddress(mFlatBufferPtr);
 }
+#endif // !GPUCA_GPUCODE
 
 //______________________________________________
 void MatLayerCylSet::setFutureBufferAddress(char* futureFlatBufferPtr)
@@ -445,7 +439,7 @@ void MatLayerCylSet::setActualBufferAddress(char* actualFlatBufferPtr)
   ///
   fixPointers(actualFlatBufferPtr);
 }
-
+#ifndef GPUCA_GPUCODE // code invisible on GPU
 //______________________________________________
 void MatLayerCylSet::cloneFromObject(const MatLayerCylSet& obj, char* newFlatBufferPtr)
 {
@@ -453,6 +447,7 @@ void MatLayerCylSet::cloneFromObject(const MatLayerCylSet& obj, char* newFlatBuf
   flatObject::cloneFromObject(obj, newFlatBufferPtr);
   fixPointers(mFlatBufferPtr);
 }
+#endif
 
 //______________________________________________
 void MatLayerCylSet::fixPointers(char* newBasePtr)

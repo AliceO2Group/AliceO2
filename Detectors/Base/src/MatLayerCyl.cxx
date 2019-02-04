@@ -25,7 +25,7 @@ MatLayerCyl::MatLayerCyl() : mZHalf(0.f), mNZBins(0), mNPhiBins(0), mNPhiSlices(
 {
 }
 
-#ifndef _COMPILED_ON_GPU_ // this part is unvisible on GPU version
+#ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
 //________________________________________________________________________________
 MatLayerCyl::MatLayerCyl(float rMin, float rMax, float zHalfSpan, float dzMin, float drphiMin)
 {
@@ -264,8 +264,6 @@ void MatLayerCyl::getMeanRMS(MatCell& mean, MatCell& rms) const
   rms.meanX2X0 = rms.meanX2X0 > 0.f ? std::sqrt(rms.meanX2X0) : 0.f;
 }
 
-#endif // ! _COMPILED_ON_GPU_
-
 //________________________________________________________________________________
 void MatLayerCyl::print(bool data) const
 {
@@ -299,10 +297,13 @@ void MatLayerCyl::flatten(char* newPtr)
   // make object flat: move all content to single internally allocated buffer
   assert(mConstructionMask == InProgress);
   fixPointers(mFlatBufferPtr, newPtr);
-  delete[] resizeArray(mFlatBufferPtr, getFlatBufferSize(), getFlatBufferSize(), newPtr);
+  auto old = resizeArray(mFlatBufferPtr, getFlatBufferSize(), getFlatBufferSize(), newPtr);
+  delete[] old;
   mFlatBufferContainer = nullptr;
   mConstructionMask = Constructed;
 }
+
+#endif // ! GPUCA_GPUCODE
 
 //________________________________________________________________________________
 void MatLayerCyl::fixPointers(char* oldPtr, char* newPtr)

@@ -16,36 +16,8 @@
 using namespace o2::Base;
 
 //______________________________________________________
-Ray::Ray() : mP0(), mDx(0.f), mDy(0.f), mDz(0.f), mDistXY2(0.f), mDistXY2i(0.f), mDistXYZ(0.f), mXDxPlusYDy(0.f), mXDxPlusYDyRed(0.f), mXDxPlusYDy2(0.f), mR02(0.f), mR12(0.f), mCrossParams()
+Ray::Ray() : mP{ 0.f }, mD{ 0.f }, mDistXY2(0.f), mDistXY2i(0.f), mDistXYZ(0.f), mXDxPlusYDy(0.f), mXDxPlusYDyRed(0.f), mXDxPlusYDy2(0.f), mR02(0.f), mR12(0.f), mCrossParams()
 {
-}
-
-//______________________________________________________
-Ray::Ray(const Point3D<float> point0, const Point3D<float> point1)
-  : mP0(point0), mDx(point1.X() - point0.X()), mDy(point1.Y() - point0.Y()), mDz(point1.Z() - point0.Z())
-{
-  mDistXY2 = mDx * mDx + mDy * mDy;
-  mDistXY2i = mDistXY2 > 0 ? 1.f / mDistXY2 : 0.f;
-  mDistXYZ = std::sqrt(mDistXY2 + mDz * mDz);
-  mXDxPlusYDy = mP0.X() * mDx + mP0.Y() * mDy;
-  mXDxPlusYDyRed = -mXDxPlusYDy * mDistXY2i;
-  mXDxPlusYDy2 = mXDxPlusYDy * mXDxPlusYDy;
-  mR02 = point0.Perp2();
-  mR12 = point1.Perp2();
-}
-
-//______________________________________________________
-Ray::Ray(float x0, float y0, float z0, float x1, float y1, float z1)
-  : mP0(x0, y0, z0), mDx(x1 - x0), mDy(y1 - y0), mDz(z1 - z0)
-{
-  mDistXY2 = mDx * mDx + mDy * mDy;
-  mDistXY2i = mDistXY2 > 0 ? 1.f / mDistXY2 : 0.f;
-  mDistXYZ = std::sqrt(mDistXY2 + mDz * mDz);
-  mXDxPlusYDy = x0 * mDx + y0 * mDy;
-  mXDxPlusYDyRed = -mXDxPlusYDy * mDistXY2i;
-  mXDxPlusYDy2 = mXDxPlusYDy * mXDxPlusYDy;
-  mR02 = x0 * x0 + y0 * y0;
-  mR12 = x1 * x1 + y1 * y1;
 }
 
 //______________________________________________________
@@ -96,6 +68,5 @@ int Ray::crossLayer(const MatLayerCyl& lr)
       nCross++;
     }
   }
-
   return nCross;
 }

@@ -21,6 +21,7 @@
 #include "ReconstructionDataFormats/TrackLTIntegral.h"
 #include "MathUtils/Cartesian3D.h"
 #include "DetectorsBase/MatLayerCylSet.h"
+#include "DetectorsBase/GeometryManager.h"
 
 namespace o2
 {
@@ -78,6 +79,11 @@ class Propagator
  private:
   Propagator();
   ~Propagator() = default;
+
+  MatBudget getMatBudget(int corrType, const Point3D<float>& p0, const Point3D<float>& p1) const
+  {
+    return (corrType == USEMatCorrTGeo) ? GeometryManager::meanMaterialBudget(p0, p1) : mMatLUT->getMatBudget(p0.X(), p0.Y(), p0.Z(), p1.X(), p1.Y(), p1.Z());
+  }
 
   const o2::field::MagFieldFast* mField = nullptr; ///< External fast field (barrel only for the moment)
   float mBz = 0;                                   // nominal field

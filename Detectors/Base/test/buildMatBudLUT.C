@@ -12,17 +12,14 @@
 // Demo and test of the Barrel mat.budget LUT
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-
 #include "DetectorsBase/MatLayerCylSet.h"
 #include "DetectorsBase/MatLayerCyl.h"
-
-#ifndef _COMPILED_ON_GPU_ // this part is unvisible on GPU version
-
 #include "DetectorsBase/GeometryManager.h"
 #include <TFile.h>
 #include <TSystem.h>
-
 #endif
+
+#ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
 
 o2::Base::MatLayerCylSet mbLUT;
 
@@ -44,17 +41,6 @@ struct LrData {
 
 std::vector<LrData> lrData;
 void configLayers();
-
-/*
-o2::Base::MatLayerCylSet *mb = o2::Base::MatLayerCylSet::loadFromFile("matBudg.root")
-char *newBuff = new char[mb->getFlatBufferSize() ];
-char *newObj = new char[sizeof(o2::Base::MatLayerCylSet)]
-memcpy((void*)newObj, mb, sizeof(o2::Base::MatLayerCylSet));
-memcpy((void*)newBuff,mb->getFlatBufferPtr(), mb->getFlatBufferSize() )
-o2::Base::MatLayerCylSet* xxx = (o2::Base::MatLayerCylSet*)newObj;
-xxx->print()
-xxx->print(1)
-*/
 
 bool buildMatBudLUT(int nTst, int maxLr, std::string outName, std::string outFile, std::string geomName)
 {

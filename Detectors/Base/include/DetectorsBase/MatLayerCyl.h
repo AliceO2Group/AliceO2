@@ -53,18 +53,20 @@ class MatLayerCyl : public flatObject
   MatLayerCyl(const MatLayerCyl& src) CON_DELETE;
   ~MatLayerCyl() CON_DEFAULT;
 
-#ifndef _COMPILED_ON_GPU_ // this part is unvisible on GPU version
+#ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
   MatLayerCyl(float rMin, float rMax, float zHalfSpan, float dzMin, float drphiMin);
 
   void initSegmentation(float rMin, float rMax, float zHalfSpan, int nz, int nphi);
   void initSegmentation(float rMin, float rMax, float zHalfSpan, float dzMin, float drphiMin);
   void populateFromTGeo(int ntrPerCell = 10);
   void populateFromTGeo(int ip, int iz, int ntrPerCell);
-#endif
-
   void print(bool data = false) const;
+#endif // !GPUCA_GPUCODE
 
-  float getRMin() const { return std::sqrt(getRMin2()); }
+  float getRMin() const
+  {
+    return std::sqrt(getRMin2());
+  }
   float getRMax() const { return std::sqrt(getRMax2()); }
   float getZMin() const { return -mZHalf; }
   float getZMax() const { return mZHalf; }
@@ -111,15 +113,14 @@ class MatLayerCyl : public flatObject
 
   std::size_t estimateFlatBufferSize() const { return estimateFlatBufferSize(getNPhiBins(), getNPhiSlices(), getNZBins()); }
 
-#ifndef _COMPILED_ON_GPU_ // this part is unvisible on GPU version
+#ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
   void getMeanRMS(MatCell& mean, MatCell& rms) const;
   bool cellsDiffer(const MatCell& cellA, const MatCell& cellB, float maxRelDiff) const;
   bool canMergePhiSlices(int i, int j, float maxRelDiff = 0.05, int maxDifferent = 1) const;
   void optimizePhiSlices(float maxRelDiff = 0.05);
-
-#endif
-
   void flatten(char* newPtr);
+#endif // !GPUCA_GPUCODE
+
   void fixPointers(char* oldPtr, char* newPtr);
 
   void setFlatPointer(char* ptr)

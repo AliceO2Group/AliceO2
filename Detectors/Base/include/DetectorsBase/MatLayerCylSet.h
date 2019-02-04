@@ -15,9 +15,12 @@
 #define ALICEO2_MATLAYERCYLSET_H
 
 #include "DetectorsBase/MatLayerCyl.h"
-#include "MathUtils/Cartesian3D.h"
 #include "DetectorsBase/Ray.h"
 #include "DetectorsBase/flatObject.h"
+
+#ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
+#include "MathUtils/Cartesian3D.h"
+#endif // !GPUCA_GPUCODE
 
 /**********************************************************************
  *                                                                    *
@@ -63,10 +66,9 @@ class MatLayerCylSet : public flatObject
   float getRMin2() const { return get()->mRMin2; }
   float getRMax2() const { return get()->mRMax2; }
 
+#ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
+
   void print(bool data = false) const;
-
-#ifndef _COMPILED_ON_GPU_ // this part is unvisible on GPU version
-
   void addLayer(float rmin, float rmax, float zmax, float dz, float drphi);
   void populateFromTGeo(int ntrPerCel = 10);
   void optimizePhiSlices(float maxRelDiff = 0.05);
@@ -74,18 +76,24 @@ class MatLayerCylSet : public flatObject
   void dumpToTree(const std::string outName = "matbudTree.root") const;
   void writeToFile(std::string outFName = "matbud.root", std::string name = "MatBud");
   static MatLayerCylSet* loadFromFile(std::string inpFName = "matbud.root", std::string name = "MatBud");
+  void flatten();
 
-#endif // !_COMPILED_ON_GPU_
+#endif // !GPUCA_GPUCODE
 
   std::size_t estimateFlatBufferSize() const;
 
-  MatBudget getMatBudget(const Point3D<float>& point0, const Point3D<float>& point1) const;
+#ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
+  MatBudget getMatBudget(const Point3D<float>& point0, const Point3D<float>& point1) const
+  {
+    // get material budget traversed on the line between point0 and point1
+    return getMatBudget(point0.X(), point0.Y(), point0.Z(), point1.X(), point1.Y(), point1.Z());
+  }
+#endif // !GPUCA_GPUCODE
   MatBudget getMatBudget(float x0, float y0, float z0, float x1, float y1, float z1) const;
 
   int searchSegment(float val, int low = -1, int high = -1) const;
 
   //-----------------------------------------------------------
-  void flatten();
   void moveBufferTo(char* newFlatBufferPtr);
 
   void setActualBufferAddress(char* actualFlatBufferPtr);

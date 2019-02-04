@@ -22,9 +22,9 @@
 #include <cassert>
 #include "AliTPCCommonDef.h"
 #include "AliTPCCommonRtypes.h"
+#include "AliTPCCommonFairLogger.h"
 
-//TODO: this should be substituted by real option signaling compilation on GPU
-//#define _COMPILED_ON_GPU_
+//#define GPUCA_GPUCODE // uncomment to test "GPU" mode
 
 namespace o2
 {
@@ -112,6 +112,8 @@ namespace Base
 ///  before the transport. The object will be ready-to-use right after the porting.
 ///
 
+#ifndef GPUCA_GPUCODE // code invisible on GPU
+
 template <typename T>
 T* resizeArray(T*& ptr, int oldSize, int newSize, T* newPtr = nullptr)
 {
@@ -162,6 +164,8 @@ T** resizeArray(T**& ptr, int oldSize, int newSize, T** newPtr = nullptr)
   return oldPtr;
 }
 
+#endif //!GPUCA_GPUCODE
+
 class flatObject
 {
  public:
@@ -201,20 +205,25 @@ class flatObject
   /// Set the object to NotConstructed state, release the buffer
   void destroy();
 
-  /// Initializes from another object, copies data to newBufferPtr
-  /// When newBufferPtr==nullptr, an internal container will be created, the data will be copied there.
-  /// A daughter class should relocate pointers inside the buffer.
-  ///
+/// Initializes from another object, copies data to newBufferPtr
+/// When newBufferPtr==nullptr, an internal container will be created, the data will be copied there.
+/// A daughter class should relocate pointers inside the buffer.
+
+#ifndef GPUCA_GPUCODE
   void cloneFromObject(const flatObject& obj, char* newFlatBufferPtr);
+#endif // !GPUCA_GPUCODE
 
   /// _____________  Methods for making the data buffer external  __________________________
 
   // Returns an pointer to the internal buffer with all the rights. Makes the internal container variable empty.
   char* releaseInternalBuffer();
 
-  /// Sets buffer pointer to the new address, move the buffer content there.
-  /// A daughter class must relocate all the pointers inside th buffer
+/// Sets buffer pointer to the new address, move the buffer content there.
+/// A daughter class must relocate all the pointers inside th buffer
+
+#ifndef GPUCA_GPUCODE
   void moveBufferTo(char* newBufferPtr);
+#endif // !GPUCA_GPUCODE
 
   /// _____________  Methods for moving the class with its external buffer to another location  __________________________
 
@@ -280,6 +289,7 @@ class flatObject
     return (ptr != nullptr) ? reinterpret_cast<T*>(newBase + (reinterpret_cast<const char*>(ptr) - oldBase)) : nullptr;
   }
 
+#ifndef GPUCA_GPUCODE // code invisible on GPU
   void printC() const
   {
     bool lfdone = false;
@@ -296,6 +306,7 @@ class flatObject
       printf("\n");
     }
   }
+#endif //!GPUCA_GPUCODE
 
  protected:
   /// _______________  Data members  _______________________________________________
@@ -360,6 +371,7 @@ inline void flatObject::finishConstruction(int flatBufferSize)
   mConstructionMask = (unsigned int)ConstructionState::Constructed; // clear other possible construction flags
 }
 
+#ifndef GPUCA_GPUCODE // code invisible on GPU
 inline void flatObject::cloneFromObject(const flatObject& obj, char* newFlatBufferPtr)
 {
 
@@ -374,6 +386,7 @@ inline void flatObject::cloneFromObject(const flatObject& obj, char* newFlatBuff
   assert(!(!newFlatBufferPtr && obj.mFlatBufferPtr == mFlatBufferPtr && obj.isBufferInternal()));
 
   char* oldPtr = resizeArray(mFlatBufferPtr, mFlatBufferSize, obj.mFlatBufferSize, newFlatBufferPtr);
+
   if (isBufferInternal()) {
     delete[] oldPtr; // delete old buffer if owned
   }
@@ -383,6 +396,7 @@ inline void flatObject::cloneFromObject(const flatObject& obj, char* newFlatBuff
 
   mConstructionMask = (unsigned int)ConstructionState::Constructed;
 }
+#endif
 
 inline char* flatObject::releaseInternalBuffer()
 {
@@ -405,6 +419,7 @@ inline void flatObject::clearInternalBufferPtr()
   mFlatBufferContainer = nullptr;
 }
 
+#ifndef GPUCA_GPUCODE // code invisible on GPU
 inline void flatObject::moveBufferTo(char* newFlatBufferPtr)
 {
   /// sets buffer pointer to the new address, move the buffer content there.
@@ -418,6 +433,7 @@ inline void flatObject::moveBufferTo(char* newFlatBufferPtr)
     mFlatBufferContainer = mFlatBufferPtr;
   }
 }
+#endif
 
 inline void flatObject::setActualBufferAddress(char* actualFlatBufferPtr)
 {
@@ -428,7 +444,9 @@ inline void flatObject::setActualBufferAddress(char* actualFlatBufferPtr)
 
   assert(!isBufferInternal());
   mFlatBufferPtr = actualFlatBufferPtr;
+#ifndef GPUCA_GPUCODE            // code invisible on GPU
   delete[] mFlatBufferContainer; // for a case..
+#endif                           // !GPUCA_GPUCODE
   mFlatBufferContainer = nullptr;
 }
 
@@ -441,7 +459,9 @@ inline void flatObject::setFutureBufferAddress(char* futureFlatBufferPtr)
 
   assert(!isBufferInternal());
   mFlatBufferPtr = futureFlatBufferPtr;
+#ifndef GPUCA_GPUCODE            // code invisible on GPU
   delete[] mFlatBufferContainer; // for a case..
+#endif                           // !GPUCA_GPUCODE
   mFlatBufferContainer = nullptr;
 }
 

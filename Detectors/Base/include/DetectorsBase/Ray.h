@@ -16,10 +16,13 @@
 
 #include "AliTPCCommonRtypes.h"
 #include "AliTPCCommonDef.h"
-#include "MathUtils/Cartesian3D.h"
 #include "DetectorsBase/MatLayerCyl.h"
 #include "MathUtils/Utils.h"
 #include <array>
+
+#ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
+#include "MathUtils/Cartesian3D.h"
+#endif // !GPUCA_GPUCODE
 
 /**********************************************************************
  *                                                                    *
@@ -38,13 +41,16 @@ class Ray
 
  public:
   using CrossPar = std::pair<float, float>;
+  using vecF3 = float[3];
 
   static constexpr float InvalidT = -1e9;
   static constexpr float Tiny = 1e-9;
 
   Ray();
   ~Ray() CON_DEFAULT;
+#ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
   Ray(const Point3D<float> point0, const Point3D<float> point1);
+#endif // !GPUCA_GPUCODE
   Ray(float x0, float y0, float z0, float x1, float y1, float z1);
 
   int crossLayer(const MatLayerCyl& lr);
@@ -61,39 +67,77 @@ class Ray
   float getDist() const { return mDistXYZ; }
   float getDist(float deltaT) const { return mDistXYZ * (deltaT > 0 ? deltaT : -deltaT); }
 
-  Point3D<float> getPos(float t) const
-  {
-    return Point3D<float>(mP0.X() + t * mDx, mP0.Y() + t * mDy, mP0.Z() + t * mDz);
-  }
+  // for debud only
+  float getPos(float t, int i) const { return mP[i] + t * mD[i]; }
 
   float getPhi(float t) const
   {
-    float p = std::atan2(mP0.Y() + t * mDy, mP0.X() + t * mDx);
+    float p = std::atan2(mP[1] + t * mD[1], mP[0] + t * mD[0]);
     o2::utils::BringTo02Pi(p);
     return p;
   }
 
-  float getZ(float t) const { return mP0.Z() + t * mDz; }
+  float getZ(float t) const { return mP[2] + t * mD[2]; }
 
   bool validateZRange(CrossPar& cpar, const MatLayerCyl& lr) const;
 
  private:
-  Point3D<float> mP0;                   ///< entrance point
-  float mDx;                            ///< X distance
-  float mDy;                            ///< Y distance
-  float mDz;                            ///< Z distance
+  vecF3 mP;                             ///< entrance point
+  vecF3 mD;                             ///< X,Y,Zdistance
   float mDistXY2;                       ///< dist^2 between points in XY plane
   float mDistXY2i;                      ///< inverse dist^2 between points in XY plane
   float mDistXYZ;                       ///< distance between 2 points
   float mXDxPlusYDy;                    ///< aux x0*DX+y0*DY
   float mXDxPlusYDyRed;                 ///< aux (x0*DX+y0*DY)/mDistXY2
   float mXDxPlusYDy2;                   ///< aux (x0*DX+y0*DY)^2
-  float mR02;                           ///< radius^2 of mP0
+  float mR02;                           ///< radius^2 of mP
   float mR12;                           ///< radius^2 of mP1
   std::array<CrossPar, 2> mCrossParams; ///< parameters of crossing the layer
 
   ClassDefNV(Ray, 1);
 };
+
+//______________________________________________________
+#ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
+
+inline Ray::Ray(const Point3D<float> point0, const Point3D<float> point1)
+  : mP{ point0.X(), point0.Y(), point0.Z() }, mD{ point1.X() - point0.X(), point1.Y() - point0.Y(), point1.Z() - point0.Z() }
+{
+  mDistXY2 = mD[0] * mD[0] + mD[1] * mD[1];
+  mDistXY2i = mDistXY2 > 0 ? 1.f / mDistXY2 : 0.f;
+  mDistXYZ = std::sqrt(mDistXY2 + mD[2] * mD[2]);
+  mXDxPlusYDy = point0.X() * mD[0] + point0.Y() * mD[1];
+  mXDxPlusYDyRed = -mXDxPlusYDy * mDistXY2i;
+  mXDxPlusYDy2 = mXDxPlusYDy * mXDxPlusYDy;
+  mR02 = point0.Perp2();
+  mR12 = point1.Perp2();
+}
+#endif // !GPUCA_GPUCODE
+
+//______________________________________________________
+inline Ray::Ray(float x0, float y0, float z0, float x1, float y1, float z1)
+  : mP{ x0, y0, z0 }, mD{ x1 - x0, y1 - y0, z1 - z0 }
+{
+  mDistXY2 = mD[0] * mD[0] + mD[1] * mD[1];
+  mDistXY2i = mDistXY2 > 0 ? 1.f / mDistXY2 : 0.f;
+  mDistXYZ = std::sqrt(mDistXY2 + mD[2] * mD[2]);
+  mXDxPlusYDy = x0 * mD[0] + y0 * mD[1];
+  mXDxPlusYDyRed = -mXDxPlusYDy * mDistXY2i;
+  mXDxPlusYDy2 = mXDxPlusYDy * mXDxPlusYDy;
+  mR02 = x0 * x0 + y0 * y0;
+  mR12 = x1 * x1 + y1 * y1;
+}
+
+//______________________________________________________
+inline float Ray::crossRadial(float cs, float sn) const
+{
+  // calculate t of crossing with radial line with inclination cosine and sine
+  float den = mD[0] * sn - mD[1] * cs;
+  if (std::abs(den) < Tiny) {
+    return InvalidT;
+  }
+  return (mP[1] * cs - mP[0] * sn) / den;
+}
 
 //______________________________________________________
 inline bool Ray::crossCircleR(float r2, CrossPar& cross) const
@@ -111,6 +155,7 @@ inline bool Ray::crossCircleR(float r2, CrossPar& cross) const
   return true;
 }
 
+//______________________________________________________
 inline float Ray::crossRadial(const MatLayerCyl& lr, int sliceID) const
 {
   // calculate t of crossing with phimin of layer's slice sliceID
@@ -118,20 +163,10 @@ inline float Ray::crossRadial(const MatLayerCyl& lr, int sliceID) const
 }
 
 //______________________________________________________
-inline float Ray::crossRadial(float cs, float sn) const
-{
-  // calculate t of crossing with radial line with inclination cosine and sine
-  float den = mDx * sn - mDy * cs;
-  if (std::abs(den) < Tiny)
-    return InvalidT;
-  return (mP0.Y() * cs - mP0.X() * sn) / den;
-}
-
-//______________________________________________________
 inline float Ray::crossZ(float z) const
 {
   // calculate t of crossing XY plane at Z
-  return std::abs(mDz) > Tiny ? (z - mP0.Z()) / mDz : InvalidT;
+  return std::abs(mD[2]) > Tiny ? (z - mP[2]) / mD[2] : InvalidT;
 }
 
 //______________________________________________________
@@ -166,8 +201,8 @@ inline void Ray::getMinMaxR2(float& rmin2, float& rmax2) const
   }
   if (mXDxPlusYDyRed > 0.f && mXDxPlusYDyRed < 1.f) {
     // estimate point of closest approach to origin as the crossing of normal from the origin to input vector
-    // use r^2(t) = mR02 + t^2 (mDx^2+mDy^2) + 2t*mXDxPlusYDy
-    float xMin = mP0.X() + mXDxPlusYDyRed * mDx, yMin = mP0.Y() + mXDxPlusYDyRed * mDy;
+    // use r^2(t) = mR02 + t^2 (mD[0]^2+mD[1]^2) + 2t*mXDxPlusYDy
+    float xMin = mP[0] + mXDxPlusYDyRed * mD[0], yMin = mP[1] + mXDxPlusYDyRed * mD[1];
     rmin2 = xMin * xMin + yMin * yMin;
   }
 }
