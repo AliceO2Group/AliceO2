@@ -54,11 +54,11 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparam
   outFile.cd();
   outTree.Write();
   calib.getLHCphaseHisto()->Write();
-  calib.getChTimeSleewingHistoAll()->Write();
+  calib.getChTimeSlewingHistoAll()->Write();
 
   for(int i=0; i < calib.NPADSPERSTEP; i++){
     //calib.getChOffsetHisto(i)->Write();
-    //calib.getChTimeSleewingHisto(i)->Write();
+    //calib.getChTimeSlewingHisto(i)->Write();
   }
 
   outFile.Close();

@@ -43,6 +43,12 @@ class CalibTOF
   static constexpr int NSTRIPPERSTEP = 9;
   static constexpr int NPADSPERSTEP = Geo::NPADS * NSTRIPPERSTEP;
 
+  ///< constructor
+  CalibTOF();
+  
+  ///< destructor
+  ~CalibTOF(); 
+
   ///< calibrate using the provided input
   void run(int flag);
 
@@ -113,6 +119,8 @@ class CalibTOF
   std::vector<o2::dataformats::CalibInfoTOFshort>* mCalibInfoTOF = nullptr; ///< input TOF matching info
   /// <<<-----
 
+  std::vector<o2::dataformats::CalibInfoTOFshort>* mCalibTimePad[NPADSPERSTEP]; ///< temporary array containing [time, tot] for every pad that we process; this will be the input for the 2D histo for timeSlewing calibration (to be filled after we get the channel offset)
+  
   std::string mCollectedCalibInfoTOFBranchName = "TOFCollectedCalibInfo";   ///< name of branch containing input TOF calib infos
   std::string mOutputBranchName = "TOFCalibParam";        ///< name of branch containing output
   // output calibration
@@ -123,7 +131,7 @@ class CalibTOF
   float mCalibChannelOffsetErr[Geo::NCHANNELS]; ///< output TOF channel offset in ps
 
   // previous calibration read from CCDB
-  float mInitialCalibChannelOffset[Geo::NCHANNELS]; ///< output TOF channel offset in ps
+  float mInitialCalibChannelOffset[Geo::NCHANNELS]; ///< initial calibrations read from the OCDB (the calibration process will do a residual calibration with respect to those)
 
 
   TF1 *mFuncLHCphase = nullptr;

@@ -20,6 +20,7 @@
 #include <vector>
 #include <string>
 #include <TStopwatch.h>
+#include <TParameter.h>
 #include "ReconstructionDataFormats/CalibInfoTOF.h"
 #include "ReconstructionDataFormats/CalibInfoTOFshort.h"
 #include "TOFBase/Geo.h"
@@ -38,6 +39,8 @@ class CollectCalibInfoTOF
  public:
   static constexpr int MAXNUMBEROFHITS = 256;
 
+ CollectCalibInfoTOF() : mMinTimestamp("minTimestamp", -1), mMaxTimestamp("maxTimestamp", -1) {}
+  
   ///< collect the CalibInfo for the TOF channels
   void run();
 
@@ -57,6 +60,10 @@ class CollectCalibInfoTOF
   ///< get input branch names for the input from the tree
   const std::string& getTOFCalibInfoBranchName() const { return mTOFCalibInfoBranchName; }
   const std::string& getOutputBranchName() const { return mOutputBranchName; }
+
+  ///< get the min/max timestamp for following calibration of LHCPhase
+  const TParameter<int>& getMinTimestamp() const {return mMinTimestamp;}
+  const TParameter<int>& getMaxTimestamp() const {return mMaxTimestamp;}
 
   ///< print settings
   void print() const;
@@ -99,6 +106,13 @@ class CollectCalibInfoTOF
 
   TStopwatch mTimerTot;
   TStopwatch mTimerDBG;
+
+  TParameter<int> mMinTimestamp;   ///< minimum timestamp over the hits that we collect; we will need it at calibration time to
+                                   ///< book the histogram for the LHCPhase calibration
+  
+  TParameter<int> mMaxTimestamp;   ///< maximum timestamp over the hits that we collect; we will need it at calibration time to
+                                   ///< book the histogram for the LHCPhase calibration
+  
   ClassDefNV(CollectCalibInfoTOF, 1);
 };
 } // namespace globaltracking

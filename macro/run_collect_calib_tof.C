@@ -13,8 +13,8 @@ void run_collect_calib_tof(std::string path = "./", std::string outputfile = "o2
 		   std::string inputfileCalib = "o2calib_tof.root")
 {
 
-  o2::globaltracking::CollectCalibInfoTOF calib;
-  // calib.setDebugFlag(1,1); // not implementented
+  o2::globaltracking::CollectCalibInfoTOF collect;
+  // collect.setDebugFlag(1,1); // not implementented
 
   if (path.back() != '/') {
     path += '/';
@@ -23,20 +23,23 @@ void run_collect_calib_tof(std::string path = "./", std::string outputfile = "o2
   //>>>---------- attach input data --------------->>>
   TChain tofCalibInfo("calibTOF");
   tofCalibInfo.AddFile((path + inputfileCalib).data());
-  calib.setInputTreeTOFCalibInfo(&tofCalibInfo);
+  collect.setInputTreeTOFCalibInfo(&tofCalibInfo);
 
   //<<<---------- attach input data ---------------<<<
 
   // create/attach output tree
   TFile outFile((path + outputfile).data(), "recreate");
   TTree outTree("calibrationTOF", "Calibration TOF params");
-  calib.setOutputTree(&outTree);
+  collect.setOutputTree(&outTree);
 
-  calib.init();
+  collect.init();
 
-  calib.run();
+  collect.run();
 
   outFile.cd();
   outTree.Write();
-
+  collect.getMinTimestamp().Write();
+  collect.getMaxTimestamp().Write();
+  outFile.Close();
+  
 }
