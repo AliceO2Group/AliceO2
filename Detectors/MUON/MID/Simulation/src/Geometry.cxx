@@ -47,6 +47,43 @@ const float kCopperHalfThickness = 0.002 / 2.;
 const float kNomexHalfThickness = 0.88 / 2.;
 const float kAluminiumHalfThickness = 0.06 / 2.;
 
+/// Service parameters
+// vertical support
+const float kVerticalSupportHalfExtDim[] = { 1.5, 311., 1.5 };
+const float kVerticalSupportHalfIntDim[] = { 1.2, 311., 1.2 };
+const float kVerticalSupportXPos[] = { 61.45, 122.45, 192.95, 236.95 };
+
+// horizontal support
+const float kHorizontalSupportHalfExtDim[] = { 96.775, 2., 3. };
+const float kHorizontalSupportHalfIntDim[] = { 96.775, 1.9, 2.8 };
+const double kHorizontalSupportPos[] = { Constants::sRPCCenterPos + Constants::sRPCHalfLength - kHorizontalSupportHalfExtDim[0], 17., kVerticalSupportHalfExtDim[2] + kHorizontalSupportHalfExtDim[2] };
+
+TGeoVolume* createVerticalSupport(int iChamber)
+{
+  /// Function creating a vertical support, an aluminium rod
+
+  auto supp = new TGeoVolume(Form("Vertical support chamber %d", iChamber), new TGeoBBox(Form("VertSuppBox%d", iChamber), kVerticalSupportHalfExtDim[0], kVerticalSupportHalfExtDim[1] * Constants::sScaleFactors[iChamber], kVerticalSupportHalfExtDim[2]), assertMedium(Medium::Aluminium));
+
+  new TGeoBBox(Form("VertSuppCut%d", iChamber), kVerticalSupportHalfIntDim[0], kVerticalSupportHalfIntDim[1] * Constants::sScaleFactors[iChamber], kVerticalSupportHalfIntDim[2]);
+
+  supp->SetShape(new TGeoCompositeShape(Form("VertSuppCut%d", iChamber), Form("VertSuppBox%d-VertSuppCut%d", iChamber, iChamber)));
+
+  return supp;
+}
+
+TGeoVolume* createHorizontalSupport(int iChamber)
+{
+  /// Function creating a horizontal support, an aluminium rod
+
+  auto supp = new TGeoVolume(Form("Horizontal support chamber %d", iChamber), new TGeoBBox(Form("HoriSuppBox%d", iChamber), kHorizontalSupportHalfExtDim[0] * Constants::sScaleFactors[iChamber], kHorizontalSupportHalfExtDim[1], kHorizontalSupportHalfExtDim[2]), assertMedium(Medium::Aluminium));
+
+  new TGeoBBox(Form("HoriSuppCut%d", iChamber), kHorizontalSupportHalfIntDim[0] * Constants::sScaleFactors[iChamber], kHorizontalSupportHalfIntDim[1], kHorizontalSupportHalfIntDim[2]);
+
+  supp->SetShape(new TGeoCompositeShape(Form("HoriSuppCut%d", iChamber), Form("HoriSuppBox%d-HoriSuppCut%d", iChamber, iChamber)));
+
+  return supp;
+}
+
 TGeoVolume* createRPC(const char* type, int iChamber)
 {
   /// Function building a resisitive plate chamber (RPC), the detection element of the MID, of a given type and for the given chamber number.
@@ -214,6 +251,12 @@ TGeoVolume* createChamber(int iChamber)
 
   auto chamber = new TGeoVolumeAssembly(Form("SC1%d", iChamber + 1));
 
+  double scale = Constants::sScaleFactors[iChamber];
+
+  // create the service volumes
+  auto vertSupp = createVerticalSupport(iChamber);
+  auto horiSupp = createHorizontalSupport(iChamber);
+
   // create the 3 types of RPC
   auto shortRPC = createRPC("short", iChamber);
   auto longRPC = createRPC("long", iChamber);
@@ -227,14 +270,22 @@ TGeoVolume* createChamber(int iChamber)
   auto rotY = new TGeoRotation("rotY", 90., 180., 90., 90., 180., 0.);
   auto rotZ = new TGeoRotation("rotZ", 90., 180., 90., 270., 0., 0.);
 
-  // RPC node
-  int deId = 0;
+  // for node counting
+  int deId = 0, iHoriSuppNode = 0, iVertSuppNode = 0;
 
-  // place the RPCs on both side of the chamber
+  // to place the horizontal supports
+  double pos[] = { kHorizontalSupportPos[0] * scale, 0., -kHorizontalSupportPos[2] };
+
+  // place the volumes on both side of the chamber
   for (int iside = 0; iside < 2; iside++) {
 
     bool isRight = (iside == 0);
     double xSign = (isRight) ? 1. : -1.;
+
+    // place 4 vertical supports per side
+    for (int i = 0; i < 4; i++) {
+      chamber->AddNode(vertSupp, iVertSuppNode++, new TGeoTranslation(xSign * kVerticalSupportXPos[i] * scale, 0., 0.));
+    }
 
     // place the RPCs
     for (int iRPC = 0; iRPC < Constants::sNRPCLines; iRPC++) {
@@ -281,6 +332,14 @@ TGeoVolume* createChamber(int iChamber)
           }
           break;
       }
+
+      // place 3 horizontal supports behind the RPC (and the vertical rods)
+      for (int i = 0; i < 3; i++) {
+        pos[1] = y + (i - 1) * kHorizontalSupportPos[1] * scale;
+        chamber->AddNode(horiSupp, iHoriSuppNode++, new TGeoTranslation(xSign * pos[0], pos[1], pos[2]));
+      }
+
+      pos[2] *= -1;
 
     } // end of the loop over the number of RPC lines
 
