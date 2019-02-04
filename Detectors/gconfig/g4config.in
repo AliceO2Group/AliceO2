@@ -1,4 +1,4 @@
-# Geant4 standard configuration based on AliDPG commit 0907538
+# Geant4 standard configuration based on AliDPG commit 7650a5b
 
 /control/verbose 2
 /mcVerbose/all 1
@@ -37,3 +37,11 @@
 /mcPhysics/emModel/setEmModel  SpecialUrbanMsc
 /mcPhysics/emModel/setRegions  EMC_Lead$ EMC_Scintillator$
 /mcPhysics/emModel/setParticles  e- e+
+
+#
+# Adding extra lines for fixing tracking bias
+#
+/mcMagField/setDeltaIntersection  1.0e-05 mm
+/mcMagField/setMinimumEpsilonStep 0.5e-05
+/mcMagField/setMaximumEpsilonStep 1.0e-05
+/mcMagField/printParameters
