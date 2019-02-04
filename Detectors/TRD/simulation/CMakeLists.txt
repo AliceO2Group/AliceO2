@@ -4,10 +4,12 @@ O2_SETUP(NAME ${MODULE_NAME})
 
 SET(SRCS
   src/Detector.cxx
+  src/TRsim.cxx
   src/Digitizer.cxx
 )
 SET(HEADERS
   include/${MODULE_NAME}/Detector.h
+  include/${MODULE_NAME}/TRsim.h
   include/${MODULE_NAME}/Digitizer.h
 )
 

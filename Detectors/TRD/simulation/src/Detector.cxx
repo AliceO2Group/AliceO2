@@ -32,7 +32,13 @@ Detector::Detector(Bool_t active)
     mWion = 27.21; // Ionization energy ArCO2 (82/18)
   } else {
     LOG(FATAL) << "Wrong gas mixture";
-    // add hard exit here!
+  }
+  // Switch on TR simulation as default
+  mTRon = true;
+  if (!mTRon) {
+    LOG(INFO) << "TR simulation off";
+  } else {
+    mTR = new TRsim();
   }
 }
 
@@ -42,8 +48,7 @@ Detector::Detector(const Detector& rhs)
     mFoilDensity(rhs.mFoilDensity),
     mGasNobleFraction(rhs.mGasNobleFraction),
     mGasDensity(rhs.mGasDensity),
-    mGeom(rhs.mGeom),
-    mTRon(false)
+    mGeom(rhs.mGeom)
 {
   if (TRDCommonParam::Instance()->IsXenon()) {
     mWion = 23.53; // Ionization energy XeCO2 (85/15)
@@ -52,6 +57,13 @@ Detector::Detector(const Detector& rhs)
   } else {
     LOG(FATAL) << "Wrong gas mixture";
     // add hard exit here!
+  }
+  // Switch on TR simulation as default
+  mTRon = true;
+  if (!mTRon) {
+    LOG(INFO) << "TR simulation off";
+  } else {
+    mTR = new TRsim();
   }
 }
 
@@ -121,46 +133,112 @@ bool Detector::ProcessHits(FairVolume* v)
   int trkStat = 0;
   // Special hits if track is entering
   if (drRegion && fMC->IsTrackEntering()) {
-    // Create a track reference at the entrance of each
-    // chamber that contains the momentum components of the particle
-    /* Do what AliRoot does here
-      fMC->TrackMomentum(mom);
-      AddTrackReference(gAlice->GetMCApp()->GetCurrentTrackNumber(), AliTrackReference::kTRD);
-    */
     // Create the hits from TR photons if electron/positron is entering the drift volume
-    const int ele = TMath::Abs(fMC->TrackPid()) == 11; // electron PDG code.
+    const bool ele = (TMath::Abs(fMC->TrackPid()) == 11); // electron PDG code.
     if (mTRon && ele) {
-      // Do TR simulation here
-      // Emulate what AliTRDsimTR does here
-      // CreateTRhit(); // See AliTRDv1.cxx
+      createTRhit(det);
     }
     trkStat = 1;
   } else if (amRegion && fMC->IsTrackExiting()) {
-    // Create a track reference at the exit of each
-    // chamber that contains the momentum components of the particle
-    /* Do what AliRoot does here
-            fMC->TrackMomentum(mom);
-            AddTrackReference(gAlice->GetMCApp()->GetCurrentTrackNumber(), AliTrackReference::kTRD);
-            trkStat = 2;
-    */
     trkStat = 2;
   }
+
   // Calculate the charge according to GEANT Edep
   // Create a new dEdx hit
-  const double enDep = TMath::Max(fMC->Edep(), 0.0) * 1.0e+9;
+  const double enDep = TMath::Max(fMC->Edep(), 0.0) * 1.0e+9; // Energy in eV
   // Store those hits with enDep bigger than the ionization potential of the gas mixture for in-flight tracks
   // or store hits of tracks that are entering or exiting
   if ((enDep > mWion) || trkStat) {
     double x, y, z;
     fMC->TrackPosition(x, y, z);
-    double time = fMC->TrackTime() * 1e6;
+    double tof = fMC->TrackTime() * 1e6; // The time of flight in micro-seconds
     o2::Data::Stack* stack = (o2::Data::Stack*)fMC->GetStack();
     const int trackID = stack->GetCurrentTrackNumber();
-    addHit(x, y, z, time, enDep, trackID, det);
+    addHit(x, y, z, tof, enDep, trackID, det);
     stack->addHit(GetDetId());
     return true;
   }
   return false;
+}
+
+void Detector::createTRhit(int det)
+{
+  //
+  // Creates an electron cluster from a TR photon.
+  // The photon is assumed to be created a the end of the radiator. The
+  // distance after which it deposits its energy takes into account the
+  // absorbtion of the entrance window and of the gas mixture in drift
+  // volume.
+  //
+
+  // Maximum number of TR photons per track
+  constexpr int mMaxNumberOfTRPhotons = 50; // Make this a class member?
+
+  double px, py, pz, etot;
+  fMC->TrackMomentum(px, py, pz, etot);
+  float pTot = TMath::Sqrt(px * px + py * py + pz * pz);
+  std::vector<float> photonEnergyContainer;            // energy in keV
+  mTR->createPhotons(11, pTot, photonEnergyContainer); // Create TR photons
+  if (photonEnergyContainer.size() > mMaxNumberOfTRPhotons) {
+    LOG(ERROR) << "Boundary error: nTR = " << photonEnergyContainer.size() << ", mMaxNumberOfTRPhotons = " << mMaxNumberOfTRPhotons;
+  }
+
+  // Loop through the TR photons
+  for (const float& photonEnergy : photonEnergyContainer) {
+    const double energyMeV = photonEnergy * 1e-3;
+    const double energyeV = photonEnergy * 1e3;
+    double absLength = 0.0;
+    double sigma = 0.0;
+    // Take the absorbtion in the entrance window into account
+    double muMy = mTR->getMuMy(energyMeV);
+    sigma = muMy * mFoilDensity;
+    if (sigma > 0.0) {
+      absLength = gRandom->Exp(1.0 / sigma);
+      if (absLength < TRDGeometry::myThick()) {
+        continue;
+      }
+    } else {
+      continue;
+    }
+    // The absorbtion cross sections in the drift gas
+    // Gas-mixture (Xe/CO2)
+    double muNo = 0.0;
+    if (TRDCommonParam::Instance()->IsXenon()) {
+      muNo = mTR->getMuXe(energyMeV);
+    } else if (TRDCommonParam::Instance()->IsArgon()) {
+      muNo = mTR->getMuAr(energyMeV);
+    }
+    double muCO = mTR->getMuCO(energyMeV);
+    double fGasNobleFraction = 1;
+    double fGasDensity = 1;
+    sigma = (fGasNobleFraction * muNo + (1.0 - fGasNobleFraction) * muCO) * fGasDensity * mTR->getTemp();
+
+    // The distance after which the energy of the TR photon
+    // is deposited.
+    if (sigma > 0.0) {
+      absLength = gRandom->Exp(1.0 / sigma);
+      if (absLength > (TRDGeometry::drThick() + TRDGeometry::amThick())) {
+        continue;
+      }
+    } else {
+      continue;
+    }
+
+    // The position of the absorbtion
+    float xp, yp, zp;
+    fMC->TrackPosition(xp, yp, zp);
+    float invpTot = 1. / pTot;
+    double x = xp + px * invpTot * absLength;
+    double y = yp + py * invpTot * absLength;
+    double z = zp + pz * invpTot * absLength;
+
+    // Add the hit to the array. TR photon hits are marked by negative energy (and not by charge)
+    double tof = fMC->TrackTime() * 1e6;
+    o2::Data::Stack* stack = (o2::Data::Stack*)fMC->GetStack();
+    const int trackID = stack->GetCurrentTrackNumber();
+    addHit(x, y, z, tof, -energyeV, trackID, det);
+    stack->addHit(GetDetId());
+  }
 }
 
 void Detector::Register()
@@ -239,11 +317,10 @@ void Detector::createMaterials()
   if (TRDCommonParam::Instance()->IsXenon()) {
     Mixture(53, "XeCO2", aXeCO2, zXeCO2, dgmXe, -3, wXeCO2);
   } else if (TRDCommonParam::Instance()->IsArgon()) {
-    // AliInfo("Gas mixture: Ar C02 (80/20)");
-    LOG(INFO) << "Gas mixture: Ar C02 (80/20)\n";
+    LOG(INFO) << "Gas mixture: Ar C02 (80/20)";
     Mixture(53, "ArCO2", aArCO2, zArCO2, dgmAr, -3, wArCO2);
   } else {
-    // AliFatal("Wrong gas mixture");
+    LOG(FATAL) << "Wrong gas mixture";
     exit(1);
   }
   // G10
