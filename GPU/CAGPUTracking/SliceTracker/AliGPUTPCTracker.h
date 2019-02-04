@@ -44,7 +44,7 @@ MEM_CLASS_PRE()
 class AliGPUTPCTracker : public AliGPUProcessor
 {
   public:
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 	AliGPUTPCTracker();
 	~AliGPUTPCTracker();
 #endif
@@ -89,7 +89,7 @@ class AliGPUTPCTracker : public AliGPUProcessor
 #endif //!GPUCA_GPUCODE
   
 	//GPU Tracker Interface
-#if !defined(__OPENCL__)
+#if !defined(GPUCA_GPUCODE_DEVICE)
 	//Debugging Stuff
 	void DumpSliceData(std::ostream &out);	//Dump Input Slice Data
 	void DumpLinks(std::ostream &out);		//Dump all links to file (for comparison after NeighboursFinder/Cleaner)
@@ -115,12 +115,12 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	MEM_CLASS_PRE2() GPUd() void GetErrors2( int iRow,  const MEM_LG2(AliGPUTPCTrackParam) &t, float &ErrY2, float &ErrZ2 ) const
 	{
 		//mCAParam.GetClusterErrors2( iRow, mCAParam.GetContinuousTracking() != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
-		mCAParam->GetClusterRMS2( iRow, mCAParam->ContinuousTracking != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
+		mCAParam->GetClusterRMS2( iRow, mCAParam->ContinuousTracking != 0.f ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
 	}
 	GPUd() void GetErrors2( int iRow, float z, float sinPhi, float DzDs, float &ErrY2, float &ErrZ2 ) const
 	{
 		//mCAParam.GetClusterErrors2( iRow, mCAParam.GetContinuousTracking() != 0. ? 125. : z, sinPhi, DzDs, ErrY2, ErrZ2 );
-		mCAParam->GetClusterRMS2( iRow, mCAParam->ContinuousTracking != 0. ? 125. : z, sinPhi, DzDs, ErrY2, ErrZ2 );
+		mCAParam->GetClusterRMS2( iRow, mCAParam->ContinuousTracking != 0.f ? 125.f : z, sinPhi, DzDs, ErrY2, ErrZ2 );
 	}
   
 	void SetupCommonMemory();
@@ -183,8 +183,8 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	*/
 	GPUd() static int CalculateHitWeight( int NHits, float chi2, int ) {
 		const float chi2_suppress = 6.f;
-		float weight = (((float) NHits * (chi2_suppress - chi2 / 500.f)) * (1e9 / chi2_suppress / 160.));
-		if (weight < 0. || weight > 2e9) return 0;
+		float weight = (((float) NHits * (chi2_suppress - chi2 / 500.f)) * (1e9f / chi2_suppress / 160.f));
+		if (weight < 0.f || weight > 2e9f) return 0;
 		return ( (int) weight );
 		//return( (NHits << 16) + num);
 	}

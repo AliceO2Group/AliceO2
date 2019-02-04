@@ -25,7 +25,7 @@ class AliGPUTPCGMPhysicalTrackModel
 
   public:
 	GPUd() AliGPUTPCGMPhysicalTrackModel()
-	    : fX(0.f), fY(0.f), fZ(0.f), fPx(1.e4f), fPy(0.f), fPz(0.f), fQ(1.f), fSinPhi(0.), fCosPhi(1.), fSecPhi(1.), fDzDs(0.), fDlDs(0.), fQPt(0.), fP(fPx), fPt(fPx){};
+	    : fX(0.f), fY(0.f), fZ(0.f), fPx(1.e4f), fPy(0.f), fPz(0.f), fQ(1.f), fSinPhi(0.f), fCosPhi(1.f), fSecPhi(1.f), fDzDs(0.f), fDlDs(0.f), fQPt(0.f), fP(fPx), fPt(fPx){};
 
 	GPUd() AliGPUTPCGMPhysicalTrackModel(const AliGPUTPCGMTrackParam &t);
 
@@ -115,18 +115,18 @@ class AliGPUTPCGMPhysicalTrackModel
 GPUdi() void AliGPUTPCGMPhysicalTrackModel::Set(const AliGPUTPCGMTrackParam &t)
 {
 	float pti = fabs(t.GetQPt());
-	if (pti < 1.e-4) pti = 1.e-4;        // set 10000 GeV momentum for straight track
+	if (pti < 1.e-4f) pti = 1.e-4f;        // set 10000 GeV momentum for straight track
 	fQ = (t.GetQPt() >= 0) ? 1.f : -1.f; // only charged tracks are considered
 	fX = t.GetX();
 	fY = t.GetY();
 	fZ = t.GetZ();
 
-	fPt = 1. / pti;
+	fPt = 1.f / pti;
 	fSinPhi = t.GetSinPhi();
 	if (fSinPhi > GPUCA_MAX_SIN_PHI) fSinPhi = GPUCA_MAX_SIN_PHI;
 	if (fSinPhi < -GPUCA_MAX_SIN_PHI) fSinPhi = -GPUCA_MAX_SIN_PHI;
-	fCosPhi = sqrt((1. - fSinPhi) * (1. + fSinPhi));
-	fSecPhi = 1. / fCosPhi;
+	fCosPhi = sqrt((1.f - fSinPhi) * (1.f + fSinPhi));
+	fSecPhi = 1.f / fCosPhi;
 	fDzDs = t.GetDzDs();
 	fDlDs = sqrt(1.f + fDzDs * fDzDs);
 	fP = fPt * fDlDs;
@@ -138,7 +138,7 @@ GPUdi() void AliGPUTPCGMPhysicalTrackModel::Set(const AliGPUTPCGMTrackParam &t)
 }
 
 GPUdi() AliGPUTPCGMPhysicalTrackModel::AliGPUTPCGMPhysicalTrackModel(const AliGPUTPCGMTrackParam &t)
-    : fX(0.f), fY(0.f), fZ(0.f), fPx(1.e4f), fPy(0.f), fPz(0.f), fQ(1.f), fSinPhi(0.), fCosPhi(1.), fSecPhi(1.), fDzDs(0.), fDlDs(0.), fQPt(0.), fP(fPx), fPt(fPx)
+    : fX(0.f), fY(0.f), fZ(0.f), fPx(1.e4f), fPy(0.f), fPz(0.f), fQ(1.f), fSinPhi(0.f), fCosPhi(1.f), fSecPhi(1.f), fDzDs(0.f), fDlDs(0.f), fQPt(0.f), fP(fPx), fPt(fPx)
 {
 	Set(t);
 }
@@ -190,7 +190,7 @@ GPUdi() bool AliGPUTPCGMPhysicalTrackModel::SetDirectionAlongX()
 GPUdi() float AliGPUTPCGMPhysicalTrackModel::GetMirroredY(float Bz) const
 {
 	// get Y of the point which has the same X, but located on the other side of trajectory
-	if (fabs(Bz) < 1.e-8) Bz = 1.e-8;
+	if (fabs(Bz) < 1.e-8f) Bz = 1.e-8f;
 	return fY - 2.f * fQ * fPx / Bz;
 }
 

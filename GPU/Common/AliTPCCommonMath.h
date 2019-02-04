@@ -11,8 +11,10 @@
 
 #include "AliTPCCommonDef.h"
 
-#if !defined(__OPENCL__)
+#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
+#ifndef __OPENCLCPP__
 #include <cmath>
+#endif
 #endif
 
 class AliTPCCommonMath
@@ -36,8 +38,8 @@ class AliTPCCommonMath
 	GPUd() static float Cos( float x );
 	GPUd() static float Tan( float x );
 	GPUd() static float Copysign( float x, float y );
-	GPUd() static float TwoPi() { return 6.28319; }
-	GPUd() static float Pi() { return 3.1415926535897; }
+	GPUd() static float TwoPi() { return 6.28319f; }
+	GPUd() static float Pi() { return 3.1415926535897f; }
 	GPUd() static int Nint( float x );
 	GPUd() static bool Finite( float x );
 
@@ -82,13 +84,13 @@ GPUdi() int AliTPCCommonMath::Nint(float x)
 	int i;
 	if (x >= 0)
 	{
-		i = int(x + 0.5);
-		if (x + 0.5 == float(i) && i & 1) i--;
+		i = int(x + 0.5f);
+		if (x + 0.5f == float(i) && i & 1) i--;
 	}
 	else
 	{
-		i = int(x - 0.5);
-		if (x - 0.5 == float(i) && i & 1) i++;
+		i = int(x - 0.5f);
+		if (x - 0.5f == float(i) && i & 1) i++;
 	}
 	return i;
 }

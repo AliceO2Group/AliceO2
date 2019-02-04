@@ -11,16 +11,15 @@
 
 #include "AliGPUTPCDef.h"
 
-#if !defined(__OPENCL__)
-
-#include <cstdlib>
-#ifndef GPUCA_GPUCODE
-#include "AliGPUTPCSliceOutTrack.h"
-#else
-class AliGPUTPCSliceOutTrack;
-#endif
-#else
-#define NULL 0
+#if !defined(GPUCA_GPUCODE_DEVICE)
+    #include <cstdlib>
+    #ifndef GPUCA_GPUCODE
+    #include "AliGPUTPCSliceOutTrack.h"
+    #else
+    class AliGPUTPCSliceOutTrack;
+    #endif
+#elif defined(__OPENCL__) && !defined(__OPENCLCPP__)
+    #define NULL 0
 #endif
 
 struct AliGPUCAOutputControl;
@@ -39,7 +38,7 @@ struct AliGPUCAOutputControl;
 class AliGPUTPCSliceOutput
 {
   public:
-#if !defined(__OPENCL__)
+#if !defined(GPUCA_GPUCODE_DEVICE)
 	GPUhd() unsigned int NTracks() const
 	{
 		return fNTracks;

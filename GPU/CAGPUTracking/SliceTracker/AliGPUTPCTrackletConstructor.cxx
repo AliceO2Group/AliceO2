@@ -162,7 +162,7 @@ GPUd() void AliGPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int /*
 				r.fLastY = y;
 				r.fLastZ = z;
 
-				float ri = 1. / CAMath::Sqrt(dx * dx + dy * dy);
+				float ri = 1.f / CAMath::Sqrt(dx * dx + dy * dy);
 				if (iRow == r.fStartRow + 2)
 				{ //SG!!! important - thanks to Matthias
 					tParam.SetSinPhi(dy * ri);
@@ -196,11 +196,11 @@ GPUd() void AliGPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int /*
 
 				if (r.fNHits >= 10)
 				{
-					const float kFactor = tracker.Param().rec.HitPickUpFactor * tracker.Param().rec.HitPickUpFactor * 3.5 * 3.5;
+					const float kFactor = tracker.Param().rec.HitPickUpFactor * tracker.Param().rec.HitPickUpFactor * 3.5f * 3.5f;
 					float sy2 = kFactor * (tParam.GetErr2Y() + err2Y);
 					float sz2 = kFactor * (tParam.GetErr2Z() + err2Z);
-					if (sy2 > 2.) sy2 = 2.;
-					if (sz2 > 2.) sz2 = 2.;
+					if (sy2 > 2.f) sy2 = 2.f;
+					if (sz2 > 2.f) sz2 = 2.f;
 					dy = y - tParam.Y();
 					dz = z - tParam.Z();
 					if (dy * dy > sy2 || dz * dz > sz2)
@@ -283,15 +283,15 @@ GPUd() void AliGPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int /*
 
 			{ // search for the closest hit
 				tracker.GetErrors2(iRow, *((MEM_LG2(AliGPUTPCTrackParam) *) &tParam), err2Y, err2Z);
-				const float kFactor = tracker.Param().rec.HitPickUpFactor * tracker.Param().rec.HitPickUpFactor * 3.5 * 3.5;
+				const float kFactor = tracker.Param().rec.HitPickUpFactor * tracker.Param().rec.HitPickUpFactor * 3.5f * 3.5f;
 				float sy2 = kFactor * (tParam.GetErr2Y() + err2Y);
 				float sz2 = kFactor * (tParam.GetErr2Z() + err2Z);
-				if (sy2 > 2.) sy2 = 2.;
-				if (sz2 > 2.) sz2 = 2.;
+				if (sy2 > 2.f) sy2 = 2.f;
+				if (sz2 > 2.f) sz2 = 2.f;
 
 				int bin, ny, nz;
-				row.Grid().GetBinArea(fY, fZ + tParam.ZOffset(), 1.5, 1.5, bin, ny, nz);
-				float ds = 1e6;
+				row.Grid().GetBinArea(fY, fZ + tParam.ZOffset(), 1.5f, 1.5f, bin, ny, nz);
+				float ds = 1e6f;
 
 				for (int k = 0; k <= nz; k++)
 				{
@@ -392,7 +392,7 @@ GPUd() void AliGPUTPCTrackletConstructor::DoTracklet(GPUconstant() MEM_CONSTANT(
 		else
 		{
 			r.fNMissed = 0;
-			if ((r.fGo = (tParam.TransportToX(tracker.Row(r.fEndRow).X(), tracker.Param().ConstBz, GPUCA_MAX_SIN_PHI) && tParam.Filter(r.fLastY, r.fLastZ, tParam.Err2Y() / 2, tParam.Err2Z() / 2., GPUCA_MAX_SIN_PHI_LOW, true))))
+			if ((r.fGo = (tParam.TransportToX(tracker.Row(r.fEndRow).X(), tracker.Param().ConstBz, GPUCA_MAX_SIN_PHI) && tParam.Filter(r.fLastY, r.fLastZ, tParam.Err2Y() * 0.5f, tParam.Err2Z() * 0.5f, GPUCA_MAX_SIN_PHI_LOW, true))))
 			{
 				CADEBUG(printf("%14s: SEA BACK  ROW %3d X %8.3f -", "", iRow, tParam.X()); for (int i = 0; i < 5; i++) printf(" %8.3f", tParam.Par()[i]); printf(" -"); for (int i = 0; i < 15; i++) printf(" %8.3f", tParam.Cov()[i]); printf("\n");)
 				float err2Y, err2Z;

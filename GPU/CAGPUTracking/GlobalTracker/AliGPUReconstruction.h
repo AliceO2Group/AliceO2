@@ -1,4 +1,4 @@
-#ifndef ALIGPURECONSTRUCTION_H
+#if !defined(ALIGPURECONSTRUCTION_H) && !defined(__OPENCL__)
 #define ALIGPURECONSTRUCTION_H
 
 #include <cstddef>

@@ -44,7 +44,7 @@
 
 //Special macros for OpenCL 1.2 version
 enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
-#if defined(__OPENCL__)
+#if defined(__OPENCL__) && !defined(__OPENCLCPP__)
 	template<LocalOrGlobal, typename L, typename G, typename C, typename P> struct MakeTypeHelper;
 	template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Local, L, G, C, P> { typedef L type; };
 	template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Global, L, G, C, P> { typedef G type; };

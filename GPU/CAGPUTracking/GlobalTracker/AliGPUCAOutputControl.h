@@ -8,7 +8,7 @@
 struct AliGPUCAOutputControl
 {
 	enum OutputTypeStruct {AllocateInternal = 0, UseExternalBuffer = 1, ControlledExternal = 2};
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 	AliGPUCAOutputControl() : OutputPtr(nullptr), Offset(0), OutputMaxSize(0), OutputType(AllocateInternal), EndOfSpace(0) {}
 #endif
 

@@ -79,7 +79,7 @@ class AliGPUTPCGMTrackParam
 	GPUd() float GetChi2() const { return fChi2; }
 	GPUd() int GetNDF() const { return fNDF; }
 
-	GPUd() float GetCosPhi() const { return sqrt(float(1.) - GetSinPhi() * GetSinPhi()); }
+	GPUd() float GetCosPhi() const { return sqrt(float(1.f) - GetSinPhi() * GetSinPhi()); }
 
 	GPUd() float GetErr2Y() const { return fC[0]; }
 	GPUd() float GetErr2Z() const { return fC[2]; }
@@ -100,7 +100,7 @@ class AliGPUTPCGMTrackParam
 
 	GPUd() void ResetCovariance();
 
-	GPUd() bool CheckNumericalQuality(float overrideCovYY = -1.) const;
+	GPUd() bool CheckNumericalQuality(float overrideCovYY = -1.f) const;
 	GPUd() bool CheckCov() const;
 
 	GPUd() bool Fit(const AliGPUTPCGMMerger *merger, int iTrk, AliGPUTPCGMMergedTrackHit *clusters, int &N, int &NTolerated, float &Alpha, int attempt = 0, float maxSinPhi = GPUCA_MAX_SIN_PHI, AliGPUTPCOuterParam *outerParam = NULL);
@@ -136,7 +136,7 @@ class AliGPUTPCGMTrackParam
 	GPUd() bool Rotate(float alpha);
 	GPUd() void ShiftZ(const AliGPUTPCGMPolynomialField *field, const AliGPUTPCGMMergedTrackHit *clusters, const AliGPUCAParam &param, int N);
 
-	GPUd() static float Reciprocal(float x) { return 1. / x; }
+	GPUd() static float Reciprocal(float x) { return 1.f / x; }
 	GPUd() static void Assign(float &x, bool mask, float v)
 	{
 		if (mask) x = v;
@@ -175,11 +175,11 @@ class AliGPUTPCGMTrackParam
 
 GPUd() inline void AliGPUTPCGMTrackParam::ResetCovariance()
 {
-	fC[ 0] = 100.;
-	fC[ 1] = 0.;  fC[ 2] = 100.;
-	fC[ 3] = 0.;  fC[ 4] = 0.;  fC[ 5] = 1.;
-	fC[ 6] = 0.;  fC[ 7] = 0.;  fC[ 8] = 0.; fC[ 9] = 10.;
-	fC[10] = 0.;  fC[11] = 0.;  fC[12] = 0.; fC[13] = 0.; fC[14] = 10.;
+	fC[ 0] = 100.f;
+	fC[ 1] = 0.f;  fC[ 2] = 100.f;
+	fC[ 3] = 0.f;  fC[ 4] = 0.f;  fC[ 5] = 1.f;
+	fC[ 6] = 0.f;  fC[ 7] = 0.f;  fC[ 8] = 0.f; fC[ 9] = 10.f;
+	fC[10] = 0.f;  fC[11] = 0.f;  fC[12] = 0.f; fC[13] = 0.f; fC[14] = 10.f;
 	fChi2 = 0;
 	fNDF = -5;
 }
@@ -189,7 +189,7 @@ GPUd() inline float AliGPUTPCGMTrackParam::GetMirroredY( float Bz ) const
 	// get Y of the point which has the same X, but located on the other side of trajectory
 	float qptBz = GetQPt()*Bz;
 	float cosPhi2 = 1.f - GetSinPhi()*GetSinPhi();
-	if( fabs(qptBz)<1.e-8 ) qptBz = 1.e-8;
+	if( fabs(qptBz)<1.e-8f ) qptBz = 1.e-8f;
 	if( cosPhi2<0.f ) cosPhi2 = 0.f;
 	return GetY() - 2.f*sqrt(cosPhi2)/qptBz;
 }

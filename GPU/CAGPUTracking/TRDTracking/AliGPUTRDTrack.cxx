@@ -207,7 +207,7 @@ GPUd() void AliGPUTRDTrack<T>::ConvertFrom( const AliGPUTRDTrackDataRecord &t )
   T::set(t.fX, t.fAlpha, &(t.fY), t.fC);
   SetTPCtrackId( t.fTPCTrackID );
   fChi2 = 0;
-  fMass = 0.13957;
+  fMass = 0.13957f;
   fLabel = -1;
   fNtracklets = 0;
   fNmissingConsecLayers = 0;

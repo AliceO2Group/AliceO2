@@ -42,11 +42,11 @@ class AliGPUTRDTrackletWord {
   GPUd() int GetId() const { return fId; }
 
   // ----- Getters for offline corresponding values -----
-  GPUd() double GetPID(int /* is */) const { return (double) GetPID()/256.; }
+  GPUd() double GetPID(int /* is */) const { return (double) GetPID()/256.f; }
   GPUd() int GetDetector() const { return fHCId / 2; }
   GPUd() int GetHCId() const { return fHCId; }
-  GPUd() float GetdYdX() const { return (GetdY() * 140e-4 / 3.); }
-  GPUd() float GetY() const { return (GetYbin() * 160e-4); }
+  GPUd() float GetdYdX() const { return (GetdY() * 140e-4f / 3.f); }
+  GPUd() float GetY() const { return (GetYbin() * 160e-4f); }
   GPUd() unsigned int GetTrackletWord() const { return fTrackletWord; }
 
   GPUd() void SetTrackletWord(unsigned int trackletWord) { fTrackletWord = trackletWord; }

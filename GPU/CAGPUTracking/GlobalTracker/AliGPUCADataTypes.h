@@ -4,13 +4,13 @@
 #include "AliGPUTPCTracker.h"
 #include "AliGPUCAParam.h"
 
-#if !defined(__OPENCL__)
+#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
 #include "AliGPUTPCGMMerger.h"
 #else
 class AliGPUTPCGMMerger {};
 #endif
 
-#if !defined(__OPENCL__) && (!defined(GPUCA_GPULIBRARY) || !defined(GPUCA_ALIROOT_LIB))
+#if (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && (!defined(GPUCA_GPULIBRARY) || !defined(GPUCA_ALIROOT_LIB))
 #include "AliGPUTRDTracker.h"
 #else
 class AliGPUTRDTracker {void SetMaxData(){}};

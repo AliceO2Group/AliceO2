@@ -1,5 +1,8 @@
 #define __OPENCL__
 #define GPUCA_GPUTYPE_RADEON
+#ifdef __OPENCLCPP__
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+#endif
 
 //Disable assertions since they produce errors in GPU Code
 #ifdef assert
