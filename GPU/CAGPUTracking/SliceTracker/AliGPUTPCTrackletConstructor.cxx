@@ -413,7 +413,7 @@ template <> GPUd() void AliGPUTPCTrackletConstructor::Thread<0>(int nBlocks, int
 {
 	if (get_local_id(0) == 0) sMem.fNTracklets = *tracker.NTracklets();
 #ifdef GPUCA_GPUCODE
-	for (int i = get_local_id(0);i < GPUCA_ROW_COUNT * sizeof(MEM_PLAIN(AliGPUTPCRow)) / sizeof(int);i += get_local_size(0))
+	for (unsigned int i = get_local_id(0);i < GPUCA_ROW_COUNT * sizeof(MEM_PLAIN(AliGPUTPCRow)) / sizeof(int);i += get_local_size(0))
 	{
 		reinterpret_cast<GPUsharedref() int*>(&sMem.fRows)[i] = reinterpret_cast<GPUglobalref() int*>(tracker.SliceDataRows())[i];
 	}
@@ -465,7 +465,7 @@ template <> GPUd() void AliGPUTPCTrackletConstructor::Thread<1>(int nBlocks, int
 					sMem.fNTracklets = *tracker.NTracklets();
 				}
 
-				for (int i = get_local_id(0);i < GPUCA_ROW_COUNT * sizeof(MEM_PLAIN(AliGPUTPCRow)) / sizeof(int);i += get_local_size(0))
+				for (unsigned int i = get_local_id(0);i < GPUCA_ROW_COUNT * sizeof(MEM_PLAIN(AliGPUTPCRow)) / sizeof(int);i += get_local_size(0))
 				{
 					reinterpret_cast<GPUsharedref() int*>(&sMem.fRows)[i] = reinterpret_cast<GPUglobalref() int*>(tracker.SliceDataRows())[i];
 				}

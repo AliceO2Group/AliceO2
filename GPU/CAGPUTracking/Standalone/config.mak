@@ -18,13 +18,23 @@ DEFINES						+= BUILD_OPENCL
 endif
 SUBTARGETS_CLEAN			+= libCAGPUTrackingOCL.*
 
+ifeq ($(BUILD_HIP), 1)
+SUBTARGETS					+= libCAGPUTrackingHIP
+DEFINES						+= BUILD_HIP
+endif
+SUBTARGETS_CLEAN			+= libCAGPUTrackingHIP.*
+
+
 CXXFILES					+= standalone.cxx \
 								GlobalTracker/AliGPUReconstructionTimeframe.cxx \
+								$(GPUCA_TRACKER_CXXFILES) \
 								$(GPUCA_STANDALONE_CXXFILES) \
 								$(GPUCA_MERGER_CXXFILES) \
 								$(GPUCA_TRD_CXXFILES)
 
-CPPFILES					+= cmodules/qconfig.cpp
+CPPFILES					+= 	cmodules/timer.cpp \
+								cmodules/qsem.cpp \
+								cmodules/qconfig.cpp
 
 ifeq ($(BUILD_EVENT_DISPLAY), 1)
 CPPFILES					+= display/AliGPUCADisplay.cpp display/AliGPUCADisplayBackend.cpp display/AliGPUCADisplayBackendGlut.cpp display/AliGPUCADisplayBackendNone.cpp display/AliGPUCADisplayInterpolation.cpp display/AliGPUCADisplayQuaternion.cpp display/AliGPUCADisplayKeys.cpp

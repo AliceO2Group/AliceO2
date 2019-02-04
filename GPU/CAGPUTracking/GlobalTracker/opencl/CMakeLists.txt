@@ -116,6 +116,7 @@ set(HDRS
     ${CINTHDRS}
     ${CAGPUDIR}/GlobalTracker/AliGPUTPCGPUTrackerCommon.h
     AliGPUReconstructionOCLInternals.h
+    AliGPUReconstructionOCLWorkarounds.h
   )
 
 foreach (def ${DEFINITIONS})
@@ -148,7 +149,7 @@ endif()
 #Default cmake build script for O2
 if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
 #We do not need the dictionary for the standalone library files
-    Set(LIBRARY_NAME ${MODULE})
+    set(LIBRARY_NAME ${MODULE})
     set(BUCKET_NAME CAGPUTrackingOCL_bucket)
 
     O2_GENERATE_LIBRARY()

@@ -13,7 +13,6 @@ CC_i686-pc-cygwin			= ICC
 
 INCLUDEPATHS				= . SliceTracker HLTHeaders Merger GlobalTracker TRDTracking Common TPCFastTransformation display qa
 DEFINES						= GPUCA_STANDALONE GPUCA_ENABLE_GPU_TRACKER
-CPPFILES					= cmodules/timer.cpp cmodules/qsem.cpp
 
 EXTRAFLAGSGCC				=
 EXTRAFLAGSLINK				= -rdynamic
@@ -25,7 +24,7 @@ COMPILER_FLAGS				= OPT
 endif
 CONFIG_LTO					= 1
 
-CXXFILES					= SliceTracker/AliGPUTPCSliceData.cxx \
+GPUCA_TRACKER_CXXFILES			= SliceTracker/AliGPUTPCSliceData.cxx \
 								SliceTracker/AliGPUTPCSliceOutput.cxx \
 								SliceTracker/AliGPUTPCTracker.cxx \
 								SliceTracker/AliGPUTPCTrackerDump.cxx \
@@ -70,7 +69,7 @@ GPUCA_STANDALONE_CXXFILES	= SliceTracker/AliGPUTPCTrack.cxx \
 								SliceTracker/AliGPUTPCTracklet.cxx \
 								SliceTracker/AliGPUTPCMCPoint.cxx
 
-CONFIG_CPP					= gnu++17
+CONFIG_CPP					= c++17
 CONFIG_CPP_CUDA				= c++14
 
 ifeq ($(ARCH_CYGWIN), 1)

@@ -1,7 +1,7 @@
 #ifndef ALIHLTTPCGMOFFLINESTATISTICALERRORS
 #define ALIHLTTPCGMOFFLINESTATISTICALERRORS
 
-class AliGPUTPCGMMergedTrackHit;
+struct AliGPUTPCGMMergedTrackHit;
 
 #if defined(GPUseStatError)
 #include "AliTPCcalibDB.h"
@@ -56,7 +56,7 @@ struct AliGPUTPCGMOfflineStatisticalErrors
 		//This is not true during HLT simulation by definition, so the above code should fix it, but it leads to non-understandable bug later on in TPC transformation.
 		//Anyway, this is only a debugging class.
 		//So in order to make this work, please temporarily outcomment any use of TPCRecoParam in AliTPCTracker::Transform (it is not needed here anyway...)
-		trk.Transform(&cl); 
+		trk.Transform(&cl);
 		/*if (par == NULL)
 		{
 			delete par2;

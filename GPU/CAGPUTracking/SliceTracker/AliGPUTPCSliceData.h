@@ -25,7 +25,7 @@
 #include "AliGPUTPCGPUConfig.h"
 #include "AliGPUMemoryResource.h"
 
-class AliGPUTPCClusterData;
+struct AliGPUTPCClusterData;
 class AliGPUTPCHit;
 
 MEM_CLASS_PRE() class AliGPUTPCSliceData : public AliGPUProcessor

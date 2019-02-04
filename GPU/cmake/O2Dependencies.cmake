@@ -64,6 +64,14 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    CAGPUTrackingHIP_bucket
+
+    DEPENDENCIES
+    CAGPUTracking_bucket
+)
+
+o2_define_bucket(
+    NAME
     CAGPUTrackingCUDA_bucket
 
     DEPENDENCIES

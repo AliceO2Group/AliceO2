@@ -68,7 +68,7 @@ AliGPUReconstructionCUDABackend::AliGPUReconstructionCUDABackend(const AliGPUCAS
 AliGPUReconstructionCUDABackend::~AliGPUReconstructionCUDABackend()
 {
 	mITSTrackerTraits.reset(nullptr); //Make sure we destroy the ITS tracker before we exit CUDA
-	cudaDeviceReset();
+	GPUFailedMsgI(cudaDeviceReset());
 	delete mInternals;
 }
 
@@ -146,7 +146,7 @@ int AliGPUReconstructionCUDABackend::InitDevice_Runtime()
 	}
 	fDeviceId = bestDevice;
 
-	cudaGetDeviceProperties(&cudaDeviceProp ,fDeviceId );
+	GPUFailedMsgI(cudaGetDeviceProperties(&cudaDeviceProp ,fDeviceId));
 
 	if (mDeviceProcessingSettings.debugLevel >= 1)
 	{
@@ -202,14 +202,14 @@ int AliGPUReconstructionCUDABackend::InitDevice_Runtime()
 	if (mDeviceMemorySize > cudaDeviceProp.totalGlobalMem || GPUFailedMsgI(cudaMalloc(&mDeviceMemoryBase, mDeviceMemorySize)))
 	{
 		CAGPUError("CUDA Memory Allocation Error");
-		cudaDeviceReset();
+		GPUFailedMsgI(cudaDeviceReset());
 		return(1);
 	}
 	if (mDeviceProcessingSettings.debugLevel >= 1) CAGPUInfo("GPU Memory used: %lld", (long long int) mDeviceMemorySize);
 	if (GPUFailedMsgI(cudaMallocHost(&mHostMemoryBase, mHostMemorySize)))
 	{
 		CAGPUError("Error allocating Page Locked Host Memory");
-		cudaDeviceReset();
+		GPUFailedMsgI(cudaDeviceReset());
 		return(1);
 	}
 	if (mDeviceProcessingSettings.debugLevel >= 1) CAGPUInfo("Host Memory used: %lld", (long long int) mHostMemorySize);
@@ -220,7 +220,7 @@ int AliGPUReconstructionCUDABackend::InitDevice_Runtime()
 		if (GPUFailedMsgI(cudaMemset(mDeviceMemoryBase, 143, mDeviceMemorySize)))
 		{
 			CAGPUError("Error during CUDA memset");
-			cudaDeviceReset();
+			GPUFailedMsgI(cudaDeviceReset());
 			return(1);
 		}
 	}
@@ -230,7 +230,7 @@ int AliGPUReconstructionCUDABackend::InitDevice_Runtime()
 		if (GPUFailedMsgI(cudaStreamCreate(&mInternals->CudaStreams[i])))
 		{
 			CAGPUError("Error creating CUDA Stream");
-			cudaDeviceReset();
+			GPUFailedMsgI(cudaDeviceReset());
 			return(1);
 		}
 	}
@@ -239,7 +239,7 @@ int AliGPUReconstructionCUDABackend::InitDevice_Runtime()
 	if (GPUFailedMsgI(cudaGetSymbolAddress(&devPtrConstantMem, gGPUConstantMemBuffer)))
 	{
 		CAGPUError("Error getting ptr to constant memory");
-		cudaDeviceReset();
+		GPUFailedMsgI(cudaDeviceReset());
 		return 1;
 	}
 	mDeviceConstantMem = (AliGPUCAConstantMem*) devPtrConstantMem;
@@ -250,7 +250,7 @@ int AliGPUReconstructionCUDABackend::InitDevice_Runtime()
 		if (GPUFailedMsgI(cudaEventCreate(&events[i])))
 		{
 			CAGPUError("Error creating event");
-			cudaDeviceReset();
+			GPUFailedMsgI(cudaDeviceReset());
 			return 1;
 		}
 	}
@@ -280,7 +280,7 @@ int AliGPUReconstructionCUDABackend::ExitDevice_Runtime()
 	mHostMemoryBase = nullptr;
 	
 	cudaEvent_t *events = (cudaEvent_t*) &mEvents;
-	for (unsigned int i = 0;i < sizeof(mEvents) & sizeof(cudaEvent_t);i++)
+	for (unsigned int i = 0;i < sizeof(mEvents) / sizeof(cudaEvent_t);i++)
 	{
 		GPUFailedMsgI(cudaEventDestroy(events[i]));
 	}

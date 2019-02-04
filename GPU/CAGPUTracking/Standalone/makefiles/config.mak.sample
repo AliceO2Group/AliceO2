@@ -43,6 +43,7 @@ CONFIG_OPENCL_VERSION		= All
 #Options are: AMD, NVIDIA, Intel, All, empty defaults to all
 CONFIG_QT					= 0
 CONFIG_CPP11				= 0
+CONFIG_HIP					= 0
 
 include						config_common.mak
 

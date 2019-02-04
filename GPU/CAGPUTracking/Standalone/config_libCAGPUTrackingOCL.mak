@@ -5,7 +5,6 @@ TARGET						= libCAGPUTrackingOCL
 TARGETTYPE					= LIB
 
 CXXFILES					= GlobalTracker/opencl/AliGPUReconstructionOCL.cxx
-ASMFILES					=
 CLFILES						= GlobalTracker/opencl/AliGPUReconstructionOCL.cl
 
 CONFIG_OPENCL				= 1

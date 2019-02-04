@@ -12,19 +12,12 @@ extern "C" char _makefile_opencl_program_GlobalTracker_opencl_AliGPUReconstructi
 
 #define quit(msg) {CAGPUError(msg);return(1);}
 
-template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCNeighboursFinder>() {return mInternals->kernel_neighbours_finder;}
-template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCNeighboursCleaner>() {return mInternals->kernel_neighbours_cleaner;}
-template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCStartHitsFinder>() {return mInternals->kernel_start_hits_finder;}
-template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCStartHitsSorter>() {return mInternals->kernel_start_hits_sorter;}
-template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCTrackletConstructor>() {return mInternals->kernel_tracklet_constructor0;}
-template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCTrackletConstructor, 1>() {return mInternals->kernel_tracklet_constructor1;}
-template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUTPCTrackletSelector>() {return mInternals->kernel_tracklet_selector;}
-template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<AliGPUMemClean16>() {return mInternals->kernel_memclean16;}
+#include "AliGPUReconstructionOCLWorkarounds.h"
 
 template <class T, int I, typename... Args> int AliGPUReconstructionOCLBackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
 {
 	if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelBackend<T, I>(x, y, z, args...);
-	cl_kernel k = getKernelObject<T, I, cl_kernel>();
+	cl_kernel k = getKernelObject<cl_kernel, T, I>();
 	if (y.num == (unsigned int) -1)
 	{
 		if (OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, args...)) return 1;

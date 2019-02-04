@@ -2,7 +2,7 @@
 #define ALIGPURECONSTRUCTIONCUDA_H
 
 #include "AliGPUReconstructionDeviceBase.h"
-class AliGPUReconstructionCUDAInternals;
+struct AliGPUReconstructionCUDAInternals;
 
 #ifdef _WIN32
 extern "C" __declspec(dllexport) AliGPUReconstruction* AliGPUReconstruction_Create_CUDA(const AliGPUCASettingsProcessing& cfg);

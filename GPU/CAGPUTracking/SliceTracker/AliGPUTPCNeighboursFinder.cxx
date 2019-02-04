@@ -28,7 +28,7 @@ template <> GPUd() void AliGPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, in
 	//* find neighbours
 
 #ifdef GPUCA_GPUCODE
-	for (int i = iThread; i < sizeof(MEM_PLAIN(AliGPUTPCRow)) / sizeof(int); i += nThreads)
+	for (unsigned int i = iThread; i < sizeof(MEM_PLAIN(AliGPUTPCRow)) / sizeof(int); i += nThreads)
 	{
 		reinterpret_cast<GPUsharedref() int *>(&s.fRow)[i] = reinterpret_cast<GPUglobalref() int *>(&tracker.SliceDataRows()[iBlock])[i];
 		if (iBlock >= 2 && iBlock < GPUCA_ROW_COUNT - 2)
