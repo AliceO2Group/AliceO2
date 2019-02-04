@@ -9,6 +9,7 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataDescriptorMatcher.h"
 #include <cstring>
+#include <cinttypes>
 
 namespace o2
 {
@@ -48,7 +49,7 @@ std::string DataSpecUtils::describe(InputSpec const& spec)
 void DataSpecUtils::describe(char* buffer, size_t size, InputSpec const& spec)
 {
   if (auto concrete = std::get_if<ConcreteDataMatcher>(&spec.matcher)) {
-    snprintf(buffer, size, "%s/%s/%llu",
+    snprintf(buffer, size, "%s/%s/%" PRIu64,
              concrete->origin.str,
              concrete->description.str,
              concrete->subSpec);
