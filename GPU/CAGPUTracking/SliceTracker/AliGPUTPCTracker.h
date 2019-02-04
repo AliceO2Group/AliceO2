@@ -29,7 +29,7 @@ MEM_CLASS_PRE() class AliGPUCAParam;
 
 MEM_CLASS_PRE() class AliGPUTPCTrack;
 MEM_CLASS_PRE() class AliGPUTPCTrackParam;
-class AliGPUTPCClusterData;
+struct AliGPUTPCClusterData;
 MEM_CLASS_PRE() class AliGPUTPCRow;
 
 #ifdef GPUCA_GPUCODE

@@ -17,49 +17,44 @@ cmake_minimum_required(VERSION 3.9)
 
 # Module
 if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
-    set(MODULE O2CAGPUTrackingCUDA)
+    set(MODULE O2CAGPUTrackingHIP)
 elseif(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
-    set(MODULE AliCAGPUTrackingCUDA)
-endif()
-set(DEFINITIONS ${DEFINITIONS} GPUCA_GPULIBRARY=CUDA)
-
-option(CUDA_GCCBIN "GCC binary to use for compiling host part of CUDA code for systems with multiple GCC versions installed"   OFF)
-
-get_property(LANGUAGES GLOBAL PROPERTY ENABLED_LANGUAGES)
-if (NOT CUDA IN_LIST LANGUAGES) #We need to handle finding CUDA in AliRoot case
-    if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
-      set(CMAKE_CUDA_FLAGS "-Xptxas -O0 -Xcompiler -O0")
+    set(MODULE AliCAGPUTrackingHIP)
+    if(NOT DEFINED HIP_PATH)
+      if(NOT DEFINED ENV{HIP_PATH})
+         set(HIP_PATH "/opt/rocm/hip" CACHE PATH "Path to which HIP has been installed")
+      else()
+        set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "Path to which HIP has been installed")
+      endif()
+    endif()
+    set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${HIP_PATH}/cmake")
+    if(NOT DEFINED HCC_PATH)
+      # Workaround to fix a potential FindHIP bug: find HCC_PATH ourselves
+      set(_HCC_PATH "${HIP_PATH}/../hcc")
+      get_filename_component(HCC_PATH ${_HCC_PATH} ABSOLUTE CACHE)
+      unset(_HCC_PATH)
+    endif()
+    find_package(HIP REQUIRED)
+    if(HIP_FOUND)
+        message(STATUS "Found HIP: " ${HIP_VERSION})
     else()
-      set(CMAKE_CUDA_FLAGS "-Xptxas -O4 -Xcompiler -O4 -use_fast_math")
+        message(FATAL_ERROR "Could not find HIP. Ensure that HIP is either installed in /opt/rocm/hip or the variable HIP_PATH is set to point to the right location.")
     endif()
-    if(CUDA_GCCBIN)
-      message(STATUS "Using as CUDA GCC version: ${CUDA_GCCBIN}")
-      set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --compiler-bindir ${CUDA_GCCBIN}")
-    endif()
-    enable_language(CUDA)
-    if(CUDA_GCCBIN)
-      #Ugly hack!: Otherwise CUDA includes unwanted old GCC libraries leading to version conflicts
-      set(CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES "$ENV{CUDA_PATH}/lib64")
-    endif()
-    set(CMAKE_CUDA_STANDARD 14)
-    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr -DENABLE_CUDA --compiler-options \"${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}} -std=c++14\"")
+    add_definitions(-DENABLE_HIP)
 endif()
+set(DEFINITIONS ${DEFINITIONS} GPUCA_GPULIBRARY=HIP)
 
-#Another ugly hack!: nvcc dies due to O2 link flags, so we strip them for device linkage
-set(CMAKE_CUDA_DEVICE_LINK_LIBRARY "<CMAKE_CUDA_COMPILER> <LANGUAGE_COMPILE_FLAGS> -Xcompiler=-fPIC -Wno-deprecated-gpu-targets -shared -dlink <OBJECTS> -o <TARGET>")
+set(CMAKE_CXX_COMPILER ${HIP_PATH}/bin/hipcc)
+add_compile_options(--amdgpu-target=gfx900 -Wno-unused-command-line-argument -Wno-invalid-constexpr)
+add_link_options(--amdgpu-target=gfx900)
 
-get_property(LANGUAGES GLOBAL PROPERTY ENABLED_LANGUAGES)
-if (NOT CUDA IN_LIST LANGUAGES)
-    message(FATAL_ERROR "CMake could not find CUDA (${LANGUAGES})")
-endif()
-message( STATUS "Building CAGPUTracking with CUDA support" )
+message( STATUS "Building CAGPUTracking with HIP support" )
 
 #for convenience
 set(CAGPUDIR ${ALITPCCOMMON_DIR}/sources/CAGPUTracking)
 
 # Module include folder
-include_directories(${CAGPUDIR}/GlobalTracker/cuda)
+include_directories(${CAGPUDIR}/GlobalTracker/hip)
 
 # Additional include folders in alphabetical order except ROOT
 include_directories(SYSTEM ${ROOT_INCLUDE_DIR})
@@ -68,24 +63,25 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
 else() #if we do not build for AliRoot, for the time being we still need some dummy headers for some definitions
     include_directories(${CAGPUDIR}/HLTHeaders ${CAGPUDIR}/Standalone/include)
 endif()
-if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2") #We need to add src dirs of O2 to include cxx files for CUDA compilation
+if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2") #We need to add src dirs of O2 to include cxx files for HIP compilation
     include_directories(${CMAKE_SOURCE_DIR}/Detectors/TRD/base/src)
 endif()
 
 # Sources in alphabetical order
 set(SRCS
-    AliGPUReconstructionCUDA.cu
+    AliGPUReconstructionHIP.hip.cpp
    )
 
 # Headers from sources
 set(CINTHDRS
-    AliGPUReconstructionCUDA.h
+    AliGPUReconstructionHIP.h
     )
 
 set(HDRS
     ${CINTHDRS}
     ${CAGPUDIR}/GlobalTracker/AliGPUTPCGPUTrackerCommon.h
-    AliGPUReconstructionCUDAInternals.h
+    AliGPUReconstructionHIPInternals.h
+    AliGPUReconstructionHIPWorkarounds.h
   )
 
 foreach (def ${DEFINITIONS})
@@ -105,7 +101,7 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
 
     # Add a library to the project using the specified source files
     add_library_tested(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)
-    #CUDA run-time and driver
+    #HIP run-time and driver
     target_link_libraries(${MODULE} AliCAGPUTracking)
 
     # Additional compilation flags
@@ -121,15 +117,12 @@ endif()
 
 #Default cmake build script for O2
 if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
-    set(LIBRARY_NAME ${MODULE})
-    set(BUCKET_NAME CAGPUTrackingCUDA_bucket)
+    Set(LIBRARY_NAME ${MODULE})
+    set(BUCKET_NAME CAGPUTrackingHIP_bucket)
 
     O2_GENERATE_LIBRARY()
     install(FILES ${HDRS} DESTINATION include/AliTPCCommon)
 
-    target_link_libraries(${MODULE} ${CUDA_LIBRARIES} O2CAGPUTracking)
+    target_link_libraries(${MODULE} ${HIP_LIBRARIES} O2CAGPUTracking)
     set_target_properties(${MODULE} PROPERTIES LINKER_LANGUAGE CXX)
 endif()
-
-#Another hack, the above hack removes also the CUDA libraries that are actually needed...
-target_link_libraries(${MODULE} "-lcudart -lcuda -lcudadevrt")

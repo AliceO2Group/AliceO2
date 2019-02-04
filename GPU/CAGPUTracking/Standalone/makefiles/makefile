@@ -81,6 +81,8 @@ MKDIR							= $(HIDEECHOB) mkdir -p `echo $@ | sed 's,/[a-zA-Z0-9._-]*$$,,'` `ec
 
 ALLDEP							+= makefiles/makefile $(CONFIGFILE) makefiles/$(ARCHFILE) config.mak
 include							makefiles/$(ARCHFILE)
+HIPCC							= hipcc
+
 GCCFLAGSARCH					+= $(GCCARCHA)
 ifneq ($(CONFIG_CPP), )
 GCCFLAGSCOMMON					+= -std=$(CONFIG_CPP)
@@ -127,10 +129,12 @@ CUDADEFINES						= $(DEFINESUSE)
 
 DEPENDS							:= $(CUFILES:%.cu=$(WORKPATH)/cu/%.d) $(CLFILES:%.cl=$(WORKPATH)/cl/%.d) $(ASMFILES:%.asm=$(WORKPATH)/asm/%.d) $(CPPFILES_DBG:%.cpp=$(WORKPATH)/dbg/%.d) $(CPPFILES_VCC:%.cpp=$(WORKPATH)/vcc/%.d) \
 									$(CPPFILES:%.cpp=$(WORKPATH)/cpp/%.d) $(CXXFILES:%.cxx=$(WORKPATH)/cxx/%.d) $(CFILES:%.c=$(WORKPATH)/c/%.d) \
-									$(CPPFILES_MSCC:%.cpp=$(WORKPATH)/mscc/%.d) $(CPPFILES_CLANG:%.cpp=$(WORKPATH)/clang/%.d) $(CPPFILES_ICC:%.cpp=$(WORKPATH)/icc/%.d) $(CPPFILES_GCC:%.cpp=$(WORKPATH)/gcc/%.d) $(QTFILES:%.ui=$(WORKPATH)/qt/%.qtd)
+									$(CPPFILES_MSCC:%.cpp=$(WORKPATH)/mscc/%.d) $(CPPFILES_CLANG:%.cpp=$(WORKPATH)/clang/%.d) $(CPPFILES_ICC:%.cpp=$(WORKPATH)/icc/%.d) $(CPPFILES_GCC:%.cpp=$(WORKPATH)/gcc/%.d) $(QTFILES:%.ui=$(WORKPATH)/qt/%.qtd) \
+									$(HIPFILES:%.hip.cpp=$(WORKPATH)/hip/%.d)
 CPPFILES						+= $(QTFILES:%.ui=$(WORKPATH)/cpp/%.$(OBJ)) $(QTCPPFILES)
 
-OBJFILES						:= $(CUFILES:%.cu=$(WORKPATH)/cu/%.$(OBJ)) $(ASMFILES:%.asm=$(WORKPATH)/asm/%.$(OBJ)) $(CPPFILES_DBG:%.cpp=$(WORKPATH)/dbg/%.$(OBJ)) $(CPPFILES_VCC:%.cpp=$(WORKPATH)/vcc/%.$(OBJ)) $(RESOURCEFILES:%=$(WORKPATH)/res/%.$(OBJ)) $(CLFILES:%.cl=$(WORKPATH)/cl/%.$(OBJ)) $(QTFILES:%.ui=$(WORKPATH)/qt/%_moc.$(OBJ)) $(QTCPPFILES:%.cpp=$(WORKPATH)/qt/%_moccpp.$(OBJ))
+OBJFILES						:= $(CUFILES:%.cu=$(WORKPATH)/cu/%.$(OBJ)) $(ASMFILES:%.asm=$(WORKPATH)/asm/%.$(OBJ)) $(CPPFILES_DBG:%.cpp=$(WORKPATH)/dbg/%.$(OBJ)) $(CPPFILES_VCC:%.cpp=$(WORKPATH)/vcc/%.$(OBJ)) $(RESOURCEFILES:%=$(WORKPATH)/res/%.$(OBJ)) \
+ 									$(CLFILES:%.cl=$(WORKPATH)/cl/%.$(OBJ)) $(QTFILES:%.ui=$(WORKPATH)/qt/%_moc.$(OBJ)) $(QTCPPFILES:%.cpp=$(WORKPATH)/qt/%_moccpp.$(OBJ)) $(HIPFILES:%.hip.cpp=$(WORKPATH)/hip/%.$(OBJ))
 
 CPPFILES_ICC					:= $(CPPFILES_ICC:%.cpp=$(WORKPATH)/icc/%.$(OBJ))
 CPPFILES_GCC					:= $(CPPFILES_GCC:%.cpp=$(WORKPATH)/gcc/%.$(OBJ))
@@ -193,7 +197,8 @@ VSDEFINES						:= $(subst =, BAT_SPECIAL_EQ ,$(VSDEFINESTMP))
 
 LIBFILES						= $(LIBSUSE)
 
-.SECONDARY:						$(CUFILES:%.cu=$(WORKPATH)/cu/%.cpp) $(ASMFILES:%.asm=$(WORKPATH)/asm/%.cpp) $(RESOURCEFILES:%=$(WORKPATH)/res/%.$(OBJ)) $(CLFILES:%.cl=$(WORKPATH)/cl/%.$(OBJ)) $(QTFILES:%.ui=$(WORKPATH)/qt/%_moc.$(OBJ)) $(QTFILES:%.ui=$(WORKPATH)/qt/%_moc.cpp) $(QTFILES:%.ui=$(WORKPATH)/qt/%_ui.h) $(CLFILES:%.cl=$(WORKPATH)/cl/%.clbin)
+.SECONDARY:						$(CUFILES:%.cu=$(WORKPATH)/cu/%.cpp) $(ASMFILES:%.asm=$(WORKPATH)/asm/%.cpp) $(RESOURCEFILES:%=$(WORKPATH)/res/%.$(OBJ)) $(CLFILES:%.cl=$(WORKPATH)/cl/%.$(OBJ)) $(QTFILES:%.ui=$(WORKPATH)/qt/%_moc.$(OBJ)) \
+									$(QTFILES:%.ui=$(WORKPATH)/qt/%_moc.cpp) $(QTFILES:%.ui=$(WORKPATH)/qt/%_ui.h) $(CLFILES:%.cl=$(WORKPATH)/cl/%.clbin)
 
 $(EXECUTABLE):					$(EXTRADEPS) $(OBJFILES) $(EXTRAOBJFILES) $(ALLDEP)
 								$(LINK) $(EXTRAFLAGSLINK) $(LIBPATHSUSE) $(OBJFILES) $(EXTRAOBJFILES) $(LIBFILES) $(LINKFLAGSUSE) $(LINKOUTPUT) $(LINKTARGETTYPE)
@@ -214,6 +219,9 @@ $(WORKPATH)/cu/%.$(OBJ):		$(WORKPATH)/cu/%.cpp $(ALLDEP)
 
 $(WORKPATH)/cu/%.cpp:			%.cu $(ALLDEP)
 								$(NVCC) $(NVCCFLAGSUSE) $(NVCCFLAGSDC) $(CUDAINCLUDEPATHS) $(CUDADEFINES) $(FILEFLAGS$<) --cuda --output-file "$@" $<
+								
+$(WORKPATH)/hip/%.$(OBJ):		%.hip.cpp $(ALLDEP)
+								$(HIPCC) --amdgpu-target=gfx900 $(CLANGFLAGFSUSE) $(CLANGFLAGSCOMMON) $(GCCINCLUDEPATHS) $(GCCDEFINES) $(COMPILETARGETTYPE) $(FILEFLAGS$<) -Wno-unused-command-line-argument -Wno-invalid-constexpr -c $< -o $@
 
 $(WORKPATH)/asm/%.$(OBJ):		$(WORKPATH)/asm/%.asm $(ALLDEP)
 								$(ASM) $(COMPILEOUTPUT) $(ASMONLY) $<
@@ -304,6 +312,9 @@ $(WORKPATH)/cl/%.d:				%.cl $(ALLDEP)
 
 $(WORKPATH)/cu/%.d:				%.cu $(ALLDEP)
 								$(DEPMKDIR) $(DEPGCC) -I$(GCCPATH)/include -D_MSC_VER=1700 -D__CUDACC__ | $(DEPSED1) 's,^[a-zA-Z0-9._-]*[ ]*:,$(WORKPATH)/cu/$*.$(OBJ) $(WORKPATH)/cu/$*.cpp $@ : ,g' $(DEPSED2)
+
+$(WORKPATH)/hip/%.d:			%.hip.cpp $(ALLDEP)
+								$(DEPMKDIR) $(DEPGCC) `hipconfig -C` | $(DEPSED1) 's,^[a-zA-Z0-9._-]*[ ]*:,$(WORKPATH)/hip/$*.$(OBJ) $@ : ,g' $(DEPSED2)
 
 $(WORKPATH)/asm/%.d:			%.asm $(ALLDEP)
 								$(DEPMKDIR) $(DEPGCC) | $(DEPSED1) 's,^[a-zA-Z0-9._-]*[ ]*:,$(WORKPATH)/asm/$*.$(OBJ) $(WORKPATH)/asm/$*.asm $@ : ,g' $(DEPSED2)

@@ -131,11 +131,18 @@ OPENCLLIB						= -lOpenCL
 ifeq ("$(CONFIG_OPENCL)", "1")
 LIBSUSE							+= $(OPENCLLIB)
 endif
+
+ifeq ($(CONFIG_HIP), 1)
+LIBPATHSUSE						+= -L$(HIP_PATH)/lib/
+LIBSUSE							+= -lhip_hcc
+endif
+
 ifeq ("$(CONFIG_CAL)", "1")
 LIBSUSE							+= -laticalcl -laticalrt
 COMMONINCLUDEPATHS				+= $(AMDPATH)/include/CAL
 LIBPATHSUSE						+= -L$(AMDLIBPATH)
 endif
+
 ifeq ("$(CONFIG_OPENGL)", "1")
 LIBSUSE							+= -lGL -lGLU -lGLEW
 ifeq ("$(CONFIG_GLUT)", "1")

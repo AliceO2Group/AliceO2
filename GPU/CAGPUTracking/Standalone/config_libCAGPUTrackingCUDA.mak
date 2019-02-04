@@ -4,9 +4,7 @@ include						config_common.mak
 TARGET						= libCAGPUTrackingCUDA
 TARGETTYPE					= LIB
 
-CXXFILES					=
 CUFILES						= GlobalTracker/cuda/AliGPUReconstructionCUDA.cu
-ASMFILES					=
 
 CONFIG_CUDA					= 1
 

@@ -21,7 +21,7 @@
 
 #include "AliGPUGeneralKernels.cxx"
 
-#ifndef __OPENCL__
+#ifdef __CUDACC__
 	#ifdef GPUCA_GPU_MERGER
 		#include "AliGPUTPCGMMerger.h"
 		#include "AliGPUTPCGMTrackParam.cxx"
