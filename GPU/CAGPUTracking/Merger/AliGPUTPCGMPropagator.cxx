@@ -22,7 +22,10 @@
 #include "AliGPUTPCGMPhysicalTrackModel.h"
 #include "AliGPUCAParam.h"
 #include "AliGPUTPCGMMergedTrackHit.h"
+
+#ifndef __OPENCL__
 #include <cmath>
+#endif
 
 
 #if defined(GMPropagatorUseFullField)
@@ -267,7 +270,7 @@ GPUd() int AliGPUTPCGMPropagator::RotateToAlpha(float newAlpha)
 GPUd() int AliGPUTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, bool inFlyDirection)
 {
 
-	if (fabs(posAlpha - fAlpha) > 1.e-4)
+	if (fabs(posAlpha - fAlpha) > 1.e-4f)
 	{
 		if (RotateToAlpha(posAlpha) != 0) return -2;
 	}
@@ -383,19 +386,19 @@ GPUd() int AliGPUTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
 		float ss = ey + ey1;
 		float tg = ss * cci;
 		float xx = 1.f - 0.25f * kdx * kdx * (1.f + tg * tg);
-		if (xx < 1.e-8) return -1;
+		if (xx < 1.e-8f) return -1;
 		xx = CAMath::Sqrt(xx);
 		float yy = CAMath::Sqrt(ss * ss + cc * cc);
 
 		float j12 = dx * fT0.DzDs() * tg * (2.f + tg * (ey * exi + ey1 * ex1i)) / (xx * yy);
 		float j14 = 0;
-		if (CAMath::Abs(fT0.QPt()) > 1.e-6)
+		if (CAMath::Abs(fT0.QPt()) > 1.e-6f)
 		{
 			j14 = (2.f * xx * ex1i * dx / yy - dS) * fT0.DzDs() / fT0.QPt();
 		}
 		else
 		{
-			j14 = -fT0.DzDs() * bz * dx * dx * exi * exi * exi * (0.5 * ey + (1.f / 3.f) * kdx * (1 + 2.f * ey * ey) * exi * exi);
+			j14 = -fT0.DzDs() * bz * dx * dx * exi * exi * exi * (0.5f * ey + (1.f / 3.f) * kdx * (1 + 2.f * ey * ey) * exi * exi);
 		}
 
 		p[1] += j12 * d2 + j14 * d4;
@@ -670,10 +673,10 @@ GPUd() void AliGPUTPCGMPropagator::GetErr2(float& err2Y, float& err2Z, const Ali
 	if (fSpecialErrors) param.GetClusterErrors2( iRow, posZ, fT0.GetSinPhi(), fT0.DzDs(), err2Y, err2Z );
 	else param.GetClusterRMS2( iRow, posZ, fT0.GetSinPhi(), fT0.DzDs(), err2Y, err2Z );
 
-	if (clusterState & AliGPUTPCGMMergedTrackHit::flagEdge) {err2Y += 0.35;err2Z += 0.15;}
-	if (clusterState & AliGPUTPCGMMergedTrackHit::flagSingle) {err2Y += 0.2;err2Z += 0.2;}
-	if (clusterState & (AliGPUTPCGMMergedTrackHit::flagSplitPad | AliGPUTPCGMMergedTrackHit::flagShared | AliGPUTPCGMMergedTrackHit::flagSingle)) {err2Y += 0.03;err2Y *= 3;}
-	if (clusterState & (AliGPUTPCGMMergedTrackHit::flagSplitTime | AliGPUTPCGMMergedTrackHit::flagShared | AliGPUTPCGMMergedTrackHit::flagSingle)) {err2Z += 0.03;err2Z *= 3;}
+	if (clusterState & AliGPUTPCGMMergedTrackHit::flagEdge) {err2Y += 0.35f;err2Z += 0.15f;}
+	if (clusterState & AliGPUTPCGMMergedTrackHit::flagSingle) {err2Y += 0.2f;err2Z += 0.2f;}
+	if (clusterState & (AliGPUTPCGMMergedTrackHit::flagSplitPad | AliGPUTPCGMMergedTrackHit::flagShared | AliGPUTPCGMMergedTrackHit::flagSingle)) {err2Y += 0.03f;err2Y *= 3;}
+	if (clusterState & (AliGPUTPCGMMergedTrackHit::flagSplitTime | AliGPUTPCGMMergedTrackHit::flagShared | AliGPUTPCGMMergedTrackHit::flagSingle)) {err2Z += 0.03f;err2Z *= 3;}
 	fStatErrors.GetOfflineStatisticalErrors(err2Y, err2Z, fT0.SinPhi(), fT0.DzDs(), clusterState);
 }
 
@@ -693,8 +696,8 @@ GPUd() float AliGPUTPCGMPropagator::PredictChi2(float posY, float posZ, float er
 
 	if (!fFitInProjections || fT->NDF() <= 0)
 	{
-		const float w0 = 1. / (err2Y + fC[0]);
-		const float w2 = 1. / (err2Z + fC[2]);
+		const float w0 = 1.f / (err2Y + fC[0]);
+		const float w2 = 1.f / (err2Z + fC[2]);
 		return w0 * z0 * z0 + w2 * z1 * z1;
 	}
 	else
@@ -702,8 +705,8 @@ GPUd() float AliGPUTPCGMPropagator::PredictChi2(float posY, float posZ, float er
 		float w0 = fC[2] + err2Z, w1 = fC[1], w2 = fC[0] + err2Y;
 		{ // Invert symmetric matrix
 			float det = w0 * w2 - w1 * w1;
-			if (CAMath::Abs(det) < 1.e-10) det = 1.e-10;
-			det = 1. / det;
+			if (CAMath::Abs(det) < 1.e-10f) det = 1.e-10f;
+			det = 1.f / det;
 			w0 = w0 * det;
 			w1 = -w1 * det;
 			w2 = w2 * det;
@@ -753,9 +756,9 @@ GPUd() int AliGPUTPCGMPropagator::Update(float posY, float posZ, short clusterSt
 	float w0, w1, w2, chiY, chiZ;
 	if (fFitInProjections || fT->NDF() <= 0)
 	{
-		w0 = 1. / (err2Y + d00);
+		w0 = 1.f / (err2Y + d00);
 		w1 = 0;
-		w2 = 1. / (err2Z + d11);
+		w2 = 1.f / (err2Z + d11);
 		chiY = w0 * z0 * z0;
 		chiZ = w2 * z1 * z1;
 	}
@@ -764,8 +767,8 @@ GPUd() int AliGPUTPCGMPropagator::Update(float posY, float posZ, short clusterSt
 		w0 = d11 + err2Z, w1 = d10, w2 = d00 + err2Y;
 		{ // Invert symmetric matrix
 			float det = w0 * w2 - w1 * w1;
-			if (CAMath::Abs(det) < 1.e-10) return -1;
-			det = 1. / det;
+			if (CAMath::Abs(det) < 1.e-10f) return -1;
+			det = 1.f / det;
 			w0 = w0 * det;
 			w1 = -w1 * det;
 			w2 = w2 * det;
@@ -873,15 +876,15 @@ GPUd() float AliGPUTPCGMPropagator::ApproximateBetheBloch(float beta2)
 	if (bad) beta2 = 0.5f;
 
 	float a = beta2 / (1.f - beta2);
-	float b = 0.5 * log(a);
-	float d = 0.153e-3 / beta2;
+	float b = 0.5f * log(a);
+	float d = 0.153e-3f / beta2;
 	float c = b - beta2;
 
 	float ret = d * (log0 + b + c);
 	float case1 = d * (log1 + c);
 
-	if (a > 3.5 * 3.5) ret = case1;
-	if (bad) ret = 0.;
+	if (a > 3.5f * 3.5f) ret = case1;
+	if (bad) ret = 0.f;
 
 	return ret;
 }
@@ -891,12 +894,12 @@ GPUd() void AliGPUTPCGMPropagator::CalculateMaterialCorrection()
 {
 	//*!
 
-	const float mass = 0.13957;
+	const float mass = 0.13957f;
 
 	float qpt = fT0.GetQPt();
 	if (fabs(qpt) > 20) qpt = 20;
 
-	float w2 = (1. + fT0.GetDzDs() * fT0.GetDzDs()); //==(P/pt)2
+	float w2 = (1.f + fT0.GetDzDs() * fT0.GetDzDs()); //==(P/pt)2
 	float pti2 = qpt * qpt;
 	if (pti2 < 1.e-4f) pti2 = 1.e-4f;
 
@@ -906,23 +909,23 @@ GPUd() void AliGPUTPCGMPropagator::CalculateMaterialCorrection()
 	float p2 = w2 / pti2; // impuls 2
 	float betheRho = ApproximateBetheBloch(p2 / mass2) * fMaterial.fRho;
 	float E = sqrtf(p2 + mass2);
-	float theta2 = (14.1 * 14.1 / 1.e6) / (beta2 * p2) * fMaterial.fRhoOverRadLen;
+	float theta2 = (14.1f * 14.1f / 1.e6f) / (beta2 * p2) * fMaterial.fRhoOverRadLen;
 
 	fMaterial.fEP2 = E / p2;
 
 	// Approximate energy loss fluctuation (M.Ivanov)
 
-	const float knst = 0.07; // To be tuned.
+	const float knst = 0.07f; // To be tuned.
 	fMaterial.fSigmadE2 = knst * fMaterial.fEP2 * qpt;
 	fMaterial.fSigmadE2 = fMaterial.fSigmadE2 * fMaterial.fSigmadE2;
 
 	fMaterial.fK22 = theta2 * w2;
 	fMaterial.fK33 = fMaterial.fK22 * w2;
-	fMaterial.fK43 = 0.;
+	fMaterial.fK43 = 0.f;
 	fMaterial.fK44 = theta2 * fT0.GetDzDs() * fT0.GetDzDs() * pti2;
 
 	float br = (betheRho > 1.e-8f) ? betheRho : 1.e-8f;
-	fMaterial.fDLMax = 0.3 * E / br;
+	fMaterial.fDLMax = 0.3f * E / br;
 	fMaterial.fEP2 *= betheRho;
 	fMaterial.fSigmadE2 = fMaterial.fSigmadE2 * betheRho; // + fMaterial.fK44;
 }
@@ -978,7 +981,7 @@ GPUd() void AliGPUTPCGMPropagator::Mirror(bool inFlyDirection)
 	float B[3];
 	GetBxByBz(fAlpha, fT0.X(), fT0.Y(), fT0.Z(), B);
 	float Bz = B[2];
-	if (fabs(Bz) < 1.e-8) Bz = 1.e-8;
+	if (fabs(Bz) < 1.e-8f) Bz = 1.e-8f;
 
 	float dy = -2.f * fT0.Q() * fT0.Px() / Bz;
 	float dS; // path in XY
@@ -991,8 +994,8 @@ GPUd() void AliGPUTPCGMPropagator::Mirror(bool inFlyDirection)
 		//    =       chord*(1 + 1/6 sa^2 + 3/40 sa^4 + 5/112 sa^6 +... )
 
 		float sa2 = sa * sa;
-		const float k2 = 1. / 6.;
-		const float k4 = 3. / 40.;
+		const float k2 = 1.f / 6.f;
+		const float k4 = 3.f / 40.f;
 		//const float k6 = 5.f/112.f;
 		dS = chord + chord * sa2 * (k2 + k4 * sa2);
 		//dS = sqrtf(pt2)/b*2.*CAMath::ASin( sa );

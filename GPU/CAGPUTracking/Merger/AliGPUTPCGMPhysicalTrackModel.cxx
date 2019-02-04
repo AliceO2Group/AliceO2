@@ -55,15 +55,15 @@ GPUd() int AliGPUTPCGMPhysicalTrackModel::PropagateToXBzLightNoUpdate(float x, f
 	float dS; // path in XY
 	{
 		float chord = dx * CAMath::Sqrt(1.f + ty * ty); // chord to the extrapolated point == sqrt(dx^2+dy^2)*sign(dx)
-		float sa = 0.5 * chord * b * pti;               //  sin( half of the rotation angle ) ==  (chord/2) / radius
+		float sa = 0.5f * chord * b * pti;               //  sin( half of the rotation angle ) ==  (chord/2) / radius
 
 		// dS = (Pt/b)*2*arcsin( sa )
 		//    = (Pt/b)*2*sa*(1 + 1/6 sa^2 + 3/40 sa^4 + 5/112 sa^6 +... )
 		//    =       chord*(1 + 1/6 sa^2 + 3/40 sa^4 + 5/112 sa^6 +... )
 
 		float sa2 = sa * sa;
-		const float k2 = 1. / 6.;
-		const float k4 = 3. / 40.;
+		const float k2 = 1.f / 6.f;
+		const float k4 = 3.f / 40.f;
 		//const float k6 = 5.f/112.f;
 		dS = chord + chord * sa2 * (k2 + k4 * sa2);
 		//dS = sqrt(pt2)/b*2.*CAMath::ASin( sa );
@@ -97,7 +97,7 @@ GPUd() int AliGPUTPCGMPhysicalTrackModel::PropagateToXBxByBz(float x,
 	{ // simple transport in Bz for test proposes
 		return PropagateToXBzLight(x, Bz, dLp);
 	}
-	dLp = 0.;
+	dLp = 0.f;
 
 	AliGPUTPCGMPhysicalTrackModel t = *this;
 
@@ -191,7 +191,7 @@ GPUd() int AliGPUTPCGMPhysicalTrackModel::PropagateToLpBz(float Lp, float Bz)
 
 	float step = Lp;
 
-	const float kOvSqSix = CAMath::Sqrt(1. / 6.);
+	const float kOvSqSix = CAMath::Sqrt(1.f / 6.f);
 
 	float px = fPx;
 	float py = fPy;
@@ -200,17 +200,17 @@ GPUd() int AliGPUTPCGMPhysicalTrackModel::PropagateToLpBz(float Lp, float Bz)
 	float tet = qfield * step;
 
 	float tsint, sintt, sint, cos1t;
-	if (CAMath::Abs(tet) > 0.03)
+	if (CAMath::Abs(tet) > 0.03f)
 	{
 		sint = CAMath::Sin(tet);
 		sintt = sint / tet;
 		tsint = (tet - sint) / tet;
-		float t = CAMath::Sin(0.5 * tet);
+		float t = CAMath::Sin(0.5f * tet);
 		cos1t = 2.f * t * t / tet;
 	}
 	else
 	{
-		tsint = tet * tet / 6.;
+		tsint = tet * tet / 6.f;
 		sintt = (1.f - tet * kOvSqSix) * (1.f + tet * kOvSqSix); // 1.- tsint;
 		sint = tet * sintt;
 		cos1t = 0.5f * tet;

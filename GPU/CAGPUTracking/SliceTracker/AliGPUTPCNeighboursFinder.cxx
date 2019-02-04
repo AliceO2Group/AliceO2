@@ -130,7 +130,7 @@ template <> GPUd() void AliGPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, in
 	if ((s.fIRow <= 1) || (s.fIRow >= GPUCA_ROW_COUNT - 2)) return;
 #endif
 
-	float chi2Cut = 3. * 3. * 4 * (s.fUpDx * s.fUpDx + s.fDnDx * s.fDnDx);
+	float chi2Cut = 3.f * 3.f * 4 * (s.fUpDx * s.fUpDx + s.fDnDx * s.fDnDx);
 	//float chi2Cut = 3.*3.*(s.fUpDx*s.fUpDx + s.fDnDx*s.fDnDx ); //SG
 #ifdef GPUCA_GPUCODE
 	GPUsharedref() const MEM_LOCAL(AliGPUTPCRow) &row = s.fRow;
@@ -187,8 +187,8 @@ template <> GPUd() void AliGPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, in
 
 			const float kAngularMultiplier = tracker.Param().rec.SearchWindowDZDR;
 			const float kAreaSize = tracker.Param().rec.NeighboursSearchArea;
-			areaUp.Init(rowUp, tracker.Data(), y * s.fUpTx, kAngularMultiplier != 0. ? z : (z * s.fUpTx), kAreaSize, kAngularMultiplier != 0 ? (s.fUpDx * kAngularMultiplier) : kAreaSize);
-			areaDn.Init(rowDn, tracker.Data(), y * s.fDnTx, kAngularMultiplier != 0. ? z : (z * s.fDnTx), kAreaSize, kAngularMultiplier != 0 ? (-s.fDnDx * kAngularMultiplier) : kAreaSize);
+			areaUp.Init(rowUp, tracker.Data(), y * s.fUpTx, kAngularMultiplier != 0.f ? z : (z * s.fUpTx), kAreaSize, kAngularMultiplier != 0.f ? (s.fUpDx * kAngularMultiplier) : kAreaSize);
+			areaDn.Init(rowDn, tracker.Data(), y * s.fDnTx, kAngularMultiplier != 0.f ? z : (z * s.fDnTx), kAreaSize, kAngularMultiplier != 0.f ? (-s.fDnDx * kAngularMultiplier) : kAreaSize);
 
 			do
 			{
@@ -220,7 +220,7 @@ template <> GPUd() void AliGPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, in
 			{
 
 				int bestDn = -1, bestUp = -1;
-				float bestD = 1.e10;
+				float bestD = 1.e10f;
 
 				do
 				{

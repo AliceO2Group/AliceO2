@@ -12,7 +12,7 @@
 #include "AliGPUTPCSliceOutTrack.h"
 #include "AliGPUTPCGMTrackParam.h"
 #include "AliTPCCommonMath.h"
-#include <algorithm>
+//#include <algorithm>
 
 /**
  * @class AliGPUTPCGMSliceTrack

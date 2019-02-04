@@ -5,13 +5,15 @@
 #define ENABLE_GPUMC
 #endif
 
+#ifndef __OPENCL__
 #ifdef GPUCA_HAVE_OPENMP
 #include <omp.h>
 #endif
-
 #include <chrono>
 #include <vector>
 #include <algorithm>
+#endif
+
 #include "AliGPUTRDTracker.h"
 #include "AliGPUTRDTrackletWord.h"
 #include "AliGPUTRDGeometry.h"
@@ -352,20 +354,20 @@ GPUd() bool AliGPUTRDTracker::CalculateSpacePoints()
       continue;
     }
     AliGPUTRDpadPlane *pp = fGeo->GetPadPlane(iDet);
-    float tilt = tanf( M_PI / 180. * pp->GetTiltingAngle());
+    float tilt = tanf( M_PI / 180.f * pp->GetTiltingAngle());
     float t2 = tilt * tilt; // tan^2 (tilt)
-    float c2 = 1. / (1. + t2); // cos^2 (tilt)
-    float sy2 = pow(0.10, 2); // sigma_rphi^2, currently assume sigma_rphi = 1 mm
+    float c2 = 1.f / (1.f + t2); // cos^2 (tilt)
+    float sy2 = pow(0.10f, 2); // sigma_rphi^2, currently assume sigma_rphi = 1 mm
 
     for (int iTrklt=0; iTrklt<nTracklets; ++iTrklt) {
       int trkltIdx = fTrackletIndexArray[iDet] + iTrklt;
       int trkltZbin = fTracklets[trkltIdx].GetZbin();
-      float sz2 = pow(pp->GetRowSize(trkltZbin), 2) / 12.; // sigma_z = l_pad/sqrt(12) TODO try a larger z error
-      My_Float xTrkltDet[3] = { 0. }; // trklt position in chamber coordinates
-      My_Float xTrkltSec[3] = { 0. }; // trklt position in sector coordinates
+      float sz2 = pow(pp->GetRowSize(trkltZbin), 2) / 12.f; // sigma_z = l_pad/sqrt(12) TODO try a larger z error
+      My_Float xTrkltDet[3] = { 0.f }; // trklt position in chamber coordinates
+      My_Float xTrkltSec[3] = { 0.f }; // trklt position in sector coordinates
       xTrkltDet[0] = fGeo->AnodePos();
       xTrkltDet[1] = fTracklets[trkltIdx].GetY();
-      xTrkltDet[2] = pp->GetRowPos(trkltZbin) - pp->GetRowSize(trkltZbin)/2. - pp->GetRowPos(pp->GetNrows()/2);
+      xTrkltDet[2] = pp->GetRowPos(trkltZbin) - pp->GetRowSize(trkltZbin)/2.f - pp->GetRowPos(pp->GetNrows()/2);
       matrix->LocalToMaster(xTrkltDet, xTrkltSec);
       fSpacePoints[trkltIdx].fR = xTrkltSec[0];
       fSpacePoints[trkltIdx].fX[0] = xTrkltSec[1];
@@ -377,7 +379,7 @@ GPUd() bool AliGPUTRDTracker::CalculateSpacePoints()
       fSpacePoints[trkltIdx].fCov[0] = c2 * (sy2 + t2 * sz2);
       fSpacePoints[trkltIdx].fCov[1] = c2 * tilt * (sz2 - sy2);
       fSpacePoints[trkltIdx].fCov[2] = c2 * (t2 * sy2 + sz2);
-      fSpacePoints[trkltIdx].fDy = 0.014 * fTracklets[trkltIdx].GetdY();
+      fSpacePoints[trkltIdx].fDy = 0.014f * fTracklets[trkltIdx].GetdY();
 
       int modId   = fGeo->GetSector(iDet) * AliGPUTRDGeometry::kNstack + fGeo->GetStack(iDet); // global TRD stack number
       unsigned short volId = fGeo->GetGeomManagerVolUID(iDet, modId);
@@ -566,7 +568,7 @@ GPUd() bool AliGPUTRDTracker::FollowProlongation(GPUTRDPropagator *prop, GPUTRDT
           float tiltCorr = tilt * (fSpacePoints[trkltIdx].fX[1] - fCandidates[2*iCandidate+currIdx].getZ());
           float l_pad = pad->GetRowSize(fTracklets[trkltIdx].GetZbin());
           if (!( (CAMath::Abs(fSpacePoints[trkltIdx].fX[1] - fCandidates[2*iCandidate+currIdx].getZ()) <  l_pad) &&
-               (fCandidates[2*iCandidate+currIdx].getSigmaZ2() < (l_pad*l_pad/12.)) ))
+               (fCandidates[2*iCandidate+currIdx].getSigmaZ2() < (l_pad*l_pad/12.f)) ))
           {
             tiltCorr = 0.f;
           }
@@ -576,7 +578,7 @@ GPUd() bool AliGPUTRDTracker::FollowProlongation(GPUTRDPropagator *prop, GPUTRDT
           float deltaY = yPosCorr - fCandidates[2*iCandidate+currIdx].getY();
           float deltaZ = zPosCorr - fCandidates[2*iCandidate+currIdx].getZ();
           My_Float trkltPosTmpYZ[2] = { yPosCorr, zPosCorr };
-          My_Float trkltCovTmp[3] = { 0. };
+          My_Float trkltCovTmp[3] = { 0.f };
           if ( (CAMath::Abs(deltaY) < roadY) && (CAMath::Abs(deltaZ) < roadZ) )
           {
             //tracklet is in windwow: get predicted chi2 for update and store tracklet index if best guess
@@ -732,10 +734,10 @@ GPUd() bool AliGPUTRDTracker::FollowProlongation(GPUTRDPropagator *prop, GPUTRDT
       if (!((fCandidates[2*iUpdate+nextIdx].getSigmaZ2() < (l_padTrklt*l_padTrklt/12.f)) &&
            (CAMath::Abs(fSpacePoints[fHypothesis[iUpdate + hypothesisIdxOffset].fTrackletId].fX[1] - fCandidates[2*iUpdate+nextIdx].getZ()) < l_padTrklt)))
       {
-        tiltCorrUp = 0.;
+        tiltCorrUp = 0.f;
       }
       My_Float trkltPosUp[2] = { fSpacePoints[fHypothesis[iUpdate + hypothesisIdxOffset].fTrackletId].fX[0] - tiltCorrUp, zPosCorrUp };
-      My_Float trkltCovUp[3] = { 0. };
+      My_Float trkltCovUp[3] = { 0.f };
       RecalcTrkltCov(tilt, fCandidates[2*iUpdate+nextIdx].getSnp(), pad->GetRowSize(fTracklets[fHypothesis[iUpdate + hypothesisIdxOffset].fTrackletId].GetZbin()), trkltCovUp);
 
 #ifdef ENABLE_GPUTRDDEBUG
@@ -903,7 +905,7 @@ GPUd() bool AliGPUTRDTracker::AdjustSector(GPUTRDPropagator *prop, GPUTRDTrack *
   float alpha     = fGeo->GetAlpha();
   float xTmp      = t->getX();
   float y         = t->getY();
-  float yMax      = t->getX() * tanf(0.5 * alpha);
+  float yMax      = t->getX() * tanf(0.5f * alpha);
   float alphaCurr = t->getAlpha();
 
   if (CAMath::Abs(y) > 2.f * yMax) {
@@ -937,12 +939,12 @@ GPUd() int AliGPUTRDTracker::GetSector(float alpha) const
   // TRD sector number for reference system alpha
   //--------------------------------------------------------------------
   if (alpha < 0) {
-    alpha += 2. * M_PI;
+    alpha += 2.f * M_PI;
   }
-  else if (alpha >= 2. * M_PI) {
-    alpha -= 2. * M_PI;
+  else if (alpha >= 2.f * M_PI) {
+    alpha -= 2.f * M_PI;
   }
-  return (int) (alpha * kNSectors / (2. * M_PI));
+  return (int) (alpha * kNSectors / (2.f * M_PI));
 }
 
 GPUd() float AliGPUTRDTracker::GetAlphaOfSector(const int sec) const

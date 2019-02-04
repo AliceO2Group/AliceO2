@@ -20,7 +20,7 @@
 class AliGPUTPCGMPolynomialField
 {
   public:
-	AliGPUTPCGMPolynomialField() : fNominalBz(0.)
+	AliGPUTPCGMPolynomialField() : fNominalBz(0.f)
 	{
 		Reset();
 	}

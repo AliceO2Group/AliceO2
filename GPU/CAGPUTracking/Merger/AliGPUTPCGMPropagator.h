@@ -131,7 +131,7 @@ GPUd() inline void AliGPUTPCGMPropagator::SetMaterial(float radLen, float rho)
 {
 	fMaterial.fRho = rho;
 	fMaterial.fRadLen = radLen;
-	fMaterial.fRhoOverRadLen = (radLen > 1.e-4) ? rho / radLen : 0.;
+	fMaterial.fRhoOverRadLen = (radLen > 1.e-4f) ? rho / radLen : 0.f;
 	CalculateMaterialCorrection();
 }
 
@@ -152,7 +152,7 @@ GPUd() inline float AliGPUTPCGMPropagator::GetMirroredYModel() const
 
 GPUd() inline float AliGPUTPCGMPropagator::GetMirroredYTrack() const
 {
-	if (!fT) return -1.E10;
+	if (!fT) return -1.E10f;
 	float Bz = GetBz(fAlpha, fT->GetX(), fT->GetY(), fT->GetZ());
 	return fT->GetMirroredY(Bz);
 }

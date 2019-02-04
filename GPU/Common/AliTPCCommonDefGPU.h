@@ -72,7 +72,7 @@
 	#define GPUbarrier() __syncthreads()
 #endif
 
-#if defined(__OPENCL__) //Other special defines for OpenCL
+#if defined(__OPENCL__) && !defined(__OPENCLCPP__) //Other special defines for OpenCL
 	#define GPUsharedref() GPUshared()
 	#define GPUglobalref() __global
 	//#define GPUconstant() __constant //TODO: Replace __constant by __global (possibly add const __restrict where possible later!)

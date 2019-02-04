@@ -62,7 +62,7 @@ GPUd() float MEM_LG(AliGPUTPCTrackParam)::GetS(float x, float y, float Bz) const
 	x -= GetX();
 	y -= GetY();
 	float dS = x * ex + y * ey;
-	if (CAMath::Abs(k) > 1.e-4) dS = CAMath::ATan2(k * dS, 1 + k * (x * ey - y * ex)) / k;
+	if (CAMath::Abs(k) > 1.e-4f) dS = CAMath::ATan2(k * dS, 1 + k * (x * ey - y * ex)) / k;
 	return dS;
 }
 
@@ -87,10 +87,10 @@ GPUd() void MEM_LG(AliGPUTPCTrackParam)::GetDCAPoint(float x, float y, float z,
 	yp = y0 + (dy + ex * ((dx * dx + dy * dy) * k - 2 * (-dx * ey + dy * ex)) / (a + 1)) / a;
 	float s = GetS(x, y, Bz);
 	zp = GetZ() + GetDzDs() * s;
-	if (CAMath::Abs(k) > 1.e-2)
+	if (CAMath::Abs(k) > 1.e-2f)
 	{
 		float dZ = CAMath::Abs(GetDzDs() * CAMath::TwoPi() / k);
-		if (dZ > .1)
+		if (dZ > .1f)
 		{
 			zp += CAMath::Nint((z - zp) / dZ) * dZ;
 		}
@@ -129,7 +129,7 @@ GPUd() bool MEM_LG(AliGPUTPCTrackParam)::TransportToX(float x, AliGPUTPCTrackLin
 	float ss = ey + ey1;
 	float cc = ex + ex1;
 
-	if (CAMath::Abs(cc) < 1.e-4 || CAMath::Abs(ex) < 1.e-4 || CAMath::Abs(ex1) < 1.e-4) return 0;
+	if (CAMath::Abs(cc) < 1.e-4f || CAMath::Abs(ex) < 1.e-4f || CAMath::Abs(ex1) < 1.e-4f) return 0;
 
 	float tg = ss / cc; // tanf((phi1+phi)/2)
 
@@ -140,14 +140,14 @@ GPUd() bool MEM_LG(AliGPUTPCTrackParam)::TransportToX(float x, AliGPUTPCTrackLin
 	float dSin = dl * k / 2;
 	if (dSin > 1) dSin = 1;
 	if (dSin < -1) dSin = -1;
-	float dS = (CAMath::Abs(k) > 1.e-4) ? (2 * CAMath::ASin(dSin) / k) : dl;
+	float dS = (CAMath::Abs(k) > 1.e-4f) ? (2 * CAMath::ASin(dSin) / k) : dl;
 	float dz = dS * t0.DzDs();
 
 	if (DL) *DL = -dS * CAMath::Sqrt(1 + t0.DzDs() * t0.DzDs());
 
-	float cci = 1. / cc;
-	float exi = 1. / ex;
-	float ex1i = 1. / ex1;
+	float cci = 1.f / cc;
+	float exi = 1.f / ex;
+	float ex1i = 1.f / ex1;
 
 	float d[5] = {0,
 	              0,
@@ -226,13 +226,13 @@ GPUd() bool MEM_LG(AliGPUTPCTrackParam)::TransportToX(float x, float sinPhi0, fl
 	float ey = sinPhi0;
 	float dx = x - X();
 
-	if (CAMath::Abs(ex) < 1.e-4) return 0;
-	float exi = 1. / ex;
+	if (CAMath::Abs(ex) < 1.e-4f) return 0;
+	float exi = 1.f / ex;
 
 	float dxBz = dx * (-Bz);
 	float dS = dx * exi;
 	float h2 = dS * exi * exi;
-	float h4 = .5 * h2 * dxBz;
+	float h4 = .5f * h2 * dxBz;
 
 	//float H0[5] = { 1,0, h2,  0, h4 };
 	//float H1[5] = { 0, 1, 0, dS,  0 };
@@ -302,8 +302,8 @@ GPUd() bool MEM_LG(AliGPUTPCTrackParam)::TransportToXWithMaterial(float x, AliGP
 {
 	//* Transport the track parameters to X=x  taking into account material budget
 
-	const float kRho = 1.025e-3;  //0.9e-3;
-	const float kRadLen = 29.532; //28.94;
+	const float kRho = 1.025e-3f;  //0.9e-3;
+	const float kRadLen = 29.532f; //28.94;
 	const float kRhoOverRadLen = kRho / kRadLen;
 	float dl;
 
@@ -357,30 +357,30 @@ GPUd() float MEM_LG(AliGPUTPCTrackParam)::BetheBlochGeant(float bg2,
 	// The returned value is in [GeV/(g/cm^2)].
 	//
 
-	const float mK = 0.307075e-3; // [GeV*cm^2/g]
-	const float me = 0.511e-3;    // [GeV/c^2]
+	const float mK = 0.307075e-3f; // [GeV*cm^2/g]
+	const float me = 0.511e-3f;    // [GeV/c^2]
 	const float rho = kp0;
-	const float x0 = kp1 * 2.303;
-	const float x1 = kp2 * 2.303;
+	const float x0 = kp1 * 2.303f;
+	const float x1 = kp2 * 2.303f;
 	const float mI = kp3;
 	const float mZA = kp4;
 	const float maxT = 2 * me * bg2; // neglecting the electron mass
 
 	//*** Density effect
-	float d2 = 0.;
-	const float x = 0.5 * CAMath::Log(bg2);
-	const float lhwI = CAMath::Log(28.816 * 1e-9 * CAMath::Sqrt(rho * mZA) / mI);
+	float d2 = 0.f;
+	const float x = 0.5f * CAMath::Log(bg2);
+	const float lhwI = CAMath::Log(28.816f * 1e-9f * CAMath::Sqrt(rho * mZA) / mI);
 	if (x > x1)
 	{
-		d2 = lhwI + x - 0.5;
+		d2 = lhwI + x - 0.5f;
 	}
 	else if (x > x0)
 	{
 		const float r = (x1 - x) / (x1 - x0);
-		d2 = lhwI + x - 0.5 + (0.5 - lhwI - x0) * r * r * r;
+		d2 = lhwI + x - 0.5f + (0.5f - lhwI - x0) * r * r * r;
 	}
 
-	return mK * mZA * (1 + bg2) / bg2 * (0.5 * CAMath::Log(2 * me * bg2 * maxT / (mI * mI)) - bg2 / (1 + bg2) - d2);
+	return mK * mZA * (1 + bg2) / bg2 * (0.5f * CAMath::Log(2 * me * bg2 * maxT / (mI * mI)) - bg2 / (1 + bg2) - d2);
 }
 
 MEM_CLASS_PRE()
@@ -406,11 +406,11 @@ GPUd() float MEM_LG(AliGPUTPCTrackParam)::BetheBlochGas(float bg)
 	// The returned value is in [GeV]
 	//------------------------------------------------------------------
 
-	const float rho = 0.9e-3;
-	const float x0 = 2.;
-	const float x1 = 4.;
-	const float mI = 140.e-9;
-	const float mZA = 0.49555;
+	const float rho = 0.9e-3f;
+	const float x0 = 2.f;
+	const float x1 = 4.f;
+	const float mI = 140.e-9f;
+	const float mZA = 0.49555f;
 
 	return BetheBlochGeant(bg, rho, x0, x1, mI, mZA);
 }
@@ -425,9 +425,9 @@ GPUd() float MEM_LG(AliGPUTPCTrackParam)::ApproximateBetheBloch(float beta2)
 	//------------------------------------------------------------------
 	if (beta2 >= 1) return 0;
 
-	if (beta2 / (1 - beta2) > 3.5 * 3.5)
-		return 0.153e-3 / beta2 * (log(3.5 * 5940) + 0.5 * log(beta2 / (1 - beta2)) - beta2);
-	return 0.153e-3 / beta2 * (log(5940 * beta2 / (1 - beta2)) - beta2);
+	if (beta2 / (1 - beta2) > 3.5f * 3.5f)
+		return 0.153e-3f / beta2 * (log(3.5f * 5940) + 0.5f * log(beta2 / (1 - beta2)) - beta2);
+	return 0.153e-3f / beta2 * (log(5940 * beta2 / (1 - beta2)) - beta2);
 }
 
 MEM_CLASS_PRE()
@@ -436,28 +436,28 @@ GPUd() void MEM_LG(AliGPUTPCTrackParam)::CalculateFitParameters(AliGPUTPCTrackFi
 	//*!
 
 	float qpt = GetPar(4);
-	if (fC[14] >= 1.) qpt = 1. / 0.35;
+	if (fC[14] >= 1.f) qpt = 1.f / 0.35f;
 
-	float p2 = (1. + GetPar(3) * GetPar(3));
+	float p2 = (1.f + GetPar(3) * GetPar(3));
 	float k2 = qpt * qpt;
 	float mass2 = mass * mass;
 	float beta2 = p2 / (p2 + mass2 * k2);
 
-	float pp2 = (k2 > 1.e-8) ? p2 / k2 : 10000; // impuls 2
+	float pp2 = (k2 > 1.e-8f) ? p2 / k2 : 10000; // impuls 2
 
 	//par.fBethe = BetheBlochGas( pp2/mass2);
 	par.fBethe = ApproximateBetheBloch(pp2 / mass2);
 	par.fE = CAMath::Sqrt(pp2 + mass2);
-	par.fTheta2 = 14.1 * 14.1 / (beta2 * pp2 * 1e6);
+	par.fTheta2 = 14.1f * 14.1f / (beta2 * pp2 * 1e6f);
 	par.fEP2 = par.fE / pp2;
 
 	// Approximate energy loss fluctuation (M.Ivanov)
 
-	const float knst = 0.07; // To be tuned.
+	const float knst = 0.07f; // To be tuned.
 	par.fSigmadE2 = knst * par.fEP2 * qpt;
 	par.fSigmadE2 = par.fSigmadE2 * par.fSigmadE2;
 
-	par.fK22 = (1. + GetPar(3) * GetPar(3));
+	par.fK22 = (1.f + GetPar(3) * GetPar(3));
 	par.fK33 = par.fK22 * par.fK22;
 	par.fK43 = 0;
 	par.fK44 = GetPar(3) * GetPar(3) * k2;
@@ -483,9 +483,9 @@ GPUd() bool MEM_LG(AliGPUTPCTrackParam)::CorrectForMeanMaterial(float xOverX0, f
 	//Energy losses************************
 
 	float dE = par.fBethe * xTimesRho;
-	if (CAMath::Abs(dE) > 0.3 * par.fE) return 0; //30% energy loss is too much!
-	float corr = (1. - par.fEP2 * dE);
-	if (corr < 0.3 || corr > 1.3) return 0;
+	if (CAMath::Abs(dE) > 0.3f * par.fE) return 0; //30% energy loss is too much!
+	float corr = (1.f - par.fEP2 * dE);
+	if (corr < 0.3f || corr > 1.3f) return 0;
 
 	SetPar(4, GetPar(4) * corr);
 	fC40 *= corr;
@@ -498,7 +498,7 @@ GPUd() bool MEM_LG(AliGPUTPCTrackParam)::CorrectForMeanMaterial(float xOverX0, f
 	//Multiple scattering******************
 
 	float theta2 = par.fTheta2 * CAMath::Abs(xOverX0);
-	fC22 += theta2 * par.fK22 * (1. - GetPar(2)) * (1. + GetPar(2));
+	fC22 += theta2 * par.fK22 * (1.f - GetPar(2)) * (1.f + GetPar(2));
 	fC33 += theta2 * par.fK33;
 	fC43 += theta2 * par.fK43;
 	fC44 += theta2 * par.fK44;
@@ -520,7 +520,7 @@ GPUd() bool MEM_LG(AliGPUTPCTrackParam)::Rotate(float alpha, float maxSinPhi)
 	float cosPhi = cP * cA + sP * sA;
 	float sinPhi = -cP * sA + sP * cA;
 
-	if (CAMath::Abs(sinPhi) > maxSinPhi || CAMath::Abs(cosPhi) < 1.e-2 || CAMath::Abs(cP) < 1.e-2) return 0;
+	if (CAMath::Abs(sinPhi) > maxSinPhi || CAMath::Abs(cosPhi) < 1.e-2f || CAMath::Abs(cP) < 1.e-2f) return 0;
 
 	float j0 = cP / cosPhi;
 	float j2 = cosPhi / cP;
@@ -577,7 +577,7 @@ GPUd() bool MEM_LG(AliGPUTPCTrackParam)::Rotate(float alpha, AliGPUTPCTrackLinea
 	float cosPhi = cP * cA + sP * sA;
 	float sinPhi = -cP * sA + sP * cA;
 
-	if (CAMath::Abs(sinPhi) > maxSinPhi || CAMath::Abs(cosPhi) < 1.e-2 || CAMath::Abs(cP) < 1.e-2) return 0;
+	if (CAMath::Abs(sinPhi) > maxSinPhi || CAMath::Abs(cosPhi) < 1.e-2f || CAMath::Abs(cP) < 1.e-2f) return 0;
 
 	//float J[5][5] = { { j0, 0, 0,  0,  0 }, // Y
 	//                    {  0, 1, 0,  0,  0 }, // Z
@@ -625,10 +625,10 @@ GPUd() bool MEM_LG(AliGPUTPCTrackParam)::Filter(float y, float z, float err2Y, f
 	    z0 = y - GetPar(0),
 	    z1 = z - GetPar(1);
 
-	if (err2Y < 1.e-8 || err2Z < 1.e-8) return 0;
+	if (err2Y < 1.e-8f || err2Z < 1.e-8f) return 0;
 
-	float mS0 = 1. / err2Y;
-	float mS2 = 1. / err2Z;
+	float mS0 = 1.f / err2Y;
+	float mS2 = 1.f / err2Z;
 
 	// K = CHtS
 
@@ -681,12 +681,12 @@ GPUd() bool MEM_LG(AliGPUTPCTrackParam)::CheckNumericalQuality() const
 	for (int i = 0; i < 5; i++) ok = ok && CAMath::Finite(Par()[i]);
 
 	if (c[0] <= 0 || c[2] <= 0 || c[5] <= 0 || c[9] <= 0 || c[14] <= 0) ok = 0;
-	if (c[0] > 5. || c[2] > 5. || c[5] > 2. || c[9] > 2
+	if (c[0] > 5.f || c[2] > 5.f || c[5] > 2.f || c[9] > 2
 	    //|| ( CAMath::Abs( QPt() ) > 1.e-2 && c[14] > 2. )
 	    ) ok = 0;
 
 	if (CAMath::Abs(SinPhi()) > GPUCA_MAX_SIN_PHI) ok = 0;
-	if (CAMath::Abs(QPt()) > 1. / 0.05) ok = 0;
+	if (CAMath::Abs(QPt()) > 1.f / 0.05f) ok = 0;
 	if (ok)
 	{
 		ok = ok && (c[1] * c[1] <= c[2] * c[0]) && (c[3] * c[3] <= c[5] * c[0]) && (c[4] * c[4] <= c[5] * c[2]) && (c[6] * c[6] <= c[9] * c[0]) && (c[7] * c[7] <= c[9] * c[2]) && (c[8] * c[8] <= c[9] * c[5]) && (c[10] * c[10] <= c[14] * c[0]) && (c[11] * c[11] <= c[14] * c[2]) && (c[12] * c[12] <= c[14] * c[5]) && (c[13] * c[13] <= c[14] * c[9]);

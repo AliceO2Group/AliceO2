@@ -46,7 +46,7 @@ public:
 	void LoadClusterErrors(bool Print = 0);
 #endif
 	
-	GPUd() float Alpha( int iSlice ) const { if (iSlice >= GPUCA_NSLICES / 2) iSlice -= GPUCA_NSLICES / 2; if (iSlice >= GPUCA_NSLICES / 4) iSlice -= GPUCA_NSLICES / 2; return 0.174533 + DAlpha * iSlice;}
+	GPUd() float Alpha( int iSlice ) const { if (iSlice >= GPUCA_NSLICES / 2) iSlice -= GPUCA_NSLICES / 2; if (iSlice >= GPUCA_NSLICES / 4) iSlice -= GPUCA_NSLICES / 2; return 0.174533f + DAlpha * iSlice;}
 	GPUd() float GetClusterRMS( int yz, int type, float z, float angle2 ) const;
 	GPUd() void GetClusterRMS2( int row, float z, float sinPhi, float DzDs, float &ErrY2, float &ErrZ2 ) const;
 

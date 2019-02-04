@@ -38,13 +38,15 @@
 #include "../cmodules/qconfig.h"
 #endif
 
+#ifndef __OPENCL__
 #include <cmath>
 #include <cstdlib>
+#endif
 
 CADEBUG(int cadebug_nTracks = 0;)
 
-static constexpr float kRho = 1.025e-3;//0.9e-3;
-static constexpr float kRadLen = 29.532;//28.94;
+static constexpr float kRho = 1.025e-3f;//0.9e-3;
+static constexpr float kRadLen = 29.532f;//28.94;
 static constexpr float kDeg2Rad = M_PI / 180.f;
 static constexpr float kSectAngle = 2 * M_PI / 18.f;
 
@@ -64,8 +66,8 @@ GPUd() bool AliGPUTPCGMTrackParam::Fit(const AliGPUTPCGMMerger *merger, int iTrk
 	int nWays = param.rec.NWays;
 	int maxN = N;
 	int ihitStart = 0;
-	float covYYUpd = 0.;
-	float lastUpdateX = -1.;
+	float covYYUpd = 0.f;
+	float lastUpdateX = -1.f;
 	unsigned char lastRow = 255;
 	unsigned char lastSlice = 255;
 
@@ -83,13 +85,13 @@ GPUd() bool AliGPUTPCGMTrackParam::Fit(const AliGPUTPCGMMerger *merger, int iTrk
 
 	int resetT0 = CAMath::Max(10.f, CAMath::Min(40.f, 150.f / fP[4]));
 	const bool refit = ( nWays == 1 || iWay >= 1 );
-	const float maxSinForUpdate = CAMath::Sin(70.*kDeg2Rad);
+	const float maxSinForUpdate = CAMath::Sin(70.f * kDeg2Rad);
 	if (refit && attempt == 0) prop.SetSpecialErrors(true);
 
 	ResetCovariance();
 	prop.SetFitInProjections(iWay != 0);
 	prop.SetTrack( this, iWay ? prop.GetAlpha() : Alpha);
-	ConstrainSinPhi(prop.GetFitInProjections() ? 0.95 : GPUCA_MAX_SIN_PHI_LOW);
+	ConstrainSinPhi(prop.GetFitInProjections() ? 0.95f : GPUCA_MAX_SIN_PHI_LOW);
 	CADEBUG(printf("Fitting track %d way %d (sector %d, alpha %f)\n", cadebug_nTracks, iWay, (int) (prop.GetAlpha() / kSectAngle + 0.5) + (fP[1] < 0 ? 18 : 0), prop.GetAlpha());)
 
 	N = 0;
@@ -220,7 +222,7 @@ GPUd() bool AliGPUTPCGMTrackParam::Fit(const AliGPUTPCGMMerger *merger, int iTrk
 		errorStat.Fill(xx, yy, zz, prop.GetAlpha(), fX, fP, fC, ihit, iWay);
 
 		int retVal;
-		float threshold = 3. + (lastUpdateX >= 0 ? (fabs(fX - lastUpdateX) / 2) : 0.);
+		float threshold = 3.f + (lastUpdateX >= 0 ? (fabs(fX - lastUpdateX) / 2) : 0.f);
 		if (fNDF > 5 && (fabs(yy - fP[0]) > threshold || fabs(zz - fP[1]) > threshold)) retVal = 2;
 		else retVal = prop.Update( yy, zz, clusters[ihit].fRow, param, clusterState, allowModification && goodRows > 5, refit);
 		CADEBUG(if(!CheckCov()) printf("INVALID COV AFTER UPDATE!!!\n");)
@@ -237,7 +239,7 @@ GPUd() bool AliGPUTPCGMTrackParam::Fit(const AliGPUTPCGMMerger *merger, int iTrk
 			ihitStart = ihit;
 			float dy = fP[0] - prop.Model().Y();
 			float dz = fP[1] - prop.Model().Z();
-			if (CAMath::Abs(fP[4]) > 10 && --resetT0 <= 0 && CAMath::Abs(fP[2]) < 0.15 && dy*dy+dz*dz>1)
+			if (CAMath::Abs(fP[4]) > 10 && --resetT0 <= 0 && CAMath::Abs(fP[2]) < 0.15f && dy*dy+dz*dz>1)
 			{
 				CADEBUG(printf("Reinit linearization\n");)
 				prop.SetTrack(this, prop.GetAlpha());
@@ -299,8 +301,8 @@ GPUd() void AliGPUTPCGMTrackParam::MirrorTo(AliGPUTPCGMPropagator& prop, float t
 	prop.Model().Z() = fP[1] = toZ;
 	if (fC[0] < err2Y) fC[0] = err2Y;
 	if (fC[2] < err2Z) fC[2] = err2Z;
-	if (fabs(fC[5]) < 0.1) fC[5] = fC[5] > 0 ? 0.1 : -0.1;
-	if (fC[9] < 1.) fC[9] = 1.;
+	if (fabs(fC[5]) < 0.1f) fC[5] = fC[5] > 0 ? 0.1f : -0.1f;
+	if (fC[9] < 1.f) fC[9] = 1.f;
 	fC[1] = fC[4] = fC[6] = fC[8] = fC[11] = fC[13] = 0;
 	prop.SetTrack(this, prop.GetAlpha());
 	fNDF = -3;
@@ -316,7 +318,7 @@ GPUd() int AliGPUTPCGMTrackParam::MergeDoubleRowClusters(int ihit, int wayDirect
 		maxDistY = (maxDistY + fC[0]) * 20.f;
 		maxDistZ = (maxDistZ + fC[2]) * 20.f;
 		int noReject = 0; //Cannot reject if simple estimation of y/z fails (extremely unlike case)
-		if (fabs(clAlpha - prop.GetAlpha()) > 1.e-4) noReject = prop.RotateToAlpha(clAlpha);
+		if (fabs(clAlpha - prop.GetAlpha()) > 1.e-4f) noReject = prop.RotateToAlpha(clAlpha);
 		float projY, projZ;
 		if (noReject == 0) noReject |= prop.GetPropagatedYZ(xx, projY, projZ);
 		float count = 0.f;
@@ -343,7 +345,7 @@ GPUd() int AliGPUTPCGMTrackParam::MergeDoubleRowClusters(int ihit, int wayDirect
 			if (!(ihit + wayDirection >= 0 && ihit + wayDirection < maxN && clusters[ihit].fRow == clusters[ihit + wayDirection].fRow && clusters[ihit].fSlice == clusters[ihit + wayDirection].fSlice && clusters[ihit].fLeg == clusters[ihit + wayDirection].fLeg)) break;
 			ihit += wayDirection;
 		}
-		if (count < 0.1)
+		if (count < 0.1f)
 		{
 			CADEBUG(printf("\t\tNo matching cluster in double-row, skipping\n");)
 			return -1;
@@ -427,7 +429,7 @@ GPUd() void AliGPUTPCGMTrackParam::AttachClustersPropagate(const AliGPUTPCGMMerg
 GPUd() bool AliGPUTPCGMTrackParam::FollowCircleChk(float lrFactor, float toY, float toX, bool up, bool right)
 {
 	return fabs(fX * lrFactor - toY) > 1.f &&                                                                              //transport further in Y
-	       fabs(fP[2]) < 0.7 &&                                                                                            //rotate back
+	       fabs(fP[2]) < 0.7f &&                                                                                            //rotate back
 	       (up ? (-fP[0] * lrFactor > toX || (right ^ (fP[2] > 0))) : (-fP[0] * lrFactor < toX || (right ^ (fP[2] < 0)))); //don't overshoot in X
 }
 
@@ -437,7 +439,7 @@ GPUd() int AliGPUTPCGMTrackParam::FollowCircle(const AliGPUTPCGMMerger *Merger, 
 	const AliGPUCAParam &param = Merger->SliceParam();
 	bool right;
 	float dAlpha = toAlpha - prop.GetAlpha();
-	if (fabs(dAlpha) > 0.001)
+	if (fabs(dAlpha) > 0.001f)
 	{
 		right = fabs(dAlpha) < M_PI ? (dAlpha > 0) : (dAlpha < 0);
 	}
@@ -450,7 +452,7 @@ GPUd() int AliGPUTPCGMTrackParam::FollowCircle(const AliGPUTPCGMMerger *Merger, 
 	float lrFactor = fP[2] > 0 ? 1.f : -1.f; //right ^ down
 	CADEBUG(printf("CIRCLE Track %d: Slice %d Alpha %f X %f Y %f Z %f SinPhi %f DzDs %f - Next hit: Slice %d Alpha %f X %f Y %f - Right %d Up %d dAlpha %f lrFactor %f\n", iTrack, slice, prop.GetAlpha(), fX, fP[0], fP[1], fP[2], fP[3], toSlice, toAlpha, toX, toY, (int) right, (int) up, dAlpha, lrFactor);)
 
-	AttachClustersPropagate(Merger, slice, iRow, targetRow, iTrack, goodLeg, prop, inFlyDirection, 0.7);
+	AttachClustersPropagate(Merger, slice, iRow, targetRow, iTrack, goodLeg, prop, inFlyDirection, 0.7f);
 	if (prop.RotateToAlpha(prop.GetAlpha() + (M_PI / 2.f) * lrFactor)) return 1;
 	CADEBUG(printf("Rotated: X %f Y %f Z %f SinPhi %f (Alpha %f / %f)\n", fP[0], fX, fP[1], fP[2], prop.GetAlpha(), prop.GetAlpha() + M_PI / 2.f);)
 	while (slice != toSlice || FollowCircleChk(lrFactor, toY, toX, up, right))
@@ -469,7 +471,7 @@ GPUd() int AliGPUTPCGMTrackParam::FollowCircle(const AliGPUTPCGMMerger *Merger, 
 			for (int j = 0;j < GPUCA_ROW_COUNT && found < 3;j++)
 			{
 				float rowX = Merger->SliceParam().RowX[j];
-				if (fabs(rowX - (-fP[0] * lrFactor)) < 1.5)
+				if (fabs(rowX - (-fP[0] * lrFactor)) < 1.5f)
 				{
 					CADEBUG(printf("Attempt row %d (Y %f Z %f)\n", j, fX * lrFactor, fP[1]);)
 					AttachClusters(Merger, slice, j, iTrack, false, fX * lrFactor, fP[1]);
@@ -530,7 +532,7 @@ GPUd() void AliGPUTPCGMTrackParam::AttachClustersMirror(const AliGPUTPCGMMerger*
 	if (fabs(SinPhi) >= GPUCA_MAX_SIN_PHI_LOW) return;
 	float b = prop.GetBz(prop.GetAlpha(), fX, fP[0], fP[1]);
 
-	int count = fabs((toX - X) / 0.5) + 0.5;
+	int count = fabs((toX - X) / 0.5f) + 0.5f;
 	float dx = (toX - X) / count;
 	const float myRowX = Merger->SliceParam().RowX[iRow];
 	//printf("AttachMirror\n");
@@ -539,13 +541,13 @@ GPUd() void AliGPUTPCGMTrackParam::AttachClustersMirror(const AliGPUTPCGMMerger*
 	while (count--)
 	{
 		float ex = sqrtf(1 - SinPhi * SinPhi);
-		float exi = 1. / ex;
+		float exi = 1.f / ex;
 		float dxBzQ = dx * -b * fP[4];
 		float newSinPhi = SinPhi + dxBzQ;
 		if (fabs(newSinPhi) > GPUCA_MAX_SIN_PHI_LOW) return;
 		float dS = dx * exi;
 		float h2 = dS * exi * exi;
-		float h4 = .5 * h2 * dxBzQ;
+		float h4 = .5f * h2 * dxBzQ;
 
 		X += dx;
 		Y += dS * SinPhi + h4;
@@ -561,7 +563,7 @@ GPUd() void AliGPUTPCGMTrackParam::AttachClustersMirror(const AliGPUTPCGMMerger*
 		for (int j = iRow;j >= 0 && j < GPUCA_ROW_COUNT && found < 3;j += step)
 		{
 			float rowX = fX + Merger->SliceParam().RowX[j] - myRowX;
-			if (fabs(rowX - paramX) < 1.5)
+			if (fabs(rowX - paramX) < 1.5f)
 			{
 				//printf("Attempt row %d\n", j);
 				AttachClusters(Merger, slice, j, iTrack, false, fP[2] > 0 ? X : -X, Z);
@@ -577,12 +579,12 @@ GPUd() void AliGPUTPCGMTrackParam::ShiftZ(const AliGPUTPCGMPolynomialField* fiel
 
 	const float cosPhi = fabs(fP[2]) < 1.f ? CAMath::Sqrt(1 - fP[2] * fP[2]) : 0.f;
 	const float dxf = -CAMath::Abs(fP[2]);
-	const float dyf = cosPhi * (fP[2] > 0 ? 1. : -1.);
-	const float r = 1./fabs(fP[4] * field->GetNominalBz());
+	const float dyf = cosPhi * (fP[2] > 0 ? 1.f : -1.f);
+	const float r = 1.f / fabs(fP[4] * field->GetNominalBz());
 	float xp = fX + dxf * r;
 	float yp = fP[0] + dyf * r;
 	//printf("X %f Y %f SinPhi %f QPt %f R %f --> XP %f YP %f\n", fX, fP[0], fP[2], fP[4], r, xp, yp);
-	const float r2 = (r + CAMath::Sqrt(xp * xp + yp * yp)) / 2.; //Improve the radius by taking into acount both points we know (00 and xy).
+	const float r2 = (r + CAMath::Sqrt(xp * xp + yp * yp)) / 2.f; //Improve the radius by taking into acount both points we know (00 and xy).
 	xp = fX + dxf * r2;
 	yp = fP[0] + dyf * r2;
 	//printf("X %f Y %f SinPhi %f QPt %f R %f --> XP %f YP %f\n", fX, fP[0], fP[2], fP[4], r2, xp, yp);
@@ -592,7 +594,7 @@ GPUd() void AliGPUTPCGMTrackParam::ShiftZ(const AliGPUTPCGMPolynomialField* fiel
 	const float dS = (xp > 0 ? (atana + atanb) : (atanb - atana)) * r;
 	float dz = dS * fP[3];
 	//printf("Track Z %f (Offset %f), dz %f, V %f (dS %f, dZds %f, qPt %f)             - Z span %f to %f: diff %f\n", fP[1], fZOffset, dz, fP[1] - dz, dS, fP[3], fP[4], clusters[0].fZ, clusters[N - 1].fZ, clusters[0].fZ - clusters[N - 1].fZ);
-	if (CAMath::Abs(dz) > 250.) dz = dz > 0 ? 250. : -250.;
+	if (CAMath::Abs(dz) > 250.f) dz = dz > 0 ? 250.f : -250.f;
 	float dZOffset = fP[1] - dz;
 	fZOffset += dZOffset;
 	fP[1] -= dZOffset;
@@ -636,7 +638,7 @@ GPUd() bool AliGPUTPCGMTrackParam::CheckNumericalQuality(float overrideCovYY) co
 	CADEBUG(printf("OK1 %d\n", (int) ok);)
 	for ( int i = 0; i < 5; i++ ) ok = ok && CAMath::Finite( fP[i] );
 	CADEBUG(printf("OK2 %d\n", (int) ok);)
-	if ( (overrideCovYY > 0 ? overrideCovYY : c[0]) > 4.*4. || c[2] > 4.*4. || c[5] > 2.*2. || c[9] > 2.*2. ) ok = 0;
+	if ( (overrideCovYY > 0 ? overrideCovYY : c[0]) > 4.f * 4.f || c[2] > 4.f * 4.f || c[5] > 2.f * 2.f || c[9] > 2.f * 2.f ) ok = 0;
 	CADEBUG(printf("OK3 %d\n", (int) ok);)
 	if ( fabs( fP[2] ) > GPUCA_MAX_SIN_PHI ) ok = 0;
 	CADEBUG(printf("OK4 %d\n", (int) ok);)
@@ -697,7 +699,7 @@ GPUd() void AliGPUTPCGMTrackParam::RefitTrack(AliGPUTPCGMMergedTrack &track, int
 		bool ok = t.Fit( merger, iTrk, clusters + track.FirstClusterRef(), nTrackHits, NTolerated, Alpha, attempt, GPUCA_MAX_SIN_PHI, &track.OuterParam() );
 		CADEBUG(printf("Finished Fit Track %d\n", cadebug_nTracks);)
 
-		if ( fabs( t.QPt() ) < 1.e-4 ) t.QPt() = 1.e-4 ;
+		if ( fabs( t.QPt() ) < 1.e-4f ) t.QPt() = 1.e-4f;
 
 		CADEBUG(printf("OUTPUT hits %d -> %d+%d = %d, QPt %f -> %f, SP %f, ok %d chi2 %f chi2ndf %f\n", nTrackHitsOld, nTrackHits, NTolerated, nTrackHits + NTolerated, ptOld, t.QPt(), t.SinPhi(), (int) ok, t.Chi2(), t.Chi2() / std::max(1,nTrackHits));)
 

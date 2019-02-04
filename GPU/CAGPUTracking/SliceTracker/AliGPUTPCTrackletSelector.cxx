@@ -50,7 +50,7 @@ template <> GPUd() void AliGPUTPCTrackletSelector::Thread<0> (int nBlocks, int n
 
 		GPUglobalref() MEM_GLOBAL(AliGPUTPCTracklet) &tracklet = tracker.Tracklets()[itr];
 		const int kMaxRowGap = 4;
-		const float kMaxShared = .1;
+		const float kMaxShared = .1f;
 
 		int firstRow = tracklet.FirstRow();
 		int lastRow = tracklet.LastRow();

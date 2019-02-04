@@ -254,7 +254,7 @@ MEM_CLASS_PRE()
 GPUd() void MEM_LG(AliGPUCAParam)::GetClusterRMS2(int iRow, float z, float sinPhi, float DzDs, float &ErrY2, float &ErrZ2) const
 {
 	int rowType = (iRow < 63) ? 0 : ((iRow > 126) ? 1 : 2);
-	z = CAMath::Abs((250. - 0.275) - CAMath::Abs(z));
+	z = CAMath::Abs((250.f - 0.275f) - CAMath::Abs(z));
 	float s2 = sinPhi * sinPhi;
 	if (s2 > 0.95f * 0.95f) s2 = 0.95f * 0.95f;
 	float sec2 = 1.f / (1.f - s2);
@@ -275,7 +275,7 @@ GPUd() float MEM_LG(AliGPUCAParam)::GetClusterError2(int yz, int type, float z, 
 	MakeType(const float *) c = ParamS0Par[yz][type];
 	float v = c[0] + c[1] * z + c[2] * angle2 + c[3] * z * z + c[4] * angle2 * angle2 + c[5] * z * angle2;
 	v = fabs(v);
-	if (v < 0.01) v = 0.01;
+	if (v < 0.01f) v = 0.01f;
 	v *= yz ? rec.ClusterError2CorrectionZ : rec.ClusterError2CorrectionY;
 	return v;
 }
@@ -285,7 +285,7 @@ GPUd() void MEM_LG(AliGPUCAParam)::GetClusterErrors2(int iRow, float z, float si
 {
 	// Calibrated cluster error from OCDB for Y and Z
 	int rowType = (iRow < 63) ? 0 : ((iRow > 126) ? 1 : 2);
-	z = CAMath::Abs((250. - 0.275) - CAMath::Abs(z));
+	z = CAMath::Abs((250.f - 0.275f) - CAMath::Abs(z));
 	float s2 = sinPhi * sinPhi;
 	if (s2 > 0.95f * 0.95f) s2 = 0.95f * 0.95f;
 	float sec2 = 1.f / (1.f - s2);

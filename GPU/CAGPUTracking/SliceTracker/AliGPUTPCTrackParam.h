@@ -118,15 +118,15 @@ class AliGPUTPCTrackParam
 
 	GPUd() static float ApproximateBetheBloch(float beta2);
 	GPUd() static float BetheBlochGeant(float bg,
-	                                    float kp0 = 2.33,
-	                                    float kp1 = 0.20,
-	                                    float kp2 = 3.00,
-	                                    float kp3 = 173e-9,
-	                                    float kp4 = 0.49848);
+	                                    float kp0 = 2.33f,
+	                                    float kp1 = 0.20f,
+	                                    float kp2 = 3.00f,
+	                                    float kp3 = 173e-9f,
+	                                    float kp4 = 0.49848f);
 	GPUd() static float BetheBlochSolid(float bg);
 	GPUd() static float BetheBlochGas(float bg);
 
-	GPUd() void CalculateFitParameters(AliGPUTPCTrackFitParam &par, float mass = 0.13957);
+	GPUd() void CalculateFitParameters(AliGPUTPCTrackFitParam &par, float mass = 0.13957f);
 	GPUd() bool CorrectForMeanMaterial(float xOverX0, float xTimesRho, const AliGPUTPCTrackFitParam &par);
 
 	GPUd() bool Rotate(float alpha, float maxSinPhi = GPUCA_MAX_SIN_PHI);
@@ -176,7 +176,7 @@ GPUd() MEM_CLASS_PRE() inline void MEM_LG(AliGPUTPCTrackParam)::InitParam()
 	SetCov(11, 0);
 	SetCov(12, 0);
 	SetCov(13, 0);
-	SetCov(14, 1000.);
+	SetCov(14, 1000.f);
 	SetZOffset(0);
 }
 

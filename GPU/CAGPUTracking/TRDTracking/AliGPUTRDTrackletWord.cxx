@@ -24,7 +24,9 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #include "AliGPUTRDTrackletWord.h"
+#ifndef __OPENCL__
 #include <new>
+#endif
 
 
 GPUd() AliGPUTRDTrackletWord::AliGPUTRDTrackletWord(unsigned int trackletWord) :
@@ -48,6 +50,7 @@ GPUd() AliGPUTRDTrackletWord::AliGPUTRDTrackletWord(const AliGPUTRDTrackletWord 
 {
 }
 
+#ifndef GPUCA_GPUCODE_DEVICE
 #ifdef GPUCA_ALIROOT_LIB
 #include "AliTRDtrackletWord.h"
 #include "AliTRDtrackletMCM.h"
@@ -74,7 +77,7 @@ AliGPUTRDTrackletWord& AliGPUTRDTrackletWord::operator=(const AliTRDtrackletMCM 
   return *this;
 }
 
-#endif
+#endif //GPUCA_ALIROOT_LIB
 
 GPUd() AliGPUTRDTrackletWord::~AliGPUTRDTrackletWord()
 {
@@ -87,6 +90,7 @@ GPUd() AliGPUTRDTrackletWord& AliGPUTRDTrackletWord::operator=(const AliGPUTRDTr
   new(this) AliGPUTRDTrackletWord(rhs);
   return *this;
 }
+#endif //GPUCA_GPUCODE_DEVICE
 
 GPUd() int AliGPUTRDTrackletWord::GetYbin() const {
   // returns (signed) value of Y

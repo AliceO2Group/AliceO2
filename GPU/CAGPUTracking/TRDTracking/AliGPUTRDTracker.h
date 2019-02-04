@@ -10,7 +10,9 @@
 #include "AliGPUTRDTrackerDebug.h"
 #include "AliGPUTRDTrack.h"
 
+#ifndef __OPENCL__
 #include <vector>
+#endif
 
 class AliGPUTRDTrackletWord;
 class AliGPUTRDGeometry;

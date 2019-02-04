@@ -19,7 +19,9 @@
 #include "AliGPUCAParam.h"
 #include "AliGPUTPCGMBorderTrack.h"
 #include "AliGPUTPCGMSliceTrack.h"
+#ifndef __OPENCLCPP__
 #include <cmath>
+#endif
 
 bool AliGPUTPCGMSliceTrack::FilterErrors(const AliGPUCAParam &param, float maxSinPhi, float sinPhiMargin)
 {
