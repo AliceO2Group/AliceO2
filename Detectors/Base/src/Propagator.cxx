@@ -13,7 +13,6 @@
 #include <FairRunAna.h> // eventually will get rid of it
 #include <TGeoGlobalMagField.h>
 #include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsBase/GeometryManager.h"
 #include "Field/MagFieldFast.h"
 #include "Field/MagneticField.h"
 #include "MathUtils/Utils.h"
@@ -91,7 +90,7 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, 
     }
     if (matCorr != USEMatCorrNONE) {
       auto xyz1 = track.getXYZGlo();
-      auto mb = (matCorr == USEMatCorrTGeo) ? GeometryManager::meanMaterialBudget(xyz0, xyz1) : mMatLUT->getMatBudget(xyz0, xyz1);
+      auto mb = getMatBudget(matCorr, xyz0, xyz1);
       if (!track.correctForMaterial(mb.meanX2X0, ((signCorr < 0) ? -mb.length : mb.length) * mb.meanRho, mass)) {
         return false;
       }
@@ -149,7 +148,7 @@ bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float 
     }
     if (matCorr != USEMatCorrNONE) {
       auto xyz1 = track.getXYZGlo();
-      auto mb = (matCorr == USEMatCorrTGeo) ? GeometryManager::meanMaterialBudget(xyz0, xyz1) : mMatLUT->getMatBudget(xyz0, xyz1);
+      auto mb = getMatBudget(matCorr, xyz0, xyz1);
       //
       if (!track.correctForMaterial(mb.meanX2X0, ((signCorr < 0) ? -mb.length : mb.length) * mb.meanRho, mass)) {
         return false;
