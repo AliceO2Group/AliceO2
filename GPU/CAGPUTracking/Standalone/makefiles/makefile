@@ -214,9 +214,6 @@ $(WORKPATH)/cu/%.$(OBJ):		$(WORKPATH)/cu/%.cpp $(ALLDEP)
 
 $(WORKPATH)/cu/%.cpp:			%.cu $(ALLDEP)
 								$(NVCC) $(NVCCFLAGSUSE) $(NVCCFLAGSDC) $(CUDAINCLUDEPATHS) $(CUDADEFINES) $(FILEFLAGS$<) --cuda --output-file "$@" $<
-								$(HIDEECHOA) cat $@ | grep -v NVCC_GREP | sed "s/#pragma detect_mismatch(\"_MSC_VER\", \"1600\")//g" > $@.tmp
-								$(HIDEECHOA) mv -f $@.tmp $@
-								-if [ -e "$<.$(ARCH).patch" ]; then patch -r /dev/null -s --no-backup-if-mismatch -i $<.$(ARCH).patch $@; fi
 
 $(WORKPATH)/asm/%.$(OBJ):		$(WORKPATH)/asm/%.asm $(ALLDEP)
 								$(ASM) $(COMPILEOUTPUT) $(ASMONLY) $<
