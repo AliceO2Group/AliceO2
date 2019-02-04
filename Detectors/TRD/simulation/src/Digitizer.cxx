@@ -442,6 +442,7 @@ bool Digitizer::convertSignalsToDigits(const int det, int& arraySignal)
   }
   // Compress the arrays
   // CompressOutputArrays(det);
+  return true;
 }
 
 bool Digitizer::convertSignalsToSDigits(const int det, int& arraySignal)
