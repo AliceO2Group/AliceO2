@@ -122,6 +122,15 @@ class MatLayerCyl : public flatObject
   void flatten(char* newPtr);
   void fixPointers(char* oldPtr, char* newPtr);
 
+  void setFlatPointer(char* ptr)
+  {
+    // brute force assignment of new pointers
+    mFlatBufferPtr = ptr;
+    if (mFlatBufferContainer) {
+      mFlatBufferContainer = ptr;
+    }
+  }
+
   /// Gives minimal alignment in bytes required for the class object
   static constexpr size_t getClassAlignmentBytes() { return 8; }
   /// Gives minimal alignment in bytes required for the flat buffer
