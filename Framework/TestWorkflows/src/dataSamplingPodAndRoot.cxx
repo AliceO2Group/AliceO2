@@ -197,6 +197,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     rootQcTask
   };
 
+  // FIXME: this should really be made a workflow configuration option, but for
+  // the moment we simply avoid crashing if BASEDIR is not set by doing 
+  // a non overwriting setenv.
+  setenv("BASEDIR", ".", 0);
   std::string configurationSource = std::string("json://") + getenv("BASEDIR") + "/../../O2/Framework/TestWorkflows/exampleDataSamplingConfig.json";
   DataSampling::GenerateInfrastructure(specs, configurationSource, 2);
   return specs;
