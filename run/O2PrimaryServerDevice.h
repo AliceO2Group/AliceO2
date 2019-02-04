@@ -199,7 +199,8 @@ class O2PrimaryServerDevice : public FairMQDevice
 
     // feedback to driver if new event started
     if (mPipeToDriver != -1 && i.part == 1) {
-      write(mPipeToDriver, &counter, sizeof(counter));
+      if (write(mPipeToDriver, &counter, sizeof(counter))) {
+      }
     }
 
     mPartCounter++;

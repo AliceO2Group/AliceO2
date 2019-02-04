@@ -232,7 +232,9 @@ class O2HitMerger : public FairMQDevice
       LOG(INFO) << "EVERYTHING IS HERE FOR EVENT " << info.eventID << "\n";
 
       if (mPipeToDriver != -1) {
-        write(mPipeToDriver, &info.eventID, sizeof(info.eventID));
+        if (write(mPipeToDriver, &info.eventID, sizeof(info.eventID) == -1)) {
+          LOG(ERROR) << "FAILED WRITING TO PIPE";
+        };
       }
 
       mEventChecksum += info.eventID;
