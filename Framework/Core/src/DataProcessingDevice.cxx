@@ -380,13 +380,14 @@ bool DataProcessingDevice::tryDispatchComputation()
   // propagates it to the various contextes (i.e. the actual entities which
   // create messages) because the messages need to have the timeslice id into
   // it.
-  auto prepareAllocatorForCurrentTimeSlice = [&timingInfo, &rootContext, &stringContext, &rawContext, &context, &relayer, &timesliceIndex](TimesliceSlot i) {
+  auto prepareAllocatorForCurrentTimeSlice = [&timingInfo, &rootContext, &stringContext, &rdfContext, &rawContext, &context, &relayer, &timesliceIndex](TimesliceSlot i) {
     auto timeslice = timesliceIndex.getTimesliceForSlot(i);
     LOG(DEBUG) << "Timeslice for cacheline is " << timeslice.value;
     timingInfo.timeslice = timeslice.value;
     rootContext.clear();
     context.clear();
     stringContext.clear();
+    rdfContext.clear();
     rawContext.clear();
   };
 
