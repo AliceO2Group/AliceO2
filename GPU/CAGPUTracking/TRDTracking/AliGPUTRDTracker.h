@@ -70,9 +70,9 @@ class AliGPUTRDTracker : public AliGPUProcessor {
   short MemoryTracklets() const { return fMemoryTracklets; }
   short MemoryTracks()    const { return fMemoryTracks; }
 
-  GPUd() bool Init(AliGPUTRDGeometry *geo = nullptr);
+  bool Init(AliGPUTRDGeometry *geo = nullptr);
   GPUhd() void SetGeometry(AliGPUTRDGeometry* geo) {fGeo = geo;}
-  GPUd() void Reset();
+  void Reset();
   GPUd() int LoadTracklet(const AliGPUTRDTrackletWord &tracklet, const int *labels = 0x0);
   template<class T> GPUd() int LoadTrack(const T &trk, const int label = -1) {
     if (fNTracks >= fNMaxTracks) {
@@ -104,7 +104,7 @@ class AliGPUTRDTracker : public AliGPUProcessor {
   GPUd() void  SwapHypothesis(const int left, const int right);
   GPUd() int   PartitionHypothesis(const int left, const int right);
   GPUd() void  Quicksort(const int left, const int right, const int size, const int type = 0);
-  GPUd() void  PrintSettings() const;
+  void  PrintSettings() const;
   bool IsInitialized() const {return fIsInitialized;}
 
   // settings
@@ -115,7 +115,7 @@ class AliGPUTRDTracker : public AliGPUProcessor {
   GPUd() void SetChi2Threshold(float chi2)     { fMaxChi2 = chi2; }
   GPUd() void SetChi2Penalty(float chi2)       { fChi2Penalty = chi2; }
   GPUd() void SetMaxMissingLayers(int ly)      { fMaxMissingLy = ly; }
-  GPUd() void SetNCandidates(int n);
+  void SetNCandidates(int n);
 
   GPUd() AliMCEvent * GetMCEvent()   const { return fMCEvent; }
   GPUd() bool  GetIsDebugOutputOn()  const { return fDebugOutput; }

@@ -153,7 +153,7 @@ GPUd() int AliGPUTPCGMPropagator::RotateToAlpha(float newAlpha)
 	float dLp = 0;
 	if (t0.PropagateToXBxByBz(trackX, B[0], B[1], B[2], dLp)) return -1;
 
-	if (fabs(t0.SinPhi()) >= fMaxSinPhi) return -1;
+	if (CAMath::Abs(t0.SinPhi()) >= fMaxSinPhi) return -1;
 
 	// now t0 is rotated and propagated, all checks are passed
 
@@ -176,7 +176,7 @@ GPUd() int AliGPUTPCGMPropagator::RotateToAlpha(float newAlpha)
 	fT->X() = trackX;                  // == x0*cc + ss*fT->Y()  == t0.X() + j0*dy;
 	fT->Y() = -x0 * ss + cc * fT->Y(); //== t0.Y() + j0*dy;
 	//fT->SinPhi() = py1/pt0 + j1*ds; // == t0.SinPhi() + j1*ds; // use py1, since t0.SinPhi can have different sign
-	fT->SinPhi() = -sqrtf(1.f - fT->SinPhi() * fT->SinPhi()) * ss + fT->SinPhi() * cc;
+	fT->SinPhi() = -CAMath::Sqrt(1.f - fT->SinPhi() * fT->SinPhi()) * ss + fT->SinPhi() * cc;
 
 	// Rotate cov. matrix Cr = J0 x C x J0T. Cr has one more row+column for X:
 	float *c = fT->Cov();
@@ -270,7 +270,7 @@ GPUd() int AliGPUTPCGMPropagator::RotateToAlpha(float newAlpha)
 GPUd() int AliGPUTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, bool inFlyDirection)
 {
 
-	if (fabs(posAlpha - fAlpha) > 1.e-4f)
+	if (CAMath::Abs(posAlpha - fAlpha) > 1.e-4f)
 	{
 		if (RotateToAlpha(posAlpha) != 0) return -2;
 	}
@@ -284,12 +284,12 @@ GPUd() int AliGPUTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
 	float dLp = 0;
 	if (t0e.PropagateToXBxByBz(posX, B[0], B[1], B[2], dLp) && t0e.PropagateToXBzLight(posX, B[2], dLp)) return 1;
 
-	if (fabs(t0e.SinPhi()) >= fMaxSinPhi) return -3;
+	if (CAMath::Abs(t0e.SinPhi()) >= fMaxSinPhi) return -3;
 
 	// propagate track and cov matrix with derivatives for (0,0,Bz) field
 
 	float dS = dLp * t0e.Pt();
-	float dL = fabs(dLp * t0e.P());
+	float dL = CAMath::Abs(dLp * t0e.P());
 
 	if (inFlyDirection) dL = -dL;
 
@@ -325,7 +325,7 @@ GPUd() int AliGPUTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
 	float d4 = p[4] - fT0.QPt();
 
 	float newSinPhi = t0e.SinPhi() + d2 + j24 * d4;
-	if (fT->NDF() >= 15 && fabs(newSinPhi) > GPUCA_MAX_SIN_PHI) return (-4);
+	if (fT->NDF() >= 15 && CAMath::Abs(newSinPhi) > GPUCA_MAX_SIN_PHI) return (-4);
 
 	fT0 = t0e;
 	fT->X() = t0e.X();
@@ -451,9 +451,9 @@ GPUd() int AliGPUTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
 	float &fC44 = c[14];
 
 	float dLmask = 0.f;
-	bool maskMS = (fabs(dL) < fMaterial.fDLMax);
+	bool maskMS = (CAMath::Abs(dL) < fMaterial.fDLMax);
 	if (maskMS) dLmask = dL;
-	float dLabs = fabs(dLmask);
+	float dLabs = CAMath::Abs(dLmask);
 
 	// Energy Loss
 
@@ -504,14 +504,14 @@ GPUd() int AliGPUTPCGMPropagator::GetPropagatedYZ(float x, float &projY, float &
 	float ex = fT0.CosPhi();
 	float ey = fT0.SinPhi();
 	float ey1 = kdx + ey;
-	if (fabs(ey1) > GPUCA_MAX_SIN_PHI) return 1;
+	if (CAMath::Abs(ey1) > GPUCA_MAX_SIN_PHI) return 1;
 	float ss = ey + ey1;
-	float ex1 = sqrtf(1.f - ey1 * ey1);
+	float ex1 = CAMath::Sqrt(1.f - ey1 * ey1);
 	float cc = ex + ex1;
 	float dxcci = dx / cc;
 	float dy = dxcci * ss;
 	float norm2 = 1.f + ey * ey1 + ex * ex1;
-	float dl = dxcci * sqrtf(norm2 + norm2);
+	float dl = dxcci * CAMath::Sqrt(norm2 + norm2);
 	float dS;
 	{
 		float dSin = 0.5f * k * dl;
@@ -530,7 +530,7 @@ GPUd() int AliGPUTPCGMPropagator::GetPropagatedYZ(float x, float &projY, float &
 GPUd() int AliGPUTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha, bool inFlyDirection)
 {
   
-  if ( fabs( posAlpha - fAlpha) > 1.e-4 ) {
+  if ( CAMath::Abs( posAlpha - fAlpha) > 1.e-4 ) {
     if( RotateToAlpha( posAlpha )!=0 ) return -2;
   }
 
@@ -542,12 +542,12 @@ GPUd() int AliGPUTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha
   float dLp = 0;
   if (t0e.PropagateToXBzLight( posX, Bz, dLp )) return 1;
   t0e.UpdateValues();
-  if( fabs( t0e.SinPhi() ) >= fMaxSinPhi ) return -3;
+  if( CAMath::Abs( t0e.SinPhi() ) >= fMaxSinPhi ) return -3;
 
   // propagate track and cov matrix with derivatives for (0,0,Bz) field
 
   float dS =  dLp*t0e.Pt();
-  float dL =  fabs(dLp*t0e.P());
+  float dL =  CAMath::Abs(dLp*t0e.P());
 
   if( inFlyDirection ) dL = -dL;
   
@@ -571,7 +571,7 @@ GPUd() int AliGPUTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha
   float d4 = p[4] - fT0.QPt();
 	  
   float newSinPhi = t0e.SinPhi() +  d2           + h24*d4;
-  if (fT->NDF() >= 15 && fabs(newSinPhi) > GPUCA_MAX_SIN_PHI) return(-4);
+  if (fT->NDF() >= 15 && CAMath::Abs(newSinPhi) > GPUCA_MAX_SIN_PHI) return(-4);
 
   fT0 = t0e;
 
@@ -636,9 +636,9 @@ GPUd() int AliGPUTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha
   float &fC44 = c[14];
 
   float dLmask = 0.f;
-  bool maskMS = ( fabs( dL ) < fMaterial.fDLMax );
+  bool maskMS = ( CAMath::Abs( dL ) < fMaterial.fDLMax );
   if( maskMS ) dLmask = dL;
-  float dLabs = fabs( dLmask);
+  float dLabs = CAMath::Abs( dLmask);
   float corr = 1.f - fMaterial.fEP2* dLmask ;
 
   float corrInv = 1.f/corr;
@@ -727,9 +727,9 @@ GPUd() int AliGPUTPCGMPropagator::Update(float posY, float posZ, int iRow, const
 		float *fP = fT->Par();
 		if (refit)
 		{
-			fC[14] = CAMath::Max(0.5f, fabs(fP[4]));
-			fC[5] = CAMath::Max(0.2f, fabs(fP[2]) / 2);
-			fC[9] = CAMath::Max(0.5f, fabs(fP[3]) / 2);
+			fC[14] = CAMath::Max(0.5f, CAMath::Abs(fP[4]));
+			fC[5] = CAMath::Max(0.2f, CAMath::Abs(fP[2]) / 2);
+			fC[9] = CAMath::Max(0.5f, CAMath::Abs(fP[3]) / 2);
 		}
 		fP[0] = posY;
 		fP[1] = posZ;
@@ -897,7 +897,7 @@ GPUd() void AliGPUTPCGMPropagator::CalculateMaterialCorrection()
 	const float mass = 0.13957f;
 
 	float qpt = fT0.GetQPt();
-	if (fabs(qpt) > 20) qpt = 20;
+	if (CAMath::Abs(qpt) > 20) qpt = 20;
 
 	float w2 = (1.f + fT0.GetDzDs() * fT0.GetDzDs()); //==(P/pt)2
 	float pti2 = qpt * qpt;
@@ -908,7 +908,7 @@ GPUd() void AliGPUTPCGMPropagator::CalculateMaterialCorrection()
 
 	float p2 = w2 / pti2; // impuls 2
 	float betheRho = ApproximateBetheBloch(p2 / mass2) * fMaterial.fRho;
-	float E = sqrtf(p2 + mass2);
+	float E = CAMath::Sqrt(p2 + mass2);
 	float theta2 = (14.1f * 14.1f / 1.e6f) / (beta2 * p2) * fMaterial.fRhoOverRadLen;
 
 	fMaterial.fEP2 = E / p2;
@@ -981,7 +981,7 @@ GPUd() void AliGPUTPCGMPropagator::Mirror(bool inFlyDirection)
 	float B[3];
 	GetBxByBz(fAlpha, fT0.X(), fT0.Y(), fT0.Z(), B);
 	float Bz = B[2];
-	if (fabs(Bz) < 1.e-8f) Bz = 1.e-8f;
+	if (CAMath::Abs(Bz) < 1.e-8f) Bz = 1.e-8f;
 
 	float dy = -2.f * fT0.Q() * fT0.Px() / Bz;
 	float dS; // path in XY
@@ -1016,7 +1016,7 @@ GPUd() void AliGPUTPCGMPropagator::Mirror(bool inFlyDirection)
 
 		// std::cout<<"MIRROR: APPLY ENERGY LOSS!!!"<<std::endl;
 
-		float dL = fabs(dS * fT0.GetDlDs());
+		float dL = CAMath::Abs(dS * fT0.GetDlDs());
 
 		if (inFlyDirection) dL = -dL;
 
@@ -1028,9 +1028,9 @@ GPUd() void AliGPUTPCGMPropagator::Mirror(bool inFlyDirection)
 		float &fC44 = c[14];
 
 		float dLmask = 0.f;
-		bool maskMS = (fabs(dL) < fMaterial.fDLMax);
+		bool maskMS = (CAMath::Abs(dL) < fMaterial.fDLMax);
 		if (maskMS) dLmask = dL;
-		float dLabs = fabs(dLmask);
+		float dLabs = CAMath::Abs(dLmask);
 		float corr = 1.f - fMaterial.fEP2 * dLmask;
 
 		float corrInv = 1.f / corr;

@@ -100,7 +100,7 @@ void AliGPUTPCGMOfflineFitter::RefitTrack( AliGPUTPCGMMergedTrack &track, const 
   AliGPUTPCGMTrackParam t = track.Param();
   float Alpha = track.Alpha();
  
-  if ( fabs( t.QPt() ) < 1.e-4 ) t.QPt() = 1.e-4 ;
+  if ( fabsf( t.QPt() ) < 1.e-4 ) t.QPt() = 1.e-4 ;
 	  
   track.SetOK(ok);
   track.SetNClustersFitted( nTrackHits );
@@ -184,7 +184,7 @@ bool AliGPUTPCGMOfflineFitter::FitOffline( const AliGPUTPCGMPolynomialField* fie
     if (DOUBLE && ihit + 1 >= 0 && ihit + 1 < maxN && clusters[ihit].fRow == clusters[ihit + 1].fRow){
       float count = 1.;
       do{
-	if (clusters[ihit].fSlice != clusters[ihit + 1].fSlice || clusters[ihit].fLeg != clusters[ihit + 1].fLeg || fabs(clusters[ihit].fY - clusters[ihit + 1].fY) > 4. || fabs(clusters[ihit].fZ - clusters[ihit + 1].fZ) > 4.) break;
+	if (clusters[ihit].fSlice != clusters[ihit + 1].fSlice || clusters[ihit].fLeg != clusters[ihit + 1].fLeg || fabsf(clusters[ihit].fY - clusters[ihit + 1].fY) > 4. || fabsf(clusters[ihit].fZ - clusters[ihit + 1].fZ) > 4.) break;
 	ihit += 1;
 	xx += clusters[ihit].fX;
 	yy += clusters[ihit].fY;
@@ -218,8 +218,8 @@ bool AliGPUTPCGMOfflineFitter::FitOffline( const AliGPUTPCGMPolynomialField* fie
     seed.SetCurrentClusterIndex1(tpcindex);
 
     int retVal;
-    float threshold = 3. + (lastUpdateX >= 0 ? (fabs(seed.GetX() - lastUpdateX) / 2) : 0.);
-    if (N > 2 && (fabs(yy - seed.GetY()) > threshold || fabs(zz - seed.GetZ()) > threshold)) retVal = 2;
+    float threshold = 3. + (lastUpdateX >= 0 ? (fabsf(seed.GetX() - lastUpdateX) / 2) : 0.);
+    if (N > 2 && (fabsf(yy - seed.GetY()) > threshold || fabsf(zz - seed.GetZ()) > threshold)) retVal = 2;
     else{
      
       Int_t  err = !( AliTPCtracker::FollowToNext( seed, iRow) );
@@ -228,7 +228,7 @@ bool AliGPUTPCGMOfflineFitter::FitOffline( const AliGPUTPCGMPolynomialField* fie
       if ( err || err2 ){
 	if (markNonFittedClusters)
 	  {
-	    if (N > 0 && (fabs(yy - seed.GetY()) > 3 || fabs(zz - seed.GetZ()) > 3)) clusters[ihit].fState = -2;
+	    if (N > 0 && (fabsf(yy - seed.GetY()) > 3 || fabsf(zz - seed.GetZ()) > 3)) clusters[ihit].fState = -2;
 	    else if (err && err >= -3) clusters[ihit].fState = -1;
 	  }
 	continue;
@@ -283,7 +283,7 @@ bool AliGPUTPCGMOfflineFitter::FitOffline( const AliGPUTPCGMPolynomialField* fie
       {
 	int err = prop.PropagateToXAlpha(fCAParam.GetTrackReferenceX(), Alpha, 0);
 	t.ConstrainSinPhi();
-	if (fabs(t.GetY()) <= t.GetX() * tan(kSectAngle / 2.f)) break;
+	if (fabsf(t.GetY()) <= t.GetX() * tan(kSectAngle / 2.f)) break;
 	float dAngle = floor(atan2(t.GetY(), t.GetX()) / kDeg2Rad / 20.f + 0.5f) * kSectAngle;
 	Alpha += dAngle;
 	if (err || k == 2)
@@ -293,7 +293,7 @@ bool AliGPUTPCGMOfflineFitter::FitOffline( const AliGPUTPCGMPolynomialField* fie
           }
       }
   }
-  else if (fabs(t.GetY()) > t.GetX() * tan(kSectAngle / 2.f))
+  else if (fabsf(t.GetY()) > t.GetX() * tan(kSectAngle / 2.f))
   {
     float dAngle = floor(atan2(t.GetY(), t.GetX()) / kDeg2Rad / 20.f + 0.5f) * kSectAngle;
       t.Rotate(dAngle);

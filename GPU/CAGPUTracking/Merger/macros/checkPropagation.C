@@ -144,7 +144,7 @@ int checkPropagation()
 	  t.Print();
 	  break;
 	}
-	if( fabs(t.GetZ())>=250. ){
+	if( fabsf(t.GetZ())>=250. ){
 	  std::cout<<"Can not propagate to x = "<<xRow<<": Z outside the volume"<<std::endl;
 	  t.Print();
 	  err = -1;

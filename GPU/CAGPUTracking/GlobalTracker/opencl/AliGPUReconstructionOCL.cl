@@ -1,7 +1,20 @@
 #define __OPENCL__
 #define GPUCA_GPUTYPE_RADEON
 #ifdef __OPENCLCPP__
+#ifdef cl_khr_fp64
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
+#endif
+#include <opencl_def>
+#include <opencl_common>
+#include <opencl_math>
+#include <opencl_atomic>
+#include <opencl_memory>
+#include <opencl_work_item>
+#include <opencl_synchronization>
+#include <opencl_printf>
+#include <opencl_integer>
+#define M_PI 3.1415926535f
+using namespace cl;
 #endif
 
 //Disable assertions since they produce errors in GPU Code
@@ -10,7 +23,7 @@
 #endif
 #define assert(param)
 
-#define DEVICE_KERNELS_PREA GPUglobalref() char* gpu_mem, GPUconstant() MEM_CONSTANT(AliGPUCAConstantMem)* pConstant
+#define DEVICE_KERNELS_PREA GPUglobal() char* gpu_mem, GPUconstant() MEM_CONSTANT(AliGPUCAConstantMem)* pConstant
 #define DEVICE_KERNELS_PRE DEVICE_KERNELS_PREA,
 #include "AliGPUDeviceKernels.h"
 

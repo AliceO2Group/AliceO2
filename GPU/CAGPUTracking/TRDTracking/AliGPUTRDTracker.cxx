@@ -20,6 +20,7 @@
 #include "AliGPUTRDTrackerDebug.h"
 #include "AliGPUReconstruction.h"
 #include "AliGPUMemoryResource.h"
+#include "AliTPCCommonMath.h"
 
 class AliGPUTPCGMMerger;
 
@@ -142,7 +143,7 @@ AliGPUTRDTracker::~AliGPUTRDTracker()
   delete fDebug;
 }
 
-GPUd() bool AliGPUTRDTracker::Init(AliGPUTRDGeometry *geo)
+bool AliGPUTRDTracker::Init(AliGPUTRDGeometry *geo)
 {
   //--------------------------------------------------------------------
   // Initialise tracker
@@ -194,7 +195,7 @@ GPUd() bool AliGPUTRDTracker::Init(AliGPUTRDGeometry *geo)
   return true;
 }
 
-GPUd() void AliGPUTRDTracker::Reset()
+void AliGPUTRDTracker::Reset()
 {
   //--------------------------------------------------------------------
   // Reset tracker
@@ -294,7 +295,139 @@ void AliGPUTRDTracker::DoTracking()
   fNEvents++;
 }
 
+void AliGPUTRDTracker::SetNCandidates(int n)
+{
+  //--------------------------------------------------------------------
+  // set the number of candidates to be used
+  //--------------------------------------------------------------------
+  if (!fIsInitialized) {
+    fNCandidates = n;
+  } else {
+    Error("SetNCandidates", "Cannot change fNCandidates after initialization");
+  }
+}
+
+void AliGPUTRDTracker::PrintSettings() const
+{
+  //--------------------------------------------------------------------
+  // print current settings to screen
+  //--------------------------------------------------------------------
+  printf("##############################################################\n");
+  printf("Current settings for GPU TRD tracker:\n");
+  printf(" fMaxChi2(%.2f)\n fChi2Penalty(%.2f)\n nCandidates(%i)\n nHypothesisMax(%i)\n maxMissingLayers(%i)\n",
+          fMaxChi2, fChi2Penalty, fNCandidates, fNhypothesis, fMaxMissingLy);
+  printf(" ptCut = %.2f GeV\n abs(eta) < %.2f\n", fMinPt, fMaxEta);
+  printf("##############################################################\n");
+}
+
+void AliGPUTRDTracker::CountMatches(const int trackID, std::vector<int> *matches) const
+{
+  //--------------------------------------------------------------------
+  // search in all TRD chambers for matching tracklets
+  // including all tracklets created by the track and its daughters
+  // important: tracklets far away / pointing in different direction of
+  // the track should be rejected (or this has to be done afterwards in analysis)
+  //--------------------------------------------------------------------
+#ifndef GPUCA_GPUCODE
+#ifdef ENABLE_GPUMC
+  for (int k = 0; k < kNChambers; k++) {
+    int layer = fGeo->GetLayer(k);
+    for (int iTrklt = 0; iTrklt < fNtrackletsInChamber[k]; iTrklt++) {
+      int trkltIdx = fTrackletIndexArray[k] + iTrklt;
+      bool trkltStored = false;
+      for (int il=0; il<3; il++) {
+        int lb = fSpacePoints[trkltIdx].fLabel[il];
+        if (lb<0) {
+          // no more valid labels
+          break;
+        }
+        if (lb == CAMath::Abs(trackID)) {
+          matches[layer].push_back(trkltIdx);
+          break;
+        }
+        if (!fMCEvent) {
+          continue;
+        }
+        //continue; //FIXME uncomment to count only exact matches
+        AliMCParticle *mcPart = (AliMCParticle*) fMCEvent->GetTrack(lb);
+        while (mcPart) {
+          lb = mcPart->GetMother();
+          if (lb == CAMath::Abs(trackID)) {
+            matches[layer].push_back(trkltIdx);
+            trkltStored = true;
+            break;
+          }
+          mcPart = lb >= 0 ? (AliMCParticle*) fMCEvent->GetTrack(lb) : 0;
+        }
+        if (trkltStored) {
+          break;
+        }
+      }
+    }
+  }
 #endif
+#endif
+}
+
+GPUd() void AliGPUTRDTracker::CheckTrackRefs(const int trackID, bool *findableMC) const
+{
+#ifdef ENABLE_GPUMC
+  //--------------------------------------------------------------------
+  // loop over all track references for the input trackID and set
+  // findableMC to true for each layer in which a track hit exiting
+  // the TRD chamber exists
+  // (in debug mode)
+  //--------------------------------------------------------------------
+  TParticle *particle;
+  TClonesArray *trackRefs;
+
+  int nHits = fMCEvent->GetParticleAndTR(trackID, particle, trackRefs);
+  if (nHits < 1) {
+    return;
+  }
+  int nHitsTrd = 0;
+  for (int iHit = 0; iHit < nHits; ++iHit) {
+    AliTrackReference *trackReference = static_cast<AliTrackReference*>(trackRefs->UncheckedAt(iHit));
+    if (trackReference->DetectorId() != AliTrackReference::kTRD) {
+      continue;
+    }
+    nHitsTrd++;
+    float xLoc = trackReference->LocalX();
+    //if (!((trackReference->TestBits(0x1 << 18)) || (trackReference->TestBits(0x1 << 17)))) {
+    if (!trackReference->TestBits(0x1 << 18)) {
+      // bit 17 - entering; bit 18 - exiting
+      continue;
+    }
+    int layer = -1;
+    if (xLoc < 304.f) {
+      layer = 0;
+    }
+    else if (xLoc < 317.f) {
+      layer = 1;
+    }
+    else if (xLoc < 330.f) {
+      layer = 2;
+    }
+    else if (xLoc < 343.f) {
+      layer = 3;
+    }
+    else if (xLoc < 356.f) {
+      layer = 4;
+    }
+    else if (xLoc < 369.f) {
+      layer = 5;
+    }
+    if (layer < 0) {
+      Error("CheckTrackRefs", "No layer can be determined");
+      printf("x=%f, y=%f, z=%f, layer=%i\n", xLoc, trackReference->LocalY(), trackReference->Z(), layer);
+      continue;
+    }
+    findableMC[layer] = true;
+  }
+#endif
+}
+
+#endif //!GPUCA_GPUCODE
 
 
 #ifdef GPUCA_GPUCODE
@@ -354,7 +487,7 @@ GPUd() bool AliGPUTRDTracker::CalculateSpacePoints()
       continue;
     }
     AliGPUTRDpadPlane *pp = fGeo->GetPadPlane(iDet);
-    float tilt = tanf( M_PI / 180.f * pp->GetTiltingAngle());
+    float tilt = CAMath::Tan( M_PI / 180.f * pp->GetTiltingAngle());
     float t2 = tilt * tilt; // tan^2 (tilt)
     float c2 = 1.f / (1.f + t2); // cos^2 (tilt)
     float sy2 = pow(0.10f, 2); // sigma_rphi^2, currently assume sigma_rphi = 1 mm
@@ -456,7 +589,7 @@ GPUd() bool AliGPUTRDTracker::FollowProlongation(GPUTRDPropagator *prop, GPUTRDT
     int currIdx = candidateIdxOffset + iLayer % 2;
     int nextIdx = candidateIdxOffset + (iLayer + 1) % 2;
     pad = fGeo->GetPadPlane(iLayer, 0);
-    float tilt = tanf( M_PI / 180.f * pad->GetTiltingAngle()); // tilt is signed!
+    float tilt = CAMath::Tan( M_PI / 180.f * pad->GetTiltingAngle()); // tilt is signed!
     const float zMaxTRD = pad->GetRow0();
 
     // --------------------------------------------------------------------------------
@@ -905,7 +1038,7 @@ GPUd() bool AliGPUTRDTracker::AdjustSector(GPUTRDPropagator *prop, GPUTRDTrack *
   float alpha     = fGeo->GetAlpha();
   float xTmp      = t->getX();
   float y         = t->getY();
-  float yMax      = t->getX() * tanf(0.5f * alpha);
+  float yMax      = t->getX() * CAMath::Tan(0.5f * alpha);
   float alphaCurr = t->getAlpha();
 
   if (CAMath::Abs(y) > 2.f * yMax) {
@@ -968,113 +1101,6 @@ GPUd() void AliGPUTRDTracker::RecalcTrkltCov(const float tilt, const float snp, 
   cov[0] = c2 * (sy2 + t2 * sz2);
   cov[1] = c2 * tilt * (sz2 - sy2);
   cov[2] = c2 * (t2 * sy2 + sz2);
-}
-
-void AliGPUTRDTracker::CountMatches(const int trackID, std::vector<int> *matches) const
-{
-  //--------------------------------------------------------------------
-  // search in all TRD chambers for matching tracklets
-  // including all tracklets created by the track and its daughters
-  // important: tracklets far away / pointing in different direction of
-  // the track should be rejected (or this has to be done afterwards in analysis)
-  //--------------------------------------------------------------------
-#ifndef GPUCA_GPUCODE
-#ifdef ENABLE_GPUMC
-  for (int k = 0; k < kNChambers; k++) {
-    int layer = fGeo->GetLayer(k);
-    for (int iTrklt = 0; iTrklt < fNtrackletsInChamber[k]; iTrklt++) {
-      int trkltIdx = fTrackletIndexArray[k] + iTrklt;
-      bool trkltStored = false;
-      for (int il=0; il<3; il++) {
-        int lb = fSpacePoints[trkltIdx].fLabel[il];
-        if (lb<0) {
-          // no more valid labels
-          break;
-        }
-        if (lb == CAMath::Abs(trackID)) {
-          matches[layer].push_back(trkltIdx);
-          break;
-        }
-        if (!fMCEvent) {
-          continue;
-        }
-        //continue; //FIXME uncomment to count only exact matches
-        AliMCParticle *mcPart = (AliMCParticle*) fMCEvent->GetTrack(lb);
-        while (mcPart) {
-          lb = mcPart->GetMother();
-          if (lb == CAMath::Abs(trackID)) {
-            matches[layer].push_back(trkltIdx);
-            trkltStored = true;
-            break;
-          }
-          mcPart = lb >= 0 ? (AliMCParticle*) fMCEvent->GetTrack(lb) : 0;
-        }
-        if (trkltStored) {
-          break;
-        }
-      }
-    }
-  }
-#endif
-#endif
-}
-
-GPUd() void AliGPUTRDTracker::CheckTrackRefs(const int trackID, bool *findableMC) const
-{
-#ifdef ENABLE_GPUMC
-  //--------------------------------------------------------------------
-  // loop over all track references for the input trackID and set
-  // findableMC to true for each layer in which a track hit exiting
-  // the TRD chamber exists
-  // (in debug mode)
-  //--------------------------------------------------------------------
-  TParticle *particle;
-  TClonesArray *trackRefs;
-
-  int nHits = fMCEvent->GetParticleAndTR(trackID, particle, trackRefs);
-  if (nHits < 1) {
-    return;
-  }
-  int nHitsTrd = 0;
-  for (int iHit = 0; iHit < nHits; ++iHit) {
-    AliTrackReference *trackReference = static_cast<AliTrackReference*>(trackRefs->UncheckedAt(iHit));
-    if (trackReference->DetectorId() != AliTrackReference::kTRD) {
-      continue;
-    }
-    nHitsTrd++;
-    float xLoc = trackReference->LocalX();
-    //if (!((trackReference->TestBits(0x1 << 18)) || (trackReference->TestBits(0x1 << 17)))) {
-    if (!trackReference->TestBits(0x1 << 18)) {
-      // bit 17 - entering; bit 18 - exiting
-      continue;
-    }
-    int layer = -1;
-    if (xLoc < 304.f) {
-      layer = 0;
-    }
-    else if (xLoc < 317.f) {
-      layer = 1;
-    }
-    else if (xLoc < 330.f) {
-      layer = 2;
-    }
-    else if (xLoc < 343.f) {
-      layer = 3;
-    }
-    else if (xLoc < 356.f) {
-      layer = 4;
-    }
-    else if (xLoc < 369.f) {
-      layer = 5;
-    }
-    if (layer < 0) {
-      Error("CheckTrackRefs", "No layer can be determined");
-      printf("x=%f, y=%f, z=%f, layer=%i\n", xLoc, trackReference->LocalY(), trackReference->Z(), layer);
-      continue;
-    }
-    findableMC[layer] = true;
-  }
-#endif
 }
 
 GPUd() void AliGPUTRDTracker::FindChambersInRoad(const GPUTRDTrack *t, const float roadY, const float roadZ, const int iLayer, int* det, const float zMax, const float alpha) const
@@ -1288,29 +1314,4 @@ GPUd() void AliGPUTRDTracker::Quicksort(const int left, const int right, const i
   }
   Quicksort(left, part - 1, size, type);
   Quicksort(part + 1, right, size, type);
-}
-
-GPUd() void AliGPUTRDTracker::SetNCandidates(int n)
-{
-  //--------------------------------------------------------------------
-  // set the number of candidates to be used
-  //--------------------------------------------------------------------
-  if (!fIsInitialized) {
-    fNCandidates = n;
-  } else {
-    Error("SetNCandidates", "Cannot change fNCandidates after initialization");
-  }
-}
-
-GPUd() void AliGPUTRDTracker::PrintSettings() const
-{
-  //--------------------------------------------------------------------
-  // print current settings to screen
-  //--------------------------------------------------------------------
-  printf("##############################################################\n");
-  printf("Current settings for GPU TRD tracker:\n");
-  printf(" fMaxChi2(%.2f)\n fChi2Penalty(%.2f)\n nCandidates(%i)\n nHypothesisMax(%i)\n maxMissingLayers(%i)\n",
-          fMaxChi2, fChi2Penalty, fNCandidates, fNhypothesis, fMaxMissingLy);
-  printf(" ptCut = %.2f GeV\n abs(eta) < %.2f\n", fMinPt, fMaxEta);
-  printf("##############################################################\n");
 }

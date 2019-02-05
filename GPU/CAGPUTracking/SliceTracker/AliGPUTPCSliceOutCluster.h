@@ -19,7 +19,7 @@
 class AliGPUTPCSliceOutCluster
 {
   public:
-	GPUh() void Set(unsigned int id, unsigned char row, unsigned char flags, unsigned short amp, float x, float y, float z)
+	GPUhd() void Set(unsigned int id, unsigned char row, unsigned char flags, unsigned short amp, float x, float y, float z)
 	{
 		fRow = row;
 		fFlags = flags;
@@ -30,13 +30,13 @@ class AliGPUTPCSliceOutCluster
 		fZ = z;
 	}
 
-	GPUh() float GetX() const { return fX; }
-	GPUh() float GetY() const { return fY; }
-	GPUh() float GetZ() const { return fZ; }
-	GPUh() unsigned int GetId() const { return fId; }
-	GPUh() unsigned char GetRow() const { return fRow; }
-	GPUh() unsigned char GetFlags() const { return fFlags; }
-	GPUh() unsigned short GetAmp() const { return fAmp; }
+	GPUhd() float GetX() const { return fX; }
+	GPUhd() float GetY() const { return fY; }
+	GPUhd() float GetZ() const { return fZ; }
+	GPUhd() unsigned int GetId() const { return fId; }
+	GPUhd() unsigned char GetRow() const { return fRow; }
+	GPUhd() unsigned char GetFlags() const { return fFlags; }
+	GPUhd() unsigned short GetAmp() const { return fAmp; }
 
   private:
 	unsigned int fId;     // Id ( slice, patch, cluster )

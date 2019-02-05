@@ -23,7 +23,7 @@ void AliGPUCADisplay::createQuaternionFromMatrix(float* v, const float* mat)
 	{
 		float S = sqrt(std::max(0.f, 1.0f + mat[10] - mat[0] - mat[5])) * 2;
 		v[2] = 0.25 * S;
-		if (fabs(S) < 0.001) S = 1;
+		if (fabsf(S) < 0.001) S = 1;
 		v[0] = (mat[2] + mat[8]) / S;
 		v[1] = (mat[9] + mat[6]) / S;
 		v[3] = (mat[4] - mat[1]) / S;

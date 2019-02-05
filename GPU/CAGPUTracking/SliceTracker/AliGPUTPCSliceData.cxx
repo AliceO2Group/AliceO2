@@ -80,7 +80,7 @@ inline void AliGPUTPCSliceData::CreateGrid(AliGPUTPCRow *row, const float2 *data
 inline int AliGPUTPCSliceData::PackHitData(AliGPUTPCRow *const row, const AliGPUTPCHit* binSortedHits)
 {
 	// hit data packing
-	static const float maxVal = (((long long int) 1 << CAMath::Min(24, sizeof(cahit) * 8)) - 1); //Stay within float precision in any case!
+	static const float maxVal = (((long long int) 1 << CAMath::Min((size_t) 24, sizeof(cahit) * 8)) - 1); //Stay within float precision in any case!
 	static const float packingConstant = 1.f / (maxVal - 2.);
 	const float y0 = row->fGrid.YMin();
 	const float z0 = row->fGrid.ZMin();
@@ -235,7 +235,7 @@ int AliGPUTPCSliceData::InitFromClusterData()
 			float2 tmp;
 			tmp.x = fClusterData[i].fY;
 			tmp.y = fClusterData[i].fZ;
-			if (fabs(tmp.y) > fMaxZ) fMaxZ = fabs(tmp.y);
+			if (fabsf(tmp.y) > fMaxZ) fMaxZ = fabsf(tmp.y);
 			int tmpRow = fClusterData[i].fRow;
 			int newIndex = RowOffset[tmpRow] + (RowsFilled[tmpRow])++;
 			YZData[newIndex] = tmp;

@@ -11,6 +11,7 @@
  */
 
 #include "AliTPCCommonDef.h"
+#include "AliTPCCommonMath.h"
 #include "AliGPUTPCGMMergedTrack.h"
 #include "AliGPUTPCGMTrackParam.h"
 #include "AliGPUTRDDef.h"
@@ -173,8 +174,8 @@ template <> class trackInterface<AliGPUTPCGMTrackParam> : public AliGPUTPCGMTrac
     GPUd() float getSnp()     const { return GetSinPhi(); }
     GPUd() float getTgl()     const { return GetDzDs(); }
     GPUd() float getQ2Pt()    const { return GetQPt(); }
-    GPUd() float getEta()     const { return -logf( tanf( 0.5f * (0.5f * M_PI - atanf(getTgl())) ) ); }
-    GPUd() float getPt()      const { return fabs(getQ2Pt()) > 0 ? fabs(1.f/getQ2Pt()) : 99999.f; }
+    GPUd() float getEta()     const { return -CAMath::Log( CAMath::Tan( 0.5f * (0.5f * M_PI - CAMath::ATan(getTgl())) ) ); }
+    GPUd() float getPt()      const { return CAMath::Abs(getQ2Pt()) > 0 ? CAMath::Abs(1.f/getQ2Pt()) : 99999.f; }
     GPUd() float getSigmaY2() const { return GetErr2Y(); }
     GPUd() float getSigmaZ2() const { return GetErr2Z(); }
 

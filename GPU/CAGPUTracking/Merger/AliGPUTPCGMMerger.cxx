@@ -220,7 +220,7 @@ void* AliGPUTPCGMMerger::SetPointersHostOnly(void* mem)
 	computePointerWithAlignment(mem, fBorderMemory, fNMaxSliceTracks);
 	computePointerWithAlignment(mem, fBorderRangeMemory, 2 * fNMaxSliceTracks);
 	computePointerWithAlignment(mem, fTrackLinks, fNMaxSliceTracks);
-	size_t tmpSize = std::max(fNMaxSingleSliceTracks * fgkNSlices * sizeof(int), fNMaxTracks * sizeof(int) + fNMaxClusters * sizeof(char));
+	size_t tmpSize = CAMath::Max(fNMaxSingleSliceTracks * fgkNSlices * sizeof(int), fNMaxTracks * sizeof(int) + fNMaxClusters * sizeof(char));
 	computePointerWithAlignment(mem, fTmpMem, tmpSize);
 	
 	int nTracks = 0;
@@ -447,7 +447,7 @@ void AliGPUTPCGMMerger::MakeBorderTracks(int iSlice, int iBorder, AliGPUTPCGMBor
 		if (track->PrevSegmentNeighbour() >= 0 && track->Slice() == fSliceTrackInfos[track->PrevSegmentNeighbour()].Slice()) continue;
 		if (fromOrig)
 		{
-			if (fabs(track->QPt()) < MERGE_LOOPER_QPT_LIMIT) continue;
+			if (fabsf(track->QPt()) < MERGE_LOOPER_QPT_LIMIT) continue;
 			const AliGPUTPCGMSliceTrack *trackMin = track;
 			while (track->NextSegmentNeighbour() >= 0 && track->Slice() == fSliceTrackInfos[track->NextSegmentNeighbour()].Slice())
 			{
@@ -460,7 +460,7 @@ void AliGPUTPCGMMerger::MakeBorderTracks(int iSlice, int iBorder, AliGPUTPCGMBor
 		}
 		else
 		{
-			if (fabs(track->QPt()) < MERGE_HORIZONTAL_DOUBLE_QPT_LIMIT)
+			if (fabsf(track->QPt()) < MERGE_HORIZONTAL_DOUBLE_QPT_LIMIT)
 			{
 				if (iBorder == 0 && track->NextNeighbour() >= 0) continue;
 				if (iBorder == 1 && track->PrevNeighbour() >= 0) continue;
@@ -473,8 +473,8 @@ void AliGPUTPCGMMerger::MakeBorderTracks(int iSlice, int iBorder, AliGPUTPCGMBor
 			b.SetTrackID(itr);
 			b.SetNClusters(track->NClusters());
 			for (int i = 0; i < 4; i++)
-				if (fabs(b.Cov()[i]) >= 5.0) b.SetCov(i, 5.0);
-			if (fabs(b.Cov()[4]) >= 0.5) b.SetCov(4, 0.5);
+				if (fabsf(b.Cov()[i]) >= 5.0) b.SetCov(i, 5.0);
+			if (fabsf(b.Cov()[4]) >= 0.5) b.SetCov(4, 0.5);
 			nB++;
 		}
 	}
@@ -505,8 +505,8 @@ void AliGPUTPCGMMerger::MergeBorderTracks(int iSlice1, AliGPUTPCGMBorderTrack B1
 	{
 		for ( int itr = 0; itr < N1; itr++ ){
 			AliGPUTPCGMBorderTrack &b = B1[itr];
-			float d = CAMath::Max(0.5f, 3.5*sqrt(b.Cov()[1]));
-			if (fabs(b.Par()[4]) >= 20) d *= 2;
+			float d = CAMath::Max(0.5f, 3.5f * sqrtf(b.Cov()[1]));
+			if (fabsf(b.Par()[4]) >= 20) d *= 2;
 			else if (d > 3) d = 3;
 			if (DEBUG) {printf("  Input Slice 1 %d Track %d: ", iSlice1, itr); for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Par()[i]);} printf(" - "); for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Cov()[i]);} printf(" - D %8.3f\n", d);}
 			range1[itr].fId = itr;
@@ -526,8 +526,8 @@ void AliGPUTPCGMMerger::MergeBorderTracks(int iSlice1, AliGPUTPCGMBorderTrack B1
 			for ( int itr = 0;itr < N2;itr++)
 			{
 				AliGPUTPCGMBorderTrack &b = B2[itr];
-				float d = CAMath::Max(0.5f, 3.5*sqrt(b.Cov()[1]));
-				if (fabs(b.Par()[4]) >= 20) d *= 2;
+				float d = CAMath::Max(0.5f, 3.5f * sqrtf(b.Cov()[1]));
+				if (fabsf(b.Par()[4]) >= 20) d *= 2;
 				else if (d > 3) d = 3;
 				if (DEBUG) {printf("  Input Slice 2 %d Track %d: ", iSlice2, itr);for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Par()[i]);}printf(" - ");for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Cov()[i]);}printf(" - D %8.3f\n", d);}
 				range2[itr].fId = itr;
@@ -569,16 +569,16 @@ void AliGPUTPCGMMerger::MergeBorderTracks(int iSlice1, AliGPUTPCGMBorderTrack B1
 				if( !b1.CheckChi2Y(b2, factor2ys ) ) {if (DEBUG) {printf("!Y\n");}continue;}
 				//if( !b1.CheckChi2Z(b2, factor2zt ) ) {if (DEBUG) {printf("!NCl1\n");}continue;}
 				if( !b1.CheckChi2QPt(b2, factor2k ) ) {if (DEBUG) {printf("!QPt\n");}continue;}
-				float fys = fabs(b1.Par()[4]) < 20 ? factor2ys : (2. * factor2ys);
-				float fzt = fabs(b1.Par()[4]) < 20 ? factor2zt : (2. * factor2zt);
+				float fys = fabsf(b1.Par()[4]) < 20 ? factor2ys : (2. * factor2ys);
+				float fzt = fabsf(b1.Par()[4]) < 20 ? factor2zt : (2. * factor2zt);
 				if( !b1.CheckChi2YS(b2, fys ) ) {if (DEBUG) {printf("!YS\n");}continue;}
 				if( !b1.CheckChi2ZT(b2, fzt ) ) {if (DEBUG) {printf("!ZT\n");}continue;}
-				if (fabs(b1.Par()[4]) < 20)
+				if (fabsf(b1.Par()[4]) < 20)
 				{
 					if ( b2.NClusters() < minNPartHits ) {if (DEBUG) {printf("!NCl2\n");}continue;}
 					if ( b1.NClusters() + b2.NClusters() < minNTotalHits ) {if (DEBUG) {printf("!NCl3\n");}continue;}
 				}
-				if (DEBUG) printf("OK: dZ %8.3f D1 %8.3f D2 %8.3f\n", fabs(b1.Par()[1] - b2.Par()[1]), 3.5*sqrt(b1.Cov()[1]), 3.5*sqrt(b2.Cov()[1]));
+				if (DEBUG) printf("OK: dZ %8.3f D1 %8.3f D2 %8.3f\n", fabsf(b1.Par()[1] - b2.Par()[1]), 3.5*sqrt(b1.Cov()[1]), 3.5*sqrt(b2.Cov()[1]));
 			} //DEBUG CODE, match by MC label
 			lBest2 = b2.NClusters();
 			iBest2 = b2.TrackID();
@@ -716,7 +716,7 @@ void AliGPUTPCGMMerger::ResolveMergeSlices(bool fromOrig, bool mergeAll)
 		AliGPUTPCGMSliceTrack *track1Base = track1;
 		AliGPUTPCGMSliceTrack *track2Base = track2;
 
-		bool sameSegment = fabs(track1->NClusters() > track2->NClusters() ? track1->QPt() : track2->QPt()) < 2 || track1->QPt() * track2->QPt() > 0;
+		bool sameSegment = fabsf(track1->NClusters() > track2->NClusters() ? track1->QPt() : track2->QPt()) < 2 || track1->QPt() * track2->QPt() > 0;
 		//printf("\nMerge %d with %d - same segment %d\n", itr, itr2, (int) sameSegment);
 		//PrintMergeGraph(track1);
 		//PrintMergeGraph(track2);
@@ -764,8 +764,8 @@ void AliGPUTPCGMMerger::ResolveMergeSlices(bool fromOrig, bool mergeAll)
 
 			float z1min = track1->MinClusterZ(), z1max = track1->MaxClusterZ();
 			float z2min = track2->MinClusterZ(), z2max = track2->MaxClusterZ();
-			if (track1 != track1Base) {z1min = std::min(z1min, track1Base->MinClusterZ()); z1max = std::max(z1max, track1Base->MaxClusterZ());}
-			if (track2 != track2Base) {z2min = std::min(z2min, track2Base->MinClusterZ()); z2max = std::max(z2max, track2Base->MaxClusterZ());}
+			if (track1 != track1Base) {z1min = CAMath::Min(z1min, track1Base->MinClusterZ()); z1max = CAMath::Max(z1max, track1Base->MaxClusterZ());}
+			if (track2 != track2Base) {z2min = CAMath::Min(z2min, track2Base->MinClusterZ()); z2max = CAMath::Max(z2max, track2Base->MaxClusterZ());}
 
 			bool goUp = z2max - z1min > z1max - z2min;
 
@@ -848,7 +848,7 @@ void AliGPUTPCGMMerger::MergeCEFill(const AliGPUTPCGMSliceTrack *track, const Al
 #ifdef MERGE_CE_ROWLIMIT
 	if (cls.fRow < MERGE_CE_ROWLIMIT || cls.fRow >= GPUCA_ROW_COUNT - MERGE_CE_ROWLIMIT) return;
 #endif
-	if (!mCAParam->ContinuousTracking && fabs(cls.fZ) > 10) return;
+	if (!mCAParam->ContinuousTracking && fabsf(cls.fZ) > 10) return;
 	int slice = track->Slice();
 	for (int attempt = 0; attempt < 2; attempt++)
 	{
@@ -858,8 +858,8 @@ void AliGPUTPCGMMerger::MergeCEFill(const AliGPUTPCGMSliceTrack *track, const Al
 		{
 			b.SetTrackID(itr);
 			b.SetNClusters(fOutputTracks[itr].NClusters());
-			for (int i = 0;i < 4;i++) if (fabs(b.Cov()[i]) >= 5.0) b.SetCov(i, 5.0);
-			if (fabs(b.Cov()[4]) >= 0.5) b.SetCov(4, 0.5);
+			for (int i = 0;i < 4;i++) if (fabsf(b.Cov()[i]) >= 5.0) b.SetCov(i, 5.0);
+			if (fabsf(b.Cov()[4]) >= 0.5) b.SetCov(4, 0.5);
 			if (track->CSide())
 			{
 				b.SetPar(1, b.Par()[1] - 2 * (cls.fZ - b.ZOffset()));
@@ -899,8 +899,8 @@ void AliGPUTPCGMMerger::MergeCE()
 			bool needswap = false;
 			if (looper)
 			{
-				const float z0max = std::max(fabs(fClusters[trk[0]->FirstClusterRef()].fZ), fabs(fClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].fZ));
-				const float z1max = std::max(fabs(fClusters[trk[1]->FirstClusterRef()].fZ), fabs(fClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].fZ));
+				const float z0max = CAMath::Max(fabsf(fClusters[trk[0]->FirstClusterRef()].fZ), fabsf(fClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].fZ));
+				const float z1max = CAMath::Max(fabsf(fClusters[trk[1]->FirstClusterRef()].fZ), fabsf(fClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].fZ));
 				if (z1max < z0max) needswap = true;
 			}
 			else
@@ -921,11 +921,11 @@ void AliGPUTPCGMMerger::MergeCE()
 
 			if (mCAParam->ContinuousTracking)
 			{
-				const float z0 = trk[0]->CSide() ? std::max(fClusters[trk[0]->FirstClusterRef()].fZ, fClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].fZ) :
-					std::min(fClusters[trk[0]->FirstClusterRef()].fZ, fClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].fZ);
-				const float z1 = trk[1]->CSide() ? std::max(fClusters[trk[1]->FirstClusterRef()].fZ, fClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].fZ) :
-					std::min(fClusters[trk[1]->FirstClusterRef()].fZ, fClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].fZ);
-				float offset = fabs(z1) > fabs(z0) ? -z0 : z1;
+				const float z0 = trk[0]->CSide() ? CAMath::Max(fClusters[trk[0]->FirstClusterRef()].fZ, fClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].fZ) :
+					CAMath::Min(fClusters[trk[0]->FirstClusterRef()].fZ, fClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].fZ);
+				const float z1 = trk[1]->CSide() ? CAMath::Max(fClusters[trk[1]->FirstClusterRef()].fZ, fClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].fZ) :
+					CAMath::Min(fClusters[trk[1]->FirstClusterRef()].fZ, fClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].fZ);
+				float offset = fabsf(z1) > fabsf(z0) ? -z0 : z1;
 				trk[1]->Param().Z() += trk[1]->Param().ZOffset() - offset;
 				trk[1]->Param().ZOffset() = offset;
 			}
@@ -988,7 +988,7 @@ struct AliGPUTPCGMMerger_CompareTracks
 	{
 		const AliGPUTPCGMMergedTrack& a = fCmp[aa];
 		const AliGPUTPCGMMergedTrack& b = fCmp[bb];
-		return(fabs(a.GetParam().GetQPt()) > fabs(b.GetParam().GetQPt()));
+		return(fabsf(a.GetParam().GetQPt()) > fabsf(b.GetParam().GetQPt()));
 	}
 };
 
@@ -1131,7 +1131,7 @@ void AliGPUTPCGMMerger::CollectMergedTracks()
 				{
 				  if(trackParts[i]->Leg() == 0 || trackParts[i]->Leg() == leg)
 				  {
-					float z = std::min(trackParts[i]->OrigTrack()->Clusters()[0].GetZ() * factor, trackParts[i]->OrigTrack()->Clusters()[trackParts[i]->OrigTrack()->NClusters() - 1].GetZ() * factor);
+					float z = CAMath::Min(trackParts[i]->OrigTrack()->Clusters()[0].GetZ() * factor, trackParts[i]->OrigTrack()->Clusters()[trackParts[i]->OrigTrack()->NClusters() - 1].GetZ() * factor);
 					if (z < baseZ)
 					{
 						baseZ = z;
