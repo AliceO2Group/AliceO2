@@ -28,6 +28,7 @@ namespace mid
 /// create MID geometry and attach it to existing topVolume
 void createGeometry(TGeoVolume& topVolume);
 
+/// get a list of MID sensitive volumes
 std::vector<TGeoVolume*> getSensitiveVolumes();
 
 } // namespace mid
