@@ -50,8 +50,8 @@ class AliGPUTPCGMSliceTrack
 	int GlobalTrackId(int n) const { return fGlobalTrackIds[n]; }
 	void SetGlobalTrackId(int n, int v) { fGlobalTrackIds[n] = v; }
 
-	float MaxClusterZ() { return std::max(fOrigTrack->Clusters()->GetZ(), (fOrigTrack->Clusters() + fOrigTrack->NClusters() - 1)->GetZ()); }
-	float MinClusterZ() { return std::min(fOrigTrack->Clusters()->GetZ(), (fOrigTrack->Clusters() + fOrigTrack->NClusters() - 1)->GetZ()); }
+	float MaxClusterZ() { return CAMath::Max(fOrigTrack->Clusters()->GetZ(), (fOrigTrack->Clusters() + fOrigTrack->NClusters() - 1)->GetZ()); }
+	float MinClusterZ() { return CAMath::Min(fOrigTrack->Clusters()->GetZ(), (fOrigTrack->Clusters() + fOrigTrack->NClusters() - 1)->GetZ()); }
 
 	void Set(const AliGPUTPCSliceOutTrack *sliceTr, float alpha, int slice)
 	{

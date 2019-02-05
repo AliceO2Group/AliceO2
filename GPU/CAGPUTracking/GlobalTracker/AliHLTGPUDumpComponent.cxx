@@ -234,7 +234,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 				{
 					const AliHLTTPCClusterXYZ &c = clXYZ.fClusters[ic];
 					const AliHLTTPCRawCluster &cRaw = clRaw.fClusters[ic];
-					if (fabs(c.GetZ()) > 300) continue;
+					if (fabsf(c.GetZ()) > 300) continue;
 					if (c.GetX() < 1.f) continue; // cluster xyz position was not calculated for whatever reason
 					cluster.fId = nClustersTotal;
 					cluster.fX = c.GetX();

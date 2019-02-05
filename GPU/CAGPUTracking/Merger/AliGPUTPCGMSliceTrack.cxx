@@ -63,7 +63,7 @@ bool AliGPUTPCGMSliceTrack::FilterErrors(const AliGPUCAParam &param, float maxSi
 			float ex = fCosPhi;
 			float ey = fSinPhi;
 			float ey1 = kdx + ey;
-			if (fabs(ey1) > maxSinPhi)
+			if (fabsf(ey1) > maxSinPhi)
 			{
 				if (ey1 > maxSinPhi && ey1 < maxSinPhi + sinPhiMargin)
 					ey1 = maxSinPhi - 0.01;
@@ -204,7 +204,7 @@ bool AliGPUTPCGMSliceTrack::TransportToX(float x, float Bz, AliGPUTPCGMBorderTra
 	float dx = x - fX;
 	float ey1 = k * dx + ey;
 
-	if (fabs(ey1) > maxSinPhi) return 0;
+	if (fabsf(ey1) > maxSinPhi) return 0;
 
 	float ex1 = sqrt(1.f - ey1 * ey1);
 	float dxBz = dx * Bz;
@@ -256,7 +256,7 @@ bool AliGPUTPCGMSliceTrack::TransportToX(float x, float Bz, AliGPUTPCGMBorderTra
 	float h4c44 = h4 * c44;
 	float n7 = c31 + dS * c33;
 
-	if (fabs(fQPt) > 6.66) //Special treatment for low Pt
+	if (fabsf(fQPt) > 6.66) //Special treatment for low Pt
 	{
 		b.SetCov(0, CAMath::Max(fC0, fC0 + h2 * h2c22 + h4 * h4c44 + 2.f * (h2 * c20ph4c42 + h4 * c40))); //Do not decrease Y cov for matching!
 		float C2tmp = dS * 2.f * c31;
@@ -337,7 +337,7 @@ bool AliGPUTPCGMSliceTrack::TransportToXAlpha(float newX, float sinAlpha, float 
 	float dx = newX - x;
 	float ey1 = k * dx + ey;
 
-	if (fabs(ey1) > maxSinPhi) return 0;
+	if (fabsf(ey1) > maxSinPhi) return 0;
 
 	float ex1 = sqrt(1.f - ey1 * ey1);
 

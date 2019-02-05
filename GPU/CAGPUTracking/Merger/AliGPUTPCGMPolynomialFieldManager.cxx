@@ -190,7 +190,7 @@ int AliGPUTPCGMPolynomialFieldManager::GetPolynomialField( float nominalFieldkG,
 
   StoredField_t type = kUnknown;
  
-  if( fabs(fabs(nominalFieldkG) - 5.00668 ) <= fabs( fabs(nominalFieldkG) - 2.) ){
+  if( fabsf(fabsf(nominalFieldkG) - 5.00668 ) <= fabsf( fabsf(nominalFieldkG) - 2.) ){
     type = k5kG;
   } else {
     type = k2kG;

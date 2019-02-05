@@ -1,5 +1,6 @@
 #include "AliGPUCAParam.h"
 #include "AliGPUTPCDef.h"
+#include "AliTPCCommonMath.h"
 
 #if !defined(GPUCA_GPUCODE) && defined(GPUCA_ALIROOT_LIB)
 #include "AliTPCClusterParam.h"
@@ -246,7 +247,7 @@ GPUd() float MEM_LG(AliGPUCAParam)::GetClusterRMS(int yz, int type, float z, flo
 
 	MakeType(const float *) c = ParamRMS0[yz][type];
 	float v = c[0] + c[1] * z + c[2] * angle2;
-	v = fabs(v);
+	v = CAMath::Abs(v);
 	return v;
 }
 
@@ -274,7 +275,7 @@ GPUd() float MEM_LG(AliGPUCAParam)::GetClusterError2(int yz, int type, float z, 
 
 	MakeType(const float *) c = ParamS0Par[yz][type];
 	float v = c[0] + c[1] * z + c[2] * angle2 + c[3] * z * z + c[4] * angle2 * angle2 + c[5] * z * angle2;
-	v = fabs(v);
+	v = CAMath::Abs(v);
 	if (v < 0.01f) v = 0.01f;
 	v *= yz ? rec.ClusterError2CorrectionZ : rec.ClusterError2CorrectionY;
 	return v;

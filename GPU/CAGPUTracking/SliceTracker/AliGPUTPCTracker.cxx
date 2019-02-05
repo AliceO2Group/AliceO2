@@ -370,7 +370,7 @@ GPUh() int AliGPUTPCTracker::PerformGlobalTrackingRun(AliGPUTPCTracker& sliceNei
 		if (!tParam.TransportToX(sliceNeighbour.Row(rowIndex).X(), t0, mCAParam->ConstBz, GPUCA_MAX_SIN_PHI)) return(0); //Reuse t0 linearization until we are in the next sector
 		//printf("Transported X %f Y %f Z %f SinPhi %f DzDs %f QPt %f SignCosPhi %f (MaxY %f)\n", tParam.X(), tParam.Y(), tParam.Z(), tParam.SinPhi(), tParam.DzDs(), tParam.QPt(), tParam.SignCosPhi(), sliceNeighbour.Row(rowIndex).MaxY());
 		if (--maxRowGap == 0) return(0);
-	} while (fabs(tParam.Y()) > sliceNeighbour.Row(rowIndex).MaxY());
+	} while (fabsf(tParam.Y()) > sliceNeighbour.Row(rowIndex).MaxY());
 
 	float err2Y, err2Z;
 	GetErrors2( rowIndex, tParam.Z(), tParam.SinPhi(), tParam.DzDs(), err2Y, err2Z );

@@ -114,7 +114,7 @@ class AliGPUTPCGMPhysicalTrackModel
 
 GPUdi() void AliGPUTPCGMPhysicalTrackModel::Set(const AliGPUTPCGMTrackParam &t)
 {
-	float pti = fabs(t.GetQPt());
+	float pti = CAMath::Abs(t.GetQPt());
 	if (pti < 1.e-4f) pti = 1.e-4f;        // set 10000 GeV momentum for straight track
 	fQ = (t.GetQPt() >= 0) ? 1.f : -1.f; // only charged tracks are considered
 	fX = t.GetX();
@@ -158,7 +158,7 @@ GPUdi() void AliGPUTPCGMPhysicalTrackModel::Set(float X, float Y, float Z, float
 GPUdi() void AliGPUTPCGMPhysicalTrackModel::UpdateValues()
 {
 	float px = fPx;
-	if (fabs(px) < 1.e-4f) px = copysign(1.e-4f, px);
+	if (CAMath::Abs(px) < 1.e-4f) px = copysign(1.e-4f, px);
 
 	fPt = sqrt(px * px + fPy * fPy);
 	float pti = 1.f / fPt;
@@ -190,7 +190,7 @@ GPUdi() bool AliGPUTPCGMPhysicalTrackModel::SetDirectionAlongX()
 GPUdi() float AliGPUTPCGMPhysicalTrackModel::GetMirroredY(float Bz) const
 {
 	// get Y of the point which has the same X, but located on the other side of trajectory
-	if (fabs(Bz) < 1.e-8f) Bz = 1.e-8f;
+	if (CAMath::Abs(Bz) < 1.e-8f) Bz = 1.e-8f;
 	return fY - 2.f * fQ * fPx / Bz;
 }
 

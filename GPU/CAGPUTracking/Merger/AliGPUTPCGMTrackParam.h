@@ -14,7 +14,10 @@
 #include "AliGPUTPCSettings.h"
 #include "AliGPUTPCGMMergedTrackHit.h"
 #include "AliTPCCommonMath.h"
+
+#ifndef __OPENCL__
 #include <cstddef>
+#endif
 
 class AliGPUTPCGMMerger;
 class AliGPUTPCGMBorderTrack;
@@ -189,7 +192,7 @@ GPUd() inline float AliGPUTPCGMTrackParam::GetMirroredY( float Bz ) const
 	// get Y of the point which has the same X, but located on the other side of trajectory
 	float qptBz = GetQPt()*Bz;
 	float cosPhi2 = 1.f - GetSinPhi()*GetSinPhi();
-	if( fabs(qptBz)<1.e-8f ) qptBz = 1.e-8f;
+	if( CAMath::Abs(qptBz)<1.e-8f ) qptBz = 1.e-8f;
 	if( cosPhi2<0.f ) cosPhi2 = 0.f;
 	return GetY() - 2.f*sqrt(cosPhi2)/qptBz;
 }

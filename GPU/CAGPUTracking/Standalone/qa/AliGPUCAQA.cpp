@@ -50,7 +50,7 @@
 	int id = attach & AliGPUTPCGMMerger::attachTrackMask; \
 	if (!unattached) \
 	{ \
-		qpt = fabs(merger.OutputTracks()[id].GetParam().GetQPt()); \
+		qpt = fabsf(merger.OutputTracks()[id].GetParam().GetQPt()); \
 		lowPt = qpt > 20;  \
 		mev200 = qpt > 5; \
 	} \
@@ -534,7 +534,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 					int& revLabel = trackMCLabelsReverse[label];
 					if (revLabel == -1 ||
 						!merger.OutputTracks()[revLabel].OK() ||
-						(merger.OutputTracks()[i].OK() && fabs(merger.OutputTracks()[i].GetParam().GetZ()) < fabs(merger.OutputTracks()[revLabel].GetParam().GetZ())))
+						(merger.OutputTracks()[i].OK() && fabsf(merger.OutputTracks()[i].GetParam().GetZ()) < fabsf(merger.OutputTracks()[revLabel].GetParam().GetZ())))
 					{
 						revLabel = i;
 					}
@@ -656,7 +656,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 			if (config.filterCharge && info.fCharge * config.filterCharge < 0) continue;
 			if (config.filterPID >= 0 && info.fPID != config.filterPID) continue;
 
-			if (fabs(mceta) > ETA_MAX || mcpt < PT_MIN || mcpt > PT_MAX) continue;
+			if (fabsf(mceta) > ETA_MAX || mcpt < PT_MIN || mcpt > PT_MAX) continue;
 
 			float alpha = std::atan2(info.fY, info.fX);
 			alpha /= kPi / 9.f;
@@ -682,7 +682,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 					for (int l = 0;l < 5;l++)
 					{
 						if (info.fPrim && mcpt < PT_MIN_PRIM) continue;
-						if (l != 3 && fabs(mceta) > ETA_MAX2) continue;
+						if (l != 3 && fabsf(mceta) > ETA_MAX2) continue;
 						if (l < 4 && mcpt < 1.f / config.qpt) continue;
 
 						float pos = l == 0 ? localY : l == 1 ? info.fZ : l == 2 ? mcphi : l == 3 ? mceta : mcpt;
@@ -715,7 +715,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 			if ((mcTrackMin != -1 && trackMCLabels[i] < mcTrackMin) || (mcTrackMax != -1 && trackMCLabels[i] >= mcTrackMax)) continue;
 
 			if (!track.OK()) continue;
-			if (fabs(mc2.eta) > ETA_MAX || mc2.pt < PT_MIN || mc2.pt > PT_MAX) continue;
+			if (fabsf(mc2.eta) > ETA_MAX || mc2.pt < PT_MIN || mc2.pt > PT_MAX) continue;
 			if (mc1.fCharge == 0.f) continue;
 			if (mc1.fPID < 0) continue;
 			if (config.filterCharge && mc1.fCharge * config.filterCharge < 0) continue;
@@ -749,7 +749,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 			if (config.strict && (param.X() - mclocal[0]) * (param.X() - mclocal[0]) + (param.Y() - mclocal[1]) * (param.Y() - mclocal[1]) + (param.Z() + param.ZOffset() - mc1.fZ) * (param.Z() + param.ZOffset() - mc1.fZ) > 25) continue;
 
 			if (prop.PropagateToXAlpha( mclocal[0], alpha, inFlyDirection ) ) continue;
-			if (fabs(param.Y() - mclocal[1]) > (config.strict ? 1.f : 4.f) || fabs(param.Z() + param.ZOffset() - mc1.fZ) > (config.strict ? 1.f : 4.f)) continue;
+			if (fabsf(param.Y() - mclocal[1]) > (config.strict ? 1.f : 4.f) || fabsf(param.Z() + param.ZOffset() - mc1.fZ) > (config.strict ? 1.f : 4.f)) continue;
 
 			float charge = mc1.fCharge > 0 ? 1.f : -1.f;
 
@@ -760,7 +760,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 			float deltaLambdaNative = param.GetDzDs() - mc1.fPz / mc2.pt;
 			float deltaLambda = std::atan(param.GetDzDs()) - std::atan2(mc1.fPz, mc2.pt);
 			float deltaPtNative = (param.GetQPt() - charge / mc2.pt) * charge;
-			float deltaPt = (fabs(1.f / param.GetQPt()) - mc2.pt) / mc2.pt;
+			float deltaPt = (fabsf(1.f / param.GetQPt()) - mc2.pt) / mc2.pt;
 
 			float paramval[5] = {mclocal[1], mc1.fZ, mc2.phi, mc2.eta, mc2.pt};
 			float resval[5] = {deltaY, deltaZ, config.nativeFitResolutions ? deltaPhiNative : deltaPhi, config.nativeFitResolutions ? deltaLambdaNative : deltaLambda, config.nativeFitResolutions ? deltaPtNative : deltaPt};
@@ -770,7 +770,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 			{
 				for (int k = 0;k < 5;k++)
 				{
-					if (k != 3 && fabs(mc2.eta) > ETA_MAX2) continue;
+					if (k != 3 && fabsf(mc2.eta) > ETA_MAX2) continue;
 					if (k < 4 && mc2.pt < 1.f / config.qpt) continue;
 					res2[j][k]->Fill(resval[j], paramval[k]);
 					pull2[j][k]->Fill(pullval[j], paramval[k]);
@@ -966,7 +966,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 	{
 		const AliGPUTPCGMMergedTrack &track = merger.OutputTracks()[i];
 		if (!track.OK()) continue;
-		tracks->Fill(1.f / fabs(track.GetParam().GetQPt()));
+		tracks->Fill(1.f / fabsf(track.GetParam().GetQPt()));
 		ncl->Fill(track.NClustersFitted());
 	}
 
@@ -998,7 +998,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 					/*printf("Fake removal (%d): Hit %7d, attached %d lowPt %d looper %d tube200 %d highIncl %d tube %d bad %d recPt %7.2f recLabel %6d", totalFake, i, (int) (clusterParam[i].attached || clusterParam[i].fakeAttached),
 						(int) lowPt, (int) ((attach & AliGPUTPCGMMerger::attachGoodLeg) == 0), (int) ((attach & AliGPUTPCGMMerger::attachTube) && mev200),
 						(int) ((attach & AliGPUTPCGMMerger::attachHighIncl) != 0), (int) ((attach & AliGPUTPCGMMerger::attachTube) != 0), (int) ((attach & AliGPUTPCGMMerger::attachGood) == 0),
-						fabs(qpt) > 0 ? 1.f / qpt : 0.f, id);
+						fabsf(qpt) > 0 ? 1.f / qpt : 0.f, id);
 					for (int j = 0;j < 3;j++)
 					{
 						//if (mRec->mIOPtrs.mcLabelsTPC[i].fClusterID[j].fMCID < 0) break;
@@ -1043,7 +1043,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 			{
 				if (merger.Clusters()[track.FirstClusterRef() + k].fState & AliGPUTPCGMMergedTrackHit::flagReject) continue;
 				int hitId = merger.Clusters()[track.FirstClusterRef() + k].fNum;
-				float pt = fabs(1.f/track.GetParam().GetQPt());
+				float pt = fabsf(1.f/track.GetParam().GetQPt());
 				if (pt > clusterInfo[hitId]) clusterInfo[hitId] = pt;
 			}
 		}
@@ -1079,7 +1079,7 @@ void AliGPUCAQA::RunQA(bool matchOnly)
 						{
 							const AliGPUTPCMCInfo& info = mRec->mIOPtrs.mcInfosTPC[label.fMCID];
 							const additionalMCParameters& mc2 = mcParam[label.fMCID];
-							const float pt = fabs(mc2.pt);
+							const float pt = fabsf(mc2.pt);
 							if (pt > maxPt)
 							{
 								maxPt = pt;
@@ -1396,14 +1396,14 @@ int AliGPUCAQA::DrawQAHistograms()
 										fitFunc = customGaus;
 									}
 
-									const float sigma = fabs(fitFunc->GetParameter(2));
+									const float sigma = fabsf(fitFunc->GetParameter(2));
 									dst[0]->SetBinContent(bin, sigma);
 									dst[1]->SetBinContent(bin, fitFunc->GetParameter(1));
 									dst[0]->SetBinError(bin, fitFunc->GetParError(2));
 									dst[1]->SetBinError(bin, fitFunc->GetParError(1));
 
 									const bool fail1 = sigma <= 0.f;
-									const bool fail2 = fabs(proj->GetMean() - dst[1]->GetBinContent(bin)) > std::min<float>(p ? pull_axis : config.nativeFitResolutions ? res_axes_native[j] : res_axes[j], 3.f * proj->GetRMS());
+									const bool fail2 = fabsf(proj->GetMean() - dst[1]->GetBinContent(bin)) > std::min<float>(p ? pull_axis : config.nativeFitResolutions ? res_axes_native[j] : res_axes[j], 3.f * proj->GetRMS());
 									const bool fail3 = dst[0]->GetBinContent(bin) > 3.f * proj->GetRMS() || dst[0]->GetBinError(bin) > 1 || dst[1]->GetBinError(bin) > 1;
 									const bool fail4 = fitFunc->GetParameter(0) < proj->GetMaximum() / 5.;
 									const bool fail = fail1 || fail2 || fail3 || fail4;

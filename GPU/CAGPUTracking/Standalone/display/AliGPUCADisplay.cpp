@@ -116,7 +116,7 @@ void AliGPUCADisplay::calcXYZ()
 
 	angle[0] = -asinf(currentMatrix[6]); //Invert rotY*rotX*rotZ
 	float A = cosf(angle[0]);
-	if (fabs(A) > 0.005)
+	if (fabsf(A) > 0.005)
 	{
 		angle[1] = atan2f(-currentMatrix[2] / A, currentMatrix[10] / A);
 		angle[2] = atan2f(currentMatrix[4] / A, currentMatrix[5] / A);
@@ -135,7 +135,7 @@ void AliGPUCADisplay::calcXYZ()
 
 	/*float angle[1] = -asinf(currentMatrix[2]); //Calculate Y-axis angle - for rotX*rotY*rotZ
 	float C = cosf( angle_y );
-	if (fabs(C) > 0.005) //Gimball lock?
+	if (fabsf(C) > 0.005) //Gimball lock?
 	{
 		angle[0]  = atan2f(-currentMatrix[6] / C, currentMatrix[10] / C);
 		angle[2]  = atan2f(-currentMatrix[1] / C, currentMatrix[0] / C);
@@ -157,7 +157,7 @@ void AliGPUCADisplay::SetCollisionFirstCluster(unsigned int collision, int slice
 void AliGPUCADisplay::animationCloseAngle(float& newangle, float lastAngle)
 {
 	const float delta = lastAngle > newangle ? (2 * M_PI) : (-2 * M_PI);
-	while (fabs(newangle + delta - lastAngle) < fabs(newangle - lastAngle)) newangle += delta;
+	while (fabsf(newangle + delta - lastAngle) < fabsf(newangle - lastAngle)) newangle += delta;
 }
 void AliGPUCADisplay::animateCloseQuaternion(float* v, float lastx, float lasty, float lastz, float lastw)
 {
@@ -514,7 +514,7 @@ AliGPUCADisplay::vboList AliGPUCADisplay::DrawClusters(const AliGPUTPCTracker &t
 				else if ((markAdjacentClusters & 4) && (attach & AliGPUTPCGMMerger::attachGoodLeg) == 0) draw = select == 8;
 				else if (markAdjacentClusters & 8)
 				{
-					if (fabs(merger.OutputTracks()[attach & AliGPUTPCGMMerger::attachTrackMask].GetParam().GetQPt()) > 20.f) draw = select == 8;
+					if (fabsf(merger.OutputTracks()[attach & AliGPUTPCGMMerger::attachTrackMask].GetParam().GetQPt()) > 20.f) draw = select == 8;
 				}
 			}
 		}
@@ -743,7 +743,7 @@ void AliGPUCADisplay::DrawFinal(int iSlice, int /*iCol*/, AliGPUTPCGMPropagator*
 					float charge = mc.fCharge > 0 ? 1.f : -1.f;
 
 					x = mclocal[0];
-					if (fabs(mc.fZ) > 250) ZOffset = mc.fZ > 0 ? (mc.fZ - 250) : (mc.fZ + 250);
+					if (fabsf(mc.fZ) > 250) ZOffset = mc.fZ > 0 ? (mc.fZ - 250) : (mc.fZ + 250);
 					trkParam.Set(mclocal[0], mclocal[1], mc.fZ - ZOffset, mclocal[2], mclocal[3], mc.fPz, charge);
 				}
 				trkParam.X() += Xadd;
@@ -751,7 +751,7 @@ void AliGPUCADisplay::DrawFinal(int iSlice, int /*iCol*/, AliGPUTPCGMPropagator*
 				float z0 = trkParam.Z();
 				if (iMC && inFlyDirection == 0) buffer.clear();
 				if (x < 1) break;
-				if (fabs(trkParam.SinPhi()) > 1) break;
+				if (fabsf(trkParam.SinPhi()) > 1) break;
 				alpha = param().Alpha(slice);
 				vecpod<GLvertex>& useBuffer = iMC && inFlyDirection == 0 ? buffer : vertexBuffer[iSlice];
 				int nPoints = 0;
@@ -759,11 +759,11 @@ void AliGPUCADisplay::DrawFinal(int iSlice, int /*iCol*/, AliGPUTPCGMPropagator*
 				while (nPoints++ < 5000)
 				{
 					if ((inFlyDirection == 0 && x < 0) || (inFlyDirection && x * x + trkParam.Y() * trkParam.Y() > (iMC ? (450 * 450) : (300 * 300)))) break;
-					if (fabs(trkParam.Z() + ZOffset) > maxClusterZ + (iMC ? 0 : 0)) break;
-					if (fabs(trkParam.Z() - z0) > (iMC ? 250 : 250)) break;
+					if (fabsf(trkParam.Z() + ZOffset) > maxClusterZ + (iMC ? 0 : 0)) break;
+					if (fabsf(trkParam.Z() - z0) > (iMC ? 250 : 250)) break;
 					if (inFlyDirection)
 					{
-						if (fabs(trkParam.SinPhi()) > 0.4)
+						if (fabsf(trkParam.SinPhi()) > 0.4)
 						{
 							float dalpha = asinf(trkParam.SinPhi());
 							trkParam.Rotate(dalpha);
@@ -772,7 +772,7 @@ void AliGPUCADisplay::DrawFinal(int iSlice, int /*iCol*/, AliGPUTPCGMPropagator*
 						x = trkParam.X() + 1.f;
 						if (!propagateLoopers)
 						{
-							float diff = fabs(alpha - param().Alpha(slice)) / (2. * M_PI);
+							float diff = fabsf(alpha - param().Alpha(slice)) / (2. * M_PI);
 							diff -= floor(diff);
 							if (diff > 0.25 && diff < 0.75) break;
 						}
@@ -781,7 +781,7 @@ void AliGPUCADisplay::DrawFinal(int iSlice, int /*iCol*/, AliGPUTPCGMPropagator*
 					prop->GetBxByBz(alpha, trkParam.GetX(), trkParam.GetY(), trkParam.GetZ(), B );
 					float dLp=0;
 					if (trkParam.PropagateToXBxByBz(x, B[0], B[1], B[2], dLp)) break;
-					if (fabs(trkParam.SinPhi()) > 0.9) break;
+					if (fabsf(trkParam.SinPhi()) > 0.9) break;
 					float sa = sinf(alpha), ca = cosf(alpha);
 					useBuffer.emplace_back((ca * trkParam.X() - sa * trkParam.Y()) / GL_SCALE_FACTOR, (ca * trkParam.Y() + sa * trkParam.X()) / GL_SCALE_FACTOR, projectxy ? 0 : (trkParam.Z() + ZOffset) / GL_SCALE_FACTOR);
 					x += inFlyDirection ? 1 : -1;
@@ -1022,7 +1022,7 @@ int AliGPUCADisplay::DrawGLScene_internal(bool mixAnimation, float animateTime) 
 		else if (cfg.animationMode & 2) //Scale cartesion translation to interpolated radius
 		{
 			float r = sqrtf(vals[0] * vals[0] + vals[1] * vals[1] + vals[2] * vals[2]);
-			if (fabs(r) < 0.0001) r = 1;
+			if (fabsf(r) < 0.0001) r = 1;
 			r = vals[3] / r;
 			for (int i = 0;i < 3;i++) vals[i] *= r;
 		}
@@ -1201,7 +1201,7 @@ int AliGPUCADisplay::DrawGLScene_internal(bool mixAnimation, float animateTime) 
 				}
 				float4 *ptr = &globalPos[cid];
 				sliceTracker(iSlice).Param().Slice2Global(iSlice, cl.fX + Xadd, cl.fY, cl.fZ, &ptr->x, &ptr->y, &ptr->z);
-				if (fabs(ptr->z) > maxClusterZ) maxClusterZ = fabs(ptr->z);
+				if (fabsf(ptr->z) > maxClusterZ) maxClusterZ = fabsf(ptr->z);
 				if (iSlice < 18)
 				{
 					ptr->z += Zadd;

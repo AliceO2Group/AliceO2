@@ -450,18 +450,18 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 				}
 
 				nClusterTracks++;
-				residualBarrelTrackYabs += fabs(clusterTransformed.fY - y);
-				residualBarrelTrackZabs += fabs(clusterTransformed.fZ - z);
-				residualExternalTrackYabs += fabs(clusterTransformed.fY - etrack.GetY());
-				residualExternalTrackZabs += fabs(clusterTransformed.fZ - etrack.GetZ());
+				residualBarrelTrackYabs += fabsf(clusterTransformed.fY - y);
+				residualBarrelTrackZabs += fabsf(clusterTransformed.fZ - z);
+				residualExternalTrackYabs += fabsf(clusterTransformed.fY - etrack.GetY());
+				residualExternalTrackZabs += fabsf(clusterTransformed.fZ - etrack.GetZ());
 				residualBarrelTrackY += clusterTransformed.fY - y;
 				residualBarrelTrackZ += clusterTransformed.fZ - z;
 				residualExternalTrackY += clusterTransformed.fY - etrack.GetY();
 				residualExternalTrackZ += clusterTransformed.fZ - etrack.GetZ();
 				residualFitTrackY += clusterTransformed.fY - ftrack.GetY();
 				residualFitTrackZ += clusterTransformed.fZ - ftrack.GetZ();
-				residualFitTrackYabs += fabs(clusterTransformed.fY - ftrack.GetY());
-				residualFitTrackZabs += fabs(clusterTransformed.fZ - ftrack.GetZ());
+				residualFitTrackYabs += fabsf(clusterTransformed.fY - ftrack.GetY());
+				residualFitTrackZabs += fabsf(clusterTransformed.fZ - ftrack.GetZ());
 
 				//Show residuals wrt track position
 				//HLTImportant("Residual %d btrack %f %f etrack %f %f ftrack %f %f", padrow, clusterTransformed.fY - y, clusterTransformed.fZ - z,
@@ -478,7 +478,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 
 				//Show residual wrt to raw cluster position
 				//HLTImportant("Raw Cluster Residual %d (%d/%d) %d: %f %f (%f %f)", i, ip, track->fNPoints, padrow, cluster.GetPad() - padtime[0], cluster.GetTime() - padtime[1], clusterTransformed.fY - ftrack.GetY(), clusterTransformed.fZ - ftrack.GetZ());
-				if (fabs(cluster.GetPad() - padtime[0]) > 5 || fabs(cluster.GetTime() - padtime[1]) > 5)
+				if (fabsf(cluster.GetPad() - padtime[0]) > 5 || fabsf(cluster.GetTime() - padtime[1]) > 5)
 				{
 					break;
 				}
@@ -491,8 +491,8 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 
 					residualTrackRawPad += cluster.GetPad() - padtime[0];
 					residualTrackRawTime += cluster.GetTime() - padtime[1];
-					residualTrackRawPadabs += fabs(cluster.GetPad() - padtime[0]);
-					residualTrackRawTimeabs += fabs(cluster.GetTime() - padtime[1]);
+					residualTrackRawPadabs += fabsf(cluster.GetPad() - padtime[0]);
+					residualTrackRawTimeabs += fabsf(cluster.GetTime() - padtime[1]);
 					nClusterTracksRaw++;
 				}
 				else
@@ -594,8 +594,8 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 					TransformReverse(is, row, clusterTransformed.fY, clusterTransformed.fZ, padtime);
 
 					nClusters++;
-					residualBacktransformPadabs += fabs(cluster.GetPad() - padtime[0]);
-					residualBacktransformTimeabs += fabs(cluster.GetTime() - padtime[1]);
+					residualBacktransformPadabs += fabsf(cluster.GetPad() - padtime[0]);
+					residualBacktransformTimeabs += fabsf(cluster.GetTime() - padtime[1]);
 					residualBacktransformPad += cluster.GetPad() - padtime[0];
 					residualBacktransformTime += cluster.GetTime() - padtime[1];
 				}

@@ -308,7 +308,7 @@ GPUd() void AliGPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int /*
 						float dz = z - fZ;
 						if (dy * dy < sy2 && dz * dz < sz2)
 						{
-							float dds = GPUCA_Y_FACTOR * fabs(dy) + fabs(dz);
+							float dds = GPUCA_Y_FACTOR * CAMath::Abs(dy) + CAMath::Abs(dz);
 							if (dds < ds)
 							{
 								ds = dds;

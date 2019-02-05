@@ -11,10 +11,8 @@
 
 #include "AliTPCCommonDef.h"
 
-#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
-#ifndef __OPENCLCPP__
+#if !defined(__OPENCL__)
 #include <cmath>
-#endif
 #endif
 
 class AliTPCCommonMath
@@ -22,17 +20,12 @@ class AliTPCCommonMath
   public:
 	GPUd() static float2 MakeFloat2( float x, float y );
 
-	GPUhd() static float Min( float x, float y );
-	GPUhd() static float Max( float x, float y );
-	GPUhd() static int Min( int x, int y );
-	GPUhd() static int Max( int x, int y );
-	GPUhd() static int Min( unsigned int x, unsigned int y );
-	GPUhd() static int Max( unsigned int x, unsigned int y );
+	template <class T> GPUhd() static T Min( T x, T y );
+	template <class T> GPUhd() static T Max( T x, T y );
 	GPUd() static float Sqrt( float x );
-	GPUd() static float Abs( float x );
-	GPUd() static double Abs( double x );
-	GPUd() static int Abs( int x );
+	template <class T> GPUd() static T Abs( T x );
 	GPUd() static float ASin( float x );
+    GPUd() static float ATan( float x );
 	GPUd() static float ATan2( float y, float x );
 	GPUd() static float Sin( float x );
 	GPUd() static float Cos( float x );
@@ -58,16 +51,13 @@ class AliTPCCommonMath
 
 typedef AliTPCCommonMath CAMath;
 
-#if defined( GPUCA_GPUCODE ) && defined (__CUDACC__)
-	#define choice(c1,c2) c1
-	#define choiceA choice
-#elif defined( GPUCA_GPUCODE ) && defined (__OPENCL__)
-	#define choice(c1,c2) c1
-	#define choiceA(c1, c2) c2
-#else //Host
-	#define choice(c1,c2) c2
-	#define choiceA choice
-#endif //GPUCA_GPUCODE
+#if defined(GPUCA_GPUCODE_DEVICE) && (defined (__CUDACC__) || defined(__HIPCC_))
+    #define CHOICE(c1, c2, c3) c2
+#elif defined(GPUCA_GPUCODE_DEVICE) && defined (__OPENCL__)
+    #define CHOICE(c1, c2, c3) c3
+#else
+    #define CHOICE(c1, c2, c3) c1
+#endif
 
 GPUdi() float2 AliTPCCommonMath::MakeFloat2(float x, float y)
 {
@@ -97,97 +87,88 @@ GPUdi() int AliTPCCommonMath::Nint(float x)
 
 GPUdi() bool AliTPCCommonMath::Finite(float x)
 {
-	return choice(1, std::isfinite(x));
+	return CHOICE(std::isfinite(x), true, true);
+}
+
+GPUdi() float AliTPCCommonMath::ATan(float x)
+{
+	return CHOICE(atanf(x), atanf(x), atan(x));
 }
 
 GPUdi() float AliTPCCommonMath::ATan2(float y, float x)
 {
-	return choiceA(atan2f(y, x), atan2(y, x));
-}
-
-GPUdi() float AliTPCCommonMath::Copysign(float x, float y)
-{
-#if defined(GPUCA_GPUCODE) && !defined(__OPENCL__)
-	return copysignf(x, y);
-#else
-	x = CAMath::Abs(x);
-	return (y >= 0) ? x : -x;
-#endif //GPUCA_GPUCODE
+	return CHOICE(atan2f(y, x), atan2f(y, x), atan2(y, x));
 }
 
 GPUdi() float AliTPCCommonMath::Sin(float x)
 {
-	return choiceA(sinf(x), sin(x));
+	return CHOICE(sinf(x), sinf(x), sin(x));
 }
 
 GPUdi() float AliTPCCommonMath::Cos(float x)
 {
-	return choiceA(cosf(x), cos(x));
+	return CHOICE(cosf(x), cosf(x), cos(x));
 }
 
 GPUdi() float AliTPCCommonMath::Tan(float x)
 {
-	return choiceA(tanf(x), tan(x));
+	return CHOICE(tanf(x), tanf(x), tan(x));
 }
 
-GPUhdi() float AliTPCCommonMath::Min(float x, float y)
+template <class T> GPUhdi() T AliTPCCommonMath::Min(T x, T y)
 {
-	return choiceA(fminf(x, y), (x < y ? x : y));
+	return CHOICE(std::min(x, y), std::min(x, y), (x < y ? x : y));
 }
 
-GPUhdi() float AliTPCCommonMath::Max(float x, float y)
+template <class T> GPUhdi() T AliTPCCommonMath::Max(T x, T y)
 {
-	return choiceA(fmaxf(x, y), (x > y ? x : y));
-}
-
-GPUhdi() int AliTPCCommonMath::Min(int x, int y)
-{
-	return choiceA(min(x, y), (x < y ? x : y));
-}
-
-GPUhdi() int AliTPCCommonMath::Max(int x, int y)
-{
-	return choiceA(max(x, y), (x > y ? x : y));
-}
-
-GPUhdi() int AliTPCCommonMath::Min(unsigned int x, unsigned int y)
-{
-	return choiceA(min(x, y), (x < y ? x : y));
-}
-
-GPUhdi() int AliTPCCommonMath::Max(unsigned int x, unsigned int y)
-{
-	return choiceA(max(x, y), (x > y ? x : y));
+	return CHOICE(std::max(x, y), std::max(x, y), (x > y ? x : y));
 }
 
 GPUdi() float AliTPCCommonMath::Sqrt(float x)
 {
-	return choiceA(sqrtf(x), sqrt(x));
+	return CHOICE(sqrtf(x), sqrtf(x), sqrt(x));
 }
 
-GPUdi() float AliTPCCommonMath::Abs(float x)
+template <> GPUdi() float AliTPCCommonMath::Abs<float>(float x)
 {
-	return choiceA(fabsf(x), fabs(x));
+	return CHOICE(fabsf(x), fabsf(x), fabs(x));
 }
 
-GPUdi() double AliTPCCommonMath::Abs(double x)
+#if !defined(__OPENCL__) || defined(cl_khr_fp64)
+template <> GPUdi() double AliTPCCommonMath::Abs<double>(double x)
 {
-	return choice(fabs(x), fabs(x));
+	return CHOICE(fabs(x), fabs(x), fabs(x));
 }
+#endif
 
-GPUdi() int AliTPCCommonMath::Abs(int x)
+template <> GPUdi() int AliTPCCommonMath::Abs<int>(int x)
 {
-	return choice(abs(x), (x >= 0 ? x : -x));
+	return CHOICE(abs(x), abs(x), abs(x));
 }
 
 GPUdi() float AliTPCCommonMath::ASin(float x)
 {
-	return choiceA(asinf(x), asin(x));
+	return CHOICE(asinf(x), asinf(x), asin(x));
 }
 
 GPUdi() float AliTPCCommonMath::Log(float x)
 {
-	return choice(log(x), log(x));
+	return CHOICE(logf(x), logf(x), log(x));
+}
+
+GPUdi() float AliTPCCommonMath::Copysign(float x, float y)
+{
+#if defined(__OPENCLCPP__)
+    return copysign(x, y);
+#elif defined(GPUCA_GPUCODE) && !defined(__OPENCL__)
+	return copysignf(x, y);
+#elif defined(__cplusplus) && __cplusplus >= 201103L
+    return std::copysignf(x, y);
+#else
+	x = AliTPCCommonMath::Abs(x);
+	return (y >= 0) ? x : -x;
+#endif //GPUCA_GPUCODE
 }
 
 #if defined(__OPENCL__)
@@ -206,7 +187,7 @@ GPUdi() int AliTPCCommonMath::AtomicExch( GPUglobalref() int *addr, int val )
 {
 #if defined(GPUCA_GPUCODE) && defined(__OPENCL__)
 	return ::atomic_xchg( (volatile __global int*) addr, val );
-#elif defined(GPUCA_GPUCODE) && defined(__CUDACC__)
+#elif defined(GPUCA_GPUCODE) && (defined (__CUDACC__) || defined(__HIPCC_))
 	return ::atomicExch( addr, val );
 #else
 	int old = *addr;
@@ -219,7 +200,7 @@ GPUdi() int AliTPCCommonMath::AtomicAdd ( GPUglobalref() int *addr, int val )
 {
 #if defined(GPUCA_GPUCODE) && defined(__OPENCL__)
 	return ::atomic_add( (volatile __global int*) addr, val );
-#elif defined(GPUCA_GPUCODE) && defined(__CUDACC__)
+#elif defined(GPUCA_GPUCODE) && (defined (__CUDACC__) || defined(__HIPCC_))
 	return ::atomicAdd( addr, val );
 #else
 	int old = *addr;
@@ -232,7 +213,7 @@ GPUdi() int AliTPCCommonMath::AtomicMax ( GPUglobalref() int *addr, int val )
 {
 #if defined(GPUCA_GPUCODE) && defined(__OPENCL__)
 	return ::atomic_max( (volatile __global int*) addr, val );
-#elif defined(GPUCA_GPUCODE) && defined(__CUDACC__)
+#elif defined(GPUCA_GPUCODE) && (defined (__CUDACC__) || defined(__HIPCC_))
 	return ::atomicMax( addr, val );
 #else
 	int old = *addr;
@@ -245,7 +226,7 @@ GPUdi() int AliTPCCommonMath::AtomicMin ( GPUglobalref() int *addr, int val )
 {
 #if defined(GPUCA_GPUCODE) && defined(__OPENCL__)
 	return ::atomic_min( (volatile __global int*) addr, val );
-#elif defined(GPUCA_GPUCODE) && defined(__CUDACC__)
+#elif defined(GPUCA_GPUCODE) && (defined (__CUDACC__) || defined(__HIPCC_))
 	return ::atomicMin( addr, val );
 #else
 	int old = *addr;

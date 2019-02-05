@@ -23,6 +23,8 @@
 	#define GPUhdi() inline
 	#define GPUg() INVALID_TRIGGER_ERROR_NO_HOST_CODE
 	#define GPUshared()
+	#define GPUglobal()
+	#define GPUconstant()
 	#define GPUbarrier()
 
 	struct float4 { float x, y, z, w; };
@@ -49,7 +51,14 @@
 	#define GPUhdi() inline
 	#define GPUg() __kernel
 	#define GPUshared() __local
-	#define GPUbarrier() barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE)
+	#define GPUglobal() __global
+	//#define GPUconstant() __constant //TODO: Replace __constant by __global (possibly add const __restrict where possible later!)
+	#define GPUconstant() __global
+	#ifdef __OPENCLCPP__
+		#define GPUbarrier() work_group_barrier(mem_fence::global | mem_fence::local);
+	#else
+		#define GPUbarrier() barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE)
+	#endif
 #elif defined(__CUDACC__) //Defines for CUDA
 	#define GPUd() __device__
 	#define GPUdi() __device__ inline
@@ -59,6 +68,8 @@
 	#define GPUhdi() __host__ __device__ inline
 	#define GPUg() __global__
 	#define GPUshared() __shared__
+	#define GPUglobal()
+	#define GPUconstant()
 	#define GPUbarrier() __syncthreads()
 #elif defined(__HIPCC__) //Defines for HIP
 	#define GPUd() __device__
@@ -69,18 +80,17 @@
 	#define GPUhdi() __host__ __device__ inline
 	#define GPUg() __global__
 	#define GPUshared() __shared__
+	#define GPUglobal()
+	#define GPUconstant()
 	#define GPUbarrier() __syncthreads()
 #endif
 
 #if defined(__OPENCL__) && !defined(__OPENCLCPP__) //Other special defines for OpenCL
 	#define GPUsharedref() GPUshared()
 	#define GPUglobalref() __global
-	//#define GPUconstant() __constant //TODO: Replace __constant by __global (possibly add const __restrict where possible later!)
-	#define GPUconstant() GPUglobalref()
 #else //Other defines for the rest
 	#define GPUsharedref()
 	#define GPUglobalref()
-	#define GPUconstant()
 #endif
 
 #endif

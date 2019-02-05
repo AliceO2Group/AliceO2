@@ -22,7 +22,7 @@
 GPUd() int AliGPUTPCGMPhysicalTrackModel::PropagateToXBzLight(float x, float Bz, float &dLp)
 {
 	AliGPUTPCGMPhysicalTrackModel t = *this;
-	if (fabs(x - t.X()) < 1.e-8f) return 0;
+	if (CAMath::Abs(x - t.X()) < 1.e-8f) return 0;
 	int err = t.PropagateToXBzLightNoUpdate(x, Bz, dLp);
 	if (err) return (err);
 	t.UpdateValues();
@@ -83,9 +83,7 @@ GPUd() int AliGPUTPCGMPhysicalTrackModel::PropagateToXBzLightNoUpdate(float x, f
 	return 0;
 }
 
-GPUd() int AliGPUTPCGMPhysicalTrackModel::PropagateToXBxByBz(float x,
-                                                             float Bx, float By, float Bz,
-                                                             float &dLp)
+GPUd() int AliGPUTPCGMPhysicalTrackModel::PropagateToXBxByBz(float x, float Bx, float By, float Bz, float &dLp)
 {
 	//
 	// transport the track to X=x in magnetic field B = ( Bx, By, Bz )[kG*0.000299792458]
