@@ -16,8 +16,11 @@
 #include <FairLogger.h>
 
 #ifndef GPUCA_GPUCODE // this part is unvisible on GPU version
+
 #include <TFile.h>
 #include "CommonUtils/TreeStreamRedirector.h"
+#define _DBG_LOC_ // for local debugging only
+
 #endif // !GPUCA_GPUCODE
 
 using namespace o2::Base;
@@ -269,7 +272,11 @@ MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, float x1, f
         auto zID = lr.getZBinID(ray.getZ(tStartPhi));
         auto zIDLast = lr.getZBinID(ray.getZ(tEndPhi));
         // check if Zbins are crossed
+
+#ifdef _DBG_LOC_
         printf("-- Zdiff (%3d : %3d) mode: t: %+e %+e\n", zID, zIDLast, tStartPhi, tEndPhi);
+#endif
+	
         if (zID != zIDLast) {
           auto stepZID = zID < zIDLast ? 1 : -1;
           bool checkMoreZ = true;
@@ -282,17 +289,21 @@ MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, float x1, f
               tEndZ = ray.crossZ(lr.getZBinMin(stepZID > 0 ? zID + 1 : zID));
             }
             // account materials of this step
-            float step = tEndZ - tStartZ; // the real step is |lr.getDist(tEnd-tStart)|, will rescale all later
+            float step = tEndZ - tStartZ; // the real step is ray.getDist(tEnd-tStart), will rescale all later
             const auto& cell = lr.getCell(phiID, zID);
             rval.meanRho += cell.meanRho * step;
             rval.meanX2X0 += cell.meanX2X0 * step;
             rval.length += step;
 
+#ifdef _DBG_LOC_
             float pos0[3] = { ray.getPos(tStartZ, 0), ray.getPos(tStartZ, 1), ray.getPos(tStartZ, 2) };
             float pos1[3] = { ray.getPos(tEndZ, 0), ray.getPos(tEndZ, 1), ray.getPos(tEndZ, 2) };
-            printf("Lr#%3d / cross#%d : account %f<t<%f at phiSlice %d | Zbin: %3d (%3d) |[%+e %+e +%e]:[%+e %+e %+e]\n",
+            printf("Lr#%3d / cross#%d : account %f<t<%f at phiSlice %d | Zbin: %3d (%3d) |[%+e %+e +%e]:[%+e %+e %+e] "
+		   "Step: %.3e StrpCor: %.3e\n",
                    lrID, ic, tEndZ, tStartZ, phiID % lr.getNPhiSlices(), zID, zIDLast,
-                   pos0[0], pos0[1], pos0[2], pos1[0], pos1[1], pos1[2]);
+                   pos0[0], pos0[1], pos0[2], pos1[0], pos1[1], pos1[2], step, ray.getDist(step));
+#endif
+	    
             tStartZ = tEndZ;
             zID += stepZID;
           } while (checkMoreZ);
@@ -303,11 +314,14 @@ MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, float x1, f
           rval.meanX2X0 += cell.meanX2X0 * step;
           rval.length += step;
 
+#ifdef _DBG_LOC_
           float pos0[3] = { ray.getPos(tStartPhi, 0), ray.getPos(tStartPhi, 1), ray.getPos(tStartPhi, 2) };
           float pos1[3] = { ray.getPos(tEndPhi, 0), ray.getPos(tEndPhi, 1), ray.getPos(tEndPhi, 2) };
-          printf("Lr#%3d / cross#%d : account %f<t<%f at phiSlice %d | Zbin: %3d ----- |[%+e %+e +%e]:[%+e %+e %+e]\n",
+          printf("Lr#%3d / cross#%d : account %f<t<%f at phiSlice %d | Zbin: %3d ----- |[%+e %+e +%e]:[%+e %+e %+e]"
+		 "Step: %.3e StrpCor: %.3e\n",
                  lrID, ic, tEndPhi, tStartPhi, phiID % lr.getNPhiSlices(), zID,
-                 pos0[0], pos0[1], pos0[2], pos1[0], pos1[1], pos1[2]);
+                 pos0[0], pos0[1], pos0[2], pos1[0], pos1[1], pos1[2], step, ray.getDist(step));
+#endif	  
         }
         //
         tStartPhi = tEndPhi;
@@ -318,12 +332,11 @@ MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, float x1, f
     lrID--;
   } // loop over layers
 
-  if (rval.length != 0.) {
+  if (rval.length != 0.f) {
     rval.meanRho /= rval.length;    // average
-    rval.meanX2X0 *= ray.getDist(); // normalize
-    if (rval.meanX2X0 < 0.f) {
-      rval.meanX2X0 = -rval.meanX2X0;
-    }
+    float norm = (rval.length<0.f) ? -ray.getDist() : ray.getDist(); // normalize
+    rval.meanX2X0 *= norm;
+    rval.length *= norm;
   }
   printf("<rho> = %e, x2X0 = %e  | step = %e\n", rval.meanRho, rval.meanX2X0, rval.length);
   return rval;

@@ -277,7 +277,8 @@ void MatLayerCyl::print(bool data) const
   for (int ip = 0; ip < getNPhiSlices(); ip++) {
     int ib0, ib1;
     int nb = getNPhiBinsInSlice(ip, ib0, ib1);
-    printf("phi slice: %d (%d bins %d-%d %.4f:%.4f) ... [iz/<rho>/<x/x0>] \n", ip, nb, ib0, ib1, getDPhi() * ib0, getDPhi() * (ib1 + 1));
+    printf("phi slice: %d (%d bins %d-%d %.4f:%.4f) sn:%+.4f/cs:%+.4f ... [iz/<rho>/<x/x0>] \n",
+	   ip, nb, ib0, ib1, getDPhi() * ib0, getDPhi() * (ib1 + 1),  getSliceSin(ip), getSliceCos(ip) );
     for (int iz = 0; iz < getNZBins(); iz++) {
       auto cell = getCellPhiBin(ib0, iz);
       printf("%3d/%.2e/%.2e ", iz, cell.meanRho, cell.meanX2X0);
