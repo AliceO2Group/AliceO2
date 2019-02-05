@@ -14,6 +14,11 @@
 #include "Generators/InteractionDiamondParam.h"
 #include "FairLogger.h"
 
+#include "FairGenericStack.h"
+#include "FairMCEventHeader.h"
+#include "TFile.h"
+#include "TTree.h"
+
 namespace o2
 {
 namespace eventgen
@@ -21,9 +26,34 @@ namespace eventgen
 
 /*****************************************************************/
 
+PrimaryGenerator::~PrimaryGenerator()
+{
+  /** destructor **/
+
+  if (mEmbedFile && mEmbedFile->IsOpen()) {
+    mEmbedFile->Close();
+    delete mEmbedFile;
+  }
+  if (mEmbedEvent)
+    delete mEmbedEvent;
+}
+
+/*****************************************************************/
+
 Bool_t PrimaryGenerator::Init()
 {
   /** init **/
+
+  LOG(INFO) << "Initialising primary generator";
+
+  /** embedding **/
+  if (mEmbedTree) {
+    LOG(INFO) << "Embedding into: " << mEmbedFile->GetName()
+              << " (" << mEmbedEntries << " events)";
+    return FairPrimaryGenerator::Init();
+  }
+
+  /** normal generation **/
 
   /** retrieve and set interaction diamond **/
   auto diamond = InteractionDiamondParam::Instance();
@@ -31,6 +61,41 @@ Bool_t PrimaryGenerator::Init()
 
   /** base class init **/
   return FairPrimaryGenerator::Init();
+}
+
+/*****************************************************************/
+
+Bool_t PrimaryGenerator::GenerateEvent(FairGenericStack* pStack)
+{
+  /** generate event **/
+
+  /** normal generation if no embedding **/
+  if (!mEmbedTree)
+    return FairPrimaryGenerator::GenerateEvent(pStack);
+
+  /** this is for embedding **/
+
+  /** setup interaction vertex **/
+  mEmbedTree->GetEntry(mEmbedCounter);
+  setInteractionVertex(mEmbedEvent);
+
+  /** generate event **/
+  if (!FairPrimaryGenerator::GenerateEvent(pStack))
+    return kFALSE;
+
+  /** add embedding info to event header **/
+  //  auto o2event = dynamic_cast<MCEventHeader*>(fEvent);
+  //  if (o2event) {
+  //    o2event->setEmbeddingFileName(mEmbedFile->GetName());
+  //    o2event->setEmbeddingEventCounter(mEmbedCounter);
+  //  }
+
+  /** increment embedding counter **/
+  mEmbedCounter++;
+  mEmbedCounter %= mEmbedEntries;
+
+  /** success **/
+  return kTRUE;
 }
 
 /*****************************************************************/
@@ -49,6 +114,62 @@ void PrimaryGenerator::setInteractionDiamond(const Double_t* xyz, const Double_t
   SmearVertexZ(false);
   SmearGausVertexXY(true);
   SmearGausVertexZ(true);
+}
+
+/*****************************************************************/
+
+void PrimaryGenerator::setInteractionVertex(const FairMCEventHeader* event)
+{
+  /** set interaction vertex **/
+
+  Double_t xyz[3] = { event->GetX(), event->GetY(), event->GetZ() };
+  SetBeam(xyz[0], xyz[1], 0., 0.);
+  SetTarget(xyz[2], 0.);
+  SmearVertexXY(false);
+  SmearVertexZ(false);
+  SmearGausVertexXY(false);
+  SmearGausVertexZ(false);
+}
+
+/*****************************************************************/
+
+Bool_t PrimaryGenerator::embedInto(TString fname)
+{
+  /** embed into **/
+
+  /** check if a file is already open **/
+  if (mEmbedFile && mEmbedFile->IsOpen()) {
+    LOG(ERROR) << "Another embedding file is currently open";
+    return kFALSE;
+  }
+
+  /** open file **/
+  mEmbedFile = TFile::Open(fname);
+  if (!mEmbedFile || !mEmbedFile->IsOpen()) {
+    LOG(ERROR) << "Cannot open file for embedding: " << fname;
+    return kFALSE;
+  }
+
+  /** get tree **/
+  mEmbedTree = (TTree*)mEmbedFile->Get("o2sim");
+  if (!mEmbedTree) {
+    LOG(ERROR) << R"(Cannot find "o2sim" tree for embedding in )" << fname;
+    return kFALSE;
+  }
+
+  /** get entries **/
+  mEmbedEntries = mEmbedTree->GetEntries();
+  if (mEmbedEntries <= 0) {
+    LOG(ERROR) << "Invalid number of entries found in tree for embedding: " << mEmbedEntries;
+    return kFALSE;
+  }
+
+  /** connect MC event header **/
+  mEmbedEvent = new FairMCEventHeader;
+  mEmbedTree->SetBranchAddress("MCEventHeader.", &mEmbedEvent);
+
+  /** success **/
+  return kTRUE;
 }
 
 /*****************************************************************/

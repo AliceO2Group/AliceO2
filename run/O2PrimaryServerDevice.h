@@ -56,6 +56,11 @@ class O2PrimaryServerDevice : public FairMQDevice
     o2::conf::ConfigurableParam::updateFromString(conf.getKeyValueString());
     o2::eventgen::GeneratorFactory::setPrimaryGenerator(conf, &mPrimGen);
     mPrimGen.SetEvent(&mEventHeader);
+
+    auto embedinto_filename = conf.getEmbedIntoFileName();
+    if (!embedinto_filename.empty()) {
+      mPrimGen.embedInto(embedinto_filename);
+    }
     mPrimGen.Init();
   }
 

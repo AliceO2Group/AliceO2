@@ -72,7 +72,11 @@ FairRunSim* o2sim_init(bool asservice)
   build_geometry(run);
 
   // setup generator
+  auto embedinto_filename = confref.getEmbedIntoFileName();
   auto primGen = new o2::eventgen::PrimaryGenerator();
+  if (!embedinto_filename.empty()) {
+    primGen->embedInto(embedinto_filename);
+  }
   if (!asservice) {
     o2::eventgen::GeneratorFactory::setPrimaryGenerator(confref, primGen);
   }
