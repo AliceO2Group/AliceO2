@@ -36,7 +36,7 @@
 		#endif
 	#endif
 
-	#if defined(HAVE_O2HEADERS) && !defined(GPUCA_O2_LIB)
+	#if defined(HAVE_O2HEADERS) && !defined(GPUCA_O2_LIB) && defined(__CUDACC__)
 		#include "TrackerTraitsNV.cu"
 		#include "Context.cu"
 		#include "Stream.cu"
