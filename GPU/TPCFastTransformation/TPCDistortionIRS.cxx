@@ -17,6 +17,10 @@
 
 #include "TPCDistortionIRS.h"
 
+#if !defined(GPUCA_GPUCODE)
+#include <iostream>
+#endif
+
 namespace ali_tpc_common {
 namespace tpc_fast_transformation {
 
@@ -333,6 +337,52 @@ const float *TPCDistortionIRS::getSplineData( int slice, int row ) const
 }
 
 
+void TPCDistortionIRS::Print() const
+{
+#if !defined(GPUCA_GPUCODE)
+  std::cout<<" TPC DistortionIRS: "<<std::endl;
+  std::cout<<"  mNumberOfRows = "<< mNumberOfRows <<std::endl;
+  std::cout<<"  mNumberOfScenarios = "<< mNumberOfScenarios << std::endl;
+  std::cout<<"  mScaleVtoSVsideA = "<< mScaleVtoSVsideA << std::endl;
+  std::cout<<"  mScaleVtoSVsideC = "<< mScaleVtoSVsideC << std::endl;
+  std::cout<<"  mScaleSVtoVsideA = "<< mScaleSVtoVsideA << std::endl;
+  std::cout<<"  mScaleSVtoVsideC = "<< mScaleSVtoVsideC << std::endl;
+  std::cout<<"  mTimeStamp = "<< mTimeStamp << std::endl;
+  std::cout<<"  mSliceDataSizeBytes = "<< mSliceDataSizeBytes << std::endl;
+  std::cout<<"  TPC rows: "<<std::endl;
+  for( int i=0; i<mNumberOfRows; i++){
+    RowInfo &r = mRowInfoPtr[i];
+    std::cout<<" tpc row "<< i
+	     <<": x = "<< r.x
+	     <<" U0 = "<< r.U0
+	     <<" scaleUtoSU = "<< r.scaleUtoSU
+	     <<" scaleSUtoU = "<< r.scaleSUtoU
+	     <<" splineScenarioID = "<< r.splineScenarioID
+	     <<" dataOffsetBytes = "<< r.dataOffsetBytes
+	     <<std::endl;
+  }
+  for( int i=0; i<mNumberOfScenarios; i++){
+    std::cout<<" SplineScenario "<<i<<": "<<std::endl;
+    mScenarioPtr[i].Print();
+  }
+  std::cout<<" Spline Data: "<<std::endl;
+  for( int is=0; is<NumberOfSlices; is++ ){
+    for( int ir=0; ir<mNumberOfRows; ir++ ){
+      std::cout<<"slice "<<is<<" row "<<ir<<": "<<std::endl;
+      const IrregularSpline2D3D& spline = getSpline( is, ir );
+      const float *d = getSplineData( is, ir);      
+      int k=0;
+      for( int i=0; i<spline.getGridU().getNumberOfKnots(); i++ ){
+	for( int j=0; j<spline.getGridV().getNumberOfKnots(); j++, k++ ){
+	  std::cout<<d[k]<<" ";
+	}
+	std::cout<<std::endl;
+      }
+    }
+  }
+#endif
+}
+ 
 
 }// namespace
 }// namespace

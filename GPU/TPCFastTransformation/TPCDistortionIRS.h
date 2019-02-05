@@ -151,6 +151,9 @@ class TPCDistortionIRS :public FlatObject
   int convUVtoSUV( int slice, int row, float u, float v, float &su, float &sv ) const;
   int convSUVtoUV( int slice, int row, float su, float sv, float &u, float &v ) const;
 
+  /// Print method
+  void Print() const;
+
  private:
 
   void relocateBufferPointers( const char* oldBuffer, char *newBuffer );
