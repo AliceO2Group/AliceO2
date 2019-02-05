@@ -23,12 +23,13 @@ Digitizer::Digitizer()
 {
   // Check if you need more initialization
   mGeom = new TRDGeometry();
+  mSDigits = false;
 
   // Get the Ionization energy
   if (TRDCommonParam::Instance()->IsXenon()) {
-    mWion = 23.53; // Ionization energy XeCO2 (85/15)
+    setWion(23.53); // Ionization energy XeCO2 (85/15)
   } else if (TRDCommonParam::Instance()->IsArgon()) {
-    mWion = 27.21; // Ionization energy ArCO2 (82/18)
+    setWion(27.21); // Ionization energy ArCO2 (82/18)
   } else {
     LOG(FATAL) << "Wrong gas mixture";
     // add hard exit here!
@@ -104,11 +105,12 @@ bool Digitizer::getHitContainer(const int det, const std::vector<o2::trd::HitTyp
   return true;
 }
 
-bool Digitizer::convertHits(int det, const std::vector<o2::trd::HitType>& hits, int& arraySignal)
+bool Digitizer::convertHits(const int det, const std::vector<o2::trd::HitType>& hits, int& arraySignal)
 {
   //
   // Convert the detector-wise sorted hits to detector signals
   //
+
   LOG(INFO) << "Start converting " << hits.size() << " hits for detector " << det;
 
   // Dummy signal for now
@@ -131,7 +133,7 @@ bool Digitizer::convertHits(int det, const std::vector<o2::trd::HitType>& hits, 
   double signalOld[kNpad];
 
   // Number of track dictionary arrays
-  // const Int_t kNdict     = AliTRDdigitsManager::kNDict;
+  // const int kNdict     = AliTRDdigitsManager::kNDict;
   // AliTRDarrayDictionary *dictionary[kNdict];
 
   TRDSimParam* simParam = TRDSimParam::Instance();
@@ -289,7 +291,7 @@ bool Digitizer::convertHits(int det, const std::vector<o2::trd::HitType>& hits, 
       }
       rowOffset = padPlane->getPadRowOffsetROC(rowE, locR);
 
-      // The
+      // The pad column (rphi-direction)
       offsetTilt = padPlane->getTiltOffset(rowOffset);
       colE = padPlane->getPadColNumber(locC + offsetTilt);
       if (colE < 0) {
@@ -415,6 +417,178 @@ bool Digitizer::convertHits(int det, const std::vector<o2::trd::HitType>& hits, 
       }   // Loop: time bins
     }     // end of loop over electrons
   }       // end of loop over hits
+  return true;
+}
+
+bool Digitizer::convertSignalsToDigits(const int det, int& arraySignal)
+{
+  //
+  // Converstion of signals to digits
+  //
+
+  LOG(INFO) << "Start converting signals for detector " << det;
+  if (mSDigits) {
+    // Convert the signal array to s-digits
+    if (!convertSignalsToSDigits(det, arraySignal)) {
+      return false;
+    }
+  } else {
+    // Convert the signal array to digits
+    if (!convertSignalsToADC(det, arraySignal)) {
+      return false;
+    }
+    // Run digital processing for digits
+    // RunDigitalProcessing(det);
+  }
+  // Compress the arrays
+  // CompressOutputArrays(det);
+  return true;
+}
+
+bool Digitizer::convertSignalsToSDigits(const int det, int& arraySignal)
+{
+  //
+  // Convert signals to S-digits
+  //
+
+  return true;
+}
+
+bool Digitizer::convertSignalsToADC(const int det, int& signals)
+{
+  //
+  // Converts the sampled electron signals to ADC values for a given chamber
+  //
+
+  LOG(INFO) << "Start converting signals to ADC values for detector = " << det;
+
+  // TRDcalibDB* calibration = TRDcalibDB::Instance();
+  // if (!calibration) {
+  //   AliFatal("Could not get calibration object");
+  //   return false;
+  // }
+
+  TRDSimParam* simParam = TRDSimParam::Instance();
+  if (!simParam) {
+    LOG(FATAL) << "Could not get simulation parameters";
+    return false;
+  }
+
+  // Converts number of electrons to fC
+  constexpr double kEl2fC = 1.602e-19 * 1.0e15;
+
+  // Coupling factor
+  double coupling = simParam->GetPadCoupling() * simParam->GetTimeCoupling();
+  // Electronics conversion factor
+  double convert = kEl2fC * simParam->GetChipGain();
+  // ADC conversion factor
+  double adcConvert = simParam->GetADCoutRange() / simParam->GetADCinRange();
+  // The electronics baseline in mV
+  double baseline = simParam->GetADCbaseline() / adcConvert;
+  // The electronics baseline in electrons
+  double baselineEl = baseline / convert;
+
+  int row = 0;
+  int col = 0;
+  int time = 0;
+
+  int nRowMax = mGeom->getPadPlane(det)->getNrows();
+  int nColMax = mGeom->getPadPlane(det)->getNcols();
+  int nTimeTotal = 100; // fDigitsManager->GetDigitsParam()->GetNTimeBins(det);
+  // if (fSDigitsManager->GetDigitsParam()->GetNTimeBins(det)) {
+  //   nTimeTotal = fSDigitsManager->GetDigitsParam()->GetNTimeBins(det);
+  // } else {
+  //   LOG(FATAL) << "Could not get number of time bins";
+  //   return false;
+  // }
+
+  // The gain factor calibration objects
+  // const AliTRDCalDet* calGainFactorDet = calibration->GetGainFactorDet();
+  // AliTRDCalROC* calGainFactorROC = 0x0;
+  float calGainFactorDetValue = 0.0;
+
+  // AliTRDarrayADC* digits = 0x0;
+  int digits = 0;
+
+  if (!signals) {
+    LOG(FATAL) << "Signals array for detector " << det << " does not exis";
+    return false;
+  }
+  // if (signals->HasData()) {
+  //   // Expand the container if neccessary
+  //   signals->Expand();
+  // } else {
+  //   // Create missing containers
+  //   signals->Allocate(nRowMax, nColMax, nTimeTotal);
+  // }
+
+  // Get the container for the digits of this detector
+  // if (fDigitsManager->HasSDigits()) {
+  //   AliError("Digits manager has s-digits");
+  //   return false;
+  // }
+
+  // digits = (AliTRDarrayADC*)fDigitsManager->GetDigits(det);
+  // // Allocate memory space for the digits buffer
+  // if (!digits->HasData()) {
+  //   digits->Allocate(nRowMax, nColMax, nTimeTotal);
+  // }
+
+  // Get the calibration objects
+  // calGainFactorROC = calibration->GetGainFactorROC(det);
+  // calGainFactorDetValue = calGainFactorDet->GetValue(det);
+
+  // Create the digits for this chamber
+  for (row = 0; row < nRowMax; row++) {
+    for (col = 0; col < nColMax; col++) {
+
+      // halfchamber masking
+      int iMcm = (int)(col / 18);               // current group of 18 col pads
+      int halfchamberside = (iMcm > 3 ? 1 : 0); // 0=Aside, 1=Bside
+      // Halfchambers that are switched off, masked by calibration
+      // if (calibration->IsHalfChamberNoData(det, halfchamberside))
+      //   continue;
+
+      // Check whether pad is masked
+      // Bridged pads are not considered yet!!!
+      // if (calibration->IsPadMasked(det, col, row) ||
+      //     calibration->IsPadNotConnected(det, col, row)) {
+      //   continue;
+      // }
+
+      // The gain factors
+      float padgain = calGainFactorDetValue; // * calGainFactorROC->GetValue(col, row);
+      if (padgain <= 0) {
+        const auto msg = Form("Not a valid gain %f, %d %d %d", padgain, det, col, row);
+        LOG(FATAL) << msg;
+      }
+
+      for (time = 0; time < nTimeTotal; time++) {
+        // Get the signal amplitude
+        float signalAmp = 99; //signals->GetData(row, col, time);
+        // Pad and time coupling
+        signalAmp *= coupling;
+        // Gain factors
+        signalAmp *= padgain;
+        // Add the noise, starting from minus ADC baseline in electrons
+        signalAmp = TMath::Max((double)gRandom->Gaus(signalAmp, simParam->GetNoise()), -baselineEl);
+        // Convert to mV
+        signalAmp *= convert;
+        // Add ADC baseline in mV
+        signalAmp += baseline;
+        // Convert to ADC counts. Set the overflow-bit fADCoutRange if the
+        // signal is larger than fADCinRange
+        short adc = 0;
+        if (signalAmp >= simParam->GetADCinRange()) {
+          adc = ((short)simParam->GetADCoutRange());
+        } else {
+          adc = TMath::Nint(signalAmp * adcConvert);
+        }
+        // Saving all digits
+        // digits->SetData(row, col, time, adc);
+      } // for: time
+    }   // for: col
+  }     // for: row
   return true;
 }
 
