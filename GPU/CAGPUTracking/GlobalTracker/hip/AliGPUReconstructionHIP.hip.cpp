@@ -36,7 +36,7 @@ template <class T, int I, typename... Args> int AliGPUReconstructionHIPBackend::
 {
 	if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelBackend<T, I> (x, y, z, args...);
 	if (z.evList) for (int k = 0;k < z.nEvents;k++) GPUFailedMsg(hipStreamWaitEvent(mInternals->HIPStreams[x.stream], ((hipEvent_t*) z.evList)[k], 0));
-	if (y.num <= 1 || y.num == (unsigned int) -1)
+	if (y.num <= 1)
 	{
 		hipLaunchKernelGGL(HIP_KERNEL_NAME(runKernelHIP<T, I, Args...>), dim3(x.nBlocks), dim3(x.nThreads), 0, mInternals->HIPStreams[x.stream], y.start, args...);
 	}

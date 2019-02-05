@@ -40,7 +40,7 @@ protected:
 	template <class T, int I = 0, typename... Args> int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args);
 
 private:
-	template <class S, class T, int I = 0> S& getKernelObject();
+	template <class S, class T, int I = 0> S& getKernelObject(int num);
 	
 	AliGPUReconstructionOCLInternals* mInternals;
 };

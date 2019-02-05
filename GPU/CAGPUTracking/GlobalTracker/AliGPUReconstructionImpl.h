@@ -31,12 +31,12 @@ struct krnlRunRange
 {
 	krnlRunRange() : start(0), num(0) {}
 	krnlRunRange(unsigned int a) : start(a), num(0) {}
-	krnlRunRange(unsigned int s, unsigned int n) : start(s), num(n) {}
+	krnlRunRange(unsigned int s, int n) : start(s), num(n) {}
 	
 	unsigned int start;
-	unsigned int num;
+	int num;
 };
-static const krnlRunRange krnlRunRangeNone(0, (unsigned int) -1);
+static const krnlRunRange krnlRunRangeNone(0, -1);
 struct krnlEvent
 {
 	krnlEvent(deviceEvent* e = nullptr, deviceEvent* el = nullptr, int n = 1) : ev(e), evList(el), nEvents(n) {}
@@ -76,7 +76,7 @@ protected:
 	template <class T, int I = 0, typename... Args> inline int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
 	{
 		if (x.device == krnlDeviceType::Device) throw std::runtime_error("Cannot run device kernel on host");
-		unsigned int num = y.num == 0 || y.num == (unsigned int) -1 ? 1 : y.num;
+		unsigned int num = y.num == 0 || y.num == -1 ? 1 : y.num;
 		for (unsigned int k = 0;k < num;k++)
 		{
 			for (unsigned int iB = 0; iB < x.nBlocks; iB++)
