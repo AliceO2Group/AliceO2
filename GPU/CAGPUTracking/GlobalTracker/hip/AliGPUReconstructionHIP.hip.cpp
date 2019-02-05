@@ -14,14 +14,14 @@ namespace o2 { namespace ITS { class TrackerTraitsHIP : public TrackerTraits {};
 #define DEVICE_KERNELS_PRE
 #include "AliGPUDeviceKernels.h"
 
-template <class TProcess, int I, typename... Args> GPUd() void runKernelHIP_a(int iSlice, Args... args)
+template <class TProcess, int I, typename... Args> GPUd() void runKernelHIP(int iSlice, Args... args)
 {
 	AliGPUTPCTracker &tracker = gGPUConstantMem.tpcTrackers[iSlice];
 	GPUshared() typename TProcess::AliGPUTPCSharedMemory smem;
 	TProcess::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, tracker, args...);
 }
 
-template <class TProcess, int I, typename... Args> GPUd() void runKernelHIPMulti_a(int firstSlice, int nSliceCount, Args... args)
+template <class TProcess, int I, typename... Args> GPUd() void runKernelHIPMulti(int firstSlice, int nSliceCount, Args... args)
 {
 	const int iSlice = nSliceCount * (get_group_id(0) + (get_num_groups(0) % nSliceCount != 0 && nSliceCount * (get_group_id(0) + 1) % get_num_groups(0) != 0)) / get_num_groups(0);
 	const int nSliceBlockOffset = get_num_groups(0) * iSlice / nSliceCount;
@@ -32,19 +32,17 @@ template <class TProcess, int I, typename... Args> GPUd() void runKernelHIPMulti
 	TProcess::template Thread<I>(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, tracker, args...);
 }
 
-#include "AliGPUReconstructionHIPWorkarounds.h"
-
-template <class T, int I, typename... Args> int AliGPUReconstructionHIPBackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
+template <class T, int I, typename... Args> int AliGPUReconstructionHIPBackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, Args... args)
 {
 	if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelBackend<T, I> (x, y, z, args...);
 	if (z.evList) for (int k = 0;k < z.nEvents;k++) GPUFailedMsg(hipStreamWaitEvent(mInternals->HIPStreams[x.stream], ((hipEvent_t*) z.evList)[k], 0));
 	if (y.num <= 1 || y.num == (unsigned int) -1)
 	{
-		runKernelBackend_a<T, I>(x, y, z, mInternals->HIPStreams[x.stream], args...);
+		hipLaunchKernelGGL(HIP_KERNEL_NAME(runKernelHIP<T, I, Args...>), dim3(x.nBlocks), dim3(x.nThreads), 0, mInternals->HIPStreams[x.stream], y.start, args...);
 	}
 	else
 	{
-		runKernelBackendMulti_a<T, I>(x, y, z, mInternals->HIPStreams[x.stream], args...);
+		hipLaunchKernelGGL(HIP_KERNEL_NAME(runKernelHIPMulti<T, I, Args...>), dim3(x.nBlocks), dim3(x.nThreads), 0, mInternals->HIPStreams[x.stream], y.start, y.num, args...);
 	}
 	if (z.ev) GPUFailedMsg(hipEventRecord(*(hipEvent_t*) z.ev, mInternals->HIPStreams[x.stream]));
 	return 0;

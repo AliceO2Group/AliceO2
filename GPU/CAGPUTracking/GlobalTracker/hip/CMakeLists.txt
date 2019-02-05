@@ -81,7 +81,6 @@ set(HDRS
     ${CINTHDRS}
     ${CAGPUDIR}/GlobalTracker/AliGPUTPCGPUTrackerCommon.h
     AliGPUReconstructionHIPInternals.h
-    AliGPUReconstructionHIPWorkarounds.h
   )
 
 foreach (def ${DEFINITIONS})
