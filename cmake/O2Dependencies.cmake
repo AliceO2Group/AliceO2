@@ -1186,9 +1186,6 @@ o2_define_bucket(
     tpc_monitor_bucket
 
     DEPENDENCIES
-    tpc_calibration_bucket
-    tpc_base_bucket
-    tpc_reconstruction_bucket
     DetectorsBase
     TPCBase
     TPCCalibration
@@ -1198,6 +1195,11 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/calibration/include
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/reconstruction/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/common/include
+    ${Vc_INCLUDE_DIR}
+    ${Boost_INCLUDE_DIR}
 )
 
 o2_define_bucket(
