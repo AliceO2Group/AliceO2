@@ -118,7 +118,8 @@ INCLUDEPATHS					+= O2Headers \
 								${CONFIG_O2DIR}/DataFormats/Reconstruction/include \
 								${CONFIG_O2DIR}/Common/MathUtils/include \
 								${CONFIG_O2DIR}/DataFormats/Detectors/Common/include \
-								${CONFIG_O2DIR}/DataFormats/Detectors/TPC/include
+								${CONFIG_O2DIR}/DataFormats/Detectors/TPC/include \
+								${CONFIG_O2DIR}/DataFormats/simulation/include
 endif
 
 ifeq ($(CONFIG_O2), 1)

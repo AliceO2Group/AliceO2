@@ -319,7 +319,7 @@ GPUd() int AliGPUTPCGMTrackParam::MergeDoubleRowClusters(int ihit, int wayDirect
 		maxDistZ = (maxDistZ + fC[2]) * 20.f;
 		int noReject = 0; //Cannot reject if simple estimation of y/z fails (extremely unlike case)
 		if (CAMath::Abs(clAlpha - prop.GetAlpha()) > 1.e-4f) noReject = prop.RotateToAlpha(clAlpha);
-		float projY, projZ;
+		float projY = 0, projZ = 0;
 		if (noReject == 0) noReject |= prop.GetPropagatedYZ(xx, projY, projZ);
 		float count = 0.f;
 		xx = yy = zz = 0.f;

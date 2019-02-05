@@ -12,9 +12,9 @@
  *
  */
 
-#include "AliTPCCommonRtypes.h"
 #include "AliTPCCommonDef.h"
 #include "AliGPUTPCSettings.h"
+#include "AliTPCCommonRtypes.h"
 
 //Macros for GRID dimension
 #if defined(__CUDACC__)

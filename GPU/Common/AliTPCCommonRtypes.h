@@ -7,6 +7,11 @@
 		#define ClassDefNV(name, id)
 		#define ClassDefOverride(name, id)
 		#define ClassImp(name)
+		#ifndef GPUCA_GPUCODE_DEVICE
+			typedef unsigned long long int ULong64_t;
+			typedef unsigned int UInt_t;
+			#include <iostream>
+		#endif
 	#endif
 #else
 	#include "Rtypes.h"

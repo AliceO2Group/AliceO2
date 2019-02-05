@@ -62,8 +62,12 @@ LIBSUSE						+= $(shell root-config --libs)
 endif
 
 ifneq (${CONFIG_O2DIR}, )
-CXXFILES					+= ${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/src/PrimaryVertexContext.cxx \
+CXXFILES					+= ${CONFIG_O2DIR}/DataFormats/simulation/src/MCCompLabel.cxx \
+								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/src/PrimaryVertexContext.cxx \
 								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/src/Cluster.cxx \
+								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/src/ClusterLines.cxx \
 								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/src/TrackerTraitsCPU.cxx \
+								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/src/VertexerTraits.cxx \
+								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/src/ROframe.cxx \
 								${CONFIG_O2DIR}/Detectors/TRD/base/src/TRDGeometryBase.cxx
 endif

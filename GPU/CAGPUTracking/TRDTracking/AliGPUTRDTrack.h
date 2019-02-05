@@ -6,7 +6,7 @@
 #include "AliGPUTRDDef.h"
 #include "AliGPUTPCDef.h"
 
-class AliGPUTRDTrackDataRecord;
+struct AliGPUTRDTrackDataRecord;
 class AliHLTExternalTrackParam;
 
 //_____________________________________________________________________________
