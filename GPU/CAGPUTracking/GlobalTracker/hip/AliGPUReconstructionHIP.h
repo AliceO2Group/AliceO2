@@ -36,7 +36,7 @@ protected:
 	virtual void ReleaseEvent(deviceEvent* ev) override;
 	virtual void RecordMarker(deviceEvent* ev, int stream) override;
 	
-	template <class T, int I = 0, typename... Args> int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args);
+	template <class T, int I = 0, typename... Args> int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, Args... args);
 
 private:
 	AliGPUReconstructionHIPInternals* mInternals;
