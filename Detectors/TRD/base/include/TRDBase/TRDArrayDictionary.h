@@ -40,7 +40,7 @@ class TRDArrayDictionary
   ~TRDArrayDictionary();
   TRDArrayDictionary &operator=(const TRDArrayDictionary &a);
 
-  void  Allocate(int nrow, int ncol, int ntime);
+  void  allocate(int nrow, int ncol, int ntime);
   void  setNdet(int ndet) {fNdet=ndet;};  
   int getNdet()  const {return fNdet;};
   void  setDataByAdcCol(int nrow, int ncol, int ntime, int value)
@@ -48,13 +48,13 @@ class TRDArrayDictionary
   int getDataByAdcCol(int nrow, int ncol, int ntime) const
                {return mDictionary[(nrow*mNumberOfChannels+ncol)*mNtime+ntime];};
   int getDim() const {return mNDdim;};
-  void  Compress();
-  void  Expand();
-  void  Reset();
+  void  compress();
+  void  expand();
+  void  reset();
   int getData(int nrow, int ncol, int ntime) const;
   void  setData(int nrow, int ncol, int ntime, int value);
-  static  void    CreateLut();
-  bool WasExpandCalled() const {return fFlag;};
+  static  void    createLut();
+  bool wasExpandCalled() const {return fFlag;};
 
  protected:
 

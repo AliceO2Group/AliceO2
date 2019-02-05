@@ -30,7 +30,7 @@ class TRDArraySignal
   ~TRDArraySignal();
   TRDArraySignal &operator=(const TRDArraySignal &d); 
 
-  void    Allocate(int nrow, int ncol, int ntime);
+  void    allocate(int nrow, int ncol, int ntime);
   void    setNdet(int ndet) {mNdet=ndet;};  
   int   getNdet()  const {return mNdet;};
   int   getNrow()  const {return mNrow;};
@@ -43,9 +43,9 @@ class TRDArraySignal
   bool  hasData() const {return mNtime ? 1 : 0;};
   int   getDim() const {return mNdim;};
   int   getOverThreshold(float threshold) const;
-  void    Compress(float minval);
-  void    Expand();
-  void    Reset();
+  void    compress(float minval);
+  void    expand();
+  void    reset();
   float getData(int nrow, int ncol, int ntime) const;
   void    setData(int nrow, int ncol, int ntime, float value);
   static  void    createLut(); 

@@ -39,14 +39,14 @@ class TRDCalSingleChamberStatus
   TRDCalSingleChamberStatus(const TRDCalSingleChamberStatus& c);
   virtual ~TRDCalSingleChamberStatus();
   TRDCalSingleChamberStatus& operator=(const TRDCalSingleChamberStatus& c);
-  void Copy(TRDCalSingleChamberStatus& c) const;
+  void copy(TRDCalSingleChamberStatus& c) const;
 
-  Bool_t IsMasked(Int_t col, Int_t row) const { return ((getStatus(col, row) & kMasked)
+  Bool_t isMasked(Int_t col, Int_t row) const { return ((getStatus(col, row) & kMasked)
                                                           ? kTRUE
                                                           : kFALSE); };
-  Bool_t IsBridgedLeft(Int_t col, Int_t row) const { return ((getStatus(col, row) & kPadBridgedLeft) ? kTRUE : kFALSE); };
-  Bool_t IsBridgedRight(Int_t col, Int_t row) const { return ((getStatus(col, row) & kPadBridgedRight) ? kTRUE : kFALSE); };
-  Bool_t IsNotConnected(Int_t col, Int_t row) const { return ((getStatus(col, row) & kNotConnected) ? kTRUE : kFALSE); };
+  Bool_t isBridgedLeft(Int_t col, Int_t row) const { return ((getStatus(col, row) & kPadBridgedLeft) ? kTRUE : kFALSE); };
+  Bool_t isBridgedRight(Int_t col, Int_t row) const { return ((getStatus(col, row) & kPadBridgedRight) ? kTRUE : kFALSE); };
+  Bool_t isNotConnected(Int_t col, Int_t row) const { return ((getStatus(col, row) & kNotConnected) ? kTRUE : kFALSE); };
   Int_t getNrows() const { return mNrows; };
   Int_t getNcols() const { return mNcols; };
 
@@ -66,7 +66,7 @@ class TRDCalSingleChamberStatus
   Int_t mNcols{ 0 }; //  Number of columns
 
   Int_t mNchannels{ 0 };   //  Number of channels
-  Char_t* mData = nullptr; //[fNchannels] Data
+  std::vector<char> mData; //[fNchannels] Data
 
   ClassDefNV(TRDCalSingleChamberStatus, 1) //  TRD ROC calibration class
 };

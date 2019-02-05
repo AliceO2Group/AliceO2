@@ -11,7 +11,6 @@ SET(SRCS
   src/TRDSimParam.cxx
   src/Digit.cxx
   src/TRDArrayADC.cxx
-  src/ArrayADC.cxx
   src/TRDCalPadStatus.cxx
   src/TRDCalSingleChamberStatus.cxx
   src/TRDFeeParam.cxx
@@ -27,7 +26,6 @@ SET(HEADERS
   include/${MODULE_NAME}/TRDCommonParam.h
   include/${MODULE_NAME}/Digit.h
   include/${MODULE_NAME}/TRDArrayADC.h
-  include/${MODULE_NAME}/ArrayADC.h
   include/${MODULE_NAME}/TRDCalPadStatus.h
   include/${MODULE_NAME}/TRDCalSingleChamberStatus.h
   include/${MODULE_NAME}/TRDFeeParam.h

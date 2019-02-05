@@ -95,11 +95,9 @@ TRDCalSingleChamberStatus::TRDCalSingleChamberStatus(Int_t p, Int_t c, Int_t col
 
   mNchannels = mNrows * mNcols;
   if (mNchannels != 0) {
-    mData = new Char_t[mNchannels];
+    mData.resize(mNchannels); 
   }
-  for (Int_t i = 0; i < mNchannels; ++i) {
-    mData[i] = 0;
-  }
+  memset(&mData[0],0,sizeof(mData[0])*mData.size());
 }
 
 //_____________________________________________________________________________
@@ -110,23 +108,16 @@ TRDCalSingleChamberStatus::TRDCalSingleChamberStatus(const TRDCalSingleChamberSt
   // TRDCalSingleChamberStatus copy constructor
   //
 
-  mData = new Char_t[mNchannels];
-  for (Int_t iBin = 0; iBin < mNchannels; iBin++) {
-    mData[iBin] = ((TRDCalSingleChamberStatus&)c).mData[iBin];
-  }
+  mData = c.mData;
 }
 
 //_____________________________________________________________________________
-TRDCalSingleChamberStatus::~TRDCalSingleChamberStatus()
+TRDCalSingleChamberStatus::~TRDCalSingleChamberStatus() = default;
 {
   //
   // TRDCalSingleChamberStatus destructor
   //
 
-  if (mData) {
-    delete[] mData;
-    mData = nullptr;
-  }
 }
 
 //_____________________________________________________________________________

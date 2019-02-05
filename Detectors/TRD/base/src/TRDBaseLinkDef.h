@@ -25,6 +25,5 @@
 #pragma link C++ class o2::trd::TRDCalSingleChamberStatus + ;
 #pragma link C++ class o2::trd::TRDCalPadStatus + ;
 #pragma link C++ class o2::trd::TRDArrayADC + ;
-#pragma link C++ class o2::trd::ArrayADC + ;
 
 #endif

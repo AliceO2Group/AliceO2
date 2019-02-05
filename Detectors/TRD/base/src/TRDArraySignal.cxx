@@ -113,7 +113,7 @@ TRDArraySignal &TRDArraySignal::operator=(const TRDArraySignal &d)
 }
 
 //_______________________________________________________________________
-void TRDArraySignal::Allocate(int nrow, int ncol, int ntime)
+void TRDArraySignal::allocate(int nrow, int ncol, int ntime)
 {
   //
   // Allocates memory for an TRDArraySignal object with dimensions 
@@ -156,7 +156,7 @@ int TRDArraySignal::getOverThreshold(float threshold) const
 }
 
 //_______________________________________________________________________
-void TRDArraySignal::Compress(float minval)
+void TRDArraySignal::compress(float minval)
 {
   //
   // Compress the vector, setting values equal or 
@@ -251,7 +251,7 @@ void TRDArraySignal::Compress(float minval)
 }
 
 //_______________________________________________________________________
-void TRDArraySignal::Expand()
+void TRDArraySignal::expand()
 {
   // Expand the vector
 
@@ -329,7 +329,7 @@ void TRDArraySignal::Expand()
 
 }
 //________________________________________________________________________________
-void TRDArraySignal::Reset()
+void TRDArraySignal::reset()
 {
   //
   // Reset the vector, the old contents are deleted

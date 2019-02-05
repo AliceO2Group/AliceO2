@@ -37,7 +37,7 @@ TRDCalPadStatus::TRDCalPadStatus()
   // TRDCalPadStatus default constructor
   //
 
-  for (Int_t idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < kNdet; idet++) {
     mROC[idet] = nullptr;
   }
 }
@@ -49,11 +49,11 @@ TRDCalPadStatus::TRDCalPadStatus(const Text_t* name, const Text_t* title)
   // TRDCalPadStatus constructor
   //
   //TRDGeometry fgeom;
-  for (Int_t isec = 0; isec < kNsect; isec++) {
-    for (Int_t ipla = 0; ipla < kNplan; ipla++) {
-      for (Int_t icha = 0; icha < kNcham; icha++) {
-        Int_t idet = o2::trd::TRDGeometry::getDetector(ipla, icha, isec);
-        //    Int_t idet = fgeom.getDetector(ipla,icha,isec);//TRDGeometryBase::getDetector(ipla,icha,isec);
+  for (int isec = 0; isec < kNsect; isec++) {
+    for (int ipla = 0; ipla < kNplan; ipla++) {
+      for (int icha = 0; icha < kNcham; icha++) {
+        int idet = o2::trd::TRDGeometry::getDetector(ipla, icha, isec);
+        //    int idet = fgeom.getDetector(ipla,icha,isec);//TRDGeometryBase::getDetector(ipla,icha,isec);
         mROC[idet] = new TRDCalSingleChamberStatus(ipla, icha, 144);
       }
     }
@@ -79,7 +79,7 @@ TRDCalPadStatus::~TRDCalPadStatus()
   // TRDCalPadStatus destructor
   //
 
-  for (Int_t idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < kNdet; idet++) {
     if (mROC[idet]) {
       delete mROC[idet];
       mROC[idet] = nullptr;
@@ -106,7 +106,7 @@ void TRDCalPadStatus::Copy(TRDCalPadStatus& c) const
   // Copy function
   //
 
-  for (Int_t idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < kNdet; idet++) {
     if (mROC[idet]) {
       mROC[idet]->Copy(*((TRDCalPadStatus&)c).mROC[idet]);
     }
@@ -114,7 +114,7 @@ void TRDCalPadStatus::Copy(TRDCalPadStatus& c) const
 }
 
 //_____________________________________________________________________________
-Bool_t TRDCalPadStatus::CheckStatus(Int_t d, Int_t col, Int_t row, Int_t bitMask) const
+Bool_t TRDCalPadStatus::checkStatus(int d, int col, int row, int bitMask) const
 {
   //
   // Checks the pad status
@@ -129,7 +129,7 @@ Bool_t TRDCalPadStatus::CheckStatus(Int_t d, Int_t col, Int_t row, Int_t bitMask
 }
 
 //_____________________________________________________________________________
-TRDCalSingleChamberStatus* TRDCalPadStatus::getCalROC(Int_t p, Int_t c, Int_t s) const
+TRDCalSingleChamberStatus* TRDCalPadStatus::getCalROC(int p, int c, int s) const
 {
   //
   // Returns the readout chamber of this pad
@@ -140,7 +140,7 @@ TRDCalSingleChamberStatus* TRDCalPadStatus::getCalROC(Int_t p, Int_t c, Int_t s)
 }
 
 //_____________________________________________________________________________
-TH1F* TRDCalPadStatus::MakeHisto1D()
+TH1F* TRDCalPadStatus::makeHisto1D()
 {
   //
   // Make 1D histo
@@ -156,10 +156,10 @@ TH1F* TRDCalPadStatus::MakeHisto1D()
   his->GetXaxis()->SetBinLabel(5, "ReadSecond");
   his->GetXaxis()->SetBinLabel(6, "NotConnected");
 
-  for (Int_t idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < kNdet; idet++) {
     if (mROC[idet]) {
-      for (Int_t ichannel = 0; ichannel < mROC[idet]->getNchannels(); ichannel++) {
-        Int_t status = (Int_t)mROC[idet]->getStatus(ichannel);
+      for (int ichannel = 0; ichannel < mROC[idet]->getNchannels(); ichannel++) {
+        int status = (int)mROC[idet]->getStatus(ichannel);
         if (status == 2)
           status = 1;
         if (status == 4)
@@ -179,7 +179,7 @@ TH1F* TRDCalPadStatus::MakeHisto1D()
 }
 
 //_____________________________________________________________________________
-TH2F* TRDCalPadStatus::MakeHisto2DSmPl(Int_t sm, Int_t pl)
+TH2F* TRDCalPadStatus::makeHisto2DSmPl(int sm, int pl)
 {
   //
   // Make 2D graph
@@ -196,31 +196,31 @@ TH2F* TRDCalPadStatus::MakeHisto2DSmPl(Int_t sm, Int_t pl)
   TH2F* his = new TH2F(name, name, 88, -TMath::Abs(row0), TMath::Abs(row0), 148, -TMath::Abs(col0), TMath::Abs(col0));
 
   // Where we begin
-  Int_t offsetsmpl = 30 * sm + pl;
+  int offsetsmpl = 30 * sm + pl;
 
-  for (Int_t k = 0; k < kNcham; k++) {
-    Int_t det = offsetsmpl + k * 6;
+  for (int k = 0; k < kNcham; k++) {
+    int det = offsetsmpl + k * 6;
     if (mROC[det]) {
       TRDCalSingleChamberStatus* calRoc = mROC[det];
-      for (Int_t icol = 0; icol < calRoc->getNcols(); icol++) {
-        for (Int_t irow = 0; irow < calRoc->getNrows(); irow++) {
-          Int_t binz = 0;
-          Int_t kb = kNcham - 1 - k;
-          Int_t krow = calRoc->getNrows() - 1 - irow;
-          Int_t kcol = calRoc->getNcols() - 1 - icol;
+      for (int icol = 0; icol < calRoc->getNcols(); icol++) {
+        for (int irow = 0; irow < calRoc->getNrows(); irow++) {
+          int binz = 0;
+          int kb = kNcham - 1 - k;
+          int krow = calRoc->getNrows() - 1 - irow;
+          int kcol = calRoc->getNcols() - 1 - icol;
           if (kb > 2)
             binz = 16 * (kb - 1) + 12 + krow + 1 + 2 * (kb + 1);
           else
             binz = 16 * kb + krow + 1 + 2 * (kb + 1);
-          Int_t biny = kcol + 1 + 2;
+          int biny = kcol + 1 + 2;
           Float_t value = calRoc->getStatus(icol, irow);
           his->SetBinContent(binz, biny, value);
         }
       }
-      for (Int_t icol = 1; icol < 147; icol++) {
-        for (Int_t l = 0; l < 2; l++) {
-          Int_t binz = 0;
-          Int_t kb = kNcham - 1 - k;
+      for (int icol = 1; icol < 147; icol++) {
+        for (int l = 0; l < 2; l++) {
+          int binz = 0;
+          int kb = kNcham - 1 - k;
           if (kb > 2)
             binz = 16 * (kb - 1) + 12 + 1 + 2 * (kb + 1) - (l + 1);
           else
@@ -230,11 +230,11 @@ TH2F* TRDCalPadStatus::MakeHisto2DSmPl(Int_t sm, Int_t pl)
       }
     }
   }
-  for (Int_t icol = 1; icol < 147; icol++) {
+  for (int icol = 1; icol < 147; icol++) {
     his->SetBinContent(88, icol, 50.0);
     his->SetBinContent(87, icol, 50.0);
   }
-  for (Int_t irow = 1; irow < 89; irow++) {
+  for (int irow = 1; irow < 89; irow++) {
     his->SetBinContent(irow, 1, 50.0);
     his->SetBinContent(irow, 2, 50.0);
     his->SetBinContent(irow, 147, 50.0);
@@ -251,7 +251,7 @@ TH2F* TRDCalPadStatus::MakeHisto2DSmPl(Int_t sm, Int_t pl)
 }
 
 //_____________________________________________________________________________
-void TRDCalPadStatus::PlotHistos2DSm(Int_t sm, const char* name)
+void TRDCalPadStatus::plotHistos2DSm(int sm, const char* name)
 {
   //
   // Make 2D graph
@@ -261,15 +261,15 @@ void TRDCalPadStatus::PlotHistos2DSm(Int_t sm, const char* name)
   TCanvas* c1 = new TCanvas(name, name, 50, 50, 600, 800);
   c1->Divide(3, 2);
   c1->cd(1);
-  MakeHisto2DSmPl(sm, 0)->Draw("colz");
+  makeHisto2DSmPl(sm, 0)->Draw("colz");
   c1->cd(2);
-  MakeHisto2DSmPl(sm, 1)->Draw("colz");
+  makeHisto2DSmPl(sm, 1)->Draw("colz");
   c1->cd(3);
-  MakeHisto2DSmPl(sm, 2)->Draw("colz");
+  makeHisto2DSmPl(sm, 2)->Draw("colz");
   c1->cd(4);
-  MakeHisto2DSmPl(sm, 3)->Draw("colz");
+  makeHisto2DSmPl(sm, 3)->Draw("colz");
   c1->cd(5);
-  MakeHisto2DSmPl(sm, 4)->Draw("colz");
+  makeHisto2DSmPl(sm, 4)->Draw("colz");
   c1->cd(6);
-  MakeHisto2DSmPl(sm, 5)->Draw("colz");
+  makeHisto2DSmPl(sm, 5)->Draw("colz");
 }

@@ -38,7 +38,7 @@ TRDSignalIndex::TRDSignalIndex()
   // Default contructor
   //
 
-  ResetCounters();
+  resetCounters();
 }
 
 //_____________________________________________________________________________
@@ -48,7 +48,7 @@ TRDSignalIndex::TRDSignalIndex(Int_t nrow, Int_t ncol, Int_t ntime)
   // Not the default contructor... hmmm...
   //
 
-  Allocate(nrow, ncol, ntime);
+  allocate(nrow, ncol, ntime);
 }
 
 //_____________________________________________________________________________
@@ -59,8 +59,8 @@ TRDSignalIndex::TRDSignalIndex(const TRDSignalIndex& a)
   // Copy constructor
   //
 
-  mBoolIndex = new Bool_t[mMaxLimit];
-  memcpy(mBoolIndex, a.mBoolIndex, mMaxLimit * sizeof(Bool_t));
+  mBoolIndex = new bool[mMaxLimit];
+  memcpy(mBoolIndex, a.mBoolIndex, mMaxLimit * sizeof(bool));
 
   mSortedIndex = new RowCol[mMaxLimit + 1];
   memcpy(mSortedIndex, a.mSortedIndex, (mMaxLimit + 1) * sizeof(RowCol));
@@ -109,8 +109,8 @@ void TRDSignalIndex::Copy(TRDSignalIndex& a) const
   if (a.mBoolIndex) {
     delete[] a.mBoolIndex;
   }
-  a.mBoolIndex = new Bool_t[mMaxLimit];
-  memcpy(a.mBoolIndex, mBoolIndex, mMaxLimit * sizeof(Bool_t));
+  a.mBoolIndex = new bool[mMaxLimit];
+  memcpy(a.mBoolIndex, mBoolIndex, mMaxLimit * sizeof(bool));
 
   if (a.mSortedIndex) {
     delete[] a.mSortedIndex;
@@ -148,8 +148,8 @@ TRDSignalIndex& TRDSignalIndex::operator=(const TRDSignalIndex& a)
   if (mBoolIndex) {
     delete[] mBoolIndex;
   }
-  mBoolIndex = new Bool_t[mMaxLimit];
-  memcpy(mBoolIndex, mBoolIndex, mMaxLimit * sizeof(Bool_t));
+  mBoolIndex = new bool[mMaxLimit];
+  memcpy(mBoolIndex, mBoolIndex, mMaxLimit * sizeof(bool));
 
   if (mSortedIndex) {
     delete[] mSortedIndex;
@@ -157,13 +157,13 @@ TRDSignalIndex& TRDSignalIndex::operator=(const TRDSignalIndex& a)
   mSortedIndex = new RowCol[mMaxLimit + 1];
   memcpy(mSortedIndex, mSortedIndex, (mMaxLimit + 1) * sizeof(RowCol));
 
-  ResetCounters();
+  resetCounters();
 
   return *this;
 }
 
 //_____________________________________________________________________________
-void TRDSignalIndex::Allocate(const Int_t nrow, const Int_t ncol, const Int_t ntime)
+void TRDSignalIndex::allocate(const Int_t nrow, const Int_t ncol, const Int_t ntime)
 {
   //
   // Create the arrays
@@ -184,23 +184,23 @@ void TRDSignalIndex::Allocate(const Int_t nrow, const Int_t ncol, const Int_t nt
     mSortedIndex = nullptr;
   }
 
-  mBoolIndex = new Bool_t[mMaxLimit];
+  mBoolIndex = new bool[mMaxLimit];
   mSortedIndex = new RowCol[mMaxLimit + 1];
 
   mCountRC = mMaxLimit + 1;
 
-  ResetArrays();
-  ResetCounters();
+  resetArrays();
+  resetCounters();
 
   mCountRC = 1;
 }
 
 //_____________________________________________________________________________
-void TRDSignalIndex::ResetArrays()
+void TRDSignalIndex::resetArrays()
 {
   if (!IsAllocated())
     return;
-  memset(mBoolIndex, 0x00, sizeof(Bool_t) * mMaxLimit);
+  memset(mBoolIndex, 0x00, sizeof(bool) * mMaxLimit);
   memset(mSortedIndex, 0xFF, sizeof(RowCol) * mCountRC);
   mSortedWasInit = kFALSE;
 }
@@ -218,11 +218,11 @@ void TRDSignalIndex::Reset()
   mSM = -1;
 
   // All will be lost
-  Allocate(mNrows, mNcols, mNtbins);
+  allocate(mNrows, mNcols, mNtbins);
 }
 
 //_____________________________________________________________________________
-void TRDSignalIndex::ResetContent()
+void TRDSignalIndex::resetContent()
 {
   //
   // Reset the array but keep the size - no realloc
@@ -233,14 +233,14 @@ void TRDSignalIndex::ResetContent()
   mStack = -1;
   mSM = -1;
 
-  ResetArrays();
-  ResetCounters();
+  resetArrays();
+  resetCounters();
 
   mCountRC = 1;
 }
 
 //_____________________________________________________________________________
-void TRDSignalIndex::ResetContentConditional(const Int_t nrow, const Int_t ncol, const Int_t ntime)
+void TRDSignalIndex::resetContentConditional(const Int_t nrow, const Int_t ncol, const Int_t ntime)
 {
   //
   // Reset the array but keep the size if no need to enlarge - no realloc
@@ -254,16 +254,16 @@ void TRDSignalIndex::ResetContentConditional(const Int_t nrow, const Int_t ncol,
   if ((nrow > mNrows) ||
       (ncol > mNcols) ||
       (ntime > mNtbins)) {
-    Allocate(nrow, ncol, ntime);
+    allocate(nrow, ncol, ntime);
   } else {
-    ResetArrays();
-    ResetCounters();
+    resetArrays();
+    resetCounters();
     mCountRC = 1;
   }
 }
 
 //_____________________________________________________________________________
-void TRDSignalIndex::ClearAll()
+void TRDSignalIndex::clearAll()
 {
   //
   // Reset the values - clear all!
@@ -288,7 +288,7 @@ void TRDSignalIndex::ClearAll()
     mSortedIndex = nullptr;
   }
 
-  ResetCounters();
+  resetCounters();
 
   mCountRC = 1;
   mSortedWasInit = kFALSE;
@@ -296,38 +296,38 @@ void TRDSignalIndex::ClearAll()
 }
 
 //_____________________________________________________________________________
-Bool_t TRDSignalIndex::CheckSorting(Int_t& row, Int_t& col)
+bool TRDSignalIndex::checkSorting(Int_t& row, Int_t& col)
 {
   //
   // Check whether array was read to end or it was not sorted until now
   //
 
   if (mSortedWasInit || mCountRC == 1) { //we already reached the end of the array
-    ResetCounters();
+    resetCounters();
     row = mCurrRow;
     col = mCurrCol;
     return kFALSE;
   } else { //we have not sorted the array up to now, let's do so
-    InitSortedIndex();
-    return NextRCIndex(row, col);
+    initSortedIndex();
+    return nextRCIndex(row, col);
   }
 }
 
 //_____________________________________________________________________________
-Bool_t TRDSignalIndex::NextRCTbinIndex(Int_t& row, Int_t& col, Int_t& tbin)
+bool TRDSignalIndex::nextRCTbinIndex(Int_t& row, Int_t& col, Int_t& tbin)
 {
   //
   // Returns the next tbin, or if there is no next time bin, it returns the
   // next used RC combination.
   //
 
-  if (NextTbinIndex(tbin)) {
+  if (nextTbinIndex(tbin)) {
     row = mCurrRow;
     col = mCurrCol;
     return kTRUE;
   } else {
-    if (NextRCIndex(row, col)) {
-      return NextRCTbinIndex(row, col, tbin);
+    if (nextRCIndex(row, col)) {
+      return nextRCTbinIndex(row, col, tbin);
     }
   }
 
@@ -335,7 +335,7 @@ Bool_t TRDSignalIndex::NextRCTbinIndex(Int_t& row, Int_t& col, Int_t& tbin)
 }
 
 //_____________________________________________________________________________
-Bool_t TRDSignalIndex::NextTbinIndex(Int_t& tbin)
+bool TRDSignalIndex::nextTbinIndex(Int_t& tbin)
 {
   //
   // Returns the next tbin of the current RC combination
@@ -350,18 +350,18 @@ Bool_t TRDSignalIndex::NextTbinIndex(Int_t& tbin)
 }
 
 //_____________________________________________________________________________
-void TRDSignalIndex::InitSortedIndex()
+void TRDSignalIndex::initSortedIndex()
 {
   //
   // Creates the SortedIndex
   //
 
   mSortedWasInit = kTRUE;
-  std::sort((UShort_t*)mSortedIndex, ((UShort_t*)mSortedIndex) + mCountRC);
+  std::sort((unsigned short*)mSortedIndex, ((unsigned short*)mSortedIndex) + mCountRC);
 }
 
 //_____________________________________________________________________________
-void TRDSignalIndex::ResetCounters()
+void TRDSignalIndex::resetCounters()
 {
   //
   // Reset the counters/iterators

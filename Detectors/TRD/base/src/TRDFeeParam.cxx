@@ -51,7 +51,7 @@ Bool_t TRDFeeParam::mgUseMisalignCorr = kFALSE;
 Bool_t TRDFeeParam::mgUseTimeOffset = kFALSE;
 
 //_____________________________________________________________________________
-TRDFeeParam* TRDFeeParam::Instance()
+TRDFeeParam* TRDFeeParam::instance()
 {
   //
   // Instance constructor
@@ -69,7 +69,7 @@ TRDFeeParam* TRDFeeParam::Instance()
 }
 
 //_____________________________________________________________________________
-void TRDFeeParam::Terminate()
+void TRDFeeParam::terminate()
 {
   //
   // Terminate the class and release memory
@@ -90,7 +90,7 @@ TRDFeeParam::TRDFeeParam()
   // Default constructor
   //
 
-  mCP = TRDCommonParam::Instance();
+  mCP = TRDCommonParam::instance();
 }
 
 //_____________________________________________________________________________
@@ -285,7 +285,7 @@ Int_t TRDFeeParam::getColSide(Int_t icol) const
   return icol / (mgkNcol / 2);
 }
 
-UInt_t TRDFeeParam::AliToExtAli(Int_t rob, Int_t aliid)
+UInt_t TRDFeeParam::aliToExtAli(Int_t rob, Int_t aliid)
 {
   if (aliid != 127)
     return ((1 << 10) | (rob << 7) | aliid);
@@ -293,7 +293,7 @@ UInt_t TRDFeeParam::AliToExtAli(Int_t rob, Int_t aliid)
   return 127;
 }
 
-Int_t TRDFeeParam::ExtAliToAli(UInt_t dest, UShort_t linkpair, UShort_t rocType, Int_t* mcmList, Int_t listSize)
+Int_t TRDFeeParam::extAliToAli(UInt_t dest, UShort_t linkpair, UShort_t rocType, Int_t* mcmList, Int_t listSize)
 {
   // Converts an extended ALICE ID which identifies a single MCM or a group of MCMs to
   // the corresponding list of MCMs. Only broadcasts (127) are encoded as 127
@@ -367,7 +367,7 @@ Int_t TRDFeeParam::ExtAliToAli(UInt_t dest, UShort_t linkpair, UShort_t rocType,
     cmA = cmB = 0; // Restrict to only T3A and T3B
 
   // Finally convert chipmask to list of slaves
-  nmcm = ChipmaskToMCMlist(cmA, cmB, linkpair, mcmList, listSize);
+  nmcm = chipmaskToMCMlist(cmA, cmB, linkpair, mcmList, listSize);
 
   return nmcm;
 }
@@ -406,7 +406,7 @@ Short_t TRDFeeParam::getRobAB(UShort_t robsel, UShort_t linkpair)
   return 0;
 }
 
-Short_t TRDFeeParam::ChipmaskToMCMlist(UInt_t cmA, UInt_t cmB, UShort_t linkpair, Int_t* mcmList, Int_t listSize)
+Short_t TRDFeeParam::chipmaskToMCMlist(UInt_t cmA, UInt_t cmB, UShort_t linkpair, Int_t* mcmList, Int_t listSize)
 {
   // Converts the chipmask to a list of MCMs
 

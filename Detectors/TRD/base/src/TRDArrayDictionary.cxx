@@ -119,7 +119,7 @@ TRDArrayDictionary &TRDArrayDictionary::operator=(const TRDArrayDictionary &a)
 }
 
 //________________________________________________________________________________
-void TRDArrayDictionary::Allocate(int nrow, int ncol, int ntime)
+void TRDArrayDictionary::allocate(int nrow, int ncol, int ntime)
 {
   //
   // Allocates memory for the dictionary array with dimensions
@@ -131,8 +131,8 @@ void TRDArrayDictionary::Allocate(int nrow, int ncol, int ntime)
   mNrow=nrow;
   mNcol=ncol;
   mNtime=ntime;
-  int adcchannelspermcm = TRDFeeParam::GetNadcMcm(); 
-  int padspermcm = TRDFeeParam::GetNcolMcm(); 
+  int adcchannelspermcm = TRDFeeParam::getNadcMcm(); 
+  int padspermcm = TRDFeeParam::getNcolMcm(); 
   int numberofmcms = mNcol/padspermcm;
   mNumberOfChannels = numberofmcms*adcchannelspermcm;
   mNDdim=nrow*mNumberOfChannels*ntime;
@@ -144,7 +144,7 @@ void TRDArrayDictionary::Allocate(int nrow, int ncol, int ntime)
 }
 
 //________________________________________________________________________________
-void TRDArrayDictionary::Compress()
+void TRDArrayDictionary::compress()
 {
   //
   // Compress the array
@@ -211,7 +211,7 @@ void TRDArrayDictionary::Compress()
 }
 
 //________________________________________________________________________________
-void TRDArrayDictionary::Expand()
+void TRDArrayDictionary::expand()
 {
   //  
   //  Expand the array
@@ -301,7 +301,7 @@ void TRDArrayDictionary::Expand()
 
 }
 //________________________________________________________________________________
-void TRDArrayDictionary::Reset()
+void TRDArrayDictionary::reset()
 {
   //
   // Reset the array, the old contents are deleted
@@ -314,7 +314,7 @@ void TRDArrayDictionary::Reset()
 
 
 //________________________________________________________________________________
-void TRDArrayDictionary::CreateLut()
+void TRDArrayDictionary::createLut()
 {
   //
   // Initializes the Look Up Table to relate
@@ -323,9 +323,9 @@ void TRDArrayDictionary::CreateLut()
 
   if(!mgLutPadNumberingExists){
   
-   if(mgLutPadNumbering.size()!=TRDFeeParam::GetNcol())
+   if(mgLutPadNumbering.size()!=TRDFeeParam::getNcol())
        mgLutPadNumbering.resize()
-   memset(&mgLutPadNumbering[0],0,sizeof(mgLutPadNumbering[0])*TRDFeeParam::GetNcol());
+   memset(&mgLutPadNumbering[0],0,sizeof(mgLutPadNumbering[0])*TRDFeeParam::getNcol());
 
   for(int mcm=0; mcm<8; mcm++)
     {

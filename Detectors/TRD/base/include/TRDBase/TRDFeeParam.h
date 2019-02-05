@@ -46,11 +46,10 @@ class TRDFeeParam
  public:
   TRDFeeParam(TRootIoCtor*);
   TRDFeeParam(const TRDFeeParam& p);
-  virtual ~TRDFeeParam();
+  ~TRDFeeParam();
   TRDFeeParam& operator=(const TRDFeeParam& p);
-  virtual void Copy(TRDFeeParam& p) const;
 
-  static TRDFeeParam* Instance(); // Singleton
+  static TRDFeeParam* instance(); // Singleton
   static void Terminate();
 
   // Translation from MCM to Pad and vice versa
@@ -65,9 +64,9 @@ class TRDFeeParam
   virtual Int_t getColSide(Int_t icol) const;
 
   // SCSN-related
-  static UInt_t AliToExtAli(Int_t rob, Int_t aliid);                                                       // Converts the MCM-ROB combination to the extended MCM ALICE ID (used to address MCMs on the SCSN Bus)
-  static Int_t ExtAliToAli(UInt_t dest, UShort_t linkpair, UShort_t rocType, Int_t* list, Int_t listSize); // translates an extended MCM ALICE ID to a list of MCMs
-  static Short_t ChipmaskToMCMlist(UInt_t cmA, UInt_t cmB, UShort_t linkpair, Int_t* mcmList, Int_t listSize);
+  static UInt_t aliToExtAli(Int_t rob, Int_t aliid);                                                       // Converts the MCM-ROB combination to the extended MCM ALICE ID (used to address MCMs on the SCSN Bus)
+  static Int_t extAliToAli(UInt_t dest, UShort_t linkpair, UShort_t rocType, Int_t* list, Int_t listSize); // translates an extended MCM ALICE ID to a list of MCMs
+  static Short_t chipmaskToMCMlist(UInt_t cmA, UInt_t cmB, UShort_t linkpair, Int_t* mcmList, Int_t listSize);
   static Short_t getRobAB(UShort_t robsel, UShort_t linkpair); // Returns the chamber side (A=0, B=0) of a ROB
 
   // geometry

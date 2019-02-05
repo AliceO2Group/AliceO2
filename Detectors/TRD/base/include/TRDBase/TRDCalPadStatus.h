@@ -48,37 +48,37 @@ class TRDCalPadStatus
   virtual ~TRDCalPadStatus();
   TRDCalPadStatus& operator=(const TRDCalPadStatus& c);
 
-  void Copy(TRDCalPadStatus& c) const;
+  void copy(TRDCalPadStatus& c) const;
 
-  Bool_t IsMasked(Int_t d, Int_t col, Int_t row) const
+  Bool_t isMasked(Int_t d, Int_t col, Int_t row) const
   {
-    return CheckStatus(d, col, row, kMasked);
+    return checkStatus(d, col, row, kMasked);
   };
-  Bool_t IsBridgedLeft(Int_t d, Int_t col, Int_t row) const
+  Bool_t isBridgedLeft(Int_t d, Int_t col, Int_t row) const
   {
-    return CheckStatus(d, col, row, kPadBridgedLeft);
+    return checkStatus(d, col, row, kPadBridgedLeft);
   };
-  Bool_t IsBridgedRight(Int_t d, Int_t col, Int_t row) const
+  Bool_t isBridgedRight(Int_t d, Int_t col, Int_t row) const
   {
-    return CheckStatus(d, col, row, kPadBridgedRight);
+    return checkStatus(d, col, row, kPadBridgedRight);
   };
-  Bool_t IsReadSecond(Int_t d, Int_t col, Int_t row) const
+  Bool_t isReadSecond(Int_t d, Int_t col, Int_t row) const
   {
-    return CheckStatus(d, col, row, kReadSecond);
+    return checkStatus(d, col, row, kReadSecond);
   };
-  Bool_t IsNotConnected(Int_t d, Int_t col, Int_t row) const
+  Bool_t isNotConnected(Int_t d, Int_t col, Int_t row) const
   {
-    return CheckStatus(d, col, row, kNotConnected);
+    return checkStatus(d, col, row, kNotConnected);
   };
-  Bool_t CheckStatus(Int_t d, Int_t col, Int_t row, Int_t bitMask) const;
+  Bool_t checkStatus(Int_t d, Int_t col, Int_t row, Int_t bitMask) const;
 
   TRDCalSingleChamberStatus* getCalROC(Int_t d) const { return mROC[d]; };
   TRDCalSingleChamberStatus* getCalROC(Int_t p, Int_t c, Int_t s) const;
 
   // Plot functions
-  TH1F* MakeHisto1D();
-  TH2F* MakeHisto2DSmPl(Int_t sm, Int_t pl);
-  void PlotHistos2DSm(Int_t sm, const Char_t* name);
+  TH1F* makeHisto1D();
+  TH2F* makeHisto2DSmPl(Int_t sm, Int_t pl);
+  void plotHistos2DSm(Int_t sm, const Char_t* name);
 
   std::string getTitle() { return mTitle; };
   std::string getName() { return mName; };

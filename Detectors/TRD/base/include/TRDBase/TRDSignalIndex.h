@@ -48,38 +48,38 @@ class TRDSignalIndex
   TRDSignalIndex& operator=(const TRDSignalIndex& d);
 
   void Copy(TRDSignalIndex& d) const;
-  void Allocate(const Int_t nrow, const Int_t ncol, const Int_t ntime);
+  void allocate(const Int_t nrow, const Int_t ncol, const Int_t ntime);
 
-  void Reset();
-  void ResetContentConditional(const Int_t nrow, const Int_t ncol, const Int_t ntime);
-  void ResetContent();
-  void ResetCounters();
-  void ResetTbinCounter() const {};
+  void reset();
+  void resetContentConditional(const Int_t nrow, const Int_t ncol, const Int_t ntime);
+  void resetContent();
+  void resetCounters();
+  void resetTbinCounter() const {};
 
   void ResetArrays();
 
   // Store the index row-column as an interesting one
   inline void AddIndexRC(const Int_t row, const Int_t col);
   // get the next pad (row and column) and return kTRUE on success
-  inline Bool_t NextRCIndex(Int_t& row, Int_t& col);
+  inline Bool_t nextRCIndex(Int_t& row, Int_t& col);
   // get the next timebin of a pad (row and column) and return kTRUE on success
-  Bool_t NextRCTbinIndex(Int_t& row, Int_t& col, Int_t& tbin);
+  Bool_t nextRCTbinIndex(Int_t& row, Int_t& col, Int_t& tbin);
   // get the next active timebin and return kTRUE on success
-  Bool_t NextTbinIndex(Int_t& tbin);
+  Bool_t nextTbinIndex(Int_t& tbin);
 
-  Bool_t CheckSorting(Int_t& row, Int_t& col);
+  Bool_t checkSorting(Int_t& row, Int_t& col);
 
   Int_t getCurrentRow() const { return mCurrRow; }
   Int_t getCurrentCol() const { return mCurrCol; }
   Int_t getCurrentTbin() const { return mCurrTbin; }
 
-  Bool_t IsBoolIndex(Int_t row, Int_t col) const { return mBoolIndex[row * mNcols + col]; };
-  void InitSortedIndex();
+  Bool_t isBoolIndex(Int_t row, Int_t col) const { return mBoolIndex[row * mNcols + col]; };
+  void initSortedIndex();
 
   // Clear the array, actually destroy and recreate w/o allocating
-  void ClearAll();
+  void clearAll();
   // Return kTRUE if array allocated and there is no need to call allocate
-  Bool_t IsAllocated() const
+  Bool_t isAllocated() const
   {
     if (!mBoolIndex)
       return kFALSE;
@@ -101,7 +101,7 @@ class TRDSignalIndex
   Short_t* getArray() const { return (Short_t*)mSortedIndex; } // get the array pointer for god knows what reason
   Int_t getNoOfIndexes() const { return mCountRC - 1; }
 
-  Bool_t HasEntry() const { return mCountRC > 1 ? kTRUE : kFALSE; } // Return status if has an entry
+  Bool_t hasEntry() const { return mCountRC > 1 ? kTRUE : kFALSE; } // Return status if has an entry
 
   Int_t getNrow() const { return mNrows; }   // get Nrows
   Int_t getNcol() const { return mNcols; }   // get Ncols
@@ -131,7 +131,7 @@ class TRDSignalIndex
   ClassDefNV(TRDSignalIndex, 1) //  Data container for one TRD detector segment
 };
 
-void TRDSignalIndex::AddIndexRC(const Int_t row, const Int_t col)
+void TRDSignalIndex::addIndexRC(const Int_t row, const Int_t col)
 {
   //
   // Adds RC combination to array
@@ -146,13 +146,13 @@ void TRDSignalIndex::AddIndexRC(const Int_t row, const Int_t col)
   mCountRC++;
 }
 
-Bool_t TRDSignalIndex::NextRCIndex(Int_t& row, Int_t& col)
+Bool_t TRDSignalIndex::nextRCIndex(Int_t& row, Int_t& col)
 {
   //
   // Returns next used RC combination
   //
 
-  if (!IsAllocated())
+  if (!isAllocated())
     return kFALSE;
 
   if (mSortedIndex[mPositionRC].rc > -1) {
@@ -161,7 +161,7 @@ Bool_t TRDSignalIndex::NextRCIndex(Int_t& row, Int_t& col)
     mPositionRC++;
     return kTRUE;
   } else
-    return CheckSorting(row, col);
+    return checkSorting(row, col);
 }
 
 } //namespace trd
