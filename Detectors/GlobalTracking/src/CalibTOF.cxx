@@ -32,7 +32,6 @@ CalibTOF::CalibTOF(){
 
   // constructor needed to instantiate the pointers of the class (histos + array)
 
-  mHistoLHCphase = new TH1F("hLHCphase", ";clock offset (ps)", 1000, -24400, 24400);
   for(int ipad=0; ipad < NPADSPERSTEP; ipad++){
     mHistoChOffsetTemp[ipad]  = new TH1F(Form("hLHCchOffsetTemp%i", ipad), ";channel offset (ps)", 1000, -24400, 24400);
     mHistoChTimeSlewingTemp[ipad]  = new TH2F(Form("hLHCchTimeSlewingTemp%i", ipad), ";tot (ns);channel offset (ps)", 40, 0, 25, 200, -24400, 24400);
@@ -46,7 +45,10 @@ CalibTOF::~CalibTOF(){
 
   // destructor
 
-  delete mHistoLHCphase;
+  if (mHistoLHCphase) {
+    Printf("mHistoLHCphase = %p", mHistoLHCphase);
+    delete mHistoLHCphase;
+  }
   for(int ipad=0; ipad < NPADSPERSTEP; ipad++){
     delete mHistoChOffsetTemp[ipad];
     delete mHistoChTimeSlewingTemp[ipad];
@@ -71,11 +73,9 @@ void CalibTOF::run(int flag)
       fillLHCphaseCalibInput(); // we will fill the input for the LHC phase calibration
     }
     doLHCPhaseCalib();
-    mLHCphase=mFuncLHCphase->GetParameter(1);
-    mLHCphaseErr=mFuncLHCphase->GetParError(1);
   }
   //  else { // channel offset + problematic (flag = 1), or time slewing (flag = 2)
-  if (flag == 0) { // for the moment compute everything idependetly of the flag
+  if (flag == 1) { // for the moment compute everything idependetly of the flag
     for (int ich = 0; ich < o2::tof::Geo::NCHANNELS; ich += NPADSPERSTEP){
       resetChannelLevelHistos(flag);
       printf("strip %i\n", ich/96);
@@ -181,16 +181,24 @@ void CalibTOF::init()
 
   // create output branch with output -- for now this is empty
   if (mOutputTree) {
-    mOutputTree->Branch("LHCphase", &mLHCphase,"LHCphase/F");
-    mOutputTree->Branch("LHCphaseErr", &mLHCphaseErr,"LHCphaseErr/F");
-    mOutputTree->Branch("nChannels", &mNChannels,"nChannels/I");
-    mOutputTree->Branch("ChannelOffset", mCalibChannelOffset,"ChannelOffset[nChannels]/F");
-    mOutputTree->Branch("ChannelOffsetErr", mCalibChannelOffsetErr,"ChannelOffsetErr[nChannels]/F");
+    mOutputTree->Branch("LHCphaseMeasurementInterval", &mNLHCphaseIntervals, "LHCphaseMeasurementInterval/I");
+    mOutputTree->Branch("LHCphase", mLHCphase, "LHCphase[LHCphaseMeasurementInterval]/F");
+    mOutputTree->Branch("LHCphaseErr", mLHCphaseErr, "LHCphaseErr[LHCphaseMeasurementInterval]/F");
+    mOutputTree->Branch("LHCphaseStartInterval", mLHCphaseStartInterval, "LHCphaseStartInterval[LHCphaseMeasurementInterval]/I");
+    mOutputTree->Branch("LHCphaseEndInterval", mLHCphaseEndInterval, "LHCphaseEndInterval[LHCphaseMeasurementInterval]/I");
+    mOutputTree->Branch("nChannels", &mNChannels, "nChannels/I");
+    mOutputTree->Branch("ChannelOffset", mCalibChannelOffset, "ChannelOffset[nChannels]/F");
+    mOutputTree->Branch("ChannelOffsetErr", mCalibChannelOffsetErr, "ChannelOffsetErr[nChannels]/F");
     //    LOG(INFO) << "Matched tracks will be stored in " << mOutputBranchName << " branch of tree "
     //              << mOutputTree->GetName();
   } else {
     LOG(ERROR) << "Output tree is not attached, matched tracks will not be stored";
   }
+
+  // booking the histogram of the LHCphase
+  int nbinsLHCphase = TMath::Min(1000, int((mMaxTimestamp - mMinTimestamp)/300)+1);
+  if (nbinsLHCphase < 1000) mMaxTimestamp = mMinTimestamp + mNLHCphaseIntervals*300; // we want that the last bin of the histogram is also large 300s; this we need to do only when we have less than 1000 bins, because in this case we will integrate over intervals that are larger than 300s anyway
+  mHistoLHCphase = new TH2F("hLHCphase", ";clock offset (ps); timestamp (s)", 1000, -24400, 24400, nbinsLHCphase, mMinTimestamp, mMaxTimestamp);
 
   mInitDone = true;
 
@@ -270,7 +278,7 @@ void CalibTOF::fillLHCphaseCalibInput(){
     double dtime = infotof->getDeltaTimePi();
     dtime -= int(dtime*bc_inv + 0.5)*bc;
     
-    mHistoLHCphase->Fill(dtime);
+    mHistoLHCphase->Fill(dtime, infotof->getTimestamp());
   }
   
 }
@@ -287,10 +295,28 @@ void CalibTOF::doLHCPhaseCalib(){
     mFuncLHCphase->SetParameter(2, 200);
     mFuncLHCphase->SetParLimits(2, 100, 400);
   }
-  Printf("Fitting LHC phase with WW");
-  mHistoLHCphase->Fit(mFuncLHCphase, "WW", "Q");
-  Printf("Fitting LHC phase without WW");
-  mHistoLHCphase->Fit(mFuncLHCphase, "", "Q", mFuncLHCphase->GetParameter(1)-600, mFuncLHCphase->GetParameter(1)+400);
+  int ifit0 = 1;
+  for (int ifit = ifit0; ifit <= mHistoLHCphase->GetNbinsY(); ifit++){
+    Printf("ifit = %d", ifit);
+    Printf("ifit0 = %d", ifit0);
+    TH1D* htemp = mHistoLHCphase->ProjectionX("htemp", ifit0, ifit);
+    if (htemp->GetEntries() < 100) {
+      // we cannot fit the histogram, we will merge with the next bin
+      Printf("We don't have enough entries to fit");
+      continue;
+    }
+    Printf("Fitting LHC phase with WW");
+    htemp->Fit(mFuncLHCphase, "WW", "Q");
+    Printf("Fitting LHC phase without WW");
+    htemp->Fit(mFuncLHCphase, "", "Q", mFuncLHCphase->GetParameter(1)-600, mFuncLHCphase->GetParameter(1)+400);
+    // TODO: check that the fit really worked before filling all below
+    mLHCphase[mNLHCphaseIntervals] = mFuncLHCphase->GetParameter(1);
+    mLHCphaseErr[mNLHCphaseIntervals] = mFuncLHCphase->GetParError(1);
+    mLHCphaseStartInterval[mNLHCphaseIntervals] = mHistoLHCphase->GetYaxis()->GetBinLowEdge(ifit0); // from when the interval 
+    mLHCphaseEndInterval[mNLHCphaseIntervals] = mHistoLHCphase->GetYaxis()->GetBinUpEdge(ifit);
+    ifit0 = ifit+1; // starting point for the next LHC interval
+    mNLHCphaseIntervals++; // how many intervals we have calibrated so far
+  }
 }
 //______________________________________________
 

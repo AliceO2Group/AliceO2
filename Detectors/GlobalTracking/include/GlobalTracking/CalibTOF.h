@@ -72,10 +72,12 @@ class CalibTOF
   ///< print settings
   void print() const;
 
-  TH1F *getLHCphaseHisto() {return mHistoLHCphase;}
+  TH2F *getLHCphaseHisto() {return mHistoLHCphase;}
   TH1F *getChOffsetHisto(int ipad) {return mHistoChOffsetTemp[ipad];}
   TH2F *getChTimeSlewingHisto(int ipad) {return mHistoChTimeSlewingTemp[ipad];};
   TH2F *getChTimeSlewingHistoAll() {return mHistoChTimeSlewingAll;};
+  void setMinTimestamp(int minTimestamp) {mMinTimestamp = minTimestamp;}
+  void setMaxTimestamp(int maxTimestamp) {mMaxTimestamp = maxTimestamp;}
 
  private:
   void fillLHCphaseCalibInput(); // we will fill the input for the LHC phase calibration
@@ -87,7 +89,7 @@ class CalibTOF
  
 
   // objects needed for calibration
-  TH1F *mHistoLHCphase = nullptr;
+  TH2F *mHistoLHCphase = nullptr;
   TH1F *mHistoChOffsetTemp[NPADSPERSTEP];  // to fill all pads of a strip simultaneosly 
   TH2F *mHistoChTimeSlewingTemp[NPADSPERSTEP];  // to fill all pads of a strip simultaneosly 
   TH2F *mHistoChTimeSlewingAll; // time slewing all channels
@@ -98,6 +100,7 @@ class CalibTOF
   bool loadTOFCollectedCalibInfo(int increment = 1);
 
   int doCalib(int flag, int channel = -1); // flag: 0=LHC phase, 1=channel offset+problematic(return value), 2=time-slewing
+
 
   //================================================================
 
@@ -124,8 +127,11 @@ class CalibTOF
   std::string mCollectedCalibInfoTOFBranchName = "TOFCollectedCalibInfo";   ///< name of branch containing input TOF calib infos
   std::string mOutputBranchName = "TOFCalibParam";        ///< name of branch containing output
   // output calibration
-  float mLHCphase = 0; ///< outputt LHC phase in ps
-  float mLHCphaseErr = 0; ///< outputt LHC phase in ps
+  int mNLHCphaseIntervals = 0;  ///< Number of measurements for the LHCPhase
+  float mLHCphase[1000]; ///< outputt LHC phase in ps
+  float mLHCphaseErr[1000]; ///< outputt LHC phase in ps
+  int mLHCphaseStartInterval[1000]; ///< timestamp from which the LHCphase measurement is valid
+  int mLHCphaseEndInterval[1000];   ///< timestamp until which the LHCphase measurement is valid
   int mNChannels = Geo::NCHANNELS;      // needed to give the size to the branches of channels
   float mCalibChannelOffset[Geo::NCHANNELS]; ///< output TOF channel offset in ps
   float mCalibChannelOffsetErr[Geo::NCHANNELS]; ///< output TOF channel offset in ps
@@ -137,6 +143,11 @@ class CalibTOF
   TF1 *mFuncLHCphase = nullptr;
   TF1 *mFuncChOffset = nullptr;
 
+  int mMinTimestamp = 0;   ///< minimum timestamp over the hits that we collect; we need it to
+                           ///< book the histogram for the LHCPhase calibration
+  
+  int mMaxTimestamp = 1;   ///< maximum timestamp over the hits that we collect; we need it to
+                           ///< book the histogram for the LHCPhase calibration
   TStopwatch mTimerTot;
   TStopwatch mTimerDBG;
   ClassDefNV(CalibTOF, 1);

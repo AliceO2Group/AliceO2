@@ -3,6 +3,7 @@
 #include <TChain.h>
 #include <TTree.h>
 #include <TGeoGlobalMagField.h>
+#include <TParameter.h>
 #include <string>
 #include <FairLogger.h>
 
@@ -29,14 +30,20 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparam
   TChain tofCalibInfo("calibrationTOF");
   tofCalibInfo.AddFile((path + inputfileCalib).data());
   calib.setInputTreeTOFCollectedCalibInfo(&tofCalibInfo);
-
+  TFile* fin = TFile::Open((path + inputfileCalib).data());
+  TParameter<int>* minTimestamp = (TParameter<int>*)fin->Get("minTimestamp");
+  TParameter<int>* maxTimestamp = (TParameter<int>*)fin->Get("maxTimestamp");
+  calib.setMinTimestamp(minTimestamp->GetVal());
+  calib.setMaxTimestamp(maxTimestamp->GetVal());
+  fin->Close();
+  
   //<<<---------- attach input data ---------------<<<
 
   // create/attach output tree
   TFile outFile((path + outputfile).data(), "recreate");
   TTree outTree("calibrationTOF", "Calibration TOF params");
   calib.setOutputTree(&outTree);
-
+  
   //-------------------- settings -----------//
   /*
     matching.setITSROFrameLengthMUS(5.0f); // ITS ROFrame duration in \mus
