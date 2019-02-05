@@ -45,10 +45,7 @@ CalibTOF::~CalibTOF(){
 
   // destructor
 
-  if (mHistoLHCphase) {
-    Printf("mHistoLHCphase = %p", mHistoLHCphase);
-    delete mHistoLHCphase;
-  }
+  if (mHistoLHCphase) delete mHistoLHCphase;
   for(int ipad=0; ipad < NPADSPERSTEP; ipad++){
     delete mHistoChOffsetTemp[ipad];
     delete mHistoChTimeSlewingTemp[ipad];
@@ -169,6 +166,9 @@ void CalibTOF::init()
     LOG(ERROR) << "Initialization was already done";
     return;
   }
+
+  TH1::AddDirectory(0); // needed because we have the LHCPhase created here, while in the macro we might have the output file open
+                        // (we don't want to bind the histogram to the file, or teh destructor will complain)
 
   attachInputTrees();
 
