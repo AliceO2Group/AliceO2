@@ -46,7 +46,7 @@ template <class T, int I, typename... Args> int AliGPUReconstructionCUDABackend:
 {
 	if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelBackend<T, I> (x, y, z, args...);
 	if (z.evList) for (int k = 0;k < z.nEvents;k++) GPUFailedMsg(cudaStreamWaitEvent(mInternals->CudaStreams[x.stream], ((cudaEvent_t*) z.evList)[k], 0));
-	if (y.num <= 1 || y.num == (unsigned int) -1)
+	if (y.num <= 1)
 	{
 		runKernelCUDA<T, I> <<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(y.start, args...);
 	}
