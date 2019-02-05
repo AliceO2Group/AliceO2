@@ -23,7 +23,9 @@
 #include <TClass.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <Generators/GeneratorFromFile.h>
+#include <Generators/PrimaryGenerator.h>
 #include <SimConfig/SimConfig.h>
+#include <SimConfig/ConfigurableParam.h>
 #include <CommonUtils/RngHelper.h>
 #include <typeinfo>
 #include <thread>
@@ -51,6 +53,7 @@ class O2PrimaryServerDevice : public FairMQDevice
   void initGenerator()
   {
     auto& conf = o2::conf::SimConfig::Instance();
+    o2::conf::ConfigurableParam::updateFromString(conf.getKeyValueString());
     o2::eventgen::GeneratorFactory::setPrimaryGenerator(conf, &mPrimGen);
     mPrimGen.SetEvent(&mEventHeader);
     mPrimGen.Init();
@@ -226,7 +229,7 @@ class O2PrimaryServerDevice : public FairMQDevice
 
  private:
   std::string mOutChannelName = "";
-  FairPrimaryGenerator mPrimGen;
+  o2::eventgen::PrimaryGenerator mPrimGen;
   FairMCEventHeader mEventHeader;
   o2::Data::Stack mStack;      // the stack which is filled
   int mChunkGranularity = 500; // how many primaries to send to a worker
