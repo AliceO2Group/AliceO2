@@ -23,6 +23,7 @@
 #if !defined(__CINT__) && !defined(__ROOTCINT__) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_NO_VC)
 //&& !defined(__CLING__)
 #include <Vc/Vc>
+#include <Vc/SimdArray>
 #endif
 
 namespace ali_tpc_common {
@@ -183,6 +184,9 @@ class IrregularSpline2D3D :public FlatObject
   
   /// Get offset of GridV flat data in the flat buffer
   size_t getGridVOffset() const { return mGridV.getFlatBufferPtr() - mFlatBufferPtr; }
+  
+  /// Print method
+  void Print() const;
  
  private:
 
@@ -349,28 +353,33 @@ inline void IrregularSpline2D3D::getSplineVec( const float *correctedData, float
   const float *dataV1 = dataV0 + 3*nu;
   const float *dataV2 = dataV0 + 6*nu;
   const float *dataV3 = dataV0 + 9*nu;
+ 
 
-  Vc::float_v dataV[3+1]; // F values at Vi==v at Ui == U of knots
-
-  for( int i=0, i4=0; i<3; i++,i4+=4){
-    Vc::float_v dt0( dataV0 + i4 );
-    Vc::float_v dt1( dataV1 + i4 );
-    Vc::float_v dt2( dataV2 + i4 );
-    Vc::float_v dt3( dataV3 + i4 );
-    dataV[i] = gridV.getSpline( knotV, dt0, dt1, dt2, dt3, v);
-  }
+  // calculate F values at V==v and U == Ui of knots  
   
-  Vc::float_v dataU0( reinterpret_cast< const float *>(dataV) + 0 );
-  Vc::float_v dataU1( reinterpret_cast< const float *>(dataV) + 3 );
-  Vc::float_v dataU2( reinterpret_cast< const float *>(dataV) + 6 );
-  Vc::float_v dataU3( reinterpret_cast< const float *>(dataV) + 9 );
+  Vc::SimdArray<float,12>
+    dataV0vec( dataV0 ),
+    dataV1vec( dataV1 ),
+    dataV2vec( dataV2 ),
+    dataV3vec( dataV3 ),
+    dataVvec = gridV.getSpline( knotV, dataV0vec, dataV1vec, dataV2vec, dataV3vec, v );
 
+  constexpr int vecSize =  (Vc::float_v::size() > 3 ) ?Vc::float_v::size() :3;
+  float dataV[9+vecSize];
+  //dataVvec.scatter( dataV, Vc::SimdArray<float,12>::IndexType::IndexesFromZero() );
+  dataVvec.scatter( dataV, Vc::SimdArray<uint,12>(Vc::IndexesFromZero ) );
 
-  Vc::float_v res = gridU.getSpline( knotU, dataU0, dataU1, dataU2, dataU3, u );
+  // calculate F values at V==v and U == u
+  Vc::SimdArray<float, vecSize>
+    dataU0vec( dataV ),
+    dataU1vec( dataV + 3 ),
+    dataU2vec( dataV + 6 ),
+    dataU3vec( dataV + 9 ),
+    dataUVvec = gridU.getSpline( knotU, dataU0vec, dataU1vec, dataU2vec, dataU3vec, u );
 
-  x = res[0];
-  y = res[1];
-  z = res[2];
+  x = dataUVvec[0];
+  y = dataUVvec[1];
+  z = dataUVvec[2];
 #else
   getSpline( correctedData, u,  v, x, y, z );
 #endif

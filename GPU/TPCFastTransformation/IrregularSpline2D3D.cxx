@@ -17,6 +17,10 @@
 
 #include "IrregularSpline2D3D.h"
 
+#if !defined(GPUCA_GPUCODE)
+#include <iostream>
+#endif
+
 namespace ali_tpc_common {
 namespace tpc_fast_transformation {
 
@@ -138,7 +142,16 @@ void IrregularSpline2D3D::construct( int numberOfKnotsU, const float knotsU[], i
   mGridV.moveBufferTo( mFlatBufferPtr + vOffset );
 }
 
-
+void IrregularSpline2D3D::Print() const
+{
+#if !defined(GPUCA_GPUCODE)
+  std::cout<<" Irregular Spline 2D3D: "<<std::endl;
+  std::cout<<" grid U: "<<std::endl;
+  mGridU.Print();
+  std::cout<<" grid V: "<<std::endl;
+  mGridV.Print();
+#endif
+}
 
 }// namespace
 }// namespace

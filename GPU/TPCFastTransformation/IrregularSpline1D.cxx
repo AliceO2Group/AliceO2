@@ -19,6 +19,10 @@
 #include <cmath>
 #include <vector>
 
+#if !defined(GPUCA_GPUCODE)
+#include <iostream>
+#endif
+
 namespace ali_tpc_common {
 namespace tpc_fast_transformation {
 
@@ -180,6 +184,21 @@ void IrregularSpline1D::construct( int numberOfKnots, const float inputKnots[], 
     }
     map[iBin] = iKnot;
   }
+}
+
+void IrregularSpline1D::Print() const
+{
+#if !defined(GPUCA_GPUCODE)
+  std::cout<<" Irregular Spline 1D: "<<std::endl;
+  std::cout<<"  mNumberOfKnots = "<< mNumberOfKnots << std::endl;
+  std::cout<<"  mNumberOfAxisBins = "<<  mNumberOfAxisBins << std::endl;
+  std::cout<<"  mBin2KnotMapOffset = "<<  mBin2KnotMapOffset << std::endl;
+  std::cout<<"  knots: ";
+  for( int i=0; i<mNumberOfKnots; i++ ){
+    std::cout<<getKnot(i).u<<" ";
+  }
+  std::cout<<std::endl;
+#endif
 }
 
 }// namespace

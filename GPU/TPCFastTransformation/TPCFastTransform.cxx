@@ -17,6 +17,10 @@
 
 #include "TPCFastTransform.h"
 
+#if !defined(GPUCA_GPUCODE)
+#include <iostream>
+#endif
+
 namespace ali_tpc_common {
 namespace tpc_fast_transformation {
  
@@ -219,6 +223,30 @@ void TPCFastTransform::finishConstruction()
   mConstructionRowInfoBuffer.reset();
 }
 
+
+void TPCFastTransform::Print() const
+{
+#if !defined(GPUCA_GPUCODE)
+  std::cout<<"TPC Fast Transformation: "<<std::endl;
+  std::cout<<"mNumberOfRows = " << mNumberOfRows<<std::endl;
+  std::cout<<"mTPCzLengthA = "<< mTPCzLengthA << std::endl;
+  std::cout<<"mTPCzLengthC = "<< mTPCzLengthC << std::endl;
+  std::cout<<"mTimeStamp = "<< mTimeStamp << std::endl;
+  std::cout<<"mApplyDistortion = "<< mApplyDistortion << std::endl;
+  std::cout<<"mT0 = "<< mT0 << std::endl;
+  std::cout<<"mVdrift = "<< mVdrift << std::endl;
+  std::cout<<"mVdriftCorrY = "<< mVdriftCorrY << std::endl;
+  std::cout<<"mLdriftCorr = "<< mLdriftCorr << std::endl;
+  std::cout<<"mTOFcorr = "<< mTOFcorr << std::endl;
+  std::cout<<"mPrimVtxZ = "<< mPrimVtxZ << std::endl;
+  std::cout<<"mTPCalignmentZ = "<< mTPCalignmentZ << std::endl;
+  std::cout<<"TPC Rows : "<<std::endl;
+  for( int i=0; i<mNumberOfRows; i++){
+    std::cout<<" tpc row "<<i<<": x = "<<mRowInfoPtr[i].x<<" maxPad = "<<mRowInfoPtr[i].maxPad<<" padWidth = "<<mRowInfoPtr[i].padWidth<<std::endl;
+  }  
+  mDistortion.Print();
+#endif
+}
 
 }// namespace
 }// namespace

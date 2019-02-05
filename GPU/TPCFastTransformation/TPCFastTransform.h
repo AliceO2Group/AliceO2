@@ -194,7 +194,9 @@ class TPCFastTransform :public FlatObject
   /// Gives TPC row info
   const RowInfo& getRowInfo( int row ) const { return mRowInfoPtr[row]; }
  
- 
+  /// Print method
+  void Print() const;
+
  private:
 
 
