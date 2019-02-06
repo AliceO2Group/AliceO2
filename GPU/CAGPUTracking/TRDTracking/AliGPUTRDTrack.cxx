@@ -7,8 +7,8 @@
 template <typename T>
 GPUd() AliGPUTRDTrack<T>::AliGPUTRDTrack(const AliHLTExternalTrackParam &t) :
   T(t),
-  fChi2(0),
-  fMass(0),
+  fChi2(0.f),
+  fMass(0.f),
   fLabel(-1),
   fTPCtrackId(0),
   fNtracklets(0),
@@ -31,8 +31,8 @@ GPUd() AliGPUTRDTrack<T>::AliGPUTRDTrack(const AliHLTExternalTrackParam &t) :
 
 template <typename T>
 GPUd() AliGPUTRDTrack<T>::AliGPUTRDTrack() :
-  fChi2(0),
-  fMass(0),
+  fChi2(0.f),
+  fMass(0.f),
   fLabel(-1),
   fTPCtrackId(0),
   fNtracklets(0),
@@ -80,8 +80,8 @@ GPUd() AliGPUTRDTrack<T>::AliGPUTRDTrack(const AliGPUTRDTrack<T>& t) :
 template <typename T>
 GPUd() AliGPUTRDTrack<T>::AliGPUTRDTrack(const T& t) :
   T(t),
-  fChi2(0),
-  fMass(0),
+  fChi2(0.f),
+  fMass(0.f),
   fLabel(-1),
   fTPCtrackId(0),
   fNtracklets(0),
@@ -206,7 +206,7 @@ GPUd() void AliGPUTRDTrack<T>::ConvertFrom( const AliGPUTRDTrackDataRecord &t )
   //------------------------------------------------------------------
   T::set(t.fX, t.fAlpha, &(t.fY), t.fC);
   SetTPCtrackId( t.fTPCTrackID );
-  fChi2 = 0;
+  fChi2 = 0.f;
   fMass = 0.13957f;
   fLabel = -1;
   fNtracklets = 0;
