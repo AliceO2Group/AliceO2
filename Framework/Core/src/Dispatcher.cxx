@@ -77,7 +77,6 @@ void Dispatcher::run(ProcessingContext& ctx)
         // todo: consider matching (and deciding) in completion policy to save some time
 
         if (policy->match(inputMatcher) && policy->decide(input)) {
-
           // We copy every header which is not DataHeader or DataProcessingHeader,
           // so that custom data-dependent headers are passed forward,
           // and we add a DataSamplingHeader.
@@ -86,7 +85,8 @@ void Dispatcher::run(ProcessingContext& ctx)
             std::move(prepareDataSamplingHeader(*policy.get(), ctx.services().get<const DeviceSpec>()))};
 
           if (!policy->getFairMQOutputChannel().empty()) {
-            sendFairMQ(ctx.services().get<RawDeviceService>().device(), input, policy->getFairMQOutputChannelName(), std::move(headerStack));
+            sendFairMQ(ctx.services().get<RawDeviceService>().device(), input, policy->getFairMQOutputChannelName(),
+                       std::move(headerStack));
           } else {
             Output output = policy->prepareOutput(inputMatcher, input.spec->lifetime);
             output.metaHeader = std::move(header::Stack{std::move(output.metaHeader), std::move(headerStack)});
