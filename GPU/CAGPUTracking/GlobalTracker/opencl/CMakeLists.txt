@@ -114,7 +114,6 @@ set(CINTHDRS
 
 set(HDRS
     ${CINTHDRS}
-    ${CAGPUDIR}/GlobalTracker/AliGPUTPCGPUTrackerCommon.h
     AliGPUReconstructionOCLInternals.h
     AliGPUReconstructionOCLWorkarounds.h
   )
