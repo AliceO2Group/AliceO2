@@ -17,21 +17,24 @@ public:
     void setup(ClEnv &, size_t); 
 
     int  enqueue(
-            cl::CommandQueue, 
-            cl::Buffer, 
-            cl::Buffer, 
-            cl::NDRange, 
-            cl::NDRange);
+            cl::CommandQueue,
+            cl::Buffer,
+            cl::Buffer,
+            bool debug=false);
+
+    std::vector<std::vector<int>> getNewIdxDump() const;
 
 private:
     cl::Kernel inclusiveScanStart;
     cl::Kernel inclusiveScanStep;
     cl::Kernel compactArr;
 
-    cl::Buffer newIdx;
-    cl::Buffer offsetBuf;
+    cl::Buffer newIdxBufIn;
+    cl::Buffer newIdxBufOut;
 
     std::vector<int> offsets;
+
+    std::vector<std::vector<int>> newIdxDump;
 
     size_t digitNum = 0;
 };
