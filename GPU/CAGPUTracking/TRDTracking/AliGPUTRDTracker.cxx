@@ -120,12 +120,12 @@ AliGPUTRDTracker::AliGPUTRDTracker() :
   fTrackletLabels(nullptr),
   fGeo(nullptr),
   fDebugOutput(false),
-  fMinPt(0.6),
-  fMaxEta(0.84),
-  fMaxChi2(15.0),
+  fMinPt(0.6f),
+  fMaxEta(0.84f),
+  fMaxChi2(15.0f),
   fMaxMissingLy(6),
-  fChi2Penalty(12.0),
-  fZCorrCoefNRC(1.4),
+  fChi2Penalty(12.0f),
+  fZCorrCoefNRC(1.4f),
   fNhypothesis(100),
   fMCEvent(nullptr),
   fDebug(new AliGPUTRDTrackerDebug())
@@ -167,13 +167,13 @@ bool AliGPUTRDTracker::Init(AliGPUTRDGeometry *geo)
   }
 
   // obtain average radius of TRD layers (use default value w/o misalignment if no transformation matrix can be obtained)
-  float x0[kNLayers]    = { 300.2, 312.8, 325.4, 338.0, 350.6, 363.2 };
+  float x0[kNLayers]    = { 300.2f, 312.8f, 325.4f, 338.0f, 350.6f, 363.2f };
   for (int iLy=0; iLy<kNLayers; iLy++) {
     fR[iLy] = x0[iLy];
   }
   auto* matrix = fGeo->GetClusterMatrix(0);
-  My_Float loc[3] = { fGeo->AnodePos(), 0., 0. };
-  My_Float glb[3] = { 0., 0., 0. };
+  My_Float loc[3] = { fGeo->AnodePos(), 0.f, 0.f };
+  My_Float glb[3] = { 0.f, 0.f, 0.f };
   for (int iLy=0; iLy<kNLayers; iLy++) {
     for (int iSec=0; iSec<kNSectors; iSec++) {
       matrix = fGeo->GetClusterMatrix(fGeo->GetDetector(iLy, 2, iSec));
@@ -204,13 +204,13 @@ void AliGPUTRDTracker::Reset()
   fNTracks = 0;
   for (int i=0; i<fNMaxSpacePoints; ++i) {
     fTracklets[i] = 0x0;
-    fSpacePoints[i].fR        = 0.;
-    fSpacePoints[i].fX[0]     = 0.;
-    fSpacePoints[i].fX[1]     = 0.;
-    fSpacePoints[i].fCov[0]   = 0.;
-    fSpacePoints[i].fCov[1]   = 0.;
-    fSpacePoints[i].fCov[2]   = 0.;
-    fSpacePoints[i].fDy       = 0.;
+    fSpacePoints[i].fR        = 0.f;
+    fSpacePoints[i].fX[0]     = 0.f;
+    fSpacePoints[i].fX[1]     = 0.f;
+    fSpacePoints[i].fCov[0]   = 0.f;
+    fSpacePoints[i].fCov[1]   = 0.f;
+    fSpacePoints[i].fCov[2]   = 0.f;
+    fSpacePoints[i].fDy       = 0.f;
     fSpacePoints[i].fId       = 0;
     fSpacePoints[i].fLabel[0] = -1;
     fSpacePoints[i].fLabel[1] = -1;
@@ -490,12 +490,12 @@ GPUd() bool AliGPUTRDTracker::CalculateSpacePoints()
     float tilt = CAMath::Tan( M_PI / 180.f * pp->GetTiltingAngle());
     float t2 = tilt * tilt; // tan^2 (tilt)
     float c2 = 1.f / (1.f + t2); // cos^2 (tilt)
-    float sy2 = pow(0.10f, 2); // sigma_rphi^2, currently assume sigma_rphi = 1 mm
+    float sy2 = 0.1f * 0.1f; // sigma_rphi^2, currently assume sigma_rphi = 1 mm
 
     for (int iTrklt=0; iTrklt<nTracklets; ++iTrklt) {
       int trkltIdx = fTrackletIndexArray[iDet] + iTrklt;
       int trkltZbin = fTracklets[trkltIdx].GetZbin();
-      float sz2 = pow(pp->GetRowSize(trkltZbin), 2) / 12.f; // sigma_z = l_pad/sqrt(12) TODO try a larger z error
+      float sz2 = pp->GetRowSize(trkltZbin) * pp->GetRowSize(trkltZbin) / 12.f; // sigma_z = l_pad/sqrt(12) TODO try a larger z error
       My_Float xTrkltDet[3] = { 0.f }; // trklt position in chamber coordinates
       My_Float xTrkltSec[3] = { 0.f }; // trklt position in sector coordinates
       xTrkltDet[0] = fGeo->AnodePos();
@@ -648,8 +648,8 @@ GPUd() bool AliGPUTRDTracker::FollowProlongation(GPUTRDPropagator *prop, GPUTRDT
       }
 
       // define search window
-      roadY = 7.f * sqrt(fCandidates[2*iCandidate+currIdx].getSigmaY2() + pow(0.10f, 2.f)) + 2.f; // add constant to the road for better efficiency
-      //roadZ = 7.f * sqrt(fCandidates[2*iCandidate+currIdx].getSigmaZ2() + power(9.f, 2.f) / 12.f); // take longest pad length
+      roadY = 7.f * sqrt(fCandidates[2*iCandidate+currIdx].getSigmaY2() + 0.1f * 0.1f) + 2.f; // add constant to the road for better efficiency
+      //roadZ = 7.f * sqrt(fCandidates[2*iCandidate+currIdx].getSigmaZ2() + 9.f * 9.f / 12.f); // take longest pad length
       roadZ = 18.f; // simply twice the longest pad length -> efficiency 99.996%
       //
       if (CAMath::Abs(fCandidates[2*iCandidate+currIdx].getZ()) - roadZ >= zMaxTRD ) {
