@@ -236,7 +236,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 					const AliHLTTPCRawCluster &cRaw = clRaw.fClusters[ic];
 					if (fabsf(c.GetZ()) > 300) continue;
 					if (c.GetX() < 1.f) continue; // cluster xyz position was not calculated for whatever reason
-					cluster.fId = nClustersTotal;
+					cluster.fId = AliGPUTPCGeometry::CreateClusterID(slice, patch, ic);
 					cluster.fX = c.GetX();
 					cluster.fY = c.GetY();
 					cluster.fZ = c.GetZ();
@@ -420,6 +420,14 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 		fRec->mIOPtrs.nMCInfosTPC = mcInfo.size();
 		fRec->mIOPtrs.mcInfosTPC = mcInfo.data();
 		HLTDebug("Number of MC infos: %d", (int) mcInfo.size());
+	}
+	unsigned int clusterNum = 0;
+	for (unsigned int slice = 0;slice < NSLICES;slice++)
+	{
+		for (int k = 0;k < fRec->mIOPtrs.nClusterData[slice];k++)
+		{
+			clusterData[slice][k].fId = clusterNum++;
+		}
 	}
 	
 	fRec->mIOPtrs.nTRDTracklets = nTRDTrackletsTotal;
