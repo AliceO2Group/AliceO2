@@ -16,10 +16,7 @@
 
 #pragma link C++ class o2::t0::CollisionTimeRecoTask + ;
 #pragma link C++ class o2::t0::RecPoints + ;
-<<<<<<< HEAD
 #pragma link C++ class std::vector < o2::t0::RecPoints > +;
-=======
->>>>>>> first separation T0 V0
 #pragma link C++ class o2::t0::Channel + ;
 
 #endif
