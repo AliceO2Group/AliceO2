@@ -36,8 +36,8 @@ namespace trd
 class TRootIoCtor;
 
 class TRDCommonParam;
-class TRDpadPlane;
-class TRDgeometry;
+class TRDPadPlane;
+class TRDGeometry;
 
 //_____________________________________________________________________________
 class TRDFeeParam
@@ -46,87 +46,92 @@ class TRDFeeParam
  public:
   TRDFeeParam(TRootIoCtor*);
   TRDFeeParam(const TRDFeeParam& p);
-  ~TRDFeeParam();
+  virtual ~TRDFeeParam();
   TRDFeeParam& operator=(const TRDFeeParam& p);
+  virtual void Copy(TRDFeeParam& p) const;
 
   static TRDFeeParam* instance(); // Singleton
-  static void Terminate();
+  static void terminate();
 
   // Translation from MCM to Pad and vice versa
-  virtual Int_t getPadRowFromMCM(Int_t irob, Int_t imcm) const;
-  virtual Int_t getPadColFromADC(Int_t irob, Int_t imcm, Int_t iadc) const;
-  virtual Int_t getExtendedPadColFromADC(Int_t irob, Int_t imcm, Int_t iadc) const;
-  virtual Int_t getMCMfromPad(Int_t irow, Int_t icol) const;
-  virtual Int_t getMCMfromSharedPad(Int_t irow, Int_t icol) const;
-  virtual Int_t getROBfromPad(Int_t irow, Int_t icol) const;
-  virtual Int_t getROBfromSharedPad(Int_t irow, Int_t icol) const;
-  virtual Int_t getRobSide(Int_t irob) const;
-  virtual Int_t getColSide(Int_t icol) const;
-
+  virtual int getPadRowFromMCM(Int_t irob, Int_t imcm) const;
+  virtual int getPadColFromADC(Int_t irob, Int_t imcm, Int_t iadc) const;
+  virtual int getExtendedPadColFromADC(Int_t irob, Int_t imcm, Int_t iadc) const;
+  virtual int getMCMfromPad(Int_t irow, Int_t icol) const;
+  virtual int getMCMfromSharedPad(Int_t irow, Int_t icol) const;
+  virtual int getROBfromPad(Int_t irow, Int_t icol) const;
+  virtual int getROBfromSharedPad(Int_t irow, Int_t icol) const;
+  virtual int getRobSide(Int_t irob) const;
+  virtual int getColSide(Int_t icol) const;
+  
   // SCSN-related
-  static UInt_t aliToExtAli(Int_t rob, Int_t aliid);                                                       // Converts the MCM-ROB combination to the extended MCM ALICE ID (used to address MCMs on the SCSN Bus)
-  static Int_t extAliToAli(UInt_t dest, UShort_t linkpair, UShort_t rocType, Int_t* list, Int_t listSize); // translates an extended MCM ALICE ID to a list of MCMs
-  static Short_t chipmaskToMCMlist(UInt_t cmA, UInt_t cmB, UShort_t linkpair, Int_t* mcmList, Int_t listSize);
+  static unsigned int aliToExtAli(Int_t rob, Int_t aliid);                                                       // Converts the MCM-ROB combination to the extended MCM ALICE ID (used to address MCMs on the SCSN Bus)
+  static int extAliToAli(UInt_t dest, UShort_t linkpair, UShort_t rocType, Int_t* list, Int_t listSize); // translates an extended MCM ALICE ID to a list of MCMs
+  static Short_t chipmaskToMCMlist(unsigned int cmA, UInt_t cmB, UShort_t linkpair, Int_t* mcmList, Int_t listSize);
   static Short_t getRobAB(UShort_t robsel, UShort_t linkpair); // Returns the chamber side (A=0, B=0) of a ROB
 
   // geometry
   static Float_t getSamplingFrequency() { return (Float_t)mgkLHCfrequency / 4000000.0; }
-  static Int_t getNmcmRob() { return mgkNmcmRob; }
-  static Int_t getNmcmRobInRow() { return mgkNmcmRobInRow; }
-  static Int_t getNmcmRobInCol() { return mgkNmcmRobInCol; }
-  static Int_t getNrobC0() { return mgkNrobC0; }
-  static Int_t getNrobC1() { return mgkNrobC1; }
-  static Int_t getNadcMcm() { return mgkNadcMcm; }
-  static Int_t getNcol() { return mgkNcol; }
-  static Int_t getNcolMcm() { return mgkNcolMcm; }
-  static Int_t getNrowC0() { return mgkNrowC0; }
-  static Int_t getNrowC1() { return mgkNrowC1; }
+  static int getNmcmRob() { return mgkNmcmRob; }
+  static int getNmcmRobInRow() { return mgkNmcmRobInRow; }
+  static int getNmcmRobInCol() { return mgkNmcmRobInCol; }
+  static int getNrobC0() { return mgkNrobC0; }
+  static int getNrobC1() { return mgkNrobC1; }
+  static int getNadcMcm() { return mgkNadcMcm; }
+  static int getNcol() { return mgkNcol; }
+  static int getNcolMcm() { return mgkNcolMcm; }
+  static int getNrowC0() { return mgkNrowC0; }
+  static int getNrowC1() { return mgkNrowC1; }
 
   // tracklet simulation
-  Bool_t getTracklet() const { return mgTracklet; }
-  static void setTracklet(Bool_t trackletSim = kTRUE) { mgTracklet = trackletSim; }
-  Bool_t getRejectMultipleTracklets() const { return mgRejectMultipleTracklets; }
-  static void setRejectMultipleTracklets(Bool_t rej = kTRUE) { mgRejectMultipleTracklets = rej; }
-  Bool_t getUseMisalignCorr() const { return mgUseMisalignCorr; }
-  static void setUseMisalignCorr(Bool_t misalign = kTRUE) { mgUseMisalignCorr = misalign; }
-  Bool_t getUseTimeOffset() const { return mgUseTimeOffset; }
-  static void setUseTimeOffset(Bool_t timeOffset = kTRUE) { mgUseTimeOffset = timeOffset; }
+  bool getTracklet() const { return mgTracklet; }
+  static void setTracklet(bool trackletSim = kTRUE) { mgTracklet = trackletSim; }
+  bool getRejectMultipleTracklets() const { return mgRejectMultipleTracklets; }
+  static void setRejectMultipleTracklets(bool rej = kTRUE) { mgRejectMultipleTracklets = rej; }
+  bool getUseMisalignCorr() const { return mgUseMisalignCorr; }
+  static void setUseMisalignCorr(bool misalign = kTRUE) { mgUseMisalignCorr = misalign; }
+  bool getUseTimeOffset() const { return mgUseTimeOffset; }
+  static void setUseTimeOffset(bool timeOffset = kTRUE) { mgUseTimeOffset = timeOffset; }
 
   // Concerning raw data format
-  Int_t getRAWversion() const { return mRAWversion; }
-  void setRAWversion(Int_t rawver);
+  int getRAWversion() const { return mRAWversion; }
+  void setRAWversion(int rawver);
+  
+  inline short padMcmLUT(int index) { return mgLUTPadNumbering[index];}
 
  protected:
   static TRDFeeParam* mgInstance; // Singleton instance
-  static Bool_t mgTerminated;     // Defines if this class has already been terminated
+  static bool mgTerminated;     // Defines if this class has already been terminated
 
   TRDCommonParam* mCP = nullptr; // TRD common parameters class
-
-  // Remark: ISO C++ allows initialization of static const values only for integer.
+  
+  static std::vector<short> mgLUTPadNumbering; // Lookup table mapping Pad to MCM
+  static bool mgLUTPadNumberingFilled; // Lookup table mapping Pad to MCM
+  
+  void createPad2MCMLookUpTable();
 
   // Basic Geometrical numbers
-  static const Int_t mgkLHCfrequency = 40079000; // [Hz] LHC clock
-  static const Int_t mgkNmcmRob = 16;            // Number of MCMs per ROB
-  static const Int_t mgkNmcmRobInRow = 4;        // Number of MCMs per ROB in row dir.
-  static const Int_t mgkNmcmRobInCol = 4;        // Number of MCMs per ROB in col dir.
-  static const Int_t mgkNrobC0 = 6;              // Number of ROBs per C0 chamber
-  static const Int_t mgkNrobC1 = 8;              // Number of ROBs per C1 chamber
-  static const Int_t mgkNadcMcm = 21;            // Number of ADC channels per MCM
-  static const Int_t mgkNcol = 144;              // Number of pads per padplane row
-  static const Int_t mgkNcolMcm = 18;            // Number of pads per MCM
-  static const Int_t mgkNrowC0 = 12;             // Number of Rows per C0 chamber
-  static const Int_t mgkNrowC1 = 16;             // Number of Rows per C1 chamber
+  static const int mgkLHCfrequency = 40079000; // [Hz] LHC clock
+  static const int mgkNmcmRob = 16;            // Number of MCMs per ROB
+  static const int mgkNmcmRobInRow = 4;        // Number of MCMs per ROB in row dir.
+  static const int mgkNmcmRobInCol = 4;        // Number of MCMs per ROB in col dir.
+  static const int mgkNrobC0 = 6;              // Number of ROBs per C0 chamber
+  static const int mgkNrobC1 = 8;              // Number of ROBs per C1 chamber
+  static const int mgkNadcMcm = 21;            // Number of ADC channels per MCM
+  static const int mgkNcol = 144;              // Number of pads per padplane row
+  static const int mgkNcolMcm = 18;            // Number of pads per MCM
+  static const int mgkNrowC0 = 12;             // Number of Rows per C0 chamber
+  static const int mgkNrowC1 = 16;             // Number of Rows per C1 chamber
 
   // Tracklet  processing on/off
-  static Bool_t mgTracklet;                // tracklet processing
-  static Bool_t mgRejectMultipleTracklets; // only accept best tracklet if found more than once
-  static Bool_t mgUseMisalignCorr;         // add correction for mis-alignment in y
-  static Bool_t mgUseTimeOffset;           // add time offset in calculation of fit sums
+  static bool mgTracklet;                // tracklet processing
+  static bool mgRejectMultipleTracklets; // only accept best tracklet if found more than once
+  static bool mgUseMisalignCorr;         // add correction for mis-alignment in y
+  static bool mgUseTimeOffset;           // add time offset in calculation of fit sums
 
   // For raw production
-  Int_t mRAWversion{ 3 };                  // Raw data production version
-  static const Int_t mgkMaxRAWversion = 3; // Maximum raw version number supported
-
+  int mRAWversion{ 3 };                   // Raw data production version
+  static const int mgkMaxRAWversion = 3;  // Maximum raw version number supported
  private:
   TRDFeeParam();
 

@@ -56,10 +56,10 @@ class TRDSignalIndex
   void resetCounters();
   void resetTbinCounter() const {};
 
-  void ResetArrays();
+  void resetArrays();
 
   // Store the index row-column as an interesting one
-  inline void AddIndexRC(const Int_t row, const Int_t col);
+  inline void addIndexRC(const Int_t row, const Int_t col);
   // get the next pad (row and column) and return kTRUE on success
   inline Bool_t nextRCIndex(Int_t& row, Int_t& col);
   // get the next timebin of a pad (row and column) and return kTRUE on success

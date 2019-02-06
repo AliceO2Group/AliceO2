@@ -48,7 +48,7 @@ class TRDCalPadStatus
   virtual ~TRDCalPadStatus();
   TRDCalPadStatus& operator=(const TRDCalPadStatus& c);
 
-  void copy(TRDCalPadStatus& c) const;
+  void Copy(TRDCalPadStatus& c) const;
 
   Bool_t isMasked(Int_t d, Int_t col, Int_t row) const
   {

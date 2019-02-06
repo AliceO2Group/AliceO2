@@ -17,45 +17,31 @@
 //                                                     //
 /////////////////////////////////////////////////////////
 
-
 #include "TRDBase/TRDArraySignal.h"
 #include "TRDBase/TRDFeeParam.h"
 #include <fairlogger/Logger.h>
 
 using namespace o2::trd;
 
-short *TRDArraySignal::fgLutPadNumbering = nullptr;
-
 //_______________________________________________________________________
-TRDArraySignal::TRDArraySignal()
-{
-  // TRDArraySignal default constructor
-  CreateLut();
-}
+TRDArraySignal::TRDArraySignal() = default;
 
-//_______________________________________________________________________
-TRDArraySignal::TRDArraySignal(int nrow, int ncol,int ntime)
+    //_______________________________________________________________________
+TRDArraySignal::TRDArraySignal(int nrow, int ncol, int ntime)
 {
   // TRDArraySignal constructor
-  CreateLut(); 
-  Allocate(nrow,ncol,ntime);
+  allocate(nrow, ncol, ntime);
 }
 
 //_______________________________________________________________________
-TRDArraySignal::TRDArraySignal(const TRDArraySignal &d)
-                  : mNdet(d.mNdet) ,mNrow(d.mNrow) ,mNcol(d.mNcol) ,mNumberOfChannels(d.mNumberOfChannels) ,fNtime(d.fNtime) ,mNdim(d.mNdim)
+TRDArraySignal::TRDArraySignal(const TRDArraySignal& d)
+  : mNdet(d.mNdet), mNrow(d.mNrow), mNcol(d.mNcol), mNumberOfChannels(d.mNumberOfChannels), mNtime(d.mNtime), mNdim(d.mNdim), mSignal(d.mSignal)
 {
-  //
-  // TRDArraySignal copy constructor
-  //
-
-  mSignal=d.mSignal;
 
 }
 
 //_______________________________________________________________________
-TRDArraySignal::~TRDArraySignal() : default;
-
+TRDArraySignal::~TRDArraySignal() = default; 
 
 //________________________________________________________________________________
 inline float TRDArraySignal::getData(int nrow, int ncol, int ntime) const
@@ -64,10 +50,9 @@ inline float TRDArraySignal::getData(int nrow, int ncol, int ntime) const
   // To access data using the mcm scheme use instead
   // the method getDataByAdcCol
 
-  int corrcolumn = mgLutPadNumbering[ncol];
+  int corrcolumn = TRDFeeParam::instance()->padMcmLUT(ncol);
 
-  return mSignal[(nrow*mNumberOfChannels+corrcolumn)*mNtime+ntime];
-
+  return mSignal[(nrow * mNumberOfChannels + corrcolumn) * mNtime + ntime];
 }
 
 //________________________________________________________________________________
@@ -77,256 +62,217 @@ inline void TRDArraySignal::setData(int nrow, int ncol, int ntime, float value)
   // To write data using the mcm scheme use instead
   // the method setDataByAdcCol
 
-  int colnumb = mgLutPadNumbering[ncol];
+  int colnumb = TRDFeeParam::instance()->padMcmLUT(ncol);
 
-  mSignal[(nrow*mNumberOfChannels+colnumb)*mNtime+ntime]=value;
-
+  mSignal[(nrow * mNumberOfChannels + colnumb) * mNtime + ntime] = value;
 }
 
 //_______________________________________________________________________
-TRDArraySignal &TRDArraySignal::operator=(const TRDArraySignal &d)
+TRDArraySignal& TRDArraySignal::operator=(const TRDArraySignal& d)
 {
   //
   // Assignment operator
   //
 
-  if (this==&d) 
-    {
-      return *this;
-    }
+  if (this == &d) {
+    return *this;
+  }
 
   mSignal.clear();
-  mNdet=d.mNdet;
-  mNrow=d.mNrow;
-  mNcol=d.mNcol;
+  mNdet = d.mNdet;
+  mNrow = d.mNrow;
+  mNcol = d.mNcol;
   mNumberOfChannels = d.mNumberOfChannels;
-  fNtime=d.fNtime;
-  mNdim=d.mNdim;
+  mNtime = d.mNtime;
+  mNdim = d.mNdim;
   mSignal.clear();
-  if(mSignal.size()!=mNdim)
+  if (mSignal.size() != mNdim)
     mSignal.resize(mNdim);
-  
-  mSignal=d.mSignal;
+
+  mSignal = d.mSignal;
 
   return *this;
-
 }
 
 //_______________________________________________________________________
 void TRDArraySignal::allocate(int nrow, int ncol, int ntime)
 {
   //
-  // Allocates memory for an TRDArraySignal object with dimensions 
+  // Allocates memory for an TRDArraySignal object with dimensions
   // Row*NumberOfNecessaryMCMs*ADCchannelsInMCM*Time
   // To be consistent with AliTRDarrayADC
   //
 
-  mNrow=nrow;
-  mNcol=ncol;
-  fNtime=ntime;
-  int adcchannelspermcm = TRDFeeParam::getNadcMcm(); 
-  int padspermcm = TRDFeeParam::getNcolMcm(); 
-  int numberofmcms = mNcol/padspermcm; 
-  mNumberOfChannels = numberofmcms*adcchannelspermcm;
-  mNdim = nrow*mNumberOfChannels*ntime;
-  if(mSignal.size()!=mNdim)
+  mNrow = nrow;
+  mNcol = ncol;
+  mNtime = ntime;
+  int adcchannelspermcm = TRDFeeParam::getNadcMcm();
+  int padspermcm = TRDFeeParam::getNcolMcm();
+  int numberofmcms = mNcol / padspermcm;
+  mNumberOfChannels = numberofmcms * adcchannelspermcm;
+  mNdim = nrow * mNumberOfChannels * ntime;
+  if (mSignal.size() != mNdim)
     mSignal.resize(mNdim);
-  
-  mSignal=d.mSignal;
 
+  memset(&mSignal[0],0,sizeof(mSignal[0])*mNdim);
 }
 
 //_______________________________________________________________________
 int TRDArraySignal::getOverThreshold(float threshold) const
 {
   //
-  // get the number of entries over the threshold 
+  // get the number of entries over the threshold
   //
 
-  int counter=0;
-  for(int i=0; i<mNdim; i++)
-    {
-      if(mSignal[i]>threshold)
-	{
-	  counter++;
-	}
+  int counter = 0;
+  for (int i = 0; i < mNdim; i++) {
+    if (mSignal[i] > threshold) {
+      counter++;
     }
+  }
   return counter;
-
 }
 
 //_______________________________________________________________________
 void TRDArraySignal::compress(float minval)
 {
   //
-  // Compress the vector, setting values equal or 
+  // Compress the vector, setting values equal or
   // below minval to zero (minval>=0)
   //
 
-  int counter=0;
-  int newDim=0;
-  int j;                 
-  int r=0;
-  int k=0;
+  int counter = 0;
+  int newDim = 0;
+  int j;
+  int r = 0;
+  int k = 0;
 
   std::vector<int> longArr(mNdim);
-  memset(&longArr[0],0,sizeof(longArr[0])*mNdim);
+  memset(&longArr[0], 0, sizeof(longArr[0]) * mNdim);
 
-      //Initialize the vector
+  //Initialize the vector
 
-      for(int i=0;i<mNdim; i++)
-        {
-          j=0;
-          if(mSignal[i]<=minval) 
-	    {
-	      for(k=i;k<mNdim;k++)
-	        {
-	          if(mSignal[k]<=minval)
-		    {
-		      j=j+1;
-		      longArr[r]=j;
-	  	    }
-	          else
-		    {
-		      break;
-		    }
-	        } 
-	      r=r+1;          
-	    }
-          i=i+j;
+  for (int i = 0; i < mNdim; i++) {
+    j = 0;
+    if (mSignal[i] <= minval) {
+      for (k = i; k < mNdim; k++) {
+        if (mSignal[k] <= minval) {
+          j = j + 1;
+          longArr[r] = j;
+        } else {
+          break;
         }
+      }
+      r = r + 1;
+    }
+    i = i + j;
+  }
 
-      //Calculate the size of the compressed vector
-      for(int i=0; i<mNdim;i++)
-        {
-          if(longArr[i]!=0)   
-	    {
-	      counter=counter+longArr[i]-1;
-	    }
-        }
-      newDim=mNdim-counter;   //New dimension
+  //Calculate the size of the compressed vector
+  for (int i = 0; i < mNdim; i++) {
+    if (longArr[i] != 0) {
+      counter = counter + longArr[i] - 1;
+    }
+  }
+  newDim = mNdim - counter; //New dimension
 
-      //Fill the buffer of the compressed vector
-      std::vector<float> bufer(mNdim);
-      memset(&buffer[0],0,sizeof(buffer[0])*mNdim);
-      int counterTwo=0;
+  //Fill the buffer of the compressed vector
+  std::vector<float> buffer(mNdim);
+  memset(&buffer[0], 0, sizeof(buffer[0]) * mNdim);
+  int counterTwo = 0;
 
-          //Write the new vector
-          int g=0;
-          for(int i=0; i<newDim; i++)
-            {
-              if(counterTwo<mNdim)
-	        {
-	          if(mSignal[counterTwo]>minval)   
-	            {
-	              buffer[i]=mSignal[counterTwo];
-	            }
-	          if(mSignal[counterTwo]<=minval)   
-	            {
-	              buffer[i]=-(longArr[g]);
-	              counterTwo=counterTwo+longArr[g]-1;
-	              g++;
-	            }  
-	          counterTwo++;
-	        }
-            }
+  //Write the new vector
+  int g = 0;
+  for (int i = 0; i < newDim; i++) {
+    if (counterTwo < mNdim) {
+      if (mSignal[counterTwo] > minval) {
+        buffer[i] = mSignal[counterTwo];
+      }
+      if (mSignal[counterTwo] <= minval) {
+        buffer[i] = -(longArr[g]);
+        counterTwo = counterTwo + longArr[g] - 1;
+        g++;
+      }
+      counterTwo++;
+    }
+  }
 
-          //Copy the buffer
-          if(mSignal.size()!=newDim){
-              mSignal.resize(newDim);
-          }
-          LOG (debug) << "Compressed ArraySignal by " << mNdim/newDim;
-          mNdim = newDim;
-          mSignal=buffer;
-          for(int i=0; i<newDim; i++)
-            {
-              mSignal[i] = buffer[i]; 
-            }
-
-
-        } 
-
-
-
+  //Copy the buffer
+  if (mSignal.size() != newDim) {
+    mSignal.resize(newDim);
+  }
+  LOG(debug) << "Compressed ArraySignal by " << mNdim / newDim;
+  mNdim = newDim;
+  mSignal = buffer;
+  for (int i = 0; i < newDim; i++) {
+    mSignal[i] = buffer[i];
+  }
 }
+
 
 //_______________________________________________________________________
 void TRDArraySignal::expand()
 {
   // Expand the vector
 
-      //Check if the vector has not been already expanded
-      int verif=0;
-      for(int i=0; i<mNdim; i++)
-        {
-          if(mSignal[i]<0)
-	    {
-	      verif++;
-	    }
-        }
+  //Check if the vector has not been already expanded
+  int verif = 0;
+  for (int i = 0; i < mNdim; i++) {
+    if (mSignal[i] < 0) {
+      verif++;
+    }
+  }
 
-      if(verif==0)
-        {
-          return;
-        }
+  if (verif == 0) {
+    return;
+  }
 
-      int dimexp=0;
-      std::vector<int> longArr(mNdim);
+  int dimexp = 0;
+  std::vector<int> longArr(mNdim);
 
-          memset(&longArr[0],0,sizeof(longArr[0])*mNdim);
+  memset(&longArr[0], 0, sizeof(longArr[0]) * mNdim);
 
-          int r2=0;
-          for(int i=0; i<mNdim;i++)
-            {
-              if(mSignal[i]<0)  
-	        {
-	          longArr[r2]=(int)(-mSignal[i]); 
-	          r2++;
-	        }
-            }
+  int r2 = 0;
+  for (int i = 0; i < mNdim; i++) {
+    if (mSignal[i] < 0) {
+      longArr[r2] = (int)(-mSignal[i]);
+      r2++;
+    }
+  }
 
-          //Calculate new dimensions
-          for(int i=0; i<mNdim;i++)
-            {
-              if(longArr[i]!=0)      
-	        {
-	          dimexp=dimexp+longArr[i]-1;
-	        }
-            }
-          dimexp=dimexp+mNdim;   //Dimension of the expanded vector
+  //Calculate new dimensions
+  for (int i = 0; i < mNdim; i++) {
+    if (longArr[i] != 0) {
+      dimexp = dimexp + longArr[i] - 1;
+    }
+  }
+  dimexp = dimexp + mNdim; //Dimension of the expanded vector
 
-          //Write in the buffer the new vector
-          int contaexp =0;    
-          int h=0;
-          std::vector<float> bufferE(dimexp);
+  //Write in the buffer the new vector
+  int contaexp = 0;
+  int h = 0;
+  std::vector<float> buffer(dimexp);
 
-          memset(&bufferE[0],0,sizeof(bufferE[0])*mNdim);
+  memset(&buffer[0], 0, sizeof(buffer[0]) * mNdim);
 
-              for(int i=0; i<dimexp; i++)
-                {
-                  if(mSignal[contaexp]>0)  
-	            {
-	              bufferE[i]=mSignal[contaexp];
-	            }
-                  if(mSignal[contaexp]<0)  
- 	            {
-	              for(int j=0; j<longArr[h];j++)
-	                {
-	                  bufferE[i+j]=0;
-	                }
-	              i=i+longArr[h]-1;
-	              h++;
-	            }
-                  contaexp++;
-                }
+  for (int i = 0; i < dimexp; i++) {
+    if (mSignal[contaexp] > 0) {
+      buffer[i] = mSignal[contaexp];
+    }
+    if (mSignal[contaexp] < 0) {
+      for (int j = 0; j < longArr[h]; j++) {
+        buffer[i + j] = 0;
+      }
+      i = i + longArr[h] - 1;
+      h++;
+    }
+    contaexp++;
+  }
 
-              if(mSignal.size() != dimexp)
-                  mSignal.resize(dimexp);
-              mNdim = dimexp;
-              mSignal=bufferE
-
-
-
+  if (mSignal.size() != dimexp)
+    mSignal.resize(dimexp);
+  mNdim = dimexp;
+  mSignal = buffer;
 }
 //________________________________________________________________________________
 void TRDArraySignal::reset()
@@ -336,30 +282,6 @@ void TRDArraySignal::reset()
   // The vector keeps the same dimensions as before
   //
 
-  memset(&mSignal[0],0,sizeof(mSignal[0])*mNdim);
-
+  memset(&mSignal[0], 0, sizeof(mSignal[0]) * mNdim);
 }
 
-
-//________________________________________________________________________________
-void TRDArraySignal::createLut()
-{
-  //
-  // Initializes the Look Up Table to relate
-  // pad numbering and mcm channel numbering
-  //
-   if(!mgLutPadNumberExists){
-    mgLutPadNumberExists = kTrue;
-    mgLutPadNumbering.resize(TRDFeeParam::getNcol());
-    memset(&mgLutPadNumbering[0],0,sizeof(mgLutPadNumbering[0])*TRDFeeParam::getNcol());
-
-    for(int mcm=0; mcm<8; mcm++) {
-      int lowerlimit=0+mcm*18;
-      int upperlimit=18+mcm*18;
-      int shiftposition = 1+3*mcm;
-      for(int index=lowerlimit;index<upperlimit;index++) {
-	        mgLutPadNumbering[index]=index+shiftposition;
-	    }
-    }
-   }
-}

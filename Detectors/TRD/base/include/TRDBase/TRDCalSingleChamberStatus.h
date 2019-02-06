@@ -39,7 +39,7 @@ class TRDCalSingleChamberStatus
   TRDCalSingleChamberStatus(const TRDCalSingleChamberStatus& c);
   virtual ~TRDCalSingleChamberStatus();
   TRDCalSingleChamberStatus& operator=(const TRDCalSingleChamberStatus& c);
-  void copy(TRDCalSingleChamberStatus& c) const;
+  void Copy(TRDCalSingleChamberStatus& c) const;
 
   Bool_t isMasked(Int_t col, Int_t row) const { return ((getStatus(col, row) & kMasked)
                                                           ? kTRUE

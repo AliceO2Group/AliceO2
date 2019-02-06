@@ -113,12 +113,6 @@ TRDCalSingleChamberStatus::TRDCalSingleChamberStatus(const TRDCalSingleChamberSt
 
 //_____________________________________________________________________________
 TRDCalSingleChamberStatus::~TRDCalSingleChamberStatus() = default;
-{
-  //
-  // TRDCalSingleChamberStatus destructor
-  //
-
-}
 
 //_____________________________________________________________________________
 TRDCalSingleChamberStatus& TRDCalSingleChamberStatus::operator=(const TRDCalSingleChamberStatus& c)
@@ -136,14 +130,7 @@ TRDCalSingleChamberStatus& TRDCalSingleChamberStatus::operator=(const TRDCalSing
   mNrows = c.mNrows;
   mNcols = c.mNcols;
   mNchannels = c.mNchannels;
-
-  if (mData) {
-    delete[] mData;
-  }
-  mData = new Char_t[mNchannels];
-  for (Int_t iBin = 0; iBin < mNchannels; iBin++) {
-    mData[iBin] = c.mData[iBin];
-  }
+  mData = c.mData;
 
   return *this;
 }
@@ -165,11 +152,5 @@ void TRDCalSingleChamberStatus::Copy(TRDCalSingleChamberStatus& c) const
 
   c.mNchannels = mNchannels;
 
-  if (c.mData) {
-    delete[] c.mData;
-  }
-  c.mData = new Char_t[mNchannels];
-  for (iBin = 0; iBin < mNchannels; iBin++) {
-    c.mData[iBin] = mData[iBin];
-  }
+  c.mData=mData;
 }

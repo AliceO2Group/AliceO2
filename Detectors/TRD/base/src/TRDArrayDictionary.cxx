@@ -17,50 +17,35 @@
 // Ported to O2                                        //
 /////////////////////////////////////////////////////////
 
-
-
 #include "TRDBase/TRDArrayDictionary.h"
 #include "TRDBase/TRDFeeParam.h"
 #include <fairlogger/Logger.h>
 
 using namespace o2::trd;
 
-
-short *TRDArrayDictionary::mgLutPadNumbering = nullptr;
-
 //________________________________________________________________________________
-TRDArrayDictionary::TRDArrayDictionary()
-{
-  // TRDArrayDictionary default contructor
-
-  CreateLut();
-
-}
+TRDArrayDictionary::TRDArrayDictionary() = default;
 
 //________________________________________________________________________________
 TRDArrayDictionary::TRDArrayDictionary(int nrow, int ncol, int ntime)
 {
   // TRDArrayDictionary contructor
 
-  CreateLut();
-  Allocate(nrow,ncol,ntime);
-
+  allocate(nrow, ncol, ntime);
 }
 
 //________________________________________________________________________________
-TRDArrayDictionary::TRDArrayDictionary(const TRDArrayDictionary &a)
-		      :mNdet(a.mNdet) ,mNrow(a.mNrow) ,mNcol(a.mNcol) ,mNumberOfChannels(a.mNumberOfChannels) ,mNtime(a.mNtime) ,mNDdim(a.mNDdim) ,mFlag(a.mFlag)
+TRDArrayDictionary::TRDArrayDictionary(const TRDArrayDictionary& a)
+  : mNdet(a.mNdet), mNrow(a.mNrow), mNcol(a.mNcol), mNumberOfChannels(a.mNumberOfChannels), mNtime(a.mNtime), mNDdim(a.mNDdim), mFlag(a.mFlag), mDictionary(a.mDictionary)
 {
   //
   // TRDArrayDictionary copy constructor
   //
 
-  mDictionary=a.mDictionary;
 }
 
 //________________________________________________________________________________
-TRDArrayDictionary::~TRDArrayDictionary(): default;
-
+TRDArrayDictionary::~TRDArrayDictionary() = default;
 
 //________________________________________________________________________________
 inline int TRDArrayDictionary::getData(int nrow, int ncol, int ntime) const
@@ -71,10 +56,9 @@ inline int TRDArrayDictionary::getData(int nrow, int ncol, int ntime) const
   // the method getDataByAdcCol
   //
 
-  int corrcolumn = mgLutPadNumbering[ncol];
+  int corrcolumn = TRDFeeParam::instance()->padMcmLUT(ncol);
 
-  return mDictionary[(nrow*mNumberOfChannels+corrcolumn)*mNtime+ntime];
-
+  return mDictionary[(nrow * mNumberOfChannels + corrcolumn) * mNtime + ntime];
 }
 //________________________________________________________________________________
 inline void TRDArrayDictionary::setData(int nrow, int ncol, int ntime, int value)
@@ -85,37 +69,32 @@ inline void TRDArrayDictionary::setData(int nrow, int ncol, int ntime, int value
   // the method setDataByAdcCol
   //
 
-  int colnumb = mgLutPadNumbering[ncol];
+  int colnumb = TRDFeeParam::instance()->padMcmLUT(ncol);
 
-  mDictionary[(nrow*mNumberOfChannels+colnumb)*mNtime+ntime]=value;
-
+  mDictionary[(nrow * mNumberOfChannels + colnumb) * mNtime + ntime] = value;
 }
 
-
-
 //________________________________________________________________________________
-TRDArrayDictionary &TRDArrayDictionary::operator=(const TRDArrayDictionary &a)
+TRDArrayDictionary& TRDArrayDictionary::operator=(const TRDArrayDictionary& a)
 {
   //
   // Assignment operator
   //
 
-  if(this==&a)
-    {
-      return *this;
-    }
+  if (this == &a) {
+    return *this;
+  }
 
-  mNdet=a.mNdet;
-  mNDdim=a.mNDdim;
-  mNrow=a.mNrow;
-  mNcol=a.mNcol;
+  mNdet = a.mNdet;
+  mNDdim = a.mNDdim;
+  mNrow = a.mNrow;
+  mNcol = a.mNcol;
   mNumberOfChannels = a.mNumberOfChannels;
-  mNtime=a.mNtime;
-  mFlag=a.mFlag;
+  mNtime = a.mNtime;
+  mFlag = a.mFlag;
 
-  mDictionary=a.mDictionary;
+  mDictionary = a.mDictionary;
   return *this;
-
 }
 
 //________________________________________________________________________________
@@ -128,19 +107,18 @@ void TRDArrayDictionary::allocate(int nrow, int ncol, int ntime)
   // Object initialized to -1
   //
 
-  mNrow=nrow;
-  mNcol=ncol;
-  mNtime=ntime;
-  int adcchannelspermcm = TRDFeeParam::getNadcMcm(); 
-  int padspermcm = TRDFeeParam::getNcolMcm(); 
-  int numberofmcms = mNcol/padspermcm;
-  mNumberOfChannels = numberofmcms*adcchannelspermcm;
-  mNDdim=nrow*mNumberOfChannels*ntime;
-  if(mDictionary.size() != mNDdim){
-      mDictionary.resize(mNDdim);
+  mNrow = nrow;
+  mNcol = ncol;
+  mNtime = ntime;
+  int adcchannelspermcm = TRDFeeParam::getNadcMcm();
+  int padspermcm = TRDFeeParam::getNcolMcm();
+  int numberofmcms = mNcol / padspermcm;
+  mNumberOfChannels = numberofmcms * adcchannelspermcm;
+  mNDdim = nrow * mNumberOfChannels * ntime;
+  if (mDictionary.size() != mNDdim) {
+    mDictionary.resize(mNDdim);
   }
-  memset(&mDictionary[0],-1,sizeof(mDictionary[0])*mNDdim);
-
+  memset(&mDictionary[0], -1, sizeof(mDictionary[0]) * mNDdim);
 }
 
 //________________________________________________________________________________
@@ -150,155 +128,141 @@ void TRDArrayDictionary::compress()
   // Compress the array
   //
 
+  int counter = 0;
+  int newDim = 0;
+  int j;
+  int r = 0;
+  int k = 0;
 
-  int counter=0;
-  int newDim=0;
-  int j;                 
-  int r=0;
-  int k=0;
+  std::vector<int> longArr(mNDdim); //do not change to bool
 
-  std::vector<int> longArr(mNDdim); //do not change to bool 
+  memset(&longArr[0], 0, sizeof(longArr[0]) * mNDdim);
 
-      memset(&longArr[0],0,sizeof(longArr[0])*mNDdim);
-
-      for(int i=0;i<mNDdim; i++) {
-          j=0;
-          if(mDictionary[i]==-1) {
-	      for(k=i;k<mNDdim;k++) {
-	          if(mDictionary[k]==-1) {
-		      j=j+1;
-		      longArr[r]=j;
-		    }
-	          else {
-		      break;
-		    }
-	        } 
-	      r=r+1;    
-	    }
-          i=i+j;
+  for (int i = 0; i < mNDdim; i++) {
+    j = 0;
+    if (mDictionary[i] == -1) {
+      for (k = i; k < mNDdim; k++) {
+        if (mDictionary[k] == -1) {
+          j = j + 1;
+          longArr[r] = j;
+        } else {
+          break;
         }
+      }
+      r = r + 1;
+    }
+    i = i + j;
+  }
 
-      //Calculate the size of the compressed array
-      for(int i=0; i<mNDdim;i++) {
-          if(longArr[i]!=0)  {
-	      counter=counter+longArr[i]-1;
-	    }
-        }
-      newDim=mNDdim-counter;   //Size of the compressed array
+  //Calculate the size of the compressed array
+  for (int i = 0; i < mNDdim; i++) {
+    if (longArr[i] != 0) {
+      counter = counter + longArr[i] - 1;
+    }
+  }
+  newDim = mNDdim - counter; //Size of the compressed array
 
-      //Fill the buffer of the compressed array
-      std::vector<int>  buffer(newDim);
-      int counterTwo=0;
-      int g=0;
-          for(int i=0; i<newDim; i++) {
-              if(counterTwo<mNDdim) {
-	          if(mDictionary[counterTwo]!=-1) {
-	              buffer[i]=mDictionary[counterTwo];
-	            }
-	          if(mDictionary[counterTwo]==-1) {
-	              buffer[i]=-(longArr[g]);
-	              counterTwo=counterTwo+longArr[g]-1;
-	              g++;
-	            }  
-	          counterTwo++;
-	        }
-         }
+  //Fill the buffer of the compressed array
+  std::vector<int> buffer(newDim);
+  int counterTwo = 0;
+  int g = 0;
+  for (int i = 0; i < newDim; i++) {
+    if (counterTwo < mNDdim) {
+      if (mDictionary[counterTwo] != -1) {
+        buffer[i] = mDictionary[counterTwo];
+      }
+      if (mDictionary[counterTwo] == -1) {
+        buffer[i] = -(longArr[g]);
+        counterTwo = counterTwo + longArr[g] - 1;
+        g++;
+      }
+      counterTwo++;
+    }
+  }
 
-      mDictionary = buffer;
-      mNDdim = newDim;
-    
-  mFlag=kFALSE; // This way it can be expanded afterwards
+  mDictionary = buffer;
+  mNDdim = newDim;
+
+  mFlag = kFALSE; // This way it can be expanded afterwards
 }
 
 //________________________________________________________________________________
 void TRDArrayDictionary::expand()
 {
-  //  
+  //
   //  Expand the array
-  //  
+  //
 
-  if(mNDdim==0)
-    {
-      LOG(error) << "Called expand with dinesion of zero ";
-      return;    
-    }
+  if (mNDdim == 0) {
+    LOG(error) << "Called expand with dinesion of zero ";
+    return;
+  }
 
+  int dimexp = 0;
 
-  int dimexp=0;
-  
-//   if(WasExpandCalled()) 
-//     return;
+  //   if(WasExpandCalled())
+  //     return;
 
-  if(mNDdim==mNrow*mNumberOfChannels*mNtime)
+  if (mNDdim == mNrow * mNumberOfChannels * mNtime)
     return;
 
-  if(mDictionary&&mNDdim==1)
-    { 
-      dimexp = -mDictionary[0];	
-      delete [] mDictionary;
-      mDictionary=0;
-      mDictionary = new int[dimexp];
-      mNDdim = dimexp;
-      // Re-initialize the array
-      memset(mDictionary,-1,sizeof(int)*dimexp);
-      mFlag=kTRUE; // Not expand again
-      return;
-    }
+  if (mNDdim == 1) {
+    dimexp = -mDictionary[0];
+    mDictionary.resize(dimexp);
+    mNDdim = dimexp;
+    // Re-initialize the array
+    memset(&mDictionary[0], -1, sizeof(int) * dimexp);
+    mFlag = kTRUE; // Not expand again
+    return;
+  }
 
   std::vector<int> longArr(mNDdim);
 
-      //Initialize the array
-      memset(&longArr[0],0,sizeof(longArr[0])*mNDdim);
+  //Initialize the array
+  memset(&longArr[0], 0, sizeof(longArr[0]) * mNDdim);
 
-      int r2=0;
-      for(int i=0; i<mNDdim;i++) {
-          if((mDictionary[i]<0)&&(mDictionary[i]!=-1))  {
-	      longArr[r2]=-mDictionary[i]; 
-	      r2++;
-	    }
-        }
-
-      //Calculate new dimensions
-      for(int i=0; i<mNDdim;i++) {
-          if(longArr[i]!=0){      
-	        dimexp=dimexp+longArr[i]-1;
-          }
-	    if(longArr[i]==0){
-
-	        break;
-        }
-      }
-      dimexp=dimexp+mNDdim;  
-
-      //Write in the buffer the new array
-      int contaexp =0;    
-      int h=0;
-      std::vector<int> bufferE(dimexp);
-
-	  memset(&bufferE[0],-1,sizeof(bufferE)*dimexp);
-
-          for(int i=0; i<dimexp; i++) {
-              if(mDictionary[contaexp]>=-1)  {
-	          bufferE[i]=mDictionary[contaexp];
-	        }
-              if(mDictionary[contaexp]<-1)  {
-	          i=i+longArr[h]-1;
-	          h++;
-	        }
-              contaexp++;
-            }
-
-          //Copy the buffer
-          mDictionary=bufferE;
-          mNDdim = dimexp;
-	}
+  int r2 = 0;
+  for (int i = 0; i < mNDdim; i++) {
+    if ((mDictionary[i] < 0) && (mDictionary[i] != -1)) {
+      longArr[r2] = -mDictionary[i];
+      r2++;
     }
-  if (longArr)
-    {
-      delete [] longArr; 
-    }
-  mFlag=kTRUE; // Not expand again
+  }
 
+  //Calculate new dimensions
+  for (int i = 0; i < mNDdim; i++) {
+    if (longArr[i] != 0) {
+      dimexp = dimexp + longArr[i] - 1;
+    }
+    if (longArr[i] == 0) {
+
+      break;
+    }
+  }
+  dimexp = dimexp + mNDdim;
+
+  //Write in the buffer the new array
+  int contaexp = 0;
+  int h = 0;
+  std::vector<int> buffer(dimexp);
+
+  memset(&buffer[0], -1, sizeof(buffer[0]) * dimexp);
+
+  for (int i = 0; i < dimexp; i++) {
+    if (mDictionary[contaexp] >= -1) {
+      buffer[i] = mDictionary[contaexp];
+    }
+    if (mDictionary[contaexp] < -1) {
+      i = i + longArr[h] - 1;
+      h++;
+    }
+    contaexp++;
+  }
+
+  //Copy the buffer
+  mDictionary = buffer;
+  mNDdim = dimexp;
+  mFlag = kTRUE; // Not expand again
 }
 //________________________________________________________________________________
 void TRDArrayDictionary::reset()
@@ -308,35 +272,6 @@ void TRDArrayDictionary::reset()
   // and the data array elements are set to zero.
   //
 
-  memset(&mDictionary[0],0,sizeof(mDictionary[0])*mNDdim);
-
+  memset(&mDictionary[0], 0, sizeof(mDictionary[0]) * mNDdim);
 }
 
-
-//________________________________________________________________________________
-void TRDArrayDictionary::createLut()
-{
-  //
-  // Initializes the Look Up Table to relate
-  // pad numbering and mcm channel numbering
-  //
-
-  if(!mgLutPadNumberingExists){
-  
-   if(mgLutPadNumbering.size()!=TRDFeeParam::getNcol())
-       mgLutPadNumbering.resize()
-   memset(&mgLutPadNumbering[0],0,sizeof(mgLutPadNumbering[0])*TRDFeeParam::getNcol());
-
-  for(int mcm=0; mcm<8; mcm++)
-    {
-      int lowerlimit=0+mcm*18;
-      int upperlimit=18+mcm*18;
-      int shiftposition = 1+3*mcm;
-      for(int index=lowerlimit;index<upperlimit;index++)
-	{
-	  mgLutPadNumbering[index]= index+shiftposition;
-	}
-    }
-  mgLutPadNumberingExists=kTrue;
-  }
-}

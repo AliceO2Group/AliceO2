@@ -8,24 +8,25 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-////////////////////////////////////////////////////////////////////////////
-//                                                                        //
-//  TRD front end electronics parameters class                            //
-//  Contains all FEE (MCM, TRAP, PASA) related                            //
-//  parameters, constants, and mapping.                                   //
-//                                                                        //
-//  New release on 2007/08/17:                                            //
-//   The default raw data version (now mRAWversion ) is set to 3          //
-//   in the constructor because version 3 raw data read and write         //
-//   are fully debugged.                                                  //
-//                                                                        //
-//  Author:                                                               //
-//    Ken Oyama (oyama@physi.uni-heidelberg.de)                           //
-//                                                                        //
-//  many things now configured by AliTRDtrapConfig reflecting             //
-//  the real memory structure of the TRAP (Jochen)                        //
-//                                                                        //
-////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+//                                                                 
+//  TRD front end electronics parameters class                      
+//  Contains all FEE (MCM, TRAP, PASA) related                       
+//  parameters, constants, and mapping.                               
+//                                                                   
+//   2007/08/17:                                                     
+//   The default raw data version (now mRAWversion ) is set to 3    
+//   in the constructor because version 3 raw data read and write  
+//   are fully debugged.                                         
+//                                                                
+//  Author:                                                             
+//    Ken Oyama (oyama@physi.uni-heidelberg.de)                        
+//                                                                    
+//  many things now configured by AliTRDtrapConfig reflecting        
+//  the real memory structure of the TRAP (Jochen)                  
+//                                 
+//  Now has the mcm to pad lookup table mapping                    
+//////////////////////////////////////////////////////////////////
 
 #include <TGeoManager.h>
 #include <TGeoPhysicalNode.h>
@@ -44,12 +45,13 @@ using namespace o2::trd;
 //_____________________________________________________________________________
 
 TRDFeeParam* TRDFeeParam::mgInstance = nullptr;
-Bool_t TRDFeeParam::mgTerminated = kFALSE;
-Bool_t TRDFeeParam::mgTracklet = kTRUE;
-Bool_t TRDFeeParam::mgRejectMultipleTracklets = kFALSE;
-Bool_t TRDFeeParam::mgUseMisalignCorr = kFALSE;
-Bool_t TRDFeeParam::mgUseTimeOffset = kFALSE;
-
+bool TRDFeeParam::mgTerminated = kFALSE;
+bool TRDFeeParam::mgTracklet = kTRUE;
+bool TRDFeeParam::mgRejectMultipleTracklets = kFALSE;
+bool TRDFeeParam::mgUseMisalignCorr = kFALSE;
+bool TRDFeeParam::mgUseTimeOffset = kFALSE;
+bool TRDFeeParam::mgLUTPadNumberingFilled = kFALSE;
+std::vector<short> TRDFeeParam::mgLUTPadNumbering;
 //_____________________________________________________________________________
 TRDFeeParam* TRDFeeParam::instance()
 {
@@ -90,7 +92,8 @@ TRDFeeParam::TRDFeeParam()
   // Default constructor
   //
 
-  mCP = TRDCommonParam::instance();
+  mCP = TRDCommonParam::Instance();
+  createPad2MCMLookUpTable();
 }
 
 //_____________________________________________________________________________
@@ -109,6 +112,7 @@ TRDFeeParam::TRDFeeParam(const TRDFeeParam& p)
   //
   mRAWversion = p.mRAWversion;
   mCP = p.mCP;
+  createPad2MCMLookUpTable();
 }
 
 //_____________________________________________________________________________
@@ -135,12 +139,12 @@ void TRDFeeParam::Copy(TRDFeeParam& p) const
   // Copy function
   //
 
-  ((TRDFeeParam&)p).mCP = mCP;
-  ((TRDFeeParam&)p).mRAWversion = mRAWversion;
+  p.mCP = mCP;
+  p.mRAWversion = mRAWversion;
 }
 
 //_____________________________________________________________________________
-Int_t TRDFeeParam::getPadRowFromMCM(Int_t irob, Int_t imcm) const
+int TRDFeeParam::getPadRowFromMCM(int irob, int imcm) const
 {
   //
   // Return on which pad row this mcm sits
@@ -150,7 +154,7 @@ Int_t TRDFeeParam::getPadRowFromMCM(Int_t irob, Int_t imcm) const
 }
 
 //_____________________________________________________________________________
-Int_t TRDFeeParam::getPadColFromADC(Int_t irob, Int_t imcm, Int_t iadc) const
+int TRDFeeParam::getPadColFromADC(int irob, int imcm, int iadc) const
 {
   //
   // Return which pad is connected to this adc channel.
@@ -167,8 +171,8 @@ Int_t TRDFeeParam::getPadColFromADC(Int_t irob, Int_t imcm, Int_t iadc) const
 
   if (iadc < 0 || iadc > mgkNadcMcm)
     return -100;
-  Int_t mcmcol = imcm % mgkNmcmRobInCol + getRobSide(irob) * mgkNmcmRobInCol; // MCM column number on ROC [0..7]
-  Int_t padcol = mcmcol * mgkNcolMcm + mgkNcolMcm + 1 - iadc;
+  int mcmcol = imcm % mgkNmcmRobInCol + getRobSide(irob) * mgkNmcmRobInCol; // MCM column number on ROC [0..7]
+  int padcol = mcmcol * mgkNcolMcm + mgkNcolMcm + 1 - iadc;
   if (padcol < 0 || padcol >= mgkNcol)
     return -1; // this is commented because of reason above OK
 
@@ -176,7 +180,7 @@ Int_t TRDFeeParam::getPadColFromADC(Int_t irob, Int_t imcm, Int_t iadc) const
 }
 
 //_____________________________________________________________________________
-Int_t TRDFeeParam::getExtendedPadColFromADC(Int_t irob, Int_t imcm, Int_t iadc) const
+int TRDFeeParam::getExtendedPadColFromADC(int irob, int imcm, int iadc) const
 {
   //
   // Return which pad coresponds to the extended digit container pad numbering
@@ -186,14 +190,14 @@ Int_t TRDFeeParam::getExtendedPadColFromADC(Int_t irob, Int_t imcm, Int_t iadc) 
 
   if (iadc < 0 || iadc > mgkNadcMcm)
     return -100;
-  Int_t mcmcol = imcm % mgkNmcmRobInCol + getRobSide(irob) * mgkNmcmRobInCol; // MCM column number on ROC [0..7]
-  Int_t padcol = mcmcol * mgkNadcMcm + mgkNcolMcm + 2 - iadc;
+  int mcmcol = imcm % mgkNmcmRobInCol + getRobSide(irob) * mgkNmcmRobInCol; // MCM column number on ROC [0..7]
+  int padcol = mcmcol * mgkNadcMcm + mgkNcolMcm + 2 - iadc;
 
   return padcol;
 }
 
 //_____________________________________________________________________________
-Int_t TRDFeeParam::getMCMfromPad(Int_t irow, Int_t icol) const
+int TRDFeeParam::getMCMfromPad(int irow, int icol) const
 {
   //
   // Return on which MCM this pad is directry connected.
@@ -207,7 +211,7 @@ Int_t TRDFeeParam::getMCMfromPad(Int_t irow, Int_t icol) const
 }
 
 //_____________________________________________________________________________
-Int_t TRDFeeParam::getMCMfromSharedPad(Int_t irow, Int_t icol) const
+int TRDFeeParam::getMCMfromSharedPad(int irow, int icol) const
 {
   //
   // Return on which MCM this pad is directry connected.
@@ -217,7 +221,7 @@ Int_t TRDFeeParam::getMCMfromSharedPad(Int_t irow, Int_t icol) const
   if (irow < 0 || icol < 0 || irow > mgkNrowC1 || icol > mgkNcol + 8 * 3)
     return -1;
 
-  Int_t adc = 20 - (icol % 18) - 1;
+  int adc = 20 - (icol % 18) - 1;
   switch (adc) {
     case 2:
       icol += 5;
@@ -237,7 +241,7 @@ Int_t TRDFeeParam::getMCMfromSharedPad(Int_t irow, Int_t icol) const
 }
 
 //_____________________________________________________________________________
-Int_t TRDFeeParam::getROBfromPad(Int_t irow, Int_t icol) const
+int TRDFeeParam::getROBfromPad(int irow, int icol) const
 {
   //
   // Return on which rob this pad is
@@ -247,7 +251,7 @@ Int_t TRDFeeParam::getROBfromPad(Int_t irow, Int_t icol) const
 }
 
 //_____________________________________________________________________________
-Int_t TRDFeeParam::getROBfromSharedPad(Int_t irow, Int_t icol) const
+int TRDFeeParam::getROBfromSharedPad(int irow, int icol) const
 {
   //
   // Return on which rob this pad is for shared pads
@@ -260,7 +264,7 @@ Int_t TRDFeeParam::getROBfromSharedPad(Int_t irow, Int_t icol) const
 }
 
 //_____________________________________________________________________________
-Int_t TRDFeeParam::getRobSide(Int_t irob) const
+int TRDFeeParam::getRobSide(int irob) const
 {
   //
   // Return on which side this rob sits (A side = 0, B side = 1)
@@ -273,7 +277,7 @@ Int_t TRDFeeParam::getRobSide(Int_t irob) const
 }
 
 //_____________________________________________________________________________
-Int_t TRDFeeParam::getColSide(Int_t icol) const
+int TRDFeeParam::getColSide(int icol) const
 {
   //
   // Return on which side this column sits (A side = 0, B side = 1)
@@ -285,7 +289,7 @@ Int_t TRDFeeParam::getColSide(Int_t icol) const
   return icol / (mgkNcol / 2);
 }
 
-UInt_t TRDFeeParam::aliToExtAli(Int_t rob, Int_t aliid)
+unsigned int TRDFeeParam::aliToExtAli(int rob, int aliid)
 {
   if (aliid != 127)
     return ((1 << 10) | (rob << 7) | aliid);
@@ -293,7 +297,7 @@ UInt_t TRDFeeParam::aliToExtAli(Int_t rob, Int_t aliid)
   return 127;
 }
 
-Int_t TRDFeeParam::extAliToAli(UInt_t dest, UShort_t linkpair, UShort_t rocType, Int_t* mcmList, Int_t listSize)
+int TRDFeeParam::extAliToAli(unsigned int dest, unsigned short linkpair, unsigned short rocType, int* mcmList, int listSize)
 {
   // Converts an extended ALICE ID which identifies a single MCM or a group of MCMs to
   // the corresponding list of MCMs. Only broadcasts (127) are encoded as 127
@@ -301,12 +305,12 @@ Int_t TRDFeeParam::extAliToAli(UInt_t dest, UShort_t linkpair, UShort_t rocType,
 
   mcmList[0] = -1;
 
-  Short_t nmcm = 0;
-  UInt_t mcm, rob, robAB;
-  UInt_t cmA = 0, cmB = 0; // Chipmask for each A and B side
+  short nmcm = 0;
+  unsigned int mcm, rob, robAB;
+  unsigned int cmA = 0, cmB = 0; // Chipmask for each A and B side
 
   // Default chipmask for 4 linkpairs (each bit correponds each alice-mcm)
-  static const UInt_t gkChipmaskDefLp[4] = { 0x1FFFF, 0x1FFFF, 0x3FFFF, 0x1FFFF };
+  static const unsigned int gkChipmaskDefLp[4] = { 0x1FFFF, 0x1FFFF, 0x3FFFF, 0x1FFFF };
 
   rob = dest >> 7;                 // Extract ROB pattern from dest.
   mcm = dest & 0x07F;              // Extract MCM pattern from dest.
@@ -372,7 +376,7 @@ Int_t TRDFeeParam::extAliToAli(UInt_t dest, UShort_t linkpair, UShort_t rocType,
   return nmcm;
 }
 
-Short_t TRDFeeParam::getRobAB(UShort_t robsel, UShort_t linkpair)
+short TRDFeeParam::getRobAB(unsigned short robsel, unsigned short linkpair)
 {
   // Converts the ROB part of the extended ALICE ID to robs
 
@@ -406,12 +410,12 @@ Short_t TRDFeeParam::getRobAB(UShort_t robsel, UShort_t linkpair)
   return 0;
 }
 
-Short_t TRDFeeParam::chipmaskToMCMlist(UInt_t cmA, UInt_t cmB, UShort_t linkpair, Int_t* mcmList, Int_t listSize)
+short TRDFeeParam::chipmaskToMCMlist(unsigned int cmA, unsigned int cmB, unsigned short linkpair, int* mcmList, int listSize)
 {
   // Converts the chipmask to a list of MCMs
 
-  Short_t nmcm = 0;
-  Short_t i;
+  short nmcm = 0;
+  short i;
   for (i = 0; i < 18; i++) { // 18: number of MCMs on a ROB
     if ((cmA & (1 << i)) != 0 && nmcm < listSize) {
       mcmList[nmcm] = ((linkpair * 2) << 7) | i;
@@ -428,7 +432,7 @@ Short_t TRDFeeParam::chipmaskToMCMlist(UInt_t cmA, UInt_t cmB, UShort_t linkpair
 }
 
 //_____________________________________________________________________________
-void TRDFeeParam::setRAWversion(Int_t rawver)
+void TRDFeeParam::setRAWversion(int rawver)
 {
   //
   // Set raw data version (major number only)
@@ -439,5 +443,30 @@ void TRDFeeParam::setRAWversion(Int_t rawver)
     mRAWversion = rawver;
   } else {
     LOG(error) << "Raw version is out of range: " << rawver;
+  }
+}
+
+void TRDFeeParam::createPad2MCMLookUpTable()
+{
+      
+ //
+ // Initializes the Look Up Table to relate
+ // pad numbering and mcm channel numbering
+ //
+
+  if (!mgLUTPadNumberingFilled) {
+    
+ //   mgLUTPadNumbering.resize(TRDFeeParam::getNcol());
+  //  memset(&mgLUTPadNumbering[0], 0, sizeof(mgLUTPadNumbering[0]) * TRDFeeParam::getNcol());
+
+    for (int mcm = 0; mcm < 8; mcm++) {
+      int lowerlimit = 0 + mcm * 18;
+      int upperlimit = 18 + mcm * 18;
+      int shiftposition = 1 + 3 * mcm;
+      for (int index = lowerlimit; index < upperlimit; index++) {
+          TRDFeeParam::instance()->mgLUTPadNumbering[index] = index + shiftposition;
+      }
+    }
+    mgLUTPadNumberingFilled = kTRUE;
   }
 }

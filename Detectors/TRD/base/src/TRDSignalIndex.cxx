@@ -198,7 +198,7 @@ void TRDSignalIndex::allocate(const Int_t nrow, const Int_t ncol, const Int_t nt
 //_____________________________________________________________________________
 void TRDSignalIndex::resetArrays()
 {
-  if (!IsAllocated())
+  if (!isAllocated())
     return;
   memset(mBoolIndex, 0x00, sizeof(bool) * mMaxLimit);
   memset(mSortedIndex, 0xFF, sizeof(RowCol) * mCountRC);
@@ -206,7 +206,7 @@ void TRDSignalIndex::resetArrays()
 }
 
 //_____________________________________________________________________________
-void TRDSignalIndex::Reset()
+void TRDSignalIndex::reset()
 {
   //
   // Reset the array but keep the size - realloc
