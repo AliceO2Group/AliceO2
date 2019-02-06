@@ -11,7 +11,7 @@
 #ifndef ALICEO2_MCCOMPLABEL_H
 #define ALICEO2_MCCOMPLABEL_H
 
-#include <Rtypes.h>
+#include "AliTPCCommonRtypes.h"
 
 namespace o2
 {
