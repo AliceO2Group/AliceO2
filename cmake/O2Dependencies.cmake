@@ -612,6 +612,7 @@ o2_define_bucket(
     DetectorsBase
     RIO
     SimConfig
+    AliTPCCommonBase_bucket
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
