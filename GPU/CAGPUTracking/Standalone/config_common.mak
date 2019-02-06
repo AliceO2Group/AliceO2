@@ -14,8 +14,8 @@ CC_i686-pc-cygwin			= ICC
 INCLUDEPATHS				= . SliceTracker HLTHeaders Merger GlobalTracker TRDTracking Common TPCFastTransformation display qa
 DEFINES						= GPUCA_STANDALONE GPUCA_ENABLE_GPU_TRACKER
 
-EXTRAFLAGSGCC				=
-EXTRAFLAGSLINK				= -rdynamic
+EXTRAFLAGSGCC				+=
+EXTRAFLAGSLINK				+= -rdynamic
 
 ifeq ($(BUILD_DEBUG), 1)
 COMPILER_FLAGS				= DBG
