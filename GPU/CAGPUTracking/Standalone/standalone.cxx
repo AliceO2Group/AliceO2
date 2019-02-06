@@ -212,6 +212,7 @@ int SetupReconstruction()
 	devProc.globalInitMutex = configStandalone.gpuInitMutex;
 	devProc.gpuDeviceOnly = configStandalone.oclGPUonly;
 	devProc.memoryAllocationStrategy = configStandalone.allocationStrategy;
+	if (configStandalone.configRec.runTRD != -1) devProc.runTRDTracker = configStandalone.configRec.runTRD;
 	
 	if (configStandalone.configProc.nStreams >= 0) devProc.nStreams = configStandalone.configProc.nStreams;
 	if (configStandalone.configProc.constructorPipeline >= 0) devProc.trackletConstructorInPipeline = configStandalone.configProc.constructorPipeline;
@@ -302,45 +303,41 @@ int main(int argc, char** argv)
 			nEvents /= (configStandalone.configTF.nMerge > 1 ? configStandalone.configTF.nMerge : 1);
 		}
 
-		for (int jj = 0;jj < configStandalone.runs2;jj++)
+		for (int j2 = 0;j2 < configStandalone.runs2;j2++)
 		{
 			if (configStandalone.configQA.inputHistogramsOnly) break;
-			if (configStandalone.runs2 > 1) printf("RUN2: %d\n", jj);
+			if (configStandalone.runs2 > 1) printf("RUN2: %d\n", j2);
 			long long int nTracksTotal = 0;
 			long long int nClustersTotal = 0;
 			int nEventsProcessed = 0;
 
-			for (int i = configStandalone.StartEvent;i < nEvents;i++)
+			for (int iEvent = configStandalone.StartEvent;iEvent < nEvents;iEvent++)
 			{
-				if (i != configStandalone.StartEvent) printf("\n");
+				if (iEvent != configStandalone.StartEvent) printf("\n");
 				HighResTimer timerLoad;
 				timerLoad.Start();
 				if (configStandalone.configTF.bunchSim)
 				{
-					if (tf->LoadCreateTimeFrame(i)) break;
+					if (tf->LoadCreateTimeFrame(iEvent)) break;
 				}
 				else if (configStandalone.configTF.nMerge)
 				{
-					if (tf->LoadMergedEvents(i)) break;
+					if (tf->LoadMergedEvents(iEvent)) break;
 				}
 				else
 				{
-					if (ReadEvent(i)) break;
+					if (ReadEvent(iEvent)) break;
 				}
 				printf("Loading time: %'d us\n", (int) (1000000 * timerLoad.GetCurrentElapsedTime()));
 
-				printf("Processing Event %d\n", i);
-				for (int j = 0;j < configStandalone.runs;j++)
+				printf("Processing Event %d\n", iEvent);
+				for (int j1 = 0;j1 < configStandalone.runs;j1++)
 				{
-					if (configStandalone.runs > 1) printf("Run %d\n", j + 1);
+					if (configStandalone.runs > 1) printf("Run %d\n", j1 + 1);
 					if (configStandalone.outputcontrolmem) rec->SetOutputControl(outputmemory.get(), configStandalone.outputcontrolmem);
-					rec->SetResetTimers(j <= configStandalone.runsInit);
+					rec->SetResetTimers(j1 <= configStandalone.runsInit);
 					
 					int tmpRetVal = rec->RunStandalone();
-					if (tmpRetVal == 0 && configStandalone.configRec.runTRD)
-					{
-						tmpRetVal = rec->RunTRDTracking();
-					}
 					
 					if (tmpRetVal == 0)
 					{
@@ -356,13 +353,25 @@ int main(int argc, char** argv)
 						}
 						nClusters = rec->GetTPCMerger().NClusters();
 						printf("Output Tracks: %d (%d/%d attached clusters)\n", nTracks, nAttachedClusters, nAttachedClustersFitted);
-						if (j == 0)
+						if (j1 == 0)
 						{
 							nTracksTotal += nTracks;
 							nClustersTotal += nClusters;
 							nEventsProcessed++;
 						}
 					}
+					
+					if (rec->GetDeviceProcessingSettings().runTRDTracker)
+					{
+						int nTracklets = 0;
+						for (int k = 0;k < rec->GetTRDTracker()->NTracks();k++)
+						{
+							auto& trk = rec->GetTRDTracker()->Tracks()[k];
+							nTracklets += trk.GetNtracklets();
+						}
+						printf("TRD Tracker reconstructed %d tracks (%d tracklets)\n", rec->GetTRDTracker()->NTracks(), nTracklets);
+					}
+					
 					if (tmpRetVal == 2)
 					{
 						configStandalone.continueOnError = 0; //Forced exit from event display loop

@@ -197,9 +197,6 @@ int AliGPUReconstructionCPU::RunTPCTrackingMerger()
 
 int AliGPUReconstructionCPU::RunTRDTracking()
 {
-	HighResTimer timer;
-	timer.Start();
-	
 	if (!workers()->trdTracker.IsInitialized()) return 1;
 	std::vector<GPUTRDTrack> tracksTPC;
 	std::vector<int> tracksTPCLab;
@@ -236,12 +233,6 @@ int AliGPUReconstructionCPU::RunTRDTracking()
 	}
 
 	workers()->trdTracker.DoTracking();
-	
-	printf("TRD Tracker reconstructed %d tracks\n", workers()->trdTracker.NTracks());
-	if (mDeviceProcessingSettings.debugLevel >= 1)
-	{
-		printf("TRD tracking time: %'d us\n", (int) (1000000 * timer.GetCurrentElapsedTime()));
-	}
 	
 	return 0;
 }

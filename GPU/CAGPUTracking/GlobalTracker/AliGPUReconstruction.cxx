@@ -173,8 +173,6 @@ int AliGPUReconstruction::InitializeProcessors()
 	{
 		(mProcessors[i].proc->*(mProcessors[i].InitializeProcessor))();
 	}
-	workers()->trdTracker.Init((AliGPUTRDGeometry*) mTRDGeometry.get()); //Cast is safe, we just add some member functions
-
 	return 0;
 }
 
@@ -766,6 +764,17 @@ int AliGPUReconstruction::RunStandalone()
 			timerMerger.Reset();
 			timerQA.Reset();
 			nCount = 0;
+		}
+	}
+	
+	if (mDeviceProcessingSettings.runTRDTracker && mIOPtrs.nTRDTracklets)
+	{
+		HighResTimer timer;
+		timer.Start();
+		if (RunTRDTracking()) return 1;
+		if (mDeviceProcessingSettings.debugLevel >= 1)
+		{
+			printf("TRD tracking time: %'d us\n", (int) (1000000 * timer.GetCurrentElapsedTime()));
 		}
 	}
 
