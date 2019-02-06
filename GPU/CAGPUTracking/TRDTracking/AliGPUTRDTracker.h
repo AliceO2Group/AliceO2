@@ -79,7 +79,11 @@ class AliGPUTRDTracker : public AliGPUProcessor {
       printf("Error: Track dropped (no memory available) -> must not happen\n");
       return(1);
     }
+#ifdef GPUCA_ALIROOT_LIB
     new (&fTracks[fNTracks++]) GPUTRDTrack(trk);
+#else
+    fTracks[fNTracks++] = trk;
+#endif
     if (label >= 0) {
         fTracks[fNTracks-1].SetLabel(label);
     }
