@@ -26,7 +26,7 @@ using namespace o2::trd;
 //_______________________________________________________________________
 TRDArraySignal::TRDArraySignal() = default;
 
-    //_______________________________________________________________________
+//_______________________________________________________________________
 TRDArraySignal::TRDArraySignal(int nrow, int ncol, int ntime)
 {
   // TRDArraySignal constructor
@@ -37,11 +37,10 @@ TRDArraySignal::TRDArraySignal(int nrow, int ncol, int ntime)
 TRDArraySignal::TRDArraySignal(const TRDArraySignal& d)
   : mNdet(d.mNdet), mNrow(d.mNrow), mNcol(d.mNcol), mNumberOfChannels(d.mNumberOfChannels), mNtime(d.mNtime), mNdim(d.mNdim), mSignal(d.mSignal)
 {
-
 }
 
 //_______________________________________________________________________
-TRDArraySignal::~TRDArraySignal() = default; 
+TRDArraySignal::~TRDArraySignal() = default;
 
 //________________________________________________________________________________
 inline float TRDArraySignal::getData(int nrow, int ncol, int ntime) const
@@ -114,7 +113,7 @@ void TRDArraySignal::allocate(int nrow, int ncol, int ntime)
   if (mSignal.size() != mNdim)
     mSignal.resize(mNdim);
 
-  memset(&mSignal[0],0,sizeof(mSignal[0])*mNdim);
+  memset(&mSignal[0], 0, sizeof(mSignal[0]) * mNdim);
 }
 
 //_______________________________________________________________________
@@ -209,7 +208,6 @@ void TRDArraySignal::compress(float minval)
   }
 }
 
-
 //_______________________________________________________________________
 void TRDArraySignal::expand()
 {
@@ -284,4 +282,3 @@ void TRDArraySignal::reset()
 
   memset(&mSignal[0], 0, sizeof(mSignal[0]) * mNdim);
 }
-

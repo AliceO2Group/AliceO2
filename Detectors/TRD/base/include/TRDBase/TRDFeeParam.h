@@ -63,9 +63,9 @@ class TRDFeeParam
   virtual int getROBfromSharedPad(Int_t irow, Int_t icol) const;
   virtual int getRobSide(Int_t irob) const;
   virtual int getColSide(Int_t icol) const;
-  
+
   // SCSN-related
-  static unsigned int aliToExtAli(Int_t rob, Int_t aliid);                                                       // Converts the MCM-ROB combination to the extended MCM ALICE ID (used to address MCMs on the SCSN Bus)
+  static unsigned int aliToExtAli(Int_t rob, Int_t aliid);                                               // Converts the MCM-ROB combination to the extended MCM ALICE ID (used to address MCMs on the SCSN Bus)
   static int extAliToAli(UInt_t dest, UShort_t linkpair, UShort_t rocType, Int_t* list, Int_t listSize); // translates an extended MCM ALICE ID to a list of MCMs
   static Short_t chipmaskToMCMlist(unsigned int cmA, UInt_t cmB, UShort_t linkpair, Int_t* mcmList, Int_t listSize);
   static Short_t getRobAB(UShort_t robsel, UShort_t linkpair); // Returns the chamber side (A=0, B=0) of a ROB
@@ -96,18 +96,18 @@ class TRDFeeParam
   // Concerning raw data format
   int getRAWversion() const { return mRAWversion; }
   void setRAWversion(int rawver);
-  
-  inline short padMcmLUT(int index) { return mgLUTPadNumbering[index];}
+
+  inline short padMcmLUT(int index) { return mgLUTPadNumbering[index]; }
 
  protected:
   static TRDFeeParam* mgInstance; // Singleton instance
-  static bool mgTerminated;     // Defines if this class has already been terminated
+  static bool mgTerminated;       // Defines if this class has already been terminated
 
   TRDCommonParam* mCP = nullptr; // TRD common parameters class
-  
+
   static std::vector<short> mgLUTPadNumbering; // Lookup table mapping Pad to MCM
-  static bool mgLUTPadNumberingFilled; // Lookup table mapping Pad to MCM
-  
+  static bool mgLUTPadNumberingFilled;         // Lookup table mapping Pad to MCM
+
   void createPad2MCMLookUpTable();
 
   // Basic Geometrical numbers
@@ -130,8 +130,8 @@ class TRDFeeParam
   static bool mgUseTimeOffset;           // add time offset in calculation of fit sums
 
   // For raw production
-  int mRAWversion{ 3 };                   // Raw data production version
-  static const int mgkMaxRAWversion = 3;  // Maximum raw version number supported
+  int mRAWversion{ 3 };                  // Raw data production version
+  static const int mgkMaxRAWversion = 3; // Maximum raw version number supported
  private:
   TRDFeeParam();
 

@@ -41,7 +41,6 @@ TRDArrayDictionary::TRDArrayDictionary(const TRDArrayDictionary& a)
   //
   // TRDArrayDictionary copy constructor
   //
-
 }
 
 //________________________________________________________________________________
@@ -274,4 +273,3 @@ void TRDArrayDictionary::reset()
 
   memset(&mDictionary[0], 0, sizeof(mDictionary[0]) * mNDdim);
 }
-

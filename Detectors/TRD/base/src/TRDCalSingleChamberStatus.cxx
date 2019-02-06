@@ -95,9 +95,9 @@ TRDCalSingleChamberStatus::TRDCalSingleChamberStatus(Int_t p, Int_t c, Int_t col
 
   mNchannels = mNrows * mNcols;
   if (mNchannels != 0) {
-    mData.resize(mNchannels); 
+    mData.resize(mNchannels);
   }
-  memset(&mData[0],0,sizeof(mData[0])*mData.size());
+  memset(&mData[0], 0, sizeof(mData[0]) * mData.size());
 }
 
 //_____________________________________________________________________________
@@ -152,5 +152,5 @@ void TRDCalSingleChamberStatus::Copy(TRDCalSingleChamberStatus& c) const
 
   c.mNchannels = mNchannels;
 
-  c.mData=mData;
+  c.mData = mData;
 }

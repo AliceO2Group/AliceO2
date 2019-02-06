@@ -9,23 +9,23 @@
 // or submit itself to any jurisdiction.
 
 /////////////////////////////////////////////////////////////////////
-//                                                                 
-//  TRD front end electronics parameters class                      
-//  Contains all FEE (MCM, TRAP, PASA) related                       
-//  parameters, constants, and mapping.                               
-//                                                                   
-//   2007/08/17:                                                     
-//   The default raw data version (now mRAWversion ) is set to 3    
-//   in the constructor because version 3 raw data read and write  
-//   are fully debugged.                                         
-//                                                                
-//  Author:                                                             
-//    Ken Oyama (oyama@physi.uni-heidelberg.de)                        
-//                                                                    
-//  many things now configured by AliTRDtrapConfig reflecting        
-//  the real memory structure of the TRAP (Jochen)                  
-//                                 
-//  Now has the mcm to pad lookup table mapping                    
+//
+//  TRD front end electronics parameters class
+//  Contains all FEE (MCM, TRAP, PASA) related
+//  parameters, constants, and mapping.
+//
+//   2007/08/17:
+//   The default raw data version (now mRAWversion ) is set to 3
+//   in the constructor because version 3 raw data read and write
+//   are fully debugged.
+//
+//  Author:
+//    Ken Oyama (oyama@physi.uni-heidelberg.de)
+//
+//  many things now configured by AliTRDtrapConfig reflecting
+//  the real memory structure of the TRAP (Jochen)
+//
+//  Now has the mcm to pad lookup table mapping
 //////////////////////////////////////////////////////////////////
 
 #include <TGeoManager.h>
@@ -448,23 +448,23 @@ void TRDFeeParam::setRAWversion(int rawver)
 
 void TRDFeeParam::createPad2MCMLookUpTable()
 {
-      
- //
- // Initializes the Look Up Table to relate
- // pad numbering and mcm channel numbering
- //
+
+  //
+  // Initializes the Look Up Table to relate
+  // pad numbering and mcm channel numbering
+  //
 
   if (!mgLUTPadNumberingFilled) {
-    
- //   mgLUTPadNumbering.resize(TRDFeeParam::getNcol());
-  //  memset(&mgLUTPadNumbering[0], 0, sizeof(mgLUTPadNumbering[0]) * TRDFeeParam::getNcol());
+
+    //   mgLUTPadNumbering.resize(TRDFeeParam::getNcol());
+    //  memset(&mgLUTPadNumbering[0], 0, sizeof(mgLUTPadNumbering[0]) * TRDFeeParam::getNcol());
 
     for (int mcm = 0; mcm < 8; mcm++) {
       int lowerlimit = 0 + mcm * 18;
       int upperlimit = 18 + mcm * 18;
       int shiftposition = 1 + 3 * mcm;
       for (int index = lowerlimit; index < upperlimit; index++) {
-          TRDFeeParam::instance()->mgLUTPadNumbering[index] = index + shiftposition;
+        TRDFeeParam::instance()->mgLUTPadNumbering[index] = index + shiftposition;
       }
     }
     mgLUTPadNumberingFilled = kTRUE;

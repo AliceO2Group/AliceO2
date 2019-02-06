@@ -63,7 +63,7 @@ class TRDArrayDictionary
   int mNumberOfChannels{ 0 };   //  Number of MCM channels per row
   int mNtime{ 0 };              //Number of time bins
   int mNDdim{ 0 };              //Dimension of the Dictionary array
-  bool mFlag{ 0 };         //! Has Expand() being called before?
+  bool mFlag{ 0 };              //! Has Expand() being called before?
   std::vector<int> mDictionary; //[mNDdim]  //Pointer to integers array
 
   ClassDefNV(TRDArrayDictionary, 1) //Dictionary container class

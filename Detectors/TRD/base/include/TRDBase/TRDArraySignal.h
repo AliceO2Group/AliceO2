@@ -56,13 +56,13 @@ class TRDArraySignal
   void setData(int nrow, int ncol, int ntime, float value);
 
  protected:
-  int mNdet{ 0 };                              //ID number of the chamber
-  int mNrow{ 0 };                              //Number of rows of the chamber
-  int mNcol{ 0 };                              //Number of columns of the chamber
-  int mNumberOfChannels{ 0 };                  //  Number of MCM channels per row
-  int mNtime{ 0 };                             //Number of time bins
-  int mNdim{ 0 };                              //Dimension of the array
-  std::vector<float> mSignal;                  //[fNdim]  //Pointer to signals
+  int mNdet{ 0 };             //ID number of the chamber
+  int mNrow{ 0 };             //Number of rows of the chamber
+  int mNcol{ 0 };             //Number of columns of the chamber
+  int mNumberOfChannels{ 0 }; //  Number of MCM channels per row
+  int mNtime{ 0 };            //Number of time bins
+  int mNdim{ 0 };             //Dimension of the array
+  std::vector<float> mSignal; //[fNdim]  //Pointer to signals
 
   ClassDefNV(TRDArraySignal, 1) //Signal container class
 };

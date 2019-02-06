@@ -9,28 +9,28 @@
 // or submit itself to any jurisdiction.
 
 ///
-//  
-// Container class for ADC values of the TRD Pads. 
-// originally from aliroot 
-// 
+//
+// Container class for ADC values of the TRD Pads.
+// originally from aliroot
+//
 // The interface will remain constant.
 // The underlying storage mechanism remains to be optimised as of 2/2/2019
 //
 // The array is a 3d array mapped to a linear array.
 // 2 space coordinates 1 time cordinate
 // [row][columb][30 time bins]
-// 
+//
 // There are always 30 times per pad.
 //
-// This will be converted to a sparse matrix after 
+// This will be converted to a sparse matrix after
 // due testing. This will be transparent to users.
 //
 // Compression and Expansion is a run length encoding
 // with encodings in the negative numbers, real data is positive.
 //
 //
-// NB 
-// Do Not use the getDataAddress as the pointer 
+// NB
+// Do Not use the getDataAddress as the pointer
 // can not be guaranteed to remain constant.
 // It will cause a fatal log error
 //
