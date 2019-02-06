@@ -12,6 +12,8 @@ set(GPUCF_SRC
     "./common/Object.cpp"
     "./common/RowInfo.cpp"
 
+    "./debug/StreamCompactionTest.cpp"
+
     "./executable/Benchmark.cpp"
     "./executable/CfRunner.cpp"
     "./executable/ClCanary.cpp"
