@@ -55,17 +55,13 @@ struct HeatMapHelper {
       describeCell(row, slot);
     }
 
-    drawList->AddQuadFilled(
+    drawList->AddRectFilled(
       ImVec2(0., 0.) + winPos,
-      ImVec2{ size.x, 0 } + winPos,
-      ImVec2{ size.x, size.y} + winPos,
-      ImVec2{ 0, size.y} + winPos,
+      ImVec2{ size.x, size.y } + winPos,
       BACKGROUND_COLOR);
-    drawList->AddQuad(
+    drawList->AddRect(
       ImVec2(0., 0.) + winPos,
-      ImVec2{ size.x - 1, 0 } + winPos,
-      ImVec2{ size.x - 1, size.y} + winPos,
-      ImVec2{ 0, size.y} + winPos,
+      ImVec2{ size.x - 1, size.y } + winPos,
       BORDER_COLOR);
     float padding = 1;
     for (size_t ri = 0, re = getNumRecords(); ri < re; ri++) {
@@ -77,11 +73,9 @@ struct HeatMapHelper {
         ImVec2 yOffSet{ 0, (mi * boxSizeY) + padding };
         ImVec2 ySize{ 0, boxSizeY - 2 * padding };
 
-        drawList->AddQuadFilled(
+        drawList->AddRectFilled(
           xOffset + yOffSet + winPos,
-          xOffset + xSize + yOffSet + winPos,
           xOffset + xSize + yOffSet + ySize + winPos,
-          xOffset + yOffSet + ySize + winPos,
           getColor(getValue(getItem(record, mi))));
       }
     }
