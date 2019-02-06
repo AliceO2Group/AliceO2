@@ -1715,6 +1715,7 @@ o2_define_bucket(
     ParBase
     VMC
     Geom
+    data_format_simulation_bucket
     SimulationDataFormat
 
     INCLUDE_DIRECTORIES
