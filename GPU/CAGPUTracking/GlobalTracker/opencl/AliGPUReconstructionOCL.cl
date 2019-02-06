@@ -23,61 +23,64 @@ using namespace cl;
 #endif
 #define assert(param)
 
-#define DEVICE_KERNELS_PREA GPUglobal() char* gpu_mem, GPUconstant() MEM_CONSTANT(AliGPUCAConstantMem)* pConstant
-#define DEVICE_KERNELS_PRE DEVICE_KERNELS_PREA,
 #include "AliGPUDeviceKernels.h"
-
 #include "AliGPUCADataTypes.h"
 
-GPUg() void KernelMemClean16(DEVICE_KERNELS_PRE unsigned long ptr, unsigned long size)
+#define OCL_DEVICE_KERNELS_PRE GPUglobal() char* gpu_mem, GPUconstant() MEM_CONSTANT(AliGPUCAConstantMem)* pConstant
+#define OCL_CALL_KERNEL(T, I, num) \
+	GPUshared() typename T::MEM_LOCAL(AliGPUTPCSharedMemory) smem; \
+	T::template Thread<I>( get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Worker(*pConstant)[num]);
+	
+#define OCL_CALL_KERNEL_MULTI(T, I) \
+	const int iSlice = nSliceCount * (get_group_id(0) + (get_num_groups(0) % nSliceCount != 0 && nSliceCount * (get_group_id(0) + 1) % get_num_groups(0) != 0)) / get_num_groups(0); \
+	const int nSliceBlockOffset = get_num_groups(0) * iSlice / nSliceCount; \
+	const int sliceBlockId = get_group_id(0) - nSliceBlockOffset; \
+	const int sliceGridDim = get_num_groups(0) * (iSlice + 1) / nSliceCount - get_num_groups(0) * (iSlice) / nSliceCount; \
+	GPUshared() typename T::MEM_LOCAL(AliGPUTPCSharedMemory) smem; \
+	T::template Thread<I>( sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, T::Worker(*pConstant)[firstSlice + iSlice]);
+
+#define OCL_CALL_KERNEL_ARGS(T, I, ...) \
+	GPUshared() typename T::AliGPUTPCSharedMemory smem; \
+	T::template Thread<I>( get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Worker(*pConstant)[0], __VA_ARGS__);
+
+//if (gpu_mem != pTracker.GPUParametersConst()->fGPUMem) return; //TODO!
+
+GPUg() void KernelMemClean16(OCL_DEVICE_KERNELS_PRE, unsigned long ptr, unsigned long size)
 {
-	GPUshared() typename AliGPUMemClean16::AliGPUTPCSharedMemory smem;
-	AliGPUMemClean16::template Thread<0>( get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, AliGPUMemClean16::Worker(*pConstant)[0], (GPUglobalref() void*) (void*) ptr, size);
+	OCL_CALL_KERNEL_ARGS(AliGPUMemClean16, 0, (GPUglobalref() void*) (void*) ptr, size);
 }
 
-GPUg() void AliGPUTPCProcess_AliGPUTPCNeighboursFinder(DEVICE_KERNELS_PRE int iSlice)
+GPUg() void AliGPUTPCProcess_AliGPUTPCNeighboursFinder(OCL_DEVICE_KERNELS_PRE, int iSlice)
 {
-	GPUshared() typename AliGPUTPCNeighboursFinder::MEM_LOCAL(AliGPUTPCSharedMemory) smem;
-	AliGPUTPCNeighboursFinder::template Thread<0>( get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, AliGPUTPCNeighboursFinder::Worker(*pConstant)[iSlice]);
+	OCL_CALL_KERNEL(AliGPUTPCNeighboursFinder, 0, iSlice);
 }
 
-GPUg() void AliGPUTPCProcess_AliGPUTPCNeighboursCleaner(DEVICE_KERNELS_PRE int iSlice)
+GPUg() void AliGPUTPCProcess_AliGPUTPCNeighboursCleaner(OCL_DEVICE_KERNELS_PRE, int iSlice)
 {
-	GPUshared() typename AliGPUTPCNeighboursCleaner::MEM_LOCAL(AliGPUTPCSharedMemory) smem;
-	AliGPUTPCNeighboursCleaner::template Thread<0>( get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, AliGPUTPCNeighboursCleaner::Worker(*pConstant)[iSlice]);
+	OCL_CALL_KERNEL(AliGPUTPCNeighboursCleaner, 0, iSlice);
 }
 
-GPUg() void AliGPUTPCProcess_AliGPUTPCStartHitsFinder(DEVICE_KERNELS_PRE int iSlice)
+GPUg() void AliGPUTPCProcess_AliGPUTPCStartHitsFinder(OCL_DEVICE_KERNELS_PRE, int iSlice)
 {
-	GPUshared() typename AliGPUTPCStartHitsFinder::MEM_LOCAL(AliGPUTPCSharedMemory) smem;
-	AliGPUTPCStartHitsFinder::template Thread<0>( get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, AliGPUTPCStartHitsFinder::Worker(*pConstant)[iSlice]);
+	OCL_CALL_KERNEL(AliGPUTPCStartHitsFinder, 0, iSlice);
 }
 
-GPUg() void AliGPUTPCProcess_AliGPUTPCStartHitsSorter(DEVICE_KERNELS_PRE int iSlice)
+GPUg() void AliGPUTPCProcess_AliGPUTPCStartHitsSorter(OCL_DEVICE_KERNELS_PRE, int iSlice)
 {
-	GPUshared() typename AliGPUTPCStartHitsSorter::MEM_LOCAL(AliGPUTPCSharedMemory) smem;
-	AliGPUTPCStartHitsSorter::template Thread<0>( get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, AliGPUTPCStartHitsSorter::Worker(*pConstant)[iSlice]);
+	OCL_CALL_KERNEL(AliGPUTPCStartHitsSorter, 0, iSlice);
 }
 
-GPUg() void AliGPUTPCProcessMulti_AliGPUTPCTrackletSelector(DEVICE_KERNELS_PRE int firstSlice, int nSliceCount)
+GPUg() void AliGPUTPCProcessMulti_AliGPUTPCTrackletSelector(OCL_DEVICE_KERNELS_PRE, int firstSlice, int nSliceCount)
 {
-	const int iSlice = nSliceCount * (get_group_id(0) + (get_num_groups(0) % nSliceCount != 0 && nSliceCount * (get_group_id(0) + 1) % get_num_groups(0) != 0)) / get_num_groups(0);
-	const int nSliceBlockOffset = get_num_groups(0) * iSlice / nSliceCount;
-	const int sliceBlockId = get_group_id(0) - nSliceBlockOffset;
-	const int sliceGridDim = get_num_groups(0) * (iSlice + 1) / nSliceCount - get_num_groups(0) * (iSlice) / nSliceCount;
-	GPUshared() typename AliGPUTPCTrackletSelector::MEM_LOCAL(AliGPUTPCSharedMemory) smem;
-	AliGPUTPCTrackletSelector::template Thread<0>( sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, AliGPUTPCTrackletSelector::Worker(*pConstant)[firstSlice + iSlice]);
+	OCL_CALL_KERNEL_MULTI(AliGPUTPCTrackletSelector, 0);
 }
 
-GPUg() void AliGPUTPCProcess_AliGPUTPCTrackletConstructor0(DEVICE_KERNELS_PRE int iSlice)
+GPUg() void AliGPUTPCProcess_AliGPUTPCTrackletConstructor0(OCL_DEVICE_KERNELS_PRE, int iSlice)
 {
-	GPUshared() typename AliGPUTPCTrackletConstructor::MEM_LOCAL(AliGPUTPCSharedMemory) smem;
-	AliGPUTPCTrackletConstructor::template Thread<0>( get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, AliGPUTPCTrackletConstructor::Worker(*pConstant)[iSlice]);
+	OCL_CALL_KERNEL(AliGPUTPCTrackletConstructor, 0, iSlice);
 }
 
-GPUg() void AliGPUTPCProcess_AliGPUTPCTrackletConstructor1(DEVICE_KERNELS_PREA)
+GPUg() void AliGPUTPCProcess_AliGPUTPCTrackletConstructor1(OCL_DEVICE_KERNELS_PRE)
 {
-	//if (gpu_mem != pTracker.GPUParametersConst()->fGPUMem) return;
-	GPUshared() typename AliGPUTPCTrackletConstructor::MEM_LOCAL(AliGPUTPCSharedMemory) smem;
-	AliGPUTPCTrackletConstructor::template Thread<1>( get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, AliGPUTPCTrackletConstructor::Worker(*pConstant)[0]);
+	OCL_CALL_KERNEL(AliGPUTPCTrackletConstructor, 1, 0);
 }
