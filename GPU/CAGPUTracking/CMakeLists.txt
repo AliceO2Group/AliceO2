@@ -175,7 +175,7 @@ endif()
 #Some extra files / includes / settings needed for the build for O2
 if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
     set(SRCS ${SRCS}
-        Interface/AliGPUTPCO2Interface.cxx
+        Interface/AliCAGPUO2Interface.cxx
     )
     set(SRCS_NO_CINT ${SRCS_NO_CINT}
         Standalone/display/AliGPUCADisplayBackend.cpp
