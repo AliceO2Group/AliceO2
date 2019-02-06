@@ -21,7 +21,7 @@
 #include "AliGPUTPCTracker.h"
 #include "AliTPCCommonMath.h"
 
-template <> GPUd() void AliGPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) & s, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) & tracker)
+template <> GPUd() void AliGPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &s, workerType &tracker)
 {
 	// find start hits for tracklets
 

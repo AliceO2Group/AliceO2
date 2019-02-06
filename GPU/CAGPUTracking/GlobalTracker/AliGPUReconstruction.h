@@ -179,13 +179,13 @@ public:
 	void ConvertNativeToClusterData();
 	
 	//Getters for external usage of tracker classes
-	AliGPUTRDTracker* GetTRDTracker() {return &mWorkers->trdTracker;}
+	AliGPUTRDTracker* GetTRDTracker() {return &workers()->trdTracker;}
 	o2::ITS::TrackerTraits* GetITSTrackerTraits() {return mITSTrackerTraits.get();}
 	o2::ITS::VertexerTraits* GetITSVertexerTraits() {return mITSVertexerTraits.get();}
-	AliGPUTPCTracker* GetTPCSliceTrackers() {return mWorkers->tpcTrackers;}
-	const AliGPUTPCTracker* GetTPCSliceTrackers() const {return mWorkers->tpcTrackers;}
-	const AliGPUTPCGMMerger& GetTPCMerger() const {return mWorkers->tpcMerger;}
-	AliGPUTPCGMMerger& GetTPCMerger() {return mWorkers->tpcMerger;}
+	AliGPUTPCTracker* GetTPCSliceTrackers() {return workers()->tpcTrackers;}
+	const AliGPUTPCTracker* GetTPCSliceTrackers() const {return workers()->tpcTrackers;}
+	const AliGPUTPCGMMerger& GetTPCMerger() const {return workers()->tpcMerger;}
+	AliGPUTPCGMMerger& GetTPCMerger() {return workers()->tpcMerger;}
 	AliGPUCADisplay* GetEventDisplay() {return mEventDisplay.get();}
 	const AliGPUCAQA* GetQA() const {return mQA.get();}
 	AliGPUCAQA* GetQA() {return mQA.get();}
@@ -202,7 +202,7 @@ public:
 	//Getters / setters for parameters
 	DeviceType GetDeviceType() const {return (DeviceType) mProcessingSettings.deviceType;}
 	bool IsGPU() const {return GetDeviceType() != INVALID_DEVICE && GetDeviceType() != CPU;}
-	const AliGPUCAParam& GetParam() const {return mParam;}
+	const AliGPUCAParam& GetParam() const {return mHostConstantMem->param;}
 	const TPCFastTransform* GetTPCTransform() const {return mTPCFastTransform.get();}
 	const o2::trd::TRDGeometryFlat* GetTRDGeometry() const {return mTRDGeometry.get();}
 	const ClusterNativeAccessExt* GetClusterNativeAccessExt() const {return mClusterNativeAccess.get();}
@@ -266,12 +266,14 @@ protected:
 	template <class T> void ReadStructFromFile(const char* file, T* obj);
 	
 	//Pointers to tracker classes
-	std::unique_ptr<AliGPUCAWorkers> mWorkers;
+	AliGPUCAWorkers* workers() {return mHostConstantMem.get();}
+	const AliGPUCAWorkers* workers() const {return mHostConstantMem.get();}
+	AliGPUCAParam& param() {return mHostConstantMem->param;}
+	std::unique_ptr<AliGPUCAConstantMem> mHostConstantMem;
 	std::unique_ptr<o2::ITS::TrackerTraits> mITSTrackerTraits;
 	std::unique_ptr<o2::ITS::VertexerTraits> mITSVertexerTraits;
 	AliGPUTPCSliceOutput* mSliceOutput[NSLICES];
 	
-	AliGPUCAParam mParam;														//Reconstruction parameters
 	AliGPUCASettingsEvent mEventSettings;										//Event Parameters
 	AliGPUCASettingsProcessing mProcessingSettings;								//Processing Parameters (at constructor level)
 	AliGPUCASettingsDeviceProcessing mDeviceProcessingSettings;					//Processing Parameters (at init level)

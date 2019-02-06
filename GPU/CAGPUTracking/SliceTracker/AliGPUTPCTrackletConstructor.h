@@ -12,7 +12,7 @@
 #include "AliGPUTPCDef.h"
 #include "AliGPUTPCGPUConfig.h"
 #include "AliGPUTPCTrackParam.h"
-
+#include "AliGPUCADataTypes.h"
 /**
 * @class AliGPUTPCTrackletConstructor
 *
@@ -103,7 +103,9 @@ public:
 	static int AliGPUTPCTrackletConstructorGlobalTracking(AliGPUTPCTracker &tracker, AliGPUTPCTrackParam& tParam, int startrow, int increment, int iTracklet);
 #endif //GPUCA_GPUCODE
 
-	template <int iKernel = 0> GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, MEM_LOCAL(GPUsharedref() AliGPUTPCSharedMemory) &smem, MEM_CONSTANT(GPUconstant() AliGPUTPCTracker) &tracker);
+	typedef GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) workerType;
+	MEM_TEMPLATE() GPUd() static workerType* Worker(MEM_TYPE(AliGPUCAConstantMem) &workers) {return workers.tpcTrackers;}
+	template <int iKernel = 0> GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &smem, workerType &tracker);
 
 };
 

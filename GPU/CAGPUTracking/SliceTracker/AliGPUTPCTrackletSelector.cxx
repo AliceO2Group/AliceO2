@@ -25,7 +25,7 @@
 #include "AliGPUTPCTracklet.h"
 #include "AliTPCCommonMath.h"
 
-template <> GPUd() void AliGPUTPCTrackletSelector::Thread<0> (int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &s, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker)
+template <> GPUd() void AliGPUTPCTrackletSelector::Thread<0> (int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &s, workerType &tracker)
 {
 	// select best tracklets and kill clones
 

@@ -40,7 +40,7 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 	int offset = 0;
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 	{
-		mWorkers->tpcTrackers[iSlice].Data().SetClusterData(mIOPtrs.clusterData[iSlice], mIOPtrs.nClusterData[iSlice], offset);
+		workers()->tpcTrackers[iSlice].Data().SetClusterData(mIOPtrs.clusterData[iSlice], mIOPtrs.nClusterData[iSlice], offset);
 		offset += mIOPtrs.nClusterData[iSlice];
 	}
 	PrepareEvent();
@@ -51,7 +51,7 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 #endif
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 	{
-		AliGPUTPCTracker& trk = mWorkers->tpcTrackers[iSlice];
+		AliGPUTPCTracker& trk = workers()->tpcTrackers[iSlice];
 		if (trk.ReadEvent())
 		{
 			CAGPUError("Error initializing cluster data\n");
@@ -61,7 +61,7 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 		trk.SetOutput(&mSliceOutput[iSlice]);
 		if (trk.CheckEmptySlice()) continue;
 
-		if (mParam.debugLevel >= 6)
+		if (mDeviceProcessingSettings.debugLevel >= 6)
 		{
 			if (!mDeviceProcessingSettings.comparableDebutOutput)
 			{
@@ -80,19 +80,19 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 			memcpy(trk.LinkTmpMemory(), Res(trk.Data().MemoryResScratch()).Ptr(), Res(trk.Data().MemoryResScratch()).Size());
 		}
 
-		if (mParam.debugLevel >= 6) trk.DumpLinks(mDebugFile);
+		if (mDeviceProcessingSettings.debugLevel >= 6) trk.DumpLinks(mDebugFile);
 
 		trk.StartTimer(2);
 		runKernel<AliGPUTPCNeighboursCleaner>({GPUCA_ROW_COUNT - 2, 1, 0}, {iSlice});
 		trk.StopTimer(2);
 
-		if (mParam.debugLevel >= 6) trk.DumpLinks(mDebugFile);
+		if (mDeviceProcessingSettings.debugLevel >= 6) trk.DumpLinks(mDebugFile);
 
 		trk.StartTimer(3);
 		runKernel<AliGPUTPCStartHitsFinder>({GPUCA_ROW_COUNT - 6, 1, 0}, {iSlice}); //Why not -6?
 		trk.StopTimer(3);
 
-		if (mParam.debugLevel >= 6) trk.DumpStartHits(mDebugFile);
+		if (mDeviceProcessingSettings.debugLevel >= 6) trk.DumpStartHits(mDebugFile);
 
 		trk.StartTimer(5);
 		runKernel<AliGPUMemClean16>({1, 1, 0}, {}, {}, trk.Data().HitWeights(), trk.Data().NumberOfHitsPlusAlign() * sizeof(*trk.Data().HitWeights()));
@@ -109,21 +109,21 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 		trk.StartTimer(6);
 		runKernel<AliGPUTPCTrackletConstructor>({1, 1, 0}, {iSlice});
 		trk.StopTimer(6);
-		if (mParam.debugLevel >= 3) printf("Slice %d, Number of tracklets: %d\n", iSlice, *trk.NTracklets());
+		if (mDeviceProcessingSettings.debugLevel >= 3) printf("Slice %d, Number of tracklets: %d\n", iSlice, *trk.NTracklets());
 
-		if (mParam.debugLevel >= 6) trk.DumpTrackletHits(mDebugFile);
-		if (mParam.debugLevel >= 6 && !mDeviceProcessingSettings.comparableDebutOutput) trk.DumpHitWeights(mDebugFile);
+		if (mDeviceProcessingSettings.debugLevel >= 6) trk.DumpTrackletHits(mDebugFile);
+		if (mDeviceProcessingSettings.debugLevel >= 6 && !mDeviceProcessingSettings.comparableDebutOutput) trk.DumpHitWeights(mDebugFile);
 
 		trk.StartTimer(7);
 		runKernel<AliGPUTPCTrackletSelector>({1, 1, 0}, {iSlice});
 		trk.StopTimer(7);
-		if (mParam.debugLevel >= 3) printf("Slice %d, Number of tracks: %d\n", iSlice, *trk.NTracks());
+		if (mDeviceProcessingSettings.debugLevel >= 3) printf("Slice %d, Number of tracks: %d\n", iSlice, *trk.NTracks());
 
-		if (mParam.debugLevel >= 6) trk.DumpTrackHits(mDebugFile);
+		if (mDeviceProcessingSettings.debugLevel >= 6) trk.DumpTrackHits(mDebugFile);
 
 		trk.CommonMemory()->fNLocalTracks = trk.CommonMemory()->fNTracks;
 		trk.CommonMemory()->fNLocalTrackHits = trk.CommonMemory()->fNTrackHits;
-		if (!mParam.rec.GlobalTracking)
+		if (!param().rec.GlobalTracking)
 		{
 			trk.ReconstructOutput();
 			//nOutputTracks += (*trk.Output())->NTracks();
@@ -136,7 +136,7 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 	}
 	if (error) return(1);
 
-	if (mParam.rec.GlobalTracking)
+	if (param().rec.GlobalTracking)
 	{
 		for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 		{
@@ -147,29 +147,29 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 				sliceLeft += NSLICES / 2;
 				sliceRight += NSLICES / 2;
 			}
-			mWorkers->tpcTrackers[iSlice].PerformGlobalTracking(mWorkers->tpcTrackers[sliceLeft], mWorkers->tpcTrackers[sliceRight], mWorkers->tpcTrackers[sliceLeft].NMaxTracks(), mWorkers->tpcTrackers[sliceRight].NMaxTracks());
+			workers()->tpcTrackers[iSlice].PerformGlobalTracking(workers()->tpcTrackers[sliceLeft], workers()->tpcTrackers[sliceRight], workers()->tpcTrackers[sliceLeft].NMaxTracks(), workers()->tpcTrackers[sliceRight].NMaxTracks());
 		}
 		for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 		{
-			mWorkers->tpcTrackers[iSlice].ReconstructOutput();
-			//printf("Slice %d - Tracks: Local %d Global %d - Hits: Local %d Global %d\n", iSlice, mWorkers->tpcTrackers[iSlice].CommonMemory()->fNLocalTracks, mWorkers->tpcTrackers[iSlice].CommonMemory()->fNTracks, mWorkers->tpcTrackers[iSlice].CommonMemory()->fNLocalTrackHits, mWorkers->tpcTrackers[iSlice].CommonMemory()->fNTrackHits);
-			//nLocalTracks += mWorkers->tpcTrackers[iSlice].CommonMemory()->fNLocalTracks;
-			//nGlobalTracks += mWorkers->tpcTrackers[iSlice].CommonMemory()->fNTracks;
-			//nLocalHits += mWorkers->tpcTrackers[iSlice].CommonMemory()->fNLocalTrackHits;
-			//nGlobalHits += mWorkers->tpcTrackers[iSlice].CommonMemory()->fNTrackHits;
-			//nOutputTracks += (*mWorkers->tpcTrackers[iSlice].Output())->NTracks();
+			workers()->tpcTrackers[iSlice].ReconstructOutput();
+			//printf("Slice %d - Tracks: Local %d Global %d - Hits: Local %d Global %d\n", iSlice, workers()->tpcTrackers[iSlice].CommonMemory()->fNLocalTracks, workers()->tpcTrackers[iSlice].CommonMemory()->fNTracks, workers()->tpcTrackers[iSlice].CommonMemory()->fNLocalTrackHits, workers()->tpcTrackers[iSlice].CommonMemory()->fNTrackHits);
+			//nLocalTracks += workers()->tpcTrackers[iSlice].CommonMemory()->fNLocalTracks;
+			//nGlobalTracks += workers()->tpcTrackers[iSlice].CommonMemory()->fNTracks;
+			//nLocalHits += workers()->tpcTrackers[iSlice].CommonMemory()->fNLocalTrackHits;
+			//nGlobalHits += workers()->tpcTrackers[iSlice].CommonMemory()->fNTrackHits;
+			//nOutputTracks += (*workers()->tpcTrackers[iSlice].Output())->NTracks();
 			if (!mDeviceProcessingSettings.eventDisplay)
 			{
-				mWorkers->tpcTrackers[iSlice].SetupCommonMemory();
+				workers()->tpcTrackers[iSlice].SetupCommonMemory();
 			}
 		}
 	}
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 	{
-		if (mWorkers->tpcTrackers[iSlice].GPUParameters()->fGPUError != 0)
+		if (workers()->tpcTrackers[iSlice].GPUParameters()->fGPUError != 0)
 		{
 			const char* errorMsgs[] = GPUCA_GPU_ERROR_STRINGS;
-			const char* errorMsg = (unsigned) mWorkers->tpcTrackers[iSlice].GPUParameters()->fGPUError >= sizeof(errorMsgs) / sizeof(errorMsgs[0]) ? "UNKNOWN" : errorMsgs[mWorkers->tpcTrackers[iSlice].GPUParameters()->fGPUError];
+			const char* errorMsg = (unsigned) workers()->tpcTrackers[iSlice].GPUParameters()->fGPUError >= sizeof(errorMsgs) / sizeof(errorMsgs[0]) ? "UNKNOWN" : errorMsgs[workers()->tpcTrackers[iSlice].GPUParameters()->fGPUError];
 			CAGPUError("Error during tracking: %s\n", errorMsg);
 			return(1);
 		}
@@ -179,7 +179,7 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 	{
 		for (unsigned int i = 0;i < NSLICES;i++)
 		{
-			mWorkers->tpcTrackers[i].DumpOutput(stdout);
+			workers()->tpcTrackers[i].DumpOutput(stdout);
 		}
 	}
 	return 0;
@@ -187,11 +187,11 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 
 int AliGPUReconstructionCPU::RunTPCTrackingMerger()
 {
-	mWorkers->tpcMerger.Reconstruct();
-	mIOPtrs.mergedTracks = mWorkers->tpcMerger.OutputTracks();
-	mIOPtrs.nMergedTracks = mWorkers->tpcMerger.NOutputTracks();
-	mIOPtrs.mergedTrackHits = mWorkers->tpcMerger.Clusters();
-	mIOPtrs.nMergedTrackHits = mWorkers->tpcMerger.NOutputTrackClusters();
+	workers()->tpcMerger.Reconstruct();
+	mIOPtrs.mergedTracks = workers()->tpcMerger.OutputTracks();
+	mIOPtrs.nMergedTracks = workers()->tpcMerger.NOutputTracks();
+	mIOPtrs.mergedTrackHits = workers()->tpcMerger.Clusters();
+	mIOPtrs.nMergedTrackHits = workers()->tpcMerger.NOutputTrackClusters();
 	return 0;
 }
 
@@ -200,7 +200,7 @@ int AliGPUReconstructionCPU::RunTRDTracking()
 	HighResTimer timer;
 	timer.Start();
 	
-	if (!mWorkers->trdTracker.IsInitialized()) return 1;
+	if (!workers()->trdTracker.IsInitialized()) return 1;
 	std::vector<GPUTRDTrack> tracksTPC;
 	std::vector<int> tracksTPCLab;
 	std::vector<int> tracksTPCId;
@@ -210,34 +210,34 @@ int AliGPUReconstructionCPU::RunTRDTracking()
 		const AliGPUTPCGMMergedTrack& trk = mIOPtrs.mergedTracks[i];
 		if (!trk.OK()) continue;
 		if (trk.Looper()) continue;
-		if (mParam.rec.NWaysOuter) tracksTPC.emplace_back(trk.OuterParam());
+		if (param().rec.NWaysOuter) tracksTPC.emplace_back(trk.OuterParam());
 		else tracksTPC.emplace_back(trk);
 		tracksTPCId.push_back(i);
 		tracksTPCLab.push_back(-1);
 	}
 
-	mWorkers->trdTracker.Reset();
+	workers()->trdTracker.Reset();
 
-	mWorkers->trdTracker.SetMaxData();
+	workers()->trdTracker.SetMaxData();
 	if (GetDeviceProcessingSettings().memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL)
 	{
-		AllocateRegisteredMemory(mWorkers->trdTracker.MemoryTracks());
-		AllocateRegisteredMemory(mWorkers->trdTracker.MemoryTracklets());
+		AllocateRegisteredMemory(workers()->trdTracker.MemoryTracks());
+		AllocateRegisteredMemory(workers()->trdTracker.MemoryTracklets());
 	}
 
 	for (unsigned int iTracklet = 0;iTracklet < mIOPtrs.nTRDTracklets;++iTracklet)
 	{
-		if (mWorkers->trdTracker.LoadTracklet(mIOPtrs.trdTracklets[iTracklet], mIOPtrs.trdTrackletsMC ? mIOPtrs.trdTrackletsMC[iTracklet].fLabel : nullptr)) return 1;
+		if (workers()->trdTracker.LoadTracklet(mIOPtrs.trdTracklets[iTracklet], mIOPtrs.trdTrackletsMC ? mIOPtrs.trdTrackletsMC[iTracklet].fLabel : nullptr)) return 1;
 	}
 
 	for (unsigned int iTrack = 0; iTrack < tracksTPC.size(); ++iTrack)
 	{
-		if (mWorkers->trdTracker.LoadTrack(tracksTPC[iTrack], tracksTPCLab[iTrack])) return 1;
+		if (workers()->trdTracker.LoadTrack(tracksTPC[iTrack], tracksTPCLab[iTrack])) return 1;
 	}
 
-	mWorkers->trdTracker.DoTracking();
+	workers()->trdTracker.DoTracking();
 	
-	printf("TRD Tracker reconstructed %d tracks\n", mWorkers->trdTracker.NTracks());
+	printf("TRD Tracker reconstructed %d tracks\n", workers()->trdTracker.NTracks());
 	if (mDeviceProcessingSettings.debugLevel >= 1)
 	{
 		printf("TRD tracking time: %'d us\n", (int) (1000000 * timer.GetCurrentElapsedTime()));

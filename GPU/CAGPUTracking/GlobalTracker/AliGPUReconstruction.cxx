@@ -55,13 +55,13 @@ static constexpr char DUMP_HEADER[DUMP_HEADER_SIZE + 1] = "CAv1";
 
 using namespace o2::TPC;
 
-AliGPUReconstruction::AliGPUReconstruction(const AliGPUCASettingsProcessing& cfg) : mWorkers(new AliGPUCAWorkers), mITSTrackerTraits(nullptr), mITSVertexerTraits(nullptr),  mClusterNativeAccess(new ClusterNativeAccessExt), mTPCFastTransform(nullptr),
+AliGPUReconstruction::AliGPUReconstruction(const AliGPUCASettingsProcessing& cfg) : mHostConstantMem(new AliGPUCAConstantMem), mITSTrackerTraits(nullptr), mITSVertexerTraits(nullptr),  mClusterNativeAccess(new ClusterNativeAccessExt), mTPCFastTransform(nullptr),
 	mTRDGeometry(nullptr)
 {
 	mProcessingSettings = cfg;
 	mDeviceProcessingSettings.SetDefaults();
 	mEventSettings.SetDefaults();
-	mParam.SetDefaults(&mEventSettings);
+	param().SetDefaults(&mEventSettings);
 	if (mProcessingSettings.deviceType == CPU)
 	{
 		mITSTrackerTraits.reset(new o2::ITS::TrackerTraitsCPU);
@@ -71,17 +71,17 @@ AliGPUReconstruction::AliGPUReconstruction(const AliGPUCASettingsProcessing& cfg
 	
 	for (unsigned int i = 0;i < NSLICES;i++)
 	{
-		RegisterGPUProcessor(&mWorkers->tpcTrackers[i].Data());
-		RegisterGPUProcessor(&mWorkers->tpcTrackers[i]);
+		RegisterGPUProcessor(&workers()->tpcTrackers[i].Data());
+		RegisterGPUProcessor(&workers()->tpcTrackers[i]);
 	}
-	RegisterGPUProcessor(&mWorkers->tpcMerger);
-	RegisterGPUProcessor(&mWorkers->trdTracker);
+	RegisterGPUProcessor(&workers()->tpcMerger);
+	RegisterGPUProcessor(&workers()->trdTracker);
 }
 
 AliGPUReconstruction::~AliGPUReconstruction()
 {
 	//Reset these explicitly before the destruction of other members unloads the library
-	mWorkers.reset();
+	mHostConstantMem.reset();
 	mITSTrackerTraits.reset();
 	mITSVertexerTraits.reset();
 	if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL)
@@ -100,7 +100,7 @@ int AliGPUReconstruction::Init()
 	if (mDeviceProcessingSettings.eventDisplay) mDeviceProcessingSettings.keepAllMemory = true;
 	if (mDeviceProcessingSettings.debugLevel >= 4) mDeviceProcessingSettings.keepAllMemory = true;
 	if (mDeviceProcessingSettings.debugLevel < 6) mDeviceProcessingSettings.debugMask = 0;
-	if (mParam.rec.NonConsecutiveIDs) mParam.rec.DisableRefitAttachment = 0xFF;
+	if (param().rec.NonConsecutiveIDs) param().rec.DisableRefitAttachment = 0xFF;
 		
 #ifdef GPUCA_HAVE_OPENMP
 	if (mDeviceProcessingSettings.nThreads <= 0) mDeviceProcessingSettings.nThreads = omp_get_max_threads();
@@ -167,13 +167,13 @@ int AliGPUReconstruction::InitializeProcessors()
 {
 	for (unsigned int i = 0;i < NSLICES;i++)
 	{
-		mWorkers->tpcTrackers[i].SetSlice(i);
+		workers()->tpcTrackers[i].SetSlice(i);
 	}
 	for (unsigned int i = 0;i < mProcessors.size();i++)
 	{
 		(mProcessors[i].proc->*(mProcessors[i].InitializeProcessor))();
 	}
-	mWorkers->trdTracker.Init((AliGPUTRDGeometry*) mTRDGeometry.get()); //Cast is safe, we just add some member functions
+	workers()->trdTracker.Init((AliGPUTRDGeometry*) mTRDGeometry.get()); //Cast is safe, we just add some member functions
 
 	return 0;
 }
@@ -556,7 +556,7 @@ void AliGPUReconstruction::ReadSettings(const char* dir)
 	f = dir;
 	f += "settings.dump";
 	mEventSettings.SetDefaults();
-	mParam.UpdateEventSettings(&mEventSettings);
+	param().UpdateEventSettings(&mEventSettings);
 	ReadStructFromFile(f.c_str(), &mEventSettings);
 	f = dir;
 	f += "tpctransform.dump";
@@ -639,7 +639,7 @@ void AliGPUReconstruction::ConvertNativeToClusterData()
 	{
 		*tmp = *mIOPtrs.clustersNative;
 	}
-	AliGPUReconstructionConvert::ConvertNativeToClusterData(mClusterNativeAccess.get(), mIOMem.clusterData, mIOPtrs.nClusterData, mTPCFastTransform.get(), mParam.continuousMaxTimeBin);
+	AliGPUReconstructionConvert::ConvertNativeToClusterData(mClusterNativeAccess.get(), mIOMem.clusterData, mIOPtrs.nClusterData, mTPCFastTransform.get(), param().continuousMaxTimeBin);
 	for (unsigned int i = 0;i < NSLICES;i++)
 	{
 		mIOPtrs.clusterData[i] = mIOMem.clusterData[i].get();
@@ -658,11 +658,11 @@ void AliGPUReconstruction::SetSettings(const AliGPUCASettingsEvent* settings, co
 {
 	mEventSettings = *settings;
 	if (proc) mDeviceProcessingSettings = *proc;
-	mParam.SetDefaults(&mEventSettings, rec, proc);
+	param().SetDefaults(&mEventSettings, rec, proc);
 }
 void AliGPUReconstruction::LoadClusterErrors()
 {
-	mParam.LoadClusterErrors();
+	param().LoadClusterErrors();
 }
 void AliGPUReconstruction::SetTPCFastTransform(std::unique_ptr<TPCFastTransform> tpcFastTransform)
 {
@@ -716,7 +716,7 @@ int AliGPUReconstruction::RunStandalone()
 	for (unsigned int i = 0; i < NSLICES; i++)
 	{
 		//printf("slice %d clusters %d tracks %d\n", i, fClusterData[i].NumberOfClusters(), mSliceOutput[i]->NTracks());
-		mWorkers->tpcMerger.SetSliceData(i, mSliceOutput[i]);
+		workers()->tpcMerger.SetSliceData(i, mSliceOutput[i]);
 	}
 	if (RunTPCTrackingMerger()) return 1;
 	timerMerger.Stop();
@@ -751,8 +751,8 @@ int AliGPUReconstruction::RunStandalone()
 			double time = 0;
 			for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++)
 			{
-				time += mWorkers->tpcTrackers[iSlice].GetTimer(i);
-				mWorkers->tpcTrackers[iSlice].ResetTimer(i);
+				time += workers()->tpcTrackers[iSlice].GetTimer(i);
+				workers()->tpcTrackers[iSlice].ResetTimer(i);
 			}
 			time /= NSLICES;
 			if (!IsGPU()) time /= mDeviceProcessingSettings.nThreads;
