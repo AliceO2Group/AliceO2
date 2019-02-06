@@ -5,6 +5,7 @@ include						config_options.mak
 include						config_common.mak
 
 TARGET						= ca
+EXTRAFLAGSLINK					+= -Wl,--no-undefined
 
 ifeq ($(BUILD_CUDA), 1)
 SUBTARGETS					+= libCAGPUTrackingCUDA
