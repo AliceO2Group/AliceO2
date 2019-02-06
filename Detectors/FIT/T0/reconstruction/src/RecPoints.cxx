@@ -21,14 +21,12 @@ ClassImp(o2::t0::RecPoints);
 
 void RecPoints::FillFromDigits(const o2::fit::Digit& digit)
 {
-  mTimeAmp.clear();
   mCollisionTime = {};
 
   Int_t ndigitsC = 0, ndigitsA = 0;
   constexpr Int_t nMCPsA = 4 * o2::t0::Geometry::NCellsA;
   constexpr Int_t nMCPsC = 4 * o2::t0::Geometry::NCellsC;
   constexpr Int_t nMCPs = nMCPsA + nMCPsC;
-  Float_t cfd[nMCPs] = {}, amp[nMCPs] = {};
   Float_t sideAtime = 0, sideCtime = 0;
 
   mBC = digit.getBC();
@@ -37,39 +35,28 @@ void RecPoints::FillFromDigits(const o2::fit::Digit& digit)
 
   Float_t BCEventTime = 12.5;
 
-  for (const auto& d : digit.getChDgData()) {
-    Int_t mcp = d.ChId;
-    cfd[mcp] = d.CFDTime - mEventTime - BCEventTime;
-    amp[mcp] = d.QTCAmpl;
-    mTimeAmp.push_back(ChannelData{ mcp, cfd[mcp], amp[mcp] });
-    //  LOG(DEBUG) << " mcp " << mcp<<" time "<< cfd[mcp]<<" amplitude "<< amp[mcp] << FairLogger::endl;
+  mTimeAmp = digit.getChDgData();
+  for (auto& d : mTimeAmp) {
+    d.CFDTime -= mEventTime /*- BCEventTime*/;
+    if (abs(d.CFDTime - BCEventTime) < 2) {
+      if (d.ChId < nMCPsA) {
+        sideAtime += d.CFDTime;
+        ndigitsA++;
+      } else {
+        sideCtime += d.CFDTime;
+        ndigitsC++;
+      }
+    }
   }
 
-  for (Int_t imcp = 0; imcp < nMCPsA; imcp++) {
-    if (cfd[imcp] > -2 && cfd[imcp] < 2) {
-      sideAtime += (cfd[imcp]);
-      ndigitsA++;
-    }
-  }
-  for (Int_t imcp = 0; imcp < nMCPsC; imcp++) {
-    if (cfd[imcp + nMCPsA] > 0) {
-      sideCtime += (cfd[imcp + nMCPsA]);
-      ndigitsC++;
-    }
-  }
   if (ndigitsA > 0)
-    sideAtime = sideAtime / Float_t(ndigitsA);
-  if (ndigitsC > 0)
-    sideCtime = sideCtime / Float_t(ndigitsC);
+    mCollisionTime[1] = sideAtime / Float_t(ndigitsA);
 
-  if (sideAtime > 0 && sideCtime > 0) {
-    mVertex = (sideAtime - sideCtime) / 2.;
-    mCollisionTime[0] = (sideAtime + sideCtime) / 2.;
-  }
-  if (sideAtime > 0) {
-    mCollisionTime[1] = sideAtime;
-  }
-  if (sideCtime > 0) {
-    mCollisionTime[2] = sideCtime;
+  if (ndigitsC > 0)
+    mCollisionTime[2] = sideCtime / Float_t(ndigitsC);
+
+  if (ndigitsA > 0 && ndigitsC > 0) {
+    mVertex = (mCollisionTime[1] - mCollisionTime[2]) / 2.;
+    mCollisionTime[0] = (mCollisionTime[1] + mCollisionTime[2]) / 2.;
   }
 }
