@@ -12,6 +12,7 @@
 #include "AliGPUTPCDef.h"
 #include "AliGPUTPCGPUConfig.h"
 #include "AliGPUTPCRow.h"
+#include "AliGPUCADataTypes.h"
 MEM_CLASS_PRE()
 class AliGPUTPCTracker;
 
@@ -21,7 +22,7 @@ class AliGPUTPCTracker;
  */
 class AliGPUTPCNeighboursFinder
 {
-  public:
+public:
 	MEM_CLASS_PRE()
 	class AliGPUTPCSharedMemory
 	{
@@ -63,7 +64,9 @@ class AliGPUTPCNeighboursFinder
 		fRow, fRowUp, fRowDown;
 	};
 
-	template <int iKernel = 0> GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, MEM_LOCAL(GPUsharedref() AliGPUTPCSharedMemory) &smem, MEM_CONSTANT(GPUconstant() AliGPUTPCTracker) &tracker);
+	typedef GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) workerType;
+	MEM_TEMPLATE() GPUd() static workerType* Worker(MEM_TYPE(AliGPUCAConstantMem) &workers) {return workers.tpcTrackers;}
+	template <int iKernel = 0> GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &smem, workerType &tracker);
 };
 
 #endif //ALIHLTTPCCANEIGHBOURSFINDER_H

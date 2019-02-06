@@ -12,6 +12,7 @@
 #include "AliGPUTPCDef.h"
 #include "AliGPUTPCGPUConfig.h"
 #include "AliGPUTPCHitId.h"
+#include "AliGPUCADataTypes.h"
 MEM_CLASS_PRE()
 class AliGPUTPCTracker;
 
@@ -21,13 +22,13 @@ class AliGPUTPCTracker;
  */
 class AliGPUTPCTrackletSelector
 {
-  public:
+public:
 	MEM_CLASS_PRE()
 	class AliGPUTPCSharedMemory
 	{
 		friend class AliGPUTPCTrackletSelector;
 
-	  protected:
+	protected:
 		int fItr0;          // index of the first track in the block
 		int fNThreadsTotal; // total n threads
 		int fNTracklets;    // n of tracklets
@@ -36,7 +37,9 @@ class AliGPUTPCTrackletSelector
 #endif //GPUCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
 	};
 
-	template <int iKernel = 0> GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, MEM_LOCAL(GPUsharedref() AliGPUTPCSharedMemory) & smem, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) & tracker);
+	typedef GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) workerType;
+	MEM_TEMPLATE() GPUd() static workerType* Worker(MEM_TYPE(AliGPUCAConstantMem) &workers) {return workers.tpcTrackers;}
+	template <int iKernel = 0> GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &smem, workerType& tracker);
 };
 
 #endif //ALIHLTTPCCATRACKLETSELECTOR_H

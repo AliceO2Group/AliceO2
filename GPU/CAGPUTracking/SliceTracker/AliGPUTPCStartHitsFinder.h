@@ -11,7 +11,7 @@
 
 #include "AliGPUTPCDef.h"
 #include "AliGPUTPCHitId.h"
-
+#include "AliGPUCADataTypes.h"
 MEM_CLASS_PRE()
 class AliGPUTPCTracker;
 
@@ -47,7 +47,9 @@ class AliGPUTPCStartHitsFinder
 		int fNRowStartHits; //start hits found in the row
 	};
 
-	template <int iKernel = 0> GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, MEM_LOCAL(GPUsharedref() AliGPUTPCSharedMemory) &smem, MEM_CONSTANT(GPUconstant() AliGPUTPCTracker) &tracker);
+	typedef GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) workerType;
+	MEM_TEMPLATE() GPUd() static workerType* Worker(MEM_TYPE(AliGPUCAConstantMem) &workers) {return workers.tpcTrackers;}
+	template <int iKernel = 0> GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &smem, workerType &tracker);
 };
 
 #endif //ALIHLTTPCCASTARTHITSFINDER_H

@@ -14,22 +14,20 @@ namespace o2 { namespace ITS { class TrackerTraitsHIP : public TrackerTraits {};
 #define DEVICE_KERNELS_PRE
 #include "AliGPUDeviceKernels.h"
 
-template <class TProcess, int I, typename... Args> GPUd() void runKernelHIP(int iSlice, Args... args)
+template <class T, int I, typename... Args> GPUd() void runKernelHIP(int iSlice, Args... args)
 {
-	AliGPUTPCTracker &tracker = gGPUConstantMem.tpcTrackers[iSlice];
-	GPUshared() typename TProcess::AliGPUTPCSharedMemory smem;
-	TProcess::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, tracker, args...);
+	GPUshared() typename T::AliGPUTPCSharedMemory smem;
+	T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Worker(gGPUConstantMem)[iSlice], args...);
 }
 
-template <class TProcess, int I, typename... Args> GPUd() void runKernelHIPMulti(int firstSlice, int nSliceCount, Args... args)
+template <class T, int I, typename... Args> GPUd() void runKernelHIPMulti(int firstSlice, int nSliceCount, Args... args)
 {
 	const int iSlice = nSliceCount * (get_group_id(0) + (get_num_groups(0) % nSliceCount != 0 && nSliceCount * (get_group_id(0) + 1) % get_num_groups(0) != 0)) / get_num_groups(0);
 	const int nSliceBlockOffset = get_num_groups(0) * iSlice / nSliceCount;
 	const int sliceBlockId = get_group_id(0) - nSliceBlockOffset;
 	const int sliceGridDim = get_num_groups(0) * (iSlice + 1) / nSliceCount - get_num_groups(0) * (iSlice) / nSliceCount;
-	AliGPUTPCTracker &tracker = gGPUConstantMem.tpcTrackers[firstSlice + iSlice];
-	GPUshared() typename TProcess::AliGPUTPCSharedMemory smem;
-	TProcess::template Thread<I>(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, tracker, args...);
+	GPUshared() typename T::AliGPUTPCSharedMemory smem;
+	T::template Thread<I>(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, T::Worker(gGPUConstantMem)[firstSlice + iSlice], args...);
 }
 
 template <class T, int I, typename... Args> int AliGPUReconstructionHIPBackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, Args... args)

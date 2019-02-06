@@ -82,7 +82,7 @@ protected:
 			for (unsigned int iB = 0; iB < x.nBlocks; iB++)
 			{
 				typename T::AliGPUTPCSharedMemory smem;
-				T::template Thread<I>(x.nBlocks, 1, iB, 0, smem, mWorkers->tpcTrackers[y.start + k], args...);
+				T::template Thread<I>(x.nBlocks, 1, iB, 0, smem, T::Worker(*mHostConstantMem)[y.start + k], args...);
 			}
 		}
 		return 0;

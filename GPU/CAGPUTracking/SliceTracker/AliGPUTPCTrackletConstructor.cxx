@@ -409,7 +409,7 @@ GPUd() void AliGPUTPCTrackletConstructor::DoTracklet(GPUconstant() MEM_CONSTANT(
 	}
 }
 
-template <> GPUd() void AliGPUTPCTrackletConstructor::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &sMem, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker)
+template <> GPUd() void AliGPUTPCTrackletConstructor::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &sMem, workerType &tracker)
 {
 	if (get_local_id(0) == 0) sMem.fNTracklets = *tracker.NTracklets();
 #ifdef GPUCA_GPUCODE
@@ -428,7 +428,7 @@ template <> GPUd() void AliGPUTPCTrackletConstructor::Thread<0>(int nBlocks, int
 	}
 }
 
-template <> GPUd() void AliGPUTPCTrackletConstructor::Thread<1>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &sMem, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker0)
+template <> GPUd() void AliGPUTPCTrackletConstructor::Thread<1>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &sMem, workerType &tracker0)
 {
 #ifdef GPUCA_GPUCODE
 	GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) *pTracker = &tracker0;
