@@ -18,6 +18,8 @@
 
 using namespace o2::TPC;
 using o2::mathUtils::mathBase::fitGaus;
+using o2::mathUtils::mathBase::getStatisticsData;
+using o2::mathUtils::mathBase::StatisticsData;
 
 CalibPedestal::CalibPedestal(PadSubset padSubset)
   : CalibRawBase(padSubset),
@@ -26,6 +28,7 @@ CalibPedestal::CalibPedestal(PadSubset padSubset)
     mADCMin(0),
     mADCMax(120),
     mNumberOfADCs(mADCMax - mADCMin + 1),
+    mStatisticsType(StatisticsType::GausFit),
     mPedestal("Pedestals", padSubset),
     mNoise("Noise", padSubset),
     mADCdata()
@@ -92,12 +95,21 @@ void CalibPedestal::analyse()
 
     const size_t numberOfPads = (roc.rocType() == RocType::IROC) ? mMapper.getPadsInIROC() : mMapper.getPadsInOROC();
 
+    float pedestal{};
+    float noise{};
+
     for (Int_t ichannel = 0; ichannel < numberOfPads; ++ichannel) {
       size_t offset = ichannel * mNumberOfADCs;
-      fitGaus(mNumberOfADCs, array + offset, float(mADCMin), float(mADCMax + 1), fitValues);
+      if (mStatisticsType == StatisticsType::GausFit) {
+        fitGaus(mNumberOfADCs, array + offset, float(mADCMin), float(mADCMax + 1), fitValues);
+        pedestal = fitValues[1];
+        noise = fitValues[2];
+      } else if (mStatisticsType == StatisticsType::MeanStdDev) {
+        StatisticsData data = getStatisticsData(array + offset, mNumberOfADCs, double(mADCMin), double(mADCMax));
+        pedestal = data.mCOG;
+        noise = data.mStdDev;
+      }
 
-      const float pedestal = fitValues[1];
-      const float noise = fitValues[2];
       calROCPedestal.setValue(ichannel, pedestal);
       calROCNoise.setValue(ichannel, noise);
 

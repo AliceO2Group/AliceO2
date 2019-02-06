@@ -19,7 +19,7 @@
 
 using namespace o2::TPC;
 
-void CalibRawBase::setupContainers(TString fileInfo)
+void CalibRawBase::setupContainers(TString fileInfo, uint32_t verbosity, uint32_t debugLevel)
 {
   int iSize = 4000000;
   int iCRU = 0;
@@ -63,7 +63,8 @@ void CalibRawBase::setupContainers(TString fileInfo)
       for (auto file : *arr) {
         // fix the number of time bins
         mRawReadersCRU.emplace_back(std::make_unique<RawReaderCRU>(file->GetName(), timeBins));
-        mRawReadersCRU.back()->setVerbosity(2);
+        mRawReadersCRU.back()->setVerbosity(verbosity);
+        mRawReadersCRU.back()->setDebugLevel(debugLevel);
         printf("Adding file: %s\n", file->GetName());
         if (arrDataInfo->GetEntriesFast() == 3) {
           const int cru = static_cast<TObjString*>(arrDataInfo->At(2))->String().Atoi();

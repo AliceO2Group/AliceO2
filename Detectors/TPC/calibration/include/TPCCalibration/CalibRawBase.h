@@ -97,7 +97,11 @@ class CalibRawBase
   /// \param eventNumber: Either number >=0 or -1 (next event) or -2 (previous event)
   ProcessStatus processEvent(int eventNumber = -1);
 
-  void setupContainers(TString fileInfo);
+  /// set up the raw readers
+  /// \param fileInfo file description information
+  /// \param verbosity verbosity level of the raw readers
+  /// \param debugLevel debug level of the raw readers
+  void setupContainers(TString fileInfo, uint32_t verbosity = 0, uint32_t debugLevel = 0);
 
   /// Set the debug level
   /// \param debugLevel debug level
@@ -423,7 +427,6 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int st
         ++timeBin;
         hasData = true;
       }
-
     }
     LOG(INFO) << "Found time bins: " << mProcessedTimeBins << "\n";
 
