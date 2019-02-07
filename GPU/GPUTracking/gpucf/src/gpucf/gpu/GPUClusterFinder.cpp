@@ -25,6 +25,8 @@ void GPUClusterFinder::setupImpl(ClEnv &env, const DataSet &data)
 {
     digits = data.deserialize<Digit>();
 
+    streamCompaction.setup(env, digits.size());
+
     context = env.getContext(); 
     device  = env.getDevice();
 
@@ -36,6 +38,10 @@ void GPUClusterFinder::setupImpl(ClEnv &env, const DataSet &data)
     // create buffers
     digitsBufSize = sizeof(Digit) * digits.size();
     digitsBuf = cl::Buffer(context,
+                          CL_MEM_READ_WRITE,
+                          digitsBufSize);
+
+    peaksBuf = cl::Buffer(context,
                           CL_MEM_READ_WRITE,
                           digitsBufSize);
 
@@ -125,38 +131,44 @@ GPUAlgorithm::Result GPUClusterFinder::runImpl()
                                nullptr,
                                findingPeaks.get());
 
+    int numPeaks = streamCompaction.enqueue(queue, digitsBuf, peaksBuf, isPeakBuf);
+
+    log::Debug() << "Found " << numPeaks << " peaks";
+
     computeClusters.setArg(0, chargeMap);
-    computeClusters.setArg(1, digitsBuf);
+    computeClusters.setArg(1, peaksBuf);
     computeClusters.setArg(2, globalToLocalRowBuf);
-    computeClusters.setArg(3, isPeakBuf);
-    computeClusters.setArg(4, clusterBuf);
+    computeClusters.setArg(3, clusterBuf);
     queue.enqueueNDRangeKernel(computeClusters,
                                cl::NullRange,
-                               global,
+                               cl::NDRange(numPeaks),
                                local,
                                nullptr,
                                computingClusters.get());
 
     log::Info() << "Copy results back...";
-    std::vector<Cluster> clusters(digits.size());
-    ASSERT(clusters.size() * sizeof(Cluster) == clusterBufSize);
+    std::vector<Cluster> clusters(numPeaks);
+    ASSERT(clusters.size() * sizeof(Cluster) <= clusterBufSize);
     queue.enqueueReadBuffer(clusterBuf, 
                             CL_TRUE, 
                             0, 
-                            clusterBufSize, 
+                            clusters.size() * sizeof(Cluster), 
                             clusters.data(),
                             nullptr,
                             clustersToHost.get());
 
-    std::vector<int> isClusterCenter(digits.size());
-    ASSERT(isClusterCenter.size() * sizeof(int) == isPeakBufSize);
-    queue.enqueueReadBuffer(isPeakBuf, CL_TRUE, 0, isPeakBufSize,
-            isClusterCenter.data());
+    std::vector<Digit> peaks(numPeaks);
+    ASSERT(peaks.size() * sizeof(Digit) <= digitsBufSize);
+    queue.enqueueReadBuffer(digitsBuf, 
+                            CL_TRUE, 
+                            0, 
+                            peaks.size() * sizeof(Digit),
+                            peaks.data());
 
-    printClusters(isClusterCenter, clusters, 10);
+    printClusters(clusters, 10);
 
-    clusters = filterCluster(isClusterCenter, clusters);
-    peaks = compactDigits(isClusterCenter, digits);
+    /* clusters = filterCluster(isClusterCenter, clusters); */
+    /* peaks = compactDigits(isClusterCenter, digits); */
 
     ASSERT(clusters.size() == peaks.size());
 
@@ -180,23 +192,17 @@ GPUAlgorithm::Result GPUClusterFinder::runImpl()
 
 
 void GPUClusterFinder::printClusters(
-        const std::vector<int> &isCenter,
         const std::vector<Cluster> &clusters,
         size_t maxClusters)
 {
     log::Debug() << "Printing found clusters";
-    ASSERT(isCenter.size() == clusters.size());
-    for (size_t i = 0; i < isCenter.size(); i++)
+    for (size_t i = 0; i < clusters.size(); i++)
     {
-        ASSERT(isCenter[i] == 0 || isCenter[i] == 1);
-        if (isCenter[i])
+        log::Debug() << clusters[i];
+        maxClusters--;
+        if (maxClusters == 0)
         {
-            log::Debug() << clusters[i];
-            maxClusters--;
-            if (maxClusters == 0)
-            {
-                break;
-            }
+            break;
         }
     }
 }
