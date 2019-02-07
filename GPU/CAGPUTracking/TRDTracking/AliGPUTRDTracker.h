@@ -137,9 +137,11 @@ class AliGPUTRDTracker : public AliGPUProcessor {
   GPUd() int   GetNCandidates()      const { return fNCandidates; }
 
   // output
-  GPUd() GPUTRDTrack *Tracks()                       const { return fTracks;}
   GPUd() int NTracks()                               const { return fNTracks;}
+  GPUd() GPUTRDTrack *Tracks()                       const { return fTracks;}
+  GPUd() int NSpacePoints()                          const { return fNMaxSpacePoints;}
   GPUd() AliGPUTRDSpacePointInternal *SpacePoints()  const { return fSpacePoints; }
+  GPUd() AliGPUTRDTrackletWord *Tracklets()          const { return fTracklets; }
   GPUd() void DumpTracks();
 
  protected:

@@ -66,10 +66,14 @@ public:
 private:
 	static constexpr int fgkNSlices = AliGPUReconstruction::NSLICES;
 	
-	static constexpr const int N_POINTS_TYPE = 9;
-	static constexpr const int N_LINES_TYPE = 6;
+	static constexpr const int N_POINTS_TYPE = 11;
+	static constexpr const int N_POINTS_TYPE_TPC = 9;
+	static constexpr const int N_POINTS_TYPE_TRD = 2;
+	static constexpr const int N_LINES_TYPE = 7;
 	static constexpr const int N_FINAL_TYPE = 4;
 	static constexpr int TRACK_TYPE_ID_LIMIT = 100;
+	enum PointTypes {tCLUSTER = 0, tINITLINK = 1, tLINK = 2, tSEED = 3, tTRACKLET = 4, tSLICETRACK = 5, tGLOBALTRACK = 6, tFINALTRACK = 7, tMARKED = 8, tTRDCLUSTER = 9, tTRDATTACHED = 10};
+	enum LineTypes {RESERVED = 0 /*1 -- 6 = INITLINK to GLOBALTRACK*/};
 	
 	typedef std::tuple<GLsizei, GLsizei, int> vboList;
 	struct GLvertex {GLfloat x, y, z; GLvertex(GLfloat a, GLfloat b, GLfloat c) : x(a), y(b), z(c) {}};
@@ -82,14 +86,14 @@ private:
 		bool smoothLines = false;
 		bool depthBuffer = false;
 
-		int drawClusters = true;
-		int drawLinks = false;
-		int drawSeeds = false;
-		int drawInitLinks = false;
-		int drawTracklets = false;
-		int drawTracks = false;
-		int drawGlobalTracks = false;
-		int drawFinal = false;
+		bool drawClusters = true;
+		bool drawLinks = false;
+		bool drawSeeds = false;
+		bool drawInitLinks = false;
+		bool drawTracklets = false;
+		bool drawTracks = false;
+		bool drawGlobalTracks = false;
+		bool drawFinal = false;
 		int excludeClusters = 0;
 		int propagateTracks = 0;
 
@@ -102,6 +106,9 @@ private:
 
 		float pointSize = 2.0;
 		float lineWidth = 1.4;
+		
+		bool drawTPC = true;
+		bool drawTRD = true;
 	};
 
 	struct DrawArraysIndirectCommand
@@ -156,6 +163,7 @@ private:
 	int InitGL_internal();
 	const AliGPUCAParam& param();
 	const AliGPUTPCTracker& sliceTracker(int iSlice);
+	const AliGPUTRDTracker& trdTracker();
 	const AliGPUReconstruction::InOutPointers ioptrs();
 	void drawVertices(const vboList& v, const GLenum t);
 	void insertVertexList(std::pair<vecpod<GLint>*, vecpod<GLsizei>*>& vBuf, size_t first, size_t last);
@@ -174,6 +182,7 @@ private:
 	void removeAnimationPoint();
 	void startAnimation();
 	void showInfo(const char* info);
+	void SetColorTRD();
 	void SetColorClusters();
 	void SetColorInitLinks();
 	void SetColorLinks();
@@ -196,6 +205,8 @@ private:
 	void updateConfig();
 	void drawPointLinestrip(int iSlice, int cid, int id, int id_limit = TRACK_TYPE_ID_LIMIT);
 	vboList DrawClusters(const AliGPUTPCTracker &tracker, int select, int iCol);
+	vboList DrawSpacePointsTRD(int iSlice, int select, int iCol);
+	vboList DrawSpacePointsTRD(const AliGPUTPCTracker &tracker, int select, int iCol);
 	vboList DrawLinks(const AliGPUTPCTracker &tracker, int id, bool dodown = false);
 	vboList DrawSeeds(const AliGPUTPCTracker &tracker);
 	vboList DrawTracklets(const AliGPUTPCTracker &tracker);
@@ -272,10 +283,17 @@ private:
 	float Xadd = 0;
 	float Zadd = 0;
 
-	std::unique_ptr<float4[]> globalPosPtr = nullptr;
+	std::unique_ptr<float4[]> globalPosPtr;
+	std::unique_ptr<float4[]> globalPosPtrTRD;
+	std::unique_ptr<float4[]> globalPosPtrTRD2;
 	float4* globalPos;
+	float4* globalPosTRD;
+	float4* globalPosTRD2;
 	int maxClusters = 0;
+	int maxSpacePointsTRD = 0;
 	int currentClusters = 0;
+	int currentSpacePointsTRD = 0;
+	std::vector<int> trdTrackIds;
 
 	int glDLrecent = 0;
 	int updateDLList = 0;
@@ -302,6 +320,15 @@ private:
 	std::vector<threadVertexBuffer> threadBuffers;
 	std::vector<std::vector<std::array<std::array<vecpod<int>, 2>, fgkNSlices>>> threadTracks;
 	volatile int initResult = 0;
+	
+	float fpsscale = 1, fpsscaleadjust = 0;
+	int framesDone = 0, framesDoneFPS = 0;
+	HighResTimer timerFPS, timerDisplay, timerDraw;
+	vboList glDLlines[fgkNSlices][N_LINES_TYPE];
+	vecpod<std::array<vboList, N_FINAL_TYPE>> glDLfinal[fgkNSlices];
+	vecpod<vboList> glDLpoints[fgkNSlices][N_POINTS_TYPE];
+	vboList glDLgrid[fgkNSlices];
+	vecpod<DrawArraysIndirectCommand> cmdsBuffer;
 };
 
 #endif

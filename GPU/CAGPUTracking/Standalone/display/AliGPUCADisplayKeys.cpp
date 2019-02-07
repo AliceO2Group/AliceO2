@@ -40,6 +40,7 @@ const char* HelpText[] = {
 	"[SHIFT]                       Slow Zoom / Move / Rotate",
 	"[ALT] / [CTRL] / [m]          Focus camera on origin / orient y-axis upwards (combine with [SHIFT] to lock) / Cycle through modes",
 	"[1] ... [8] / [N]             Enable display of clusters, preseeds, seeds, starthits, tracklets, tracks, global tracks, merged tracks / Show assigned clusters in colors"
+	"[F1] / [F2]                   Enable / disable drawing of TPC / TRD"
 	//FREE: u z
 };
 
@@ -349,6 +350,14 @@ void AliGPUCADisplay::HandleKeyRelease(unsigned char key)
 	else if (key == '8')
 	{
 		cfg.drawFinal ^= 1;
+	}
+	else if (key == mBackend->KEY_F1)
+	{
+		cfg.drawTPC ^= 1;
+	}
+	else if (key == mBackend->KEY_F2)
+	{
+		cfg.drawTRD ^= 1;
 	}
 	else if (key == 't')
 	{

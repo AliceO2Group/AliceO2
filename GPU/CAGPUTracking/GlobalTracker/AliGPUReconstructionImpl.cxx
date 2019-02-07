@@ -15,8 +15,6 @@
 #include "AliHLTTPCRawCluster.h"
 #include "ClusterNativeAccessExt.h"
 #include "AliGPUTRDTrackletLabels.h"
-#include "AliGPUCADisplay.h"
-#include "AliGPUCAQA.h"
 #include "AliGPUMemoryResource.h"
 #include "AliGPUCADataTypes.h"
 

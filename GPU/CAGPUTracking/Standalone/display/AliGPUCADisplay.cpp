@@ -30,9 +30,12 @@
 #include "AliGPUReconstruction.h"
 #include "AliGPUTPCTrack.h"
 #include "AliGPUTPCTracker.h"
+#include "AliGPUTRDTracker.h"
 #include "AliGPUTPCGMMergedTrack.h"
 #include "AliGPUTPCGMPropagator.h"
 #include "AliGPUTPCClusterData.h"
+#include "AliGPUTRDTrackletWord.h"
+#include "AliGPUTRDGeometry.h"
 #include "cmodules/timer.h"
 #include "cmodules/qconfig.h"
 
@@ -67,6 +70,7 @@ AliGPUCADisplay::AliGPUCADisplay(AliGPUCADisplayBackend* backend, AliGPUReconstr
 
 const AliGPUCAParam& AliGPUCADisplay::param() {return mRec->GetParam();}
 const AliGPUTPCTracker& AliGPUCADisplay::sliceTracker(int iSlice) {return mRec->GetTPCSliceTrackers()[iSlice];}
+const AliGPUTRDTracker& AliGPUCADisplay::trdTracker() {return *mRec->GetTRDTracker();}
 const AliGPUReconstruction::InOutPointers AliGPUCADisplay::ioptrs() {return mRec->mIOPtrs;}
 
 inline void AliGPUCADisplay::drawVertices(const vboList& v, const GLenum t)
@@ -231,6 +235,7 @@ void AliGPUCADisplay::startAnimation()
 }
 
 inline void AliGPUCADisplay::SetColorClusters() { if (cfg.colorCollisions) return; if (invertColors) glColor3f(0, 0.3, 0.7); else glColor3f(0, 0.7, 1.0); }
+inline void AliGPUCADisplay::SetColorTRD() { if (cfg.colorCollisions) return; if (invertColors) glColor3f(0.7, 0.3, 0); else glColor3f(1.0, 0.7, 0); }
 inline void AliGPUCADisplay::SetColorInitLinks() { if (invertColors) glColor3f(0.42, 0.4, 0.1); else glColor3f(0.42, 0.4, 0.1); }
 inline void AliGPUCADisplay::SetColorLinks() { if (invertColors) glColor3f(0.6, 0.1, 0.1); else glColor3f(0.8, 0.2, 0.2); }
 inline void AliGPUCADisplay::SetColorSeeds() { if (invertColors) glColor3f(0.6, 0.0, 0.65); else glColor3f(0.8, 0.1, 0.85); }
@@ -487,6 +492,29 @@ inline void AliGPUCADisplay::drawPointLinestrip(int iSlice, int cid, int id, int
 	if (globalPos[cid].w < id_limit) globalPos[cid].w = id;
 }
 
+AliGPUCADisplay::vboList AliGPUCADisplay::DrawSpacePointsTRD(int iSlice, int select, int iCol)
+{
+	size_t startCount = vertexBufferStart[iSlice].size();
+	size_t startCountInner = vertexBuffer[iSlice].size();
+	
+	if (iCol == 0)
+	{
+		for (int i = 0;i < trdTracker().NSpacePoints();i++)
+		{
+			int iSec = mRec->GetTRDGeometry()->GetSector(trdTracker().Tracklets()[i].GetDetector());
+			bool draw = iSlice == iSec && globalPosTRD[i].w == select;
+			if (draw)
+			{
+				vertexBuffer[iSlice].emplace_back(globalPosTRD[i].x, globalPosTRD[i].y, projectxy ? 0 : globalPosTRD[i].z);
+				vertexBuffer[iSlice].emplace_back(globalPosTRD2[i].x, globalPosTRD2[i].y, projectxy ? 0 : globalPosTRD2[i].z);
+			}
+		}
+	}
+
+	insertVertexList(iSlice, startCountInner, vertexBuffer[iSlice].size());
+	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
+}
+
 AliGPUCADisplay::vboList AliGPUCADisplay::DrawClusters(const AliGPUTPCTracker &tracker, int select, int iCol)
 {
 	int iSlice = tracker.ISlice();
@@ -507,14 +535,14 @@ AliGPUCADisplay::vboList AliGPUCADisplay::DrawClusters(const AliGPUTPCTracker &t
 			{
 				if (markAdjacentClusters >= 16)
 				{
-					if (mQA && mQA->clusterRemovable(cid, markAdjacentClusters == 17)) draw = select == 8;
+					if (mQA && mQA->clusterRemovable(cid, markAdjacentClusters == 17)) draw = select == tMARKED;
 				}
-				else if ((markAdjacentClusters & 2) && (attach & AliGPUTPCGMMerger::attachTube)) draw = select == 8;
-				else if ((markAdjacentClusters & 1) && (attach & (AliGPUTPCGMMerger::attachGood | AliGPUTPCGMMerger::attachTube)) == 0) draw = select == 8;
-				else if ((markAdjacentClusters & 4) && (attach & AliGPUTPCGMMerger::attachGoodLeg) == 0) draw = select == 8;
+				else if ((markAdjacentClusters & 2) && (attach & AliGPUTPCGMMerger::attachTube)) draw = select == tMARKED;
+				else if ((markAdjacentClusters & 1) && (attach & (AliGPUTPCGMMerger::attachGood | AliGPUTPCGMMerger::attachTube)) == 0) draw = select == tMARKED;
+				else if ((markAdjacentClusters & 4) && (attach & AliGPUTPCGMMerger::attachGoodLeg) == 0) draw = select == tMARKED;
 				else if (markAdjacentClusters & 8)
 				{
-					if (fabsf(merger.OutputTracks()[attach & AliGPUTPCGMMerger::attachTrackMask].GetParam().GetQPt()) > 20.f) draw = select == 8;
+					if (fabsf(merger.OutputTracks()[attach & AliGPUTPCGMMerger::attachTrackMask].GetParam().GetQPt()) > 20.f) draw = select == tMARKED;
 				}
 			}
 		}
@@ -522,14 +550,14 @@ AliGPUCADisplay::vboList AliGPUCADisplay::DrawClusters(const AliGPUTPCTracker &t
 		{
 			const short flags = tracker.ClusterData()[cidInSlice].fFlags;
 			const bool match = flags & markClusters;
-			draw = (select == 8) ? (match) : (draw && !match);
+			draw = (select == tMARKED) ? (match) : (draw && !match);
 		}
 		if (draw)
 		{
 			vertexBuffer[iSlice].emplace_back(globalPos[cid].x, globalPos[cid].y, projectxy ? 0 : globalPos[cid].z);
 		}
 	}
-	insertVertexList(tracker.ISlice(), startCountInner, vertexBuffer[iSlice].size());
+	insertVertexList(iSlice, startCountInner, vertexBuffer[iSlice].size());
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
@@ -573,7 +601,7 @@ AliGPUCADisplay::vboList AliGPUCADisplay::DrawLinks(const AliGPUTPCTracker &trac
 				}
 		}
 	}
-	insertVertexList(tracker.ISlice(), startCountInner, vertexBuffer[iSlice].size());
+	insertVertexList(iSlice, startCountInner, vertexBuffer[iSlice].size());
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
@@ -592,11 +620,11 @@ AliGPUCADisplay::vboList AliGPUCADisplay::DrawSeeds(const AliGPUTPCTracker &trac
 		{
 			const AliGPUTPCRow &row = tracker.Data().Row(ir);
 			const int cid = tracker.ClusterData()[tracker.Data().ClusterDataIndex(row, ih)].fId;
-			drawPointLinestrip(iSlice, cid, 3);
+			drawPointLinestrip(iSlice, cid, tSEED);
 			ir += 2;
 			ih = tracker.Data().HitLinkUpData(row, ih);
 		} while (ih != CALINK_INVAL);
-		insertVertexList(tracker.ISlice(), startCountInner, vertexBuffer[iSlice].size());
+		insertVertexList(iSlice, startCountInner, vertexBuffer[iSlice].size());
 	}
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
@@ -624,10 +652,10 @@ AliGPUCADisplay::vboList AliGPUCADisplay::DrawTracklets(const AliGPUTPCTracker &
 				const AliGPUTPCRow &row = tracker.Data().Row(j);
 				const int cid = tracker.ClusterData()[tracker.Data().ClusterDataIndex(row, rowHit)].fId;
 				oldpos = globalPos[cid];
-				drawPointLinestrip(iSlice, cid, 4);
+				drawPointLinestrip(iSlice, cid, tTRACKLET);
 			}
 		}
-		insertVertexList(tracker.ISlice(), startCountInner, vertexBuffer[iSlice].size());
+		insertVertexList(iSlice, startCountInner, vertexBuffer[iSlice].size());
 	}
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
@@ -646,9 +674,9 @@ AliGPUCADisplay::vboList AliGPUCADisplay::DrawTracks(const AliGPUTPCTracker &tra
 			const AliGPUTPCHitId &hit = tracker.TrackHits()[track.FirstHitID() + j];
 			const AliGPUTPCRow &row = tracker.Data().Row(hit.RowIndex());
 			const int cid = tracker.ClusterData()[tracker.Data().ClusterDataIndex(row, hit.HitIndex())].fId;
-			drawPointLinestrip(iSlice, cid, 5 + global);
+			drawPointLinestrip(iSlice, cid, tTRACKLET + global);
 		}
-		insertVertexList(tracker.ISlice(), startCountInner, vertexBuffer[iSlice].size());
+		insertVertexList(iSlice, startCountInner, vertexBuffer[iSlice].size());
 	}
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
@@ -676,7 +704,7 @@ void AliGPUCADisplay::DrawFinal(int iSlice, int /*iCol*/, AliGPUTPCGMPropagator*
 			{
 				if (hideRejectedClusters && (merger.Clusters()[track->FirstClusterRef() + k].fState & AliGPUTPCGMMergedTrackHit::flagReject)) continue;
 				int cid = merger.Clusters()[track->FirstClusterRef() + k].fNum;
-				if (drawing) drawPointLinestrip(iSlice, cid, 7, SEPERATE_GLOBAL_TRACKS_LIMIT);
+				if (drawing) drawPointLinestrip(iSlice, cid, tFINALTRACK, SEPERATE_GLOBAL_TRACKS_LIMIT);
 				if (globalPos[cid].w == SEPERATE_GLOBAL_TRACKS_LIMIT)
 				{
 					if (drawing) insertVertexList(vBuf[0], startCountInner, vertexBuffer[iSlice].size());
@@ -685,11 +713,23 @@ void AliGPUCADisplay::DrawFinal(int iSlice, int /*iCol*/, AliGPUTPCGMPropagator*
 				else
 				{
 					if (!drawing) startCountInner = vertexBuffer[iSlice].size();
-					if (!drawing) drawPointLinestrip(iSlice, cid, 7, SEPERATE_GLOBAL_TRACKS_LIMIT);
+					if (!drawing) drawPointLinestrip(iSlice, cid, tFINALTRACK, SEPERATE_GLOBAL_TRACKS_LIMIT);
 					if (!drawing && lastCluster != -1) drawPointLinestrip(iSlice, merger.Clusters()[track->FirstClusterRef() + lastCluster].fNum, 7, SEPERATE_GLOBAL_TRACKS_LIMIT);
 					drawing = true;
 				}
 				lastCluster = k;
+			}
+			if (drawing && trdTrackIds[i])
+			{
+				auto& trk = trdTracker().Tracks()[trdTrackIds[i]];;
+				for (int k = 0;k < 6;k++)
+				{
+					int cid = trk.GetTrackletIndex(k);
+					if (cid < 0) continue;
+					vertexBuffer[iSlice].emplace_back(globalPosTRD[cid].x, globalPosTRD[cid].y, projectxy ? 0 : globalPosTRD[cid].z);
+					vertexBuffer[iSlice].emplace_back(globalPosTRD2[cid].x, globalPosTRD2[cid].y, projectxy ? 0 : globalPosTRD2[cid].z);
+					globalPosTRD[cid].w = tTRDATTACHED;
+				}
 			}
 			insertVertexList(vBuf[0], startCountInner, vertexBuffer[iSlice].size());
 			break;
@@ -880,16 +920,7 @@ int AliGPUCADisplay::DrawGLScene(bool mixAnimation, float animateTime)
 
 int AliGPUCADisplay::DrawGLScene_internal(bool mixAnimation, float animateTime) // Here's Where We Do All The Drawing
 {
-	static float fpsscale = 1, fpsscaleadjust = 0;
-
-	static int framesDone = 0, framesDoneFPS = 0;
-	static HighResTimer timerFPS, timerDisplay, timerDraw;
 	bool showTimer = false;
-
-	static vboList glDLlines[fgkNSlices][N_LINES_TYPE];
-	static vecpod<std::array<vboList, N_FINAL_TYPE>> glDLfinal[fgkNSlices];
-	static vecpod<vboList> GLpoints[fgkNSlices][N_POINTS_TYPE];
-	static vboList glDLgrid[fgkNSlices];
 
 	//Make sure event gets not overwritten during display
 	if (animateTime < 0)
@@ -1179,12 +1210,27 @@ int AliGPUCADisplay::DrawGLScene_internal(bool mixAnimation, float animateTime) 
 		{
 			currentClusters += sliceTracker(iSlice).NHitsTotal();
 		}
-
 		if (maxClusters < currentClusters)
 		{
 			maxClusters = currentClusters;
 			globalPosPtr.reset(new float4[maxClusters]);
 			globalPos = globalPosPtr.get();
+		}
+		
+		currentSpacePointsTRD = trdTracker().NSpacePoints();
+		if (currentSpacePointsTRD > maxSpacePointsTRD)
+		{
+			maxSpacePointsTRD = currentSpacePointsTRD;
+			globalPosPtrTRD.reset(new float4[maxSpacePointsTRD]);
+			globalPosPtrTRD2.reset(new float4[maxSpacePointsTRD]);
+			globalPosTRD = globalPosPtrTRD.get();
+			globalPosTRD2 = globalPosPtrTRD2.get();
+		}
+		if ((size_t) merger.NOutputTracks() > trdTrackIds.size()) trdTrackIds.resize(merger.NOutputTracks());
+		memset(trdTrackIds.data(), 0, sizeof(trdTrackIds[0]) * merger.NOutputTracks());
+		for (int i = 0;i < trdTracker().NTracks();i++)
+		{
+			if (trdTracker().Tracks()[i].GetNtracklets()) trdTrackIds[trdTracker().Tracks()[i].GetTPCtrackId()] = i;
 		}
 
 		maxClusterZ = 0;
@@ -1200,7 +1246,7 @@ int AliGPUCADisplay::DrawGLScene_internal(bool mixAnimation, float animateTime) 
 					return(1);
 				}
 				float4 *ptr = &globalPos[cid];
-				sliceTracker(iSlice).Param().Slice2Global(iSlice, cl.fX + Xadd, cl.fY, cl.fZ, &ptr->x, &ptr->y, &ptr->z);
+				mRec->GetParam().Slice2Global(iSlice, cl.fX + Xadd, cl.fY, cl.fZ, &ptr->x, &ptr->y, &ptr->z);
 				if (fabsf(ptr->z) > maxClusterZ) maxClusterZ = fabsf(ptr->z);
 				if (iSlice < 18)
 				{
@@ -1216,8 +1262,26 @@ int AliGPUCADisplay::DrawGLScene_internal(bool mixAnimation, float animateTime) 
 				ptr->x /= GL_SCALE_FACTOR;
 				ptr->y /= GL_SCALE_FACTOR;
 				ptr->z /= GL_SCALE_FACTOR;
-				ptr->w = 1;
+				ptr->w = tCLUSTER;
 			}
+		}
+		
+		for (int i = 0;i < currentSpacePointsTRD;i++)
+		{
+			const auto& sp = trdTracker().SpacePoints()[i];
+			int iSec = mRec->GetTRDGeometry()->GetSector(trdTracker().Tracklets()[i].GetDetector());
+			float4* ptr = &globalPosTRD[i];
+			mRec->GetParam().Slice2Global(iSec, sp.fR + Xadd, sp.fX[0], sp.fX[1], &ptr->x, &ptr->y, &ptr->z);
+			ptr->x /= GL_SCALE_FACTOR;
+			ptr->y /= GL_SCALE_FACTOR;
+			ptr->z /= GL_SCALE_FACTOR;
+			ptr->w = tTRDCLUSTER;
+			ptr = &globalPosTRD2[i];
+			mRec->GetParam().Slice2Global(iSec, sp.fR + Xadd + 4.5f, sp.fX[0] + 1.5f * sp.fDy, sp.fX[1], &ptr->x, &ptr->y, &ptr->z);
+			ptr->x /= GL_SCALE_FACTOR;
+			ptr->y /= GL_SCALE_FACTOR;
+			ptr->z /= GL_SCALE_FACTOR;
+			ptr->w = tTRDCLUSTER;
 		}
 
 		timerFPS.ResetStart();
@@ -1237,11 +1301,12 @@ int AliGPUCADisplay::DrawGLScene_internal(bool mixAnimation, float animateTime) 
 			vertexBufferCount[i].clear();
 		}
 
-		for (int i = 0;i < currentClusters;i++) globalPos[i].w = 0;
+		for (int i = 0;i < currentClusters;i++) globalPos[i].w = tCLUSTER;
+		for (int i = 0;i < currentSpacePointsTRD;i++) globalPosTRD[i].w = tTRDCLUSTER;
 
 		for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 		{
-			for (int i = 0;i < N_POINTS_TYPE;i++) GLpoints[iSlice][i].resize(nCollisions);
+			for (int i = 0;i < N_POINTS_TYPE;i++) glDLpoints[iSlice][i].resize(nCollisions);
 			for (int i = 0;i < N_FINAL_TYPE;i++) glDLfinal[iSlice].resize(nCollisions);
 		}
 #ifdef GPUCA_HAVE_OPENMP
@@ -1258,7 +1323,7 @@ int AliGPUCADisplay::DrawGLScene_internal(bool mixAnimation, float animateTime) 
 			{
 				AliGPUTPCTracker &tracker = (AliGPUTPCTracker&) sliceTracker(iSlice);
 				tracker.Data().SetPointersScratch(tracker.LinkTmpMemory());
-				glDLlines[iSlice][0] = DrawLinks(tracker, 1, true);
+				glDLlines[iSlice][tINITLINK] = DrawLinks(tracker, tINITLINK, true);
 				tracker.Data().SetPointersScratch(mRec->Res(tracker.Data().MemoryResScratch()).Ptr());
 			}
 			AliGPUTPCGMPropagator prop;
@@ -1277,10 +1342,10 @@ int AliGPUCADisplay::DrawGLScene_internal(bool mixAnimation, float animateTime) 
 			{
 				const AliGPUTPCTracker &tracker = sliceTracker(iSlice);
 
-				glDLlines[iSlice][1] = DrawLinks(tracker, 2);
-				glDLlines[iSlice][2] = DrawSeeds(tracker);
-				glDLlines[iSlice][3] = DrawTracklets(tracker);
-				glDLlines[iSlice][4] = DrawTracks(tracker, 0);
+				glDLlines[iSlice][tLINK] = DrawLinks(tracker, tLINK);
+				glDLlines[iSlice][tSEED] = DrawSeeds(tracker);
+				glDLlines[iSlice][tTRACKLET] = DrawTracklets(tracker);
+				glDLlines[iSlice][tSLICETRACK] = DrawTracks(tracker, 0);
 				glDLgrid[iSlice] = DrawGrid(tracker);
 			}
 
@@ -1291,7 +1356,7 @@ int AliGPUCADisplay::DrawGLScene_internal(bool mixAnimation, float animateTime) 
 			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
 				const AliGPUTPCTracker &tracker = sliceTracker(iSlice);
-				glDLlines[iSlice][5] = DrawTracks(tracker, 1);
+				glDLlines[iSlice][tGLOBALTRACK] = DrawTracks(tracker, 1);
 			}
 
 #ifdef GPUCA_HAVE_OPENMP
@@ -1371,16 +1436,27 @@ int AliGPUCADisplay::DrawGLScene_internal(bool mixAnimation, float animateTime) 
 			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
 				const AliGPUTPCTracker &tracker = sliceTracker(iSlice);
-				for (int i = 0;i < N_POINTS_TYPE;i++)
+				for (int i = 0;i < N_POINTS_TYPE_TPC;i++)
 				{
 					for (int iCol = 0;iCol < nCollisions;iCol++)
 					{
-						GLpoints[iSlice][i][iCol] = DrawClusters(tracker, i, iCol);
+						glDLpoints[iSlice][i][iCol] = DrawClusters(tracker, i, iCol);
 					}
 				}
 			}
 		}
 //End omp parallel
+
+		for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
+		{
+			for (int i = N_POINTS_TYPE_TPC;i < N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD;i++)
+			{
+				for (int iCol = 0;iCol < nCollisions;iCol++)
+				{
+					glDLpoints[iSlice][i][iCol] = DrawSpacePointsTRD(iSlice, i, iCol);
+				}
+			}
+		}
 
 		glDLrecent = 1;
 		size_t totalVertizes = 0;
@@ -1416,17 +1492,16 @@ int AliGPUCADisplay::DrawGLScene_internal(bool mixAnimation, float animateTime) 
 
 		if (useGLIndirectDraw)
 		{
-			static vecpod<DrawArraysIndirectCommand> cmds;
-			cmds.clear();
+			cmdsBuffer.clear();
 			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
-				indirectSliceOffset[iSlice] = cmds.size();
+				indirectSliceOffset[iSlice] = cmdsBuffer.size();
 				for (unsigned int k = 0;k < vertexBufferStart[iSlice].size();k++)
 				{
-					cmds.emplace_back(vertexBufferCount[iSlice][k], 1, vertexBufferStart[iSlice][k], 0);
+					cmdsBuffer.emplace_back(vertexBufferCount[iSlice][k], 1, vertexBufferStart[iSlice][k], 0);
 				}
 			}
-			CHKERR(glBufferData(GL_DRAW_INDIRECT_BUFFER, cmds.size() * sizeof(cmds[0]), cmds.data(), GL_STATIC_DRAW));
+			CHKERR(glBufferData(GL_DRAW_INDIRECT_BUFFER, cmdsBuffer.size() * sizeof(cmdsBuffer[0]), cmdsBuffer.data(), GL_STATIC_DRAW));
 		}
 
 		if (showTimer)
@@ -1451,103 +1526,123 @@ int AliGPUCADisplay::DrawGLScene_internal(bool mixAnimation, float animateTime) 
 	}
 	if (cfg.drawClusters)
 	{
-		SetColorClusters();
-		LOOP_SLICE LOOP_COLLISION_COL(drawVertices(GLpoints[iSlice][0][iCol], GL_POINTS));
-
-		if (cfg.drawInitLinks)
+		if (cfg.drawTRD)
 		{
-			if (cfg.excludeClusters) goto skip1;
-			if (cfg.colorClusters) SetColorInitLinks();
+			SetColorTRD();
+			LOOP_SLICE LOOP_COLLISION_COL(drawVertices(glDLpoints[iSlice][tTRDCLUSTER][iCol], GL_LINES));
+			if (cfg.drawFinal)
+			{
+				if (cfg.colorClusters) SetColorFinal();
+				LOOP_SLICE LOOP_COLLISION_COL(drawVertices(glDLpoints[iSlice][tTRDATTACHED][iCol], GL_POINTS));
+			}
+			else
+			{
+				LOOP_SLICE LOOP_COLLISION_COL(drawVertices(glDLpoints[iSlice][tTRDATTACHED][iCol], GL_LINES));
+			}
 		}
-		LOOP_SLICE LOOP_COLLISION_COL(drawVertices(GLpoints[iSlice][1][iCol], GL_POINTS));
-
-		if (cfg.drawLinks)
-		{
-			if (cfg.excludeClusters) goto skip1;
-			if (cfg.colorClusters) SetColorLinks();
-		}
-		else
-		{
-			SetColorClusters();
-		}
-		LOOP_SLICE LOOP_COLLISION_COL(drawVertices(GLpoints[iSlice][2][iCol], GL_POINTS));
-
-		if (cfg.drawSeeds)
-		{
-			if (cfg.excludeClusters) goto skip1;
-			if (cfg.colorClusters) SetColorSeeds();
-		}
-		LOOP_SLICE LOOP_COLLISION_COL(drawVertices(GLpoints[iSlice][3][iCol], GL_POINTS));
-
-	skip1:
-		SetColorClusters();
-		if (cfg.drawTracklets)
-		{
-			if (cfg.excludeClusters) goto skip2;
-			if (cfg.colorClusters) SetColorTracklets();
-		}
-		LOOP_SLICE LOOP_COLLISION_COL(drawVertices(GLpoints[iSlice][4][iCol], GL_POINTS));
-
-		if (cfg.drawTracks)
-		{
-			if (cfg.excludeClusters) goto skip2;
-			if (cfg.colorClusters) SetColorTracks();
-		}
-		LOOP_SLICE LOOP_COLLISION_COL(drawVertices(GLpoints[iSlice][5][iCol], GL_POINTS));
-
-	skip2:;
-		if (cfg.drawGlobalTracks)
-		{
-			if (cfg.excludeClusters) goto skip3;
-			if (cfg.colorClusters) SetColorGlobalTracks();
-		}
-		else
+		if (cfg.drawTPC)
 		{
 			SetColorClusters();
-		}
-		LOOP_SLICE LOOP_COLLISION_COL(drawVertices(GLpoints[iSlice][6][iCol], GL_POINTS));
-		SetColorClusters();
+			LOOP_SLICE LOOP_COLLISION_COL(drawVertices(glDLpoints[iSlice][tCLUSTER][iCol], GL_POINTS));
 
-		if (cfg.drawFinal && cfg.propagateTracks < 2)
-		{
-			if (cfg.excludeClusters) goto skip3;
-			if (cfg.colorClusters) SetColorFinal();
+			if (cfg.drawInitLinks)
+			{
+				if (cfg.excludeClusters) goto skip1;
+				if (cfg.colorClusters) SetColorInitLinks();
+			}
+			LOOP_SLICE LOOP_COLLISION_COL(drawVertices(glDLpoints[iSlice][tINITLINK][iCol], GL_POINTS));
+
+			if (cfg.drawLinks)
+			{
+				if (cfg.excludeClusters) goto skip1;
+				if (cfg.colorClusters) SetColorLinks();
+			}
+			else
+			{
+				SetColorClusters();
+			}
+			LOOP_SLICE LOOP_COLLISION_COL(drawVertices(glDLpoints[iSlice][tLINK][iCol], GL_POINTS));
+
+			if (cfg.drawSeeds)
+			{
+				if (cfg.excludeClusters) goto skip1;
+				if (cfg.colorClusters) SetColorSeeds();
+			}
+			LOOP_SLICE LOOP_COLLISION_COL(drawVertices(glDLpoints[iSlice][tSEED][iCol], GL_POINTS));
+
+		skip1:
+			SetColorClusters();
+			if (cfg.drawTracklets)
+			{
+				if (cfg.excludeClusters) goto skip2;
+				if (cfg.colorClusters) SetColorTracklets();
+			}
+			LOOP_SLICE LOOP_COLLISION_COL(drawVertices(glDLpoints[iSlice][tTRACKLET][iCol], GL_POINTS));
+
+			if (cfg.drawTracks)
+			{
+				if (cfg.excludeClusters) goto skip2;
+				if (cfg.colorClusters) SetColorTracks();
+			}
+			LOOP_SLICE LOOP_COLLISION_COL(drawVertices(glDLpoints[iSlice][tSLICETRACK][iCol], GL_POINTS));
+
+		skip2:;
+			if (cfg.drawGlobalTracks)
+			{
+				if (cfg.excludeClusters) goto skip3;
+				if (cfg.colorClusters) SetColorGlobalTracks();
+			}
+			else
+			{
+				SetColorClusters();
+			}
+			LOOP_SLICE LOOP_COLLISION_COL(drawVertices(glDLpoints[iSlice][tGLOBALTRACK][iCol], GL_POINTS));
+			SetColorClusters();
+
+			if (cfg.drawFinal && cfg.propagateTracks < 2)
+			{
+				if (cfg.excludeClusters) goto skip3;
+				if (cfg.colorClusters) SetColorFinal();
+			}
+			LOOP_SLICE LOOP_COLLISION_COL(drawVertices(glDLpoints[iSlice][tFINALTRACK][iCol], GL_POINTS));
+		skip3:;
 		}
-		LOOP_SLICE LOOP_COLLISION_COL(drawVertices(GLpoints[iSlice][7][iCol], GL_POINTS));
-	skip3:;
 	}
 
 	if (!config.clustersOnly && !cfg.excludeClusters)
 	{
-		if (cfg.drawInitLinks)
+		if (cfg.drawTPC)
 		{
-			SetColorInitLinks();
-			LOOP_SLICE drawVertices(glDLlines[iSlice][0], GL_LINES);
-		}
-		if (cfg.drawLinks)
-		{
-			SetColorLinks();
-			LOOP_SLICE drawVertices(glDLlines[iSlice][1], GL_LINES);
-		}
-		if (cfg.drawSeeds)
-		{
-			SetColorSeeds();
-			LOOP_SLICE drawVertices(glDLlines[iSlice][2], GL_LINE_STRIP);
-		}
-		if (cfg.drawTracklets)
-		{
-			SetColorTracklets();
-			LOOP_SLICE drawVertices(glDLlines[iSlice][3], GL_LINE_STRIP);
-		}
-		if (cfg.drawTracks)
-		{
-			SetColorTracks();
-			LOOP_SLICE drawVertices(glDLlines[iSlice][4], GL_LINE_STRIP);
-		}
-		if (cfg.drawGlobalTracks)
-		{
-			SetColorGlobalTracks();
-			LOOP_SLICE drawVertices(glDLlines[iSlice][5], GL_LINE_STRIP);
+			if (cfg.drawInitLinks)
+			{
+				SetColorInitLinks();
+				LOOP_SLICE drawVertices(glDLlines[iSlice][tINITLINK], GL_LINES);
+			}
+			if (cfg.drawLinks)
+			{
+				SetColorLinks();
+				LOOP_SLICE drawVertices(glDLlines[iSlice][tLINK], GL_LINES);
+			}
+			if (cfg.drawSeeds)
+			{
+				SetColorSeeds();
+				LOOP_SLICE drawVertices(glDLlines[iSlice][tSEED], GL_LINE_STRIP);
+			}
+			if (cfg.drawTracklets)
+			{
+				SetColorTracklets();
+				LOOP_SLICE drawVertices(glDLlines[iSlice][tTRACKLET], GL_LINE_STRIP);
+			}
+			if (cfg.drawTracks)
+			{
+				SetColorTracks();
+				LOOP_SLICE drawVertices(glDLlines[iSlice][tSLICETRACK], GL_LINE_STRIP);
+			}
+			if (cfg.drawGlobalTracks)
+			{
+				SetColorGlobalTracks();
+				LOOP_SLICE drawVertices(glDLlines[iSlice][tGLOBALTRACK], GL_LINE_STRIP);
+			}
 		}
 		if (cfg.drawFinal)
 		{
@@ -1564,7 +1659,7 @@ int AliGPUCADisplay::DrawGLScene_internal(bool mixAnimation, float animateTime) 
 		if (markClusters || markAdjacentClusters)
 		{
 			SetColorMarked();
-			LOOP_SLICE LOOP_COLLISION drawVertices(GLpoints[iSlice][8][iCol], GL_POINTS);
+			LOOP_SLICE LOOP_COLLISION drawVertices(glDLpoints[iSlice][tMARKED][iCol], GL_POINTS);
 		}
 	}
 
