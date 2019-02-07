@@ -29,13 +29,14 @@ void GPUClusterFinder::setupImpl(ClEnv &env, const DataSet &data)
     device  = env.getDevice();
 
     cl::Program cfprg = env.buildFromSrc("clusterFinder.cl");
-    findClusters = cl::Kernel(cfprg, "findClusters");
-    digitsToChargeMap = cl::Kernel(cfprg, "digitsToChargeMap");
+    fillChargeMap   = cl::Kernel(cfprg, "fillChargeMap");
+    findPeaks       = cl::Kernel(cfprg, "findPeaks");
+    computeClusters = cl::Kernel(cfprg, "computeClusters");
 
     // create buffers
     digitsBufSize = sizeof(Digit) * digits.size();
     digitsBuf = cl::Buffer(context,
-                          CL_MEM_READ_ONLY,
+                          CL_MEM_READ_WRITE,
                           digitsBufSize);
 
     globalToLocalRow = RowInfo::instance().globalToLocalMap;
@@ -47,12 +48,12 @@ void GPUClusterFinder::setupImpl(ClEnv &env, const DataSet &data)
 
     isPeakBufSize = digits.size() * sizeof(cl_int);
     isPeakBuf = cl::Buffer(context, 
-                           CL_MEM_WRITE_ONLY, 
+                           CL_MEM_READ_WRITE, 
                            isPeakBufSize);
 
     clusterBufSize = digits.size() * sizeof(Cluster);
     clusterBuf = cl::Buffer(context,
-                            CL_MEM_READ_WRITE,
+                            CL_MEM_WRITE_ONLY,
                             clusterBufSize);
 
     log::Info() << "Found " << numOfRows << " rows";
@@ -73,8 +74,9 @@ GPUAlgorithm::Result GPUClusterFinder::runImpl()
     // Events for profiling
     Event digitsToDevice;
     Event zeroChargeMap;
-    Event writeDigitsToChargeMap;
-    Event clusterFinder;
+    Event fillingChargeMap;
+    Event findingPeaks;
+    Event computingClusters;
     Event clustersToHost;
 
     // Setup queue
@@ -104,26 +106,36 @@ GPUAlgorithm::Result GPUClusterFinder::runImpl()
     cl::NDRange global(digits.size());
     cl::NDRange local(16);
 
-    digitsToChargeMap.setArg(0, digitsBuf);
-    digitsToChargeMap.setArg(1, chargeMap);
-    queue.enqueueNDRangeKernel(digitsToChargeMap, 
+    fillChargeMap.setArg(0, digitsBuf);
+    fillChargeMap.setArg(1, chargeMap);
+    queue.enqueueNDRangeKernel(fillChargeMap, 
                                cl::NullRange, 
                                global, 
                                local,
                                nullptr,
-                               writeDigitsToChargeMap.get());
+                               fillingChargeMap.get());
 
-    findClusters.setArg(0, chargeMap);
-    findClusters.setArg(1, digitsBuf);
-    findClusters.setArg(2, globalToLocalRowBuf);
-    findClusters.setArg(3, isPeakBuf);
-    findClusters.setArg(4, clusterBuf);
-    queue.enqueueNDRangeKernel(findClusters, 
+    findPeaks.setArg(0, chargeMap);
+    findPeaks.setArg(1, digitsBuf);
+    findPeaks.setArg(2, isPeakBuf);
+    queue.enqueueNDRangeKernel(findPeaks, 
                                cl::NullRange,
                                global,
                                local,
                                nullptr,
-                               clusterFinder.get());
+                               findingPeaks.get());
+
+    computeClusters.setArg(0, chargeMap);
+    computeClusters.setArg(1, digitsBuf);
+    computeClusters.setArg(2, globalToLocalRowBuf);
+    computeClusters.setArg(3, isPeakBuf);
+    computeClusters.setArg(4, clusterBuf);
+    queue.enqueueNDRangeKernel(computeClusters,
+                               cl::NullRange,
+                               global,
+                               local,
+                               nullptr,
+                               computingClusters.get());
 
     log::Info() << "Copy results back...";
     std::vector<Cluster> clusters(digits.size());
@@ -144,7 +156,7 @@ GPUAlgorithm::Result GPUClusterFinder::runImpl()
     printClusters(isClusterCenter, clusters, 10);
 
     clusters = filterCluster(isClusterCenter, clusters);
-    peaks = findPeaks(isClusterCenter, digits);
+    peaks = compactDigits(isClusterCenter, digits);
 
     ASSERT(clusters.size() == peaks.size());
 
@@ -157,9 +169,9 @@ GPUAlgorithm::Result GPUClusterFinder::runImpl()
     {
         {"digitsToDevice", digitsToDevice.executionTimeMs()},   
         {"zeroChargeMap", zeroChargeMap.executionTimeMs()},   
-        {"fillChargeMap", 
-            writeDigitsToChargeMap.executionTimeMs()},   
-        {"clusterFinder", clusterFinder.executionTimeMs()},   
+        {"fillingChargeMap", fillingChargeMap.executionTimeMs()},   
+        {"findingPeaks", findingPeaks.executionTimeMs()},   
+        {"computingClusters", computingClusters.executionTimeMs()},   
         {"clustersToHost", clustersToHost.executionTimeMs()},   
     };
 
@@ -206,7 +218,7 @@ std::vector<Cluster> GPUClusterFinder::filterCluster(
     return actualClusters;
 }
 
-std::vector<Digit> GPUClusterFinder::findPeaks(
+std::vector<Digit> GPUClusterFinder::compactDigits(
         const std::vector<int> &isCenter,
         const std::vector<Digit> &digits)
 {
