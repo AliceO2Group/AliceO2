@@ -25,9 +25,15 @@ namespace o2
 namespace mid
 {
 
+enum class RPCtype { Long,
+                     BottomCut,
+                     TopCut,
+                     Short };
+
 /// create MID geometry and attach it to existing topVolume
 void createGeometry(TGeoVolume& topVolume);
 
+/// get a list of MID sensitive volumes
 std::vector<TGeoVolume*> getSensitiveVolumes();
 
 } // namespace mid

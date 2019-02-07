@@ -47,22 +47,55 @@ const float kCopperHalfThickness = 0.002 / 2.;
 const float kNomexHalfThickness = 0.88 / 2.;
 const float kAluminiumHalfThickness = 0.06 / 2.;
 
-/// RPC y position in the first chamber
-const float kRPCypos[] = { 0.0000, 68.1530, 135.6953, 204.4590, 271.3907, 272.6120, 203.5430, 136.3060, 67.8477 };
+/// Service parameters
+// vertical support
+const float kVerticalSupportHalfExtDim[] = { 1.5, 311., 1.5 };
+const float kVerticalSupportHalfIntDim[] = { 1.2, 311., 1.2 };
+const float kVerticalSupportXPos[] = { 61.45, 122.45, 192.95, 236.95 };
 
-TGeoVolume* createRPC(const char* type, int iChamber)
+// horizontal support
+const float kHorizontalSupportHalfExtDim[] = { 96.775, 2., 3. };
+const float kHorizontalSupportHalfIntDim[] = { 96.775, 1.9, 2.8 };
+const double kHorizontalSupportPos[] = { Constants::sRPCCenterPos + Constants::sRPCHalfLength - kHorizontalSupportHalfExtDim[0], 17., kVerticalSupportHalfExtDim[2] + kHorizontalSupportHalfExtDim[2] };
+
+TGeoVolume* createVerticalSupport(int iChamber)
+{
+  /// Function creating a vertical support, an aluminium rod
+
+  auto supp = new TGeoVolume(Form("Vertical support chamber %d", iChamber), new TGeoBBox(Form("VertSuppBox%d", iChamber), kVerticalSupportHalfExtDim[0], kVerticalSupportHalfExtDim[1] * Constants::sScaleFactors[iChamber], kVerticalSupportHalfExtDim[2]), assertMedium(Medium::Aluminium));
+
+  new TGeoBBox(Form("VertSuppCut%d", iChamber), kVerticalSupportHalfIntDim[0], kVerticalSupportHalfIntDim[1] * Constants::sScaleFactors[iChamber], kVerticalSupportHalfIntDim[2]);
+
+  supp->SetShape(new TGeoCompositeShape(Form("VertSuppCut%d", iChamber), Form("VertSuppBox%d-VertSuppCut%d", iChamber, iChamber)));
+
+  return supp;
+}
+
+TGeoVolume* createHorizontalSupport(int iChamber)
+{
+  /// Function creating a horizontal support, an aluminium rod
+
+  auto supp = new TGeoVolume(Form("Horizontal support chamber %d", iChamber), new TGeoBBox(Form("HoriSuppBox%d", iChamber), kHorizontalSupportHalfExtDim[0] * Constants::sScaleFactors[iChamber], kHorizontalSupportHalfExtDim[1], kHorizontalSupportHalfExtDim[2]), assertMedium(Medium::Aluminium));
+
+  new TGeoBBox(Form("HoriSuppCut%d", iChamber), kHorizontalSupportHalfIntDim[0] * Constants::sScaleFactors[iChamber], kHorizontalSupportHalfIntDim[1], kHorizontalSupportHalfIntDim[2]);
+
+  supp->SetShape(new TGeoCompositeShape(Form("HoriSuppCut%d", iChamber), Form("HoriSuppBox%d-HoriSuppCut%d", iChamber, iChamber)));
+
+  return supp;
+}
+
+TGeoVolume* createRPC(RPCtype type, int iChamber)
 {
   /// Function building a resisitive plate chamber (RPC), the detection element of the MID, of a given type and for the given chamber number.
 
-  const char* name = Form("%sRPC%d", type, iChamber);
+  auto name = Constants::getRPCVolumeName(iChamber).c_str();
 
   auto rpc = new TGeoVolumeAssembly(name);
 
   // get the dimensions from MIDBase/Constants
-  double halfLength = (!strcmp(type, "short")) ? Constants::sRPCShortHalfLength : Constants::sRPCHalfLength;
+  double halfLength = (type == RPCtype::Short) ? Constants::sRPCShortHalfLength : Constants::sRPCHalfLength;
   halfLength *= Constants::sScaleFactors[iChamber];
   double halfHeight = Constants::getRPCHalfHeight(iChamber);
-  halfHeight *= Constants::sScaleFactors[iChamber];
 
   /// create the volume of each material (a box by default)
 
@@ -110,39 +143,42 @@ TGeoVolume* createRPC(const char* type, int iChamber)
                               assertMedium(Medium::Nomex));
 
   // change the volume shape if we are creating a "cut" RPC
-  if (!strcmp(type, "cut")) {
+  if (type == RPCtype::TopCut || type == RPCtype::BottomCut) {
     // dimensions of the cut
-    double cutHalfLength = Constants::sLocalBoardWidth * Constants::sScaleFactors[iChamber] / 2.;
-    double cutHalfHeight = Constants::sLocalBoardHeight * Constants::sScaleFactors[iChamber] / 2.;
+    double cutHalfLength = Constants::getLocalBoardWidth(iChamber) / 2.;
+    double cutHalfHeight = Constants::getLocalBoardHeight(iChamber) / 2.;
+
+    bool isTopCut = (type == RPCtype::TopCut);
+    const char* cutName = Form("%sCut%s", (isTopCut) ? "top" : "bottom", name);
 
     // position of the cut w.r.t the center of the RPC
-    auto cutPos = new TGeoTranslation(Form("%sCutPos", name), cutHalfLength - halfLength, cutHalfHeight - halfHeight, 0.);
+    auto cutPos = new TGeoTranslation(Form("%sPos", cutName), cutHalfLength - halfLength, (isTopCut) ? halfHeight - cutHalfHeight : cutHalfHeight - halfHeight, 0.);
     cutPos->RegisterYourself();
 
     // for each volume, create a box and change the volume shape by extracting the cut shape
     new TGeoBBox(Form("%sGasCut", name), cutHalfLength, cutHalfHeight, kGasHalfThickness);
-    gas->SetShape(new TGeoCompositeShape(Form("%sGasShape", name), Form("%sGasBox-%sGasCut:%sCutPos", name, name, name)));
+    gas->SetShape(new TGeoCompositeShape(Form("%sGasShape", name), Form("%sGasBox-%sGasCut:%sPos", name, name, cutName)));
 
     new TGeoBBox(Form("%sElecCut", name), cutHalfLength, cutHalfHeight, kElectrodHalfThickness);
-    electrod->SetShape(new TGeoCompositeShape(Form("%sElecShape", name), Form("%sElecBox-%sElecCut:%sCutPos", name, name, name)));
+    electrod->SetShape(new TGeoCompositeShape(Form("%sElecShape", name), Form("%sElecBox-%sElecCut:%sPos", name, name, cutName)));
 
     new TGeoBBox(Form("%sInsuCut", name), cutHalfLength, cutHalfHeight, kInsulatorHalfThickness);
-    insu->SetShape(new TGeoCompositeShape(Form("%sInsuShape", name), Form("%sInsuBox-%sInsuCut:%sCutPos", name, name, name)));
+    insu->SetShape(new TGeoCompositeShape(Form("%sInsuShape", name), Form("%sInsuBox-%sInsuCut:%sPos", name, name, cutName)));
 
     new TGeoBBox(Form("%sCopperCut", name), cutHalfLength, cutHalfHeight, kCopperHalfThickness);
-    copper->SetShape(new TGeoCompositeShape(Form("%sCopperShape", name), Form("%sCopperBox-%sCopperCut:%sCutPos", name, name, name)));
+    copper->SetShape(new TGeoCompositeShape(Form("%sCopperShape", name), Form("%sCopperBox-%sCopperCut:%sPos", name, name, cutName)));
 
     new TGeoBBox(Form("%sMylarCut", name), cutHalfLength, cutHalfHeight, kMylarHalfThickness);
-    mylar->SetShape(new TGeoCompositeShape(Form("%sMylarShape", name), Form("%sMylarBox-%sMylarCut:%sCutPos", name, name, name)));
+    mylar->SetShape(new TGeoCompositeShape(Form("%sMylarShape", name), Form("%sMylarBox-%sMylarCut:%sPos", name, name, cutName)));
 
     new TGeoBBox(Form("%sStyroCut", name), cutHalfLength, cutHalfHeight, kStyrofoamHalfThickness);
-    styro->SetShape(new TGeoCompositeShape(Form("%sStyroShape", name), Form("%sStyroBox-%sStyroCut:%sCutPos", name, name, name)));
+    styro->SetShape(new TGeoCompositeShape(Form("%sStyroShape", name), Form("%sStyroBox-%sStyroCut:%sPos", name, name, cutName)));
 
     new TGeoBBox(Form("%sAluCut", name), cutHalfLength, cutHalfHeight, kAluminiumHalfThickness);
-    alu->SetShape(new TGeoCompositeShape(Form("%sAluShape", name), Form("%sAluBox-%sAluCut:%sCutPos", name, name, name)));
+    alu->SetShape(new TGeoCompositeShape(Form("%sAluShape", name), Form("%sAluBox-%sAluCut:%sPos", name, name, cutName)));
 
     new TGeoBBox(Form("%sNomexCut", name), cutHalfLength, cutHalfHeight, kNomexHalfThickness);
-    nomex->SetShape(new TGeoCompositeShape(Form("%sNomexShape", name), Form("%sNomexBox-%sNomexCut:%sCutPos", name, name, name)));
+    nomex->SetShape(new TGeoCompositeShape(Form("%sNomexShape", name), Form("%sNomexBox-%sNomexCut:%sPos", name, name, cutName)));
   }
 
   /// place all the layers in the RPC
@@ -214,52 +250,96 @@ TGeoVolume* createRPC(const char* type, int iChamber)
 
 TGeoVolume* createChamber(int iChamber)
 {
-  /// Function a trigger chamber, an assembly of RPCs (and services)
+  /// Function creating a trigger chamber, an assembly of RPCs (and services)
 
-  auto chamber = new TGeoVolumeAssembly(Form("SC1%d", iChamber + 1));
+  auto chamber = new TGeoVolumeAssembly(Constants::getChamberName(iChamber).c_str());
 
-  // create the 3 types of RPC
-  auto shortRPC = createRPC("short", iChamber);
-  auto longRPC = createRPC("long", iChamber);
-  auto cutRPC = createRPC("cut", iChamber);
+  double scale = Constants::sScaleFactors[iChamber];
 
-  // positions
-  double x = 0., y = 0., z = Constants::sRPCZShift;
+  // create the service volumes
+  auto vertSupp = createVerticalSupport(iChamber);
+  auto horiSupp = createHorizontalSupport(iChamber);
 
-  // rotations
-  auto rotX = new TGeoRotation("rotX", 90., 0., 90., -90., 180., 0.);
+  // create the 4 types of RPC
+  auto longRPC = createRPC(RPCtype::Long, iChamber);
+  auto bottomCutRPC = createRPC(RPCtype::BottomCut, iChamber);
+  auto topCutRPC = createRPC(RPCtype::TopCut, iChamber);
+  auto shortRPC = createRPC(RPCtype::Short, iChamber);
+
+  // placement variables
+  double x, y, z, xSign, zSign;
+
   auto rotY = new TGeoRotation("rotY", 90., 180., 90., 90., 180., 0.);
-  auto rotZ = new TGeoRotation("rotZ", 90., 180., 90., 270., 0., 0.);
 
-  // place them on the chamber
-  for (int iRPC = 0; iRPC < Constants::sNRPCLines; iRPC++) {
-    x = (iRPC == 0) ? Constants::sRPCShortCenterPos : Constants::sRPCCenterPos;
-    x *= Constants::sScaleFactors[iChamber];
-    y = kRPCypos[iRPC] * Constants::sScaleFactors[iChamber];
+  // for node counting
+  int deId = 0, iHoriSuppNode = 0, iVertSuppNode = 0;
 
-    switch (iRPC) {
-      case 0: // short
-        chamber->AddNode(shortRPC, 0, new TGeoTranslation(x, y, z));
-        chamber->AddNode(shortRPC, 9, new TGeoCombiTrans(-x, -y, -z, rotY));
-        break;
-      case 1: // cut
-        chamber->AddNode(cutRPC, 1, new TGeoTranslation(x, y, z));
-        chamber->AddNode(cutRPC, 17, new TGeoCombiTrans(x, -y, z, rotX));
-        break;
-      case 8: // cut
-        chamber->AddNode(cutRPC, 8, new TGeoCombiTrans(-x, y, z, rotY));
-        chamber->AddNode(cutRPC, 10, new TGeoCombiTrans(-x, -y, z, rotZ));
-        break;
-      default: // long
-        if (iRPC >= 5)
-          x *= -1;
-        chamber->AddNode(longRPC, iRPC, new TGeoTranslation(x, y, z));
-        chamber->AddNode(longRPC, 2 * Constants::sNRPCLines - iRPC, new TGeoCombiTrans(x, -y, z, rotX));
-        break;
+  // place the volumes on both side of the chamber
+  for (int iside = 0; iside < 2; iside++) {
+
+    bool isRight = (iside == 0);
+    xSign = (isRight) ? 1. : -1.;
+
+    // place 4 vertical supports per side
+    for (int i = 0; i < 4; i++) {
+      chamber->AddNode(vertSupp, iVertSuppNode++, new TGeoTranslation(xSign * kVerticalSupportXPos[i] * scale, 0., 0.));
     }
 
-    z *= -1; // switch the z side for the next RPC placement
-  }
+    // place the RPCs
+    for (int iRPC = 0; iRPC < Constants::sNRPCLines; iRPC++) {
+
+      deId = Constants::getDEId(isRight, iChamber, iRPC);
+      x = xSign * Constants::getRPCCenterPosX(iChamber, iRPC);
+      zSign = (iRPC % 2 == 0) ? 1. : -1.;
+
+      if (!isRight) {
+        zSign *= -1.;
+      }
+      z = zSign * Constants::sRPCZShift;
+      y = 2 * Constants::getRPCHalfHeight(iChamber) * (iRPC - 4) / (1 - (z / Constants::sDefaultChamberZ[0]));
+
+      // ID convention (from bottom to top of the chamber) : long, long, long, cut, short, cut, long, long, long
+      switch (iRPC) {
+        case 4: // short
+          if (isRight) {
+            chamber->AddNode(shortRPC, deId, new TGeoTranslation(x, y, z));
+          } else {
+            chamber->AddNode(shortRPC, deId, new TGeoCombiTrans(x, y, z, rotY));
+          }
+          break;
+        case 5: // cut (bottom)
+          if (isRight) {
+            chamber->AddNode(bottomCutRPC, deId, new TGeoTranslation(x, y, z));
+          } else {
+            chamber->AddNode(bottomCutRPC, deId, new TGeoCombiTrans(x, y, z, rotY));
+          }
+          break;
+        case 3: // cut (top)
+          if (isRight) {
+            chamber->AddNode(topCutRPC, deId, new TGeoTranslation(x, y, z));
+          } else {
+            chamber->AddNode(topCutRPC, deId, new TGeoCombiTrans(x, y, z, rotY));
+          }
+          break;
+        default: // long
+          if (isRight) {
+            chamber->AddNode(longRPC, deId, new TGeoTranslation(x, y, z));
+          } else {
+            chamber->AddNode(longRPC, deId, new TGeoCombiTrans(x, y, z, rotY));
+          }
+          break;
+      }
+
+      // place 3 horizontal supports behind the RPC (and the vertical rods)
+      x = xSign * kHorizontalSupportPos[0] * scale;
+      z = -zSign * kHorizontalSupportPos[2];
+      for (int i = 0; i < 3; i++) {
+        chamber->AddNode(horiSupp, iHoriSuppNode++, new TGeoTranslation(x, y + (i - 1) * kHorizontalSupportPos[1] * scale, z));
+      }
+
+    } // end of the loop over the number of RPC lines
+
+  } // end of the side loop
 
   return chamber;
 }
@@ -273,7 +353,7 @@ void createGeometry(TGeoVolume& topVolume)
   // create and place the trigger chambers
   for (int iCh = 0; iCh < Constants::sNChambers; iCh++) {
 
-    topVolume.AddNode(createChamber(iCh), 1, new TGeoCombiTrans(0., 0., Constants::sDefaultChamberZ[iCh], rot));
+    topVolume.AddNode(createChamber(iCh), Constants::getChamberNode(iCh), new TGeoCombiTrans(0., 0., Constants::sDefaultChamberZ[iCh], rot));
   }
 }
 
@@ -283,16 +363,14 @@ std::vector<TGeoVolume*> getSensitiveVolumes()
   /// Create a vector containing the sensitive volume's name of the RPCs for the Detector class
 
   std::vector<TGeoVolume*> sensitiveVolumeNames;
-  const char* type[3] = { "short", "cut", "long" };
   for (int i = 0; i < Constants::sNChambers; i++) {
-    for (int j = 0; j < 3; j++) {
-      auto vol = gGeoManager->GetVolume(Form("Gas %sRPC%d", type[j], i));
+    auto name = Form("Gas %s", Constants::getRPCVolumeName(i).c_str());
+    auto vol = gGeoManager->GetVolume(name);
 
-      if (!vol) {
-        throw std::runtime_error(Form("could not get expected volume Gas %sRPC%d", type[j], i));
-      } else {
-        sensitiveVolumeNames.push_back(vol);
-      }
+    if (!vol) {
+      throw std::runtime_error(Form("could not get expected volume %s", name));
+    } else {
+      sensitiveVolumeNames.push_back(vol);
     }
   }
   return sensitiveVolumeNames;
