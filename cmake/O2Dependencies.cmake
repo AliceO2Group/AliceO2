@@ -1359,6 +1359,8 @@ o2_define_bucket(
     root_base_bucket
     fairroot_base_bucket
     Geom
+    Gpad
+    Graf
     MathCore
     Matrix
     Physics
