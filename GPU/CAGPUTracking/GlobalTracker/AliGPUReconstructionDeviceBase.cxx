@@ -297,6 +297,7 @@ void AliGPUReconstructionDeviceBase::TransferMemoryResourcesHelper(AliGPUProcess
 	for (unsigned int i = 0;i < mMemoryResources.size();i++)
 	{
 		AliGPUMemoryResource& res = mMemoryResources[i];
+		if (res.mPtr == nullptr) continue;
 		if (proc && res.mProcessor != proc) continue;
 		if (!(res.mType & AliGPUMemoryResource::MEMORY_GPU) || (res.mType & AliGPUMemoryResource::MEMORY_CUSTOM_TRANSFER)) continue;
 		if (!mDeviceProcessingSettings.keepAllMemory && !(all && !(res.mType & exc)) && !(res.mType & inc)) continue;
@@ -383,19 +384,22 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 	AllocateRegisteredMemory(mProcShadow.mMemoryResWorkers);
 	memcpy((void*) &mWorkersShadow->trdTracker, (const void*) &workers()->trdTracker, sizeof(workers()->trdTracker));
 	AllocateRegisteredMemory(mProcShadow.mMemoryResFlat);
-	for (unsigned int i = 0;i < NSLICES;i++)
-	{
-		RegisterGPUDeviceProcessor(&mWorkersShadow->tpcTrackers[i], &workers()->tpcTrackers[i]);
-		RegisterGPUDeviceProcessor(&mWorkersShadow->tpcTrackers[i].Data(), &workers()->tpcTrackers[i].Data());
-	}
-	RegisterGPUDeviceProcessor(&mWorkersShadow->tpcMerger, &workers()->tpcMerger);
 	if (PrepareFlatObjects())
 	{
 		CAGPUError("Error preparing flat objects on GPU");
 		ExitDevice_Runtime();
 		return(1);
 	}
-	RegisterGPUDeviceProcessor(&mWorkersShadow->trdTracker, &workers()->trdTracker);
+	if (mDeviceProcessingSettings.runTPCSliceTrackerGPU)
+	{
+		for (unsigned int i = 0;i < NSLICES;i++)
+		{
+			RegisterGPUDeviceProcessor(&mWorkersShadow->tpcTrackers[i], &workers()->tpcTrackers[i]);
+			RegisterGPUDeviceProcessor(&mWorkersShadow->tpcTrackers[i].Data(), &workers()->tpcTrackers[i].Data());
+		}
+	}
+	if (mDeviceProcessingSettings.runTPCMergerGPU) RegisterGPUDeviceProcessor(&mWorkersShadow->tpcMerger, &workers()->tpcMerger);
+	if (mDeviceProcessingSettings.runTRDTrackerGPU) RegisterGPUDeviceProcessor(&mWorkersShadow->trdTracker, &workers()->trdTracker);
 
 	if (StartHelperThreads()) return(1);
 
@@ -953,7 +957,84 @@ int AliGPUReconstructionDeviceBase::RunTPCTrackingSlices_internal()
 	return(0);
 }
 
-const AliGPUTPCTracker* AliGPUReconstructionDeviceBase::CPUTracker(int iSlice) {return &workers()->tpcTrackers[iSlice];}
+int AliGPUReconstructionDeviceBase::DoTRDGPUTracking()
+{
+#ifdef GPUCA_BUILD_TRD
+	ActivateThreadContext();
+	SetupGPUProcessor(&workers()->trdTracker, false);
+	mWorkersShadow->trdTracker.SetGeometry((AliGPUTRDGeometry*) mProcDevice.fTrdGeometry);
+
+	WriteToConstantMemory((char*) &mDeviceConstantMem->trdTracker - (char*) mDeviceConstantMem, &mWorkersShadow->trdTracker, sizeof(mWorkersShadow->trdTracker), 0);
+	TransferMemoryResourcesToGPU(&workers()->trdTracker);
+
+	//DoTrdTrackingGPU<<<fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT_TRD>>>();
+	SynchronizeGPU();
+
+	TransferMemoryResourcesToHost(&workers()->trdTracker);
+	SynchronizeGPU();
+
+	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("GPU TRD tracker Finished");
+
+	ReleaseThreadContext();
+#endif
+	return(0);
+}
+
+int AliGPUReconstructionDeviceBase::RefitMergedTracks(bool resetTimers)
+{
+	auto* Merger = &workers()->tpcMerger;
+	if (!mDeviceProcessingSettings.runTPCMergerGPU) return AliGPUReconstructionCPU::RefitMergedTracks(resetTimers);
+	
+	HighResTimer timer;
+	static double times[3] = {};
+	static int nCount = 0;
+	if (resetTimers)
+	{
+		for (unsigned int k = 0;k < sizeof(times) / sizeof(times[0]);k++) times[k] = 0;
+		nCount = 0;
+	}
+	ActivateThreadContext();
+
+	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("Running GPU Merger (%d/%d)", Merger->NOutputTrackClusters(), Merger->NClusters());
+	timer.Start();
+
+	SetupGPUProcessor(Merger, false);
+	mWorkersShadow->tpcMerger.OverrideSliceTracker(mDeviceConstantMem->tpcTrackers);
+	
+	WriteToConstantMemory((char*) &mDeviceConstantMem->tpcMerger - (char*) mDeviceConstantMem, &mWorkersShadow->tpcMerger, sizeof(mWorkersShadow->tpcMerger), 0);
+	TransferMemoryResourceLinkToGPU(Merger->MemoryResRefit());
+	times[0] += timer.GetCurrentElapsedTime(true);
+	
+	runKernel<AliGPUTPCGMMergerTrackFit>({fBlockCount, fThreadCount, 0}, krnlRunRangeNone);
+	SynchronizeGPU();
+	times[1] += timer.GetCurrentElapsedTime(true);
+	
+	TransferMemoryResourceLinkToHost(Merger->MemoryResRefit());
+	SynchronizeGPU();
+	times[2] += timer.GetCurrentElapsedTime();
+	
+	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("GPU Merger Finished");
+	nCount++;
+
+	if (mDeviceProcessingSettings.debugLevel > 0)
+	{
+		int copysize = 4 * Merger->NOutputTrackClusters() * sizeof(float) + Merger->NOutputTrackClusters() * sizeof(unsigned int) + Merger->NOutputTracks() * sizeof(AliGPUTPCGMMergedTrack) + 6 * sizeof(float) + sizeof(AliGPUCAParam);
+		double speed = (double) copysize / times[0] * nCount / 1e9;
+		printf("GPU Fit:\tCopy To:\t%'7d us (%6.3f GB/s)\n", (int) (times[0] * 1000000 / nCount), speed);
+		printf("\t\tFit:\t\t%'7d us\n", (int) (times[1] * 1000000 / nCount));
+		speed = (double) copysize / times[2] * nCount / 1e9;
+		printf("\t\tCopy From:\t%'7d us (%6.3f GB/s)\n", (int) (times[2] * 1000000 / nCount), speed);
+	}
+
+	if (!GPUCA_TIMING_SUM)
+	{
+		for (int i = 0;i < 3;i++) times[i] = 0;
+		nCount = 0;
+	}
+
+	ReleaseThreadContext();
+	return(0);
+}
 
 int AliGPUReconstructionDeviceBase::PrepareTextures()
 {

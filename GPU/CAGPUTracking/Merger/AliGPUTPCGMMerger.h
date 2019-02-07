@@ -36,7 +36,7 @@ class AliGPUTPCTracker;
 class AliGPUTPCGMMerger : public AliGPUProcessor
 {
 
-  public:
+public:
 	AliGPUTPCGMMerger();
 	~AliGPUTPCGMMerger() CON_DEFAULT;
 
@@ -49,11 +49,11 @@ class AliGPUTPCGMMerger : public AliGPUProcessor
 	void OverrideSliceTracker(AliGPUTPCTracker* trk) { fSliceTrackers = trk; }
 
 	void SetSliceData(int index, const AliGPUTPCSliceOutput *SliceData);
-	bool Reconstruct();
+	int CheckSlices();
 
-	int NOutputTracks() const { return fNOutputTracks; }
-	const AliGPUTPCGMMergedTrack *OutputTracks() const { return fOutputTracks; }
-	AliGPUTPCGMMergedTrack *OutputTracks() 	{ return fOutputTracks; }
+	GPUhd() int NOutputTracks() const { return fNOutputTracks; }
+	GPUhd() const AliGPUTPCGMMergedTrack *OutputTracks() const { return fOutputTracks; }
+	GPUhd() AliGPUTPCGMMergedTrack *OutputTracks() 	{ return fOutputTracks; }
 
 	GPUhd() const AliGPUCAParam &SliceParam() const { return *mCAParam; }
 
@@ -61,13 +61,13 @@ class AliGPUTPCGMMerger : public AliGPUProcessor
 	GPUhd() const AliGPUTPCGMPolynomialField *pField() const { return &fField; }
 	void SetField(AliGPUTPCGMPolynomialField *field) { fField = *field; }
 
-	int NClusters() const { return (fNClusters); }
-	int NOutputTrackClusters() const { return (fNOutputTrackClusters); }
-	const AliGPUTPCGMMergedTrackHit *Clusters() const { return (fClusters); }
-	AliGPUTPCGMMergedTrackHit *Clusters() { return (fClusters); }
+	GPUhd() int NClusters() const { return (fNClusters); }
+	GPUhd() int NOutputTrackClusters() const { return (fNOutputTrackClusters); }
+	GPUhd() const AliGPUTPCGMMergedTrackHit *Clusters() const { return (fClusters); }
+	GPUhd() AliGPUTPCGMMergedTrackHit *Clusters() { return (fClusters); }
 	GPUhd() const AliGPUTPCTracker *SliceTrackers() const { return (fSliceTrackers); }
 	GPUhd() GPUAtomic(int) *ClusterAttachment() const { return (fClusterAttachment); }
-	int MaxId() const { return (fMaxID); }
+	GPUhd() int MaxId() const { return (fMaxID); }
 	GPUhd() unsigned int *TrackOrder() const { return (fTrackOrder); }
 
 	enum attachTypes {attachAttached = 0x40000000, attachGood = 0x20000000, attachGoodLeg = 0x10000000, attachTube = 0x08000000, attachHighIncl = 0x04000000, attachTrackMask = 0x03FFFFFF, attachFlagMask = 0xFC000000};
@@ -75,26 +75,25 @@ class AliGPUTPCGMMerger : public AliGPUProcessor
 	short MemoryResMerger() {return mMemoryResMerger;}
 	short MemoryResRefit() {return mMemoryResRefit;}
 
+	void UnpackSlices();
+	void MergeCEInit();
+	void MergeCE();
+	void MergeWithingSlices();
+	void MergeSlices();
+	void PrepareClustersForFit();
+	void CollectMergedTracks();
+	void Finalize();
+
   private:
 	AliGPUTPCGMMerger(const AliGPUTPCGMMerger &) CON_DELETE;
 	const AliGPUTPCGMMerger &operator=(const AliGPUTPCGMMerger &) const CON_DELETE;
 
 	void MakeBorderTracks(int iSlice, int iBorder, AliGPUTPCGMBorderTrack B[], int &nB, bool fromOrig = false);
-
 	void MergeBorderTracks(int iSlice1, AliGPUTPCGMBorderTrack B1[], int N1, int iSlice2, AliGPUTPCGMBorderTrack B2[], int N2, int crossCE = 0);
 
-	void UnpackSlices();
-	void MergeCEInit();
 	void MergeCEFill(const AliGPUTPCGMSliceTrack *track, const AliGPUTPCGMMergedTrackHit &cls, int itr);
-	void MergeCE();
-	void MergeWithingSlices();
-	void MergeSlices();
 	void ResolveMergeSlices(bool fromOrig, bool mergeAll);
 	void MergeSlicesStep(int border0, int border1, bool fromOrig);
-	void PrepareClustersForFit();
-	void CollectMergedTracks();
-	void Refit(bool resetTimers);
-	void Finalize();
 	void ClearTrackLinks(int n);
 
 	void PrintMergeGraph(AliGPUTPCGMSliceTrack *trk);

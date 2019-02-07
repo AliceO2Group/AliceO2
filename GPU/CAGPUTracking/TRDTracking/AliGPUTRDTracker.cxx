@@ -38,7 +38,7 @@ void AliGPUTRDTracker::SetMaxData()
 {
   fNMaxTracks = mRec->mIOPtrs.nMergedTracks;
   fNMaxSpacePoints = mRec->mIOPtrs.nTRDTracklets;
-  if (mRec->IsGPU())
+  if (mRec->GetDeviceProcessingSettings().memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_GLOBAL)
   {
     fNMaxTracks = 50000;
     fNMaxSpacePoints = 100000;
@@ -245,7 +245,7 @@ void AliGPUTRDTracker::DoTracking()
 
   auto timeStart = std::chrono::high_resolution_clock::now();
 
-  if (mRec->IsGPU())
+  if (mRec->GetDeviceProcessingSettings().runTRDTrackerGPU)
   {
     mRec->DoTRDGPUTracking();
   }

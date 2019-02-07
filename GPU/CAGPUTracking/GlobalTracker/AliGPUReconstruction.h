@@ -152,14 +152,14 @@ public:
 		{
 			if ((type & AliGPUMemoryResource::MEMORY_SCRATCH) && !mDeviceProcessingSettings.keepAllMemory)
 			{
-				type |= (IsGPU() ? AliGPUMemoryResource::MEMORY_GPU : AliGPUMemoryResource::MEMORY_HOST);
+				type |= (proc->mGPUProcessorType == AliGPUProcessor::PROCESSOR_TYPE_CPU ? AliGPUMemoryResource::MEMORY_HOST : AliGPUMemoryResource::MEMORY_GPU);
 			}
 			else
 			{
 				type |= AliGPUMemoryResource::MEMORY_HOST | AliGPUMemoryResource::MEMORY_GPU;
 			}
 		}
-		if (!IsGPU()) type &= ~AliGPUMemoryResource::MEMORY_GPU;
+		if (proc->mGPUProcessorType == AliGPUProcessor::PROCESSOR_TYPE_CPU) type &= ~AliGPUMemoryResource::MEMORY_GPU;
 		mMemoryResources.emplace_back(proc, static_cast<void* (AliGPUProcessor::*)(void*)>(setPtr), (AliGPUMemoryResource::MemoryType) type, name);
 		if (mMemoryResources.size() == 32768) throw std::bad_alloc();
 		return mMemoryResources.size() - 1;
@@ -195,8 +195,6 @@ public:
 	virtual int RunTPCTrackingSlices() = 0;
 	virtual int RunTPCTrackingMerger() = 0;
 	virtual int RunTRDTracking() = 0;
-	virtual int RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers);
-	virtual int GPUMergerAvailable() const;
 	virtual int DoTRDGPUTracking() { printf("Does only work on GPU\n"); exit(1); }
 	
 	//Getters / setters for parameters
@@ -227,19 +225,23 @@ public:
 	const void* mConfigQA = nullptr;											//Abstract pointer to Standalone QA Configuration Structure
 	
 	//Registration of GPU Processors
-	template <class T> void RegisterGPUProcessor(T* proc)
+	template <class T> void RegisterGPUProcessor(T* proc, bool deviceSlave)
 	{
 		mProcessors.emplace_back(proc, static_cast<void (AliGPUProcessor::*)()>(&T::RegisterMemoryAllocation), static_cast<void (AliGPUProcessor::*)()>(&T::InitializeProcessor), static_cast<void (AliGPUProcessor::*)()>(&T::SetMaxData));
-		AliGPUProcessor::ProcessorType processorType = IsGPU() ? AliGPUProcessor::PROCESSOR_TYPE_SLAVE : AliGPUProcessor::PROCESSOR_TYPE_CPU;
+		AliGPUProcessor::ProcessorType processorType = deviceSlave ? AliGPUProcessor::PROCESSOR_TYPE_SLAVE : AliGPUProcessor::PROCESSOR_TYPE_CPU;
 		proc->InitGPUProcessor(this, processorType);
 	}
-	template <class T> void SetupGPUProcessor(T* proc)
+	template <class T> void SetupGPUProcessor(T* proc, bool allocate)
 	{
 		static_assert(sizeof(T) > sizeof(AliGPUProcessor), "Need to setup derrived class");
-		std::memcpy((void*) proc->mDeviceProcessor, (const void*) proc, sizeof(*proc));
-		proc->mDeviceProcessor->InitGPUProcessor((AliGPUReconstruction*) this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
-		ResetRegisteredMemoryPointers(proc);
-
+		if (allocate) proc->SetMaxData();
+		if (proc->mDeviceProcessor)
+		{
+			std::memcpy((void*) proc->mDeviceProcessor, (const void*) proc, sizeof(*proc));
+			proc->mDeviceProcessor->InitGPUProcessor((AliGPUReconstruction*) this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
+		}
+		if (allocate) AllocateRegisteredMemory(proc);
+		else ResetRegisteredMemoryPointers(proc);
 	}
 	void RegisterGPUDeviceProcessor(AliGPUProcessor* proc, AliGPUProcessor* slaveProcessor);
 	

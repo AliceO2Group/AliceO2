@@ -308,12 +308,6 @@ void AliGPUReconstructionHIPBackend::RecordMarker(deviceEvent* ev, int stream)
 	GPUFailedMsg(hipEventRecord(*(hipEvent_t*) ev, mInternals->HIPStreams[stream]));
 }
 
-int AliGPUReconstructionHIPBackend::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers)
-{
-	CAGPUFatal("Not implemented in OpenCL (Merger)");
-	return(1);
-}
-
 void AliGPUReconstructionHIPBackend::ActivateThreadContext(){}
 void AliGPUReconstructionHIPBackend::ReleaseThreadContext(){}
 

@@ -14,7 +14,6 @@ class AliGPUReconstructionHIPBackend : public AliGPUReconstructionDeviceBase
 {
 public:
 	virtual ~AliGPUReconstructionHIPBackend();
-	virtual int RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers) override;
     
 protected:
 	AliGPUReconstructionHIPBackend(const AliGPUCASettingsProcessing& cfg);

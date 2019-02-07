@@ -151,7 +151,7 @@ void* AliGPUTPCSliceData::SetPointersInput(void* mem)
 	const int firstHitInBinSize = (23 + sizeof(GPUCA_GPU_ROWALIGNMENT) / sizeof(int)) * GPUCA_ROW_COUNT + 4 * fNumberOfHits + 3;
 	computePointerWithAlignment(mem, fHitData, fNumberOfHitsPlusAlign);
 	computePointerWithAlignment(mem, fFirstHitInBin, firstHitInBinSize);
-	if (mRec->GPUMergerAvailable())
+	if (mRec->GetDeviceProcessingSettings().runTPCMergerGPU)
 	{
 		mem = SetPointersScratchHost(mem);
 	}
@@ -182,7 +182,7 @@ void AliGPUTPCSliceData::RegisterMemoryAllocation()
 {
 	mMemoryResInput = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersInput, AliGPUMemoryResource::MEMORY_INPUT, "SliceInput");
 	mMemoryResScratch = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersScratch, AliGPUMemoryResource::MEMORY_SCRATCH, "SliceLinks");
-	if (!mRec->GPUMergerAvailable()) mMemoryResScratchHost = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersScratchHost, AliGPUMemoryResource::MEMORY_SCRATCH_HOST, "SliceIds");
+	if (!mRec->GetDeviceProcessingSettings().runTPCMergerGPU) mMemoryResScratchHost = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersScratchHost, AliGPUMemoryResource::MEMORY_SCRATCH_HOST, "SliceIds");
 	mMemoryResRows = mRec->RegisterMemoryAllocation(this, &AliGPUTPCSliceData::SetPointersRows, AliGPUMemoryResource::MEMORY_PERMANENT, "SliceRows");
 }
 

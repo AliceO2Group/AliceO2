@@ -14,7 +14,6 @@ class AliGPUReconstructionOCLBackend : public AliGPUReconstructionDeviceBase
 {
 public:
 	virtual ~AliGPUReconstructionOCLBackend();
-	virtual int RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers) override;
 
 protected:
 	AliGPUReconstructionOCLBackend(const AliGPUCASettingsProcessing& cfg);

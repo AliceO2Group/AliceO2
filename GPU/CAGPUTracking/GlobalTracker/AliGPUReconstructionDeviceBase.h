@@ -10,8 +10,7 @@ public:
 
 	char* MergerHostMemory() const {return((char*) fGPUMergerHostMemory);}
 	const AliGPUCAParam* DeviceParam() const {return &mDeviceConstantMem->param;}
-	virtual int RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers) override = 0;
-	
+	virtual int DoTRDGPUTracking() override;
 	virtual int GetMaxThreads() override;
 
 protected:
@@ -22,6 +21,7 @@ protected:
     
 #ifdef GPUCA_ENABLE_GPU_TRACKER
 	virtual int RunTPCTrackingSlices() override;
+	virtual int RefitMergedTracks(bool resetTimers) override;
 	int RunTPCTrackingSlices_internal();
 
 	virtual int InitDevice() override;
@@ -29,7 +29,7 @@ protected:
 	virtual int ExitDevice() override;
 	virtual int ExitDevice_Runtime() = 0;
 
-	virtual const AliGPUTPCTracker* CPUTracker(int iSlice);
+	virtual const AliGPUTPCTracker* CPUTracker(int iSlice) {return &workers()->tpcTrackers[iSlice];}
 
 	virtual void ActivateThreadContext() = 0;
 	virtual void ReleaseThreadContext() = 0;

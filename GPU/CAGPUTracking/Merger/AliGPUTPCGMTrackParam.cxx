@@ -733,18 +733,6 @@ GPUd() void AliGPUTPCGMTrackParam::RefitTrack(AliGPUTPCGMMergedTrack &track, int
 	}
 }
 
-#ifdef GPUCA_GPUCODE
-
-GPUg() void RefitTracks(AliGPUTPCGMMergedTrack* tracks, int nTracks, AliGPUTPCGMMergedTrackHit* clusters)
-{
-	for (int i = get_global_id(0);i < nTracks;i += get_global_size(0))
-	{
-		AliGPUTPCGMTrackParam::RefitTrack(tracks[i], i, &gGPUConstantMem.tpcMerger, clusters);
-	}
-}
-
-#endif
-
 GPUd() bool AliGPUTPCGMTrackParam::Rotate(float alpha)
 {
 	float cA = CAMath::Cos(alpha);

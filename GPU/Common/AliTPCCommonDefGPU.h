@@ -94,10 +94,12 @@
 
 #if defined(__OPENCL__) && !defined(__OPENCLCPP__) //Other special defines for OpenCL
 	#define GPUsharedref() GPUshared()
-	#define GPUglobalref() __global
+	#define GPUglobalref() GPUglobal()
+	#define GPUconstantref() GPUconstant()
 #else //Other defines for the rest
 	#define GPUsharedref()
 	#define GPUglobalref()
+	#define GPUconstantref()
 #endif
 
 #endif

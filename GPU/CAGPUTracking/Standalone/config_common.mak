@@ -59,7 +59,8 @@ GPUCA_MERGER_CXXFILES		= Merger/AliGPUTPCGMMerger.cxx \
 								Merger/AliGPUTPCGMPolynomialField.cxx \
 								Merger/AliGPUTPCGMPolynomialFieldManager.cxx \
 								Merger/AliGPUTPCGMPropagator.cxx \
-								Merger/AliGPUTPCGMTrackParam.cxx
+								Merger/AliGPUTPCGMTrackParam.cxx \
+								Merger/AliGPUTPCGMMergerGPU.cxx
 
 GPUCA_TRD_CXXFILES			= TRDTracking/AliGPUTRDTrack.cxx \
 								TRDTracking/AliGPUTRDTracker.cxx \

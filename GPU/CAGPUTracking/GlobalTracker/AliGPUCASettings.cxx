@@ -58,4 +58,7 @@ void AliGPUCASettingsDeviceProcessing::SetDefaults()
 	runTPCSliceTracker = true;
 	runTPCMerger = true;
 	runTRDTracker = true;
+	runTPCSliceTrackerGPU = true;
+	runTPCMergerGPU = true;
+	runTRDTrackerGPU = true;
 }

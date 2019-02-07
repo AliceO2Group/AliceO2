@@ -163,3 +163,13 @@ struct cahit2{cahit x, y;};
 #ifndef CADEBUG
 	#define CADEBUG(...)
 #endif
+
+#if (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !defined(GPUCA_ALIROOT_LIB)
+	#define GPUCA_BUILD_MERGER
+	#if defined(HAVE_O2HEADERS) && defined(__CUDACC__)
+		#define GPUCA_BUILD_TRD
+	#endif
+	#if defined(HAVE_O2HEADERS) && !defined(GPUCA_O2_LIB) && defined(__CUDACC__)
+		#define GPUCA_BUILD_ITS
+	#endif
+#endif
