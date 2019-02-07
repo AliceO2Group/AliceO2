@@ -187,40 +187,40 @@ O2_GENERATE_LIBRARY()
 set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME ${MODULE_BUCKET_NAME})
 
-O2_GENERATE_EXECUTABLE(
-  EXE_NAME "test_SimpleDataProcessingDevice01"
-  SOURCES "test/test_SimpleDataProcessingDevice01.cxx"
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${MODULE_BUCKET_NAME}
-)
+#O2_GENERATE_EXECUTABLE(
+#  EXE_NAME "test_SimpleDataProcessingDevice01"
+#  SOURCES "test/test_SimpleDataProcessingDevice01.cxx"
+#  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+#  BUCKET_NAME ${MODULE_BUCKET_NAME}
+#)
 
-O2_GENERATE_EXECUTABLE(
-  EXE_NAME "test_Parallel"
-  SOURCES "test/test_Parallel.cxx"
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${MODULE_BUCKET_NAME}
-)
+#O2_GENERATE_EXECUTABLE(
+#  EXE_NAME "test_Parallel"
+#  SOURCES "test/test_Parallel.cxx"
+#  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+#  BUCKET_NAME ${MODULE_BUCKET_NAME}
+#)
 
-O2_GENERATE_EXECUTABLE(
-  EXE_NAME "test_TimePipeline"
-  SOURCES "test/test_TimePipeline.cxx"
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${MODULE_BUCKET_NAME}
-)
+#O2_GENERATE_EXECUTABLE(
+#  EXE_NAME "test_TimePipeline"
+#  SOURCES "test/test_TimePipeline.cxx"
+#  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+#  BUCKET_NAME ${MODULE_BUCKET_NAME}
+#)
 
-O2_GENERATE_EXECUTABLE(
-  EXE_NAME "test_DebugGUISokol"
-  SOURCES test/test_DebugGUISokol.cxx
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${MODULE_BUCKET_NAME}
-)
+#O2_GENERATE_EXECUTABLE(
+#  EXE_NAME "test_DebugGUISokol"
+#  SOURCES test/test_DebugGUISokol.cxx
+#  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+#  BUCKET_NAME ${MODULE_BUCKET_NAME}
+#)
 
-O2_GENERATE_EXECUTABLE(
-  EXE_NAME "test_DebugGUIGL"
-  SOURCES test/test_DebugGUIGL.cxx
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${MODULE_BUCKET_NAME}
-)
+#O2_GENERATE_EXECUTABLE(
+#  EXE_NAME "test_DebugGUIGL"
+#  SOURCES test/test_DebugGUIGL.cxx
+#  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+#  BUCKET_NAME ${MODULE_BUCKET_NAME}
+#)
 
 Install(FILES test/test_DataSampling.json DESTINATION share/tests/)
 
@@ -229,14 +229,14 @@ set(TEST_SRCS
       test/test_AlgorithmSpec.cxx
       test/test_BoostOptionsRetriever.cxx
       test/test_CallbackRegistry.cxx
-      test/test_CallbackService.cxx
+      #test/test_CallbackService.cxx
       test/test_ChannelSpecHelpers.cxx
-      test/test_CustomGUISokol.cxx
-      test/test_CustomGUIGL.cxx
+      #test/test_CustomGUISokol.cxx
+      #test/test_CustomGUIGL.cxx
       test/test_CompletionPolicy.cxx
-      test/test_DanglingInputs.cxx
-      test/test_DanglingOutputs.cxx
-      test/test_DataAllocator.cxx
+      #test/test_DanglingInputs.cxx
+      #test/test_DanglingOutputs.cxx
+      #test/test_DataAllocator.cxx
       test/test_DataDescriptorMatcher.cxx
       test/test_DataProcessorSpec.cxx
       test/test_DataRefUtils.cxx
@@ -248,22 +248,22 @@ set(TEST_SRCS
       test/test_DeviceSpec.cxx
       test/test_ExternalFairMQDeviceProxy.cxx
       test/test_FairMQResizableBuffer.cxx
-      test/test_Forwarding.cxx
-      test/test_FrameworkDataFlowToDDS.cxx
+      #test/test_Forwarding.cxx
+      #test/test_FrameworkDataFlowToDDS.cxx
       test/test_FairMQOptionsRetriever.cxx
       test/test_GUITests.cxx
       test/test_Graphviz.cxx
       test/test_InfoLogger.cxx
       test/test_InputRecord.cxx
       test/test_LogParsingHelpers.cxx
-      test/test_ParallelProducer.cxx
+      #test/test_ParallelProducer.cxx
       test/test_PtrHelpers.cxx
       test/test_Root2ArrowTable.cxx
       test/test_Services.cxx
       test/test_SimpleRDataFrameProcessing.cxx
-      test/test_SimpleStatefulProcessing01.cxx
+      #test/test_SimpleStatefulProcessing01.cxx
       test/test_SimpleStringProcessing.cxx
-      test/test_SingleDataSource.cxx
+      #test/test_SingleDataSource.cxx
       test/test_SuppressionGenerator.cxx
       test/test_TimesliceIndex.cxx
       test/test_TMessageSerializer.cxx
@@ -284,30 +284,30 @@ set(BENCH_SRCS
     test/benchmark_TableBuilder.cxx
     )
 
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME O2FrameworkCore_benchmark_bucket
-  TEST_SRCS ${BENCH_SRCS}
-)
+#O2_GENERATE_TESTS(
+#  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+#  BUCKET_NAME O2FrameworkCore_benchmark_bucket
+#  TEST_SRCS ${BENCH_SRCS}
+#)
 
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
-  TIMEOUT 30
-)
+#O2_GENERATE_TESTS(
+#  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+#  BUCKET_NAME ${BUCKET_NAME}
+#  TEST_SRCS ${TEST_SRCS}
+#  TIMEOUT 300
+#)
 
 # specific tests which needs command line options
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TIMEOUT 60
-
-  TEST_SRCS
-  test/test_ProcessorOptions.cxx
-
-  COMMAND_LINE_ARGS
-  --global-config require-me
-  # Note: the group switch makes process consumer parse only the group arguments
-  --consumer "--global-config consumer-config --local-option hello-aliceo2 --a-boolean3 --an-int2 20 --a-double2 22."
-)
+#O2_GENERATE_TESTS(
+#  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+#  BUCKET_NAME ${BUCKET_NAME}
+#  TIMEOUT 300
+#
+#  TEST_SRCS
+#  test/test_ProcessorOptions.cxx
+#
+#  COMMAND_LINE_ARGS
+#  --global-config require-me
+#  # Note: the group switch makes process consumer parse only the group arguments
+#  --consumer "--global-config consumer-config --local-option hello-aliceo2 --a-boolean3 --an-int2 20 --a-double2 22."
+#)
