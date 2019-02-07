@@ -36,7 +36,7 @@ private:
             const std::vector<int> &,
             const std::vector<Cluster> &);
 
-    static std::vector<Digit> findPeaks(
+    static std::vector<Digit> compactDigits(
             const std::vector<int> &,
             const std::vector<Digit> &);
 
@@ -48,8 +48,9 @@ private:
     cl::Context context;
     cl::Device device;
 
-    cl::Kernel findClusters;
-    cl::Kernel digitsToChargeMap;
+    cl::Kernel findPeaks;
+    cl::Kernel fillChargeMap;
+    cl::Kernel computeClusters;
 
     cl::Buffer chargeMap;
     size_t     chargeMapSize = 0;
