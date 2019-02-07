@@ -105,11 +105,6 @@ void buildCluster(
     // o i i i o
     // o o o o o
     addCorner(chargeMap, myCluster, row, pad, time, -1, -1);
-    /* float ltCharge = CHARGE(chargeMap, row, pad-1, time-1); */
-    /* updateCluster(cluster, ltCharge, -1, -1); */
-    /* updateClusterOuter(chargeMap, myCluster, row, pad, time, -1, -1, -2, -1); */
-    /* updateClusterOuter(chargeMap, myCluster, row, pad, time, -1, -1, -2, -2); */
-    /* updateClusterOuter(chargeMap, myCluster, row, pad, time, -1, -1, -1, -2); */
 
     // Add charges in top right corner:
     // o o o O O
@@ -118,9 +113,6 @@ void buildCluster(
     // o i i i o
     // o o o o o
     addCorner(chargeMap, myCluster, row, pad, time, 1, -1);
-    /* updateClusterOuter(chargeMap, myCluster, row, pad, time, 1, -1, 1, -2); */
-    /* updateClusterOuter(chargeMap, myCluster, row, pad, time, 1, -1, 2, -2); */
-    /* updateClusterOuter(chargeMap, myCluster, row, pad, time, 1, -1, 2, -1); */
 
     // Add charges in bottom right corner:
     // o o o o o
@@ -129,9 +121,6 @@ void buildCluster(
     // o i i I O
     // o o o O O
     addCorner(chargeMap, myCluster, row, pad, time, 1, 1);
-    /* updateClusterOuter(chargeMap, myCluster, row, pad, time, 1, 1, 2, 1); */
-    /* updateClusterOuter(chargeMap, myCluster, row, pad, time, 1, 1, 2, 2); */
-    /* updateClusterOuter(chargeMap, myCluster, row, pad, time, 1, 1, 1, 2); */
 
     // Add charges in bottom left corner:
     // o o o o o
@@ -140,9 +129,6 @@ void buildCluster(
     // O I i i o
     // O O o o o
     addCorner(chargeMap, myCluster, row, pad, time, -1, 1);
-    /* updateClusterOuter(chargeMap, myCluster, row, pad, time, -1, 1, -2, 1); */
-    /* updateClusterOuter(chargeMap, myCluster, row, pad, time, -1, 1, -2, 2); */
-    /* updateClusterOuter(chargeMap, myCluster, row, pad, time, -1, 1, -1, 2); */
 
     // Add remaining charges:
     // o o O o o
@@ -154,41 +140,8 @@ void buildCluster(
     addLine(chargeMap, myCluster, row, pad, time,  1,  0);
     addLine(chargeMap, myCluster, row, pad, time,  0,  1);
     addLine(chargeMap, myCluster, row, pad, time, -1,  0);
-    /* updateClusterOuter(chargeMap, myCluster, row, pad, time, 1,  0, 2, 0); */
-    /* updateClusterOuter(chargeMap, myCluster, row, pad, time, 0,  1, 0, 2); */
-    /* updateClusterOuter(chargeMap, myCluster, row, pad, time, -1,  0, -2, 0); */
 }
 
-/* bool tryBuild3x3Cluster( */
-/*         global const float   *chargeMap, */ 
-/*                      int      row, */ 
-/*                      int      pad, */ 
-/*                      int      time, */ 
-/*                      Cluster *cluster) */
-/* { */
-/*     bool isClusterCenter = true; */ 
-/*     float myCharge = CHARGE(chargeMap, row, pad, time); */
-
-/*     for (int i = 0; i < HALF_NEIGHBORS_NUM; i++) */
-/*     { */
-/*         int dp = LEQ_NEIGHBORS[i].x; */
-/*         int dt = LEQ_NEIGHBORS[i].y; */
-/*         float otherCharge = CHARGE(chargeMap, row, pad+dp, time+dt); */
-/*         isClusterCenter &= (otherCharge <= myCharge); */
-/*         updateCluster(cluster, otherCharge, dp, dt); */
-/*     } */
-
-/*     for (int i = 0; i < HALF_NEIGHBORS_NUM; i++) */
-/*     { */
-/*         int dp = LQ_NEIGHBORS[i].x; */
-/*         int dt = LQ_NEIGHBORS[i].y; */
-/*         float otherCharge = CHARGE(chargeMap, row, pad+dp, time+dt); */
-/*         isClusterCenter &= (otherCharge < myCharge); */
-/*         updateCluster(cluster, otherCharge, dp, dt); */
-/*     } */
-
-/*     return isClusterCenter; */
-/* } */
 
 bool isPeak(
                const Digit *digit,
@@ -289,15 +242,9 @@ void computeClusters(
         global const float   *chargeMap,
         global const Digit   *digits,
         global const int     *globalToLocalRow,
-        global const int     *isPeakPredicate,
         global       Cluster *clusters)
 {
     int idx = get_global_id(0);
-
-    if (!isPeakPredicate[idx])
-    {
-        return;
-    }
 
     Digit myDigit = digits[idx];
 

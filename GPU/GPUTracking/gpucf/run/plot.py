@@ -37,7 +37,8 @@ def main():
     labels, data = readCsv(args.input)
 
     plt.boxplot(data, vert=True)
-    plt.xticks(range(1, len(labels)+1), labels, rotation=45)
+    plt.ylim(ymin=0)
+    plt.xticks(range(1, len(labels)+1), labels, rotation=20)
     plt.margins(0.2)
     plt.subplots_adjust(bottom=0.2)
 
