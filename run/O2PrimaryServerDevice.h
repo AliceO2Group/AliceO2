@@ -18,7 +18,7 @@
 #include <Generators/GeneratorFactory.h>
 #include <FairMQMessage.h>
 #include <SimulationDataFormat/Stack.h>
-#include <FairMCEventHeader.h>
+#include <SimulationDataFormat/MCEventHeader.h>
 #include <TMessage.h>
 #include <TClass.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
@@ -235,7 +235,7 @@ class O2PrimaryServerDevice : public FairMQDevice
  private:
   std::string mOutChannelName = "";
   o2::eventgen::PrimaryGenerator mPrimGen;
-  FairMCEventHeader mEventHeader;
+  o2::dataformats::MCEventHeader mEventHeader;
   o2::Data::Stack mStack;      // the stack which is filled
   int mChunkGranularity = 500; // how many primaries to send to a worker
   int mLastPosition = 0;       // last position in stack vector

@@ -12,12 +12,14 @@
 
 #include "Generators/PrimaryGenerator.h"
 #include "Generators/InteractionDiamondParam.h"
+#include "SimulationDataFormat/MCEventHeader.h"
 #include "FairLogger.h"
 
 #include "FairGenericStack.h"
-#include "FairMCEventHeader.h"
 #include "TFile.h"
 #include "TTree.h"
+
+using o2::dataformats::MCEventHeader;
 
 namespace o2
 {
@@ -76,7 +78,7 @@ Bool_t PrimaryGenerator::GenerateEvent(FairGenericStack* pStack)
   /** this is for embedding **/
 
   /** setup interaction vertex **/
-  mEmbedTree->GetEntry(mEmbedCounter);
+  mEmbedTree->GetEntry(mEmbedIndex);
   setInteractionVertex(mEmbedEvent);
 
   /** generate event **/
@@ -84,15 +86,15 @@ Bool_t PrimaryGenerator::GenerateEvent(FairGenericStack* pStack)
     return kFALSE;
 
   /** add embedding info to event header **/
-  //  auto o2event = dynamic_cast<MCEventHeader*>(fEvent);
-  //  if (o2event) {
-  //    o2event->setEmbeddingFileName(mEmbedFile->GetName());
-  //    o2event->setEmbeddingEventCounter(mEmbedCounter);
-  //  }
+  auto o2event = dynamic_cast<MCEventHeader*>(fEvent);
+  if (o2event) {
+    o2event->setEmbeddingFileName(mEmbedFile->GetName());
+    o2event->setEmbeddingEventIndex(mEmbedIndex);
+  }
 
   /** increment embedding counter **/
-  mEmbedCounter++;
-  mEmbedCounter %= mEmbedEntries;
+  mEmbedIndex++;
+  mEmbedIndex %= mEmbedEntries;
 
   /** success **/
   return kTRUE;
@@ -118,7 +120,7 @@ void PrimaryGenerator::setInteractionDiamond(const Double_t* xyz, const Double_t
 
 /*****************************************************************/
 
-void PrimaryGenerator::setInteractionVertex(const FairMCEventHeader* event)
+void PrimaryGenerator::setInteractionVertex(const MCEventHeader* event)
 {
   /** set interaction vertex **/
 
@@ -165,7 +167,7 @@ Bool_t PrimaryGenerator::embedInto(TString fname)
   }
 
   /** connect MC event header **/
-  mEmbedEvent = new FairMCEventHeader;
+  mEmbedEvent = new MCEventHeader;
   mEmbedTree->SetBranchAddress("MCEventHeader.", &mEmbedEvent);
 
   /** success **/

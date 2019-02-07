@@ -18,7 +18,14 @@
 class TFile;
 class TTree;
 class TString;
-class FairMCEventHeader;
+
+namespace o2
+{
+namespace dataformats
+{
+class MCEventHeader;
+}
+} // namespace o2
 
 namespace o2
 {
@@ -64,14 +71,14 @@ class PrimaryGenerator : public FairPrimaryGenerator
   void setInteractionDiamond(const Double_t* xyz, const Double_t* sigmaxyz);
 
   /** set interaction vertex position **/
-  void setInteractionVertex(const FairMCEventHeader* event);
+  void setInteractionVertex(const o2::dataformats::MCEventHeader* event);
 
   /** embedding members **/
   TFile* mEmbedFile = nullptr;
   TTree* mEmbedTree = nullptr;
   Int_t mEmbedEntries = 0;
-  Int_t mEmbedCounter = 0;
-  FairMCEventHeader* mEmbedEvent = nullptr;
+  Int_t mEmbedIndex = 0;
+  o2::dataformats::MCEventHeader* mEmbedEvent = nullptr;
 
   ClassDefOverride(PrimaryGenerator, 2);
 
