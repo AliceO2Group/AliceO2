@@ -46,15 +46,17 @@ template <> GPUd() void AliGPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int
 #ifdef GPUCA_GPU_SORT_STARTHITS
 			GPUglobalref() AliGPUTPCHitId *const startHits = tracker.TrackletTmpStartHits() + s.fIRow * GPUCA_GPU_MAX_ROWSTARTHITS;
 			int nextRowStartHits = CAMath::AtomicAddShared(&s.fNRowStartHits, 1);
-			if (nextRowStartHits >= GPUCA_GPU_MAX_TRACKLETS)
-			{
-				tracker.GPUParameters()->fGPUError = GPUCA_GPU_ERROR_TRACKLET_OVERFLOW;
-				CAMath::AtomicExch(tracker.NTracklets(), 0);
-			}
+			if (nextRowStartHits >= GPUCA_GPU_MAX_ROWSTARTHITS)
 #else
 			GPUglobalref() AliGPUTPCHitId *const startHits = tracker.TrackletStartHits();
 			int nextRowStartHits = CAMath::AtomicAdd(tracker.NTracklets(), 1);
+			if (nextRowStartHits >= GPUCA_GPU_MAX_TRACKLETS)
 #endif
+			{
+				tracker.GPUParameters()->fGPUError = GPUCA_GPU_ERROR_TRACKLET_OVERFLOW;
+				CAMath::AtomicExch(tracker.NTracklets(), 0);
+				break;
+			}
 			startHits[nextRowStartHits].Set(s.fIRow, ih);
 		}
 	}

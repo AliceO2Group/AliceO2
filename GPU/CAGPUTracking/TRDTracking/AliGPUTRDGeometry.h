@@ -1,6 +1,8 @@
 #ifndef ALIGPUTRDGEOMETRY_H
 #define ALIGPUTRDGEOMETRY_H
 
+#include "AliTPCCommonDef.h"
+
 #ifdef GPUCA_ALIROOT_LIB
 #include "AliTRDgeometry.h"
 #include "AliTRDpadPlane.h"
@@ -128,7 +130,7 @@ public:
 	GPUd() int GetRowMax(int layer, int stack, int /*sector*/) {return 0;}
   GPUd() bool ChamberInGeometry(int det) {return false;}
 
-	static const int kNstack = 0;
+	static CONSTEXPR int kNstack = 0;
 };
 
 #endif

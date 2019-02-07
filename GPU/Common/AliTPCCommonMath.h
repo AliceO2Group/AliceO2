@@ -37,14 +37,14 @@ class AliTPCCommonMath
 	GPUd() static bool Finite( float x );
 
 	GPUd() static float Log(float x);
-	GPUd() static int AtomicExch( GPUglobalref() int *addr, int val );
-	GPUd() static int AtomicAdd ( GPUglobalref() int *addr, int val );
-	GPUd() static int AtomicMax ( GPUglobalref() int *addr, int val );
-	GPUd() static int AtomicMin ( GPUglobalref() int *addr, int val );
-	GPUd() static int AtomicExchShared( GPUsharedref() int *addr, int val );
-	GPUd() static int AtomicAddShared ( GPUsharedref() int *addr, int val );
-	GPUd() static int AtomicMaxShared ( GPUsharedref() int *addr, int val );
-	GPUd() static int AtomicMinShared ( GPUsharedref() int *addr, int val );
+	GPUd() static int AtomicExch( GPUglobalref() GPUAtomic(int) *addr, int val );
+	GPUd() static int AtomicAdd ( GPUglobalref() GPUAtomic(int) *addr, int val );
+	GPUd() static int AtomicMax ( GPUglobalref() GPUAtomic(int) *addr, int val );
+	GPUd() static int AtomicMin ( GPUglobalref() GPUAtomic(int) *addr, int val );
+	GPUd() static int AtomicExchShared( GPUsharedref() GPUAtomic(int) *addr, int val );
+	GPUd() static int AtomicAddShared ( GPUsharedref() GPUAtomic(int) *addr, int val );
+	GPUd() static int AtomicMaxShared ( GPUsharedref() GPUAtomic(int) *addr, int val );
+	GPUd() static int AtomicMinShared ( GPUsharedref() GPUAtomic(int) *addr, int val );
 	GPUd() static int Mul24( int a, int b );
 	GPUd() static float FMulRZ( float a, float b );
 };
@@ -171,21 +171,23 @@ GPUdi() float AliTPCCommonMath::Copysign(float x, float y)
 #endif //GPUCA_GPUCODE
 }
 
-#if defined(__OPENCL__)
-GPUdi() int AliTPCCommonMath::AtomicExchShared( GPUsharedref() int *addr, int val ) {return ::atomic_xchg( (volatile __local int*) addr, val );}
-GPUdi() int AliTPCCommonMath::AtomicAddShared ( GPUsharedref() int *addr, int val ) {return ::atomic_add( (volatile __local int*) addr, val );}
-GPUdi() int AliTPCCommonMath::AtomicMaxShared ( GPUsharedref() int *addr, int val ) {return ::atomic_max( (volatile __local int*) addr, val );}
-GPUdi() int AliTPCCommonMath::AtomicMinShared ( GPUsharedref() int *addr, int val ) {return ::atomic_min( (volatile __local int*) addr, val );}
+#if defined(__OPENCL__) && !defined(__OPENCLCPP__)
+GPUdi() int AliTPCCommonMath::AtomicExchShared( GPUsharedref() GPUAtomic(int) *addr, int val ) {return ::atomic_xchg( (volatile __local int*) addr, val );}
+GPUdi() int AliTPCCommonMath::AtomicAddShared ( GPUsharedref() GPUAtomic(int) *addr, int val ) {return ::atomic_add( (volatile __local int*) addr, val );}
+GPUdi() int AliTPCCommonMath::AtomicMaxShared ( GPUsharedref() GPUAtomic(int) *addr, int val ) {return ::atomic_max( (volatile __local int*) addr, val );}
+GPUdi() int AliTPCCommonMath::AtomicMinShared ( GPUsharedref() GPUAtomic(int) *addr, int val ) {return ::atomic_min( (volatile __local int*) addr, val );}
 #else
-GPUdi() int AliTPCCommonMath::AtomicExchShared( int *addr, int val ) {return(AliTPCCommonMath::AtomicExch(addr, val));}
-GPUdi() int AliTPCCommonMath::AtomicAddShared ( int *addr, int val ) {return(AliTPCCommonMath::AtomicAdd(addr, val));}
-GPUdi() int AliTPCCommonMath::AtomicMaxShared ( int *addr, int val ) {return(AliTPCCommonMath::AtomicMax(addr, val));}
-GPUdi() int AliTPCCommonMath::AtomicMinShared ( int *addr, int val ) {return(AliTPCCommonMath::AtomicMin(addr, val));}
+GPUdi() int AliTPCCommonMath::AtomicExchShared( GPUAtomic(int) *addr, int val ) {return(AliTPCCommonMath::AtomicExch(addr, val));}
+GPUdi() int AliTPCCommonMath::AtomicAddShared ( GPUAtomic(int) *addr, int val ) {return(AliTPCCommonMath::AtomicAdd(addr, val));}
+GPUdi() int AliTPCCommonMath::AtomicMaxShared ( GPUAtomic(int) *addr, int val ) {return(AliTPCCommonMath::AtomicMax(addr, val));}
+GPUdi() int AliTPCCommonMath::AtomicMinShared ( GPUAtomic(int) *addr, int val ) {return(AliTPCCommonMath::AtomicMin(addr, val));}
 #endif
 
-GPUdi() int AliTPCCommonMath::AtomicExch( GPUglobalref() int *addr, int val )
+GPUdi() int AliTPCCommonMath::AtomicExch( GPUglobalref() GPUAtomic(int) *addr, int val )
 {
-#if defined(GPUCA_GPUCODE) && defined(__OPENCL__)
+#if defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__)
+    return atomic_exchange(addr, val);
+#elif defined(GPUCA_GPUCODE) && defined(__OPENCL__)
 	return ::atomic_xchg( (volatile __global int*) addr, val );
 #elif defined(GPUCA_GPUCODE) && (defined (__CUDACC__) || defined(__HIPCC_))
 	return ::atomicExch( addr, val );
@@ -196,9 +198,11 @@ GPUdi() int AliTPCCommonMath::AtomicExch( GPUglobalref() int *addr, int val )
 #endif //GPUCA_GPUCODE
 }
 
-GPUdi() int AliTPCCommonMath::AtomicAdd ( GPUglobalref() int *addr, int val )
+GPUdi() int AliTPCCommonMath::AtomicAdd ( GPUglobalref() GPUAtomic(int) *addr, int val )
 {
-#if defined(GPUCA_GPUCODE) && defined(__OPENCL__)
+#if defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__)
+    return atomic_fetch_add(addr, val);
+#elif defined(GPUCA_GPUCODE) && defined(__OPENCL__)
 	return ::atomic_add( (volatile __global int*) addr, val );
 #elif defined(GPUCA_GPUCODE) && (defined (__CUDACC__) || defined(__HIPCC_))
 	return ::atomicAdd( addr, val );
@@ -209,9 +213,11 @@ GPUdi() int AliTPCCommonMath::AtomicAdd ( GPUglobalref() int *addr, int val )
 #endif //GPUCA_GPUCODE
 }
 
-GPUdi() int AliTPCCommonMath::AtomicMax ( GPUglobalref() int *addr, int val )
+GPUdi() int AliTPCCommonMath::AtomicMax ( GPUglobalref() GPUAtomic(int) *addr, int val )
 {
-#if defined(GPUCA_GPUCODE) && defined(__OPENCL__)
+#if defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__)
+    return atomic_fetch_max(addr, val);
+#elif defined(GPUCA_GPUCODE) && defined(__OPENCL__)
 	return ::atomic_max( (volatile __global int*) addr, val );
 #elif defined(GPUCA_GPUCODE) && (defined (__CUDACC__) || defined(__HIPCC_))
 	return ::atomicMax( addr, val );
@@ -222,9 +228,11 @@ GPUdi() int AliTPCCommonMath::AtomicMax ( GPUglobalref() int *addr, int val )
 #endif //GPUCA_GPUCODE
 }
 
-GPUdi() int AliTPCCommonMath::AtomicMin ( GPUglobalref() int *addr, int val )
+GPUdi() int AliTPCCommonMath::AtomicMin ( GPUglobalref() GPUAtomic(int) *addr, int val )
 {
-#if defined(GPUCA_GPUCODE) && defined(__OPENCL__)
+#if defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__)
+    return atomic_fetch_min(addr, val);
+#elif defined(GPUCA_GPUCODE) && defined(__OPENCL__)
 	return ::atomic_min( (volatile __global int*) addr, val );
 #elif defined(GPUCA_GPUCODE) && (defined (__CUDACC__) || defined(__HIPCC_))
 	return ::atomicMin( addr, val );

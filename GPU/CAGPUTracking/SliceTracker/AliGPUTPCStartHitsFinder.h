@@ -44,7 +44,7 @@ class AliGPUTPCStartHitsFinder
 	  protected:
 		int fIRow;          // row index
 		int fNHits;         // n hits in the row
-		int fNRowStartHits; //start hits found in the row
+		GPUAtomic(int) fNRowStartHits; //start hits found in the row
 	};
 
 	typedef GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) workerType;

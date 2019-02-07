@@ -52,14 +52,11 @@ class AliGPUTPCSliceOutTrack
 		return (AliGPUTPCSliceOutTrack *) (((char *) this) + GetSize(fNClusters));
 	}
 
-	GPUhd() static int MaxTrackId() { return (fgkMaxTrackIdInSlice); }
-
   private:
 	AliGPUTPCBaseTrackParam fParam; //* fitted track parameters at its innermost cluster
 	int fNClusters;                   //* number of track clusters
 	int fLocalTrackId;                //See AliHLTPCCATrack.h
 	AliGPUTPCSliceOutCluster fClusters[0]; //* track clusters
-	static const int fgkMaxTrackIdInSlice = 4096;
 };
 
 #endif

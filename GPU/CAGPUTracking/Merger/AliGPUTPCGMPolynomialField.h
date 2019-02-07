@@ -41,8 +41,8 @@ class AliGPUTPCGMPolynomialField
 
 	void Print() const;
 
-	static const int fkM = 10;    // number of coefficients
-	static const int fkTrdM = 20; // number of coefficients for TRD field
+	static CONSTEXPR int fkM = 10;    // number of coefficients
+	static CONSTEXPR int fkTrdM = 20; // number of coefficients for TRD field
 
 	GPUd() static void GetPolynoms(float x, float y, float z, float f[fkM]);
 	GPUd() static void GetPolynomsTrd(float x, float y, float z, float f[fkTrdM]);

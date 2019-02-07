@@ -84,7 +84,7 @@ public:
 	GPUhd() GPUglobalref() const cahit2* HitData() const { return(fHitData); }
 	MEM_TEMPLATE() GPUdi() GPUglobalref() const calink *HitLinkUpData  ( const MEM_TYPE(AliGPUTPCRow) &row ) const {return &fLinkUpData[row.fHitNumberOffset];}
 	MEM_TEMPLATE() GPUdi() GPUglobalref() const calink *HitLinkDownData( const MEM_TYPE(AliGPUTPCRow) &row ) const {return &fLinkDownData[row.fHitNumberOffset];}
-	MEM_TEMPLATE() GPUdi() GPUglobalref() const calink *FirstHitInBin( const MEM_TYPE( AliGPUTPCRow) &row ) const {return &fFirstHitInBin[row.fFirstHitInBinOffset];}
+	MEM_TEMPLATE() GPUdi() GPUglobalref() const calink *FirstHitInBin( const MEM_TYPE(AliGPUTPCRow) &row ) const {return &fFirstHitInBin[row.fFirstHitInBinOffset];}
 
 	MEM_TEMPLATE() GPUd() void SetHitLinkUpData  ( const MEM_TYPE(AliGPUTPCRow) &row, const calink &hitIndex, const calink &value );
 	MEM_TEMPLATE() GPUd() void SetHitLinkDownData( const MEM_TYPE(AliGPUTPCRow) &row, const calink &hitIndex, const calink &value );
@@ -92,9 +92,9 @@ public:
 	/**
 	 * Return the y and z coordinate(s) of the given hit(s).
 	 */
-	MEM_TEMPLATE() GPUd() cahit HitDataY( const MEM_TYPE( AliGPUTPCRow) &row, const unsigned int &hitIndex ) const;
-	MEM_TEMPLATE() GPUd() cahit HitDataZ( const MEM_TYPE( AliGPUTPCRow) &row, const unsigned int &hitIndex ) const;
-	MEM_TEMPLATE() GPUd() cahit2 HitData( const MEM_TYPE( AliGPUTPCRow) &row, const unsigned int &hitIndex ) const;
+	MEM_TEMPLATE() GPUd() cahit HitDataY( const MEM_TYPE(AliGPUTPCRow) &row, const unsigned int &hitIndex ) const;
+	MEM_TEMPLATE() GPUd() cahit HitDataZ( const MEM_TYPE(AliGPUTPCRow) &row, const unsigned int &hitIndex ) const;
+	MEM_TEMPLATE() GPUd() cahit2 HitData( const MEM_TYPE(AliGPUTPCRow) &row, const unsigned int &hitIndex ) const;
 
 	/**
 	 * For a given bin index, content tells how many hits there are in the preceding bins. This maps
@@ -102,23 +102,23 @@ public:
 	 *
 	 * \param binIndexes in the range 0 to row.Grid.N + row.Grid.Ny + 3.
 	 */
-	MEM_TEMPLATE() GPUd() calink FirstHitInBin( const MEM_TYPE( AliGPUTPCRow)&row, calink binIndexes ) const;
+	MEM_TEMPLATE() GPUd() calink FirstHitInBin( const MEM_TYPE(AliGPUTPCRow) &row, calink binIndexes ) const;
 
 	/**
 	 * If the given weight is higher than what is currently stored replace with the new weight.
 	 */
-	MEM_TEMPLATE() GPUd() void MaximizeHitWeight( const MEM_TYPE( AliGPUTPCRow)&row, unsigned int hitIndex, int weight );
-	MEM_TEMPLATE() GPUd() void SetHitWeight( const MEM_TYPE( AliGPUTPCRow)&row, unsigned int hitIndex, int weight );
+	MEM_TEMPLATE() GPUd() void MaximizeHitWeight( const MEM_TYPE(AliGPUTPCRow) &row, unsigned int hitIndex, int weight );
+	MEM_TEMPLATE() GPUd() void SetHitWeight( const MEM_TYPE(AliGPUTPCRow) &row, unsigned int hitIndex, int weight );
 
 	/**
 	 * Return the maximal weight the given hit got from one tracklet
 	 */
-	MEM_TEMPLATE() GPUd() int HitWeight( const MEM_TYPE( AliGPUTPCRow)&row, unsigned int hitIndex ) const;
+	MEM_TEMPLATE() GPUd() int HitWeight( const MEM_TYPE(AliGPUTPCRow) &row, unsigned int hitIndex ) const;
 
 	/**
 	 * Returns the index in the original AliGPUTPCClusterData object of the given hit
 	 */
-	MEM_TEMPLATE() GPUhd() int ClusterDataIndex( const MEM_TYPE( AliGPUTPCRow)&row, unsigned int hitIndex ) const;
+	MEM_TEMPLATE() GPUhd() int ClusterDataIndex( const MEM_TYPE(AliGPUTPCRow) &row, unsigned int hitIndex ) const;
 
 	/**
 	 * Return the row object for the given row index.
@@ -126,7 +126,7 @@ public:
 	GPUhdi() GPUglobalref() const MEM_GLOBAL(AliGPUTPCRow)& Row( int rowIndex ) const {return fRows[rowIndex];}
 	GPUhdi() GPUglobalref() MEM_GLOBAL(AliGPUTPCRow)* Rows() const {return fRows;}
 
-	GPUhdi() GPUglobalref() int* HitWeights() const {return(fHitWeights); }
+	GPUhdi() GPUglobalref() GPUAtomic(int)* HitWeights() const {return(fHitWeights); }
 
 	GPUhdi() void SetGPUTextureBase(void* const val) {fGPUTextureBase = val;}
 	GPUhdi() char* GPUTextureBase() const { return((char*) fGPUTextureBase); }
@@ -143,8 +143,8 @@ public:
 	AliGPUTPCSliceData& operator=( const AliGPUTPCSliceData & ) ;
 
 #ifndef GPUCA_GPUCODE
-	void CreateGrid( AliGPUTPCRow *row, const float2* data, int ClusterDataHitNumberOffset );
-	int PackHitData( AliGPUTPCRow *row, const AliGPUTPCHit* binSortedHits );
+	void CreateGrid(AliGPUTPCRow *row, const float2* data, int ClusterDataHitNumberOffset );
+	int PackHitData(AliGPUTPCRow *row, const AliGPUTPCHit* binSortedHits );
 #endif
 
 	short mMemoryResInput;
@@ -178,67 +178,67 @@ public:
 	 */
 	GPUglobalref() calink *fFirstHitInBin;         // see FirstHitInBin
 
-	GPUglobalref() int *fHitWeights;          // the weight of the longest tracklet crossed the cluster
+	GPUglobalref() GPUAtomic(int) *fHitWeights;          // the weight of the longest tracklet crossed the cluster
 
 	GPUglobalref() const AliGPUTPCClusterData *fClusterData;
 };
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() calink MEM_LG(AliGPUTPCSliceData)::HitLinkUpData  ( const MEM_TYPE( AliGPUTPCRow)&row, const calink &hitIndex ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() calink MEM_LG(AliGPUTPCSliceData)::HitLinkUpData  ( const MEM_TYPE(AliGPUTPCRow) &row, const calink &hitIndex ) const
 {
 	return fLinkUpData[row.fHitNumberOffset + hitIndex];
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() calink MEM_LG(AliGPUTPCSliceData)::HitLinkDownData( const MEM_TYPE( AliGPUTPCRow)&row, const calink &hitIndex ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() calink MEM_LG(AliGPUTPCSliceData)::HitLinkDownData( const MEM_TYPE(AliGPUTPCRow) &row, const calink &hitIndex ) const
 {
 	return fLinkDownData[row.fHitNumberOffset + hitIndex];
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() void MEM_LG(AliGPUTPCSliceData)::SetHitLinkUpData  ( const MEM_TYPE( AliGPUTPCRow)&row, const calink &hitIndex, const calink &value )
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() void MEM_LG(AliGPUTPCSliceData)::SetHitLinkUpData  ( const MEM_TYPE(AliGPUTPCRow) &row, const calink &hitIndex, const calink &value )
 {
 	fLinkUpData[row.fHitNumberOffset + hitIndex] = value;
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() void MEM_LG(AliGPUTPCSliceData)::SetHitLinkDownData( const MEM_TYPE( AliGPUTPCRow)&row, const calink &hitIndex, const calink &value )
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() void MEM_LG(AliGPUTPCSliceData)::SetHitLinkDownData( const MEM_TYPE(AliGPUTPCRow) &row, const calink &hitIndex, const calink &value )
 {
 	fLinkDownData[row.fHitNumberOffset + hitIndex] = value;
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() cahit MEM_LG(AliGPUTPCSliceData)::HitDataY( const MEM_TYPE( AliGPUTPCRow)&row, const unsigned int &hitIndex ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() cahit MEM_LG(AliGPUTPCSliceData)::HitDataY( const MEM_TYPE(AliGPUTPCRow) &row, const unsigned int &hitIndex ) const
 {
 	return fHitData[row.fHitNumberOffset + hitIndex].x;
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() cahit MEM_LG(AliGPUTPCSliceData)::HitDataZ( const MEM_TYPE( AliGPUTPCRow)&row, const unsigned int &hitIndex ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() cahit MEM_LG(AliGPUTPCSliceData)::HitDataZ( const MEM_TYPE(AliGPUTPCRow) &row, const unsigned int &hitIndex ) const
 {
 	return fHitData[row.fHitNumberOffset + hitIndex].y;
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() cahit2 MEM_LG(AliGPUTPCSliceData)::HitData( const MEM_TYPE( AliGPUTPCRow)&row, const unsigned int &hitIndex ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() cahit2 MEM_LG(AliGPUTPCSliceData)::HitData( const MEM_TYPE(AliGPUTPCRow) &row, const unsigned int &hitIndex ) const
 {
 	return fHitData[row.fHitNumberOffset + hitIndex];
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() calink MEM_LG(AliGPUTPCSliceData)::FirstHitInBin( const MEM_TYPE( AliGPUTPCRow)&row, calink binIndexes ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() calink MEM_LG(AliGPUTPCSliceData)::FirstHitInBin( const MEM_TYPE(AliGPUTPCRow) &row, calink binIndexes ) const
 {
 	return fFirstHitInBin[row.fFirstHitInBinOffset + binIndexes];
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUhdi() int MEM_LG(AliGPUTPCSliceData)::ClusterDataIndex( const MEM_TYPE( AliGPUTPCRow)&row, unsigned int hitIndex ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUhdi() int MEM_LG(AliGPUTPCSliceData)::ClusterDataIndex( const MEM_TYPE(AliGPUTPCRow) &row, unsigned int hitIndex ) const
 {
 	return fClusterDataIndex[row.fHitNumberOffset + hitIndex];
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() void MEM_LG(AliGPUTPCSliceData)::MaximizeHitWeight( const MEM_TYPE( AliGPUTPCRow)&row, unsigned int hitIndex, int weight )
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() void MEM_LG(AliGPUTPCSliceData)::MaximizeHitWeight( const MEM_TYPE(AliGPUTPCRow) &row, unsigned int hitIndex, int weight )
 {
 	CAMath::AtomicMax( &fHitWeights[row.fHitNumberOffset + hitIndex], weight );
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() void MEM_LG(AliGPUTPCSliceData)::SetHitWeight( const MEM_TYPE( AliGPUTPCRow)&row, unsigned int hitIndex, int weight )
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() void MEM_LG(AliGPUTPCSliceData)::SetHitWeight( const MEM_TYPE(AliGPUTPCRow) &row, unsigned int hitIndex, int weight )
 {
 	fHitWeights[row.fHitNumberOffset + hitIndex] = weight;
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() int MEM_LG(AliGPUTPCSliceData)::HitWeight( const MEM_TYPE( AliGPUTPCRow)&row, unsigned int hitIndex ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUdi() int MEM_LG(AliGPUTPCSliceData)::HitWeight( const MEM_TYPE(AliGPUTPCRow) &row, unsigned int hitIndex ) const
 {
 	return fHitWeights[row.fHitNumberOffset + hitIndex];
 }
