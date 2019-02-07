@@ -20,9 +20,12 @@ public:
             cl::CommandQueue,
             cl::Buffer,
             cl::Buffer,
+            cl::Buffer,
             bool debug=false);
 
     std::vector<std::vector<int>> getNewIdxDump() const;
+
+    float getExecutionTime() const;
 
 private:
     cl::Kernel inclusiveScanStart;

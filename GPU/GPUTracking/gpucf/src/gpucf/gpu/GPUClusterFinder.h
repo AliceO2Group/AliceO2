@@ -3,6 +3,7 @@
 #include <gpucf/common/Cluster.h>
 #include <gpucf/common/Digit.h>
 #include <gpucf/gpu/GPUAlgorithm.h>
+#include <gpucf/gpu/StreamCompaction.h>
 
 #include <memory>
 #include <vector>
@@ -28,7 +29,6 @@ protected:
 
 private:
     static void printClusters(
-            const std::vector<int> &, 
             const std::vector<Cluster> &,
             size_t);
 
@@ -45,6 +45,8 @@ private:
 
     std::vector<int> globalToLocalRow;
 
+    StreamCompaction streamCompaction;
+
     cl::Context context;
     cl::Device device;
 
@@ -56,6 +58,7 @@ private:
     size_t     chargeMapSize = 0;
 
     cl::Buffer digitsBuf;
+    cl::Buffer peaksBuf;
     size_t     digitsBufSize = 0;
 
     cl::Buffer globalToLocalRowBuf;

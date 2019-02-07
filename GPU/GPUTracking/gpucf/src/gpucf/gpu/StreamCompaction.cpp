@@ -1,6 +1,7 @@
 #include "StreamCompaction.h"
 
 #include <gpucf/ClEnv.h>
+#include <gpucf/common/log.h>
 
 #include <cmath>
 
@@ -35,19 +36,27 @@ void StreamCompaction::setup(ClEnv &env, size_t digitNum)
 int StreamCompaction::enqueue(
         cl::CommandQueue queue,
         cl::Buffer digits,
+        cl::Buffer digitsOut,
         cl::Buffer predicate,
         bool debug)
 {
-    cl::NDRange global(digitNum);
-    cl::NDRange local(64);
 
-    inclusiveScanStart.setArg(0, predicate);
-    inclusiveScanStart.setArg(1, newIdxBufIn);
-    queue.enqueueNDRangeKernel(
-            inclusiveScanStart,
-            cl::NullRange,
-            global,
-            local);
+    /* inclusiveScanStart.setArg(0, predicate); */
+    /* inclusiveScanStart.setArg(1, newIdxBufIn); */
+    /* queue.enqueueNDRangeKernel( */
+    /*         inclusiveScanStart, */
+    /*         cl::NullRange, */
+    /*         global, */
+    /*         local); */
+
+    log::Debug() << "Copying buffer to setup prefix sum";
+
+    queue.enqueueCopyBuffer(
+            predicate,
+            newIdxBufIn,
+            0,
+            0,
+            sizeof(cl_int) * digitNum);
 
     /* queue.enqueueFillBuffer(newIdxBufOut, 0, 0, sizeof(cl_int) * digitNum); */
     queue.enqueueCopyBuffer(
@@ -57,8 +66,13 @@ int StreamCompaction::enqueue(
             0,
             sizeof(cl_int) * digitNum);
 
+    log::Debug() << "Starting prefix sum";
+
+    cl::NDRange local(64);
     for (int offset : offsets)
     {
+        log::Debug() << "Prefix sum step: offset = " << offset;
+        cl::NDRange global(digitNum-offset);
         cl::NDRange itemOffset(offset);
 
         inclusiveScanStep.setArg(0, newIdxBufIn);
@@ -89,12 +103,13 @@ int StreamCompaction::enqueue(
     }
 
     compactArr.setArg(0, digits);
-    compactArr.setArg(1, predicate);
-    compactArr.setArg(2, newIdxBufOut);
+    compactArr.setArg(1, digitsOut);
+    compactArr.setArg(2, predicate);
+    compactArr.setArg(3, newIdxBufOut);
     queue.enqueueNDRangeKernel(
             compactArr,
             cl::NullRange,
-            global,
+            cl::NDRange(digitNum),
             local);
 
     cl_int newDigitNum;

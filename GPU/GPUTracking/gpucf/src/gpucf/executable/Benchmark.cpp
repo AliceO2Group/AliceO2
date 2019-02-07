@@ -41,10 +41,8 @@ int Benchmark::mainImpl()
 
     ClEnv env(*envFlags); 
 
-    StreamCompactionTest streamCompactionTest(env);
-    streamCompactionTest.run();
-    return 0;
-
+    /* StreamCompactionTest streamCompactionTest(env); */
+    /* streamCompactionTest.run(); */
 
     DataSet digitSet;
     digitSet.read(args::get(*digitFile));

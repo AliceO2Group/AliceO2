@@ -44,7 +44,8 @@ bool StreamCompactionTest::run()
             sizeof(cl_uchar) * N,
             predicate.data());
 
-    int res = streamCompaction.enqueue(queue, digitsBuf, predicateBuf, true);
+    // FIXME: create seperate out buffer!
+    int res = streamCompaction.enqueue(queue, digitsBuf, digitsBuf, predicateBuf, true);
 
     auto dump = streamCompaction.getNewIdxDump();
     if (res != N)
