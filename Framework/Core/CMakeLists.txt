@@ -261,7 +261,7 @@ set(TEST_SRCS
       test/test_Root2ArrowTable.cxx
       test/test_Services.cxx
       test/test_SimpleRDataFrameProcessing.cxx
-      #test/test_SimpleStatefulProcessing01.cxx
+      test/test_SimpleStatefulProcessing01.cxx
       test/test_SimpleStringProcessing.cxx
       #test/test_SingleDataSource.cxx
       test/test_SuppressionGenerator.cxx
@@ -290,12 +290,12 @@ set(BENCH_SRCS
 #  TEST_SRCS ${BENCH_SRCS}
 #)
 
-#O2_GENERATE_TESTS(
-#  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-#  BUCKET_NAME ${BUCKET_NAME}
-#  TEST_SRCS ${TEST_SRCS}
-#  TIMEOUT 300
-#)
+O2_GENERATE_TESTS(
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${BUCKET_NAME}
+  TEST_SRCS ${TEST_SRCS}
+  TIMEOUT 30
+)
 
 # specific tests which needs command line options
 #O2_GENERATE_TESTS(
