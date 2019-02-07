@@ -84,16 +84,16 @@ TGeoVolume* createHorizontalSupport(int iChamber)
   return supp;
 }
 
-TGeoVolume* createRPC(int rpcTypeId, int iChamber)
+TGeoVolume* createRPC(RPCtype type, int iChamber)
 {
   /// Function building a resisitive plate chamber (RPC), the detection element of the MID, of a given type and for the given chamber number.
 
-  auto name = Constants::getRPCVolumeName(rpcTypeId, iChamber).c_str();
+  auto name = Constants::getRPCVolumeName(iChamber).c_str();
 
   auto rpc = new TGeoVolumeAssembly(name);
 
   // get the dimensions from MIDBase/Constants
-  double halfLength = (rpcTypeId == Constants::sShortRPCId) ? Constants::sRPCShortHalfLength : Constants::sRPCHalfLength;
+  double halfLength = (type == RPCtype::Short) ? Constants::sRPCShortHalfLength : Constants::sRPCHalfLength;
   halfLength *= Constants::sScaleFactors[iChamber];
   double halfHeight = Constants::getRPCHalfHeight(iChamber);
 
@@ -143,41 +143,42 @@ TGeoVolume* createRPC(int rpcTypeId, int iChamber)
                               assertMedium(Medium::Nomex));
 
   // change the volume shape if we are creating a "cut" RPC
-  if (rpcTypeId == Constants::sBottomCutRPCId || rpcTypeId == Constants::sTopCutRPCId) {
+  if (type == RPCtype::TopCut || type == RPCtype::BottomCut) {
     // dimensions of the cut
     double cutHalfLength = Constants::getLocalBoardWidth(iChamber) / 2.;
     double cutHalfHeight = Constants::getLocalBoardHeight(iChamber) / 2.;
 
-    bool isTopCut = (rpcTypeId == Constants::sTopCutRPCId);
+    bool isTopCut = (type == RPCtype::TopCut);
+    const char* cutName = Form("%sCut%s", (isTopCut) ? "top" : "bottom", name);
 
     // position of the cut w.r.t the center of the RPC
-    auto cutPos = new TGeoTranslation(Form("%sCutPos", name), cutHalfLength - halfLength, (isTopCut) ? halfHeight - cutHalfHeight : cutHalfHeight - halfHeight, 0.);
+    auto cutPos = new TGeoTranslation(Form("%sPos", cutName), cutHalfLength - halfLength, (isTopCut) ? halfHeight - cutHalfHeight : cutHalfHeight - halfHeight, 0.);
     cutPos->RegisterYourself();
 
     // for each volume, create a box and change the volume shape by extracting the cut shape
     new TGeoBBox(Form("%sGasCut", name), cutHalfLength, cutHalfHeight, kGasHalfThickness);
-    gas->SetShape(new TGeoCompositeShape(Form("%sGasShape", name), Form("%sGasBox-%sGasCut:%sCutPos", name, name, name)));
+    gas->SetShape(new TGeoCompositeShape(Form("%sGasShape", name), Form("%sGasBox-%sGasCut:%sPos", name, name, cutName)));
 
     new TGeoBBox(Form("%sElecCut", name), cutHalfLength, cutHalfHeight, kElectrodHalfThickness);
-    electrod->SetShape(new TGeoCompositeShape(Form("%sElecShape", name), Form("%sElecBox-%sElecCut:%sCutPos", name, name, name)));
+    electrod->SetShape(new TGeoCompositeShape(Form("%sElecShape", name), Form("%sElecBox-%sElecCut:%sPos", name, name, cutName)));
 
     new TGeoBBox(Form("%sInsuCut", name), cutHalfLength, cutHalfHeight, kInsulatorHalfThickness);
-    insu->SetShape(new TGeoCompositeShape(Form("%sInsuShape", name), Form("%sInsuBox-%sInsuCut:%sCutPos", name, name, name)));
+    insu->SetShape(new TGeoCompositeShape(Form("%sInsuShape", name), Form("%sInsuBox-%sInsuCut:%sPos", name, name, cutName)));
 
     new TGeoBBox(Form("%sCopperCut", name), cutHalfLength, cutHalfHeight, kCopperHalfThickness);
-    copper->SetShape(new TGeoCompositeShape(Form("%sCopperShape", name), Form("%sCopperBox-%sCopperCut:%sCutPos", name, name, name)));
+    copper->SetShape(new TGeoCompositeShape(Form("%sCopperShape", name), Form("%sCopperBox-%sCopperCut:%sPos", name, name, cutName)));
 
     new TGeoBBox(Form("%sMylarCut", name), cutHalfLength, cutHalfHeight, kMylarHalfThickness);
-    mylar->SetShape(new TGeoCompositeShape(Form("%sMylarShape", name), Form("%sMylarBox-%sMylarCut:%sCutPos", name, name, name)));
+    mylar->SetShape(new TGeoCompositeShape(Form("%sMylarShape", name), Form("%sMylarBox-%sMylarCut:%sPos", name, name, cutName)));
 
     new TGeoBBox(Form("%sStyroCut", name), cutHalfLength, cutHalfHeight, kStyrofoamHalfThickness);
-    styro->SetShape(new TGeoCompositeShape(Form("%sStyroShape", name), Form("%sStyroBox-%sStyroCut:%sCutPos", name, name, name)));
+    styro->SetShape(new TGeoCompositeShape(Form("%sStyroShape", name), Form("%sStyroBox-%sStyroCut:%sPos", name, name, cutName)));
 
     new TGeoBBox(Form("%sAluCut", name), cutHalfLength, cutHalfHeight, kAluminiumHalfThickness);
-    alu->SetShape(new TGeoCompositeShape(Form("%sAluShape", name), Form("%sAluBox-%sAluCut:%sCutPos", name, name, name)));
+    alu->SetShape(new TGeoCompositeShape(Form("%sAluShape", name), Form("%sAluBox-%sAluCut:%sPos", name, name, cutName)));
 
     new TGeoBBox(Form("%sNomexCut", name), cutHalfLength, cutHalfHeight, kNomexHalfThickness);
-    nomex->SetShape(new TGeoCompositeShape(Form("%sNomexShape", name), Form("%sNomexBox-%sNomexCut:%sCutPos", name, name, name)));
+    nomex->SetShape(new TGeoCompositeShape(Form("%sNomexShape", name), Form("%sNomexBox-%sNomexCut:%sPos", name, name, cutName)));
   }
 
   /// place all the layers in the RPC
@@ -260,13 +261,13 @@ TGeoVolume* createChamber(int iChamber)
   auto horiSupp = createHorizontalSupport(iChamber);
 
   // create the 4 types of RPC
-  auto shortRPC = createRPC(Constants::sShortRPCId, iChamber);
-  auto longRPC = createRPC(Constants::sLongRPCId, iChamber);
-  auto bottomCutRPC = createRPC(Constants::sBottomCutRPCId, iChamber);
-  auto topCutRPC = createRPC(Constants::sTopCutRPCId, iChamber);
+  auto longRPC = createRPC(RPCtype::Long, iChamber);
+  auto bottomCutRPC = createRPC(RPCtype::BottomCut, iChamber);
+  auto topCutRPC = createRPC(RPCtype::TopCut, iChamber);
+  auto shortRPC = createRPC(RPCtype::Short, iChamber);
 
   // placement variables
-  double x, y, z, xSign, zSign, newZ, oldZ;
+  double x, y, z, xSign, zSign;
 
   auto rotY = new TGeoRotation("rotY", 90., 180., 90., 90., 180., 0.);
 
@@ -289,15 +290,13 @@ TGeoVolume* createChamber(int iChamber)
 
       deId = Constants::getDEId(isRight, iChamber, iRPC);
       x = xSign * Constants::getRPCCenterPosX(iChamber, iRPC);
-      zSign = (iRPC % 2 == 0) ? 1. : -1;
+      zSign = (iRPC % 2 == 0) ? 1. : -1.;
 
       if (!isRight) {
         zSign *= -1.;
       }
       z = zSign * Constants::sRPCZShift;
-      newZ = Constants::sDefaultChamberZ[0] + z;
-      oldZ = Constants::sDefaultChamberZ[0] - z;
-      y = Constants::getRPCHalfHeight(iChamber) * (iRPC - 4) * (1. + newZ / oldZ);
+      y = 2 * Constants::getRPCHalfHeight(iChamber) * (iRPC - 4) / (1 - (z / Constants::sDefaultChamberZ[0]));
 
       // ID convention (from bottom to top of the chamber) : long, long, long, cut, short, cut, long, long, long
       switch (iRPC) {
@@ -365,15 +364,13 @@ std::vector<TGeoVolume*> getSensitiveVolumes()
 
   std::vector<TGeoVolume*> sensitiveVolumeNames;
   for (int i = 0; i < Constants::sNChambers; i++) {
-    for (int type = 0; type < Constants::sNRPCTypes; type++) {
-      auto name = Form("Gas %s", Constants::getRPCVolumeName(type, i).c_str());
-      auto vol = gGeoManager->GetVolume(name);
+    auto name = Form("Gas %s", Constants::getRPCVolumeName(i).c_str());
+    auto vol = gGeoManager->GetVolume(name);
 
-      if (!vol) {
-        throw std::runtime_error(Form("could not get expected volume %s", name));
-      } else {
-        sensitiveVolumeNames.push_back(vol);
-      }
+    if (!vol) {
+      throw std::runtime_error(Form("could not get expected volume %s", name));
+    } else {
+      sensitiveVolumeNames.push_back(vol);
     }
   }
   return sensitiveVolumeNames;

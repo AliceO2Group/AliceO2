@@ -82,43 +82,10 @@ class Constants
     return deOffset + sNRPCLines * chamber + rpc;
   }
 
-  /// Gets RPC type Id
-  /// @param deId The detection element Id (0-71)
-  inline static int getRPCType(int deId)
-  {
-    if (isShortRPC(deId))
-      return sShortRPCId;
-    else if (deId % 9 == 3)
-      return sTopCutRPCId;
-    else if (deId % 9 == 5)
-      return sBottomCutRPCId;
-    else
-      return sLongRPCId;
-  }
-
-  /// Gets RPC type name
-  /// @param type RPC type ID (0-2)
-  inline static std::string getRPCTypeName(int type)
-  {
-    switch (type) {
-      case sLongRPCId: // long
-        return "long";
-      case sTopCutRPCId: // top cut
-        return "topCut";
-      case sBottomCutRPCId: // bottom cut
-        return "bottomCut";
-      case sShortRPCId: //short
-        return "short";
-      default: //wrong id
-        //throw std::runtime_error(Form("%d is not a RPC type Id\n", type));
-        return "";
-    }
-  }
-
   /// Gets RPC volume name
   /// @param type RPC type ID (0-2)
   /// @param chamber The chamber ID (0-3)
-  inline static std::string getRPCVolumeName(int type, int chamber) { return getRPCTypeName(type) + "RPC" + std::to_string(chamber); }
+  inline static std::string getRPCVolumeName(int chamber) { return "RPC" + std::to_string(chamber); }
 
   /// Gets chamber name
   /// @param chamber The chamber ID (0-3)
@@ -133,16 +100,11 @@ class Constants
   inline static std::string getRPCVolumePathName(int deId)
   {
     int chamber = getChamber(deId);
-    return "/" + getChamberName(chamber) + "_" + std::to_string(getChamberNode(chamber)) + "/" + getRPCVolumeName(getRPCType(deId), chamber) + "_" + std::to_string(deId);
+    return "/" + getChamberName(chamber) + "_" + std::to_string(getChamberNode(chamber)) + "/" + getRPCVolumeName(chamber) + "_" + std::to_string(deId);
   }
 
   static constexpr int sNChambers = 4;                  ///< Number of chambers
   static constexpr int sNDetectionElements = 72;        ///< Number of RPCs
-  static constexpr int sLongRPCId = 0;                  ///< Id of long RPC type
-  static constexpr int sTopCutRPCId = 1;                ///< Id of top cut RPC type
-  static constexpr int sBottomCutRPCId = 2;             ///< Id of bottom cut RPC type
-  static constexpr int sShortRPCId = 3;                 ///< Id of short RPC type
-  static constexpr int sNRPCTypes = 4;                  ///< Number of different RPC types
   static constexpr int sNLocalBoards = 234;             ///< Number of local boards per chamber
   static constexpr int sNStripsBP = 16;                 ///< Number of strips in the Bending Plane
   static constexpr int sNDetectionElementsPerSide = 36; ///< Number of detection elements per side

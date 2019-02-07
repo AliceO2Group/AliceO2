@@ -25,6 +25,11 @@ namespace o2
 namespace mid
 {
 
+enum class RPCtype { Long,
+                     BottomCut,
+                     TopCut,
+                     Short };
+
 /// create MID geometry and attach it to existing topVolume
 void createGeometry(TGeoVolume& topVolume);
 
