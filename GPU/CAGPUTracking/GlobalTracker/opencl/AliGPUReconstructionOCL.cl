@@ -1,9 +1,7 @@
 #define __OPENCL__
 #define GPUCA_GPUTYPE_RADEON
 #ifdef __OPENCLCPP__
-#ifdef cl_khr_fp64
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
-#endif
 #include <opencl_def>
 #include <opencl_common>
 #include <opencl_math>

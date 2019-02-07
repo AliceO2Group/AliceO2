@@ -393,7 +393,7 @@ GPUd() void AliGPUTPCGMTrackParam::AttachClusters(const AliGPUTPCGMMerger *Merge
 		{
 			cahit2 hh = TEXTUREFetchCons(cahit2, gAliTexRefu2, hits, ih);
 			int id = tracker.Data().ClusterIdOffset() + tracker.Data().ClusterDataIndex(row, ih);
-			int *weight = &Merger->ClusterAttachment()[id];
+			GPUAtomic(int) *weight = &Merger->ClusterAttachment()[id];
 			if (*weight & AliGPUTPCGMMerger::attachGood) continue;
 			float y = y0 + hh.x * stepY;
 			float z = z0 + hh.y * stepZ;

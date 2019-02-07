@@ -66,7 +66,7 @@ class AliGPUTPCGMMerger : public AliGPUProcessor
 	const AliGPUTPCGMMergedTrackHit *Clusters() const { return (fClusters); }
 	AliGPUTPCGMMergedTrackHit *Clusters() { return (fClusters); }
 	GPUhd() const AliGPUTPCTracker *SliceTrackers() const { return (fSliceTrackers); }
-	GPUhd() int *ClusterAttachment() const { return (fClusterAttachment); }
+	GPUhd() GPUAtomic(int) *ClusterAttachment() const { return (fClusterAttachment); }
 	int MaxId() const { return (fMaxID); }
 	GPUhd() unsigned int *TrackOrder() const { return (fTrackOrder); }
 
@@ -108,7 +108,7 @@ class AliGPUTPCGMMerger : public AliGPUProcessor
 	int SliceTrackInfoLocalTotal() { return fSliceTrackInfoIndex[fgkNSlices]; }
 	int SliceTrackInfoTotal() { return fSliceTrackInfoIndex[2 * fgkNSlices]; }
 
-	static const int fgkNSlices = GPUCA_NSLICES; //* N slices
+	static CONSTEXPR int fgkNSlices = GPUCA_NSLICES; //* N slices
 	int fNextSliceInd[fgkNSlices];
 	int fPrevSliceInd[fgkNSlices];
 
@@ -137,7 +137,7 @@ class AliGPUTPCGMMerger : public AliGPUProcessor
 	int fSliceTrackInfoIndex[fgkNSlices * 2 + 1];
 	AliGPUTPCGMMergedTrackHit *fClusters;
 	int *fGlobalClusterIDs;
-	int *fClusterAttachment;
+	GPUAtomic(int) *fClusterAttachment;
 	unsigned int *fTrackOrder;
 	char* fTmpMem;
 	AliGPUTPCGMBorderTrack *fBorderMemory; // memory for border tracks

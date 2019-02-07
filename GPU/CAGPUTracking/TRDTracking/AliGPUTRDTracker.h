@@ -29,6 +29,20 @@ class AliGPUTRDTracker : public AliGPUProcessor {
   AliGPUTRDTracker(const AliGPUTRDTracker &tracker) CON_DELETE;
   AliGPUTRDTracker & operator=(const AliGPUTRDTracker &tracker) CON_DELETE;
   ~AliGPUTRDTracker();
+  
+  void SetMaxData();
+  void RegisterMemoryAllocation();
+  void InitializeProcessor();
+  void* SetPointersBase(void* base);
+  void* SetPointersTracklets(void* base);
+  void* SetPointersTracks(void *base);
+
+  bool Init(AliGPUTRDGeometry *geo = nullptr);
+  void CountMatches(const int trackID, std::vector<int> *matches) const;
+  void DoTracking();
+  void SetNCandidates(int n);
+  void PrintSettings() const;
+  bool IsInitialized() const {return fIsInitialized;}
 #endif
 
   enum EGPUTRDTracker {
@@ -58,19 +72,10 @@ class AliGPUTRDTracker : public AliGPUProcessor {
     Hypothesis() : fLayers(0), fCandidateId(-1), fTrackletId(-1), fChi2(9999.f) {}
   };
 
-  void SetMaxData();
-  void RegisterMemoryAllocation();
-	void InitializeProcessor();
-
-  void* SetPointersBase(void* base);
-  void* SetPointersTracklets(void* base);
-  void* SetPointersTracks(void *base);
-
   short MemoryPermanent() const { return fMemoryPermanent; }
   short MemoryTracklets() const { return fMemoryTracklets; }
   short MemoryTracks()    const { return fMemoryTracks; }
 
-  bool Init(AliGPUTRDGeometry *geo = nullptr);
   GPUhd() void SetGeometry(AliGPUTRDGeometry* geo) {fGeo = geo;}
   void Reset();
   GPUd() int LoadTracklet(const AliGPUTRDTrackletWord &tracklet, const int *labels = 0x0);
@@ -89,7 +94,6 @@ class AliGPUTRDTracker : public AliGPUProcessor {
     }
     return(0);
   }
-  void DoTracking();
   GPUd() void DoTrackingThread(int iTrk, const AliGPUTPCGMMerger* merger, int threadId = 0);
   GPUd() bool CalculateSpacePoints();
   GPUd() bool FollowProlongation(GPUTRDPropagator *prop, GPUTRDTrack *t, int threadId);
@@ -99,7 +103,6 @@ class AliGPUTRDTracker : public AliGPUProcessor {
   GPUd() float GetAlphaOfSector(const int sec) const;
   GPUd() float GetRPhiRes(float snp) const { return (0.04f*0.04f+0.33f*0.33f*(snp-0.126f)*(snp-0.126f)); } // parametrization obtained from track-tracklet residuals
   GPUd() void RecalcTrkltCov(const float tilt, const float snp, const float rowSize, My_Float (&cov)[3]);
-  void CountMatches(const int trackID, std::vector<int> *matches) const;
   GPUd() void CheckTrackRefs(const int trackID, bool *findableMC) const;
   GPUd() void FindChambersInRoad(const GPUTRDTrack *t, const float roadY, const float roadZ, const int iLayer, int* det, const float zMax, const float alpha) const;
   GPUd() bool IsGeoFindable(const GPUTRDTrack *t, const int layer, const float alpha) const;
@@ -108,8 +111,6 @@ class AliGPUTRDTracker : public AliGPUProcessor {
   GPUd() void  SwapHypothesis(const int left, const int right);
   GPUd() int   PartitionHypothesis(const int left, const int right);
   GPUd() void  Quicksort(const int left, const int right, const int size, const int type = 0);
-  void  PrintSettings() const;
-  bool IsInitialized() const {return fIsInitialized;}
 
   // settings
   GPUd() void SetMCEvent(AliMCEvent* mc)       { fMCEvent = mc;}
@@ -119,7 +120,6 @@ class AliGPUTRDTracker : public AliGPUProcessor {
   GPUd() void SetChi2Threshold(float chi2)     { fMaxChi2 = chi2; }
   GPUd() void SetChi2Penalty(float chi2)       { fChi2Penalty = chi2; }
   GPUd() void SetMaxMissingLayers(int ly)      { fMaxMissingLy = ly; }
-  void SetNCandidates(int n);
 
   GPUd() AliMCEvent * GetMCEvent()   const { return fMCEvent; }
   GPUd() bool  GetIsDebugOutputOn()  const { return fDebugOutput; }

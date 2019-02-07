@@ -52,7 +52,7 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	struct StructGPUParameters
 	{
 		StructGPUParameters() : fNextTracklet(0), fScheduleFirstDynamicTracklet(0), fGPUError(0) {}
-		int fNextTracklet;                 //Next Tracklet to process
+		GPUAtomic(int) fNextTracklet;      //Next Tracklet to process
 		int fScheduleFirstDynamicTracklet; //Last Tracklet with fixed position in sheduling
 		int fGPUError;                     //Signalizes error on GPU during GPU Reconstruction, kind of return value
 	};
@@ -68,11 +68,11 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	struct commonMemoryStruct
 	{
 		commonMemoryStruct() : fNTracklets(0), fNTracks(0), fNLocalTracks(0), fNTrackHits(0), fNLocalTrackHits(0), fGPUParameters() {}
-		int fNTracklets;                    // number of tracklets
-		int fNTracks;                       // number of reconstructed tracks
-		int fNLocalTracks;                  //number of reconstructed tracks before global tracking
-		int fNTrackHits;                    // number of track hits
-		int fNLocalTrackHits;               //see above
+		GPUAtomic(int) fNTracklets;         // number of tracklets
+		GPUAtomic(int) fNTracks;            // number of reconstructed tracks
+		int fNLocalTracks;                  // number of reconstructed tracks before global tracking
+		GPUAtomic(int) fNTrackHits;         // number of track hits
+		int fNLocalTrackHits;               // see above
 		StructGPUParameters fGPUParameters; // GPU parameters
 	};
   
@@ -201,7 +201,7 @@ class AliGPUTPCTracker : public AliGPUProcessor
 		return fData.HitWeight(row, hitIndex);
 	}
   
-	GPUhd() GPUglobalref() int *NTracklets() const { return &fCommonMem->fNTracklets; }
+	GPUhd() GPUglobalref() GPUAtomic(int) *NTracklets() const { return &fCommonMem->fNTracklets; }
   
 	GPUhd() const AliGPUTPCHitId &TrackletStartHit( int i ) const { return fTrackletStartHits[i]; }
 	GPUhd() GPUglobalref() AliGPUTPCHitId *TrackletStartHits() const { return fTrackletStartHits; }
@@ -210,9 +210,9 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	GPUhd() GPUglobalref() MEM_GLOBAL(AliGPUTPCTracklet) *Tracklets() const { return fTracklets;}
 	GPUhd() GPUglobalref() calink* TrackletRowHits() const { return fTrackletRowHits; }
 
-	GPUhd() GPUglobalref() int *NTracks()  const { return &fCommonMem->fNTracks; }
+	GPUhd() GPUglobalref() GPUAtomic(int) *NTracks() const { return &fCommonMem->fNTracks; }
 	GPUhd() GPUglobalref() MEM_GLOBAL(AliGPUTPCTrack) *Tracks() const { return fTracks; }
-	GPUhd() GPUglobalref() int *NTrackHits()  const { return &fCommonMem->fNTrackHits; }
+	GPUhd() GPUglobalref() GPUAtomic(int) *NTrackHits() const { return &fCommonMem->fNTrackHits; }
 	GPUhd() GPUglobalref() AliGPUTPCHitId *TrackHits() const { return fTrackHits; }
   
 	GPUhd() GPUglobalref() MEM_GLOBAL(AliGPUTPCRow)* SliceDataRows() const {return(fData.Rows()); }

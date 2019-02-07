@@ -26,6 +26,7 @@
 	#define GPUglobal()
 	#define GPUconstant()
 	#define GPUbarrier()
+	#define GPUAtomic(type) type
 
 	struct float4 { float x, y, z, w; };
 	struct float3 { float x, y, z; };
@@ -56,8 +57,12 @@
 	#define GPUconstant() __global
 	#ifdef __OPENCLCPP__
 		#define GPUbarrier() work_group_barrier(mem_fence::global | mem_fence::local);
+		#define GPUAtomic(type) atomic<type>
+		
+		static_assert(sizeof(atomic<int>) == sizeof(int), "Invalid atomic type");
 	#else
 		#define GPUbarrier() barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE)
+		#define GPUAtomic(type) type
 	#endif
 #elif defined(__CUDACC__) //Defines for CUDA
 	#define GPUd() __device__
@@ -71,6 +76,7 @@
 	#define GPUglobal()
 	#define GPUconstant()
 	#define GPUbarrier() __syncthreads()
+	#define GPUAtomic(type) type
 #elif defined(__HIPCC__) //Defines for HIP
 	#define GPUd() __device__
 	#define GPUdi() __device__ inline
@@ -83,6 +89,7 @@
 	#define GPUglobal()
 	#define GPUconstant()
 	#define GPUbarrier() __syncthreads()
+	#define GPUAtomic(type) type
 #endif
 
 #if defined(__OPENCL__) && !defined(__OPENCLCPP__) //Other special defines for OpenCL
