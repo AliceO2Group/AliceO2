@@ -429,12 +429,6 @@ void AliGPUReconstructionOCLBackend::RecordMarker(deviceEvent* ev, int stream)
 	GPUFailedMsg(clEnqueueMarkerWithWaitList(mInternals->command_queue[stream], 0, nullptr, (cl_event*) ev));
 }
 
-int AliGPUReconstructionOCLBackend::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers)
-{
-	CAGPUFatal("Not implemented in OpenCL (Merger)");
-	return(1);
-}
-
 void AliGPUReconstructionOCLBackend::ActivateThreadContext()
 {
 }

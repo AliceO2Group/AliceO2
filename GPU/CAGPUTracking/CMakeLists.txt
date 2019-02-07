@@ -66,6 +66,7 @@ set(SRCS
     Merger/AliGPUTPCGMPropagator.cxx
     Merger/AliGPUTPCGMPolynomialField.cxx
     Merger/AliGPUTPCGMPolynomialFieldManager.cxx
+    Merger/AliGPUTPCGMMergerGPU.cxx
     TRDTracking/AliGPUTRDTrack.cxx
     TRDTracking/AliGPUTRDTracker.cxx
     TRDTracking/AliGPUTRDTrackletWord.cxx

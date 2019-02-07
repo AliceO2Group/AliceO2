@@ -5,13 +5,14 @@
 #include "AliGPUCADataTypes.h"
 #include <stdexcept>
 
+#include "AliGPUGeneralKernels.h"
 #include "AliGPUTPCNeighboursFinder.h"
 #include "AliGPUTPCNeighboursCleaner.h"
 #include "AliGPUTPCStartHitsFinder.h"
 #include "AliGPUTPCStartHitsSorter.h"
 #include "AliGPUTPCTrackletConstructor.h"
 #include "AliGPUTPCTrackletSelector.h"
-#include "AliGPUGeneralKernels.h"
+#include "AliGPUTPCGMMergerGPU.h"
 
 namespace AliGPUReconstruction_krnlHelpers {
 template <class T, int I = 0> class classArgument {};
@@ -64,6 +65,7 @@ protected:
 	virtual int runKernelImpl(classArgument<AliGPUTPCTrackletConstructor, 1>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) {return T::template runKernelBackend<AliGPUTPCTrackletConstructor, 1>(x, y, z);}
 	virtual int runKernelImpl(classArgument<AliGPUTPCTrackletSelector>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) {return T::template runKernelBackend<AliGPUTPCTrackletSelector>(x, y, z);}
 	virtual int runKernelImpl(classArgument<AliGPUMemClean16>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, void* ptr, unsigned long size) {return T::template runKernelBackend<AliGPUMemClean16>(x, y, z, ptr, size);}
+	virtual int runKernelImpl(classArgument<AliGPUTPCGMMergerTrackFit>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) {return T::template runKernelBackend<AliGPUTPCGMMergerTrackFit>(x, y, z);}
 };
 
 class AliGPUReconstructionCPUBackend : public AliGPUReconstruction
@@ -103,6 +105,7 @@ public:
 	
 	virtual int RunTPCTrackingSlices();
 	virtual int RunTPCTrackingMerger();
+	virtual int RefitMergedTracks(bool resetTimers);
 	virtual int RunTRDTracking();
 	
 protected:

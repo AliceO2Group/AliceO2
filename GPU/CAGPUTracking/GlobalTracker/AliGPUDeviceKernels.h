@@ -22,27 +22,29 @@
 #include "AliGPUGeneralKernels.cxx"
 
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
-	#ifdef GPUCA_GPU_MERGER
-		#include "AliGPUTPCGMMerger.h"
-		#include "AliGPUTPCGMTrackParam.cxx"
-		#include "AliGPUTPCGMPhysicalTrackModel.cxx"
-		#include "AliGPUTPCGMPropagator.cxx"
+#include "AliGPUTPCGMMergerGPU.cxx"
+#endif
 
-		#include "AliGPUTRDTrack.cxx"
-		#include "AliGPUTRDTracker.cxx"
-		#include "AliGPUTRDTrackletWord.cxx"
-		#ifdef HAVE_O2HEADERS
-			#include "TRDGeometryBase.cxx"
-		#endif
-	#endif
+#ifdef GPUCA_BUILD_MERGER
+	#include "AliGPUTPCGMMerger.h"
+	#include "AliGPUTPCGMTrackParam.cxx"
+	#include "AliGPUTPCGMPhysicalTrackModel.cxx"
+	#include "AliGPUTPCGMPropagator.cxx"
+#endif
 
-	#if defined(HAVE_O2HEADERS) && !defined(GPUCA_O2_LIB) && defined(__CUDACC__)
-		#include "TrackerTraitsNV.cu"
-		#include "Context.cu"
-		#include "Stream.cu"
-		#include "DeviceStoreNV.cu"
-		#include "Utils.cu"
-	#endif
+#ifdef GPUCA_BUILD_TRD
+	#include "AliGPUTRDTrack.cxx"
+	#include "AliGPUTRDTracker.cxx"
+	#include "AliGPUTRDTrackletWord.cxx"
+	#include "TRDGeometryBase.cxx"
+#endif
+
+#ifdef GPUCA_BUILD_ITS
+	#include "TrackerTraitsNV.cu"
+	#include "Context.cu"
+	#include "Stream.cu"
+	#include "DeviceStoreNV.cu"
+	#include "Utils.cu"
 #endif
 
 #endif

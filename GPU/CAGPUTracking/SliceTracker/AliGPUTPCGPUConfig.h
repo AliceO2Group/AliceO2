@@ -48,10 +48,6 @@
 
 #define GPUCA_GPU_DEFAULT_HELPER_THREADS 2				//Number of helper threads to speed up initialization/output
 
-#ifdef GPUCA_STANDALONE
-#define GPUCA_GPU_MERGER								//Use GPU Merger
-#endif
-
 #define GPUCA_GPU_ROWALIGNMENT uint4					//Align Row Hits and Grid
 
 #ifdef GPUCA_GPU_USE_TEXTURES

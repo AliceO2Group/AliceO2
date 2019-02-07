@@ -28,6 +28,9 @@ public:
 	AliGPUProcessor& operator= (const AliGPUProcessor&) CON_DELETE;
 #endif
 
+	GPUconstantref() const MEM_CONSTANT(AliGPUCAParam) &GetParam() const {return *mCAParam;}
+	const AliGPUReconstruction& GetRec() const {return *mRec;}
+
 #ifndef __OPENCL__
 	void InitGPUProcessor(AliGPUReconstruction* rec, ProcessorType type = PROCESSOR_TYPE_CPU, AliGPUProcessor* slaveProcessor = NULL);
 	void Clear();
@@ -83,10 +86,15 @@ public:
 #endif
 
 protected:
+	void AllocateAndInitializeLate() {mAllocateAndInitializeLate = true;}
+	
 	AliGPUReconstruction* mRec;
 	ProcessorType mGPUProcessorType;
 	AliGPUProcessor* mDeviceProcessor;
-	GPUglobalref() const MEM_GLOBAL(AliGPUCAParam) *mCAParam;
+	GPUconstantref() const MEM_CONSTANT(AliGPUCAParam) *mCAParam;
+
+private:
+	bool mAllocateAndInitializeLate;
 };
 
 #endif

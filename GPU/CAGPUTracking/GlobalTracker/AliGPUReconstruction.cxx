@@ -68,14 +68,6 @@ AliGPUReconstruction::AliGPUReconstruction(const AliGPUCASettingsProcessing& cfg
 		mITSVertexerTraits.reset(new o2::ITS::VertexerTraits);
 	}
 	memset(mSliceOutput, 0, sizeof(mSliceOutput));
-	
-	for (unsigned int i = 0;i < NSLICES;i++)
-	{
-		RegisterGPUProcessor(&workers()->tpcTrackers[i].Data());
-		RegisterGPUProcessor(&workers()->tpcTrackers[i]);
-	}
-	RegisterGPUProcessor(&workers()->tpcMerger);
-	RegisterGPUProcessor(&workers()->trdTracker);
 }
 
 AliGPUReconstruction::~AliGPUReconstruction()
@@ -100,6 +92,8 @@ int AliGPUReconstruction::Init()
 	if (mDeviceProcessingSettings.eventDisplay) mDeviceProcessingSettings.keepAllMemory = true;
 	if (mDeviceProcessingSettings.debugLevel >= 4) mDeviceProcessingSettings.keepAllMemory = true;
 	if (mDeviceProcessingSettings.debugLevel < 6) mDeviceProcessingSettings.debugMask = 0;
+	if (!IsGPU()) mDeviceProcessingSettings.runTPCSliceTrackerGPU = mDeviceProcessingSettings.runTPCMergerGPU = mDeviceProcessingSettings.runTRDTrackerGPU = false;
+	if (GetDeviceType() == OCL) mDeviceProcessingSettings.runTPCMergerGPU = mDeviceProcessingSettings.runTRDTrackerGPU = false;
 	if (param().rec.NonConsecutiveIDs) param().rec.DisableRefitAttachment = 0xFF;
 		
 #ifdef GPUCA_HAVE_OPENMP
@@ -113,6 +107,14 @@ int AliGPUReconstruction::Init()
 	{
 		mDebugFile.open(IsGPU() ? "GPU.out" : "CPU.out");
 	}
+	for (unsigned int i = 0;i < NSLICES;i++)
+	{
+		RegisterGPUProcessor(&workers()->tpcTrackers[i].Data(), mDeviceProcessingSettings.runTPCSliceTrackerGPU);
+		RegisterGPUProcessor(&workers()->tpcTrackers[i], mDeviceProcessingSettings.runTPCSliceTrackerGPU);
+	}
+	RegisterGPUProcessor(&workers()->tpcMerger, mDeviceProcessingSettings.runTPCMergerGPU);
+	RegisterGPUProcessor(&workers()->trdTracker, mDeviceProcessingSettings.runTRDTrackerGPU);
+
 	for (unsigned int i = 0;i < mProcessors.size();i++)
 	{
 		(mProcessors[i].proc->*(mProcessors[i].RegisterMemoryAllocation))();
@@ -234,7 +236,7 @@ size_t AliGPUReconstruction::AllocateRegisteredMemory(AliGPUProcessor* proc)
 	size_t total = 0;
 	for (unsigned int i = 0;i < mMemoryResources.size();i++)
 	{
-		if ((proc == nullptr || mMemoryResources[i].mProcessor == proc) && !(mMemoryResources[i].mType & AliGPUMemoryResource::MEMORY_CUSTOM)) total += AllocateRegisteredMemory(i);
+		if ((proc == nullptr ? !mMemoryResources[i].mProcessor->mAllocateAndInitializeLate :  mMemoryResources[i].mProcessor == proc) && !(mMemoryResources[i].mType & AliGPUMemoryResource::MEMORY_CUSTOM)) total += AllocateRegisteredMemory(i);
 	}
 	if (mDeviceProcessingSettings.debugLevel >= 5) printf("Allocating memory done\n");
 	return total;
@@ -375,6 +377,7 @@ void AliGPUReconstruction::PrepareEvent()
 	ClearAllocatedMemory();
 	for (unsigned int i = 0;i < mProcessors.size();i++)
 	{
+		if (mProcessors[i].proc->mAllocateAndInitializeLate) continue;
 		(mProcessors[i].proc->*(mProcessors[i].SetMaxData))();
 		if (mProcessors[i].proc->mDeviceProcessor) (mProcessors[i].proc->mDeviceProcessor->*(mProcessors[i].SetMaxData))();
 	}
@@ -829,9 +832,6 @@ int AliGPUReconstruction::RunStandalone()
 	}
 	return 0;
 }
-
-int AliGPUReconstruction::GPUMergerAvailable() const {return false;}
-int AliGPUReconstruction::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers) {throw std::runtime_error("GPU Merger not available");}
 
 AliGPUReconstruction* AliGPUReconstruction::CreateInstance(DeviceType type, bool forceType)
 {

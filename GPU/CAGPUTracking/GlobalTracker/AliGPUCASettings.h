@@ -91,6 +91,9 @@ struct AliGPUCASettingsDeviceProcessing
 	bool runTPCSliceTracker;
 	bool runTPCMerger;
 	bool runTRDTracker;
+	bool runTPCSliceTrackerGPU;
+	bool runTPCMergerGPU;
+	bool runTRDTrackerGPU;
 };
 
 #endif

@@ -59,11 +59,6 @@ static constexpr int kMaxClusters = 1000;
 #undef OFFLINE_FITTER
 #endif
 
-#if defined(OFFLINE_FITTER)
-#include "AliGPUTPCGMOfflineFitter.h"
-AliGPUTPCGMOfflineFitter gOfflineFitter;
-#endif
-
 AliGPUTPCGMMerger::AliGPUTPCGMMerger() :
 	fField(),
 	fTrackLinks(NULL),
@@ -206,11 +201,6 @@ void AliGPUTPCGMMerger::InitializeProcessor()
 	fSliceTrackers = mRec->GetTPCSliceTrackers();
 	if (mCAParam->AssumeConstantBz) AliGPUTPCGMPolynomialFieldManager::GetPolynomialField(AliGPUTPCGMPolynomialFieldManager::kUniform, mCAParam->BzkG, fField);
 	else AliGPUTPCGMPolynomialFieldManager::GetPolynomialField(mCAParam->BzkG, fField);
-
-#if (defined(OFFLINE_FITTER))
-	#error NOT WORKING, TIMESTAMP NOT SET
-	gOfflineFitter.Initialize(*mCAParam, TimeStamp, isMC);
-#endif
 }
 
 void* AliGPUTPCGMMerger::SetPointersHostOnly(void* mem)
@@ -245,8 +235,9 @@ void* AliGPUTPCGMMerger::SetPointersGPURefit(void* mem)
 
 void AliGPUTPCGMMerger::RegisterMemoryAllocation()
 {
-	mMemoryResMerger = mRec->RegisterMemoryAllocation(this, &AliGPUTPCGMMerger::SetPointersHostOnly, AliGPUMemoryResource::MEMORY_CUSTOM | AliGPUMemoryResource::MEMORY_SCRATCH | AliGPUMemoryResource::MEMORY_HOST, "Merger");
-	mMemoryResRefit = mRec->RegisterMemoryAllocation(this, &AliGPUTPCGMMerger::SetPointersGPURefit, AliGPUMemoryResource::MEMORY_CUSTOM | AliGPUMemoryResource::MEMORY_INOUT, "Refit");
+	AllocateAndInitializeLate();
+	mMemoryResMerger = mRec->RegisterMemoryAllocation(this, &AliGPUTPCGMMerger::SetPointersHostOnly, AliGPUMemoryResource::MEMORY_SCRATCH | AliGPUMemoryResource::MEMORY_HOST, "Merger");
+	mMemoryResRefit = mRec->RegisterMemoryAllocation(this, &AliGPUTPCGMMerger::SetPointersGPURefit, AliGPUMemoryResource::MEMORY_INOUT, "Refit");
 }
 
 void AliGPUTPCGMMerger::SetMaxData()
@@ -271,65 +262,6 @@ void AliGPUTPCGMMerger::SetMaxData()
 void AliGPUTPCGMMerger::SetSliceData(int index, const AliGPUTPCSliceOutput *sliceData)
 {
 	fkSlices[index] = sliceData;
-}
-
-bool AliGPUTPCGMMerger::Reconstruct()
-{
-	//* main merging routine
-	for (int i = 0; i < fgkNSlices; i++)
-	{
-		if (fkSlices[i] == NULL)
-		{
-			printf("Slice %d missing\n", i);
-			return false;
-		}
-	}
-	HighResTimer timer;
-	static double times[8] = {};
-	static int nCount = 0;
-	if (mCAParam->resetTimers || !GPUCA_TIMING_SUM)
-	{
-		for (unsigned int k = 0; k < sizeof(times) / sizeof(times[0]); k++) times[k] = 0;
-		nCount = 0;
-	}
-
-	SetMaxData();
-	if (mRec->IsGPU()) memcpy((void*) mDeviceProcessor, (const void*) this, sizeof(*this));
-	mRec->AllocateRegisteredMemory(mMemoryResMerger);
-	mRec->AllocateRegisteredMemory(mMemoryResRefit);
-	
-	timer.ResetStart();
-	UnpackSlices();
-	times[0] += timer.GetCurrentElapsedTime(true);
-	MergeWithingSlices();
-	times[1] += timer.GetCurrentElapsedTime(true);
-	MergeSlices();
-	times[2] += timer.GetCurrentElapsedTime(true);
-	MergeCEInit();
-	times[3] += timer.GetCurrentElapsedTime(true);
-	CollectMergedTracks();
-	times[4] += timer.GetCurrentElapsedTime(true);
-	MergeCE();
-	times[3] += timer.GetCurrentElapsedTime(true);
-	PrepareClustersForFit();
-	times[5] += timer.GetCurrentElapsedTime(true);
-	Refit(mCAParam->resetTimers);
-	times[6] += timer.GetCurrentElapsedTime(true);
-	Finalize();
-	times[7] += timer.GetCurrentElapsedTime(true);
-	nCount++;
-	if (mCAParam->debugLevel > 0)
-	{
-		printf("Merge Time:\tUnpack Slices:\t%'7d us\n", (int) (times[0] * 1000000 / nCount));
-		printf("\t\tMerge Within:\t%'7d us\n", (int) (times[1] * 1000000 / nCount));
-		printf("\t\tMerge Slices:\t%'7d us\n", (int) (times[2] * 1000000 / nCount));
-		printf("\t\tMerge CE:\t%'7d us\n", (int) (times[3] * 1000000 / nCount));
-		printf("\t\tCollect:\t%'7d us\n", (int) (times[4] * 1000000 / nCount));
-		printf("\t\tClusters:\t%'7d us\n", (int) (times[5] * 1000000 / nCount));
-		printf("\t\tRefit:\t\t%'7d us\n", (int) (times[6] * 1000000 / nCount));
-		printf("\t\tFinalize:\t%'7d us\n", (int) (times[7] * 1000000 / nCount));
-	}
-	return true;
 }
 
 void AliGPUTPCGMMerger::ClearTrackLinks(int n)
@@ -1306,26 +1238,17 @@ void AliGPUTPCGMMerger::PrepareClustersForFit()
 	}
 }
 
-void AliGPUTPCGMMerger::Refit(bool resetTimers)
+int AliGPUTPCGMMerger::CheckSlices()
 {
-	//* final refit
-	if (mRec->IsGPU() && mRec->GPUMergerAvailable())
+	for (int i = 0; i < fgkNSlices; i++)
 	{
-		mRec->RefitMergedTracks(this, resetTimers);
-	}
-	else
-	{
-#ifdef GPUCA_HAVE_OPENMP
-#pragma omp parallel for num_threads(mRec->GetDeviceProcessingSettings().nThreads)
-#endif
-		for ( int itr = 0; itr < fNOutputTracks; itr++ )
+		if (fkSlices[i] == NULL)
 		{
-			AliGPUTPCGMTrackParam::RefitTrack(fOutputTracks[itr], itr, this, fClusters);
-#if defined(OFFLINE_FITTER)
-			gOfflineFitter.RefitTrack(fOutputTracks[itr], &fField, fClusters);
-#endif
+			printf("Slice %d missing\n", i);
+			return 1;
 		}
 	}
+	return 0;
 }
 
 void AliGPUTPCGMMerger::Finalize()

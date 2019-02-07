@@ -295,92 +295,6 @@ int AliGPUReconstructionCUDABackend::ExitDevice_Runtime()
 	return(0);
 }
 
-int AliGPUReconstructionCUDABackend::DoTRDGPUTracking()
-{
-#ifndef GPUCA_GPU_MERGER
-	CAGPUError("GPUCA_GPU_MERGER compile flag not set");
-	return(1);
-#else
-	ActivateThreadContext();
-	SetupGPUProcessor(&workers()->trdTracker);
-	mWorkersShadow->trdTracker.SetGeometry((AliGPUTRDGeometry*) mProcDevice.fTrdGeometry);
-
-	GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, &mWorkersShadow->trdTracker, sizeof(mWorkersShadow->trdTracker), (char*) &mDeviceConstantMem->trdTracker - (char*) mDeviceConstantMem, cudaMemcpyHostToDevice));
-
-	TransferMemoryResourcesToGPU(&workers()->trdTracker);
-
-	DoTrdTrackingGPU<<<fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT_TRD>>>();
-	SynchronizeGPU();
-
-	TransferMemoryResourcesToHost(&workers()->trdTracker);
-	SynchronizeGPU();
-
-	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("GPU TRD tracker Finished");
-
-	ReleaseThreadContext();
-	return(0);
-#endif
-}
-
-int AliGPUReconstructionCUDABackend::RefitMergedTracks(AliGPUTPCGMMerger* Merger, bool resetTimers)
-{
-#ifndef GPUCA_GPU_MERGER
-	CAGPUError("GPUCA_GPU_MERGER compile flag not set");
-	return(1);
-#else
-
-	HighResTimer timer;
-	static double times[3] = {};
-	static int nCount = 0;
-	if (resetTimers)
-	{
-		for (unsigned int k = 0;k < sizeof(times) / sizeof(times[0]);k++) times[k] = 0;
-		nCount = 0;
-	}
-	ActivateThreadContext();
-
-	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("Running GPU Merger (%d/%d)", Merger->NOutputTrackClusters(), Merger->NClusters());
-	timer.Start();
-
-	SetupGPUProcessor(Merger);
-	mWorkersShadow->tpcMerger.OverrideSliceTracker(mDeviceConstantMem->tpcTrackers);
-	
-	GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, &mWorkersShadow->tpcMerger, sizeof(mWorkersShadow->tpcMerger), (char*) &mDeviceConstantMem->tpcMerger - (char*) mDeviceConstantMem, cudaMemcpyHostToDevice));
-	TransferMemoryResourceLinkToGPU(Merger->MemoryResRefit());
-	times[0] += timer.GetCurrentElapsedTime(true);
-	
-	RefitTracks<<<fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT>>>(mWorkersShadow->tpcMerger.OutputTracks(), mWorkersShadow->tpcMerger.NOutputTracks(), mWorkersShadow->tpcMerger.Clusters());
-	SynchronizeGPU();
-	times[1] += timer.GetCurrentElapsedTime(true);
-	
-	TransferMemoryResourceLinkToHost(Merger->MemoryResRefit());
-	SynchronizeGPU();
-	times[2] += timer.GetCurrentElapsedTime();
-	
-	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("GPU Merger Finished");
-	nCount++;
-
-	if (mDeviceProcessingSettings.debugLevel > 0)
-	{
-		int copysize = 4 * Merger->NOutputTrackClusters() * sizeof(float) + Merger->NOutputTrackClusters() * sizeof(unsigned int) + Merger->NOutputTracks() * sizeof(AliGPUTPCGMMergedTrack) + 6 * sizeof(float) + sizeof(AliGPUCAParam);
-		double speed = (double) copysize / times[0] * nCount / 1e9;
-		printf("GPU Fit:\tCopy To:\t%'7d us (%6.3f GB/s)\n", (int) (times[0] * 1000000 / nCount), speed);
-		printf("\t\tFit:\t\t%'7d us\n", (int) (times[1] * 1000000 / nCount));
-		speed = (double) copysize / times[2] * nCount / 1e9;
-		printf("\t\tCopy From:\t%'7d us (%6.3f GB/s)\n", (int) (times[2] * 1000000 / nCount), speed);
-	}
-
-	if (!GPUCA_TIMING_SUM)
-	{
-		for (int i = 0;i < 3;i++) times[i] = 0;
-		nCount = 0;
-	}
-
-	ReleaseThreadContext();
-	return(0);
-#endif
-}
-
 void AliGPUReconstructionCUDABackend::TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents)
 {
 	//if (evList == nullptr) nEvents = 0;
@@ -429,15 +343,6 @@ void AliGPUReconstructionCUDABackend::ReleaseEvent(deviceEvent* ev) {}
 void AliGPUReconstructionCUDABackend::RecordMarker(deviceEvent* ev, int stream)
 {
 	GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*) ev, mInternals->CudaStreams[stream]));
-}
-
-int AliGPUReconstructionCUDABackend::GPUMergerAvailable() const
-{
-#ifdef GPUCA_GPU_MERGER
-	return(1);
-#else
-	return(0);
-#endif
 }
 
 void AliGPUReconstructionCUDABackend::ActivateThreadContext()

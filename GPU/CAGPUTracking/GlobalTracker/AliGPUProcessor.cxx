@@ -2,8 +2,7 @@
 #include "AliGPUReconstruction.h"
 #include "AliGPUReconstructionDeviceBase.h"
 
-AliGPUProcessor::AliGPUProcessor() :
-	mRec(NULL), mGPUProcessorType(PROCESSOR_TYPE_CPU), mDeviceProcessor(NULL), mCAParam(NULL)
+AliGPUProcessor::AliGPUProcessor() : mRec(NULL), mGPUProcessorType(PROCESSOR_TYPE_CPU), mDeviceProcessor(NULL), mCAParam(NULL), mAllocateAndInitializeLate(false)
 {
 }
 
