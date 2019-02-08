@@ -43,18 +43,10 @@ GPUd() AliGPUTRDTrackletWord::AliGPUTRDTrackletWord(unsigned int trackletWord, i
 {
 }
 
-GPUd() AliGPUTRDTrackletWord::AliGPUTRDTrackletWord(const AliGPUTRDTrackletWord &rhs) :
-  fId(rhs.fId),
-  fHCId(rhs.fHCId),
-  fTrackletWord(rhs.fTrackletWord)
-{
-}
-
 #ifndef GPUCA_GPUCODE_DEVICE
 #ifdef GPUCA_ALIROOT_LIB
 #include "AliTRDtrackletWord.h"
 #include "AliTRDtrackletMCM.h"
-
 
 AliGPUTRDTrackletWord::AliGPUTRDTrackletWord(const AliTRDtrackletWord &rhs) :
   fId(-1),
@@ -78,18 +70,6 @@ AliGPUTRDTrackletWord& AliGPUTRDTrackletWord::operator=(const AliTRDtrackletMCM 
 }
 
 #endif //GPUCA_ALIROOT_LIB
-
-GPUd() AliGPUTRDTrackletWord::~AliGPUTRDTrackletWord()
-{
-
-}
-
-GPUd() AliGPUTRDTrackletWord& AliGPUTRDTrackletWord::operator=(const AliGPUTRDTrackletWord &rhs)
-{
-  this->~AliGPUTRDTrackletWord();
-  new(this) AliGPUTRDTrackletWord(rhs);
-  return *this;
-}
 #endif //GPUCA_GPUCODE_DEVICE
 
 GPUd() int AliGPUTRDTrackletWord::GetYbin() const {

@@ -21,12 +21,14 @@ class AliGPUTRDTrackletWord {
  public:
   GPUd() AliGPUTRDTrackletWord(unsigned int trackletWord = 0);
   GPUd() AliGPUTRDTrackletWord(unsigned int trackletWord, int hcid, int id);
-  GPUd() AliGPUTRDTrackletWord(const AliGPUTRDTrackletWord &rhs);
+  GPUd() AliGPUTRDTrackletWord(const AliGPUTRDTrackletWord &rhs) CON_DEFAULT;
+  GPUd() AliGPUTRDTrackletWord& operator=(const AliGPUTRDTrackletWord &rhs) CON_DEFAULT;
+  GPUd() ~AliGPUTRDTrackletWord() CON_DEFAULT;
+#ifndef GPUCA_GPUCODE_DEVICE
   AliGPUTRDTrackletWord(const AliTRDtrackletWord &rhs);
   AliGPUTRDTrackletWord(const AliTRDtrackletMCM &rhs);
-  GPUd() ~AliGPUTRDTrackletWord();
-  GPUd() AliGPUTRDTrackletWord& operator=(const AliGPUTRDTrackletWord &rhs);
   AliGPUTRDTrackletWord& operator=(const AliTRDtrackletMCM &rhs);
+#endif
 
   // ----- Override operators < and > to enable tracklet sorting by HCId -----
   GPUd() bool operator<(const AliGPUTRDTrackletWord &t) const { return (GetHCId() < t.GetHCId()); }
