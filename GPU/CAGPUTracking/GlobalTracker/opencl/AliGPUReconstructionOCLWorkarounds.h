@@ -11,6 +11,6 @@ template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<cl_kernel
 template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<cl_kernel, AliGPUTPCTrackletConstructor, 1>(int num) {return num == -1 ? mInternals->kernel_tracklet_constructor1 : krnlNULL;}
 template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<cl_kernel, AliGPUTPCTrackletSelector>(int num) {return num > 0 ? mInternals->kernel_tracklet_selector : krnlNULL;}
 template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<cl_kernel, AliGPUMemClean16>(int num) {return num == -1 ? mInternals->kernel_memclean16 : krnlNULL;}
-template <> cl_kernel& AliGPUReconstructionOCLBackend::getKernelObject<cl_kernel, AliGPUTPCGMMergerTrackFit>(int num) {throw::std::runtime_error("OpenCL Merger not supported"); return krnlNULL;}
+template <class S, class T, int I = 0> S& AliGPUReconstructionOCLBackend::getKernelObject(int num) {throw::std::runtime_error("Requested unsupported OpenCL kernel"); return krnlNULL;}
 
 #endif
