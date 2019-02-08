@@ -21,9 +21,9 @@ class AliGPUTRDTrackletWord {
  public:
   GPUd() AliGPUTRDTrackletWord(unsigned int trackletWord = 0);
   GPUd() AliGPUTRDTrackletWord(unsigned int trackletWord, int hcid, int id);
-  GPUd() AliGPUTRDTrackletWord(const AliGPUTRDTrackletWord &rhs) CON_DEFAULT;
-  GPUd() AliGPUTRDTrackletWord& operator=(const AliGPUTRDTrackletWord &rhs) CON_DEFAULT;
-  GPUd() ~AliGPUTRDTrackletWord() CON_DEFAULT;
+  GPUdDefault() AliGPUTRDTrackletWord(const AliGPUTRDTrackletWord &rhs) CON_DEFAULT;
+  GPUdDefault() AliGPUTRDTrackletWord& operator=(const AliGPUTRDTrackletWord &rhs) CON_DEFAULT;
+  GPUdDefault() ~AliGPUTRDTrackletWord() CON_DEFAULT;
 #ifndef GPUCA_GPUCODE_DEVICE
   AliGPUTRDTrackletWord(const AliTRDtrackletWord &rhs);
   AliGPUTRDTrackletWord(const AliTRDtrackletMCM &rhs);

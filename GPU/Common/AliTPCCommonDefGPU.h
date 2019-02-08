@@ -16,6 +16,7 @@
 //For non-inline host only functions, use no keyword at all!
 #if !defined(GPUCA_GPUCODE) //For host / ROOT dictionary
 	#define GPUd()
+	#define GPUdDefault()
 	#define GPUdi() inline
 	#define GPUh()
 	#define GPUhi() inline
@@ -45,6 +46,7 @@
 	struct dim3 { unsigned int x, y, z; };
 #elif defined(__OPENCL__) //Defines for OpenCL
 	#define GPUd()
+	#define GPUdDefault()
 	#define GPUdi() inline
 	#define GPUh() INVALID_TRIGGER_ERROR_NO_HOST_CODE
 	#define GPUhi() INVALID_TRIGGER_ERROR_NO_HOST_CODE
@@ -66,6 +68,7 @@
 	#endif
 #elif defined(__CUDACC__) //Defines for CUDA
 	#define GPUd() __device__
+	#define GPUdDefault()
 	#define GPUdi() __device__ inline
 	#define GPUh() __host__ inline
 	#define GPUhi() __host__ inline
@@ -79,6 +82,7 @@
 	#define GPUAtomic(type) type
 #elif defined(__HIPCC__) //Defines for HIP
 	#define GPUd() __device__
+	#define GPUdDefault() __device__
 	#define GPUdi() __device__ inline
 	#define GPUh() __host__ inline
 	#define GPUhi() __host__ inline
