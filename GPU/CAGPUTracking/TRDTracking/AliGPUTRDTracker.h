@@ -14,6 +14,12 @@
 #include <vector>
 #endif
 
+#ifdef GPUCA_ALIROOT_LIB
+#define TRD_GEOMETRY_CONST
+#else
+#define TRD_GEOMETRY_CONST const
+#endif
+
 class AliGPUTRDTrackletWord;
 class AliGPUTRDGeometry;
 class AliExternalTrackParam;
@@ -37,7 +43,7 @@ class AliGPUTRDTracker : public AliGPUProcessor {
   void* SetPointersTracklets(void* base);
   void* SetPointersTracks(void *base);
 
-  bool Init(AliGPUTRDGeometry *geo = nullptr);
+  bool Init(TRD_GEOMETRY_CONST AliGPUTRDGeometry *geo = nullptr);
   void CountMatches(const int trackID, std::vector<int> *matches) const;
   void DoTracking();
   void SetNCandidates(int n);
@@ -76,7 +82,7 @@ class AliGPUTRDTracker : public AliGPUProcessor {
   short MemoryTracklets() const { return fMemoryTracklets; }
   short MemoryTracks()    const { return fMemoryTracks; }
 
-  GPUhd() void SetGeometry(AliGPUTRDGeometry* geo) {fGeo = geo;}
+  GPUhd() void SetGeometry(TRD_GEOMETRY_CONST AliGPUTRDGeometry* geo) {fGeo = geo;}
   void Reset();
   GPUd() int LoadTracklet(const AliGPUTRDTrackletWord &tracklet, const int *labels = 0x0);
   template<class T> GPUd() int LoadTrack(const T &trk, const int label = -1) {
@@ -158,7 +164,7 @@ class AliGPUTRDTracker : public AliGPUProcessor {
   GPUTRDTrack *fCandidates;                   // array of tracks for multiple hypothesis tracking
   AliGPUTRDSpacePointInternal *fSpacePoints;  // array with tracklet coordinates in global tracking frame
   int *fTrackletLabels;                       // array with MC tracklet labels
-  AliGPUTRDGeometry *fGeo;                    // TRD geometry
+  TRD_GEOMETRY_CONST AliGPUTRDGeometry *fGeo; // TRD geometry
   bool fDebugOutput;                          // store debug output
   float fMinPt;                               // min pt of TPC tracks for tracking
   float fMaxEta;                              // TPC tracks with higher eta are ignored

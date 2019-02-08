@@ -32,6 +32,7 @@ struct ClusterNativeAccessExt;
 struct AliGPUTRDTrackletLabels;
 class AliGPUCADisplay;
 class AliGPUCAQA;
+class AliGPUTRDGeometry;
 
 namespace o2 { namespace ITS { class TrackerTraits; class VertexerTraits; }}
 namespace o2 { namespace trd { class TRDGeometryFlat; }}
@@ -202,7 +203,7 @@ public:
 	bool IsGPU() const {return GetDeviceType() != INVALID_DEVICE && GetDeviceType() != CPU;}
 	const AliGPUCAParam& GetParam() const {return mHostConstantMem->param;}
 	const TPCFastTransform* GetTPCTransform() const {return mTPCFastTransform.get();}
-	const o2::trd::TRDGeometryFlat* GetTRDGeometry() const {return mTRDGeometry.get();}
+	const AliGPUTRDGeometry* GetTRDGeometry() const {return (AliGPUTRDGeometry*) mTRDGeometry.get();}
 	const ClusterNativeAccessExt* GetClusterNativeAccessExt() const {return mClusterNativeAccess.get();}
 	const AliGPUCASettingsEvent& GetEventSettings() const {return mEventSettings;}
 	const AliGPUCASettingsProcessing& GetProcessingSettings() {return mProcessingSettings;}
@@ -212,7 +213,6 @@ public:
 	void SetSettings(const AliGPUCASettingsEvent* settings, const AliGPUCASettingsRec* rec = nullptr, const AliGPUCASettingsDeviceProcessing* proc = nullptr);
 	void SetTPCFastTransform(std::unique_ptr<TPCFastTransform> tpcFastTransform);
 	void SetTRDGeometry(const o2::trd::TRDGeometryFlat& geo);
-	const o2::trd::TRDGeometryFlat *GetTRDGeometry() {return mTRDGeometry.get();}
 	void LoadClusterErrors();
 	void SetResetTimers(bool reset) {mDeviceProcessingSettings.resetTimers = reset;}
 	void SetOutputControl(const AliGPUCAOutputControl& v) {mOutputControl = v;}
