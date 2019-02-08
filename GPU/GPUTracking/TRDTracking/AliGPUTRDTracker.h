@@ -150,11 +150,11 @@ class AliGPUTRDTracker : public AliGPUProcessor {
 
   float *fR;                                  // rough radial position of each TRD layer
   bool fIsInitialized;                        // flag is set upon initialization
-  short fMemoryPermanent;
-  short fMemoryTracklets;
-  short fMemoryTracks;
-  int fNMaxTracks;
-  int fNMaxSpacePoints;
+  short fMemoryPermanent;                     // size of permanent memory for the tracker
+  short fMemoryTracklets;                     // size of memory for TRD tracklets
+  short fMemoryTracks;                        // size of memory for tracks (used for i/o)
+  int fNMaxTracks;                            // max number of tracks the tracker can handle (per event)
+  int fNMaxSpacePoints;                       // max number of space points hold by the tracker (per event)
   GPUTRDTrack *fTracks;                       // array of trd-updated tracks
   int fNCandidates;                           // max. track hypothesis per layer
   int fNTracks;                               // number of TPC tracks to be matched
