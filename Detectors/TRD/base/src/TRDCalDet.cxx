@@ -37,7 +37,7 @@
 #include <TH2F.h>
 #include <TRobustEstimator.h>
 
-#include "TRDbase/TRDCalDet.h"
+#include "TRDBase/TRDCalDet.h"
 
 // #include "AliMathBase.h"
 
