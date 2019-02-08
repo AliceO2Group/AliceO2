@@ -586,14 +586,14 @@ template <class T> std::unique_ptr<T> AliGPUReconstruction::ReadFlatObjectFromFi
 	r = fread(size, sizeof(size[0]), 2, fp);
 	if (r == 0 || size[0] != sizeof(T)) {fclose(fp); return nullptr;}
 	std::unique_ptr<T> retVal(new T);
-	std::unique_ptr<char[]> buf(new char[size[1]]);
+	char* buf = new char[size[1]]; //Not deleted as ownership is transferred to FlatObject
 	r = fread((void*) retVal.get(), 1, size[0], fp);
-	r = fread(buf.get(), 1, size[1], fp);
+	r = fread(buf, 1, size[1], fp);
 	fclose(fp);
 	if (mDeviceProcessingSettings.debugLevel >= 2) printf("Read %d bytes from %s\n", (int) r, file);
-	retVal->clearInternalBufferUniquePtr();
-	retVal->setActualBufferAddress(buf.get());
-	retVal->adoptInternalBuffer(std::move(buf));
+	retVal->clearInternalBufferPtr();
+	retVal->setActualBufferAddress(buf);
+	retVal->adoptInternalBuffer(buf);
 	return std::move(retVal);
 }
 

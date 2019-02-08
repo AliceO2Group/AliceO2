@@ -468,14 +468,14 @@ int AliGPUReconstructionDeviceBase::PrepareFlatObjects()
 	{
 		memcpy((void*) mProcShadow.fTpcTransform, (const void*) mTPCFastTransform.get(), sizeof(*mTPCFastTransform));
 		memcpy((void*) mProcShadow.fTpcTransformBuffer, (const void*) mTPCFastTransform->getFlatBufferPtr(), mTPCFastTransform->getFlatBufferSize());
-		mProcShadow.fTpcTransform->clearInternalBufferUniquePtr();
+		mProcShadow.fTpcTransform->clearInternalBufferPtr();
 		mProcShadow.fTpcTransform->setFutureBufferAddress(mProcDevice.fTpcTransformBuffer);
 	}
 #ifndef GPUCA_ALIROOT_LIB
 	if (mTRDGeometry)
 	{
 		memcpy((void*) mProcShadow.fTrdGeometry, (const void*) mTRDGeometry.get(), sizeof(*mTRDGeometry));
-		mProcShadow.fTrdGeometry->clearInternalBufferUniquePtr();
+		mProcShadow.fTrdGeometry->clearInternalBufferPtr();
 	}
 #endif
 	TransferMemoryResourceLinkToGPU(mProcShadow.mMemoryResFlat);
