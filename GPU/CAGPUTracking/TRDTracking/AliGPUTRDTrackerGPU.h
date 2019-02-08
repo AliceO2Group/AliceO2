@@ -6,9 +6,9 @@
 class AliGPUTRDTrackerGPU : public AliGPUCAKernelTemplate
 {
   public:
-	typedef AliGPUCAConstantMem workerType;
-	GPUhdi() static workerType *Worker(AliGPUCAConstantMem &workers) {return &workers;}
-	template <int iKernel = 0> GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() AliGPUTPCSharedMemory &smem, workerType &merger);
+#if defined(GPUCA_BUILD_MERGER) || !defined(GPUCA_GPUCODE)
+	template <int iKernel = 0> GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() AliGPUTPCSharedMemory &smem, workerType &workers);
+#endif
 };
 
 #endif

@@ -39,9 +39,7 @@ template <class T> class AliGPUTRDTrack;
 typedef AliGPUTRDTrack<trackInterface<TRDBaseTrack>> GPUTRDTrack;
 typedef propagatorInterface<TRDBasePropagator> GPUTRDPropagator;
 
-#if defined(GPUCA_ALIROOT_LIB) || defined(__CLING__) || defined(__ROOTCLING__)
-#include "TMath.h"
-#else
+#if !defined(GPUCA_ALIROOT_LIB) && !defined(__CLING__) && !defined(__ROOTCLING__)
 #define Error(...)
 #define Warning(...)
 #define Info(...)
