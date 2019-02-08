@@ -187,7 +187,6 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
 void someDataProducerAlgorithm(ProcessingContext& ctx)
 {
   size_t index = ctx.services().get<ParallelContext>().index1D();
-  sleep(1);
   // Creates a new message of size collectionChunkSize which
   // has "TPC" as data origin and "CLUSTERS" as data description.
   auto tpcClusters = ctx.outputs().make<FakeCluster>(Output{ "TPC", "CLUSTERS", index }, collectionChunkSize);

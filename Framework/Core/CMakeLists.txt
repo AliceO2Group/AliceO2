@@ -187,12 +187,12 @@ O2_GENERATE_LIBRARY()
 set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME ${MODULE_BUCKET_NAME})
 
-#O2_GENERATE_EXECUTABLE(
-#  EXE_NAME "test_SimpleDataProcessingDevice01"
-#  SOURCES "test/test_SimpleDataProcessingDevice01.cxx"
-#  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-#  BUCKET_NAME ${MODULE_BUCKET_NAME}
-#)
+O2_GENERATE_EXECUTABLE(
+  EXE_NAME "test_SimpleDataProcessingDevice01"
+  SOURCES "test/test_SimpleDataProcessingDevice01.cxx"
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${MODULE_BUCKET_NAME}
+)
 
 #O2_GENERATE_EXECUTABLE(
 #  EXE_NAME "test_Parallel"
@@ -268,7 +268,7 @@ set(TEST_SRCS
       test/test_TimesliceIndex.cxx
       test/test_TMessageSerializer.cxx
       test/test_TableBuilder.cxx
-      test/test_Task.cxx
+      #test/test_Task.cxx
       test/test_TimeParallelPipelining.cxx
       test/test_TypeTraits.cxx
       test/test_Variants.cxx

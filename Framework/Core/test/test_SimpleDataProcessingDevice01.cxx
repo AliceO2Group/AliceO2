@@ -9,10 +9,12 @@
 // or submit itself to any jurisdiction.
 #include "Framework/DataRefUtils.h"
 #include "Framework/AlgorithmSpec.h"
+#include "Framework/ControlService.h"
 #include "Framework/ServiceRegistry.h"
+#include "Framework/RawDeviceService.h"
 #include "Framework/runDataProcessing.h"
 #include <Monitoring/Monitoring.h>
-#include "FairMQLogger.h"
+#include <FairMQDevice.h>
 
 using namespace o2::framework;
 
@@ -28,47 +30,42 @@ struct Summary {
   int clustersCount;
 };
 
-using DataHeader = o2::header::DataHeader;
-
 // This is how you can define your processing in a declarative way
-std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const &) {
+std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
+{
   return {
     DataProcessorSpec{
       "simple",
       Inputs{},
-      {
-        OutputSpec{"TPC", "CLUSTERS"},
-        OutputSpec{"ITS", "CLUSTERS"}
-      },
-      AlgorithmSpec{
-        [](ProcessingContext &ctx) {
-          sleep(1);
-          // Creates a new message of size 1000 which
-          // has "TPC" as data origin and "CLUSTERS" as data description.
-          auto tpcClusters = ctx.outputs().make<FakeCluster>(Output{ "TPC", "CLUSTERS", 0 }, 1000);
-          int i = 0;
+      { OutputSpec{ "TPC", "CLUSTERS" },
+        OutputSpec{ "ITS", "CLUSTERS" } },
+      adaptStateless([](DataAllocator& outputs, ControlService& control, RawDeviceService& service) {
+        service.device()->WaitFor(std::chrono::milliseconds(1000));
+        // Creates a new message of size 1000 which
+        // has "TPC" as data origin and "CLUSTERS" as data description.
+        auto tpcClusters = outputs.make<FakeCluster>(Output{ "TPC", "CLUSTERS", 0 }, 1000);
+        int i = 0;
 
-          for (auto &cluster : tpcClusters) {
-            assert(i < 1000);
-            cluster.x = i;
-            cluster.y = i;
-            cluster.z = i;
-            cluster.q = i;
-            i++;
-          }
-
-          auto itsClusters = ctx.outputs().make<FakeCluster>(Output{ "ITS", "CLUSTERS", 0 }, 1000);
-          i = 0;
-          for (auto &cluster : itsClusters) {
-            assert(i < 1000);
-            cluster.x = i;
-            cluster.y = i;
-            cluster.z = i;
-            cluster.q = i;
-            i++;
-          }
+        for (auto& cluster : tpcClusters) {
+          assert(i < 1000);
+          cluster.x = i;
+          cluster.y = i;
+          cluster.z = i;
+          cluster.q = i;
+          i++;
         }
-      }
-    }
+
+        auto itsClusters = outputs.make<FakeCluster>(Output{ "ITS", "CLUSTERS", 0 }, 1000);
+        i = 0;
+        for (auto& cluster : itsClusters) {
+          assert(i < 1000);
+          cluster.x = i;
+          cluster.y = i;
+          cluster.z = i;
+          cluster.q = i;
+          i++;
+        }
+        control.readyToQuit(true);
+      }) }
   };
 }
