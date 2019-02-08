@@ -58,7 +58,7 @@ void AliGPUTRDTracker::RegisterMemoryAllocation()
 
 void AliGPUTRDTracker::InitializeProcessor()
 {
-  Init((AliGPUTRDGeometry*) mRec->GetTRDGeometry());
+  Init((TRD_GEOMETRY_CONST AliGPUTRDGeometry*) mRec->GetTRDGeometry());
 }
 
 void* AliGPUTRDTracker::SetPointersBase(void* base)
@@ -143,7 +143,7 @@ AliGPUTRDTracker::~AliGPUTRDTracker()
   delete fDebug;
 }
 
-bool AliGPUTRDTracker::Init(AliGPUTRDGeometry *geo)
+bool AliGPUTRDTracker::Init(TRD_GEOMETRY_CONST AliGPUTRDGeometry *geo)
 {
   //--------------------------------------------------------------------
   // Initialise tracker
@@ -486,7 +486,7 @@ GPUd() bool AliGPUTRDTracker::CalculateSpacePoints()
       result = false;
       continue;
     }
-    AliGPUTRDpadPlane *pp = fGeo->GetPadPlane(iDet);
+    const AliGPUTRDpadPlane *pp = fGeo->GetPadPlane(iDet);
     float tilt = CAMath::Tan( M_PI / 180.f * pp->GetTiltingAngle());
     float t2 = tilt * tilt; // tan^2 (tilt)
     float c2 = 1.f / (1.f + t2); // cos^2 (tilt)
@@ -550,7 +550,7 @@ GPUd() bool AliGPUTRDTracker::FollowProlongation(GPUTRDPropagator *prop, GPUTRDT
   fDebug->Reset();
   int iTrack = t->GetTPCtrackId();
   t->SetChi2(0.f);
-  AliGPUTRDpadPlane *pad = nullptr;
+  const AliGPUTRDpadPlane *pad = nullptr;
 
 #ifdef ENABLE_GPUTRDDEBUG
   GPUTRDTrack trackNoUp(*t);
@@ -1123,7 +1123,7 @@ GPUd() void AliGPUTRDTracker::FindChambersInRoad(const GPUTRDTrack *t, const flo
     // chamber unambiguous
     currDet = fGeo->GetDetector(iLayer, currStack, currSec);
     det[nDets++] = currDet;
-    AliGPUTRDpadPlane *pp = fGeo->GetPadPlane(iLayer, currStack);
+    const AliGPUTRDpadPlane *pp = fGeo->GetPadPlane(iLayer, currStack);
     int lastPadRow = fGeo->GetRowMax(iLayer, currStack, 0);
     float zCenter = pp->GetRowPos(lastPadRow / 2);
     if ( ( t->getZ() + roadZ ) > pp->GetRowPos(0) || ( t->getZ() - roadZ ) < pp->GetRowPos(lastPadRow) ) {
@@ -1200,7 +1200,7 @@ GPUd() bool AliGPUTRDTracker::IsGeoFindable(const GPUTRDTrack *t, const int laye
     return false;
   }
 
-  AliGPUTRDpadPlane *pp = fGeo->GetPadPlane(det);
+  const AliGPUTRDpadPlane *pp = fGeo->GetPadPlane(det);
   float yMax = pp->GetColEnd();
   float zMax = pp->GetRow0();
   float zMin = pp->GetRowEnd();

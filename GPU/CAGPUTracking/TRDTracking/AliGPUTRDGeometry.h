@@ -17,10 +17,10 @@ public:
 	static bool CheckGeometryAvailable() {return AliGeomManager::GetGeometry();}
 
 	//Make sub-functionality available directly in AliGPUTRDGeometry
-	double GetPadPlaneWidthIPad(int det) {return GetPadPlane(det)->GetWidthIPad();}
-	double GetPadPlaneRowPos(int layer, int stack, int row) {return GetPadPlane(layer, stack)->GetRowPos(row);}
-	double GetPadPlaneRowSize(int layer, int stack, int row) {return GetPadPlane(layer, stack)->GetRowSize(row);}
-	int GetGeomManagerVolUID(int det, int modId) {return AliGeomManager::LayerToVolUID(AliGeomManager::ELayerID(AliGeomManager::kTRD1+GetLayer(det)), modId);}
+	double GetPadPlaneWidthIPad(int det) const {return GetPadPlane(det)->GetWidthIPad();}
+	double GetPadPlaneRowPos(int layer, int stack, int row) const {return GetPadPlane(layer, stack)->GetRowPos(row);}
+	double GetPadPlaneRowSize(int layer, int stack, int row) const {return GetPadPlane(layer, stack)->GetRowSize(row);}
+	int GetGeomManagerVolUID(int det, int modId) const {return AliGeomManager::LayerToVolUID(AliGeomManager::ELayerID(AliGeomManager::kTRD1+GetLayer(det)), modId);}
 };
 
 #elif defined(HAVE_O2HEADERS)
@@ -34,14 +34,14 @@ class TObjArray;
 class AliGPUTRDpadPlane : private o2::trd::TRDPadPlane
 {
 public:
-	GPUd() float GetTiltingAngle() {return getTiltingAngle();}
-	GPUd() float GetRowSize(int row) {return getRowSize(row);}
-	GPUd() float GetRow0() {return getRow0();}
-	GPUd() float GetRowEnd() {return getRowEnd();}
-	GPUd() float GetColEnd() {return getColEnd();}
-	GPUd() float GetRowPos(int row) {return getRowPos(row);}
-	GPUd() float GetColPos(int col) {return getColPos(col);}
-	GPUd() float GetNrows() {return getNrows();}
+	GPUd() float GetTiltingAngle() const {return getTiltingAngle();}
+	GPUd() float GetRowSize(int row) const {return getRowSize(row);}
+	GPUd() float GetRow0() const {return getRow0();}
+	GPUd() float GetRowEnd() const {return getRowEnd();}
+	GPUd() float GetColEnd() const {return getColEnd();}
+	GPUd() float GetRowPos(int row) const {return getRowPos(row);}
+	GPUd() float GetColPos(int col) const {return getColPos(col);}
+	GPUd() float GetNrows() const {return getNrows();}
 };
 
 class AliGPUTRDGeometry : private o2::trd::TRDGeometryFlat
@@ -50,28 +50,28 @@ public:
 	GPUd() static bool CheckGeometryAvailable() {return true;}
 
 	//Make sub-functionality available directly in AliGPUTRDGeometry
-	GPUd() float GetPadPlaneWidthIPad(int det) {return getPadPlane(det)->getWidthIPad();}
-	GPUd() float GetPadPlaneRowPos(int layer, int stack, int row) {return getPadPlane(layer, stack)->getRowPos(row);}
-	GPUd() float GetPadPlaneRowSize(int layer, int stack, int row) {return getPadPlane(layer, stack)->getRowSize(row);}
-	GPUd() int GetGeomManagerVolUID(int det, int modId) {return 0;}
+	GPUd() float GetPadPlaneWidthIPad(int det) const {return getPadPlane(det)->getWidthIPad();}
+	GPUd() float GetPadPlaneRowPos(int layer, int stack, int row) const {return getPadPlane(layer, stack)->getRowPos(row);}
+	GPUd() float GetPadPlaneRowSize(int layer, int stack, int row) const {return getPadPlane(layer, stack)->getRowSize(row);}
+	GPUd() int GetGeomManagerVolUID(int det, int modId) const {return 0;}
 	
 	//Base functionality of TRDGeometry
-	GPUd() float GetTime0(int layer) {return getTime0(layer);}
-	GPUd() float GetCol0(int layer) {return getCol0(layer);}
-	GPUd() int GetLayer(int det) {return getLayer(det);}
-	GPUd() bool CreateClusterMatrixArray() {return false;}
-	GPUd() float AnodePos() {return anodePos();}
-	GPUd() const ali_tpc_common::Transform3D* GetClusterMatrix(int det) {return getMatrixT2L(det);}
-	GPUd() int GetDetector(int layer, int stack, int sector) {return getDetector(layer, stack, sector);}
-	GPUd() AliGPUTRDpadPlane* GetPadPlane(int layer, int stack) {return (AliGPUTRDpadPlane*) getPadPlane(layer, stack);}
-	GPUd() AliGPUTRDpadPlane* GetPadPlane(int detector) {return (AliGPUTRDpadPlane*) getPadPlane(detector);}
-	GPUd() int GetSector(int det) {return getSector(det);}
-	GPUd() int GetStack(int det) {return getStack(det);}
-	GPUd() int GetStack(float z, int layer) {return getStack(z, layer);}
-	GPUd() float GetAlpha() {return getAlpha();}
+	GPUd() float GetTime0(int layer) const {return getTime0(layer);}
+	GPUd() float GetCol0(int layer) const {return getCol0(layer);}
+	GPUd() int GetLayer(int det) const {return getLayer(det);}
+	GPUd() bool CreateClusterMatrixArray() const {return false;}
+	GPUd() float AnodePos() const {return anodePos();}
+	GPUd() const ali_tpc_common::Transform3D* GetClusterMatrix(int det) const {return getMatrixT2L(det);}
+	GPUd() int GetDetector(int layer, int stack, int sector) const {return getDetector(layer, stack, sector);}
+	GPUd() const AliGPUTRDpadPlane* GetPadPlane(int layer, int stack) const {return (AliGPUTRDpadPlane*) getPadPlane(layer, stack);}
+	GPUd() const AliGPUTRDpadPlane* GetPadPlane(int detector) const {return (AliGPUTRDpadPlane*) getPadPlane(detector);}
+	GPUd() int GetSector(int det) const {return getSector(det);}
+	GPUd() int GetStack(int det) const {return getStack(det);}
+	GPUd() int GetStack(float z, int layer) const {return getStack(z, layer);}
+	GPUd() float GetAlpha() const {return getAlpha();}
 	GPUd() bool IsHole(int la, int st, int se) const {return isHole(la, st, se);}
-	GPUd() int GetRowMax(int layer, int stack, int sector) {return getRowMax(layer, stack, sector);}
-	GPUd() bool ChamberInGeometry(int det) {return chamberInGeometry(det);}
+	GPUd() int GetRowMax(int layer, int stack, int sector) const {return getRowMax(layer, stack, sector);}
+	GPUd() bool ChamberInGeometry(int det) const {return chamberInGeometry(det);}
 
 	static constexpr int kNstack = o2::trd::kNstack;
 };
@@ -89,22 +89,22 @@ public:
 class AliGPUTRDpadPlane
 {
 public:
-	GPUd() float GetTiltingAngle() {return 0;}
-	GPUd() float GetRowSize(int row) {return 0;}
-	GPUd() float GetRowPos(int row) {return 0;}
-	GPUd() float GetRow0() {return 0;}
-	GPUd() float GetRowEnd() {return 0;}
-	GPUd() float GetCol0() {return 0;}
-	GPUd() float GetColEnd() {return 0;}
-	GPUd() float GetColPos(int col) {return 0;}
-	GPUd() float GetNrows() {return 0;}
+	GPUd() float GetTiltingAngle() const {return 0;}
+	GPUd() float GetRowSize(int row) const {return 0;}
+	GPUd() float GetRowPos(int row) const {return 0;}
+	GPUd() float GetRow0() const {return 0;}
+	GPUd() float GetRowEnd() const {return 0;}
+	GPUd() float GetCol0() const {return 0;}
+	GPUd() float GetColEnd() const {return 0;}
+	GPUd() float GetColPos(int col) const {return 0;}
+	GPUd() float GetNrows() const {return 0;}
 };
 
 class AliGPUTRDGeometry
 {
 public:
-	GPUd() static bool CheckGeometryAvailable() {return false;}
-	void clearInternalBufferUniquePtr() {}
+	GPUd() static bool CheckGeometryAvailable() const {return false;}
+	void clearInternalBufferUniquePtr() const {}
 
 	//Make sub-functionality available directly in AliGPUTRDGeometry
 	GPUd() float GetPadPlaneWidthIPad(int det) {return 0;}
@@ -113,22 +113,22 @@ public:
 	GPUd() int GetGeomManagerVolUID(int det, int modId) {return 0;}
 	
 	//Base functionality of TRDGeometry
-	GPUd() float GetTime0(int layer) {return 0;}
-	GPUd() float GetCol0(int layer) {return 0;}
-	GPUd() int GetLayer(int det) {return 0;}
-	GPUd() bool CreateClusterMatrixArray() {return false;}
-	GPUd() float AnodePos() {return 0;}
-	GPUd() TGeoHMatrix* GetClusterMatrix(int det) {return nullptr;}
-	GPUd() int GetDetector(int layer, int stack, int sector) {return 0;}
-	GPUd() AliGPUTRDpadPlane* GetPadPlane(int layer, int stack) {return nullptr;}
-	GPUd() AliGPUTRDpadPlane* GetPadPlane(int detector) {return nullptr;}
-	GPUd() int GetSector(int det) {return 0;}
-	GPUd() int GetStack(int det) {return 0;}
-	GPUd() int GetStack(float z, int layer) {return 0;}
-	GPUd() float GetAlpha() {return 0;}
-	GPUd() bool IsHole(int la, int st, int se) const {return false;}
-	GPUd() int GetRowMax(int layer, int stack, int /*sector*/) {return 0;}
-  GPUd() bool ChamberInGeometry(int det) {return false;}
+	GPUd() float GetTime0(int layer) const {return 0;}
+	GPUd() float GetCol0(int layer) const {return 0;}
+	GPUd() int GetLayer(int det) const {return 0;}
+	GPUd() bool CreateClusterMatrixArray() const {return false;}
+	GPUd() float AnodePos() const {return 0;}
+	GPUd() const TGeoHMatrix* GetClusterMatrix(int det) const {return nullptr;}
+	GPUd() int GetDetector(int layer, int stack, int sector) const {return 0;}
+	GPUd() const AliGPUTRDpadPlane* GetPadPlane(int layer, int stack) const {return nullptr;}
+	GPUd() const AliGPUTRDpadPlane* GetPadPlane(int detector) const {return nullptr;}
+	GPUd() int GetSector(int det) const {return 0;}
+	GPUd() int GetStack(int det) const {return 0;}
+	GPUd() int GetStack(float z, int layer) const {return 0;}
+	GPUd() float GetAlpha() const {return 0;}
+	GPUd() bool IsHole(int la, int st, int se) const const {return false;}
+	GPUd() int GetRowMax(int layer, int stack, int /*sector*/) const {return 0;}
+	GPUd() bool ChamberInGeometry(int det) const {return false;}
 
 	static CONSTEXPR int kNstack = 0;
 };
