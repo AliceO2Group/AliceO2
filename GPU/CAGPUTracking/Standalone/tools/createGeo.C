@@ -2,6 +2,7 @@
 #include "TRDBase/TRDGeometryFlat.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "TRDBase/TRDGeometry.h"
+#include "AliCAGPUO2Interface.h"
 #include "AliGPUReconstruction.h"
 
 void createGeo()
