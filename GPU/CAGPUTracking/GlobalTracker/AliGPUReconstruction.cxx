@@ -261,8 +261,12 @@ size_t AliGPUReconstruction::AllocateRegisteredMemoryHelper(AliGPUMemoryResource
 	if (memorypool == nullptr) {printf("Memory pool uninitialized\n");throw std::bad_alloc();}
 	ptr = memorypool;
 	memorypool = (char*) ((res->*setPtr)(memorypool));
-	if ((size_t) ((char*) memorypool - (char*) memorybase) > memorysize) {std::cout << "Memory pool size exceeded (" << res->mName << ": " << (char*) memorypool - (char*) memorybase << " < " << memorysize << "\n"; throw std::bad_alloc();}
 	size_t retVal = (char*) memorypool - (char*) ptr;
+	if (IsGPU() && retVal == 0) //Transferring 0 bytes might break some GPU backends, but we cannot simply skip the transfer, or we will break event dependencies
+	{
+		AliGPUProcessor::getPointerWithAlignment<AliGPUProcessor::MIN_ALIGNMENT, char>(memorypool, retVal = AliGPUProcessor::MIN_ALIGNMENT);
+	}
+	if ((size_t) ((char*) memorypool - (char*) memorybase) > memorysize) {std::cout << "Memory pool size exceeded (" << res->mName << ": " << (char*) memorypool - (char*) memorybase << " < " << memorysize << "\n"; throw std::bad_alloc();}
 	memorypool = (void*) ((char*) memorypool + AliGPUProcessor::getAlignment<GPUCA_GPU_MEMALIGN>(memorypool));
 	if (mDeviceProcessingSettings.debugLevel >= 5) std::cout << "Allocated " << res->mName << ": " << retVal << " - available: " << memorysize - ((char*) memorypool - (char*) memorybase) << "\n";
 	return(retVal);
