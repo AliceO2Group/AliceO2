@@ -70,6 +70,7 @@ set(SRCS
     TRDTracking/AliGPUTRDTrack.cxx
     TRDTracking/AliGPUTRDTracker.cxx
     TRDTracking/AliGPUTRDTrackletWord.cxx
+    TRDTracking/AliGPUTRDTrackerGPU.cxx
     GlobalTracker/AliGPUCAParam.cxx
 )
 

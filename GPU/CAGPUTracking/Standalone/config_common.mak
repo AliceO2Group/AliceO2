@@ -64,7 +64,8 @@ GPUCA_MERGER_CXXFILES		= Merger/AliGPUTPCGMMerger.cxx \
 
 GPUCA_TRD_CXXFILES			= TRDTracking/AliGPUTRDTrack.cxx \
 								TRDTracking/AliGPUTRDTracker.cxx \
-								TRDTracking/AliGPUTRDTrackletWord.cxx
+								TRDTracking/AliGPUTRDTrackletWord.cxx \
+								TRDTracking/AliGPUTRDTrackerGPU.cxx
 
 GPUCA_STANDALONE_CXXFILES	= SliceTracker/AliGPUTPCTrack.cxx \
 								SliceTracker/AliGPUTPCTracklet.cxx \

@@ -967,7 +967,7 @@ int AliGPUReconstructionDeviceBase::DoTRDGPUTracking()
 	WriteToConstantMemory((char*) &mDeviceConstantMem->trdTracker - (char*) mDeviceConstantMem, &mWorkersShadow->trdTracker, sizeof(mWorkersShadow->trdTracker), 0);
 	TransferMemoryResourcesToGPU(&workers()->trdTracker);
 
-	//DoTrdTrackingGPU<<<fConstructorBlockCount, GPUCA_GPU_THREAD_COUNT_TRD>>>();
+	runKernel<AliGPUTRDTrackerGPU>({fBlockCount, fTRDThreadCount, 0}, krnlRunRangeNone);
 	SynchronizeGPU();
 
 	TransferMemoryResourcesToHost(&workers()->trdTracker);
