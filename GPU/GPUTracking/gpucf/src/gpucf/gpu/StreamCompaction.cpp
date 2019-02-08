@@ -11,24 +11,35 @@ using namespace gpucf;
 
 void StreamCompaction::setup(ClEnv &env, size_t digitNum)
 {
-    this->digitNum = digitNum;
-
     cl::Program scprg = env.buildFromSrc("streamCompaction.cl");  
 
-    inclusiveScanStart = cl::Kernel(scprg, "inclusiveScanStart");
     inclusiveScanStep  = cl::Kernel(scprg, "inclusiveScanStep");
     compactArr         = cl::Kernel(scprg, "compactArr");
 
-    newIdxBufIn = cl::Buffer(env.getContext(), 
+    context = env.getContext();
+
+    setDigitNum(digitNum);
+}
+
+void StreamCompaction::setDigitNum(size_t digitNum)
+{
+    this->digitNum = digitNum;
+
+    newIdxBufIn = cl::Buffer(context, 
                         CL_MEM_READ_WRITE, 
                         sizeof(cl_int) * digitNum);
 
-    newIdxBufOut = cl::Buffer(env.getContext(), 
+    newIdxBufOut = cl::Buffer(context, 
                         CL_MEM_READ_WRITE, 
                         sizeof(cl_int) * digitNum);
 
+    inclusiveScanStep.setArg(0, newIdxBufIn);
+    inclusiveScanStep.setArg(1, newIdxBufOut);
+
+    offsets.clear();
     for (int i = 0; i < std::ceil(log2(digitNum)); i++)
     {
+        ASSERT(i < int(sizeof(int)) * 8);
         offsets.push_back(1 << i);
     }
 }
@@ -40,16 +51,12 @@ int StreamCompaction::enqueue(
         cl::Buffer predicate,
         bool debug)
 {
-
-    /* inclusiveScanStart.setArg(0, predicate); */
-    /* inclusiveScanStart.setArg(1, newIdxBufIn); */
-    /* queue.enqueueNDRangeKernel( */
-    /*         inclusiveScanStart, */
-    /*         cl::NullRange, */
-    /*         global, */
-    /*         local); */
-
     log::Debug() << "Copying buffer to setup prefix sum";
+
+    if (debug)
+    {
+        newIdxDump.clear();
+    }
 
     queue.enqueueCopyBuffer(
             predicate,
@@ -57,14 +64,15 @@ int StreamCompaction::enqueue(
             0,
             0,
             sizeof(cl_int) * digitNum);
+    /* queue.finish(); */
 
-    /* queue.enqueueFillBuffer(newIdxBufOut, 0, 0, sizeof(cl_int) * digitNum); */
     queue.enqueueCopyBuffer(
             newIdxBufIn,
             newIdxBufOut,
             0,
             0,
             sizeof(cl_int) * digitNum);
+    /* queue.finish(); */
 
     log::Debug() << "Starting prefix sum";
 
@@ -75,13 +83,14 @@ int StreamCompaction::enqueue(
         cl::NDRange global(digitNum-offset);
         cl::NDRange itemOffset(offset);
 
-        inclusiveScanStep.setArg(0, newIdxBufIn);
-        inclusiveScanStep.setArg(1, newIdxBufOut);
+        /* queue.finish(); */
+
         queue.enqueueNDRangeKernel(
                 inclusiveScanStep,
                 itemOffset,
                 global,
                 local);
+        /* queue.finish(); */
 
         queue.enqueueCopyBuffer(
                 newIdxBufOut,
@@ -89,17 +98,20 @@ int StreamCompaction::enqueue(
                 0,
                 0,
                 sizeof(cl_int) * digitNum);
+        /* queue.finish(); */
 
         if (debug)
         {
             newIdxDump.emplace_back(digitNum);
             queue.enqueueReadBuffer(
                     newIdxBufOut,
-                    CL_TRUE,
+                    CL_FALSE,
                     0,
                     digitNum * sizeof(cl_int),
                     newIdxDump.back().data());
         }
+
+        /* queue.finish(); */
     }
 
     compactArr.setArg(0, digits);
@@ -111,6 +123,7 @@ int StreamCompaction::enqueue(
             cl::NullRange,
             cl::NDRange(digitNum),
             local);
+    /* queue.finish(); */
 
     cl_int newDigitNum;
 

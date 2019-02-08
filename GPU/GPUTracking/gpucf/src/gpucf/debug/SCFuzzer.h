@@ -12,29 +12,31 @@ namespace gpucf
 class ClEnv;
 
 
-class StreamCompactionTest
+class SCFuzzer
 {
 public:
-    StreamCompactionTest(ClEnv &);
+    SCFuzzer(ClEnv &);
 
-    bool run();
+    bool run(size_t);
 
 private:
-    static constexpr size_t N = 20;
-
     StreamCompaction streamCompaction;
+
+    cl::Context context;
+    cl::Device  device;
 
     cl::CommandQueue queue;
 
-    cl::Buffer digitsBuf;
+    cl::Buffer digitsInBuf;
+    cl::Buffer digitsOutBuf;
     cl::Buffer predicateBuf;
-
-    std::array<unsigned char, N> predicate;
-    std::array<Digit        , N> digits;
 
     void setup(ClEnv &);
 
     void dumpResult(const std::vector<std::vector<int>> &);
+
+    bool repeatTest(size_t, size_t);
+    bool runTest(size_t);
 };
 
 } // namespace gpucf

@@ -12,7 +12,7 @@ set(GPUCF_SRC
     "./common/Object.cpp"
     "./common/RowInfo.cpp"
 
-    "./debug/StreamCompactionTest.cpp"
+    "./debug/SCFuzzer.cpp"
 
     "./executable/Benchmark.cpp"
     "./executable/CfRunner.cpp"
@@ -20,6 +20,7 @@ set(GPUCF_SRC
     "./executable/CompareClusters.cpp"
     "./executable/Executable.cpp"
     "./executable/SubGroupInfo.cpp"
+    "./executable/RunSCFuzzer.cpp"
 
     "./gpu/GPUAlgorithm.cpp"
     "./gpu/GPUClusterFinder.cpp"

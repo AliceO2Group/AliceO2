@@ -10,7 +10,6 @@ namespace gpucf
     
 class Benchmark : public Executable
 {
-
 public:
     Benchmark();
 
@@ -34,7 +33,6 @@ private:
     void run(size_t);
 
     filesystem::path makeBenchmarkFilename(const std::string &);
-
 };
 
 } // namespace gpucf
