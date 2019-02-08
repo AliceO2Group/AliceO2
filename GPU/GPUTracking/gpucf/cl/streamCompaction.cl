@@ -1,14 +1,7 @@
 #include "config.h"
 
-kernel
-void inclusiveScanStart(
-        global const uchar *predicate,
-        global       int   *outIdx)
-{
-    int idx = get_global_id(0);
+#include "debug.h"
 
-    outIdx[idx] = predicate[idx];
-}
 
 kernel
 void inclusiveScanStep(
@@ -17,7 +10,9 @@ void inclusiveScanStep(
 {
     int idx = get_global_id(0);
     int offset = get_global_offset(0);
-    /* printf("idx = %d, offset = %d\n", idx, offset); */
+
+    SOFT_ASSERT(idx - offset >= 0);
+    DBGPR_2("idx = %d, offset = %d", idx, offset);
 
     output[idx] = input[idx] + input[idx - offset];
 }
@@ -30,6 +25,8 @@ void compactArr(
         global const int   *newIdx)
 {
     int idx = get_global_id(0);
+
+    SOFT_ASSERT(newIdx[idx]-1 <= idx);
 
     if (predicate[idx])
     {

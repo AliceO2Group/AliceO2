@@ -2,7 +2,6 @@
 
 #include <gpucf/CsvFile.h>
 #include <gpucf/common/log.h>
-#include <gpucf/debug/StreamCompactionTest.h>
 #include <gpucf/errors/FileErrors.h>
 #include <gpucf/gpu/GPUClusterFinder.h>
 
@@ -40,9 +39,6 @@ int Benchmark::mainImpl()
     registerAlgorithms();
 
     ClEnv env(*envFlags); 
-
-    /* StreamCompactionTest streamCompactionTest(env); */
-    /* streamCompactionTest.run(); */
 
     DataSet digitSet;
     digitSet.read(args::get(*digitFile));

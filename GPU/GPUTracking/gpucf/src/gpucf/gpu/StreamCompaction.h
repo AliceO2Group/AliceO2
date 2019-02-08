@@ -16,6 +16,8 @@ class StreamCompaction
 public:
     void setup(ClEnv &, size_t); 
 
+    void setDigitNum(size_t);
+
     int  enqueue(
             cl::CommandQueue,
             cl::Buffer,
@@ -28,7 +30,8 @@ public:
     float getExecutionTime() const;
 
 private:
-    cl::Kernel inclusiveScanStart;
+    cl::Context context;
+
     cl::Kernel inclusiveScanStep;
     cl::Kernel compactArr;
 

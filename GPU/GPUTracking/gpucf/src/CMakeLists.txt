@@ -16,6 +16,9 @@ target_link_libraries(cmpcluster gpucf)
 add_executable(benchmark "benchmark.cpp")
 target_link_libraries(benchmark gpucf)
 
+add_executable(scfuzzer "scfuzzer.cpp")
+target_link_libraries(scfuzzer gpucf)
+
 add_executable(args_test "args_test.cpp")
 
 add_executable(testbench 
