@@ -499,7 +499,7 @@ AliGPUCADisplay::vboList AliGPUCADisplay::DrawSpacePointsTRD(int iSlice, int sel
 	
 	if (iCol == 0)
 	{
-		for (int i = 0;i < trdTracker().NSpacePoints();i++)
+		for (int i = 0;i < trdTracker().NTracklets();i++)
 		{
 			int iSec = mRec->GetTRDGeometry()->GetSector(trdTracker().Tracklets()[i].GetDetector());
 			bool draw = iSlice == iSec && globalPosTRD[i].w == select;
@@ -1217,7 +1217,7 @@ int AliGPUCADisplay::DrawGLScene_internal(bool mixAnimation, float animateTime) 
 			globalPos = globalPosPtr.get();
 		}
 		
-		currentSpacePointsTRD = trdTracker().NSpacePoints();
+		currentSpacePointsTRD = trdTracker().NTracklets();
 		if (currentSpacePointsTRD > maxSpacePointsTRD)
 		{
 			maxSpacePointsTRD = currentSpacePointsTRD;
