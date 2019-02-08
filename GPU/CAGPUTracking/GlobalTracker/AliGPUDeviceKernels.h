@@ -23,6 +23,7 @@
 
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
 #include "AliGPUTPCGMMergerGPU.cxx"
+#include "AliGPUTRDTrackerGPU.cxx"
 #endif
 
 #ifdef GPUCA_BUILD_MERGER

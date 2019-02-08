@@ -410,19 +410,6 @@ GPUd() void AliGPUTRDTracker::CheckTrackRefs(const int trackID, bool *findableMC
 
 #endif //!GPUCA_GPUCODE
 
-
-#ifdef GPUCA_GPUCODE
-
-GPUg() void DoTrdTrackingGPU()
-{
-  for (int i = get_global_id(0);i < gGPUConstantMem.trdTracker.NTracks();i += get_global_size(0))
-  {
-    gGPUConstantMem.trdTracker.DoTrackingThread(i, &gGPUConstantMem.tpcMerger, get_global_id(0));
-  }
-}
-
-#endif
-
 GPUd() int AliGPUTRDTracker::LoadTracklet(const AliGPUTRDTrackletWord &tracklet, const int *labels)
 {
   //--------------------------------------------------------------------
