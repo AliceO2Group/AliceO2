@@ -3,8 +3,6 @@
 
 template <> GPUd() void AliGPUTPCGMMergerTrackFit::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() AliGPUTPCSharedMemory &smem, workerType &merger)
 {
-#if defined(GPUCA_BUILD_MERGER) || !defined(GPUCA_GPUCODE)
-
 #if defined(GPUCA_HAVE_OPENMP) && !defined(GPUCA_GPUCODE)
 #pragma omp parallel for num_threads(merger.GetRec().GetDeviceProcessingSettings().nThreads)
 #endif
@@ -12,6 +10,4 @@ template <> GPUd() void AliGPUTPCGMMergerTrackFit::Thread<0>(int nBlocks, int nT
 	{
 		AliGPUTPCGMTrackParam::RefitTrack(merger.OutputTracks()[i], i, &merger, merger.Clusters());
 	}
-	
-#endif
 }

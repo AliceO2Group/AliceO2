@@ -5,12 +5,13 @@
 
 #include "AliGPUTPCTrackParam.cxx"
 #include "AliGPUTPCTrack.cxx"
-
 #include "AliGPUTPCHitArea.cxx"
 #include "AliGPUTPCGrid.cxx"
 #include "AliGPUTPCRow.cxx"
 #include "AliGPUCAParam.cxx"
 #include "AliGPUTPCTracker.cxx"
+
+#include "AliGPUGeneralKernels.cxx"
 
 #include "AliGPUTPCTrackletSelector.cxx"
 #include "AliGPUTPCNeighboursFinder.cxx"
@@ -19,14 +20,9 @@
 #include "AliGPUTPCStartHitsSorter.cxx"
 #include "AliGPUTPCTrackletConstructor.cxx"
 
-#include "AliGPUGeneralKernels.cxx"
-
-#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
-#include "AliGPUTPCGMMergerGPU.cxx"
-#include "AliGPUTRDTrackerGPU.cxx"
-#endif
-
 #ifdef GPUCA_BUILD_MERGER
+	#include "AliGPUTPCGMMergerGPU.cxx"
+	
 	#include "AliGPUTPCGMMerger.h"
 	#include "AliGPUTPCGMTrackParam.cxx"
 	#include "AliGPUTPCGMPhysicalTrackModel.cxx"
@@ -34,6 +30,8 @@
 #endif
 
 #ifdef GPUCA_BUILD_TRD
+	#include "AliGPUTRDTrackerGPU.cxx"
+
 	#include "AliGPUTRDTrack.cxx"
 	#include "AliGPUTRDTracker.cxx"
 	#include "AliGPUTRDTrackletWord.cxx"
