@@ -251,7 +251,6 @@ int AliGPUReconstructionCPU::RunTRDTracking()
 	if (!workers()->trdTracker.IsInitialized()) return 1;
 	std::vector<GPUTRDTrack> tracksTPC;
 	std::vector<int> tracksTPCLab;
-	std::vector<int> tracksTPCId;
 
 	for (unsigned int i = 0;i < mIOPtrs.nMergedTracks;i++)
 	{
@@ -260,7 +259,7 @@ int AliGPUReconstructionCPU::RunTRDTracking()
 		if (trk.Looper()) continue;
 		if (param().rec.NWaysOuter) tracksTPC.emplace_back(trk.OuterParam());
 		else tracksTPC.emplace_back(trk);
-		tracksTPCId.push_back(i);
+		tracksTPC.back().SetTPCtrackId(i);
 		tracksTPCLab.push_back(-1);
 	}
 
