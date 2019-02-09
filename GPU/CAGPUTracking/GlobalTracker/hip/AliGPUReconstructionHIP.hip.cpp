@@ -322,7 +322,7 @@ int AliGPUReconstructionHIPBackend::IsEventDone(deviceEvent* evList, int nEvents
 	return(1);
 }
 
-int AliGPUReconstructionHIPBackend::GPUDebug(const char* state, int stream, int slice)
+int AliGPUReconstructionHIPBackend::GPUDebug(const char* state, int stream)
 {
 	//Wait for HIP-Kernel to finish and check for HIP errors afterwards, in case of debugmode
 	if (mDeviceProcessingSettings.debugLevel == 0) return(0);
@@ -330,12 +330,12 @@ int AliGPUReconstructionHIPBackend::GPUDebug(const char* state, int stream, int 
 	cuErr = hipGetLastError();
 	if (cuErr != hipSuccess)
 	{
-		CAGPUError("HIP Error %s while running kernel (%s) (Stream %d; Slice %d/%d)", hipGetErrorString(cuErr), state, stream, slice, NSLICES);
+		CAGPUError("HIP Error %s while running kernel (%s) (Stream %d)", hipGetErrorString(cuErr), state, stream);
 		return(1);
 	}
 	if (GPUFailedMsgI(hipDeviceSynchronize()))
 	{
-		CAGPUError("HIP Error while synchronizing (%s) (Stream %d; Slice %d/%d)", state, stream, slice, NSLICES);
+		CAGPUError("HIP Error while synchronizing (%s) (Stream %d)", state, stream);
 		return(1);
 	}
 	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("GPU Sync Done");

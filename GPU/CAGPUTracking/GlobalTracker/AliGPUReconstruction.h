@@ -192,7 +192,7 @@ public:
 	AliGPUCAQA* GetQA() {return mQA.get();}
 	
 	//Processing functions
-	int RunStandalone();
+	virtual int RunStandalone() = 0;
 	virtual int RunTPCTrackingSlices() = 0;
 	virtual int RunTPCTrackingMerger() = 0;
 	virtual int RunTRDTracking() = 0;

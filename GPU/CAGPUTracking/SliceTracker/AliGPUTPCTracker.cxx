@@ -181,7 +181,6 @@ void AliGPUTPCTracker::SetupCommonMemory()
 
 int AliGPUTPCTracker::ReadEvent()
 {
-	StartTimer(0);
 	SetupCommonMemory();
 
 	//* Convert input hits, create grids, etc.
@@ -199,7 +198,6 @@ int AliGPUTPCTracker::ReadEvent()
 	{
 		fNMaxStartHits = fData.NumberOfHits();
 	}
-	StopTimer(0);
 	return 0;
 }
 
@@ -227,9 +225,7 @@ GPUh() void AliGPUTPCTracker::ReconstructOutput()
 
 GPUh() void AliGPUTPCTracker::WriteOutputPrepare()
 {
-	StartTimer(9);
 	AliGPUTPCSliceOutput::Allocate(*fOutput, fCommonMem->fNTracks, fCommonMem->fNTrackHits, &mRec->OutputControl(), fOutputMemory);
-	StopTimer(9);
 }
 
 template <class T> static inline bool SortComparison(const T& a, const T& b)
@@ -254,7 +250,6 @@ GPUh() void AliGPUTPCTracker::WriteOutput()
 		printf("Maximum number of tracks exceeded, cannot store\n");
 		return;
 	}
-	StartTimer(9);
 
 	int nStoredHits = 0;
 	int nStoredTracks = 0;
@@ -335,8 +330,6 @@ GPUh() void AliGPUTPCTracker::WriteOutput()
 	useOutput->SetNLocalTracks( nStoredLocalTracks );
 	useOutput->SetNTrackClusters( nStoredHits );
 	if (mCAParam->debugLevel >= 3) printf("Slice %d, Output: Tracks %d, local tracks %d, hits %d\n", fISlice, nStoredTracks, nStoredLocalTracks, nStoredHits);
-
-	StopTimer(9);
 }
 
 GPUh() int AliGPUTPCTracker::PerformGlobalTrackingRun(AliGPUTPCTracker& sliceNeighbour, int iTrack, int rowIndex, float angle, int direction)
@@ -435,7 +428,6 @@ GPUh() int AliGPUTPCTracker::PerformGlobalTrackingRun(AliGPUTPCTracker& sliceNei
 
 GPUh() void AliGPUTPCTracker::PerformGlobalTracking(AliGPUTPCTracker& sliceLeft, AliGPUTPCTracker& sliceRight, int MaxTracksLeft, int MaxTracksRight)
 {
-	StartTimer(8);
 	int ul = 0, ur = 0, ll = 0, lr = 0;
 	
 	int nTrkLeft = sliceLeft.fCommonMem->fNTracklets, nTrkRight = sliceRight.fCommonMem->fNTracklets;
@@ -505,7 +497,6 @@ GPUh() void AliGPUTPCTracker::PerformGlobalTracking(AliGPUTPCTracker& sliceLeft,
 	delete[] sliceLeft.fTrackletRowHits;
 	sliceLeft.fTrackletRowHits = lnkLeft;sliceRight.fTrackletRowHits = lnkRight;
 #endif
-	StopTimer(8);
 	//printf("Global Tracking Result: Slide %2d: LL %3d LR %3d UL %3d UR %3d\n", mCAParam->ISlice(), ll, lr, ul, ur);
 }
 

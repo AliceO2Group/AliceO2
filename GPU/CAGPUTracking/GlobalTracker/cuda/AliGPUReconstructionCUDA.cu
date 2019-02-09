@@ -365,7 +365,7 @@ int AliGPUReconstructionCUDABackend::IsEventDone(deviceEvent* evList, int nEvent
 	return(1);
 }
 
-int AliGPUReconstructionCUDABackend::GPUDebug(const char* state, int stream, int slice)
+int AliGPUReconstructionCUDABackend::GPUDebug(const char* state, int stream)
 {
 	//Wait for CUDA-Kernel to finish and check for CUDA errors afterwards, in case of debugmode
 	if (mDeviceProcessingSettings.debugLevel == 0) return(0);
@@ -373,12 +373,12 @@ int AliGPUReconstructionCUDABackend::GPUDebug(const char* state, int stream, int
 	cuErr = cudaGetLastError();
 	if (cuErr != cudaSuccess)
 	{
-		CAGPUError("Cuda Error %s while running kernel (%s) (Stream %d; Slice %d/%d)", cudaGetErrorString(cuErr), state, stream, slice, NSLICES);
+		CAGPUError("Cuda Error %s while running kernel (%s) (Stream %d)", cudaGetErrorString(cuErr), state, stream);
 		return(1);
 	}
 	if (GPUFailedMsgI(cudaDeviceSynchronize()))
 	{
-		CAGPUError("CUDA Error while synchronizing (%s) (Stream %d; Slice %d/%d)", state, stream, slice, NSLICES);
+		CAGPUError("CUDA Error while synchronizing (%s) (Stream %d)", state, stream);
 		return(1);
 	}
 	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("GPU Sync Done");

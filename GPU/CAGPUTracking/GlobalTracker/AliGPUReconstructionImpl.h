@@ -4,6 +4,7 @@
 #include "AliGPUReconstruction.h"
 #include "AliGPUCADataTypes.h"
 #include <stdexcept>
+#include "cmodules/timer.h"
 
 #include "AliGPUGeneralKernels.h"
 #include "AliGPUTPCNeighboursFinder.h"
@@ -100,18 +101,44 @@ class AliGPUReconstructionCPU : public AliGPUReconstructionImpl<AliGPUReconstruc
 public:
 	virtual ~AliGPUReconstructionCPU() = default;
 	
-	template <class S, int I = 0, typename... Args> inline int runKernel(const krnlExec& x, const krnlRunRange& y = krnlRunRangeNone, const krnlEvent& z = krnlEvent(), const Args&... args)
+	template <class S, int I = 0, typename... Args> inline int runKernel(const krnlExec& x, HighResTimer* t = nullptr, const krnlRunRange& y = krnlRunRangeNone, const krnlEvent& z = krnlEvent(), const Args&... args)
 	{
-		return runKernelImpl(classArgument<S, I>(), x, y, z, args...);
+		if (mDeviceProcessingSettings.debugLevel >= 3) printf("Running %s Stream %d (Range %d/%d)\n", typeid(S).name(), x.stream, y.start, y.num);
+		if (t && mDeviceProcessingSettings.debugLevel) t->Start();
+		if (runKernelImpl(classArgument<S, I>(), x, y, z, args...)) return 1;
+		if (mDeviceProcessingSettings.debugLevel)
+		{
+			if (GPUDebug(typeid(S).name(), x.stream)) throw std::runtime_error("kernel failure");
+			if (t) t->Stop();
+		}
+		return 0;
 	}
 	
 	virtual int RunTPCTrackingSlices();
 	virtual int RunTPCTrackingMerger();
 	virtual int RefitMergedTracks(bool resetTimers);
 	virtual int RunTRDTracking();
+	virtual int RunStandalone();
+	
+	virtual int GPUDebug(const char* state = "UNKNOWN", int stream = -1);
+	
+	void TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) {TransferMemoryInternal(res, stream, ev, evList, nEvents, true, res->Ptr(), res->PtrDevice());}
+	void TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) {TransferMemoryInternal(res, stream, ev, evList, nEvents, false, res->PtrDevice(), res->Ptr());}
+	virtual void TransferMemoryInternal(AliGPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, void* src, void* dst);
+	virtual void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr);
+
+	void TransferMemoryResourcesToGPU(AliGPUProcessor* proc, int stream = -1, bool all = false) {TransferMemoryResourcesHelper(proc, stream, all, true);}
+	void TransferMemoryResourcesToHost(AliGPUProcessor* proc, int stream = -1, bool all = false) {TransferMemoryResourcesHelper(proc, stream, all, false);}
+	void TransferMemoryResourceLinkToGPU(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) {TransferMemoryResourceToGPU(&mMemoryResources[res], stream, ev, evList, nEvents);}
+	void TransferMemoryResourceLinkToHost(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) {TransferMemoryResourceToHost(&mMemoryResources[res], stream, ev, evList, nEvents);}
+	
+	HighResTimer timerTPCtracking[NSLICES][10];
 	
 protected:
 	AliGPUReconstructionCPU(const AliGPUCASettingsProcessing& cfg) : AliGPUReconstructionImpl(cfg) {}
+
+private:
+	void TransferMemoryResourcesHelper(AliGPUProcessor* proc, int stream, bool all, bool toGPU);
 };
 
 #endif

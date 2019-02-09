@@ -18,6 +18,11 @@
 #include "AliGPUMemoryResource.h"
 #include "AliGPUCADataTypes.h"
 
+#include "AliGPUCAQA.h"
+#include "AliGPUCADisplay.h"
+
+#include "../cmodules/linux_helpers.h"
+
 #define GPUCA_LOGGING_PRINTF
 #include "AliCAGPULogging.h"
 
@@ -50,12 +55,14 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 	{
 		AliGPUTPCTracker& trk = workers()->tpcTrackers[iSlice];
+		timerTPCtracking[iSlice][0].Start();
 		if (trk.ReadEvent())
 		{
 			CAGPUError("Error initializing cluster data\n");
 			error = true;
 			continue;
 		}
+		timerTPCtracking[iSlice][0].Stop();
 		trk.SetOutput(&mSliceOutput[iSlice]);
 		if (trk.CheckEmptySlice()) continue;
 
@@ -69,9 +76,7 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 			trk.DumpSliceData(mDebugFile);
 		}
 
-		trk.StartTimer(1);
-		runKernel<AliGPUTPCNeighboursFinder>({GPUCA_ROW_COUNT, 1, 0}, {iSlice});
-		trk.StopTimer(1);
+		runKernel<AliGPUTPCNeighboursFinder>({GPUCA_ROW_COUNT, 1, 0}, &timerTPCtracking[iSlice][1], {iSlice});
 
 		if (mDeviceProcessingSettings.keepAllMemory)
 		{
@@ -80,21 +85,15 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 
 		if (mDeviceProcessingSettings.debugLevel >= 6) trk.DumpLinks(mDebugFile);
 
-		trk.StartTimer(2);
-		runKernel<AliGPUTPCNeighboursCleaner>({GPUCA_ROW_COUNT - 2, 1, 0}, {iSlice});
-		trk.StopTimer(2);
+		runKernel<AliGPUTPCNeighboursCleaner>({GPUCA_ROW_COUNT - 2, 1, 0}, &timerTPCtracking[iSlice][2], {iSlice});
 
 		if (mDeviceProcessingSettings.debugLevel >= 6) trk.DumpLinks(mDebugFile);
 
-		trk.StartTimer(3);
-		runKernel<AliGPUTPCStartHitsFinder>({GPUCA_ROW_COUNT - 6, 1, 0}, {iSlice}); //Why not -6?
-		trk.StopTimer(3);
+		runKernel<AliGPUTPCStartHitsFinder>({GPUCA_ROW_COUNT - 6, 1, 0}, &timerTPCtracking[iSlice][3], {iSlice}); //Why not -6?
 
 		if (mDeviceProcessingSettings.debugLevel >= 6) trk.DumpStartHits(mDebugFile);
 
-		trk.StartTimer(5);
-		runKernel<AliGPUMemClean16>({1, 1, 0}, krnlRunRangeNone, {}, trk.Data().HitWeights(), trk.Data().NumberOfHitsPlusAlign() * sizeof(*trk.Data().HitWeights()));
-		trk.StopTimer(5);
+		runKernel<AliGPUMemClean16>({1, 1, 0}, &timerTPCtracking[iSlice][5], krnlRunRangeNone, {}, trk.Data().HitWeights(), trk.Data().NumberOfHitsPlusAlign() * sizeof(*trk.Data().HitWeights()));
 
 		if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL)
 		{
@@ -104,17 +103,13 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 			AllocateRegisteredMemory(trk.MemoryResTrackHits());
 		}
 
-		trk.StartTimer(6);
-		runKernel<AliGPUTPCTrackletConstructor>({1, 1, 0}, {iSlice});
-		trk.StopTimer(6);
+		runKernel<AliGPUTPCTrackletConstructor>({1, 1, 0}, &timerTPCtracking[iSlice][6], {iSlice});
 		if (mDeviceProcessingSettings.debugLevel >= 3) printf("Slice %d, Number of tracklets: %d\n", iSlice, *trk.NTracklets());
 
 		if (mDeviceProcessingSettings.debugLevel >= 6) trk.DumpTrackletHits(mDebugFile);
 		if (mDeviceProcessingSettings.debugLevel >= 6 && !mDeviceProcessingSettings.comparableDebutOutput) trk.DumpHitWeights(mDebugFile);
 
-		trk.StartTimer(7);
-		runKernel<AliGPUTPCTrackletSelector>({1, 1, 0}, {iSlice});
-		trk.StopTimer(7);
+		runKernel<AliGPUTPCTrackletSelector>({1, 1, 0}, &timerTPCtracking[iSlice][7], {iSlice});
 		if (mDeviceProcessingSettings.debugLevel >= 3) printf("Slice %d, Number of tracks: %d\n", iSlice, *trk.NTracks());
 
 		if (mDeviceProcessingSettings.debugLevel >= 6) trk.DumpTrackHits(mDebugFile);
@@ -123,7 +118,9 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 		trk.CommonMemory()->fNLocalTrackHits = trk.CommonMemory()->fNTrackHits;
 		if (!param().rec.GlobalTracking)
 		{
+			timerTPCtracking[iSlice][9].Start();
 			trk.ReconstructOutput();
+			timerTPCtracking[iSlice][9].Stop();
 			//nOutputTracks += (*trk.Output())->NTracks();
 			//nLocalTracks += trk.CommonMemory()->fNTracks;
 			if (!mDeviceProcessingSettings.eventDisplay)
@@ -145,11 +142,15 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices()
 				sliceLeft += NSLICES / 2;
 				sliceRight += NSLICES / 2;
 			}
+			timerTPCtracking[iSlice][8].Start();
 			workers()->tpcTrackers[iSlice].PerformGlobalTracking(workers()->tpcTrackers[sliceLeft], workers()->tpcTrackers[sliceRight], workers()->tpcTrackers[sliceLeft].NMaxTracks(), workers()->tpcTrackers[sliceRight].NMaxTracks());
+			timerTPCtracking[iSlice][8].Stop();
 		}
 		for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 		{
+			timerTPCtracking[iSlice][9].Start();
 			workers()->tpcTrackers[iSlice].ReconstructOutput();
+			timerTPCtracking[iSlice][9].Stop();
 			//printf("Slice %d - Tracks: Local %d Global %d - Hits: Local %d Global %d\n", iSlice, workers()->tpcTrackers[iSlice].CommonMemory()->fNLocalTracks, workers()->tpcTrackers[iSlice].CommonMemory()->fNTracks, workers()->tpcTrackers[iSlice].CommonMemory()->fNLocalTrackHits, workers()->tpcTrackers[iSlice].CommonMemory()->fNTrackHits);
 			//nLocalTracks += workers()->tpcTrackers[iSlice].CommonMemory()->fNLocalTracks;
 			//nGlobalTracks += workers()->tpcTrackers[iSlice].CommonMemory()->fNTracks;
@@ -287,6 +288,170 @@ int AliGPUReconstructionCPU::RunTRDTracking()
 
 int AliGPUReconstructionCPU::RefitMergedTracks(bool resetTimers)
 {
-	AliGPUReconstructionCPU::runKernel<AliGPUTPCGMMergerTrackFit>({1, 1, 0, krnlDeviceType::CPU}, krnlRunRangeNone);
+	AliGPUReconstructionCPU::runKernel<AliGPUTPCGMMergerTrackFit>({1, 1, 0, krnlDeviceType::CPU}, nullptr, krnlRunRangeNone);
 	return 0;
+}
+
+int AliGPUReconstructionCPU::RunStandalone()
+{
+	mStatNEvents++;
+	
+	const bool needQA = AliGPUCAQA::QAAvailable() && (mDeviceProcessingSettings.runQA || (mDeviceProcessingSettings.eventDisplay && mIOPtrs.nMCInfosTPC));
+	if (needQA && mQAInitialized == false)
+	{
+		if (mQA->InitQA()) return 1;
+		mQAInitialized = true;
+	}
+	
+	static HighResTimer timerTracking, timerMerger, timerQA;
+	static int nCount = 0;
+	if (mDeviceProcessingSettings.resetTimers)
+	{
+		timerTracking.Reset();
+		timerMerger.Reset();
+		timerQA.Reset();
+		nCount = 0;
+	}
+
+	timerTracking.Start();
+	if (RunTPCTrackingSlices()) return 1;
+	timerTracking.Stop();
+
+	timerMerger.Start();
+	for (unsigned int i = 0; i < NSLICES; i++)
+	{
+		//printf("slice %d clusters %d tracks %d\n", i, fClusterData[i].NumberOfClusters(), mSliceOutput[i]->NTracks());
+		workers()->tpcMerger.SetSliceData(i, mSliceOutput[i]);
+	}
+	if (RunTPCTrackingMerger()) return 1;
+	timerMerger.Stop();
+
+	if (needQA)
+	{
+		timerQA.Start();
+		mQA->RunQA(!mDeviceProcessingSettings.runQA);
+		timerQA.Stop();
+	}
+
+	nCount++;
+	if (mDeviceProcessingSettings.debugLevel >= 0)
+	{
+		char nAverageInfo[16] = "";
+		if (nCount > 1) sprintf(nAverageInfo, " (%d)", nCount);
+		printf("Tracking Time: %'d us%s\n", (int) (1000000 * timerTracking.GetElapsedTime() / nCount), nAverageInfo);
+		printf("Merging and Refit Time: %'d us\n", (int) (1000000 * timerMerger.GetElapsedTime() / nCount));
+		if (mDeviceProcessingSettings.runQA) printf("QA Time: %'d us\n", (int) (1000000 * timerQA.GetElapsedTime() / nCount));
+	}
+	
+	if (mDeviceProcessingSettings.debugLevel >= 1)
+	{
+		if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_GLOBAL)
+			printf("Memory Allocation: Host %'lld / %'lld, Device %'lld / %'lld, %d chunks\n",
+			(long long int) ((char*) mHostMemoryPool - (char*) mHostMemoryBase), (long long int) mHostMemorySize, (long long int) ((char*) mDeviceMemoryPool - (char*) mDeviceMemoryBase), (long long int) mDeviceMemorySize, (int) mMemoryResources.size());
+		
+		const char *tmpNames[10] = {"Initialisation", "Neighbours Finder", "Neighbours Cleaner", "Starts Hits Finder", "Start Hits Sorter", "Weight Cleaner", "Tracklet Constructor", "Tracklet Selector", "Global Tracking", "Write Output"};
+
+		for (int i = 0; i < 10; i++)
+		{
+			double time = 0;
+			for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++)
+			{
+				time += timerTPCtracking[iSlice][i].GetElapsedTime();
+				timerTPCtracking[iSlice][i].Reset();
+			}
+			time /= NSLICES;
+			if (!IsGPU()) time /= mDeviceProcessingSettings.nThreads;
+
+			printf("Execution Time: Task: %20s Time: %'7d us\n", tmpNames[i], (int) (time * 1000000 / nCount));
+		}
+		printf("Execution Time: Task: %20s Time: %'7d us\n", "Merger", (int) (timerMerger.GetElapsedTime() * 1000000. / nCount));
+		if (!GPUCA_TIMING_SUM)
+		{
+			timerTracking.Reset();
+			timerMerger.Reset();
+			timerQA.Reset();
+			nCount = 0;
+		}
+	}
+	
+	if (mDeviceProcessingSettings.runTRDTracker && mIOPtrs.nTRDTracklets)
+	{
+		HighResTimer timer;
+		timer.Start();
+		if (RunTRDTracking()) return 1;
+		if (mDeviceProcessingSettings.debugLevel >= 1)
+		{
+			printf("TRD tracking time: %'d us\n", (int) (1000000 * timer.GetCurrentElapsedTime()));
+		}
+	}
+
+	if (mDeviceProcessingSettings.eventDisplay)
+	{
+		if (!mDisplayRunning)
+		{
+			if (mEventDisplay->StartDisplay()) return(1);
+			mDisplayRunning = true;
+		}
+		else
+		{
+			mEventDisplay->ShowNextEvent();
+		}
+
+		if (mDeviceProcessingSettings.eventDisplay->EnableSendKey())
+		{
+			while (kbhit()) getch();
+			printf("Press key for next event!\n");
+		}
+
+		int iKey;
+		do
+		{
+			Sleep(10);
+			if (mDeviceProcessingSettings.eventDisplay->EnableSendKey())
+			{
+				iKey = kbhit() ? getch() : 0;
+				if (iKey == 'q') mDeviceProcessingSettings.eventDisplay->displayControl = 2;
+				else if (iKey == 'n') break;
+				else if (iKey)
+				{
+					while (mDeviceProcessingSettings.eventDisplay->sendKey != 0)
+					{
+						Sleep(1);
+					}
+					mDeviceProcessingSettings.eventDisplay->sendKey = iKey;
+				}
+			}
+		} while (mDeviceProcessingSettings.eventDisplay->displayControl == 0);
+		if (mDeviceProcessingSettings.eventDisplay->displayControl == 2)
+		{
+			mDisplayRunning = false;
+			mDeviceProcessingSettings.eventDisplay->DisplayExit();
+			mDeviceProcessingSettings.eventDisplay = nullptr;
+			return (2);
+		}
+		mDeviceProcessingSettings.eventDisplay->displayControl = 0;
+		printf("Loading next event\n");
+
+		mEventDisplay->WaitForNextEvent();
+	}
+	return 0;
+}
+
+void AliGPUReconstructionCPU::TransferMemoryInternal(AliGPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, void* src, void* dst) {}
+void AliGPUReconstructionCPU::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev) {}
+int AliGPUReconstructionCPU::GPUDebug(const char* state, int stream) {return 0;}
+void AliGPUReconstructionCPU::TransferMemoryResourcesHelper(AliGPUProcessor* proc, int stream, bool all, bool toGPU)
+{
+	int inc = toGPU ? AliGPUMemoryResource::MEMORY_INPUT : AliGPUMemoryResource::MEMORY_OUTPUT;
+	int exc = toGPU ? AliGPUMemoryResource::MEMORY_OUTPUT : AliGPUMemoryResource::MEMORY_INPUT;
+	for (unsigned int i = 0;i < mMemoryResources.size();i++)
+	{
+		AliGPUMemoryResource& res = mMemoryResources[i];
+		if (res.mPtr == nullptr) continue;
+		if (proc && res.mProcessor != proc) continue;
+		if (!(res.mType & AliGPUMemoryResource::MEMORY_GPU) || (res.mType & AliGPUMemoryResource::MEMORY_CUSTOM_TRANSFER)) continue;
+		if (!mDeviceProcessingSettings.keepAllMemory && !(all && !(res.mType & exc)) && !(res.mType & inc)) continue;
+		if (toGPU) TransferMemoryResourceToGPU(&mMemoryResources[i], stream);
+		else TransferMemoryResourceToHost(&mMemoryResources[i], stream);
+	}
 }

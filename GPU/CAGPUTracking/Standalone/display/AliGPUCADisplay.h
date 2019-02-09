@@ -39,6 +39,8 @@ public:
 #include <GL/gl.h>
 #include <GL/glext.h>
 
+#include "cmodules/timer.h"
+
 class AliGPUTPCTracker;
 class AliGPUCAParam;
 

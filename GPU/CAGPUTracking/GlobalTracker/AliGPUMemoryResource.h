@@ -7,7 +7,7 @@
 class AliGPUMemoryResource
 {
 	friend class AliGPUReconstruction;
-	friend class AliGPUReconstructionDeviceBase;
+	friend class AliGPUReconstructionCPU;
 	
 public:
 	enum MemoryType {MEMORY_HOST = 1, MEMORY_GPU = 2, MEMORY_INPUT = 7, MEMORY_OUTPUT = 11, MEMORY_INOUT = 15, MEMORY_SCRATCH = 16, MEMORY_SCRATCH_HOST = 17, MEMORY_PERMANENT = 32, MEMORY_CUSTOM = 64, MEMORY_CUSTOM_TRANSFER = 128};

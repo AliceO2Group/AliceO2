@@ -38,25 +38,18 @@ protected:
 	virtual void SynchronizeStream(int stream) = 0;
 	virtual void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) = 0;
 	virtual int IsEventDone(deviceEvent* evList, int nEvents = 1) = 0;
-	virtual int GPUDebug(const char* state = "UNKNOWN", int stream = -1, int slice = 0) = 0;
 	
 	virtual int PrepareTextures();
 	virtual int DoStuckProtection(int stream, void* event);
 	virtual int PrepareProfile();
 	virtual int DoProfile();
 	
-	void TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) {TransferMemoryInternal(res, stream, ev, evList, nEvents, true, res->Ptr(), res->PtrDevice());}
-	void TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) {TransferMemoryInternal(res, stream, ev, evList, nEvents, false, res->PtrDevice(), res->Ptr());}
-	virtual void TransferMemoryInternal(AliGPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, void* src, void* dst) = 0;
-	virtual void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) = 0;
+	virtual int GPUDebug(const char* state = "UNKNOWN", int stream = -1) override = 0;
+	virtual void TransferMemoryInternal(AliGPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, void* src, void* dst) override = 0;
+	virtual void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) override = 0;
 	virtual void ReleaseEvent(deviceEvent* ev) = 0;
 	virtual void RecordMarker(deviceEvent* ev, int stream) = 0;
 	
-	void TransferMemoryResourcesToGPU(AliGPUProcessor* proc, int stream = -1, bool all = false) {TransferMemoryResourcesHelper(proc, stream, all, true);}
-	void TransferMemoryResourcesToHost(AliGPUProcessor* proc, int stream = -1, bool all = false) {TransferMemoryResourcesHelper(proc, stream, all, false);}
-	void TransferMemoryResourceLinkToGPU(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) {TransferMemoryResourceToGPU(&mMemoryResources[res], stream, ev, evList, nEvents);}
-	void TransferMemoryResourceLinkToHost(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) {TransferMemoryResourceToHost(&mMemoryResources[res], stream, ev, evList, nEvents);}
-
 	struct helperParam
 	{
 		void* fThreadId;
@@ -150,9 +143,6 @@ protected:
 	int mNStreams = 0;
 	eventStruct<void*> mEvents;
 	bool mStreamInit[GPUCA_GPU_MAX_STREAMS] = {false};
-
-private:
-	void TransferMemoryResourcesHelper(AliGPUProcessor* proc, int stream, bool all, bool toGPU);
 #endif
 };
 
