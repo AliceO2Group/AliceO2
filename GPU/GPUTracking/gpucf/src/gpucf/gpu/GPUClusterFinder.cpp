@@ -183,6 +183,8 @@ GPUAlgorithm::Result GPUClusterFinder::runImpl()
         {"zeroChargeMap", zeroChargeMap.executionTimeMs()},   
         {"fillingChargeMap", fillingChargeMap.executionTimeMs()},   
         {"findingPeaks", findingPeaks.executionTimeMs()},   
+        {"scanDigits", streamCompaction.scanTimeMs()},
+        {"compactDigits", streamCompaction.compactionTimeMs()},
         {"computingClusters", computingClusters.executionTimeMs()},   
         {"clustersToHost", clustersToHost.executionTimeMs()},   
     };

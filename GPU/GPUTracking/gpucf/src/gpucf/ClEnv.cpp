@@ -50,7 +50,12 @@ cl::Program ClEnv::buildFromSrc(const fs::path &srcFile)
 
     try 
     {
-        std::string buildOpts = "-Werror -I" + sourceDir.str();
+        std::string buildOpts = "-Werror";
+#if defined(NDEBUG)
+        buildOpts += " -DNDEBUG";
+#endif
+        buildOpts += " -I" + sourceDir.str();
+
         prg.build(devices, buildOpts.c_str());
     } 
     catch (const cl::BuildError &) 
