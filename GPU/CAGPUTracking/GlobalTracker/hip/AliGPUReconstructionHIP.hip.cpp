@@ -258,40 +258,22 @@ int AliGPUReconstructionHIPBackend::ExitDevice_Runtime()
 	return(0);
 }
 
-void AliGPUReconstructionHIPBackend::TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents)
+void AliGPUReconstructionHIPBackend::TransferMemoryInternal(AliGPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, void* src, void* dst)
 {
-	//if (evList == nullptr) nEvents = 0;
 	if (mDeviceProcessingSettings.debugLevel >= 3) stream = -1;
-	if (mDeviceProcessingSettings.debugLevel >= 3) printf("Copying to GPU: %s\n", res->Name());
+	if (mDeviceProcessingSettings.debugLevel >= 3) printf(toGPU ? "Copying to GPU: %s\n" : "Copying to Host: %s\n", res->Name());
 	if (stream == -1)
 	{
-		GPUFailedMsg(hipMemcpy(res->PtrDevice(), res->Ptr(), res->Size(), hipMemcpyHostToDevice));
+		if (stream == -1) SynchronizeGPU();
+		GPUFailedMsg(hipMemcpy(dst, src, res->Size(), toGPU ? hipMemcpyHostToDevice : hipMemcpyDeviceToHost));
 	}
 	else
 	{
 		if (evList == nullptr) nEvents = 0;
 		for (int k = 0;k < nEvents;k++) GPUFailedMsg(hipStreamWaitEvent(mInternals->HIPStreams[stream], ((hipEvent_t*) evList)[k], 0));
-		GPUFailedMsg(hipMemcpyAsync(res->PtrDevice(), res->Ptr(), res->Size(), hipMemcpyHostToDevice, mInternals->HIPStreams[stream]));
-		if (ev) GPUFailedMsg(hipEventRecord(*(hipEvent_t*) ev, mInternals->HIPStreams[stream]));
+		GPUFailedMsg(hipMemcpyAsync(dst, src, res->Size(), toGPU ? hipMemcpyHostToDevice : hipMemcpyDeviceToHost, mInternals->HIPStreams[stream]));
 	}
-}
-
-void AliGPUReconstructionHIPBackend::TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents)
-{
-	//if (evList == nullptr) nEvents = 0;
-	if (mDeviceProcessingSettings.debugLevel >= 3) stream = -1;
-	if (mDeviceProcessingSettings.debugLevel >= 3) printf("Copying to Host: %s\n", res->Name());
-	if (stream == -1)
-	{
-		GPUFailedMsg(hipMemcpy(res->Ptr(), res->PtrDevice(), res->Size(), hipMemcpyDeviceToHost));
-	}
-	else
-	{
-		if (evList == nullptr) nEvents = 0;
-		for (int k = 0;k < nEvents;k++) GPUFailedMsg(hipStreamWaitEvent(mInternals->HIPStreams[stream], ((hipEvent_t*) evList)[k], 0));
-		GPUFailedMsg(hipMemcpyAsync(res->Ptr(), res->PtrDevice(), res->Size(), hipMemcpyDeviceToHost, mInternals->HIPStreams[stream]));
-		if (ev) GPUFailedMsg(hipEventRecord(*(hipEvent_t*) ev, mInternals->HIPStreams[stream]));
-	}
+	if (ev) GPUFailedMsg(hipEventRecord(*(hipEvent_t*) ev, mInternals->HIPStreams[stream == -1 ? 0 : stream]));
 }
 
 void AliGPUReconstructionHIPBackend::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev)
