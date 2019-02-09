@@ -31,7 +31,7 @@
 #include "TRDBase/TRDGeometryFlat.h"
 #else
 namespace o2 { namespace ITS { class TrackerTraits {}; class TrackerTraitsCPU : public TrackerTraits {}; class VertexerTraits {}; }}
-namespace o2 { namespace trd { class TRDGeometryFlat {public: void clearInternalBufferUniquePtr() {}}; }}
+namespace o2 { namespace trd { class TRDGeometryFlat {public: void clearInternalBufferPtr() {}}; }}
 #endif
 using namespace o2::ITS;
 using namespace o2::trd;
