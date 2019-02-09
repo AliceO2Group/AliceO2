@@ -53,7 +53,7 @@ public:
 
     cl::Program          buildFromSrc(const filesystem::path &srcFile);
     cl::Program::Sources loadSrc(const filesystem::path &srcFile);
-    
+
 private:
     std::vector<cl::Platform> platforms;
     std::vector<cl::Device> devices;
