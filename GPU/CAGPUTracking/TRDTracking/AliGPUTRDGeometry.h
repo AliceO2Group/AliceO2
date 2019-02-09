@@ -83,7 +83,7 @@ public:
 class TGeoHMatrix
 {
 public:
-	template <class T> GPUd() void LocalToMaster(T*, T*) {}
+	template <class T> GPUd() void LocalToMaster(T*, T*) const {}
 };
 
 class AliGPUTRDpadPlane
@@ -103,14 +103,14 @@ public:
 class AliGPUTRDGeometry
 {
 public:
-	GPUd() static bool CheckGeometryAvailable() const {return false;}
+	GPUd() static bool CheckGeometryAvailable() {return false;}
 	void clearInternalBufferUniquePtr() const {}
 
 	//Make sub-functionality available directly in AliGPUTRDGeometry
-	GPUd() float GetPadPlaneWidthIPad(int det) {return 0;}
-	GPUd() float GetPadPlaneRowPos(int layer, int stack, int row) {return 0;}
-	GPUd() float GetPadPlaneRowSize(int layer, int stack, int row) {return 0;}
-	GPUd() int GetGeomManagerVolUID(int det, int modId) {return 0;}
+	GPUd() float GetPadPlaneWidthIPad(int det) const {return 0;}
+	GPUd() float GetPadPlaneRowPos(int layer, int stack, int row) const {return 0;}
+	GPUd() float GetPadPlaneRowSize(int layer, int stack, int row) const {return 0;}
+	GPUd() int GetGeomManagerVolUID(int det, int modId) const {return 0;}
 	
 	//Base functionality of TRDGeometry
 	GPUd() float GetTime0(int layer) const {return 0;}
@@ -126,7 +126,7 @@ public:
 	GPUd() int GetStack(int det) const {return 0;}
 	GPUd() int GetStack(float z, int layer) const {return 0;}
 	GPUd() float GetAlpha() const {return 0;}
-	GPUd() bool IsHole(int la, int st, int se) const const {return false;}
+	GPUd() bool IsHole(int la, int st, int se) const {return false;}
 	GPUd() int GetRowMax(int layer, int stack, int /*sector*/) const {return 0;}
 	GPUd() bool ChamberInGeometry(int det) const {return false;}
 
