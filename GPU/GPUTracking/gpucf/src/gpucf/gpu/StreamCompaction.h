@@ -1,5 +1,7 @@
 #pragma once
 
+#include <gpucf/common/Event.h>
+
 #include <CL/cl2.hpp>
 
 #include <vector>
@@ -27,22 +29,35 @@ public:
 
     std::vector<std::vector<int>> getNewIdxDump() const;
 
-    float getExecutionTime() const;
+    float executionTimeMs() const;
+
+    float scanTimeMs() const;
+    float compactionTimeMs() const;
 
 private:
     cl::Context context;
 
-    cl::Kernel inclusiveScanStep;
+    cl::Kernel nativeScanUp;
+    size_t     scanUpWorkGroupSize;
+
+    cl::Kernel nativeScanTop;
+    size_t     scanTopWorkGroupSize;
+
+    cl::Kernel nativeScanDown;
     cl::Kernel compactArr;
 
-    cl::Buffer newIdxBufIn;
-    cl::Buffer newIdxBufOut;
+    cl::Buffer sumsBuf;
+    std::vector<cl::Buffer> incrBufs;
+    std::vector<size_t>     incrBufSizes;
 
-    std::vector<int> offsets;
+    std::vector<std::vector<int>> sumsDump;
 
-    std::vector<std::vector<int>> newIdxDump;
+    std::vector<Event> scanEvents;
+    Event compactArrEv;
 
     size_t digitNum = 0;
+
+    cl::Event *addScanEvent();
 };
 
 } // namespace gpucf
