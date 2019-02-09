@@ -36,7 +36,6 @@
 #include "AliGPUTPCClusterData.h"
 #include "AliGPUTRDTrackletWord.h"
 #include "AliGPUTRDGeometry.h"
-#include "cmodules/timer.h"
 #include "cmodules/qconfig.h"
 
 #if !defined(GL_VERSION_4_5) || GL_VERSION_4_5 != 1

@@ -486,7 +486,7 @@ int AliGPUReconstructionOCLBackend::IsEventDone(deviceEvent* evList, int nEvents
 	return 1;
 }
 
-int AliGPUReconstructionOCLBackend::GPUDebug(const char* state, int stream, int slice)
+int AliGPUReconstructionOCLBackend::GPUDebug(const char* state, int stream)
 {
 	//Wait for OPENCL-Kernel to finish and check for OPENCL errors afterwards, in case of debugmode
 	if (mDeviceProcessingSettings.debugLevel == 0) return(0);
@@ -494,7 +494,7 @@ int AliGPUReconstructionOCLBackend::GPUDebug(const char* state, int stream, int 
 	{
 		if (GPUFailedMsgI(clFinish(mInternals->command_queue[i])))
 		{
-			CAGPUError("OpenCL Error while synchronizing (%s) (Stream %d/%d; Slice %d/%d)", state, stream, i, slice, NSLICES);
+			CAGPUError("OpenCL Error while synchronizing (%s) (Stream %d/%d)", state, stream, i);
 		}
 	}
 	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("GPU Sync Done");

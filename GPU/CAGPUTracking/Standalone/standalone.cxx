@@ -29,6 +29,7 @@
 #include <clocale>
 #include <sys/stat.h>
 #endif
+#include "cmodules/timer.h"
 
 #include "AliGPUTPCGMMergedTrack.h"
 #include "Interface/outputtrack.h"

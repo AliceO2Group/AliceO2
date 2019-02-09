@@ -25,7 +25,7 @@ protected:
 	virtual void ReleaseThreadContext() override;
 	virtual void SynchronizeGPU() override;
 	virtual int DoStuckProtection(int stream, void* event) override;
-	virtual int GPUDebug(const char* state = "UNKNOWN", int sliceLocal = 0, int slice = 0) override;
+	virtual int GPUDebug(const char* state = "UNKNOWN", int stream = -1) override;
 	virtual void SynchronizeStream(int stream) override;
 	virtual void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) override;
 	virtual int IsEventDone(deviceEvent* evList, int nEvents = 1) override;

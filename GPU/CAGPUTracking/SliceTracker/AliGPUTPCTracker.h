@@ -32,14 +32,6 @@ MEM_CLASS_PRE() class AliGPUTPCTrackParam;
 struct AliGPUTPCClusterData;
 MEM_CLASS_PRE() class AliGPUTPCRow;
 
-#ifdef GPUCA_GPUCODE
-	#define GPUCODE
-#endif
-#include "cmodules/timer.h"
-#ifdef GPUCA_GPUCODE
-	#undef GPUCODE
-#endif
-
 MEM_CLASS_PRE()
 class AliGPUTPCTracker : public AliGPUProcessor
 {
@@ -231,10 +223,6 @@ class AliGPUTPCTracker : public AliGPUProcessor
 
 	void PerformGlobalTracking(AliGPUTPCTracker& sliceLeft, AliGPUTPCTracker& sliceRight, int MaxTracksLeft, int MaxTracksRight);
 	
-	void StartTimer(int i) {if (mCAParam->debugLevel) fTimers[i].Start();}
-	void StopTimer(int i) {if (mCAParam->debugLevel) fTimers[i].Stop();}
-	double GetTimer(int i) {return fTimers[i].GetElapsedTime();}
-	void ResetTimer(int i) {fTimers[i].Reset();}
 	void* LinkTmpMemory() {return fLinkTmpMemory;}
 
 #if !defined(GPUCA_GPUCODE)
@@ -246,7 +234,6 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	char* fLinkTmpMemory;				//tmp memory for hits after neighbours finder
 
 	int fISlice; //Number of slice
-	HighResTimer fTimers[10];
   
 	/** A pointer to the ClusterData object that the SliceData was created from. This can be used to
 	* merge clusters from inside the SliceTracker code and recreate the SliceData. */
