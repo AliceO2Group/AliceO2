@@ -2,6 +2,7 @@
 #define ALIGPURECONSTRUCTIONDEVICEBASE_H
 
 #include "AliGPUReconstructionImpl.h"
+#include <array>
 
 class AliGPUReconstructionDeviceBase : public AliGPUReconstructionCPU
 {
@@ -139,8 +140,8 @@ protected:
 #undef volatile
 #endif
 	void* fSliceGlobalMutexes = nullptr;
-	char fGlobalTrackingDone[NSLICES];
-	char fWriteOutputDone[NSLICES];
+	std::array<char, NSLICES> fGlobalTrackingDone;
+	std::array<char, NSLICES> fWriteOutputDone;
 
 	int fNSlaveThreads = 0;	//Number of slave threads currently active
 

@@ -93,8 +93,10 @@ int AliGPUReconstruction::Init()
 	if (mDeviceProcessingSettings.debugLevel >= 4) mDeviceProcessingSettings.keepAllMemory = true;
 	if (mDeviceProcessingSettings.debugLevel < 6) mDeviceProcessingSettings.debugMask = 0;
 	if (!IsGPU()) mDeviceProcessingSettings.runTPCSliceTrackerGPU = mDeviceProcessingSettings.runTPCMergerGPU = mDeviceProcessingSettings.runTRDTrackerGPU = false;
+	if (!IsGPU()) mDeviceProcessingSettings.trackletConstructorInPipeline = mDeviceProcessingSettings.trackletSelectorInPipeline = false;
 	if (GetDeviceType() == OCL) mDeviceProcessingSettings.runTPCMergerGPU = mDeviceProcessingSettings.runTRDTrackerGPU = false;
 	if (param().rec.NonConsecutiveIDs) param().rec.DisableRefitAttachment = 0xFF;
+	if (!mDeviceProcessingSettings.trackletConstructorInPipeline) mDeviceProcessingSettings.trackletSelectorInPipeline = false;
 		
 #ifdef GPUCA_HAVE_OPENMP
 	if (mDeviceProcessingSettings.nThreads <= 0) mDeviceProcessingSettings.nThreads = omp_get_max_threads();

@@ -323,7 +323,6 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 		CAGPUError("Too many straems requested %d > %d\n", mDeviceProcessingSettings.nStreams, GPUCA_GPU_MAX_STREAMS);
 		return(1);
 	}
-	if (!mDeviceProcessingSettings.trackletConstructorInPipeline) mDeviceProcessingSettings.trackletSelectorInPipeline = false;
 
 #ifdef _WIN32
 	HANDLE* semLock = nullptr;
@@ -597,6 +596,7 @@ int AliGPUReconstructionDeviceBase::RunTPCTrackingSlices_internal()
 		return(2);
 	}
 
+	int streamMap[NSLICES];
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 	{
 		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Creating Slice Data (Slice %d)", iSlice);
@@ -699,11 +699,6 @@ int AliGPUReconstructionDeviceBase::RunTPCTrackingSlices_internal()
 		{
 			TransferMemoryResourceLinkToHost(workers()->tpcTrackers[iSlice].MemoryResCommon(), -1);
 			if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Obtaining Number of Start Hits from GPU: %d (Slice %d)", *workers()->tpcTrackers[iSlice].NTracklets(), iSlice);
-			if (*workers()->tpcTrackers[iSlice].NTracklets() > GPUCA_GPU_MAX_TRACKLETS RANDOM_ERROR)
-			{
-				CAGPUError("GPUCA_GPU_MAX_TRACKLETS constant insuffisant");
-				return(3);
-			}
 		}
 
 		if (mDeviceProcessingSettings.debugLevel >= 4 && *workers()->tpcTrackers[iSlice].NTracklets())
@@ -723,6 +718,20 @@ int AliGPUReconstructionDeviceBase::RunTPCTrackingSlices_internal()
 			}
 			workers()->tpcTrackers[iSlice].StopTimer(6);
 		}
+		
+		if (mDeviceProcessingSettings.trackletSelectorInPipeline)
+		{
+			if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Tracklet Selector (Slice %d/%d)", iSlice, NSLICES)
+			workers()->tpcTrackers[iSlice].StartTimer(7);
+			runKernel<AliGPUTPCTrackletSelector>({fSelectorBlockCount, fSelectorThreadCount, useStream}, {iSlice});
+			if (GPUDebug("Tracklet Selector", useStream, iSlice) RANDOM_ERROR)
+			{
+				return(3);
+			}
+			workers()->tpcTrackers[iSlice].StopTimer(7);
+			TransferMemoryResourceLinkToHost(workers()->tpcTrackers[iSlice].MemoryResCommon(), useStream, &mEvents.selector[iSlice]);
+			streamMap[iSlice] = useStream;
+		}
 	}
 	ReleaseEvent(&mEvents.init);
 
@@ -731,80 +740,72 @@ int AliGPUReconstructionDeviceBase::RunTPCTrackingSlices_internal()
 		pthread_mutex_lock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[1]);
 	}
 
-	if (mDeviceProcessingSettings.trackletConstructorInPipeline)
+	if (!mDeviceProcessingSettings.trackletSelectorInPipeline)
 	{
-		SynchronizeGPU();
-	}
-	else
-	{
-		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Tracklet Constructor");
-		for (int i = 0;i < mNStreams;i++)
+		if (mDeviceProcessingSettings.trackletConstructorInPipeline)
 		{
-			RecordMarker(&mEvents.stream[i], i);
+			SynchronizeGPU();
 		}
-		workers()->tpcTrackers[0].StartTimer(6);
-		runKernel<AliGPUTPCTrackletConstructor, 1>({fConstructorBlockCount, fConstructorThreadCount, 0}, krnlRunRangeNone, {&mEvents.constructor, mEvents.stream, mNStreams});
-		for (int i = 0;i < mNStreams;i++)
+		else
 		{
-			ReleaseEvent(&mEvents.stream[i]);
+			if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running GPU Tracklet Constructor");
+			for (int i = 0;i < mNStreams;i++) RecordMarker(&mEvents.stream[i], i);
+			workers()->tpcTrackers[0].StartTimer(6);
+			runKernel<AliGPUTPCTrackletConstructor, 1>({fConstructorBlockCount, fConstructorThreadCount, 0}, krnlRunRangeNone, {&mEvents.constructor, mEvents.stream, mNStreams});
+			for (int i = 0;i < mNStreams;i++) ReleaseEvent(&mEvents.stream[i]);
+			if (GPUDebug("Tracklet Constructor", 0, 0) RANDOM_ERROR)
+			{
+				return(1);
+			}
+			workers()->tpcTrackers[0].StopTimer(6);
+			SynchronizeEvents(&mEvents.constructor);
+			ReleaseEvent(&mEvents.constructor);
 		}
-		if (GPUDebug("Tracklet Constructor", 0, 0) RANDOM_ERROR)
-		{
-			return(1);
-		}
-		workers()->tpcTrackers[0].StopTimer(6);
-		SynchronizeEvents(&mEvents.constructor);
-		ReleaseEvent(&mEvents.constructor);
-	}
 
-	if (mDeviceProcessingSettings.debugLevel >= 4)
-	{
-		for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
+		if (mDeviceProcessingSettings.debugLevel >= 4)
 		{
-			TransferMemoryResourcesToHost(&workers()->tpcTrackers[iSlice], -1, true);
-			CAGPUInfo("Obtained %d tracklets", *workers()->tpcTrackers[iSlice].NTracklets());
-			if (mDeviceProcessingSettings.debugMask & 128) workers()->tpcTrackers[iSlice].DumpTrackletHits(mDebugFile);
+			for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
+			{
+				TransferMemoryResourcesToHost(&workers()->tpcTrackers[iSlice], -1, true);
+				CAGPUInfo("Obtained %d tracklets", *workers()->tpcTrackers[iSlice].NTracklets());
+				if (mDeviceProcessingSettings.debugMask & 128) workers()->tpcTrackers[iSlice].DumpTrackletHits(mDebugFile);
+			}
 		}
-	}
 
-	unsigned int runSlices = 0;
-	int useStream = 0;
-	int streamMap[NSLICES];
-	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice += runSlices)
-	{
-		if (runSlices < GPUCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT) runSlices++;
-		runSlices = CAMath::Min(runSlices, NSLICES - iSlice);
-		if (fSelectorBlockCount < runSlices) runSlices = fSelectorBlockCount;
+		unsigned int runSlices = 0;
+		int useStream = 0;
+		for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice += runSlices)
+		{
+			if (runSlices < GPUCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT) runSlices++;
+			runSlices = CAMath::Min(runSlices, NSLICES - iSlice);
+			if (fSelectorBlockCount < runSlices) runSlices = fSelectorBlockCount;
 
-		if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running HLT Tracklet selector (Stream %d, Slice %d to %d)", useStream, iSlice, iSlice + runSlices);
-		workers()->tpcTrackers[iSlice].StartTimer(7);
-		runKernel<AliGPUTPCTrackletSelector>({fSelectorBlockCount, fSelectorThreadCount, useStream}, {iSlice, (int) runSlices});
-		if (GPUDebug("Tracklet Selector", useStream, iSlice) RANDOM_ERROR)
-		{
-			return(1);
+			if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("Running HLT Tracklet selector (Stream %d, Slice %d to %d)", useStream, iSlice, iSlice + runSlices);
+			workers()->tpcTrackers[iSlice].StartTimer(7);
+			runKernel<AliGPUTPCTrackletSelector>({fSelectorBlockCount, fSelectorThreadCount, useStream}, {iSlice, (int) runSlices});
+			if (GPUDebug("Tracklet Selector", useStream, iSlice) RANDOM_ERROR)
+			{
+				return(1);
+			}
+			workers()->tpcTrackers[iSlice].StopTimer(7);
+			for (unsigned int k = iSlice;k < iSlice + runSlices;k++)
+			{
+				TransferMemoryResourceLinkToHost(workers()->tpcTrackers[k].MemoryResCommon(), useStream, &mEvents.selector[k]);
+				streamMap[k] = useStream;
+			}
+			useStream++;
+			if (useStream >= mNStreams) useStream = 0;
 		}
-		workers()->tpcTrackers[iSlice].StopTimer(7);
-		for (unsigned int k = iSlice;k < iSlice + runSlices;k++)
-		{
-			TransferMemoryResourceLinkToHost(workers()->tpcTrackers[k].MemoryResCommon(), useStream, &mEvents.selector[k]);
-			streamMap[k] = useStream;
-		}
-		useStream++;
-		if (useStream >= mNStreams) useStream = 0;
 	}
 
 	fSliceOutputReady = 0;
 
 	if (param().rec.GlobalTracking)
 	{
-		for (unsigned int i = 0;i < NSLICES;i++)
-		{
-			fSliceLeftGlobalReady[i] = 0;
-			fSliceRightGlobalReady[i] = 0;
-		}
-		memset(fGlobalTrackingDone, 0, NSLICES);
-		memset(fWriteOutputDone, 0, NSLICES);
-
+		memset((void*) fSliceLeftGlobalReady, 0, sizeof(fSliceLeftGlobalReady));
+		memset((void*) fSliceRightGlobalReady, 0, sizeof(fSliceRightGlobalReady));
+		fGlobalTrackingDone.fill(0);
+		fWriteOutputDone.fill(0);
 	}
 	for (int i = 0;i < mDeviceProcessingSettings.nDeviceHelperThreads;i++)
 	{
@@ -812,8 +813,8 @@ int AliGPUReconstructionDeviceBase::RunTPCTrackingSlices_internal()
 		pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[0]);
 	}
 
-	bool transferRunning[NSLICES];
-	for (unsigned int i = 0;i < NSLICES;i++) transferRunning[i] = true;
+	std::array<bool, NSLICES> transferRunning;
+	transferRunning.fill(true);
 	unsigned int tmpSlice = 0;
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 	{
