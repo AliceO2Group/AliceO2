@@ -4,7 +4,7 @@
 
 
 kernel
-void inclusiveScanStep(
+void harrissScan(
         global const int *input,
         global       int *output)
 {
@@ -16,6 +16,49 @@ void inclusiveScanStep(
 
     output[idx] = input[idx] + input[idx - offset];
 }
+
+
+kernel 
+void nativeScanUp(
+        global int *sums,
+        global int *incr)
+{
+    int idx = get_global_id(0);
+    int scanRes = work_group_inclusive_scan_add(sums[idx]);
+
+    sums[idx] = scanRes;
+
+    int lid = get_local_id(0);
+    int lastItem = get_local_size(0) - 1;
+    int gid = get_group_id(0);
+
+    if (lid == lastItem)
+    {
+        incr[gid] = scanRes;
+    }
+}
+
+kernel
+void nativeScanTop(global int *incr)
+{
+    int idx = get_global_id(0);
+    
+    incr[idx] = work_group_inclusive_scan_add(incr[idx]);
+}
+
+kernel
+void nativeScanDown(
+        global       int *sums,
+        global const int *incr)
+{
+    int gid = get_group_id(0);
+    int idx = get_global_id(0);
+
+    int offset = incr[gid];
+
+    input[idx] += offset;
+}
+
 
 kernel
 void compactArr(
