@@ -22,6 +22,9 @@ set(GPUCF_SRC
     "./executable/SubGroupInfo.cpp"
     "./executable/RunSCFuzzer.cpp"
 
+    "./experiments/Experiment.cpp"
+    "./experiments/TimeNaiveCf.cpp"
+
     "./gpu/GPUAlgorithm.cpp"
     "./gpu/GPUClusterFinder.cpp"
     "./gpu/StreamCompaction.cpp"

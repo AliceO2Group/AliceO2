@@ -10,32 +10,27 @@
 namespace gpucf
 {
 
-class GPUAlgorithm
-{
-public:
-    struct Result
-    {
-        DataSet result;
-        std::vector<Measurement> profiling; 
-    };
+/* class GPUAlgorithm */
+/* { */
+/* public: */
 
-    GPUAlgorithm(const std::string &);
+/*     GPUAlgorithm(const std::string &); */
 
-    void setup(ClEnv &, const DataSet &);
+/*     void setup(ClEnv &, const DataSet &); */
 
-    Result run();
+/*     Result run(); */
 
-    std::string getName() const;
+/*     std::string getName() const; */
     
-protected:
-    virtual void setupImpl(ClEnv &, const DataSet &) = 0;
-    virtual Result runImpl() = 0;
+/* protected: */
+/*     virtual void setupImpl(ClEnv &, const DataSet &) = 0; */
+/*     virtual Result runImpl() = 0; */
 
-private:
-    bool isSetup = false;
+/* private: */
+/*     bool isSetup = false; */
 
-    std::string name;
-};
+/*     std::string name; */
+/* }; */
     
 } // namespace gpucf
 

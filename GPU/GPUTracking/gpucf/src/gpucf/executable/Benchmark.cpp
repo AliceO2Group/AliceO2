@@ -1,11 +1,10 @@
 #include "Benchmark.h"
 
-#include <gpucf/CsvFile.h>
+#include <gpucf/common/DataSet.h>
 #include <gpucf/common/log.h>
 #include <gpucf/errors/FileErrors.h>
-#include <gpucf/gpu/GPUClusterFinder.h>
 
-#include <fstream>
+#include <gpucf/experiments/TimeNaiveCf.h>
 
 
 using namespace gpucf;
@@ -36,67 +35,37 @@ void Benchmark::setupFlags(args::Group &required, args::Group &optional)
 
 int Benchmark::mainImpl()
 {
-    registerAlgorithms();
-
-    ClEnv env(*envFlags); 
-
-    DataSet digitSet;
-    digitSet.read(args::get(*digitFile));
-
-    setupAlgorithms(env, digitSet);
-
     baseDir = benchmarkDir->Get();
-
     if (!baseDir.is_directory())
     {
         throw DirectoryNotFoundError(baseDir);
     }
 
-    run(iterations->Get());
+    DataSet digitSet;
+    digitSet.read(args::get(*digitFile));
+
+    digits = digitSet.deserialize<Digit>();
+
+    registerExperiments();
+
+    ClEnv env(*envFlags); 
+    runExperiments(env);
 
     return 0;
 }
 
-void Benchmark::registerAlgorithms()
+void Benchmark::registerExperiments()
 {
-    algorithms.emplace_back(new GPUClusterFinder);
+    experiments.emplace_back(
+            new TimeNaiveCf(digits, iterations->Get(), baseDir));
 }
 
-void Benchmark::setupAlgorithms(ClEnv &env, const DataSet &data)
+void Benchmark::runExperiments(ClEnv &env)
 {
-    for (auto &algorithm : algorithms)
+    for (auto &experiment : experiments)
     {
-        algorithm->setup(env, data);
+        experiment->run(env); 
     }
-}
-
-void Benchmark::run(size_t N)
-{
-    for (auto &algorithm : algorithms)
-    {
-        std::string algName = algorithm->getName();
-        log::Info() << "Benchmarking " << algName << "...";
-
-        CsvFile measurements;
-        for (size_t i = 0; i < N; i++)
-        {
-            auto res = algorithm->run();
-            measurements.add(res.profiling);
-        }
-
-        fs::path tgtFile = makeBenchmarkFilename(algName);
-        log::Info() << "Writing results to " << tgtFile;
-
-        std::ofstream out(tgtFile.str());
-        out << measurements.str();
-    }
-}
-
-
-fs::path Benchmark::makeBenchmarkFilename(const std::string &algName)
-{
-    fs::path fname = baseDir / fs::path(algName + ".csv");    
-    return fname;
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:
