@@ -1,8 +1,12 @@
 #ifndef ALIGPURECONSTRUCTIONDEVICEBASE_H
 #define ALIGPURECONSTRUCTIONDEVICEBASE_H
 
-#include "AliGPUReconstructionImpl.h"
+#include "AliGPUReconstructionCPU.h"
 #include <array>
+
+#if !(defined(__CINT__) || defined(__ROOTCINT__) || defined(__CLING__) || defined(__ROOTCLING__) || defined(G__ROOT))
+extern template class AliGPUReconstructionKernels<AliGPUReconstructionCPUBackend>;
+#endif
 
 class AliGPUReconstructionDeviceBase : public AliGPUReconstructionCPU
 {

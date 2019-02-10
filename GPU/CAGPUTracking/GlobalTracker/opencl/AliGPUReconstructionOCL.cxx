@@ -16,7 +16,7 @@ extern "C" char _makefile_opencl_program_GlobalTracker_opencl_AliGPUReconstructi
 
 template <class T, int I, typename... Args> int AliGPUReconstructionOCLBackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
 {
-	if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelBackend<T, I>(x, y, z, args...);
+	if (x.device == krnlDeviceType::CPU) return AliGPUReconstructionCPU::runKernelImpl(classArgument<T, I>(), x, y, z, args...);
 	cl_kernel k = getKernelObject<cl_kernel, T, I>(y.num);
 	if (y.num == -1)
 	{

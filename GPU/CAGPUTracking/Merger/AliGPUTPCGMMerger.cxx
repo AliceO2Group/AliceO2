@@ -28,7 +28,6 @@
 #include "AliGPUTPCGMPolynomialFieldManager.h"
 #include "AliGPUTPCGMMerger.h"
 #include "AliGPUReconstruction.h"
-#include "AliGPUReconstructionDeviceBase.h"
 #include "AliGPUCAQA.h"
 
 #include "AliTPCCommonMath.h"

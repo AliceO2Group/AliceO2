@@ -43,6 +43,6 @@ private:
 	AliGPUReconstructionOCLInternals* mInternals;
 };
 
-using AliGPUReconstructionOCL = AliGPUReconstructionImpl<AliGPUReconstructionOCLBackend>;
+using AliGPUReconstructionOCL = AliGPUReconstructionKernels<AliGPUReconstructionOCLBackend>;
 
 #endif
