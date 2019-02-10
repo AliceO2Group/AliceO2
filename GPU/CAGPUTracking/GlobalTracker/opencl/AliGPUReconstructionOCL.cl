@@ -43,42 +43,47 @@ using namespace cl;
 
 //if (gpu_mem != pTracker.GPUParametersConst()->fGPUMem) return; //TODO!
 
-GPUg() void KernelMemClean16(OCL_DEVICE_KERNELS_PRE, unsigned long ptr, unsigned long size)
+GPUg() void AliGPUTPCProcess_16AliGPUMemClean160(OCL_DEVICE_KERNELS_PRE, unsigned long ptr, unsigned long size)
 {
 	OCL_CALL_KERNEL_ARGS(AliGPUMemClean16, 0, (GPUglobalref() void*) (void*) ptr, size);
 }
 
-GPUg() void AliGPUTPCProcess_AliGPUTPCNeighboursFinder(OCL_DEVICE_KERNELS_PRE, int iSlice)
+GPUg() void AliGPUTPCProcess_25AliGPUTPCNeighboursFinder0(OCL_DEVICE_KERNELS_PRE, int iSlice)
 {
 	OCL_CALL_KERNEL(AliGPUTPCNeighboursFinder, 0, iSlice);
 }
 
-GPUg() void AliGPUTPCProcess_AliGPUTPCNeighboursCleaner(OCL_DEVICE_KERNELS_PRE, int iSlice)
+GPUg() void AliGPUTPCProcess_26AliGPUTPCNeighboursCleaner0(OCL_DEVICE_KERNELS_PRE, int iSlice)
 {
 	OCL_CALL_KERNEL(AliGPUTPCNeighboursCleaner, 0, iSlice);
 }
 
-GPUg() void AliGPUTPCProcess_AliGPUTPCStartHitsFinder(OCL_DEVICE_KERNELS_PRE, int iSlice)
+GPUg() void AliGPUTPCProcess_24AliGPUTPCStartHitsFinder0(OCL_DEVICE_KERNELS_PRE, int iSlice)
 {
 	OCL_CALL_KERNEL(AliGPUTPCStartHitsFinder, 0, iSlice);
 }
 
-GPUg() void AliGPUTPCProcess_AliGPUTPCStartHitsSorter(OCL_DEVICE_KERNELS_PRE, int iSlice)
+GPUg() void AliGPUTPCProcess_24AliGPUTPCStartHitsSorter0(OCL_DEVICE_KERNELS_PRE, int iSlice)
 {
 	OCL_CALL_KERNEL(AliGPUTPCStartHitsSorter, 0, iSlice);
 }
 
-GPUg() void AliGPUTPCProcessMulti_AliGPUTPCTrackletSelector(OCL_DEVICE_KERNELS_PRE, int firstSlice, int nSliceCount)
-{
-	OCL_CALL_KERNEL_MULTI(AliGPUTPCTrackletSelector, 0);
-}
-
-GPUg() void AliGPUTPCProcess_AliGPUTPCTrackletConstructor0(OCL_DEVICE_KERNELS_PRE, int iSlice)
+GPUg() void AliGPUTPCProcess_28AliGPUTPCTrackletConstructor0(OCL_DEVICE_KERNELS_PRE, int iSlice)
 {
 	OCL_CALL_KERNEL(AliGPUTPCTrackletConstructor, 0, iSlice);
 }
 
-GPUg() void AliGPUTPCProcess_AliGPUTPCTrackletConstructor1(OCL_DEVICE_KERNELS_PRE)
+GPUg() void AliGPUTPCProcess_28AliGPUTPCTrackletConstructor1(OCL_DEVICE_KERNELS_PRE)
 {
 	OCL_CALL_KERNEL(AliGPUTPCTrackletConstructor, 1, 0);
+}
+
+GPUg() void AliGPUTPCProcess_25AliGPUTPCTrackletSelector0(OCL_DEVICE_KERNELS_PRE, int iSlice)
+{
+	OCL_CALL_KERNEL(AliGPUTPCTrackletSelector, 0, iSlice);
+}
+
+GPUg() void AliGPUTPCProcess_Multi_25AliGPUTPCTrackletSelector0(OCL_DEVICE_KERNELS_PRE, int firstSlice, int nSliceCount)
+{
+	OCL_CALL_KERNEL_MULTI(AliGPUTPCTrackletSelector, 0);
 }

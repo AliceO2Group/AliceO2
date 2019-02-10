@@ -115,7 +115,6 @@ set(CINTHDRS
 set(HDRS
     ${CINTHDRS}
     AliGPUReconstructionOCLInternals.h
-    AliGPUReconstructionOCLWorkarounds.h
   )
 
 foreach (def ${DEFINITIONS})

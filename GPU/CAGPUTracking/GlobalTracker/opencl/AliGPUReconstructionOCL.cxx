@@ -4,15 +4,15 @@
 #include "AliGPUReconstructionOCLInternals.h"
 #include "AliGPUReconstructionCommon.h"
 
-#include <string.h>
+#include <cstring>
 #include <unistd.h>
+#include <typeinfo>
+#include <cstdlib>
 
 #include "../makefiles/opencl_obtain_program.h"
 extern "C" char _makefile_opencl_program_GlobalTracker_opencl_AliGPUReconstructionOCL_cl[];
 
 #define quit(msg) {CAGPUError(msg);return(1);}
-
-#include "AliGPUReconstructionOCLWorkarounds.h"
 
 template <class T, int I, typename... Args> int AliGPUReconstructionOCLBackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
 {
@@ -261,15 +261,16 @@ int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 		return(1);
 	}
 	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("OpenCL program loaded successfully");
-
-	mInternals->kernel_memclean16 = clCreateKernel(mInternals->program, "KernelMemClean16", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 0");return(1);}
-	mInternals->kernel_neighbours_finder = clCreateKernel(mInternals->program, "AliGPUTPCProcess_AliGPUTPCNeighboursFinder", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 1");return(1);}
-	mInternals->kernel_neighbours_cleaner = clCreateKernel(mInternals->program, "AliGPUTPCProcess_AliGPUTPCNeighboursCleaner", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 2");return(1);}
-	mInternals->kernel_start_hits_finder = clCreateKernel(mInternals->program, "AliGPUTPCProcess_AliGPUTPCStartHitsFinder", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 3");return(1);}
-	mInternals->kernel_start_hits_sorter = clCreateKernel(mInternals->program, "AliGPUTPCProcess_AliGPUTPCStartHitsSorter", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 4");return(1);}
-	mInternals->kernel_tracklet_constructor0 = clCreateKernel(mInternals->program, "AliGPUTPCProcess_AliGPUTPCTrackletConstructor0", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 5");return(1);}
-	mInternals->kernel_tracklet_constructor1 = clCreateKernel(mInternals->program, "AliGPUTPCProcess_AliGPUTPCTrackletConstructor1", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 7");return(1);}
-	mInternals->kernel_tracklet_selector = clCreateKernel(mInternals->program, "AliGPUTPCProcessMulti_AliGPUTPCTrackletSelector", &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error 6");return(1);}
+	if (AddKernel<AliGPUMemClean16>()) return 1;
+	if (AddKernel<AliGPUTPCNeighboursFinder>()) return 1;
+	if (AddKernel<AliGPUTPCNeighboursCleaner>()) return 1;
+	if (AddKernel<AliGPUTPCStartHitsFinder>()) return 1;
+	if (AddKernel<AliGPUTPCStartHitsSorter>()) return 1;
+	if (AddKernel<AliGPUTPCTrackletConstructor>()) return 1;
+	if (AddKernel<AliGPUTPCTrackletConstructor, 1>()) return 1;
+	if (AddKernel<AliGPUTPCTrackletSelector>(false)) return 1;
+	if (AddKernel<AliGPUTPCTrackletSelector>(true)) return 1;
+	
 	if (mDeviceProcessingSettings.debugLevel >= 2) CAGPUInfo("OpenCL kernels created successfully");
 
 	mInternals->mem_gpu = clCreateBuffer(mInternals->context, CL_MEM_READ_WRITE, mDeviceMemorySize, nullptr, &ocl_error);
@@ -360,15 +361,8 @@ int AliGPUReconstructionOCLBackend::ExitDevice_Runtime()
 		clReleaseMemObject(mInternals->mem_gpu);
 		clReleaseMemObject(mInternals->mem_constant);
 		mDeviceMemoryBase = nullptr;
-
-		clReleaseKernel(mInternals->kernel_neighbours_finder);
-		clReleaseKernel(mInternals->kernel_neighbours_cleaner);
-		clReleaseKernel(mInternals->kernel_start_hits_finder);
-		clReleaseKernel(mInternals->kernel_start_hits_sorter);
-		clReleaseKernel(mInternals->kernel_tracklet_constructor0);
-		clReleaseKernel(mInternals->kernel_tracklet_constructor1);
-		clReleaseKernel(mInternals->kernel_tracklet_selector);
-		clReleaseKernel(mInternals->kernel_memclean16);
+		for (unsigned int i = 0;i < mInternals->kernels.size();i++) clReleaseKernel(mInternals->kernels[i].first);
+		mInternals->kernels.clear();
 	}
 	if (mHostMemoryBase)
 	{
@@ -499,4 +493,38 @@ int AliGPUReconstructionOCLBackend::GPUDebug(const char* state, int stream)
 	}
 	if (mDeviceProcessingSettings.debugLevel >= 3) CAGPUInfo("GPU Sync Done");
 	return(0);
+}
+
+template <class T, int I = 0> int AliGPUReconstructionOCLBackend::FindKernel(int num)
+{
+	std::string name("AliGPUTPCProcess_");
+	if (num >= 1) name += "Multi_";
+	name += typeid(T).name();
+	name += std::to_string(I);
+
+	for (unsigned int k = 0;k < mInternals->kernels.size();k++)
+	{
+		if (mInternals->kernels[k].second == name) return((int) k);
+	}
+	return -1;
+}
+
+template <class S, class T, int I = 0> S& AliGPUReconstructionOCLBackend::getKernelObject(int num)
+{
+	static int krnl = FindKernel<T, I>(num);
+	if (krnl == -1) throw::std::runtime_error("Requested unsupported OpenCL kernel");
+	return mInternals->kernels[krnl].first;
+}
+
+template <class T, int I> int AliGPUReconstructionOCLBackend::AddKernel(bool multi)
+{
+	std::string name("AliGPUTPCProcess_");
+	if (multi) name += "Multi_";
+	name += typeid(T).name();
+	name += std::to_string(I);
+	
+	cl_int ocl_error;
+	cl_kernel krnl = clCreateKernel(mInternals->program, name.c_str(), &ocl_error); if (ocl_error != CL_SUCCESS) {CAGPUError("OPENCL Kernel Error %s", name.c_str());return(1);}
+	mInternals->kernels.emplace_back(krnl, name);
+	return 0;
 }

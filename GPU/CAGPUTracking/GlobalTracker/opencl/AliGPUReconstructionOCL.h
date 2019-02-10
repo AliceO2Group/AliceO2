@@ -39,6 +39,8 @@ protected:
 
 private:
 	template <class S, class T, int I = 0> S& getKernelObject(int num);
+	template <class T, int I = 0> int AddKernel(bool multi = false);
+	template <class T, int I = 0> int FindKernel(int num);
 	
 	AliGPUReconstructionOCLInternals* mInternals;
 };
