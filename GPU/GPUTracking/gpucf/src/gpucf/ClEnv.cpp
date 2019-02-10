@@ -55,6 +55,7 @@ cl::Program ClEnv::buildFromSrc(const fs::path &srcFile)
         buildOpts += " -DNDEBUG";
 #endif
         buildOpts += " -I" + sourceDir.str();
+        buildOpts += " -cl-std=CL2.0";
 
         prg.build(devices, buildOpts.c_str());
     } 
