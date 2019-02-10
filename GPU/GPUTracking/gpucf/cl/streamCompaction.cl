@@ -24,13 +24,17 @@ void nativeScanUp(
         global int *incr)
 {
     int idx = get_global_id(0);
-    int scanRes = work_group_inclusive_scan_add(sums[idx]);
+    int scanRes = work_group_scan_inclusive_add(sums[idx]);
+
+    DBGPR_2("ScanUp: idx = %d, res = %d", idx, scanRes);
 
     sums[idx] = scanRes;
 
     int lid = get_local_id(0);
     int lastItem = get_local_size(0) - 1;
     int gid = get_group_id(0);
+
+    /* DBGPR_1("ScanUp: idx = %d", idx); */
 
     if (lid == lastItem)
     {
@@ -42,8 +46,10 @@ kernel
 void nativeScanTop(global int *incr)
 {
     int idx = get_global_id(0);
+
+    DBGPR_1("ScanTop: idx = %d", idx);
     
-    incr[idx] = work_group_inclusive_scan_add(incr[idx]);
+    incr[idx] = work_group_scan_inclusive_add(incr[idx]);
 }
 
 kernel
@@ -56,7 +62,7 @@ void nativeScanDown(
 
     int offset = incr[gid];
 
-    input[idx] += offset;
+    sums[idx] += offset;
 }
 
 
@@ -69,7 +75,7 @@ void compactArr(
 {
     int idx = get_global_id(0);
 
-    SOFT_ASSERT(newIdx[idx]-1 <= idx);
+    /* SOFT_ASSERT(newIdx[idx]-1 <= idx); */
 
     if (predicate[idx])
     {
