@@ -8,14 +8,12 @@
 #include "shared/Digit.h"
 
 
-#if defined(USE_HALF_TYPES)
-typedef HalfCluster Cluster;
-typedef HalfDigit   Digit;
-typedef half        float_t;
-#else
 typedef FloatCluster Cluster;
-typedef FloatDigit   Digit;
-typedef float        float_t;
+
+#if defined(USE_PACKED_DIGIT)
+typedef PackedDigit Digit;
+#else
+typedef PaddedDigit Digit;
 #endif
 
 #endif //!defined(CONFIG_H)

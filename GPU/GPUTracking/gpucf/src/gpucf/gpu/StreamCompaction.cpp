@@ -19,11 +19,15 @@ void StreamCompaction::setup(ClEnv &env, size_t digitNum)
             CL_KERNEL_WORK_GROUP_SIZE, 
             &scanUpWorkGroupSize);
 
+    log::Debug() << "scanUpWorkGroupSize = " << scanUpWorkGroupSize;
+
     nativeScanTop  = cl::Kernel(scprg, "nativeScanTop");
     nativeScanTop.getWorkGroupInfo(
             env.getDevice(),
             CL_KERNEL_WORK_GROUP_SIZE,
             &scanTopWorkGroupSize);
+
+    log::Debug() << "scanTopWorkGroupSize = " << scanTopWorkGroupSize;
 
     nativeScanDown = cl::Kernel(scprg, "nativeScanDown");
     
@@ -38,19 +42,18 @@ void StreamCompaction::setDigitNum(size_t digitNum)
 {
     this->digitNum = digitNum;
 
-    sumsBuf = cl::Buffer(context, 
-                        CL_MEM_READ_WRITE, 
-                        sizeof(cl_int) * digitNum);
+    incrBufs.clear();
+    incrBufSizes.clear();
 
-    size_t d = std::ceil(digitNum / float(scanUpWorkGroupSize));
-    while (d > scanTopWorkGroupSize)
+    size_t d = digitNum;
+    for (; d > scanTopWorkGroupSize; 
+           d = std::ceil(d / float(scanUpWorkGroupSize)) )
     {
         incrBufs.emplace_back(
                 context,
                 CL_MEM_READ_WRITE,
                 sizeof(cl_int) * d);
         incrBufSizes.push_back(d);
-        d = std::ceil(d / float(scanUpWorkGroupSize));    
     }
 
     incrBufs.emplace_back(
@@ -75,9 +78,13 @@ int StreamCompaction::enqueue(
 
     scanEvents.clear();
 
+    ASSERT(!incrBufs.empty());
+    ASSERT(!incrBufSizes.empty());
+    ASSERT(incrBufs.size() == incrBufSizes.size());
+
     queue.enqueueCopyBuffer(
             predicate,
-            sumsBuf,
+            incrBufs.front(),
             0,
             0,
             sizeof(cl_int) * digitNum,
@@ -85,12 +92,12 @@ int StreamCompaction::enqueue(
             addScanEvent());
 
 
-    for (size_t i = 0; i < incrBufs.size(); i++)
+    for (size_t i = 1; i < incrBufs.size(); i++)
     {
-        nativeScanUp.setArg(0, (i == 0) ? sumsBuf : incrBufs[i-1]);
+        nativeScanUp.setArg(0, incrBufs[i-1]);
         nativeScanUp.setArg(1, incrBufs[i]);
 
-        cl::NDRange workItems((i == 0) ? digitNum : incrBufSizes[i-1]);
+        cl::NDRange workItems(incrBufSizes[i-1]);
         queue.enqueueNDRangeKernel(
                 nativeScanUp,
                 cl::NullRange,
@@ -98,6 +105,16 @@ int StreamCompaction::enqueue(
                 cl::NDRange(scanUpWorkGroupSize),
                 nullptr,
                 addScanEvent());
+
+        if (debug)
+        {
+            dumpBuffer(queue, incrBufs[i-1], incrBufSizes[i-1]);
+        }
+    }
+
+    if (debug)
+    {
+        dumpBuffer(queue, incrBufs.back(), incrBufSizes.back());
     }
 
     nativeScanTop.setArg(0, incrBufs.back());
@@ -109,30 +126,36 @@ int StreamCompaction::enqueue(
             nullptr,
             addScanEvent());
 
-    for (size_t i = incrBufs.size()-1;; i--)
+    if (debug)
     {
-        nativeScanDown.setArg(0, (i == 0) ? sumsBuf : incrBufs[i-1]);
+        dumpBuffer(queue, incrBufs.back(), incrBufSizes.back());
+    }
+
+    for (size_t i = incrBufs.size()-1; i > 0; i--)
+    {
+        nativeScanDown.setArg(0, incrBufs[i-1]);
         nativeScanDown.setArg(1, incrBufs[i]);
 
-        cl::NDRange workItems((i == 0) ? digitNum : incrBufSizes[i-1]);
+        ASSERT(incrBufSizes[i-1] > scanUpWorkGroupSize);
+        cl::NDRange workItems(incrBufSizes[i-1] - scanUpWorkGroupSize);
         queue.enqueueNDRangeKernel(
                 nativeScanDown,
-                cl::NullRange,
+                cl::NDRange(scanUpWorkGroupSize),
                 workItems,
                 cl::NullRange,
                 nullptr,
                 addScanEvent());
 
-        if (i == 0)
+        if (debug)
         {
-            break;
+            dumpBuffer(queue, incrBufs[i-1], incrBufSizes[i-1]);
         }
     }
 
     compactArr.setArg(0, digits);
     compactArr.setArg(1, digitsOut);
     compactArr.setArg(2, predicate);
-    compactArr.setArg(3, sumsBuf);
+    compactArr.setArg(3, incrBufs.front());
     queue.enqueueNDRangeKernel(
             compactArr,
             cl::NullRange,
@@ -145,7 +168,7 @@ int StreamCompaction::enqueue(
 
     // Read the last element from index buffer to get the new number of digits
     queue.enqueueReadBuffer(
-            sumsBuf,
+            incrBufs.front(),
             CL_TRUE, 
             (digitNum-1) * sizeof(cl_int),
             sizeof(cl_int),
@@ -176,6 +199,20 @@ float StreamCompaction::scanTimeMs() const
     }
 
     return time;
+}
+
+void StreamCompaction::dumpBuffer(
+        cl::CommandQueue queue,
+        cl::Buffer buf,
+        size_t size)
+{
+    sumsDump.emplace_back(size); 
+    queue.enqueueReadBuffer(
+            buf,
+            CL_FALSE,
+            0,
+            sizeof(cl_int) * size,
+            sumsDump.back().data());
 }
 
 float StreamCompaction::compactionTimeMs() const

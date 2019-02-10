@@ -11,7 +11,7 @@
 namespace gpucf
 {
 
-class Digit : public FloatDigit
+class Digit : public PaddedDigit
 {
 
 public:

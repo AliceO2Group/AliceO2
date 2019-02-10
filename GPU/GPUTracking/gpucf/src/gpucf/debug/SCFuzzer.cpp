@@ -31,6 +31,7 @@ bool SCFuzzer::run(size_t runs)
     {
         10,
         100,
+        514,
     };
 
     for (size_t digitNum : digitNums)
@@ -150,9 +151,17 @@ void SCFuzzer::dumpResult(const std::vector<std::vector<int>> &dump)
     log::Error() << "Result dump: ";
     for (std::vector<int> interim : dump)
     {
+        constexpr size_t maxPrintOut = 1000;
+        size_t c = maxPrintOut;
         for (int idx : interim)
         {
             log::Error() << idx;
+            c--;
+            if (c == 0)
+            {
+                log::Error() << "...";
+                break;
+            }
         }
         log::Error();
     }

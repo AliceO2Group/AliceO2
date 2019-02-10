@@ -4,7 +4,7 @@
 #include "types.h"
 
 
-typedef struct FloatDigit_s
+typedef struct PaddedDigit_s
 {
     SHARED_FLOAT charge;
     SHARED_USHORT time;
@@ -12,9 +12,9 @@ typedef struct FloatDigit_s
     SHARED_UCHAR row;
     SHARED_UCHAR cru;
     /*SHARED_UCHAR padding[3]; Implicit padding to keep struct 4 byte aligned*/
-} FloatDigit;
+} PaddedDigit;
 
-#define FLOAT_DIGIT_SIZE 12
+#define PADDED_DIGIT_SIZE 12
 
 
 typedef struct PackedDigit_s
