@@ -46,7 +46,6 @@ private:
     cl::Kernel nativeScanDown;
     cl::Kernel compactArr;
 
-    cl::Buffer sumsBuf;
     std::vector<cl::Buffer> incrBufs;
     std::vector<size_t>     incrBufSizes;
 
@@ -58,6 +57,8 @@ private:
     size_t digitNum = 0;
 
     cl::Event *addScanEvent();
+
+    void dumpBuffer(cl::CommandQueue, cl::Buffer, size_t);
 };
 
 } // namespace gpucf
