@@ -11,3 +11,6 @@ CONFIG_HIP					= 1
 ALLDEP						+= config_common.mak
 
 DEFINES						+= GPUCA_GPULIBRARY=HIP
+
+LIBSUSE						+= -lCAGPUTracking
+libCAGPUTrackingHIP.so:		libCAGPUTracking.so
