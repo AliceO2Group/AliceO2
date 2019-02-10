@@ -76,7 +76,7 @@ set(SRCS
 
 set(SRCS_NO_CINT
     GlobalTracker/AliGPUReconstruction.cxx
-    GlobalTracker/AliGPUReconstructionImpl.cxx
+    GlobalTracker/AliGPUReconstructionCPU.cxx
     GlobalTracker/AliGPUReconstructionDeviceBase.cxx
     GlobalTracker/AliGPUReconstructionConvert.cxx
     GlobalTracker/AliGPUCASettings.cxx
@@ -126,6 +126,7 @@ set(HDRS2
     TRDTracking/AliGPUTRDInterfaces.h
     Standalone/display/AliGPUCADisplayConfig.h
     Standalone/qa/AliGPUCAQAConfig.h
+    GlobalTracker/AliGPUReconstructionKernels.h
 )
 
 #Some extra files / includes / settings needed for the build for AliRoot

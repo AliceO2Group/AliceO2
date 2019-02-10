@@ -1,4 +1,5 @@
-#include "AliGPUReconstructionImpl.h"
+#define GPUCA_ALIGPURECONSTRUCTIONCPU_IMPLEMENTATION
+#include "AliGPUReconstructionCPU.h"
 #include "AliGPUReconstructionCommon.h"
 
 #include "AliGPUTPCClusterData.h"
@@ -29,6 +30,21 @@
 AliGPUReconstruction* AliGPUReconstruction::AliGPUReconstruction_Create_CPU(const AliGPUCASettingsProcessing& cfg)
 {
 	return new AliGPUReconstructionCPU(cfg);
+}
+
+template <class T, int I, typename... Args> int AliGPUReconstructionCPUBackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
+{
+	if (x.device == krnlDeviceType::Device) throw std::runtime_error("Cannot run device kernel on host");
+	unsigned int num = y.num == 0 || y.num == -1 ? 1 : y.num;
+	for (unsigned int k = 0;k < num;k++)
+	{
+		for (unsigned int iB = 0; iB < x.nBlocks; iB++)
+		{
+			typename T::AliGPUTPCSharedMemory smem;
+			T::template Thread<I>(x.nBlocks, 1, iB, 0, smem, T::Worker(*mHostConstantMem)[y.start + k], args...);
+		}
+	}
+	return 0;
 }
 
 int AliGPUReconstructionCPU::RunTPCTrackingSlices()

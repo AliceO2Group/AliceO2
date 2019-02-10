@@ -51,26 +51,6 @@ struct krnlEvent
 
 using namespace AliGPUReconstruction_krnlHelpers;
 
-template <class T> class AliGPUReconstructionImpl : public T
-{
-public:
-	virtual ~AliGPUReconstructionImpl() = default;
-	AliGPUReconstructionImpl(const AliGPUCASettingsProcessing& cfg) : T(cfg) {}
-	AliGPUReconstructionImpl() = default;
-
-protected:
-	virtual int runKernelImpl(classArgument<AliGPUTPCNeighboursFinder>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) {return T::template runKernelBackend<AliGPUTPCNeighboursFinder>(x, y, z);}
-	virtual int runKernelImpl(classArgument<AliGPUTPCNeighboursCleaner>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) {return T::template runKernelBackend<AliGPUTPCNeighboursCleaner>(x, y, z);}
-	virtual int runKernelImpl(classArgument<AliGPUTPCStartHitsFinder>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) {return T::template runKernelBackend<AliGPUTPCStartHitsFinder>(x, y, z);}
-	virtual int runKernelImpl(classArgument<AliGPUTPCStartHitsSorter>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) {return T::template runKernelBackend<AliGPUTPCStartHitsSorter>(x, y, z);}
-	virtual int runKernelImpl(classArgument<AliGPUTPCTrackletConstructor>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) {return T::template runKernelBackend<AliGPUTPCTrackletConstructor>(x, y, z);}
-	virtual int runKernelImpl(classArgument<AliGPUTPCTrackletConstructor, 1>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) {return T::template runKernelBackend<AliGPUTPCTrackletConstructor, 1>(x, y, z);}
-	virtual int runKernelImpl(classArgument<AliGPUTPCTrackletSelector>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) {return T::template runKernelBackend<AliGPUTPCTrackletSelector>(x, y, z);}
-	virtual int runKernelImpl(classArgument<AliGPUMemClean16>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, void* ptr, unsigned long size) {return T::template runKernelBackend<AliGPUMemClean16>(x, y, z, ptr, size);}
-	virtual int runKernelImpl(classArgument<AliGPUTPCGMMergerTrackFit>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) {return T::template runKernelBackend<AliGPUTPCGMMergerTrackFit>(x, y, z);}
-	virtual int runKernelImpl(classArgument<AliGPUTRDTrackerGPU>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) {return T::template runKernelBackend<AliGPUTRDTrackerGPU>(x, y, z);}
-};
-
 class AliGPUReconstructionCPUBackend : public AliGPUReconstruction
 {
 public:
@@ -78,23 +58,17 @@ public:
 	
 protected:
 	AliGPUReconstructionCPUBackend(const AliGPUCASettingsProcessing& cfg) : AliGPUReconstruction(cfg) {}
-	template <class T, int I = 0, typename... Args> int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
-	{
-		if (x.device == krnlDeviceType::Device) throw std::runtime_error("Cannot run device kernel on host");
-		unsigned int num = y.num == 0 || y.num == -1 ? 1 : y.num;
-		for (unsigned int k = 0;k < num;k++)
-		{
-			for (unsigned int iB = 0; iB < x.nBlocks; iB++)
-			{
-				typename T::AliGPUTPCSharedMemory smem;
-				T::template Thread<I>(x.nBlocks, 1, iB, 0, smem, T::Worker(*mHostConstantMem)[y.start + k], args...);
-			}
-		}
-		return 0;
-	}
+	template <class T, int I = 0, typename... Args> int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args);
 };
 
-class AliGPUReconstructionCPU : public AliGPUReconstructionImpl<AliGPUReconstructionCPUBackend>
+#include "AliGPUReconstructionKernels.h"
+#ifndef GPUCA_ALIGPURECONSTRUCTIONCPU_IMPLEMENTATION
+	#define GPUCA_ALIGPURECONSTRUCTIONCPU_DECLONLY
+	#undef ALIGPURECONSTRUCTIONKERNELS_H
+	#include "AliGPUReconstructionKernels.h"
+#endif
+
+class AliGPUReconstructionCPU : public AliGPUReconstructionKernels<AliGPUReconstructionCPUBackend>
 {
 	friend class AliGPUReconstruction;
 	
@@ -135,7 +109,7 @@ public:
 	HighResTimer timerTPCtracking[NSLICES][10];
 	
 protected:
-	AliGPUReconstructionCPU(const AliGPUCASettingsProcessing& cfg) : AliGPUReconstructionImpl(cfg) {}
+	AliGPUReconstructionCPU(const AliGPUCASettingsProcessing& cfg) : AliGPUReconstructionKernels(cfg) {}
 
 private:
 	void TransferMemoryResourcesHelper(AliGPUProcessor* proc, int stream, bool all, bool toGPU);

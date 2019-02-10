@@ -40,6 +40,6 @@ private:
 	AliGPUReconstructionHIPInternals* mInternals;
 };
 
-using AliGPUReconstructionHIP = AliGPUReconstructionImpl<AliGPUReconstructionHIPBackend>;
+using AliGPUReconstructionHIP = AliGPUReconstructionKernels<AliGPUReconstructionHIPBackend>;
 
 #endif

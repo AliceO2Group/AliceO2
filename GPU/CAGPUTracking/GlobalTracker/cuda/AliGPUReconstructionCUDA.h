@@ -44,6 +44,6 @@ private:
 	AliGPUReconstructionCUDAInternals* mInternals;
 };
 
-using AliGPUReconstructionCUDA = AliGPUReconstructionImpl<AliGPUReconstructionCUDABackend>;
+using AliGPUReconstructionCUDA = AliGPUReconstructionKernels<AliGPUReconstructionCUDABackend>;
 
 #endif
