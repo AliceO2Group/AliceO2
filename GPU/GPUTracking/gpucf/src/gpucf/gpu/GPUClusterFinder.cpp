@@ -52,6 +52,12 @@ void GPUClusterFinder::setupImpl(ClEnv &env, const DataSet &data)
                                      CL_MEM_READ_ONLY,
                                      globalToLocalRowBufSize);
 
+    globalRowToCru = RowInfo::instance().globalRowToCruMap;
+    globalRowToCruBufSize = sizeof(cl_int) * numOfRows;
+    globalRowToCruBuf = cl::Buffer(context,
+                                     CL_MEM_READ_ONLY,
+                                     globalRowToCruBufSize);
+
     isPeakBufSize = digits.size() * sizeof(cl_int);
     isPeakBuf = cl::Buffer(context, 
                            CL_MEM_READ_WRITE, 
@@ -89,17 +95,30 @@ GPUAlgorithm::Result GPUClusterFinder::runImpl()
     cl::CommandQueue queue(context, device, CL_QUEUE_PROFILING_ENABLE);
 
     ASSERT(globalToLocalRowBufSize > 0);
-    queue.enqueueWriteBuffer(globalToLocalRowBuf, CL_FALSE, 0, 
-            globalToLocalRowBufSize, globalToLocalRow.data());
+    queue.enqueueWriteBuffer(
+            globalToLocalRowBuf, 
+            CL_FALSE, 
+            0, 
+            globalToLocalRowBufSize, 
+            globalToLocalRow.data());
+
+    ASSERT(globalRowToCruBufSize > 0);
+    queue.enqueueWriteBuffer(
+            globalRowToCruBuf, 
+            CL_FALSE, 
+            0, 
+            globalRowToCruBufSize, 
+            globalRowToCru.data());
 
     ASSERT(digitsBufSize > 0);
-    queue.enqueueWriteBuffer(digitsBuf, 
-                             CL_FALSE, 
-                             0, 
-                             digitsBufSize, 
-                             digits.data(), 
-                             nullptr, 
-                             digitsToDevice.get());
+    queue.enqueueWriteBuffer(
+            digitsBuf,
+            CL_FALSE,
+            0,
+            digitsBufSize,
+            digits.data(),
+            nullptr,
+            digitsToDevice.get());
 
     ASSERT(chargeMapSize > 0);
     queue.enqueueFillBuffer(chargeMap, 
@@ -110,7 +129,7 @@ GPUAlgorithm::Result GPUClusterFinder::runImpl()
                             zeroChargeMap.get());
 
     cl::NDRange global(digits.size());
-    cl::NDRange local(16);
+    cl::NDRange local(8);
 
     fillChargeMap.setArg(0, digitsBuf);
     fillChargeMap.setArg(1, chargeMap);
@@ -138,7 +157,8 @@ GPUAlgorithm::Result GPUClusterFinder::runImpl()
     computeClusters.setArg(0, chargeMap);
     computeClusters.setArg(1, peaksBuf);
     computeClusters.setArg(2, globalToLocalRowBuf);
-    computeClusters.setArg(3, clusterBuf);
+    computeClusters.setArg(3, globalRowToCruBuf);
+    computeClusters.setArg(4, clusterBuf);
     queue.enqueueNDRangeKernel(computeClusters,
                                cl::NullRange,
                                cl::NDRange(numPeaks),

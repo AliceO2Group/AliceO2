@@ -44,6 +44,7 @@ private:
     std::vector<Digit> peaks;
 
     std::vector<int> globalToLocalRow;
+    std::vector<int> globalRowToCru;
 
     StreamCompaction streamCompaction;
 
@@ -63,6 +64,9 @@ private:
 
     cl::Buffer globalToLocalRowBuf;
     size_t     globalToLocalRowBufSize = 0;
+
+    cl::Buffer globalRowToCruBuf;
+    size_t     globalRowToCruBufSize = 0;
 
     cl::Buffer isPeakBuf;
     size_t     isPeakBufSize = 0;
