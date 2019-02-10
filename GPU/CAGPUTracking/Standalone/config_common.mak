@@ -15,7 +15,7 @@ INCLUDEPATHS				= . SliceTracker HLTHeaders Merger GlobalTracker TRDTracking Com
 DEFINES						= GPUCA_STANDALONE GPUCA_ENABLE_GPU_TRACKER
 
 EXTRAFLAGSGCC				+=
-EXTRAFLAGSLINK				+= -rdynamic
+EXTRAFLAGSLINK				+= -rdynamic -Wl,--no-undefined -L .
 
 ifeq ($(BUILD_DEBUG), 1)
 COMPILER_FLAGS				= DBG
@@ -23,53 +23,6 @@ else
 COMPILER_FLAGS				= OPT
 endif
 CONFIG_LTO					= 1
-
-GPUCA_TRACKER_CXXFILES			= SliceTracker/AliGPUTPCSliceData.cxx \
-								SliceTracker/AliGPUTPCSliceOutput.cxx \
-								SliceTracker/AliGPUTPCTracker.cxx \
-								SliceTracker/AliGPUTPCTrackerDump.cxx \
-								SliceTracker/AliGPUTPCRow.cxx \
-								SliceTracker/AliGPUTPCNeighboursFinder.cxx \
-								SliceTracker/AliGPUTPCNeighboursCleaner.cxx \
-								SliceTracker/AliGPUTPCGrid.cxx \
-								SliceTracker/AliGPUTPCTrackletConstructor.cxx \
-								SliceTracker/AliGPUTPCTrackletSelector.cxx \
-								SliceTracker/AliGPUTPCStartHitsFinder.cxx \
-								SliceTracker/AliGPUTPCStartHitsSorter.cxx \
-								SliceTracker/AliGPUTPCHitArea.cxx \
-								SliceTracker/AliGPUTPCTrackParam.cxx \
-								SliceTracker/AliGPUTPCClusterData.cxx \
-								GlobalTracker/AliGPUReconstruction.cxx \
-								GlobalTracker/AliGPUReconstructionImpl.cxx \
-								GlobalTracker/AliGPUReconstructionDeviceBase.cxx \
-								GlobalTracker/AliGPUReconstructionConvert.cxx \
-								GlobalTracker/AliGPUCAParam.cxx \
-								GlobalTracker/AliGPUProcessor.cxx \
-								GlobalTracker/AliGPUMemoryResource.cxx \
-								GlobalTracker/AliGPUCASettings.cxx \
-								GlobalTracker/AliGPUGeneralKernels.cxx \
-								TPCFastTransformation/TPCFastTransform.cxx \
-								TPCFastTransformation/TPCDistortionIRS.cxx \
-								TPCFastTransformation/IrregularSpline1D.cxx \
-								TPCFastTransformation/IrregularSpline2D3D.cxx
-
-GPUCA_MERGER_CXXFILES		= Merger/AliGPUTPCGMMerger.cxx \
-								Merger/AliGPUTPCGMSliceTrack.cxx \
-								Merger/AliGPUTPCGMPhysicalTrackModel.cxx \
-								Merger/AliGPUTPCGMPolynomialField.cxx \
-								Merger/AliGPUTPCGMPolynomialFieldManager.cxx \
-								Merger/AliGPUTPCGMPropagator.cxx \
-								Merger/AliGPUTPCGMTrackParam.cxx \
-								Merger/AliGPUTPCGMMergerGPU.cxx
-
-GPUCA_TRD_CXXFILES			= TRDTracking/AliGPUTRDTrack.cxx \
-								TRDTracking/AliGPUTRDTracker.cxx \
-								TRDTracking/AliGPUTRDTrackletWord.cxx \
-								TRDTracking/AliGPUTRDTrackerGPU.cxx
-
-GPUCA_STANDALONE_CXXFILES	= SliceTracker/AliGPUTPCTrack.cxx \
-								SliceTracker/AliGPUTPCTracklet.cxx \
-								SliceTracker/AliGPUTPCMCPoint.cxx
 
 CONFIG_CPP					= c++17
 CONFIG_CPP_CUDA				= c++14
@@ -127,5 +80,16 @@ endif
 ifeq ($(CONFIG_O2), 1)
 DEFINES						+= GPUCA_TPC_GEOMETRY_O2
 endif
+
+ifeq ($(BUILD_CUDA), 1)
+DEFINES						+= BUILD_CUDA
+endif
+ifeq ($(BUILD_OPENCL), 1)
+DEFINES						+= BUILD_OPENCL
+endif
+ifeq ($(BUILD_HIP), 1)
+DEFINES						+= BUILD_HIP
+endif
+
 
 ALLDEP						+= config_common.mak config_options.mak

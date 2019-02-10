@@ -172,7 +172,7 @@ LIBSUSE							+= $(LIBS:%=-l%)
 ifeq ("$(CONFIG_OPENCL)", "1")
 ifeq ("$(CONFIG_OPENCL_VERSION)", "AMD")
 COMMONINCLUDEPATHS				+= "$(AMDPATH)/include"
--L$(AMDLIBPATH)
+LIBPATHSUSE						+= -L$(AMDLIBPATH)
 endif
 ifeq ("$(CONFIG_OPENCL_VERSION)", "NVIDIA")
 COMMONINCLUDEPATHS				+= "$(CUDAPATH)/include"

@@ -15,3 +15,6 @@ DEFINES						+= GPUCA_GPULIBRARY=CUDA
 ifneq (${CONFIG_O2DIR}, )
 INCLUDEPATHS				+= ${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/cuda/src/
 endif
+
+LIBSUSE						+= -lCAGPUTracking
+libCAGPUTrackingCUDA.so:	libCAGPUTracking.so
