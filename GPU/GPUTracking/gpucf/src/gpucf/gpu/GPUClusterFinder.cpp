@@ -11,32 +11,42 @@
 using namespace gpucf;
 
 
-GPUClusterFinder::GPUClusterFinder()
-    : GPUAlgorithm("NaiveClusterFinder")
+const GPUClusterFinder::Config GPUClusterFinder::defaultConfig =
 {
-}
+    false, // usePackedDigit   
+};
+
 
 std::vector<Digit> GPUClusterFinder::getPeaks() const
 {
     return peaks;
 }
 
-void GPUClusterFinder::setupImpl(ClEnv &env, const DataSet &data)
+void GPUClusterFinder::setup(Config conf, ClEnv &env, nonstd::span<const Digit> digits)
 {
-    digits = data.deserialize<Digit>();
+    this->config = conf;
+    this->digits = digits;
+
+    if (config.usePackedDigits)
+    {
+        fillPackedDigits(); 
+    }
 
     streamCompaction.setup(env, digits.size());
 
     context = env.getContext(); 
     device  = env.getDevice();
 
-    cl::Program cfprg = env.buildFromSrc("clusterFinder.cl");
+    std::vector<std::string> defines = makeClConfig();
+    cl::Program cfprg = env.buildFromSrc("clusterFinder.cl", defines);
     fillChargeMap   = cl::Kernel(cfprg, "fillChargeMap");
     findPeaks       = cl::Kernel(cfprg, "findPeaks");
     computeClusters = cl::Kernel(cfprg, "computeClusters");
 
     // create buffers
-    digitsBufSize = sizeof(Digit) * digits.size();
+    digitsBufSize = 
+        ((config.usePackedDigits) ? sizeof(PackedDigit) : sizeof(Digit)) 
+            * digits.size();
     digitsBuf = cl::Buffer(context,
                           CL_MEM_READ_WRITE,
                           digitsBufSize);
@@ -77,7 +87,7 @@ void GPUClusterFinder::setupImpl(ClEnv &env, const DataSet &data)
     chargeMap = cl::Buffer(context, CL_MEM_READ_WRITE, chargeMapSize);
 }
 
-GPUAlgorithm::Result GPUClusterFinder::runImpl()
+GPUClusterFinder::Result GPUClusterFinder::run()
 {
     static_assert(sizeof(cl_int) == sizeof(int));
 
@@ -111,12 +121,16 @@ GPUAlgorithm::Result GPUClusterFinder::runImpl()
             globalRowToCru.data());
 
     ASSERT(digitsBufSize > 0);
+    const void *digitPtr = 
+            (config.usePackedDigits
+                ? static_cast<const void *>(packedDigits.data())
+                : static_cast<const void *>(digits.data()));
     queue.enqueueWriteBuffer(
             digitsBuf,
             CL_FALSE,
             0,
             digitsBufSize,
-            digits.data(),
+            digitPtr,
             nullptr,
             digitsToDevice.get());
 
@@ -177,20 +191,20 @@ GPUAlgorithm::Result GPUClusterFinder::runImpl()
                             nullptr,
                             clustersToHost.get());
 
-    std::vector<Digit> peaks(numPeaks);
-    ASSERT(peaks.size() * sizeof(Digit) <= digitsBufSize);
-    queue.enqueueReadBuffer(digitsBuf, 
-                            CL_TRUE, 
-                            0, 
-                            peaks.size() * sizeof(Digit),
-                            peaks.data());
+    /* std::vector<Digit> peaks(numPeaks); */
+    /* ASSERT(peaks.size() * sizeof(Digit) <= digitsBufSize); */
+    /* queue.enqueueReadBuffer(digitsBuf, */ 
+    /*                         CL_TRUE, */ 
+    /*                         0, */ 
+    /*                         peaks.size() * sizeof(Digit), */
+    /*                         peaks.data()); */
 
     printClusters(clusters, 10);
 
     /* clusters = filterCluster(isClusterCenter, clusters); */
     /* peaks = compactDigits(isClusterCenter, digits); */
 
-    ASSERT(clusters.size() == peaks.size());
+    /* ASSERT(clusters.size() == peaks.size()); */
 
     log::Info() << "Found " << clusters.size() << " clusters.";
 
@@ -208,7 +222,7 @@ GPUAlgorithm::Result GPUClusterFinder::runImpl()
         {"clustersToHost", clustersToHost.executionTimeMs()},   
     };
 
-    return GPUAlgorithm::Result{res, measurements};
+    return Result{res, measurements};
 }
 
 
@@ -260,6 +274,26 @@ std::vector<Digit> GPUClusterFinder::compactDigits(
     }
 
     return peaks;
+}
+
+void GPUClusterFinder::fillPackedDigits()
+{
+    for (const Digit &digit : digits)
+    {
+        packedDigits.push_back(digit.toPacked());
+    }
+}
+
+std::vector<std::string> GPUClusterFinder::makeClConfig()
+{
+    std::vector<std::string> defines;
+
+    if (config.usePackedDigits)
+    {
+        defines.push_back("USE_PACKED_DIGIT");
+    }
+
+    return defines;
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

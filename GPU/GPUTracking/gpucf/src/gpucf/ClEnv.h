@@ -51,7 +51,10 @@ public:
         return devices[gpuId]; 
     }
 
-    cl::Program          buildFromSrc(const filesystem::path &srcFile);
+    cl::Program buildFromSrc(
+            const filesystem::path &srcFile,
+            const std::vector<std::string> &defines);
+
     cl::Program::Sources loadSrc(const filesystem::path &srcFile);
 
 private:

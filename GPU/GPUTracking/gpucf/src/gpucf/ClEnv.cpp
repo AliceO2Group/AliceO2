@@ -42,21 +42,28 @@ ClEnv::ClEnv(const fs::path &srcDir, size_t gid)
     log::Info() << "Running on device " << deviceName;
 }
 
-cl::Program ClEnv::buildFromSrc(const fs::path &srcFile) 
+cl::Program ClEnv::buildFromSrc(
+        const fs::path &srcFile, 
+        const std::vector<std::string> &defines) 
 {
     cl::Program::Sources src = loadSrc(srcFile);
 
     cl::Program prg(context, src);
 
+    std::string buildOpts = "-Werror";
+#if defined(NDEBUG)
+    buildOpts += " -DNDEBUG";
+#endif
+    buildOpts += " -I" + sourceDir.str();
+    buildOpts += " -cl-std=CL2.0";
+
+    for (const std::string &def : defines)
+    {
+        buildOpts += " -D" + def;
+    }
+
     try 
     {
-        std::string buildOpts = "-Werror";
-#if defined(NDEBUG)
-        buildOpts += " -DNDEBUG";
-#endif
-        buildOpts += " -I" + sourceDir.str();
-        buildOpts += " -cl-std=CL2.0";
-
         prg.build(devices, buildOpts.c_str());
     } 
     catch (const cl::BuildError &) 
@@ -85,11 +92,11 @@ cl::Program::Sources ClEnv::loadSrc(const fs::path &srcFile)
 
     std::ifstream src(file.str());
     std::string code( (std::istreambuf_iterator<char>(src)),
-                      std::istreambuf_iterator<char>());
+            std::istreambuf_iterator<char>());
 
     cl::Program::Sources source({code});
 
     return source;
 }
- 
+
 // vim: set ts=4 sw=4 sts=4 expandtab:

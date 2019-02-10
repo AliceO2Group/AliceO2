@@ -26,7 +26,7 @@ void nativeScanUp(
     int idx = get_global_id(0);
     int scanRes = work_group_scan_inclusive_add(sums[idx]);
 
-    DBGPR_2("ScanUp: idx = %d, res = %d", idx, scanRes);
+    /* DBGPR_2("ScanUp: idx = %d, res = %d", idx, scanRes); */
 
     sums[idx] = scanRes;
 
@@ -47,7 +47,7 @@ void nativeScanTop(global int *incr)
 {
     int idx = get_global_id(0);
 
-    DBGPR_1("ScanTop: idx = %d", idx);
+    /* DBGPR_1("ScanTop: idx = %d", idx); */
     
     incr[idx] = work_group_scan_inclusive_add(incr[idx]);
 }

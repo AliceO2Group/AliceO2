@@ -13,14 +13,14 @@ namespace gpucf
 
 class Digit : public PaddedDigit
 {
-
 public:
     Digit();
     Digit(float, int, int, int, int);
 
     Object serialize() const;
     void deserialize(const Object &);
- 
+
+    PackedDigit toPacked() const;
 };
 
 

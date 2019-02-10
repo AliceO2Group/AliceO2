@@ -11,7 +11,7 @@ using namespace gpucf;
 
 void StreamCompaction::setup(ClEnv &env, size_t digitNum)
 {
-    cl::Program scprg = env.buildFromSrc("streamCompaction.cl");  
+    cl::Program scprg = env.buildFromSrc("streamCompaction.cl", {});  
 
     nativeScanUp   = cl::Kernel(scprg, "nativeScanUp");
     nativeScanUp.getWorkGroupInfo(

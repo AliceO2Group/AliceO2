@@ -19,6 +19,6 @@ ENDSSH
 scp -r $remoteTgt:$tgtDir/$measurementsDir .
 
 
-$plotCmd -i=$measurementsDir/'NaiveClusterFinder.csv' \
-         -o=$measurementsDir/'NaiveClusterFinder.pdf' \
+$plotCmd -i=$measurementsDir/'naiveClusterFinder.csv' \
+         -o=$measurementsDir/'naiveClusterFinder.pdf' \
          -y='time [ms]'
