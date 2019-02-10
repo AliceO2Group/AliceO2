@@ -48,6 +48,11 @@ void Digit::deserialize(const Object &o)
     GET_FLOAT(o, charge);
 }
 
+PackedDigit Digit::toPacked() const
+{
+    return PackedDigit{ charge, time, pad, row };
+}
+
 std::ostream &gpucf::operator<<(std::ostream &os, const Digit &d) 
 {
     return os << d.serialize();

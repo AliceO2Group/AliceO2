@@ -1,9 +1,12 @@
 #pragma once
 
 #include <gpucf/common/Cluster.h>
+#include <gpucf/common/DataSet.h>
 #include <gpucf/common/Digit.h>
-#include <gpucf/gpu/GPUAlgorithm.h>
+#include <gpucf/common/Measurements.h>
 #include <gpucf/gpu/StreamCompaction.h>
+
+#include <nonstd/span.hpp>
 
 #include <memory>
 #include <vector>
@@ -14,18 +17,28 @@ namespace gpucf
 
 class ClEnv;
 
-class GPUClusterFinder : public GPUAlgorithm
+class GPUClusterFinder 
 {
 
 public:
-    GPUClusterFinder();
+    struct Config
+    {
+        bool usePackedDigits; 
+    };
+    
+    struct Result
+    {
+        DataSet result;
+        std::vector<Measurement> profiling; 
+    };
+
+    static const Config defaultConfig;
 
     std::vector<Digit> getPeaks() const;
 
-protected:
-    void setupImpl(ClEnv &, const DataSet &) override;
+    void setup(Config, ClEnv &, nonstd::span<const Digit>);
 
-    GPUAlgorithm::Result runImpl() override;
+    Result run();
 
 private:
     static void printClusters(
@@ -40,8 +53,11 @@ private:
             const std::vector<int> &,
             const std::vector<Digit> &);
 
-    std::vector<Digit> digits;
-    std::vector<Digit> peaks;
+    Config config;
+
+    nonstd::span<const Digit> digits;
+    std::vector<PackedDigit> packedDigits;
+    std::vector<Digit>        peaks;
 
     std::vector<int> globalToLocalRow;
     std::vector<int> globalRowToCru;
@@ -73,6 +89,11 @@ private:
 
     cl::Buffer clusterBuf;
     size_t     clusterBufSize = 0;
+
+
+    void fillPackedDigits();
+
+    std::vector<std::string> makeClConfig();
 };
 
 }
