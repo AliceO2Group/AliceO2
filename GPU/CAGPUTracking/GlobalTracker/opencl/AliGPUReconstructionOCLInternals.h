@@ -20,6 +20,8 @@
 
 #include <CL/opencl.h>
 #include <CL/cl_ext.h>
+#include <vector>
+#include <string>
 
 static const char* opencl_error_string(int errorcode)
 {
@@ -121,7 +123,7 @@ struct AliGPUReconstructionOCLInternals
 	cl_mem mem_host;
 	cl_program program;
 
-	cl_kernel kernel_neighbours_finder, kernel_neighbours_cleaner, kernel_start_hits_finder, kernel_start_hits_sorter, kernel_tracklet_constructor0, kernel_tracklet_constructor1, kernel_tracklet_selector, kernel_memclean16;
+	std::vector<std::pair<cl_kernel, std::string>> kernels;
 };
 
 static_assert(std::is_convertible<cl_event, void*>::value, "OpenCL event type incompatible to deviceEvent");
