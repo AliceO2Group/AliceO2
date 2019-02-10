@@ -179,7 +179,8 @@ bool isPeak(
 void finalizeCluster(
                      Cluster *myCluster, 
                const Digit   *myDigit, 
-        global const int     *globalToLocalRow)
+        global const int     *globalToLocalRow,
+        global const int     *globalRowToCru)
 {
     myCluster->Q += myDigit->charge;
 
@@ -207,7 +208,7 @@ void finalizeCluster(
     myCluster->timeSigma = timeSigma;
     myCluster->padSigma  = padSigma;
 
-    myCluster->cru = myDigit->cru;
+    myCluster->cru = globalRowToCru[myDigit->row];
     myCluster->row = globalToLocalRow[myDigit->row];
 }
 
@@ -242,15 +243,16 @@ void computeClusters(
         global const float   *chargeMap,
         global const Digit   *digits,
         global const int     *globalToLocalRow,
+        global const int     *globalRowToCru,
         global       Cluster *clusters)
 {
     int idx = get_global_id(0);
 
     Digit myDigit = digits[idx];
 
-    Cluster myCluster; 
+    Cluster myCluster;
     buildCluster(chargeMap, &myCluster, myDigit.row, myDigit.pad, myDigit.time);
-    finalizeCluster(&myCluster, &myDigit, globalToLocalRow);
+    finalizeCluster(&myCluster, &myDigit, globalToLocalRow, globalRowToCru);
 
     clusters[idx] = myCluster;
 }
