@@ -33,8 +33,10 @@ int CfRunner::mainImpl()
     DataSet digitSet;
     digitSet.read(args::get(*digitFile));
 
+    std::vector<Digit> digits = digitSet.deserialize<Digit>();
+
     GPUClusterFinder cf;
-    cf.setup(env, digitSet);
+    cf.setup(GPUClusterFinder::defaultConfig, env, digits);
     auto cfRes = cf.run();
 
     cfRes.result.write(args::get(*clusterResultFile));

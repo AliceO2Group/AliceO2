@@ -1,8 +1,9 @@
 #pragma once
 
 #include <gpucf/ClEnv.h>
+#include <gpucf/common/Digit.h>
 #include <gpucf/executable/Executable.h>
-#include <gpucf/gpu/GPUAlgorithm.h>
+#include <gpucf/experiments/Experiment.h>
 
 
 namespace gpucf
@@ -24,15 +25,14 @@ private:
     OptIntFlag iterations;
 
     filesystem::path baseDir;
-    std::vector<std::shared_ptr<GPUAlgorithm>> algorithms;
 
-    void registerAlgorithms();
+    std::vector<std::shared_ptr<Experiment>> experiments;
 
-    void setupAlgorithms(ClEnv &, const DataSet &);
+    std::vector<Digit> digits;
 
-    void run(size_t);
+    void registerExperiments();
 
-    filesystem::path makeBenchmarkFilename(const std::string &);
+    void runExperiments(ClEnv &);
 };
 
 } // namespace gpucf
