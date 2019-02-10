@@ -90,6 +90,12 @@ int AliGPUReconstruction::Init()
 	if (mDeviceProcessingSettings.eventDisplay) mDeviceProcessingSettings.keepAllMemory = true;
 	if (mDeviceProcessingSettings.debugLevel >= 4) mDeviceProcessingSettings.keepAllMemory = true;
 	if (mDeviceProcessingSettings.debugLevel < 6) mDeviceProcessingSettings.debugMask = 0;
+#ifndef HAVE_O2HEADERS
+	mDeviceProcessingSettings.runTRDTracker = false;
+#endif
+	if (!mDeviceProcessingSettings.runTPCSliceTracker) mDeviceProcessingSettings.runTPCSliceTrackerGPU = false;
+	if (!mDeviceProcessingSettings.runTPCMerger) mDeviceProcessingSettings.runTPCMergerGPU = false;
+	if (!mDeviceProcessingSettings.runTRDTracker) mDeviceProcessingSettings.runTRDTrackerGPU = false;
 	if (!IsGPU()) mDeviceProcessingSettings.runTPCSliceTrackerGPU = mDeviceProcessingSettings.runTPCMergerGPU = mDeviceProcessingSettings.runTRDTrackerGPU = false;
 	if (!IsGPU()) mDeviceProcessingSettings.trackletConstructorInPipeline = mDeviceProcessingSettings.trackletSelectorInPipeline = false;
 	if (GetDeviceType() == OCL) mDeviceProcessingSettings.runTPCMergerGPU = mDeviceProcessingSettings.runTRDTrackerGPU = false;
