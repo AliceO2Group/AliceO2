@@ -24,7 +24,6 @@ protected:
 	void* fGPUMergerHostMemory = nullptr;
 	AliGPUCAConstantMem* mDeviceConstantMem = nullptr;
     
-#ifdef GPUCA_ENABLE_GPU_TRACKER
 	virtual int RunTPCTrackingSlices() override;
 	virtual int RefitMergedTracks(bool resetTimers) override;
 	int RunTPCTrackingSlices_internal();
@@ -147,7 +146,6 @@ protected:
 	int mNStreams = 0;
 	eventStruct<void*> mEvents;
 	bool mStreamInit[GPUCA_GPU_MAX_STREAMS] = {false};
-#endif
 };
 
 #endif

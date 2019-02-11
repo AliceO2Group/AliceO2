@@ -29,8 +29,6 @@ AliGPUReconstructionDeviceBase::~AliGPUReconstructionDeviceBase()
 	// needed for build with AliRoot
 }
 
-#ifdef GPUCA_ENABLE_GPU_TRACKER
-
 int AliGPUReconstructionDeviceBase::GlobalTracking(int iSlice, int threadId, AliGPUReconstructionDeviceBase::helperParam* hParam)
 {
 	if (mDeviceProcessingSettings.debugLevel >= 3) {CAGPUDebug("GPU Tracker running Global Tracking for slice %d on thread %d\n", iSlice, threadId);}
@@ -986,5 +984,3 @@ int AliGPUReconstructionDeviceBase::GetMaxThreads()
 	int retVal = fTRDThreadCount * fBlockCount;
 	return std::max(retVal, AliGPUReconstruction::GetMaxThreads());
 }
-
-#endif //GPUCA_ENABLE_GPU_TRACKER
