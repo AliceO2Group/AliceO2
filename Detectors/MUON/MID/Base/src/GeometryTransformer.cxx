@@ -20,53 +20,62 @@
 #include "TMath.h"
 #include "Math/GenVector/RotationX.h"
 #include "Math/GenVector/RotationY.h"
-#include "FairLogger.h"
-#include "MIDBase/Constants.h"
 
 namespace o2
 {
 namespace mid
 {
 
-//______________________________________________________________________________
-GeometryTransformer::GeometryTransformer()
+void GeometryTransformer::setMatrix(int deId, const ROOT::Math::Transform3D& matrix)
 {
-  /// Default constructor
-  init();
+  /// Sets the transformation matrix for detection element deId
+  mTransformations[deId] = matrix;
 }
 
-//______________________________________________________________________________
-void GeometryTransformer::init()
+ROOT::Math::Transform3D getDefaultChamberTransform(int ichamber)
 {
-  /// Initializes default geometry
+  /// Returns the default chamber transformation
   const double degToRad = TMath::DegToRad();
-
   ROOT::Math::Rotation3D planeRot(ROOT::Math::RotationX(Constants::sBeamAngle * degToRad));
+  ROOT::Math::Translation3D planeTrans(0., 0., Constants::sDefaultChamberZ[ichamber]);
+  return planeTrans * planeRot;
+}
 
-  for (int iside = 0; iside < 2; ++iside) {
-    bool isRight = (iside == 0);
-    double angle = isRight ? 0. : 180.;
-    ROOT::Math::Rotation3D rot(ROOT::Math::RotationY(angle * degToRad));
-    double xSign = (iside == 0) ? 1. : -1.;
-    for (int ichamber = 0; ichamber < 4; ++ichamber) {
-      ROOT::Math::Translation3D planeTrans(0., 0., Constants::sDefaultChamberZ[ichamber]);
-      for (int irpc = 0; irpc < 9; ++irpc) {
-        double xPos = xSign * Constants::getRPCCenterPosX(ichamber, irpc);
-        double sign = (irpc % 2 == 0) ? 1. : -1;
-        if (iside == 1) {
-          sign *= -1.;
-        }
-        double zPos = sign * Constants::sRPCZShift;
-        double newZ = Constants::sDefaultChamberZ[0] + zPos;
-        double oldZ = Constants::sDefaultChamberZ[0] - zPos;
-        double yPos = Constants::getRPCHalfHeight(ichamber) * (irpc - 4) * (1. + newZ / oldZ);
-        int deId = Constants::getDEId(isRight, ichamber, irpc);
-        ROOT::Math::Translation3D trans(xPos, yPos, zPos);
-        mTransformations[deId] = planeTrans * planeRot * trans * rot;
-        LOG(DEBUG) << "DeID " << deId << "\n" << mTransformations[deId];
+ROOT::Math::Transform3D getDefaultRPCTransform(bool isRight, int chamber, int rpc)
+{
+  /// Returns the default RPC transformation in the chamber plane
+  const double degToRad = TMath::DegToRad();
+  double angle = isRight ? 0. : 180.;
+  ROOT::Math::Rotation3D rot(ROOT::Math::RotationY(angle * degToRad));
+  double xSign = isRight ? 1. : -1.;
+  double xPos = xSign * Constants::getRPCCenterPosX(chamber, rpc);
+  double sign = (rpc % 2 == 0) ? 1. : -1;
+  if (!isRight) {
+    sign *= -1.;
+  }
+  double zPos = sign * Constants::sRPCZShift;
+  double newZ = Constants::sDefaultChamberZ[0] + zPos;
+  double oldZ = Constants::sDefaultChamberZ[0] - zPos;
+  double yPos = Constants::getRPCHalfHeight(chamber) * (rpc - 4) * (1. + newZ / oldZ);
+  ROOT::Math::Translation3D trans(xPos, yPos, zPos);
+  return trans * rot;
+}
+
+GeometryTransformer createDefaultTransformer()
+{
+  /// Creates the default transformer
+  GeometryTransformer geoTrans;
+  for (int ich = 0; ich < Constants::sNChambers; ++ich) {
+    for (int iside = 0; iside < 2; ++iside) {
+      bool isRight = (iside == 0);
+      for (int irpc = 0; irpc < Constants::sNRPCLines; ++irpc) {
+        int deId = Constants::getDEId(isRight, ich, irpc);
+        ROOT::Math::Transform3D matrix = getDefaultChamberTransform(ich) * getDefaultRPCTransform(isRight, ich, irpc);
+        geoTrans.setMatrix(deId, matrix);
       }
     }
   }
+  return geoTrans;
 }
 
 } // namespace mid
