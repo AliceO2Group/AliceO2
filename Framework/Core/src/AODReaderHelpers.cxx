@@ -11,6 +11,7 @@
 #include "Framework/AODReaderHelpers.h"
 #include "Framework/RootTableBuilderHelpers.h"
 #include "Framework/AlgorithmSpec.h"
+#include "Framework/ControlService.h"
 #include "Framework/DeviceSpec.h"
 #include <ROOT/RDataFrame.hxx>
 #include <TFile.h>
@@ -22,12 +23,23 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
 {
   auto callback = AlgorithmSpec{ adaptStateful([](ConfigParamRegistry const& options,
                                                   DeviceSpec const& spec) {
-    std::shared_ptr<TFile> infile;
-    try {
-      auto filename = options.get<std::string>("aod-file");
-      infile = std::make_shared<TFile>(filename.c_str());
-    } catch (...) {
-      LOG(ERROR) << "Unable to open file";
+    std::vector<std::string> filenames;
+    auto filename = options.get<std::string>("aod-file");
+
+    // If option starts with a @, we consider the file as text which contains a list of
+    // files.
+    if (filename.size() && filename[0] == '@') {
+      try {
+        filename.erase(0, 1);
+        std::ifstream filelist(filename);
+        while (std::getline(filelist, filename)) {
+          filenames.push_back(filename);
+        }
+      } catch (...) {
+        LOG(error) << "Unable to process file list: " << filename;
+      }
+    } else {
+      filenames.push_back(filename);
     }
 
     bool readTracks = false;
@@ -63,6 +75,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       }
     }
 
+    auto counter = std::make_shared<int>(0);
     return adaptStateless([readTracks,
                            readTracksCov,
                            readTracksExtra,
@@ -70,9 +83,18 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
                            readMuon,
                            readDZeroFlagged,
                            readVZ,
-                           infile](DataAllocator& outputs) {
+                           counter,
+                           filenames](DataAllocator& outputs, ControlService& control) {
+      if (*counter >= filenames.size()) {
+        LOG(info) << "All input files processed";
+        control.readyToQuit(false);
+        return;
+      }
+      auto f = filenames[*counter];
+      auto infile = std::make_unique<TFile>(f.c_str());
+      *counter += 1;
       if (infile.get() == nullptr || infile->IsOpen() == false) {
-        LOG(ERROR) << "File not found: aod.root";
+        LOG(ERROR) << "File not found: " + f;
         return;
       }
 
