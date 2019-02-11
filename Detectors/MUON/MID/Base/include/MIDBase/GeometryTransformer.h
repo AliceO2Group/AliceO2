@@ -17,6 +17,7 @@
 #define O2_MID_GEOMETRYTRANSFORMER_H
 
 #include <array>
+#include "MIDBase/Constants.h"
 #include "MathUtils/Cartesian3D.h"
 
 namespace o2
@@ -28,13 +29,9 @@ namespace mid
 class GeometryTransformer
 {
  public:
-  GeometryTransformer();
-  virtual ~GeometryTransformer() = default;
-
-  GeometryTransformer(const GeometryTransformer&) = delete;
-  GeometryTransformer& operator=(const GeometryTransformer&) = delete;
-  GeometryTransformer(GeometryTransformer&&) = delete;
-  GeometryTransformer& operator=(GeometryTransformer&&) = delete;
+  void setMatrix(int deId, const ROOT::Math::Transform3D& matrix);
+  ///Gets the maatrix transformation for detection element deId
+  inline const ROOT::Math::Transform3D getMatrix(int deId) { return mTransformations[deId]; }
 
   template <typename T>
   Point3D<T> localToGlobal(int deId, const Point3D<T>& position) const
@@ -74,9 +71,12 @@ class GeometryTransformer
   }
 
  private:
-  void init();
-  std::array<ROOT::Math::Transform3D, 72> mTransformations; ///< Array of transformation matrices
+  std::array<o2::Transform3D, Constants::sNDetectionElements> mTransformations; ///< Array of transformation matrices
 };
+
+ROOT::Math::Transform3D getDefaultChamberTransform(int ichamber);
+ROOT::Math::Transform3D getDefaultRPCTransform(bool isRight, int chamber, int rpc);
+GeometryTransformer createDefaultTransformer();
 } // namespace mid
 } // namespace o2
 
