@@ -36,6 +36,8 @@ protected:
 	virtual void RecordMarker(deviceEvent* ev, int stream) override;
 	
 	template <class T, int I = 0, typename... Args> int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args);
+	
+	virtual bitfield<RecoStep, unsigned char> AvailableRecoSteps() {return (RecoStep::TPCSliceTracking);}
 
 private:
 	template <class S, class T, int I = 0> S& getKernelObject(int num);

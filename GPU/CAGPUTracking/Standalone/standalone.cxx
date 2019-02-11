@@ -213,7 +213,8 @@ int SetupReconstruction()
 	devProc.globalInitMutex = configStandalone.gpuInitMutex;
 	devProc.gpuDeviceOnly = configStandalone.oclGPUonly;
 	devProc.memoryAllocationStrategy = configStandalone.allocationStrategy;
-	if (configStandalone.configRec.runTRD != -1) devProc.runTRDTracker = configStandalone.configRec.runTRD;
+	if (configStandalone.configRec.runTRD != -1) rec->GetRecoSteps().setBits(AliGPUReconstruction::RecoStep::TRDTracking, configStandalone.configRec.runTRD);
+	if (!configStandalone.merger) rec->GetRecoSteps().setBits(AliGPUReconstruction::RecoStep::TPCMerging, false);
 	
 	if (configStandalone.configProc.nStreams >= 0) devProc.nStreams = configStandalone.configProc.nStreams;
 	if (configStandalone.configProc.constructorPipeline >= 0) devProc.trackletConstructorInPipeline = configStandalone.configProc.constructorPipeline;
@@ -362,7 +363,7 @@ int main(int argc, char** argv)
 						}
 					}
 					
-					if (rec->GetDeviceProcessingSettings().runTRDTracker)
+					if (rec->GetRecoSteps() & AliGPUReconstruction::RecoStep::TRDTracking)
 					{
 						int nTracklets = 0;
 						for (int k = 0;k < rec->GetTRDTracker()->NTracks();k++)

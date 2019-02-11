@@ -377,7 +377,7 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 		ExitDevice_Runtime();
 		return(1);
 	}
-	if (mDeviceProcessingSettings.runTPCSliceTrackerGPU)
+	if (mRecoStepsGPU & RecoStep::TPCSliceTracking)
 	{
 		for (unsigned int i = 0;i < NSLICES;i++)
 		{
@@ -385,8 +385,8 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 			RegisterGPUDeviceProcessor(&mWorkersShadow->tpcTrackers[i].Data(), &workers()->tpcTrackers[i].Data());
 		}
 	}
-	if (mDeviceProcessingSettings.runTPCMergerGPU) RegisterGPUDeviceProcessor(&mWorkersShadow->tpcMerger, &workers()->tpcMerger);
-	if (mDeviceProcessingSettings.runTRDTrackerGPU) RegisterGPUDeviceProcessor(&mWorkersShadow->trdTracker, &workers()->trdTracker);
+	if (mRecoStepsGPU & RecoStep::TPCMerging) RegisterGPUDeviceProcessor(&mWorkersShadow->tpcMerger, &workers()->tpcMerger);
+	if (mRecoStepsGPU & RecoStep::TRDTracking) RegisterGPUDeviceProcessor(&mWorkersShadow->trdTracker, &workers()->trdTracker);
 
 	if (StartHelperThreads()) return(1);
 
@@ -906,7 +906,7 @@ int AliGPUReconstructionDeviceBase::DoTRDGPUTracking()
 int AliGPUReconstructionDeviceBase::RefitMergedTracks(bool resetTimers)
 {
 	auto* Merger = &workers()->tpcMerger;
-	if (!mDeviceProcessingSettings.runTPCMergerGPU) return AliGPUReconstructionCPU::RefitMergedTracks(resetTimers);
+	if (!mRecoStepsGPU.isSet(RecoStep::TPCMerging)) return AliGPUReconstructionCPU::RefitMergedTracks(resetTimers);
 	
 	HighResTimer timer;
 	static double times[3] = {};

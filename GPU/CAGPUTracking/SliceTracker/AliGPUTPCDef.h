@@ -42,7 +42,7 @@
 	#define get_group_id(dim) iBlock
 #endif
 
-//Special macros for OpenCL 1.2 version
+//Special macros for OpenCL rev. 1.2 (encode address space in template parameter)
 enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
 #if defined(__OPENCL__) && !defined(__OPENCLCPP__)
 	template<LocalOrGlobal, typename L, typename G, typename C, typename P> struct MakeTypeHelper;

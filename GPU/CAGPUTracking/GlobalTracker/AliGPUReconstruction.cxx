@@ -91,14 +91,11 @@ int AliGPUReconstruction::Init()
 	if (mDeviceProcessingSettings.debugLevel >= 4) mDeviceProcessingSettings.keepAllMemory = true;
 	if (mDeviceProcessingSettings.debugLevel < 6) mDeviceProcessingSettings.debugMask = 0;
 #ifndef HAVE_O2HEADERS
-	mDeviceProcessingSettings.runTRDTracker = false;
+	mRecoSteps.setBits(RecoStep::TRDTracking, false);
 #endif
-	if (!mDeviceProcessingSettings.runTPCSliceTracker) mDeviceProcessingSettings.runTPCSliceTrackerGPU = false;
-	if (!mDeviceProcessingSettings.runTPCMerger) mDeviceProcessingSettings.runTPCMergerGPU = false;
-	if (!mDeviceProcessingSettings.runTRDTracker) mDeviceProcessingSettings.runTRDTrackerGPU = false;
-	if (!IsGPU()) mDeviceProcessingSettings.runTPCSliceTrackerGPU = mDeviceProcessingSettings.runTPCMergerGPU = mDeviceProcessingSettings.runTRDTrackerGPU = false;
+	mRecoStepsGPU &= mRecoSteps;
+	if (!IsGPU()) mRecoStepsGPU.set((unsigned char) 0);
 	if (!IsGPU()) mDeviceProcessingSettings.trackletConstructorInPipeline = mDeviceProcessingSettings.trackletSelectorInPipeline = false;
-	if (GetDeviceType() == OCL) mDeviceProcessingSettings.runTPCMergerGPU = mDeviceProcessingSettings.runTRDTrackerGPU = false;
 	if (param().rec.NonConsecutiveIDs) param().rec.DisableRefitAttachment = 0xFF;
 	if (!mDeviceProcessingSettings.trackletConstructorInPipeline) mDeviceProcessingSettings.trackletSelectorInPipeline = false;
 		
@@ -115,11 +112,11 @@ int AliGPUReconstruction::Init()
 	}
 	for (unsigned int i = 0;i < NSLICES;i++)
 	{
-		RegisterGPUProcessor(&workers()->tpcTrackers[i].Data(), mDeviceProcessingSettings.runTPCSliceTrackerGPU);
-		RegisterGPUProcessor(&workers()->tpcTrackers[i], mDeviceProcessingSettings.runTPCSliceTrackerGPU);
+		RegisterGPUProcessor(&workers()->tpcTrackers[i].Data(), mRecoStepsGPU & RecoStep::TPCSliceTracking);
+		RegisterGPUProcessor(&workers()->tpcTrackers[i], mRecoStepsGPU & RecoStep::TPCSliceTracking);
 	}
-	RegisterGPUProcessor(&workers()->tpcMerger, mDeviceProcessingSettings.runTPCMergerGPU);
-	RegisterGPUProcessor(&workers()->trdTracker, mDeviceProcessingSettings.runTRDTrackerGPU);
+	RegisterGPUProcessor(&workers()->tpcMerger, mRecoStepsGPU & RecoStep::TPCMerging);
+	RegisterGPUProcessor(&workers()->trdTracker, mRecoStepsGPU & RecoStep::TRDTracking);
 
 	for (unsigned int i = 0;i < mProcessors.size();i++)
 	{

@@ -55,10 +55,4 @@ void AliGPUCASettingsDeviceProcessing::SetDefaults()
 	nStreams = 8;
 	trackletConstructorInPipeline = true;
 	trackletSelectorInPipeline = false;
-	runTPCSliceTracker = true;
-	runTPCMerger = true;
-	runTRDTracker = true;
-	runTPCSliceTrackerGPU = true;
-	runTPCMergerGPU = true;
-	runTRDTrackerGPU = true;
 }

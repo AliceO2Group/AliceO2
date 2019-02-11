@@ -16,6 +16,8 @@
 #include "AliGPUCADataTypes.h"
 #include "AliGPUTPCSliceOutput.h"
 
+#include "cmodules/bitfield.h"
+
 class AliGPUTPCSliceOutput;
 class AliGPUTPCSliceOutTrack;
 class AliGPUTPCSliceOutCluster;
@@ -68,6 +70,8 @@ public:
 	enum DeviceType : unsigned int {INVALID_DEVICE = 0, CPU = 1, CUDA = 2, HIP = 3, OCL = 4};
 	static constexpr const char* const DEVICE_TYPE_NAMES[] = {"INVALID", "CPU", "CUDA", "HIP", "OCL"};
 	static DeviceType GetDeviceType(const char* type);
+	
+	enum class RecoStep {TPCSliceTracking = 1, TPCMerging = 2, TRDTracking = 4};
 
 	//Functionality to create an instance of AliGPUReconstruction for the desired device
 	static AliGPUReconstruction* CreateInstance(const AliGPUCASettingsProcessing& cfg);
@@ -220,6 +224,10 @@ public:
 	AliGPUCAOutputControl& OutputControl() {return mOutputControl;}
 	const AliGPUTPCSliceOutput** SliceOutput() const {return (const AliGPUTPCSliceOutput**) &mSliceOutput;}
 	virtual int GetMaxThreads();
+	bitfield<RecoStep, unsigned char>& RecoSteps() {if (mInitialized) throw std::runtime_error("Cannot change reco steps once initialized"); return mRecoSteps;}
+	bitfield<RecoStep, unsigned char>& RecoStepsGPU() {if (mInitialized) throw std::runtime_error("Cannot change reco steps once initialized"); return mRecoStepsGPU;}
+	bitfield<RecoStep, unsigned char> GetRecoSteps() const {return mRecoSteps;}
+	bitfield<RecoStep, unsigned char> GetRecoStepsGPU() const {return mRecoStepsGPU;}
 	
 	const void* mConfigDisplay = nullptr;										//Abstract pointer to Standalone Display Configuration Structure
 	const void* mConfigQA = nullptr;											//Abstract pointer to Standalone QA Configuration Structure
@@ -267,6 +275,9 @@ protected:
 	template <class T> std::unique_ptr<T> ReadStructFromFile(const char* file);
 	template <class T> void ReadStructFromFile(const char* file, T* obj);
 	
+	//Others
+	virtual bitfield<RecoStep, unsigned char> AvailableRecoSteps() {return ((unsigned char) -1);}
+	
 	//Pointers to tracker classes
 	AliGPUCAWorkers* workers() {return mHostConstantMem.get();}
 	const AliGPUCAWorkers* workers() const {return mHostConstantMem.get();}
@@ -276,25 +287,26 @@ protected:
 	std::unique_ptr<o2::ITS::VertexerTraits> mITSVertexerTraits;
 	AliGPUTPCSliceOutput* mSliceOutput[NSLICES];
 	
-	AliGPUCASettingsEvent mEventSettings;										//Event Parameters
-	AliGPUCASettingsProcessing mProcessingSettings;								//Processing Parameters (at constructor level)
-	AliGPUCASettingsDeviceProcessing mDeviceProcessingSettings;					//Processing Parameters (at init level)
-	AliGPUCAOutputControl mOutputControl;										//Controls the output of the individual components
-	
+	//Display / QA
 	std::unique_ptr<AliGPUCADisplay> mEventDisplay;
 	bool mDisplayRunning = false;
 	std::unique_ptr<AliGPUCAQA> mQA;
 	bool mQAInitialized = false;
-	
+
+	//Settings
+	AliGPUCASettingsEvent mEventSettings;										//Event Parameters
+	AliGPUCASettingsProcessing mProcessingSettings;								//Processing Parameters (at constructor level)
+	AliGPUCASettingsDeviceProcessing mDeviceProcessingSettings;					//Processing Parameters (at init level)
+	AliGPUCAOutputControl mOutputControl;										//Controls the output of the individual components
+	bitfield<RecoStep, unsigned char> mRecoSteps = (unsigned char) -1;
+	bitfield<RecoStep, unsigned char> mRecoStepsGPU = (unsigned char) -1;
+
+	//Ptr to reconstruction detecto objects
 	std::unique_ptr<ClusterNativeAccessExt> mClusterNativeAccess;				//Internal memory for clusterNativeAccess
 	std::unique_ptr<TPCFastTransform> mTPCFastTransform;						//Global TPC fast transformation object
 	std::unique_ptr<o2::trd::TRDGeometryFlat> mTRDGeometry;						//TRD Geometry
-	
-	bool mInitialized = false;
-	std::ofstream mDebugFile;
-	
-	int mStatNEvents = 0;
-	
+
+	//Ptrs to host and device memory;
 	void* mHostMemoryBase = nullptr;
 	void* mHostMemoryPermanent = nullptr;
 	void* mHostMemoryPool = nullptr;
@@ -304,6 +316,11 @@ protected:
 	void* mDeviceMemoryPool = nullptr;
 	size_t mDeviceMemorySize = 0;
 	
+	//Others
+	bool mInitialized = false;
+	std::ofstream mDebugFile;
+	int mStatNEvents = 0;
+
 	//Management for AliGPUProcessors
 	struct ProcessorData
 	{
