@@ -4,7 +4,7 @@
 #include <gpucf/common/log.h>
 #include <gpucf/errors/FileErrors.h>
 
-#include <gpucf/experiments/TimeNaiveCf.h>
+#include <gpucf/experiments/TimeCf.h>
 
 
 using namespace gpucf;
@@ -56,15 +56,36 @@ int Benchmark::mainImpl()
 
 void Benchmark::registerExperiments()
 {
+    GPUClusterFinder::Config naiveConfig;
+    naiveConfig.usePackedDigits = false;
     experiments.emplace_back(
-            new TimeNaiveCf(digits, iterations->Get(), baseDir));
+            new TimeCf(
+                    "naive cluster finder", 
+                    "paddedClusterFinder.csv",
+                    naiveConfig,
+                    digits, 
+                    iterations->Get(), 
+                    baseDir));
+
+    GPUClusterFinder::Config packedDigitsConf;
+    packedDigitsConf.usePackedDigits = true;
+    experiments.emplace_back(
+            new TimeCf(
+                    "packed digits cluster finder", 
+                    "packedClusterFinder.csv",
+                    packedDigitsConf,
+                    digits, 
+                    iterations->Get(), 
+                    baseDir));
 }
+
 
 void Benchmark::runExperiments(ClEnv &env)
 {
     for (auto &experiment : experiments)
     {
-        experiment->run(env); 
+        ClEnv currEnv = env;
+        experiment->run(currEnv); 
     }
 }
 

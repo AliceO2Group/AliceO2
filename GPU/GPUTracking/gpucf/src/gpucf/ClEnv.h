@@ -51,15 +51,17 @@ public:
         return devices[gpuId]; 
     }
 
-    cl::Program buildFromSrc(
-            const filesystem::path &srcFile,
-            const std::vector<std::string> &defines);
-
+    cl::Program buildFromSrc(const filesystem::path &);
+            
     cl::Program::Sources loadSrc(const filesystem::path &srcFile);
+
+    void addDefine(const std::string &);
 
 private:
     std::vector<cl::Platform> platforms;
     std::vector<cl::Device> devices;
+
+    std::vector<std::string> defines;
 
     size_t gpuId;
 

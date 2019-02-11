@@ -40,20 +40,20 @@ ClEnv::ClEnv(const fs::path &srcDir, size_t gid)
     std::string deviceName;
     getDevice().getInfo(CL_DEVICE_NAME, &deviceName);
     log::Info() << "Running on device " << deviceName;
+
+#if defined(NDEBUG)
+    addDefine("NDEBUG");
+#endif
+
 }
 
-cl::Program ClEnv::buildFromSrc(
-        const fs::path &srcFile, 
-        const std::vector<std::string> &defines) 
+cl::Program ClEnv::buildFromSrc(const fs::path &srcFile)
 {
     cl::Program::Sources src = loadSrc(srcFile);
 
     cl::Program prg(context, src);
 
     std::string buildOpts = "-Werror";
-#if defined(NDEBUG)
-    buildOpts += " -DNDEBUG";
-#endif
     buildOpts += " -I" + sourceDir.str();
     buildOpts += " -cl-std=CL2.0";
 
@@ -61,6 +61,8 @@ cl::Program ClEnv::buildFromSrc(
     {
         buildOpts += " -D" + def;
     }
+
+    log::Info() << "Build flags: " << buildOpts;
 
     try 
     {
@@ -97,6 +99,11 @@ cl::Program::Sources ClEnv::loadSrc(const fs::path &srcFile)
     cl::Program::Sources source({code});
 
     return source;
+}
+
+void ClEnv::addDefine(const std::string &def)
+{
+    defines.push_back(def);
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:
