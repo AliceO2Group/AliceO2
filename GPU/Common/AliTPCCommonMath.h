@@ -13,6 +13,7 @@
 
 #if !defined(__OPENCL__)
 #include <cmath>
+#include <algorithm>
 #endif
 
 class AliTPCCommonMath

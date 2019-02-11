@@ -19,7 +19,7 @@ if (ENABLE_CUDA OR ENABLE_OPENCL OR ENABLE_HIP)
     if (CMAKE_SYSTEM_NAME MATCHES Darwin)
         message(WARNING "GPU Tracking disabled on MacOS")
     else()
-        set(DEFINITIONS ${DEFINITIONS} GPUCA_ENABLE_GPU_TRACKER)
+        set(GPUCA_ENABLE_GPU_TRACKER "ON")
         if(ENABLE_CUDA)
             add_subdirectory(GlobalTracker/cuda)
         endif()
@@ -77,7 +77,6 @@ set(SRCS
 set(SRCS_NO_CINT
     GlobalTracker/AliGPUReconstruction.cxx
     GlobalTracker/AliGPUReconstructionCPU.cxx
-    GlobalTracker/AliGPUReconstructionDeviceBase.cxx
     GlobalTracker/AliGPUReconstructionConvert.cxx
     GlobalTracker/AliGPUCASettings.cxx
     GlobalTracker/AliGPUProcessor.cxx
@@ -128,6 +127,11 @@ set(HDRS2
     Standalone/qa/AliGPUCAQAConfig.h
     GlobalTracker/AliGPUReconstructionKernels.h
 )
+
+if (GPUCA_ENABLE_GPU_TRACKER)
+    set(SRCS_NO_CINT ${SRCS_NO_CINT} GlobalTracker/AliGPUReconstructionDeviceBase.cxx)
+endif()
+        
 
 #Some extra files / includes / settings needed for the build for AliRoot
 if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
