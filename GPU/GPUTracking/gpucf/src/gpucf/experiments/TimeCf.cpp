@@ -1,4 +1,4 @@
-#include "TimeNaiveCf.h"
+#include "TimeCf.h"
 
 #include <gpucf/common/log.h>
 
@@ -8,11 +8,15 @@ namespace fs = filesystem;
 
 
 TimeCf::TimeCf(
+        const std::string &n,
+        fs::path tgt,
         GPUClusterFinder::Config conf,
         nonstd::span<const Digit> d, 
         size_t N, 
         fs::path baseDir)
     : Experiment(baseDir)
+    , name(n)
+    , tgtFile(tgt)
     , config(conf)
     , repeats(N)
     , digits(d)
@@ -23,9 +27,9 @@ void TimeCf::run(ClEnv &env)
 {
     GPUClusterFinder cf; 
 
-    cf.setup(GPUClusterFinder::defaultConfig, env, digits);
+    cf.setup(config, env, digits);
 
-    log::Info() << "Benchmarking naive cluster finder...";
+    log::Info() << "Benchmarking " << name;
 
     CsvFile measurements;
 
@@ -35,7 +39,7 @@ void TimeCf::run(ClEnv &env)
         measurements.add(res.profiling);
     }
 
-    saveFile("naiveClusterFinder.csv", measurements);
+    saveFile(tgtFile, measurements);
 }
     
 

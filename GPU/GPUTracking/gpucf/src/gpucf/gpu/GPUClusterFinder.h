@@ -93,7 +93,7 @@ private:
 
     void fillPackedDigits();
 
-    std::vector<std::string> makeClConfig();
+    void addDefines(ClEnv &);
 };
 
 }

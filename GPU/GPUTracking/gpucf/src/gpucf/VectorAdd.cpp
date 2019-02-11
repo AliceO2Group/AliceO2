@@ -31,7 +31,7 @@ bool VectorAdd::run(ClEnv &env)
 
     cl::CommandQueue queue = cl::CommandQueue(context, device);
 
-    cl::Program addPrg = env.buildFromSrc("vecadd.cl", {});
+    cl::Program addPrg = env.buildFromSrc("vecadd.cl");
     cl::Kernel addKernel(addPrg, "vecadd");
 
     size_t datasize = sizeof(int) * a.size();

@@ -25,7 +25,7 @@ int SubGroupInfo::mainImpl()
     cl::Context context = env.getContext();
 
     // Load kernels
-    cl::Program cfprg = env.buildFromSrc("clusterFinder.cl", {});
+    cl::Program cfprg = env.buildFromSrc("clusterFinder.cl");
     cl::Kernel findClusters(cfprg, "findClusters");
 
     cl_int err;
