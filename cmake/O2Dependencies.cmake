@@ -2269,6 +2269,17 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    mid_base_test_bucket
+
+    DEPENDENCIES
+    Boost::unit_test_framework
+    RapidJSON
+    mid_base_bucket
+    MIDBase
+)
+
+o2_define_bucket(
+    NAME
     mid_clustering_bucket
 
     DEPENDENCIES
