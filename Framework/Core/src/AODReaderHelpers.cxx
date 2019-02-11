@@ -35,7 +35,9 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
     bool readTracksExtra = false;
     bool readCalo = false;
     bool readMuon = false;
+    bool readDZeroFlagged = false;
     bool readVZ = false;
+
     // FIXME: bruteforce but effective.
     for (auto& route : spec.outputs) {
       if (route.matcher.origin != header::DataOrigin{ "AOD" }) {
@@ -52,6 +54,8 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         readCalo = true;
       } else if (description == header::DataDescription{ "MUON" }) {
         readMuon = true;
+      } else if (description == header::DataDescription{ "DZEROFLAGGED" }) {
+        readDZeroFlagged = true;
       } else if (description == header::DataDescription{ "VZERO" }) {
         readVZ = true;
       } else {
@@ -64,6 +68,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
                            readTracksExtra,
                            readCalo,
                            readMuon,
+                           readDZeroFlagged,
                            readVZ,
                            infile](DataAllocator& outputs) {
       if (infile.get() == nullptr || infile->IsOpen() == false) {
@@ -165,6 +170,33 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         auto& vzBuilder = outputs.make<TableBuilder>(Output{ "AOD", "VZERO" });
         RootTableBuilderHelpers::convertTTree(vzBuilder, *vzReader,
                                               c0, c1, c2);
+      }
+
+      // Candidates as described by Gianmichele example
+      if (readDZeroFlagged) {
+        std::unique_ptr<TTreeReader> dzReader = std::make_unique<TTreeReader>("fTreeDzeroFlagged", infile.get());
+
+        TTreeReaderValue<float> c0(*dzReader, "d_len_ML");
+        TTreeReaderValue<float> c1(*dzReader, "cand_type_ML");
+        TTreeReaderValue<float> c2(*dzReader, "cos_p_ML");
+        TTreeReaderValue<float> c3(*dzReader, "cos_p_xy_ML");
+        TTreeReaderValue<float> c4(*dzReader, "d_len_xy_ML");
+        TTreeReaderValue<float> c5(*dzReader, "eta_prong0_ML");
+        TTreeReaderValue<float> c6(*dzReader, "eta_prong1_ML");
+        TTreeReaderValue<float> c7(*dzReader, "imp_par_prong0_ML");
+        TTreeReaderValue<float> c8(*dzReader, "imp_par_prong1_ML");
+        TTreeReaderValue<float> c9(*dzReader, "imp_par_xy_ML");
+        TTreeReaderValue<float> c10(*dzReader, "inv_mass_ML");
+        TTreeReaderValue<float> c11(*dzReader, "max_norm_d0d0exp_ML");
+        TTreeReaderValue<float> c12(*dzReader, "norm_dl_xy_ML");
+        TTreeReaderValue<float> c13(*dzReader, "pt_cand_ML");
+        TTreeReaderValue<float> c14(*dzReader, "pt_prong0_ML");
+        TTreeReaderValue<float> c15(*dzReader, "pt_prong1_ML");
+        TTreeReaderValue<float> c16(*dzReader, "y_cand_ML");
+
+        auto& dzBuilder = outputs.make<TableBuilder>(Output{ "AOD", "DZEROFLAGGED" });
+        RootTableBuilderHelpers::convertTTree(dzBuilder, *dzReader,
+                                              c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16);
       }
     });
   }) };
