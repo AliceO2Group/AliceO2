@@ -166,8 +166,9 @@ BOOST_AUTO_TEST_CASE(ParameterGEM_test1)
   BOOST_CHECK_CLOSE(gemParam.getAbsoluteGain(2), 8.f, 1e-3);
   BOOST_CHECK_CLOSE(gemParam.getAbsoluteGain(3), 53.f, 1e-3);
   BOOST_CHECK_CLOSE(gemParam.getAbsoluteGain(4), 240.f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getTotalGainStack(), 2000.f, 1e-3);
-  BOOST_CHECK_CLOSE(gemParam.getKappaStack(), 0.4f, 1e-3);
+  BOOST_CHECK_CLOSE(gemParam.getTotalGainStack(), 1644.f, 1e-3);
+  BOOST_CHECK_CLOSE(gemParam.getKappaStack(), 1.2295f, 1e-3);
+  BOOST_CHECK_CLOSE(gemParam.getEfficiencyStack(), 0.473805f, 1e-3);
   BOOST_CHECK(gemParam.getAmplificationMode() == AmplificationMode::EffectiveMode);
 
   // For fixed values
@@ -201,6 +202,7 @@ BOOST_AUTO_TEST_CASE(ParameterGEM_test2)
   gemParam.setExtractionEfficiency(21.f, 22.f, 23.f, 24.f);
   gemParam.setTotalGainStack(25.f);
   gemParam.setKappaStack(26.f);
+  gemParam.setEfficiencyStack(27.f);
   gemParam.setAmplificationMode(AmplificationMode::EffectiveMode);
   BOOST_CHECK(gemParam.getGeometry(1) == 0);
   BOOST_CHECK(gemParam.getGeometry(2) == 2);
@@ -234,6 +236,7 @@ BOOST_AUTO_TEST_CASE(ParameterGEM_test2)
   BOOST_CHECK_CLOSE(gemParam.getExtractionEfficiency(4), 24.f, 1e-12);
   BOOST_CHECK_CLOSE(gemParam.getTotalGainStack(), 25.f, 1e-12);
   BOOST_CHECK_CLOSE(gemParam.getKappaStack(), 26.f, 1e-12);
+  BOOST_CHECK_CLOSE(gemParam.getEfficiencyStack(), 27., 1e-3);
   BOOST_CHECK(gemParam.getAmplificationMode() == AmplificationMode::EffectiveMode);
 
   for (int i = 1; i < 5; ++i) {
