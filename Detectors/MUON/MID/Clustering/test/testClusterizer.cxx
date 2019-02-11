@@ -35,51 +35,6 @@ namespace o2
 namespace mid
 {
 
-// std::vector<uint32_t> getDigits(int event)
-// {
-//   std::vector<uint32_t> digits;
-//   switch (event) {
-//     case 0:
-//       digits.push_back(LegacyUtility::encodeDigit(1400, 26, 14, 0));
-//       digits.push_back(LegacyUtility::encodeDigit(1400, 26, 15, 0));
-//       digits.push_back(LegacyUtility::encodeDigit(1400, 27, 0, 0));
-//       digits.push_back(LegacyUtility::encodeDigit(1400, 27, 1, 0));
-//       digits.push_back(LegacyUtility::encodeDigit(1400, 49, 0, 0));
-//       digits.push_back(LegacyUtility::encodeDigit(1400, 26, 4, 1));
-//       digits.push_back(LegacyUtility::encodeDigit(1400, 26, 5, 1));
-//       digits.push_back(LegacyUtility::encodeDigit(1400, 26, 7, 1));
-//       digits.push_back(LegacyUtility::encodeDigit(1400, 48, 0, 1));
-//       break;
-//     case 1:
-//       digits.push_back(LegacyUtility::encodeDigit(1408, 127, 14, 0));
-//       digits.push_back(LegacyUtility::encodeDigit(1408, 127, 15, 0));
-//       digits.push_back(LegacyUtility::encodeDigit(1408, 128, 0, 0));
-//       digits.push_back(LegacyUtility::encodeDigit(1408, 128, 1, 0));
-//       digits.push_back(LegacyUtility::encodeDigit(1408, 150, 1, 0));
-//       digits.push_back(LegacyUtility::encodeDigit(1408, 126, 2, 1));
-//       digits.push_back(LegacyUtility::encodeDigit(1408, 126, 3, 1));
-//       digits.push_back(LegacyUtility::encodeDigit(1408, 126, 15, 1));
-//       digits.push_back(LegacyUtility::encodeDigit(1408, 147, 0, 1));
-//       break;
-//     case 2:
-//       digits.push_back(LegacyUtility::encodeDigit(1400, 26, 14, 0));
-//       digits.push_back(LegacyUtility::encodeDigit(1400, 26, 15, 0));
-//       digits.push_back(LegacyUtility::encodeDigit(1400, 27, 0, 0));
-//       digits.push_back(LegacyUtility::encodeDigit(1400, 27, 1, 0));
-//       digits.push_back(LegacyUtility::encodeDigit(1400, 48, 14, 0));
-//       digits.push_back(LegacyUtility::encodeDigit(1400, 48, 15, 0));
-//       digits.push_back(LegacyUtility::encodeDigit(1400, 49, 0, 0));
-//       digits.push_back(LegacyUtility::encodeDigit(1400, 49, 1, 0));
-//       digits.push_back(LegacyUtility::encodeDigit(1400, 26, 7, 1));
-//       digits.push_back(LegacyUtility::encodeDigit(1400, 48, 0, 1));
-//       break;
-//     default:
-//       std::cerr << "Event " << event << "not defined" << std::endl;
-//   }
-//
-//   return digits;
-// }
-
 std::vector<ColumnData> getColumnsFixed(int event)
 {
   std::vector<ColumnData> columns;
@@ -227,8 +182,6 @@ class MyFixture
 
 BOOST_DATA_TEST_CASE_F(MyFixture, MID_Clustering_Fixed, boost::unit_test::data::xrange(3))
 {
-  // std::vector<ColumnData> columns = LegacyUtility::digitsToPattern(getDigits(sample));
-  // clusterizer.process(columns);
   preClusterizer.process(getColumnsFixed(sample));
   clusterizer.process(preClusterizer.getPreClusters());
   std::vector<Cluster2D> clusters = getClusters(sample);

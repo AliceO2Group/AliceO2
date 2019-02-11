@@ -18,7 +18,6 @@ set(NO_DICT_HEADERS
   include/${MODULE_NAME}/LegacyUtility.h
   include/${MODULE_NAME}/Mapping.h
   include/${MODULE_NAME}/MpArea.h
-  include/${MODULE_NAME}/Serializer.h
 )
 
 set(LIBRARY_NAME ${MODULE_NAME})
