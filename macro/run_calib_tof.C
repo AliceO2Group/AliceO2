@@ -56,17 +56,15 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparam
   */
   calib.init();
 
-  calib.run(0);
+  //  calib.run(o2::globaltracking::CalibTOF::kLHCphase);
+  //calib.run(o2::globaltracking::CalibTOF::kChannelOffset);
+  //calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing); // all sectors
+  calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 10); // only sector 10 (as example)
 
   outFile.cd();
   outTree.Write();
   calib.getLHCphaseHisto()->Write();
   calib.getChTimeSlewingHistoAll()->Write();
-
-  for(int i=0; i < calib.NPADSPERSTEP; i++){
-    //calib.getChOffsetHisto(i)->Write();
-    //calib.getChTimeSlewingHisto(i)->Write();
-  }
 
   outFile.Close();
 

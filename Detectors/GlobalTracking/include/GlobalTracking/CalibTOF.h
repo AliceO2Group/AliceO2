@@ -40,9 +40,14 @@ class CalibTOF
   using Geo = o2::tof::Geo;
   
  public:
-  static constexpr int NSTRIPPERSTEP = 9;
-  static constexpr int NPADSPERSTEP = Geo::NPADS * NSTRIPPERSTEP;
-
+  static constexpr int NSTRIPSPERSTEP = 13;  // we chose this number because we process per sector, and 
+                                            // each sector has 91 = 13x7 strips
+  static constexpr int NPADSPERSTEP = Geo::NPADS * NSTRIPSPERSTEP;
+  static constexpr int NSTEPSPERSECTOR = 91 / NSTRIPSPERSTEP;
+  enum {kLHCphase = 1,
+	kChannelOffset = 2,
+	kChannelTimeSlewing = 4}; // enum to define which calibration we will do
+  
   ///< constructor
   CalibTOF();
   
@@ -50,7 +55,7 @@ class CalibTOF
   ~CalibTOF(); 
 
   ///< calibrate using the provided input
-  void run(int flag);
+  void run(int flag, int sector = -1);
 
   ///< perform all initializations
   void init();
@@ -73,8 +78,6 @@ class CalibTOF
   void print() const;
 
   TH2F *getLHCphaseHisto() {return mHistoLHCphase;}
-  TH1F *getChOffsetHisto(int ipad) {return mHistoChOffsetTemp[ipad];}
-  TH2F *getChTimeSlewingHisto(int ipad) {return mHistoChTimeSlewingTemp[ipad];};
   TH2F *getChTimeSlewingHistoAll() {return mHistoChTimeSlewingAll;};
   void setMinTimestamp(int minTimestamp) {mMinTimestamp = minTimestamp;}
   void setMaxTimestamp(int maxTimestamp) {mMaxTimestamp = maxTimestamp;}
@@ -82,24 +85,20 @@ class CalibTOF
  private:
   void fillLHCphaseCalibInput(); // we will fill the input for the LHC phase calibration
   void doLHCPhaseCalib(); // calibrate with respect LHC phase
-  void fillChannelCalibInput(float offset, int ipad); // we will fill the input for the channel-level calibration
-  void fillChannelTimeSlewingCalib(float offset, int ipad);// we will fill the input for the channel-time-slewing calibration
-  void doChannelLevelCalibration(int flag, int ipad); // calibrate single channel from histos
-  void resetChannelLevelHistos(int flag); // reset signle channel histos
+  void fillChannelCalibInput(float offset, int ipad, TH1F* histo, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad); // we will fill the input for the channel-level calibration
+  void fillChannelTimeSlewingCalib(float offset, int ipad, TH2F* histo, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad);// we will fill the input for the channel-time-slewing calibration
+  void doChannelLevelCalibration(int flag, int ipad, TH1F* histo, TF1* func); // calibrate single channel from histos
+  void resetChannelLevelHistos(int flag, TH1F* histoOffset[NPADSPERSTEP], TH2F* histoTimeSlewing, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad[NPADSPERSTEP]); // reset signle channel histos
  
 
   // objects needed for calibration
   TH2F *mHistoLHCphase = nullptr;
-  TH1F *mHistoChOffsetTemp[NPADSPERSTEP];  // to fill all pads of a strip simultaneosly 
-  TH2F *mHistoChTimeSlewingTemp[NPADSPERSTEP];  // to fill all pads of a strip simultaneosly 
   TH2F *mHistoChTimeSlewingAll; // time slewing all channels
 
   TH1D *mProjTimeSlewingTemp; // temporary histo for time slewing
 
   void attachInputTrees();
   bool loadTOFCollectedCalibInfo(int increment = 1);
-
-  int doCalib(int flag, int channel = -1); // flag: 0=LHC phase, 1=channel offset+problematic(return value), 2=time-slewing
 
 
   //================================================================
@@ -122,8 +121,6 @@ class CalibTOF
   std::vector<o2::dataformats::CalibInfoTOFshort>* mCalibInfoTOF = nullptr; ///< input TOF matching info
   /// <<<-----
 
-  std::vector<o2::dataformats::CalibInfoTOFshort>* mCalibTimePad[NPADSPERSTEP]; ///< temporary array containing [time, tot] for every pad that we process; this will be the input for the 2D histo for timeSlewing calibration (to be filled after we get the channel offset)
-  
   std::string mCollectedCalibInfoTOFBranchName = "TOFCollectedCalibInfo";   ///< name of branch containing input TOF calib infos
   std::string mOutputBranchName = "TOFCalibParam";        ///< name of branch containing output
   // output calibration
@@ -141,7 +138,6 @@ class CalibTOF
 
 
   TF1 *mFuncLHCphase = nullptr;
-  TF1 *mFuncChOffset = nullptr;
 
   int mMinTimestamp = 0;   ///< minimum timestamp over the hits that we collect; we need it to
                            ///< book the histogram for the LHCPhase calibration

@@ -68,6 +68,7 @@ class Geo
   static constexpr Int_t NSTRIPC = 19;
   static constexpr Int_t NMAXNSTRIP = 20;
   static constexpr Int_t NSTRIPXSECTOR = NSTRIPA + 2 * NSTRIPB + 2 * NSTRIPC;
+  static constexpr Int_t NPADSXSECTOR = NSTRIPXSECTOR * NPADS;
 
   static constexpr Int_t NSECTORS = 18;
   static constexpr Int_t NSTRIPS = NSECTORS * NSTRIPXSECTOR;
