@@ -46,20 +46,6 @@
 using namespace o2::trd;
 
 //_____________________________________________________________________________
-TRDCalROC::TRDCalROC()
-  : mPla(0),
-    mCha(0),
-    mNrows(0),
-    mNcols(0),
-    mNchannels(0),
-    mData(nullptr)
-{
-  //
-  // Default constructor
-  //
-}
-
-//_____________________________________________________________________________
 TRDCalROC::TRDCalROC(int p, int c)
   : mPla(p),
     mCha(c),

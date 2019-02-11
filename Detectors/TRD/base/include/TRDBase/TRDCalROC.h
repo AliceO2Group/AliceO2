@@ -21,9 +21,9 @@ namespace trd
 class TRDCalROC
 {
  public:
-  TRDCalROC();
+  TRDCalROC() = default;
   TRDCalROC(int, int);
-  virtual ~TRDCalROC();
+  ~TRDCalROC();
 
   int getNrows() const { return mNrows; };
   int getNcols() const { return mNcols; };
@@ -60,12 +60,12 @@ class TRDCalROC
   TH1F* makeHisto1D(float min, float max, int type, float mu = 1.0);
 
  protected:
-  int mPla{ 0 };         //  Plane number
-  int mCha{ 0 };         //  Chamber number
-  int mNrows{ 0 };       //  Number of rows
-  int mNcols{ 0 };       //  Number of columns
-  int mNchannels{ 0 };   //  Number of channels
-  unsigned short* mData; //[mNchannels] Data
+  int mPla{ 0 };                   //  Plane number
+  int mCha{ 0 };                   //  Chamber number
+  int mNrows{ 0 };                 //  Number of rows
+  int mNcols{ 0 };                 //  Number of columns
+  int mNchannels{ 0 };             //  Number of channels
+  unsigned short* mData = nullptr; //[mNchannels] Data
 };
 } // namespace trd
 } // namespace o2
