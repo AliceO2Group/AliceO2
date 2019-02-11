@@ -1,0 +1,4 @@
+# Run2 ESD to AOD converter
+
+This is an helper device to read Run2 ESD data and pump it through a DPL flow,
+in a format which resembles Run 3 data.
