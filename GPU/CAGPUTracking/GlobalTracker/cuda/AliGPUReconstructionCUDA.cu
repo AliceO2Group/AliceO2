@@ -21,7 +21,6 @@ texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
 namespace o2 { namespace ITS { class TrackerTraitsNV : public TrackerTraits {}; }}
 #endif
 
-#define DEVICE_KERNELS_PRE
 #include "AliGPUDeviceKernels.h"
 
 template <class T, int I, typename... Args> GPUg() void runKernelCUDA(int iSlice, Args... args)

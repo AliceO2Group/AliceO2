@@ -11,7 +11,6 @@ __constant__ AliGPUCAConstantMem& gGPUConstantMem = (AliGPUCAConstantMem&) gGPUC
 
 namespace o2 { namespace ITS { class TrackerTraitsHIP : public TrackerTraits {}; }}
 
-#define DEVICE_KERNELS_PRE
 #include "AliGPUDeviceKernels.h"
 
 template <class T, int I, typename... Args> GPUg() void runKernelHIP(int iSlice, Args... args)

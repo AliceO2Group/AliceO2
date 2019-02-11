@@ -390,7 +390,7 @@ int AliGPUReconstructionCPU::RunStandalone()
 		}
 	}
 	
-	if (mDeviceProcessingSettings.runTRDTracker && mIOPtrs.nTRDTracklets)
+	if (mRecoSteps.isSet(RecoStep::TRDTracking) && mIOPtrs.nTRDTracklets)
 	{
 		HighResTimer timer;
 		timer.Start();

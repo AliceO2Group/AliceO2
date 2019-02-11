@@ -245,7 +245,7 @@ void AliGPUTRDTracker::DoTracking()
 
   auto timeStart = std::chrono::high_resolution_clock::now();
 
-  if (mRec->GetDeviceProcessingSettings().runTRDTrackerGPU)
+  if (mRec->GetRecoStepsGPU() & AliGPUReconstruction::RecoStep::TRDTracking)
   {
     mRec->DoTRDGPUTracking();
   }

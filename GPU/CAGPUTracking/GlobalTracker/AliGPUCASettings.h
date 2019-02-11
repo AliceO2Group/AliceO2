@@ -88,12 +88,6 @@ struct AliGPUCASettingsDeviceProcessing
 	int nStreams;								//Number of parallel GPU streams
 	bool trackletConstructorInPipeline;			//Run tracklet constructor in pileline like the preceeding tasks instead of as one big block
 	bool trackletSelectorInPipeline;			//Run tracklet selector in pipeline, requres also tracklet constructor in pipeline
-	bool runTPCSliceTracker;
-	bool runTPCMerger;
-	bool runTRDTracker;
-	bool runTPCSliceTrackerGPU;
-	bool runTPCMergerGPU;
-	bool runTRDTrackerGPU;
 };
 
 #endif
