@@ -13,7 +13,9 @@ namespace gpucf
 class TimeCf : public Experiment
 {
 public:
-    TimeCf( GPUClusterFinder config,
+    TimeCf( const std::string &,
+            filesystem::path,
+            GPUClusterFinder::Config,
             nonstd::span<const Digit>, 
             size_t, 
             filesystem::path);
@@ -21,6 +23,9 @@ public:
     void run(ClEnv &) override;
 
 private:
+    std::string name;
+    filesystem::path tgtFile;
+
     GPUClusterFinder::Config config;
     size_t repeats;
     nonstd::span<const Digit> digits;

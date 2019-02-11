@@ -32,13 +32,14 @@ void GPUClusterFinder::setup(Config conf, ClEnv &env, nonstd::span<const Digit> 
         fillPackedDigits(); 
     }
 
+    addDefines(env);
+
     streamCompaction.setup(env, digits.size());
 
     context = env.getContext(); 
     device  = env.getDevice();
 
-    std::vector<std::string> defines = makeClConfig();
-    cl::Program cfprg = env.buildFromSrc("clusterFinder.cl", defines);
+    cl::Program cfprg = env.buildFromSrc("clusterFinder.cl");
     fillChargeMap   = cl::Kernel(cfprg, "fillChargeMap");
     findPeaks       = cl::Kernel(cfprg, "findPeaks");
     computeClusters = cl::Kernel(cfprg, "computeClusters");
@@ -143,7 +144,7 @@ GPUClusterFinder::Result GPUClusterFinder::run()
                             zeroChargeMap.get());
 
     cl::NDRange global(digits.size());
-    cl::NDRange local(8);
+    cl::NDRange local(64);
 
     fillChargeMap.setArg(0, digitsBuf);
     fillChargeMap.setArg(1, chargeMap);
@@ -284,16 +285,12 @@ void GPUClusterFinder::fillPackedDigits()
     }
 }
 
-std::vector<std::string> GPUClusterFinder::makeClConfig()
+void GPUClusterFinder::addDefines(ClEnv &env)
 {
-    std::vector<std::string> defines;
-
     if (config.usePackedDigits)
     {
-        defines.push_back("USE_PACKED_DIGIT");
+        env.addDefine("USE_PACKED_DIGIT");
     }
-
-    return defines;
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

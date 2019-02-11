@@ -23,7 +23,7 @@ set(GPUCF_SRC
     "./executable/RunSCFuzzer.cpp"
 
     "./experiments/Experiment.cpp"
-    "./experiments/TimeNaiveCf.cpp"
+    "./experiments/TimeCf.cpp"
 
     "./gpu/GPUAlgorithm.cpp"
     "./gpu/GPUClusterFinder.cpp"
