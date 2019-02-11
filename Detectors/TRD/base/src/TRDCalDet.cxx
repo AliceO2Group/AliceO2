@@ -43,21 +43,6 @@
 
 using namespace o2::trd;
 
-TRDCalDet::TRDCalDet()
-{
-  //
-  // TRDCalDet default constructor
-  //
-}
-
-//_____________________________________________________________________________
-TRDCalDet::~TRDCalDet()
-{
-  //
-  // TRDCalDet destructor
-  //
-}
-
 //___________________________________________________________________________________
 double TRDCalDet::getMean(TRDCalDet* const outlierDet) const
 {

@@ -40,20 +40,20 @@ class TRDCalDet
          kNcham = 5,
          kNsect = 18,
          kNdet = 540 };
-  TRDCalDet();
-  ~TRDCalDet();
+  TRDCalDet() = default;
+  ~TRDCalDet() = default;
   //
   float getValue(int d) const { return mData[d]; };
   float getValue(int p, int c, int s) const { return mData[TRDGeometry::getDetector(p, c, s)]; };
   void setValue(int d, float value) { mData[d] = value; };
   void setValue(int p, int c, int s, float value) { mData[TRDGeometry::getDetector(p, c, s)] = value; };
   // statistic
-  double getMean(TRDCalDet* const outlierDet = 0) const;
+  double getMean(TRDCalDet* const outlierDet = nullptr) const;
   double getMeanRobust(double robust = 0.92) const;
-  double getRMS(TRDCalDet* const outlierDet = 0) const;
+  double getRMS(TRDCalDet* const outlierDet = nullptr) const;
   double getRMSRobust(double robust = 0.92) const;
-  double getMedian(TRDCalDet* const outlierDet = 0) const;
-  double getLTM(double* sigma = 0, double fraction = 0.9, TRDCalDet* const outlierDet = 0);
+  double getMedian(TRDCalDet* const outlierDet = nullptr) const;
+  double getLTM(double* sigma = nullptr, double fraction = 0.9, TRDCalDet* const outlierDet = nullptr);
   double calcMean(bool wghtPads = false);
   double calcMean(bool wghtPads, int& calib);
   double calcRMS(bool wghtPads = false);

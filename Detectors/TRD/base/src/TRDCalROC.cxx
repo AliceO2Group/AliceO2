@@ -36,10 +36,9 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <TStyle.h>
 #include <TMath.h>
-#include <TH2F.h>
 #include <TH1F.h>
+#include <TH2F.h>
 #include <TRobustEstimator.h>
 
 #include "TRDBase/TRDCalROC.h"
@@ -53,7 +52,7 @@ TRDCalROC::TRDCalROC()
     mNrows(0),
     mNcols(0),
     mNchannels(0),
-    mData(0)
+    mData(nullptr)
 {
   //
   // Default constructor
@@ -67,7 +66,7 @@ TRDCalROC::TRDCalROC(int p, int c)
     mNrows(0),
     mNcols(144),
     mNchannels(0),
-    mData(0)
+    mData(nullptr)
 {
   //
   // Constructor that initializes a given pad plane type
@@ -152,7 +151,7 @@ TRDCalROC::~TRDCalROC()
 
   if (mData) {
     delete[] mData;
-    mData = 0;
+    mData = nullptr;
   }
 }
 

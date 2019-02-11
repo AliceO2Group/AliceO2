@@ -11,14 +11,8 @@
 //                                              //
 //////////////////////////////////////////////////
 
-#include <TObject.h>
-
-class TArrayI;
-class TArrayF;
-class TH2F;
 class TH1F;
-class TGraph2D;
-class TH2D;
+class TH2F;
 
 namespace o2
 {
@@ -44,12 +38,12 @@ class TRDCalROC
   };
 
   // statistic
-  double getMean(TRDCalROC* const outlierROC = 0) const;
+  double getMean(TRDCalROC* const outlierROC = nullptr) const;
   double getMeanNotNull() const;
-  double getRMS(TRDCalROC* const outlierROC = 0) const;
+  double getRMS(TRDCalROC* const outlierROC = nullptr) const;
   double getRMSNotNull() const;
-  double getMedian(TRDCalROC* const outlierROC = 0) const;
-  double getLTM(double* sigma = 0, double fraction = 0.9, TRDCalROC* const outlierROC = 0);
+  double getMedian(TRDCalROC* const outlierROC = nullptr) const;
+  double getLTM(double* sigma = nullptr, double fraction = 0.9, TRDCalROC* const outlierROC = nullptr);
 
   // algebra
   bool add(float c1);
@@ -66,14 +60,13 @@ class TRDCalROC
   TH1F* makeHisto1D(float min, float max, int type, float mu = 1.0);
 
  protected:
-  int mPla;              //  Plane number
-  int mCha;              //  Chamber number
-  int mNrows;            //  Number of rows
-  int mNcols;            //  Number of columns
-  int mNchannels;        //  Number of channels
+  int mPla{ 0 };         //  Plane number
+  int mCha{ 0 };         //  Chamber number
+  int mNrows{ 0 };       //  Number of rows
+  int mNcols{ 0 };       //  Number of columns
+  int mNchannels{ 0 };   //  Number of channels
   unsigned short* mData; //[mNchannels] Data
 };
 } // namespace trd
 } // namespace o2
-
 #endif
