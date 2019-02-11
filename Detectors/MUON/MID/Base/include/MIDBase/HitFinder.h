@@ -29,13 +29,7 @@ namespace mid
 class HitFinder
 {
  public:
-  HitFinder();
-  virtual ~HitFinder() = default;
-
-  HitFinder(const HitFinder&) = delete;
-  HitFinder& operator=(const HitFinder&) = delete;
-  HitFinder(HitFinder&&) = delete;
-  HitFinder& operator=(HitFinder&&) = delete;
+  HitFinder(const GeometryTransformer& geoTrans);
 
   std::vector<int> getFiredDE(const Track& track, int chamber) const;
   std::vector<std::pair<int, Point3D<float>>> getLocalPositions(const Track& track, int chamber) const;

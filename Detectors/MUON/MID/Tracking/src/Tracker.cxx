@@ -24,9 +24,9 @@ namespace mid
 {
 
 //______________________________________________________________________________
-Tracker::Tracker() : mImpactParamCut(210.), mSigmaCut(5.), mMaxChi2(1.e6), mNTracks(0)
+Tracker::Tracker(const GeometryTransformer& geoTrans) : mTransformer(geoTrans)
 {
-  /// Default constructor
+  /// Constructor
 }
 
 //______________________________________________________________________________

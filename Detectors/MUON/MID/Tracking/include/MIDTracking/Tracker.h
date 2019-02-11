@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MID/Tracking/src/Tracker.h
+/// \file   MIDTracking/Tracker.h
 /// \brief  Track reconstruction algorithm for MID
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   09 May 2017
@@ -30,13 +30,7 @@ namespace mid
 class Tracker
 {
  public:
-  Tracker();
-  virtual ~Tracker() = default;
-
-  Tracker(const Tracker&) = delete;
-  Tracker& operator=(const Tracker&) = delete;
-  Tracker(Tracker&&) = delete;
-  Tracker& operator=(Tracker&&) = delete;
+  Tracker(const GeometryTransformer& geoTrans);
 
   /// Sets impact parameter cut
   void setImpactParamCut(float impactParamCut) { mImpactParamCut = impactParamCut; }
@@ -72,15 +66,15 @@ class Tracker
   double tryOneCluster(const Track& track, const Cluster3D& cluster, Track& newTrack) const;
   void finalizeTrack(Track& track);
 
-  float mImpactParamCut; ///< Cut on impact parameter
-  float mSigmaCut;       ///< Number of sigmas cut
-  float mMaxChi2;        ///< Maximum cut on chi2
+  float mImpactParamCut = 210.; ///< Cut on impact parameter
+  float mSigmaCut = 5.;         ///< Number of sigmas cut
+  float mMaxChi2 = 1.e6;        ///< Maximum cut on chi2
 
   std::vector<Cluster3D> mClusters[72]; ///< Ordered arrays of clusters
   unsigned long int mNClusters[72];     ///< Number of clusters per RPC
 
-  std::vector<Track> mTracks; ///< Array of tracks
-  unsigned long int mNTracks; ///< Number of tracks
+  std::vector<Track> mTracks;     ///< Array of tracks
+  unsigned long int mNTracks = 0; ///< Number of tracks
 
   GeometryTransformer mTransformer; ///< Geometry transformer
 };
