@@ -85,27 +85,6 @@ class Constants
     return deOffset + sNRPCLines * chamber + rpc;
   }
 
-  /// Gets RPC volume name
-  /// @param type RPC type ID (0-2)
-  /// @param chamber The chamber ID (0-3)
-  inline static std::string getRPCVolumeName(int chamber) { return "RPC" + std::to_string(chamber); }
-
-  /// Gets chamber name
-  /// @param chamber The chamber ID (0-3)
-  inline static std::string getChamberName(int chamber) { return "SC1" + std::to_string(chamber + 1); }
-
-  /// Gets chamber node
-  /// @param chamber The chamber ID (0-3)
-  inline static int getChamberNode(int chamber) { return 20 + chamber; }
-
-  ///Gets RPC volume path name
-  /// @param deId The detection element Id (0-71)
-  inline static std::string getRPCVolumePathName(int deId)
-  {
-    int chamber = getChamber(deId);
-    return "/" + getChamberName(chamber) + "_" + std::to_string(getChamberNode(chamber)) + "/" + getRPCVolumeName(chamber) + "_" + std::to_string(deId);
-  }
-
   static constexpr int sNChambers = 4;                  ///< Number of chambers
   static constexpr int sNDetectionElements = 72;        ///< Number of RPCs
   static constexpr int sNLocalBoards = 234;             ///< Number of local boards per chamber
