@@ -23,8 +23,8 @@ namespace o2
 namespace mid
 {
 //______________________________________________________________________________
-HitFinder::HitFinder()
-  : mGeometryTransformer(),
+HitFinder::HitFinder(const GeometryTransformer& geoTrans)
+  : mGeometryTransformer(geoTrans),
     mTanTheta(std::tan((90. - Constants::sBeamAngle) * std::atan(1) / 45.)),
     mCosTheta(std::cos(Constants::sBeamAngle * std::atan(1) / 45.))
 {

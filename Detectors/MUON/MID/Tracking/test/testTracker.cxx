@@ -46,15 +46,17 @@ struct TrackClusters {
 };
 
 struct MyFixture {
+  static GeometryTransformer geoTrans;
   static HitFinder hitFinder;
   static TrackGenerator trackGen;
   static Tracker tracker;
   static Mapping mapping;
 };
 
-HitFinder MyFixture::hitFinder;
+GeometryTransformer MyFixture::geoTrans = createDefaultTransformer();
+HitFinder MyFixture::hitFinder(geoTrans);
 TrackGenerator MyFixture::trackGen;
-Tracker MyFixture::tracker;
+Tracker MyFixture::tracker(geoTrans);
 Mapping MyFixture::mapping;
 
 TrackClusters getTrackClusters(const Track& track)
