@@ -12,6 +12,8 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 
+#include <unistd.h>
+
 #include "GlobalTracking/CalibTOF.h"
 #endif
 
@@ -59,7 +61,38 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparam
   //  calib.run(o2::globaltracking::CalibTOF::kLHCphase);
   //calib.run(o2::globaltracking::CalibTOF::kChannelOffset);
   //calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing); // all sectors
-  calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 10); // only sector 10 (as example)
+
+  int counter = 0;
+  pid_t pid = fork();
+
+  if (pid == 0){ // child process
+    printf("strip fork 1\n");
+    calib.run(o2::globaltracking::CalibTOF::kLHCphase);
+    calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 0);
+    calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 1);
+    calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 2);
+    calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 3);
+    calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 4);
+    calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 5);
+    calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 6);
+    calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 7);
+    calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 8);
+    }
+  else if (pid > 0){ //parent process
+    printf("strip fork 2\n");
+    calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 9);
+    calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 10);
+    calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 11);
+    calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 12);
+    calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 13);
+    calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 14);
+    calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 15);
+    calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 16);
+    calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 17);
+  }
+
+  calib.fillOutput();
+
 
   outFile.cd();
   outTree.Write();
