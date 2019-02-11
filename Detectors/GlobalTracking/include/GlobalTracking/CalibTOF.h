@@ -56,6 +56,7 @@ class CalibTOF
 
   ///< calibrate using the provided input
   void run(int flag, int sector = -1);
+  void fillOutput();
 
   ///< perform all initializations
   void init();
@@ -83,9 +84,9 @@ class CalibTOF
   void setMaxTimestamp(int maxTimestamp) {mMaxTimestamp = maxTimestamp;}
 
  private:
-  void fillLHCphaseCalibInput(); // we will fill the input for the LHC phase calibration
+  void fillLHCphaseCalibInput(std::vector<o2::dataformats::CalibInfoTOFshort>* calibinfotof); // we will fill the input for the LHC phase calibration
   void doLHCPhaseCalib(); // calibrate with respect LHC phase
-  void fillChannelCalibInput(float offset, int ipad, TH1F* histo, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad); // we will fill the input for the channel-level calibration
+  void fillChannelCalibInput(std::vector<o2::dataformats::CalibInfoTOFshort>* calibinfotof, float offset, int ipad, TH1F* histo, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad); // we will fill the input for the channel-level calibration
   void fillChannelTimeSlewingCalib(float offset, int ipad, TH2F* histo, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad);// we will fill the input for the channel-time-slewing calibration
   void doChannelLevelCalibration(int flag, int ipad, TH1F* histo, TF1* func); // calibrate single channel from histos
   void resetChannelLevelHistos(int flag, TH1F* histoOffset[NPADSPERSTEP], TH2F* histoTimeSlewing, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad[NPADSPERSTEP]); // reset signle channel histos
@@ -98,7 +99,7 @@ class CalibTOF
   TH1D *mProjTimeSlewingTemp; // temporary histo for time slewing
 
   void attachInputTrees();
-  bool loadTOFCollectedCalibInfo(int increment = 1);
+  bool loadTOFCollectedCalibInfo(TTree *localTree, int &currententry, int increment = 1);
 
 
   //================================================================
@@ -106,7 +107,6 @@ class CalibTOF
   // Data members
 
   bool mInitDone = false; ///< flag init already done
-  int mCurrTOFInfoTreeEntry = -1;
 
   ///========== Parameters to be set externally, e.g. from CCDB ====================
 

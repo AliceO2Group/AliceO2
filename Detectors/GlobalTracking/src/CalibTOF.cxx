@@ -63,7 +63,6 @@ void CalibTOF::attachInputTrees()
   LOG(INFO) << "Attached tracksTOF calib info " << mCollectedCalibInfoTOFBranchName << " branch with " << mTreeCollectedCalibInfoTOF->GetEntries()
             << " entries";
   */
-  mCurrTOFInfoTreeEntry = -1;
 }
 
 //______________________________________________
@@ -121,15 +120,28 @@ void CalibTOF::run(int flag, int sector)
 {
   ///< running the matching
 
+  TTree *localTree = mTreeCollectedCalibInfoTOF;
+  TFile *fOpenLocally = nullptr;
+  Int_t   currTOFInfoTreeEntry = -1;
+  std::vector<o2::dataformats::CalibInfoTOFshort>* localCalibInfoTOF = mCalibInfoTOF;
+  if(sector != -1){ // load tree as a new instance to read it in parallel with other processes
+    fOpenLocally = TFile::Open(localTree->GetCurrentFile()->GetName());
+    localTree = (TTree *) fOpenLocally->Get(localTree->GetName());
+    localTree->SetBranchAddress(mCollectedCalibInfoTOFBranchName.data(), &localCalibInfoTOF);
+
+    printf("nentries = %d\n",localTree->GetEntries());
+  }
+
+
   if (!mInitDone) {
     LOG(FATAL) << "init() was not done yet";
   }
 
-  mTimerTot.Start();
+  //  mTimerTot.Start();
 
   if (flag & kLHCphase) { // LHC phase --> we will use all the entries in the tree
-    while(loadTOFCollectedCalibInfo()){ // fill here all histos you need 
-      fillLHCphaseCalibInput(); // we will fill the input for the LHC phase calibration
+    while(loadTOFCollectedCalibInfo(localTree,currTOFInfoTreeEntry)){ // fill here all histos you need 
+      fillLHCphaseCalibInput(localCalibInfoTOF); // we will fill the input for the LHC phase calibration
     }
     doLHCPhaseCalib();
   }
@@ -160,18 +172,18 @@ void CalibTOF::run(int flag, int sector)
                                                // case we run with sector != -1, but it will not hurt :) 
       resetChannelLevelHistos(flag, histoChOffsetTemp, histoChTimeSlewingTemp, calibTimePad);
       printf("strip %i\n", ich/96);
-      mCurrTOFInfoTreeEntry = ich - 1;
+      currTOFInfoTreeEntry = ich - 1;
       int ipad = 0;
-      int entryNext = mCurrTOFInfoTreeEntry + o2::tof::Geo::NCHANNELS;
+      int entryNext = currTOFInfoTreeEntry + o2::tof::Geo::NCHANNELS;
 
-      while (loadTOFCollectedCalibInfo()) { // fill here all histos you need 
+      while (loadTOFCollectedCalibInfo(localTree,currTOFInfoTreeEntry)) { // fill here all histos you need 
 
-	fillChannelCalibInput(mInitialCalibChannelOffset[ich+ipad], ipad, histoChOffsetTemp[ipad], calibTimePad[ipad]); // we will fill the input for the channel-level calibration
+	fillChannelCalibInput(localCalibInfoTOF, mInitialCalibChannelOffset[ich+ipad], ipad, histoChOffsetTemp[ipad], calibTimePad[ipad]); // we will fill the input for the channel-level calibration
 	ipad++;
 
 	if(ipad == NPADSPERSTEP){
 	  ipad = 0;
-	  mCurrTOFInfoTreeEntry = entryNext;
+	  currTOFInfoTreeEntry = entryNext;
 	  entryNext += o2::tof::Geo::NCHANNELS;
 	}
       }
@@ -246,15 +258,19 @@ void CalibTOF::run(int flag, int sector)
     delete histoChTimeSlewingTemp;
     delete funcChOffset;
   }
-  
-  mOutputTree->Fill();
-  
-  mTimerTot.Stop();
-  printf("Timing:\n");
-  printf("Total:        ");
-  mTimerTot.Print();
+
+  if(fOpenLocally) fOpenLocally->Close();
+
+  //  mTimerTot.Stop();
+  //  printf("Timing:\n");
+  //  printf("Total:        ");
+  //  mTimerTot.Print();
 }
 
+//______________________________________________
+void CalibTOF::fillOutput(){
+  mOutputTree->Fill();
+}
 
 //______________________________________________
 void CalibTOF::print() const
@@ -271,28 +287,28 @@ void CalibTOF::print() const
 }
 
 //______________________________________________
-bool CalibTOF::loadTOFCollectedCalibInfo(int increment)
+bool CalibTOF::loadTOFCollectedCalibInfo(TTree *localTree, int &currententry, int increment)
 {
   ///< load next chunk of TOF infos
   //  printf("Loading TOF calib infos: number of entries in tree = %lld\n", mTreeCollectedCalibInfoTOF->GetEntries());
 
-  mCurrTOFInfoTreeEntry += increment;
-  //  while (mCurrTOFInfoTreeEntry < mTreeCollectedCalibInfoTOF->GetEntries()){
-  while (mCurrTOFInfoTreeEntry < 1600000){
-	 //    && mCurrTOFInfoTreeEntry < o2::tof::Geo::NCHANNELS) {
-    mTreeCollectedCalibInfoTOF->GetEntry(mCurrTOFInfoTreeEntry);
-    //LOG(INFO) << "Loading TOF calib info entry " << mCurrTOFInfoTreeEntry << " -> " << mCalibInfoTOF->size()<< " infos";
+  currententry += increment;
+  //while (currententry < localTree->GetEntries()){
+  while (currententry < 800000){
+	 //    && currententry < o2::tof::Geo::NCHANNELS) {
+    localTree->GetEntry(currententry);
+    //LOG(INFO) << "Loading TOF calib info entry " << currententry << " -> " << mCalibInfoTOF->size()<< " infos";
         
     return true;
   }
-  mCurrTOFInfoTreeEntry -= increment;
+  currententry -= increment;
 
   return false;
 }
 
 //______________________________________________
 
-void CalibTOF::fillLHCphaseCalibInput(){
+void CalibTOF::fillLHCphaseCalibInput(std::vector<o2::dataformats::CalibInfoTOFshort>* calibinfotof){
   
   // we will fill the input for the LHC phase calibration
   
@@ -300,7 +316,7 @@ void CalibTOF::fillLHCphaseCalibInput(){
   static double bc_inv = 1./bc;
     
   // implemented for flag=0, channel=-1 (-1 means all!)
-  for(auto infotof = mCalibInfoTOF->begin(); infotof != mCalibInfoTOF->end(); infotof++){
+  for(auto infotof = calibinfotof->begin(); infotof != calibinfotof->end(); infotof++){
     double dtime = infotof->getDeltaTimePi();
     dtime -= int(dtime*bc_inv + 0.5)*bc;
     
@@ -342,7 +358,7 @@ void CalibTOF::doLHCPhaseCalib(){
 }
 //______________________________________________
 
-void CalibTOF::fillChannelCalibInput(float offset, int ipad, TH1F* histo, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad){
+void CalibTOF::fillChannelCalibInput(std::vector<o2::dataformats::CalibInfoTOFshort>* calibinfotof, float offset, int ipad, TH1F* histo, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad){
   
   // we will fill the input for the channel-level calibration
 
@@ -350,7 +366,7 @@ void CalibTOF::fillChannelCalibInput(float offset, int ipad, TH1F* histo, std::v
   static double bc_inv = 1./bc;
     
   // implemented for flag=0, channel=-1 (-1 means all!)
-  for(auto infotof = mCalibInfoTOF->begin(); infotof != mCalibInfoTOF->end(); infotof++){
+  for(auto infotof = calibinfotof->begin(); infotof != calibinfotof->end(); infotof++){
     double dtime = infotof->getDeltaTimePi() - offset; // removing existing offset 
     dtime -= int(dtime*bc_inv + 0.5)*bc;
     
