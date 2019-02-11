@@ -12,7 +12,7 @@ o2_generate_executable(EXE_NAME
                        mch_mapping_test_bucket)
 
 target_link_libraries(test_MCHMappingTest Boost::unit_test_framework)
-add_test(NAME test_MCHMappingTest COMMAND test_MCHMappingTest)
+add_test_wrap(NAME test_MCHMappingTest COMMAND test_MCHMappingTest)
 
 if(benchmark_FOUND)
   o2_generate_executable(EXE_NAME
