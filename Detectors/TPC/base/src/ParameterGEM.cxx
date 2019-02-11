@@ -22,7 +22,7 @@
 using namespace o2::TPC;
 
 ParameterGEM::ParameterGEM()
-  : mGeometry(), mDistance(), mPotential(), mElectricField(), mAbsoluteGain(), mCollectionEfficiency(), mExtractionEfficiency(), mTotalGainStack(2000.f), mKappaStack(0.4f), mAmplificationMode(AmplificationMode::EffectiveMode)
+  : mGeometry(), mDistance(), mPotential(), mElectricField(), mAbsoluteGain(), mCollectionEfficiency(), mExtractionEfficiency(), mTotalGainStack(1644.f), mKappaStack(1.2295f), mEfficiencyStack(0.473805f), mAmplificationMode(AmplificationMode::EffectiveMode)
 {
   mGeometry = { { 0, 2, 2, 0 } };
   mDistance = { { 4.f, 0.2f, 0.2f, 0.2f, 0.2f } };
