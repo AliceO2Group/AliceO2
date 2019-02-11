@@ -139,3 +139,8 @@ void prev()
   nev--;
   displayEvent(nev);
 }
+
+void DisplayEvents()
+{
+  // A dummy function with the same name as this macro
+}
