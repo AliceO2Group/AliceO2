@@ -1807,6 +1807,20 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    spacepoint_calib_bucket
+
+    DEPENDENCIES
+    root_base_bucket
+    fairroot_base_bucket
+    MathCore
+    Matrix
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/Calibration/TrackResiduals/include
+)
+
+o2_define_bucket(
+    NAME
     trd_simulation_bucket
 
     DEPENDENCIES
