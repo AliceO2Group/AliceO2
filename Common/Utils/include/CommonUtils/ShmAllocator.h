@@ -47,7 +47,7 @@ class ShmAllocator
   inline ShmAllocator() noexcept = default;
 
   template <typename T2>
-  inline ShmAllocator(const ShmAllocator<T2>&) noexcept = default;
+  inline ShmAllocator(const ShmAllocator<T2>&) noexcept {}
 
   inline ~ShmAllocator() noexcept = default;
 
