@@ -73,7 +73,7 @@ struct RootTableBuilderHelpers {
                            TTREEREADERVALUE&... values)
   {
     std::vector<std::string> branchNames = { values.GetBranchName()... };
-    auto filler = builder.persist<typename TreeReaderValueTraits<TTREEREADERVALUE>::Type...>(branchNames);
+    auto filler = builder.preallocatedPersist<typename TreeReaderValueTraits<TTREEREADERVALUE>::Type...>(branchNames, reader.GetEntries(true));
     reader.Restart();
     while (reader.Next()) {
       filler(0, ValueExtractor::deref(values)...);
