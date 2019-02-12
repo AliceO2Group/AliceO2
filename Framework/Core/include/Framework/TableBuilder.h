@@ -71,6 +71,12 @@ struct BuilderUtils {
     return builder->Append(value);
   }
 
+  template <typename BuilderType, typename T>
+  static void unsafeAppend(BuilderType& builder, T value)
+  {
+    return builder->UnsafeAppend(value);
+  }
+
   template <typename BuilderType, typename ITERATOR>
   static arrow::Status append(BuilderType& builder, std::pair<ITERATOR, ITERATOR> ip)
   {
@@ -80,6 +86,22 @@ struct BuilderUtils {
     auto status = builder->Append();
     auto valueBuilder = reinterpret_cast<ValueBuilderType*>(builder->value_builder());
     return status & valueBuilder->AppendValues(&*ip.first, std::distance(ip.first, ip.second));
+  }
+
+  // Lists do not have UnsafeAppend so we need to use the slow path in any case.
+  template <typename BuilderType, typename ITERATOR>
+  static void unsafeAppend(BuilderType& builder, std::pair<ITERATOR, ITERATOR> ip)
+  {
+    using ArrowType = typename detail::ConversionTraits<typename ITERATOR::value_type>::ArrowType;
+    using ValueBuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
+    // FIXME: for the moment we do not fill things.
+    auto status = builder->Append();
+    auto valueBuilder = reinterpret_cast<ValueBuilderType*>(builder->value_builder());
+    status &= valueBuilder->AppendValues(&*ip.first, std::distance(ip.first, ip.second));
+    if (!status.ok()) {
+      throw std::runtime_error("Unable to append values");
+    }
+    return;
   }
 };
 
@@ -164,6 +186,15 @@ struct TableBuilderHelpers {
     return (BuilderUtils::append(std::get<Is>(builders), std::get<Is>(values)).ok() && ...);
   }
 
+  /// Invokes the UnsafeAppend method for each entry in the tuple
+  /// For this to be used, one should make sure the number of entries
+  /// is known a-priori.
+  template <std::size_t... Is, typename BUILDERS, typename VALUES>
+  static void unsafeAppend(BUILDERS& builders, std::index_sequence<Is...>, VALUES&& values)
+  {
+    (BuilderUtils::unsafeAppend(std::get<Is>(builders), std::get<Is>(values)), ...);
+  }
+
   /// Invokes the append method for each entry in the tuple
   template <typename BUILDERS, std::size_t... Is>
   static bool finalize(std::vector<std::shared_ptr<arrow::Array>>& arrays, BUILDERS& builders, std::index_sequence<Is...> seq)
@@ -183,16 +214,8 @@ struct TableBuilderHelpers {
 /// to build an arrow::Table from a TDataFrame.
 class TableBuilder
 {
- public:
-  TableBuilder(arrow::MemoryPool* pool = arrow::default_memory_pool())
-    : mBuilders{ nullptr },
-      mMemoryPool{ pool }
-  {
-  }
-  /// Creates a lambda which is suitable to persist things
-  /// in an arrow::Table
   template <typename... ARGS>
-  auto persist(std::vector<std::string> const& columnNames)
+  void validate(std::vector<std::string> const& columnNames)
   {
     constexpr int nColumns = sizeof...(ARGS);
     if (nColumns != columnNames.size()) {
@@ -201,17 +224,27 @@ class TableBuilder
     if (mBuilders != nullptr) {
       throw std::runtime_error("TableBuilder::persist can only be invoked once per instance");
     }
-    mArrays.resize(nColumns);
+  }
 
+  template <typename... ARGS>
+  auto makeBuilders(std::vector<std::string> const& columnNames, size_t nRows)
+  {
     using BuildersTuple = typename std::tuple<std::unique_ptr<typename BuilderTraits<ARGS>::BuilderType>...>;
     mSchema = std::make_shared<arrow::Schema>(TableBuilderHelpers::makeFields<ARGS...>(columnNames));
 
     BuildersTuple* builders = new BuildersTuple(BuilderMaker<ARGS>::make(mMemoryPool)...);
-    auto seq = std::make_index_sequence<sizeof...(ARGS)>{};
-    TableBuilderHelpers::reserveAll(*builders, 1000, seq);
+    if (nRows != -1) {
+      auto seq = std::make_index_sequence<sizeof...(ARGS)>{};
+      TableBuilderHelpers::reserveAll(*builders, nRows, seq);
+    }
     mBuilders = builders; // We store the builders
-    /// Callback used to finalize the table.
-    mFinalizer = [ schema = mSchema, &arrays = mArrays, builders = builders]()->std::shared_ptr<arrow::Table>
+  }
+
+  template <typename... ARGS>
+  auto makeFinalizer()
+  {
+    using BuildersTuple = typename std::tuple<std::unique_ptr<typename BuilderTraits<ARGS>::BuilderType>...>;
+    mFinalizer = [ schema = mSchema, &arrays = mArrays, builders = (BuildersTuple*)mBuilders ]()->std::shared_ptr<arrow::Table>
     {
       auto status = TableBuilderHelpers::finalize(arrays, *builders, std::make_index_sequence<sizeof...(ARGS)>{});
       if (status == false) {
@@ -219,13 +252,51 @@ class TableBuilder
       }
       return arrow::Table::Make(schema, arrays);
     };
+  }
+
+ public:
+  TableBuilder(arrow::MemoryPool* pool = arrow::default_memory_pool())
+    : mBuilders{ nullptr },
+      mMemoryPool{ pool }
+  {
+  }
+
+  /// Creates a lambda which is suitable to persist things
+  /// in an arrow::Table
+  template <typename... ARGS>
+  auto persist(std::vector<std::string> const& columnNames)
+  {
+    using BuildersTuple = typename std::tuple<std::unique_ptr<typename BuilderTraits<ARGS>::BuilderType>...>;
+    constexpr int nColumns = sizeof...(ARGS);
+    validate<ARGS...>(columnNames);
+    mArrays.resize(nColumns);
+    makeBuilders<ARGS...>(columnNames, 1000);
+    makeFinalizer<ARGS...>();
+
     // Callback used to fill the builders
-    return [builders = builders](unsigned int slot, typename BuilderMaker<ARGS>::FillType... args)->void
+    return [builders = (BuildersTuple*)mBuilders](unsigned int slot, typename BuilderMaker<ARGS>::FillType... args)->void
     {
       auto status = TableBuilderHelpers::append(*builders, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
       if (status == false) {
         throw std::runtime_error("Unable to append");
       }
+    };
+  }
+
+  template <typename... ARGS>
+  auto preallocatedPersist(std::vector<std::string> const& columnNames, int nRows)
+  {
+    using BuildersTuple = typename std::tuple<std::unique_ptr<typename BuilderTraits<ARGS>::BuilderType>...>;
+    constexpr int nColumns = sizeof...(ARGS);
+    validate<ARGS...>(columnNames);
+    mArrays.resize(nColumns);
+    makeBuilders<ARGS...>(columnNames, nRows);
+    makeFinalizer<ARGS...>();
+
+    // Callback used to fill the builders
+    return [builders = (BuildersTuple*)mBuilders](unsigned int slot, typename BuilderMaker<ARGS>::FillType... args)->void
+    {
+      TableBuilderHelpers::unsafeAppend(*builders, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
     };
   }
 
