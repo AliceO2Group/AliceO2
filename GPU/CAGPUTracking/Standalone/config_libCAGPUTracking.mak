@@ -69,7 +69,6 @@ CONFIG_OPENGL				= 1
 CONFIG_GLUT					= 1
 CONFIG_GLFW					= 1
 CONFIG_X11					= 1
-DEFINES						+= BUILD_EVENT_DISPLAY
 ifeq ($(ARCH_CYGWIN), 1)
 CPPFILES					+= display/AliGPUCADisplayBackendWindows.cpp
 else
@@ -80,7 +79,6 @@ endif
 
 ifeq ($(BUILD_QA), 1)
 CPPFILES					+= qa/AliGPUCAQA.cpp qa/genEvents.cpp
-DEFINES						+= BUILD_QA
 endif
 
 ifeq ($(LINK_ROOT), 1)
