@@ -44,8 +44,8 @@ class Digit : public DigitBase
   void setLabelIndex(int labelindex) { mLabelIndex = labelindex; }
 
  private:
-  int mPadID; /// PadIndex to which the digit corresponds to
-  double mADC; /// Amplitude of signal
+  int mPadID;      /// PadIndex to which the digit corresponds to
+  double mADC;     /// Amplitude of signal
   int mLabelIndex; /// Index of the corresponding entry/entries in the MC label array
 
   ClassDefNV(Digit, 1);
