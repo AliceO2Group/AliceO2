@@ -15,6 +15,8 @@ SET(SRCS
   src/TRDArraySignal.cxx
   src/TRDCalPadStatus.cxx
   src/TRDCalSingleChamberStatus.cxx
+  src/TRDCalDet.cxx
+  src/TRDCalROC.cxx
   src/TRDFeeParam.cxx
   src/TRDSignalIndex.cxx
 )
@@ -32,6 +34,8 @@ SET(HEADERS
   include/${MODULE_NAME}/TRDArraySignal.h
   include/${MODULE_NAME}/TRDCalPadStatus.h
   include/${MODULE_NAME}/TRDCalSingleChamberStatus.h
+  include/${MODULE_NAME}/TRDCalDet.h
+  include/${MODULE_NAME}/TRDCalROC.h
   include/${MODULE_NAME}/TRDFeeParam.h
   include/${MODULE_NAME}/TRDSignalIndex.h
 )
