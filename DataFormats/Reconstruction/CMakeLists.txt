@@ -10,6 +10,7 @@ set(SRCS
   src/MatchInfoTOF.cxx
   src/CalibInfoTOFshort.cxx
   src/CalibInfoTOF.cxx
+  src/CalibParamTOF.cxx
   src/TrackLTIntegral.cxx
   src/PID.cxx
  )
@@ -22,6 +23,7 @@ Set(HEADERS
   include/${MODULE_NAME}/MatchInfoTOF.h
   include/${MODULE_NAME}/CalibInfoTOFshort.h
   include/${MODULE_NAME}/CalibInfoTOF.h
+  include/${MODULE_NAME}/CalibParamTOF.h
   include/${MODULE_NAME}/TrackLTIntegral.h
   include/${MODULE_NAME}/PID.h
 )
