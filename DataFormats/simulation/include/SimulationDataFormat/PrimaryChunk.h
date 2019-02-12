@@ -12,7 +12,7 @@
 #define ALICEO2_DATA_PRIMARYCHUNK_H_
 
 #include <cstring>
-#include <FairMCEventHeader.h>
+#include <SimulationDataFormat/MCEventHeader.h>
 
 namespace o2
 {
@@ -33,7 +33,7 @@ struct SubEventInfo {
   int32_t npersistenttracks = -1; // the number of persistent tracks for this SubEvent (might be set to cache it)
   // might add more fields (such as which process treated this chunk etc)
 
-  FairMCEventHeader mMCEventHeader; // associated FairMC header for vertex information
+  o2::dataformats::MCEventHeader mMCEventHeader; // associated FairMC header for vertex information
 
   ClassDefNV(SubEventInfo, 1);
 };

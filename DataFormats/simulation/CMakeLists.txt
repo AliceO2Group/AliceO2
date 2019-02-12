@@ -8,6 +8,7 @@ set(SRCS
   src/MCCompLabel.cxx
   src/RunContext.cxx
   src/StackParam.cxx
+  src/MCEventHeader.cxx
 )
 
 Set(HEADERS
@@ -21,6 +22,7 @@ Set(HEADERS
     include/${MODULE_NAME}/PrimaryChunk.h
     include/${MODULE_NAME}/RunContext.h
     include/${MODULE_NAME}/LabelContainer.h
+    include/${MODULE_NAME}/MCEventHeader.h
 )
 
 Set(LINKDEF src/SimulationDataLinkDef.h)

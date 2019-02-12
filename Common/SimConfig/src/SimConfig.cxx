@@ -33,6 +33,8 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "name of .C file with definition of external event generator")(
     "extGenFunc", bpo::value<std::string>()->default_value(""),
     "function call to load the definition of external event generator")(
+    "embedIntoFile", bpo::value<std::string>()->default_value(""),
+    "filename containing the reference events to be used for the embedding")(
     "bMax,b", bpo::value<float>()->default_value(0.), "maximum value for impact parameter sampling (when applicable)")(
     "isMT", bpo::value<bool>()->default_value(false), "multi-threaded mode (Geant4 only")(
     "outPrefix,o", bpo::value<std::string>()->default_value("o2sim"), "prefix of output files")(
@@ -78,6 +80,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mExtKinFileName = vm["extKinFile"].as<std::string>();
   mConfigData.mExtGenFileName = vm["extGenFile"].as<std::string>();
   mConfigData.mExtGenFuncName = vm["extGenFunc"].as<std::string>();
+  mConfigData.mEmbedIntoFileName = vm["embedIntoFile"].as<std::string>();
   mConfigData.mStartEvent = vm["startEvent"].as<unsigned int>();
   mConfigData.mBMax = vm["bMax"].as<float>();
   mConfigData.mIsMT = vm["isMT"].as<bool>();

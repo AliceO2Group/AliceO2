@@ -13,6 +13,7 @@
 #include <Generators/PrimaryGenerator.h>
 #include <Generators/GeneratorFactory.h>
 #include <Generators/PDG.h>
+#include "SimulationDataFormat/MCEventHeader.h"
 #include <SimConfig/SimConfig.h>
 #include <SimConfig/ConfigurableParam.h>
 #include <CommonUtils/RngHelper.h>
@@ -68,11 +69,19 @@ FairRunSim* o2sim_init(bool asservice)
   run->SetName(confref.getMCEngine().c_str()); // Transport engine
   run->SetIsMT(confref.getIsMT());             // MT mode
 
+  /** set event header **/
+  auto header = new o2::dataformats::MCEventHeader();
+  run->SetMCEventHeader(header);
+
   // construct geometry / including magnetic field
   build_geometry(run);
 
   // setup generator
+  auto embedinto_filename = confref.getEmbedIntoFileName();
   auto primGen = new o2::eventgen::PrimaryGenerator();
+  if (!embedinto_filename.empty()) {
+    primGen->embedInto(embedinto_filename);
+  }
   if (!asservice) {
     o2::eventgen::GeneratorFactory::setPrimaryGenerator(confref, primGen);
   }

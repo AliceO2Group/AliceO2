@@ -22,7 +22,7 @@
 #include <DetectorsBase/Detector.h>
 #include <CommonUtils/ShmManager.h>
 #include <cassert>
-#include <FairMCEventHeader.h>
+#include <SimulationDataFormat/MCEventHeader.h>
 
 namespace o2
 {
