@@ -1281,6 +1281,44 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    mft_tracking_bucket
+
+    DEPENDENCIES
+    itsmft_reconstruction_bucket
+    data_format_itsmft_bucket
+    data_format_mft_bucket
+    mft_base_bucket
+    #
+    DataFormatsMFT
+    DetectorsBase
+    ITSMFTBase
+    ITSMFTReconstruction
+    MFTBase
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/reconstruction/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/MFT/base/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/MFT/include
+)
+
+o2_define_bucket(
+    NAME
+    mft_workflow_bucket
+
+    DEPENDENCIES
+    mft_tracking_bucket
+    #
+    DetectorsBase
+    Framework
+    MFTTracking
+
+    INCLUDE_DIRECTORIES
+)
+
+o2_define_bucket(
+    NAME
     tof_base_bucket
 
     DEPENDENCIES
