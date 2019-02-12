@@ -1,17 +1,17 @@
 option(ENABLE_CUDA   "Build HLT GPU tracker using CUDA"   OFF)
 option(ENABLE_OPENCL "Build HLT GPU tracker using OpenCL" OFF)
 
-if(DEFINED ALITPCCOMMON_DIR)
-    set(ALITPCCOMMON_BUILD_TYPE "O2")
-    add_subdirectory(${ALITPCCOMMON_DIR}/sources/CAGPUTracking CAGPUTracking)
-    add_subdirectory(${ALITPCCOMMON_DIR}/sources/TPCFastTransformation TPCFastTransformation)
-    include_directories(${ALITPCCOMMON_DIR}/sources/CAGPUTracking/SliceTracker
-                        ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/Merger
-                        ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/Interface
-                        ${ALITPCCOMMON_DIR}/sources/TPCFastTransformation
+if(DEFINED ALIGPU_DIR)
+    set(ALIGPU_BUILD_TYPE "O2")
+    add_subdirectory(${ALIGPU_DIR}/sources/GPUTracking GPUTracking)
+    add_subdirectory(${ALIGPU_DIR}/sources/TPCFastTransformation TPCFastTransformation)
+    include_directories(${ALIGPU_DIR}/sources/GPUTracking/SliceTracker
+                        ${ALIGPU_DIR}/sources/GPUTracking/Merger
+                        ${ALIGPU_DIR}/sources/GPUTracking/Interface
+                        ${ALIGPU_DIR}/sources/TPCFastTransformation
                     )
 else()
-    message(FATAL_ERROR "cmake variable ALITPCCOMMON_DIR is not defined")
+    message(FATAL_ERROR "cmake variable ALIGPU_DIR is not defined")
 endif()
 
 set(MODULE_NAME "TPCReconstruction")

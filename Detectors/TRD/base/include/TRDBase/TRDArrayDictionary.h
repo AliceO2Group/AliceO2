@@ -17,7 +17,7 @@
 //                                               //
 ///////////////////////////////////////////////////
 
-#include "AliTPCCommonRtypes.h" // for ClassDef
+#include "AliGPUCommonRtypes.h" // for ClassDef
 
 #include <vector>
 

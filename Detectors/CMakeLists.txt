@@ -32,9 +32,9 @@ IF (HAVESIMULATION)
   add_subdirectory(gconfig)
 ENDIF (HAVESIMULATION)
 
-if(DEFINED ALITPCCOMMON_DIR)
-    set(ALITPCCOMMON_BUILD_TYPE "O2")
-    add_subdirectory(${ALITPCCOMMON_DIR}/sources/Common AliTPCCommonBase)
+if(DEFINED ALIGPU_DIR)
+    set(ALIGPU_BUILD_TYPE "O2")
+    add_subdirectory(${ALIGPU_DIR}/sources/Common AliGPUCommon)
 endif()
 
 Install(DIRECTORY Geometry gconfig DESTINATION share/Detectors/)

@@ -29,7 +29,7 @@
 #include "TPCFastTransform.h"
 
 // This class is only a wrapper for the actual tracking contained in the HLT O2 CA Tracking library.
-#include "AliCAGPUO2Interface.h"
+#include "AliGPUO2Interface.h"
 
 using namespace o2::TPC;
 using namespace o2;
@@ -40,7 +40,7 @@ using MCLabelContainer = MCTruthContainer<MCCompLabel>;
 TPCCATracking::TPCCATracking() : mTrackingCAO2Interface() {}
 TPCCATracking::~TPCCATracking() { deinitialize(); }
 
-int TPCCATracking::initialize(const AliGPUCAConfiguration& config)
+int TPCCATracking::initialize(const AliGPUO2InterfaceConfiguration& config)
 {
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
   mTrackingCAO2Interface.reset(new AliGPUTPCO2Interface);
