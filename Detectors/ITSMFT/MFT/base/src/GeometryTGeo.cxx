@@ -189,6 +189,7 @@ void GeometryTGeo::Build(Int_t loadTrans)
 ;
   }
   */
+  LOG(INFO) << "MFT GeometryTGeo::Build setSize to " << mTotalNumberOfSensors;
   setSize(mTotalNumberOfSensors);
 
   fillMatrixCache(loadTrans);
