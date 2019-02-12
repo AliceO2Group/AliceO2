@@ -1934,6 +1934,7 @@ o2_define_bucket(
     CCDB
 
     INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/CCDB/include
     ${CMAKE_SOURCE_DIR}/EventVisualisation/Base/include
     ${CMAKE_SOURCE_DIR}/EventVisualisation/Detectors/include
     ${CMAKE_SOURCE_DIR}/EventVisualisation/DataConverter/include

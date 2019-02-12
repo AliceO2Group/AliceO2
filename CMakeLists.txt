@@ -210,6 +210,7 @@ ENDIF()
 #  environment.
 SET(IGNORE_MACROS
     ${CMAKE_SOURCE_DIR}/Generators/share/external/hijing.C
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/macros/EVE/rootlogon.C
     # Temporarily disable the following macros: ROOT v6-14-04 fails to parse
     # correctly some Boost headers
     ${CMAKE_SOURCE_DIR}/CCDB/example/fill_local_ocdb.C

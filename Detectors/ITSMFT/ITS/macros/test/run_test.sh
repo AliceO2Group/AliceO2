@@ -26,5 +26,5 @@ root.exe -b -q $O2_ROOT/share/macro/run_trac_its.C+\($rate\) >& trac_its.log
 
 root.exe -b -q CheckTracks.C+ >& CheckTracks.log
 
-root.exe DisplayTrack.C+
+#root.exe DisplayTrack.C+
 
