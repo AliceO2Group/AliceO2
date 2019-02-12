@@ -90,6 +90,12 @@ endif
 ifeq ($(BUILD_HIP), 1)
 DEFINES						+= BUILD_HIP
 endif
+ifeq ($(BUILD_EVENT_DISPLAY), 1)
+DEFINES						+= BUILD_EVENT_DISPLAY
+endif
+ifeq ($(BUILD_QA), 1)
+DEFINES						+= BUILD_QA
+endif
 
 
 ALLDEP						+= config_common.mak config_options.mak

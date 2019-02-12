@@ -49,7 +49,7 @@
 
 #define GL_SCALE_FACTOR 100.f
 
-#define SEPERATE_GLOBAL_TRACKS_LIMIT (separateGlobalTracks ? 6 : TRACK_TYPE_ID_LIMIT)
+#define SEPERATE_GLOBAL_TRACKS_LIMIT (separateGlobalTracks ? tGLOBALTRACK : TRACK_TYPE_ID_LIMIT)
 
 static const AliGPUCADisplay::configDisplay& AliGPUCADisplay_GetConfig(AliGPUReconstruction* rec)
 {
@@ -673,7 +673,7 @@ AliGPUCADisplay::vboList AliGPUCADisplay::DrawTracks(const AliGPUTPCTracker &tra
 			const AliGPUTPCHitId &hit = tracker.TrackHits()[track.FirstHitID() + j];
 			const AliGPUTPCRow &row = tracker.Data().Row(hit.RowIndex());
 			const int cid = tracker.ClusterData()[tracker.Data().ClusterDataIndex(row, hit.HitIndex())].fId;
-			drawPointLinestrip(iSlice, cid, tTRACKLET + global);
+			drawPointLinestrip(iSlice, cid, tSLICETRACK + global);
 		}
 		insertVertexList(iSlice, startCountInner, vertexBuffer[iSlice].size());
 	}
@@ -699,12 +699,27 @@ void AliGPUCADisplay::DrawFinal(int iSlice, int /*iCol*/, AliGPUTPCGMPropagator*
 
 			size_t startCountInner = vertexBuffer[iSlice].size();
 			bool drawing = false;
+			if (trdTrackIds[i])
+			{
+				auto& trk = trdTracker().Tracks()[trdTrackIds[i]];;
+				for (int k = 5;k >= 0;k--)
+				{
+					int cid = trk.GetTrackletIndex(k);
+					if (cid < 0) continue;
+					drawing = true;
+					vertexBuffer[iSlice].emplace_back(globalPosTRD2[cid].x, globalPosTRD2[cid].y, projectxy ? 0 : globalPosTRD2[cid].z);
+					vertexBuffer[iSlice].emplace_back(globalPosTRD[cid].x, globalPosTRD[cid].y, projectxy ? 0 : globalPosTRD[cid].z);
+					globalPosTRD[cid].w = tTRDATTACHED;
+				}
+			}
 			for (unsigned int k = 0;k < track->NClusters();k++)
 			{
 				if (hideRejectedClusters && (merger.Clusters()[track->FirstClusterRef() + k].fState & AliGPUTPCGMMergedTrackHit::flagReject)) continue;
 				int cid = merger.Clusters()[track->FirstClusterRef() + k].fNum;
+				int w = globalPos[cid].w;
+				printf("Track %d hit %d w: %d\n", i, k, w);
 				if (drawing) drawPointLinestrip(iSlice, cid, tFINALTRACK, SEPERATE_GLOBAL_TRACKS_LIMIT);
-				if (globalPos[cid].w == SEPERATE_GLOBAL_TRACKS_LIMIT)
+				if (w == SEPERATE_GLOBAL_TRACKS_LIMIT)
 				{
 					if (drawing) insertVertexList(vBuf[0], startCountInner, vertexBuffer[iSlice].size());
 					drawing = false;
@@ -717,18 +732,6 @@ void AliGPUCADisplay::DrawFinal(int iSlice, int /*iCol*/, AliGPUTPCGMPropagator*
 					drawing = true;
 				}
 				lastCluster = k;
-			}
-			if (drawing && trdTrackIds[i])
-			{
-				auto& trk = trdTracker().Tracks()[trdTrackIds[i]];;
-				for (int k = 0;k < 6;k++)
-				{
-					int cid = trk.GetTrackletIndex(k);
-					if (cid < 0) continue;
-					vertexBuffer[iSlice].emplace_back(globalPosTRD[cid].x, globalPosTRD[cid].y, projectxy ? 0 : globalPosTRD[cid].z);
-					vertexBuffer[iSlice].emplace_back(globalPosTRD2[cid].x, globalPosTRD2[cid].y, projectxy ? 0 : globalPosTRD2[cid].z);
-					globalPosTRD[cid].w = tTRDATTACHED;
-				}
 			}
 			insertVertexList(vBuf[0], startCountInner, vertexBuffer[iSlice].size());
 			break;
