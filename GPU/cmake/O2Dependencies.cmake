@@ -1,11 +1,11 @@
 o2_define_bucket(
     NAME
-    AliTPCCommonBase_bucket
+    AliGPUCommon_bucket
 
     DEPENDENCIES
 
     INCLUDE_DIRECTORIES
-    ${ALITPCCOMMON_DIR}/sources/Common
+    ${ALIGPU_DIR}/sources/Common
 )
 
 o2_define_bucket(
@@ -17,16 +17,16 @@ o2_define_bucket(
     pthread
     root_base_bucket
     common_vc_bucket
-    AliTPCCommonBase_bucket
+    AliGPUCommon_bucket
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
-    ${ALITPCCOMMON_DIR}/sources/TPCFastTransformation
+    ${ALIGPU_DIR}/sources/TPCFastTransformation
 )
 
 o2_define_bucket(
     NAME
-    CAGPUTracking_bucket
+    GPUTracking_bucket
 
     DEPENDENCIES
     dl
@@ -35,7 +35,7 @@ o2_define_bucket(
     common_vc_bucket
     TRDBase
     ITStracking
-    AliTPCCommonBase_bucket
+    AliGPUCommon_bucket
     TPCFastTransformation_bucket
     O2TPCFastTransformation
     data_format_TPC_bucket
@@ -47,16 +47,17 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
-    ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/GlobalTracker
-    ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/SliceTracker
-    ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/Merger
-    ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/TRDTracking
-    ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/Interface
-    ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/HLTHeaders
-    ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/Standalone
-    ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/Standalone/cmodules
-    ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/Standalone/display
-    ${ALITPCCOMMON_DIR}/sources/CAGPUTracking/Standalone/qa
+    ${ALIGPU_DIR}/sources/GPUTracking/Global
+    ${ALIGPU_DIR}/sources/GPUTracking/Base
+    ${ALIGPU_DIR}/sources/GPUTracking/SliceTracker
+    ${ALIGPU_DIR}/sources/GPUTracking/Merger
+    ${ALIGPU_DIR}/sources/GPUTracking/TRDTracking
+    ${ALIGPU_DIR}/sources/GPUTracking/Interface
+    ${ALIGPU_DIR}/sources/GPUTracking/HLTHeaders
+    ${ALIGPU_DIR}/sources/GPUTracking/Standalone
+    ${ALIGPU_DIR}/sources/GPUTracking/
+    ${ALIGPU_DIR}/sources/GPUTracking/Standalone/display
+    ${ALIGPU_DIR}/sources/GPUTracking/Standalone/qa
     ${CMAKE_SOURCE_DIR}/Framework/Core/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/tracking/include
     ${CMAKE_SOURCE_DIR}/Detectors/TRD/base/include
@@ -64,27 +65,27 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
-    CAGPUTrackingHIP_bucket
+    GPUTrackingHIP_bucket
 
     DEPENDENCIES
-    CAGPUTracking_bucket
+    GPUTracking_bucket
 )
 
 o2_define_bucket(
     NAME
-    CAGPUTrackingCUDA_bucket
+    GPUTrackingCUDA_bucket
 
     DEPENDENCIES
-    CAGPUTracking_bucket
+    GPUTracking_bucket
     ITStrackingCUDA
 )
 
 o2_define_bucket(
     NAME
-    CAGPUTrackingOCL_bucket
+    GPUTrackingOCL_bucket
 
     DEPENDENCIES
-    CAGPUTracking_bucket
+    GPUTracking_bucket
 )
 
 o2_define_bucket(
@@ -92,9 +93,9 @@ o2_define_bucket(
     TPCSpaceChargeBase_bucket
 
     DEPENDENCIES
-    root_base_bucket Hist MathCore Matrix Physics AliTPCCommonBase_bucket
+    root_base_bucket Hist MathCore Matrix Physics AliGPUCommon_bucket
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
-    ${ALITPCCOMMON_DIR}/sources/TPCSpaceChargeBase
+    ${ALIGPU_DIR}/sources/TPCSpaceChargeBase
 )
