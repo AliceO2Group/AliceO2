@@ -34,7 +34,7 @@ CalibTOF::CalibTOF(){
 
   for(int ipad=0; ipad < NPADSPERSTEP; ipad++){
   }
-  mHistoChTimeSlewingAll = new TH2F("hLHCchTimeSlewingAll", ";tot (ns);channel offset (ps)", 40, 0, 25, 200, -24400, 24400);
+  mHistoChTimeSlewingAll = new TH2F("hLHCchTimeSlewingAll", ";tot (ns);channel offset (ps)", 5000, 0., 250., 1000, -24400., 24400.);
 
 }
 //______________________________________________
@@ -58,7 +58,6 @@ void CalibTOF::attachInputTrees()
   if (!mTreeCollectedCalibInfoTOF->GetBranch(mCollectedCalibInfoTOFBranchName.data())) {
     LOG(FATAL) << "Did not find collected TOF calib info branch " << mCollectedCalibInfoTOFBranchName << " in the input tree";
   }
-  mTreeCollectedCalibInfoTOF->SetBranchAddress(mCollectedCalibInfoTOFBranchName.data(), &mCalibInfoTOF);
   /*
   LOG(INFO) << "Attached tracksTOF calib info " << mCollectedCalibInfoTOFBranchName << " branch with " << mTreeCollectedCalibInfoTOF->GetEntries()
             << " entries";
@@ -110,9 +109,6 @@ void CalibTOF::init()
 
   mInitDone = true;
 
-  mTimerTot.Stop();
-  mTimerTot.Reset();
-
   print();
 }
 //______________________________________________
@@ -120,24 +116,25 @@ void CalibTOF::run(int flag, int sector)
 {
   ///< running the matching
 
-  TTree *localTree = mTreeCollectedCalibInfoTOF;
-  TFile *fOpenLocally = nullptr;
+  TTree *localTree = nullptr;
   Int_t   currTOFInfoTreeEntry = -1;
-  std::vector<o2::dataformats::CalibInfoTOFshort>* localCalibInfoTOF = mCalibInfoTOF;
-  if(sector != -1){ // load tree as a new instance to read it in parallel with other processes
-    fOpenLocally = TFile::Open(localTree->GetCurrentFile()->GetName());
-    localTree = (TTree *) fOpenLocally->Get(localTree->GetName());
-    localTree->SetBranchAddress(mCollectedCalibInfoTOFBranchName.data(), &localCalibInfoTOF);
 
-    printf("nentries = %d\n",localTree->GetEntries());
+  std::vector<o2::dataformats::CalibInfoTOFshort>* localCalibInfoTOF = nullptr;
+  TFile fOpenLocally(mTreeCollectedCalibInfoTOF->GetCurrentFile()->GetName());
+  localTree = (TTree *) fOpenLocally.Get(mTreeCollectedCalibInfoTOF->GetName());
+
+  if(! localTree){
+    LOG(FATAL) << "tree " << mTreeCollectedCalibInfoTOF->GetName() << " not found in " << mTreeCollectedCalibInfoTOF->GetCurrentFile()->GetName();    
   }
 
-
+  localTree->SetBranchAddress(mCollectedCalibInfoTOFBranchName.data(), &localCalibInfoTOF);
+  
   if (!mInitDone) {
     LOG(FATAL) << "init() was not done yet";
   }
 
-  //  mTimerTot.Start();
+  TStopwatch timerTot;
+  timerTot.Start();
 
   if (flag & kLHCphase) { // LHC phase --> we will use all the entries in the tree
     while(loadTOFCollectedCalibInfo(localTree,currTOFInfoTreeEntry)){ // fill here all histos you need 
@@ -145,20 +142,19 @@ void CalibTOF::run(int flag, int sector)
     }
     doLHCPhaseCalib();
   }
-  //  else { // channel offset + problematic (flag = 1), or time slewing (flag = 2)
+  // channel offset + problematic (flag = 2), or time slewing (flag = 4)
   if ((flag & kChannelOffset) || (flag & kChannelTimeSlewing)) { // for the moment compute everything idependetly of the flag
     TH1F* histoChOffsetTemp[NPADSPERSTEP];
     std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad[NPADSPERSTEP];
     for (int ipad = 0; ipad < NPADSPERSTEP; ipad++){
-      histoChOffsetTemp[ipad] = new TH1F(Form("hLHCchOffsetTemp_%02d_%04d", sector, ipad), Form("Sector %02d;channel offset (ps)", ipad, sector), 1000, -24400, 24400);
+      histoChOffsetTemp[ipad] = new TH1F(Form("hLHCchOffsetTemp_%02d_%04d", sector, ipad), Form("Sector %02d (pad = %03d);channel offset (ps)", sector, ipad), 1000, -24400, 24400);
       if (flag & kChannelTimeSlewing) calibTimePad[ipad] = new std::vector<o2::dataformats::CalibInfoTOFshort>; // temporary array containing [time, tot] for every pad that we process; this will be the input for the 2D histo for timeSlewing calibration (to be filled after we get the channel offset)
       else calibTimePad[ipad] = nullptr;
     }
     
     TF1* funcChOffset = new TF1(Form("fLHCchOffset_%02d", sector), "gaus");
-    funcChOffset->SetParLimits(2, 100, 400);
-    funcChOffset->SetParLimits(1, -12500, 12500);
-    TH2F* histoChTimeSlewingTemp = new TH2F(Form("hLHCchTimeSlewingTemp_%02d", sector), Form("Sector %02d;tot (ns);channel offset (ps)", sector), 40, 0, 25, 200, -24400, 24400); 
+
+    TH2F* histoChTimeSlewingTemp = new TH2F(Form("hLHCchTimeSlewingTemp_%02d", sector), Form("Sector %02d;tot (ns);channel offset (ps)", sector), 5000, 0., 250., 1000, -24400., 24400.); 
 
     int startLoop = 0; // first pad that we will process in this process (we are processing a sector, unless sector = -1)
     int endLoop = o2::tof::Geo::NCHANNELS; // last pad that we will process in this process (we are processing a sector)
@@ -170,7 +166,7 @@ void CalibTOF::run(int flag, int sector)
       sector = ich/o2::tof::Geo::NPADSXSECTOR; // we change the value of sector which is needed when it is "-1" to put
                                                // in the output histograms a meaningful name; this is not needed in
                                                // case we run with sector != -1, but it will not hurt :) 
-      resetChannelLevelHistos(flag, histoChOffsetTemp, histoChTimeSlewingTemp, calibTimePad);
+      resetChannelLevelHistos(histoChOffsetTemp, histoChTimeSlewingTemp, calibTimePad);
       printf("strip %i\n", ich/96);
       currTOFInfoTreeEntry = ich - 1;
       int ipad = 0;
@@ -188,62 +184,31 @@ void CalibTOF::run(int flag, int sector)
 	}
       }
       TFile * fout = nullptr;
-      if (flag & kChannelTimeSlewing) fout = new TFile(Form("timeslewingTOF%06i.root",ich/96),"RECREATE");
+      if (flag & kChannelTimeSlewing && mDebugMode) fout = new TFile(Form("timeslewingTOF%06i.root",ich/96),"RECREATE");
       
       for (ipad = 0; ipad < NPADSPERSTEP; ipad++){
 	if (histoChOffsetTemp[ipad]->GetEntries() > 30){
-	  doChannelLevelCalibration(flag, ipad, histoChOffsetTemp[ipad], funcChOffset);
+	  int isProblematic = doChannelCalibration(ipad, histoChOffsetTemp[ipad], funcChOffset);
 	  mCalibChannelOffset[ich+ipad] = funcChOffset->GetParameter(1) + mInitialCalibChannelOffset[ich+ipad];
-	  mCalibChannelOffsetErr[ich+ipad] = funcChOffset->GetParError(1);
-
+	  if(!isProblematic)
+	    mCalibChannelOffsetErr[ich+ipad] = abs(funcChOffset->GetParError(1));
+	  else{ // problematic
+	    mCalibChannelOffsetErr[ich+ipad] = -abs(funcChOffset->GetParError(1));
+	    continue;
+	  }
 	  // now fill 2D histo for time-slewing using current channel offset
 	  
 	  if (flag & kChannelTimeSlewing) {
 	    histoChTimeSlewingTemp->Reset();
 	    fillChannelTimeSlewingCalib(mCalibChannelOffset[ich+ipad], ipad, histoChTimeSlewingTemp, calibTimePad[ipad]); // we will fill the input for the channel-time-slewing calibration
 
-	//	  histoChTimeSlewingTemp[ipad]->FitSlicesY(funcChOffset,0,-1,0,"R");
+	    TGraphErrors *gTimeVsTot = processSlewing(histoChTimeSlewingTemp, 1,funcChOffset);
 
-	    int ibin0 = 1;
-	    int nbin = 0;
-	    float xval[1000];
-	    float val[1000];
-	    float eval[1000];
-	    for(int ibin = ibin0; ibin <= histoChTimeSlewingTemp->GetNbinsX(); ibin++){
-	      if(ibin <  histoChTimeSlewingTemp->GetNbinsX()){ // if the integral of the next bins is lower than the threshold let's continue (to include also that entries in the last bin)
-		TH1D *hLast = histoChTimeSlewingTemp->ProjectionY("tempProjTimeSlewingLast", ibin+1, histoChTimeSlewingTemp->GetNbinsX());
-		if (hLast->GetEntries() < 50) {
-		  delete hLast;
-		  continue;
-		}
-		delete hLast;
-	      }
-	      TH1D* h = histoChTimeSlewingTemp->ProjectionY("tempProjTimeSlewingFit", ibin0, ibin);
-	      if (h->GetEntries() < 50) {
-		delete h;
-		continue;
-	      }
-	      h->Fit(funcChOffset, "WW", "");
-	      h->Fit(funcChOffset, "", "", funcChOffset->GetParameter(1)-600, funcChOffset->GetParameter(1)+400);
-	      delete h;
-	      xval[nbin] = histoChTimeSlewingTemp->GetXaxis()->GetBinCenter(ibin0) - histoChTimeSlewingTemp->GetXaxis()->GetBinWidth(ibin0)*0.5;
-	      xval[nbin+1] = histoChTimeSlewingTemp->GetXaxis()->GetBinCenter(ibin) + histoChTimeSlewingTemp->GetXaxis()->GetBinWidth(ibin)*0.5;
-	      val[nbin] = funcChOffset->GetParameter(1);
-	      eval[nbin] = funcChOffset->GetParError(1);
-	      nbin++;
-	      ibin0 = ibin+1;
-	    }
-	  
-	    if (nbin) {
+	    if (mDebugMode && gTimeVsTot && gTimeVsTot->GetN()) {
 	      int istrip = ((ich+ipad)/o2::tof::Geo::NPADS)%o2::tof::Geo::NSTRIPXSECTOR;
-	      mProjTimeSlewingTemp = new TH1D(Form("pad_%02d_%02d_%02d", sector, istrip, ipad%o2::tof::Geo::NPADS), "", nbin, xval);
-	      
-	      for(int ibin=1 ;ibin <= nbin; ibin++){
-		mProjTimeSlewingTemp->SetBinContent(ibin, val[ibin]);
-	      	mProjTimeSlewingTemp->SetBinError(ibin, eval[ibin]);
-	      }
-	      mProjTimeSlewingTemp->Write();
-	      histoChTimeSlewingTemp->Write(Form("histoChTimeSlewingTemp_%02d_%02d_%02d", sector, istrip, ipad%o2::tof::Geo::NPADS));
+	      gTimeVsTot->SetName(Form("pad_%02d_%02d_%02d", sector, istrip, ipad%o2::tof::Geo::NPADS));
+	      gTimeVsTot->Write();
+	      //	      histoChTimeSlewingTemp->Write(Form("histoChTimeSlewingTemp_%02d_%02d_%02d", sector, istrip, ipad%o2::tof::Geo::NPADS)); // no longer written since it produces a very large output
 	    }
 	  }
 	}
@@ -259,12 +224,12 @@ void CalibTOF::run(int flag, int sector)
     delete funcChOffset;
   }
 
-  if(fOpenLocally) fOpenLocally->Close();
+  fOpenLocally.Close();
 
-  //  mTimerTot.Stop();
-  //  printf("Timing:\n");
-  //  printf("Total:        ");
-  //  mTimerTot.Print();
+  timerTot.Stop();
+  printf("Timing (%i):\n",sector);
+  printf("Total:        ");
+  timerTot.Print();
 }
 
 //______________________________________________
@@ -293,8 +258,8 @@ bool CalibTOF::loadTOFCollectedCalibInfo(TTree *localTree, int &currententry, in
   //  printf("Loading TOF calib infos: number of entries in tree = %lld\n", mTreeCollectedCalibInfoTOF->GetEntries());
 
   currententry += increment;
-  //while (currententry < localTree->GetEntries()){
-  while (currententry < 800000){
+  while (currententry < localTree->GetEntries()){
+  //  while (currententry < 800000){
 	 //    && currententry < o2::tof::Geo::NCHANNELS) {
     localTree->GetEntry(currententry);
     //LOG(INFO) << "Loading TOF calib info entry " << currententry << " -> " << mCalibInfoTOF->size()<< " infos";
@@ -315,7 +280,6 @@ void CalibTOF::fillLHCphaseCalibInput(std::vector<o2::dataformats::CalibInfoTOFs
   static double bc = 1.e13 / o2::constants::lhc::LHCRFFreq; // bunch crossing period (ps)
   static double bc_inv = 1./bc;
     
-  // implemented for flag=0, channel=-1 (-1 means all!)
   for(auto infotof = calibinfotof->begin(); infotof != calibinfotof->end(); infotof++){
     double dtime = infotof->getDeltaTimePi();
     dtime -= int(dtime*bc_inv + 0.5)*bc;
@@ -332,22 +296,20 @@ void CalibTOF::doLHCPhaseCalib(){
 
   if (!mFuncLHCphase){
     mFuncLHCphase = new TF1("fLHCphase", "gaus");
-    mFuncLHCphase->SetParameter(0, 1000);
-    mFuncLHCphase->SetParameter(1, 0);
-    mFuncLHCphase->SetParameter(2, 200);
-    mFuncLHCphase->SetParLimits(2, 100, 400);
   }
+
   int ifit0 = 1;
   for (int ifit = ifit0; ifit <= mHistoLHCphase->GetNbinsY(); ifit++){
     TH1D* htemp = mHistoLHCphase->ProjectionX("htemp", ifit0, ifit);
-    if (htemp->GetEntries() < 100) {
+    if (htemp->GetEntries() < 300) {
       // we cannot fit the histogram, we will merge with the next bin
-      Printf("We don't have enough entries to fit");
+      //      Printf("We don't have enough entries to fit");
       continue;
     }
-    htemp->Fit(mFuncLHCphase, "WW", "Q");
-    htemp->Fit(mFuncLHCphase, "", "Q", mFuncLHCphase->GetParameter(1)-600, mFuncLHCphase->GetParameter(1)+400);
-    // TODO: check that the fit really worked before filling all below
+
+    int res = FitPeak(mFuncLHCphase, htemp, 500., 3., 2.,"LHCphase");
+    if(res) continue;
+
     mLHCphase[mNLHCphaseIntervals] = mFuncLHCphase->GetParameter(1);
     mLHCphaseErr[mNLHCphaseIntervals] = mFuncLHCphase->GetParError(1);
     mLHCphaseStartInterval[mNLHCphaseIntervals] = mHistoLHCphase->GetYaxis()->GetBinLowEdge(ifit0); // from when the interval 
@@ -365,7 +327,6 @@ void CalibTOF::fillChannelCalibInput(std::vector<o2::dataformats::CalibInfoTOFsh
   static double bc = 1.e13 / o2::constants::lhc::LHCRFFreq; // bunch crossing period (ps)
   static double bc_inv = 1./bc;
     
-  // implemented for flag=0, channel=-1 (-1 means all!)
   for(auto infotof = calibinfotof->begin(); infotof != calibinfotof->end(); infotof++){
     double dtime = infotof->getDeltaTimePi() - offset; // removing existing offset 
     dtime -= int(dtime*bc_inv + 0.5)*bc;
@@ -383,35 +344,30 @@ void CalibTOF::fillChannelTimeSlewingCalib(float offset, int ipad, TH2F* histo, 
   static double bc = 1.e13 / o2::constants::lhc::LHCRFFreq; // bunch crossing period (ps)
   static double bc_inv = 1./bc;
     
-  // implemented for flag=0, channel=-1 (-1 means all!)
   for(auto infotof = calibTimePad->begin(); infotof != calibTimePad->end(); infotof++){
     double dtime = infotof->getDeltaTimePi() - offset; // removing the already calculated offset; this is needed to
                                                        // fill the time slewing histogram in the correct range 
     dtime -= int(dtime*bc_inv + 0.5)*bc;
     
-    histo->Fill(TMath::Min(double(infotof->getTot()), 24.9), dtime);
+    histo->Fill(TMath::Min(double(infotof->getTot()), 249.9), dtime);
     mHistoChTimeSlewingAll->Fill(infotof->getTot(), dtime);
   }
 }
 //______________________________________________
 
-void CalibTOF::doChannelLevelCalibration(int flag, int ipad, TH1F* histo, TF1* funcChOffset){
+int CalibTOF::doChannelCalibration(int ipad, TH1F* histo, TF1* funcChOffset){
 
   // calibrate single channel from histos - offsets
 
-  funcChOffset->SetParameter(0, 100);
-  funcChOffset->SetParameter(1, histo->GetMean());
-  funcChOffset->SetParameter(2, 200);
+  FitPeak(funcChOffset, histo, 500., 3., 2., "ChannelOffset");
 
-  histo->Fit(funcChOffset, "WW", "Q"); 
-  histo->Fit(funcChOffset, "", "Q", funcChOffset->GetParameter(1)-600, funcChOffset->GetParameter(1)+400); 
-
+  return 0;
 }
 //______________________________________________
 
-void CalibTOF::resetChannelLevelHistos(int flag, TH1F* histoOffset[NPADSPERSTEP], TH2F* histoTimeSlewing, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad[NPADSPERSTEP]){
+void CalibTOF::resetChannelLevelHistos(TH1F* histoOffset[NPADSPERSTEP], TH2F* histoTimeSlewing, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad[NPADSPERSTEP]){
   
-  // reset signle channel histos
+  // reset single channel histos
 
   for(int ipad=0; ipad < NPADSPERSTEP; ipad++){
     histoOffset[ipad]->Reset();
@@ -420,3 +376,121 @@ void CalibTOF::resetChannelLevelHistos(int flag, TH1F* histoOffset[NPADSPERSTEP]
   histoTimeSlewing->Reset();
 }
 
+//______________________________________________
+
+TGraphErrors *CalibTOF::processSlewing(TH2F *histo, Bool_t forceZero,TF1 *fitFunc){  
+  /* projection-x */
+  TH1D *hpx = histo->ProjectionX("hpx");
+
+  /* define mix and max TOT bin */
+  Int_t minBin = hpx->FindFirstBinAbove(0);
+  Int_t maxBin = hpx->FindLastBinAbove(0);
+  Float_t minTOT = hpx->GetBinLowEdge(minBin);
+  Float_t maxTOT = hpx->GetBinLowEdge(maxBin + 1);
+  printf("min/max TOT defined: %f < TOT < %f ns [%d, %d]\n", minTOT, maxTOT, minBin, maxBin);
+
+  /* loop over TOT bins */
+  Int_t nPoints = 0;
+  Float_t tot[10000], toterr[10000];
+  Float_t mean[10000], meanerr[10000];
+  Float_t sigma[10000], vertexSigmaerr[10000];
+  for (Int_t ibin = minBin; ibin <= maxBin; ibin++) {
+
+    /* define TOT window */
+    Int_t startBin = ibin;
+    Int_t endBin = ibin;
+    while(hpx->Integral(startBin, endBin) < 300) {
+      if (startBin == 1 && forceZero) break;
+      if (endBin < maxBin) endBin++;
+      else if (startBin > minBin) startBin--;
+      else break;
+    }
+    if (hpx->Integral(startBin, endBin) <= 0) continue;
+    printf("TOT window defined: %f < TOT < %f ns [%d, %d], %d tracks\n", hpx->GetBinLowEdge(startBin), hpx->GetBinLowEdge(endBin + 1), startBin, endBin, (Int_t)hpx->Integral(startBin, endBin));
+
+    /* projection-y */
+    TH1D *hpy = histo->ProjectionY("hpy", startBin, endBin);
+
+    /* average TOT */
+    hpx->GetXaxis()->SetRange(startBin, endBin);
+    tot[nPoints] = hpx->GetMean();
+    toterr[nPoints] = hpx->GetMeanError();
+    
+    /* fit peak in slices of tot */
+    if (FitPeak(fitFunc, hpy, 500., 3., 2., "TimeSlewing", histo) != 0) {
+      printf("troubles fitting time-zero TRACKS, skip\n");
+      delete hpy;
+      continue;
+    }
+    mean[nPoints] = fitFunc->GetParameter(1);
+    meanerr[nPoints] = fitFunc->GetParError(1);
+
+    /* delete projection-y */
+    delete hpy;
+
+    printf("meanerr = %f\n",meanerr[nPoints]);
+
+    /* increment n points if good mean error */
+    if (meanerr[nPoints] < 100.)
+      nPoints++;
+
+    /* set current bin */
+    ibin = endBin;
+
+  } /* end of loop over time bins */
+
+  /* check points */
+  if (nPoints <= 0) {
+    printf("no measurement available, quit\n");
+    delete hpx;
+    return NULL;
+  }
+  
+  /* create graph */
+  TGraphErrors *gSlewing = new TGraphErrors(nPoints, tot, mean, toterr, meanerr);
+
+  delete hpx;
+  return gSlewing;
+}
+//______________________________________________
+
+Int_t CalibTOF::FitPeak(TF1 *fitFunc, TH1 *h, Float_t startSigma, Float_t nSigmaMin, Float_t nSigmaMax, const char *debuginfo, TH2 *hdbg){
+  /*
+   * fit peak
+   */
+
+  static int nn=0;
+
+  Double_t fitCent = h->GetBinCenter(h->GetMaximumBin());
+  Double_t fitMin = fitCent - nSigmaMin * startSigma;
+  Double_t fitMax = fitCent + nSigmaMax * startSigma;
+  if (fitMin < h->GetXaxis()->GetXmin()) fitMin = h->GetXaxis()->GetXmin();
+  if (fitMax > h->GetXaxis()->GetXmax()) fitMax = h->GetXaxis()->GetXmax();
+  fitFunc->SetParameter(0, 100);
+  fitFunc->SetParameter(1, fitCent);
+  fitFunc->SetParameter(2, startSigma);
+  Int_t fitres = h->Fit(fitFunc, "WWq0", "", fitMin, fitMax);
+  if (fitres != 0) return fitres;
+  /* refit with better range */
+  for (Int_t i = 0; i < 3; i++) {
+    fitCent = fitFunc->GetParameter(1);
+    fitMin = fitCent - nSigmaMin * fitFunc->GetParameter(2);
+    fitMax = fitCent + nSigmaMax * fitFunc->GetParameter(2);
+    if (fitMin < h->GetXaxis()->GetXmin()) fitMin = h->GetXaxis()->GetXmin();
+    if (fitMax > h->GetXaxis()->GetXmax()) fitMax = h->GetXaxis()->GetXmax();
+    fitres = h->Fit(fitFunc, "q0", "", fitMin, fitMax);
+    if (fitres != 0) return fitres;
+  }
+
+  if(mDebugMode > 1 && fitFunc->GetParError(1) > 100){
+    const char *filename = Form("probFit_%s_Debug%i.root",debuginfo,nn);
+    printf("write %s\n", filename);
+    TFile ff(filename, "RECREATE");
+    h->Write();
+    if(hdbg) hdbg->Write();
+    ff.Close();
+    nn++;
+  }
+
+  return fitres;
+}

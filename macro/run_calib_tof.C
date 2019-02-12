@@ -22,7 +22,7 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparam
 {
 
   o2::globaltracking::CalibTOF calib;
-  // calib.setDebugFlag(1,1); // not implementented
+  calib.setDebugMode(2);
 
   if (path.back() != '/') {
     path += '/';

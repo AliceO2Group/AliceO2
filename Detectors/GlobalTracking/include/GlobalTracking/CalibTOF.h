@@ -27,6 +27,7 @@
 #include "TH2F.h"
 #include "TF1.h"
 #include "TFile.h"
+#include "TGraphErrors.h"
 
 class TTree;
 
@@ -40,7 +41,7 @@ class CalibTOF
   using Geo = o2::tof::Geo;
   
  public:
-  static constexpr int NSTRIPSPERSTEP = 13;  // we chose this number because we process per sector, and 
+  static constexpr int NSTRIPSPERSTEP = 1;  // we chose this number because we process per sector, and 
                                             // each sector has 91 = 13x7 strips
   static constexpr int NPADSPERSTEP = Geo::NPADS * NSTRIPSPERSTEP;
   static constexpr int NSTEPSPERSECTOR = 91 / NSTRIPSPERSTEP;
@@ -83,13 +84,22 @@ class CalibTOF
   void setMinTimestamp(int minTimestamp) {mMinTimestamp = minTimestamp;}
   void setMaxTimestamp(int maxTimestamp) {mMaxTimestamp = maxTimestamp;}
 
+  TGraphErrors *processSlewing(TH2F *histo, Bool_t forceZero,TF1 *fitFunc);
+  Int_t FitPeak(TF1 *fitFunc, TH1 *h, Float_t startSigma, Float_t nSigmaMin, Float_t nSigmaMax, const char *debuginfo="", TH2 *hdbg=nullptr);
+
+
+  void setDebugMode(Int_t flag=kTRUE) {mDebugMode=flag;}
+  Int_t getDebugMode() const {return mDebugMode;}
+
  private:
+  Int_t mDebugMode = 0; // >0= time slewing extra plot, >1= problematic fits stored 
+
   void fillLHCphaseCalibInput(std::vector<o2::dataformats::CalibInfoTOFshort>* calibinfotof); // we will fill the input for the LHC phase calibration
   void doLHCPhaseCalib(); // calibrate with respect LHC phase
   void fillChannelCalibInput(std::vector<o2::dataformats::CalibInfoTOFshort>* calibinfotof, float offset, int ipad, TH1F* histo, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad); // we will fill the input for the channel-level calibration
   void fillChannelTimeSlewingCalib(float offset, int ipad, TH2F* histo, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad);// we will fill the input for the channel-time-slewing calibration
-  void doChannelLevelCalibration(int flag, int ipad, TH1F* histo, TF1* func); // calibrate single channel from histos
-  void resetChannelLevelHistos(int flag, TH1F* histoOffset[NPADSPERSTEP], TH2F* histoTimeSlewing, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad[NPADSPERSTEP]); // reset signle channel histos
+  int doChannelCalibration(int ipad, TH1F* histo, TF1* func); // calibrate single channel from histos --> return > 0 if prolematic
+  void resetChannelLevelHistos(TH1F* histoOffset[NPADSPERSTEP], TH2F* histoTimeSlewing, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad[NPADSPERSTEP]); // reset signle channel histos
  
 
   // objects needed for calibration
@@ -116,11 +126,6 @@ class CalibTOF
 
   TTree* mOutputTree = nullptr; ///< output tree for matched tracks
 
-  ///>>>------ these are input arrays which should not be modified by the matching code
-  //           since this info is provided by external device
-  std::vector<o2::dataformats::CalibInfoTOFshort>* mCalibInfoTOF = nullptr; ///< input TOF matching info
-  /// <<<-----
-
   std::string mCollectedCalibInfoTOFBranchName = "TOFCollectedCalibInfo";   ///< name of branch containing input TOF calib infos
   std::string mOutputBranchName = "TOFCalibParam";        ///< name of branch containing output
   // output calibration
@@ -131,7 +136,7 @@ class CalibTOF
   int mLHCphaseEndInterval[1000];   ///< timestamp until which the LHCphase measurement is valid
   int mNChannels = Geo::NCHANNELS;      // needed to give the size to the branches of channels
   float mCalibChannelOffset[Geo::NCHANNELS]; ///< output TOF channel offset in ps
-  float mCalibChannelOffsetErr[Geo::NCHANNELS]; ///< output TOF channel offset in ps
+  float mCalibChannelOffsetErr[Geo::NCHANNELS]; ///< output TOF channel offset in ps (negative error as flag for problematic channels)
 
   // previous calibration read from CCDB
   float mInitialCalibChannelOffset[Geo::NCHANNELS]; ///< initial calibrations read from the OCDB (the calibration process will do a residual calibration with respect to those)
@@ -144,8 +149,7 @@ class CalibTOF
   
   int mMaxTimestamp = 1;   ///< maximum timestamp over the hits that we collect; we need it to
                            ///< book the histogram for the LHCPhase calibration
-  TStopwatch mTimerTot;
-  TStopwatch mTimerDBG;
+
   ClassDefNV(CalibTOF, 1);
 };
 } // namespace globaltracking
