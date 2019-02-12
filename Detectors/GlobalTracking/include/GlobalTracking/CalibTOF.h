@@ -41,7 +41,7 @@ class CalibTOF
   using Geo = o2::tof::Geo;
   
  public:
-  static constexpr int NSTRIPSPERSTEP = 1;  // we chose this number because we process per sector, and 
+  static constexpr int NSTRIPSPERSTEP = 13;  // we chose this number because we process per sector, and 
                                             // each sector has 91 = 13x7 strips
   static constexpr int NPADSPERSTEP = Geo::NPADS * NSTRIPSPERSTEP;
   static constexpr int NSTEPSPERSECTOR = 91 / NSTRIPSPERSTEP;
