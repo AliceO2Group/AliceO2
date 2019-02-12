@@ -31,7 +31,7 @@ class Digit : public DigitBase
  public:
   Digit() = default;
 
-  Digit(int pad, double adc); //check if need uint32_to
+  Digit(int pad, double adc, int labelindex); //check if need uint32_to
   ~Digit() = default;
 
   int getPadID() const { return mPadID; }
@@ -40,9 +40,13 @@ class Digit : public DigitBase
   double getADC() const { return mADC; }
   void setADC(double adc) { mADC = adc; }
 
+  int getLabelIndex() const { return mLabelIndex; }
+  void setLabelIndex(int labelindex) { mLabelIndex = labelindex; }
+
  private:
-  int mPadID;
-  double mADC;
+  int mPadID;      /// PadIndex to which the digit corresponds to
+  double mADC;     /// Amplitude of signal
+  int mLabelIndex; /// Index of the corresponding entry/entries in the MC label array
 
   ClassDefNV(Digit, 1);
 }; //class Digit

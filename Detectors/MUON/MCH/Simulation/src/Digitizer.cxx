@@ -10,17 +10,22 @@
 
 #include "MCHSimulation/Digitizer.h"
 
+#include "MCHMappingInterface/Segmentation.h"
+#include "MCHSimulation/Geometry.h"
+#include "MCHSimulation/Response.h"
+#include "TGeoManager.h"
 #include "TMath.h"
 #include "TProfile2D.h"
 #include "TRandom.h"
-
 #include <algorithm>
 #include <cassert>
+#include <fairlogger/Logger.h>
 
 using namespace o2::mch;
 
 namespace
 {
+
 std::map<int, int> createDEMap()
 {
   std::map<int, int> m;
@@ -31,160 +36,127 @@ std::map<int, int> createDEMap()
   return m;
 }
 
+int deId2deIndex(int detElemId)
+{
+  static std::map<int, int> m = createDEMap();
+  return m[detElemId];
+}
+
 std::vector<o2::mch::mapping::Segmentation> createSegmentations()
 {
   std::vector<o2::mch::mapping::Segmentation> segs;
-
   o2::mch::mapping::forEachDetectionElement([&segs](int deid) {
     segs.emplace_back(deid);
   });
   return segs;
 }
+
+const o2::mch::mapping::Segmentation& segmentation(int detElemId)
+{
+  static auto segs = createSegmentations();
+  return segs[deId2deIndex(detElemId)];
+}
+
+bool isStation1(int detID)
+{
+  return detID < 400;
+}
+
+Response& response(bool isStation1)
+{
+  static std::array<Response, 2> resp = { Response(Station::Type1), Response(Station::Type2345) };
+  return resp[isStation1];
+}
+
 } // namespace
 
-Digitizer::Digitizer(int) : mdetID{ createDEMap() }, mSeg{ createSegmentations() }
-{
-}
+Digitizer::Digitizer(int) {}
 
 void Digitizer::init()
 {
-  // To be done:
-  //1) add a test
-  //2) check read-out chain efficiency handling in current code: simple efficiency values? masking?
-  //different strategy?
-  //3) handling of time dimension: what changes w.r.t. aliroot check HMPID
-  //4) handling of MCtruth information
 }
 
 //______________________________________________________________________
-
 void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
 {
+  digits.clear();
+  mDigits.clear();
+  mMCTruthContainer.clear();
+
   //array of MCH hits for a given simulated event
   for (auto& hit : hits) {
-    processHit(hit, mEventTime);
-  } // end loop over hits
-  //TODO: merge (new member function, add charge) of digits that are on same pad:
-  //things to think about in terms of time costly
+    int labelIndex = mMCTruthContainer.getIndexedSize();
+    //index for this hit
+    int detID = hit.GetDetectorID();
+    processHit(hit, detID, mEventTime, labelIndex);
+    MCCompLabel label(hit.GetTrackID(), mEventID, mSrcID);
+    mMCTruthContainer.addElementRandomAccess(labelIndex, label);
+  } //loop over hits
 
-  digits.clear();
   fillOutputContainer(digits);
 }
-
 //______________________________________________________________________
-int Digitizer::processHit(const Hit& hit, double event_time)
+int Digitizer::processHit(const Hit& hit, int detID, double event_time, int labelIndex)
 {
-
-  //hit position(cm)
   Point3D<float> pos(hit.GetX(), hit.GetY(), hit.GetZ());
-  //hit has global coordinates
-  //convert energy to charge, float enough?
-  float charge = mMuonresponse.etocharge(hit.GetEnergyLoss());
-  //std::cout << "charge " << charge << std::endl;
 
-  //time information
-  float time = hit.GetTime(); //to be used for pile-up
-  int detID = hit.GetDetectorID();
-  //get index for this detID
-  int indexID = mdetID.at(detID);
-  //# digits for hit
-  int ndigits = 0;
+  Response& resp = response(isStation1(detID));
+
+  //convert energy to charge
+  auto charge = resp.etocharge(hit.GetEnergyLoss());
+  auto time = hit.GetTime(); //to be used for pile-up
 
   //transformation from global to local
   auto t = o2::mch::getTransformation(detID, *gGeoManager);
   Point3D<float> lpos;
   t.MasterToLocal(pos, lpos);
 
-  float anodpos = mMuonresponse.getAnod(lpos.X(), detID);
-
-  //TODO/Questions:
-  //- possibility to do random seeding in controlled way?
-  //distance of impact point and anode, needed for charge sharing
-  float anoddis = TMath::Abs(pos.X() - anodpos);
-  //should be related to electrons fluctuating out/in one/both halves (independent x)
-  float fracplane = mMuonresponse.chargeCorr();
-  //should become a function of anoddis
-  //std::cout << "fracplane " << fracplane << std::endl;
-  float chargebend = fracplane * charge;
-  float chargenon = charge / fracplane;
-  //last line  from Aliroot, not understood why
-  //since charge = charchbend+chargenon and not multiplication
-  float signal = 0.0;
+  auto anodpos = resp.getAnod(lpos.X());
+  auto fracplane = resp.chargeCorr();
+  auto chargebend = fracplane * charge;
+  auto chargenon = charge / fracplane;
 
   //borders of charge gen.
-  double xMin = anodpos - mMuonresponse.getQspreadX() * 0.5;
-  double xMax = anodpos + mMuonresponse.getQspreadX() * 0.5;
-  double yMin = lpos.Y() - mMuonresponse.getQspreadY() * 0.5;
-  double yMax = lpos.Y() + mMuonresponse.getQspreadY() * 0.5;
+  auto xMin = anodpos - resp.getQspreadX() * 0.5;
+  auto xMax = anodpos + resp.getQspreadX() * 0.5;
+  auto yMin = lpos.Y() - resp.getQspreadY() * 0.5;
+  auto yMax = lpos.Y() + resp.getQspreadY() * 0.5;
 
-  //pad-borders
-  float xmin = 0.0;
-  float xmax = 0.0;
-  float ymin = 0.0;
-  float ymax = 0.0;
+  //get segmentation for detector element
+  auto& seg = segmentation(detID);
+  auto localX = anodpos;
+  auto localY = lpos.Y();
 
-  //use DetectorID to get area for signal induction
+  //get area for signal induction from segmentation
   //single pad as check
   int padidbendcent = 0;
   int padidnoncent = 0;
-  bool padexists = mSeg[indexID].findPadPairByPosition(anodpos, lpos.Y(), padidbendcent, padidnoncent);
-  if (!padexists)
-    return 0; //to be decided if needed
-
-  //need to keep both electros separated since afterwards signal generation on each plane
-  //how misalignment enters?
-  std::vector<int> padIDsbend;
-  std::vector<int> padIDsnon;
-
-  //retrieve pads with signal
-  mSeg[indexID].bending().forEachPadInArea(xMin, yMin, xMax, yMax, [&padIDsbend](int padid) { padIDsbend.emplace_back(padid); });
-  mSeg[indexID].nonBending().forEachPadInArea(xMin, yMin, xMax, yMax, [&padIDsnon](int padid) { padIDsnon.emplace_back(padid); });
-
-  //induce signal pad-by-pad: bending
-  for (auto& padidbend : padIDsbend) {
-    //retrieve coordinates for each pad
-    xmin = (anodpos - mSeg[indexID].padPositionX(padidbend)) - mSeg[indexID].padSizeX(padidbend) * 0.5;
-    xmax = xmin + mSeg[indexID].padSizeX(padidbend);
-    ymin = (lpos.Y() - mSeg[indexID].padPositionY(padidbend)) - mSeg[indexID].padSizeY(padidbend) * 0.5;
-    ymax = ymin + mSeg[indexID].padSizeY(padidbend);
-
-    // 1st step integrate induced charge for each pad
-    signal = mMuonresponse.chargePad(xmin, xmax, ymin, ymax, detID, chargebend);
-    // if(signal>mMuonresponse.getChargeThreshold()
-    //&&     signal<mMuonresponse.getChargeSat()//not yet tuned
-    //  ) {
-    //translate charge in signal
-    signal = mMuonresponse.response(signal, detID);
-    //write digit
-    mDigits.emplace_back(padidbend, signal);
-    ++ndigits;
-    //  }
+  bool padexists = seg.findPadPairByPosition(localX, localY, padidbendcent, padidnoncent);
+  if (!padexists) {
+    LOG(ERROR) << "Did not find  _any_ pad for localX,Y=" << localX << "," << localY;
+    return 0;
   }
-  //induce signal pad-by-pad: nonbending
-  for (auto& padidnon : padIDsnon) {
-    //retrieve coordinates for each pad
-    xmin = (anodpos - mSeg[indexID].padPositionX(padidnon)) - mSeg[indexID].padSizeX(padidnon) * 0.5;
-    xmax = xmin + mSeg[indexID].padSizeX(padidnon);
-    ymin = (lpos.Y() - mSeg[indexID].padPositionY(padidnon)) - mSeg[indexID].padSizeY(padidnon) * 0.5;
-    ymax = ymin + mSeg[indexID].padSizeY(padidnon);
 
-    // 1st step integrate induced charge for each pad
-    signal = mMuonresponse.chargePad(xmin, xmax, ymin, ymax, detID, chargenon);
-    //check if signal above threshold
-    // if(signal>mMuonresponse.getChargeThreshold()
-    //&& signal<mMuonresponse.getChargeSat()//not yet tuned
-    // ) {
-    //translate charge in signal
-    signal = mMuonresponse.response(signal, detID);
-    //write digit
-    mDigits.emplace_back(padidnon, signal);
-    ++ndigits;
-    // }
-  }
-  return ndigits;
+  seg.forEachPadInArea(xMin, yMin, xMax, yMax, [&resp, &digits = this->mDigits, chargebend, chargenon, localX, localY, &seg, labelIndex ](int padid) {
+    auto dx = seg.padSizeX(padid) * 0.5;
+    auto dy = seg.padSizeY(padid) * 0.5;
+    auto xmin = (localX - seg.padPositionX(padid)) - dx;
+    auto xmax = xmin + dx;
+    auto ymin = (localY - seg.padPositionY(padid)) - dy;
+    auto ymax = ymin + dy;
+    auto q = resp.chargePadfraction(xmin, xmax, ymin, ymax);
+    if (seg.isBendingPad(padid)) {
+      q *= chargebend;
+    } else {
+      q *= chargenon;
+    }
+    auto signal = resp.response(q);
+    digits.emplace_back(padid, signal, labelIndex);
+  });
+  return mDigits.size();
 }
+
 //______________________________________________________________________
-//not clear if needed for DPL or modifications required
 void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
 {
   // filling the digit container
@@ -197,10 +169,40 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
     digits.emplace_back(*iter);
   }
   mDigits.erase(itBeg, iter);
+  mMCTruthOutputContainer.clear();
+  for (int index = 0; index < mMCTruthContainer.getIndexedSize(); ++index) {
+    mMCTruthOutputContainer.addElements(index, mMCTruthContainer.getLabels(index));
+  }
 }
 //______________________________________________________________________
-void Digitizer::flushOutputContainer(std::vector<Digit>& digits)
-{ // flush all residual buffered data
-  //not clear if neede in DPL
-  fillOutputContainer(digits);
+void Digitizer::setSrcID(int v)
+{
+  //set current MC source ID
+  if (v > MCCompLabel::maxSourceID()) {
+    LOG(FATAL) << "MC source id " << v << " exceeds max storable in the label " << MCCompLabel::maxSourceID() << FairLogger::endl;
+  }
+  mSrcID = v;
+}
+//______________________________________________________________________
+void Digitizer::setEventID(int v)
+{
+  // set current MC event ID
+  if (v > MCCompLabel::maxEventID()) {
+    LOG(FATAL) << "MC event id " << v << " exceeds max storabel in the label " << MCCompLabel::maxEventID() << FairLogger::endl;
+  }
+  mEventID = v;
+}
+//______________________________________________________________________
+void Digitizer::provideMC(o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer)
+{
+  //fill MCtruth info
+  mcContainer.clear();
+  if (mMCTruthOutputContainer.getNElements() == 0)
+    return;
+
+  for (int index = 0; index < mMCTruthOutputContainer.getIndexedSize(); ++index) {
+    mcContainer.addElements(index, mMCTruthOutputContainer.getLabels(index));
+  }
+
+  mMCTruthOutputContainer.clear();
 }

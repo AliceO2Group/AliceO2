@@ -21,18 +21,30 @@
 
 using namespace o2::mch;
 
+Response::Response(Station station) : mStation(station)
+{
+  if (mStation == Station::Type1) {
+    mK2x = 1.021026;
+    mSqrtK3x = 0.7000;
+    mK4x = 0.40934890;
+    mK2y = 0.9778207;
+    mSqrtK3y = 0.7550;
+    mK4y = 0.38658194;
+    mInversePitch = 1. / 0.21; // ^cm-1
+  } else {
+    mK2x = 1.010729;
+    mSqrtK3x = 0.7131;
+    mK4x = 0.40357476;
+    mK2y = 0.970595;
+    mSqrtK3y = 0.7642;
+    mK4y = 0.38312571;
+    mInversePitch = 1. / 0.25; // cm^-1
+  }
+}
+
 //_____________________________________________________________________
 float Response::etocharge(float edepos)
 {
-  //Todo convert in charge in number of electrons
-  //equivalent if IntPH in AliMUONResponseV0 in Aliroot
-  //to be clarified:
-  //1) why effective parameterisation with Log?
-  //2) any will to provide random numbers
-  //3) Float in aliroot, Double needed?
-  //with central seed to be reproducible?
-  //TODO: dependence on station
-  //TODO: check slope meaning in thesis
   int nel = int(edepos * 1.e9 / 27.4);
   float charge = 0;
   if (nel == 0)
@@ -43,57 +55,50 @@ float Response::etocharge(float edepos)
       arg = gRandom->Rndm();
     charge -= mChargeSlope * TMath::Log(arg);
   }
-  //translate to fC roughly, equivalent to AliMUONConstants::DefaultADC2MV()*AliMUONConstants::DefaultA0()*AliMUONConstants::DefaultCapa() multiplication in aliroot
-  charge *= 0.61 * 1.25 * 0.2; // put this in header as constants?
+  //translate to fC roughly,
+  //equivalent to AliMUONConstants::DefaultADC2MV()*AliMUONConstants::DefaultA0()*AliMUONConstants::DefaultCapa() multiplication in aliroot
+  charge *= 0.61 * 1.25 * 0.2;
   return charge;
 }
 //_____________________________________________________________________
-double Response::chargePad(float xmin, float xmax, float ymin, float ymax, int detID, float charge)
+double Response::chargePadfraction(float xmin, float xmax, float ymin, float ymax)
 {
   //see AliMUONResponseV0.cxx (inside DisIntegrate)
   // and AliMUONMathieson.cxx (IntXY)
-  int station = 0;
-  if (detID > 299)
-    station = 1;
   //see: https://edms.cern.ch/ui/file/1054937/1/ALICE-INT-2009-044.pdf
   // normalise w.r.t. Pitch
+  xmin *= mInversePitch;
+  xmax *= mInversePitch;
+  ymin *= mInversePitch;
+  ymax *= mInversePitch;
 
-  xmin *= mInversePitch[station];
-  xmax *= mInversePitch[station];
-  ymin *= mInversePitch[station];
-  ymax *= mInversePitch[station];
-
-  // The Mathieson function integral
-  double ux1 = mSqrtK3x[station] * TMath::TanH(mK2x[station] * xmin);
-  double ux2 = mSqrtK3x[station] * TMath::TanH(mK2x[station] * xmax);
-  double uy1 = mSqrtK3y[station] * TMath::TanH(mK2y[station] * ymin);
-  double uy2 = mSqrtK3y[station] * TMath::TanH(mK2y[station] * ymax);
-
-  return 4. * mK4x[station] * (TMath::ATan(ux2) - TMath::ATan(ux1)) *
-         mK4y[station] * (TMath::ATan(uy2) - TMath::ATan(uy1)) * charge;
+  return chargefrac1d(xmin, xmax, mK2x, mSqrtK3x, mK4x) * chargefrac1d(ymin, ymax, mK2y, mSqrtK3y, mK4y);
 }
 //______________________________________________________________________
-double Response::response(float charge, int detID)
+double Response::chargefrac1d(float min, float max, double k2, double sqrtk3, double k4)
 {
-  //to be done: calculate from induced charge signal
+  // The Mathieson function integral (1D)
+  double u1 = sqrtk3 * TMath::TanH(k2 * min);
+  double u2 = sqrtk3 * TMath::TanH(k2 * max);
+  return 2. * k4 * (TMath::ATan(u2) - TMath::ATan(u1));
+}
+//______________________________________________________________________
+double Response::response(float charge)
+{
+  //FEE effects
   return charge;
 }
 //______________________________________________________________________
-float Response::getAnod(float x, int detID)
+float Response::getAnod(float x)
 {
-  float pitch = mInversePitch[1];
-  if (detID < 299)
-    pitch = mInversePitch[0]; //guess for numbers!
-
-  int n = Int_t(x / pitch);
+  int n = Int_t(x / mInversePitch);
   float wire = (x > 0) ? n + 0.5 : n - 0.5;
-  return pitch * wire;
+  return mInversePitch * wire;
 }
 //______________________________________________________________________
 float Response::chargeCorr()
 {
   //taken from AliMUONResponseV0
   //conceptually not at all understood why this should make sense
-  //mChargeCorr not taken
   return TMath::Exp(gRandom->Gaus(0.0, mChargeCorr / 2.0));
 }

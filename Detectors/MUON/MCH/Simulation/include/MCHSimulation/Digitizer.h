@@ -18,12 +18,10 @@
 
 #include "MCHSimulation/Digit.h"
 #include "MCHSimulation/Detector.h"
-#include "MCHSimulation/Geometry.h"
 #include "MCHSimulation/Hit.h"
-#include "MCHSimulation/Response.h"
-#include "MCHMappingInterface/Segmentation.h"
 
-#include "TGeoManager.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 namespace o2
 {
@@ -33,24 +31,28 @@ namespace mch
 class Digitizer
 {
  public:
-  Digitizer(Int_t mode = 0);
+  Digitizer(int mode = 0);
 
   ~Digitizer() = default;
 
   void init();
 
   void setEventTime(double timeNS) { mEventTime = timeNS; }
-  void setEventID(int eventID) { mEventID = eventID; }
-  void setSrcID(int sID) { mSrcID = sID; }
 
   //process hits: fill digit vector with digits
   void process(const std::vector<Hit> hits, std::vector<Digit>& digits);
+  void provideMC(o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer);
 
   void fillOutputContainer(std::vector<Digit>& digits);
-  void flushOutputContainer(std::vector<Digit>& digits);
 
   void setContinuous(bool val) { mContinuous = val; }
   bool isContinuous() const { return mContinuous; }
+
+  void setSrcID(int v);
+  int getSrcID() const { return mSrcID; }
+
+  void setEventID(int v);
+  int getEventID() const { return mEventID; }
 
  private:
   double mEventTime;
@@ -65,14 +67,12 @@ class Digitizer
   // digit per pad
   std::vector<Digit> mDigits;
 
-  std::map<int, int> mdetID;
+  //MCLabel container (transient)
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthContainer;
+  //MCLabel container (output)
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthOutputContainer;
 
-  std::vector<mapping::Segmentation> mSeg;
-
-  //member with parameters and signal generation
-  Response mMuonresponse;
-
-  int processHit(const Hit& hit, double event_time);
+  int processHit(const Hit& hit, int detID, double event_time, int labelIndex);
 };
 
 } // namespace mch
