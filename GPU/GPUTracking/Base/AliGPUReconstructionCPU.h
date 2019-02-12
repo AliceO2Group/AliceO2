@@ -74,8 +74,16 @@ class AliGPUReconstructionCPU : public AliGPUReconstructionKernels<AliGPUReconst
 	
 public:
 	virtual ~AliGPUReconstructionCPU() = default;
-	
+
+#ifdef __APPLE__ //Workaround as clang on MacOS seems broken and does not accept default parameters before parameter pack
+	template <class S, int I = 0> inline int runKernel(const krnlExec& x, HighResTimer* t = nullptr, const krnlRunRange& y = krnlRunRangeNone)
+	{
+		return runKernel<S, I>(x, t, y, krnlEvent());
+	}
+	template <class S, int I = 0, typename... Args> inline int runKernel(const krnlExec& x, HighResTimer* t, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
+#else
 	template <class S, int I = 0, typename... Args> inline int runKernel(const krnlExec& x, HighResTimer* t = nullptr, const krnlRunRange& y = krnlRunRangeNone, const krnlEvent& z = krnlEvent(), const Args&... args)
+#endif
 	{
 		if (mDeviceProcessingSettings.debugLevel >= 3) printf("Running %s Stream %d (Range %d/%d)\n", typeid(S).name(), x.stream, y.start, y.num);
 		if (t && mDeviceProcessingSettings.debugLevel) t->Start();
