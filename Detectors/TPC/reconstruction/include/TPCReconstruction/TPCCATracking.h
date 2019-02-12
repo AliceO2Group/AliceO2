@@ -19,7 +19,7 @@
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/TrackTPC.h"
 
-class AliGPUCAConfiguration;
+class AliGPUO2InterfaceConfiguration;
 class AliGPUTPCO2Interface;
 
 namespace o2 { class MCCompLabel; namespace dataformats { template <class T> class MCTruthContainer; }}
@@ -35,7 +35,7 @@ public:
   TPCCATracking();
   ~TPCCATracking();
 
-  int initialize(const AliGPUCAConfiguration& config);
+  int initialize(const AliGPUO2InterfaceConfiguration& config);
   int initialize(const char* options = nullptr);
   void deinitialize();
 
