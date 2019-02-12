@@ -5,7 +5,7 @@
  * <pre>
  * Usage:
  *
- * aliroot $ALITPCCOMMON_ROOT/TPCFastTransformation/macro/initTPCcalibration.C'("uri", runNumber, isMC)'
+ * aliroot $ALIGPU_ROOT/TPCFastTransformation/macro/initTPCcalibration.C'("uri", runNumber, isMC)'
  * uri == "alien://Folder=/alice/data/2015/OCDB"
  * uri == "local://$HOME/alice/OCDB"
  * uri == "OCDBsim.root"

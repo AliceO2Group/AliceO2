@@ -1,27 +1,27 @@
 cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
 
-if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
-    set(MODULE O2AliTPCCommonBase)
-elseif(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
-    set(MODULE AliTPCCommonBase)
+if(ALIGPU_BUILD_TYPE STREQUAL "O2")
+    set(MODULE O2AliGPUCommon)
+elseif(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
+    set(MODULE AliGPUCommon)
 endif()
 
 set(SRCS
-    AliTPCCommon.cxx
+    AliGPUCommon.cxx
 )
 
 set (HDRS
-	AliTPCCommonDef.h
-	AliTPCCommonDefGPU.h
-    AliTPCCommonMath.h
-    AliTPCCommonFairLogger.h
-    AliTPCCommonRtypes.h
-    AliTPCCommonTransform3D.h
+	AliGPUCommonDef.h
+	AliGPUCommonDefGPU.h
+    AliGPUCommonMath.h
+    AliGPUCommonFairLogger.h
+    AliGPUCommonRtypes.h
+    AliGPUCommonTransform3D.h
 	FlatObject.h
 )
 
 #Default cmake build script for AliRoot
-if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
+if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
     # Add a library to the project using the specified source files
     add_library_tested(${MODULE} SHARED ${SRCS})
 
@@ -42,11 +42,11 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
 endif()
 
 #Default cmake build script for O2
-if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
+if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     Set(HEADERS ${HDRS})
     Set(LIBRARY_NAME ${MODULE})
-    set(BUCKET_NAME AliTPCCommonBase_bucket)
+    set(BUCKET_NAME AliGPUCommon_bucket)
 
     O2_GENERATE_LIBRARY()
-    install(FILES ${HDRS} DESTINATION include/AliTPCCommon)
+    install(FILES ${HDRS} DESTINATION include/AliGPU)
 endif()

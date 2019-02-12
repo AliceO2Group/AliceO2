@@ -17,7 +17,7 @@
 #ifndef ALICE_ALITPCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORMQA_H
 #define ALICE_ALITPCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORMQA_H
 
-#include "AliTPCCommonDef.h"
+#include "AliGPUCommonDef.h"
 #include "TPCFastTransformManager.h"
 #include <cmath>
 #include <iostream>

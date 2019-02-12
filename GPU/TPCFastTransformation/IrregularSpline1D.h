@@ -17,7 +17,7 @@
 #ifndef ALICE_ALITPCOMMON_TPCFASTTRANSFORMATION_IRREGULARSPLINE1D_H
 #define ALICE_ALITPCOMMON_TPCFASTTRANSFORMATION_IRREGULARSPLINE1D_H
 
-#include "AliTPCCommonDef.h"
+#include "AliGPUCommonDef.h"
 #include "FlatObject.h"
 
 #include <stddef.h>

@@ -25,8 +25,8 @@
 #include <cstring>
 #include <cassert>
 #endif
-#include "AliTPCCommonDef.h"
-#include "AliTPCCommonRtypes.h"
+#include "AliGPUCommonDef.h"
+#include "AliGPUCommonRtypes.h"
  
 //#define GPUCA_GPUCODE // uncomment to test "GPU" mode
 

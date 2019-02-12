@@ -19,7 +19,7 @@
 
 #include <cmath>
 
-#include "AliTPCCommonDef.h"
+#include "AliGPUCommonDef.h"
 #include "Rtypes.h"
 #include "TString.h"
 #include "AliTPCTransform.h"

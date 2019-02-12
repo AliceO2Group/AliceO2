@@ -1,14 +1,14 @@
 cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
 
-project(AliTPCCommon NONE)
-set(MODULE AliTPCCommon)
+project(AliGPU NONE)
+set(MODULE AliGPU)
 
 install(DIRECTORY
-        CAGPUTracking
+        GPUTracking
         TPCFastTransformation
         TPCSpaceChargeBase
         Common
         cmake
         DESTINATION sources
-        PATTERN "CAGPUTracking/Standalone/cmodules/.*" EXCLUDE
+        PATTERN "GPUTracking/utils/.*" EXCLUDE
 )
