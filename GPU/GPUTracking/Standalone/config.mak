@@ -28,3 +28,5 @@ CXXFILES					+= standalone.cxx
 
 LIBSUSE						+= -lGPUTracking
 ca:							libGPUTracking.so
+
+ca subbuild/libGPUTrackingCUDA.mak subbuild/libGPUTrackingOCL.mak subbuild/libGPUTrackingHIP.mak:	subbuild/libGPUTracking.mak
