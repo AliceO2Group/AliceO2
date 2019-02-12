@@ -634,7 +634,7 @@ double TRDCalDet::getMeanSM(bool wghtPads, int sector) const
   // Calculate the mean value for given sector
   // wghPads = kTRUE weighted with the number of pads in case of a AliTRDCalPad created (t0)
 
-  int iSM;
+  int iSM = 0;
   double meanALL = 0.0;
   double meanWP = 0.0;
   double pads = 0.0;
@@ -653,7 +653,6 @@ double TRDCalDet::getMeanSM(bool wghtPads, int sector) const
     meanSM[iSM] += val / 30.;
     meanWP += val * (pads / padsALL);
     meanSMWP[iSM] += val * (pads / (padsALL / 18.));
-
     det++;
   }
 

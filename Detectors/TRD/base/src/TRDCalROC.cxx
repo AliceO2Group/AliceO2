@@ -49,10 +49,7 @@ using namespace o2::trd;
 TRDCalROC::TRDCalROC(int p, int c)
   : mPla(p),
     mCha(c),
-    mNrows(0),
-    mNcols(144),
-    mNchannels(0),
-    mData(nullptr)
+    mNcols(144)
 {
   //
   // Constructor that initializes a given pad plane type
@@ -172,13 +169,13 @@ double TRDCalROC::getMeanNotNull() const
   double* ddata = new double[mNchannels];
   int nPoints = 0;
   for (int i = 0; i < mNchannels; i++) {
-
     if (mData[i] > 0.000000000000001) {
       ddata[nPoints] = (double)mData[i] / 10000;
       nPoints++;
     }
   }
   if (nPoints < 1) {
+    delete[] ddata;
     return -1;
   }
   double mean = TMath::Mean(nPoints, ddata);
@@ -245,8 +242,10 @@ double TRDCalROC::getRMSNotNull() const
       nPoints++;
     }
   }
-  if (nPoints < 1)
-    return -1.;
+  if (nPoints < 1) {
+    delete[] ddata;
+    return -1;
+  }
   double mean = TMath::RMS(nPoints, ddata);
   delete[] ddata;
   return mean;
