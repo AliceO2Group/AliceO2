@@ -11,7 +11,7 @@
 #ifndef ALICEO2_MCCOMPLABEL_H
 #define ALICEO2_MCCOMPLABEL_H
 
-#include "AliTPCCommonRtypes.h"
+#include "AliGPUCommonRtypes.h"
 
 namespace o2
 {

@@ -12,7 +12,7 @@
 #define O2_TRDSIMPARAM_H
 
 //Forwards to standard header with protection for GPU compilation
-#include "AliTPCCommonRtypes.h" // for ClassDef
+#include "AliGPUCommonRtypes.h" // for ClassDef
 
 namespace o2
 {

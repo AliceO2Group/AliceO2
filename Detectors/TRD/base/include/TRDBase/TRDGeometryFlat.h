@@ -13,8 +13,8 @@
 
 #include <cstring>
 #include "FlatObject.h"
-#include "AliTPCCommonDefGPU.h"
-#include "AliTPCCommonTransform3D.h"
+#include "AliGPUCommonDefGPU.h"
+#include "AliGPUCommonTransform3D.h"
 #include "TRDBase/TRDGeometryBase.h"
 #include "TRDBase/TRDPadPlane.h"
 
