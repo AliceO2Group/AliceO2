@@ -100,7 +100,6 @@ public:
 	
 	int RunTPCTrackingSlices();
 	virtual int RunTPCTrackingMerger();
-	virtual int RefitMergedTracks(bool resetTimers);
 	virtual int RunTRDTracking();
 	virtual int RunStandalone();
 	
