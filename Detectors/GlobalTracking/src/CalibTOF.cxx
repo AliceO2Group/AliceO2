@@ -274,8 +274,8 @@ bool CalibTOF::loadTOFCollectedCalibInfo(TTree *localTree, int &currententry, in
   //  printf("Loading TOF calib infos: number of entries in tree = %lld\n", mTreeCollectedCalibInfoTOF->GetEntries());
 
   currententry += increment;
-  //while (currententry < localTree->GetEntries()){
-  while (currententry < 800000){
+  while (currententry < localTree->GetEntries()){
+  //while (currententry < 800000){
 	 //    && currententry < o2::tof::Geo::NCHANNELS) {
     localTree->GetEntry(currententry);
     //LOG(INFO) << "Loading TOF calib info entry " << currententry << " -> " << mCalibInfoTOF->size()<< " infos";
