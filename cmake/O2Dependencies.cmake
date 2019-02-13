@@ -2265,6 +2265,9 @@ o2_define_bucket(
     DEPENDENCIES
     data_format_mid_bucket
     DataFormatsMID
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/MUON/MID/Base/include
 )
 
 o2_define_bucket(
@@ -2398,4 +2401,15 @@ o2_define_bucket(
     common_boost_bucket
 
     INCLUDE_DIRECTORIES
+)
+
+o2_define_bucket(
+    NAME
+    mid_simulation_bucket
+
+    DEPENDENCIES
+    data_format_simulation_bucket
+    root_base_bucket
+    mid_base_bucket
+    MIDBase
 )
