@@ -75,7 +75,7 @@ class AliGPUReconstructionCPU : public AliGPUReconstructionKernels<AliGPUReconst
 public:
 	virtual ~AliGPUReconstructionCPU() = default;
 
-#ifdef __APPLE__ //Workaround as clang on MacOS seems broken and does not accept default parameters before parameter pack
+#ifdef __APPLE__ //MacOS compiler BUG: clang seems broken and does not accept default parameters before parameter pack
 	template <class S, int I = 0> inline int runKernel(const krnlExec& x, HighResTimer* t = nullptr, const krnlRunRange& y = krnlRunRangeNone)
 	{
 		return runKernel<S, I>(x, t, y, krnlEvent());

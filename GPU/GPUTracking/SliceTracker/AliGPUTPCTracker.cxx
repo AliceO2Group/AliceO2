@@ -338,7 +338,7 @@ GPUh() int AliGPUTPCTracker::PerformGlobalTrackingRun(AliGPUTPCTracker& sliceNei
 	{
 		printf("Hit %3d: Row %3d: X %3.7lf Y %3.7lf\n", j, fTrackHits[fTracks[iTrack].FirstHitID() + j].RowIndex(), Row(fTrackHits[fTracks[iTrack].FirstHitID() + j].RowIndex()).X(),
 		(float) Data().HitDataY(Row(fTrackHits[fTracks[iTrack].FirstHitID() + j].RowIndex()), fTrackHits[fTracks[iTrack].FirstHitID() + j].HitIndex()) * Row(fTrackHits[fTracks[iTrack].FirstHitID() + j].RowIndex()).HstepY() + Row(fTrackHits[fTracks[iTrack].FirstHitID() + j].RowIndex()).Grid().YMin());
-		}*/
+	}*/
 
 	if (sliceNeighbour.fCommonMem->fNTracklets == 0) return(0);
 
@@ -374,7 +374,8 @@ GPUh() int AliGPUTPCTracker::PerformGlobalTrackingRun(AliGPUTPCTracker& sliceNei
 	if (nHits >= GLOBAL_TRACKING_MIN_HITS)
 	{
 		//printf("%d hits found\n", nHits);
-		AliGPUTPCTrack& track = sliceNeighbour.fTracks[sliceNeighbour.fCommonMem->fNTracks];
+		int trackId = CAMath::AtomicAdd(&sliceNeighbour.fCommonMem->fNTracks, 1);
+		int hitId = CAMath::AtomicAdd(&sliceNeighbour.fCommonMem->fNTrackHits, nHits);
 		if (direction == 1)
 		{
 			int i = 0;
@@ -388,11 +389,11 @@ GPUh() int AliGPUTPCTracker::PerformGlobalTrackingRun(AliGPUTPCTracker& sliceNei
 				if (rowHit != CALINK_INVAL)
 				{
 					//printf("New track: entry %d, row %d, hitindex %d\n", i, rowIndex, sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets]);
-					sliceNeighbour.fTrackHits[sliceNeighbour.fCommonMem->fNTrackHits + i].Set(rowIndex, rowHit);
+					sliceNeighbour.fTrackHits[hitId + i].Set(rowIndex, rowHit);
 					//if (i == 0) tParam.TransportToX(sliceNeighbour.Row(rowIndex).X(), mCAParam->ConstBz(), GPUCA_MAX_SIN_PHI); //Use transport with new linearisation, we have changed the track in between - NOT needed, fitting will always start at outer end of global track!
 					i++;
 				}
-				rowIndex ++;
+				rowIndex++;
 			}
 		}
 		else
@@ -408,19 +409,18 @@ GPUh() int AliGPUTPCTracker::PerformGlobalTrackingRun(AliGPUTPCTracker& sliceNei
 				if (rowHit != CALINK_INVAL)
 				{
 					//printf("New track: entry %d, row %d, hitindex %d\n", i, rowIndex, sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets]);
-					sliceNeighbour.fTrackHits[sliceNeighbour.fCommonMem->fNTrackHits + i].Set(rowIndex, rowHit);
+					sliceNeighbour.fTrackHits[hitId + i].Set(rowIndex, rowHit);
 					i--;
 				}
 				rowIndex--;
 			}
 		}
+		AliGPUTPCTrack& track = sliceNeighbour.fTracks[trackId];
 		track.SetAlive(1);
 		track.SetParam(tParam.GetParam());
 		track.SetNHits(nHits);
-		track.SetFirstHitID(sliceNeighbour.fCommonMem->fNTrackHits);
+		track.SetFirstHitID(hitId);
 		track.SetLocalTrackId((fISlice << 24) | fTracks[iTrack].LocalTrackId());
-		sliceNeighbour.fCommonMem->fNTracks++;
-		sliceNeighbour.fCommonMem->fNTrackHits += nHits;
 	}
 
 	return(nHits >= GLOBAL_TRACKING_MIN_HITS);
