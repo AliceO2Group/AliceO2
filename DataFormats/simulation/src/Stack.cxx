@@ -508,6 +508,7 @@ bool Stack::selectTracks()
   bool tracksdiscarded = false;
   // Check particles in the fParticle array
   int prim = -1; // counter how many primaries seen (mainly to constrain search in motherindex remapping)
+  LOG(DEBUG) << "Stack: Entering track selection on " << mParticles.size() << " tracks";
   for (auto& thisPart : mParticles) {
     Bool_t store = kTRUE;
 
@@ -518,19 +519,8 @@ bool Stack::selectTracks()
       // for primaries we are done quickly
       store = kTRUE;
     } else {
-      // for other particles we (potentially need to correct the mother indices
-      auto rangestart = mTransportedIDs.begin() + mIndexOfPrimaries[prim];
-      auto rangeend = (prim < (mIndexOfPrimaries.size() - 1)) ? mTransportedIDs.begin() + mIndexOfPrimaries[prim + 1]
-                                                              : mTransportedIDs.end();
-      // auto rangeend = mTransportedIDs.end();
-
-      auto iter = std::find_if(rangestart, rangeend, [iMother](int x) { return x == iMother; });
-      if (iter != rangeend) {
-        // complexity should be constant
-        auto newmother = std::distance(mTransportedIDs.begin(), iter);
-        // LOG(INFO) << "Fixing mother from " << iMother << " to " << newmother << FairLogger::endl;
-        thisPart.SetMotherTrackId(newmother);
-      }
+      // for other particles we potentially need to correct the mother indices
+      thisPart.SetMotherTrackId(mTrackIDtoParticlesEntry[iMother]);
 
       // no secondaries; also done
       if (!mStoreSecondaries) {
