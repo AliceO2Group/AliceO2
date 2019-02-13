@@ -205,7 +205,7 @@ void Hall::ConstructGeometry()
       haveZDC = true;
     }
   }
-  if (haveZDC) {
+  if (!haveZDC) {
     //     No ZDC
     hullen = 370.;
   } else {
