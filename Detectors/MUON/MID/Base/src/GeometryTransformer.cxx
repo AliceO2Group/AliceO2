@@ -29,6 +29,7 @@ namespace mid
 void GeometryTransformer::setMatrix(int deId, const ROOT::Math::Transform3D& matrix)
 {
   /// Sets the transformation matrix for detection element deId
+  Constants::assertDEId(deId);
   mTransformations[deId] = matrix;
 }
 

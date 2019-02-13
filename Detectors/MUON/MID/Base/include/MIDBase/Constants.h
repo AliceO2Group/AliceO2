@@ -72,6 +72,9 @@ class Constants
   /// Get chamber index from detection element ID
   inline static int getChamber(int deId) { return (deId % 36) / 9; }
 
+  /// Assert detection element id
+  static void assertDEId(int deId);
+
   /// Gets detection element Id
   /// @param isRight RPC is in right side
   /// @param chamber The chamber ID (0-3)

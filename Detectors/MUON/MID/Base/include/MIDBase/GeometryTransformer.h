@@ -30,7 +30,7 @@ class GeometryTransformer
 {
  public:
   void setMatrix(int deId, const ROOT::Math::Transform3D& matrix);
-  ///Gets the maatrix transformation for detection element deId
+  ///Gets the matrix transformation for detection element deId
   inline const ROOT::Math::Transform3D getMatrix(int deId) { return mTransformations[deId]; }
 
   template <typename T>
