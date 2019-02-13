@@ -47,12 +47,7 @@ FairRunSim* o2sim_init(bool asservice)
   LOG(INFO) << "RNG INITIAL SEED " << seed;
 
   auto genconfig = confref.getGenerator();
-  FairRunSim* run;
-  if (asservice) {
-    run = new o2::steer::O2RunSim();
-  } else {
-    run = new FairRunSim();
-  }
+  FairRunSim* run = new o2::steer::O2RunSim(asservice);
   run->SetImportTGeoToVMC(false); // do not import TGeo to VMC since the latter is built together with TGeo
   run->SetSimSetup([confref]() { o2::SimSetup::setup(confref.getMCEngine().c_str()); });
 
