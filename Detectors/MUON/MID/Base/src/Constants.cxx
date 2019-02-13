@@ -15,6 +15,8 @@
 #include "MIDBase/Constants.h"
 
 #include <stdexcept>
+#include <sstream>
+#include <string>
 
 namespace o2
 {
@@ -29,6 +31,19 @@ void Constants::assertDEId(int deId)
   if (deId < 0 || deId > sNDetectionElements) {
     throw std::out_of_range("Detection element ID must be between 0 and 72");
   }
+}
+
+//_____________________________________________________________________________
+std::string Constants::getDEName(int deId)
+{
+  /// Gets the detection element name from its ID
+  /// @param deId The detection element ID
+  int chId = getChamber(deId);
+  int stId = 1 + chId / 2;
+  int planeId = 1 + chId % 2;
+  std::stringstream deName;
+  deName << "MT" << stId << planeId << ((deId / 36 == 0) ? "In" : "Out") << (deId % 9) + 1;
+  return deName.str();
 }
 
 } // namespace mid
