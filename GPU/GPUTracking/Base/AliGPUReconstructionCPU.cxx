@@ -532,9 +532,15 @@ int AliGPUReconstructionCPU::RunTPCTrackingSlices_internal()
 
 int AliGPUReconstructionCPU::RunTPCTrackingMerger()
 {
-	if (workers()->tpcMerger.CheckSlices()) return 1;
+	bool doGPU = mRecoStepsGPU & RecoStep::TPCMerging;
+	AliGPUTPCGMMerger& Merger = workers()->tpcMerger;
+	AliGPUTPCGMMerger& MergerShadow = doGPU ? mWorkersShadow->tpcMerger : Merger;;
+	if (Merger.CheckSlices()) return 1;
+	if (mDeviceProcessingSettings.debugLevel >= 2) GPUInfo("Running TPC Merger (%d/%d)", Merger.NOutputTrackClusters(), Merger.NClusters());
+	ActivateThreadContext();
+	
 	HighResTimer timer;
-	static double times[8] = {};
+	static double times[10] = {};
 	static int nCount = 0;
 	if (mDeviceProcessingSettings.resetTimers || !GPUCA_TIMING_SUM)
 	{
@@ -542,52 +548,76 @@ int AliGPUReconstructionCPU::RunTPCTrackingMerger()
 		nCount = 0;
 	}
 
-	SetupGPUProcessor(&workers()->tpcMerger, true);
+	SetupGPUProcessor(&Merger, true);
 	
 	timer.ResetStart();
-	workers()->tpcMerger.UnpackSlices();
+	Merger.UnpackSlices();
 	times[0] += timer.GetCurrentElapsedTime(true);
-	workers()->tpcMerger.MergeWithingSlices();
+	Merger.MergeWithingSlices();
 	
 	times[1] += timer.GetCurrentElapsedTime(true);
-	workers()->tpcMerger.MergeSlices();
+	Merger.MergeSlices();
 	
 	times[2] += timer.GetCurrentElapsedTime(true);
-	workers()->tpcMerger.MergeCEInit();
+	Merger.MergeCEInit();
 	
 	times[3] += timer.GetCurrentElapsedTime(true);
-	workers()->tpcMerger.CollectMergedTracks();
+	Merger.CollectMergedTracks();
 	
 	times[4] += timer.GetCurrentElapsedTime(true);
-	workers()->tpcMerger.MergeCE();
+	Merger.MergeCE();
 	
 	times[3] += timer.GetCurrentElapsedTime(true);
-	workers()->tpcMerger.PrepareClustersForFit();
+	Merger.PrepareClustersForFit();
 	
 	times[5] += timer.GetCurrentElapsedTime(true);
-	RefitMergedTracks(mDeviceProcessingSettings.resetTimers);
 	
+	if (doGPU)
+	{
+		SetupGPUProcessor(&Merger, false);
+		MergerShadow.OverrideSliceTracker(mDeviceConstantMem->tpcTrackers);
+	}
+	
+	WriteToConstantMemory((char*) &mDeviceConstantMem->tpcMerger - (char*) mDeviceConstantMem, &mWorkersShadow->tpcMerger, sizeof(mWorkersShadow->tpcMerger), 0);
+	TransferMemoryResourceLinkToGPU(Merger.MemoryResRefit());
 	times[6] += timer.GetCurrentElapsedTime(true);
-	workers()->tpcMerger.Finalize();
 	
+	runKernel<AliGPUTPCGMMergerTrackFit>({fBlockCount, fThreadCount, 0}, nullptr, krnlRunRangeNone);
+	SynchronizeGPU();
 	times[7] += timer.GetCurrentElapsedTime(true);
+	
+	TransferMemoryResourceLinkToHost(Merger.MemoryResRefit());
+	SynchronizeGPU();
+	times[8] += timer.GetCurrentElapsedTime(true);
+
+	Merger.Finalize();
+	times[9] += timer.GetCurrentElapsedTime(true);
+
 	nCount++;
 	if (mDeviceProcessingSettings.debugLevel > 0)
 	{
+		int copysize = 4 * Merger.NOutputTrackClusters() * sizeof(float) + Merger.NOutputTrackClusters() * sizeof(unsigned int) + Merger.NOutputTracks() * sizeof(AliGPUTPCGMMergedTrack) + 6 * sizeof(float) + sizeof(AliGPUParam);
 		printf("Merge Time:\tUnpack Slices:\t%'7d us\n", (int) (times[0] * 1000000 / nCount));
 		printf("\t\tMerge Within:\t%'7d us\n", (int) (times[1] * 1000000 / nCount));
 		printf("\t\tMerge Slices:\t%'7d us\n", (int) (times[2] * 1000000 / nCount));
 		printf("\t\tMerge CE:\t%'7d us\n", (int) (times[3] * 1000000 / nCount));
 		printf("\t\tCollect:\t%'7d us\n", (int) (times[4] * 1000000 / nCount));
 		printf("\t\tClusters:\t%'7d us\n", (int) (times[5] * 1000000 / nCount));
-		printf("\t\tRefit:\t\t%'7d us\n", (int) (times[6] * 1000000 / nCount));
-		printf("\t\tFinalize:\t%'7d us\n", (int) (times[7] * 1000000 / nCount));
+		double speed = (double) copysize / times[6] * nCount / 1e9;
+		if (doGPU) printf("\t\tCopy From:\t%'7d us (%6.3f GB/s)\n", (int) (times[6] * 1000000 / nCount), speed);
+		printf("\t\tRefit:\t\t%'7d us\n", (int) (times[7] * 1000000 / nCount));
+		speed = (double) copysize / times[8] * nCount / 1e9;
+		if (doGPU) printf("\t\tCopy To:\t%'7d us (%6.3f GB/s)\n", (int) (times[8] * 1000000 / nCount), speed);
+		printf("\t\tFinalize:\t%'7d us\n", (int) (times[9] * 1000000 / nCount));
 	}
 	
-	mIOPtrs.mergedTracks = workers()->tpcMerger.OutputTracks();
-	mIOPtrs.nMergedTracks = workers()->tpcMerger.NOutputTracks();
-	mIOPtrs.mergedTrackHits = workers()->tpcMerger.Clusters();
-	mIOPtrs.nMergedTrackHits = workers()->tpcMerger.NOutputTrackClusters();
+	mIOPtrs.mergedTracks = Merger.OutputTracks();
+	mIOPtrs.nMergedTracks = Merger.NOutputTracks();
+	mIOPtrs.mergedTrackHits = Merger.Clusters();
+	mIOPtrs.nMergedTrackHits = Merger.NOutputTrackClusters();
+
+	if (mDeviceProcessingSettings.debugLevel >= 2) GPUInfo("TPC Merger Finished");
+	ReleaseThreadContext();
 	return 0;
 }
 
@@ -629,12 +659,6 @@ int AliGPUReconstructionCPU::RunTRDTracking()
 
 	workers()->trdTracker.DoTracking();
 	
-	return 0;
-}
-
-int AliGPUReconstructionCPU::RefitMergedTracks(bool resetTimers)
-{
-	AliGPUReconstructionCPU::runKernel<AliGPUTPCGMMergerTrackFit>({1, 1, 0, krnlDeviceType::CPU}, nullptr, krnlRunRangeNone);
 	return 0;
 }
 

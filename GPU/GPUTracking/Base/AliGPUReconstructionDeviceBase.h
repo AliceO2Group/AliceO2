@@ -19,8 +19,6 @@ public:
 protected:
 	AliGPUReconstructionDeviceBase(const AliGPUSettingsProcessing& cfg);
     
-	virtual int RefitMergedTracks(bool resetTimers) override;
-
 	virtual int InitDevice() override;
 	virtual int InitDevice_Runtime() = 0;
 	virtual int ExitDevice() override;
