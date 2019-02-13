@@ -1,6 +1,3 @@
-#ifndef O2_TRDDIGITSPARAM_H
-#define O2_TRDDIGITSPARAM_H
-
 // Copyright CERN and copyright holders of ALICE O2. This software is
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
@@ -31,9 +28,12 @@
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
 //  Class containing parameters for digits                                   //
-//  2019 - Ported from AliRoot to O2 (J. Lopez)                              //
+//  2019 - Ported from AliRoot to O2 (Jorge Lopez)                           //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
+
+#ifndef O2_TRDDIGITSPARAM_H
+#define O2_TRDDIGITSPARAM_H
 
 #include <array>
 
@@ -64,13 +64,15 @@ class TRDDigitsParam
   }
   void setPretriggerPhaseAll(unsigned int phase)
   {
-    for (auto& el : mPretriggerPhase)
+    for (auto& el : mPretriggerPhase) {
       el = phase;
+    }
   }
   void setADCbaselineAll(int baseline)
   {
-    for (auto& el : mADCbaseline)
+    for (auto& el : mADCbaseline) {
       el = baseline;
+    }
   }
 
   int getNTimeBins(int det) const { return mNTimeBins[det]; }
