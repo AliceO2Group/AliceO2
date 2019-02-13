@@ -1,8 +1,6 @@
 #ifndef ALIGPUCOMMONDEF_H
 #define ALIGPUCOMMONDEF_H
 
-#include "AliGPUCommonDefGPU.h"
-
 #if defined(__CINT__) || defined(__ROOTCINT__)
 #define CON_DELETE
 #define CON_DEFAULT
@@ -12,5 +10,7 @@
 #define CON_DEFAULT = default
 #define CONSTEXPR constexpr
 #endif
+
+#include "AliGPUCommonDefGPU.h"
 
 #endif
