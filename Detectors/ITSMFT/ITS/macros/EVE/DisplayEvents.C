@@ -55,17 +55,18 @@ private:
 
   // TEve-related members
   static TEveElementList* gEvent;
-  static TEveElementList* gDigits;
-  static TEveElement *getEveDigits(int entry, int chip, const std::vector<Digit> &digi);
-  static TEveElement *getEveClusters(int entry, const std::vector<Cluster> &clus);
-  static TEveElement *getEveTracks(int entry, const std::vector<Cluster> &clus, const std::vector<o2::ITS::TrackITS> &trks);
+  static TEveElementList* gChip;
+  static TEveElement *getEveChipDigits(int chip, const std::vector<Digit> &digi);
+  static TEveElement *getEveChipClusters(int chip, const std::vector<Cluster> &clus);
+  static TEveElement *getEveClusters(const std::vector<Cluster> &clus);
+  static TEveElement *getEveTracks(const std::vector<Cluster> &clus, const std::vector<o2::ITS::TrackITS> &trks);
 };
 
 TTree* Data::gDigiTree = nullptr;
 TTree* Data::gClusTree = nullptr;
 TTree* Data::gTracTree = nullptr;
 TEveElementList* Data::gEvent = nullptr;
-TEveElementList* Data::gDigits = nullptr;
+TEveElementList* Data::gChip = nullptr;
 
 template<typename T>
 void Data::load(TTree *tree, const char *name, int entry, std::vector<T> *arr) {
@@ -88,27 +89,23 @@ void Data::loadData(int entry) {
   load<o2::ITS::TrackITS>(gTracTree, "ITSTrack", entry, &mTracks);
 }
 
+constexpr float sizey = SegmentationAlpide::ActiveMatrixSizeRows;
+constexpr float sizex = SegmentationAlpide::ActiveMatrixSizeCols;
+constexpr float dy = SegmentationAlpide::PitchRow;
+constexpr float dx = SegmentationAlpide::PitchCol;
 
-// Dealing with graphics
-TEveElement *Data::getEveDigits(int entry, int chip, const std::vector<Digit> &digi) {
-  auto gman = o2::ITS::GeometryTGeo::Instance();
-  std::vector<int> occup(gman->getNumberOfChips());
-  const float sizey = SegmentationAlpide::ActiveMatrixSizeRows;
-  const float sizex = SegmentationAlpide::ActiveMatrixSizeCols;
-  const float dy = SegmentationAlpide::PitchRow;
-  const float dx = SegmentationAlpide::PitchCol;
-
+TEveElement *Data::getEveChipDigits(int chip, const std::vector<Digit> &digi) {
   static TEveFrameBox *box = new TEveFrameBox();
   box->SetAAQuadXY(0, 0, 0, sizex, sizey);
   box->SetFrameColor(kGray);
 
-  std::string cname("ALPIDE chip #");
-  cname += std::to_string(chip);
-  TEveQuadSet* q = new TEveQuadSet(cname.c_str());
-  q->SetOwnIds(kTRUE);
-  q->SetFrame(box);
-  q->Reset(TEveQuadSet::kQT_RectangleXY, kFALSE, 32);
-
+  // Digits
+  TEveQuadSet* qdigi = new TEveQuadSet("digits");
+  qdigi->SetOwnIds(kTRUE);
+  qdigi->SetFrame(box);
+  qdigi->Reset(TEveQuadSet::kQT_RectangleXY, kFALSE, 32);
+  auto gman = o2::ITS::GeometryTGeo::Instance();
+  std::vector<int> occup(gman->getNumberOfChips());
   for (const auto &d : digi)
   {
     auto id=d.getChipIndex();
@@ -118,22 +115,53 @@ TEveElement *Data::getEveDigits(int entry, int chip, const std::vector<Digit> &d
     int row = d.getRow();
     int col = d.getColumn();
     int charge=d.getCharge();
-    q->AddQuad(col*dx,row*dy,0.,dx,dy);
-    q->QuadValue(charge);
+    qdigi->AddQuad(col*dx,row*dy,0.,dx,dy);
+    qdigi->QuadValue(charge);
   }   
-  q->RefitPlex();
-
-  TEveTrans& t = q->RefMainTrans();
+  qdigi->RefitPlex();
+  TEveTrans& t = qdigi->RefMainTrans();
   t.RotateLF(1, 3, 0.5*TMath::Pi());
   t.SetPos(0, 0, 0);
 
   auto most = std::distance(occup.begin(), std::max_element(occup.begin(), occup.end()));
   std::cout<<"Most occupied chip: " << most << " ("<<occup[most]<<" digits)\n";
   
-  return q;
+  return qdigi;
 }
 
-TEveElement *Data::getEveClusters(int entry, const std::vector<Cluster> &clus) {
+TEveElement *Data::getEveChipClusters(int chip, const std::vector<Cluster> &clus) {
+  static TEveFrameBox *box = new TEveFrameBox();
+  box->SetAAQuadXY(0, 0, 0, sizex, sizey);
+  box->SetFrameColor(kGray);
+
+  // Clusters
+  TEveQuadSet* qclus = new TEveQuadSet("clusters");
+  qclus->SetOwnIds(kTRUE);
+  qclus->SetFrame(box);
+  qclus->Reset(TEveQuadSet::kQT_LineXYFixedZ, kFALSE, 32);
+  for (const auto &c : clus)
+  {
+    auto id=c.getSensorID();
+    if (id != chip) continue;
+
+    int row = c.getPatternRowMin();
+    int col = c.getPatternColMin();
+    int len = c.getPatternColSpan();
+    int wid = c.getPatternRowSpan();
+    qclus->AddLine(col*dx,row*dy,len*dx,0.);
+    qclus->AddLine(col*dx,row*dy,0., wid*dy);
+    qclus->AddLine((col+len)*dx,row*dy,0.,wid*dy);
+    qclus->AddLine(col*dx,(row+wid)*dy,len*dx, 0.);
+  }   
+  qclus->RefitPlex();
+  TEveTrans& ct = qclus->RefMainTrans();
+  ct.RotateLF(1, 3, 0.5*TMath::Pi());
+  ct.SetPos(0, 0, 0);
+
+  return qclus;
+}
+
+TEveElement *Data::getEveClusters(const std::vector<Cluster> &clus) {
   auto gman = o2::ITS::GeometryTGeo::Instance();
   TEvePointSet* clusters = new TEvePointSet("clusters");
   clusters->SetMarkerColor(kBlue);
@@ -144,7 +172,7 @@ TEveElement *Data::getEveClusters(int entry, const std::vector<Cluster> &clus) {
   return clusters;
 }
 
-TEveElement *Data::getEveTracks(int entry, const std::vector<Cluster> &clus, const std::vector<o2::ITS::TrackITS> &trks) {
+TEveElement *Data::getEveTracks(const std::vector<Cluster> &clus, const std::vector<o2::ITS::TrackITS> &trks) {
   auto gman = o2::ITS::GeometryTGeo::Instance();
   TEveTrackList* tracks = new TEveTrackList("tracks");
   auto prop = tracks->GetPropagator();
@@ -181,14 +209,20 @@ void Data::displayData(int entry, int chip) {
   std::string ename("Event #");
   ename += std::to_string(entry);
 
-  auto digits = getEveDigits(entry, chip, mDigits);
-  delete gDigits;
-  gDigits = new TEveElementList(ename.c_str());
-  gDigits->AddElement(digits);
-  gEve->AddElement(gDigits);
-  
-  auto clusters = getEveClusters(entry, mClusters);
-  auto tracks = getEveTracks(entry, mClusters, mTracks);
+  // Chip display
+  auto chipDigits = getEveChipDigits(chip, mDigits);
+  auto chipClusters = getEveChipClusters(chip, mClusters);
+  delete gChip;
+  std::string cname(ename+"  ALPIDE chip #");
+  cname += std::to_string(chip);  
+  gChip = new TEveElementList(cname.c_str());
+  gChip->AddElement(chipDigits);
+  gChip->AddElement(chipClusters);
+  gEve->AddElement(gChip);
+
+  // Event display
+  auto clusters = getEveClusters(mClusters);
+  auto tracks = getEveTracks(mClusters, mTracks);
   delete gEvent;
   gEvent = new TEveElementList(ename.c_str());
   gEvent->AddElement(clusters);
