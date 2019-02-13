@@ -14,12 +14,22 @@
 /// \date   08 March 2018
 #include "MIDBase/Constants.h"
 
+#include <stdexcept>
+
 namespace o2
 {
 namespace mid
 {
 constexpr std::array<const double, 4> Constants::sScaleFactors;
 constexpr std::array<const double, 4> Constants::sDefaultChamberZ;
+
+void Constants::assertDEId(int deId)
+{
+  /// Checks if the detection element ID is valid
+  if (deId < 0 || deId > sNDetectionElements) {
+    throw std::out_of_range("Detection element ID must be between 0 and 72");
+  }
+}
 
 } // namespace mid
 } // namespace o2
