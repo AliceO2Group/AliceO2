@@ -2,7 +2,6 @@
 #define ALIGPURECONSTRUCTIONDEVICEBASE_H
 
 #include "AliGPUReconstructionCPU.h"
-#include <array>
 
 #if !(defined(__CINT__) || defined(__ROOTCINT__) || defined(__CLING__) || defined(__ROOTCLING__) || defined(G__ROOT))
 extern template class AliGPUReconstructionKernels<AliGPUReconstructionCPUBackend>;
@@ -13,20 +12,14 @@ class AliGPUReconstructionDeviceBase : public AliGPUReconstructionCPU
 public:
 	virtual ~AliGPUReconstructionDeviceBase() override;
 
-	char* MergerHostMemory() const {return((char*) fGPUMergerHostMemory);}
 	const AliGPUParam* DeviceParam() const {return &mDeviceConstantMem->param;}
 	virtual int DoTRDGPUTracking() override;
 	virtual int GetMaxThreads() override;
 
 protected:
 	AliGPUReconstructionDeviceBase(const AliGPUSettingsProcessing& cfg);
-	AliGPUConstantMem mGPUReconstructors;
-	void* fGPUMergerHostMemory = nullptr;
-	AliGPUConstantMem* mDeviceConstantMem = nullptr;
     
-	virtual int RunTPCTrackingSlices() override;
 	virtual int RefitMergedTracks(bool resetTimers) override;
-	int RunTPCTrackingSlices_internal();
 
 	virtual int InitDevice() override;
 	virtual int InitDevice_Runtime() = 0;
@@ -35,23 +28,9 @@ protected:
 
 	virtual const AliGPUTPCTracker* CPUTracker(int iSlice) {return &workers()->tpcTrackers[iSlice];}
 
-	virtual void ActivateThreadContext() = 0;
-	virtual void ReleaseThreadContext() = 0;
-	virtual void SynchronizeGPU() = 0;
-	virtual void SynchronizeStream(int stream) = 0;
-	virtual void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) = 0;
-	virtual int IsEventDone(deviceEvent* evList, int nEvents = 1) = 0;
-	
-	virtual int PrepareTextures();
-	virtual int DoStuckProtection(int stream, void* event);
-	virtual int PrepareProfile();
-	virtual int DoProfile();
-	
 	virtual int GPUDebug(const char* state = "UNKNOWN", int stream = -1) override = 0;
 	virtual void TransferMemoryInternal(AliGPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, void* src, void* dst) override = 0;
 	virtual void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) override = 0;
-	virtual void ReleaseEvent(deviceEvent* ev) = 0;
-	virtual void RecordMarker(deviceEvent* ev, int stream) = 0;
 	
 	struct helperParam
 	{
@@ -66,86 +45,30 @@ protected:
 		volatile char fReset;
 	};
 	
-	struct AliGPUProcessorWorkers : public AliGPUProcessor
-	{
-		AliGPUWorkers* mWorkersProc = nullptr;
-		TPCFastTransform* fTpcTransform = nullptr;
-		char* fTpcTransformBuffer = nullptr;
-		o2::trd::TRDGeometryFlat* fTrdGeometry = nullptr;
-		void* SetPointersDeviceProcessor(void* mem);
-		void* SetPointersFlatObjects(void* mem);
-		short mMemoryResWorkers = -1;
-		short mMemoryResFlat = -1;
-	};
-	
-	template <class T> struct eventStruct
-	{
-		T selector[NSLICES];
-		T stream[GPUCA_GPUCA_MAX_STREAMS];
-		T init;
-		T constructor;
-	};
-	
 	int PrepareFlatObjects();
 
-	int ReadEvent(int iSlice, int threadId);
-	void WriteOutput(int iSlice, int threadId);
-	int GlobalTracking(int iSlice, int threadId, helperParam* hParam);
-
-	int StartHelperThreads();
-	int StopHelperThreads();
-	void ResetHelperThreads(int helpers);
+	virtual int StartHelperThreads() override;
+	virtual int StopHelperThreads() override;
+	virtual void RunHelperThreads(int phase) override;
+	virtual int HelperError(int iThread) const override {return fHelperParams[iThread].fError;}
+	virtual int HelperDone(int iThread) const override {return fHelperParams[iThread].fDone;}
+	virtual void WaitForHelperThreads() override;
+	virtual void ResetHelperThreads(int helpers) override;
 	void ResetThisHelperThread(helperParam* par);
 
-	int GetThread();
 	void ReleaseGlobalLock(void* sem);
 
 	static void* helperWrapper(void*);
 	
-	AliGPUProcessorWorkers mProcShadow; //Host copy of tracker objects that will be used on the GPU
-	AliGPUProcessorWorkers mProcDevice; //tracker objects that will be used on the GPU
-	AliGPUWorkers* &mWorkersShadow = mProcShadow.mWorkersProc;
-	AliGPUWorkers* &mWorkersDevice = mProcDevice.mWorkersProc;
-
-	int fThreadId = -1; //Thread ID that is valid for the local CUDA context
-    int fDeviceId = -1; //Device ID used by backend
-
-	unsigned int fBlockCount = 0;                 //Default GPU block count
-	unsigned int fThreadCount = 0;                //Default GPU thread count
-	unsigned int fConstructorBlockCount = 0;      //GPU blocks used in Tracklet Constructor
-	unsigned int fSelectorBlockCount = 0;         //GPU blocks used in Tracklet Selector
-	unsigned int fConstructorThreadCount = 0;
-	unsigned int fSelectorThreadCount = 0;
-	unsigned int fFinderThreadCount = 0;
-	unsigned int fTRDThreadCount = 0;
+	int fDeviceId = -1; //Device ID used by backend
 
 #ifdef GPUCA_GPUCA_TIME_PROFILE
 	unsigned long long int fProfTimeC, fProfTimeD; //Timing
 #endif
 
 	helperParam* fHelperParams = nullptr; //Control Struct for helper threads
-	void* fHelperMemMutex = nullptr;
-
-#ifdef __ROOT__
-#define volatile
-#endif
-	volatile int fSliceOutputReady;
-	volatile char fSliceLeftGlobalReady[NSLICES];
-	volatile char fSliceRightGlobalReady[NSLICES];
-#ifdef __ROOT__
-#undef volatile
-#endif
-	void* fSliceGlobalMutexes = nullptr;
-	std::array<char, NSLICES> fGlobalTrackingDone;
-	std::array<char, NSLICES> fWriteOutputDone;
 
 	int fNSlaveThreads = 0;	//Number of slave threads currently active
-
-	int fGPUStuck = 0;		//Marks that the GPU is stuck, skip future events
-	
-	int mNStreams = 0;
-	eventStruct<void*> mEvents;
-	bool mStreamInit[GPUCA_GPUCA_MAX_STREAMS] = {false};
 };
 
 #endif

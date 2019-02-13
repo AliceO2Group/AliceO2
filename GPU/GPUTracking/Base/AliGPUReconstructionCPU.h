@@ -4,6 +4,8 @@
 #include "AliGPUReconstruction.h"
 #include "AliGPUConstantMem.h"
 #include <stdexcept>
+#include <atomic>
+#include <array>
 #include "utils/timer.h"
 
 #include "AliGPUGeneralKernels.h"
@@ -96,7 +98,7 @@ public:
 		return 0;
 	}
 	
-	virtual int RunTPCTrackingSlices();
+	int RunTPCTrackingSlices();
 	virtual int RunTPCTrackingMerger();
 	virtual int RefitMergedTracks(bool resetTimers);
 	virtual int RunTRDTracking();
@@ -117,10 +119,95 @@ public:
 	HighResTimer timerTPCtracking[NSLICES][10];
 	
 protected:
+	template <class T> struct eventStruct
+	{
+		T selector[NSLICES];
+		T stream[GPUCA_GPUCA_MAX_STREAMS];
+		T init;
+		T constructor;
+	};
+	
+	struct AliGPUProcessorWorkers : public AliGPUProcessor
+	{
+		AliGPUWorkers* mWorkersProc = nullptr;
+		TPCFastTransform* fTpcTransform = nullptr;
+		char* fTpcTransformBuffer = nullptr;
+		o2::trd::TRDGeometryFlat* fTrdGeometry = nullptr;
+		void* SetPointersDeviceProcessor(void* mem);
+		void* SetPointersFlatObjects(void* mem);
+		short mMemoryResWorkers = -1;
+		short mMemoryResFlat = -1;
+	};
+	
+	virtual void SynchronizeStream(int stream) {}
+	virtual void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) {}
+	virtual bool IsEventDone(deviceEvent* evList, int nEvents = 1) {return true;}
+	virtual void RecordMarker(deviceEvent* ev, int stream) {}
+
 	AliGPUReconstructionCPU(const AliGPUSettingsProcessing& cfg) : AliGPUReconstructionKernels(cfg) {}
+	virtual void ActivateThreadContext() {}
+	virtual void ReleaseThreadContext() {}
+	virtual void SynchronizeGPU() {}
+	virtual void ReleaseEvent(deviceEvent* ev) {}
+	virtual int StartHelperThreads() {return 0;}
+	virtual int StopHelperThreads() {return 0;}
+	virtual void RunHelperThreads(int phase) {}
+	virtual void WaitForHelperThreads() {}
+	virtual int HelperError(int iThread) const {return 0;}
+	virtual int HelperDone(int iThread) const {return 0;}
+	virtual void ResetHelperThreads(int helpers) {}
+	
+	virtual void SetThreadCounts();
+	void SetThreadCounts(RecoStep step);
+	int ReadEvent(int iSlice, int threadId);
+	void WriteOutput(int iSlice, int threadId);
+	int GlobalTracking(int iSlice, int threadId);
+	
+	virtual int InitDevice();
+	virtual int ExitDevice();
+	int GetThread();
+	
+	virtual int PrepareTextures() {return 0;}
+	virtual int DoStuckProtection(int stream, void* event) {return 0;}
+	virtual int PrepareProfile() {return 0;}
+	virtual int DoProfile() {return 0;}
+	
+	unsigned int fBlockCount = 0;                 //Default GPU block count
+	unsigned int fThreadCount = 0;                //Default GPU thread count
+	unsigned int fConstructorBlockCount = 0;      //GPU blocks used in Tracklet Constructor
+	unsigned int fSelectorBlockCount = 0;         //GPU blocks used in Tracklet Selector
+	unsigned int fConstructorThreadCount = 0;
+	unsigned int fSelectorThreadCount = 0;
+	unsigned int fFinderThreadCount = 0;
+	unsigned int fTRDThreadCount = 0;
+
+	int mThreadId = -1; //Thread ID that is valid for the local CUDA context
+	int mGPUStuck = 0;		//Marks that the GPU is stuck, skip future events
+	int mNStreams = 1;
+	eventStruct<void*> mEvents;
+	
+	AliGPUConstantMem* mDeviceConstantMem = nullptr;
+	AliGPUProcessorWorkers mProcShadow; //Host copy of tracker objects that will be used on the GPU
+	AliGPUProcessorWorkers mProcDevice; //tracker objects that will be used on the GPU
+	AliGPUWorkers* &mWorkersShadow = mProcShadow.mWorkersProc;
+	AliGPUWorkers* &mWorkersDevice = mProcDevice.mWorkersProc;
+	
+#ifdef __ROOT__ //ROOT5 BUG: cint doesn't do volatile
+#define volatile
+#endif
+	volatile int fSliceOutputReady;
+	volatile char fSliceLeftGlobalReady[NSLICES];
+	volatile char fSliceRightGlobalReady[NSLICES];
+#ifdef __ROOT__
+#undef volatile
+#endif
+	std::array<char, NSLICES> fGlobalTrackingDone;
+	std::array<char, NSLICES> fWriteOutputDone;
 
 private:
 	void TransferMemoryResourcesHelper(AliGPUProcessor* proc, int stream, bool all, bool toGPU);
+	int RunTPCTrackingSlices_internal();
+	std::atomic_flag mLockAtomic = ATOMIC_FLAG_INIT;
 };
 
 #endif

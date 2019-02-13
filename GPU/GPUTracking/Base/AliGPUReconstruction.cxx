@@ -147,27 +147,6 @@ int AliGPUReconstruction::Finalize()
 	return 0;
 }
 
-int AliGPUReconstruction::InitDevice()
-{
-	if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_GLOBAL)
-	{
-		mHostMemoryPermanent = mHostMemoryBase = operator new(GPUCA_HOST_MEMORY_SIZE);
-		mHostMemorySize = GPUCA_HOST_MEMORY_SIZE;
-		ClearAllocatedMemory();
-	}
-	return 0;
-}
-int AliGPUReconstruction::ExitDevice()
-{
-	if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_GLOBAL)
-	{
-		operator delete(mHostMemoryBase);
-		mHostMemoryPool = mHostMemoryBase = mHostMemoryPermanent = nullptr;
-		mHostMemorySize = 0;
-	}
-	return 0;
-}
-
 int AliGPUReconstruction::InitializeProcessors()
 {
 	for (unsigned int i = 0;i < NSLICES;i++)

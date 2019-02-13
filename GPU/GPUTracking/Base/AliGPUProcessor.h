@@ -15,7 +15,7 @@ MEM_CLASS_PRE() class AliGPUParam;
 class AliGPUProcessor
 {
 	friend class AliGPUReconstruction;
-	friend class AliGPUReconstructionDeviceBase;
+	friend class AliGPUReconstructionCPU;
 	friend class AliGPUMemoryResource;
 	
 public:

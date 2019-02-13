@@ -2,6 +2,9 @@
 #define GPUCA_GPUTYPE_RADEON
 #ifdef __OPENCLCPP__
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
+#ifdef __clang__
+#include <clc/clc.h>
+#else
 #include <opencl_def>
 #include <opencl_common>
 #include <opencl_math>
@@ -11,8 +14,9 @@
 #include <opencl_synchronization>
 #include <opencl_printf>
 #include <opencl_integer>
-#define M_PI 3.1415926535f
 using namespace cl;
+#endif
+#define M_PI 3.1415926535f
 #endif
 
 //Disable assertions since they produce errors in GPU Code
