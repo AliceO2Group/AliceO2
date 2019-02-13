@@ -255,8 +255,8 @@ public:
 	
 protected:
 	AliGPUReconstruction(const AliGPUSettingsProcessing& cfg);				//Constructor
-	virtual int InitDevice();
-	virtual int ExitDevice();
+	virtual int InitDevice() = 0;
+	virtual int ExitDevice() = 0;
 	int InitializeProcessors();
 	
 	//Private helper functions for memory management

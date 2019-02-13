@@ -182,14 +182,7 @@ int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 	cl_uint compute_units;
 	clGetDeviceInfo(mInternals->device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &compute_units, nullptr);
 
-	fBlockCount = compute_units;
-	fThreadCount = GPUCA_GPUCA_THREAD_COUNT;
-	fConstructorBlockCount = compute_units * GPUCA_GPUCA_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER;
-	fSelectorBlockCount = compute_units * GPUCA_GPUCA_BLOCK_COUNT_SELECTOR_MULTIPLIER;
-	fConstructorThreadCount = GPUCA_GPUCA_THREAD_COUNT_CONSTRUCTOR;
-	fSelectorThreadCount = GPUCA_GPUCA_THREAD_COUNT_SELECTOR;
-	fFinderThreadCount = GPUCA_GPUCA_THREAD_COUNT_FINDER;
-	fTRDThreadCount = GPUCA_GPUCA_THREAD_COUNT_TRD;
+	mCoreCount = compute_units;
 
 	mInternals->context = clCreateContext(nullptr, count, mInternals->devices, nullptr, nullptr, &ocl_error);
 	if (ocl_error != CL_SUCCESS)
@@ -346,7 +339,7 @@ int AliGPUReconstructionOCLBackend::InitDevice_Runtime()
 		memset(mHostMemoryBase, 0, mHostMemorySize);
 	}
 
-	GPUInfo("OPENCL Initialisation successfull (%d: %s %s (Frequency %d, Shaders %d) Thread %d, %lld bytes used)", bestDevice, device_vendor, device_name, (int) freq, (int) shaders, fThreadId, (long long int) mDeviceMemorySize);
+	GPUInfo("OPENCL Initialisation successfull (%d: %s %s (Frequency %d, Shaders %d) Thread %d, %lld bytes used)", bestDevice, device_vendor, device_name, (int) freq, (int) shaders, mThreadId, (long long int) mDeviceMemorySize);
 
 	return(0);
 }
@@ -421,14 +414,6 @@ void AliGPUReconstructionOCLBackend::RecordMarker(deviceEvent* ev, int stream)
 	GPUFailedMsg(clEnqueueMarkerWithWaitList(mInternals->command_queue[stream], 0, nullptr, (cl_event*) ev));
 }
 
-void AliGPUReconstructionOCLBackend::ActivateThreadContext()
-{
-}
-
-void AliGPUReconstructionOCLBackend::ReleaseThreadContext()
-{
-}
-
 int AliGPUReconstructionOCLBackend::DoStuckProtection(int stream, void* event)
 {
 	if (mDeviceProcessingSettings.stuckProtection)
@@ -443,7 +428,7 @@ int AliGPUReconstructionOCLBackend::DoStuckProtection(int stream, void* event)
 		if (tmp != CL_COMPLETE)
 		{
 			GPUError("GPU Stuck, future processing in this component is disabled, skipping event (GPU Event State %d)", (int) tmp);
-			fGPUStuck = 1;
+			mGPUStuck = 1;
 			return(1);
 		}
 	}
@@ -469,15 +454,15 @@ void AliGPUReconstructionOCLBackend::SynchronizeEvents(deviceEvent* evList, int 
 	GPUFailedMsg(clWaitForEvents(nEvents, (cl_event*) evList));
 }
 
-int AliGPUReconstructionOCLBackend::IsEventDone(deviceEvent* evList, int nEvents)
+bool AliGPUReconstructionOCLBackend::IsEventDone(deviceEvent* evList, int nEvents)
 {
 	cl_int eventdone;
 	for (int i = 0;i < nEvents;i++)
 	{
 		GPUFailedMsg(clGetEventInfo(((cl_event*) evList)[i] , CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(eventdone), &eventdone, nullptr));
-		if (eventdone != CL_COMPLETE) return 0;
+		if (eventdone != CL_COMPLETE) return false;
 	}
-	return 1;
+	return true;
 }
 
 int AliGPUReconstructionOCLBackend::GPUDebug(const char* state, int stream)
@@ -527,4 +512,16 @@ template <class T, int I> int AliGPUReconstructionOCLBackend::AddKernel(bool mul
 	cl_kernel krnl = clCreateKernel(mInternals->program, name.c_str(), &ocl_error); if (ocl_error != CL_SUCCESS) {GPUError("OPENCL Kernel Error %s", name.c_str());return(1);}
 	mInternals->kernels.emplace_back(krnl, name);
 	return 0;
+}
+
+void AliGPUReconstructionOCLBackend::SetThreadCounts()
+{
+	fThreadCount = GPUCA_GPUCA_THREAD_COUNT;
+	fBlockCount = mCoreCount;
+	fConstructorBlockCount = fBlockCount * GPUCA_GPUCA_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER;
+	fSelectorBlockCount = fBlockCount * GPUCA_GPUCA_BLOCK_COUNT_SELECTOR_MULTIPLIER;
+	fConstructorThreadCount = GPUCA_GPUCA_THREAD_COUNT_CONSTRUCTOR;
+	fSelectorThreadCount = GPUCA_GPUCA_THREAD_COUNT_SELECTOR;
+	fFinderThreadCount = GPUCA_GPUCA_THREAD_COUNT_FINDER;
+	fTRDThreadCount = GPUCA_GPUCA_THREAD_COUNT_TRD;
 }

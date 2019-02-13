@@ -144,14 +144,7 @@ int AliGPUReconstructionHIPBackend::InitDevice_Runtime()
 		GPUInfo("multiProcessorCount = %d", hipDeviceProp_t.multiProcessorCount);
 	}
 
-	fThreadCount = GPUCA_GPUCA_THREAD_COUNT;
-	fBlockCount = hipDeviceProp_t.multiProcessorCount;
-	fConstructorBlockCount = hipDeviceProp_t.multiProcessorCount * (mDeviceProcessingSettings.trackletConstructorInPipeline ? 1 : GPUCA_GPUCA_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER);
-	fSelectorBlockCount = hipDeviceProp_t.multiProcessorCount * GPUCA_GPUCA_BLOCK_COUNT_SELECTOR_MULTIPLIER;
-	fConstructorThreadCount = GPUCA_GPUCA_THREAD_COUNT_CONSTRUCTOR;
-	fSelectorThreadCount = GPUCA_GPUCA_THREAD_COUNT_SELECTOR;
-	fFinderThreadCount = GPUCA_GPUCA_THREAD_COUNT_FINDER;
-	fTRDThreadCount = GPUCA_GPUCA_THREAD_COUNT_TRD;
+	mCoreCount = hipDeviceProp_t.multiProcessorCount;
 
 	if (hipDeviceProp_t.major < 1 || (hipDeviceProp_t.major == 1 && hipDeviceProp_t.minor < 2))
 	{
@@ -218,7 +211,7 @@ int AliGPUReconstructionHIPBackend::InitDevice_Runtime()
 	}
 
 	ReleaseThreadContext();
-	GPUInfo("HIP Initialisation successfull (Device %d: %s, Thread %d, %lld/%lld bytes used)", fDeviceId, hipDeviceProp_t.name, fThreadId, (long long int) mHostMemorySize, (long long int) mDeviceMemorySize);
+	GPUInfo("HIP Initialisation successfull (Device %d: %s, Thread %d, %lld/%lld bytes used)", fDeviceId, hipDeviceProp_t.name, mThreadId, (long long int) mHostMemorySize, (long long int) mDeviceMemorySize);
 
 	return(0);
 }
@@ -289,9 +282,6 @@ void AliGPUReconstructionHIPBackend::RecordMarker(deviceEvent* ev, int stream)
 	GPUFailedMsg(hipEventRecord(*(hipEvent_t*) ev, mInternals->HIPStreams[stream]));
 }
 
-void AliGPUReconstructionHIPBackend::ActivateThreadContext(){}
-void AliGPUReconstructionHIPBackend::ReleaseThreadContext(){}
-
 void AliGPUReconstructionHIPBackend::SynchronizeGPU()
 {
 	GPUFailedMsg(hipDeviceSynchronize());
@@ -310,15 +300,15 @@ void AliGPUReconstructionHIPBackend::SynchronizeEvents(deviceEvent* evList, int 
 	}
 }
 
-int AliGPUReconstructionHIPBackend::IsEventDone(deviceEvent* evList, int nEvents)
+bool AliGPUReconstructionHIPBackend::IsEventDone(deviceEvent* evList, int nEvents)
 {
 	for (int i = 0;i < nEvents;i++)
 	{
 		hipError_t retVal = hipEventSynchronize(((hipEvent_t*) evList)[i]);
-		if (retVal == hipErrorNotReady) return 0;
+		if (retVal == hipErrorNotReady) return false;
 		GPUFailedMsg(retVal);
 	}
-	return(1);
+	return(true);
 }
 
 int AliGPUReconstructionHIPBackend::GPUDebug(const char* state, int stream)
@@ -339,4 +329,16 @@ int AliGPUReconstructionHIPBackend::GPUDebug(const char* state, int stream)
 	}
 	if (mDeviceProcessingSettings.debugLevel >= 3) GPUInfo("GPU Sync Done");
 	return(0);
+}
+
+void AliGPUReconstructionHIPBackend::SetThreadCounts()
+{
+	fThreadCount = GPUCA_GPUCA_THREAD_COUNT;
+	fBlockCount = mCoreCount;
+	fConstructorBlockCount = fBlockCount * (mDeviceProcessingSettings.trackletConstructorInPipeline ? 1 : GPUCA_GPUCA_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER);
+	fSelectorBlockCount = fBlockCount * GPUCA_GPUCA_BLOCK_COUNT_SELECTOR_MULTIPLIER;
+	fConstructorThreadCount = GPUCA_GPUCA_THREAD_COUNT_CONSTRUCTOR;
+	fSelectorThreadCount = GPUCA_GPUCA_THREAD_COUNT_SELECTOR;
+	fFinderThreadCount = GPUCA_GPUCA_THREAD_COUNT_FINDER;
+	fTRDThreadCount = GPUCA_GPUCA_THREAD_COUNT_TRD;
 }

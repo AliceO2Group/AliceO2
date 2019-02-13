@@ -164,15 +164,7 @@ int AliGPUReconstructionCUDABackend::InitDevice_Runtime()
 		GPUInfo("multiProcessorCount = %d", cudaDeviceProp.multiProcessorCount);
 		GPUInfo("textureAlignment = %lld", (unsigned long long int) cudaDeviceProp.textureAlignment);
 	}
-
-	fThreadCount = GPUCA_GPUCA_THREAD_COUNT;
-	fBlockCount = cudaDeviceProp.multiProcessorCount;
-	fConstructorBlockCount = cudaDeviceProp.multiProcessorCount * (mDeviceProcessingSettings.trackletConstructorInPipeline ? 1 : GPUCA_GPUCA_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER);
-	fSelectorBlockCount = cudaDeviceProp.multiProcessorCount * GPUCA_GPUCA_BLOCK_COUNT_SELECTOR_MULTIPLIER;
-	fConstructorThreadCount = GPUCA_GPUCA_THREAD_COUNT_CONSTRUCTOR;
-	fSelectorThreadCount = GPUCA_GPUCA_THREAD_COUNT_SELECTOR;
-	fFinderThreadCount = GPUCA_GPUCA_THREAD_COUNT_FINDER;
-	fTRDThreadCount = GPUCA_GPUCA_THREAD_COUNT_TRD;
+	mCoreCount = cudaDeviceProp.multiProcessorCount;
 
 	if (cudaDeviceProp.major < 1 || (cudaDeviceProp.major == 1 && cudaDeviceProp.minor < 2))
 	{
@@ -253,7 +245,7 @@ int AliGPUReconstructionCUDABackend::InitDevice_Runtime()
 	}
 
 	ReleaseThreadContext();
-	GPUInfo("CUDA Initialisation successfull (Device %d: %s, Thread %d, %lld/%lld bytes used)", fDeviceId, cudaDeviceProp.name, fThreadId, (long long int) mHostMemorySize, (long long int) mDeviceMemorySize);
+	GPUInfo("CUDA Initialisation successfull (Device %d: %s, Thread %d, %lld/%lld bytes used)", fDeviceId, cudaDeviceProp.name, mThreadId, (long long int) mHostMemorySize, (long long int) mDeviceMemorySize);
 
 	return(0);
 }
@@ -353,15 +345,15 @@ void AliGPUReconstructionCUDABackend::SynchronizeEvents(deviceEvent* evList, int
 	}
 }
 
-int AliGPUReconstructionCUDABackend::IsEventDone(deviceEvent* evList, int nEvents)
+bool AliGPUReconstructionCUDABackend::IsEventDone(deviceEvent* evList, int nEvents)
 {
 	for (int i = 0;i < nEvents;i++)
 	{
 		cudaError_t retVal = cudaEventSynchronize(((cudaEvent_t*) evList)[i]);
-		if (retVal == cudaErrorNotReady) return 0;
+		if (retVal == cudaErrorNotReady) return false;
 		GPUFailedMsg(retVal);
 	}
-	return(1);
+	return(true);
 }
 
 int AliGPUReconstructionCUDABackend::GPUDebug(const char* state, int stream)
@@ -467,4 +459,16 @@ int AliGPUReconstructionCUDABackend::DoProfile()
 	free(stageAtSync);
 #endif
 	return 0;
+}
+
+void AliGPUReconstructionCUDABackend::SetThreadCounts()
+{
+	fThreadCount = GPUCA_GPUCA_THREAD_COUNT;
+	fBlockCount = mCoreCount;
+	fConstructorBlockCount = fBlockCount * (mDeviceProcessingSettings.trackletConstructorInPipeline ? 1 : GPUCA_GPUCA_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER);
+	fSelectorBlockCount = fBlockCount * GPUCA_GPUCA_BLOCK_COUNT_SELECTOR_MULTIPLIER;
+	fConstructorThreadCount = GPUCA_GPUCA_THREAD_COUNT_CONSTRUCTOR;
+	fSelectorThreadCount = GPUCA_GPUCA_THREAD_COUNT_SELECTOR;
+	fFinderThreadCount = GPUCA_GPUCA_THREAD_COUNT_FINDER;
+	fTRDThreadCount = GPUCA_GPUCA_THREAD_COUNT_TRD;
 }

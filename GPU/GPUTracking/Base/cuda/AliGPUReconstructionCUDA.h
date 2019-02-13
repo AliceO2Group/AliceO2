@@ -20,6 +20,7 @@ protected:
     
 	virtual int InitDevice_Runtime() override;
 	virtual int ExitDevice_Runtime() override;
+	virtual void SetThreadCounts() override;
 
 	virtual void ActivateThreadContext() override;
 	virtual void ReleaseThreadContext() override;
@@ -27,7 +28,7 @@ protected:
 	virtual int GPUDebug(const char* state = "UNKNOWN", int stream = -1) override;
 	virtual void SynchronizeStream(int stream) override;
 	virtual void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) override;
-	virtual int IsEventDone(deviceEvent* evList, int nEvents = 1) override;
+	virtual bool IsEventDone(deviceEvent* evList, int nEvents = 1) override;
 	
 	virtual int PrepareTextures() override;
 	virtual int PrepareProfile() override;
@@ -42,6 +43,7 @@ protected:
 
 private:
 	AliGPUReconstructionCUDAInternals* mInternals;
+	int mCoreCount = 0;
 };
 
 using AliGPUReconstructionCUDA = AliGPUReconstructionKernels<AliGPUReconstructionCUDABackend>;

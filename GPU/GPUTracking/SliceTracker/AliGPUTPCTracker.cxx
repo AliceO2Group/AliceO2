@@ -217,12 +217,6 @@ GPUh() int AliGPUTPCTracker::CheckEmptySlice()
 	return 0;
 }
 
-GPUh() void AliGPUTPCTracker::ReconstructOutput()
-{
-	WriteOutputPrepare();
-	WriteOutput();
-}
-
 GPUh() void AliGPUTPCTracker::WriteOutputPrepare()
 {
 	AliGPUTPCSliceOutput::Allocate(*fOutput, fCommonMem->fNTracks, fCommonMem->fNTrackHits, &mRec->OutputControl(), fOutputMemory);

@@ -76,10 +76,6 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	void WriteOutputPrepare();
 	void WriteOutput();
   
-#if !defined(GPUCA_GPUCODE)
-	void ReconstructOutput();
-#endif //!GPUCA_GPUCODE
-  
 	//GPU Tracker Interface
 #if !defined(GPUCA_GPUCODE_DEVICE)
 	//Debugging Stuff
