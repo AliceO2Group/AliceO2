@@ -21,6 +21,8 @@
 #include <string>
 #include <TStopwatch.h>
 #include "ReconstructionDataFormats/CalibInfoTOFshort.h"
+#include "ReconstructionDataFormats/CalibLHCphaseTOF.h"
+#include "ReconstructionDataFormats/CalibTimeSlewingParamTOF.h"
 #include "TOFBase/Geo.h"
 #include "TH1F.h"
 #include "TH1D.h"
@@ -129,6 +131,8 @@ class CalibTOF
   std::string mCollectedCalibInfoTOFBranchName = "TOFCollectedCalibInfo";   ///< name of branch containing input TOF calib infos
   std::string mOutputBranchName = "TOFCalibParam";        ///< name of branch containing output
   // output calibration
+  o2::dataformats::CalibLHCphaseTOF *mLHCphaseObj;    ///< LHCPhase to be written in the output
+  o2::dataformats::CalibTimeSlewingParamTOF *mTimeSlewingObj; ///< Time Slewing object to be written in the output
   int mNLHCphaseIntervals = 0;  ///< Number of measurements for the LHCPhase
   float mLHCphase[1000]; ///< outputt LHC phase in ps
   float mLHCphaseErr[1000]; ///< outputt LHC phase in ps

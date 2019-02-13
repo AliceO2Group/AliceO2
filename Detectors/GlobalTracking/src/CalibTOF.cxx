@@ -88,6 +88,10 @@ void CalibTOF::init()
 
   // create output branch with output -- for now this is empty
   if (mOutputTree) {
+    mLHCphaseObj = new o2::dataformats::CalibLHCphaseTOF();
+    mTimeSlewingObj = new o2::dataformats::CalibTimeSlewingParamTOF();
+    mOutputTree->Branch("mLHCphaseObj", &mLHCphaseObj);
+    mOutputTree->Branch("mTimeSlewingObj", &mTimeSlewingObj);
     mOutputTree->Branch("LHCphaseMeasurementInterval", &mNLHCphaseIntervals, "LHCphaseMeasurementInterval/I");
     mOutputTree->Branch("LHCphase", mLHCphase, "LHCphase[LHCphaseMeasurementInterval]/F");
     mOutputTree->Branch("LHCphaseErr", mLHCphaseErr, "LHCphaseErr[LHCphaseMeasurementInterval]/F");
@@ -204,9 +208,17 @@ void CalibTOF::run(int flag, int sector)
 
 	    TGraphErrors *gTimeVsTot = processSlewing(histoChTimeSlewingTemp, 1,funcChOffset);
 
+	    if(gTimeVsTot && gTimeVsTot->GetN()){
+	      for(int itot=0;itot<gTimeVsTot->GetN();itot++)
+		mTimeSlewingObj->addTimeSlewingInfo(ich+ipad, gTimeVsTot->GetX()[itot], gTimeVsTot->GetY()[itot] + mCalibChannelOffset[ich+ipad]);
+	    }
+	    else{ // just add the channel offset
+	      mTimeSlewingObj->addTimeSlewingInfo(ich+ipad, 0, mCalibChannelOffset[ich+ipad]);
+	    }
+
 	    if (mDebugMode && gTimeVsTot && gTimeVsTot->GetN() && fout) {
 	      fout->cd();
-	      int istrip = ((ich+ipad)/o2::tof::Geo::NPADS) % o2::tof::Geo::NSTRIPXSECTOR;
+	      int istrip = ((ich+ipad)/o2::tof::Geo::NPADS)%o2::tof::Geo::NSTRIPXSECTOR;
 	      gTimeVsTot->SetName(Form("pad_%02d_%02d_%02d", sector, istrip, ipad%o2::tof::Geo::NPADS));
 	      gTimeVsTot->Write();
 	      //	      histoChTimeSlewingTemp->Write(Form("histoChTimeSlewingTemp_%02d_%02d_%02d", sector, istrip, ipad%o2::tof::Geo::NPADS)); // no longer written since it produces a very large output
@@ -262,8 +274,8 @@ bool CalibTOF::loadTOFCollectedCalibInfo(TTree *localTree, int &currententry, in
   //  printf("Loading TOF calib infos: number of entries in tree = %lld\n", mTreeCollectedCalibInfoTOF->GetEntries());
 
   currententry += increment;
-  while (currententry < localTree->GetEntries()){
-  //  while (currententry < 800000){
+  //while (currententry < localTree->GetEntries()){
+  while (currententry < 800000){
 	 //    && currententry < o2::tof::Geo::NCHANNELS) {
     localTree->GetEntry(currententry);
     //LOG(INFO) << "Loading TOF calib info entry " << currententry << " -> " << mCalibInfoTOF->size()<< " infos";
@@ -314,6 +326,7 @@ void CalibTOF::doLHCPhaseCalib(){
     int res = FitPeak(mFuncLHCphase, htemp, 500., 3., 2.,"LHCphase");
     if(res) continue;
 
+    mLHCphaseObj->addLHCphase(mHistoLHCphase->GetYaxis()->GetBinLowEdge(ifit0),mFuncLHCphase->GetParameter(1));
     mLHCphase[mNLHCphaseIntervals] = mFuncLHCphase->GetParameter(1);
     mLHCphaseErr[mNLHCphaseIntervals] = mFuncLHCphase->GetParError(1);
     mLHCphaseStartInterval[mNLHCphaseIntervals] = mHistoLHCphase->GetYaxis()->GetBinLowEdge(ifit0); // from when the interval 
@@ -435,8 +448,9 @@ TGraphErrors *CalibTOF::processSlewing(TH2F *histo, Bool_t forceZero,TF1 *fitFun
     //    printf("meanerr = %f\n",meanerr[nPoints]);
 
     /* increment n points if good mean error */
-    if (meanerr[nPoints] < 100.)
+    if (meanerr[nPoints] < 100.){
       nPoints++;
+    }
 
     /* set current bin */
     ibin = endBin;

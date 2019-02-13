@@ -33,12 +33,39 @@ class CalibTimeSlewingParamTOF
 
   void addTimeSlewingInfo(int channel, float tot, float time);
 
+  const std::vector<std::pair<float,float>> *getVector(int sector) const {return mTimeSlewing[sector];}
+
+  int size() const {int n=0; for(int i=0;i<NSECTORS;i++) n +=  (*(mTimeSlewing[i])).size(); return n;}
+
+  int getSize(int sector) const {(*(mTimeSlewing[sector])).size();}
+
+  int getStartTimeStamp(int sector, int channel) const {return mChannelStart[sector][channel];}
+
  private:
   // TOF channel calibrations
-  int mChannelStart[NSECTORS][NCHANNELXSECTORSECTOR]; ///< output LHC phase in ps
-  std::vector<std::pair<float,float>> mTimeSlewing[NSECTORS];           ///< timeslweing correction >tot,time>
+  int mChannelStart[NSECTORS][NCHANNELXSECTORSECTOR];              ///< output LHC phase in ps
+  std::vector<std::pair<float,float>> *mTimeSlewing[18];           ///< timeslweing correction >tot,time>
 
-  //  ClassDefNV(CalibTimeSlewingParamTOF, 1);
+  std::vector<std::pair<float,float>> mTimeSlewingSec00;           ///< timeslweing correction >tot,time>
+  std::vector<std::pair<float,float>> mTimeSlewingSec01;           ///< timeslweing correction >tot,time>
+  std::vector<std::pair<float,float>> mTimeSlewingSec02;           ///< timeslweing correction >tot,time>
+  std::vector<std::pair<float,float>> mTimeSlewingSec03;           ///< timeslweing correction >tot,time>
+  std::vector<std::pair<float,float>> mTimeSlewingSec04;           ///< timeslweing correction >tot,time>
+  std::vector<std::pair<float,float>> mTimeSlewingSec05;           ///< timeslweing correction >tot,time>
+  std::vector<std::pair<float,float>> mTimeSlewingSec06;           ///< timeslweing correction >tot,time>
+  std::vector<std::pair<float,float>> mTimeSlewingSec07;           ///< timeslweing correction >tot,time>
+  std::vector<std::pair<float,float>> mTimeSlewingSec08;           ///< timeslweing correction >tot,time>
+  std::vector<std::pair<float,float>> mTimeSlewingSec09;           ///< timeslweing correction >tot,time>
+  std::vector<std::pair<float,float>> mTimeSlewingSec10;           ///< timeslweing correction >tot,time>
+  std::vector<std::pair<float,float>> mTimeSlewingSec11;           ///< timeslweing correction >tot,time>
+  std::vector<std::pair<float,float>> mTimeSlewingSec12;           ///< timeslweing correction >tot,time>
+  std::vector<std::pair<float,float>> mTimeSlewingSec13;           ///< timeslweing correction >tot,time>
+  std::vector<std::pair<float,float>> mTimeSlewingSec14;           ///< timeslweing correction >tot,time>
+  std::vector<std::pair<float,float>> mTimeSlewingSec15;           ///< timeslweing correction >tot,time>
+  std::vector<std::pair<float,float>> mTimeSlewingSec16;           ///< timeslweing correction >tot,time>
+  std::vector<std::pair<float,float>> mTimeSlewingSec17;           ///< timeslweing correction >tot,time>
+
+  //ClassDefNV(CalibTimeSlewingParamTOF, 1);
 };
 }
 }

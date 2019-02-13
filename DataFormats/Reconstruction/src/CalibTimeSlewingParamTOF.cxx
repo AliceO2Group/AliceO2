@@ -12,6 +12,7 @@
 /// \brief Class to store the output of the matching to TOF for calibration
 
 #include <algorithm>
+#include <stdio.h>
 #include "ReconstructionDataFormats/CalibTimeSlewingParamTOF.h"
 
 using namespace o2::dataformats;
@@ -19,6 +20,26 @@ using namespace o2::dataformats;
 //ClassImp(o2::dataformats::CalibTimeSlewingParamTOF);
 
 CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF(){
+
+  mTimeSlewing[0] = &mTimeSlewingSec00;
+  mTimeSlewing[1] = &mTimeSlewingSec01;
+  mTimeSlewing[2] = &mTimeSlewingSec02;
+  mTimeSlewing[3] = &mTimeSlewingSec03;
+  mTimeSlewing[4] = &mTimeSlewingSec04;
+  mTimeSlewing[5] = &mTimeSlewingSec05;
+  mTimeSlewing[6] = &mTimeSlewingSec06;
+  mTimeSlewing[7] = &mTimeSlewingSec07;
+  mTimeSlewing[8] = &mTimeSlewingSec08;
+  mTimeSlewing[9] = &mTimeSlewingSec09;
+  mTimeSlewing[10] = &mTimeSlewingSec10;
+  mTimeSlewing[11] = &mTimeSlewingSec11;
+  mTimeSlewing[12] = &mTimeSlewingSec12;
+  mTimeSlewing[13] = &mTimeSlewingSec13;
+  mTimeSlewing[14] = &mTimeSlewingSec14;
+  mTimeSlewing[15] = &mTimeSlewingSec15;
+  mTimeSlewing[16] = &mTimeSlewingSec16;
+  mTimeSlewing[17] = &mTimeSlewingSec17;
+
   for(int i=0;i < NSECTORS;i++){
     for(int j=0;j < NCHANNELXSECTORSECTOR;j++){
       mChannelStart[i][j] = -1;
@@ -36,24 +57,24 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel,float tot) const {
   int n=mChannelStart[sector][channel];
   if(n < 0) return 0.;
   
-  int nstop=mTimeSlewing[sector].size();
+  int nstop=(*(mTimeSlewing[sector])).size();
   if(channel < NCHANNELXSECTORSECTOR-1) nstop=mChannelStart[sector][channel+1];
 
   if(n >= nstop) return 0.; // something went wrong!
  
-  while(n < nstop && tot < mTimeSlewing[sector][n].first) n++;
+  while(n < nstop && tot < (*(mTimeSlewing[sector]))[n].first) n++;
   n--;
 
   if(n < 0){ // tot is lower than the first available value
     return 0;
   }
 
-  if(n == nstop-1) return mTimeSlewing[sector][n].second; // use the last value stored for that channel
+  if(n == nstop-1) return (*(mTimeSlewing[sector]))[n].second; // use the last value stored for that channel
 
-  float w1 = tot - mTimeSlewing[sector][n].first;
-  float w2 = mTimeSlewing[sector][n+1].first - tot;
+  float w1 = tot - (*(mTimeSlewing[sector]))[n].first;
+  float w2 = (*(mTimeSlewing[sector]))[n+1].first - tot;
 
-  return (mTimeSlewing[sector][n].second*w2 + mTimeSlewing[sector][n+1].second*w1)/(mTimeSlewing[sector][n+1].first - mTimeSlewing[sector][n].first);
+  return ((*(mTimeSlewing[sector]))[n].second*w2 + (*(mTimeSlewing[sector]))[n+1].second*w1)/((*(mTimeSlewing[sector]))[n+1].first - (*(mTimeSlewing[sector]))[n].first);
 }
 //______________________________________________
 
@@ -64,15 +85,18 @@ void CalibTimeSlewingParamTOF::addTimeSlewingInfo(int channel, float tot, float 
   int sector = channel/NCHANNELXSECTORSECTOR;
   channel = channel%NCHANNELXSECTORSECTOR;
   
+  // printf("DBG: addTimeSlewinginfo sec=%i\n",sector);
+
   if(sector >= NSECTORS) return; // something went wrong!
   
   int currentch = channel;
   while(mChannelStart[sector][currentch] == -1 && currentch > -1){
+    // printf("DBG: fill channel %i\n",currentch);
     // set also all the previous ones which were not filled
-    mChannelStart[sector][currentch] = mTimeSlewing[sector].size();
+    mChannelStart[sector][currentch] = (*(mTimeSlewing[sector])).size();
     currentch--;
   }
-
-  mTimeSlewing[sector].emplace_back(tot,time);
+  // printf("DBG: emplace back (%f,%f)\n",tot,time);
+  (*(mTimeSlewing[sector])).emplace_back(tot,time);
 }
 //______________________________________________

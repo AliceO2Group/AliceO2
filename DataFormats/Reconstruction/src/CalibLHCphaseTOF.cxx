@@ -12,6 +12,7 @@
 /// \brief Class to store the output of the matching to TOF for calibration
 
 #include <algorithm>
+#include <stdio.h>
 #include "ReconstructionDataFormats/CalibLHCphaseTOF.h"
 
 using namespace o2::dataformats;
@@ -38,8 +39,8 @@ void CalibLHCphaseTOF::addLHCphase(int timestamp, float phaseLHC){
   // optimized if timestamp are given in increasing order
   int n = mLHCphase.size();
   mLHCphase.emplace_back(timestamp,phaseLHC);
-  
-  if(n && mLHCphase[n+1].first < mLHCphase[n].first){ // in the wrong order sort!
+
+  if(n && mLHCphase[n].first < mLHCphase[n-1].first){ // in the wrong order sort!
     std::sort( mLHCphase.begin( ), mLHCphase.end( ), [ ]( const auto& lhs, const auto& rhs ){
 	return lhs.first < rhs.first;
       });
