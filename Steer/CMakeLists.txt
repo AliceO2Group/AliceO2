@@ -13,6 +13,7 @@ set(HEADERS
   include/${MODULE_NAME}/HitProcessingManager.h
   include/${MODULE_NAME}/O2RunSim.h
   include/${MODULE_NAME}/O2MCApplication.h
+  include/${MODULE_NAME}/O2MCApplicationBase.h
 )
 
 set(LINKDEF src/SteerLinkDef.h)

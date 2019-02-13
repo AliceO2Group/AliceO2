@@ -46,13 +46,12 @@ namespace steer
 class O2RunSim : public FairRunSim
 {
  public:
-  /// get access to singleton instance
-  using FairRunSim::FairRunSim;
+  O2RunSim(bool devicemode) : FairRunSim(), mDeviceMode(devicemode) {}
   ~O2RunSim() override = default;
 
   void Init() final
   {
-    std::cout << "O2RUNSIM SPECIFIC INIT CALLED" << std::endl;
+    LOG(INFO) << "O2RUNSIM SPECIFIC INIT CALLED";
 
     fRootManager->InitSink();
 
@@ -63,7 +62,12 @@ class O2RunSim : public FairRunSim
     GeoInterFace->setMediaFile(MatFname.Data());
     GeoInterFace->readMedia();
 
-    fApp = new O2MCApplication("Fair", "The Fair VMC App", ListOfModules, MatFname);
+    if (mDeviceMode) {
+      fApp = new O2MCApplication("Fair", "The Fair VMC App", ListOfModules, MatFname);
+    } else {
+      fApp = new O2MCApplicationBase("Fair", "The Fair VMC App", ListOfModules, MatFname);
+    }
+
     fApp->SetGenerator(fGen);
 
     // Add a Generated run ID to the FairRunTimeDb
@@ -132,9 +136,11 @@ class O2RunSim : public FairRunSim
 
   void Run(int n = 0, int b = 0) final
   {
-    std::cout << "SPECIFIC RUN CALLED" << std::endl;
     FairRunSim::Run(n, b);
   }
+
+ private:
+  bool mDeviceMode = false;
 
   ClassDefOverride(O2RunSim, 0)
 };
