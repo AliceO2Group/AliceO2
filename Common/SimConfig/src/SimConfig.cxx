@@ -14,13 +14,14 @@
 #include <iostream>
 #include <FairLogger.h>
 #include <thread>
+#include <cmath>
 
 using namespace o2::conf;
 namespace bpo = boost::program_options;
 
 void SimConfig::initOptions(boost::program_options::options_description& options)
 {
-  int nsimworkersdefault = std::thread::hardware_concurrency() / 2;
+  int nsimworkersdefault = std::max(1u, std::thread::hardware_concurrency() / 2);
   options.add_options()(
     "mcEngine,e", bpo::value<std::string>()->default_value("TGeant3"), "VMC backend to be used.")(
     "generator,g", bpo::value<std::string>()->default_value("boxgen"), "Event generator to be used.")(

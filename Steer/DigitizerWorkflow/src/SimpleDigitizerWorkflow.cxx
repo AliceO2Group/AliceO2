@@ -98,7 +98,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // for the TPC it is useful to take at most half of the available (logical) cores due to memory requirements
-  int defaultlanes = std::thread::hardware_concurrency() / 2;
+  int defaultlanes = std::max(1u, std::thread::hardware_concurrency() / 2);
   std::string laneshelp("Number of tpc processing lanes. A lane is a pipeline of algorithms.");
   workflowOptions.push_back(
     ConfigParamSpec{ "tpc-lanes", VariantType::Int, defaultlanes, { laneshelp } });

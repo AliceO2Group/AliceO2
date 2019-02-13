@@ -22,6 +22,7 @@
 #include <TStopwatch.h>
 #include <sys/wait.h>
 #include <pthread.h> // to set cpu affinity
+#include <cmath>
 
 namespace bpo = boost::program_options;
 
@@ -188,7 +189,7 @@ int main(int argc, char* argv[])
     }
 
     // should be factored out?
-    int nworkers = std::thread::hardware_concurrency() / 2;
+    int nworkers = std::max(1u, std::thread::hardware_concurrency() / 2);
     auto f = getenv("ALICE_NSIMWORKERS");
     if (f) {
       nworkers = atoi(f);
