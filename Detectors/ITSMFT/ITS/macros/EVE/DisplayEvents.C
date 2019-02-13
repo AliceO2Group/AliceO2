@@ -32,31 +32,67 @@ using namespace o2::ITSMFT;
 
 extern TEveManager* gEve;
 
-static TTree* gDigiTree = nullptr;
-static TTree* gClusTree = nullptr;
-static TTree* gTracTree = nullptr;
 static Int_t gEntry = -1, gChipID = -1;
 
-static TEveElementList* gEvent = nullptr;
-static TEveElementList* gDigits = nullptr;
+class Data {
+public:
+  void loadData(int entry);
+  void displayData(int entry, int chip);
+  static void setDigiTree(TTree *t) {gDigiTree=t;}
+  static void setClusTree(TTree *t) {gClusTree=t;}
+  static void setTracTree(TTree *t) {gTracTree=t;}
+  
+private:
+  // Data loading members 
+  static TTree* gDigiTree;
+  static TTree* gClusTree;
+  static TTree* gTracTree;
+  std::vector<Digit> mDigits;
+  std::vector<Cluster> mClusters;
+  std::vector<o2::ITS::TrackITS> mTracks;
+  template<typename T>
+  static void load(TTree *tree, const char *name, int entry, std::vector<T> *arr);
 
-void displayEvent(int entry = 0, int chip = 0)
-{
-  if ((entry < 0) || (entry >= gDigiTree->GetEntries())) {
-    std::cerr << "Out of event range ! " << entry << '\n';
+  // TEve-related members
+  static TEveElementList* gEvent;
+  static TEveElementList* gDigits;
+  static TEveElement *getEveDigits(int entry, int chip, const std::vector<Digit> &digi);
+  static TEveElement *getEveClusters(int entry, const std::vector<Cluster> &clus);
+  static TEveElement *getEveTracks(int entry, const std::vector<Cluster> &clus, const std::vector<o2::ITS::TrackITS> &trks);
+};
+
+TTree* Data::gDigiTree = nullptr;
+TTree* Data::gClusTree = nullptr;
+TTree* Data::gTracTree = nullptr;
+TEveElementList* Data::gEvent = nullptr;
+TEveElementList* Data::gDigits = nullptr;
+
+template<typename T>
+void Data::load(TTree *tree, const char *name, int entry, std::vector<T> *arr) {
+  if (tree == nullptr) {
+    std::cerr << "No tree for " << name << '\n';
     return;
   }
-  std::cout << "\n*** Event #" << entry << " ***\n";
+  if ((entry < 0) || (entry >= tree->GetEntries())) {
+    std::cerr << name <<": Out of event range ! " << entry << '\n';
+    return;
+  }
+  tree->SetBranchAddress(name, &arr);
+  tree->GetEvent(entry);
+  std::cout << "Number of "<< name <<"s: " << arr->size() << '\n';
+}
 
-  // Digits
-  std::vector<Digit> digi, *digiArr = &digi;
-  gDigiTree->SetBranchAddress("ITSDigit", &digiArr);
-  gDigiTree->GetEvent(entry);
-  std::cout << "Number of digits: " << digi.size() << '\n';
+void Data::loadData(int entry) {
+  load<Digit>(gDigiTree, "ITSDigit", entry, &mDigits);
+  load<Cluster>(gClusTree,"ITSCluster", entry, &mClusters);
+  load<o2::ITS::TrackITS>(gTracTree, "ITSTrack", entry, &mTracks);
+}
 
+
+// Dealing with graphics
+TEveElement *Data::getEveDigits(int entry, int chip, const std::vector<Digit> &digi) {
   auto gman = o2::ITS::GeometryTGeo::Instance();
   std::vector<int> occup(gman->getNumberOfChips());
-  
   const float sizey = SegmentationAlpide::ActiveMatrixSizeRows;
   const float sizex = SegmentationAlpide::ActiveMatrixSizeCols;
   const float dy = SegmentationAlpide::PitchRow;
@@ -94,26 +130,22 @@ void displayEvent(int entry = 0, int chip = 0)
   auto most = std::distance(occup.begin(), std::max_element(occup.begin(), occup.end()));
   std::cout<<"Most occupied chip: " << most << " ("<<occup[most]<<" digits)\n";
   
+  return q;
+}
 
-  // Clusters
-  std::vector<Cluster> clus, *clusArr = &clus;
-  gClusTree->SetBranchAddress("ITSCluster", &clusArr);
-  gClusTree->GetEvent(entry);
-  std::cout << "Number of clusters: " << clus.size() << '\n';
-
-  TEvePointSet* points = new TEvePointSet("clusters");
-  points->SetMarkerColor(kBlue);
+TEveElement *Data::getEveClusters(int entry, const std::vector<Cluster> &clus) {
+  auto gman = o2::ITS::GeometryTGeo::Instance();
+  TEvePointSet* clusters = new TEvePointSet("clusters");
+  clusters->SetMarkerColor(kBlue);
   for (const auto& c : clus) {
     const auto& gloC = c.getXYZGloRot(*gman);
-    points->SetNextPoint(gloC.X(), gloC.Y(), gloC.Z());
+    clusters->SetNextPoint(gloC.X(), gloC.Y(), gloC.Z());
   }
+  return clusters;
+}
 
-  // Tracks
-  std::vector<o2::ITS::TrackITS> trks, *tracArr = &trks;
-  gTracTree->SetBranchAddress("ITSTrack", &tracArr);
-  gTracTree->GetEvent(entry);
-  std::cout << "Number of tracks: " << trks.size() << "\n\n";
-
+TEveElement *Data::getEveTracks(int entry, const std::vector<Cluster> &clus, const std::vector<o2::ITS::TrackITS> &trks) {
+  auto gman = o2::ITS::GeometryTGeo::Instance();
   TEveTrackList* tracks = new TEveTrackList("tracks");
   auto prop = tracks->GetPropagator();
   prop->SetMagField(0.5);
@@ -126,45 +158,57 @@ void displayEvent(int entry = 0, int chip = 0)
     t.fSign = (rec.getSign() < 0) ? -1 : 1;
     TEveTrack* track = new TEveTrack(&t, prop);
     track->SetLineColor(kMagenta);
+    tracks->AddElement(track);
 
+    if (clus.empty()) continue;
     TEvePointSet* tpoints = new TEvePointSet("tclusters");
     tpoints->SetMarkerColor(kGreen);
     int nc = rec.getNumberOfClusters();
     while (nc--) {
       Int_t idx = rec.getClusterIndex(nc);
-      Cluster& c = (*clusArr)[idx];
+      const Cluster& c = clus[idx];
       const auto& gloC = c.getXYZGloRot(*gman);
       tpoints->SetNextPoint(gloC.X(), gloC.Y(), gloC.Z());
     }
     track->AddElement(tpoints);
-
-    tracks->AddElement(track);
   }
   tracks->MakeTracks();
 
-  // Event
+  return tracks;
+}
+
+void Data::displayData(int entry, int chip) {
   std::string ename("Event #");
   ename += std::to_string(entry);
+
+  auto digits = getEveDigits(entry, chip, mDigits);
+  delete gDigits;
+  gDigits = new TEveElementList(ename.c_str());
+  gDigits->AddElement(digits);
+  gEve->AddElement(gDigits);
+  
+  auto clusters = getEveClusters(entry, mClusters);
+  auto tracks = getEveTracks(entry, mClusters, mTracks);
   delete gEvent;
   gEvent = new TEveElementList(ename.c_str());
-  gEvent->AddElement(points);
+  gEvent->AddElement(clusters);
   gEvent->AddElement(tracks);
   auto multi = o2::EventVisualisation::MultiView::getInstance();
   multi->registerEvent(gEvent);
 
-  delete gDigits;
-  gDigits = new TEveElementList(ename.c_str());
-  gDigits->AddElement(q);
-  gEve->AddElement(gDigits);
-
   gEve->Redraw3D(kFALSE);
 }
 
-void load(int i = 0, int c = 0)
+void load(int entry=0, int chip=13)
 {
-  gEntry = i;
-  gChipID = c;
-  displayEvent(gEntry, gChipID);
+  gEntry = entry;
+  gChipID = chip;
+
+  Data data;
+  std::cout << "\n*** Event #" << entry << " ***\n";
+
+  data.loadData(entry);
+  data.displayData(entry, chip);
 }
 
 void init(int entry = 0, int chip = 13, 
@@ -193,12 +237,23 @@ void init(int entry = 0, int chip = 13,
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                             o2::TransformType::L2G));
 
-  TFile::Open(digifile.data());
-  gDigiTree = (TTree*)gFile->Get("o2sim");
-  TFile::Open(clusfile.data());
-  gClusTree = (TTree*)gFile->Get("o2sim");
-  TFile::Open(tracfile.data());
-  gTracTree = (TTree*)gFile->Get("o2sim");
+  auto file = TFile::Open(digifile.data());
+  if (file && gFile->IsOpen())
+    Data::setDigiTree((TTree*)gFile->Get("o2sim"));
+  else
+    std::cerr << "Cannot open file: " << digifile << '\n';
+  
+  file = TFile::Open(clusfile.data());
+  if (file && gFile->IsOpen())
+    Data::setClusTree((TTree*)gFile->Get("o2sim"));
+  else
+    std::cerr << "Cannot open file: " << clusfile << '\n';
+  
+  file = TFile::Open(tracfile.data());
+  if (file && gFile->IsOpen())
+    Data::setTracTree((TTree*)gFile->Get("o2sim"));
+  else
+    std::cerr << "Cannot open file: " << tracfile << '\n';
 
   std::cout<<"\n **** Navigation over events and chips ****\n";
   std::cout<<" load(event, chip) \t jump to the specified event and chip\n";
@@ -215,13 +270,13 @@ void init(int entry = 0, int chip = 13,
 void next()
 {
   gEntry++;
-  displayEvent(gEntry, gChipID);
+  load(gEntry, gChipID);
 }
 
 void prev()
 {
   gEntry--;
-  displayEvent(gEntry, gChipID);
+  load(gEntry, gChipID);
 }
 
 void loadChip(int chip) {
