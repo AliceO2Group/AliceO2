@@ -14,13 +14,13 @@
 #include <vector>
 #include "DetectorsBase/Detector.h"
 #include "SimulationDataFormat/BaseHits.h"
+#include "MIDSimulation/Hit.h"
+#include "MIDSimulation/Stepper.h"
 
 namespace o2
 {
 namespace mid
 {
-
-using HitType = o2::BasicXYZEHit<float>;
 
 class Detector : public o2::Base::DetImpl<Detector>
 {
@@ -29,26 +29,24 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   void InitializeO2Detector() override;
 
-  bool ProcessHits(FairVolume* v = nullptr) override;
+  bool ProcessHits(FairVolume* vol = nullptr) override;
 
-  void Register() override {}
+  void Register() override;
 
-  std::vector<HitType>* getHits(int i) const
-  {
-    //if (i == 0) {
-    //      return mHits;
-    //}
-    return nullptr;
-  }
+  std::vector<o2::mid::Hit>* getHits(int iColl);
 
   void Reset() override {}
 
   void ConstructGeometry() override;
 
+  void EndOfEvent() override;
+
  private:
   void defineSensitiveVolumes();
 
-  std::vector<HitType>* mHits = nullptr;
+  bool setHits(int iColl, std::vector<o2::mid::Hit>* ptr);
+
+  o2::mid::Stepper mStepper; //! Stepper
 
   template <typename Det>
   friend class o2::Base::DetImpl;

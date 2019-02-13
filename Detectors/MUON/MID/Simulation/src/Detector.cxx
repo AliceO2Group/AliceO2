@@ -12,14 +12,17 @@
 #include "Geometry.h"
 #include <TGeoManager.h>
 #include <TGeoVolume.h>
-#include <vector>
 #include "FairVolume.h"
-#include <stdexcept>
 
-using namespace o2::mid;
+ClassImp(o2::mid::Detector);
+
+namespace o2
+{
+namespace mid
+{
 
 Detector::Detector(bool active) : o2::Base::DetImpl<Detector>("MID", active),
-                                  mHits(new std::vector<HitType>)
+                                  mStepper()
 {
 }
 
@@ -35,10 +38,35 @@ void Detector::InitializeO2Detector()
   defineSensitiveVolumes();
 }
 
-bool Detector::ProcessHits(FairVolume* v)
+bool Detector::ProcessHits(FairVolume* vol)
 {
+  return mStepper.process(*fMC);
+}
+
+std::vector<Hit>* Detector::getHits(int iColl)
+{
+  if (iColl == 0) {
+    return mStepper.getHits();
+  }
+  return nullptr;
+}
+
+bool Detector::setHits(int iColl, std::vector<Hit>* ptr)
+{
+  if (iColl == 0) {
+    mStepper.setHits(ptr);
+  }
   return false;
 }
+
+void Detector::Register()
+{
+  /// Registers hits
+
+  mStepper.registerHits(addNameTo("Hit").c_str());
+}
+
+void Detector::EndOfEvent() { mStepper.resetHits(); }
 
 void Detector::ConstructGeometry()
 {
@@ -49,4 +77,5 @@ void Detector::ConstructGeometry()
   createGeometry(*top);
 }
 
-ClassImp(Detector);
+} // namespace mid
+} // namespace o2
