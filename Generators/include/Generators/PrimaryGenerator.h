@@ -15,6 +15,18 @@
 
 #include "FairPrimaryGenerator.h"
 
+class TFile;
+class TTree;
+class TString;
+
+namespace o2
+{
+namespace dataformats
+{
+class MCEventHeader;
+}
+} // namespace o2
+
 namespace o2
 {
 namespace eventgen
@@ -32,10 +44,22 @@ class PrimaryGenerator : public FairPrimaryGenerator
   /** default constructor **/
   PrimaryGenerator() = default;
   /** destructor **/
-  virtual ~PrimaryGenerator() = default;
+  virtual ~PrimaryGenerator();
+
+  /** Public method GenerateEvent
+      To be called at the beginning of each event from FairMCApplication.
+      Generates an event vertex and calls the ReadEvent methods from the
+      registered generators.
+      *@param pStack The particle stack
+      *@return kTRUE if successful, kFALSE if not
+      **/
+  Bool_t GenerateEvent(FairGenericStack* pStack) override;
 
   /** initialize the generator **/
   virtual Bool_t Init() override;
+
+  /** Public embedding methods **/
+  Bool_t embedInto(TString fname);
 
  protected:
   /** copy constructor **/
@@ -46,7 +70,17 @@ class PrimaryGenerator : public FairPrimaryGenerator
   /** set interaction diamond position **/
   void setInteractionDiamond(const Double_t* xyz, const Double_t* sigmaxyz);
 
-  ClassDefOverride(PrimaryGenerator, 1);
+  /** set interaction vertex position **/
+  void setInteractionVertex(const o2::dataformats::MCEventHeader* event);
+
+  /** embedding members **/
+  TFile* mEmbedFile = nullptr;
+  TTree* mEmbedTree = nullptr;
+  Int_t mEmbedEntries = 0;
+  Int_t mEmbedIndex = 0;
+  o2::dataformats::MCEventHeader* mEmbedEvent = nullptr;
+
+  ClassDefOverride(PrimaryGenerator, 2);
 
 }; /** class PrimaryGenerator **/
 

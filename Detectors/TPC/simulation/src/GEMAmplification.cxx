@@ -42,7 +42,7 @@ GEMAmplification::GEMAmplification()
     return infile.good();
   };
 
-  const char* polyaFileName = "tpc_GEM_polya.root";
+  const char* polyaFileName = "tpc_polya.root";
   TFile* outfile;
   auto cacheexists = fileexists(polyaFileName);
   if (cacheexists) {
@@ -79,7 +79,8 @@ GEMAmplification::GEMAmplification()
   /// Set the polya distribution for the full stack
   const float gainStack = mGEMParam->getTotalGainStack();
   const float kappaStack = mGEMParam->getKappaStack();
-  const float sStack = gainStack / kappaStack;
+  const float effStack = mGEMParam->getEfficiencyStack();
+  const float sStack = gainStack / (kappaStack * (1.f - effStack));
   polya % kappaStack % sStack % sStack % (kappaStack - 1) % sStack;
   std::string name = polya.str();
   o2::Base::CachingTF1* polyaDistribution = nullptr;
@@ -131,6 +132,9 @@ int GEMAmplification::getEffectiveStackAmplification(int nElectrons)
   /// in the stack is handled in an effective manner
   int nElectronsGEM = 0;
   for (int i = 0; i < nElectrons; ++i) {
+    if (mRandomFlat.getNextValue() < mGEMParam->getEfficiencyStack()) {
+      continue;
+    }
     nElectronsGEM += mGainFullStack.getNextValue();
   }
   return nElectronsGEM;

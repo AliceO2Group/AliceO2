@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(GEMamplification_effective_test)
   /// \todo should be more restrictive
   BOOST_CHECK_CLOSE(gaus.GetParameter(1) / static_cast<float>(nEleIn), (gemParam.getTotalGainStack()), 5.f);
   /// Check the resulting energy resolution
-  BOOST_CHECK_CLOSE(energyResolution, 12.9, 0.5f);
+  BOOST_CHECK_CLOSE(energyResolution, 12.4f, 0.5f);
 }
 
 /// \brief Test of the getSingleGEMAmplification function

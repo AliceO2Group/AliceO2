@@ -44,14 +44,14 @@ class ShmAllocator
   typedef const T& const_reference;
 
  public:
-  inline ShmAllocator() throw() {}
+  inline ShmAllocator() noexcept = default;
 
   template <typename T2>
-  inline ShmAllocator(const ShmAllocator<T2>&) throw()
+  inline ShmAllocator(const ShmAllocator<T2>&) noexcept
   {
   }
 
-  inline ~ShmAllocator() throw() {}
+  inline ~ShmAllocator() noexcept = default;
 
   inline pointer adress(reference r) { return &r; }
 
@@ -89,7 +89,7 @@ class ShmAllocator
 
   inline void destroy(pointer p) { p->~value_type(); }
 
-  inline size_type max_size() const throw() { return size_type(-1) / sizeof(value_type); }
+  inline size_type max_size() const noexcept { return size_type(-1) / sizeof(value_type); }
 
   template <typename T2>
   struct rebind {

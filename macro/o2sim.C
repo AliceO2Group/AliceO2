@@ -13,6 +13,7 @@
 #include <Generators/PrimaryGenerator.h>
 #include <Generators/GeneratorFactory.h>
 #include <Generators/PDG.h>
+#include "SimulationDataFormat/MCEventHeader.h"
 #include <SimConfig/SimConfig.h>
 #include <SimConfig/ConfigurableParam.h>
 #include <CommonUtils/RngHelper.h>
@@ -46,12 +47,7 @@ FairRunSim* o2sim_init(bool asservice)
   LOG(INFO) << "RNG INITIAL SEED " << seed;
 
   auto genconfig = confref.getGenerator();
-  FairRunSim* run;
-  if (asservice) {
-    run = new o2::steer::O2RunSim();
-  } else {
-    run = new FairRunSim();
-  }
+  FairRunSim* run = new o2::steer::O2RunSim(asservice);
   run->SetImportTGeoToVMC(false); // do not import TGeo to VMC since the latter is built together with TGeo
   run->SetSimSetup([confref]() { o2::SimSetup::setup(confref.getMCEngine().c_str()); });
 
@@ -68,11 +64,19 @@ FairRunSim* o2sim_init(bool asservice)
   run->SetName(confref.getMCEngine().c_str()); // Transport engine
   run->SetIsMT(confref.getIsMT());             // MT mode
 
+  /** set event header **/
+  auto header = new o2::dataformats::MCEventHeader();
+  run->SetMCEventHeader(header);
+
   // construct geometry / including magnetic field
   build_geometry(run);
 
   // setup generator
+  auto embedinto_filename = confref.getEmbedIntoFileName();
   auto primGen = new o2::eventgen::PrimaryGenerator();
+  if (!embedinto_filename.empty()) {
+    primGen->embedInto(embedinto_filename);
+  }
   if (!asservice) {
     o2::eventgen::GeneratorFactory::setPrimaryGenerator(confref, primGen);
   }

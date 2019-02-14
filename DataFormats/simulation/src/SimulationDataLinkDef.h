@@ -57,4 +57,6 @@
 #pragma link C++ class vector < o2::steer::EventPart > +;
 #pragma link C++ class vector < vector < o2::steer::EventPart >> +;
 
+#pragma link C++ class o2::dataformats::MCEventHeader + ;
+
 #endif

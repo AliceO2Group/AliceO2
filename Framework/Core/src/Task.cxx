@@ -15,7 +15,7 @@ namespace o2
 namespace framework
 {
 
-Task::~Task() {}
+Task::~Task() = default;
 
 } // namespace framework
 } // namespace o2

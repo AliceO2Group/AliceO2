@@ -19,6 +19,8 @@ set(HEADERS
 set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME event_visualisation_view_bucket)
 
+set(LINKDEF src/EventVisualisationViewLinkDef.h)
+
 O2_GENERATE_LIBRARY()
 
 # Define application

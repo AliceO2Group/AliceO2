@@ -160,9 +160,13 @@ class ParameterGEM
   /// \param totGain Total gain of the stack for the EffectiveMode
   void setTotalGainStack(float totGain) { mTotalGainStack = totGain; }
 
-  /// Get the variable steering the energy resolution of the full stack for the EffectiveMode
+  /// Set the variable steering the energy resolution of the full stack for the EffectiveMode
   /// \param kappa Variable steering the energy resolution of the full stack for the EffectiveMode
   void setKappaStack(float kappa) { mKappaStack = kappa; }
+
+  /// Set the variable steering the single electron efficiency  of the full stack for the EffectiveMode
+  /// \param eff Variable steering the single electron efficiency of the full stack for the EffectiveMode
+  void setEfficiencyStack(float eff) { mEfficiencyStack = eff; }
 
   /// Get the amplification mode to be used
   /// \param mode Amplification mode to be used
@@ -240,6 +244,10 @@ class ParameterGEM
   /// \return Variable steering the energy resolution of the full stack for the EffectiveMode
   float getKappaStack() const { return mKappaStack; }
 
+  /// Get the variable steering the single electron efficiency  of the full stack for the EffectiveMode
+  /// \return Variable steering the single electron efficiency of the full stack for the EffectiveMode
+  float getEfficiencyStack() const { return mEfficiencyStack; }
+
   /// Get the amplification mode to be used
   /// \return Amplification mode to be used
   AmplificationMode getAmplificationMode() const { return mAmplificationMode; }
@@ -255,6 +263,7 @@ class ParameterGEM
   std::array<float, 4> mExtractionEfficiency; ///< Extraction efficiency
   float mTotalGainStack;                      ///< Total gain of the stack for the EffectiveMode
   float mKappaStack;                          ///< Variable steering the energy resolution of the full stack for the EffectiveMode
+  float mEfficiencyStack;                     ///< Variable steering the single electron efficiency of the full stack for the EffectiveMode
   AmplificationMode mAmplificationMode;       ///< Amplification mode [FullMode / EffectiveMode]
 };
 

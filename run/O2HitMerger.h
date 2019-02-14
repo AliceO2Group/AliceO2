@@ -17,7 +17,7 @@
 #include "FairMQMessage.h"
 #include <FairMQDevice.h>
 #include <FairLogger.h>
-#include <FairMCEventHeader.h>
+#include <SimulationDataFormat/MCEventHeader.h>
 #include <SimulationDataFormat/Stack.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <DetectorsCommonDataFormats/DetID.h>
@@ -328,7 +328,7 @@ class O2HitMerger : public FairMQDevice
     std::map<int, std::vector<int>> entrygroups;  // collecting all entries belonging to an event
     std::map<int, std::vector<int>> trackoffsets; // collecting trackoffsets to be applied to correct
 
-    std::vector<FairMCEventHeader> eventheaders; // collecting the event headers
+    std::vector<o2::dataformats::MCEventHeader> eventheaders; // collecting the event headers
     eventheaders.resize(mNExpectedEvents);
 
     // the MC labels (trackID) for hits
@@ -370,7 +370,7 @@ class O2HitMerger : public FairMQDevice
     mergedOutTree->SetEntries(entrygroups.size());
 
     // put the event headers into the new TTree
-    FairMCEventHeader header;
+    o2::dataformats::MCEventHeader header;
     auto headerbr = o2::Base::getOrMakeBranch(*mergedOutTree, "MCEventHeader.", &header);
     for (int i = 0; i < info->maxEvents; i++) {
       header = eventheaders[i];

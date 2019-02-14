@@ -47,7 +47,7 @@ O2_FRAMEWORK_WORKFLOW(
 )
 
 set(TEST_SRCS
-      test/test_RootTreeReader.cxx
+    #  test/test_RootTreeReader.cxx
       test/test_RootTreeWriter.cxx
     # test/test_RootTreeWriterWorkflow.cxx
    )

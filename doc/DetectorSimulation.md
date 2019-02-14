@@ -80,7 +80,18 @@ Use the **`-g extkin`** command line option:
 o2sim -g extkin --extKinFile Kinematics.root ...
 ```
 
-#### 4. **How can I obtained detailed stepping information?**
+#### 4. **How can I generate events (signal) using the vertex position of already-generated (background) events?**
+
+This process might be called embedding, where one wants to merge two events generated independenly. For that to be physically correct, both events have to originate from the same interaction vertex.
+Assuming that your already-generated (background) events are stored in the `o2sim.background.root` file, you can force the interaction vertex for the generation of a new set of events to be the same as the one in the background with the following command line option:
+
+```
+o2sim --embedIntoFile o2sim.background.root
+```
+
+Background events are sampled one-by-one until all events have been used. At that point the events start to be reused.
+
+#### 5. **How can I obtained detailed stepping information?**
 Run the simulation (best in version `o2sim_serial`) with a preloaded library:
 ```
 MCSTEPLOG_TTREE=1 LD_PRELOAD=$O2_ROOT/lib/libMCStepLogger.so o2sim_serial -j 1 -n 10

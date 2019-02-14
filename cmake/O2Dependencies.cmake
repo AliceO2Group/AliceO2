@@ -1934,6 +1934,7 @@ o2_define_bucket(
     CCDB
 
     INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/CCDB/include
     ${CMAKE_SOURCE_DIR}/EventVisualisation/Base/include
     ${CMAKE_SOURCE_DIR}/EventVisualisation/Detectors/include
     ${CMAKE_SOURCE_DIR}/EventVisualisation/DataConverter/include
@@ -2268,6 +2269,17 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    mid_base_test_bucket
+
+    DEPENDENCIES
+    Boost::unit_test_framework
+    RapidJSON
+    mid_base_bucket
+    MIDBase
+)
+
+o2_define_bucket(
+    NAME
     mid_clustering_bucket
 
     DEPENDENCIES
@@ -2291,18 +2303,33 @@ o2_define_bucket(
     mid_simulation_bucket
 
     DEPENDENCIES
-		mid_base_bucket
+    mid_base_bucket
     root_base_bucket
     fairroot_base_bucket
     DetectorsBase
     detectors_base_bucket
     SimulationDataFormat
-		MIDBase
+    MIDBase
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
-		${CMAKE_SOURCE_DIR}/Detectors/MID/base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/MID/base/include
+)
+
+o2_define_bucket(
+    NAME
+    mid_simulation_test_bucket
+
+    DEPENDENCIES
+    Boost::unit_test_framework
+    $<IF:$<BOOL:${benchmark_FOUND}>,benchmark::benchmark,$<0:"">>
+    RapidJSON
+    MIDBase
+    MIDSimulation
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/MUON/MID/Simulation/src
 )
 
 o2_define_bucket(

@@ -17,6 +17,7 @@
 
 #include "Materials.h"
 #include "MIDBase/Constants.h"
+#include "MIDBase/GeometryTransformer.h"
 
 #include <TGeoVolume.h>
 #include <TGeoManager.h>
@@ -58,6 +59,11 @@ const float kHorizontalSupportHalfExtDim[] = { 96.775, 2., 3. };
 const float kHorizontalSupportHalfIntDim[] = { 96.775, 1.9, 2.8 };
 const double kHorizontalSupportPos[] = { Constants::sRPCCenterPos + Constants::sRPCHalfLength - kHorizontalSupportHalfExtDim[0], 17., kVerticalSupportHalfExtDim[2] + kHorizontalSupportHalfExtDim[2] };
 
+enum class RPCtype { Long,
+                     BottomCut,
+                     TopCut,
+                     Short };
+
 TGeoVolume* createVerticalSupport(int iChamber)
 {
   /// Function creating a vertical support, an aluminium rod
@@ -84,11 +90,33 @@ TGeoVolume* createHorizontalSupport(int iChamber)
   return supp;
 }
 
+std::string getRPCVolumeName(RPCtype type, int iChamber)
+{
+  /// Gets the RPC volume name
+  std::string name = "";
+  switch (type) {
+    case RPCtype::Long:
+      name += "long";
+      break;
+    case RPCtype::BottomCut:
+      name += "bottomCut";
+      break;
+    case RPCtype::TopCut:
+      name += "topCut";
+      break;
+    case RPCtype::Short:
+      name += "short";
+      break;
+  }
+  name += "RPC_" + std::to_string(11 + iChamber);
+  return name;
+}
+
 TGeoVolume* createRPC(RPCtype type, int iChamber)
 {
   /// Function building a resisitive plate chamber (RPC), the detection element of the MID, of a given type and for the given chamber number.
 
-  auto name = Constants::getRPCVolumeName(iChamber).c_str();
+  auto name = getRPCVolumeName(type, iChamber).c_str();
 
   auto rpc = new TGeoVolumeAssembly(name);
 
@@ -248,11 +276,46 @@ TGeoVolume* createRPC(RPCtype type, int iChamber)
   return rpc;
 }
 
+TGeoMatrix* getTransformation(const ROOT::Math::Transform3D& matrix)
+{
+  /// Converts Transform3D into TGeoMatrix
+  double xx, xy, xz, dx, yx, yy, yz, dy, zx, zy, zz, dz;
+  matrix.GetComponents(xx, xy, xz, dx, yx, yy, yz, dy, zx, zy, zz, dz);
+  double vect[3] = { dx, dy, dz };
+  double rotMatrix[9] = { xx, xy, xz, yx, yy, yz, zx, zy, zz };
+  TGeoHMatrix* geoMatrix = new TGeoHMatrix("Transformation");
+  geoMatrix->SetTranslation(vect);
+  geoMatrix->SetRotation(rotMatrix);
+  return geoMatrix;
+}
+
+RPCtype getRPCType(int deId)
+{
+  /// Gets the RPC type
+  int irpc = deId % 9;
+  if (irpc == 4) {
+    return RPCtype::Short;
+  }
+  if (irpc == 3) {
+    return RPCtype::TopCut;
+  }
+  if (irpc == 5) {
+    return RPCtype::BottomCut;
+  }
+  return RPCtype::Long;
+}
+
+std::string getChamberVolumeName(int chamber)
+{
+  /// Returns the chamber name in the geometry
+  return "SC" + std::to_string(11 + chamber);
+}
+
 TGeoVolume* createChamber(int iChamber)
 {
   /// Function creating a trigger chamber, an assembly of RPCs (and services)
 
-  auto chamber = new TGeoVolumeAssembly(Constants::getChamberName(iChamber).c_str());
+  auto chamber = new TGeoVolumeAssembly(getChamberVolumeName(iChamber).c_str());
 
   double scale = Constants::sScaleFactors[iChamber];
 
@@ -266,19 +329,14 @@ TGeoVolume* createChamber(int iChamber)
   auto topCutRPC = createRPC(RPCtype::TopCut, iChamber);
   auto shortRPC = createRPC(RPCtype::Short, iChamber);
 
-  // placement variables
-  double x, y, z, xSign, zSign;
-
-  auto rotY = new TGeoRotation("rotY", 90., 180., 90., 90., 180., 0.);
-
   // for node counting
-  int deId = 0, iHoriSuppNode = 0, iVertSuppNode = 0;
+  int iHoriSuppNode = 0, iVertSuppNode = 0;
 
   // place the volumes on both side of the chamber
   for (int iside = 0; iside < 2; iside++) {
 
     bool isRight = (iside == 0);
-    xSign = (isRight) ? 1. : -1.;
+    double xSign = (isRight) ? 1. : -1.;
 
     // place 4 vertical supports per side
     for (int i = 0; i < 4; i++) {
@@ -288,47 +346,34 @@ TGeoVolume* createChamber(int iChamber)
     // place the RPCs
     for (int iRPC = 0; iRPC < Constants::sNRPCLines; iRPC++) {
 
-      deId = Constants::getDEId(isRight, iChamber, iRPC);
-      x = xSign * Constants::getRPCCenterPosX(iChamber, iRPC);
-      zSign = (iRPC % 2 == 0) ? 1. : -1.;
+      double x = xSign * Constants::getRPCCenterPosX(iChamber, iRPC);
+      double zSign = (iRPC % 2 == 0) ? 1. : -1.;
 
       if (!isRight) {
         zSign *= -1.;
       }
-      z = zSign * Constants::sRPCZShift;
-      y = 2 * Constants::getRPCHalfHeight(iChamber) * (iRPC - 4) / (1 - (z / Constants::sDefaultChamberZ[0]));
+      double z = zSign * Constants::sRPCZShift;
+      double y = 2 * Constants::getRPCHalfHeight(iChamber) * (iRPC - 4) / (1 - (z / Constants::sDefaultChamberZ[0]));
 
       // ID convention (from bottom to top of the chamber) : long, long, long, cut, short, cut, long, long, long
+      TGeoVolume* rpc = nullptr;
       switch (iRPC) {
         case 4: // short
-          if (isRight) {
-            chamber->AddNode(shortRPC, deId, new TGeoTranslation(x, y, z));
-          } else {
-            chamber->AddNode(shortRPC, deId, new TGeoCombiTrans(x, y, z, rotY));
-          }
+          rpc = shortRPC;
           break;
         case 5: // cut (bottom)
-          if (isRight) {
-            chamber->AddNode(bottomCutRPC, deId, new TGeoTranslation(x, y, z));
-          } else {
-            chamber->AddNode(bottomCutRPC, deId, new TGeoCombiTrans(x, y, z, rotY));
-          }
+          rpc = bottomCutRPC;
           break;
         case 3: // cut (top)
-          if (isRight) {
-            chamber->AddNode(topCutRPC, deId, new TGeoTranslation(x, y, z));
-          } else {
-            chamber->AddNode(topCutRPC, deId, new TGeoCombiTrans(x, y, z, rotY));
-          }
+          rpc = topCutRPC;
           break;
         default: // long
-          if (isRight) {
-            chamber->AddNode(longRPC, deId, new TGeoTranslation(x, y, z));
-          } else {
-            chamber->AddNode(longRPC, deId, new TGeoCombiTrans(x, y, z, rotY));
-          }
+          rpc = longRPC;
           break;
       }
+
+      int deId = Constants::getDEId(isRight, iChamber, iRPC);
+      chamber->AddNode(rpc, deId, getTransformation(getDefaultRPCTransform(isRight, iChamber, iRPC)));
 
       // place 3 horizontal supports behind the RPC (and the vertical rods)
       x = xSign * kHorizontalSupportPos[0] * scale;
@@ -348,12 +393,10 @@ void createGeometry(TGeoVolume& topVolume)
 {
   createMaterials();
 
-  auto rot = new TGeoRotation("MID chamber inclination", 90., 0., 90. - Constants::sBeamAngle, 90., -Constants::sBeamAngle, 90.);
-
   // create and place the trigger chambers
   for (int iCh = 0; iCh < Constants::sNChambers; iCh++) {
 
-    topVolume.AddNode(createChamber(iCh), Constants::getChamberNode(iCh), new TGeoCombiTrans(0., 0., Constants::sDefaultChamberZ[iCh], rot));
+    topVolume.AddNode(createChamber(iCh), 1, getTransformation(getDefaultChamberTransform(iCh)));
   }
 }
 
@@ -363,17 +406,28 @@ std::vector<TGeoVolume*> getSensitiveVolumes()
   /// Create a vector containing the sensitive volume's name of the RPCs for the Detector class
 
   std::vector<TGeoVolume*> sensitiveVolumeNames;
-  for (int i = 0; i < Constants::sNChambers; i++) {
-    auto name = Form("Gas %s", Constants::getRPCVolumeName(i).c_str());
-    auto vol = gGeoManager->GetVolume(name);
+  std::vector<RPCtype> types = { RPCtype::Long, RPCtype::BottomCut, RPCtype::TopCut, RPCtype::Short };
+  for (int ich = 0; ich < Constants::sNChambers; ++ich) {
+    for (auto& type : types) {
 
-    if (!vol) {
-      throw std::runtime_error(Form("could not get expected volume %s", name));
-    } else {
-      sensitiveVolumeNames.push_back(vol);
+      auto name = Form("Gas %s", getRPCVolumeName(type, ich).c_str());
+      auto vol = gGeoManager->GetVolume(name);
+
+      if (!vol) {
+        throw std::runtime_error(Form("could not get expected volume %s", name));
+      } else {
+        sensitiveVolumeNames.push_back(vol);
+      }
     }
   }
   return sensitiveVolumeNames;
+}
+
+//______________________________________________________________________________
+std::string getRPCVolumePath(int deId)
+{
+  int ichamber = Constants::getChamber(deId);
+  return "/" + getChamberVolumeName(ichamber) + "_1/" + getRPCVolumeName(getRPCType(deId), ichamber) + "_" + std::to_string(deId);
 }
 
 } // namespace mid

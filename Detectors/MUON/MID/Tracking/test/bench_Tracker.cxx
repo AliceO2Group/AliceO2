@@ -61,19 +61,13 @@ std::vector<o2::mid::Cluster2D> generateTestData(int nTracks, o2::mid::TrackGene
   return clusters;
 }
 
-class BenchTracking : public benchmark::Fixture
+static void BM_TRACKER(benchmark::State& state)
 {
- public:
-  BenchTracking() : trackGen(), hitFinder(), mapping(), tracker() { tracker.init(); }
+  o2::mid::GeometryTransformer geoTrans = o2::mid::createDefaultTransformer();
   o2::mid::TrackGenerator trackGen;
-  o2::mid::HitFinder hitFinder;
+  o2::mid::HitFinder hitFinder(geoTrans);
   o2::mid::Mapping mapping;
-  o2::mid::Tracker tracker;
-};
-
-BENCHMARK_DEFINE_F(BenchTracking, tracking)
-(benchmark::State& state)
-{
+  o2::mid::Tracker tracker(geoTrans);
 
   int nTracksPerEvent = state.range(0);
   double num{ 0 };
@@ -98,6 +92,6 @@ static void CustomArguments(benchmark::internal::Benchmark* bench)
   }
 }
 
-BENCHMARK_REGISTER_F(BenchTracking, tracking)->Apply(CustomArguments)->Unit(benchmark::kNanosecond);
+BENCHMARK(BM_TRACKER)->Apply(CustomArguments)->Unit(benchmark::kNanosecond);
 
 BENCHMARK_MAIN();

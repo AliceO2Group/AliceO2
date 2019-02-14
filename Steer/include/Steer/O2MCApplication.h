@@ -12,6 +12,7 @@
 #define O2_MC_APPLICATION_H
 
 #include "FairMCApplication.h"
+#include "Steer/O2MCApplicationBase.h"
 #include "Rtypes.h" // for Int_t, Bool_t, Double_t, etc
 #include <iostream>
 #include <TParticle.h>
@@ -32,10 +33,10 @@ namespace steer
 // O2 specific changes/overrides to FairMCApplication
 // (like for device based processing in which we
 //  forward the data instead of using FairRootManager::Fill())
-class O2MCApplication : public FairMCApplication
+class O2MCApplication : public O2MCApplicationBase
 {
  public:
-  using FairMCApplication::FairMCApplication;
+  using O2MCApplicationBase::O2MCApplicationBase;
   ~O2MCApplication() override = default;
 
   // triggers data sending/io

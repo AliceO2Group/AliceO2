@@ -18,7 +18,7 @@
 #include <boost/range/combine.hpp>
 #include <cassert>
 
-#include "FairLogger.h"
+#include <FairLogger.h>
 
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/Mapper.h"
