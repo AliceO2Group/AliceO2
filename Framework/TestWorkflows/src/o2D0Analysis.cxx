@@ -49,7 +49,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
             auto flatD0 = std::make_unique<ROOT::RDF::RArrowDS>(s->asArrowTable(), std::vector<std::string>{});
             auto d0 = std::make_unique<ROOT::RDF::RArrowDS>(s->asArrowTable(), std::vector<std::string>{});
             auto d0bar = std::make_unique<ROOT::RDF::RArrowDS>(s->asArrowTable(), std::vector<std::string>{});
-            auto d0d0bar = std::make_unique<ROOT::RDF::RCombinedDS>(std::move(d0), std::move(d0bar), "d0_", "d0bar_");
+            auto d0d0bar = ROOT::RDF::MakeCrossProductDataFrame(std::move(d0), std::move(d0bar), "d0_", "d0bar_");
 
             TFile f("result.root", "RECREATE");
             ROOT::RDataFrame rdf1(std::move(flatD0));
@@ -58,10 +58,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
             /// FIXME: for now we work on one file at the time
             auto h1 = rdf1.Filter(candFilter, { "cand_type_ML" }).Histo1D("inv_mass_ML");
 
-            assert(d0d0bar->HasColumn("d0_cand_type_ML"));
-            assert(d0d0bar->HasColumn("d0_inv_mass_ML"));
-            assert(d0d0bar->HasColumn("d0_phi_cand_ML"));
-            assert(d0d0bar->HasColumn("d0_eta_cand_ML"));
             ROOT::RDataFrame rdf2(std::move(d0d0bar));
             auto delta = [](float x, float y) { return x - y; };
             auto h2 = rdf2.Filter(bothCandFilter, { "d0_cand_type_ML", "d0bar_cand_type_ML" })

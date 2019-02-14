@@ -39,6 +39,20 @@ namespace ROOT
 namespace RDF
 {
 
+std::vector<std::pair<ULong64_t, ULong64_t>>
+  RCombindedDSCrossJoinIndex::BuildIndex(std::unique_ptr<RDataFrame>& left,
+                                         std::unique_ptr<RDataFrame>& right)
+{
+  std::vector<std::pair<ULong64_t, ULong64_t>> ranges;
+  fLeftCount = *left->Count();
+  fRightCount = *right->Count();
+  ranges.reserve(fLeftCount);
+  for (ULong64_t i = 0; i < fLeftCount; ++i) {
+    ranges.emplace_back(std::make_pair<ULong64_t, ULong64_t>(fRightCount * i, fRightCount * (i + 1)));
+  }
+  return ranges;
+}
+
 ////////////////////////////////////////////////////////////////////////
 /// Constructor to create an Arrow RDataSource for RDataFrame.
 /// \param[in] left the first table we iterate on, i.e. the outer loop
@@ -46,7 +60,9 @@ namespace RDF
 /// \param[in] leftPrefix the prefix to prepend to the element of the first table
 /// \param[in] right the second table we iterate on, i.e. the inner loop
 /// \param[in] rightPrefix the prefix to prepend to the element of the second table
-RCombinedDS::RCombinedDS(std::unique_ptr<RDataSource> inLeft, std::unique_ptr<RDataSource> inRight, std::string inLeftPrefix, std::string inRightPrefix)
+RCombinedDS::RCombinedDS(std::unique_ptr<RDataSource> inLeft, std::unique_ptr<RDataSource> inRight,
+                         std::unique_ptr<RCombinedDSIndex> inIndex,
+                         std::string inLeftPrefix, std::string inRightPrefix)
   : // FIXME: we cache the bare pointers, under the assumption that
     // the dataframes fLeftDF, fRightDF have longer lifetime as
     // they actually own them.
@@ -56,8 +72,7 @@ RCombinedDS::RCombinedDS(std::unique_ptr<RDataSource> inLeft, std::unique_ptr<RD
     fRightDF{ std::make_unique<RDataFrame>(std::move(inRight)) },
     fLeftPrefix{ inLeftPrefix },
     fRightPrefix{ inRightPrefix },
-    fLeftCount{ *fLeftDF->Count() },
-    fRightCount{ *fRightDF->Count() }
+    fIndex{ std::move(inIndex) }
 {
   fColumnNames.reserve(fLeft->GetColumnNames().size() + fRight->GetColumnNames().size());
   for (auto& c : fLeft->GetColumnNames()) {
@@ -113,19 +128,17 @@ bool RCombinedDS::HasColumn(std::string_view colName) const
 
 bool RCombinedDS::SetEntry(unsigned int slot, ULong64_t entry)
 {
-  ULong64_t leftEntry = entry / fRightCount;
-  ULong64_t rightEntry = entry % fRightCount;
-  fLeft->SetEntry(slot, leftEntry);
-  fRight->SetEntry(slot, rightEntry);
+  std::pair<ULong64_t, ULong64_t> association = fIndex->GetAssociatedEntries(entry);
+  fLeft->SetEntry(slot, association.first);
+  fRight->SetEntry(slot, association.second);
   return true;
 }
 
 void RCombinedDS::InitSlot(unsigned int slot, ULong64_t entry)
 {
-  ULong64_t leftEntry = entry / fLeftCount;
-  ULong64_t rightEntry = entry % fRightCount;
-  fLeft->InitSlot(slot, leftEntry);
-  fRight->InitSlot(slot, rightEntry);
+  std::pair<ULong64_t, ULong64_t> association = fIndex->GetAssociatedEntries(entry);
+  fLeft->InitSlot(slot, association.first);
+  fRight->InitSlot(slot, association.second);
 }
 
 void RCombinedDS::SetNSlots(unsigned int nSlots)
@@ -153,9 +166,7 @@ std::vector<void*> RCombinedDS::GetColumnReadersImpl(std::string_view colName, c
 
 void RCombinedDS::Initialise()
 {
-  for (ULong64_t i = 0; i < fLeftCount; ++i) {
-    fEntryRanges.push_back(std::make_pair<ULong64_t, ULong64_t>(fRightCount * i, fRightCount * (i + 1)));
-  }
+  fEntryRanges = fIndex->BuildIndex(fLeftDF, fRightDF);
 
   fLeft->Initialise();
   fRight->Initialise();
@@ -165,9 +176,18 @@ void RCombinedDS::Initialise()
 /// \param[in] table the arrow Table to observe.
 /// \param[in] columnNames the name of the columns to use
 /// In case columnNames is empty, we use all the columns found in the table
-RDataFrame MakeCombinedDataFrame(std::unique_ptr<RDataSource> left, std::unique_ptr<RDataSource> right, std::string leftPrefix, std::string rightPrefix)
+RDataFrame MakeCombinedDataFrame(std::unique_ptr<RDataSource> left, std::unique_ptr<RDataSource> right,
+                                 std::unique_ptr<RCombinedDSIndex> index,
+                                 std::string leftPrefix, std::string rightPrefix)
 {
-  ROOT::RDataFrame tdf(std::make_unique<RCombinedDS>(std::move(left), std::move(right), leftPrefix, rightPrefix));
+  ROOT::RDataFrame tdf(std::make_unique<RCombinedDS>(std::move(left), std::move(right), std::move(index), leftPrefix, rightPrefix));
+  return tdf;
+}
+
+RDataFrame MakeCrossProductDataFrame(std::unique_ptr<RDataSource> left, std::unique_ptr<RDataSource> right,
+                                     std::string leftPrefix, std::string rightPrefix)
+{
+  ROOT::RDataFrame tdf(std::make_unique<RCombinedDS>(std::move(left), std::move(right), std::move(std::make_unique<RCombindedDSCrossJoinIndex>()), leftPrefix, rightPrefix));
   return tdf;
 }
 
