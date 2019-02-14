@@ -79,6 +79,7 @@ set(SRCS
     src/FrameworkGUIDataRelayerUsage.cxx
     src/PaletteHelpers.cxx
     src/CommonDataProcessors.cxx
+    src/RCombinedDS.cxx
     ${GUI_SOURCES}
     test/TestClasses.cxx
     src/Variant.cxx
