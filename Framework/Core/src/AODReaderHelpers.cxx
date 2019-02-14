@@ -88,6 +88,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       if (*counter >= filenames.size()) {
         LOG(info) << "All input files processed";
         control.readyToQuit(false);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         return;
       }
       auto f = filenames[*counter];
