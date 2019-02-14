@@ -88,15 +88,19 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
     int labelIndex = mMCTruthContainer.getIndexedSize();
     //index for this hit
     int detID = hit.GetDetectorID();
-    processHit(hit, detID, mEventTime, labelIndex);
-    MCCompLabel label(hit.GetTrackID(), mEventID, mSrcID);
-    mMCTruthContainer.addElementRandomAccess(labelIndex, label);
+    int ndigits =  processHit(hit, detID, mEventTime);
+    //TODO need one label per Digit
+    // can use nDigit output of processHit
+    for ( int i=0; i<ndigits; ++i ) {
+      MCCompLabel label(hit.GetTrackID(), mEventID, mSrcID);
+      mMCTruthContainer.addElementRandomAccess(labelIndex, label);
+    }//loop over digits to generate MCdigits
   } //loop over hits
 
   fillOutputContainer(digits);
 }
 //______________________________________________________________________
-int Digitizer::processHit(const Hit& hit, int detID, double event_time, int labelIndex)
+int Digitizer::processHit(const Hit& hit, int detID, double event_time)
 {
   Point3D<float> pos(hit.GetX(), hit.GetY(), hit.GetZ());
 
@@ -131,13 +135,15 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time, int labe
   //single pad as check
   int padidbendcent = 0;
   int padidnoncent = 0;
+  int ndigits = 0;
+  
   bool padexists = seg.findPadPairByPosition(localX, localY, padidbendcent, padidnoncent);
   if (!padexists) {
     LOG(ERROR) << "Did not find  _any_ pad for localX,Y=" << localX << "," << localY;
     return 0;
   }
 
-  seg.forEachPadInArea(xMin, yMin, xMax, yMax, [&resp, &digits = this->mDigits, chargebend, chargenon, localX, localY, &seg, labelIndex ](int padid) {
+  seg.forEachPadInArea(xMin, yMin, xMax, yMax, [&resp, &digits = this->mDigits, chargebend, chargenon, localX, localY, &seg, &ndigits](int padid) {
     auto dx = seg.padSizeX(padid) * 0.5;
     auto dy = seg.padSizeY(padid) * 0.5;
     auto xmin = (localX - seg.padPositionX(padid)) - dx;
@@ -151,9 +157,10 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time, int labe
       q *= chargenon;
     }
     auto signal = resp.response(q);
-    digits.emplace_back(padid, signal, labelIndex);
+    digits.emplace_back(padid, signal);
+    ++ndigits;
   });
-  return mDigits.size();
+  return ndigits;
 }
 
 //______________________________________________________________________
