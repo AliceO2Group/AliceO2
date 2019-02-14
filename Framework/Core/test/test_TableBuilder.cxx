@@ -17,6 +17,7 @@
 #include <arrow/table.h>
 #include <ROOT/RDataFrame.hxx>
 #include <ROOT/RArrowDS.hxx>
+#include "Framework/RCombinedDS.h"
 #include <arrow/ipc/writer.h>
 #include <arrow/io/memory.h>
 #include <arrow/ipc/writer.h>
@@ -122,4 +123,44 @@ BOOST_AUTO_TEST_CASE(TestRDataFrame)
   auto source = std::make_unique<ROOT::RDF::RArrowDS>(inTable, std::vector<std::string>{});
   ROOT::RDataFrame finalDF{ std::move(source) };
   BOOST_REQUIRE_EQUAL(*finalDF.Count(), 100);
+}
+
+BOOST_AUTO_TEST_CASE(TestCombinedDS)
+{
+  using namespace o2::framework;
+  TableBuilder builder1;
+  auto rowWriter1 = builder1.persist<int, int>({ "x", "y" });
+  for (size_t i = 0; i < 8; ++i) {
+    rowWriter1(0, i, i);
+  }
+  auto table1 = builder1.finalize();
+
+  TableBuilder builder2;
+  auto rowWriter2 = builder2.persist<int, int>({ "x", "y" });
+  for (size_t i = 0; i < 8; ++i) {
+    rowWriter2(0, i, i);
+  }
+  auto table2 = builder2.finalize();
+  BOOST_REQUIRE_EQUAL(table2->num_columns(), 2);
+  BOOST_REQUIRE_EQUAL(table2->num_rows(), 8);
+  for (size_t i = 0; i < 8; ++i) {
+    auto p2 = std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int32Type>>(table2->column(0)->data()->chunk(0));
+    BOOST_CHECK_EQUAL(p2->Value(i), i);
+  }
+
+  auto source1 = std::make_unique<ROOT::RDF::RArrowDS>(table1, std::vector<std::string>{});
+  auto source2 = std::make_unique<ROOT::RDF::RArrowDS>(table2, std::vector<std::string>{});
+  auto combined = std::make_unique<ROOT::RDF::RCombinedDS>(std::move(source1), std::move(source2));
+  BOOST_REQUIRE(combined->HasColumn("left_x"));
+  ROOT::RDataFrame finalDF{ std::move(combined) };
+  BOOST_CHECK_EQUAL(*finalDF.Count(), 64);
+  // FIXME: this is currently affected by a bug in RArrowDS which does not work properly when 
+  //        doing a rewind. Uncomment once we have a build with a ROOT which includes:
+  //        
+  //        https://github.com/root-project/root/pull/3428
+  //
+  //BOOST_CHECK_EQUAL(*finalDF.Define("s1", [](int lx, int rx) { return lx + rx; }, { "left_x", "left_y" }).Sum("s1"), 448);
+  //BOOST_CHECK_EQUAL(*finalDF.Define("s4", [](int lx, int rx) { return lx + rx; }, { "right_x", "left_x" }).Sum("s4"), 448);
+  BOOST_CHECK_EQUAL(*finalDF.Define("s2", [](int lx, int rx) { return lx; }, { "left_x", "left_y" }).Sum("s2"), 224);
+  BOOST_CHECK_EQUAL(*finalDF.Define("s3", [](int lx, int rx) { return rx; }, { "right_x", "left_x" }).Sum("s3"), 224);
 }
