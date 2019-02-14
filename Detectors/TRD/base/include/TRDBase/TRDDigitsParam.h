@@ -46,11 +46,7 @@ class TRDDigitsParam
 
  public:
   TRDDigitsParam() = default;
-  TRDDigitsParam(const TRDDigitsParam& p);
-  TRDDigitsParam& operator=(const TRDDigitsParam& p);
   ~TRDDigitsParam() = default;
-
-  void Copy(TRDDigitsParam& p) const;
 
   void setNTimeBins(int det, int ntb) { mNTimeBins[det] = ntb; }
   void setPretriggerPhase(int det, unsigned int phase) { mPretriggerPhase[det] = phase; }
