@@ -15,6 +15,7 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <numeric>
 #include <type_traits>
 #include <boost/format.hpp>
 
@@ -102,6 +103,10 @@ class CalArray
   const std::vector<T>& getData() const { return mData; }
   std::vector<T>& getData() { return mData; }
 
+  /// calculate the sum of all elements
+  const T getSum() const { return std::accumulate(mData.begin(), mData.end(), T(0)); }
+
+  /// Multiply all val to all channels
   const CalArray<T>& multiply(const T& val) { return *this *= val; }
 
   /// Add other to this channel by channel
@@ -292,7 +297,7 @@ inline const CalArray<T>& CalArray<T>::operator/=(const T& val)
 }
 
 using CalROC = CalArray<float>;
-}
-}
+} // namespace TPC
+} // namespace o2
 
 #endif
