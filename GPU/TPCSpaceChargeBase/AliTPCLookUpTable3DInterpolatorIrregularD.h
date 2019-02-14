@@ -46,6 +46,7 @@ public:
                 Int_t phiIndex, Int_t zIndex, Int_t stepR, Int_t stepPhi, Int_t stepZ, Int_t minZColumnIndex);
   void GetValue(Double_t r, Double_t phi, Double_t z, Float_t &rValue, Float_t &phiValue, Float_t &zValue, Int_t rIndex, Int_t phiIndex,
            Int_t zIndex, Int_t stepR, Int_t stepPhi, Int_t stepZ);
+  void GetValue(Double_t r, Double_t phi, Double_t z, Double_t &rValue,Double_t &phiValue, Double_t &zValue);
   void SetOrder(Int_t order) { fOrder = order; }
   void CopyFromMatricesToInterpolator();
   void CopyFromMatricesToInterpolator(Int_t j);

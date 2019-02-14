@@ -107,7 +107,7 @@ Double_t AliTPC3DCylindricalInterpolator::InterpolateCylindrical(Double_t r, Dou
     m = (kLow + k) % fNPhi;
     // interpolate
     for (Int_t i = iLow; i < iLow + fOrder + 1; i++) {
-      if (fOrder <= 2) {
+      if (fOrder <  3) {
         if (jLow >= 0) {
           index = m * (fNZ * fNR) + i * (fNZ) + jLow;
           saveArray[i - iLow] = Interpolate(&fZList[jLow], &fValue[index], z);
@@ -176,19 +176,24 @@ Double_t AliTPC3DCylindricalInterpolator::InterpolatePhi(
   Int_t i2 = (iLow + 2) % lenX;
   Double_t xi2 = xArray[i2];
 
-  if (xi1 < xi0) xi1 = TMath::TwoPi() + xi1;
-  if (xi2 < xi1) xi2 = TMath::TwoPi() + xi2;
-  if (x < xi0) x = TMath::TwoPi() + x;
+  if (fOrder <= 2) {
+  	if (xi1 < xi0) xi1 = TMath::TwoPi() + xi1;
+  	if (xi2 < xi1) xi2 = TMath::TwoPi() + xi2;
+  	if (x < xi0) x = TMath::TwoPi() + x;
+  }
 
   Double_t y;
   if (fOrder > 2) {
     Double_t y2Array[fOrder + 1];
     Double_t xArrayTemp[fOrder + 1];
     Double_t dPhi = xArray[1] - xArray[0];
+    // make list phi ascending order
     for (Int_t i = 0; i < fOrder + 1; i++) {
       xArrayTemp[i] = xArray[iLow] + (dPhi * i);
     }
-    if ((xArrayTemp[0] - x) > 1e-10) x = x + TMath::TwoPi();
+    if (x < xArrayTemp[0]) x = TMath::TwoPi() + x;
+    if (x < xArrayTemp[0] || x > xArrayTemp[fOrder]) printf("x (%f) is outside of interpolation box (%f,%f)\n",x,xArrayTemp[0],xArrayTemp[fOrder]); 
+
     InitCubicSpline(xArrayTemp, yArray, fOrder + 1, y2Array, 1);
     y = InterpolateCubicSpline(xArrayTemp, yArray, y2Array, fOrder + 1, fOrder + 1, fOrder + 1, x, 1);
   } else if (fOrder == 2) {                // Quadratic Interpolation = 2
@@ -418,6 +423,27 @@ void AliTPC3DCylindricalInterpolator::SetValue(TMatrixD **matricesVal) {
       for (Int_t j = 0; j < fNZ; j++) {
         fValue[index1D + j] = (*mat)(i, j);
       }
+    }
+  }
+}
+
+/// Set the value as interpolation point
+///
+/// \param matricesVal TMatrixD** reference value for each point
+void AliTPC3DCylindricalInterpolator::SetValue(TMatrixD **matricesVal,Int_t iZ) {
+  Int_t indexVal1D;
+  Int_t index1D;
+  TMatrixD *mat;
+  if (!fIsAllocatingLookUp) {
+    fValue = new Double_t[fNPhi * fNR * fNZ];
+    fIsAllocatingLookUp = kTRUE;
+  }
+  for (Int_t m = 0; m < fNPhi; m++) {
+    indexVal1D = m * fNR * fNZ;
+    mat = matricesVal[m];
+    for (Int_t i = 0; i < fNR; i++) {
+      index1D = indexVal1D + i * fNZ;
+      fValue[index1D + iZ] = (*mat)(i, iZ);
     }
   }
 }

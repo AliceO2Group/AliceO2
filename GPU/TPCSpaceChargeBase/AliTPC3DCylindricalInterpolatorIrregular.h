@@ -30,6 +30,7 @@ public:
   Double_t
   GetValue(Double_t r, Double_t phi, Double_t z, Int_t rIndex, Int_t phiIndex, Int_t zIndex, Int_t stepR, Int_t stepPhi,
            Int_t stepZ, Int_t minZColumnIndex);
+  Double_t GetValue(Double_t r, Double_t phi, Double_t z);
   void SetOrder(Int_t order) { fOrder = order; }
 
   void InitRBFWeight();
@@ -66,6 +67,14 @@ public:
            Int_t jy);
 
 private:
+  struct KDTreeNode {
+    Double_t *pR;
+    Double_t *pZ;
+    Double_t *pPhi;
+    Int_t index;
+    struct KDTreeNode  *left, *right;
+  };
+  
   Int_t fOrder;      ///< Order of interpolation, 1 - linear, 2 - quadratic, 3 - cubic
   Int_t fType;       ///< 0 INVERSE WEIGHT, 1 RBF FULL, 2 RBF Half
   Int_t fKernelType; ///< type kernel RBF 1--5
@@ -91,6 +100,7 @@ private:
                                     Int_t stepR, Int_t stepZ, Int_t stepPhi);
   Double_t Interpolate3DTableCylRBF(Double_t r, Double_t z, Double_t phi, Int_t rIndex, Int_t zIndex, Int_t phiIndex,
                                     Int_t stepR, Int_t stepZ, Int_t stepPhi, Double_t radiusRBF0);
+  Double_t Interpolate3DTableCylRBF(Double_t r, Double_t z, Double_t phi, KDTreeNode * nearestNode);
 
   void Search(Int_t n, const Double_t xArray[], Double_t x, Int_t &low);
   void Search(Int_t n, Double_t *xArray, Int_t offset, Double_t x, Int_t &low);
@@ -116,6 +126,18 @@ private:
                         Double_t radius0, Int_t kernelType, Double_t *weight);
   Double_t GetRadius0RBF(const Int_t rIndex, const Int_t phiIndex, const Int_t zIndex);
 
+  
+  KDTreeNode * fKDTreeIrregularPoints; // to save tree as list
+  KDTreeNode * fKDTreeIrregularRoot; // kdtree root
+
+  void InitKDTree();
+  KDTreeNode * MakeKDTree(KDTreeNode *tree,Int_t count, Int_t index, Int_t dimention);
+
+  KDTreeNode * FindMedian(KDTreeNode *startTree,KDTreeNode *endTree, Int_t index);
+  void Swap(KDTreeNode *x, KDTreeNode *y);
+
+  void KDTreeNearest(KDTreeNode *root, KDTreeNode   *nd, Int_t  index, Int_t dim,
+        KDTreeNode  **best, Double_t *best_dist);
 /// \cond CLASSIMP
   ClassDef(AliTPC3DCylindricalInterpolatorIrregular,1);
 /// \endcond

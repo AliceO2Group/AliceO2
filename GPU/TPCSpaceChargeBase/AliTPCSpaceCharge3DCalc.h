@@ -34,6 +34,8 @@ public:
   virtual ~AliTPCSpaceCharge3DCalc();
   void InitSpaceCharge3DPoissonIntegralDz(Int_t nRRow, Int_t nZColumn, Int_t phiSlice, Int_t maxIteration,
                                           Double_t stopConvergence);
+
+  // outdated, to be removed after modifications in aliroot are pushed
   void InitSpaceCharge3DPoissonIntegralDz(
     Int_t nRRow, Int_t nZColumn, Int_t phiSlice, Int_t maxIteration, Double_t stopConvergence,
     TMatrixD **matricesErA, TMatrixD **matricesEphiA, TMatrixD **matricesEzA,
@@ -42,7 +44,17 @@ public:
     TMatrixD **matricesCorrDrDzA, TMatrixD **matricesCorrDPhiRDzA, TMatrixD **matricesCorrDzA,
     TMatrixD **matricesDistDrDzC, TMatrixD **matricesDistDPhiRDzC, TMatrixD **matricesDistDzC,
     TMatrixD **matricesCorrDrDzC, TMatrixD **matricesCorrDPhiRDzC, TMatrixD **matricesCorrDzC,
-    TFormula *intErDzTestFunction, TFormula *intEPhiRDzTestFunction, TFormula *intDzTestFunction);
+    TFormula *intErDzTestFunction, TFormula *intEPhiRDzTestFunction, TFormula *intDzTestFunction); 
+
+  void InitSpaceCharge3DPoissonIntegralDz(
+    Int_t nRRow, Int_t nZColumn, Int_t phiSlice, Int_t maxIteration, Double_t stopConvergence,
+    TMatrixD **matricesErA, TMatrixD **matricesEphiA, TMatrixD **matricesEzA,
+    TMatrixD **matricesErC, TMatrixD **matricesEphiC, TMatrixD **matricesEzC,
+    TMatrixD **matricesDistDrDzA, TMatrixD **matricesDistDPhiRDzA, TMatrixD **matricesDistDzA,
+    TMatrixD **matricesCorrDrDzA, TMatrixD **matricesCorrDPhiRDzA, TMatrixD **matricesCorrDzA,
+    TMatrixD **matricesDistDrDzC, TMatrixD **matricesDistDPhiRDzC, TMatrixD **matricesDistDzC,
+    TMatrixD **matricesCorrDrDzC, TMatrixD **matricesCorrDPhiRDzC, TMatrixD **matricesCorrDzC,
+    TFormula *intErDzTestFunction, TFormula *intEPhiRDzTestFunction, TFormula *intDzTestFunction, TFormula *ezF);
 
   void
   InitSpaceCharge3DPoisson(Int_t nRRow, Int_t nZColumn, Int_t phiSlice, Int_t maxIteration, Double_t stopConvergence);
@@ -53,9 +65,11 @@ public:
   void GetCorrectionCyl(const Float_t x[], Short_t roc, Float_t dx[]);
   void GetCorrectionCylAC(const Float_t x[], Short_t roc, Float_t dx[]);
   void GetCorrectionCylACIrregular(const Float_t x[], Short_t roc, Float_t dx[]);
+  void GetCorrectionCylACIrregular(const Float_t x[], Short_t roc, Float_t dx[],const Int_t side);
   void GetDistortion(const Float_t x[], Short_t roc, Float_t dx[]);
 
   void GetCorrection(const Float_t x[], Short_t roc, Float_t dx[]);
+  void GetCorrection(const Float_t x[], Short_t roc, Float_t dx[],const Int_t side);
 
   Double_t GetChargeCylAC(const Float_t x[], Short_t roc);
   Double_t GetPotentialCylAC(const Float_t x[], Short_t roc);
@@ -75,6 +89,10 @@ public:
     kIrregularInterpolator = 1,   ///< use irregular interpolator for correction look up table
   };
 
+  enum IntegrationStrategy {
+    kNaive = 0,     ///< use interpolation with regular interpolator for correction look up table
+    kOpt = 1,   ///< use irregular interpolator for correction look up table
+  };
   void SetInputSpaceCharge(TH3 *hisSpaceCharge3D, Double_t norm);
   void SetInputSpaceCharge(TH3 *hisSpaceCharge3D) { SetInputSpaceCharge(hisSpaceCharge3D, 1); }
   void SetInputSpaceCharge(TH3 *hisSpaceCharge3D, Double_t norm, Int_t side);
@@ -109,7 +127,8 @@ public:
 
   AliTPCPoissonSolver *GetPoissonSolver() { return fPoissonSolver; }
 
-  void SetInterpolationOrder(Int_t order) { fInterpolationOrder = order; }
+  void SetInterpolationOrder(Int_t order); 
+ 
 
   Int_t GetInterpolationOrder() { return fInterpolationOrder; }
 
@@ -213,10 +232,22 @@ public:
   Float_t GetSpaceChargeDensity(Float_t r, Float_t phi, Float_t z);
   Float_t GetPotential(Float_t r, Float_t phi, Float_t z);
   void GetElectricFieldCyl(const Float_t x[], Short_t roc, Double_t dx[]);
+  struct Profile {
+	Double_t poissonSolverTime;
+	Double_t electricFieldTime;
+	Double_t localDistortionTime;
+	Double_t globalDistortionTime;
+	Double_t interpolationInitTime;
+	Int_t iteration;
+  };
 
+  Profile GetProfile() { return myProfile; }
+  void SetIntegrationStrategy(Int_t integrationStrategy) {
+    fIntegrationStrategy = integrationStrategy;
+  }
 private:
   static const Int_t kNMaxPhi = 360;
-
+  Profile myProfile;
   Int_t fNRRows;     ///< the maximum on row-slices so far ~ 2cm slicing
   Int_t fNPhiSlices; ///< the maximum of phi-slices so far = (8 per sector)
   Int_t fNZColumns;  ///< the maximum on column-slices so  ~ 2cm slicing
@@ -237,7 +268,7 @@ private:
   Int_t fInterpolationOrder; ///>  Order of interpolation (1-> tri linear, 2->Lagrange interpolation order 2, 3> cubic spline)
   Int_t fIrregularGridSize; ///>  Size of irregular grid cubes for interpolation (min 3)
   Int_t fRBFKernelType; ///>  RBF kernel type
-
+  Int_t fIntegrationStrategy; ///> Strategy for integration
 
   TMatrixD *fMatrixIntDistDrEzA[kNMaxPhi];  //[kNMaxPhi] Matrices for storing Global distortion  \f$ R \f$ direction for Side A
   TMatrixD *fMatrixIntDistDPhiREzA[kNMaxPhi]; //[kNMaxPhi] Matrices for storing Global \f$ \phi R \f$ Distortion for Side A
@@ -285,6 +316,9 @@ private:
   TMatrixD *fMatrixChargeC[kNMaxPhi];  //[kNMaxPhi] Matrices for storing input charge densities side C
   TMatrixD *fMatrixChargeInverseA[kNMaxPhi];  //[kNMaxPhi] Matrices for storing charge densities from backward algorithm side A
   TMatrixD *fMatrixChargeInverseC[kNMaxPhi]; //[kNMaxPhi] Matrices for storing charge densities from backward algorithm side C
+  
+  TMatrixD *fMatrixPotentialA[kNMaxPhi]; //[kNMaxPhi] Matrices for storing potential side A
+  TMatrixD *fMatrixPotentialC[kNMaxPhi]; //[kNMaxPhi] Matrices for storing potential side C
 
   AliTPC3DCylindricalInterpolator *fInterpolatorChargeA; //-> interpolator for charge densities side A
   AliTPC3DCylindricalInterpolator *fInterpolatorChargeC; //-> interpolator for charge densities side C
@@ -358,6 +392,7 @@ private:
                                     const Int_t nRRow, const Int_t nZColumn, const Int_t phiSlice,
                                     const Double_t *rList, const Double_t *phiList, const Double_t *zList);
 
+  // outdated, to be removed once modifications in aliroot are pushed
   void IntegrateDistCorrDriftLineDz(
     TFormula *intErDzTestFunction, TFormula *intEPhiRDzTestFunction, TFormula *intDzTestFunction,
     const Double_t ezField, TMatrixD **matricesGDistDrDz, TMatrixD **matricesGDistDPhiRDz,
@@ -368,6 +403,19 @@ private:
     TMatrixD **matricesZIrregular, const Int_t nRRow, const Int_t nZColumn, const Int_t phiSlice,
     const Double_t *rList,
     const Double_t *phiList, const Double_t *zList);
+
+  void IntegrateDistCorrDriftLineDz(
+    TFormula *intErDzTestFunction, TFormula *intEPhiRDzTestFunction, TFormula *intDzTestFunction, TFormula *ezF,
+    const Double_t ezField, TMatrixD **matricesGDistDrDz, TMatrixD **matricesGDistDPhiRDz,
+    TMatrixD **matricesGDistDz,
+    TMatrixD **matricesGCorrDrDz, TMatrixD **matricesGCorrDPhiRDz, TMatrixD **matricesGCorrDz,
+    TMatrixD **matricesGCorrIrregularDrDz, TMatrixD **matricesGCorrIrregularDPhiRDz,
+    TMatrixD **matricesGCorrIrregularDz, TMatrixD **matricesRIrregular, TMatrixD **matricesPhiIrregular,
+    TMatrixD **matricesZIrregular, const Int_t nRRow, const Int_t nZColumn, const Int_t phiSlice,
+    const Double_t *rList,
+    const Double_t *phiList, const Double_t *zList);
+
+  void IntegrateDistCorrDriftLineDzWithLookUp ( AliTPCLookUpTable3DInterpolatorD *lookupLocalDist, TMatrixD** matricesGDistDrDz,  	TMatrixD** matricesGDistDPhiRDz, 	TMatrixD** matricesGDistDz, 	AliTPCLookUpTable3DInterpolatorD *lookupLocalCorr, 	TMatrixD** matricesGCorrDrDz,  	TMatrixD** matricesGCorrDPhiRDz, TMatrixD** matricesGCorrDz, const Int_t nRRow,  	const Int_t nZColumn, 	const Int_t phiSlice,	Double_t *rList,	 Double_t *phiList,  Double_t *zList );
 
   void FillLookUpTable(AliTPCLookUpTable3DInterpolatorD *lookupGlobal, TMatrixD **lookupRDz, TMatrixD **lookupPhiRDz,
                        TMatrixD **lookupDz, const Int_t nRRow, const Int_t nZColumn, const Int_t phiSlice,

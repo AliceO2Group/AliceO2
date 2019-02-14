@@ -44,6 +44,8 @@ AliTPCLookUpTable3DInterpolatorD::AliTPCLookUpTable3DInterpolatorD() {
 /// \param nZColumn Int_t size of grid Z direction
 /// \param zMin Double_t minimal value of Z
 /// \param zMax Double_t maximal value of Z
+
+/**
 AliTPCLookUpTable3DInterpolatorD::AliTPCLookUpTable3DInterpolatorD(Int_t nRRow, Double_t rMin, Double_t rMax,
                                                                    Int_t nPhiSlice,
                                                                    Double_t phiMin, Double_t phiMax, Int_t nZColumn,
@@ -77,6 +79,8 @@ AliTPCLookUpTable3DInterpolatorD::AliTPCLookUpTable3DInterpolatorD(Int_t nRRow, 
   for (Int_t m = 0; m < fNR; m++) fRList[m] = rMin + dR * m;
   for (Int_t m = 0; m < fNZ; m++) fZList[m] = zMin + dZ * m;
 }
+**/
+
 
 /// Constructor
 ///
@@ -105,12 +109,12 @@ AliTPCLookUpTable3DInterpolatorD::AliTPCLookUpTable3DInterpolatorD(
   SetNZ(nZColumn);
   SetLookUpZ(matricesZValue);
   SetZList(zList);
-  SetOrder(order);
 
   fInterpolatorR = new AliTPC3DCylindricalInterpolator();
   fInterpolatorZ = new AliTPC3DCylindricalInterpolator();
   fInterpolatorPhi = new AliTPC3DCylindricalInterpolator();
 
+  SetOrder(order);
   fInterpolatorR->SetNR(nRRow);
   fInterpolatorR->SetNZ(nZColumn);
   fInterpolatorR->SetNPhi(nPhiSlice);
@@ -173,6 +177,16 @@ void AliTPCLookUpTable3DInterpolatorD::CopyFromMatricesToInterpolator() {
 
 }
 
+/// copy from matrices to 1D array for interpolation algorithm
+void AliTPCLookUpTable3DInterpolatorD::CopyFromMatricesToInterpolator(Int_t iZ) {
+  fInterpolatorR->SetValue(fLookUpR,iZ);
+  fInterpolatorZ->SetValue(fLookUpZ,iZ);
+  fInterpolatorPhi->SetValue(fLookUpPhi,iZ);
+
+  // no implementation for cubic spline interpolation
+}
+
+
 /// get value of 3-components at a P(r,phi,z)
 ///
 /// \param r Double_t r position
@@ -203,5 +217,15 @@ void AliTPCLookUpTable3DInterpolatorD::GetValue(
   rValue = fInterpolatorR->GetValue(r, phi, z);
   phiValue = fInterpolatorPhi->GetValue(r, phi, z);
   zValue = fInterpolatorZ->GetValue(r, phi, z);
+}
+
+
+// Set Order of interpolation
+//
+void AliTPCLookUpTable3DInterpolatorD::SetOrder(Int_t order) { 
+  fOrder = order; 
+  fInterpolatorR->SetOrder(order);
+  fInterpolatorZ->SetOrder(order);
+  fInterpolatorPhi->SetOrder(order);
 }
 
