@@ -10,7 +10,6 @@ SET(SRCS
   src/TRDCommonParam.cxx
   src/TRDSimParam.cxx
   src/Digit.cxx
-  src/TRDDigitsParam.cxx
   src/TRDArrayADC.cxx
   src/TRDArrayDictionary.cxx
   src/TRDArraySignal.cxx
