@@ -150,8 +150,7 @@ BOOST_AUTO_TEST_CASE(TestCombinedDS)
 
   auto source1 = std::make_unique<ROOT::RDF::RArrowDS>(table1, std::vector<std::string>{});
   auto source2 = std::make_unique<ROOT::RDF::RArrowDS>(table2, std::vector<std::string>{});
-  auto combined = std::make_unique<ROOT::RDF::RCombinedDS>(std::move(source1), std::move(source2));
-  BOOST_REQUIRE(combined->HasColumn("left_x"));
+  auto combined = ROOT::RDF::MakeCrossProductDataFrame(std::move(source1), std::move(source2));
   ROOT::RDataFrame finalDF{ std::move(combined) };
   BOOST_CHECK_EQUAL(*finalDF.Count(), 64);
   // FIXME: this is currently affected by a bug in RArrowDS which does not work properly when 
