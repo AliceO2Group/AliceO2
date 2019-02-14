@@ -216,10 +216,12 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         TTreeReaderValue<float> c14(*dzReader, "pt_prong0_ML");
         TTreeReaderValue<float> c15(*dzReader, "pt_prong1_ML");
         TTreeReaderValue<float> c16(*dzReader, "y_cand_ML");
+        TTreeReaderValue<float> c17(*dzReader, "phi_cand_ML");
+        TTreeReaderValue<float> c18(*dzReader, "eta_cand_ML");
 
         auto& dzBuilder = outputs.make<TableBuilder>(Output{ "AOD", "DZEROFLAGGED" });
         RootTableBuilderHelpers::convertTTree(dzBuilder, *dzReader,
-                                              c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16);
+                                              c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18);
       }
     });
   }) };
