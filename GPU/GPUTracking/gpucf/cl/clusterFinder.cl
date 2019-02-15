@@ -14,8 +14,34 @@ constant float CHARGE_THRESHOLD = 2;
 constant float OUTER_CHARGE_THRESHOLD = 0;
 
 constant int HALF_NEIGHBORS_NUM = 4;
-constant int2 LEQ_NEIGHBORS[HALF_NEIGHBORS_NUM] = {(int2)(-1, -1), (int2)(-1, 0), (int2)(0, -1), (int2)(1, -1)};
-constant int2 LQ_NEIGHBORS[HALF_NEIGHBORS_NUM]  = {(int2)(-1, 1), (int2)(1, 0), (int2)(1, 1), (int2)(0, 1)};
+constant int2 LEQ_NEIGHBORS[HALF_NEIGHBORS_NUM] = 
+    {
+#if 0
+        (int2)(-1, -1), 
+        (int2)(-1, 0), 
+        (int2)(0, -1), 
+        (int2)(-1, 1)
+#else
+        (int2)(-1, -1), 
+        (int2)(-1, 0), 
+        (int2)(-1, 1),
+        (int2)(0, -1)
+#endif
+    };
+constant int2 LQ_NEIGHBORS[HALF_NEIGHBORS_NUM]  = 
+    {
+#if 0
+        (int2)(1, -1),
+        (int2)(1, 0), 
+        (int2)(1, 1), 
+        (int2)(0, 1)
+#else
+        (int2)(0, 1),
+        (int2)(1, -1),
+        (int2)(1, 0), 
+        (int2)(1, 1)
+#endif
+    };
 
 
 Cluster newCluster()
@@ -39,12 +65,12 @@ void updateClusterOuter(
                      int      row,
                      int      pad,
                      int      time,
+                     float    innerCharge,
                      int      dpIn, 
                      int      dtIn,
                      int      dpOut,
                      int      dtOut)
 {
-    float innerCharge = CHARGE(chargeMap, row, pad+dpIn, time+dtIn);
     float outerCharge = CHARGE(chargeMap, row, pad+dpOut, time+dtOut);
 
     if (   innerCharge >       CHARGE_THRESHOLD 
@@ -65,9 +91,9 @@ void addCorner(
 {
     float innerCharge = CHARGE(chargeMap, row, pad+dp, time+dt);
     updateCluster(myCluster, innerCharge, dp, dt);
-    updateClusterOuter(chargeMap, myCluster, row, pad, time, dp, dt, 2*dp,   dt);
-    updateClusterOuter(chargeMap, myCluster, row, pad, time, dp, dt,   dp, 2*dt);
-    updateClusterOuter(chargeMap, myCluster, row, pad, time, dp, dt, 2*dp, 2*dt);
+    updateClusterOuter(chargeMap, myCluster, row, pad, time, innerCharge, dp, dt, 2*dp,   dt);
+    updateClusterOuter(chargeMap, myCluster, row, pad, time, innerCharge, dp, dt,   dp, 2*dt);
+    updateClusterOuter(chargeMap, myCluster, row, pad, time, innerCharge, dp, dt, 2*dp, 2*dt);
 }
 
 void addLine(
@@ -81,7 +107,7 @@ void addLine(
 {
     float innerCharge = CHARGE(chargeMap, row, pad+dp, time+dt);
     updateCluster(myCluster, innerCharge, dp, dt);
-    updateClusterOuter(chargeMap, myCluster, row, pad, time, dp, dt, 2*dp, 2*dt);
+    updateClusterOuter(chargeMap, myCluster, row, pad, time, innerCharge, dp, dt, 2*dp, 2*dt);
 }
 
 void buildCluster(
@@ -160,7 +186,13 @@ bool isPeak(
         int dt = LEQ_NEIGHBORS[i].y;
         float otherCharge = CHARGE(chargeMap, row, pad+dp, time+dt);
         peak &= (otherCharge <= myCharge);
+
+        if (!peak)
+        {
+            return false;
+        }
     }
+
 
     for (int i = 0; i < HALF_NEIGHBORS_NUM; i++)
     {
@@ -168,6 +200,11 @@ bool isPeak(
         int dt = LQ_NEIGHBORS[i].y;
         float otherCharge = CHARGE(chargeMap, row, pad+dp, time+dt);
         peak &= (otherCharge < myCharge);
+
+        if (!peak)
+        {
+            return false;
+        }
     }
 
     peak &= (myCharge > CHARGE_THRESHOLD);
@@ -222,6 +259,17 @@ void fillChargeMap(
     Digit myDigit = digits[idx];
 
     DIGIT_CHARGE(chargeMap, myDigit) = myDigit.charge;
+}
+
+kernel
+void resetChargeMap(
+        global const Digit *digits,
+        global       float *chargeMap)
+{
+    int idx = get_global_id(0);
+    Digit myDigit = digits[idx];
+
+    DIGIT_CHARGE(chargeMap, myDigit) = 0.0f;
 }
 
 kernel
