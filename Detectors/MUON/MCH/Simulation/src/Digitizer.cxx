@@ -81,19 +81,19 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
 {
   digits.clear();
   mDigits.clear();
-  mMCTruthContainer.clear();
+  mTrackLabels.clear();
 
   //array of MCH hits for a given simulated event
   for (auto& hit : hits) {
-    int labelIndex = mMCTruthContainer.getIndexedSize();
+    int labelIndex = mTrackLabels.getIndexedSize();
     //index for this hit
     int detID = hit.GetDetectorID();
     int ndigits =  processHit(hit, detID, mEventTime);
     //TODO need one label per Digit
     // can use nDigit output of processHit
+    MCCompLabel label(hit.GetTrackID(), mEventID, mSrcID);
     for ( int i=0; i<ndigits; ++i ) {
-      MCCompLabel label(hit.GetTrackID(), mEventID, mSrcID);
-      mMCTruthContainer.addElementRandomAccess(labelIndex, label);
+      mTrackLabels.addElementRandomAccess(labelIndex, label);
     }//loop over digits to generate MCdigits
   } //loop over hits
 
@@ -178,8 +178,8 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
   }
   mDigits.erase(itBeg, iter);
   mMCTruthOutputContainer.clear();
-  for (int index = 0; index < mMCTruthContainer.getIndexedSize(); ++index) {
-    mMCTruthOutputContainer.addElements(index, mMCTruthContainer.getLabels(index));
+  for (int index = 0; index < mTrackLabels.getIndexedSize(); ++index) {
+    mMCTruthOutputContainer.addElements(index, mTrackLabels.getLabels(index));
   }
 }
 //______________________________________________________________________

@@ -68,7 +68,7 @@ class Digitizer
   std::vector<Digit> mDigits;
 
   //MCLabel container (transient)
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthContainer;
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mTrackLabels;
   //MCLabel container (output)
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthOutputContainer;
 
