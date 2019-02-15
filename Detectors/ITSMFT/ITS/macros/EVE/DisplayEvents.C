@@ -10,6 +10,9 @@
 #include <TTree.h>
 #include <TEveManager.h>
 #include <TEveBrowser.h>
+#include <TGButton.h>
+#include <TGNumberEntry.h>
+#include <TGFrame.h>
 #include <TGTab.h>
 #include <TGLCameraOverlay.h>
 #include <TEveFrameBox.h>
@@ -32,7 +35,8 @@ using namespace o2::ITSMFT;
 
 extern TEveManager* gEve;
 
-static Int_t gEntry = -1, gChipID = -1;
+static TGNumberEntry* gEntry;
+static TGNumberEntry* gChipID;
 
 class Data {
 public:
@@ -235,8 +239,8 @@ void Data::displayData(int entry, int chip) {
 
 void load(int entry=0, int chip=13)
 {
-  gEntry = entry;
-  gChipID = chip;
+  gEntry->SetIntNumber(entry);
+  gChipID->SetIntNumber(chip);
 
   Data data;
   std::cout << "\n*** Event #" << entry << " ***\n";
@@ -254,7 +258,13 @@ void init(int entry = 0, int chip = 13,
   TEveManager::Create(kTRUE,"V");
   TEveBrowser *browser = gEve->GetBrowser();
 
-  // Chip View
+  // Geometry
+  o2::Base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
+  auto gman = o2::ITS::GeometryTGeo::Instance();
+  gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
+                                            o2::TransformType::L2G));
+
+  // Chip View 
   browser->GetTabRight()->SetText("Chip View");
   TGLViewer* v = gEve->GetDefaultGLViewer();
   v->SetCurrentCamera(TGLViewer::kCameraOrthoZOY);
@@ -266,11 +276,37 @@ void init(int entry = 0, int chip = 13,
   auto multi = o2::EventVisualisation::MultiView::getInstance();
   multi->drawGeometryForDetector("ITS");
 
-  o2::Base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
-  auto gman = o2::ITS::GeometryTGeo::Instance();
-  gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
-                                            o2::TransformType::L2G));
 
+  // Event navigation
+  browser->StartEmbedding(TRootBrowser::kBottom);
+  auto frame = new TGMainFrame(gClient->GetRoot(),1000, 600, kVerticalFrame);
+  
+  auto h = new TGHorizontalFrame(frame);
+  auto b = new TGTextButton(h,"PrevEvnt","prev()");
+  h->AddFrame(b);
+  gEntry = new TGNumberEntry(h, 0, 5, -1,TGNumberFormat::kNESInteger, TGNumberFormat::kNEANonNegative, TGNumberFormat::kNELLimitMinMax, 0, 10000);
+  gEntry->Connect("ValueSet(Long_t)", 0, 0, "navigate()");
+  h->AddFrame(gEntry);
+  b = new TGTextButton(h,"NextEvnt","next()");
+  h->AddFrame(b);
+  frame->AddFrame(h);
+
+  // Chip navigation
+  h = new TGHorizontalFrame(frame);
+  b = new TGTextButton(h,"PrevChip","prevChip()");
+  h->AddFrame(b);
+  gChipID = new TGNumberEntry(h, 0, 5, -1,TGNumberFormat::kNESInteger, TGNumberFormat::kNEANonNegative, TGNumberFormat::kNELLimitMinMax, 0, gman->getNumberOfChips());
+  gChipID->Connect("ValueSet(Long_t)", 0, 0, "navigate()");
+  h->AddFrame(gChipID);
+  b = new TGTextButton(h,"NextChip","nextChip()");
+  h->AddFrame(b);
+  frame->AddFrame(h);
+
+  frame->MapSubwindows();
+  frame->MapWindow();
+  browser->StopEmbedding("Navigator");
+
+  // Data sources
   auto file = TFile::Open(digifile.data());
   if (file && gFile->IsOpen())
     Data::setDigiTree((TTree*)gFile->Get("o2sim"));
@@ -301,33 +337,53 @@ void init(int entry = 0, int chip = 13,
   gEve->Redraw3D(kTRUE);
 }
 
+void navigate()
+{
+  auto event=gEntry->GetNumberEntry()->GetIntNumber();
+  auto chip=gChipID->GetNumberEntry()->GetIntNumber();
+  load(event, chip);
+}
+
 void next()
 {
-  gEntry++;
-  load(gEntry, gChipID);
+  auto event=gEntry->GetNumberEntry()->GetIntNumber();
+  event++;
+  gEntry->SetIntNumber(event);
+  auto chip=gChipID->GetNumberEntry()->GetIntNumber();
+  load(event, chip);
 }
 
 void prev()
 {
-  gEntry--;
-  load(gEntry, gChipID);
+  auto event=gEntry->GetNumberEntry()->GetIntNumber();
+  event--;
+  gEntry->SetIntNumber(event);
+  auto chip=gChipID->GetNumberEntry()->GetIntNumber();
+  load(event, chip);
 }
 
 void loadChip(int chip) {
-  gChipID = chip;
-  load(gEntry, gChipID);
+  auto event=gEntry->GetNumberEntry()->GetIntNumber();
+  gChipID->SetIntNumber(chip);
+  load(event, chip);
 }
 
 void nextChip()
 {
-  gChipID++;
-  load(gEntry, gChipID);
+  auto event=gEntry->GetNumberEntry()->GetIntNumber();
+  auto chip=gChipID->GetNumberEntry()->GetIntNumber();
+  chip++;
+  gChipID->SetIntNumber(chip);
+  load(event, chip);
 }
 
 void prevChip()
 {
-  gChipID--;
-  load(gEntry, gChipID);
+  auto event=gEntry->GetNumberEntry()->GetIntNumber();
+  auto chip=gChipID->GetNumberEntry()->GetIntNumber();
+  chip--;
+  gChipID->SetIntNumber(chip);
+  load(event, chip);
 }
 
 void DisplayEvents()
