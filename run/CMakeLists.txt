@@ -38,7 +38,6 @@ Install(FILES o2simtopology.json DESTINATION share/config)
 # add a complex simulation as a unit test (if simulation was enabled)
 # perform some checks on kinematics and track references
 if (HAVESIMULATION)
-  if(NOT APPLE) # THESE TESTS HAVE PROBLEMS ON OUR CI MACHINE
   add_test_wrap(NAME o2sim_G4
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     DONT_FAIL_ON_TIMEOUT
@@ -62,7 +61,6 @@ if (HAVESIMULATION)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMAND root -n -b -l -q ${CMAKE_SOURCE_DIR}/DataFormats/simulation/test/checkStack.C\(\"o2simG4.root\"\))
   set_tests_properties(o2sim_checksimkinematics_G4 PROPERTIES FIXTURES_REQUIRED G4)
-  endif()
   add_test_wrap(NAME o2sim_G3
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     DONT_FAIL_ON_TIMEOUT
