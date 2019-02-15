@@ -120,7 +120,6 @@ class MCHDPLDigitizerTask
         for (auto& d : digits) {
           LOG(INFO) << "ADC " << d.getADC();
           LOG(INFO) << "PAD " << d.getPadID();
-          LOG(INFO) << " MCLabel " << d.getLabelIndex();
         }
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
         labelAccum.mergeAtBack(labels);
