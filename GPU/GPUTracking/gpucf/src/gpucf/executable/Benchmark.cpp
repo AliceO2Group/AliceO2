@@ -56,27 +56,45 @@ int Benchmark::mainImpl()
 
 void Benchmark::registerExperiments()
 {
-    GPUClusterFinder::Config naiveConfig;
-    naiveConfig.usePackedDigits = false;
-    experiments.emplace_back(
-            new TimeCf(
-                    "naive cluster finder", 
-                    "paddedClusterFinder.csv",
-                    naiveConfig,
-                    digits, 
-                    iterations->Get(), 
-                    baseDir));
+    {
+        GPUClusterFinder::Config naiveConfig;
+        naiveConfig.usePackedDigits = false;
+        experiments.emplace_back(
+                new TimeCf(
+                        "naive cluster finder", 
+                        "paddedClusterFinder.csv",
+                        naiveConfig,
+                        digits, 
+                        iterations->Get(), 
+                        baseDir));
+    }
 
-    GPUClusterFinder::Config packedDigitsConf;
-    packedDigitsConf.usePackedDigits = true;
-    experiments.emplace_back(
-            new TimeCf(
-                    "packed digits cluster finder", 
-                    "packedClusterFinder.csv",
-                    packedDigitsConf,
-                    digits, 
-                    iterations->Get(), 
-                    baseDir));
+    {
+        GPUClusterFinder::Config packedDigitsConf;
+        packedDigitsConf.usePackedDigits = true;
+        experiments.emplace_back(
+                new TimeCf(
+                        "packed digits cluster finder", 
+                        "packedClusterFinder.csv",
+                        packedDigitsConf,
+                        digits, 
+                        iterations->Get(), 
+                        baseDir));
+    }
+
+    {
+        GPUClusterFinder::Config resetChargeMap;
+        resetChargeMap.usePackedDigits = true;
+        resetChargeMap.zeroChargeMap = false;
+        experiments.emplace_back(
+                new TimeCf(
+                        "Reset charge map", 
+                        "resetChargeMap.csv",
+                        resetChargeMap,
+                        digits, 
+                        iterations->Get(), 
+                        baseDir));
+    }
 }
 
 

@@ -1,9 +1,68 @@
 #!/usr/bin/env python3
 import argparse
 import csv
+import os
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+
+import toml
+
+
+def requireKey(dict_, key):
+    if key not in dict_:
+        raise Exception("Required key {} missing.".format(key))
+
+
+class Input:
+
+    requiredKeys = [
+        "file",
+        "label"
+    ]
+
+    def __init__(self, dict_):
+        for req in Input.requiredKeys:
+            requireKey(dict_, req)
+            self.__dict__[req] = dict_[req]
+
+
+class Config:
+
+    requiredKeys = [
+        "type",
+        "out",
+        "input"
+    ]
+
+    optionalKeys = [
+        "ylabel",
+        "showLegend"
+    ]
+
+    def __init__(self, confDict, baseDir):
+
+        self.baseDir = baseDir
+
+        print(confDict)
+        for req in Config.requiredKeys:
+            requireKey(confDict, req)
+
+        self.type = confDict["type"]
+        self.out  = confDict["out"]
+
+        self.input = [Input(dict_) for dict_ in confDict["input"]]
+        assert self.input
+
+        assert all([(req in self.__dict__) for opt in Config.requiredKeys])
+
+        for opt in Config.optionalKeys:
+            self.__dict__[opt] = confDict.get(opt)
+
+        assert all([(opt in self.__dict__) for opt in Config.optionalKeys])
+
+    def expand(self, fname):
+        return os.path.join(self.baseDir, fname)
 
 
 def readCsv(fname):
@@ -32,15 +91,12 @@ def split(data):
 
     return maxs, mins, medians
 
-def boxplot(args):
-    print("Creating boxplot...")
+def bar(cnf):
+    print("Creating barplot...")
 
-    print(args.inputFiles)
-    assert len(args.inputFiles) % 2 == 0
+    labels, _ = readCsv(cnf.expand(cnf.input[0].file))
 
-    labels, _ = readCsv(args.inputFiles[0])
-
-    stepSize = len(args.inputFiles)
+    stepSize = len(cnf.input)
     stepNum = len(labels)
 
     barWidth = 0.75
@@ -50,9 +106,9 @@ def boxplot(args):
 
     barPositions = np.array(indexes)
 
-    for i in range(0, len(args.inputFiles), 2):
-        fname = args.inputFiles[i]
-        label = args.inputFiles[i+1]
+    for i in cnf.input:
+        fname = cnf.expand(i.file)
+        label = i.label
         
         print(fname, label)
 
@@ -63,10 +119,6 @@ def boxplot(args):
         maxs -= medians
         mins = medians - mins
 
-        # print(maxs)
-        # print(mins)
-        # print(medians)
-
         plt.bar(barPositions,
                 medians, 
                 barWidth,
@@ -76,34 +128,38 @@ def boxplot(args):
 
     plt.ylim(ymin=0)
 
-    plt.xticks(indexes + barWidth / 2, labels, rotation=20)
+    plt.xticks(indexes + (stepSize - 1) * barWidth / 2, labels, rotation=20)
     plt.margins(0.2)
     plt.subplots_adjust(bottom=0.2)
 
-    if args.ylabel is not None:
-        plt.ylabel(args.ylabel)
+    if cnf.ylabel is not None:
+        plt.ylabel(cnf.ylabel)
 
-    plt.legend()
+    if cnf.showLegend:
+        plt.legend()
 
-    plt.savefig(args.out)
+    plt.savefig(cnf.expand(cnf.out))
+
+
+PLOTS = {
+        "bar" : bar
+}
+
 
 def main():
     parser = argparse.ArgumentParser(description='Create a plot from csv files.')
 
-    subparsers = parser.add_subparsers()
-
-    boxplotParser = subparsers.add_parser('boxplot', help="Create boxplots")
-    boxplotParser.set_defaults(func=boxplot)
-    boxplotParser.add_argument(
-            'inputFiles', 
-            metavar='CSV LABEL', 
-            nargs='+', 
-            help='Input files')
-    boxplotParser.add_argument('-o', '--out', help='Output plot', required=True)
-    boxplotParser.add_argument('-y', '--ylabel', help='y label')
+    parser.add_argument(
+            'config', 
+            metavar='CNF', 
+            nargs=1,
+            help='Config file describing the plot')
 
     args = parser.parse_args()
-    args.func(args)
+
+    config = Config(toml.load(args.config), os.path.dirname(args.config[0]))
+
+    PLOTS[config.type](config)
 
 
 if __name__ == '__main__':

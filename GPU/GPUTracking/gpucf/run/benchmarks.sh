@@ -8,6 +8,12 @@ tgtDir=$2
 measurementsDir='measurements'
 buildDir='build'
 
+plotFiles=( \
+    "clusterfinder.toml" \
+    "cmpWithPacked.toml" \
+    "cmpWithReset.toml" \
+)
+
 plotCmd='run/plot.py'
 
 ssh $remoteTgt <<-ENDSSH
@@ -19,17 +25,7 @@ ENDSSH
 scp -r $remoteTgt:$tgtDir/$measurementsDir .
 
 
-$plotCmd boxplot \
-         -o=$measurementsDir/'clusterfinder.pdf' \
-         -y='time [ms]' \
-        $measurementsDir/'paddedClusterFinder.csv' \
-        "Cluster Finder" \
-
-$plotCmd boxplot \
-         -o=$measurementsDir/'cmpPaddedAndPackedDigit.pdf' \
-         -y='time [ms]' \
-        $measurementsDir/'paddedClusterFinder.csv' \
-        "With padded Digits" \
-        $measurementsDir/'packedClusterFinder.csv' \
-        "With packed Digits"
-
+for config in ${plotFiles[*]}
+do
+    $plotCmd $measurementsDir/$config
+done

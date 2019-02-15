@@ -23,7 +23,8 @@ class GPUClusterFinder
 public:
     struct Config
     {
-        bool usePackedDigits; 
+        bool usePackedDigits = false;
+        bool zeroChargeMap   = true;
     };
     
     struct Result
@@ -56,11 +57,8 @@ private:
     Config config;
 
     nonstd::span<const Digit> digits;
-    std::vector<PackedDigit> packedDigits;
+    std::vector<PackedDigit>  packedDigits;
     std::vector<Digit>        peaks;
-
-    std::vector<int> globalToLocalRow;
-    std::vector<int> globalRowToCru;
 
     StreamCompaction streamCompaction;
 
@@ -70,6 +68,7 @@ private:
     cl::Kernel findPeaks;
     cl::Kernel fillChargeMap;
     cl::Kernel computeClusters;
+    cl::Kernel resetChargeMap;
 
     cl::Buffer chargeMap;
     size_t     chargeMapSize = 0;
