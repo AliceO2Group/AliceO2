@@ -1,11 +1,12 @@
 #pragma once
 
 #include <gpucf/common/Cluster.h>
-#include <gpucf/common/DataSet.h>
 #include <gpucf/common/Digit.h>
+#include <gpucf/common/Event.h>
 #include <gpucf/common/Measurements.h>
 #include <gpucf/gpu/StreamCompaction.h>
 
+#include <nonstd/optional.hpp>
 #include <nonstd/span.hpp>
 
 #include <memory>
@@ -23,13 +24,15 @@ class GPUClusterFinder
 public:
     struct Config
     {
+        size_t queueNum = 1;
+
         bool usePackedDigits = false;
         bool zeroChargeMap   = true;
     };
     
     struct Result
     {
-        DataSet result;
+        std::vector<Cluster> clusters;
         std::vector<Measurement> profiling; 
     };
 
@@ -42,6 +45,45 @@ public:
     Result run();
 
 private:
+    class Worker
+    {
+    public:
+        Worker(GPUClusterFinder &);
+
+        template<class DigitT>
+        void findCluster(
+                nonstd::optional<Event>,
+                nonstd::optional<Event>,
+                nonstd::span<const DigitT>);
+
+        void copyCluster(
+                nonstd::optional<Event>,
+                nonstd::span<Cluster>);
+
+        size_t getClusterNum() const;
+
+        Event getDigitsToDevice() const;
+        Event getClustersToHost() const;
+        Event getDigitsToChargeMap() const;
+
+        std::vector<Measurement> finish();
+
+    private:
+        GPUClusterFinder &parent;
+
+        size_t clusterNum = 0;
+
+        Event digitsToDevice; 
+        Event zeroChargeMap;
+        Event fillingChargeMap;
+        Event findingPeaks;
+        Event computingClusters;
+        Event clustersToHost;
+
+        cl::CommandQueue clustering;
+        cl::CommandQueue cleanup;
+    };
+
     static void printClusters(
             const std::vector<Cluster> &,
             size_t);

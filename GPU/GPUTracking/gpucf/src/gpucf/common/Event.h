@@ -12,11 +12,14 @@ class Event
 public:
     cl::Event *get();
 
-    float executionTimeMs() const;
+    float startMs() const;
+
+    float endMs() const;
 
 private:
+    static float nsToMs(cl_ulong);
+
     cl::Event event;
-    
 };
 
 } // namespace gpucf
