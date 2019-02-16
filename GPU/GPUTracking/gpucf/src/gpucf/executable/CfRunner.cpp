@@ -39,7 +39,9 @@ int CfRunner::mainImpl()
     cf.setup(GPUClusterFinder::defaultConfig, env, digits);
     auto cfRes = cf.run();
 
-    cfRes.result.write(args::get(*clusterResultFile));
+    DataSet clusters;
+    clusters.serialize(cfRes.clusters);
+    clusters.write(args::get(*clusterResultFile));
 
     if (*peakFile)
     {
