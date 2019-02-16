@@ -88,7 +88,7 @@ class CalibTOF
   Int_t FitPeak(TF1 *fitFunc, TH1 *h, Float_t startSigma, Float_t nSigmaMin, Float_t nSigmaMax, const char *debuginfo="", TH2 *hdbg=nullptr);
 
 
-  void setDebugMode(Int_t flag=kTRUE) {mDebugMode=flag;}
+  void setDebugMode(Int_t flag = kTRUE) {mDebugMode = flag;}
   Int_t getDebugMode() const {return mDebugMode;}
 
  private:
