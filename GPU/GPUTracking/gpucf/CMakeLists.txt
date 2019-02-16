@@ -25,6 +25,8 @@ add_definitions(
     -DCL_HPP_ENABLE_EXCEPTIONS
     -DCL_TARGET_OPENCL_VERSION=200
     -DCL_HPP_TARGET_OPENCL_VERSION=200
+
+    -Dspan_FEATURE_MAKE_SPAN=1
 )
 
 include_directories(src)

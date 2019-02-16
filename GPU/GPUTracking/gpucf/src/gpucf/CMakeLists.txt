@@ -1,7 +1,7 @@
 set(GPUCF_SRC
     "./ClEnv.cpp"
     "./ClusterChecker.cpp"
-    "./CsvFile.cpp"
+    # "./CsvFile.cpp"
     "./VectorAdd.cpp"
     
     "./common/Cluster.cpp"
@@ -9,6 +9,7 @@ set(GPUCF_SRC
     "./common/Digit.cpp"
     "./common/Event.cpp"
     "./common/log.cpp"
+    "./common/Measurements.cpp"
     "./common/Object.cpp"
     "./common/RowInfo.cpp"
 
