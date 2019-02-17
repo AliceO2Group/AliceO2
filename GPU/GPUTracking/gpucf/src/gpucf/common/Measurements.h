@@ -1,5 +1,7 @@
 #pragma once
 
+#include <gpucf/common/Timestamp.h>
+
 #include <iosfwd>
 #include <string>
 #include <utility>
@@ -13,18 +15,19 @@ namespace gpucf
     struct Step
     {
         Step(const std::string &, const Event &);
+        Step(const std::string &, Timestamp, Timestamp);
 
         std::string name;
-        float start;
-        float end;
+        Timestamp start;
+        Timestamp end;
     };
 
     using Lane = std::vector<Step>;
 
     struct Measurement
     {
-        float start;
-        float end;
+        Timestamp start;
+        Timestamp end;
         std::vector<Lane> lanes; 
     };
 

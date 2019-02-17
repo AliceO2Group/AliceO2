@@ -1,7 +1,7 @@
 #pragma once
 
 #include <gpucf/ClEnv.h>
-#include <gpucf/CsvFile.h>
+#include <gpucf/common/Measurements.h>
 
 #include <filesystem/path.h>
 
@@ -19,7 +19,7 @@ public:
     virtual void run(ClEnv &) = 0;
 
 protected:
-    void saveFile(filesystem::path, const CsvFile &);
+    void save(filesystem::path, const Measurements &);
 
 private:
     filesystem::path baseDir;

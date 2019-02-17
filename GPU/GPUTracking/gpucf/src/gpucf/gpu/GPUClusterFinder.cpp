@@ -158,23 +158,20 @@ void GPUClusterFinder::Worker::copyCluster(
             clustersToHost.get());
 }
 
-std::vector<Measurement> GPUClusterFinder::Worker::finish()
+Lane GPUClusterFinder::Worker::finish()
 {
     clustering.finish();
     cleanup.finish();
 
-    std::vector<Measurement> measurements =
+    Lane measurements =
     {
-        {"digitsToDevice", digitsToDevice.executionTimeMs()},
-        {"zeroChargeMap", 
-            parent.config.zeroChargeMap ? zeroChargeMap.executionTimeMs() : 0},
-        {"fillChargeMap", fillingChargeMap.executionTimeMs()},
-        {"findPeaks", findingPeaks.executionTimeMs()},
-        {"compactPeaks", parent.streamCompaction.executionTimeMs()},
-        {"computeClusters", computingClusters.executionTimeMs()},
-        {"resetChargeMap",
-            parent.config.zeroChargeMap ? 0 : zeroChargeMap.executionTimeMs()},
-        {"clustersToHost", clustersToHost.executionTimeMs()},
+        {"digitsToDevice", digitsToDevice},
+        {"fillChargeMap", fillingChargeMap},
+        {"findPeaks", findingPeaks},
+        parent.streamCompaction.asStep("compactPeaks"),
+        {"computeClusters", computingClusters},
+        {"resetChargeMap", zeroChargeMap},
+        {"clustersToHost", clustersToHost},
     };
 
     return measurements;
@@ -323,7 +320,7 @@ GPUClusterFinder::Result GPUClusterFinder::run()
     log::Info() << "Found " << clusters.size() << " clusters.";
 
 
-    return Result{clusters, measurements};
+    return Result{clusters, {0,0, {measurements}}};
 }
 
 
