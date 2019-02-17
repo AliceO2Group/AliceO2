@@ -204,7 +204,8 @@ void CalibTOF::run(int flag, int sector)
 
 	    TGraphErrors *gTimeVsTot = processSlewing(histoChTimeSlewingTemp, 1,funcChOffset);
 
-	    if (mDebugMode && gTimeVsTot && gTimeVsTot->GetN()) {
+	    if (mDebugMode && gTimeVsTot && gTimeVsTot->GetN() && fout) {
+	      fout->cd();
 	      int istrip = ((ich+ipad)/o2::tof::Geo::NPADS) % o2::tof::Geo::NSTRIPXSECTOR;
 	      gTimeVsTot->SetName(Form("pad_%02d_%02d_%02d", sector, istrip, ipad%o2::tof::Geo::NPADS));
 	      gTimeVsTot->Write();
