@@ -16,13 +16,16 @@ plotFiles=( \
 
 plotCmd='run/plot.py'
 
+
 ssh $remoteTgt <<-ENDSSH
     cd $tgtDir
+    mkdir -p $measurementsDir/in
+    mkdir -p $measurementsDir/out
     make -sC$buildDir/release benchmark -j64
-    ./$buildDir/release/bin/benchmark -scl -ddata/digits-big.txt -omeasurements
+    ./$buildDir/release/bin/benchmark -scl -ddata/digits-big.txt -o$measurementsDir/in
 ENDSSH
 
-scp -r $remoteTgt:$tgtDir/$measurementsDir .
+scp $remoteTgt:$tgtDir/$measurementsDir/in/* $measurementsDir/in
 
 
 for config in ${plotFiles[*]}

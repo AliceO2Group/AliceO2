@@ -18,14 +18,14 @@ Experiment::~Experiment()
 {
 }
 
-void Experiment::saveFile(fs::path fname, const CsvFile &csv)
+void Experiment::save(fs::path fname, const Measurements &data)
 {
     fs::path fullname = baseDir / fname;
 
     log::Info() << "Writing measurements to " << fullname;
 
     std::ofstream out(fullname.str());
-    out << csv.str();
+    out << data;
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

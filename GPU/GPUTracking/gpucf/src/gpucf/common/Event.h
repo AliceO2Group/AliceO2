@@ -1,25 +1,27 @@
 #pragma once
 
+#include <gpucf/common/Timestamp.h>
+
 #include <CL/cl2.hpp>
 
 
 namespace gpucf
 {
-    
+
 class Event
 {
 
 public:
     cl::Event *get();
 
-    float startMs() const;
+    Timestamp startMs() const;
 
-    float endMs() const;
+    Timestamp endMs() const;
 
 private:
-    static float nsToMs(cl_ulong);
-
     cl::Event event;
+
+    Timestamp profilingInfo(cl_profiling_info) const;
 };
 
 } // namespace gpucf
