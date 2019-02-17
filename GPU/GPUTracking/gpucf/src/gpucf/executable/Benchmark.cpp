@@ -62,7 +62,7 @@ void Benchmark::registerExperiments()
         experiments.emplace_back(
                 new TimeCf(
                         "naive cluster finder", 
-                        "paddedClusterFinder.csv",
+                        "paddedClusterFinder.json",
                         naiveConfig,
                         digits, 
                         iterations->Get(), 
@@ -75,7 +75,7 @@ void Benchmark::registerExperiments()
         experiments.emplace_back(
                 new TimeCf(
                         "packed digits cluster finder", 
-                        "packedClusterFinder.csv",
+                        "packedClusterFinder.json",
                         packedDigitsConf,
                         digits, 
                         iterations->Get(), 
@@ -89,7 +89,7 @@ void Benchmark::registerExperiments()
         experiments.emplace_back(
                 new TimeCf(
                         "Reset charge map", 
-                        "resetChargeMap.csv",
+                        "resetChargeMap.json",
                         resetChargeMap,
                         digits, 
                         iterations->Get(), 

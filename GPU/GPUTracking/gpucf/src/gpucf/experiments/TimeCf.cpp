@@ -31,15 +31,16 @@ void TimeCf::run(ClEnv &env)
 
     log::Info() << "Benchmarking " << name;
 
-    CsvFile measurements;
+    Measurements measurements;
 
     for (size_t i = 0; i < repeats; i++)
     {
         auto res = cf.run();
+
         measurements.add(res.profiling);
     }
 
-    saveFile(tgtFile, measurements);
+    save(tgtFile, measurements);
 }
     
 

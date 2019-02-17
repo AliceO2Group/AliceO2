@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import csv
+import json
 import os
 
 import matplotlib.pyplot as plt
@@ -65,6 +66,54 @@ class Config:
         return os.path.join(self.baseDir, fname)
 
 
+class Measurements:
+
+    def __init__(self, fname):
+        with open(fname, 'r') as datafile:
+            dct = json.load(datafile)
+        # print(dct)
+        self.data = dct["runs"]
+
+    def labels(self):
+        return [step["name"] for step in self.data[0]["lanes"][0]]
+
+    def lanes(self):
+        return len(self.data[0]["lanes"])
+
+    def runs(self):
+        return len(self.data)
+
+    def durations(self, lane=0):
+
+        # print("runs =", self.runs())
+        # print("lanes =", self.lanes())
+
+        start = np.array([
+            [ self.data[run]["lanes"][lane][i]["start"] 
+                for run in range(self.runs()) ]
+            for i in range(len(self.labels()))
+        ])
+
+        # print("start =", start)
+
+        end = np.array([
+            [ self.data[run]["lanes"][lane][i]["end"] 
+                for run in range(self.runs()) ]
+            for i in range(len(self.labels()))
+        ])
+
+        # print("end = ", end)
+
+        duration = end - start
+
+        duration = np.array(duration, dtype=np.float64)
+        duration /=  1000000
+
+        # print("duration =", duration)
+
+        return list(duration)
+
+
 def readCsv(fname):
     labels = None
     data   = None
@@ -89,12 +138,16 @@ def split(data):
     mins = np.array([np.min(col) for col in data])
     medians = np.array([np.median(col) for col in data])
 
+    print(maxs, mins, medians)
+
     return maxs, mins, medians
 
 def bar(cnf):
     print("Creating barplot...")
 
-    labels, _ = readCsv(cnf.expand(cnf.input[0].file))
+    measurements = Measurements(cnf.expand(cnf.input[0].file))
+
+    labels = measurements.labels()
 
     stepSize = len(cnf.input)
     stepNum = len(labels)
@@ -112,9 +165,9 @@ def bar(cnf):
         
         print(fname, label)
 
-        _, data = readCsv(fname)
+        measurements = Measurements(fname)
 
-        maxs, mins, medians = split(data)
+        maxs, mins, medians = split(measurements.durations())
 
         maxs -= medians
         mins = medians - mins

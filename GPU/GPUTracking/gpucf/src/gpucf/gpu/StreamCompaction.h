@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gpucf/common/Event.h>
+#include <gpucf/common/Measurements.h>
 
 #include <CL/cl2.hpp>
 
@@ -29,10 +30,7 @@ public:
 
     std::vector<std::vector<int>> getNewIdxDump() const;
 
-    float executionTimeMs() const;
-
-    float scanTimeMs() const;
-    float compactionTimeMs() const;
+    Step asStep(const std::string &) const;
 
 private:
     cl::Context context;

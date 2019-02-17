@@ -33,7 +33,7 @@ public:
     struct Result
     {
         std::vector<Cluster> clusters;
-        std::vector<Measurement> profiling; 
+        Measurement profiling; 
     };
 
     static const Config defaultConfig;
@@ -66,7 +66,7 @@ private:
         Event getClustersToHost() const;
         Event getDigitsToChargeMap() const;
 
-        std::vector<Measurement> finish();
+        Lane finish();
 
     private:
         GPUClusterFinder &parent;

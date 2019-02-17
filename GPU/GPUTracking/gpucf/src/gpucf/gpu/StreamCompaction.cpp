@@ -184,21 +184,9 @@ std::vector<std::vector<int>> StreamCompaction::getNewIdxDump() const
     return sumsDump;
 }
 
-float StreamCompaction::executionTimeMs() const
+Step StreamCompaction::asStep(const std::string &name) const
 {
-    return scanTimeMs() + compactionTimeMs();
-}
-
-float StreamCompaction::scanTimeMs() const
-{
-    float time = 0;
-
-    for (const Event &ev : scanEvents)
-    {
-        time += ev.executionTimeMs();
-    }
-
-    return time;
+    return {name, scanEvents.front().startMs(), compactArrEv.endMs()};
 }
 
 void StreamCompaction::dumpBuffer(
@@ -213,11 +201,6 @@ void StreamCompaction::dumpBuffer(
             0,
             sizeof(cl_int) * size,
             sumsDump.back().data());
-}
-
-float StreamCompaction::compactionTimeMs() const
-{
-    return compactArrEv.executionTimeMs();
 }
 
 cl::Event *StreamCompaction::addScanEvent()

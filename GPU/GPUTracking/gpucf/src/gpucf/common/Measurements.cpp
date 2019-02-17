@@ -76,9 +76,14 @@ struct default_value_writer<Measurement>
 
 
 Step::Step(const std::string &myName, const Event &ev)
+    : Step(myName, ev.startMs(), ev.endMs())
+{
+}
+
+Step::Step(const std::string &myName, Timestamp s, Timestamp e)
     : name(myName)
-    , start(ev.startMs())
-    , end(ev.endMs())
+    , start(s)
+    , end(e)
 {
 }
 
@@ -94,9 +99,11 @@ const std::vector<Measurement> &Measurements::getRuns() const
 }
 
 
-std::ostream &operator<<(std::ostream &os, const Measurements &m)
+std::ostream &gpucf::operator<<(std::ostream &os, const Measurements &m)
 {
-    minijson::object_writer writer(os);
+    minijson::object_writer writer(
+            os,
+            minijson::writer_configuration().pretty_printing(true));
 
     const std::vector<Measurement> &runs = m.getRuns();
     writer.write_array("runs", runs.begin(), runs.end());

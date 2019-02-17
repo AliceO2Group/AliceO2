@@ -4,31 +4,27 @@
 using namespace gpucf;
 
 
-float Event::nsToMs(cl_ulong ns)
-{
-    return ns / float(1000000);
-}
-
-
 cl::Event *Event::get()
 {
     return &event;
 }
 
-float Event::startMs() const
+Timestamp Event::startMs() const
 {
-    cl_ulong start;
-    event.getProfilingInfo(CL_PROFILING_COMMAND_START, &start);
-
-    return nsToMs(start);
+    return profilingInfo(CL_PROFILING_COMMAND_START);
 }
 
-float Event::endMs() const
+Timestamp Event::endMs() const
 {
-    cl_ulong end;
-    event.getProfilingInfo(CL_PROFILING_COMMAND_END, &end);
+    return profilingInfo(CL_PROFILING_COMMAND_END);
+}
 
-    return nsToMs(end);
+Timestamp Event::profilingInfo(cl_profiling_info key) const
+{
+    Timestamp data; 
+    event.getProfilingInfo(key, &data);
+
+    return data;
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:
