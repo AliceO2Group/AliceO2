@@ -1,7 +1,6 @@
 set(GPUCF_SRC
     "./ClEnv.cpp"
     "./ClusterChecker.cpp"
-    # "./CsvFile.cpp"
     "./VectorAdd.cpp"
     
     "./common/Cluster.cpp"
