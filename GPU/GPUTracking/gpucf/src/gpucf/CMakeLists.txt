@@ -6,6 +6,7 @@ set(GPUCF_SRC
     "./common/Cluster.cpp"
     "./common/DataSet.cpp"
     "./common/Digit.cpp"
+    "./common/DigitDivider.cpp"
     "./common/Event.cpp"
     "./common/log.cpp"
     "./common/Measurements.cpp"
