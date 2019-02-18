@@ -41,9 +41,8 @@ class Digit : public DigitBase
   void setADC(double adc) { mADC = adc; }
 
  private:
-  int mPadID;      /// PadIndex to which the digit corresponds to
-  double mADC;     /// Amplitude of signal
-
+  int mPadID;  /// PadIndex to which the digit corresponds to
+  double mADC; /// Amplitude of signal
 
   ClassDefNV(Digit, 1);
 }; //class Digit

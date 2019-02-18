@@ -88,14 +88,14 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
     int labelIndex = mTrackLabels.getIndexedSize();
     //index for this hit
     int detID = hit.GetDetectorID();
-    int ndigits =  processHit(hit, detID, mEventTime);
+    int ndigits = processHit(hit, detID, mEventTime);
     //TODO need one label per Digit
     // can use nDigit output of processHit
     MCCompLabel label(hit.GetTrackID(), mEventID, mSrcID);
-    for ( int i=0; i<ndigits; ++i ) {
+    for (int i = 0; i < ndigits; ++i) {
       mTrackLabels.addElementRandomAccess(labelIndex, label);
-    }//loop over digits to generate MCdigits
-  } //loop over hits
+    } //loop over digits to generate MCdigits
+  }   //loop over hits
 
   fillOutputContainer(digits);
 }
@@ -136,15 +136,14 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
   int padidbendcent = 0;
   int padidnoncent = 0;
   int ndigits = 0;
-  
+
   bool padexists = seg.findPadPairByPosition(localX, localY, padidbendcent, padidnoncent);
   if (!padexists) {
     LOG(ERROR) << "Did not find  _any_ pad for localX,Y=" << localX << "," << localY;
     return 0;
   }
 
-
-  seg.forEachPadInArea(xMin, yMin, xMax, yMax, [&resp, &digits = this->mDigits, chargebend, chargenon, localX, localY, &seg, &ndigits](int padid) {
+  seg.forEachPadInArea(xMin, yMin, xMax, yMax, [&resp, &digits = this->mDigits, chargebend, chargenon, localX, localY, &seg, &ndigits ](int padid) {
     auto dx = seg.padSizeX(padid) * 0.5;
     auto dy = seg.padSizeY(padid) * 0.5;
     auto xmin = (localX - seg.padPositionX(padid)) - dx;
