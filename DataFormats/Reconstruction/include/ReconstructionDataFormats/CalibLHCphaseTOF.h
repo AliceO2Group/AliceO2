@@ -20,7 +20,7 @@ namespace o2
 {
 namespace dataformats
 {
-class CalibLHCphaseTOF
+  class CalibLHCphaseTOF
 {
  public:
   CalibLHCphaseTOF();
@@ -38,7 +38,7 @@ class CalibLHCphaseTOF
   // LHCphase calibration
   std::vector<std::pair <int,float>> mLHCphase;                     ///< <timestamp,LHCphase> from which the LHCphase measurement is valid
 
-  //ClassDefNV(CalibLHCphaseTOF, 1);
+  //  ClassDefNV(CalibLHCphaseTOF, 1);
 };
 }
 }

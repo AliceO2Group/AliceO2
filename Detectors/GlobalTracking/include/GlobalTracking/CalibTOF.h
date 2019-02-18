@@ -38,7 +38,7 @@ namespace o2
 
 namespace globaltracking
 {
-class CalibTOF
+  class CalibTOF
 {
   using Geo = o2::tof::Geo;
   
@@ -156,7 +156,7 @@ class CalibTOF
   int mMaxTimestamp = 1;   ///< maximum timestamp over the hits that we collect; we need it to
                            ///< book the histogram for the LHCPhase calibration
 
-  ClassDefNV(CalibTOF, 1);
+  //  ClassDefNV(CalibTOF, 1);
 };
 } // namespace globaltracking
 } // namespace o2

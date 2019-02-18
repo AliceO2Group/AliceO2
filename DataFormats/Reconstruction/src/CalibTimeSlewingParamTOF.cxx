@@ -41,7 +41,7 @@ CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF(){
   mTimeSlewing[17] = &mTimeSlewingSec17;
 
   for(int i=0;i < NSECTORS;i++){
-    for(int j=0;j < NCHANNELXSECTORSECTOR;j++){
+    for(int j=0;j < NCHANNELXSECTOR;j++){
       mChannelStart[i][j] = -1;
     }
   }
@@ -49,8 +49,8 @@ CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF(){
 //______________________________________________
 
 float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel,float tot) const {
-  int sector = channel/NCHANNELXSECTORSECTOR;
-  channel = channel%NCHANNELXSECTORSECTOR;
+  int sector = channel/NCHANNELXSECTOR;
+  channel = channel%NCHANNELXSECTOR;
   
   if(sector >= NSECTORS) return 0.; // something went wrong!
   
@@ -58,7 +58,7 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel,float tot) const {
   if(n < 0) return 0.;
   
   int nstop=(*(mTimeSlewing[sector])).size();
-  if(channel < NCHANNELXSECTORSECTOR-1) nstop=mChannelStart[sector][channel+1];
+  if(channel < NCHANNELXSECTOR-1) nstop=mChannelStart[sector][channel+1];
 
   if(n >= nstop) return 0.; // something went wrong!
  
@@ -82,8 +82,8 @@ void CalibTimeSlewingParamTOF::addTimeSlewingInfo(int channel, float tot, float 
   // WE ARE ASSUMING THAT:
   // channels have to be filled in increasing order (within the sector)
   // tots have to be filled in increasing order (within the channel)
-  int sector = channel/NCHANNELXSECTORSECTOR;
-  channel = channel%NCHANNELXSECTORSECTOR;
+  int sector = channel/NCHANNELXSECTOR;
+  channel = channel%NCHANNELXSECTOR;
   
   // printf("DBG: addTimeSlewinginfo sec=%i\n",sector);
 
@@ -108,7 +108,7 @@ CalibTimeSlewingParamTOF& CalibTimeSlewingParamTOF::operator+=(const CalibTimeSl
       for(auto obj = other.mTimeSlewing[i]->begin(); obj != other.mTimeSlewing[i]->end(); obj++)
 	mTimeSlewing[i]->push_back(*obj);
       
-      for(int j=0;j < NCHANNELXSECTORSECTOR;j++)
+      for(int j=0;j < NCHANNELXSECTOR;j++)
 	mChannelStart[i][j] = other.mChannelStart[i][j];
       
     }

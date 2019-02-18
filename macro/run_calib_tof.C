@@ -12,19 +12,24 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 
-#include <unistd.h>
-
 #include "GlobalTracking/CalibTOF.h"
 #endif
+
+#include <string>
+#include <iostream>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include "err.h"
 
 void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparams_tof.root",
 		   std::string inputfileCalib = "o2calibration_tof.root")
 {
 
-  const int ninstance = 2;
-  o2::globaltracking::CalibTOF calib[ninstance];
-  for(int i=0; i < ninstance; i++)
-    calib[i].setDebugMode(1);
+  const int ninstance = 3;
+  o2::globaltracking::CalibTOF calib;
+  //  for(int i=0; i < ninstance; i++)
+    calib.setDebugMode(1);
 
   if (path.back() != '/') {
     path += '/';
@@ -37,80 +42,65 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparam
   TParameter<int>* minTimestamp = (TParameter<int>*)fin->Get("minTimestamp");
   TParameter<int>* maxTimestamp = (TParameter<int>*)fin->Get("maxTimestamp");
 
-  for(int i=0; i < ninstance; i++){
-    calib[i].setInputTreeTOFCollectedCalibInfo(&tofCalibInfo);
-    calib[i].setMinTimestamp(minTimestamp->GetVal());
-    calib[i].setMaxTimestamp(maxTimestamp->GetVal());
-  }
+  calib.setInputTreeTOFCollectedCalibInfo(&tofCalibInfo);
+  calib.setMinTimestamp(minTimestamp->GetVal());
+  calib.setMaxTimestamp(maxTimestamp->GetVal());
   fin->Close();
   
   //<<<---------- attach input data ---------------<<<
-
-  // create/attach output tree
-  TFile outFile((path + outputfile).data(), "recreate");
-  TTree outTree("calibrationTOF", "Calibration TOF params");
-
-  for(int i=0; i < ninstance; i++)
-    calib[i].setOutputTree(&outTree);
   
   //-------------------- settings -----------//
-  /*
-    matching.setITSROFrameLengthMUS(5.0f); // ITS ROFrame duration in \mus
-    matching.setCutMatchingChi2(100.);
-    std::array<float, o2::track::kNParams> cutsAbs = { 2.f, 2.f, 0.2f, 0.2f, 4.f };
-    std::array<float, o2::track::kNParams> cutsNSig2 = { 49.f, 49.f, 49.f, 49.f, 49.f };
-    matching.setCrudeAbsDiffCut(cutsAbs);
-    matching.setCrudeNSigma2Cut(cutsNSig2);
-    matching.setTPCTimeEdgeZSafeMargin(3);
-  */
-
-  for(int i=0; i < ninstance; i++)
-    calib[i].init();
-
-  //  calib.run(o2::globaltracking::CalibTOF::kLHCphase);
+  //calib.run(o2::globaltracking::CalibTOF::kLHCphase);
   //calib.run(o2::globaltracking::CalibTOF::kChannelOffset);
   //calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing); // all sectors
 
   // to be generalized for more than 2 forks
   int counter = 0;
-  pid_t pid = fork();
 
-  if (pid == 0){ // child process
-    printf("strip fork 1\n");
-    calib[0].run(o2::globaltracking::CalibTOF::kLHCphase);
-    calib[0].run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 0);
-    calib[0].run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 1);
-    calib[0].run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 2);
-    calib[0].run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 3);
-    calib[0].run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 4);
-    calib[0].run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 5);
-    calib[0].run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 6);
-    calib[0].run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 7);
-    calib[0].run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 8);
+  pid_t pids[ninstance];
+  int n = ninstance;
+  /* Start children. */
+  for (int i = 0; i < n; ++i) {
+    if ((pids[i] = fork()) < 0) {
+      perror("fork");
+      abort();
     }
-  else if (pid > 0){ //parent process
-    printf("strip fork 2\n");
-    calib[1].run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 9);
-    calib[1].run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 10);
-    calib[1].run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 11);
-    calib[1].run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 12);
-    calib[1].run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 13);
-    calib[1].run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 14);
-    calib[1].run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 15);
-    calib[1].run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 16);
-    calib[1].run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, 17);
+    else if (pids[i] == 0) {
+      cout << "child " << i << endl;
+      TString namefile(outputfile);
+      namefile.ReplaceAll(".root","");
+      TFile outFile((path + namefile.Data() + Form("_fork%i.root",i)).data(), "recreate");
+      TTree outTree("calibrationTOF", "Calibration TOF params");
+      calib.setOutputTree(&outTree);
+      calib.init();
+      cout << i << ") Child process: My process id = " << getpid() << endl;
+      cout << "Child process: Value returned by fork() = " << pids[i] << endl;
+  
+      // only for the first child
+      if(i==0) calib.run(o2::globaltracking::CalibTOF::kLHCphase);
+      for(int sect=i; sect < 18; sect+=ninstance)
+       	calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, sect);
+      calib.fillOutput();
+      outFile.cd();
+      outTree.Write();
+      if(i==0) calib.getLHCphaseHisto()->Write();
+      calib.getChTimeSlewingHistoAll()->Write();
+      outFile.Close();
+      exit(0);
+    }
+  }
+  
+  int status;
+  pid_t pid;
+
+  while (n > 0) {
+    pid = wait(&status);
+    printf("Child with PID %ld exited with status 0x%x.\n", (long)pid, status);
+    --n;  // TODO(pts): Remove pid from the pids array.
   }
 
-  for(int i=1; i < ninstance; i++)
-     calib[0] += calib[i];
-
-  calib[0].fillOutput();
+  printf("merge outputs\n");
 
 
-  outFile.cd();
-  outTree.Write();
-  calib[0].getLHCphaseHisto()->Write();
-  calib[0].getChTimeSlewingHistoAll()->Write();
-  outFile.Close();
 
 }

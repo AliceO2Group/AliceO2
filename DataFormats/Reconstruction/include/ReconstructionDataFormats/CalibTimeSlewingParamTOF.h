@@ -20,12 +20,12 @@ namespace o2
 {
 namespace dataformats
 {
-class CalibTimeSlewingParamTOF
+  class CalibTimeSlewingParamTOF
 {
  public:
-  static const int NCHANNELS=157248;
-  static const int NSECTORS=18;
-  static const int NCHANNELXSECTORSECTOR=NCHANNELS/NSECTORS;
+  static const int NCHANNELS=157248; //!
+  static const int NSECTORS=18;//!
+  static const int NCHANNELXSECTOR=NCHANNELS/NSECTORS; //!
 
   CalibTimeSlewingParamTOF();
 
@@ -45,8 +45,8 @@ class CalibTimeSlewingParamTOF
 
  private:
   // TOF channel calibrations
-  int mChannelStart[NSECTORS][NCHANNELXSECTORSECTOR];              ///< array with the index of the first element of a channel in the time slewing vector (per sector)
-  std::vector<std::pair<float,float>> *mTimeSlewing[18];           ///< pointers to the sector vectors
+  int mChannelStart[NSECTORS][NCHANNELXSECTOR];              ///< array with the index of the first element of a channel in the time slewing vector (per sector)
+  std::vector<std::pair<float,float>> *mTimeSlewing[18];           //! pointers to the sector vectors
 
   std::vector<std::pair<float,float>> mTimeSlewingSec00;           ///< timeslweing correction <tot,time> sector 0
   std::vector<std::pair<float,float>> mTimeSlewingSec01;           ///< timeslweing correction <tot,time> sector 1
@@ -67,7 +67,7 @@ class CalibTimeSlewingParamTOF
   std::vector<std::pair<float,float>> mTimeSlewingSec16;           ///< timeslweing correction <tot,time> sector 16
   std::vector<std::pair<float,float>> mTimeSlewingSec17;           ///< timeslweing correction <tot,time> sector 17
 
-  //ClassDefNV(CalibTimeSlewingParamTOF, 1);
+  //  ClassDefNV(CalibTimeSlewingParamTOF, 2); // class for TOF time slewing params
 };
 }
 }
