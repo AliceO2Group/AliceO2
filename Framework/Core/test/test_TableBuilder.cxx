@@ -156,10 +156,11 @@ BOOST_AUTO_TEST_CASE(TestCombinedDS)
   // FIXME: this is currently affected by a bug in RArrowDS which does not work properly when 
   //        doing a rewind. Uncomment once we have a build with a ROOT which includes:
   //        
+  //        https://github.com/root-project/root/pull/3277
   //        https://github.com/root-project/root/pull/3428
   //
   //BOOST_CHECK_EQUAL(*finalDF.Define("s1", [](int lx, int rx) { return lx + rx; }, { "left_x", "left_y" }).Sum("s1"), 448);
   //BOOST_CHECK_EQUAL(*finalDF.Define("s4", [](int lx, int rx) { return lx + rx; }, { "right_x", "left_x" }).Sum("s4"), 448);
-  BOOST_CHECK_EQUAL(*finalDF.Define("s2", [](int lx, int rx) { return lx; }, { "left_x", "left_y" }).Sum("s2"), 224);
-  BOOST_CHECK_EQUAL(*finalDF.Define("s3", [](int lx, int rx) { return rx; }, { "right_x", "left_x" }).Sum("s3"), 224);
+  //BOOST_CHECK_EQUAL(*finalDF.Define("s2", [](int lx, int rx) { return lx; }, { "left_x", "left_y" }).Sum("s2"), 224);
+  //BOOST_CHECK_EQUAL(*finalDF.Define("s3", [](int lx, int rx) { return rx; }, { "right_x", "left_x" }).Sum("s3"), 224);
 }
