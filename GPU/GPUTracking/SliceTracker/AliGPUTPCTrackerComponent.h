@@ -21,6 +21,7 @@
 class AliGPUTPCTrackerFramework;
 class AliGPUTPCClusterData;
 class AliGPUReconstruction;
+class AliGPUChainTracking;
 
 /**
  * @class AliGPUTPCTrackerComponent
@@ -116,6 +117,7 @@ class AliGPUTPCTrackerComponent : public AliHLTProcessor
 	int fAsync;                       //Run tracking in async thread to catch GPU hangs....
     float fSearchWindowDZDR;        //See TPCCAParam
     AliGPUReconstruction* fRec;     //AliGPUReconstruction
+    AliGPUChainTracking* fChain;
 
     /** set configuration parameters **/
     void SetDefaultConfiguration();

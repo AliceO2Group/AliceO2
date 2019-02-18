@@ -9,7 +9,6 @@ typedef int cudaError_t
 #elif defined(_WIN32)
 #include "../utils/pthread_mutex_win32_wrapper.h"
 #else
-#include <pthread.h>
 #include <errno.h>
 #include <unistd.h>
 #endif
@@ -29,90 +28,47 @@ AliGPUReconstructionDeviceBase::~AliGPUReconstructionDeviceBase()
 	// needed for build with AliRoot
 }
 
-void* AliGPUReconstructionDeviceBase::helperWrapper(void* arg)
+void* AliGPUReconstructionDeviceBase::helperWrapper_static(void* arg)
 {
-	AliGPUReconstructionDeviceBase::helperParam* par = (AliGPUReconstructionDeviceBase::helperParam*) arg;
+	AliGPUReconstructionHelpers::helperParam* par = (AliGPUReconstructionHelpers::helperParam*) arg;
 	AliGPUReconstructionDeviceBase* cls = par->fCls;
+	return cls->helperWrapper(par);
+}
 
-	AliGPUTPCTracker* tmpTracker = new AliGPUTPCTracker;
+void* AliGPUReconstructionDeviceBase::helperWrapper(AliGPUReconstructionHelpers::helperParam* par)
+{
+	if (mDeviceProcessingSettings.debugLevel >= 2) GPUInfo("\tHelper thread %d starting", par->fNum);
 
-	if (cls->mDeviceProcessingSettings.debugLevel >= 2) GPUInfo("\tHelper thread %d starting", par->fNum);
-
-	//cpu_set_t mask;
+	//cpu_set_t mask; //TODO add option
 	//CPU_ZERO(&mask);
 	//CPU_SET(par->fNum * 2 + 2, &mask);
 	//sched_setaffinity(0, sizeof(mask), &mask);
 
-	while(pthread_mutex_lock(&((pthread_mutex_t*) par->fMutex)[0]) == 0 && par->fTerminate == false)
+	par->fMutex[0].lock();
+	while(par->fTerminate == false)
 	{
-		int mustRunSlice19 = 0;
-		for (unsigned int i = par->fNum + 1;i < NSLICES;i += cls->mDeviceProcessingSettings.nDeviceHelperThreads + 1)
+		for (int i = par->fNum + 1;i < par->fCount;i += mDeviceProcessingSettings.nDeviceHelperThreads + 1)
 		{
-			//if (cls->mDeviceProcessingSettings.debugLevel >= 3) GPUInfo("\tHelper Thread %d Running, Slice %d+%d, Phase %d", par->fNum, i, par->fPhase);
-			if (par->fPhase)
-			{
-				if (cls->param().rec.GlobalTracking)
-				{
-					int realSlice = i + 1;
-					if (realSlice % (NSLICES / 2) < 1) realSlice -= NSLICES / 2;
-
-					if (realSlice % (NSLICES / 2) != 1)
-					{
-						cls->GlobalTracking(realSlice, par->fNum + 1);
-					}
-
-					if (realSlice == 19)
-					{
-						mustRunSlice19 = 1;
-					}
-					else
-					{
-						while (cls->fSliceLeftGlobalReady[realSlice] == 0 || cls->fSliceRightGlobalReady[realSlice] == 0)
-						{
-							if (par->fReset) goto ResetHelperThread;
-						}
-						cls->WriteOutput(realSlice, par->fNum + 1);
-					}
-				}
-				else
-				{
-					while (cls->fSliceOutputReady < (int) i)
-					{
-						if (par->fReset) goto ResetHelperThread;
-					}
-					cls->WriteOutput(i, par->fNum + 1);
-				}
-			}
-			else
-			{
-				if (cls->ReadEvent(i, par->fNum + 1)) par->fError = 1;
-				par->fDone = i + 1;
-			}
-			//if (cls->mDeviceProcessingSettings.debugLevel >= 3) GPUInfo("\tHelper Thread %d Finished, Slice %d+%d, Phase %d", par->fNum, i, par->fPhase);
+			//if (mDeviceProcessingSettings.debugLevel >= 3) GPUInfo("\tHelper Thread %d Running, Slice %d+%d, Phase %d", par->fNum, i, par->fPhase);
+			if ((par->fFunctionCls->*par->fFunction)(i, par->fNum + 1, par)) par->fError = 1;
+			if (par->fReset) break;
+			par->fDone = i + 1;
+			//if (mDeviceProcessingSettings.debugLevel >= 3) GPUInfo("\tHelper Thread %d Finished, Slice %d+%d, Phase %d", par->fNum, i, par->fPhase);
 		}
-		if (mustRunSlice19)
-		{
-			while (cls->fSliceLeftGlobalReady[19] == 0 || cls->fSliceRightGlobalReady[19] == 0)
-			{
-				if (par->fReset) goto ResetHelperThread;
-			}
-			cls->WriteOutput(19, par->fNum + 1);
-		}
-ResetHelperThread:
-		cls->ResetThisHelperThread(par);
+		ResetThisHelperThread(par);
+		par->fMutex[0].lock();
 	}
-	if (cls->mDeviceProcessingSettings.debugLevel >= 2) GPUInfo("\tHelper thread %d terminating", par->fNum);
-	delete tmpTracker;
-	pthread_mutex_unlock(&((pthread_mutex_t*) par->fMutex)[1]);
+	if (mDeviceProcessingSettings.debugLevel >= 2) GPUInfo("\tHelper thread %d terminating", par->fNum);
+	par->fMutex[1].unlock();
 	pthread_exit(nullptr);
 	return(nullptr);
 }
 
-void AliGPUReconstructionDeviceBase::ResetThisHelperThread(AliGPUReconstructionDeviceBase::helperParam* par)
+void AliGPUReconstructionDeviceBase::ResetThisHelperThread(AliGPUReconstructionHelpers::helperParam* par)
 {
 	if (par->fReset) GPUImportant("GPU Helper Thread %d reseting", par->fNum);
 	par->fReset = false;
-	pthread_mutex_unlock(&((pthread_mutex_t*) par->fMutex)[1]);
+	par->fMutex[1].unlock();
 }
 
 void AliGPUReconstructionDeviceBase::ReleaseGlobalLock(void* sem)
@@ -148,7 +104,7 @@ int AliGPUReconstructionDeviceBase::StartHelperThreads()
 	int nThreads = mDeviceProcessingSettings.nDeviceHelperThreads;
 	if (nThreads)
 	{
-		fHelperParams = new helperParam[nThreads];
+		fHelperParams = new AliGPUReconstructionHelpers::helperParam[nThreads];
 		if (fHelperParams == nullptr)
 		{
 			GPUError("Memory allocation error");
@@ -161,27 +117,12 @@ int AliGPUReconstructionDeviceBase::StartHelperThreads()
 			fHelperParams[i].fTerminate = false;
 			fHelperParams[i].fReset = false;
 			fHelperParams[i].fNum = i;
-			fHelperParams[i].fMutex = malloc(2 * sizeof(pthread_mutex_t));
-			if (fHelperParams[i].fMutex == nullptr)
-			{
-				GPUError("Memory allocation error");
-				ExitDevice();
-				return(1);
-			}
 			for (int j = 0;j < 2;j++)
 			{
-				if (pthread_mutex_init(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j], nullptr))
-				{
-					GPUError("Error creating pthread mutex");
-					ExitDevice();
-					return(1);
-				}
-
-				pthread_mutex_lock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j]);
+				fHelperParams[i].fMutex[j].lock();
 			}
-			fHelperParams[i].fThreadId = (void*) malloc(sizeof(pthread_t));
 
-			if (pthread_create((pthread_t*) fHelperParams[i].fThreadId, nullptr, helperWrapper, &fHelperParams[i]))
+			if (pthread_create(&fHelperParams[i].fThreadId, nullptr, helperWrapper_static, &fHelperParams[i]))
 			{
 				GPUError("Error starting slave thread");
 				ExitDevice();
@@ -200,32 +141,13 @@ int AliGPUReconstructionDeviceBase::StopHelperThreads()
 		for (int i = 0;i < fNSlaveThreads;i++)
 		{
 			fHelperParams[i].fTerminate = true;
-			if (pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[0]))
-			{
-				GPUError("Error unlocking mutex to terminate slave");
-				return(1);
-			}
-			if (pthread_mutex_lock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[1]))
-			{
-				GPUError("Error locking mutex");
-				return(1);
-			}
-			if (pthread_join( *((pthread_t*) fHelperParams[i].fThreadId), nullptr))
+			fHelperParams[i].fMutex[0].unlock();
+			fHelperParams[i].fMutex[1].lock();
+			if (pthread_join(fHelperParams[i].fThreadId, nullptr))
 			{
 				GPUError("Error waiting for thread to terminate");
 				return(1);
 			}
-			free(fHelperParams[i].fThreadId);
-			for (int j = 0;j < 2;j++)
-			{
-				if (pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j]))
-				{
-					GPUError("Error unlocking mutex before destroying");
-					return(1);
-				}
-				pthread_mutex_destroy(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j]);
-			}
-			free(fHelperParams[i].fMutex);
 		}
 		delete[] fHelperParams;
 	}
@@ -241,13 +163,15 @@ void AliGPUReconstructionDeviceBase::WaitForHelperThreads()
 	}
 }
 
-void AliGPUReconstructionDeviceBase::RunHelperThreads(int phase)
+void AliGPUReconstructionDeviceBase::RunHelperThreads(int (AliGPUReconstructionHelpers::helperDelegateBase::* function)(int i, int t, AliGPUReconstructionHelpers::helperParam* p), AliGPUReconstructionHelpers::helperDelegateBase* functionCls, int count)
 {
 	for (int i = 0;i < mDeviceProcessingSettings.nDeviceHelperThreads;i++)
 	{
 		fHelperParams[i].fDone = 0;
 		fHelperParams[i].fError = 0;
-		fHelperParams[i].fPhase = phase;
+		fHelperParams[i].fFunction = function;
+		fHelperParams[i].fFunctionCls = functionCls;
+		fHelperParams[i].fCount = count;
 		pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[0]);
 	}
 }
@@ -264,9 +188,9 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 		GPUError("Individual memory allocation strategy unsupported for device\n");
 		return(1);
 	}
-	if (mDeviceProcessingSettings.nStreams > GPUCA_GPUCA_MAX_STREAMS)
+	if (mDeviceProcessingSettings.nStreams > GPUCA_MAX_STREAMS)
 	{
-		GPUError("Too many straems requested %d > %d\n", mDeviceProcessingSettings.nStreams, GPUCA_GPUCA_MAX_STREAMS);
+		GPUError("Too many straems requested %d > %d\n", mDeviceProcessingSettings.nStreams, GPUCA_MAX_STREAMS);
 		return(1);
 	}
 	mThreadId = GetThread();
@@ -306,7 +230,7 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 	}
 #endif
 
-	mDeviceMemorySize = GPUCA_GPUCA_MEMORY_SIZE;
+	mDeviceMemorySize = GPUCA_MEMORY_SIZE;
 	mHostMemorySize = GPUCA_HOST_MEMORY_SIZE;
 	int retVal = InitDevice_Runtime();
 	if (retVal)
@@ -322,18 +246,9 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 	ClearAllocatedMemory();
 
 	mProcShadow.InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_SLAVE);
-	mProcDevice.InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE, &mProcShadow);
-	mProcShadow.mMemoryResWorkers = RegisterMemoryAllocation(&mProcShadow, &AliGPUProcessorWorkers::SetPointersDeviceProcessor, AliGPUMemoryResource::MEMORY_PERMANENT, "Workers");
-	mProcShadow.mMemoryResFlat = RegisterMemoryAllocation(&mProcShadow, &AliGPUProcessorWorkers::SetPointersFlatObjects, AliGPUMemoryResource::MEMORY_PERMANENT, "Workers");
+	mProcShadow.mMemoryResWorkers = RegisterMemoryAllocation(&mProcShadow, &AliGPUProcessorWorkers::SetPointersDeviceProcessor, AliGPUMemoryResource::MEMORY_PERMANENT | AliGPUMemoryResource::MEMORY_HOST, "Workers");
 	AllocateRegisteredMemory(mProcShadow.mMemoryResWorkers);
 	memcpy((void*) &mWorkersShadow->trdTracker, (const void*) &workers()->trdTracker, sizeof(workers()->trdTracker));
-	AllocateRegisteredMemory(mProcShadow.mMemoryResFlat);
-	if (PrepareFlatObjects())
-	{
-		GPUError("Error preparing flat objects on GPU");
-		ExitDevice_Runtime();
-		return(1);
-	}
 	if (mRecoStepsGPU & RecoStep::TPCSliceTracking)
 	{
 		for (unsigned int i = 0;i < NSLICES;i++)
@@ -361,73 +276,16 @@ void* AliGPUReconstructionDeviceBase::AliGPUProcessorWorkers::SetPointersDeviceP
 	return mem;
 }
 
-void* AliGPUReconstructionDeviceBase::AliGPUProcessorWorkers::SetPointersFlatObjects(void* mem)
-{
-	if (mRec->GetTPCTransform())
-	{
-		computePointerWithAlignment(mem, fTpcTransform, 1);
-		computePointerWithAlignment(mem, fTpcTransformBuffer, mRec->GetTPCTransform()->getFlatBufferSize());
-	}
-	if (mRec->GetTRDGeometry())
-	{
-		computePointerWithAlignment(mem, fTrdGeometry, 1);
-	}
-	return mem;
-}
-
-int AliGPUReconstructionDeviceBase::PrepareFlatObjects()
-{
-	if (mTPCFastTransform)
-	{
-		memcpy((void*) mProcShadow.fTpcTransform, (const void*) mTPCFastTransform.get(), sizeof(*mTPCFastTransform));
-		memcpy((void*) mProcShadow.fTpcTransformBuffer, (const void*) mTPCFastTransform->getFlatBufferPtr(), mTPCFastTransform->getFlatBufferSize());
-		mProcShadow.fTpcTransform->clearInternalBufferPtr();
-		mProcShadow.fTpcTransform->setFutureBufferAddress(mProcDevice.fTpcTransformBuffer);
-	}
-#ifndef GPUCA_ALIROOT_LIB
-	if (mTRDGeometry)
-	{
-		memcpy((void*) mProcShadow.fTrdGeometry, (const void*) mTRDGeometry.get(), sizeof(*mTRDGeometry));
-		mProcShadow.fTrdGeometry->clearInternalBufferPtr();
-	}
-#endif
-	TransferMemoryResourceLinkToGPU(mProcShadow.mMemoryResFlat);
-	return 0;
-}
-
 int AliGPUReconstructionDeviceBase::ExitDevice()
 {
 	if (StopHelperThreads()) return(1);
 
 	int retVal = ExitDevice_Runtime();
-	mWorkersShadow = mWorkersDevice = nullptr;
+	mWorkersShadow = nullptr;
 	mHostMemoryPool = mHostMemoryBase = mDeviceMemoryPool = mDeviceMemoryBase = mHostMemoryPermanent = mDeviceMemoryPermanent = nullptr;
 	mHostMemorySize = mDeviceMemorySize = 0;
 	
 	return retVal;
-}
-
-int AliGPUReconstructionDeviceBase::DoTRDGPUTracking()
-{
-#ifdef GPUCA_BUILD_TRD
-	ActivateThreadContext();
-	SetupGPUProcessor(&workers()->trdTracker, false);
-	mWorkersShadow->trdTracker.SetGeometry((AliGPUTRDGeometry*) mProcDevice.fTrdGeometry);
-
-	WriteToConstantMemory((char*) &mDeviceConstantMem->trdTracker - (char*) mDeviceConstantMem, &mWorkersShadow->trdTracker, sizeof(mWorkersShadow->trdTracker), 0);
-	TransferMemoryResourcesToGPU(&workers()->trdTracker);
-
-	runKernel<AliGPUTRDTrackerGPU>({fBlockCount, fTRDThreadCount, 0}, nullptr, krnlRunRangeNone);
-	SynchronizeGPU();
-
-	TransferMemoryResourcesToHost(&workers()->trdTracker);
-	SynchronizeGPU();
-
-	if (mDeviceProcessingSettings.debugLevel >= 2) GPUInfo("GPU TRD tracker Finished");
-
-	ReleaseThreadContext();
-#endif
-	return(0);
 }
 
 int AliGPUReconstructionDeviceBase::GetMaxThreads()

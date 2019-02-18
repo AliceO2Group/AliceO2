@@ -32,9 +32,9 @@ public:
 		int fItr0;          // index of the first track in the block
 		int fNThreadsTotal; // total n threads
 		int fNTracklets;    // n of tracklets
-#if GPUCA_GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
-		AliGPUTPCHitId fHits[GPUCA_GPUCA_THREAD_COUNT_SELECTOR][GPUCA_GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE];
-#endif //GPUCA_GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
+#if GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
+		AliGPUTPCHitId fHits[GPUCA_THREAD_COUNT_SELECTOR][GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE];
+#endif //GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
 	};
 
 	typedef GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) workerType;

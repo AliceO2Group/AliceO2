@@ -117,7 +117,7 @@ struct AliGPUReconstructionOCLInternals
 	cl_device_id device;
 	cl_device_id* devices;
 	cl_context context;
-	cl_command_queue command_queue[GPUCA_GPUCA_MAX_STREAMS];
+	cl_command_queue command_queue[GPUCA_MAX_STREAMS];
 	cl_mem mem_gpu;
 	cl_mem mem_constant;
 	cl_mem mem_host;

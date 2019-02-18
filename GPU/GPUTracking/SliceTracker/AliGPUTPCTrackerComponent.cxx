@@ -26,6 +26,7 @@
 
 #include "AliGPUTPCTrackerComponent.h"
 #include "AliGPUReconstruction.h"
+#include "AliGPUChainTracking.h"
 #include "AliGPUParam.h"
 
 #include "AliHLTTPCRawCluster.h"
@@ -72,6 +73,7 @@ ClassImp( AliGPUTPCTrackerComponent )
   fAsync(0),
   fSearchWindowDZDR(0.),
   fRec(0),
+  fChain(0),
   fAsyncProcessor()
 {
   // see header file for class documentation
@@ -102,6 +104,7 @@ AliGPUTPCTrackerComponent::AliGPUTPCTrackerComponent( const AliGPUTPCTrackerComp
   fAsync(0),
   fSearchWindowDZDR(0.),
   fRec(0),
+  fChain(0),
   fAsyncProcessor()
 {
   // see header file for class documentation
@@ -402,7 +405,7 @@ void AliGPUTPCTrackerComponent::ConfigureSlices()
   rec.NonConsecutiveIDs = true;
   
   fRec->SetSettings(&ev, &rec, &devProc);
-  fRec->LoadClusterErrors();
+  fChain->LoadClusterErrors();
   fRec->Init();
 }
 
@@ -411,6 +414,7 @@ void* AliGPUTPCTrackerComponent::TrackerInit(void* par)
     //Create tracker instance and set parameters
     fRec = AliGPUReconstruction::CreateInstance(fAllowGPU ? fGPUType.Data() : "CPU", true);
     if (fRec == NULL) return((void*) -1);
+    fChain = fRec->AddChain<AliGPUChainTracking>();
 
     ConfigureSlices();
     return(NULL);
@@ -657,11 +661,11 @@ void* AliGPUTPCTrackerComponent::TrackerDoEvent(void* par)
     return(0);
   }
   
-  fRec->ClearIOPointers();
+  fChain->ClearIOPointers();
   for (int i = 0;i < fgkNSlices;i++)
   {
-      fRec->mIOPtrs.clusterData[i] = clusterData[i];
-      fRec->mIOPtrs.nClusterData[i] = nClusters[i];
+      fChain->mIOPtrs.clusterData[i] = clusterData[i];
+      fChain->mIOPtrs.nClusterData[i] = nClusters[i];
   }
   
   //Prepare Output
@@ -669,12 +673,12 @@ void* AliGPUTPCTrackerComponent::TrackerDoEvent(void* par)
 
   // reconstruct the event
   fBenchmark.Start(1);
-  fRec->RunTPCTrackingSlices();
+  fChain->RunTPCTrackingSlices();
   fBenchmark.Stop(1);
   HLTInfo("Processed %d clusters", nClustersTotal);
   for (int i = 0;i < fgkNSlices;i++)
   {
-      fRec->GetTPCSliceTrackers()[i].Clear();
+      fChain->GetTPCSliceTrackers()[i].Clear();
   }
 
   int ret = 0;
@@ -684,13 +688,13 @@ void* AliGPUTPCTrackerComponent::TrackerDoEvent(void* par)
     HLTWarning( "Output buffer size exceeded buffer size %d, tracks are not stored", maxBufferSize );
     ret = -ENOSPC;
   } else {
-    for (int slice = 0; slice < fgkNSlices && fRec->SliceOutput()[slice]; slice++){
-      HLTDebug( "%d tracks found for slice %d", fRec->SliceOutput()[slice]->NTracks(), slice );
-      unsigned int blockSize = fRec->SliceOutput()[slice]->Size();
+    for (int slice = 0; slice < fgkNSlices && fChain->SliceOutput()[slice]; slice++){
+      HLTDebug( "%d tracks found for slice %d", fChain->SliceOutput()[slice]->NTracks(), slice );
+      unsigned int blockSize = fChain->SliceOutput()[slice]->Size();
       if (blockSize > 0){
         AliHLTComponentBlockData bd;
         FillBlockData( bd );
-        bd.fOffset = ((char*) fRec->SliceOutput()[slice] - (char*) outputPtr);
+        bd.fOffset = ((char*) fChain->SliceOutput()[slice] - (char*) outputPtr);
         bd.fSize = blockSize;
         bd.fSpecification = AliHLTTPCDefinitions::EncodeDataSpecification( slice, slice, 0, fgkNPatches );
         bd.fDataType = AliGPUTPCDefinitions::fgkTrackletsDataType;

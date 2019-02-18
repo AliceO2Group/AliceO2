@@ -38,7 +38,7 @@ template <> GPUd() void AliGPUTPCTrackletSelector::Thread<0> (int nBlocks, int n
     GPUbarrier();
 
 	int nHits, nFirstTrackHit;
-	AliGPUTPCHitId trackHits[GPUCA_ROW_COUNT - GPUCA_GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE];
+	AliGPUTPCHitId trackHits[GPUCA_ROW_COUNT - GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE];
 
 	for ( int itr = s.fItr0 + iThread; itr < s.fNTracklets; itr += s.fNThreadsTotal ) {
 
@@ -80,12 +80,12 @@ template <> GPUd() void AliGPUTPCTrackletSelector::Thread<0> (int nBlocks, int n
 				if ( own || sharedOK )
                 {//SG!!!
 					gap = 0;
-#if GPUCA_GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
-					if (nHits < GPUCA_GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE)
+#if GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
+					if (nHits < GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE)
 						s.fHits[iThread][nHits].Set( irow, ih );
 					else
-#endif //GPUCA_GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
-						trackHits[nHits - GPUCA_GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE].Set( irow, ih );
+#endif //GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
+						trackHits[nHits - GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE].Set( irow, ih );
 					nHits++;
 					if ( !own ) nShared++;
 				}
@@ -97,12 +97,12 @@ template <> GPUd() void AliGPUTPCTrackletSelector::Thread<0> (int nBlocks, int n
                 {
 					int itrout = CAMath::AtomicAdd( tracker.NTracks(), 1 );
 #ifdef GPUCA_GPUCODE
-					if (itrout >= GPUCA_GPUCA_MAX_TRACKS)
+					if (itrout >= GPUCA_MAX_TRACKS)
 #else
 					if (itrout >= tracker.CommonMemory()->fNTracklets * 2 + 50)
 #endif //GPUCA_GPUCODE
 					{
-						tracker.GPUParameters()->fGPUError = GPUCA_GPUCA_ERROR_TRACK_OVERFLOW;
+						tracker.GPUParameters()->fGPUError = GPUCA_ERROR_TRACK_OVERFLOW;
 						CAMath::AtomicExch( tracker.NTracks(), 0 );
 						return;
 					}
@@ -114,15 +114,15 @@ template <> GPUd() void AliGPUTPCTrackletSelector::Thread<0> (int nBlocks, int n
 					tracker.Tracks()[itrout].SetNHits(nHits);
 					for ( int jh = 0; jh < nHits; jh++ )
                     {
-#if GPUCA_GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
-						if (jh < GPUCA_GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE)
+#if GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
+						if (jh < GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE)
 						{
 							tracker.TrackHits()[nFirstTrackHit + jh] = s.fHits[iThread][jh];
 						}
 						else
-#endif //GPUCA_GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
+#endif //GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
 						{
-							tracker.TrackHits()[nFirstTrackHit + jh] = trackHits[jh - GPUCA_GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE];
+							tracker.TrackHits()[nFirstTrackHit + jh] = trackHits[jh - GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE];
 						}
 					}
 				}

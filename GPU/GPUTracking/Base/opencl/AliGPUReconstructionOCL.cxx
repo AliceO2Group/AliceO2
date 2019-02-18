@@ -37,8 +37,6 @@ AliGPUReconstructionOCLBackend::AliGPUReconstructionOCLBackend(const AliGPUSetti
 {
 	mInternals = new AliGPUReconstructionOCLInternals;
 	mProcessingSettings.deviceType = OCL;
-	mITSTrackerTraits.reset(new o2::ITS::TrackerTraitsCPU);
-
 	mHostMemoryBase = nullptr;
 	mInternals->devices = nullptr;
 }
@@ -384,6 +382,11 @@ int AliGPUReconstructionOCLBackend::ExitDevice_Runtime()
 
 void AliGPUReconstructionOCLBackend::TransferMemoryInternal(AliGPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, void* src, void* dst)
 {
+	if (!(res->Type() & AliGPUMemoryResource::MEMORY_GPU))
+	{
+		if (mDeviceProcessingSettings.debugLevel >= 2) printf("Skipped transfer of non-GPU memory resource: %s\n", res->Name());
+		return;
+	}
 	if (evList == nullptr) nEvents = 0;
 	if (mDeviceProcessingSettings.debugLevel >= 3) stream = -1;
 	if (mDeviceProcessingSettings.debugLevel >= 3) printf(toGPU ? "Copying to GPU: %s\n" : "Copying to Host: %s\n", res->Name());
@@ -516,12 +519,12 @@ template <class T, int I> int AliGPUReconstructionOCLBackend::AddKernel(bool mul
 
 void AliGPUReconstructionOCLBackend::SetThreadCounts()
 {
-	fThreadCount = GPUCA_GPUCA_THREAD_COUNT;
+	fThreadCount = GPUCA_THREAD_COUNT;
 	fBlockCount = mCoreCount;
-	fConstructorBlockCount = fBlockCount * GPUCA_GPUCA_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER;
-	fSelectorBlockCount = fBlockCount * GPUCA_GPUCA_BLOCK_COUNT_SELECTOR_MULTIPLIER;
-	fConstructorThreadCount = GPUCA_GPUCA_THREAD_COUNT_CONSTRUCTOR;
-	fSelectorThreadCount = GPUCA_GPUCA_THREAD_COUNT_SELECTOR;
-	fFinderThreadCount = GPUCA_GPUCA_THREAD_COUNT_FINDER;
-	fTRDThreadCount = GPUCA_GPUCA_THREAD_COUNT_TRD;
+	fConstructorBlockCount = fBlockCount * GPUCA_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER;
+	fSelectorBlockCount = fBlockCount * GPUCA_BLOCK_COUNT_SELECTOR_MULTIPLIER;
+	fConstructorThreadCount = GPUCA_THREAD_COUNT_CONSTRUCTOR;
+	fSelectorThreadCount = GPUCA_THREAD_COUNT_SELECTOR;
+	fFinderThreadCount = GPUCA_THREAD_COUNT_FINDER;
+	fTRDThreadCount = GPUCA_THREAD_COUNT_TRD;
 }

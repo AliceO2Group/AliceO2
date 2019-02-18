@@ -2,6 +2,7 @@
 
 #include "AliGeomManager.h"
 #include "AliGPUReconstruction.h"
+#include "AliGPUChainTracking.h"
 #include "AliHLTTPCDefinitions.h"
 #include "AliGPUTPCMCInfo.h"
 #include "AliGPUTPCGMMergedTrackHit.h"
@@ -38,11 +39,12 @@
 #include "TParticlePDG.h"
 #include "TPDGCode.h"
 
-AliHLTGPUDumpComponent::AliHLTGPUDumpComponent() : fSolenoidBz(0.f), fRec(NULL),
+AliHLTGPUDumpComponent::AliHLTGPUDumpComponent() : fSolenoidBz(0.f), fRec(nullptr), fChain(nullptr),
 	fFastTransformManager( new ali_tpc_common::tpc_fast_transformation::TPCFastTransformManager ),
-	fCalib(NULL), fRecParam(NULL), fOfflineRecoParam(), fOrigTransform(nullptr), fIsMC(false)
+	fCalib(nullptr), fRecParam(nullptr), fOfflineRecoParam(), fOrigTransform(nullptr), fIsMC(false)
 {
 	fRec = AliGPUReconstruction::CreateInstance();
+	fChain = fRec->AddChain<AliGPUChainTracking>();
 }
 
 AliHLTGPUDumpComponent::~AliHLTGPUDumpComponent()
@@ -263,14 +265,14 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 	}
 
 	if (nClustersTotal < 100) return (0);
-	fRec->ClearIOPointers();
+	fChain->ClearIOPointers();
 
 	for (int i = 0;i < NSLICES;i++)
 	{
-		fRec->mIOPtrs.nClusterData[i] = clusterData[i].size();
-		fRec->mIOPtrs.clusterData[i] = clusterData[i].data();
-		fRec->mIOPtrs.nRawClusters[i] = rawClusters[i].size();
-		fRec->mIOPtrs.rawClusters[i] = rawClusters[i].data();
+		fChain->mIOPtrs.nClusterData[i] = clusterData[i].size();
+		fChain->mIOPtrs.clusterData[i] = clusterData[i].data();
+		fChain->mIOPtrs.nRawClusters[i] = rawClusters[i].size();
+		fChain->mIOPtrs.rawClusters[i] = rawClusters[i].data();
 		HLTDebug("Slice %d - Clusters %d", i, (int) clusterData[i].size());
 	}
 
@@ -303,8 +305,8 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 			return(-EINVAL);
 		}
 		
-		fRec->mIOPtrs.nMCLabelsTPC = labels.size();
-		fRec->mIOPtrs.mcLabelsTPC = labels.data();
+		fChain->mIOPtrs.nMCLabelsTPC = labels.size();
+		fChain->mIOPtrs.mcLabelsTPC = labels.data();
 		HLTDebug("Number of mc labels %d", (int) labels.size());
 		
 		//Write MC tracks
@@ -417,23 +419,23 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 			return(-EINVAL);
 		}
 		
-		fRec->mIOPtrs.nMCInfosTPC = mcInfo.size();
-		fRec->mIOPtrs.mcInfosTPC = mcInfo.data();
+		fChain->mIOPtrs.nMCInfosTPC = mcInfo.size();
+		fChain->mIOPtrs.mcInfosTPC = mcInfo.data();
 		HLTDebug("Number of MC infos: %d", (int) mcInfo.size());
 	}
 	unsigned int clusterNum = 0;
 	for (unsigned int slice = 0;slice < NSLICES;slice++)
 	{
-		for (int k = 0;k < fRec->mIOPtrs.nClusterData[slice];k++)
+		for (int k = 0;k < fChain->mIOPtrs.nClusterData[slice];k++)
 		{
 			clusterData[slice][k].fId = clusterNum++;
 		}
 	}
 	
-	fRec->mIOPtrs.nTRDTracklets = nTRDTrackletsTotal;
-	fRec->mIOPtrs.trdTracklets = TRDtracklets;
-    fRec->mIOPtrs.nTRDTrackletsMC = nTRDTrackletsMCTotal;
-	fRec->mIOPtrs.trdTrackletsMC = TRDtrackletsMC;
+	fChain->mIOPtrs.nTRDTracklets = nTRDTrackletsTotal;
+	fChain->mIOPtrs.trdTracklets = TRDtracklets;
+    fChain->mIOPtrs.nTRDTrackletsMC = nTRDTrackletsMCTotal;
+	fChain->mIOPtrs.trdTrackletsMC = TRDtrackletsMC;
 	HLTDebug("Number of TRD tracklets: %d", (int) nTRDTrackletsTotal);
 	
 	static int nEvent = 0;
@@ -449,13 +451,13 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 		{
 			HLTFatal("Initialisation of Fast Transformation failed with error %s", fFastTransformManager->getLastError());
 		}
-		fRec->SetTPCFastTransform(std::move(fFastTransformIRS));
+		fChain->SetTPCFastTransform(std::move(fFastTransformIRS));
 		
 		fRec->SetSettings(fSolenoidBz);
 		fRec->DumpSettings();
 	}
 
 	sprintf(filename, GPUCA_EVDUMP_FILE ".%d.dump", nEvent++);
-	fRec->DumpData(filename);
+	fChain->DumpData(filename);
 	return (0);
 }

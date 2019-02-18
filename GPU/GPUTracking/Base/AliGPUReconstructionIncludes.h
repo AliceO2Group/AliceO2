@@ -26,18 +26,7 @@
 #include "AliHLTSystem.h"
 #endif
 
-#include "TPCFastTransform.h"
-
-#ifdef HAVE_O2HEADERS
-#include "ITStracking/TrackerTraitsCPU.h"
-#include "ITStracking/VertexerTraits.h"
-#include "TRDBase/TRDGeometryFlat.h"
-#else
-namespace o2 { namespace ITS { class TrackerTraits {}; class TrackerTraitsCPU : public TrackerTraits {}; class VertexerTraits {}; }}
-namespace o2 { namespace trd { class TRDGeometryFlat {public: void clearInternalBufferPtr() {}}; }}
-#endif
-using namespace o2::ITS;
-using namespace o2::trd;
+#include "AliGPUReconstructionIncludesITS.h"
 
 #define RANDOM_ERROR
 //#define RANDOM_ERROR || rand() % 500 == 1

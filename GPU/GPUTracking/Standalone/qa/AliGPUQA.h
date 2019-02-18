@@ -2,14 +2,14 @@
 #define ALIGPUQA
 
 #include "AliGPUQAConfig.h"
-class AliGPUReconstruction;
+class AliGPUChainTracking;
 
 #if !defined(BUILD_QA) || defined(GPUCA_GPUCODE)
 
 class AliGPUQA
 {
 public:
-	AliGPUQA(AliGPUReconstruction* rec) {}
+	AliGPUQA(AliGPUChainTracking* rec) {}
 	~AliGPUQA() = default;
 	
 	typedef structConfigQA configQA;
@@ -45,7 +45,7 @@ struct AliHLTTPCClusterMCWeight;
 class AliGPUQA
 {
 public:
-	AliGPUQA(AliGPUReconstruction* rec);
+	AliGPUQA(AliGPUChainTracking* rec);
 	~AliGPUQA() = default;
 	
 	typedef AliGPUQAConfig configQA;
@@ -81,7 +81,7 @@ private:
 	void GetName(char* fname, int k);
 	template <class T> T* GetHist(T* &ee, std::vector<TFile*>& tin, int k, int nNewInput);
 	
-	AliGPUReconstruction* mRec;
+	AliGPUChainTracking* mRec;
 	const configQA& config;
 	
 	//-------------------------: Some compile time settings....

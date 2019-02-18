@@ -25,6 +25,7 @@ class AliGPUTRDGeometry;
 class AliExternalTrackParam;
 class AliMCEvent;
 class AliGPUTPCGMMerger;
+class AliGPUChainTracking;
 
 //-------------------------------------------------------------------------
 class AliGPUTRDTracker : public AliGPUProcessor {
@@ -49,6 +50,7 @@ class AliGPUTRDTracker : public AliGPUProcessor {
   void SetNCandidates(int n);
   void PrintSettings() const;
   bool IsInitialized() const {return fIsInitialized;}
+  void SetTrackingChain(AliGPUChainTracking* c) {fChainTracking = c;}
 #endif
 
   enum EGPUTRDTracker {
@@ -178,7 +180,7 @@ class AliGPUTRDTracker : public AliGPUProcessor {
   AliMCEvent* fMCEvent;                       //! externaly supplied optional MC event
   const AliGPUTPCGMMerger *fMerger;           // supplying parameters for AliGPUTPCGMPropagator
   AliGPUTRDTrackerDebug *fDebug;              // debug output
-
+  AliGPUChainTracking* fChainTracking;        // Tracking chain with access to input data / parameters
 };
 
 #endif

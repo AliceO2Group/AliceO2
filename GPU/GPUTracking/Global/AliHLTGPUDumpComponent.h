@@ -5,6 +5,7 @@
 #include "AliHLTProcessor.h"
 
 class AliGPUReconstruction;
+class AliGPUChainTracking;
 class AliGPUTPCClusterData;
 class AliTPCcalibDB;
 class AliTPCRecoParam;
@@ -46,6 +47,7 @@ class AliHLTGPUDumpComponent : public AliHLTProcessor
 
 	float fSolenoidBz;
 	AliGPUReconstruction* fRec;
+	AliGPUChainTracking* fChain;
 	AliGPUTPCClusterData* fClusterData[NSLICES];
 	ali_tpc_common::tpc_fast_transformation::TPCFastTransformManager* fFastTransformManager;
 	AliTPCcalibDB* fCalib;

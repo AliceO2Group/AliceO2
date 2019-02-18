@@ -18,37 +18,19 @@
 
 #include "utils/bitfield.h"
 
-class AliGPUTPCSliceOutput;
-class AliGPUTPCSliceOutTrack;
-class AliGPUTPCSliceOutCluster;
-class AliGPUTPCGMMergedTrack;
-struct AliGPUTPCGMMergedTrackHit;
-class AliGPUTRDTrackletWord;
-class AliHLTTPCClusterMCLabel;
-class AliGPUTPCMCInfo;
-class AliGPUTRDTracker;
-class AliGPUTPCGPUTracker;
-struct AliGPUTPCClusterData;
-struct AliHLTTPCRawCluster;
-struct ClusterNativeAccessExt;
-struct AliGPUTRDTrackletLabels;
-class AliGPUDisplay;
-class AliGPUQA;
-class AliGPUTRDGeometry;
+class AliGPUChain;
 
 namespace o2 { namespace ITS { class TrackerTraits; class VertexerTraits; }}
-namespace o2 { namespace trd { class TRDGeometryFlat; }}
-namespace o2 { namespace TPC { struct ClusterNativeAccessFullTPC; struct ClusterNative; }}
-namespace ali_tpc_common { namespace tpc_fast_transformation { class TPCFastTransform; }}
-using TPCFastTransform = ali_tpc_common::tpc_fast_transformation::TPCFastTransform;
 
 class AliGPUReconstruction
 {
+	friend class AliGPUChain;
 protected:
 	class LibraryLoader; //These must be the first members to ensure correct destructor order!
 	std::shared_ptr<LibraryLoader> mMyLib = nullptr;
 	std::vector<AliGPUMemoryResource> mMemoryResources;
 	std::vector<std::unique_ptr<char[]>> mUnmanagedChunks;
+	std::vector<std::unique_ptr<AliGPUChain>> mChains;
 	
 public:
 	virtual ~AliGPUReconstruction();
@@ -58,7 +40,6 @@ public:
 	//General definitions
 	constexpr static unsigned int NSLICES = GPUCA_NSLICES;
 
-	//Definition of the Geometry: Are we AliRoot or O2
 	enum GeometryType : unsigned int {RESERVED_GEOMETRY = 0, ALIROOT = 1, O2 = 2};
 	static constexpr const char* const GEOMETRY_TYPE_NAMES[] = {"INVALID", "ALIROOT", "O2"};
 #ifdef GPUCA_TPC_GEOMETRY_O2
@@ -70,8 +51,11 @@ public:
 	enum DeviceType : unsigned int {INVALID_DEVICE = 0, CPU = 1, CUDA = 2, HIP = 3, OCL = 4};
 	static constexpr const char* const DEVICE_TYPE_NAMES[] = {"INVALID", "CPU", "CUDA", "HIP", "OCL"};
 	static DeviceType GetDeviceType(const char* type);
+
+	enum InOutPointerType : unsigned int {CLUSTER_DATA = 0, SLICE_OUT_TRACK = 1, SLICE_OUT_CLUSTER = 2, MC_LABEL_TPC = 3, MC_INFO_TPC = 4, MERGED_TRACK = 5, MERGED_TRACK_HIT = 6, TRD_TRACK = 7, TRD_TRACKLET = 8, RAW_CLUSTERS = 9, CLUSTERS_NATIVE = 10, TRD_TRACKLET_MC = 11};
+	static constexpr const char* const IOTYPENAMES[] = {"TPC Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters", "TRD Tracks", "TRD Tracklets", "Raw Clusters", "ClusterNative", "TRD Tracklet MC Labels"};
 	
-	enum class RecoStep {TPCSliceTracking = 1, TPCMerging = 2, TRDTracking = 4};
+	enum class RecoStep {TPCSliceTracking = 1, TPCMerging = 2, TRDTracking = 4, ITSTracking = 8};
 
 	//Functionality to create an instance of AliGPUReconstruction for the desired device
 	static AliGPUReconstruction* CreateInstance(const AliGPUSettingsProcessing& cfg);
@@ -79,96 +63,19 @@ public:
 	static AliGPUReconstruction* CreateInstance(int type, bool forceType) {return CreateInstance((DeviceType) type, forceType);}
 	static AliGPUReconstruction* CreateInstance(const char* type, bool forceType);
 	
+	template <class T> T* AddChain();
+	
 	int Init();
 	int Finalize();
 	
-	//Structures for input and output data
-	struct InOutPointers
-	{
-		InOutPointers() : mcLabelsTPC(nullptr), nMCLabelsTPC(0), mcInfosTPC(nullptr), nMCInfosTPC(0),
-			mergedTracks(nullptr), nMergedTracks(0), mergedTrackHits(nullptr), nMergedTrackHits(0),
-			trdTracks(nullptr), nTRDTracks(0), trdTracklets(nullptr), nTRDTracklets(0), trdTrackletsMC(nullptr),
-			nTRDTrackletsMC(0)
-		{}
-		InOutPointers(const InOutPointers&) = default;
-		
-		const AliGPUTPCClusterData* clusterData[NSLICES];
-		unsigned int nClusterData[NSLICES];
-		const AliHLTTPCRawCluster* rawClusters[NSLICES];
-		unsigned int nRawClusters[NSLICES];
-		const o2::TPC::ClusterNativeAccessFullTPC* clustersNative;
-		const AliGPUTPCSliceOutTrack* sliceOutTracks[NSLICES];
-		unsigned int nSliceOutTracks[NSLICES];
-		const AliGPUTPCSliceOutCluster* sliceOutClusters[NSLICES];
-		unsigned int nSliceOutClusters[NSLICES];
-		const AliHLTTPCClusterMCLabel* mcLabelsTPC;
-		unsigned int nMCLabelsTPC;
-		const AliGPUTPCMCInfo* mcInfosTPC;
-		unsigned int nMCInfosTPC;
-		const AliGPUTPCGMMergedTrack* mergedTracks;
-		unsigned int nMergedTracks;
-		const AliGPUTPCGMMergedTrackHit* mergedTrackHits;
-		unsigned int nMergedTrackHits;
-		const GPUTRDTrack* trdTracks;
-		unsigned int nTRDTracks;
-		const AliGPUTRDTrackletWord* trdTracklets;
-		unsigned int nTRDTracklets;
-		const AliGPUTRDTrackletLabels* trdTrackletsMC;
-		unsigned int nTRDTrackletsMC;
-	} mIOPtrs;
-
-	struct InOutMemory
-	{
-		InOutMemory();
-		~InOutMemory();
-		InOutMemory(AliGPUReconstruction::InOutMemory&&);
-		InOutMemory& operator=(InOutMemory&&);
-		
-		std::unique_ptr<AliGPUTPCClusterData[]> clusterData[NSLICES];
-		std::unique_ptr<AliHLTTPCRawCluster[]> rawClusters[NSLICES];
-		std::unique_ptr<o2::TPC::ClusterNative[]> clustersNative[NSLICES * GPUCA_ROW_COUNT];
-		std::unique_ptr<AliGPUTPCSliceOutTrack[]> sliceOutTracks[NSLICES];
-		std::unique_ptr<AliGPUTPCSliceOutCluster[]> sliceOutClusters[NSLICES];
-		std::unique_ptr<AliHLTTPCClusterMCLabel[]> mcLabelsTPC;
-		std::unique_ptr<AliGPUTPCMCInfo[]> mcInfosTPC;
-		std::unique_ptr<AliGPUTPCGMMergedTrack[]> mergedTracks;
-		std::unique_ptr<AliGPUTPCGMMergedTrackHit[]> mergedTrackHits;
-		std::unique_ptr<GPUTRDTrack[]> trdTracks;
-		std::unique_ptr<AliGPUTRDTrackletWord[]> trdTracklets;
-		std::unique_ptr<AliGPUTRDTrackletLabels[]> trdTrackletsMC;
-	} mIOMem;
-	
-	//Functionality to dump and read input / output data
-	enum InOutPointerType : unsigned int {CLUSTER_DATA = 0, SLICE_OUT_TRACK = 1, SLICE_OUT_CLUSTER = 2, MC_LABEL_TPC = 3, MC_INFO_TPC = 4, MERGED_TRACK = 5, MERGED_TRACK_HIT = 6, TRD_TRACK = 7, TRD_TRACKLET = 8, RAW_CLUSTERS = 9, CLUSTERS_NATIVE = 10, TRD_TRACKLET_MC = 11};
-	static constexpr const char* const IOTYPENAMES[] = {"TPC Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters", "TRD Tracks", "TRD Tracklets", "Raw Clusters", "ClusterNative", "TRD Tracklet MC Labels"};
-
-	void ClearIOPointers();
-	void AllocateIOMemory();
-	void DumpData(const char* filename);
-	int ReadData(const char* filename);
 	void DumpSettings(const char* dir = "");
 	void ReadSettings(const char* dir = "");
 	
+	virtual int RunStandalone() = 0;
+	
 	//Helpers for memory allocation
 	AliGPUMemoryResource& Res(short num) {return mMemoryResources[num];}
-	template <class T> short RegisterMemoryAllocation(T* proc, void* (T::* setPtr)(void*), int type, const char* name = "")
-	{
-		if (!(type & (AliGPUMemoryResource::MEMORY_HOST | AliGPUMemoryResource::MEMORY_GPU)))
-		{
-			if ((type & AliGPUMemoryResource::MEMORY_SCRATCH) && !mDeviceProcessingSettings.keepAllMemory)
-			{
-				type |= (proc->mGPUProcessorType == AliGPUProcessor::PROCESSOR_TYPE_CPU ? AliGPUMemoryResource::MEMORY_HOST : AliGPUMemoryResource::MEMORY_GPU);
-			}
-			else
-			{
-				type |= AliGPUMemoryResource::MEMORY_HOST | AliGPUMemoryResource::MEMORY_GPU;
-			}
-		}
-		if (proc->mGPUProcessorType == AliGPUProcessor::PROCESSOR_TYPE_CPU) type &= ~AliGPUMemoryResource::MEMORY_GPU;
-		mMemoryResources.emplace_back(proc, static_cast<void* (AliGPUProcessor::*)(void*)>(setPtr), (AliGPUMemoryResource::MemoryType) type, name);
-		if (mMemoryResources.size() == 32768) throw std::bad_alloc();
-		return mMemoryResources.size() - 1;
-	}
+	template <class T> short RegisterMemoryAllocation(T* proc, void* (T::* setPtr)(void*), int type, const char* name = "");
 	size_t AllocateMemoryResources();
 	size_t AllocateRegisteredMemory(AliGPUProcessor* proc);
 	size_t AllocateRegisteredMemory(short res);
@@ -180,77 +87,34 @@ public:
 	void ResetRegisteredMemoryPointers(short res);
 	void PrepareEvent();
 	
-	//Converter functions
-	void ConvertNativeToClusterData();
-	
-	//Getters for external usage of tracker classes
-	AliGPUTRDTracker* GetTRDTracker() {return &workers()->trdTracker;}
-	o2::ITS::TrackerTraits* GetITSTrackerTraits() {return mITSTrackerTraits.get();}
-	o2::ITS::VertexerTraits* GetITSVertexerTraits() {return mITSVertexerTraits.get();}
-	AliGPUTPCTracker* GetTPCSliceTrackers() {return workers()->tpcTrackers;}
-	const AliGPUTPCTracker* GetTPCSliceTrackers() const {return workers()->tpcTrackers;}
-	const AliGPUTPCGMMerger& GetTPCMerger() const {return workers()->tpcMerger;}
-	AliGPUTPCGMMerger& GetTPCMerger() {return workers()->tpcMerger;}
-	AliGPUDisplay* GetEventDisplay() {return mEventDisplay.get();}
-	const AliGPUQA* GetQA() const {return mQA.get();}
-	AliGPUQA* GetQA() {return mQA.get();}
-	
-	//Processing functions
-	virtual int RunStandalone() = 0;
-	virtual int RunTPCTrackingSlices() = 0;
-	virtual int RunTPCTrackingMerger() = 0;
-	virtual int RunTRDTracking() = 0;
-	virtual int DoTRDGPUTracking() { printf("Does only work on GPU\n"); exit(1); }
+	//Helpers to fetch processors from other shared libraries
+	virtual void GetITSTraits(std::unique_ptr<o2::ITS::TrackerTraits>& trackerTraits, std::unique_ptr<o2::ITS::VertexerTraits>& vertexerTraits);
 	
 	//Getters / setters for parameters
 	DeviceType GetDeviceType() const {return (DeviceType) mProcessingSettings.deviceType;}
 	bool IsGPU() const {return GetDeviceType() != INVALID_DEVICE && GetDeviceType() != CPU;}
 	const AliGPUParam& GetParam() const {return mHostConstantMem->param;}
-	const TPCFastTransform* GetTPCTransform() const {return mTPCFastTransform.get();}
-	const AliGPUTRDGeometry* GetTRDGeometry() const {return (AliGPUTRDGeometry*) mTRDGeometry.get();}
-	const ClusterNativeAccessExt* GetClusterNativeAccessExt() const {return mClusterNativeAccess.get();}
 	const AliGPUSettingsEvent& GetEventSettings() const {return mEventSettings;}
 	const AliGPUSettingsProcessing& GetProcessingSettings() {return mProcessingSettings;}
 	const AliGPUSettingsDeviceProcessing& GetDeviceProcessingSettings() const {return mDeviceProcessingSettings;}
 	bool IsInitialized() const {return mInitialized;}
 	void SetSettings(float solenoidBz);
 	void SetSettings(const AliGPUSettingsEvent* settings, const AliGPUSettingsRec* rec = nullptr, const AliGPUSettingsDeviceProcessing* proc = nullptr);
-	void SetTPCFastTransform(std::unique_ptr<TPCFastTransform> tpcFastTransform);
-	void SetTRDGeometry(const o2::trd::TRDGeometryFlat& geo);
-	void LoadClusterErrors();
 	void SetResetTimers(bool reset) {mDeviceProcessingSettings.resetTimers = reset;}
 	void SetOutputControl(const AliGPUOutputControl& v) {mOutputControl = v;}
 	void SetOutputControl(void* ptr, size_t size);
 	AliGPUOutputControl& OutputControl() {return mOutputControl;}
-	const AliGPUTPCSliceOutput** SliceOutput() const {return (const AliGPUTPCSliceOutput**) &mSliceOutput;}
 	virtual int GetMaxThreads();
+	const void* DeviceMemoryBase() const {return mDeviceMemoryBase;}
+	
 	bitfield<RecoStep, unsigned char>& RecoSteps() {if (mInitialized) throw std::runtime_error("Cannot change reco steps once initialized"); return mRecoSteps;}
 	bitfield<RecoStep, unsigned char>& RecoStepsGPU() {if (mInitialized) throw std::runtime_error("Cannot change reco steps once initialized"); return mRecoStepsGPU;}
 	bitfield<RecoStep, unsigned char> GetRecoSteps() const {return mRecoSteps;}
 	bitfield<RecoStep, unsigned char> GetRecoStepsGPU() const {return mRecoStepsGPU;}
 	
-	const void* mConfigDisplay = nullptr;										//Abstract pointer to Standalone Display Configuration Structure
-	const void* mConfigQA = nullptr;											//Abstract pointer to Standalone QA Configuration Structure
-	
 	//Registration of GPU Processors
-	template <class T> void RegisterGPUProcessor(T* proc, bool deviceSlave)
-	{
-		mProcessors.emplace_back(proc, static_cast<void (AliGPUProcessor::*)()>(&T::RegisterMemoryAllocation), static_cast<void (AliGPUProcessor::*)()>(&T::InitializeProcessor), static_cast<void (AliGPUProcessor::*)()>(&T::SetMaxData));
-		AliGPUProcessor::ProcessorType processorType = deviceSlave ? AliGPUProcessor::PROCESSOR_TYPE_SLAVE : AliGPUProcessor::PROCESSOR_TYPE_CPU;
-		proc->InitGPUProcessor(this, processorType);
-	}
-	template <class T> void SetupGPUProcessor(T* proc, bool allocate)
-	{
-		static_assert(sizeof(T) > sizeof(AliGPUProcessor), "Need to setup derrived class");
-		if (allocate) proc->SetMaxData();
-		if (proc->mDeviceProcessor)
-		{
-			std::memcpy((void*) proc->mDeviceProcessor, (const void*) proc, sizeof(*proc));
-			proc->mDeviceProcessor->InitGPUProcessor((AliGPUReconstruction*) this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
-		}
-		if (allocate) AllocateRegisteredMemory(proc);
-		else ResetRegisteredMemoryPointers(proc);
-	}
+	template <class T> void RegisterGPUProcessor(T* proc, bool deviceSlave);
+	template <class T> void SetupGPUProcessor(T* proc, bool allocate);
 	void RegisterGPUDeviceProcessor(AliGPUProcessor* proc, AliGPUProcessor* slaveProcessor);
 	
 protected:
@@ -276,35 +140,22 @@ protected:
 	template <class T> void ReadStructFromFile(const char* file, T* obj);
 	
 	//Others
-	virtual bitfield<RecoStep, unsigned char> AvailableRecoSteps() {return ((unsigned char) -1);}
+	virtual bitfield<RecoStep, unsigned char> AvailableRecoSteps() {return (unsigned char) -1;}
 	
 	//Pointers to tracker classes
-	AliGPUWorkers* workers() {return mHostConstantMem.get();}
-	const AliGPUWorkers* workers() const {return mHostConstantMem.get();}
+	AliGPUConstantMem* workers() {return mHostConstantMem.get();}
+	const AliGPUConstantMem* workers() const {return mHostConstantMem.get();}
 	AliGPUParam& param() {return mHostConstantMem->param;}
 	std::unique_ptr<AliGPUConstantMem> mHostConstantMem;
-	std::unique_ptr<o2::ITS::TrackerTraits> mITSTrackerTraits;
-	std::unique_ptr<o2::ITS::VertexerTraits> mITSVertexerTraits;
-	AliGPUTPCSliceOutput* mSliceOutput[NSLICES];
-	
-	//Display / QA
-	std::unique_ptr<AliGPUDisplay> mEventDisplay;
-	bool mDisplayRunning = false;
-	std::unique_ptr<AliGPUQA> mQA;
-	bool mQAInitialized = false;
 
 	//Settings
 	AliGPUSettingsEvent mEventSettings;										//Event Parameters
 	AliGPUSettingsProcessing mProcessingSettings;								//Processing Parameters (at constructor level)
 	AliGPUSettingsDeviceProcessing mDeviceProcessingSettings;					//Processing Parameters (at init level)
 	AliGPUOutputControl mOutputControl;										//Controls the output of the individual components
+	
 	bitfield<RecoStep, unsigned char> mRecoSteps = (unsigned char) -1;
 	bitfield<RecoStep, unsigned char> mRecoStepsGPU = (unsigned char) -1;
-
-	//Ptr to reconstruction detecto objects
-	std::unique_ptr<ClusterNativeAccessExt> mClusterNativeAccess;				//Internal memory for clusterNativeAccess
-	std::unique_ptr<TPCFastTransform> mTPCFastTransform;						//Global TPC fast transformation object
-	std::unique_ptr<o2::trd::TRDGeometryFlat> mTRDGeometry;						//TRD Geometry
 
 	//Ptrs to host and device memory;
 	void* mHostMemoryBase = nullptr;
@@ -318,7 +169,6 @@ protected:
 	
 	//Others
 	bool mInitialized = false;
-	std::ofstream mDebugFile;
 	int mStatNEvents = 0;
 
 	//Management for AliGPUProcessors
@@ -357,5 +207,177 @@ protected:
 private:
 	static AliGPUReconstruction* AliGPUReconstruction_Create_CPU(const AliGPUSettingsProcessing& cfg);
 };
+
+template <class T> inline void AliGPUReconstruction::AllocateIOMemoryHelper(unsigned int n, const T* &ptr, std::unique_ptr<T[]> &u)
+{
+	if (n == 0)
+	{
+		u.reset(nullptr);
+		return;
+	}
+	u.reset(new T[n]);
+	ptr = u.get();
+}
+
+template <class T> inline T* AliGPUReconstruction::AddChain()
+{
+	mChains.emplace_back(new T(this));
+	return (T*) mChains.back().get();
+}
+
+template <class T> inline short AliGPUReconstruction::RegisterMemoryAllocation(T* proc, void* (T::* setPtr)(void*), int type, const char* name)
+{
+	if (!(type & (AliGPUMemoryResource::MEMORY_HOST | AliGPUMemoryResource::MEMORY_GPU)))
+	{
+		if ((type & AliGPUMemoryResource::MEMORY_SCRATCH) && !mDeviceProcessingSettings.keepAllMemory)
+		{
+			type |= (proc->mGPUProcessorType == AliGPUProcessor::PROCESSOR_TYPE_CPU ? AliGPUMemoryResource::MEMORY_HOST : AliGPUMemoryResource::MEMORY_GPU);
+		}
+		else
+		{
+			type |= AliGPUMemoryResource::MEMORY_HOST | AliGPUMemoryResource::MEMORY_GPU;
+		}
+
+	}
+	if (proc->mGPUProcessorType == AliGPUProcessor::PROCESSOR_TYPE_CPU) type &= ~AliGPUMemoryResource::MEMORY_GPU;
+	mMemoryResources.emplace_back(proc, static_cast<void* (AliGPUProcessor::*)(void*)>(setPtr), (AliGPUMemoryResource::MemoryType) type, name);
+	if (mMemoryResources.size() == 32768) throw std::bad_alloc();
+	return mMemoryResources.size() - 1;
+}
+
+template <class T> inline void AliGPUReconstruction::RegisterGPUProcessor(T* proc, bool deviceSlave)
+{
+	mProcessors.emplace_back(proc, static_cast<void (AliGPUProcessor::*)()>(&T::RegisterMemoryAllocation), static_cast<void (AliGPUProcessor::*)()>(&T::InitializeProcessor), static_cast<void (AliGPUProcessor::*)()>(&T::SetMaxData));
+	AliGPUProcessor::ProcessorType processorType = deviceSlave ? AliGPUProcessor::PROCESSOR_TYPE_SLAVE : AliGPUProcessor::PROCESSOR_TYPE_CPU;
+	proc->InitGPUProcessor(this, processorType);
+}
+
+template <class T> inline void AliGPUReconstruction::SetupGPUProcessor(T* proc, bool allocate)
+{
+	static_assert(sizeof(T) > sizeof(AliGPUProcessor), "Need to setup derrived class");
+	if (allocate) proc->SetMaxData();
+	if (proc->mDeviceProcessor)
+	{
+		std::memcpy((void*) proc->mDeviceProcessor, (const void*) proc, sizeof(*proc));
+		proc->mDeviceProcessor->InitGPUProcessor((AliGPUReconstruction*) this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE);
+	}
+	if (allocate) AllocateRegisteredMemory(proc);
+	else ResetRegisteredMemoryPointers(proc);
+}
+
+template <class T> inline void AliGPUReconstruction::DumpData(FILE* fp, const T* const* entries, const unsigned int* num, InOutPointerType type)
+{
+	int count;
+	if (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS) count = NSLICES;
+	else if (type == CLUSTERS_NATIVE) count = NSLICES * GPUCA_ROW_COUNT;
+	else count = 1;
+	unsigned int numTotal = 0;
+	for (int i = 0;i < count;i++) numTotal += num[i];
+	if (numTotal == 0) return;
+	fwrite(&type, sizeof(type), 1, fp);
+	for (int i = 0;i < count;i++)
+	{
+		fwrite(&num[i], sizeof(num[i]), 1, fp);
+		if (num[i])
+		{
+			fwrite(entries[i], sizeof(*entries[i]), num[i], fp);
+		}
+	}
+}
+
+template <class T> inline size_t AliGPUReconstruction::ReadData(FILE* fp, const T** entries, unsigned int* num, std::unique_ptr<T[]>* mem, InOutPointerType type)
+{
+	if (feof(fp)) return 0;
+	InOutPointerType inType;
+	size_t r, pos = ftell(fp);
+	r = fread(&inType, sizeof(inType), 1, fp);
+	if (r != 1 || inType != type)
+	{
+		fseek(fp, pos, SEEK_SET);
+		return 0;
+	}
+	
+	int count;
+	if (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS) count = NSLICES;
+	else if (type == CLUSTERS_NATIVE) count = NSLICES * GPUCA_ROW_COUNT;
+	else count = 1;
+	size_t numTotal = 0;
+	for (int i = 0;i < count;i++)
+	{
+		r = fread(&num[i], sizeof(num[i]), 1, fp);
+		AllocateIOMemoryHelper(num[i], entries[i], mem[i]);
+		if (num[i]) r = fread(mem[i].get(), sizeof(*entries[i]), num[i], fp);
+		numTotal += num[i];
+	}
+	(void) r;
+	if (mDeviceProcessingSettings.debugLevel >= 2) printf("Read %d %s\n", (int) numTotal, IOTYPENAMES[type]);
+	return numTotal;
+}
+
+template <class T> inline void AliGPUReconstruction::DumpFlatObjectToFile(const T* obj, const char* file)
+{
+	FILE* fp = fopen(file, "w+b");
+	if (fp == nullptr) return;
+	size_t size[2] = {sizeof(*obj), obj->getFlatBufferSize()};
+	fwrite(size, sizeof(size[0]), 2, fp);
+	fwrite(obj, 1, size[0], fp);
+	fwrite(obj->getFlatBufferPtr(), 1, size[1], fp);
+	fclose(fp);
+}
+
+template <class T> inline std::unique_ptr<T> AliGPUReconstruction::ReadFlatObjectFromFile(const char* file)
+{
+	FILE* fp = fopen(file, "rb");
+	if (fp == nullptr) return nullptr;
+	size_t size[2], r;
+	r = fread(size, sizeof(size[0]), 2, fp);
+	if (r == 0 || size[0] != sizeof(T)) {fclose(fp); return nullptr;}
+	std::unique_ptr<T> retVal(new T);
+	char* buf = new char[size[1]]; //Not deleted as ownership is transferred to FlatObject
+	r = fread((void*) retVal.get(), 1, size[0], fp);
+	r = fread(buf, 1, size[1], fp);
+	fclose(fp);
+	if (mDeviceProcessingSettings.debugLevel >= 2) printf("Read %d bytes from %s\n", (int) r, file);
+	retVal->clearInternalBufferPtr();
+	retVal->setActualBufferAddress(buf);
+	retVal->adoptInternalBuffer(buf);
+	return std::move(retVal);
+}
+
+template <class T> inline void AliGPUReconstruction::DumpStructToFile(const T* obj, const char* file)
+{
+	FILE* fp = fopen(file, "w+b");
+	if (fp == nullptr) return;
+	size_t size = sizeof(*obj);
+	fwrite(&size, sizeof(size), 1, fp);
+	fwrite(obj, 1, size, fp);
+	fclose(fp);
+}
+
+template <class T> inline std::unique_ptr<T> AliGPUReconstruction::ReadStructFromFile(const char* file)
+{
+	FILE* fp = fopen(file, "rb");
+	if (fp == nullptr) return nullptr;
+	size_t size, r;
+	r = fread(&size, sizeof(size), 1, fp);
+	if (r == 0 || size != sizeof(T)) {fclose(fp); return nullptr;}
+	std::unique_ptr<T> newObj(new T);
+	r = fread(newObj.get(), 1, size, fp);
+	fclose(fp);
+	if (mDeviceProcessingSettings.debugLevel >= 2) printf("Read %d bytes from %s\n", (int) r, file);
+	return std::move(newObj);
+}
+
+template <class T> inline void AliGPUReconstruction::ReadStructFromFile(const char* file, T* obj)
+{
+	FILE* fp = fopen(file, "rb");
+	if (fp == nullptr) return;
+	size_t size, r;
+	r = fread(&size, sizeof(size), 1, fp);
+	if (r == 0) {fclose(fp); return;}
+	r = fread(obj, 1, size, fp);
+	fclose(fp);
+	if (mDeviceProcessingSettings.debugLevel >= 2) printf("Read %d bytes from %s\n", (int) r, file);
+}
 
 #endif

@@ -24,10 +24,10 @@
 #endif
 
 #include "AliGPUTPCMCInfo.h"
-#include "AliGPUReconstruction.h"
+#include "AliGPUChainTracking.h"
 #include "AliGPUQA.h"
 #include "AliGPUTPCSliceData.h"
-#include "AliGPUReconstruction.h"
+#include "AliGPUChainTracking.h"
 #include "AliGPUTPCTrack.h"
 #include "AliGPUTPCTracker.h"
 #include "AliGPUTRDTracker.h"
@@ -51,7 +51,7 @@
 
 #define SEPERATE_GLOBAL_TRACKS_LIMIT (separateGlobalTracks ? tGLOBALTRACK : TRACK_TYPE_ID_LIMIT)
 
-static const AliGPUDisplay::configDisplay& AliGPUDisplay_GetConfig(AliGPUReconstruction* rec)
+static const AliGPUDisplay::configDisplay& AliGPUDisplay_GetConfig(AliGPUChainTracking* rec)
 {
 #if !defined(GPUCA_STANDALONE)
 	static AliGPUDisplay::configDisplay defaultConfig;
@@ -62,15 +62,15 @@ static const AliGPUDisplay::configDisplay& AliGPUDisplay_GetConfig(AliGPUReconst
 #endif
 }
 
-AliGPUDisplay::AliGPUDisplay(AliGPUDisplayBackend* backend, AliGPUReconstruction* rec, AliGPUQA* qa) : mBackend(backend), mRec(rec), config(AliGPUDisplay_GetConfig(rec)), mQA(qa), merger(rec->GetTPCMerger())
+AliGPUDisplay::AliGPUDisplay(AliGPUDisplayBackend* backend, AliGPUChainTracking* rec, AliGPUQA* qa) : mBackend(backend), mChain(rec), config(AliGPUDisplay_GetConfig(rec)), mQA(qa), merger(rec->GetTPCMerger())
 {
 	backend->mDisplay = this;
 }
 
-const AliGPUParam& AliGPUDisplay::param() {return mRec->GetParam();}
-const AliGPUTPCTracker& AliGPUDisplay::sliceTracker(int iSlice) {return mRec->GetTPCSliceTrackers()[iSlice];}
-const AliGPUTRDTracker& AliGPUDisplay::trdTracker() {return *mRec->GetTRDTracker();}
-const AliGPUReconstruction::InOutPointers AliGPUDisplay::ioptrs() {return mRec->mIOPtrs;}
+const AliGPUParam& AliGPUDisplay::param() {return mChain->GetParam();}
+const AliGPUTPCTracker& AliGPUDisplay::sliceTracker(int iSlice) {return mChain->GetTPCSliceTrackers()[iSlice];}
+const AliGPUTRDTracker& AliGPUDisplay::trdTracker() {return *mChain->GetTRDTracker();}
+const AliGPUChainTracking::InOutPointers AliGPUDisplay::ioptrs() {return mChain->mIOPtrs;}
 
 inline void AliGPUDisplay::drawVertices(const vboList& v, const GLenum t)
 {
@@ -458,7 +458,7 @@ int AliGPUDisplay::InitGL_internal()
 		return(1);
 	}
 
-	CHKERR(glCreateBuffers(AliGPUReconstruction::NSLICES, vbo_id));
+	CHKERR(glCreateBuffers(AliGPUChainTracking::NSLICES, vbo_id));
 	CHKERR(glBindBuffer(GL_ARRAY_BUFFER, vbo_id[0]));
 	CHKERR(glGenBuffers(1, &indirect_id));
 	CHKERR(glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirect_id));
@@ -468,7 +468,7 @@ int AliGPUDisplay::InitGL_internal()
 	setQuality();
 	ReSizeGLScene(AliGPUDisplayBackend::init_width, AliGPUDisplayBackend::init_height, true);
 #ifdef GPUCA_HAVE_OPENMP
-	int maxThreads = mRec->GetDeviceProcessingSettings().nThreads > 1 ? mRec->GetDeviceProcessingSettings().nThreads : 1;
+	int maxThreads = mChain->GetDeviceProcessingSettings().nThreads > 1 ? mChain->GetDeviceProcessingSettings().nThreads : 1;
 	omp_set_num_threads(maxThreads);
 #else
 	int maxThreads = 1;
@@ -481,7 +481,7 @@ int AliGPUDisplay::InitGL_internal()
 void AliGPUDisplay::ExitGL()
 {
 	UpdateOffscreenBuffers(true);
-	CHKERR(glDeleteBuffers(AliGPUReconstruction::NSLICES, vbo_id));
+	CHKERR(glDeleteBuffers(AliGPUChainTracking::NSLICES, vbo_id));
 	CHKERR(glDeleteBuffers(1, &indirect_id));
 }
 
@@ -500,7 +500,7 @@ AliGPUDisplay::vboList AliGPUDisplay::DrawSpacePointsTRD(int iSlice, int select,
 	{
 		for (int i = 0;i < trdTracker().NTracklets();i++)
 		{
-			int iSec = mRec->GetTRDGeometry()->GetSector(trdTracker().Tracklets()[i].GetDetector());
+			int iSec = mChain->GetTRDGeometry()->GetSector(trdTracker().Tracklets()[i].GetDetector());
 			bool draw = iSlice == iSec && globalPosTRD[i].w == select;
 			if (draw)
 			{
@@ -1247,7 +1247,7 @@ int AliGPUDisplay::DrawGLScene_internal(bool mixAnimation, float animateTime) //
 					return(1);
 				}
 				float4 *ptr = &globalPos[cid];
-				mRec->GetParam().Slice2Global(iSlice, cl.fX + Xadd, cl.fY, cl.fZ, &ptr->x, &ptr->y, &ptr->z);
+				mChain->GetParam().Slice2Global(iSlice, cl.fX + Xadd, cl.fY, cl.fZ, &ptr->x, &ptr->y, &ptr->z);
 				if (fabsf(ptr->z) > maxClusterZ) maxClusterZ = fabsf(ptr->z);
 				if (iSlice < 18)
 				{
@@ -1270,15 +1270,15 @@ int AliGPUDisplay::DrawGLScene_internal(bool mixAnimation, float animateTime) //
 		for (int i = 0;i < currentSpacePointsTRD;i++)
 		{
 			const auto& sp = trdTracker().SpacePoints()[i];
-			int iSec = mRec->GetTRDGeometry()->GetSector(trdTracker().Tracklets()[i].GetDetector());
+			int iSec = mChain->GetTRDGeometry()->GetSector(trdTracker().Tracklets()[i].GetDetector());
 			float4* ptr = &globalPosTRD[i];
-			mRec->GetParam().Slice2Global(iSec, sp.fR + Xadd, sp.fX[0], sp.fX[1], &ptr->x, &ptr->y, &ptr->z);
+			mChain->GetParam().Slice2Global(iSec, sp.fR + Xadd, sp.fX[0], sp.fX[1], &ptr->x, &ptr->y, &ptr->z);
 			ptr->x /= GL_SCALE_FACTOR;
 			ptr->y /= GL_SCALE_FACTOR;
 			ptr->z /= GL_SCALE_FACTOR;
 			ptr->w = tTRDCLUSTER;
 			ptr = &globalPosTRD2[i];
-			mRec->GetParam().Slice2Global(iSec, sp.fR + Xadd + 4.5f, sp.fX[0] + 1.5f * sp.fDy, sp.fX[1], &ptr->x, &ptr->y, &ptr->z);
+			mChain->GetParam().Slice2Global(iSec, sp.fR + Xadd + 4.5f, sp.fX[0] + 1.5f * sp.fDy, sp.fX[1], &ptr->x, &ptr->y, &ptr->z);
 			ptr->x /= GL_SCALE_FACTOR;
 			ptr->y /= GL_SCALE_FACTOR;
 			ptr->z /= GL_SCALE_FACTOR;
@@ -1311,7 +1311,7 @@ int AliGPUDisplay::DrawGLScene_internal(bool mixAnimation, float animateTime) //
 			for (int i = 0;i < N_FINAL_TYPE;i++) glDLfinal[iSlice].resize(nCollisions);
 		}
 #ifdef GPUCA_HAVE_OPENMP
-#pragma omp parallel num_threads(mRec->GetDeviceProcessingSettings().nThreads)
+#pragma omp parallel num_threads(mChain->GetDeviceProcessingSettings().nThreads)
 		{
 			int numThread = omp_get_thread_num();
 			int numThreads = omp_get_num_threads();
@@ -1325,7 +1325,7 @@ int AliGPUDisplay::DrawGLScene_internal(bool mixAnimation, float animateTime) //
 				AliGPUTPCTracker &tracker = (AliGPUTPCTracker&) sliceTracker(iSlice);
 				tracker.Data().SetPointersScratch(tracker.LinkTmpMemory());
 				glDLlines[iSlice][tINITLINK] = DrawLinks(tracker, tINITLINK, true);
-				tracker.Data().SetPointersScratch(mRec->Res(tracker.Data().MemoryResScratch()).Ptr());
+				tracker.Data().SetPointersScratch(mChain->rec()->Res(tracker.Data().MemoryResScratch()).Ptr());
 			}
 			AliGPUTPCGMPropagator prop;
 			const float kRho = 1.025e-3;//0.9e-3;

@@ -17,21 +17,12 @@ class AliGPUTRDTracker {void SetMaxData(){}};
 #endif
 
 MEM_CLASS_PRE()
-struct AliGPUWorkers
+struct AliGPUConstantMem
 {
+	MEM_LG(AliGPUParam) param;
 	MEM_LG(AliGPUTPCTracker) tpcTrackers[GPUCA_NSLICES];
 	AliGPUTPCGMMerger tpcMerger;
 	AliGPUTRDTracker trdTracker;
 };
-
-MEM_CLASS_PRE()
-struct AliGPUConstants
-{
-	MEM_LG(AliGPUParam) param;
-};
-
-MEM_CLASS_PRE()
-struct AliGPUConstantMem : public MEM_LG(AliGPUConstants), public MEM_LG(AliGPUWorkers)
-{};
 
 #endif

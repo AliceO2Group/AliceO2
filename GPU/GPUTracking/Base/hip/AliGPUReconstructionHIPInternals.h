@@ -3,7 +3,7 @@
 
 struct AliGPUReconstructionHIPInternals
 {
-	hipStream_t HIPStreams[GPUCA_GPUCA_MAX_STREAMS]; //Pointer to array of HIP Streams
+	hipStream_t HIPStreams[GPUCA_MAX_STREAMS]; //Pointer to array of HIP Streams
 };
 
 #define GPUFailedMsg(x) GPUFailedMsgA(x, __FILE__, __LINE__)

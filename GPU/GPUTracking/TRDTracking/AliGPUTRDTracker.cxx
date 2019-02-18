@@ -34,10 +34,12 @@ static const float piMass = 0.139f;
 #endif
 
 #ifndef GPUCA_GPUCODE
+#include "AliGPUChainTracking.h"
+
 void AliGPUTRDTracker::SetMaxData()
 {
-  fNMaxTracks = mRec->mIOPtrs.nMergedTracks;
-  fNMaxSpacePoints = mRec->mIOPtrs.nTRDTracklets;
+  fNMaxTracks = fChainTracking->mIOPtrs.nMergedTracks;
+  fNMaxSpacePoints = fChainTracking->mIOPtrs.nTRDTracklets;
   if (mRec->GetDeviceProcessingSettings().memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_GLOBAL)
   {
     fNMaxTracks = 50000;
@@ -58,7 +60,7 @@ void AliGPUTRDTracker::RegisterMemoryAllocation()
 
 void AliGPUTRDTracker::InitializeProcessor()
 {
-  Init((TRD_GEOMETRY_CONST AliGPUTRDGeometry*) mRec->GetTRDGeometry());
+  Init((TRD_GEOMETRY_CONST AliGPUTRDGeometry*) fChainTracking->GetTRDGeometry());
 }
 
 void* AliGPUTRDTracker::SetPointersBase(void* base)
@@ -128,7 +130,8 @@ AliGPUTRDTracker::AliGPUTRDTracker() :
   fZCorrCoefNRC(1.4f),
   fNhypothesis(100),
   fMCEvent(nullptr),
-  fDebug(new AliGPUTRDTrackerDebug())
+  fDebug(new AliGPUTRDTrackerDebug()),
+  fChainTracking(nullptr)
 {
   //--------------------------------------------------------------------
   // Default constructor
@@ -247,7 +250,7 @@ void AliGPUTRDTracker::DoTracking()
 
   if (mRec->GetRecoStepsGPU() & AliGPUReconstruction::RecoStep::TRDTracking)
   {
-    mRec->DoTRDGPUTracking();
+    fChainTracking->DoTRDGPUTracking();
   }
   else
   {
@@ -260,11 +263,11 @@ void AliGPUTRDTracker::DoTracking()
       iTrk = fNTracks;
       continue;
     }
-    DoTrackingThread(iTrk, &mRec->GetTPCMerger(), omp_get_thread_num());
+    DoTrackingThread(iTrk, &fChainTracking->GetTPCMerger(), omp_get_thread_num());
   }
 #else
   for (int iTrk=0; iTrk<fNTracks; ++iTrk) {
-    DoTrackingThread(iTrk, &mRec->GetTPCMerger());
+    DoTrackingThread(iTrk, &fChainTracking->GetTPCMerger());
   }
 #endif
   }

@@ -3,7 +3,7 @@
 
 #include "AliGPUDisplayConfig.h"
 #include "AliGPUDisplayBackend.h"
-class AliGPUReconstruction;
+class AliGPUChainTracking;
 class AliGPUQA;
 
 #ifndef BUILD_EVENT_DISPLAY
@@ -11,7 +11,7 @@ class AliGPUQA;
 class AliGPUDisplay
 {
 public:
-	AliGPUDisplay(AliGPUDisplayBackend* backend, AliGPUReconstruction* rec, AliGPUQA* qa) {}
+	AliGPUDisplay(AliGPUDisplayBackend* backend, AliGPUChainTracking* rec, AliGPUQA* qa) {}
 	~AliGPUDisplay() = default;
 	AliGPUDisplay(const AliGPUDisplay&) = delete;
 	
@@ -32,7 +32,7 @@ public:
 
 #else
 
-#include "AliGPUReconstruction.h"
+#include "AliGPUChainTracking.h"
 #include "../utils/vecpod.h"
 #include "../utils/qsem.h"
 
@@ -47,7 +47,7 @@ class AliGPUParam;
 class AliGPUDisplay
 {
 public:
-	AliGPUDisplay(AliGPUDisplayBackend* backend, AliGPUReconstruction* rec, AliGPUQA* qa);
+	AliGPUDisplay(AliGPUDisplayBackend* backend, AliGPUChainTracking* rec, AliGPUQA* qa);
 	~AliGPUDisplay() = default;
 	AliGPUDisplay(const AliGPUDisplay&) = delete;
 	
@@ -66,7 +66,7 @@ public:
 	void ReSizeGLScene(int width, int height, bool init = false);
 	
 private:
-	static constexpr int fgkNSlices = AliGPUReconstruction::NSLICES;
+	static constexpr int fgkNSlices = AliGPUChainTracking::NSLICES;
 	
 	static constexpr const int N_POINTS_TYPE = 11;
 	static constexpr const int N_POINTS_TYPE_TPC = 9;
@@ -166,7 +166,7 @@ private:
 	const AliGPUParam& param();
 	const AliGPUTPCTracker& sliceTracker(int iSlice);
 	const AliGPUTRDTracker& trdTracker();
-	const AliGPUReconstruction::InOutPointers ioptrs();
+	const AliGPUChainTracking::InOutPointers ioptrs();
 	void drawVertices(const vboList& v, const GLenum t);
 	void insertVertexList(std::pair<vecpod<GLint>*, vecpod<GLsizei>*>& vBuf, size_t first, size_t last);
 	void insertVertexList(int iSlice, size_t first, size_t last);
@@ -220,7 +220,7 @@ private:
 	void createQuaternionFromMatrix(float* v, const float* mat);
 	
 	AliGPUDisplayBackend* mBackend;
-	AliGPUReconstruction* mRec;
+	AliGPUChainTracking* mChain;
 	const configDisplay& config;
 	OpenGLConfig cfg;
 	AliGPUQA* mQA;

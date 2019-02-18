@@ -42,7 +42,7 @@ template <> GPUd() void AliGPUTPCStartHitsSorter::Thread<0>(int nBlocks, int nTh
 	for (int ir = 0;ir < s.fNRows;ir++)
 	{
 		GPUglobalref() AliGPUTPCHitId *const startHits = tracker.TrackletStartHits();
-		GPUglobalref() AliGPUTPCHitId *const tmpStartHits = tracker.TrackletTmpStartHits() + (s.fStartRow + ir) * GPUCA_GPUCA_MAX_ROWSTARTHITS;
+		GPUglobalref() AliGPUTPCHitId *const tmpStartHits = tracker.TrackletTmpStartHits() + (s.fStartRow + ir) * GPUCA_MAX_ROWSTARTHITS;
 		const int tmpLen = tracker.RowStartHitCountOffset()[ir + s.fStartRow];			//Length of hits in row stored by StartHitsFinder
 
 		for (int j = iThread;j < tmpLen;j += nThreads)

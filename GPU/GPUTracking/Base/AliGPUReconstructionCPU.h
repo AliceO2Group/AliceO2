@@ -2,11 +2,11 @@
 #define ALIGPURECONSTRUCTIONIMPL_H
 
 #include "AliGPUReconstruction.h"
+#include "AliGPUReconstructionHelpers.h"
 #include "AliGPUConstantMem.h"
 #include <stdexcept>
-#include <atomic>
-#include <array>
 #include "utils/timer.h"
+#include <vector>
 
 #include "AliGPUGeneralKernels.h"
 #include "AliGPUTPCNeighboursFinder.h"
@@ -73,6 +73,7 @@ protected:
 class AliGPUReconstructionCPU : public AliGPUReconstructionKernels<AliGPUReconstructionCPUBackend>
 {
 	friend class AliGPUReconstruction;
+	friend class AliGPUChain;
 	
 public:
 	virtual ~AliGPUReconstructionCPU() = default;
@@ -98,78 +99,64 @@ public:
 		return 0;
 	}
 	
-	int RunTPCTrackingSlices();
-	virtual int RunTPCTrackingMerger();
-	virtual int RunTRDTracking();
-	virtual int RunStandalone();
-	
 	virtual int GPUDebug(const char* state = "UNKNOWN", int stream = -1);
-	
 	void TransferMemoryResourceToGPU(AliGPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) {TransferMemoryInternal(res, stream, ev, evList, nEvents, true, res->Ptr(), res->PtrDevice());}
 	void TransferMemoryResourceToHost(AliGPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) {TransferMemoryInternal(res, stream, ev, evList, nEvents, false, res->PtrDevice(), res->Ptr());}
-	virtual void TransferMemoryInternal(AliGPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, void* src, void* dst);
-	virtual void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr);
-
 	void TransferMemoryResourcesToGPU(AliGPUProcessor* proc, int stream = -1, bool all = false) {TransferMemoryResourcesHelper(proc, stream, all, true);}
 	void TransferMemoryResourcesToHost(AliGPUProcessor* proc, int stream = -1, bool all = false) {TransferMemoryResourcesHelper(proc, stream, all, false);}
 	void TransferMemoryResourceLinkToGPU(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) {TransferMemoryResourceToGPU(&mMemoryResources[res], stream, ev, evList, nEvents);}
 	void TransferMemoryResourceLinkToHost(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) {TransferMemoryResourceToHost(&mMemoryResources[res], stream, ev, evList, nEvents);}
-	
-	HighResTimer timerTPCtracking[NSLICES][10];
+	virtual void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr);
+	int GPUStuck() {return mGPUStuck;}
+	int NStreams() {return mNStreams;}
+	void SetThreadCounts(RecoStep step);
+	void ResetDeviceProcessorTypes();
+	template <class T> void AddGPUEvents(T& events)
+	{
+		mEvents.emplace_back((void*) &events, sizeof(T) / sizeof(deviceEvent*));
+	}
+
+	virtual int RunStandalone() override;
 	
 protected:
-	template <class T> struct eventStruct
-	{
-		T selector[NSLICES];
-		T stream[GPUCA_GPUCA_MAX_STREAMS];
-		T init;
-		T constructor;
-	};
-	
 	struct AliGPUProcessorWorkers : public AliGPUProcessor
 	{
-		AliGPUWorkers* mWorkersProc = nullptr;
-		TPCFastTransform* fTpcTransform = nullptr;
-		char* fTpcTransformBuffer = nullptr;
-		o2::trd::TRDGeometryFlat* fTrdGeometry = nullptr;
+		AliGPUConstantMem* mWorkersProc = nullptr;
 		void* SetPointersDeviceProcessor(void* mem);
-		void* SetPointersFlatObjects(void* mem);
 		short mMemoryResWorkers = -1;
-		short mMemoryResFlat = -1;
 	};
-	
+
+	AliGPUReconstructionCPU(const AliGPUSettingsProcessing& cfg) : AliGPUReconstructionKernels(cfg) {}
+
 	virtual void SynchronizeStream(int stream) {}
 	virtual void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) {}
 	virtual bool IsEventDone(deviceEvent* evList, int nEvents = 1) {return true;}
 	virtual void RecordMarker(deviceEvent* ev, int stream) {}
-
-	AliGPUReconstructionCPU(const AliGPUSettingsProcessing& cfg) : AliGPUReconstructionKernels(cfg) {}
 	virtual void ActivateThreadContext() {}
 	virtual void ReleaseThreadContext() {}
 	virtual void SynchronizeGPU() {}
 	virtual void ReleaseEvent(deviceEvent* ev) {}
 	virtual int StartHelperThreads() {return 0;}
 	virtual int StopHelperThreads() {return 0;}
-	virtual void RunHelperThreads(int phase) {}
+	virtual void RunHelperThreads(int (AliGPUReconstructionHelpers::helperDelegateBase::* function)(int, int, AliGPUReconstructionHelpers::helperParam*), AliGPUReconstructionHelpers::helperDelegateBase* functionCls, int count) {}
 	virtual void WaitForHelperThreads() {}
 	virtual int HelperError(int iThread) const {return 0;}
 	virtual int HelperDone(int iThread) const {return 0;}
 	virtual void ResetHelperThreads(int helpers) {}
+	virtual void TransferMemoryInternal(AliGPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, void* src, void* dst);
 	
 	virtual void SetThreadCounts();
-	void SetThreadCounts(RecoStep step);
-	int ReadEvent(int iSlice, int threadId);
-	void WriteOutput(int iSlice, int threadId);
-	int GlobalTracking(int iSlice, int threadId);
 	
-	virtual int InitDevice();
-	virtual int ExitDevice();
+	virtual int InitDevice() override;
+	virtual int ExitDevice() override;
 	int GetThread();
 	
 	virtual int PrepareTextures() {return 0;}
 	virtual int DoStuckProtection(int stream, void* event) {return 0;}
-	virtual int PrepareProfile() {return 0;}
-	virtual int DoProfile() {return 0;}
+	
+	//Pointers to tracker classes
+	AliGPUProcessorWorkers mProcShadow; //Host copy of tracker objects that will be used on the GPU
+	AliGPUConstantMem* &mWorkersShadow = mProcShadow.mWorkersProc;
 	
 	unsigned int fBlockCount = 0;                 //Default GPU block count
 	unsigned int fThreadCount = 0;                //Default GPU thread count
@@ -183,30 +170,12 @@ protected:
 	int mThreadId = -1; //Thread ID that is valid for the local CUDA context
 	int mGPUStuck = 0;		//Marks that the GPU is stuck, skip future events
 	int mNStreams = 1;
-	eventStruct<void*> mEvents;
 	
 	AliGPUConstantMem* mDeviceConstantMem = nullptr;
-	AliGPUProcessorWorkers mProcShadow; //Host copy of tracker objects that will be used on the GPU
-	AliGPUProcessorWorkers mProcDevice; //tracker objects that will be used on the GPU
-	AliGPUWorkers* &mWorkersShadow = mProcShadow.mWorkersProc;
-	AliGPUWorkers* &mWorkersDevice = mProcDevice.mWorkersProc;
+	std::vector<std::pair<deviceEvent*, size_t>> mEvents;
 	
-#ifdef __ROOT__ //ROOT5 BUG: cint doesn't do volatile
-#define volatile
-#endif
-	volatile int fSliceOutputReady;
-	volatile char fSliceLeftGlobalReady[NSLICES];
-	volatile char fSliceRightGlobalReady[NSLICES];
-#ifdef __ROOT__
-#undef volatile
-#endif
-	std::array<char, NSLICES> fGlobalTrackingDone;
-	std::array<char, NSLICES> fWriteOutputDone;
-
 private:
 	void TransferMemoryResourcesHelper(AliGPUProcessor* proc, int stream, bool all, bool toGPU);
-	int RunTPCTrackingSlices_internal();
-	std::atomic_flag mLockAtomic = ATOMIC_FLAG_INIT;
 };
 
 #endif
