@@ -141,14 +141,14 @@ void AliGPUTPCSliceData::SetClusterData(const AliGPUTPCClusterData *data, int nC
 
 void AliGPUTPCSliceData::SetMaxData()
 {
-	int hitMemCount = GPUCA_ROW_COUNT * sizeof(GPUCA_GPUCA_ROWALIGNMENT) + fNumberOfHits;
+	int hitMemCount = GPUCA_ROW_COUNT * sizeof(GPUCA_ROWALIGNMENT) + fNumberOfHits;
 	const unsigned int kVectorAlignment = 256;
-	fNumberOfHitsPlusAlign = nextMultipleOf<(kVectorAlignment > sizeof(GPUCA_GPUCA_ROWALIGNMENT) ? kVectorAlignment : sizeof(GPUCA_GPUCA_ROWALIGNMENT)) / sizeof(int)>(hitMemCount);
+	fNumberOfHitsPlusAlign = nextMultipleOf<(kVectorAlignment > sizeof(GPUCA_ROWALIGNMENT) ? kVectorAlignment : sizeof(GPUCA_ROWALIGNMENT)) / sizeof(int)>(hitMemCount);
 }
 
 void* AliGPUTPCSliceData::SetPointersInput(void* mem)
 {
-	const int firstHitInBinSize = (23 + sizeof(GPUCA_GPUCA_ROWALIGNMENT) / sizeof(int)) * GPUCA_ROW_COUNT + 4 * fNumberOfHits + 3;
+	const int firstHitInBinSize = (23 + sizeof(GPUCA_ROWALIGNMENT) / sizeof(int)) * GPUCA_ROW_COUNT + 4 * fNumberOfHits + 3;
 	computePointerWithAlignment(mem, fHitData, fNumberOfHitsPlusAlign);
 	computePointerWithAlignment(mem, fFirstHitInBin, firstHitInBinSize);
 	if (mRec->GetRecoStepsGPU() & AliGPUReconstruction::RecoStep::TPCMerging)
@@ -282,7 +282,7 @@ int AliGPUTPCSliceData::InitFromClusterData()
 		row.fHstepZi = 1.f;
 	}
 
-	vecpod<AliGPUTPCHit> binSortedHits(fNumberOfHits + sizeof(GPUCA_GPUCA_ROWALIGNMENT));
+	vecpod<AliGPUTPCHit> binSortedHits(fNumberOfHits + sizeof(GPUCA_ROWALIGNMENT));
 
 	int gridContentOffset = 0;
 	int hitOffset = 0;
@@ -295,7 +295,7 @@ int AliGPUTPCSliceData::InitFromClusterData()
 		AliGPUTPCRow &row = fRows[rowIndex];
 		row.fNHits = NumberOfClustersInRow[rowIndex];
 		row.fHitNumberOffset = hitOffset;
-		hitOffset += nextMultipleOf<sizeof(GPUCA_GPUCA_ROWALIGNMENT) / sizeof(unsigned short)>(NumberOfClustersInRow[rowIndex]);
+		hitOffset += nextMultipleOf<sizeof(GPUCA_ROWALIGNMENT) / sizeof(unsigned short)>(NumberOfClustersInRow[rowIndex]);
 
 		row.fFirstHitInBinOffset = gridContentOffset;
 
@@ -310,7 +310,7 @@ int AliGPUTPCSliceData::InitFromClusterData()
 			return (1);
 		}
 
-		int binCreationMemorySizeNew = numberOfBins * 2 + 6 + row.fNHits + sizeof(GPUCA_GPUCA_ROWALIGNMENT) / sizeof(unsigned short) * numberOfRows + 1;
+		int binCreationMemorySizeNew = numberOfBins * 2 + 6 + row.fNHits + sizeof(GPUCA_ROWALIGNMENT) / sizeof(unsigned short) * numberOfRows + 1;
 		if (binCreationMemorySizeNew > binCreationMemorySize)
 		{
 			binCreationMemorySize = binCreationMemorySizeNew;
@@ -379,7 +379,7 @@ int AliGPUTPCSliceData::InitFromClusterData()
 		gridContentOffset += nn;
 
 		//Make pointer aligned
-		gridContentOffset = nextMultipleOf<sizeof(GPUCA_GPUCA_ROWALIGNMENT) / sizeof(calink)>(gridContentOffset);
+		gridContentOffset = nextMultipleOf<sizeof(GPUCA_ROWALIGNMENT) / sizeof(calink)>(gridContentOffset);
 	}
 
 	delete[] YZData;

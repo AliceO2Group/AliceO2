@@ -26,6 +26,7 @@
 
 #include "AliGPUTPCGlobalMergerComponent.h"
 #include "AliGPUReconstruction.h"
+#include "AliGPUChainTracking.h"
 #include "AliGPUTPCSliceOutput.h"
 
 #include "AliGPUTPCDef.h"
@@ -53,15 +54,15 @@ using namespace std;
 // ROOT macro for the implementation of ROOT specific class methods
 ClassImp( AliGPUTPCGlobalMergerComponent )
 
-const AliGPUReconstruction* AliGPUTPCGlobalMergerComponent::fgCurrentMergerReconstruction = NULL;
+const AliGPUChainTracking* AliGPUTPCGlobalMergerComponent::fgCurrentMergerReconstruction = NULL;
 
 AliGPUTPCGlobalMergerComponent::AliGPUTPCGlobalMergerComponent()
-: AliHLTProcessor(), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fNWays(1), fNWaysOuter(0), fNoClear(false), fBenchmark("GlobalMerger"), fRec(NULL)
+: AliHLTProcessor(), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fNWays(1), fNWaysOuter(0), fNoClear(false), fBenchmark("GlobalMerger"), fRec(NULL), fChain(NULL)
 {
   // see header file for class documentation
 }
 
-AliGPUTPCGlobalMergerComponent::AliGPUTPCGlobalMergerComponent( const AliGPUTPCGlobalMergerComponent & ):AliHLTProcessor(), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fNWays(1), fNWaysOuter(0), fNoClear(false), fBenchmark("GlobalMerger"), fRec(NULL)
+AliGPUTPCGlobalMergerComponent::AliGPUTPCGlobalMergerComponent( const AliGPUTPCGlobalMergerComponent & ):AliHLTProcessor(), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fNWays(1), fNWaysOuter(0), fNoClear(false), fBenchmark("GlobalMerger"), fRec(NULL), fChain(NULL)
 {
 // dummy
 }
@@ -280,6 +281,7 @@ int AliGPUTPCGlobalMergerComponent::Configure( const char* cdbEntry, const char*
 
   fRec = AliGPUReconstruction::CreateInstance("CPU", true);
   if (fRec == NULL) return -EINVAL;
+  fChain = fRec->AddChain<AliGPUChainTracking>();
 
   // Initialize the merger
 
@@ -293,9 +295,9 @@ int AliGPUTPCGlobalMergerComponent::Configure( const char* cdbEntry, const char*
   rec.NWaysOuter = fNWaysOuter;
   rec.NonConsecutiveIDs = true;
   fRec->SetSettings(&ev, &rec, &devProc);
-  fRec->LoadClusterErrors();
+  fChain->LoadClusterErrors();
   fRec->Init();
-  fRec->GetTPCMerger().OverrideSliceTracker(NULL);
+  fChain->GetTPCMerger().OverrideSliceTracker(NULL);
 
   return 0;
 }
@@ -330,7 +332,7 @@ int AliGPUTPCGlobalMergerComponent::Reconfigure( const char* cdbEntry, const cha
 int AliGPUTPCGlobalMergerComponent::DoDeinit()
 {
   // see header file for class documentation
-  if (fRec == fgCurrentMergerReconstruction) fgCurrentMergerReconstruction = NULL;
+  if (fChain == fgCurrentMergerReconstruction) fgCurrentMergerReconstruction = NULL;
   delete fRec;
   fRec = NULL;
 
@@ -356,7 +358,7 @@ int AliGPUTPCGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &evt
   fBenchmark.StartNewEvent();
   fBenchmark.Start(0);
 
-  fRec->GetTPCMerger().Clear();
+  fChain->GetTPCMerger().Clear();
 
   const AliHLTComponentBlockData *const blocksEnd = blocks + evtData.fBlockCnt;
   for ( const AliHLTComponentBlockData *block = blocks; block < blocksEnd; ++block ) {
@@ -381,10 +383,10 @@ int AliGPUTPCGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &evt
                   block->fSpecification, DataType2Text( block->fDataType ).c_str() );
     }
     AliGPUTPCSliceOutput *sliceOut =  reinterpret_cast<AliGPUTPCSliceOutput *>( block->fPtr );
-    fRec->GetTPCMerger().SetSliceData( slice, sliceOut );
+    fChain->GetTPCMerger().SetSliceData( slice, sliceOut );
   }
   fBenchmark.Start(1);
-  fRec->RunTPCTrackingMerger();
+  fChain->RunTPCTrackingMerger();
   fBenchmark.Stop(1);
 
   // Fill output
@@ -394,13 +396,13 @@ int AliGPUTPCGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &evt
       AliHLTExternalTrackParam* currOutTrack = outPtr->fTracklets;
       mySize =   ( ( AliHLTUInt8_t * )currOutTrack ) -  ( ( AliHLTUInt8_t * )outputPtr );
       outPtr->fCount = 0;
-      int nTracks = fRec->GetTPCMerger().NOutputTracks();
+      int nTracks = fChain->GetTPCMerger().NOutputTracks();
 
       for ( int itr = 0; itr < nTracks; itr++ ) {
 
 	// convert AliGPUTPCGMMergedTrack to AliHLTTrack
 	
-	const AliGPUTPCGMMergedTrack &track = fRec->GetTPCMerger().OutputTracks()[ itr ];
+	const AliGPUTPCGMMergedTrack &track = fChain->GetTPCMerger().OutputTracks()[ itr ];
 	if( !track.OK() ) continue;
 	unsigned int dSize = sizeof( AliHLTExternalTrackParam ) + track.NClusters() * sizeof( unsigned int );
 	
@@ -434,8 +436,8 @@ int AliGPUTPCGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &evt
 	currOutTrack->fNPoints = 0;
 	for ( int i = 0; i < track.NClusters(); i++ )
 	{
-	  if (fRec->GetTPCMerger().Clusters()[track.FirstClusterRef() + i].fState & AliGPUTPCGMMergedTrackHit::flagReject) continue;
-	  currOutTrack->fPointIDs[currOutTrack->fNPoints++] = fRec->GetTPCMerger().Clusters()[track.FirstClusterRef() + i].fNum;
+	  if (fChain->GetTPCMerger().Clusters()[track.FirstClusterRef() + i].fState & AliGPUTPCGMMergedTrackHit::flagReject) continue;
+	  currOutTrack->fPointIDs[currOutTrack->fNPoints++] = fChain->GetTPCMerger().Clusters()[track.FirstClusterRef() + i].fNum;
 	}
 	dSize = sizeof( AliHLTExternalTrackParam ) + currOutTrack->fNPoints * sizeof( unsigned int );
 	
@@ -463,10 +465,10 @@ int AliGPUTPCGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &evt
       AliHLTExternalTrackParam* currOutTrack = outPtr->fTracklets;
       newSize =   ( ( AliHLTUInt8_t * )currOutTrack ) -  ( outputPtr + size );
       outPtr->fCount = 0;
-      int nTracks = fRec->GetTPCMerger().NOutputTracks();
+      int nTracks = fChain->GetTPCMerger().NOutputTracks();
 
       for ( int itr = 0; itr < nTracks; itr++ ) {
-        const AliGPUTPCGMMergedTrack &track = fRec->GetTPCMerger().OutputTracks()[ itr ];
+        const AliGPUTPCGMMergedTrack &track = fChain->GetTPCMerger().OutputTracks()[ itr ];
         if( !track.OK() ) continue;
         unsigned int dSize = sizeof( AliHLTExternalTrackParam );
         
@@ -516,15 +518,15 @@ int AliGPUTPCGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &evt
       size = resultData.fSize;
     }
 
-    HLTInfo( "CAGlobalMerger:: output %d tracks / %d hits", fRec->GetTPCMerger().NOutputTracks(), fRec->GetTPCMerger().NOutputTrackClusters() );
+    HLTInfo( "CAGlobalMerger:: output %d tracks / %d hits", fChain->GetTPCMerger().NOutputTracks(), fChain->GetTPCMerger().NOutputTrackClusters() );
 
     if (fNoClear)
     {
-        fgCurrentMergerReconstruction = fRec;
+        fgCurrentMergerReconstruction = fChain;
     }
     else
     {
-        fRec->GetTPCMerger().Clear();
+        fChain->GetTPCMerger().Clear();
     }
 
   fBenchmark.Stop(0);

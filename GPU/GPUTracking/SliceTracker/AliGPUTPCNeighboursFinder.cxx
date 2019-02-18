@@ -156,14 +156,14 @@ template <> GPUd() void AliGPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, in
 		{
 
 			// coordinates of the hit in the current row
-#if defined(GPUCA_GPUCA_TEXTURE_FETCH_NEIGHBORS)
+#if defined(GPUCA_TEXTURE_FETCH_NEIGHBORS)
 			cahit2 tmpval = tex1Dfetch(gAliTexRefu2, ((char *) tracker.Data().HitData() - tracker.Data().GPUTextureBase()) / sizeof(cahit2) + row.HitNumberOffset() + ih);
 			const float y = y0 + tmpval.x * stepY;
 			const float z = z0 + tmpval.y * stepZ;
 #else
 			const float y = y0 + tracker.HitDataY(row, ih) * stepY;
 			const float z = z0 + tracker.HitDataZ(row, ih) * stepZ;
-#endif //GPUCA_GPUCA_TEXTURE_FETCH_NEIGHBORS
+#endif //GPUCA_TEXTURE_FETCH_NEIGHBORS
 
 #if ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
 #if defined(GPUCA_GPUCODE)
@@ -173,13 +173,13 @@ template <> GPUd() void AliGPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, in
 			GPUsharedref() calink *neighUp = s.fB;
 			GPUsharedref() float2 *yzUp = s.fA;
 #endif
-#if defined(GPUCA_GPUCODE) & GPUCA_GPUCA_MAXN > ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP
-			calink neighUp2[GPUCA_GPUCA_MAXN - ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP];
-			float2 yzUp2[GPUCA_GPUCA_MAXN - ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP];
+#if defined(GPUCA_GPUCODE) & GPUCA_MAXN > ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP
+			calink neighUp2[GPUCA_MAXN - ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP];
+			float2 yzUp2[GPUCA_MAXN - ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP];
 #endif
 #else
-			calink neighUp[GPUCA_GPUCA_MAXN];
-			float2 yzUp[GPUCA_GPUCA_MAXN];
+			calink neighUp[GPUCA_MAXN];
+			float2 yzUp[GPUCA_MAXN];
 #endif //ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
 
 			int nNeighUp = 0;
@@ -195,7 +195,7 @@ template <> GPUd() void AliGPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, in
 				AliGPUTPCHit h;
 				int i = areaUp.GetNext(tracker, rowUp, tracker.Data(), &h);
 				if (i < 0) break;
-#if defined(GPUCA_GPUCODE) & GPUCA_GPUCA_MAXN > ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP & ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
+#if defined(GPUCA_GPUCODE) & GPUCA_MAXN > ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP & ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
 				if (nNeighUp >= ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP)
 				{
 					neighUp2[nNeighUp - ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP] = (calink) i;
@@ -207,7 +207,7 @@ template <> GPUd() void AliGPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, in
 					neighUp[nNeighUp] = (calink) i;
 					yzUp[nNeighUp] = CAMath::MakeFloat2(s.fDnDx * (h.Y() - y), s.fDnDx * (h.Z() - z));
 				}
-				if (++nNeighUp >= GPUCA_GPUCA_MAXN)
+				if (++nNeighUp >= GPUCA_MAXN)
 				{
 					//printf("Neighbors buffer ran full...\n");
 					break;
@@ -233,7 +233,7 @@ template <> GPUd() void AliGPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, in
 
 					for (int iUp = 0; iUp < nNeighUp; iUp++)
 					{
-#if defined(GPUCA_GPUCODE) & GPUCA_GPUCA_MAXN > ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP & ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
+#if defined(GPUCA_GPUCODE) & GPUCA_MAXN > ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP & ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
 						float2 yzup = iUp >= ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP ? yzUp2[iUp - ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP] : yzUp[iUp];
 #else
 						float2 yzup = yzUp[iUp];
@@ -253,7 +253,7 @@ template <> GPUd() void AliGPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, in
 
 				if (bestD <= chi2Cut)
 				{
-#if defined(GPUCA_GPUCODE) & GPUCA_GPUCA_MAXN > ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP & ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
+#if defined(GPUCA_GPUCODE) & GPUCA_MAXN > ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP & ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
 					linkUp = bestUp >= ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP ? neighUp2[bestUp - ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP] : neighUp[bestUp];
 #else
 					linkUp = neighUp[bestUp];

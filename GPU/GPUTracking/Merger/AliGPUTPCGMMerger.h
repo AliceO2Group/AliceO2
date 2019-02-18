@@ -28,6 +28,7 @@ class AliGPUTPCSliceOutput;
 class AliGPUTPCGMCluster;
 class AliGPUTPCGMTrackParam;
 class AliGPUTPCTracker;
+class AliGPUChainTracking;
 
 /**
  * @class AliGPUTPCGMMerger
@@ -47,6 +48,7 @@ public:
 	void* SetPointersGPURefit(void* mem);
     
 	void OverrideSliceTracker(AliGPUTPCTracker* trk) { fSliceTrackers = trk; }
+	void SetTrackingChain(AliGPUChainTracking* c) {fChainTracking = c;}
 
 	void SetSliceData(int index, const AliGPUTPCSliceOutput *SliceData);
 	int CheckSlices();
@@ -146,6 +148,7 @@ public:
 	int fBorderCETracks[2][fgkNSlices];
 
 	const AliGPUTPCTracker *fSliceTrackers;
+	AliGPUChainTracking* fChainTracking;        // Tracking chain with access to input data / parameters
 };
 
 #endif //ALIHLTTPCGMMERGER_H

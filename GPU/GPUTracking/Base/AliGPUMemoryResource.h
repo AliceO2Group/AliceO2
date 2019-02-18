@@ -27,6 +27,7 @@ public:
 	void* PtrDevice() {return mPtrDevice;}
 	size_t Size() const {return mSize;}
 	const char* Name() const {return mName;}
+	MemoryType Type() const {return mType;}
 #endif
 
 private:

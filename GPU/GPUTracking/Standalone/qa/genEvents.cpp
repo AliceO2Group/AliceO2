@@ -22,7 +22,7 @@
 #include "AliGPUTPCGMPhysicalTrackModel.h"
 #include "AliGPUTPCGMPropagator.h"
 #include "AliGPUTPCGMMerger.h"
-#include "AliGPUReconstruction.h"
+#include "AliGPUChainTracking.h"
  
 #include "../utils/qconfig.h"
 
@@ -269,9 +269,9 @@ int genEvents::GenerateEvent(const AliGPUParam& sliceParam, char* filename)
   
   std::vector<AliHLTTPCClusterMCLabel> labels;
   
-  std::unique_ptr<AliGPUTPCClusterData> clSlices[AliGPUReconstruction::NSLICES];
+  std::unique_ptr<AliGPUTPCClusterData> clSlices[AliGPUChainTracking::NSLICES];
 
-  for (int iSector = 0;iSector < (int) AliGPUReconstruction::NSLICES;iSector++) //HLT Sector numbering, sectors go from 0 to 35, all spanning all rows from 0 to 158.
+  for (int iSector = 0;iSector < (int) AliGPUChainTracking::NSLICES;iSector++) //HLT Sector numbering, sectors go from 0 to 35, all spanning all rows from 0 to 158.
     {
       int nNumberOfHits = 0;
       for( unsigned int i=0; i<vClusters.size(); i++ ) if( vClusters[i].fSector==iSector ) nNumberOfHits++;
@@ -318,7 +318,7 @@ int genEvents::GenerateEvent(const AliGPUParam& sliceParam, char* filename)
   return(0);
 }
 
-void genEvents::RunEventGenerator(AliGPUReconstruction* rec)
+void genEvents::RunEventGenerator(AliGPUChainTracking* rec)
 {
     std::unique_ptr<genEvents> gen(new genEvents(rec));
     char dirname[256];

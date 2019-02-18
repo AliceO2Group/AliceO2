@@ -209,7 +209,7 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	GPUhd() GPUglobalref() StructGPUParameters* GPUParameters() const {return(&fCommonMem->fGPUParameters);}
 	GPUhd() MakeType(MEM_LG(StructGPUParametersConst)*) GPUParametersConst() {return(&fGPUParametersConst);}
 	GPUhd() MakeType(MEM_LG(const StructGPUParametersConst)*) GetGPUParametersConst() const {return(&fGPUParametersConst);}
-	GPUhd() void SetGPUTextureBase(void* val) { fData.SetGPUTextureBase(val); }
+	GPUhd() void SetGPUTextureBase(const void* val) { fData.SetGPUTextureBase(val); }
 
 	struct trackSortData
 	{

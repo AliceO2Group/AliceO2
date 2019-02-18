@@ -21,6 +21,7 @@
 #endif
 
 class AliGPUReconstruction;
+class AliGPUChainTracking;
 class AliGPUO2InterfaceConfiguration;
 class AliGPUDisplayBackendGlfw;
 #include "AliGPUTPCGMMergedTrack.h"
@@ -49,11 +50,12 @@ private:
 	AliGPUTPCO2Interface(const AliGPUTPCO2Interface&);
 	AliGPUTPCO2Interface &operator=( const AliGPUTPCO2Interface& );
 	
-	bool fInitialized;
-	bool fDumpEvents;
-	bool fContinuous;
+	bool fInitialized = false;
+	bool fDumpEvents = false;
+	bool fContinuous = false;
 	
 	std::unique_ptr<AliGPUReconstruction> mRec;
+	AliGPUChainTracking* mChain = nullptr;
 	std::unique_ptr<AliGPUO2InterfaceConfiguration> mConfig;
 	std::unique_ptr<AliGPUDisplayBackendGlfw> mDisplayBackend;
 };

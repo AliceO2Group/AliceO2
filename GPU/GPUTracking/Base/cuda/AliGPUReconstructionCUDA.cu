@@ -10,7 +10,7 @@ __constant__ uint4 gGPUConstantMemBuffer[(sizeof(AliGPUConstantMem) + sizeof(uin
 __constant__ char& gGPUConstantMemBufferChar = (char&) gGPUConstantMemBuffer;
 __constant__ AliGPUConstantMem& gGPUConstantMem = (AliGPUConstantMem&) gGPUConstantMemBufferChar;
 
-#ifdef GPUCA_GPUCA_USE_TEXTURES
+#ifdef GPUCA_USE_TEXTURES
 texture<cahit2, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu2;
 texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
 #endif
@@ -59,12 +59,11 @@ AliGPUReconstructionCUDABackend::AliGPUReconstructionCUDABackend(const AliGPUSet
 {
 	mInternals = new AliGPUReconstructionCUDAInternals;
 	mProcessingSettings.deviceType = CUDA;
-	mITSTrackerTraits.reset(new o2::ITS::TrackerTraitsNV);
 }
 
 AliGPUReconstructionCUDABackend::~AliGPUReconstructionCUDABackend()
 {
-	mITSTrackerTraits.reset(nullptr); //Make sure we destroy the ITS tracker before we exit CUDA
+	mChains.clear(); //Make sure we destroy the ITS tracker before we exit CUDA
 	GPUFailedMsgI(cudaDeviceReset());
 	delete mInternals;
 }
@@ -72,6 +71,12 @@ AliGPUReconstructionCUDABackend::~AliGPUReconstructionCUDABackend()
 AliGPUReconstruction* AliGPUReconstruction_Create_CUDA(const AliGPUSettingsProcessing& cfg)
 {
 	return new AliGPUReconstructionCUDA(cfg);
+}
+
+void AliGPUReconstructionCUDABackend::GetITSTraits(std::unique_ptr<o2::ITS::TrackerTraits>& trackerTraits, std::unique_ptr<o2::ITS::VertexerTraits>& vertexerTraits)
+{
+	trackerTraits.reset(new o2::ITS::TrackerTraitsNV);
+	vertexerTraits.reset(new o2::ITS::VertexerTraits);
 }
 
 int AliGPUReconstructionCUDABackend::InitDevice_Runtime()
@@ -172,10 +177,10 @@ int AliGPUReconstructionCUDABackend::InitDevice_Runtime()
 		return(1);
 	}
 
-#ifdef GPUCA_GPUCA_USE_TEXTURES
-	if (GPUCA_GPUCA_SLICE_DATA_MEMORY * NSLICES > (size_t) cudaDeviceProp.maxTexture1DLinear)
+#ifdef GPUCA_USE_TEXTURES
+	if (GPUCA_SLICE_DATA_MEMORY * NSLICES > (size_t) cudaDeviceProp.maxTexture1DLinear)
 	{
-		GPUError("Invalid maximum texture size of device: %lld < %lld\n", (long long int) cudaDeviceProp.maxTexture1DLinear, (long long int) (GPUCA_GPUCA_SLICE_DATA_MEMORY * NSLICES));
+		GPUError("Invalid maximum texture size of device: %lld < %lld\n", (long long int) cudaDeviceProp.maxTexture1DLinear, (long long int) (GPUCA_SLICE_DATA_MEMORY * NSLICES));
 		return(1);
 	}
 #endif
@@ -205,8 +210,8 @@ int AliGPUReconstructionCUDABackend::InitDevice_Runtime()
 
 	if (mDeviceProcessingSettings.debugLevel >= 1)
 	{
-		memset(mHostMemoryBase, 0, mHostMemorySize);
-		if (GPUFailedMsgI(cudaMemset(mDeviceMemoryBase, 143, mDeviceMemorySize)))
+		memset(mHostMemoryBase, 0xDD, mHostMemorySize);
+		if (GPUFailedMsgI(cudaMemset(mDeviceMemoryBase, 0xDD, mDeviceMemorySize)))
 		{
 			GPUError("Error during CUDA memset");
 			GPUFailedMsgI(cudaDeviceReset());
@@ -233,14 +238,17 @@ int AliGPUReconstructionCUDABackend::InitDevice_Runtime()
 	}
 	mDeviceConstantMem = (AliGPUConstantMem*) devPtrConstantMem;
 	
-	cudaEvent_t *events = (cudaEvent_t*) &mEvents;
-	for (unsigned int i = 0;i < sizeof(mEvents) / sizeof(cudaEvent_t);i++)
+	for (unsigned int i = 0;i < mEvents.size();i++)
 	{
-		if (GPUFailedMsgI(cudaEventCreate(&events[i])))
+		cudaEvent_t *events = (cudaEvent_t*) mEvents[i].first;
+		for (unsigned int j = 0;j < mEvents[i].second;j++)
 		{
-			GPUError("Error creating event");
-			GPUFailedMsgI(cudaDeviceReset());
-			return 1;
+			if (GPUFailedMsgI(cudaEventCreate(&events[j])))
+			{
+				GPUError("Error creating event");
+				GPUFailedMsgI(cudaDeviceReset());
+				return 1;
+			}
 		}
 	}
 
@@ -268,10 +276,13 @@ int AliGPUReconstructionCUDABackend::ExitDevice_Runtime()
 	GPUFailedMsgI(cudaFreeHost(mHostMemoryBase));
 	mHostMemoryBase = nullptr;
 	
-	cudaEvent_t *events = (cudaEvent_t*) &mEvents;
-	for (unsigned int i = 0;i < sizeof(mEvents) / sizeof(cudaEvent_t);i++)
+	for (unsigned int i = 0;i < mEvents.size();i++)
 	{
-		GPUFailedMsgI(cudaEventDestroy(events[i]));
+		cudaEvent_t *events = (cudaEvent_t*) mEvents[i].first;
+		for (unsigned int j = 0;j < mEvents[i].second;j++)
+		{
+			GPUFailedMsgI(cudaEventDestroy(events[j]));
+		}
 	}
 
 	if (GPUFailedMsgI(cudaDeviceReset()))
@@ -378,97 +389,24 @@ int AliGPUReconstructionCUDABackend::GPUDebug(const char* state, int stream)
 
 int AliGPUReconstructionCUDABackend::PrepareTextures()
 {
-#ifdef GPUCA_GPUCA_USE_TEXTURES
+#ifdef GPUCA_USE_TEXTURES
 	cudaChannelFormatDesc channelDescu2 = cudaCreateChannelDesc<cahit2>();
 	size_t offset;
-	GPUFailedMsg(cudaBindTexture(&offset, &gAliTexRefu2, mWorkersShadow->tpcTrackers[0].Data().Memory(), &channelDescu2, NSLICES * GPUCA_GPUCA_SLICE_DATA_MEMORY));
+	GPUFailedMsg(cudaBindTexture(&offset, &gAliTexRefu2, mWorkersShadow->tpcTrackers[0].Data().Memory(), &channelDescu2, NSLICES * GPUCA_SLICE_DATA_MEMORY));
 	cudaChannelFormatDesc channelDescu = cudaCreateChannelDesc<calink>();
-	GPUFailedMsg(cudaBindTexture(&offset, &gAliTexRefu, mWorkersShadow->tpcTrackers[0].Data().Memory(), &channelDescu, NSLICES * GPUCA_GPUCA_SLICE_DATA_MEMORY));
+	GPUFailedMsg(cudaBindTexture(&offset, &gAliTexRefu, mWorkersShadow->tpcTrackers[0].Data().Memory(), &channelDescu, NSLICES * GPUCA_SLICE_DATA_MEMORY));
 #endif
 	return(0);
 }
 
-int AliGPUReconstructionCUDABackend::PrepareProfile()
-{
-#ifdef GPUCA_GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE
-	char* tmpMem;
-	GPUFailedMsg(cudaMalloc(&tmpMem, 100000000));
-	mWorkersShadow->tpcTrackers[0].fStageAtSync = tmpMem;
-	GPUFailedMsg(cudaMemset(mWorkersShadow->tpcTrackers[0].StageAtSync(), 0, 100000000));
-#endif
-	return 0;
-}
-
-int AliGPUReconstructionCUDABackend::DoProfile()
-{
-#ifdef GPUCA_GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE
-	char* stageAtSync = (char*) malloc(100000000);
-	GPUFailedMsg(cudaMemcpy(stageAtSync, mWorkersShadow->tpcTrackers[0].StageAtSync(), 100 * 1000 * 1000, cudaMemcpyDeviceToHost));
-	cudaFree(mWorkersShadow->tpcTrackers[0].StageAtSync());
-
-	FILE* fp = fopen("profile.txt", "w+");
-	FILE* fp2 = fopen("profile.bmp", "w+b");
-	int nEmptySync = 0, fEmpty;
-
-	const int bmpheight = 8192;
-	BITMAPFILEHEADER bmpFH;
-	BITMAPINFOHEADER bmpIH;
-	ZeroMemory(&bmpFH, sizeof(bmpFH));
-	ZeroMemory(&bmpIH, sizeof(bmpIH));
-
-	bmpFH.bfType = 19778; //"BM"
-	bmpFH.bfSize = sizeof(bmpFH) + sizeof(bmpIH) + (fConstructorBlockCount * GPUCA_GPUCA_THREAD_COUNT_CONSTRUCTOR / 32 * 33 - 1) * bmpheight ;
-	bmpFH.bfOffBits = sizeof(bmpFH) + sizeof(bmpIH);
-
-	bmpIH.biSize = sizeof(bmpIH);
-	bmpIH.biWidth = fConstructorBlockCount * GPUCA_GPUCA_THREAD_COUNT_CONSTRUCTOR / 32 * 33 - 1;
-	bmpIH.biHeight = bmpheight;
-	bmpIH.biPlanes = 1;
-	bmpIH.biBitCount = 32;
-
-	fwrite(&bmpFH, 1, sizeof(bmpFH), fp2);
-	fwrite(&bmpIH, 1, sizeof(bmpIH), fp2);
-
-	for (int i = 0;i < bmpheight * fConstructorBlockCount * GPUCA_GPUCA_THREAD_COUNT_CONSTRUCTOR;i += fConstructorBlockCount * GPUCA_GPUCA_THREAD_COUNT_CONSTRUCTOR)
-	{
-		fEmpty = 1;
-		for (int j = 0;j < fConstructorBlockCount * GPUCA_GPUCA_THREAD_COUNT_CONSTRUCTOR;j++)
-		{
-			fprintf(fp, "%d\t", stageAtSync[i + j]);
-			int color = 0;
-			if (stageAtSync[i + j] == 1) color = RGB(255, 0, 0);
-			if (stageAtSync[i + j] == 2) color = RGB(0, 255, 0);
-			if (stageAtSync[i + j] == 3) color = RGB(0, 0, 255);
-			if (stageAtSync[i + j] == 4) color = RGB(255, 255, 0);
-			fwrite(&color, 1, sizeof(int), fp2);
-			if (j > 0 && j % 32 == 0)
-			{
-				color = RGB(255, 255, 255);
-				fwrite(&color, 1, 4, fp2);
-			}
-			if (stageAtSync[i + j]) fEmpty = 0;
-		}
-		fprintf(fp, "\n");
-		if (fEmpty) nEmptySync++;
-		else nEmptySync = 0;
-		//if (nEmptySync == GPUCA_GPUCA_SCHED_ROW_STEP + 2) break;
-	}
-
-	fclose(fp);
-	fclose(fp2);
-	free(stageAtSync);
-#endif
-	return 0;
-}
-
 void AliGPUReconstructionCUDABackend::SetThreadCounts()
 {
-	fThreadCount = GPUCA_GPUCA_THREAD_COUNT;
+	fThreadCount = GPUCA_THREAD_COUNT;
 	fBlockCount = mCoreCount;
-	fConstructorBlockCount = fBlockCount * (mDeviceProcessingSettings.trackletConstructorInPipeline ? 1 : GPUCA_GPUCA_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER);
-	fSelectorBlockCount = fBlockCount * GPUCA_GPUCA_BLOCK_COUNT_SELECTOR_MULTIPLIER;
-	fConstructorThreadCount = GPUCA_GPUCA_THREAD_COUNT_CONSTRUCTOR;
-	fSelectorThreadCount = GPUCA_GPUCA_THREAD_COUNT_SELECTOR;
-	fFinderThreadCount = GPUCA_GPUCA_THREAD_COUNT_FINDER;
-	fTRDThreadCount = GPUCA_GPUCA_THREAD_COUNT_TRD;
+	fConstructorBlockCount = fBlockCount * (mDeviceProcessingSettings.trackletConstructorInPipeline ? 1 : GPUCA_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER);
+	fSelectorBlockCount = fBlockCount * GPUCA_BLOCK_COUNT_SELECTOR_MULTIPLIER;
+	fConstructorThreadCount = GPUCA_THREAD_COUNT_CONSTRUCTOR;
+	fSelectorThreadCount = GPUCA_THREAD_COUNT_SELECTOR;
+	fFinderThreadCount = GPUCA_THREAD_COUNT_FINDER;
+	fTRDThreadCount = GPUCA_THREAD_COUNT_TRD;
 }

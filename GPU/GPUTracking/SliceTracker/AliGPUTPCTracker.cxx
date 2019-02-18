@@ -100,7 +100,7 @@ void* AliGPUTPCTracker::SetPointersScratch(void* mem)
 	}
 	if (mRec->IsGPU())
 	{
-		computePointerWithAlignment(mem, fTrackletTmpStartHits, GPUCA_ROW_COUNT * GPUCA_GPUCA_MAX_ROWSTARTHITS);
+		computePointerWithAlignment(mem, fTrackletTmpStartHits, GPUCA_ROW_COUNT * GPUCA_MAX_ROWSTARTHITS);
 		computePointerWithAlignment(mem, fRowStartHitCountOffset, GPUCA_ROW_COUNT);
 	}
 	return mem;
@@ -158,12 +158,12 @@ GPUhd() void* AliGPUTPCTracker::SetPointersTrackHits(void* mem)
 void AliGPUTPCTracker::SetMaxData()
 {
 	fNMaxStartHits = fData.NumberOfHits();
-	fNMaxTracklets = GPUCA_GPUCA_MAX_TRACKLETS;
-	fNMaxTracks = GPUCA_GPUCA_MAX_TRACKS;
+	fNMaxTracklets = GPUCA_MAX_TRACKLETS;
+	fNMaxTracks = GPUCA_MAX_TRACKS;
 	fNMaxTrackHits = fData.NumberOfHits() + 1000;
 	if (mRec->IsGPU())
 	{
-		if (fNMaxStartHits > GPUCA_GPUCA_MAX_ROWSTARTHITS * GPUCA_ROW_COUNT) fNMaxStartHits = GPUCA_GPUCA_MAX_ROWSTARTHITS * GPUCA_ROW_COUNT;
+		if (fNMaxStartHits > GPUCA_MAX_ROWSTARTHITS * GPUCA_ROW_COUNT) fNMaxStartHits = GPUCA_MAX_ROWSTARTHITS * GPUCA_ROW_COUNT;
 	}
 }
 

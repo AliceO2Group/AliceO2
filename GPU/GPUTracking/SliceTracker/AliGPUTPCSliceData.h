@@ -128,7 +128,7 @@ public:
 
 	GPUhdi() GPUglobalref() GPUAtomic(int)* HitWeights() const {return(fHitWeights); }
 
-	GPUhdi() void SetGPUTextureBase(void* const val) {fGPUTextureBase = val;}
+	GPUhdi() void SetGPUTextureBase(const void* val) {fGPUTextureBase = val;}
 	GPUhdi() char* GPUTextureBase() const { return((char*) fGPUTextureBase); }
 	GPUhdi() char* GPUTextureBaseConst() const { return((char*) fGPUTextureBase); }
 
@@ -161,7 +161,7 @@ public:
     
 	float fMaxZ;
 
-	GPUglobalref() void *fGPUTextureBase;     // pointer to start of GPU texture
+	GPUglobalref() const void *fGPUTextureBase;     // pointer to start of GPU texture
 
 	GPUglobalref() MEM_GLOBAL(AliGPUTPCRow) *fRows;     // The row objects needed for most accessor functions
 

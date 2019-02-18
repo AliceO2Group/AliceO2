@@ -31,13 +31,13 @@ protected:
 	virtual bool IsEventDone(deviceEvent* evList, int nEvents = 1) override;
 	
 	virtual int PrepareTextures() override;
-	virtual int PrepareProfile() override;
-	virtual int DoProfile() override;
 	
 	virtual void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) override;
 	virtual void TransferMemoryInternal(AliGPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, void* src, void* dst) override;
 	virtual void ReleaseEvent(deviceEvent* ev) override;
 	virtual void RecordMarker(deviceEvent* ev, int stream) override;
+	
+	virtual void GetITSTraits(std::unique_ptr<o2::ITS::TrackerTraits>& trackerTraits, std::unique_ptr<o2::ITS::VertexerTraits>& vertexerTraits) override;
 	
 	template <class T, int I = 0, typename... Args> int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args);
 

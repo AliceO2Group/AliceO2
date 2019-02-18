@@ -1,18 +1,17 @@
 #ifndef ALIGPURECONSTRUCTIONTIMEFRAME_H
 #define ALIGPURECONSTRUCTIONTIMEFRAME_H
 
-#include "AliGPUReconstruction.h"
+#include "AliGPUChainTracking.h"
 #include <vector>
 #include <random>
 #include <tuple>
 
-class AliGPUReconstruction;
 namespace o2 { namespace TPC { struct ClusterNativeAccessFullTPC; struct ClusterNative; }}
 
 class AliGPUReconstructionTimeframe
 {
 public:
-	AliGPUReconstructionTimeframe(AliGPUReconstruction* rec, int (*read)(int), int nEvents);
+	AliGPUReconstructionTimeframe(AliGPUChainTracking* rec, int (*read)(int), int nEvents);
 	int LoadCreateTimeFrame(int iEvent);
 	int LoadMergedEvents(int iEvent);
 	int ReadEventShifted(int i, float shift, float minZ = -1e6, float maxZ = -1e6, bool silent = false);
@@ -23,7 +22,7 @@ private:
 	
 	void SetDisplayInformation(int iCol);
 
-	AliGPUReconstruction* mRec;
+	AliGPUChainTracking* mChain;
 	int (*ReadEvent)(int);
 	int nEventsInDirectory;
 	
@@ -46,7 +45,7 @@ private:
 	long long int eventStride;
 	int simBunchNoRepeatEvent;
 	std::vector<char> eventUsed;
-	std::vector<std::tuple<AliGPUReconstruction::InOutPointers, AliGPUReconstruction::InOutMemory, o2::TPC::ClusterNativeAccessFullTPC>> shiftedEvents;
+	std::vector<std::tuple<AliGPUChainTracking::InOutPointers, AliGPUChainTracking::InOutMemory, o2::TPC::ClusterNativeAccessFullTPC>> shiftedEvents;
 };
 
 #endif

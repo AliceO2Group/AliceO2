@@ -17,7 +17,7 @@
 #include "AliGPUQA.h"
 #include "AliGPUTPCDef.h"
 #include "AliGPUTPCSliceData.h"
-#include "AliGPUReconstruction.h"
+#include "AliGPUChainTracking.h"
 #include "AliGPUTPCTrack.h"
 #include "AliGPUTPCTracker.h"
 #include "AliGPUTPCGMMergedTrack.h"
@@ -81,7 +81,7 @@
 #define CHECK_CLUSTER_STATE() CHECK_CLUSTER_STATE_INIT() CHECK_CLUSTER_STATE_CHK_COUNT()
 #define CHECK_CLUSTER_STATE_NOCOUNT() CHECK_CLUSTER_STATE_INIT() CHECK_CLUSTER_STATE_CHK_NOCOUNT()
 
-static const AliGPUQA::configQA& AliGPUQA_GetConfig(AliGPUReconstruction* rec)
+static const AliGPUQA::configQA& AliGPUQA_GetConfig(AliGPUChainTracking* rec)
 {
 #if !defined(GPUCA_STANDALONE)
 	static AliGPUQA::configQA defaultConfig;
@@ -93,7 +93,7 @@ static const AliGPUQA::configQA& AliGPUQA_GetConfig(AliGPUReconstruction* rec)
 }
 
 
-AliGPUQA::AliGPUQA(AliGPUReconstruction* rec) : mRec(rec), config(AliGPUQA_GetConfig(rec))
+AliGPUQA::AliGPUQA(AliGPUChainTracking* rec) : mRec(rec), config(AliGPUQA_GetConfig(rec))
 {
 }
 
@@ -1031,7 +1031,7 @@ void AliGPUQA::RunQA(bool matchOnly)
 	if (config.csvDump)
 	{
 		int totalNCls = mRec->mIOPtrs.nMCLabelsTPC;
-		if (totalNCls == 0) for (unsigned int iSlice = 0; iSlice < AliGPUReconstruction::NSLICES; iSlice++) totalNCls += mRec->mIOPtrs.nClusterData[iSlice];
+		if (totalNCls == 0) for (unsigned int iSlice = 0; iSlice < AliGPUChainTracking::NSLICES; iSlice++) totalNCls += mRec->mIOPtrs.nClusterData[iSlice];
 
 		std::vector<float> clusterInfo(totalNCls);
 		memset(clusterInfo.data(), 0, clusterInfo.size() * sizeof(clusterInfo[0]));
@@ -1053,7 +1053,7 @@ void AliGPUQA::RunQA(bool matchOnly)
 		FILE* fp = fopen(fname, "w+");
 		fprintf(fp, "x;y;z;reconstructedPt;individualMomentum;individualTransverseMomentum;trackLabel1;trackLabel2;trackLabel3;removed\n\n");
 		int dumpClTot = 0, dumpClLeft = 0, dumpClRem = 0;
-		for (unsigned int iSlice = 0; iSlice < AliGPUReconstruction::NSLICES; iSlice++)
+		for (unsigned int iSlice = 0; iSlice < AliGPUChainTracking::NSLICES; iSlice++)
 		{
 			for (unsigned int i = 0; i < mRec->mIOPtrs.nClusterData[iSlice]; i++)
 			{

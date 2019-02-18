@@ -1,19 +1,19 @@
 #ifndef GENEVENTS_H
 #define GENEVENTS_H
 
-class AliGPUReconstruction;
+class AliGPUChainTracking;
 class AliGPUParam;
 class AliGPUTPCGMPhysicalTrackModel;
 #if !defined(BUILD_QA) || defined(_WIN32)
 class genEvents
 {
 public:
-	genEvents(AliGPUReconstruction* rec) {}
+	genEvents(AliGPUChainTracking* rec) {}
 	void InitEventGenerator() {}
 	int GenerateEvent(const AliGPUParam& sliceParam, char* filename) {return 1;}
 	void FinishEventGenerator() {}
 	
-	static void RunEventGenerator(AliGPUReconstruction* rec) {};
+	static void RunEventGenerator(AliGPUChainTracking* rec) {};
 };
 
 #else
@@ -21,12 +21,12 @@ public:
 class genEvents
 {
 public:
-	genEvents(AliGPUReconstruction* rec) : mRec(rec) {}
+	genEvents(AliGPUChainTracking* rec) : mRec(rec) {}
 	void InitEventGenerator();
 	int GenerateEvent(const AliGPUParam& sliceParam, char* filename);
 	void FinishEventGenerator();
 	
-	static void RunEventGenerator(AliGPUReconstruction* rec);
+	static void RunEventGenerator(AliGPUChainTracking* rec);
 
 private:
 	int GetSlice( double GlobalPhi );
@@ -52,7 +52,7 @@ private:
 	const double kSliceDAngle = kTwoPi/18.;
 	const double kSliceAngleOffset = kSliceDAngle/2;
 	
-	AliGPUReconstruction* mRec;
+	AliGPUChainTracking* mRec;
 };
 
 #endif

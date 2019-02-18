@@ -44,13 +44,13 @@ MEM_TEMPLATE() GPUd() void AliGPUTPCHitArea::Init(const MEM_TYPE(AliGPUTPCRow) &
 	fIz = bZmin;
 
 	// for given fIz (which is min atm.) get
-#ifdef GPUCA_GPUCA_TEXTURE_FETCH_NEIGHBORS
+#ifdef GPUCA_TEXTURE_FETCH_NEIGHBORS
 	fHitYfst = tex1Dfetch(gAliTexRefu, ((char *) slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(calink) + fIndYmin);
 	fHitYlst = tex1Dfetch(gAliTexRefu, ((char *) slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(calink) + fIndYmin + fBDY);
 #else
 	fHitYfst = slice.FirstHitInBin(row, fIndYmin);        // first and
 	fHitYlst = slice.FirstHitInBin(row, fIndYmin + fBDY); // last hit index in the bin
-#endif //GPUCA_GPUCA_TEXTURE_FETCH_NEIGHBORS
+#endif //GPUCA_TEXTURE_FETCH_NEIGHBORS
 	fIh = fHitYfst;
 }
 
@@ -79,7 +79,7 @@ MEM_TEMPLATE() GPUd() int AliGPUTPCHitArea::GetNext(GPUconstant() const MEM_CONS
 			// go to next z and start y from the min again
 			++fIz;
 			fIndYmin += fNy;
-#ifdef GPUCA_GPUCA_TEXTURE_FETCH_NEIGHBORS
+#ifdef GPUCA_TEXTURE_FETCH_NEIGHBORS
 			fHitYfst = tex1Dfetch(gAliTexRefu, ((char *) slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(calink) + fIndYmin);
 			fHitYlst = tex1Dfetch(gAliTexRefu, ((char *) slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(calink) + fIndYmin + fBDY);
 #else
@@ -89,7 +89,7 @@ MEM_TEMPLATE() GPUd() int AliGPUTPCHitArea::GetNext(GPUconstant() const MEM_CONS
 			fIh = fHitYfst;
 		}
 
-#ifdef GPUCA_GPUCA_TEXTURE_FETCH_NEIGHBORS
+#ifdef GPUCA_TEXTURE_FETCH_NEIGHBORS
 		cahit2 tmpval = tex1Dfetch(gAliTexRefu2, ((char *) slice.HitData(row) - slice.GPUTextureBaseConst()) / sizeof(cahit2) + fIh);
 		;
 		h->SetY(y0 + tmpval.x * stepY);

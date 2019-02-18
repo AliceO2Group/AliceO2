@@ -28,6 +28,7 @@
 #include "AliGPUTPCGMPolynomialFieldManager.h"
 #include "AliGPUTPCGMMerger.h"
 #include "AliGPUReconstruction.h"
+#include "AliGPUChainTracking.h"
 #include "AliGPUQA.h"
 
 #include "AliGPUCommonMath.h"
@@ -60,7 +61,7 @@ static constexpr int kMaxClusters = 1000;
 
 AliGPUTPCGMMerger::AliGPUTPCGMMerger() :
 	fField(),
-	fTrackLinks(NULL),
+	fTrackLinks(nullptr),
 	fNMaxSliceTracks(0),
 	fNMaxTracks(0),
 	fNMaxSingleSliceTracks(0),
@@ -74,14 +75,15 @@ AliGPUTPCGMMerger::AliGPUTPCGMMerger() :
 	fNOutputTrackClusters( 0 ),
 	fOutputTracks( 0 ),
 	fSliceTrackInfos( 0 ),
-	fClusters(NULL),
-	fGlobalClusterIDs(NULL),
-	fClusterAttachment(NULL),
-	fTrackOrder(NULL),
+	fClusters(nullptr),
+	fGlobalClusterIDs(nullptr),
+	fClusterAttachment(nullptr),
+	fTrackOrder(nullptr),
 	fTmpMem(0),
 	fBorderMemory(0),
 	fBorderRangeMemory(0),
-	fSliceTrackers(NULL)
+	fSliceTrackers(nullptr),
+	fChainTracking(nullptr)
 {
 	//* constructor
 
@@ -97,7 +99,7 @@ AliGPUTPCGMMerger::AliGPUTPCGMMerger() :
 	fPrevSliceInd[ fgkNSlices/2 ] = last;
 
 	fField.Reset(); // set very wrong initial value in order to see if the field was not properly initialised
-	for (int i = 0; i < fgkNSlices; i++) fkSlices[i] = NULL;
+	for (int i = 0; i < fgkNSlices; i++) fkSlices[i] = nullptr;
 }
 
 //DEBUG CODE
@@ -197,7 +199,7 @@ int AliGPUTPCGMMerger::GetTrackLabel(AliGPUTPCGMBorderTrack &trk)
 
 void AliGPUTPCGMMerger::InitializeProcessor()
 {
-	fSliceTrackers = mRec->GetTPCSliceTrackers();
+	fSliceTrackers = fChainTracking->GetTPCSliceTrackers();
 	if (mCAParam->AssumeConstantBz) AliGPUTPCGMPolynomialFieldManager::GetPolynomialField(AliGPUTPCGMPolynomialFieldManager::kUniform, mCAParam->BzkG, fField);
 	else AliGPUTPCGMPolynomialFieldManager::GetPolynomialField(mCAParam->BzkG, fField);
 }
@@ -351,9 +353,9 @@ void AliGPUTPCGMMerger::MakeBorderTracks(int iSlice, int iBorder, AliGPUTPCGMBor
 	float dAlpha = mCAParam->DAlpha / 2;
 	float x0 = 0;
 
-	if ( iBorder == 0 ) { // transport to the left edge of the sector and rotate horisontally
+	if ( iBorder == 0 ) { // transport to the left edge of the sector and rotate horizontally
 		dAlpha = dAlpha - CAMath::Pi() / 2 ;
-	} else if ( iBorder == 1 ) { // transport to the right edge of the sector and rotate horisontally
+	} else if ( iBorder == 1 ) { // transport to the right edge of the sector and rotate horizontally
 		dAlpha = -dAlpha - CAMath::Pi() / 2 ;
 	} else if ( iBorder == 2 ) { // transport to the middle of the sector and rotate vertically to the border on the left
 		x0 = mCAParam->RowX[ 63 ];
@@ -489,9 +491,9 @@ void AliGPUTPCGMMerger::MergeBorderTracks(int iSlice1, AliGPUTPCGMBorderTrack B1
 			// do check
 
 			AliGPUTPCGMBorderTrack &b2 = B2[r2.fId];
-	#ifdef GPUCA_MERGER_BY_MC_LABEL
+#ifdef GPUCA_MERGER_BY_MC_LABEL
 			if (GetTrackLabel(b1) != GetTrackLabel(b2)) //DEBUG CODE, match by MC label
-	#endif
+#endif
 			{
 				if (DEBUG) {printf("Comparing track %3d to %3d: ", r1.fId, r2.fId);for (int i = 0;i < 5;i++) {printf("%8.3f ", b1.Par()[i]);}printf(" - ");for (int i = 0;i < 5;i++) {printf("%8.3f ", b1.Cov()[i]);}printf("\n%28s", "");
 					for (int i = 0;i < 5;i++) {printf("%8.3f ", b2.Par()[i]);}printf(" - ");for (int i = 0;i < 5;i++) {printf("%8.3f ", b2.Cov()[i]);}printf("   -   %5s   -   ", GetTrackLabel(b1) == GetTrackLabel(b2) ? "CLONE" : "FAKE");}
@@ -515,7 +517,7 @@ void AliGPUTPCGMMerger::MergeBorderTracks(int iSlice1, AliGPUTPCGMBorderTrack B1
 			iBest2 = b2.TrackID();
 		}
 
-		if ( iBest2 < 0 ) continue;
+		if (iBest2 < 0) continue;
 		statMerged++;
 
 		if (DEBUG) printf("Found match %d %d\n", b1.TrackID(), iBest2);
@@ -527,8 +529,8 @@ void AliGPUTPCGMMerger::MergeBorderTracks(int iSlice1, AliGPUTPCGMBorderTrack B1
 
 void AliGPUTPCGMMerger::MergeWithingSlices()
 {
-	float x0 = mCAParam->RowX[ 63 ];
-	const float maxSin = CAMath::Sin( 60. / 180.*CAMath::Pi() );
+	float x0 = mCAParam->RowX[63];
+	const float maxSin = CAMath::Sin(60. / 180.*CAMath::Pi());
 
 	ClearTrackLinks(SliceTrackInfoLocalTotal());
 	for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
@@ -1184,11 +1186,11 @@ void AliGPUTPCGMMerger::CollectMergedTracks()
 
 		//if (nParts > 1) printf("Merged %d: QPt %f %d parts %d hits\n", fNOutputTracks, p1.QPt(), nParts, nHits);
 
-		if (AliGPUQA::QAAvailable() && mRec->GetQA() && mRec->GetQA()->SuppressTrack(fNOutputTracks))
+		/*if (AliGPUQA::QAAvailable() && mRec->GetQA() && mRec->GetQA()->SuppressTrack(fNOutputTracks))
 		{
 			mergedTrack.SetOK(0);
 			mergedTrack.SetNClusters(0);
-		}
+		}*/
 
 		bool CEside = (mergedTrack.CSide() != 0) ^ (cl[0].fZ > cl[nHits - 1].fZ);
 		if (mergedTrack.NClusters() && mergedTrack.OK()) MergeCEFill(trackParts[CEside ? lastTrackIndex : firstTrackIndex], cl[CEside ? (nHits - 1) : 0], fNOutputTracks);

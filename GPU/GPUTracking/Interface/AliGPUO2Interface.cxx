@@ -18,6 +18,7 @@
 
 #include "AliGPUO2Interface.h"
 #include "AliGPUReconstruction.h"
+#include "AliGPUChainTracking.h"
 #include "AliGPUO2InterfaceConfiguration.h"
 #include "TPCFastTransform.h"
 #include <iostream>
@@ -36,7 +37,7 @@ class AliGPUDisplayBackendGlfw : public AliGPUDisplayBackend {};
 #include "DataFormatsTPC/ClusterNative.h"
 #include "ClusterNativeAccessExt.h"
 
-AliGPUTPCO2Interface::AliGPUTPCO2Interface() : fInitialized(false), fDumpEvents(false), fContinuous(false), mRec(nullptr), mConfig()
+AliGPUTPCO2Interface::AliGPUTPCO2Interface()
 {
 }
 
@@ -52,10 +53,10 @@ int AliGPUTPCO2Interface::Initialize(const AliGPUO2InterfaceConfiguration& confi
 	fDumpEvents = mConfig->configInterface.dumpEvents;
 	fContinuous = mConfig->configEvent.continuousMaxTimeBin != 0;
 	mRec.reset(AliGPUReconstruction::CreateInstance(mConfig->configProcessing));
-	mRec->mConfigDisplay = &mConfig->configDisplay;
-	mRec->mConfigQA = &mConfig->configQA;
+	mChain->mConfigDisplay = &mConfig->configDisplay;
+	mChain->mConfigQA = &mConfig->configQA;
 	mRec->SetSettings(&mConfig->configEvent, &mConfig->configReconstruction, &mConfig->configDeviceProcessing);
-	mRec->SetTPCFastTransform(std::move(fastTrans));
+	mChain->SetTPCFastTransform(std::move(fastTrans));
 	if (mRec->Init()) return(1);
 	fInitialized = true;
 	return(0);
@@ -134,6 +135,7 @@ int AliGPUTPCO2Interface::Initialize(const char* options, std::unique_ptr<TPCFas
 	if (nThreads != 1) printf("ERROR: Compiled without OpenMP. Cannot set number of threads!\n");
 #endif
 	mRec.reset(AliGPUReconstruction::CreateInstance(useGPU ? gpuType : "CPU", true));
+	mChain = mRec->AddChain<AliGPUChainTracking>();
 	if (mRec == nullptr) return 1;
 	
 	AliGPUSettingsRec rec;
@@ -155,7 +157,7 @@ int AliGPUTPCO2Interface::Initialize(const char* options, std::unique_ptr<TPCFas
 	devProc.eventDisplay = mDisplayBackend.get();
 	
 	mRec->SetSettings(&ev, &rec, &devProc);
-	mRec->SetTPCFastTransform(std::move(fastTrans));
+	mChain->SetTPCFastTransform(std::move(fastTrans));
 	if (mRec->Init()) return 1;
 
 	fInitialized = true;
@@ -178,29 +180,29 @@ int AliGPUTPCO2Interface::RunTracking(const o2::TPC::ClusterNativeAccessFullTPC*
 	static int nEvent = 0;
 	if (fDumpEvents)
 	{
-		mRec->ClearIOPointers();
-		mRec->mIOPtrs.clustersNative = inputClusters;
+		mChain->ClearIOPointers();
+		mChain->mIOPtrs.clustersNative = inputClusters;
 		
 		char fname[1024];
 		sprintf(fname, "event.%d.dump", nEvent);
-		mRec->DumpData(fname);
+		mChain->DumpData(fname);
 		if (nEvent == 0)
 		{
 			mRec->DumpSettings();
 		}
 	}
 	
-	mRec->mIOPtrs.clustersNative = inputClusters;
-	mRec->ConvertNativeToClusterData();
-	mRec->RunStandalone();
+	mChain->mIOPtrs.clustersNative = inputClusters;
+	mChain->ConvertNativeToClusterData();
+	mChain->RunStandalone();
 
-	outputTracks = mRec->mIOPtrs.mergedTracks;
-	nOutputTracks = mRec->mIOPtrs.nMergedTracks;
-	outputTrackClusters = mRec->mIOPtrs.mergedTrackHits;
-	const ClusterNativeAccessExt* ext = mRec->GetClusterNativeAccessExt();
-	for (int i = 0;i < mRec->mIOPtrs.nMergedTrackHits;i++)
+	outputTracks = mChain->mIOPtrs.mergedTracks;
+	nOutputTracks = mChain->mIOPtrs.nMergedTracks;
+	outputTrackClusters = mChain->mIOPtrs.mergedTrackHits;
+	const ClusterNativeAccessExt* ext = mChain->GetClusterNativeAccessExt();
+	for (int i = 0;i < mChain->mIOPtrs.nMergedTrackHits;i++)
 	{
-		AliGPUTPCGMMergedTrackHit& cl = (AliGPUTPCGMMergedTrackHit&) mRec->mIOPtrs.mergedTrackHits[i];
+		AliGPUTPCGMMergedTrackHit& cl = (AliGPUTPCGMMergedTrackHit&) mChain->mIOPtrs.mergedTrackHits[i];
 		cl.fNum -= ext->clusterOffset[cl.fSlice][cl.fRow];
 	}
 	nEvent++;

@@ -26,7 +26,7 @@
 #define MERGE_HORIZONTAL_DOUBLE_QPT_LIMIT 2			//Min Q/Pt to attempt second horizontal merge between slices after a vertical merge was found
 
 #define GPUCA_Y_FACTOR 4							//Weight of y residual vs z residual in tracklet constructor
-#define GPUCA_GPUCA_MAXN 40							//Maximum number of neighbor hits to consider in one row in neightbors finder
+#define GPUCA_MAXN 40							//Maximum number of neighbor hits to consider in one row in neightbors finder
 #define TRACKLET_CONSTRUCTOR_MAX_ROW_GAP 4			//Maximum number of consecutive rows without hit in track following
 #define TRACKLET_CONSTRUCTOR_MAX_ROW_GAP_SEED 2		//Same, but during fit of seed
 #define GPUCA_MERGER_MAXN_MISSED_HARD 10			//Hard limit for number of missed rows in fit / propagation
@@ -61,7 +61,7 @@ typedef unsigned int cahit;
 #ifdef GPUCA_GPUCODE
 #define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP 6
 #else
-#define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP GPUCA_GPUCA_MAXN
+#define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP GPUCA_MAXN
 #endif //GPUCA_GPUCODE
 
 //#define GPUCA_FULL_CLUSTERDATA						//Store all cluster information in the cluster data, also those not needed for tracking.

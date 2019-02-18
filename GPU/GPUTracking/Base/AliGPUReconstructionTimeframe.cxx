@@ -16,8 +16,8 @@
 
 static auto& config = configStandalone.configTF;
 
-AliGPUReconstructionTimeframe::AliGPUReconstructionTimeframe(AliGPUReconstruction* rec, int (*read)(int), int nEvents) :
-	mRec(rec), ReadEvent(read), nEventsInDirectory(nEvents), disUniReal(0., 1.), rndGen1(configStandalone.seed), rndGen2(disUniInt(rndGen1))
+AliGPUReconstructionTimeframe::AliGPUReconstructionTimeframe(AliGPUChainTracking* chain, int (*read)(int), int nEvents) :
+	mChain(chain), ReadEvent(read), nEventsInDirectory(nEvents), disUniReal(0., 1.), rndGen1(configStandalone.seed), rndGen2(disUniInt(rndGen1))
 
 {
 	maxBunchesFull = timeOrbit / configStandalone.configTF.bunchSpacing;
@@ -51,15 +51,15 @@ int AliGPUReconstructionTimeframe::ReadEventShifted(int iEvent, float shift, flo
 	{
 		for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 		{
-			for (unsigned int j = 0;j < mRec->mIOPtrs.nClusterData[iSlice];j++)
+			for (unsigned int j = 0;j < mChain->mIOPtrs.nClusterData[iSlice];j++)
 			{
-				auto& tmp = mRec->mIOMem.clusterData[iSlice][j];
+				auto& tmp = mChain->mIOMem.clusterData[iSlice][j];
 				tmp.fZ += iSlice < NSLICES / 2 ? shift : -shift;
 			}
 		}
-		for (unsigned int i = 0;i < mRec->mIOPtrs.nMCInfosTPC;i++)
+		for (unsigned int i = 0;i < mChain->mIOPtrs.nMCInfosTPC;i++)
 		{
-			auto& tmp = mRec->mIOMem.mcInfosTPC[i];;
+			auto& tmp = mChain->mIOMem.mcInfosTPC[i];;
 			tmp.fZ += i < NSLICES / 2 ? shift : -shift;
 		}
 	}
@@ -73,55 +73,55 @@ int AliGPUReconstructionTimeframe::ReadEventShifted(int iEvent, float shift, flo
 		for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 		{
 			unsigned int currentClusterSlice = 0;
-			for (unsigned int i = 0;i < mRec->mIOPtrs.nClusterData[iSlice];i++)
+			for (unsigned int i = 0;i < mChain->mIOPtrs.nClusterData[iSlice];i++)
 			{
 				float sign = iSlice < NSLICES / 2 ? 1 : -1;
-				if (sign * mRec->mIOMem.clusterData[iSlice][i].fZ >= minZ && sign * mRec->mIOMem.clusterData[iSlice][i].fZ <= maxZ)
+				if (sign * mChain->mIOMem.clusterData[iSlice][i].fZ >= minZ && sign * mChain->mIOMem.clusterData[iSlice][i].fZ <= maxZ)
 				{
-					if (currentClusterSlice != i) mRec->mIOMem.clusterData[iSlice][currentClusterSlice] = mRec->mIOMem.clusterData[iSlice][i];
-					if (mRec->mIOPtrs.nMCLabelsTPC > currentClusterTotal && nClusters != currentClusterTotal) mRec->mIOMem.mcLabelsTPC[nClusters] = mRec->mIOMem.mcLabelsTPC[currentClusterTotal];
-					//printf("Keeping Cluster ID %d (ID in slice %d) Z=%f (sector %d) --> %d (slice %d)\n", currentClusterTotal, i, mRec->mIOMem.clusterData[iSlice][i].fZ, iSlice, nClusters, currentClusterSlice);
+					if (currentClusterSlice != i) mChain->mIOMem.clusterData[iSlice][currentClusterSlice] = mChain->mIOMem.clusterData[iSlice][i];
+					if (mChain->mIOPtrs.nMCLabelsTPC > currentClusterTotal && nClusters != currentClusterTotal) mChain->mIOMem.mcLabelsTPC[nClusters] = mChain->mIOMem.mcLabelsTPC[currentClusterTotal];
+					//printf("Keeping Cluster ID %d (ID in slice %d) Z=%f (sector %d) --> %d (slice %d)\n", currentClusterTotal, i, mChain->mIOMem.clusterData[iSlice][i].fZ, iSlice, nClusters, currentClusterSlice);
 					currentClusterSlice++;
 					nClusters++;
 				}
 				else
 				{
-					//printf("Removing Cluster ID %d (ID in slice %d) Z=%f (sector %d)\n", currentClusterTotal, i, mRec->mIOMem.clusterData[iSlice][i].fZ, iSlice);
+					//printf("Removing Cluster ID %d (ID in slice %d) Z=%f (sector %d)\n", currentClusterTotal, i, mChain->mIOMem.clusterData[iSlice][i].fZ, iSlice);
 					removed++;
 				}
 				currentClusterTotal++;
 			}
-			mRec->mIOPtrs.nClusterData[iSlice] = currentClusterSlice;
+			mChain->mIOPtrs.nClusterData[iSlice] = currentClusterSlice;
 		}
-		mRec->mIOPtrs.nMCLabelsTPC = nClusters;
+		mChain->mIOPtrs.nMCLabelsTPC = nClusters;
 	}
 	else
 	{
-		for (unsigned int i = 0;i < NSLICES;i++) nClusters += mRec->mIOPtrs.nClusterData[i];
+		for (unsigned int i = 0;i < NSLICES;i++) nClusters += mChain->mIOPtrs.nClusterData[i];
 	}
 
 	if (!silent)
 	{
-		printf("Read %d Clusters with %d MC labels and %d MC tracks\n", nClusters, (int) mRec->mIOPtrs.nMCLabelsTPC, (int) mRec->mIOPtrs.nMCInfosTPC);
+		printf("Read %d Clusters with %d MC labels and %d MC tracks\n", nClusters, (int) mChain->mIOPtrs.nMCLabelsTPC, (int) mChain->mIOPtrs.nMCInfosTPC);
 		if (minZ > -1e6 || maxZ > 1e6) printf("\tRemoved %d / %d clusters\n", removed, nClusters + removed);
 	}
 
-	shiftedEvents.emplace_back(mRec->mIOPtrs, std::move(mRec->mIOMem), mRec->mIOPtrs.clustersNative ? *mRec->mIOPtrs.clustersNative : o2::TPC::ClusterNativeAccessFullTPC());
+	shiftedEvents.emplace_back(mChain->mIOPtrs, std::move(mChain->mIOMem), mChain->mIOPtrs.clustersNative ? *mChain->mIOPtrs.clustersNative : o2::TPC::ClusterNativeAccessFullTPC());
 	return nClusters;
 }
 
 void AliGPUReconstructionTimeframe::MergeShiftedEvents()
 {
-	mRec->ClearIOPointers();
+	mChain->ClearIOPointers();
 	for (unsigned int i = 0;i < shiftedEvents.size();i++)
 	{
 		auto& ptr = std::get<0>(shiftedEvents[i]);
 		for (unsigned int j = 0;j < NSLICES;j++)
 		{
-			mRec->mIOPtrs.nClusterData[j] += ptr.nClusterData[j];
+			mChain->mIOPtrs.nClusterData[j] += ptr.nClusterData[j];
 		}
-		mRec->mIOPtrs.nMCLabelsTPC += ptr.nMCLabelsTPC;
-		mRec->mIOPtrs.nMCInfosTPC += ptr.nMCInfosTPC;
+		mChain->mIOPtrs.nMCLabelsTPC += ptr.nMCLabelsTPC;
+		mChain->mIOPtrs.nMCInfosTPC += ptr.nMCInfosTPC;
 		SetDisplayInformation(i);
 	}
 	unsigned int nClustersTotal = 0;
@@ -129,10 +129,10 @@ void AliGPUReconstructionTimeframe::MergeShiftedEvents()
 	for (unsigned int i = 0;i < NSLICES;i++)
 	{
 		nClustersSliceOffset[i] = nClustersTotal;
-		nClustersTotal += mRec->mIOPtrs.nClusterData[i];
+		nClustersTotal += mChain->mIOPtrs.nClusterData[i];
 	}
-	const bool doLabels = nClustersTotal == mRec->mIOPtrs.nMCLabelsTPC;
-	mRec->AllocateIOMemory();
+	const bool doLabels = nClustersTotal == mChain->mIOPtrs.nMCLabelsTPC;
+	mChain->AllocateIOMemory();
 	
 	unsigned int nTrackOffset = 0;
 	unsigned int nClustersEventOffset[NSLICES] = {0};
@@ -142,19 +142,19 @@ void AliGPUReconstructionTimeframe::MergeShiftedEvents()
 		unsigned int inEventOffset = 0;
 		for (unsigned int j = 0;j < NSLICES;j++)
 		{
-			memcpy((void*) &mRec->mIOMem.clusterData[j][nClustersEventOffset[j]], (void*) ptr.clusterData[j], ptr.nClusterData[j] * sizeof(ptr.clusterData[j][0]));
+			memcpy((void*) &mChain->mIOMem.clusterData[j][nClustersEventOffset[j]], (void*) ptr.clusterData[j], ptr.nClusterData[j] * sizeof(ptr.clusterData[j][0]));
 			if (doLabels)
 			{
-				memcpy((void*) &mRec->mIOMem.mcLabelsTPC[nClustersSliceOffset[j] + nClustersEventOffset[j]], (void*) &ptr.mcLabelsTPC[inEventOffset], ptr.nClusterData[j] * sizeof(ptr.mcLabelsTPC[0]));
+				memcpy((void*) &mChain->mIOMem.mcLabelsTPC[nClustersSliceOffset[j] + nClustersEventOffset[j]], (void*) &ptr.mcLabelsTPC[inEventOffset], ptr.nClusterData[j] * sizeof(ptr.mcLabelsTPC[0]));
 			}
 			for (unsigned int k = 0;k < ptr.nClusterData[j];k++)
 			{
-				mRec->mIOMem.clusterData[j][nClustersEventOffset[j] + k].fId = nClustersSliceOffset[j] + nClustersEventOffset[j] + k;
+				mChain->mIOMem.clusterData[j][nClustersEventOffset[j] + k].fId = nClustersSliceOffset[j] + nClustersEventOffset[j] + k;
 				if (doLabels)
 				{
 					for (int l = 0;l < 3;l++)
 					{
-						auto& label = mRec->mIOMem.mcLabelsTPC[nClustersSliceOffset[j] + nClustersEventOffset[j] + k].fClusterID[l];
+						auto& label = mChain->mIOMem.mcLabelsTPC[nClustersSliceOffset[j] + nClustersEventOffset[j] + k].fClusterID[l];
 						if (label.fMCID >= 0) label.fMCID += nTrackOffset;
 					}
 				}
@@ -164,7 +164,7 @@ void AliGPUReconstructionTimeframe::MergeShiftedEvents()
 			inEventOffset += ptr.nClusterData[j];
 		}
 		
-		memcpy((void*) &mRec->mIOMem.mcInfosTPC[nTrackOffset], (void*) ptr.mcInfosTPC, ptr.nMCInfosTPC * sizeof(ptr.mcInfosTPC[0]));
+		memcpy((void*) &mChain->mIOMem.mcInfosTPC[nTrackOffset], (void*) ptr.mcInfosTPC, ptr.nMCInfosTPC * sizeof(ptr.mcInfosTPC[0]));
 		nTrackOffset += ptr.nMCInfosTPC;
 	}
 	
@@ -190,8 +190,8 @@ int AliGPUReconstructionTimeframe::LoadCreateTimeFrame(int iEvent)
 			for (int iBunch = 0;iBunch < config.bunchCount && nBunch < lastBunch;iBunch++)
 			{
 				const bool inTF = nBunch >= 0 && nBunch < lastTFBunch && (config.nTotalInTFEvents == 0 || nCollisions < nTotalCollisions + config.nTotalInTFEvents);
-				if (mcMin == -1 && inTF) mcMin = mRec->mIOPtrs.nMCInfosTPC;
-				if (mcMax == -1 && nBunch >= 0 && !inTF) mcMax = mRec->mIOPtrs.nMCInfosTPC;
+				if (mcMin == -1 && inTF) mcMin = mChain->mIOPtrs.nMCInfosTPC;
+				if (mcMax == -1 && nBunch >= 0 && !inTF) mcMax = mChain->mIOPtrs.nMCInfosTPC;
 				int nInBunchPileUp = 0;
 				double randVal = disUniReal(inTF ? rndGen2 : rndGen1);
 				double p = exp(-collisionProbability);
@@ -221,7 +221,7 @@ int AliGPUReconstructionTimeframe::LoadCreateTimeFrame(int iEvent)
 					}
 					nTotalClusters += nClusters;
 					printf("Placing event %4d+%d (ID %4d) at z %7.3f (time %'dns) %s(collisions %4d, bunch %6lld, train %3d) (%'10d clusters, %'10d MC labels, %'10d track MC info)\n",
-						nCollisions, nBorderCollisions, useEvent, shift, (int) (nBunch * config.bunchSpacing), inTF ? " inside" : "outside", nCollisions, nBunch, nTrain, nClusters, mRec->mIOPtrs.nMCLabelsTPC, mRec->mIOPtrs.nMCInfosTPC);
+						nCollisions, nBorderCollisions, useEvent, shift, (int) (nBunch * config.bunchSpacing), inTF ? " inside" : "outside", nCollisions, nBunch, nTrain, nClusters, mChain->mIOPtrs.nMCLabelsTPC, mChain->mIOPtrs.nMCInfosTPC);
 					nInBunchPileUp++;
 					nCollisionsInTrain++;
 					p2 *= collisionProbability / nInBunchPileUp;
@@ -242,9 +242,9 @@ int AliGPUReconstructionTimeframe::LoadCreateTimeFrame(int iEvent)
 	printf("Timeframe statistics: collisions: %d+%d in %d trains (inside / outside), average rate %f (pile up: in bunch %d, in train %d)\n",
 		nCollisions, nBorderCollisions, nTrainCollissions, (float) nCollisions / (float) (config.timeFrameLen - driftTime) * 1e9, nMultipleCollisions, nTrainMultipleCollisions);
 	MergeShiftedEvents();
-	printf("\tTotal clusters: %d, MC Labels %d, MC Infos %d\n", nTotalClusters, mRec->mIOPtrs.nMCLabelsTPC, mRec->mIOPtrs.nMCInfosTPC);
+	printf("\tTotal clusters: %d, MC Labels %d, MC Infos %d\n", nTotalClusters, mChain->mIOPtrs.nMCLabelsTPC, mChain->mIOPtrs.nMCInfosTPC);
 
-	if (!config.noBorder) mRec->GetQA()->SetMCTrackRange(mcMin, mcMax);
+	if (!config.noBorder) mChain->GetQA()->SetMCTrackRange(mcMin, mcMax);
 	return(0);
 }
 
@@ -294,9 +294,9 @@ int AliGPUReconstructionTimeframe::LoadMergedEvents(int iEvent)
 
 void AliGPUReconstructionTimeframe::SetDisplayInformation(int iCol)
 {
-	if (mRec->GetEventDisplay())
+	if (mChain->GetEventDisplay())
 	{
-		for (unsigned int sl = 0;sl < NSLICES;sl++) mRec->GetEventDisplay()->SetCollisionFirstCluster(iCol, sl, mRec->mIOPtrs.nClusterData[sl]);
-		mRec->GetEventDisplay()->SetCollisionFirstCluster(iCol, NSLICES, mRec->mIOPtrs.nMCInfosTPC);
+		for (unsigned int sl = 0;sl < NSLICES;sl++) mChain->GetEventDisplay()->SetCollisionFirstCluster(iCol, sl, mChain->mIOPtrs.nClusterData[sl]);
+		mChain->GetEventDisplay()->SetCollisionFirstCluster(iCol, NSLICES, mChain->mIOPtrs.nMCInfosTPC);
 	}
 }

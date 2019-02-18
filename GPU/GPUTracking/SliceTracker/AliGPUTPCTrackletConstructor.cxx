@@ -273,10 +273,10 @@ GPUd() void AliGPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int /*
 				break;
 			}
 
-#ifndef GPUCA_GPUCA_TEXTURE_FETCH_CONSTRUCTOR
+#ifndef GPUCA_TEXTURE_FETCH_CONSTRUCTOR
 			GPUglobalref() const cahit2 *hits = tracker.HitData(row);
 			GPUglobalref() const calink *firsthit = tracker.FirstHitInBin(row);
-#endif //!GPUCA_GPUCA_TEXTURE_FETCH_CONSTRUCTOR
+#endif //!GPUCA_TEXTURE_FETCH_CONSTRUCTOR
 			float fY = tParam.GetY();
 			float fZ = tParam.GetZ();
 			calink best = CALINK_INVAL;
@@ -449,7 +449,7 @@ template <> GPUd() void AliGPUTPCTrackletConstructor::Thread<1>(int nBlocks, int
 
 		while ((rMem.fItr = FetchTracklet(tracker, sMem)) != -2)
 		{
-			if (rMem.fItr >= 0 && get_local_id(0) < GPUCA_GPUCA_THREAD_COUNT_CONSTRUCTOR)
+			if (rMem.fItr >= 0 && get_local_id(0) < GPUCA_THREAD_COUNT_CONSTRUCTOR)
 			{
 				rMem.fItr += get_local_id(0);
 			}
@@ -497,14 +497,14 @@ GPUdi() int AliGPUTPCTrackletConstructor::FetchTracklet(GPUconstant() MEM_CONSTA
 	{
 		if (sMem.fNextTrackletFirstRun == 1)
 		{
-			sMem.fNextTrackletFirst = (get_group_id(0) - nativeslice) / GPUCA_NSLICES * GPUCA_GPUCA_THREAD_COUNT_CONSTRUCTOR;
+			sMem.fNextTrackletFirst = (get_group_id(0) - nativeslice) / GPUCA_NSLICES * GPUCA_THREAD_COUNT_CONSTRUCTOR;
 			sMem.fNextTrackletFirstRun = 0;
 		}
 		else
 		{
 			if (tracker.GPUParameters()->fNextTracklet < nTracklets)
 			{
-				const int firstTracklet = CAMath::AtomicAdd(&tracker.GPUParameters()->fNextTracklet, GPUCA_GPUCA_THREAD_COUNT_CONSTRUCTOR);
+				const int firstTracklet = CAMath::AtomicAdd(&tracker.GPUParameters()->fNextTracklet, GPUCA_THREAD_COUNT_CONSTRUCTOR);
 				if (firstTracklet < nTracklets) sMem.fNextTrackletFirst = firstTracklet;
 				else sMem.fNextTrackletFirst = -2;
 			}

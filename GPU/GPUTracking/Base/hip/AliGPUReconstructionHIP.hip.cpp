@@ -49,12 +49,11 @@ AliGPUReconstructionHIPBackend::AliGPUReconstructionHIPBackend(const AliGPUSetti
 {
 	mInternals = new AliGPUReconstructionHIPInternals;
 	mProcessingSettings.deviceType = HIP;
-	mITSTrackerTraits.reset(new o2::ITS::TrackerTraitsHIP);
 }
 
 AliGPUReconstructionHIPBackend::~AliGPUReconstructionHIPBackend()
 {
-	mITSTrackerTraits.reset(nullptr); //Make sure we destroy the ITS tracker before we exit HIP
+	mChains.clear(); //Make sure we destroy the ITS tracker before we exit CUDA
 	GPUFailedMsgI(hipDeviceReset());
 	delete mInternals;
 }
@@ -199,14 +198,17 @@ int AliGPUReconstructionHIPBackend::InitDevice_Runtime()
 	}
 	mDeviceConstantMem = (AliGPUConstantMem*) devPtrConstantMem;
 	
-	hipEvent_t *events = (hipEvent_t*) &mEvents;
-	for (unsigned int i = 0;i < sizeof(mEvents) / sizeof(hipEvent_t);i++)
+	for (unsigned int i = 0;i < mEvents.size();i++)
 	{
-		if (GPUFailedMsgI(hipEventCreate(&events[i])))
+		hipEvent_t *events = (hipEvent_t*) mEvents[i].first;
+		for (unsigned int j = 0;j < mEvents[i].second;j++)
 		{
-			GPUError("Error creating event");
-			GPUFailedMsgI(hipDeviceReset());
-			return 1;
+			if (GPUFailedMsgI(hipEventCreate(&events[j])))
+			{
+				GPUError("Error creating event");
+				GPUFailedMsgI(hipDeviceReset());
+				return 1;
+			}
 		}
 	}
 
@@ -234,10 +236,13 @@ int AliGPUReconstructionHIPBackend::ExitDevice_Runtime()
 	GPUFailedMsgI(hipHostFree(mHostMemoryBase));
 	mHostMemoryBase = nullptr;
 	
-	hipEvent_t *events = (hipEvent_t*) &mEvents;
-	for (unsigned int i = 0;i < sizeof(mEvents) / sizeof(hipEvent_t);i++)
+	for (unsigned int i = 0;i < mEvents.size();i++)
 	{
-		GPUFailedMsgI(hipEventDestroy(events[i]));
+		hipEvent_t *events = (hipEvent_t*) mEvents[i].first;
+		for (unsigned int j = 0;j < mEvents[i].second;j++)
+		{
+			GPUFailedMsgI(hipEventDestroy(events[j]));
+		}
 	}
 
 	if (GPUFailedMsgI(hipDeviceReset()))
@@ -333,12 +338,12 @@ int AliGPUReconstructionHIPBackend::GPUDebug(const char* state, int stream)
 
 void AliGPUReconstructionHIPBackend::SetThreadCounts()
 {
-	fThreadCount = GPUCA_GPUCA_THREAD_COUNT;
+	fThreadCount = GPUCA_THREAD_COUNT;
 	fBlockCount = mCoreCount;
-	fConstructorBlockCount = fBlockCount * (mDeviceProcessingSettings.trackletConstructorInPipeline ? 1 : GPUCA_GPUCA_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER);
-	fSelectorBlockCount = fBlockCount * GPUCA_GPUCA_BLOCK_COUNT_SELECTOR_MULTIPLIER;
-	fConstructorThreadCount = GPUCA_GPUCA_THREAD_COUNT_CONSTRUCTOR;
-	fSelectorThreadCount = GPUCA_GPUCA_THREAD_COUNT_SELECTOR;
-	fFinderThreadCount = GPUCA_GPUCA_THREAD_COUNT_FINDER;
-	fTRDThreadCount = GPUCA_GPUCA_THREAD_COUNT_TRD;
+	fConstructorBlockCount = fBlockCount * (mDeviceProcessingSettings.trackletConstructorInPipeline ? 1 : GPUCA_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER);
+	fSelectorBlockCount = fBlockCount * GPUCA_BLOCK_COUNT_SELECTOR_MULTIPLIER;
+	fConstructorThreadCount = GPUCA_THREAD_COUNT_CONSTRUCTOR;
+	fSelectorThreadCount = GPUCA_THREAD_COUNT_SELECTOR;
+	fFinderThreadCount = GPUCA_THREAD_COUNT_FINDER;
+	fTRDThreadCount = GPUCA_THREAD_COUNT_TRD;
 }

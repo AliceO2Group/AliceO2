@@ -76,9 +76,9 @@ public:
 		int fNextTrackletFirstRun; //First run for dynamic scheduler?
 		int fNTracklets; // Total number of tracklets
 
-#ifdef GPUCA_GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE
+#ifdef GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE
 		int fMaxSync; //temporary shared variable during profile creation
-#endif //GPUCA_GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE
+#endif //GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE
 	};
 
 	MEM_CLASS_PRE2() GPUd() static void InitTracklet( MEM_LG2(AliGPUTPCTrackParam) &tParam );

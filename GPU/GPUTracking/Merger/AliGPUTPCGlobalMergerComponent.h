@@ -27,6 +27,7 @@
 
 class AliGPUTPCGMMerger;
 class AliGPUReconstruction;
+class AliGPUChainTracking;
 
 /**
  * @class AliGPUTPCGlobalMergerComponent
@@ -128,10 +129,11 @@ class AliGPUTPCGlobalMergerComponent : public AliHLTProcessor
 	int fNWays; //Setting for merger
     char fNWaysOuter; //Store outer param after n-way fit
     bool fNoClear;  //Do not clear memory after processing an event
-    static const AliGPUReconstruction* fgCurrentMergerReconstruction; //Pointer to current merger in case memory is not cleared after processing the event
+    static const AliGPUChainTracking* fgCurrentMergerReconstruction; //Pointer to current merger in case memory is not cleared after processing the event
     AliHLTComponentBenchmark fBenchmark;// benchmark
     AliGPUParam fParam; //ca params
     AliGPUReconstruction* fRec; //AliGPUReconstruction
+    AliGPUChainTracking* fChain;
 
     ClassDef( AliGPUTPCGlobalMergerComponent, 0 )
 };

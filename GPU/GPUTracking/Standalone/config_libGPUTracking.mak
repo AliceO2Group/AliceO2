@@ -30,6 +30,9 @@ GPUCA_TRACKER_CXXFILES			= SliceTracker/AliGPUTPCSliceData.cxx \
 								Base/AliGPUMemoryResource.cxx \
 								Base/AliGPUSettings.cxx \
 								Base/AliGPUGeneralKernels.cxx \
+								Global/AliGPUChain.cxx \
+								Global/AliGPUChainTracking.cxx \
+								Global/AliGPUChainITS.cxx \
 								TPCFastTransformation/TPCFastTransform.cxx \
 								TPCFastTransformation/TPCDistortionIRS.cxx \
 								TPCFastTransformation/IrregularSpline1D.cxx \

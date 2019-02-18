@@ -19,26 +19,10 @@
 #endif
 
 #include "AliGPUReconstruction.h"
-#include "AliGPUReconstructionConvert.h"
 #include "AliGPUReconstructionIncludes.h"
 
-#include "AliGPUTPCClusterData.h"
-#include "AliGPUTPCSliceOutput.h"
-#include "AliGPUTPCSliceOutTrack.h"
-#include "AliGPUTPCSliceOutCluster.h"
-#include "AliGPUTPCGMMergedTrack.h"
-#include "AliGPUTPCGMMergedTrackHit.h"
-#include "AliGPUTRDTrackletWord.h"
-#include "AliHLTTPCClusterMCData.h"
-#include "AliGPUTPCMCInfo.h"
-#include "AliGPUTRDTrack.h"
-#include "AliGPUTRDTracker.h"
-#include "AliHLTTPCRawCluster.h"
-#include "ClusterNativeAccessExt.h"
-#include "AliGPUTRDTrackletLabels.h"
-#include "AliGPUDisplay.h"
-#include "AliGPUQA.h"
 #include "AliGPUMemoryResource.h"
+#include "AliGPUChain.h"
 
 #define GPUCA_LOGGING_PRINTF
 #include "AliGPULogging.h"
@@ -48,32 +32,18 @@ constexpr const char* const AliGPUReconstruction::GEOMETRY_TYPE_NAMES[];
 constexpr const char* const AliGPUReconstruction::IOTYPENAMES[];
 constexpr AliGPUReconstruction::GeometryType AliGPUReconstruction::geometryType;
 
-static constexpr unsigned int DUMP_HEADER_SIZE = 4;
-static constexpr char DUMP_HEADER[DUMP_HEADER_SIZE + 1] = "CAv1";
-
-using namespace o2::TPC;
-
-AliGPUReconstruction::AliGPUReconstruction(const AliGPUSettingsProcessing& cfg) : mHostConstantMem(new AliGPUConstantMem), mITSTrackerTraits(nullptr), mITSVertexerTraits(nullptr),  mClusterNativeAccess(new ClusterNativeAccessExt), mTPCFastTransform(nullptr),
-	mTRDGeometry(nullptr)
+AliGPUReconstruction::AliGPUReconstruction(const AliGPUSettingsProcessing& cfg) : mHostConstantMem(new AliGPUConstantMem)
 {
 	mProcessingSettings = cfg;
 	mDeviceProcessingSettings.SetDefaults();
 	mEventSettings.SetDefaults();
 	param().SetDefaults(&mEventSettings);
-	if (mProcessingSettings.deviceType == CPU)
-	{
-		mITSTrackerTraits.reset(new o2::ITS::TrackerTraitsCPU);
-		mITSVertexerTraits.reset(new o2::ITS::VertexerTraits);
-	}
-	memset(mSliceOutput, 0, sizeof(mSliceOutput));
 }
 
 AliGPUReconstruction::~AliGPUReconstruction()
 {
 	//Reset these explicitly before the destruction of other members unloads the library
 	mHostConstantMem.reset();
-	mITSTrackerTraits.reset();
-	mITSVertexerTraits.reset();
 	if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_INDIVIDUAL)
 	{
 		for (unsigned int i = 0;i < mMemoryResources.size();i++)
@@ -84,6 +54,12 @@ AliGPUReconstruction::~AliGPUReconstruction()
 	}
 }
 
+void AliGPUReconstruction::GetITSTraits(std::unique_ptr<o2::ITS::TrackerTraits>& trackerTraits, std::unique_ptr<o2::ITS::VertexerTraits>& vertexerTraits)
+{
+	trackerTraits.reset(new o2::ITS::TrackerTraitsCPU);
+	vertexerTraits.reset(new o2::ITS::VertexerTraits);
+}
+
 int AliGPUReconstruction::Init()
 {
 	if (mDeviceProcessingSettings.memoryAllocationStrategy == AliGPUMemoryResource::ALLOCATION_AUTO) mDeviceProcessingSettings.memoryAllocationStrategy = IsGPU() ? AliGPUMemoryResource::ALLOCATION_GLOBAL : AliGPUMemoryResource::ALLOCATION_INDIVIDUAL;
@@ -91,9 +67,11 @@ int AliGPUReconstruction::Init()
 	if (mDeviceProcessingSettings.debugLevel >= 4) mDeviceProcessingSettings.keepAllMemory = true;
 	if (mDeviceProcessingSettings.debugLevel < 6) mDeviceProcessingSettings.debugMask = 0;
 #ifndef HAVE_O2HEADERS
+	mRecoSteps.setBits(RecoStep::ITSTracking, false);
 	mRecoSteps.setBits(RecoStep::TRDTracking, false);
 #endif
 	mRecoStepsGPU &= mRecoSteps;
+	mRecoStepsGPU &= AvailableRecoSteps();
 	if (!IsGPU()) mRecoStepsGPU.set((unsigned char) 0);
 	if (!IsGPU()) mDeviceProcessingSettings.trackletConstructorInPipeline = mDeviceProcessingSettings.trackletSelectorInPipeline = false;
 	if (param().rec.NonConsecutiveIDs) param().rec.DisableRefitAttachment = 0xFF;
@@ -106,42 +84,31 @@ int AliGPUReconstruction::Init()
 	mDeviceProcessingSettings.nThreads = 1;
 #endif
 	
-	if (mDeviceProcessingSettings.debugLevel >= 4)
+	for (unsigned int i = 0;i < mChains.size();i++)
 	{
-		mDebugFile.open(IsGPU() ? "GPU.out" : "CPU.out");
+		mChains[i]->RegisterPermanentMemoryAndProcessors();
 	}
-	for (unsigned int i = 0;i < NSLICES;i++)
-	{
-		RegisterGPUProcessor(&workers()->tpcTrackers[i].Data(), mRecoStepsGPU & RecoStep::TPCSliceTracking);
-		RegisterGPUProcessor(&workers()->tpcTrackers[i], mRecoStepsGPU & RecoStep::TPCSliceTracking);
-	}
-	RegisterGPUProcessor(&workers()->tpcMerger, mRecoStepsGPU & RecoStep::TPCMerging);
-	RegisterGPUProcessor(&workers()->trdTracker, mRecoStepsGPU & RecoStep::TRDTracking);
 
 	for (unsigned int i = 0;i < mProcessors.size();i++)
 	{
 		(mProcessors[i].proc->*(mProcessors[i].RegisterMemoryAllocation))();
 	}
+
 	if (InitDevice()) return 1;
 	AllocateRegisteredPermanentMemory();
 	if (InitializeProcessors()) return 1;
 	
-	if (AliGPUQA::QAAvailable() && (mDeviceProcessingSettings.runQA || mDeviceProcessingSettings.eventDisplay))
+	for (unsigned int i = 0;i < mChains.size();i++)
 	{
-		mQA.reset(new AliGPUQA(this));
+		if (mChains[i]->Init()) return 1;
 	}
-	if (mDeviceProcessingSettings.eventDisplay)
-	{
-		mEventDisplay.reset(new AliGPUDisplay(mDeviceProcessingSettings.eventDisplay, this, mQA.get()));
-	}
-
+	
 	mInitialized = true;
 	return 0;
 }
 
 int AliGPUReconstruction::Finalize()
 {
-	if (mDeviceProcessingSettings.debugLevel >= 4) mDebugFile.close();
 	ExitDevice();
 	mInitialized = false;
 	return 0;
@@ -163,53 +130,6 @@ int AliGPUReconstruction::InitializeProcessors()
 void AliGPUReconstruction::RegisterGPUDeviceProcessor(AliGPUProcessor* proc, AliGPUProcessor* slaveProcessor)
 {
 	proc->InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_DEVICE, slaveProcessor);
-}
-
-AliGPUReconstruction::InOutMemory::InOutMemory() = default;
-AliGPUReconstruction::InOutMemory::~InOutMemory() = default;
-AliGPUReconstruction::InOutMemory::InOutMemory(AliGPUReconstruction::InOutMemory&&) = default;
-AliGPUReconstruction::InOutMemory& AliGPUReconstruction::InOutMemory::operator=(AliGPUReconstruction::InOutMemory&&) = default;
-
-void AliGPUReconstruction::ClearIOPointers()
-{
-	std::memset((void*) &mIOPtrs, 0, sizeof(mIOPtrs));
-	mIOMem.~InOutMemory();
-	new (&mIOMem) InOutMemory;
-	std::memset((void*) mClusterNativeAccess.get(), 0, sizeof(*mClusterNativeAccess));
-}
-
-void AliGPUReconstruction::AllocateIOMemory()
-{
-	for (unsigned int i = 0; i < NSLICES; i++)
-	{
-		AllocateIOMemoryHelper(mIOPtrs.nClusterData[i], mIOPtrs.clusterData[i], mIOMem.clusterData[i]);
-		AllocateIOMemoryHelper(mIOPtrs.nRawClusters[i], mIOPtrs.rawClusters[i], mIOMem.rawClusters[i]);
-		AllocateIOMemoryHelper(mIOPtrs.nSliceOutTracks[i], mIOPtrs.sliceOutTracks[i], mIOMem.sliceOutTracks[i]);
-		AllocateIOMemoryHelper(mIOPtrs.nSliceOutClusters[i], mIOPtrs.sliceOutClusters[i], mIOMem.sliceOutClusters[i]);
-	}
-	for (unsigned int i = 0;i < NSLICES * GPUCA_ROW_COUNT;i++)
-	{
-		AllocateIOMemoryHelper((&mClusterNativeAccess->nClusters[0][0])[i], (&mClusterNativeAccess->clusters[0][0])[i], mIOMem.clustersNative[i]);
-	}
-	mIOPtrs.clustersNative = mClusterNativeAccess.get();
-	AllocateIOMemoryHelper(mIOPtrs.nMCLabelsTPC, mIOPtrs.mcLabelsTPC, mIOMem.mcLabelsTPC);
-	AllocateIOMemoryHelper(mIOPtrs.nMCInfosTPC, mIOPtrs.mcInfosTPC, mIOMem.mcInfosTPC);
-	AllocateIOMemoryHelper(mIOPtrs.nMergedTracks, mIOPtrs.mergedTracks, mIOMem.mergedTracks);
-	AllocateIOMemoryHelper(mIOPtrs.nMergedTrackHits, mIOPtrs.mergedTrackHits, mIOMem.mergedTrackHits);
-	AllocateIOMemoryHelper(mIOPtrs.nTRDTracks, mIOPtrs.trdTracks, mIOMem.trdTracks);
-	AllocateIOMemoryHelper(mIOPtrs.nTRDTracklets, mIOPtrs.trdTracklets, mIOMem.trdTracklets);
-	AllocateIOMemoryHelper(mIOPtrs.nTRDTrackletsMC, mIOPtrs.trdTrackletsMC, mIOMem.trdTrackletsMC);
-}
-
-template <class T> void AliGPUReconstruction::AllocateIOMemoryHelper(unsigned int n, const T* &ptr, std::unique_ptr<T[]> &u)
-{
-	if (n == 0)
-	{
-		u.reset(nullptr);
-		return;
-	}
-	u.reset(new T[n]);
-	ptr = u.get();
 }
 
 size_t AliGPUReconstruction::AllocateRegisteredMemory(AliGPUProcessor* proc)
@@ -249,7 +169,7 @@ size_t AliGPUReconstruction::AllocateRegisteredMemoryHelper(AliGPUMemoryResource
 		AliGPUProcessor::getPointerWithAlignment<AliGPUProcessor::MIN_ALIGNMENT, char>(memorypool, retVal = AliGPUProcessor::MIN_ALIGNMENT);
 	}
 	if ((size_t) ((char*) memorypool - (char*) memorybase) > memorysize) {std::cout << "Memory pool size exceeded (" << res->mName << ": " << (char*) memorypool - (char*) memorybase << " < " << memorysize << "\n"; throw std::bad_alloc();}
-	memorypool = (void*) ((char*) memorypool + AliGPUProcessor::getAlignment<GPUCA_GPUCA_MEMALIGN>(memorypool));
+	memorypool = (void*) ((char*) memorypool + AliGPUProcessor::getAlignment<GPUCA_MEMALIGN>(memorypool));
 	if (mDeviceProcessingSettings.debugLevel >= 5) std::cout << "Allocated " << res->mName << ": " << retVal << " - available: " << memorysize - ((char*) memorypool - (char*) memorybase) << "\n";
 	return(retVal);
 }
@@ -353,8 +273,8 @@ void AliGPUReconstruction::ClearAllocatedMemory()
 	{
 		if (!(mMemoryResources[i].mType & AliGPUMemoryResource::MEMORY_PERMANENT)) FreeRegisteredMemory(i);
 	}
-	mHostMemoryPool = AliGPUProcessor::alignPointer<GPUCA_GPUCA_MEMALIGN>(mHostMemoryPermanent);
-	mDeviceMemoryPool = AliGPUProcessor::alignPointer<GPUCA_GPUCA_MEMALIGN>(mDeviceMemoryPermanent);
+	mHostMemoryPool = AliGPUProcessor::alignPointer<GPUCA_MEMALIGN>(mHostMemoryPermanent);
+	mDeviceMemoryPool = AliGPUProcessor::alignPointer<GPUCA_MEMALIGN>(mDeviceMemoryPermanent);
 	mUnmanagedChunks.clear();
 }
 
@@ -370,171 +290,16 @@ void AliGPUReconstruction::PrepareEvent()
 	AllocateRegisteredMemory(nullptr);
 }
 
-void AliGPUReconstruction::DumpData(const char *filename)
-{
-	FILE *fp = fopen(filename, "w+b");
-	if (fp ==nullptr) return;
-	fwrite(DUMP_HEADER, 1, DUMP_HEADER_SIZE, fp);
-	fwrite(&geometryType, sizeof(geometryType), 1, fp);
-	DumpData(fp, mIOPtrs.clusterData, mIOPtrs.nClusterData, InOutPointerType::CLUSTER_DATA);
-	DumpData(fp, mIOPtrs.rawClusters, mIOPtrs.nRawClusters, InOutPointerType::RAW_CLUSTERS);
-	if (mIOPtrs.clustersNative) DumpData(fp, &mIOPtrs.clustersNative->clusters[0][0], &mIOPtrs.clustersNative->nClusters[0][0], InOutPointerType::CLUSTERS_NATIVE);
-	DumpData(fp, mIOPtrs.sliceOutTracks, mIOPtrs.nSliceOutTracks, InOutPointerType::SLICE_OUT_TRACK);
-	DumpData(fp, mIOPtrs.sliceOutClusters, mIOPtrs.nSliceOutClusters, InOutPointerType::SLICE_OUT_CLUSTER);
-	DumpData(fp, &mIOPtrs.mcLabelsTPC, &mIOPtrs.nMCLabelsTPC, InOutPointerType::MC_LABEL_TPC);
-	DumpData(fp, &mIOPtrs.mcInfosTPC, &mIOPtrs.nMCInfosTPC, InOutPointerType::MC_INFO_TPC);
-	DumpData(fp, &mIOPtrs.mergedTracks, &mIOPtrs.nMergedTracks, InOutPointerType::MERGED_TRACK);
-	DumpData(fp, &mIOPtrs.mergedTrackHits, &mIOPtrs.nMergedTrackHits, InOutPointerType::MERGED_TRACK_HIT);
-	DumpData(fp, &mIOPtrs.trdTracks, &mIOPtrs.nTRDTracks, InOutPointerType::TRD_TRACK);
-	DumpData(fp, &mIOPtrs.trdTracklets, &mIOPtrs.nTRDTracklets, InOutPointerType::TRD_TRACKLET);
-	DumpData(fp, &mIOPtrs.trdTrackletsMC, &mIOPtrs.nTRDTrackletsMC, InOutPointerType::TRD_TRACKLET_MC);
-	fclose(fp);
-}
-
-template <class T> void AliGPUReconstruction::DumpData(FILE* fp, const T* const* entries, const unsigned int* num, InOutPointerType type)
-{
-	int count;
-	if (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS) count = NSLICES;
-	else if (type == CLUSTERS_NATIVE) count = NSLICES * GPUCA_ROW_COUNT;
-	else count = 1;
-	unsigned int numTotal = 0;
-	for (int i = 0;i < count;i++) numTotal += num[i];
-	if (numTotal == 0) return;
-	fwrite(&type, sizeof(type), 1, fp);
-	for (int i = 0;i < count;i++)
-	{
-		fwrite(&num[i], sizeof(num[i]), 1, fp);
-		if (num[i])
-		{
-			fwrite(entries[i], sizeof(*entries[i]), num[i], fp);
-		}
-	}
-}
-
-int AliGPUReconstruction::ReadData(const char* filename)
-{
-	ClearIOPointers();
-	FILE* fp = fopen(filename, "rb");
-	if (fp == nullptr) return(1);
-	
-	/*int nTotal = 0;
-	int nRead;
-	for (int i = 0;i < NSLICES;i++)
-	{
-		int nHits;
-		nRead = fread(&nHits, sizeof(nHits), 1, fp);
-		mIOPtrs.nClusterData[i] = nHits;
-		AllocateIOMemoryHelper(nHits, mIOPtrs.clusterData[i], mIOMem.clusterData[i]);
-		nRead = fread(mIOMem.clusterData[i].get(), sizeof(*mIOPtrs.clusterData[i]), nHits, fp);
-		for (int j = 0;j < nHits;j++)
-		{
-			mIOMem.clusterData[i][j].fId = nTotal++;
-		}
-	}
-	printf("Read %d hits\n", nTotal);
-	mIOPtrs.nMCLabelsTPC = nTotal;
-	AllocateIOMemoryHelper(nTotal, mIOPtrs.mcLabelsTPC, mIOMem.mcLabelsTPC);
-	nRead = fread(mIOMem.mcLabelsTPC.get(), sizeof(*mIOPtrs.mcLabelsTPC), nTotal, fp);
-	if (nRead != nTotal)
-	{
-		mIOPtrs.nMCLabelsTPC = 0;
-	}
-	else
-	{
-		printf("Read %d MC labels\n", nTotal);
-		int nTracks;
-		nRead = fread(&nTracks, sizeof(nTracks), 1, fp);
-		if (nRead)
-		{
-			mIOPtrs.nMCInfosTPC = nTracks;
-			AllocateIOMemoryHelper(nTracks, mIOPtrs.mcInfosTPC, mIOMem.mcInfosTPC);
-			nRead = fread(mIOMem.mcInfosTPC.get(), sizeof(*mIOPtrs.mcInfosTPC), nTracks, fp);
-			printf("Read %d MC Infos\n", nTracks);
-		}
-	}*/
-	
-	char buf[DUMP_HEADER_SIZE + 1] = "";
-	size_t r = fread(buf, 1, DUMP_HEADER_SIZE, fp);
-	if (strncmp(DUMP_HEADER, buf, DUMP_HEADER_SIZE))
-	{
-		printf("Invalid file header\n");
-		return -1;
-	}
-	GeometryType geo;
-	r = fread(&geo, sizeof(geo), 1, fp);
-	if (geo != geometryType)
-	{
-		printf("File has invalid geometry (%s v.s. %s)\n", GEOMETRY_TYPE_NAMES[geo], GEOMETRY_TYPE_NAMES[geometryType]);
-		return 1;
-	}
-	(void) r;
-	ReadData(fp, mIOPtrs.clusterData, mIOPtrs.nClusterData, mIOMem.clusterData, InOutPointerType::CLUSTER_DATA);
-	int nClustersTotal = 0;
-	for (unsigned int i = 0;i < NSLICES;i++)
-	{
-		for (unsigned int j = 0;j < mIOPtrs.nClusterData[i];j++)
-		{
-			mIOMem.clusterData[i][j].fId = nClustersTotal++;
-		}
-	}
-	ReadData(fp, mIOPtrs.rawClusters, mIOPtrs.nRawClusters, mIOMem.rawClusters, InOutPointerType::RAW_CLUSTERS);
-	mIOPtrs.clustersNative = ReadData<ClusterNative>(fp, (const ClusterNative**) &mClusterNativeAccess->clusters[0][0], &mClusterNativeAccess->nClusters[0][0], mIOMem.clustersNative, InOutPointerType::CLUSTERS_NATIVE) ? mClusterNativeAccess.get() : nullptr;
-	ReadData(fp, mIOPtrs.sliceOutTracks, mIOPtrs.nSliceOutTracks, mIOMem.sliceOutTracks, InOutPointerType::SLICE_OUT_TRACK);
-	ReadData(fp, mIOPtrs.sliceOutClusters, mIOPtrs.nSliceOutClusters, mIOMem.sliceOutClusters, InOutPointerType::SLICE_OUT_CLUSTER);
-	ReadData(fp, &mIOPtrs.mcLabelsTPC, &mIOPtrs.nMCLabelsTPC, &mIOMem.mcLabelsTPC, InOutPointerType::MC_LABEL_TPC);
-	ReadData(fp, &mIOPtrs.mcInfosTPC, &mIOPtrs.nMCInfosTPC, &mIOMem.mcInfosTPC, InOutPointerType::MC_INFO_TPC);
-	ReadData(fp, &mIOPtrs.mergedTracks, &mIOPtrs.nMergedTracks, &mIOMem.mergedTracks, InOutPointerType::MERGED_TRACK);
-	ReadData(fp, &mIOPtrs.mergedTrackHits, &mIOPtrs.nMergedTrackHits, &mIOMem.mergedTrackHits, InOutPointerType::MERGED_TRACK_HIT);
-	ReadData(fp, &mIOPtrs.trdTracks, &mIOPtrs.nTRDTracks, &mIOMem.trdTracks, InOutPointerType::TRD_TRACK);
-	ReadData(fp, &mIOPtrs.trdTracklets, &mIOPtrs.nTRDTracklets, &mIOMem.trdTracklets, InOutPointerType::TRD_TRACKLET);
-	ReadData(fp, &mIOPtrs.trdTrackletsMC, &mIOPtrs.nTRDTrackletsMC, &mIOMem.trdTrackletsMC, InOutPointerType::TRD_TRACKLET_MC);
-	fclose(fp);
-	
-	return(0);
-}
-
-template <class T> size_t AliGPUReconstruction::ReadData(FILE* fp, const T** entries, unsigned int* num, std::unique_ptr<T[]>* mem, InOutPointerType type)
-{
-	if (feof(fp)) return 0;
-	InOutPointerType inType;
-	size_t r, pos = ftell(fp);
-	r = fread(&inType, sizeof(inType), 1, fp);
-	if (r != 1 || inType != type)
-	{
-		fseek(fp, pos, SEEK_SET);
-		return 0;
-	}
-	
-	int count;
-	if (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS) count = NSLICES;
-	else if (type == CLUSTERS_NATIVE) count = NSLICES * GPUCA_ROW_COUNT;
-	else count = 1;
-	size_t numTotal = 0;
-	for (int i = 0;i < count;i++)
-	{
-		r = fread(&num[i], sizeof(num[i]), 1, fp);
-		AllocateIOMemoryHelper(num[i], entries[i], mem[i]);
-		if (num[i]) r = fread(mem[i].get(), sizeof(*entries[i]), num[i], fp);
-		numTotal += num[i];
-	}
-	(void) r;
-	if (mDeviceProcessingSettings.debugLevel >= 2) printf("Read %d %s\n", (int) numTotal, IOTYPENAMES[type]);
-	return numTotal;
-}
-
 void AliGPUReconstruction::DumpSettings(const char* dir)
 {
 	std::string f;
 	f = dir;
 	f += "settings.dump";
 	DumpStructToFile(&mEventSettings, f.c_str());
-	f = dir;
-	f += "tpctransform.dump";
-	if (mTPCFastTransform != nullptr) DumpFlatObjectToFile(mTPCFastTransform.get(), f.c_str());
-	f = dir;
-	f += "trdgeometry.dump";
-	if (mTRDGeometry != nullptr) DumpStructToFile(mTRDGeometry.get(), f.c_str());
-	
+	for (unsigned int i = 0;i < mChains.size();i++)
+	{
+		mChains[i]->DumpSettings(dir);
+	}
 }
 
 void AliGPUReconstruction::ReadSettings(const char* dir)
@@ -543,95 +308,12 @@ void AliGPUReconstruction::ReadSettings(const char* dir)
 	f = dir;
 	f += "settings.dump";
 	mEventSettings.SetDefaults();
-	param().UpdateEventSettings(&mEventSettings);
 	ReadStructFromFile(f.c_str(), &mEventSettings);
-	f = dir;
-	f += "tpctransform.dump";
-	mTPCFastTransform = ReadFlatObjectFromFile<TPCFastTransform>(f.c_str());
-	f = dir;
-	f += "trdgeometry.dump";
-	mTRDGeometry = ReadStructFromFile<o2::trd::TRDGeometryFlat>(f.c_str());
-}
-
-template <class T> void AliGPUReconstruction::DumpFlatObjectToFile(const T* obj, const char* file)
-{
-	FILE* fp = fopen(file, "w+b");
-	if (fp == nullptr) return;
-	size_t size[2] = {sizeof(*obj), obj->getFlatBufferSize()};
-	fwrite(size, sizeof(size[0]), 2, fp);
-	fwrite(obj, 1, size[0], fp);
-	fwrite(obj->getFlatBufferPtr(), 1, size[1], fp);
-	fclose(fp);
-}
-
-template <class T> std::unique_ptr<T> AliGPUReconstruction::ReadFlatObjectFromFile(const char* file)
-{
-	FILE* fp = fopen(file, "rb");
-	if (fp == nullptr) return nullptr;
-	size_t size[2], r;
-	r = fread(size, sizeof(size[0]), 2, fp);
-	if (r == 0 || size[0] != sizeof(T)) {fclose(fp); return nullptr;}
-	std::unique_ptr<T> retVal(new T);
-	char* buf = new char[size[1]]; //Not deleted as ownership is transferred to FlatObject
-	r = fread((void*) retVal.get(), 1, size[0], fp);
-	r = fread(buf, 1, size[1], fp);
-	fclose(fp);
-	if (mDeviceProcessingSettings.debugLevel >= 2) printf("Read %d bytes from %s\n", (int) r, file);
-	retVal->clearInternalBufferPtr();
-	retVal->setActualBufferAddress(buf);
-	retVal->adoptInternalBuffer(buf);
-	return std::move(retVal);
-}
-
-template <class T> void AliGPUReconstruction::DumpStructToFile(const T* obj, const char* file)
-{
-	FILE* fp = fopen(file, "w+b");
-	if (fp == nullptr) return;
-	size_t size = sizeof(*obj);
-	fwrite(&size, sizeof(size), 1, fp);
-	fwrite(obj, 1, size, fp);
-	fclose(fp);
-}
-
-template <class T> std::unique_ptr<T> AliGPUReconstruction::ReadStructFromFile(const char* file)
-{
-	FILE* fp = fopen(file, "rb");
-	if (fp == nullptr) return nullptr;
-	size_t size, r;
-	r = fread(&size, sizeof(size), 1, fp);
-	if (r == 0 || size != sizeof(T)) {fclose(fp); return nullptr;}
-	std::unique_ptr<T> newObj(new T);
-	r = fread(newObj.get(), 1, size, fp);
-	fclose(fp);
-	if (mDeviceProcessingSettings.debugLevel >= 2) printf("Read %d bytes from %s\n", (int) r, file);
-	return std::move(newObj);
-}
-
-template <class T> void AliGPUReconstruction::ReadStructFromFile(const char* file, T* obj)
-{
-	FILE* fp = fopen(file, "rb");
-	if (fp == nullptr) return;
-	size_t size, r;
-	r = fread(&size, sizeof(size), 1, fp);
-	if (r == 0) {fclose(fp); return;}
-	r = fread(obj, 1, size, fp);
-	fclose(fp);
-	if (mDeviceProcessingSettings.debugLevel >= 2) printf("Read %d bytes from %s\n", (int) r, file);
-}
-
-void AliGPUReconstruction::ConvertNativeToClusterData()
-{
-	o2::TPC::ClusterNativeAccessFullTPC* tmp = mClusterNativeAccess.get();
-	if (tmp != mIOPtrs.clustersNative)
+	param().UpdateEventSettings(&mEventSettings);
+	for (unsigned int i = 0;i < mChains.size();i++)
 	{
-		*tmp = *mIOPtrs.clustersNative;
+		mChains[i]->ReadSettings(dir);
 	}
-	AliGPUReconstructionConvert::ConvertNativeToClusterData(mClusterNativeAccess.get(), mIOMem.clusterData, mIOPtrs.nClusterData, mTPCFastTransform.get(), param().continuousMaxTimeBin);
-	for (unsigned int i = 0;i < NSLICES;i++)
-	{
-		mIOPtrs.clusterData[i] = mIOMem.clusterData[i].get();
-	}
-	mIOPtrs.clustersNative = nullptr;
 }
 
 void AliGPUReconstruction::SetSettings(float solenoidBz)
@@ -641,23 +323,12 @@ void AliGPUReconstruction::SetSettings(float solenoidBz)
 	ev.solenoidBz = solenoidBz;
 	SetSettings(&ev, nullptr, nullptr);
 }
+
 void AliGPUReconstruction::SetSettings(const AliGPUSettingsEvent* settings, const AliGPUSettingsRec* rec, const AliGPUSettingsDeviceProcessing* proc)
 {
 	mEventSettings = *settings;
 	if (proc) mDeviceProcessingSettings = *proc;
 	param().SetDefaults(&mEventSettings, rec, proc);
-}
-void AliGPUReconstruction::LoadClusterErrors()
-{
-	param().LoadClusterErrors();
-}
-void AliGPUReconstruction::SetTPCFastTransform(std::unique_ptr<TPCFastTransform> tpcFastTransform)
-{
-	mTPCFastTransform = std::move(tpcFastTransform);
-}
-void AliGPUReconstruction::SetTRDGeometry(const o2::trd::TRDGeometryFlat& geo)
-{
-	mTRDGeometry.reset(new o2::trd::TRDGeometryFlat(geo));
 }
 
 void AliGPUReconstruction::SetOutputControl(void* ptr, size_t size)

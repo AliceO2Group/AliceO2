@@ -1,6 +1,8 @@
 #include "utils/qconfig.h"
 #include "AliGPUReconstruction.h"
 #include "AliGPUReconstructionTimeframe.h"
+#include "AliGPUChainTracking.h"
+#include "AliGPUChainITS.h"
 #include "AliGPUTPCDef.h"
 #include "AliGPUQA.h"
 #include "AliGPUDisplayBackend.h"
@@ -54,6 +56,8 @@
 //#define BROKEN_EVENTS
 
 AliGPUReconstruction* rec;
+AliGPUChainTracking* chainTracking;
+AliGPUChainITS* chainITS;
 std::unique_ptr<char[]> outputmemory;
 std::unique_ptr<AliGPUDisplayBackend> eventDisplay;
 std::unique_ptr<AliGPUReconstructionTimeframe> tf;
@@ -212,8 +216,8 @@ int SetupReconstruction()
 	devProc.globalInitMutex = configStandalone.gpuInitMutex;
 	devProc.gpuDeviceOnly = configStandalone.oclGPUonly;
 	devProc.memoryAllocationStrategy = configStandalone.allocationStrategy;
-	if (configStandalone.configRec.runTRD != -1) rec->GetRecoSteps().setBits(AliGPUReconstruction::RecoStep::TRDTracking, configStandalone.configRec.runTRD);
-	if (!configStandalone.merger) rec->GetRecoSteps().setBits(AliGPUReconstruction::RecoStep::TPCMerging, false);
+	if (configStandalone.configRec.runTRD != -1) chainTracking->GetRecoSteps().setBits(AliGPUReconstruction::RecoStep::TRDTracking, configStandalone.configRec.runTRD);
+	if (!configStandalone.merger) chainTracking->GetRecoSteps().setBits(AliGPUReconstruction::RecoStep::TPCMerging, false);
 	
 	if (configStandalone.configProc.nStreams >= 0) devProc.nStreams = configStandalone.configProc.nStreams;
 	if (configStandalone.configProc.constructorPipeline >= 0) devProc.trackletConstructorInPipeline = configStandalone.configProc.constructorPipeline;
@@ -232,9 +236,9 @@ int ReadEvent(int n)
 {
 	char filename[256];
 	snprintf(filename, 256, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, n);
-	int r = rec->ReadData(filename);
+	int r = chainTracking->ReadData(filename);
 	if (r) return r;
-	if (rec->mIOPtrs.clustersNative) rec->ConvertNativeToClusterData();
+	if (chainTracking->mIOPtrs.clustersNative) chainTracking->ConvertNativeToClusterData();
 	return 0;
 }
 
@@ -253,6 +257,8 @@ int main(int argc, char** argv)
 		printf("Error initializing AliGPUReconstruction\n");
 		return(1);
 	}
+	chainTracking = rec->AddChain<AliGPUChainTracking>();
+	chainITS = rec->AddChain<AliGPUChainITS>();
 
 	if (SetupReconstruction()) return(1);
 
@@ -279,12 +285,12 @@ int main(int argc, char** argv)
 	
 	if (configStandalone.configTF.bunchSim || configStandalone.configTF.nMerge)
 	{
-		tf.reset(new AliGPUReconstructionTimeframe(rec, ReadEvent, nEventsInDirectory));
+		tf.reset(new AliGPUReconstructionTimeframe(chainTracking, ReadEvent, nEventsInDirectory));
 	}
 
 	if (configStandalone.eventGenerator)
 	{
-		genEvents::RunEventGenerator(rec);
+		genEvents::RunEventGenerator(chainTracking);
 		return(1);
 	}
 	else
@@ -338,21 +344,21 @@ int main(int argc, char** argv)
 					if (configStandalone.outputcontrolmem) rec->SetOutputControl(outputmemory.get(), configStandalone.outputcontrolmem);
 					rec->SetResetTimers(j1 <= configStandalone.runsInit);
 					
-					int tmpRetVal = rec->RunStandalone();
+					int tmpRetVal = chainTracking->RunStandalone();
 					
 					if (tmpRetVal == 0)
 					{
 						int nTracks = 0, nClusters = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0;
-						for (int k = 0;k < rec->GetTPCMerger().NOutputTracks();k++)
+						for (int k = 0;k < chainTracking->GetTPCMerger().NOutputTracks();k++)
 						{
-							if (rec->GetTPCMerger().OutputTracks()[k].OK())
+							if (chainTracking->GetTPCMerger().OutputTracks()[k].OK())
 							{
 								nTracks++;
-								nAttachedClusters += rec->GetTPCMerger().OutputTracks()[k].NClusters();
-								nAttachedClustersFitted += rec->GetTPCMerger().OutputTracks()[k].NClustersFitted();
+								nAttachedClusters += chainTracking->GetTPCMerger().OutputTracks()[k].NClusters();
+								nAttachedClustersFitted += chainTracking->GetTPCMerger().OutputTracks()[k].NClustersFitted();
 							}
 						}
-						nClusters = rec->GetTPCMerger().NClusters();
+						nClusters = chainTracking->GetTPCMerger().NClusters();
 						printf("Output Tracks: %d (%d/%d attached clusters)\n", nTracks, nAttachedClusters, nAttachedClustersFitted);
 						if (j1 == 0)
 						{
@@ -362,15 +368,15 @@ int main(int argc, char** argv)
 						}
 					}
 					
-					if (rec->GetRecoSteps() & AliGPUReconstruction::RecoStep::TRDTracking)
+					if (chainTracking->GetRecoSteps() & AliGPUReconstruction::RecoStep::TRDTracking)
 					{
 						int nTracklets = 0;
-						for (int k = 0;k < rec->GetTRDTracker()->NTracks();k++)
+						for (int k = 0;k < chainTracking->GetTRDTracker()->NTracks();k++)
 						{
-							auto& trk = rec->GetTRDTracker()->Tracks()[k];
+							auto& trk = chainTracking->GetTRDTracker()->Tracks()[k];
 							nTracklets += trk.GetNtracklets();
 						}
-						printf("TRD Tracker reconstructed %d tracks (%d tracklets)\n", rec->GetTRDTracker()->NTracks(), nTracklets);
+						printf("TRD Tracker reconstructed %d tracks (%d tracklets)\n", chainTracking->GetTRDTracker()->NTracks(), nTracklets);
 					}
 					
 					if (tmpRetVal == 2)
@@ -398,12 +404,12 @@ breakrun:
 #ifndef _WIN32
 		if (configStandalone.fpe) fedisableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
 #endif
-		if (rec->GetQA() == nullptr)
+		if (chainTracking->GetQA() == nullptr)
 		{
 			printf("QA Unavailable\n");
 			return 1;
 		}
-		rec->GetQA()->DrawQAHistograms();
+		chainTracking->GetQA()->DrawQAHistograms();
 	}
 
 	rec->Finalize();

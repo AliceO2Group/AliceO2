@@ -11,8 +11,8 @@ HIDEECHO					= @
 CC_x86_64-pc-linux-gnu		= GCC
 CC_i686-pc-cygwin			= ICC
 
-INCLUDEPATHS				= . SliceTracker HLTHeaders Merger Base TRDTracking Common TPCFastTransformation display qa
-DEFINES						= GPUCA_STANDALONE GPUCA_ENABLE_GPUCA_TRACKER
+INCLUDEPATHS				= . SliceTracker HLTHeaders Merger Base Global TRDTracking Common TPCFastTransformation display qa
+DEFINES						= GPUCA_STANDALONE
 
 EXTRAFLAGSGCC				+=
 EXTRAFLAGSLINK				+= -rdynamic -Wl,--no-undefined -L .

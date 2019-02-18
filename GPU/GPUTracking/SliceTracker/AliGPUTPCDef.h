@@ -138,7 +138,7 @@ struct cahit2{cahit x, y;};
 	#define MAKESharedRef(vartype, varname, varglobal, varshared) const GPUglobalref() MEM_GLOBAL(vartype) &varname = varglobal;
 #endif
 
-#ifdef GPUCA_GPUCA_TEXTURE_FETCH_CONSTRUCTOR
+#ifdef GPUCA_TEXTURE_FETCH_CONSTRUCTOR
 	#define TEXTUREFetchCons(type, texture, address, entry) tex1Dfetch(texture, ((char*) address - tracker.Data().GPUTextureBase()) / sizeof(type) + entry);
 #else
 	#define TEXTUREFetchCons(type, texture, address, entry) address[entry];

@@ -43,17 +43,17 @@ template <> GPUd() void AliGPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int
 	{
 		if (tracker.HitLinkDownData(row, ih) == CALINK_INVAL && tracker.HitLinkUpData(row, ih) != CALINK_INVAL && tracker.HitLinkUpData(rowUp, tracker.HitLinkUpData(row, ih)) != CALINK_INVAL)
 		{
-#ifdef GPUCA_GPUCA_SORT_STARTHITS
-			GPUglobalref() AliGPUTPCHitId *const startHits = tracker.TrackletTmpStartHits() + s.fIRow * GPUCA_GPUCA_MAX_ROWSTARTHITS;
+#ifdef GPUCA_SORT_STARTHITS
+			GPUglobalref() AliGPUTPCHitId *const startHits = tracker.TrackletTmpStartHits() + s.fIRow * GPUCA_MAX_ROWSTARTHITS;
 			int nextRowStartHits = CAMath::AtomicAddShared(&s.fNRowStartHits, 1);
-			if (nextRowStartHits >= GPUCA_GPUCA_MAX_ROWSTARTHITS)
+			if (nextRowStartHits >= GPUCA_MAX_ROWSTARTHITS)
 #else
 			GPUglobalref() AliGPUTPCHitId *const startHits = tracker.TrackletStartHits();
 			int nextRowStartHits = CAMath::AtomicAdd(tracker.NTracklets(), 1);
-			if (nextRowStartHits >= GPUCA_GPUCA_MAX_TRACKLETS)
+			if (nextRowStartHits >= GPUCA_MAX_TRACKLETS)
 #endif
 			{
-				tracker.GPUParameters()->fGPUError = GPUCA_GPUCA_ERROR_TRACKLET_OVERFLOW;
+				tracker.GPUParameters()->fGPUError = GPUCA_ERROR_TRACKLET_OVERFLOW;
 				CAMath::AtomicExch(tracker.NTracklets(), 0);
 				break;
 			}
@@ -62,15 +62,15 @@ template <> GPUd() void AliGPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int
 	}
     GPUbarrier();
     
-#ifdef GPUCA_GPUCA_SORT_STARTHITS
+#ifdef GPUCA_SORT_STARTHITS
 	if (iThread == 0)
 	{
 		int nOffset = CAMath::AtomicAdd(tracker.NTracklets(), s.fNRowStartHits);
 #ifdef GPUCA_GPUCODE
 		tracker.RowStartHitCountOffset()[s.fIRow] = s.fNRowStartHits;
-		if (nOffset + s.fNRowStartHits >= GPUCA_GPUCA_MAX_TRACKLETS)
+		if (nOffset + s.fNRowStartHits >= GPUCA_MAX_TRACKLETS)
 		{
-			tracker.GPUParameters()->fGPUError = GPUCA_GPUCA_ERROR_TRACKLET_OVERFLOW;
+			tracker.GPUParameters()->fGPUError = GPUCA_ERROR_TRACKLET_OVERFLOW;
 			CAMath::AtomicExch(tracker.NTracklets(), 0);
 		}
 #endif
