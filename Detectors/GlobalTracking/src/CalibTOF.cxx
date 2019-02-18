@@ -34,7 +34,7 @@ CalibTOF::CalibTOF(){
 
   for(int ipad=0; ipad < NPADSPERSTEP; ipad++){
   }
-  mHistoChTimeSlewingAll = new TH2F("hLHCchTimeSlewingAll", ";tot (ns);channel offset (ps)", 5000, 0., 250., 1000, -24400., 24400.);
+  mHistoChTimeSlewingAll = new TH2F("hTOFchTimeSlewingAll", ";tot (ns);t - t_{exp} - t_{offset} (ps)", 5000, 0., 250., 1000, -24400., 24400.);
 
 }
 //______________________________________________
@@ -151,14 +151,14 @@ void CalibTOF::run(int flag, int sector)
     TH1F* histoChOffsetTemp[NPADSPERSTEP];
     std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad[NPADSPERSTEP];
     for (int ipad = 0; ipad < NPADSPERSTEP; ipad++){
-      histoChOffsetTemp[ipad] = new TH1F(Form("hLHCchOffsetTemp_%02d_%04d", sector, ipad), Form("Sector %02d (pad = %03d);channel offset (ps)", sector, ipad), 1000, -24400, 24400);
+      histoChOffsetTemp[ipad] = new TH1F(Form("hLHCchOffsetTemp_%02d_%04d", sector, ipad), Form("Sector %02d (pad = %04d);channel offset (ps)", sector, ipad), 1000, -24400, 24400);
       if (flag & kChannelTimeSlewing) calibTimePad[ipad] = new std::vector<o2::dataformats::CalibInfoTOFshort>; // temporary array containing [time, tot] for every pad that we process; this will be the input for the 2D histo for timeSlewing calibration (to be filled after we get the channel offset)
       else calibTimePad[ipad] = nullptr;
     }
     
-    TF1* funcChOffset = new TF1(Form("fLHCchOffset_%02d", sector), "gaus");
+    TF1* funcChOffset = new TF1(Form("fTOFchOffset_%02d", sector), "gaus");
 
-    TH2F* histoChTimeSlewingTemp = new TH2F(Form("hLHCchTimeSlewingTemp_%02d", sector), Form("Sector %02d;tot (ns);channel offset (ps)", sector), 5000, 0., 250., 1000, -24400., 24400.); 
+    TH2F* histoChTimeSlewingTemp = new TH2F(Form("hTOFchTimeSlewingTemp_%02d", sector), Form("Sector %02d;tot (ns);t - t_{exp} - t_{offset} (ps)", sector), 5000, 0., 250., 1000, -24400., 24400.); 
 
     int startLoop = 0; // first pad that we will process in this process (we are processing a sector, unless sector = -1)
     int endLoop = o2::tof::Geo::NCHANNELS; // last pad that we will process in this process (we are processing a sector)
@@ -206,6 +206,8 @@ void CalibTOF::run(int flag, int sector)
 	    histoChTimeSlewingTemp->Reset();
 	    fillChannelTimeSlewingCalib(mCalibChannelOffset[ich+ipad], ipad, histoChTimeSlewingTemp, calibTimePad[ipad]); // we will fill the input for the channel-time-slewing calibration
 
+	    histoChTimeSlewingTemp->SetName(Form("hTOFchTimeSlewingSec_%02d_Pad%04d", sector, ipad));
+	    histoChTimeSlewingTemp->SetTitle(Form("Sector %02d (pad = %04d)", sector, ipad));
 	    TGraphErrors *gTimeVsTot = processSlewing(histoChTimeSlewingTemp, 1,funcChOffset);
 
 	    if(gTimeVsTot && gTimeVsTot->GetN()){
@@ -223,6 +225,9 @@ void CalibTOF::run(int flag, int sector)
 	      gTimeVsTot->Write();
 	      //	      histoChTimeSlewingTemp->Write(Form("histoChTimeSlewingTemp_%02d_%02d_%02d", sector, istrip, ipad%o2::tof::Geo::NPADS)); // no longer written since it produces a very large output
 	    }
+	  }
+	  else if(flag & kChannelOffset){
+	    mTimeSlewingObj->addTimeSlewingInfo(ich+ipad, 0, mCalibChannelOffset[ich+ipad]);
 	  }
 	}
       }
@@ -501,7 +506,8 @@ Int_t CalibTOF::FitPeak(TF1 *fitFunc, TH1 *h, Float_t startSigma, Float_t nSigma
   }
 
   if(mDebugMode > 1 && fitFunc->GetParError(1) > 100){
-    const char *filename = Form("probFit_%s_Debug%i.root", debuginfo, nn);
+    char *filename = Form("ProblematicFit_%s.root", h->GetName());
+    if(hdbg) filename = Form("ProblematicFit_%s.root", hdbg->GetName());
     //    printf("write %s\n", filename);
     TFile ff(filename, "RECREATE");
     h->Write();

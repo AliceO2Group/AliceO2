@@ -21,8 +21,8 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparam
 		   std::string inputfileCalib = "o2calibration_tof.root")
 {
 
-  int ninstance = 2;
-  o2::globaltracking::CalibTOF calib[2];
+  const int ninstance = 2;
+  o2::globaltracking::CalibTOF calib[ninstance];
   for(int i=0; i < ninstance; i++)
     calib[i].setDebugMode(1);
 
