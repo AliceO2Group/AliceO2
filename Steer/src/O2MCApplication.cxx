@@ -43,6 +43,14 @@ void TypedVectorAttach(const char* name, FairMQChannel& channel, FairMQParts& pa
   }
 }
 
+void O2MCApplicationBase::Stepping()
+{
+  // dispatch first to stepping function in FairRoot
+  FairMCApplication::Stepping();
+
+  // now the right place to put our specific step/filtering criteria:
+}
+
 void O2MCApplication::initLate()
 {
   o2::utils::ShmManager::Instance().occupySegment();

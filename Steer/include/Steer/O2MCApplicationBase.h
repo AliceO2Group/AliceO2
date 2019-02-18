@@ -18,8 +18,10 @@
 #ifndef STEER_INCLUDE_STEER_O2MCAPPLICATIONBASE_H_
 #define STEER_INCLUDE_STEER_O2MCAPPLICATIONBASE_H_
 
-#include "FairMCApplication.h"
+#include <FairMCApplication.h>
 #include "Rtypes.h" // for Int_t, Bool_t, Double_t, etc
+#include <TVirtualMC.h>
+#include "SimConfig/SimCutParams.h"
 
 namespace o2
 {
@@ -32,14 +34,22 @@ namespace steer
 class O2MCApplicationBase : public FairMCApplication
 {
  public:
-  using FairMCApplication::FairMCApplication;
+  O2MCApplicationBase() : FairMCApplication(), mCutParams(o2::conf::SimCutParams::Instance()) {}
+  O2MCApplicationBase(const char* name, const char* title, TObjArray* ModList, const char* MatName) : FairMCApplication(name, title, ModList, MatName), mCutParams(o2::conf::SimCutParams::Instance())
+  {
+  }
+
   ~O2MCApplicationBase() override = default;
 
+  void Stepping() override;
+
   // specific implementation of our hard geometry limits
-  double TrackingRmax() const override { return 1E20; }
-  double TrackingZmax() const override { return 1E20; }
+  double TrackingRmax() const override { return mCutParams.maxRTracking; }
+  double TrackingZmax() const override { return mCutParams.maxAbsZTracking; }
 
   ClassDefOverride(O2MCApplicationBase, 1) //Interface to MonteCarlo application
+
+    protected : o2::conf::SimCutParams const& mCutParams;
 };
 
 } // end namespace steer

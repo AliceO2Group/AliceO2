@@ -6,10 +6,12 @@ set(SRCS
     src/SimConfig.cxx
     src/ConfigurableParam.cxx
     src/ConfigurableParamHelper.cxx
+    src/SimCutParams.cxx
    )
 
 set(HEADERS
     include/${MODULE_NAME}/SimConfig.h
+    include/${MODULE_NAME}/SimCutParams.h
     include/${MODULE_NAME}/ConfigurableParam.h
     include/${MODULE_NAME}/ConfigurableParamHelper.h
    )
