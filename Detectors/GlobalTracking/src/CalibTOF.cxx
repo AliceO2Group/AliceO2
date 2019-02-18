@@ -512,3 +512,9 @@ Int_t CalibTOF::FitPeak(TF1 *fitFunc, TH1 *h, Float_t startSigma, Float_t nSigma
 
   return fitres;
 }
+//______________________________________________
+
+CalibTOF& CalibTOF::operator+=(const CalibTOF& other){
+  *mTimeSlewingObj += *other.mTimeSlewingObj;
+  return *this;
+}

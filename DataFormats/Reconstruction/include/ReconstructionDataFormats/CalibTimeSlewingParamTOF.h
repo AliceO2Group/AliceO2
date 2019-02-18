@@ -37,9 +37,11 @@ class CalibTimeSlewingParamTOF
 
   int size() const {int n=0; for(int i=0;i<NSECTORS;i++) n +=  (*(mTimeSlewing[i])).size(); return n;}
 
-  int getSize(int sector) const {(*(mTimeSlewing[sector])).size();}
+  int getSize(int sector) const {return (*(mTimeSlewing[sector])).size();}
 
   int getStartTimeStamp(int sector, int channel) const {return mChannelStart[sector][channel];}
+
+  CalibTimeSlewingParamTOF& operator+=(const CalibTimeSlewingParamTOF& other); 
 
  private:
   // TOF channel calibrations

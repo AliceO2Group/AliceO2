@@ -100,3 +100,19 @@ void CalibTimeSlewingParamTOF::addTimeSlewingInfo(int channel, float tot, float 
   (*(mTimeSlewing[sector])).emplace_back(tot,time);
 }
 //______________________________________________
+
+CalibTimeSlewingParamTOF& CalibTimeSlewingParamTOF::operator+=(const CalibTimeSlewingParamTOF& other){
+  for(int i=0; i < NSECTORS; i++){
+    if(other.mTimeSlewing[i]->size() > mTimeSlewing[i]->size()){
+      mTimeSlewing[i]->clear();
+      for(auto obj = other.mTimeSlewing[i]->begin(); obj != other.mTimeSlewing[i]->end(); obj++)
+	mTimeSlewing[i]->push_back(*obj);
+      
+      for(int j=0;j < NCHANNELXSECTORSECTOR;j++)
+	mChannelStart[i][j] = other.mChannelStart[i][j];
+      
+    }
+  }
+  return *this;
+}
+//______________________________________________
