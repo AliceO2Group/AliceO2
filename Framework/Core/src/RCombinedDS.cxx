@@ -53,6 +53,28 @@ std::vector<std::pair<ULong64_t, ULong64_t>>
   return ranges;
 }
 
+std::vector<std::pair<ULong64_t, ULong64_t>>
+  RCombindedDSFriendIndex::BuildIndex(std::unique_ptr<RDataFrame>& left,
+                                      std::unique_ptr<RDataFrame>& right)
+{
+  auto leftCount = *left->Count();
+  auto rightCount = *right->Count();
+  if (leftCount != rightCount) {
+    throw std::runtime_error("Union can be performed only with two datasources which have the same amount of entries");
+  }
+  std::vector<std::pair<ULong64_t, ULong64_t>> ranges;
+  // FIXME: should we really use the min between two number of slots?
+  auto nSlots = std::min(left->GetLoopManager()->GetNSlots(), right->GetLoopManager()->GetNSlots());
+  assert(nSlots > 0);
+  auto deltaSize = rightCount / nSlots;
+  ULong64_t i = 0;
+  for (; i < (nSlots - 1); ++i) {
+    ranges.emplace_back(std::pair<ULong64_t, ULong64_t>(deltaSize * i, deltaSize * (i + 1)));
+  }
+  ranges.emplace_back(std::pair<ULong64_t, ULong64_t>(i * deltaSize, rightCount));
+  return ranges;
+}
+
 ////////////////////////////////////////////////////////////////////////
 /// Constructor to create an Arrow RDataSource for RDataFrame.
 /// \param[in] left the first table we iterate on, i.e. the outer loop
@@ -194,6 +216,21 @@ RDataFrame MakeColumnIndexedDataFrame(std::unique_ptr<RDataSource> left, std::un
                                       std::string leftPrefix, std::string rightPrefix)
 {
   ROOT::RDataFrame tdf(std::make_unique<RCombinedDS>(std::move(left), std::move(right), std::move(std::make_unique<RCombindedDSColumnJoinIndex<int>>(indexColumnName)), leftPrefix, rightPrefix));
+  return tdf;
+}
+
+RDataFrame MakeBlockAntiDataFrame(std::unique_ptr<RDataSource> left, std::unique_ptr<RDataSource> right,
+                                  std::string indexColumnName,
+                                  std::string leftPrefix, std::string rightPrefix)
+{
+  ROOT::RDataFrame tdf(std::make_unique<RCombinedDS>(std::move(left), std::move(right), std::move(std::make_unique<RCombindedDSBlockJoinIndex<int>>(indexColumnName)), leftPrefix, rightPrefix));
+  return tdf;
+}
+
+RDataFrame MakeFriendDataFrame(std::unique_ptr<RDataSource> left, std::unique_ptr<RDataSource> right,
+                               std::string leftPrefix, std::string rightPrefix)
+{
+  ROOT::RDataFrame tdf(std::make_unique<RCombinedDS>(std::move(left), std::move(right), std::move(std::make_unique<RCombindedDSFriendIndex>()), leftPrefix, rightPrefix));
   return tdf;
 }
 
