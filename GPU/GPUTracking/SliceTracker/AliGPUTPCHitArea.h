@@ -37,7 +37,7 @@ class AliGPUTPCHitArea
      * Sets h to the coordinates and returns the index for the hit data
      */
 	MEM_TEMPLATE()
-	GPUd() int GetNext(GPUconstant() const MEM_CONSTANT(AliGPUTPCTracker) & tracker, const MEM_TYPE(AliGPUTPCRow) & row,
+	GPUd() int GetNext(GPUconstantref() const MEM_CONSTANT(AliGPUTPCTracker) & tracker, const MEM_TYPE(AliGPUTPCRow) & row,
 	                   GPUglobalref() const MEM_GLOBAL(AliGPUTPCSliceData) & slice, AliGPUTPCHit *h);
 
 	float Y() const { return fY; }

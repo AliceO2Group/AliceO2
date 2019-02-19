@@ -91,7 +91,9 @@ class AliGPUTRDTracker : public AliGPUProcessor {
   GPUd() int LoadTracklet(const AliGPUTRDTrackletWord &tracklet, const int *labels = 0x0);
   template<class T> GPUd() int LoadTrack(const T &trk, const int label = -1) {
     if (mNTracks >= mNMaxTracks) {
+#ifndef GPUCA_GPUCODE_DEVICE
       printf("Error: Track dropped (no memory available) -> must not happen\n");
+#endif
       return(1);
     }
 #ifdef GPUCA_ALIROOT_LIB

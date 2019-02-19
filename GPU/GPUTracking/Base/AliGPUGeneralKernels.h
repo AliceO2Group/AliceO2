@@ -12,7 +12,7 @@ public:
 	{
 	};
 
-	typedef GPUconstant() MEM_CONSTANT(AliGPUConstantMem) workerType;
+	typedef GPUconstantref() MEM_CONSTANT(AliGPUConstantMem) workerType;
 	GPUhdi() static AliGPUDataTypes::RecoStep GetRecoStep() {return GPUCA_RECO_STEP::AllRecoSteps;}
 	MEM_TEMPLATE() GPUhdi() static workerType *Worker(MEM_TYPE(AliGPUConstantMem) &workers) {return &workers;}
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)

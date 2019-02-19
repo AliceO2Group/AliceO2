@@ -86,25 +86,25 @@ public:
 
 	MEM_CLASS_PRE2() GPUd() static void UpdateTracklet
 		( int nBlocks, int nThreads, int iBlock, int iThread,
-		  MEM_LOCAL(GPUsharedref() AliGPUTPCSharedMemory) &s, AliGPUTPCThreadMemory &r, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker, MEM_LG2(AliGPUTPCTrackParam) &tParam, int iRow );
+		  MEM_LOCAL(GPUsharedref() AliGPUTPCSharedMemory) &s, AliGPUTPCThreadMemory &r, GPUconstantref() MEM_CONSTANT(AliGPUTPCTracker) &tracker, MEM_LG2(AliGPUTPCTrackParam) &tParam, int iRow );
 
 	MEM_CLASS_PRE23() GPUd() static void StoreTracklet
 		( int nBlocks, int nThreads, int iBlock, int iThread,
-		  MEM_LOCAL(GPUsharedref() AliGPUTPCSharedMemory) &s, AliGPUTPCThreadMemory &r, GPUconstant() MEM_LG2(AliGPUTPCTracker) &tracker, MEM_LG3(AliGPUTPCTrackParam) &tParam );
+		  MEM_LOCAL(GPUsharedref() AliGPUTPCSharedMemory) &s, AliGPUTPCThreadMemory &r, GPUconstantref() MEM_LG2(AliGPUTPCTracker) &tracker, MEM_LG3(AliGPUTPCTrackParam) &tParam );
 
 	MEM_CLASS_PRE2() GPUd() static bool CheckCov( MEM_LG2(AliGPUTPCTrackParam) &tParam );
 
-	GPUd() static void DoTracklet(GPUconstant() MEM_CONSTANT(AliGPUTPCTracker)& tracker, GPUsharedref() AliGPUTPCTrackletConstructor::MEM_LOCAL(AliGPUTPCSharedMemory)& sMem, AliGPUTPCThreadMemory& rMem);
+	GPUd() static void DoTracklet(GPUconstantref() MEM_CONSTANT(AliGPUTPCTracker)& tracker, GPUsharedref() AliGPUTPCTrackletConstructor::MEM_LOCAL(AliGPUTPCSharedMemory)& sMem, AliGPUTPCThreadMemory& rMem);
 
-	GPUd() static int FetchTracklet(GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &sMem);
+	GPUd() static int FetchTracklet(GPUconstantref() MEM_CONSTANT(AliGPUTPCTracker) &tracker, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &sMem);
 #ifdef GPUCA_GPUCODE
-	GPUd() static void AliGPUTPCTrackletConstructorGPU(GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) *pTracker, GPUsharedref() AliGPUTPCTrackletConstructor::MEM_LOCAL(AliGPUTPCSharedMemory)& sMem);
+	GPUd() static void AliGPUTPCTrackletConstructorGPU(GPUconstantref() MEM_CONSTANT(AliGPUTPCTracker) *pTracker, GPUsharedref() AliGPUTPCTrackletConstructor::MEM_LOCAL(AliGPUTPCSharedMemory)& sMem);
 #else
 	GPUd() static void AliGPUTPCTrackletConstructorCPU(AliGPUTPCTracker &tracker);
 	static int AliGPUTPCTrackletConstructorGlobalTracking(AliGPUTPCTracker &tracker, AliGPUTPCTrackParam& tParam, int startrow, int increment, int iTracklet);
 #endif //GPUCA_GPUCODE
 
-	typedef GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) workerType;
+	typedef GPUconstantref() MEM_CONSTANT(AliGPUTPCTracker) workerType;
 	GPUhdi() static AliGPUDataTypes::RecoStep GetRecoStep() {return GPUCA_RECO_STEP::TPCSliceTracking;}
 	MEM_TEMPLATE() GPUhdi() static workerType* Worker(MEM_TYPE(AliGPUConstantMem) &workers) {return workers.tpcTrackers;}
 	template <int iKernel = 0> GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &smem, workerType &tracker);
