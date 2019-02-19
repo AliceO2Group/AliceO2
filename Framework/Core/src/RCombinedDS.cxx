@@ -85,9 +85,7 @@ RCombinedDS::RCombinedDS(std::unique_ptr<RDataSource> inLeft, std::unique_ptr<RD
 
 ////////////////////////////////////////////////////////////////////////
 /// Destructor.
-RCombinedDS::~RCombinedDS()
-{
-}
+RCombinedDS::~RCombinedDS() = default;
 
 const std::vector<std::string>& RCombinedDS::GetColumnNames() const
 {
@@ -188,6 +186,14 @@ RDataFrame MakeCrossProductDataFrame(std::unique_ptr<RDataSource> left, std::uni
                                      std::string leftPrefix, std::string rightPrefix)
 {
   ROOT::RDataFrame tdf(std::make_unique<RCombinedDS>(std::move(left), std::move(right), std::move(std::make_unique<RCombindedDSCrossJoinIndex>()), leftPrefix, rightPrefix));
+  return tdf;
+}
+
+RDataFrame MakeColumnIndexedDataFrame(std::unique_ptr<RDataSource> left, std::unique_ptr<RDataSource> right,
+                                      std::string indexColumnName,
+                                      std::string leftPrefix, std::string rightPrefix)
+{
+  ROOT::RDataFrame tdf(std::make_unique<RCombinedDS>(std::move(left), std::move(right), std::move(std::make_unique<RCombindedDSColumnJoinIndex<int>>(indexColumnName)), leftPrefix, rightPrefix));
   return tdf;
 }
 

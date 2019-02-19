@@ -1,3 +1,5 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
 //
 // See http://alice-o2.web.cern.ch/license for full licensing information.
@@ -151,11 +153,16 @@ BOOST_AUTO_TEST_CASE(TestCombinedDS)
   auto source1 = std::make_unique<ROOT::RDF::RArrowDS>(table1, std::vector<std::string>{});
   auto source2 = std::make_unique<ROOT::RDF::RArrowDS>(table2, std::vector<std::string>{});
   auto combined = ROOT::RDF::MakeCrossProductDataFrame(std::move(source1), std::move(source2));
+  auto source3 = std::make_unique<ROOT::RDF::RArrowDS>(table1, std::vector<std::string>{});
+  auto source4 = std::make_unique<ROOT::RDF::RArrowDS>(table2, std::vector<std::string>{});
+  auto indexed = ROOT::RDF::MakeColumnIndexedDataFrame(std::move(source3), std::move(source4), "x");
   ROOT::RDataFrame finalDF{ std::move(combined) };
+  ROOT::RDataFrame indexedDF{ std::move(indexed) };
   BOOST_CHECK_EQUAL(*finalDF.Count(), 64);
-  // FIXME: this is currently affected by a bug in RArrowDS which does not work properly when 
+  BOOST_CHECK_EQUAL(*indexedDF.Count(), 8);
+  // FIXME: this is currently affected by a bug in RArrowDS which does not work properly when
   //        doing a rewind. Uncomment once we have a build with a ROOT which includes:
-  //        
+  //
   //        https://github.com/root-project/root/pull/3277
   //        https://github.com/root-project/root/pull/3428
   //
@@ -163,4 +170,5 @@ BOOST_AUTO_TEST_CASE(TestCombinedDS)
   //BOOST_CHECK_EQUAL(*finalDF.Define("s4", [](int lx, int rx) { return lx + rx; }, { "right_x", "left_x" }).Sum("s4"), 448);
   //BOOST_CHECK_EQUAL(*finalDF.Define("s2", [](int lx, int rx) { return lx; }, { "left_x", "left_y" }).Sum("s2"), 224);
   //BOOST_CHECK_EQUAL(*finalDF.Define("s3", [](int lx, int rx) { return rx; }, { "right_x", "left_x" }).Sum("s3"), 224);
+  //BOOST_CHECK_EQUAL(*indexedDF.Define("s4", [](int lx, int rx) { return lx + rx; }, {"right_x", "left_x"}).Sum("s4"), 56);
 }
