@@ -248,17 +248,6 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 	mProcShadow.InitGPUProcessor(this, AliGPUProcessor::PROCESSOR_TYPE_SLAVE);
 	mProcShadow.mMemoryResWorkers = RegisterMemoryAllocation(&mProcShadow, &AliGPUProcessorWorkers::SetPointersDeviceProcessor, AliGPUMemoryResource::MEMORY_PERMANENT | AliGPUMemoryResource::MEMORY_HOST, "Workers");
 	AllocateRegisteredMemory(mProcShadow.mMemoryResWorkers);
-	memcpy((void*) &mWorkersShadow->trdTracker, (const void*) &workers()->trdTracker, sizeof(workers()->trdTracker));
-	if (mRecoStepsGPU & RecoStep::TPCSliceTracking)
-	{
-		for (unsigned int i = 0;i < NSLICES;i++)
-		{
-			RegisterGPUDeviceProcessor(&mWorkersShadow->tpcTrackers[i], &workers()->tpcTrackers[i]);
-			RegisterGPUDeviceProcessor(&mWorkersShadow->tpcTrackers[i].Data(), &workers()->tpcTrackers[i].Data());
-		}
-	}
-	if (mRecoStepsGPU & RecoStep::TPCMerging) RegisterGPUDeviceProcessor(&mWorkersShadow->tpcMerger, &workers()->tpcMerger);
-	if (mRecoStepsGPU & RecoStep::TRDTracking) RegisterGPUDeviceProcessor(&mWorkersShadow->trdTracker, &workers()->trdTracker);
 
 	if (StartHelperThreads()) return(1);
 

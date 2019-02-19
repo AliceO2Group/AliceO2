@@ -43,6 +43,40 @@ AliGPUChainTracking::AliGPUChainTracking(AliGPUReconstruction* rec) : AliGPUChai
 	mFlatObjectsDevice.fChainTracking = this;
 }
 
+void AliGPUChainTracking::RegisterPermanentMemoryAndProcessors()
+{
+	mFlatObjectsShadow.InitGPUProcessor(mRec, AliGPUProcessor::PROCESSOR_TYPE_SLAVE);
+	mFlatObjectsDevice.InitGPUProcessor(mRec, AliGPUProcessor::PROCESSOR_TYPE_DEVICE, &mFlatObjectsShadow);
+	mFlatObjectsShadow.mMemoryResFlat = mRec->RegisterMemoryAllocation(&mFlatObjectsShadow, &AliGPUTrackingFlatObjects::SetPointersFlatObjects, AliGPUMemoryResource::MEMORY_PERMANENT, "Workers");
+	
+	for (unsigned int i = 0;i < NSLICES;i++)
+	{
+		mRec->RegisterGPUProcessor(&workers()->tpcTrackers[i].Data(), GetRecoStepsGPU() & RecoStep::TPCSliceTracking);
+		mRec->RegisterGPUProcessor(&workers()->tpcTrackers[i], GetRecoStepsGPU() & RecoStep::TPCSliceTracking);
+	}
+	workers()->tpcMerger.SetTrackingChain(this);
+	mRec->RegisterGPUProcessor(&workers()->tpcMerger, GetRecoStepsGPU() & RecoStep::TPCMerging);
+	workers()->trdTracker.SetTrackingChain(this);
+	mRec->RegisterGPUProcessor(&workers()->trdTracker, GetRecoStepsGPU() & RecoStep::TRDTracking);
+	
+	mRec->AddGPUEvents(mEvents);
+}
+
+void AliGPUChainTracking::RegisterGPUProcessors()
+{
+	memcpy((void*) &workersShadow()->trdTracker, (const void*) &workers()->trdTracker, sizeof(workers()->trdTracker));
+	if (GetRecoStepsGPU() & RecoStep::TPCSliceTracking)
+	{
+		for (unsigned int i = 0;i < NSLICES;i++)
+		{
+			mRec->RegisterGPUDeviceProcessor(&workersShadow()->tpcTrackers[i], &workers()->tpcTrackers[i]);
+			mRec->RegisterGPUDeviceProcessor(&workersShadow()->tpcTrackers[i].Data(), &workers()->tpcTrackers[i].Data());
+		}
+	}
+	if (GetRecoStepsGPU() & RecoStep::TPCMerging) mRec->RegisterGPUDeviceProcessor(&workersShadow()->tpcMerger, &workers()->tpcMerger);
+	if (GetRecoStepsGPU() & RecoStep::TRDTracking) mRec->RegisterGPUDeviceProcessor(&workersShadow()->trdTracker, &workers()->trdTracker);
+}
+
 int AliGPUChainTracking::Init()
 {
 	if (AliGPUQA::QAAvailable() && (GetDeviceProcessingSettings().runQA || GetDeviceProcessingSettings().eventDisplay))
@@ -75,6 +109,11 @@ int AliGPUChainTracking::Init()
 		mDebugFile.open(mRec->IsGPU() ? "GPU.out" : "CPU.out");
 	}
 	
+	for (unsigned int i = 0;i < NSLICES;i++)
+	{
+		workers()->tpcTrackers[i].SetSlice(i);
+	}
+	
 	return 0;
 }
 
@@ -82,25 +121,6 @@ int AliGPUChainTracking::Finalize()
 {
 	if (GetDeviceProcessingSettings().debugLevel >= 4) mDebugFile.close();
 	return 0;
-}
-
-void AliGPUChainTracking::RegisterPermanentMemoryAndProcessors()
-{
-	mFlatObjectsShadow.InitGPUProcessor(mRec, AliGPUProcessor::PROCESSOR_TYPE_SLAVE);
-	mFlatObjectsDevice.InitGPUProcessor(mRec, AliGPUProcessor::PROCESSOR_TYPE_DEVICE, &mFlatObjectsShadow);
-	mFlatObjectsShadow.mMemoryResFlat = mRec->RegisterMemoryAllocation(&mFlatObjectsShadow, &AliGPUTrackingFlatObjects::SetPointersFlatObjects, AliGPUMemoryResource::MEMORY_PERMANENT, "Workers");
-	
-	for (unsigned int i = 0;i < NSLICES;i++)
-	{
-		mRec->RegisterGPUProcessor(&workers()->tpcTrackers[i].Data(), GetRecoStepsGPU() & RecoStep::TPCSliceTracking);
-		mRec->RegisterGPUProcessor(&workers()->tpcTrackers[i], GetRecoStepsGPU() & RecoStep::TPCSliceTracking);
-	}
-	workers()->tpcMerger.SetTrackingChain(this);
-	mRec->RegisterGPUProcessor(&workers()->tpcMerger, GetRecoStepsGPU() & RecoStep::TPCMerging);
-	workers()->trdTracker.SetTrackingChain(this);
-	mRec->RegisterGPUProcessor(&workers()->trdTracker, GetRecoStepsGPU() & RecoStep::TRDTracking);
-	
-	mRec->AddGPUEvents(mEvents);
 }
 
 void* AliGPUChainTracking::AliGPUTrackingFlatObjects::SetPointersFlatObjects(void* mem)
