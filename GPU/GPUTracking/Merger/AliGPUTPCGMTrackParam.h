@@ -106,7 +106,7 @@ class AliGPUTPCGMTrackParam
 	GPUd() bool CheckNumericalQuality(float overrideCovYY = -1.f) const;
 	GPUd() bool CheckCov() const;
 
-	GPUd() bool Fit(const AliGPUTPCGMMerger *merger, int iTrk, AliGPUTPCGMMergedTrackHit *clusters, int &N, int &NTolerated, float &Alpha, int attempt = 0, float maxSinPhi = GPUCA_MAX_SIN_PHI, AliGPUTPCOuterParam *outerParam = NULL);
+	GPUd() bool Fit(const AliGPUTPCGMMerger *merger, int iTrk, AliGPUTPCGMMergedTrackHit *clusters, int &N, int &NTolerated, float &Alpha, int attempt = 0, float maxSinPhi = GPUCA_MAX_SIN_PHI, AliGPUTPCOuterParam *outerParam = 0);
 	GPUd() void MirrorTo(AliGPUTPCGMPropagator &prop, float toY, float toZ, bool inFlyDirection, const AliGPUParam &param, unsigned char row, unsigned char clusterState, bool mirrorParameters);
 	GPUd() int MergeDoubleRowClusters(int ihit, int wayDirection, AliGPUTPCGMMergedTrackHit *clusters, const AliGPUParam &param, AliGPUTPCGMPropagator &prop, float &xx, float &yy, float &zz, int maxN, float clAlpha, unsigned char &clusterState, bool rejectChi2);
 

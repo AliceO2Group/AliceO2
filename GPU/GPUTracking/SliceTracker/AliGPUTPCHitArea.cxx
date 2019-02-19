@@ -54,7 +54,7 @@ MEM_TEMPLATE() GPUd() void AliGPUTPCHitArea::Init(const MEM_TYPE(AliGPUTPCRow) &
 	fIh = fHitYfst;
 }
 
-MEM_TEMPLATE() GPUd() int AliGPUTPCHitArea::GetNext(GPUconstant() const MEM_CONSTANT(AliGPUTPCTracker) & tracker, const MEM_TYPE(AliGPUTPCRow) & row,
+MEM_TEMPLATE() GPUd() int AliGPUTPCHitArea::GetNext(GPUconstantref() const MEM_CONSTANT(AliGPUTPCTracker) & tracker, const MEM_TYPE(AliGPUTPCRow) & row,
                                        GPUglobalref() const MEM_GLOBAL(AliGPUTPCSliceData) & slice, AliGPUTPCHit *h)
 {
 	// get next hit index

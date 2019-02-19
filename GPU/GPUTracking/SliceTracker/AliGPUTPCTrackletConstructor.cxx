@@ -49,7 +49,7 @@ GPUd() bool AliGPUTPCTrackletConstructor::CheckCov(MEM_LG2(AliGPUTPCTrackParam) 
 
 MEM_CLASS_PRE23()
 GPUd() void AliGPUTPCTrackletConstructor::StoreTracklet(int /*nBlocks*/, int /*nThreads*/, int /*iBlock*/, int /*iThread*/,
-                                                          GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) & s, AliGPUTPCThreadMemory &r, GPUconstant() MEM_LG2(AliGPUTPCTracker) & tracker, MEM_LG3(AliGPUTPCTrackParam) & tParam)
+                                                          GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) & s, AliGPUTPCThreadMemory &r, GPUconstantref() MEM_LG2(AliGPUTPCTracker) & tracker, MEM_LG3(AliGPUTPCTrackParam) & tParam)
 {
 	// reconstruction of tracklets, tracklet store step
 	if (r.fNHits && (r.fNHits < TRACKLET_SELECTOR_MIN_HITS(tParam.QPt()) ||
@@ -89,7 +89,7 @@ GPUd() void AliGPUTPCTrackletConstructor::StoreTracklet(int /*nBlocks*/, int /*n
 
 MEM_CLASS_PRE2()
 GPUd() void AliGPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int /*nThreads*/, int /*iBlock*/, int /*iThread*/,
-                                                           GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) & s, AliGPUTPCThreadMemory &r, GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) & tracker, MEM_LG2(AliGPUTPCTrackParam) & tParam, int iRow)
+                                                           GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) & s, AliGPUTPCThreadMemory &r, GPUconstantref() MEM_CONSTANT(AliGPUTPCTracker) & tracker, MEM_LG2(AliGPUTPCTrackParam) & tParam, int iRow)
 {
 	// reconstruction of tracklets, tracklets update step
 #ifndef EXTERN_ROW_HITS
@@ -349,7 +349,7 @@ GPUd() void AliGPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int /*
 	}
 }
 
-GPUd() void AliGPUTPCTrackletConstructor::DoTracklet(GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) & tracker, GPUsharedref() AliGPUTPCTrackletConstructor::MEM_LOCAL(AliGPUTPCSharedMemory) & s, AliGPUTPCThreadMemory &r)
+GPUd() void AliGPUTPCTrackletConstructor::DoTracklet(GPUconstantref() MEM_CONSTANT(AliGPUTPCTracker) & tracker, GPUsharedref() AliGPUTPCTrackletConstructor::MEM_LOCAL(AliGPUTPCSharedMemory) & s, AliGPUTPCThreadMemory &r)
 {
 	int iRow = 0, iRowEnd = GPUCA_ROW_COUNT;
 	MEM_PLAIN(AliGPUTPCTrackParam)
@@ -431,7 +431,7 @@ template <> GPUd() void AliGPUTPCTrackletConstructor::Thread<0>(int nBlocks, int
 template <> GPUd() void AliGPUTPCTrackletConstructor::Thread<1>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &sMem, workerType &tracker0)
 {
 #ifdef GPUCA_GPUCODE
-	GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) *pTracker = &tracker0;
+	GPUconstantref() MEM_CONSTANT(AliGPUTPCTracker) *pTracker = &tracker0;
 	
 	int mySlice = get_group_id(0) % GPUCA_NSLICES;
 	int currentSlice = -1;
@@ -443,7 +443,7 @@ template <> GPUd() void AliGPUTPCTrackletConstructor::Thread<1>(int nBlocks, int
 
 	for (unsigned int iSlice = 0;iSlice < GPUCA_NSLICES;iSlice++)
 	{
-		GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker = pTracker[mySlice];
+		GPUconstantref() MEM_CONSTANT(AliGPUTPCTracker) &tracker = pTracker[mySlice];
 
 		AliGPUTPCThreadMemory rMem;
 
@@ -488,7 +488,7 @@ template <> GPUd() void AliGPUTPCTrackletConstructor::Thread<1>(int nBlocks, int
 
 #ifdef GPUCA_GPUCODE
 
-GPUdi() int AliGPUTPCTrackletConstructor::FetchTracklet(GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) &tracker, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &sMem)
+GPUdi() int AliGPUTPCTrackletConstructor::FetchTracklet(GPUconstantref() MEM_CONSTANT(AliGPUTPCTracker) &tracker, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &sMem)
 {
 	const int nativeslice = get_group_id(0) % GPUCA_NSLICES;
 	const int nTracklets = *tracker.NTracklets();
