@@ -38,7 +38,7 @@ namespace o2
 
 namespace globaltracking
 {
-  class CalibTOF
+class CalibTOF
 {
   using Geo = o2::tof::Geo;
   
@@ -93,7 +93,7 @@ namespace globaltracking
   void setDebugMode(Int_t flag = kTRUE) {mDebugMode = flag;}
   Int_t getDebugMode() const {return mDebugMode;}
 
-  void merge(const char *name); 
+  void merge(const char* name);
 
  private:
   Int_t mDebugMode = 0; // >0= time slewing extra plot, >1= problematic fits stored 
@@ -133,8 +133,8 @@ namespace globaltracking
   std::string mCollectedCalibInfoTOFBranchName = "TOFCollectedCalibInfo";   ///< name of branch containing input TOF calib infos
   std::string mOutputBranchName = "TOFCalibParam";        ///< name of branch containing output
   // output calibration
-  o2::dataformats::CalibLHCphaseTOF *mLHCphaseObj;    ///< LHCPhase to be written in the output
-  o2::dataformats::CalibTimeSlewingParamTOF *mTimeSlewingObj; ///< Time Slewing object to be written in the output
+  o2::dataformats::CalibLHCphaseTOF* mLHCphaseObj;            ///< LHCPhase to be written in the output
+  o2::dataformats::CalibTimeSlewingParamTOF* mTimeSlewingObj; ///< Time Slewing object to be written in the output
   int mNLHCphaseIntervals = 0;  ///< Number of measurements for the LHCPhase
   float mLHCphase[1000]; ///< outputt LHC phase in ps
   float mLHCphaseErr[1000]; ///< outputt LHC phase in ps

@@ -20,7 +20,7 @@ namespace o2
 {
 namespace dataformats
 {
-  class CalibLHCphaseTOF
+class CalibLHCphaseTOF
 {
  public:
   CalibLHCphaseTOF();
@@ -29,16 +29,15 @@ namespace dataformats
 
   void addLHCphase(int timestamp, float phaseLHC);
 
-  int size() const {return mLHCphase.size();}
-  int timestamp(int i) const {return mLHCphase[i].first;}
-  float LHCphase(int i) const {return mLHCphase[i].second;}
+  int size() const { return mLHCphase.size(); }
+  int timestamp(int i) const { return mLHCphase[i].first; }
+  float LHCphase(int i) const { return mLHCphase[i].second; }
 
   CalibLHCphaseTOF& operator+=(const CalibLHCphaseTOF& other);
 
-
  private:
   // LHCphase calibration
-  std::vector<std::pair <int,float>> mLHCphase;                     ///< <timestamp,LHCphase> from which the LHCphase measurement is valid
+  std::vector<std::pair<int, float>> mLHCphase; ///< <timestamp,LHCphase> from which the LHCphase measurement is valid
 
   //  ClassDefNV(CalibLHCphaseTOF, 1);
 };

@@ -19,40 +19,45 @@ using namespace o2::dataformats;
 
 //ClassImp(o2::dataformats::CalibLHCphaseTOF);
 
-CalibLHCphaseTOF::CalibLHCphaseTOF(){
+CalibLHCphaseTOF::CalibLHCphaseTOF()
+{
 }
 //______________________________________________
 
-float CalibLHCphaseTOF::getLHCphase(int timestamp) const{
-  int n=0;
-  while(n < mLHCphase.size() && mLHCphase[n].first < timestamp) n++;
+float CalibLHCphaseTOF::getLHCphase(int timestamp) const
+{
+  int n = 0;
+  while (n < mLHCphase.size() && mLHCphase[n].first < timestamp)
+    n++;
   n--;
-  
-  if(n < 0){ // timestamp is before of the first available value
+
+  if (n < 0) { // timestamp is before of the first available value
     return 0;
   }
   return mLHCphase[n].second;
 }
 //______________________________________________
 
-void CalibLHCphaseTOF::addLHCphase(int timestamp, float phaseLHC){
+void CalibLHCphaseTOF::addLHCphase(int timestamp, float phaseLHC)
+{
   // optimized if timestamp are given in increasing order
   int n = mLHCphase.size();
-  mLHCphase.emplace_back(timestamp,phaseLHC);
+  mLHCphase.emplace_back(timestamp, phaseLHC);
 
-  if(n && mLHCphase[n].first < mLHCphase[n-1].first){ // in the wrong order sort!
-    std::sort( mLHCphase.begin( ), mLHCphase.end( ), [ ]( const auto& lhs, const auto& rhs ){
-	return lhs.first < rhs.first;
-      });
+  if (n && mLHCphase[n].first < mLHCphase[n - 1].first) { // in the wrong order sort!
+    std::sort(mLHCphase.begin(), mLHCphase.end(), [](const auto& lhs, const auto& rhs) {
+      return lhs.first < rhs.first;
+    });
   }
 }
 //______________________________________________
 
-CalibLHCphaseTOF& CalibLHCphaseTOF::operator+=(const CalibLHCphaseTOF& other){
-  if(other.mLHCphase.size() > mLHCphase.size()){
+CalibLHCphaseTOF& CalibLHCphaseTOF::operator+=(const CalibLHCphaseTOF& other)
+{
+  if (other.mLHCphase.size() > mLHCphase.size()) {
     mLHCphase.clear();
-    for(auto obj = other.mLHCphase.begin(); obj != other.mLHCphase.end(); obj++)
-	mLHCphase.push_back(*obj);
+    for (auto obj = other.mLHCphase.begin(); obj != other.mLHCphase.end(); obj++)
+      mLHCphase.push_back(*obj);
   }
 }
 //______________________________________________
