@@ -133,7 +133,7 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
     switch (state) {
       case IN_STRING: {
         next = strpbrk(cur, expectedSeparators);
-        if (next == 0) {
+        if (next == nullptr) {
           next = cur + strlen(cur);
         }
       } break;
