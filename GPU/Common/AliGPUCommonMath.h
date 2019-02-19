@@ -184,8 +184,10 @@ GPUdi() void AliGPUCommonMath::AtomicMaxShared ( GPUAtomic(int) *addr, int val )
 GPUdi() void AliGPUCommonMath::AtomicMinShared ( GPUAtomic(int) *addr, int val ) {AliGPUCommonMath::AtomicMin(addr, val);}
 #endif
 
+#ifndef GPUCA_GPUCODE
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-value" //GCC BUG in omp atomic capture gives false warning
+#endif
 
 GPUdi() int AliGPUCommonMath::AtomicExch( GPUglobalref() GPUAtomic(int) *addr, int val )
 {
@@ -263,7 +265,9 @@ GPUdi() void AliGPUCommonMath::AtomicMin ( GPUglobalref() GPUAtomic(int) *addr, 
 #endif //GPUCA_GPUCODE
 }
 
+#ifndef GPUCA_GPUCODE
 #pragma GCC diagnostic pop
+#endif
 
 #undef CHOICE
 
