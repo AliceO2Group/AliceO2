@@ -420,8 +420,6 @@ int AliGPUChainTracking::RunTPCTrackingSlices_internal()
 			*workers()->tpcTrackers[iSlice].NTrackHits() = 0;
 			workers()->tpcTrackers[iSlice].GPUParameters()->fGPUError = 0;
 			workers()->tpcTrackers[iSlice].GPUParameters()->fNextTracklet = ((ConstructorBlockCount() + NSLICES - 1 - iSlice) / NSLICES) * ConstructorThreadCount();
-			workersShadow()->tpcTrackers[iSlice].GPUParametersConst()->fGPUFixedBlockCount = NSLICES > ConstructorBlockCount() ? (iSlice < ConstructorBlockCount()) : ConstructorBlockCount() * (iSlice + 1) / NSLICES - ConstructorBlockCount() * (iSlice) / NSLICES;
-			workersShadow()->tpcTrackers[iSlice].GPUParametersConst()->fGPUiSlice = iSlice;
 			workersShadow()->tpcTrackers[iSlice].SetGPUTextureBase(mRec->DeviceMemoryBase());
 		}
 

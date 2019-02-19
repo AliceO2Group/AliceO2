@@ -43,17 +43,12 @@ class AliGPUTPCTracker : public AliGPUProcessor
 
 	struct StructGPUParameters
 	{
-		StructGPUParameters() : fNextTracklet(0), fScheduleFirstDynamicTracklet(0), fGPUError(0) {}
 		GPUAtomic(int) fNextTracklet;      //Next Tracklet to process
-		int fScheduleFirstDynamicTracklet; //Last Tracklet with fixed position in sheduling
 		int fGPUError;                     //Signalizes error on GPU during GPU Reconstruction, kind of return value
 	};
 
 	MEM_CLASS_PRE2() struct StructGPUParametersConst
 	{
-		StructGPUParametersConst() : fGPUFixedBlockCount(0), fGPUiSlice(0), fGPUMem(NULL) {}
-		int fGPUFixedBlockCount;      //Count of blocks that is used for this tracker in fixed schedule situations
-		int fGPUiSlice;               // slice number processed by running GPU MP
 		GPUglobalref() char *fGPUMem; //Base pointer to GPU memory (Needed for OpenCL for verification)
 	};
 
