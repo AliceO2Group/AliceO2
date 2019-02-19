@@ -44,7 +44,7 @@ class PrimaryGenerator : public FairPrimaryGenerator
   /** default constructor **/
   PrimaryGenerator() = default;
   /** destructor **/
-  virtual ~PrimaryGenerator();
+  ~PrimaryGenerator() override;
 
   /** Public method GenerateEvent
       To be called at the beginning of each event from FairMCApplication.
@@ -56,7 +56,7 @@ class PrimaryGenerator : public FairPrimaryGenerator
   Bool_t GenerateEvent(FairGenericStack* pStack) override;
 
   /** initialize the generator **/
-  virtual Bool_t Init() override;
+  Bool_t Init() override;
 
   /** Public embedding methods **/
   Bool_t embedInto(TString fname);

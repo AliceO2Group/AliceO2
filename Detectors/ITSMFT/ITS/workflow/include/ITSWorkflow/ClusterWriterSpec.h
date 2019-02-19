@@ -29,7 +29,7 @@ class ClusterWriter : public Task
 {
  public:
   ClusterWriter() = default;
-  ~ClusterWriter() = default;
+  ~ClusterWriter() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 

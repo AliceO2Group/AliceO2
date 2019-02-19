@@ -31,7 +31,7 @@ class ClustererDPL : public Task
 {
  public:
   ClustererDPL() = default;
-  ~ClustererDPL() = default;
+  ~ClustererDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 

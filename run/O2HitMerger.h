@@ -84,7 +84,7 @@ class O2HitMerger : public FairMQDevice
   }
 
   /// Default destructor
-  ~O2HitMerger()
+  ~O2HitMerger() override
   {
     FairSystemInfo sysinfo;
     mOutTree->SetEntries(mEntries);

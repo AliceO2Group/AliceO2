@@ -33,12 +33,12 @@ class RCombinedDSIndex
 class RCombindedDSCrossJoinIndex : public RCombinedDSIndex
 {
  public:
-  virtual std::pair<ULong64_t, ULong64_t> GetAssociatedEntries(ULong64_t entry) final
+  std::pair<ULong64_t, ULong64_t> GetAssociatedEntries(ULong64_t entry) final
   {
     return std::make_pair<ULong64_t, ULong64_t>(entry / fRightCount, entry % fRightCount);
   }
-  virtual std::vector<std::pair<ULong64_t, ULong64_t>> BuildIndex(std::unique_ptr<RDataFrame>& left,
-                                                                  std::unique_ptr<RDataFrame>& right) final;
+  std::vector<std::pair<ULong64_t, ULong64_t>> BuildIndex(std::unique_ptr<RDataFrame>& left,
+                                                          std::unique_ptr<RDataFrame>& right) final;
 
  private:
   ULong64_t fLeftCount;
@@ -75,7 +75,7 @@ class RCombinedDS final : public ROOT::RDF::RDataSource
               std::unique_ptr<RCombinedDSIndex> index = std::make_unique<RCombindedDSCrossJoinIndex>(),
               std::string leftPrefix = std::string{ "left_" },
               std::string rightPrefix = std::string{ "right_" });
-  ~RCombinedDS();
+  ~RCombinedDS() override;
 
   template <typename T>
   std::vector<T**> GetColumnReaders(std::string_view colName)

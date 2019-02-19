@@ -46,7 +46,7 @@ class TrackerDPL : public Task
 {
  public:
   TrackerDPL() = default;
-  ~TrackerDPL() = default;
+  ~TrackerDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 

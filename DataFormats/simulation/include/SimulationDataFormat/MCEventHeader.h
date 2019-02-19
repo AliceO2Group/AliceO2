@@ -33,7 +33,7 @@ class MCEventHeader : public FairMCEventHeader
   MCEventHeader() = default;
   MCEventHeader(const MCEventHeader& rhs) = default;
   MCEventHeader& operator=(const MCEventHeader& rhs) = default;
-  ~MCEventHeader() = default;
+  ~MCEventHeader() override = default;
 
   /** setters **/
   void setEmbeddingFileName(std::string value) { mEmbeddingFileName = value; };
