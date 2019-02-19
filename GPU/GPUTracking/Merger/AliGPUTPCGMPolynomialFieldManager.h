@@ -39,11 +39,15 @@ public:
 
   /* Fit given field for TPC
    */
-  static int FitFieldTPC( AliMagF* fld, AliGPUTPCGMPolynomialField &field, double step=1. );
+  static int FitFieldTpc( AliMagF* fld, AliGPUTPCGMPolynomialField &field, double step=1. );
 
   /* Fit given field for TRD
    */
-  static int FitFieldTRD( AliMagF* fld, AliGPUTPCGMPolynomialField &field, double step=1. );
+  static int FitFieldTrd( AliMagF* fld, AliGPUTPCGMPolynomialField &field, double step=1. );
+
+  /* Fit given field for ITS
+   */
+  static int FitFieldIts( AliMagF* fld, AliGPUTPCGMPolynomialField &field, double step=1. );
 
 #endif
   

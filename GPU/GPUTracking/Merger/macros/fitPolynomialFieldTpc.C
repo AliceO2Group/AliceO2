@@ -1,9 +1,9 @@
 
-int fitPolynomialFieldTRD()
+int fitPolynomialFieldTpc()
 {
   gSystem->Load("libAliHLTTPC.so");
   AliGPUTPCGMPolynomialField polyField;
   AliMagF* fld = new AliMagF("Fit", "Fit", 1., 1., AliMagF::k5kG);
-  AliGPUTPCGMPolynomialFieldManager::FitFieldTRD( fld,  polyField, 2 );
+  AliGPUTPCGMPolynomialFieldManager::FitFieldTpc( fld,  polyField,10 );
   return 0;
 }

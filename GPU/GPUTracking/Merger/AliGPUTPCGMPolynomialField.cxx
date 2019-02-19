@@ -38,24 +38,24 @@ void AliGPUTPCGMPolynomialField::Print() const
   cout<<" nominal field "<< fNominalBz <<" [kG * (2.99792458E-4 GeV/c/kG/cm)]"
       <<" == "<<fNominalBz/kCLight<<" [kG]"<<endl;
   
-  cout<<" Bx[fkM] = { ";
-  for( int i=0; i<fkM; i++){
-    cout<<fBx[i];
-    if( i<fkM-1 ) cout<<", ";
+  cout<<" TpcBx[fkTpcM] = { ";
+  for( int i=0; i<fkTpcM; i++){
+    cout<<fTpcBx[i];
+    if( i<fkTpcM-1 ) cout<<", ";
     else cout<<" };"<<endl;
   }
 
-  cout<<" By[fkM] = { ";
-  for( int i=0; i<fkM; i++){
-    cout<<fBy[i];
-    if( i<fkM-1 ) cout<<", ";
+  cout<<" TpcBy[fkTpcM] = { ";
+  for( int i=0; i<fkTpcM; i++){
+    cout<<fTpcBy[i];
+    if( i<fkTpcM-1 ) cout<<", ";
     else cout<<" };"<<endl;
   }
 
-  cout<<" Bz[fkM] = { ";
-  for( int i=0; i<fkM; i++){
-    cout<<fBz[i];
-    if( i<fkM-1 ) cout<<", ";
+  cout<<" TpcBz[fkTpcM] = { ";
+  for( int i=0; i<fkTpcM; i++){
+    cout<<fTpcBz[i];
+    if( i<fkTpcM-1 ) cout<<", ";
     else cout<<" };"<<endl;
   }
   
@@ -79,6 +79,29 @@ void AliGPUTPCGMPolynomialField::Print() const
   for( int i=0; i<fkTrdM; i++){
     cout<<fTrdBz[i];
     if( i<fkTrdM-1 ) cout<<", ";
+    else cout<<" };"<<endl;
+  }
+
+  cout<<"ITS field: \n"<<endl;
+  
+  cout<<" ItsBx[fkItsM] = { ";
+  for( int i=0; i<fkItsM; i++){
+    cout<<fItsBx[i];
+    if( i<fkItsM-1 ) cout<<", ";
+    else cout<<" };"<<endl;
+  }
+
+  cout<<" ItsBy[fkItsM] = { ";
+  for( int i=0; i<fkItsM; i++){
+    cout<<fItsBy[i];
+    if( i<fkItsM-1 ) cout<<", ";
+    else cout<<" };"<<endl;
+  }
+
+  cout<<" ItsBz[fkItsM] = { ";
+  for( int i=0; i<fkItsM; i++){
+    cout<<fItsBz[i];
+    if( i<fkItsM-1 ) cout<<", ";
     else cout<<" };"<<endl;
   }
 }

@@ -29,8 +29,9 @@ int AliGPUTPCGMPolynomialFieldManager::GetPolynomialField( StoredField_t fieldTy
   // returns -2 if number of coefficients in AliGPUTPCGMPolynomialField is not 10
   //
 
-  const int kM = AliGPUTPCGMPolynomialField::fkM;
+  const int kTpcM = AliGPUTPCGMPolynomialField::fkTpcM;
   const int kTrdM = AliGPUTPCGMPolynomialField::fkTrdM;
+  const int kItsM = AliGPUTPCGMPolynomialField::fkItsM;
 
   //
   // polynomial coefficients for the Uniform Bz field
@@ -49,15 +50,15 @@ int AliGPUTPCGMPolynomialFieldManager::GetPolynomialField( StoredField_t fieldTy
   // polynomial coefficients for 2kG field
   //
   
-  const float kSol2Bx[kM] = { 8.25026654638e-06,
+  const float kTpcSol2Bx[kTpcM] = { 8.25026654638e-06,
 			      2.73111226079e-07, 8.09913785815e-07, -4.43062708655e-06,
 			      -1.12499973781e-08, 3.94054833208e-09, 2.66427264251e-07, -6.30059693307e-09, 2.79869932784e-10, 1.15630518494e-08 };
 
-  const float kSol2By[kM] = {-1.62876094691e-04,
+  const float kTpcSol2By[kTpcM] = {-1.62876094691e-04,
 			      8.20370075871e-07, -2.60450360656e-06, 5.25321956957e-06,
 			      1.18615373079e-09, -1.44053808881e-08, 1.92043728142e-10, -2.99749697286e-10, 2.66646878799e-07, -1.15439746651e-09 };
 
-  const float kSol2Bz[kM] = { 9.99487757683e-01,
+  const float kTpcSol2Bz[kTpcM] = { 9.99487757683e-01,
 			     -5.67969527765e-06, 4.76676314065e-06, 2.46677245741e-06,
 			      1.46798569745e-07, 5.39603639549e-10, 2.86027042051e-08, 1.45939324625e-07, -2.48197662422e-09, -2.47860867830e-07 };
  
@@ -65,13 +66,13 @@ int AliGPUTPCGMPolynomialFieldManager::GetPolynomialField( StoredField_t fieldTy
   // polynomial coefficients for 5kG field
   //
 
-  const float kSol5Bx[kM] = {-2.58322252193e-05,
+  const float kTpcSol5Bx[kTpcM] = {-2.58322252193e-05,
 			       2.25564940592e-06, -4.14718357433e-08, -2.75251750281e-06,
 			      -8.72029382037e-09,  1.72417402577e-09,  3.19352068345e-07, -3.28086002810e-09,  5.64790381130e-10,  8.92192542068e-09 };
-  const float kSol5By[kM] = { 6.37950097371e-06,
+  const float kTpcSol5By[kTpcM] = { 6.37950097371e-06,
 			      -4.46194050596e-08,  9.01212274584e-07,  8.26001087262e-06,
 			       7.99017740860e-10, -7.45108241773e-09,  4.81764572680e-10,  8.35443714209e-10,  3.14677095048e-07, -1.18421328299e-09 };
-  const float kSol5Bz[kM] = { 9.99663949013e-01,
+  const float kTpcSol5Bz[kTpcM] = { 9.99663949013e-01,
 			      -3.54553162651e-06,  7.73496958573e-06, -2.90551361104e-06,
 			       1.69738939348e-07,  5.00871899511e-10,  2.10037196524e-08,  1.66827078374e-07, -2.64136179595e-09, -3.02637317873e-07 };
 
@@ -120,59 +121,118 @@ int AliGPUTPCGMPolynomialFieldManager::GetPolynomialField( StoredField_t fieldTy
 				     2.65291157098e-11, -1.09183417515e-11, -6.78487170960e-12, 1.72749713839e-11, 2.80368957217e-12, -3.49344546346e-11,
 				     2.45735688742e-11, -6.87686713130e-12, -4.55244418551e-11, -1.83581587432e-11 };
 
-  const double kCLight = 0.000299792458;
+  
+  //
+  // ITS: polynomial coefficients for 2kG field
+  //
+  
+  const float kItsSol2Bx[kItsM] = { -5.91223470110e-05, 
+				    6.90032351258e-08, 8.25885251743e-07, -5.32185140401e-06, 
+				    -9.65053725821e-09, 1.08244559982e-08, 2.85320879811e-07, -5.09609510146e-09, -6.39149955184e-10, 1.49089558477e-08 };
+
+
+  const float kItsSol2By[kItsM] = { -1.48597624502e-04, 
+				    8.25465463095e-07, -2.97493147627e-06, 4.98509780300e-06, 
+				    4.24987989245e-10, -1.98144327612e-08, -1.20077459087e-09, -1.19401033505e-09, 2.82514832861e-07, -1.50957846223e-09 };
+
+  const float kItsSol2Bz[kItsM] = { 9.99939501286e-01, 
+				    -6.24587028142e-06, 4.81351708004e-06, 2.35402990256e-06, 
+				    1.26109355847e-07, 9.08826292001e-10, 3.43317942963e-08, 1.25566515408e-07, -2.71147437836e-09, -2.69678821496e-07 };
+
+  //
+  // ITS: polynomial coefficients for 5kG field
+  //
+
+  const float kItsSol5Bx[kItsM] = { -6.05255008850e-05, 
+				    2.42733176492e-06, -9.46944425095e-08, -3.22587538903e-06, 
+				    -8.23875456746e-09, 2.83529777434e-09, 3.42276649690e-07, -3.80562692470e-09, 3.64589525237e-10, 1.08676720956e-08 };
+
+
+  const float kItsSol5By[kItsM] = { 7.84835810919e-06, 
+				    5.19906029339e-09, 9.49704599407e-07, 7.98410110292e-06, 
+				    1.74484093840e-09, -7.61669749494e-09, 5.19390808140e-10, 9.18893627855e-10, 3.37364895131e-07, -1.46239598209e-09 };
+
+  const float kItsSol5Bz[kItsM] = { 1.00001418591e+00, 
+				    -3.69126610167e-06, 7.76097112976e-06, -3.11396547659e-06, 
+				    1.64195810726e-07, 2.47078468796e-10, 2.39289423831e-08, 1.61199579907e-07, -3.16838866254e-09, -3.23542707292e-07 };
+
+ 
+ const double kCLight = 0.000299792458;
 
   field.Reset();
 
   // check if AliGPUTPCGMPolynomialField class is ok
 
-  if( AliGPUTPCGMPolynomialField::fkM != kM ){
+  if( AliGPUTPCGMPolynomialField::fkTpcM != kTpcM ){
     return -2;
   }
   
   // check which field map is in use
   
-  const float *cBx, *cBy, *cBz, *cTrdBx, *cTrdBy, *cTrdBz;
+  const float *cTpcBx, *cTpcBy, *cTpcBz, *cTrdBx, *cTrdBy, *cTrdBz, *cItsBx, *cItsBy, *cItsBz;
 
   double nominalBz = nominalFieldkG * kCLight;
   
   if( fieldType == AliGPUTPCGMPolynomialFieldManager::kUniform) {
-    cBx = kSolUBx;
-    cBy = kSolUBy;
-    cBz = kSolUBz;
+    cTpcBx = kSolUBx;
+    cTpcBy = kSolUBy;
+    cTpcBz = kSolUBz;
     cTrdBx = kSolUBx;
     cTrdBy = kSolUBy;
     cTrdBz = kSolUBz;
+    cItsBx = kSolUBx;
+    cItsBy = kSolUBy;
+    cItsBz = kSolUBz;
   } else if( fieldType == AliGPUTPCGMPolynomialFieldManager::k2kG) {
-    cBx = kSol2Bx;
-    cBy = kSol2By;
-    cBz = kSol2Bz;
+    cTpcBx = kTpcSol2Bx;
+    cTpcBy = kTpcSol2By;
+    cTpcBz = kTpcSol2Bz;
     cTrdBx = kTrdSol2Bx;
     cTrdBy = kTrdSol2By;
     cTrdBz = kTrdSol2Bz;
+    cItsBx = kItsSol2Bx;
+    cItsBy = kItsSol2By;
+    cItsBz = kItsSol2Bz;
   } else if( fieldType == AliGPUTPCGMPolynomialFieldManager::k5kG) {
-    cBx = kSol5Bx;
-    cBy = kSol5By;
-    cBz = kSol5Bz;
+    cTpcBx = kTpcSol5Bx;
+    cTpcBy = kTpcSol5By;
+    cTpcBz = kTpcSol5Bz;
     cTrdBx = kTrdSol5Bx;
     cTrdBy = kTrdSol5By;
     cTrdBz = kTrdSol5Bz;
+    cItsBx = kItsSol5Bx;
+    cItsBy = kItsSol5By;
+    cItsBz = kItsSol5Bz;
   } else { // field is not known
     return -1;
   }
 
-  float Bx[kM], By[kM], Bz[kM], TrdBx[kTrdM], TrdBy[kTrdM], TrdBz[kTrdM];
-  for( int i=0; i<kM; i++ ){
-    Bx[i] = nominalBz*cBx[i];
-    By[i] = nominalBz*cBy[i];
-    Bz[i] = nominalBz*cBz[i];
+  float TpcBx[kTpcM], TpcBy[kTpcM], TpcBz[kTpcM];
+  for( int i=0; i<kTpcM; i++ ){
+    TpcBx[i] = nominalBz*cTpcBx[i];
+    TpcBy[i] = nominalBz*cTpcBy[i];
+    TpcBz[i] = nominalBz*cTpcBz[i];
   }
+  
+  float TrdBx[kTrdM], TrdBy[kTrdM], TrdBz[kTrdM];
   for( int i=0; i<kTrdM; i++ ){
     TrdBx[i] = nominalBz*cTrdBx[i];
     TrdBy[i] = nominalBz*cTrdBy[i];
     TrdBz[i] = nominalBz*cTrdBz[i];
   }
-  field.Set( nominalBz, Bx, By, Bz, TrdBx, TrdBy, TrdBz );
+
+  float ItsBx[kItsM], ItsBy[kItsM], ItsBz[kItsM];
+  for( int i=0; i<kItsM; i++ ){
+    ItsBx[i] = nominalBz*cItsBx[i];
+    ItsBy[i] = nominalBz*cItsBy[i];
+    ItsBz[i] = nominalBz*cItsBz[i];
+  }
+
+  field.SetFieldNominal( nominalBz );
+  field.SetFieldTpc( TpcBx, TpcBy, TpcBz );
+  field.SetFieldTrd( TrdBx, TrdBy, TrdBz );
+  field.SetFieldIts( ItsBx, ItsBy, ItsBz );
+
   return 0;
 }
 
@@ -265,7 +325,7 @@ int AliGPUTPCGMPolynomialFieldManager::GetPolynomialField( AliGPUTPCGMPolynomial
 
 
 
-int AliGPUTPCGMPolynomialFieldManager::FitFieldTPC( AliMagF* inputFld, AliGPUTPCGMPolynomialField &polyField, double step  )
+int AliGPUTPCGMPolynomialFieldManager::FitFieldTpc( AliMagF* inputFld, AliGPUTPCGMPolynomialField &polyField, double step  )
 {
   //
   // Fit magnetic field with polynoms
@@ -310,7 +370,7 @@ int AliGPUTPCGMPolynomialFieldManager::FitFieldTPC( AliMagF* inputFld, AliGPUTPC
   
   std::cout << "solenoidBz = " << solenoidBzkG <<" kG"<<std::endl;
   
-  const int M = AliGPUTPCGMPolynomialField::fkM;
+  const int M = AliGPUTPCGMPolynomialField::fkTpcM;
   AliHLTTPCPolynomFit fitBx(M);
   AliHLTTPCPolynomFit fitBy(M);
   AliHLTTPCPolynomFit fitBz(M);
@@ -344,7 +404,7 @@ int AliGPUTPCGMPolynomialFieldManager::FitFieldTPC( AliMagF* inputFld, AliGPUTPC
 	  B[2]*=solenoidBzkGInv;
 
 	  float f[M];
-	  AliGPUTPCGMPolynomialField::GetPolynoms(x,y,z,f);
+	  AliGPUTPCGMPolynomialField::GetPolynomsTpc(x,y,z,f);
 	  fitBx.AddMeasurement( f, B[0]);
 	  fitBy.AddMeasurement( f, B[1]);
 	  fitBz.AddMeasurement( f, B[2]);
@@ -370,8 +430,7 @@ int AliGPUTPCGMPolynomialFieldManager::FitFieldTPC( AliMagF* inputFld, AliGPUTPC
   }
 
   AliGPUTPCGMPolynomialField fittedField;
-  fittedField.Set( 1., cX, cY, cZ, NULL, NULL, NULL );
-
+  fittedField.SetFieldTpc( cX, cY, cZ );
   
   // scale result
   double nominalBz = solenoidBzkG * kCLight;
@@ -381,8 +440,9 @@ int AliGPUTPCGMPolynomialFieldManager::FitFieldTPC( AliMagF* inputFld, AliGPUTPC
     cY[i] = nominalBz * cY[i];
     cZ[i] = nominalBz * cZ[i];
   }
-  polyField.Set( nominalBz, cX, cY, cZ, NULL, NULL, NULL  );
-  
+  polyField.SetFieldNominal( nominalBz );
+  polyField.SetFieldTpc( cX, cY, cZ );
+
   gStyle->SetOptStat(1111111);
 
   TH1F histBx("Performance B_x", "Error B_x", 1000, -0.005, 0.005);
@@ -425,7 +485,7 @@ int AliGPUTPCGMPolynomialFieldManager::FitFieldTPC( AliMagF* inputFld, AliGPUTPC
     }
   }
 
-  TFile file("FieldFitStat.root", "RECREATE");
+  TFile file("FieldTpcFitQA.root", "RECREATE");
   file.cd();
 
   histBx.Write();
@@ -443,7 +503,7 @@ int AliGPUTPCGMPolynomialFieldManager::FitFieldTPC( AliMagF* inputFld, AliGPUTPC
 
 
 
-int AliGPUTPCGMPolynomialFieldManager::FitFieldTRD( AliMagF* inputFld, AliGPUTPCGMPolynomialField &polyField, double step )
+int AliGPUTPCGMPolynomialFieldManager::FitFieldTrd( AliMagF* inputFld, AliGPUTPCGMPolynomialField &polyField, double step )
 {
   //
   // Fit magnetic field with polynoms
@@ -544,7 +604,7 @@ int AliGPUTPCGMPolynomialFieldManager::FitFieldTRD( AliMagF* inputFld, AliGPUTPC
   }
 
   AliGPUTPCGMPolynomialField fittedField;
-  fittedField.Set( 1., NULL, NULL, NULL, cX, cY, cZ );
+  fittedField.SetFieldTrd( cX, cY, cZ );
 
   
   // scale result
@@ -555,8 +615,9 @@ int AliGPUTPCGMPolynomialFieldManager::FitFieldTRD( AliMagF* inputFld, AliGPUTPC
     cY[i] = nominalBz * cY[i];
     cZ[i] = nominalBz * cZ[i];
   }
-  polyField.Set( nominalBz, NULL, NULL, NULL, cX, cY, cZ );
-  
+  polyField.SetFieldNominal( nominalBz );
+  polyField.SetFieldTrd( cX, cY, cZ );
+
   gStyle->SetOptStat(1111111);
 
   TH1F histBx("Performance B_x", "Error B_x", 1000, -0.005, 0.005);
@@ -598,7 +659,7 @@ int AliGPUTPCGMPolynomialFieldManager::FitFieldTRD( AliMagF* inputFld, AliGPUTPC
     }
   }
 
-  TFile file("FieldFitStat.root", "RECREATE");
+  TFile file("FieldTrdFitQA.root", "RECREATE");
   file.cd();
 
   histBx.Write();
@@ -614,5 +675,187 @@ int AliGPUTPCGMPolynomialFieldManager::FitFieldTRD( AliMagF* inputFld, AliGPUTPC
   return 0;
 }
 
+
+int AliGPUTPCGMPolynomialFieldManager::FitFieldIts( AliMagF* inputFld, AliGPUTPCGMPolynomialField &polyField, double step  )
+{
+  //
+  // Fit magnetic field with polynoms
+  //
+
+  const double kCLight = 0.000299792458;
+  const double kAlmost0Field = 1.e-13;
+
+  AliMagF* fld = inputFld;
+    
+  if( !fld ){
+    //fld = new AliMagF("Fit", "Fit", 1., 1., AliMagF::k2kG);
+    fld = (AliMagF*)TGeoGlobalMagField::Instance()->GetField();
+  }
+  if( !fld ) return -1;
+  
+  const double sectorAngleShift = 10./180.*TMath::Pi();
+  const double sectorAngle = 20./180.*TMath::Pi();
+
+  const double xITS = 3.9;
+  const double zITS = 24.5;
+
+  double xMin = 0.5;
+  double xMax = AliGPUTPCGeometry::Row2X(0);
+  double rMin = xMin;
+  double rMax = xMax/TMath::Cos(sectorAngle/2.);
+
+  double dA = .1/rMax; // angular step == 0.1 cm at the outer radius
+  dA*=step;
+  int nSectorParticles = (int) (sectorAngle/dA);
+  if( nSectorParticles < 1 ) nSectorParticles = 1;
+  dA = sectorAngle/nSectorParticles;
+
+  double dX = .5*step; // step in local x == 0.1 cm
+  double dZ = 1.*step; // step in z == 1 cm
+  
+  double zMin = -AliGPUTPCGeometry::GetZLength();
+  double zMax =  AliGPUTPCGeometry::GetZLength();
+
+  double alMin = -sectorAngle/2.;
+  double alMax =  sectorAngle/2. - 0.5*dA;
+
+  Double_t solenoidBzkG = fld->SolenoidField();
+  Double_t solenoidBzkGInv = (TMath::Abs(solenoidBzkG) > kAlmost0Field ) ?1./solenoidBzkG :0. ;
+  
+  std::cout << "solenoidBz = " << solenoidBzkG <<" kG"<<std::endl;
+  
+  const int M = AliGPUTPCGMPolynomialField::fkItsM;
+  AliHLTTPCPolynomFit fitBx(M);
+  AliHLTTPCPolynomFit fitBy(M);
+  AliHLTTPCPolynomFit fitBz(M);
+  
+  double coneSlope = (zMax-zITS)/(xMax-xITS);
+
+  for( int sector=0; sector<18; sector++){
+    std::cout << "sector = " << sector << std::endl;
+    double asec = sectorAngleShift + sector*sectorAngle;
+    double cs = TMath::Cos(asec);
+    double ss = TMath::Sin(asec);    
+    for( double al=alMin; al<alMax; al+=dA ){
+      std::cout<<"angle "<<al/TMath::Pi()*180.<<" grad "<<std::endl;
+      double tg = TMath::Tan(al);
+      for( double xl=xMin; xl<=xMax; xl+=dX ){
+	double yl = xl*tg;
+	double x = xl*cs - yl*ss;
+	double y = xl*ss + yl*cs;
+	//std::cout<<"sector = "<<sector<<" al = "<<al/TMath::Pi()*180.<<" xl "<<xl<<" yl "<<yl<<std::endl;
+
+	double zCone = zITS + (xl-xITS) * coneSlope;
+	
+	for( double z=-zCone; z<=zCone; z+=dZ ){ // 1 cm step in Z at TPC radius	  
+	  Double_t xyz[3] = {x,y,z};
+	  Double_t B[3] = {0.,0.,0.};
+	  if(fld->IsUniform()) {
+	    B[0] = B[1] = 0.;
+	    B[2] = fld->SolenoidField();
+	  } else {
+	    fld->Field(xyz, B);
+	  }
+	  B[0]*=solenoidBzkGInv;
+	  B[1]*=solenoidBzkGInv;
+	  B[2]*=solenoidBzkGInv;
+
+	  float f[M];
+	  AliGPUTPCGMPolynomialField::GetPolynomsIts(x,y,z,f);	  
+	  fitBx.AddMeasurement( f, B[0]);
+	  fitBy.AddMeasurement( f, B[1]);
+	  fitBz.AddMeasurement( f, B[2]);
+	  
+	}
+      }
+    }
+  }
+
+  // field coefficients
+  float cX[M];
+  float cY[M];
+  float cZ[M];
+
+  int errX = fitBx.Fit( cX );
+  int errY = fitBy.Fit( cY );
+  int errZ = fitBz.Fit( cZ );
+  
+  if( errX!=0 || errY!=0 || errZ!=0 ){
+    std::cout<<"Fit of polynamial field failed!!!:  errX "<<errX<<" errY "<<errY<<" errZ "<<errZ<<std::endl;
+    if( fld != inputFld) delete fld;
+    return -1;
+  }
+
+  AliGPUTPCGMPolynomialField fittedField;
+  fittedField.SetFieldIts( cX, cY, cZ );
+  
+  // scale result
+  double nominalBz = solenoidBzkG * kCLight;
+
+  for( int i=0; i<M; i++ ){
+    cX[i] = nominalBz * cX[i];
+    cY[i] = nominalBz * cY[i];
+    cZ[i] = nominalBz * cZ[i];
+  }
+  polyField.SetFieldNominal( nominalBz );
+  polyField.SetFieldIts( cX, cY, cZ );
+
+  gStyle->SetOptStat(1111111);
+
+  TH1F histBx("Performance B_x", "Error B_x", 1000, -0.005, 0.005);
+  TH1F histBy("Performance B_y", "Error B_y", 1000, -0.005, 0.005);
+  TH1F histBz("Performance B_z", "Error B_z", 1000, -0.005, 0.005);
+
+  for( int sector=0; sector<18; sector++){
+    std::cout << "check quality: sector = " << sector << std::endl;
+    double asec = sectorAngleShift + sector*sectorAngle;
+    double cs = TMath::Cos(asec);
+    double ss = TMath::Sin(asec);
+    for( double al=alMin; al<alMax; al+=dA ){
+     std::cout<<"check quality: angle "<<al/TMath::Pi()*180.<<" grad "<<std::endl;
+      double tg = TMath::Tan(al);
+      for( double xl=xMin; xl<=xMax; xl+=dX ){
+	double yl = xl*tg;
+	double x = xl*cs - yl*ss;
+	double y = xl*ss + yl*cs;	
+	double zCone = zITS + (xl-xITS) * coneSlope;
+	for( double z=-zCone; z<=zCone; z+=dZ ){
+	  Double_t xyz[3] = {x,y,z};
+	  Double_t B[3];
+	  if(fld->IsUniform()) {
+	    B[0] = B[1] = 0.;
+	    B[2] = fld->SolenoidField();
+	  } else {
+	    fld->Field(xyz, B);
+	  }
+	  B[0]*=solenoidBzkGInv;
+	  B[1]*=solenoidBzkGInv;
+	  B[2]*=solenoidBzkGInv;
+          float approxB[3];
+          fittedField.GetFieldIts(x, y, z, approxB);
+
+          histBx.Fill(approxB[0] - B[0]);
+          histBy.Fill(approxB[1] - B[1]);
+          histBz.Fill(approxB[2] - B[2]);
+        }
+      }
+    }
+  }
+
+  TFile file("FieldItsFitQA.root", "RECREATE");
+  file.cd();
+
+  histBx.Write();
+  histBy.Write();
+  histBz.Write();
+
+  file.Write();
+  file.Close();
+
+  std::cout<<"Fitted polynomial field: "<<std::endl;
+  fittedField.Print();
+
+  return 0;
+}
 
 #endif
