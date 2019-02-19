@@ -3,7 +3,16 @@
 #ifdef __OPENCLCPP__
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 #ifdef __clang__
+#pragma OPENCL EXTENSION cl_clang_storage_class_specifiers : enable
+#define global __global
+#define local __local
+#define constant __constant
+#define private __private
 #include <clc/clc.h>
+#undef global
+#undef local
+#undef constant
+#undef private
 #else
 #include <opencl_def>
 #include <opencl_common>
