@@ -25,6 +25,7 @@
 #include "DetectorsBase/Detector.h"
 #include "DetectorsPassive/Cave.h"
 #include "SimConfig/SimConfig.h"
+#include "SimConfig/SimCutParams.h"
 #include <TRandom.h>
 #include "FairLogger.h"
 #include "TGeoManager.h"
@@ -105,14 +106,17 @@ void Cave::BeginPrimary()
 {
   static int primcounter = 0;
 
-  auto& conf = o2::conf::SimConfig::Instance();
-  auto chunks = conf.getInternalChunkSize();
-  if (chunks != -1) {
-    if (primcounter % chunks == 0) {
-      static int counter = 1;
-      auto seed = counter + 10;
-      gRandom->SetSeed(seed);
-      counter++;
+  // only do it, if not in pure trackSeeding mode
+  if (!o2::conf::SimCutParams::Instance().trackSeed) {
+    auto& conf = o2::conf::SimConfig::Instance();
+    auto chunks = conf.getInternalChunkSize();
+    if (chunks != -1) {
+      if (primcounter % chunks == 0) {
+        static int counter = 1;
+        auto seed = counter + 10;
+        gRandom->SetSeed(seed);
+        counter++;
+      }
     }
   }
   primcounter++;
