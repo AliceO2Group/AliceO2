@@ -47,9 +47,9 @@ class O2MCApplicationBase : public FairMCApplication
   double TrackingRmax() const override { return mCutParams.maxRTracking; }
   double TrackingZmax() const override { return mCutParams.maxAbsZTracking; }
 
- protected: 
+ protected:
   o2::conf::SimCutParams const& mCutParams; // reference to parameter system
-  
+
   ClassDefOverride(O2MCApplicationBase, 1)
 };
 
