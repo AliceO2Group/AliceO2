@@ -11,6 +11,7 @@
 
 #include "AliGPUTPCDef.h"
 #include "AliGPUTPCHitId.h"
+#include "AliGPUGeneralKernels.h"
 #include "AliGPUConstantMem.h"
 MEM_CLASS_PRE()
 class AliGPUTPCTracker;
@@ -48,6 +49,7 @@ class AliGPUTPCStartHitsFinder
 	};
 
 	typedef GPUconstant() MEM_CONSTANT(AliGPUTPCTracker) workerType;
+    GPUhdi() static AliGPUDataTypes::RecoStep GetRecoStep() {return GPUCA_RECO_STEP::TPCSliceTracking;}
 	MEM_TEMPLATE() GPUhdi() static workerType* Worker(MEM_TYPE(AliGPUConstantMem) &workers) {return workers.tpcTrackers;}
 	template <int iKernel = 0> GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(AliGPUTPCSharedMemory) &smem, workerType &tracker);
 };

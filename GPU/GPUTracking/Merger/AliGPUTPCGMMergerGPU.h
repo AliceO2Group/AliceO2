@@ -2,10 +2,12 @@
 #define ALIGPUTPCGMMERGERGPUCA_H
 
 #include "AliGPUGeneralKernels.h"
+#include "AliGPUConstantMem.h"
 
 class AliGPUTPCGMMergerTrackFit : public AliGPUKernelTemplate
 {
-  public:
+public:
+	GPUhdi() static AliGPUDataTypes::RecoStep GetRecoStep() {return AliGPUDataTypes::RecoStep::TPCMerging;}
 #if defined(GPUCA_BUILD_MERGER) || !defined(GPUCA_GPUCODE)
 	typedef AliGPUTPCGMMerger workerType;
 	GPUhdi() static workerType *Worker(AliGPUConstantMem &workers) {return &workers.tpcMerger;}

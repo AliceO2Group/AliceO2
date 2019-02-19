@@ -227,7 +227,7 @@ int AliGPUChainTracking::ReadData(const char* filename)
 	r = fread(&geo, sizeof(geo), 1, fp);
 	if (geo != AliGPUReconstruction::geometryType)
 	{
-		printf("File has invalid geometry (%s v.s. %s)\n", AliGPUReconstruction::GEOMETRY_TYPE_NAMES[geo], AliGPUReconstruction::GEOMETRY_TYPE_NAMES[AliGPUReconstruction::geometryType]);
+		printf("File has invalid geometry (%s v.s. %s)\n", AliGPUReconstruction::GEOMETRY_TYPE_NAMES[(int) geo], AliGPUReconstruction::GEOMETRY_TYPE_NAMES[(int) AliGPUReconstruction::geometryType]);
 		return 1;
 	}
 	(void) r;

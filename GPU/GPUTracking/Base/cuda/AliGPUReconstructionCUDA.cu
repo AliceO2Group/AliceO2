@@ -58,7 +58,7 @@ template <class T, int I, typename... Args> int AliGPUReconstructionCUDABackend:
 AliGPUReconstructionCUDABackend::AliGPUReconstructionCUDABackend(const AliGPUSettingsProcessing& cfg) : AliGPUReconstructionDeviceBase(cfg)
 {
 	mInternals = new AliGPUReconstructionCUDAInternals;
-	mProcessingSettings.deviceType = CUDA;
+	mProcessingSettings.deviceType = DeviceType::CUDA;
 }
 
 AliGPUReconstructionCUDABackend::~AliGPUReconstructionCUDABackend()
@@ -299,6 +299,11 @@ int AliGPUReconstructionCUDABackend::ExitDevice_Runtime()
 
 void AliGPUReconstructionCUDABackend::TransferMemoryInternal(AliGPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, void* src, void* dst)
 {
+	if (!(res->Type() & AliGPUMemoryResource::MEMORY_GPU))
+	{
+		if (mDeviceProcessingSettings.debugLevel >= 4) printf("Skipped transfer of non-GPU memory resource: %s\n", res->Name());
+		return;
+	}
 	if (mDeviceProcessingSettings.debugLevel >= 3) stream = -1;
 	if (mDeviceProcessingSettings.debugLevel >= 3) printf(toGPU ? "Copying to GPU: %s\n" : "Copying to Host: %s\n", res->Name());
 	if (stream == -1)

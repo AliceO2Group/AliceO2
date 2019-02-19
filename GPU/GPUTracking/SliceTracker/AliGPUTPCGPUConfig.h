@@ -46,8 +46,6 @@
 
 #define GPUCA_MAX_STREAMS 32
 
-#define GPUCA_DEFAULT_HELPER_THREADS 2				//Number of helper threads to speed up initialization/output
-
 #define GPUCA_ROWALIGNMENT uint4					//Align Row Hits and Grid
 
 #ifdef GPUCA_USE_TEXTURES

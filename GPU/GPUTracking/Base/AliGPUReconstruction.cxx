@@ -390,7 +390,7 @@ AliGPUReconstruction* AliGPUReconstruction::CreateInstance(const AliGPUSettingsP
 		{
 			printf("Could not load AliGPUReconstruction for device type %s (%d), falling back to CPU version\n", DEVICE_TYPE_NAMES[type], type);
 			AliGPUSettingsProcessing cfg2 = cfg;
-			cfg2.deviceType = CPU;
+			cfg2.deviceType = DeviceType::CPU;
 			retVal = CreateInstance(cfg2);
 		}
 	}
@@ -405,7 +405,7 @@ AliGPUReconstruction* AliGPUReconstruction::CreateInstance(const AliGPUSettingsP
 AliGPUReconstruction* AliGPUReconstruction::CreateInstance(const char* type, bool forceType)
 {
 	DeviceType t = GetDeviceType(type);
-	if (t == INVALID_DEVICE)
+	if (t == DeviceType::INVALID_DEVICE)
 	{
 		printf("Invalid device type: %s\n", type);
 		return nullptr;
@@ -422,7 +422,7 @@ AliGPUReconstruction::DeviceType AliGPUReconstruction::GetDeviceType(const char*
 			return (DeviceType) i;
 		}
 	}
-	return INVALID_DEVICE;
+	return DeviceType::INVALID_DEVICE;
 }
 
 #ifdef _WIN32
