@@ -15,6 +15,7 @@
 #include "AliGPUMemoryResource.h"
 #include "AliGPUConstantMem.h"
 #include "AliGPUTPCSliceOutput.h"
+#include "AliGPUDataTypes.h"
 
 #include "utils/bitfield.h"
 
@@ -40,26 +41,26 @@ public:
 	//General definitions
 	constexpr static unsigned int NSLICES = GPUCA_NSLICES;
 
-	enum GeometryType : unsigned int {RESERVED_GEOMETRY = 0, ALIROOT = 1, O2 = 2};
+	using GeometryType = AliGPUDataTypes::GeometryType;
+	using DeviceType = AliGPUDataTypes::DeviceType;
+	using RecoStep = AliGPUDataTypes::RecoStep;
+	
 	static constexpr const char* const GEOMETRY_TYPE_NAMES[] = {"INVALID", "ALIROOT", "O2"};
 #ifdef GPUCA_TPC_GEOMETRY_O2
-	static constexpr GeometryType geometryType = O2;
+	static constexpr GeometryType geometryType = GeometryType::O2;
 #else
-	static constexpr GeometryType geometryType = ALIROOT;
+	static constexpr GeometryType geometryType = GeometryType::ALIROOT;
 #endif
 	
-	enum DeviceType : unsigned int {INVALID_DEVICE = 0, CPU = 1, CUDA = 2, HIP = 3, OCL = 4};
 	static constexpr const char* const DEVICE_TYPE_NAMES[] = {"INVALID", "CPU", "CUDA", "HIP", "OCL"};
 	static DeviceType GetDeviceType(const char* type);
-
 	enum InOutPointerType : unsigned int {CLUSTER_DATA = 0, SLICE_OUT_TRACK = 1, SLICE_OUT_CLUSTER = 2, MC_LABEL_TPC = 3, MC_INFO_TPC = 4, MERGED_TRACK = 5, MERGED_TRACK_HIT = 6, TRD_TRACK = 7, TRD_TRACKLET = 8, RAW_CLUSTERS = 9, CLUSTERS_NATIVE = 10, TRD_TRACKLET_MC = 11};
 	static constexpr const char* const IOTYPENAMES[] = {"TPC Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters", "TRD Tracks", "TRD Tracklets", "Raw Clusters", "ClusterNative", "TRD Tracklet MC Labels"};
-	
-	enum class RecoStep {TPCSliceTracking = 1, TPCMerging = 2, TRDTracking = 4, ITSTracking = 8};
+	typedef bitfield<RecoStep, unsigned int> RecoStepField;
 
 	//Functionality to create an instance of AliGPUReconstruction for the desired device
 	static AliGPUReconstruction* CreateInstance(const AliGPUSettingsProcessing& cfg);
-	static AliGPUReconstruction* CreateInstance(DeviceType type = CPU, bool forceType = true);
+	static AliGPUReconstruction* CreateInstance(DeviceType type = DeviceType::CPU, bool forceType = true);
 	static AliGPUReconstruction* CreateInstance(int type, bool forceType) {return CreateInstance((DeviceType) type, forceType);}
 	static AliGPUReconstruction* CreateInstance(const char* type, bool forceType);
 	
@@ -92,7 +93,7 @@ public:
 	
 	//Getters / setters for parameters
 	DeviceType GetDeviceType() const {return (DeviceType) mProcessingSettings.deviceType;}
-	bool IsGPU() const {return GetDeviceType() != INVALID_DEVICE && GetDeviceType() != CPU;}
+	bool IsGPU() const {return GetDeviceType() != DeviceType::INVALID_DEVICE && GetDeviceType() != DeviceType::CPU;}
 	const AliGPUParam& GetParam() const {return mHostConstantMem->param;}
 	const AliGPUSettingsEvent& GetEventSettings() const {return mEventSettings;}
 	const AliGPUSettingsProcessing& GetProcessingSettings() {return mProcessingSettings;}
@@ -107,10 +108,10 @@ public:
 	virtual int GetMaxThreads();
 	const void* DeviceMemoryBase() const {return mDeviceMemoryBase;}
 	
-	bitfield<RecoStep, unsigned char>& RecoSteps() {if (mInitialized) throw std::runtime_error("Cannot change reco steps once initialized"); return mRecoSteps;}
-	bitfield<RecoStep, unsigned char>& RecoStepsGPU() {if (mInitialized) throw std::runtime_error("Cannot change reco steps once initialized"); return mRecoStepsGPU;}
-	bitfield<RecoStep, unsigned char> GetRecoSteps() const {return mRecoSteps;}
-	bitfield<RecoStep, unsigned char> GetRecoStepsGPU() const {return mRecoStepsGPU;}
+	RecoStepField& RecoSteps() {if (mInitialized) throw std::runtime_error("Cannot change reco steps once initialized"); return mRecoSteps;}
+	RecoStepField& RecoStepsGPU() {if (mInitialized) throw std::runtime_error("Cannot change reco steps once initialized"); return mRecoStepsGPU;}
+	RecoStepField GetRecoSteps() const {return mRecoSteps;}
+	RecoStepField GetRecoStepsGPU() const {return mRecoStepsGPU;}
 	
 	//Registration of GPU Processors
 	template <class T> void RegisterGPUProcessor(T* proc, bool deviceSlave);
@@ -140,7 +141,7 @@ protected:
 	template <class T> void ReadStructFromFile(const char* file, T* obj);
 	
 	//Others
-	virtual bitfield<RecoStep, unsigned char> AvailableRecoSteps() {return (unsigned char) -1;}
+	virtual RecoStepField AvailableRecoSteps() {return RecoStep::AllRecoSteps;}
 	
 	//Pointers to tracker classes
 	AliGPUConstantMem* workers() {return mHostConstantMem.get();}
@@ -154,8 +155,8 @@ protected:
 	AliGPUSettingsDeviceProcessing mDeviceProcessingSettings;					//Processing Parameters (at init level)
 	AliGPUOutputControl mOutputControl;										//Controls the output of the individual components
 	
-	bitfield<RecoStep, unsigned char> mRecoSteps = (unsigned char) -1;
-	bitfield<RecoStep, unsigned char> mRecoStepsGPU = (unsigned char) -1;
+	RecoStepField mRecoSteps = (unsigned char) -1;
+	RecoStepField mRecoStepsGPU = (unsigned char) -1;
 
 	//Ptrs to host and device memory;
 	void* mHostMemoryBase = nullptr;

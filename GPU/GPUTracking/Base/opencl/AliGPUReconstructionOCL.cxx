@@ -36,7 +36,7 @@ template <class T, int I, typename... Args> int AliGPUReconstructionOCLBackend::
 AliGPUReconstructionOCLBackend::AliGPUReconstructionOCLBackend(const AliGPUSettingsProcessing& cfg) : AliGPUReconstructionDeviceBase(cfg)
 {
 	mInternals = new AliGPUReconstructionOCLInternals;
-	mProcessingSettings.deviceType = OCL;
+	mProcessingSettings.deviceType = DeviceType::OCL;
 	mHostMemoryBase = nullptr;
 	mInternals->devices = nullptr;
 }
@@ -384,7 +384,7 @@ void AliGPUReconstructionOCLBackend::TransferMemoryInternal(AliGPUMemoryResource
 {
 	if (!(res->Type() & AliGPUMemoryResource::MEMORY_GPU))
 	{
-		if (mDeviceProcessingSettings.debugLevel >= 2) printf("Skipped transfer of non-GPU memory resource: %s\n", res->Name());
+		if (mDeviceProcessingSettings.debugLevel >= 4) printf("Skipped transfer of non-GPU memory resource: %s\n", res->Name());
 		return;
 	}
 	if (evList == nullptr) nEvents = 0;

@@ -90,7 +90,15 @@ public:
 	{
 		if (mDeviceProcessingSettings.debugLevel >= 3) printf("Running %s Stream %d (Range %d/%d)\n", typeid(S).name(), x.stream, y.start, y.num);
 		if (t && mDeviceProcessingSettings.debugLevel) t->Start();
-		if (runKernelImpl(classArgument<S, I>(), x, y, z, args...)) return 1;
+		if (IsGPU() && (mRecoStepsGPU & S::GetRecoStep()) != S::GetRecoStep())
+		{
+			if (mDeviceProcessingSettings.debugLevel >= 4) printf("Running unsupported kernel on CPU: %s\n", typeid(S).name());
+			if (AliGPUReconstructionCPU::runKernelImpl(classArgument<S, I>(), x, y, z, args...)) return 1;
+		}
+		else
+		{
+			if (runKernelImpl(classArgument<S, I>(), x, y, z, args...)) return 1;
+		}
 		if (mDeviceProcessingSettings.debugLevel)
 		{
 			if (GPUDebug(typeid(S).name(), x.stream)) throw std::runtime_error("kernel failure");
@@ -111,10 +119,7 @@ public:
 	int NStreams() {return mNStreams;}
 	void SetThreadCounts(RecoStep step);
 	void ResetDeviceProcessorTypes();
-	template <class T> void AddGPUEvents(T& events)
-	{
-		mEvents.emplace_back((void*) &events, sizeof(T) / sizeof(deviceEvent*));
-	}
+	template <class T> void AddGPUEvents(T& events);
 
 	virtual int RunStandalone() override;
 	
@@ -177,5 +182,10 @@ protected:
 private:
 	void TransferMemoryResourcesHelper(AliGPUProcessor* proc, int stream, bool all, bool toGPU);
 };
+
+template <class T> inline void AliGPUReconstructionCPU::AddGPUEvents(T& events)
+{
+	mEvents.emplace_back((void*) &events, sizeof(T) / sizeof(deviceEvent*));
+}
 
 #endif

@@ -1,6 +1,6 @@
 #include "AliGPUSettings.h"
 #include "AliGPUTPCSettings.h"
-#include "AliGPUReconstruction.h"
+#include "AliGPUDataTypes.h"
 #include <string.h>
 
 void AliGPUSettingsRec::SetDefaults()
@@ -31,7 +31,7 @@ void AliGPUSettingsEvent::SetDefaults()
 
 void AliGPUSettingsProcessing::SetDefaults()
 {
-	deviceType = AliGPUReconstruction::DeviceType::CPU;
+	deviceType = AliGPUDataTypes::DeviceType::CPU;
 	forceDeviceType = true;
 }
 
@@ -42,7 +42,7 @@ void AliGPUSettingsDeviceProcessing::SetDefaults()
 	platformNum = -1;
 	globalInitMutex = false;
 	gpuDeviceOnly = false;
-	nDeviceHelperThreads = GPUCA_DEFAULT_HELPER_THREADS;
+	nDeviceHelperThreads = 2;
 	debugLevel = -1;
 	debugMask = -1;
 	comparableDebutOutput = true;

@@ -131,6 +131,7 @@ set(HDRS2
     Base/AliGPUReconstructionKernels.h
     Base/AliGPUReconstructionIncludesITS.h
     Base/AliGPUReconstructionHelpers.h
+    Base/AliGPUDataTypes.h
 )
 
 #Some extra files / includes / settings needed for the build for AliRoot

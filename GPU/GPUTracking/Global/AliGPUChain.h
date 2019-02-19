@@ -31,8 +31,8 @@ public:
 	AliGPUReconstruction* rec() {return mRec;}
 	const AliGPUReconstruction* rec() const {return mRec;}
 	
-	bitfield<AliGPUReconstruction::RecoStep, unsigned char> GetRecoSteps() const {return mRec->GetRecoSteps();}
-	bitfield<AliGPUReconstruction::RecoStep, unsigned char> GetRecoStepsGPU() const {return mRec->GetRecoStepsGPU();}
+	AliGPUReconstruction::RecoStepField GetRecoSteps() const {return mRec->GetRecoSteps();}
+	AliGPUReconstruction::RecoStepField GetRecoStepsGPU() const {return mRec->GetRecoStepsGPU();}
 
 protected:
 	AliGPUReconstructionCPU* mRec;
@@ -55,10 +55,7 @@ protected:
 	void ReleaseThreadContext() {mRec->ReleaseThreadContext();}
 	void SynchronizeGPU() {mRec->SynchronizeGPU();}
 	void ReleaseEvent(deviceEvent* ev) {mRec->ReleaseEvent(ev);}
-	template <class T> void RunHelperThreads(T function, AliGPUReconstructionHelpers::helperDelegateBase* functionCls, int count)
-	{
-		mRec->RunHelperThreads((int (AliGPUReconstructionHelpers::helperDelegateBase::* )(int, int, AliGPUReconstructionHelpers::helperParam*)) function, functionCls, count);
-	}
+	template <class T> void RunHelperThreads(T function, AliGPUReconstructionHelpers::helperDelegateBase* functionCls, int count);
 	void WaitForHelperThreads() {mRec->WaitForHelperThreads();}
 	int HelperError(int iThread) const {return mRec->HelperError(iThread);}
 	int HelperDone(int iThread) const {return mRec->HelperDone(iThread);}
@@ -106,5 +103,11 @@ protected:
 	virtual int PrepareTextures() {return 0;}
 	virtual int DoStuckProtection(int stream, void* event) {return 0;}
 };
+
+template <class T> inline void AliGPUChain::RunHelperThreads(T function, AliGPUReconstructionHelpers::helperDelegateBase* functionCls, int count)
+{
+	mRec->RunHelperThreads((int (AliGPUReconstructionHelpers::helperDelegateBase::* )(int, int, AliGPUReconstructionHelpers::helperParam*)) function, functionCls, count);
+}
+
 
 #endif

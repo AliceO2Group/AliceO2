@@ -1,5 +1,5 @@
-#ifndef ALIGPUDATATYPES_H
-#define ALIGPUDATATYPES_H
+#ifndef ALIGPUCONSTANTMEM_H
+#define ALIGPUCONSTANTMEM_H
 
 #include "AliGPUTPCTracker.h"
 #include "AliGPUParam.h"
