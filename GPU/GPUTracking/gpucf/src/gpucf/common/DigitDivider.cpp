@@ -1,5 +1,9 @@
 #include "DigitDivider.h"
 
+#include <gpucf/common/log.h>
+
+#include <cmath>
+
 
 using namespace gpucf;
 
@@ -15,24 +19,26 @@ DigitDivider::DigitDivider(
     , chunksRequested(cs)
 {
     int start = digits.front().time;
-    int end   = digits.end().time;
+    int end   = digits.back().time;
     stepsPerChunk = std::ceil((end - start) / float(chunksRequested));
 }
 
-optional<Chunk> DigitDivider::nextChunk(int padding)
+optional<DigitDivider::Chunk> DigitDivider::nextChunk(size_t padding)
 {
-    if (start >= digits.size())
+    if (start >= size_t(digits.size()))
     {
         return nullopt;
     }
 
-    size_t end = timeSliceEnd(currTime() + stepsPerChunk);
-
     Chunk res;
-    res.digits = digits.subspan(start, end);
+    res.start = start;
+
+    size_t end = timeSliceEnd(currTime() + stepsPerChunk);
+    res.items = end - start;
+
 
     size_t paddedEnd = timeSliceEnd(currTime() + stepsPerChunk + padding);
-    res.paddedDigits = digits.subspan(start, paddedEnd);
+    res.future = paddedEnd - end;
 
     start = end;
 
@@ -42,7 +48,7 @@ optional<Chunk> DigitDivider::nextChunk(int padding)
 size_t DigitDivider::timeSliceEnd(int time)
 {
     size_t left = start;
-    size_t right = digit.size() - 1;
+    size_t right = digits.size() - 1;
 
     while (left < right)
     {
@@ -73,7 +79,7 @@ size_t DigitDivider::timeSliceEnd(int time)
     return 0;
 }
 
-size_t DigitDivider::currTime() const
+int DigitDivider::currTime() const
 {
     return digits.at(start).time;
 }

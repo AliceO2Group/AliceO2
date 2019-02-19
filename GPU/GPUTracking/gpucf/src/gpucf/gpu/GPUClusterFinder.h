@@ -24,10 +24,9 @@ class GPUClusterFinder
 public:
     struct Config
     {
-        size_t queueNum = 1;
+        size_t chunks = 1;
 
         bool usePackedDigits = false;
-        bool zeroChargeMap   = true;
     };
     
     struct Result
@@ -45,33 +44,41 @@ public:
     Result run();
 
 private:
-    class Worker
+    struct Plan
     {
-    public:
-        Worker(GPUClusterFinder &);
+        /**
+         * Index of the first digit that is processed with this plan.
+         */
+        size_t start;
 
-        template<class DigitT>
-        void findCluster(
-                nonstd::optional<Event>,
-                nonstd::optional<Event>,
-                nonstd::span<const DigitT>);
+        /**
+         * Number of digits that have to be transferred to the device,
+         * written to the chargeMap and have to run the clusterFinder on.
+         */
+        size_t items;
 
-        void copyCluster(
-                nonstd::optional<Event>,
-                nonstd::span<Cluster>);
+        /**
+         * Number of digits that have to be transferred to the device and
+         * written to the chargeMap but are not looked at for peaks yet.
+         * These are necessary as the cluster finder has to look up to two
+         * timesteps into the future to compute cluster. So if items and
+         * backlog contain digits up to timestep t then the future consists of
+         * digits from timesteps t+1 and t+2.
+         *
+         * Future digits are further processed by the next plan.
+         * The future of the last plan is always zero.
+         */
+        size_t future;
 
-        size_t getClusterNum() const;
+        /**
+         * Number of peaks that have been found in plans[id-1].future+items.
+         */
+        size_t peaks;
 
-        Event getDigitsToDevice() const;
-        Event getClustersToHost() const;
-        Event getDigitsToChargeMap() const;
-
-        Lane finish();
-
-    private:
-        GPUClusterFinder &parent;
-
-        size_t clusterNum = 0;
+        /**
+         * my id
+         */
+        size_t id;
 
         Event digitsToDevice; 
         Event zeroChargeMap;
@@ -80,9 +87,17 @@ private:
         Event computingClusters;
         Event clustersToHost;
 
+        cl::Kernel findPeaks;
+        cl::Kernel fillChargeMap;
+        cl::Kernel computeClusters;
+        cl::Kernel resetChargeMap;
+
         cl::CommandQueue clustering;
         cl::CommandQueue cleanup;
+
+        Plan(cl::Context, cl::Device, cl::Program, size_t);
     };
+
 
     static void printClusters(
             const std::vector<Cluster> &,
@@ -102,15 +117,15 @@ private:
     std::vector<PackedDigit>  packedDigits;
     std::vector<Digit>        peaks;
 
+    std::vector<Cluster> clusters;
+
+    std::vector<Plan> plans;
+
     StreamCompaction streamCompaction;
 
     cl::Context context;
     cl::Device device;
 
-    cl::Kernel findPeaks;
-    cl::Kernel fillChargeMap;
-    cl::Kernel computeClusters;
-    cl::Kernel resetChargeMap;
 
     cl::Buffer chargeMap;
     size_t     chargeMapSize = 0;
@@ -131,10 +146,15 @@ private:
     cl::Buffer clusterBuf;
     size_t     clusterBufSize = 0;
 
-
     void fillPackedDigits();
 
     void addDefines(ClEnv &);
+
+
+    template<class DigitT>
+    void findCluster(Plan &, nonstd::span<const DigitT>);
+
+    void computeAndReadClusters();
 };
 
 }
