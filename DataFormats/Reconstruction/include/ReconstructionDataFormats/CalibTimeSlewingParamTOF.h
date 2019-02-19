@@ -23,9 +23,9 @@ namespace dataformats
   class CalibTimeSlewingParamTOF
 {
  public:
-  static const int NCHANNELS=157248; //!
-  static const int NSECTORS=18;//!
-  static const int NCHANNELXSECTOR=NCHANNELS/NSECTORS; //!
+  static const int NCHANNELS=157248; //
+  static const int NSECTORS=18;//
+  static const int NCHANNELXSECTOR=NCHANNELS/NSECTORS; //
 
   CalibTimeSlewingParamTOF();
 

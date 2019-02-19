@@ -93,7 +93,7 @@ namespace globaltracking
   void setDebugMode(Int_t flag = kTRUE) {mDebugMode = flag;}
   Int_t getDebugMode() const {return mDebugMode;}
 
-  CalibTOF& operator+=(const CalibTOF& other); 
+  void merge(const char *name); 
 
  private:
   Int_t mDebugMode = 0; // >0= time slewing extra plot, >1= problematic fits stored 

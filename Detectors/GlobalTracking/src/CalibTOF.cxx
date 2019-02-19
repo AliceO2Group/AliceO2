@@ -520,7 +520,30 @@ Int_t CalibTOF::FitPeak(TF1 *fitFunc, TH1 *h, Float_t startSigma, Float_t nSigma
 }
 //______________________________________________
 
-CalibTOF& CalibTOF::operator+=(const CalibTOF& other){
-  *mTimeSlewingObj += *other.mTimeSlewingObj;
-  return *this;
+void CalibTOF::merge(const char *name){
+  TFile *f = TFile::Open(name);
+  if(! f){
+    LOG(ERROR) << "File " << name << "not found (merging skept)";
+    return;
+  }
+  TTree *t = (TTree *) f->Get(mOutputTree->GetName());
+  if(! t){
+    LOG(ERROR) << "Tree " << mOutputTree->GetName() << "not found in " << name << " (merging skept)";
+    return;
+  }
+  t->ls();
+  mOutputTree->ls();
+
+  o2::dataformats::CalibLHCphaseTOF *LHCphaseObj = nullptr;
+
+  o2::dataformats::CalibTimeSlewingParamTOF *timeSlewingObj = nullptr;
+  
+  t->SetBranchAddress("mLHCphaseObj", &LHCphaseObj);
+  t->SetBranchAddress("mTimeSlewingObj", &timeSlewingObj);
+
+  t->GetEvent(0);
+
+  *mTimeSlewingObj += *timeSlewingObj;
+  *mLHCphaseObj += *LHCphaseObj;
+  f->Close();
 }

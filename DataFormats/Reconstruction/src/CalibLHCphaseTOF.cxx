@@ -47,3 +47,12 @@ void CalibLHCphaseTOF::addLHCphase(int timestamp, float phaseLHC){
   }
 }
 //______________________________________________
+
+CalibLHCphaseTOF& CalibLHCphaseTOF::operator+=(const CalibLHCphaseTOF& other){
+  if(other.mLHCphase.size() > mLHCphase.size()){
+    mLHCphase.clear();
+    for(auto obj = other.mLHCphase.begin(); obj != other.mLHCphase.end(); obj++)
+	mLHCphase.push_back(*obj);
+  }
+}
+//______________________________________________

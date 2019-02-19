@@ -25,11 +25,14 @@
 void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparams_tof.root",
 		   std::string inputfileCalib = "o2calibration_tof.root")
 {
+  bool onlymerge = false; // set to true if you have already the outputs from forked processes and you want only merge
 
-  const int ninstance = 3;
+  TString namefile(outputfile);
+  namefile.ReplaceAll(".root","");
+
+  const int ninstance = 4;
   o2::globaltracking::CalibTOF calib;
-  //  for(int i=0; i < ninstance; i++)
-    calib.setDebugMode(1);
+  calib.setDebugMode(1);
 
   if (path.back() != '/') {
     path += '/';
@@ -60,47 +63,56 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparam
   pid_t pids[ninstance];
   int n = ninstance;
   /* Start children. */
-  for (int i = 0; i < n; ++i) {
-    if ((pids[i] = fork()) < 0) {
-      perror("fork");
-      abort();
+  if(! onlymerge){
+    for (int i = 0; i < n; ++i) {
+      if ((pids[i] = fork()) < 0) {
+	perror("fork");
+	abort();
+      }
+      else if (pids[i] == 0) {
+	cout << "child " << i << endl;
+	TFile outFile((path + namefile.Data() + Form("_fork%i.root",i)).data(), "recreate");
+	TTree outTree("calibrationTOF", "Calibration TOF params");
+	calib.setOutputTree(&outTree);
+	calib.init();
+	cout << i << ") Child process: My process id = " << getpid() << endl;
+	cout << "Child process: Value returned by fork() = " << pids[i] << endl;
+	
+	// only for the first child
+	if(i==0) calib.run(o2::globaltracking::CalibTOF::kLHCphase);
+	for(int sect=i; sect < 18; sect+=ninstance)
+	  calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, sect);
+	calib.fillOutput();
+	outFile.cd();
+	outTree.Write();
+	if(i==0) calib.getLHCphaseHisto()->Write();
+	calib.getChTimeSlewingHistoAll()->Write();
+	outFile.Close();
+	exit(0);
+      }
     }
-    else if (pids[i] == 0) {
-      cout << "child " << i << endl;
-      TString namefile(outputfile);
-      namefile.ReplaceAll(".root","");
-      TFile outFile((path + namefile.Data() + Form("_fork%i.root",i)).data(), "recreate");
-      TTree outTree("calibrationTOF", "Calibration TOF params");
-      calib.setOutputTree(&outTree);
-      calib.init();
-      cout << i << ") Child process: My process id = " << getpid() << endl;
-      cout << "Child process: Value returned by fork() = " << pids[i] << endl;
-  
-      // only for the first child
-      if(i==0) calib.run(o2::globaltracking::CalibTOF::kLHCphase);
-      for(int sect=i; sect < 18; sect+=ninstance)
-       	calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, sect);
-      calib.fillOutput();
-      outFile.cd();
-      outTree.Write();
-      if(i==0) calib.getLHCphaseHisto()->Write();
-      calib.getChTimeSlewingHistoAll()->Write();
-      outFile.Close();
-      exit(0);
+    
+    int status;
+    pid_t pid;
+    
+    while (n > 0) {
+      pid = wait(&status);
+      printf("Child with PID %ld exited with status 0x%x.\n", (long)pid, status);
+      --n;  // TODO(pts): Remove pid from the pids array.
     }
-  }
-  
-  int status;
-  pid_t pid;
-
-  while (n > 0) {
-    pid = wait(&status);
-    printf("Child with PID %ld exited with status 0x%x.\n", (long)pid, status);
-    --n;  // TODO(pts): Remove pid from the pids array.
   }
 
   printf("merge outputs\n");
 
-
-
+  TFile outFile((path + outputfile).data(), "recreate");
+  TTree outTree("calibrationTOF", "Calibration TOF params");
+  calib.setOutputTree(&outTree);
+  calib.init();
+  for (int i = 0; i < ninstance; ++i) {
+    calib.merge((path + namefile.Data() + Form("_fork%i.root",i)).data());
+  }
+  outFile.cd();
+  calib.fillOutput();
+  outTree.Write();
+  outFile.Close();
 }

@@ -33,6 +33,8 @@ namespace dataformats
   int timestamp(int i) const {return mLHCphase[i].first;}
   float LHCphase(int i) const {return mLHCphase[i].second;}
 
+  CalibLHCphaseTOF& operator+=(const CalibLHCphaseTOF& other);
+
 
  private:
   // LHCphase calibration
