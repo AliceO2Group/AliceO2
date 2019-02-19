@@ -35,13 +35,13 @@ class GeneratorTGenerator : public Generator
   /** constructor with name and title **/
   GeneratorTGenerator(const Char_t* name, const Char_t* title = "ALICEo2 TGenerator Generator");
   /** destructor **/
-  virtual ~GeneratorTGenerator();
+  ~GeneratorTGenerator() override;
 
   /** setters **/
   void setTGenerator(TGenerator* val) { mTGenerator = val; };
 
   /** Initialize the generator if needed **/
-  virtual Bool_t Init() override;
+  Bool_t Init() override;
 
  protected:
   /** copy constructor **/

@@ -29,7 +29,7 @@ class DigitReader : public Task
 {
  public:
   DigitReader() = default;
-  ~DigitReader() = default;
+  ~DigitReader() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 

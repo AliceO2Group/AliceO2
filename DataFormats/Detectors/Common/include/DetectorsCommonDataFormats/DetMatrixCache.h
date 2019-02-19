@@ -131,7 +131,7 @@ class DetMatrixCacheIndirect : private DetMatrixCache
 
   DetMatrixCacheIndirect() = default;
   DetMatrixCacheIndirect(const o2::detectors::DetID& id) : DetMatrixCache(id) {}
-  virtual ~DetMatrixCacheIndirect() override = default;
+  ~DetMatrixCacheIndirect() override = default;
 
   DetMatrixCacheIndirect(const DetMatrixCacheIndirect& src) = delete;
   DetMatrixCacheIndirect& operator=(const DetMatrixCacheIndirect& geom) = delete;

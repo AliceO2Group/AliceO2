@@ -29,7 +29,7 @@ class TrackWriter : public Task
 {
  public:
   TrackWriter() = default;
-  ~TrackWriter() = default;
+  ~TrackWriter() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 
