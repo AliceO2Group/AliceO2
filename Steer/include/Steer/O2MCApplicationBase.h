@@ -47,9 +47,10 @@ class O2MCApplicationBase : public FairMCApplication
   double TrackingRmax() const override { return mCutParams.maxRTracking; }
   double TrackingZmax() const override { return mCutParams.maxAbsZTracking; }
 
-  ClassDefOverride(O2MCApplicationBase, 1) //Interface to MonteCarlo application
-
-    protected : o2::conf::SimCutParams const& mCutParams;
+ protected: 
+  o2::conf::SimCutParams const& mCutParams; // reference to parameter system
+  
+  ClassDefOverride(O2MCApplicationBase, 1)
 };
 
 } // end namespace steer
