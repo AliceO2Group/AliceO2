@@ -14,6 +14,12 @@ namespace ROOT
 namespace RDF
 {
 
+/// This is the baseclass which actually implements how two tables should be
+/// combined together, via the GetAssociatedEntries() method. The BuildIndex()
+/// method is a convenience method which gets invoked only once per
+/// Initialise() and that can be used to precompute the index itself, if the
+/// mapping combinedEntry -> (leftEntry, rightEntry) cannot be computed on
+/// the fly quickly.
 class RCombinedDSIndex
 {
  public:
@@ -22,14 +28,32 @@ class RCombinedDSIndex
   /// allow constructing the index associated to it.
   /// \param[in]left is the dataframe constructed on top of the left input.
   /// \param[in]right is the dataframe constructed on top of the right input.
+  /// \result the vector with the ranges of the combined dataset.
   virtual std::vector<std::pair<ULong64_t, ULong64_t>> BuildIndex(std::unique_ptr<RDataFrame>& left,
                                                                   std::unique_ptr<RDataFrame>& right) = 0;
   /// This is invoked on every GetEntry() of the RCombinedDS and
   /// it's used to effectively enumerate all the pairs of the combination.
+  /// \param[in]entry is the entry in the combined table
+  /// \result a pair where first is the entry in the associated left table, while
+  ///         right is an entry in the associated right table.
   virtual std::pair<ULong64_t, ULong64_t> GetAssociatedEntries(ULong64_t entry) = 0;
 };
 
-/// An index which allows doing a cross join between two tables.
+/// An index which allows doing a inner join on the row number for two tables,
+/// i.e.  putting the rows of one next to the rows of other.
+class RCombindedDSFriendIndex : public RCombinedDSIndex
+{
+ public:
+  std::pair<ULong64_t, ULong64_t> GetAssociatedEntries(ULong64_t entry) final
+  {
+    return std::pair<ULong64_t, ULong64_t>(entry, entry);
+  }
+  std::vector<std::pair<ULong64_t, ULong64_t>> BuildIndex(std::unique_ptr<RDataFrame>& left,
+                                                          std::unique_ptr<RDataFrame>& right) final;
+};
+
+/// An index which allows doing a cross join between two tables. I.e. all the
+/// entries of one coupled with all the entries of the other
 class RCombindedDSCrossJoinIndex : public RCombinedDSIndex
 {
  public:
@@ -91,8 +115,173 @@ class RCombindedDSColumnJoinIndex : public RCombinedDSIndex
   std::vector<INDEX_TYPE> fAssociations;
 };
 
-/// An RDataSource which combines other two
-/// RDataSource doing a join operation between them.
+/// An index which allows doing a cross join of all entries belonging to the
+/// same category, where the category is defined by a two given columns.
+///
+/// This can be used to do double loops on events when using the event id column.
+/// FIXME: the need for templation is due to the fact RDataFrame::GetColumnType
+///        was introduced only in ROOT 6.16.x. We can remove it once
+///        we have a proper build of ROOT.
+/// FIXME: for the moment this only works when the inputs are actually from the same
+///        table.
+template <typename INDEX_TYPE = int>
+class RCombindedDSBlockJoinIndex : public RCombinedDSIndex
+{
+
+  using Association = std::pair<ULong64_t, ULong64_t>;
+
+ public:
+  enum struct BlockCombinationRule {
+    Full,
+    Upper,
+    StrictlyUpper,
+    Diagonal,
+    Anti
+  };
+
+  RCombindedDSBlockJoinIndex(std::string const& leftCategoryColumn,
+                             bool self = true,
+                             BlockCombinationRule combinationType = BlockCombinationRule::Anti,
+                             std::string const& rightCategoryColumn = "")
+    : fLeftCategoryColumn{ leftCategoryColumn },
+      fRightCategoryColumn{ rightCategoryColumn.empty() ? leftCategoryColumn : rightCategoryColumn },
+      fSelf{ self },
+      fCombinationType{ combinationType }
+  {
+  }
+
+  std::pair<ULong64_t, ULong64_t> GetAssociatedEntries(ULong64_t entry) final
+  {
+    return fAssociations[entry];
+  }
+
+  std::vector<std::pair<ULong64_t, ULong64_t>>
+    BuildIndex(std::unique_ptr<RDataFrame>& left,
+               std::unique_ptr<RDataFrame>& right) final
+  {
+    std::vector<std::pair<ULong64_t, ULong64_t>> ranges;
+    std::vector<INDEX_TYPE> leftCategories;
+    std::vector<INDEX_TYPE> rightCategories;
+    std::vector<Association> leftPairs;
+    std::vector<Association> rightPairs;
+
+    computePairsAndCategories(left, leftCategories, leftPairs, fLeftCategoryColumn);
+    /// FIXME: we should avoid the memory copy here. OK for now.
+    if (fSelf) {
+      rightCategories = leftCategories;
+      rightPairs = leftPairs;
+    } else {
+      computePairsAndCategories(right, rightCategories, rightPairs, fRightCategoryColumn);
+    }
+
+    auto same = [](std::pair<ULong64_t, ULong64_t> const& a, std::pair<ULong64_t, ULong64_t> const& b) {
+      return a.first < b.first;
+    };
+
+    /// For all categories, do the full set of permutations.
+    /// In case the two inputs are the same, we can simply reuse the same range
+    /// of entries.
+    int startSize = fAssociations.size();
+    for (auto categoryValue : leftCategories) {
+      std::pair<ULong64_t, ULong64_t> p{ categoryValue, 0 };
+      auto outerRange = std::equal_range(leftPairs.begin(), leftPairs.end(), p, same);
+      decltype(outerRange) innerRange;
+      if (fSelf) {
+        innerRange = outerRange;
+      } else {
+        innerRange = std::equal_range(rightPairs.begin(), rightPairs.end(), p, same);
+      }
+      int offset = 0;
+      switch (fCombinationType) {
+        case BlockCombinationRule::Full:
+          for (auto out = outerRange.first; out != outerRange.second; ++out) {
+            for (auto in = innerRange.first; in != innerRange.second; ++in) {
+              fAssociations.emplace_back(Association{ out->second, in->second });
+            }
+          }
+          break;
+        case BlockCombinationRule::Upper:
+          offset = 0;
+          for (auto out = outerRange.first; out != outerRange.second; ++out) {
+            if (innerRange.first == innerRange.second) {
+              break;
+            }
+            for (auto in = innerRange.first + offset; in != innerRange.second; ++in) {
+              fAssociations.emplace_back(Association{ out->second, in->second });
+            }
+            offset++;
+          }
+          break;
+        case BlockCombinationRule::StrictlyUpper:
+          offset = 1;
+          for (auto out = outerRange.first; out != outerRange.second; ++out) {
+            if (innerRange.first == innerRange.second || innerRange.first + 1 == innerRange.second) {
+              break;
+            }
+            for (auto in = innerRange.first + offset; in != innerRange.second; ++in) {
+              fAssociations.emplace_back(Association{ out->second, in->second });
+            }
+            offset++;
+          }
+          break;
+        case BlockCombinationRule::Anti:
+          for (auto out = outerRange.first; out != outerRange.second; ++out) {
+            for (auto in = innerRange.first; in != innerRange.second; ++in) {
+              if (std::distance(innerRange.first, in) == std::distance(outerRange.first, out)) {
+                continue;
+              }
+              fAssociations.emplace_back(Association{ out->second, in->second });
+            }
+            offset++;
+          }
+          break;
+        case BlockCombinationRule::Diagonal:
+          auto sizeRow = std::distance(outerRange.first, outerRange.second);
+          auto sizeCol = std::distance(innerRange.first, innerRange.second);
+          for (size_t i = 0, e = std::min(sizeRow, sizeCol); i < e; ++i) {
+            fAssociations.emplace_back(Association{ (outerRange.first + i)->second, (innerRange.first + i)->second });
+          }
+          break;
+      }
+      auto rangeFirst = startSize;
+      auto rangeSecond = fAssociations.size();
+      startSize = fAssociations.size();
+      ranges.emplace_back(std::make_pair<ULong64_t, ULong64_t>(rangeFirst, rangeSecond));
+    }
+    return ranges;
+  }
+
+ private:
+  std::string fLeftCategoryColumn;
+  std::string fRightCategoryColumn;
+  bool fSelf;
+  BlockCombinationRule fCombinationType;
+  std::vector<Association> fAssociations;
+  void computePairsAndCategories(std::unique_ptr<RDataFrame>& df,
+                                 std::vector<INDEX_TYPE>& categories,
+                                 std::vector<Association>& pairs,
+                                 std::string const& column)
+  {
+    categories = *df->template Take<INDEX_TYPE>(column);
+    // Fill the pairs according tho the actual category
+    for (size_t i = 0; i < categories.size(); ++i) {
+      pairs.emplace_back(categories[i], i);
+    }
+    // Do a stable sort so that same categories entries are
+    // grouped together.
+    std::stable_sort(pairs.begin(), pairs.end());
+    // Keep only the categories.
+    std::stable_sort(categories.begin(), categories.end());
+    auto last = std::unique(categories.begin(), categories.end());
+    categories.erase(last, categories.end());
+  }
+};
+
+/// An RDataSource which combines the rows of two other RDataSources
+/// between them. The actual logic to do the combination is specified by
+/// the provided RCombinedDSIndex implementation.
+/// By default it simply pairs same position rows of two tables with the same
+/// length.
 class RCombinedDS final : public ROOT::RDF::RDataSource
 {
  private:
@@ -115,10 +304,9 @@ class RCombinedDS final : public ROOT::RDF::RDataSource
   std::vector<void*> GetColumnReadersImpl(std::string_view colName, const std::type_info& info) override;
 
  public:
-  /// Constructs a data source which is given by all the pairs between the elements of left and right
   RCombinedDS(std::unique_ptr<RDataSource> left,
               std::unique_ptr<RDataSource> right,
-              std::unique_ptr<RCombinedDSIndex> index = std::make_unique<RCombindedDSCrossJoinIndex>(),
+              std::unique_ptr<RCombinedDSIndex> index = std::make_unique<RCombindedDSFriendIndex>(),
               std::string leftPrefix = std::string{ "left_" },
               std::string rightPrefix = std::string{ "right_" });
   ~RCombinedDS() override;
@@ -152,6 +340,8 @@ class RCombinedDS final : public ROOT::RDF::RDataSource
 RDataFrame MakeCombinedDataFrame(std::unique_ptr<RDataSource> left, std::unique_ptr<RDataSource>, std::unique_ptr<RCombinedDSIndex> index, std::string leftPrefix = "left_", std::string rightPrefix = "right_");
 RDataFrame MakeCrossProductDataFrame(std::unique_ptr<RDataSource> left, std::unique_ptr<RDataSource>, std::string leftPrefix = "left_", std::string rightPrefix = "right_");
 RDataFrame MakeColumnIndexedDataFrame(std::unique_ptr<RDataSource> left, std::unique_ptr<RDataSource>, std::string indexColName, std::string leftPrefix = "left_", std::string rightPrefix = "right_");
+RDataFrame MakeFriendDataFrame(std::unique_ptr<RDataSource> left, std::unique_ptr<RDataSource> right, std::string leftPrefix = "left_", std::string rightPrefix = "right_");
+RDataFrame MakeBlockAntiDataFrame(std::unique_ptr<RDataSource> left, std::unique_ptr<RDataSource> right, std::string indexColumnName, std::string leftPrefix = "left_", std::string rightPrefix = "right_");
 
 } // namespace RDF
 
