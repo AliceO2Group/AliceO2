@@ -83,7 +83,7 @@ Bool_t
 
   /* loop over particles */
   Int_t nParticles = mParticles->GetEntries();
-  TParticle* particle = NULL;
+  TParticle* particle = nullptr;
   for (Int_t iparticle = 0; iparticle < nParticles; iparticle++) {
     particle = (TParticle*)mParticles->At(iparticle);
     if (!particle)
