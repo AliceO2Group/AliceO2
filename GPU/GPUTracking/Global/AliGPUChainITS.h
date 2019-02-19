@@ -8,9 +8,10 @@ class AliGPUChainITS : public AliGPUChain
 	friend class AliGPUReconstruction;
 public:
 	virtual ~AliGPUChainITS();
+	virtual void RegisterPermanentMemoryAndProcessors() override;
+	virtual void RegisterGPUProcessors() override;
 	virtual int Init() override;
 	virtual int Finalize() override;
-	virtual void RegisterPermanentMemoryAndProcessors() override;
 	virtual int RunStandalone() override;
 	
 	o2::ITS::TrackerTraits* GetITSTrackerTraits() {return mITSTrackerTraits.get();}

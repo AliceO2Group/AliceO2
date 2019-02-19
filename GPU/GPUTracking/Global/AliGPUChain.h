@@ -14,9 +14,10 @@ public:
 	using GeometryType = AliGPUReconstruction::GeometryType;
 	
 	virtual ~AliGPUChain();
+	virtual void RegisterPermanentMemoryAndProcessors() = 0;
+	virtual void RegisterGPUProcessors() = 0;
 	virtual int Init() = 0;
 	virtual int Finalize() = 0;
-	virtual void RegisterPermanentMemoryAndProcessors() = 0;
 	virtual int RunStandalone() = 0;
 	
 	constexpr static int NSLICES = AliGPUReconstruction::NSLICES;

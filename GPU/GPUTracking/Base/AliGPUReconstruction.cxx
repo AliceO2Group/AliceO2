@@ -88,19 +88,28 @@ int AliGPUReconstruction::Init()
 	{
 		mChains[i]->RegisterPermanentMemoryAndProcessors();
 	}
-
 	for (unsigned int i = 0;i < mProcessors.size();i++)
 	{
 		(mProcessors[i].proc->*(mProcessors[i].RegisterMemoryAllocation))();
 	}
 
 	if (InitDevice()) return 1;
+	if (IsGPU())
+	{
+		for (unsigned int i = 0;i < mChains.size();i++)
+		{
+			mChains[i]->RegisterGPUProcessors();
+		}
+	}
 	AllocateRegisteredPermanentMemory();
-	if (InitializeProcessors()) return 1;
 	
 	for (unsigned int i = 0;i < mChains.size();i++)
 	{
 		if (mChains[i]->Init()) return 1;
+	}
+	for (unsigned int i = 0;i < mProcessors.size();i++)
+	{
+		(mProcessors[i].proc->*(mProcessors[i].InitializeProcessor))();
 	}
 	
 	mInitialized = true;
@@ -111,19 +120,6 @@ int AliGPUReconstruction::Finalize()
 {
 	ExitDevice();
 	mInitialized = false;
-	return 0;
-}
-
-int AliGPUReconstruction::InitializeProcessors()
-{
-	for (unsigned int i = 0;i < NSLICES;i++)
-	{
-		workers()->tpcTrackers[i].SetSlice(i);
-	}
-	for (unsigned int i = 0;i < mProcessors.size();i++)
-	{
-		(mProcessors[i].proc->*(mProcessors[i].InitializeProcessor))();
-	}
 	return 0;
 }
 

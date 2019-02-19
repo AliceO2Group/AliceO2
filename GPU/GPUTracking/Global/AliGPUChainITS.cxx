@@ -14,6 +14,14 @@ AliGPUChainITS::AliGPUChainITS(AliGPUReconstruction* rec) : AliGPUChain(rec)
 	
 }
 
+void AliGPUChainITS::RegisterPermanentMemoryAndProcessors()
+{
+}
+
+void AliGPUChainITS::RegisterGPUProcessors()
+{
+}
+
 int AliGPUChainITS::Init()
 {
 	return 0;
@@ -27,8 +35,4 @@ int AliGPUChainITS::Finalize()
 int AliGPUChainITS::RunStandalone()
 {
 	return 0;
-}
-
-void AliGPUChainITS::RegisterPermanentMemoryAndProcessors()
-{
 }

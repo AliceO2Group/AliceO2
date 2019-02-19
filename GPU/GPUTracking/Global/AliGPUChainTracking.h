@@ -34,9 +34,10 @@ class AliGPUChainTracking : public AliGPUChain, AliGPUReconstructionHelpers::hel
 	friend class AliGPUReconstruction;
 public:
 	virtual ~AliGPUChainTracking();
+	virtual void RegisterPermanentMemoryAndProcessors() override;
+	virtual void RegisterGPUProcessors() override;
 	virtual int Init() override;
 	virtual int Finalize() override;
-	virtual void RegisterPermanentMemoryAndProcessors() override;
 	virtual int RunStandalone() override;
 
 	//Structures for input and output data
