@@ -27,6 +27,8 @@ add_definitions(
     -DCL_HPP_TARGET_OPENCL_VERSION=200
 
     -Dspan_FEATURE_MAKE_SPAN=1
+    -Dspan_FEATURE_MEMBER_BACK_FRONT=1
+    -Dspan_FEATURE_MEMBER_AT=2
 )
 
 include_directories(src)
