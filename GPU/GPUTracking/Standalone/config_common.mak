@@ -11,7 +11,7 @@ HIDEECHO					= @
 CC_x86_64-pc-linux-gnu		= GCC
 CC_i686-pc-cygwin			= ICC
 
-INCLUDEPATHS				= . SliceTracker HLTHeaders Merger Base Global TRDTracking Common TPCFastTransformation display qa
+INCLUDEPATHS				= . SliceTracker HLTHeaders Merger Base Global TRDTracking ITS Common TPCFastTransformation display qa
 DEFINES						= GPUCA_STANDALONE
 
 EXTRAFLAGSGCC				+=
@@ -74,7 +74,8 @@ INCLUDEPATHS					+= O2Headers \
 								${CONFIG_O2DIR}/Common/MathUtils/include \
 								${CONFIG_O2DIR}/DataFormats/Detectors/Common/include \
 								${CONFIG_O2DIR}/DataFormats/Detectors/TPC/include \
-								${CONFIG_O2DIR}/DataFormats/simulation/include
+								${CONFIG_O2DIR}/DataFormats/simulation/include \
+								${CONFIG_O2DIR}/DataFormats/Detectors/ITSMFT/ITS/include
 endif
 
 ifeq ($(CONFIG_O2), 1)

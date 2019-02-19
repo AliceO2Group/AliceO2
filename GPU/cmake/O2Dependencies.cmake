@@ -55,6 +55,7 @@ o2_define_bucket(
     ${ALIGPU_DIR}/sources/GPUTracking/Interface
     ${ALIGPU_DIR}/sources/GPUTracking/HLTHeaders
     ${ALIGPU_DIR}/sources/GPUTracking/Standalone
+    ${ALIGPU_DIR}/sources/GPUTracking/ITS
     ${ALIGPU_DIR}/sources/GPUTracking/
     ${ALIGPU_DIR}/sources/GPUTracking/Standalone/display
     ${ALIGPU_DIR}/sources/GPUTracking/Standalone/qa

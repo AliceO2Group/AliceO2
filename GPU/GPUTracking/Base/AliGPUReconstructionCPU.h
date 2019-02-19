@@ -17,6 +17,7 @@
 #include "AliGPUTPCTrackletSelector.h"
 #include "AliGPUTPCGMMergerGPU.h"
 #include "AliGPUTRDTrackerGPU.h"
+#include "GPUITSFitterKernels.h"
 
 namespace AliGPUReconstruction_krnlHelpers {
 template <class T, int I = 0> class classArgument {};
@@ -49,6 +50,7 @@ struct krnlEvent
 	deviceEvent* evList;
 	int nEvents;
 };
+static const krnlEvent krnlEventNone{};
 } //End Namespace
 
 using namespace AliGPUReconstruction_krnlHelpers;

@@ -13,7 +13,7 @@ if(OpenMP_CXX_FOUND)
     set(DEFINITIONS ${DEFINITIONS} GPUCA_HAVE_OPENMP)
 endif()
 
-include_directories(. SliceTracker Merger Base Global TRDTracking ../Common ../TPCFastTransformation Standalone)
+include_directories(. SliceTracker Merger Base Global TRDTracking ITS ../Common ../TPCFastTransformation Standalone)
 
 if (ENABLE_CUDA OR ENABLE_OPENCL OR ENABLE_HIP)
     if (CMAKE_SYSTEM_NAME MATCHES Darwin)
@@ -84,7 +84,6 @@ set(SRCS_NO_CINT
     Base/AliGPUReconstructionDeviceBase.cxx
     Global/AliGPUChain.cxx
     Global/AliGPUChainTracking.cxx
-    Global/AliGPUChainITS.cxx
     utils/timer.cpp
 )
 
@@ -187,8 +186,14 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     )
     set(SRCS_NO_CINT ${SRCS_NO_CINT}
         Standalone/display/AliGPUDisplayBackend.cpp
+        Global/AliGPUChainITS.cxx
+        ITS/GPUITSFitter.cxx
+        ITS/GPUITSFitterKernels.cxx
     )
-    set (HDRS2 ${HDRS2} Interface/AliGPUO2InterfaceConfiguration.h)
+    set (HDRS2 ${HDRS2}
+        Interface/AliGPUO2InterfaceConfiguration.h
+        ITS/GPUITSTrack.h
+    )
 endif()
 
 if (GPUCA_EVENT_DISPLAY)

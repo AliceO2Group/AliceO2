@@ -39,11 +39,15 @@
 #endif
 
 #ifdef GPUCA_BUILD_ITS
-	#include "TrackerTraitsNV.cu"
-	#include "Context.cu"
-	#include "Stream.cu"
-	#include "DeviceStoreNV.cu"
-	#include "Utils.cu"
+	#include "GPUITSFitterKernels.cxx"
+	
+	#if !defined(GPUCA_O2_LIB) && defined(__CUDACC__)
+		#include "TrackerTraitsNV.cu"
+		#include "Context.cu"
+		#include "Stream.cu"
+		#include "DeviceStoreNV.cu"
+		#include "Utils.cu"
+	#endif
 #endif
 
 #endif
