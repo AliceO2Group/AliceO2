@@ -17,8 +17,9 @@ public:
 
     struct Chunk
     {
-        nonstd::span<const Digit> digits;    
-        nonstd::span<const Digit> digitsPadded;
+        size_t start;
+        size_t items;
+        size_t future;
     };
     nonstd::optional<Chunk> nextChunk(size_t);
 
@@ -31,9 +32,9 @@ private:
 
     size_t start = 0;
 
-    size_t timeSliceEnd(size_t);
+    size_t timeSliceEnd(int);
 
-    size_t currTime();
+    int currTime() const;
 
 };
     

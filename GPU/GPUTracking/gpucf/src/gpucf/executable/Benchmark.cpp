@@ -81,20 +81,6 @@ void Benchmark::registerExperiments()
                         iterations->Get(), 
                         baseDir));
     }
-
-    {
-        GPUClusterFinder::Config resetChargeMap;
-        resetChargeMap.usePackedDigits = true;
-        resetChargeMap.zeroChargeMap = false;
-        experiments.emplace_back(
-                new TimeCf(
-                        "Reset charge map", 
-                        "resetChargeMap.json",
-                        resetChargeMap,
-                        digits, 
-                        iterations->Get(), 
-                        baseDir));
-    }
 }
 
 
