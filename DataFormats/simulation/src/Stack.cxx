@@ -16,6 +16,7 @@
 #include "DetectorsBase/Detector.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "SimulationDataFormat/MCTrack.h"
+#include "SimConfig/SimCutParams.h"
 
 #include "FairDetector.h" // for FairDetector
 #include "FairLogger.h"   // for FairLogger
@@ -245,6 +246,28 @@ void Stack::notifyFinishPrimary()
   }
 }
 
+// calculates a hash based on particle properties
+// hash may serve as seed for this track
+ULong_t getHash(TParticle const& p)
+{
+  auto asLong = [](double x) {
+    return (ULong_t) * (reinterpret_cast<ULong_t*>(&x));
+  };
+
+  ULong_t hash;
+  o2::MCTrackT<double> track(p);
+
+  hash = asLong(track.GetStartVertexCoordinatesX());
+  hash ^= asLong(track.GetStartVertexCoordinatesY());
+  hash ^= asLong(track.GetStartVertexCoordinatesZ());
+  hash ^= asLong(track.GetStartVertexCoordinatesT());
+  hash ^= asLong(track.GetStartVertexMomentumX());
+  hash ^= asLong(track.GetStartVertexMomentumY());
+  hash ^= asLong(track.GetStartVertexMomentumZ());
+  hash += (ULong_t)track.GetPdgCode();
+  return hash;
+}
+
 TParticle* Stack::PopNextTrack(Int_t& iTrack)
 {
   // This functions is mainly used by Geant3?
@@ -275,6 +298,16 @@ TParticle* Stack::PopNextTrack(Int_t& iTrack)
 
   mIndexOfCurrentTrack = mCurrentParticle.GetStatusCode();
   iTrack = mIndexOfCurrentTrack;
+
+  if (o2::conf::SimCutParams::Instance().trackSeed) {
+    auto hash = getHash(mCurrentParticle);
+    // LOG(INFO) << "SEEDING NEW TRACK USING HASH" << hash;
+    // init seed per track
+    gRandom->SetSeed(hash);
+
+    // NOTE: THE BETTER PLACE WOULD BE IN PRETRACK HOOK BUT THIS DOES NOT SEEM TO WORK
+    // WORKS ONLY WITH G3 SINCE G4 DOES NOT CALL THIS FUNCTION
+  }
 
   // LOG(INFO) << "transporting ID " << mIndexOfCurrentTrack << "\n";
   return &mCurrentParticle;

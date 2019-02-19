@@ -61,6 +61,7 @@ class O2MCApplication : public O2MCApplicationBase
       det->EndOfEvent();
     }
     fStack->Reset();
+    LOG(INFO) << "This event/chunk did " << mStepCounter << " steps";
   }
 
   /** Define actions at the end of run */
