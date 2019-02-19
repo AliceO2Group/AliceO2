@@ -6,8 +6,10 @@
 
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
 #include "AliGPUTPCGMMerger.h"
+#include "GPUITSFitter.h"
 #else
 class AliGPUTPCGMMerger {};
+class GPUITSFitter {};
 #endif
 
 #if (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && (!defined(GPUCA_GPULIBRARY) || !defined(GPUCA_ALIROOT_LIB))
@@ -23,6 +25,7 @@ struct AliGPUConstantMem
 	MEM_LG(AliGPUTPCTracker) tpcTrackers[GPUCA_NSLICES];
 	AliGPUTPCGMMerger tpcMerger;
 	AliGPUTRDTracker trdTracker;
+	GPUITSFitter itsFitter;
 };
 
 #endif

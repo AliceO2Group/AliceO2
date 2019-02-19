@@ -51,6 +51,9 @@ GPUCA_TRD_CXXFILES			= TRDTracking/AliGPUTRDTrack.cxx \
 								TRDTracking/AliGPUTRDTracker.cxx \
 								TRDTracking/AliGPUTRDTrackletWord.cxx \
 								TRDTracking/AliGPUTRDTrackerGPU.cxx
+								
+GPUCA_ITS_CXXFILES			= ITS/GPUITSFitter.cxx \
+								ITS/GPUITSFitterKernels.cxx
 
 GPUCA_STANDALONE_CXXFILES	= SliceTracker/AliGPUTPCTrack.cxx \
 								SliceTracker/AliGPUTPCTracklet.cxx \
@@ -60,7 +63,8 @@ CXXFILES					+= 	Base/AliGPUReconstructionTimeframe.cxx \
 								$(GPUCA_TRACKER_CXXFILES) \
 								$(GPUCA_STANDALONE_CXXFILES) \
 								$(GPUCA_MERGER_CXXFILES) \
-								$(GPUCA_TRD_CXXFILES)
+								$(GPUCA_TRD_CXXFILES) \
+								$(GPUCA_ITS_CXXFILES)
 
 CPPFILES					+= 	utils/timer.cpp \
 								utils/qsem.cpp \
@@ -97,5 +101,6 @@ CXXFILES					+= ${CONFIG_O2DIR}/DataFormats/simulation/src/MCCompLabel.cxx \
 								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/src/TrackerTraitsCPU.cxx \
 								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/src/VertexerTraits.cxx \
 								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/src/ROframe.cxx \
+								${CONFIG_O2DIR}/Detectors/ITSMFT/ITS/tracking/src/Road.cxx \
 								${CONFIG_O2DIR}/Detectors/TRD/base/src/TRDGeometryBase.cxx
 endif

@@ -103,8 +103,8 @@ public:
 	void DumpData(const char* filename);
 	using AliGPUChain::ReadData;
 	int ReadData(const char* filename);
-	virtual void DumpSettings(const char* dir = "");
-	virtual void ReadSettings(const char* dir = "");
+	virtual void DumpSettings(const char* dir = "") override;
+	virtual void ReadSettings(const char* dir = "") override;
 	
 	//Converter functions
 	void ConvertNativeToClusterData();
