@@ -31,6 +31,14 @@ class Monitoring;
 namespace framework
 {
 
+/// Helper struct to hold statistics about the relaying process.
+struct DataRelayerStats {
+  uint64_t malformedInputs = 0;         /// Malformed inputs which the user attempted to process
+  uint64_t droppedComputations = 0;     /// How many computations have been dropped because one of the inputs was late
+  uint64_t droppedIncomingMessages = 0; /// How many messages have been dropped (not relayed) because they were late
+  uint64_t relayedMessages = 0;         /// How many messages have been successfully relayed
+};
+
 class DataRelayer {
 public:
   enum RelayChoice {
@@ -80,6 +88,9 @@ public:
   /// Tune the maximum number of in flight timeslices this can handle.
   void setPipelineLength(size_t s);
 
+  /// @return the current stats about the data relaying process
+  DataRelayerStats const& getStats();
+
  private:
   std::vector<InputRoute> const& mInputRoutes;
   std::vector<ForwardRoute> const& mForwardRoutes;
@@ -104,6 +115,8 @@ public:
   static std::vector<std::string> sMetricsNames;
   static std::vector<std::string> sVariablesMetricsNames;
   static std::vector<std::string> sQueriesMetricsNames;
+
+  DataRelayerStats mStats;
 };
 
 } // namespace framework

@@ -265,6 +265,27 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
     assert(header.get() == nullptr && payload.get() == nullptr);
   };
 
+  auto updateStatistics = [& stats = mStats](TimesliceIndex::ActionTaken action)
+  {
+    // Update statistics for what happened
+    switch (action) {
+      case TimesliceIndex::ActionTaken::DropObsolete:
+        stats.droppedIncomingMessages++;
+        break;
+      case TimesliceIndex::ActionTaken::DropInvalid:
+        stats.malformedInputs++;
+        stats.droppedIncomingMessages++;
+        break;
+      case TimesliceIndex::ActionTaken::ReplaceUnused:
+        stats.relayedMessages++;
+        break;
+      case TimesliceIndex::ActionTaken::ReplaceObsolete:
+        stats.droppedComputations++;
+        stats.relayedMessages++;
+        break;
+    }
+  };
+
   // OUTER LOOP
   // 
   // This is the actual outer loop processing input as part of a given
@@ -307,6 +328,7 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
     saveInSlot(timeslice, input, slot);
     sendVariableContextMetrics(index.getVariablesForSlot(slot), slot, mMetrics, sVariablesMetricsNames);
     index.markAsDirty(slot, true);
+    mStats.relayedMessages++;
     return WillRelay;
   }
 
@@ -317,19 +339,30 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
 
   if (input == INVALID_INPUT) {
     LOG(ERROR) << "Could not match incoming data to any input";
+    mStats.malformedInputs++;
+    mStats.droppedIncomingMessages++;
     return WillNotRelay;
   }
 
   if (TimesliceId::isValid(timeslice) == false) {
     LOG(ERROR) << "Could not determine the timeslice for input";
+    mStats.malformedInputs++;
+    mStats.droppedIncomingMessages++;
     return WillNotRelay;
   }
 
   TimesliceIndex::ActionTaken action;
   std::tie(action, slot) = index.replaceLRUWith(pristineContext);
 
-  if (TimesliceSlot::isValid(slot) == false) {
+  updateStatistics(action);
+
+  if (action == TimesliceIndex::ActionTaken::DropObsolete) {
     LOG(WARNING) << "Incoming data is already obsolete, not relaying.";
+    return WillNotRelay;
+  }
+
+  if (action == TimesliceIndex::ActionTaken::DropInvalid) {
+    LOG(WARNING) << "Incoming data is invalid, not relaying.";
     return WillNotRelay;
   }
 
@@ -342,7 +375,6 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
 
   return WillRelay;
 }
-
 
 std::vector<DataRelayer::RecordAction>
 DataRelayer::getReadyToProcess() {
@@ -510,6 +542,11 @@ DataRelayer::setPipelineLength(size_t s) {
     DataSpecUtils::describe(buffer, 127, matcher);
     mMetrics.send({ std::string{ buffer }, sQueriesMetricsNames[i] });
   }
+}
+
+DataRelayerStats const& DataRelayer::getStats()
+{
+  return mStats;
 }
 
 std::vector<std::string> DataRelayer::sMetricsNames;

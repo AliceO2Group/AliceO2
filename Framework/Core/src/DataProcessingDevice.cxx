@@ -134,6 +134,28 @@ void DataProcessingDevice::Reset() { mServiceRegistry.get<CallbackService>()(Cal
 /// non-data triggers like those which are time based.
 bool DataProcessingDevice::ConditionalRun()
 {
+  /// This will send metrics for the relayer at regular intervals of
+  /// 5 seconds, in order to avoid overloading the system.
+  auto sendRelayerMetrics = [ stats = mRelayer.getStats(),
+                              &lastSent = mLastMetricSentTimestamp,
+                              &currentTime = mBeginIterationTimestamp,
+                              &monitoring = mServiceRegistry.get<Monitoring>() ]()
+                              ->void
+  {
+    if (currentTime - lastSent < 5000) {
+      return;
+    }
+    monitoring.send({ (int)stats.malformedInputs, "dpl/malformed_inputs" });
+    monitoring.send({ (int)stats.droppedComputations, "dpl/dropped_computations" });
+    monitoring.send({ (int)stats.droppedIncomingMessages, "dpl/dropped_incoming_messages" });
+    monitoring.send({ (int)stats.relayedMessages, "dpl/relayd_messages" });
+    lastSent = currentTime;
+  };
+
+  auto now = std::chrono::high_resolution_clock::now();
+  mBeginIterationTimestamp = (uint64_t)std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
+  sendRelayerMetrics();
+
   mServiceRegistry.get<CallbackService>()(CallbackService::Id::ClockTick);
   bool active = false;
   for (auto& channel : mSpec.inputChannels) {

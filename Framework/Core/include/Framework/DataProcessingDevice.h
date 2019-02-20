@@ -73,6 +73,8 @@ class DataProcessingDevice : public FairMQDevice
 
   int mErrorCount;
   int mProcessingCount;
+  uint64_t mLastMetricSentTimestamp = 0; /// The timestamp of the last time we sent non-realtime metrics
+  uint64_t mBeginIterationTimestamp = 0; /// The timestamp of when the current ConditionalRun was started
 };
 
 } // namespace framework
