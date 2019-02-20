@@ -1,0 +1,9 @@
+input = [
+    { file = "in/paddedClusterFinder.json", label = "Zero chargeMap" },
+    { file = "in/resetChargeMap.json", label = "Erase digits" }
+]
+
+type   = "bar"
+out    = "out/cmpWithReset.pdf"
+ylabel = "time [ms]"
+showLegend = true

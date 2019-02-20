@@ -243,16 +243,23 @@ GPUClusterFinder::Result GPUClusterFinder::run()
      * Compute clusters
      ************************************************************************/
 
-    computeAndReadClusters();
-
-
+    size_t clusterNum = computeAndReadClusters();
 
     printClusters(clusters, 10);
 
-    log::Info() << "Found " << clusters.size() << " clusters.";
+    std::vector<Cluster> result(clusterNum);
 
+    memcpy(result.data(), clusters.data(), clusterNum * sizeof(Cluster));
 
-    return Result{clusters, {0,0, {{}}}};
+    log::Info() << "Found " << result.size() << " clusters.";
+
+    std::vector<Lane> lanes;
+    for (const Plan &plan : plans)
+    {
+        lanes.push_back(toLane(plan));    
+    }
+
+    return Result{result, {0,0, lanes}};
 }
 
 
@@ -405,7 +412,7 @@ void GPUClusterFinder::findCluster(Plan &plan, nonstd::span<const DigitT> digits
             plan.findingPeaks.get());
 }
 
-void GPUClusterFinder::computeAndReadClusters()
+size_t GPUClusterFinder::computeAndReadClusters()
 {
     Plan &plan = plans.front();
 
@@ -465,9 +472,9 @@ void GPUClusterFinder::computeAndReadClusters()
      * Copy cluster to host
      ************************************************************************/
 
-    clusters.resize(clusterNum);
+    ASSERT(clusters.size() == size_t(digits.size()));
 
-    log::Info() << "Copy results back...";
+    /* log::Info() << "Copy results back..."; */
     ASSERT(clusters.size() * sizeof(Cluster) <= clusterBufSize);
 
     if (clusterNum > 0)
@@ -476,11 +483,32 @@ void GPUClusterFinder::computeAndReadClusters()
                 clusterBuf, 
                 CL_TRUE, 
                 0, 
-                clusters.size() * sizeof(Cluster), 
+                clusterNum * sizeof(Cluster), 
                 clusters.data(),
                 nullptr,
                 plan.clustersToHost.get());
     }
+
+    plan.clustering.finish();
+
+    return clusterNum;
+}
+
+Lane GPUClusterFinder::toLane(const Plan &p)
+{
+    return {
+        {"digitsToDevice", p.digitsToDevice},
+        {"fillChargeMap", p.fillingChargeMap},
+        {"findPeaks", p.findingPeaks},
+        (p.id == 0) ? streamCompaction.asStep("compactPeaks") 
+                    : Step("compactPeaks", 0, 0),
+        (p.id == 0) ? Step("computeCluster", p.computingClusters)
+                    : Step("computeCluster", 0, 0),
+        (p.id == 0) ? Step("resetChargeMap", p.zeroChargeMap)
+                    : Step("resetChargeMap", 0, 0),
+        (p.id == 0) ? Step("clusterToHost", p.clustersToHost)
+                    : Step("clusterToHost", 0, 0),
+    };
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:
