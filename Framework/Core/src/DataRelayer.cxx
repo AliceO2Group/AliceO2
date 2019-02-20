@@ -325,7 +325,8 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
     return WillNotRelay;
   }
 
-  slot = index.replaceLRUWith(pristineContext);
+  TimesliceIndex::ActionTaken action;
+  std::tie(action, slot) = index.replaceLRUWith(pristineContext);
 
   if (TimesliceSlot::isValid(slot) == false) {
     LOG(WARNING) << "Incoming data is already obsolete, not relaying.";
