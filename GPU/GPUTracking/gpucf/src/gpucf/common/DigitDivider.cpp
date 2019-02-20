@@ -65,7 +65,7 @@ size_t DigitDivider::timeSliceEnd(int time)
         return digits.size();
     }
 
-    while (left < right)
+    while (left <= right)
     {
         size_t pos = (left + right) / 2; 
 

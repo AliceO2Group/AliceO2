@@ -38,6 +38,7 @@ class Config:
 
     optionalKeys = [
         "ylabel",
+        "xlabel",
         "showLegend"
     ]
 
@@ -45,7 +46,6 @@ class Config:
 
         self.baseDir = baseDir
 
-        print(confDict)
         for req in Config.requiredKeys:
             requireKey(confDict, req)
 
@@ -66,50 +66,122 @@ class Config:
         return os.path.join(self.baseDir, fname)
 
 
+class Lane:
+
+    def __init__(self, data):
+        self.orderedNames = []
+
+        self.data = {}
+
+        for step in data:
+            self.orderedNames.append(step["name"])
+            self.data[step["name"]] = (step["start"], step["end"])
+
+    def starts(self):
+        return [step[0] for step in self.flatten()]
+
+    def ends(self):
+        return [step[1] for step in self.flatten()]
+
+    def names(self):
+        return self.orderedNames
+
+    def flatten(self):
+        return [self.data[name] for name in self.orderedNames]
+
+    def step(self, name):
+        return self.data[name]
+
+    def begin(self):
+        return self.data[self.orderedNames[0]][0]
+
+class Run:
+
+    def __init__(self, data):
+        self.start = data["start"]
+        self.end   = data["end"]
+
+        self.lanes = [Lane(dct) for dct in data["lanes"]]
+
+    def begin(self):
+        begins = [lane.begin() for lane in self.lanes]
+
+        return min(begins)
+
+
 class Measurements:
 
     def __init__(self, fname):
         with open(fname, 'r') as datafile:
             dct = json.load(datafile)
-        # print(dct)
+
         self.data = dct["runs"]
 
-    def labels(self):
+        self.runs = []
+
+        for rundct in dct["runs"]:
+            self.runs.append(Run(rundct))
+
+
+    def steps(self):
         return [step["name"] for step in self.data[0]["lanes"][0]]
 
     def lanes(self):
         return len(self.data[0]["lanes"])
 
-    def runs(self):
-        return len(self.data)
+    def frames(self, step):
+
+        run = 0
+
+        lanes = self.runs[run].lanes
+
+        frames = []
+
+        for lane in lanes:
+            frames.append(lane.step(step))
+
+        starts = [step[0] for step in frames]
+        ends   = [step[1]  for step in frames]
+
+
+        starts = [x for x in starts if x > 0]
+        ends = [x for x in ends if x > 0]
+
+        starts   = np.array(starts)
+        ends   = np.array(ends)
+
+        offset = self.runs[run].begin()
+        starts -= offset
+        ends   -= offset
+
+        starts = np.array(starts, dtype=np.float64)
+        ends = np.array(ends, dtype=np.float64)
+
+        starts /= 1000000.0
+        ends /= 1000000.0
+
+        return (starts, ends)
 
     def durations(self, lane=0):
 
-        # print("runs =", self.runs())
-        # print("lanes =", self.lanes())
+        steps = self.steps()
 
         start = np.array([
             [ self.data[run]["lanes"][lane][i]["start"] 
-                for run in range(self.runs()) ]
-            for i in range(len(self.labels()))
+                for run in range(len(self.runs)) ]
+            for i in range(len(steps))
         ])
-
-        # print("start =", start)
 
         end = np.array([
             [ self.data[run]["lanes"][lane][i]["end"] 
-                for run in range(self.runs()) ]
-            for i in range(len(self.labels()))
+                for run in range(len(self.runs)) ]
+            for i in range(len(steps))
         ])
-
-        # print("end = ", end)
 
         duration = end - start
 
         duration = np.array(duration, dtype=np.float64)
         duration /=  1000000
-
-        # print("duration =", duration)
 
         return list(duration)
 
@@ -138,8 +210,6 @@ def split(data):
     mins = np.array([np.min(col) for col in data])
     medians = np.array([np.median(col) for col in data])
 
-    print(maxs, mins, medians)
-
     return maxs, mins, medians
 
 def bar(cnf):
@@ -147,10 +217,10 @@ def bar(cnf):
 
     measurements = Measurements(cnf.expand(cnf.input[0].file))
 
-    labels = measurements.labels()
+    steps = measurements.steps()
 
     stepSize = len(cnf.input)
-    stepNum = len(labels)
+    stepNum = len(steps)
 
     barWidth = 0.75
 
@@ -181,12 +251,15 @@ def bar(cnf):
 
     plt.ylim(ymin=0)
 
-    plt.xticks(indexes + (stepSize - 1) * barWidth / 2, labels, rotation=20)
+    plt.xticks(indexes + (stepSize - 1) * barWidth / 2, steps, rotation=20)
     plt.margins(0.2)
     plt.subplots_adjust(bottom=0.2)
 
     if cnf.ylabel is not None:
         plt.ylabel(cnf.ylabel)
+
+    if cnf.xlabel is not None:
+        plt.xlable(cnf.xlabel)
 
     if cnf.showLegend:
         plt.legend()
@@ -194,8 +267,35 @@ def bar(cnf):
     plt.savefig(cnf.expand(cnf.out))
 
 
+def timeline(cnf):
+    assert len(cnf.input) == 1
+
+    measurements = Measurements(cnf.expand(cnf.input[0].file))
+
+    steps = measurements.steps()
+
+    for step in steps:
+        start, end = measurements.frames(step)
+
+        plt.barh(range(len(start)), end-start, left=start, label=step)
+
+
+    if cnf.ylabel is not None:
+        plt.ylabel(cnf.ylabel)
+
+    if cnf.xlabel is not None:
+        plt.xlable(cnf.xlabel)
+
+    if cnf.showLegend:
+        plt.legend()
+
+    plt.savefig(cnf.expand(cnf.out))
+
+
+
 PLOTS = {
-        "bar" : bar
+        "bar"      : bar,
+        "timeline" : timeline
 }
 
 
@@ -209,6 +309,8 @@ def main():
             help='Config file describing the plot')
 
     args = parser.parse_args()
+
+    print("Opening config file ", args.config)
 
     config = Config(toml.load(args.config), os.path.dirname(args.config[0]))
 

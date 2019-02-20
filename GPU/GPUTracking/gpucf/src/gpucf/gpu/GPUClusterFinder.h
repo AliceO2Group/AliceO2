@@ -9,7 +9,9 @@
 #include <nonstd/optional.hpp>
 #include <nonstd/span.hpp>
 
+#include <future>
 #include <memory>
+#include <thread>
 #include <vector>
 
 
@@ -44,6 +46,20 @@ public:
     Result run();
 
 private:
+    struct Backwards
+    {
+        std::future<cl::Event> digitsToDevice;
+        std::future<cl::Event> fillingChargeMap;
+
+        std::future<size_t> clusters;
+    };
+
+    struct Forwards
+    {
+        std::future<cl::Event> computeClusters;   
+    };
+
+
     struct Plan
     {
         /**
@@ -79,6 +95,9 @@ private:
          * my id
          */
         size_t id;
+
+        nonstd::optional<Backwards> prev;
+        nonstd::optional<Forwards> next;
 
         Event digitsToDevice; 
         Event zeroChargeMap;
@@ -150,11 +169,13 @@ private:
 
     void addDefines(ClEnv &);
 
+    Lane toLane(const Plan &);
+
 
     template<class DigitT>
     void findCluster(Plan &, nonstd::span<const DigitT>);
 
-    void computeAndReadClusters();
+    size_t computeAndReadClusters();
 };
 
 }

@@ -12,6 +12,7 @@ plotFiles=( \
     "clusterfinder.toml" \
     "cmpWithPacked.toml" \
     "cmpWithReset.toml" \
+    "timeline.toml" \
 )
 
 plotCmd='run/plot.py'

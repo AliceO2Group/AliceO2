@@ -36,7 +36,9 @@ int CfRunner::mainImpl()
     std::vector<Digit> digits = digitSet.deserialize<Digit>();
 
     GPUClusterFinder cf;
-    cf.setup(GPUClusterFinder::defaultConfig, env, digits);
+    GPUClusterFinder::Config config;
+    config.chunks = 4;
+    cf.setup(config, env, digits);
     auto cfRes = cf.run();
 
     DataSet clusters;
