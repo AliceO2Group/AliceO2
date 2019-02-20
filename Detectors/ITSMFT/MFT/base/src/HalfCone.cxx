@@ -271,7 +271,7 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
 
       auto * fra_front_Shape_3 = new TGeoCompositeShape("Fra_front_Shape_3","Fra_front_Shape_2:rot_halfR  "); 
 
-      auto * Fra_front_Volume = new TGeoVolume("Fra_front_Volume",Fra_front_Shape_1,kMedAlu);
+      auto * Fra_front_Volume = new TGeoVolume("Fra_front_Volume",fra_front_Shape_1,kMedAlu);
 
         Fra_front_L->AddNode(Fra_front_Volume,1,combi_front_L);
         Fra_front_R->AddNode(Fra_front_Volume,1,combi_front_R);
