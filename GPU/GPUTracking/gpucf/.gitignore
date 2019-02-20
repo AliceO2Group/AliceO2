@@ -3,4 +3,5 @@ build
 tags
 __pycache__
 data
-measurements
+measurements/in
+measurements/out
