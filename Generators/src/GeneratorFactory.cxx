@@ -108,6 +108,18 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     py8Gen->SetParameters("ParticleDecays:tau0Max 0.001");
     py8Gen->SetParameters("ParticleDecays:limitTau0 on");
     primGen->AddGenerator(py8Gen);
+  } else if (genconfig.compare("pythia8hf") == 0) {
+    // pythia8 pp (HF production)
+    // configures pythia for HF production in pp collisions at 14 TeV
+    // TODO: make this configurable
+    auto py8Gen = new o2::eventgen::Pythia8Generator();
+    py8Gen->SetParameters("Beams:idA 2212");   // p
+    py8Gen->SetParameters("Beams:idB 2212");   // p
+    py8Gen->SetParameters("Beams:eCM 14000."); // [GeV]
+    py8Gen->SetParameters("HardQCD:hardccbar on");
+    py8Gen->SetParameters("HardQCD:hardbbbar on");
+    py8Gen->SetParameters("ParticleDecays:tau0Max 0.001");
+    py8Gen->SetParameters("ParticleDecays:limitTau0 on");
     primGen->AddGenerator(py8Gen);
   } else if (genconfig.compare("pythia8hi") == 0) {
     // pythia8 heavy-ion
