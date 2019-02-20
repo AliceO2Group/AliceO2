@@ -10,17 +10,15 @@
 #ifndef O2_TRDCALDET_H
 #define O2_TRDCALDET_H
 
-/* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
- * See cxx source for full Copyright notice                               */
-
-/* $Id$ */
-
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
 //  TRD calibration class for parameters which are saved per detector        //
 //  2019 - Ported from AliRoot to O2 (J. Lopez)                              //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
+
+#ifndef O2_TRDCALDET_H
+#define O2_TRDCALDET_H
 
 #include "TRDBase/TRDGeometry.h"
 #include "TRDBase/TRDPadPlane.h"
