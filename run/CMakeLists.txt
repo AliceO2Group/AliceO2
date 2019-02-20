@@ -38,9 +38,18 @@ Install(FILES o2simtopology.json DESTINATION share/config)
 # add a complex simulation as a unit test (if simulation was enabled)
 # perform some checks on kinematics and track references
 if (HAVESIMULATION)
+
+  # Tests are non-fatal on macOS
+  if(APPLE)
+    set(SIM_TEST_NON_FATAL "NON_FATAL")
+  else()
+    set(SIM_TEST_NON_FATAL "")
+  endif()
+
   add_test_wrap(NAME o2sim_G4
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     DONT_FAIL_ON_TIMEOUT
+    ${SIM_TEST_NON_FATAL}
     MAX_ATTEMPTS 2
     TIMEOUT 220
     COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim -n 2 -j 2 -e TGeant4 -o o2simG4)
@@ -52,6 +61,7 @@ if (HAVESIMULATION)
   add_test_wrap(NAME o2sim_G4_mt
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     DONT_FAIL_ON_TIMEOUT
+    ${SIM_TEST_NON_FATAL}
     MAX_ATTEMPTS 2
     TIMEOUT 220
     COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim_serial -n 1 -e TGeant4 --isMT on -o o2simG4MT)
