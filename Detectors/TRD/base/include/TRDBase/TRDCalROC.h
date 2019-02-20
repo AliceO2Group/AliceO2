@@ -9,16 +9,13 @@
 // or submit itself to any jurisdiction.
 #ifndef O2_TRDCALROC_H
 #define O2_TRDCALROC_H
-/* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
- * See cxx source for full Copyright notice                               */
-
-/* $Id$ */
 
 //////////////////////////////////////////////////
 //                                              //
 //  TRD calibration base class for one ROC      //
 //                                              //
 //////////////////////////////////////////////////
+
 
 class TH1F;
 class TH2F;
