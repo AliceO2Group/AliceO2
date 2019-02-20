@@ -1,0 +1,8 @@
+input = [
+    { file = "in/paddedClusterFinder.json", label = "Cluster Finder" }
+]
+
+type   = "bar"
+out    = "out/clusterfinder.pdf"
+ylabel = "time [ms]"
+showLegend = false
