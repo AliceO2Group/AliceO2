@@ -157,3 +157,5 @@ class Fail
 #define ASSERT(cond) \
     if (!(cond)) log::Fail() << __FILE__ ":" << __LINE__ \
                 << ": Failed assertion " #cond
+
+#define DBG(var) log::Debug() << #var " = " << var;
