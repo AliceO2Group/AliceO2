@@ -50,33 +50,50 @@ BOOST_AUTO_TEST_CASE(TestBasics)
 BOOST_AUTO_TEST_CASE(TestLRUReplacement)
 {
   using namespace o2::framework;
-  TimesliceSlot slot;
   TimesliceIndex index;
   index.resize(3);
   data_matcher::VariableContext context;
 
-  context.put({ 0, 10 });
-  context.commit();
-  slot = index.replaceLRUWith(context);
-  BOOST_CHECK_EQUAL(slot.index, 0);
-  context.put({ 0, 20 });
-  context.commit();
-  slot = index.replaceLRUWith(context);
-  BOOST_CHECK_EQUAL(slot.index, 1);
-  context.put({ 0, 30 });
-  context.commit();
-  slot = index.replaceLRUWith(context);
-  BOOST_CHECK_EQUAL(slot.index, 2);
-  context.put({ 0, 40 });
-  context.commit();
-  slot = index.replaceLRUWith(context);
-  BOOST_CHECK_EQUAL(slot.index, 0);
-  context.put({ 0, 50 });
-  context.commit();
-  slot = index.replaceLRUWith(context);
-  BOOST_CHECK_EQUAL(slot.index, 1);
-  context.put({ 0, 10 });
-  context.commit();
-  slot = index.replaceLRUWith(context);
-  BOOST_CHECK_EQUAL(slot.index, TimesliceSlot::INVALID);
+  {
+    context.put({ 0, 10 });
+    context.commit();
+    auto [action, slot] = index.replaceLRUWith(context);
+    BOOST_CHECK_EQUAL(slot.index, 0);
+    BOOST_CHECK(action == TimesliceIndex::ActionTaken::ReplaceUnused);
+  }
+  {
+    context.put({ 0, 20 });
+    context.commit();
+    auto [action, slot] = index.replaceLRUWith(context);
+    BOOST_CHECK_EQUAL(slot.index, 1);
+    BOOST_CHECK(action == TimesliceIndex::ActionTaken::ReplaceUnused);
+  }
+  {
+    context.put({ 0, 30 });
+    context.commit();
+    auto [action, slot] = index.replaceLRUWith(context);
+    BOOST_CHECK_EQUAL(slot.index, 2);
+    BOOST_CHECK(action == TimesliceIndex::ActionTaken::ReplaceUnused);
+  }
+  {
+    context.put({ 0, 40 });
+    context.commit();
+    auto [action, slot] = index.replaceLRUWith(context);
+    BOOST_CHECK_EQUAL(slot.index, 0);
+    BOOST_CHECK(action == TimesliceIndex::ActionTaken::ReplaceObsolete);
+  }
+  {
+    context.put({ 0, 50 });
+    context.commit();
+    auto [action, slot] = index.replaceLRUWith(context);
+    BOOST_CHECK_EQUAL(slot.index, 1);
+    BOOST_CHECK(action == TimesliceIndex::ActionTaken::ReplaceObsolete);
+  }
+  {
+    context.put({ 0, 10 });
+    context.commit();
+    auto [action, slot] = index.replaceLRUWith(context);
+    BOOST_CHECK_EQUAL(slot.index, TimesliceSlot::INVALID);
+    BOOST_CHECK(action == TimesliceIndex::ActionTaken::DropObsolete);
+  }
 }

@@ -92,7 +92,7 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
     // to be created.
     *last = current;
     data_matcher::VariableContext newContext;
-    auto slot = index.replaceLRUWith(newContext);
+    auto [action, slot] = index.replaceLRUWith(newContext);
     index.associate(TimesliceId{ current }, slot);
     return;
   };

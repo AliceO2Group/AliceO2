@@ -13,8 +13,9 @@
 
 #include "Framework/DataDescriptorMatcher.h"
 
-#include <vector>
 #include <cstdint>
+#include <tuple>
+#include <vector>
 
 namespace o2
 {
@@ -42,6 +43,14 @@ struct TimesliceSlot {
 class TimesliceIndex
 {
  public:
+  /// The outcome for the processing of a given timeslot
+  enum struct ActionTaken {
+    ReplaceUnused,   /// An unused / invalid slot is used to hold the new context
+    ReplaceObsolete, /// An obsolete slot is used to hold the new context and the old one is dropped
+    DropInvalid,     /// An invalid context is not inserted in the index and dropped
+    DropObsolete     /// An obsolete context is not inserted in the index and dropped
+  };
+
   inline void resize(size_t s);
   inline size_t size() const;
   inline bool isValid(TimesliceSlot const& slot) const;
@@ -64,8 +73,10 @@ class TimesliceIndex
   inline data_matcher::VariableContext& getVariablesForSlot(TimesliceSlot slot);
 
   /// Find the LRU entry in the cache and replace it with @a newContext
-  /// @return the slot which was replaced.
-  inline TimesliceSlot replaceLRUWith(data_matcher::VariableContext& newContext);
+  /// @a slot is filled with the slot used to hold the context, if applicable.
+  /// @return the action taken on insertion, which can be used for bookkeeping
+  ///         of the messages.
+  inline std::tuple<ActionTaken, TimesliceSlot> replaceLRUWith(data_matcher::VariableContext& newContext);
 
  private:
   /// @return the oldest slot possible so that we can eventually override it.
