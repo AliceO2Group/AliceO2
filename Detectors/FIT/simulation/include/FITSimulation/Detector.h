@@ -84,7 +84,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   Detector() = default;
 
   /// Destructor
-  ~Detector();
+  ~Detector() override;
 
   /// Initialization of the detector is done here
   void InitializeO2Detector() override;

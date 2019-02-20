@@ -392,6 +392,55 @@ CHECK_VARIABLE(PARSED_ARGS_WORKFLOW_NAME "You must provide an executable name")
 
 endfunction(O2_FRAMEWORK_WORKFLOW)
 
+#------------------------------------------------------------------------------
+# add_test_wrap
+# Same as add_test() but optionally retry up to MAX_ATTEMPTS times upon failure.
+# This is achieved by using a shell script wrapper
+# arg NAME
+# arg COMMAND
+# arg WORKING_DIRECTORY
+# arg CONFIGURATIONS
+# arg DONT_FAIL_ON_TIMEOUT - if specified, it will not fail on timeouts
+# arg MAX_ATTEMPTS - the maximum number of attempts
+# arg TIMEOUT - the maximum number of attempts
+function(add_test_wrap)
+  cmake_parse_arguments(PARSE_ARGV 0 "L"
+                        "DONT_FAIL_ON_TIMEOUT"
+                        "NAME;WORKING_DIRECTORY;MAX_ATTEMPTS;TIMEOUT"
+                        "COMMAND;CONFIGURATIONS")
+  if("${L_MAX_ATTEMPTS}" GREATER 1)
+    # Warn only for tests where retry has been requested
+    message(WARNING "Test ${L_NAME} will be retried max ${L_MAX_ATTEMPTS} times")
+  endif()
+
+  if(NOT L_TIMEOUT)
+    set(L_TIMEOUT 100)  # default timeout (seconds)
+  endif()
+  if(NOT L_MAX_ATTEMPTS)
+    set(L_MAX_ATTEMPTS 1)  # default number of attempts
+  endif()
+  if(L_DONT_FAIL_ON_TIMEOUT)
+    set(L_DONT_FAIL_ON_TIMEOUT "--dont-fail-on-timeout")
+  else()
+    set(L_DONT_FAIL_ON_TIMEOUT "")
+  endif()
+  math(EXPR CTEST_TIMEOUT "(20 + ${L_TIMEOUT}) * ${L_MAX_ATTEMPTS}")
+
+  if(WIN32)
+    # Shell script does not work on Windows. Use plain add_test() with no retry, use plain timeout
+    add_test(NAME "${L_NAME}"
+             COMMAND ${L_COMMAND}
+             WORKING_DIRECTORY "${L_WORKING_DIRECTORY}"
+             CONFIGURATIONS "${L_CONFIGURATIONS}")
+    set_tests_properties(${L_NAME} PROPERTIES TIMEOUT ${L_TIMEOUT})
+  else()
+    add_test(NAME "${L_NAME}"
+             COMMAND "${CMAKE_BINARY_DIR}/tests-wrapper.sh" "--name" "${L_NAME}" "--max-attempts" "${L_MAX_ATTEMPTS}" "--timeout" "${L_TIMEOUT}" ${L_DONT_FAIL_ON_TIMEOUT} "--" ${L_COMMAND}
+             WORKING_DIRECTORY "${L_WORKING_DIRECTORY}"
+             CONFIGURATIONS "${L_CONFIGURATIONS}")
+    set_tests_properties(${L_NAME} PROPERTIES TIMEOUT ${CTEST_TIMEOUT})
+  endif()
+endfunction()
 
 #------------------------------------------------------------------------------
 # O2_GENERATE_TESTS
@@ -403,7 +452,7 @@ function(O2_GENERATE_TESTS)
   cmake_parse_arguments(
       PARSED_ARGS
       "" # bool args
-      "BUCKET_NAME;MODULE_LIBRARY_NAME;TIMEOUT" # mono-valued arguments
+      "BUCKET_NAME;MODULE_LIBRARY_NAME;TIMEOUT;MAX_ATTEMPTS" # mono-valued arguments
       "TEST_SRCS;COMMAND_LINE_ARGS" # multi-valued arguments
       ${ARGN} # arguments
   )
@@ -424,10 +473,11 @@ function(O2_GENERATE_TESTS)
         NO_INSTALL FALSE
     )
     target_link_libraries(${test_name} Boost::unit_test_framework)
-    add_test(NAME ${test_name} COMMAND ${test_name} ${PARSED_ARGS_COMMAND_LINE_ARGS})
-    if (PARSED_ARGS_TIMEOUT)
-      set_tests_properties(${test_name} PROPERTIES TIMEOUT ${PARSED_ARGS_TIMEOUT})
-    endif()
+    add_test_wrap(NAME ${test_name}
+                  DONT_FAIL_ON_TIMEOUT
+                  MAX_ATTEMPTS "${PARSED_ARGS_MAX_ATTEMPTS}"
+                  TIMEOUT "${PARSED_ARGS_TIMEOUT}"
+                  COMMAND ${test_name} ${PARSED_ARGS_COMMAND_LINE_ARGS})
   endforeach ()
 endfunction()
 

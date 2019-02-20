@@ -51,7 +51,7 @@ O2_GENERATE_EXECUTABLE(
 
 # check correct functioning of the logger and the MC analysis chain
 if (HAVESIMULATION)
-  add_test(NAME mcloggertest COMMAND ${CMAKE_BINARY_DIR}/bin/runTPC -n 1 -e TGeant3)
+  add_test_wrap(NAME mcloggertest COMMAND ${CMAKE_BINARY_DIR}/bin/runTPC -n 1 -e TGeant3)
   # tests if the logger was active
   set_tests_properties(mcloggertest PROPERTIES PASS_REGULAR_EXPRESSION "VolName.*COUNT")
   if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -65,7 +65,7 @@ if (HAVESIMULATION)
   # check whether StepLogger output can be written to ROOT file
   # fix output file name for logged data
   set(STEPLOGGER_ROOTFILE "MCStepLoggerOutput_test.root")
-  add_test(NAME mcloggertest_tofile COMMAND ${CMAKE_BINARY_DIR}/bin/runTPC -n 1 -e TGeant3)
+  add_test_wrap(NAME mcloggertest_tofile COMMAND ${CMAKE_BINARY_DIR}/bin/runTPC -n 1 -e TGeant3)
   set_tests_properties(mcloggertest_tofile PROPERTIES ENVIRONMENT ${PRELOAD}=${CMAKE_BINARY_DIR}/lib/libMCStepLogger${CMAKE_SHARED_LIBRARY_SUFFIX})
   # set environment accordingly
   set_property(TEST mcloggertest_tofile APPEND PROPERTY ENVIRONMENT VMCWORKDIR=${CMAKE_SOURCE_DIR} MCSTEPLOG_TTREE=1 MCSTEPLOG_OUTFILE=${STEPLOGGER_ROOTFILE})
@@ -73,7 +73,7 @@ if (HAVESIMULATION)
   # check for working analysis
   # fix output file name for analysis
   set(MCANALYSIS_ROOTFILE "BasicMCAnalysis.root")
-  add_test(NAME basicmcanalysis COMMAND ${CMAKE_BINARY_DIR}/bin/mcStepAnalysis analyze -f ${STEPLOGGER_ROOTFILE} -o ${MCANALYSIS_ROOTFILE} -l testLabel)
+  add_test_wrap(NAME basicmcanalysis COMMAND ${CMAKE_BINARY_DIR}/bin/mcStepAnalysis analyze -f ${STEPLOGGER_ROOTFILE} -o ${MCANALYSIS_ROOTFILE} -l testLabel)
   set_tests_properties(basicmcanalysis PROPERTIES DEPENDS mcloggertest_tofile)
   # set environment accordingly
   set_property(TEST basicmcanalysis APPEND PROPERTY ENVIRONMENT VMCWORKDIR=${CMAKE_SOURCE_DIR})

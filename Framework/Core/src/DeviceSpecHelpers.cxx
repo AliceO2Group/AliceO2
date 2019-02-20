@@ -40,6 +40,33 @@ namespace framework
 {
 
 struct ExpirationHandlerHelpers {
+  static InputRoute::CreationConfigurator dataDrivenConfigurator()
+  {
+    return [](ConfigParamRegistry const&) { return LifetimeHelpers::dataDrivenCreation(); };
+  }
+
+  static InputRoute::CreationConfigurator timeDrivenConfigurator(InputSpec const& matcher)
+  {
+    return [matcher](ConfigParamRegistry const& options) {
+      std::string rateName = std::string{ "period-" } + matcher.binding;
+      auto period = options.get<int>(rateName.c_str());
+      return LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds(period));
+    };
+  }
+
+  static InputRoute::CreationConfigurator enumDrivenConfigurator(InputSpec const& matcher)
+  {
+    return [matcher](ConfigParamRegistry const& options) {
+      std::string startName = std::string{ "start-value-" } + matcher.binding;
+      std::string endName = std::string{ "end-value-" } + matcher.binding;
+      std::string stepName = std::string{ "step-value-" } + matcher.binding;
+      auto start = options.get<int>(startName.c_str());
+      auto stop = options.get<int>(endName.c_str());
+      auto step = options.get<int>(stepName.c_str());
+      return LifetimeHelpers::enumDrivenCreation(start, stop, step);
+    };
+  }
+
   static InputRoute::DanglingConfigurator danglingTimeframeConfigurator()
   {
     return [](ConfigParamRegistry const&) { return LifetimeHelpers::expireNever(); };
@@ -84,7 +111,14 @@ struct ExpirationHandlerHelpers {
     return [matcher](ConfigParamRegistry const& options) {
       std::string rateName = std::string{ "period-" } + matcher.binding;
       auto period = options.get<int>(rateName.c_str());
-      return LifetimeHelpers::expireTimed(std::chrono::milliseconds(period));
+      return LifetimeHelpers::expireTimed(std::chrono::microseconds(period));
+    };
+  }
+
+  static InputRoute::DanglingConfigurator danglingEnumerationConfigurator(InputSpec const& matcher)
+  {
+    return [matcher](ConfigParamRegistry const& options) {
+      return LifetimeHelpers::expireAlways();
     };
   }
 
@@ -96,6 +130,19 @@ struct ExpirationHandlerHelpers {
     }
     // We copy the matcher to avoid lifetime issues.
     return [ matcher = *m, sourceChannel ](ConfigParamRegistry const&) { return LifetimeHelpers::enumerate(matcher, sourceChannel); };
+  }
+
+  static InputRoute::ExpirationConfigurator expiringEnumerationConfigurator(InputSpec const& spec, std::string const& sourceChannel)
+  {
+    auto m = std::get_if<ConcreteDataMatcher>(&spec.matcher);
+    if (m == nullptr) {
+      throw std::runtime_error("InputSpec for Enumeration must be fully qualified");
+    }
+    // We copy the matcher to avoid lifetime issues.
+    return [ matcher = *m, sourceChannel ](ConfigParamRegistry const&)
+    {
+      return LifetimeHelpers::enumerate(matcher, sourceChannel);
+    };
   }
 
   static InputRoute::DanglingConfigurator danglingTransientConfigurator()
@@ -430,6 +477,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     auto const& consumer = workflow[edge.consumer];
     auto& consumerDevice = devices[di];
 
+    InputRoute::CreationConfigurator creationConfigurator;
     InputRoute::DanglingConfigurator danglingConfigurator;
     InputRoute::ExpirationConfigurator expirationConfigurator;
     auto const& inputSpec = consumer.inputs[edge.consumerInputIndex];
@@ -437,22 +485,32 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
 
     switch (consumer.inputs[edge.consumerInputIndex].lifetime) {
       case Lifetime::Timeframe:
+        creationConfigurator = ExpirationHandlerHelpers::dataDrivenConfigurator();
         danglingConfigurator = ExpirationHandlerHelpers::danglingTimeframeConfigurator();
         expirationConfigurator = ExpirationHandlerHelpers::expiringTimeframeConfigurator();
         break;
       case Lifetime::Condition:
+        creationConfigurator = ExpirationHandlerHelpers::dataDrivenConfigurator();
         danglingConfigurator = ExpirationHandlerHelpers::danglingConditionConfigurator();
         expirationConfigurator = ExpirationHandlerHelpers::expiringConditionConfigurator(inputSpec);
         break;
       case Lifetime::QA:
+        creationConfigurator = ExpirationHandlerHelpers::dataDrivenConfigurator();
         danglingConfigurator = ExpirationHandlerHelpers::danglingQAConfigurator();
         expirationConfigurator = ExpirationHandlerHelpers::expiringQAConfigurator();
         break;
       case Lifetime::Timer:
+        creationConfigurator = ExpirationHandlerHelpers::timeDrivenConfigurator(inputSpec);
         danglingConfigurator = ExpirationHandlerHelpers::danglingTimerConfigurator(inputSpec);
         expirationConfigurator = ExpirationHandlerHelpers::expiringTimerConfigurator(inputSpec, sourceChannel);
         break;
+      case Lifetime::Enumeration:
+        creationConfigurator = ExpirationHandlerHelpers::enumDrivenConfigurator(inputSpec);
+        danglingConfigurator = ExpirationHandlerHelpers::danglingEnumerationConfigurator(inputSpec);
+        expirationConfigurator = ExpirationHandlerHelpers::expiringEnumerationConfigurator(inputSpec, sourceChannel);
+        break;
       case Lifetime::Transient:
+        creationConfigurator = ExpirationHandlerHelpers::dataDrivenConfigurator();
         danglingConfigurator = ExpirationHandlerHelpers::danglingTransientConfigurator();
         expirationConfigurator = ExpirationHandlerHelpers::expiringTransientConfigurator(inputSpec);
         break;
@@ -462,6 +520,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
       inputSpec,
       sourceChannel,
       edge.producerTimeIndex,
+      creationConfigurator,
       danglingConfigurator,
       expirationConfigurator
     };

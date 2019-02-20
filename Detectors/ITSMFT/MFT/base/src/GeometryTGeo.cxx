@@ -111,7 +111,7 @@ void GeometryTGeo::Build(Int_t loadTrans)
 
       // loop over disks
       for (Int_t j = 0; j < mNumberOfDisks[i]; j++) {
-        mNumberOfLadders[j].resize(MaxSensorsPerLadder);
+        mNumberOfLadders[j].resize(MaxSensorsPerLadder + 1);
         Int_t numberOfLadders = 0;
         for (Int_t nSensor = MinSensorsPerLadder; nSensor <= MaxSensorsPerLadder; nSensor++) {
           mNumberOfLadders[j][nSensor] = extractNumberOfLadders(i, j, nSensor);
@@ -126,8 +126,8 @@ void GeometryTGeo::Build(Int_t loadTrans)
         mLastSensorIndex[j] = mTotalNumberOfSensors - 1;
         mNumberOfLaddersPerDisk[j] = numberOfLadders;
 
-        mLadderIndex2Id[j].resize(numberOfLadders);
-        mLadderId2Index[j].resize(numberOfLadders);
+        mLadderIndex2Id[j].resize(numberOfLadders + 1);
+        mLadderId2Index[j].resize(numberOfLadders + 1);
         Int_t nL = 0;
         for (Int_t nSensor = MinSensorsPerLadder; nSensor <= MaxSensorsPerLadder; nSensor++) {
           if (mNumberOfLadders[j][nSensor] == 0)
@@ -146,8 +146,8 @@ void GeometryTGeo::Build(Int_t loadTrans)
   mTotalNumberOfSensors *= mNumberOfHalves;
   LOG(DEBUG) << "MFT: Total number of sensors " << mTotalNumberOfSensors << " in " << mNumberOfHalves << " detector halves";
 
-  mSensorIndexToLayer.resize(mTotalNumberOfSensors);
-  mLayerMedianZ.resize(mNumberOfDisks[0]);
+  mSensorIndexToLayer.resize(mTotalNumberOfSensors + 1);
+  mLayerMedianZ.resize(mNumberOfDisks[0] + 1);
   Double_t zLay1[mNumberOfDisks[0]], zLay0[mNumberOfDisks[0]];
   for (Int_t j = 0; j < mNumberOfDisks[0]; j++) {
     zLay1[j] = +9999.;

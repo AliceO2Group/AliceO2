@@ -77,7 +77,7 @@ void* ShmManager::tryAttach(bool& success)
   }
 
   // trying without constraints
-  addr = shmat(mShmID, 0, 0);
+  addr = shmat(mShmID, nullptr, 0);
   if (addr == (void*)(-1)) {
     LOG(FATAL) << "SHOULD NOT HAPPEN";
   }

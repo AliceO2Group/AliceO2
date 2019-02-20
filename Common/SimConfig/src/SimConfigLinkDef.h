@@ -17,4 +17,6 @@
 #pragma link C++ class o2::conf::SimConfig+;
 #pragma link C++ class o2::conf::SimConfigData+;
 
+#pragma link C++ class o2::conf::SimCutParams + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::conf::SimCutParams > +;
 #endif

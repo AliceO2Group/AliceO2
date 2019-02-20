@@ -116,7 +116,7 @@ void TRsim::init()
     delete mSpectrum;
   }
   mSpectrum = new TH1D("TRspectrum", "TR spectrum", mSpNBins, mSpLower, mSpUpper);
-  mSpectrum->SetDirectory(0);
+  mSpectrum->SetDirectory(nullptr);
 
   // Set the sigma values
   setSigma();

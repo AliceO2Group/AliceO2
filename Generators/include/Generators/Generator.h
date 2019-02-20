@@ -35,7 +35,7 @@ class Generator : public FairGenerator
   /** constructor **/
   Generator(const Char_t* name, const Char_t* title = "ALICEo2 Generator");
   /** destructor **/
-  virtual ~Generator() = default;
+  ~Generator() override = default;
 
   /** Abstract method ReadEvent must be implemented by any derived class.
 	It has to handle the generation of input tracks (reading from input

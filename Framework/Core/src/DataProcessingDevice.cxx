@@ -107,6 +107,7 @@ void DataProcessingDevice::Init() {
   mExpirationHandlers.clear();
   for (auto& route : mSpec.inputs) {
     ExpirationHandler handler{
+      route.creatorConfigurator(*mConfigRegistry),
       route.danglingConfigurator(*mConfigRegistry),
       route.expirationConfigurator(*mConfigRegistry)
     };

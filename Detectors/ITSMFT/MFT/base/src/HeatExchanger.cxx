@@ -3708,7 +3708,6 @@ void HeatExchanger::initParameters()
   mSupportXDimensions[3][1] = 19.2; //21.9;
   mSupportXDimensions[3][2] = 9.0;  //18.5;
   mSupportXDimensions[3][3] = 7.3;  //8.3;
-  mSupportXDimensions[3][4] = 4.9;
 
   // disk 4
   mSupportXDimensions[4][0] = 29.39; //28.4;
@@ -3732,7 +3731,7 @@ void HeatExchanger::initParameters()
   mSupportYDimensions[3][1] = 3.0; //3.01;
   mSupportYDimensions[3][2] = 2.3; //3.01;
   mSupportYDimensions[3][3] = 1.2; //1.8;
-  mSupportYDimensions[3][4] = 1.15;
+
   // disk 4
   mSupportYDimensions[4][0] = 9.20; //6.61;
   mSupportYDimensions[4][1] = 3.00; //3.01;

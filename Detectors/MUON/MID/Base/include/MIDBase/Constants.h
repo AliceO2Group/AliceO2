@@ -69,7 +69,8 @@ class Constants
   /// @param chamber The chamber ID (0-3)
   inline static double getStripUnitPitchSize(int chamber) { return sStripUnitPitchSize * sScaleFactors[chamber]; }
 
-  /// Get chamber index from detection element ID
+  /// Gets the chamber index from detection element ID
+  /// @param deId The detection element ID
   inline static int getChamber(int deId) { return (deId % 36) / 9; }
 
   /// Assert detection element id
@@ -84,6 +85,8 @@ class Constants
     int deOffset = (isRight) ? 0 : sNDetectionElementsPerSide;
     return deOffset + sNRPCLines * chamber + rpc;
   }
+
+  static std::string getDEName(int deId);
 
   static constexpr int sNChambers = 4;                  ///< Number of chambers
   static constexpr int sNDetectionElements = 72;        ///< Number of RPCs

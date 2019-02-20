@@ -14,10 +14,6 @@ void load_all_libs()
    gSystem->Load("libMFTSimulation");
    gSystem->Load("libMathUtils");
    gSystem->Load("libO2Device");
-   gSystem->Load("libQCMerger");
-   gSystem->Load("libQCMetricsExtractor");
-   gSystem->Load("libQCProducer");
-   gSystem->Load("libQCViewer");
    gSystem->Load("libSimulationDataFormat");
    gSystem->Load("libTPCBase");
    gSystem->Load("libTPCSimulation");

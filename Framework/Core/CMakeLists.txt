@@ -41,7 +41,6 @@ set(SRCS
     src/DataSamplingConditionFactory.cxx
     src/DataSamplingReadoutAdapter.cxx
     src/DataSamplingPolicy.cxx
-    src/DataSourceDevice.cxx
     src/DataSpecUtils.cxx
     src/DeviceMetricsInfo.cxx
     src/DeviceSpec.cxx
@@ -79,6 +78,7 @@ set(SRCS
     src/FrameworkGUIDataRelayerUsage.cxx
     src/PaletteHelpers.cxx
     src/CommonDataProcessors.cxx
+    src/RCombinedDS.cxx
     ${GUI_SOURCES}
     test/TestClasses.cxx
     src/Variant.cxx
@@ -131,7 +131,6 @@ set(HEADERS
       include/Framework/OutputSpec.h
       include/Framework/ChannelSpec.h
       include/Framework/ChannelConfigurationPolicy.h
-      include/Framework/DataSourceDevice.h
       include/Framework/SimpleRawDeviceService.h
       include/Framework/ExternalFairMQDeviceProxy.h
       include/Framework/ControlService.h
@@ -264,6 +263,7 @@ set(TEST_SRCS
       test/test_SimpleStatefulProcessing01.cxx
       test/test_SimpleStringProcessing.cxx
       #test/test_SingleDataSource.cxx
+      #test/test_SimpleTimer.cxx
       test/test_SuppressionGenerator.cxx
       test/test_TimesliceIndex.cxx
       test/test_TMessageSerializer.cxx

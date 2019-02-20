@@ -9,4 +9,4 @@ O2_GENERATE_EXECUTABLE(
 )
 
 target_link_libraries(test_MCHSimulation Boost::unit_test_framework MCHSimulation)
-add_test(NAME test_MCHSimulation COMMAND test_MCHSimulation)
+add_test_wrap(NAME test_MCHSimulation COMMAND test_MCHSimulation)

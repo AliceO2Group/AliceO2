@@ -29,7 +29,7 @@ class CookedTrackerDPL : public Task
 {
  public:
   CookedTrackerDPL() = default;
-  ~CookedTrackerDPL() = default;
+  ~CookedTrackerDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 
