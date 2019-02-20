@@ -362,6 +362,9 @@ void GPUClusterFinder::findCluster(Plan &plan, nonstd::span<const DigitT> digits
 
     cl::NDRange local(64);
 
+    DBG(plan.start);
+    DBG(toCopy.size());
+
     plan.fillChargeMap.setArg(0, digitsBuf);
     plan.fillChargeMap.setArg(1, chargeMap);
     plan.clustering.enqueueNDRangeKernel(
@@ -387,9 +390,12 @@ void GPUClusterFinder::findCluster(Plan &plan, nonstd::span<const DigitT> digits
 
     ASSERT(plan.start - backlog <= plan.start);
 
+    DBG(plan.start - backlog);
+    DBG(backlog + plan.items);
+
     plan.findPeaks.setArg(0, chargeMap);
     plan.findPeaks.setArg(1, digitsBuf);
-    plan.findPeaks.setArg(2, peaksBuf);
+    plan.findPeaks.setArg(2, isPeakBuf);
     plan.clustering.enqueueNDRangeKernel(
             plan.findPeaks,
             cl::NDRange(plan.start - backlog),
@@ -402,6 +408,7 @@ void GPUClusterFinder::findCluster(Plan &plan, nonstd::span<const DigitT> digits
 void GPUClusterFinder::computeAndReadClusters()
 {
     Plan &plan = plans.front();
+
 
     /*************************************************************************
      * Compact peaks
@@ -422,18 +429,21 @@ void GPUClusterFinder::computeAndReadClusters()
 
     cl::NDRange local(64);
 
-    plan.computeClusters.setArg(0, chargeMap);
-    plan.computeClusters.setArg(1, peaksBuf);
-    plan.computeClusters.setArg(2, globalToLocalRowBuf);
-    plan.computeClusters.setArg(3, globalRowToCruBuf);
-    plan.computeClusters.setArg(4, clusterBuf);
-    plan.clustering.enqueueNDRangeKernel(
-            plan.computeClusters,
-            cl::NullRange,
-            cl::NDRange(clusterNum),
-            local,
-            nullptr,
-            plan.computingClusters.get());
+    if (clusterNum > 0)
+    {
+        plan.computeClusters.setArg(0, chargeMap);
+        plan.computeClusters.setArg(1, peaksBuf);
+        plan.computeClusters.setArg(2, globalToLocalRowBuf);
+        plan.computeClusters.setArg(3, globalRowToCruBuf);
+        plan.computeClusters.setArg(4, clusterBuf);
+        plan.clustering.enqueueNDRangeKernel(
+                plan.computeClusters,
+                cl::NullRange,
+                cl::NDRange(clusterNum),
+                local,
+                nullptr,
+                plan.computingClusters.get());
+    }
 
 
     /*************************************************************************
@@ -459,14 +469,18 @@ void GPUClusterFinder::computeAndReadClusters()
 
     log::Info() << "Copy results back...";
     ASSERT(clusters.size() * sizeof(Cluster) <= clusterBufSize);
-    plan.clustering.enqueueReadBuffer(
-            clusterBuf, 
-            CL_TRUE, 
-            0, 
-            clusters.size() * sizeof(Cluster), 
-            clusters.data(),
-            nullptr,
-            plan.clustersToHost.get());
+
+    if (clusterNum > 0)
+    {
+        plan.clustering.enqueueReadBuffer(
+                clusterBuf, 
+                CL_TRUE, 
+                0, 
+                clusters.size() * sizeof(Cluster), 
+                clusters.data(),
+                nullptr,
+                plan.clustersToHost.get());
+    }
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

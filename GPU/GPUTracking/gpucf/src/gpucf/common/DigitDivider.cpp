@@ -20,6 +20,11 @@ DigitDivider::DigitDivider(
 {
     int start = digits.front().time;
     int end   = digits.back().time;
+
+    DBG(start);
+    DBG(end);
+    DBG(chunksRequested);
+
     stepsPerChunk = std::ceil((end - start) / float(chunksRequested));
 }
 
@@ -33,6 +38,9 @@ optional<DigitDivider::Chunk> DigitDivider::nextChunk(size_t padding)
     Chunk res;
     res.start = start;
 
+    DBG(currTime());
+    DBG(stepsPerChunk);
+
     size_t end = timeSliceEnd(currTime() + stepsPerChunk);
     res.items = end - start;
 
@@ -40,7 +48,7 @@ optional<DigitDivider::Chunk> DigitDivider::nextChunk(size_t padding)
     size_t paddedEnd = timeSliceEnd(currTime() + stepsPerChunk + padding);
     res.future = paddedEnd - end;
 
-    start = end;
+    start = paddedEnd;
 
     return res;
 }
@@ -50,12 +58,26 @@ size_t DigitDivider::timeSliceEnd(int time)
     size_t left = start;
     size_t right = digits.size() - 1;
 
+    DBG(time);
+
+    if (time >= digits.back().time)
+    {
+        return digits.size();
+    }
+
     while (left < right)
     {
         size_t pos = (left + right) / 2; 
 
+        DBG(left);
+        DBG(right);
+        DBG(pos);
+
         int lt = digits[pos].time;
         int rt = digits[pos+1].time;
+
+        DBG(lt);
+        DBG(rt);
 
         if (lt <= time)
         {
