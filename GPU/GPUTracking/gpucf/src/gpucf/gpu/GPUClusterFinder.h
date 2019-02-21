@@ -3,6 +3,7 @@
 #include <gpucf/common/Cluster.h>
 #include <gpucf/common/Digit.h>
 #include <gpucf/common/Event.h>
+#include <gpucf/common/Fragment.h>
 #include <gpucf/common/Measurements.h>
 #include <gpucf/gpu/StreamCompaction.h>
 
@@ -46,55 +47,46 @@ public:
     Result run();
 
 private:
+    struct DeviceMemory
+    {
+        cl::Buffer digits;
+        cl::Buffer isPeak;
+        cl::Buffer peaks;
+        cl::Buffer chargeMap;
+        cl::Buffer cluster;
+
+        cl::Buffer globalToLocalRow;
+        cl::Buffer globalRowToCru;
+    };
+
+
     struct Backwards
     {
         std::future<cl::Event> digitsToDevice;
         std::future<cl::Event> fillingChargeMap;
 
         std::future<size_t> clusters;
+
+        std::promise<cl::Event> computeClusters;
     };
 
     struct Forwards
     {
+        std::promise<cl::Event> digitsToDevice;
+        std::promise<cl::Event> fillingChargeMap;
+
+        std::promise<size_t> clusters;
+
         std::future<cl::Event> computeClusters;   
     };
 
 
-    struct Plan
+    struct Worker
     {
         /**
-         * Index of the first digit that is processed with this plan.
-         */
-        size_t start;
-
-        /**
-         * Number of digits that have to be transferred to the device,
-         * written to the chargeMap and have to run the clusterFinder on.
-         */
-        size_t items;
-
-        /**
-         * Number of digits that have to be transferred to the device and
-         * written to the chargeMap but are not looked at for peaks yet.
-         * These are necessary as the cluster finder has to look up to two
-         * timesteps into the future to compute cluster. So if items and
-         * backlog contain digits up to timestep t then the future consists of
-         * digits from timesteps t+1 and t+2.
-         *
-         * Future digits are further processed by the next plan.
-         * The future of the last plan is always zero.
-         */
-        size_t future;
-
-        /**
-         * Number of peaks that have been found in plans[id-1].future+items.
+         * Number of peaks that have been found by this instance.
          */
         size_t peaks;
-
-        /**
-         * my id
-         */
-        size_t id;
 
         nonstd::optional<Backwards> prev;
         nonstd::optional<Forwards> next;
@@ -111,10 +103,19 @@ private:
         cl::Kernel computeClusters;
         cl::Kernel resetChargeMap;
 
+        DeviceMemory mem;
+
         cl::CommandQueue clustering;
         cl::CommandQueue cleanup;
 
-        Plan(cl::Context, cl::Device, cl::Program, size_t);
+
+        Worker(cl::Context, cl::Device, cl::Program, DeviceMemory, Worker *);
+
+        template<class DigitT>
+        void run(
+                const Fragment &, 
+                nonstd::span<const DigitT>, 
+                nonstd::span<Cluster>);
     };
 
 
@@ -138,42 +139,21 @@ private:
 
     std::vector<Cluster> clusters;
 
-    std::vector<Plan> plans;
+    std::vector<Worker> workers;
 
     StreamCompaction streamCompaction;
 
     cl::Context context;
     cl::Device device;
 
+    DeviceMemory mem;
 
-    cl::Buffer chargeMap;
-    size_t     chargeMapSize = 0;
-
-    cl::Buffer digitsBuf;
-    cl::Buffer peaksBuf;
-    size_t     digitsBufSize = 0;
-
-    cl::Buffer globalToLocalRowBuf;
-    size_t     globalToLocalRowBufSize = 0;
-
-    cl::Buffer globalRowToCruBuf;
-    size_t     globalRowToCruBufSize = 0;
-
-    cl::Buffer isPeakBuf;
-    size_t     isPeakBufSize = 0;
-
-    cl::Buffer clusterBuf;
-    size_t     clusterBufSize = 0;
 
     void fillPackedDigits();
 
     void addDefines(ClEnv &);
 
-    Lane toLane(const Plan &);
-
-
-    template<class DigitT>
-    void findCluster(Plan &, nonstd::span<const DigitT>);
+    Lane toLane(const Worker &);
 
     size_t computeAndReadClusters();
 };

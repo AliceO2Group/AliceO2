@@ -10,10 +10,11 @@
 #define DIGIT_CHARGE(map, digit) CHARGE(map, digit.row, digit.pad, digit.time)
 
 
+#define HALF_NEIGHBORS_NUM 4
+
 constant float CHARGE_THRESHOLD = 2;
 constant float OUTER_CHARGE_THRESHOLD = 0;
 
-constant int HALF_NEIGHBORS_NUM = 4;
 constant int2 LEQ_NEIGHBORS[HALF_NEIGHBORS_NUM] = 
     {
 #if 0

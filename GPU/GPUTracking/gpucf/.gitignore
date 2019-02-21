@@ -1,5 +1,6 @@
 build
 *.swp
+*.BACK
 tags
 __pycache__
 data
