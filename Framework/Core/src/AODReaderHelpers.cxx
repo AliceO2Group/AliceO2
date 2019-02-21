@@ -200,7 +200,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         std::unique_ptr<TTreeReader> dzReader = std::make_unique<TTreeReader>("fTreeDzeroFlagged", infile.get());
 
         TTreeReaderValue<float> c0(*dzReader, "d_len_ML");
-        TTreeReaderValue<float> c1(*dzReader, "cand_type_ML");
+        TTreeReaderValue<int> c1(*dzReader, "cand_type_ML");
         TTreeReaderValue<float> c2(*dzReader, "cos_p_ML");
         TTreeReaderValue<float> c3(*dzReader, "cos_p_xy_ML");
         TTreeReaderValue<float> c4(*dzReader, "d_len_xy_ML");
@@ -218,10 +218,14 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         TTreeReaderValue<float> c16(*dzReader, "y_cand_ML");
         TTreeReaderValue<float> c17(*dzReader, "phi_cand_ML");
         TTreeReaderValue<float> c18(*dzReader, "eta_cand_ML");
+        TTreeReaderValue<int> c19(*dzReader, "cand_evtID_ML");
+        TTreeReaderValue<int> c20(*dzReader, "cand_fileID_ML");
 
         auto& dzBuilder = outputs.make<TableBuilder>(Output{ "AOD", "DZEROFLAGGED" });
         RootTableBuilderHelpers::convertTTree(dzBuilder, *dzReader,
-                                              c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18);
+                                              c0, c1, c2, c3, c4, c5, c6, c7,
+                                              c8, c9, c10, c11, c12, c13, c14,
+                                              c15, c16, c17, c18, c19, c20);
       }
     });
   }) };

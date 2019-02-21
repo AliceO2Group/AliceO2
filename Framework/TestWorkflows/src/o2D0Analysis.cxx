@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/runDataProcessing.h"
 #include "Framework/RCombinedDS.h"
+#include "Framework/TableBuilder.h"
 
 #include <ROOT/RDataFrame.hxx>
 #include <ROOT/RArrowDS.hxx>
@@ -40,39 +41,50 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
             ///
             /// auto rdf = ctx.inputs().get<RDataSource>("xz");
             auto table = s->asArrowTable();
-
-            //auto flatD0 = std::make_unique<ROOT::RDF::RArrowDS>(s->asArrowTable(), std::vector<std::string>{"inv_mass_ML", "cand_type_ML"});
-            //auto d0 = std::make_unique<ROOT::RDF::RArrowDS>(s->asArrowTable(), std::vector<std::string>{"cand_type_ML", "phi_cand_ML" , "eta_cand_ML"});
-            //auto d0bar = std::make_unique<ROOT::RDF::RArrowDS>(s->asArrowTable(), std::vector<std::string>{"cand_type_ML", "phi_cand_ML" , "eta_cand_ML"});
-            //auto d0d0bar = std::make_unique<ROOT::RDF::RCombinedDS>(std::move(d0), std::move(d0bar), "d0_", "d0bar_");
-
-            auto flatD0 = std::make_unique<ROOT::RDF::RArrowDS>(s->asArrowTable(), std::vector<std::string>{});
-            auto d0 = std::make_unique<ROOT::RDF::RArrowDS>(s->asArrowTable(), std::vector<std::string>{});
-            auto d0bar = std::make_unique<ROOT::RDF::RArrowDS>(s->asArrowTable(), std::vector<std::string>{});
-            auto d0d0bar = ROOT::RDF::MakeCrossProductDataFrame(std::move(d0), std::move(d0bar), "d0_", "d0bar_");
+            using namespace ROOT::RDF;
 
             TFile f("result.root", "RECREATE");
+
+            auto flatD0 = std::make_unique<RArrowDS>(table, std::vector<std::string>{});
             ROOT::RDataFrame rdf1(std::move(flatD0));
-            auto candFilter = [](float x) -> bool { return (((int)x) & 0x1); };
-            auto bothCandFilter = [](float x, float y) -> bool { return (((int)x) & 0x1) && (((int)y) & 0x1); };
-            /// FIXME: for now we work on one file at the time
+            /// A single loop to do an invariant mass plot, where we use the preselected
+            /// candidates
+            auto candFilter = [](int x) -> bool { return x & 0x1; };
             auto h1 = rdf1.Filter(candFilter, { "cand_type_ML" }).Histo1D("inv_mass_ML");
-
-            ROOT::RDataFrame rdf2(std::move(d0d0bar));
-            auto delta = [](float x, float y) { return x - y; };
-            auto h2 = rdf2.Filter(bothCandFilter, { "d0_cand_type_ML", "d0bar_cand_type_ML" })
-                        .Define("delta_phi", delta, { "d0_phi_cand_ML", "d0bar_phi_cand_ML" })
-                        .Histo1D("delta_phi");
-            auto h3 = rdf2.Filter(bothCandFilter, { "d0_cand_type_ML", "d0bar_cand_type_ML" })
-                        .Define("delta_eta", delta, { "d0_eta_cand_ML", "d0bar_eta_cand_ML" })
-                        .Histo1D("delta_eta");
-
-            h1->SetName("h1");
+            h1->SetName("InvariantMass");
             h1->Write();
-            h2->SetName("h2");
-            h2->Write();
-            h3->SetName("h3");
-            h3->Write();
+
+            /// Double loops on all supported loop types.
+            using Index = RCombinedDSBlockJoinIndex<int>;
+            auto types = {
+              BlockCombinationRule::Anti,
+              BlockCombinationRule::Full,
+              BlockCombinationRule::Diagonal,
+              BlockCombinationRule::StrictlyUpper,
+              BlockCombinationRule::Upper,
+            };
+            // A few helpers
+            auto bothCandFilter = [](int x, int y) -> bool { return x & 0x1 && y & 0x1; };
+            auto delta = [](float x, float y) { return x - y; };
+
+            for (auto combinationType : types) {
+              auto d0 = std::make_unique<RArrowDS>(table, std::vector<std::string>{});
+              auto d0bar = std::make_unique<RArrowDS>(table, std::vector<std::string>{});
+              auto d0d0bar = std::make_unique<RCombinedDS>(std::move(d0), std::move(d0bar), std::move(std::make_unique<Index>("cand_evtID_ML", true, combinationType)), "d0_", "d0bar_");
+
+              ROOT::RDataFrame rdf2(std::move(d0d0bar));
+              auto combinatorics = rdf2.Filter(bothCandFilter, { "d0_cand_type_ML", "d0bar_cand_type_ML" })
+                                     .Define("delta_phi", delta, { "d0_phi_cand_ML", "d0bar_phi_cand_ML" })
+                                     .Define("delta_eta", delta, { "d0_eta_cand_ML", "d0bar_eta_cand_ML" });
+              auto h2 = combinatorics.Histo1D("delta_phi");
+              auto h3 = combinatorics.Histo1D("delta_eta");
+
+              std::string rule = RCombinedDSIndexHelpers::combinationRuleAsString(combinationType);
+              h2->SetName(("DeltaPhi/" + rule).c_str());
+              h2->Write();
+              h3->SetName(("DeltaEta/" + rule).c_str());
+              h3->Write();
+            }
           };
         } } }
   };
