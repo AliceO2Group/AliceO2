@@ -544,7 +544,7 @@ DataRelayer::setPipelineLength(size_t s) {
   }
 }
 
-DataRelayerStats const& DataRelayer::getStats()
+DataRelayerStats const& DataRelayer::getStats() const
 {
   return mStats;
 }
