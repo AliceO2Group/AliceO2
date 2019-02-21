@@ -28,27 +28,30 @@ DigitDivider::DigitDivider(
     stepsPerChunk = std::ceil((end - start) / float(chunksRequested));
 }
 
-optional<DigitDivider::Chunk> DigitDivider::nextChunk(size_t padding)
+optional<Fragment> DigitDivider::nextChunk(size_t padding)
 {
     if (start >= size_t(digits.size()))
     {
         return nullopt;
     }
 
-    Chunk res;
+    Fragment res;
     res.start = start;
+
+    res.backlog = backlog;
 
     DBG(currTime());
     DBG(stepsPerChunk);
 
     size_t end = timeSliceEnd(currTime() + stepsPerChunk);
-    res.items = end - start;
+    res.items = end - (start + backlog);
 
 
     size_t paddedEnd = timeSliceEnd(currTime() + stepsPerChunk + padding);
     res.future = paddedEnd - end;
 
-    start = paddedEnd;
+    start = end;
+    backlog = res.future;
 
     return res;
 }

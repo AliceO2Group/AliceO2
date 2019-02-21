@@ -16,27 +16,46 @@ using nonstd::optional;
 const GPUClusterFinder::Config GPUClusterFinder::defaultConfig;
 
 
-GPUClusterFinder::Plan::Plan(
+GPUClusterFinder::Worker::Worker(
         cl::Context context,
         cl::Device  device,
         cl::Program program,
-        size_t i)
-    : id(i)
+        DeviceMemory mem,
+        Worker *prev)
+    : mem(mem)
 {
+
+    log::Debug() << "create clustering queue.";
     clustering = cl::CommandQueue(
             context, 
             device, 
             CL_QUEUE_PROFILING_ENABLE);
 
+    log::Debug() << "create cleanup queue.";
     cleanup    = cl::CommandQueue(
             context, 
             device, 
             CL_QUEUE_PROFILING_ENABLE);
+    log::Debug() << "finished creating cleanup queue.";
 
     fillChargeMap    = cl::Kernel(program, "fillChargeMap");
     resetChargeMap   = cl::Kernel(program, "resetChargeMap");
     findPeaks        = cl::Kernel(program, "findPeaks");
     computeClusters  = cl::Kernel(program, "computeClusters");
+
+    if (prev != nullptr)
+    {
+        this->prev = Backwards();
+        prev->next = Forwards(); 
+
+        Backwards &slot = *this->prev;
+        Forwards  &plug = *prev->next;
+
+        slot.digitsToDevice = plug.digitsToDevice.get_future();
+        slot.fillingChargeMap = plug.fillingChargeMap.get_future();
+        slot.clusters = plug.clusters.get_future();
+        plug.computeClusters = slot.computeClusters.get_future();
+    }
 }
 
 
@@ -84,17 +103,6 @@ void GPUClusterFinder::setup(Config conf, ClEnv &env, nonstd::span<const Digit> 
     device  = env.getDevice();
 
     
-    /************************************************************************
-     * Create execution plans
-     ***********************************************************************/
-
-    plans.clear();
-
-    cl::Program cfprg = env.buildFromSrc("clusterFinder.cl");
-    for (size_t i = 0; i < config.chunks; i++)
-    {
-        plans.emplace_back(context, device, cfprg, i);
-    }
 
     
     /*************************************************************************
@@ -108,62 +116,84 @@ void GPUClusterFinder::setup(Config conf, ClEnv &env, nonstd::span<const Digit> 
      * Create Buffer
      ************************************************************************/
 
-    digitsBufSize = 
+    size_t digitsBufSize = 
         ((config.usePackedDigits) ? sizeof(PackedDigit) : sizeof(Digit)) 
         * digits.size();
-    digitsBuf = cl::Buffer(context,
+    mem.digits = cl::Buffer(
+            context,
             CL_MEM_READ_WRITE,
             digitsBufSize);
 
-    peaksBuf = cl::Buffer(context,
+    mem.peaks = cl::Buffer(
+            context,
             CL_MEM_READ_WRITE,
             digitsBufSize);
 
     std::vector<int> globalToLocalRow = RowInfo::instance().globalToLocalMap;
     const size_t numOfRows = globalToLocalRow.size();
-    globalToLocalRowBufSize = sizeof(cl_int) * numOfRows;
-    globalToLocalRowBuf = cl::Buffer(
+    size_t globalToLocalRowBufSize = sizeof(cl_int) * numOfRows;
+    mem.globalToLocalRow = cl::Buffer(
             context,
             CL_MEM_READ_ONLY,
             globalToLocalRowBufSize);
 
     std::vector<int> globalRowToCru = RowInfo::instance().globalRowToCruMap;
-    globalRowToCruBufSize = sizeof(cl_int) * numOfRows;
-    globalRowToCruBuf = cl::Buffer(
+    size_t globalRowToCruBufSize = sizeof(cl_int) * numOfRows;
+    mem.globalRowToCru = cl::Buffer(
             context,
             CL_MEM_READ_ONLY,
             globalRowToCruBufSize);
 
-    isPeakBufSize = digits.size() * sizeof(cl_int);
-    isPeakBuf = cl::Buffer(
+    size_t isPeakBufSize = digits.size() * sizeof(cl_int);
+    mem.isPeak = cl::Buffer(
             context, 
             CL_MEM_READ_WRITE, 
             isPeakBufSize);
 
-    clusterBufSize = digits.size() * sizeof(Cluster);
-    clusterBuf = cl::Buffer(
+    size_t clusterBufSize = digits.size() * sizeof(Cluster);
+    mem.cluster = cl::Buffer(
             context,
             CL_MEM_WRITE_ONLY,
             clusterBufSize);
 
     log::Info() << "Found " << numOfRows << " rows";
 
-    chargeMapSize  = 
+    size_t chargeMapSize  = 
         numOfRows * TPC_PADS_PER_ROW_PADDED 
         * TPC_MAX_TIME_PADDED 
         * sizeof(cl_float);
-    chargeMap = cl::Buffer(context, CL_MEM_READ_WRITE, chargeMapSize);
+    mem.chargeMap = cl::Buffer(context, CL_MEM_READ_WRITE, chargeMapSize);
+
+
+    /************************************************************************
+     * Create worker
+     ***********************************************************************/
+
+    workers.clear();
+
+    cl::Program cfprg = env.buildFromSrc("clusterFinder.cl");
+    for (size_t i = 0; i < config.chunks; i++)
+    {
+        workers.emplace_back(
+                context,
+                device,
+                cfprg,
+                mem,
+                (i == 0) ? nullptr : &workers.back());
+    }
 
     
     /*************************************************************************
      * Init constant data
      ************************************************************************/
 
-    cl::CommandQueue initQueue(context, device);
+    log::Debug() << "creating init queue.";
+    cl::CommandQueue initQueue(context, device, CL_QUEUE_PROFILING_ENABLE);
+    log::Debug() << "finished creating init queue.";
 
     ASSERT(globalToLocalRowBufSize > 0);
     initQueue.enqueueWriteBuffer(
-            globalToLocalRowBuf, 
+            mem.globalToLocalRow, 
             CL_FALSE, 
             0, 
             globalToLocalRowBufSize, 
@@ -171,7 +201,7 @@ void GPUClusterFinder::setup(Config conf, ClEnv &env, nonstd::span<const Digit> 
 
     ASSERT(globalRowToCruBufSize > 0);
     initQueue.enqueueWriteBuffer(
-            globalRowToCruBuf, 
+            mem.globalRowToCru, 
             CL_FALSE, 
             0, 
             globalRowToCruBufSize, 
@@ -179,7 +209,7 @@ void GPUClusterFinder::setup(Config conf, ClEnv &env, nonstd::span<const Digit> 
 
     ASSERT(chargeMapSize > 0);
     initQueue.enqueueFillBuffer(
-            chargeMap, 
+            mem.chargeMap, 
             0.0f, 
             0, 
             chargeMapSize);
@@ -195,49 +225,37 @@ GPUClusterFinder::Result GPUClusterFinder::run()
 
 
     /*************************************************************************
-     * Setup plan boundaries
+     * Create fragments and run workers
      ************************************************************************/
 
     DigitDivider divider(digits, config.chunks);
 
-    for (Plan &plan : plans)
+    for (Worker &worker : workers)
     {
-        optional<DigitDivider::Chunk> chunk = divider.nextChunk(PADDING);
+        optional<Fragment> fragment = divider.nextChunk(PADDING);
 
-        ASSERT(chunk.has_value());
+        ASSERT(fragment.has_value());
 
-        log::Debug() << "got new chunk: {start: " << chunk->start
-                     << ", items: " << chunk->items
-                     << ", future: " << chunk->future << "}";
+        log::Debug() << "got new fragment: {start: " << fragment->start
+                     << ", backlog: " << fragment->backlog
+                     << ", items: " << fragment->items
+                     << ", future: " << fragment->future << "}";
 
-        plan.start = chunk->start;
-        plan.items = chunk->items;
-        plan.future = chunk->future;
-    }
-
-    ASSERT(plans.front().start == 0);
-    ASSERT(plans.back().start + plans.back().items == size_t(digits.size()));
-    ASSERT(plans.back().future == 0);
-
-
-    /*************************************************************************
-     * Execute plans
-     ************************************************************************/
-
-    for (Plan &plan : plans)
-    {
         if (config.usePackedDigits)
         {
-            findCluster<PackedDigit>(plan, nonstd::span<const PackedDigit>(packedDigits)); 
+            worker.run<PackedDigit>(
+                    *fragment, 
+                    nonstd::span<const PackedDigit>(packedDigits),
+                    clusters);
         }
         else
         {
-            findCluster(plan, digits);
+            worker.run(*fragment, digits, clusters);
         }
 
-        plan.clustering.finish();
+        worker.clustering.finish();
     }
-    
+
 
     /*************************************************************************
      * Compute clusters
@@ -254,9 +272,9 @@ GPUClusterFinder::Result GPUClusterFinder::run()
     log::Info() << "Found " << result.size() << " clusters.";
 
     std::vector<Lane> lanes;
-    for (const Plan &plan : plans)
+    for (const Worker &worker : workers)
     {
-        lanes.push_back(toLane(plan));    
+        lanes.push_back(toLane(worker));    
     }
 
     return Result{result, {0,0, lanes}};
@@ -330,12 +348,15 @@ void GPUClusterFinder::addDefines(ClEnv &env)
 }
 
 template<class DigitT>
-void GPUClusterFinder::findCluster(Plan &plan, nonstd::span<const DigitT> digits)
+void GPUClusterFinder::Worker::run(
+        const Fragment &range,
+        nonstd::span<const DigitT> digits,
+        nonstd::span<Cluster> /* cluster */)
 {
-    if (plan.id > 0)
+    if (prev)
     {
-        std::vector<cl::Event> ev = {*plans[plan.id-1].digitsToDevice.get()};
-        plan.clustering.enqueueBarrierWithWaitList(&ev);
+        std::vector<cl::Event> ev = {prev->digitsToDevice.get()};
+        clustering.enqueueBarrierWithWaitList(&ev);
     }
 
     /*************************************************************************
@@ -345,22 +366,24 @@ void GPUClusterFinder::findCluster(Plan &plan, nonstd::span<const DigitT> digits
     const size_t sizeofDigit = sizeof(DigitT);
 
     nonstd::span<const DigitT> toCopy = digits.subspan(
-            plan.start, 
-            plan.items + plan.future);
-
-    ASSERT(digitsBufSize > 0);
-    ASSERT(toCopy.size() * sizeofDigit <= digitsBufSize);
+            range.start + range.backlog, 
+            range.items + range.future);
 
     log::Debug() << "Sending " << toCopy.size() * sizeofDigit << " bytes to device";
 
-    plan.clustering.enqueueWriteBuffer(
-            digitsBuf,
+    clustering.enqueueWriteBuffer(
+            mem.digits,
             CL_FALSE,
-            plan.start * sizeofDigit,
+            (range.start + range.backlog) * sizeofDigit,
             toCopy.size() * sizeofDigit,
             toCopy.data(),
             nullptr,
-            plan.digitsToDevice.get());
+            digitsToDevice.get());
+
+    if (next)
+    {
+        next->digitsToDevice.set_value(*digitsToDevice.get());
+    }
 
 
     /*************************************************************************
@@ -369,23 +392,28 @@ void GPUClusterFinder::findCluster(Plan &plan, nonstd::span<const DigitT> digits
 
     cl::NDRange local(64);
 
-    DBG(plan.start);
+    DBG(range.start);
     DBG(toCopy.size());
 
-    plan.fillChargeMap.setArg(0, digitsBuf);
-    plan.fillChargeMap.setArg(1, chargeMap);
-    plan.clustering.enqueueNDRangeKernel(
-            plan.fillChargeMap,
-            cl::NDRange(plan.start),
+    fillChargeMap.setArg(0, mem.digits);
+    fillChargeMap.setArg(1, mem.chargeMap);
+    clustering.enqueueNDRangeKernel(
+            fillChargeMap,
+            cl::NDRange(range.start + range.backlog),
             cl::NDRange(toCopy.size()),
             local,
             nullptr,
-            plan.fillingChargeMap.get());
+            fillingChargeMap.get());
 
-    if (plan.id > 0)
+    if (next)
     {
-        std::vector<cl::Event> ev = {*plans[plan.id-1].fillingChargeMap.get()};
-        plan.clustering.enqueueBarrierWithWaitList(&ev);
+        next->fillingChargeMap.set_value(*fillingChargeMap.get());
+    }
+
+    if (prev)
+    {
+        std::vector<cl::Event> ev = {prev->fillingChargeMap.get()};
+        clustering.enqueueBarrierWithWaitList(&ev);
     }
 
 
@@ -393,28 +421,24 @@ void GPUClusterFinder::findCluster(Plan &plan, nonstd::span<const DigitT> digits
      * Look for peaks
      ************************************************************************/
 
-    size_t backlog = (plan.id == 0) ? 0 : plans[plan.id-1].future;
+    DBG(range.start) 
+    DBG(range.backlog + range.items);
 
-    ASSERT(plan.start - backlog <= plan.start);
-
-    DBG(plan.start - backlog);
-    DBG(backlog + plan.items);
-
-    plan.findPeaks.setArg(0, chargeMap);
-    plan.findPeaks.setArg(1, digitsBuf);
-    plan.findPeaks.setArg(2, isPeakBuf);
-    plan.clustering.enqueueNDRangeKernel(
-            plan.findPeaks,
-            cl::NDRange(plan.start - backlog),
-            cl::NDRange(backlog + plan.items),
+    findPeaks.setArg(0, mem.chargeMap);
+    findPeaks.setArg(1, mem.digits);
+    findPeaks.setArg(2, mem.isPeak);
+    clustering.enqueueNDRangeKernel(
+            findPeaks,
+            cl::NDRange(range.start),
+            cl::NDRange(range.backlog + range.items),
             local,
             nullptr,
-            plan.findingPeaks.get());
+            findingPeaks.get());
 }
 
 size_t GPUClusterFinder::computeAndReadClusters()
 {
-    Plan &plan = plans.front();
+    Worker &worker = workers.front();
 
 
     /*************************************************************************
@@ -422,10 +446,10 @@ size_t GPUClusterFinder::computeAndReadClusters()
      ************************************************************************/
 
     size_t clusterNum = streamCompaction.enqueue(
-            plan.clustering,
-            digitsBuf,
-            peaksBuf,
-            isPeakBuf);
+            worker.clustering,
+            mem.digits,
+            mem.peaks,
+            mem.isPeak);
 
     log::Debug() << "Found " << clusterNum << " peaks";
 
@@ -438,18 +462,18 @@ size_t GPUClusterFinder::computeAndReadClusters()
 
     if (clusterNum > 0)
     {
-        plan.computeClusters.setArg(0, chargeMap);
-        plan.computeClusters.setArg(1, peaksBuf);
-        plan.computeClusters.setArg(2, globalToLocalRowBuf);
-        plan.computeClusters.setArg(3, globalRowToCruBuf);
-        plan.computeClusters.setArg(4, clusterBuf);
-        plan.clustering.enqueueNDRangeKernel(
-                plan.computeClusters,
+        worker.computeClusters.setArg(0, mem.chargeMap);
+        worker.computeClusters.setArg(1, mem.peaks);
+        worker.computeClusters.setArg(2, mem.globalToLocalRow);
+        worker.computeClusters.setArg(3, mem.globalRowToCru);
+        worker.computeClusters.setArg(4, mem.cluster);
+        worker.clustering.enqueueNDRangeKernel(
+                worker.computeClusters,
                 cl::NullRange,
                 cl::NDRange(clusterNum),
                 local,
                 nullptr,
-                plan.computingClusters.get());
+                worker.computingClusters.get());
     }
 
 
@@ -457,15 +481,15 @@ size_t GPUClusterFinder::computeAndReadClusters()
      * Reset charge map
      ************************************************************************/
 
-    plan.resetChargeMap.setArg(0, digitsBuf);
-    plan.resetChargeMap.setArg(1, chargeMap);
-    plan.clustering.enqueueNDRangeKernel(
-            plan.resetChargeMap,
+    worker.resetChargeMap.setArg(0, mem.digits);
+    worker.resetChargeMap.setArg(1, mem.chargeMap);
+    worker.clustering.enqueueNDRangeKernel(
+            worker.resetChargeMap,
             cl::NullRange,
             digits.size(),
             local,
             nullptr,
-            plan.zeroChargeMap.get());
+            worker.zeroChargeMap.get());
     
 
     /*************************************************************************
@@ -474,40 +498,41 @@ size_t GPUClusterFinder::computeAndReadClusters()
 
     ASSERT(clusters.size() == size_t(digits.size()));
 
-    /* log::Info() << "Copy results back..."; */
-    ASSERT(clusters.size() * sizeof(Cluster) <= clusterBufSize);
+    log::Info() << "Copy results back...";
 
     if (clusterNum > 0)
     {
-        plan.clustering.enqueueReadBuffer(
-                clusterBuf, 
+        worker.clustering.enqueueReadBuffer(
+                mem.cluster, 
                 CL_TRUE, 
                 0, 
                 clusterNum * sizeof(Cluster), 
                 clusters.data(),
                 nullptr,
-                plan.clustersToHost.get());
+                worker.clustersToHost.get());
     }
 
-    plan.clustering.finish();
+    worker.clustering.finish();
 
     return clusterNum;
 }
 
-Lane GPUClusterFinder::toLane(const Plan &p)
+Lane GPUClusterFinder::toLane(const Worker &p)
 {
+    bool first = (p.prev == nonstd::nullopt);
+
     return {
         {"digitsToDevice", p.digitsToDevice},
         {"fillChargeMap", p.fillingChargeMap},
         {"findPeaks", p.findingPeaks},
-        (p.id == 0) ? streamCompaction.asStep("compactPeaks") 
-                    : Step("compactPeaks", 0, 0),
-        (p.id == 0) ? Step("computeCluster", p.computingClusters)
-                    : Step("computeCluster", 0, 0),
-        (p.id == 0) ? Step("resetChargeMap", p.zeroChargeMap)
-                    : Step("resetChargeMap", 0, 0),
-        (p.id == 0) ? Step("clusterToHost", p.clustersToHost)
-                    : Step("clusterToHost", 0, 0),
+        (first) ? streamCompaction.asStep("compactPeaks") 
+                : Step("compactPeaks", 0, 0),
+        (first) ? Step("computeCluster", p.computingClusters)
+                : Step("computeCluster", 0, 0),
+        (first) ? Step("resetChargeMap", p.zeroChargeMap)
+                : Step("resetChargeMap", 0, 0),
+        (first) ? Step("clusterToHost", p.clustersToHost)
+                : Step("clusterToHost", 0, 0),
     };
 }
 

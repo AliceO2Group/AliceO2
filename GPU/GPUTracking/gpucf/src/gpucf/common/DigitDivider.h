@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gpucf/common/Digit.h>
+#include <gpucf/common/Fragment.h>
 
 #include <nonstd/optional.hpp>
 #include <nonstd/span.hpp>
@@ -15,13 +16,7 @@ class DigitDivider
 public: 
     DigitDivider(nonstd::span<const Digit>, size_t);
 
-    struct Chunk
-    {
-        size_t start;
-        size_t items;
-        size_t future;
-    };
-    nonstd::optional<Chunk> nextChunk(size_t);
+    nonstd::optional<Fragment> nextChunk(size_t);
 
 private:
     nonstd::span<const Digit> digits;
@@ -31,6 +26,7 @@ private:
     size_t stepsPerChunk = 0;
 
     size_t start = 0;
+    size_t backlog = 0;
 
     size_t timeSliceEnd(int);
 

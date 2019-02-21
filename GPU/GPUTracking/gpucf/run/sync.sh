@@ -11,6 +11,7 @@ rsyncBlacklist="--exclude=$buildDir \
                 --exclude=measurements \
                 --exclude=*.bin \
                 --exclude=*.swp \
+                --exclude=*.BACK \
                 --exclude=tags" 
 
 rsyncFlags="-aPEh $rsyncBlacklist"
