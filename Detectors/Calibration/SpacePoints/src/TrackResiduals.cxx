@@ -42,24 +42,12 @@ using namespace o2::calib;
 //______________________________________________________________________________
 TrackResiduals::TrackResiduals() : mFileOut(nullptr),
                                    mTreeOut(nullptr),
-                                   mIsInitialized(false),
                                    mUniformBins{ false },
-                                   mPrintMem(false),
-                                   mUseErrInSmoothing(true),
                                    mSmoothPol2{ false },
-                                   mDX(0.f),
-                                   mDXI(0.f),
-                                   mNXBins(-1),
-                                   mNY2XBins(0),
-                                   mNZBins(0),
-                                   mDZI(0.f),
-                                   mDZ(0.f),
                                    mNSmoothingFailedBins{ 0 },
-                                   mKernelType(-1),
                                    mKernelScaleEdge(),
                                    mKernelWInv(),
                                    mStepKern(),
-                                   mNVoxPerSector(0),
                                    mNBins{ 0 },
                                    mXBinsIgnore(),
                                    mLastSmoothingRes(),
@@ -687,7 +675,7 @@ void TrackResiduals::smooth(int iSec)
 bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, int whichDim, float* res)
 {
   // get smooth estimate for distortions for point in sector coordinates
-  // TODO missing bit pattern to steer smoothing only in specific dimensions
+  /// \todo currect use of the symmetric matrix should speed up the code
 
   int minPointsDir[param::VoxDim] = { 0 }; // min number of points per direction
   const float kTrialStep = 0.5;
@@ -793,9 +781,10 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, int 
       kWZI /= mKernelScaleEdge[param::VoxZ];
     }
 
-    int nOccX[ixMax - ixMin + 1] = { 0 };
-    int nOccF[ipMax - ipMin + 1] = { 0 };
-    int nOccZ[izMax - izMin + 1] = { 0 };
+    std::vector<unsigned short> nOccX(ixMax - ixMin + 1, 0);
+    std::vector<unsigned short> nOccF(ipMax - ipMin + 1, 0);
+    std::vector<unsigned short> nOccZ(izMax - izMin + 1, 0);
+
     int nbCheck = (ixMax - ixMin + 1) * (ipMax - ipMin + 1) * (izMax - izMin + 1);
     if (nbCheck >= maxNeighb) {
       maxNeighb = nbCheck + 100;

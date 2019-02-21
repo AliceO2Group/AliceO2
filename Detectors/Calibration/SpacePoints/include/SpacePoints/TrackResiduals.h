@@ -60,21 +60,15 @@ class TrackResiduals
     float E[param::ResDim];            // their errors
     float DS[param::ResDim];           // smoothed residual
     float DC[param::ResDim];           // Cheb parameterized residual
-    float EXYCorr;                     // correlation between extracted X and Y
-    float dYSigMAD;                    // MAD estimator of dY sigma (dispersion after slope removal)
-    float dZSigLTM;                    // Z sigma from unbinned LTM estimator
+    float EXYCorr{ 0.f };              // correlation between extracted X and Y
+    float dYSigMAD{ 0.f };             // MAD estimator of dY sigma (dispersion after slope removal)
+    float dZSigLTM{ 0.f };             // Z sigma from unbinned LTM estimator
     float stat[param::VoxHDim];        // statistics: averages of each voxel dimension + entries
     unsigned char bvox[param::VoxDim]; // voxel identifier, here the bvox[0] shows number of Q bins used for Y
-    unsigned char bsec;                // sector ID (0-35)
-    unsigned char flags;               // status flag
+    unsigned char bsec{ 0 };           // sector ID (0-35)
+    unsigned char flags{ 0 };          // status flag
 
-    void dump()
-    {
-      printf("D[0]=%.6f, D[1]=%.6f, D[2]=%.6f, E[0]=%.6f, E[1]=%.6f, E[2]=%.6f, bvox[0]=%i, bvox[1]=%i, bvox[2]=%i, bsec=%i\n",
-             D[0], D[1], D[2], E[0], E[1], E[2], bvox[0], bvox[1], bvox[2], bsec);
-    }
-
-    bres_t() : D{}, E{}, DS{}, DC{}, EXYCorr(0.f), dYSigMAD(0.f), dZSigLTM(0.f), stat{}, bvox{}, bsec(0), flags(0) {}
+    bres_t() : D{}, E{}, DS{}, DC{}, stat{}, bvox{} {}
   };
 
   // initialization
@@ -130,24 +124,24 @@ class TrackResiduals
  private:
   std::unique_ptr<TFile> mFileOut;                   ///< output debug file
   std::unique_ptr<TTree> mTreeOut;                   ///< tree holding debug output
-  bool mIsInitialized;                               ///< initialize only once
+  bool mIsInitialized{ false };                      ///< initialize only once
   bool mUniformBins[param::VoxDim];                  ///< if binning is uniform for each dimension
-  bool mPrintMem;                                    ///< turn on to print memory usage at certain points
-  bool mUseErrInSmoothing;                           ///< weight kernel by point error (default: true)
+  bool mPrintMem{ false };                           ///< turn on to print memory usage at certain points
+  bool mUseErrInSmoothing{ true };                   ///< weight kernel by point error
   bool mSmoothPol2[param::VoxDim];                   ///< option to use pol1 or pol2 in each direction
-  float mDX;                                         ///< x bin size
-  float mDXI;                                        ///< inverse of x bin size
-  int mNXBins;                                       ///< number of bins in radial direction
+  float mDX{ 0.f };                                  ///< x bin size
+  float mDXI{ 0.f };                                 ///< inverse of x bin size
+  int mNXBins{ -1 };                                 ///< number of bins in radial direction
   int mNY2XBins;                                     ///< number of y/x bins per sector
-  int mNZBins;                                       ///< number of z/x bins per sector
-  float mDZI;                                        ///< inverse of bin size in z (is 5!?)
-  float mDZ;                                         ///< bin size in z (is 0.2!?)
+  int mNZBins{ 0 };                                  ///< number of z/x bins per sector
+  float mDZI{ 0.f };                                 ///< inverse of bin size in z (is 5!?)
+  float mDZ{ 0.f };                                  ///< bin size in z (is 0.2!?)
   int mNSmoothingFailedBins[param::NSectors2];       ///< number of failed bins / sector
-  int mKernelType;                                   ///< kernel type (Epanechnikov / Gaussian)
+  int mKernelType{ -1 };                             ///< kernel type (Epanechnikov / Gaussian)
   std::array<float, param::VoxDim> mKernelScaleEdge; ///< optional scaling factors for kernel width on the edge
   std::array<float, param::VoxDim> mKernelWInv;      ///< inverse kernel width in bins
   std::array<int, param::VoxDim> mStepKern;          ///< N bins to consider with given kernel settings
-  int mNVoxPerSector;                                ///< number of voxels per sector
+  int mNVoxPerSector{ 0 };                           ///< number of voxels per sector
 
   std::array<int, param::VoxDim> mNBins;                                   ///< number of bins for all dimensions
   std::array<std::bitset<param::NPadRows>, param::NSectors2> mXBinsIgnore; ///< flags which X bins to ignore
