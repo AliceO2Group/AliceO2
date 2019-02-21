@@ -89,7 +89,7 @@ public:
   void setPipelineLength(size_t s);
 
   /// @return the current stats about the data relaying process
-  DataRelayerStats const& getStats();
+  DataRelayerStats const& getStats() const;
 
  private:
   std::vector<InputRoute> const& mInputRoutes;
