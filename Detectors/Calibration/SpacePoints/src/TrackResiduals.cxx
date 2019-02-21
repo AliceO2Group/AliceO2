@@ -1120,7 +1120,7 @@ void TrackResiduals::medFit(int nPoints, int offset, const std::vector<float>& x
 {
   // fitting a straight line y(x|a, b) = a + b * x
   // to given x and y data minimizing the absolute deviation
-  float aa, bb, b1, b2, f, f1, f2, sigb, chi2 = 0.f;
+  float aa, bb, b1, b2, f, f1, sigb, chi2 = 0.f;
   if (nPoints < 2) {
     a = b = 0.f;
     if (err) {
@@ -1160,7 +1160,7 @@ void TrackResiduals::medFit(int nPoints, int offset, const std::vector<float>& x
   f1 = roFunc(nPoints, offset, x, y, b1, aa);
   if (sigb > 0) {
     b2 = bb + std::copysign(3.f * sigb, f1);
-    f2 = roFunc(nPoints, offset, x, y, b2, aa);
+    float f2 = roFunc(nPoints, offset, x, y, b2, aa);
     if (fabs(f1 - f2) < param::FloatEps) {
       a = aa;
       b = bb;
@@ -1198,7 +1198,7 @@ float TrackResiduals::roFunc(int nPoints, int offset, const std::vector<float>& 
   // calculate sum(x_i * sgn(y_i - a - b * x_i)) for given b
   // see numberical recipies paragraph 15.7.3
   std::vector<float> vecTmp(nPoints);
-  float d, sum = 0.f;
+  float sum = 0.f;
   for (int j = nPoints; j-- > 0;) {
     vecTmp[j] = y[j + offset] - b * x[j + offset];
   }
@@ -1234,7 +1234,7 @@ float TrackResiduals::roFunc(int nPoints, int offset, const std::vector<float>& 
     aa = (nPoints & 0x1) ? selectKthMin(nPointsHalf, vecTmp) : .5f * (selectKthMin(nPointsHalf - 1, vecTmp) + selectKthMin(nPointsHalf, vecTmp));
   }
   for (int j = nPoints; j-- > 0;) {
-    d = y[j + offset] - (b * x[j + offset] + aa);
+    float d = y[j + offset] - (b * x[j + offset] + aa);
     if (y[j + offset] != 0.f) {
       d /= fabs(y[j + offset]);
     }
