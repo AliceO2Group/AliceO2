@@ -64,6 +64,10 @@ HalfDisk::HalfDisk(HalfDiskSegmentation* segmentation)
   TGeoVolumeAssembly* heatExchangerVol = createHeatExchanger();
   mHalfDiskVolume->AddNode(heatExchangerVol, 1);
 
+  // Building Support
+  TGeoVolumeAssembly * supportVol = createSupport();
+  mHalfDiskVolume->AddNode(supportVol,1);
+
   // Building Front Face of the Half Disk
   createLadders();
 }
@@ -93,6 +97,20 @@ TGeoVolumeAssembly* HalfDisk::createHeatExchanger()
   return vol;
 }
 
+//_____________________________________________________________________________
+TGeoVolumeAssembly * HalfDisk::createSupport()
+{
+
+  Geometry * mftGeom = Geometry::instance();
+
+  mSupport = new Support();
+
+  TGeoVolumeAssembly* vol =
+    mSupport->create(mftGeom->getHalfID(GetUniqueID()), mftGeom->getDiskID(GetUniqueID()));
+
+  return vol;
+
+}
 /// \brief Build Ladders on the Half-disk
 
 //_____________________________________________________________________________

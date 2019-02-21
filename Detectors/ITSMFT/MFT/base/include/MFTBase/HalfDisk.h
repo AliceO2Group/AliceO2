@@ -55,6 +55,7 @@ class HalfDisk : public TNamed
   HalfDisk(HalfDiskSegmentation* segmentation);
 
   TGeoVolumeAssembly* createHeatExchanger();
+  TGeoVolumeAssembly * createSupport();
   void createLadders();
 
   ~HalfDisk() override;

@@ -16,7 +16,17 @@
 #define ALICEO2_MFT_SUPPORT_H_
 
 #include "TNamed.h"
-
+#include "TGeoVolume.h"
+#include "TGeoMatrix.h"
+#include "TGeoBBox.h"
+#include "TGeoCompositeShape.h"
+#include "TGeoTube.h"
+#include "TGeoCone.h"
+#include "TGeoArb8.h"
+#include "TGeoBoolNode.h"
+#include "TMath.h"
+#include "TGeoManager.h"
+#include "TGeoVolume.h"
 #include "FairLogger.h"
 
 class TGeoVolume;
@@ -32,40 +42,98 @@ class Support : public TNamed
 
  public:
   Support();
+  ~Support() override = default;
+  TGeoVolumeAssembly* create(Int_t kHalf, Int_t disk);
 
-  ~Support() override;
 
-  TGeoVolumeAssembly* createVolume(Int_t half, Int_t disk);
-  TGeoVolumeAssembly* createPCBs(Int_t half, Int_t disk);
-  TGeoVolumeAssembly* createPCB_00_01(Int_t half, Int_t disk);
-  TGeoVolumeAssembly* createPCB_02(Int_t half, Int_t disk);
-  TGeoVolumeAssembly* createPCB_03(Int_t half, Int_t disk);
-  TGeoVolumeAssembly* createPCB_04(Int_t half, Int_t disk);
-  TGeoVolumeAssembly* createPCB_PSU(Int_t half, Int_t disk);
-  TGeoVolume* createSupport(Int_t half, Int_t disk);
-  TGeoVolume* createDisk_Support_00();
-  TGeoVolume* createDisk_Support_01();
-  TGeoVolume* createDisk_Support_02();
-  TGeoVolume* createDisk_Support_03();
-  TGeoVolume* createDisk_Support_04();
 
-  TGeoCompositeShape* screw_array(Int_t N, Double_t gap = 1.7);
-  TGeoCompositeShape* screw_C();
-  TGeoCompositeShape* screw_D();
-  TGeoCompositeShape* screw_E();
-  TGeoCompositeShape* through_hole_a(Double_t thickness = .8);
-  TGeoCompositeShape* through_hole_b(Double_t thickness = .8);
-  TGeoCompositeShape* through_hole_c(Double_t thickness = .8);
-  TGeoCompositeShape* through_hole_d(Double_t thickness = .8);
-  TGeoCompositeShape* through_hole_e(Double_t thickness = .8);
+// protected:
+//  TGeoVolumeAssembly* mSupportVolume;
+//  Double_t mSupportThickness;
+//  Double_t mPCBThickness;
 
- protected:
-  TGeoVolumeAssembly* mSupportVolume;
-  Double_t mSupportThickness;
-  Double_t mPCBThickness;
+private:
 
- private:
-  ClassDefOverride(Support, 1)
+  void initParameters();
+  TGeoVolumeAssembly *mHalfDisk;
+  TGeoMedium *mSupportMedium;
+  TGeoBBox *mSomeBox;
+  TGeoTube *mSomeTube;
+  TGeoArb8 *mSomeArb;
+
+  TGeoSubtraction *mSomeSubtraction;
+  TGeoUnion *mSomeUnion;
+  TGeoTranslation *mSomeTranslation;
+  TGeoCompositeShape *mSomeCS;
+
+  Double_t mSupThickness; //Support Thickness
+  Double_t mSupRad[5]; // Radius of each support disk
+  Double_t mDiskGap; //gap between half disks
+  Double_t mPhi0;
+  Double_t mPhi1;
+  Double_t mT_delta; //Excess to remove to avoid coplanar surfaces that causes visualization glitches
+  Double_t mRaisedBoxHeight;
+  Double_t mFixBoxHeight;
+  Double_t mOuterCut[5]; //Distance of external disk cuts (oposite to beam pipe)
+                         // this is the y origin on Guillamet's PDF blueprints
+
+  Int_t mNumberOfBoxCuts[5]; // Number of box cuts in each half disk support
+  Double_t (*mBoxCuts[5])[4];// Box cuts on each disk
+
+  Int_t mNumberOfRaixedBoxes[5]; //Number of Raised boxes in each halfDisk support
+  Double_t (*mBRaised[5])[4]; //Raised boxes for each halfDisk
+
+  Int_t mNumberOfFixBoxes[5]; //Number of Fixation boxes in each halfDisk support
+  Double_t (*mBFix[5])[5]; //Fixation boxes for each halfDisk
+
+  Int_t mNumberOfVoids[5]; //Number of Voids (big holes) in each halfDisk support
+  Double_t (*mVoidVert[5])[4][2]; //Vertexes of Voids
+
+  Int_t mNumberOfM2Holes[5]; // Number of M2 Holes in each halfDisk support
+  Double_t (*mM2Holes[5])[2]; // M2 holes on halfdisk 00 and 01
+  Double_t mRad_M2;
+  Double_t mHeight_M2;
+
+  // ==== D2 H7 - 4 mm deep (on higher surface)
+  Int_t mNumberOfD2_hHoles[5];
+  Double_t (*mD2_hHoles[5])[2]; // D2 holes on raisedBoxes on each disk
+  Double_t mRad_D2_h;
+  Double_t mHeight_D2_h;
+
+  // ==== D 6.5 mm holes
+  Double_t (*mD65Holes[5])[2]; // Positions of D6.5 mm holes on disk
+  Int_t mTwoHoles; // Number of D6.5 mm Holes in each halfDisk support
+  Double_t mD65; //Radius
+
+  // ==== D6 H7 (6 mm diameter holes)
+  Double_t (*mD6Holes[5])[2]; // Positions of D6 mm holes on disk
+  Double_t mD6; // Radius
+
+  // ==== D8 H7 (8 mm diameter holes)
+  Int_t mNumberOfD8_Holes[5];
+  Double_t mD8; // Radius
+  Double_t (*mD8Holes[5])[2]; // Positions of D8 mm holes on disk
+
+  // ==== D3 H7 (3 mm diameter holes)
+  Double_t mD3; // Radius
+  Double_t (*mD3Holes[5])[2]; // Positions of D8 mm holes on disk
+
+  // ==== M3 H7 (?? mm diameter holes)
+  Int_t mNumberOfM3Holes[5]; // Number of M2 Holes in each halfDisk support
+  Double_t mM3; // Radius   TODO: Verify this!
+  Double_t (*mM3Holes[5])[2]; // Positions of M3 holes on disk
+
+  // ==== D4.5 H9
+  Double_t mD45; // Radius
+  Double_t (*mD45Holes[5])[2]; // Positions of D4.5 mm holes on disk
+
+  // ==== D2 H7 - 4 mm deep (on lower surface)
+  Double_t mD2; // Radius
+  Double_t mHeight_D2;
+  Double_t (*mD2Holes[5])[2]; // Positions of D2 mm holes on disk
+
+  ClassDefOverride(Support, 2);
+
 };
 }
 }
