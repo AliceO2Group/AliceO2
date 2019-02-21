@@ -23,7 +23,12 @@ double loop on the entries of the two RDataSources.
 #define protected public
 #include "Framework/RCombinedDS.h"
 
+#if __has_include(<ROOT/RDF/Utils.h>)
+#include <ROOT/RDF/Utils.hxx>
+#else
 #include <ROOT/RDFUtils.hxx>
+#endif
+
 #include <ROOT/TSeq.hxx>
 #include <ROOT/RMakeUnique.hxx>
 #include <ROOT/RDataFrame.hxx>
