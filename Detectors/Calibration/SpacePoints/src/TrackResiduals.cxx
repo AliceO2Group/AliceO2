@@ -681,8 +681,8 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
   LOG(debug) << "getting smooth estimate around voxel " << binCenter;
 
   // cache
-  // \todo this cache array should also be replaced by a std::array
-  double cmat[param::ResDim][param::MaxSmtDim * (param::MaxSmtDim + 1) / 2];
+  // \todo maybe a 1-D cache would be more efficient?
+  std::array<std::array<double, param::MaxSmtDim*(param::MaxSmtDim + 1) / 2>, param::ResDim> cmat;
   int maxNeighb = 10 * 10 * 10;
   std::vector<bres_t*> currVox;
   currVox.reserve(maxNeighb);
@@ -698,7 +698,7 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
 
   while (true) {
     std::fill(mLastSmoothingRes.begin(), mLastSmoothingRes.end(), 0);
-    memset(cmat, 0, sizeof(double) * param::ResDim * param::MaxSmtDim * (param::MaxSmtDim + 1) / 2);
+    memset(&cmat[0][0], 0, sizeof(cmat));
 
     int nbOK = 0; // accounted neighbours
 
@@ -882,7 +882,7 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
           // account for point error apart from kernel value
           wi /= (voxNb->E[iDim] * voxNb->E[iDim]);
         }
-        double* cmatD = cmat[iDim];
+        std::array<double, param::MaxSmtDim*(param::MaxSmtDim + 1) / 2>& cmatD = cmat[iDim];
         double* rhsD = &mLastSmoothingRes[iDim * param::MaxSmtDim];
         unsigned short iMat = 0;
         unsigned short iRhs = 0;
@@ -948,7 +948,7 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
         continue;
       }
       matrix.Zero(); // reset matrix
-      double* cmatD = cmat[iDim];
+      std::array<double, param::MaxSmtDim*(param::MaxSmtDim + 1) / 2>& cmatD = cmat[iDim];
       double* rhsD = &mLastSmoothingRes[iDim * param::MaxSmtDim];
       short iMat = -1;
       short iRhs = -1;

@@ -17,6 +17,7 @@
 #define ALICEO2_CALIB_STATISTICS_H_
 
 #include <vector>
+#include <array>
 #include <cmath>
 #include <numeric>
 #include <algorithm>
