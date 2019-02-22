@@ -905,7 +905,7 @@ int AliGPUChainTracking::RunTRDTracking()
 
 	for (unsigned int iTracklet = 0;iTracklet < mIOPtrs.nTRDTracklets;++iTracklet)
 	{
-		if (Tracker.LoadTracklet(mIOPtrs.trdTracklets[iTracklet], mIOPtrs.trdTrackletsMC ? mIOPtrs.trdTrackletsMC[iTracklet].fLabel : nullptr)) return 1;
+		if (Tracker.LoadTracklet(mIOPtrs.trdTracklets[iTracklet], mIOPtrs.trdTrackletsMC ? mIOPtrs.trdTrackletsMC[iTracklet].mLabel : nullptr)) return 1;
 	}
 
 	for (unsigned int iTrack = 0; iTrack < tracksTPC.size(); ++iTrack)
