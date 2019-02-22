@@ -24,7 +24,7 @@
 #include <iostream>
 #include "MathUtils/Cartesian3D.h"
 #include "TGeoManager.h"
-#include "Geometry.h"
+#include "MIDSimulation/Geometry.h"
 #include "MIDBase/GeometryTransformer.h"
 
 BOOST_AUTO_TEST_SUITE(o2_mid_simulation)
@@ -72,29 +72,24 @@ bool areEqual(double a, double b)
   return std::fabs(b - a) < 1E-4; // 1E-4 cm = 1 micron
 }
 
-bool areEqual(std::array<double, 3>& p1, std::array<double, 3>& p2)
+bool areEqual(const Point3D<double>& p1, const Point3D<double>& p2)
 {
-  for (int idim = 0; idim < 3; ++idim) {
-    if (!areEqual(p1[idim], p2[idim])) {
-      return false;
-    }
-  }
+  if (!areEqual(p1.x(), p2.x()))
+    return false;
+  if (!areEqual(p1.y(), p2.y()))
+    return false;
+  if (!areEqual(p1.z(), p2.z()))
+    return false;
   return true;
 }
 
-int testOnePosition(const LocalPoint& localPt, const o2::mid::GeometryTransformer& geoTrans, const TGeoManager* geoManager)
+int testOnePosition(const LocalPoint& localPt, const o2::mid::GeometryTransformer& geoTrans, const o2::mid::GeometryTransformer& geoTransFromManager)
 {
   int deId = localPt.deId;
-  double lpt[3] = { localPt.xPos, localPt.yPos, 0. };
-  auto globPt = geoTrans.localToGlobal(deId, lpt[0], lpt[1]);
-  std::array<double, 3> p1 = { globPt.x(), globPt.y(), globPt.z() };
-  TGeoNavigator* navig = gGeoManager->GetCurrentNavigator();
-  std::string volPath = gGeoManager->GetTopVolume()->GetName() + o2::mid::getRPCVolumePath(deId);
-  navig->cd(volPath.c_str());
-  std::array<double, 3> p2;
-  navig->GetCurrentMatrix()->LocalToMaster(lpt, p2.data());
+  auto p1 = geoTrans.localToGlobal(deId, localPt.xPos, localPt.yPos);
+  auto p2 = geoTransFromManager.localToGlobal(deId, localPt.xPos, localPt.yPos);
   if (!areEqual(p1, p2)) {
-    std::cout << "got different positions for deId " << deId << " : got (" << p1[0] << ", " << p1[1] << ", " << p1[2] << ")  expected (" << p2[0] << ", " << p2[1] << ", " << p2[2] << ")\n";
+    std::cout << "got different positions for deId " << deId << " : got (" << p1.x() << ", " << p1.y() << ", " << p1.z() << ")  expected (" << p2.x() << ", " << p2.y() << ", " << p2.z() << ")\n";
     return 1;
   }
   return 0;
@@ -105,12 +100,14 @@ BOOST_AUTO_TEST_CASE(TestTransformations)
   o2::mid::GeometryTransformer geoTrans = o2::mid::createDefaultTransformer();
   createStandaloneGeometry("cave");
 
+  o2::mid::GeometryTransformer geoTransFromManager = o2::mid::createTransformationFromManager(gGeoManager);
+
   auto positions = getPositions(1000);
 
   int notok = 0;
 
   for (auto& tp : positions) {
-    notok += testOnePosition(tp, geoTrans, gGeoManager);
+    notok += testOnePosition(tp, geoTrans, geoTransFromManager);
   }
   BOOST_TEST(notok == 0);
 }

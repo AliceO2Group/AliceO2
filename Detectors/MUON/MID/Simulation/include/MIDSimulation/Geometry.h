@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   Geometry.h
+/// \file   MIDSimulation/Geometry.h
 /// \brief  Implementation of the trigger-stations geometry
 /// \author Florian Damas <florian.damas@cern.ch>
 /// \date   19 june 2018
@@ -17,9 +17,11 @@
 #define O2_MID_SIMULATION_GEOMETRY_H
 
 class TGeoVolume;
+class TGeoManager;
 
 #include <vector>
 #include <string>
+#include "MIDBase/GeometryTransformer.h"
 
 namespace o2
 {
@@ -32,7 +34,7 @@ void createGeometry(TGeoVolume& topVolume);
 /// get a list of MID sensitive volumes
 std::vector<TGeoVolume*> getSensitiveVolumes();
 
-std::string getRPCVolumePath(int deId);
+GeometryTransformer createTransformationFromManager(const TGeoManager* geoManager);
 
 } // namespace mid
 } // namespace o2
