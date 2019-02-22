@@ -53,7 +53,7 @@
 #include "CommonUtils/ShmManager.h"
 #include <map>
 #include <vector>
-#include "signal.h"
+#include <csignal>
 
 namespace o2
 {
