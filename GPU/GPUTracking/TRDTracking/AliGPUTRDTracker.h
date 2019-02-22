@@ -36,7 +36,7 @@ class AliGPUTRDTracker : public AliGPUProcessor {
   AliGPUTRDTracker(const AliGPUTRDTracker &tracker) CON_DELETE;
   AliGPUTRDTracker & operator=(const AliGPUTRDTracker &tracker) CON_DELETE;
   ~AliGPUTRDTracker();
-  
+
   void SetMaxData();
   void RegisterMemoryAllocation();
   void InitializeProcessor();
@@ -49,8 +49,8 @@ class AliGPUTRDTracker : public AliGPUProcessor {
   void DoTracking();
   void SetNCandidates(int n);
   void PrintSettings() const;
-  bool IsInitialized() const {return fIsInitialized;}
-  void SetTrackingChain(AliGPUChainTracking* c) {fChainTracking = c;}
+  bool IsInitialized() const {return mIsInitialized;}
+  void SetTrackingChain(AliGPUChainTracking* c) {mChainTracking = c;}
 #endif
 
   enum EGPUTRDTracker {
@@ -62,43 +62,43 @@ class AliGPUTRDTracker : public AliGPUProcessor {
 
   // struct to hold the information on the space points
   struct AliGPUTRDSpacePointInternal {
-    float fR;                 // x position (7mm above anode wires)
-    float fX[2];              // y and z position (sector coordinates)
-    My_Float fCov[3];         // sigma_y^2, sigma_yz, sigma_z^2
-    float fDy;                // deflection over drift length
-    int fId;                  // index
-    int fLabel[3];            // MC labels
-    unsigned short fVolumeId; // basically derived from TRD chamber number
+    float mR;                 // x position (7mm above anode wires)
+    float mX[2];              // y and z position (sector coordinates)
+    My_Float mCov[3];         // sigma_y^2, sigma_yz, sigma_z^2
+    float mDy;                // deflection over drift length
+    int mId;                  // index
+    int mLabel[3];            // MC labels
+    unsigned short mVolumeId; // basically derived from TRD chamber number
   };
 
   struct Hypothesis {
-    int fLayers;
-    int fCandidateId;
-    int fTrackletId;
-    float fChi2;
+    int mLayers;
+    int mCandidateId;
+    int mTrackletId;
+    float mChi2;
 
-    Hypothesis() : fLayers(0), fCandidateId(-1), fTrackletId(-1), fChi2(9999.f) {}
+    Hypothesis() : mLayers(0), mCandidateId(-1), mTrackletId(-1), mChi2(9999.f) {}
   };
 
-  short MemoryPermanent() const { return fMemoryPermanent; }
-  short MemoryTracklets() const { return fMemoryTracklets; }
-  short MemoryTracks()    const { return fMemoryTracks; }
+  short MemoryPermanent() const { return mMemoryPermanent; }
+  short MemoryTracklets() const { return mMemoryTracklets; }
+  short MemoryTracks()    const { return mMemoryTracks; }
 
-  GPUhd() void SetGeometry(TRD_GEOMETRY_CONST AliGPUTRDGeometry* geo) {fGeo = geo;}
+  GPUhd() void SetGeometry(TRD_GEOMETRY_CONST AliGPUTRDGeometry* geo) {mGeo = geo;}
   void Reset();
   GPUd() int LoadTracklet(const AliGPUTRDTrackletWord &tracklet, const int *labels = 0x0);
   template<class T> GPUd() int LoadTrack(const T &trk, const int label = -1) {
-    if (fNTracks >= fNMaxTracks) {
+    if (mNTracks >= mNMaxTracks) {
       printf("Error: Track dropped (no memory available) -> must not happen\n");
       return(1);
     }
 #ifdef GPUCA_ALIROOT_LIB
-    new (&fTracks[fNTracks++]) GPUTRDTrack(trk);
+    new (&mTracks[mNTracks++]) GPUTRDTrack(trk);
 #else
-    fTracks[fNTracks++] = trk;
+    mTracks[mNTracks++] = trk;
 #endif
     if (label >= 0) {
-        fTracks[fNTracks-1].SetLabel(label);
+        mTracks[mNTracks-1].SetLabel(label);
     }
     return(0);
   }
@@ -121,66 +121,66 @@ class AliGPUTRDTracker : public AliGPUProcessor {
   GPUd() void  Quicksort(const int left, const int right, const int size, const int type = 0);
 
   // settings
-  GPUd() void SetMCEvent(AliMCEvent* mc)       { fMCEvent = mc;}
-  GPUd() void EnableDebugOutput()              { fDebugOutput = true; }
-  GPUd() void SetPtThreshold(float minPt)      { fMinPt = minPt; }
-  GPUd() void SetMaxEta(float maxEta)          { fMaxEta = maxEta; }
-  GPUd() void SetChi2Threshold(float chi2)     { fMaxChi2 = chi2; }
-  GPUd() void SetChi2Penalty(float chi2)       { fChi2Penalty = chi2; }
-  GPUd() void SetMaxMissingLayers(int ly)      { fMaxMissingLy = ly; }
+  GPUd() void SetMCEvent(AliMCEvent* mc)       { mMCEvent = mc;}
+  GPUd() void EnableDebugOutput()              { mDebugOutput = true; }
+  GPUd() void SetPtThreshold(float minPt)      { mMinPt = minPt; }
+  GPUd() void SetMaxEta(float maxEta)          { mMaxEta = maxEta; }
+  GPUd() void SetChi2Threshold(float chi2)     { mMaxChi2 = chi2; }
+  GPUd() void SetChi2Penalty(float chi2)       { mChi2Penalty = chi2; }
+  GPUd() void SetMaxMissingLayers(int ly)      { mMaxMissingLy = ly; }
 
-  GPUd() AliMCEvent * GetMCEvent()   const { return fMCEvent; }
-  GPUd() bool  GetIsDebugOutputOn()  const { return fDebugOutput; }
-  GPUd() float GetPtThreshold()      const { return fMinPt; }
-  GPUd() float GetMaxEta()           const { return fMaxEta; }
-  GPUd() float GetChi2Threshold()    const { return fMaxChi2; }
-  GPUd() float GetChi2Penalty()      const { return fChi2Penalty; }
-  GPUd() int   GetMaxMissingLayers() const { return fMaxMissingLy; }
-  GPUd() int   GetNCandidates()      const { return fNCandidates; }
+  GPUd() AliMCEvent * GetMCEvent()   const { return mMCEvent; }
+  GPUd() bool  GetIsDebugOutputOn()  const { return mDebugOutput; }
+  GPUd() float GetPtThreshold()      const { return mMinPt; }
+  GPUd() float GetMaxEta()           const { return mMaxEta; }
+  GPUd() float GetChi2Threshold()    const { return mMaxChi2; }
+  GPUd() float GetChi2Penalty()      const { return mChi2Penalty; }
+  GPUd() int   GetMaxMissingLayers() const { return mMaxMissingLy; }
+  GPUd() int   GetNCandidates()      const { return mNCandidates; }
 
   // output
-  GPUd() int NTracks()                               const { return fNTracks;}
-  GPUd() GPUTRDTrack *Tracks()                       const { return fTracks;}
-  GPUd() int NTracklets()                            const { return fNTracklets;}
-  GPUd() AliGPUTRDSpacePointInternal *SpacePoints()  const { return fSpacePoints; }
-  GPUd() AliGPUTRDTrackletWord *Tracklets()          const { return fTracklets; }
+  GPUd() int NTracks()                               const { return mNTracks;}
+  GPUd() GPUTRDTrack *Tracks()                       const { return mTracks;}
+  GPUd() int NTracklets()                            const { return mNTracklets;}
+  GPUd() AliGPUTRDSpacePointInternal *SpacePoints()  const { return mSpacePoints; }
+  GPUd() AliGPUTRDTrackletWord *Tracklets()          const { return mTracklets; }
   GPUd() void DumpTracks();
 
  protected:
 
-  float *fR;                                  // rough radial position of each TRD layer
-  bool fIsInitialized;                        // flag is set upon initialization
-  short fMemoryPermanent;                     // size of permanent memory for the tracker
-  short fMemoryTracklets;                     // size of memory for TRD tracklets
-  short fMemoryTracks;                        // size of memory for tracks (used for i/o)
-  int fNMaxTracks;                            // max number of tracks the tracker can handle (per event)
-  int fNMaxSpacePoints;                       // max number of space points hold by the tracker (per event)
-  GPUTRDTrack *fTracks;                       // array of trd-updated tracks
-  int fNCandidates;                           // max. track hypothesis per layer
-  int fNTracks;                               // number of TPC tracks to be matched
-  int fNEvents;                               // number of processed events
-  AliGPUTRDTrackletWord *fTracklets;          // array of all tracklets, later sorted by HCId
-  int fMaxThreads;                            // maximum number of supported threads
-  int fNTracklets;                            // total number of tracklets in event
-  int *fNtrackletsInChamber;                  // number of tracklets in each chamber
-  int *fTrackletIndexArray;                   // index of first tracklet for each chamber
-  Hypothesis *fHypothesis;                    // array with multiple track hypothesis
-  GPUTRDTrack *fCandidates;                   // array of tracks for multiple hypothesis tracking
-  AliGPUTRDSpacePointInternal *fSpacePoints;  // array with tracklet coordinates in global tracking frame
-  int *fTrackletLabels;                       // array with MC tracklet labels
-  TRD_GEOMETRY_CONST AliGPUTRDGeometry *fGeo; // TRD geometry
-  bool fDebugOutput;                          // store debug output
-  float fMinPt;                               // min pt of TPC tracks for tracking
-  float fMaxEta;                              // TPC tracks with higher eta are ignored
-  float fMaxChi2;                             // max chi2 for tracklets
-  int fMaxMissingLy;                          // max number of missing layers per track
-  float fChi2Penalty;                         // chi2 added to the track for no update
-  float fZCorrCoefNRC;                        // tracklet z-position depends linearly on track dip angle
-  int fNhypothesis;                           // number of track hypothesis per layer
-  AliMCEvent* fMCEvent;                       //! externaly supplied optional MC event
-  const AliGPUTPCGMMerger *fMerger;           // supplying parameters for AliGPUTPCGMPropagator
-  AliGPUTRDTrackerDebug *fDebug;              // debug output
-  AliGPUChainTracking* fChainTracking;        // Tracking chain with access to input data / parameters
+  float *mR;                                  // rough radial position of each TRD layer
+  bool mIsInitialized;                        // flag is set upon initialization
+  short mMemoryPermanent;                     // size of permanent memory for the tracker
+  short mMemoryTracklets;                     // size of memory for TRD tracklets
+  short mMemoryTracks;                        // size of memory for tracks (used for i/o)
+  int mNMaxTracks;                            // max number of tracks the tracker can handle (per event)
+  int mNMaxSpacePoints;                       // max number of space points hold by the tracker (per event)
+  GPUTRDTrack *mTracks;                       // array of trd-updated tracks
+  int mNCandidates;                           // max. track hypothesis per layer
+  int mNTracks;                               // number of TPC tracks to be matched
+  int mNEvents;                               // number of processed events
+  AliGPUTRDTrackletWord *mTracklets;          // array of all tracklets, later sorted by HCId
+  int mMaxThreads;                            // maximum number of supported threads
+  int mNTracklets;                            // total number of tracklets in event
+  int *mNTrackletsInChamber;                  // number of tracklets in each chamber
+  int *mTrackletIndexArray;                   // index of first tracklet for each chamber
+  Hypothesis *mHypothesis;                    // array with multiple track hypothesis
+  GPUTRDTrack *mCandidates;                   // array of tracks for multiple hypothesis tracking
+  AliGPUTRDSpacePointInternal *mSpacePoints;  // array with tracklet coordinates in global tracking frame
+  int *mTrackletLabels;                       // array with MC tracklet labels
+  TRD_GEOMETRY_CONST AliGPUTRDGeometry *mGeo; // TRD geometry
+  bool mDebugOutput;                          // store debug output
+  float mMinPt;                               // min pt of TPC tracks for tracking
+  float mMaxEta;                              // TPC tracks with higher eta are ignored
+  float mMaxChi2;                             // max chi2 for tracklets
+  int mMaxMissingLy;                          // max number of missing layers per track
+  float mChi2Penalty;                         // chi2 added to the track for no update
+  float mZCorrCoefNRC;                        // tracklet z-position depends linearly on track dip angle
+  int mNHypothesis;                           // number of track hypothesis per layer
+  AliMCEvent* mMCEvent;                       //! externaly supplied optional MC event
+  const AliGPUTPCGMMerger *mMerger;           // supplying parameters for AliGPUTPCGMPropagator
+  AliGPUTRDTrackerDebug *mDebug;              // debug output
+  AliGPUChainTracking* mChainTracking;        // Tracking chain with access to input data / parameters
 };
 
 #endif

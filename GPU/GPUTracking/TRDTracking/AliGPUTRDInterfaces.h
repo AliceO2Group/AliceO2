@@ -78,22 +78,22 @@ template <> class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 {
 
   public:
-    propagatorInterface<AliTrackerBase> (const void* = nullptr) : AliTrackerBase(), fParam(nullptr) {};
+    propagatorInterface<AliTrackerBase> (const void* = nullptr) : AliTrackerBase(), mParam(nullptr) {};
     propagatorInterface<AliTrackerBase> (const propagatorInterface<AliTrackerBase>&) CON_DELETE;
     propagatorInterface<AliTrackerBase>& operator=(const propagatorInterface<AliTrackerBase>&) CON_DELETE;
 
     bool PropagateToX(float x, float maxSnp, float maxStep) {
-      return PropagateTrackToBxByBz(fParam, x, 0.13957, maxStep, false, maxSnp);
+      return PropagateTrackToBxByBz(mParam, x, 0.13957, maxStep, false, maxSnp);
     }
 
-    void setTrack(trackInterface<AliExternalTrackParam> *trk) { fParam = trk; }
+    void setTrack(trackInterface<AliExternalTrackParam> *trk) { mParam = trk; }
 
-    float getAlpha() { return (fParam) ? fParam->GetAlpha() : 99999.f; }
-    bool update(const My_Float p[2], const My_Float cov[3]) { return (fParam) ? fParam->update(p, cov) : false; }
-    float getPredictedChi2(const My_Float p[2], const My_Float cov[3]) { return (fParam) ? fParam->getPredictedChi2(p, cov) : 99999.f; }
-    bool rotate(float alpha) { return (fParam) ? fParam->rotate(alpha) : false; }
+    float getAlpha() { return (mParam) ? mParam->GetAlpha() : 99999.f; }
+    bool update(const My_Float p[2], const My_Float cov[3]) { return (mParam) ? mParam->update(p, cov) : false; }
+    float getPredictedChi2(const My_Float p[2], const My_Float cov[3]) { return (mParam) ? mParam->getPredictedChi2(p, cov) : 99999.f; }
+    bool rotate(float alpha) { return (mParam) ? mParam->rotate(alpha) : false; }
 
-    trackInterface<AliExternalTrackParam> *fParam;
+    trackInterface<AliExternalTrackParam> *mParam;
 };
 
 #endif
@@ -110,11 +110,11 @@ template <> class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 template <> class trackInterface<AliGPUTPCGMTrackParam> : public AliGPUTPCGMTrackParam
 {
   public:
-    GPUd() trackInterface<AliGPUTPCGMTrackParam>() : AliGPUTPCGMTrackParam(), fAlpha(0.f) {};
+    GPUd() trackInterface<AliGPUTPCGMTrackParam>() : AliGPUTPCGMTrackParam(), mAlpha(0.f) {};
     GPUd() trackInterface<AliGPUTPCGMTrackParam>(const AliGPUTPCGMTrackParam &param) CON_DELETE;
     GPUd() trackInterface<AliGPUTPCGMTrackParam>(const AliGPUTPCGMMergedTrack &trk) :
       AliGPUTPCGMTrackParam(),
-      fAlpha(trk.GetAlpha())
+      mAlpha(trk.GetAlpha())
     {
       SetX(trk.GetParam().GetX());
       SetPar(0, trk.GetParam().GetY());
@@ -128,7 +128,7 @@ template <> class trackInterface<AliGPUTPCGMTrackParam> : public AliGPUTPCGMTrac
     };
     GPUd() trackInterface<AliGPUTPCGMTrackParam>(const AliGPUTPCGMTrackParam::AliGPUTPCOuterParam &param) :
       AliGPUTPCGMTrackParam(),
-      fAlpha(param.fAlpha)
+      mAlpha(param.fAlpha)
     {
       SetX(param.fX);
       for (int i=0; i<5; i++) {
@@ -140,7 +140,7 @@ template <> class trackInterface<AliGPUTPCGMTrackParam> : public AliGPUTPCGMTrac
     };
     GPUd() trackInterface<AliGPUTPCGMTrackParam>(const trackInterface<AliGPUTPCGMTrackParam> &param) :
       AliGPUTPCGMTrackParam(),
-      fAlpha(param.fAlpha)
+      mAlpha(param.mAlpha)
     {
       SetX(param.getX());
       for (int i=0; i<5; i++) {
@@ -153,7 +153,7 @@ template <> class trackInterface<AliGPUTPCGMTrackParam> : public AliGPUTPCGMTrac
 #ifdef GPUCA_ALIROOT_LIB
     trackInterface<AliGPUTPCGMTrackParam>(const AliHLTExternalTrackParam &param) :
       AliGPUTPCGMTrackParam(),
-      fAlpha(param.fAlpha)
+      mAlpha(param.fAlpha)
     {
       SetX(param.fX);
       SetPar(0, param.fY);
@@ -168,7 +168,7 @@ template <> class trackInterface<AliGPUTPCGMTrackParam> : public AliGPUTPCGMTrac
 #endif
 
     GPUd() float getX()       const { return GetX(); }
-    GPUd() float getAlpha()   const { return fAlpha; }
+    GPUd() float getAlpha()   const { return mAlpha; }
     GPUd() float getY()       const { return GetY(); }
     GPUd() float getZ()       const { return GetZ(); }
     GPUd() float getSnp()     const { return GetSinPhi(); }
@@ -181,7 +181,7 @@ template <> class trackInterface<AliGPUTPCGMTrackParam> : public AliGPUTPCGMTrac
 
     GPUd() const float *getCov() const { return GetCov(); }
 
-    GPUd() void setAlpha(float alpha) { fAlpha = alpha; }
+    GPUd() void setAlpha(float alpha) { mAlpha = alpha; }
     GPUd() void set(float x, float alpha, const float param[5], const float cov[15]) {
       SetX(x);
       for (int i=0; i<5; i++) {
@@ -196,13 +196,13 @@ template <> class trackInterface<AliGPUTPCGMTrackParam> : public AliGPUTPCGMTrac
     typedef AliGPUTPCGMTrackParam baseClass;
 
   private:
-    float fAlpha;
+    float mAlpha;
 };
 
 template <> class propagatorInterface<AliGPUTPCGMPropagator> : public AliGPUTPCGMPropagator
 {
   public:
-    GPUd() propagatorInterface<AliGPUTPCGMPropagator>(const AliGPUTPCGMMerger *pMerger) : AliGPUTPCGMPropagator(), fTrack(nullptr) {
+    GPUd() propagatorInterface<AliGPUTPCGMPropagator>(const AliGPUTPCGMMerger *pMerger) : AliGPUTPCGMPropagator(), mTrack(nullptr) {
       constexpr float kRho = 1.025e-3f;
       constexpr float kRadLen = 29.532f;
       this->SetMaterial( kRadLen, kRho );
@@ -214,16 +214,16 @@ template <> class propagatorInterface<AliGPUTPCGMPropagator> : public AliGPUTPCG
     };
     propagatorInterface<AliGPUTPCGMPropagator>(const propagatorInterface<AliGPUTPCGMPropagator>&) CON_DELETE;
     propagatorInterface<AliGPUTPCGMPropagator>& operator=(const propagatorInterface<AliGPUTPCGMPropagator>&) CON_DELETE;
-    GPUd() void setTrack(trackInterface<AliGPUTPCGMTrackParam> *trk) { SetTrack(trk, trk->getAlpha()); fTrack = trk;}
+    GPUd() void setTrack(trackInterface<AliGPUTPCGMTrackParam> *trk) { SetTrack(trk, trk->getAlpha()); mTrack = trk;}
     GPUd() bool PropagateToX( float x, float maxSnp, float maxStep ) {
       bool ok = PropagateToXAlpha( x, GetAlpha(), true ) == 0 ? true : false;
-      ok = fTrack->CheckNumericalQuality();
+      ok = mTrack->CheckNumericalQuality();
       return ok;
     }
     GPUd() bool rotate(float alpha) {
       if (RotateToAlpha(alpha) == 0) {
-        fTrack->setAlpha(alpha);
-        return fTrack->CheckNumericalQuality();
+        mTrack->setAlpha(alpha);
+        return mTrack->CheckNumericalQuality();
       }
       return false;
     }
@@ -235,7 +235,7 @@ template <> class propagatorInterface<AliGPUTPCGMPropagator> : public AliGPUTPCG
     // TODO sigma_yz not taken into account yet, is not zero due to pad tilting!
     GPUd() float getPredictedChi2(const My_Float p[2], const My_Float cov[3]) const { return PredictChi2( p[0], p[1], cov[0], cov[2]); }
 
-    trackInterface<AliGPUTPCGMTrackParam> *fTrack;
+    trackInterface<AliGPUTPCGMTrackParam> *mTrack;
 };
 
 #endif

@@ -3,7 +3,7 @@
 
 // struct to hold the MC labels for the tracklets
 struct AliGPUTRDTrackletLabels {
-  int fLabel[3];
+  int mLabel[3];
 };
 
 #endif

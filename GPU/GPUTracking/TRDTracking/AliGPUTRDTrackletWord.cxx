@@ -30,16 +30,16 @@
 
 
 GPUd() AliGPUTRDTrackletWord::AliGPUTRDTrackletWord(unsigned int trackletWord) :
-  fId(-1),
-  fHCId(-1),
-  fTrackletWord(trackletWord)
+  mId(-1),
+  mHCId(-1),
+  mTrackletWord(trackletWord)
 {
 }
 
 GPUd() AliGPUTRDTrackletWord::AliGPUTRDTrackletWord(unsigned int trackletWord, int hcid, int id) :
-  fId(id),
-  fHCId(hcid),
-  fTrackletWord(trackletWord)
+  mId(id),
+  mHCId(hcid),
+  mTrackletWord(trackletWord)
 {
 }
 
@@ -49,16 +49,16 @@ GPUd() AliGPUTRDTrackletWord::AliGPUTRDTrackletWord(unsigned int trackletWord, i
 #include "AliTRDtrackletMCM.h"
 
 AliGPUTRDTrackletWord::AliGPUTRDTrackletWord(const AliTRDtrackletWord &rhs) :
-  fId(-1),
-  fHCId(rhs.GetHCId()),
-  fTrackletWord(rhs.GetTrackletWord())
+  mId(-1),
+  mHCId(rhs.GetHCId()),
+  mTrackletWord(rhs.GetTrackletWord())
 {
 }
 
 AliGPUTRDTrackletWord::AliGPUTRDTrackletWord(const AliTRDtrackletMCM &rhs) :
-  fId(-1),
-  fHCId(rhs.GetHCId()),
-  fTrackletWord(rhs.GetTrackletWord())
+  mId(-1),
+  mHCId(rhs.GetHCId()),
+  mTrackletWord(rhs.GetTrackletWord())
 {
 }
 
@@ -74,21 +74,21 @@ AliGPUTRDTrackletWord& AliGPUTRDTrackletWord::operator=(const AliTRDtrackletMCM 
 
 GPUd() int AliGPUTRDTrackletWord::GetYbin() const {
   // returns (signed) value of Y
-  if (fTrackletWord & 0x1000) {
-    return -((~(fTrackletWord-1)) & 0x1fff);
+  if (mTrackletWord & 0x1000) {
+    return -((~(mTrackletWord-1)) & 0x1fff);
   }
   else {
-    return (fTrackletWord & 0x1fff);
+    return (mTrackletWord & 0x1fff);
   }
 }
 
 GPUd() int AliGPUTRDTrackletWord::GetdY() const
 {
   // returns (signed) value of the deflection length
-  if (fTrackletWord & (1 << 19)) {
-    return -((~((fTrackletWord >> 13) - 1)) & 0x7f);
+  if (mTrackletWord & (1 << 19)) {
+    return -((~((mTrackletWord >> 13) - 1)) & 0x7f);
   }
   else {
-    return ((fTrackletWord >> 13) & 0x7f);
+    return ((mTrackletWord >> 13) & 0x7f);
   }
 }

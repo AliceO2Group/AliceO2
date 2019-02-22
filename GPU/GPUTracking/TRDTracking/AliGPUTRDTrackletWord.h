@@ -38,28 +38,28 @@ class AliGPUTRDTrackletWord {
   // ----- Getters for contents of tracklet word -----
   GPUd() int GetYbin() const;
   GPUd() int GetdY() const;
-  GPUd() int GetZbin() const { return ((fTrackletWord >> 20) & 0xf); }
-  GPUd() int GetPID() const { return ((fTrackletWord >> 24) & 0xff); }
+  GPUd() int GetZbin() const { return ((mTrackletWord >> 20) & 0xf); }
+  GPUd() int GetPID() const { return ((mTrackletWord >> 24) & 0xff); }
 
-  GPUd() int GetId() const { return fId; }
+  GPUd() int GetId() const { return mId; }
 
   // ----- Getters for offline corresponding values -----
   GPUd() double GetPID(int /* is */) const { return (double) GetPID()/256.f; }
-  GPUd() int GetDetector() const { return fHCId / 2; }
-  GPUd() int GetHCId() const { return fHCId; }
+  GPUd() int GetDetector() const { return mHCId / 2; }
+  GPUd() int GetHCId() const { return mHCId; }
   GPUd() float GetdYdX() const { return (GetdY() * 140e-4f / 3.f); }
   GPUd() float GetY() const { return (GetYbin() * 160e-4f); }
-  GPUd() unsigned int GetTrackletWord() const { return fTrackletWord; }
+  GPUd() unsigned int GetTrackletWord() const { return mTrackletWord; }
 
-  GPUd() void SetTrackletWord(unsigned int trackletWord) { fTrackletWord = trackletWord; }
-  GPUd() void SetDetector(int id) { fHCId = 2 * id + (GetYbin() < 0 ? 0 : 1); }
-  GPUd() void SetId(int id) { fId = id; }
-  GPUd() void SetHCId(int id) { fHCId = id; }
+  GPUd() void SetTrackletWord(unsigned int trackletWord) { mTrackletWord = trackletWord; }
+  GPUd() void SetDetector(int id) { mHCId = 2 * id + (GetYbin() < 0 ? 0 : 1); }
+  GPUd() void SetId(int id) { mId = id; }
+  GPUd() void SetHCId(int id) { mHCId = id; }
 
  protected:
-  int fId;                      // index in tracklet array
-  int fHCId;                    // half-chamber ID
-  unsigned int fTrackletWord;   // tracklet word: PID | Z | deflection length | Y
+  int mId;                      // index in tracklet array
+  int mHCId;                    // half-chamber ID
+  unsigned int mTrackletWord;   // tracklet word: PID | Z | deflection length | Y
                                 //          bits:   8   4            7          13
 
 };
