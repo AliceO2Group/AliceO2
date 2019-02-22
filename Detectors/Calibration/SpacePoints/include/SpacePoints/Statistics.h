@@ -58,7 +58,7 @@ template void SortData<float>(std::vector<float> const& values, std::vector<size
 // Function parameters:
 //     data    - data vector (unsorted)
 //     index   - vector with indices for sorted data
-//     params  - vector storing the following parameters as result
+//     params  - array storing the following parameters as result
 //             - 0 - area
 //             - 1 - mean
 //             - 2 - rms
@@ -68,7 +68,7 @@ template void SortData<float>(std::vector<float> const& values, std::vector<size
 //             - 6 - last accepted  element (of sorted array)
 //
 //
-inline bool LTMUnbinned(const std::vector<float>& data, std::vector<size_t>& index, std::vector<float>& params, float fracKeep)
+inline bool LTMUnbinned(const std::vector<float>& data, std::vector<size_t>& index, std::array<float, 7>& params, float fracKeep)
 {
   int nPoints = data.size();
   std::vector<float> w(2 * nPoints);
@@ -143,7 +143,7 @@ inline void Reorder(std::vector<float>& data, const std::vector<size_t>& index)
 //
 // Function parameters:
 //     data    - data vector (unsorted)
-//     params  - vector storing the following parameters as result
+//     params  - array storing the following parameters as result
 //             - 0 - area
 //             - 1 - mean
 //             - 2 - rms
@@ -153,7 +153,7 @@ inline void Reorder(std::vector<float>& data, const std::vector<size_t>& index)
 //             - 6 - last accepted  element (of sorted array)
 //
 //
-inline bool LTMUnbinnedSig(const std::vector<float>& data, std::vector<size_t>& index, std::vector<float>& params, float fracKeepMin, float sigTgt, bool sorted = false)
+inline bool LTMUnbinnedSig(const std::vector<float>& data, std::vector<size_t>& index, std::array<float, 7>& params, float fracKeepMin, float sigTgt, bool sorted = false)
 {
   int nPoints = data.size();
   std::vector<float> w(2 * nPoints);

@@ -39,25 +39,6 @@
 
 using namespace o2::calib;
 
-//______________________________________________________________________________
-TrackResiduals::TrackResiduals() : mFileOut(nullptr),
-                                   mTreeOut(nullptr),
-                                   mUniformBins{ false },
-                                   mSmoothPol2{ false },
-                                   mNSmoothingFailedBins{ 0 },
-                                   mKernelScaleEdge(),
-                                   mKernelWInv(),
-                                   mStepKern(),
-                                   mNBins{ 0 },
-                                   mXBinsIgnore(),
-                                   mLastSmoothingRes(),
-                                   mMaxY2X(),
-                                   mDY2XI(),
-                                   mDY2X(),
-                                   mValidFracXBins{ 0.f },
-                                   mVoxelResults()
-{
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 ///
@@ -123,10 +104,6 @@ void TrackResiduals::initBinning()
   mDZ = 1.0f / mDZI;
   mUniformBins[param::VoxZ] = true;
   //
-  mNBins[param::VoxX] = mNXBins;
-  mNBins[param::VoxF] = mNY2XBins;
-  mNBins[param::VoxZ] = mNZBins;
-
   mNVoxPerSector = mNY2XBins * mNZBins * mNXBins;
 }
 
@@ -313,7 +290,7 @@ void TrackResiduals::processSectorResiduals(int iSec)
     dyData[nAccepted] = trkRes.dy;
     dzData[nAccepted] = trkRes.dz;
     tgSlpData[nAccepted] = trkRes.tgSlp;
-    binData[nAccepted] = getGlbVoxBin(trkRes.bvox);
+    binData[nAccepted] = getGlbVoxBin(trkRes.bvox[param::VoxX], trkRes.bvox[param::VoxF], trkRes.bvox[param::VoxZ]);
     nAccepted++;
   }
 
@@ -441,7 +418,7 @@ void TrackResiduals::processSectorResiduals(int iSec)
       for (int ip = 0; ip < mNY2XBins; ++ip) {
         int voxBin = getGlbVoxBin(ix, ip, iz);
         bres_t& resVox = secData[voxBin];
-        getSmoothEstimate(iSec, resVox.stat[param::VoxX], resVox.stat[param::VoxF], resVox.stat[param::VoxZ], 8, resVox.DS);
+        getSmoothEstimate(iSec, resVox.stat[param::VoxX], resVox.stat[param::VoxF], resVox.stat[param::VoxZ], resVox.DS, 0x1 << param::VoxV);
       }
     }
   }
@@ -457,14 +434,14 @@ void TrackResiduals::processVoxelResiduals(std::vector<float>& dy, std::vector<f
     LOG(info) << "voxel " << getGlbVoxBin(resVox.bvox) << " is skipped due to too few entries (" << nPoints << " < " << param::MinEntriesPerVoxel << ")";
     return;
   }
-  std::vector<float> zResults(7);
+  std::array<float, 7> zResults;
   resVox.flags = 0;
   std::vector<size_t> indices(dz.size());
   if (!stat::LTMUnbinned(dz, indices, zResults, param::LTMCut)) {
     return;
   }
-  float res[2] = { 0.f };
-  float err[3] = { 0.f };
+  std::array<float, 2> res{ 0.f };
+  std::array<float, 3> err{ 0.f };
   float sigMAD = fitPoly1Robust(tg, dy, res, err, param::LTMCut);
   if (sigMAD < 0) {
     return;
@@ -559,8 +536,8 @@ int TrackResiduals::validateVoxels(int iSec)
   // mask X-bins which cannot be smoothed
 
   short nBadReg = 0;               // count bad regions (one or more consecutive bad X-bins)
-  short badStart[param::NPadRows]; // to store indices to the beginnings of the bad regions
-  short badEnd[param::NPadRows];   // to store indices to the end of the bad regions
+  std::array<short, param::NPadRows> badStart; // to store indices to the beginnings of the bad regions
+  std::array<short, param::NPadRows> badEnd;   // to store indices to the end of the bad regions
   bool prevBad = false;
   float fracBadRows = 0.f;
   for (int ix = 0; ix < mNXBins; ++ix) {
@@ -644,7 +621,7 @@ void TrackResiduals::smooth(int iSec)
         int voxBin = getGlbVoxBin(ix, ip, iz);
         bres_t& resVox = secData[voxBin];
         resVox.flags &= ~param::SmoothDone;
-        bool res = getSmoothEstimate(resVox.bsec, resVox.stat[param::VoxX], resVox.stat[param::VoxF], resVox.stat[param::VoxZ], 7, resVox.DS);
+        bool res = getSmoothEstimate(resVox.bsec, resVox.stat[param::VoxX], resVox.stat[param::VoxF], resVox.stat[param::VoxZ], resVox.DS, (0x1 << param::VoxX | 0x1 << param::VoxF | 0x1 << param::VoxZ));
         if (!res) {
           mNSmoothingFailedBins[iSec]++;
         } else {
@@ -672,14 +649,14 @@ void TrackResiduals::smooth(int iSec)
   }
 }
 
-bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, int whichDim, float* res)
+bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std::array<float, param::ResDim>& res, int whichDim)
 {
   // get smooth estimate for distortions for point in sector coordinates
   /// \todo correct use of the symmetric matrix should speed up the code
 
-  int minPointsDir[param::VoxDim] = { 0 }; // min number of points per direction
+  std::array<int, param::VoxDim> minPointsDir{ 0 }; // min number of points per direction
   const float kTrialStep = 0.5;
-  bool doDim[param::ResDim] = { false };
+  std::array<bool, param::ResDim> doDim{ false };
   for (int i = 0; i < param::ResDim; ++i) {
     doDim[i] = (whichDim & (0x1 << i)) > 0;
     if (doDim[i]) {
@@ -704,6 +681,7 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, int 
   LOG(debug) << "getting smooth estimate around voxel " << binCenter;
 
   // cache
+  // \todo this cache array should also be replaced by a std::array
   double cmat[param::ResDim][param::MaxSmtDim * (param::MaxSmtDim + 1) / 2];
   int maxNeighb = 10 * 10 * 10;
   std::vector<bres_t*> currVox;
@@ -711,12 +689,12 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, int 
   std::vector<float> currCache;
   currCache.reserve(maxNeighb * param::VoxHDim);
 
-  int maxTrials[param::VoxDim];
-  maxTrials[param::VoxZ] = mNBins[param::VoxZ] / 2;
-  maxTrials[param::VoxF] = mNBins[param::VoxF] / 2;
+  std::array<int, param::VoxDim> maxTrials;
+  maxTrials[param::VoxZ] = mNZBins / 2;
+  maxTrials[param::VoxF] = mNY2XBins / 2;
   maxTrials[param::VoxX] = param::MaxBadXBinsToCover * 2;
 
-  int trial[param::VoxDim] = { 0 };
+  std::array<int, param::VoxDim> trial{ 0 };
 
   while (true) {
     std::fill(mLastSmoothingRes.begin(), mLastSmoothingRes.end(), 0);
@@ -834,7 +812,7 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, int 
     }
 
     // check if we have enough points in every dimension
-    int nPoints[param::VoxDim] = { 0 };
+    std::array<int, param::VoxDim> nPoints{ 0 };
     for (int i = ixMax - ixMin + 1; i--;) {
       if (nOccX[i]) {
         ++nPoints[param::VoxX];
@@ -851,7 +829,7 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, int 
       }
     }
     bool enoughPoints = true;
-    bool incrDone[param::VoxDim] = { 0 };
+    std::array<bool, param::VoxDim> incrDone{ false };
     for (int i = 0; i < param::VoxDim; ++i) {
       if (nPoints[i] < minPointsDir[i]) {
         // need to extend smoothing neighbourhood
@@ -1063,7 +1041,7 @@ double TrackResiduals::getKernelWeight(std::array<double, 3> u2vec, int kernelTy
 ///
 ///////////////////////////////////////////////////////////////////////////////
 
-float TrackResiduals::fitPoly1Robust(std::vector<float>& x, std::vector<float>& y, float* res, float* err, float cutLTM)
+float TrackResiduals::fitPoly1Robust(std::vector<float>& x, std::vector<float>& y, std::array<float, 2>& res, std::array<float, 3>& err, float cutLTM)
 {
   // robust pol1 fit, modifies input arrays order
   if (x.size() != y.size()) {
@@ -1074,7 +1052,7 @@ float TrackResiduals::fitPoly1Robust(std::vector<float>& x, std::vector<float>& 
   if (nPoints < 2) {
     return -1;
   }
-  std::vector<float> yResults(7);
+  std::array<float, 7> yResults;
   std::vector<size_t> indY(nPoints);
   if (!stat::LTMUnbinned(y, indY, yResults, cutLTM)) {
     return -1;
@@ -1116,16 +1094,14 @@ float TrackResiduals::fitPoly1Robust(std::vector<float>& x, std::vector<float>& 
 }
 
 //___________________________________________________________________
-void TrackResiduals::medFit(int nPoints, int offset, const std::vector<float>& x, const std::vector<float>& y, float& a, float& b, float* err, float delI)
+void TrackResiduals::medFit(int nPoints, int offset, const std::vector<float>& x, const std::vector<float>& y, float& a, float& b, std::array<float, 3>& err, float delI)
 {
   // fitting a straight line y(x|a, b) = a + b * x
   // to given x and y data minimizing the absolute deviation
   float aa, bb, chi2 = 0.f;
   if (nPoints < 2) {
     a = b = 0.f;
-    if (err) {
-      err[0] = err[1] = err[2] = 999.f;
-    }
+    err[0] = err[1] = err[2] = 999.f;
     return;
   }
   if (!delI) {
@@ -1141,11 +1117,9 @@ void TrackResiduals::medFit(int nPoints, int offset, const std::vector<float>& x
     delI = 1. / del;
     aa = (sxx * sy - sx * sxy) * delI;
     bb = (nPoints * sxy - sx * sy) * delI;
-    if (err) {
-      err[0] = sxx * delI;
-      err[1] = sx * delI;
-      err[2] = nPoints * delI;
-    }
+    err[0] = sxx * delI;
+    err[1] = sx * delI;
+    err[2] = nPoints * delI;
   } else {
     // initial values provided
     aa = a;

@@ -50,25 +50,21 @@ class TrackResiduals
 {
  public:
   /// Default constructor
-  TrackResiduals();
-  /// Destructor
-  ~TrackResiduals() = default;
+  TrackResiduals() = default;
 
   /// structure to hold the results
   struct bres_t {
-    float D[param::ResDim];            // values of extracted distortions
-    float E[param::ResDim];            // their errors
-    float DS[param::ResDim];           // smoothed residual
-    float DC[param::ResDim];           // Cheb parameterized residual
-    float EXYCorr{ 0.f };              // correlation between extracted X and Y
-    float dYSigMAD{ 0.f };             // MAD estimator of dY sigma (dispersion after slope removal)
-    float dZSigLTM{ 0.f };             // Z sigma from unbinned LTM estimator
-    float stat[param::VoxHDim];        // statistics: averages of each voxel dimension + entries
-    unsigned char bvox[param::VoxDim]; // voxel identifier, here the bvox[0] shows number of Q bins used for Y
-    unsigned char bsec{ 0 };           // sector ID (0-35)
-    unsigned char flags{ 0 };          // status flag
-
-    bres_t() : D{}, E{}, DS{}, DC{}, stat{}, bvox{} {}
+    std::array<float, param::ResDim> D{};            // values of extracted distortions
+    std::array<float, param::ResDim> E{};            // their errors
+    std::array<float, param::ResDim> DS{};           // smoothed residual
+    std::array<float, param::ResDim> DC{};           // Cheb parameterized residual
+    float EXYCorr{ 0.f };                            // correlation between extracted X and Y
+    float dYSigMAD{ 0.f };                           // MAD estimator of dY sigma (dispersion after slope removal)
+    float dZSigLTM{ 0.f };                           // Z sigma from unbinned LTM estimator
+    std::array<float, param::VoxHDim> stat{};        // statistics: averages of each voxel dimension + entries
+    std::array<unsigned char, param::VoxDim> bvox{}; // voxel identifier, here the bvox[0] shows number of Q bins used for Y
+    unsigned char bsec{ 0 };                         // sector ID (0-35)
+    unsigned char flags{ 0 };                        // status flag
   };
 
   // initialization
@@ -90,17 +86,17 @@ class TrackResiduals
   void smooth(int iSec);
 
   // statistics
-  float fitPoly1Robust(std::vector<float>& x, std::vector<float>& y, float* res, float* err, float cutLTM);
+  float fitPoly1Robust(std::vector<float>& x, std::vector<float>& y, std::array<float, 2>& res, std::array<float, 3>& err, float cutLTM);
   float getMAD2Sigma(const std::vector<float> data);
-  void medFit(int nPoints, int offset, const std::vector<float>& x, const std::vector<float>& y, float& a, float& b, float* err = nullptr, float delI = 0.f);
+  void medFit(int nPoints, int offset, const std::vector<float>& x, const std::vector<float>& y, float& a, float& b, std::array<float, 3>& err, float delI = 0.f);
   float roFunc(int nPoints, int offset, const std::vector<float>& x, const std::vector<float>& y, float b, float& aa);
   float selectKthMin(const int k, std::vector<float>& data);
-  bool getSmoothEstimate(int iSec, float x, float p, float z, int whichDim = 0, float* res = nullptr);
+  bool getSmoothEstimate(int iSec, float x, float p, float z, std::array<float, param::ResDim>& res, int whichDim = 0);
   double getKernelWeight(std::array<double, 3> u2vec, int kernelType) const;
 
   // binning / geometry
   unsigned short getGlbVoxBin(int ix, int ip, int iz) const;
-  unsigned short getGlbVoxBin(unsigned char* bvox) const;
+  unsigned short getGlbVoxBin(std::array<unsigned char, param::VoxDim> bvox) const;
   void getVoxelCoordinates(int isec, int ix, int ip, int iz, float& x, float& p, float& z) const;
   float getX(int i) const;
   float getY2X(int ix, int ip) const;
@@ -122,42 +118,42 @@ class TrackResiduals
   void closeOutputFile();
 
  private:
-  std::unique_ptr<TFile> mFileOut;                   ///< output debug file
-  std::unique_ptr<TTree> mTreeOut;                   ///< tree holding debug output
-  bool mIsInitialized{ false };                      ///< initialize only once
-  bool mUniformBins[param::VoxDim];                  ///< if binning is uniform for each dimension
-  bool mPrintMem{ false };                           ///< turn on to print memory usage at certain points
-  bool mUseErrInSmoothing{ true };                   ///< weight kernel by point error
-  bool mSmoothPol2[param::VoxDim];                   ///< option to use pol1 or pol2 in each direction
-  float mDX{ 0.f };                                  ///< x bin size
-  float mDXI{ 0.f };                                 ///< inverse of x bin size
-  int mNXBins{ -1 };                                 ///< number of bins in radial direction
-  int mNY2XBins;                                     ///< number of y/x bins per sector
-  int mNZBins{ 0 };                                  ///< number of z/x bins per sector
-  float mDZI{ 0.f };                                 ///< inverse of bin size in z (is 5!?)
-  float mDZ{ 0.f };                                  ///< bin size in z (is 0.2!?)
-  int mNSmoothingFailedBins[param::NSectors2];       ///< number of failed bins / sector
-  int mKernelType{ -1 };                             ///< kernel type (Epanechnikov / Gaussian)
-  std::array<float, param::VoxDim> mKernelScaleEdge; ///< optional scaling factors for kernel width on the edge
-  std::array<float, param::VoxDim> mKernelWInv;      ///< inverse kernel width in bins
-  std::array<int, param::VoxDim> mStepKern;          ///< N bins to consider with given kernel settings
-  int mNVoxPerSector{ 0 };                           ///< number of voxels per sector
-
-  std::array<int, param::VoxDim> mNBins;                                   ///< number of bins for all dimensions
-  std::array<std::bitset<param::NPadRows>, param::NSectors2> mXBinsIgnore; ///< flags which X bins to ignore
-  std::array<double, param::ResDim * param::MaxSmtDim> mLastSmoothingRes;  ///< results of last smoothing operation
-
-  std::vector<float> mMaxY2X; ///< max y/x at each x bin, accounting dead zones
-  std::vector<float> mDY2XI;  ///< inverse y/x bin size at given x bin
-  std::vector<float> mDY2X;   ///< y/x bin size at given x bin
-
-  std::array<std::array<float, param::NPadRows>, param::NSectors2> mValidFracXBins; ///< for each sector for each X-bin the fraction of validated voxels
-
-  std::vector<std::vector<bres_t>> mVoxelResults; ///< results per sector and per voxel for 3-D distortions
+  // input data
+  std::unique_ptr<TFile> mFileOut{}; ///< output debug file
+  std::unique_ptr<TTree> mTreeOut{}; ///< tree holding debug output
+  // status flags
+  bool mIsInitialized{}; ///< initialize only once
+  bool mPrintMem{};      ///< turn on to print memory usage at certain points
+  // binning
+  int mNXBins{};                                  ///< number of bins in radial direction
+  int mNY2XBins{};                                ///< number of y/x bins per sector
+  int mNZBins{};                                  ///< number of z/x bins per sector
+  int mNVoxPerSector{};                           ///< number of voxels per sector
+  float mDX{};                                    ///< x bin size
+  float mDXI{};                                   ///< inverse of x bin size
+  std::vector<float> mMaxY2X{};                   ///< max y/x at each x bin, accounting dead zones
+  std::vector<float> mDY2X{};                     ///< y/x bin size at given x bin
+  std::vector<float> mDY2XI{};                    ///< inverse y/x bin size at given x bin
+  float mDZ{};                                    ///< bin size in z
+  float mDZI{};                                   ///< inverse of bin size in z
+  std::array<bool, param::VoxDim> mUniformBins{}; ///< if binning is uniform for each dimension
+  // smoothing
+  int mKernelType{};                                                        ///< kernel type (Epanechnikov / Gaussian)
+  bool mUseErrInSmoothing{ true };                                          ///< weight kernel by point error
+  std::array<bool, param::VoxDim> mSmoothPol2{};                            ///< option to use pol1 or pol2 in each direction
+  std::array<int, param::NSectors2> mNSmoothingFailedBins{};                ///< number of failed bins / sector
+  std::array<int, param::VoxDim> mStepKern{};                               ///< N bins to consider with given kernel settings
+  std::array<float, param::VoxDim> mKernelScaleEdge{};                      ///< optional scaling factors for kernel width on the edge
+  std::array<float, param::VoxDim> mKernelWInv{};                           ///< inverse kernel width in bins
+  std::array<double, param::ResDim * param::MaxSmtDim> mLastSmoothingRes{}; ///< results of last smoothing operation
+  // (intermidiate) results
+  std::array<std::bitset<param::NPadRows>, param::NSectors2> mXBinsIgnore{};          ///< flags which X bins to ignore
+  std::array<std::array<float, param::NPadRows>, param::NSectors2> mValidFracXBins{}; ///< for each sector for each X-bin the fraction of validated voxels
+  std::vector<std::vector<bres_t>> mVoxelResults{};                                   ///< results per sector and per voxel for 3-D distortions
 };
 
 //_____________________________________________________
-inline unsigned short TrackResiduals::getGlbVoxBin(unsigned char* bvox) const
+inline unsigned short TrackResiduals::getGlbVoxBin(std::array<unsigned char, param::VoxDim> bvox) const
 {
   return bvox[param::VoxX] + bvox[param::VoxF] * mNXBins + bvox[param::VoxZ] * mNXBins * mNY2XBins;
 }
@@ -165,7 +161,7 @@ inline unsigned short TrackResiduals::getGlbVoxBin(unsigned char* bvox) const
 //_____________________________________________________
 inline unsigned short TrackResiduals::getGlbVoxBin(int ix, int ip, int iz) const
 {
-  unsigned char bvox[param::VoxDim];
+  std::array<unsigned char, param::VoxDim> bvox;
   bvox[param::VoxX] = ix;
   bvox[param::VoxF] = ip;
   bvox[param::VoxZ] = iz;
