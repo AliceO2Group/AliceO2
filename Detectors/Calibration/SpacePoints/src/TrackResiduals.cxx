@@ -1120,7 +1120,7 @@ void TrackResiduals::medFit(int nPoints, int offset, const std::vector<float>& x
 {
   // fitting a straight line y(x|a, b) = a + b * x
   // to given x and y data minimizing the absolute deviation
-  float aa, bb, b1, b2, f, f1, sigb, chi2 = 0.f;
+  float aa, bb, chi2 = 0.f;
   if (nPoints < 2) {
     a = b = 0.f;
     if (err) {
@@ -1155,11 +1155,11 @@ void TrackResiduals::medFit(int nPoints, int offset, const std::vector<float>& x
     float tmp = y[j] - (aa + bb * x[j]);
     chi2 += tmp * tmp;
   }
-  sigb = std::sqrt(chi2 * delI); // expected sigma for b
-  b1 = bb;
-  f1 = roFunc(nPoints, offset, x, y, b1, aa);
+  float sigb = std::sqrt(chi2 * delI); // expected sigma for b
+  float b1 = bb;
+  float f1 = roFunc(nPoints, offset, x, y, b1, aa);
   if (sigb > 0) {
-    b2 = bb + std::copysign(3.f * sigb, f1);
+    float b2 = bb + std::copysign(3.f * sigb, f1);
     float f2 = roFunc(nPoints, offset, x, y, b2, aa);
     if (fabs(f1 - f2) < param::FloatEps) {
       a = aa;
@@ -1179,7 +1179,7 @@ void TrackResiduals::medFit(int nPoints, int offset, const std::vector<float>& x
       if (bb == b1 || bb == b2) {
         break;
       }
-      f = roFunc(nPoints, offset, x, y, bb, aa);
+      float f = roFunc(nPoints, offset, x, y, bb, aa);
       if (f * f1 >= .0f) {
         f1 = f;
         b1 = bb;
