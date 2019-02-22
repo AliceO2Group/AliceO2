@@ -28,6 +28,7 @@
 #pragma link C++ class o2::MFT::Ladder+;
 #pragma link C++ class o2::MFT::Flex+;
 #pragma link C++ class o2::MFT::Support+;
+#pragma link C++ class o2::MFT::PCBSupport+;
 #pragma link C++ class o2::MFT::HeatExchanger+;
 #pragma link C++ class o2::MFT::HalfCone+;
 

@@ -46,14 +46,7 @@ class Support : public TNamed
   TGeoVolumeAssembly* create(Int_t kHalf, Int_t disk);
 
 
-
-// protected:
-//  TGeoVolumeAssembly* mSupportVolume;
-//  Double_t mSupportThickness;
-//  Double_t mPCBThickness;
-
-private:
-
+ private:
   void initParameters();
   TGeoVolumeAssembly *mHalfDisk;
   TGeoMedium *mSupportMedium;

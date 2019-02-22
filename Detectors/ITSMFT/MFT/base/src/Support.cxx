@@ -266,7 +266,6 @@ void Support::initParameters()
   mSupportMedium  = gGeoManager->GetMedium("MFT_PEEK$");
 
   // # Support parametrization =====
-  // TODO: Add real values for halfDisks 02 to 04
 
   // ================================================
   // ## Cut boxes (squares)

@@ -16,6 +16,7 @@ set(SRCS
   src/HalfDisk.cxx
   src/Ladder.cxx
   src/Flex.cxx
+  src/PCBSupport.cxx
   src/Support.cxx
   src/HeatExchanger.cxx
   src/HalfCone.cxx
@@ -37,6 +38,7 @@ set(HEADERS
   include/${MODULE_NAME}/Ladder.h
   include/${MODULE_NAME}/Flex.h
   include/${MODULE_NAME}/Support.h
+  include/${MODULE_NAME}/PCBSupport.h
   include/${MODULE_NAME}/HeatExchanger.h
   include/${MODULE_NAME}/HalfCone.h
 )

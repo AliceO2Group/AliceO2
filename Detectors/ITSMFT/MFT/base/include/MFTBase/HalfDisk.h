@@ -38,6 +38,13 @@ namespace o2
 {
 namespace MFT
 {
+class PCBSupport;
+}
+}
+namespace o2
+{
+namespace MFT
+{
 class HeatExchanger;
 }
 }
@@ -55,7 +62,8 @@ class HalfDisk : public TNamed
   HalfDisk(HalfDiskSegmentation* segmentation);
 
   TGeoVolumeAssembly* createHeatExchanger();
-  TGeoVolumeAssembly * createSupport();
+  TGeoVolumeAssembly* createSupport();
+  TGeoVolumeAssembly* createPCBSupport();
   void createLadders();
 
   ~HalfDisk() override;
@@ -65,6 +73,7 @@ class HalfDisk : public TNamed
 
  private:
   Support* mSupport;                   ///< \brief Disk Support
+  PCBSupport* mPCBSupport;             ///< \brief PCB Support
   HeatExchanger* mHeatExchanger;       ///< \brief Heat Exchanger
   TGeoVolumeAssembly* mHalfDiskVolume; ///< \brief Half-Disk Volume
   HalfDiskSegmentation* mSegmentation; ///< \brief Virtual Segmentation of the half-disk
