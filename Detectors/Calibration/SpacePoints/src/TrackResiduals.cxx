@@ -39,7 +39,6 @@
 
 using namespace o2::calib;
 
-
 ///////////////////////////////////////////////////////////////////////////////
 ///
 /// initialization + binning
@@ -535,7 +534,7 @@ int TrackResiduals::validateVoxels(int iSec)
 
   // mask X-bins which cannot be smoothed
 
-  short nBadReg = 0;               // count bad regions (one or more consecutive bad X-bins)
+  short nBadReg = 0;                           // count bad regions (one or more consecutive bad X-bins)
   std::array<short, param::NPadRows> badStart; // to store indices to the beginnings of the bad regions
   std::array<short, param::NPadRows> badEnd;   // to store indices to the end of the bad regions
   bool prevBad = false;
