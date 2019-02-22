@@ -8,16 +8,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   Geometry.cxx
+/// \file   MID/Simulation/src/Geometry.cxx
 /// \brief  Implementation of the trigger-stations geometry
 /// \author Florian Damas <florian.damas@cern.ch>
 /// \date   19 june 2018
 
-#include "Geometry.h"
+#include "MIDSimulation/Geometry.h"
+
+#include <sstream>
 
 #include "Materials.h"
 #include "MIDBase/Constants.h"
-#include "MIDBase/GeometryTransformer.h"
 
 #include <TGeoVolume.h>
 #include <TGeoManager.h>
@@ -424,10 +425,21 @@ std::vector<TGeoVolume*> getSensitiveVolumes()
 }
 
 //______________________________________________________________________________
-std::string getRPCVolumePath(int deId)
+GeometryTransformer createTransformationFromManager(const TGeoManager* geoManager)
 {
-  int ichamber = Constants::getChamber(deId);
-  return "/" + getChamberVolumeName(ichamber) + "_1/" + getRPCVolumeName(getRPCType(deId), ichamber) + "_" + std::to_string(deId);
+  /// Creates the transformations from the manager
+  GeometryTransformer geoTrans;
+  TGeoNavigator* navig = geoManager->GetCurrentNavigator();
+  for (int ide = 0; ide < Constants::sNDetectionElements; ++ide) {
+    int ichamber = Constants::getChamber(ide);
+    std::stringstream volPath;
+    volPath << geoManager->GetTopVolume()->GetName() << "/" << getChamberVolumeName(ichamber) << "_1/" << getRPCVolumeName(getRPCType(ide), ichamber) << "_" << std::to_string(ide);
+    if (!navig->cd(volPath.str().c_str())) {
+      throw std::runtime_error("Could not get to volPathName=" + volPath.str());
+    }
+    geoTrans.setMatrix(ide, o2::Transform3D{ *(navig->GetCurrentMatrix()) });
+  }
+  return std::move(geoTrans);
 }
 
 } // namespace mid

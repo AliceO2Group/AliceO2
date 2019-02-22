@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "MIDSimulation/Detector.h"
-#include "Geometry.h"
+#include "MIDSimulation/Geometry.h"
 #include <TGeoManager.h>
 #include <TGeoVolume.h>
 #include "FairVolume.h"
