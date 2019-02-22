@@ -108,6 +108,8 @@ private:
         cl::CommandQueue clustering;
         cl::CommandQueue cleanup;
 
+        std::thread myThread;
+
 
         Worker(cl::Context, cl::Device, cl::Program, DeviceMemory, Worker *);
 
@@ -116,6 +118,14 @@ private:
                 const Fragment &, 
                 nonstd::span<const DigitT>, 
                 nonstd::span<Cluster>);
+
+        template<class DigitT>
+        void dispatch(
+                const Fragment &,
+                nonstd::span<const DigitT>,
+                nonstd::span<Cluster>);
+
+        void join();
     };
 
 

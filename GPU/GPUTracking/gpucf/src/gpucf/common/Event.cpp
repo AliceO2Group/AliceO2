@@ -4,9 +4,14 @@
 using namespace gpucf;
 
 
+Event::Event()
+    : event(new cl::Event)
+{
+}
+
 cl::Event *Event::get()
 {
-    return &event;
+    return event.get();
 }
 
 Timestamp Event::startMs() const
@@ -22,7 +27,7 @@ Timestamp Event::endMs() const
 Timestamp Event::profilingInfo(cl_profiling_info key) const
 {
     Timestamp data; 
-    event.getProfilingInfo(key, &data);
+    event->getProfilingInfo(key, &data);
 
     return data;
 }

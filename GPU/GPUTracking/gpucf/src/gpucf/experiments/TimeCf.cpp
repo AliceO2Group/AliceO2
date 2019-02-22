@@ -25,9 +25,6 @@ TimeCf::TimeCf(
 
 void TimeCf::run(ClEnv &env)
 {
-    GPUClusterFinder cf; 
-
-    cf.setup(config, env, digits);
 
     log::Info() << "Benchmarking " << name;
 
@@ -35,6 +32,10 @@ void TimeCf::run(ClEnv &env)
 
     for (size_t i = 0; i < repeats; i++)
     {
+        ClEnv envCopy = env;
+        GPUClusterFinder cf; 
+        cf.setup(config, envCopy, digits);
+
         auto res = cf.run();
 
         measurements.add(res.profiling);
