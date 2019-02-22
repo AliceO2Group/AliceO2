@@ -675,7 +675,7 @@ void TrackResiduals::smooth(int iSec)
 bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, int whichDim, float* res)
 {
   // get smooth estimate for distortions for point in sector coordinates
-  /// \todo currect use of the symmetric matrix should speed up the code
+  /// \todo correct use of the symmetric matrix should speed up the code
 
   int minPointsDir[param::VoxDim] = { 0 }; // min number of points per direction
   const float kTrialStep = 0.5;
