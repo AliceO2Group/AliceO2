@@ -167,17 +167,20 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
       ConfigParamSpec{ "step-value-enumeration", VariantType::Int, 1, { "step between one value and the other" } } }
   };
 
+  std::vector<ConcreteDataMatcher> requestedAODs;
+  std::vector<ConcreteDataMatcher> providedAODs;
+
   for (size_t wi = 0; wi < workflow.size(); ++wi) {
-    auto& consumer = workflow[wi];
+    auto& processor = workflow[wi];
     std::string prefix = "internal-dpl-";
-    if (consumer.inputs.empty() && consumer.name.compare(0, prefix.size(), prefix) != 0) {
-      consumer.inputs.push_back(InputSpec{ "enumeration", "DPL", "ENUM", static_cast<DataAllocator::SubSpecificationType>(separateEnumerations++), Lifetime::Enumeration });
-      consumer.options.push_back(ConfigParamSpec{ "start-value-enumeration", VariantType::Int, 0, { "initial value for the enumeration" } });
-      consumer.options.push_back(ConfigParamSpec{ "end-value-enumeration", VariantType::Int, -1, { "final value for the enumeration" } });
-      consumer.options.push_back(ConfigParamSpec{ "step-value-enumeration", VariantType::Int, 1, { "step between one value and the other" } });
+    if (processor.inputs.empty() && processor.name.compare(0, prefix.size(), prefix) != 0) {
+      processor.inputs.push_back(InputSpec{ "enumeration", "DPL", "ENUM", static_cast<DataAllocator::SubSpecificationType>(separateEnumerations++), Lifetime::Enumeration });
+      processor.options.push_back(ConfigParamSpec{ "start-value-enumeration", VariantType::Int, 0, { "initial value for the enumeration" } });
+      processor.options.push_back(ConfigParamSpec{ "end-value-enumeration", VariantType::Int, -1, { "final value for the enumeration" } });
+      processor.options.push_back(ConfigParamSpec{ "step-value-enumeration", VariantType::Int, 1, { "step between one value and the other" } });
     }
-    for (size_t ii = 0; ii < consumer.inputs.size(); ++ii) {
-      auto& input = consumer.inputs[ii];
+    for (size_t ii = 0; ii < processor.inputs.size(); ++ii) {
+      auto& input = processor.inputs[ii];
       switch (input.lifetime) {
         case Lifetime::Timer: {
           auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
@@ -197,9 +200,29 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
       // name.
       auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
       if (concrete.origin == header::DataOrigin{ "AOD" }) {
-        aodReader.outputs.emplace_back(OutputSpec{ concrete.origin, concrete.description, concrete.subSpec, Lifetime::Timeframe });
+        requestedAODs.emplace_back(concrete);
       }
     }
+    for (size_t oi = 0; oi < processor.outputs.size(); ++oi) {
+      auto& output = processor.outputs[oi];
+      auto concrete = DataSpecUtils::asConcreteDataMatcher(output);
+      if (concrete.origin == header::DataOrigin{ "AOD" }) {
+        providedAODs.emplace_back(concrete);
+      }
+    }
+  }
+
+  auto last = std::unique(requestedAODs.begin(), requestedAODs.end());
+  requestedAODs.erase(last, requestedAODs.end());
+  for (auto concrete : requestedAODs) {
+    if (std::find(providedAODs.begin(), providedAODs.end(), concrete) != providedAODs.end()) {
+      continue;
+    }
+    OutputSpec output{ concrete.origin,
+                       concrete.description,
+                       concrete.subSpec,
+                       Lifetime::Timeframe };
+    aodReader.outputs.emplace_back(output);
   }
 
   if (ccdbBackend.outputs.empty() == false) {
