@@ -259,7 +259,7 @@ def bar(cnf):
         plt.ylabel(cnf.ylabel)
 
     if cnf.xlabel is not None:
-        plt.xlable(cnf.xlabel)
+        plt.label(cnf.xlabel)
 
     if cnf.showLegend:
         plt.legend()
@@ -284,7 +284,7 @@ def timeline(cnf):
         plt.ylabel(cnf.ylabel)
 
     if cnf.xlabel is not None:
-        plt.xlable(cnf.xlabel)
+        plt.xlabel(cnf.xlabel)
 
     if cnf.showLegend:
         plt.legend()

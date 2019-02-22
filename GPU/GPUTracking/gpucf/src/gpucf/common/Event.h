@@ -4,6 +4,8 @@
 
 #include <CL/cl2.hpp>
 
+#include <memory>
+
 
 namespace gpucf
 {
@@ -12,6 +14,8 @@ class Event
 {
 
 public:
+    Event();
+
     cl::Event *get();
 
     Timestamp startMs() const;
@@ -19,7 +23,7 @@ public:
     Timestamp endMs() const;
 
 private:
-    cl::Event event;
+    std::unique_ptr<cl::Event> event;
 
     Timestamp profilingInfo(cl_profiling_info) const;
 };

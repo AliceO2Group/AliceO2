@@ -7,6 +7,8 @@
 
 #include <shared/tpc.h>
 
+#include <functional>
+
 
 using namespace gpucf;
 
@@ -58,6 +60,196 @@ GPUClusterFinder::Worker::Worker(
     }
 }
 
+template<class DigitT>
+void GPUClusterFinder::Worker::run(
+        const Fragment &range,
+        nonstd::span<const DigitT> digits,
+        nonstd::span<Cluster> /* cluster */)
+{
+    if (prev)
+    {
+        std::vector<cl::Event> ev = {prev->digitsToDevice.get()};
+        clustering.enqueueBarrierWithWaitList(&ev);
+    }
+
+    /*************************************************************************
+     * Copy digits to device
+     ************************************************************************/
+
+    const size_t sizeofDigit = sizeof(DigitT);
+
+    nonstd::span<const DigitT> toCopy = digits.subspan(
+            range.start + range.backlog, 
+            range.items + range.future);
+
+    log::Debug() << "Sending " << toCopy.size() * sizeofDigit << " bytes to device";
+
+    clustering.enqueueWriteBuffer(
+            mem.digits,
+            CL_FALSE,
+            (range.start + range.backlog) * sizeofDigit,
+            toCopy.size() * sizeofDigit,
+            toCopy.data(),
+            nullptr,
+            digitsToDevice.get());
+
+    if (next)
+    {
+        next->digitsToDevice.set_value(*digitsToDevice.get());
+    }
+
+
+    /*************************************************************************
+     * Write digits to chargeMap
+     ************************************************************************/
+
+    cl::NDRange local(64);
+
+    DBG(range.start);
+    DBG(toCopy.size());
+
+    fillChargeMap.setArg(0, mem.digits);
+    fillChargeMap.setArg(1, mem.chargeMap);
+    clustering.enqueueNDRangeKernel(
+            fillChargeMap,
+            cl::NDRange(range.start + range.backlog),
+            cl::NDRange(toCopy.size()),
+            local,
+            nullptr,
+            fillingChargeMap.get());
+
+    if (next)
+    {
+        next->fillingChargeMap.set_value(*fillingChargeMap.get());
+    }
+
+    if (prev)
+    {
+        std::vector<cl::Event> ev = {prev->fillingChargeMap.get()};
+        clustering.enqueueBarrierWithWaitList(&ev);
+    }
+
+
+    /*************************************************************************
+     * Look for peaks
+     ************************************************************************/
+
+    DBG(range.start) 
+    DBG(range.backlog + range.items);
+
+    findPeaks.setArg(0, mem.chargeMap);
+    findPeaks.setArg(1, mem.digits);
+    findPeaks.setArg(2, mem.isPeak);
+    clustering.enqueueNDRangeKernel(
+            findPeaks,
+            cl::NDRange(range.start),
+            cl::NDRange(range.backlog + range.items),
+            local,
+            nullptr,
+            findingPeaks.get());
+}
+
+template<class DigitT>
+void GPUClusterFinder::Worker::dispatch(
+        const Fragment &fragment,
+        nonstd::span<const DigitT> digits,
+        nonstd::span<Cluster> clusters)
+{
+    myThread = std::thread(
+            std::bind(
+                &GPUClusterFinder::Worker::run<DigitT>, 
+                this, 
+                fragment, 
+                digits, 
+                clusters));
+}
+
+void GPUClusterFinder::Worker::join()
+{
+    myThread.join();
+    clustering.finish();
+}
+
+size_t GPUClusterFinder::computeAndReadClusters()
+{
+    Worker &worker = workers.front();
+
+
+    /*************************************************************************
+     * Compact peaks
+     ************************************************************************/
+
+    size_t clusterNum = streamCompaction.enqueue(
+            worker.clustering,
+            mem.digits,
+            mem.peaks,
+            mem.isPeak);
+
+    /* log::Debug() << "Found " << clusterNum << " peaks"; */
+
+
+    /*************************************************************************
+     * Compute cluster
+     ************************************************************************/
+
+    cl::NDRange local(64);
+
+    if (clusterNum > 0)
+    {
+        worker.computeClusters.setArg(0, mem.chargeMap);
+        worker.computeClusters.setArg(1, mem.peaks);
+        worker.computeClusters.setArg(2, mem.globalToLocalRow);
+        worker.computeClusters.setArg(3, mem.globalRowToCru);
+        worker.computeClusters.setArg(4, mem.cluster);
+        worker.clustering.enqueueNDRangeKernel(
+                worker.computeClusters,
+                cl::NullRange,
+                cl::NDRange(clusterNum),
+                local,
+                nullptr,
+                worker.computingClusters.get());
+    }
+
+
+    /*************************************************************************
+     * Reset charge map
+     ************************************************************************/
+
+    worker.resetChargeMap.setArg(0, mem.digits);
+    worker.resetChargeMap.setArg(1, mem.chargeMap);
+    worker.clustering.enqueueNDRangeKernel(
+            worker.resetChargeMap,
+            cl::NullRange,
+            digits.size(),
+            local,
+            nullptr,
+            worker.zeroChargeMap.get());
+    
+
+    /*************************************************************************
+     * Copy cluster to host
+     ************************************************************************/
+
+    ASSERT(clusters.size() == size_t(digits.size()));
+
+    log::Info() << "Copy results back...";
+
+    if (clusterNum > 0)
+    {
+        worker.clustering.enqueueReadBuffer(
+                mem.cluster, 
+                CL_TRUE, 
+                0, 
+                clusterNum * sizeof(Cluster), 
+                clusters.data(),
+                nullptr,
+                worker.clustersToHost.get());
+    }
+
+    worker.clustering.finish();
+
+    return clusterNum;
+}
 
 /* Lane GPUClusterFinder::Worker::finish() */
 /* { */
@@ -109,7 +301,7 @@ void GPUClusterFinder::setup(Config conf, ClEnv &env, nonstd::span<const Digit> 
      * Allocate clusters output
      ************************************************************************/
 
-    clusters.reserve(digits.size());
+    clusters.resize(digits.size());
 
 
     /*************************************************************************
@@ -243,17 +435,21 @@ GPUClusterFinder::Result GPUClusterFinder::run()
 
         if (config.usePackedDigits)
         {
-            worker.run<PackedDigit>(
+            worker.dispatch<PackedDigit>(
                     *fragment, 
                     nonstd::span<const PackedDigit>(packedDigits),
                     clusters);
         }
         else
         {
-            worker.run(*fragment, digits, clusters);
+            worker.dispatch(*fragment, digits, clusters);
         }
 
-        worker.clustering.finish();
+    }
+
+    for (Worker &worker : workers)
+    {
+        worker.join();
     }
 
 
@@ -347,175 +543,6 @@ void GPUClusterFinder::addDefines(ClEnv &env)
     }
 }
 
-template<class DigitT>
-void GPUClusterFinder::Worker::run(
-        const Fragment &range,
-        nonstd::span<const DigitT> digits,
-        nonstd::span<Cluster> /* cluster */)
-{
-    if (prev)
-    {
-        std::vector<cl::Event> ev = {prev->digitsToDevice.get()};
-        clustering.enqueueBarrierWithWaitList(&ev);
-    }
-
-    /*************************************************************************
-     * Copy digits to device
-     ************************************************************************/
-
-    const size_t sizeofDigit = sizeof(DigitT);
-
-    nonstd::span<const DigitT> toCopy = digits.subspan(
-            range.start + range.backlog, 
-            range.items + range.future);
-
-    log::Debug() << "Sending " << toCopy.size() * sizeofDigit << " bytes to device";
-
-    clustering.enqueueWriteBuffer(
-            mem.digits,
-            CL_FALSE,
-            (range.start + range.backlog) * sizeofDigit,
-            toCopy.size() * sizeofDigit,
-            toCopy.data(),
-            nullptr,
-            digitsToDevice.get());
-
-    if (next)
-    {
-        next->digitsToDevice.set_value(*digitsToDevice.get());
-    }
-
-
-    /*************************************************************************
-     * Write digits to chargeMap
-     ************************************************************************/
-
-    cl::NDRange local(64);
-
-    DBG(range.start);
-    DBG(toCopy.size());
-
-    fillChargeMap.setArg(0, mem.digits);
-    fillChargeMap.setArg(1, mem.chargeMap);
-    clustering.enqueueNDRangeKernel(
-            fillChargeMap,
-            cl::NDRange(range.start + range.backlog),
-            cl::NDRange(toCopy.size()),
-            local,
-            nullptr,
-            fillingChargeMap.get());
-
-    if (next)
-    {
-        next->fillingChargeMap.set_value(*fillingChargeMap.get());
-    }
-
-    if (prev)
-    {
-        std::vector<cl::Event> ev = {prev->fillingChargeMap.get()};
-        clustering.enqueueBarrierWithWaitList(&ev);
-    }
-
-
-    /*************************************************************************
-     * Look for peaks
-     ************************************************************************/
-
-    DBG(range.start) 
-    DBG(range.backlog + range.items);
-
-    findPeaks.setArg(0, mem.chargeMap);
-    findPeaks.setArg(1, mem.digits);
-    findPeaks.setArg(2, mem.isPeak);
-    clustering.enqueueNDRangeKernel(
-            findPeaks,
-            cl::NDRange(range.start),
-            cl::NDRange(range.backlog + range.items),
-            local,
-            nullptr,
-            findingPeaks.get());
-}
-
-size_t GPUClusterFinder::computeAndReadClusters()
-{
-    Worker &worker = workers.front();
-
-
-    /*************************************************************************
-     * Compact peaks
-     ************************************************************************/
-
-    size_t clusterNum = streamCompaction.enqueue(
-            worker.clustering,
-            mem.digits,
-            mem.peaks,
-            mem.isPeak);
-
-    log::Debug() << "Found " << clusterNum << " peaks";
-
-
-    /*************************************************************************
-     * Compute cluster
-     ************************************************************************/
-
-    cl::NDRange local(64);
-
-    if (clusterNum > 0)
-    {
-        worker.computeClusters.setArg(0, mem.chargeMap);
-        worker.computeClusters.setArg(1, mem.peaks);
-        worker.computeClusters.setArg(2, mem.globalToLocalRow);
-        worker.computeClusters.setArg(3, mem.globalRowToCru);
-        worker.computeClusters.setArg(4, mem.cluster);
-        worker.clustering.enqueueNDRangeKernel(
-                worker.computeClusters,
-                cl::NullRange,
-                cl::NDRange(clusterNum),
-                local,
-                nullptr,
-                worker.computingClusters.get());
-    }
-
-
-    /*************************************************************************
-     * Reset charge map
-     ************************************************************************/
-
-    worker.resetChargeMap.setArg(0, mem.digits);
-    worker.resetChargeMap.setArg(1, mem.chargeMap);
-    worker.clustering.enqueueNDRangeKernel(
-            worker.resetChargeMap,
-            cl::NullRange,
-            digits.size(),
-            local,
-            nullptr,
-            worker.zeroChargeMap.get());
-    
-
-    /*************************************************************************
-     * Copy cluster to host
-     ************************************************************************/
-
-    ASSERT(clusters.size() == size_t(digits.size()));
-
-    log::Info() << "Copy results back...";
-
-    if (clusterNum > 0)
-    {
-        worker.clustering.enqueueReadBuffer(
-                mem.cluster, 
-                CL_TRUE, 
-                0, 
-                clusterNum * sizeof(Cluster), 
-                clusters.data(),
-                nullptr,
-                worker.clustersToHost.get());
-    }
-
-    worker.clustering.finish();
-
-    return clusterNum;
-}
 
 Lane GPUClusterFinder::toLane(const Worker &p)
 {
