@@ -49,7 +49,8 @@ class PCBSupport : public TNamed
 
   void initParameters();
   TGeoVolumeAssembly *mHalfDisk;
-  TGeoMedium *mSupportMedium;
+  TGeoMedium *mPCBMediumCu;
+  TGeoMedium *mPCBMediumFR4;
   TGeoBBox *mSomeBox;
   TGeoTube *mSomeTube;
   TGeoArb8 *mSomeArb;
@@ -57,9 +58,11 @@ class PCBSupport : public TNamed
   TGeoSubtraction *mSomeSubtraction;
   TGeoUnion *mSomeUnion;
   TGeoTranslation *mSomeTranslation;
-  TGeoCompositeShape *mSomeCS;
+  TGeoCompositeShape *mPCBCu;
+  TGeoCompositeShape *mPCBFR4;
 
-  Double_t mPCBThickness; //Support Thickness
+  Double_t mCuThickness; //Cu layer thickness
+  Double_t mFR4Thickness; //FR4 layer thickness
   Double_t mPCBRad[5]; // Radius of each PCB disk
   Double_t mDiskGap; //gap between half disks
   Double_t mPhi0;
