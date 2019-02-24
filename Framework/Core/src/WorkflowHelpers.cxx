@@ -602,10 +602,10 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
     }
 
     if (matched == false) {
-      auto &outputSpec = workflow[output.workflowId].outputs[output.id];
+      auto& outputSpec = workflow[output.workflowId].outputs[output.id];
       char buf[64];
-      results.push_back(InputSpec{ (snprintf(buf, 64, "dangling_%zu_%zu", output.workflowId, output.id), buf), outputSpec.origin,
-                                   outputSpec.description, outputSpec.subSpec });
+      results.emplace_back(InputSpec{ (snprintf(buf, 64, "dangling_%zu_%zu", output.workflowId, output.id), buf), outputSpec.origin,
+                                      outputSpec.description, outputSpec.subSpec });
     }
   }
 
