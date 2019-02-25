@@ -489,7 +489,7 @@ void MatchTOF::doMatching(int sec)
     auto& trackWork = mTracksWork[cacheTrk[itrk]];
     auto& trefTrk = trackWork.getParamOut();
     auto& intLT = trackWork.getLTIntegralOut();
-    Printf(Form("intLT (before doing anything): length = %f, time (Pion) = %f", intLT.getL(), intLT.getTOF(o2::track::PID::Pion)));
+    Printf("intLT (before doing anything): length = %f, time (Pion) = %f", intLT.getL(), intLT.getTOF(o2::track::PID::Pion));
     float minTrkTime = (trackWork.getTimeMUS().getTimeStamp() - mSigmaTimeCut *trackWork.getTimeMUS().getTimeStampError()) * 1.E6; // minimum time in ps
     float maxTrkTime = (trackWork.getTimeMUS().getTimeStamp() + mSigmaTimeCut *trackWork.getTimeMUS().getTimeStampError()) * 1.E6; // maximum time in ps
     int istep = 1;                                                                                                              // number of steps
@@ -572,7 +572,7 @@ void MatchTOF::doMatching(int sec)
           deltaPos[nStripsCrossedInPropagation - 1][1] = deltaPosTemp[1];
           deltaPos[nStripsCrossedInPropagation - 1][2] = deltaPosTemp[2];
 	  trkLTInt[nStripsCrossedInPropagation - 1] = intLT;
-	  Printf(Form("intLT (after matching to strip %d): length = %f, time (Pion) = %f", nStripsCrossedInPropagation-1, trkLTInt[nStripsCrossedInPropagation - 1].getL(), trkLTInt[nStripsCrossedInPropagation - 1].getTOF(o2::track::PID::Pion)));
+	  Printf("intLT (after matching to strip %d): length = %f, time (Pion) = %f", nStripsCrossedInPropagation-1, trkLTInt[nStripsCrossedInPropagation - 1].getL(), trkLTInt[nStripsCrossedInPropagation - 1].getTOF(o2::track::PID::Pion));
           nStepsInsideSameStrip[nStripsCrossedInPropagation - 1]++;
         } else {                                                                                                                                    // a further propagation step in the same strip -> update info (we sum up on all matching with strip - we will divide for the number of steps a bit below)
 	  // N.B. the integrated length and time are taken (at least for now) from the first time we crossed the strip, so here we do nothing with those

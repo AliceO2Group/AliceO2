@@ -23,7 +23,7 @@ namespace dataformats
 class CalibLHCphaseTOF
 {
  public:
-  CalibLHCphaseTOF();
+  CalibLHCphaseTOF() = default;
 
   float getLHCphase(int timestamp) const;
 

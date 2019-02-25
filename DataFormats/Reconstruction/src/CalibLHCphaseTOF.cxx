@@ -12,17 +12,12 @@
 /// \brief Class to store the output of the matching to TOF for calibration
 
 #include <algorithm>
-#include <stdio.h>
+#include <cstdio>
 #include "ReconstructionDataFormats/CalibLHCphaseTOF.h"
 
 using namespace o2::dataformats;
 
 //ClassImp(o2::dataformats::CalibLHCphaseTOF);
-
-CalibLHCphaseTOF::CalibLHCphaseTOF()
-{
-}
-//______________________________________________
 
 float CalibLHCphaseTOF::getLHCphase(int timestamp) const
 {
@@ -59,5 +54,6 @@ CalibLHCphaseTOF& CalibLHCphaseTOF::operator+=(const CalibLHCphaseTOF& other)
     for (auto obj = other.mLHCphase.begin(); obj != other.mLHCphase.end(); obj++)
       mLHCphase.push_back(*obj);
   }
+  return *this;
 }
 //______________________________________________

@@ -12,7 +12,7 @@
 /// \brief Class to store the output of the matching to TOF for calibration
 
 #include <algorithm>
-#include <stdio.h>
+#include <cstdio>
 #include "ReconstructionDataFormats/CalibTimeSlewingParamTOF.h"
 
 using namespace o2::dataformats;
