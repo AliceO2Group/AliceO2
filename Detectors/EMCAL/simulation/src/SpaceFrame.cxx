@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <FairLogger.h>
 #include <TGeoCompositeShape.h>
 #include <TGeoCone.h>
 #include <TGeoManager.h>
@@ -22,77 +23,54 @@
 
 using namespace o2::EMCAL;
 
-SpaceFrame::SpaceFrame()
-  : mNumCross(0),
-    mNumSubSets(0),
-    mTotalHalfWidth(0.),
-    mBeginPhi(0.),
-    mEndPhi(0.),
-    mTotalPhi(0.),
-    mBeginRadius(0.),
-    mHalfFrameTrans(0.),
-    mFlangeHeight(0.),
-    mFlangeWidth(0.),
-    mRibHeight(0.),
-    mRibWidth(0.),
-    mCrossBottomWidth(0.),
-    mCrossTopWidth(0.),
-    mCrossBottomHeight(0.),
-    mCrossBottomRadThick(0.),
-    mCrossBeamArcLength(0.),
-    mCrossBottomStartRadius(0.),
-    mCrossTopHeight(0.),
-    mCrossTopRadThick(0.),
-    mCrossTopStart(0.),
-    mEndRadius(0.),
-    mEndBeamRadThick(0),
-    mEndBeamBeginRadius(0)
-{
-  mNumCross = 12;
-  mNumSubSets = 3;
-  mTotalHalfWidth = 152.3; // Half Width of a Half Frame
-                           // (CalFrame comes in 2 sections)
-  mBeginPhi = 76.8;
-  mEndPhi = 193.03;
-  mBeginRadius = 490.;
-
-  mHalfFrameTrans = mTotalHalfWidth + 57.2 / 2.; // Half Frame Connector is 57.2cm wide,
-                                                 // Supermodule is 340cm wide
-                                                 // Sources: HALF-FRAME-CONNECTOR-27E226A.pdf
-                                                 // provided by LBL
-
-  mFlangeWidth = 15.2;
-  mRibWidth = 1.5;
-  mCrossBottomHeight = 15.2;
-  mCrossBottomRadThick = 1.5;
-  mCrossTopHeight = 1.5;
-  mCrossTopRadThick = 35. / 2.;
-
-  mTotalPhi = mEndPhi - mBeginPhi;
-  mFlangeHeight = mBeginRadius + 3.;
-  mRibHeight = mFlangeHeight + 35;
-  mCrossBottomWidth = 0.5 / (Double_t)mNumSubSets * (2. * mTotalHalfWidth - 8. * mFlangeWidth);
-  mCrossTopWidth = mCrossBottomWidth; // mCrossBottomWidth + mFlangeWidth - mRibWidth;
-                                      // for future release pending
-                                      // overlap correction - new TGeoVolume creation
-
-  mCrossBeamArcLength = (112.62597) / (mNumCross - 1) - .001; // To account for shape of TGeoBBox
-  mCrossBottomStartRadius = mBeginRadius + mCrossBottomRadThick;
-  mCrossTopStart =
-    mBeginRadius + 2. * mCrossBottomRadThick + mCrossTopRadThick + 0.015; // 0.015 is a
-                                                                          // bubblegum and duct tape
-                                                                          // fix for an overlap problem
-                                                                          // will be worked out in future releases
-  mEndRadius = mRibHeight + 1.15;
-  mEndBeamRadThick = mCrossBottomRadThick + mCrossTopRadThick;
-  mEndBeamBeginRadius = mBeginRadius + mEndBeamRadThick;
-}
-
-SpaceFrame::SpaceFrame(const SpaceFrame& frame) = default;
-
 void SpaceFrame::CreateGeometry()
 {
   LOG(DEBUG) << "Create CalFrame Geometry" << std::endl;
+
+  /************ Definition of constants *****************************/
+
+  // space frame parameters from "SINGLE FRAME ASSEMBLY 27D624H.pdf"
+  // provided by Lawrence Berkeley Labs, USA
+  const int NUMCROSS = 12;
+  const int NUMSUBSETS = 3;
+  const double TOTALHALFWIDTH = 152.3; // Half Width of a Half Frame
+                                       // (CalFrame comes in 2 sections)
+  const double BEGINPHI = 76.8;
+  const double ENDPHI = 193.03;
+  const double BEGINRADIUS = 490.;
+
+  const double HALFFRAMETRANS = TOTALHALFWIDTH + 57.2 / 2.; // Half Frame Connector is 57.2cm wide,
+                                                            // Supermodule is 340cm wide
+                                                            // Sources: HALF-FRAME-CONNECTOR-27E226A.pdf
+                                                            // provided by LBL
+
+  const double FLAGEWIDTH = 15.2;
+  const double RIBWIDTH = 1.5;
+  const double CROSSBOTTOMHEIGHT = 15.2;
+  const double CROSSBOTTOMRADTHICK = 1.5;
+  const double CROSSTOPHEIGHT = 1.5;
+  const double CROSSTOPRADTHICK = 35. / 2.;
+
+  //const double TOTALPHI = ENDPHI - BEGINPHI;
+  const double FLAGEHEIGHT = BEGINRADIUS + 3.;
+  const double RIBHEIGHT = FLAGEHEIGHT + 35;
+  const double CROSSBOTTOMWIDTH = 0.5 / (Double_t)NUMSUBSETS * (2. * TOTALHALFWIDTH - 8. * FLAGEWIDTH);
+  const double CROSSTOPWIDTH = CROSSBOTTOMWIDTH; // mCrossBottomWidth + mFlangeWidth - mRibWidth;
+                                                 // for future release pending
+                                                 // overlap correction - new TGeoVolume creation
+
+  const double CROSSBEAMARCLENGTH = (112.62597) / (NUMCROSS - 1) - .001; // To account for shape of TGeoBBox
+  const double CROSSBOTTOMSTARTRADIUS = BEGINRADIUS + CROSSBOTTOMRADTHICK;
+  const double CROSSTOPSTART =
+    BEGINRADIUS + 2. * CROSSBOTTOMRADTHICK + CROSSTOPRADTHICK + 0.015; // 0.015 is a
+                                                                       // bubblegum and duct tape
+                                                                       // fix for an overlap problem
+                                                                       // will be worked out in future releases
+  const double ENDRADIUS = RIBHEIGHT + 1.15;
+  const double ENDBEAMRADTHICK = CROSSBOTTOMRADTHICK + CROSSTOPRADTHICK;
+  const double ENDBEAMBEGINRADIUS = BEGINRADIUS + ENDBEAMRADTHICK;
+
+  /************ End efinition of constants **************************/
 
   //////////////////////////////////////Setup/////////////////////////////////////////
   TGeoVolume* top = gGeoManager->GetVolume("cave");
@@ -100,32 +78,32 @@ void SpaceFrame::CreateGeometry()
   TGeoMedium* air = gGeoManager->GetMedium("EMC_Air$");
 
   //////////////////////////////////// Volumes ///////////////////////////////////////
-  TGeoVolume* calFrameMO = gGeoManager->MakeTubs("CalFrame", air, mBeginRadius - 2.1, mEndRadius, mTotalHalfWidth * 3,
-                                                 mBeginPhi - 3, mEndPhi + 3); // Mother Volume
+  TGeoVolume* calFrameMO = gGeoManager->MakeTubs("CalFrame", air, BEGINRADIUS - 2.1, ENDRADIUS, TOTALHALFWIDTH * 3,
+                                                 BEGINPHI - 3, ENDPHI + 3); // Mother Volume
 
   calFrameMO->SetVisibility(kFALSE);
 
   // Half Frame Mother Volume
-  TGeoVolume* calHalfFrameMO = gGeoManager->MakeTubs("HalfFrame", air, mBeginRadius - 2, mEndRadius, mTotalHalfWidth,
-                                                     mBeginPhi - 2.9, mEndPhi + 2.9);
+  TGeoVolume* calHalfFrameMO = gGeoManager->MakeTubs("HalfFrame", air, BEGINRADIUS - 2, ENDRADIUS, TOTALHALFWIDTH,
+                                                     BEGINPHI - 2.9, ENDPHI + 2.9);
 
   calHalfFrameMO->SetVisibility(kFALSE);
 
   TGeoVolume* endBeams =
-    gGeoManager->MakeBox("End Beams", steel, mEndBeamRadThick, mCrossTopHeight, mTotalHalfWidth); // End Beams
+    gGeoManager->MakeBox("End Beams", steel, ENDBEAMRADTHICK, CROSSTOPHEIGHT, TOTALHALFWIDTH); // End Beams
 
-  TGeoVolume* skin = gGeoManager->MakeTubs("skin", steel, mRibHeight + 0.15, mEndRadius, mTotalHalfWidth, mBeginPhi,
-                                           mEndPhi); // back frame
+  TGeoVolume* skin = gGeoManager->MakeTubs("skin", steel, RIBHEIGHT + 0.15, ENDRADIUS, TOTALHALFWIDTH, BEGINPHI,
+                                           ENDPHI); // back frame
 
-  TGeoVolume* flangeVolume = gGeoManager->MakeTubs("supportBottom", steel, mBeginRadius, mFlangeHeight, mFlangeWidth,
-                                                   mBeginPhi, mEndPhi); // FlangeVolume Beams
+  TGeoVolume* flangeVolume = gGeoManager->MakeTubs("supportBottom", steel, BEGINRADIUS, FLAGEHEIGHT, FLAGEWIDTH,
+                                                   BEGINPHI, ENDPHI); // FlangeVolume Beams
 
   TGeoVolume* ribVolume =
-    gGeoManager->MakeTubs("RibVolume", steel, mFlangeHeight, mRibHeight, mRibWidth, mBeginPhi, mEndPhi);
+    gGeoManager->MakeTubs("RibVolume", steel, FLAGEHEIGHT, RIBHEIGHT, RIBWIDTH, BEGINPHI, ENDPHI);
 
   TGeoVolume* subSetCross = gGeoManager->MakeTubs(
-    "subSetCross", air, mBeginRadius - 1, mBeginRadius + 2 * mCrossBottomRadThick + 2 * mCrossTopRadThick + 0.15,
-    mCrossBottomWidth, mBeginPhi, mEndPhi); // Cross Beam Containers
+    "subSetCross", air, BEGINRADIUS - 1, BEGINRADIUS + 2 * CROSSBOTTOMRADTHICK + 2 * CROSSTOPRADTHICK + 0.15,
+    CROSSBOTTOMWIDTH, BEGINPHI, ENDPHI); // Cross Beam Containers
   subSetCross->SetVisibility(kFALSE);
   /*                                            // Obsolete for now
    TGeoVolume *subSetCrossTop =
@@ -133,11 +111,11 @@ void SpaceFrame::CreateGeometry()
    mBeginRadius+2*mCrossBottomRadThick+ 2*mCrossTopRadThick+1, mCrossTopWidth, mBeginPhi, mEndPhi);     // Cross
    subSetCrossTop->SetVisibility(kFALSE);
    */
-  TGeoVolume* crossBottomBeams = gGeoManager->MakeBox("crossBottom", steel, mCrossBottomRadThick, mCrossBottomHeight,
-                                                      mCrossBottomWidth); // Cross Beams
+  TGeoVolume* crossBottomBeams = gGeoManager->MakeBox("crossBottom", steel, CROSSBOTTOMRADTHICK, CROSSBOTTOMHEIGHT,
+                                                      CROSSBOTTOMWIDTH); // Cross Beams
 
   TGeoVolume* crossTopBeams =
-    gGeoManager->MakeBox("crossTop", steel, mCrossTopRadThick, mCrossTopHeight, mCrossTopWidth); // Cross Beams
+    gGeoManager->MakeBox("crossTop", steel, CROSSTOPRADTHICK, CROSSTOPHEIGHT, CROSSTOPWIDTH); // Cross Beams
 
   TGeoTranslation* trTEST = new TGeoTranslation();
   TGeoRotation* rotTEST = new TGeoRotation();
@@ -147,41 +125,41 @@ void SpaceFrame::CreateGeometry()
   Double_t endBeamParam = .4;
   // cout<<"\nmCrossBottomStartRadius: "<<mCrossBottomStartRadius<<"\n";
 
-  for (Int_t i = 0; i < mNumCross; i++) {
-    Double_t loopPhi = mBeginPhi + 1.8;
+  for (Int_t i = 0; i < NUMCROSS; i++) {
+    Double_t loopPhi = BEGINPHI + 1.8;
 
     // Cross Bottom Beams
 
-    radAngle = (loopPhi + i * mCrossBeamArcLength) * conv;
+    radAngle = (loopPhi + i * CROSSBEAMARCLENGTH) * conv;
 
-    rotTEST->SetAngles(mBeginPhi + i * mCrossBeamArcLength, 0,
+    rotTEST->SetAngles(BEGINPHI + i * CROSSBEAMARCLENGTH, 0,
                        0); //  SetTranslation(Double_t dx, Double_t dy, Double_t dz);
-    trTEST->SetTranslation(cos(radAngle) * mCrossBottomStartRadius, sin(radAngle) * mCrossBottomStartRadius, 0);
+    trTEST->SetTranslation(cos(radAngle) * CROSSBOTTOMSTARTRADIUS, sin(radAngle) * CROSSBOTTOMSTARTRADIUS, 0);
 
     TGeoCombiTrans* combo = new TGeoCombiTrans(*trTEST, *rotTEST); // TGeoTranslation &tr, const TGeoRotation &rot);
     combo->RegisterYourself();
     crossBottomBeams->SetVisibility(1);
     subSetCross->AddNode(crossBottomBeams, i + 1, combo);
-    if (i != 0 && i != mNumCross - 1) {
+    if (i != 0 && i != NUMCROSS - 1) {
       // Cross Bottom Beams
-      rotTEST->SetAngles(mBeginPhi + i * mCrossBeamArcLength, 0,
+      rotTEST->SetAngles(BEGINPHI + i * CROSSBEAMARCLENGTH, 0,
                          0); //  SetTranslation(Double_t dx, Double_t dy, Double_t dz);
-      trTEST->SetTranslation(cos(radAngle) * mCrossTopStart, sin(radAngle) * mCrossTopStart, 0);
+      trTEST->SetTranslation(cos(radAngle) * CROSSTOPSTART, sin(radAngle) * CROSSTOPSTART, 0);
       crossTopBeams->SetVisibility(1);
       subSetCross->AddNode(crossTopBeams, i + 1, new TGeoCombiTrans(*trTEST, *rotTEST));
     }
 
     else if (i == 0) {
-      rotTEST->SetAngles(mBeginPhi + i * mCrossBeamArcLength, 0,
+      rotTEST->SetAngles(BEGINPHI + i * CROSSBEAMARCLENGTH, 0,
                          0); //  SetTranslation(Double_t dx, Double_t dy, Double_t dz);
-      trTEST->SetTranslation(cos((77 - endBeamParam) * conv) * (mEndBeamBeginRadius),
-                             sin((77 - endBeamParam) * conv) * (mEndBeamBeginRadius), 0);
+      trTEST->SetTranslation(cos((77 - endBeamParam) * conv) * (ENDBEAMBEGINRADIUS),
+                             sin((77 - endBeamParam) * conv) * (ENDBEAMBEGINRADIUS), 0);
       endBeams->SetVisibility(1);
       calHalfFrameMO->AddNode(endBeams, 1, new TGeoCombiTrans(*trTEST, *rotTEST));
     } else {
       rotTEST->SetAngles(193.03, 0, 0); //  SetTranslation(Double_t dx, Double_t dy, Double_t dz);
-      trTEST->SetTranslation(cos((193.03 + endBeamParam) * conv) * (mEndBeamBeginRadius) /*more duct tape*/,
-                             sin((193.03 + endBeamParam) * conv) * (mEndBeamBeginRadius), 0);
+      trTEST->SetTranslation(cos((193.03 + endBeamParam) * conv) * (ENDBEAMBEGINRADIUS) /*more duct tape*/,
+                             sin((193.03 + endBeamParam) * conv) * (ENDBEAMBEGINRADIUS), 0);
       endBeams->SetVisibility(1);
       calHalfFrameMO->AddNode(endBeams, 2, new TGeoCombiTrans(*trTEST, *rotTEST));
     }
@@ -192,18 +170,18 @@ void SpaceFrame::CreateGeometry()
   // Translations
 
   TGeoTranslation* origin1 = new TGeoTranslation(0, 0, 0); // Equivalent to gGeoIdentity
-  TGeoTranslation* origin2 = new TGeoTranslation(0, 0, 2 * (mCrossBottomWidth + mFlangeWidth));
-  TGeoTranslation* origin3 = new TGeoTranslation(0, 0, -2 * (mCrossBottomWidth + mFlangeWidth));
+  TGeoTranslation* origin2 = new TGeoTranslation(0, 0, 2 * (CROSSBOTTOMWIDTH + FLAGEWIDTH));
+  TGeoTranslation* origin3 = new TGeoTranslation(0, 0, -2 * (CROSSBOTTOMWIDTH + FLAGEWIDTH));
 
   // FlangeVolume translations
-  TGeoTranslation* str1 = new TGeoTranslation(0, 0, -3 * (mCrossBottomWidth + mFlangeWidth));
-  TGeoTranslation* str2 = new TGeoTranslation(0, 0, -(mCrossBottomWidth + mFlangeWidth));
-  TGeoTranslation* str3 = new TGeoTranslation(0, 0, (mCrossBottomWidth + mFlangeWidth));
-  TGeoTranslation* str4 = new TGeoTranslation(0, 0, 3 * (mCrossBottomWidth + mFlangeWidth));
+  TGeoTranslation* str1 = new TGeoTranslation(0, 0, -3 * (CROSSBOTTOMWIDTH + FLAGEWIDTH));
+  TGeoTranslation* str2 = new TGeoTranslation(0, 0, -(CROSSBOTTOMWIDTH + FLAGEWIDTH));
+  TGeoTranslation* str3 = new TGeoTranslation(0, 0, (CROSSBOTTOMWIDTH + FLAGEWIDTH));
+  TGeoTranslation* str4 = new TGeoTranslation(0, 0, 3 * (CROSSBOTTOMWIDTH + FLAGEWIDTH));
 
   // Half Frame Translations
-  TGeoTranslation* halfTrans1 = new TGeoTranslation(0, 0, mHalfFrameTrans);
-  TGeoTranslation* halfTrans2 = new TGeoTranslation(0, 0, -mHalfFrameTrans);
+  TGeoTranslation* halfTrans1 = new TGeoTranslation(0, 0, HALFFRAMETRANS);
+  TGeoTranslation* halfTrans2 = new TGeoTranslation(0, 0, -HALFFRAMETRANS);
 
   // Beams Volume
   calHalfFrameMO->AddNode(flangeVolume, 1, str1);
@@ -232,5 +210,5 @@ void SpaceFrame::CreateGeometry()
   calFrameMO->AddNode(calHalfFrameMO, 2, halfTrans2);
 
   top->AddNode(calFrameMO, 1, gGeoIdentity);
-  LOG(DEBUG) << "**********************************\nmEndRadius:\t" << mEndRadius << std::endl;
+  LOG(DEBUG) << "**********************************\nmEndRadius:\t" << ENDRADIUS << std::endl;
 }
