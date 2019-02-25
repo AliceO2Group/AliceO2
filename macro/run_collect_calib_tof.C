@@ -10,7 +10,7 @@
 #endif
 
 void run_collect_calib_tof(std::string path = "./", std::string outputfile = "o2calibration_tof.root",
-		   std::string inputfileCalib = "o2calib_tof.root")
+                           std::string inputfileCalib = "o2calib_tof.root")
 {
 
   o2::globaltracking::CollectCalibInfoTOF collect;
@@ -41,5 +41,4 @@ void run_collect_calib_tof(std::string path = "./", std::string outputfile = "o2
   collect.getMinTimestamp().Write();
   collect.getMaxTimestamp().Write();
   outFile.Close();
-  
 }

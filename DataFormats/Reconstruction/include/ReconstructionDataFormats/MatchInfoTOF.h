@@ -39,7 +39,6 @@ class MatchInfoTOF
   float mChi2;     // chi2 of the pair track-TOFcluster
   o2::track::TrackLTIntegral mIntLT; ///< L,TOF integral calculated during the propagation
 
-
   //  ClassDefNV(MatchInfoTOF, 1);
 };
 }

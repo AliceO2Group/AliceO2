@@ -41,21 +41,21 @@ namespace globaltracking
 class CalibTOF
 {
   using Geo = o2::tof::Geo;
-  
+
  public:
-  static constexpr int NSTRIPSPERSTEP = 13;  // we chose this number because we process per sector, and 
+  static constexpr int NSTRIPSPERSTEP = 13; // we chose this number because we process per sector, and
                                             // each sector has 91 = 13x7 strips
   static constexpr int NPADSPERSTEP = Geo::NPADS * NSTRIPSPERSTEP;
   static constexpr int NSTEPSPERSECTOR = 91 / NSTRIPSPERSTEP;
-  enum {kLHCphase = 1,
-	kChannelOffset = 2,
-	kChannelTimeSlewing = 4}; // enum to define which calibration we will do
-  
+  enum { kLHCphase = 1,
+         kChannelOffset = 2,
+         kChannelTimeSlewing = 4 }; // enum to define which calibration we will do
+
   ///< constructor
   CalibTOF();
-  
+
   ///< destructor
-  ~CalibTOF(); 
+  ~CalibTOF();
 
   ///< calibrate using the provided input
   void run(int flag, int sector = -1);
@@ -81,40 +81,37 @@ class CalibTOF
   ///< print settings
   void print() const;
 
-  TH2F *getLHCphaseHisto() {return mHistoLHCphase;}
-  TH2F *getChTimeSlewingHistoAll() {return mHistoChTimeSlewingAll;};
-  void setMinTimestamp(int minTimestamp) {mMinTimestamp = minTimestamp;}
-  void setMaxTimestamp(int maxTimestamp) {mMaxTimestamp = maxTimestamp;}
+  TH2F* getLHCphaseHisto() { return mHistoLHCphase; }
+  TH2F* getChTimeSlewingHistoAll() { return mHistoChTimeSlewingAll; };
+  void setMinTimestamp(int minTimestamp) { mMinTimestamp = minTimestamp; }
+  void setMaxTimestamp(int maxTimestamp) { mMaxTimestamp = maxTimestamp; }
 
-  TGraphErrors *processSlewing(TH2F *histo, Bool_t forceZero,TF1 *fitFunc);
-  Int_t FitPeak(TF1 *fitFunc, TH1 *h, Float_t startSigma, Float_t nSigmaMin, Float_t nSigmaMax, const char *debuginfo="", TH2 *hdbg=nullptr);
+  TGraphErrors* processSlewing(TH2F* histo, Bool_t forceZero, TF1* fitFunc);
+  Int_t FitPeak(TF1* fitFunc, TH1* h, Float_t startSigma, Float_t nSigmaMin, Float_t nSigmaMax, const char* debuginfo = "", TH2* hdbg = nullptr);
 
-
-  void setDebugMode(Int_t flag = kTRUE) {mDebugMode = flag;}
-  Int_t getDebugMode() const {return mDebugMode;}
+  void setDebugMode(Int_t flag = kTRUE) { mDebugMode = flag; }
+  Int_t getDebugMode() const { return mDebugMode; }
 
   void merge(const char* name);
 
  private:
-  Int_t mDebugMode = 0; // >0= time slewing extra plot, >1= problematic fits stored 
+  Int_t mDebugMode = 0; // >0= time slewing extra plot, >1= problematic fits stored
 
-  void fillLHCphaseCalibInput(std::vector<o2::dataformats::CalibInfoTOFshort>* calibinfotof); // we will fill the input for the LHC phase calibration
-  void doLHCPhaseCalib(); // calibrate with respect LHC phase
+  void fillLHCphaseCalibInput(std::vector<o2::dataformats::CalibInfoTOFshort>* calibinfotof);                                                                                                    // we will fill the input for the LHC phase calibration
+  void doLHCPhaseCalib();                                                                                                                                                                        // calibrate with respect LHC phase
   void fillChannelCalibInput(std::vector<o2::dataformats::CalibInfoTOFshort>* calibinfotof, float offset, int ipad, TH1F* histo, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad); // we will fill the input for the channel-level calibration
-  void fillChannelTimeSlewingCalib(float offset, int ipad, TH2F* histo, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad);// we will fill the input for the channel-time-slewing calibration
-  int doChannelCalibration(int ipad, TH1F* histo, TF1* func); // calibrate single channel from histos --> return > 0 if prolematic
-  void resetChannelLevelHistos(TH1F* histoOffset[NPADSPERSTEP], TH2F* histoTimeSlewing, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad[NPADSPERSTEP]); // reset signle channel histos
- 
+  void fillChannelTimeSlewingCalib(float offset, int ipad, TH2F* histo, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad);                                                          // we will fill the input for the channel-time-slewing calibration
+  int doChannelCalibration(int ipad, TH1F* histo, TF1* func);                                                                                                                                    // calibrate single channel from histos --> return > 0 if prolematic
+  void resetChannelLevelHistos(TH1F* histoOffset[NPADSPERSTEP], TH2F* histoTimeSlewing, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad[NPADSPERSTEP]);                            // reset signle channel histos
 
   // objects needed for calibration
-  TH2F *mHistoLHCphase = nullptr;
-  TH2F *mHistoChTimeSlewingAll; // time slewing all channels
+  TH2F* mHistoLHCphase = nullptr;
+  TH2F* mHistoChTimeSlewingAll; // time slewing all channels
 
-  TH1D *mProjTimeSlewingTemp; // temporary histo for time slewing
+  TH1D* mProjTimeSlewingTemp; // temporary histo for time slewing
 
   void attachInputTrees();
-  bool loadTOFCollectedCalibInfo(TTree *localTree, int &currententry, int increment = 1);
-
+  bool loadTOFCollectedCalibInfo(TTree* localTree, int& currententry, int increment = 1);
 
   //================================================================
 
@@ -130,31 +127,30 @@ class CalibTOF
 
   TTree* mOutputTree = nullptr; ///< output tree for matched tracks
 
-  std::string mCollectedCalibInfoTOFBranchName = "TOFCollectedCalibInfo";   ///< name of branch containing input TOF calib infos
-  std::string mOutputBranchName = "TOFCalibParam";        ///< name of branch containing output
+  std::string mCollectedCalibInfoTOFBranchName = "TOFCollectedCalibInfo"; ///< name of branch containing input TOF calib infos
+  std::string mOutputBranchName = "TOFCalibParam";                        ///< name of branch containing output
   // output calibration
   o2::dataformats::CalibLHCphaseTOF* mLHCphaseObj;            ///< LHCPhase to be written in the output
   o2::dataformats::CalibTimeSlewingParamTOF* mTimeSlewingObj; ///< Time Slewing object to be written in the output
-  int mNLHCphaseIntervals = 0;  ///< Number of measurements for the LHCPhase
-  float mLHCphase[1000]; ///< outputt LHC phase in ps
-  float mLHCphaseErr[1000]; ///< outputt LHC phase in ps
-  int mLHCphaseStartInterval[1000]; ///< timestamp from which the LHCphase measurement is valid
-  int mLHCphaseEndInterval[1000];   ///< timestamp until which the LHCphase measurement is valid
-  int mNChannels = Geo::NCHANNELS;      // needed to give the size to the branches of channels
-  float mCalibChannelOffset[Geo::NCHANNELS]; ///< output TOF channel offset in ps
-  float mCalibChannelOffsetErr[Geo::NCHANNELS]; ///< output TOF channel offset in ps (negative error as flag for problematic channels)
+  int mNLHCphaseIntervals = 0;                                ///< Number of measurements for the LHCPhase
+  float mLHCphase[1000];                                      ///< outputt LHC phase in ps
+  float mLHCphaseErr[1000];                                   ///< outputt LHC phase in ps
+  int mLHCphaseStartInterval[1000];                           ///< timestamp from which the LHCphase measurement is valid
+  int mLHCphaseEndInterval[1000];                             ///< timestamp until which the LHCphase measurement is valid
+  int mNChannels = Geo::NCHANNELS;                            // needed to give the size to the branches of channels
+  float mCalibChannelOffset[Geo::NCHANNELS];                  ///< output TOF channel offset in ps
+  float mCalibChannelOffsetErr[Geo::NCHANNELS];               ///< output TOF channel offset in ps (negative error as flag for problematic channels)
 
   // previous calibration read from CCDB
   float mInitialCalibChannelOffset[Geo::NCHANNELS]; ///< initial calibrations read from the OCDB (the calibration process will do a residual calibration with respect to those)
 
+  TF1* mFuncLHCphase = nullptr;
 
-  TF1 *mFuncLHCphase = nullptr;
+  int mMinTimestamp = 0; ///< minimum timestamp over the hits that we collect; we need it to
+                         ///< book the histogram for the LHCPhase calibration
 
-  int mMinTimestamp = 0;   ///< minimum timestamp over the hits that we collect; we need it to
-                           ///< book the histogram for the LHCPhase calibration
-  
-  int mMaxTimestamp = 1;   ///< maximum timestamp over the hits that we collect; we need it to
-                           ///< book the histogram for the LHCPhase calibration
+  int mMaxTimestamp = 1; ///< maximum timestamp over the hits that we collect; we need it to
+                         ///< book the histogram for the LHCPhase calibration
 
   //  ClassDefNV(CalibTOF, 1);
 };

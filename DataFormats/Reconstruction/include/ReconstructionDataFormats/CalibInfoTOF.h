@@ -21,12 +21,12 @@ namespace dataformats
 class CalibInfoTOF
 {
  public:
-  CalibInfoTOF(int indexTOFCh, int timestamp,float DeltaTimePi, float tot, int flags=0) : mTOFChIndex(indexTOFCh), mTimestamp(timestamp), mDeltaTimePi(DeltaTimePi), mTot(tot), mFlags(flags){};
+  CalibInfoTOF(int indexTOFCh, int timestamp, float DeltaTimePi, float tot, int flags = 0) : mTOFChIndex(indexTOFCh), mTimestamp(timestamp), mDeltaTimePi(DeltaTimePi), mTot(tot), mFlags(flags){};
   CalibInfoTOF() = default;
 
   void setTOFChIndex(int index) { mTOFChIndex = index; }
   int getTOFChIndex() const { return mTOFChIndex; }
- 
+
   void setTimestamp(int ts) { mTimestamp = ts; }
   int getTimestamp() const { return mTimestamp; }
 
@@ -39,13 +39,12 @@ class CalibInfoTOF
   void setFlags(int flags) { mFlags = flags; }
   float getFlags() const { return mFlags; }
 
-
  private:
-  int mTOFChIndex; // index of the TOF channel
-  int mTimestamp;  // timestamp in seconds
+  int mTOFChIndex;      // index of the TOF channel
+  int mTimestamp;       // timestamp in seconds
   float mDeltaTimePi;   // raw tof time - expected time for pi hypotesis
-  float mTot;      // time-over-threshold
-  unsigned char mFlags;   // bit mask with quality flags (to be defined)
+  float mTot;           // time-over-threshold
+  unsigned char mFlags; // bit mask with quality flags (to be defined)
   //  ClassDefNV(CalibInfoTOF, 1);
 };
 }
