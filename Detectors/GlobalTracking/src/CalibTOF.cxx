@@ -150,7 +150,7 @@ void CalibTOF::run(int flag, int sector)
     TH1F* histoChOffsetTemp[NPADSPERSTEP];
     std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad[NPADSPERSTEP];
     for (int ipad = 0; ipad < NPADSPERSTEP; ipad++){
-      histoChOffsetTemp[ipad] = new TH1F(Form("hLHCchOffsetTemp_%02d_%04d", sector, ipad), Form("Sector %02d (pad = %04d);channel offset (ps)", sector, ipad), 1000, -24400, 24400);
+      histoChOffsetTemp[ipad] = new TH1F(Form("hLHCchOffsetTemp_Sec%02d_Pad%04d", sector, ipad), Form("Sector %02d (pad = %04d);channel offset (ps)", sector, ipad), 1000, -24400, 24400);
       if (flag & kChannelTimeSlewing) calibTimePad[ipad] = new std::vector<o2::dataformats::CalibInfoTOFshort>; // temporary array containing [time, tot] for every pad that we process; this will be the input for the 2D histo for timeSlewing calibration (to be filled after we get the channel offset)
       else calibTimePad[ipad] = nullptr;
     }
@@ -175,7 +175,7 @@ void CalibTOF::run(int flag, int sector)
       int ipad = 0;
       int entryNext = currTOFInfoTreeEntry + o2::tof::Geo::NCHANNELS;
 
-      while (loadTOFCollectedCalibInfo(localTree,currTOFInfoTreeEntry)) { // fill here all histos you need 
+      while (loadTOFCollectedCalibInfo(localTree, currTOFInfoTreeEntry)) { // fill here all histos you need 
 
 	fillChannelCalibInput(localCalibInfoTOF, mInitialCalibChannelOffset[ich+ipad], ipad, histoChOffsetTemp[ipad], calibTimePad[ipad]); // we will fill the input for the channel-level calibration
 	ipad++;
@@ -187,7 +187,7 @@ void CalibTOF::run(int flag, int sector)
 	}
       }
       TFile * fout = nullptr;
-      if (flag & kChannelTimeSlewing && mDebugMode) fout = new TFile(Form("timeslewingTOF%06i.root",ich/96),"RECREATE");
+      if (flag & kChannelTimeSlewing && mDebugMode) fout = new TFile(Form("timeslewingTOF%06i.root", ich/96),"RECREATE");
       
       for (ipad = 0; ipad < NPADSPERSTEP; ipad++){
 	if (histoChOffsetTemp[ipad]->GetEntries() > 30){
@@ -204,36 +204,36 @@ void CalibTOF::run(int flag, int sector)
 	  if (flag & kChannelTimeSlewing) {
 	    histoChTimeSlewingTemp->Reset();
 	    fillChannelTimeSlewingCalib(mCalibChannelOffset[ich+ipad], ipad, histoChTimeSlewingTemp, calibTimePad[ipad]); // we will fill the input for the channel-time-slewing calibration
-
-      histoChTimeSlewingTemp->SetName(Form("hTOFchTimeSlewingSec_%02d_Pad%04d", sector, ipad));
-      histoChTimeSlewingTemp->SetTitle(Form("Sector %02d (pad = %04d)", sector, ipad));
-      TGraphErrors *gTimeVsTot = processSlewing(histoChTimeSlewingTemp, 1,funcChOffset);
-
-      if (gTimeVsTot && gTimeVsTot->GetN()) {
-        for (int itot = 0; itot < gTimeVsTot->GetN(); itot++)
-          mTimeSlewingObj->addTimeSlewingInfo(ich + ipad, gTimeVsTot->GetX()[itot], gTimeVsTot->GetY()[itot] + mCalibChannelOffset[ich + ipad]);
-      } else { // just add the channel offset
-        mTimeSlewingObj->addTimeSlewingInfo(ich + ipad, 0, mCalibChannelOffset[ich + ipad]);
-      }
-
-      if (mDebugMode && gTimeVsTot && gTimeVsTot->GetN() && fout) {
+	    
+	    histoChTimeSlewingTemp->SetName(Form("hTOFchTimeSlewing_Sec%02d_Pad%04d", sector, ipad));
+	    histoChTimeSlewingTemp->SetTitle(Form("Sector %02d (pad = %04d)", sector, ipad));
+	    TGraphErrors *gTimeVsTot = processSlewing(histoChTimeSlewingTemp, 1, funcChOffset);
+	    
+	    if (gTimeVsTot && gTimeVsTot->GetN()) {
+	      for (int itot = 0; itot < gTimeVsTot->GetN(); itot++)
+		mTimeSlewingObj->addTimeSlewingInfo(ich + ipad, gTimeVsTot->GetX()[itot], gTimeVsTot->GetY()[itot] + mCalibChannelOffset[ich + ipad]);
+	    } else { // just add the channel offset
+	      mTimeSlewingObj->addTimeSlewingInfo(ich + ipad, 0, mCalibChannelOffset[ich + ipad]);
+	    }
+	    
+	    if (mDebugMode && gTimeVsTot && gTimeVsTot->GetN() && fout) {
 	      fout->cd();
-        int istrip = ((ich + ipad) / o2::tof::Geo::NPADS) % o2::tof::Geo::NSTRIPXSECTOR;
-        gTimeVsTot->SetName(Form("pad_%02d_%02d_%02d", sector, istrip, ipad%o2::tof::Geo::NPADS));
+	      int istrip = ((ich + ipad) / o2::tof::Geo::NPADS) % o2::tof::Geo::NSTRIPXSECTOR;
+	      gTimeVsTot->SetName(Form("pad_%02d_%02d_%02d", sector, istrip, ipad%o2::tof::Geo::NPADS));
 	      gTimeVsTot->Write();
 	      //	      histoChTimeSlewingTemp->Write(Form("histoChTimeSlewingTemp_%02d_%02d_%02d", sector, istrip, ipad%o2::tof::Geo::NPADS)); // no longer written since it produces a very large output
 	    }
-    } else if (flag & kChannelOffset) {
-      mTimeSlewingObj->addTimeSlewingInfo(ich + ipad, 0, mCalibChannelOffset[ich + ipad]);
-    }
-  }
+	  } else if (flag & kChannelOffset) {
+	    mTimeSlewingObj->addTimeSlewingInfo(ich + ipad, 0, mCalibChannelOffset[ich + ipad]);
+	  }
+	}
       }
       if (fout) {
 	fout->Close();
 	delete fout;
       }
     }
-
+    
     for(int ipad=0; ipad < NPADSPERSTEP; ipad++){
       delete histoChOffsetTemp[ipad];
       if (calibTimePad[ipad]) delete calibTimePad[ipad];
@@ -503,9 +503,9 @@ Int_t CalibTOF::FitPeak(TF1 *fitFunc, TH1 *h, Float_t startSigma, Float_t nSigma
   }
 
   if(mDebugMode > 1 && fitFunc->GetParError(1) > 100){
-    char* filename = Form("ProblematicFit_%s.root", h->GetName());
+    char* filename = Form("ProblematicFit_%s_%d.root", h->GetName(),nn);
     if (hdbg)
-      filename = Form("ProblematicFit_%s.root", hdbg->GetName());
+      filename = Form("ProblematicFit_%s_%d.root", hdbg->GetName(),nn);
     //    printf("write %s\n", filename);
     TFile ff(filename, "RECREATE");
     h->Write();
