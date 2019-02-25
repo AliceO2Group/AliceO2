@@ -88,6 +88,11 @@ Apply the style to all the source and header files in a directory (recursive) :
 find . -iname "*.h" -o -iname "*.cpp" | xargs clang-format -style=file -i 
 ```
 
+Display what needs to be fixed in a file : 
+```
+clang-format -style=file <SOURCEFILE> | diff <SOURCEFILE> -
+```
+
 #### Check commits' formatting
 `git clang-format` invokes `clang-format` on the changes in current files
 or a specific commit. E.g. for the last commit
