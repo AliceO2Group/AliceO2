@@ -39,8 +39,8 @@ class CollectCalibInfoTOF
  public:
   static constexpr int MAXNUMBEROFHITS = 256;
 
- CollectCalibInfoTOF() : mMinTimestamp("minTimestamp", -1), mMaxTimestamp("maxTimestamp", -1) {}
-  
+  CollectCalibInfoTOF() : mMinTimestamp("minTimestamp", -1), mMaxTimestamp("maxTimestamp", -1) {}
+
   ///< collect the CalibInfo for the TOF channels
   void run();
 
@@ -62,14 +62,13 @@ class CollectCalibInfoTOF
   const std::string& getOutputBranchName() const { return mOutputBranchName; }
 
   ///< get the min/max timestamp for following calibration of LHCPhase
-  const TParameter<int>& getMinTimestamp() const {return mMinTimestamp;}
-  const TParameter<int>& getMaxTimestamp() const {return mMaxTimestamp;}
+  const TParameter<int>& getMinTimestamp() const { return mMinTimestamp; }
+  const TParameter<int>& getMaxTimestamp() const { return mMaxTimestamp; }
 
   ///< print settings
   void print() const;
 
  private:
-
   void attachInputTrees();
   bool loadTOFCalibInfo();
 
@@ -78,7 +77,7 @@ class CollectCalibInfoTOF
 
   ///< fill the output tree
   void fillTree();
-  
+
   //================================================================
 
   // Data members
@@ -99,20 +98,20 @@ class CollectCalibInfoTOF
   std::vector<o2::dataformats::CalibInfoTOF>* mTOFCalibInfo = nullptr; ///< input TOF calib info
   /// <<<-----
   std::vector<o2::dataformats::CalibInfoTOFshort> mTOFCollectedCalibInfo[Geo::NCHANNELS]; ///< output TOF calibration info
-  std::vector<o2::dataformats::CalibInfoTOFshort>* mTOFCalibInfoOut = nullptr; ///< this is the pointer to the CalibInfo of a specific channel that we need to fill the output tree
+  std::vector<o2::dataformats::CalibInfoTOFshort>* mTOFCalibInfoOut = nullptr;            ///< this is the pointer to the CalibInfo of a specific channel that we need to fill the output tree
 
-  std::string mTOFCalibInfoBranchName = "TOFCalibInfo";   ///< name of branch containing input TOF calib infos
-  std::string mOutputBranchName = "TOFCollectedCalibInfo";        ///< name of branch containing output
+  std::string mTOFCalibInfoBranchName = "TOFCalibInfo";    ///< name of branch containing input TOF calib infos
+  std::string mOutputBranchName = "TOFCollectedCalibInfo"; ///< name of branch containing output
 
   TStopwatch mTimerTot;
   TStopwatch mTimerDBG;
 
-  TParameter<int> mMinTimestamp;   ///< minimum timestamp over the hits that we collect; we will need it at calibration time to
-                                   ///< book the histogram for the LHCPhase calibration
-  
-  TParameter<int> mMaxTimestamp;   ///< maximum timestamp over the hits that we collect; we will need it at calibration time to
-                                   ///< book the histogram for the LHCPhase calibration
-  
+  TParameter<int> mMinTimestamp; ///< minimum timestamp over the hits that we collect; we will need it at calibration time to
+                                 ///< book the histogram for the LHCPhase calibration
+
+  TParameter<int> mMaxTimestamp; ///< maximum timestamp over the hits that we collect; we will need it at calibration time to
+                                 ///< book the histogram for the LHCPhase calibration
+
   ClassDefNV(CollectCalibInfoTOF, 1);
 };
 } // namespace globaltracking

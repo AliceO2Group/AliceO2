@@ -23,7 +23,7 @@
 #include "err.h"
 
 void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparams_tof.root",
-		   std::string inputfileCalib = "o2calibration_tof.root")
+                   std::string inputfileCalib = "o2calibration_tof.root")
 {
   bool onlymerge = false; // set to true if you have already the outputs from forked processes and you want only merge
 
@@ -49,9 +49,9 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparam
   calib.setMinTimestamp(minTimestamp->GetVal());
   calib.setMaxTimestamp(maxTimestamp->GetVal());
   fin->Close();
-  
+
   //<<<---------- attach input data ---------------<<<
-  
+
   //-------------------- settings -----------//
   //calib.run(o2::globaltracking::CalibTOF::kLHCphase);
   //calib.run(o2::globaltracking::CalibTOF::kChannelOffset);

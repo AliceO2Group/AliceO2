@@ -34,14 +34,14 @@ void CollectCalibInfoTOF::run()
   }
 
   mTimerTot.Start();
-  
-  while(loadTOFCalibInfo()){ // fill here all histos you need
-    for (int ihit = 0; ihit < mTOFCalibInfo->size(); ihit++){
+
+  while (loadTOFCalibInfo()) { // fill here all histos you need
+    for (int ihit = 0; ihit < mTOFCalibInfo->size(); ihit++) {
       addHit((*mTOFCalibInfo)[ihit]);
-    }      
+    }
   }
   fillTree(); // filling with whatever we have in memory
-  
+
   // fit and extract calibration parameters once histos are filled
   // ...
 
@@ -67,7 +67,7 @@ void CollectCalibInfoTOF::init()
   if (mOutputTree) {
     mOutputTree->Branch(mOutputBranchName.data(), &mTOFCalibInfoOut);
     LOG(INFO) << "Accumulated calib info TOF will be stored in " << mOutputBranchName << " branch of tree "
-	      << mOutputTree->GetName();
+              << mOutputTree->GetName();
   } else {
     LOG(ERROR) << "Output tree is not attached, accumulated CalibInfoTOFshort will not be stored";
   }
@@ -122,7 +122,7 @@ bool CollectCalibInfoTOF::loadTOFCalibInfo()
 
   while (++mCurrTOFInfoTreeEntry < mTreeTOFCalibInfo->GetEntries()) {
     mTreeTOFCalibInfo->GetEntry(mCurrTOFInfoTreeEntry);
-    LOG(INFO) << "Loading TOF calib info entry " << mCurrTOFInfoTreeEntry << " -> " << mTOFCalibInfo->size()<< " infos";
+    LOG(INFO) << "Loading TOF calib info entry " << mCurrTOFInfoTreeEntry << " -> " << mTOFCalibInfo->size() << " infos";
 
     if (!mTOFCalibInfo->size()) {
       continue;
@@ -134,7 +134,8 @@ bool CollectCalibInfoTOF::loadTOFCalibInfo()
   return false;
 }
 //______________________________________________
-void CollectCalibInfoTOF::addHit(o2::dataformats::CalibInfoTOF& calibInfo){
+void CollectCalibInfoTOF::addHit(o2::dataformats::CalibInfoTOF& calibInfo)
+{
 
   ///< This is the method that fills the array of calibInfoTOF and also
   ///< decides whether to fill the output tree or not
@@ -143,19 +144,20 @@ void CollectCalibInfoTOF::addHit(o2::dataformats::CalibInfoTOF& calibInfo){
   if (mTOFCollectedCalibInfo[calibInfo.getTOFChIndex()].size() == MAXNUMBEROFHITS) { // the current channel has arrived to the limit of hits that we can store between two fills --> filling the tree
     fillTree();
   }
-  if (calibInfo.getTimestamp() < mMinTimestamp.GetVal() || mMinTimestamp.GetVal() == -1) mMinTimestamp.SetVal(calibInfo.getTimestamp());
-  else if (calibInfo.getTimestamp() > mMaxTimestamp.GetVal()) mMaxTimestamp.SetVal(calibInfo.getTimestamp());
-
+  if (calibInfo.getTimestamp() < mMinTimestamp.GetVal() || mMinTimestamp.GetVal() == -1)
+    mMinTimestamp.SetVal(calibInfo.getTimestamp());
+  else if (calibInfo.getTimestamp() > mMaxTimestamp.GetVal())
+    mMaxTimestamp.SetVal(calibInfo.getTimestamp());
 }
 //______________________________________________
-void CollectCalibInfoTOF::fillTree(){
+void CollectCalibInfoTOF::fillTree()
+{
 
   ///< Here we will the tree from the accumulator
 
-  for (int ich = 0; ich < Geo::NCHANNELS; ich++){    
+  for (int ich = 0; ich < Geo::NCHANNELS; ich++) {
     mTOFCalibInfoOut = &mTOFCollectedCalibInfo[ich];
     mOutputTree->Fill();
     mTOFCollectedCalibInfo[ich].clear();
   }
-
 }

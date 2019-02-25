@@ -190,7 +190,7 @@ class MatchTOF
 
   float mTimeTolerance = 1e3; ///<tolerance in ns for track-TOF time bracket matching
   float mSpaceTolerance = 10; ///<tolerance in cm for track-TOF time bracket matching
-  int mSigmaTimeCut = 30.;     ///< number of sigmas to cut on time when matching the track to the TOF cluster
+  int mSigmaTimeCut = 30.;    ///< number of sigmas to cut on time when matching the track to the TOF cluster
 
   TTree* mInputTreeTracks = nullptr; ///< input tree for tracks
   TTree* mTreeTPCTracks = nullptr;   ///< input tree for TPC tracks
@@ -248,7 +248,7 @@ class MatchTOF
   std::string mTOFMCTruthBranchName = "TOFClusterMCTruth";  ///< name of branch containing TOF clusters labels
   std::string mTOFClusterBranchName = "TOFCluster";         ///< name of branch containing input ITS clusters
   std::string mOutTracksBranchName = "TOFMatchInfo";        ///< name of branch containing output matched tracks
-  std::string mOutCalibBranchName = "TOFCalibInfo";        ///< name of branch containing output calibration infos
+  std::string mOutCalibBranchName = "TOFCalibInfo";         ///< name of branch containing output calibration infos
   std::string mOutTOFMCTruthBranchName = "MatchTOFMCTruth"; ///< name of branch containing TOF labels for output matched tracks
   std::string mOutTPCMCTruthBranchName = "MatchTPCMCTruth"; ///< name of branch containing TOF labels for output matched tracks
   std::string mOutITSMCTruthBranchName = "MatchITSMCTruth"; ///< name of branch containing TOF labels for output matched tracks
