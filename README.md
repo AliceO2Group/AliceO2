@@ -45,12 +45,14 @@ The build system (cmake) is described [here](doc/CMakeInstructions.md).
 
 ### Formatting
 The project uses `clang-format` to push for a common code formatting. The rules are defined in 
-the `clang-format` configuration files in this repository (which is propagated from the repository [CodingGuidelines](https://github.com/AliceO2Group/CodingGuidelines)). With an adiabatic
+the `clang-format` configuration file in this repository (which is propagated from the repository [CodingGuidelines](https://github.com/AliceO2Group/CodingGuidelines)). With an adiabatic
 approach, all changes have to follow the formatting rules. A script, described below, can be
 used to integrate the formatting into `git` and suggest formatting only for
 changed lines.
 
 #### Install `clang-format` and git integration
+
+Note : The installation of clang using aliBuild is not necessary on Mac. 
 
 1. Build clang (to be done once)
 ```bash
@@ -60,9 +62,7 @@ aliBuild build --defaults o2 Clang
 ```bash
 alienv load Clang/latest
 ```
-
-The `git-clang-format` Python script integrates `clang-format` into `git`.
-Put it somewhere in your path and ensure that it is executable, e.g.
+3. Install git-clang-format
 ```bash
 cd $HOME
 mkdir -p bin
@@ -70,8 +70,6 @@ cd bin
 wget llvm.org/svn/llvm-project/cfe/trunk/tools/clang-format/git-clang-format
 chmod u+x git-clang-format
 ```
-
-If you use your own clang installation, make sure you have at least version 3.9.
 
 #### Check files' formatting
 Show correctly formatted version of a file :
