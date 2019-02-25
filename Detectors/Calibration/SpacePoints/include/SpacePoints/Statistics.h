@@ -32,9 +32,11 @@ namespace calib
 
 namespace stat
 {
-// fill the 'index' vector with sorted indices of the vector 'values'
-// the input vector 'values' is not modified
-// compare to TMath::Sort()
+
+/// Fills the index vector with sorted indices of the input vector.
+/// The input vector is not modified (similar to TMath::Sort()).
+/// \param values Vector to be indexed
+/// \param index Vector to hold the sorted indices (must have the same size as values)
 template <typename T>
 inline void SortData(std::vector<T> const& values, std::vector<size_t>& index)
 {
@@ -48,27 +50,25 @@ inline void SortData(std::vector<T> const& values, std::vector<size_t>& index)
 template void SortData<unsigned short>(std::vector<unsigned short> const& values, std::vector<size_t>& index);
 template void SortData<float>(std::vector<float> const& values, std::vector<size_t>& index);
 
-//
-// LTM : Trimmed mean of unbinned array
-//
-// Robust statistic to estimate properties of the distribution
-// To handle binning error special treatment
-// for definition of unbinned data see:
-//     http://en.wikipedia.org/w/index.php?title=Trimmed_estimator&oldid=582847999
-//
-// Function parameters:
-//     data    - data vector (unsorted)
-//     index   - vector with indices for sorted data
-//     params  - array storing the following parameters as result
-//             - 0 - area
-//             - 1 - mean
-//             - 2 - rms
-//             - 3 - error estimate of mean
-//             - 4 - error estimate of RMS
-//             - 5 - first accepted element (of sorted array)
-//             - 6 - last accepted  element (of sorted array)
-//
-//
+/// LTM : Trimmed mean of unbinned array
+///
+/// Robust statistic to estimate properties of the distribution
+/// To handle binning error special treatment
+/// for definition of unbinned data see:
+///     http://en.wikipedia.org/w/index.php?title=Trimmed_estimator&oldid=582847999
+/// \param data Input vector (unsorted)
+/// \param index Vector with indices of sorted input data
+/// \param params Array with characteristics of distribution
+/// \param fracKeep Fraction of data to be kept
+/// \return Flag if successfull
+/// Characteristics:
+/// -# area
+/// -# mean
+/// -# rms
+/// -# error estimate of mean
+/// -# error estimate of RMS
+/// -# first accepted element (of sorted array)
+/// -# last accepted  element (of sorted array)
 inline bool LTMUnbinned(const std::vector<float>& data, std::vector<size_t>& index, std::array<float, 7>& params, float fracKeep)
 {
   int nPoints = data.size();
@@ -121,6 +121,9 @@ inline bool LTMUnbinned(const std::vector<float>& data, std::vector<size_t>& ind
   return true;
 }
 
+/// Rearranges the input vector in the order given by the index vector
+/// \param data Input vector
+/// \param index Index vector
 inline void Reorder(std::vector<float>& data, const std::vector<size_t>& index)
 {
   // rearange data in order given by index
@@ -134,26 +137,15 @@ inline void Reorder(std::vector<float>& data, const std::vector<size_t>& index)
   }
 }
 
-//
-// LTM : Trimmed mean of unbinned array
-//
-// Robust statistic to estimate properties of the distribution
-// To handle binning error special treatment
-// for definition of unbinned data see:
-//     http://en.wikipedia.org/w/index.php?title=Trimmed_estimator&oldid=582847999
-//
-// Function parameters:
-//     data    - data vector (unsorted)
-//     params  - array storing the following parameters as result
-//             - 0 - area
-//             - 1 - mean
-//             - 2 - rms
-//             - 3 - error estimate of mean
-//             - 4 - error estimate of RMS
-//             - 5 - first accepted element (of sorted array)
-//             - 6 - last accepted  element (of sorted array)
-//
-//
+/// Compare this function to LTMUnbinned.
+/// A target sigma of the distribution can be specified and it will be trimmed to match that target.
+/// \param data Input vector (unsorted)
+/// \param index Vector with indices of sorted input data
+/// \param params Array with characteristics of distribution
+/// \param fracKeepMin Minimum fraction to keep of the input data
+/// \param sigTgt Target distribution sigma
+/// \param sorted Flag if the data is already sorted
+/// \return Flag if successfull
 inline bool LTMUnbinnedSig(const std::vector<float>& data, std::vector<size_t>& index, std::array<float, 7>& params, float fracKeepMin, float sigTgt, bool sorted = false)
 {
   int nPoints = data.size();

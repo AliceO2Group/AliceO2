@@ -133,6 +133,7 @@ void TrackResiduals::reset()
   for (int iSec = 0; iSec < param::NSectors2; ++iSec) {
     mXBinsIgnore[iSec].reset();
     std::fill(mVoxelResults[iSec].begin(), mVoxelResults[iSec].end(), bres_t());
+    std::fill(mValidFracXBins[iSec].begin(), mValidFracXBins[iSec].end(), 0);
   }
 }
 
@@ -1040,7 +1041,7 @@ double TrackResiduals::getKernelWeight(std::array<double, 3> u2vec, int kernelTy
 ///
 ///////////////////////////////////////////////////////////////////////////////
 
-float TrackResiduals::fitPoly1Robust(std::vector<float>& x, std::vector<float>& y, std::array<float, 2>& res, std::array<float, 3>& err, float cutLTM)
+float TrackResiduals::fitPoly1Robust(std::vector<float>& x, std::vector<float>& y, std::array<float, 2>& res, std::array<float, 3>& err, float cutLTM) const
 {
   // robust pol1 fit, modifies input arrays order
   if (x.size() != y.size()) {
@@ -1093,7 +1094,7 @@ float TrackResiduals::fitPoly1Robust(std::vector<float>& x, std::vector<float>& 
 }
 
 //___________________________________________________________________
-void TrackResiduals::medFit(int nPoints, int offset, const std::vector<float>& x, const std::vector<float>& y, float& a, float& b, std::array<float, 3>& err, float delI)
+void TrackResiduals::medFit(int nPoints, int offset, const std::vector<float>& x, const std::vector<float>& y, float& a, float& b, std::array<float, 3>& err) const
 {
   // fitting a straight line y(x|a, b) = a + b * x
   // to given x and y data minimizing the absolute deviation
@@ -1103,27 +1104,22 @@ void TrackResiduals::medFit(int nPoints, int offset, const std::vector<float>& x
     err[0] = err[1] = err[2] = 999.f;
     return;
   }
-  if (!delI) {
-    // no initial values provided, do least squares minimization as first guess
-    float sx = 0.f, sxx = 0.f, sy = 0.f, sxy = 0.f, del;
-    for (int j = nPoints + offset; j-- > offset;) { // same order as in AliRoot version such that resulting sums are identical
-      sx += x[j];
-      sxx += x[j] * x[j];
-      sy += y[j];
-      sxy += x[j] * y[j];
-    }
-    del = nPoints * sxx - sx * sx;
-    delI = 1. / del;
-    aa = (sxx * sy - sx * sxy) * delI;
-    bb = (nPoints * sxy - sx * sy) * delI;
-    err[0] = sxx * delI;
-    err[1] = sx * delI;
-    err[2] = nPoints * delI;
-  } else {
-    // initial values provided
-    aa = a;
-    bb = b;
+  // do least squares minimization as first guess
+  float sx = 0.f, sxx = 0.f, sy = 0.f, sxy = 0.f;
+  for (int j = nPoints + offset; j-- > offset;) { // same order as in AliRoot version such that resulting sums are identical
+    sx += x[j];
+    sxx += x[j] * x[j];
+    sy += y[j];
+    sxy += x[j] * y[j];
   }
+  float del = nPoints * sxx - sx * sx;
+  float delI = 1. / del;
+  aa = (sxx * sy - sx * sxy) * delI;
+  bb = (nPoints * sxy - sx * sy) * delI;
+  err[0] = sxx * delI;
+  err[1] = sx * delI;
+  err[2] = nPoints * delI;
+
   for (int j = nPoints + offset; j-- > offset;) {
     float tmp = y[j] - (aa + bb * x[j]);
     chi2 += tmp * tmp;
@@ -1166,7 +1162,7 @@ void TrackResiduals::medFit(int nPoints, int offset, const std::vector<float>& x
   b = bb;
 }
 
-float TrackResiduals::roFunc(int nPoints, int offset, const std::vector<float>& x, const std::vector<float>& y, float b, float& aa)
+float TrackResiduals::roFunc(int nPoints, int offset, const std::vector<float>& x, const std::vector<float>& y, float b, float& aa) const
 {
   // calculate sum(x_i * sgn(y_i - a - b * x_i)) for given b
   // see numberical recipies paragraph 15.7.3
@@ -1191,20 +1187,18 @@ float TrackResiduals::roFunc(int nPoints, int offset, const std::vector<float>& 
     }
     aa = (nPoints & 0x1) ? vecTmp[nPointsHalf] : .5f * (vecTmp[nPointsHalf - 1] + vecTmp[nPointsHalf]);
   } else {
-    /*
+    std::vector<float>::iterator nth = vecTmp.begin() + vecTmp.size() / 2;
     if (nPoints & 0x1) {
-      std::nth_element(vecTmp.begin(), vecTmp.begin() + nPointsHalf, vecTmp.end());
-      aa = vecTmp[nPointsHalf];
+      std::nth_element(vecTmp.begin(), nth, vecTmp.end());
+      aa = *nth;
+    } else {
+      std::nth_element(vecTmp.begin(), nth - 1, vecTmp.end());
+      std::nth_element(nth, nth, vecTmp.end());
+      aa = 0.5 * (*(nth - 1) + *(nth));
     }
-    else {
-      std::nth_element(vecTmp.begin(), vecTmp.begin() + nPointsHalf - 1, vecTmp.end());
-      aa = vecTmp[nPointsHalf -  1];
-      std::nth_element(vecTmp.begin(), vecTmp.begin() + nPointsHalf, vecTmp.end());
-      aa += vecTmp[nPointsHalf];
-      aa *= 0.5;
-    }
-    */
+    /*
     aa = (nPoints & 0x1) ? selectKthMin(nPointsHalf, vecTmp) : .5f * (selectKthMin(nPointsHalf - 1, vecTmp) + selectKthMin(nPointsHalf, vecTmp));
+    */
   }
   for (int j = nPoints; j-- > 0;) {
     float d = y[j + offset] - (b * x[j + offset] + aa);
@@ -1280,7 +1274,7 @@ float TrackResiduals::selectKthMin(const int k, std::vector<float>& data)
 }
 
 //___________________________________________________________________
-float TrackResiduals::getMAD2Sigma(std::vector<float> data)
+float TrackResiduals::getMAD2Sigma(std::vector<float> data) const
 {
   // Sigma calculated from median absolute deviations
   // see: https://en.wikipedia.org/wiki/Median_absolute_deviation
@@ -1288,39 +1282,40 @@ float TrackResiduals::getMAD2Sigma(std::vector<float> data)
   // is not rearranged
 
   int nPoints = data.size();
-
   if (nPoints < 2) {
     return 0;
   }
-  // sort the input
-  std::sort(data.begin(), data.end());
 
-  // calculate median
-  bool oddNumberOfEntries = nPoints & 0x1;
-  int mid = nPoints / 2;
+  // calculate median of the input data
   float medianOfData;
-  if (oddNumberOfEntries) {
-    medianOfData = data[mid];
+  std::vector<float>::iterator nth = data.begin() + data.size() / 2;
+  if (nPoints & 0x1) {
+    std::nth_element(data.begin(), nth, data.end());
+    medianOfData = *nth;
   } else {
-    medianOfData = (data[mid - 1] + data[mid]) / 2.;
+    std::nth_element(data.begin(), nth - 1, data.end());
+    std::nth_element(nth, nth, data.end());
+    medianOfData = .5f * (*(nth - 1) + (*nth));
   }
 
-  // calculate absolute deviations to median
+  // fill vector with absolute deviations to median
   for (auto& entry : data) {
     entry = fabs(entry - medianOfData);
   }
-  std::sort(data.begin(), data.end());
 
   // calculate median of abs deviations
-  float medianAbsDeviation;
-  if (oddNumberOfEntries) {
-    medianAbsDeviation = data[mid];
+  float medianOfAbsDeviations;
+  if (nPoints & 0x1) {
+    std::nth_element(data.begin(), nth, data.end());
+    medianOfAbsDeviations = *nth;
   } else {
-    medianAbsDeviation = (data[mid - 1] + data[mid]) / 2.;
+    std::nth_element(data.begin(), nth - 1, data.end());
+    std::nth_element(nth, nth, data.end());
+    medianOfAbsDeviations = .5f * (*(nth - 1) + (*nth));
   }
 
   float k = 1.4826f; // scale factor for normally distributed data
-  return k * medianAbsDeviation;
+  return k * medianOfAbsDeviations;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

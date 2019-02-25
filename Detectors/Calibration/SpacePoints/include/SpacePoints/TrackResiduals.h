@@ -44,15 +44,17 @@ namespace calib
 {
 
 /// \class TrackResiduals
-/// \brief Class steering the space point calibration of the TPC from track residuals
-///
+/// This class is steering the space point calibration of the TPC from track residuals.
+/// Residual maps are created using track interpolation from ITS/TRD/TOF tracks and comparing
+/// them to the cluster positions in the TPC.
+/// It has been ported from the AliTPCDcalibRes clas from AliRoot.
 class TrackResiduals
 {
  public:
   /// Default constructor
   TrackResiduals() = default;
 
-  /// structure to hold the results
+  /// Structure which gets filled with the results
   struct bres_t {
     std::array<float, param::ResDim> D{};            // values of extracted distortions
     std::array<float, param::ResDim> E{};            // their errors
@@ -67,54 +69,233 @@ class TrackResiduals
     unsigned char flags{ 0 };                        // status flag
   };
 
-  // initialization
+  // -------------------------------------- initialization --------------------------------------------------
+  /// Steers the initialization (binning, default settings for smoothing, container for the results).
   void init();
+  /// Initializes the binning in X, Y/X and Z.
   void initBinning();
+  /// Initializes the results structure for given sector.
+  /// For each voxel the bin indices are set and the COG is set to the center of the voxel.
+  /// \param iSec TPC sector number
   void initResultsContainer(int iSec);
+  /// Resets all (also intermediate) results
   void reset();
 
-  // settings
+  // -------------------------------------- settings --------------------------------------------------
+  /// Sets a flag to print the memory usage at certain points in the program for performance studies.
   void setPrintMemoryUsage() { mPrintMem = true; }
-  void setKernelType(int type = param::EpanechnikovKernel, float bwX = 2.1f, float bwp = 2.1f, float bwZ = 1.7f, float scX = 1.f, float scP = 1.f, float scZ = 1.f);
+  /// Sets the kernel type used for smoothing.
+  /// \param type Kernel type (Epanechnikov / Gaussian)
+  /// \param bwX Bin width in X
+  /// \param bwP Bin width in Y/X
+  /// \param bwZ Bin width in Z
+  /// \param scX Scale factor to increase smoothing bandwidth at sector edges in X
+  /// \param scP Scale factor to increase smoothing bandwidth at sector edges in Y/X
+  /// \param scZ Scale factor to increase smoothing bandwidth at sector edges in Z
+  void setKernelType(int type = param::EpanechnikovKernel, float bwX = 2.1f, float bwP = 2.1f, float bwZ = 1.7f, float scX = 1.f, float scP = 1.f, float scZ = 1.f);
 
-  // steering functions
+  // -------------------------------------- steering functions --------------------------------------------------
+
+  /// Steers the processing of the residuals for all sectors.
   void processResiduals();
+
+  /// Processes residuals for given sector.
+  /// \param iSec Sector to process
   void processSectorResiduals(Int_t iSec);
+
+  /// Performs the robust linear fit for one voxel to estimate the distortions in X, Y and Z and their errors.
+  /// \param dy Vector with residuals in y
+  /// \param dz Vector with residuals in z
+  /// \param tg Vector with tan(phi) of the tracks
+  /// \param resVox Voxel results structure
   void processVoxelResiduals(std::vector<float>& dy, std::vector<float>& dz, std::vector<float>& tg, bres_t& resVox);
+
+  /// Estimates dispersion for given voxel
+  /// \param tg Vector with tan(phi) of the tracks
+  /// \param dy Vector with residuals in y
+  /// \param resVox Voxel results structure
   void processVoxelDispersions(std::vector<float>& tg, std::vector<float>& dy, bres_t& resVox);
+
+  /// Applies voxel validation cuts.
+  /// Bad X bins are stored in mXBinsIgnore bitset
+  /// \param iSec Sector to process
+  /// \return Number of good rows in X
   int validateVoxels(int iSec);
+
+  /// Smooths the residuals for given sector
+  /// \param iSec Sector to process
   void smooth(int iSec);
 
-  // statistics
-  float fitPoly1Robust(std::vector<float>& x, std::vector<float>& y, std::array<float, 2>& res, std::array<float, 3>& err, float cutLTM);
-  float getMAD2Sigma(const std::vector<float> data);
-  void medFit(int nPoints, int offset, const std::vector<float>& x, const std::vector<float>& y, float& a, float& b, std::array<float, 3>& err, float delI = 0.f);
-  float roFunc(int nPoints, int offset, const std::vector<float>& x, const std::vector<float>& y, float b, float& aa);
+  // -------------------------------------- statistics --------------------------------------------------
+
+  /// Performs a robust linear fit y(x) = a + b * x for given x and y.
+  /// The input data is trimmed to reject outliers.
+  /// \param x First vector with input data
+  /// \param y Second vector with input data
+  /// \param res Array storing the fit results a and b
+  /// \param err Array storing the uncertainties
+  /// \param cutLTM Fraction of the input data to keep
+  /// \return Median of the absolute deviations of the median of the data points to the fit
+  float fitPoly1Robust(std::vector<float>& x, std::vector<float>& y, std::array<float, 2>& res, std::array<float, 3>& err, float cutLTM) const;
+
+  /// Calculates the median of the absolute deviations to the median of the data.
+  /// The input vector is copied such that the original vector is not modified.
+  /// \param data Input data vector
+  /// \return Median of absolute deviations to the median
+  float getMAD2Sigma(std::vector<float> data) const;
+
+  /// Fits a straight line to given x and y minimizing the absolute deviations y(x|a, b) = a + b * x.
+  /// Not all data points need to be considered, but only a fraction of the input is used to perform the fit.
+  /// \param nPoints Number of points to consider
+  /// \param offset Starting index for the input vectors
+  /// \param x First vector with input data
+  /// \param y Second vector with input data
+  /// \param a Stores the result for a
+  /// \param b Stores the result for b
+  /// \param err Stores the uncertainties
+  void medFit(int nPoints, int offset, const std::vector<float>& x, const std::vector<float>& y, float& a, float& b, std::array<float, 3>& err) const;
+
+  /// Helper function for medFit.
+  /// Calculates sum(x_i * sgn(y_i - a - b * x_i)) for a given b
+  /// \param nPoints Number of points to consider
+  /// \param offset Starting index for the input vectors
+  /// \param x First vector with input data
+  /// \param y Second vector with input data
+  /// \param b Given b
+  /// \param aa Parameter a for linear fit (will be set by roFunc)
+  /// \return The calculated sum
+  float roFunc(int nPoints, int offset, const std::vector<float>& x, const std::vector<float>& y, float b, float& aa) const;
+
+  /// Returns the k-th smallest value in the vector.
+  /// The input vector is rearranged such that the k-th smallest value is at the k-th position.
+  /// \todo Can probably be replaced by std::nth_element(), need to check which one is faster
+  /// All smaller values will be placed in before it in arbitrary order, all large values behind it in arbitrary order.
+  /// \param k Which value to get
+  /// \param data Vector with input data
+  /// \return k-th smallest value in the input vector
   float selectKthMin(const int k, std::vector<float>& data);
+
+  /// Calculates a smooth estimate for the distortions in specified dimensions around the COG for a given voxel.
+  /// \param iSec Sector in which the voxel is located
+  /// \param x COG position in X
+  /// \param p COG position in Y/X
+  /// \param z COG position in Z
+  /// \param res Array to store the results
+  /// \param whichDim Integer value with bits set for the dimensions which need to be smoothed
+  /// \return Flag if the estimate was successfull
   bool getSmoothEstimate(int iSec, float x, float p, float z, std::array<float, param::ResDim>& res, int whichDim = 0);
+
+  /// Calculates the weight of the given point used for the kernel smoothing.
+  /// \param u2vec Weighted distance in X, Y/X and Z
+  /// \param kernelType Wich kernel is being used
+  /// \return Kernel weight
   double getKernelWeight(std::array<double, 3> u2vec, int kernelType) const;
 
-  // binning / geometry
+  // -------------------------------------- binning / geometry --------------------------------------------------
+
+  /// Calculates the global bin number
+  /// \param ix Bin index in X
+  /// \param ip Bin index in Y/X
+  /// \param iz Bin index in Z
+  /// \return global bin number
   unsigned short getGlbVoxBin(int ix, int ip, int iz) const;
+
+  /// Calculates the global bin number
+  /// \param bvox Array with the voxels bin indices in X, Y/X and Z
+  /// \return global bin number
   unsigned short getGlbVoxBin(std::array<unsigned char, param::VoxDim> bvox) const;
+
+  /// Calculates the coordinates of the center for a given voxel.
+  /// These are not global TPC coordinates, but the coordinates for the given global binning system.
+  /// E.g. z ranges from -1 to 1.
+  /// \param iSec The sector in which we are
+  /// \param ix Bin index in X
+  /// \param ip Bin index in Y/X
+  /// \param iz Bin index in Z
+  /// \param x Coordinate in X
+  /// \param p Coordinate in Y/X
+  /// \param z Coordinate in Z
   void getVoxelCoordinates(int isec, int ix, int ip, int iz, float& x, float& p, float& z) const;
+
+  /// Calculates the x-coordinate for given x bin.
+  /// \param i Bin index
+  /// \return Coordinate in X
   float getX(int i) const;
+
+  /// Calculates the y/x-coordinate.
+  /// \param ix Bin index in X
+  /// \param ip Bin index in Y/X
+  /// \return Coordinate in Y/X
   float getY2X(int ix, int ip) const;
+
+  /// Calculates the z-coordinate for given z bin
+  /// \param i Bin index
+  /// \return Coordinate in Z
   float getZ(int i) const;
+
+  /// Tests whether a bin in X is set to be ignored.
+  /// \param iSec Sector number
+  /// \param bin Bin index in X
+  /// \return Ignore flag
   bool getXBinIgnored(int iSec, int bin) const { return mXBinsIgnore[iSec].test(bin); }
+
+  /// Calculates the bin indices of the closest voxel.
+  /// \param x Coordinate in X
+  /// \param y2x Coordinate in Y/X
+  /// \param z2x Coordinate in Z
+  /// \param ix Resulting bin index in X
+  /// \param ip Resulting bin index in Y/X
+  /// \param iz Resulting bin index in Z
   void findVoxel(float x, float y2x, float z2x, int& ix, int& ip, int& iz) const;
+
+  /// Transforms X coordinate to bin index
+  /// \param x Coordinate in X
+  /// \return Bin index in X
   int getXBin(float x) const;
+
+  /// Transforms Y/X coordinate to bin index at given X
+  /// \param y2x Coordinate in Y/X
+  /// \param ix Bin index in X
+  /// \return Bin index in Y/X
   int getY2XBin(float y2x, int ix) const;
+
+  /// Transforms Z coordinate to bin index
+  /// \param z2x Coordinate in Z
+  /// \return Bin index in Z
   int getZ2XBin(float z2x) const;
+
+  /// Returns the inverse of the distance between two bins in X
+  /// \parma ix Bin index in X
+  /// \return Inverse of the distance between bins
   float getDXI(int ix) const { return mUniformBins[param::VoxX] ? mDXI : 1.f / param::RowDX[ix]; }
+
+  /// Returns the inverse of the distance between two bins in Y/X
+  /// \parma ix Bin index in X
+  /// \return Inverse of the distance between bins
   float getDY2XI(int ix) const { return mDY2XI[ix]; }
+
+  /// Returns the inverse of the distance between two bins in Z
+  /// \return Inverse of the distance between bins
   float getDZ2XI() const { return mDZI; }
 
-  // general helper functions
+  // -------------------------------------- debugging --------------------------------------------------
+
+  /// Prints the current memory usage
   void printMem() const;
+
+  /// Dumps the content of a vector to the specified file
+  /// \param vec Data vector
+  /// \param fName Filename
   void dumpToFile(const std::vector<float>& vec, const std::string fName) const;
+
+  /// Dumps the full results for a given sector to the debug tree (only if an output file has been created before).
+  /// \param iSec Sector to dump
   void dumpResults(int iSec);
+
+  /// Creates a file for the debug output.
   void createOutputFile();
+
+  /// Closes the file with the debug output.
   void closeOutputFile();
 
  private:
