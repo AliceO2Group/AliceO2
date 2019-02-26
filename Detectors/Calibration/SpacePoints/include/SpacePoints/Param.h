@@ -74,41 +74,24 @@ static constexpr float RowDX[NPadRows] = { // distance between pad rows
 static constexpr float SecDPhi = 20.f * 0.01745; // 20.f * pi / 180.f
 static constexpr float MaxY2X = 0.176;           // TMath::Tan(0.5f * SecDPhi);
 static constexpr float DeadZone = 1.5f;
-static constexpr float MaxZ = 1.f;
+static constexpr float MaxZ2X = 1.f;
 
 // for internal data structures
-static constexpr int ResDim = 4;
-static constexpr int VoxDim = 3;
-static constexpr int VoxHDim = 4;
+static constexpr int ResDim = 4;  // there are 4 dimensions for the results (X-distortions, Y-distortions, Z-distortions and dispersions)
+static constexpr int VoxDim = 3;  // the voxels are defined in a 3 dimensional system
+static constexpr int VoxHDim = 4; // for the smoothing we add for each voxel next to the distance for each dimension also the kernel weight
 static constexpr float MaxResid = 20.f;
 
 // smoothing parameters
+enum { EpanechnikovKernel,
+       GaussianKernel };
+
 static constexpr int SmtLinDim = 4; // max matrix size for smoothing (pol1)
 static constexpr int MaxSmtDim = 7; // max matrix size for smoothing (pol2)
 
 // binning
 static constexpr int Y2XBins = 15;
-static constexpr int ZBins = 5;
-
-// settings
-static constexpr int MaxPointsPerSector = 30e6; // max number of points accepted per sector
-static constexpr int MinEntriesPerVoxel = 15;
-static constexpr int NXBins = NPadRows;
-static constexpr float MaxTgSlp = 2.f;
-static constexpr float LTMCut = 0.75f;
-static constexpr float MinFracLTM = 0.5f;
-static constexpr float MinValidVoxFracDrift = .5f;
-static constexpr int MinGoodXBinsToCover = 3;
-static constexpr int MaxBadXBinsToCover = 4; // FIXME needs to be settable
-static constexpr float MaxFracBadRowsPerSector = .4f;
-static constexpr float MaxFitErrY2 = 1.f;
-static constexpr float MaxFitErrX2 = 9.f;
-static constexpr float MaxFitCorrXY = .95f;
-static constexpr float MaxSigY = 1.1f;
-static constexpr float MaxSigZ = .7f;
-static constexpr float MaxGaussStdDev = 5.f;
-enum { EpanechnikovKernel,
-       GaussianKernel };
+static constexpr int Z2XBins = 5;
 
 // miscellaneous
 static constexpr float FloatEps = 1.e-7f;
