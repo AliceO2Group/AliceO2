@@ -77,7 +77,9 @@ class AliGPUTRDTracker : public AliGPUProcessor {
     int mTrackletId;
     float mChi2;
 
+    float GetReducedChi2() { return mLayers > 0 ? mChi2 / mLayers : mChi2; }
     Hypothesis() : mLayers(0), mCandidateId(-1), mTrackletId(-1), mChi2(9999.f) {}
+    Hypothesis(int layers, int candidateId, int trackletId, float chi2) : mLayers(layers), mCandidateId(candidateId), mTrackletId(trackletId), mChi2(chi2) {}
   };
 
   short MemoryPermanent() const { return mMemoryPermanent; }
@@ -116,9 +118,8 @@ class AliGPUTRDTracker : public AliGPUProcessor {
   GPUd() bool IsGeoFindable(const GPUTRDTrack *t, const int layer, const float alpha) const;
   GPUd() void  SwapTracklets(const int left, const int right);
   GPUd() int   PartitionTracklets(const int left, const int right);
-  GPUd() void  SwapHypothesis(const int left, const int right);
-  GPUd() int   PartitionHypothesis(const int left, const int right);
-  GPUd() void  Quicksort(const int left, const int right, const int size, const int type = 0);
+  GPUd() void  Quicksort(const int left, const int right, const int size);
+  GPUd() void InsertHypothesis(Hypothesis hypo, int& nCurrHypothesis, int idxOffset);
 
   // settings
   GPUd() void SetMCEvent(AliMCEvent* mc)       { mMCEvent = mc;}
@@ -176,7 +177,6 @@ class AliGPUTRDTracker : public AliGPUProcessor {
   int mMaxMissingLy;                          // max number of missing layers per track
   float mChi2Penalty;                         // chi2 added to the track for no update
   float mZCorrCoefNRC;                        // tracklet z-position depends linearly on track dip angle
-  int mNHypothesis;                           // number of track hypothesis per layer
   AliMCEvent* mMCEvent;                       //! externaly supplied optional MC event
   const AliGPUTPCGMMerger *mMerger;           // supplying parameters for AliGPUTPCGMPropagator
   AliGPUTRDTrackerDebug *mDebug;              // debug output
