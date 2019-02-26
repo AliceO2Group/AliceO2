@@ -2413,6 +2413,7 @@ o2_define_bucket(
     ${Geant3_INCLUDE_DIRS}
     ${FAIRROOT_INCLUDE_DIR}
     ${ROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Common/SimConfig/include
 )
 
 o2_define_bucket(

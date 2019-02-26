@@ -18,9 +18,11 @@
 #include "FairModule.h"
 #include <DetectorsPassive/Cave.h>
 #include "DetectorsBase/MaterialManager.h"
+#include "SimSetup/GlobalProcessCutSimParam.h"
 
 //using declarations here since SetCuts.C and g3Config.C are included within namespace
 // these are needed for SetCuts.C inclusion
+using o2::GlobalProcessCutSimParam;
 using o2::Base::ECut;
 using o2::Base::EProc;
 using o2::Base::MaterialManager;
@@ -42,5 +44,5 @@ void G3Config()
   Config();
   SetCuts();
 }
-}
-}
+} // namespace g3config
+} // namespace o2
