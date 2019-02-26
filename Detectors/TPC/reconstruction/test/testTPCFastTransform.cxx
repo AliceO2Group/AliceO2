@@ -89,5 +89,75 @@ BOOST_AUTO_TEST_CASE(FastTransform_test1)
   BOOST_CHECK(fabs(maxDx) < 1.e-6);
   BOOST_CHECK(fabs(maxDy) < 1.e-5);
 }
+
+BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
+{
+  auto correctionFunction = [](const double XYZ[3], double dXdYdZ[3]) {
+    dXdYdZ[0] = 1.;
+    dXdYdZ[1] = 2.;
+    dXdYdZ[2] = 3.;
+  };
+
+  TPCFastTransformHelperO2::instance()->setSpaceChargeCorrection(correctionFunction);
+
+  std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
+
+  double statDiff = 0., statN = 0.;
+
+  for (int slice = 0; slice < fastTransform->getNumberOfSlices(); slice += 1) {
+    //std::cout<<"slice "<<slice<<" ... "<<std::endl;
+
+    const TPCFastTransform::SliceInfo& sliceInfo = fastTransform->getSliceInfo(slice);
+
+    for (int row = 0; row < fastTransform->getNumberOfRows(); row++) {
+
+      int nPads = fastTransform->getRowInfo(row).maxPad + 1;
+
+      for (int pad = 0; pad < nPads; pad += 10) {
+
+        for (float time = 0; time < 1000; time += 30) {
+
+          fastTransform->setApplyDistortionFlag(0);
+          float x0, y0, z0;
+          int err0 = fastTransform->Transform(slice, row, pad, time, x0, y0, z0);
+
+          fastTransform->setApplyDistortionFlag(1);
+          float x1, y1, z1;
+          int err1 = fastTransform->Transform(slice, row, pad, time, x1, y1, z1);
+
+          if (err0 != 0 || err1 != 0) {
+            std::cout << "can not transform!!" << std::endl;
+            continue;
+          }
+
+          // local 2 global
+
+          float x0g = x0 * sliceInfo.cosAlpha - y0 * sliceInfo.sinAlpha;
+          float y0g = x0 * sliceInfo.sinAlpha + y0 * sliceInfo.cosAlpha;
+          float z0g = z0;
+
+          float x1g = x1 * sliceInfo.cosAlpha - y1 * sliceInfo.sinAlpha;
+          float y1g = x1 * sliceInfo.sinAlpha + y1 * sliceInfo.cosAlpha;
+          float z1g = z1;
+
+          //cout<<x0<<" "<<y0<<" "<<z0<<" "<<x0g<<" "<<y0g<<" "<<z0g<<endl;
+          //cout<<x1<<" "<<y1<<" "<<z1<<" "<<x1g<<" "<<y1g<<" "<<z1g<<endl;
+
+          double xyz[3] = { x0g, y0g, z0g };
+          double d[3] = { 0, 0, 0 };
+          correctionFunction(xyz, d);
+          statDiff += fabs((x1g - x0g) - d[0]) + fabs((y1g - y0g) - d[1]) + fabs((z1g - z0g) - d[2]);
+          statN += 3;
+          //std::cout << (x1g-x0g) - d[0]<<" "<< (y1g-y0g) - d[1]<<" "<< (z1g-z0g) - d[2]<<std::endl;
+        }
+      }
+    }
+  }
+  if (statN > 0)
+    statDiff /= statN;
+  //std::cout<<"average difference in distortion "<<statDiff<<" cm "<<std::endl;
+  BOOST_CHECK_MESSAGE(fabs(statDiff) < 1.e-4, "test of distortion map failed, average difference " << statDiff << " cm is too large");
+}
+
 } // namespace TPC
 } // namespace o2
