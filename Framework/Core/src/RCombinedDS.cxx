@@ -54,9 +54,26 @@ namespace ROOT
 namespace RDF
 {
 
+char const* RCombinedDSIndexHelpers::combinationRuleAsString(BlockCombinationRule type)
+{
+  switch (type) {
+    case BlockCombinationRule::Full:
+      return "full";
+    case BlockCombinationRule::Anti:
+      return "antidiagonal";
+    case BlockCombinationRule::Diagonal:
+      return "diagonal";
+    case BlockCombinationRule::Upper:
+      return "uppertriangular";
+    case BlockCombinationRule::StrictlyUpper:
+      return "stricly-uppertriangular";
+  }
+  throw std::runtime_error("Unknown BlockCombinationRule");
+}
+
 std::vector<std::pair<ULong64_t, ULong64_t>>
-  RCombindedDSCrossJoinIndex::BuildIndex(std::unique_ptr<RDataFrame>& left,
-                                         std::unique_ptr<RDataFrame>& right)
+  RCombinedDSCrossJoinIndex::BuildIndex(std::unique_ptr<RDataFrame>& left,
+                                        std::unique_ptr<RDataFrame>& right)
 {
   std::vector<std::pair<ULong64_t, ULong64_t>> ranges;
   fLeftCount = *left->Count();
@@ -69,8 +86,8 @@ std::vector<std::pair<ULong64_t, ULong64_t>>
 }
 
 std::vector<std::pair<ULong64_t, ULong64_t>>
-  RCombindedDSFriendIndex::BuildIndex(std::unique_ptr<RDataFrame>& left,
-                                      std::unique_ptr<RDataFrame>& right)
+  RCombinedDSFriendIndex::BuildIndex(std::unique_ptr<RDataFrame>& left,
+                                     std::unique_ptr<RDataFrame>& right)
 {
   auto leftCount = *left->Count();
   auto rightCount = *right->Count();
@@ -222,7 +239,7 @@ RDataFrame MakeCombinedDataFrame(std::unique_ptr<RDataSource> left, std::unique_
 RDataFrame MakeCrossProductDataFrame(std::unique_ptr<RDataSource> left, std::unique_ptr<RDataSource> right,
                                      std::string leftPrefix, std::string rightPrefix)
 {
-  ROOT::RDataFrame tdf(std::make_unique<RCombinedDS>(std::move(left), std::move(right), std::move(std::make_unique<RCombindedDSCrossJoinIndex>()), leftPrefix, rightPrefix));
+  ROOT::RDataFrame tdf(std::make_unique<RCombinedDS>(std::move(left), std::move(right), std::move(std::make_unique<RCombinedDSCrossJoinIndex>()), leftPrefix, rightPrefix));
   return tdf;
 }
 
@@ -230,7 +247,7 @@ RDataFrame MakeColumnIndexedDataFrame(std::unique_ptr<RDataSource> left, std::un
                                       std::string indexColumnName,
                                       std::string leftPrefix, std::string rightPrefix)
 {
-  ROOT::RDataFrame tdf(std::make_unique<RCombinedDS>(std::move(left), std::move(right), std::move(std::make_unique<RCombindedDSColumnJoinIndex<int>>(indexColumnName)), leftPrefix, rightPrefix));
+  ROOT::RDataFrame tdf(std::make_unique<RCombinedDS>(std::move(left), std::move(right), std::move(std::make_unique<RCombinedDSColumnJoinIndex<int>>(indexColumnName)), leftPrefix, rightPrefix));
   return tdf;
 }
 
@@ -238,14 +255,14 @@ RDataFrame MakeBlockAntiDataFrame(std::unique_ptr<RDataSource> left, std::unique
                                   std::string indexColumnName,
                                   std::string leftPrefix, std::string rightPrefix)
 {
-  ROOT::RDataFrame tdf(std::make_unique<RCombinedDS>(std::move(left), std::move(right), std::move(std::make_unique<RCombindedDSBlockJoinIndex<int>>(indexColumnName)), leftPrefix, rightPrefix));
+  ROOT::RDataFrame tdf(std::make_unique<RCombinedDS>(std::move(left), std::move(right), std::move(std::make_unique<RCombinedDSBlockJoinIndex<int>>(indexColumnName)), leftPrefix, rightPrefix));
   return tdf;
 }
 
 RDataFrame MakeFriendDataFrame(std::unique_ptr<RDataSource> left, std::unique_ptr<RDataSource> right,
                                std::string leftPrefix, std::string rightPrefix)
 {
-  ROOT::RDataFrame tdf(std::make_unique<RCombinedDS>(std::move(left), std::move(right), std::move(std::make_unique<RCombindedDSFriendIndex>()), leftPrefix, rightPrefix));
+  ROOT::RDataFrame tdf(std::make_unique<RCombinedDS>(std::move(left), std::move(right), std::move(std::make_unique<RCombinedDSFriendIndex>()), leftPrefix, rightPrefix));
   return tdf;
 }
 

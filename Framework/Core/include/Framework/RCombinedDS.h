@@ -50,7 +50,7 @@ class RCombinedDSIndex
 
 /// An index which allows doing a inner join on the row number for two tables,
 /// i.e.  putting the rows of one next to the rows of other.
-class RCombindedDSFriendIndex : public RCombinedDSIndex
+class RCombinedDSFriendIndex : public RCombinedDSIndex
 {
  public:
   std::pair<ULong64_t, ULong64_t> GetAssociatedEntries(ULong64_t entry) final
@@ -63,7 +63,7 @@ class RCombindedDSFriendIndex : public RCombinedDSIndex
 
 /// An index which allows doing a cross join between two tables. I.e. all the
 /// entries of one coupled with all the entries of the other
-class RCombindedDSCrossJoinIndex : public RCombinedDSIndex
+class RCombinedDSCrossJoinIndex : public RCombinedDSIndex
 {
  public:
   std::pair<ULong64_t, ULong64_t> GetAssociatedEntries(ULong64_t entry) final
@@ -83,10 +83,10 @@ class RCombindedDSCrossJoinIndex : public RCombinedDSIndex
 ///        was introduced only in ROOT 6.16.x. We can remove it once
 ///        we have a proper build of ROOT.
 template <typename INDEX_TYPE = int>
-class RCombindedDSColumnJoinIndex : public RCombinedDSIndex
+class RCombinedDSColumnJoinIndex : public RCombinedDSIndex
 {
  public:
-  RCombindedDSColumnJoinIndex(std::string const& indexColumnName)
+  RCombinedDSColumnJoinIndex(std::string const& indexColumnName)
     : fIndexColumnName{ indexColumnName }
   {
   }
@@ -124,6 +124,18 @@ class RCombindedDSColumnJoinIndex : public RCombinedDSIndex
   std::vector<INDEX_TYPE> fAssociations;
 };
 
+enum struct BlockCombinationRule {
+  Full,
+  Upper,
+  StrictlyUpper,
+  Diagonal,
+  Anti
+};
+
+struct RCombinedDSIndexHelpers {
+  static char const* combinationRuleAsString(BlockCombinationRule ruleType);
+};
+
 /// An index which allows doing a cross join of all entries belonging to the
 /// same category, where the category is defined by a two given columns.
 ///
@@ -134,24 +146,16 @@ class RCombindedDSColumnJoinIndex : public RCombinedDSIndex
 /// FIXME: for the moment this only works when the inputs are actually from the same
 ///        table.
 template <typename INDEX_TYPE = int>
-class RCombindedDSBlockJoinIndex : public RCombinedDSIndex
+class RCombinedDSBlockJoinIndex : public RCombinedDSIndex
 {
 
   using Association = std::pair<ULong64_t, ULong64_t>;
 
  public:
-  enum struct BlockCombinationRule {
-    Full,
-    Upper,
-    StrictlyUpper,
-    Diagonal,
-    Anti
-  };
-
-  RCombindedDSBlockJoinIndex(std::string const& leftCategoryColumn,
-                             bool self = true,
-                             BlockCombinationRule combinationType = BlockCombinationRule::Anti,
-                             std::string const& rightCategoryColumn = "")
+  RCombinedDSBlockJoinIndex(std::string const& leftCategoryColumn,
+                            bool self = true,
+                            BlockCombinationRule combinationType = BlockCombinationRule::Anti,
+                            std::string const& rightCategoryColumn = "")
     : fLeftCategoryColumn{ leftCategoryColumn },
       fRightCategoryColumn{ rightCategoryColumn.empty() ? leftCategoryColumn : rightCategoryColumn },
       fSelf{ self },
@@ -316,7 +320,7 @@ class RCombinedDS final : public ROOT::RDF::RDataSource
  public:
   RCombinedDS(std::unique_ptr<RDataSource> left,
               std::unique_ptr<RDataSource> right,
-              std::unique_ptr<RCombinedDSIndex> index = std::make_unique<RCombindedDSFriendIndex>(),
+              std::unique_ptr<RCombinedDSIndex> index = std::make_unique<RCombinedDSFriendIndex>(),
               std::string leftPrefix = std::string{ "left_" },
               std::string rightPrefix = std::string{ "right_" });
   ~RCombinedDS() override;
