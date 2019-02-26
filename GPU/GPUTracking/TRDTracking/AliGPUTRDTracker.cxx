@@ -72,7 +72,7 @@ void* AliGPUTRDTracker::SetPointersBase(void* base)
   computePointerWithAlignment(base, mR, kNLayers);
   computePointerWithAlignment(base, mNTrackletsInChamber, kNChambers);
   computePointerWithAlignment(base, mTrackletIndexArray, kNChambers);
-  computePointerWithAlignment(base, mHypothesis, mNHypothesis * mMaxThreads);
+  computePointerWithAlignment(base, mHypothesis, mNCandidates * mMaxThreads);
   computePointerWithAlignment(base, mCandidates, mNCandidates * 2 * mMaxThreads);
   return base;
 }
@@ -128,7 +128,6 @@ AliGPUTRDTracker::AliGPUTRDTracker() :
   mMaxMissingLy(6),
   mChi2Penalty(12.0f),
   mZCorrCoefNRC(1.4f),
-  mNHypothesis(100),
   mMCEvent(nullptr),
   mDebug(new AliGPUTRDTrackerDebug()),
   mChainTracking(nullptr)
@@ -233,7 +232,11 @@ void AliGPUTRDTracker::DoTracking()
   //--------------------------------------------------------------------
 
   // sort tracklets and fill index array
+#ifndef GPUCA_GPUCODE
+  std::sort(&mTracklets[0], mTracklets + mNTracklets);
+#elif
   Quicksort(0, mNTracklets - 1, mNTracklets);
+#endif
   int trkltCounter = 0;
   for (int iDet=0; iDet<kNChambers; ++iDet) {
     if (mNTrackletsInChamber[iDet] != 0) {
@@ -298,8 +301,8 @@ void AliGPUTRDTracker::PrintSettings() const
   //--------------------------------------------------------------------
   printf("##############################################################\n");
   printf("Current settings for GPU TRD tracker:\n");
-  printf(" mMaxChi2(%.2f)\n mChi2Penalty(%.2f)\n nCandidates(%i)\n nHypothesisMax(%i)\n maxMissingLayers(%i)\n",
-          mMaxChi2, mChi2Penalty, mNCandidates, mNHypothesis, mMaxMissingLy);
+  printf(" mMaxChi2(%.2f)\n mChi2Penalty(%.2f)\n nCandidates(%i)\n maxMissingLayers(%i)\n",
+          mMaxChi2, mChi2Penalty, mNCandidates, mMaxMissingLy);
   printf(" ptCut = %.2f GeV\n abs(eta) < %.2f\n", mMinPt, mMaxEta);
   printf("##############################################################\n");
 }
@@ -560,7 +563,7 @@ GPUd() bool AliGPUTRDTracker::FollowProlongation(GPUTRDPropagator *prop, GPUTRDT
 #endif
 
   int candidateIdxOffset = threadId * 2 * mNCandidates;
-  int hypothesisIdxOffset = threadId * mNHypothesis;
+  int hypothesisIdxOffset = threadId * mNCandidates;
 
   // set input track to first candidate(s)
   mCandidates[candidateIdxOffset] = *t;
@@ -594,23 +597,8 @@ GPUd() bool AliGPUTRDTracker::FollowProlongation(GPUTRDPropagator *prop, GPUTRDT
       prop->setTrack(&mCandidates[2*iCandidate+currIdx]);
 
       if (mCandidates[2*iCandidate+currIdx].GetIsStopped()) {
-        if (nCurrHypothesis < mNHypothesis) {
-          mHypothesis[nCurrHypothesis + hypothesisIdxOffset].mChi2 = mCandidates[2*iCandidate+currIdx].GetChi2();
-          mHypothesis[nCurrHypothesis + hypothesisIdxOffset].mLayers = mCandidates[2*iCandidate+currIdx].GetNlayers();
-          mHypothesis[nCurrHypothesis + hypothesisIdxOffset].mCandidateId = iCandidate;
-          mHypothesis[nCurrHypothesis + hypothesisIdxOffset].mTrackletId = -1;
-          nCurrHypothesis++;
-        }
-        else {
-          Quicksort(hypothesisIdxOffset, nCurrHypothesis - 1 + hypothesisIdxOffset, nCurrHypothesis, 1);
-          if ( mCandidates[2*iCandidate+currIdx].GetReducedChi2() <
-               (mHypothesis[nCurrHypothesis + hypothesisIdxOffset].mChi2 / CAMath::Max(mHypothesis[nCurrHypothesis + hypothesisIdxOffset].mLayers, 1)) ) {
-            mHypothesis[nCurrHypothesis-1 + hypothesisIdxOffset].mChi2 = mCandidates[2*iCandidate+currIdx].GetChi2();
-            mHypothesis[nCurrHypothesis-1 + hypothesisIdxOffset].mLayers = mCandidates[2*iCandidate+currIdx].GetNlayers();
-            mHypothesis[nCurrHypothesis-1 + hypothesisIdxOffset].mCandidateId = iCandidate;
-            mHypothesis[nCurrHypothesis-1 + hypothesisIdxOffset].mTrackletId = -1;
-          }
-        }
+        Hypothesis hypo(mCandidates[2*iCandidate+currIdx].GetNlayers(), iCandidate, -1, mCandidates[2*iCandidate+currIdx].GetChi2());
+        InsertHypothesis(hypo, nCurrHypothesis, hypothesisIdxOffset);
         isOK = true;
         continue;
       }
@@ -709,47 +697,16 @@ GPUd() bool AliGPUTRDTracker::FollowProlongation(GPUTRDPropagator *prop, GPUTRDT
             float chi2 = prop->getPredictedChi2(trkltPosTmpYZ, trkltCovTmp);
             //printf("layer %i: chi2 = %f\n", iLayer, chi2);
             if (chi2 < mMaxChi2) {
-              if (nCurrHypothesis < mNHypothesis) {
-                mHypothesis[nCurrHypothesis + hypothesisIdxOffset].mChi2 = mCandidates[2*iCandidate+currIdx].GetChi2() + chi2;
-                mHypothesis[nCurrHypothesis + hypothesisIdxOffset].mLayers = mCandidates[2*iCandidate+currIdx].GetNlayers();
-                mHypothesis[nCurrHypothesis + hypothesisIdxOffset].mCandidateId = iCandidate;
-                mHypothesis[nCurrHypothesis + hypothesisIdxOffset].mTrackletId = trkltIdx;
-                nCurrHypothesis++;
-              }
-              else {
-                // maximum number of hypothesis reached -> sort them and replace worst hypo with new one if it is better
-                Quicksort(hypothesisIdxOffset, nCurrHypothesis - 1 + hypothesisIdxOffset, nCurrHypothesis, 1);
-                if ( ((chi2 + mCandidates[2*iCandidate+currIdx].GetChi2()) / CAMath::Max(mCandidates[2*iCandidate+currIdx].GetNlayers(), 1)) <
-                      (mHypothesis[nCurrHypothesis + hypothesisIdxOffset].mChi2 / CAMath::Max(mHypothesis[nCurrHypothesis + hypothesisIdxOffset].mLayers, 1)) ) {
-                  mHypothesis[nCurrHypothesis-1 + hypothesisIdxOffset].mChi2 = mCandidates[2*iCandidate+currIdx].GetChi2() + chi2;
-                  mHypothesis[nCurrHypothesis-1 + hypothesisIdxOffset].mLayers = mCandidates[2*iCandidate+currIdx].GetNlayers();
-                  mHypothesis[nCurrHypothesis-1 + hypothesisIdxOffset].mCandidateId = iCandidate;
-                  mHypothesis[nCurrHypothesis-1 + hypothesisIdxOffset].mTrackletId = trkltIdx;
-                }
-              }
+              Hypothesis hypo(mCandidates[2*iCandidate+currIdx].GetNlayers(), iCandidate, trkltIdx, mCandidates[2*iCandidate+currIdx].GetChi2() + chi2);
+              InsertHypothesis(hypo, nCurrHypothesis, hypothesisIdxOffset);
             } // end tracklet chi2 < mMaxChi2
           } // end tracklet in window
         } // tracklet loop
       } // chamber loop
 
       // add no update to hypothesis list
-      if (nCurrHypothesis < mNHypothesis) {
-        mHypothesis[nCurrHypothesis + hypothesisIdxOffset].mChi2 = mCandidates[2*iCandidate+currIdx].GetChi2() + mChi2Penalty;
-        mHypothesis[nCurrHypothesis + hypothesisIdxOffset].mLayers = mCandidates[2*iCandidate+currIdx].GetNlayers();
-        mHypothesis[nCurrHypothesis + hypothesisIdxOffset].mCandidateId = iCandidate;
-        mHypothesis[nCurrHypothesis + hypothesisIdxOffset].mTrackletId = -1;
-        nCurrHypothesis++;
-      }
-      else {
-        Quicksort(hypothesisIdxOffset, nCurrHypothesis - 1 + hypothesisIdxOffset, nCurrHypothesis, 1);
-        if ( ((mCandidates[2*iCandidate+currIdx].GetChi2() + mChi2Penalty) / CAMath::Max(mCandidates[2*iCandidate+currIdx].GetNlayers(), 1)) <
-             (mHypothesis[nCurrHypothesis + hypothesisIdxOffset].mChi2 / CAMath::Max(mHypothesis[nCurrHypothesis + hypothesisIdxOffset].mLayers, 1)) ) {
-          mHypothesis[nCurrHypothesis-1 + hypothesisIdxOffset].mChi2 = mCandidates[2*iCandidate+currIdx].GetChi2() + mChi2Penalty;
-          mHypothesis[nCurrHypothesis-1 + hypothesisIdxOffset].mLayers = mCandidates[2*iCandidate+currIdx].GetNlayers();
-          mHypothesis[nCurrHypothesis-1 + hypothesisIdxOffset].mCandidateId = iCandidate;
-          mHypothesis[nCurrHypothesis-1 + hypothesisIdxOffset].mTrackletId = -1;
-        }
-      }
+      Hypothesis hypoNoUpdate(mCandidates[2*iCandidate+currIdx].GetNlayers(), iCandidate, -1, mCandidates[2*iCandidate+currIdx].GetChi2() + mChi2Penalty);
+      InsertHypothesis(hypoNoUpdate, nCurrHypothesis, hypothesisIdxOffset);
       isOK = true;
     } // end candidate loop
 
@@ -791,7 +748,6 @@ GPUd() bool AliGPUTRDTracker::FollowProlongation(GPUTRDPropagator *prop, GPUTRDT
     }
 #endif
     //
-    Quicksort(hypothesisIdxOffset, nCurrHypothesis - 1 + hypothesisIdxOffset, nCurrHypothesis, 1);
     mDebug->SetChi2Update(mHypothesis[0 + hypothesisIdxOffset].mChi2 - t->GetChi2(), iLayer); // only meaningful for ONE candidate!!!
     mDebug->SetRoad(roadY, roadZ, iLayer); // only meaningful for ONE candidate
     bool wasTrackStored = false;
@@ -1001,6 +957,51 @@ GPUd() bool AliGPUTRDTracker::FollowProlongation(GPUTRDPropagator *prop, GPUTRDT
   }
 
   return true;
+}
+
+GPUd() void AliGPUTRDTracker::InsertHypothesis(Hypothesis hypo, int& nCurrHypothesis, int idxOffset)
+{
+  // Insert hypothesis into the array. If the array is full and the reduced chi2 is worse
+  // than the worst hypothesis in the array it is dropped.
+  // The hypothesis array is always sorted.
+
+  if (nCurrHypothesis == 0) {
+    // this is the first hypothesis in the array
+    mHypothesis[idxOffset] = hypo;
+    ++nCurrHypothesis;
+  }
+  else if (nCurrHypothesis > 0 && nCurrHypothesis < mNCandidates) {
+    // insert the hypothesis into the right position and shift all worse hypothesis to the right
+    for (int i = idxOffset; i < nCurrHypothesis + idxOffset; ++i) {
+      if (hypo.GetReducedChi2() < mHypothesis[i].GetReducedChi2()) {
+        for (int k = nCurrHypothesis + idxOffset; k > i; --k) {
+          mHypothesis[k] = mHypothesis[k-1];
+        }
+        mHypothesis[i] = hypo;
+        ++nCurrHypothesis;
+        return;
+      }
+    }
+    mHypothesis[nCurrHypothesis + idxOffset] = hypo;
+    ++nCurrHypothesis;
+    return;
+  }
+  else {
+    // array is already full, check if new hypothesis should be inserted
+    int i = nCurrHypothesis + idxOffset - 1;
+    for ( ; i >= idxOffset; --i) {
+      if (mHypothesis[i].GetReducedChi2() < hypo.GetReducedChi2()) {
+        break;
+      }
+    }
+    if (i < nCurrHypothesis + idxOffset) {
+      // new hypothesis should be inserted into the array
+      for (int k = nCurrHypothesis + idxOffset - 1; k > i + 1; --k) {
+        mHypothesis[k] = mHypothesis[k-1];
+      }
+      mHypothesis[i+1] = hypo;
+    }
+  }
 }
 
 GPUd() int AliGPUTRDTracker::GetDetectorNumber(const float zPos, const float alpha, const int layer) const
@@ -1245,47 +1246,8 @@ GPUd() int AliGPUTRDTracker::PartitionTracklets(const int left, const int right)
   return i - 1;
 }
 
-GPUd() void AliGPUTRDTracker::SwapHypothesis(const int left, const int right)
-{
-  //--------------------------------------------------------------------
-  // swapping function for hypothesis
-  //--------------------------------------------------------------------
-  Hypothesis tmp = mHypothesis[left];
-  mHypothesis[left] = mHypothesis[right];
-  mHypothesis[right] = tmp;
-}
 
-GPUd() int AliGPUTRDTracker::PartitionHypothesis(const int left, const int right)
-{
-  //--------------------------------------------------------------------
-  // partitioning for hypothesis
-  //--------------------------------------------------------------------
-  const int mid = left + (right - left) / 2;
-  Hypothesis pivot = mHypothesis[mid];
-  SwapHypothesis(mid, left);
-  int i = left + 1;
-  int j = right;
-  while (i <= j) {
-    int nLayersPivot = (pivot.mLayers > 0) ? pivot.mLayers : 1;
-    int nLayersElem = (mHypothesis[i].mLayers > 0) ? mHypothesis[i].mLayers : 1;
-    while (i <= j && (mHypothesis[i].mChi2 / nLayersElem) <= (pivot.mChi2 / nLayersPivot)) {
-      i++;
-      nLayersElem =  (mHypothesis[i].mLayers > 0) ? mHypothesis[i].mLayers : 1;
-    }
-    nLayersElem =  (mHypothesis[j].mLayers > 0) ? mHypothesis[j].mLayers : 1;
-    while (i <= j && (mHypothesis[j].mChi2 / nLayersElem) > (pivot.mChi2 / nLayersPivot)) {
-      j--;
-      nLayersElem =  (mHypothesis[j].mLayers > 0) ? mHypothesis[j].mLayers : 1;
-    }
-    if (i < j) {
-      SwapHypothesis(i, j);
-    }
-  }
-  SwapHypothesis(i-1, left);
-  return i - 1;
-}
-
-GPUd() void AliGPUTRDTracker::Quicksort(const int left, const int right, const int size, const int type)
+GPUd() void AliGPUTRDTracker::Quicksort(const int left, const int right, const int size)
 {
   //--------------------------------------------------------------------
   // use own quicksort implementation since std::sort not available
@@ -1295,13 +1257,8 @@ GPUd() void AliGPUTRDTracker::Quicksort(const int left, const int right, const i
   if (left >= right) {
     return;
   }
-  int part;
-  if (type == 0) {
-    part = PartitionTracklets(left, right);
-  }
-  else {
-    part = PartitionHypothesis(left, right);
-  }
-  Quicksort(left, part - 1, size, type);
-  Quicksort(part + 1, right, size, type);
+  int part = PartitionTracklets(left, right);
+
+  Quicksort(left, part - 1, size);
+  Quicksort(part + 1, right, size);
 }
