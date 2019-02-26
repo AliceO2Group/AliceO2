@@ -272,6 +272,7 @@ class RCombindedDSBlockJoinIndex : public RCombinedDSIndex
                                  std::string const& column)
   {
     categories = *df->template Take<INDEX_TYPE>(column);
+    pairs.reserve(categories.size());
     // Fill the pairs according tho the actual category
     for (size_t i = 0; i < categories.size(); ++i) {
       pairs.emplace_back(categories[i], i);
