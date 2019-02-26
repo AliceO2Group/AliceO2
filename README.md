@@ -44,20 +44,25 @@ The code organisation is described [here](doc/CodeOrganization.md).
 The build system (cmake) is described [here](doc/CMakeInstructions.md).
 
 ### Formatting
-The project uses `clang-format` to push for a common code formatting according
-the the `clang-format` configuration files in this repository. With an adiabatic
-approach, all changes have to follow the formatting rules. A tool script can be
+The project uses `clang-format` to push for a common code formatting. The rules are defined in 
+the `clang-format` configuration file in this repository (which is propagated from the repository [CodingGuidelines](https://github.com/AliceO2Group/CodingGuidelines)). With an adiabatic
+approach, all changes have to follow the formatting rules. A script, described below, can be
 used to integrate the formatting into `git` and suggest formatting only for
 changed lines.
 
-##### Install `clang-format`
-Use alienv to load `clang` which includes `clang-format` : `alienv load Clang/latest`
-If Clang is not yet build, use alibuild : `aliBuild build --defaults o2 Clang`
-If you use your own clang installation, make sure you have at least version 3.9.
+#### Install `clang-format` and git integration
 
-##### Install `clang-format` git integration
-The `git-clang-format` Python script integrates `clang-format` into `git`.
-Put it somewhere in your path and ensure that it is executable, e.g.
+Note : The installation of clang using aliBuild is not necessary on Mac. 
+
+1. Build clang (to be done once)
+```bash
+aliBuild build --defaults o2 Clang
+```
+2. Load clang and clang-format
+```bash
+alienv load Clang/latest
+```
+3. Install git-clang-format
 ```bash
 cd $HOME
 mkdir -p bin
@@ -66,10 +71,30 @@ wget llvm.org/svn/llvm-project/cfe/trunk/tools/clang-format/git-clang-format
 chmod u+x git-clang-format
 ```
 
-Note: installation of the script will be added to build of AliceO2 software stack.
+#### Check files' formatting
+Show correctly formatted version of a file :
+```
+clang-format -style=file SOURCEFILE
+```
 
-##### Checking formatting
-Now, `git clang-format` will invoke `clang-format` on the changes in current files
+Directly apply the style to a file :
+```
+clang-format -style=file -i SOURCEFILE
+```
+
+Apply the style to all the source and header files in a directory (recursive) : 
+
+```
+find . -iname "*.h" -o -iname "*.cpp" | xargs clang-format -style=file -i 
+```
+
+Display what needs to be fixed in a file : 
+```
+clang-format -style=file <SOURCEFILE> | diff <SOURCEFILE> -
+```
+
+#### Check commits' formatting
+`git clang-format` invokes `clang-format` on the changes in current files
 or a specific commit. E.g. for the last commit
 ```
 git clang-format HEAD~1
@@ -80,16 +105,5 @@ Or for all commits done with respect to the remote branch state
 git clang-format origin/dev
 ```
 
-##### Checking files
-Show updated version of complete file :
-```
-clang-format -style=file SOURCEFILE
-```
-
-Directly apply the style to file :
-```
-clang-format -style=file -i SOURCEFILE
-```
-
-### Using an IDE
+#### Using an IDE
 A number of config files are available [here](https://github.com/AliceO2Group/CodingGuidelines) for various IDEs.
