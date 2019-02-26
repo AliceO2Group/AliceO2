@@ -58,6 +58,30 @@ BOOST_AUTO_TEST_CASE(TestTableBuilder)
   BOOST_REQUIRE_EQUAL(table->column(1)->type()->id(), arrow::int32()->id());
 }
 
+BOOST_AUTO_TEST_CASE(TestTableBuilderBulk)
+{
+  using namespace o2::framework;
+  TableBuilder builder;
+  auto bulkWriter = builder.bulkPersist<int, int>({ "x", "y" }, 10);
+  int x[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+  int y[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+
+  bulkWriter(0, 8, x, y);
+
+  auto table = builder.finalize();
+  BOOST_REQUIRE_EQUAL(table->num_columns(), 2);
+  BOOST_REQUIRE_EQUAL(table->num_rows(), 8);
+  BOOST_REQUIRE_EQUAL(table->column(0)->name(), "x");
+  BOOST_REQUIRE_EQUAL(table->column(1)->name(), "y");
+  BOOST_REQUIRE_EQUAL(table->column(0)->type()->id(), arrow::int32()->id());
+  BOOST_REQUIRE_EQUAL(table->column(1)->type()->id(), arrow::int32()->id());
+
+  for (size_t i = 0; i < 8; ++i) {
+    auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int32Type>>(table->column(0)->data()->chunk(0));
+    BOOST_CHECK_EQUAL(p->Value(i), i);
+  }
+}
+
 BOOST_AUTO_TEST_CASE(TestTableBuilderMore)
 {
   using namespace o2::framework;

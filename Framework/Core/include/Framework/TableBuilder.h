@@ -77,6 +77,12 @@ struct BuilderUtils {
     return builder->UnsafeAppend(value);
   }
 
+  template <typename BuilderType, typename PTR>
+  static arrow::Status bulkAppend(BuilderType& builder, size_t bulkSize, const PTR ptr)
+  {
+    return builder->AppendValues(ptr, bulkSize, nullptr);
+  }
+
   template <typename BuilderType, typename ITERATOR>
   static arrow::Status append(BuilderType& builder, std::pair<ITERATOR, ITERATOR> ip)
   {
@@ -195,6 +201,12 @@ struct TableBuilderHelpers {
     (BuilderUtils::unsafeAppend(std::get<Is>(builders), std::get<Is>(values)), ...);
   }
 
+  template <std::size_t... Is, typename BUILDERS, typename PTRS>
+  static bool bulkAppend(BUILDERS& builders, size_t bulkSize, std::index_sequence<Is...>, PTRS ptrs)
+  {
+    return (BuilderUtils::bulkAppend(std::get<Is>(builders), bulkSize, std::get<Is>(ptrs)).ok() && ...);
+  }
+
   /// Invokes the append method for each entry in the tuple
   template <typename BUILDERS, std::size_t... Is>
   static bool finalize(std::vector<std::shared_ptr<arrow::Array>>& arrays, BUILDERS& builders, std::index_sequence<Is...> seq)
@@ -297,6 +309,22 @@ class TableBuilder
     return [builders = (BuildersTuple*)mBuilders](unsigned int slot, typename BuilderMaker<ARGS>::FillType... args)->void
     {
       TableBuilderHelpers::unsafeAppend(*builders, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
+    };
+  }
+
+  template <typename... ARGS>
+  auto bulkPersist(std::vector<std::string> const& columnNames, size_t nRows)
+  {
+    using BuildersTuple = typename std::tuple<std::unique_ptr<typename BuilderTraits<ARGS>::BuilderType>...>;
+    constexpr int nColumns = sizeof...(ARGS);
+    validate<ARGS...>(columnNames);
+    mArrays.resize(nColumns);
+    makeBuilders<ARGS...>(columnNames, nRows);
+    makeFinalizer<ARGS...>();
+
+    return [builders = (BuildersTuple*)mBuilders](unsigned int slot, size_t batchSize, typename BuilderMaker<ARGS>::FillType const*... args)->void
+    {
+      TableBuilderHelpers::bulkAppend(*builders, batchSize, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
     };
   }
 
