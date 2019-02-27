@@ -1272,13 +1272,13 @@ int AliGPUDisplay::DrawGLScene_internal(bool mixAnimation, float animateTime) //
 			const auto& sp = trdTracker().SpacePoints()[i];
 			int iSec = mChain->GetTRDGeometry()->GetSector(trdTracker().Tracklets()[i].GetDetector());
 			float4* ptr = &globalPosTRD[i];
-			mChain->GetParam().Slice2Global(iSec, sp.fR + Xadd, sp.fX[0], sp.fX[1], &ptr->x, &ptr->y, &ptr->z);
+			mChain->GetParam().Slice2Global(iSec, sp.mR + Xadd, sp.mX[0], sp.mX[1], &ptr->x, &ptr->y, &ptr->z);
 			ptr->x /= GL_SCALE_FACTOR;
 			ptr->y /= GL_SCALE_FACTOR;
 			ptr->z /= GL_SCALE_FACTOR;
 			ptr->w = tTRDCLUSTER;
 			ptr = &globalPosTRD2[i];
-			mChain->GetParam().Slice2Global(iSec, sp.fR + Xadd + 4.5f, sp.fX[0] + 1.5f * sp.fDy, sp.fX[1], &ptr->x, &ptr->y, &ptr->z);
+			mChain->GetParam().Slice2Global(iSec, sp.mR + Xadd + 4.5f, sp.mX[0] + 1.5f * sp.mDy, sp.mX[1], &ptr->x, &ptr->y, &ptr->z);
 			ptr->x /= GL_SCALE_FACTOR;
 			ptr->y /= GL_SCALE_FACTOR;
 			ptr->z /= GL_SCALE_FACTOR;

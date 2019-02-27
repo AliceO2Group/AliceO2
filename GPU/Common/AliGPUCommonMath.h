@@ -19,25 +19,25 @@
 class AliGPUCommonMath
 {
   public:
-	GPUd() static float2 MakeFloat2( float x, float y );
+	GPUhdni() static float2 MakeFloat2( float x, float y );
 
 	template <class T> GPUhd() static T Min( T x, T y );
 	template <class T> GPUhd() static T Max( T x, T y );
-	GPUd() static float Sqrt( float x );
-	template <class T> GPUd() static T Abs( T x );
-	GPUd() static float ASin( float x );
-    GPUd() static float ATan( float x );
-	GPUd() static float ATan2( float y, float x );
-	GPUd() static float Sin( float x );
-	GPUd() static float Cos( float x );
-	GPUd() static float Tan( float x );
-	GPUd() static float Copysign( float x, float y );
-	GPUd() static float TwoPi() { return 6.28319f; }
-	GPUd() static float Pi() { return 3.1415926535897f; }
-	GPUd() static int Nint( float x );
-	GPUd() static bool Finite( float x );
+	GPUhdni() static float Sqrt( float x );
+	template <class T> GPUhd() static T Abs( T x );
+	GPUhdni() static float ASin( float x );
+	GPUhdni() static float ATan( float x );
+	GPUhdni() static float ATan2( float y, float x );
+	GPUhdni() static float Sin( float x );
+	GPUhdni() static float Cos( float x );
+	GPUhdni() static float Tan( float x );
+	GPUhdni() static float Copysign( float x, float y );
+	GPUhdni() static float TwoPi() { return 6.28319f; }
+	GPUhdni() static float Pi() { return 3.1415926535897f; }
+	GPUhdni() static int Nint( float x );
+	GPUhdni() static bool Finite( float x );
 
-	GPUd() static float Log(float x);
+	GPUhdni() static float Log(float x);
 	GPUd() static int AtomicExch( GPUglobalref() GPUAtomic(int) *addr, int val );
 	GPUd() static int AtomicAdd ( GPUglobalref() GPUAtomic(int) *addr, int val );
 	GPUd() static void AtomicMax ( GPUglobalref() GPUAtomic(int) *addr, int val );
@@ -60,7 +60,7 @@ typedef AliGPUCommonMath CAMath;
     #define CHOICE(c1, c2, c3) c1
 #endif
 
-GPUdi() float2 AliGPUCommonMath::MakeFloat2(float x, float y)
+GPUhdi() float2 AliGPUCommonMath::MakeFloat2(float x, float y)
 {
 #if !defined(GPUCA_GPUCODE) || defined(__OPENCL__)
 	float2 ret = {x, y};
@@ -70,7 +70,7 @@ GPUdi() float2 AliGPUCommonMath::MakeFloat2(float x, float y)
 #endif //GPUCA_GPUCODE
 }
 
-GPUdi() int AliGPUCommonMath::Nint(float x)
+GPUhdi() int AliGPUCommonMath::Nint(float x)
 {
 	int i;
 	if (x >= 0)
@@ -86,32 +86,32 @@ GPUdi() int AliGPUCommonMath::Nint(float x)
 	return i;
 }
 
-GPUdi() bool AliGPUCommonMath::Finite(float x)
+GPUhdi() bool AliGPUCommonMath::Finite(float x)
 {
 	return CHOICE(std::isfinite(x), true, true);
 }
 
-GPUdi() float AliGPUCommonMath::ATan(float x)
+GPUhdi() float AliGPUCommonMath::ATan(float x)
 {
 	return CHOICE(atanf(x), atanf(x), atan(x));
 }
 
-GPUdi() float AliGPUCommonMath::ATan2(float y, float x)
+GPUhdi() float AliGPUCommonMath::ATan2(float y, float x)
 {
 	return CHOICE(atan2f(y, x), atan2f(y, x), atan2(y, x));
 }
 
-GPUdi() float AliGPUCommonMath::Sin(float x)
+GPUhdi() float AliGPUCommonMath::Sin(float x)
 {
 	return CHOICE(sinf(x), sinf(x), sin(x));
 }
 
-GPUdi() float AliGPUCommonMath::Cos(float x)
+GPUhdi() float AliGPUCommonMath::Cos(float x)
 {
 	return CHOICE(cosf(x), cosf(x), cos(x));
 }
 
-GPUdi() float AliGPUCommonMath::Tan(float x)
+GPUhdi() float AliGPUCommonMath::Tan(float x)
 {
 	return CHOICE(tanf(x), tanf(x), tan(x));
 }
@@ -126,39 +126,39 @@ template <class T> GPUhdi() T AliGPUCommonMath::Max(T x, T y)
 	return CHOICE(std::max(x, y), std::max(x, y), (x > y ? x : y));
 }
 
-GPUdi() float AliGPUCommonMath::Sqrt(float x)
+GPUhdi() float AliGPUCommonMath::Sqrt(float x)
 {
 	return CHOICE(sqrtf(x), sqrtf(x), sqrt(x));
 }
 
-template <> GPUdi() float AliGPUCommonMath::Abs<float>(float x)
+template <> GPUhdi() float AliGPUCommonMath::Abs<float>(float x)
 {
 	return CHOICE(fabsf(x), fabsf(x), fabs(x));
 }
 
 #if !defined(__OPENCL__) || defined(cl_khr_fp64)
-template <> GPUdi() double AliGPUCommonMath::Abs<double>(double x)
+template <> GPUhdi() double AliGPUCommonMath::Abs<double>(double x)
 {
 	return CHOICE(fabs(x), fabs(x), fabs(x));
 }
 #endif
 
-template <> GPUdi() int AliGPUCommonMath::Abs<int>(int x)
+template <> GPUhdi() int AliGPUCommonMath::Abs<int>(int x)
 {
 	return CHOICE(abs(x), abs(x), abs(x));
 }
 
-GPUdi() float AliGPUCommonMath::ASin(float x)
+GPUhdi() float AliGPUCommonMath::ASin(float x)
 {
 	return CHOICE(asinf(x), asinf(x), asin(x));
 }
 
-GPUdi() float AliGPUCommonMath::Log(float x)
+GPUhdi() float AliGPUCommonMath::Log(float x)
 {
 	return CHOICE(logf(x), logf(x), log(x));
 }
 
-GPUdi() float AliGPUCommonMath::Copysign(float x, float y)
+GPUhdi() float AliGPUCommonMath::Copysign(float x, float y)
 {
 #if defined(__OPENCLCPP__)
     return copysign(x, y);
