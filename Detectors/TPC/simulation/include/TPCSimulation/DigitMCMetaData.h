@@ -17,72 +17,66 @@
 
 #include <Rtypes.h>
 
-namespace o2 {
-namespace TPC {
+namespace o2
+{
+namespace TPC
+{
 
 /// \class DigitMCMetaData
 /// This is the definition of the Meta Data object of the Monte Carlo Digit
 /// It holds auxilliary information relevant for debugging:
 /// ADC value, Common Mode, Pedestal and Noise
 
-class DigitMCMetaData {
-  public:
+class DigitMCMetaData
+{
+ public:
+  /// Default constructor
+  DigitMCMetaData() = default;
 
-    /// Default constructor
-    DigitMCMetaData();
+  /// Constructor, initializing values for position, charge, time and common mode
+  /// \param ADC Raw ADC value of the corresponding DigitMC (before saturation)
+  /// \param commonMode Common mode signal on that ROC in the time bin of the DigitMC
+  /// \param pedestal Raw pedestal value of the corresponding DigitMC (before saturation)
+  /// \param noise Raw noise value of the corresponding DigitMC (before saturation)
+  DigitMCMetaData(float ADC, float commonMode, float pedestal, float noise);
 
-    /// Constructor, initializing values for position, charge, time and common mode
-    /// \param ADC Raw ADC value of the corresponding DigitMC (before saturation)
-    /// \param commonMode Common mode signal on that ROC in the time bin of the DigitMC
-    /// \param pedestal Raw pedestal value of the corresponding DigitMC (before saturation)
-    /// \param noise Raw noise value of the corresponding DigitMC (before saturation)
-    DigitMCMetaData(float ADC, float commonMode, float pedestal, float noise);
+  /// Destructor
+  ~DigitMCMetaData() = default;
 
-    /// Destructor
-    ~DigitMCMetaData() = default;
+  /// Get the raw ADC value
+  /// \return Raw ADC value of the corresponding DigitMC (before saturation)
+  float getRawADC() const { return mADC; }
 
-    /// Get the raw ADC value
-    /// \return Raw ADC value of the corresponding DigitMC (before saturation)
-    float getRawADC() const { return mADC; }
+  /// Get the common mode value
+  /// \return Common mode signal on that ROC in the time bin of the DigitMC
+  float getCommonMode() const { return mCommonMode; }
 
-    /// Get the common mode value
-    /// \return Common mode signal on that ROC in the time bin of the DigitMC
-    float getCommonMode() const { return mCommonMode; }
+  /// Get the raw pedestal value
+  /// \return Raw pedestal value of the corresponding DigitMC (before saturation)
+  float getPedestal() const { return mPedestal; }
 
-    /// Get the raw pedestal value
-    /// \return Raw pedestal value of the corresponding DigitMC (before saturation)
-    float getPedestal() const { return mPedestal; }
+  /// Get the raw noise value
+  /// \return Raw noise value of the corresponding DigitMC (before saturation)
+  float getNoise() const { return mNoise; }
 
-    /// Get the raw noise value
-    /// \return Raw noise value of the corresponding DigitMC (before saturation)
-    float getNoise() const { return mNoise; }
-
-  private:
-    float         mADC;             ///< Raw ADC value of the DigitMCMetaData
-    float         mCommonMode;      ///< Common mode value of the DigitMCMetaData
-    float         mPedestal;        ///< Pedestal value of the DigitMCMetaData
-    float         mNoise;           ///< Noise value of the DigitMCMetaData
+ private:
+  float mADC = 0.f;        ///< Raw ADC value of the DigitMCMetaData
+  float mCommonMode = 0.f; ///< Common mode value of the DigitMCMetaData
+  float mPedestal = 0.f;   ///< Pedestal value of the DigitMCMetaData
+  float mNoise = 0.f;      ///< Noise value of the DigitMCMetaData
 
   ClassDefNV(DigitMCMetaData, 1);
 };
 
-inline
-DigitMCMetaData::DigitMCMetaData()
-  : mADC(0.f),
-    mCommonMode(0.f),
-    mPedestal(0.f),
-    mNoise(0.f)
-  {}
-
-inline
-DigitMCMetaData::DigitMCMetaData(float ADC, float commonMode, float pedestal, float noise)
+inline DigitMCMetaData::DigitMCMetaData(float ADC, float commonMode, float pedestal, float noise)
   : mADC(ADC),
     mCommonMode(commonMode),
     mPedestal(pedestal),
     mNoise(noise)
-{}
+{
+}
 
-}
-}
+} // namespace TPC
+} // namespace o2
 
 #endif // ALICEO2_TPC_DigitMCMetaData_H_
