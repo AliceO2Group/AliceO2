@@ -23,6 +23,7 @@
 #include "AliGPUCommonMath.h"
 
 #include "AliGPUTPCClusterData.h"
+#include "AliGPUTPCSliceOutput.h"
 #include "AliGPUOutputControl.h"
 #include "AliGPUTPCTrackletConstructor.h"
 #include "AliGPUTPCTrackLinearisation.h"
@@ -46,8 +47,8 @@ ClassImp( AliGPUTPCTracker )
 
 AliGPUTPCTracker::AliGPUTPCTracker() :
 	AliGPUProcessor(),
-	fStageAtSync( NULL ),
-	fLinkTmpMemory( NULL ),
+	fStageAtSync( nullptr ),
+	fLinkTmpMemory( nullptr ),
 	fISlice(-1),
 	fData(),
 	fNMaxStartHits( 0 ),
@@ -60,18 +61,18 @@ AliGPUTPCTracker::AliGPUTPCTracker() :
 	mMemoryResTracklets( -1 ),
 	mMemoryResTracks( -1 ),
 	mMemoryResTrackHits( -1 ),
-	fRowStartHitCountOffset( NULL ),
-	fTrackletTmpStartHits( NULL ),
-	fGPUTrackletTemp( NULL ),
+	fRowStartHitCountOffset( nullptr ),
+	fTrackletTmpStartHits( nullptr ),
+	fGPUTrackletTemp( nullptr ),
 	fGPUParametersConst(),
-	fCommonMem( 0 ),
-	fTrackletStartHits( 0 ),
-	fTracklets( 0 ),
-	fTrackletRowHits( NULL ),
-	fTracks( 0 ),
-	fTrackHits( 0 ),
-	fOutput( 0 ),
-	fOutputMemory(NULL)
+	fCommonMem( nullptr ),
+	fTrackletStartHits( nullptr ),
+	fTracklets( nullptr ),
+	fTrackletRowHits( nullptr ),
+	fTracks( nullptr ),
+	fTrackHits( nullptr ),
+	fOutput( nullptr ),
+	fOutputMemory(nullptr)
 {}
 	
 AliGPUTPCTracker::~AliGPUTPCTracker()
@@ -208,10 +209,8 @@ GPUh() int AliGPUTPCTracker::CheckEmptySlice()
 	{
 		fCommonMem->fNTracks = fCommonMem->fNTrackHits = 0;
 		WriteOutputPrepare();
-		AliGPUTPCSliceOutput* useOutput = *fOutput;
-		if (useOutput == NULL) return(1);
-		useOutput->SetNTracks( 0 );
-		useOutput->SetNTrackClusters( 0 );
+		fOutput->SetNTracks( 0 );
+		fOutput->SetNTrackClusters( 0 );
 		return 1;
 	}
 	return 0;
@@ -219,7 +218,7 @@ GPUh() int AliGPUTPCTracker::CheckEmptySlice()
 
 GPUh() void AliGPUTPCTracker::WriteOutputPrepare()
 {
-	AliGPUTPCSliceOutput::Allocate(*fOutput, fCommonMem->fNTracks, fCommonMem->fNTrackHits, &mRec->OutputControl(), fOutputMemory);
+	AliGPUTPCSliceOutput::Allocate(fOutput, fCommonMem->fNTracks, fCommonMem->fNTrackHits, &mRec->OutputControl(), fOutputMemory);
 }
 
 template <class T> static inline bool SortComparison(const T& a, const T& b)
@@ -229,14 +228,9 @@ template <class T> static inline bool SortComparison(const T& a, const T& b)
 
 GPUh() void AliGPUTPCTracker::WriteOutput()
 {
-	// write output
-	AliGPUTPCSliceOutput* useOutput = *fOutput;
-
-	if (useOutput == NULL) return;
-
-	useOutput->SetNTracks( 0 );
-	useOutput->SetNLocalTracks( 0 );
-	useOutput->SetNTrackClusters( 0 );
+	fOutput->SetNTracks( 0 );
+	fOutput->SetNLocalTracks( 0 );
+	fOutput->SetNTrackClusters( 0 );
 	
 	if (fCommonMem->fNTracks == 0) return;
 	if (fCommonMem->fNTracks > MAX_SLICE_NTRACK)
@@ -249,7 +243,7 @@ GPUh() void AliGPUTPCTracker::WriteOutput()
 	int nStoredTracks = 0;
 	int nStoredLocalTracks = 0;
 
-	AliGPUTPCSliceOutTrack *out = useOutput->FirstTrack();
+	AliGPUTPCSliceOutTrack *out = fOutput->FirstTrack();
 	
 	trackSortData* trackOrder = new trackSortData[fCommonMem->fNTracks];
 	for (int i = 0;i < fCommonMem->fNTracks;i++)
@@ -320,9 +314,9 @@ GPUh() void AliGPUTPCTracker::WriteOutput()
 	}
 	delete[] trackOrder;
 
-	useOutput->SetNTracks( nStoredTracks );
-	useOutput->SetNLocalTracks( nStoredLocalTracks );
-	useOutput->SetNTrackClusters( nStoredHits );
+	fOutput->SetNTracks( nStoredTracks );
+	fOutput->SetNLocalTracks( nStoredLocalTracks );
+	fOutput->SetNTrackClusters( nStoredHits );
 	if (mCAParam->debugLevel >= 3) printf("Slice %d, Output: Tracks %d, local tracks %d, hits %d\n", fISlice, nStoredTracks, nStoredLocalTracks, nStoredHits);
 }
 

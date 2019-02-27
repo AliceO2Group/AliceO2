@@ -1,4 +1,5 @@
 #include "AliGPUTPCTracker.h"
+#include "AliGPUTPCSliceOutput.h"
 #include "AliGPUReconstruction.h"
 #include "AliGPUTPCHitId.h"
 #include "AliGPUTPCTrack.h"
@@ -10,8 +11,8 @@
 void AliGPUTPCTracker::DumpOutput(FILE* out)
 {
 	fprintf(out, "Slice %d\n", fISlice);
-	const AliGPUTPCSliceOutTrack* track = (*(Output()))->GetFirstTrack();
-	for (unsigned int j = 0;j < (*(Output()))->NTracks();j++)
+	const AliGPUTPCSliceOutTrack* track = (Output())->GetFirstTrack();
+	for (unsigned int j = 0;j < (Output())->NTracks();j++)
 	{
 		fprintf(out, "Track %d (%d): ", j, track->NClusters());
 		for (int k = 0;k < track->NClusters();k++)
