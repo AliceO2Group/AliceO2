@@ -216,8 +216,8 @@ int SetupReconstruction()
 	devProc.globalInitMutex = configStandalone.gpuInitMutex;
 	devProc.gpuDeviceOnly = configStandalone.oclGPUonly;
 	devProc.memoryAllocationStrategy = configStandalone.allocationStrategy;
-	if (configStandalone.configRec.runTRD != -1) chainTracking->GetRecoSteps().setBits(AliGPUReconstruction::RecoStep::TRDTracking, configStandalone.configRec.runTRD);
-	if (!configStandalone.merger) chainTracking->GetRecoSteps().setBits(AliGPUReconstruction::RecoStep::TPCMerging, false);
+	if (configStandalone.configRec.runTRD != -1) rec->RecoSteps().setBits(AliGPUReconstruction::RecoStep::TRDTracking, configStandalone.configRec.runTRD > 0);
+	if (!configStandalone.merger) rec->RecoSteps().setBits(AliGPUReconstruction::RecoStep::TPCMerging, false);
 	
 	if (configStandalone.configProc.nStreams >= 0) devProc.nStreams = configStandalone.configProc.nStreams;
 	if (configStandalone.configProc.constructorPipeline >= 0) devProc.trackletConstructorInPipeline = configStandalone.configProc.constructorPipeline;
