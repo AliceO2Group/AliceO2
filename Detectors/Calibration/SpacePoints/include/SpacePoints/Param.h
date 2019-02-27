@@ -18,20 +18,26 @@
 
 namespace o2
 {
-namespace calib
+namespace TPC
 {
 
-namespace param
-{
+  // for internal data structures
+  static constexpr float MaxResid = 20.f;
+
 // voxel definition
 enum { VoxZ,
        VoxF,
        VoxX,
        VoxV };
+static constexpr int VoxDim = 3;  // the voxels are defined in a 3 dimensional system
+static constexpr int VoxHDim = 4; // for the smoothing we add for each voxel next to the distance for each dimension also the kernel weight
+
+
 enum { ResX,
        ResY,
        ResZ,
        ResD };
+static constexpr int ResDim = 4;  // there are 4 dimensions for the results (X-distortions, Y-distortions, Z-distortions and dispersions)
 
 enum { DistDone = 1,
        DispDone = 2,
@@ -39,9 +45,6 @@ enum { DistDone = 1,
        Masked = 8 };
 
 // TPC geometric constants
-static constexpr int NSectors = 18;
-static constexpr int NSectors2 = 2 * NSectors;
-static constexpr int NRoc = 4 * NSectors;
 static constexpr int NPadRows = 159;
 static constexpr int NRowIROC = 63;
 static constexpr int NRowOROC1 = 64;
@@ -71,16 +74,9 @@ static constexpr float RowDX[NPadRows] = { // distance between pad rows
   1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500,
   1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500
 };
-static constexpr float SecDPhi = 20.f * 0.01745; // 20.f * pi / 180.f
-static constexpr float MaxY2X = 0.176;           // TMath::Tan(0.5f * SecDPhi);
+
 static constexpr float DeadZone = 1.5f;
 static constexpr float MaxZ2X = 1.f;
-
-// for internal data structures
-static constexpr int ResDim = 4;  // there are 4 dimensions for the results (X-distortions, Y-distortions, Z-distortions and dispersions)
-static constexpr int VoxDim = 3;  // the voxels are defined in a 3 dimensional system
-static constexpr int VoxHDim = 4; // for the smoothing we add for each voxel next to the distance for each dimension also the kernel weight
-static constexpr float MaxResid = 20.f;
 
 // smoothing parameters
 enum { EpanechnikovKernel,
@@ -89,16 +85,11 @@ enum { EpanechnikovKernel,
 static constexpr int SmtLinDim = 4; // max matrix size for smoothing (pol1)
 static constexpr int MaxSmtDim = 7; // max matrix size for smoothing (pol2)
 
-// binning
-static constexpr int Y2XBins = 15;
-static constexpr int Z2XBins = 5;
 
-// miscellaneous
-static constexpr float FloatEps = 1.e-7f;
 
-} // namespace param
 
-} // namespace calib
+
+} // namespace TPC
 
 } // namespace o2
 #endif

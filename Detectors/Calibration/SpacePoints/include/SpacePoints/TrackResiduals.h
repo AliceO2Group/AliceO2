@@ -23,6 +23,7 @@
 #include <string>
 #include <Rtypes.h>
 
+#include "DataFormatsTPC/Defs.h"
 #include "SpacePoints/Param.h"
 
 #include "TTree.h"
@@ -44,6 +45,8 @@ namespace o2
 {
 namespace calib
 {
+
+using namespace o2::TPC;
 
 /// \class TrackResiduals
 /// This class is steering the space point calibration of the TPC from track residuals.
@@ -70,6 +73,7 @@ class TrackResiduals
     unsigned char bsec{ 0 };                         // sector ID (0-35)
     unsigned char flags{ 0 };                        // status flag
   };
+
 
   // -------------------------------------- initialization --------------------------------------------------
   /// Steers the initialization (binning, default settings for smoothing, container for the results).
@@ -345,8 +349,8 @@ class TrackResiduals
   bool mPrintMem{};      ///< turn on to print memory usage at certain points
   // binning
   int mNXBins{};                                  ///< number of bins in radial direction
-  int mNY2XBins{};                                ///< number of y/x bins per sector
-  int mNZ2XBins{};                                ///< number of z/x bins per sector
+  int mNY2XBins{15}                               ///< number of y/x bins per sector
+  int mNZ2XBins{5};                               ///< number of z/x bins per sector
   int mNVoxPerSector{};                           ///< number of voxels per sector
   float mDX{};                                    ///< x bin size
   float mDXI{};                                   ///< inverse of x bin size
@@ -377,15 +381,15 @@ class TrackResiduals
   int mKernelType{};                                                        ///< kernel type (Epanechnikov / Gaussian)
   bool mUseErrInSmoothing{ true };                                          ///< weight kernel by point error
   std::array<bool, param::VoxDim> mSmoothPol2{};                            ///< option to use pol1 or pol2 in each direction
-  std::array<int, param::NSectors2> mNSmoothingFailedBins{};                ///< number of failed bins / sector
+  std::array<int, SECTORSPERSIDE*SIDES> mNSmoothingFailedBins{};                ///< number of failed bins / sector
   std::array<int, param::VoxDim> mStepKern{};                               ///< N bins to consider with given kernel settings
   std::array<float, param::VoxDim> mKernelScaleEdge{};                      ///< optional scaling factors for kernel width on the edge
   std::array<float, param::VoxDim> mKernelWInv{};                           ///< inverse kernel width in bins
   std::array<double, param::ResDim * param::MaxSmtDim> mLastSmoothingRes{}; ///< results of last smoothing operation
   // (intermediate) results
-  std::array<std::bitset<param::NPadRows>, param::NSectors2> mXBinsIgnore{};          ///< flags which X bins to ignore
-  std::array<std::array<float, param::NPadRows>, param::NSectors2> mValidFracXBins{}; ///< for each sector for each X-bin the fraction of validated voxels
-  std::array<std::vector<bres_t>, param::NSectors2> mVoxelResults{};                  ///< results per sector and per voxel for 3-D distortions
+  std::array<std::bitset<param::NPadRows>, SECTORSPERSIDE*SIDES> mXBinsIgnore{};          ///< flags which X bins to ignore
+  std::array<std::array<float, param::NPadRows>, SECTORSPERSIDE*SIDES> mValidFracXBins{}; ///< for each sector for each X-bin the fraction of validated voxels
+  std::array<std::vector<bres_t>, SECTORSPERSIDE*SIDES> mVoxelResults{};                  ///< results per sector and per voxel for 3-D distortions
 };
 
 //_____________________________________________________

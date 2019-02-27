@@ -18,6 +18,7 @@
 
 #include "SpacePoints/TrackResiduals.h"
 #include "SpacePoints/Statistics.h"
+#include "CommonConstants/MathConstants.h"
 
 #include "TMatrixDSym.h"
 #include "TDecompChol.h"
@@ -38,6 +39,7 @@
 #include <fairlogger/Logger.h>
 
 using namespace o2::calib;
+using namespace o2::TPC;
 
 ///////////////////////////////////////////////////////////////////////////////
 ///
@@ -49,13 +51,13 @@ using namespace o2::calib;
 void TrackResiduals::init()
 {
   // initialize binning
-  mNZ2XBins = param::Z2XBins;
+  mNZ2XBins = Z2XBins;
   mNXBins = 0;
-  mNY2XBins = param::Y2XBins;
+  mNY2XBins = Y2XBins;
   initBinning();
 
   // initialize results container
-  for (int i = 0; i < param::NSectors2; i++) {
+  for (int i = 0; i < SECTORSPERSIDE*SIDES; i++) {
     mVoxelResults[i].resize(mNVoxPerSector);
   }
   mSmoothPol2[param::VoxX] = true;
@@ -91,7 +93,7 @@ void TrackResiduals::initBinning()
   //
   for (int ix = 0; ix < mNXBins; ++ix) {
     float x = getX(ix);
-    mMaxY2X[ix] = param::MaxY2X - param::DeadZone / x;
+    mMaxY2X[ix] = tan(.5f * SECPHIWIDTH) - param::DeadZone / x;
     mDY2XI[ix] = mNY2XBins / (2.f * mMaxY2X[ix]);
     mDY2X[ix] = 1.f / mDY2XI[ix];
   }
@@ -129,7 +131,7 @@ void TrackResiduals::initResultsContainer(int iSec)
 //______________________________________________________________________________
 void TrackResiduals::reset()
 {
-  for (int iSec = 0; iSec < param::NSectors2; ++iSec) {
+  for (int iSec = 0; iSec < SECTORSPERSIDE*SIDES; ++iSec) {
     mXBinsIgnore[iSec].reset();
     std::fill(mVoxelResults[iSec].begin(), mVoxelResults[iSec].end(), bres_t());
     std::fill(mValidFracXBins[iSec].begin(), mValidFracXBins[iSec].end(), 0);
@@ -217,7 +219,7 @@ void TrackResiduals::processResiduals()
   if (!mIsInitialized) {
     init();
   }
-  for (int iSec = 0; iSec < param::NSectors2; ++iSec) {
+  for (int iSec = 0; iSec < SECTORSPERSIDE*SIDES; ++iSec) {
     processSectorResiduals(iSec);
   }
 }
@@ -671,7 +673,7 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
   }
 
   int ix0, ip0, iz0;
-  findVoxel(x, p, iSec < param::NSectors ? z : -z, ix0, ip0, iz0); // find nearest voxel
+  findVoxel(x, p, iSec < SECTORSPERSIDE ? z : -z, ix0, ip0, iz0); // find nearest voxel
   std::vector<bres_t>& secData = mVoxelResults[iSec];
   int binCenter = getGlbVoxBin(ix0, ip0, iz0); // global bin of nearest voxel
   bres_t& voxCenter = secData[binCenter];      // nearest voxel
@@ -1127,7 +1129,7 @@ void TrackResiduals::medFit(int nPoints, int offset, const std::vector<float>& x
   if (sigb > 0) {
     float b2 = bb + std::copysign(3.f * sigb, f1);
     float f2 = roFunc(nPoints, offset, x, y, b2, aa);
-    if (fabs(f1 - f2) < param::FloatEps) {
+    if (fabs(f1 - f2) < o2::constants::math::Almost0) {
       a = aa;
       b = bb;
       return;
@@ -1202,7 +1204,7 @@ float TrackResiduals::roFunc(int nPoints, int offset, const std::vector<float>& 
     if (y[j + offset] != 0.f) {
       d /= fabs(y[j + offset]);
     }
-    if (fabs(d) > param::FloatEps) {
+    if (fabs(d) > o2::constants::math::Almost0) {
       sum += (d >= 0.f ? x[j + offset] : -x[j + offset]);
     }
   }
