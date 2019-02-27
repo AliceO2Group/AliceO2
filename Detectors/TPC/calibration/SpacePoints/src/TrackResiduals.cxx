@@ -40,7 +40,6 @@
 
 using namespace o2::TPC;
 
-
 ///////////////////////////////////////////////////////////////////////////////
 ///
 /// initialization + binning
@@ -54,7 +53,7 @@ void TrackResiduals::init()
   initBinning();
 
   // initialize results container
-  for (int i = 0; i < SECTORSPERSIDE*SIDES; i++) {
+  for (int i = 0; i < SECTORSPERSIDE * SIDES; i++) {
     mVoxelResults[i].resize(mNVoxPerSector);
   }
   mSmoothPol2[param::VoxX] = true;
@@ -128,7 +127,7 @@ void TrackResiduals::initResultsContainer(int iSec)
 //______________________________________________________________________________
 void TrackResiduals::reset()
 {
-  for (int iSec = 0; iSec < SECTORSPERSIDE*SIDES; ++iSec) {
+  for (int iSec = 0; iSec < SECTORSPERSIDE * SIDES; ++iSec) {
     mXBinsIgnore[iSec].reset();
     std::fill(mVoxelResults[iSec].begin(), mVoxelResults[iSec].end(), bres_t());
     std::fill(mValidFracXBins[iSec].begin(), mValidFracXBins[iSec].end(), 0);
@@ -216,7 +215,7 @@ void TrackResiduals::processResiduals()
   if (!mIsInitialized) {
     init();
   }
-  for (int iSec = 0; iSec < SECTORSPERSIDE*SIDES; ++iSec) {
+  for (int iSec = 0; iSec < SECTORSPERSIDE * SIDES; ++iSec) {
     processSectorResiduals(iSec);
   }
 }

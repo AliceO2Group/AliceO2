@@ -31,10 +31,10 @@
 
 namespace AliTPCDcalibRes
 {
-struct dts_t {                            // struct for basic local residual
-  Double32_t dy;                          //[-20.,20.,15] // [-kMaxResid,kMaxResid,14]
-  Double32_t dz;                          //[-20.,20.,15] // [-kMaxResid,kMaxResid,14]
-  Double32_t tgSlp;                       //[-2,2,14]  //[kMaxTgSlp,kMaxTgSlp,14]
+struct dts_t {                          // struct for basic local residual
+  Double32_t dy;                        //[-20.,20.,15] // [-kMaxResid,kMaxResid,14]
+  Double32_t dz;                        //[-20.,20.,15] // [-kMaxResid,kMaxResid,14]
+  Double32_t tgSlp;                     //[-2,2,14]  //[kMaxTgSlp,kMaxTgSlp,14]
   UChar_t bvox[o2::TPC::param::VoxDim]; // voxel bin info: VoxF,kVoxX,kVoxZ
   //
   dts_t() { memset(this, 0, sizeof(dts_t)); }
@@ -71,7 +71,6 @@ class TrackResiduals
     unsigned char bsec{ 0 };                         // sector ID (0-35)
     unsigned char flags{ 0 };                        // status flag
   };
-
 
   // -------------------------------------- initialization --------------------------------------------------
   /// Steers the initialization (binning, default settings for smoothing, container for the results).
@@ -338,10 +337,8 @@ class TrackResiduals
   /// Closes the file with the debug output.
   void closeOutputFile();
 
-
-
  private:
-   static constexpr float sFloatEps{1.e-7f};
+  static constexpr float sFloatEps{ 1.e-7f };
   // input data
   std::unique_ptr<TFile> mFileOut{}; ///< output debug file
   std::unique_ptr<TTree> mTreeOut{}; ///< tree holding debug output
@@ -350,8 +347,8 @@ class TrackResiduals
   bool mPrintMem{};      ///< turn on to print memory usage at certain points
   // binning
   int mNXBins{};                                  ///< number of bins in radial direction
-  int mNY2XBins{15};                              ///< number of y/x bins per sector
-  int mNZ2XBins{5};                               ///< number of z/x bins per sector
+  int mNY2XBins{ 15 };                            ///< number of y/x bins per sector
+  int mNZ2XBins{ 5 };                             ///< number of z/x bins per sector
   int mNVoxPerSector{};                           ///< number of voxels per sector
   float mDX{};                                    ///< x bin size
   float mDXI{};                                   ///< inverse of x bin size
@@ -382,15 +379,15 @@ class TrackResiduals
   int mKernelType{};                                                        ///< kernel type (Epanechnikov / Gaussian)
   bool mUseErrInSmoothing{ true };                                          ///< weight kernel by point error
   std::array<bool, param::VoxDim> mSmoothPol2{};                            ///< option to use pol1 or pol2 in each direction
-  std::array<int, SECTORSPERSIDE*SIDES> mNSmoothingFailedBins{};                ///< number of failed bins / sector
+  std::array<int, SECTORSPERSIDE * SIDES> mNSmoothingFailedBins{};          ///< number of failed bins / sector
   std::array<int, param::VoxDim> mStepKern{};                               ///< N bins to consider with given kernel settings
   std::array<float, param::VoxDim> mKernelScaleEdge{};                      ///< optional scaling factors for kernel width on the edge
   std::array<float, param::VoxDim> mKernelWInv{};                           ///< inverse kernel width in bins
   std::array<double, param::ResDim * param::MaxSmtDim> mLastSmoothingRes{}; ///< results of last smoothing operation
   // (intermediate) results
-  std::array<std::bitset<param::NPadRows>, SECTORSPERSIDE*SIDES> mXBinsIgnore{};          ///< flags which X bins to ignore
-  std::array<std::array<float, param::NPadRows>, SECTORSPERSIDE*SIDES> mValidFracXBins{}; ///< for each sector for each X-bin the fraction of validated voxels
-  std::array<std::vector<bres_t>, SECTORSPERSIDE*SIDES> mVoxelResults{};                  ///< results per sector and per voxel for 3-D distortions
+  std::array<std::bitset<param::NPadRows>, SECTORSPERSIDE * SIDES> mXBinsIgnore{};          ///< flags which X bins to ignore
+  std::array<std::array<float, param::NPadRows>, SECTORSPERSIDE * SIDES> mValidFracXBins{}; ///< for each sector for each X-bin the fraction of validated voxels
+  std::array<std::vector<bres_t>, SECTORSPERSIDE * SIDES> mVoxelResults{};                  ///< results per sector and per voxel for 3-D distortions
 };
 
 //_____________________________________________________

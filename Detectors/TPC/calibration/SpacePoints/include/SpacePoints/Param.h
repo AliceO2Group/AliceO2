@@ -24,7 +24,6 @@ namespace TPC
 namespace param
 {
 
-
 // voxel definition
 enum { VoxZ,
        VoxF,
@@ -33,12 +32,11 @@ enum { VoxZ,
 static constexpr int VoxDim = 3;  // the voxels are defined in a 3 dimensional system
 static constexpr int VoxHDim = 4; // for the smoothing we add for each voxel next to the distance for each dimension also the kernel weight
 
-
 enum { ResX,
        ResY,
        ResZ,
        ResD };
-static constexpr int ResDim = 4;  // there are 4 dimensions for the results (X-distortions, Y-distortions, Z-distortions and dispersions)
+static constexpr int ResDim = 4; // there are 4 dimensions for the results (X-distortions, Y-distortions, Z-distortions and dispersions)
 
 enum { DistDone = 1,
        DispDone = 2,
@@ -86,8 +84,6 @@ enum { EpanechnikovKernel,
 
 static constexpr int SmtLinDim = 4; // max matrix size for smoothing (pol1)
 static constexpr int MaxSmtDim = 7; // max matrix size for smoothing (pol2)
-
-
 
 } // namespace param
 
