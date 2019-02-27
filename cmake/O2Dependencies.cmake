@@ -1816,9 +1816,10 @@ o2_define_bucket(
     Matrix
     tpc_base_bucket
     common_utils_bucket
+    common_math_bucket
 
     INCLUDE_DIRECTORIES
-    ${CMAKE_SOURCE_DIR}/Detectors/Calibration/TrackResiduals/include
+    ${CMAKE_SOURCE_DIR}/Detectors/TPC/calibration/SpacePoints/include
 )
 
 o2_define_bucket(

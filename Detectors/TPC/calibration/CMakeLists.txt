@@ -1,3 +1,6 @@
+# Libraries
+add_subdirectory(SpacePoints)
+
 set(MODULE_NAME "TPCCalibration")
 
 O2_SETUP(NAME ${MODULE_NAME})

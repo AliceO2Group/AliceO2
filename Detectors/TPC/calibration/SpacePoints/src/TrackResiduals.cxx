@@ -17,8 +17,8 @@
 ///
 
 #include "SpacePoints/TrackResiduals.h"
-#include "SpacePoints/Statistics.h"
 #include "CommonConstants/MathConstants.h"
+#include "MathUtils/MathBase.h"
 
 #include "TMatrixDSym.h"
 #include "TDecompChol.h"
@@ -38,8 +38,8 @@
 
 #include <fairlogger/Logger.h>
 
-using namespace o2::calib;
 using namespace o2::TPC;
+
 
 ///////////////////////////////////////////////////////////////////////////////
 ///
@@ -51,9 +51,6 @@ using namespace o2::TPC;
 void TrackResiduals::init()
 {
   // initialize binning
-  mNZ2XBins = Z2XBins;
-  mNXBins = 0;
-  mNY2XBins = Y2XBins;
   initBinning();
 
   // initialize results container
@@ -324,7 +321,7 @@ void TrackResiduals::processSectorResiduals(int iSec)
   }
 
   // sort in voxel increasing order
-  stat::SortData(binData, binIndices);
+  o2::mathUtils::mathBase::SortData(binData, binIndices);
   if (mPrintMem) {
     printMem();
   }
@@ -436,7 +433,7 @@ void TrackResiduals::processVoxelResiduals(std::vector<float>& dy, std::vector<f
   std::array<float, 7> zResults;
   resVox.flags = 0;
   std::vector<size_t> indices(dz.size());
-  if (!stat::LTMUnbinned(dz, indices, zResults, mLTMCut)) {
+  if (!o2::mathUtils::mathBase::LTMUnbinned(dz, indices, zResults, mLTMCut)) {
     return;
   }
   std::array<float, 2> res{ 0.f };
@@ -1053,12 +1050,12 @@ float TrackResiduals::fitPoly1Robust(std::vector<float>& x, std::vector<float>& 
   }
   std::array<float, 7> yResults;
   std::vector<size_t> indY(nPoints);
-  if (!stat::LTMUnbinned(y, indY, yResults, cutLTM)) {
+  if (!o2::mathUtils::mathBase::LTMUnbinned(y, indY, yResults, cutLTM)) {
     return -1;
   }
   // rearrange used events in increasing order
-  stat::Reorder(y, indY);
-  stat::Reorder(x, indY);
+  o2::mathUtils::mathBase::Reorder(y, indY);
+  o2::mathUtils::mathBase::Reorder(x, indY);
   //
   // 1st fit to get crude slope
   int nPointsUsed = std::lrint(yResults[0]);
@@ -1072,15 +1069,15 @@ float TrackResiduals::fitPoly1Robust(std::vector<float>& x, std::vector<float>& 
     ycm[i] = y[i] - (a + b * x[i]);
   }
   std::vector<size_t> indices(nPoints);
-  stat::SortData(ycm, indices);
-  stat::Reorder(ycm, indices);
-  stat::Reorder(y, indices);
-  stat::Reorder(x, indices);
+  o2::mathUtils::mathBase::SortData(ycm, indices);
+  o2::mathUtils::mathBase::Reorder(ycm, indices);
+  o2::mathUtils::mathBase::Reorder(y, indices);
+  o2::mathUtils::mathBase::Reorder(x, indices);
   //
   // robust estimate of sigma after crude slope correction
   float sigMAD = getMAD2Sigma({ ycm.begin() + vecOffset, ycm.begin() + vecOffset + nPointsUsed });
   // find LTM estimate matching to sigMAD, keaping at least given fraction
-  if (!stat::LTMUnbinnedSig(ycm, indY, yResults, mMinFracLTM, sigMAD, true)) {
+  if (!o2::mathUtils::mathBase::LTMUnbinnedSig(ycm, indY, yResults, mMinFracLTM, sigMAD, true)) {
     return -1;
   }
   // final fit
@@ -1129,7 +1126,7 @@ void TrackResiduals::medFit(int nPoints, int offset, const std::vector<float>& x
   if (sigb > 0) {
     float b2 = bb + std::copysign(3.f * sigb, f1);
     float f2 = roFunc(nPoints, offset, x, y, b2, aa);
-    if (fabs(f1 - f2) < o2::constants::math::Almost0) {
+    if (fabs(f1 - f2) < sFloatEps) {
       a = aa;
       b = bb;
       return;
@@ -1204,7 +1201,7 @@ float TrackResiduals::roFunc(int nPoints, int offset, const std::vector<float>& 
     if (y[j + offset] != 0.f) {
       d /= fabs(y[j + offset]);
     }
-    if (fabs(d) > o2::constants::math::Almost0) {
+    if (fabs(d) > sFloatEps) {
       sum += (d >= 0.f ? x[j + offset] : -x[j + offset]);
     }
   }

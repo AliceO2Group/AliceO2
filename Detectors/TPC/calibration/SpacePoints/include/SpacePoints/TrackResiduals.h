@@ -14,8 +14,8 @@
 /// \author Ruben Shahoyan, ruben.shahoyan@cern.ch (original code in AliRoot)
 ///         Ole Schmidt, ole.schmidt@cern.ch (porting to O2)
 
-#ifndef ALICEO2_CALIB_TRACKRESIDUALS_H_
-#define ALICEO2_CALIB_TRACKRESIDUALS_H_
+#ifndef ALICEO2_TPC_TRACKRESIDUALS_H_
+#define ALICEO2_TPC_TRACKRESIDUALS_H_
 
 #include <memory>
 #include <vector>
@@ -35,7 +35,7 @@ struct dts_t {                            // struct for basic local residual
   Double32_t dy;                          //[-20.,20.,15] // [-kMaxResid,kMaxResid,14]
   Double32_t dz;                          //[-20.,20.,15] // [-kMaxResid,kMaxResid,14]
   Double32_t tgSlp;                       //[-2,2,14]  //[kMaxTgSlp,kMaxTgSlp,14]
-  UChar_t bvox[o2::calib::param::VoxDim]; // voxel bin info: VoxF,kVoxX,kVoxZ
+  UChar_t bvox[o2::TPC::param::VoxDim]; // voxel bin info: VoxF,kVoxX,kVoxZ
   //
   dts_t() { memset(this, 0, sizeof(dts_t)); }
 };
@@ -43,10 +43,8 @@ struct dts_t {                            // struct for basic local residual
 
 namespace o2
 {
-namespace calib
+namespace TPC
 {
-
-using namespace o2::TPC;
 
 /// \class TrackResiduals
 /// This class is steering the space point calibration of the TPC from track residuals.
@@ -340,7 +338,10 @@ class TrackResiduals
   /// Closes the file with the debug output.
   void closeOutputFile();
 
+
+
  private:
+   static constexpr float sFloatEps{1.e-7f};
   // input data
   std::unique_ptr<TFile> mFileOut{}; ///< output debug file
   std::unique_ptr<TTree> mTreeOut{}; ///< tree holding debug output
@@ -349,7 +350,7 @@ class TrackResiduals
   bool mPrintMem{};      ///< turn on to print memory usage at certain points
   // binning
   int mNXBins{};                                  ///< number of bins in radial direction
-  int mNY2XBins{15}                               ///< number of y/x bins per sector
+  int mNY2XBins{15};                              ///< number of y/x bins per sector
   int mNZ2XBins{5};                               ///< number of z/x bins per sector
   int mNVoxPerSector{};                           ///< number of voxels per sector
   float mDX{};                                    ///< x bin size
@@ -410,7 +411,7 @@ inline void TrackResiduals::getVoxelCoordinates(int isec, int ix, int ip, int iz
   x = getX(ix);
   p = getY2X(ix, ip);
   z = getZ(iz);
-  if (isec >= param::NSectors) {
+  if (isec >= SECTORSPERSIDE) {
     z = -z;
   }
 }
@@ -463,7 +464,7 @@ inline int TrackResiduals::getZ2XBin(float z2x) const
   return (bz < mNZ2XBins) ? bz : mNZ2XBins - 1;
 }
 
-} // namespace calib
+} // namespace TPC
 
 } // namespace o2
 #endif

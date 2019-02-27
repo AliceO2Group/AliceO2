@@ -13,16 +13,17 @@
 ///
 /// \author Ole Schmidt, ole.schmidt@cern.ch
 
-#ifndef ALICEO2_CALIB_PARAM_H_
-#define ALICEO2_CALIB_PARAM_H_
+#ifndef ALICEO2_TPC_PARAM_H_
+#define ALICEO2_TPC_PARAM_H_
 
 namespace o2
 {
 namespace TPC
 {
 
-  // for internal data structures
-  static constexpr float MaxResid = 20.f;
+namespace param
+{
+
 
 // voxel definition
 enum { VoxZ,
@@ -77,6 +78,7 @@ static constexpr float RowDX[NPadRows] = { // distance between pad rows
 
 static constexpr float DeadZone = 1.5f;
 static constexpr float MaxZ2X = 1.f;
+static constexpr float MaxResid = 20.f;
 
 // smoothing parameters
 enum { EpanechnikovKernel,
@@ -87,7 +89,7 @@ static constexpr int MaxSmtDim = 7; // max matrix size for smoothing (pol2)
 
 
 
-
+} // namespace param
 
 } // namespace TPC
 

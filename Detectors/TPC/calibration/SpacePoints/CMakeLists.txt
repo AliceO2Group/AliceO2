@@ -4,13 +4,11 @@ O2_SETUP(NAME ${MODULE_NAME})
 
 SET(SRCS
   src/Param.cxx
-  src/Statistics.cxx
   src/TrackResiduals.cxx
 )
 
 SET(HEADERS
   include/${MODULE_NAME}/Param.h
-  include/${MODULE_NAME}/Statistics.h
   include/${MODULE_NAME}/TrackResiduals.h
 )
 
