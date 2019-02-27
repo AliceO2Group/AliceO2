@@ -33,6 +33,11 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
+#include "AliGPUO2Interface.h"
+#include "AliGPUReconstruction.h"
+#include "AliGPUChainTracking.h"
+#include "AliGPUChainITS.h"
+
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 void run_trac_ca_its(bool useITSVertex = false,
@@ -44,9 +49,14 @@ void run_trac_ca_its(bool useITSVertex = false,
 {
 
   gSystem->Load("libITStracking.so");
+  
+  std::unique_ptr<AliGPUReconstruction> rec(AliGPUReconstruction::CreateInstance());
+  auto* chainTracking = rec->AddChain<AliGPUChainTracking>();
+  auto* chainITS = rec->AddChain<AliGPUChainITS>();
+  rec->Init();
 
-  //o2::ITS::Tracker tracker(AliGPUReconstruction::CreateInstance()->GetITSTrackerTraits());
-  o2::ITS::Tracker tracker(new o2::ITS::TrackerTraitsCPU());
+  o2::ITS::Tracker tracker(chainITS->GetITSTrackerTraits());
+  //o2::ITS::Tracker tracker(new o2::ITS::TrackerTraitsCPU());
   o2::ITS::ROframe event(0);
 
   if (path.back() != '/') {

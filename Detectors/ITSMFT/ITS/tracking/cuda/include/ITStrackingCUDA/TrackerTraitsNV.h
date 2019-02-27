@@ -32,8 +32,10 @@ class TrackerTraitsNV : public TrackerTraits
   TrackerTraitsNV();
   virtual ~TrackerTraitsNV();
 
-  void computeLayerTracklets() final;
   void computeLayerCells() final;
+  void computeLayerTracklets() final;
+  void refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7> &tf, std::vector<TrackITS>& tracks) final;
+
 };
 
 extern "C" TrackerTraits* createTrackerTraitsNV();

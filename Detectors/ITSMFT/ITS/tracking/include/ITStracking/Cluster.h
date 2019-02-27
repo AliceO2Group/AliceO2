@@ -41,8 +41,12 @@ struct Cluster final {
 };
 
 struct TrackingFrameInfo {
-  TrackingFrameInfo(float xTF, float alpha, std::array<float, 2>&& posTF, std::array<float, 3>&& covTF);
+  TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, std::array<float, 2>&& posTF, std::array<float, 3>&& covTF);
+  TrackingFrameInfo() = default;
 
+  float xCoordinate;
+  float yCoordinate;
+  float zCoordinate;
   float xTrackingFrame;
   float alphaTrackingFrame;
   std::array<float, 2> positionTrackingFrame;
