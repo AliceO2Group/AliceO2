@@ -385,7 +385,7 @@ int AliGPUTRDTrackerComponent::DoEvent
 	    if (fTracker->LoadTracklet(tracklets[iTracklet])) return -EINVAL;
     }
     else {
-	    if (fTracker->LoadTracklet(tracklets[iTracklet], trackletsMC[iTracklet].fLabel)) return -EINVAL;
+	    if (fTracker->LoadTracklet(tracklets[iTracklet], trackletsMC[iTracklet].mLabel)) return -EINVAL;
     }
   }
   // loop over all tracks
@@ -468,15 +468,15 @@ int AliGPUTRDTrackerComponent::DoEvent
 
     for (int i=0; i<nTrackletsTotal; ++i) {
       const AliGPUTRDTracker::AliGPUTRDSpacePointInternal &sp = spacePoints[i];
-      int id = sp.fId;
+      int id = sp.mId;
       if( id<0 || id>=nTrackletsTotal ){
 	HLTError("Internal error: wrong space point index %d", id );
       }
       AliGPUTRDTrackPoint *currOutPoint = &outTrackPoints->fPoints[id];
-      currOutPoint->fX[0] = sp.fR; // x in sector coordinates
-      currOutPoint->fX[1] = sp.fX[0]; // y in sector coordinates
-      currOutPoint->fX[2] = sp.fX[1]; // z in sector coordinates
-      currOutPoint->fVolumeId = sp.fVolumeId;
+      currOutPoint->fX[0] = sp.mR; // x in sector coordinates
+      currOutPoint->fX[1] = sp.mX[0]; // y in sector coordinates
+      currOutPoint->fX[2] = sp.mX[1]; // z in sector coordinates
+      currOutPoint->fVolumeId = sp.mVolumeId;
     }
     AliHLTComponentBlockData resultDataSP;
     FillBlockData( resultDataSP );
