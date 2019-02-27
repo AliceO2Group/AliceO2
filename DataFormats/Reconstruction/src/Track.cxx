@@ -11,6 +11,7 @@
 #include "ReconstructionDataFormats/Track.h"
 #include <FairLogger.h>
 #include <iostream>
+#include "Math/SMatrix.h"
 
 using std::array;
 using o2::track::TrackPar;
@@ -1031,6 +1032,13 @@ void TrackParCov::buildCombinedCovMatrix(const TrackParCov& rhs, MatrixDSym5& co
   cov(kQ2Pt, kSnp) = static_cast<double>(getSigma1PtSnp()) + static_cast<double>(rhs.getSigma1PtSnp());
   cov(kQ2Pt, kTgl) = static_cast<double>(getSigma1PtTgl()) + static_cast<double>(rhs.getSigma1PtTgl());
   cov(kQ2Pt, kQ2Pt) = static_cast<double>(getSigma1Pt2()) + static_cast<double>(rhs.getSigma1Pt2());
+}
+
+//______________________________________________
+float TrackParCov::getPredictedChi2(const TrackParCov& rhs) const
+{
+  MatrixDSym5 cov; // perform matrix operations in double!
+  return getPredictedChi2(rhs, cov);
 }
 
 //______________________________________________
