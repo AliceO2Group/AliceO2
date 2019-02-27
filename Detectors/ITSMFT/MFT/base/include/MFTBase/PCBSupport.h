@@ -73,6 +73,8 @@ class PCBSupport : public TNamed
 
   Int_t mNumberOfBoxCuts[5]; // Number of box cuts in each half disk support
   Double_t (*mBoxCuts[5])[4];// Box cuts on each disk
+  Int_t mNumberOfHoles[5]; // Number of box cuts in each half disk support
+  Double_t (*mHoles[5])[3];// Box cuts on each disk
 
   ClassDefOverride(PCBSupport, 2);
 

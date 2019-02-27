@@ -31,7 +31,7 @@ mSupRad{17.5,17.5,17.5,23.0,23.0},
 mSupThickness(.8),
 mPhi0(0.),
 mPhi1(180.),
-mT_delta(0.001),
+mT_delta(0.01),
 mOuterCut{15.5,15.5,16.9,20.5,21.9},
 mRaisedBoxHeight(0.305),
 mFixBoxHeight(1.41),
@@ -70,7 +70,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
   for(Int_t cut = 0 ; cut<mNumberOfBoxCuts[disk]; cut++){
     auto *boxName =  Form("BoxCut_%d_H%d_D%d",cut, half, disk);
     auto *boxCSName = Form("BoxCS_%d_H%d_D%d",cut, half, disk);
-    mSomeBox = new TGeoBBox(boxName,mBoxCuts[disk][cut][0],mBoxCuts[disk][cut][1],  mSupThickness/2.+20*mT_delta);
+    mSomeBox = new TGeoBBox(boxName,mBoxCuts[disk][cut][0],mBoxCuts[disk][cut][1],  mSupThickness/2.+mT_delta);
     mSomeTranslation = new TGeoTranslation(mBoxCuts[disk][cut][2],mBoxCuts[disk][cut][3], 0.);
     //The first subtraction needs a shape, the base tube
     if (cut ==0)  mSomeSubtraction = new TGeoSubtraction(base, mSomeBox, NULL,mSomeTranslation);
@@ -184,7 +184,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
 
   // ==== D6 H7 (6 mm diameter holes)
   //Info("Create",Form("Cutting 6 mm holes Support_H%d_D%d", half,disk),0,0);
-  mSomeTube = new TGeoTube(Form("D6tube_H%d_D%d", half, disk),0, mD6, mSupThickness/2.+20*mT_delta);
+  mSomeTube = new TGeoTube(Form("D6tube_H%d_D%d", half, disk),0, mD6, mSupThickness/2.+mT_delta);
   for(Int_t iHole=0 ; iHole<mTwoHoles; iHole++){
     mSomeTranslation = new TGeoTranslation(-mD6Holes[disk][iHole][0],
                                mOuterCut[disk]-mD6Holes[disk][iHole][1],
@@ -195,7 +195,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
 
   // ==== D8 H7 (8 mm diameter holes)
   //Info("Create",Form("Cutting 8 mm holes Support_H%d_D%d", half,disk),0,0);
-  mSomeTube = new TGeoTube(Form("D8tube_H%d_D%d", half, disk),0, mD8, mSupThickness/2.+mRaisedBoxHeight+200*mT_delta);
+ mSomeTube = new TGeoTube(Form("D8tube_H%d_D%d", half, disk),0, mD8, mSupThickness/2.+mRaisedBoxHeight+20*mT_delta);
   for(Int_t iHole=0 ; iHole<mNumberOfD8_Holes[disk]; iHole++){
     mSomeTranslation = new TGeoTranslation(-mD8Holes[disk][iHole][0],
                                mOuterCut[disk]-mD8Holes[disk][iHole][1],
@@ -206,7 +206,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
 
   // ==== D3 H7 (3 mm diameter holes)
   //Info("Create",Form("Cutting 3 mm holes Support_H%d_D%d", half,disk),0,0);
-  mSomeTube = new TGeoTube(Form("D3tube_H%d_D%d", half, disk),0, mD3, mSupThickness/2.+20*mT_delta);
+  mSomeTube = new TGeoTube(Form("D3tube_H%d_D%d", half, disk),0, mD3, mSupThickness/2.+mT_delta);
   for(Int_t iHole=0 ; iHole<mTwoHoles; iHole++){
     mSomeTranslation = new TGeoTranslation(-mD3Holes[disk][iHole][0],
                                mOuterCut[disk]-mD3Holes[disk][iHole][1],
@@ -217,7 +217,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
 
   // ==== M3 H7 (?? mm diameter holes)
   //Info("Create",Form("Cutting M3 H7 holes Support_H%d_D%d", half,disk),0,0);
-  mSomeTube = new TGeoTube(Form("M3tube_H%d_D%d", half, disk),0, mM3, mSupThickness/2.+20*mT_delta);
+  mSomeTube = new TGeoTube(Form("M3tube_H%d_D%d", half, disk),0, mM3, mSupThickness/2.+mT_delta);
   for(Int_t iHole=0 ; iHole<mNumberOfM3Holes[disk]; iHole++){
     mSomeTranslation = new TGeoTranslation(-mM3Holes[disk][iHole][0],
                                mOuterCut[disk]-mM3Holes[disk][iHole][1],
@@ -228,7 +228,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
 
   // ==== D4.5 H9
   //Info("Create",Form("Cutting 4.5 mm holes Support_H%d_D%d", half,disk),0,0);
-  mSomeTube = new TGeoTube(Form("D45tube_H%d_D%d", half, disk),0, mD45, mSupThickness/2.+20*mT_delta);
+  mSomeTube = new TGeoTube(Form("D45tube_H%d_D%d", half, disk),0, mD45, mSupThickness/2.+mT_delta);
   for(Int_t iHole=0 ; iHole<mTwoHoles; iHole++){
     mSomeTranslation = new TGeoTranslation(-mD45Holes[disk][iHole][0],
                                mOuterCut[disk]-mD45Holes[disk][iHole][1],
