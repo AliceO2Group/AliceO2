@@ -47,6 +47,7 @@ class ROframe final
   const std::array<std::vector<Cluster>, Constants::ITS::LayersNumber>& getClusters() const;
   const std::vector<Cluster>& getClustersOnLayer(int layerId) const;
   const std::vector<TrackingFrameInfo>& getTrackingFrameInfoOnLayer(int layerId) const;
+  const std::array<std::vector<TrackingFrameInfo>, Constants::ITS::LayersNumber>& getTrackingFrameInfo() const;
 
   const TrackingFrameInfo& getClusterTrackingFrameInfo(int layerId, const Cluster& cl) const;
   const MCCompLabel& getClusterLabels(int layerId, const Cluster& cl) const;
@@ -91,6 +92,11 @@ inline const std::vector<TrackingFrameInfo>& ROframe::getTrackingFrameInfoOnLaye
 {
   return mTrackingFrameInfo[layerId];
 }
+
+inline const std::array<std::vector<TrackingFrameInfo>, Constants::ITS::LayersNumber>& ROframe::getTrackingFrameInfo() const {
+  return mTrackingFrameInfo;
+}
+
 
 inline const TrackingFrameInfo& ROframe::getClusterTrackingFrameInfo(int layerId, const Cluster& cl) const
 {
