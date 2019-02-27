@@ -685,6 +685,7 @@ o2_define_bucket(
     data_format_detectors_common_bucket
     DetectorsCommonDataFormats
     CommonDataFormat
+    AliGPUCommon_bucket
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include

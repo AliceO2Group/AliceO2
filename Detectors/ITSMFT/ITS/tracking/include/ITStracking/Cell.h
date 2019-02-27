@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "ITStracking/Definitions.h"
+#include "AliGPUCommonDef.h"
 
 namespace o2
 {
@@ -30,9 +31,9 @@ class Cell final
  public:
   GPU_DEVICE Cell(const int, const int, const int, const int, const int, const float3&, const float);
 
-  int getFirstClusterIndex() const;
-  int getSecondClusterIndex() const;
-  int getThirdClusterIndex() const;
+  GPUhdni() int getFirstClusterIndex() const;
+  GPUhdni() int getSecondClusterIndex() const;
+  GPUhdni() int getThirdClusterIndex() const;
   GPU_HOST_DEVICE int getFirstTrackletIndex() const;
   int getSecondTrackletIndex() const;
   int getLevel() const;
@@ -66,11 +67,11 @@ inline GPU_DEVICE Cell::Cell(const int firstClusterIndex, const int secondCluste
   // Nothing to do
 }
 
-inline int Cell::getFirstClusterIndex() const { return mFirstClusterIndex; }
+GPUhdi() int Cell::getFirstClusterIndex() const { return mFirstClusterIndex; }
 
-inline int Cell::getSecondClusterIndex() const { return mSecondClusterIndex; }
+GPUhdi() int Cell::getSecondClusterIndex() const { return mSecondClusterIndex; }
 
-inline int Cell::getThirdClusterIndex() const { return mThirdClusterIndex; }
+GPUhdi() int Cell::getThirdClusterIndex() const { return mThirdClusterIndex; }
 
 GPU_HOST_DEVICE inline int Cell::getFirstTrackletIndex() const { return mFirstTrackletIndex; }
 
