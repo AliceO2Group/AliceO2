@@ -13,4 +13,8 @@
 
 #include "AliGPUCommonDefGPU.h"
 
+#if defined(GPUCA_STANDALONE) || defined(GPUCA_O2_LIB) || defined(GPUCA_GPULIBRARY)
+	#define GPUCA_ALIGPUCODE
+#endif
+
 #endif

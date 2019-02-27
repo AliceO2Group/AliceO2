@@ -22,6 +22,7 @@
 	#define GPUhi() inline
 	#define GPUhd()
 	#define GPUhdi() inline
+	#define GPUhdni()
 	#define GPUg() INVALID_TRIGGER_ERROR_NO_HOST_CODE
 	#define GPUshared()
 	#define GPUglobal()
@@ -52,6 +53,7 @@
 	#define GPUhi() INVALID_TRIGGER_ERROR_NO_HOST_CODE
 	#define GPUhd() inline
 	#define GPUhdi() inline
+	#define GPUhdni()
 	#define GPUg() __kernel
 	#define GPUshared() __local
 	#define GPUglobal() __global
@@ -78,6 +80,7 @@
 	#define GPUhi() __host__ inline
 	#define GPUhd() __host__ __device__ inline
 	#define GPUhdi() __host__ __device__ inline
+	#define GPUhdni() __host__ __device__
 	#define GPUg() __global__
 	#define GPUshared() __shared__
 	#define GPUglobal()
@@ -92,6 +95,7 @@
 	#define GPUhi() __host__ inline
 	#define GPUhd() __host__ __device__ inline
 	#define GPUhdi() __host__ __device__ inline
+	#define GPUhdni() __host__ __device__
 	#define GPUg() __global__
 	#define GPUshared() __shared__
 	#define GPUglobal()
