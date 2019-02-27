@@ -34,6 +34,8 @@ class TPCCATracking
 public:
   TPCCATracking();
   ~TPCCATracking();
+  TPCCATracking(const TPCCATracking&) = delete;            // Disable copy
+  TPCCATracking& operator=(const TPCCATracking&) = delete; // Disable assignment
 
   int initialize(const AliGPUCAConfiguration& config);
   int initialize(const char* options = nullptr);
@@ -53,9 +55,6 @@ public:
                                                                   //The tracking code itself is not included in the O2 package, but contained in the CA library.
                                                                   //The TPCCATracking class interfaces this library via this pointer to AliHLTTPCCAO2Interface class.
 
-  TPCCATracking(const TPCCATracking&) = delete;            // Disable copy
-  TPCCATracking& operator=(const TPCCATracking&) = delete; // Disable assignment
-  
   static constexpr float sContinuousTFReferenceLength = 0.023 * 5e6;
   static constexpr float sTrackMCMaxFake = 0.1;
   int mNTracksASide = 0;

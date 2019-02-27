@@ -23,8 +23,6 @@ using namespace o2::TPC;
 //_____________________________________________________________________
 ClustererTask::ClustererTask(int sectorid)
   : FairTask("TPCClustererTask"),
-    mIsContinuousReadout(true),
-    mEventCount(0),
     mClusterSector(sectorid),
     mHwClusterer(),
     mDigitsArray(),

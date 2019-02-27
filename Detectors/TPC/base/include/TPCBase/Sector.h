@@ -43,7 +43,7 @@ class Sector
   static constexpr int MAXSECTOR = Constants::MAXSECTOR;
 
   /// constructor
-  Sector() {}
+  Sector() = default;
 
   /// construction
   /// @param [in] sec sector number

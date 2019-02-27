@@ -35,15 +35,6 @@ ClassImp(o2::TPC::Digitizer)
 
 bool o2::TPC::Digitizer::mIsContinuous = true;
 
-Digitizer::Digitizer()
-  : mDigitContainer(),
-    mSpaceChargeHandler(nullptr),
-    mSector(-1),
-    mEventTime(0.f),
-    mUseSCDistortions(false)
-{
-}
-
 void Digitizer::init()
 {
   // Calculate distortion lookup tables if initial space-charge density is provided
