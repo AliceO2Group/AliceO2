@@ -252,7 +252,7 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
       auto * fra_front_Shape_0 = new TGeoCompositeShape("fra_front_Shape_0"," box_up:tr1_up +seg_tub:combi_3b+ boxB_down:tr3_box + boxA_down:tr_2_box"); 
 
       auto * fra_front_Shape_1 = new TGeoCompositeShape("fra_front_Shape_1","fra_front_Shape_0 - tubdown:tr_tubdown -tub_up:combi_3a");
-      auto * fra_front_Shape_2 = new TGeoCompositeShape("fra_front_Shape_2","fra_front_Shape_1:rot_90x - tub_up:combi_3a"); //-
+///E      auto * fra_front_Shape_2 = new TGeoCompositeShape("fra_front_Shape_2","fra_front_Shape_1:rot_90x - tub_up:combi_3a"); //-
 
           TGeoRotation  *rot_z180x90 = new TGeoRotation("rot_z180x90", 180,90,0);//half0_R
      rot_z180x90->RegisterYourself();
@@ -269,7 +269,7 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
       combi_front_R->RegisterYourself();
 
 
-      auto * fra_front_Shape_3 = new TGeoCompositeShape("fra_front_Shape_3","fra_front_Shape_2:rot_halfR  "); 
+      ///E auto * fra_front_Shape_3 = new TGeoCompositeShape("fra_front_Shape_3","fra_front_Shape_2:rot_halfR  "); 
 
       auto * Fra_front_Volume = new TGeoVolume("Fra_front_Volume",fra_front_Shape_1,kMedAlu);
 
@@ -542,7 +542,7 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
      
      ///////// shape for midle 
 
-     auto *midle_box =new TGeoBBox(" midle_box", x_midle/2,y_midle/2,z_midle/2);
+     auto *midle_box =new TGeoBBox("midle_box", x_midle/2,y_midle/2,z_midle/2);
 
      auto *midle_d1box =new TGeoBBox("midle_d1box", x_midle_d1box/2,y_midle_d1box/2,z_midle_d1box/2);
 
