@@ -363,9 +363,9 @@ int AliGPUTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hl
         hltTrkl.SetId(iTracklet);
         outputTrkls.push_back(hltTrkl);
         AliGPUTRDTrackletLabels trklMC;
-        trklMC.fLabel[0] = trkl->GetLabel(0);
-        trklMC.fLabel[1] = trkl->GetLabel(1);
-        trklMC.fLabel[2] = trkl->GetLabel(2);
+        trklMC.mLabel[0] = trkl->GetLabel(0);
+        trklMC.mLabel[1] = trkl->GetLabel(1);
+        trklMC.mLabel[2] = trkl->GetLabel(2);
         outputTrklsMC.push_back(trklMC);
       }
     }

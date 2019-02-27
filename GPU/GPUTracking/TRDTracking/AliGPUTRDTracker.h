@@ -77,9 +77,9 @@ class AliGPUTRDTracker : public AliGPUProcessor {
     int mTrackletId;
     float mChi2;
 
-    float GetReducedChi2() { return mLayers > 0 ? mChi2 / mLayers : mChi2; }
-    Hypothesis() : mLayers(0), mCandidateId(-1), mTrackletId(-1), mChi2(9999.f) {}
-    Hypothesis(int layers, int candidateId, int trackletId, float chi2) : mLayers(layers), mCandidateId(candidateId), mTrackletId(trackletId), mChi2(chi2) {}
+    GPUd() float GetReducedChi2() { return mLayers > 0 ? mChi2 / mLayers : mChi2; }
+    GPUd() Hypothesis() : mLayers(0), mCandidateId(-1), mTrackletId(-1), mChi2(9999.f) {}
+    GPUd() Hypothesis(int layers, int candidateId, int trackletId, float chi2) : mLayers(layers), mCandidateId(candidateId), mTrackletId(trackletId), mChi2(chi2) {}
   };
 
   short MemoryPermanent() const { return mMemoryPermanent; }
