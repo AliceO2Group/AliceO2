@@ -132,7 +132,6 @@ public:
 	void SetTPCFastTransform(std::unique_ptr<TPCFastTransform> tpcFastTransform);
 	void SetTRDGeometry(const o2::trd::TRDGeometryFlat& geo);
 	void LoadClusterErrors();
-	const AliGPUTPCSliceOutput** SliceOutput() const {return (const AliGPUTPCSliceOutput**) &mSliceOutput;}
 	
 	const void* mConfigDisplay = nullptr;										//Abstract pointer to Standalone Display Configuration Structure
 	const void* mConfigQA = nullptr;											//Abstract pointer to Standalone QA Configuration Structure
@@ -168,7 +167,6 @@ protected:
 	//Pointers to tracker classes
 	AliGPUTrackingFlatObjects mFlatObjectsShadow; //Host copy of flat objects that will be used on the GPU
 	AliGPUTrackingFlatObjects mFlatObjectsDevice; //flat objects that will be used on the GPU
-	AliGPUTPCSliceOutput* mSliceOutput[NSLICES];
 	
 	//Display / QA
 	std::unique_ptr<AliGPUDisplay> mEventDisplay;

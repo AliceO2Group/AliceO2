@@ -688,13 +688,15 @@ void* AliGPUTPCTrackerComponent::TrackerDoEvent(void* par)
     HLTWarning( "Output buffer size exceeded buffer size %d, tracks are not stored", maxBufferSize );
     ret = -ENOSPC;
   } else {
-    for (int slice = 0; slice < fgkNSlices && fChain->SliceOutput()[slice]; slice++){
-      HLTDebug( "%d tracks found for slice %d", fChain->SliceOutput()[slice]->NTracks(), slice );
-      unsigned int blockSize = fChain->SliceOutput()[slice]->Size();
+    for (int slice = 0; slice < fgkNSlices; slice++){
+      AliGPUTPCSliceOutput* pOut = fChain->GetTPCSliceTrackers()[slice].Output();
+      if (!pOut) continue;
+      HLTDebug( "%d tracks found for slice %d", pOut->NTracks(), slice );
+      unsigned int blockSize = pOut->Size();
       if (blockSize > 0){
         AliHLTComponentBlockData bd;
         FillBlockData( bd );
-        bd.fOffset = ((char*) fChain->SliceOutput()[slice] - (char*) outputPtr);
+        bd.fOffset = ((char*) pOut - (char*) outputPtr);
         bd.fSize = blockSize;
         bd.fSpecification = AliHLTTPCDefinitions::EncodeDataSpecification( slice, slice, 0, fgkNPatches );
         bd.fDataType = AliGPUTPCDefinitions::fgkTrackletsDataType;

@@ -20,16 +20,15 @@
 
 #include "AliGPUTPCHitId.h"
 #include "AliGPUTPCSliceData.h"
-#include "AliGPUTPCSliceOutput.h"
 #include "AliGPUTPCTrackParam.h"
 #include "AliGPUTPCTracklet.h"
 #include "AliGPUProcessor.h"
 
+class AliGPUTPCSliceOutput;
+struct AliGPUTPCClusterData;
 MEM_CLASS_PRE() class AliGPUParam;
-
 MEM_CLASS_PRE() class AliGPUTPCTrack;
 MEM_CLASS_PRE() class AliGPUTPCTrackParam;
-struct AliGPUTPCClusterData;
 MEM_CLASS_PRE() class AliGPUTPCRow;
 
 MEM_CLASS_PRE()
@@ -82,14 +81,13 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	void DumpTrackletHits(std::ostream &out);	//Same for Track Hits
 	void DumpOutput(FILE* out);	//Similar for output
 
-	void SetOutput( AliGPUTPCSliceOutput** out ) { fOutput = out; }
 	int ReadEvent();
 
 	GPUh() const AliGPUTPCClusterData *ClusterData() const { return fData.ClusterData(); }
 
 	GPUh() MakeType(const MEM_LG(AliGPUTPCRow)&) Row( const AliGPUTPCHitId &HitId ) const { return fData.Row(HitId.RowIndex()); }
 
-	GPUhd() AliGPUTPCSliceOutput** Output() const { return fOutput; }
+	GPUhd() AliGPUTPCSliceOutput* Output() const { return fOutput; }
 
 	GPUh() GPUglobalref() commonMemoryStruct *CommonMemory() const {return(fCommonMem); }
 
@@ -257,7 +255,7 @@ class AliGPUTPCTracker : public AliGPUProcessor
 	GPUglobalref() AliGPUTPCHitId *fTrackHits;			// array of track hit numbers
 	
 	// output
-	GPUglobalref() AliGPUTPCSliceOutput **fOutput;		//address of pointer pointing to SliceOutput Object
+	GPUglobalref() AliGPUTPCSliceOutput *fOutput;		//address of pointer pointing to SliceOutput Object
 	void* fOutputMemory;									//Pointer to output memory if stored internally
   
 	// disable copy

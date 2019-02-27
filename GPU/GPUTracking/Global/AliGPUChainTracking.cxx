@@ -38,7 +38,6 @@ AliGPUChainTracking::~AliGPUChainTracking()
 
 AliGPUChainTracking::AliGPUChainTracking(AliGPUReconstruction* rec) : AliGPUChain(rec), mClusterNativeAccess(new ClusterNativeAccessExt)
 {
-	memset(mSliceOutput, 0, sizeof(mSliceOutput));
 	mFlatObjectsShadow.fChainTracking = this;
 	mFlatObjectsDevice.fChainTracking = this;
 }
@@ -342,7 +341,6 @@ int AliGPUChainTracking::ReadEvent(int iSlice, int threadId)
 void AliGPUChainTracking::WriteOutput(int iSlice, int threadId)
 {
 	if (GetDeviceProcessingSettings().debugLevel >= 5) {GPUInfo("Running WriteOutput for slice %d on thread %d\n", iSlice, threadId);}
-	workers()->tpcTrackers[iSlice].SetOutput(&mSliceOutput[iSlice]);
 	timerTPCtracking[iSlice][9].Start();
 	if (GetDeviceProcessingSettings().nDeviceHelperThreads) while (mLockAtomic.test_and_set(std::memory_order_acquire));
 	workers()->tpcTrackers[iSlice].WriteOutputPrepare();
@@ -989,8 +987,8 @@ int AliGPUChainTracking::RunStandalone()
 	timerMerger.Start();
 	for (unsigned int i = 0; i < NSLICES; i++)
 	{
-		//printf("slice %d clusters %d tracks %d\n", i, fClusterData[i].NumberOfClusters(), mSliceOutput[i]->NTracks());
-		workers()->tpcMerger.SetSliceData(i, mSliceOutput[i]);
+		//printf("slice %d clusters %d tracks %d\n", i, fClusterData[i].NumberOfClusters(), workers()->tpcTrackers[i].Output()->NTracks());
+		workers()->tpcMerger.SetSliceData(i, workers()->tpcTrackers[i].Output());
 	}
 	if (RunTPCTrackingMerger()) return 1;
 	timerMerger.Stop();
