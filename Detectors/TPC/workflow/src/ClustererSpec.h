@@ -22,7 +22,7 @@ namespace TPC
 
 /// create a processor spec
 /// read simulated TPC clusters from file and publish
-framework::DataProcessorSpec getClustererSpec(bool sendMC);
+framework::DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers = false);
 
 } // end namespace TPC
 } // end namespace o2
