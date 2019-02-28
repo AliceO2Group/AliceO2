@@ -220,7 +220,7 @@ void ConfigurableParam::updateFromString(std::string const& configstring)
   };
 
   // Does the given string key exist in the boost property tree?
-  auto keyExists = [&sPtree](std::string key) {
+  auto keyExists = [](std::string key) {
     return sPtree->get_optional<std::string>(key).is_initialized();
   };
 
