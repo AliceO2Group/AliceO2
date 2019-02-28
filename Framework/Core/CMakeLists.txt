@@ -21,6 +21,7 @@ endif()
 
 set(SRCS
     src/AODReaderHelpers.cxx
+    src/AnalysisHelpers.cxx
     src/BoostOptionsRetriever.cxx
     src/ConfigParamsHelper.cxx
     src/CompletionPolicy.cxx
