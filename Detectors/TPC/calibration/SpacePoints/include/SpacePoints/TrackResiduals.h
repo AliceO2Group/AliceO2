@@ -17,6 +17,8 @@
 #ifndef ALICEO2_TPC_TRACKRESIDUALS_H_
 #define ALICEO2_TPC_TRACKRESIDUALS_H_
 
+#define TPC_RUN2
+
 #include <memory>
 #include <vector>
 #include <bitset>
@@ -28,18 +30,6 @@
 
 #include "TTree.h"
 #include "TFile.h"
-
-namespace AliTPCDcalibRes
-{
-struct dts_t {                          // struct for basic local residual
-  Double32_t dy;                        //[-20.,20.,15] // [-kMaxResid,kMaxResid,14]
-  Double32_t dz;                        //[-20.,20.,15] // [-kMaxResid,kMaxResid,14]
-  Double32_t tgSlp;                     //[-2,2,14]  //[kMaxTgSlp,kMaxTgSlp,14]
-  UChar_t bvox[o2::TPC::param::VoxDim]; // voxel bin info: VoxF,kVoxX,kVoxZ
-  //
-  dts_t() { memset(this, 0, sizeof(dts_t)); }
-};
-} // namespace AliTPCDcalibRes
 
 namespace o2
 {
@@ -57,19 +47,43 @@ class TrackResiduals
   /// Default constructor
   TrackResiduals() = default;
 
+  /// Enumeration for different voxel dimensions
+  enum { VoxZ,          ///< Z/X index
+         VoxF,          ///< Y/X index
+         VoxX,          ///< X index
+         VoxV,          ///< voxel dispersions
+         VoxDim = 3,    ///< dimensionality of the voxels
+         VoxHDim = 4 }; ///< dimensionality of the voxel + 1 for kernel weights
+
+  /// Enumeration for the result indices
+  enum { ResX,     ///< X index
+         ResY,     ///< Y index
+         ResZ,     ///< Z index
+         ResD,     ///< index for dispersions
+         ResDim }; ///< dimensionality for results structure (X, Y, Z and dispersions)
+
+  /// Enumeration for voxel status flags
+  enum { DistDone = 1,   ///< voxel residuals have been processed
+         DispDone = 2,   ///< voxel dispersions have been processed
+         SmoothDone = 4, ///< voxel has been smoothed
+         Masked = 8 };   ///< voxel is masked
+
+  enum class KernelType { Epanechnikov,
+                          Gaussian };
+
   /// Structure which gets filled with the results
   struct bres_t {
-    std::array<float, param::ResDim> D{};            // values of extracted distortions
-    std::array<float, param::ResDim> E{};            // their errors
-    std::array<float, param::ResDim> DS{};           // smoothed residual
-    std::array<float, param::ResDim> DC{};           // Cheb parameterized residual
-    float EXYCorr{ 0.f };                            // correlation between extracted X and Y
-    float dYSigMAD{ 0.f };                           // MAD estimator of dY sigma (dispersion after slope removal)
-    float dZSigLTM{ 0.f };                           // Z sigma from unbinned LTM estimator
-    std::array<float, param::VoxHDim> stat{};        // statistics: averages of each voxel dimension + entries
-    std::array<unsigned char, param::VoxDim> bvox{}; // voxel identifier, here the bvox[0] shows number of Q bins used for Y
-    unsigned char bsec{ 0 };                         // sector ID (0-35)
-    unsigned char flags{ 0 };                        // status flag
+    std::array<float, ResDim> D{};            ///< values of extracted distortions
+    std::array<float, ResDim> E{};            ///< their errors
+    std::array<float, ResDim> DS{};           ///< smoothed residual
+    std::array<float, ResDim> DC{};           ///< Cheb parameterized residual
+    float EXYCorr{ 0.f };                     ///< correlation between extracted X and Y
+    float dYSigMAD{ 0.f };                    ///< MAD estimator of dY sigma (dispersion after slope removal)
+    float dZSigLTM{ 0.f };                    ///< Z sigma from unbinned LTM estimator
+    std::array<float, VoxHDim> stat{};        ///< statistics: averages of each voxel dimension + entries
+    std::array<unsigned char, VoxDim> bvox{}; ///< voxel identifier, here the bvox[0] shows number of Q bins used for Y
+    unsigned char bsec{ 0 };                  ///< sector ID (0-35)
+    unsigned char flags{ 0 };                 ///< status flag
   };
 
   // -------------------------------------- initialization --------------------------------------------------
@@ -95,7 +109,7 @@ class TrackResiduals
   /// \param scX Scale factor to increase smoothing bandwidth at sector edges in X
   /// \param scP Scale factor to increase smoothing bandwidth at sector edges in Y/X
   /// \param scZ Scale factor to increase smoothing bandwidth at sector edges in Z
-  void setKernelType(int type = param::EpanechnikovKernel, float bwX = 2.1f, float bwP = 2.1f, float bwZ = 1.7f, float scX = 1.f, float scP = 1.f, float scZ = 1.f);
+  void setKernelType(KernelType kernel = KernelType::Epanechnikov, float bwX = 2.1f, float bwP = 2.1f, float bwZ = 1.7f, float scX = 1.f, float scP = 1.f, float scZ = 1.f);
 
   // -------------------------------------- steering functions --------------------------------------------------
 
@@ -186,13 +200,13 @@ class TrackResiduals
   /// \param res Array to store the results
   /// \param whichDim Integer value with bits set for the dimensions which need to be smoothed
   /// \return Flag if the estimate was successfull
-  bool getSmoothEstimate(int iSec, float x, float p, float z, std::array<float, param::ResDim>& res, int whichDim = 0);
+  bool getSmoothEstimate(int iSec, float x, float p, float z, std::array<float, ResDim>& res, int whichDim = 0);
 
   /// Calculates the weight of the given point used for the kernel smoothing.
+  /// Takes into account the defined kernel in mKernelType.
   /// \param u2vec Weighted distance in X, Y/X and Z
-  /// \param kernelType Wich kernel is being used
   /// \return Kernel weight
-  double getKernelWeight(std::array<double, 3> u2vec, int kernelType) const;
+  double getKernelWeight(std::array<double, 3> u2vec) const;
 
   // -------------------------------------- binning / geometry --------------------------------------------------
 
@@ -206,7 +220,7 @@ class TrackResiduals
   /// Calculates the global bin number
   /// \param bvox Array with the voxels bin indices in X, Y/X and Z
   /// \return global bin number
-  unsigned short getGlbVoxBin(std::array<unsigned char, param::VoxDim> bvox) const;
+  unsigned short getGlbVoxBin(std::array<unsigned char, VoxDim> bvox) const;
 
   /// Calculates the coordinates of the center for a given voxel.
   /// These are not global TPC coordinates, but the coordinates for the given global binning system.
@@ -270,7 +284,7 @@ class TrackResiduals
   /// Returns the inverse of the distance between two bins in X
   /// \parma ix Bin index in X
   /// \return Inverse of the distance between bins
-  float getDXI(int ix) const { return mUniformBins[param::VoxX] ? mDXI : 1.f / param::RowDX[ix]; }
+  float getDXI(int ix) const;
 
   /// Returns the inverse of the distance between two bins in Y/X
   /// \parma ix Bin index in X
@@ -338,7 +352,14 @@ class TrackResiduals
   void closeOutputFile();
 
  private:
-  static constexpr float sFloatEps{ 1.e-7f };
+  // some constants
+  static constexpr float sFloatEps{ 1.e-7f }; ///< float epsilon for robust linear fitting
+  static constexpr float sDeadZone{ 1.5f };   ///< dead zone for TPC in between sectors
+  static constexpr float sMaxZ2X{ 1.f };      ///< max value for Z2X
+  static constexpr float sMaxResid{ 20.f };   ///< maximum residual in y and z
+  static constexpr int sSmtLinDim{ 4 };       ///< max matrix size for smoothing (pol1)
+  static constexpr int sMaxSmtDim{ 7 };       ///< max matrix size for smoothing (pol2)
+
   // input data
   std::unique_ptr<TFile> mFileOut{}; ///< output debug file
   std::unique_ptr<TTree> mTreeOut{}; ///< tree holding debug output
@@ -346,18 +367,18 @@ class TrackResiduals
   bool mIsInitialized{}; ///< initialize only once
   bool mPrintMem{};      ///< turn on to print memory usage at certain points
   // binning
-  int mNXBins{};                                  ///< number of bins in radial direction
-  int mNY2XBins{ 15 };                            ///< number of y/x bins per sector
-  int mNZ2XBins{ 5 };                             ///< number of z/x bins per sector
-  int mNVoxPerSector{};                           ///< number of voxels per sector
-  float mDX{};                                    ///< x bin size
-  float mDXI{};                                   ///< inverse of x bin size
-  std::vector<float> mMaxY2X{};                   ///< max y/x at each x bin, accounting dead zones
-  std::vector<float> mDY2X{};                     ///< y/x bin size at given x bin
-  std::vector<float> mDY2XI{};                    ///< inverse y/x bin size at given x bin
-  float mDZ{};                                    ///< bin size in z
-  float mDZI{};                                   ///< inverse of bin size in z
-  std::array<bool, param::VoxDim> mUniformBins{}; ///< if binning is uniform for each dimension
+  int mNXBins{};                           ///< number of bins in radial direction
+  int mNY2XBins{ 15 };                     ///< number of y/x bins per sector
+  int mNZ2XBins{ 5 };                      ///< number of z/x bins per sector
+  int mNVoxPerSector{};                    ///< number of voxels per sector
+  float mDX{};                             ///< x bin size
+  float mDXI{};                            ///< inverse of x bin size
+  std::vector<float> mMaxY2X{};            ///< max y/x at each x bin, accounting dead zones
+  std::vector<float> mDY2X{};              ///< y/x bin size at given x bin
+  std::vector<float> mDY2XI{};             ///< inverse y/x bin size at given x bin
+  float mDZ{};                             ///< bin size in z
+  float mDZI{};                            ///< inverse of bin size in z
+  std::array<bool, VoxDim> mUniformBins{}; ///< if binning is uniform for each dimension
   // settings
   std::string mLocalResFileName{ "data/tmpDeltaSect" }; ///< filename for local residuals input
   int mMaxPointsPerSector{ 30'000'000 };                ///< maximum number of accepted points per sector
@@ -376,14 +397,14 @@ class TrackResiduals
   float mMaxSigZ{ .7f };                                ///< maximum sigma for z of the voxel
   float mMaxGaussStdDev{ 5.f };                         ///< maximum number of sigmas to be considered for gaussian kernel smoothing
   // smoothing
-  int mKernelType{};                                                        ///< kernel type (Epanechnikov / Gaussian)
-  bool mUseErrInSmoothing{ true };                                          ///< weight kernel by point error
-  std::array<bool, param::VoxDim> mSmoothPol2{};                            ///< option to use pol1 or pol2 in each direction
-  std::array<int, SECTORSPERSIDE * SIDES> mNSmoothingFailedBins{};          ///< number of failed bins / sector
-  std::array<int, param::VoxDim> mStepKern{};                               ///< N bins to consider with given kernel settings
-  std::array<float, param::VoxDim> mKernelScaleEdge{};                      ///< optional scaling factors for kernel width on the edge
-  std::array<float, param::VoxDim> mKernelWInv{};                           ///< inverse kernel width in bins
-  std::array<double, param::ResDim * param::MaxSmtDim> mLastSmoothingRes{}; ///< results of last smoothing operation
+  KernelType mKernelType{ KernelType::Epanechnikov };              ///< kernel type (Epanechnikov / Gaussian)
+  bool mUseErrInSmoothing{ true };                                 ///< weight kernel by point error
+  std::array<bool, VoxDim> mSmoothPol2{};                          ///< option to use pol1 or pol2 in each direction
+  std::array<int, SECTORSPERSIDE * SIDES> mNSmoothingFailedBins{}; ///< number of failed bins / sector
+  std::array<int, VoxDim> mStepKern{};                             ///< N bins to consider with given kernel settings
+  std::array<float, VoxDim> mKernelScaleEdge{};                    ///< optional scaling factors for kernel width on the edge
+  std::array<float, VoxDim> mKernelWInv{};                         ///< inverse kernel width in bins
+  std::array<double, ResDim * sMaxSmtDim> mLastSmoothingRes{};     ///< results of last smoothing operation
   // (intermediate) results
   std::array<std::bitset<param::NPadRows>, SECTORSPERSIDE * SIDES> mXBinsIgnore{};          ///< flags which X bins to ignore
   std::array<std::array<float, param::NPadRows>, SECTORSPERSIDE * SIDES> mValidFracXBins{}; ///< for each sector for each X-bin the fraction of validated voxels
@@ -391,9 +412,9 @@ class TrackResiduals
 };
 
 //_____________________________________________________
-inline unsigned short TrackResiduals::getGlbVoxBin(std::array<unsigned char, param::VoxDim> bvox) const
+inline unsigned short TrackResiduals::getGlbVoxBin(std::array<unsigned char, VoxDim> bvox) const
 {
-  return bvox[param::VoxX] + (bvox[param::VoxF] + bvox[param::VoxZ] * mNY2XBins) * mNXBins;
+  return bvox[VoxX] + (bvox[VoxF] + bvox[VoxZ] * mNY2XBins) * mNXBins;
 }
 
 //_____________________________________________________
@@ -414,9 +435,63 @@ inline void TrackResiduals::getVoxelCoordinates(int isec, int ix, int ip, int iz
 }
 
 //_____________________________________________________
+inline float TrackResiduals::getDXI(int ix) const
+{
+  if (mUniformBins[VoxX]) {
+    return mDXI;
+  } else {
+    if (ix < param::NRowsPerROC[0]) {
+      // we are in the IROC
+      return 1.f / param::RowDX[0];
+    } else if (ix > param::NRowsAccumulated[param::NROCTypes - 1]) {
+      // we are in the last OROC
+      return 1.f / param::RowDX[param::NROCTypes - 1];
+    }
+#ifdef TPC_RUN2
+    else {
+      // we are in OROC1
+      return 1.f / param::RowDX[1];
+    }
+#else
+    else if (ix < param::NRowsAccumulated[2]) {
+      // OROC1
+      return 1.f / param::RowDX[1];
+    } else {
+      // OROC2
+      return 1.f / param::RowDX[2];
+    }
+#endif
+  }
+}
+
+//_____________________________________________________
 inline float TrackResiduals::getX(int i) const
 {
-  return mUniformBins[param::VoxX] ? param::MinX + (i + 0.5) * mDX : param::RowX[i];
+  if (mUniformBins[VoxX]) {
+    return param::MinX[0] + (i + 0.5) * mDX;
+  } else {
+    if (i < param::NRowsPerROC[0]) {
+      // we are in the IROC
+      return param::MinX[0] + i * param::RowDX[0];
+    } else if (i >= param::NRowsAccumulated[param::NROCTypes - 2]) {
+      // we are in the last OROC
+      return param::MinX[param::NROCTypes - 1] + (i - param::NRowsAccumulated[param::NROCTypes - 2]) * param::RowDX[param::NROCTypes - 1];
+    }
+#ifdef TPC_RUN2
+    else {
+      // we are in OROC1
+      return param::MinX[1] + (i - param::NRowsAccumulated[0]) * param::RowDX[1];
+    }
+#else
+    else if (i < param::NRowsAccumulated[2]) {
+      // OROC1
+      return param::MinX[1] + (i - param::NRowsAccumulated[0]) * param::RowDX[1];
+    } else {
+      // OROC2
+      return param::MinX[2] + (i - param::NRowsAccumulated[1]) * param::RowDX[2];
+    }
+#endif
+  }
 }
 
 //_____________________________________________________
@@ -464,4 +539,18 @@ inline int TrackResiduals::getZ2XBin(float z2x) const
 } // namespace TPC
 
 } // namespace o2
+
+// This is a hack to load the local residual trees created with AliRoot into O2
+namespace AliTPCDcalibRes
+{
+struct dts_t {                                   // struct for basic local residual
+  Double32_t dy;                                 //[-20.,20.,15] // [-kMaxResid,kMaxResid,14]
+  Double32_t dz;                                 //[-20.,20.,15] // [-kMaxResid,kMaxResid,14]
+  Double32_t tgSlp;                              //[-2,2,14]  //[kMaxTgSlp,kMaxTgSlp,14]
+  UChar_t bvox[o2::TPC::TrackResiduals::VoxDim]; // voxel bin info: VoxF,VoxX,VoxZ
+  //
+  dts_t() { memset(this, 0, sizeof(dts_t)); }
+};
+} // namespace AliTPCDcalibRes
+
 #endif

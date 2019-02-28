@@ -38,6 +38,8 @@
 
 #include <fairlogger/Logger.h>
 
+#define TPC_RUN2
+
 using namespace o2::TPC;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -56,8 +58,8 @@ void TrackResiduals::init()
   for (int i = 0; i < SECTORSPERSIDE * SIDES; i++) {
     mVoxelResults[i].resize(mNVoxPerSector);
   }
-  mSmoothPol2[param::VoxX] = true;
-  mSmoothPol2[param::VoxF] = true;
+  mSmoothPol2[VoxX] = true;
+  mSmoothPol2[VoxF] = true;
   setKernelType();
   mIsInitialized = true;
   LOG(info) << "initialization complete";
@@ -71,13 +73,13 @@ void TrackResiduals::initBinning()
   // X binning
   if (mNXBins > 0 && mNXBins < param::NPadRows) {
     // uniform binning in X
-    mDXI = mNXBins / (param::MaxX - param::MinX);
+    mDXI = mNXBins / (param::MaxX - param::MinX[0]);
     mDX = 1.0f / mDXI;
-    mUniformBins[param::VoxX] = true;
+    mUniformBins[VoxX] = true;
   } else {
     // binning per pad row
     mNXBins = param::NPadRows;
-    mUniformBins[param::VoxX] = false;
+    mUniformBins[VoxX] = false;
     mDX = param::RowDX[0];
     mDXI = 1.f / mDX; // should not be used
   }
@@ -89,16 +91,16 @@ void TrackResiduals::initBinning()
   //
   for (int ix = 0; ix < mNXBins; ++ix) {
     float x = getX(ix);
-    mMaxY2X[ix] = tan(.5f * SECPHIWIDTH) - param::DeadZone / x;
+    mMaxY2X[ix] = tan(.5f * SECPHIWIDTH) - sDeadZone / x;
     mDY2XI[ix] = mNY2XBins / (2.f * mMaxY2X[ix]);
     mDY2X[ix] = 1.f / mDY2XI[ix];
   }
-  mUniformBins[param::VoxF] = true;
+  mUniformBins[VoxF] = true;
   //
   // Z binning
-  mDZI = mNZ2XBins / param::MaxZ2X;
+  mDZI = mNZ2XBins / sMaxZ2X;
   mDZ = 1.0f / mDZI;
-  mUniformBins[param::VoxZ] = true;
+  mUniformBins[VoxZ] = true;
   //
   mNVoxPerSector = mNY2XBins * mNZ2XBins * mNXBins;
 }
@@ -111,13 +113,13 @@ void TrackResiduals::initResultsContainer(int iSec)
       for (int iz = 0; iz < mNZ2XBins; ++iz) {
         int binGlb = getGlbVoxBin(ix, ip, iz);
         bres_t& resVox = mVoxelResults[iSec][binGlb];
-        resVox.bvox[param::VoxX] = ix;
-        resVox.bvox[param::VoxF] = ip;
-        resVox.bvox[param::VoxZ] = iz;
+        resVox.bvox[VoxX] = ix;
+        resVox.bvox[VoxF] = ip;
+        resVox.bvox[VoxZ] = iz;
         resVox.bsec = iSec;
         // COG estimates are set to the bin center by default
-        getVoxelCoordinates(resVox.bsec, resVox.bvox[param::VoxX], resVox.bvox[param::VoxF], resVox.bvox[param::VoxZ],
-                            resVox.stat[param::VoxX], resVox.stat[param::VoxF], resVox.stat[param::VoxZ]);
+        getVoxelCoordinates(resVox.bsec, resVox.bvox[VoxX], resVox.bvox[VoxF], resVox.bvox[VoxZ],
+                            resVox.stat[VoxX], resVox.stat[VoxF], resVox.stat[VoxZ]);
       }
     }
   }
@@ -138,65 +140,70 @@ void TrackResiduals::reset()
 int TrackResiduals::getXBin(float x) const
 {
   // convert x to bin ID, following pad row widths
-  if (mUniformBins[param::VoxX]) {
-    int ix = (x - param::MinX) * mDXI;
+  if (mUniformBins[VoxX]) {
+    int ix = (x - param::MinX[0]) * mDXI;
     if (ix < 0) {
       ix = 0;
     }
     return (ix < mNXBins) ? ix : mNXBins - 1;
   } else {
     int ix;
-    if (x < param::RowX[param::NRowIROC - 1] + 0.5 * param::RowDX[param::NRowIROC - 1]) {
-      // pad size is uniform in IROC
-      ix = (x - (param::RowX[0] - param::RowDX[0] * 0.5)) / param::RowDX[0];
-      return (ix >= 0) ? ix : 0;
-    } else if (x >= param::RowX[param::NRowIROC + param::NRowOROC1] - 0.5 * param::RowDX[param::NRowIROC + param::NRowOROC1]) {
-      // pad size is uniform in OROC2
-      ix = (x - (param::RowX[param::NRowIROC + param::NRowOROC1] - 0.5 * param::RowDX[param::NRowIROC + param::NRowOROC1])) / param::RowDX[param::NPadRows - 1] + param::NRowIROC + param::NRowOROC1;
-      return (ix < param::NPadRows) ? ix : param::NPadRows - 1;
-    } else {
-      // pad size is uniform in OROC1
-      ix = (x - (param::RowX[param::NRowIROC] - 0.5 * param::RowDX[param::NRowIROC])) / param::RowDX[param::NRowIROC] + param::NRowIROC;
-      if (ix < param::NRowIROC) {
-        // we are in between IROC and OROC1
-        if (x > 0.5 * (param::RowX[param::NRowIROC - 1] + param::RowX[param::NRowIROC])) {
-          ix = param::NRowIROC; // 1st OROC1 row
-        } else {
-          ix = param::NRowIROC - 1;
-        }
-      }
-      return ix;
+    if (x < param::MinX[1] - .5f * param::ROCDX[0]) {
+      // we are in the IROC
+      ix = (x - param::MinX[0] + .5f * param::RowDX[0]) / param::RowDX[0];
+      return (ix < 0) ? 0 : std::min(ix, param::NRowsPerROC[0] - 1);
+    } else if (x > param::MinX[param::NROCTypes - 1] - .5f * param::ROCDX[param::NROCTypes - 2]) {
+      // we are in the last OROC
+      ix = param::NRowsAccumulated[param::NROCTypes - 2] + (x - param::MinX[param::NROCTypes - 1] + .5f * param::RowDX[param::NROCTypes - 1]) / param::RowDX[param::NROCTypes - 1];
+      return (ix < param::NRowsAccumulated[param::NROCTypes - 2]) ? param::NRowsAccumulated[param::NROCTypes - 2] : std::min(ix, param::NPadRows - 1);
     }
+#ifdef TPC_RUN2
+    else {
+      // we are in OROC1
+      ix = param::NRowsPerROC[0] + (x - param::MinX[1] + .5f * param::RowDX[1]) / param::RowDX[1];
+      return (ix < param::NRowsPerROC[0]) ? param::NRowsPerROC[0] : std::min(ix, param::NRowsAccumulated[1] - 1);
+    }
+#else
+    else if (x < param::MinX[2] - .5f * param::ROCDX[1]) {
+      // we are in OROC1
+      ix = param::NRowsPerROC[0] + (x - param::MinX[1] + .5f * param::RowDX[1]) / param::RowDX[1];
+      return (ix < param::NRowsPerROC[0]) ? param::NRowsPerROC[0] : std::min(ix, param::NRowsAccumulated[1] - 1);
+    } else {
+      // we are in OROC2
+      ix = param::NRowsAccumulated[1] + (x - param::MinX[2] + .5f * param::RowDX[2]) / param::RowDX[2];
+      return (ix < param::NRowsAccumulated[1]) ? param::NRowsAccumulated[1] : std::min(ix, param::NRowsAccumulated[2] - 1);
+    }
+#endif
   }
 }
 
-void TrackResiduals::setKernelType(int type, float bwX, float bwP, float bwZ, float scX, float scP, float scZ)
+void TrackResiduals::setKernelType(KernelType kernel, float bwX, float bwP, float bwZ, float scX, float scP, float scZ)
 {
   // set kernel type and widths in terms of binning in x, y/x, z/x and define aux variables
-  mKernelType = type;
+  mKernelType = kernel;
 
-  mKernelScaleEdge[param::VoxX] = scX;
-  mKernelScaleEdge[param::VoxF] = scP;
-  mKernelScaleEdge[param::VoxZ] = scZ;
+  mKernelScaleEdge[VoxX] = scX;
+  mKernelScaleEdge[VoxF] = scP;
+  mKernelScaleEdge[VoxZ] = scZ;
 
-  mKernelWInv[param::VoxX] = (bwX > 0) ? 1. / bwX : 1.;
-  mKernelWInv[param::VoxF] = (bwP > 0) ? 1. / bwP : 1.;
-  mKernelWInv[param::VoxZ] = (bwZ > 0) ? 1. / bwZ : 1.;
+  mKernelWInv[VoxX] = (bwX > 0) ? 1. / bwX : 1.;
+  mKernelWInv[VoxF] = (bwP > 0) ? 1. / bwP : 1.;
+  mKernelWInv[VoxZ] = (bwZ > 0) ? 1. / bwZ : 1.;
 
-  if (mKernelType == param::EpanechnikovKernel) {
+  if (mKernelType == KernelType::Epanechnikov) {
     // bandwidth 1
-    mStepKern[param::VoxX] = static_cast<int>(nearbyint(bwX + 0.5));
-    mStepKern[param::VoxF] = static_cast<int>(nearbyint(bwP + 0.5));
-    mStepKern[param::VoxZ] = static_cast<int>(nearbyint(bwZ + 0.5));
-  } else if (mKernelType == param::GaussianKernel) {
+    mStepKern[VoxX] = static_cast<int>(nearbyint(bwX + 0.5));
+    mStepKern[VoxF] = static_cast<int>(nearbyint(bwP + 0.5));
+    mStepKern[VoxZ] = static_cast<int>(nearbyint(bwZ + 0.5));
+  } else if (mKernelType == KernelType::Gaussian) {
     // look in ~5 sigma
-    mStepKern[param::VoxX] = static_cast<int>(nearbyint(bwX * 5. + 0.5));
-    mStepKern[param::VoxF] = static_cast<int>(nearbyint(bwP * 5. + 0.5));
-    mStepKern[param::VoxZ] = static_cast<int>(nearbyint(bwZ * 5. + 0.5));
+    mStepKern[VoxX] = static_cast<int>(nearbyint(bwX * 5. + 0.5));
+    mStepKern[VoxF] = static_cast<int>(nearbyint(bwP * 5. + 0.5));
+    mStepKern[VoxZ] = static_cast<int>(nearbyint(bwZ * 5. + 0.5));
   } else {
-    LOG(error) << "kernel type " << type << " is not defined";
+    LOG(error) << "given kernel type is not defined";
   }
-  for (int i = param::VoxDim; i--;) {
+  for (int i = VoxDim; i--;) {
     if (mStepKern[i] < 1) {
       mStepKern[i] = 1;
     }
@@ -238,9 +245,7 @@ void TrackResiduals::processSectorResiduals(int iSec)
     LOG(error) << "failed to open " << filename.c_str();
     return;
   }
-  std::string treename = "ts";
-  treename += std::to_string(iSec);
-  ;
+  std::string treename = "ts" + std::to_string(iSec);
   std::unique_ptr<TTree> tree((TTree*)flin->Get(treename.c_str()));
   if (!tree) {
     LOG(error) << "did not find the data tree " << treename.c_str();
@@ -285,7 +290,7 @@ void TrackResiduals::processSectorResiduals(int iSec)
     dyData[nAccepted] = trkRes.dy;
     dzData[nAccepted] = trkRes.dz;
     tgSlpData[nAccepted] = trkRes.tgSlp;
-    binData[nAccepted] = getGlbVoxBin(trkRes.bvox[param::VoxX], trkRes.bvox[param::VoxF], trkRes.bvox[param::VoxZ]);
+    binData[nAccepted] = getGlbVoxBin(trkRes.bvox[VoxX], trkRes.bvox[VoxF], trkRes.bvox[VoxZ]);
     nAccepted++;
   }
 
@@ -310,12 +315,12 @@ void TrackResiduals::processSectorResiduals(int iSec)
   std::vector<short> dzDataShort(nAccepted);
   std::vector<short> tgSlpDataShort(nAccepted);
   for (unsigned int i = 0; i < nAccepted; ++i) {
-    dyDataShort[i] = short(dyData[i] * 0x7fff / param::MaxResid);
-    dzDataShort[i] = short(dzData[i] * 0x7fff / param::MaxResid);
+    dyDataShort[i] = short(dyData[i] * 0x7fff / sMaxResid);
+    dzDataShort[i] = short(dzData[i] * 0x7fff / sMaxResid);
     tgSlpDataShort[i] = short(tgSlpData[i] * 0x7fff / mMaxTgSlp);
 
-    dyData[i] = dyDataShort[i] * param::MaxResid / 0x7fff;
-    dzData[i] = dzDataShort[i] * param::MaxResid / 0x7fff;
+    dyData[i] = dyDataShort[i] * sMaxResid / 0x7fff;
+    dzData[i] = dzDataShort[i] * sMaxResid / 0x7fff;
     tgSlpData[i] = tgSlpDataShort[i] * mMaxTgSlp / 0x7fff;
   }
 
@@ -383,7 +388,7 @@ void TrackResiduals::processSectorResiduals(int iSec)
     if (currVoxBin != binData[idx]) {
       if (nPointsInVox) {
         bres_t& resVox = secData[currVoxBin];
-        if (!getXBinIgnored(iSec, resVox.bvox[param::VoxX])) {
+        if (!getXBinIgnored(iSec, resVox.bvox[VoxX])) {
           processVoxelDispersions(tgVec, dyVec, resVox);
         }
       }
@@ -400,7 +405,7 @@ void TrackResiduals::processSectorResiduals(int iSec)
   if (nPointsInVox) {
     // process last voxel
     bres_t& resVox = secData[currVoxBin];
-    if (!getXBinIgnored(iSec, resVox.bvox[param::VoxX])) {
+    if (!getXBinIgnored(iSec, resVox.bvox[VoxX])) {
       processVoxelDispersions(tgVec, dyVec, resVox);
     }
   }
@@ -413,7 +418,7 @@ void TrackResiduals::processSectorResiduals(int iSec)
       for (int ip = 0; ip < mNY2XBins; ++ip) {
         int voxBin = getGlbVoxBin(ix, ip, iz);
         bres_t& resVox = secData[voxBin];
-        getSmoothEstimate(iSec, resVox.stat[param::VoxX], resVox.stat[param::VoxF], resVox.stat[param::VoxZ], resVox.DS, 0x1 << param::VoxV);
+        getSmoothEstimate(iSec, resVox.stat[VoxX], resVox.stat[VoxF], resVox.stat[VoxZ], resVox.DS, 0x1 << VoxV);
       }
     }
   }
@@ -433,31 +438,33 @@ void TrackResiduals::processVoxelResiduals(std::vector<float>& dy, std::vector<f
   resVox.flags = 0;
   std::vector<size_t> indices(dz.size());
   if (!o2::mathUtils::mathBase::LTMUnbinned(dz, indices, zResults, mLTMCut)) {
+    LOG(debug) << "failed trimming input array for voxel " << getGlbVoxBin(resVox.bvox);
     return;
   }
   std::array<float, 2> res{ 0.f };
   std::array<float, 3> err{ 0.f };
   float sigMAD = fitPoly1Robust(tg, dy, res, err, mLTMCut);
   if (sigMAD < 0) {
+    LOG(debug) << "failed robust linear fit, sigMAD =  " << sigMAD;
     return;
   }
   float corrErr = err[0] * err[2];
   corrErr = corrErr > 0 ? err[1] / std::sqrt(corrErr) : -999;
   //
-  resVox.D[param::ResX] = -res[1];
-  resVox.D[param::ResY] = res[0];
-  resVox.D[param::ResZ] = zResults[1];
-  resVox.E[param::ResX] = std::sqrt(err[2]);
-  resVox.E[param::ResY] = std::sqrt(err[0]);
-  resVox.E[param::ResZ] = zResults[4];
+  resVox.D[ResX] = -res[1];
+  resVox.D[ResY] = res[0];
+  resVox.D[ResZ] = zResults[1];
+  resVox.E[ResX] = std::sqrt(err[2]);
+  resVox.E[ResY] = std::sqrt(err[0]);
+  resVox.E[ResZ] = zResults[4];
   resVox.EXYCorr = corrErr;
-  resVox.D[param::ResD] = resVox.dYSigMAD = sigMAD; // later will be overwritten by real dispersion
+  resVox.D[ResD] = resVox.dYSigMAD = sigMAD; // later will be overwritten by real dispersion
   resVox.dZSigLTM = zResults[2];
   //
   //
   // at this point the actual COG for each voxel should be stored in resVox.stat
 
-  resVox.flags |= param::DistDone;
+  resVox.flags |= DistDone;
 
   return;
 }
@@ -470,11 +477,11 @@ void TrackResiduals::processVoxelDispersions(std::vector<float>& tg, std::vector
     return;
   }
   for (size_t i = nPoints; i--;) {
-    dy[i] -= resVox.DS[param::ResY] - resVox.DS[param::ResX] * tg[i];
+    dy[i] -= resVox.DS[ResY] - resVox.DS[ResX] * tg[i];
   }
-  resVox.D[param::ResD] = getMAD2Sigma(dy);
-  resVox.E[param::ResD] = resVox.D[param::ResD] / sqrt(2.f * nPoints); // a la gaussioan RMS error (very crude)
-  resVox.flags |= param::DispDone;
+  resVox.D[ResD] = getMAD2Sigma(dy);
+  resVox.E[ResD] = resVox.D[ResD] / sqrt(2.f * nPoints); // a la gaussioan RMS error (very crude)
+  resVox.flags |= DispDone;
 }
 
 //______________________________________________________________________________
@@ -497,11 +504,11 @@ int TrackResiduals::validateVoxels(int iSec)
       for (int iz = 0; iz < mNZ2XBins; ++iz) {
         int binGlb = getGlbVoxBin(ix, ip, iz);
         bres_t& resVox = secData[binGlb];
-        bool voxelOK = (resVox.flags & param::DistDone) && !(resVox.flags & param::Masked);
+        bool voxelOK = (resVox.flags & DistDone) && !(resVox.flags & Masked);
         if (voxelOK) {
           // check fit errors
-          if (resVox.E[param::ResY] * resVox.E[param::ResY] > mMaxFitErrY2 ||
-              resVox.E[param::ResX] * resVox.E[param::ResX] > mMaxFitErrX2 ||
+          if (resVox.E[ResY] * resVox.E[ResY] > mMaxFitErrY2 ||
+              resVox.E[ResX] * resVox.E[ResX] > mMaxFitErrX2 ||
               fabs(resVox.EXYCorr) > mMaxFitCorrXY) {
             voxelOK = false;
             ++cntMaskedFit;
@@ -520,7 +527,7 @@ int TrackResiduals::validateVoxels(int iSec)
           ++cntValid;
         } else {
           ++cntInvalid;
-          resVox.flags |= param::Masked;
+          resVox.flags |= Masked;
         }
       } // loop over Z
     }   // loop over Y/X
@@ -615,12 +622,12 @@ void TrackResiduals::smooth(int iSec)
       for (int iz = 0; iz < mNZ2XBins; ++iz) {
         int voxBin = getGlbVoxBin(ix, ip, iz);
         bres_t& resVox = secData[voxBin];
-        resVox.flags &= ~param::SmoothDone;
-        bool res = getSmoothEstimate(resVox.bsec, resVox.stat[param::VoxX], resVox.stat[param::VoxF], resVox.stat[param::VoxZ], resVox.DS, (0x1 << param::VoxX | 0x1 << param::VoxF | 0x1 << param::VoxZ));
+        resVox.flags &= ~SmoothDone;
+        bool res = getSmoothEstimate(resVox.bsec, resVox.stat[VoxX], resVox.stat[VoxF], resVox.stat[VoxZ], resVox.DS, (0x1 << VoxX | 0x1 << VoxF | 0x1 << VoxZ));
         if (!res) {
           mNSmoothingFailedBins[iSec]++;
         } else {
-          resVox.flags |= param::SmoothDone;
+          resVox.flags |= SmoothDone;
         }
       }
     }
@@ -634,33 +641,33 @@ void TrackResiduals::smooth(int iSec)
       for (int iz = 0; iz < mNZ2XBins; ++iz) {
         int voxBin = getGlbVoxBin(ix, ip, iz);
         bres_t& resVox = secData[voxBin];
-        if (!(resVox.flags & param::SmoothDone)) {
+        if (!(resVox.flags & SmoothDone)) {
           continue;
         }
-        resVox.DS[param::ResZ] += resVox.stat[param::VoxZ] * resVox.DS[param::ResX]; // remove slope*dX contribution from dZ
-        resVox.D[param::ResZ] += resVox.stat[param::VoxZ] * resVox.DS[param::ResX];  // remove slope*dX contribution from dZ
+        resVox.DS[ResZ] += resVox.stat[VoxZ] * resVox.DS[ResX]; // remove slope*dX contribution from dZ
+        resVox.D[ResZ] += resVox.stat[VoxZ] * resVox.DS[ResX];  // remove slope*dX contribution from dZ
       }
     }
   }
 }
 
-bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std::array<float, param::ResDim>& res, int whichDim)
+bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std::array<float, ResDim>& res, int whichDim)
 {
   // get smooth estimate for distortions for point in sector coordinates
   /// \todo correct use of the symmetric matrix should speed up the code
 
-  std::array<int, param::VoxDim> minPointsDir{ 0 }; // min number of points per direction
+  std::array<int, VoxDim> minPointsDir{ 0 }; // min number of points per direction
   const float kTrialStep = 0.5;
-  std::array<bool, param::ResDim> doDim{ false };
-  for (int i = 0; i < param::ResDim; ++i) {
+  std::array<bool, ResDim> doDim{ false };
+  for (int i = 0; i < ResDim; ++i) {
     doDim[i] = (whichDim & (0x1 << i)) > 0;
     if (doDim[i]) {
       res[i] = 0.f;
     }
   }
 
-  int matSize = param::SmtLinDim;
-  for (int i = 0; i < param::VoxDim; ++i) {
+  int matSize = sSmtLinDim;
+  for (int i = 0; i < VoxDim; ++i) {
     minPointsDir[i] = 3; // for pol1 smoothing require at least 3 points
     if (mSmoothPol2[i]) {
       ++minPointsDir[i];
@@ -677,19 +684,19 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
 
   // cache
   // \todo maybe a 1-D cache would be more efficient?
-  std::array<std::array<double, param::MaxSmtDim*(param::MaxSmtDim + 1) / 2>, param::ResDim> cmat;
+  std::array<std::array<double, sMaxSmtDim*(sMaxSmtDim + 1) / 2>, ResDim> cmat;
   int maxNeighb = 10 * 10 * 10;
   std::vector<bres_t*> currVox;
   currVox.reserve(maxNeighb);
   std::vector<float> currCache;
-  currCache.reserve(maxNeighb * param::VoxHDim);
+  currCache.reserve(maxNeighb * VoxHDim);
 
-  std::array<int, param::VoxDim> maxTrials;
-  maxTrials[param::VoxZ] = mNZ2XBins / 2;
-  maxTrials[param::VoxF] = mNY2XBins / 2;
-  maxTrials[param::VoxX] = mMaxBadXBinsToCover * 2;
+  std::array<int, VoxDim> maxTrials;
+  maxTrials[VoxZ] = mNZ2XBins / 2;
+  maxTrials[VoxF] = mNY2XBins / 2;
+  maxTrials[VoxX] = mMaxBadXBinsToCover * 2;
 
-  std::array<int, param::VoxDim> trial{ 0 };
+  std::array<int, VoxDim> trial{ 0 };
 
   while (true) {
     std::fill(mLastSmoothingRes.begin(), mLastSmoothingRes.end(), 0);
@@ -697,21 +704,21 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
 
     int nbOK = 0; // accounted neighbours
 
-    float stepX = mStepKern[param::VoxX] * (1. + kTrialStep * trial[param::VoxX]);
-    float stepF = mStepKern[param::VoxF] * (1. + kTrialStep * trial[param::VoxF]);
-    float stepZ = mStepKern[param::VoxZ] * (1. + kTrialStep * trial[param::VoxZ]);
+    float stepX = mStepKern[VoxX] * (1. + kTrialStep * trial[VoxX]);
+    float stepF = mStepKern[VoxF] * (1. + kTrialStep * trial[VoxF]);
+    float stepZ = mStepKern[VoxZ] * (1. + kTrialStep * trial[VoxZ]);
 
-    if (!(voxCenter.flags & param::DistDone) || (voxCenter.flags & param::Masked) || getXBinIgnored(iSec, ix0)) {
+    if (!(voxCenter.flags & DistDone) || (voxCenter.flags & Masked) || getXBinIgnored(iSec, ix0)) {
       // closest voxel has no data -> increase smoothing step
-      stepX += kTrialStep * mStepKern[param::VoxX];
-      stepF += kTrialStep * mStepKern[param::VoxF];
-      stepZ += kTrialStep * mStepKern[param::VoxZ];
+      stepX += kTrialStep * mStepKern[VoxX];
+      stepF += kTrialStep * mStepKern[VoxF];
+      stepZ += kTrialStep * mStepKern[VoxZ];
     }
 
     // effective kernel widths accounting for the increased bandwidth at the edges and missing data
-    float kWXI = getDXI(ix0) * mKernelWInv[param::VoxX] * mStepKern[param::VoxX] / stepX;
-    float kWFI = getDY2XI(ix0) * mKernelWInv[param::VoxF] * mStepKern[param::VoxF] / stepF;
-    float kWZI = getDZ2XI() * mKernelWInv[param::VoxZ] * mStepKern[param::VoxZ] / stepZ;
+    float kWXI = getDXI(ix0) * mKernelWInv[VoxX] * mStepKern[VoxX] / stepX;
+    float kWFI = getDY2XI(ix0) * mKernelWInv[VoxF] * mStepKern[VoxF] / stepF;
+    float kWZI = getDZ2XI() * mKernelWInv[VoxZ] * mStepKern[VoxZ] / stepZ;
     int iStepX = static_cast<int>(nearbyint(stepX + 0.5));
     int iStepF = static_cast<int>(nearbyint(stepF + 0.5));
     int iStepZ = static_cast<int>(nearbyint(stepZ + 0.5));
@@ -719,39 +726,39 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
     int ixMax = ix0 + iStepX;
     if (ixMin < 0) {
       ixMin = 0;
-      ixMax = std::min(static_cast<int>(nearbyint(ix0 + stepX * mKernelScaleEdge[param::VoxX])), mNXBins - 1);
-      kWXI /= mKernelScaleEdge[param::VoxX];
+      ixMax = std::min(static_cast<int>(nearbyint(ix0 + stepX * mKernelScaleEdge[VoxX])), mNXBins - 1);
+      kWXI /= mKernelScaleEdge[VoxX];
     }
     if (ixMax >= mNXBins) {
       ixMax = mNXBins - 1;
-      ixMin = std::max(static_cast<int>(nearbyint(ix0 - stepX * mKernelScaleEdge[param::VoxX])), 0);
-      kWXI /= mKernelScaleEdge[param::VoxX];
+      ixMin = std::max(static_cast<int>(nearbyint(ix0 - stepX * mKernelScaleEdge[VoxX])), 0);
+      kWXI /= mKernelScaleEdge[VoxX];
     }
 
     int ipMin = ip0 - iStepF;
     int ipMax = ip0 + iStepF;
     if (ipMin < 0) {
       ipMin = 0;
-      ipMax = std::min(static_cast<int>(nearbyint(ip0 + stepF * mKernelScaleEdge[param::VoxF])), mNY2XBins - 1);
-      kWFI /= mKernelScaleEdge[param::VoxF];
+      ipMax = std::min(static_cast<int>(nearbyint(ip0 + stepF * mKernelScaleEdge[VoxF])), mNY2XBins - 1);
+      kWFI /= mKernelScaleEdge[VoxF];
     }
     if (ipMax >= mNY2XBins) {
       ipMax = mNY2XBins - 1;
-      ipMin = std::max(static_cast<int>(nearbyint(ip0 - stepF * mKernelScaleEdge[param::VoxF])), 0);
-      kWFI /= mKernelScaleEdge[param::VoxF];
+      ipMin = std::max(static_cast<int>(nearbyint(ip0 - stepF * mKernelScaleEdge[VoxF])), 0);
+      kWFI /= mKernelScaleEdge[VoxF];
     }
 
     int izMin = iz0 - iStepZ;
     int izMax = iz0 + iStepZ;
     if (izMin < 0) {
       izMin = 0;
-      izMax = std::min(static_cast<int>(nearbyint(iz0 + stepZ * mKernelScaleEdge[param::VoxZ])), mNZ2XBins - 1);
-      kWZI /= mKernelScaleEdge[param::VoxZ];
+      izMax = std::min(static_cast<int>(nearbyint(iz0 + stepZ * mKernelScaleEdge[VoxZ])), mNZ2XBins - 1);
+      kWZI /= mKernelScaleEdge[VoxZ];
     }
     if (izMax >= mNZ2XBins) {
       izMax = mNZ2XBins - 1;
-      izMin = std::max(static_cast<int>(nearbyint(iz0 - stepZ * mKernelScaleEdge[param::VoxZ])), 0);
-      kWZI /= mKernelScaleEdge[param::VoxZ];
+      izMin = std::max(static_cast<int>(nearbyint(iz0 - stepZ * mKernelScaleEdge[VoxZ])), 0);
+      kWZI /= mKernelScaleEdge[VoxZ];
     }
 
     std::vector<unsigned short> nOccX(ixMax - ixMin + 1, 0);
@@ -761,7 +768,7 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
     int nbCheck = (ixMax - ixMin + 1) * (ipMax - ipMin + 1) * (izMax - izMin + 1);
     if (nbCheck >= maxNeighb) {
       maxNeighb = nbCheck + 100;
-      currCache.reserve(maxNeighb * param::VoxHDim);
+      currCache.reserve(maxNeighb * VoxHDim);
       currVox.reserve(maxNeighb);
     }
     std::array<double, 3> u2Vec;
@@ -772,23 +779,23 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
         for (int iz = izMin; iz <= izMax; ++iz) {
           int binNb = getGlbVoxBin(ix, ip, iz);
           bres_t& voxNb = secData[binNb];
-          if (!(voxNb.flags & param::DistDone) ||
-              (voxNb.flags & param::Masked) ||
+          if (!(voxNb.flags & DistDone) ||
+              (voxNb.flags & Masked) ||
               getXBinIgnored(iSec, ix)) {
             // skip voxels w/o data
             continue;
           }
           // estimate weighted distance
-          float dx = voxNb.stat[param::VoxX] - x;
-          float df = voxNb.stat[param::VoxF] - p;
-          float dz = voxNb.stat[param::VoxZ] - z;
+          float dx = voxNb.stat[VoxX] - x;
+          float df = voxNb.stat[VoxF] - p;
+          float dz = voxNb.stat[VoxZ] - z;
           float dxw = dx * kWXI;
           float dfw = df * kWFI;
           float dzw = dz * kWZI;
           u2Vec[0] = dxw * dxw;
           u2Vec[1] = dfw * dfw;
           u2Vec[2] = dzw * dzw;
-          double kernelWeight = getKernelWeight(u2Vec, mKernelType);
+          double kernelWeight = getKernelWeight(u2Vec);
           if (kernelWeight < 1e-6) {
             continue;
           }
@@ -797,35 +804,35 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
           ++nOccF[ip - ipMin];
           ++nOccZ[iz - izMin];
           currVox[nbOK] = &voxNb;
-          currCache[nbOK * param::VoxHDim + param::VoxX] = dx;
-          currCache[nbOK * param::VoxHDim + param::VoxF] = df;
-          currCache[nbOK * param::VoxHDim + param::VoxZ] = dz;
-          currCache[nbOK * param::VoxHDim + param::VoxV] = kernelWeight;
+          currCache[nbOK * VoxHDim + VoxX] = dx;
+          currCache[nbOK * VoxHDim + VoxF] = df;
+          currCache[nbOK * VoxHDim + VoxZ] = dz;
+          currCache[nbOK * VoxHDim + VoxV] = kernelWeight;
           ++nbOK;
         }
       }
     }
 
     // check if we have enough points in every dimension
-    std::array<int, param::VoxDim> nPoints{ 0 };
+    std::array<int, VoxDim> nPoints{ 0 };
     for (int i = ixMax - ixMin + 1; i--;) {
       if (nOccX[i]) {
-        ++nPoints[param::VoxX];
+        ++nPoints[VoxX];
       }
     }
     for (int i = ipMax - ipMin + 1; i--;) {
       if (nOccF[i]) {
-        ++nPoints[param::VoxF];
+        ++nPoints[VoxF];
       }
     }
     for (int i = izMax - izMin + 1; i--;) {
       if (nOccZ[i]) {
-        ++nPoints[param::VoxZ];
+        ++nPoints[VoxZ];
       }
     }
     bool enoughPoints = true;
-    std::array<bool, param::VoxDim> incrDone{ false };
-    for (int i = 0; i < param::VoxDim; ++i) {
+    std::array<bool, VoxDim> incrDone{ false };
+    for (int i = 0; i < VoxDim; ++i) {
       if (nPoints[i] < minPointsDir[i]) {
         // need to extend smoothing neighbourhood
         enoughPoints = false;
@@ -835,7 +842,7 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
           incrDone[i] = true;
         } else if (trial[i] == maxTrials[i]) {
           // cannot increment missing direction, try others
-          for (int j = param::VoxDim; j--;) {
+          for (int j = VoxDim; j--;) {
             if (i != j && trial[j] < maxTrials[j] && !incrDone[j]) {
               ++trial[j];
               incrDone[j] = true;
@@ -846,28 +853,28 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
     }
 
     if (!enoughPoints) {
-      if (!(incrDone[param::VoxX] || incrDone[param::VoxF] || incrDone[param::VoxZ])) {
+      if (!(incrDone[VoxX] || incrDone[VoxF] || incrDone[VoxZ])) {
         LOG(error) << "trial limit reached, skipping this voxel";
         return false;
       }
       LOG(debug) << "sector " << iSec << ": increasing filter bandwidth around voxel " << binCenter;
       //printf("Sector:%2d x=%.2f y/x=%.2f z/x=%.2f (iX: %d iY2X:%d iZ2X:%d)\n", iSec, x, p, z, ix0, ip0, iz0);
-      //printf("not enough neighbours (need min %d) %d %d %d (tot: %d) | Steps: %.1f %.1f %.1f\n", 2, nPoints[param::VoxX], nPoints[param::VoxF], nPoints[param::VoxZ], nbOK, stepX, stepF, stepZ);
-      //printf("trying to increase filter bandwidth (trialXFZ: %d %d %d)\n", trial[param::VoxX], trial[param::VoxF], trial[param::VoxZ]);
+      //printf("not enough neighbours (need min %d) %d %d %d (tot: %d) | Steps: %.1f %.1f %.1f\n", 2, nPoints[VoxX], nPoints[VoxF], nPoints[VoxZ], nbOK, stepX, stepF, stepZ);
+      //printf("trying to increase filter bandwidth (trialXFZ: %d %d %d)\n", trial[VoxX], trial[VoxF], trial[VoxZ]);
       continue;
     }
 
     // now fill matrices and solve
     for (int iNb = 0; iNb < nbOK; ++iNb) {
-      double wiCache = currCache[iNb * param::VoxHDim + param::VoxV];
-      double dxi = currCache[iNb * param::VoxHDim + param::VoxX];
-      double dfi = currCache[iNb * param::VoxHDim + param::VoxF];
-      double dzi = currCache[iNb * param::VoxHDim + param::VoxZ];
+      double wiCache = currCache[iNb * VoxHDim + VoxV];
+      double dxi = currCache[iNb * VoxHDim + VoxX];
+      double dfi = currCache[iNb * VoxHDim + VoxF];
+      double dzi = currCache[iNb * VoxHDim + VoxZ];
       double dxi2 = dxi * dxi;
       double dfi2 = dfi * dfi;
       double dzi2 = dzi * dzi;
       const bres_t* voxNb = currVox[iNb];
-      for (int iDim = 0; iDim < param::ResDim; ++iDim) {
+      for (int iDim = 0; iDim < ResDim; ++iDim) {
         if (!doDim[iDim]) {
           continue;
         }
@@ -877,8 +884,8 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
           // account for point error apart from kernel value
           wi /= (voxNb->E[iDim] * voxNb->E[iDim]);
         }
-        std::array<double, param::MaxSmtDim*(param::MaxSmtDim + 1) / 2>& cmatD = cmat[iDim];
-        double* rhsD = &mLastSmoothingRes[iDim * param::MaxSmtDim];
+        std::array<double, sMaxSmtDim*(sMaxSmtDim + 1) / 2>& cmatD = cmat[iDim];
+        double* rhsD = &mLastSmoothingRes[iDim * sMaxSmtDim];
         unsigned short iMat = 0;
         unsigned short iRhs = 0;
         // linear part
@@ -901,7 +908,7 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
         rhsD[iRhs++] += wi * dzi * vi;
         //
         // check if quadratic part is needed
-        if (mSmoothPol2[param::VoxX]) {
+        if (mSmoothPol2[VoxX]) {
           cmatD[iMat++] += wi * dxi2;
           cmatD[iMat++] += wi * dxi * dxi2;
           cmatD[iMat++] += wi * dfi * dxi2;
@@ -909,7 +916,7 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
           cmatD[iMat++] += wi * dxi2 * dxi2;
           rhsD[iRhs++] += wi * dxi2 * vi;
         }
-        if (mSmoothPol2[param::VoxF]) {
+        if (mSmoothPol2[VoxF]) {
           cmatD[iMat++] += wi * dfi2;
           cmatD[iMat++] += wi * dxi * dfi2;
           cmatD[iMat++] += wi * dfi * dfi2;
@@ -918,7 +925,7 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
           cmatD[iMat++] += wi * dfi2 * dfi2;
           rhsD[iRhs++] += wi * dfi2 * vi;
         }
-        if (mSmoothPol2[param::VoxZ]) {
+        if (mSmoothPol2[VoxZ]) {
           cmatD[iMat++] += wi * dzi2;
           cmatD[iMat++] += wi * dxi * dzi2;
           cmatD[iMat++] += wi * dfi * dzi2;
@@ -938,13 +945,13 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
     TMatrixDSym matrix(matSize);
     TDecompChol chol(matSize);
     TVectorD rhsVec(matSize);
-    for (int iDim = 0; iDim < param::ResDim; ++iDim) {
+    for (int iDim = 0; iDim < ResDim; ++iDim) {
       if (!doDim[iDim]) {
         continue;
       }
       matrix.Zero(); // reset matrix
-      std::array<double, param::MaxSmtDim*(param::MaxSmtDim + 1) / 2>& cmatD = cmat[iDim];
-      double* rhsD = &mLastSmoothingRes[iDim * param::MaxSmtDim];
+      std::array<double, sMaxSmtDim*(sMaxSmtDim + 1) / 2>& cmatD = cmat[iDim];
+      double* rhsD = &mLastSmoothingRes[iDim * sMaxSmtDim];
       short iMat = -1;
       short iRhs = -1;
       short row = -1;
@@ -967,21 +974,21 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
       matrix(1, row) = matrix(row, 1);
       matrix(2, row) = matrix(row, 2);
       // add pol2 elements if needed
-      if (mSmoothPol2[param::VoxX]) {
+      if (mSmoothPol2[VoxX]) {
         const unsigned int colLim = (++row) + 1;
         for (int iCol = 0; iCol < colLim; ++iCol) {
           matrix(row, iCol) = cmatD[++iMat];
           matrix(iCol, row) = matrix(row, iCol);
         }
       }
-      if (mSmoothPol2[param::VoxF]) {
+      if (mSmoothPol2[VoxF]) {
         const unsigned int colLim = (++row) + 1;
         for (int iCol = 0; iCol < colLim; ++iCol) {
           matrix(row, iCol) = cmatD[++iMat];
           matrix(iCol, row) = matrix(row, iCol);
         }
       }
-      if (mSmoothPol2[param::VoxZ]) {
+      if (mSmoothPol2[VoxZ]) {
         const unsigned int colLim = (++row) + 1;
         for (int iCol = 0; iCol < colLim; ++iCol) {
           matrix(row, iCol) = cmatD[++iMat];
@@ -993,7 +1000,7 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
       chol.Decompose();
       fitRes = chol.Solve(rhsVec);
       if (!fitRes) {
-        for (int i = param::VoxDim; i--;) {
+        for (int i = VoxDim; i--;) {
           trial[i]++;
         }
         LOG(error) << "solution for smoothing failed, trying to increase filter bandwidth";
@@ -1008,24 +1015,22 @@ bool TrackResiduals::getSmoothEstimate(int iSec, float x, float p, float z, std:
   return true;
 }
 
-double TrackResiduals::getKernelWeight(std::array<double, 3> u2vec, int kernelType) const
+double TrackResiduals::getKernelWeight(std::array<double, 3> u2vec) const
 {
   double w = 1.;
-  if (kernelType == param::EpanechnikovKernel) {
+  if (mKernelType == KernelType::Epanechnikov) {
     for (size_t i = u2vec.size(); i--;) {
       if (u2vec[i] > 1) {
         return 0.;
       }
       w *= 3. / 4. * (1. - u2vec[i]);
     }
-  } else if (kernelType == param::GaussianKernel) {
+  } else if (mKernelType == KernelType::Gaussian) {
     double u2 = 0.;
     for (size_t i = u2vec.size(); i--;) {
       u2 += u2vec[i];
     }
     w = u2 < mMaxGaussStdDev * mMaxGaussStdDev * u2vec.size() ? std::exp(-u2) / std::sqrt(2. * M_PI) : 0;
-  } else {
-    LOG(error) << "kernel type " << kernelType << " is not defined";
   }
   return w;
 }

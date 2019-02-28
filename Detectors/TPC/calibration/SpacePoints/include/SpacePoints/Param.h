@@ -16,78 +16,38 @@
 #ifndef ALICEO2_TPC_PARAM_H_
 #define ALICEO2_TPC_PARAM_H_
 
+#include "DataFormatsTPC/Constants.h"
+
+#define TPC_RUN2
+
 namespace o2
 {
 namespace TPC
 {
-
 namespace param
 {
-
-// voxel definition
-enum { VoxZ,
-       VoxF,
-       VoxX,
-       VoxV };
-static constexpr int VoxDim = 3;  // the voxels are defined in a 3 dimensional system
-static constexpr int VoxHDim = 4; // for the smoothing we add for each voxel next to the distance for each dimension also the kernel weight
-
-enum { ResX,
-       ResY,
-       ResZ,
-       ResD };
-static constexpr int ResDim = 4; // there are 4 dimensions for the results (X-distortions, Y-distortions, Z-distortions and dispersions)
-
-enum { DistDone = 1,
-       DispDone = 2,
-       SmoothDone = 4,
-       Masked = 8 };
-
-// TPC geometric constants
-static constexpr int NPadRows = 159;
-static constexpr int NRowIROC = 63;
-static constexpr int NRowOROC1 = 64;
-static constexpr int NRowOROC2 = 32;
-static constexpr float MinX = 85.f;
-static constexpr float MaxX = 246.f;
-static constexpr float RowX[NPadRows] = {
-  85.225, 85.975, 86.725, 87.475, 88.225, 88.975, 89.725, 90.475, 91.225, 91.975, 92.725, 93.475, 94.225, 94.975, 95.725,
-  96.475, 97.225, 97.975, 98.725, 99.475, 100.225, 100.975, 101.725, 102.475, 103.225, 103.975, 104.725, 105.475, 106.225, 106.975,
-  107.725, 108.475, 109.225, 109.975, 110.725, 111.475, 112.225, 112.975, 113.725, 114.475, 115.225, 115.975, 116.725, 117.475, 118.225,
-  118.975, 119.725, 120.475, 121.225, 121.975, 122.725, 123.475, 124.225, 124.975, 125.725, 126.475, 127.225, 127.975, 128.725, 129.475,
-  130.225, 130.975, 131.725, 135.100, 136.100, 137.100, 138.100, 139.100, 140.100, 141.100, 142.100, 143.100, 144.100, 145.100, 146.100,
-  147.100, 148.100, 149.100, 150.100, 151.100, 152.100, 153.100, 154.100, 155.100, 156.100, 157.100, 158.100, 159.100, 160.100, 161.100,
-  162.100, 163.100, 164.100, 165.100, 166.100, 167.100, 168.100, 169.100, 170.100, 171.100, 172.100, 173.100, 174.100, 175.100, 176.100,
-  177.100, 178.100, 179.100, 180.100, 181.100, 182.100, 183.100, 184.100, 185.100, 186.100, 187.100, 188.100, 189.100, 190.100, 191.100,
-  192.100, 193.100, 194.100, 195.100, 196.100, 197.100, 198.100, 199.350, 200.850, 202.350, 203.850, 205.350, 206.850, 208.350, 209.850,
-  211.350, 212.850, 214.350, 215.850, 217.350, 218.850, 220.350, 221.850, 223.350, 224.850, 226.350, 227.850, 229.350, 230.850, 232.350,
-  233.850, 235.350, 236.850, 238.350, 239.850, 241.350, 242.850, 244.350, 245.850
-};
-static constexpr float RowDX[NPadRows] = { // distance between pad rows
-  0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750,
-  0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750,
-  0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750, 0.750,
-  1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000,
-  1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000,
-  1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000,
-  1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500,
-  1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500, 1.500
-};
-
-static constexpr float DeadZone = 1.5f;
-static constexpr float MaxZ2X = 1.f;
-static constexpr float MaxResid = 20.f;
-
-// smoothing parameters
-enum { EpanechnikovKernel,
-       GaussianKernel };
-
-static constexpr int SmtLinDim = 4; // max matrix size for smoothing (pol1)
-static constexpr int MaxSmtDim = 7; // max matrix size for smoothing (pol2)
-
+#ifdef TPC_RUN2
+/// TPC geometric constants for Run 1+2
+static constexpr int NPadRows = 159;                                   ///< total number of TPC pad rows
+static constexpr int NROCTypes = 3;                                    ///< how many different pitches we have between the pad rows
+static constexpr int NRowsPerROC[NROCTypes] = { 63, 64, 32 };          ///< number of rows for the different pitches
+static constexpr int NRowsAccumulated[NROCTypes] = { 63, 127, 159 };   ///< accumulate number of rows (only used as abbreviation)
+static constexpr float MinX[NROCTypes] = { 85.225f, 135.1f, 199.35f }; ///< x-position of first row for each ROC type
+static constexpr float RowDX[NROCTypes] = { .75f, 1.f, 1.5f };         ///< row pitches
+static constexpr float ROCDX[NROCTypes - 1] = { 3.375f, 1.25f };       ///< radial distance between the different ROCs
+static constexpr float MaxX = 246.f;                                   ///< maximum radius for the TPC
+#else                                                                  // not defined TPC_RUN2
+/// TPC geometric constants for Run 3+
+static constexpr int NPadRows = o2::TPC::Constants::MAXGLOBALPADROW;
+static constexpr int NROCTypes = 4;
+static constexpr int NRowsPerROC[NROCTypes] = { 63, 34, 30, 25 };
+static constexpr int NRowsAccumulated[NROCTypes] = { 63, 97, 127, 152 };
+static constexpr float MinX[NROCTypes] = { 85.225f, 135.2f, 171.4f, 209.65f };
+static constexpr float RowDX[NROCTypes] = { .75f, 1.f, 1.2f, 1.5f };
+static constexpr float ROCDX[NROCTypes - 1] = { 3.475f, 3.2f, 3.45f };
+static constexpr float MaxX = 247.15f;
+#endif                                                                 // defined TPC_RUN2
 } // namespace param
-
 } // namespace TPC
-
 } // namespace o2
 #endif
