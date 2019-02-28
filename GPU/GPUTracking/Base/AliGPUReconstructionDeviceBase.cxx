@@ -71,6 +71,40 @@ void AliGPUReconstructionDeviceBase::ResetThisHelperThread(AliGPUReconstructionH
 	par->fMutex[1].unlock();
 }
 
+int AliGPUReconstructionDeviceBase::GetGlobalLock(void* &pLock)
+{
+#ifdef _WIN32
+	HANDLE* semLock = new HANDLE;
+	*semLock = CreateSemaphore(nullptr, 1, 1, SemLockName);
+	if (*semLock == nullptr)
+	{
+		GPUError("Error creating GPUInit Semaphore");
+		return(1);
+	}
+	WaitForSingleObject(*semLock, INFINITE);
+#elif !defined(__APPLE__) //GPU not supported on MacOS anyway
+	sem_t* semLock = sem_open(SemLockName, O_CREAT, 0x01B6, 1);
+	if (semLock == SEM_FAILED)
+	{
+		GPUError("Error creating GPUInit Semaphore");
+		return(1);
+	}
+	timespec semtime;
+	clock_gettime(CLOCK_REALTIME, &semtime);
+	semtime.tv_sec += 10;
+	while (sem_timedwait(semLock, &semtime) != 0)
+	{
+		GPUError("Global Lock for GPU initialisation was not released for 10 seconds, assuming another thread died");
+		GPUWarning("Resetting the global lock");
+		sem_post(semLock);
+	}
+#else
+	void* semLock = nullptr;
+#endif
+	pLock = semLock;
+	return 0;
+}
+
 void AliGPUReconstructionDeviceBase::ReleaseGlobalLock(void* sem)
 {
 	//Release the global named semaphore that locks GPU Initialization
@@ -79,7 +113,7 @@ void AliGPUReconstructionDeviceBase::ReleaseGlobalLock(void* sem)
 	ReleaseSemaphore(*h, 1, nullptr);
 	CloseHandle(*h);
 	delete h;
-#else
+#elif !defined(__APPLE__) //GPU not supported on MacOS anyway
 	sem_t* pSem = (sem_t*) sem;
 	sem_post(pSem);
 	sem_unlink(SemLockName);
@@ -195,40 +229,8 @@ int AliGPUReconstructionDeviceBase::InitDevice()
 	}
 	mThreadId = GetThread();
 
-#ifdef _WIN32
-	HANDLE* semLock = nullptr;
-	if (mDeviceProcessingSettings.globalInitMutex)
-	{
-		semLock = new HANDLE;
-		*semLock = CreateSemaphore(nullptr, 1, 1, SemLockName);
-		if (*semLock == nullptr)
-		{
-			GPUError("Error creating GPUInit Semaphore");
-			return(1);
-		}
-		WaitForSingleObject(*semLock, INFINITE);
-	}
-#else
-	sem_t* semLock = nullptr;
-	if (mDeviceProcessingSettings.globalInitMutex)
-	{
-		semLock = sem_open(SemLockName, O_CREAT, 0x01B6, 1);
-		if (semLock == SEM_FAILED)
-		{
-			GPUError("Error creating GPUInit Semaphore");
-			return(1);
-		}
-		timespec semtime;
-		clock_gettime(CLOCK_REALTIME, &semtime);
-		semtime.tv_sec += 10;
-		while (sem_timedwait(semLock, &semtime) != 0)
-		{
-			GPUError("Global Lock for GPU initialisation was not released for 10 seconds, assuming another thread died");
-			GPUWarning("Resetting the global lock");
-			sem_post(semLock);
-		}
-	}
-#endif
+	void* semLock = nullptr;
+	if (mDeviceProcessingSettings.globalInitMutex && GetGlobalLock(semLock)) return(1);
 
 	mDeviceMemorySize = GPUCA_MEMORY_SIZE;
 	mHostMemorySize = GPUCA_HOST_MEMORY_SIZE;

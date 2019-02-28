@@ -452,8 +452,8 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 				nClusterTracks++;
 				residualBarrelTrackYabs += fabsf(clusterTransformed.fY - y);
 				residualBarrelTrackZabs += fabsf(clusterTransformed.fZ - z);
-				residualExternalTrackYabs += fabsf(clusterTransformed.fY - etrack.GetY());
-				residualExternalTrackZabs += fabsf(clusterTransformed.fZ - etrack.GetZ());
+				residualExternalTrackYabs += fabsf(clusterTransformed.fY - (float) etrack.GetY());
+				residualExternalTrackZabs += fabsf(clusterTransformed.fZ - (float) etrack.GetZ());
 				residualBarrelTrackY += clusterTransformed.fY - y;
 				residualBarrelTrackZ += clusterTransformed.fZ - z;
 				residualExternalTrackY += clusterTransformed.fY - etrack.GetY();
