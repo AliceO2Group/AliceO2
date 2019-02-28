@@ -8,9 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file Support.cxx
+/// \file PCBSupport.cxx
 /// \brief Class building the MFT PCB Supports
-/// \author Raphael Tieulent <raphael.tieulent@cern.ch>, Rafael Pezzi <rafael.pezzi@cern.ch>
+/// \author Raphael Tieulent <raphael.tieulent@cern.ch>
+/// \author Rafael Pezzi <rafael.pezzi@cern.ch>
 
 #include "MFTBase/Constants.h"
 #include "MFTBase/PCBSupport.h"
@@ -28,11 +29,11 @@ TNamed(),
 mHalfDisk(nullptr),
 mDiskGap(1.4),
 mPCBRad{17.5,17.5,17.5,23.0,23.0},
-mCuThickness(.05),
-mFR4Thickness(.1),
+mCuThickness(0.0124),
+mFR4Thickness(.113),
 mPhi0(0.),
 mPhi1(180.),
-mT_delta(0.05),
+mT_delta(0.01),
 mOuterCut{15.5,15.5,16.9,20.5,21.9}
 {
 
@@ -47,16 +48,15 @@ TGeoVolumeAssembly* PCBSupport::create(Int_t half, Int_t disk)
   Info("Create",Form("Creating PCB_H%d_D%d", half,disk),0,0);
   mHalfDisk = new TGeoVolumeAssembly(Form("PCB_H%d_D%d", half,disk));
   //  auto *PCB = new TGeoVolumeAssembly(Form("PCB_VA_H%d_D%d",half,disk));
-  auto *PCBCu = new TGeoTubeSeg(Form("PCBCu_H%d_D%d",half,disk), 0, mPCBRad[disk], mCuThickness, mPhi0, mPhi1);
-  auto *PCBFR4 = new TGeoTubeSeg(Form("PCBFR4_H%d_D%d",half,disk), 0, mPCBRad[disk], mFR4Thickness, mPhi0, mPhi1);
-
+  auto *PCBCu = new TGeoTubeSeg(Form("PCBCu_H%d_D%d",half,disk), 0, mPCBRad[disk], mCuThickness/2., mPhi0, mPhi1);
+  auto *PCBFR4 = new TGeoTubeSeg(Form("PCBFR4_H%d_D%d",half,disk), 0, mPCBRad[disk], mFR4Thickness/2., mPhi0, mPhi1);
 
   // Cutting boxes
   //Info("Create",Form("Cutting Boxes PCB_H%d_D%d", half,disk),0,0);
   for(Int_t cut = 0 ; cut<mNumberOfBoxCuts[disk]; cut++){
     auto *boxName =  Form("PCBBoxCut_%d_H%d_D%d",cut, half, disk);
     auto *boxCSName = Form("PCBBoxCS_%d_H%d_D%d",cut, half, disk);
-    mSomeBox = new TGeoBBox(boxName,mBoxCuts[disk][cut][0]/2.+2*mT_delta,mBoxCuts[disk][cut][1]/2.+2*mT_delta, mFR4Thickness+mT_delta); // TODO: Adjust thickness
+    mSomeBox = new TGeoBBox(boxName,mBoxCuts[disk][cut][0]/2.+2*mT_delta,mBoxCuts[disk][cut][1]/2.+2*mT_delta, mFR4Thickness+mT_delta);
     mSomeTranslation = new TGeoTranslation(mBoxCuts[disk][cut][2],mBoxCuts[disk][cut][3], 0.);
     //The first subtraction needs a shape, the base tube
     if (cut == 0)  mSomeSubtraction = new TGeoSubtraction(PCBCu, mSomeBox, NULL,mSomeTranslation);
@@ -69,8 +69,25 @@ TGeoVolumeAssembly* PCBSupport::create(Int_t half, Int_t disk)
 
   }
 
+    
+
+    //Info("Create",Form("Cutting Boxes PCB_H%d_D%d", half,disk),0,0);
+  if(mNumberOfBoxAdd[disk]!=0) for(Int_t iBox = 0 ; iBox<mNumberOfBoxAdd[disk]; iBox++){
+    auto *boxName =  Form("PCBBoxAdd_%d_H%d_D%d",iBox, half, disk);
+    auto *boxCSName = Form("PCBBoxAddCS_%d_H%d_D%d",iBox, half, disk);
+    mSomeBox = new TGeoBBox(boxName,mBoxAdd[disk][iBox][0]/2.,mBoxAdd[disk][iBox][1]/2., mFR4Thickness/2.);
+    mSomeTranslation = new TGeoTranslation(mBoxAdd[disk][iBox][2],mBoxAdd[disk][iBox][3], 0.);
+    mSomeUnion = new TGeoUnion(mPCBFR4, mSomeBox, NULL,mSomeTranslation);
+    mPCBFR4 = new TGeoCompositeShape(boxCSName, mSomeUnion);
+    mSomeBox = new TGeoBBox(boxName,mBoxAdd[disk][iBox][0]/2.,mBoxAdd[disk][iBox][1]/2., mCuThickness/2.);
+    mSomeUnion = new TGeoUnion(mPCBCu, mSomeBox, NULL,mSomeTranslation);
+    mPCBCu = new TGeoCompositeShape(boxCSName, mSomeUnion);
 
 
+  }
+
+  
+    
   // =================  Holes ==================
 
   // Digging Holes
@@ -87,19 +104,18 @@ TGeoVolumeAssembly* PCBSupport::create(Int_t half, Int_t disk)
 
   }
 
-
-
+  
   // ======= Prepare PCB volume and add to HalfDisk =========
 
   auto *PCB_Cu_vol = new TGeoVolume(Form("PCBCu_H%d_D%d",half,disk), mPCBCu, mPCBMediumCu);
   auto *PCB_FR4_vol = new TGeoVolume(Form("PCBFR4_H%d_D%d",half,disk), mPCBFR4, mPCBMediumFR4);
  // auto *tr1 = new TGeoTranslation(0., 0., 10.);
-  auto *rot1 = new TGeoRotation("rot",0,0,180.);
-  auto *rot2 = new TGeoRotation("rot",0.,0.,180.);
-  auto *tr_rot1_Cu = new TGeoCombiTrans (0., 0., 1., rot1);
-  auto *tr_rot1_FR4 = new TGeoCombiTrans (0., 0., 1.5, rot1);
-  auto *tr_rot2_Cu = new TGeoCombiTrans (0., 0., -1., rot2);
-  auto *tr_rot2_FR4 = new TGeoCombiTrans (0., 0., -1.5, rot2);
+  auto *rot1 = new TGeoRotation("rot",180,0,0);
+  auto *rot2 = new TGeoRotation("rot",180.,180.,180.);
+  auto *tr_rot1_Cu = new TGeoCombiTrans (0., 0., 0.4+mFR4Thickness+mCuThickness/2., rot1);
+  auto *tr_rot1_FR4 = new TGeoCombiTrans (0., 0., 0.4+mFR4Thickness/2., rot1);
+  auto *tr_rot2_Cu = new TGeoCombiTrans (0., 0., -(0.4+mFR4Thickness+mCuThickness/2.), rot2);
+  auto *tr_rot2_FR4 = new TGeoCombiTrans (0., 0., -(0.4+mFR4Thickness/2.), rot2);
   mHalfDisk->AddNode(PCB_Cu_vol, 0,tr_rot1_Cu);
   mHalfDisk->AddNode(PCB_FR4_vol, 0,tr_rot1_FR4);
   mHalfDisk->AddNode(PCB_Cu_vol, 0,tr_rot2_Cu);
@@ -118,7 +134,7 @@ void PCBSupport::initParameters()
   // # PCB parametrization =====
   // ================================================
   // ## Cut boxes (squares)
-  // ### halfDisks 00
+  // ### PCB 00
   mNumberOfBoxCuts[0]=9;
   // Cut boxes {Width, Height, x_center, y_center}
   mBoxCuts[00] = new Double_t[mNumberOfBoxCuts[0]][4]{
@@ -134,11 +150,11 @@ void PCBSupport::initParameters()
     //    { 0.3,  0.3, -14.0,  9.5 }
   };
 
-  // ### halfDisks 01
+  // ### PCB 01
   mNumberOfBoxCuts[1]=mNumberOfBoxCuts[0];
   mBoxCuts[01]=mBoxCuts[00];
 
-  // ### halfDisk 02
+  // ### PCB 02
   mNumberOfBoxCuts[2]=9;
   mBoxCuts[02] = new Double_t[mNumberOfBoxCuts[2]][4]{
    { 35,   8.91, 0.0,    4.455},
@@ -152,7 +168,7 @@ void PCBSupport::initParameters()
    { 0.5,  0.69, -14.95, 9.255}
   };
 
-  // ### halfDisk 03
+  // ### PCB 03
   mNumberOfBoxCuts[3]=8;
   mBoxCuts[03] = new Double_t[mNumberOfBoxCuts[3]][4]{
     {mPCBRad[3]+mT_delta, mDiskGap, 0., 0.},
@@ -168,8 +184,7 @@ void PCBSupport::initParameters()
     {(mPCBRad[3]-18.3)/2., 4.2,-(mPCBRad[3]+18.3)/2 , 0}
   };
 
-
-  // ### halfDisk 04
+  // ### PCB 04
   mNumberOfBoxCuts[4]=8;
   mBoxCuts[04] = new Double_t[mNumberOfBoxCuts[4]][4]{
     {mPCBRad[4]+mT_delta, mDiskGap, 0., 0.},
@@ -187,36 +202,72 @@ void PCBSupport::initParameters()
 
 
 
-  // Holes {Radius, x_center, y_center}
+  // ## Add boxes (squares)
+  // ### PCB 00
+  mNumberOfBoxAdd[0]=0;
+  // Add boxes {Width, Height, x_center, y_center}
+  mBoxAdd[00] = NULL;
 
+  // ### PCB 01
+  mNumberOfBoxAdd[1]=mNumberOfBoxAdd[0];
+  mBoxAdd[01]=mBoxAdd[00];
+
+  // ### PCB 02
+  mNumberOfBoxAdd[2]=4;
+  mBoxAdd[02] = new Double_t[mNumberOfBoxAdd[2]][4]{
+   { 1.51, 2.59,  13.945, 10.205},
+   { 1.51, 2.59, -13.945,10.205},
+   { 13.5, 0.9 ,  0.0  , 16.45},
+   { 10.2, 0.6 ,  0.0 ,  17.2}
+  };
+
+  // ### PCB 03
+  mNumberOfBoxAdd[2]=4;
+  mBoxAdd[02] = new Double_t[mNumberOfBoxAdd[2]][4]{
+   { 1.51, 2.59,  13.945, 10.205},
+   { 1.51, 2.59, -13.945,10.205},
+   { 13.5, 0.9 ,  0.0  , 16.45},
+   { 10.2, 0.6 ,  0.0 ,  17.2}
+  };
+  // ### PCB 04
+  mNumberOfBoxAdd[2]=4;
+  mBoxAdd[02] = new Double_t[mNumberOfBoxAdd[2]][4]{
+   { 1.51, 2.59,  13.945, 10.205},
+   { 1.51, 2.59, -13.945,10.205},
+   { 13.5, 0.9 ,  0.0  , 16.45},
+   { 10.2, 0.6 ,  0.0 ,  17.2}
+  };
+
+    
+  // Holes {Radius, x_center, y_center}
   // ### PCB 00
   mNumberOfHoles[0]=7;
   mHoles[00] = new Double_t[mNumberOfHoles[0]][3]{
-    { .3, 14.0, 9.5},
-    { .3, -13.85, 9.5},
-    { .3, -14.15, 9.5},
-    { 1., 11.0, 11.5},
-    { 1., -11.0, 11.5},
-    { .35, 9.0, 11.5},
-    { .35, -9.0, 11.5}
+    { .3,  14.0,   9.5},
+    { .3, -13.85,  9.5},
+    { .3, -14.15,  9.5},
+    { 1.,  11.0,  11.5},
+    { 1., -11.0,  11.5},
+    { .35,  9.0,  11.5},
+    { .35, -9.0,  11.5}
   };
 
   // ### PCB 01
   mNumberOfHoles[1]=mNumberOfHoles[0];
   mHoles[01]=mHoles[00];
 
-
-    // ### PCB 02
+  // ### PCB 02
   mNumberOfHoles[2]=7;
   mHoles[02] = new Double_t[mNumberOfHoles[2]][3]{
     { .35,  12.5, 11.5 },
     { .35, -12.5, 11.5 },
     { 1.0, -11.0, 11.5 },
     { 1.0, 11.0 , 11.5 },
-    { 0.3, -7.5 , 14.5 },
-    { 0.3,  7.5 , 14.5 },
-    { 0.3, 7.35 , 14.5 }
+    { 0.3,  7.5,  14.5 },
+    { 0.3,  -7.5, 14.5 },
+    { 0.3, -7.35, 14.5 }
   };
+
   // ### PCB 03
   mNumberOfHoles[3]=7;
   mHoles[03] = new Double_t[mNumberOfHoles[3]][3]{
@@ -228,6 +279,7 @@ void PCBSupport::initParameters()
     { 1,  0,  0.},
     { 1,  0,  0.}
   };
+
   // ### PCB 04
   mNumberOfHoles[4]=7;
   mHoles[04] = new Double_t[mNumberOfHoles[4]][3]{

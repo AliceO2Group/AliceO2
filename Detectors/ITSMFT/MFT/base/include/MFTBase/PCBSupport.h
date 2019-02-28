@@ -67,14 +67,16 @@ class PCBSupport : public TNamed
   Double_t mDiskGap; //gap between half disks
   Double_t mPhi0;
   Double_t mPhi1;
-  Double_t mT_delta; //Excess to remove to avoid coplanar surfaces that causes visualization glitches
+  Double_t mT_delta; //Excess to remove to avoid coplanar surfaces that causes visualization glitches and overlaps
   Double_t mOuterCut[5]; //Distance of external disk cuts (oposite to beam pipe)
                          // this is the y origin on Guillamet's PDF blueprints
 
-  Int_t mNumberOfBoxCuts[5]; // Number of box cuts in each half disk support
-  Double_t (*mBoxCuts[5])[4];// Box cuts on each disk
-  Int_t mNumberOfHoles[5]; // Number of box cuts in each half disk support
-  Double_t (*mHoles[5])[3];// Box cuts on each disk
+  Int_t mNumberOfBoxCuts[5]; // Number of box cuts in each PCB
+  Double_t (*mBoxCuts[5])[4];// Box cuts on each PCB
+  Int_t mNumberOfBoxAdd[5]; // Number of box added to each PCB
+  Double_t (*mBoxAdd[5])[4];// Box added to each PCB
+  Int_t mNumberOfHoles[5]; // Number of Holes in each PCB
+  Double_t (*mHoles[5])[3];// Holes on each PCB
 
   ClassDefOverride(PCBSupport, 2);
 
