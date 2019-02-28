@@ -1111,8 +1111,6 @@ o2_define_bucket(
     ${MS_GSL_INCLUDE_DIR}
 )
 
-include("${ALIGPU_DIR}/sources/cmake/O2Dependencies.cmake")
-
 o2_define_bucket(
     NAME
     tpc_calibration_bucket
@@ -2459,4 +2457,107 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Common/Field/include
     ${CMAKE_SOURCE_DIR}/Detectors/MUON/MCH/Base/include
+)
+
+o2_define_bucket(
+    NAME
+    AliGPUCommon_bucket
+
+    DEPENDENCIES
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/GPU/Common
+)
+
+o2_define_bucket(
+    NAME
+    TPCFastTransformation_bucket
+
+    DEPENDENCIES
+    dl
+    pthread
+    root_base_bucket
+    common_vc_bucket
+    AliGPUCommon_bucket
+
+    INCLUDE_DIRECTORIES
+    ${ROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation
+)
+
+o2_define_bucket(
+    NAME
+    GPUTracking_bucket
+
+    DEPENDENCIES
+    dl
+    pthread
+    root_base_bucket
+    common_vc_bucket
+    TRDBase
+    ITStracking
+    AliGPUCommon_bucket
+    TPCFastTransformation_bucket
+    O2TPCFastTransformation
+    data_format_TPC_bucket
+    Gpad
+    RIO
+    Graf
+    glfw_bucket
+    DebugGUI
+
+    INCLUDE_DIRECTORIES
+    ${ROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Global
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/SliceTracker
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/TRDTracking
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Interface
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/HLTHeaders
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Standalone
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/ITS
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Standalone/display
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Standalone/qa
+    ${CMAKE_SOURCE_DIR}/Framework/Core/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/tracking/include
+    ${CMAKE_SOURCE_DIR}/Detectors/TRD/base/include
+)
+
+o2_define_bucket(
+    NAME
+    GPUTrackingHIP_bucket
+
+    DEPENDENCIES
+    GPUTracking_bucket
+)
+
+o2_define_bucket(
+    NAME
+    GPUTrackingCUDA_bucket
+
+    DEPENDENCIES
+    GPUTracking_bucket
+    ITStrackingCUDA
+)
+
+o2_define_bucket(
+    NAME
+    GPUTrackingOCL_bucket
+
+    DEPENDENCIES
+    GPUTracking_bucket
+)
+
+o2_define_bucket(
+    NAME
+    TPCSpaceChargeBase_bucket
+
+    DEPENDENCIES
+    root_base_bucket Hist MathCore Matrix Physics AliGPUCommon_bucket
+
+    INCLUDE_DIRECTORIES
+    ${ROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/GPU/TPCSpaceChargeBase
 )

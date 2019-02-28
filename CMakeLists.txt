@@ -195,6 +195,7 @@ if (HAVESIMULATION)
    add_subdirectory(run)
 endif()
 add_subdirectory(config)
+add_subdirectory(GPU)
 
 IF (IWYU_FOUND)
   ADD_CUSTOM_TARGET(checkHEADERS
