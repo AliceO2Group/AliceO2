@@ -994,7 +994,7 @@ GPUd() void AliGPUTRDTracker::InsertHypothesis(Hypothesis hypo, int& nCurrHypoth
         break;
       }
     }
-    if (i < nCurrHypothesis + idxOffset) {
+    if (i < (nCurrHypothesis + idxOffset - 1)) {
       // new hypothesis should be inserted into the array
       for (int k = nCurrHypothesis + idxOffset - 1; k > i + 1; --k) {
         mHypothesis[k] = mHypothesis[k-1];
