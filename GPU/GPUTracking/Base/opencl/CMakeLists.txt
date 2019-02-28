@@ -36,7 +36,7 @@ endif()
 message(STATUS "Building GPUTracking with OpenCL support" )
 
 #convenience variables
-set(GPUDIR ${ALIGPU_DIR}/sources/GPUTracking)
+set(GPUDIR ${CMAKE_SOURCE_DIR}/GPU/GPUTracking)
 
 #libdir path
 link_directories(${AMDAPPSDKROOT}/lib/x86_64)
@@ -58,7 +58,7 @@ set(CL_INC
     -I${GPUDIR}/TRDTracking
     -I${GPUDIR}/Merger
     -I${GPUDIR}/Standalone
-    -I${ALIGPU_DIR}/sources/Common
+    -I${CMAKE_SOURCE_DIR}/GPU/Common
 )
 
 foreach (def ${DEFINITIONS})
@@ -92,7 +92,7 @@ include_directories(${GPUDIR}/Base/opencl
 include_directories(SYSTEM ${ROOT_INCLUDE_DIR})
 include_directories(${AMDAPPSDKROOT}/include)
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
-   include_directories(${AliRoot_SOURCE_DIR}/HLT/BASE)
+   include_directories(${CMAKE_SOURCE_DIR}/HLT/BASE)
 else() #if we do not build for AliRoot, for the time being we still need some dummy headers for some definitions
    include_directories(${GPUDIR}/HLTHeaders ${GPUDIR}/Standalone/include)
 endif()

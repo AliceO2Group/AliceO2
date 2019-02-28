@@ -51,7 +51,7 @@ add_link_options(--amdgpu-target=gfx900)
 message( STATUS "Building GPUTracking with HIP support" )
 
 #for convenience
-set(GPUDIR ${ALIGPU_DIR}/sources/GPUTracking)
+set(GPUDIR ${CMAKE_SOURCE_DIR}/GPU/GPUTracking)
 
 # Module include folder
 include_directories(${GPUDIR}/Base/hip)
@@ -59,7 +59,7 @@ include_directories(${GPUDIR}/Base/hip)
 # Additional include folders in alphabetical order except ROOT
 include_directories(SYSTEM ${ROOT_INCLUDE_DIR})
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
-    include_directories(${AliRoot_SOURCE_DIR}/HLT/BASE)
+    include_directories(${CMAKE_SOURCE_DIR}/HLT/BASE)
 else() #if we do not build for AliRoot, for the time being we still need some dummy headers for some definitions
     include_directories(${GPUDIR}/HLTHeaders ${GPUDIR}/Standalone/include)
 endif()

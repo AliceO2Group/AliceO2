@@ -136,20 +136,20 @@ set(HDRS2
 #Some extra files / includes / settings needed for the build for AliRoot
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
     include_directories(SYSTEM ${ROOT_INCLUDE_DIR})
-    include_directories(${AliRoot_SOURCE_DIR}/HLT/BASE
-        ${AliRoot_SOURCE_DIR}/HLT/BASE/util
-        ${AliRoot_SOURCE_DIR}/HLT/TPCLib
-        ${AliRoot_SOURCE_DIR}/HLT/TPCLib/transform
-        ${AliRoot_SOURCE_DIR}/HLT/TPCLib/comp
-        ${AliRoot_SOURCE_DIR}/HLT/TRD
-        ${AliRoot_SOURCE_DIR}/TRD/TRDbase
-        ${AliRoot_SOURCE_DIR}/STEER/STEERBase
-        ${AliRoot_SOURCE_DIR}/STEER/STEER
-        ${AliRoot_SOURCE_DIR}/STEER/ESD
-        ${AliRoot_SOURCE_DIR}/STEER/CDB
-        ${AliRoot_SOURCE_DIR}/TPC/TPCbase
-        ${AliRoot_SOURCE_DIR}/TPC/TPCcalib
-        ${AliRoot_SOURCE_DIR}/TPC/TPCrec
+    include_directories(${CMAKE_SOURCE_DIR}/HLT/BASE
+        ${CMAKE_SOURCE_DIR}/HLT/BASE/util
+        ${CMAKE_SOURCE_DIR}/HLT/TPCLib
+        ${CMAKE_SOURCE_DIR}/HLT/TPCLib/transform
+        ${CMAKE_SOURCE_DIR}/HLT/TPCLib/comp
+        ${CMAKE_SOURCE_DIR}/HLT/TRD
+        ${CMAKE_SOURCE_DIR}/TRD/TRDbase
+        ${CMAKE_SOURCE_DIR}/STEER/STEERBase
+        ${CMAKE_SOURCE_DIR}/STEER/STEER
+        ${CMAKE_SOURCE_DIR}/STEER/ESD
+        ${CMAKE_SOURCE_DIR}/STEER/CDB
+        ${CMAKE_SOURCE_DIR}/TPC/TPCbase
+        ${CMAKE_SOURCE_DIR}/TPC/TPCcalib
+        ${CMAKE_SOURCE_DIR}/TPC/TPCrec
     )
 
     set(SRCS ${SRCS}
@@ -164,10 +164,10 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
     )
     
     set (SRCS_NO_CINT ${SRCS_NO_CINT}
-        ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCGeometry.cxx
-        ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCLog.cxx
-        ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCDefinitions.cxx
-        ${AliRoot_SOURCE_DIR}/HLT/TRD/AliHLTTRDDefinitions.cxx
+        ${CMAKE_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCGeometry.cxx
+        ${CMAKE_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCLog.cxx
+        ${CMAKE_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCDefinitions.cxx
+        ${CMAKE_SOURCE_DIR}/HLT/TRD/AliHLTTRDDefinitions.cxx
     )
     
     set (HDRS2 ${HDRS2}

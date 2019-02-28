@@ -1,11 +1,3 @@
-if(DEFINED ALIGPU_DIR)
-    set(ALIGPU_BUILD_TYPE "O2")
-    add_subdirectory(${ALIGPU_DIR}/sources/TPCSpaceChargeBase TPCSpaceChargeBase)
-    include_directories(${ALIGPU_DIR}/sources/TPCSpaceChargeBase)
-else()
-    message(FATAL_ERROR "cmake variable ALIGPU_DIR is not defined")
-endif()
-
 set(MODULE_NAME "TPCSimulation")
 
 O2_SETUP(NAME ${MODULE_NAME})

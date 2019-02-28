@@ -1,19 +1,3 @@
-option(ENABLE_CUDA   "Build HLT GPU tracker using CUDA"   OFF)
-option(ENABLE_OPENCL "Build HLT GPU tracker using OpenCL" OFF)
-
-if(DEFINED ALIGPU_DIR)
-    set(ALIGPU_BUILD_TYPE "O2")
-    add_subdirectory(${ALIGPU_DIR}/sources/GPUTracking GPUTracking)
-    add_subdirectory(${ALIGPU_DIR}/sources/TPCFastTransformation TPCFastTransformation)
-    include_directories(${ALIGPU_DIR}/sources/GPUTracking/SliceTracker
-                        ${ALIGPU_DIR}/sources/GPUTracking/Merger
-                        ${ALIGPU_DIR}/sources/GPUTracking/Interface
-                        ${ALIGPU_DIR}/sources/TPCFastTransformation
-                    )
-else()
-    message(FATAL_ERROR "cmake variable ALIGPU_DIR is not defined")
-endif()
-
 set(MODULE_NAME "TPCReconstruction")
 
 O2_SETUP(NAME ${MODULE_NAME})
