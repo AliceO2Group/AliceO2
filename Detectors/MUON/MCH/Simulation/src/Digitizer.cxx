@@ -93,7 +93,8 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
     // can use nDigit output of processHit
     MCCompLabel label(hit.GetTrackID(), mEventID, mSrcID);
     for (int i = 0; i < ndigits; ++i) {
-      mTrackLabels.addElementRandomAccess(labelIndex, label);
+      int digitIndex = mDigits.size() - ndigits + i;
+      mTrackLabels.addElementRandomAccess(digitIndex, label);
     } //loop over digits to generate MCdigits
   }   //loop over hits
 
