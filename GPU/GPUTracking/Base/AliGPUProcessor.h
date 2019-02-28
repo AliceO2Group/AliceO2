@@ -36,7 +36,7 @@ public:
 	void Clear();
 
 	//Helpers for memory allocation
-	constexpr static size_t MIN_ALIGNMENT = 64;
+	CONSTEXPR static size_t MIN_ALIGNMENT = 64;
 
 	template <size_t alignment = MIN_ALIGNMENT> static inline size_t getAlignment(size_t addr)
 	{
@@ -61,7 +61,7 @@ public:
 	template <size_t alignment = MIN_ALIGNMENT, class S> static inline S* getPointerWithAlignment(size_t& basePtr, size_t nEntries = 1)
 	{
 		if (basePtr == 0) basePtr = 1;
-		constexpr size_t maxAlign = (alignof(S) > alignment) ? alignof(S) : alignment;
+		CONSTEXPR size_t maxAlign = (alignof(S) > alignment) ? alignof(S) : alignment;
 		basePtr += getAlignment<maxAlign>(basePtr);
 		S* retVal = (S*) (basePtr);
 		basePtr += nEntries * sizeof(S);
