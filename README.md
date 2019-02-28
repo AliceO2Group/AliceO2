@@ -24,7 +24,7 @@ In order to build and install O2 with aliBuild you can follow [this tutorial](ht
 
 ### Issue tracking system
 We use JIRA to track issues. [Report a bug here](https://alice.its.cern.ch/jira/secure/CreateIssue.jspa?pid=11201&issuetype=1). 
-Add the JIRA issue key (e.g. ABC-123) to the PR title or in a commit message to have the PR/commit appear in the JIRA ticket. 
+Add the JIRA issue key (e.g. `O2-XYZ`) to the PR title or in a commit message to have the PR/commit appear in the JIRA ticket. 
 
 ### Coding guidelines
 The Coding Guidelines are [here](https://github.com/AliceO2Group/CodingGuidelines).
