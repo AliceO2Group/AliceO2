@@ -152,6 +152,7 @@ int ReadConfiguration(int argc, char** argv)
 	if (configStandalone.runGPU)
 	{
 		printf("GPU disables at build time!\n");
+		printf("Press a key to exit!\n");
 		getchar();
 		return(1);
 	}
