@@ -72,7 +72,9 @@ void AliGPUReconstructionCPU::TransferMemoryResourcesHelper(AliGPUProcessor* pro
 int AliGPUReconstructionCPU::GetThread()
 {
 	//Get Thread ID
-#ifdef _WIN32
+#if defined(__APPLE__)
+	return(0); //syscall is deprecated on MacOS..., only needed for GPU support which we don't do on Mac anyway
+#elif defined(_WIN32)
 	return((int) (size_t) GetCurrentThread());
 #else
 	return((int) syscall (SYS_gettid));

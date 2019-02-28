@@ -41,6 +41,7 @@ protected:
 	virtual void ResetHelperThreads(int helpers) override;
 	void ResetThisHelperThread(AliGPUReconstructionHelpers::helperParam* par);
 
+	int GetGlobalLock(void* &pLock);
 	void ReleaseGlobalLock(void* sem);
 
 	static void* helperWrapper_static(void* arg);
