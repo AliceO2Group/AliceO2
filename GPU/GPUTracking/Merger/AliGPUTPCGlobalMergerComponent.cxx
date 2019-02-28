@@ -54,15 +54,15 @@ using namespace std;
 // ROOT macro for the implementation of ROOT specific class methods
 ClassImp( AliGPUTPCGlobalMergerComponent )
 
-const AliGPUChainTracking* AliGPUTPCGlobalMergerComponent::fgCurrentMergerReconstruction = NULL;
+const AliGPUChainTracking* AliGPUTPCGlobalMergerComponent::fgCurrentMergerReconstruction = nullptr;
 
 AliGPUTPCGlobalMergerComponent::AliGPUTPCGlobalMergerComponent()
-: AliHLTProcessor(), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fNWays(1), fNWaysOuter(0), fNoClear(false), fBenchmark("GlobalMerger"), fRec(NULL), fChain(NULL)
+: AliHLTProcessor(), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fNWays(1), fNWaysOuter(0), fNoClear(false), fBenchmark("GlobalMerger"), fRec(nullptr), fChain(nullptr)
 {
   // see header file for class documentation
 }
 
-AliGPUTPCGlobalMergerComponent::AliGPUTPCGlobalMergerComponent( const AliGPUTPCGlobalMergerComponent & ):AliHLTProcessor(), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fNWays(1), fNWaysOuter(0), fNoClear(false), fBenchmark("GlobalMerger"), fRec(NULL), fChain(NULL)
+AliGPUTPCGlobalMergerComponent::AliGPUTPCGlobalMergerComponent( const AliGPUTPCGlobalMergerComponent & ):AliHLTProcessor(), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fNWays(1), fNWaysOuter(0), fNoClear(false), fBenchmark("GlobalMerger"), fRec(nullptr), fChain(nullptr)
 {
 // dummy
 }
@@ -536,5 +536,6 @@ int AliGPUTPCGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &evt
 
 const AliGPUTPCGMMerger* AliGPUTPCGlobalMergerComponent::GetCurrentMerger()
 {
+    if (fgCurrentMergerReconstruction == nullptr) return nullptr;
     return &fgCurrentMergerReconstruction->GetTPCMerger();
 }
