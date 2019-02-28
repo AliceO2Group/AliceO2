@@ -87,21 +87,25 @@ int AliGPUChainTracking::Init()
 		mEventDisplay.reset(new AliGPUDisplay(GetDeviceProcessingSettings().eventDisplay, this, mQA.get()));
 	}
 	
-	if (mTPCFastTransform)
+	if (mRec->IsGPU())
 	{
-		memcpy((void*) mFlatObjectsShadow.fTpcTransform, (const void*) mTPCFastTransform.get(), sizeof(*mTPCFastTransform));
-		memcpy((void*) mFlatObjectsShadow.fTpcTransformBuffer, (const void*) mTPCFastTransform->getFlatBufferPtr(), mTPCFastTransform->getFlatBufferSize());
-		mFlatObjectsShadow.fTpcTransform->clearInternalBufferPtr();
-		mFlatObjectsShadow.fTpcTransform->setFutureBufferAddress(mFlatObjectsDevice.fTpcTransformBuffer);
+		if (mTPCFastTransform)
+		{
+			memcpy((void*) mFlatObjectsShadow.fTpcTransform, (const void*) mTPCFastTransform.get(), sizeof(*mTPCFastTransform));
+			memcpy((void*) mFlatObjectsShadow.fTpcTransformBuffer, (const void*) mTPCFastTransform->getFlatBufferPtr(), mTPCFastTransform->getFlatBufferSize());
+			mFlatObjectsShadow.fTpcTransform->clearInternalBufferPtr();
+			mFlatObjectsShadow.fTpcTransform->setActualBufferAddress(mFlatObjectsShadow.fTpcTransformBuffer);
+			mFlatObjectsShadow.fTpcTransform->setFutureBufferAddress(mFlatObjectsDevice.fTpcTransformBuffer);
+		}
+	#ifndef GPUCA_ALIROOT_LIB
+		if (mTRDGeometry)
+		{
+			memcpy((void*) mFlatObjectsShadow.fTrdGeometry, (const void*) mTRDGeometry.get(), sizeof(*mTRDGeometry));
+			mFlatObjectsShadow.fTrdGeometry->clearInternalBufferPtr();
+		}
+	#endif
+		TransferMemoryResourceLinkToGPU(mFlatObjectsShadow.mMemoryResFlat);
 	}
-#ifndef GPUCA_ALIROOT_LIB
-	if (mTRDGeometry)
-	{
-		memcpy((void*) mFlatObjectsShadow.fTrdGeometry, (const void*) mTRDGeometry.get(), sizeof(*mTRDGeometry));
-		mFlatObjectsShadow.fTrdGeometry->clearInternalBufferPtr();
-	}
-#endif
-	TransferMemoryResourceLinkToGPU(mFlatObjectsShadow.mMemoryResFlat);
 	
 	if (GetDeviceProcessingSettings().debugLevel >= 4)
 	{
