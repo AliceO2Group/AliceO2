@@ -41,6 +41,8 @@ class GPUTPCTracker : public GPUProcessor
 #ifndef GPUCA_GPUCODE_DEVICE
 	GPUTPCTracker();
 	~GPUTPCTracker();
+	GPUTPCTracker(const GPUTPCTracker&) CON_DELETE;
+	GPUTPCTracker &operator=(const GPUTPCTracker&) CON_DELETE;
 #endif
 
 	struct StructGPUParameters
@@ -260,10 +262,6 @@ class GPUTPCTracker : public GPUProcessor
 	// output
 	GPUglobalref() GPUTPCSliceOutput *fOutput;		//address of pointer pointing to SliceOutput Object
 	void* fOutputMemory;									//Pointer to output memory if stored internally
-  
-	// disable copy
-	GPUTPCTracker( const GPUTPCTracker& );
-	GPUTPCTracker &operator=( const GPUTPCTracker& );
   
 	static int StarthitSortComparison(const void*a, const void* b);
 };

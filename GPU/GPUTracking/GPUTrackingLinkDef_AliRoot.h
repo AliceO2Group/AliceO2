@@ -19,7 +19,6 @@
 
 #pragma link C++ class GPUTPCTrack+;
 #pragma link C++ class GPUTPCTracklet+;
-#pragma link C++ class GPUTPCTracker+;
 #pragma link C++ class GPUTPCBaseTrackParam+;
 #pragma link C++ class GPUTPCTrackParam+;
 #pragma link C++ class GPUTPCRow+;
@@ -37,7 +36,6 @@
 #pragma link C++ class GPUTPCSliceOutput+;
 #pragma link C++ class GPUTPCGMTrackParam+;
 #pragma link C++ class GPUTPCGMSliceTrack+;
-#pragma link C++ class GPUTPCGMMerger+;
 #pragma link C++ class GPUTPCGMPolynomialField+;
 #pragma link C++ class GPUTPCGMPropagator+;
 #pragma link C++ class GPUTPCGMPhysicalTrackModel+;

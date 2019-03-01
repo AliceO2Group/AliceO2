@@ -35,8 +35,6 @@
 #include "GPUReconstruction.h"
 #endif
 
-ClassImp( GPUTPCTracker )
-
 #if !defined(GPUCA_GPUCODE)
 
 GPUTPCTracker::GPUTPCTracker() :
