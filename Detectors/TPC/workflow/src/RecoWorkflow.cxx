@@ -166,54 +166,13 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   //
   // set up parallel TPC lanes
   //
-  WorkflowSpec lanePocessors;
-  std::swap(lanePocessors, parallelProcessors);
-  auto const& conf = laneConfiguration;
-  size_t confSize = laneConfiguration.size();
-  size_t lanes = nLanes < confSize ? nLanes : confSize;
-  for (auto laneProcess : lanePocessors) {
-    size_t confIndex = 0;
-    size_t moreInputs = confSize % nLanes;
-    size_t inputMultiplicity = confSize / lanes;
-    if (moreInputs > 0) {
-      inputMultiplicity += 1;
-    }
-    auto amendProcess = [conf, lanes, &confIndex, &inputMultiplicity, &moreInputs](DataProcessorSpec& spec, size_t) {
-      auto inputs = std::move(spec.inputs);
-      auto outputs = std::move(spec.outputs);
-      spec.inputs.reserve(inputMultiplicity);
-      spec.outputs.reserve(inputMultiplicity);
-      for (size_t inputNo = 0; inputNo < inputMultiplicity; ++inputNo) {
-        for (auto& input : inputs) {
-          spec.inputs.push_back(input);
-          spec.inputs.back().binding += std::to_string(inputNo);
-          DataSpecUtils::updateMatchingSubspec(spec.inputs.back(), conf[confIndex + inputNo]);
-        }
-        for (auto& output : outputs) {
-          spec.outputs.push_back(output);
-          spec.outputs.back().binding.value += std::to_string(inputNo);
-          spec.outputs.back().subSpec = conf[confIndex + inputNo];
-        }
-      }
-      confIndex += inputMultiplicity;
-      if (moreInputs > 0) {
-        --moreInputs;
-        if (moreInputs == 0) {
-          --inputMultiplicity;
-        }
-      }
-    };
-
-    if (nLanes > 1) {
-      // add multiple processes and distribute inputs among them
-      parallelProcessors = parallel(laneProcess, lanes, amendProcess);
-      specs.insert(specs.end(), parallelProcessors.begin(), parallelProcessors.end());
-    } else if (nLanes == 1) {
-      // add one single process with all the inputs
-      amendProcess(laneProcess, 0);
-      specs.push_back(laneProcess);
-    }
-  }
+  // the parallelPipeline helper distributes the subspec ids from the lane configuration
+  // among the pipelines. All inputs and outputs of processors of one pipeline will be
+  // cloned by the number of subspecs served by this pipeline and amended with the subspecs
+  parallelProcessors = parallelPipeline(parallelProcessors, nLanes,
+                                        [&laneConfiguration]() { return laneConfiguration.size(); },
+                                        [&laneConfiguration](size_t index) { return laneConfiguration[index]; });
+  specs.insert(specs.end(), parallelProcessors.begin(), parallelProcessors.end());
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   //
