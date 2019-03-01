@@ -11,6 +11,7 @@
 /// \file qconfigoptions.h
 /// \author David Rohr
 
+// clang-format off
 BeginSubConfig(structConfigGL, configGL, configStandalone, "GL", 'g', "OpenGL display settings")
 AddOption(clustersOnly, bool, false, "clustersOnly", 0, "Visualize clusters only")
 AddHelp("help", 'h')
@@ -137,3 +138,4 @@ AddSubConfig(structConfigGL, configGL)
 AddSubConfig(structConfigRec, configRec)
 AddSubConfig(structConfigProc, configProc)
 EndConfig()
+// clang-format on

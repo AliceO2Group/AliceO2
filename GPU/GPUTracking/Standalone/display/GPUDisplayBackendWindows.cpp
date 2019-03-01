@@ -11,6 +11,10 @@
 /// \file GPUDisplayBackendWindows.cpp
 /// \author David Rohr
 
+//GLEW must be the first header
+#include <GL/glew.h>
+
+//Now the other headers
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -18,7 +22,6 @@
 #include <windows.h>
 #include <winbase.h>
 #include <windowsx.h>
-#include <GL/glew.h>
 
 HDC hDC = NULL;                                       // Private GDI Device Context
 HGLRC hRC = NULL;                                     // Permanent Rendering Context

@@ -11,6 +11,8 @@
 /// \file GPUTPCGMMerger.cxx
 /// \author Sergey Gorbunov, David Rohr
 
+#define GPUCA_CADEBUG 0
+
 #include <cstdio>
 #include <cstring>
 #include "GPUTPCSliceOutTrack.h"
@@ -41,7 +43,9 @@
 
 #include "GPUTPCGPUConfig.h"
 
-#define DEBUG 0
+#ifdef GPUCA_CADEBUG_ENABLED
+#include "AliHLTTPCClusterMCData.h"
+#endif
 
 static constexpr int kMaxParts = 400;
 static constexpr int kMaxClusters = 1000;
@@ -96,7 +100,7 @@ GPUTPCGMMerger::GPUTPCGMMerger() :
 }
 
 //DEBUG CODE
-#if defined(GPUCA_MERGER_BY_MC_LABEL) || DEBUG == 1
+#if defined(GPUCA_MERGER_BY_MC_LABEL) || defined(GPUCA_CADEBUG_ENABLED)
 void GPUTPCGMMerger::CheckMergedTracks()
 {
 	std::vector<bool> trkUsed(SliceTrackInfoLocalTotal());
@@ -154,12 +158,11 @@ int GPUTPCGMMerger::GetTrackLabel(GPUTPCGMBorderTrack &trk)
 	const GPUTPCSliceOutCluster *clusters = track->OrigTrack()->Clusters();
 	int nClusters = track->OrigTrack()->NClusters();
 	std::vector<int> labels;
-	GPUTPCStandaloneFramework &hlt = GPUTPCStandaloneFramework::Instance();
 	for (int i = 0; i < nClusters; i++)
 	{
 		for (int j = 0; j < 3; j++)
 		{
-			int label = hlt.GetMCLabels()[clusters[i].GetId()].fClusterID[j].fMCID;
+			int label = fChainTracking->mIOPtrs.mcLabelsTPC[clusters[i].GetId()].fClusterID[j].fMCID;
 			if (label >= 0) labels.push_back(label);
 		}
 	}
@@ -297,7 +300,7 @@ void GPUTPCGMMerger::UnpackSlices()
 			GPUTPCGMSliceTrack &track = fSliceTrackInfos[nTracksCurrent];
 			track.Set(sliceTr, alpha, iSlice);
 			if (!track.FilterErrors(*mCAParam, GPUCA_MAX_SIN_PHI, 0.1f)) continue;
-			if (DEBUG) printf("INPUT Slice %d, Track %d, QPt %f DzDs %f\n", iSlice, itr, track.QPt(), track.DzDs());
+			CADEBUG(printf("INPUT Slice %d, Track %d, QPt %f DzDs %f\n", iSlice, itr, track.QPt(), track.DzDs()));
 			track.SetPrevNeighbour(-1);
 			track.SetNextNeighbour(-1);
 			track.SetNextSegmentNeighbour(-1);
@@ -411,7 +414,7 @@ void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], in
 	//* merge two sets of tracks
 	if (N1 == 0 || N2 == 0) return;
 
-	if (DEBUG) printf("\nMERGING Slices %d %d NTracks %d %d CROSS %d\n", iSlice1, iSlice2, N1, N2, crossCE);
+	CADEBUG(printf("\nMERGING Slices %d %d NTracks %d %d CROSS %d\n", iSlice1, iSlice2, N1, N2, crossCE));
 	int statAll = 0, statMerged = 0;
 	float factor2ys = 1.5; //1.5;//SG!!!
 	float factor2zt = 1.5; //1.5;//SG!!!
@@ -434,7 +437,7 @@ void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], in
 			float d = CAMath::Max(0.5f, 3.5f * sqrtf(b.Cov()[1]));
 			if (fabsf(b.Par()[4]) >= 20) d *= 2;
 			else if (d > 3) d = 3;
-			if (DEBUG) {printf("  Input Slice 1 %d Track %d: ", iSlice1, itr); for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Par()[i]);} printf(" - "); for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Cov()[i]);} printf(" - D %8.3f\n", d);}
+			CADEBUG(printf("  Input Slice 1 %d Track %d: ", iSlice1, itr); for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Par()[i]);} printf(" - "); for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Cov()[i]);} printf(" - D %8.3f\n", d));
 			range1[itr].fId = itr;
 			range1[itr].fMin = b.Par()[1] + b.ZOffset() - d;
 			range1[itr].fMax = b.Par()[1] + b.ZOffset() + d;
@@ -455,7 +458,7 @@ void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], in
 				float d = CAMath::Max(0.5f, 3.5f * sqrtf(b.Cov()[1]));
 				if (fabsf(b.Par()[4]) >= 20) d *= 2;
 				else if (d > 3) d = 3;
-				if (DEBUG) {printf("  Input Slice 2 %d Track %d: ", iSlice2, itr);for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Par()[i]);}printf(" - ");for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Cov()[i]);}printf(" - D %8.3f\n", d);}
+				CADEBUG(printf("  Input Slice 2 %d Track %d: ", iSlice2, itr);for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Par()[i]);}printf(" - ");for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Cov()[i]);}printf(" - D %8.3f\n", d));
 				range2[itr].fId = itr;
 				range2[itr].fMin = b.Par()[1] + b.ZOffset() - d;
 				range2[itr].fMax = b.Par()[1] + b.ZOffset() + d;
@@ -488,23 +491,23 @@ void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], in
 			if (GetTrackLabel(b1) != GetTrackLabel(b2)) //DEBUG CODE, match by MC label
 #endif
 			{
-				if (DEBUG) {printf("Comparing track %3d to %3d: ", r1.fId, r2.fId);for (int i = 0;i < 5;i++) {printf("%8.3f ", b1.Par()[i]);}printf(" - ");for (int i = 0;i < 5;i++) {printf("%8.3f ", b1.Cov()[i]);}printf("\n%28s", "");
-					for (int i = 0;i < 5;i++) {printf("%8.3f ", b2.Par()[i]);}printf(" - ");for (int i = 0;i < 5;i++) {printf("%8.3f ", b2.Cov()[i]);}printf("   -   %5s   -   ", GetTrackLabel(b1) == GetTrackLabel(b2) ? "CLONE" : "FAKE");}
-				if ( b2.NClusters() < lBest2 ) {if (DEBUG) {printf("!NCl1\n");}continue;}
-				if (crossCE >= 2 && abs(b1.Row() - b2.Row()) > 1) {if (DEBUG) {printf("!ROW\n");}continue;}
-				if( !b1.CheckChi2Y(b2, factor2ys ) ) {if (DEBUG) {printf("!Y\n");}continue;}
-				//if( !b1.CheckChi2Z(b2, factor2zt ) ) {if (DEBUG) {printf("!NCl1\n");}continue;}
-				if( !b1.CheckChi2QPt(b2, factor2k ) ) {if (DEBUG) {printf("!QPt\n");}continue;}
+				CADEBUG(printf("Comparing track %3d to %3d: ", r1.fId, r2.fId); for (int i = 0;i < 5;i++) {printf("%8.3f ", b1.Par()[i]);} printf(" - "); for (int i = 0;i < 5;i++) {printf("%8.3f ", b1.Cov()[i]);} printf("\n%28s", ""));
+				CADEBUG(for (int i = 0;i < 5;i++) {printf("%8.3f ", b2.Par()[i]);} printf(" - "); for (int i = 0;i < 5;i++) {printf("%8.3f ", b2.Cov()[i]);} printf("   -   %5s   -   ", GetTrackLabel(b1) == GetTrackLabel(b2) ? "CLONE" : "FAKE"));
+				if ( b2.NClusters() < lBest2 ) CADEBUG2(continue, printf("!NCl1\n"))
+				if (crossCE >= 2 && abs(b1.Row() - b2.Row()) > 1) CADEBUG2(continue, printf("!ROW\n"))
+				if( !b1.CheckChi2Y(b2, factor2ys ) ) CADEBUG2(continue, printf("!Y\n"))
+				//if( !b1.CheckChi2Z(b2, factor2zt ) ) CADEBUG2(continue, printf("!NCl1\n"))
+				if( !b1.CheckChi2QPt(b2, factor2k ) ) CADEBUG2(continue, printf("!QPt\n"))
 				float fys = fabsf(b1.Par()[4]) < 20 ? factor2ys : (2. * factor2ys);
 				float fzt = fabsf(b1.Par()[4]) < 20 ? factor2zt : (2. * factor2zt);
-				if( !b1.CheckChi2YS(b2, fys ) ) {if (DEBUG) {printf("!YS\n");}continue;}
-				if( !b1.CheckChi2ZT(b2, fzt ) ) {if (DEBUG) {printf("!ZT\n");}continue;}
+				if( !b1.CheckChi2YS(b2, fys ) ) CADEBUG2(continue, printf("!YS\n"))
+				if( !b1.CheckChi2ZT(b2, fzt ) ) CADEBUG2(continue, printf("!ZT\n"))
 				if (fabsf(b1.Par()[4]) < 20)
 				{
-					if ( b2.NClusters() < minNPartHits ) {if (DEBUG) {printf("!NCl2\n");}continue;}
-					if ( b1.NClusters() + b2.NClusters() < minNTotalHits ) {if (DEBUG) {printf("!NCl3\n");}continue;}
+					if ( b2.NClusters() < minNPartHits ) CADEBUG2(continue, printf("!NCl2\n"))
+					if ( b1.NClusters() + b2.NClusters() < minNTotalHits ) CADEBUG2(continue, printf("!NCl3\n"))
 				}
-				if (DEBUG) printf("OK: dZ %8.3f D1 %8.3f D2 %8.3f\n", fabsf(b1.Par()[1] - b2.Par()[1]), 3.5*sqrt(b1.Cov()[1]), 3.5*sqrt(b2.Cov()[1]));
+				CADEBUG(printf("OK: dZ %8.3f D1 %8.3f D2 %8.3f\n", fabsf(b1.Par()[1] - b2.Par()[1]), 3.5*sqrt(b1.Cov()[1]), 3.5*sqrt(b2.Cov()[1])));
 			} //DEBUG CODE, match by MC label
 			lBest2 = b2.NClusters();
 			iBest2 = b2.TrackID();
@@ -513,7 +516,7 @@ void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], in
 		if (iBest2 < 0) continue;
 		statMerged++;
 
-		if (DEBUG) printf("Found match %d %d\n", b1.TrackID(), iBest2);
+		CADEBUG(printf("Found match %d %d\n", b1.TrackID(), iBest2));
 
 		fTrackLinks[b1.TrackID()] = iBest2;
 	}
@@ -536,7 +539,7 @@ void GPUTPCGMMerger::MergeWithingSlices()
 			if (track.TransportToX(x0, mCAParam->ConstBz, b, maxSin))
 			{
 				b.SetTrackID( itr );
-				if (DEBUG) {printf("WITHIN SLICE %d Track %d - ", iSlice, itr);for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Par()[i]);} printf(" - ");for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Cov()[i]);} printf("\n");}
+				CADEBUG(printf("WITHIN SLICE %d Track %d - ", iSlice, itr);for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Par()[i]);} printf(" - ");for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Cov()[i]);} printf("\n"));
 				b.SetNClusters( track.NClusters() );
 				nBord++;
 			}
@@ -1007,7 +1010,7 @@ void GPUTPCGMMerger::CollectMergedTracks()
 		for( int ipart=0; ipart<nParts; ipart++ )
 		{
 			const GPUTPCGMSliceTrack *t = trackParts[ipart];
-			if (DEBUG) printf("Collect Track %d Part %d QPt %f DzDs %f\n", fNOutputTracks, ipart, t->QPt(), t->DzDs());
+			CADEBUG(printf("Collect Track %d Part %d QPt %f DzDs %f\n", fNOutputTracks, ipart, t->QPt(), t->DzDs()));
 			int nTrackHits = t->NClusters();
 			const GPUTPCSliceOutCluster *c= t->OrigTrack()->Clusters();
 			GPUTPCSliceOutCluster *c2 = trackClusters + nHits + nTrackHits-1;

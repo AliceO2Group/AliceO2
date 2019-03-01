@@ -44,6 +44,9 @@
 #include "utils/qconfig.h"
 #include "utils/timer.h"
 
+#define QA_DEBUG 0
+#define QA_TIMING 0
+
 #ifdef GPUCA_MERGER_BY_MC_LABEL
 	#define CHECK_CLUSTER_STATE_INIT_LEG_BY_MC() \
 	if (!unattached && trackMCLabels[id] != MC_LABEL_INVALID) \
@@ -437,7 +440,7 @@ void GPUQA::RunQA(bool matchOnly)
 		//Assign Track MC Labels
 		timer.Start();
 		bool ompError = false;
-#if defined(GPUCA_HAVE_OPENMP) && DEBUG == 0
+#if defined(GPUCA_HAVE_OPENMP) && QA_DEBUG == 0
 #pragma omp parallel for
 #endif
 		for (int i = 0; i < merger.NOutputTracks(); i++)
@@ -457,7 +460,7 @@ void GPUQA::RunQA(bool matchOnly)
 					if (mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fMCID >= (int) mRec->mIOPtrs.nMCInfosTPC) {printf("Invalid label %d > %d\n", mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fMCID, mRec->mIOPtrs.nMCInfosTPC);ompError = true;break;}
 					if (mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fMCID >= 0)
 					{
-						if (DEBUG >= 3 && track.OK()) printf("Track %d Cluster %d Label %d: %d (%f)\n", i, k, j, mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fMCID, mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fWeight);
+						if (QA_DEBUG >= 3 && track.OK()) printf("Track %d Cluster %d Label %d: %d (%f)\n", i, k, j, mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fMCID, mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j].fWeight);
 						labels.push_back(mRec->mIOPtrs.mcLabelsTPC[hitId].fClusterID[j]);
 					}
 				}
@@ -476,7 +479,7 @@ void GPUQA::RunQA(bool matchOnly)
 			AliHLTTPCClusterMCWeight cur = labels[0];
 			float sumweight = 0.f;
 			int curcount = 1, maxcount = 0;
-			if (DEBUG >= 2 && track.OK()) for (unsigned int k = 0;k < labels.size();k++) printf("\t%d %f\n", labels[k].fMCID, labels[k].fWeight);
+			if (QA_DEBUG >= 2 && track.OK()) for (unsigned int k = 0;k < labels.size();k++) printf("\t%d %f\n", labels[k].fMCID, labels[k].fWeight);
 			for (unsigned int k = 1;k <= labels.size();k++)
 			{
 				if (k == labels.size() || labels[k].fMCID != cur.fMCID)
@@ -502,7 +505,7 @@ void GPUQA::RunQA(bool matchOnly)
 
 			if (maxcount < config.recThreshold * nClusters) maxLabel.fMCID = -2 - maxLabel.fMCID;
 			trackMCLabels[i] = maxLabel.fMCID;
-			if (DEBUG && track.OK() && mRec->mIOPtrs.nMCInfosTPC > maxLabel.fMCID)
+			if (QA_DEBUG && track.OK() && mRec->mIOPtrs.nMCInfosTPC > maxLabel.fMCID)
 			{
 				const GPUTPCMCInfo& mc = mRec->mIOPtrs.mcInfosTPC[maxLabel.fMCID >= 0 ? maxLabel.fMCID : (-maxLabel.fMCID - 2)];
 				printf("Track %d label %d weight %f clusters %d (fitted %d) (%f%% %f%%) Pt %f\n", i, maxLabel.fMCID >= 0 ? maxLabel.fMCID : (maxLabel.fMCID + 2), maxLabel.fWeight, nClusters, track.NClustersFitted(), maxLabel.fWeight / sumweight, (float) maxcount / (float) nClusters, std::sqrt(mc.fPx * mc.fPx + mc.fPy * mc.fPy));
@@ -609,7 +612,7 @@ void GPUQA::RunQA(bool matchOnly)
 
 		if (matchOnly) return;
 
-		if (TIMING) printf("QA Time: Assign Track Labels:\t\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
+		if (QA_TIMING) printf("QA Time: Assign Track Labels:\t\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
 		timer.ResetStart();
 
 		//Recompute fNWeightCls (might have changed after merging events into timeframes)
@@ -624,7 +627,7 @@ void GPUQA::RunQA(bool matchOnly)
 				mcParam[labels[i].fClusterID[j].fMCID].nWeightCls += labels[i].fClusterID[j].fWeight / weightTotal;
 			}
 		}
-		if (TIMING) printf("QA Time: Compute cluster label weights:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
+		if (QA_TIMING) printf("QA Time: Compute cluster label weights:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
 		timer.ResetStart();
 
 #ifdef GPUCA_HAVE_OPENMP
@@ -705,7 +708,7 @@ void GPUQA::RunQA(bool matchOnly)
 				}
 			}
 		}
-		if (TIMING) printf("QA Time: Fill efficiency histograms:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
+		if (QA_TIMING) printf("QA Time: Fill efficiency histograms:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
 		timer.ResetStart();
 
 		//Fill Resolution Histograms
@@ -790,7 +793,7 @@ void GPUQA::RunQA(bool matchOnly)
 				}
 			}
 		}
-		if (TIMING) printf("QA Time: Fill resolution histograms:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
+		if (QA_TIMING) printf("QA Time: Fill resolution histograms:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
 		timer.ResetStart();
 
 		//Fill cluster histograms
@@ -966,7 +969,7 @@ void GPUQA::RunQA(bool matchOnly)
 			}
 		}
 
-		if (TIMING) printf("QA Time: Fill cluster histograms:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
+		if (QA_TIMING) printf("QA Time: Fill cluster histograms:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
 		timer.ResetStart();
 	}
 	else if (!config.inputHistogramsOnly)
@@ -1038,7 +1041,7 @@ void GPUQA::RunQA(bool matchOnly)
 		}
 	}
 
-	if (TIMING) printf("QA Time: Others:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
+	if (QA_TIMING) printf("QA Time: Others:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
 
 	//Create CSV DumpTrackHits
 	if (config.csvDump)

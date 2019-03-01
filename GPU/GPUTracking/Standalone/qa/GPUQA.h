@@ -163,9 +163,6 @@ private:
 	std::vector<std::vector<bool>> goodTracks;
 	std::vector<std::vector<bool>> goodHits;
 
-	#define DEBUG 0
-	#define TIMING 0
-
 	static constexpr float Y_MAX = 40;
 	static constexpr float Z_MAX = 100;
 	static constexpr float PT_MIN = MIN_TRACK_PT_DEFAULT;

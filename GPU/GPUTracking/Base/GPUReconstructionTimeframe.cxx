@@ -72,7 +72,7 @@ int GPUReconstructionTimeframe::ReadEventShifted(int iEvent, float shift, float 
 		}
 		for (unsigned int i = 0;i < mChain->mIOPtrs.nMCInfosTPC;i++)
 		{
-			auto& tmp = mChain->mIOMem.mcInfosTPC[i];;
+			auto& tmp = mChain->mIOMem.mcInfosTPC[i];
 			tmp.fZ += i < NSLICES / 2 ? shift : -shift;
 		}
 	}
