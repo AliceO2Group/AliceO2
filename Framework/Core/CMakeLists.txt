@@ -276,6 +276,7 @@ set(TEST_SRCS
       test/test_Variants.cxx
       test/test_WorkflowHelpers.cxx
       test/test_DeviceSpecHelpers.cxx
+      test/test_ParallelPipeline.cxx
    )
 
 set(BENCH_SRCS 
