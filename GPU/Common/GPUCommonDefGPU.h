@@ -43,7 +43,6 @@
 	struct uint2 { unsigned int x, y; };
 	struct uint3 { unsigned int x, y, z; };
 	struct uint4 { unsigned int x, y, z, w; };
-	struct uint16 { unsigned int x[16]; };
 	struct dim3 { unsigned int x, y, z; };
 #elif defined(__OPENCL__) //Defines for OpenCL
 	#define GPUd()
