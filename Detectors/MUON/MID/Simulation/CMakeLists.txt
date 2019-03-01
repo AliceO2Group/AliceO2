@@ -11,6 +11,7 @@ set(SRCS
   src/Geometry.cxx
   src/Hit.cxx
   src/Materials.cxx
+  src/MCLabel.cxx
   src/Stepper.cxx
 )
 
@@ -22,6 +23,7 @@ set(HEADERS
   include/${MODULE_NAME}/ColumnDataMC.h
   include/${MODULE_NAME}/Detector.h
   include/${MODULE_NAME}/Hit.h
+  include/${MODULE_NAME}/MCLabel.h
   include/${MODULE_NAME}/Stepper.h
 )
 
