@@ -19,7 +19,7 @@
 #include <vector>
 
 #include "ITStracking/Definitions.h"
-#include "AliGPUCommonDef.h"
+#include "GPUCommonDef.h"
 
 namespace o2
 {

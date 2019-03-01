@@ -4,7 +4,7 @@ include						config_common.mak
 TARGET						= libGPUTrackingCUDA
 TARGETTYPE					= LIB
 
-CUFILES						= Base/cuda/AliGPUReconstructionCUDA.cu
+CUFILES						= Base/cuda/GPUReconstructionCUDA.cu
 
 CONFIG_CUDA					= 1
 

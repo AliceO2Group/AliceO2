@@ -1,22 +1,22 @@
 cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
-    set(MODULE O2AliGPUCommon)
+    set(MODULE O2GPUCommon)
 elseif(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
-    set(MODULE AliGPUCommon)
+    set(MODULE GPUCommon)
 endif()
 
 set(SRCS
-    AliGPUCommon.cxx
+    GPUCommon.cxx
 )
 
 set (HDRS
-	AliGPUCommonDef.h
-	AliGPUCommonDefGPU.h
-    AliGPUCommonMath.h
-    AliGPUCommonFairLogger.h
-    AliGPUCommonRtypes.h
-    AliGPUCommonTransform3D.h
+	GPUCommonDef.h
+	GPUCommonDefGPU.h
+    GPUCommonMath.h
+    GPUCommonFairLogger.h
+    GPUCommonRtypes.h
+    GPUCommonTransform3D.h
 	FlatObject.h
 )
 
@@ -45,8 +45,8 @@ endif()
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     Set(HEADERS ${HDRS})
     Set(LIBRARY_NAME ${MODULE})
-    set(BUCKET_NAME AliGPUCommon_bucket)
+    set(BUCKET_NAME GPUCommon_bucket)
 
     O2_GENERATE_LIBRARY()
-    install(FILES ${HDRS} DESTINATION include/AliGPU)
+    install(FILES ${HDRS} DESTINATION include/GPU)
 endif()

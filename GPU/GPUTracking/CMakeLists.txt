@@ -9,7 +9,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
 endif()
 
 if(OpenMP_CXX_FOUND)
-    message(STATUS "AliGPU: Using OpenMP: ${OpenMP_CXX_SPEC_DATE}")
+    message(STATUS "GPU: Using OpenMP: ${OpenMP_CXX_SPEC_DATE}")
     set(DEFINITIONS ${DEFINITIONS} GPUCA_HAVE_OPENMP)
 endif()
 
@@ -34,103 +34,103 @@ endif()
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     set(MODULE O2GPUTracking)
 elseif(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
-    set(MODULE AliGPUTracking)
+    set(MODULE GPUTracking)
 endif()
 
 include_directories(Standalone/display Standalone/qa)
 
 #SRCs processed by CINT and added to HDRS
 set(SRCS
-    SliceTracker/AliGPUTPCTrack.cxx
-    SliceTracker/AliGPUTPCBaseTrackParam.cxx
-    SliceTracker/AliGPUTPCTrackParam.cxx
-    SliceTracker/AliGPUTPCTracklet.cxx
-    SliceTracker/AliGPUTPCStartHitsFinder.cxx
-    SliceTracker/AliGPUTPCStartHitsSorter.cxx
-    SliceTracker/AliGPUTPCNeighboursCleaner.cxx
-    SliceTracker/AliGPUTPCTracker.cxx
-    SliceTracker/AliGPUTPCSliceData.cxx
-    SliceTracker/AliGPUTPCSliceOutput.cxx
-    SliceTracker/AliGPUTPCTrackletConstructor.cxx
-    SliceTracker/AliGPUTPCNeighboursFinder.cxx
-    SliceTracker/AliGPUTPCGrid.cxx
-    SliceTracker/AliGPUTPCTrackletSelector.cxx
-    SliceTracker/AliGPUTPCHitArea.cxx
-    SliceTracker/AliGPUTPCClusterData.cxx
-    SliceTracker/AliGPUTPCRow.cxx
-    Merger/AliGPUTPCGMMerger.cxx
-    Merger/AliGPUTPCGMSliceTrack.cxx
-    Merger/AliGPUTPCGMTrackParam.cxx
-    Merger/AliGPUTPCGMPhysicalTrackModel.cxx
-    Merger/AliGPUTPCGMPropagator.cxx
-    Merger/AliGPUTPCGMPolynomialField.cxx
-    Merger/AliGPUTPCGMPolynomialFieldManager.cxx
-    Merger/AliGPUTPCGMMergerGPU.cxx
-    TRDTracking/AliGPUTRDTrack.cxx
-    TRDTracking/AliGPUTRDTracker.cxx
-    TRDTracking/AliGPUTRDTrackletWord.cxx
-    TRDTracking/AliGPUTRDTrackerGPU.cxx
-    Base/AliGPUParam.cxx
+    SliceTracker/GPUTPCTrack.cxx
+    SliceTracker/GPUTPCBaseTrackParam.cxx
+    SliceTracker/GPUTPCTrackParam.cxx
+    SliceTracker/GPUTPCTracklet.cxx
+    SliceTracker/GPUTPCStartHitsFinder.cxx
+    SliceTracker/GPUTPCStartHitsSorter.cxx
+    SliceTracker/GPUTPCNeighboursCleaner.cxx
+    SliceTracker/GPUTPCTracker.cxx
+    SliceTracker/GPUTPCSliceData.cxx
+    SliceTracker/GPUTPCSliceOutput.cxx
+    SliceTracker/GPUTPCTrackletConstructor.cxx
+    SliceTracker/GPUTPCNeighboursFinder.cxx
+    SliceTracker/GPUTPCGrid.cxx
+    SliceTracker/GPUTPCTrackletSelector.cxx
+    SliceTracker/GPUTPCHitArea.cxx
+    SliceTracker/GPUTPCClusterData.cxx
+    SliceTracker/GPUTPCRow.cxx
+    Merger/GPUTPCGMMerger.cxx
+    Merger/GPUTPCGMSliceTrack.cxx
+    Merger/GPUTPCGMTrackParam.cxx
+    Merger/GPUTPCGMPhysicalTrackModel.cxx
+    Merger/GPUTPCGMPropagator.cxx
+    Merger/GPUTPCGMPolynomialField.cxx
+    Merger/GPUTPCGMPolynomialFieldManager.cxx
+    Merger/GPUTPCGMMergerGPU.cxx
+    TRDTracking/GPUTRDTrack.cxx
+    TRDTracking/GPUTRDTracker.cxx
+    TRDTracking/GPUTRDTrackletWord.cxx
+    TRDTracking/GPUTRDTrackerGPU.cxx
+    Base/GPUParam.cxx
 )
 
 set(SRCS_NO_CINT
-    Base/AliGPUReconstruction.cxx
-    Base/AliGPUReconstructionCPU.cxx
-    Base/AliGPUReconstructionConvert.cxx
-    Base/AliGPUSettings.cxx
-    Base/AliGPUProcessor.cxx
-    Base/AliGPUMemoryResource.cxx
-    Base/AliGPUGeneralKernels.cxx
-    Base/AliGPUReconstructionDeviceBase.cxx
-    Global/AliGPUChain.cxx
-    Global/AliGPUChainTracking.cxx
-    utils/timer.cpp
+    Base/GPUReconstruction.cxx
+    Base/GPUReconstructionCPU.cxx
+    Base/GPUReconstructionConvert.cxx
+    Base/GPUSettings.cxx
+    Base/GPUProcessor.cxx
+    Base/GPUMemoryResource.cxx
+    Base/GPUGeneralKernels.cxx
+    Base/GPUReconstructionDeviceBase.cxx
+    Global/GPUChain.cxx
+    Global/GPUChainTracking.cxx
+    Standalone/utils/timer.cpp
 )
 
 set(SRCS_NO_H
-    SliceTracker/AliGPUTPCTrackerDump.cxx
+    SliceTracker/GPUTPCTrackerDump.cxx
 )
 
 #Extra headers to install
 set(HDRS
-    SliceTracker/AliGPUTPCDef.h
-    SliceTracker/AliGPUTPCSettings.h
-    SliceTracker/AliGPUTPCGPUConfig.h
-    SliceTracker/AliGPUTPCMCInfo.h
-    SliceTracker/AliGPUTPCHit.h
-    SliceTracker/AliGPUTPCHitId.h
-    SliceTracker/AliGPUTPCSliceOutCluster.h
-    SliceTracker/AliGPUTPCSliceOutTrack.h
-    SliceTracker/AliGPUTPCTrackLinearisation.h
-    Merger/AliGPUTPCGMBorderTrack.h
-    Merger/AliGPUTPCGMCluster.h
-    Merger/AliGPUTPCGMOfflineStatisticalErrors.h
-    Merger/AliGPUTPCGMMergedTrack.h
-    Merger/AliGPUTPCGMMergedTrackHit.h
-    TRDTracking/AliGPUTRDDef.h
-    TRDTracking/AliGPUTRDTrackPoint.h
-    TRDTracking/AliGPUTRDTrack.h
-    TRDTracking/AliGPUTRDTrackData.h
-    TRDTracking/AliGPUTRDTrackPoint.h
-    TRDTracking/AliGPUTRDTrackletLabels.h
-    Base/AliGPUConstantMem.h
-    Base/AliGPUOutputControl.h
-    Base/AliGPUReconstructionIncludes.h
+    SliceTracker/GPUTPCDef.h
+    SliceTracker/GPUTPCSettings.h
+    SliceTracker/GPUTPCGPUConfig.h
+    SliceTracker/GPUTPCMCInfo.h
+    SliceTracker/GPUTPCHit.h
+    SliceTracker/GPUTPCHitId.h
+    SliceTracker/GPUTPCSliceOutCluster.h
+    SliceTracker/GPUTPCSliceOutTrack.h
+    SliceTracker/GPUTPCTrackLinearisation.h
+    Merger/GPUTPCGMBorderTrack.h
+    Merger/GPUTPCGMCluster.h
+    Merger/GPUTPCGMOfflineStatisticalErrors.h
+    Merger/GPUTPCGMMergedTrack.h
+    Merger/GPUTPCGMMergedTrackHit.h
+    TRDTracking/GPUTRDDef.h
+    TRDTracking/GPUTRDTrackPoint.h
+    TRDTracking/GPUTRDTrack.h
+    TRDTracking/GPUTRDTrackData.h
+    TRDTracking/GPUTRDTrackPoint.h
+    TRDTracking/GPUTRDTrackletLabels.h
+    Base/GPUConstantMem.h
+    Base/GPUOutputControl.h
+    Base/GPUReconstructionIncludes.h
 )
 #Not processed by ROOT
 set(HDRS2
-    SliceTracker/AliGPUTPCGeometry.h
-    SliceTracker/AliGPULogging.h
+    SliceTracker/GPUTPCGeometry.h
+    SliceTracker/GPULogging.h
     SliceTracker/ClusterNativeAccessExt.h
-    TRDTracking/AliGPUTRDGeometry.h
-    TRDTracking/AliGPUTRDTrackerDebug.h
-    TRDTracking/AliGPUTRDInterfaces.h
-    Standalone/display/AliGPUDisplayConfig.h
-    Standalone/qa/AliGPUQAConfig.h
-    Base/AliGPUReconstructionKernels.h
-    Base/AliGPUReconstructionIncludesITS.h
-    Base/AliGPUReconstructionHelpers.h
-    Base/AliGPUDataTypes.h
+    TRDTracking/GPUTRDGeometry.h
+    TRDTracking/GPUTRDTrackerDebug.h
+    TRDTracking/GPUTRDInterfaces.h
+    Standalone/display/GPUDisplayConfig.h
+    Standalone/qa/GPUQAConfig.h
+    Base/GPUReconstructionKernels.h
+    Base/GPUReconstructionIncludesITS.h
+    Base/GPUReconstructionHelpers.h
+    Base/GPUDataTypes.h
 )
 
 #Some extra files / includes / settings needed for the build for AliRoot
@@ -153,12 +153,12 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
     )
 
     set(SRCS ${SRCS}
-        Merger/AliGPUTPCGlobalMergerComponent.cxx
-        SliceTracker/AliGPUTPCTrackerComponent.cxx
-        Merger/AliGPUTPCGMTracksToTPCSeeds.cxx
+        Merger/GPUTPCGlobalMergerComponent.cxx
+        SliceTracker/GPUTPCTrackerComponent.cxx
+        Merger/GPUTPCGMTracksToTPCSeeds.cxx
         DataCompression/AliHLTTPCClusterStatComponent.cxx
-        TRDTracking/AliGPUTRDTrackerComponent.cxx
-        TRDTracking/AliGPUTRDTrackletReaderComponent.cxx
+        TRDTracking/GPUTRDTrackerComponent.cxx
+        TRDTracking/GPUTRDTrackletReaderComponent.cxx
 
         Global/AliHLTGPUDumpComponent.cxx
     )
@@ -171,7 +171,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
     )
     
     set (HDRS2 ${HDRS2}
-        SliceTracker/AliGPUTPCDefinitions.h
+        SliceTracker/GPUTPCDefinitions.h
     )
     
     ALICE_UseVc()
@@ -182,43 +182,43 @@ endif()
 #Some extra files / includes / settings needed for the build for O2
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     set(SRCS ${SRCS}
-        Interface/AliGPUO2Interface.cxx
+        Interface/GPUO2Interface.cxx
     )
     set(SRCS_NO_CINT ${SRCS_NO_CINT}
-        Standalone/display/AliGPUDisplayBackend.cpp
-        Global/AliGPUChainITS.cxx
+        Standalone/display/GPUDisplayBackend.cpp
+        Global/GPUChainITS.cxx
         ITS/GPUITSFitter.cxx
         ITS/GPUITSFitterKernels.cxx
     )
     set (HDRS2 ${HDRS2}
-        Interface/AliGPUO2InterfaceConfiguration.h
+        Interface/GPUO2InterfaceConfiguration.h
         ITS/GPUITSTrack.h
     )
 endif()
 
 if (GPUCA_EVENT_DISPLAY)
-    message(STATUS "Building AliGPU Event Display")
+    message(STATUS "Building GPU Event Display")
     set(SRCS_NO_CINT ${SRCS_NO_CINT}
-        utils/qsem.cpp
-        Standalone/display/AliGPUDisplay.cpp
-        Standalone/display/AliGPUDisplayBackendGlfw.cpp
+        Standalone/utils/qsem.cpp
+        Standalone/display/GPUDisplay.cpp
+        Standalone/display/GPUDisplayBackendGlfw.cpp
     )
     set(SRCS_NO_H ${SRCS_NO_H}
-        Standalone/display/AliGPUDisplayQuaternion.cpp
-        Standalone/display/AliGPUDisplayInterpolation.cpp
-        Standalone/display/AliGPUDisplayKeys.cpp
+        Standalone/display/GPUDisplayQuaternion.cpp
+        Standalone/display/GPUDisplayInterpolation.cpp
+        Standalone/display/GPUDisplayKeys.cpp
     )
     set(DEFINITIONS ${DEFINITIONS} BUILD_EVENT_DISPLAY)
 else()
-    set(HDRS2 ${HDRS2} Standalone/display/AliGPUDisplay.h)
+    set(HDRS2 ${HDRS2} Standalone/display/GPUDisplay.h)
 endif()
 
 if (GPUCA_QA)
-    message(STATUS "Building AliGPU QA")
-    set(SRCS_NO_CINT ${SRCS_NO_CINT} Standalone/qa/AliGPUQA.cpp)
+    message(STATUS "Building GPU QA")
+    set(SRCS_NO_CINT ${SRCS_NO_CINT} Standalone/qa/GPUQA.cpp)
     set(DEFINITIONS ${DEFINITIONS} BUILD_QA)
 else()
-    set(HDRS2 ${HDRS2} Standalone/qa/AliGPUQA.h)
+    set(HDRS2 ${HDRS2} Standalone/qa/GPUQA.h)
 endif()
 
 if (GPUCA_EVENT_DISPLAY OR GPUCA_QA)
@@ -268,7 +268,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
             LIBRARY DESTINATION lib)
 
     install(FILES ${HDRS} ${HDRS2} DESTINATION include)
-    install(DIRECTORY utils DESTINATION include FILES_MATCHING PATTERN *.h)
+    install(DIRECTORY Standalone/utils DESTINATION include FILES_MATCHING PATTERN *.h)
 endif()
 
 #Default cmake build script for O2
@@ -279,8 +279,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     set(BUCKET_NAME GPUTracking_bucket)
 
     O2_GENERATE_LIBRARY()
-    install(FILES ${HDRS} ${HDRS2} DESTINATION include/AliGPU)
-    install(DIRECTORY utils DESTINATION include/AliGPU FILES_MATCHING PATTERN *.h)
+    install(FILES ${HDRS} ${HDRS2} DESTINATION include/GPU)
+    install(DIRECTORY Standalone/utils DESTINATION include/GPU FILES_MATCHING PATTERN *.h)
 
     set(TEST_SRCS
       ctest/testGPUTracking.cxx

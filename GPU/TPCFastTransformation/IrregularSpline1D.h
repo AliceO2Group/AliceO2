@@ -14,10 +14,10 @@
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
 
-#ifndef ALICE_ALITPCOMMON_TPCFASTTRANSFORMATION_IRREGULARSPLINE1D_H
-#define ALICE_ALITPCOMMON_TPCFASTTRANSFORMATION_IRREGULARSPLINE1D_H
+#ifndef ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_IRREGULARSPLINE1D_H
+#define ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_IRREGULARSPLINE1D_H
 
-#include "AliGPUCommonDef.h"
+#include "GPUCommonDef.h"
 #include "FlatObject.h"
 
 #include <stddef.h>
@@ -104,7 +104,7 @@ namespace tpc_fast_transformation {
 ///  spline.getSpline( f, 0.5  ); // == 1.4
 ///  spline.getSpline( f, 1.  ); // == 2.3
 ///
-class IrregularSpline1D :public FlatObject
+class IrregularSpline1D :public gpu_common::Base::FlatObject
 {
  public:
   
@@ -143,8 +143,8 @@ class IrregularSpline1D :public FlatObject
 
   /// Memory alignment
 
-  using FlatObject::getClassAlignmentBytes;
-  using FlatObject::getBufferAlignmentBytes;
+  using gpu_common::Base::FlatObject::getClassAlignmentBytes;
+  using gpu_common::Base::FlatObject::getBufferAlignmentBytes;
   
   /// Construction interface
     
@@ -153,15 +153,15 @@ class IrregularSpline1D :public FlatObject
  
   /// Making the data buffer external
   
-  using FlatObject::releaseInternalBuffer;
+  using gpu_common::Base::FlatObject::releaseInternalBuffer;
 #ifndef GPUCA_GPUCODE
-  using FlatObject::moveBufferTo;
+  using gpu_common::Base::FlatObject::moveBufferTo;
 #endif
 
   /// Moving the class with its external buffer to another location
   
-  using  FlatObject::setActualBufferAddress;
-  using  FlatObject::setFutureBufferAddress;
+  using  gpu_common::Base::FlatObject::setActualBufferAddress;
+  using  gpu_common::Base::FlatObject::setFutureBufferAddress;
  
 
   /// _______________  Construction interface  ________________________

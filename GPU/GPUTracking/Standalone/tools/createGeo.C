@@ -2,8 +2,8 @@
 #include "TRDBase/TRDGeometryFlat.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "TRDBase/TRDGeometry.h"
-#include "AliGPUO2Interface.h"
-#include "AliGPUReconstruction.h"
+#include "GPUO2Interface.h"
+#include "GPUReconstruction.h"
 
 void createGeo()
 {
@@ -13,7 +13,7 @@ void createGeo()
   gm.createClusterMatrixArray();
   o2::trd::TRDGeometryFlat gf(gm);
   gSystem->Load("libO2GPUTracking.so");
-  AliGPUReconstruction* rec = AliGPUReconstruction::CreateInstance(AliGPUReconstruction::DeviceType::CPU);
+  GPUReconstruction* rec = GPUReconstruction::CreateInstance(GPUReconstruction::DeviceType::CPU);
   rec->SetTRDGeometry(gf);
   rec->DumpSettings();
 }

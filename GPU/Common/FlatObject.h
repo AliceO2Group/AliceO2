@@ -14,8 +14,8 @@
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
 
-#ifndef ALICE_ALITPCOMMON_TPCFASTTRANSFORMATION_FlatObject_H
-#define ALICE_ALITPCOMMON_TPCFASTTRANSFORMATION_FlatObject_H
+#ifndef ALICEOW_GPUCOMMON_TPCFASTTRANSFORMATION_FLATOBJECT_H
+#define ALICEOW_GPUCOMMON_TPCFASTTRANSFORMATION_FLATOBJECT_H
 
 #undef NDEBUG
 
@@ -25,12 +25,12 @@
 #include <cstring>
 #include <cassert>
 #endif
-#include "AliGPUCommonDef.h"
-#include "AliGPUCommonRtypes.h"
+#include "GPUCommonDef.h"
+#include "GPUCommonRtypes.h"
  
 //#define GPUCA_GPUCODE // uncomment to test "GPU" mode
 
-namespace ali_tpc_common {
+namespace gpu_common {
 namespace Base {
 
 ///
@@ -483,8 +483,5 @@ inline void FlatObject::setFutureBufferAddress(char* futureFlatBufferPtr)
 
 } // namespace Base
 } // namespace ali_tpc_common
-
-namespace ali_tpc_common { namespace tpc_fast_transformation { using FlatObject = ::ali_tpc_common::Base::FlatObject; }}
-namespace o2 { namespace Base { using flatObject = ::ali_tpc_common::Base::FlatObject; }}
 
 #endif

@@ -27,17 +27,17 @@
 #include "AliGeomManager.h"
 #include "AliHLTExternalTrackParam.h"
 #include "AliHLTGlobalBarrelTrack.h"
-#include "AliGPUParam.h"
+#include "GPUParam.h"
 #include "AliHLTTPCClusterStatComponent.h"
 #include "AliHLTTPCClusterTransformation.h"
 #include "AliHLTTPCClusterXYZ.h"
 #include "AliHLTTPCDataCompressionComponent.h"
 #include "AliHLTTPCDefinitions.h"
-#include "AliGPUTPCGMPropagator.h"
-#include "AliGPUTPCGMPolynomialField.h"
-#include "AliGPUTPCGMPolynomialFieldManager.h"
-#include "AliGPUTPCGMTrackParam.h"
-#include "AliGPUTPCGeometry.h"
+#include "GPUTPCGMPropagator.h"
+#include "GPUTPCGMPolynomialField.h"
+#include "GPUTPCGMPolynomialFieldManager.h"
+#include "GPUTPCGMTrackParam.h"
+#include "GPUTPCGeometry.h"
 #include "AliHLTTPCRawCluster.h"
 #include "AliRawEventHeaderBase.h"
 #include "AliRecoParam.h"
@@ -167,7 +167,7 @@ int AliHLTTPCClusterStatComponent::DoInit(int argc, const char **argv)
 	AliTPCRecoParam *recParam = (AliTPCRecoParam *) fOfflineRecoParam.GetDetRecoParam(1);
 	pCalib->GetTransform()->SetCurrentRecoParam(recParam);
 
-	fSliceParam = new AliGPUParam();
+	fSliceParam = new GPUParam();
     fSliceParam->SetDefaults(GetBz());
 
 	return iResult;
@@ -194,7 +194,7 @@ void AliHLTTPCClusterStatComponent::TransformReverse(int slice, int row, float y
 
 	int sector;
 	int sectorrow;
-	if (row < AliGPUTPCGeometry::GetNRowLow())
+	if (row < GPUTPCGeometry::GetNRowLow())
 	{
 		sector = slice;
 		sectorrow = row;
@@ -205,7 +205,7 @@ void AliHLTTPCClusterStatComponent::TransformReverse(int slice, int row, float y
 	else
 	{
 		sector = slice + NSLICES;
-		sectorrow = row - AliGPUTPCGeometry::GetNRowLow();
+		sectorrow = row - GPUTPCGeometry::GetNRowLow();
 		maxPad = param->GetNPadsUp(sectorrow);
 		padLength = param->GetPadPitchLength(sector, sectorrow);
 		padWidth = param->GetPadPitchWidth(sector);
@@ -214,7 +214,7 @@ void AliHLTTPCClusterStatComponent::TransformReverse(int slice, int row, float y
 	padtime[0] = y * sign / padWidth + 0.5 * maxPad;
 
 	float xyzGlobal[2] = {param->GetPadRowRadii(sector, sectorrow), y};
-	AliGPUTPCGeometry::Local2Global(xyzGlobal, slice);
+	GPUTPCGeometry::Local2Global(xyzGlobal, slice);
 
 	float time = z * sign * 1024.f / 250.f;
 	padtime[1] = (1024.f - time);
@@ -233,7 +233,7 @@ void AliHLTTPCClusterStatComponent::TransformForward(int slice, int row, float p
 
 	int sector;
 	int sectorrow;
-	if (row < AliGPUTPCGeometry::GetNRowLow())
+	if (row < GPUTPCGeometry::GetNRowLow())
 	{
 		sector = slice;
 		sectorrow = row;
@@ -244,7 +244,7 @@ void AliHLTTPCClusterStatComponent::TransformForward(int slice, int row, float p
 	else
 	{
 		sector = slice + NSLICES;
-		sectorrow = row - AliGPUTPCGeometry::GetNRowLow();
+		sectorrow = row - GPUTPCGeometry::GetNRowLow();
 		maxPad = param->GetNPadsUp(sectorrow);
 		padLength = param->GetPadPitchLength(sector, sectorrow);
 		padWidth = param->GetPadPitchWidth(sector);
@@ -254,7 +254,7 @@ void AliHLTTPCClusterStatComponent::TransformForward(int slice, int row, float p
 	xyz[1] = (pad - 0.5 * maxPad) * padWidth * sign;
 
 	float xyzGlobal[2] = {xyz[0], xyz[1]};
-	AliGPUTPCGeometry::Local2Global(xyzGlobal, slice);
+	GPUTPCGeometry::Local2Global(xyzGlobal, slice);
 
 	xyz[2] = sign * (1024 - time) * 250.f / 1024.f;
 }
@@ -353,13 +353,13 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 	const AliHLTUInt8_t *pCurrent = reinterpret_cast<const AliHLTUInt8_t *>(tracks->fTracklets);
 	if (fCompressionStudy)
 	{
-	  AliGPUTPCGMPropagator prop;
+	  GPUTPCGMPropagator prop;
 	  const float kRho = 1.025e-3;//0.9e-3;
 	  const float kRadLen = 29.532;//28.94;
 	  prop.SetMaxSinPhi( .999 );
  	  prop.SetMaterial( kRadLen, kRho );
-	  AliGPUTPCGMPolynomialField field;
-	  int err = AliGPUTPCGMPolynomialFieldManager::GetPolynomialField( field );
+	  GPUTPCGMPolynomialField field;
+	  int err = GPUTPCGMPolynomialFieldManager::GetPolynomialField( field );
 	  if( err!=0 ){
 	    HLTError("Can not initialize polynomial magnetic field" );
 	    return -1;
@@ -375,7 +375,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 
 			AliExternalTrackParam etrack(btrack);
 
-			AliGPUTPCGMTrackParam ftrack;
+			GPUTPCGMTrackParam ftrack;
 			float falpha;
  
 			int hitsUsed = 0;
@@ -385,9 +385,9 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 			for (int ip = 0; ip < track->fNPoints; ip++)
 			{
 				int clusterID = track->fPointIDs[ip];
-				int slice = AliGPUTPCGeometry::CluID2Slice(clusterID);
-				int patch = AliGPUTPCGeometry::CluID2Partition(clusterID);
-				int index = AliGPUTPCGeometry::CluID2Index(clusterID);
+				int slice = GPUTPCGeometry::CluID2Slice(clusterID);
+				int patch = GPUTPCGeometry::CluID2Partition(clusterID);
+				int index = GPUTPCGeometry::CluID2Index(clusterID);
 
 				if (clustersTrackIDArray[slice][patch][index].fID != -1)
 				{
@@ -404,8 +404,8 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 				AliHLTTPCRawCluster &cluster = clustersArray[slice][patch]->fClusters[index];
 				AliHLTTPCClusterXYZ &clusterTransformed = clustersTransformedArray[slice][patch]->fClusters[index];
 
-				int padrow = AliGPUTPCGeometry::GetFirstRow(patch) + cluster.GetPadRow();
-				float x = AliGPUTPCGeometry::Row2X(padrow);
+				int padrow = GPUTPCGeometry::GetFirstRow(patch) + cluster.GetPadRow();
+				float x = GPUTPCGeometry::Row2X(padrow);
 				float y = 0.0;
 				float z = 0.0;
 
@@ -537,7 +537,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 		{
 			AliHLTTPCRawClusterData *clusters = clustersArray[is][ip];
 			AliHLTTPCClusterXYZData *clustersTransformed = clustersTransformedArray[is][ip];
-			int firstRow = AliGPUTPCGeometry::GetFirstRow(ip);
+			int firstRow = GPUTPCGeometry::GetFirstRow(ip);
 
 			if (clusters == NULL)
 			{
@@ -575,8 +575,8 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 
 					/*float xyzOrig[3], xyzLocGlob[3];
 					{
-						int sector = AliGPUTPCGeometry::GetNRowLow() ? is : is + NSLICES;
-						int sectorrow = AliGPUTPCGeometry::GetNRowLow() ? row : row - AliGPUTPCGeometry::GetNRowLow();
+						int sector = GPUTPCGeometry::GetNRowLow() ? is : is + NSLICES;
+						int sectorrow = GPUTPCGeometry::GetNRowLow() ? row : row - GPUTPCGeometry::GetNRowLow();
 
 						Double_t xx[] = {(double) sectorrow, cluster.GetPad(), cluster.GetTime()};
 						transform->Transform(xx, &sector, 0, 1);
@@ -628,9 +628,9 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 			for (int ip = 0; ip < track->fNPoints; ip++)
 			{
 				int clusterID = track->fPointIDs[ip];
-				int slice = AliGPUTPCGeometry::CluID2Slice(clusterID);
-				int patch = AliGPUTPCGeometry::CluID2Partition(clusterID);
-				int index = AliGPUTPCGeometry::CluID2Index(clusterID);
+				int slice = GPUTPCGeometry::CluID2Slice(clusterID);
+				int patch = GPUTPCGeometry::CluID2Partition(clusterID);
+				int index = GPUTPCGeometry::CluID2Index(clusterID);
 
 				AliHLTTPCRawCluster &cluster = clustersArray[slice][patch]->fClusters[index];
 				AliHLTTPCClusterXYZ &clusterTransformed = clustersTransformedArray[slice][patch]->fClusters[index];

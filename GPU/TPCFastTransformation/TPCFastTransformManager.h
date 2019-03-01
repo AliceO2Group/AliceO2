@@ -14,12 +14,12 @@
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
 
-#ifndef ALICE_ALITPCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORMMANAGER_H
-#define ALICE_ALITPCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORMMANAGER_H
+#ifndef ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORMMANAGER_H
+#define ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORMMANAGER_H
 
 #include <cmath>
 
-#include "AliGPUCommonDef.h"
+#include "GPUCommonDef.h"
 #include "Rtypes.h"
 #include "TString.h"
 #include "AliTPCTransform.h"
@@ -43,7 +43,7 @@ class TPCFastTransformManager
   /// Copy constructor: disabled
   TPCFastTransformManager(const TPCFastTransformManager& ) CON_DELETE;
  
-  /// Assignment operator: disabled 
+  /// Assignment operator: disabled
   TPCFastTransformManager &operator=(const TPCFastTransformManager &) CON_DELETE;
      
   /// Destructor
@@ -54,7 +54,7 @@ class TPCFastTransformManager
   /// Initializes TPCFastTransform object
   int  create( TPCFastTransform &spline, AliTPCTransform *transform, Long_t TimeStamp );
 
-  /// Updates the transformation with the new time stamp 
+  /// Updates the transformation with the new time stamp
   Int_t updateCalibration( TPCFastTransform &spline, Long_t TimeStamp );
   
   /// _______________  Utilities   ________________________

@@ -1,0 +1,268 @@
+//-*- Mode: C++ -*-
+// @(#) $Id$
+// ************************************************************************
+// This file is property of and copyright by the ALICE HLT Project        *
+// ALICE Experiment at CERN, All rights reserved.                         *
+// See cxx source for full Copyright notice                               *
+//                                                                        *
+//*************************************************************************
+
+#ifndef GPUTPCTRACKER_H
+#define GPUTPCTRACKER_H
+
+
+#include "GPUTPCDef.h"
+#include "GPUTPCGPUConfig.h"
+
+#if !defined(GPUCA_GPUCODE)
+#include <iostream>
+#endif
+
+#include "GPUTPCHitId.h"
+#include "GPUTPCSliceData.h"
+#include "GPUTPCTrackParam.h"
+#include "GPUTPCTracklet.h"
+#include "GPUProcessor.h"
+
+class GPUTPCSliceOutput;
+struct GPUTPCClusterData;
+MEM_CLASS_PRE() class GPUParam;
+MEM_CLASS_PRE() class GPUTPCTrack;
+MEM_CLASS_PRE() class GPUTPCTrackParam;
+MEM_CLASS_PRE() class GPUTPCRow;
+
+MEM_CLASS_PRE()
+class GPUTPCTracker : public GPUProcessor
+{
+  public:
+#ifndef GPUCA_GPUCODE_DEVICE
+	GPUTPCTracker();
+	~GPUTPCTracker();
+#endif
+
+	struct StructGPUParameters
+	{
+		GPUAtomic(int) fNextTracklet;      //Next Tracklet to process
+		int fGPUError;                     //Signalizes error on GPU during GPU Reconstruction, kind of return value
+	};
+
+	MEM_CLASS_PRE2() struct StructGPUParametersConst
+	{
+		GPUglobalref() char *fGPUMem; //Base pointer to GPU memory (Needed for OpenCL for verification)
+	};
+
+	struct commonMemoryStruct
+	{
+		commonMemoryStruct() : fNTracklets(0), fNTracks(0), fNLocalTracks(0), fNTrackHits(0), fNLocalTrackHits(0), fGPUParameters() {}
+		GPUAtomic(int) fNTracklets;         // number of tracklets
+		GPUAtomic(int) fNTracks;            // number of reconstructed tracks
+		int fNLocalTracks;                  // number of reconstructed tracks before global tracking
+		GPUAtomic(int) fNTrackHits;         // number of track hits
+		int fNLocalTrackHits;               // see above
+		StructGPUParameters fGPUParameters; // GPU parameters
+	};
+  
+	MEM_CLASS_PRE2() void SetSlice(int iSlice);
+	MEM_CLASS_PRE2() void InitializeProcessor();
+	MEM_CLASS_PRE2() void InitializeRows( const MEM_LG2(GPUParam) *param ) { fData.InitializeRows(*param); }
+  
+	int CheckEmptySlice();
+	void WriteOutputPrepare();
+	void WriteOutput();
+  
+	//GPU Tracker Interface
+#if !defined(GPUCA_GPUCODE_DEVICE)
+	//Debugging Stuff
+	void DumpSliceData(std::ostream &out);	//Dump Input Slice Data
+	void DumpLinks(std::ostream &out);		//Dump all links to file (for comparison after NeighboursFinder/Cleaner)
+	void DumpStartHits(std::ostream &out);	//Same for Start Hits
+	void DumpHitWeights(std::ostream &out); //....
+	void DumpTrackHits(std::ostream &out);	//Same for Track Hits
+	void DumpTrackletHits(std::ostream &out);	//Same for Track Hits
+	void DumpOutput(FILE* out);	//Similar for output
+
+	int ReadEvent();
+
+	GPUh() const GPUTPCClusterData *ClusterData() const { return fData.ClusterData(); }
+
+	GPUh() MakeType(const MEM_LG(GPUTPCRow)&) Row( const GPUTPCHitId &HitId ) const { return fData.Row(HitId.RowIndex()); }
+
+	GPUhd() GPUTPCSliceOutput* Output() const { return fOutput; }
+
+	GPUh() GPUglobalref() commonMemoryStruct *CommonMemory() const {return(fCommonMem); }
+
+#endif
+  
+	MEM_CLASS_PRE2() GPUd() void GetErrors2( int iRow,  const MEM_LG2(GPUTPCTrackParam) &t, float &ErrY2, float &ErrZ2 ) const
+	{
+		//mCAParam.GetClusterErrors2( iRow, mCAParam.GetContinuousTracking() != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
+		mCAParam->GetClusterRMS2( iRow, mCAParam->ContinuousTracking != 0.f ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
+	}
+	GPUd() void GetErrors2( int iRow, float z, float sinPhi, float DzDs, float &ErrY2, float &ErrZ2 ) const
+	{
+		//mCAParam.GetClusterErrors2( iRow, mCAParam.GetContinuousTracking() != 0. ? 125. : z, sinPhi, DzDs, ErrY2, ErrZ2 );
+		mCAParam->GetClusterRMS2( iRow, mCAParam->ContinuousTracking != 0.f ? 125.f : z, sinPhi, DzDs, ErrY2, ErrZ2 );
+	}
+  
+	void SetupCommonMemory();
+	
+	void* SetPointersScratch(void* mem);
+	void* SetPointersScratchHost(void* mem);
+	void* SetPointersCommon(void* mem);
+	void* SetPointersTracklets(void* mem);
+	void* SetPointersTracks(void* mem);
+	void* SetPointersTrackHits(void* mem);
+	void RegisterMemoryAllocation();
+	
+	short MemoryResScratch() {return mMemoryResScratch;}
+	short MemoryResScratchHost() {return mMemoryResScratchHost;}
+	short MemoryResCommon() {return mMemoryResCommon;}
+	short MemoryResTracklets() {return mMemoryResTracklets;}
+	short MemoryResTracks() {return mMemoryResTracks;}
+	short MemoryResTrackHits() {return mMemoryResTrackHits;}
+
+	void SetMaxData();
+	void UpdateMaxData();
+ 
+	GPUhd() MakeType(const MEM_LG(GPUParam)&) Param() const { return *mCAParam; }
+	GPUhd() MakeType(const MEM_LG(GPUParam)*) pParam() const { return mCAParam; }
+	GPUhd() int ISlice() const { return fISlice; }
+  
+	GPUhd() MakeType(const MEM_LG(GPUTPCSliceData)&) Data() const { return fData; }
+	GPUhd() MakeType(MEM_LG(GPUTPCSliceData)&) Data() { return fData; }
+  
+	GPUhd() GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& Row( int rowIndex ) const { return fData.Row( rowIndex ); }
+  
+	GPUhd() int NHitsTotal() const { return fData.NumberOfHits(); }
+	GPUhd() int NMaxTracks() const { return fNMaxTracks; }
+  
+	MEM_TEMPLATE() GPUd() void SetHitLinkUpData(const MEM_TYPE(GPUTPCRow) &row, int hitIndex, calink v) { fData.SetHitLinkUpData(row, hitIndex, v); }
+	MEM_TEMPLATE() GPUd() void SetHitLinkDownData(const MEM_TYPE(GPUTPCRow) &row, int hitIndex, calink v) { fData.SetHitLinkDownData(row, hitIndex, v); }
+	MEM_TEMPLATE() GPUd() calink HitLinkUpData(const MEM_TYPE(GPUTPCRow) &row, int hitIndex) const { return fData.HitLinkUpData(row, hitIndex); }
+	MEM_TEMPLATE() GPUd() calink HitLinkDownData(const MEM_TYPE(GPUTPCRow) &row, int hitIndex) const { return fData.HitLinkDownData(row, hitIndex); }
+  
+	MEM_TEMPLATE() GPUd() GPUglobalref() const cahit2 *HitData(const MEM_TYPE(GPUTPCRow) &row) const { return fData.HitData(row); }
+	MEM_TEMPLATE() GPUd() GPUglobalref() const calink *HitLinkUpData(const MEM_TYPE(GPUTPCRow) &row) const { return fData.HitLinkUpData(row); }
+	MEM_TEMPLATE() GPUd() GPUglobalref() const calink *HitLinkDownData(const MEM_TYPE(GPUTPCRow) &row) const { return fData.HitLinkDownData(row); }
+	MEM_TEMPLATE() GPUd() GPUglobalref() const calink *FirstHitInBin(const MEM_TYPE(GPUTPCRow) &row) const { return fData.FirstHitInBin(row); }
+  
+	MEM_TEMPLATE() GPUd() int FirstHitInBin( const MEM_TYPE( GPUTPCRow) &row, int binIndex ) const { return fData.FirstHitInBin(row, binIndex); }
+  
+	MEM_TEMPLATE() GPUd() cahit HitDataY( const MEM_TYPE(GPUTPCRow) &row, int hitIndex) const { return fData.HitDataY(row, hitIndex); }
+	MEM_TEMPLATE() GPUd() cahit HitDataZ( const MEM_TYPE(GPUTPCRow) &row, int hitIndex) const { return fData.HitDataZ(row, hitIndex); }
+	MEM_TEMPLATE() GPUd() cahit2 HitData( const MEM_TYPE(GPUTPCRow) &row, int hitIndex) const { return fData.HitData(row, hitIndex); }
+  
+	MEM_TEMPLATE() GPUhd() int HitInputID( const MEM_TYPE(GPUTPCRow) &row, int hitIndex) const { return fData.ClusterDataIndex(row, hitIndex); }
+  
+	/**
+	* The hit weight is used to determine whether a hit belongs to a certain tracklet or another one
+	* competing for the same hit. The tracklet that has a higher weight wins. Comparison is done
+	* using the the number of hits in the tracklet (the more hits it has the more it keeps). If
+	* tracklets have the same number of hits then it doesn't matter who gets it, but it should be
+	* only one. So a unique number (row index is good) is added in the least significant part of
+	* the weight
+	*/
+	GPUd() static int CalculateHitWeight( int NHits, float chi2, int ) {
+		const float chi2_suppress = 6.f;
+		float weight = (((float) NHits * (chi2_suppress - chi2 / 500.f)) * (1e9f / chi2_suppress / 160.f));
+		if (weight < 0.f || weight > 2e9f) return 0;
+		return ( (int) weight );
+		//return( (NHits << 16) + num);
+	}
+	MEM_TEMPLATE() GPUd() void MaximizeHitWeight(const MEM_TYPE(GPUTPCRow) &row, int hitIndex, int weight)
+	{
+		fData.MaximizeHitWeight( row, hitIndex, weight );
+	}
+	MEM_TEMPLATE() GPUd() void SetHitWeight(const MEM_TYPE(GPUTPCRow) &row, int hitIndex, int weight)
+	{
+		fData.SetHitWeight( row, hitIndex, weight );
+	}
+	MEM_TEMPLATE() GPUd() int HitWeight(const MEM_TYPE(GPUTPCRow) &row, int hitIndex) const
+	{
+		return fData.HitWeight(row, hitIndex);
+	}
+  
+	GPUhd() GPUglobalref() GPUAtomic(int) *NTracklets() const { return &fCommonMem->fNTracklets; }
+  
+	GPUhd() const GPUTPCHitId &TrackletStartHit( int i ) const { return fTrackletStartHits[i]; }
+	GPUhd() GPUglobalref() GPUTPCHitId *TrackletStartHits() const { return fTrackletStartHits; }
+	GPUhd() GPUglobalref() GPUTPCHitId *TrackletTmpStartHits() const { return fTrackletTmpStartHits; }
+	MEM_CLASS_PRE2() GPUhd() const MEM_LG2(GPUTPCTracklet) &Tracklet( int i ) const { return fTracklets[i]; }
+	GPUhd() GPUglobalref() MEM_GLOBAL(GPUTPCTracklet) *Tracklets() const { return fTracklets;}
+	GPUhd() GPUglobalref() calink* TrackletRowHits() const { return fTrackletRowHits; }
+
+	GPUhd() GPUglobalref() GPUAtomic(int) *NTracks() const { return &fCommonMem->fNTracks; }
+	GPUhd() GPUglobalref() MEM_GLOBAL(GPUTPCTrack) *Tracks() const { return fTracks; }
+	GPUhd() GPUglobalref() GPUAtomic(int) *NTrackHits() const { return &fCommonMem->fNTrackHits; }
+	GPUhd() GPUglobalref() GPUTPCHitId *TrackHits() const { return fTrackHits; }
+  
+	GPUhd() GPUglobalref() MEM_GLOBAL(GPUTPCRow)* SliceDataRows() const {return(fData.Rows()); }
+  
+	GPUhd() GPUglobalref() int* RowStartHitCountOffset() const {return(fRowStartHitCountOffset);}
+	GPUhd() GPUglobalref() StructGPUParameters* GPUParameters() const {return(&fCommonMem->fGPUParameters);}
+	GPUhd() MakeType(MEM_LG(StructGPUParametersConst)*) GPUParametersConst() {return(&fGPUParametersConst);}
+	GPUhd() MakeType(MEM_LG(const StructGPUParametersConst)*) GetGPUParametersConst() const {return(&fGPUParametersConst);}
+	GPUhd() void SetGPUTextureBase(const void* val) { fData.SetGPUTextureBase(val); }
+
+	struct trackSortData
+	{
+		int fTtrack;		//Track ID
+		float fSortVal;		//Value to sort for
+	};
+
+	void PerformGlobalTracking(GPUTPCTracker& sliceLeft, GPUTPCTracker& sliceRight, int MaxTracksLeft, int MaxTracksRight);
+	
+	void* LinkTmpMemory() {return fLinkTmpMemory;}
+
+#if !defined(GPUCA_GPUCODE)
+	GPUh() int PerformGlobalTrackingRun(GPUTPCTracker& sliceNeighbour, int iTrack, int rowIndex, float angle, int direction);
+#endif
+
+  private:
+	char* fStageAtSync;					//Temporary performance variable: Pointer to array storing current stage for every thread at every sync point
+	char* fLinkTmpMemory;				//tmp memory for hits after neighbours finder
+
+	int fISlice; //Number of slice
+  
+	/** A pointer to the ClusterData object that the SliceData was created from. This can be used to
+	* merge clusters from inside the SliceTracker code and recreate the SliceData. */
+	MEM_LG(GPUTPCSliceData) fData; // The SliceData object. It is used to encapsulate the storage in memory from the access
+  
+	int fNMaxStartHits;
+	int fNMaxTracklets;
+	int fNMaxTracks;
+	int fNMaxTrackHits;
+	short mMemoryResScratch;
+	short mMemoryResScratchHost;
+	short mMemoryResCommon;
+	short mMemoryResTracklets;
+	short mMemoryResTracks;
+	short mMemoryResTrackHits;
+
+	//GPU Temp Arrays
+	GPUglobalref() int* fRowStartHitCountOffset;				//Offset, length and new offset of start hits in row
+	GPUglobalref() GPUTPCHitId *fTrackletTmpStartHits;	//Unsorted start hits
+	GPUglobalref() char* fGPUTrackletTemp;					//Temp Memory for GPU Tracklet Constructor
+
+	MEM_LG(StructGPUParametersConst) fGPUParametersConst; // Parameters for GPU if this is a GPU tracker
+
+	// event
+	GPUglobalref() commonMemoryStruct *fCommonMem; // common event memory
+	GPUglobalref() GPUTPCHitId *fTrackletStartHits;   // start hits for the tracklets
+	GPUglobalref() MEM_GLOBAL(GPUTPCTracklet) *fTracklets; // tracklets
+	GPUglobalref() calink *fTrackletRowHits;			//Hits for each Tracklet in each row
+	GPUglobalref() MEM_GLOBAL(GPUTPCTrack) *fTracks;	// reconstructed tracks
+	GPUglobalref() GPUTPCHitId *fTrackHits;			// array of track hit numbers
+	
+	// output
+	GPUglobalref() GPUTPCSliceOutput *fOutput;		//address of pointer pointing to SliceOutput Object
+	void* fOutputMemory;									//Pointer to output memory if stored internally
+  
+	// disable copy
+	GPUTPCTracker( const GPUTPCTracker& );
+	GPUTPCTracker &operator=( const GPUTPCTracker& );
+  
+	static int StarthitSortComparison(const void*a, const void* b);
+};
+
+#endif //GPUTPCTRACKER_H

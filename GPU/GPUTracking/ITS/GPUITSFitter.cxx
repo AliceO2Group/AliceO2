@@ -3,7 +3,7 @@
 #include "ITStracking/Road.h"
 #include "ITStracking/Cluster.h"
 #include "GPUITSTrack.h"
-#include "AliGPUReconstruction.h"
+#include "GPUReconstruction.h"
 
 #ifndef GPUCA_GPUCODE
 void GPUITSFitter::InitializeProcessor()
@@ -36,9 +36,9 @@ void* GPUITSFitter::SetPointersMemory(void* mem)
 void GPUITSFitter::RegisterMemoryAllocation()
 {
 	AllocateAndInitializeLate();
-	mMemoryResInput = mRec->RegisterMemoryAllocation(this, &GPUITSFitter::SetPointersInput, AliGPUMemoryResource::MEMORY_INPUT, "ITSInput");
-	mMemoryResTracks = mRec->RegisterMemoryAllocation(this, &GPUITSFitter::SetPointersTracks, AliGPUMemoryResource::MEMORY_OUTPUT, "ITSTracks");
-	mMemoryResMemory = mRec->RegisterMemoryAllocation(this, &GPUITSFitter::SetPointersMemory, AliGPUMemoryResource::MEMORY_PERMANENT, "ITSMemory");
+	mMemoryResInput = mRec->RegisterMemoryAllocation(this, &GPUITSFitter::SetPointersInput, GPUMemoryResource::MEMORY_INPUT, "ITSInput");
+	mMemoryResTracks = mRec->RegisterMemoryAllocation(this, &GPUITSFitter::SetPointersTracks, GPUMemoryResource::MEMORY_OUTPUT, "ITSTracks");
+	mMemoryResMemory = mRec->RegisterMemoryAllocation(this, &GPUITSFitter::SetPointersMemory, GPUMemoryResource::MEMORY_PERMANENT, "ITSMemory");
 }
 
 void GPUITSFitter::SetMaxData()

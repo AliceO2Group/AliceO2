@@ -11,7 +11,7 @@
 #ifndef O2_TRDGEOMETRYBASE_H
 #define O2_TRDGEOMETRYBASE_H
 
-#include "AliGPUCommonDefGPU.h"
+#include "GPUCommonDefGPU.h"
 #include "TRDBase/TRDCommonParam.h"
 #include "TRDBase/TRDPadPlane.h"
 

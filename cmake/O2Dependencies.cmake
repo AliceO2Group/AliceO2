@@ -477,7 +477,7 @@ o2_define_bucket(
     common_boost_bucket
     fairmq_bucket
     Base FairTools Core MathCore Matrix Minuit Hist Geom GenVector RIO
-    AliGPUCommon_bucket
+    GPUCommon_bucket
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -631,7 +631,7 @@ o2_define_bucket(
     DetectorsBase
     RIO
     SimConfig
-    AliGPUCommon_bucket
+    GPUCommon_bucket
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
@@ -685,7 +685,7 @@ o2_define_bucket(
     data_format_detectors_common_bucket
     DetectorsCommonDataFormats
     CommonDataFormat
-    AliGPUCommon_bucket
+    GPUCommon_bucket
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
@@ -909,7 +909,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     data_format_its_bucket
-    AliGPUCommon_bucket
+    GPUCommon_bucket
     #
     DataFormatsITS
     DetectorsBase
@@ -1324,7 +1324,7 @@ o2_define_bucket(
     CommonDataFormat
     data_format_detectors_common_bucket
     DetectorsCommonDataFormats
-    AliGPUCommon_bucket
+    GPUCommon_bucket
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -2461,7 +2461,7 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
-    AliGPUCommon_bucket
+    GPUCommon_bucket
 
     DEPENDENCIES
 
@@ -2478,7 +2478,7 @@ o2_define_bucket(
     pthread
     root_base_bucket
     common_vc_bucket
-    AliGPUCommon_bucket
+    GPUCommon_bucket
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
@@ -2496,7 +2496,7 @@ o2_define_bucket(
     common_vc_bucket
     TRDBase
     ITStracking
-    AliGPUCommon_bucket
+    GPUCommon_bucket
     TPCFastTransformation_bucket
     O2TPCFastTransformation
     data_format_TPC_bucket
@@ -2555,7 +2555,7 @@ o2_define_bucket(
     TPCSpaceChargeBase_bucket
 
     DEPENDENCIES
-    root_base_bucket Hist MathCore Matrix Physics AliGPUCommon_bucket
+    root_base_bucket Hist MathCore Matrix Physics GPUCommon_bucket
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}

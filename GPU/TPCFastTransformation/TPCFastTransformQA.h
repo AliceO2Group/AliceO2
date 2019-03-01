@@ -14,10 +14,10 @@
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
 
-#ifndef ALICE_ALITPCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORMQA_H
-#define ALICE_ALITPCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORMQA_H
+#ifndef ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORMQA_H
+#define ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORMQA_H
 
-#include "AliGPUCommonDef.h"
+#include "GPUCommonDef.h"
 #include "TPCFastTransformManager.h"
 #include <cmath>
 #include <iostream>
@@ -44,7 +44,7 @@ class TPCFastTransformQA
   /// Copy constructor: disabled
   TPCFastTransformQA(const TPCFastTransformQA& ) CON_DELETE;
  
-  /// Assignment operator: disabled 
+  /// Assignment operator: disabled
   TPCFastTransformQA &operator=(const TPCFastTransformQA &) CON_DELETE;
      
   /// Destructor

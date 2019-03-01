@@ -1,11 +1,11 @@
 #include "utils/qconfig.h"
-#include "AliGPUReconstruction.h"
-#include "AliGPUReconstructionTimeframe.h"
-#include "AliGPUChainTracking.h"
-#include "AliGPUChainITS.h"
-#include "AliGPUTPCDef.h"
-#include "AliGPUQA.h"
-#include "AliGPUDisplayBackend.h"
+#include "GPUReconstruction.h"
+#include "GPUReconstructionTimeframe.h"
+#include "GPUChainTracking.h"
+#include "GPUChainITS.h"
+#include "GPUTPCDef.h"
+#include "GPUQA.h"
+#include "GPUDisplayBackend.h"
 #include "ClusterNativeAccessExt.h"
 #include "genEvents.h"
 
@@ -33,8 +33,8 @@
 #endif
 #include "utils/timer.h"
 
-#include "AliGPUTPCGMMergedTrack.h"
-#include "AliGPUSettings.h"
+#include "GPUTPCGMMergedTrack.h"
+#include "GPUSettings.h"
 #include <vector>
 #include <xmmintrin.h>
 
@@ -45,22 +45,22 @@
 
 #ifdef BUILD_EVENT_DISPLAY
 #ifdef _WIN32
-#include "AliGPUDisplayBackendWindows.h"
+#include "GPUDisplayBackendWindows.h"
 #else
-#include "AliGPUDisplayBackendX11.h"
-#include "AliGPUDisplayBackendGlfw.h"
+#include "GPUDisplayBackendX11.h"
+#include "GPUDisplayBackendGlfw.h"
 #endif
-#include "AliGPUDisplayBackendGlut.h"
+#include "GPUDisplayBackendGlut.h"
 #endif
 
 //#define BROKEN_EVENTS
 
-AliGPUReconstruction* rec;
-AliGPUChainTracking* chainTracking;
-AliGPUChainITS* chainITS;
+GPUReconstruction* rec;
+GPUChainTracking* chainTracking;
+GPUChainITS* chainITS;
 std::unique_ptr<char[]> outputmemory;
-std::unique_ptr<AliGPUDisplayBackend> eventDisplay;
-std::unique_ptr<AliGPUReconstructionTimeframe> tf;
+std::unique_ptr<GPUDisplayBackend> eventDisplay;
+std::unique_ptr<GPUReconstructionTimeframe> tf;
 int nEventsInDirectory = 0;
 
 void SetCPUAndOSSettings()
@@ -171,9 +171,9 @@ int SetupReconstruction()
 			rec->GetEventSettings().solenoidBz, (int) rec->GetEventSettings().homemadeEvents, (int) rec->GetEventSettings().constBz, rec->GetEventSettings().continuousMaxTimeBin);
 	}
 	
-	AliGPUSettingsEvent ev = rec->GetEventSettings();
-	AliGPUSettingsRec recSet;
-	AliGPUSettingsDeviceProcessing devProc;
+	GPUSettingsEvent ev = rec->GetEventSettings();
+	GPUSettingsRec recSet;
+	GPUSettingsDeviceProcessing devProc;
 	
 	if (configStandalone.eventGenerator) ev.homemadeEvents = true;
 	if (configStandalone.solenoidBz != -1e6f) ev.solenoidBz = configStandalone.solenoidBz;
@@ -184,7 +184,7 @@ int SetupReconstruction()
 		printf("Continuous mode forced\n");
 		ev.continuousMaxTimeBin = -1;
 	}
-	if (rec->GetDeviceType() == AliGPUReconstruction::DeviceType::CPU) printf("Standalone Test Framework for CA Tracker - Using CPU\n");
+	if (rec->GetDeviceType() == GPUReconstruction::DeviceType::CPU) printf("Standalone Test Framework for CA Tracker - Using CPU\n");
 	else printf("Standalone Test Framework for CA Tracker - Using GPU\n");
 
 	recSet.SetMinTrackPt(MIN_TRACK_PT_DEFAULT);
@@ -204,12 +204,12 @@ int SetupReconstruction()
 	{
 #ifdef BUILD_EVENT_DISPLAY
 #ifdef _WIN32
-		if (configStandalone.eventDisplay == 1) eventDisplay.reset(new AliGPUDisplayBackendWindows);
+		if (configStandalone.eventDisplay == 1) eventDisplay.reset(new GPUDisplayBackendWindows);
 #else
-		if (configStandalone.eventDisplay == 1) eventDisplay.reset(new AliGPUDisplayBackendX11);
-		if (configStandalone.eventDisplay == 3) eventDisplay.reset(new AliGPUDisplayBackendGlfw);
+		if (configStandalone.eventDisplay == 1) eventDisplay.reset(new GPUDisplayBackendX11);
+		if (configStandalone.eventDisplay == 3) eventDisplay.reset(new GPUDisplayBackendGlfw);
 #endif
-		else if (configStandalone.eventDisplay == 2) eventDisplay.reset(new AliGPUDisplayBackendGlut);
+		else if (configStandalone.eventDisplay == 2) eventDisplay.reset(new GPUDisplayBackendGlut);
 #endif
 		devProc.eventDisplay = eventDisplay.get();
 	}
@@ -217,8 +217,8 @@ int SetupReconstruction()
 	devProc.globalInitMutex = configStandalone.gpuInitMutex;
 	devProc.gpuDeviceOnly = configStandalone.oclGPUonly;
 	devProc.memoryAllocationStrategy = configStandalone.allocationStrategy;
-	if (configStandalone.configRec.runTRD != -1) rec->RecoSteps().setBits(AliGPUReconstruction::RecoStep::TRDTracking, configStandalone.configRec.runTRD > 0);
-	if (!configStandalone.merger) rec->RecoSteps().setBits(AliGPUReconstruction::RecoStep::TPCMerging, false);
+	if (configStandalone.configRec.runTRD != -1) rec->RecoSteps().setBits(GPUReconstruction::RecoStep::TRDTracking, configStandalone.configRec.runTRD > 0);
+	if (!configStandalone.merger) rec->RecoSteps().setBits(GPUReconstruction::RecoStep::TPCMerging, false);
 	
 	if (configStandalone.configProc.nStreams >= 0) devProc.nStreams = configStandalone.configProc.nStreams;
 	if (configStandalone.configProc.constructorPipeline >= 0) devProc.trackletConstructorInPipeline = configStandalone.configProc.constructorPipeline;
@@ -227,7 +227,7 @@ int SetupReconstruction()
 	rec->SetSettings(&ev, &recSet, &devProc);
 	if (rec->Init())
 	{
-		printf("Error initializing AliGPUReconstruction!\n");
+		printf("Error initializing GPUReconstruction!\n");
 		return 1;
 	}
 	return(0);
@@ -245,21 +245,21 @@ int ReadEvent(int n)
 
 int main(int argc, char** argv)
 {
-	std::unique_ptr<AliGPUReconstruction> recUnique;
+	std::unique_ptr<GPUReconstruction> recUnique;
 
 	SetCPUAndOSSettings();
 
 	if (ReadConfiguration(argc, argv)) return(1);
 
-	recUnique.reset(AliGPUReconstruction::CreateInstance(configStandalone.runGPU ? configStandalone.gpuType : AliGPUReconstruction::DEVICE_TYPE_NAMES[AliGPUReconstruction::DeviceType::CPU], configStandalone.runGPUforce));
+	recUnique.reset(GPUReconstruction::CreateInstance(configStandalone.runGPU ? configStandalone.gpuType : GPUReconstruction::DEVICE_TYPE_NAMES[GPUReconstruction::DeviceType::CPU], configStandalone.runGPUforce));
 	rec = recUnique.get();
 	if (rec == nullptr)
 	{
-		printf("Error initializing AliGPUReconstruction\n");
+		printf("Error initializing GPUReconstruction\n");
 		return(1);
 	}
-	chainTracking = rec->AddChain<AliGPUChainTracking>();
-	chainITS = rec->AddChain<AliGPUChainITS>();
+	chainTracking = rec->AddChain<GPUChainTracking>();
+	chainITS = rec->AddChain<GPUChainITS>();
 
 	if (SetupReconstruction()) return(1);
 
@@ -286,7 +286,7 @@ int main(int argc, char** argv)
 	
 	if (configStandalone.configTF.bunchSim || configStandalone.configTF.nMerge)
 	{
-		tf.reset(new AliGPUReconstructionTimeframe(chainTracking, ReadEvent, nEventsInDirectory));
+		tf.reset(new GPUReconstructionTimeframe(chainTracking, ReadEvent, nEventsInDirectory));
 	}
 
 	if (configStandalone.eventGenerator)
@@ -369,7 +369,7 @@ int main(int argc, char** argv)
 						}
 					}
 					
-					if (chainTracking->GetRecoSteps() & AliGPUReconstruction::RecoStep::TRDTracking)
+					if (chainTracking->GetRecoSteps() & GPUReconstruction::RecoStep::TRDTracking)
 					{
 						int nTracklets = 0;
 						for (int k = 0;k < chainTracking->GetTRDTracker()->NTracks();k++)

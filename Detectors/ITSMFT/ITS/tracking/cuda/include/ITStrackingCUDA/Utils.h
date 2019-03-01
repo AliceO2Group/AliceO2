@@ -15,7 +15,7 @@
 #ifndef TRACKINGITSU_INCLUDE_GPU_UTILS_H_
 #define TRACKINGITSU_INCLUDE_GPU_UTILS_H_
 
-#include "AliGPUCommonDefGPU.h"
+#include "GPUCommonDefGPU.h"
 #include "ITStrackingCUDA/Stream.h"
 
 namespace o2

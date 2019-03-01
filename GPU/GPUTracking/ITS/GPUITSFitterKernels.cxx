@@ -1,5 +1,5 @@
-#include "AliGPUConstantMem.h"
-#include "AliGPUTPCSettings.h"
+#include "GPUConstantMem.h"
+#include "GPUTPCSettings.h"
 #include "GPUITSFitterKernels.h"
 
 #include "ITStracking/Constants.h"
@@ -12,7 +12,7 @@
 using namespace o2::ITS;
 using namespace o2;
 
-GPUd() bool GPUITSFitterKernel::fitTrack(GPUITSFitter& Fitter, AliGPUTPCGMPropagator& prop, GPUITSTrack& track, int start, int end, int step)
+GPUd() bool GPUITSFitterKernel::fitTrack(GPUITSFitter& Fitter, GPUTPCGMPropagator& prop, GPUITSTrack& track, int start, int end, int step)
 {
   for (int iLayer{ start }; iLayer != end; iLayer += step) {
     if (track.mClusters[iLayer] == Constants::ITS::UnusedIndex) {
@@ -36,12 +36,12 @@ GPUd() bool GPUITSFitterKernel::fitTrack(GPUITSFitter& Fitter, AliGPUTPCGMPropag
 }
 
 template <>
-GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() AliGPUTPCSharedMemory &smem, workerType &workers)
+GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory &smem, workerType &workers)
 {
 	GPUITSFitter &Fitter = workers.itsFitter;
-	AliGPUTPCGMMerger &Merger = workers.tpcMerger;
+	GPUTPCGMMerger &Merger = workers.tpcMerger;
 
-	AliGPUTPCGMPropagator prop;
+	GPUTPCGMPropagator prop;
 	prop.SetPolynomialField(Merger.pField());
 	prop.SetMaxSinPhi(GPUCA_MAX_SIN_PHI);
 	prop.SetToyMCEventsFlag(0);

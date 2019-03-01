@@ -62,7 +62,7 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
   set(BUCKET_NAME TPCSpaceChargeBase_bucket)
 
   O2_GENERATE_LIBRARY()
-  install(FILES ${HDRS} DESTINATION include/AliGPU)
+  install(FILES ${HDRS} DESTINATION include/GPU)
 
   set(TEST_SRCS
     ctest/testTPCSpaceChargeBase.cxx

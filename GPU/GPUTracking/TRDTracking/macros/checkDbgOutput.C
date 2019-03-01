@@ -127,7 +127,7 @@ void InitBranches()
     return;
   }
 
-  // for explanations of the variables see AliGPUTRDTrackerDebug.h
+  // for explanations of the variables see GPUTRDTrackerDebug.h
   tree->SetBranchAddress("trackID", &trackID);
   tree->SetBranchAddress("labelRef", &trackIDref);
   tree->SetBranchAddress("pdgCode", &trackPID);

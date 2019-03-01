@@ -31,7 +31,7 @@
 #include "ITStracking/PrimaryVertexContext.h"
 #include "ITStracking/Road.h"
 
-class AliGPUChainITS;
+class GPUChainITS;
 
 namespace o2
 {
@@ -39,7 +39,7 @@ namespace ITS
 {
 
 class TrackITS;
-typedef std::function<int(AliGPUChainITS&, std::vector<Road>& roads, std::array<const Cluster*, 7>, std::array<const Cell*, 5>, const std::array<std::vector<TrackingFrameInfo>, 7>&, std::vector<TrackITS>&)> FuncRunITSTrackFit_t;
+typedef std::function<int(GPUChainITS&, std::vector<Road>& roads, std::array<const Cluster*, 7>, std::array<const Cell*, 5>, const std::array<std::vector<TrackingFrameInfo>, 7>&, std::vector<TrackITS>&)> FuncRunITSTrackFit_t;
 
 class TrackerTraits
 {
@@ -49,7 +49,7 @@ class TrackerTraits
   GPU_HOST_DEVICE static constexpr int4 getEmptyBinsRect() { return int4{ 0, 0, 0, 0 }; }
   GPU_DEVICE static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
 
-  void SetRecoChain(AliGPUChainITS* chain, FuncRunITSTrackFit_t&& funcRunITSTrackFit) {
+  void SetRecoChain(GPUChainITS* chain, FuncRunITSTrackFit_t&& funcRunITSTrackFit) {
       mChainRunITSTrackFit = funcRunITSTrackFit;
       mChain = chain;
   }
@@ -65,7 +65,7 @@ class TrackerTraits
   PrimaryVertexContext* mPrimaryVertexContext;
   TrackingParameters mTrkParams;
 
-  AliGPUChainITS* mChain = nullptr;
+  GPUChainITS* mChain = nullptr;
   FuncRunITSTrackFit_t mChainRunITSTrackFit;
 };
 

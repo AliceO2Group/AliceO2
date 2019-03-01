@@ -34,7 +34,7 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
-class AliGPUChainITS;
+class GPUChainITS;
 
 namespace o2
 {
@@ -95,7 +95,7 @@ class Tracker
   std::uint32_t mROFrame = 0;
   std::vector<TrackITS> mTracks;
   dataformats::MCTruthContainer<MCCompLabel> mTrackLabels;
-  AliGPUChainITS* mRecoChain = nullptr;
+  GPUChainITS* mRecoChain = nullptr;
 };
 
 void Tracker::setParameters(const std::vector<MemoryParameters>& memPars, const std::vector<TrackingParameters>& trkPars)

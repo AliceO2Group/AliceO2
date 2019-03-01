@@ -4,8 +4,8 @@ include						config_common.mak
 TARGET						= libGPUTrackingOCL
 TARGETTYPE					= LIB
 
-CXXFILES					= Base/opencl/AliGPUReconstructionOCL.cxx
-CLFILES						= Base/opencl/AliGPUReconstructionOCL.cl
+CXXFILES					= Base/opencl/GPUReconstructionOCL.cxx
+CLFILES						= Base/opencl/GPUReconstructionOCL.cl
 
 CONFIG_OPENCL				= 1
 OPENCL_OPTIONS				= -x clc++

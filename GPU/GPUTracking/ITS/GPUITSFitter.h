@@ -1,12 +1,12 @@
 #ifndef GPUITSFITTER_H
 #define GPUITSFITTER_H
 
-#include "AliGPUProcessor.h"
+#include "GPUProcessor.h"
 #include "GPUITSTrack.h"
 
 namespace o2 { namespace ITS { class Road; struct TrackingFrameInfo; class GPUITSTrack; struct Cluster; class Cell; }}
 
-class GPUITSFitter : public AliGPUProcessor
+class GPUITSFitter : public GPUProcessor
 {
 public:
 #ifndef GPUCA_GPUCODE

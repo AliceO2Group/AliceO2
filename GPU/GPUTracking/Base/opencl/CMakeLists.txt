@@ -17,7 +17,7 @@
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     set(MODULE O2GPUTrackingOpenCL)
 elseif(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
-    set(MODULE AliGPUTrackingOpenCL)
+    set(MODULE GPUTrackingOpenCL)
 endif()
 set(DEFINITIONS ${DEFINITIONS} GPUCA_GPULIBRARY=OCL)
 
@@ -48,8 +48,8 @@ add_executable(opencl_compiler ${GPUDIR}/Standalone/makefiles/makefile_opencl_co
 target_link_libraries(opencl_compiler OpenCL)
 
 #convenience variables
-set(CL_SRC ${GPUDIR}/Base/opencl/AliGPUReconstructionOCL.cl )
-set(CL_BIN ${CMAKE_CURRENT_BINARY_DIR}/AliGPUReconstructionOCLCode.bin )
+set(CL_SRC ${GPUDIR}/Base/opencl/GPUReconstructionOCL.cl )
+set(CL_BIN ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.bin )
 set(CL_INC
     -I${GPUDIR}/HLTHeaders
     -I${GPUDIR}/SliceTracker
@@ -74,13 +74,13 @@ add_custom_command(
 )
 
 add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/AliGPUReconstructionOCLCode.S
-    COMMAND cat ${GPUDIR}/Standalone/makefiles/include.S | sed "s/FILENAMEMOD/_makefile_opencl_program_Base_opencl_AliGPUReconstructionOCL_cl/g" | sed "s/FILENAMENORMAL/AliGPUReconstructionOCLCode.bin/g" > ${CMAKE_CURRENT_BINARY_DIR}/AliGPUReconstructionOCLCode.S
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S
+    COMMAND cat ${GPUDIR}/Standalone/makefiles/include.S | sed "s/FILENAMEMOD/_makefile_opencl_program_Base_opencl_GPUReconstructionOCL_cl/g" | sed "s/FILENAMENORMAL/GPUReconstructionOCLCode.bin/g" > ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S
     MAIN_DEPENDENCY ${GPUDIR}/Standalone/makefiles/include.S
 )
 
 # make cmake compile the assembler file, add proper dependency on included binary code
-set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/AliGPUReconstructionOCLCode.S PROPERTIES LANGUAGE CXX OBJECT_DEPENDS "${CL_BIN};${GPUDIR}/Standalone/makefiles/include.S")
+set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S PROPERTIES LANGUAGE CXX OBJECT_DEPENDS "${CL_BIN};${GPUDIR}/Standalone/makefiles/include.S")
 
 # Module include folder
 include_directories(${GPUDIR}/Base/opencl
@@ -99,18 +99,18 @@ endif()
 
 # Sources in alphabetical order
 set(SRCS
-    AliGPUReconstructionOCL.cxx
-    ${CMAKE_CURRENT_BINARY_DIR}/AliGPUReconstructionOCLCode.S
+    GPUReconstructionOCL.cxx
+    ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S
    )
 
 # Headers from sources
 set(CINTHDRS
-    AliGPUReconstructionOCL.h
+    GPUReconstructionOCL.h
 )
 
 set(HDRS
     ${CINTHDRS}
-    AliGPUReconstructionOCLInternals.h
+    GPUReconstructionOCLInternals.h
   )
 
 foreach (def ${DEFINITIONS})
@@ -130,7 +130,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
     # Add a library to the project using the specified source files
     add_library_tested(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)
     # AMD OpenCL run-time and driver
-    target_link_libraries(${MODULE} OpenCL AliGPUTracking)
+    target_link_libraries(${MODULE} OpenCL GPUTracking)
 
     # Installation
     install(TARGETS ${MODULE}
@@ -147,7 +147,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     set(BUCKET_NAME GPUTrackingOCL_bucket)
 
     O2_GENERATE_LIBRARY()
-    install(FILES ${HDRS} DESTINATION include/AliGPU)
+    install(FILES ${HDRS} DESTINATION include/GPU)
 
     target_link_libraries(${MODULE} OpenCL O2GPUTracking)
 endif()
