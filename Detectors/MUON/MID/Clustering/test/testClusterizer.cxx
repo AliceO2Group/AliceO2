@@ -247,8 +247,7 @@ std::vector<ColumnData> getFiredStrips(float xPos, float yPos, int deId, Mapping
         columnStruct->deId = deId;
         columnStruct->columnId = neigh.column;
       }
-      int line = (cathode == 1) ? 4 : neigh.line;
-      columnStruct->patterns[line] |= (1 << neigh.strip);
+      columnStruct->addStrip(neigh.strip, cathode, neigh.line);
     }
   }
   return columns;
