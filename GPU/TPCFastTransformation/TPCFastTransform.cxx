@@ -8,7 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 /// \file  TPCFastTransform.cxx
 /// \brief Implementation of TPCFastTransform class
 ///
@@ -243,7 +242,7 @@ void TPCFastTransform::Print() const
   std::cout<<"TPC Rows : "<<std::endl;
   for( int i=0; i<mNumberOfRows; i++){
     std::cout<<" tpc row "<<i<<": x = "<<mRowInfoPtr[i].x<<" maxPad = "<<mRowInfoPtr[i].maxPad<<" padWidth = "<<mRowInfoPtr[i].padWidth<<std::endl;
-  }  
+  }
   mDistortion.Print();
 #endif
 }

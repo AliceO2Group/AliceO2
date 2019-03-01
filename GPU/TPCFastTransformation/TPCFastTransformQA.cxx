@@ -8,7 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 /// \file  TPCFastTransformQA.cxx
 /// \brief Implementation of TPCFastTransformQA class
 ///
@@ -69,13 +68,13 @@ int TPCFastTransformQA::doQA( const TPCFastTransform &fastTransform )
     double sum1 = 0;
     for( Int_t iSec=0; iSec<1; iSec++ ){
       cout<<"Measure original transformation time for TPC sector "<<iSec<<" .."<<endl;
-      int nRows = tpcParam->GetNRow(iSec);      
+      int nRows = tpcParam->GetNRow(iSec);
       for( int iRow=0; iRow<nRows; iRow++){
 	Int_t nPads = tpcParam->GetNPads(iSec,iRow);
 	for( float pad=0.5; pad<nPads; pad+=1.){
 	  for( float time =0; time < lastTimeBin; time++ ){
 	    Int_t is[]={iSec};
-	    double orig[3]={static_cast<Double_t>(iRow),pad,time};	    
+	    double orig[3]={static_cast<Double_t>(iRow),pad,time};
 	    origTransform->Transform(orig,is,0,1);
 	    nCalls1++;
 	    sum1+=orig[0]+orig[1]+orig[2];
@@ -91,8 +90,8 @@ int TPCFastTransformQA::doQA( const TPCFastTransform &fastTransform )
     for( Int_t iSec=0; iSec<1; iSec++ ){
       cout<<"Measure fast transformation time for TPC sector "<<iSec<<" .."<<endl;
       int nRows = tpcParam->GetNRow(iSec);
-      for( int iRow=0; iRow<nRows; iRow++){	
-	Int_t nPads = tpcParam->GetNPads(iSec,iRow);     
+      for( int iRow=0; iRow<nRows; iRow++){
+	Int_t nPads = tpcParam->GetNPads(iSec,iRow);
 	int slice=0, slicerow=0;
 	AliHLTTPCGeometry::Sector2Slice( slice, slicerow, iSec, iRow);
 	for( float pad=0.5; pad<nPads; pad+=1.){
@@ -119,17 +118,17 @@ int TPCFastTransformQA::doQA( const TPCFastTransform &fastTransform )
   }
 
 
-  if(1){ 
+  if(1){
     TFile *file = new TFile(fileName,"RECREATE");
-    if( !file || !file->IsOpen() ) return storeError( -1, "Can't recreate QA file !"); 
+    if( !file || !file->IsOpen() ) return storeError( -1, "Can't recreate QA file !");
     file->cd();
     TNtuple *nt = new TNtuple("fastTransformQA", "fastTransformQA", "sec:row:pad:time:x:y:z:fx:fy:fz");
 
-    for( Int_t iSec=0; iSec<1; iSec++ ){     
+    for( Int_t iSec=0; iSec<1; iSec++ ){
       int nRows = tpcParam->GetNRow(iSec);
       for( int iRow=0; iRow<nRows; iRow++){
 	cout<<"Write fastTransform QA for TPC sector "<<iSec<<", row "<<iRow<<" .."<<endl;
-	Int_t nPads = tpcParam->GetNPads(iSec,iRow);     
+	Int_t nPads = tpcParam->GetNPads(iSec,iRow);
 	int slice=0, slicerow=0;
 	AliHLTTPCGeometry::Sector2Slice( slice, slicerow, iSec, iRow);
 	for( float pad=0.5; pad<nPads; pad+=1.){
@@ -140,7 +139,7 @@ int TPCFastTransformQA::doQA( const TPCFastTransform &fastTransform )
 	    origTransform->Transform(orig,is,0,1);
 	    int errF = fastTransform.Transform( slice, slicerow, pad, time, fast[0], fast[1], fast[2] );
 	    if( errF ){
-	      storeError( -3, "AliHLTTPCFastTransform::WriteQATree: fast transformation failed!!"); 
+	      storeError( -3, "AliHLTTPCFastTransform::WriteQATree: fast transformation failed!!");
 	      continue;
 	    }
 	    float entry[] = {(float) iSec, (float) iRow, pad, time, (float) orig[0], (float) orig[1], (float) orig[2], fast[0], fast[1], fast[2] };
@@ -152,19 +151,18 @@ int TPCFastTransformQA::doQA( const TPCFastTransform &fastTransform )
     file->Write();
     file->Close();
     delete file;
-  }  
+  }
   return 0;
 }
  
 int TPCFastTransformQA::doQA( Long_t TimeStamp )
-{  
+{
   TPCFastTransform fastTransform;
   TPCFastTransformManager man;
   
-  man.create( fastTransform, nullptr, TimeStamp );   
+  man.create( fastTransform, nullptr, TimeStamp );
 
   return doQA( fastTransform );
 }
 
 }} // namespaces
-

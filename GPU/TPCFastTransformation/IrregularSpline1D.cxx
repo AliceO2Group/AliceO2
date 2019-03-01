@@ -8,7 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 /// \file  IrregularSpline1D.cxx
 /// \brief Implementation of IrregularSpline1D class
 ///
