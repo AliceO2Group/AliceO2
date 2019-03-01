@@ -53,6 +53,7 @@ int AliGPUTPCO2Interface::Initialize(const AliGPUO2InterfaceConfiguration& confi
 	fDumpEvents = mConfig->configInterface.dumpEvents;
 	fContinuous = mConfig->configEvent.continuousMaxTimeBin != 0;
 	mRec.reset(AliGPUReconstruction::CreateInstance(mConfig->configProcessing));
+	mChain = mRec->AddChain<AliGPUChainTracking>();
 	mChain->mConfigDisplay = &mConfig->configDisplay;
 	mChain->mConfigQA = &mConfig->configQA;
 	mRec->SetSettings(&mConfig->configEvent, &mConfig->configReconstruction, &mConfig->configDeviceProcessing);
