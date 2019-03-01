@@ -1,25 +1,19 @@
-// **************************************************************************
-// This file is property of and copyright by the ALICE HLT Project          *
-// ALICE Experiment at CERN, All rights reserved.                           *
-//                                                                          *
-// Primary Authors: Vito Nordloh <vito.nordloh@vitonordloh.de>              *
-//                  Sergey Gorbunov <sergey.gorbunov@fias.uni-frankfurt.de> *
-//                  for The ALICE HLT Project.                              *
-//                                                                          *
-// Permission to use, copy, modify and distribute this software and its     *
-// documentation strictly for non-commercial purposes is hereby granted     *
-// without fee, provided that the above copyright notice appears in all     *
-// copies and that both the copyright notice and this permission notice     *
-// appear in the supporting documentation. The authors make no claims       *
-// about the suitability of this software for any purpose. It is            *
-// provided "as is" without express or implied warranty.                    *
-//                                                                          *
-//***************************************************************************
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file GPUTPCGMPolynomialFieldManager.cxx
+/// \author Sergey Gorbunov, David Rohr
 
 #include "GPUTPCGMPolynomialFieldManager.h"
 #include "GPUTPCGMPolynomialField.h"
 #include <cmath>
-  
 
 int GPUTPCGMPolynomialFieldManager::GetPolynomialField( StoredField_t fieldType, float nominalFieldkG, GPUTPCGMPolynomialField &field )
 {
@@ -126,34 +120,34 @@ int GPUTPCGMPolynomialFieldManager::GetPolynomialField( StoredField_t fieldType,
   // ITS: polynomial coefficients for 2kG field
   //
   
-  const float kItsSol2Bx[kItsM] = { -5.91223470110e-05, 
-				    6.90032351258e-08, 8.25885251743e-07, -5.32185140401e-06, 
+  const float kItsSol2Bx[kItsM] = { -5.91223470110e-05,
+				    6.90032351258e-08, 8.25885251743e-07, -5.32185140401e-06,
 				    -9.65053725821e-09, 1.08244559982e-08, 2.85320879811e-07, -5.09609510146e-09, -6.39149955184e-10, 1.49089558477e-08 };
 
 
-  const float kItsSol2By[kItsM] = { -1.48597624502e-04, 
-				    8.25465463095e-07, -2.97493147627e-06, 4.98509780300e-06, 
+  const float kItsSol2By[kItsM] = { -1.48597624502e-04,
+				    8.25465463095e-07, -2.97493147627e-06, 4.98509780300e-06,
 				    4.24987989245e-10, -1.98144327612e-08, -1.20077459087e-09, -1.19401033505e-09, 2.82514832861e-07, -1.50957846223e-09 };
 
-  const float kItsSol2Bz[kItsM] = { 9.99939501286e-01, 
-				    -6.24587028142e-06, 4.81351708004e-06, 2.35402990256e-06, 
+  const float kItsSol2Bz[kItsM] = { 9.99939501286e-01,
+				    -6.24587028142e-06, 4.81351708004e-06, 2.35402990256e-06,
 				    1.26109355847e-07, 9.08826292001e-10, 3.43317942963e-08, 1.25566515408e-07, -2.71147437836e-09, -2.69678821496e-07 };
 
   //
   // ITS: polynomial coefficients for 5kG field
   //
 
-  const float kItsSol5Bx[kItsM] = { -6.05255008850e-05, 
-				    2.42733176492e-06, -9.46944425095e-08, -3.22587538903e-06, 
+  const float kItsSol5Bx[kItsM] = { -6.05255008850e-05,
+				    2.42733176492e-06, -9.46944425095e-08, -3.22587538903e-06,
 				    -8.23875456746e-09, 2.83529777434e-09, 3.42276649690e-07, -3.80562692470e-09, 3.64589525237e-10, 1.08676720956e-08 };
 
 
-  const float kItsSol5By[kItsM] = { 7.84835810919e-06, 
-				    5.19906029339e-09, 9.49704599407e-07, 7.98410110292e-06, 
+  const float kItsSol5By[kItsM] = { 7.84835810919e-06,
+				    5.19906029339e-09, 9.49704599407e-07, 7.98410110292e-06,
 				    1.74484093840e-09, -7.61669749494e-09, 5.19390808140e-10, 9.18893627855e-10, 3.37364895131e-07, -1.46239598209e-09 };
 
-  const float kItsSol5Bz[kItsM] = { 1.00001418591e+00, 
-				    -3.69126610167e-06, 7.76097112976e-06, -3.11396547659e-06, 
+  const float kItsSol5Bz[kItsM] = { 1.00001418591e+00,
+				    -3.69126610167e-06, 7.76097112976e-06, -3.11396547659e-06,
 				    1.64195810726e-07, 2.47078468796e-10, 2.39289423831e-08, 1.61199579907e-07, -3.16838866254e-09, -3.23542707292e-07 };
 
  
@@ -735,7 +729,7 @@ int GPUTPCGMPolynomialFieldManager::FitFieldIts( AliMagF* inputFld, GPUTPCGMPoly
     std::cout << "sector = " << sector << std::endl;
     double asec = sectorAngleShift + sector*sectorAngle;
     double cs = TMath::Cos(asec);
-    double ss = TMath::Sin(asec);    
+    double ss = TMath::Sin(asec);
     for( double al=alMin; al<alMax; al+=dA ){
       std::cout<<"angle "<<al/TMath::Pi()*180.<<" grad "<<std::endl;
       double tg = TMath::Tan(al);
@@ -747,7 +741,7 @@ int GPUTPCGMPolynomialFieldManager::FitFieldIts( AliMagF* inputFld, GPUTPCGMPoly
 
 	double zCone = zITS + (xl-xITS) * coneSlope;
 	
-	for( double z=-zCone; z<=zCone; z+=dZ ){ // 1 cm step in Z at TPC radius	  
+	for( double z=-zCone; z<=zCone; z+=dZ ){ // 1 cm step in Z at TPC radius
 	  Double_t xyz[3] = {x,y,z};
 	  Double_t B[3] = {0.,0.,0.};
 	  if(fld->IsUniform()) {
@@ -761,7 +755,7 @@ int GPUTPCGMPolynomialFieldManager::FitFieldIts( AliMagF* inputFld, GPUTPCGMPoly
 	  B[2]*=solenoidBzkGInv;
 
 	  float f[M];
-	  GPUTPCGMPolynomialField::GetPolynomsIts(x,y,z,f);	  
+	  GPUTPCGMPolynomialField::GetPolynomsIts(x,y,z,f);
 	  fitBx.AddMeasurement( f, B[0]);
 	  fitBy.AddMeasurement( f, B[1]);
 	  fitBz.AddMeasurement( f, B[2]);
@@ -817,7 +811,7 @@ int GPUTPCGMPolynomialFieldManager::FitFieldIts( AliMagF* inputFld, GPUTPCGMPoly
       for( double xl=xMin; xl<=xMax; xl+=dX ){
 	double yl = xl*tg;
 	double x = xl*cs - yl*ss;
-	double y = xl*ss + yl*cs;	
+	double y = xl*ss + yl*cs;
 	double zCone = zITS + (xl-xITS) * coneSlope;
 	for( double z=-zCone; z<=zCone; z+=dZ ){
 	  Double_t xyz[3] = {x,y,z};

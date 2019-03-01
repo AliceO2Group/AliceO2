@@ -1,16 +1,20 @@
-// ************************************************************************
-// This file is property of and copyright by the ALICE HLT Project        *
-// ALICE Experiment at CERN, All rights reserved.                         *
-// See cxx source for full Copyright notice                               *
-//                                                                        *
-//*************************************************************************
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
 
+/// \file GPUTPCTrackLinearisation.h
+/// \author Sergey Gorbunov, David Rohr
 
 #ifndef GPUTPCTRACKLINEARISATION_H
 #define GPUTPCTRACKLINEARISATION_H
 
 #include "GPUTPCTrackParam.h"
-
 
 /**
  * @class GPUTPCTrackLinearisation
@@ -67,7 +71,6 @@ GPUd() MEM_CLASS_PRE2() inline GPUTPCTrackLinearisation::GPUTPCTrackLinearisatio
 	fCosPhi = CAMath::Sqrt( 1 - fSinPhi * fSinPhi );
 	if ( t.SignCosPhi() < 0 ) fCosPhi = -fCosPhi;
 }
-
 
 GPUd() inline void GPUTPCTrackLinearisation::Set( float SinPhi1, float CosPhi1,
 	float DzDs1, float QPt1 )

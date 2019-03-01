@@ -1,11 +1,15 @@
-//-*- Mode: C++ -*-
-// $Id: GPUTPCBaseTrackParam.h 35151 2009-10-01 13:35:10Z sgorbuno $
-// ************************************************************************
-// This file is property of and copyright by the ALICE HLT Project        *
-// ALICE Experiment at CERN, All rights reserved.                         *
-// See cxx source for full Copyright notice                               *
-//                                                                        *
-//*************************************************************************
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file GPUTPCBaseTrackParam.h
+/// \author David Rohr, Sergey Gorbunov
 
 #ifndef GPUTPCBASETRACKPARAM_H
 #define GPUTPCBASETRACKPARAM_H
