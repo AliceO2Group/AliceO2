@@ -212,6 +212,18 @@ ENDIF()
 SET(IGNORE_MACROS
     ${CMAKE_SOURCE_DIR}/Generators/share/external/hijing.C
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/macros/EVE/rootlogon.C
+    # Exclude AliRoot macros from AliGPU package
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger/macros/checkPropagation.C
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger/macros/fitPolynomialFieldIts.C
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger/macros/fitPolynomialFieldTpc.C
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger/macros/fitPolynomialFieldTrd.C
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Standalone/tools/dump.C
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/TRDTracking/macros/checkDbgOutput.C
+    ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation/macro/initTPCcalibration.C
+    ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation/macro/createTPCFastTransform.C
+    ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation/macro/moveTPCFastTransform.C
+    ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation/macro/loadlibs.C
+    # End of exclusion of AliRoot macros
     # Temporarily disable the following macros: ROOT v6-14-04 fails to parse
     # correctly some Boost headers
     ${CMAKE_SOURCE_DIR}/CCDB/example/fill_local_ocdb.C
