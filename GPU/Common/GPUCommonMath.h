@@ -57,13 +57,13 @@ class GPUCommonMath
 
 typedef GPUCommonMath CAMath;
 
-#if defined(GPUCA_GPUCODE_DEVICE) && (defined (__CUDACC__) || defined(__HIPCC_))
+#if defined(GPUCA_GPUCODE_DEVICE) && (defined (__CUDACC__) || defined(__HIPCC_)) // clang-format off
     #define CHOICE(c1, c2, c3) c2
 #elif defined(GPUCA_GPUCODE_DEVICE) && defined (__OPENCL__)
     #define CHOICE(c1, c2, c3) c3
 #else
     #define CHOICE(c1, c2, c3) c1
-#endif
+#endif // clang-format on
 
 GPUhdi() float2 GPUCommonMath::MakeFloat2(float x, float y)
 {

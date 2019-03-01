@@ -95,8 +95,8 @@ inline void GPUDisplay::drawVertices(const vboList& v, const GLenum t)
 
 	if (useMultiVBO)
 	{
-		CHKERR(glBindBuffer(GL_ARRAY_BUFFER, vbo_id[iSlice]))
-		CHKERR(glVertexPointer(3, GL_FLOAT, 0, 0));
+		CHKERR(glBindBuffer(GL_ARRAY_BUFFER, vbo_id[iSlice]));
+		CHKERR(glVertexPointer(3, GL_FLOAT, 0, 0));;
 	}
 
 	if (useGLIndirectDraw)
@@ -221,7 +221,7 @@ void GPUDisplay::setAnimationPoint()
 		for (int i = 0;i < 4;i++) animateVectors[i + 5].emplace_back(v[i]);
 	}
 	float delay = 0.f;
-	if (animateVectors[0].size()) delay = animateVectors[0].back() + ((int) (animationDelay * 20)) / 20.f;;
+	if (animateVectors[0].size()) delay = animateVectors[0].back() + ((int) (animationDelay * 20)) / 20.f;
 	animateVectors[0].emplace_back(delay);
 	animateConfig.emplace_back(cfg);
 }
@@ -272,11 +272,11 @@ void GPUDisplay::setQuality()
 	//Doesn't seem to make a difference in this applicattion
 	if (drawQualityMSAA > 1)
 	{
-		CHKERR(glEnable(GL_MULTISAMPLE))
+		CHKERR(glEnable(GL_MULTISAMPLE));
 	}
 	else
 	{
-		CHKERR(glDisable(GL_MULTISAMPLE))
+		CHKERR(glDisable(GL_MULTISAMPLE));
 	}
 }
 
@@ -315,8 +315,14 @@ void GPUDisplay::createFB_renderbuffer(GLuint& id, bool msaa, GLenum storage, GL
 {
 	CHKERR(glGenRenderbuffers(1, &id));
 	CHKERR(glBindRenderbuffer(GL_RENDERBUFFER, id));
-	if (msaa) CHKERR(glRenderbufferStorageMultisample(GL_RENDERBUFFER, drawQualityMSAA, storage, render_width, render_height))
-	else CHKERR(glRenderbufferStorage(GL_RENDERBUFFER, storage, render_width, render_height))
+	if (msaa)
+	{
+		CHKERR(glRenderbufferStorageMultisample(GL_RENDERBUFFER, drawQualityMSAA, storage, render_width, render_height));
+	}
+	else
+	{
+		CHKERR(glRenderbufferStorage(GL_RENDERBUFFER, storage, render_width, render_height));
+	}
 	CHKERR(glFramebufferRenderbuffer(GL_FRAMEBUFFER, attachment, GL_RENDERBUFFER, id));
 }
 
@@ -353,12 +359,24 @@ void GPUDisplay::createFB(GLfb& fb, bool tex, bool withDepth, bool msaa)
 
 void GPUDisplay::deleteFB(GLfb& fb)
 {
-	if (fb.tex) CHKERR(glDeleteTextures(1, &fb.fbCol_id))
-	else CHKERR(glDeleteRenderbuffers(1, &fb.fbCol_id))
+	if (fb.tex)
+	{
+		CHKERR(glDeleteTextures(1, &fb.fbCol_id));
+	}
+	else
+	{
+		CHKERR(glDeleteRenderbuffers(1, &fb.fbCol_id));
+	}
 	if (fb.depth)
 	{
-		if (fb.tex && fb.msaa) CHKERR(glDeleteTextures(1, &fb.fbDepth_id))
-		else CHKERR(glDeleteRenderbuffers(1, &fb.fbDepth_id))
+		if (fb.tex && fb.msaa)
+		{
+			CHKERR(glDeleteTextures(1, &fb.fbDepth_id));
+		}
+		else
+		{
+			CHKERR(glDeleteRenderbuffers(1, &fb.fbDepth_id));
+		}
 	}
 	CHKERR(glDeleteFramebuffers(1, &fb.fb_id));
 	fb.created = false;
@@ -714,7 +732,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
 			bool drawing = false;
 			if (trdTrackIds[i])
 			{
-				auto& trk = trdTracker().Tracks()[trdTrackIds[i]];;
+				auto& trk = trdTracker().Tracks()[trdTrackIds[i]];
 				for (int k = 5;k >= 0;k--)
 				{
 					int cid = trk.GetTrackletIndex(k);
@@ -950,8 +968,14 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float animateTime) // He
 	//Initialize
 	if (!mixAnimation)
 	{
-		if (invertColors) {CHKERR(glClearColor(1.0f, 1.0f, 1.0f, 1.0f));}
-		else {CHKERR(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));}
+		if (invertColors)
+		{
+			CHKERR(glClearColor(1.0f, 1.0f, 1.0f, 1.0f));
+		}
+		else
+		{
+			CHKERR(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
+		}
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear Screen And Depth Buffer
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();                                   // Reset The Current Modelview Matrix
@@ -1205,10 +1229,22 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float animateTime) // He
 	}
 
 	//Open GL Default Values
-	if (cfg.smoothPoints) CHKERR(glEnable(GL_POINT_SMOOTH))
-	else CHKERR(glDisable(GL_POINT_SMOOTH))
-	if (cfg.smoothLines) CHKERR(glEnable(GL_LINE_SMOOTH))
-	else CHKERR(glDisable(GL_LINE_SMOOTH))
+	if (cfg.smoothPoints)
+	{
+		CHKERR(glEnable(GL_POINT_SMOOTH));
+	}
+	else
+	{
+		CHKERR(glDisable(GL_POINT_SMOOTH));
+	}
+	if (cfg.smoothLines)
+	{
+		CHKERR(glEnable(GL_LINE_SMOOTH));
+	}
+	else
+	{
+		CHKERR(glDisable(GL_LINE_SMOOTH));
+	}
 	CHKERR(glEnable(GL_BLEND));
 	CHKERR(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 	CHKERR(glPointSize(cfg.pointSize * (drawQualityDownsampleFSAA > 1 ? drawQualityDownsampleFSAA : 1)));

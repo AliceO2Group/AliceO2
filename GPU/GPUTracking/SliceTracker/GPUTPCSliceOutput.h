@@ -16,16 +16,16 @@
 
 #include "GPUTPCDef.h"
 
-#if !defined(GPUCA_GPUCODE_DEVICE)
-    #include <cstdlib>
-    #ifndef GPUCA_GPUCODE
+#if !defined(GPUCA_GPUCODE_DEVICE) // clang-format off
+  #include <cstdlib>
+  #ifndef GPUCA_GPUCODE
     #include "GPUTPCSliceOutTrack.h"
-    #else
+  #else
     class GPUTPCSliceOutTrack;
-    #endif
+  #endif
 #elif defined(__OPENCL__) && !defined(__OPENCLCPP__)
-    #define NULL 0
-#endif
+  #define NULL 0
+#endif // clang-format on
 
 struct GPUOutputControl;
 

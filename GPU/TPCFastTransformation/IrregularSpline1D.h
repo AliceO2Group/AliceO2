@@ -130,10 +130,10 @@ class IrregularSpline1D :public gpu_common::Base::FlatObject
   IrregularSpline1D();
 
   /// Copy constructor: disabled to avoid ambiguity. Use cloneFromObject instead
-  IrregularSpline1D(const IrregularSpline1D& ) CON_DELETE;;
+  IrregularSpline1D(const IrregularSpline1D& ) CON_DELETE;
  
   /// Assignment operator: disabled to avoid ambiguity. Use cloneFromObject instead
-  IrregularSpline1D &operator=(const IrregularSpline1D &) CON_DELETE;;
+  IrregularSpline1D &operator=(const IrregularSpline1D &) CON_DELETE;
 
   /// Destructor
   ~IrregularSpline1D() CON_DEFAULT;

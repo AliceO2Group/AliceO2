@@ -55,6 +55,7 @@ public:
     
 	void OverrideSliceTracker(GPUTPCTracker* trk) { fSliceTrackers = trk; }
 	void SetTrackingChain(GPUChainTracking* c) {fChainTracking = c;}
+	const GPUChainTracking* GetTrackingChain() const {return fChainTracking;}
 
 	void SetSliceData(int index, const GPUTPCSliceOutput *SliceData);
 	int CheckSlices();

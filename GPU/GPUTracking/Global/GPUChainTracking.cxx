@@ -485,7 +485,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
 	for (unsigned int iSlice = 0;iSlice < NSLICES;iSlice++)
 	{
 		GPUTPCTracker& trk = workers()->tpcTrackers[iSlice];
-		GPUTPCTracker& trkShadow = doGPU ? workersShadow()->tpcTrackers[iSlice] : trk;;
+		GPUTPCTracker& trkShadow = doGPU ? workersShadow()->tpcTrackers[iSlice] : trk;
 		
 		if (GetDeviceProcessingSettings().debugLevel >= 3) GPUInfo("Creating Slice Data (Slice %d)", iSlice);
 		if (!doGPU || iSlice % (GetDeviceProcessingSettings().nDeviceHelperThreads + 1) == 0)
@@ -956,7 +956,7 @@ int GPUChainTracking::DoTRDGPUTracking()
 #ifdef GPUCA_BUILD_TRD
 	bool doGPU = GetRecoStepsGPU() & RecoStep::TRDTracking;
 	GPUTRDTracker& Tracker = workers()->trdTracker;
-	GPUTRDTracker& TrackerShadow = doGPU ? workersShadow()->trdTracker : Tracker;;
+	GPUTRDTracker& TrackerShadow = doGPU ? workersShadow()->trdTracker : Tracker;
 
 	ActivateThreadContext();
 	SetupGPUProcessor(&Tracker, false);

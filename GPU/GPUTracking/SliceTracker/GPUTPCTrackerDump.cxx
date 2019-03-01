@@ -200,7 +200,7 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream &out)
 		}
 		else if (Tracklets()[j].NHits() && Tracklets()[j].LastRow() >= Tracklets()[j].FirstRow())
 		{
-			int nHits = 0;;
+			int nHits = 0;
 			for (int i = Tracklets()[j].FirstRow();i <= Tracklets()[j].LastRow();i++)
 			{
 #ifdef EXTERN_ROW_HITS

@@ -11,11 +11,13 @@
 /// \file GPUDisplayBackendGlut.cpp
 /// \author David Rohr
 
-#include "GPUDisplayBackendGlut.h"
+//GLEW must be the first header
+#include <GL/glew.h>
 
+//Now the other headers
+#include "GPUDisplayBackendGlut.h"
 #include <cstdio>
 #include <cstring>
-#include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <unistd.h>
 

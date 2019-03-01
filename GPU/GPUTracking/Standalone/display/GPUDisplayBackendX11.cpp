@@ -11,7 +11,10 @@
 /// \file GPUDisplayBackendX11.cpp
 /// \author David Rohr
 
+//GLEW must be the first header
 #include <GL/glew.h>
+
+//Now the other headers
 #include "GPUDisplayBackendX11.h"
 #include <cstdio>
 #include <cstdlib>

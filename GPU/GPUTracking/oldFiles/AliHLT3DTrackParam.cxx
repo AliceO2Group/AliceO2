@@ -89,13 +89,13 @@ void AliHLT3DTrackParam::TransportToDS( double Bz, double DS, double *T0 )
   T0[4] =         -s * px + c * py;
   T0[5] = T0[5];
 
-  double mJ[6][6] = { {1, 0, 0,   sB, cB,  0, },
+  double mJ[6][6] = { {1, 0, 0,   sB, cB,  0, }, // clang-format off
     {0, 1, 0,  -cB, sB,  0, },
     {0, 0, 1,    0,  0, DS, },
     {0, 0, 0,    c,  s,  0, },
     {0, 0, 0,   -s,  c,  0, },
     {0, 0, 0,    0,  0,  1, }
-  };
+}; // clang-format on
 
   for ( int i = 0; i < 6; i++ ) {
     fParam[i] = T0[i];
@@ -311,13 +311,13 @@ void AliHLT3DTrackParam::RotateCoordinateSystem( double alpha )
   fParam[4] = -px * sA + py * cA;
   fParam[5] = fParam[5];
 
-  double mJ[6][6] = { { cA, sA, 0,  0,  0,  0 },
+  double mJ[6][6] = { { cA, sA, 0,  0,  0,  0 }, // clang-format off
     { -sA, cA, 0,  0,  0,  0 },
     {  0, 0, 1,  0,  0,  0 },
     {  0, 0, 0, cA, sA,  0 },
     {  0, 0, 0, -sA, cA,  0 },
     {  0, 0, 0,  0,  0,  1 }
-  };
+  }; // clang-format on
 
   double mA[6][6];
   for ( int k = 0, i = 0; i < 6; i++ )
@@ -360,12 +360,12 @@ void AliHLT3DTrackParam::Get5Parameters( double alpha, double T[6], double C[15]
   T[3] = pz / px;
   T[4] = q * n;
 
-  double mJ[5][6] = { { -T[2], 1, 0,  0,  0,  0 },
+  double mJ[5][6] = { { -T[2], 1, 0,  0,  0,  0 }, // clang-format off
     { -T[3], 0, 1,  0,  0,  0 },
     { 0, 0, 0,  -T[2] / px,  1. / px,  0 },
     { 0, 0, 0, -T[3] / px,  0,  1. / px },
     { 0, 0, 0, -T[4]*n2*px, -T[4]*n2*py, -T[4]*n2*pz}
-  };
+  }; // clang-format on
 
   double mA[6][6];
   for ( int k = 0, i = 0; i < 6; i++ )
