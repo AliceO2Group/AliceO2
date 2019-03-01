@@ -1021,7 +1021,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("start-port,p", bpo::value<unsigned short>()->default_value(22000), "start port to allocate")          //
     ("port-range,pr", bpo::value<unsigned short>()->default_value(1000), "ports in range")                  //
     ("completion-policy,c", bpo::value<TerminationPolicy>(&policy)->default_value(TerminationPolicy::QUIT), //
-     "what to do when processing is finished")                                                              //
+     "what to do when processing is finished: quit, wait")                                                  //
     ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")         //
     ("timeout,t", bpo::value<double>()->default_value(0), "timeout after which to exit")                    //
     ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration")          //
