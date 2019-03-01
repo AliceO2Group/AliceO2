@@ -13,19 +13,20 @@
 ///
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
-
 #ifndef ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_IRREGULARSPLINE1D_H
 #define ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_IRREGULARSPLINE1D_H
 
 #include "GPUCommonDef.h"
 #include "FlatObject.h"
 
-#include <stddef.h>
+#include <cstddef>
 #include <memory>
 #include <cstring>
 
-namespace ali_tpc_common {
-namespace tpc_fast_transformation {
+namespace ali_tpc_common
+{
+namespace tpc_fast_transformation
+{
 
 ///
 /// The IrregularSpline1D class represents one-dimensional spline interpolation on nonunifom (irregular) grid.
@@ -104,19 +105,17 @@ namespace tpc_fast_transformation {
 ///  spline.getSpline( f, 0.5  ); // == 1.4
 ///  spline.getSpline( f, 1.  ); // == 2.3
 ///
-class IrregularSpline1D :public gpu_common::Base::FlatObject
+class IrregularSpline1D : public gpu_common::Base::FlatObject
 {
  public:
-  
   ///
   /// \brief The struct represents a knot(i) and interval [ knot(i), knot(i+1) ]
   ///
-  struct Knot
-  {
+  struct Knot {
     float u; ///< u coordinate of the knot i
-    
+
     /// some useful values for spline calculation:
-    
+
     float scale;   ///< scale for u = inverse length of a  segment [i, i+1]:  1./L[i,i+1]
     float scaleL0; ///< a coefficient at f(i-1) for f'(i) calculation
     float scaleL2; ///< a coefficient at f(i+1) for f'(i) calculation
@@ -130,42 +129,39 @@ class IrregularSpline1D :public gpu_common::Base::FlatObject
   IrregularSpline1D();
 
   /// Copy constructor: disabled to avoid ambiguity. Use cloneFromObject instead
-  IrregularSpline1D(const IrregularSpline1D& ) CON_DELETE;
- 
+  IrregularSpline1D(const IrregularSpline1D&) CON_DELETE;
+
   /// Assignment operator: disabled to avoid ambiguity. Use cloneFromObject instead
-  IrregularSpline1D &operator=(const IrregularSpline1D &) CON_DELETE;
+  IrregularSpline1D& operator=(const IrregularSpline1D&) CON_DELETE;
 
   /// Destructor
   ~IrregularSpline1D() CON_DEFAULT;
-
 
   /// _____________  FlatObject functionality, see FlatObject class for description  ____________
 
   /// Memory alignment
 
-  using gpu_common::Base::FlatObject::getClassAlignmentBytes;
   using gpu_common::Base::FlatObject::getBufferAlignmentBytes;
-  
+  using gpu_common::Base::FlatObject::getClassAlignmentBytes;
+
   /// Construction interface
-    
-  void cloneFromObject( const IrregularSpline1D &obj, char *newFlatBufferPtr );
+
+  void cloneFromObject(const IrregularSpline1D& obj, char* newFlatBufferPtr);
   void destroy();
- 
+
   /// Making the data buffer external
-  
+
   using gpu_common::Base::FlatObject::releaseInternalBuffer;
 #ifndef GPUCA_GPUCODE
   using gpu_common::Base::FlatObject::moveBufferTo;
 #endif
 
   /// Moving the class with its external buffer to another location
-  
-  using  gpu_common::Base::FlatObject::setActualBufferAddress;
-  using  gpu_common::Base::FlatObject::setFutureBufferAddress;
- 
+
+  using gpu_common::Base::FlatObject::setActualBufferAddress;
+  using gpu_common::Base::FlatObject::setFutureBufferAddress;
 
   /// _______________  Construction interface  ________________________
-
 
   /// Constructor
   ///
@@ -181,12 +177,9 @@ class IrregularSpline1D :public gpu_common::Base::FlatObject
   ///                          an appropriate [knot(i),knot(i+1)] interval.
   ///                          The knot positions have a "granularity" of 1./numberOfAxisBins
   ///
-  void construct( int numberOfKnots, const float knots[], int numberOfAxisBins );
+  void construct(int numberOfKnots, const float knots[], int numberOfAxisBins);
 
-
- 
   /// _______________  Main functionality   ________________________
-
 
   /// Correction of data values at both edge knots.
   ///
@@ -194,16 +187,15 @@ class IrregularSpline1D :public gpu_common::Base::FlatObject
   ///
   /// \param data array of function values. It has the size of getNumberOfKnots()
   template <typename T>
-    void correctEdges( T *data ) const;
+  void correctEdges(T* data) const;
 
   /// Get interpolated value for f(u) using spline at knot "knot1" and function values at knots {knot_0,knot_1,knot_2,knot_3}
   template <typename T>
-    static T getSpline( const IrregularSpline1D::Knot &knot1, T f0, T f1, T f2, T f3, float u );
+  static T getSpline(const IrregularSpline1D::Knot& knot1, T f0, T f1, T f2, T f3, float u);
 
-  
   /// Get interpolated value for f(u) using data array correctedData[getNumberOfKnots()] with corrected edges
   template <typename T>
-    T getSpline( const T correctedData[], float u ) const;
+  T getSpline(const T correctedData[], float u) const;
 
   /// Get number of knots
   int getNumberOfKnots() const { return mNumberOfKnots; }
@@ -213,34 +205,27 @@ class IrregularSpline1D :public gpu_common::Base::FlatObject
   /// Note: U values from the first interval are mapped to the second inrerval.
   /// Values from the last interval are mapped to the previous interval.
   ///
-  int getKnotIndex( float u ) const;
- 
-  /// Get i-th knot, no border check performed!
-  const IrregularSpline1D::Knot& getKnot( int i ) const {
-    return getKnots()[i];
-  }
-  
-  /// Get array of knots
-  const IrregularSpline1D::Knot* getKnots() const {
-    return reinterpret_cast<const  IrregularSpline1D::Knot*>( mFlatBufferPtr );
-  }
+  int getKnotIndex(float u) const;
 
+  /// Get i-th knot, no border check performed!
+  const IrregularSpline1D::Knot& getKnot(int i) const { return getKnots()[i]; }
+
+  /// Get array of knots
+  const IrregularSpline1D::Knot* getKnots() const { return reinterpret_cast<const IrregularSpline1D::Knot*>(mFlatBufferPtr); }
 
   /// Get minimal required alignment for the class
-  static constexpr size_t getClassAlignmentBytes() {return 8;}
+  static constexpr size_t getClassAlignmentBytes() { return 8; }
 
   /// Get minimal required alignment for the flat buffer
-  static constexpr size_t getBufferAlignmentBytes() {return 8;}
-  
+  static constexpr size_t getBufferAlignmentBytes() { return 8; }
+
   /// Get minimal required alignment for the spline data
-  static constexpr size_t getDataAlignmentBytes() {return 8;}
+  static constexpr size_t getDataAlignmentBytes() { return 8; }
 
   /// technical stuff
-  
+
   /// Get a map  (U axis bin index) -> (corresponding knot index)
-  const int* getBin2KnotMap() const  {
-    return reinterpret_cast<const int*>( mFlatBufferPtr + mBin2KnotMapOffset);
-  }
+  const int* getBin2KnotMap() const { return reinterpret_cast<const int*>(mFlatBufferPtr + mBin2KnotMapOffset); }
 
   /// Get number of axis bins
   int getNumberOfAxisBins() const { return mNumberOfAxisBins; }
@@ -254,57 +239,47 @@ class IrregularSpline1D :public gpu_common::Base::FlatObject
   /// The coefficients ci are calculated in double precision because they are temporary
   /// and used only at the initialisation phase. So we can pay a price for the higher accuracy here.
   ///
-  static void getEdgeCorrectionCoefficients( double  u0, double  u1, double  u2, double  u3,
-					     double &c0, double &c1, double &c2, double &c3  );
+  static void getEdgeCorrectionCoefficients(double u0, double u1, double u2, double u3, double& c0, double& c1, double& c2, double& c3);
 
   /// Print method
   void Print() const;
 
  private:
-
   /// Non-const accessor to knots array
-  IrregularSpline1D::Knot* getKnotsNonConst() {
-    return reinterpret_cast<IrregularSpline1D::Knot*>( mFlatBufferPtr  );
-  }
- 
+  IrregularSpline1D::Knot* getKnotsNonConst() { return reinterpret_cast<IrregularSpline1D::Knot*>(mFlatBufferPtr); }
+
   /// Non-const accessor to bins->knots map
-  int* getBin2KnotMapNonConst(){
-    return reinterpret_cast<int*>( mFlatBufferPtr + mBin2KnotMapOffset);
-  }
-  
- 
+  int* getBin2KnotMapNonConst() { return reinterpret_cast<int*>(mFlatBufferPtr + mBin2KnotMapOffset); }
+
   ///
   /// ====  Data members   ====
   ///
 
-  int mNumberOfKnots;                        ///< n knots on the grid
-  int mNumberOfAxisBins;                     ///< number of axis bins
-  unsigned int mBin2KnotMapOffset;           ///< pointer to (axis bin) -> (knot) map in mFlatBufferPtr array
- 
+  int mNumberOfKnots;              ///< n knots on the grid
+  int mNumberOfAxisBins;           ///< number of axis bins
+  unsigned int mBin2KnotMapOffset; ///< pointer to (axis bin) -> (knot) map in mFlatBufferPtr array
 };
-
 
 /// ====================================================
 ///       Inline implementations of some methods
 /// ====================================================
- 
-   
+
 template <typename T>
-  inline T IrregularSpline1D::getSpline( const IrregularSpline1D::Knot &knot1, T f0, T f1, T f2, T f3, float u )
+inline T IrregularSpline1D::getSpline(const IrregularSpline1D::Knot& knot1, T f0, T f1, T f2, T f3, float u)
 {
   /// static method
   /// Get interpolated value for f(u) using spline at knot "knot1" and function values at knots {knot_0,knot_1,knot_2,knot_3}
 
-  f0-=f1;
-  f2-=f1;
-  f3-=f1;
+  f0 -= f1;
+  f2 -= f1;
+  f3 -= f1;
 
-  T x = T( (u-knot1.u)* knot1.scale ); // scaled u
-  T z1 = T( f0*knot1.scaleL0 + f2*knot1.scaleL2 ); // scaled u derivative at the knot 1
-  T z2 = T( f2*knot1.scaleR2 + f3*knot1.scaleR3 ); // scaled u derivative at the knot 2
-  
-  T x2 = x*x;
- 
+  T x = T((u - knot1.u) * knot1.scale);              // scaled u
+  T z1 = T(f0 * knot1.scaleL0 + f2 * knot1.scaleL2); // scaled u derivative at the knot 1
+  T z2 = T(f2 * knot1.scaleR2 + f3 * knot1.scaleR3); // scaled u derivative at the knot 2
+
+  T x2 = x * x;
+
   // f(x) = ax^3 + bx^2 + cx + d
   //
   // f(0) = f1
@@ -315,60 +290,59 @@ template <typename T>
 
   // T d = f1;
   // T c = z1;
-  T a = -f2 -f2 + z1 + z2;
-  T b =  f2 - z1 - a;
-  return a*x*x2 + b*x2 + z1*x + f1;
+  T a = -f2 - f2 + z1 + z2;
+  T b = f2 - z1 - a;
+  return a * x * x2 + b * x2 + z1 * x + f1;
 }
 
-  
 template <typename T>
-inline T IrregularSpline1D::getSpline(  const T correctedData[], float u ) const
+inline T IrregularSpline1D::getSpline(const T correctedData[], float u) const
 {
   /// Get interpolated value for f(u) using data array correctedData[getNumberOfKnots()] with corrected edges
-  int iknot = getKnotIndex( u );
-  const IrregularSpline1D::Knot &knot = getKnot( iknot );
-  const T *f = correctedData + iknot -1;
-  return getSpline( knot, f[0], f[1], f[2], f[3], u );
+  int iknot = getKnotIndex(u);
+  const IrregularSpline1D::Knot& knot = getKnot(iknot);
+  const T* f = correctedData + iknot - 1;
+  return getSpline(knot, f[0], f[1], f[2], f[3], u);
 }
 
-inline int IrregularSpline1D::getKnotIndex( float u ) const
+inline int IrregularSpline1D::getKnotIndex(float u) const
 {
   /// get i: u is in [knot_i, knot_{i+1})
-  int ibin = (int) ( u * mNumberOfAxisBins );
-  if( ibin < 0 ) ibin = 0;
-  if( ibin > mNumberOfAxisBins -1 ) ibin = mNumberOfAxisBins-1;
-  return getBin2KnotMap()[ ibin ];
+  int ibin = (int)(u * mNumberOfAxisBins);
+  if (ibin < 0)
+    ibin = 0;
+  if (ibin > mNumberOfAxisBins - 1)
+    ibin = mNumberOfAxisBins - 1;
+  return getBin2KnotMap()[ibin];
 }
 
-
-inline void IrregularSpline1D::getEdgeCorrectionCoefficients( double  u0, double  u1, double  u2, double  u3,
-							       double &c0, double &c1, double &c2, double &c3  )
+inline void IrregularSpline1D::getEdgeCorrectionCoefficients(double u0, double u1, double u2, double u3, double& c0, double& c1, double& c2, double& c3)
 {
   /// static method
   /// get edge  correction for f(u0):
   /// f0corr = c0*f0 + c1*f1 + c2*f2 + c3*f3
 
   double du = u2 - u1;
-  double x0 = ( u0 - u1 )/du;
-  //double x1 = ( u1 - u1 )/du = 0
-  //double x2 = ( u2 - u1 )/du = 1
-  double x3 = ( u3 - u1 )/du;
+  double x0 = (u0 - u1) / du;
+  // double x1 = ( u1 - u1 )/du = 0
+  // double x2 = ( u2 - u1 )/du = 1
+  double x3 = (u3 - u1) / du;
 
-  double cL0 = -1./(x0*(x0-1.));
-  double cL2 = x0/(x0-1.);
-  double cR2 = (x3-2.)/(x3-1.);
-  double cR3 = 1./(x3*(x3-1.));
+  double cL0 = -1. / (x0 * (x0 - 1.));
+  double cL2 = x0 / (x0 - 1.);
+  double cR2 = (x3 - 2.) / (x3 - 1.);
+  double cR3 = 1. / (x3 * (x3 - 1.));
 
   // Fi = fi - f1
 
   // z1 = F0corr*cL0 + F2*cL2; // scaled u derivative at the knot 1
   // z2 = F2*cR2 + F3*cR3; // scaled u derivative at the knot 2
-  
+
   // a =  -2F2 +   z1 + z2
   // b =   3F2 - 2*z1 - z2 ;
   // c =           z1
   // d = 0
- 
+
   // F(x) = ax^3 + bx^2 + cx + d
   // F(x) = (-2*x^3+3*x^2)*F2 + (x^3-2*x^2+x)*z1 + (x^3-x^2)*z2
   // F(x) = (-2*x^3+3*x^2)*F2 + (x^3-2*x^2+x)*z1 + (x^3-x^2)*(cR2*F2 + cR3*F3)
@@ -377,45 +351,44 @@ inline void IrregularSpline1D::getEdgeCorrectionCoefficients( double  u0, double
 
   // z1*x*(x-1)^2 = F(x) - x^2(-2*x+3+(x-1)*cR2)*F2 - x^2(x-1)*cR3*F3
   // z1*x0*(x0-1)^2 = F0 - x0^2(-2*x0+3+(x0-1)*cR2)*F2 - x0^2(x0-1)*cR3*F3
-  
-  double x01 = x0-1.;
+
+  double x01 = x0 - 1.;
 
   // coeff. for z1 at F0, F1, F2, F3:
 
-  c0 = 1./(x0*x01*x01);
+  c0 = 1. / (x0 * x01 * x01);
   c1 = 0;
-  c2 = -(-2*x0 + 3. + x01*cR2 )*x0/(x01*x01);
-  c3 = -x0*cR3/x01;
-  
+  c2 = -(-2 * x0 + 3. + x01 * cR2) * x0 / (x01 * x01);
+  c3 = -x0 * cR3 / x01;
+
   // F0corr = (z1 - F2*cL2)/cL0;
 
-  c0 = c0/cL0;
-  c1 = c1/cL0;
-  c2 = (c2-cL2)/cL0;
-  c3 = c3/cL0;
+  c0 = c0 / cL0;
+  c1 = c1 / cL0;
+  c2 = (c2 - cL2) / cL0;
+  c3 = c3 / cL0;
 
   // F0corr = c0*F0 + c1*F1 + C2*F2 + c3*F3;
   // f0corr-f1 = c0*(f0-f1) + c1*(f1-f1) + c2*(f2-f1) + c3*(f3-f1);
   // f0corr-f1 = c0*(f0-f1) + c2*(f2-f1) + c3*(f3-f1);
   // f0corr = c0*f0 + c2*f2 + c3*f3 + (1-c0-c2-c3)*f1;
-  
-  c1=1.-c0-c2-c3;
+
+  c1 = 1. - c0 - c2 - c3;
 }
 
 template <typename T>
-inline void IrregularSpline1D::correctEdges( T *data ) const
+inline void IrregularSpline1D::correctEdges(T* data) const
 {
-  const IrregularSpline1D::Knot *s = getKnots();
+  const IrregularSpline1D::Knot* s = getKnots();
   double c0, c1, c2, c3;
-  getEdgeCorrectionCoefficients( s[0].u, s[1].u, s[2].u, s[3].u, c0, c1, c2, c3);
-  data[0] = c0*data[0] + c1*data[1] + c2*data[2] + c3*data[3];
-  int i = mNumberOfKnots-1;
-  getEdgeCorrectionCoefficients( s[i-0].u, s[i-1].u, s[i-2].u, s[i-3].u, c0, c1, c2, c3);
-  data[i] = c0*data[i-0] + c1*data[i-1] + c2*data[i-2] + c3*data[i-3];
+  getEdgeCorrectionCoefficients(s[0].u, s[1].u, s[2].u, s[3].u, c0, c1, c2, c3);
+  data[0] = c0 * data[0] + c1 * data[1] + c2 * data[2] + c3 * data[3];
+  int i = mNumberOfKnots - 1;
+  getEdgeCorrectionCoefficients(s[i - 0].u, s[i - 1].u, s[i - 2].u, s[i - 3].u, c0, c1, c2, c3);
+  data[i] = c0 * data[i - 0] + c1 * data[i - 1] + c2 * data[i - 2] + c3 * data[i - 3];
 }
 
-
-}// namespace
-}// namespace
+} // namespace tpc_fast_transformation
+} // namespace ali_tpc_common
 
 #endif

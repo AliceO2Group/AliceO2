@@ -1,4 +1,4 @@
-#define BOOST_TEST_MODULE Test TPC Space-Charge Base Class
+#define BOOST_TEST_MODULE Test TPC Space - Charge Base Class
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 

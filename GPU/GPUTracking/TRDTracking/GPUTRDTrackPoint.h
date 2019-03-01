@@ -4,7 +4,7 @@
 // struct to hold the information on the space points
 struct GPUTRDTrackPoint {
   float fX[3];
-  short fVolumeId; 
+  short fVolumeId;
 };
 
 struct GPUTRDTrackPointData {
@@ -17,6 +17,5 @@ struct GPUTRDTrackPointData {
 };
 
 typedef struct GPUTRDTrackPointData GPUTRDTrackPointData;
-
 
 #endif

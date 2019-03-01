@@ -13,25 +13,21 @@
 ///
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
-
 #include "IrregularSpline2D3D.h"
 
 #if !defined(GPUCA_GPUCODE)
 #include <iostream>
 #endif
 
-namespace ali_tpc_common {
-namespace tpc_fast_transformation {
+namespace ali_tpc_common
+{
+namespace tpc_fast_transformation
+{
 
-IrregularSpline2D3D::IrregularSpline2D3D()
-  :
-  FlatObject(),
-  mGridU(),
-  mGridV()
+IrregularSpline2D3D::IrregularSpline2D3D() : FlatObject(), mGridU(), mGridV()
 {
   /// Default constructor. Creates an empty uninitialised object
 }
-
 
 void IrregularSpline2D3D::destroy()
 {
@@ -41,71 +37,63 @@ void IrregularSpline2D3D::destroy()
   FlatObject::destroy();
 }
 
-void IrregularSpline2D3D::relocateBufferPointers( const char* oldBuffer, char *actualBuffer )
+void IrregularSpline2D3D::relocateBufferPointers(const char* oldBuffer, char* actualBuffer)
 {
   /// relocate pointers from old to new buffer location
 
-  char *bufferU = FlatObject::relocatePointer( oldBuffer, actualBuffer, mGridU.getFlatBufferPtr() );
-  mGridU.setActualBufferAddress( bufferU );
- 
-  char *bufferV = FlatObject::relocatePointer( oldBuffer, actualBuffer, mGridV.getFlatBufferPtr() );
-  mGridV.setActualBufferAddress( bufferV );
+  char* bufferU = FlatObject::relocatePointer(oldBuffer, actualBuffer, mGridU.getFlatBufferPtr());
+  mGridU.setActualBufferAddress(bufferU);
+
+  char* bufferV = FlatObject::relocatePointer(oldBuffer, actualBuffer, mGridV.getFlatBufferPtr());
+  mGridV.setActualBufferAddress(bufferV);
 }
 
-
-void IrregularSpline2D3D::cloneFromObject( const IrregularSpline2D3D &obj, char *newFlatBufferPtr )
+void IrregularSpline2D3D::cloneFromObject(const IrregularSpline2D3D& obj, char* newFlatBufferPtr)
 {
   /// See FlatObject for description
 
-  const char *oldFlatBufferPtr = obj.mFlatBufferPtr;
-  
-  FlatObject::cloneFromObject( obj, newFlatBufferPtr );
+  const char* oldFlatBufferPtr = obj.mFlatBufferPtr;
 
-  char *bufferU = FlatObject::relocatePointer( oldFlatBufferPtr, mFlatBufferPtr, obj.mGridU.getFlatBufferPtr() );
-  mGridU.cloneFromObject( obj.mGridU, bufferU );
- 
-  char *bufferV = FlatObject::relocatePointer( oldFlatBufferPtr, mFlatBufferPtr, obj.mGridV.getFlatBufferPtr() );
-  mGridV.cloneFromObject( obj.mGridV, bufferV );
-}
- 
+  FlatObject::cloneFromObject(obj, newFlatBufferPtr);
 
+  char* bufferU = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mGridU.getFlatBufferPtr());
+  mGridU.cloneFromObject(obj.mGridU, bufferU);
 
-void IrregularSpline2D3D::moveBufferTo( char *newFlatBufferPtr )
-{
-  /// See FlatObject for description
-  const char *oldFlatBufferPtr = mFlatBufferPtr;
-  FlatObject::moveBufferTo( newFlatBufferPtr );
-  relocateBufferPointers( oldFlatBufferPtr, mFlatBufferPtr );
-}
-  
-  
-void IrregularSpline2D3D::setActualBufferAddress( char* actualFlatBufferPtr )
-{
-  /// See FlatObject for description
-  const char *oldFlatBufferPtr = mFlatBufferPtr;
-  FlatObject::setActualBufferAddress( actualFlatBufferPtr );
-  relocateBufferPointers( oldFlatBufferPtr, mFlatBufferPtr );
+  char* bufferV = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mGridV.getFlatBufferPtr());
+  mGridV.cloneFromObject(obj.mGridV, bufferV);
 }
 
-  
-void IrregularSpline2D3D::setFutureBufferAddress( char* futureFlatBufferPtr )
+void IrregularSpline2D3D::moveBufferTo(char* newFlatBufferPtr)
 {
   /// See FlatObject for description
   const char* oldFlatBufferPtr = mFlatBufferPtr;
-  
-  char *bufferU = relocatePointer( oldFlatBufferPtr, futureFlatBufferPtr, mGridU.getFlatBufferPtr() );
-  mGridU.setFutureBufferAddress( bufferU );
- 
-  char *bufferV = relocatePointer( oldFlatBufferPtr, futureFlatBufferPtr, mGridV.getFlatBufferPtr() );
-  mGridV.setFutureBufferAddress( bufferV );
-
-  FlatObject::setFutureBufferAddress( futureFlatBufferPtr );
+  FlatObject::moveBufferTo(newFlatBufferPtr);
+  relocateBufferPointers(oldFlatBufferPtr, mFlatBufferPtr);
 }
 
+void IrregularSpline2D3D::setActualBufferAddress(char* actualFlatBufferPtr)
+{
+  /// See FlatObject for description
+  const char* oldFlatBufferPtr = mFlatBufferPtr;
+  FlatObject::setActualBufferAddress(actualFlatBufferPtr);
+  relocateBufferPointers(oldFlatBufferPtr, mFlatBufferPtr);
+}
 
+void IrregularSpline2D3D::setFutureBufferAddress(char* futureFlatBufferPtr)
+{
+  /// See FlatObject for description
+  const char* oldFlatBufferPtr = mFlatBufferPtr;
 
-void IrregularSpline2D3D::construct( int numberOfKnotsU, const float knotsU[], int numberOfAxisBinsU,
-				     int numberOfKnotsV, const float knotsV[], int numberOfAxisBinsV )
+  char* bufferU = relocatePointer(oldFlatBufferPtr, futureFlatBufferPtr, mGridU.getFlatBufferPtr());
+  mGridU.setFutureBufferAddress(bufferU);
+
+  char* bufferV = relocatePointer(oldFlatBufferPtr, futureFlatBufferPtr, mGridV.getFlatBufferPtr());
+  mGridV.setFutureBufferAddress(bufferV);
+
+  FlatObject::setFutureBufferAddress(futureFlatBufferPtr);
+}
+
+void IrregularSpline2D3D::construct(int numberOfKnotsU, const float knotsU[], int numberOfAxisBinsU, int numberOfKnotsV, const float knotsV[], int numberOfAxisBinsV)
 {
   /// Constructor
   ///
@@ -130,27 +118,27 @@ void IrregularSpline2D3D::construct( int numberOfKnotsU, const float knotsU[], i
 
   FlatObject::startConstruction();
 
-  mGridU.construct( numberOfKnotsU, knotsU, numberOfAxisBinsU );
-  mGridV.construct( numberOfKnotsV, knotsV, numberOfAxisBinsV );
+  mGridU.construct(numberOfKnotsU, knotsU, numberOfAxisBinsU);
+  mGridV.construct(numberOfKnotsV, knotsV, numberOfAxisBinsV);
 
-  size_t vOffset = alignSize( mGridU.getFlatBufferSize(), mGridV.getBufferAlignmentBytes() );
+  size_t vOffset = alignSize(mGridU.getFlatBufferSize(), mGridV.getBufferAlignmentBytes());
 
-  FlatObject::finishConstruction( vOffset + mGridV.getFlatBufferSize() );
+  FlatObject::finishConstruction(vOffset + mGridV.getFlatBufferSize());
 
-  mGridU.moveBufferTo( mFlatBufferPtr );
-  mGridV.moveBufferTo( mFlatBufferPtr + vOffset );
+  mGridU.moveBufferTo(mFlatBufferPtr);
+  mGridV.moveBufferTo(mFlatBufferPtr + vOffset);
 }
 
 void IrregularSpline2D3D::Print() const
 {
 #if !defined(GPUCA_GPUCODE)
-  std::cout<<" Irregular Spline 2D3D: "<<std::endl;
-  std::cout<<" grid U: "<<std::endl;
+  std::cout << " Irregular Spline 2D3D: " << std::endl;
+  std::cout << " grid U: " << std::endl;
   mGridU.Print();
-  std::cout<<" grid V: "<<std::endl;
+  std::cout << " grid V: " << std::endl;
   mGridV.Print();
 #endif
 }
 
-}// namespace
-}// namespace
+} // namespace tpc_fast_transformation
+} // namespace ali_tpc_common

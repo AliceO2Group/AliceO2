@@ -15,59 +15,53 @@
 #include "GPUTPCTracker.h"
 #include "GPUCommonMath.h"
 
-template <> GPUd() void GPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) &s, workerType &tracker)
+template <>
+GPUd() void GPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & s, workerType& tracker)
 {
-	// find start hits for tracklets
+  // find start hits for tracklets
 
-	if (iThread == 0)
-	{
-		s.fIRow = iBlock + 1;
-		s.fNRowStartHits = 0;
-		if (s.fIRow <= GPUCA_ROW_COUNT - 4)
-		{
-			s.fNHits = tracker.Row(s.fIRow).NHits();
-		}
-		else
-			s.fNHits = -1;
-	}
-    GPUbarrier();
-	GPUglobalref() const MEM_GLOBAL(GPUTPCRow) &row = tracker.Row(s.fIRow);
-	GPUglobalref() const MEM_GLOBAL(GPUTPCRow) &rowUp = tracker.Row(s.fIRow + 2);
-	for (int ih = iThread; ih < s.fNHits; ih += nThreads)
-	{
-		if (tracker.HitLinkDownData(row, ih) == CALINK_INVAL && tracker.HitLinkUpData(row, ih) != CALINK_INVAL && tracker.HitLinkUpData(rowUp, tracker.HitLinkUpData(row, ih)) != CALINK_INVAL)
-		{
+  if (iThread == 0) {
+    s.mIRow = iBlock + 1;
+    s.mNRowStartHits = 0;
+    if (s.mIRow <= GPUCA_ROW_COUNT - 4) {
+      s.mNHits = tracker.Row(s.mIRow).NHits();
+    } else
+      s.mNHits = -1;
+  }
+  GPUbarrier();
+  GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& row = tracker.Row(s.mIRow);
+  GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& rowUp = tracker.Row(s.mIRow + 2);
+  for (int ih = iThread; ih < s.mNHits; ih += nThreads) {
+    if (tracker.HitLinkDownData(row, ih) == CALINK_INVAL && tracker.HitLinkUpData(row, ih) != CALINK_INVAL && tracker.HitLinkUpData(rowUp, tracker.HitLinkUpData(row, ih)) != CALINK_INVAL) {
 #ifdef GPUCA_SORT_STARTHITS
-			GPUglobalref() GPUTPCHitId *const startHits = tracker.TrackletTmpStartHits() + s.fIRow * GPUCA_MAX_ROWSTARTHITS;
-			int nextRowStartHits = CAMath::AtomicAddShared(&s.fNRowStartHits, 1);
-			if (nextRowStartHits >= GPUCA_MAX_ROWSTARTHITS)
+      GPUglobalref() GPUTPCHitId* const startHits = tracker.TrackletTmpStartHits() + s.mIRow * GPUCA_MAX_ROWSTARTHITS;
+      int nextRowStartHits = CAMath::AtomicAddShared(&s.mNRowStartHits, 1);
+      if (nextRowStartHits >= GPUCA_MAX_ROWSTARTHITS)
 #else
-			GPUglobalref() GPUTPCHitId *const startHits = tracker.TrackletStartHits();
-			int nextRowStartHits = CAMath::AtomicAdd(tracker.NTracklets(), 1);
-			if (nextRowStartHits >= GPUCA_MAX_TRACKLETS)
+      GPUglobalref() GPUTPCHitId* const startHits = tracker.TrackletStartHits();
+      int nextRowStartHits = CAMath::AtomicAdd(tracker.NTracklets(), 1);
+      if (nextRowStartHits >= GPUCA_MAX_TRACKLETS)
 #endif
-			{
-				tracker.GPUParameters()->fGPUError = GPUCA_ERROR_TRACKLET_OVERFLOW;
-				CAMath::AtomicExch(tracker.NTracklets(), 0);
-				break;
-			}
-			startHits[nextRowStartHits].Set(s.fIRow, ih);
-		}
-	}
-    GPUbarrier();
-    
+      {
+        tracker.GPUParameters()->gpuError = GPUCA_ERROR_TRACKLET_OVERFLOW;
+        CAMath::AtomicExch(tracker.NTracklets(), 0);
+        break;
+      }
+      startHits[nextRowStartHits].Set(s.mIRow, ih);
+    }
+  }
+  GPUbarrier();
+
 #ifdef GPUCA_SORT_STARTHITS
-	if (iThread == 0)
-	{
-		int nOffset = CAMath::AtomicAdd(tracker.NTracklets(), s.fNRowStartHits);
+  if (iThread == 0) {
+    int nOffset = CAMath::AtomicAdd(tracker.NTracklets(), s.mNRowStartHits);
 #ifdef GPUCA_GPUCODE
-		tracker.RowStartHitCountOffset()[s.fIRow] = s.fNRowStartHits;
-		if (nOffset + s.fNRowStartHits >= GPUCA_MAX_TRACKLETS)
-		{
-			tracker.GPUParameters()->fGPUError = GPUCA_ERROR_TRACKLET_OVERFLOW;
-			CAMath::AtomicExch(tracker.NTracklets(), 0);
-		}
+    tracker.RowStartHitCountOffset()[s.mIRow] = s.mNRowStartHits;
+    if (nOffset + s.mNRowStartHits >= GPUCA_MAX_TRACKLETS) {
+      tracker.GPUParameters()->gpuError = GPUCA_ERROR_TRACKLET_OVERFLOW;
+      CAMath::AtomicExch(tracker.NTracklets(), 0);
+    }
 #endif
-	}
+  }
 #endif
 }

@@ -12,184 +12,195 @@
 
 class qThreadServerException
 {
-
 };
 
-template <class S, class T> class qThreadCls;
+template <class S, class T>
+class qThreadCls;
 
 class qThreadParam
 {
-	template <class S, class T> friend class qThreadCls;
+  template <class S, class T>
+  friend class qThreadCls;
 
-public:
-	qThreadParam()
-	{
-		for (int i = 0;i < 2;i++) threadMutex[i].Lock();
-		terminate = false;
-		pinCPU = -1;
-	}
+ public:
+  qThreadParam()
+  {
+    for (int i = 0; i < 2; i++)
+      threadMutex[i].Lock();
+    terminate = false;
+    pinCPU = -1;
+  }
 
-	~qThreadParam()
-	{
-		for (int i = 0;i < 2;i++) threadMutex[i].Unlock();
-	}
+  ~qThreadParam()
+  {
+    for (int i = 0; i < 2; i++)
+      threadMutex[i].Unlock();
+  }
 
-	bool WaitForTask()
-	{
-		threadMutex[1].Unlock();
-		threadMutex[0].Lock();
-		return(!terminate);
-	}
+  bool WaitForTask()
+  {
+    threadMutex[1].Unlock();
+    threadMutex[0].Lock();
+    return (!terminate);
+  }
 
-	int threadNum;
+  int threadNum;
 
-protected:
-	int pinCPU;
-	qSem threadMutex[2];
-	volatile bool terminate;
+ protected:
+  int pinCPU;
+  qSem threadMutex[2];
+  volatile bool terminate;
 };
 
-template <class S> class qThreadParamCls : public qThreadParam
+template <class S>
+class qThreadParamCls : public qThreadParam
 {
-	template <class SS, class TT> friend class qThreadCls;
-	
-private:
-	S* pCls;
-	void (S::*pFunc)(void*);
+  template <class SS, class TT>
+  friend class qThreadCls;
+
+ private:
+  S* pCls;
+  void (S::*pFunc)(void*);
 };
 
-template <class S, class T> static void* qThreadWrapperCls(void* arg);
+template <class S, class T>
+static void* qThreadWrapperCls(void* arg);
 
-template <class S, class T> class qThreadCls
+template <class S, class T>
+class qThreadCls
 {
-public:
-	qThreadCls() {started = false;};
-	qThreadCls(S* pCls, void (S::*pFunc)(T*), int threadNum = 0, int pinCPU = -1) : threadParam() {started = false;SpawnThread(pCls, pFunc, threadNum, pinCPU);}
+ public:
+  qThreadCls() { started = false; };
+  qThreadCls(S* pCls, void (S::*pFunc)(T*), int threadNum = 0, int pinCPU = -1) : threadParam()
+  {
+    started = false;
+    SpawnThread(pCls, pFunc, threadNum, pinCPU);
+  }
 
-	void SpawnThread(S* pCls, void (S::*pFunc)(T*), int threadNum = 0, int pinCPU = -1, bool wait = true)
-	{
-		qThreadParamCls<S>& XthreadParam = *((qThreadParamCls<S>*) &this->threadParam);
+  void SpawnThread(S* pCls, void (S::*pFunc)(T*), int threadNum = 0, int pinCPU = -1, bool wait = true)
+  {
+    qThreadParamCls<S>& XthreadParam = *((qThreadParamCls<S>*)&this->threadParam);
 
-		XthreadParam.pCls = pCls;
-		XthreadParam.pFunc = (void (S::*)(void*)) pFunc;
-		XthreadParam.threadNum = threadNum;
-		XthreadParam.pinCPU = pinCPU;
-		pthread_t thr;
-		pthread_create(&thr, NULL, (void* (*) (void*)) &qThreadWrapperCls, &XthreadParam);
-		if (wait) WaitForSpawn();
-		started = true;
-	}
-	
-	void WaitForSpawn()
-	{
-		threadParam.threadMutex[1].Lock();
-	}
+    XthreadParam.pCls = pCls;
+    XthreadParam.pFunc = (void (S::*)(void*))pFunc;
+    XthreadParam.threadNum = threadNum;
+    XthreadParam.pinCPU = pinCPU;
+    pthread_t thr;
+    pthread_create(&thr, NULL, (void* (*)(void*)) & qThreadWrapperCls, &XthreadParam);
+    if (wait)
+      WaitForSpawn();
+    started = true;
+  }
 
-	~qThreadCls()
-	{
-		if (started)
-		{
-			End();
-		}
-	}
+  void WaitForSpawn() { threadParam.threadMutex[1].Lock(); }
 
-	void End()
-	{
-		qThreadParamCls<S>& XthreadParam = *((qThreadParamCls<S>*) &this->threadParam);
-	
-		XthreadParam.terminate = true;
-		XthreadParam.threadMutex[0].Unlock();
-		XthreadParam.threadMutex[1].Lock();
-		started = false;
-	}
+  ~qThreadCls()
+  {
+    if (started) {
+      End();
+    }
+  }
 
-	void Start()
-	{
-		threadParam.threadMutex[0].Unlock();
-	}
+  void End()
+  {
+    qThreadParamCls<S>& XthreadParam = *((qThreadParamCls<S>*)&this->threadParam);
 
-	void Sync()
-	{
-		threadParam.threadMutex[1].Lock();
-	}
-		
-private:
-	bool started;
-	T threadParam;
-	
-	static void* qThreadWrapperCls(T* arg);
+    XthreadParam.terminate = true;
+    XthreadParam.threadMutex[0].Unlock();
+    XthreadParam.threadMutex[1].Lock();
+    started = false;
+  }
+
+  void Start() { threadParam.threadMutex[0].Unlock(); }
+
+  void Sync() { threadParam.threadMutex[1].Lock(); }
+
+ private:
+  bool started;
+  T threadParam;
+
+  static void* qThreadWrapperCls(T* arg);
 };
 
-template <class S, class T> void* qThreadCls<S, T>::qThreadWrapperCls(T* arg)
+template <class S, class T>
+void* qThreadCls<S, T>::qThreadWrapperCls(T* arg)
 {
-	qThreadParamCls<S>* const arg_A = (qThreadParamCls<S>*) arg;
-	if (arg_A->pinCPU != -1)
-	{
-		cpu_set_t tmp_mask;
-		CPU_ZERO(&tmp_mask);
-		CPU_SET(arg_A->pinCPU, &tmp_mask);
-		sched_setaffinity(0, sizeof(tmp_mask), &tmp_mask);
-	}
+  qThreadParamCls<S>* const arg_A = (qThreadParamCls<S>*)arg;
+  if (arg_A->pinCPU != -1) {
+    cpu_set_t tmp_mask;
+    CPU_ZERO(&tmp_mask);
+    CPU_SET(arg_A->pinCPU, &tmp_mask);
+    sched_setaffinity(0, sizeof(tmp_mask), &tmp_mask);
+  }
 
-	void (S::*pFunc)(T*) = (void (S::*)(T*)) arg_A->pFunc;
-	(arg_A->pCls->*pFunc)(arg);
+  void (S::*pFunc)(T*) = (void (S::*)(T*))arg_A->pFunc;
+  (arg_A->pCls->*pFunc)(arg);
 
-	arg_A->threadMutex[1].Unlock();
-	pthread_exit(NULL);
-	return(NULL);
+  arg_A->threadMutex[1].Unlock();
+  pthread_exit(NULL);
+  return (NULL);
 }
 
-template <class S, class T> class qThreadClsArray
+template <class S, class T>
+class qThreadClsArray
 {
-public:
-	qThreadClsArray() {pArray = NULL;nThreadsRunning = 0;}
-	qThreadClsArray(int n, S* pCls, void (S::*pFunc)(T*), int threadNumOffset = 0, int* pinCPU = NULL) {pArray = NULL;nThreadsRunning = 0;SetNumberOfThreads(n, pCls, pFunc, threadNumOffset, pinCPU);}
+ public:
+  qThreadClsArray()
+  {
+    pArray = NULL;
+    nThreadsRunning = 0;
+  }
+  qThreadClsArray(int n, S* pCls, void (S::*pFunc)(T*), int threadNumOffset = 0, int* pinCPU = NULL)
+  {
+    pArray = NULL;
+    nThreadsRunning = 0;
+    SetNumberOfThreads(n, pCls, pFunc, threadNumOffset, pinCPU);
+  }
 
-	void SetNumberOfThreads(int n, S* pCls, void (S::*pFunc)(T*), int threadNumOffset = 0, int* pinCPU = NULL)
-	{
-		if (nThreadsRunning)
-		{
-			fprintf(STD_OUT, "Threads already started\n");throw(qThreadServerException());
-		}
-		pArray = new qThreadCls<S, T>[n];
-		nThreadsRunning = n;
-		for (int i = 0;i < n;i++)
-		{
-			pArray[i].SpawnThread(pCls, pFunc, threadNumOffset + i, pinCPU == NULL ? -1 : pinCPU[i], false);
-		}
-		for (int i = 0;i < n;i++)
-		{
-			pArray[i].WaitForSpawn();
-		}
-	}
+  void SetNumberOfThreads(int n, S* pCls, void (S::*pFunc)(T*), int threadNumOffset = 0, int* pinCPU = NULL)
+  {
+    if (nThreadsRunning) {
+      fprintf(STD_OUT, "Threads already started\n");
+      throw(qThreadServerException());
+    }
+    pArray = new qThreadCls<S, T>[ n ];
+    nThreadsRunning = n;
+    for (int i = 0; i < n; i++) {
+      pArray[i].SpawnThread(pCls, pFunc, threadNumOffset + i, pinCPU == NULL ? -1 : pinCPU[i], false);
+    }
+    for (int i = 0; i < n; i++) {
+      pArray[i].WaitForSpawn();
+    }
+  }
 
-	~qThreadClsArray()
-	{
-		if (nThreadsRunning)
-		{
-			EndThreads();
-		}
-	}
+  ~qThreadClsArray()
+  {
+    if (nThreadsRunning) {
+      EndThreads();
+    }
+  }
 
-	void EndThreads()
-	{
-		delete[] pArray;
-		nThreadsRunning = 0;
-	}
+  void EndThreads()
+  {
+    delete[] pArray;
+    nThreadsRunning = 0;
+  }
 
-	void Start()
-	{
-		for (int i = 0;i < nThreadsRunning;i++) pArray[i].Start();
-	}
+  void Start()
+  {
+    for (int i = 0; i < nThreadsRunning; i++)
+      pArray[i].Start();
+  }
 
-	void Sync()
-	{
-		for (int i = 0;i < nThreadsRunning;i++) pArray[i].Sync();
-	}
+  void Sync()
+  {
+    for (int i = 0; i < nThreadsRunning; i++)
+      pArray[i].Sync();
+  }
 
-private:
-	qThreadCls<S, T>* pArray;
-	int nThreadsRunning;
+ private:
+  qThreadCls<S, T>* pArray;
+  int nThreadsRunning;
 };
 
 #endif

@@ -26,10 +26,19 @@
 
 class GPUDataTypes
 {
-public:
-	enum ENUM_CLASS GeometryType ENUM_UINT {RESERVED_GEOMETRY = 0, ALIROOT = 1, O2 = 2};
-	enum DeviceType ENUM_UINT {INVALID_DEVICE = 0, CPU = 1, CUDA = 2, HIP = 3, OCL = 4};
-	enum ENUM_CLASS RecoStep {TPCSliceTracking = 1, TPCMerging = 2, TRDTracking = 4, ITSTracking = 8, AllRecoSteps = 0x7FFFFFFF, NoRecoStep = 0};
+ public:
+  enum ENUM_CLASS GeometryType ENUM_UINT{ RESERVED_GEOMETRY = 0, ALIROOT = 1, O2 = 2 };
+  enum DeviceType ENUM_UINT { INVALID_DEVICE = 0,
+                              CPU = 1,
+                              CUDA = 2,
+                              HIP = 3,
+                              OCL = 4 };
+  enum ENUM_CLASS RecoStep { TPCSliceTracking = 1,
+                             TPCMerging = 2,
+                             TRDTracking = 4,
+                             ITSTracking = 8,
+                             AllRecoSteps = 0x7FFFFFFF,
+                             NoRecoStep = 0 };
 };
 
 #undef ENUM_CLASS

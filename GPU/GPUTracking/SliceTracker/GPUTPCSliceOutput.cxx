@@ -17,33 +17,30 @@
 
 unsigned int GPUTPCSliceOutput::EstimateSize(unsigned int nOfTracks, unsigned int nOfTrackClusters)
 {
-	// calculate the amount of memory [bytes] needed for the event
-	return sizeof(GPUTPCSliceOutput) + sizeof(GPUTPCSliceOutTrack) * nOfTracks + sizeof(GPUTPCSliceOutCluster) * nOfTrackClusters;
+  // calculate the amount of memory [bytes] needed for the event
+  return sizeof(GPUTPCSliceOutput) + sizeof(GPUTPCSliceOutTrack) * nOfTracks + sizeof(GPUTPCSliceOutCluster) * nOfTrackClusters;
 }
 
 #ifndef GPUCA_GPUCODE
-void GPUTPCSliceOutput::Allocate(GPUTPCSliceOutput* &ptrOutput, int nTracks, int nTrackHits, GPUOutputControl *outputControl, void* &internalMemory)
+void GPUTPCSliceOutput::Allocate(GPUTPCSliceOutput*& ptrOutput, int nTracks, int nTrackHits, GPUOutputControl* outputControl, void*& internalMemory)
 {
-	//Allocate All memory needed for slice output
-	const size_t memsize = EstimateSize(nTracks, nTrackHits);
+  // Allocate All memory needed for slice output
+  const size_t memsize = EstimateSize(nTracks, nTrackHits);
 
-	if (outputControl->OutputType != GPUOutputControl::AllocateInternal)
-	{
-		if (outputControl->OutputMaxSize - outputControl->Offset < memsize)
-		{
-			outputControl->EndOfSpace = 1;
-			ptrOutput = NULL;
-			return;
-		}
-		ptrOutput = (GPUTPCSliceOutput *) (outputControl->OutputPtr + outputControl->Offset);
-		outputControl->Offset += memsize;
-	}
-	else
-	{
-		if (internalMemory) free(internalMemory);
-		internalMemory = malloc(memsize);
-		ptrOutput = (GPUTPCSliceOutput *) internalMemory;
-	}
-	ptrOutput->SetMemorySize(memsize);
+  if (outputControl->OutputType != GPUOutputControl::AllocateInternal) {
+    if (outputControl->OutputMaxSize - outputControl->Offset < memsize) {
+      outputControl->EndOfSpace = 1;
+      ptrOutput = NULL;
+      return;
+    }
+    ptrOutput = reinterpret_cast<GPUTPCSliceOutput*>(outputControl->OutputPtr + outputControl->Offset);
+    outputControl->Offset += memsize;
+  } else {
+    if (internalMemory)
+      free(internalMemory);
+    internalMemory = malloc(memsize);
+    ptrOutput = reinterpret_cast<GPUTPCSliceOutput*>(internalMemory);
+  }
+  ptrOutput->SetMemorySize(memsize);
 }
 #endif

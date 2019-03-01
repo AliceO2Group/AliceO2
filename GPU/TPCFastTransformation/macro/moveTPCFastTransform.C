@@ -1,6 +1,6 @@
 // $Id$
 /**
- * @file makeTPCFastTransform.C
+ * @file moveTPCFastTransform.C
  * @brief Example of creation of TPCFastTransform object and moving it to another place
  *
  * <pre>
@@ -18,57 +18,52 @@
  *
  */
 
-
 #include "TPCFastTransform.h"
-
 
 using namespace std;
 using namespace ali_tpc_common::tpc_fast_transformation;
 
+int moveTPCFastTransform()
+{
 
-int moveTPCFastTransform( ) {
+  // gSystem->Load("libAliTPCFastTransformation");
+  // gROOT->LoadMacro("initTPCcalibration.C++");
+  // gROOT->LoadMacro("createTPCFastTransform.C++");
 
-  //gSystem->Load("libAliTPCFastTransformation");
-  //gROOT->LoadMacro("initTPCcalibration.C++");
-  //gROOT->LoadMacro("createTPCFastTransform.C++");
-  
-  initTPCcalibration("alien://Folder=/alice/data/2015/OCDB",246984,1);
-    
+  initTPCcalibration("alien://Folder=/alice/data/2015/OCDB", 246984, 1);
+
   TPCFastTransform fastTransform;
   createTPCFastTransform(fastTransform);
-    
-  
+
   // make flat buffer external
 
-  std::unique_ptr<char[]> buff( fastTransform.releaseInternalBuffer());
-
+  std::unique_ptr<char[]> buff(fastTransform.releaseInternalBuffer());
 
   // example of moving the transformation object to another place
 
   {
-    char *newBuff = new char[fastTransform.getFlatBufferSize() ]; 
-    char *newObj = new char[ sizeof(TPCFastTransform)];
-    
-    memcpy((void*)newObj, (void*)&fastTransform, sizeof(fastTransform) );
-    memcpy((void*)newBuff, (void*) buff.get(), fastTransform.getFlatBufferSize() );
-    
-    TPCFastTransform &newTransform = * (TPCFastTransform*) newObj;
-    newTransform.setActualBufferAddress(newBuff);    
+    char* newBuff = new char[fastTransform.getFlatBufferSize()];
+    char* newObj = new char[sizeof(TPCFastTransform)];
+
+    memcpy((void*)newObj, (void*)&fastTransform, sizeof(fastTransform));
+    memcpy((void*)newBuff, (void*)buff.get(), fastTransform.getFlatBufferSize());
+
+    TPCFastTransform& newTransform = *(TPCFastTransform*)newObj;
+    newTransform.setActualBufferAddress(newBuff);
   }
 
   // another example of moving the transformation object to another place
-  {  
-    char *newBuff = new char[fastTransform.getFlatBufferSize() ]; 
-    char *newObj = new char[ sizeof(TPCFastTransform)];
+  {
+    char* newBuff = new char[fastTransform.getFlatBufferSize()];
+    char* newObj = new char[sizeof(TPCFastTransform)];
 
-    fastTransform.setFutureBufferAddress( newBuff );
-    
-    memcpy((void*)newObj, (void*)&fastTransform, sizeof(fastTransform) );
-    memcpy((void*)newBuff, (void*) buff.get(), fastTransform.getFlatBufferSize() );
-    
-    TPCFastTransform &newTransform = * (TPCFastTransform*) newObj;    
+    fastTransform.setFutureBufferAddress(newBuff);
+
+    memcpy((void*)newObj, (void*)&fastTransform, sizeof(fastTransform));
+    memcpy((void*)newBuff, (void*)buff.get(), fastTransform.getFlatBufferSize());
+
+    TPCFastTransform& newTransform = *(TPCFastTransform*)newObj;
   }
- 
-  return 0;  
-}
 
+  return 0;
+}

@@ -49,7 +49,7 @@ void run_trac_ca_its(bool useITSVertex = false,
 {
 
   gSystem->Load("libITStracking.so");
-  
+
   std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance());
   auto* chainTracking = rec->AddChain<GPUChainTracking>();
   auto* chainITS = rec->AddChain<GPUChainITS>();

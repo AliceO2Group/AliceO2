@@ -28,46 +28,46 @@ class GPUTPCTrackParam;
 MEM_CLASS_PRE()
 class GPUTPCBaseTrackParam
 {
-  public:
-	GPUd() float X() const { return fX; }
-	GPUd() float Y() const { return fP[0]; }
-	GPUd() float Z() const { return fP[1]; }
-	GPUd() float SinPhi() const { return fP[2]; }
-	GPUd() float DzDs() const { return fP[3]; }
-	GPUd() float QPt() const { return fP[4]; }
-	GPUd() float ZOffset() const { return fZOffset; }
+ public:
+  GPUd() float X() const { return mX; }
+  GPUd() float Y() const { return mP[0]; }
+  GPUd() float Z() const { return mP[1]; }
+  GPUd() float SinPhi() const { return mP[2]; }
+  GPUd() float DzDs() const { return mP[3]; }
+  GPUd() float QPt() const { return mP[4]; }
+  GPUd() float ZOffset() const { return mZOffset; }
 
-	GPUhd() float GetX() const { return fX; }
-	GPUhd() float GetY() const { return fP[0]; }
-	GPUhd() float GetZ() const { return fP[1]; }
-	GPUhd() float GetSinPhi() const { return fP[2]; }
-	GPUhd() float GetDzDs() const { return fP[3]; }
-	GPUhd() float GetQPt() const { return fP[4]; }
-	GPUhd() float GetZOffset() const { return fZOffset; }
+  GPUhd() float GetX() const { return mX; }
+  GPUhd() float GetY() const { return mP[0]; }
+  GPUhd() float GetZ() const { return mP[1]; }
+  GPUhd() float GetSinPhi() const { return mP[2]; }
+  GPUhd() float GetDzDs() const { return mP[3]; }
+  GPUhd() float GetQPt() const { return mP[4]; }
+  GPUhd() float GetZOffset() const { return mZOffset; }
 
-	GPUd() float GetKappa(float Bz) const { return -fP[4] * Bz; }
+  GPUd() float GetKappa(float Bz) const { return -mP[4] * Bz; }
 
-	GPUhd() MakeType(const float *) Par() const { return fP; }
-	GPUd() const MakeType(float *) GetPar() const { return fP; }
-	GPUd() float GetPar(int i) const { return (fP[i]); }
+  GPUhd() MakeType(const float*) Par() const { return mP; }
+  GPUd() const MakeType(float*) GetPar() const { return mP; }
+  GPUd() float GetPar(int i) const { return (mP[i]); }
 
-	GPUhd() void SetPar(int i, float v) { fP[i] = v; }
+  GPUhd() void SetPar(int i, float v) { mP[i] = v; }
 
-	GPUd() void SetX(float v) { fX = v; }
-	GPUd() void SetY(float v) { fP[0] = v; }
-	GPUd() void SetZ(float v) { fP[1] = v; }
-	GPUd() void SetSinPhi(float v) { fP[2] = v; }
-	GPUd() void SetDzDs(float v) { fP[3] = v; }
-	GPUd() void SetQPt(float v) { fP[4] = v; }
-	GPUd() void SetZOffset(float v) { fZOffset = v; }
+  GPUd() void SetX(float v) { mX = v; }
+  GPUd() void SetY(float v) { mP[0] = v; }
+  GPUd() void SetZ(float v) { mP[1] = v; }
+  GPUd() void SetSinPhi(float v) { mP[2] = v; }
+  GPUd() void SetDzDs(float v) { mP[3] = v; }
+  GPUd() void SetQPt(float v) { mP[4] = v; }
+  GPUd() void SetZOffset(float v) { mZOffset = v; }
 
-  private:
-	//WARNING, Track Param Data is copied in the GPU Tracklet Constructor element by element instead of using copy constructor!!!
-	//This is neccessary for performance reasons!!!
-	//Changes to Elements of this class therefore must also be applied to TrackletConstructor!!!
-	float fX; // x position
-	float fZOffset;
-	float fP[5]; // 'active' track parameters: Y, Z, SinPhi, DzDs, q/Pt
+ private:
+  // WARNING, Track Param Data is copied in the GPU Tracklet Constructor element by element instead of using copy constructor!!!
+  // This is neccessary for performance reasons!!!
+  // Changes to Elements of this class therefore must also be applied to TrackletConstructor!!!
+  float mX; // x position
+  float mZOffset;
+  float mP[5]; // 'active' track parameters: Y, Z, SinPhi, DzDs, q/Pt
 };
 
 #endif

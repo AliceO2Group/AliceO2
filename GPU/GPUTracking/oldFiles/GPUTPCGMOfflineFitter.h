@@ -7,12 +7,10 @@
 //                                                                        *
 //*************************************************************************
 
-
 #ifndef GPUTPCGMOfflineFitter_H
 #define GPUTPCGMOfflineFitter_H
 
-#if ( defined(GPUCA_ALIROOT_LIB) && !defined(GPUCA_GPUCODE) )
-
+#if (defined(GPUCA_ALIROOT_LIB) && !defined(GPUCA_GPUCODE))
 
 #include "GPUParam.h"
 #include "AliTPCtracker.h"
@@ -22,22 +20,21 @@ class GPUTPCGMMergedTrackHit;
 class AliTPCclusterMI;
 class GPUTPCGMPolynomialField;
 
-class GPUTPCGMOfflineFitter :public AliTPCtracker
+class GPUTPCGMOfflineFitter : public AliTPCtracker
 {
-public:
-
+ public:
   GPUTPCGMOfflineFitter();
   ~GPUTPCGMOfflineFitter();
-  
-  void Initialize( const GPUParam& hltParam, Long_t TimeStamp, bool isMC );
-  
-  void RefitTrack(  GPUTPCGMMergedTrack &track, const GPUTPCGMPolynomialField* field,  GPUTPCGMMergedTrackHit* clusters );
 
-  int CreateTPCclusterMI( const GPUTPCGMMergedTrackHit &h, AliTPCclusterMI &c);
-  
-  bool FitOffline(  const GPUTPCGMPolynomialField* field, GPUTPCGMMergedTrack &gmtrack,  GPUTPCGMMergedTrackHit* clusters, int &N );
+  void Initialize(const GPUParam& hltParam, Long_t TimeStamp, bool isMC);
 
-private:
+  void RefitTrack(GPUTPCGMMergedTrack& track, const GPUTPCGMPolynomialField* field, GPUTPCGMMergedTrackHit* clusters);
+
+  int CreateTPCclusterMI(const GPUTPCGMMergedTrackHit& h, AliTPCclusterMI& c);
+
+  bool FitOffline(const GPUTPCGMPolynomialField* field, GPUTPCGMMergedTrack& gmtrack, GPUTPCGMMergedTrackHit* clusters, int& N);
+
+ private:
   GPUParam fCAParam;
 };
 

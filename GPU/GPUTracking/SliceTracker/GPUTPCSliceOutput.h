@@ -42,53 +42,52 @@ struct GPUOutputControl;
  */
 class GPUTPCSliceOutput
 {
-  public:
+ public:
 #if !defined(GPUCA_GPUCODE_DEVICE)
-	GPUhd() unsigned int NTracks() const
-	{
-		return fNTracks;
-	}
-	GPUhd() unsigned int NLocalTracks() const { return fNLocalTracks; }
-	GPUhd() unsigned int NTrackClusters() const { return fNTrackClusters; }
+  GPUhd() unsigned int NTracks() const
+  {
+    return mNTracks;
+  }
+  GPUhd() unsigned int NLocalTracks() const { return mNLocalTracks; }
+  GPUhd() unsigned int NTrackClusters() const { return mNTrackClusters; }
 #ifndef GPUCA_GPUCODE
-	GPUhd() const GPUTPCSliceOutTrack *GetFirstTrack() const
-	{
-		return fMemory;
-	}
-	GPUhd() GPUTPCSliceOutTrack *FirstTrack() { return fMemory; }
+  GPUhd() const GPUTPCSliceOutTrack* GetFirstTrack() const
+  {
+    return mMemory;
+  }
+  GPUhd() GPUTPCSliceOutTrack* FirstTrack() { return mMemory; }
 #endif
-	GPUhd() size_t Size() const
-	{
-		return (fMemorySize);
-	}
+  GPUhd() size_t Size() const
+  {
+    return (mMemorySize);
+  }
 
-	static unsigned int EstimateSize(unsigned int nOfTracks, unsigned int nOfTrackClusters);
-	static void Allocate(GPUTPCSliceOutput* &ptrOutput, int nTracks, int nTrackHits, GPUOutputControl *outputControl, void* &internalMemory);
+  static unsigned int EstimateSize(unsigned int nOfTracks, unsigned int nOfTrackClusters);
+  static void Allocate(GPUTPCSliceOutput*& ptrOutput, int nTracks, int nTrackHits, GPUOutputControl* outputControl, void*& internalMemory);
 
-	GPUhd() void SetNTracks(unsigned int v) { fNTracks = v; }
-	GPUhd() void SetNLocalTracks(unsigned int v) { fNLocalTracks = v; }
-	GPUhd() void SetNTrackClusters(unsigned int v) { fNTrackClusters = v; }
+  GPUhd() void SetNTracks(unsigned int v) { mNTracks = v; }
+  GPUhd() void SetNLocalTracks(unsigned int v) { mNLocalTracks = v; }
+  GPUhd() void SetNTrackClusters(unsigned int v) { mNTrackClusters = v; }
 
-  private:
-	GPUTPCSliceOutput()
-	    : fNTracks(0), fNLocalTracks(0), fNTrackClusters(0), fMemorySize(0) {}
+ private:
+  GPUTPCSliceOutput() : mNTracks(0), mNLocalTracks(0), mNTrackClusters(0), mMemorySize(0) {}
 
-	~GPUTPCSliceOutput() {}
-	GPUTPCSliceOutput(const GPUTPCSliceOutput &);
-	GPUTPCSliceOutput &operator=(const GPUTPCSliceOutput &) { return *this; }
+  ~GPUTPCSliceOutput() {}
+  GPUTPCSliceOutput(const GPUTPCSliceOutput&);
+  GPUTPCSliceOutput& operator=(const GPUTPCSliceOutput&) { return *this; }
 
-	GPUh() void SetMemorySize(size_t val) { fMemorySize = val; }
+  GPUh() void SetMemorySize(size_t val) { mMemorySize = val; }
 
-	unsigned int fNTracks; // number of reconstructed tracks
-	unsigned int fNLocalTracks;
-	unsigned int fNTrackClusters; // total number of track clusters
-	size_t fMemorySize;  // Amount of memory really used
+  unsigned int mNTracks; // number of reconstructed tracks
+  unsigned int mNLocalTracks;
+  unsigned int mNTrackClusters; // total number of track clusters
+  size_t mMemorySize;           // Amount of memory really used
 
-	//Must be last element of this class, user has to make sure to allocate anough memory consecutive to class memory!
-	//This way the whole Slice Output is one consecutive Memory Segment
+// Must be last element of this class, user has to make sure to allocate anough memory consecutive to class memory!
+// This way the whole Slice Output is one consecutive Memory Segment
 
 #ifndef GPUCA_GPUCODE
-	GPUTPCSliceOutTrack fMemory[0]; // the memory where the pointers above point into
+  GPUTPCSliceOutTrack mMemory[0]; // the memory where the pointers above point into
 #endif
 #endif
 };

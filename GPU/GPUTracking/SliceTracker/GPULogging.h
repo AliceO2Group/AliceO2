@@ -14,10 +14,31 @@
 #ifndef GPULOGGING_H
 #define GPULOGGING_H
 
-#define GPUError(...) {printf(__VA_ARGS__);printf("\n");}
-#define GPUWarning(...) {printf(__VA_ARGS__);printf("\n");}
-#define GPUInfo(...) {printf(__VA_ARGS__);printf("\n");}
-#define GPUImportant(...) {printf(__VA_ARGS__);printf("\n");}
-#define GPUFatal(...) {printf(__VA_ARGS__);printf("\n");exit(1);}
+#define GPUError(...)    \
+  {                      \
+    printf(__VA_ARGS__); \
+    printf("\n");        \
+  }
+#define GPUWarning(...)  \
+  {                      \
+    printf(__VA_ARGS__); \
+    printf("\n");        \
+  }
+#define GPUInfo(...)     \
+  {                      \
+    printf(__VA_ARGS__); \
+    printf("\n");        \
+  }
+#define GPUImportant(...) \
+  {                       \
+    printf(__VA_ARGS__);  \
+    printf("\n");         \
+  }
+#define GPUFatal(...)    \
+  {                      \
+    printf(__VA_ARGS__); \
+    printf("\n");        \
+    exit(1);             \
+  }
 
-#endif //GPULOGGING_H
+#endif // GPULOGGING_H

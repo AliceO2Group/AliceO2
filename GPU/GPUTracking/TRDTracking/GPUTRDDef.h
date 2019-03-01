@@ -13,12 +13,12 @@ typedef float My_Float;
 #define TRD_TRACK_TYPE_O2
 #endif
 
-#if defined (TRD_TRACK_TYPE_ALIROOT)
+#if defined(TRD_TRACK_TYPE_ALIROOT)
 class AliExternalTrackParam;
 typedef AliExternalTrackParam TRDBaseTrack;
-//class GPUTPCGMTrackParam;
-//typedef GPUTPCGMTrackParam TRDBaseTrack;
-#elif defined (TRD_TRACK_TYPE_O2)
+// class GPUTPCGMTrackParam;
+// typedef GPUTPCGMTrackParam TRDBaseTrack;
+#elif defined(TRD_TRACK_TYPE_O2)
 class GPUTPCGMTrackParam;
 typedef GPUTPCGMTrackParam TRDBaseTrack;
 #endif
@@ -26,16 +26,19 @@ typedef GPUTPCGMTrackParam TRDBaseTrack;
 #ifdef GPUCA_ALIROOT_LIB
 class AliTrackerBase;
 typedef AliTrackerBase TRDBasePropagator;
-//class GPUTPCGMPropagator;
-//typedef GPUTPCGMPropagator TRDBasePropagator;
+// class GPUTPCGMPropagator;
+// typedef GPUTPCGMPropagator TRDBasePropagator;
 #else
 class GPUTPCGMPropagator;
 typedef GPUTPCGMPropagator TRDBasePropagator;
 #endif
 
-template <class T> class trackInterface;
-template <class T> class propagatorInterface;
-template <class T> class GPUTRDTrack_t;
+template <class T>
+class trackInterface;
+template <class T>
+class propagatorInterface;
+template <class T>
+class GPUTRDTrack_t;
 typedef GPUTRDTrack_t<trackInterface<TRDBaseTrack>> GPUTRDTrack;
 typedef propagatorInterface<TRDBasePropagator> GPUTRDPropagator;
 

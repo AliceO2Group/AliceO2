@@ -24,50 +24,50 @@ class AliTPCcalibDB;
 class AliTPCRecoParam;
 #include "AliRecoParam.h"
 class AliTPCTransform;
-namespace ali_tpc_common { namespace tpc_fast_transformation {
-	class TPCFastTransform;
-	class TPCFastTransformManager;
-}}
+namespace ali_tpc_common
+{
+namespace tpc_fast_transformation
+{
+class TPCFastTransform;
+class TPCFastTransformManager;
+} // namespace tpc_fast_transformation
+} // namespace ali_tpc_common
 
 class AliHLTGPUDumpComponent : public AliHLTProcessor
 {
-  public:
-	static const unsigned int NSLICES = 36;
-	static const unsigned int NPATCHES = 6;
-	
-	AliHLTGPUDumpComponent();
+ public:
+  static const unsigned int NSLICES = 36;
+  static const unsigned int NPATCHES = 6;
 
-	AliHLTGPUDumpComponent( const AliHLTGPUDumpComponent& ) CON_DELETE;
-	AliHLTGPUDumpComponent& operator=( const AliHLTGPUDumpComponent& ) CON_DELETE;
+  AliHLTGPUDumpComponent();
 
-	virtual ~AliHLTGPUDumpComponent();
+  AliHLTGPUDumpComponent(const AliHLTGPUDumpComponent&) CON_DELETE;
+  AliHLTGPUDumpComponent& operator=(const AliHLTGPUDumpComponent&) CON_DELETE;
 
-	const char* GetComponentID() ;
-	void GetInputDataTypes( vector<AliHLTComponentDataType>& list )  ;
-	AliHLTComponentDataType GetOutputDataType() ;
-	virtual void GetOutputDataSize( unsigned long& constBase, double& inputMultiplier ) ;
-	AliHLTComponent* Spawn() ;
+  virtual ~AliHLTGPUDumpComponent();
 
-  protected:
-	int DoInit( int argc, const char** argv );
-	int DoDeinit();
-	int Reconfigure( const char* cdbEntry, const char* chainId );
-	int DoEvent( const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks,
-		AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr,
-		AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks );
+  const char* GetComponentID();
+  void GetInputDataTypes(vector<AliHLTComponentDataType>& list);
+  AliHLTComponentDataType GetOutputDataType();
+  virtual void GetOutputDataSize(unsigned long& constBase, double& inputMultiplier);
+  AliHLTComponent* Spawn();
 
-  private:
+ protected:
+  int DoInit(int argc, const char** argv);
+  int DoDeinit();
+  int Reconfigure(const char* cdbEntry, const char* chainId);
+  int DoEvent(const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr, AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks);
 
-	float fSolenoidBz;
-	GPUReconstruction* fRec;
-	GPUChainTracking* fChain;
-	GPUTPCClusterData* fClusterData[NSLICES];
-	ali_tpc_common::tpc_fast_transformation::TPCFastTransformManager* fFastTransformManager;
-	AliTPCcalibDB* fCalib;
-	AliTPCRecoParam* fRecParam;
-	AliRecoParam fOfflineRecoParam;
-	AliTPCTransform* fOrigTransform;
-	bool fIsMC;
+ private:
+  float fSolenoidBz;
+  GPUReconstruction* fRec;
+  GPUChainTracking* fChain;
+  ali_tpc_common::tpc_fast_transformation::TPCFastTransformManager* fFastTransformManager;
+  AliTPCcalibDB* fCalib;
+  AliTPCRecoParam* fRecParam;
+  AliRecoParam fOfflineRecoParam;
+  AliTPCTransform* fOrigTransform;
+  bool fIsMC;
 };
 
 #endif

@@ -13,25 +13,26 @@
 ///
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
-
 #ifndef ALICEOW_GPUCOMMON_TPCFASTTRANSFORMATION_FLATOBJECT_H
 #define ALICEOW_GPUCOMMON_TPCFASTTRANSFORMATION_FLATOBJECT_H
 
 #undef NDEBUG
 
 #ifndef GPUCA_GPUCODE_DEVICE
-#include <stddef.h>
+#include <cstddef>
 #include <memory>
 #include <cstring>
 #include <cassert>
 #endif
 #include "GPUCommonDef.h"
 #include "GPUCommonRtypes.h"
- 
+
 //#define GPUCA_GPUCODE // uncomment to test "GPU" mode
 
-namespace gpu_common {
-namespace Base {
+namespace gpu_common
+{
+namespace Base
+{
 
 ///
 /// The FlatObject class represents base class for flat objects.
@@ -166,84 +167,68 @@ T** resizeArray(T**& ptr, int oldSize, int newSize, T** newPtr = nullptr)
   return oldPtr;
 }
 
-#endif //!GPUCA_GPUCODE
+#endif //! GPUCA_GPUCODE
 
 class FlatObject
 {
  public:
-
   /// _____________  Constructors / destructors __________________________
 
-  /// Default constructor: creates an empty uninitialized object
-  FlatObject();
-
-  /// Destructor
+  /// Default constructor / destructor
+  FlatObject() CON_DEFAULT;
   ~FlatObject() CON_DEFAULT;
+  FlatObject(const FlatObject&) CON_DELETE;
+  FlatObject& operator=(const FlatObject&) CON_DELETE;
 
  protected:
-  /// Copy constructor: disabled to avoid ambiguity. Use cloneFromObject instead
-  FlatObject(const FlatObject& ) CON_DELETE;
- 
-  /// Assignment operator: disabled to avoid ambiguity. Use cloneFromObject instead
-  FlatObject& operator=(const FlatObject &)  CON_DELETE;
-
-  
   /// _____________  Memory alignment  __________________________
 
   /// Gives minimal alignment in bytes required for the class object
-  static constexpr size_t getClassAlignmentBytes() {return 8;}
- 
-  /// Gives minimal alignment in bytes required for the flat buffer
-  static constexpr size_t getBufferAlignmentBytes() {return 8;}
+  static constexpr size_t getClassAlignmentBytes() { return 8; }
 
+  /// Gives minimal alignment in bytes required for the flat buffer
+  static constexpr size_t getBufferAlignmentBytes() { return 8; }
 
   /// _____________ Construction _________
 
-
   /// Starts the construction procedure. A daughter class should reserve temporary memory.
   void startConstruction();
-  
+
   /// Finishes construction: creates internal flat buffer.
   /// A daughter class should put all created variable-size members to this buffer
   ///
-  void finishConstruction( int flatBufferSize );
+  void finishConstruction(int flatBufferSize);
 
   /// Set the object to NotConstructed state, release the buffer
   void destroy();
 
-  /// Initializes from another object, copies data to newBufferPtr
-  /// When newBufferPtr==nullptr, an internal container will be created, the data will be copied there.
-  /// A daughter class should relocate pointers inside the buffer.
-  ///
+/// Initializes from another object, copies data to newBufferPtr
+/// When newBufferPtr==nullptr, an internal container will be created, the data will be copied there.
+/// A daughter class should relocate pointers inside the buffer.
+///
 #ifndef GPUCA_GPUCODE
   void cloneFromObject(const FlatObject& obj, char* newFlatBufferPtr);
 #endif // !GPUCA_GPUCODE
-
-  
 
   /// _____________  Methods for making the data buffer external  __________________________
 
   // Returns an unique pointer to the internal buffer with all the rights. Makes the internal container variable empty.
   char* releaseInternalBuffer();
 
-  /// Sets buffer pointer to the new address, move the buffer content there.
-  /// A daughter class must relocate all the pointers inside th buffer
+/// Sets buffer pointer to the new address, move the buffer content there.
+/// A daughter class must relocate all the pointers inside th buffer
 #ifndef GPUCA_GPUCODE
   void moveBufferTo(char* newBufferPtr);
 #endif // !GPUCA_GPUCODE
 
-
-
   /// _____________  Methods for moving the class with its external buffer to another location  __________________________
 
-  
   /// Sets the actual location of the external flat buffer after it has been moved (i.e. to another maschine)
   /// It sets  mFlatBufferPtr to actualFlatBufferPtr.
   /// A daughter class should later update all the pointers inside the buffer in the new location.
   ///
   void setActualBufferAddress(char* actualFlatBufferPtr);
 
-  
   /// Sets a future location of the external flat buffer before moving it to this location (i.e. when copying to GPU).
   ///
   /// The object can be used immidiatelly after the move, call of setActualFlatBufferAddress() is not needed.
@@ -257,28 +242,20 @@ class FlatObject
   ///
   void setFutureBufferAddress(char* futureFlatBufferPtr);
 
-
   /// _______________  Utilities  _______________________________________________
 
  public:
-
   /// Gives size of the flat buffer
-  size_t getFlatBufferSize() const {return mFlatBufferSize;}
-  
+  size_t getFlatBufferSize() const { return mFlatBufferSize; }
+
   /// Gives pointer to the flat buffer
-  const char* getFlatBufferPtr() const {return mFlatBufferPtr;}
+  const char* getFlatBufferPtr() const { return mFlatBufferPtr; }
 
   /// Tells if the object is constructed
-  bool isConstructed() const
-  {
-    return (mConstructionMask & (unsigned int) ConstructionState::Constructed);
-  }
+  bool isConstructed() const { return (mConstructionMask & (unsigned int)ConstructionState::Constructed); }
 
   /// Tells if the buffer is internal
-  bool isBufferInternal() const
-  {
-    return ( (mFlatBufferPtr != nullptr) && (mFlatBufferPtr == mFlatBufferContainer) );
-  }
+  bool isBufferInternal() const { return ((mFlatBufferPtr != nullptr) && (mFlatBufferPtr == mFlatBufferContainer)); }
 
   // Adopt an external pointer as internal buffer
   void adoptInternalBuffer(char* buf);
@@ -289,7 +266,6 @@ class FlatObject
   /// _______________  Generic utilities  _______________________________________________
 
  public:
-
   /// Increases given size to achieve required alignment
   static size_t alignSize(size_t sizeBytes, size_t alignmentBytes)
   {
@@ -321,26 +297,24 @@ class FlatObject
       printf("\n");
     }
   }
-#endif //!GPUCA_GPUCODE
+#endif //! GPUCA_GPUCODE
 
  protected:
-
   /// _______________  Data members  _______________________________________________
 
-
   /// Enumeration of construction states
-  enum  ConstructionState : unsigned int {
-    NotConstructed = 0x0,    ///< the object is not constructed
-    Constructed    = 0x1,    ///< the object is constructed, temporary memory is released
-    InProgress     = 0x2     ///< construction started: temporary  memory is reserved
-   };
+  enum ConstructionState : unsigned int {
+    NotConstructed = 0x0, ///< the object is not constructed
+    Constructed = 0x1,    ///< the object is constructed, temporary memory is released
+    InProgress = 0x2      ///< construction started: temporary  memory is reserved
+  };
 
-   int mFlatBufferSize;            ///< size of the flat buffer
-   unsigned int mConstructionMask; ///< mask for constructed object members, first two bytes are used by this class
-   char* mFlatBufferContainer;     //[mFlatBufferSize]  Optional container for the flat buffer
-   char* mFlatBufferPtr;           //!  Pointer to the flat buffer
+  int mFlatBufferSize = 0;                                            ///< size of the flat buffer
+  unsigned int mConstructionMask = ConstructionState::NotConstructed; ///< mask for constructed object members, first two bytes are used by this class
+  char* mFlatBufferContainer = nullptr;                               //[mFlatBufferSize]  Optional container for the flat buffer
+  char* mFlatBufferPtr = nullptr;                                     //!  Pointer to the flat buffer
 
-   ClassDefNV(FlatObject, 1);
+  ClassDefNV(FlatObject, 1);
 };
 
 /// ========================================================================================================
@@ -348,14 +322,6 @@ class FlatObject
 ///       Inline implementations of methods
 ///
 /// ========================================================================================================
- 
-inline FlatObject::FlatObject() : mFlatBufferSize(0),
-                                  mConstructionMask(ConstructionState::NotConstructed),
-                                  mFlatBufferContainer(nullptr),
-                                  mFlatBufferPtr(nullptr)
-{
-  // Default Constructor: creates an empty uninitialized object
-}
 
 inline void FlatObject::startConstruction()
 {
@@ -482,6 +448,6 @@ inline void FlatObject::setFutureBufferAddress(char* futureFlatBufferPtr)
 }
 
 } // namespace Base
-} // namespace ali_tpc_common
+} // namespace gpu_common
 
 #endif

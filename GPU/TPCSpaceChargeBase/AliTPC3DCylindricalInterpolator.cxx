@@ -25,11 +25,12 @@
 
 /// \cond CLASSIMP
 ClassImp(AliTPC3DCylindricalInterpolator)
-/// \endcond
+  /// \endcond
 
-/// constructor
-///
-AliTPC3DCylindricalInterpolator::AliTPC3DCylindricalInterpolator() {
+  /// constructor
+  ///
+  AliTPC3DCylindricalInterpolator::AliTPC3DCylindricalInterpolator()
+{
   fOrder = 1;
   fIsAllocatingLookUp = kFALSE;
   fIsInitCubic = kFALSE;
@@ -37,7 +38,8 @@ AliTPC3DCylindricalInterpolator::AliTPC3DCylindricalInterpolator() {
 
 /// destructor
 ///
-AliTPC3DCylindricalInterpolator::~AliTPC3DCylindricalInterpolator() {
+AliTPC3DCylindricalInterpolator::~AliTPC3DCylindricalInterpolator()
+{
   if (fIsAllocatingLookUp) {
     delete fValue;
     delete fRList;
@@ -56,7 +58,8 @@ AliTPC3DCylindricalInterpolator::~AliTPC3DCylindricalInterpolator() {
 /// \param z position  z
 ///
 /// \return interpolation value
-Double_t AliTPC3DCylindricalInterpolator::GetValue(Double_t r, Double_t phi, Double_t z) {
+Double_t AliTPC3DCylindricalInterpolator::GetValue(Double_t r, Double_t phi, Double_t z)
+{
   return InterpolateCylindrical(r, z, phi);
 }
 
@@ -67,7 +70,8 @@ Double_t AliTPC3DCylindricalInterpolator::GetValue(Double_t r, Double_t phi, Dou
 /// \param z Double_t position  z
 ///
 /// \return interpolation value
-Double_t AliTPC3DCylindricalInterpolator::InterpolateCylindrical(Double_t r, Double_t z, Double_t phi) {
+Double_t AliTPC3DCylindricalInterpolator::InterpolateCylindrical(Double_t r, Double_t z, Double_t phi)
+{
   Int_t iLow = 0, jLow = 0, m = 0;
   Int_t kLow = 0;
   Int_t index;
@@ -81,8 +85,10 @@ Double_t AliTPC3DCylindricalInterpolator::InterpolateCylindrical(Double_t r, Dou
   Bool_t neg = kFALSE;
 
   // check phi
-  while (phi < 0.0) phi = TMath::TwoPi() + phi;
-  while (phi > TMath::TwoPi()) phi = phi - TMath::TwoPi();
+  while (phi < 0.0)
+    phi = TMath::TwoPi() + phi;
+  while (phi > TMath::TwoPi())
+    phi = phi - TMath::TwoPi();
 
   // search lowest index related to r,z and phi
   Search(fNR, fRList, r, iLow);
@@ -95,19 +101,24 @@ Double_t AliTPC3DCylindricalInterpolator::InterpolateCylindrical(Double_t r, Dou
   jLow -= (fOrder / 2);
 
   // check if out of range
-  if (iLow < 0) iLow = 0;
-  if (jLow < 0) jLow = 0;
-  if (kLow < 0) kLow = fNPhi + kLow;
+  if (iLow < 0)
+    iLow = 0;
+  if (jLow < 0)
+    jLow = 0;
+  if (kLow < 0)
+    kLow = fNPhi + kLow;
   // check if out of range
-  if (iLow + fOrder >= fNR - 1) iLow = fNR - 1 - fOrder;
-  if (jLow + fOrder >= fNZ - 1) jLow = fNZ - 1 - fOrder;
+  if (iLow + fOrder >= fNR - 1)
+    iLow = fNR - 1 - fOrder;
+  if (jLow + fOrder >= fNZ - 1)
+    jLow = fNZ - 1 - fOrder;
 
   // do for each
   for (Int_t k = 0; k < fOrder + 1; k++) {
     m = (kLow + k) % fNPhi;
     // interpolate
     for (Int_t i = iLow; i < iLow + fOrder + 1; i++) {
-      if (fOrder <  3) {
+      if (fOrder < 3) {
         if (jLow >= 0) {
           index = m * (fNZ * fNR) + i * (fNZ) + jLow;
           saveArray[i - iLow] = Interpolate(&fZList[jLow], &fValue[index], z);
@@ -140,7 +151,8 @@ Double_t AliTPC3DCylindricalInterpolator::InterpolateCylindrical(Double_t r, Dou
 /// \param x unknown position
 ///
 /// \return interpolation value f(x)
-Double_t AliTPC3DCylindricalInterpolator::Interpolate(Double_t xArray[], Double_t yArray[], Double_t x) {
+Double_t AliTPC3DCylindricalInterpolator::Interpolate(Double_t xArray[], Double_t yArray[], Double_t x)
+{
   Double_t y;
 
   // if cubic spline
@@ -168,7 +180,8 @@ Double_t AliTPC3DCylindricalInterpolator::Interpolate(Double_t xArray[], Double_
 ///
 /// \return interpolation value f(x)
 Double_t AliTPC3DCylindricalInterpolator::InterpolatePhi(
-        Double_t xArray[], const Int_t iLow, const Int_t lenX, Double_t yArray[], Double_t x) {
+  Double_t xArray[], const Int_t iLow, const Int_t lenX, Double_t yArray[], Double_t x)
+{
   Int_t i0 = iLow;
   Double_t xi0 = xArray[iLow];
   Int_t i1 = (iLow + 1) % lenX;
@@ -177,9 +190,12 @@ Double_t AliTPC3DCylindricalInterpolator::InterpolatePhi(
   Double_t xi2 = xArray[i2];
 
   if (fOrder <= 2) {
-  	if (xi1 < xi0) xi1 = TMath::TwoPi() + xi1;
-  	if (xi2 < xi1) xi2 = TMath::TwoPi() + xi2;
-  	if (x < xi0) x = TMath::TwoPi() + x;
+    if (xi1 < xi0)
+      xi1 = TMath::TwoPi() + xi1;
+    if (xi2 < xi1)
+      xi2 = TMath::TwoPi() + xi2;
+    if (x < xi0)
+      x = TMath::TwoPi() + x;
   }
 
   Double_t y;
@@ -191,16 +207,18 @@ Double_t AliTPC3DCylindricalInterpolator::InterpolatePhi(
     for (Int_t i = 0; i < fOrder + 1; i++) {
       xArrayTemp[i] = xArray[iLow] + (dPhi * i);
     }
-    if (x < xArrayTemp[0]) x = TMath::TwoPi() + x;
-    if (x < xArrayTemp[0] || x > xArrayTemp[fOrder]) printf("x (%f) is outside of interpolation box (%f,%f)\n",x,xArrayTemp[0],xArrayTemp[fOrder]); 
+    if (x < xArrayTemp[0])
+      x = TMath::TwoPi() + x;
+    if (x < xArrayTemp[0] || x > xArrayTemp[fOrder])
+      printf("x (%f) is outside of interpolation box (%f,%f)\n", x, xArrayTemp[0], xArrayTemp[fOrder]);
 
     InitCubicSpline(xArrayTemp, yArray, fOrder + 1, y2Array, 1);
     y = InterpolateCubicSpline(xArrayTemp, yArray, y2Array, fOrder + 1, fOrder + 1, fOrder + 1, x, 1);
-  } else if (fOrder == 2) {                // Quadratic Interpolation = 2
+  } else if (fOrder == 2) { // Quadratic Interpolation = 2
     y = (x - xi1) * (x - xi2) * yArray[0] / ((xi0 - xi1) * (xi0 - xi2));
     y += (x - xi2) * (x - xi0) * yArray[1] / ((xi1 - xi2) * (xi1 - xi0));
     y += (x - xi0) * (x - xi1) * yArray[2] / ((xi2 - xi0) * (xi2 - xi1));
-  } else {                           // Li2near Interpolation = 1
+  } else { // Li2near Interpolation = 1
     y = yArray[0] + (yArray[1] - yArray[0]) * (x - xi0) / (xi1 - xi0);
   }
   return (y);
@@ -214,15 +232,14 @@ Double_t AliTPC3DCylindricalInterpolator::InterpolatePhi(
 /// \param y2Array Double_t[] calculated $d^2Y$ spline (output)
 /// \param skip memory offset for xArray
 ///
-void
-AliTPC3DCylindricalInterpolator::InitCubicSpline(Double_t *xArray, Double_t *yArray, const Int_t n, Double_t *y2Array,
-                                                 const Int_t skip) {
+void AliTPC3DCylindricalInterpolator::InitCubicSpline(Double_t* xArray, Double_t* yArray, const Int_t n, Double_t* y2Array,
+                                                      const Int_t skip)
+{
   Double_t u[n];
   Double_t sig, p, qn, un;
 
   y2Array[0] = 0.0;
   u[0] = 0.0; //natural condition
-
 
   for (Int_t i = 1; i <= n - 2; i++) {
     sig = (xArray[i] - xArray[i - 1]) / (xArray[i + 1] - xArray[i - 1]);
@@ -248,9 +265,9 @@ AliTPC3DCylindricalInterpolator::InitCubicSpline(Double_t *xArray, Double_t *yAr
 /// \param y2Array Double_t[] calculated $d^2Y$ spline (output)
 /// \param skip memory offset for xArray
 ///
-void
-AliTPC3DCylindricalInterpolator::InitCubicSpline(Double_t *xArray, Double_t *yArray, const Int_t n, Double_t *y2Array,
-                                                 const Int_t skip, Double_t yp0, Double_t ypn1) {
+void AliTPC3DCylindricalInterpolator::InitCubicSpline(Double_t* xArray, Double_t* yArray, const Int_t n, Double_t* y2Array,
+                                                      const Int_t skip, Double_t yp0, Double_t ypn1)
+{
   Double_t u[n];
   Double_t sig, p, qn, un;
 
@@ -283,10 +300,10 @@ AliTPC3DCylindricalInterpolator::InitCubicSpline(Double_t *xArray, Double_t *yAr
 /// \param x
 /// \param skip
 /// \return
-Double_t AliTPC3DCylindricalInterpolator::InterpolateCubicSpline
-        (Double_t *xArray, Double_t *yArray, Double_t *y2Array,
-         const Int_t nxArray, const Int_t nyArray,
-         const Int_t ny2Array, Double_t x, Int_t skip) {
+Double_t AliTPC3DCylindricalInterpolator::InterpolateCubicSpline(Double_t* xArray, Double_t* yArray, Double_t* y2Array,
+                                                                 const Int_t nxArray, const Int_t nyArray,
+                                                                 const Int_t ny2Array, Double_t x, Int_t skip)
+{
   Int_t klo, khi, k;
   Float_t h, b, a;
   klo = 0;
@@ -294,8 +311,10 @@ Double_t AliTPC3DCylindricalInterpolator::InterpolateCubicSpline
 
   while (khi - klo > 1) {
     k = (khi + klo) >> 1;
-    if (xArray[k] > x) khi = k;
-    else klo = k;
+    if (xArray[k] > x)
+      khi = k;
+    else
+      klo = k;
   }
 
   h = xArray[khi] - xArray[klo];
@@ -311,12 +330,12 @@ Double_t AliTPC3DCylindricalInterpolator::InterpolateCubicSpline
                ((a * a * a - a) * y2Array[klo * skip] + (b * b * b - b) * y2Array[khi * skip]) * (h * h) / 6.0;
 
   return y;
-
 }
 
-/// init cubic spline for all 
+/// init cubic spline for all
 ///
-void AliTPC3DCylindricalInterpolator::InitCubicSpline() {
+void AliTPC3DCylindricalInterpolator::InitCubicSpline()
+{
 
   Double_t yp0, ypn1;
   if (fIsInitCubic != kTRUE) {
@@ -328,19 +347,19 @@ void AliTPC3DCylindricalInterpolator::InitCubicSpline() {
         yp0 = (-(11.0 / 6.0) * fValue[(m * (fNZ * fNR) + i * fNZ)] +
                (3.0 * fValue[(m * (fNZ * fNR) + i * fNZ) + 1]) -
                (1.5 * fValue[(m * (fNZ * fNR) + i * fNZ) + 2]) +
-               ((1.0 / 3.0) * fValue[(m * (fNZ * fNR) + i * fNZ) + 4])) / (fZList[1] - fZList[0]);
+               ((1.0 / 3.0) * fValue[(m * (fNZ * fNR) + i * fNZ) + 4])) /
+              (fZList[1] - fZList[0]);
         ypn1 = (-(11.0 / 6.0) * fValue[(m * (fNZ * fNR) + i * fNZ) + (fNZ - 1)] +
                 (3.0 * fValue[(m * (fNZ * fNR) + i * fNZ) + (fNZ - 2)]) -
                 (1.5 * fValue[(m * (fNZ * fNR) + i * fNZ) + (fNZ - 3)]) +
-                ((1.0 / 3.0) * fValue[(m * (fNZ * fNR) + i * fNZ) + (fNZ - 4)])) / (fZList[0] - fZList[1]);
+                ((1.0 / 3.0) * fValue[(m * (fNZ * fNR) + i * fNZ) + (fNZ - 4)])) /
+               (fZList[0] - fZList[1]);
         InitCubicSpline(fZList, &fValue[m * (fNZ * fNR) + i * fNZ], fNZ,
                         &fSecondDerZ[m * (fNZ * fNR) + i * fNZ], 1);
       }
-
     }
 
     fIsInitCubic = kTRUE;
-
   }
 }
 
@@ -350,20 +369,23 @@ void AliTPC3DCylindricalInterpolator::InitCubicSpline() {
 /// \param xArray
 /// \param x
 /// \param low
-void AliTPC3DCylindricalInterpolator::Search(Int_t n, const Double_t xArray[], Double_t x, Int_t &low) {
+void AliTPC3DCylindricalInterpolator::Search(Int_t n, const Double_t xArray[], Double_t x, Int_t& low)
+{
   /// Search an ordered table by starting at the most recently used point
 
   Long_t middle, high;
   Int_t ascend = 0, increment = 1;
 
-  if (xArray[n - 1] > xArray[0]) ascend = 1;  // Ascending ordered table if true
+  if (xArray[n - 1] > xArray[0])
+    ascend = 1; // Ascending ordered table if true
 
   if (low < 0 || low > n - 1) {
     low = -1;
     high = n;
-  } else {                                            // Ordered Search phase
+  } else { // Ordered Search phase
     if ((Int_t)(x > xArray[low]) == ascend) {
-      if (low == n - 1) return;
+      if (low == n - 1)
+        return;
       high = low + 1;
       while ((Int_t)(x > xArray[high]) == ascend) {
         low = high;
@@ -386,12 +408,13 @@ void AliTPC3DCylindricalInterpolator::Search(Int_t n, const Double_t xArray[], D
         if (increment >= high) {
           low = -1;
           break;
-        } else low = high - increment;
+        } else
+          low = high - increment;
       }
     }
   }
 
-  while ((high - low) != 1) {                     // Binary Search Phase
+  while ((high - low) != 1) { // Binary Search Phase
     middle = (high + low) / 2;
     if ((Int_t)(x > xArray[middle]) == ascend)
       low = middle;
@@ -399,18 +422,20 @@ void AliTPC3DCylindricalInterpolator::Search(Int_t n, const Double_t xArray[], D
       high = middle;
   }
 
-  if (x > xArray[n - 1]) low = n;
-  if (x < xArray[0]) low = -1;
-
+  if (x > xArray[n - 1])
+    low = n;
+  if (x < xArray[0])
+    low = -1;
 }
 
 /// Set the value as interpolation point
 ///
 /// \param matricesVal TMatrixD** reference value for each point
-void AliTPC3DCylindricalInterpolator::SetValue(TMatrixD **matricesVal) {
+void AliTPC3DCylindricalInterpolator::SetValue(TMatrixD** matricesVal)
+{
   Int_t indexVal1D;
   Int_t index1D;
-  TMatrixD *mat;
+  TMatrixD* mat;
   if (!fIsAllocatingLookUp) {
     fValue = new Double_t[fNPhi * fNR * fNZ];
     fIsAllocatingLookUp = kTRUE;
@@ -430,10 +455,11 @@ void AliTPC3DCylindricalInterpolator::SetValue(TMatrixD **matricesVal) {
 /// Set the value as interpolation point
 ///
 /// \param matricesVal TMatrixD** reference value for each point
-void AliTPC3DCylindricalInterpolator::SetValue(TMatrixD **matricesVal,Int_t iZ) {
+void AliTPC3DCylindricalInterpolator::SetValue(TMatrixD** matricesVal, Int_t iZ)
+{
   Int_t indexVal1D;
   Int_t index1D;
-  TMatrixD *mat;
+  TMatrixD* mat;
   if (!fIsAllocatingLookUp) {
     fValue = new Double_t[fNPhi * fNR * fNZ];
     fIsAllocatingLookUp = kTRUE;
@@ -451,33 +477,37 @@ void AliTPC3DCylindricalInterpolator::SetValue(TMatrixD **matricesVal,Int_t iZ) 
 /// set the position of R
 ///
 /// \param rList
-void AliTPC3DCylindricalInterpolator::SetRList(Double_t *rList) {
+void AliTPC3DCylindricalInterpolator::SetRList(Double_t* rList)
+{
   fRList = new Double_t[fNR];
-  for (Int_t i = 0; i < fNR; i++) fRList[i] = rList[i];
+  for (Int_t i = 0; i < fNR; i++)
+    fRList[i] = rList[i];
 }
 
 /// set the position of phi
 ///
 /// \param phiList
-void AliTPC3DCylindricalInterpolator::SetPhiList(Double_t *phiList) {
+void AliTPC3DCylindricalInterpolator::SetPhiList(Double_t* phiList)
+{
   fPhiList = new Double_t[fNPhi];
-  for (Int_t i = 0; i < fNPhi; i++) fPhiList[i] = phiList[i];
-
+  for (Int_t i = 0; i < fNPhi; i++)
+    fPhiList[i] = phiList[i];
 }
 
 /// Setting z position
 ///
 /// \param zList
-void AliTPC3DCylindricalInterpolator::SetZList(Double_t *zList) {
+void AliTPC3DCylindricalInterpolator::SetZList(Double_t* zList)
+{
   fZList = new Double_t[fNZ];
-  for (Int_t i = 0; i < fNZ; i++) fZList[i] = zList[i];
-
+  for (Int_t i = 0; i < fNZ; i++)
+    fZList[i] = zList[i];
 }
 
 /// Setting values from 1D
 ///
 /// \param valueList
-void AliTPC3DCylindricalInterpolator::SetValue(Double_t *valueList) {
+void AliTPC3DCylindricalInterpolator::SetValue(Double_t* valueList)
+{
   fValue = valueList;
 }
-

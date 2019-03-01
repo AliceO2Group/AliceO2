@@ -22,19 +22,27 @@
 #include "GPUITSFitter.h"
 #include "GPUTRDTracker.h"
 #else
-class GPUTPCGMMerger {};
-class GPUITSFitter {};
-class GPUTRDTracker {void SetMaxData(){}};
+class GPUTPCGMMerger
+{
+};
+class GPUITSFitter
+{
+};
+class GPUTRDTracker
+{
+  void SetMaxData() {}
+};
 #endif
 
 MEM_CLASS_PRE()
-struct GPUConstantMem
-{
-	MEM_LG(GPUParam) param;
-	MEM_LG(GPUTPCTracker) tpcTrackers[GPUCA_NSLICES];
-	GPUTPCGMMerger tpcMerger;
-	GPUTRDTracker trdTracker;
-	GPUITSFitter itsFitter;
+struct GPUConstantMem {
+  MEM_LG(GPUParam)
+  param;
+  MEM_LG(GPUTPCTracker)
+  tpcTrackers[GPUCA_NSLICES];
+  GPUTPCGMMerger tpcMerger;
+  GPUTRDTracker trdTracker;
+  GPUITSFitter itsFitter;
 };
 
 #endif

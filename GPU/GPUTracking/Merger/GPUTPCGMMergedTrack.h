@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUTPCGMMergedTrack.h.h
+/// \file GPUTPCGMMergedTrack.h
 /// \author Sergey Gorbunov, David Rohr
 
 #ifndef GPUTPCGMMERGEDTRACK_H
@@ -25,52 +25,74 @@
 class GPUTPCGMMergedTrack
 {
  public:
+  GPUd() unsigned int NClusters() const { return mNClusters; }
+  GPUd() unsigned int NClustersFitted() const { return mNClustersFitted; }
+  GPUd() unsigned int FirstClusterRef() const { return fFirstClusterRef; }
+  GPUd() const GPUTPCGMTrackParam& GetParam() const { return mParam; }
+  GPUd() float GetAlpha() const { return mAlpha; }
+  GPUd() GPUTPCGMTrackParam& Param() { return mParam; }
+  GPUd() float& Alpha() { return mAlpha; }
+  GPUd() float LastX() const { return mLastX; }
+  GPUd() float LastY() const { return mLastY; }
+  GPUd() float LastZ() const { return mLastZ; }
+  GPUd() bool OK() const { return mFlags & 0x01; }
+  GPUd() bool Looper() const { return mFlags & 0x02; }
+  GPUd() bool CSide() const { return mFlags & 0x04; }
+  GPUd() bool CCE() const { return mFlags & 0x08; }
 
-	GPUd() unsigned int NClusters()                const { return fNClusters;       }
-	GPUd() unsigned int NClustersFitted()          const { return fNClustersFitted; }
-	GPUd() unsigned int FirstClusterRef()          const { return fFirstClusterRef; }
-	GPUd() const GPUTPCGMTrackParam &GetParam() const { return fParam;           }
-	GPUd() float GetAlpha()                        const { return fAlpha;           }
-	GPUd() GPUTPCGMTrackParam &Param()                { return fParam;           }
-	GPUd() float &Alpha()                                { return fAlpha;           }
-	GPUd() float LastX()                           const { return fLastX;           }
-	GPUd() float LastY()                           const { return fLastY;           }
-	GPUd() float LastZ()                           const { return fLastZ;           }
-	GPUd() bool OK()                               const { return fFlags & 0x01;    }
-	GPUd() bool Looper()                           const { return fFlags & 0x02;    }
-	GPUd() bool CSide()                            const { return fFlags & 0x04;    }
-	GPUd() bool CCE()                              const { return fFlags & 0x08;    }
-  
-	GPUd() void SetNClusters      ( int v )                { fNClusters = v;       }
-	GPUd() void SetNClustersFitted( int v )                { fNClustersFitted = v; }
-	GPUd() void SetFirstClusterRef( int v )                { fFirstClusterRef = v; }
-	GPUd() void SetParam( const GPUTPCGMTrackParam &v ) { fParam = v;      }
-	GPUd() void SetAlpha( float v )                        { fAlpha = v;      }
-	GPUd() void SetLastX( float v )                        { fLastX = v; }
-	GPUd() void SetLastY( float v )                        { fLastY = v; }
-	GPUd() void SetLastZ( float v )                        { fLastZ = v; }
-	GPUd() void SetOK( bool v )                            { if (v) fFlags |= 0x01; else fFlags &= 0xFE; }
-	GPUd() void SetLooper( bool v )                        { if (v) fFlags |= 0x02; else fFlags &= 0xFD; }
-	GPUd() void SetCSide( bool v )                         { if (v) fFlags |= 0x04; else fFlags &= 0xFB; }
-	GPUd() void SetCCE( bool v )                           { if (v) fFlags |= 0x08; else fFlags &= 0xF7; }
-	GPUd() void SetFlags ( unsigned char v )               { fFlags = v; }
-  
-	GPUd() const GPUTPCGMTrackParam::GPUTPCOuterParam& OuterParam() const {return fOuterParam;}
-	GPUd() GPUTPCGMTrackParam::GPUTPCOuterParam& OuterParam() {return fOuterParam;}
-  
+  GPUd() void SetNClusters(int v) { mNClusters = v; }
+  GPUd() void SetNClustersFitted(int v) { mNClustersFitted = v; }
+  GPUd() void SetFirstClusterRef(int v) { fFirstClusterRef = v; }
+  GPUd() void SetParam(const GPUTPCGMTrackParam& v) { mParam = v; }
+  GPUd() void SetAlpha(float v) { mAlpha = v; }
+  GPUd() void SetLastX(float v) { mLastX = v; }
+  GPUd() void SetLastY(float v) { mLastY = v; }
+  GPUd() void SetLastZ(float v) { mLastZ = v; }
+  GPUd() void SetOK(bool v)
+  {
+    if (v)
+      mFlags |= 0x01;
+    else
+      mFlags &= 0xFE;
+  }
+  GPUd() void SetLooper(bool v)
+  {
+    if (v)
+      mFlags |= 0x02;
+    else
+      mFlags &= 0xFD;
+  }
+  GPUd() void SetCSide(bool v)
+  {
+    if (v)
+      mFlags |= 0x04;
+    else
+      mFlags &= 0xFB;
+  }
+  GPUd() void SetCCE(bool v)
+  {
+    if (v)
+      mFlags |= 0x08;
+    else
+      mFlags &= 0xF7;
+  }
+  GPUd() void SetFlags(unsigned char v) { mFlags = v; }
+
+  GPUd() const GPUTPCGMTrackParam::GPUTPCOuterParam& OuterParam() const { return fOuterParam; }
+  GPUd() GPUTPCGMTrackParam::GPUTPCOuterParam& OuterParam() { return fOuterParam; }
+
  private:
+  GPUTPCGMTrackParam mParam;                        //* fitted track parameters
+  GPUTPCGMTrackParam::GPUTPCOuterParam fOuterParam; //* outer param
 
-	GPUTPCGMTrackParam fParam; //* fitted track parameters
-	GPUTPCGMTrackParam::GPUTPCOuterParam fOuterParam; //* outer param
-
-	float fAlpha;                   //* alpha angle
-	float fLastX;                   //* outer X
-	float fLastY;                   //* outer Y
-	float fLastZ;                   //* outer Z
-	unsigned int fFirstClusterRef;  //* index of the first track cluster in corresponding cluster arrays
-	unsigned int fNClusters;        //* number of track clusters
-	unsigned int fNClustersFitted;  //* number of clusters used in fit
-	unsigned char fFlags;
+  float mAlpha;                  //* alpha angle
+  float mLastX;                  //* outer X
+  float mLastY;                  //* outer Y
+  float mLastZ;                  //* outer Z
+  unsigned int fFirstClusterRef; //* index of the first track cluster in corresponding cluster arrays
+  unsigned int mNClusters;       //* number of track clusters
+  unsigned int mNClustersFitted; //* number of clusters used in fit
+  unsigned char mFlags;
 };
 
 #endif

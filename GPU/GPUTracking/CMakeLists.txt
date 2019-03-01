@@ -61,8 +61,8 @@ set(SRCS
     Merger/GPUTPCGMMerger.cxx
     Merger/GPUTPCGMSliceTrack.cxx
     Merger/GPUTPCGMTrackParam.cxx
-    Merger/GPUTPCGMPhysicalTrackModel.cxx
     Merger/GPUTPCGMPropagator.cxx
+    Merger/GPUTPCGMPhysicalTrackModel.cxx
     Merger/GPUTPCGMPolynomialField.cxx
     Merger/GPUTPCGMPolynomialFieldManager.cxx
     Merger/GPUTPCGMMergerGPU.cxx
@@ -113,7 +113,6 @@ set(HDRS
     TRDTracking/GPUTRDTrackPoint.h
     TRDTracking/GPUTRDTrackletLabels.h
     Base/GPUConstantMem.h
-    Base/GPUOutputControl.h
     Base/GPUReconstructionIncludes.h
 )
 #Not processed by ROOT
@@ -129,6 +128,7 @@ set(HDRS2
     Base/GPUReconstructionKernels.h
     Base/GPUReconstructionIncludesITS.h
     Base/GPUReconstructionHelpers.h
+    Base/GPUOutputControl.h
     Base/GPUDataTypes.h
 )
 

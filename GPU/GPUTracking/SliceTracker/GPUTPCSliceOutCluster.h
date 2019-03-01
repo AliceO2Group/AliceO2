@@ -23,39 +23,39 @@
  */
 class GPUTPCSliceOutCluster
 {
-  public:
-	GPUhd() void Set(unsigned int id, unsigned char row, unsigned char flags, unsigned short amp, float x, float y, float z)
-	{
-		fRow = row;
-		fFlags = flags;
-		fAmp = amp;
-		fId = id;
-		fX = x;
-		fY = y;
-		fZ = z;
-	}
+ public:
+  GPUhd() void Set(unsigned int id, unsigned char row, unsigned char flags, unsigned short amp, float x, float y, float z)
+  {
+    mRow = row;
+    mFlags = flags;
+    mAmp = amp;
+    mId = id;
+    mX = x;
+    mY = y;
+    mZ = z;
+  }
 
-	GPUhd() float GetX() const { return fX; }
-	GPUhd() float GetY() const { return fY; }
-	GPUhd() float GetZ() const { return fZ; }
-	GPUhd() unsigned int GetId() const { return fId; }
-	GPUhd() unsigned char GetRow() const { return fRow; }
-	GPUhd() unsigned char GetFlags() const { return fFlags; }
-	GPUhd() unsigned short GetAmp() const { return fAmp; }
+  GPUhd() float GetX() const { return mX; }
+  GPUhd() float GetY() const { return mY; }
+  GPUhd() float GetZ() const { return mZ; }
+  GPUhd() unsigned int GetId() const { return mId; }
+  GPUhd() unsigned char GetRow() const { return mRow; }
+  GPUhd() unsigned char GetFlags() const { return mFlags; }
+  GPUhd() unsigned short GetAmp() const { return mAmp; }
 
-  private:
-	unsigned int fId;     // Id ( slice, patch, cluster )
-	unsigned char fRow;   // row
-	unsigned char fFlags; //flags
-	unsigned short fAmp;  //amplitude
-	float fX;             // coordinates
-	float fY;             // coordinates
-	float fZ;             // coordinates
+ private:
+  unsigned int mId;     // Id ( slice, patch, cluster )
+  unsigned char mRow;   // row
+  unsigned char mFlags; // flags
+  unsigned short mAmp;  // amplitude
+  float mX;             // coordinates
+  float mY;             // coordinates
+  float mZ;             // coordinates
 
 #ifdef GMPropagatePadRowTime
-  public:
-	float fPad;
-	float fTime;
+ public:
+  float mPad;
+  float mTime;
 #endif
 };
 

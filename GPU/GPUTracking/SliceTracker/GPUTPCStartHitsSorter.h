@@ -27,34 +27,34 @@ class GPUTPCTracker;
  */
 class GPUTPCStartHitsSorter
 {
-public:
-	MEM_CLASS_PRE()
-	class GPUTPCSharedMemory
-	{
-		friend class GPUTPCStartHitsSorter;
+ public:
+  MEM_CLASS_PRE()
+  class GPUTPCSharedMemory
+  {
+    friend class GPUTPCStartHitsSorter;
 
-	  public:
+   public:
 #if !defined(GPUCA_GPUCODE)
-		GPUTPCSharedMemory()
-		    : fStartRow(0), fNRows(0), fStartOffset(0)
-		{
-		}
+    GPUTPCSharedMemory() : mStartRow(0), mNRows(0), mStartOffset(0)
+    {
+    }
 
-		GPUTPCSharedMemory(const GPUTPCSharedMemory & /*dummy*/)
-		    : fStartRow(0), fNRows(0), fStartOffset(0) {}
-		GPUTPCSharedMemory &operator=(const GPUTPCSharedMemory & /*dummy*/) { return *this; }
-#endif //!GPUCA_GPUCODE
+    GPUTPCSharedMemory(const GPUTPCSharedMemory& /*dummy*/) : mStartRow(0), mNRows(0), mStartOffset(0) {}
+    GPUTPCSharedMemory& operator=(const GPUTPCSharedMemory& /*dummy*/) { return *this; }
+#endif //! GPUCA_GPUCODE
 
-	  protected:
-		int fStartRow;    // start row index
-		int fNRows;       // number of rows to process
-		int fStartOffset; //start offset for hits sorted by this block
-	};
+   protected:
+    int mStartRow;    // start row index
+    int mNRows;       // number of rows to process
+    int mStartOffset; // start offset for hits sorted by this block
+  };
 
-	typedef GPUconstantref() MEM_CONSTANT(GPUTPCTracker) workerType;
-	GPUhdi() static GPUDataTypes::RecoStep GetRecoStep() {return GPUCA_RECO_STEP::TPCSliceTracking;}
-	MEM_TEMPLATE() GPUhdi() static workerType* Worker(MEM_TYPE(GPUConstantMem) &workers) {return workers.tpcTrackers;}
-	template <int iKernel = 0> GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) &smem, workerType &tracker);
+  typedef GPUconstantref() MEM_CONSTANT(GPUTPCTracker) workerType;
+  GPUhdi() static GPUDataTypes::RecoStep GetRecoStep() { return GPUCA_RECO_STEP::TPCSliceTracking; }
+  MEM_TEMPLATE()
+  GPUhdi() static workerType* Worker(MEM_TYPE(GPUConstantMem) & workers) { return workers.tpcTrackers; }
+  template <int iKernel = 0>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & smem, workerType& tracker);
 };
 
-#endif //GPUTPCSTARTHITSSORTER_H
+#endif // GPUTPCSTARTHITSSORTER_H

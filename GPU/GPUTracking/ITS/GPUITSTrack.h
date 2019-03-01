@@ -16,16 +16,20 @@
 
 #include "GPUTPCGMTrackParam.h"
 
-namespace o2 { namespace ITS {
+namespace o2
+{
+namespace ITS
+{
 
 class GPUITSTrack : public GPUTPCGMTrackParam
 {
-public:
-	GPUTPCGMTrackParam::GPUTPCOuterParam mOuterParam;
-	float mAlpha;
-	int mClusters[7];
+ public:
+  GPUTPCGMTrackParam::GPUTPCOuterParam mOuterParam;
+  float mAlpha;
+  int mClusters[7];
 };
 
-}}
+} // namespace ITS
+} // namespace o2
 
 #endif

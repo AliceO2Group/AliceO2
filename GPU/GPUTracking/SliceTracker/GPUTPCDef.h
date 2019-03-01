@@ -133,8 +133,8 @@ struct cahit2{cahit x, y;};
 #endif
 
 #ifdef EXTERN_ROW_HITS
-  #define GETRowHit(iRow) tracker.TrackletRowHits()[iRow * s.fNTracklets + r.fItr]
-  #define SETRowHit(iRow, val) tracker.TrackletRowHits()[iRow * s.fNTracklets + r.fItr] = val
+  #define GETRowHit(iRow) tracker.TrackletRowHits()[iRow * s.mNTracklets + r.mItr]
+  #define SETRowHit(iRow, val) tracker.TrackletRowHits()[iRow * s.mNTracklets + r.mItr] = val
 #else
   #define GETRowHit(iRow) tracklet.RowHit(iRow)
   #define SETRowHit(iRow, val) tracklet.SetRowHit(iRow, val)

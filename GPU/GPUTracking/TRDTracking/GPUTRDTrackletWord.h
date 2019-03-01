@@ -17,23 +17,24 @@ class AliTRDtrackletMCM;
 
 #include "GPUTPCDef.h"
 
-class GPUTRDTrackletWord {
+class GPUTRDTrackletWord
+{
  public:
   GPUd() GPUTRDTrackletWord(unsigned int trackletWord = 0);
   GPUd() GPUTRDTrackletWord(unsigned int trackletWord, int hcid, int id);
-  GPUdDefault() GPUTRDTrackletWord(const GPUTRDTrackletWord &rhs) CON_DEFAULT;
-  GPUdDefault() GPUTRDTrackletWord& operator=(const GPUTRDTrackletWord &rhs) CON_DEFAULT;
+  GPUdDefault() GPUTRDTrackletWord(const GPUTRDTrackletWord& rhs) CON_DEFAULT;
+  GPUdDefault() GPUTRDTrackletWord& operator=(const GPUTRDTrackletWord& rhs) CON_DEFAULT;
   GPUdDefault() ~GPUTRDTrackletWord() CON_DEFAULT;
 #ifndef GPUCA_GPUCODE_DEVICE
-  GPUTRDTrackletWord(const AliTRDtrackletWord &rhs);
-  GPUTRDTrackletWord(const AliTRDtrackletMCM &rhs);
-  GPUTRDTrackletWord& operator=(const AliTRDtrackletMCM &rhs);
+  GPUTRDTrackletWord(const AliTRDtrackletWord& rhs);
+  GPUTRDTrackletWord(const AliTRDtrackletMCM& rhs);
+  GPUTRDTrackletWord& operator=(const AliTRDtrackletMCM& rhs);
 #endif
 
   // ----- Override operators < and > to enable tracklet sorting by HCId -----
-  GPUd() bool operator<(const GPUTRDTrackletWord &t) const { return (GetHCId() < t.GetHCId()); }
-  GPUd() bool operator>(const GPUTRDTrackletWord &t) const { return (GetHCId() > t.GetHCId()); }
-  GPUd() bool operator<=(const GPUTRDTrackletWord &t) const { return (GetHCId() < t.GetHCId()) || (GetHCId() == t.GetHCId()); }
+  GPUd() bool operator<(const GPUTRDTrackletWord& t) const { return (GetHCId() < t.GetHCId()); }
+  GPUd() bool operator>(const GPUTRDTrackletWord& t) const { return (GetHCId() > t.GetHCId()); }
+  GPUd() bool operator<=(const GPUTRDTrackletWord& t) const { return (GetHCId() < t.GetHCId()) || (GetHCId() == t.GetHCId()); }
 
   // ----- Getters for contents of tracklet word -----
   GPUd() int GetYbin() const;
@@ -44,7 +45,7 @@ class GPUTRDTrackletWord {
   GPUd() int GetId() const { return mId; }
 
   // ----- Getters for offline corresponding values -----
-  GPUd() double GetPID(int /* is */) const { return (double) GetPID()/256.f; }
+  GPUd() double GetPID(int /* is */) const { return (double)GetPID() / 256.f; }
   GPUd() int GetDetector() const { return mHCId / 2; }
   GPUd() int GetHCId() const { return mHCId; }
   GPUd() float GetdYdX() const { return (GetdY() * 140e-4f / 3.f); }
@@ -57,11 +58,10 @@ class GPUTRDTrackletWord {
   GPUd() void SetHCId(int id) { mHCId = id; }
 
  protected:
-  int mId;                      // index in tracklet array
-  int mHCId;                    // half-chamber ID
-  unsigned int mTrackletWord;   // tracklet word: PID | Z | deflection length | Y
-                                //          bits:   8   4            7          13
-
+  int mId;                    // index in tracklet array
+  int mHCId;                  // half-chamber ID
+  unsigned int mTrackletWord; // tracklet word: PID | Z | deflection length | Y
+                              //          bits:   8   4            7          13
 };
 
 #endif

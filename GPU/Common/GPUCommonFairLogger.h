@@ -18,8 +18,9 @@
 
 #include <iostream>
 #define LOG(type) std::cout
-namespace FairLogger {
-	static constexpr const char* endl = "\n";
+namespace FairLogger
+{
+static constexpr const char* endl = "\n";
 }
 
 #else

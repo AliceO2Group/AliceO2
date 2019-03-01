@@ -27,10 +27,10 @@
 
 void GPUParam::SetDefaults(float solenoidBz)
 {
-	memset((void*) this, 0, sizeof(*this));
-	rec.SetDefaults();
-	
-	float const kParamS0Par[2][3][6] = // clang-format off
+  memset((void*)this, 0, sizeof(*this));
+  rec.SetDefaults();
+
+  float const kParamS0Par[2][3][6] = // clang-format off
 	{
 		{ { 6.45913474727e-04, 2.51547407970e-05, 1.57551113516e-02, 1.99872811635e-08, -5.86769729853e-03, 9.16301505640e-05 },
 		{ 9.71546804067e-04, 1.70938055817e-05, 2.17084009200e-02, 3.90275758377e-08, -1.68631039560e-03, 8.40498323669e-05 },

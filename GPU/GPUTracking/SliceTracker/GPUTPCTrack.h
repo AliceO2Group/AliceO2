@@ -27,43 +27,43 @@
 MEM_CLASS_PRE()
 class GPUTPCTrack
 {
-  public:
+ public:
 #if !defined(GPUCA_GPUCODE)
-	GPUTPCTrack() : fAlive(0), fFirstHitID(0), fNHits(0), fLocalTrackId(-1), fParam()
-	{
-	}
-	~GPUTPCTrack() {}
-#endif //!GPUCA_GPUCODE
+  GPUTPCTrack() : mAlive(0), mFirstHitID(0), mNHits(0), mLocalTrackId(-1), mParam()
+  {
+  }
+  ~GPUTPCTrack() {}
+#endif //! GPUCA_GPUCODE
 
-	GPUhd() char Alive() const
-	{
-		return fAlive;
-	}
-	GPUhd() int NHits() const { return fNHits; }
-	GPUhd() int LocalTrackId() const { return fLocalTrackId; }
-	GPUhd() int FirstHitID() const { return fFirstHitID; }
-	GPUhd() MakeType(const MEM_LG(GPUTPCBaseTrackParam) &) Param() const { return fParam; }
+  GPUhd() char Alive() const
+  {
+    return mAlive;
+  }
+  GPUhd() int NHits() const { return mNHits; }
+  GPUhd() int LocalTrackId() const { return mLocalTrackId; }
+  GPUhd() int FirstHitID() const { return mFirstHitID; }
+  GPUhd() MakeType(const MEM_LG(GPUTPCBaseTrackParam) &) Param() const { return mParam; }
 
-	GPUhd() void SetAlive(bool v) { fAlive = v; }
-	GPUhd() void SetNHits(int v) { fNHits = v; }
-	GPUhd() void SetLocalTrackId(int v) { fLocalTrackId = v; }
-	GPUhd() void SetFirstHitID(int v) { fFirstHitID = v; }
+  GPUhd() void SetAlive(bool v) { mAlive = v; }
+  GPUhd() void SetNHits(int v) { mNHits = v; }
+  GPUhd() void SetLocalTrackId(int v) { mLocalTrackId = v; }
+  GPUhd() void SetFirstHitID(int v) { mFirstHitID = v; }
 
-	MEM_TEMPLATE()
-	GPUhd() void SetParam(const MEM_TYPE(GPUTPCBaseTrackParam) & v) { fParam = v; }
+  MEM_TEMPLATE()
+  GPUhd() void SetParam(const MEM_TYPE(GPUTPCBaseTrackParam) & v) { mParam = v; }
 
-  private:
-	char fAlive;       // flag for mark tracks used by the track merger
-	int fFirstHitID;   // index of the first track cell in the track->cell pointer array
-	int fNHits;        // number of track cells
-	int fLocalTrackId; //Id of local track this global track belongs to, index of this track itself if it is a local track
-	MEM_LG(GPUTPCBaseTrackParam)
-	fParam; // track parameters
+ private:
+  char mAlive;       // flag for mark tracks used by the track merger
+  int mFirstHitID;   // index of the first track cell in the track->cell pointer array
+  int mNHits;        // number of track cells
+  int mLocalTrackId; // Id of local track this global track belongs to, index of this track itself if it is a local track
+  MEM_LG(GPUTPCBaseTrackParam)
+  mParam; // track parameters
 
-  private:
-	//void Dummy(); // to make rulechecker happy by having something in .cxx file
+ private:
+  // void Dummy(); // to make rulechecker happy by having something in .cxx file
 
-	//ClassDef(GPUTPCTrack,1)
+  // ClassDef(GPUTPCTrack,1)
 };
 
-#endif //GPUTPCTRACK_H
+#endif // GPUTPCTRACK_H

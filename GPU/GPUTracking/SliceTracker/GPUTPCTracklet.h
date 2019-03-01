@@ -27,48 +27,48 @@
 MEM_CLASS_PRE()
 class GPUTPCTracklet
 {
-  public:
+ public:
 #if !defined(GPUCA_GPUCODE)
-	GPUTPCTracklet() : fNHits(0), fFirstRow(0), fLastRow(0), fParam(), fHitWeight(0){};
-#endif //!GPUCA_GPUCODE
+  GPUTPCTracklet() : mNHits(0), mFirstRow(0), mLastRow(0), mParam(), mHitWeight(0){};
+#endif //! GPUCA_GPUCODE
 
-	GPUhd() int NHits() const
-	{
-		return fNHits;
-	}
-	GPUhd() int FirstRow() const { return fFirstRow; }
-	GPUhd() int LastRow() const { return fLastRow; }
-	GPUhd() int HitWeight() const { return fHitWeight; }
-	GPUhd() MakeType(const MEM_LG(GPUTPCBaseTrackParam) &) Param() const { return fParam; }
+  GPUhd() int NHits() const
+  {
+    return mNHits;
+  }
+  GPUhd() int FirstRow() const { return mFirstRow; }
+  GPUhd() int LastRow() const { return mLastRow; }
+  GPUhd() int HitWeight() const { return mHitWeight; }
+  GPUhd() MakeType(const MEM_LG(GPUTPCBaseTrackParam) &) Param() const { return mParam; }
 #ifndef EXTERN_ROW_HITS
-	GPUhd() int RowHit(int i) const
-	{
-		return fRowHits[i];
-	}
-	GPUhd() const int *RowHits() const { return (fRowHits); }
-	GPUhd() void SetRowHit(int irow, int ih) { fRowHits[irow] = ih; }
-#endif //EXTERN_ROW_HITS
+  GPUhd() int RowHit(int i) const
+  {
+    return mRowHits[i];
+  }
+  GPUhd() const int* RowHits() const { return (mRowHits); }
+  GPUhd() void SetRowHit(int irow, int ih) { mRowHits[irow] = ih; }
+#endif // EXTERN_ROW_HITS
 
-	GPUhd() void SetNHits(int v)
-	{
-		fNHits = v;
-	}
-	GPUhd() void SetFirstRow(int v) { fFirstRow = v; }
-	GPUhd() void SetLastRow(int v) { fLastRow = v; }
-	MEM_CLASS_PRE2()
-	GPUhd() void SetParam(const MEM_LG2(GPUTPCBaseTrackParam) & v) { fParam = reinterpret_cast<const MEM_LG(GPUTPCBaseTrackParam) &>(v); }
-	GPUhd() void SetHitWeight(const int w) { fHitWeight = w; }
+  GPUhd() void SetNHits(int v)
+  {
+    mNHits = v;
+  }
+  GPUhd() void SetFirstRow(int v) { mFirstRow = v; }
+  GPUhd() void SetLastRow(int v) { mLastRow = v; }
+  MEM_CLASS_PRE2()
+  GPUhd() void SetParam(const MEM_LG2(GPUTPCBaseTrackParam) & v) { mParam = reinterpret_cast<const MEM_LG(GPUTPCBaseTrackParam)&>(v); }
+  GPUhd() void SetHitWeight(const int w) { mHitWeight = w; }
 
-  private:
-	int fNHits;    // N hits
-	int fFirstRow; // first TPC row
-	int fLastRow;  // last TPC row
-	MEM_LG(GPUTPCBaseTrackParam)
-	fParam; // tracklet parameters
+ private:
+  int mNHits;    // N hits
+  int mFirstRow; // first TPC row
+  int mLastRow;  // last TPC row
+  MEM_LG(GPUTPCBaseTrackParam)
+  mParam; // tracklet parameters
 #ifndef EXTERN_ROW_HITS
-	calink fRowHits[GPUCA_ROW_COUNT + 1]; // hit index for each TPC row
-#endif                                    //EXTERN_ROW_HITS
-	int fHitWeight;                       //Hit Weight of Tracklet
+  calink mRowHits[GPUCA_ROW_COUNT + 1]; // hit index for each TPC row
+#endif                                  // EXTERN_ROW_HITS
+  int mHitWeight;                       // Hit Weight of Tracklet
 };
 
-#endif //GPUTPCTRACKLET_H
+#endif // GPUTPCTRACKLET_H

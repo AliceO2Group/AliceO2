@@ -14,7 +14,7 @@
 #ifndef GPURECONSTRUCTIONINCLUDES_H
 #define GPURECONSTRUCTIONINCLUDES_H
 
-//Disable assertions since they produce errors in GPU Code
+// Disable assertions since they produce errors in GPU Code
 #ifdef assert
 #undef assert
 #endif

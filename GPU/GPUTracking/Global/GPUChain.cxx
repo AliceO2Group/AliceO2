@@ -12,8 +12,3 @@
 /// \author David Rohr
 
 #include "GPUChain.h"
-
-GPUChain::~GPUChain()
-{
-	
-}

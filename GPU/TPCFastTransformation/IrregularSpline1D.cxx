@@ -13,7 +13,6 @@
 ///
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
-
 #include "IrregularSpline1D.h"
 #include <cmath>
 #include <vector>
@@ -22,16 +21,12 @@
 #include <iostream>
 #endif
 
-namespace ali_tpc_common {
-namespace tpc_fast_transformation {
+namespace ali_tpc_common
+{
+namespace tpc_fast_transformation
+{
 
-
-IrregularSpline1D::IrregularSpline1D()
-  :
-  FlatObject(),
-  mNumberOfKnots(0),
-  mNumberOfAxisBins(0),
-  mBin2KnotMapOffset(0)
+IrregularSpline1D::IrregularSpline1D() : FlatObject(), mNumberOfKnots(0), mNumberOfAxisBins(0), mBin2KnotMapOffset(0)
 {
   /// Default constructor. Creates an empty uninitialised object
 }
@@ -45,18 +40,16 @@ void IrregularSpline1D::destroy()
   FlatObject::destroy();
 }
 
-void IrregularSpline1D::cloneFromObject( const IrregularSpline1D &obj, char *newFlatBufferPtr )
+void IrregularSpline1D::cloneFromObject(const IrregularSpline1D& obj, char* newFlatBufferPtr)
 {
   /// See FlatObject for description
-  FlatObject::cloneFromObject( obj, newFlatBufferPtr );
-  mNumberOfKnots =  obj.mNumberOfKnots;
+  FlatObject::cloneFromObject(obj, newFlatBufferPtr);
+  mNumberOfKnots = obj.mNumberOfKnots;
   mNumberOfAxisBins = obj.mNumberOfAxisBins;
   mBin2KnotMapOffset = obj.mBin2KnotMapOffset;
 }
-   
 
-
-void IrregularSpline1D::construct( int numberOfKnots, const float inputKnots[], int numberOfAxisBins )
+void IrregularSpline1D::construct(int numberOfKnots, const float inputKnots[], int numberOfAxisBins)
 {
   /// Constructor.
   /// Initialises the spline with a grid with numberOfKnots knots in the interval [0,1]
@@ -78,8 +71,9 @@ void IrregularSpline1D::construct( int numberOfKnots, const float inputKnots[], 
 
   FlatObject::startConstruction();
 
-  if( numberOfAxisBins<4 ) numberOfAxisBins = 4;
- 
+  if (numberOfAxisBins < 4)
+    numberOfAxisBins = 4;
+
   std::vector<int> vKnotBins;
 
   { // reorganize knots
@@ -88,72 +82,73 @@ void IrregularSpline1D::construct( int numberOfKnots, const float inputKnots[], 
 
     vKnotBins.push_back(0); // obligatory knot at 0.0
 
-    for( int i=0; i<numberOfKnots; ++i ){
-      int bin = (int) roundf( inputKnots[i] * numberOfAxisBins );
-      if( bin <= vKnotBins.back() || bin >= lastBin ) continue; // same knot
+    for (int i = 0; i < numberOfKnots; ++i) {
+      int bin = (int)roundf(inputKnots[i] * numberOfAxisBins);
+      if (bin <= vKnotBins.back() || bin >= lastBin)
+        continue; // same knot
       vKnotBins.push_back(bin);
     }
 
-    vKnotBins.push_back( lastBin ); // obligatory knot at 1.0
+    vKnotBins.push_back(lastBin); // obligatory knot at 1.0
 
-    if( vKnotBins.size() < 5 ){ // too less knots, make a grid with 5 knots
+    if (vKnotBins.size() < 5) { // too less knots, make a grid with 5 knots
       vKnotBins.clear();
       vKnotBins.push_back(0);
-      vKnotBins.push_back( (int) roundf( 0.25*numberOfAxisBins ) );
-      vKnotBins.push_back( (int) roundf( 0.50*numberOfAxisBins ));
-      vKnotBins.push_back( (int) roundf( 0.75*numberOfAxisBins ));
+      vKnotBins.push_back((int)roundf(0.25 * numberOfAxisBins));
+      vKnotBins.push_back((int)roundf(0.50 * numberOfAxisBins));
+      vKnotBins.push_back((int)roundf(0.75 * numberOfAxisBins));
       vKnotBins.push_back(lastBin);
     }
   }
 
   mNumberOfKnots = vKnotBins.size();
   mNumberOfAxisBins = numberOfAxisBins;
-  mBin2KnotMapOffset = mNumberOfKnots*sizeof(IrregularSpline1D::Knot);
-  
-  FlatObject::finishConstruction( mBin2KnotMapOffset + (numberOfAxisBins+1)*sizeof(int) );
+  mBin2KnotMapOffset = mNumberOfKnots * sizeof(IrregularSpline1D::Knot);
 
-  IrregularSpline1D::Knot *s = getKnotsNonConst();
- 
-  for( int i=0; i<mNumberOfKnots; i++){
-    s[i].u = vKnotBins[i] / ( (double) mNumberOfAxisBins); // do division in double
+  FlatObject::finishConstruction(mBin2KnotMapOffset + (numberOfAxisBins + 1) * sizeof(int));
+
+  IrregularSpline1D::Knot* s = getKnotsNonConst();
+
+  for (int i = 0; i < mNumberOfKnots; i++) {
+    s[i].u = vKnotBins[i] / ((double)mNumberOfAxisBins); // do division in double
   }
-  
+
   { // values will not be used, we define them for consistency
     int i = 0;
-    double du = (s[i+1].u - s[i].u);
-    double x3 = (s[i+2].u - s[i].u)/du;
-    s[i].scale  = 1./du;
+    double du = (s[i + 1].u - s[i].u);
+    double x3 = (s[i + 2].u - s[i].u) / du;
+    s[i].scale = 1. / du;
     s[i].scaleL0 = 0.; // undefined
     s[i].scaleL2 = 0.; // undefined
-    s[i].scaleR2 = (x3-2.)/(x3-1.);
-    s[i].scaleR3 = 1./(x3*(x3-1.));
+    s[i].scaleR2 = (x3 - 2.) / (x3 - 1.);
+    s[i].scaleR3 = 1. / (x3 * (x3 - 1.));
   }
 
-  for( int i=1; i<mNumberOfKnots-2; i++){
-    double du = (s[i+1].u - s[i].u);
-    double x0 = (s[i-1].u - s[i].u)/du;
-    double x3 = (s[i+2].u - s[i].u)/du;
-    s[i].scale  = 1./du;
-    s[i].scaleL0 = -1./(x0*(x0-1.));
-    s[i].scaleL2 = x0/(x0-1.);
-    s[i].scaleR2 = (x3-2.)/(x3-1.);
-    s[i].scaleR3 = 1./(x3*(x3-1.));
+  for (int i = 1; i < mNumberOfKnots - 2; i++) {
+    double du = (s[i + 1].u - s[i].u);
+    double x0 = (s[i - 1].u - s[i].u) / du;
+    double x3 = (s[i + 2].u - s[i].u) / du;
+    s[i].scale = 1. / du;
+    s[i].scaleL0 = -1. / (x0 * (x0 - 1.));
+    s[i].scaleL2 = x0 / (x0 - 1.);
+    s[i].scaleR2 = (x3 - 2.) / (x3 - 1.);
+    s[i].scaleR3 = 1. / (x3 * (x3 - 1.));
   }
-   
+
   { // values will not be used, we define them for consistency
-    int i = mNumberOfKnots-2;
-    double du = (s[i+1].u - s[i].u);
-    double x0 = (s[i-1].u - s[i].u)/du;
-    s[i].scale  = 1./du;
-    s[i].scaleL0 = -1./(x0*(x0-1.));
-    s[i].scaleL2 = x0/(x0-1.);
+    int i = mNumberOfKnots - 2;
+    double du = (s[i + 1].u - s[i].u);
+    double x0 = (s[i - 1].u - s[i].u) / du;
+    s[i].scale = 1. / du;
+    s[i].scaleL0 = -1. / (x0 * (x0 - 1.));
+    s[i].scaleL2 = x0 / (x0 - 1.);
     s[i].scaleR2 = 0; // undefined
     s[i].scaleR3 = 0; // undefined
   }
-  
+
   { // values will not be used, we define them for consistency
-   int i = mNumberOfKnots-1;
-    s[i].scale  = 0; // undefined
+    int i = mNumberOfKnots - 1;
+    s[i].scale = 0;   // undefined
     s[i].scaleL0 = 0; // undefined
     s[i].scaleL2 = 0; // undefined
     s[i].scaleR2 = 0; // undefined
@@ -165,7 +160,7 @@ void IrregularSpline1D::construct( int numberOfKnots, const float inputKnots[], 
   int* map = getBin2KnotMapNonConst();
 
   int iKnotMin = 1;
-  int iKnotMax = mNumberOfKnots-3;
+  int iKnotMax = mNumberOfKnots - 3;
 
   //
   // With iKnotMin=1, iKnotMax=nKnots-3 we release edge intervals:
@@ -176,10 +171,10 @@ void IrregularSpline1D::construct( int numberOfKnots, const float inputKnots[], 
   // This trick allows one to use splines without special conditions for edge cases.
   // Any U from [0,1] is mapped to some knote i, where i-1, i, i+1, and i+2 knots always exist
   //
-  
-  for( int iBin=0, iKnot=iKnotMin; iBin<=mNumberOfAxisBins; iBin++){
-    if( (iKnot<iKnotMax) && vKnotBins[iKnot+1] == iBin){
-      iKnot = iKnot+1;
+
+  for (int iBin = 0, iKnot = iKnotMin; iBin <= mNumberOfAxisBins; iBin++) {
+    if ((iKnot < iKnotMax) && vKnotBins[iKnot + 1] == iBin) {
+      iKnot = iKnot + 1;
     }
     map[iBin] = iKnot;
   }
@@ -188,17 +183,17 @@ void IrregularSpline1D::construct( int numberOfKnots, const float inputKnots[], 
 void IrregularSpline1D::Print() const
 {
 #if !defined(GPUCA_GPUCODE)
-  std::cout<<" Irregular Spline 1D: "<<std::endl;
-  std::cout<<"  mNumberOfKnots = "<< mNumberOfKnots << std::endl;
-  std::cout<<"  mNumberOfAxisBins = "<<  mNumberOfAxisBins << std::endl;
-  std::cout<<"  mBin2KnotMapOffset = "<<  mBin2KnotMapOffset << std::endl;
-  std::cout<<"  knots: ";
-  for( int i=0; i<mNumberOfKnots; i++ ){
-    std::cout<<getKnot(i).u<<" ";
+  std::cout << " Irregular Spline 1D: " << std::endl;
+  std::cout << "  mNumberOfKnots = " << mNumberOfKnots << std::endl;
+  std::cout << "  mNumberOfAxisBins = " << mNumberOfAxisBins << std::endl;
+  std::cout << "  mBin2KnotMapOffset = " << mBin2KnotMapOffset << std::endl;
+  std::cout << "  knots: ";
+  for (int i = 0; i < mNumberOfKnots; i++) {
+    std::cout << getKnot(i).u << " ";
   }
-  std::cout<<std::endl;
+  std::cout << std::endl;
 #endif
 }
 
-}// namespace
-}// namespace
+} // namespace tpc_fast_transformation
+} // namespace ali_tpc_common
