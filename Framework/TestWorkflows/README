@@ -1,0 +1,23 @@
+## Test Workflows
+
+### FLP Qualification:
+
+Initial mockup for a generic FLP workflow
+
+This is currently just an refactoring of the o2ParalleWorkflow test,
+with a bit more comments to indicate what the various parts do.
+
+There are two layers of processing, one which is parallel in the
+subspecification (i.e. in the channels), the second one which is
+parallel in time, i.e. if the subtimeframe processing requires extra
+cores and longer latency in order to complete. The number of processor
+for the two layers can be controlled via the command line options.
+
+The connections to Readout and DataDistribution are not actually there
+yet, but they come next.
+
+Synopsis: flpQualification
+
+Relevant options:
+* --2-layer-jobs <n>
+* --3-layer-pipelining <m>

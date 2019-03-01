@@ -57,6 +57,13 @@ O2_GENERATE_EXECUTABLE(
 )
 
 O2_GENERATE_EXECUTABLE(
+  EXE_NAME "flpQualification"
+  SOURCES "src/flpQualification.cxx"
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${MODULE_BUCKET_NAME}
+)
+
+O2_GENERATE_EXECUTABLE(
   EXE_NAME "o2SyncReconstructionDummy"
   SOURCES "src/o2SyncReconstructionDummy.cxx"
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
