@@ -101,11 +101,9 @@ public:
 
 	GPUd() static void DoTracklet(GPUconstantref() MEM_CONSTANT(GPUTPCTracker)& tracker, GPUsharedref() GPUTPCTrackletConstructor::MEM_LOCAL(GPUTPCSharedMemory)& sMem, GPUTPCThreadMemory& rMem);
 
-	GPUd() static int FetchTracklet(GPUconstantref() MEM_CONSTANT(GPUTPCTracker) &tracker, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) &sMem);
 #ifdef GPUCA_GPUCODE
-	GPUd() static void GPUTPCTrackletConstructorGPU(GPUconstantref() MEM_CONSTANT(GPUTPCTracker) *pTracker, GPUsharedref() GPUTPCTrackletConstructor::MEM_LOCAL(GPUTPCSharedMemory)& sMem);
+	GPUd() static int FetchTracklet(GPUconstantref() MEM_CONSTANT(GPUTPCTracker) &tracker, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) &sMem);
 #else
-	GPUd() static void GPUTPCTrackletConstructorCPU(GPUTPCTracker &tracker);
 	static int GPUTPCTrackletConstructorGlobalTracking(GPUTPCTracker &tracker, GPUTPCTrackParam& tParam, int startrow, int increment, int iTracklet);
 #endif //GPUCA_GPUCODE
 
