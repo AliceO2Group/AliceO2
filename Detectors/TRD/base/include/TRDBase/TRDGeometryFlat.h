@@ -13,8 +13,8 @@
 
 #include <cstring>
 #include "FlatObject.h"
-#include "AliGPUCommonDefGPU.h"
-#include "AliGPUCommonTransform3D.h"
+#include "GPUCommonDefGPU.h"
+#include "GPUCommonTransform3D.h"
 #include "TRDBase/TRDGeometryBase.h"
 #include "TRDBase/TRDPadPlane.h"
 
@@ -29,7 +29,7 @@ class TRDGeometry;
 
 //Reduced flat version of TRD geometry class.
 //Contains all entries required for tracking on GPUs.
-class TRDGeometryFlat : public ali_tpc_common::tpc_fast_transformation::FlatObject, public TRDGeometryBase
+class TRDGeometryFlat : public gpu_common::Base::FlatObject, public TRDGeometryBase
 {
  public:
   TRDGeometryFlat() = default;

@@ -14,8 +14,8 @@
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
 
-#ifndef ALICE_ALITPCOMMON_TPCFASTTRANSFORMATION_TPCDISTORTIONIRS_H
-#define ALICE_ALITPCOMMON_TPCFASTTRANSFORMATION_TPCDISTORTIONIRS_H
+#ifndef ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_TPCDISTORTIONIRS_H
+#define ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_TPCDISTORTIONIRS_H
 
 #include "IrregularSpline2D3D.h"
 #include "FlatObject.h"
@@ -32,7 +32,7 @@ namespace tpc_fast_transformation {
 ///
 /// The class is flat C structure. No virtual methods, no ROOT types are used.
 ///
-class TPCDistortionIRS :public FlatObject
+class TPCDistortionIRS :public gpu_common::Base::FlatObject
 {
  public:
 
@@ -67,8 +67,8 @@ class TPCDistortionIRS :public FlatObject
 
   /// Memory alignment
 
-  using FlatObject::getClassAlignmentBytes;
-  using FlatObject::getBufferAlignmentBytes;
+  using gpu_common::Base::FlatObject::getClassAlignmentBytes;
+  using gpu_common::Base::FlatObject::getBufferAlignmentBytes;
   
   /// Construction interface
     
@@ -77,7 +77,7 @@ class TPCDistortionIRS :public FlatObject
  
   /// Making the data buffer external
   
-  using FlatObject::releaseInternalBuffer;
+  using gpu_common::Base::FlatObject::releaseInternalBuffer;
   void moveBufferTo( char *newBufferPtr );
 
   /// Moving the class with its external buffer to another location

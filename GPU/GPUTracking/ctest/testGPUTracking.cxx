@@ -3,28 +3,28 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
-#include "AliGPUO2Interface.h"
+#include "GPUO2Interface.h"
 #include "TPCFastTransform.h"
-#include "AliGPUO2InterfaceConfiguration.h"
-#include "AliGPUReconstruction.h"
+#include "GPUO2InterfaceConfiguration.h"
+#include "GPUReconstruction.h"
 
 /// @brief Basic test if we can create the interface
 BOOST_AUTO_TEST_CASE(CATracking_test1)
 {
-  auto interface = new AliGPUTPCO2Interface;
+  auto interface = new GPUTPCO2Interface;
   
   float solenoidBz = -5.00668; //B-field
   float refX = 1000.; //transport tracks to this x after tracking, >500 for disabling
   bool continuous = true; //time frame data v.s. triggered events
 
-  AliGPUO2InterfaceConfiguration config;
-  config.configProcessing.deviceType = AliGPUReconstruction::DeviceType::CPU;
+  GPUO2InterfaceConfiguration config;
+  config.configProcessing.deviceType = GPUReconstruction::DeviceType::CPU;
   config.configProcessing.forceDeviceType = true;
   
   config.configDeviceProcessing.nThreads = 4; //4 threads if we run on the CPU, 1 = default, 0 = auto-detect
   config.configDeviceProcessing.runQA = true; //Run QA after tracking
   config.configDeviceProcessing.eventDisplay = nullptr; //Ptr to event display backend, for running standalone OpenGL event display
-  //config.configDeviceProcessing.eventDisplay = new AliGPUDisplayBackendX11;
+  //config.configDeviceProcessing.eventDisplay = new GPUDisplayBackendX11;
 
   config.configEvent.solenoidBz = solenoidBz;
   config.configEvent.continuousMaxTimeBin = continuous ? 0.023 * 5e6 : 0; //Number of timebins in timeframe if continuous, 0 otherwise

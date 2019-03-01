@@ -19,7 +19,7 @@ cmake_minimum_required(VERSION 3.9)
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     set(MODULE O2GPUTrackingHIP)
 elseif(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
-    set(MODULE AliGPUTrackingHIP)
+    set(MODULE GPUTrackingHIP)
     if(NOT DEFINED HIP_PATH)
       if(NOT DEFINED ENV{HIP_PATH})
          set(HIP_PATH "/opt/rocm/hip" CACHE PATH "Path to which HIP has been installed")
@@ -69,17 +69,17 @@ endif()
 
 # Sources in alphabetical order
 set(SRCS
-    AliGPUReconstructionHIP.hip.cpp
+    GPUReconstructionHIP.hip.cpp
    )
 
 # Headers from sources
 set(CINTHDRS
-    AliGPUReconstructionHIP.h
+    GPUReconstructionHIP.h
     )
 
 set(HDRS
     ${CINTHDRS}
-    AliGPUReconstructionHIPInternals.h
+    GPUReconstructionHIPInternals.h
   )
 
 foreach (def ${DEFINITIONS})
@@ -100,7 +100,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
     # Add a library to the project using the specified source files
     add_library_tested(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)
     #HIP run-time and driver
-    target_link_libraries(${MODULE} AliGPUTracking)
+    target_link_libraries(${MODULE} GPUTracking)
 
     # Additional compilation flags
     set_target_properties(${MODULE} PROPERTIES COMPILE_FLAGS "")
@@ -119,7 +119,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     set(BUCKET_NAME GPUTrackingHIP_bucket)
 
     O2_GENERATE_LIBRARY()
-    install(FILES ${HDRS} DESTINATION include/AliGPU)
+    install(FILES ${HDRS} DESTINATION include/GPU)
 
     target_link_libraries(${MODULE} ${HIP_LIBRARIES} O2GPUTracking)
     set_target_properties(${MODULE} PROPERTIES LINKER_LANGUAGE CXX)

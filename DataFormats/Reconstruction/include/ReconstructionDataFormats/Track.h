@@ -15,7 +15,7 @@
 #ifndef ALICEO2_BASE_TRACK
 #define ALICEO2_BASE_TRACK
 
-#include "AliGPUCommonRtypes.h"
+#include "GPUCommonRtypes.h"
 
 #ifndef __OPENCL__
 #include <algorithm>
@@ -290,7 +290,7 @@ inline float TrackPar::getPhi() const
   return phi;
 }
 
-#ifndef GPUCA_ALIGPUCODE //These functions clash with AliGPU code and are thus hidden
+#ifndef GPUCA_ALIGPUCODE //These functions clash with GPU code and are thus hidden
 //_______________________________________________________
 inline Point3D<float> TrackPar::getXYZGlo() const
 {

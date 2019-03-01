@@ -19,8 +19,8 @@
 #include <cmath>
 
 #include "ITStracking/Constants.h"
-#include "AliGPUCommonMath.h"
-#include "AliGPUCommonDefGPU.h"
+#include "GPUCommonMath.h"
+#include "GPUCommonDefGPU.h"
 
 namespace o2
 {

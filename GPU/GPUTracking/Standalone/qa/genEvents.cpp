@@ -15,14 +15,14 @@
 #include <limits>
 
 #include "genEvents.h"
-#include "AliGPUTPCClusterData.h"
-#include "AliGPUTPCMCInfo.h"
+#include "GPUTPCClusterData.h"
+#include "GPUTPCMCInfo.h"
 #include "AliHLTTPCClusterMCData.h"
-#include "AliGPUParam.h"
-#include "AliGPUTPCGMPhysicalTrackModel.h"
-#include "AliGPUTPCGMPropagator.h"
-#include "AliGPUTPCGMMerger.h"
-#include "AliGPUChainTracking.h"
+#include "GPUParam.h"
+#include "GPUTPCGMPhysicalTrackModel.h"
+#include "GPUTPCGMPropagator.h"
+#include "GPUTPCGMMerger.h"
+#include "GPUChainTracking.h"
  
 #include "../utils/qconfig.h"
 
@@ -48,7 +48,7 @@ double genEvents::GetSliceAngle( int iSlice )
   return kSliceAngleOffset + iSlice*kSliceDAngle;
 }
 
-int genEvents::RecalculateSlice( AliGPUTPCGMPhysicalTrackModel &t, int &iSlice )
+int genEvents::RecalculateSlice( GPUTPCGMPhysicalTrackModel &t, int &iSlice )
 {
   double phi = atan2( t.GetY(), t.GetX() );
   //  std::cout<<" recalculate: phi = "<<phi<<std::endl;
@@ -121,7 +121,7 @@ void genEvents::FinishEventGenerator()
   }
 }
 
-int genEvents::GenerateEvent(const AliGPUParam& sliceParam, char* filename)
+int genEvents::GenerateEvent(const GPUParam& sliceParam, char* filename)
 {
   mRec->ClearIOPointers();
   static int iEvent = -1;
@@ -132,16 +132,16 @@ int genEvents::GenerateEvent(const AliGPUParam& sliceParam, char* filename)
 
   int nTracks = configStandalone.configEG.numberOfTracks; //Number of MC tracks, must be at least as large as the largest fMCID assigned above
   cout<<"NTracks "<<nTracks<<endl;
-  std::vector<AliGPUTPCMCInfo> mcInfo(nTracks);
+  std::vector<GPUTPCMCInfo> mcInfo(nTracks);
   memset(mcInfo.data(), 0, nTracks * sizeof(mcInfo[0]));
 
   //double Bz = sliceParam.ConstBz();
   //std::cout<<"Bz[kG] = "<<sliceParam.BzkG()<<std::endl;
 
-  AliGPUTPCGMPropagator prop;
+  GPUTPCGMPropagator prop;
   {
     prop.SetToyMCEventsFlag( kTRUE );
-    const AliGPUTPCGMMerger &merger = mRec->GetTPCMerger();
+    const GPUTPCGMMerger &merger = mRec->GetTPCMerger();
     prop.SetPolynomialField( merger.pField() );
   }
   
@@ -168,7 +168,7 @@ int genEvents::GenerateEvent(const AliGPUParam& sliceParam, char* filename)
     mcInfo[itr].fPy = 0;
     mcInfo[itr].fPz = 0;
     
-    AliGPUTPCGMPhysicalTrackModel t;
+    GPUTPCGMPhysicalTrackModel t;
     double dphi = kTwoPi/nTracks;
     double phi = kSliceAngleOffset + dphi*itr;
     double eta = gRandom->Uniform(-1.5,1.5);
@@ -228,7 +228,7 @@ int genEvents::GenerateEvent(const AliGPUParam& sliceParam, char* filename)
       if( iRow==0 ){ // store MC track at first row
 	//std::cout<<std::setprecision( 20 );
 	//std::cout<<"track "<<itr<<": x "<<t.X()<<" y "<<t.Y()<<" z "<<t.Z()<<std::endl;
-	AliGPUTPCGMPhysicalTrackModel tg(t); // global coordinates
+	GPUTPCGMPhysicalTrackModel tg(t); // global coordinates
 	tg.Rotate( - GetSliceAngle( iSlice ));
 
 	mcInfo[itr].fPID = 2; // pion
@@ -269,16 +269,16 @@ int genEvents::GenerateEvent(const AliGPUParam& sliceParam, char* filename)
   
   std::vector<AliHLTTPCClusterMCLabel> labels;
   
-  std::unique_ptr<AliGPUTPCClusterData> clSlices[AliGPUChainTracking::NSLICES];
+  std::unique_ptr<GPUTPCClusterData> clSlices[GPUChainTracking::NSLICES];
 
-  for (int iSector = 0;iSector < (int) AliGPUChainTracking::NSLICES;iSector++) //HLT Sector numbering, sectors go from 0 to 35, all spanning all rows from 0 to 158.
+  for (int iSector = 0;iSector < (int) GPUChainTracking::NSLICES;iSector++) //HLT Sector numbering, sectors go from 0 to 35, all spanning all rows from 0 to 158.
     {
       int nNumberOfHits = 0;
       for( unsigned int i=0; i<vClusters.size(); i++ ) if( vClusters[i].fSector==iSector ) nNumberOfHits++;
       //For every sector we first have to fill the number of hits in this sector to the file
       mRec->mIOPtrs.nClusterData[iSector] = nNumberOfHits;
       
-      AliGPUTPCClusterData* clusters = new AliGPUTPCClusterData[nNumberOfHits];
+      GPUTPCClusterData* clusters = new GPUTPCClusterData[nNumberOfHits];
       clSlices[iSector].reset(clusters);
       int icl=0;
       for( unsigned int i=0; i<vClusters.size(); i++ ){
@@ -318,7 +318,7 @@ int genEvents::GenerateEvent(const AliGPUParam& sliceParam, char* filename)
   return(0);
 }
 
-void genEvents::RunEventGenerator(AliGPUChainTracking* rec)
+void genEvents::RunEventGenerator(GPUChainTracking* rec)
 {
     std::unique_ptr<genEvents> gen(new genEvents(rec));
     char dirname[256];

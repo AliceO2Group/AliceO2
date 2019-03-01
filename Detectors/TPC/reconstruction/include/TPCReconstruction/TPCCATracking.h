@@ -19,8 +19,8 @@
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/TrackTPC.h"
 
-class AliGPUO2InterfaceConfiguration;
-class AliGPUTPCO2Interface;
+class GPUO2InterfaceConfiguration;
+class GPUTPCO2Interface;
 
 namespace o2 { class MCCompLabel; namespace dataformats { template <class T> class MCTruthContainer; }}
 
@@ -37,7 +37,7 @@ public:
   TPCCATracking(const TPCCATracking&) = delete;            // Disable copy
   TPCCATracking& operator=(const TPCCATracking&) = delete; // Disable assignment
 
-  int initialize(const AliGPUO2InterfaceConfiguration& config);
+  int initialize(const GPUO2InterfaceConfiguration& config);
   int initialize(const char* options = nullptr);
   void deinitialize();
 
@@ -51,9 +51,9 @@ public:
   void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const;
 
  private:
-  std::unique_ptr<AliGPUTPCO2Interface> mTrackingCAO2Interface; //Pointer to Interface class in HLT O2 CA Tracking library.
+  std::unique_ptr<GPUTPCO2Interface> mTrackingCAO2Interface; //Pointer to Interface class in HLT O2 CA Tracking library.
                                                                   //The tracking code itself is not included in the O2 package, but contained in the CA library.
-                                                                  //The TPCCATracking class interfaces this library via this pointer to AliGPUTPCO2Interface class.
+                                                                  //The TPCCATracking class interfaces this library via this pointer to GPUTPCO2Interface class.
 
   static constexpr float sContinuousTFReferenceLength = 0.023 * 5e6;
   static constexpr float sTrackMCMaxFake = 0.1;

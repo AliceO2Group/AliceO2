@@ -4,7 +4,7 @@ include						config_common.mak
 TARGET						= libGPUTrackingHIP
 TARGETTYPE					= LIB
 
-HIPFILES					= Base/hip/AliGPUReconstructionHIP.hip.cpp
+HIPFILES					= Base/hip/GPUReconstructionHIP.hip.cpp
 
 CONFIG_HIP					= 1
 

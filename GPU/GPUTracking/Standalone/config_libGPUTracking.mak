@@ -6,60 +6,60 @@ TARGETTYPE					= LIB
 
 ALLDEP						+= config_common.mak
 
-GPUCA_TRACKER_CXXFILES			= SliceTracker/AliGPUTPCSliceData.cxx \
-								SliceTracker/AliGPUTPCSliceOutput.cxx \
-								SliceTracker/AliGPUTPCTracker.cxx \
-								SliceTracker/AliGPUTPCTrackerDump.cxx \
-								SliceTracker/AliGPUTPCRow.cxx \
-								SliceTracker/AliGPUTPCNeighboursFinder.cxx \
-								SliceTracker/AliGPUTPCNeighboursCleaner.cxx \
-								SliceTracker/AliGPUTPCGrid.cxx \
-								SliceTracker/AliGPUTPCTrackletConstructor.cxx \
-								SliceTracker/AliGPUTPCTrackletSelector.cxx \
-								SliceTracker/AliGPUTPCStartHitsFinder.cxx \
-								SliceTracker/AliGPUTPCStartHitsSorter.cxx \
-								SliceTracker/AliGPUTPCHitArea.cxx \
-								SliceTracker/AliGPUTPCTrackParam.cxx \
-								SliceTracker/AliGPUTPCClusterData.cxx \
-								Base/AliGPUReconstruction.cxx \
-								Base/AliGPUReconstructionCPU.cxx \
-								Base/AliGPUReconstructionDeviceBase.cxx \
-								Base/AliGPUReconstructionConvert.cxx \
-								Base/AliGPUParam.cxx \
-								Base/AliGPUProcessor.cxx \
-								Base/AliGPUMemoryResource.cxx \
-								Base/AliGPUSettings.cxx \
-								Base/AliGPUGeneralKernels.cxx \
-								Global/AliGPUChain.cxx \
-								Global/AliGPUChainTracking.cxx \
-								Global/AliGPUChainITS.cxx \
+GPUCA_TRACKER_CXXFILES			= SliceTracker/GPUTPCSliceData.cxx \
+								SliceTracker/GPUTPCSliceOutput.cxx \
+								SliceTracker/GPUTPCTracker.cxx \
+								SliceTracker/GPUTPCTrackerDump.cxx \
+								SliceTracker/GPUTPCRow.cxx \
+								SliceTracker/GPUTPCNeighboursFinder.cxx \
+								SliceTracker/GPUTPCNeighboursCleaner.cxx \
+								SliceTracker/GPUTPCGrid.cxx \
+								SliceTracker/GPUTPCTrackletConstructor.cxx \
+								SliceTracker/GPUTPCTrackletSelector.cxx \
+								SliceTracker/GPUTPCStartHitsFinder.cxx \
+								SliceTracker/GPUTPCStartHitsSorter.cxx \
+								SliceTracker/GPUTPCHitArea.cxx \
+								SliceTracker/GPUTPCTrackParam.cxx \
+								SliceTracker/GPUTPCClusterData.cxx \
+								Base/GPUReconstruction.cxx \
+								Base/GPUReconstructionCPU.cxx \
+								Base/GPUReconstructionDeviceBase.cxx \
+								Base/GPUReconstructionConvert.cxx \
+								Base/GPUParam.cxx \
+								Base/GPUProcessor.cxx \
+								Base/GPUMemoryResource.cxx \
+								Base/GPUSettings.cxx \
+								Base/GPUGeneralKernels.cxx \
+								Global/GPUChain.cxx \
+								Global/GPUChainTracking.cxx \
+								Global/GPUChainITS.cxx \
 								TPCFastTransformation/TPCFastTransform.cxx \
 								TPCFastTransformation/TPCDistortionIRS.cxx \
 								TPCFastTransformation/IrregularSpline1D.cxx \
 								TPCFastTransformation/IrregularSpline2D3D.cxx
 
-GPUCA_MERGER_CXXFILES		= Merger/AliGPUTPCGMMerger.cxx \
-								Merger/AliGPUTPCGMSliceTrack.cxx \
-								Merger/AliGPUTPCGMPhysicalTrackModel.cxx \
-								Merger/AliGPUTPCGMPolynomialField.cxx \
-								Merger/AliGPUTPCGMPolynomialFieldManager.cxx \
-								Merger/AliGPUTPCGMPropagator.cxx \
-								Merger/AliGPUTPCGMTrackParam.cxx \
-								Merger/AliGPUTPCGMMergerGPU.cxx
+GPUCA_MERGER_CXXFILES		= Merger/GPUTPCGMMerger.cxx \
+								Merger/GPUTPCGMSliceTrack.cxx \
+								Merger/GPUTPCGMPhysicalTrackModel.cxx \
+								Merger/GPUTPCGMPolynomialField.cxx \
+								Merger/GPUTPCGMPolynomialFieldManager.cxx \
+								Merger/GPUTPCGMPropagator.cxx \
+								Merger/GPUTPCGMTrackParam.cxx \
+								Merger/GPUTPCGMMergerGPU.cxx
 
-GPUCA_TRD_CXXFILES			= TRDTracking/AliGPUTRDTrack.cxx \
-								TRDTracking/AliGPUTRDTracker.cxx \
-								TRDTracking/AliGPUTRDTrackletWord.cxx \
-								TRDTracking/AliGPUTRDTrackerGPU.cxx
+GPUCA_TRD_CXXFILES			= TRDTracking/GPUTRDTrack.cxx \
+								TRDTracking/GPUTRDTracker.cxx \
+								TRDTracking/GPUTRDTrackletWord.cxx \
+								TRDTracking/GPUTRDTrackerGPU.cxx
 								
 GPUCA_ITS_CXXFILES			= ITS/GPUITSFitter.cxx \
 								ITS/GPUITSFitterKernels.cxx
 
-GPUCA_STANDALONE_CXXFILES	= SliceTracker/AliGPUTPCTrack.cxx \
-								SliceTracker/AliGPUTPCTracklet.cxx \
-								SliceTracker/AliGPUTPCMCPoint.cxx
+GPUCA_STANDALONE_CXXFILES	= SliceTracker/GPUTPCTrack.cxx \
+								SliceTracker/GPUTPCTracklet.cxx \
+								SliceTracker/GPUTPCMCPoint.cxx
 
-CXXFILES					+= 	Base/AliGPUReconstructionTimeframe.cxx \
+CXXFILES					+= 	Base/GPUReconstructionTimeframe.cxx \
 								$(GPUCA_TRACKER_CXXFILES) \
 								$(GPUCA_STANDALONE_CXXFILES) \
 								$(GPUCA_MERGER_CXXFILES) \
@@ -71,21 +71,21 @@ CPPFILES					+= 	utils/timer.cpp \
 								utils/qconfig.cpp
 
 ifeq ($(BUILD_EVENT_DISPLAY), 1)
-CPPFILES					+= display/AliGPUDisplay.cpp display/AliGPUDisplayBackend.cpp display/AliGPUDisplayBackendGlut.cpp display/AliGPUDisplayBackendNone.cpp display/AliGPUDisplayInterpolation.cpp display/AliGPUDisplayQuaternion.cpp display/AliGPUDisplayKeys.cpp
+CPPFILES					+= display/GPUDisplay.cpp display/GPUDisplayBackend.cpp display/GPUDisplayBackendGlut.cpp display/GPUDisplayBackendNone.cpp display/GPUDisplayInterpolation.cpp display/GPUDisplayQuaternion.cpp display/GPUDisplayKeys.cpp
 CONFIG_OPENGL				= 1
 CONFIG_GLUT					= 1
 CONFIG_GLFW					= 1
 CONFIG_X11					= 1
 ifeq ($(ARCH_CYGWIN), 1)
-CPPFILES					+= display/AliGPUDisplayBackendWindows.cpp
+CPPFILES					+= display/GPUDisplayBackendWindows.cpp
 else
-CPPFILES					+= display/AliGPUDisplayBackendX11.cpp
-CPPFILES					+= display/AliGPUDisplayBackendGlfw.cpp
+CPPFILES					+= display/GPUDisplayBackendX11.cpp
+CPPFILES					+= display/GPUDisplayBackendGlfw.cpp
 endif
 endif
 
 ifeq ($(BUILD_QA), 1)
-CPPFILES					+= qa/AliGPUQA.cpp qa/genEvents.cpp
+CPPFILES					+= qa/GPUQA.cpp qa/genEvents.cpp
 endif
 
 ifeq ($(LINK_ROOT), 1)

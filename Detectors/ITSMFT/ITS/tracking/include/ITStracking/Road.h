@@ -18,7 +18,7 @@
 #include <array>
 
 #include "ITStracking/Constants.h"
-#include "AliGPUCommonDefGPU.h"
+#include "GPUCommonDefGPU.h"
 
 namespace o2
 {

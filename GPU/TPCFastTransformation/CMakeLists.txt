@@ -17,7 +17,7 @@ set(SRCS
 )
 
 set (HDRS
-    ../Common/AliGPUCommonDef.h
+    ../Common/GPUCommonDef.h
 )
 
 #Some extra files / includes / settings needed for the build for AliRoot
@@ -95,7 +95,7 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
     string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
     set (HDRS
         ${HDRS}
-    	../Common/AliGPUCommonDef.h
+    	../Common/GPUCommonDef.h
     )
 
     Set(HEADERS ${HDRS})
@@ -104,7 +104,7 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
     set(BUCKET_NAME TPCFastTransformation_bucket)
 
     O2_GENERATE_LIBRARY()
-    install(FILES ${HDRS} DESTINATION include/AliGPU)
+    install(FILES ${HDRS} DESTINATION include/GPU)
 
 #    set(TEST_SRCS
 #      ctest/testGPUTracking.cxx

@@ -1,24 +1,24 @@
 #include "AliHLTGPUDumpComponent.h"
 
 #include "AliGeomManager.h"
-#include "AliGPUReconstruction.h"
-#include "AliGPUChainTracking.h"
+#include "GPUReconstruction.h"
+#include "GPUChainTracking.h"
 #include "AliHLTTPCDefinitions.h"
-#include "AliGPUTPCMCInfo.h"
-#include "AliGPUTPCGMMergedTrackHit.h"
+#include "GPUTPCMCInfo.h"
+#include "GPUTPCGMMergedTrackHit.h"
 #include "AliHLTTPCClusterXYZ.h"
 #include "AliHLTTPCClusterMCData.h"
-#include "AliGPUTPCClusterData.h"
+#include "GPUTPCClusterData.h"
 #include "AliHLTTPCRawCluster.h"
-#include "AliGPUTPCGeometry.h"
+#include "GPUTPCGeometry.h"
 #include "AliRunLoader.h"
 #include "AliHeader.h"
 #include "AliStack.h"
 #include "AliExternalTrackParam.h"
 #include "AliTrackReference.h"
 #include "AliHLTTRDDefinitions.h"
-#include "AliGPUTRDTrackletWord.h"
-#include "AliGPUTRDTrackletLabels.h"
+#include "GPUTRDTrackletWord.h"
+#include "GPUTRDTrackletLabels.h"
 #include "TPCFastTransform.h"
 #include "TPCFastTransformManager.h"
 #include "AliRecoParam.h"
@@ -43,8 +43,8 @@ AliHLTGPUDumpComponent::AliHLTGPUDumpComponent() : fSolenoidBz(0.f), fRec(nullpt
 	fFastTransformManager( new ali_tpc_common::tpc_fast_transformation::TPCFastTransformManager ),
 	fCalib(nullptr), fRecParam(nullptr), fOfflineRecoParam(), fOrigTransform(nullptr), fIsMC(false)
 {
-	fRec = AliGPUReconstruction::CreateInstance();
-	fChain = fRec->AddChain<AliGPUChainTracking>();
+	fRec = GPUReconstruction::CreateInstance();
+	fChain = fRec->AddChain<GPUChainTracking>();
 }
 
 AliHLTGPUDumpComponent::~AliHLTGPUDumpComponent()
@@ -169,8 +169,8 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 	const AliHLTTPCClusterXYZData *clustersXYZ[NSLICES][NPATCHES] = {NULL};
 	const AliHLTTPCRawClusterData *clustersRaw[NSLICES][NPATCHES] = {NULL};
 	bool labelsPresent = false;
-	AliGPUTRDTrackletWord *TRDtracklets = NULL;
-	AliGPUTRDTrackletLabels *TRDtrackletsMC = NULL;
+	GPUTRDTrackletWord *TRDtracklets = NULL;
+	GPUTRDTrackletLabels *TRDtrackletsMC = NULL;
 	int nTRDTrackletsTotal = 0;
 	int nTRDTrackletsMCTotal = 0;
 
@@ -194,18 +194,18 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 		}
 		else if (pBlock.fDataType == AliHLTTRDDefinitions::fgkTRDTrackletDataType)
 		{
-			TRDtracklets = reinterpret_cast<AliGPUTRDTrackletWord*>(pBlock.fPtr);
-			nTRDTrackletsTotal = pBlock.fSize / sizeof(AliGPUTRDTrackletWord);
+			TRDtracklets = reinterpret_cast<GPUTRDTrackletWord*>(pBlock.fPtr);
+			nTRDTrackletsTotal = pBlock.fSize / sizeof(GPUTRDTrackletWord);
 		}
 		else if (pBlock.fDataType == (AliHLTTRDDefinitions::fgkTRDMCTrackletDataType))
 		{
-			TRDtrackletsMC = reinterpret_cast<AliGPUTRDTrackletLabels*>(pBlock.fPtr);
-			nTRDTrackletsMCTotal = pBlock.fSize / sizeof(AliGPUTRDTrackletLabels);
+			TRDtrackletsMC = reinterpret_cast<GPUTRDTrackletLabels*>(pBlock.fPtr);
+			nTRDTrackletsMCTotal = pBlock.fSize / sizeof(GPUTRDTrackletLabels);
 		}
 	}
 	
 	std::vector<AliHLTTPCRawCluster> rawClusters[NSLICES];
-	std::vector<AliGPUTPCClusterData> clusterData[NSLICES];
+	std::vector<GPUTPCClusterData> clusterData[NSLICES];
 
 	int nClustersTotal = 0;
 	for (int slice = 0;slice < NSLICES;slice++)
@@ -217,7 +217,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 		{
 			if (clustersXYZ[slice][patch]) nClustersSliceTotal += clustersXYZ[slice][patch]->fCount;
 		}
-		AliGPUTPCClusterData cluster;
+		GPUTPCClusterData cluster;
 		for (int patch = 0; patch < 6; patch++)
 		{
 			if (clustersXYZ[slice][patch] != NULL && clustersRaw[slice][patch] != NULL)
@@ -231,20 +231,20 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 					continue;
 				}
 
-				const int firstRow = AliGPUTPCGeometry::GetFirstRow(patch);
+				const int firstRow = GPUTPCGeometry::GetFirstRow(patch);
 				for (int ic = 0; ic < clXYZ.fCount; ic++)
 				{
 					const AliHLTTPCClusterXYZ &c = clXYZ.fClusters[ic];
 					const AliHLTTPCRawCluster &cRaw = clRaw.fClusters[ic];
 					if (fabsf(c.GetZ()) > 300) continue;
 					if (c.GetX() < 1.f) continue; // cluster xyz position was not calculated for whatever reason
-					cluster.fId = AliGPUTPCGeometry::CreateClusterID(slice, patch, ic);
+					cluster.fId = GPUTPCGeometry::CreateClusterID(slice, patch, ic);
 					cluster.fX = c.GetX();
 					cluster.fY = c.GetY();
 					cluster.fZ = c.GetZ();
 					cluster.fRow = firstRow + cRaw.GetPadRow();
 					cluster.fFlags = cRaw.GetFlags();
-					if (cRaw.GetSigmaPad2() < kAlmost0 || cRaw.GetSigmaTime2() < kAlmost0) cluster.fFlags |= AliGPUTPCGMMergedTrackHit::flagSingle;
+					if (cRaw.GetSigmaPad2() < kAlmost0 || cRaw.GetSigmaTime2() < kAlmost0) cluster.fFlags |= GPUTPCGMMergedTrackHit::flagSingle;
 					cluster.fAmp = cRaw.GetCharge();
 #ifdef GPUCA_FULL_CLUSTERDATA
 					cluster.fPad = cRaw.GetPad();
@@ -277,21 +277,21 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData &evtData, con
 	}
 
 	std::vector<AliHLTTPCClusterMCLabel> labels;
-	std::vector<AliGPUTPCMCInfo> mcInfo;
+	std::vector<GPUTPCMCInfo> mcInfo;
 
 	if (labelsPresent)
 	{
 		//Write cluster labels
 		for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++)
 		{
-			AliGPUTPCClusterData *pCluster = clusterData[iSlice].data();
+			GPUTPCClusterData *pCluster = clusterData[iSlice].data();
 			for (unsigned int iPatch = 0; iPatch < NPATCHES; iPatch++)
 			{
 				if (clusterLabels[iSlice][iPatch] == NULL || clustersXYZ[iSlice][iPatch] == NULL || clusterLabels[iSlice][iPatch]->fCount != clustersXYZ[iSlice][iPatch]->fCount) continue;
 				const AliHLTTPCClusterXYZData &clXYZ = *clustersXYZ[iSlice][iPatch];
 				for (int ic = 0; ic < clXYZ.fCount; ic++)
 				{
-					if (pCluster->fId != AliGPUTPCGeometry::CreateClusterID(iSlice, iPatch, ic)) continue;
+					if (pCluster->fId != GPUTPCGeometry::CreateClusterID(iSlice, iPatch, ic)) continue;
 					pCluster->fId = labels.size();
 					labels.push_back(clusterLabels[iSlice][iPatch]->fLabels[ic]);
 					pCluster++;

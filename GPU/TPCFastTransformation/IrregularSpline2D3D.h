@@ -14,8 +14,8 @@
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
 
-#ifndef ALICE_ALITPCOMMON_TPCFASTTRANSFORMATION_IRREGULARSPLINE2D3D_H
-#define ALICE_ALITPCOMMON_TPCFASTTRANSFORMATION_IRREGULARSPLINE2D3D_H
+#ifndef ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_IRREGULARSPLINE2D3D_H
+#define ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_IRREGULARSPLINE2D3D_H
 
 #include "IrregularSpline1D.h"
 #include "FlatObject.h"
@@ -59,7 +59,7 @@ namespace tpc_fast_transformation {
 ///  spline.getSpline( f, 0., 0. ); // == 3.5
 ///  spline.getSpline( f, 0.1, 0.32 ); // == some interpolated value
 ///
-class IrregularSpline2D3D :public FlatObject
+class IrregularSpline2D3D :public gpu_common::Base::FlatObject
 {
  public:
 
@@ -83,8 +83,8 @@ class IrregularSpline2D3D :public FlatObject
 
   /// Memory alignment
 
-  using FlatObject::getClassAlignmentBytes;
-  using FlatObject::getBufferAlignmentBytes;
+  using gpu_common::Base::FlatObject::getClassAlignmentBytes;
+  using gpu_common::Base::FlatObject::getBufferAlignmentBytes;
   
   /// Construction interface
     
@@ -93,7 +93,7 @@ class IrregularSpline2D3D :public FlatObject
  
   /// Making the data buffer external
   
-  using FlatObject::releaseInternalBuffer;
+  using gpu_common::Base::FlatObject::releaseInternalBuffer;
   void moveBufferTo( char *newBufferPtr );
 
   /// Moving the class with its external buffer to another location
@@ -355,7 +355,7 @@ inline void IrregularSpline2D3D::getSplineVec( const float *correctedData, float
   const float *dataV3 = dataV0 + 9*nu;
  
 
-  // calculate F values at V==v and U == Ui of knots  
+  // calculate F values at V==v and U == Ui of knots
   
   Vc::SimdArray<float,12>
     dataV0vec( dataV0 ),

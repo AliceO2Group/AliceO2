@@ -1,5 +1,5 @@
-#ifndef ALIHLTTPCCLUSTERSTAT_H
-#define ALIHLTTPCCLUSTERSTAT_H
+#ifndef GPUTPCCLUSTERSTAT_H
+#define GPUTPCCLUSTERSTAT_H
 //* This file is property of and copyright by the ALICE HLT Project        *
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //* See cxx source for full Copyright notice                               *
@@ -9,7 +9,7 @@
 #include "AliOptionParser.h"
 
 class AliHLTExternalTrackParam;
-class AliGPUParam;
+class GPUParam;
 class AliHLTTPCRawCluster;
 class AliHLTTPCClusterXYZ;
 
@@ -69,7 +69,7 @@ class AliHLTTPCClusterStatComponent : public AliHLTProcessor, public AliOptionPa
   /** assignment operator prohibited */
   AliHLTTPCClusterStatComponent& operator=(const AliHLTTPCClusterStatComponent&);
   
-  AliGPUParam* fSliceParam;
+  GPUParam* fSliceParam;
 
   int fTotal, fEdge, fSplitPad, fSplitTime, fSplitPadTime, fSplitPadOrTime, fAssigned; //!
 

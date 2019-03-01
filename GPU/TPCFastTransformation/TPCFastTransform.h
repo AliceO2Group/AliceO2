@@ -14,8 +14,8 @@
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
 
-#ifndef ALICE_ALITPCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORM_H
-#define ALICE_ALITPCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORM_H
+#ifndef ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORM_H
+#define ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORM_H
 
 #include "FlatObject.h"
 #include "TPCDistortionIRS.h"
@@ -55,7 +55,7 @@ namespace tpc_fast_transformation {
 /// The class is flat C structure. No virtual methods, no ROOT types are used.
 
 
-class TPCFastTransform :public FlatObject
+class TPCFastTransform :public gpu_common::Base::FlatObject
 {
  public:
   
@@ -105,7 +105,7 @@ class TPCFastTransform :public FlatObject
   
   /// Making the data buffer external
   
-  using FlatObject::releaseInternalBuffer;
+  using gpu_common::Base::FlatObject::releaseInternalBuffer;
   void moveBufferTo( char *newBufferPtr );
     
   /// Moving the class with its external buffer to another location

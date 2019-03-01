@@ -48,8 +48,8 @@ CONFIG_HIP					= 0
 include						config_common.mak
 
 TARGET						= ca
-SUBTARGETS					= libAliGPUTPCGPUSA
-SUBTARGETS_CLEAN				= libAliGPUTPCGPUSA.*
+SUBTARGETS					= libGPUTPCGPUSA
+SUBTARGETS_CLEAN				= libGPUTPCGPUSA.*
 #TARGETPATH					= ../
 
 TARGETTYPE					= LIB

@@ -1,0 +1,61 @@
+#ifndef GPURECONSTRUCTIONDEVICEBASE_H
+#define GPURECONSTRUCTIONDEVICEBASE_H
+
+#include "GPUReconstructionCPU.h"
+#include <pthread.h>
+#include "GPUReconstructionHelpers.h"
+#include "GPUChain.h"
+
+#if !(defined(__CINT__) || defined(__ROOTCINT__) || defined(__CLING__) || defined(__ROOTCLING__) || defined(G__ROOT))
+extern template class GPUReconstructionKernels<GPUReconstructionCPUBackend>;
+#endif
+
+class GPUReconstructionDeviceBase : public GPUReconstructionCPU
+{
+public:
+	virtual ~GPUReconstructionDeviceBase() override;
+
+	const GPUParam* DeviceParam() const {return &mDeviceConstantMem->param;}
+	virtual int GetMaxThreads() override;
+
+protected:
+	GPUReconstructionDeviceBase(const GPUSettingsProcessing& cfg);
+    
+	virtual int InitDevice() override;
+	virtual int InitDevice_Runtime() = 0;
+	virtual int ExitDevice() override;
+	virtual int ExitDevice_Runtime() = 0;
+
+	virtual const GPUTPCTracker* CPUTracker(int iSlice) {return &workers()->tpcTrackers[iSlice];}
+
+	virtual int GPUDebug(const char* state = "UNKNOWN", int stream = -1) override = 0;
+	virtual void TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, void* src, void* dst) override = 0;
+	virtual void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) override = 0;
+	
+	virtual int StartHelperThreads() override;
+	virtual int StopHelperThreads() override;
+	virtual void RunHelperThreads(int (GPUReconstructionHelpers::helperDelegateBase::* function)(int, int, GPUReconstructionHelpers::helperParam*), GPUReconstructionHelpers::helperDelegateBase* functionCls, int count) override;
+	virtual int HelperError(int iThread) const override {return fHelperParams[iThread].fError;}
+	virtual int HelperDone(int iThread) const override {return fHelperParams[iThread].fDone;}
+	virtual void WaitForHelperThreads() override;
+	virtual void ResetHelperThreads(int helpers) override;
+	void ResetThisHelperThread(GPUReconstructionHelpers::helperParam* par);
+
+	int GetGlobalLock(void* &pLock);
+	void ReleaseGlobalLock(void* sem);
+
+	static void* helperWrapper_static(void* arg);
+	void* helperWrapper(GPUReconstructionHelpers::helperParam* par);
+	
+	int fDeviceId = -1; //Device ID used by backend
+	
+#ifdef GPUCA_TIME_PROFILE
+	unsigned long long int fProfTimeC, fProfTimeD; //Timing
+#endif
+
+	GPUReconstructionHelpers::helperParam* fHelperParams = nullptr; //Control Struct for helper threads
+
+	int fNSlaveThreads = 0;	//Number of slave threads currently active
+};
+
+#endif

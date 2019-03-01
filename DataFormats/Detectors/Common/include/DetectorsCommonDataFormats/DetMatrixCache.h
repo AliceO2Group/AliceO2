@@ -11,8 +11,8 @@
 #define ALICEO2_BASE_DETMATRIXCACHE_H
 
 //Forward to standard headers with protection for GPU compilation
-#include "AliGPUCommonFairLogger.h"
-#include "AliGPUCommonRtypes.h"
+#include "GPUCommonFairLogger.h"
+#include "GPUCommonRtypes.h"
 
 #include <array>
 #include <vector>

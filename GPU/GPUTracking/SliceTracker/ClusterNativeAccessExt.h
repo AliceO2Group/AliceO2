@@ -1,8 +1,8 @@
 #ifndef CLUSTERNATIVEACCESSEXT_H
 #define CLUSTERNATIVEACCESSEXT_H
 
-#include "AliGPUTPCSettings.h"
-#include "AliGPUTPCGPUConfig.h"
+#include "GPUTPCSettings.h"
+#include "GPUTPCGPUConfig.h"
 
 #ifdef HAVE_O2HEADERS
 #include "DataFormatsTPC/ClusterNative.h"

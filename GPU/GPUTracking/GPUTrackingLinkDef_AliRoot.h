@@ -4,37 +4,37 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class AliGPUTPCTrack+;
-#pragma link C++ class AliGPUTPCTracklet+;
-#pragma link C++ class AliGPUTPCTracker+;
-#pragma link C++ class AliGPUTPCBaseTrackParam+;
-#pragma link C++ class AliGPUTPCTrackParam+;
-#pragma link C++ class AliGPUTPCRow+;
-#pragma link C++ class AliGPUTPCGrid+;
-#pragma link C++ class AliGPUTPCHitArea+;
-#pragma link C++ class AliGPUTPCTrackerComponent+;
-#pragma link C++ class AliGPUTPCNeighboursFinder+;
-#pragma link C++ class AliGPUTPCNeighboursCleaner+;
-#pragma link C++ class AliGPUTPCStartHitsFinder+;
-#pragma link C++ class AliGPUTPCTrackletConstructor+;
-#pragma link C++ class AliGPUTPCTrackletSelector+;
-#pragma link C++ class AliGPUTPCGlobalMergerComponent+;
-#pragma link C++ class AliGPUTPCClusterData+;
-#pragma link C++ class AliGPUTPCSliceData+;
-#pragma link C++ class AliGPUTPCSliceOutput+;
-#pragma link C++ class AliGPUTPCGMTrackParam+;
-#pragma link C++ class AliGPUTPCGMSliceTrack+;
-#pragma link C++ class AliGPUTPCGMMerger+;
-#pragma link C++ class AliGPUTPCGMPolynomialField+;
-#pragma link C++ class AliGPUTPCGMPropagator+;
-#pragma link C++ class AliGPUTPCGMPhysicalTrackModel+;
-#pragma link C++ class AliGPUTPCGMPolynomialFieldManager+;
+#pragma link C++ class GPUTPCTrack+;
+#pragma link C++ class GPUTPCTracklet+;
+#pragma link C++ class GPUTPCTracker+;
+#pragma link C++ class GPUTPCBaseTrackParam+;
+#pragma link C++ class GPUTPCTrackParam+;
+#pragma link C++ class GPUTPCRow+;
+#pragma link C++ class GPUTPCGrid+;
+#pragma link C++ class GPUTPCHitArea+;
+#pragma link C++ class GPUTPCTrackerComponent+;
+#pragma link C++ class GPUTPCNeighboursFinder+;
+#pragma link C++ class GPUTPCNeighboursCleaner+;
+#pragma link C++ class GPUTPCStartHitsFinder+;
+#pragma link C++ class GPUTPCTrackletConstructor+;
+#pragma link C++ class GPUTPCTrackletSelector+;
+#pragma link C++ class GPUTPCGlobalMergerComponent+;
+#pragma link C++ class GPUTPCClusterData+;
+#pragma link C++ class GPUTPCSliceData+;
+#pragma link C++ class GPUTPCSliceOutput+;
+#pragma link C++ class GPUTPCGMTrackParam+;
+#pragma link C++ class GPUTPCGMSliceTrack+;
+#pragma link C++ class GPUTPCGMMerger+;
+#pragma link C++ class GPUTPCGMPolynomialField+;
+#pragma link C++ class GPUTPCGMPropagator+;
+#pragma link C++ class GPUTPCGMPhysicalTrackModel+;
+#pragma link C++ class GPUTPCGMPolynomialFieldManager+;
 #pragma link C++ class AliHLTTPCClusterStatComponent+;
 
-//#pragma link C++ class AliGPUTRDTrack+; //Templated, should add linkdef for specialization, but with an ifdef for ROOT >= 6 only
-//#pragma link C++ class AliGPUTRDTracker+;
-#pragma link C++ class AliGPUTRDTrackerComponent+;
-//#pragma link C++ class AliGPUTRDTrackletWord+;
-#pragma link C++ class AliGPUTRDTrackletReaderComponent+;
+//#pragma link C++ class GPUTRDTrack+; //Templated, should add linkdef for specialization, but with an ifdef for ROOT >= 6 only
+//#pragma link C++ class GPUTRDTracker+;
+#pragma link C++ class GPUTRDTrackerComponent+;
+//#pragma link C++ class GPUTRDTrackletWord+;
+#pragma link C++ class GPUTRDTrackletReaderComponent+;
 
 #endif

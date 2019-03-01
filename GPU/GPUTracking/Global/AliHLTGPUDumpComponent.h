@@ -1,12 +1,12 @@
 #ifndef ALIHLTGPUDUMPCOMPONENT_H
 #define ALIHLTGPUDUMPCOMPONENT_H
 
-#include "AliGPUCommonDef.h"
+#include "GPUCommonDef.h"
 #include "AliHLTProcessor.h"
 
-class AliGPUReconstruction;
-class AliGPUChainTracking;
-class AliGPUTPCClusterData;
+class GPUReconstruction;
+class GPUChainTracking;
+class GPUTPCClusterData;
 class AliTPCcalibDB;
 class AliTPCRecoParam;
 #include "AliRecoParam.h"
@@ -46,9 +46,9 @@ class AliHLTGPUDumpComponent : public AliHLTProcessor
   private:
 
 	float fSolenoidBz;
-	AliGPUReconstruction* fRec;
-	AliGPUChainTracking* fChain;
-	AliGPUTPCClusterData* fClusterData[NSLICES];
+	GPUReconstruction* fRec;
+	GPUChainTracking* fChain;
+	GPUTPCClusterData* fClusterData[NSLICES];
 	ali_tpc_common::tpc_fast_transformation::TPCFastTransformManager* fFastTransformManager;
 	AliTPCcalibDB* fCalib;
 	AliTPCRecoParam* fRecParam;

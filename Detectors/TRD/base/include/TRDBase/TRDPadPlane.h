@@ -12,9 +12,9 @@
 #define O2_TRDPADPLANE_H
 
 //Forwards to standard header with protection for GPU compilation
-#include "AliGPUCommonRtypes.h" // for ClassDef
+#include "GPUCommonRtypes.h" // for ClassDef
 
-#include "AliGPUCommonDefGPU.h"
+#include "GPUCommonDefGPU.h"
 
 ////////////////////////////////////////////////////////////////////////////
 //                                                                        //

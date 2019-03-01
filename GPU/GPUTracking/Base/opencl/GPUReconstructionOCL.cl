@@ -1,0 +1,102 @@
+#define __OPENCL__
+#define GPUCA_GPUTYPE_RADEON
+#ifdef __OPENCLCPP__
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+#ifdef __clang__
+#pragma OPENCL EXTENSION cl_clang_storage_class_specifiers : enable
+#define global __global
+#define local __local
+#define constant __constant
+#define private __private
+#include <clc/clc.h>
+#undef global
+#undef local
+#undef constant
+#undef private
+#else
+#include <opencl_def>
+#include <opencl_common>
+#include <opencl_math>
+#include <opencl_atomic>
+#include <opencl_memory>
+#include <opencl_work_item>
+#include <opencl_synchronization>
+#include <opencl_printf>
+#include <opencl_integer>
+using namespace cl;
+#endif
+#define M_PI 3.1415926535f
+#endif
+
+//Disable assertions since they produce errors in GPU Code
+#ifdef assert
+#undef assert
+#endif
+#define assert(param)
+
+#include "GPUReconstructionIncludesDevice.h"
+#include "GPUConstantMem.h"
+
+#define OCL_DEVICE_KERNELS_PRE GPUglobal() char* gpu_mem, GPUconstant() MEM_CONSTANT(GPUConstantMem)* pConstant
+#define OCL_CALL_KERNEL(T, I, num) \
+	GPUshared() typename T::MEM_LOCAL(GPUTPCSharedMemory) smem; \
+	T::template Thread<I>( get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Worker(*pConstant)[num]);
+	
+#define OCL_CALL_KERNEL_MULTI(T, I) \
+	const int iSlice = nSliceCount * (get_group_id(0) + (get_num_groups(0) % nSliceCount != 0 && nSliceCount * (get_group_id(0) + 1) % get_num_groups(0) != 0)) / get_num_groups(0); \
+	const int nSliceBlockOffset = get_num_groups(0) * iSlice / nSliceCount; \
+	const int sliceBlockId = get_group_id(0) - nSliceBlockOffset; \
+	const int sliceGridDim = get_num_groups(0) * (iSlice + 1) / nSliceCount - get_num_groups(0) * (iSlice) / nSliceCount; \
+	GPUshared() typename T::MEM_LOCAL(GPUTPCSharedMemory) smem; \
+	T::template Thread<I>( sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, T::Worker(*pConstant)[firstSlice + iSlice]);
+
+#define OCL_CALL_KERNEL_ARGS(T, I, ...) \
+	GPUshared() typename T::GPUTPCSharedMemory smem; \
+	T::template Thread<I>( get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Worker(*pConstant)[0], __VA_ARGS__);
+
+//if (gpu_mem != pTracker.GPUParametersConst()->fGPUMem) return; //TODO!
+
+GPUg() void GPUTPCProcess_16GPUMemClean160(OCL_DEVICE_KERNELS_PRE, unsigned long ptr, unsigned long size)
+{
+	OCL_CALL_KERNEL_ARGS(GPUMemClean16, 0, (GPUglobalref() void*) (void*) ptr, size);
+}
+
+GPUg() void GPUTPCProcess_25GPUTPCNeighboursFinder0(OCL_DEVICE_KERNELS_PRE, int iSlice)
+{
+	OCL_CALL_KERNEL(GPUTPCNeighboursFinder, 0, iSlice);
+}
+
+GPUg() void GPUTPCProcess_26GPUTPCNeighboursCleaner0(OCL_DEVICE_KERNELS_PRE, int iSlice)
+{
+	OCL_CALL_KERNEL(GPUTPCNeighboursCleaner, 0, iSlice);
+}
+
+GPUg() void GPUTPCProcess_24GPUTPCStartHitsFinder0(OCL_DEVICE_KERNELS_PRE, int iSlice)
+{
+	OCL_CALL_KERNEL(GPUTPCStartHitsFinder, 0, iSlice);
+}
+
+GPUg() void GPUTPCProcess_24GPUTPCStartHitsSorter0(OCL_DEVICE_KERNELS_PRE, int iSlice)
+{
+	OCL_CALL_KERNEL(GPUTPCStartHitsSorter, 0, iSlice);
+}
+
+GPUg() void GPUTPCProcess_28GPUTPCTrackletConstructor0(OCL_DEVICE_KERNELS_PRE, int iSlice)
+{
+	OCL_CALL_KERNEL(GPUTPCTrackletConstructor, 0, iSlice);
+}
+
+GPUg() void GPUTPCProcess_28GPUTPCTrackletConstructor1(OCL_DEVICE_KERNELS_PRE)
+{
+	OCL_CALL_KERNEL(GPUTPCTrackletConstructor, 1, 0);
+}
+
+GPUg() void GPUTPCProcess_25GPUTPCTrackletSelector0(OCL_DEVICE_KERNELS_PRE, int iSlice)
+{
+	OCL_CALL_KERNEL(GPUTPCTrackletSelector, 0, iSlice);
+}
+
+GPUg() void GPUTPCProcess_Multi_25GPUTPCTrackletSelector0(OCL_DEVICE_KERNELS_PRE, int firstSlice, int nSliceCount)
+{
+	OCL_CALL_KERNEL_MULTI(GPUTPCTrackletSelector, 0);
+}
