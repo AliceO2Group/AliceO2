@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUO2GPUO2InterfaceConfiguration.h
+/// \file GPUO2InterfaceConfiguration.h
 /// \author David Rohr
 
 #ifndef GPUO2INTERFACECONFIGURATION_H
@@ -31,25 +31,23 @@
 #include "TPCFastTransform.h"
 
 //Full configuration structure with all available settings of GPU...
-struct GPUO2InterfaceConfiguration
-{
-	GPUO2InterfaceConfiguration() = default;
-	~GPUO2InterfaceConfiguration() = default;
-	GPUO2InterfaceConfiguration(const GPUO2InterfaceConfiguration&) = default;
-	
-	//Settings for the Interface class
-	struct GPUInterfaceSettings
-	{
-		bool dumpEvents = false;
-	};
-	
-	GPUSettingsProcessing configProcessing;
-	GPUSettingsDeviceProcessing configDeviceProcessing;
-	GPUSettingsEvent configEvent;
-	GPUSettingsRec configReconstruction;
-	GPUDisplayConfig configDisplay;
-	GPUQAConfig configQA;
-	GPUInterfaceSettings configInterface;
+struct GPUO2InterfaceConfiguration {
+  GPUO2InterfaceConfiguration() = default;
+  ~GPUO2InterfaceConfiguration() = default;
+  GPUO2InterfaceConfiguration(const GPUO2InterfaceConfiguration&) = default;
+
+  //Settings for the Interface class
+  struct GPUInterfaceSettings {
+    bool dumpEvents = false;
+  };
+
+  GPUSettingsProcessing configProcessing;
+  GPUSettingsDeviceProcessing configDeviceProcessing;
+  GPUSettingsEvent configEvent;
+  GPUSettingsRec configReconstruction;
+  GPUDisplayConfig configDisplay;
+  GPUQAConfig configQA;
+  GPUInterfaceSettings configInterface;
 };
 
 #endif

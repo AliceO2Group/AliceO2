@@ -18,111 +18,103 @@
 #include "GPUTPCTracklet.h"
 #include "GPUCommonMath.h"
 
-template <> GPUd() void GPUTPCTrackletSelector::Thread<0> (int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) &s, workerType &tracker)
+template <>
+GPUd() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & s, workerType& tracker)
 {
-	// select best tracklets and kill clones
+  // select best tracklets and kill clones
 
-	if ( iThread == 0 )
-    {
-		s.fNTracklets = *tracker.NTracklets();
-		s.fNThreadsTotal = nThreads * nBlocks;
-		s.fItr0 = nThreads * iBlock;
-	}
-    GPUbarrier();
+  if (iThread == 0) {
+    s.mNTracklets = *tracker.NTracklets();
+    s.fNThreadsTotal = nThreads * nBlocks;
+    s.mItr0 = nThreads * iBlock;
+  }
+  GPUbarrier();
 
-	int nHits, nFirstTrackHit;
-	GPUTPCHitId trackHits[GPUCA_ROW_COUNT - GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE];
+  GPUTPCHitId trackHits[GPUCA_ROW_COUNT - GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE];
 
-	for ( int itr = s.fItr0 + iThread; itr < s.fNTracklets; itr += s.fNThreadsTotal ) {
+  for (int itr = s.mItr0 + iThread; itr < s.mNTracklets; itr += s.fNThreadsTotal) {
 
-		while (tracker.Tracklets()[itr].NHits() == 0)
-		{
-			itr += s.fNThreadsTotal;
-			if (itr >= s.fNTracklets) return;
-		}
+    while (tracker.Tracklets()[itr].NHits() == 0) {
+      itr += s.fNThreadsTotal;
+      if (itr >= s.mNTracklets)
+        return;
+    }
 
-		GPUglobalref() MEM_GLOBAL(GPUTPCTracklet) &tracklet = tracker.Tracklets()[itr];
-		const int kMaxRowGap = 4;
-		const float kMaxShared = .1f;
+    GPUglobalref() MEM_GLOBAL(GPUTPCTracklet)& tracklet = tracker.Tracklets()[itr];
+    const int kMaxRowGap = 4;
+    const float kMaxShared = .1f;
 
-		int firstRow = tracklet.FirstRow();
-		int lastRow = tracklet.LastRow();
+    int firstRow = tracklet.FirstRow();
+    int lastRow = tracklet.LastRow();
 
-		const int w = tracklet.HitWeight();
+    const int w = tracklet.HitWeight();
 
-		int irow = firstRow;
+    int irow = firstRow;
 
-		int gap = 0;
-		int nShared = 0;
-		nHits = 0;
-		const int minHits = tracker.Param().rec.MinNTrackClusters == -1 ? TRACKLET_SELECTOR_MIN_HITS(tracklet.Param().QPt()) : tracker.Param().rec.MinNTrackClusters;
+    int gap = 0;
+    int nShared = 0;
+    int nHits = 0;
+    const int minHits = tracker.Param().rec.MinNTrackClusters == -1 ? TRACKLET_SELECTOR_MIN_HITS(tracklet.Param().QPt()) : tracker.Param().rec.MinNTrackClusters;
 
-		for (irow = firstRow; irow <= lastRow && lastRow - irow + nHits >= minHits; irow++ )
-		{
-			gap++;
+    for (irow = firstRow; irow <= lastRow && lastRow - irow + nHits >= minHits; irow++) {
+      gap++;
 #ifdef EXTERN_ROW_HITS
-			calink ih = tracker.TrackletRowHits()[irow * s.fNTracklets + itr];
+      calink ih = tracker.TrackletRowHits()[irow * s.mNTracklets + itr];
 #else
-			calink ih = tracklet.RowHit( irow );
-#endif //EXTERN_ROW_HITS
-			if ( ih != CALINK_INVAL )
-            {
-				GPUglobalref() const MEM_GLOBAL(GPUTPCRow) &row = tracker.Row( irow );
-				bool own = ( tracker.HitWeight( row, ih ) <= w );
-				bool sharedOK = ( ( nShared < nHits * kMaxShared ) );
-				if ( own || sharedOK )
-                {//SG!!!
-					gap = 0;
+      calink ih = tracklet.RowHit(irow);
+#endif // EXTERN_ROW_HITS
+      if (ih != CALINK_INVAL) {
+        GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& row = tracker.Row(irow);
+        bool own = (tracker.HitWeight(row, ih) <= w);
+        bool sharedOK = ((nShared < nHits * kMaxShared));
+        if (own || sharedOK) { // SG!!!
+          gap = 0;
 #if GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
-					if (nHits < GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE)
-						s.fHits[iThread][nHits].Set( irow, ih );
-					else
-#endif //GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
-						trackHits[nHits - GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE].Set( irow, ih );
-					nHits++;
-					if ( !own ) nShared++;
-				}
-			}
+          if (nHits < GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE)
+            s.fHits[iThread][nHits].Set(irow, ih);
+          else
+#endif // GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
+            trackHits[nHits - GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE].Set(irow, ih);
+          nHits++;
+          if (!own)
+            nShared++;
+        }
+      }
 
-			if ( gap > kMaxRowGap || irow == lastRow )
-            { // store
-				if ( nHits >= minHits )
-                {
-					int itrout = CAMath::AtomicAdd( tracker.NTracks(), 1 );
+      if (gap > kMaxRowGap || irow == lastRow) { // store
+        if (nHits >= minHits) {
+          int itrout = CAMath::AtomicAdd(tracker.NTracks(), 1);
 #ifdef GPUCA_GPUCODE
-					if (itrout >= GPUCA_MAX_TRACKS)
+          if (itrout >= GPUCA_MAX_TRACKS)
 #else
-					if (itrout >= tracker.CommonMemory()->fNTracklets * 2 + 50)
-#endif //GPUCA_GPUCODE
-					{
-						tracker.GPUParameters()->fGPUError = GPUCA_ERROR_TRACK_OVERFLOW;
-						CAMath::AtomicExch( tracker.NTracks(), 0 );
-						return;
-					}
-					nFirstTrackHit = CAMath::AtomicAdd( tracker.NTrackHits(), nHits );
-					tracker.Tracks()[itrout].SetAlive(1);
-					tracker.Tracks()[itrout].SetLocalTrackId(itrout);
-					tracker.Tracks()[itrout].SetParam(tracklet.Param());
-					tracker.Tracks()[itrout].SetFirstHitID(nFirstTrackHit);
-					tracker.Tracks()[itrout].SetNHits(nHits);
-					for ( int jh = 0; jh < nHits; jh++ )
-                    {
+          if (itrout >= tracker.CommonMemory()->nTracklets * 2 + 50)
+#endif // GPUCA_GPUCODE
+          {
+            tracker.GPUParameters()->gpuError = GPUCA_ERROR_TRACK_OVERFLOW;
+            CAMath::AtomicExch(tracker.NTracks(), 0);
+            return;
+          }
+          int nFirstTrackHit = CAMath::AtomicAdd(tracker.NTrackHits(), nHits);
+          tracker.Tracks()[itrout].SetAlive(1);
+          tracker.Tracks()[itrout].SetLocalTrackId(itrout);
+          tracker.Tracks()[itrout].SetParam(tracklet.Param());
+          tracker.Tracks()[itrout].SetFirstHitID(nFirstTrackHit);
+          tracker.Tracks()[itrout].SetNHits(nHits);
+          for (int jh = 0; jh < nHits; jh++) {
 #if GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
-						if (jh < GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE)
-						{
-							tracker.TrackHits()[nFirstTrackHit + jh] = s.fHits[iThread][jh];
-						}
-						else
-#endif //GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
-						{
-							tracker.TrackHits()[nFirstTrackHit + jh] = trackHits[jh - GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE];
-						}
-					}
-				}
-				nHits = 0;
-				gap = 0;
-				nShared = 0;
-			}
-		}
-	}
+            if (jh < GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE) {
+              tracker.TrackHits()[nFirstTrackHit + jh] = s.fHits[iThread][jh];
+            } else
+#endif // GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
+            {
+              tracker.TrackHits()[nFirstTrackHit + jh] = trackHits[jh - GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE];
+            }
+          }
+        }
+        nHits = 0;
+        gap = 0;
+        nShared = 0;
+      }
+    }
+  }
 }

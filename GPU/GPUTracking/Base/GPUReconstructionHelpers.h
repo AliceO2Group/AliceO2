@@ -19,26 +19,25 @@
 class GPUReconstructionDeviceBase;
 class GPUReconstructionHelpers
 {
-public:
-	class helperDelegateBase
-	{
-	};
-	
-	struct helperParam
-	{
-		pthread_t fThreadId;
-		GPUReconstructionDeviceBase* fCls;
-		int fNum;
-		std::mutex fMutex[2];
-		char fTerminate;
-		helperDelegateBase* fFunctionCls;
-		int (helperDelegateBase::* fFunction)(int, int, helperParam*);
-		int fPhase;
-		int fCount;
-		volatile int fDone;
-		volatile char fError;
-		volatile char fReset;
-	};
+ public:
+  class helperDelegateBase
+  {
+  };
+
+  struct helperParam {
+    pthread_t threadId;
+    GPUReconstructionDeviceBase* cls;
+    int num;
+    std::mutex mutex[2];
+    char terminate;
+    helperDelegateBase* functionCls;
+    int (helperDelegateBase::*function)(int, int, helperParam*);
+    int phase;
+    int count;
+    volatile int done;
+    volatile char error;
+    volatile char reset;
+  };
 };
 
 #endif

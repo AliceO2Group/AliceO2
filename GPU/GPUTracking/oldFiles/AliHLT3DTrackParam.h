@@ -19,124 +19,119 @@
  */
 class AliHLT3DTrackParam : public TObject
 {
-  public:
+ public:
+  //*
+  //*  INITIALIZATION
+  //*
 
-    //*
-    //*  INITIALIZATION
-    //*
+  //* Constructor
 
-    //* Constructor
+  AliHLT3DTrackParam() : fChi2(0), fNDF(0), fSignQ(0) {}
 
-    AliHLT3DTrackParam(): fChi2( 0 ), fNDF( 0 ), fSignQ( 0 ) {}
+  //* Destructor (empty)
 
-    //* Destructor (empty)
+  virtual ~AliHLT3DTrackParam() {}
 
-    virtual ~AliHLT3DTrackParam() {}
+  //*
+  //*  ACCESSORS
+  //*
 
-    //*
-    //*  ACCESSORS
-    //*
+  //* Simple accessors
 
+  double GetX() const { return mParam[0]; }
+  double GetY() const { return mParam[1]; }
+  double GetZ() const { return mParam[2]; }
+  double GetPx() const { return mParam[3]; }
+  double GetPy() const { return mParam[4]; }
+  double GetPz() const { return mParam[5]; }
+  double GetChi2() const { return fChi2; }
+  int GetNDF() const { return fNDF; }
+  int GetCharge() const { return fSignQ; }
 
-    //* Simple accessors
+  double GetParameter(int i) const { return mParam[i]; }
+  double GetCovariance(int i) const { return fCov[i]; }
+  double GetCovariance(int i, int j) const { return fCov[(j <= i) ? i * (i + 1) / 2 + j : j * (j + 1) / 2 + i]; }
 
-    double GetX()      const { return fParam[0]; }
-    double GetY()      const { return fParam[1]; }
-    double GetZ()      const { return fParam[2]; }
-    double GetPx()     const { return fParam[3]; }
-    double GetPy()     const { return fParam[4]; }
-    double GetPz()     const { return fParam[5]; }
-    double GetChi2()   const { return fChi2;  }
-    int    GetNDF()    const { return fNDF;   }
-    int    GetCharge() const { return fSignQ; }
+  //*
+  //* Accessors
+  //*
 
-    double GetParameter ( int i ) const { return fParam[i]; }
-    double GetCovariance( int i ) const { return fCov[i]; }
-    double GetCovariance( int i, int j ) const { return fCov[( j<=i ) ? i*( i+1 )/2+j :j*( j+1 )/2+i]; }
+  const double* Param() const { return mParam; }
+  const double* Cov() const { return fCov; }
+  double X() const { return mParam[0]; }
+  double Y() const { return mParam[1]; }
+  double Z() const { return mParam[2]; }
+  double Px() const { return mParam[3]; }
+  double Py() const { return mParam[4]; }
+  double Pz() const { return mParam[5]; }
+  double Chi2() const { return fChi2; }
+  int NDF() const { return fNDF; }
+  int Charge() const { return fSignQ; }
 
-    //*
-    //* Accessors
-    //*
+  //* Accessors with calculations( &value, &estimated sigma )
+  //* error flag returned (0 means no error during calculations)
 
-    const double *Param()  const { return fParam; }
-    const double *Cov() const   { return fCov;   }
-    double X()      const  { return fParam[0]; }
-    double Y()      const  { return fParam[1]; }
-    double Z()      const  { return fParam[2]; }
-    double Px()     const  { return fParam[3]; }
-    double Py()     const  { return fParam[4]; }
-    double Pz()     const  { return fParam[5]; }
-    double Chi2()   const  { return fChi2;  }
-    int    NDF()    const  { return fNDF;   }
-    int    Charge()  const { return fSignQ; }
+  //*
+  //*  MODIFIERS
+  //*
 
-    //* Accessors with calculations( &value, &estimated sigma )
-    //* error flag returned (0 means no error during calculations)
+  void SetParam(int i, double v) { mParam[i] = v; }
+  void SetCov(int i, double v) { fCov[i] = v; }
+  void SetX(double v) { mParam[0] = v; }
+  void SetY(double v) { mParam[1] = v; }
+  void SetZ(double v) { mParam[2] = v; }
+  void SetPx(double v) { mParam[3] = v; }
+  void SetPy(double v) { mParam[4] = v; }
+  void SetPz(double v) { mParam[5] = v; }
+  void SetChi2(double v) { fChi2 = v; }
+  void SetNDF(int v) { fNDF = v; }
+  void SetCharge(int v) { fSignQ = v; }
 
+  //*
+  //*  UTILITIES
+  //*
 
-    //*
-    //*  MODIFIERS
-    //*
+  //* Transport utilities
 
-    void SetParam( int i, double v )  { fParam[i] = v; }
-    void SetCov( int i, double v ) { fCov[i] = v;   }
-    void SetX( double v )      { fParam[0] = v; }
-    void SetY( double v )      { fParam[1] = v; }
-    void SetZ( double v )      { fParam[2] = v; }
-    void SetPx( double v )     { fParam[3] = v; }
-    void SetPy( double v )     { fParam[4] = v; }
-    void SetPz( double v )     { fParam[5] = v; }
-    void SetChi2( double v )   { fChi2 = v;  }
-    void SetNDF( int v )       { fNDF = v;   }
-    void SetCharge( int v )    { fSignQ = v; }
+  double GetDStoPoint(double Bz, const double xyz[3], const double* T0 = 0) const;
 
+  void TransportToDS(double Bz, double DS, double* T0 = 0);
 
-    //*
-    //*  UTILITIES
-    //*
+  void TransportToPoint(double Bz, const double xyz[3], double* T0 = 0)
+  {
+    TransportToDS(Bz, GetDStoPoint(Bz, xyz, T0), T0);
+  }
 
-    //* Transport utilities
+  void TransportToPoint(double Bz, double x, double y, double z, const double* T0 = 0)
+  {
+    double xyz[3] = { x, y, z };
+    TransportToPoint(Bz, xyz, T0);
+  }
 
-    double GetDStoPoint( double Bz, const double xyz[3], const double *T0 = 0 ) const;
+  //* Fit utilities
 
-    void TransportToDS( double Bz, double DS, double *T0 = 0 );
+  void InitializeCovarianceMatrix();
 
-    void TransportToPoint( double Bz, const double xyz[3], double *T0 = 0 ) {
-      TransportToDS( Bz, GetDStoPoint( Bz, xyz, T0 ), T0 ) ;
-    }
+  void GetGlueMatrix(const double p[3], double G[6], const double* T0 = 0) const;
 
-    void TransportToPoint( double Bz, double x, double y, double z, const double *T0 = 0 ) {
-      double xyz[3] = {x, y, z};
-      TransportToPoint( Bz, xyz, T0 );
-    }
+  void Filter(const double m[3], const double V[6], const double G[6]);
 
-    //* Fit utilities
+  //* Other utilities
 
-    void InitializeCovarianceMatrix();
+  void SetDirection(double Direction[3]);
 
-    void GetGlueMatrix( const double p[3], double G[6], const double *T0 = 0  ) const ;
+  void RotateCoordinateSystem(double alpha);
 
-    void Filter( const double m[3], const double V[6], const double G[6] );
+  void Get5Parameters(double alpha, double T[6], double C[15]) const;
 
-    //* Other utilities
+ protected:
+  double mParam[6]; // Parameters ( x, y, z, px, py, pz ): 3-position and 3-momentum
+  double fCov[21];  // Covariance matrix
+  double fChi2;     // Chi^2
+  int fNDF;         // Number of Degrees of Freedom
+  int fSignQ;       // Charge
 
-    void SetDirection( double Direction[3] );
-
-    void RotateCoordinateSystem( double alpha );
-
-    void Get5Parameters( double alpha, double T[6], double C[15] ) const;
-
-  protected:
-
-    double fParam[6]; // Parameters ( x, y, z, px, py, pz ): 3-position and 3-momentum
-    double fCov[21];  // Covariance matrix
-    double fChi2;     // Chi^2
-    int    fNDF;      // Number of Degrees of Freedom
-    int    fSignQ;    // Charge
-
-    ClassDef( AliHLT3DTrackParam, 1 );
-
+  ClassDef(AliHLT3DTrackParam, 1);
 };
-
 
 #endif

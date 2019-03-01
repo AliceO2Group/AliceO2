@@ -11,5 +11,5 @@
 /// \file GPUCommon.cxx
 /// \author David Rohr
 
-//Empty file to have at least something in the library for now
+// Empty file to have at least something in the library for now
 #include "GPUCommonDef.h"

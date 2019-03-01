@@ -9,29 +9,29 @@
 
 class qSem
 {
-public:
-	qSem(int num = 1);
-	~qSem();
+ public:
+  qSem(int num = 1);
+  ~qSem();
 
-	int Lock();
-	int Unlock();
-	int Trylock();
-	int Query();
+  int Lock();
+  int Unlock();
+  int Trylock();
+  int Query();
 
-private:
-	int max;
-	sem_t sem;
+ private:
+  int max;
+  sem_t sem;
 };
 
 class qSignal
 {
-private:
-	qSem sem;
+ private:
+  qSem sem;
 
-public:
-	qSignal() : sem(0) {}
-	void Wait() {sem.Lock();}
-	void Signal() {sem.Unlock();}
+ public:
+  qSignal() : sem(0) {}
+  void Wait() { sem.Lock(); }
+  void Signal() { sem.Unlock(); }
 };
 
 #endif

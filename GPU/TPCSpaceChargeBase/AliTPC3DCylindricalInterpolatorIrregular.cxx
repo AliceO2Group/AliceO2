@@ -32,21 +32,20 @@
 
 /// \cond CLASSIMP3
 ClassImp(AliTPC3DCylindricalInterpolatorIrregular)
-/// \endcond
+  /// \endcond
 
-
-
-/// constructor
-///
-/// \param nRRow
-/// \param nZColumn
-/// \param nPhiSlice
-/// \param rStep
-/// \param zStep
-/// \param phiStep
-/// \param type
-AliTPC3DCylindricalInterpolatorIrregular::AliTPC3DCylindricalInterpolatorIrregular(
-        Int_t nRRow, Int_t nZColumn, Int_t nPhiSlice, Int_t rStep, Int_t zStep, Int_t phiStep, Int_t type) {
+  /// constructor
+  ///
+  /// \param nRRow
+  /// \param nZColumn
+  /// \param nPhiSlice
+  /// \param rStep
+  /// \param zStep
+  /// \param phiStep
+  /// \param type
+  AliTPC3DCylindricalInterpolatorIrregular::AliTPC3DCylindricalInterpolatorIrregular(
+    Int_t nRRow, Int_t nZColumn, Int_t nPhiSlice, Int_t rStep, Int_t zStep, Int_t phiStep, Int_t type)
+{
   fOrder = 1;
   fIsAllocatingLookUp = kFALSE;
   fMinZIndex = 0;
@@ -63,14 +62,16 @@ AliTPC3DCylindricalInterpolatorIrregular::AliTPC3DCylindricalInterpolatorIrregul
 
   fType = type;
   fRBFWeight = new Double_t[nRRow * nZColumn * nPhiSlice * nd];
-  for (Int_t i = 0; i < nRRow * nZColumn * nPhiSlice; i++) fRBFWeightLookUp[i] = 0;
+  for (Int_t i = 0; i < nRRow * nZColumn * nPhiSlice; i++)
+    fRBFWeightLookUp[i] = 0;
 
   SetKernelType(kRBFInverseMultiQuadratic);
 }
 
 /// constructor
 ///
-AliTPC3DCylindricalInterpolatorIrregular::AliTPC3DCylindricalInterpolatorIrregular() {
+AliTPC3DCylindricalInterpolatorIrregular::AliTPC3DCylindricalInterpolatorIrregular()
+{
   fOrder = 1;
   fIsAllocatingLookUp = kFALSE;
 
@@ -79,7 +80,8 @@ AliTPC3DCylindricalInterpolatorIrregular::AliTPC3DCylindricalInterpolatorIrregul
 
 /// destructor
 ///
-AliTPC3DCylindricalInterpolatorIrregular::~AliTPC3DCylindricalInterpolatorIrregular() {
+AliTPC3DCylindricalInterpolatorIrregular::~AliTPC3DCylindricalInterpolatorIrregular()
+{
 
   if (fIsAllocatingLookUp) {
     delete fValue;
@@ -89,10 +91,10 @@ AliTPC3DCylindricalInterpolatorIrregular::~AliTPC3DCylindricalInterpolatorIrregu
   }
 
   if (fKDTreeIrregularPoints) {
-	delete[] fKDTreeIrregularPoints;
+    delete[] fKDTreeIrregularPoints;
   }
-  delete[]  fRBFWeightLookUp;
-  delete[]  fRBFWeight;
+  delete[] fRBFWeightLookUp;
+  delete[] fRBFWeight;
 }
 
 /// irregular grid interpolation with IDW (inverse distance weight)
@@ -108,9 +110,10 @@ AliTPC3DCylindricalInterpolatorIrregular::~AliTPC3DCylindricalInterpolatorIrregu
 /// \param zStep
 /// \return
 Double_t
-AliTPC3DCylindricalInterpolatorIrregular::Interpolate3DTableCylIDW(
-        Double_t r, Double_t z, Double_t phi, Int_t rIndex, Int_t zIndex, Int_t phiIndex, Int_t rStep, Int_t phiStep,
-        Int_t zStep) {
+  AliTPC3DCylindricalInterpolatorIrregular::Interpolate3DTableCylIDW(
+    Double_t r, Double_t z, Double_t phi, Int_t rIndex, Int_t zIndex, Int_t phiIndex, Int_t rStep, Int_t phiStep,
+    Int_t zStep)
+{
   Double_t r0, z0, phi0, d;
   Double_t MIN_DIST = 1e-3;
   Double_t val = 0.0;
@@ -119,12 +122,17 @@ AliTPC3DCylindricalInterpolatorIrregular::Interpolate3DTableCylIDW(
   Int_t startR = rIndex - rStep / 2;
   Int_t startZ = zIndex - zStep / 2;
 
-  if (startPhi < 0) startPhi = fNPhi + startPhi;
-  if (startR < 0) startR = 0;
-  if (startR + rStep >= fNR) startR = fNR - rStep;
+  if (startPhi < 0)
+    startPhi = fNPhi + startPhi;
+  if (startR < 0)
+    startR = 0;
+  if (startR + rStep >= fNR)
+    startR = fNR - rStep;
 
-  if (startZ < fMinZIndex) startZ = fMinZIndex;
-  if (startZ + zStep >= fNZ) startZ = fNZ - zStep;
+  if (startZ < fMinZIndex)
+    startZ = fMinZIndex;
+  if (startZ + zStep >= fNZ)
+    startZ = fNZ - zStep;
 
   Int_t index;
   Double_t sum_w = 0.0;
@@ -162,12 +170,17 @@ AliTPC3DCylindricalInterpolatorIrregular::Interpolate3DTableCylIDW(
   startR = new_rIndex - rStep / 2;
   startZ = new_zIndex - zStep / 2;
 
-  if (startPhi < 0) startPhi = fNPhi + startPhi;
-  if (startR < 0) startR = 0;
-  if (startR + rStep >= fNR) startR = fNR - rStep;
+  if (startPhi < 0)
+    startPhi = fNPhi + startPhi;
+  if (startR < 0)
+    startR = 0;
+  if (startR + rStep >= fNR)
+    startR = fNR - rStep;
 
-  if (startZ < fMinZIndex) startZ = fMinZIndex;
-  if (startZ + zStep >= fNZ) startZ = fNZ - zStep;
+  if (startZ < fMinZIndex)
+    startZ = fMinZIndex;
+  if (startZ + zStep >= fNZ)
+    startZ = fNZ - zStep;
 
   for (Int_t iPhi = startPhi; iPhi < startPhi + phiStep; iPhi++) {
     indexPhi = iPhi % fNPhi;
@@ -202,13 +215,18 @@ AliTPC3DCylindricalInterpolatorIrregular::Interpolate3DTableCylIDW(
 /// \param z
 /// \return
 Double_t
-AliTPC3DCylindricalInterpolatorIrregular::Distance(Double_t r0, Double_t phi0, Double_t z0, Double_t r, Double_t phi,
-                                                   Double_t z) {
-  if (phi < 0) phi = TMath::TwoPi() + phi;
-  if (phi > TMath::TwoPi()) phi = phi - TMath::TwoPi();
+  AliTPC3DCylindricalInterpolatorIrregular::Distance(Double_t r0, Double_t phi0, Double_t z0, Double_t r, Double_t phi,
+                                                     Double_t z)
+{
+  if (phi < 0)
+    phi = TMath::TwoPi() + phi;
+  if (phi > TMath::TwoPi())
+    phi = phi - TMath::TwoPi();
 
-  if (phi0 < 0) phi0 = TMath::TwoPi() + phi0;
-  if (phi0 > TMath::TwoPi()) phi0 = phi0 - TMath::TwoPi();
+  if (phi0 < 0)
+    phi0 = TMath::TwoPi() + phi0;
+  if (phi0 > TMath::TwoPi())
+    phi0 = phi0 - TMath::TwoPi();
 
   Double_t dPhi = phi - phi0;
   if (dPhi > TMath::Pi())
@@ -216,8 +234,7 @@ AliTPC3DCylindricalInterpolatorIrregular::Distance(Double_t r0, Double_t phi0, D
   if (dPhi < -TMath::Pi())
     dPhi = TMath::TwoPi() + dPhi;
 
-
-  Double_t ret = r*r + r0*r0 - 2*r0 * r * TMath::Cos(dPhi) + (z-z0)*(z-z0);
+  Double_t ret = r * r + r0 * r0 - 2 * r0 * r * TMath::Cos(dPhi) + (z - z0) * (z - z0);
 
   return TMath::Sqrt(ret);
 }
@@ -237,9 +254,10 @@ AliTPC3DCylindricalInterpolatorIrregular::Distance(Double_t r0, Double_t phi0, D
 /// \param radiusRBF0
 /// \return
 Double_t
-AliTPC3DCylindricalInterpolatorIrregular::Interpolate3DTableCylRBF(
-        Double_t r, Double_t z, Double_t phi, Int_t rIndex, Int_t zIndex, Int_t phiIndex, Int_t rStep, Int_t phiStep,
-        Int_t zStep, Double_t radiusRBF0) {
+  AliTPC3DCylindricalInterpolatorIrregular::Interpolate3DTableCylRBF(
+    Double_t r, Double_t z, Double_t phi, Int_t rIndex, Int_t zIndex, Int_t phiIndex, Int_t rStep, Int_t phiStep,
+    Int_t zStep, Double_t radiusRBF0)
+{
   const Float_t gridSizeR = (AliTPCPoissonSolver::fgkOFCRadius - AliTPCPoissonSolver::fgkIFCRadius) / (fNR - 1);
   const Float_t gridSizeZ = AliTPCPoissonSolver::fgkTPCZ0 / (fNZ - 1);
   const Float_t gridSizePhi = TMath::TwoPi() / fNPhi;
@@ -251,12 +269,17 @@ AliTPC3DCylindricalInterpolatorIrregular::Interpolate3DTableCylRBF(
   Int_t startR = rIndex - rStep / 2;
   Int_t startZ = zIndex - zStep / 2;
 
-  if (startPhi < 0) startPhi = fNPhi + startPhi;
-  if (startR < 0) startR = 0;
-  if (startR + rStep >= fNR) startR = fNR - rStep;
+  if (startPhi < 0)
+    startPhi = fNPhi + startPhi;
+  if (startR < 0)
+    startR = 0;
+  if (startR + rStep >= fNR)
+    startR = fNR - rStep;
 
-  if (startZ < fMinZIndex) startZ = fMinZIndex;
-  if (startZ + zStep >= fNZ) startZ = fNZ - zStep;
+  if (startZ < fMinZIndex)
+    startZ = fMinZIndex;
+  if (startZ + zStep >= fNZ)
+    startZ = fNZ - zStep;
 
   Int_t index;
   Double_t sum_w = 0.0;
@@ -288,7 +311,7 @@ AliTPC3DCylindricalInterpolatorIrregular::Interpolate3DTableCylRBF(
     }
   }
 
-  index = new_phiIndex * (fNZ * fNR) + new_rIndex  * fNZ + new_zIndex;
+  index = new_phiIndex * (fNZ * fNR) + new_rIndex * fNZ + new_zIndex;
   phiStep = fStepPhi;
   rStep = fStepR;
   zStep = fStepZ;
@@ -297,15 +320,20 @@ AliTPC3DCylindricalInterpolatorIrregular::Interpolate3DTableCylRBF(
   startR = new_rIndex - rStep / 2;
   startZ = new_zIndex - zStep / 2;
 
-  if (startPhi < 0) startPhi = fNPhi + startPhi;
+  if (startPhi < 0)
+    startPhi = fNPhi + startPhi;
 
-  if (startR < 0) startR = 0;
-  if (startR + rStep >= fNR) startR = fNR - rStep;
+  if (startR < 0)
+    startR = 0;
+  if (startR + rStep >= fNR)
+    startR = fNR - rStep;
 
-  if (startZ < fMinZIndex) startZ = fMinZIndex;
-  if (startZ + zStep >= fNZ) startZ = fNZ - zStep;
+  if (startZ < fMinZIndex)
+    startZ = fMinZIndex;
+  if (startZ + zStep >= fNZ)
+    startZ = fNZ - zStep;
 
-  Double_t *w;
+  Double_t* w;
 
   //Int_t nd = (phiStep-1) + (rStep-1) + (zStep-1) + 1;
   Int_t nd = phiStep * rStep * zStep;
@@ -318,7 +346,8 @@ AliTPC3DCylindricalInterpolatorIrregular::Interpolate3DTableCylRBF(
 
   if (fType == 1) {
 
-    for (Int_t i = 0; i < nd; i++) w[i] = 0.0;
+    for (Int_t i = 0; i < nd; i++)
+      w[i] = 0.0;
     GetRBFWeight(new_rIndex, new_zIndex, new_phiIndex, rStep, phiStep, zStep, radiusRBF0, 0, w);
     val = InterpRBF(r, phi, z, startR, startPhi, startZ, rStep, phiStep, zStep, radiusRBF0, 0, w);
   } else {
@@ -335,20 +364,23 @@ AliTPC3DCylindricalInterpolatorIrregular::Interpolate3DTableCylRBF(
 /// \param offset
 /// \param x
 /// \param low
-void AliTPC3DCylindricalInterpolatorIrregular::Search(Int_t n, Double_t *xArray, Int_t offset, Double_t x, Int_t &low) {
+void AliTPC3DCylindricalInterpolatorIrregular::Search(Int_t n, Double_t* xArray, Int_t offset, Double_t x, Int_t& low)
+{
   /// Search an ordered table by starting at the most recently used poInt_t
 
   Long_t middle, high;
   Int_t ascend = 0, increment = 1;
 
-  if (xArray[(n - 1) * offset] >= xArray[0 * offset]) ascend = 1;  // Ascending ordered table if true
+  if (xArray[(n - 1) * offset] >= xArray[0 * offset])
+    ascend = 1; // Ascending ordered table if true
 
   if (low < 0 || low > n - 1) {
     low = -1;
     high = n;
-  } else {                                            // Ordered Search phase
+  } else { // Ordered Search phase
     if ((Int_t)(x >= xArray[low * offset]) == ascend) {
-      if (low == n - 1) return;
+      if (low == n - 1)
+        return;
       high = low + 1;
       while ((Int_t)(x >= xArray[high * offset]) == ascend) {
         low = high;
@@ -371,12 +403,13 @@ void AliTPC3DCylindricalInterpolatorIrregular::Search(Int_t n, Double_t *xArray,
         if (increment >= high) {
           low = -1;
           break;
-        } else low = high - increment;
+        } else
+          low = high - increment;
       }
     }
   }
 
-  while ((high - low) != 1) {                     // Binary Search Phase
+  while ((high - low) != 1) { // Binary Search Phase
     middle = (high + low) / 2;
     if ((Int_t)(x >= xArray[middle * offset]) == ascend)
       low = middle;
@@ -384,9 +417,10 @@ void AliTPC3DCylindricalInterpolatorIrregular::Search(Int_t n, Double_t *xArray,
       high = middle;
   }
 
-  if (x > xArray[n - 1]) low = n;
-  if (x < xArray[0]) low = -1;
-
+  if (x > xArray[n - 1])
+    low = n;
+  if (x < xArray[0])
+    low = -1;
 }
 
 /// get value, interpolation with RBF
@@ -402,8 +436,9 @@ void AliTPC3DCylindricalInterpolatorIrregular::Search(Int_t n, Double_t *xArray,
 /// \param zStep
 /// \return
 Double_t AliTPC3DCylindricalInterpolatorIrregular::GetValue(
-        Double_t r, Double_t phi, Double_t z, Int_t rIndex, Int_t phiIndex, Int_t zIndex, Int_t rStep, Int_t phiStep,
-        Int_t zStep) {
+  Double_t r, Double_t phi, Double_t z, Int_t rIndex, Int_t phiIndex, Int_t zIndex, Int_t rStep, Int_t phiStep,
+  Int_t zStep)
+{
 
   fMinZIndex = 0;
   return Interpolate3DTableCylRBF(r, z, phi, rIndex, zIndex, phiIndex, rStep, phiStep, zStep, 0.0);
@@ -423,25 +458,29 @@ Double_t AliTPC3DCylindricalInterpolatorIrregular::GetValue(
 /// \param minZColumnIndex
 /// \return
 Double_t AliTPC3DCylindricalInterpolatorIrregular::GetValue(
-        Double_t r, Double_t phi, Double_t z, Int_t rIndex, Int_t phiIndex, Int_t zIndex, Int_t rStep, Int_t phiStep,
-        Int_t zStep, Int_t minZColumnIndex) {
+  Double_t r, Double_t phi, Double_t z, Int_t rIndex, Int_t phiIndex, Int_t zIndex, Int_t rStep, Int_t phiStep,
+  Int_t zStep, Int_t minZColumnIndex)
+{
   fMinZIndex = minZColumnIndex;
   return Interpolate3DTableCylRBF(r, z, phi, rIndex, zIndex, phiIndex, rStep, phiStep, zStep, 0.0);
 }
 
 // GetValue using searching at KDTree
 Double_t AliTPC3DCylindricalInterpolatorIrregular::GetValue(
-        Double_t r, Double_t phi, Double_t z) {
+  Double_t r, Double_t phi, Double_t z)
+{
 
   KDTreeNode n;
-  n.pR = &r; n.pPhi =  &phi; n.pZ = &z;
-  KDTreeNode *nearest;
+  n.pR = &r;
+  n.pPhi = &phi;
+  n.pZ = &z;
+  KDTreeNode* nearest;
   Double_t dist;
   dist = 100000000.0;
   Int_t startIndex = 0; // Z
-  Int_t dim = 3; // dimenstion
-  KDTreeNearest(fKDTreeIrregularRoot,&n, startIndex, dim, &nearest,&dist);
- return Interpolate3DTableCylRBF(r,z,phi,nearest);
+  Int_t dim = 3;        // dimenstion
+  KDTreeNearest(fKDTreeIrregularRoot, &n, startIndex, dim, &nearest, &dist);
+  return Interpolate3DTableCylRBF(r, z, phi, nearest);
 }
 /// Set value and distorted point for irregular grid interpolation
 ///
@@ -450,14 +489,15 @@ Double_t AliTPC3DCylindricalInterpolatorIrregular::GetValue(
 /// \param matrixRicesPhiPoint
 /// \param matrixRicesZPoint
 void AliTPC3DCylindricalInterpolatorIrregular::SetValue(
-        TMatrixD **matrixRicesValue, TMatrixD **matrixRicesRPoint, TMatrixD **matrixRicesPhiPoint,
-        TMatrixD **matrixRicesZPoint) {
+  TMatrixD** matrixRicesValue, TMatrixD** matrixRicesRPoint, TMatrixD** matrixRicesPhiPoint,
+  TMatrixD** matrixRicesZPoint)
+{
   Int_t indexInner;
   Int_t index;
-  TMatrixD *mat;
-  TMatrixD *matrixR;
-  TMatrixD *matrixPhi;
-  TMatrixD *matrixZ;
+  TMatrixD* mat;
+  TMatrixD* matrixR;
+  TMatrixD* matrixPhi;
+  TMatrixD* matrixZ;
 
   if (!fIsAllocatingLookUp) {
     fValue = new Double_t[fNPhi * fNR * fNZ];
@@ -482,11 +522,10 @@ void AliTPC3DCylindricalInterpolatorIrregular::SetValue(
         fRList[index + j] = (*matrixR)(i, j);
         fPhiList[index + j] = (*matrixPhi)(i, j);
         fZList[index + j] = (*matrixZ)(i, j);
-
       }
     }
   }
-  // KD Tree  is used for look-up a point to irregular grid to find 
+  // KD Tree  is used for look-up a point to irregular grid to find
   // closest neughboor point
   InitKDTree();
   InitRBFWeight();
@@ -494,7 +533,8 @@ void AliTPC3DCylindricalInterpolatorIrregular::SetValue(
 
 /// init RBF Weights assume value already been set
 ///
-void AliTPC3DCylindricalInterpolatorIrregular::InitRBFWeight() {
+void AliTPC3DCylindricalInterpolatorIrregular::InitRBFWeight()
+{
 
   Int_t indexInner;
   Int_t rIndex;
@@ -517,8 +557,10 @@ void AliTPC3DCylindricalInterpolatorIrregular::InitRBFWeight() {
 
       startR = i - fStepR / 2;
 
-      if (startR < 0) startR = 0;
-      if (startR + fStepR >= fNR) startR = fNR - fStepR;
+      if (startR < 0)
+        startR = 0;
+      if (startR + fStepR >= fNR)
+        startR = fNR - fStepR;
 
       for (Int_t j = 0; j < fNZ; j++) {
         index = rIndex + j;
@@ -526,16 +568,15 @@ void AliTPC3DCylindricalInterpolatorIrregular::InitRBFWeight() {
         radiusRBF0 = GetRadius0RBF(i, j, m);
 
         RBFWeight(
-                i,
-                j,
-                m,
-                fStepR,
-                fStepPhi,
-                fStepZ,
-                radiusRBF0,
-                fKernelType,
-                &fRBFWeight[index * nd]
-        );
+          i,
+          j,
+          m,
+          fStepR,
+          fStepPhi,
+          fStepZ,
+          radiusRBF0,
+          fKernelType,
+          &fRBFWeight[index * nd]);
         fRBFWeightLookUp[index] = 1;
       }
     }
@@ -550,15 +591,16 @@ void AliTPC3DCylindricalInterpolatorIrregular::InitRBFWeight() {
 /// \param matrixRicesZPoint
 /// \param jy
 void AliTPC3DCylindricalInterpolatorIrregular::SetValue(
-        TMatrixD **matrixRicesValue, TMatrixD **matrixRicesRPoint, TMatrixD **matrixRicesPhiPoint,
-        TMatrixD **matrixRicesZPoint,
-        Int_t jy) {
+  TMatrixD** matrixRicesValue, TMatrixD** matrixRicesRPoint, TMatrixD** matrixRicesPhiPoint,
+  TMatrixD** matrixRicesZPoint,
+  Int_t jy)
+{
   Int_t indexInner;
   Int_t index;
-  TMatrixD *mat;
-  TMatrixD *matrixR;
-  TMatrixD *matrixPhi;
-  TMatrixD *matrixZ;
+  TMatrixD* mat;
+  TMatrixD* matrixR;
+  TMatrixD* matrixPhi;
+  TMatrixD* matrixZ;
 
   if (!fIsAllocatingLookUp) {
     fValue = new Double_t[fNPhi * fNR * fNZ];
@@ -599,10 +641,11 @@ void AliTPC3DCylindricalInterpolatorIrregular::SetValue(
 /// \param kernelType
 /// \param w
 void AliTPC3DCylindricalInterpolatorIrregular::RBFWeight(
-        Int_t rIndex, Int_t zIndex, Int_t phiIndex, Int_t rStep, Int_t phiStep, Int_t zStep, Double_t radius0,
-        Int_t kernelType, Double_t *w) {
+  Int_t rIndex, Int_t zIndex, Int_t phiIndex, Int_t rStep, Int_t phiStep, Int_t zStep, Double_t radius0,
+  Int_t kernelType, Double_t* w)
+{
 
-  Double_t *a;
+  Double_t* a;
   Int_t i;
   Int_t j;
   Int_t k;
@@ -612,8 +655,8 @@ void AliTPC3DCylindricalInterpolatorIrregular::RBFWeight(
 
   Int_t index0, index1;
   Int_t indexCyl0, indexCyl1;
-  Double_t *r;
-  Double_t *v;
+  Double_t* r;
+  Double_t* v;
 
   Double_t phi0;
   Double_t z0;
@@ -636,14 +679,18 @@ void AliTPC3DCylindricalInterpolatorIrregular::RBFWeight(
   Int_t startR = rIndex - rStep / 2;
   Int_t startZ = zIndex - zStep / 2;
 
-  if (startPhi < 0) startPhi = fNPhi + startPhi;
+  if (startPhi < 0)
+    startPhi = fNPhi + startPhi;
 
-  if (startR < 0) startR = 0;
-  if (startR + rStep >= fNR) startR = fNR - rStep;
+  if (startR < 0)
+    startR = 0;
+  if (startR + rStep >= fNR)
+    startR = fNR - rStep;
 
-  if (startZ < fMinZIndex) startZ = fMinZIndex;
-  if (startZ + zStep >= fNZ) startZ = fNZ - zStep;
-
+  if (startZ < fMinZIndex)
+    startZ = fMinZIndex;
+  if (startZ + zStep >= fNZ)
+    startZ = fNZ - zStep;
 
   index0 = 0;
 
@@ -703,7 +750,6 @@ void AliTPC3DCylindricalInterpolatorIrregular::RBFWeight(
   delete[] a;
   delete[] r;
   delete[] v;
-
 }
 
 /// rbf1
@@ -711,7 +757,8 @@ void AliTPC3DCylindricalInterpolatorIrregular::RBFWeight(
 /// \param r
 /// \param r0
 /// \param v
-void AliTPC3DCylindricalInterpolatorIrregular::rbf1(Int_t n, Double_t r[], Double_t r0, Double_t v[]) {
+void AliTPC3DCylindricalInterpolatorIrregular::rbf1(Int_t n, Double_t r[], Double_t r0, Double_t v[])
+{
   Int_t i;
 
   for (i = 0; i < n; i++) {
@@ -726,7 +773,8 @@ void AliTPC3DCylindricalInterpolatorIrregular::rbf1(Int_t n, Double_t r[], Doubl
 /// \param r0
 /// \param v
 
-void AliTPC3DCylindricalInterpolatorIrregular::rbf2(Int_t n, Double_t r[], Double_t r0, Double_t v[]) {
+void AliTPC3DCylindricalInterpolatorIrregular::rbf2(Int_t n, Double_t r[], Double_t r0, Double_t v[])
+{
   Int_t i;
 
   for (i = 0; i < n; i++) {
@@ -740,7 +788,8 @@ void AliTPC3DCylindricalInterpolatorIrregular::rbf2(Int_t n, Double_t r[], Doubl
 /// \param r
 /// \param r0
 /// \param v
-void AliTPC3DCylindricalInterpolatorIrregular::rbf3(Int_t n, Double_t r[], Double_t r0, Double_t v[]) {
+void AliTPC3DCylindricalInterpolatorIrregular::rbf3(Int_t n, Double_t r[], Double_t r0, Double_t v[])
+{
   Int_t i;
 
   for (i = 0; i < n; i++) {
@@ -758,7 +807,8 @@ void AliTPC3DCylindricalInterpolatorIrregular::rbf3(Int_t n, Double_t r[], Doubl
 /// \param r
 /// \param r0
 /// \param v
-void AliTPC3DCylindricalInterpolatorIrregular::rbf4(Int_t n, Double_t r[], Double_t r0, Double_t v[]) {
+void AliTPC3DCylindricalInterpolatorIrregular::rbf4(Int_t n, Double_t r[], Double_t r0, Double_t v[])
+{
   Int_t i;
 
   for (i = 0; i < n; i++) {
@@ -784,12 +834,13 @@ void AliTPC3DCylindricalInterpolatorIrregular::rbf4(Int_t n, Double_t r[], Doubl
 /// \param weight
 /// \return
 Double_t AliTPC3DCylindricalInterpolatorIrregular::InterpRBF(
-        Double_t r, Double_t phi, Double_t z, Int_t startR, Int_t startPhi, Int_t startZ, Int_t rStep, Int_t phiStep,
-        Int_t zStep, Double_t radius0, Int_t kernelType, Double_t *weight) {
+  Double_t r, Double_t phi, Double_t z, Int_t startR, Int_t startPhi, Int_t startZ, Int_t rStep, Int_t phiStep,
+  Int_t zStep, Double_t radius0, Int_t kernelType, Double_t* weight)
+{
   Double_t interpVal = 0.0;
   Double_t r0, z0, phi0;
-  Double_t *dList;
-  Double_t *v;
+  Double_t* dList;
+  Double_t* v;
 
   Int_t indexCyl0, index0, indexPhi;
 
@@ -813,7 +864,6 @@ Double_t AliTPC3DCylindricalInterpolatorIrregular::InterpRBF(
 
         dList[index0] = Distance(r, phi, z, r0, phi0, z0);
         index0++;
-
       }
     }
   }
@@ -845,17 +895,19 @@ Double_t AliTPC3DCylindricalInterpolatorIrregular::InterpRBF(
 /// \param kernelType
 /// \param w
 void AliTPC3DCylindricalInterpolatorIrregular::GetRBFWeight(
-        Int_t rIndex, Int_t zIndex, Int_t phiIndex, Int_t rStep, Int_t phiStep, Int_t zStep, Double_t radius0,
-        Int_t kernelType, Double_t *w) {
+  Int_t rIndex, Int_t zIndex, Int_t phiIndex, Int_t rStep, Int_t phiStep, Int_t zStep, Double_t radius0,
+  Int_t kernelType, Double_t* w)
+{
 
   Int_t index = phiIndex * fNR * fNZ + rIndex * fNZ + zIndex;
   if (fRBFWeightLookUp[index] == 0) {
     RBFWeight(rIndex, zIndex, phiIndex, rStep, phiStep, zStep, radius0, kernelType, w);
-    
+
     fRBFWeightLookUp[index] = 1;
     Int_t nd = rStep * zStep * phiStep;
 
-    for (Int_t i = 0; i < nd; i++) fRBFWeight[index * nd + i] = w[i];
+    for (Int_t i = 0; i < nd; i++)
+      fRBFWeight[index * nd + i] = w[i];
   } else {
 
     Int_t ndw = rStep * zStep * phiStep;
@@ -863,7 +915,8 @@ void AliTPC3DCylindricalInterpolatorIrregular::GetRBFWeight(
     Int_t nd = fStepR * fStepZ * fStepPhi;
     Int_t indexWeight = phiIndex * fNR * fNZ * nd + rIndex * fNZ * nd + zIndex * nd;
 
-    for (Int_t i = 0; i < nd; i++) w[i] = fRBFWeight[indexWeight + i];
+    for (Int_t i = 0; i < nd; i++)
+      w[i] = fRBFWeight[indexWeight + i];
   }
 }
 
@@ -880,8 +933,9 @@ void AliTPC3DCylindricalInterpolatorIrregular::GetRBFWeight(
 /// \param kernelType
 /// \param w
 void AliTPC3DCylindricalInterpolatorIrregular::GetRBFWeightHalf(
-        Int_t rIndex, Int_t zIndex, Int_t phiIndex, Int_t rStep, Int_t phiStep, Int_t zStep, Double_t radius0,
-        Int_t kernelType, Double_t *w) {
+  Int_t rIndex, Int_t zIndex, Int_t phiIndex, Int_t rStep, Int_t phiStep, Int_t zStep, Double_t radius0,
+  Int_t kernelType, Double_t* w)
+{
 
   Int_t index = phiIndex * fNR * fNZ + rIndex * fNZ + zIndex;
 
@@ -893,16 +947,17 @@ void AliTPC3DCylindricalInterpolatorIrregular::GetRBFWeightHalf(
       // copy to lookup
       Int_t nd = rStep + zStep + phiStep - 2;
 
-      for (Int_t i = 0; i < nd; i++) fRBFWeight[index * nd + i] = w[i];
+      for (Int_t i = 0; i < nd; i++)
+        fRBFWeight[index * nd + i] = w[i];
     }
   } else {
-
 
     //Int_t ndw = rStep*zStep*phiStep;
     Int_t nd = rStep + zStep + phiStep - 2;
     Int_t indexWeight = phiIndex * fNR * fNZ * nd + rIndex * fNZ * nd + zIndex * nd;
 
-    for (Int_t i = 0; i < nd; i++) w[i] = fRBFWeight[indexWeight + i];
+    for (Int_t i = 0; i < nd; i++)
+      w[i] = fRBFWeight[indexWeight + i];
   }
 }
 
@@ -920,9 +975,10 @@ void AliTPC3DCylindricalInterpolatorIrregular::GetRBFWeightHalf(
 /// \param kernelType
 /// \param w
 void AliTPC3DCylindricalInterpolatorIrregular::RBFWeightHalf(
-        Int_t rIndex, Int_t zIndex, Int_t phiIndex, Int_t rStep, Int_t phiStep, Int_t zStep, Double_t radius0,
-        Int_t kernelType, Double_t *w) {
-  Double_t *a;
+  Int_t rIndex, Int_t zIndex, Int_t phiIndex, Int_t rStep, Int_t phiStep, Int_t zStep, Double_t radius0,
+  Int_t kernelType, Double_t* w)
+{
+  Double_t* a;
   Int_t i;
   Int_t j;
   Int_t k;
@@ -932,8 +988,8 @@ void AliTPC3DCylindricalInterpolatorIrregular::RBFWeightHalf(
 
   Int_t index0, index1;
   Int_t indexCyl0, indexCyl1;
-  Double_t *r;
-  Double_t *v;
+  Double_t* r;
+  Double_t* v;
 
   Double_t phi0;
   Double_t z0;
@@ -956,13 +1012,18 @@ void AliTPC3DCylindricalInterpolatorIrregular::RBFWeightHalf(
   Int_t startR = rIndex - rStep / 2;
   Int_t startZ = zIndex - zStep / 2;
 
-  if (startPhi < 0) startPhi = fNPhi + startPhi;
+  if (startPhi < 0)
+    startPhi = fNPhi + startPhi;
 
-  if (startR < 0) startR = 0;
-  if (startR + rStep >= fNR) startR = fNR - rStep;
+  if (startR < 0)
+    startR = 0;
+  if (startR + rStep >= fNR)
+    startR = fNR - rStep;
 
-  if (startZ < fMinZIndex) startZ = fMinZIndex;
-  if (startZ + zStep >= fNZ) startZ = fNZ - zStep;
+  if (startZ < fMinZIndex)
+    startZ = fMinZIndex;
+  if (startZ + zStep >= fNZ)
+    startZ = fNZ - zStep;
 
   index0 = 0;
 
@@ -973,10 +1034,9 @@ void AliTPC3DCylindricalInterpolatorIrregular::RBFWeightHalf(
       for (k = startZ; k < startZ + zStep; k++) {
 
         if (
-                (i == (startPhi + phiStep / 2) && j == (startR + rStep / 2)) ||
-                (i == (startPhi + phiStep / 2) && k == (startZ + zStep / 2)) ||
-                (j == (startR + rStep / 2) && k == (startZ + zStep / 2))
-                ) {
+          (i == (startPhi + phiStep / 2) && j == (startR + rStep / 2)) ||
+          (i == (startPhi + phiStep / 2) && k == (startZ + zStep / 2)) ||
+          (j == (startR + rStep / 2) && k == (startZ + zStep / 2))) {
           indexCyl0 = indexPhi * fNR * fNZ + j * fNZ + k;
 
           r0 = fRList[indexCyl0];
@@ -989,10 +1049,9 @@ void AliTPC3DCylindricalInterpolatorIrregular::RBFWeightHalf(
             for (jj = startR; jj < startR + rStep; jj++) {
               for (kk = startZ; kk < startZ + zStep; kk++) {
                 if (
-                        (ii == (startPhi + phiStep / 2) && jj == (startR + rStep / 2)) ||
-                        (ii == (startPhi + phiStep / 2) && kk == (startZ + zStep / 2)) ||
-                        (jj == (startR + rStep / 2) && kk == (startZ + zStep / 2))
-                        ) {
+                  (ii == (startPhi + phiStep / 2) && jj == (startR + rStep / 2)) ||
+                  (ii == (startPhi + phiStep / 2) && kk == (startZ + zStep / 2)) ||
+                  (jj == (startR + rStep / 2) && kk == (startZ + zStep / 2))) {
 
                   indexCyl1 = indexPhi1 * fNR * fNZ + jj * fNZ + kk;
                   r1 = fRList[indexCyl1];
@@ -1014,10 +1073,9 @@ void AliTPC3DCylindricalInterpolatorIrregular::RBFWeightHalf(
             for (jj = startR; jj < startR + rStep; jj++) {
               for (kk = startZ; kk < startZ + zStep; kk++) {
                 if (
-                        (ii == (startPhi + phiStep / 2) && jj == (startR + rStep / 2)) ||
-                        (ii == (startPhi + phiStep / 2) && kk == (startZ + zStep / 2)) ||
-                        (jj == (startR + rStep / 2) && kk == (startZ + zStep / 2))
-                        ) {
+                  (ii == (startPhi + phiStep / 2) && jj == (startR + rStep / 2)) ||
+                  (ii == (startPhi + phiStep / 2) && kk == (startZ + zStep / 2)) ||
+                  (jj == (startR + rStep / 2) && kk == (startZ + zStep / 2))) {
                   a[index0 * nd + index1] = v[index1];
                   index1++;
                 }
@@ -1027,11 +1085,9 @@ void AliTPC3DCylindricalInterpolatorIrregular::RBFWeightHalf(
 
           w[index0] = fValue[indexCyl0];
           index0++;
-
         }
       }
     }
-
   }
 
   TMatrixD mat_a;
@@ -1066,16 +1122,17 @@ void AliTPC3DCylindricalInterpolatorIrregular::RBFWeightHalf(
 /// \param weight
 /// \return
 Double_t AliTPC3DCylindricalInterpolatorIrregular::InterpRBFHalf(
-        Double_t r, Double_t phi, Double_t z, Int_t startR, Int_t startPhi, Int_t startZ, Int_t rStep, Int_t phiStep,
-        Int_t zStep, Double_t radius0, Int_t kernelType, Double_t *weight) {
+  Double_t r, Double_t phi, Double_t z, Int_t startR, Int_t startPhi, Int_t startZ, Int_t rStep, Int_t phiStep,
+  Int_t zStep, Double_t radius0, Int_t kernelType, Double_t* weight)
+{
   Double_t interpVal = 0.0;
   Double_t r0, z0, phi0;
-  Double_t *dList;
-  Double_t *v;
+  Double_t* dList;
+  Double_t* v;
 
   Int_t indexCyl0, index0, indexPhi;
 
-//	Int_t nd = rStep * phiStep * zStep;
+  //	Int_t nd = rStep * phiStep * zStep;
   Int_t nd = (rStep - 1) + (phiStep - 1) + (zStep - 1) + 1;
 
   dList = new Double_t[nd];
@@ -1088,10 +1145,9 @@ Double_t AliTPC3DCylindricalInterpolatorIrregular::InterpRBFHalf(
     for (Int_t j = startR; j < startR + rStep; j++) {
       for (Int_t k = startZ; k < startZ + zStep; k++) {
         if (
-                (i == (startPhi + phiStep / 2) && j == (startR + rStep / 2)) ||
-                (i == (startPhi + phiStep / 2) && k == (startZ + zStep / 2)) ||
-                (j == (startR + rStep / 2) && k == (startZ + zStep / 2))
-                ) {
+          (i == (startPhi + phiStep / 2) && j == (startR + rStep / 2)) ||
+          (i == (startPhi + phiStep / 2) && k == (startZ + zStep / 2)) ||
+          (j == (startR + rStep / 2) && k == (startZ + zStep / 2))) {
 
           indexCyl0 = indexPhi * fNR * fNZ + j * fNZ + k;
 
@@ -1126,7 +1182,8 @@ Double_t AliTPC3DCylindricalInterpolatorIrregular::InterpRBFHalf(
 /// \param r
 /// \param r0
 /// \param v
-void AliTPC3DCylindricalInterpolatorIrregular::Phi(Int_t n, Double_t r[], Double_t r0, Double_t v[]) {
+void AliTPC3DCylindricalInterpolatorIrregular::Phi(Int_t n, Double_t r[], Double_t r0, Double_t v[])
+{
 
   switch (fKernelType) {
     case kRBFMultiQuadratic:
@@ -1150,7 +1207,8 @@ void AliTPC3DCylindricalInterpolatorIrregular::Phi(Int_t n, Double_t r[], Double
 
 //
 Double_t
-AliTPC3DCylindricalInterpolatorIrregular::GetRadius0RBF(const Int_t rIndex, const Int_t phiIndex, const Int_t zIndex) {
+  AliTPC3DCylindricalInterpolatorIrregular::GetRadius0RBF(const Int_t rIndex, const Int_t phiIndex, const Int_t zIndex)
+{
   const Float_t gridSizeR = (AliTPCPoissonSolver::fgkOFCRadius - AliTPCPoissonSolver::fgkIFCRadius) / (fNR - 1);
   const Float_t gridSizeZ = AliTPCPoissonSolver::fgkTPCZ0 / (fNZ - 1);
   const Float_t gridSizePhi = TMath::TwoPi() / fNPhi;
@@ -1159,13 +1217,18 @@ AliTPC3DCylindricalInterpolatorIrregular::GetRadius0RBF(const Int_t rIndex, cons
   Int_t startR = rIndex - fStepR / 2;
   Int_t startZ = zIndex - fStepZ / 2;
 
-  if (startPhi < 0) startPhi = fNPhi + startPhi;
+  if (startPhi < 0)
+    startPhi = fNPhi + startPhi;
 
-  if (startR < 0) startR = 0;
-  if (startR + fStepR >= fNR) startR = fNR - fStepR;
+  if (startR < 0)
+    startR = 0;
+  if (startR + fStepR >= fNR)
+    startR = fNR - fStepR;
 
-  if (startZ < 0) startZ = 0;
-  if (startZ + fStepZ >= fNZ) startZ = fNZ - fStepZ;
+  if (startZ < 0)
+    startZ = 0;
+  if (startZ + fStepZ >= fNZ)
+    startZ = fNZ - fStepZ;
 
   Double_t r0 = AliTPCPoissonSolver::fgkIFCRadius + (startR * gridSizeR);
   Double_t phi0 = startPhi * gridSizePhi;
@@ -1183,203 +1246,207 @@ AliTPC3DCylindricalInterpolatorIrregular::GetRadius0RBF(const Int_t rIndex, cons
   return Distance(r0, 0.0, 0.0, r0 + gridSizeR, gridSizePhi, gridSizeR);
 }
 
-
 // make kdtree for irregular look-up
-void AliTPC3DCylindricalInterpolatorIrregular::InitKDTree() {
-	Int_t count = fNR * fNZ  * fNPhi;
-		
-  	fKDTreeIrregularPoints = new KDTreeNode[count];
+void AliTPC3DCylindricalInterpolatorIrregular::InitKDTree()
+{
+  Int_t count = fNR * fNZ * fNPhi;
 
-	for (Int_t i=0;i<count;i++) {
-		fKDTreeIrregularPoints[i].pR = &fRList[i];
-		fKDTreeIrregularPoints[i].pZ = &fZList[i];
-		fKDTreeIrregularPoints[i].pPhi = &fPhiList[i];
-		fKDTreeIrregularPoints[i].index = i;
-	}
+  fKDTreeIrregularPoints = new KDTreeNode[count];
 
-	fKDTreeIrregularRoot = MakeKDTree(fKDTreeIrregularPoints,count,0,3);
+  for (Int_t i = 0; i < count; i++) {
+    fKDTreeIrregularPoints[i].pR = &fRList[i];
+    fKDTreeIrregularPoints[i].pZ = &fZList[i];
+    fKDTreeIrregularPoints[i].pPhi = &fPhiList[i];
+    fKDTreeIrregularPoints[i].index = i;
+  }
+
+  fKDTreeIrregularRoot = MakeKDTree(fKDTreeIrregularPoints, count, 0, 3);
 }
 
 // create KDTree
-AliTPC3DCylindricalInterpolatorIrregular::KDTreeNode * AliTPC3DCylindricalInterpolatorIrregular::MakeKDTree(KDTreeNode *t, Int_t count, Int_t  index, Int_t  dim) {
-    KDTreeNode  *n;
+AliTPC3DCylindricalInterpolatorIrregular::KDTreeNode* AliTPC3DCylindricalInterpolatorIrregular::MakeKDTree(KDTreeNode* t, Int_t count, Int_t index, Int_t dim)
+{
+  KDTreeNode* n;
 
-    if (!count) return 0;
-    if ((n = FindMedian(t, t + count, index))) {
-        index = (index  + 1) % dim;
-        n->left  = MakeKDTree(t, (n - t), index, dim);
-        n->right = MakeKDTree(n + 1, (t + count) - (n + 1), index, dim);
+  if (!count)
+    return 0;
+  if ((n = FindMedian(t, t + count, index))) {
+    index = (index + 1) % dim;
+    n->left = MakeKDTree(t, (n - t), index, dim);
+    n->right = MakeKDTree(n + 1, (t + count) - (n + 1), index, dim);
+  }
+  return n;
+}
+
+// find median
+AliTPC3DCylindricalInterpolatorIrregular::KDTreeNode* AliTPC3DCylindricalInterpolatorIrregular::FindMedian(KDTreeNode* start, KDTreeNode* end, Int_t index)
+{
+  if (end <= start)
+    return NULL;
+  if (end == start + 1)
+    return start;
+
+  KDTreeNode *p, *store, *md = start + (end - start) / 2;
+  Double_t pivot;
+
+  while (1) {
+    if (index == 0)
+      pivot = *(md->pZ);
+    else if (index == 1)
+      pivot = *(md->pR);
+    else
+      pivot = *(md->pPhi);
+
+    Swap(md, end - 1);
+
+    for (store = p = start; p < end; p++) {
+
+      if (((index == 0) && (*(p->pZ) < pivot)) ||
+          ((index == 1) && (*(p->pR) < pivot)) ||
+          ((index == 2) && (*(p->pPhi) < pivot)))
+
+      {
+        if (p != store)
+          Swap(p, store);
+        store++;
+      }
     }
-    return n;
+    Swap(store, end - 1);
 
+    if ((index == 0) && (*(store->pZ) == *(md->pZ)))
+      return md;
+    if ((index == 1) && (*(store->pR) == *(md->pR)))
+      return md;
+    if ((index == 2) && (*(store->pPhi) == *(md->pPhi)))
+      return md;
+
+    //	if (md->index == store->index) return md;
+
+    if (store > md)
+      end = store;
+    else
+      start = store;
+  }
 }
 
-// find median 
-AliTPC3DCylindricalInterpolatorIrregular::KDTreeNode * AliTPC3DCylindricalInterpolatorIrregular::FindMedian(KDTreeNode *start,KDTreeNode *end, Int_t index) {
-    if (end <= start) return NULL;
-    if (end == start + 1)
-        return start;
-
-
-    KDTreeNode  *p, *store, *md = start + (end - start) / 2;
-    Double_t  pivot;
-
-
-    while (1) {
-	if (index == 0)
-	        pivot = *(md->pZ);
-	else if (index == 1)
-	        pivot = *(md->pR);
-	else 
-		pivot = *(md->pPhi);
-   
-
-        Swap(md, end - 1);
-	
-        for (store = p = start; p < end; p++) {
-
-
-            if (((index ==0) && (*(p->pZ) < pivot)) ||
-            	((index ==1) && (*(p->pR) < pivot)) ||
-            	((index ==2) && (*(p->pPhi) < pivot)))		 
-	    
-	   {
-                if (p != store)
-                    Swap(p, store);
-                store++;
-           } 
-		   
-	  
-        }
-        Swap(store, end - 1);
-
-	 if ((index == 0) && (*(store->pZ) == *(md->pZ))) return md;
-	 if ((index == 1) && (*(store->pR) == *(md->pR))) return md;
-	 if ((index == 2) && (*(store->pPhi) == *(md->pPhi))) return md;
-
-//	if (md->index == store->index) return md;
- 
-        if (store > md) end = store;
-        else        start = store;
-    }		
-	
-}
- 
 //swap
-void AliTPC3DCylindricalInterpolatorIrregular::Swap(KDTreeNode *x, KDTreeNode *y) {
-    KDTreeNode *tmp = new KDTreeNode;
-    tmp->pR = x->pR;
-    tmp->pZ = x->pZ;
-    tmp->pPhi = x->pPhi;
-    tmp->index  = x->index;
+void AliTPC3DCylindricalInterpolatorIrregular::Swap(KDTreeNode* x, KDTreeNode* y)
+{
+  KDTreeNode* tmp = new KDTreeNode;
+  tmp->pR = x->pR;
+  tmp->pZ = x->pZ;
+  tmp->pPhi = x->pPhi;
+  tmp->index = x->index;
 
-    x->pR = y->pR;
-    x->pZ = y->pZ;
-    x->pPhi = y->pPhi;
-    x->index  = y->index;
-    
-    y->pR = tmp->pR;
-    y->pZ = tmp->pZ;
-    y->pPhi = tmp->pPhi;
-    y->index = tmp->index;
+  x->pR = y->pR;
+  x->pZ = y->pZ;
+  x->pPhi = y->pPhi;
+  x->index = y->index;
 
-    delete tmp;
+  y->pR = tmp->pR;
+  y->pZ = tmp->pZ;
+  y->pPhi = tmp->pPhi;
+  y->index = tmp->index;
+
+  delete tmp;
 }
 
 // look for nearest point
-void AliTPC3DCylindricalInterpolatorIrregular::KDTreeNearest(KDTreeNode *root, KDTreeNode   *nd, Int_t  index, Int_t dim,
-        KDTreeNode  **best, Double_t *best_dist)
+void AliTPC3DCylindricalInterpolatorIrregular::KDTreeNearest(KDTreeNode* root, KDTreeNode* nd, Int_t index, Int_t dim,
+                                                             KDTreeNode** best, Double_t* best_dist)
 {
-    Double_t  d, dx2, dx;
- 
-    if (!root) return;
-    d = Distance(*(root->pR),*(root->pPhi),*(root->pZ),*(nd->pR),*(nd->pPhi),*(nd->pZ));
-    if (index ==0) {
-	dx = *(root->pZ) - *(nd->pZ);
-    	dx2 = Distance(*(nd->pR),*(nd->pPhi),*(root->pZ),*(nd->pR),*(nd->pPhi),*(nd->pZ));
-    } else if (index == 1) {
-	dx = *(root->pR) - *(nd->pR);
-    	dx2 = Distance(*(root->pR),*(nd->pPhi),*(nd->pZ),*(nd->pR),*(nd->pPhi),*(nd->pZ));
-    } else {
-	dx = *(root->pPhi) - *(nd->pPhi);
-    	dx2 = Distance(*(nd->pR),*(root->pPhi),*(nd->pZ),*(nd->pR),*(nd->pPhi),*(nd->pZ));
-    }
- 
-    if (!*best || (d < *best_dist)) {
-        *best_dist = d;
-        *best = root;
-    }
- 
-    if (!*best_dist) return;
- 
-    if (++index >= dim) index = 0;
-   
-    KDTreeNearest(dx > 0 ? root->left : root->right, nd, index, dim, best, best_dist);
-    if (dx2 >= *best_dist) return;
-    KDTreeNearest(dx > 0 ? root->right : root->left, nd, index, dim, best, best_dist);
-    
+  Double_t d, dx2, dx;
+
+  if (!root)
+    return;
+  d = Distance(*(root->pR), *(root->pPhi), *(root->pZ), *(nd->pR), *(nd->pPhi), *(nd->pZ));
+  if (index == 0) {
+    dx = *(root->pZ) - *(nd->pZ);
+    dx2 = Distance(*(nd->pR), *(nd->pPhi), *(root->pZ), *(nd->pR), *(nd->pPhi), *(nd->pZ));
+  } else if (index == 1) {
+    dx = *(root->pR) - *(nd->pR);
+    dx2 = Distance(*(root->pR), *(nd->pPhi), *(nd->pZ), *(nd->pR), *(nd->pPhi), *(nd->pZ));
+  } else {
+    dx = *(root->pPhi) - *(nd->pPhi);
+    dx2 = Distance(*(nd->pR), *(root->pPhi), *(nd->pZ), *(nd->pR), *(nd->pPhi), *(nd->pZ));
+  }
+
+  if (!*best || (d < *best_dist)) {
+    *best_dist = d;
+    *best = root;
+  }
+
+  if (!*best_dist)
+    return;
+
+  if (++index >= dim)
+    index = 0;
+
+  KDTreeNearest(dx > 0 ? root->left : root->right, nd, index, dim, best, best_dist);
+  if (dx2 >= *best_dist)
+    return;
+  KDTreeNearest(dx > 0 ? root->right : root->left, nd, index, dim, best, best_dist);
 }
 
 // interpolate on the nearest neighbor of irregular grid
 Double_t
-AliTPC3DCylindricalInterpolatorIrregular::Interpolate3DTableCylRBF(
-        Double_t r, Double_t z, Double_t phi,  KDTreeNode * nearestNode)
+  AliTPC3DCylindricalInterpolatorIrregular::Interpolate3DTableCylRBF(
+    Double_t r, Double_t z, Double_t phi, KDTreeNode* nearestNode)
 {
-	Double_t val = 0.0;
-	Int_t startPhi,startR,startZ;
-	Int_t phiIndex,rIndex,zIndex;
-	
+  Double_t val = 0.0;
+  Int_t startPhi, startR, startZ;
+  Int_t phiIndex, rIndex, zIndex;
 
-	phiIndex = nearestNode->index / (fNR * fNZ);
-	rIndex = (nearestNode->index - (phiIndex * (fNR * fNZ)))/fNZ;
-	zIndex = nearestNode->index - (phiIndex * (fNR * fNZ)+ rIndex * fNZ); 
+  phiIndex = nearestNode->index / (fNR * fNZ);
+  rIndex = (nearestNode->index - (phiIndex * (fNR * fNZ))) / fNZ;
+  zIndex = nearestNode->index - (phiIndex * (fNR * fNZ) + rIndex * fNZ);
 
+  startPhi = phiIndex - fStepPhi / 2;
+  startR = rIndex - fStepR / 2;
+  startZ = zIndex - fStepZ / 2;
 
-  	startPhi =phiIndex - fStepPhi / 2;
-  	startR = rIndex - fStepR / 2;
-  	startZ = zIndex - fStepZ / 2;
+  if (startPhi < 0)
+    startPhi = fNPhi + startPhi;
 
-  	if (startPhi < 0) startPhi = fNPhi + startPhi;
+  if (startR < 0)
+    startR = 0;
+  if (startR + fStepR >= fNR)
+    startR = fNR - fStepR;
 
-  	if (startR < 0) startR = 0;
-  	if (startR + fStepR >= fNR) startR = fNR - fStepR;
+  if (startZ < 0)
+    startZ = 0;
+  if (startZ + fStepZ >= fNZ)
+    startZ = fNZ - fStepZ;
+  Int_t indexPhi;
 
-	if (startZ < 0) startZ = 0;
-  	if (startZ + fStepZ >= fNZ) startZ = fNZ - fStepZ;
-	Int_t indexPhi;
+  Int_t index;
+  Double_t r0, z0, phi0;
 
-	Int_t index;
-	Double_t r0,z0,phi0;
+  Int_t rStep = fStepR;
+  Int_t zStep = fStepZ;
+  Int_t phiStep = fStepPhi;
 
-	Int_t rStep = fStepR;
-	Int_t zStep = fStepZ;
-	Int_t phiStep = fStepPhi;
+  Double_t* w;
 
-  	Double_t *w;
+  //Int_t nd = (phiStep-1) + (rStep-1) + (zStep-1) + 1;
+  Int_t nd = fStepPhi * fStepR * fStepZ;
 
-  	//Int_t nd = (phiStep-1) + (rStep-1) + (zStep-1) + 1;
-  	Int_t nd = fStepPhi * fStepR * fStepZ;
+  w = new Double_t[nd];
 
+  Float_t minTemp, minTemp2;
 
+  Double_t radiusRBF0 = GetRadius0RBF(rIndex, phiIndex, zIndex);
 
-	
+  if (fType == 1) {
 
-  	w = new Double_t[nd];
-
-  	Float_t minTemp, minTemp2;
-
-  	Double_t  radiusRBF0 = GetRadius0RBF(rIndex, phiIndex, zIndex);
-
-  	if (fType == 1) {
-
-    		for (Int_t i = 0; i < nd; i++) w[i] = 0.0;
-   		GetRBFWeight(rIndex,zIndex,phiIndex, rStep, phiStep, zStep, radiusRBF0, 0, w);
-    		val = InterpRBF(r, phi, z, startR, startPhi, startZ, rStep, phiStep, zStep, radiusRBF0, 0, w);
-  	} else {
-    		GetRBFWeightHalf(rIndex,zIndex, phiIndex, rStep, phiStep, zStep, radiusRBF0, 0, w);
-    		val = InterpRBFHalf(r, phi, z, startR, startPhi, startZ, rStep, phiStep, zStep, radiusRBF0, 0, w);
-  	}
-	delete[]  w;
-  	return val;
+    for (Int_t i = 0; i < nd; i++)
+      w[i] = 0.0;
+    GetRBFWeight(rIndex, zIndex, phiIndex, rStep, phiStep, zStep, radiusRBF0, 0, w);
+    val = InterpRBF(r, phi, z, startR, startPhi, startZ, rStep, phiStep, zStep, radiusRBF0, 0, w);
+  } else {
+    GetRBFWeightHalf(rIndex, zIndex, phiIndex, rStep, phiStep, zStep, radiusRBF0, 0, w);
+    val = InterpRBFHalf(r, phi, z, startR, startPhi, startZ, rStep, phiStep, zStep, radiusRBF0, 0, w);
+  }
+  delete[] w;
+  return val;
 }
-

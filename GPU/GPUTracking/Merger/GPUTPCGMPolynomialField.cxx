@@ -24,79 +24,99 @@ using namespace std;
 void GPUTPCGMPolynomialField::Print() const
 {
   const double kCLight = 0.000299792458;
-  typedef std::numeric_limits< float > flt;
-  cout<<std::scientific;
+  typedef std::numeric_limits<float> flt;
+  cout << std::scientific;
 #if __cplusplus >= 201103L
-  cout<<std::setprecision( flt::max_digits10+2 );
+  cout << std::setprecision(flt::max_digits10 + 2);
 #endif
-  cout<<" nominal field "<< fNominalBz <<" [kG * (2.99792458E-4 GeV/c/kG/cm)]"
-      <<" == "<<fNominalBz/kCLight<<" [kG]"<<endl;
-  
-  cout<<" TpcBx[fkTpcM] = { ";
-  for( int i=0; i<fkTpcM; i++){
-    cout<<fTpcBx[i];
-    if( i<fkTpcM-1 ) cout<<", ";
-    else cout<<" };"<<endl;
+  cout << " nominal field " << mNominalBz << " [kG * (2.99792458E-4 GeV/c/kG/cm)]"
+       << " == " << mNominalBz / kCLight << " [kG]" << endl;
+
+  cout << " TpcBx[NTPCM] = { ";
+  for (int i = 0; i < NTPCM; i++) {
+    cout << mTpcBx[i];
+    if (i < NTPCM - 1)
+      cout << ", ";
+    else
+      cout << " };" << endl;
   }
 
-  cout<<" TpcBy[fkTpcM] = { ";
-  for( int i=0; i<fkTpcM; i++){
-    cout<<fTpcBy[i];
-    if( i<fkTpcM-1 ) cout<<", ";
-    else cout<<" };"<<endl;
+  cout << " TpcBy[NTPCM] = { ";
+  for (int i = 0; i < NTPCM; i++) {
+    cout << mTpcBy[i];
+    if (i < NTPCM - 1)
+      cout << ", ";
+    else
+      cout << " };" << endl;
   }
 
-  cout<<" TpcBz[fkTpcM] = { ";
-  for( int i=0; i<fkTpcM; i++){
-    cout<<fTpcBz[i];
-    if( i<fkTpcM-1 ) cout<<", ";
-    else cout<<" };"<<endl;
-  }
-  
-  cout<<"TRD field: \n"<<endl;
-  
-  cout<<" TrdBx[fkTrdM] = { ";
-  for( int i=0; i<fkTrdM; i++){
-    cout<<fTrdBx[i];
-    if( i<fkTrdM-1 ) cout<<", ";
-    else cout<<" };"<<endl;
+  cout << " TpcBz[NTPCM] = { ";
+  for (int i = 0; i < NTPCM; i++) {
+    cout << mTpcBz[i];
+    if (i < NTPCM - 1)
+      cout << ", ";
+    else
+      cout << " };" << endl;
   }
 
-  cout<<" TrdBy[fkTrdM] = { ";
-  for( int i=0; i<fkTrdM; i++){
-    cout<<fTrdBy[i];
-    if( i<fkTrdM-1 ) cout<<", ";
-    else cout<<" };"<<endl;
+  cout << "TRD field: \n"
+       << endl;
+
+  cout << " TrdBx[NTRDM] = { ";
+  for (int i = 0; i < NTRDM; i++) {
+    cout << mTrdBx[i];
+    if (i < NTRDM - 1)
+      cout << ", ";
+    else
+      cout << " };" << endl;
   }
 
-  cout<<" TrdBz[fkTrdM] = { ";
-  for( int i=0; i<fkTrdM; i++){
-    cout<<fTrdBz[i];
-    if( i<fkTrdM-1 ) cout<<", ";
-    else cout<<" };"<<endl;
+  cout << " TrdBy[NTRDM] = { ";
+  for (int i = 0; i < NTRDM; i++) {
+    cout << mTrdBy[i];
+    if (i < NTRDM - 1)
+      cout << ", ";
+    else
+      cout << " };" << endl;
   }
 
-  cout<<"ITS field: \n"<<endl;
-  
-  cout<<" ItsBx[fkItsM] = { ";
-  for( int i=0; i<fkItsM; i++){
-    cout<<fItsBx[i];
-    if( i<fkItsM-1 ) cout<<", ";
-    else cout<<" };"<<endl;
+  cout << " TrdBz[NTRDM] = { ";
+  for (int i = 0; i < NTRDM; i++) {
+    cout << mTrdBz[i];
+    if (i < NTRDM - 1)
+      cout << ", ";
+    else
+      cout << " };" << endl;
   }
 
-  cout<<" ItsBy[fkItsM] = { ";
-  for( int i=0; i<fkItsM; i++){
-    cout<<fItsBy[i];
-    if( i<fkItsM-1 ) cout<<", ";
-    else cout<<" };"<<endl;
+  cout << "ITS field: \n"
+       << endl;
+
+  cout << " ItsBx[NITSM] = { ";
+  for (int i = 0; i < NITSM; i++) {
+    cout << mItsBx[i];
+    if (i < NITSM - 1)
+      cout << ", ";
+    else
+      cout << " };" << endl;
   }
 
-  cout<<" ItsBz[fkItsM] = { ";
-  for( int i=0; i<fkItsM; i++){
-    cout<<fItsBz[i];
-    if( i<fkItsM-1 ) cout<<", ";
-    else cout<<" };"<<endl;
+  cout << " ItsBy[NITSM] = { ";
+  for (int i = 0; i < NITSM; i++) {
+    cout << mItsBy[i];
+    if (i < NITSM - 1)
+      cout << ", ";
+    else
+      cout << " };" << endl;
+  }
+
+  cout << " ItsBz[NITSM] = { ";
+  for (int i = 0; i < NITSM; i++) {
+    cout << mItsBz[i];
+    if (i < NITSM - 1)
+      cout << ", ";
+    else
+      cout << " };" << endl;
   }
 }
 

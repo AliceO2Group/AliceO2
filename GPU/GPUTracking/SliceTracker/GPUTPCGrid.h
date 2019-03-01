@@ -26,38 +26,38 @@
  */
 class GPUTPCGrid
 {
-  public:
-	void CreateEmpty();
-	GPUd() void Create(float yMin, float yMax, float zMin, float zMax, float sy, float sz);
+ public:
+  void CreateEmpty();
+  GPUd() void Create(float yMin, float yMax, float zMin, float zMax, float sy, float sz);
 
-	GPUd() int GetBin(float Y, float Z) const;
-	/**
-     * returns -1 if the row is empty == no hits
-     */
-	GPUd() int GetBinBounded(float Y, float Z) const;
-	GPUd() void GetBin(float Y, float Z, int *const bY, int *const bZ) const;
-	GPUd() void GetBinArea(float Y, float Z, float dy, float dz, int &bin, int &ny, int &nz) const;
+  GPUd() int GetBin(float Y, float Z) const;
+  /**
+	 * returns -1 if the row is empty == no hits
+	 */
+  GPUd() int GetBinBounded(float Y, float Z) const;
+  GPUd() void GetBin(float Y, float Z, int* const bY, int* const bZ) const;
+  GPUd() void GetBinArea(float Y, float Z, float dy, float dz, int& bin, int& ny, int& nz) const;
 
-	GPUd() unsigned int N() const { return fN; }
-	GPUd() unsigned int Ny() const { return fNy; }
-	GPUd() unsigned int Nz() const { return fNz; }
-	GPUd() float YMin() const { return fYMin; }
-	GPUd() float YMax() const { return fYMax; }
-	GPUd() float ZMin() const { return fZMin; }
-	GPUd() float ZMax() const { return fZMax; }
-	GPUd() float StepYInv() const { return fStepYInv; }
-	GPUd() float StepZInv() const { return fStepZInv; }
+  GPUd() unsigned int N() const { return mN; }
+  GPUd() unsigned int Ny() const { return mNy; }
+  GPUd() unsigned int Nz() const { return mNz; }
+  GPUd() float YMin() const { return mYMin; }
+  GPUd() float YMax() const { return mYMax; }
+  GPUd() float ZMin() const { return mZMin; }
+  GPUd() float ZMax() const { return mZMax; }
+  GPUd() float StepYInv() const { return mStepYInv; }
+  GPUd() float StepZInv() const { return mStepZInv; }
 
-  private:
-	unsigned int fNy; //* N bins in Y
-	unsigned int fNz; //* N bins in Z
-	unsigned int fN;  //* total N bins
-	float fYMin;      //* minimal Y value
-	float fYMax;      //* maximal Y value
-	float fZMin;      //* minimal Z value
-	float fZMax;      //* maximal Z value
-	float fStepYInv;  //* inverse bin size in Y
-	float fStepZInv;  //* inverse bin size in Z
+ private:
+  unsigned int mNy; //* N bins in Y
+  unsigned int mNz; //* N bins in Z
+  unsigned int mN;  //* total N bins
+  float mYMin;      //* minimal Y value
+  float mYMax;      //* maximal Y value
+  float mZMin;      //* minimal Z value
+  float mZMax;      //* maximal Z value
+  float mStepYInv;  //* inverse bin size in Y
+  float mStepZInv;  //* inverse bin size in Z
 };
 
-#endif //GPUTPCGRID_H
+#endif // GPUTPCGRID_H

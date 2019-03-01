@@ -25,15 +25,15 @@
  */
 class GPUTPCHit
 {
-  public:
-	GPUhd() float Y() const { return fY; }
-	GPUhd() float Z() const { return fZ; }
+ public:
+  GPUhd() float Y() const { return mY; }
+  GPUhd() float Z() const { return mZ; }
 
-	GPUhd() void SetY(float v) { fY = v; }
-	GPUhd() void SetZ(float v) { fZ = v; }
+  GPUhd() void SetY(float v) { mY = v; }
+  GPUhd() void SetZ(float v) { mZ = v; }
 
-  protected:
-	float fY, fZ; // Y and Z position of the TPC cluster
+ protected:
+  float mY, mZ; // Y and Z position of the TPC cluster
 };
 
-#endif //GPUTPCHIT_H
+#endif // GPUTPCHIT_H

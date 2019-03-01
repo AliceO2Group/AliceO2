@@ -13,14 +13,14 @@ typedef AliTRDpadPlane GPUTRDpadPlane;
 
 class GPUTRDGeometry : public AliTRDgeometry
 {
-public:
-	static bool CheckGeometryAvailable() {return AliGeomManager::GetGeometry();}
+ public:
+  static bool CheckGeometryAvailable() { return AliGeomManager::GetGeometry(); }
 
-	//Make sub-functionality available directly in GPUTRDGeometry
-	double GetPadPlaneWidthIPad(int det) const {return GetPadPlane(det)->GetWidthIPad();}
-	double GetPadPlaneRowPos(int layer, int stack, int row) const {return GetPadPlane(layer, stack)->GetRowPos(row);}
-	double GetPadPlaneRowSize(int layer, int stack, int row) const {return GetPadPlane(layer, stack)->GetRowSize(row);}
-	int GetGeomManagerVolUID(int det, int modId) const {return AliGeomManager::LayerToVolUID(AliGeomManager::ELayerID(AliGeomManager::kTRD1+GetLayer(det)), modId);}
+  // Make sub-functionality available directly in GPUTRDGeometry
+  double GetPadPlaneWidthIPad(int det) const { return GetPadPlane(det)->GetWidthIPad(); }
+  double GetPadPlaneRowPos(int layer, int stack, int row) const { return GetPadPlane(layer, stack)->GetRowPos(row); }
+  double GetPadPlaneRowSize(int layer, int stack, int row) const { return GetPadPlane(layer, stack)->GetRowSize(row); }
+  int GetGeomManagerVolUID(int det, int modId) const { return AliGeomManager::LayerToVolUID(AliGeomManager::ELayerID(AliGeomManager::kTRD1 + GetLayer(det)), modId); }
 };
 
 #elif defined(HAVE_O2HEADERS)
@@ -33,47 +33,47 @@ class TObjArray;
 
 class GPUTRDpadPlane : private o2::trd::TRDPadPlane
 {
-public:
-	GPUd() float GetTiltingAngle() const {return getTiltingAngle();}
-	GPUd() float GetRowSize(int row) const {return getRowSize(row);}
-	GPUd() float GetRow0() const {return getRow0();}
-	GPUd() float GetRowEnd() const {return getRowEnd();}
-	GPUd() float GetColEnd() const {return getColEnd();}
-	GPUd() float GetRowPos(int row) const {return getRowPos(row);}
-	GPUd() float GetColPos(int col) const {return getColPos(col);}
-	GPUd() float GetNrows() const {return getNrows();}
+ public:
+  GPUd() float GetTiltingAngle() const { return getTiltingAngle(); }
+  GPUd() float GetRowSize(int row) const { return getRowSize(row); }
+  GPUd() float GetRow0() const { return getRow0(); }
+  GPUd() float GetRowEnd() const { return getRowEnd(); }
+  GPUd() float GetColEnd() const { return getColEnd(); }
+  GPUd() float GetRowPos(int row) const { return getRowPos(row); }
+  GPUd() float GetColPos(int col) const { return getColPos(col); }
+  GPUd() float GetNrows() const { return getNrows(); }
 };
 
 class GPUTRDGeometry : private o2::trd::TRDGeometryFlat
 {
-public:
-	GPUd() static bool CheckGeometryAvailable() {return true;}
+ public:
+  GPUd() static bool CheckGeometryAvailable() { return true; }
 
-	//Make sub-functionality available directly in GPUTRDGeometry
-	GPUd() float GetPadPlaneWidthIPad(int det) const {return getPadPlane(det)->getWidthIPad();}
-	GPUd() float GetPadPlaneRowPos(int layer, int stack, int row) const {return getPadPlane(layer, stack)->getRowPos(row);}
-	GPUd() float GetPadPlaneRowSize(int layer, int stack, int row) const {return getPadPlane(layer, stack)->getRowSize(row);}
-	GPUd() int GetGeomManagerVolUID(int det, int modId) const {return 0;}
-	
-	//Base functionality of TRDGeometry
-	GPUd() float GetTime0(int layer) const {return getTime0(layer);}
-	GPUd() float GetCol0(int layer) const {return getCol0(layer);}
-	GPUd() int GetLayer(int det) const {return getLayer(det);}
-	GPUd() bool CreateClusterMatrixArray() const {return false;}
-	GPUd() float AnodePos() const {return anodePos();}
-	GPUd() const ali_tpc_common::Transform3D* GetClusterMatrix(int det) const {return getMatrixT2L(det);}
-	GPUd() int GetDetector(int layer, int stack, int sector) const {return getDetector(layer, stack, sector);}
-	GPUd() const GPUTRDpadPlane* GetPadPlane(int layer, int stack) const {return (GPUTRDpadPlane*) getPadPlane(layer, stack);}
-	GPUd() const GPUTRDpadPlane* GetPadPlane(int detector) const {return (GPUTRDpadPlane*) getPadPlane(detector);}
-	GPUd() int GetSector(int det) const {return getSector(det);}
-	GPUd() int GetStack(int det) const {return getStack(det);}
-	GPUd() int GetStack(float z, int layer) const {return getStack(z, layer);}
-	GPUd() float GetAlpha() const {return getAlpha();}
-	GPUd() bool IsHole(int la, int st, int se) const {return isHole(la, st, se);}
-	GPUd() int GetRowMax(int layer, int stack, int sector) const {return getRowMax(layer, stack, sector);}
-	GPUd() bool ChamberInGeometry(int det) const {return chamberInGeometry(det);}
+  // Make sub-functionality available directly in GPUTRDGeometry
+  GPUd() float GetPadPlaneWidthIPad(int det) const { return getPadPlane(det)->getWidthIPad(); }
+  GPUd() float GetPadPlaneRowPos(int layer, int stack, int row) const { return getPadPlane(layer, stack)->getRowPos(row); }
+  GPUd() float GetPadPlaneRowSize(int layer, int stack, int row) const { return getPadPlane(layer, stack)->getRowSize(row); }
+  GPUd() int GetGeomManagerVolUID(int det, int modId) const { return 0; }
 
-	static constexpr int kNstack = o2::trd::kNstack;
+  // Base functionality of TRDGeometry
+  GPUd() float GetTime0(int layer) const { return getTime0(layer); }
+  GPUd() float GetCol0(int layer) const { return getCol0(layer); }
+  GPUd() int GetLayer(int det) const { return getLayer(det); }
+  GPUd() bool CreateClusterMatrixArray() const { return false; }
+  GPUd() float AnodePos() const { return anodePos(); }
+  GPUd() const ali_tpc_common::Transform3D* GetClusterMatrix(int det) const { return getMatrixT2L(det); }
+  GPUd() int GetDetector(int layer, int stack, int sector) const { return getDetector(layer, stack, sector); }
+  GPUd() const GPUTRDpadPlane* GetPadPlane(int layer, int stack) const { return (GPUTRDpadPlane*)getPadPlane(layer, stack); }
+  GPUd() const GPUTRDpadPlane* GetPadPlane(int detector) const { return (GPUTRDpadPlane*)getPadPlane(detector); }
+  GPUd() int GetSector(int det) const { return getSector(det); }
+  GPUd() int GetStack(int det) const { return getStack(det); }
+  GPUd() int GetStack(float z, int layer) const { return getStack(z, layer); }
+  GPUd() float GetAlpha() const { return getAlpha(); }
+  GPUd() bool IsHole(int la, int st, int se) const { return isHole(la, st, se); }
+  GPUd() int GetRowMax(int layer, int stack, int sector) const { return getRowMax(layer, stack, sector); }
+  GPUd() bool ChamberInGeometry(int det) const { return chamberInGeometry(det); }
+
+  static constexpr int kNstack = o2::trd::kNstack;
 };
 
 #else
@@ -82,55 +82,58 @@ public:
 
 class TGeoHMatrix
 {
-public:
-	template <class T> GPUd() void LocalToMaster(T*, T*) const {}
+ public:
+  template <class T>
+  GPUd() void LocalToMaster(T*, T*) const
+  {
+  }
 };
 
 class GPUTRDpadPlane
 {
-public:
-	GPUd() float GetTiltingAngle() const {return 0;}
-	GPUd() float GetRowSize(int row) const {return 0;}
-	GPUd() float GetRowPos(int row) const {return 0;}
-	GPUd() float GetRow0() const {return 0;}
-	GPUd() float GetRowEnd() const {return 0;}
-	GPUd() float GetCol0() const {return 0;}
-	GPUd() float GetColEnd() const {return 0;}
-	GPUd() float GetColPos(int col) const {return 0;}
-	GPUd() float GetNrows() const {return 0;}
+ public:
+  GPUd() float GetTiltingAngle() const { return 0; }
+  GPUd() float GetRowSize(int row) const { return 0; }
+  GPUd() float GetRowPos(int row) const { return 0; }
+  GPUd() float GetRow0() const { return 0; }
+  GPUd() float GetRowEnd() const { return 0; }
+  GPUd() float GetCol0() const { return 0; }
+  GPUd() float GetColEnd() const { return 0; }
+  GPUd() float GetColPos(int col) const { return 0; }
+  GPUd() float GetNrows() const { return 0; }
 };
 
 class GPUTRDGeometry
 {
-public:
-	GPUd() static bool CheckGeometryAvailable() {return false;}
-	void clearInternalBufferUniquePtr() const {}
+ public:
+  GPUd() static bool CheckGeometryAvailable() { return false; }
+  void clearInternalBufferUniquePtr() const {}
 
-	//Make sub-functionality available directly in GPUTRDGeometry
-	GPUd() float GetPadPlaneWidthIPad(int det) const {return 0;}
-	GPUd() float GetPadPlaneRowPos(int layer, int stack, int row) const {return 0;}
-	GPUd() float GetPadPlaneRowSize(int layer, int stack, int row) const {return 0;}
-	GPUd() int GetGeomManagerVolUID(int det, int modId) const {return 0;}
-	
-	//Base functionality of TRDGeometry
-	GPUd() float GetTime0(int layer) const {return 0;}
-	GPUd() float GetCol0(int layer) const {return 0;}
-	GPUd() int GetLayer(int det) const {return 0;}
-	GPUd() bool CreateClusterMatrixArray() const {return false;}
-	GPUd() float AnodePos() const {return 0;}
-	GPUd() const TGeoHMatrix* GetClusterMatrix(int det) const {return nullptr;}
-	GPUd() int GetDetector(int layer, int stack, int sector) const {return 0;}
-	GPUd() const GPUTRDpadPlane* GetPadPlane(int layer, int stack) const {return nullptr;}
-	GPUd() const GPUTRDpadPlane* GetPadPlane(int detector) const {return nullptr;}
-	GPUd() int GetSector(int det) const {return 0;}
-	GPUd() int GetStack(int det) const {return 0;}
-	GPUd() int GetStack(float z, int layer) const {return 0;}
-	GPUd() float GetAlpha() const {return 0;}
-	GPUd() bool IsHole(int la, int st, int se) const {return false;}
-	GPUd() int GetRowMax(int layer, int stack, int /*sector*/) const {return 0;}
-	GPUd() bool ChamberInGeometry(int det) const {return false;}
+  // Make sub-functionality available directly in GPUTRDGeometry
+  GPUd() float GetPadPlaneWidthIPad(int det) const { return 0; }
+  GPUd() float GetPadPlaneRowPos(int layer, int stack, int row) const { return 0; }
+  GPUd() float GetPadPlaneRowSize(int layer, int stack, int row) const { return 0; }
+  GPUd() int GetGeomManagerVolUID(int det, int modId) const { return 0; }
 
-	static CONSTEXPR int kNstack = 0;
+  // Base functionality of TRDGeometry
+  GPUd() float GetTime0(int layer) const { return 0; }
+  GPUd() float GetCol0(int layer) const { return 0; }
+  GPUd() int GetLayer(int det) const { return 0; }
+  GPUd() bool CreateClusterMatrixArray() const { return false; }
+  GPUd() float AnodePos() const { return 0; }
+  GPUd() const TGeoHMatrix* GetClusterMatrix(int det) const { return nullptr; }
+  GPUd() int GetDetector(int layer, int stack, int sector) const { return 0; }
+  GPUd() const GPUTRDpadPlane* GetPadPlane(int layer, int stack) const { return nullptr; }
+  GPUd() const GPUTRDpadPlane* GetPadPlane(int detector) const { return nullptr; }
+  GPUd() int GetSector(int det) const { return 0; }
+  GPUd() int GetStack(int det) const { return 0; }
+  GPUd() int GetStack(float z, int layer) const { return 0; }
+  GPUd() float GetAlpha() const { return 0; }
+  GPUd() bool IsHole(int la, int st, int se) const { return false; }
+  GPUd() int GetRowMax(int layer, int stack, int /*sector*/) const { return 0; }
+  GPUd() bool ChamberInGeometry(int det) const { return false; }
+
+  static CONSTEXPR int kNstack = 0;
 };
 
 #endif

@@ -19,46 +19,53 @@
 #include <random>
 #include <tuple>
 
-namespace o2 { namespace TPC { struct ClusterNativeAccessFullTPC; struct ClusterNative; }}
+namespace o2
+{
+namespace TPC
+{
+struct ClusterNativeAccessFullTPC;
+struct ClusterNative;
+} // namespace TPC
+} // namespace o2
 
 class GPUReconstructionTimeframe
 {
-public:
-	GPUReconstructionTimeframe(GPUChainTracking* rec, int (*read)(int), int nEvents);
-	int LoadCreateTimeFrame(int iEvent);
-	int LoadMergedEvents(int iEvent);
-	int ReadEventShifted(int i, float shift, float minZ = -1e6, float maxZ = -1e6, bool silent = false);
-	void MergeShiftedEvents();
-	
-private:
-	constexpr static unsigned int NSLICES = GPUReconstruction::NSLICES;
-	
-	void SetDisplayInformation(int iCol);
+ public:
+  GPUReconstructionTimeframe(GPUChainTracking* rec, int (*read)(int), int nEvents);
+  int LoadCreateTimeFrame(int iEvent);
+  int LoadMergedEvents(int iEvent);
+  int ReadEventShifted(int i, float shift, float minZ = -1e6, float maxZ = -1e6, bool silent = false);
+  void MergeShiftedEvents();
 
-	GPUChainTracking* mChain;
-	int (*ReadEvent)(int);
-	int nEventsInDirectory;
-	
-	std::uniform_real_distribution<double> disUniReal;
-	std::uniform_int_distribution<unsigned long long int> disUniInt;
-	std::mt19937_64 rndGen1;
-	std::mt19937_64 rndGen2;
-	
-	int trainDist = 0;
-	float collisionProbability = 0.;
-	const int orbitRate = 11245;
-	const int driftTime = 93000;
-	const int TPCZ = 250;
-	const int timeOrbit = 1000000000 / orbitRate;
-	int maxBunchesFull;
-	int maxBunches;
+ private:
+  constexpr static unsigned int NSLICES = GPUReconstruction::NSLICES;
 
-	int nTotalCollisions = 0;
+  void SetDisplayInformation(int iCol);
 
-	long long int eventStride;
-	int simBunchNoRepeatEvent;
-	std::vector<char> eventUsed;
-	std::vector<std::tuple<GPUChainTracking::InOutPointers, GPUChainTracking::InOutMemory, o2::TPC::ClusterNativeAccessFullTPC>> shiftedEvents;
+  GPUChainTracking* mChain;
+  int (*mReadEvent)(int);
+  int mNEventsInDirectory;
+
+  std::uniform_real_distribution<double> mDisUniReal;
+  std::uniform_int_distribution<unsigned long long int> mDisUniInt;
+  std::mt19937_64 mRndGen1;
+  std::mt19937_64 mRndGen2;
+
+  int mTrainDist = 0;
+  float mCollisionProbability = 0.;
+  const int mOrbitRate = 11245;
+  const int mDriftTime = 93000;
+  const int mTPCZ = 250;
+  const int mTimeOrbit = 1000000000 / mOrbitRate;
+  int mMaxBunchesFull;
+  int mMaxBunches;
+
+  int mNTotalCollisions = 0;
+
+  long long int mEventStride;
+  int mSimBunchNoRepeatEvent;
+  std::vector<char> mEventUsed;
+  std::vector<std::tuple<GPUChainTracking::InOutPointers, GPUChainTracking::InOutMemory, o2::TPC::ClusterNativeAccessFullTPC>> mShiftedEvents;
 };
 
 #endif

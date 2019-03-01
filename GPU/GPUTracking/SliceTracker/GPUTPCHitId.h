@@ -16,13 +16,13 @@
 
 class GPUTPCHitId
 {
-  public:
-	GPUhd() void Set( int row, int hit ) { fId = ( hit << 8 ) | row; }
-	GPUhd() int RowIndex() const { return fId & 0xff; }
-	GPUhd() int HitIndex() const { return fId >> 8; }
+ public:
+  GPUhd() void Set(int row, int hit) { mId = (hit << 8) | row; }
+  GPUhd() int RowIndex() const { return mId & 0xff; }
+  GPUhd() int HitIndex() const { return mId >> 8; }
 
-  private:
-	int fId;
+ private:
+  int mId;
 };
 
 #endif // GPUTPCHITID_H

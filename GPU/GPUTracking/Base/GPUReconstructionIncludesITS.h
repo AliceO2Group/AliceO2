@@ -18,7 +18,21 @@
 #include "ITStracking/TrackerTraitsCPU.h"
 #include "ITStracking/VertexerTraits.h"
 #else
-namespace o2 { namespace ITS { class TrackerTraits {}; class TrackerTraitsCPU : public TrackerTraits {}; class VertexerTraits {}; }}
+namespace o2
+{
+namespace ITS
+{
+class TrackerTraits
+{
+};
+class TrackerTraitsCPU : public TrackerTraits
+{
+};
+class VertexerTraits
+{
+};
+} // namespace ITS
+} // namespace o2
 #endif
 
 #endif

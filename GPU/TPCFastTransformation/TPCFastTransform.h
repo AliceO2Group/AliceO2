@@ -13,7 +13,6 @@
 ///
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
-
 #ifndef ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORM_H
 #define ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORM_H
 
@@ -21,9 +20,10 @@
 #include "TPCDistortionIRS.h"
 #include <cmath>
 
-
-namespace ali_tpc_common {
-namespace tpc_fast_transformation {
+namespace ali_tpc_common
+{
+namespace tpc_fast_transformation
+{
 
 ///
 /// The TPCFastTransform class represents transformation of raw TPC coordinates to XYZ
@@ -54,173 +54,149 @@ namespace tpc_fast_transformation {
 ///
 /// The class is flat C structure. No virtual methods, no ROOT types are used.
 
-
-class TPCFastTransform :public gpu_common::Base::FlatObject
+class TPCFastTransform : public gpu_common::Base::FlatObject
 {
  public:
-  
   /// The struct contains necessary info for TPC slice
-  struct SliceInfo{
+  struct SliceInfo {
     float sinAlpha;
     float cosAlpha;
   };
 
   /// The struct contains necessary info for TPC padrow
-  struct RowInfo{
+  struct RowInfo {
     float x;        ///< x coordinate of the row [cm]
     int maxPad;     ///< maximal pad number = n pads - 1
     float padWidth; ///< width of pads [cm]
   };
-  
+
   /// _____________  Constructors / destructors __________________________
- 
+
   /// Default constructor: creates an empty uninitialized object
   TPCFastTransform();
 
   /// Copy constructor: disabled to avoid ambiguity. Use cloneFromObject() instead
-  TPCFastTransform(const TPCFastTransform& ) CON_DELETE;
- 
+  TPCFastTransform(const TPCFastTransform&) CON_DELETE;
+
   /// Assignment operator: disabled to avoid ambiguity. Use cloneFromObject() instead
-  TPCFastTransform &operator=(const TPCFastTransform &)  CON_DELETE;
-   
+  TPCFastTransform& operator=(const TPCFastTransform&) CON_DELETE;
+
   /// Destructor
   ~TPCFastTransform() CON_DEFAULT;
 
-  
   /// _____________  FlatObject functionality, see FlatObject class for description  ____________
 
   /// Memory alignment
- 
 
   /// Gives minimal alignment in bytes required for the class object
-  static constexpr size_t getClassAlignmentBytes() {return TPCDistortionIRS::getClassAlignmentBytes(); }
-  
+  static constexpr size_t getClassAlignmentBytes() { return TPCDistortionIRS::getClassAlignmentBytes(); }
+
   /// Gives minimal alignment in bytes required for the flat buffer
-  static constexpr size_t getBufferAlignmentBytes() {return TPCDistortionIRS::getBufferAlignmentBytes(); }
-  
+  static constexpr size_t getBufferAlignmentBytes() { return TPCDistortionIRS::getBufferAlignmentBytes(); }
 
   /// Construction interface
-  
-  void cloneFromObject( const TPCFastTransform &obj, char *newFlatBufferPtr );
-  
-  /// Making the data buffer external
-  
-  using gpu_common::Base::FlatObject::releaseInternalBuffer;
-  void moveBufferTo( char *newBufferPtr );
-    
-  /// Moving the class with its external buffer to another location
-  
-  void setActualBufferAddress( char* actualFlatBufferPtr );
-  void setFutureBufferAddress( char* futureFlatBufferPtr );
 
+  void cloneFromObject(const TPCFastTransform& obj, char* newFlatBufferPtr);
+
+  /// Making the data buffer external
+
+  using gpu_common::Base::FlatObject::releaseInternalBuffer;
+  void moveBufferTo(char* newBufferPtr);
+
+  /// Moving the class with its external buffer to another location
+
+  void setActualBufferAddress(char* actualFlatBufferPtr);
+  void setFutureBufferAddress(char* futureFlatBufferPtr);
 
   /// _______________  Construction interface  ________________________
 
-
   /// Starts the initialization procedure, reserves temporary memory
-  void startConstruction( int numberOfRows );
+  void startConstruction(int numberOfRows);
 
   /// Initializes a TPC row
-  void setTPCrow( int iRow, float x, int nPads, float padWidth );
+  void setTPCrow(int iRow, float x, int nPads, float padWidth);
 
   /// Sets TPC geometry
   ///
   /// It must be called once during initialization
-  void setTPCgeometry( float tpcZlengthSideA, float tpcZlengthSideC );
-  
+  void setTPCgeometry(float tpcZlengthSideA, float tpcZlengthSideC);
+
   /// Sets all drift calibration parameters and the time stamp
   ///
   /// It must be called once during construction,
   /// but also may be called afterwards to reset these parameters.
-  void setCalibration( long int timeStamp, float t0, float vDrift, float vDriftCorrY, float lDriftCorr, float tofCorr, float primVtxZ, float tpcAlignmentZ );
+  void setCalibration(long int timeStamp, float t0, float vDrift, float vDriftCorrY, float lDriftCorr, float tofCorr, float primVtxZ, float tpcAlignmentZ);
 
   /// Sets the time stamp of the current calibaration
-  void setTimeStamp( long int v)  { mTimeStamp = v; }
+  void setTimeStamp(long int v) { mTimeStamp = v; }
 
   /// Gives a reference for external initialization of TPC distortions
   const TPCDistortionIRS& getDistortion() const { return mDistortion; }
- 
+
   /// Gives a reference for external initialization of TPC distortions
   TPCDistortionIRS& getDistortionNonConst() { return mDistortion; }
 
   /// Finishes initialization: puts everything to the flat buffer, releases temporary memory
   void finishConstruction();
 
-
-
   /// _______________ The main method: cluster transformation _______________________
   ///
   /// Transforms raw TPC coordinates to local XYZ withing a slice
   /// taking calibration + alignment into account.
   ///
-  int Transform(int slice, int row, float pad, float time, float &x, float &y,
-                float &z, float vertexTime = 0) const;
-  int TransformInTimeFrame(int slice, int row, float pad, float time, float &x,
-                           float &y, float &z, float maxTimeBin) const;
+  int Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime = 0) const;
+  int TransformInTimeFrame(int slice, int row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const;
 
-  int convPadTimeToUV(int slice, int row, float pad, float time, float &u,
-                      float &v, float vertexTime) const;
-  int convUVtoYZ(int slice, int row, float x, float u, float v, float &y,
-                 float &z) const;
-  int getTOFcorrection(int slice, int row, float x, float y, float z,
-                       float &dz) const;
+  int convPadTimeToUV(int slice, int row, float pad, float time, float& u, float& v, float vertexTime) const;
+  int convUVtoYZ(int slice, int row, float x, float u, float v, float& y, float& z) const;
+  int getTOFcorrection(int slice, int row, float x, float y, float z, float& dz) const;
 
-  int convYZtoUV(int slice, int row, float x, float y, float z, float &u,
-                 float &v) const;
-  int convUVtoPadTime(int slice, int row, float u, float v, float &pad,
-                      float &time) const;
+  int convYZtoUV(int slice, int row, float x, float y, float z, float& u, float& v) const;
+  int convUVtoPadTime(int slice, int row, float u, float v, float& pad, float& time) const;
 
-  int convPadTimeToUVInTimeFrame(int slice, int row, float pad, float time,
-                                 float &u, float &v, float maxTimeBin) const;
+  int convPadTimeToUVInTimeFrame(int slice, int row, float pad, float time, float& u, float& v, float maxTimeBin) const;
 
-  void setApplyDistortionFlag( bool flag ){ mApplyDistortion = flag; }
-  bool getApplyDistortionFlag(){ return mApplyDistortion; }
-
+  void setApplyDistortionFlag(bool flag) { mApplyDistortion = flag; }
+  bool getApplyDistortionFlag() { return mApplyDistortion; }
 
   /// _______________  Utilities  _______________________________________________
- 
+
   /// Gives number of TPC slices
-  static int getNumberOfSlices(){ return NumberOfSlices; }
+  static int getNumberOfSlices() { return NumberOfSlices; }
 
   /// Gives number of TPC rows
   int getNumberOfRows() const { return mNumberOfRows; }
 
   /// Gives the time stamp of the current calibaration parameters
   long int getTimeStamp() const { return mTimeStamp; }
- 
+
   /// Gives slice info
-  const SliceInfo& getSliceInfo( int slice ) const { return mSliceInfos[slice]; }
+  const SliceInfo& getSliceInfo(int slice) const { return mSliceInfos[slice]; }
 
   /// Gives TPC row info
-  const RowInfo& getRowInfo( int row ) const { return mRowInfoPtr[row]; }
- 
+  const RowInfo& getRowInfo(int row) const { return mRowInfoPtr[row]; }
+
   /// Print method
   void Print() const;
 
  private:
-
-
   /// Enumeration of possible initialization states
   enum ConstructionExtraState : unsigned int {
-    GeometryIsSet = 0x4,         ///< the TPC geometry is set
-    CalibrationIsSet = 0x8       ///< the drift calibration is set
+    GeometryIsSet = 0x4,   ///< the TPC geometry is set
+    CalibrationIsSet = 0x8 ///< the drift calibration is set
   };
 
   /// _______________  Utilities  _______________________________________________
 
-
-  void relocateBufferPointers( const char* oldBuffer, char *actualBuffer );
-
+  void relocateBufferPointers(const char* oldBuffer, char* actualBuffer);
 
   /// _______________  Data members  _______________________________________________
 
-  
   static constexpr int NumberOfSlices = 36; ///< Number of TPC slices ( slice = inner + outer sector )
-  
 
   /// _______________  Construction control  _______________________________________________
-    
-  int mConstructionCounter; ///< counter for initialized parameters
+
+  int mConstructionCounter;                              ///< counter for initialized parameters
   std::unique_ptr<RowInfo[]> mConstructionRowInfoBuffer; ///< Temporary container of the row infos during initialization
 
   /// _______________  Geometry  _______________________________________________
@@ -228,17 +204,15 @@ class TPCFastTransform :public gpu_common::Base::FlatObject
   SliceInfo mSliceInfos[NumberOfSlices]; ///< array of slice information [fixed size]
 
   int mNumberOfRows = 0; ///< Number of TPC rows. It is different for the Run2 and the Run3 setups
- 
-  const RowInfo  *mRowInfoPtr; ///< pointer to RowInfo array inside the mFlatBufferPtr buffer
+
+  const RowInfo* mRowInfoPtr; ///< pointer to RowInfo array inside the mFlatBufferPtr buffer
 
   float mTPCzLengthA; ///< Z length of the TPC, side A
   float mTPCzLengthC; ///< Z length of the TPC, side C
- 
+
   /// _______________  Calibration data. See Transform() method  ________________________________
- 
 
   long int mTimeStamp; ///< time stamp of the current calibration
-
 
   /// Correction of (x,u,v) with irregular splines.
   ///
@@ -248,17 +222,17 @@ class TPCFastTransform :public gpu_common::Base::FlatObject
   TPCDistortionIRS mDistortion;
 
   bool mApplyDistortion; // flag for applying distortion
- 
+
   /// _____ Parameters for drift length calculation ____
   ///
   /// t = (float) time bin, y = global y
   ///
   /// L(t,y) = (t-mT0)*(mVdrift + mVdriftCorrY*y ) + mLdriftCorr  ____
   ///
-  float mT0; ///< T0 in [time bin]
-  float mVdrift; ///< VDrift in  [cm/time bin]
+  float mT0;          ///< T0 in [time bin]
+  float mVdrift;      ///< VDrift in  [cm/time bin]
   float mVdriftCorrY; ///< VDrift correction for global Y[cm] in [1/time bin]
-  float mLdriftCorr; ///< drift length correction in [cm]
+  float mLdriftCorr;  ///< drift length correction in [cm]
 
   /// A coefficient for Time-Of-Flight correction: drift length -= EstimatedDistanceToVtx[cm]*mTOFcorr
   ///
@@ -273,98 +247,97 @@ class TPCFastTransform :public gpu_common::Base::FlatObject
   float mTPCalignmentZ; ///< Global Z shift of the TPC detector. It is applied at the end of the transformation.
 };
 
-
-
 // =======================================================================
 //              Inline implementations of some methods
 // =======================================================================
 
-
-inline void TPCFastTransform::setTPCrow( int iRow, float x, int nPads, float padWidth )
+inline void TPCFastTransform::setTPCrow(int iRow, float x, int nPads, float padWidth)
 {
   /// Initializes a TPC row
-  assert( mConstructionMask & ConstructionState::InProgress );
-  assert( iRow>=0 && iRow < mNumberOfRows );
-  RowInfo &row = mConstructionRowInfoBuffer[iRow];
+  assert(mConstructionMask & ConstructionState::InProgress);
+  assert(iRow >= 0 && iRow < mNumberOfRows);
+  RowInfo& row = mConstructionRowInfoBuffer[iRow];
   row.x = x;
   row.maxPad = nPads - 1;
   row.padWidth = padWidth;
   mConstructionCounter++;
 }
 
-inline int TPCFastTransform::convPadTimeToUV(int slice, int row, float pad,
-                                             float time, float &u, float &v,
-                                             float vertexTime) const {
-  if ( slice<0 || slice>=NumberOfSlices || row<0 || row>=mNumberOfRows ) return -1;
- 
-  bool sideC = ( slice >= NumberOfSlices / 2 );
+inline int TPCFastTransform::convPadTimeToUV(int slice, int row, float pad, float time, float& u, float& v, float vertexTime) const
+{
+  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows)
+    return -1;
 
-  const RowInfo &rowInfo = getRowInfo( row );
-  const SliceInfo &sliceInfo = getSliceInfo( slice );
+  bool sideC = (slice >= NumberOfSlices / 2);
+
+  const RowInfo& rowInfo = getRowInfo(row);
+  const SliceInfo& sliceInfo = getSliceInfo(slice);
 
   float x = rowInfo.x;
-  u = (pad - 0.5*rowInfo.maxPad)*rowInfo.padWidth;
+  u = (pad - 0.5 * rowInfo.maxPad) * rowInfo.padWidth;
 
-  float y = sideC ? -u :u; // pads are mirrorred on C-side
-  float yLab = y*sliceInfo.cosAlpha+x*sliceInfo.sinAlpha;
+  float y = sideC ? -u : u; // pads are mirrorred on C-side
+  float yLab = y * sliceInfo.cosAlpha + x * sliceInfo.sinAlpha;
 
-  v = (time-mT0-vertexTime)*(mVdrift + mVdriftCorrY*yLab) + mLdriftCorr; // drift length cm
+  v = (time - mT0 - vertexTime) * (mVdrift + mVdriftCorrY * yLab) + mLdriftCorr; // drift length cm
   return 0;
 }
 
-inline int
-TPCFastTransform::convPadTimeToUVInTimeFrame(int slice, int row, float pad,
-                                             float time, float &u, float &v,
-                                             float maxTimeBin) const {
-  if ( slice<0 || slice>=NumberOfSlices || row<0 || row>=mNumberOfRows ) return -1;
- 
-  bool sideC = ( slice >= NumberOfSlices / 2 );
+inline int TPCFastTransform::convPadTimeToUVInTimeFrame(int slice, int row, float pad, float time, float& u, float& v, float maxTimeBin) const
+{
+  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows)
+    return -1;
 
-  const RowInfo &rowInfo = getRowInfo( row );
-  const SliceInfo &sliceInfo = getSliceInfo( slice );
+  bool sideC = (slice >= NumberOfSlices / 2);
+
+  const RowInfo& rowInfo = getRowInfo(row);
+  const SliceInfo& sliceInfo = getSliceInfo(slice);
 
   float x = rowInfo.x;
-  u = (pad - 0.5*rowInfo.maxPad)*rowInfo.padWidth;
+  u = (pad - 0.5 * rowInfo.maxPad) * rowInfo.padWidth;
 
-  float y = sideC ? -u :u; // pads are mirrorred on C-side
-  float yLab = y*sliceInfo.cosAlpha+x*sliceInfo.sinAlpha;
+  float y = sideC ? -u : u; // pads are mirrorred on C-side
+  float yLab = y * sliceInfo.cosAlpha + x * sliceInfo.sinAlpha;
 
-  v = (time-maxTimeBin)*(mVdrift + mVdriftCorrY*yLab); // drift length cm
+  v = (time - maxTimeBin) * (mVdrift + mVdriftCorrY * yLab); // drift length cm
 
-  if( sideC ) v+=mTPCzLengthC;
-  else v+=mTPCzLengthA;
+  if (sideC)
+    v += mTPCzLengthC;
+  else
+    v += mTPCzLengthA;
 
   return 0;
 }
 
-inline int TPCFastTransform::convUVtoPadTime(int slice, int row, float u,
-                                             float v, float &pad,
-                                             float &time) const {
-  if ( slice<0 || slice>=NumberOfSlices || row<0 || row>=mNumberOfRows ) return -1;
- 
-  bool sideC = ( slice >= NumberOfSlices / 2 );
-  
-  const RowInfo &rowInfo = getRowInfo( row );
-  const SliceInfo &sliceInfo = getSliceInfo( slice );
+inline int TPCFastTransform::convUVtoPadTime(int slice, int row, float u, float v, float& pad, float& time) const
+{
+  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows)
+    return -1;
 
-  pad = u / rowInfo.padWidth + 0.5*rowInfo.maxPad;
+  bool sideC = (slice >= NumberOfSlices / 2);
+
+  const RowInfo& rowInfo = getRowInfo(row);
+  const SliceInfo& sliceInfo = getSliceInfo(slice);
+
+  pad = u / rowInfo.padWidth + 0.5 * rowInfo.maxPad;
 
   float x = rowInfo.x;
-  float y = sideC ? -u :u; // pads are mirrorred on C-side
-  float yLab = y*sliceInfo.cosAlpha+x*sliceInfo.sinAlpha;
-  time = mT0 + (v - mLdriftCorr) / (mVdrift + mVdriftCorrY*yLab);
+  float y = sideC ? -u : u; // pads are mirrorred on C-side
+  float yLab = y * sliceInfo.cosAlpha + x * sliceInfo.sinAlpha;
+  time = mT0 + (v - mLdriftCorr) / (mVdrift + mVdriftCorrY * yLab);
   return 0;
 }
 
-inline int TPCFastTransform::convUVtoYZ(int slice, int row, float x, float u,
-                                        float v, float &y, float &z) const {
-  if ( slice<0 || slice>=NumberOfSlices || row<0 || row>=mNumberOfRows ) return -1;
+inline int TPCFastTransform::convUVtoYZ(int slice, int row, float x, float u, float v, float& y, float& z) const
+{
+  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows)
+    return -1;
 
-  bool sideC = ( slice >= NumberOfSlices / 2 );
+  bool sideC = (slice >= NumberOfSlices / 2);
 
-  if( sideC ){
-    y = -u; // pads are mirrorred on C-side
-    z = v - mTPCzLengthC ; // drift direction is mirrored on C-side
+  if (sideC) {
+    y = -u;               // pads are mirrorred on C-side
+    z = v - mTPCzLengthC; // drift direction is mirrored on C-side
   } else {
     y = u;
     z = mTPCzLengthA - v;
@@ -375,14 +348,15 @@ inline int TPCFastTransform::convUVtoYZ(int slice, int row, float x, float u,
   return 0;
 }
 
-inline int TPCFastTransform::convYZtoUV(int slice, int row, float x, float y,
-                                        float z, float &u, float &v) const {
-  if ( slice<0 || slice>=NumberOfSlices || row<0 || row>=mNumberOfRows ) return -1;
- 
-  bool sideC = ( slice >= NumberOfSlices / 2 );
+inline int TPCFastTransform::convYZtoUV(int slice, int row, float x, float y, float z, float& u, float& v) const
+{
+  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows)
+    return -1;
+
+  bool sideC = (slice >= NumberOfSlices / 2);
 
   z = z - mTPCalignmentZ;
-  if( sideC ){
+  if (sideC) {
     u = -y;
     v = z + mTPCzLengthC;
   } else {
@@ -392,76 +366,74 @@ inline int TPCFastTransform::convYZtoUV(int slice, int row, float x, float y,
   return 0;
 }
 
-inline int TPCFastTransform::getTOFcorrection(int slice, int row, float x,
-                                              float y, float z,
-                                              float &dz) const {
+inline int TPCFastTransform::getTOFcorrection(int slice, int row, float x, float y, float z, float& dz) const
+{
   // calculate time of flight correction for  z coordinate
-  if ( slice<0 || slice>=NumberOfSlices || row<0 || row>=mNumberOfRows ) return -1;
-  bool sideC = ( slice >= NumberOfSlices / 2 );
+  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows)
+    return -1;
+  bool sideC = (slice >= NumberOfSlices / 2);
   float distZ = z - mPrimVtxZ;
-  float dv = - sqrt( x*x + y*y + distZ*distZ )*mTOFcorr;
-  dz = sideC ?dv :-dv;
+  float dv = -sqrt(x * x + y * y + distZ * distZ) * mTOFcorr;
+  dz = sideC ? dv : -dv;
   return 0;
 }
 
-inline int TPCFastTransform::Transform(int slice, int row, float pad,
-                                       float time, float &x, float &y, float &z,
-                                       float vertexTime) const {
+inline int TPCFastTransform::Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime) const
+{
   /// _______________ The main method: cluster transformation _______________________
   ///
   /// Transforms raw TPC coordinates to local XYZ withing a slice
   /// taking calibration + alignment into account.
   ///
 
-  if ( slice<0 || slice>=NumberOfSlices || row<0 || row>=mNumberOfRows ) return -1;
+  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows)
+    return -1;
 
-  const RowInfo &rowInfo = getRowInfo( row );
-  //const SliceInfo &sliceInfo = getSliceInfo( slice );
-  //bool sideC = ( slice >= NumberOfSlices / 2 );
+  const RowInfo& rowInfo = getRowInfo(row);
+  // const SliceInfo &sliceInfo = getSliceInfo( slice );
+  // bool sideC = ( slice >= NumberOfSlices / 2 );
 
   x = rowInfo.x;
-  float u=0, v=0;
-  convPadTimeToUV( slice, row, pad, time, u, v, vertexTime );
+  float u = 0, v = 0;
+  convPadTimeToUV(slice, row, pad, time, u, v, vertexTime);
 
-  if( mApplyDistortion ){
+  if (mApplyDistortion) {
     float dx, du, dv;
-    mDistortion.getDistortion( slice, row, u, v, dx, du, dv );
+    mDistortion.getDistortion(slice, row, u, v, dx, du, dv);
     x += dx;
     u += du;
     v += dv;
   }
 
-  convUVtoYZ( slice, row, x, u, v, y, z );
+  convUVtoYZ(slice, row, x, u, v, y, z);
 
-  float dzTOF=0;
-  getTOFcorrection( slice, row,  x,  y, z, dzTOF );
-  z+=dzTOF;
+  float dzTOF = 0;
+  getTOFcorrection(slice, row, x, y, z, dzTOF);
+  z += dzTOF;
   return 0;
 }
 
-inline int TPCFastTransform::TransformInTimeFrame(int slice, int row, float pad,
-                                                  float time, float &x,
-                                                  float &y, float &z,
-                                                  float maxTimeBin) const {
+inline int TPCFastTransform::TransformInTimeFrame(int slice, int row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const
+{
   /// _______________ Special cluster transformation for a time frame _______________________
   ///
   /// Same as Transform(), but clusters are shifted in z such, that Z(maxTimeBin)==0
   /// Distortions and Time-Of-Flight correction are not alpplied.
   ///
 
-  if ( slice<0 || slice>=NumberOfSlices || row<0 || row>=mNumberOfRows ) return -1;
+  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows)
+    return -1;
 
-  const RowInfo &rowInfo = getRowInfo( row );
+  const RowInfo& rowInfo = getRowInfo(row);
 
   x = rowInfo.x;
-  float u=0, v=0;
-  convPadTimeToUVInTimeFrame( slice, row, pad, time, u, v, maxTimeBin );
-  convUVtoYZ( slice, row, x, u, v, y, z );
+  float u = 0, v = 0;
+  convPadTimeToUVInTimeFrame(slice, row, pad, time, u, v, maxTimeBin);
+  convUVtoYZ(slice, row, x, u, v, y, z);
   return 0;
 }
 
-
-}// namespace
-}// namespace
+} // namespace tpc_fast_transformation
+} // namespace ali_tpc_common
 
 #endif

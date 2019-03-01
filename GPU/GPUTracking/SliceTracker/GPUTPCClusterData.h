@@ -16,21 +16,20 @@
 
 #include "GPUTPCDef.h"
 
-struct GPUTPCClusterData
-{
-      int fId;
-      short fRow;
-      short fFlags;
-      float fX;
-      float fY;
-      float fZ;
-      float fAmp;
+struct GPUTPCClusterData {
+  int id;
+  short row;
+  short flags;
+  float x;
+  float y;
+  float z;
+  float amp;
 #ifdef GPUCA_FULL_CLUSTERDATA
-      float fPad;
-      float fTime;
-      float fAmpMax;
-      float fSigmaPad2;
-      float fSigmaTime2;
+  float pad;
+  float time;
+  float ampMax;
+  float sigmaPad2;
+  float sigmaTime2;
 #endif
 };
 

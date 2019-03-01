@@ -3,7 +3,7 @@
 
 alienv load ROOT/latest-root6
 alienv load Vc/latest
-root -l 
+root -l
 .x loadlibs.C
 */
 
@@ -14,6 +14,5 @@ root -l
   gSystem->AddIncludePath("-I../. -I$VC_ROOT/include");
   gSystem->AddLinkedLibs("$VC_ROOT/lib/libVc.a");
   gROOT->LoadMacro("../IrregularSpline1D.cxx++");
-  gROOT->LoadMacro("../IrregularSpline2D3D.cxx++"); 
+  gROOT->LoadMacro("../IrregularSpline2D3D.cxx++");
 }
-

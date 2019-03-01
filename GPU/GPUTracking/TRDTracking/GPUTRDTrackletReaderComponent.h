@@ -67,34 +67,35 @@ class TClonesArray;
  *
  * @ingroup The component has no output data.
  */
-class GPUTRDTrackletReaderComponent : public AliHLTProcessor {
-public:
+class GPUTRDTrackletReaderComponent : public AliHLTProcessor
+{
+ public:
   GPUTRDTrackletReaderComponent();
   virtual ~GPUTRDTrackletReaderComponent();
 
   // AliHLTComponent interface functions
   const char* GetComponentID();
-  void GetInputDataTypes( vector<AliHLTComponentDataType>& list);
+  void GetInputDataTypes(vector<AliHLTComponentDataType>& list);
   AliHLTComponentDataType GetOutputDataType();
   int GetOutputDataTypes(AliHLTComponentDataTypeList& tgtList);
-  void GetOutputDataSize( unsigned long& constBase, double& inputMultiplier );
-  void GetOCDBObjectDescription( TMap* const targetMap);
+  void GetOutputDataSize(unsigned long& constBase, double& inputMultiplier);
+  void GetOCDBObjectDescription(TMap* const targetMap);
 
   // Spawn function, return new class instance
   AliHLTComponent* Spawn();
 
  protected:
   // AliHLTComponent interface functions
-  int DoInit( int argc, const char** argv );
+  int DoInit(int argc, const char** argv);
   int DoDeinit();
-  int DoEvent( const AliHLTComponentEventData& evtData, AliHLTComponentTriggerData& trigData);
+  int DoEvent(const AliHLTComponentEventData& evtData, AliHLTComponentTriggerData& trigData);
   int ScanConfigurationArgument(int argc, const char** argv);
   int Reconfigure(const char* cdbEntry, const char* chainId);
   int ReadPreprocessorValues(const char* modules);
 
   using AliHLTProcessor::DoEvent;
 
-private:
+ private:
   /** copy constructor prohibited */
   GPUTRDTrackletReaderComponent(const GPUTRDTrackletReaderComponent&);
   /** assignment operator prohibited */
@@ -105,16 +106,15 @@ private:
   // general
   static const AliHLTEventID_t fgkInvalidEventId = 18446744073709551615llu;
 
-  UShort_t fDebugLevel;                              //! set debug checks/output level, 0: debug off
-  AliHLTEventID_t fEventId;                          //! event ID
+  UShort_t fDebugLevel;     //! set debug checks/output level, 0: debug off
+  AliHLTEventID_t fEventId; //! event ID
 
   // trd specific data
-  TClonesArray* fTrackletArray;                      //! internal tracklet array
+  TClonesArray* fTrackletArray; //! internal tracklet array
 
   // rawreader instance
-  AliRawReaderMemory* fRawReaderMem;                 //! TRD raw reader memory instance
-  AliTRDrawStream*    fRawReaderTrd;                 //! TRD raw stream instance
-
+  AliRawReaderMemory* fRawReaderMem; //! TRD raw reader memory instance
+  AliTRDrawStream* fRawReaderTrd;    //! TRD raw stream instance
 
   ClassDef(GPUTRDTrackletReaderComponent, 0)
 };

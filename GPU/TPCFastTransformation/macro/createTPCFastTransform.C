@@ -1,6 +1,6 @@
 // $Id$
 /**
- * @file makeTPCFastTransform.C
+ * @file createTPCFastTransform.C
  * @brief A macro to create TPCFastTransform object
  *
  * <pre>
@@ -19,7 +19,6 @@
  *
  */
 
-
 #include "AliTPCcalibDB.h"
 #include "Riostream.h"
 #include "TStopwatch.h"
@@ -31,37 +30,38 @@
 using namespace std;
 using namespace ali_tpc_common::tpc_fast_transformation;
 
-int createTPCFastTransform( TPCFastTransform &fastTransform ) {
+int createTPCFastTransform(TPCFastTransform& fastTransform)
+{
 
-  AliTPCcalibDB* tpcCalib=AliTPCcalibDB::Instance();
-  if(!tpcCalib){
-    cerr << "AliTPCcalibDB does not exist"<<endl;
+  AliTPCcalibDB* tpcCalib = AliTPCcalibDB::Instance();
+  if (!tpcCalib) {
+    cerr << "AliTPCcalibDB does not exist" << endl;
     return -1;
   }
-  AliTPCTransform *origTransform = tpcCalib->GetTransform();
+  AliTPCTransform* origTransform = tpcCalib->GetTransform();
   UInt_t timeStamp = origTransform->GetCurrentTimeStamp();
-    
+
   TPCFastTransformManager manager;
 
   TStopwatch timer;
-  timer.Start();  
-  
-  int err = manager.create( fastTransform, origTransform, timeStamp );
+  timer.Start();
+
+  int err = manager.create(fastTransform, origTransform, timeStamp);
 
   timer.Stop();
-  
-  cout<<"\n\n Initialisation: "<<timer.CpuTime()<<" / "<<timer.RealTime()<<" sec.\n\n"<<endl;
 
-  if( err!=0 ){
-    cerr << "Cannot create fast transformation object from AliTPCcalibDB, TPCFastTransformManager returns  "<<err<<endl;
+  cout << "\n\n Initialisation: " << timer.CpuTime() << " / " << timer.RealTime() << " sec.\n\n"
+       << endl;
+
+  if (err != 0) {
+    cerr << "Cannot create fast transformation object from AliTPCcalibDB, TPCFastTransformManager returns  " << err << endl;
     return -1;
-  } 
+  }
 
   // qa
 
-  //ali_tpc_common::tpc_fast_transformation::TPCFastTransformQA qa;
-  //qa.doQA( timeStamp );
+  // ali_tpc_common::tpc_fast_transformation::TPCFastTransformQA qa;
+  // qa.doQA( timeStamp );
 
-  return 0;  
+  return 0;
 }
-

@@ -3,8 +3,8 @@
 /affinity.cpp
 /affinity.h
 /qmath.h
-/qmultialloc.cpp
-/qmultialloc.h
+/qmultialloc.*
+/qmalloc.*
 /sched_affinity_win32_wrapper.h
 /switchtemplate.h
 /util_adl.cpp

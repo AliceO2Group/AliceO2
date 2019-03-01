@@ -14,11 +14,9 @@
 #include "GPUTPCRow.h"
 
 #if !defined(GPUCA_GPUCODE)
-GPUTPCRow::GPUTPCRow() : fNHits(0), fX(0), fMaxY(0), fGrid(),
-	fHy0(0), fHz0(0), fHstepY(0), fHstepZ(0), fHstepYi(0), fHstepZi(0),
-	fFullSize(0), fHitNumberOffset(0), fFirstHitInBinOffset(0)
+GPUTPCRow::GPUTPCRow() : mNHits(0), mX(0), mMaxY(0), mGrid(), mHy0(0), mHz0(0), mHstepY(0), mHstepZ(0), mHstepYi(0), mHstepZi(0), mFullSize(0), mHitNumberOffset(0), mFirstHitInBinOffset(0)
 {
-	// dummy constructor
+  // dummy constructor
 }
 
 #endif

@@ -27,47 +27,50 @@
 MEM_CLASS_PRE()
 class GPUTPCRow
 {
-	MEM_CLASS_PRE2()
-	friend class GPUTPCSliceData;
+  MEM_CLASS_PRE2()
+  friend class GPUTPCSliceData;
 
-  public:
+ public:
 #if !defined(GPUCA_GPUCODE)
-	GPUTPCRow();
-#endif //!GPUCA_GPUCODE
+  GPUTPCRow();
+#endif //! GPUCA_GPUCODE
 
-	GPUhd() int NHits() const { return fNHits; }
-	GPUhd() float X() const { return fX; }
-	GPUhd() float MaxY() const { return fMaxY; }
-	GPUhd() MakeType(const GPUTPCGrid &) Grid() const { return fGrid; }
+  GPUhd() int NHits() const
+  {
+    return mNHits;
+  }
+  GPUhd() float X() const { return mX; }
+  GPUhd() float MaxY() const { return mMaxY; }
+  GPUhd() MakeType(const GPUTPCGrid&) Grid() const { return mGrid; }
 
-	GPUhd() float Hy0() const { return fHy0; }
-	GPUhd() float Hz0() const { return fHz0; }
-	GPUhd() float HstepY() const { return fHstepY; }
-	GPUhd() float HstepZ() const { return fHstepZ; }
-	GPUhd() float HstepYi() const { return fHstepYi; }
-	GPUhd() float HstepZi() const { return fHstepZi; }
-	GPUhd() int FullSize() const { return fFullSize; }
-	GPUhd() int HitNumberOffset() const { return fHitNumberOffset; }
-	GPUhd() unsigned int FirstHitInBinOffset() const { return fFirstHitInBinOffset; }
+  GPUhd() float Hy0() const { return mHy0; }
+  GPUhd() float Hz0() const { return mHz0; }
+  GPUhd() float HstepY() const { return mHstepY; }
+  GPUhd() float HstepZ() const { return mHstepZ; }
+  GPUhd() float HstepYi() const { return mHstepYi; }
+  GPUhd() float HstepZi() const { return mHstepZi; }
+  GPUhd() int FullSize() const { return mFullSize; }
+  GPUhd() int HitNumberOffset() const { return mHitNumberOffset; }
+  GPUhd() unsigned int FirstHitInBinOffset() const { return mFirstHitInBinOffset; }
 
-  private:
-	int fNHits;            // number of hits
-	float fX;              // X coordinate of the row
-	float fMaxY;           // maximal Y coordinate of the row
-	GPUTPCGrid fGrid; // grid of hits
+ private:
+  int mNHits;       // number of hits
+  float mX;         // X coordinate of the row
+  float mMaxY;      // maximal Y coordinate of the row
+  GPUTPCGrid mGrid; // grid of hits
 
-	// hit packing:
-	float fHy0;     // offset
-	float fHz0;     // offset
-	float fHstepY;  // step size
-	float fHstepZ;  // step size
-	float fHstepYi; // inverse step size
-	float fHstepZi; // inverse step size
+  // hit packing:
+  float mHy0;     // offset
+  float mHz0;     // offset
+  float mHstepY;  // step size
+  float mHstepZ;  // step size
+  float mHstepYi; // inverse step size
+  float mHstepZi; // inverse step size
 
-	int fFullSize;        // size of this row in Tracker::fRowData
-	int fHitNumberOffset; // index of the first hit in the hit array, used as
-	// offset in GPUTPCSliceData::LinkUp/DownData/HitDataY/...
-	unsigned int fFirstHitInBinOffset; // offset in Tracker::fRowData to find the FirstHitInBin
+  int mFullSize;        // size of this row in Tracker::mRowData
+  int mHitNumberOffset; // index of the first hit in the hit array, used as
+  // offset in GPUTPCSliceData::LinkUp/DownData/HitDataY/...
+  unsigned int mFirstHitInBinOffset; // offset in Tracker::mRowData to find the FirstHitInBin
 };
 
-#endif //GPUTPCROW_H
+#endif // GPUTPCROW_H

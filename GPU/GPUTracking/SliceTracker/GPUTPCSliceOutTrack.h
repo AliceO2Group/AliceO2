@@ -32,36 +32,30 @@
  */
 class GPUTPCSliceOutTrack
 {
-  public:
-	GPUhd() int NClusters() const { return fNClusters; }
-	GPUhd() const GPUTPCBaseTrackParam &Param() const { return fParam; }
-	GPUhd() const GPUTPCSliceOutCluster &Cluster(int i) const { return fClusters[i]; }
-	GPUhd() const GPUTPCSliceOutCluster *Clusters() const { return fClusters; }
+ public:
+  GPUhd() int NClusters() const { return mNClusters; }
+  GPUhd() const GPUTPCBaseTrackParam& Param() const { return mParam; }
+  GPUhd() const GPUTPCSliceOutCluster& Cluster(int i) const { return mClusters[i]; }
+  GPUhd() const GPUTPCSliceOutCluster* Clusters() const { return mClusters; }
 
-	GPUhd() void SetNClusters(int v) { fNClusters = v; }
-	GPUhd() void SetParam(const GPUTPCBaseTrackParam &v) { fParam = v; }
-	GPUhd() void SetCluster(int i, const GPUTPCSliceOutCluster &v) { fClusters[i] = v; }
+  GPUhd() void SetNClusters(int v) { mNClusters = v; }
+  GPUhd() void SetParam(const GPUTPCBaseTrackParam& v) { mParam = v; }
+  GPUhd() void SetCluster(int i, const GPUTPCSliceOutCluster& v) { mClusters[i] = v; }
 
-	GPUhd() static int GetSize(int nClust) { return sizeof(GPUTPCSliceOutTrack) + nClust * sizeof(GPUTPCSliceOutCluster); }
+  GPUhd() static int GetSize(int nClust) { return sizeof(GPUTPCSliceOutTrack) + nClust * sizeof(GPUTPCSliceOutCluster); }
 
-	GPUhd() int LocalTrackId() const { return fLocalTrackId; }
-	GPUhd() void SetLocalTrackId(int v) { fLocalTrackId = v; }
+  GPUhd() int LocalTrackId() const { return mLocalTrackId; }
+  GPUhd() void SetLocalTrackId(int v) { mLocalTrackId = v; }
 
-	GPUhd() GPUTPCSliceOutTrack *NextTrack()
-	{
-		return (GPUTPCSliceOutTrack *) (((char *) this) + GetSize(fNClusters));
-	}
+  GPUhd() GPUTPCSliceOutTrack* NextTrack() { return (GPUTPCSliceOutTrack*)(((char*)this) + GetSize(mNClusters)); }
 
-	GPUhd() const GPUTPCSliceOutTrack *GetNextTrack() const
-	{
-		return (GPUTPCSliceOutTrack *) (((char *) this) + GetSize(fNClusters));
-	}
+  GPUhd() const GPUTPCSliceOutTrack* GetNextTrack() const { return (GPUTPCSliceOutTrack*)(((char*)this) + GetSize(mNClusters)); }
 
-  private:
-	GPUTPCBaseTrackParam fParam; //* fitted track parameters at its innermost cluster
-	int fNClusters;                   //* number of track clusters
-	int fLocalTrackId;                //See AliHLTPCCATrack.h
-	GPUTPCSliceOutCluster fClusters[0]; //* track clusters
+ private:
+  GPUTPCBaseTrackParam mParam;        //* fitted track parameters at its innermost cluster
+  int mNClusters;                     //* number of track clusters
+  int mLocalTrackId;                  // See AliHLTPCCATrack.h
+  GPUTPCSliceOutCluster mClusters[0]; //* track clusters
 };
 
 #endif

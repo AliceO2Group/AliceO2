@@ -11,7 +11,8 @@ class AliHLTExternalTrackParam;
 
 //_____________________________________________________________________________
 #if defined(__CINT__) || defined(__ROOTCINT__)
-template <typename T> class GPUTRDTrack_t;
+template <typename T>
+class GPUTRDTrack_t;
 #else
 #include "GPUTRDInterfaces.h"
 
@@ -19,38 +20,41 @@ template <typename T>
 class GPUTRDTrack_t : public T
 {
  public:
-
   enum EGPUTRDTrack { kNLayers = 6 };
 
   GPUd() GPUTRDTrack_t();
-  GPUTRDTrack_t(const typename T::baseClass &t ) = delete;
+  GPUTRDTrack_t(const typename T::baseClass& t) = delete;
   GPUd() GPUTRDTrack_t(const GPUTRDTrack_t& t);
   GPUd() GPUTRDTrack_t(const AliHLTExternalTrackParam& t);
   GPUd() GPUTRDTrack_t(const T& t);
-  GPUd() GPUTRDTrack_t &operator=(const GPUTRDTrack_t& t);
+  GPUd() GPUTRDTrack_t& operator=(const GPUTRDTrack_t& t);
 
-  GPUd() int   GetNlayers()                 const;
-  GPUd() int   GetTracklet(int iLayer)      const;
-  GPUd() int   GetTPCtrackId()              const { return mTPCTrackId; }
-  GPUd() int   GetNtracklets()              const { return mNTracklets; }
-  GPUd() int   GetNtrackletsOffline(int type) const { return mNTrackletsOffline[type]; }
-  GPUd() int   GetLabelOffline()            const { return mLabelOffline; }
-  GPUd() int   GetLabel()                   const { return mLabel; }
-  GPUd() float GetChi2()                    const { return mChi2; }
-  GPUd() float GetReducedChi2()             const { return GetNlayers() == 0 ? mChi2 : mChi2 / GetNlayers(); }
-  GPUd() float GetMass()                    const { return mMass; }
-  GPUd() bool  GetIsStopped()               const { return mIsStopped; }
-  GPUd() bool  GetIsFindable(int iLayer)    const { return mIsFindable[iLayer]; }
-  GPUd() int   GetTrackletIndex(int iLayer) const { return GetTracklet(iLayer); }
-  GPUd() int   GetNmissingConsecLayers(int iLayer) const;
+  GPUd() int GetNlayers() const;
+  GPUd() int GetTracklet(int iLayer) const;
+  GPUd() int GetTPCtrackId() const { return mTPCTrackId; }
+  GPUd() int GetNtracklets() const { return mNTracklets; }
+  GPUd() int GetNtrackletsOffline(int type) const { return mNTrackletsOffline[type]; }
+  GPUd() int GetLabelOffline() const { return mLabelOffline; }
+  GPUd() int GetLabel() const { return mLabel; }
+  GPUd() float GetChi2() const { return mChi2; }
+  GPUd() float GetReducedChi2() const { return GetNlayers() == 0 ? mChi2 : mChi2 / GetNlayers(); }
+  GPUd() float GetMass() const { return mMass; }
+  GPUd() bool GetIsStopped() const { return mIsStopped; }
+  GPUd() bool GetIsFindable(int iLayer) const { return mIsFindable[iLayer]; }
+  GPUd() int GetTrackletIndex(int iLayer) const { return GetTracklet(iLayer); }
+  GPUd() int GetNmissingConsecLayers(int iLayer) const;
 
-  GPUd() void AddTracklet(int iLayer, int idx)  { mAttachedTracklets[iLayer] = idx; mNTracklets++;}
-  GPUd() void SetTPCtrackId(int v)              { mTPCTrackId = v;}
-  GPUd() void SetNtracklets(int nTrklts)        { mNTracklets = nTrklts; }
-  GPUd() void SetIsFindable(int iLayer)         { mIsFindable[iLayer] = true; }
+  GPUd() void AddTracklet(int iLayer, int idx)
+  {
+    mAttachedTracklets[iLayer] = idx;
+    mNTracklets++;
+  }
+  GPUd() void SetTPCtrackId(int v) { mTPCTrackId = v; }
+  GPUd() void SetNtracklets(int nTrklts) { mNTracklets = nTrklts; }
+  GPUd() void SetIsFindable(int iLayer) { mIsFindable[iLayer] = true; }
   GPUd() void SetNtrackletsOffline(int type, int nTrklts) { mNTrackletsOffline[type] = nTrklts; }
-  GPUd() void SetLabelOffline(int lab)          { mLabelOffline = lab; }
-  GPUd() void SetIsStopped()                    { mIsStopped = true; }
+  GPUd() void SetLabelOffline(int lab) { mLabelOffline = lab; }
+  GPUd() void SetIsStopped() { mIsStopped = true; }
 
   GPUd() void SetChi2(float chi2) { mChi2 = chi2; }
   GPUd() void SetMass(float mass) { mMass = mass; }
@@ -58,12 +62,10 @@ class GPUTRDTrack_t : public T
 
   // conversion to / from HLT track structure
 
-  GPUd() void ConvertTo( GPUTRDTrackDataRecord &t ) const;
-  GPUd() void ConvertFrom( const GPUTRDTrackDataRecord &t );
-
+  GPUd() void ConvertTo(GPUTRDTrackDataRecord& t) const;
+  GPUd() void ConvertFrom(const GPUTRDTrackDataRecord& t);
 
  protected:
-
   float mChi2;                      // total chi2
   float mMass;                      // mass hypothesis
   int mLabel;                       // MC label
@@ -75,7 +77,6 @@ class GPUTRDTrack_t : public T
   int mAttachedTracklets[kNLayers]; // IDs for attached tracklets sorted by layer
   bool mIsFindable[kNLayers];       // number of layers where tracklet should exist
   bool mIsStopped;                  // track ends in TRD
-
 };
 
 #endif

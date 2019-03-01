@@ -14,19 +14,28 @@
 #ifndef GPUTPCGMMERGEDTRACKHIT_H
 #define GPUTPCGMMERGEDTRACKHIT_H
 
-struct GPUTPCGMMergedTrackHit
-{
-	float fX, fY, fZ;
-	unsigned int fNum;
-	unsigned char fSlice, fRow, fLeg, fState;
-	unsigned short fAmp;
-  
-	enum hitState { flagSplitPad = 0x1, flagSplitTime = 0x2, flagSplit = 0x3, flagEdge = 0x4, flagSingle = 0x8, flagShared = 0x10, hwcfFlags = 0x1F, flagRejectDistance = 0x20, flagRejectErr = 0x40, flagReject = 0x60, flagNotFit = 0x80 };
+struct GPUTPCGMMergedTrackHit {
+  float x, y, z;
+  unsigned int num;
+  unsigned char slice, row, leg, state;
+  unsigned short amp;
+
+  enum hitState { flagSplitPad = 0x1,
+                  flagSplitTime = 0x2,
+                  flagSplit = 0x3,
+                  flagEdge = 0x4,
+                  flagSingle = 0x8,
+                  flagShared = 0x10,
+                  hwcmFlags = 0x1F,
+                  flagRejectDistance = 0x20,
+                  flagRejectErr = 0x40,
+                  flagReject = 0x60,
+                  flagNotFit = 0x80 };
 
 #ifdef GMPropagatePadRowTime
-public:
-	float fPad;
-	float fTime;
+ public:
+  float pad;
+  float time;
 #endif
 };
 

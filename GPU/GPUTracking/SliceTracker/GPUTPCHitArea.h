@@ -32,50 +32,49 @@ class GPUTPCSliceData;
  */
 class GPUTPCHitArea
 {
-  public:
-	MEM_TEMPLATE()
-	GPUd() void Init(const MEM_TYPE(GPUTPCRow) & row, GPUglobalref() const MEM_GLOBAL(GPUTPCSliceData) & slice, float y, float z, float dy, float dz);
+ public:
+  MEM_TEMPLATE()
+  GPUd() void Init(const MEM_TYPE(GPUTPCRow) & row, GPUglobalref() const MEM_GLOBAL(GPUTPCSliceData) & slice, float y, float z, float dy, float dz);
 
-	/**
-     * look up the next hit in the requested area.
-     * Sets h to the coordinates and returns the index for the hit data
-     */
-	MEM_TEMPLATE()
-	GPUd() int GetNext(GPUconstantref() const MEM_CONSTANT(GPUTPCTracker) & tracker, const MEM_TYPE(GPUTPCRow) & row,
-	                   GPUglobalref() const MEM_GLOBAL(GPUTPCSliceData) & slice, GPUTPCHit *h);
+  /**
+	 * look up the next hit in the requested area.
+	 * Sets h to the coordinates and returns the index for the hit data
+	 */
+  MEM_TEMPLATE()
+  GPUd() int GetNext(GPUconstantref() const MEM_CONSTANT(GPUTPCTracker) & tracker, const MEM_TYPE(GPUTPCRow) & row, GPUglobalref() const MEM_GLOBAL(GPUTPCSliceData) & slice, GPUTPCHit* h);
 
-	float Y() const { return fY; }
-	float Z() const { return fZ; }
-	float MinZ() const { return fMinZ; }
-	float MaxZ() const { return fMaxZ; }
-	float MinY() const { return fMinY; }
-	float MaxY() const { return fMaxY; }
-	int BZmax() const { return fBZmax; }
-	int BDY() const { return fBDY; }
-	int IndYmin() const { return fIndYmin; }
-	int Iz() const { return fIz; }
-	int HitYfst() const { return fHitYfst; }
-	int HitYlst() const { return fHitYlst; }
-	int Ih() const { return fIh; }
-	int Ny() const { return fNy; }
-	int HitOffset() const { return fHitOffset; }
+  float Y() const { return mY; }
+  float Z() const { return mZ; }
+  float MinZ() const { return mMinZ; }
+  float MaxZ() const { return mMaxZ; }
+  float MinY() const { return mMinY; }
+  float MaxY() const { return mMaxY; }
+  int BZmax() const { return mBZmax; }
+  int BDY() const { return mBDY; }
+  int IndYmin() const { return mIndYmin; }
+  int Iz() const { return mIz; }
+  int HitYfst() const { return mHitYfst; }
+  int HitYlst() const { return mHitYlst; }
+  int Ih() const { return mIh; }
+  int Ny() const { return mNy; }
+  int HitOffset() const { return mHitOffset; }
 
-  protected:
-	float fY;       // search coordinates
-	float fZ;       // search coordinates
-	float fMinZ;    // search coordinates
-	float fMaxZ;    // search coordinates
-	float fMinY;    // search coordinates
-	float fMaxY;    // search coordinates
-	int fBZmax;     // maximal Z bin index
-	int fBDY;       // Y distance of bin indexes
-	int fIndYmin;   // minimum index for
-	int fIz;        // current Z bin index (incremented while iterating)
-	int fHitYfst;   //
-	int fHitYlst;   //
-	int fIh;        // some XXX index in the hit data
-	int fNy;        // Number of bins in Y direction
-	int fHitOffset; // global hit offset XXX what's that?
+ protected:
+  float mY;       // search coordinates
+  float mZ;       // search coordinates
+  float mMinZ;    // search coordinates
+  float mMaxZ;    // search coordinates
+  float mMinY;    // search coordinates
+  float mMaxY;    // search coordinates
+  int mBZmax;     // maximal Z bin index
+  int mBDY;       // Y distance of bin indexes
+  int mIndYmin;   // minimum index for
+  int mIz;        // current Z bin index (incremented while iterating)
+  int mHitYfst;   //
+  int mHitYlst;   //
+  int mIh;        // some XXX index in the hit data
+  int mNy;        // Number of bins in Y direction
+  int mHitOffset; // global hit offset XXX what's that?
 };
 
-#endif //GPUTPCHITAREA_H
+#endif // GPUTPCHITAREA_H

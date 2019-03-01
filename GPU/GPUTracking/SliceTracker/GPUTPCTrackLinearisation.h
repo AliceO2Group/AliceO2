@@ -32,53 +32,53 @@
  */
 class GPUTPCTrackLinearisation
 {
-  public:
-	GPUTPCTrackLinearisation() : fSinPhi( 0 ), fCosPhi( 1 ), fDzDs( 0 ), fQPt( 0 ) {}
-	GPUTPCTrackLinearisation( float SinPhi1, float CosPhi1, float DzDs1, float QPt1 ) : fSinPhi( SinPhi1 ), fCosPhi( CosPhi1 ), fDzDs( DzDs1 ), fQPt( QPt1 ) {}
+ public:
+  GPUTPCTrackLinearisation() : mSinPhi(0), mCosPhi(1), mDzDs(0), mQPt(0) {}
+  GPUTPCTrackLinearisation(float SinPhi1, float CosPhi1, float DzDs1, float QPt1) : mSinPhi(SinPhi1), mCosPhi(CosPhi1), mDzDs(DzDs1), mQPt(QPt1) {}
 
-	GPUd() MEM_CLASS_PRE2() GPUTPCTrackLinearisation( const MEM_LG2(GPUTPCTrackParam) &t );
+  GPUd() MEM_CLASS_PRE2() GPUTPCTrackLinearisation(const MEM_LG2(GPUTPCTrackParam) & t);
 
-	GPUd() void Set( float SinPhi1, float CosPhi1, float DzDs1, float QPt1 );
+  GPUd() void Set(float SinPhi1, float CosPhi1, float DzDs1, float QPt1);
 
-	GPUd() float SinPhi()const { return fSinPhi; }
-	GPUd() float CosPhi()const { return fCosPhi; }
-	GPUd() float DzDs()  const { return fDzDs; }
-	GPUd() float QPt()   const { return fQPt; }
+  GPUd() float SinPhi() const { return mSinPhi; }
+  GPUd() float CosPhi() const { return mCosPhi; }
+  GPUd() float DzDs() const { return mDzDs; }
+  GPUd() float QPt() const { return mQPt; }
 
-	GPUd() float GetSinPhi()const { return fSinPhi; }
-	GPUd() float GetCosPhi()const { return fCosPhi; }
-	GPUd() float GetDzDs()  const { return fDzDs; }
-	GPUd() float GetQPt()   const { return fQPt; }
+  GPUd() float GetSinPhi() const { return mSinPhi; }
+  GPUd() float GetCosPhi() const { return mCosPhi; }
+  GPUd() float GetDzDs() const { return mDzDs; }
+  GPUd() float GetQPt() const { return mQPt; }
 
-	GPUd() void SetSinPhi( float v ) {  fSinPhi = v; }
-	GPUd() void SetCosPhi( float v ) {  fCosPhi = v; }
-	GPUd() void SetDzDs( float v )  {  fDzDs   = v; }
-	GPUd() void SetQPt( float v )   {  fQPt = v; }
+  GPUd() void SetSinPhi(float v) { mSinPhi = v; }
+  GPUd() void SetCosPhi(float v) { mCosPhi = v; }
+  GPUd() void SetDzDs(float v) { mDzDs = v; }
+  GPUd() void SetQPt(float v) { mQPt = v; }
 
-  private:
-	float fSinPhi; // SinPhi
-	float fCosPhi; // CosPhi
-	float fDzDs;   // DzDs
-	float fQPt;    // QPt
+ private:
+  float mSinPhi; // SinPhi
+  float mCosPhi; // CosPhi
+  float mDzDs;   // DzDs
+  float mQPt;    // QPt
 };
 
-
-GPUd() MEM_CLASS_PRE2() inline GPUTPCTrackLinearisation::GPUTPCTrackLinearisation( const MEM_LG2(GPUTPCTrackParam) &t )
-	: fSinPhi( t.SinPhi() ), fCosPhi( 0 ), fDzDs( t.DzDs() ), fQPt( t.QPt() )
+GPUd() MEM_CLASS_PRE2() inline GPUTPCTrackLinearisation::GPUTPCTrackLinearisation(const MEM_LG2(GPUTPCTrackParam) & t) : mSinPhi(t.SinPhi()), mCosPhi(0), mDzDs(t.DzDs()), mQPt(t.QPt())
 {
-	if ( fSinPhi > GPUCA_MAX_SIN_PHI ) fSinPhi = GPUCA_MAX_SIN_PHI;
-	else if ( fSinPhi < -GPUCA_MAX_SIN_PHI ) fSinPhi = -GPUCA_MAX_SIN_PHI;
-	fCosPhi = CAMath::Sqrt( 1 - fSinPhi * fSinPhi );
-	if ( t.SignCosPhi() < 0 ) fCosPhi = -fCosPhi;
+  if (mSinPhi > GPUCA_MAX_SIN_PHI)
+    mSinPhi = GPUCA_MAX_SIN_PHI;
+  else if (mSinPhi < -GPUCA_MAX_SIN_PHI)
+    mSinPhi = -GPUCA_MAX_SIN_PHI;
+  mCosPhi = CAMath::Sqrt(1 - mSinPhi * mSinPhi);
+  if (t.SignCosPhi() < 0)
+    mCosPhi = -mCosPhi;
 }
 
-GPUd() inline void GPUTPCTrackLinearisation::Set( float SinPhi1, float CosPhi1,
-	float DzDs1, float QPt1 )
+GPUd() inline void GPUTPCTrackLinearisation::Set(float SinPhi1, float CosPhi1, float DzDs1, float QPt1)
 {
-	SetSinPhi( SinPhi1 );
-	SetCosPhi( CosPhi1 );
-	SetDzDs( DzDs1 );
-	SetQPt( QPt1 );
+  SetSinPhi(SinPhi1);
+  SetCosPhi(CosPhi1);
+  SetDzDs(DzDs1);
+  SetQPt(QPt1);
 }
 
-#endif //GPUTPCTRACKLINEARISATION_H
+#endif // GPUTPCTRACKLINEARISATION_H

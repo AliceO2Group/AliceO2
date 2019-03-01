@@ -13,8 +13,7 @@
 
 #include "GPUTPCMCPoint.h"
 
-GPUTPCMCPoint::GPUTPCMCPoint()
-	: fX( 0 ), fY( 0 ), fZ( 0 ), fSx( 0 ), fSy( 0 ), fSz( 0 ), fTime( 0 ), fISlice( 0 ), fTrackID( 0 )
+GPUTPCMCPoint::GPUTPCMCPoint() : fX(0), fY(0), fZ(0), fSx(0), fSy(0), fSz(0), fTime(0), mISlice(0), fTrackID(0)
 {
-	//* Default constructor
+  //* Default constructor
 }

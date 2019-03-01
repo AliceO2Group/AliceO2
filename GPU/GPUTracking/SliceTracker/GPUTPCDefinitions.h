@@ -18,7 +18,7 @@
 
 namespace GPUTPCDefinitions
 {
-	extern const AliHLTComponentDataType fgkTrackletsDataType;
+extern const AliHLTComponentDataType fgkTrackletsDataType;
 }
 
-#endif //GPUTPCDEFINITIONS_H
+#endif // GPUTPCDEFINITIONS_H

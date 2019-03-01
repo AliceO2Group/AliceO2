@@ -13,7 +13,6 @@
 ///
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
-
 #ifndef ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORMMANAGER_H
 #define ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORMMANAGER_H
 
@@ -24,8 +23,10 @@
 #include "TString.h"
 #include "AliTPCTransform.h"
 
-namespace ali_tpc_common {
-namespace tpc_fast_transformation {
+namespace ali_tpc_common
+{
+namespace tpc_fast_transformation
+{
 class TPCFastTransform;
 
 ///
@@ -36,50 +37,50 @@ class TPCFastTransformManager
 {
  public:
   /// _____________  Constructors / destructors __________________________
- 
+
   /// Default constructor
   TPCFastTransformManager();
 
   /// Copy constructor: disabled
-  TPCFastTransformManager(const TPCFastTransformManager& ) CON_DELETE;
- 
+  TPCFastTransformManager(const TPCFastTransformManager&) CON_DELETE;
+
   /// Assignment operator: disabled
-  TPCFastTransformManager &operator=(const TPCFastTransformManager &) CON_DELETE;
-     
+  TPCFastTransformManager& operator=(const TPCFastTransformManager&) CON_DELETE;
+
   /// Destructor
   ~TPCFastTransformManager() CON_DEFAULT;
 
   /// _______________  Main functionality  ________________________
 
   /// Initializes TPCFastTransform object
-  int  create( TPCFastTransform &spline, AliTPCTransform *transform, Long_t TimeStamp );
+  int create(TPCFastTransform& spline, AliTPCTransform* transform, Long_t TimeStamp);
 
   /// Updates the transformation with the new time stamp
-  Int_t updateCalibration( TPCFastTransform &spline, Long_t TimeStamp );
-  
+  Int_t updateCalibration(TPCFastTransform& spline, Long_t TimeStamp);
+
   /// _______________  Utilities   ________________________
 
-  AliTPCTransform *getOriginalTransform()  { return mOrigTransform; }
- 
+  AliTPCTransform* getOriginalTransform() { return mOrigTransform; }
+
   ///  Gives error string
   const char* getLastError() const { return mError.Data(); }
 
  private:
-
   /// Stores an error message
-  int storeError(Int_t code, const char *msg);
+  int storeError(Int_t code, const char* msg);
 
-  TString mError; ///< error string
-  AliTPCTransform* mOrigTransform;    ///< transient
-  int fLastTimeBin;                 ///< last calibrated time bin
+  TString mError;                  ///< error string
+  AliTPCTransform* mOrigTransform; ///< transient
+  int fLastTimeBin;                ///< last calibrated time bin
 };
 
-inline int TPCFastTransformManager::storeError(int code, const char *msg)
+inline int TPCFastTransformManager::storeError(int code, const char* msg)
 {
   mError = msg;
   return code;
 }
 
-}} // namespaces
+} // namespace tpc_fast_transformation
+} // namespace ali_tpc_common
 
 #endif

@@ -19,16 +19,15 @@
 /// \author Rifki Sadikin <rifki.sadikin@cern.ch>, Indonesian Institute of Sciences
 /// \date Mar 4, 2015
 
-
 #include "AliTPCLookUpTable3DInterpolatorIrregularD.h"
 
 /// \cond CLASSIMP3
 ClassImp(AliTPCLookUpTable3DInterpolatorIrregularD)
-/// \endcond
+  /// \endcond
 
-
-/// constructor
-AliTPCLookUpTable3DInterpolatorIrregularD::AliTPCLookUpTable3DInterpolatorIrregularD() {
+  /// constructor
+  AliTPCLookUpTable3DInterpolatorIrregularD::AliTPCLookUpTable3DInterpolatorIrregularD()
+{
   fOrder = 1;
   fIsAllocatingLookUp = kFALSE;
 }
@@ -50,10 +49,11 @@ AliTPCLookUpTable3DInterpolatorIrregularD::AliTPCLookUpTable3DInterpolatorIrregu
 /// \param stepPhi
 /// \param type
 AliTPCLookUpTable3DInterpolatorIrregularD::AliTPCLookUpTable3DInterpolatorIrregularD(
-        Int_t nRRow, TMatrixD **matricesRValue, TMatrixD **matricesRPoint, Int_t nPhiSlice, TMatrixD **matricesPhiValue,
-        TMatrixD **matricesPhiPoint, Int_t nZColumn,
-        TMatrixD **matricesZValue, TMatrixD **matricesZPoint, Int_t order, Int_t stepR, Int_t stepZ, Int_t stepPhi,
-        Int_t type) {
+  Int_t nRRow, TMatrixD** matricesRValue, TMatrixD** matricesRPoint, Int_t nPhiSlice, TMatrixD** matricesPhiValue,
+  TMatrixD** matricesPhiPoint, Int_t nZColumn,
+  TMatrixD** matricesZValue, TMatrixD** matricesZPoint, Int_t order, Int_t stepR, Int_t stepZ, Int_t stepPhi,
+  Int_t type)
+{
   fIsAllocatingLookUp = kFALSE;
 
   SetNR(nRRow);
@@ -68,11 +68,11 @@ AliTPCLookUpTable3DInterpolatorIrregularD::AliTPCLookUpTable3DInterpolatorIrregu
   SetOrder(order);
 
   fInterpolatorR = new AliTPC3DCylindricalInterpolatorIrregular(
-          nRRow, nZColumn, nPhiSlice, stepR, stepZ, stepPhi, type);
+    nRRow, nZColumn, nPhiSlice, stepR, stepZ, stepPhi, type);
   fInterpolatorZ = new AliTPC3DCylindricalInterpolatorIrregular(
-          nRRow, nZColumn, nPhiSlice, stepR, stepZ, stepPhi, type);
+    nRRow, nZColumn, nPhiSlice, stepR, stepZ, stepPhi, type);
   fInterpolatorPhi = new AliTPC3DCylindricalInterpolatorIrregular(
-          nRRow, nZColumn, nPhiSlice, stepR, stepZ, stepPhi, type);
+    nRRow, nZColumn, nPhiSlice, stepR, stepZ, stepPhi, type);
 
   fInterpolatorR->SetNR(nRRow);
   fInterpolatorR->SetNZ(nZColumn);
@@ -87,11 +87,11 @@ AliTPCLookUpTable3DInterpolatorIrregularD::AliTPCLookUpTable3DInterpolatorIrregu
   fInterpolatorPhi->SetNZ(nZColumn);
   fInterpolatorPhi->SetNPhi(nPhiSlice);
   fInterpolatorPhi->SetOrder(order);
-
 }
 
 /// destructor
-AliTPCLookUpTable3DInterpolatorIrregularD::~AliTPCLookUpTable3DInterpolatorIrregularD() {
+AliTPCLookUpTable3DInterpolatorIrregularD::~AliTPCLookUpTable3DInterpolatorIrregularD()
+{
 
   if (fIsAllocatingLookUp) {
     for (Int_t m = 0; m < fNPhi; m++) {
@@ -115,7 +115,8 @@ AliTPCLookUpTable3DInterpolatorIrregularD::~AliTPCLookUpTable3DInterpolatorIrreg
 }
 
 /// copy from matrices to the interpolator
-void AliTPCLookUpTable3DInterpolatorIrregularD::CopyFromMatricesToInterpolator() {
+void AliTPCLookUpTable3DInterpolatorIrregularD::CopyFromMatricesToInterpolator()
+{
 
   fInterpolatorR->SetValue(fMatricesRValue, fMatricesRPoint, fMatricesPhiPoint, fMatricesZPoint);
   fInterpolatorZ->SetValue(fMatricesZValue, fMatricesRPoint, fMatricesPhiPoint, fMatricesZPoint);
@@ -124,7 +125,8 @@ void AliTPCLookUpTable3DInterpolatorIrregularD::CopyFromMatricesToInterpolator()
 
 ///
 /// \param j
-void AliTPCLookUpTable3DInterpolatorIrregularD::CopyFromMatricesToInterpolator(Int_t j) {
+void AliTPCLookUpTable3DInterpolatorIrregularD::CopyFromMatricesToInterpolator(Int_t j)
+{
   fInterpolatorR->SetValue(fMatricesRValue, fMatricesRPoint, fMatricesPhiPoint, fMatricesZPoint, j);
   fInterpolatorZ->SetValue(fMatricesZValue, fMatricesRPoint, fMatricesPhiPoint, fMatricesZPoint, j);
   fInterpolatorPhi->SetValue(fMatricesPhiValue, fMatricesRPoint, fMatricesPhiPoint, fMatricesZPoint, j);
@@ -144,8 +146,9 @@ void AliTPCLookUpTable3DInterpolatorIrregularD::CopyFromMatricesToInterpolator(I
 /// \param stepPhi
 /// \param stepZ
 void AliTPCLookUpTable3DInterpolatorIrregularD::GetValue(
-        Double_t r, Double_t phi, Double_t z, Double_t &rValue, Double_t &phiValue, Double_t &zValue,
-        Int_t rIndex, Int_t phiIndex, Int_t zIndex, Int_t stepR, Int_t stepPhi, Int_t stepZ) {
+  Double_t r, Double_t phi, Double_t z, Double_t& rValue, Double_t& phiValue, Double_t& zValue,
+  Int_t rIndex, Int_t phiIndex, Int_t zIndex, Int_t stepR, Int_t stepPhi, Int_t stepZ)
+{
   rValue = fInterpolatorR->GetValue(r, phi, z, rIndex, phiIndex, zIndex, stepR, stepPhi, stepZ);
   phiValue = fInterpolatorPhi->GetValue(r, phi, z, rIndex, phiIndex, zIndex, stepR, stepPhi, stepZ);
   zValue = fInterpolatorZ->GetValue(r, phi, z, rIndex, phiIndex, zIndex, stepR, stepPhi, stepZ);
@@ -167,14 +170,13 @@ void AliTPCLookUpTable3DInterpolatorIrregularD::GetValue(
 /// \param stepZ
 /// \param minZColumnIndex
 void AliTPCLookUpTable3DInterpolatorIrregularD::GetValue(
-        Double_t r, Double_t phi, Double_t z, Double_t &rValue, Double_t &phiValue, Double_t &zValue, Int_t rIndex,
-        Int_t phiIndex, Int_t zIndex, Int_t stepR, Int_t stepPhi, Int_t stepZ, Int_t minZColumnIndex
-) {
+  Double_t r, Double_t phi, Double_t z, Double_t& rValue, Double_t& phiValue, Double_t& zValue, Int_t rIndex,
+  Int_t phiIndex, Int_t zIndex, Int_t stepR, Int_t stepPhi, Int_t stepZ, Int_t minZColumnIndex)
+{
   rValue = fInterpolatorR->GetValue(r, phi, z, rIndex, phiIndex, zIndex, stepR, stepPhi, stepZ, minZColumnIndex);
   phiValue = fInterpolatorPhi->GetValue(r, phi, z, rIndex, phiIndex, zIndex, stepR, stepPhi, stepZ, minZColumnIndex);
   zValue = fInterpolatorZ->GetValue(r, phi, z, rIndex, phiIndex, zIndex, stepR, stepPhi, stepZ, minZColumnIndex);
 }
-
 
 /// Get interpolation
 /// \param r
@@ -190,8 +192,9 @@ void AliTPCLookUpTable3DInterpolatorIrregularD::GetValue(
 /// \param startPhi
 /// \param startZ
 void AliTPCLookUpTable3DInterpolatorIrregularD::GetValue(
-        Double_t r, Double_t phi, Double_t z, Float_t &rValue, Float_t &phiValue, Float_t &zValue, Int_t rIndex,
-        Int_t phiIndex, Int_t zIndex, Int_t startR, Int_t startPhi, Int_t startZ) {
+  Double_t r, Double_t phi, Double_t z, Float_t& rValue, Float_t& phiValue, Float_t& zValue, Int_t rIndex,
+  Int_t phiIndex, Int_t zIndex, Int_t startR, Int_t startPhi, Int_t startZ)
+{
   rValue = fInterpolatorR->GetValue(r, phi, z, rIndex, phiIndex, zIndex, startR, startPhi, startZ);
   phiValue = fInterpolatorPhi->GetValue(r, phi, z, rIndex, phiIndex, zIndex, startR, startPhi, startZ);
   zValue = fInterpolatorZ->GetValue(r, phi, z, rIndex, phiIndex, zIndex, startR, startPhi, startZ);
@@ -199,9 +202,9 @@ void AliTPCLookUpTable3DInterpolatorIrregularD::GetValue(
 
 // using kdtree
 void AliTPCLookUpTable3DInterpolatorIrregularD::GetValue(
-        Double_t r, Double_t phi, Double_t z, Double_t &rValue, Double_t &phiValue, Double_t &zValue) {
+  Double_t r, Double_t phi, Double_t z, Double_t& rValue, Double_t& phiValue, Double_t& zValue)
+{
   rValue = fInterpolatorR->GetValue(r, phi, z);
   phiValue = fInterpolatorPhi->GetValue(r, phi, z);
   zValue = fInterpolatorZ->GetValue(r, phi, z);
 }
-
