@@ -30,7 +30,6 @@
 
 class GPUTPCSliceTrack;
 class GPUTPCSliceOutput;
-class GPUTPCGMCluster;
 class GPUTPCGMTrackParam;
 class GPUTPCTracker;
 class GPUChainTracking;

@@ -17,7 +17,6 @@
 #include "GPUTPCTracker.h"
 #include "GPUTPCClusterData.h"
 #include "GPUTPCTrackParam.h"
-#include "GPUTPCGMCluster.h"
 #include "GPUTPCGMPolynomialField.h"
 #include "GPUTPCGMPolynomialFieldManager.h"
 #include "GPUTPCGMMerger.h"
