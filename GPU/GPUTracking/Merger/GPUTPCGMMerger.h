@@ -44,6 +44,8 @@ class GPUTPCGMMerger : public GPUProcessor
 public:
 	GPUTPCGMMerger();
 	~GPUTPCGMMerger() CON_DEFAULT;
+	GPUTPCGMMerger(const GPUTPCGMMerger &) CON_DELETE;
+	const GPUTPCGMMerger &operator=(const GPUTPCGMMerger &) const CON_DELETE;
 
 	void InitializeProcessor();
 	void RegisterMemoryAllocation();
@@ -91,9 +93,6 @@ public:
 	void Finalize();
 
   private:
-	GPUTPCGMMerger(const GPUTPCGMMerger &) CON_DELETE;
-	const GPUTPCGMMerger &operator=(const GPUTPCGMMerger &) const CON_DELETE;
-
 	void MakeBorderTracks(int iSlice, int iBorder, GPUTPCGMBorderTrack B[], int &nB, bool fromOrig = false);
 	void MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], int N1, int iSlice2, GPUTPCGMBorderTrack B2[], int N2, int crossCE = 0);
 
