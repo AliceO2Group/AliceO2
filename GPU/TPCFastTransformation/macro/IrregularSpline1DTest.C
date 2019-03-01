@@ -11,6 +11,8 @@ root -l
 .x IrregularSpline1DTest.C++
 */
 
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+
 #include "TFile.h"
 #include "TRandom.h"
 #include "TNtuple.h"
@@ -159,5 +161,4 @@ canv->cd(1);
 
 }
 
-
-
+#endif

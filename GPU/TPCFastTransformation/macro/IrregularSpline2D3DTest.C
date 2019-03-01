@@ -9,6 +9,8 @@ root -l  loadlibs.C
 .x IrregularSpline2D3DTest.C++
 */
 
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+
 #include "TFile.h"
 #include "TRandom.h"
 #include "TNtuple.h"
@@ -219,3 +221,5 @@ Specific drawing options can be used to paint a TGraph2D:
   */
   return 0;
 }
+
+#endif
