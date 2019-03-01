@@ -40,24 +40,27 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 using namespace o2::framework;
 
-/// Defines basic workflow for TPC reconstruction
+/// The workflow executable for the stand alone TPC reconstruction workflow
+/// The basic workflow for TPC reconstruction is defined in RecoWorkflow.cxx
+/// and contains the following default processors
 /// - digit reader
 /// - clusterer
-/// - cluster converter
 /// - cluster raw decoder
 /// - CA tracker
 ///
-/// Digit reader and clusterer can be replaced by the cluster reader.
+/// The default workflow can be customized by specifying input and output types
+/// e.g. digits, raw, tracks.
 ///
-/// MC info is always sent by the digit reader and clusterer processes, the
-/// cluster converter process creating the raw format can be configured to forward MC.
+/// MC info is processed by default, disabled by using command line option `--disable-mc`
 ///
-/// This function is required to be implemented to define the workflow specifications
+/// This function hooks up the the workflow specifications into the DPL driver.
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   auto tpcSectors = o2::RangeTokenizer::tokenize<int>(cfgc.options().get<std::string>("tpc-sectors"));
-  return o2::TPC::RecoWorkflow::getWorkflow(tpcSectors,                                    //
-                                            tpcSectors,                                    //
+  // the lane configuration defines the subspecification ids to be distributes
+  // among the lanes.
+  return o2::TPC::RecoWorkflow::getWorkflow(tpcSectors,                                    // sector configuration
+                                            tpcSectors,                                    // lane configuration
                                             not cfgc.options().get<bool>("disable-mc"),    //
                                             cfgc.options().get<int>("tpc-lanes"),          //
                                             cfgc.options().get<std::string>("input-type"), //
