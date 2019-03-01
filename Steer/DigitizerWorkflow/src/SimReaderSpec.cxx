@@ -33,7 +33,7 @@ namespace o2
 {
 namespace steer
 {
-DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<int>> tpcsectors,
+DataProcessorSpec getSimReaderSpec(int fanoutsize, const std::vector<int>& tpcsectors,
                                    std::shared_ptr<std::vector<int>> tpcsubchannels)
 {
   // this container will contain the TPC sector assignment per subchannel per invocation
@@ -43,7 +43,7 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
   tpcsectormessages->resize(tpcsubchannels->size());
   int tpcchannelcounter = 0;
   uint64_t activeSectors = 0;
-  for (const auto& tpcsector : *tpcsectors.get()) {
+  for (const auto& tpcsector : tpcsectors) {
     activeSectors |= (uint64_t)0x1 << tpcsector;
     auto actualchannel = (*tpcsubchannels.get())[tpcchannelcounter % tpcsubchannels->size()];
     LOG(DEBUG) << " WILL ASSIGN SECTOR " << tpcsector << " to subchannel " << actualchannel;
