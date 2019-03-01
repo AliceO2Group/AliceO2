@@ -4,17 +4,13 @@
 #include "GPUTPCTracker.h"
 #include "GPUParam.h"
 
-#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
+#if (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && (!defined(GPUCA_GPULIBRARY) || !defined(GPUCA_ALIROOT_LIB)) && (!defined(__CINT__) && !defined(__ROOTCINT__))
 #include "GPUTPCGMMerger.h"
 #include "GPUITSFitter.h"
+#include "GPUTRDTracker.h"
 #else
 class GPUTPCGMMerger {};
 class GPUITSFitter {};
-#endif
-
-#if (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && (!defined(GPUCA_GPULIBRARY) || !defined(GPUCA_ALIROOT_LIB))
-#include "GPUTRDTracker.h"
-#else
 class GPUTRDTracker {void SetMaxData(){}};
 #endif
 
