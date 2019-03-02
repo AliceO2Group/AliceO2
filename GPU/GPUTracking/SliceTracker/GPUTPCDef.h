@@ -107,7 +107,13 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
 #endif
 
 #define CALINK_INVAL ((calink) -1)
+namespace o2
+{
+namespace gpu
+{
 struct cahit2{cahit x, y;};
+}
+}
 
 #ifdef GPUCA_FULL_CLUSTERDATA
   #define GPUCA_EVDUMP_FILE "event_full"

@@ -20,6 +20,10 @@
 #include "GPUTPCDef.h"
 #include "GPUSettings.h"
 
+namespace o2
+{
+namespace gpu
+{
 struct GPUSettingsRec;
 struct GPUSettingsEvent;
 
@@ -60,10 +64,12 @@ struct GPUParam {
 
   GPUd() float Alpha(int iSlice) const
   {
-    if (iSlice >= GPUCA_NSLICES / 2)
+    if (iSlice >= GPUCA_NSLICES / 2) {
       iSlice -= GPUCA_NSLICES / 2;
-    if (iSlice >= GPUCA_NSLICES / 4)
+    }
+    if (iSlice >= GPUCA_NSLICES / 4) {
       iSlice -= GPUCA_NSLICES / 2;
+    }
     return 0.174533f + DAlpha * iSlice;
   }
   GPUd() float GetClusterRMS(int yz, int type, float z, float angle2) const;
@@ -79,5 +85,7 @@ struct GPUParam {
   float ParamRMS0[2][3][4];  // cluster shape parameterization coeficients
   float ParamS0Par[2][3][6]; // cluster error parameterization coeficients
 };
+}
+} // namespace o2::gpu
 
 #endif

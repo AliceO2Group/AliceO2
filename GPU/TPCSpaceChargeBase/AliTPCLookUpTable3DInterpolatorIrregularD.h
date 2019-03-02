@@ -2,7 +2,7 @@
 #define AliTPCLookUpTable3DInterpolatorIrregularD_H
 
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
- * See cxx source for full Copyright notice                               */
+* See cxx source for full Copyright notice                               */
 
 /// \class AliTPCLookUpTable3DInterpolatorIrregularD
 /// \brief Wrap up look-up table with irregular grid

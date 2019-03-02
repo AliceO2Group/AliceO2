@@ -31,15 +31,17 @@
 #include "ITStracking/PrimaryVertexContext.h"
 #include "ITStracking/Road.h"
 
-class GPUChainITS;
-
 namespace o2
 {
+namespace gpu
+{
+class GPUChainITS;
+}
 namespace ITS
 {
 
 class TrackITS;
-typedef std::function<int(GPUChainITS&, std::vector<Road>& roads, std::array<const Cluster*, 7>, std::array<const Cell*, 5>, const std::array<std::vector<TrackingFrameInfo>, 7>&, std::vector<TrackITS>&)> FuncRunITSTrackFit_t;
+typedef std::function<int(o2::gpu::GPUChainITS&, std::vector<Road>& roads, std::array<const Cluster*, 7>, std::array<const Cell*, 5>, const std::array<std::vector<TrackingFrameInfo>, 7>&, std::vector<TrackITS>&)> FuncRunITSTrackFit_t;
 
 class TrackerTraits
 {
@@ -49,14 +51,15 @@ class TrackerTraits
   GPU_HOST_DEVICE static constexpr int4 getEmptyBinsRect() { return int4{ 0, 0, 0, 0 }; }
   GPU_DEVICE static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
 
-  void SetRecoChain(GPUChainITS* chain, FuncRunITSTrackFit_t&& funcRunITSTrackFit) {
-      mChainRunITSTrackFit = funcRunITSTrackFit;
-      mChain = chain;
+  void SetRecoChain(o2::gpu::GPUChainITS* chain, FuncRunITSTrackFit_t&& funcRunITSTrackFit)
+  {
+    mChainRunITSTrackFit = funcRunITSTrackFit;
+    mChain = chain;
   }
 
   virtual void computeLayerTracklets(){};
   virtual void computeLayerCells(){};
-  virtual void refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7> &tf, std::vector<TrackITS>& tracks) {};
+  virtual void refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITS>& tracks){};
 
   void UpdateTrackingParameters(const TrackingParameters& trkPar);
   PrimaryVertexContext* getPrimaryVertexContext() { return mPrimaryVertexContext; }
@@ -65,7 +68,7 @@ class TrackerTraits
   PrimaryVertexContext* mPrimaryVertexContext;
   TrackingParameters mTrkParams;
 
-  GPUChainITS* mChain = nullptr;
+  o2::gpu::GPUChainITS* mChain = nullptr;
   FuncRunITSTrackFit_t mChainRunITSTrackFit;
 };
 

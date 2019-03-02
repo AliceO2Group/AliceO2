@@ -18,24 +18,8 @@
 #include "GPUReconstructionHelpers.h"
 #include <atomic>
 #include <array>
-
-class GPUTPCSliceOutput;
-class GPUTPCSliceOutTrack;
-class GPUTPCSliceOutCluster;
-class GPUTPCGMMergedTrack;
-struct GPUTPCGMMergedTrackHit;
-class GPUTRDTrackletWord;
 class AliHLTTPCClusterMCLabel;
-class GPUTPCMCInfo;
-class GPUTRDTracker;
-class GPUTPCGPUTracker;
-struct GPUTPCClusterData;
 struct AliHLTTPCRawCluster;
-struct ClusterNativeAccessExt;
-struct GPUTRDTrackletLabels;
-class GPUDisplay;
-class GPUQA;
-class GPUTRDGeometry;
 
 namespace o2
 {
@@ -43,23 +27,37 @@ namespace trd
 {
 class TRDGeometryFlat;
 }
-} // namespace o2
+} // namespace o2::trd
+
 namespace o2
 {
 namespace TPC
 {
 struct ClusterNativeAccessFullTPC;
 struct ClusterNative;
-} // namespace TPC
-} // namespace o2
-namespace ali_tpc_common
-{
-namespace tpc_fast_transformation
-{
-class TPCFastTransform;
 }
-} // namespace ali_tpc_common
-using TPCFastTransform = ali_tpc_common::tpc_fast_transformation::TPCFastTransform;
+} // namespace o2::TPC
+
+namespace o2
+{
+namespace gpu
+{
+class GPUTPCSliceOutput;
+class GPUTPCSliceOutTrack;
+class GPUTPCSliceOutCluster;
+class GPUTPCGMMergedTrack;
+struct GPUTPCGMMergedTrackHit;
+class GPUTRDTrackletWord;
+class GPUTPCMCInfo;
+class GPUTRDTracker;
+class GPUTPCGPUTracker;
+struct GPUTPCClusterData;
+struct ClusterNativeAccessExt;
+struct GPUTRDTrackletLabels;
+class GPUDisplay;
+class GPUQA;
+class GPUTRDGeometry;
+class TPCFastTransform;
 
 class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelegateBase
 {
@@ -78,15 +76,15 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     InOutPointers() = default;
     InOutPointers(const InOutPointers&) = default;
 
-    const GPUTPCClusterData* clusterData[NSLICES] = {nullptr};
-    unsigned int nClusterData[NSLICES] = {0};
-    const AliHLTTPCRawCluster* rawClusters[NSLICES] = {nullptr};
-    unsigned int nRawClusters[NSLICES] = {0};
+    const GPUTPCClusterData* clusterData[NSLICES] = { nullptr };
+    unsigned int nClusterData[NSLICES] = { 0 };
+    const AliHLTTPCRawCluster* rawClusters[NSLICES] = { nullptr };
+    unsigned int nRawClusters[NSLICES] = { 0 };
     const o2::TPC::ClusterNativeAccessFullTPC* clustersNative = nullptr;
-    const GPUTPCSliceOutTrack* sliceOutTracks[NSLICES] = {nullptr};
-    unsigned int nSliceOutTracks[NSLICES] = {0};
-    const GPUTPCSliceOutCluster* sliceOutClusters[NSLICES] = {nullptr};
-    unsigned int nSliceOutClusters[NSLICES] = {0};
+    const GPUTPCSliceOutTrack* sliceOutTracks[NSLICES] = { nullptr };
+    unsigned int nSliceOutTracks[NSLICES] = { 0 };
+    const GPUTPCSliceOutCluster* sliceOutClusters[NSLICES] = { nullptr };
+    unsigned int nSliceOutClusters[NSLICES] = { 0 };
     const AliHLTTPCClusterMCLabel* mcLabelsTPC = nullptr;
     unsigned int nMCLabelsTPC = 0;
     const GPUTPCMCInfo* mcInfosTPC = nullptr;
@@ -214,13 +212,13 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 #define volatile
 #endif
   volatile int mSliceOutputReady = 0;
-  volatile char mSliceLeftGlobalReady[NSLICES] = {0};
-  volatile char mSliceRightGlobalReady[NSLICES] = {0};
+  volatile char mSliceLeftGlobalReady[NSLICES] = { 0 };
+  volatile char mSliceRightGlobalReady[NSLICES] = { 0 };
 #ifdef __ROOT__
 #undef volatile
 #endif
-  std::array<char, NSLICES> fGlobalTrackingDone;
-  std::array<char, NSLICES> fWriteOutputDone;
+  std::array<char, NSLICES> mGlobalTrackingDone;
+  std::array<char, NSLICES> mWriteOutputDone;
 
  private:
   int RunTPCTrackingSlices_internal();
@@ -229,5 +227,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int HelperReadEvent(int iSlice, int threadId, GPUReconstructionHelpers::helperParam* par);
   int HelperOutput(int iSlice, int threadId, GPUReconstructionHelpers::helperParam* par);
 };
+}
+} // namespace o2::gpu
 
 #endif

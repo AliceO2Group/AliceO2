@@ -93,10 +93,10 @@ inline const std::vector<TrackingFrameInfo>& ROframe::getTrackingFrameInfoOnLaye
   return mTrackingFrameInfo[layerId];
 }
 
-inline const std::array<std::vector<TrackingFrameInfo>, Constants::ITS::LayersNumber>& ROframe::getTrackingFrameInfo() const {
+inline const std::array<std::vector<TrackingFrameInfo>, Constants::ITS::LayersNumber>& ROframe::getTrackingFrameInfo() const
+{
   return mTrackingFrameInfo;
 }
-
 
 inline const TrackingFrameInfo& ROframe::getClusterTrackingFrameInfo(int layerId, const Cluster& cl) const
 {

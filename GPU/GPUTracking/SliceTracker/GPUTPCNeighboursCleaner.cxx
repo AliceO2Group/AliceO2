@@ -14,6 +14,7 @@
 #include "GPUTPCNeighboursCleaner.h"
 #include "GPUTPCTracker.h"
 #include "GPUCommonMath.h"
+using namespace o2::gpu;
 
 template <>
 GPUd() void GPUTPCNeighboursCleaner::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & s, workerType& tracker)
@@ -53,14 +54,16 @@ GPUd() void GPUTPCNeighboursCleaner::Thread<0>(int /*nBlocks*/, int nThreads, in
       calink up = tracker.HitLinkUpData(row, ih);
       if (up != CALINK_INVAL) {
         calink upDn = tracker.HitLinkDownData(rowUp, up);
-        if ((upDn != (calink)ih))
+        if ((upDn != (calink)ih)) {
           tracker.SetHitLinkUpData(row, ih, CALINK_INVAL);
+        }
       }
       calink dn = tracker.HitLinkDownData(row, ih);
       if (dn != CALINK_INVAL) {
         calink dnUp = tracker.HitLinkUpData(rowDn, dn);
-        if (dnUp != (calink)ih)
+        if (dnUp != (calink)ih) {
           tracker.SetHitLinkDownData(row, ih, CALINK_INVAL);
+        }
       }
     }
   }

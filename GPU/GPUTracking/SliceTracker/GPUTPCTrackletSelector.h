@@ -19,6 +19,11 @@
 #include "GPUTPCHitId.h"
 #include "GPUGeneralKernels.h"
 #include "GPUConstantMem.h"
+
+namespace o2
+{
+namespace gpu
+{
 MEM_CLASS_PRE()
 class GPUTPCTracker;
 
@@ -36,7 +41,7 @@ class GPUTPCTrackletSelector
 
    protected:
     int mItr0;          // index of the first track in the block
-    int fNThreadsTotal; // total n threads
+    int mNThreadsTotal; // total n threads
     int mNTracklets;    // n of tracklets
 #if GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
     GPUTPCHitId fHits[GPUCA_THREAD_COUNT_SELECTOR][GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE];
@@ -46,9 +51,14 @@ class GPUTPCTrackletSelector
   typedef GPUconstantref() MEM_CONSTANT(GPUTPCTracker) workerType;
   GPUhdi() static GPUDataTypes::RecoStep GetRecoStep() { return GPUCA_RECO_STEP::TPCSliceTracking; }
   MEM_TEMPLATE()
-  GPUhdi() static workerType* Worker(MEM_TYPE(GPUConstantMem) & workers) { return workers.tpcTrackers; }
+  GPUhdi() static workerType* Worker(MEM_TYPE(GPUConstantMem) & workers)
+  {
+    return workers.tpcTrackers;
+  }
   template <int iKernel = 0>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & smem, workerType& tracker);
 };
+}
+} // namespace o2::gpu
 
 #endif // GPUTPCTRACKLETSELECTOR_H

@@ -75,7 +75,7 @@
   #if defined(__OPENCLCPP__) && !defined(__clang__)
     #define GPUbarrier() work_group_barrier(mem_fence::global | mem_fence::local);
     #define GPUAtomic(type) atomic<type>
-    
+
     static_assert(sizeof(atomic<int>) == sizeof(int), "Invalid atomic type");
   #else
     #define GPUbarrier() barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE)

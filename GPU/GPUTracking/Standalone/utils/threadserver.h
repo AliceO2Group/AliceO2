@@ -25,16 +25,18 @@ class qThreadParam
  public:
   qThreadParam()
   {
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 2; i++) {
       threadMutex[i].Lock();
+    }
     terminate = false;
     pinCPU = -1;
   }
 
   ~qThreadParam()
   {
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 2; i++) {
       threadMutex[i].Unlock();
+    }
   }
 
   bool WaitForTask()
@@ -87,8 +89,9 @@ class qThreadCls
     XthreadParam.pinCPU = pinCPU;
     pthread_t thr;
     pthread_create(&thr, NULL, (void* (*)(void*)) & qThreadWrapperCls, &XthreadParam);
-    if (wait)
+    if (wait) {
       WaitForSpawn();
+    }
     started = true;
   }
 
@@ -163,7 +166,7 @@ class qThreadClsArray
       fprintf(STD_OUT, "Threads already started\n");
       throw(qThreadServerException());
     }
-    pArray = new qThreadCls<S, T>[ n ];
+    pArray = new qThreadCls<S, T>[n];
     nThreadsRunning = n;
     for (int i = 0; i < n; i++) {
       pArray[i].SpawnThread(pCls, pFunc, threadNumOffset + i, pinCPU == NULL ? -1 : pinCPU[i], false);
@@ -188,14 +191,16 @@ class qThreadClsArray
 
   void Start()
   {
-    for (int i = 0; i < nThreadsRunning; i++)
+    for (int i = 0; i < nThreadsRunning; i++) {
       pArray[i].Start();
+    }
   }
 
   void Sync()
   {
-    for (int i = 0; i < nThreadsRunning; i++)
+    for (int i = 0; i < nThreadsRunning; i++) {
       pArray[i].Sync();
+    }
   }
 
  private:

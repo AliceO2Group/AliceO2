@@ -12,3 +12,4 @@
 /// \author Sergey Gorbunov, Ivan Kisel, David Rohr
 
 #include "GPUTPCTracklet.h"
+using namespace o2::gpu;

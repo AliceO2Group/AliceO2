@@ -14,6 +14,8 @@
 #include "GPUTPCTrackLinearisation.h"
 #include "GPUTPCTrackParam.h"
 
+using namespace o2::gpu;
+
 //
 // Circle in XY:
 //
@@ -56,8 +58,9 @@ GPUd() float MEM_LG(GPUTPCTrackParam)::GetS(float x, float y, float Bz) const
   x -= GetX();
   y -= GetY();
   float dS = x * ex + y * ey;
-  if (CAMath::Abs(k) > 1.e-4f)
+  if (CAMath::Abs(k) > 1.e-4f) {
     dS = CAMath::ATan2(k * dS, 1 + k * (x * ey - y * ex)) / k;
+  }
   return dS;
 }
 
@@ -111,37 +114,44 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::TransportToX(float x, GPUTPCTrackLinearisa
 
   // check for intersection with X=x
 
-  if (CAMath::Abs(ey1) > maxSinPhi)
+  if (CAMath::Abs(ey1) > maxSinPhi) {
     return 0;
+  }
 
   ex1 = CAMath::Sqrt(1 - ey1 * ey1);
-  if (ex < 0)
+  if (ex < 0) {
     ex1 = -ex1;
+  }
 
   float dx2 = dx * dx;
   float ss = ey + ey1;
   float cc = ex + ex1;
 
-  if (CAMath::Abs(cc) < 1.e-4f || CAMath::Abs(ex) < 1.e-4f || CAMath::Abs(ex1) < 1.e-4f)
+  if (CAMath::Abs(cc) < 1.e-4f || CAMath::Abs(ex) < 1.e-4f || CAMath::Abs(ex1) < 1.e-4f) {
     return 0;
+  }
 
   float tg = ss / cc; // tanf((phi1+phi)/2)
 
   float dy = dx * tg;
   float dl = dx * CAMath::Sqrt(1 + tg * tg);
 
-  if (cc < 0)
+  if (cc < 0) {
     dl = -dl;
+  }
   float dSin = dl * k / 2;
-  if (dSin > 1)
+  if (dSin > 1) {
     dSin = 1;
-  if (dSin < -1)
+  }
+  if (dSin < -1) {
     dSin = -1;
+  }
   float dS = (CAMath::Abs(k) > 1.e-4f) ? (2 * CAMath::ASin(dSin) / k) : dl;
   float dz = dS * t0.DzDs();
 
-  if (DL)
+  if (DL) {
     *DL = -dS * CAMath::Sqrt(1 + t0.DzDs() * t0.DzDs());
+  }
 
   float cci = 1.f / cc;
   float exi = 1.f / ex;
@@ -220,8 +230,9 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::TransportToX(float x, float sinPhi0, float
   float ey = sinPhi0;
   float dx = x - X();
 
-  if (CAMath::Abs(ex) < 1.e-4f)
+  if (CAMath::Abs(ex) < 1.e-4f) {
     return 0;
+  }
   float exi = 1.f / ex;
 
   float dxBz = dx * (-Bz);
@@ -236,8 +247,9 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::TransportToX(float x, float sinPhi0, float
   // float H4[5] = { 0, 0, 0,  0,  1 };
 
   float sinPhi = SinPhi() + dxBz * QPt();
-  if (maxSinPhi > 0 && CAMath::Abs(sinPhi) > maxSinPhi)
+  if (maxSinPhi > 0 && CAMath::Abs(sinPhi) > maxSinPhi) {
     return 0;
+  }
 
   SetX(X() + dx);
   SetPar(0, GetPar(0) + dS * ey + h2 * (SinPhi() - ey) + h4 * QPt());
@@ -303,8 +315,9 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::TransportToXWithMaterial(float x, GPUTPCTr
   const float kRhoOverRadLen = kRho / kRadLen;
   float dl;
 
-  if (!TransportToX(x, t0, Bz, maxSinPhi, &dl))
+  if (!TransportToX(x, t0, Bz, maxSinPhi, &dl)) {
     return 0;
+  }
 
   CorrectForMeanMaterial(dl * kRhoOverRadLen, dl * kRho, par);
   return 1;
@@ -412,11 +425,13 @@ GPUd() float MEM_LG(GPUTPCTrackParam)::ApproximateBetheBloch(float beta2)
   // the density effect taken into account at beta*gamma > 3.5
   // (the approximation is reasonable only for solid materials)
   //------------------------------------------------------------------
-  if (beta2 >= 1)
+  if (beta2 >= 1) {
     return 0;
+  }
 
-  if (beta2 / (1 - beta2) > 3.5f * 3.5f)
+  if (beta2 / (1 - beta2) > 3.5f * 3.5f) {
     return 0.153e-3f / beta2 * (log(3.5f * 5940) + 0.5f * log(beta2 / (1 - beta2)) - beta2);
+  }
   return 0.153e-3f / beta2 * (log(5940 * beta2 / (1 - beta2)) - beta2);
 }
 
@@ -426,8 +441,9 @@ GPUd() void MEM_LG(GPUTPCTrackParam)::CalculateFitParameters(GPUTPCTrackFitParam
   //*!
 
   float qpt = GetPar(4);
-  if (mC[14] >= 1.f)
+  if (mC[14] >= 1.f) {
     qpt = 1.f / 0.35f;
+  }
 
   float p2 = (1.f + GetPar(3) * GetPar(3));
   float k2 = qpt * qpt;
@@ -474,11 +490,13 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::CorrectForMeanMaterial(float xOverX0, floa
   // Energy losses************************
 
   float dE = par.bethe * xTimesRho;
-  if (CAMath::Abs(dE) > 0.3f * par.e)
+  if (CAMath::Abs(dE) > 0.3f * par.e) {
     return 0; // 30% energy loss is too much!
+  }
   float corr = (1.f - par.EP2 * dE);
-  if (corr < 0.3f || corr > 1.3f)
+  if (corr < 0.3f || corr > 1.3f) {
     return 0;
+  }
 
   SetPar(4, GetPar(4) * corr);
   mC40 *= corr;
@@ -513,8 +531,9 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::Rotate(float alpha, float maxSinPhi)
   float cosPhi = cP * cA + sP * sA;
   float sinPhi = -cP * sA + sP * cA;
 
-  if (CAMath::Abs(sinPhi) > maxSinPhi || CAMath::Abs(cosPhi) < 1.e-2f || CAMath::Abs(cP) < 1.e-2f)
+  if (CAMath::Abs(sinPhi) > maxSinPhi || CAMath::Abs(cosPhi) < 1.e-2f || CAMath::Abs(cP) < 1.e-2f) {
     return 0;
+  }
 
   float j0 = cP / cosPhi;
   float j2 = cosPhi / cP;
@@ -570,8 +589,9 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::Rotate(float alpha, GPUTPCTrackLinearisati
   float cosPhi = cP * cA + sP * sA;
   float sinPhi = -cP * sA + sP * cA;
 
-  if (CAMath::Abs(sinPhi) > maxSinPhi || CAMath::Abs(cosPhi) < 1.e-2f || CAMath::Abs(cP) < 1.e-2f)
+  if (CAMath::Abs(sinPhi) > maxSinPhi || CAMath::Abs(cosPhi) < 1.e-2f || CAMath::Abs(cP) < 1.e-2f) {
     return 0;
+  }
 
   // float J[5][5] = { { j0, 0, 0,  0,  0 }, // Y
   //                    {  0, 1, 0,  0,  0 }, // Z
@@ -617,8 +637,9 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::Filter(float y, float z, float err2Y, floa
 
   float z0 = y - GetPar(0), z1 = z - GetPar(1);
 
-  if (err2Y < 1.e-8f || err2Z < 1.e-8f)
+  if (err2Y < 1.e-8f || err2Z < 1.e-8f) {
     return 0;
+  }
 
   float mS0 = 1.f / err2Y;
   float mS2 = 1.f / err2Z;
@@ -636,16 +657,18 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::Filter(float y, float z, float err2Y, floa
 
   float sinPhi = GetPar(2) + k20 * z0;
 
-  if (maxSinPhi > 0 && CAMath::Abs(sinPhi) >= maxSinPhi)
+  if (maxSinPhi > 0 && CAMath::Abs(sinPhi) >= maxSinPhi) {
     return 0;
+  }
 
   SetPar(0, GetPar(0) + k00 * z0);
   SetPar(1, GetPar(1) + k11 * z1);
   SetPar(2, sinPhi);
   SetPar(3, GetPar(3) + k31 * z1);
   SetPar(4, GetPar(4) + k40 * z0);
-  if (paramOnly)
+  if (paramOnly) {
     return true;
+  }
 
   mNDF += 2;
   mChi2 += mS0 * z0 * z0 + mS2 * z1 * z1;
@@ -672,22 +695,28 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::CheckNumericalQuality() const
   bool ok = CAMath::Finite(GetX()) && CAMath::Finite(mSignCosPhi) && CAMath::Finite(mChi2);
 
   const float* c = Cov();
-  for (int i = 0; i < 15; i++)
+  for (int i = 0; i < 15; i++) {
     ok = ok && CAMath::Finite(c[i]);
-  for (int i = 0; i < 5; i++)
+  }
+  for (int i = 0; i < 5; i++) {
     ok = ok && CAMath::Finite(Par()[i]);
+  }
 
-  if (c[0] <= 0 || c[2] <= 0 || c[5] <= 0 || c[9] <= 0 || c[14] <= 0)
+  if (c[0] <= 0 || c[2] <= 0 || c[5] <= 0 || c[9] <= 0 || c[14] <= 0) {
     ok = 0;
+  }
   if (c[0] > 5.f || c[2] > 5.f || c[5] > 2.f || c[9] > 2
       //|| ( CAMath::Abs( QPt() ) > 1.e-2 && c[14] > 2. )
-      )
+  ) {
     ok = 0;
+  }
 
-  if (CAMath::Abs(SinPhi()) > GPUCA_MAX_SIN_PHI)
+  if (CAMath::Abs(SinPhi()) > GPUCA_MAX_SIN_PHI) {
     ok = 0;
-  if (CAMath::Abs(QPt()) > 1.f / 0.05f)
+  }
+  if (CAMath::Abs(QPt()) > 1.f / 0.05f) {
     ok = 0;
+  }
   if (ok) {
     ok = ok && (c[1] * c[1] <= c[2] * c[0]) && (c[3] * c[3] <= c[5] * c[0]) && (c[4] * c[4] <= c[5] * c[2]) && (c[6] * c[6] <= c[9] * c[0]) && (c[7] * c[7] <= c[9] * c[2]) && (c[8] * c[8] <= c[9] * c[5]) && (c[10] * c[10] <= c[14] * c[0]) && (c[11] * c[11] <= c[14] * c[2]) &&
          (c[12] * c[12] <= c[14] * c[5]) && (c[13] * c[13] <= c[14] * c[9]);

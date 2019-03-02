@@ -22,6 +22,10 @@
 #include <algorithm>
 #endif
 
+namespace o2
+{
+namespace gpu
+{
 class GPUReconstruction;
 MEM_CLASS_PRE()
 struct GPUParam;
@@ -61,11 +65,13 @@ class GPUProcessor
   static inline size_t getAlignment(size_t addr)
   {
     static_assert((alignment & (alignment - 1)) == 0, "Invalid alignment, not power of 2");
-    if (alignment <= 1)
+    if (alignment <= 1) {
       return 0;
+    }
     size_t mod = addr & (alignment - 1);
-    if (mod == 0)
+    if (mod == 0) {
       return 0;
+    }
     return (alignment - mod);
   }
   template <size_t alignment = MIN_ALIGNMENT>
@@ -86,8 +92,9 @@ class GPUProcessor
   template <size_t alignment = MIN_ALIGNMENT, class S>
   static inline S* getPointerWithAlignment(size_t& basePtr, size_t nEntries = 1)
   {
-    if (basePtr == 0)
+    if (basePtr == 0) {
       basePtr = 1;
+    }
     CONSTEXPR size_t maxAlign = (alignof(S) > alignment) ? alignof(S) : alignment;
     basePtr += getAlignment<maxAlign>(basePtr);
     S* retVal = (S*)(basePtr);
@@ -123,5 +130,7 @@ class GPUProcessor
  private:
   bool mAllocateAndInitializeLate;
 };
+}
+} // namespace o2::gpu
 
 #endif

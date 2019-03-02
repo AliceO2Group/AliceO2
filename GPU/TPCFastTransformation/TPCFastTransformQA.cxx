@@ -28,11 +28,7 @@
 #include <iostream>
 #include <iomanip>
 
-namespace ali_tpc_common
-{
-namespace tpc_fast_transformation
-{
-
+using namespace o2::gpu;
 using namespace std;
 
 TPCFastTransformQA::TPCFastTransformQA() {}
@@ -42,20 +38,24 @@ int TPCFastTransformQA::doQA(const TPCFastTransform& fastTransform)
   const char* fileName = "fastTransformQA.root";
 
   AliTPCcalibDB* pCalib = AliTPCcalibDB::Instance();
-  if (!pCalib)
+  if (!pCalib) {
     return storeError(-1, "TPCFastTransformQA: No TPC calibration instance found");
+  }
 
   AliTPCParam* tpcParam = pCalib->GetParameters();
-  if (!tpcParam)
+  if (!tpcParam) {
     return storeError(-2, "TPCFastTransformQA: No TPCParam object found");
+  }
 
   AliTPCTransform* origTransform = pCalib->GetTransform();
-  if (!origTransform)
+  if (!origTransform) {
     return storeError(-3, "TPCFastTransformQA: No TPC transformation found");
+  }
 
   const AliTPCRecoParam* rec = origTransform->GetCurrentRecoParam();
-  if (!rec)
+  if (!rec) {
     return storeError(-5, "TPCFastTransformQA: No TPC Reco Param set in transformation");
+  }
   rec->Print();
 
   int nSec = tpcParam->GetNSector();
@@ -119,8 +119,9 @@ int TPCFastTransformQA::doQA(const TPCFastTransform& fastTransform)
 
   if (1) {
     TFile* file = new TFile(fileName, "RECREATE");
-    if (!file || !file->IsOpen())
+    if (!file || !file->IsOpen()) {
       return storeError(-1, "Can't recreate QA file !");
+    }
     file->cd();
     TNtuple* nt = new TNtuple("fastTransformQA", "fastTransformQA", "sec:row:pad:time:x:y:z:fx:fy:fz");
 
@@ -164,6 +165,3 @@ int TPCFastTransformQA::doQA(Long_t TimeStamp)
 
   return doQA(fastTransform);
 }
-
-} // namespace tpc_fast_transformation
-} // namespace ali_tpc_common

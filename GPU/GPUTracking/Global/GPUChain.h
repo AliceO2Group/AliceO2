@@ -16,6 +16,11 @@
 
 #include "GPUReconstructionCPU.h"
 #include "GPUReconstructionHelpers.h"
+
+namespace o2
+{
+namespace gpu
+{
 class GPUReconstruction;
 
 class GPUChain
@@ -164,5 +169,7 @@ inline void GPUChain::RunHelperThreads(T function, GPUReconstructionHelpers::hel
 {
   mRec->RunHelperThreads((int (GPUReconstructionHelpers::helperDelegateBase::*)(int, int, GPUReconstructionHelpers::helperParam*))function, functionCls, count);
 }
+}
+} // namespace o2::gpu
 
 #endif

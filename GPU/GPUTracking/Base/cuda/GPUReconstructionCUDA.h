@@ -15,13 +15,18 @@
 #define GPURECONSTRUCTIONCUDA_H
 
 #include "GPUReconstructionDeviceBase.h"
-struct GPUReconstructionCUDAInternals;
 
 #ifdef _WIN32
-extern "C" __declspec(dllexport) GPUReconstruction* GPUReconstruction_Create_CUDA(const GPUSettingsProcessing& cfg);
+extern "C" __declspec(dllexport) o2::gpu::GPUReconstruction* GPUReconstruction_Create_CUDA(const o2::gpu::GPUSettingsProcessing& cfg);
 #else
-extern "C" GPUReconstruction* GPUReconstruction_Create_CUDA(const GPUSettingsProcessing& cfg);
+extern "C" o2::gpu::GPUReconstruction* GPUReconstruction_Create_CUDA(const o2::gpu::GPUSettingsProcessing& cfg);
 #endif
+
+namespace o2
+{
+namespace gpu
+{
+struct GPUReconstructionCUDAInternals;
 
 class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
 {
@@ -61,5 +66,7 @@ class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
 };
 
 using GPUReconstructionCUDA = GPUReconstructionKernels<GPUReconstructionCUDABackend>;
+}
+} // namespace o2::gpu
 
 #endif

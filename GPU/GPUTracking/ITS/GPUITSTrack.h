@@ -18,9 +18,8 @@
 
 namespace o2
 {
-namespace ITS
+namespace gpu
 {
-
 class GPUITSTrack : public GPUTPCGMTrackParam
 {
  public:
@@ -28,8 +27,7 @@ class GPUITSTrack : public GPUTPCGMTrackParam
   float mAlpha;
   int mClusters[7];
 };
-
-} // namespace ITS
-} // namespace o2
+}
+} // namespace o2::gpu
 
 #endif

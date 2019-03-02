@@ -12,6 +12,7 @@
 /// \author David Rohr
 
 #include "GPUDisplay.h"
+using namespace o2::gpu;
 
 const char* HelpText[] = {
   "[n] / [SPACE]                 Next event",
@@ -60,8 +61,9 @@ const char* HelpText[] = {
 void GPUDisplay::PrintHelp()
 {
   mInfoHelpTimer.ResetStart();
-  for (unsigned int i = 0; i < sizeof(HelpText) / sizeof(HelpText[0]); i++)
+  for (unsigned int i = 0; i < sizeof(HelpText) / sizeof(HelpText[0]); i++) {
     printf("%s\n", HelpText[i]);
+  }
 }
 
 void GPUDisplay::HandleKeyRelease(unsigned char key)
@@ -85,8 +87,9 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     SetInfo("Camera locked on y-axis facing upwards: %s", mCamYUp ? "enabled" : "disabled");
   } else if (key == 'm') {
     mCameraMode++;
-    if (mCameraMode == 4)
+    if (mCameraMode == 4) {
       mCameraMode = 0;
+    }
     mCamLookOrigin = mCameraMode & 1;
     mCamYUp = mCameraMode & 2;
     const char* modeText[] = { "Descent (free movement)", "Focus locked on origin (y-axis forced upwards)", "Spectator (y-axis forced upwards)", "Focus locked on origin (with free rotation)" };
@@ -107,10 +110,11 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     } else {
       mCfg.drawSlice--;
     }
-    if (mCfg.drawSlice == -1)
+    if (mCfg.drawSlice == -1) {
       SetInfo("Showing all slices", 1);
-    else
+    } else {
       SetInfo("Showing slice %d", mCfg.drawSlice);
+    }
   } else if (key == 'J') {
     mCfg.drawRelatedSlices ^= 1;
     SetInfo("Drawing of related slices %s", mCfg.drawRelatedSlices ? "enabled" : "disabled");
@@ -128,10 +132,11 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     } else {
       mCfg.showCollision--;
     }
-    if (mCfg.showCollision == -1)
+    if (mCfg.showCollision == -1) {
       SetInfo("Showing all collisions", 1);
-    else
+    } else {
       SetInfo("Showing collision %d", mCfg.showCollision);
+    }
   } else if (key == 'F') {
     mFullScreen ^= 1;
     mBackend->SwitchFullscreen(mFullScreen);
@@ -152,28 +157,34 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     SetInfo("Seperated display of global tracks %s", mSeparateGlobalTracks ? "enabled" : "disabled");
     mUpdateDLList = true;
   } else if (key == 'c') {
-    if (mMarkClusters == 0)
+    if (mMarkClusters == 0) {
       mMarkClusters = 1;
-    else if (mMarkClusters >= 0x20)
+    } else if (mMarkClusters >= 0x20) {
       mMarkClusters = 0;
-    else
+    } else {
       mMarkClusters <<= 1;
-    SetInfo("Cluster flag highlight mask set to %d (%s)", mMarkClusters, mMarkClusters == 0 ? "off" : mMarkClusters == 1 ? "split pad" : mMarkClusters == 2 ? "split time" : mMarkClusters == 4 ? "edge" : mMarkClusters == 8 ? "singlePad" : mMarkClusters == 0x10 ? "reject distance" : "reject error");
+    }
+    SetInfo("Cluster flag highlight mask set to %d (%s)", mMarkClusters,
+            mMarkClusters == 0 ? "off" : mMarkClusters == 1 ? "split pad" : mMarkClusters == 2 ? "split time" : mMarkClusters == 4 ? "edge" : mMarkClusters == 8 ? "singlePad" : mMarkClusters == 0x10 ? "reject distance" : "reject error");
     mUpdateDLList = true;
   } else if (key == 'B') {
     markAdjacentClusters++;
-    if (markAdjacentClusters == 5)
+    if (markAdjacentClusters == 5) {
       markAdjacentClusters = 7;
-    if (markAdjacentClusters == 9)
+    }
+    if (markAdjacentClusters == 9) {
       markAdjacentClusters = 15;
-    if (markAdjacentClusters == 18)
+    }
+    if (markAdjacentClusters == 18) {
       markAdjacentClusters = 0;
-    if (markAdjacentClusters == 17)
+    }
+    if (markAdjacentClusters == 17) {
       SetInfo("Marking protected clusters (%d)", markAdjacentClusters);
-    else if (markAdjacentClusters == 16)
+    } else if (markAdjacentClusters == 16) {
       SetInfo("Marking removable clusters (%d)", markAdjacentClusters);
-    else
+    } else {
       SetInfo("Marking adjacent clusters (%d): rejected %s, tube %s, looper leg %s, low Pt %s", markAdjacentClusters, (markAdjacentClusters & 1) ? "yes" : " no", (markAdjacentClusters & 2) ? "yes" : " no", (markAdjacentClusters & 4) ? "yes" : " no", (markAdjacentClusters & 8) ? "yes" : " no");
+    }
     mUpdateDLList = true;
   } else if (key == 'C') {
     mCfg.colorCollisions ^= 1;
@@ -183,8 +194,9 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     SetInfo("Color coding for seed / trrack attachmend %s", mCfg.colorClusters ? "enabled" : "disabled");
   } else if (key == 'E') {
     mCfg.propagateTracks += 1;
-    if (mCfg.propagateTracks == 4)
+    if (mCfg.propagateTracks == 4) {
       mCfg.propagateTracks = 0;
+    }
     const char* infoText[] = { "Hits connected", "Hits connected and propagated to vertex", "Reconstructed track propagated inwards and outwards", "Monte Carlo track" };
     SetInfo("Display of propagated tracks: %s", infoText[mCfg.propagateTracks]);
   } else if (key == 'G') {
@@ -217,18 +229,22 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     setDepthBuffer();
   } else if (key == 'W') {
     mDrawQualityMSAA *= 2;
-    if (mDrawQualityMSAA < 2)
+    if (mDrawQualityMSAA < 2) {
       mDrawQualityMSAA = 2;
-    if (mDrawQualityMSAA > 16)
+    }
+    if (mDrawQualityMSAA > 16) {
       mDrawQualityMSAA = 0;
+    }
     UpdateOffscreenBuffers();
     SetInfo("Multisampling anti-aliasing factor set to %d", mDrawQualityMSAA);
   } else if (key == 'U') {
     mDrawQualityDownsampleFSAA++;
-    if (mDrawQualityDownsampleFSAA == 1)
+    if (mDrawQualityDownsampleFSAA == 1) {
       mDrawQualityDownsampleFSAA = 2;
-    if (mDrawQualityDownsampleFSAA == 5)
+    }
+    if (mDrawQualityDownsampleFSAA == 5) {
       mDrawQualityDownsampleFSAA = 0;
+    }
     UpdateOffscreenBuffers();
     SetInfo("Downsampling anti-aliasing factor set to %d", mDrawQualityDownsampleFSAA);
   } else if (key == 'V') {
@@ -248,8 +264,9 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     mUpdateDLList = true;
     mXadd -= 60;
     mZadd -= 60;
-    if (mZadd < 0 || mXadd < 0)
+    if (mZadd < 0 || mXadd < 0) {
       mZadd = mXadd = 0;
+    }
     SetInfo("TPC sector separation: %f %f", mXadd, mZadd);
   } else if (key == '#') {
     mInvertColors ^= 1;
@@ -292,12 +309,14 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     SetInfo("Taking screenshot (%s)", fname);
   } else if (key == 'Z') {
     screenshot_scale += 1;
-    if (screenshot_scale == 5)
+    if (screenshot_scale == 5) {
       screenshot_scale = 1;
+    }
     SetInfo("Screenshot scaling factor set to %d", screenshot_scale);
   } else if (key == 'y' || key == 'T') {
-    if ((mAnimateScreenshot = (key == 'T')))
+    if ((mAnimateScreenshot = (key == 'T'))) {
       mAnimationExport++;
+    }
     if (mAnimateVectors[0].size() > 1) {
       startAnimation();
       SetInfo("Starting Animation", 1);
@@ -318,21 +337,24 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     SetInfo("Removed Animation point", 1);
   } else if (key == 'M') {
     mCfg.animationMode++;
-    if (mCfg.animationMode == 7)
+    if (mCfg.animationMode == 7) {
       mCfg.animationMode = 0;
+    }
     resetAnimation();
-    if (mCfg.animationMode == 6)
+    if (mCfg.animationMode == 6) {
       SetInfo("Animation mode %d - Centered on origin", mCfg.animationMode);
-    else
+    } else {
       SetInfo("Animation mode %d - Position: %s, Direction: %s", mCfg.animationMode, (mCfg.animationMode & 2) ? "Spherical (spherical rotation)" : (mCfg.animationMode & 4) ? "Spherical (Euler angles)" : "Cartesian", (mCfg.animationMode & 1) ? "Euler angles" : "Quaternion");
+    }
   } else if (key == 'o') {
     FILE* ftmp = fopen("glpos.tmp", "w+b");
     if (ftmp) {
       int retval = fwrite(&mCurrentMatrix[0], sizeof(mCurrentMatrix[0]), 16, ftmp);
-      if (retval != 16)
+      if (retval != 16) {
         printf("Error writing position to file\n");
-      else
+      } else {
         printf("Position stored to file\n");
+      }
       fclose(ftmp);
     } else {
       printf("Error opening file\n");
@@ -362,8 +384,9 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
       fwrite(&mCfg, sizeof(mCfg), 1, ftmp);
       int size = mAnimateVectors[0].size();
       fwrite(&size, sizeof(size), 1, ftmp);
-      for (int i = 0; i < 9; i++)
+      for (int i = 0; i < 9; i++) {
         fwrite(mAnimateVectors[i].data(), sizeof(mAnimateVectors[i][0]), size, ftmp);
+      }
       fwrite(mAnimateConfig.data(), sizeof(mAnimateConfig[0]), size, ftmp);
       fclose(ftmp);
     } else {
@@ -382,7 +405,7 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
       }
       mAnimateConfig.resize(size);
       retval += fread(mAnimateConfig.data(), sizeof(mAnimateConfig[0]), size, ftmp);
-      (void)retval; //disable unused warning
+      (void)retval; // disable unused warning
       fclose(ftmp);
       updateConfig();
     } else {
@@ -394,11 +417,11 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     SetInfo("Showing help text", 1);
   }
   /*else if (key == '#')
-	    {
-	        mTestSetting++;
-	        SetInfo("Debug test variable set to %d", mTestSetting);
-	        mUpdateDLList = true;
-	    }*/
+        {
+            mTestSetting++;
+            SetInfo("Debug test variable set to %d", mTestSetting);
+            mUpdateDLList = true;
+        }*/
 }
 
 void GPUDisplay::HandleSendKey(int key)
@@ -407,8 +430,9 @@ void GPUDisplay::HandleSendKey(int key)
 
   bool shifted = key >= 'A' && key <= 'Z';
   int press = key;
-  if (press >= 'a' && press <= 'z')
+  if (press >= 'a' && press <= 'z') {
     press += 'A' - 'a';
+  }
   bool oldShift = mBackend->mKeysShift[press];
   mBackend->mKeysShift[press] = shifted;
   HandleKeyRelease(key);

@@ -22,11 +22,11 @@
  */
 
 /*
-aliroot
-.L initTPCcalibration.C
-initTPCcalibration("alien://Folder=/alice/data/2015/OCDB",246984,1)
-initTPCcalibration("$ALICE_ROOT/../aliceEventsPbPb/OCDBsim.root",246984,1)
-*/
+   aliroot
+   .L initTPCcalibration.C
+   initTPCcalibration("alien://Folder=/alice/data/2015/OCDB",246984,1)
+   initTPCcalibration("$ALICE_ROOT/../aliceEventsPbPb/OCDBsim.root",246984,1)
+ */
 
 #include "AliTPCcalibDB.h"
 #include "Riostream.h"
@@ -181,8 +181,9 @@ int initTPCcalibration(const Char_t* cdbUri, int runNumber, bool isMC)
 
   unsigned int timeStamp = grpObj->GetTimeStart();
 
-  if (isMC && !recParam->GetUseCorrectionMap())
+  if (isMC && !recParam->GetUseCorrectionMap()) {
     timeStamp = 0;
+  }
 
   tpcCalib->GetTransform()->SetCurrentRecoParam(recParam);
 

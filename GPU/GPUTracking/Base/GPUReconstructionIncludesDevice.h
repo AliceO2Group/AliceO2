@@ -16,6 +16,8 @@
 
 #include "GPUTPCDef.h"
 
+using namespace o2::gpu;
+
 #include "GPUTPCTrackParam.cxx"
 #include "GPUTPCTrack.cxx"
 #include "GPUTPCHitArea.cxx"

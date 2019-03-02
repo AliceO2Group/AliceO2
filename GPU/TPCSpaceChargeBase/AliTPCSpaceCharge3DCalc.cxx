@@ -1,17 +1,17 @@
 /*************************************************************************
-* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
-*                                                                        *
-* Author: The ALICE Off-line Project.                                    *
-* Contributors are mentioned in the code where appropriate.              *
-*                                                                        *
-* Permission to use, copy, modify and distribute this software and its   *
-* documentation strictly for non-commercial purposes is hereby granted   *
-* without fee, provided that the above copyright notice appears in all   *
-* copies and that both the copyright notice and this permission notice   *
-* appear in the supporting documentation. The authors make no claims     *
-* about the suitability of this software for any purpose. It is          *
-* provided "as is" without express or implied warranty.                  *
-**************************************************************************/
+ * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+ *                                                                        *
+ * Author: The ALICE Off-line Project.                                    *
+ * Contributors are mentioned in the code where appropriate.              *
+ *                                                                        *
+ * Permission to use, copy, modify and distribute this software and its   *
+ * documentation strictly for non-commercial purposes is hereby granted   *
+ * without fee, provided that the above copyright notice appears in all   *
+ * copies and that both the copyright notice and this permission notice   *
+ * appear in the supporting documentation. The authors make no claims     *
+ * about the suitability of this software for any purpose. It is          *
+ * provided "as is" without express or implied warranty.                  *
+ **************************************************************************/
 
 /* $Id$ */
 
@@ -105,12 +105,15 @@ void AliTPCSpaceCharge3DCalc::InitAllocateMemory()
   const Float_t gridSizeZ = AliTPCPoissonSolver::fgkTPCZ0 / (fNZColumns - 1);
   const Float_t gridSizePhi = TMath::TwoPi() / fNPhiSlices;
 
-  for (Int_t k = 0; k < fNPhiSlices; k++)
+  for (Int_t k = 0; k < fNPhiSlices; k++) {
     fListPhi[k] = gridSizePhi * k;
-  for (Int_t i = 0; i < fNRRows; i++)
+  }
+  for (Int_t i = 0; i < fNRRows; i++) {
     fListR[i] = AliTPCPoissonSolver::fgkIFCRadius + i * gridSizeR;
-  for (Int_t j = 0; j < fNZColumns; j++)
+  }
+  for (Int_t j = 0; j < fNZColumns; j++) {
     fListZ[j] = (j * gridSizeZ);
+  }
 
   for (Int_t j = 0; j < fNZColumns; j++) {
     fListZA[j] = (j * gridSizeZ);
@@ -317,8 +320,9 @@ void AliTPCSpaceCharge3DCalc::InitAllocateMemory()
 AliTPCSpaceCharge3DCalc::~AliTPCSpaceCharge3DCalc()
 {
 
-  if (fPoissonSolver != NULL)
+  if (fPoissonSolver != NULL) {
     delete fPoissonSolver;
+  }
 
   for (Int_t k = 0; k < fNPhiSlices; k++) {
     delete fMatrixIntDistDrEzA[k];
@@ -412,7 +416,7 @@ AliTPCSpaceCharge3DCalc::~AliTPCSpaceCharge3DCalc()
 ///
 /// 3) Calculate local distortion and correction, using Langevin formula
 /// ~~~ cxx
-/// LocalDistCorrDz (matricesEr, matricesEPhi, 	matricesEz,
+/// LocalDistCorrDz (matricesEr, matricesEPhi,  matricesEz,
 ///	matricesDistDrDz,  matricesDistDPhiRDz, matricesDistDz,
 ///	matricesCorrDrDz,  matricesCorrDPhiRDz, matricesCorrDz,
 ///	nRRow,  nZColumn, phiSlice, gridSizeZ, ezField);
@@ -490,12 +494,15 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
   TF1* f1BoundaryROC = NULL;
   TStopwatch w;
 
-  for (Int_t k = 0; k < phiSlice; k++)
+  for (Int_t k = 0; k < phiSlice; k++) {
     phiList[k] = gridSizePhi * k;
-  for (Int_t i = 0; i < nRRow; i++)
+  }
+  for (Int_t i = 0; i < nRRow; i++) {
     rList[i] = AliTPCPoissonSolver::fgkIFCRadius + i * gridSizeR;
-  for (Int_t j = 0; j < nZColumn; j++)
+  }
+  for (Int_t j = 0; j < nZColumn; j++) {
     zList[j] = j * gridSizeZ;
+  }
 
   // allocate look up local distortion
   AliTPCLookUpTable3DInterpolatorD* lookupLocalDist =
@@ -637,8 +644,9 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
                 }
               }
               if (i == (nRRow - 1)) {
-                if (f1BoundaryOFC != NULL)
+                if (f1BoundaryOFC != NULL) {
                   (*matrixV)(i, j) = f1BoundaryOFC->Eval(z0);
+                }
               }
               if (j == 0) {
                 if (fFormulaBoundaryCE) {
@@ -646,8 +654,9 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
                 }
               }
               if (j == (nZColumn - 1)) {
-                if (f1BoundaryROC != NULL)
+                if (f1BoundaryROC != NULL) {
                   (*matrixV)(i, j) = f1BoundaryROC->Eval(radius0);
+                }
               }
             } else {
               if ((i == 0) || (i == (nRRow - 1)) || (j == 0) || (j == (nZColumn - 1))) {
@@ -675,10 +684,12 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
       potentialInterpolator->InitCubicSpline();
 
       Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz", "%s", Form("Step 1: Poisson solver: %f\n", w.CpuTime()));
-      if (side == 0)
+      if (side == 0) {
         myProfile.poissonSolverTime = w.CpuTime();
-      if (side == 0)
+      }
+      if (side == 0) {
         myProfile.iteration = fPoissonSolver->fIterations;
+      }
 
       w.Start();
       ElectricField(matricesV,
@@ -711,7 +722,7 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
 
       Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz", "%s", Form("Step 3: Local distortion and correction: %f\n", w.CpuTime()));
       w.Start();
-      if (fIntegrationStrategy == kNaive)
+      if (fIntegrationStrategy == kNaive) {
         IntegrateDistCorrDriftLineDz(
           lookupLocalDist,
           matricesGDistDrDz, matricesGDistDPhiRDz, matricesGDistDz,
@@ -720,13 +731,14 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
           matricesIrregularDrDz, matricesIrregularDPhiRDz, matricesIrregularDz,
           matricesRIrregular, matricesPhiIrregular, matricesZIrregular,
           nRRow, nZColumn, phiSlice, rList, phiList, zList);
-      else
+      } else {
         IntegrateDistCorrDriftLineDzWithLookUp(
           lookupLocalDist,
           matricesGDistDrDz, matricesGDistDPhiRDz, matricesGDistDz,
           lookupLocalCorr,
           matricesGCorrDrDz, matricesGCorrDPhiRDz, matricesGCorrDz,
           nRRow, nZColumn, phiSlice, rList, phiList, zList);
+      }
 
       w.Stop();
       Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz", "%s", Form("Step 4: Global correction/distortion: %f\n", w.CpuTime()));
@@ -734,8 +746,9 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
 
       //// copy to 1D interpolator /////
       lookupGlobalDist->CopyFromMatricesToInterpolator();
-      if (fCorrectionType == 0)
+      if (fCorrectionType == 0) {
         lookupGlobalCorr->CopyFromMatricesToInterpolator();
+      }
       ////
 
       w.Stop();
@@ -747,16 +760,18 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
                         fMatrixIntDistDrEzA, fMatrixIntDistDPhiREzA, fMatrixIntDistDzA,
                         nRRow, nZColumn, phiSlice, rList, phiList, zList);
 
-        if (fCorrectionType == 0)
+        if (fCorrectionType == 0) {
           FillLookUpTable(lookupGlobalCorr,
                           fMatrixIntCorrDrEzA, fMatrixIntCorrDPhiREzA, fMatrixIntCorrDzA,
                           nRRow, nZColumn, phiSlice, rList, phiList, zList);
+        }
 
         fLookupIntDistA->CopyFromMatricesToInterpolator();
-        if (fCorrectionType == 0)
+        if (fCorrectionType == 0) {
           fLookupIntCorrA->CopyFromMatricesToInterpolator();
-        else
+        } else {
           fLookupIntCorrIrregularA->CopyFromMatricesToInterpolator();
+        }
 
         w.Stop();
         myProfile.interpolationInitTime = w.CpuTime();
@@ -769,16 +784,18 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
                         fMatrixIntDistDrEzC, fMatrixIntDistDPhiREzC, fMatrixIntDistDzC,
                         nRRow, nZColumn, phiSlice, rList, phiList, zList);
 
-        if (fCorrectionType == 0)
+        if (fCorrectionType == 0) {
           FillLookUpTable(lookupGlobalCorr,
                           fMatrixIntCorrDrEzC, fMatrixIntCorrDPhiREzC, fMatrixIntCorrDzC,
                           nRRow, nZColumn, phiSlice, rList, phiList, zList);
+        }
 
         fLookupIntDistC->CopyFromMatricesToInterpolator();
-        if (fCorrectionType == 0)
+        if (fCorrectionType == 0) {
           fLookupIntCorrC->CopyFromMatricesToInterpolator();
-        else
+        } else {
           fLookupIntCorrIrregularC->CopyFromMatricesToInterpolator();
+        }
         w.Stop();
         myProfile.interpolationInitTime = w.CpuTime();
         Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz", " C side done");
@@ -906,12 +923,15 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
   TF1* f1BoundaryROC = NULL;
   TStopwatch w;
 
-  for (Int_t k = 0; k < phiSlice; k++)
+  for (Int_t k = 0; k < phiSlice; k++) {
     phiList[k] = gridSizePhi * k;
-  for (Int_t i = 0; i < nRRow; i++)
+  }
+  for (Int_t i = 0; i < nRRow; i++) {
     rList[i] = AliTPCPoissonSolver::fgkIFCRadius + i * gridSizeR;
-  for (Int_t j = 0; j < nZColumn; j++)
+  }
+  for (Int_t j = 0; j < nZColumn; j++) {
     zList[j] = j * gridSizeZ;
+  }
 
   // allocate look up local distortion
   AliTPCLookUpTable3DInterpolatorD* lookupLocalDist =
@@ -1133,10 +1153,11 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
                         nRRow, nZColumn, phiSlice, rList, phiList, zList);
 
         fLookupIntDistA->CopyFromMatricesToInterpolator();
-        if (fCorrectionType == 0)
+        if (fCorrectionType == 0) {
           fLookupIntCorrA->CopyFromMatricesToInterpolator();
-        else
+        } else {
           fLookupIntCorrIrregularA->CopyFromMatricesToInterpolator();
+        }
 
         Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz", " A side done");
       }
@@ -1150,10 +1171,11 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
                         nRRow, nZColumn, phiSlice, rList, phiList, zList);
 
         fLookupIntDistC->CopyFromMatricesToInterpolator();
-        if (fCorrectionType == 0)
+        if (fCorrectionType == 0) {
           fLookupIntCorrC->CopyFromMatricesToInterpolator();
-        else
+        } else {
           fLookupIntCorrIrregularC->CopyFromMatricesToInterpolator();
+        }
         Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz", " C side done");
       }
     }
@@ -1195,7 +1217,7 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
 ///
 /// \param nRRow	Int_t  number of grid in row direction
 ///	\param nZColumn Int_t number of grid in z direction
-/// \param phiSlice 	Int_t number of slices in phi direction
+/// \param phiSlice     Int_t number of slices in phi direction
 /// \param maxIteration Int_t max iteration for convergence
 /// \param stopConvergence Double_t stopping criteria for convergence
 /// \param matricesDistDrDzA TMatrixD**  local r distortion (output) A side
@@ -1203,9 +1225,9 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
 /// \param matricesDistDzA TMatrixD**  local z distortion (output) A side
 /// \param matricesCorrDrDzA TMatrixD** local r correction (output) A side
 /// \param matricesCorrDPhiRDzA TMatrixD** local r phi correction (output) A side
-/// \param matricesCorrDzA 	TMatrixD** local z correction (output) A side
-/// \param matricesDistDrDzC 	TMatrixD**   local r distortion (output) C side
-/// \param matricesDistDPhiRDzC 	TMatrixD**  local r phi distortion (output) C side
+/// \param matricesCorrDzA  TMatrixD** local z correction (output) A side
+/// \param matricesDistDrDzC    TMatrixD**   local r distortion (output) C side
+/// \param matricesDistDPhiRDzC     TMatrixD**  local r phi distortion (output) C side
 /// \param matricesDistDzC TMatrixD** local z distortion (output) C side
 /// \param matricesCorrDrDzC TMatrixD** local r phi correction (output) C side
 /// \param matricesCorrDPhiRDzC TMatrixD** local r phi correction (output) C side
@@ -1278,12 +1300,15 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
   TF1* f1BoundaryROC = NULL;
   TStopwatch w;
 
-  for (Int_t k = 0; k < phiSlice; k++)
+  for (Int_t k = 0; k < phiSlice; k++) {
     phiList[k] = gridSizePhi * k;
-  for (Int_t i = 0; i < nRRow; i++)
+  }
+  for (Int_t i = 0; i < nRRow; i++) {
     rList[i] = AliTPCPoissonSolver::fgkIFCRadius + i * gridSizeR;
-  for (Int_t j = 0; j < nZColumn; j++)
+  }
+  for (Int_t j = 0; j < nZColumn; j++) {
     zList[j] = j * gridSizeZ;
+  }
 
   // allocate look up local distortion
   AliTPCLookUpTable3DInterpolatorD* lookupLocalDist =
@@ -1505,10 +1530,11 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
                         nRRow, nZColumn, phiSlice, rList, phiList, zList);
 
         fLookupIntDistA->CopyFromMatricesToInterpolator();
-        if (fCorrectionType == 0)
+        if (fCorrectionType == 0) {
           fLookupIntCorrA->CopyFromMatricesToInterpolator();
-        else
+        } else {
           fLookupIntCorrIrregularA->CopyFromMatricesToInterpolator();
+        }
 
         Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz", " A side done");
       }
@@ -1522,10 +1548,11 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
                         nRRow, nZColumn, phiSlice, rList, phiList, zList);
 
         fLookupIntDistC->CopyFromMatricesToInterpolator();
-        if (fCorrectionType == 0)
+        if (fCorrectionType == 0) {
           fLookupIntCorrC->CopyFromMatricesToInterpolator();
-        else
+        } else {
           fLookupIntCorrIrregularC->CopyFromMatricesToInterpolator();
+        }
         Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz", " C side done");
       }
     }
@@ -1565,7 +1592,7 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
 ///
 /// \param nRRow	Int_t  number of grid in row direction
 ///	\param nZColumn Int_t number of grid in z direction
-/// \param phiSlice 	Int_t number of slices in phi direction
+/// \param phiSlice     Int_t number of slices in phi direction
 /// \param maxIteration Int_t max iteration for convergence
 /// \param stoppingConvergence Double_t stopping criteria for convergence
 /// \post Lookup tables for distortion:
@@ -1608,12 +1635,15 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoisson(Int_t nRRow, Int_t nZColu
   // list of point as used in the poisson relaxation and the interpolation (for interpolation)
   Double_t rList[nRRow], zList[nZColumn], phiList[phiSlice];
 
-  for (Int_t k = 0; k < phiSlice; k++)
+  for (Int_t k = 0; k < phiSlice; k++) {
     phiList[k] = gridSizePhi * k;
-  for (Int_t i = 0; i < nRRow; i++)
+  }
+  for (Int_t i = 0; i < nRRow; i++) {
     rList[i] = AliTPCPoissonSolver::fgkIFCRadius + i * gridSizeR;
-  for (Int_t j = 0; j < nZColumn; j++)
+  }
+  for (Int_t j = 0; j < nZColumn; j++) {
     zList[j] = j * gridSizeZ;
+  }
   // should be set, in another place
   const Int_t symmetry = 0;
   // do if look up table haven't be initialized
@@ -1627,8 +1657,9 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoisson(Int_t nRRow, Int_t nZColu
           radius0 = rList[i];
           for (Int_t j = 0; j < nZColumn; j++) {
             z0 = zList[j];
-            if (side == 1)
+            if (side == 1) {
               z0 = -TMath::Abs(zList[j]);
+            }
             if (fHistogram3DSpaceCharge != NULL) {
               // * Boundary values and charge distribution setup
               (*mV)(i, j) = 0.0;
@@ -1764,10 +1795,12 @@ void AliTPCSpaceCharge3DCalc::ElectricField(TMatrixD** matricesV, TMatrixD** mat
     mMinus = m - 1;
     signMinus = 1;
     if (symmetry == 1) { // Reflection symmetry in phi (e.g. symmetry at sector boundaries, or half sectors, etc.)
-      if (mPlus > phiSlice - 1)
+      if (mPlus > phiSlice - 1) {
         mPlus = phiSlice - 2;
-      if (mMinus < 0)
+      }
+      if (mMinus < 0) {
         mMinus = 1;
+      }
     } else if (symmetry == -1) { // Anti-symmetry in phi
       if (mPlus > phiSlice - 1) {
         mPlus = phiSlice - 2;
@@ -1778,10 +1811,12 @@ void AliTPCSpaceCharge3DCalc::ElectricField(TMatrixD** matricesV, TMatrixD** mat
         signMinus = -1;
       }
     } else { // No Symmetries in phi, no boundaries, the calculations is continuous across all phi
-      if (mPlus > phiSlice - 1)
+      if (mPlus > phiSlice - 1) {
         mPlus = m + 1 - phiSlice;
-      if (mMinus < 0)
+      }
+      if (mMinus < 0) {
         mMinus = m - 1 + phiSlice;
+      }
     }
 
     TMatrixD& arrayVP = *matricesV[mPlus];
@@ -1894,7 +1929,7 @@ void AliTPCSpaceCharge3DCalc::ElectricField(TMatrixD** matricesV, TMatrixD** mat
 /// \f$ \hat{\delta}_{rE}(r_{i},z_{j},\phi_{m}) = c_{0} \int^{z_{j+1}}_{z_{j}} \frac{E_{r}}{E_{z}} dzDist   + c_{1}  \int^{z_{j+1}}_{z_{j}} \frac{E_{\phi}}{E_{z}} dzDist \f$
 ///
 /// ~~~
-///	(*distDrDz)(i,j) 		= fC0*localIntErOverEz   + fC1*localIntEPhiOverEz;
+///	(*distDrDz)(i,j)        = fC0*localIntErOverEz   + fC1*localIntEPhiOverEz;
 /// ~~~
 ///
 /// \f$ r\hat{\delta}_{\phi E}(r_{i},z_{j},\phi_{m})  = - c_{1} \int^{z_{j+1}}_{z_{j}} \frac{E_{j}}{E_{j}} dzDist  + c_{0} \int^{z_{j+1}}_{j_{j}} \frac{E_{\phi}}{E_{z}} dzDist \f$
@@ -1946,7 +1981,7 @@ void AliTPCSpaceCharge3DCalc::ElectricField(TMatrixD** matricesV, TMatrixD** mat
 /// \f$ \hat{\delta'}_{z}(r_{i},z_{j+1},\phi_{m}) =  -1 *  \hat{\delta}_{z}(r_{i},z_{j},\phi_{m}) \f$
 ///
 /// ~~~
-///	(*corrDrDz)(i,j+1) 		= -1* (*distDrDz)(i,j) ;
+///	(*corrDrDz)(i,j+1)      = -1* (*distDrDz)(i,j) ;
 /// (*corrDPhiRDz)(i,j+1) = -1* (*distDPhiRDz)(i,j);
 /// (*corrDz)(i,j+1)      = -1* (*distDz)(i,j);
 /// ~~~
@@ -2196,10 +2231,12 @@ void AliTPCSpaceCharge3DCalc::IntegrateDistCorrDriftLineDz(
           z = zList[jj] + dzDist;
 
           // regulate phi
-          while (phi < 0.0)
+          while (phi < 0.0) {
             phi = TMath::TwoPi() + phi;
-          while (phi > TMath::TwoPi())
+          }
+          while (phi > TMath::TwoPi()) {
             phi = phi - TMath::TwoPi();
+          }
 
           lookupLocalDist->GetValue(radius, phi, z, ddR, ddRPhi, ddZ);
 
@@ -2228,8 +2265,9 @@ void AliTPCSpaceCharge3DCalc::IntegrateDistCorrDriftLineDz(
 
         // put the radius to the original value
         if (fCorrectionType == kRegularInterpolator) {
-          if (j == nZColumn - 2)
+          if (j == nZColumn - 2) {
             radiusCorrection = radius0;
+          }
 
           // get global correction from j+1
           drDist = (*mCorrDrDz)(i, j + 1);
@@ -2240,10 +2278,12 @@ void AliTPCSpaceCharge3DCalc::IntegrateDistCorrDriftLineDz(
           phi = phi0 + dPhi;
           z = zList[j + 1] + dzDist;
 
-          while (phi < 0.0)
+          while (phi < 0.0) {
             phi = TMath::TwoPi() + phi;
-          while (phi > TMath::TwoPi())
+          }
+          while (phi > TMath::TwoPi()) {
             phi = phi - TMath::TwoPi();
+          }
 
           lookupLocalCorr->GetValue(radiusCorrection, phi, z, ddR, ddRPhi, ddZ);
 
@@ -2415,10 +2455,12 @@ void AliTPCSpaceCharge3DCalc::IntegrateDistCorrDriftLineDz(
           z1 = z + (zList[j + 1] - zList[j]);
 
           // regulate phi
-          while (phi < 0.0)
+          while (phi < 0.0) {
             phi = TMath::TwoPi() + phi;
-          while (phi > TMath::TwoPi())
+          }
+          while (phi > TMath::TwoPi()) {
             phi = phi - TMath::TwoPi();
+          }
 
           //lookupLocalDist->GetValue(radius, phi, z, ddR, ddRPhi, ddZ);
           localIntErOverEz = (intDrDzF->Eval(radius, phi, z1) - intDrDzF->Eval(radius, phi, z)) / (-1 * ezField);
@@ -2451,8 +2493,9 @@ void AliTPCSpaceCharge3DCalc::IntegrateDistCorrDriftLineDz(
         ///////////////
 
         // put the radius to the original value
-        if (j == nZColumn - 2)
+        if (j == nZColumn - 2) {
           radiusCorrection = radius0;
+        }
 
         // get global correction from j+1
         drDist = (*mCorrDrDz)(i, j + 1);
@@ -2464,10 +2507,12 @@ void AliTPCSpaceCharge3DCalc::IntegrateDistCorrDriftLineDz(
         z = zList[j + 1] + dzDist;
         z1 = z - (zList[j + 1] - zList[j]);
 
-        while (phi < 0.0)
+        while (phi < 0.0) {
           phi = TMath::TwoPi() + phi;
-        while (phi > TMath::TwoPi())
+        }
+        while (phi > TMath::TwoPi()) {
           phi = phi - TMath::TwoPi();
+        }
 
         //lookupLocalCorr->GetValue(radiusCorrection, phi, z, ddR, ddRPhi, ddZ);
         localIntErOverEz = (intDrDzF->Eval(radiusCorrection, phi, z1) - intDrDzF->Eval(radiusCorrection, phi, z)) / (-1 * ezField);
@@ -2636,10 +2681,12 @@ void AliTPCSpaceCharge3DCalc::IntegrateDistCorrDriftLineDz(
           z = zList[jj] + dzDist;
           z1 = z + (zList[j + 1] - zList[j]);
           // regulate phi
-          while (phi < 0.0)
+          while (phi < 0.0) {
             phi = TMath::TwoPi() + phi;
-          while (phi > TMath::TwoPi())
+          }
+          while (phi > TMath::TwoPi()) {
             phi = phi - TMath::TwoPi();
+          }
 
           //lookupLocalDist->GetValue(radius, phi, z, ddR, ddRPhi, ddZ);
           localIntErOverEz = (intDrDzF->Eval(radius, phi, z1) - intDrDzF->Eval(radius, phi, z)) / (ezField + ezF->Eval(radius, phi, z));
@@ -2673,8 +2720,9 @@ void AliTPCSpaceCharge3DCalc::IntegrateDistCorrDriftLineDz(
         ///////////////
 
         // put the radius to the original value
-        if (j == nZColumn - 2)
+        if (j == nZColumn - 2) {
           radiusCorrection = radius0;
+        }
 
         // get global correction from j+1
         drDist = (*mCorrDrDz)(i, j + 1);
@@ -2687,10 +2735,12 @@ void AliTPCSpaceCharge3DCalc::IntegrateDistCorrDriftLineDz(
         z = zList[j + 1] + dzDist;
         z1 = z - (zList[j + 1] - zList[j]);
 
-        while (phi < 0.0)
+        while (phi < 0.0) {
           phi = TMath::TwoPi() + phi;
-        while (phi > TMath::TwoPi())
+        }
+        while (phi > TMath::TwoPi()) {
           phi = phi - TMath::TwoPi();
+        }
 
         //lookupLocalCorr->GetValue(radiusCorrection, phi, z, ddR, ddRPhi, ddZ);
         localIntErOverEz = (intDrDzF->Eval(radiusCorrection, phi, z1) - intDrDzF->Eval(radiusCorrection, phi, z)) / (ezField + intDzDzF->Eval(radiusCorrection, phi, z));
@@ -2834,8 +2884,9 @@ void AliTPCSpaceCharge3DCalc::IntegrateDistCorrDriftLineDzWithLookUp(AliTPCLookU
         // copy to 1D for being able to interpolate at next step
 
         // put the radius to the original value
-        if (j == nZColumn - 2)
+        if (j == nZColumn - 2) {
           radiusCorrection = radius0;
+        }
 
         // get global correction from j+1
         drDist = (*mCorrDrDz)(i, j + 1);
@@ -2846,10 +2897,12 @@ void AliTPCSpaceCharge3DCalc::IntegrateDistCorrDriftLineDzWithLookUp(AliTPCLookU
         phi = phi0 + dRPhi / radiusCorrection;
         z = zList[j + 1] + dzDist;
 
-        while (phi < 0.0)
+        while (phi < 0.0) {
           phi = TMath::TwoPi() + phi;
-        while (phi > TMath::TwoPi())
+        }
+        while (phi > TMath::TwoPi()) {
           phi = phi - TMath::TwoPi();
+        }
 
         lookupLocalCorr->GetValue(radiusCorrection, phi, z, ddR, ddRPhi, ddZ);
 
@@ -2864,8 +2917,9 @@ void AliTPCSpaceCharge3DCalc::IntegrateDistCorrDriftLineDzWithLookUp(AliTPCLookU
     }
 
     lookupGlobalDistTemp->CopyFromMatricesToInterpolator(j);
-    if (j > 0)
+    if (j > 0) {
       lookupGlobalDistTemp->CopyFromMatricesToInterpolator(j - 1);
+    }
   }
   delete lookupGlobalDistTemp;
 }
@@ -2939,11 +2993,12 @@ void AliTPCSpaceCharge3DCalc::GetDistortionCylAC(const Float_t x[], Short_t roc,
 
   r = x[0];
   phi = x[1];
-  if (phi < 0)
+  if (phi < 0) {
     phi += TMath::TwoPi(); // Table uses phi from 0 to 2*Pi
-  if (phi > TMath::TwoPi())
+  }
+  if (phi > TMath::TwoPi()) {
     phi = phi - TMath::TwoPi(); // Table uses phi from 0 to 2*Pi
-
+  }
   z = x[2]; // Create temporary copy of x[2]
 
   if ((roc % 36) < 18) {
@@ -2952,17 +3007,19 @@ void AliTPCSpaceCharge3DCalc::GetDistortionCylAC(const Float_t x[], Short_t roc,
     sign = -1; // (TPC C side)
   }
 
-  if (sign == 1 && z < AliTPCPoissonSolver::fgkZOffSet)
+  if (sign == 1 && z < AliTPCPoissonSolver::fgkZOffSet) {
     z = AliTPCPoissonSolver::fgkZOffSet; // Protect against discontinuity at CE
-  if (sign == -1 && z > -AliTPCPoissonSolver::fgkZOffSet)
+  }
+  if (sign == -1 && z > -AliTPCPoissonSolver::fgkZOffSet) {
     z = -AliTPCPoissonSolver::fgkZOffSet; // Protect against discontinuity at CE
-
-  if ((sign == 1 && z < -1e-16) || (sign == -1 && z > -1e-16)) // just a consistency check
+  }
+  if ((sign == 1 && z < -1e-16) || (sign == -1 && z > -1e-16)) { // just a consistency check
     Error("AliTPCSpaceCharge3DCalc::GetDistortionCylAC", "ROC number does not correspond to z coordinate! Calculation of distortions is most likely wrong!");
+  }
 
-  if (z > -1e-16)
+  if (z > -1e-16) {
     fLookupIntDistA->GetValue(r, phi, z, dR, dRPhi, dZ);
-  else {
+  } else {
     fLookupIntDistC->GetValue(r, phi, -1 * z, dR, dRPhi, dZ);
     dZ = -1 * dZ;
   }
@@ -3001,13 +3058,15 @@ void AliTPCSpaceCharge3DCalc::GetCorrectionCylACIrregular(const Float_t x[], Sho
     sign = -1; // (TPC C side)
   }
 
-  if (sign == 1 && z < AliTPCPoissonSolver::fgkZOffSet)
+  if (sign == 1 && z < AliTPCPoissonSolver::fgkZOffSet) {
     z = AliTPCPoissonSolver::fgkZOffSet; // Protect against discontinuity at CE
-  if (sign == -1 && z > -AliTPCPoissonSolver::fgkZOffSet)
+  }
+  if (sign == -1 && z > -AliTPCPoissonSolver::fgkZOffSet) {
     z = -AliTPCPoissonSolver::fgkZOffSet; // Protect against discontinuity at CE
-
-  if ((sign == 1 && z < 0) || (sign == -1 && z > 0)) // just a consistency check
+  }
+  if ((sign == 1 && z < 0) || (sign == -1 && z > 0)) { // just a consistency check
     Error("AliTPCSpaceChargeCalc3D::GetCorrectionCylACIrregular", "ROC number does not correspond to z coordinate! Calculation of distortions is most likely wrong!");
+  }
 
   // get distortion from irregular table
 
@@ -3053,19 +3112,21 @@ void AliTPCSpaceCharge3DCalc::GetCorrectionCylACIrregular(const Float_t x[], Sho
     sign = -1; // (TPC C side)
   }
 
-  if (sign == 1 && z < AliTPCPoissonSolver::fgkZOffSet)
+  if (sign == 1 && z < AliTPCPoissonSolver::fgkZOffSet) {
     z = AliTPCPoissonSolver::fgkZOffSet; // Protect against discontinuity at CE
-  if (sign == -1 && z > -AliTPCPoissonSolver::fgkZOffSet)
+  }
+  if (sign == -1 && z > -AliTPCPoissonSolver::fgkZOffSet) {
     z = -AliTPCPoissonSolver::fgkZOffSet; // Protect against discontinuity at CE
-
-  if ((sign == 1 && z < 0) || (sign == -1 && z > 0)) // just a consistency check
+  }
+  if ((sign == 1 && z < 0) || (sign == -1 && z > 0)) { // just a consistency check
     Error("AliTPCSpaceChargeCalc3D::GetCorrectionCylACIrregular", "ROC number does not correspond to z coordinate! Calculation of distortions is most likely wrong!");
+  }
 
   // get distortion from irregular table
 
-  if (side == 0)
+  if (side == 0) {
     fLookupIntCorrIrregularA->GetValue(r, phi, z, dR, dRPhi, dZ);
-  else {
+  } else {
     fLookupIntCorrIrregularC->GetValue(r, phi, -z, dR, dRPhi, dZ);
     dZ = -1 * dZ;
   }
@@ -3094,11 +3155,12 @@ void AliTPCSpaceCharge3DCalc::GetCorrectionCylAC(const Float_t x[], Short_t roc,
 
   r = x[0];
   phi = x[1];
-  if (phi < 0)
+  if (phi < 0) {
     phi += TMath::TwoPi(); // Table uses phi from 0 to 2*Pi
-  if (phi > TMath::TwoPi())
+  }
+  if (phi > TMath::TwoPi()) {
     phi = phi - TMath::TwoPi(); // Table uses phi from 0 to 2*Pi
-
+  }
   z = x[2]; // Create temporary copy of x[2]
 
   if ((roc % 36) < 18) {
@@ -3107,17 +3169,19 @@ void AliTPCSpaceCharge3DCalc::GetCorrectionCylAC(const Float_t x[], Short_t roc,
     sign = -1; // (TPC C side)
   }
 
-  if (sign == 1 && z < AliTPCPoissonSolver::fgkZOffSet)
+  if (sign == 1 && z < AliTPCPoissonSolver::fgkZOffSet) {
     z = AliTPCPoissonSolver::fgkZOffSet; // Protect against discontinuity at CE
-  if (sign == -1 && z > -AliTPCPoissonSolver::fgkZOffSet)
+  }
+  if (sign == -1 && z > -AliTPCPoissonSolver::fgkZOffSet) {
     z = -AliTPCPoissonSolver::fgkZOffSet; // Protect against discontinuity at CE
-
-  if ((sign == 1 && z < -1e-16) || (sign == -1 && z > -1e-16)) // just a consistency check
+  }
+  if ((sign == 1 && z < -1e-16) || (sign == -1 && z > -1e-16)) { // just a consistency check
     Error("AliTPCSpaceChargeCalc3D::GetCorrectionCylAC", "ROC number does not correspond to z coordinate! Calculation of distortions is most likely wrong!");
+  }
 
-  if (z > -1e-16)
+  if (z > -1e-16) {
     fLookupIntCorrA->GetValue(r, phi, z, dR, dRPhi, dZ);
-  else {
+  } else {
     fLookupIntCorrC->GetValue(r, phi, -z, dR, dRPhi, dZ);
     dZ = -1 * dZ;
   }
@@ -3140,10 +3204,12 @@ void AliTPCSpaceCharge3DCalc::GetDistortion(const Float_t x[], Short_t roc, Floa
   pCyl[1] = TMath::ATan2(x[1], x[0]);
 
   // normalize phi
-  while (pCyl[1] > TMath::Pi())
+  while (pCyl[1] > TMath::Pi()) {
     pCyl[1] -= TMath::TwoPi();
-  while (pCyl[1] < -TMath::Pi())
+  }
+  while (pCyl[1] < -TMath::Pi()) {
     pCyl[1] += TMath::TwoPi();
+  }
 
   pCyl[2] = x[2]; // Create temporary copy of x[2]
 
@@ -3173,10 +3239,11 @@ void AliTPCSpaceCharge3DCalc::GetCorrectionCyl(const Float_t x[], Short_t roc, F
     Info("AliTPCSpaceCharge3DCalc::GetCorrectionCyl", "Lookup table was not initialized! Performing the initialization now ...");
     InitSpaceCharge3DPoissonIntegralDz(129, 129, 144, 100, 1e-8);
   }
-  if (fCorrectionType == kRegularInterpolator)
+  if (fCorrectionType == kRegularInterpolator) {
     GetCorrectionCylAC(x, roc, dx);
-  else
+  } else {
     GetCorrectionCylACIrregular(x, roc, dx);
+  }
 }
 ///
 /// \param x
@@ -3197,10 +3264,12 @@ void AliTPCSpaceCharge3DCalc::GetCorrection(const Float_t x[], Short_t roc, Floa
   pCyl[2] = x[2]; // Create temporary copy of x[2]
 
   if (fCorrectionType == kRegularInterpolator) {
-    while (pCyl[1] > TMath::Pi())
+    while (pCyl[1] > TMath::Pi()) {
       pCyl[1] -= TMath::TwoPi();
-    while (pCyl[1] < -TMath::Pi())
+    }
+    while (pCyl[1] < -TMath::Pi()) {
       pCyl[1] += TMath::TwoPi();
+    }
 
     GetCorrectionCylAC(pCyl, roc, dCyl);
   } else {
@@ -3241,10 +3310,12 @@ void AliTPCSpaceCharge3DCalc::GetCorrection(const Float_t x[], Short_t roc, Floa
   pCyl[2] = x[2]; // Create temporary copy of x[2]
 
   if (fCorrectionType == kRegularInterpolator) {
-    while (pCyl[1] > TMath::Pi())
+    while (pCyl[1] > TMath::Pi()) {
       pCyl[1] -= TMath::TwoPi();
-    while (pCyl[1] < -TMath::Pi())
+    }
+    while (pCyl[1] < -TMath::Pi()) {
       pCyl[1] += TMath::TwoPi();
+    }
 
     GetCorrectionCylAC(pCyl, roc, dCyl);
   } else {
@@ -3288,10 +3359,11 @@ void AliTPCSpaceCharge3DCalc::SetInputSpaceCharge(TH3* hisSpaceCharge3D, Double_
   TMatrixD* charge;
   for (Int_t iSide = 0; iSide < 2; iSide++) {
     for (Int_t k = 0; k < fNPhiSlices; k++) {
-      if (iSide == 0)
+      if (iSide == 0) {
         charge = fMatrixChargeA[k];
-      else
+      } else {
         charge = fMatrixChargeC[k];
+      }
 
       phi0 = fListPhi[k];
 
@@ -3312,11 +3384,13 @@ void AliTPCSpaceCharge3DCalc::SetInputSpaceCharge(TH3* hisSpaceCharge3D, Double_
   }
 
   fInterpolatorChargeA->SetValue(fMatrixChargeA);
-  if (fInterpolationOrder > 2)
+  if (fInterpolationOrder > 2) {
     fInterpolatorChargeA->InitCubicSpline();
+  }
   fInterpolatorChargeC->SetValue(fMatrixChargeC);
-  if (fInterpolationOrder > 2)
+  if (fInterpolationOrder > 2) {
     fInterpolatorChargeC->InitCubicSpline();
+  }
 }
 
 /// SetInputCharge
@@ -3328,10 +3402,11 @@ void AliTPCSpaceCharge3DCalc::SetInputSpaceCharge(TH3* hisSpaceCharge3D, Double_
 /// side effects: create Charge interpolator
 void AliTPCSpaceCharge3DCalc::SetInputSpaceCharge(TH3* hisSpaceCharge3D, Double_t norm, Int_t side)
 {
-  if (side == 0)
+  if (side == 0) {
     fHistogram3DSpaceChargeA = hisSpaceCharge3D;
-  else
+  } else {
     fHistogram3DSpaceChargeC = hisSpaceCharge3D;
+  }
 
   Double_t rMin = hisSpaceCharge3D->GetYaxis()->GetBinCenter(0);
   Double_t rMax = hisSpaceCharge3D->GetYaxis()->GetBinUpEdge(hisSpaceCharge3D->GetYaxis()->GetNbins());
@@ -3341,10 +3416,11 @@ void AliTPCSpaceCharge3DCalc::SetInputSpaceCharge(TH3* hisSpaceCharge3D, Double_
   TMatrixD* charge;
 
   for (Int_t k = 0; k < fNPhiSlices; k++) {
-    if (side == 0)
+    if (side == 0) {
       charge = fMatrixChargeA[k];
-    else
+    } else {
       charge = fMatrixChargeC[k];
+    }
 
     phi0 = fListPhi[k];
     for (Int_t i = 0; i < fNRRows; i++) {
@@ -3379,16 +3455,19 @@ Double_t AliTPCSpaceCharge3DCalc::InterpolatePhi(TH3* h3, const Double_t phi, co
 {
 
   Int_t ubx = h3->GetXaxis()->FindBin(phi);
-  if (phi < h3->GetXaxis()->GetBinCenter(ubx))
+  if (phi < h3->GetXaxis()->GetBinCenter(ubx)) {
     ubx -= 1;
+  }
   Int_t obx = ubx + 1;
   Int_t uby = h3->GetYaxis()->FindBin(r);
-  if (r < h3->GetYaxis()->GetBinCenter(uby))
+  if (r < h3->GetYaxis()->GetBinCenter(uby)) {
     uby -= 1;
+  }
   Int_t oby = uby + 1;
   Int_t ubz = h3->GetZaxis()->FindBin(z);
-  if (z < h3->GetZaxis()->GetBinCenter(ubz))
+  if (z < h3->GetZaxis()->GetBinCenter(ubz)) {
     ubz -= 1;
+  }
   Int_t obz = ubz + 1;
 
   if (uby <= 0 || ubz <= 0 ||
@@ -3396,11 +3475,13 @@ Double_t AliTPCSpaceCharge3DCalc::InterpolatePhi(TH3* h3, const Double_t phi, co
     return 0;
   }
 
-  if (ubx <= 0)
+  if (ubx <= 0) {
     ubx = h3->GetXaxis()->GetNbins();
+  }
 
-  if (obx > h3->GetXaxis()->GetNbins())
+  if (obx > h3->GetXaxis()->GetNbins()) {
     obx = 1;
+  }
 
   Double_t xw = h3->GetXaxis()->GetBinCenter(obx) - h3->GetXaxis()->GetBinCenter(ubx);
   Double_t yw = h3->GetYaxis()->GetBinCenter(oby) - h3->GetYaxis()->GetBinCenter(uby);
@@ -3425,19 +3506,22 @@ Double_t AliTPCSpaceCharge3DCalc::InterpolatePhi(TH3* h3, const Double_t phi, co
 /// Note: input in [cm], output in [C/m^3/e0] !!
 Float_t AliTPCSpaceCharge3DCalc::GetSpaceChargeDensity(Float_t r, Float_t phi, Float_t z)
 {
-  while (phi < 0)
+  while (phi < 0) {
     phi += TMath::TwoPi();
-  while (phi > TMath::TwoPi())
+  }
+  while (phi > TMath::TwoPi()) {
     phi -= TMath::TwoPi();
+  }
 
   const Int_t order = 1; //
 
   const Float_t x[] = { r, phi, z };
   Float_t sc = 0;
-  if (z > -1e-16)
+  if (z > -1e-16) {
     sc = GetChargeCylAC(x, 0);
-  else
+  } else {
     sc = GetChargeCylAC(x, 18);
+  }
 
   return sc;
 }
@@ -3445,19 +3529,22 @@ Float_t AliTPCSpaceCharge3DCalc::GetSpaceChargeDensity(Float_t r, Float_t phi, F
 /// Note: input in [cm], output in [C/m^3/e0] !!
 Float_t AliTPCSpaceCharge3DCalc::GetPotential(Float_t r, Float_t phi, Float_t z)
 {
-  while (phi < 0)
+  while (phi < 0) {
     phi += TMath::TwoPi();
-  while (phi > TMath::TwoPi())
+  }
+  while (phi > TMath::TwoPi()) {
     phi -= TMath::TwoPi();
+  }
 
   const Int_t order = 1; //
 
   const Float_t x[] = { r, phi, z };
   Float_t v = 0;
-  if (z > -1e-16)
+  if (z > -1e-16) {
     v = GetPotentialCylAC(x, 0);
-  else
+  } else {
     v = GetPotentialCylAC(x, 18);
+  }
 
   return v;
 }
@@ -3574,10 +3661,11 @@ void AliTPCSpaceCharge3DCalc::InverseGlobalToLocalDistortionGlobalInvTable(
         x[1] = phi;
         x[2] = z;
 
-        if (useCylAC == kTRUE)
+        if (useCylAC == kTRUE) {
           GetDistortionCylAC(x, roc, dx);
-        else
+        } else {
           GetDistortionCyl(x, roc, dx);
+        }
 
         drDist = dx[0];
         dzDist = dx[2];
@@ -3619,10 +3707,11 @@ void AliTPCSpaceCharge3DCalc::InverseGlobalToLocalDistortionGlobalInvTable(
           x[0] = r;
           x[1] = phi;
           x[2] = z;
-          if (useCylAC == kTRUE)
+          if (useCylAC == kTRUE) {
             GetDistortionCylAC(x, roc, dx);
-          else
+          } else {
             GetDistortionCyl(x, roc, dx);
+          }
 
           r0 = r + dx[0];
           z0 = zList[j + 1] + dx[2];
@@ -3631,12 +3720,13 @@ void AliTPCSpaceCharge3DCalc::InverseGlobalToLocalDistortionGlobalInvTable(
           kAnchor = TMath::FloorNint(phi0 / gridSizePhi);
           zAnchor = TMath::FloorNint(z0 / gridSizeZ);
 
-          if (j > nZColumn - (GetIrregularGridSize() + 2))
+          if (j > nZColumn - (GetIrregularGridSize() + 2)) {
             lookupInverseCorr->GetValue(r0, phi0, z0, drDist, dRPhi, dzDist, iAnchor, kAnchor, zAnchor,
                                         nRRow / 4 + 1, phiSlice / 4 + 1, 1, 0);
-          else
+          } else {
             lookupInverseCorr->GetValue(r0, phi0, z0, drDist, dRPhi, dzDist, iAnchor, kAnchor, zAnchor,
                                         nRRow / 4 + 1, phiSlice / 4 + 1, GetIrregularGridSize(), 0);
+          }
 
           phi0 = phi0 + ((dRPhi) / r0);
           r0 = r0 + (drDist);
@@ -3646,15 +3736,18 @@ void AliTPCSpaceCharge3DCalc::InverseGlobalToLocalDistortionGlobalInvTable(
           x[1] = phi0;
           x[2] = z0;
 
-          if (phi0 < 0)
+          if (phi0 < 0) {
             phi0 = TMath::TwoPi() + phi0;
-          if (phi0 > TMath::TwoPi())
+          }
+          if (phi0 > TMath::TwoPi()) {
             phi0 = phi0 - TMath::TwoPi();
+          }
 
-          if (useCylAC == kTRUE)
+          if (useCylAC == kTRUE) {
             GetDistortionCylAC(x, roc, pdx);
-          else
+          } else {
             GetDistortionCyl(x, roc, pdx);
+          }
 
           drDist = (dx[0] - pdx[0]);
           dzDist = (dx[2] - pdx[2]);
@@ -3665,16 +3758,18 @@ void AliTPCSpaceCharge3DCalc::InverseGlobalToLocalDistortionGlobalInvTable(
           x[0] = r;
           x[1] = phi;
           x[2] = zList[j];
-          if (useCylAC == kTRUE)
+          if (useCylAC == kTRUE) {
             GetDistortionCylAC(x, roc, dx);
-          else
+          } else {
             GetDistortionCyl(x, roc, dx);
+          }
 
           x[2] = zList[j + 1];
-          if (useCylAC == kTRUE)
+          if (useCylAC == kTRUE) {
             GetDistortionCylAC(x, roc, pdx);
-          else
+          } else {
             GetDistortionCyl(x, roc, pdx);
+          }
           drDist = (dx[0] - pdx[0]);
           dzDist = (dx[2] - pdx[2]);
           dRPhi = (dx[1] - pdx[1]);
@@ -3826,10 +3921,12 @@ void AliTPCSpaceCharge3DCalc::InverseElectricFieldToCharge(
     mPlus2 = m + 2;
     mMinus2 = m - 2;
     if (symmetry == 1) { // Reflection symmetry in phi (e.g. symmetry at sector boundaries, or half sectors, etc.)
-      if (mPlus > phiSlice - 1)
+      if (mPlus > phiSlice - 1) {
         mPlus = phiSlice - 2;
-      if (mMinus < 0)
+      }
+      if (mMinus < 0) {
         mMinus = 1;
+      }
     } else if (symmetry == -1) { // Anti-symmetry in phi
       if (mPlus > phiSlice - 1) {
         mPlus = phiSlice - 2;
@@ -3840,14 +3937,18 @@ void AliTPCSpaceCharge3DCalc::InverseElectricFieldToCharge(
         signMinus = -1;
       }
     } else { // No Symmetries in phi, no boundaries, the calculations is continuous across all phi
-      if (mPlus > phiSlice - 1)
+      if (mPlus > phiSlice - 1) {
         mPlus = m + 1 - phiSlice;
-      if (mMinus < 0)
+      }
+      if (mMinus < 0) {
         mMinus = m - 1 + phiSlice;
-      if (mPlus2 > phiSlice - 1)
+      }
+      if (mPlus2 > phiSlice - 1) {
         mPlus2 = m + 2 - phiSlice;
-      if (mMinus2 < 0)
+      }
+      if (mMinus2 < 0) {
         mMinus2 = m - 2 + phiSlice;
+      }
     }
 
     TMatrixD& matrixCharge = *matricesCharge[m];
@@ -3884,7 +3985,7 @@ void AliTPCSpaceCharge3DCalc::InverseElectricFieldToCharge(
                 ((1.0 / 3.0) * matrixEr(3, j))) /
                gridSizeR; // forward difference
 
-      //	drDist 	=  ( -(1.5)*matrixEr(0,j) + (2.0*matrixEr(1,j)) - (0.5*matrixEr(2,j)) )  / gridSizeR;
+      //	drDist  =  ( -(1.5)*matrixEr(0,j) + (2.0*matrixEr(1,j)) - (0.5*matrixEr(2,j)) )  / gridSizeR;
 
       dzDist = (-matrixEz(0, j + 2) + 8 * matrixEz(0, j + 1) - 8 * matrixEz(0, j - 1) + matrixEz(0, j - 2)) /
                (12.0 * gridSizeZ); // z direction
@@ -3895,7 +3996,7 @@ void AliTPCSpaceCharge3DCalc::InverseElectricFieldToCharge(
 
       // index use central difference 3-point center
       radius = AliTPCPoissonSolver::fgkIFCRadius + gridSizeR;
-      //	drDist 	=  (-matrixEr(3,j)  +6.0*matrixEr(2,j) - 3.0*matrixEr(1,j) - 2*matrixEr(0,j) ) / (6.0*gridSizeR) ; // forward difference
+      //	drDist  =  (-matrixEr(3,j)  +6.0*matrixEr(2,j) - 3.0*matrixEr(1,j) - 2*matrixEr(0,j) ) / (6.0*gridSizeR) ; // forward difference
       drDist = (matrixEr(2, j) - matrixEr(0, j)) / (2.0 * gridSizeR);
 
       dzDist = (-matrixEz(1, j + 2) + 8 * matrixEz(1, j + 1) - 8 * matrixEz(1, j - 1) + matrixEz(1, j - 2)) /
@@ -4180,12 +4281,15 @@ void AliTPCSpaceCharge3DCalc::InverseDistortionMaps(
   const Float_t gridSizeZ = AliTPCPoissonSolver::fgkTPCZ0 / (nZColumn - 1);
   const Float_t gridSizePhi = TMath::TwoPi() / phiSlice;
 
-  for (Int_t k = 0; k < phiSlice; k++)
+  for (Int_t k = 0; k < phiSlice; k++) {
     phiList[k] = gridSizePhi * k;
-  for (Int_t i = 0; i < nRRow; i++)
+  }
+  for (Int_t i = 0; i < nRRow; i++) {
     rList[i] = AliTPCPoissonSolver::fgkIFCRadius + i * gridSizeR;
-  for (Int_t j = 0; j < nZColumn; j++)
+  }
+  for (Int_t j = 0; j < nZColumn; j++) {
     zList[j] = (j * gridSizeZ);
+  }
   // memory allocation
   if (fInitLookUp) {
     // 1)  get local distortion
@@ -4209,8 +4313,9 @@ void AliTPCSpaceCharge3DCalc::InverseDistortionMaps(
   }
 
   // copy charge inverse here just for side A (TODO: do for side C)
-  for (Int_t k = 0; k < phiSlice; k++)
+  for (Int_t k = 0; k < phiSlice; k++) {
     *(fMatrixChargeInverseA[k]) = *(matricesCharge[k]);
+  }
   fInterpolatorInverseChargeA->SetValue(fMatrixChargeInverseA);
   fInterpolatorInverseChargeA->InitCubicSpline();
 
@@ -4287,8 +4392,9 @@ void AliTPCSpaceCharge3DCalc::CalculateEField(
         deltaEz(i, j) = deltaEz(i, j) * AliTPCPoissonSolver::fgkdvdE;
         // ROC Potential in cm equivalent
         Double_t dzROCShift = arrayV(i, nZColumn - 1) / ezField;
-        if (rocDisplacement)
+        if (rocDisplacement) {
           deltaEz(i, j) = deltaEz(i, j) + dzROCShift; // add the ROC mis alignment
+        }
       }
     }
   }
@@ -4369,10 +4475,12 @@ void AliTPCSpaceCharge3DCalc::GetCorrectionCylNoDrift(const Float_t x[], const S
 
   r = x[0];
   phi = x[1];
-  if (phi < 0)
+  if (phi < 0) {
     phi += TMath::TwoPi(); // Table uses phi from 0 to 2*Pi
-  if (phi > TMath::TwoPi())
+  }
+  if (phi > TMath::TwoPi()) {
     phi -= TMath::TwoPi();
+  }
 
   z = x[2]; // Create temporary copy of x[2]
 
@@ -4382,19 +4490,22 @@ void AliTPCSpaceCharge3DCalc::GetCorrectionCylNoDrift(const Float_t x[], const S
     sign = -1; // (TPC C side)
   }
 
-  if (sign == 1 && z < AliTPCPoissonSolver::fgkZOffSet)
+  if (sign == 1 && z < AliTPCPoissonSolver::fgkZOffSet) {
     z = AliTPCPoissonSolver::fgkZOffSet; // Protect against discontinuity at CE
-  if (sign == -1 && z > -AliTPCPoissonSolver::fgkZOffSet)
+  }
+  if (sign == -1 && z > -AliTPCPoissonSolver::fgkZOffSet) {
     z = -AliTPCPoissonSolver::fgkZOffSet; // Protect against discontinuity at CE
-
-  if ((sign == 1 && z < 0) || (sign == -1 && z > 0)) // just a consistency check
+  }
+  if ((sign == 1 && z < 0) || (sign == -1 && z > 0)) { // just a consistency check
     Error("AliTPCSpaceCharge3DCalc::", "ROC number does not correspond to z coordinate! Calculation of distortions is most likely wrong!");
+  }
 
   if (sign == -1 && z < 0.0) {
     printf("call C side\n");
     fLookupIntENoDriftC->GetValue(r, phi, z, intEr, intEPhi, intDEz);
-  } else
+  } else {
     fLookupIntENoDriftA->GetValue(r, phi, z, intEr, intEPhi, intDEz);
+  }
 
   // Calculate distorted position
   if (r > 0.0) {
@@ -4418,8 +4529,9 @@ void AliTPCSpaceCharge3DCalc::GetDistortionCylNoDrift(const Float_t x[], Short_t
   /// roc represents the TPC read out chamber (offline numbering convention)
 
   GetCorrectionCylNoDrift(x, roc, dx);
-  for (Int_t j = 0; j < 3; ++j)
+  for (Int_t j = 0; j < 3; ++j) {
     dx[j] = -dx[j];
+  }
 }
 /// inverse for no drift
 /// inverse from global distortion to local distortion
@@ -4531,12 +4643,15 @@ void AliTPCSpaceCharge3DCalc::InverseDistortionMapsNoDrift(
   const Float_t gridSizeZ = AliTPCPoissonSolver::fgkTPCZ0 / (nZColumn - 1);
   const Float_t gridSizePhi = TMath::TwoPi() / phiSlice;
 
-  for (Int_t k = 0; k < phiSlice; k++)
+  for (Int_t k = 0; k < phiSlice; k++) {
     phiList[k] = gridSizePhi * k;
-  for (Int_t i = 0; i < nRRow; i++)
+  }
+  for (Int_t i = 0; i < nRRow; i++) {
     rList[i] = AliTPCPoissonSolver::fgkIFCRadius + i * gridSizeR;
-  for (Int_t j = 0; j < nZColumn; j++)
+  }
+  for (Int_t j = 0; j < nZColumn; j++) {
     zList[j] = (j * gridSizeZ);
+  }
   // memory allocation
   if (fInitLookUp) {
     // 1)  get local distortion
@@ -4575,28 +4690,33 @@ void AliTPCSpaceCharge3DCalc::GetChargeDensity(
   Float_t radius0, phi0, z0;
   // list of point as used in the poisson relaxation and the interpolation (for interpolation)
   Double_t rList[nRRow], zList[nZColumn], phiList[phiSlice];
-  for (Int_t k = 0; k < phiSlice; k++)
+  for (Int_t k = 0; k < phiSlice; k++) {
     phiList[k] = gridSizePhi * k;
-  for (Int_t i = 0; i < nRRow; i++)
+  }
+  for (Int_t i = 0; i < nRRow; i++) {
     rList[i] = AliTPCPoissonSolver::fgkIFCRadius + i * gridSizeR;
-  for (Int_t j = 0; j < nZColumn; j++)
+  }
+  for (Int_t j = 0; j < nZColumn; j++) {
     zList[j] = j * gridSizeZ;
+  }
 
   TMatrixD* mCharge;
   for (Int_t side = 0; side < 2; side++) {
     for (Int_t k = 0; k < phiSlice; k++) {
-      if (side == 0)
+      if (side == 0) {
         mCharge = matricesChargeA[k];
-      else
+      } else {
         mCharge = matricesChargeC[k];
+      }
 
       phi0 = phiList[k];
       for (Int_t i = 0; i < nRRow; i++) {
         radius0 = rList[i];
         for (Int_t j = 0; j < nZColumn; j++) {
           z0 = zList[j];
-          if (side == 1)
+          if (side == 1) {
             z0 = -TMath::Abs(zList[j]);
+          }
           if (spaceChargeHistogram3D != NULL) {
             (*mCharge)(i, j) = InterpolatePhi(spaceChargeHistogram3D, phi0, radius0, z0);
             //InterpolatePhi(spaceChargeHistogram3D,phi0,radius0,z0);
@@ -4617,11 +4737,12 @@ Double_t AliTPCSpaceCharge3DCalc::GetChargeCylAC(const Float_t x[], Short_t roc)
 
   r = x[0];
   phi = x[1];
-  if (phi < 0)
+  if (phi < 0) {
     phi += TMath::TwoPi(); // Table uses phi from 0 to 2*Pi
-  if (phi > TMath::TwoPi())
+  }
+  if (phi > TMath::TwoPi()) {
     phi = phi - TMath::TwoPi(); // Table uses phi from 0 to 2*Pi
-
+  }
   z = x[2]; // Create temporary copy of x[2]
 
   if ((roc % 36) < 18) {
@@ -4630,18 +4751,21 @@ Double_t AliTPCSpaceCharge3DCalc::GetChargeCylAC(const Float_t x[], Short_t roc)
     sign = -1; // (TPC C side)
   }
 
-  if (sign == 1 && z < AliTPCPoissonSolver::fgkZOffSet)
+  if (sign == 1 && z < AliTPCPoissonSolver::fgkZOffSet) {
     z = AliTPCPoissonSolver::fgkZOffSet; // Protect against discontinuity at CE
-  if (sign == -1 && z > -AliTPCPoissonSolver::fgkZOffSet)
+  }
+  if (sign == -1 && z > -AliTPCPoissonSolver::fgkZOffSet) {
     z = -AliTPCPoissonSolver::fgkZOffSet; // Protect against discontinuity at CE
-
-  if ((sign == 1 && z < 0) || (sign == -1 && z > 0)) // just a consistency check
+  }
+  if ((sign == 1 && z < 0) || (sign == -1 && z > 0)) { // just a consistency check
     Error("AliTPCSpaceCharge3DCalc::", "ROC number does not correspond to z coordinate! Calculation of distortions is most likely wrong!");
+  }
 
-  if (z > -1e-16)
+  if (z > -1e-16) {
     return fInterpolatorChargeA->GetValue(r, phi, z);
-  else
+  } else {
     return fInterpolatorChargeC->GetValue(r, phi, -z);
+  }
 }
 ///
 /// \param x
@@ -4654,11 +4778,12 @@ Double_t AliTPCSpaceCharge3DCalc::GetPotentialCylAC(const Float_t x[], Short_t r
 
   r = x[0];
   phi = x[1];
-  if (phi < 0)
+  if (phi < 0) {
     phi += TMath::TwoPi(); // Table uses phi from 0 to 2*Pi
-  if (phi > TMath::TwoPi())
+  }
+  if (phi > TMath::TwoPi()) {
     phi = phi - TMath::TwoPi(); // Table uses phi from 0 to 2*Pi
-
+  }
   z = x[2]; // Create temporary copy of x[2]
 
   if ((roc % 36) < 18) {
@@ -4667,18 +4792,21 @@ Double_t AliTPCSpaceCharge3DCalc::GetPotentialCylAC(const Float_t x[], Short_t r
     sign = -1; // (TPC C side)
   }
 
-  if (sign == 1 && z < AliTPCPoissonSolver::fgkZOffSet)
+  if (sign == 1 && z < AliTPCPoissonSolver::fgkZOffSet) {
     z = AliTPCPoissonSolver::fgkZOffSet; // Protect against discontinuity at CE
-  if (sign == -1 && z > -AliTPCPoissonSolver::fgkZOffSet)
+  }
+  if (sign == -1 && z > -AliTPCPoissonSolver::fgkZOffSet) {
     z = -AliTPCPoissonSolver::fgkZOffSet; // Protect against discontinuity at CE
-
-  if ((sign == 1 && z < 0) || (sign == -1 && z > 0)) // just a consistency check
+  }
+  if ((sign == 1 && z < 0) || (sign == -1 && z > 0)) { // just a consistency check
     Error("AliTPCSpaceCharge3DCalc::", "ROC number does not correspond to z coordinate! Calculation of distortions is most likely wrong!");
+  }
 
-  if (z > -1e-16)
+  if (z > -1e-16) {
     return fInterpolatorPotentialA->GetValue(r, phi, z);
-  else
+  } else {
     return fInterpolatorPotentialC->GetValue(r, phi, -z);
+  }
 }
 /// chargeInverse
 ///
@@ -4692,11 +4820,12 @@ Double_t AliTPCSpaceCharge3DCalc::GetInverseChargeCylAC(const Float_t x[], Short
 
   r = x[0];
   phi = x[1];
-  if (phi < 0)
+  if (phi < 0) {
     phi += TMath::TwoPi(); // Table uses phi from 0 to 2*Pi
-  if (phi > TMath::TwoPi())
+  }
+  if (phi > TMath::TwoPi()) {
     phi = phi - TMath::TwoPi(); // Table uses phi from 0 to 2*Pi
-
+  }
   z = x[2]; // Create temporary copy of x[2]
 
   if ((roc % 36) < 18) {
@@ -4705,18 +4834,21 @@ Double_t AliTPCSpaceCharge3DCalc::GetInverseChargeCylAC(const Float_t x[], Short
     sign = -1; // (TPC C side)
   }
 
-  if (sign == 1 && z < AliTPCPoissonSolver::fgkZOffSet)
+  if (sign == 1 && z < AliTPCPoissonSolver::fgkZOffSet) {
     z = AliTPCPoissonSolver::fgkZOffSet; // Protect against discontinuity at CE
-  if (sign == -1 && z > -AliTPCPoissonSolver::fgkZOffSet)
+  }
+  if (sign == -1 && z > -AliTPCPoissonSolver::fgkZOffSet) {
     z = -AliTPCPoissonSolver::fgkZOffSet; // Protect against discontinuity at CE
-
-  if ((sign == 1 && z < 0) || (sign == -1 && z > 0)) // just a consistency check
+  }
+  if ((sign == 1 && z < 0) || (sign == -1 && z > 0)) { // just a consistency check
     Error("AliTPCSpaceCharge3DCalc::", "ROC number does not correspond to z coordinate! Calculation of distortions is most likely wrong!");
+  }
 
-  if (z > -1e-6)
+  if (z > -1e-6) {
     return fInterpolatorInverseChargeA->GetValue(r, phi, z);
-  else
+  } else {
     return fInterpolatorInverseChargeC->GetValue(r, phi, z);
+  }
 }
 
 ///
@@ -4731,11 +4863,12 @@ void AliTPCSpaceCharge3DCalc::GetLocalDistortionCyl(const Float_t x[], Short_t r
 
   r = x[0];
   phi = x[1];
-  if (phi < 0)
+  if (phi < 0) {
     phi += TMath::TwoPi(); // Table uses phi from 0 to 2*Pi
-  if (phi > TMath::TwoPi())
+  }
+  if (phi > TMath::TwoPi()) {
     phi = phi - TMath::TwoPi(); // Table uses phi from 0 to 2*Pi
-
+  }
   z = x[2]; // Create temporary copy of x[2]
 
   if ((roc % 36) < 18) {
@@ -4744,17 +4877,19 @@ void AliTPCSpaceCharge3DCalc::GetLocalDistortionCyl(const Float_t x[], Short_t r
     sign = -1; // (TPC C side)
   }
 
-  if (sign == 1 && z < AliTPCPoissonSolver::fgkZOffSet)
+  if (sign == 1 && z < AliTPCPoissonSolver::fgkZOffSet) {
     z = AliTPCPoissonSolver::fgkZOffSet; // Protect against discontinuity at CE
-  if (sign == -1 && z > -AliTPCPoissonSolver::fgkZOffSet)
+  }
+  if (sign == -1 && z > -AliTPCPoissonSolver::fgkZOffSet) {
     z = -AliTPCPoissonSolver::fgkZOffSet; // Protect against discontinuity at CE
-
-  if ((sign == 1 && z < -1e-16) || (sign == -1 && z > -1e-16)) // just a consistency check
+  }
+  if ((sign == 1 && z < -1e-16) || (sign == -1 && z > -1e-16)) { // just a consistency check
     Error("AliTPCSpaceCharge3DCalc::", "ROC number does not correspond to z coordinate! Calculation of distortions is most likely wrong!");
+  }
 
-  if (z > -1e-16)
+  if (z > -1e-16) {
     fLookupDistA->GetValue(r, phi, z, dR, dRPhi, dZ);
-  else {
+  } else {
     fLookupDistC->GetValue(r, phi, -z, dR, dRPhi, dZ);
     dZ = -1 * dZ;
   }
@@ -4777,11 +4912,12 @@ void AliTPCSpaceCharge3DCalc::GetElectricFieldCyl(const Float_t x[], Short_t roc
 
   r = x[0];
   phi = x[1];
-  if (phi < 0)
+  if (phi < 0) {
     phi += TMath::TwoPi(); // Table uses phi from 0 to 2*Pi
-  if (phi > TMath::TwoPi())
+  }
+  if (phi > TMath::TwoPi()) {
     phi = phi - TMath::TwoPi(); // Table uses phi from 0 to 2*Pi
-
+  }
   z = x[2]; // Create temporary copy of x[2]
 
   if ((roc % 36) < 18) {
@@ -4790,17 +4926,19 @@ void AliTPCSpaceCharge3DCalc::GetElectricFieldCyl(const Float_t x[], Short_t roc
     sign = -1; // (TPC C side)
   }
 
-  if (sign == 1 && z < AliTPCPoissonSolver::fgkZOffSet)
+  if (sign == 1 && z < AliTPCPoissonSolver::fgkZOffSet) {
     z = AliTPCPoissonSolver::fgkZOffSet; // Protect against discontinuity at CE
-  if (sign == -1 && z > -AliTPCPoissonSolver::fgkZOffSet)
+  }
+  if (sign == -1 && z > -AliTPCPoissonSolver::fgkZOffSet) {
     z = -AliTPCPoissonSolver::fgkZOffSet; // Protect against discontinuity at CE
-
-  if ((sign == 1 && z < -1e-16) || (sign == -1 && z > -1e-16)) // just a consistency check
+  }
+  if ((sign == 1 && z < -1e-16) || (sign == -1 && z > -1e-16)) { // just a consistency check
     Error("AliTPCSpaceCharge3DCalc::", "ROC number does not correspond to z coordinate! Calculation of distortions is most likely wrong!");
+  }
 
-  if (z > -1e-16)
+  if (z > -1e-16) {
     fLookupElectricFieldA->GetValue(r, phi, z, eR, ePhi, eZ);
-  else {
+  } else {
     fLookupElectricFieldC->GetValue(r, phi, -z, eR, ePhi, eZ);
     eZ = -1 * eZ;
   }
@@ -4827,11 +4965,12 @@ void AliTPCSpaceCharge3DCalc::GetInverseLocalDistortionCyl(const Float_t x[], Sh
 
   r = x[0];
   phi = x[1];
-  if (phi < 0)
+  if (phi < 0) {
     phi += TMath::TwoPi(); // Table uses phi from 0 to 2*Pi
-  if (phi > TMath::TwoPi())
+  }
+  if (phi > TMath::TwoPi()) {
     phi = phi - TMath::TwoPi(); // Table uses phi from 0 to 2*Pi
-
+  }
   z = x[2]; // Create temporary copy of x[2]
 
   if ((roc % 36) < 18) {
@@ -4840,18 +4979,21 @@ void AliTPCSpaceCharge3DCalc::GetInverseLocalDistortionCyl(const Float_t x[], Sh
     sign = -1; // (TPC C side)
   }
 
-  if (sign == 1 && z < AliTPCPoissonSolver::fgkZOffSet)
+  if (sign == 1 && z < AliTPCPoissonSolver::fgkZOffSet) {
     z = AliTPCPoissonSolver::fgkZOffSet; // Protect against discontinuity at CE
-  if (sign == -1 && z > -AliTPCPoissonSolver::fgkZOffSet)
+  }
+  if (sign == -1 && z > -AliTPCPoissonSolver::fgkZOffSet) {
     z = -AliTPCPoissonSolver::fgkZOffSet; // Protect against discontinuity at CE
-
-  if ((sign == 1 && z < -1e-16) || (sign == -1 && z > -1e-16)) // just a consistency check
+  }
+  if ((sign == 1 && z < -1e-16) || (sign == -1 && z > -1e-16)) { // just a consistency check
     Error("AliTPCSpaceCharge3DCalc::", "ROC number does not correspond to z coordinate! Calculation of distortions is most likely wrong!");
+  }
 
-  if (z > -1e-16)
+  if (z > -1e-16) {
     fLookupInverseDistA->GetValue(r, phi, z, dR, dRPhi, dZ);
-  else
+  } else {
     fLookupInverseDistC->GetValue(r, phi, -z, dR, dRPhi, dZ);
+  }
 
   dx[0] = fCorrectionFactor * dR;
   dx[1] = fCorrectionFactor * dRPhi;

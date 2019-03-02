@@ -16,6 +16,8 @@
 #include "GPUDataTypes.h"
 #include <cstring>
 
+using namespace o2::gpu;
+
 void GPUSettingsRec::SetDefaults()
 {
   HitPickUpFactor = 2.;

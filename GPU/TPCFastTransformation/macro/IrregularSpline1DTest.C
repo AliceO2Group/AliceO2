@@ -1,15 +1,15 @@
 /*
 
-// works only with ROOT >= 6
+   // works only with ROOT >= 6
 
-alienv load ROOT/latest-root6
-alienv load Vc/latest
+   alienv load ROOT/latest-root6
+   alienv load Vc/latest
 
-root -l
+   root -l
 
-.x loadlibs.C
-.x IrregularSpline1DTest.C++
-*/
+   .x loadlibs.C
+   .x IrregularSpline1DTest.C++
+ */
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
@@ -42,7 +42,7 @@ typedef double myfloat;
 int IrregularSpline1DTest()
 {
 
-  using namespace ali_tpc_common::tpc_fast_transformation;
+  using namespace o2::gpu;
 
   cout << "Test roundf(): " << endl;
   for (float x = 0.; x <= 1.; x += 0.1) {
@@ -142,10 +142,10 @@ int IrregularSpline1DTest()
   }
 
   /*
-	  canv->cd(1);
-	    qaX->Draw();
-	    canv->cd(2);
-	    */
+      canv->cd(1);
+        qaX->Draw();
+        canv->cd(2);
+   */
   n->SetMarkerColor(kBlack);
   // n->Draw("f0:u");
   n->SetMarkerColor(kBlue);

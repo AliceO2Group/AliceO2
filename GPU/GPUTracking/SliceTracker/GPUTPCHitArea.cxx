@@ -15,6 +15,8 @@
 #include "GPUTPCHit.h"
 #include "GPUTPCHitArea.h"
 #include "GPUTPCTracker.h"
+using namespace o2::gpu;
+
 MEM_CLASS_PRE()
 class GPUTPCRow;
 
@@ -43,7 +45,7 @@ GPUd() void GPUTPCHitArea::Init(const MEM_TYPE(GPUTPCRow) & row, GPUglobalref() 
   mHitYfst = tex1Dfetch(gAliTexRefu, ((char*)slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(calink) + mIndYmin);
   mHitYlst = tex1Dfetch(gAliTexRefu, ((char*)slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(calink) + mIndYmin + mBDY);
 #else
-  mHitYfst = slice.FirstHitInBin(row, mIndYmin); // first and
+  mHitYfst = slice.FirstHitInBin(row, mIndYmin);        // first and
   mHitYlst = slice.FirstHitInBin(row, mIndYmin + mBDY); // last hit index in the bin
 #endif // GPUCA_TEXTURE_FETCH_NEIGHBORS
   mIh = mHitYfst;

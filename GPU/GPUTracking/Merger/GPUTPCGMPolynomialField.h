@@ -16,6 +16,10 @@
 
 #include "GPUTPCDef.h"
 
+namespace o2
+{
+namespace gpu
+{
 /**
  * @class GPUTPCGMPolynomialField
  *
@@ -245,10 +249,10 @@ GPUdi() void GPUTPCGMPolynomialField::GetPolynomsIts(float x, float y, float z, 
   f[8] = yz;
   f[9] = zz;
   /*
-	    f[10]=x*xx; f[11]=x*xy; f[12]=x*xz; f[13]=x*yy; f[14]=x*yz; f[15]=x*zz;
-	    f[16]=y*yy; f[17]=y*yz; f[18]=y*zz;
-	    f[19]=z*zz;
-	    */
+        f[10]=x*xx; f[11]=x*xy; f[12]=x*xz; f[13]=x*yy; f[14]=x*yz; f[15]=x*zz;
+        f[16]=y*yy; f[17]=y*yz; f[18]=y*zz;
+        f[19]=z*zz;
+   */
 }
 
 GPUdi() void GPUTPCGMPolynomialField::GetFieldIts(float x, float y, float z, float B[3]) const
@@ -280,5 +284,7 @@ GPUdi() float GPUTPCGMPolynomialField::GetFieldItsBz(float x, float y, float z) 
   }
   return bz;
 }
+}
+} // namespace o2::gpu
 
 #endif

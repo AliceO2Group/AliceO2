@@ -21,10 +21,7 @@
 #include "AliHLTTPCGeometry.h"
 #include "TPCFastTransform.h"
 
-namespace ali_tpc_common
-{
-namespace tpc_fast_transformation
-{
+using namespace o2::gpu;
 
 TPCFastTransformManager::TPCFastTransformManager() : mError(), mOrigTransform(nullptr) {}
 
@@ -33,17 +30,21 @@ int TPCFastTransformManager::create(TPCFastTransform& fastTransform, AliTPCTrans
   /// Initializes TPCFastTransform object
 
   AliTPCcalibDB* pCalib = AliTPCcalibDB::Instance();
-  if (!pCalib)
+  if (!pCalib) {
     return storeError(-1, "TPCFastTransformManager::Init: No TPC calibration instance found");
+  }
 
   AliTPCParam* tpcParam = pCalib->GetParameters();
-  if (!tpcParam)
+  if (!tpcParam) {
     return storeError(-2, "TPCFastTransformManager::Init: No TPCParam object found");
+  }
 
-  if (!transform)
+  if (!transform) {
     transform = pCalib->GetTransform();
-  if (!transform)
+  }
+  if (!transform) {
     return storeError(-3, "TPCFastTransformManager::Init: No TPC transformation found");
+  }
 
   mOrigTransform = transform;
 
@@ -51,14 +52,15 @@ int TPCFastTransformManager::create(TPCFastTransform& fastTransform, AliTPCTrans
   tpcParam->ReadGeoMatrices();
 
   const AliTPCRecoParam* rec = transform->GetCurrentRecoParam();
-  if (!rec)
+  if (!rec) {
     return storeError(-5, "TPCFastTransformManager::Init: No TPC Reco Param set in transformation");
+  }
 
   bool useCorrectionMap = rec->GetUseCorrectionMap();
 
-  if (useCorrectionMap)
+  if (useCorrectionMap) {
     transform->SetCorrectionMapMode(kTRUE); // If the simulation set this to false to simulate distortions, we need to reverse it for the transformation
-
+  }
   // find last calibrated time bin
 
   fLastTimeBin = rec->GetLastBin();
@@ -81,8 +83,9 @@ int TPCFastTransformManager::create(TPCFastTransform& fastTransform, AliTPCTrans
     Int_t nPads = tpcParam->GetNPads(sector, secrow);
     float xRow = tpcParam->GetPadRowRadii(sector, secrow);
     float padWidth = tpcParam->GetInnerPadPitchWidth();
-    if (iRow >= tpcParam->GetNRowLow())
+    if (iRow >= tpcParam->GetNRowLow()) {
       padWidth = tpcParam->GetOuterPadPitchWidth();
+    }
     fastTransform.setTPCrow(iRow, xRow, nPads, padWidth);
     distortion.setTPCrow(iRow, xRow, nPads, padWidth, 0);
   }
@@ -97,10 +100,12 @@ int TPCFastTransformManager::create(TPCFastTransform& fastTransform, AliTPCTrans
     int nAxisTicksV = fLastTimeBin + 1;
     float knotsU[nKnotsU];
     float knotsV[nKnotsV];
-    for (int i = 0; i < nKnotsU; i++)
+    for (int i = 0; i < nKnotsU; i++) {
       knotsU[i] = 1. / (nKnotsU - 1) * i;
-    for (int i = 0; i < nKnotsV; i++)
+    }
+    for (int i = 0; i < nKnotsV; i++) {
       knotsV[i] = 1. / (nKnotsV - 1) * i;
+    }
 
     // make bining similar to old HLT transformation
     // TODO: adjust to binning in the calibration
@@ -138,25 +143,30 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform, 
 
   fastTransform.setTimeStamp(-1);
 
-  if (TimeStamp < 0)
+  if (TimeStamp < 0) {
     return 0;
+  }
 
   // search for the calibration database
 
-  if (!mOrigTransform)
+  if (!mOrigTransform) {
     return storeError(-1, "TPCFastTransformManager::SetCurrentTimeStamp: TPC transformation has not been set properly");
+  }
 
   AliTPCcalibDB* pCalib = AliTPCcalibDB::Instance();
-  if (!pCalib)
+  if (!pCalib) {
     return storeError(-2, "TPCFastTransformManager::SetCurrentTimeStamp: No TPC calibration found");
+  }
 
   AliTPCParam* tpcParam = pCalib->GetParameters();
-  if (!tpcParam)
+  if (!tpcParam) {
     return storeError(-3, "TPCFastTransformManager::SetCurrentTimeStamp: No TPCParam object found");
+  }
 
   AliTPCRecoParam* recoParam = mOrigTransform->GetCurrentRecoParamNonConst();
-  if (!recoParam)
+  if (!recoParam) {
     return storeError(-5, "TPCFastTransformManager::Init: No TPC Reco Param set in transformation");
+  }
 
   // calibration found, set the initialized status back
 
@@ -164,8 +174,9 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform, 
 
   // less than 60 seconds from the previois time stamp, don't do anything
 
-  if (lastTS >= 0 && TMath::Abs(lastTS - TimeStamp) < 60)
+  if (lastTS >= 0 && TMath::Abs(lastTS - TimeStamp) < 60) {
     return 0;
+  }
 
   // start the initialization
 
@@ -215,8 +226,9 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform, 
 
   bool useTOFcorrection = recoParam->GetUseTOFCorrection();
 
-  if (!useTOFcorrection)
+  if (!useTOFcorrection) {
     tofCorr = 0;
+  }
 
   fastTransform.setCalibration(TimeStamp, t0, vDrift, vdCorrY, ldCorr, tofCorr, primVtxZ, tpcAlignmentZ);
 
@@ -298,6 +310,3 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform, 
 
   return 0;
 }
-
-} // namespace tpc_fast_transformation
-} // namespace ali_tpc_common

@@ -25,7 +25,7 @@ TRDGeometryFlat::TRDGeometryFlat(const TRDGeometry& geo)
       for (int k = 0; k < 12; k++) {
         f[k] = v[k];
       }
-      mMatrixCache[matrixCount] = ali_tpc_common::Transform3D(f);
+      mMatrixCache[matrixCount] = o2::gpu::Transform3D(f);
       mMatrixIndirection[i] = matrixCount++;
     } else {
       mMatrixIndirection[i] = -1;

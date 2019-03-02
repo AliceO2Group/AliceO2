@@ -16,6 +16,10 @@
 
 #include "GPUDisplayBackend.h"
 
+namespace o2
+{
+namespace gpu
+{
 class GPUDisplayBackendWindows : public GPUDisplayBackend
 {
  public:
@@ -32,5 +36,7 @@ class GPUDisplayBackendWindows : public GPUDisplayBackend
  private:
   virtual int OpenGLMain();
 };
+}
+} // namespace o2::gpu
 
 #endif

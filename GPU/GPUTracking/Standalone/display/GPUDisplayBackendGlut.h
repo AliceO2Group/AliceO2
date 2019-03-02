@@ -17,6 +17,10 @@
 #include "GPUDisplayBackend.h"
 #include <pthread.h>
 
+namespace o2
+{
+namespace gpu
+{
 class GPUDisplayBackendGlut : public GPUDisplayBackend
 {
  public:
@@ -53,5 +57,7 @@ class GPUDisplayBackendGlut : public GPUDisplayBackend
   int mHeight = INIT_HEIGHT;
   bool mFullScreen = false;
 };
+}
+} // namespace o2::gpu
 
 #endif

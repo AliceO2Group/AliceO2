@@ -19,6 +19,10 @@
 #define GPUTPCGeometry AliHLTTPCGeometry
 #else
 
+namespace o2
+{
+namespace gpu
+{
 class GPUTPCGeometry
 {
   static double mX[GPUCA_ROW_COUNT];
@@ -194,5 +198,7 @@ double GPUTPCGeometry::mX[GPUCA_ROW_COUNT] = { 85.195, 85.945, 86.695, 87.445, 8
                                                211.430, 212.930, 214.430, 215.930, 217.430, 218.930, 220.430, 221.930, 223.430, 224.930, 226.430, 227.930, 229.430, 230.930, 232.430, 233.930, 235.430, 236.930, 238.430, 239.930, 241.430, 242.930, 244.430, 245.930 };
 
 #endif
+}
+} // namespace o2::gpu
 #endif
 #endif

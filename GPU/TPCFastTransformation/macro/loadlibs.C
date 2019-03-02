@@ -1,11 +1,11 @@
 /*
- works only with ROOT >= 6
+   works only with ROOT >= 6
 
-alienv load ROOT/latest-root6
-alienv load Vc/latest
-root -l
-.x loadlibs.C
-*/
+   alienv load ROOT/latest-root6
+   alienv load Vc/latest
+   root -l
+   .x loadlibs.C
+ */
 
 #include "TSystem.h"
 #include "TROOT.h"

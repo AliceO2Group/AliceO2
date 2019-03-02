@@ -26,9 +26,12 @@
  *
  */
 
+namespace o2
+{
+namespace gpu
+{
 class GPUTPCGMPhysicalTrackModel
 {
-
  public:
   GPUdDefault() GPUTPCGMPhysicalTrackModel() CON_DEFAULT;
   GPUd() GPUTPCGMPhysicalTrackModel(const GPUTPCGMTrackParam& t);
@@ -36,22 +39,67 @@ class GPUTPCGMPhysicalTrackModel
   GPUd() void Set(const GPUTPCGMTrackParam& t);
   GPUd() void Set(float X, float Y, float Z, float Px, float Py, float Pz, float Q);
 
-  GPUd() float& X() { return mX; }
-  GPUd() float& Y() { return mY; }
-  GPUd() float& Z() { return mZ; }
-  GPUd() float& Px() { return mPx; }
-  GPUd() float& Py() { return mPy; }
-  GPUd() float& Pz() { return mPz; }
-  GPUd() float& Q() { return mQ; }
+  GPUd() float& X()
+  {
+    return mX;
+  }
+  GPUd() float& Y()
+  {
+    return mY;
+  }
+  GPUd() float& Z()
+  {
+    return mZ;
+  }
+  GPUd() float& Px()
+  {
+    return mPx;
+  }
+  GPUd() float& Py()
+  {
+    return mPy;
+  }
+  GPUd() float& Pz()
+  {
+    return mPz;
+  }
+  GPUd() float& Q()
+  {
+    return mQ;
+  }
 
-  GPUd() float& SinPhi() { return mSinPhi; }
-  GPUd() float& CosPhi() { return mCosPhi; }
-  GPUd() float& SecPhi() { return mSecPhi; }
-  GPUd() float& DzDs() { return mDzDs; }
-  GPUd() float& DlDs() { return mDlDs; }
-  GPUd() float& QPt() { return mQPt; }
-  GPUd() float& P() { return mP; }
-  GPUd() float& Pt() { return mPt; }
+  GPUd() float& SinPhi()
+  {
+    return mSinPhi;
+  }
+  GPUd() float& CosPhi()
+  {
+    return mCosPhi;
+  }
+  GPUd() float& SecPhi()
+  {
+    return mSecPhi;
+  }
+  GPUd() float& DzDs()
+  {
+    return mDzDs;
+  }
+  GPUd() float& DlDs()
+  {
+    return mDlDs;
+  }
+  GPUd() float& QPt()
+  {
+    return mQPt;
+  }
+  GPUd() float& P()
+  {
+    return mP;
+  }
+  GPUd() float& Pt()
+  {
+    return mPt;
+  }
 
   GPUd() const float& SinPhi() const { return mSinPhi; }
   GPUd() const float& DzDs() const { return mDzDs; }
@@ -119,8 +167,9 @@ GPUdi() GPUTPCGMPhysicalTrackModel::GPUTPCGMPhysicalTrackModel(const GPUTPCGMTra
 GPUdi() void GPUTPCGMPhysicalTrackModel::Set(const GPUTPCGMTrackParam& t)
 {
   float pti = CAMath::Abs(t.GetQPt());
-  if (pti < 1.e-4f)
-    pti = 1.e-4f;                      // set 10000 GeV momentum for straight track
+  if (pti < 1.e-4f) {
+    pti = 1.e-4f; // set 10000 GeV momentum for straight track
+  }
   mQ = (t.GetQPt() >= 0) ? 1.f : -1.f; // only charged tracks are considered
   mX = t.GetX();
   mY = t.GetY();
@@ -128,10 +177,12 @@ GPUdi() void GPUTPCGMPhysicalTrackModel::Set(const GPUTPCGMTrackParam& t)
 
   mPt = 1.f / pti;
   mSinPhi = t.GetSinPhi();
-  if (mSinPhi > GPUCA_MAX_SIN_PHI)
+  if (mSinPhi > GPUCA_MAX_SIN_PHI) {
     mSinPhi = GPUCA_MAX_SIN_PHI;
-  if (mSinPhi < -GPUCA_MAX_SIN_PHI)
+  }
+  if (mSinPhi < -GPUCA_MAX_SIN_PHI) {
     mSinPhi = -GPUCA_MAX_SIN_PHI;
+  }
   mCosPhi = sqrt((1.f - mSinPhi) * (1.f + mSinPhi));
   mSecPhi = 1.f / mCosPhi;
   mDzDs = t.GetDzDs();
@@ -159,8 +210,9 @@ GPUdi() void GPUTPCGMPhysicalTrackModel::Set(float X, float Y, float Z, float Px
 GPUdi() void GPUTPCGMPhysicalTrackModel::UpdateValues()
 {
   float px = mPx;
-  if (CAMath::Abs(px) < 1.e-4f)
+  if (CAMath::Abs(px) < 1.e-4f) {
     px = copysign(1.e-4f, px);
+  }
 
   mPt = sqrt(px * px + mPy * mPy);
   float pti = 1.f / mPt;
@@ -179,8 +231,9 @@ GPUdi() bool GPUTPCGMPhysicalTrackModel::SetDirectionAlongX()
   // set direction of movenment collinear to X axis
   // return value is true when direction has been changed
   //
-  if (mPx >= 0)
+  if (mPx >= 0) {
     return 0;
+  }
 
   mPx = -mPx;
   mPy = -mPy;
@@ -193,8 +246,9 @@ GPUdi() bool GPUTPCGMPhysicalTrackModel::SetDirectionAlongX()
 GPUdi() float GPUTPCGMPhysicalTrackModel::GetMirroredY(float Bz) const
 {
   // get Y of the point which has the same X, but located on the other side of trajectory
-  if (CAMath::Abs(Bz) < 1.e-8f)
+  if (CAMath::Abs(Bz) < 1.e-8f) {
     Bz = 1.e-8f;
+  }
   return mY - 2.f * mQ * mPx / Bz;
 }
 
@@ -217,5 +271,7 @@ GPUdi() void GPUTPCGMPhysicalTrackModel::Rotate(float alpha)
   RotateLight(alpha);
   UpdateValues();
 }
+}
+} // namespace o2::gpu
 
 #endif

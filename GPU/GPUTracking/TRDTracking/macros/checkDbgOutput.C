@@ -1,9 +1,9 @@
 /*
-Usage:
-  .L checkDbgOutput.C+
-  InitAnalysis();
-  FitAngularResolution();
-*/
+   Usage:
+   .L checkDbgOutput.C+
+   InitAnalysis();
+   FitAngularResolution();
+ */
 
 #include "TROOT.h"
 #include "TStyle.h"
@@ -644,25 +644,25 @@ void TwoTrackletEfficiency(Int_t nEntries = -1)
   h2TrkltsEffRef->Divide(h2TrkltsRef, hAll, 1, 1, "B");
   h2TrkltsNoFakesEffRef->Divide(h2TrkltsNoFakesRef, h2TrkltsRef, 1, 1, "B");
   /*
-	    TCanvas *cAll = new TCanvas("cAll", "cAll");
-	    hAll->Draw();
-	    TCanvas *c2Trklts = new TCanvas("c2Trklts", "c2Trklts");
-	    h2Trklts->Draw();
-	    TCanvas *c2TrkltsNoFakes = new TCanvas("c2TrkltsNoFakes", "c2TrkltsNoFakes");
-	    h2TrkltsNoFakes->Draw();
-	    TCanvas *c2TrkltsEff = new TCanvas("c2TrkltsEff", "c2TrkltsEff");
-	    //h2TrkltsEff->GetYaxis()->SetRangeUser(0.7, 1.1);
-	    h2TrkltsEff->SetMarkerStyle(21);
-	    h2TrkltsEff->Draw("e0");
-	    c2TrkltsEff->SetGridx();
-	    c2TrkltsEff->SetGridy();
-	    TCanvas *c2TrkltsNoFakesEff = new TCanvas("c2TrkltsNoFakesEff", "c2TrkltsNoFakesEff");
-	    //h2TrkltsNoFakesEff->GetYaxis()->SetRangeUser(0.7, 1.1);
-	    h2TrkltsNoFakesEff->SetMarkerStyle(21);
-	    h2TrkltsNoFakesEff->Draw("e0");
-	    c2TrkltsNoFakesEff->SetGridx();
-	    c2TrkltsNoFakesEff->SetGridy();
-	    */
+        TCanvas *cAll = new TCanvas("cAll", "cAll");
+        hAll->Draw();
+        TCanvas *c2Trklts = new TCanvas("c2Trklts", "c2Trklts");
+        h2Trklts->Draw();
+        TCanvas *c2TrkltsNoFakes = new TCanvas("c2TrkltsNoFakes", "c2TrkltsNoFakes");
+        h2TrkltsNoFakes->Draw();
+        TCanvas *c2TrkltsEff = new TCanvas("c2TrkltsEff", "c2TrkltsEff");
+        //h2TrkltsEff->GetYaxis()->SetRangeUser(0.7, 1.1);
+        h2TrkltsEff->SetMarkerStyle(21);
+        h2TrkltsEff->Draw("e0");
+        c2TrkltsEff->SetGridx();
+        c2TrkltsEff->SetGridy();
+        TCanvas *c2TrkltsNoFakesEff = new TCanvas("c2TrkltsNoFakesEff", "c2TrkltsNoFakesEff");
+        //h2TrkltsNoFakesEff->GetYaxis()->SetRangeUser(0.7, 1.1);
+        h2TrkltsNoFakesEff->SetMarkerStyle(21);
+        h2TrkltsNoFakesEff->Draw("e0");
+        c2TrkltsNoFakesEff->SetGridx();
+        c2TrkltsNoFakesEff->SetGridy();
+   */
 
   fOut->cd();
   h2TrkltsEff->Write();
@@ -1206,29 +1206,29 @@ void LoopUpdates(Int_t nEntries = -1)
   hFakesButAv->Draw();
 
   /*
-	    TCanvas *c1 = new TCanvas("c1", "c1");
-	    hUpdateAv->Draw();
-	    TCanvas *c2 = new TCanvas("c2", "c2");
-	    hUpdateAvAll->Draw();
-	    TCanvas *c3 = new TCanvas("c3", "c3");
-	    hUpdateAvReal->Draw();
-	    TCanvas *c4 = new TCanvas("c4", "c4");
-	    hUpdateAvFake->Draw();
-	    TCanvas *c5 = new TCanvas("c5", "c5");
-	    hUpdateNoAv->Draw();
-	    TCanvas *c6 = new TCanvas("c6", "c6");
-	    hUpdateNoAvAll->Draw();
-	    TCanvas *c7 = new TCanvas("c7", "c7");
-	    hUpdateNoAvReal->Draw();
-	    TCanvas *c8 = new TCanvas("c8", "c8");
-	    hUpdateNoAvFake->Draw();
-	    TCanvas *c9 = new TCanvas("c9", "c9");
-	    hUpdateAll->Draw();
-	    TCanvas *c10 = new TCanvas("c10", "c10");
-	    hUpdateReal->Draw();
-	    TCanvas *c11 = new TCanvas("c11", "c11");
-	    hUpdateFake->Draw();
-	    */
+        TCanvas *c1 = new TCanvas("c1", "c1");
+        hUpdateAv->Draw();
+        TCanvas *c2 = new TCanvas("c2", "c2");
+        hUpdateAvAll->Draw();
+        TCanvas *c3 = new TCanvas("c3", "c3");
+        hUpdateAvReal->Draw();
+        TCanvas *c4 = new TCanvas("c4", "c4");
+        hUpdateAvFake->Draw();
+        TCanvas *c5 = new TCanvas("c5", "c5");
+        hUpdateNoAv->Draw();
+        TCanvas *c6 = new TCanvas("c6", "c6");
+        hUpdateNoAvAll->Draw();
+        TCanvas *c7 = new TCanvas("c7", "c7");
+        hUpdateNoAvReal->Draw();
+        TCanvas *c8 = new TCanvas("c8", "c8");
+        hUpdateNoAvFake->Draw();
+        TCanvas *c9 = new TCanvas("c9", "c9");
+        hUpdateAll->Draw();
+        TCanvas *c10 = new TCanvas("c10", "c10");
+        hUpdateReal->Draw();
+        TCanvas *c11 = new TCanvas("c11", "c11");
+        hUpdateFake->Draw();
+   */
 }
 
 void LoopCheckHitsMC(Int_t nEntries = -1)
@@ -1482,36 +1482,36 @@ void checkDbgOutput()
 }
 
 /*
-  currently not needed
+   currently not needed
 
 
-  //TCanvas *cTest = new TCanvas("cTest", "cTest");
-  //tree->Draw("GetDeltaYmatch(layer):trkPhi>>his(10, -.3, .3, 100, -5, 5)", "isFake&&matchAvail&&LoadBranches(Entry$)", "colz");
-  //tree->Draw("GetDeltaY(layer)-GetDeltaYmatch(layer)>>his(100, -5., 5.)", "isFake&&matchAvail&&LoadBranches(Entry$)", "colz");
-  //tree->Draw("roadY", "isFake&&matchAvail&&LoadBranches(Entry$)", "colz");
-  //tree->Draw("abs(GetDeltaYmatch(layer))-abs(GetDeltaY(layer))>>hist(100, -2, 2)", "isFake&&LoadBranches(Entry$)&&matchAvail&&inYroad&&inZroad&&abs(GetDeltaZmatch(layer))<abs(GetDeltaZ(layer))");
-  // obviously a bug -> if distance of real matching tracklet is smaller than chosen one, why was the real one not chosen?
-  // what about tracklet errors? in z different for different pad widths, in y constant. should not make a difference, or?
-  //tree->Draw("chi2Real.fElements-chi2Update.fElements", "isFake&&LoadBranches(Entry$)&&matchAvail&&inYroad&&inZroad&&abs(GetDeltaZmatch(layer))<abs(GetDeltaZ(layer))&&abs(GetDeltaYmatch(layer))<abs(GetDeltaY(layer))" );
-  //tree->Draw("update.fElements", "isPresent&&LoadBranches(Entry$)" );
-Int_t isSectorCrossing(Int_t layer)
-{
-  // invalid layer
-  if (layer < 0 || layer > 4) {
+   //TCanvas *cTest = new TCanvas("cTest", "cTest");
+   //tree->Draw("GetDeltaYmatch(layer):trkPhi>>his(10, -.3, .3, 100, -5, 5)", "isFake&&matchAvail&&LoadBranches(Entry$)", "colz");
+   //tree->Draw("GetDeltaY(layer)-GetDeltaYmatch(layer)>>his(100, -5., 5.)", "isFake&&matchAvail&&LoadBranches(Entry$)", "colz");
+   //tree->Draw("roadY", "isFake&&matchAvail&&LoadBranches(Entry$)", "colz");
+   //tree->Draw("abs(GetDeltaYmatch(layer))-abs(GetDeltaY(layer))>>hist(100, -2, 2)", "isFake&&LoadBranches(Entry$)&&matchAvail&&inYroad&&inZroad&&abs(GetDeltaZmatch(layer))<abs(GetDeltaZ(layer))");
+   // obviously a bug -> if distance of real matching tracklet is smaller than chosen one, why was the real one not chosen?
+   // what about tracklet errors? in z different for different pad widths, in y constant. should not make a difference, or?
+   //tree->Draw("chi2Real.fElements-chi2Update.fElements", "isFake&&LoadBranches(Entry$)&&matchAvail&&inYroad&&inZroad&&abs(GetDeltaZmatch(layer))<abs(GetDeltaZ(layer))&&abs(GetDeltaYmatch(layer))<abs(GetDeltaY(layer))" );
+   //tree->Draw("update.fElements", "isPresent&&LoadBranches(Entry$)" );
+   Int_t isSectorCrossing(Int_t layer)
+   {
+   // invalid layer
+   if (layer < 0 || layer > 4) {
     return 0;
-  }
-  if ((*trackSecReal)[layer] < 1 || (*trackSecReal)[layer+1] < 1) {
+   }
+   if ((*trackSecReal)[layer] < 1 || (*trackSecReal)[layer+1] < 1) {
     return 0;
-  }
+   }
 
-  if ((*trackSecReal)[layer] < (*trackSecReal)[layer+1]) {
+   if ((*trackSecReal)[layer] < (*trackSecReal)[layer+1]) {
     return -1;
-  }
-  else if ((*trackSecReal)[layer] > (*trackSecReal)[layer+1]) {
+   }
+   else if ((*trackSecReal)[layer] > (*trackSecReal)[layer+1]) {
     return 1;
-  }
-  else if (TMath::Abs((*trackSecReal)[layer] - (*trackSecReal)[layer+1]) < 0.5) {
+   }
+   else if (TMath::Abs((*trackSecReal)[layer] - (*trackSecReal)[layer+1]) < 0.5) {
     return 0;
-  }
-}
-*/
+   }
+   }
+ */

@@ -1,7 +1,7 @@
 #ifndef GPUTRDTRACK_H
 #define GPUTRDTRACK_H
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
- * See cxx source for full Copyright notice                               */
+* See cxx source for full Copyright notice                               */
 
 #include "GPUTRDDef.h"
 #include "GPUTPCDef.h"
@@ -11,10 +11,21 @@ class AliHLTExternalTrackParam;
 
 //_____________________________________________________________________________
 #if defined(__CINT__) || defined(__ROOTCINT__)
+namespace o2
+{
+namespace gpu
+{
 template <typename T>
 class GPUTRDTrack_t;
+}
+} // namespace o2
 #else
 #include "GPUTRDInterfaces.h"
+
+namespace o2
+{
+namespace gpu
+{
 
 template <typename T>
 class GPUTRDTrack_t : public T
@@ -78,6 +89,8 @@ class GPUTRDTrack_t : public T
   bool mIsFindable[kNLayers];       // number of layers where tracklet should exist
   bool mIsStopped;                  // track ends in TRD
 };
+} // namespace gpu
+} // namespace o2
 
 #endif
 #endif

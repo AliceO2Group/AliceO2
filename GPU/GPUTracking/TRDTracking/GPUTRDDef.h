@@ -1,6 +1,14 @@
 #ifndef GPUTRDDEF_H
 #define GPUTRDDEF_H
 
+class AliExternalTrackParam;
+class AliTrackerBase;
+
+namespace o2
+{
+namespace gpu
+{
+
 #ifdef GPUCA_ALIROOT_LIB
 typedef double My_Float;
 #else
@@ -14,7 +22,6 @@ typedef float My_Float;
 #endif
 
 #if defined(TRD_TRACK_TYPE_ALIROOT)
-class AliExternalTrackParam;
 typedef AliExternalTrackParam TRDBaseTrack;
 // class GPUTPCGMTrackParam;
 // typedef GPUTPCGMTrackParam TRDBaseTrack;
@@ -24,7 +31,6 @@ typedef GPUTPCGMTrackParam TRDBaseTrack;
 #endif
 
 #ifdef GPUCA_ALIROOT_LIB
-class AliTrackerBase;
 typedef AliTrackerBase TRDBasePropagator;
 // class GPUTPCGMPropagator;
 // typedef GPUTPCGMPropagator TRDBasePropagator;
@@ -47,5 +53,7 @@ typedef propagatorInterface<TRDBasePropagator> GPUTRDPropagator;
 #define Warning(...)
 #define Info(...)
 #endif
+} // namespace gpu
+} // namespace o2
 
 #endif

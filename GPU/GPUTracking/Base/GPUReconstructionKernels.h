@@ -14,6 +14,10 @@
 #ifndef GPURECONSTRUCTIONKERNELS_H
 #define GPURECONSTRUCTIONKERNELS_H
 
+namespace o2
+{
+namespace gpu
+{
 #ifdef GPUCA_GPURECONSTRUCTIONCPU_DECLONLY
 template <>
 class GPUReconstructionKernels<GPUReconstructionCPUBackend> : public GPUReconstructionCPUBackend
@@ -28,7 +32,7 @@ class GPUReconstructionKernels : public T
 #endif
 {
  public:
-  virtual ~GPUReconstructionKernels() = default; //Do not declare override in template class! AMD hcc will not create the destructor otherwise.
+  virtual ~GPUReconstructionKernels() = default; // Do not declare override in template class! AMD hcc will not create the destructor otherwise.
   GPUReconstructionKernels(const GPUSettingsProcessing& cfg) : GPUCA_KRNL_CLASS(cfg) {}
 
  protected:
@@ -47,5 +51,7 @@ class GPUReconstructionKernels : public T
 
 #undef GPUCA_KRNL
 #undef GPUCA_KRNL_CLASS
+}
+} // namespace o2::gpu
 
 #endif

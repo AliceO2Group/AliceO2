@@ -22,9 +22,15 @@
 #include "AliHLTComponentBenchmark.h"
 #include "AliHLTAsyncMemberProcessor.h"
 
+namespace o2
+{
+namespace gpu
+{
 class GPUTPCClusterData;
 class GPUReconstruction;
 class GPUChainTracking;
+}
+} // namespace o2::gpu
 
 /**
  * @class GPUTPCTrackerComponent
@@ -111,8 +117,8 @@ class GPUTPCTrackerComponent : public AliHLTProcessor
   int fGPUStuckProtection;             // Protect from stuck GPUs
   int fAsync;                          // Run tracking in async thread to catch GPU hangs....
   float fSearchWindowDZDR;             // See TPCCAParam
-  GPUReconstruction* fRec;             // GPUReconstruction
-  GPUChainTracking* fChain;
+  o2::gpu::GPUReconstruction* fRec;    // GPUReconstruction
+  o2::gpu::GPUChainTracking* fChain;
 
   /** set configuration parameters **/
   void SetDefaultConfiguration();

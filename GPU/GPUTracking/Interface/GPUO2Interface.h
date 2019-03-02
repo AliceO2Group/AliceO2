@@ -14,7 +14,7 @@
 #ifndef GPUO2INTERFACE_H
 #define GPUO2INTERFACE_H
 
-//Some defines denoting that we are compiling for O2
+// Some defines denoting that we are compiling for O2
 #ifndef GPUCA_O2_LIB
 #define GPUCA_O2_LIB
 #endif
@@ -25,28 +25,27 @@
 #define GPUCA_TPC_GEOMETRY_O2
 #endif
 
-class GPUReconstruction;
-class GPUChainTracking;
-class GPUO2InterfaceConfiguration;
-class GPUDisplayBackendGlfw;
+#include <memory>
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUTPCGMMergedTrackHit.h"
-namespace ali_tpc_common
-{
-namespace tpc_fast_transformation
-{
-class TPCFastTransform;
-}
-} // namespace ali_tpc_common
 namespace o2
 {
 namespace TPC
 {
 struct ClusterNativeAccessFullTPC;
 struct ClusterNative;
-} // namespace TPC
-} // namespace o2
-#include <memory>
+}
+} // namespace o2::TPC
+
+namespace o2
+{
+namespace gpu
+{
+class GPUReconstruction;
+class GPUChainTracking;
+class GPUO2InterfaceConfiguration;
+class GPUDisplayBackendGlfw;
+class TPCFastTransform;
 
 class GPUTPCO2Interface
 {
@@ -54,8 +53,8 @@ class GPUTPCO2Interface
   GPUTPCO2Interface();
   ~GPUTPCO2Interface();
 
-  int Initialize(const GPUO2InterfaceConfiguration& config, std::unique_ptr<ali_tpc_common::tpc_fast_transformation::TPCFastTransform>&& fastTrans);
-  int Initialize(const char* options, std::unique_ptr<ali_tpc_common::tpc_fast_transformation::TPCFastTransform>&& fastTrans);
+  int Initialize(const GPUO2InterfaceConfiguration& config, std::unique_ptr<o2::gpu::TPCFastTransform>&& fastTrans);
+  int Initialize(const char* options, std::unique_ptr<o2::gpu::TPCFastTransform>&& fastTrans);
   void Deinitialize();
 
   int RunTracking(const o2::TPC::ClusterNativeAccessFullTPC* inputClusters, const GPUTPCGMMergedTrack*& outputTracks, int& nOutputTracks, const GPUTPCGMMergedTrackHit*& outputTrackClusters);
@@ -77,5 +76,7 @@ class GPUTPCO2Interface
   std::unique_ptr<GPUO2InterfaceConfiguration> mConfig;
   std::unique_ptr<GPUDisplayBackendGlfw> mDisplayBackend;
 };
+}
+} // namespace o2::gpu
 
 #endif

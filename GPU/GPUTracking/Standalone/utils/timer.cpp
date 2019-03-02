@@ -54,8 +54,9 @@ void HighResTimer::ResetStart()
 
 void HighResTimer::Stop()
 {
-  if (running == 0)
+  if (running == 0) {
     return;
+  }
   running = 0;
   double EndTime = 0;
   EndTime = GetTime();

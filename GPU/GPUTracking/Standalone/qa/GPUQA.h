@@ -15,9 +15,25 @@
 #define GPUQA_H
 
 #include "GPUQAConfig.h"
-class GPUChainTracking;
+struct AliHLTTPCClusterMCWeight;
+class TH1F;
+class TH2F;
+class TCanvas;
+class TPad;
+class TLegend;
+class TPad;
+class TH1;
+class TFile;
+class TH1D;
+typedef short int Color_t;
 
 #if !defined(BUILD_QA) || defined(GPUCA_GPUCODE)
+
+namespace o2
+{
+namespace gpu
+{
+class GPUChainTracking;
 
 class GPUQA
 {
@@ -37,23 +53,19 @@ class GPUQA
   bool clusterRemovable(int cid, bool prot) const { return false; }
   static bool QAAvailable() { return false; }
 };
+}
+} // namespace o2::gpu
 
 #else
 
 #include "GPUTPCSettings.h"
 #include <cmath>
 
-class TH1F;
-class TH2F;
-class TCanvas;
-class TPad;
-class TLegend;
-class TPad;
-class TH1;
-class TFile;
-class TH1D;
-typedef short int Color_t;
-struct AliHLTTPCClusterMCWeight;
+namespace o2
+{
+namespace gpu
+{
+class GPUChainTracking;
 
 class GPUQA
 {
@@ -149,8 +161,8 @@ class GPUQA
   TPad* mPClust[N_CLS_TYPE];
   TLegend* mLClust[N_CLS_TYPE];
 
-  long long int mNRecClustersRejected = 0, mNRecClustersTube = 0, mNRecClustersTube200 = 0, mNRecClustersLoopers = 0, mNRecClustersLowPt = 0, mNRecClusters200MeV = 0, mNRecClustersPhysics = 0, mNRecClustersProt = 0, mNRecClustersUnattached = 0, mNRecClustersTotal = 0, mNRecClustersHighIncl = 0, mNRecClustersAbove400 = 0,
-                mNRecClustersFakeRemove400 = 0, mNRecClustersFullFakeRemove400 = 0, mNRecClustersBelow40 = 0, mNRecClustersFakeProtect40 = 0;
+  long long int mNRecClustersRejected = 0, mNRecClustersTube = 0, mNRecClustersTube200 = 0, mNRecClustersLoopers = 0, mNRecClustersLowPt = 0, mNRecClusters200MeV = 0, mNRecClustersPhysics = 0, mNRecClustersProt = 0, mNRecClustersUnattached = 0, mNRecClustersTotal = 0, mNRecClustersHighIncl = 0,
+                mNRecClustersAbove400 = 0, mNRecClustersFakeRemove400 = 0, mNRecClustersFullFakeRemove400 = 0, mNRecClustersBelow40 = 0, mNRecClustersFakeProtect40 = 0;
   double mNRecClustersUnaccessible = 0;
 
   TH1F* mTracks;
@@ -222,6 +234,8 @@ class GPUQA
 
   int mMCTrackMin = -1, mMCTrackMax = -1;
 };
+}
+} // namespace o2::gpu
 
 #endif
 #endif

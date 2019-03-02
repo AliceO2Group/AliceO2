@@ -36,12 +36,13 @@
 #include <cstdlib>
 #include <cerrno>
 
+using namespace o2::gpu;
 using namespace std;
 
 // ROOT macro for the implementation of ROOT specific class methods
-ClassImp(GPUTPCGlobalMergerComponent)
+ClassImp(GPUTPCGlobalMergerComponent);
 
-  const GPUChainTracking* GPUTPCGlobalMergerComponent::fgCurrentMergerReconstruction = nullptr;
+const GPUChainTracking* GPUTPCGlobalMergerComponent::fgCurrentMergerReconstruction = nullptr;
 
 GPUTPCGlobalMergerComponent::GPUTPCGlobalMergerComponent() : AliHLTProcessor(), fSolenoidBz(0), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fNWays(1), fNWaysOuter(0), fNoClear(false), fBenchmark("GlobalMerger"), fRec(nullptr), fChain(nullptr)
 {
@@ -61,8 +62,9 @@ GPUTPCGlobalMergerComponent& GPUTPCGlobalMergerComponent::operator=(const GPUTPC
 
 GPUTPCGlobalMergerComponent::~GPUTPCGlobalMergerComponent()
 {
-  if (fRec)
+  if (fRec) {
     delete fRec;
+  }
 };
 
 // Public functions to implement AliHLTComponent's interface.
@@ -132,8 +134,9 @@ int GPUTPCGlobalMergerComponent::ReadConfigurationString(const char* arguments)
   // Set configuration parameters for the CA merger component from the string
 
   int iResult = 0;
-  if (!arguments)
+  if (!arguments) {
     return iResult;
+  }
 
   TString allArgs = arguments;
   TString argument;
@@ -145,35 +148,40 @@ int GPUTPCGlobalMergerComponent::ReadConfigurationString(const char* arguments)
 
   for (int i = 0; i < nArgs; i++) {
     argument = ((TObjString*)pTokens->At(i))->GetString();
-    if (argument.IsNull())
+    if (argument.IsNull()) {
       continue;
+    }
 
     if (argument.CompareTo("-solenoidBz") == 0) {
-      if ((bMissingParam = (++i >= pTokens->GetEntries())))
+      if ((bMissingParam = (++i >= pTokens->GetEntries()))) {
         break;
+      }
       HLTWarning("argument -solenoidBz is deprecated, magnetic field set up globally (%f)", GetBz());
       continue;
     }
 
     if (argument.CompareTo("-errorCorrectionY") == 0) {
-      if ((bMissingParam = (++i >= pTokens->GetEntries())))
+      if ((bMissingParam = (++i >= pTokens->GetEntries()))) {
         break;
+      }
       fClusterErrorCorrectionY = ((TObjString*)pTokens->At(i))->GetString().Atof();
       HLTInfo("Cluster Y error correction factor set to: %f", fClusterErrorCorrectionY);
       continue;
     }
 
     if (argument.CompareTo("-errorCorrectionZ") == 0) {
-      if ((bMissingParam = (++i >= pTokens->GetEntries())))
+      if ((bMissingParam = (++i >= pTokens->GetEntries()))) {
         break;
+      }
       fClusterErrorCorrectionZ = ((TObjString*)pTokens->At(i))->GetString().Atof();
       HLTInfo("Cluster Z error correction factor set to: %f", fClusterErrorCorrectionZ);
       continue;
     }
 
     if (argument.CompareTo("-nways") == 0) {
-      if ((bMissingParam = (++i >= pTokens->GetEntries())))
+      if ((bMissingParam = (++i >= pTokens->GetEntries()))) {
         break;
+      }
       fNWays = ((TObjString*)pTokens->At(i))->GetString().Atoi();
       HLTInfo("nways set to: %d", fNWays);
       continue;
@@ -249,8 +257,9 @@ int GPUTPCGlobalMergerComponent::Configure(const char* cdbEntry, const char* cha
   //* read the default CDB entry
 
   int iResult = ReadCDBEntry(NULL, chainId);
-  if (iResult)
+  if (iResult) {
     return iResult;
+  }
 
   //* read magnetic field
 
@@ -259,21 +268,24 @@ int GPUTPCGlobalMergerComponent::Configure(const char* cdbEntry, const char* cha
   //* read the actual CDB entry if required
 
   iResult = (cdbEntry) ? ReadCDBEntry(cdbEntry, chainId) : 0;
-  if (iResult)
+  if (iResult) {
     return iResult;
+  }
 
   //* read extra parameters from input (if they are)
 
   if (commandLine && commandLine[0] != '\0') {
     HLTInfo("received configuration string from HLT framework: \"%s\"", commandLine);
     iResult = ReadConfigurationString(commandLine);
-    if (iResult)
+    if (iResult) {
       return iResult;
+    }
   }
 
   fRec = GPUReconstruction::CreateInstance("CPU", true);
-  if (fRec == NULL)
+  if (fRec == NULL) {
     return -EINVAL;
+  }
   fChain = fRec->AddChain<GPUChainTracking>();
 
   // Initialize the merger
@@ -282,10 +294,12 @@ int GPUTPCGlobalMergerComponent::Configure(const char* cdbEntry, const char* cha
   GPUSettingsRec rec;
   GPUSettingsDeviceProcessing devProc;
   ev.solenoidBz = fSolenoidBz;
-  if (fClusterErrorCorrectionY > 1.e-4)
+  if (fClusterErrorCorrectionY > 1.e-4) {
     rec.ClusterError2CorrectionY = fClusterErrorCorrectionY * fClusterErrorCorrectionY;
-  if (fClusterErrorCorrectionZ > 1.e-4)
+  }
+  if (fClusterErrorCorrectionZ > 1.e-4) {
     rec.ClusterError2CorrectionZ = fClusterErrorCorrectionZ * fClusterErrorCorrectionZ;
+  }
   rec.NWays = fNWays;
   rec.NWaysOuter = fNWaysOuter;
   rec.NonConsecutiveIDs = true;
@@ -303,8 +317,9 @@ int GPUTPCGlobalMergerComponent::DoInit(int argc, const char** argv)
 
   TString arguments = "";
   for (int i = 0; i < argc; i++) {
-    if (!arguments.IsNull())
+    if (!arguments.IsNull()) {
       arguments += " ";
+    }
     arguments += argv[i];
   }
 
@@ -323,8 +338,9 @@ int GPUTPCGlobalMergerComponent::Reconfigure(const char* cdbEntry, const char* c
 int GPUTPCGlobalMergerComponent::DoDeinit()
 {
   // see header file for class documentation
-  if (fChain == fgCurrentMergerReconstruction)
+  if (fChain == fgCurrentMergerReconstruction) {
     fgCurrentMergerReconstruction = NULL;
+  }
   delete fRec;
   fRec = NULL;
 
@@ -387,12 +403,12 @@ int GPUTPCGlobalMergerComponent::DoEvent(const AliHLTComponentEventData& evtData
     int nTracks = fChain->GetTPCMerger().NOutputTracks();
 
     for (int itr = 0; itr < nTracks; itr++) {
-
       // convert GPUTPCGMMergedTrack to AliHLTTrack
 
       const GPUTPCGMMergedTrack& track = fChain->GetTPCMerger().OutputTracks()[itr];
-      if (!track.OK())
+      if (!track.OK()) {
         continue;
+      }
       unsigned int dSize = sizeof(AliHLTExternalTrackParam) + track.NClusters() * sizeof(unsigned int);
 
       if (mySize + dSize > maxBufferSize) {
@@ -419,14 +435,16 @@ int GPUTPCGlobalMergerComponent::DoEvent(const AliHLTComponentEventData& evtData
       currOutTrack->fq1Pt = tp.GetSigned1Pt();
       currOutTrack->fSinPhi = tp.GetSnp();
       currOutTrack->fTgl = tp.GetTgl();
-      for (int i = 0; i < 15; i++)
+      for (int i = 0; i < 15; i++) {
         currOutTrack->fC[i] = tp.GetCovariance()[i];
+      }
       currOutTrack->fTrackID = itr;
       currOutTrack->fFlags = 0;
       currOutTrack->fNPoints = 0;
       for (int i = 0; i < track.NClusters(); i++) {
-        if (fChain->GetTPCMerger().Clusters()[track.FirstClusterRef() + i].state & GPUTPCGMMergedTrackHit::flagReject)
+        if (fChain->GetTPCMerger().Clusters()[track.FirstClusterRef() + i].state & GPUTPCGMMergedTrackHit::flagReject) {
           continue;
+        }
         currOutTrack->fPointIDs[currOutTrack->fNPoints++] = fChain->GetTPCMerger().Clusters()[track.FirstClusterRef() + i].num;
       }
       dSize = sizeof(AliHLTExternalTrackParam) + currOutTrack->fNPoints * sizeof(unsigned int);
@@ -458,8 +476,9 @@ int GPUTPCGlobalMergerComponent::DoEvent(const AliHLTComponentEventData& evtData
 
     for (int itr = 0; itr < nTracks; itr++) {
       const GPUTPCGMMergedTrack& track = fChain->GetTPCMerger().OutputTracks()[itr];
-      if (!track.OK())
+      if (!track.OK()) {
         continue;
+      }
       unsigned int dSize = sizeof(AliHLTExternalTrackParam);
 
       if (mySize + newSize + dSize > maxBufferSize) {
@@ -486,8 +505,9 @@ int GPUTPCGlobalMergerComponent::DoEvent(const AliHLTComponentEventData& evtData
       currOutTrack->fq1Pt = track.OuterParam().P[4];
       currOutTrack->fSinPhi = track.OuterParam().P[2];
       currOutTrack->fTgl = track.OuterParam().P[3];
-      for (int i = 0; i < 15; i++)
+      for (int i = 0; i < 15; i++) {
         currOutTrack->fC[i] = track.OuterParam().C[i];
+      }
       currOutTrack->fTrackID = itr;
       currOutTrack->fFlags = 0;
       currOutTrack->fNPoints = 0;
@@ -524,7 +544,8 @@ int GPUTPCGlobalMergerComponent::DoEvent(const AliHLTComponentEventData& evtData
 
 const GPUTPCGMMerger* GPUTPCGlobalMergerComponent::GetCurrentMerger()
 {
-  if (fgCurrentMergerReconstruction == nullptr)
+  if (fgCurrentMergerReconstruction == nullptr) {
     return nullptr;
+  }
   return &fgCurrentMergerReconstruction->GetTPCMerger();
 }

@@ -20,6 +20,10 @@
 #include <unistd.h>
 #include <GL/glxext.h>
 
+namespace o2
+{
+namespace gpu
+{
 class GPUDisplayBackendX11 : public GPUDisplayBackend
 {
  public:
@@ -48,5 +52,7 @@ class GPUDisplayBackendX11 : public GPUDisplayBackend
 
   PFNGLXSWAPINTERVALEXTPROC mGlXSwapIntervalEXT = NULL;
 };
+}
+} // namespace o2::gpu
 
 #endif

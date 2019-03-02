@@ -16,6 +16,10 @@
 
 #include "GPUCommonDefGPU.h"
 
+namespace o2
+{
+namespace gpu
+{
 /**
  * @class GPUTPCGMBorderTrack
  *
@@ -25,7 +29,6 @@
  */
 class GPUTPCGMBorderTrack
 {
-
  public:
   struct Range {
     int fId;
@@ -34,7 +37,7 @@ class GPUTPCGMBorderTrack
     static bool CompMax(const Range& a, const Range& b) { return a.fMax < b.fMax; }
   };
 
-  GPUd() int TrackID() const { return fTrackID; }
+  GPUd() int TrackID() const { return mTrackID; }
   GPUd() short NClusters() const { return mNClusters; }
   GPUd() short Row() const { return mRow; }
   GPUd() const float* Par() const { return mP; }
@@ -42,7 +45,7 @@ class GPUTPCGMBorderTrack
   GPUd() const float* Cov() const { return mC; }
   GPUd() const float* CovD() const { return mD; }
 
-  GPUd() void SetTrackID(int v) { fTrackID = v; }
+  GPUd() void SetTrackID(int v) { mTrackID = v; }
   GPUd() void SetNClusters(short v) { mNClusters = v; }
   GPUd() void SetRow(short v) { mRow = v; }
   GPUd() void SetPar(int i, float x) { mP[i] = x; }
@@ -86,7 +89,7 @@ class GPUTPCGMBorderTrack
   GPUd() bool CheckChi2ZT(const GPUTPCGMBorderTrack& t, float chi2cut) const { return CheckChi2(mP[1], mP[3], mC[1], mD[1], mC[3], t.mP[1] + (t.mZOffset - mZOffset), t.mP[3], t.mC[1], t.mD[1], t.mC[3], chi2cut); }
 
  private:
-  int fTrackID;     // track index
+  int mTrackID;     // track index
   short mNClusters; // n clusters
   short mRow;
   float mP[5];
@@ -94,5 +97,7 @@ class GPUTPCGMBorderTrack
   float mC[5];
   float mD[2];
 };
+}
+} // namespace o2::gpu
 
 #endif

@@ -16,6 +16,10 @@
 
 #include "GPUTPCDef.h"
 
+namespace o2
+{
+namespace gpu
+{
 /**
  * @class GPUTPCHit
  *
@@ -35,5 +39,7 @@ class GPUTPCHit
  protected:
   float mY, mZ; // Y and Z position of the TPC cluster
 };
+}
+} // namespace o2::gpu
 
 #endif // GPUTPCHIT_H

@@ -41,12 +41,12 @@ GPUhdni() float computeTanDipAngle(float x1, float y1, float x2, float y2, float
 
 GPUhdi() float MathUtils::calculatePhiCoordinate(const float xCoordinate, const float yCoordinate)
 {
-  return CAMath::ATan2(-yCoordinate, -xCoordinate) + Constants::Math::Pi;
+  return o2::gpu::CAMath::ATan2(-yCoordinate, -xCoordinate) + Constants::Math::Pi;
 }
 
 GPUhdi() float MathUtils::calculateRCoordinate(const float xCoordinate, const float yCoordinate)
 {
-  return CAMath::Sqrt(xCoordinate * xCoordinate + yCoordinate * yCoordinate);
+  return o2::gpu::CAMath::Sqrt(xCoordinate * xCoordinate + yCoordinate * yCoordinate);
 }
 
 GPUhdi() constexpr float MathUtils::getNormalizedPhiCoordinate(const float phiCoordinate)
@@ -72,7 +72,7 @@ GPUhdi() float MathUtils::computeCurvature(float x1, float y1, float x2, float y
   const float b =
     0.5f * ((x2 - x1) * (y3 * y3 - y2 * y2 + x3 * x3 - x2 * x2) - (x3 - x2) * (y2 * y2 - y1 * y1 + x2 * x2 - x1 * x1));
 
-  return -1.f * d / CAMath::Sqrt((d * x1 - a) * (d * x1 - a) + (d * y1 - b) * (d * y1 - b));
+  return -1.f * d / o2::gpu::CAMath::Sqrt((d * x1 - a) * (d * x1 - a) + (d * y1 - b) * (d * y1 - b));
 }
 
 GPUhdi() float MathUtils::computeCurvatureCentreX(float x1, float y1, float x2, float y2, float x3, float y3)
@@ -83,7 +83,7 @@ GPUhdi() float MathUtils::computeCurvatureCentreX(float x1, float y1, float x2, 
 
 GPUhdi() float MathUtils::computeTanDipAngle(float x1, float y1, float x2, float y2, float z1, float z2)
 {
-  return (z1 - z2) / CAMath::Sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
+  return (z1 - z2) / o2::gpu::CAMath::Sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 }
 
 } // namespace ITS

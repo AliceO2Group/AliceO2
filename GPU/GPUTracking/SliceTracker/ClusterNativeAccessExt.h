@@ -30,12 +30,18 @@ struct ClusterNativeAccessFullTPC {
   const ClusterNative* clusters[GPUCA_NSLICES][GPUCA_ROW_COUNT];
   unsigned int nClusters[GPUCA_NSLICES][GPUCA_ROW_COUNT];
 };
-} // namespace TPC
-} // namespace o2
+}
+} // namespace o2::TPC
 #endif
 
+namespace o2
+{
+namespace gpu
+{
 struct ClusterNativeAccessExt : public o2::TPC::ClusterNativeAccessFullTPC {
   unsigned int clusterOffset[GPUCA_NSLICES][GPUCA_ROW_COUNT];
 };
+}
+} // namespace o2::gpu
 
 #endif

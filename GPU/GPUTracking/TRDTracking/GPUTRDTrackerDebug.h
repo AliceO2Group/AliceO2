@@ -1,10 +1,16 @@
-#if defined(ENABLE_GPUTRDDEBUG) && defined(GPUCA_ALIROOT_LIB)
 #ifndef GPUTRDTRACKERDEBUG_H
 #define GPUTRDTRACKERDEBUG_H
+
+#if defined(ENABLE_GPUTRDDEBUG) && defined(GPUCA_ALIROOT_LIB)
 
 #include "TVectorF.h"
 #include "TTreeStream.h"
 #include "GPUTRDTrack.h"
+
+namespace o2
+{
+namespace gpu
+{
 
 class GPUTRDTrackerDebug
 {
@@ -205,8 +211,9 @@ class GPUTRDTrackerDebug
     fNtrkltsRefFake = trk.GetNtrackletsOffline(3);
     fTrackIDref = trk.GetLabelOffline();
     for (int iLy = 0; iLy < 6; iLy++) {
-      if (trk.GetIsFindable(iLy))
+      if (trk.GetIsFindable(iLy)) {
         fFindable(iLy) = 1;
+      }
     }
   }
 
@@ -425,11 +432,15 @@ class GPUTRDTrackerDebug
 
   TTreeSRedirector* fStreamer;
 };
+} // namespace gpu
+} // namespace o2
 
-#endif
 #else
-#ifndef GPUTRDTRACKERDEBUG_H
-#define GPUTRDTRACKERDEBUG_H
+
+namespace o2
+{
+namespace gpu
+{
 
 class GPUTRDTrackerDebug
 {
@@ -469,6 +480,8 @@ class GPUTRDTrackerDebug
   GPUd() void SetMCinfo(float xv, float yv, float zv, int pdg) {}
   GPUd() void Output() {}
 };
+} // namespace gpu
+} // namespace o2
 
 #endif
 #endif

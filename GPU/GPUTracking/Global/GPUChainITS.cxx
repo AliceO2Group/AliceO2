@@ -16,6 +16,7 @@
 #include "DataFormatsITS/TrackITS.h"
 #include <algorithm>
 
+using namespace o2::gpu;
 using namespace o2::ITS;
 
 GPUChainITS::~GPUChainITS()
@@ -30,8 +31,9 @@ void GPUChainITS::RegisterPermanentMemoryAndProcessors() { mRec->RegisterGPUProc
 
 void GPUChainITS::RegisterGPUProcessors()
 {
-  if (GetRecoStepsGPU() & RecoStep::ITSTracking)
+  if (GetRecoStepsGPU() & RecoStep::ITSTracking) {
     mRec->RegisterGPUDeviceProcessor(&workersShadow()->itsFitter, &workers()->itsFitter);
+  }
 }
 
 int GPUChainITS::Init()
@@ -56,15 +58,17 @@ int GPUChainITS::RunITSTrackFit(std::vector<Road>& roads, std::array<const Clust
 
   Fitter.clearMemory();
   Fitter.SetNumberOfRoads(roads.size());
-  for (int i = 0; i < 7; i++)
+  for (int i = 0; i < 7; i++) {
     Fitter.SetNumberTF(i, tf[i].size());
+  }
   Fitter.SetMaxData();
   std::copy(clusters.begin(), clusters.end(), Fitter.clusters());
   std::copy(cells.begin(), cells.end(), Fitter.cells());
   SetupGPUProcessor(&Fitter, true);
   std::copy(roads.begin(), roads.end(), Fitter.roads());
-  for (int i = 0; i < 7; i++)
+  for (int i = 0; i < 7; i++) {
     std::copy(tf[i].begin(), tf[i].end(), Fitter.trackingFrame()[i]);
+  }
 
   WriteToConstantMemory((char*)&workers()->itsFitter - (char*)workers(), &FitterShadow, sizeof(FitterShadow), 0);
   TransferMemoryResourcesToGPU(&Fitter, 0);

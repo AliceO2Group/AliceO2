@@ -15,6 +15,8 @@
 #include "GPUTPCTracker.h"
 #include "GPUCommonMath.h"
 
+using namespace o2::gpu;
+
 template <>
 GPUd() void GPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & s, workerType& tracker)
 {
@@ -25,8 +27,9 @@ GPUd() void GPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, int 
     s.mNRowStartHits = 0;
     if (s.mIRow <= GPUCA_ROW_COUNT - 4) {
       s.mNHits = tracker.Row(s.mIRow).NHits();
-    } else
+    } else {
       s.mNHits = -1;
+    }
   }
   GPUbarrier();
   GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& row = tracker.Row(s.mIRow);

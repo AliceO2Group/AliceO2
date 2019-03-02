@@ -22,6 +22,7 @@
 #include <unistd.h>
 
 #include <pthread.h>
+using namespace o2::gpu;
 static GPUDisplayBackendGlut* me = nullptr;
 
 void GPUDisplayBackendGlut::displayFunc(void)
@@ -38,48 +39,69 @@ void GPUDisplayBackendGlut::glutLoopFunc(void)
 
 int GPUDisplayBackendGlut::GetKey(int key)
 {
-  if (key == GLUT_KEY_UP)
+  if (key == GLUT_KEY_UP) {
     return (KEY_UP);
-  if (key == GLUT_KEY_DOWN)
+  }
+  if (key == GLUT_KEY_DOWN) {
     return (KEY_DOWN);
-  if (key == GLUT_KEY_LEFT)
+  }
+  if (key == GLUT_KEY_LEFT) {
     return (KEY_LEFT);
-  if (key == GLUT_KEY_RIGHT)
+  }
+  if (key == GLUT_KEY_RIGHT) {
     return (KEY_RIGHT);
-  if (key == GLUT_KEY_PAGE_UP)
+  }
+  if (key == GLUT_KEY_PAGE_UP) {
     return (KEY_PAGEUP);
-  if (key == GLUT_KEY_PAGE_DOWN)
+  }
+  if (key == GLUT_KEY_PAGE_DOWN) {
     return (KEY_PAGEDOWN);
-  if (key == GLUT_KEY_HOME)
+  }
+  if (key == GLUT_KEY_HOME) {
     return (KEY_HOME);
-  if (key == GLUT_KEY_END)
+  }
+  if (key == GLUT_KEY_END) {
     return (KEY_END);
-  if (key == GLUT_KEY_INSERT)
+  }
+  if (key == GLUT_KEY_INSERT) {
     return (KEY_INSERT);
-  if (key == GLUT_KEY_F1)
+  }
+  if (key == GLUT_KEY_F1) {
     return (KEY_F1);
-  if (key == GLUT_KEY_F2)
+  }
+  if (key == GLUT_KEY_F2) {
     return (KEY_F2);
-  if (key == GLUT_KEY_F3)
+  }
+  if (key == GLUT_KEY_F3) {
     return (KEY_F3);
-  if (key == GLUT_KEY_F4)
+  }
+  if (key == GLUT_KEY_F4) {
     return (KEY_F4);
-  if (key == GLUT_KEY_F5)
+  }
+  if (key == GLUT_KEY_F5) {
     return (KEY_F5);
-  if (key == GLUT_KEY_F6)
+  }
+  if (key == GLUT_KEY_F6) {
     return (KEY_F6);
-  if (key == GLUT_KEY_F7)
+  }
+  if (key == GLUT_KEY_F7) {
     return (KEY_F7);
-  if (key == GLUT_KEY_F8)
+  }
+  if (key == GLUT_KEY_F8) {
     return (KEY_F8);
-  if (key == GLUT_KEY_F9)
+  }
+  if (key == GLUT_KEY_F9) {
     return (KEY_F9);
-  if (key == GLUT_KEY_F10)
+  }
+  if (key == GLUT_KEY_F10) {
     return (KEY_F10);
-  if (key == GLUT_KEY_F11)
+  }
+  if (key == GLUT_KEY_F11) {
     return (KEY_F11);
-  if (key == GLUT_KEY_F12)
+  }
+  if (key == GLUT_KEY_F12) {
     return (KEY_F12);
+  }
   return (0);
 }
 
@@ -92,8 +114,9 @@ void GPUDisplayBackendGlut::GetKey(int key, int& keyOut, int& keyPressOut, bool 
     keyOut = keyPressOut = specialKey;
   } else {
     keyOut = keyPressOut = key;
-    if (keyPressOut >= 'a' && keyPressOut <= 'z')
+    if (keyPressOut >= 'a' && keyPressOut <= 'z') {
       keyPressOut += 'A' - 'a';
+    }
   }
 }
 
@@ -109,8 +132,9 @@ void GPUDisplayBackendGlut::keyboardUpFunc(unsigned char key, int x, int y)
 {
   int handleKey = 0, keyPress = 0;
   GetKey(key, handleKey, keyPress, false);
-  if (me->mKeys[keyPress])
+  if (me->mKeys[keyPress]) {
     me->HandleKeyRelease(handleKey);
+  }
   me->mKeys[keyPress] = false;
   me->mKeysShift[keyPress] = false;
 }
@@ -127,8 +151,9 @@ void GPUDisplayBackendGlut::specialUpFunc(int key, int x, int y)
 {
   int handleKey = 0, keyPress = 0;
   GetKey(key, handleKey, keyPress, true);
-  if (me->mKeys[keyPress])
+  if (me->mKeys[keyPress]) {
     me->HandleKeyRelease(handleKey);
+  }
   me->mKeys[keyPress] = false;
   me->mKeysShift[keyPress] = false;
 }
@@ -184,10 +209,12 @@ int GPUDisplayBackendGlut::OpenGLMain()
   glutCreateWindow(GL_WINDOW_NAME);
   glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 
-  if (glewInit())
+  if (glewInit()) {
     return (-1);
-  if (InitGL())
+  }
+  if (InitGL()) {
     return (1);
+  }
 
   glutDisplayFunc(displayFunc);
   glutIdleFunc(glutLoopFunc);
@@ -217,17 +244,20 @@ int GPUDisplayBackendGlut::OpenGLMain()
 void GPUDisplayBackendGlut::DisplayExit()
 {
   pthread_mutex_lock(&mSemLockExit);
-  if (mGlutRunning)
+  if (mGlutRunning) {
     glutLeaveMainLoop();
+  }
   pthread_mutex_unlock(&mSemLockExit);
-  while (mGlutRunning)
+  while (mGlutRunning) {
     usleep(10000);
+  }
 }
 
 void GPUDisplayBackendGlut::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
 {
-  if (!fromBotton)
+  if (!fromBotton) {
     y = mDisplayHeight - y;
+  }
   glColor4f(r, g, b, a);
   glRasterPos2f(x, y);
   glutBitmapString(GLUT_BITMAP_HELVETICA_12, (const unsigned char*)s);
@@ -236,10 +266,11 @@ void GPUDisplayBackendGlut::OpenGLPrint(const char* s, float x, float y, float r
 void GPUDisplayBackendGlut::SwitchFullscreen(bool set)
 {
   mFullScreen = set;
-  if (set)
+  if (set) {
     glutFullScreen();
-  else
+  } else {
     glutReshapeWindow(mWidth, mHeight);
+  }
 }
 
 void GPUDisplayBackendGlut::ToggleMaximized(bool set) {}

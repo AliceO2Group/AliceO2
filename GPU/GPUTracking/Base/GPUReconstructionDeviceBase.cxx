@@ -17,6 +17,8 @@
 #include "GPUTPCTracker.h"
 #include "GPUTPCSliceOutput.h"
 
+using namespace o2::gpu;
+
 #ifdef __CINT__
 typedef int cudaError_t
 #elif defined(_WIN32)
@@ -39,7 +41,7 @@ GPUReconstructionDeviceBase::~GPUReconstructionDeviceBase()
 {
   // make d'tor such that vtable is created for this class
   // needed for build with AliRoot, otherwise dynamic loading of GPU libraries will fail
-  (void) 0; //Avoid compiler warnings
+  (void)0; // Avoid compiler warnings
 }
 
 void* GPUReconstructionDeviceBase::helperWrapper_static(void* arg)
@@ -51,8 +53,9 @@ void* GPUReconstructionDeviceBase::helperWrapper_static(void* arg)
 
 void* GPUReconstructionDeviceBase::helperWrapper(GPUReconstructionHelpers::helperParam* par)
 {
-  if (mDeviceProcessingSettings.debugLevel >= 2)
+  if (mDeviceProcessingSettings.debugLevel >= 2) {
     GPUInfo("\tHelper thread %d starting", par->num);
+  }
 
   // cpu_set_t mask; //TODO add option
   // CPU_ZERO(&mask);
@@ -63,18 +66,21 @@ void* GPUReconstructionDeviceBase::helperWrapper(GPUReconstructionHelpers::helpe
   while (par->terminate == false) {
     for (int i = par->num + 1; i < par->count; i += mDeviceProcessingSettings.nDeviceHelperThreads + 1) {
       // if (mDeviceProcessingSettings.debugLevel >= 3) GPUInfo("\tHelper Thread %d Running, Slice %d+%d, Phase %d", par->num, i, par->phase);
-      if ((par->functionCls->*par->function)(i, par->num + 1, par))
+      if ((par->functionCls->*par->function)(i, par->num + 1, par)) {
         par->error = 1;
-      if (par->reset)
+      }
+      if (par->reset) {
         break;
+      }
       par->done = i + 1;
       // if (mDeviceProcessingSettings.debugLevel >= 3) GPUInfo("\tHelper Thread %d Finished, Slice %d+%d, Phase %d", par->num, i, par->phase);
     }
     ResetThisHelperThread(par);
     par->mutex[0].lock();
   }
-  if (mDeviceProcessingSettings.debugLevel >= 2)
+  if (mDeviceProcessingSettings.debugLevel >= 2) {
     GPUInfo("\tHelper thread %d terminating", par->num);
+  }
   par->mutex[1].unlock();
   pthread_exit(nullptr);
   return (nullptr);
@@ -82,8 +88,9 @@ void* GPUReconstructionDeviceBase::helperWrapper(GPUReconstructionHelpers::helpe
 
 void GPUReconstructionDeviceBase::ResetThisHelperThread(GPUReconstructionHelpers::helperParam* par)
 {
-  if (par->reset)
+  if (par->reset) {
     GPUImportant("GPU Helper Thread %d reseting", par->num);
+  }
   par->reset = false;
   par->mutex[1].unlock();
 }
@@ -141,8 +148,9 @@ void GPUReconstructionDeviceBase::ResetHelperThreads(int helpers)
   ReleaseThreadContext();
   for (int i = 0; i < mDeviceProcessingSettings.nDeviceHelperThreads; i++) {
     mHelperParams[i].reset = true;
-    if (helpers || i >= mDeviceProcessingSettings.nDeviceHelperThreads)
+    if (helpers || i >= mDeviceProcessingSettings.nDeviceHelperThreads) {
       pthread_mutex_lock(&((pthread_mutex_t*)mHelperParams[i].mutex)[1]);
+    }
   }
   GPUImportant("GPU Tracker helper threads have ben reset");
 }
@@ -232,8 +240,9 @@ int GPUReconstructionDeviceBase::InitDevice()
   mThreadId = GetThread();
 
   void* semLock = nullptr;
-  if (mDeviceProcessingSettings.globalInitMutex && GetGlobalLock(semLock))
+  if (mDeviceProcessingSettings.globalInitMutex && GetGlobalLock(semLock)) {
     return (1);
+  }
 
   mDeviceMemorySize = GPUCA_MEMORY_SIZE;
   mHostMemorySize = GPUCA_HOST_MEMORY_SIZE;
@@ -243,8 +252,9 @@ int GPUReconstructionDeviceBase::InitDevice()
     return (1);
   }
 
-  if (mDeviceProcessingSettings.globalInitMutex)
+  if (mDeviceProcessingSettings.globalInitMutex) {
     ReleaseGlobalLock(semLock);
+  }
 
   mDeviceMemoryPermanent = mDeviceMemoryBase;
   mHostMemoryPermanent = mHostMemoryBase;
@@ -254,8 +264,9 @@ int GPUReconstructionDeviceBase::InitDevice()
   mProcShadow.mMemoryResWorkers = RegisterMemoryAllocation(&mProcShadow, &GPUProcessorWorkers::SetPointersDeviceProcessor, GPUMemoryResource::MEMORY_PERMANENT | GPUMemoryResource::MEMORY_HOST, "Workers");
   AllocateRegisteredMemory(mProcShadow.mMemoryResWorkers);
 
-  if (StartHelperThreads())
+  if (StartHelperThreads()) {
     return (1);
+  }
 
   SetThreadCounts();
 
@@ -273,8 +284,9 @@ void* GPUReconstructionDeviceBase::GPUProcessorWorkers::SetPointersDeviceProcess
 
 int GPUReconstructionDeviceBase::ExitDevice()
 {
-  if (StopHelperThreads())
+  if (StopHelperThreads()) {
     return (1);
+  }
 
   int retVal = ExitDevice_Runtime();
   mWorkersShadow = nullptr;

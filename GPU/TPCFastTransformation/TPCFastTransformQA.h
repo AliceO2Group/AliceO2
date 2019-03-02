@@ -25,9 +25,9 @@
 #include "TString.h"
 #include "AliTPCTransform.h"
 
-namespace ali_tpc_common
+namespace o2
 {
-namespace tpc_fast_transformation
+namespace gpu
 {
 
 ///
@@ -71,8 +71,7 @@ inline int TPCFastTransformQA::storeError(int code, const char* msg)
   std::cout << msg << std::endl;
   return code;
 }
-
-} // namespace tpc_fast_transformation
-} // namespace ali_tpc_common
+} // namespace gpu
+} // namespace o2
 
 #endif

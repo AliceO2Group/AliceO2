@@ -19,6 +19,10 @@
 #include <TFile.h>
 #include <TNtuple.h>
 
+namespace o2
+{
+namespace gpu
+{
 namespace
 {
 template <class S>
@@ -97,6 +101,8 @@ class GPUTPCGPURootDump
  private:
   void *a, *b;
 };
+}
+}
 #endif
 
 #endif

@@ -20,68 +20,100 @@
 #include <cstdlib>
 #include <cstring>
 
+using namespace o2::gpu;
+
 int GPUDisplayBackendX11::GetKey(int key)
 {
-  if (key == 65453)
+  if (key == 65453) {
     return ('-');
-  if (key == 65451)
+  }
+  if (key == 65451) {
     return ('+');
-  if (key == 65505 || key == 65506)
+  }
+  if (key == 65505 || key == 65506) {
     return (KEY_SHIFT);
-  if (key == 65513 || key == 65027)
+  }
+  if (key == 65513 || key == 65027) {
     return (KEY_ALT);
-  if (key == 65507 || key == 65508)
+  }
+  if (key == 65507 || key == 65508) {
     return (KEY_CTRL);
-  if (key == 65362)
+  }
+  if (key == 65362) {
     return (KEY_UP);
-  if (key == 65364)
+  }
+  if (key == 65364) {
     return (KEY_DOWN);
-  if (key == 65361)
+  }
+  if (key == 65361) {
     return (KEY_LEFT);
-  if (key == 65363)
+  }
+  if (key == 65363) {
     return (KEY_RIGHT);
-  if (key == 65365)
+  }
+  if (key == 65365) {
     return (KEY_PAGEUP);
-  if (key == 65366)
+  }
+  if (key == 65366) {
     return (KEY_PAGEDOWN);
-  if (key == 65307)
+  }
+  if (key == 65307) {
     return (KEY_ESCAPE);
-  if (key == 65293)
+  }
+  if (key == 65293) {
     return (KEY_ENTER);
-  if (key == 65367)
+  }
+  if (key == 65367) {
     return (KEY_END);
-  if (key == 65360)
+  }
+  if (key == 65360) {
     return (KEY_HOME);
-  if (key == 65379)
+  }
+  if (key == 65379) {
     return (KEY_INSERT);
-  if (key == 65470)
+  }
+  if (key == 65470) {
     return (KEY_F1);
-  if (key == 65471)
+  }
+  if (key == 65471) {
     return (KEY_F2);
-  if (key == 65472)
+  }
+  if (key == 65472) {
     return (KEY_F3);
-  if (key == 65473)
+  }
+  if (key == 65473) {
     return (KEY_F4);
-  if (key == 65474)
+  }
+  if (key == 65474) {
     return (KEY_F5);
-  if (key == 65475)
+  }
+  if (key == 65475) {
     return (KEY_F6);
-  if (key == 65476)
+  }
+  if (key == 65476) {
     return (KEY_F7);
-  if (key == 65477)
+  }
+  if (key == 65477) {
     return (KEY_F8);
-  if (key == 65478)
+  }
+  if (key == 65478) {
     return (KEY_F9);
-  if (key == 65479)
+  }
+  if (key == 65479) {
     return (KEY_F10);
-  if (key == 65480)
+  }
+  if (key == 65480) {
     return (KEY_F11);
-  if (key == 65481)
+  }
+  if (key == 65481) {
     return (KEY_F12);
-  if (key == 32)
+  }
+  if (key == 32) {
     return (KEY_SPACE);
-  if (key > 255)
+  }
+  if (key > 255) {
     return (0);
+  }
   return 0;
 }
 
@@ -89,8 +121,9 @@ void GPUDisplayBackendX11::GetKey(XEvent& event, int& keyOut, int& keyPressOut)
 {
   char tmpString[9];
   KeySym sym;
-  if (XLookupString(&event.xkey, tmpString, 8, &sym, NULL) == 0)
+  if (XLookupString(&event.xkey, tmpString, 8, &sym, NULL) == 0) {
     tmpString[0] = 0;
+  }
   int specialKey = GetKey(sym);
   int localeKey = tmpString[0];
   // printf("Key: keycode %d -> sym %d (%c) key %d (%c) special %d (%c)\n", event.xkey.keycode, (int) sym, (char) sym, (int) localeKey, localeKey, specialKey, (char) specialKey);
@@ -99,15 +132,17 @@ void GPUDisplayBackendX11::GetKey(XEvent& event, int& keyOut, int& keyPressOut)
     keyOut = keyPressOut = specialKey;
   } else {
     keyOut = keyPressOut = localeKey;
-    if (keyPressOut >= 'a' && keyPressOut <= 'z')
+    if (keyPressOut >= 'a' && keyPressOut <= 'z') {
       keyPressOut += 'A' - 'a';
+    }
   }
 }
 
 void GPUDisplayBackendX11::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
 {
-  if (!fromBotton)
+  if (!fromBotton) {
     y = mDisplayHeight - y;
+  }
   glColor4f(r, g, b, a);
   glRasterPos2f(x, y);
   if (!glIsList(mFontBase)) {
@@ -218,8 +253,9 @@ int GPUDisplayBackendX11::OpenGLMain()
   }
 
   // Init OpenGL...
-  if (glewInit())
+  if (glewInit()) {
     return (-1);
+  }
 
   XMapWindow(mDisplay, mWindow);
   XFlush(mDisplay);
@@ -233,8 +269,9 @@ int GPUDisplayBackendX11::OpenGLMain()
   }
   mGlXSwapIntervalEXT(mDisplay, glXGetCurrentDrawable(), 0);
 
-  if (InitGL())
+  if (InitGL()) {
     return (1);
+  }
 
   pthread_mutex_lock(&mSemLockExit);
   mDisplayRunning = true;
@@ -254,18 +291,22 @@ int GPUDisplayBackendX11::OpenGLMain()
       if (num_ready_fds < 0) {
         fprintf(stderr, "Error\n");
       }
-      if (mDisplayControl == 2)
+      if (mDisplayControl == 2) {
         break;
-      if (mSendKey)
+      }
+      if (mSendKey) {
         mNeedUpdate = 1;
-      if (waitCount++ != 100)
+      }
+      if (waitCount++ != 100) {
         mNeedUpdate = 1;
+      }
     } while (!(num_ready_fds || mNeedUpdate));
     mNeedUpdate = 0;
 
     do {
-      if (mDisplayControl == 2)
+      if (mDisplayControl == 2) {
         break;
+      }
       HandleSendKey();
       if (!XPending(mDisplay)) {
         event.type = Expose;
@@ -309,8 +350,9 @@ int GPUDisplayBackendX11::OpenGLMain()
         case KeyRelease: {
           int handleKey = 0, keyPress = 0;
           GetKey(event, handleKey, keyPress);
-          if (mKeys[keyPress])
+          if (mKeys[keyPress]) {
             HandleKeyRelease(handleKey);
+          }
           mKeys[keyPress] = false;
           mKeysShift[keyPress] = false;
         } break;
@@ -336,8 +378,9 @@ int GPUDisplayBackendX11::OpenGLMain()
         } break;
       }
     } while (XPending(mDisplay)); // Loop to compress events
-    if (mDisplayControl == 2)
+    if (mDisplayControl == 2) {
       break;
+    }
 
     DrawGLScene();
     glXSwapBuffers(mDisplay, mWindow); // Buffer swap does implicit glFlush
@@ -361,11 +404,13 @@ int GPUDisplayBackendX11::OpenGLMain()
 void GPUDisplayBackendX11::DisplayExit()
 {
   pthread_mutex_lock(&mSemLockExit);
-  if (mDisplayRunning)
+  if (mDisplayRunning) {
     mDisplayControl = 2;
+  }
   pthread_mutex_unlock(&mSemLockExit);
-  while (mDisplayRunning)
+  while (mDisplayRunning) {
     usleep(10000);
+  }
 }
 
 void GPUDisplayBackendX11::SwitchFullscreen(bool set)

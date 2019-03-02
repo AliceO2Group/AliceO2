@@ -54,6 +54,8 @@
 #include <vector>
 #include <algorithm>
 
+using namespace o2::gpu;
+
 ClassImp(GPUTRDTrackerComponent)
 
   GPUTRDTrackerComponent::GPUTRDTrackerComponent()
@@ -119,8 +121,9 @@ int GPUTRDTrackerComponent::ReadConfigurationString(const char* arguments)
   // Set configuration parameters for the TRD tracker component from the string
 
   int iResult = 0;
-  if (!arguments)
+  if (!arguments) {
     return iResult;
+  }
 
   TString allArgs = arguments;
   TString argument;
@@ -131,8 +134,9 @@ int GPUTRDTrackerComponent::ReadConfigurationString(const char* arguments)
 
   for (int i = 0; i < nArgs; i++) {
     argument = ((TObjString*)pTokens->At(i))->GetString();
-    if (argument.IsNull())
+    if (argument.IsNull()) {
       continue;
+    }
 
     if (argument.CompareTo("-debugOutput") == 0) {
       fDebugTrackOutput = true;
@@ -181,8 +185,9 @@ int GPUTRDTrackerComponent::DoInit(int argc, const char** argv)
 
   TString arguments = "";
   for (int i = 0; i < argc; i++) {
-    if (!arguments.IsNull())
+    if (!arguments.IsNull()) {
       arguments += " ";
+    }
     arguments += argv[i];
   }
 
@@ -224,8 +229,9 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 {
   // process event
 
-  if (!IsDataEvent())
+  if (!IsDataEvent()) {
     return 0;
+  }
 
   if (evtData.fBlockCnt <= 0) {
     HLTWarning("no blocks in event");
@@ -350,11 +356,13 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   // loop over all tracklets
   for (int iTracklet = 0; iTracklet < nTrackletsTotal; ++iTracklet) {
     if (!hasMCtracklets) {
-      if (fTracker->LoadTracklet(tracklets[iTracklet]))
+      if (fTracker->LoadTracklet(tracklets[iTracklet])) {
         return -EINVAL;
+      }
     } else {
-      if (fTracker->LoadTracklet(tracklets[iTracklet], trackletsMC[iTracklet].mLabel))
+      if (fTracker->LoadTracklet(tracklets[iTracklet], trackletsMC[iTracklet].mLabel)) {
         return -EINVAL;
+      }
     }
   }
   // loop over all tracks
@@ -393,8 +401,9 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 
     for (int iTrk = 0; iTrk < nTracks; ++iTrk) {
       GPUTRDTrack& t = trackArray[iTrk];
-      if (t.GetNtracklets() == 0)
+      if (t.GetNtracklets() == 0) {
         continue;
+      }
       GPUTRDTrackDataRecord& currOutTrack = outTracks->fTracks[outTracks->fCount];
       t.ConvertTo(currOutTrack);
       outTracks->fCount++;

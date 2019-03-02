@@ -22,6 +22,7 @@
 #include "ITStracking/Cell.h"
 #include "CommonConstants/MathConstants.h"
 
+using namespace o2::gpu;
 using namespace o2::ITS;
 using namespace o2;
 
@@ -33,17 +34,19 @@ GPUd() bool GPUITSFitterKernel::fitTrack(GPUITSFitter& Fitter, GPUTPCGMPropagato
     }
     const TrackingFrameInfo& trackingHit = Fitter.trackingFrame()[iLayer][track.mClusters[iLayer]];
 
-    if (prop.PropagateToXAlpha(trackingHit.xTrackingFrame, trackingHit.alphaTrackingFrame, step > 0))
+    if (prop.PropagateToXAlpha(trackingHit.xTrackingFrame, trackingHit.alphaTrackingFrame, step > 0)) {
       return false;
+    }
 
-    if (prop.Update(trackingHit.positionTrackingFrame[0], trackingHit.positionTrackingFrame[1], 0, false, trackingHit.covarianceTrackingFrame[0], trackingHit.covarianceTrackingFrame[2]))
+    if (prop.Update(trackingHit.positionTrackingFrame[0], trackingHit.positionTrackingFrame[1], 0, false, trackingHit.covarianceTrackingFrame[0], trackingHit.covarianceTrackingFrame[2])) {
       return false;
+    }
 
     /*const float xx0 = (iLayer > 2) ? 0.008f : 0.003f; // Rough layer thickness //FIXME
-		        constexpr float radiationLength = 9.36f;          // Radiation length of Si [cm]
-		        constexpr float density = 2.33f;                  // Density of Si [g/cm^3]
-		        if (!track.correctForMaterial(xx0, xx0 * radiationLength * density, true))
-		          return false;*/
+                constexpr float radiationLength = 9.36f;          // Radiation length of Si [cm]
+                constexpr float density = 2.33f;                  // Density of Si [g/cm^3]
+                if (!track.correctForMaterial(xx0, xx0 * radiationLength * density, true))
+                  return false;*/
   }
   return true;
 }
@@ -82,8 +85,9 @@ GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock,
 
     CA_DEBUGGER(roadCounters[nClusters - 4]++);
 
-    if (lastCellLevel == Constants::ITS::UnusedIndex)
+    if (lastCellLevel == Constants::ITS::UnusedIndex) {
       continue;
+    }
 
     /// From primary vertex context index to event index (== the one used as input of the tracking code)
     for (int iC{ 0 }; iC < 7; iC++) {
@@ -153,13 +157,15 @@ GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock,
       temporaryTrack.mClusters[iC] = clusters[iC];
     }
     bool fitSuccess = fitTrack(Fitter, prop, temporaryTrack, Constants::ITS::LayersNumber - 4, -1, -1);
-    if (!fitSuccess)
+    if (!fitSuccess) {
       continue;
+    }
     CA_DEBUGGER(fitCounters[nClusters - 4]++);
     temporaryTrack.ResetCovariance();
     fitSuccess = fitTrack(Fitter, prop, temporaryTrack, 0, Constants::ITS::LayersNumber, 1);
-    if (!fitSuccess)
+    if (!fitSuccess) {
       continue;
+    }
     CA_DEBUGGER(backpropagatedCounters[nClusters - 4]++);
     for (int k = 0; k < 5; k++) {
       temporaryTrack.mOuterParam.P[k] = temporaryTrack.Par()[k];
@@ -171,8 +177,9 @@ GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock,
     temporaryTrack.mOuterParam.alpha = prop.GetAlpha();
     temporaryTrack.ResetCovariance();
     fitSuccess = fitTrack(Fitter, prop, temporaryTrack, Constants::ITS::LayersNumber - 1, -1, -1);
-    if (!fitSuccess)
+    if (!fitSuccess) {
       continue;
+    }
     CA_DEBUGGER(refitCounters[nClusters - 4]++);
     int trackId = CAMath::AtomicAdd(&Fitter.NumberOfTracks(), 1);
     Fitter.tracks()[trackId] = temporaryTrack;

@@ -18,8 +18,12 @@
 #include "GPUITSTrack.h"
 #include "GPUReconstruction.h"
 
+using namespace o2::gpu;
+
 #ifndef GPUCA_GPUCODE
-void GPUITSFitter::InitializeProcessor() {}
+void GPUITSFitter::InitializeProcessor()
+{
+}
 
 void* GPUITSFitter::SetPointersInput(void* mem)
 {

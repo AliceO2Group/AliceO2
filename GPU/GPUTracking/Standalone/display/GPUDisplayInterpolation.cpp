@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include "GPUDisplay.h"
+using namespace o2::gpu;
 
 void GPUDisplay::opengl_spline::create(const vecpod<float>& x, const vecpod<float>& y)
 {
@@ -21,24 +22,30 @@ void GPUDisplay::opengl_spline::create(const vecpod<float>& x, const vecpod<floa
   fc.clear();
   fd.clear();
   fx.clear();
-  if (x.size() != y.size() || x.size() < 2)
+  if (x.size() != y.size() || x.size() < 2) {
     return;
+  }
   int k = x.size() - 1;
-  if (fVerbose)
-    for (unsigned int i = 0; i < x.size(); i++)
+  if (fVerbose) {
+    for (unsigned int i = 0; i < x.size(); i++) {
       printf("Point %u: %f --> %f\n", i, x[i], y[i]);
+    }
+  }
   fa.resize(k + 1);
   fb.resize(k + 1);
   fc.resize(k + 1);
   fd.resize(k + 1);
   fx.resize(k + 1);
   vecpod<float> h(k + 1), alpha(k + 1), l(k + 1), mu(k + 1), z(k + 1);
-  for (int i = 0; i <= k; i++)
+  for (int i = 0; i <= k; i++) {
     fa[i] = y[i];
-  for (int i = 0; i < k; i++)
+  }
+  for (int i = 0; i < k; i++) {
     h[i] = x[i + 1] - x[i];
-  for (int i = 1; i < k; i++)
+  }
+  for (int i = 1; i < k; i++) {
     alpha[i] = 3.f / h[i] * (fa[i + 1] - fa[i]) - 3.f / h[i - 1] * (fa[i] - fa[i - 1]);
+  }
   l[0] = l[k] = 1;
   mu[0] = z[0] = z[k] = fc[k] = 0;
   for (int i = 1; i < k; i++) {
@@ -51,18 +58,21 @@ void GPUDisplay::opengl_spline::create(const vecpod<float>& x, const vecpod<floa
     fb[i] = (fa[i + 1] - fa[i]) / h[i] - h[i] / 3.f * (fc[i + 1] + 2.f * fc[i]);
     fd[i] = (fc[i + 1] - fc[i]) / (3.f * h[i]);
   }
-  for (int i = 0; i <= k; i++)
+  for (int i = 0; i <= k; i++) {
     fx[i] = x[i];
+  }
 }
 
 float GPUDisplay::opengl_spline::evaluate(float x)
 {
   int base = 0;
   const int k = fx.size() - 1;
-  if (k < 0)
+  if (k < 0) {
     return (0);
-  while (base < k - 1 && x > fx[base + 1])
+  }
+  while (base < k - 1 && x > fx[base + 1]) {
     base++;
+  }
   float retVal = fa[base];
   x -= fx[base];
   const float xx = x;
@@ -71,7 +81,8 @@ float GPUDisplay::opengl_spline::evaluate(float x)
   retVal += fc[base] * x;
   x *= xx;
   retVal += fd[base] * x;
-  if (fVerbose)
+  if (fVerbose) {
     printf("Evaluate: %f --> %f (basepoint %d)\n", xx, retVal, base);
+  }
   return (retVal);
 }

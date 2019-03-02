@@ -30,13 +30,17 @@
 #include "GPUQAConfig.h"
 #include "TPCFastTransform.h"
 
-//Full configuration structure with all available settings of GPU...
+namespace o2
+{
+namespace gpu
+{
+// Full configuration structure with all available settings of GPU...
 struct GPUO2InterfaceConfiguration {
   GPUO2InterfaceConfiguration() = default;
   ~GPUO2InterfaceConfiguration() = default;
   GPUO2InterfaceConfiguration(const GPUO2InterfaceConfiguration&) = default;
 
-  //Settings for the Interface class
+  // Settings for the Interface class
   struct GPUInterfaceSettings {
     bool dumpEvents = false;
   };
@@ -49,5 +53,7 @@ struct GPUO2InterfaceConfiguration {
   GPUQAConfig configQA;
   GPUInterfaceSettings configInterface;
 };
+}
+} // namespace o2::gpu
 
 #endif

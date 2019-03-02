@@ -21,10 +21,7 @@
 #include <iostream>
 #endif
 
-namespace ali_tpc_common
-{
-namespace tpc_fast_transformation
-{
+using namespace o2::gpu;
 
 IrregularSpline1D::IrregularSpline1D() : FlatObject(), mNumberOfKnots(0), mNumberOfAxisBins(0), mBin2KnotMapOffset(0)
 {
@@ -71,8 +68,9 @@ void IrregularSpline1D::construct(int numberOfKnots, const float inputKnots[], i
 
   FlatObject::startConstruction();
 
-  if (numberOfAxisBins < 4)
+  if (numberOfAxisBins < 4) {
     numberOfAxisBins = 4;
+  }
 
   std::vector<int> vKnotBins;
 
@@ -84,8 +82,9 @@ void IrregularSpline1D::construct(int numberOfKnots, const float inputKnots[], i
 
     for (int i = 0; i < numberOfKnots; ++i) {
       int bin = (int)roundf(inputKnots[i] * numberOfAxisBins);
-      if (bin <= vKnotBins.back() || bin >= lastBin)
+      if (bin <= vKnotBins.back() || bin >= lastBin) {
         continue; // same knot
+      }
       vKnotBins.push_back(bin);
     }
 
@@ -194,6 +193,3 @@ void IrregularSpline1D::Print() const
   std::cout << std::endl;
 #endif
 }
-
-} // namespace tpc_fast_transformation
-} // namespace ali_tpc_common

@@ -1,13 +1,13 @@
 /*
 
-// works only with ROOT >= 6
+   // works only with ROOT >= 6
 
-alienv load ROOT/latest-root6
-alienv load Vc/latest
+   alienv load ROOT/latest-root6
+   alienv load Vc/latest
 
-root -l  loadlibs.C
-.x IrregularSpline2D3DTest.C++
-*/
+   root -l  loadlibs.C
+   .x IrregularSpline2D3DTest.C++
+ */
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
@@ -53,7 +53,7 @@ float Fz(float u, float v) { return (u - .5) * (u - .5); }
 
 int IrregularSpline2D3DTest()
 {
-  using namespace ali_tpc_common::tpc_fast_transformation;
+  using namespace o2::gpu;
 
   gRandom->SetSeed(0);
   UInt_t seed = gRandom->Integer(100000); // 605
@@ -200,23 +200,23 @@ int IrregularSpline2D3DTest()
   canv->Update();
 
   /*
-	  Specific drawing options can be used to paint a TGraph2D:
+      Specific drawing options can be used to paint a TGraph2D:
 
-	     "TRI"  : The Delaunay triangles are drawn using filled area.
-	              An hidden surface drawing technique is used. The surface is
-	              painted with the current fill area color. The edges of each
-	              triangles are painted with the current line color.
-	     "TRIW" : The Delaunay triangles are drawn as wire frame
-	     "TRI1" : The Delaunay triangles are painted with color levels. The edges
-	              of each triangles are painted with the current line color.
-	     "TRI2" : the Delaunay triangles are painted with color levels.
-	     "P"    : Draw a marker at each vertex
-	     "P0"   : Draw a circle at each vertex. Each circle background is white.
-	     "PCOL" : Draw a marker at each vertex. The color of each marker is
-	              defined according to its Z position.
-	     "CONT" : Draw contours
-	     "LINE" : Draw a 3D polyline
-	    */
+         "TRI"  : The Delaunay triangles are drawn using filled area.
+                  An hidden surface drawing technique is used. The surface is
+                  painted with the current fill area color. The edges of each
+                  triangles are painted with the current line color.
+         "TRIW" : The Delaunay triangles are drawn as wire frame
+         "TRI1" : The Delaunay triangles are painted with color levels. The edges
+                  of each triangles are painted with the current line color.
+         "TRI2" : the Delaunay triangles are painted with color levels.
+         "P"    : Draw a marker at each vertex
+         "P0"   : Draw a circle at each vertex. Each circle background is white.
+         "PCOL" : Draw a marker at each vertex. The color of each marker is
+                  defined according to its Z position.
+         "CONT" : Draw contours
+         "LINE" : Draw a 3D polyline
+   */
   return 0;
 }
 

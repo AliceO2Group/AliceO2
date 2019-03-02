@@ -2,7 +2,7 @@
 #define ALI_TPC_SPACECHARGE3D_CALC_H
 
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
- * See cxx source for full Copyright notice                               */
+* See cxx source for full Copyright notice                               */
 
 /* $Id$ */
 
@@ -76,10 +76,7 @@ class AliTPCSpaceCharge3DCalc
 
   Double_t GetInverseChargeCylAC(const Float_t x[], Short_t roc);
 
-  void SetCorrectionType(Int_t correctionType)
-  {
-    fCorrectionType = correctionType;
-  }
+  void SetCorrectionType(Int_t correctionType) { fCorrectionType = correctionType; }
 
   enum {
     kNumSector = 18
@@ -125,8 +122,9 @@ class AliTPCSpaceCharge3DCalc
 
   void SetPoissonSolver(AliTPCPoissonSolver* poissonSolver)
   {
-    if (fPoissonSolver != NULL)
+    if (fPoissonSolver != NULL) {
       delete fPoissonSolver;
+    }
     fPoissonSolver = poissonSolver;
   }
 
@@ -198,40 +196,19 @@ class AliTPCSpaceCharge3DCalc
   TFormula* GetPotentialVFormula() const { return fFormulaPotentialV; }
   TFormula* GetChargeRhoFormula() const { return fFormulaChargeRho; }
 
-  void SetBoundaryIFCA(TF1* f1)
-  {
-    fFormulaBoundaryIFCA = new TF1(*f1);
-  }
+  void SetBoundaryIFCA(TF1* f1) { fFormulaBoundaryIFCA = new TF1(*f1); }
 
-  void SetBoundaryIFCC(TF1* f1)
-  {
-    fFormulaBoundaryIFCC = new TF1(*f1);
-  }
+  void SetBoundaryIFCC(TF1* f1) { fFormulaBoundaryIFCC = new TF1(*f1); }
 
-  void SetBoundaryOFCA(TF1* f1)
-  {
-    fFormulaBoundaryOFCA = new TF1(*f1);
-  }
+  void SetBoundaryOFCA(TF1* f1) { fFormulaBoundaryOFCA = new TF1(*f1); }
 
-  void SetBoundaryOFCC(TF1* f1)
-  {
-    fFormulaBoundaryOFCC = new TF1(*f1);
-  }
+  void SetBoundaryOFCC(TF1* f1) { fFormulaBoundaryOFCC = new TF1(*f1); }
 
-  void SetBoundaryROCA(TF1* f1)
-  {
-    fFormulaBoundaryROCA = new TF1(*f1);
-  }
+  void SetBoundaryROCA(TF1* f1) { fFormulaBoundaryROCA = new TF1(*f1); }
 
-  void SetBoundaryROCC(TF1* f1)
-  {
-    fFormulaBoundaryROCC = new TF1(*f1);
-  }
+  void SetBoundaryROCC(TF1* f1) { fFormulaBoundaryROCC = new TF1(*f1); }
 
-  void SetBoundaryCE(TF1* f1)
-  {
-    fFormulaBoundaryCE = new TF1(*f1);
-  }
+  void SetBoundaryCE(TF1* f1) { fFormulaBoundaryCE = new TF1(*f1); }
 
   void SetElectricFieldFormula(TFormula* formulaEr, TFormula* formulaEPhi, TFormula* formulaEz)
   {
@@ -256,10 +233,7 @@ class AliTPCSpaceCharge3DCalc
   };
 
   Profile GetProfile() { return myProfile; }
-  void SetIntegrationStrategy(Int_t integrationStrategy)
-  {
-    fIntegrationStrategy = integrationStrategy;
-  }
+  void SetIntegrationStrategy(Int_t integrationStrategy) { fIntegrationStrategy = integrationStrategy; }
 
  private:
   static const Int_t kNMaxPhi = 360;

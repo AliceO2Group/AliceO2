@@ -28,6 +28,10 @@
 #include <iostream>
 #endif // GPUCA_GPUCODE
 
+namespace o2
+{
+namespace gpu
+{
 class GPUTPCSliceTrack;
 class GPUTPCSliceOutput;
 class GPUTPCGMTrackParam;
@@ -40,7 +44,6 @@ class GPUChainTracking;
  */
 class GPUTPCGMMerger : public GPUProcessor
 {
-
  public:
   GPUTPCGMMerger();
   ~GPUTPCGMMerger() CON_DEFAULT;
@@ -62,7 +65,10 @@ class GPUTPCGMMerger : public GPUProcessor
 
   GPUhd() int NOutputTracks() const { return mNOutputTracks; }
   GPUhd() const GPUTPCGMMergedTrack* OutputTracks() const { return mOutputTracks; }
-  GPUhd() GPUTPCGMMergedTrack* OutputTracks() { return mOutputTracks; }
+  GPUhd() GPUTPCGMMergedTrack* OutputTracks()
+  {
+    return mOutputTracks;
+  }
 
   GPUhd() const GPUParam& SliceParam() const { return *mCAParam; }
 
@@ -73,7 +79,10 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhd() int NClusters() const { return (mNClusters); }
   GPUhd() int NOutputTrackClusters() const { return (mNOutputTrackClusters); }
   GPUhd() const GPUTPCGMMergedTrackHit* Clusters() const { return (mClusters); }
-  GPUhd() GPUTPCGMMergedTrackHit* Clusters() { return (mClusters); }
+  GPUhd() GPUTPCGMMergedTrackHit* Clusters()
+  {
+    return (mClusters);
+  }
   GPUhd() const GPUTPCTracker* SliceTrackers() const { return (mSliceTrackers); }
   GPUhd() GPUAtomic(int) * ClusterAttachment() const { return (mClusterAttachment); }
   GPUhd() int MaxId() const { return (mMaxID); }
@@ -160,5 +169,7 @@ class GPUTPCGMMerger : public GPUProcessor
   const GPUTPCTracker* mSliceTrackers;
   GPUChainTracking* mChainTracking; // Tracking chain with access to input data / parameters
 };
+}
+} // namespace o2::gpu
 
 #endif // GPUTPCGMMERGER_H

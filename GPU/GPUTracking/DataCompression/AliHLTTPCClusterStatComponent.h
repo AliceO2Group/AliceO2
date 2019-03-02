@@ -19,9 +19,15 @@
 #include "AliOptionParser.h"
 
 class AliHLTExternalTrackParam;
-struct GPUParam;
 class AliHLTTPCRawCluster;
 class AliHLTTPCClusterXYZ;
+namespace o2
+{
+namespace gpu
+{
+struct GPUParam;
+}
+} // namespace o2::gpu
 
 class AliHLTTPCClusterStatComponent : public AliHLTProcessor, public AliOptionParser
 {
@@ -60,12 +66,7 @@ class AliHLTTPCClusterStatComponent : public AliHLTProcessor, public AliOptionPa
   // interface methods of base class
   int DoInit(int argc, const char** argv);
   int DoDeinit();
-  int DoEvent(const AliHLTComponentEventData& evtData,
-              const AliHLTComponentBlockData* blocks,
-              AliHLTComponentTriggerData& trigData,
-              AliHLTUInt8_t* outputPtr,
-              AliHLTUInt32_t& size,
-              AliHLTComponentBlockDataList& outputBlocks);
+  int DoEvent(const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr, AliHLTUInt32_t& size, AliHLTComponentBlockDataList& outputBlocks);
 
   using AliHLTProcessor::DoEvent;
   int ProcessOption(TString option, TString value);
@@ -76,7 +77,7 @@ class AliHLTTPCClusterStatComponent : public AliHLTProcessor, public AliOptionPa
   /** assignment operator prohibited */
   AliHLTTPCClusterStatComponent& operator=(const AliHLTTPCClusterStatComponent&);
 
-  GPUParam* mSliceParam;
+  o2::gpu::GPUParam* mSliceParam;
 
   int fTotal, fEdge, fSplitPad, fSplitTime, fSplitPadTime, fSplitPadOrTime, fAssigned; //!
 

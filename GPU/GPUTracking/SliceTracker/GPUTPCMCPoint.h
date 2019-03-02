@@ -47,10 +47,12 @@ class GPUTPCMCPoint
 
   static bool Compare(const GPUTPCMCPoint& p1, const GPUTPCMCPoint& p2)
   {
-    if (p1.fTrackID != p2.fTrackID)
+    if (p1.fTrackID != p2.fTrackID) {
       return (p1.fTrackID < p2.fTrackID);
-    if (p1.mISlice != p2.mISlice)
+    }
+    if (p1.mISlice != p2.mISlice) {
       return (p1.mISlice < p2.mISlice);
+    }
     return (p1.Sx() < p2.Sx());
   }
 

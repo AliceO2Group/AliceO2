@@ -35,6 +35,8 @@
 using namespace std;
 #endif
 
+using namespace o2::gpu;
+
 const AliHLTComponentDataType GPUTPCDefinitions::fgkTrackletsDataType = AliHLTComponentDataTypeInitializer("CATRACKL", kAliHLTDataOriginTPC);
 
 /** ROOT macro for the implementation of ROOT specific class methods */
@@ -67,8 +69,9 @@ GPUTPCTrackerComponent& GPUTPCTrackerComponent::operator=(const GPUTPCTrackerCom
 GPUTPCTrackerComponent::~GPUTPCTrackerComponent()
 {
   // see header file for class documentation
-  if (fRec)
+  if (fRec) {
     delete fRec;
+  }
 }
 
 //
@@ -132,8 +135,9 @@ int GPUTPCTrackerComponent::ReadConfigurationString(const char* arguments)
   // Set configuration parameters for the CA tracker component from the string
 
   int iResult = 0;
-  if (!arguments)
+  if (!arguments) {
     return iResult;
+  }
 
   TString allArgs = arguments;
   TString argument;
@@ -145,59 +149,67 @@ int GPUTPCTrackerComponent::ReadConfigurationString(const char* arguments)
 
   for (int i = 0; i < nArgs; i++) {
     argument = ((TObjString*)pTokens->At(i))->GetString();
-    if (argument.IsNull())
+    if (argument.IsNull()) {
       continue;
+    }
 
     if (argument.CompareTo("-solenoidBz") == 0) {
-      if ((bMissingParam = (++i >= pTokens->GetEntries())))
+      if ((bMissingParam = (++i >= pTokens->GetEntries()))) {
         break;
+      }
       HLTWarning("argument -solenoidBz is deprecated, magnetic field set up globally (%f)", GetBz());
       continue;
     }
 
     if (argument.CompareTo("-minNClustersOnTrack") == 0) {
-      if ((bMissingParam = (++i >= pTokens->GetEntries())))
+      if ((bMissingParam = (++i >= pTokens->GetEntries()))) {
         break;
+      }
       fMinNTrackClusters = ((TObjString*)pTokens->At(i))->GetString().Atoi();
       HLTInfo("minNClustersOnTrack set to: %d", fMinNTrackClusters);
       continue;
     }
 
     if (argument.CompareTo("-minTrackPt") == 0) {
-      if ((bMissingParam = (++i >= pTokens->GetEntries())))
+      if ((bMissingParam = (++i >= pTokens->GetEntries()))) {
         break;
+      }
       fMinTrackPt = ((TObjString*)pTokens->At(i))->GetString().Atof();
       HLTInfo("minTrackPt set to: %f", fMinTrackPt);
       continue;
     }
 
     if (argument.CompareTo("-clusterZCut") == 0) {
-      if ((bMissingParam = (++i >= pTokens->GetEntries())))
+      if ((bMissingParam = (++i >= pTokens->GetEntries()))) {
         break;
+      }
       fClusterZCut = TMath::Abs(((TObjString*)pTokens->At(i))->GetString().Atof());
       HLTInfo("ClusterZCut set to: %f", fClusterZCut);
       continue;
     }
 
     if (argument.CompareTo("-neighboursSearchArea") == 0) {
-      if ((bMissingParam = (++i >= pTokens->GetEntries())))
+      if ((bMissingParam = (++i >= pTokens->GetEntries()))) {
         break;
+      }
       mNeighboursSearchArea = TMath::Abs(((TObjString*)pTokens->At(i))->GetString().Atof());
       HLTInfo("NeighboursSearchArea set to: %f", mNeighboursSearchArea);
       continue;
     }
 
     if (argument.CompareTo("-errorCorrectionY") == 0) {
-      if ((bMissingParam = (++i >= pTokens->GetEntries())))
+      if ((bMissingParam = (++i >= pTokens->GetEntries()))) {
         break;
+      }
       fClusterErrorCorrectionY = ((TObjString*)pTokens->At(i))->GetString().Atof();
       HLTInfo("Cluster Y error correction factor set to: %f", fClusterErrorCorrectionY);
       continue;
     }
 
     if (argument.CompareTo("-errorCorrectionZ") == 0) {
-      if ((bMissingParam = (++i >= pTokens->GetEntries())))
+      if ((bMissingParam = (++i >= pTokens->GetEntries()))) {
         break;
+      }
       fClusterErrorCorrectionZ = ((TObjString*)pTokens->At(i))->GetString().Atof();
       HLTInfo("Cluster Z error correction factor set to: %f", fClusterErrorCorrectionZ);
       continue;
@@ -216,54 +228,61 @@ int GPUTPCTrackerComponent::ReadConfigurationString(const char* arguments)
     }
 
     if (argument.CompareTo("-GPUHelperThreads") == 0) {
-      if ((bMissingParam = (++i >= pTokens->GetEntries())))
+      if ((bMissingParam = (++i >= pTokens->GetEntries()))) {
         break;
+      }
       fGPUHelperThreads = ((TObjString*)pTokens->At(i))->GetString().Atoi();
       HLTInfo("Number of GPU Helper Threads set to: %d", fGPUHelperThreads);
       continue;
     }
 
     if (argument.CompareTo("-CPUTrackers") == 0) {
-      if ((bMissingParam = (++i >= pTokens->GetEntries())))
+      if ((bMissingParam = (++i >= pTokens->GetEntries()))) {
         break;
+      }
       fCPUTrackers = ((TObjString*)pTokens->At(i))->GetString().Atoi();
       HLTInfo("Number of CPU Trackers set to: %d", fCPUTrackers);
       continue;
     }
 
     if (argument.CompareTo("-SearchWindowDZDR") == 0) {
-      if ((bMissingParam = (++i >= pTokens->GetEntries())))
+      if ((bMissingParam = (++i >= pTokens->GetEntries()))) {
         break;
+      }
       fSearchWindowDZDR = ((TObjString*)pTokens->At(i))->GetString().Atof();
       HLTInfo("Search Window DZDR set to: %f", fSearchWindowDZDR);
       continue;
     }
 
     if (argument.CompareTo("-GPUDeviceNum") == 0) {
-      if ((bMissingParam = (++i >= pTokens->GetEntries())))
+      if ((bMissingParam = (++i >= pTokens->GetEntries()))) {
         break;
+      }
       fGPUDeviceNum = ((TObjString*)pTokens->At(i))->GetString().Atoi();
       HLTInfo("Using GPU Device Number %d", fGPUDeviceNum);
       continue;
     }
 
     if (argument.CompareTo("-GPUType") == 0) {
-      if ((bMissingParam = (++i >= pTokens->GetEntries())))
+      if ((bMissingParam = (++i >= pTokens->GetEntries()))) {
         break;
+      }
       fGPUType = ((TObjString*)pTokens->At(i))->GetString();
       continue;
     }
 
     if (argument.CompareTo("-GPUStuckProtection") == 0) {
-      if ((bMissingParam = (++i >= pTokens->GetEntries())))
+      if ((bMissingParam = (++i >= pTokens->GetEntries()))) {
         break;
+      }
       fGPUStuckProtection = ((TObjString*)pTokens->At(i))->GetString().Atoi();
       continue;
     }
 
     if (argument.CompareTo("-AsyncGPUStuckProtection") == 0) {
-      if ((bMissingParam = (++i >= pTokens->GetEntries())))
+      if ((bMissingParam = (++i >= pTokens->GetEntries()))) {
         break;
+      }
       fAsync = ((TObjString*)pTokens->At(i))->GetString().Atoi();
       continue;
     }
@@ -339,8 +358,9 @@ int GPUTPCTrackerComponent::Configure(const char* cdbEntry, const char* chainId,
     iResult3 = ReadConfigurationString(commandLine);
   }
 
-  if (fRec)
+  if (fRec) {
     ConfigureSlices();
+  }
 
   return iResult1 ? iResult1 : (iResult2 ? iResult2 : iResult3);
 }
@@ -354,12 +374,15 @@ void GPUTPCTrackerComponent::ConfigureSlices()
 
   ev.solenoidBz = fSolenoidBz;
   ev.continuousMaxTimeBin = 0; // triggered events
-  if (mNeighboursSearchArea > 0)
+  if (mNeighboursSearchArea > 0) {
     rec.NeighboursSearchArea = mNeighboursSearchArea;
-  if (fClusterErrorCorrectionY > 1.e-4)
+  }
+  if (fClusterErrorCorrectionY > 1.e-4) {
     rec.ClusterError2CorrectionY = fClusterErrorCorrectionY * fClusterErrorCorrectionY;
-  if (fClusterErrorCorrectionZ > 1.e-4)
+  }
+  if (fClusterErrorCorrectionZ > 1.e-4) {
     rec.ClusterError2CorrectionZ = fClusterErrorCorrectionZ * fClusterErrorCorrectionZ;
+  }
   rec.MinNTrackClusters = fMinNTrackClusters;
   rec.SetMinTrackPt(fMinTrackPt);
   rec.SearchWindowDZDR = fSearchWindowDZDR;
@@ -377,8 +400,9 @@ void* GPUTPCTrackerComponent::TrackerInit(void* par)
 {
   // Create tracker instance and set parameters
   fRec = GPUReconstruction::CreateInstance(fAllowGPU ? fGPUType.Data() : "CPU", true);
-  if (fRec == NULL)
+  if (fRec == NULL) {
     return ((void*)-1);
+  }
   fChain = fRec->AddChain<GPUChainTracking>();
 
   ConfigureSlices();
@@ -387,30 +411,36 @@ void* GPUTPCTrackerComponent::TrackerInit(void* par)
 
 int GPUTPCTrackerComponent::DoInit(int argc, const char** argv)
 {
-  if (fRec)
+  if (fRec) {
     return EINPROGRESS;
+  }
 
   // Configure the CA tracker component
   TString arguments = "";
   for (int i = 0; i < argc; i++) {
-    if (!arguments.IsNull())
+    if (!arguments.IsNull()) {
       arguments += " ";
+    }
     arguments += argv[i];
   }
 
   int retVal = Configure(NULL, NULL, arguments.Data());
   if (retVal == 0) {
     if (fAsync) {
-      if (fAsyncProcessor.Initialize(1))
+      if (fAsyncProcessor.Initialize(1)) {
         return (-ENODEV);
+      }
       void* initRetVal;
-      if (fAsyncProcessor.InitializeAsyncMemberTask(this, &GPUTPCTrackerComponent::TrackerInit, NULL, &initRetVal) != 0)
+      if (fAsyncProcessor.InitializeAsyncMemberTask(this, &GPUTPCTrackerComponent::TrackerInit, NULL, &initRetVal) != 0) {
         return (-ENODEV);
-      if (initRetVal)
+      }
+      if (initRetVal) {
         return (-ENODEV);
+      }
     } else {
-      if (TrackerInit(NULL) != NULL)
+      if (TrackerInit(NULL) != NULL) {
         return (-ENODEV);
+      }
     }
   }
 
@@ -419,8 +449,9 @@ int GPUTPCTrackerComponent::DoInit(int argc, const char** argv)
 
 void* GPUTPCTrackerComponent::TrackerExit(void* par)
 {
-  if (fRec)
+  if (fRec) {
     delete fRec;
+  }
   fRec = NULL;
   return (NULL);
 }
@@ -530,8 +561,9 @@ void* GPUTPCTrackerComponent::TrackerDoEvent(void* par)
   for (int slice = 0; slice < NSLICES; slice++) {
     int nClustersSliceTotal = 0;
     for (int patch = 0; patch < 6; patch++) {
-      if (clustersXYZ[slice][patch])
+      if (clustersXYZ[slice][patch]) {
         nClustersSliceTotal += clustersXYZ[slice][patch]->fCount;
+      }
     }
     if (nClustersSliceTotal > 500000) {
       HLTWarning("Too many clusters in tracker input: Slice %d, Number of Clusters %d, slice not included in tracking", slice, nClustersSliceTotal);
@@ -556,18 +588,21 @@ void* GPUTPCTrackerComponent::TrackerDoEvent(void* par)
           for (int ic = 0; ic < clXYZ.fCount; ic++) {
             const AliHLTTPCClusterXYZ& c = clXYZ.fClusters[ic];
             const AliHLTTPCRawCluster& cRaw = clRaw.fClusters[ic];
-            if (c.GetZ() > fClusterZCut || c.GetZ() < -fClusterZCut)
+            if (c.GetZ() > fClusterZCut || c.GetZ() < -fClusterZCut) {
               continue;
-            if (c.GetX() < 1.f)
+            }
+            if (c.GetX() < 1.f) {
               continue; // cluster xyz position was not calculated for whatever reason
+            }
             pCluster->id = GPUTPCGeometry::CreateClusterID(slice, patch, ic);
             pCluster->x = c.GetX();
             pCluster->y = c.GetY();
             pCluster->z = c.GetZ();
             pCluster->row = firstRow + cRaw.GetPadRow();
             pCluster->flags = cRaw.GetFlags();
-            if (cRaw.GetSigmaPad2() < kAlmost0 || cRaw.GetSigmaTime2() < kAlmost0)
+            if (cRaw.GetSigmaPad2() < kAlmost0 || cRaw.GetSigmaTime2() < kAlmost0) {
               pCluster->flags |= GPUTPCGMMergedTrackHit::flagSingle;
+            }
             pCluster->amp = cRaw.GetCharge();
 #ifdef GPUCA_FULL_CLUSTERDATA
             pCluster->pad = cRaw.GetPad();
@@ -619,8 +654,9 @@ void* GPUTPCTrackerComponent::TrackerDoEvent(void* par)
   } else {
     for (int slice = 0; slice < NSLICES; slice++) {
       GPUTPCSliceOutput* pOut = fChain->GetTPCSliceTrackers()[slice].Output();
-      if (!pOut)
+      if (!pOut) {
         continue;
+      }
       HLTDebug("%d tracks found for slice %d", pOut->NTracks(), slice);
       unsigned int blockSize = pOut->Size();
       if (blockSize > 0) {
@@ -637,9 +673,11 @@ void* GPUTPCTrackerComponent::TrackerDoEvent(void* par)
     }
   }
 
-  for (int i = 0; i < NSLICES; i++)
-    if (clusterData[i])
+  for (int i = 0; i < NSLICES; i++) {
+    if (clusterData[i]) {
       delete[] clusterData[i];
+    }
+  }
 
   fBenchmark.Stop(0);
   HLTInfo(fBenchmark.GetStatistics());

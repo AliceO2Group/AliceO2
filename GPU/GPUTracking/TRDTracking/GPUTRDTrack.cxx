@@ -1,6 +1,8 @@
 #include "GPUTRDTrack.h"
 #include "GPUTRDTrackData.h"
 
+using namespace o2::gpu;
+
 #ifdef GPUCA_ALIROOT_LIB
 #include "AliHLTExternalTrackParam.h"
 
@@ -72,8 +74,9 @@ GPUd() GPUTRDTrack_t<T>& GPUTRDTrack_t<T>::operator=(const GPUTRDTrack_t<T>& t)
   //------------------------------------------------------------------
   // assignment operator
   //------------------------------------------------------------------
-  if (&t == this)
+  if (&t == this) {
     return *this;
+  }
   *(T*)this = t;
   mChi2 = t.mChi2;
   mMass = t.mMass;
@@ -178,14 +181,19 @@ GPUd() void GPUTRDTrack_t<T>::ConvertFrom(const GPUTRDTrackDataRecord& t)
   for (int iLayer = 0; iLayer < kNLayers; iLayer++) {
     mAttachedTracklets[iLayer] = t.fAttachedTracklets[iLayer];
     mIsFindable[iLayer] = 0;
-    if (mAttachedTracklets[iLayer] >= 0)
+    if (mAttachedTracklets[iLayer] >= 0) {
       mNTracklets++;
+    }
   }
   for (int j = 0; j < 4; ++j) {
     mNTrackletsOffline[j] = 0;
   }
 }
 
+namespace o2
+{
+namespace gpu
+{
 #ifdef GPUCA_ALIROOT_LIB // Instantiate AliRoot track version
 template class GPUTRDTrack_t<trackInterface<AliExternalTrackParam>>;
 #endif
@@ -193,3 +201,5 @@ template class GPUTRDTrack_t<trackInterface<AliExternalTrackParam>>;
 // Not yet existing
 #endif
 template class GPUTRDTrack_t<trackInterface<GPUTPCGMTrackParam>>; // Always instatiate GPU track version
+} // namespace gpu
+} // namespace o2

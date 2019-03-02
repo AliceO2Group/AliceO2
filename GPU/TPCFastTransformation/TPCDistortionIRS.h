@@ -19,9 +19,9 @@
 #include "IrregularSpline2D3D.h"
 #include "FlatObject.h"
 
-namespace ali_tpc_common
+namespace o2
 {
-namespace tpc_fast_transformation
+namespace gpu
 {
 
 ///
@@ -32,7 +32,7 @@ namespace tpc_fast_transformation
 ///
 /// The class is flat C structure. No virtual methods, no ROOT types are used.
 ///
-class TPCDistortionIRS : public gpu_common::Base::FlatObject
+class TPCDistortionIRS : public FlatObject
 {
  public:
   ///
@@ -65,8 +65,8 @@ class TPCDistortionIRS : public gpu_common::Base::FlatObject
 
   /// Memory alignment
 
-  using gpu_common::Base::FlatObject::getBufferAlignmentBytes;
-  using gpu_common::Base::FlatObject::getClassAlignmentBytes;
+  using FlatObject::getBufferAlignmentBytes;
+  using FlatObject::getClassAlignmentBytes;
 
   /// Construction interface
 
@@ -75,7 +75,7 @@ class TPCDistortionIRS : public gpu_common::Base::FlatObject
 
   /// Making the data buffer external
 
-  using gpu_common::Base::FlatObject::releaseInternalBuffer;
+  using FlatObject::releaseInternalBuffer;
   void moveBufferTo(char* newBufferPtr);
 
   /// Moving the class with its external buffer to another location
@@ -192,10 +192,11 @@ inline int TPCDistortionIRS::convUVtoSUV(int slice, int row, float u, float v, f
 {
   const RowInfo& rowInfo = getRowInfo(row);
   su = (u - rowInfo.U0) * rowInfo.scaleUtoSU;
-  if (slice < 18)
+  if (slice < 18) {
     sv = v * mScaleVtoSVsideA;
-  else
+  } else {
     sv = v * mScaleVtoSVsideC;
+  }
   return 0;
 }
 
@@ -203,10 +204,11 @@ inline int TPCDistortionIRS::convSUVtoUV(int slice, int row, float su, float sv,
 {
   const RowInfo& rowInfo = getRowInfo(row);
   u = rowInfo.U0 + su * rowInfo.scaleSUtoU;
-  if (slice < 18)
+  if (slice < 18) {
     v = sv * mScaleSVtoVsideA;
-  else
+  } else {
     v = sv * mScaleSVtoVsideC;
+  }
   return 0;
 }
 
@@ -219,8 +221,7 @@ inline int TPCDistortionIRS::getDistortion(int slice, int row, float u, float v,
   spline.getSplineVec(splineData, su, sv, dx, du, dv);
   return 0;
 }
-
-} // namespace tpc_fast_transformation
-} // namespace ali_tpc_common
+} // namespace gpu
+} // namespace o2
 
 #endif

@@ -19,6 +19,10 @@
 #include "GPUCommonMath.h"
 //#include <algorithm>
 
+namespace o2
+{
+namespace gpu
+{
 /**
  * @class GPUTPCGMSliceTrack
  *
@@ -26,7 +30,6 @@
  */
 class GPUTPCGMSliceTrack
 {
-
  public:
   float Alpha() const { return mAlpha; }
   char Slice() const { return (char)mSlice; }
@@ -40,8 +43,8 @@ class GPUTPCGMSliceTrack
   int SegmentNeighbour(int i) const { return mSegmentNeighbour[i]; }
   const GPUTPCSliceOutTrack* OrigTrack() const { return mOrigTrack; }
   float X() const { return mX; }
-  float Y() const { return fY; }
-  float Z() const { return fZ; }
+  float Y() const { return mY; }
+  float Z() const { return mZ; }
   float SinPhi() const { return mSinPhi; }
   float CosPhi() const { return mCosPhi; }
   float SecPhi() const { return mSecPhi; }
@@ -63,8 +66,8 @@ class GPUTPCGMSliceTrack
     const GPUTPCBaseTrackParam& t = sliceTr->Param();
     mOrigTrack = sliceTr;
     mX = t.GetX();
-    fY = t.GetY();
-    fZ = t.GetZ();
+    mY = t.GetY();
+    mZ = t.GetZ();
     mDzDs = t.GetDzDs();
     mSinPhi = t.GetSinPhi();
     mQPt = t.GetQPt();
@@ -100,8 +103,8 @@ class GPUTPCGMSliceTrack
   void CopyParamFrom(const GPUTPCGMSliceTrack& t)
   {
     mX = t.mX;
-    fY = t.fY;
-    fZ = t.fZ;
+    mY = t.mY;
+    mZ = t.mZ;
     mSinPhi = t.mSinPhi;
     mDzDs = t.mDzDs;
     mQPt = t.mQPt;
@@ -117,7 +120,7 @@ class GPUTPCGMSliceTrack
 
  private:
   const GPUTPCSliceOutTrack* mOrigTrack;                    // pointer to original slice track
-  float mX, fY, fZ, mSinPhi, mDzDs, mQPt, mCosPhi, mSecPhi; // parameters
+  float mX, mY, mZ, mSinPhi, mDzDs, mQPt, mCosPhi, mSecPhi; // parameters
   float mZOffset;
   float mC0, mC2, mC3, mC5, mC7, mC9, mC10, mC12, mC14; // covariances
   float mAlpha;                                         // alpha angle
@@ -129,5 +132,7 @@ class GPUTPCGMSliceTrack
   int mGlobalTrackIds[2];                               // IDs of associated global tracks
   unsigned char mLeg;                                   // Leg of this track segment
 };
+}
+} // namespace o2::gpu
 
 #endif

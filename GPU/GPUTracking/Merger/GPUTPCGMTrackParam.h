@@ -22,9 +22,14 @@
 #include <cstddef>
 #endif
 
+class AliExternalTrackParam;
+
+namespace o2
+{
+namespace gpu
+{
 class GPUTPCGMMerger;
 class GPUTPCGMBorderTrack;
-class AliExternalTrackParam;
 struct GPUParam;
 class GPUTPCGMPhysicalTrackModel;
 class GPUTPCGMPolynomialField;
@@ -47,13 +52,34 @@ class GPUTPCGMTrackParam
     float C[15];
   };
 
-  GPUd() float& X() { return mX; }
-  GPUd() float& Y() { return mP[0]; }
-  GPUd() float& Z() { return mP[1]; }
-  GPUd() float& SinPhi() { return mP[2]; }
-  GPUd() float& DzDs() { return mP[3]; }
-  GPUd() float& QPt() { return mP[4]; }
-  GPUd() float& ZOffset() { return mZOffset; }
+  GPUd() float& X()
+  {
+    return mX;
+  }
+  GPUd() float& Y()
+  {
+    return mP[0];
+  }
+  GPUd() float& Z()
+  {
+    return mP[1];
+  }
+  GPUd() float& SinPhi()
+  {
+    return mP[2];
+  }
+  GPUd() float& DzDs()
+  {
+    return mP[3];
+  }
+  GPUd() float& QPt()
+  {
+    return mP[4];
+  }
+  GPUd() float& ZOffset()
+  {
+    return mZOffset;
+  }
 
   GPUhd() float GetX() const { return mX; }
   GPUhd() float GetY() const { return mP[0]; }
@@ -67,13 +93,22 @@ class GPUTPCGMTrackParam
 
   GPUd() void SetX(float v) { mX = v; }
 
-  GPUd() float* Par() { return mP; }
+  GPUd() float* Par()
+  {
+    return mP;
+  }
   GPUd() const float* GetPar() const { return mP; }
   GPUd() float GetPar(int i) const { return (mP[i]); }
   GPUd() void SetPar(int i, float v) { mP[i] = v; }
 
-  GPUd() float& Chi2() { return mChi2; }
-  GPUd() int& NDF() { return mNDF; }
+  GPUd() float& Chi2()
+  {
+    return mChi2;
+  }
+  GPUd() int& NDF()
+  {
+    return mNDF;
+  }
 
   GPUd() float Err2Y() const { return mC[0]; }
   GPUd() float Err2Z() const { return mC[2]; }
@@ -92,7 +127,10 @@ class GPUTPCGMTrackParam
   GPUd() float GetErr2DzDs() const { return mC[9]; }
   GPUd() float GetErr2QPt() const { return mC[14]; }
 
-  GPUd() float* Cov() { return mC; }
+  GPUd() float* Cov()
+  {
+    return mC;
+  }
 
   GPUd() const float* GetCov() const { return mC; }
   GPUd() float GetCov(int i) const { return mC[i]; }
@@ -142,14 +180,16 @@ class GPUTPCGMTrackParam
   GPUd() static float Reciprocal(float x) { return 1.f / x; }
   GPUd() static void Assign(float& x, bool mask, float v)
   {
-    if (mask)
+    if (mask) {
       x = v;
+    }
   }
 
   GPUd() static void Assign(int& x, bool mask, int v)
   {
-    if (mask)
+    if (mask) {
       x = v;
+    }
   }
 
   GPUd() static void RefitTrack(GPUTPCGMMergedTrack& track, int iTrk, const GPUTPCGMMerger* merger, GPUTPCGMMergedTrackHit* clusters);
@@ -161,10 +201,11 @@ class GPUTPCGMTrackParam
 
   GPUd() void ConstrainSinPhi(float limit = GPUCA_MAX_SIN_PHI)
   {
-    if (mP[2] > limit)
+    if (mP[2] > limit) {
       mP[2] = limit;
-    else if (mP[2] < -limit)
+    } else if (mP[2] < -limit) {
       mP[2] = -limit;
+    }
   }
 
  private:
@@ -204,11 +245,15 @@ GPUd() inline float GPUTPCGMTrackParam::GetMirroredY(float Bz) const
   // get Y of the point which has the same X, but located on the other side of trajectory
   float qptBz = GetQPt() * Bz;
   float cosPhi2 = 1.f - GetSinPhi() * GetSinPhi();
-  if (CAMath::Abs(qptBz) < 1.e-8f)
+  if (CAMath::Abs(qptBz) < 1.e-8f) {
     qptBz = 1.e-8f;
-  if (cosPhi2 < 0.f)
+  }
+  if (cosPhi2 < 0.f) {
     cosPhi2 = 0.f;
+  }
   return GetY() - 2.f * sqrt(cosPhi2) / qptBz;
 }
+}
+} // namespace o2::gpu
 
 #endif

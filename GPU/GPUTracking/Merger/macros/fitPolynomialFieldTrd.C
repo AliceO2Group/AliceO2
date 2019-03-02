@@ -1,4 +1,3 @@
-
 int fitPolynomialFieldTrd()
 {
   gSystem->Load("libAliHLTTPC.so");

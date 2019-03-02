@@ -89,7 +89,7 @@ std::vector<ROframe> IOUtils::loadEventData(const std::string& fileName)
           const float cosAlpha = std::cos(alphaAngle);
           const float xTF = xCoordinate * cosAlpha - yCoordinate * sinAlpha;
           const float yTF = xCoordinate * sinAlpha + yCoordinate * cosAlpha;
-          events.back().addTrackingFrameInfoToLayer(layerId, xCoordinate, yCoordinate, zCoordinate,xTF, alphaAngle,
+          events.back().addTrackingFrameInfoToLayer(layerId, xCoordinate, yCoordinate, zCoordinate, xTF, alphaAngle,
                                                     std::array<float, 2>{ yTF, zCoordinate }, std::array<float, 3>{ varY, 0.f, varZ });
           events.back().addClusterLabelToLayer(layerId, MCCompLabel(monteCarlo));
 

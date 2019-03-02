@@ -1,17 +1,17 @@
 /*************************************************************************
-* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
-*                                                                        *
-* Author: The ALICE Off-line Project.                                    *
-* Contributors are mentioned in the code where appropriate.              *
-*                                                                        *
-* Permission to use, copy, modify and distribute this software and its   *
-* documentation strictly for non-commercial purposes is hereby granted   *
-* without fee, provided that the above copyright notice appears in all   *
-* copies and that both the copyright notice and this permission notice   *
-* appear in the supporting documentation. The authors make no claims     *
-* about the suitability of this software for any purpose. It is          *
-* provided "as is" without express or implied warranty.                  *
-**************************************************************************/
+ * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+ *                                                                        *
+ * Author: The ALICE Off-line Project.                                    *
+ * Contributors are mentioned in the code where appropriate.              *
+ *                                                                        *
+ * Permission to use, copy, modify and distribute this software and its   *
+ * documentation strictly for non-commercial purposes is hereby granted   *
+ * without fee, provided that the above copyright notice appears in all   *
+ * copies and that both the copyright notice and this permission notice   *
+ * appear in the supporting documentation. The authors make no claims     *
+ * about the suitability of this software for any purpose. It is          *
+ * provided "as is" without express or implied warranty.                  *
+ **************************************************************************/
 
 /// \class AliTPC3DCylindricalInterpolator
 /// \brief Interpolator for cylindrical coordinate
@@ -58,10 +58,7 @@ AliTPC3DCylindricalInterpolator::~AliTPC3DCylindricalInterpolator()
 /// \param z position  z
 ///
 /// \return interpolation value
-Double_t AliTPC3DCylindricalInterpolator::GetValue(Double_t r, Double_t phi, Double_t z)
-{
-  return InterpolateCylindrical(r, z, phi);
-}
+Double_t AliTPC3DCylindricalInterpolator::GetValue(Double_t r, Double_t phi, Double_t z) { return InterpolateCylindrical(r, z, phi); }
 
 /// Get interpolation value on a point in a cylindrical volume
 ///
@@ -85,10 +82,12 @@ Double_t AliTPC3DCylindricalInterpolator::InterpolateCylindrical(Double_t r, Dou
   Bool_t neg = kFALSE;
 
   // check phi
-  while (phi < 0.0)
+  while (phi < 0.0) {
     phi = TMath::TwoPi() + phi;
-  while (phi > TMath::TwoPi())
+  }
+  while (phi > TMath::TwoPi()) {
     phi = phi - TMath::TwoPi();
+  }
 
   // search lowest index related to r,z and phi
   Search(fNR, fRList, r, iLow);
@@ -101,17 +100,22 @@ Double_t AliTPC3DCylindricalInterpolator::InterpolateCylindrical(Double_t r, Dou
   jLow -= (fOrder / 2);
 
   // check if out of range
-  if (iLow < 0)
+  if (iLow < 0) {
     iLow = 0;
-  if (jLow < 0)
+  }
+  if (jLow < 0) {
     jLow = 0;
-  if (kLow < 0)
+  }
+  if (kLow < 0) {
     kLow = fNPhi + kLow;
+  }
   // check if out of range
-  if (iLow + fOrder >= fNR - 1)
+  if (iLow + fOrder >= fNR - 1) {
     iLow = fNR - 1 - fOrder;
-  if (jLow + fOrder >= fNZ - 1)
+  }
+  if (jLow + fOrder >= fNZ - 1) {
     jLow = fNZ - 1 - fOrder;
+  }
 
   // do for each
   for (Int_t k = 0; k < fOrder + 1; k++) {
@@ -190,12 +194,15 @@ Double_t AliTPC3DCylindricalInterpolator::InterpolatePhi(
   Double_t xi2 = xArray[i2];
 
   if (fOrder <= 2) {
-    if (xi1 < xi0)
+    if (xi1 < xi0) {
       xi1 = TMath::TwoPi() + xi1;
-    if (xi2 < xi1)
+    }
+    if (xi2 < xi1) {
       xi2 = TMath::TwoPi() + xi2;
-    if (x < xi0)
+    }
+    if (x < xi0) {
       x = TMath::TwoPi() + x;
+    }
   }
 
   Double_t y;
@@ -207,10 +214,12 @@ Double_t AliTPC3DCylindricalInterpolator::InterpolatePhi(
     for (Int_t i = 0; i < fOrder + 1; i++) {
       xArrayTemp[i] = xArray[iLow] + (dPhi * i);
     }
-    if (x < xArrayTemp[0])
+    if (x < xArrayTemp[0]) {
       x = TMath::TwoPi() + x;
-    if (x < xArrayTemp[0] || x > xArrayTemp[fOrder])
+    }
+    if (x < xArrayTemp[0] || x > xArrayTemp[fOrder]) {
       printf("x (%f) is outside of interpolation box (%f,%f)\n", x, xArrayTemp[0], xArrayTemp[fOrder]);
+    }
 
     InitCubicSpline(xArrayTemp, yArray, fOrder + 1, y2Array, 1);
     y = InterpolateCubicSpline(xArrayTemp, yArray, y2Array, fOrder + 1, fOrder + 1, fOrder + 1, x, 1);
@@ -253,8 +262,9 @@ void AliTPC3DCylindricalInterpolator::InitCubicSpline(Double_t* xArray, Double_t
   qn = un = 0.0;
 
   y2Array[(n - 1) * skip] = (un - qn * u[n - 2]) / (qn * y2Array[(n - 2) * skip] + 1.0);
-  for (Int_t k = n - 2; k >= 0; k--)
+  for (Int_t k = n - 2; k >= 0; k--) {
     y2Array[k * skip] = y2Array[k * skip] * y2Array[(k + 1) * skip] + u[k];
+  }
 }
 
 /// Solving cubic splines for system of splines
@@ -285,8 +295,9 @@ void AliTPC3DCylindricalInterpolator::InitCubicSpline(Double_t* xArray, Double_t
 
   qn = un = 0.0;
   y2Array[(n - 1) * skip] = (un - qn * u[n - 2]) / (qn * y2Array[(n - 2) * skip] + 1.0);
-  for (Int_t k = n - 2; k >= 0; k--)
+  for (Int_t k = n - 2; k >= 0; k--) {
     y2Array[k * skip] = y2Array[k * skip] * y2Array[(k + 1) * skip] + u[k];
+  }
 }
 
 /// Interpolate initialized cubic spline
@@ -311,10 +322,11 @@ Double_t AliTPC3DCylindricalInterpolator::InterpolateCubicSpline(Double_t* xArra
 
   while (khi - klo > 1) {
     k = (khi + klo) >> 1;
-    if (xArray[k] > x)
+    if (xArray[k] > x) {
       khi = k;
-    else
+    } else {
       klo = k;
+    }
   }
 
   h = xArray[khi] - xArray[klo];
@@ -376,16 +388,17 @@ void AliTPC3DCylindricalInterpolator::Search(Int_t n, const Double_t xArray[], D
   Long_t middle, high;
   Int_t ascend = 0, increment = 1;
 
-  if (xArray[n - 1] > xArray[0])
+  if (xArray[n - 1] > xArray[0]) {
     ascend = 1; // Ascending ordered table if true
-
+  }
   if (low < 0 || low > n - 1) {
     low = -1;
     high = n;
   } else { // Ordered Search phase
     if ((Int_t)(x > xArray[low]) == ascend) {
-      if (low == n - 1)
+      if (low == n - 1) {
         return;
+      }
       high = low + 1;
       while ((Int_t)(x > xArray[high]) == ascend) {
         low = high;
@@ -408,24 +421,28 @@ void AliTPC3DCylindricalInterpolator::Search(Int_t n, const Double_t xArray[], D
         if (increment >= high) {
           low = -1;
           break;
-        } else
+        } else {
           low = high - increment;
+        }
       }
     }
   }
 
   while ((high - low) != 1) { // Binary Search Phase
     middle = (high + low) / 2;
-    if ((Int_t)(x > xArray[middle]) == ascend)
+    if ((Int_t)(x > xArray[middle]) == ascend) {
       low = middle;
-    else
+    } else {
       high = middle;
+    }
   }
 
-  if (x > xArray[n - 1])
+  if (x > xArray[n - 1]) {
     low = n;
-  if (x < xArray[0])
+  }
+  if (x < xArray[0]) {
     low = -1;
+  }
 }
 
 /// Set the value as interpolation point
@@ -480,8 +497,9 @@ void AliTPC3DCylindricalInterpolator::SetValue(TMatrixD** matricesVal, Int_t iZ)
 void AliTPC3DCylindricalInterpolator::SetRList(Double_t* rList)
 {
   fRList = new Double_t[fNR];
-  for (Int_t i = 0; i < fNR; i++)
+  for (Int_t i = 0; i < fNR; i++) {
     fRList[i] = rList[i];
+  }
 }
 
 /// set the position of phi
@@ -490,8 +508,9 @@ void AliTPC3DCylindricalInterpolator::SetRList(Double_t* rList)
 void AliTPC3DCylindricalInterpolator::SetPhiList(Double_t* phiList)
 {
   fPhiList = new Double_t[fNPhi];
-  for (Int_t i = 0; i < fNPhi; i++)
+  for (Int_t i = 0; i < fNPhi; i++) {
     fPhiList[i] = phiList[i];
+  }
 }
 
 /// Setting z position
@@ -500,14 +519,12 @@ void AliTPC3DCylindricalInterpolator::SetPhiList(Double_t* phiList)
 void AliTPC3DCylindricalInterpolator::SetZList(Double_t* zList)
 {
   fZList = new Double_t[fNZ];
-  for (Int_t i = 0; i < fNZ; i++)
+  for (Int_t i = 0; i < fNZ; i++) {
     fZList[i] = zList[i];
+  }
 }
 
 /// Setting values from 1D
 ///
 /// \param valueList
-void AliTPC3DCylindricalInterpolator::SetValue(Double_t* valueList)
-{
-  fValue = valueList;
-}
+void AliTPC3DCylindricalInterpolator::SetValue(Double_t* valueList) { fValue = valueList; }

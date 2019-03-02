@@ -14,6 +14,10 @@
 #ifndef GPUTPCMCINFO_H
 #define GPUTPCMCINFO_H
 
+namespace o2
+{
+namespace gpu
+{
 struct GPUTPCMCInfo {
   int charge;
   char prim;
@@ -27,5 +31,7 @@ struct GPUTPCMCInfo {
   float pZ;
   float genRadius;
 };
+}
+} // namespace o2::gpu
 
 #endif

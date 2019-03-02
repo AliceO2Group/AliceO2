@@ -29,11 +29,10 @@
 
 //#define GPUCA_GPUCODE // uncomment to test "GPU" mode
 
-namespace gpu_common
+namespace o2
 {
-namespace Base
+namespace gpu
 {
-
 ///
 /// The FlatObject class represents base class for flat objects.
 /// Objects may contain variable-size data, stored in a buffer.
@@ -372,7 +371,6 @@ inline void FlatObject::cloneFromObject(const FlatObject& obj, char* newFlatBuff
   if (isBufferInternal()) {
     delete[] oldPtr; // delete old buffer if owned
   }
-
   mFlatBufferSize = obj.mFlatBufferSize;
   mFlatBufferContainer = newFlatBufferPtr ? nullptr : mFlatBufferPtr; // external buffer is not provided, make object to own the buffer
   std::memcpy(mFlatBufferPtr, obj.mFlatBufferPtr, obj.mFlatBufferSize);
@@ -446,8 +444,7 @@ inline void FlatObject::setFutureBufferAddress(char* futureFlatBufferPtr)
 #endif                           // !GPUCA_GPUCODE
   mFlatBufferContainer = nullptr;
 }
-
-} // namespace Base
-} // namespace gpu_common
+}
+} // namespace o2::gpu
 
 #endif

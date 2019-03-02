@@ -15,6 +15,11 @@
 #define GPUTPCBASETRACKPARAM_H
 
 #include "GPUTPCDef.h"
+
+namespace o2
+{
+namespace gpu
+{
 MEM_CLASS_PRE()
 class GPUTPCTrackParam;
 
@@ -69,5 +74,7 @@ class GPUTPCBaseTrackParam
   float mZOffset;
   float mP[5]; // 'active' track parameters: Y, Z, SinPhi, DzDs, q/Pt
 };
+}
+} // namespace o2::gpu
 
 #endif

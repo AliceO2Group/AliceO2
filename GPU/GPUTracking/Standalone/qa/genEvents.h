@@ -14,6 +14,10 @@
 #ifndef GENEVENTS_H
 #define GENEVENTS_H
 
+namespace o2
+{
+namespace gpu
+{
 class GPUChainTracking;
 struct GPUParam;
 class GPUTPCGMPhysicalTrackModel;
@@ -68,5 +72,7 @@ class genEvents
 };
 
 #endif
+}
+} // namespace o2::gpu
 
 #endif

@@ -14,6 +14,8 @@
 #include "GPUTPCStartHitsSorter.h"
 #include "GPUTPCTracker.h"
 
+using namespace o2::gpu;
+
 template <>
 GPUd() void GPUTPCStartHitsSorter::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & s, workerType& tracker)
 {
@@ -25,8 +27,9 @@ GPUd() void GPUTPCStartHitsSorter::Thread<0>(int nBlocks, int nThreads, int iBlo
     int startOffset2 = 0;
 
     for (int ir = 1; ir < GPUCA_ROW_COUNT - 5; ir++) {
-      if (ir < nStartRow)
+      if (ir < nStartRow) {
         startOffset2 += tracker.RowStartHitCountOffset()[ir];
+      }
     }
     s.mStartOffset = startOffset2;
     s.mNRows = nRows;

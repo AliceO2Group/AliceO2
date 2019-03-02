@@ -19,6 +19,8 @@
 #include "GPUReconstructionCUDAInternals.h"
 #include "GPUReconstructionIncludes.h"
 
+using namespace o2::gpu;
+
 __constant__ uint4 gGPUConstantMemBuffer[(sizeof(GPUConstantMem) + sizeof(uint4) - 1) / sizeof(uint4)];
 __constant__ char& gGPUConstantMemBufferChar = (char&)gGPUConstantMemBuffer;
 __constant__ GPUConstantMem& gGPUConstantMem = (GPUConstantMem&)gGPUConstantMemBufferChar;
@@ -38,8 +40,8 @@ namespace ITS
 class TrackerTraitsNV : public TrackerTraits
 {
 };
-} // namespace ITS
-} // namespace o2
+}
+} // namespace o2::ITS
 #endif
 
 #include "GPUReconstructionIncludesDevice.h"
@@ -65,18 +67,22 @@ GPUg() void runKernelCUDAMulti(int firstSlice, int nSliceCount, Args... args)
 template <class T, int I, typename... Args>
 int GPUReconstructionCUDABackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
 {
-  if (x.device == krnlDeviceType::CPU)
+  if (x.device == krnlDeviceType::CPU) {
     return GPUReconstructionCPU::runKernelImpl(classArgument<T, I>(), x, y, z, args...);
-  if (z.evList)
-    for (int k = 0; k < z.nEvents; k++)
+  }
+  if (z.evList) {
+    for (int k = 0; k < z.nEvents; k++) {
       GPUFailedMsg(cudaStreamWaitEvent(mInternals->CudaStreams[x.stream], ((cudaEvent_t*)z.evList)[k], 0));
+    }
+  }
   if (y.num <= 1) {
     runKernelCUDA<T, I><<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(y.start, args...);
   } else {
     runKernelCUDAMulti<T, I><<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(y.start, y.num, args...);
   }
-  if (z.ev)
+  if (z.ev) {
     GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*)z.ev, mInternals->CudaStreams[x.stream]));
+  }
   return 0;
 }
 
@@ -113,28 +119,34 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     GPUError("Error getting CUDA Device Count");
     return (1);
   }
-  if (mDeviceProcessingSettings.debugLevel >= 2)
+  if (mDeviceProcessingSettings.debugLevel >= 2) {
     GPUInfo("Available CUDA devices:");
+  }
   const int reqVerMaj = 2;
   const int reqVerMin = 0;
   for (int i = 0; i < count; i++) {
-    if (mDeviceProcessingSettings.debugLevel >= 4)
+    if (mDeviceProcessingSettings.debugLevel >= 4) {
       printf("Examining device %d\n", i);
+    }
     size_t free, total;
     cuInit(0);
     CUdevice tmpDevice;
     cuDeviceGet(&tmpDevice, i);
     CUcontext tmpContext;
     cuCtxCreate(&tmpContext, 0, tmpDevice);
-    if (cuMemGetInfo(&free, &total))
+    if (cuMemGetInfo(&free, &total)) {
       std::cout << "Error\n";
+    }
     cuCtxDestroy(tmpContext);
-    if (mDeviceProcessingSettings.debugLevel >= 4)
+    if (mDeviceProcessingSettings.debugLevel >= 4) {
       printf("Obtained current memory usage for device %d\n", i);
-    if (GPUFailedMsgI(cudaGetDeviceProperties(&cudaDeviceProp, i)))
+    }
+    if (GPUFailedMsgI(cudaGetDeviceProperties(&cudaDeviceProp, i))) {
       continue;
-    if (mDeviceProcessingSettings.debugLevel >= 4)
+    }
+    if (mDeviceProcessingSettings.debugLevel >= 4) {
       printf("Obtained device properties for device %d\n", i);
+    }
     int deviceOK = true;
     const char* deviceFailure = "";
     if (cudaDeviceProp.major >= 9) {
@@ -149,16 +161,19 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     }
 
     deviceSpeed = (double)cudaDeviceProp.multiProcessorCount * (double)cudaDeviceProp.clockRate * (double)cudaDeviceProp.warpSize * (double)free * (double)cudaDeviceProp.major * (double)cudaDeviceProp.major;
-    if (mDeviceProcessingSettings.debugLevel >= 2)
+    if (mDeviceProcessingSettings.debugLevel >= 2) {
       GPUImportant("Device %s%2d: %s (Rev: %d.%d - Mem Avail %lld / %lld)%s %s", deviceOK ? " " : "[", i, cudaDeviceProp.name, cudaDeviceProp.major, cudaDeviceProp.minor, (long long int)free, (long long int)cudaDeviceProp.totalGlobalMem, deviceOK ? " " : " ]", deviceOK ? "" : deviceFailure);
-    if (!deviceOK)
+    }
+    if (!deviceOK) {
       continue;
+    }
     if (deviceSpeed > bestDeviceSpeed) {
       bestDevice = i;
       bestDeviceSpeed = deviceSpeed;
     } else {
-      if (mDeviceProcessingSettings.debugLevel >= 0)
+      if (mDeviceProcessingSettings.debugLevel >= 0) {
         GPUInfo("Skipping: Speed %f < %f\n", deviceSpeed, bestDeviceSpeed);
+      }
     }
   }
   if (bestDevice == -1) {
@@ -222,15 +237,17 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     GPUFailedMsgI(cudaDeviceReset());
     return (1);
   }
-  if (mDeviceProcessingSettings.debugLevel >= 1)
+  if (mDeviceProcessingSettings.debugLevel >= 1) {
     GPUInfo("GPU Memory used: %lld", (long long int)mDeviceMemorySize);
+  }
   if (GPUFailedMsgI(cudaMallocHost(&mHostMemoryBase, mHostMemorySize))) {
     GPUError("Error allocating Page Locked Host Memory");
     GPUFailedMsgI(cudaDeviceReset());
     return (1);
   }
-  if (mDeviceProcessingSettings.debugLevel >= 1)
+  if (mDeviceProcessingSettings.debugLevel >= 1) {
     GPUInfo("Host Memory used: %lld", (long long int)mHostMemorySize);
+  }
 
   if (mDeviceProcessingSettings.debugLevel >= 1) {
     memset(mHostMemoryBase, 0xDD, mHostMemorySize);
@@ -312,36 +329,44 @@ int GPUReconstructionCUDABackend::ExitDevice_Runtime()
 void GPUReconstructionCUDABackend::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, void* src, void* dst)
 {
   if (!(res->Type() & GPUMemoryResource::MEMORY_GPU)) {
-    if (mDeviceProcessingSettings.debugLevel >= 4)
+    if (mDeviceProcessingSettings.debugLevel >= 4) {
       printf("Skipped transfer of non-GPU memory resource: %s\n", res->Name());
+    }
     return;
   }
-  if (mDeviceProcessingSettings.debugLevel >= 3)
+  if (mDeviceProcessingSettings.debugLevel >= 3) {
     stream = -1;
-  if (mDeviceProcessingSettings.debugLevel >= 3)
+  }
+  if (mDeviceProcessingSettings.debugLevel >= 3) {
     printf(toGPU ? "Copying to GPU: %s\n" : "Copying to Host: %s\n", res->Name());
+  }
   if (stream == -1) {
     SynchronizeGPU();
     GPUFailedMsg(cudaMemcpy(dst, src, res->Size(), toGPU ? cudaMemcpyHostToDevice : cudaMemcpyDeviceToHost));
   } else {
-    if (evList == nullptr)
+    if (evList == nullptr) {
       nEvents = 0;
-    for (int k = 0; k < nEvents; k++)
+    }
+    for (int k = 0; k < nEvents; k++) {
       GPUFailedMsg(cudaStreamWaitEvent(mInternals->CudaStreams[stream], ((cudaEvent_t*)evList)[k], 0));
+    }
     GPUFailedMsg(cudaMemcpyAsync(dst, src, res->Size(), toGPU ? cudaMemcpyHostToDevice : cudaMemcpyDeviceToHost, mInternals->CudaStreams[stream]));
   }
-  if (ev)
+  if (ev) {
     GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*)ev, mInternals->CudaStreams[stream == -1 ? 0 : stream]));
+  }
 }
 
 void GPUReconstructionCUDABackend::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev)
 {
-  if (stream == -1)
+  if (stream == -1) {
     GPUFailedMsg(cudaMemcpyToSymbol(gGPUConstantMemBuffer, src, size, offset, cudaMemcpyHostToDevice));
-  else
+  } else {
     GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, src, size, offset, cudaMemcpyHostToDevice, mInternals->CudaStreams[stream]));
-  if (ev && stream != -1)
+  }
+  if (ev && stream != -1) {
     GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*)ev, mInternals->CudaStreams[stream]));
+  }
 }
 
 void GPUReconstructionCUDABackend::ReleaseEvent(deviceEvent* ev) {}
@@ -366,8 +391,9 @@ bool GPUReconstructionCUDABackend::IsEventDone(deviceEvent* evList, int nEvents)
 {
   for (int i = 0; i < nEvents; i++) {
     cudaError_t retVal = cudaEventSynchronize(((cudaEvent_t*)evList)[i]);
-    if (retVal == cudaErrorNotReady)
+    if (retVal == cudaErrorNotReady) {
       return false;
+    }
     GPUFailedMsg(retVal);
   }
   return (true);
@@ -376,8 +402,9 @@ bool GPUReconstructionCUDABackend::IsEventDone(deviceEvent* evList, int nEvents)
 int GPUReconstructionCUDABackend::GPUDebug(const char* state, int stream)
 {
   // Wait for CUDA-Kernel to finish and check for CUDA errors afterwards, in case of debugmode
-  if (mDeviceProcessingSettings.debugLevel == 0)
+  if (mDeviceProcessingSettings.debugLevel == 0) {
     return (0);
+  }
   cudaError cuErr;
   cuErr = cudaGetLastError();
   if (cuErr != cudaSuccess) {
@@ -388,8 +415,9 @@ int GPUReconstructionCUDABackend::GPUDebug(const char* state, int stream)
     GPUError("CUDA Error while synchronizing (%s) (Stream %d)", state, stream);
     return (1);
   }
-  if (mDeviceProcessingSettings.debugLevel >= 3)
+  if (mDeviceProcessingSettings.debugLevel >= 3) {
     GPUInfo("GPU Sync Done");
+  }
   return (0);
 }
 

@@ -35,6 +35,8 @@
 #include "AliLoader.h"
 #include "AliDataLoader.h"
 
+using namespace o2::gpu;
+
 ClassImp(GPUTRDTrackletReaderComponent)
 
 #define LogError(...)               \
@@ -112,15 +114,17 @@ int GPUTRDTrackletReaderComponent::ReadPreprocessorValues(const char* /*modules*
 int GPUTRDTrackletReaderComponent::ScanConfigurationArgument(int argc, const char** argv)
 {
 
-  if (argc <= 0)
+  if (argc <= 0) {
     return 0;
+  }
 
   unsigned short iArg = 0;
   TString argument(argv[iArg]);
 
   if (!argument.CompareTo("-debug")) {
-    if (++iArg >= argc)
+    if (++iArg >= argc) {
       return -EPROTO;
+    }
     argument = argv[iArg];
     fDebugLevel = argument.Atoi();
     LogInfo("debug level set to %d.", fDebugLevel);
@@ -165,25 +169,30 @@ int GPUTRDTrackletReaderComponent::DoInit(int argc, const char** argv)
 
   if (iResult < 0) {
 
-    if (fRawReaderTrd)
+    if (fRawReaderTrd) {
       delete fRawReaderTrd;
+    }
     fRawReaderTrd = NULL;
 
-    if (fRawReaderMem)
+    if (fRawReaderMem) {
       delete fRawReaderMem;
+    }
     fRawReaderMem = NULL;
 
-    if (fTrackletArray)
+    if (fTrackletArray) {
       delete fTrackletArray;
+    }
     fTrackletArray = NULL;
   }
 
   vector<const char*> remainingArgs;
-  for (int i = 0; i < argc; ++i)
+  for (int i = 0; i < argc; ++i) {
     remainingArgs.push_back(argv[i]);
+  }
 
-  if (argc > 0)
+  if (argc > 0) {
     ConfigureFromArgumentString(remainingArgs.size(), &(remainingArgs[0]));
+  }
 
   return iResult;
 }
@@ -191,16 +200,19 @@ int GPUTRDTrackletReaderComponent::DoInit(int argc, const char** argv)
 int GPUTRDTrackletReaderComponent::DoDeinit()
 {
 
-  if (fRawReaderTrd)
+  if (fRawReaderTrd) {
     delete fRawReaderTrd;
+  }
   fRawReaderTrd = NULL;
 
-  if (fRawReaderMem)
+  if (fRawReaderMem) {
     delete fRawReaderMem;
+  }
   fRawReaderMem = NULL;
 
-  if (fTrackletArray)
+  if (fTrackletArray) {
     delete fTrackletArray;
+  }
   fTrackletArray = NULL;
 
   return 0;

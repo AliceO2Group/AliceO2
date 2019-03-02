@@ -24,7 +24,7 @@
 #include "Riostream.h"
 #include "FairLogger.h"
 
-using namespace ali_tpc_common::tpc_fast_transformation;
+using namespace o2::gpu;
 
 namespace o2
 {
@@ -166,7 +166,7 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
   return std::move(fastTransformPtr);
 }
 
-int TPCFastTransformHelperO2::updateCalibration(ali_tpc_common::tpc_fast_transformation::TPCFastTransform& fastTransform, Long_t TimeStamp)
+int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform, Long_t TimeStamp)
 {
   // Update the calibration with the new time stamp
 
@@ -252,7 +252,7 @@ int TPCFastTransformHelperO2::updateCalibration(ali_tpc_common::tpc_fast_transfo
   return 0;
 }
 
-void TPCFastTransformHelperO2::testGeometry(const ali_tpc_common::tpc_fast_transformation::TPCFastTransform& fastTransform) const
+void TPCFastTransformHelperO2::testGeometry(const TPCFastTransform& fastTransform) const
 {
   const Mapper& mapper = Mapper::instance();
 

@@ -16,17 +16,19 @@
 
 #include "GPUCommonDefGPU.h"
 
-namespace ali_tpc_common
+namespace o2
 {
-
+namespace gpu
+{
 class Transform3D
 {
  public:
   Transform3D() = default;
   Transform3D(float* v)
   {
-    for (int i = 0; i < 12; i++)
+    for (int i = 0; i < 12; i++) {
       m[i] = v[i];
+    }
   }
 
   GPUd() void Apply(const float* in, float* out) const
@@ -76,7 +78,7 @@ class Transform3D
                                 kZZ = 10,
                                 kDZ = 11 };
 };
-
-} // namespace ali_tpc_common
+}
+} // namespace o2::gpu
 
 #endif

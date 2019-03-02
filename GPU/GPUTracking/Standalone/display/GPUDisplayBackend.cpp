@@ -14,12 +14,15 @@
 #include "GPUDisplayBackend.h"
 #include "GPUDisplay.h"
 
+using namespace o2::gpu;
+
 void* GPUDisplayBackend::OpenGLWrapper(void* ptr)
 {
   GPUDisplayBackend* me = reinterpret_cast<GPUDisplayBackend*>(ptr);
   int retVal = me->OpenGLMain();
-  if (retVal == -1)
+  if (retVal == -1) {
     me->InitGL(true);
+  }
   return ((void*)(size_t)retVal);
 }
 

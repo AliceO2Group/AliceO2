@@ -31,3 +31,4 @@
 //***************************************************************************
 
 #include "GPUTPCBaseTrackParam.h"
+using namespace o2::gpu;

@@ -19,6 +19,11 @@
 #include "GPUTPCRow.h"
 #include "GPUGeneralKernels.h"
 #include "GPUConstantMem.h"
+
+namespace o2
+{
+namespace gpu
+{
 MEM_CLASS_PRE()
 class GPUTPCTracker;
 
@@ -57,11 +62,11 @@ class GPUTPCNeighboursFinder
     int mIRowDn;  // previous row number
 #if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
 #if defined(GPUCA_GPUCODE)
-    float2 fA[GPUCA_THREAD_COUNT_FINDER][GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
-    calink fB[GPUCA_THREAD_COUNT_FINDER][GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
+    float2 mA[GPUCA_THREAD_COUNT_FINDER][GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
+    calink mB[GPUCA_THREAD_COUNT_FINDER][GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
 #else
-    float2 fA[GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
-    calink fB[GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
+    float2 mA[GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
+    calink mB[GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
 #endif
 #endif // GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
     MEM_LG(GPUTPCRow)
@@ -71,9 +76,14 @@ class GPUTPCNeighboursFinder
   typedef GPUconstantref() MEM_CONSTANT(GPUTPCTracker) workerType;
   GPUhdi() static GPUDataTypes::RecoStep GetRecoStep() { return GPUCA_RECO_STEP::TPCSliceTracking; }
   MEM_TEMPLATE()
-  GPUhdi() static workerType* Worker(MEM_TYPE(GPUConstantMem) & workers) { return workers.tpcTrackers; }
+  GPUhdi() static workerType* Worker(MEM_TYPE(GPUConstantMem) & workers)
+  {
+    return workers.tpcTrackers;
+  }
   template <int iKernel = 0>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & smem, workerType& tracker);
 };
+}
+} // namespace o2::gpu
 
 #endif // GPUTPCNEIGHBOURSFINDER_H

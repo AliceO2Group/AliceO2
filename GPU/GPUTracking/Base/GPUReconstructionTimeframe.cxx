@@ -27,10 +27,11 @@
 
 #include "utils/qconfig.h"
 
+using namespace o2::gpu;
+
 static auto& config = configStandalone.configTF;
 
 GPUReconstructionTimeframe::GPUReconstructionTimeframe(GPUChainTracking* chain, int (*read)(int), int nEvents) : mChain(chain), mReadEvent(read), mNEventsInDirectory(nEvents), mDisUniReal(0., 1.), mRndGen1(configStandalone.seed), mRndGen2(mDisUniInt(mRndGen1))
-
 {
   mMaxBunchesFull = mTimeOrbit / configStandalone.configTF.bunchSpacing;
   mMaxBunches = (mTimeOrbit - configStandalone.configTF.abortGapTime) / configStandalone.configTF.bunchSpacing;
@@ -49,8 +50,9 @@ GPUReconstructionTimeframe::GPUReconstructionTimeframe(GPUChainTracking* chain, 
   mEventStride = configStandalone.seed;
   mSimBunchNoRepeatEvent = configStandalone.StartEvent;
   mEventUsed.resize(mNEventsInDirectory);
-  if (config.noEventRepeat == 2)
+  if (config.noEventRepeat == 2) {
     memset(mEventUsed.data(), 0, mNEventsInDirectory * sizeof(mEventUsed[0]));
+  }
 }
 
 int GPUReconstructionTimeframe::ReadEventShifted(int iEvent, float shift, float minZ, float maxZ, bool silent)
@@ -80,10 +82,12 @@ int GPUReconstructionTimeframe::ReadEventShifted(int iEvent, float shift, float 
       for (unsigned int i = 0; i < mChain->mIOPtrs.nClusterData[iSlice]; i++) {
         float sign = iSlice < NSLICES / 2 ? 1 : -1;
         if (sign * mChain->mIOMem.clusterData[iSlice][i].z >= minZ && sign * mChain->mIOMem.clusterData[iSlice][i].z <= maxZ) {
-          if (currentClusterSlice != i)
+          if (currentClusterSlice != i) {
             mChain->mIOMem.clusterData[iSlice][currentClusterSlice] = mChain->mIOMem.clusterData[iSlice][i];
-          if (mChain->mIOPtrs.nMCLabelsTPC > currentClusterTotal && nClusters != currentClusterTotal)
+          }
+          if (mChain->mIOPtrs.nMCLabelsTPC > currentClusterTotal && nClusters != currentClusterTotal) {
             mChain->mIOMem.mcLabelsTPC[nClusters] = mChain->mIOMem.mcLabelsTPC[currentClusterTotal];
+          }
           // printf("Keeping Cluster ID %d (ID in slice %d) Z=%f (sector %d) --> %d (slice %d)\n", currentClusterTotal, i, mChain->mIOMem.clusterData[iSlice][i].fZ, iSlice, nClusters, currentClusterSlice);
           currentClusterSlice++;
           nClusters++;
@@ -97,14 +101,16 @@ int GPUReconstructionTimeframe::ReadEventShifted(int iEvent, float shift, float 
     }
     mChain->mIOPtrs.nMCLabelsTPC = nClusters;
   } else {
-    for (unsigned int i = 0; i < NSLICES; i++)
+    for (unsigned int i = 0; i < NSLICES; i++) {
       nClusters += mChain->mIOPtrs.nClusterData[i];
+    }
   }
 
   if (!silent) {
     printf("Read %u Clusters with %d MC labels and %d MC tracks\n", nClusters, (int)mChain->mIOPtrs.nMCLabelsTPC, (int)mChain->mIOPtrs.nMCInfosTPC);
-    if (minZ > -1e6 || maxZ > 1e6)
+    if (minZ > -1e6 || maxZ > 1e6) {
       printf("\tRemoved %u / %u clusters\n", removed, nClusters + removed);
+    }
   }
 
   mShiftedEvents.emplace_back(mChain->mIOPtrs, std::move(mChain->mIOMem), mChain->mIOPtrs.clustersNative ? *mChain->mIOPtrs.clustersNative : o2::TPC::ClusterNativeAccessFullTPC());
@@ -147,8 +153,9 @@ void GPUReconstructionTimeframe::MergeShiftedEvents()
         if (doLabels) {
           for (int l = 0; l < 3; l++) {
             auto& label = mChain->mIOMem.mcLabelsTPC[nClustersSliceOffset[j] + nClustersEventOffset[j] + k].fClusterID[l];
-            if (label.fMCID >= 0)
+            if (label.fMCID >= 0) {
               label.fMCID += nTrackOffset;
+            }
           }
         }
       }
@@ -166,8 +173,9 @@ void GPUReconstructionTimeframe::MergeShiftedEvents()
 
 int GPUReconstructionTimeframe::LoadCreateTimeFrame(int iEvent)
 {
-  if (configStandalone.configTF.nTotalInTFEvents && mNTotalCollisions >= configStandalone.configTF.nTotalInTFEvents)
+  if (configStandalone.configTF.nTotalInTFEvents && mNTotalCollisions >= configStandalone.configTF.nTotalInTFEvents) {
     return (2);
+  }
 
   long long int nBunch = -mDriftTime / config.bunchSpacing;
   long long int lastBunch = config.timeFrameLen / config.bunchSpacing;
@@ -181,35 +189,43 @@ int GPUReconstructionTimeframe::LoadCreateTimeFrame(int iEvent)
       int nCollisionsInTrain = 0;
       for (int iBunch = 0; iBunch < config.bunchCount && nBunch < lastBunch; iBunch++) {
         const bool inTF = nBunch >= 0 && nBunch < lastTFBunch && (config.nTotalInTFEvents == 0 || nCollisions < mNTotalCollisions + config.nTotalInTFEvents);
-        if (mcMin == -1 && inTF)
+        if (mcMin == -1 && inTF) {
           mcMin = mChain->mIOPtrs.nMCInfosTPC;
-        if (mcMax == -1 && nBunch >= 0 && !inTF)
+        }
+        if (mcMax == -1 && nBunch >= 0 && !inTF) {
           mcMax = mChain->mIOPtrs.nMCInfosTPC;
+        }
         int nInBunchPileUp = 0;
         double randVal = mDisUniReal(inTF ? mRndGen2 : mRndGen1);
         double p = exp(-mCollisionProbability);
         double p2 = p;
         while (randVal > p) {
-          if (config.noBorder && (nBunch < 0 || nBunch >= lastTFBunch))
+          if (config.noBorder && (nBunch < 0 || nBunch >= lastTFBunch)) {
             break;
+          }
           if (nCollisionsInTrain >= mNEventsInDirectory) {
             printf("Error: insuffient events for mixing!\n");
             return (1);
           }
-          if (nCollisionsInTrain == 0 && config.noEventRepeat == 0)
+          if (nCollisionsInTrain == 0 && config.noEventRepeat == 0) {
             memset(mEventUsed.data(), 0, mNEventsInDirectory * sizeof(mEventUsed[0]));
-          if (inTF)
+          }
+          if (inTF) {
             nCollisions++;
-          else
+          } else {
             nBorderCollisions++;
+          }
           int useEvent;
-          if (config.noEventRepeat == 1)
+          if (config.noEventRepeat == 1) {
             useEvent = mSimBunchNoRepeatEvent;
-          else
-            while (mEventUsed[useEvent = (inTF && config.eventStride ? (mEventStride += config.eventStride) : mDisUniInt(inTF ? mRndGen2 : mRndGen1)) % mNEventsInDirectory])
+          } else {
+            while (mEventUsed[useEvent = (inTF && config.eventStride ? (mEventStride += config.eventStride) : mDisUniInt(inTF ? mRndGen2 : mRndGen1)) % mNEventsInDirectory]) {
               ;
-          if (config.noEventRepeat)
+            }
+          }
+          if (config.noEventRepeat) {
             mSimBunchNoRepeatEvent++;
+          }
           mEventUsed[useEvent] = 1;
           double shift = (double)nBunch * (double)config.bunchSpacing * (double)mTPCZ / (double)mDriftTime;
           int nClusters = ReadEventShifted(useEvent, shift, 0, (double)config.timeFrameLen * mTPCZ / mDriftTime, true);
@@ -224,18 +240,22 @@ int GPUReconstructionTimeframe::LoadCreateTimeFrame(int iEvent)
           nCollisionsInTrain++;
           p2 *= mCollisionProbability / nInBunchPileUp;
           p += p2;
-          if (config.noEventRepeat && mSimBunchNoRepeatEvent >= mNEventsInDirectory)
+          if (config.noEventRepeat && mSimBunchNoRepeatEvent >= mNEventsInDirectory) {
             nBunch = lastBunch;
+          }
         }
-        if (nInBunchPileUp > 1)
+        if (nInBunchPileUp > 1) {
           nMultipleCollisions++;
+        }
         nBunch++;
       }
       nBunch += mTrainDist - config.bunchCount;
-      if (nCollisionsInTrain)
+      if (nCollisionsInTrain) {
         nTrainCollissions++;
-      if (nCollisionsInTrain > 1)
+      }
+      if (nCollisionsInTrain > 1) {
         nTrainMultipleCollisions++;
+      }
       nTrain++;
     }
     nBunch += mMaxBunchesFull - mTrainDist * config.bunchTrainCount;
@@ -246,8 +266,9 @@ int GPUReconstructionTimeframe::LoadCreateTimeFrame(int iEvent)
   MergeShiftedEvents();
   printf("\tTotal clusters: %u, MC Labels %d, MC Infos %d\n", nTotalClusters, (int)mChain->mIOPtrs.nMCLabelsTPC, (int)mChain->mIOPtrs.nMCInfosTPC);
 
-  if (!config.noBorder)
+  if (!config.noBorder) {
     mChain->GetQA()->SetMCTrackRange(mcMin, mcMax);
+  }
   return (0);
 }
 
@@ -259,15 +280,17 @@ int GPUReconstructionTimeframe::LoadMergedEvents(int iEvent)
       if (config.randomizeDistance) {
         shift = mDisUniReal(mRndGen2);
         if (config.shiftFirstEvent) {
-          if (iEventInTimeframe == 0)
+          if (iEventInTimeframe == 0) {
             shift = shift * config.averageDistance;
-          else
+          } else {
             shift = (iEventInTimeframe + shift) * config.averageDistance;
+          }
         } else {
-          if (iEventInTimeframe == 0)
+          if (iEventInTimeframe == 0) {
             shift = 0;
-          else
+          } else {
             shift = (iEventInTimeframe - 0.5 + shift) * config.averageDistance;
+          }
         }
       } else {
         if (config.shiftFirstEvent) {
@@ -280,8 +303,9 @@ int GPUReconstructionTimeframe::LoadMergedEvents(int iEvent)
       shift = 0.;
     }
 
-    if (ReadEventShifted(iEvent * config.nMerge + iEventInTimeframe, shift) < 0)
+    if (ReadEventShifted(iEvent * config.nMerge + iEventInTimeframe, shift) < 0) {
       return (1);
+    }
   }
   MergeShiftedEvents();
   return (0);
@@ -290,8 +314,9 @@ int GPUReconstructionTimeframe::LoadMergedEvents(int iEvent)
 void GPUReconstructionTimeframe::SetDisplayInformation(int iCol)
 {
   if (mChain->GetEventDisplay()) {
-    for (unsigned int sl = 0; sl < NSLICES; sl++)
+    for (unsigned int sl = 0; sl < NSLICES; sl++) {
       mChain->GetEventDisplay()->SetCollisionFirstCluster(iCol, sl, mChain->mIOPtrs.nClusterData[sl]);
+    }
     mChain->GetEventDisplay()->SetCollisionFirstCluster(iCol, NSLICES, mChain->mIOPtrs.nMCInfosTPC);
   }
 }

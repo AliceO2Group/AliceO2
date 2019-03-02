@@ -9,6 +9,11 @@
 #include "AliGeomManager.h"
 #include "TGeoMatrix.h"
 
+namespace o2
+{
+namespace gpu
+{
+
 typedef AliTRDpadPlane GPUTRDpadPlane;
 
 class GPUTRDGeometry : public AliTRDgeometry
@@ -22,6 +27,8 @@ class GPUTRDGeometry : public AliTRDgeometry
   double GetPadPlaneRowSize(int layer, int stack, int row) const { return GetPadPlane(layer, stack)->GetRowSize(row); }
   int GetGeomManagerVolUID(int det, int modId) const { return AliGeomManager::LayerToVolUID(AliGeomManager::ELayerID(AliGeomManager::kTRD1 + GetLayer(det)), modId); }
 };
+} // namespace gpu
+} // namespace o2
 
 #elif defined(HAVE_O2HEADERS)
 
@@ -30,6 +37,11 @@ class TObjArray;
 #include "TRDBase/TRDGeometryFlat.h"
 #include "TRDBase/TRDPadPlane.h"
 #include "GPUCommonTransform3D.h"
+
+namespace o2
+{
+namespace gpu
+{
 
 class GPUTRDpadPlane : private o2::trd::TRDPadPlane
 {
@@ -61,7 +73,7 @@ class GPUTRDGeometry : private o2::trd::TRDGeometryFlat
   GPUd() int GetLayer(int det) const { return getLayer(det); }
   GPUd() bool CreateClusterMatrixArray() const { return false; }
   GPUd() float AnodePos() const { return anodePos(); }
-  GPUd() const ali_tpc_common::Transform3D* GetClusterMatrix(int det) const { return getMatrixT2L(det); }
+  GPUd() const o2::gpu::Transform3D* GetClusterMatrix(int det) const { return getMatrixT2L(det); }
   GPUd() int GetDetector(int layer, int stack, int sector) const { return getDetector(layer, stack, sector); }
   GPUd() const GPUTRDpadPlane* GetPadPlane(int layer, int stack) const { return (GPUTRDpadPlane*)getPadPlane(layer, stack); }
   GPUd() const GPUTRDpadPlane* GetPadPlane(int detector) const { return (GPUTRDpadPlane*)getPadPlane(detector); }
@@ -75,10 +87,17 @@ class GPUTRDGeometry : private o2::trd::TRDGeometryFlat
 
   static constexpr int kNstack = o2::trd::kNstack;
 };
+} // namespace gpu
+} // namespace o2
 
 #else
 
 #include "GPUTPCDef.h"
+
+namespace o2
+{
+namespace gpu
+{
 
 class TGeoHMatrix
 {
@@ -135,6 +154,8 @@ class GPUTRDGeometry
 
   static CONSTEXPR int kNstack = 0;
 };
+} // namespace gpu
+} // namespace o2
 
 #endif
 

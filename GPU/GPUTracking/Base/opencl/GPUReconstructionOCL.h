@@ -15,13 +15,18 @@
 #define GPURECONSTRUCTIONOCL_H
 
 #include "GPUReconstructionDeviceBase.h"
-struct GPUReconstructionOCLInternals;
 
 #ifdef _WIN32
-extern "C" __declspec(dllexport) GPUReconstruction* GPUReconstruction_Create_OCLconst GPUSettingsProcessing& cfg);
+extern "C" __declspec(dllexport) o2::gpu::GPUReconstruction* GPUReconstruction_Create_OCLconst o2::gpu::GPUSettingsProcessing& cfg);
 #else
-extern "C" GPUReconstruction* GPUReconstruction_Create_OCL(const GPUSettingsProcessing& cfg);
+extern "C" o2::gpu::GPUReconstruction* GPUReconstruction_Create_OCL(const o2::gpu::GPUSettingsProcessing& cfg);
 #endif
+
+namespace o2
+{
+namespace gpu
+{
+struct GPUReconstructionOCLInternals;
 
 class GPUReconstructionOCLBackend : public GPUReconstructionDeviceBase
 {
@@ -65,5 +70,7 @@ class GPUReconstructionOCLBackend : public GPUReconstructionDeviceBase
 };
 
 using GPUReconstructionOCL = GPUReconstructionKernels<GPUReconstructionOCLBackend>;
+}
+} // namespace o2::gpu
 
 #endif

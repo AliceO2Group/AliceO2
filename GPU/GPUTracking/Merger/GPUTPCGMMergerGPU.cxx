@@ -12,10 +12,11 @@
 /// \author David Rohr
 
 #include "GPUTPCGMMergerGPU.h"
-#include "GPUConstantMem.h"
 #if defined(GPUCA_HAVE_OPENMP) && !defined(GPUCA_GPUCODE)
 #include "GPUReconstruction.h"
 #endif
+
+using namespace o2::gpu;
 
 template <>
 GPUd() void GPUTPCGMMergerTrackFit::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, workerType& merger)

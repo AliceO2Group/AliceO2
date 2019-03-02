@@ -23,9 +23,9 @@
 #include <memory>
 #include <cstring>
 
-namespace ali_tpc_common
+namespace o2
 {
-namespace tpc_fast_transformation
+namespace gpu
 {
 
 ///
@@ -105,7 +105,7 @@ namespace tpc_fast_transformation
 ///  spline.getSpline( f, 0.5  ); // == 1.4
 ///  spline.getSpline( f, 1.  ); // == 2.3
 ///
-class IrregularSpline1D : public gpu_common::Base::FlatObject
+class IrregularSpline1D : public FlatObject
 {
  public:
   ///
@@ -141,8 +141,8 @@ class IrregularSpline1D : public gpu_common::Base::FlatObject
 
   /// Memory alignment
 
-  using gpu_common::Base::FlatObject::getBufferAlignmentBytes;
-  using gpu_common::Base::FlatObject::getClassAlignmentBytes;
+  using FlatObject::getBufferAlignmentBytes;
+  using FlatObject::getClassAlignmentBytes;
 
   /// Construction interface
 
@@ -151,15 +151,15 @@ class IrregularSpline1D : public gpu_common::Base::FlatObject
 
   /// Making the data buffer external
 
-  using gpu_common::Base::FlatObject::releaseInternalBuffer;
+  using FlatObject::releaseInternalBuffer;
 #ifndef GPUCA_GPUCODE
-  using gpu_common::Base::FlatObject::moveBufferTo;
+  using FlatObject::moveBufferTo;
 #endif
 
   /// Moving the class with its external buffer to another location
 
-  using gpu_common::Base::FlatObject::setActualBufferAddress;
-  using gpu_common::Base::FlatObject::setFutureBufferAddress;
+  using FlatObject::setActualBufferAddress;
+  using FlatObject::setFutureBufferAddress;
 
   /// _______________  Construction interface  ________________________
 
@@ -309,10 +309,12 @@ inline int IrregularSpline1D::getKnotIndex(float u) const
 {
   /// get i: u is in [knot_i, knot_{i+1})
   int ibin = (int)(u * mNumberOfAxisBins);
-  if (ibin < 0)
+  if (ibin < 0) {
     ibin = 0;
-  if (ibin > mNumberOfAxisBins - 1)
+  }
+  if (ibin > mNumberOfAxisBins - 1) {
     ibin = mNumberOfAxisBins - 1;
+  }
   return getBin2KnotMap()[ibin];
 }
 
@@ -387,8 +389,7 @@ inline void IrregularSpline1D::correctEdges(T* data) const
   getEdgeCorrectionCoefficients(s[i - 0].u, s[i - 1].u, s[i - 2].u, s[i - 3].u, c0, c1, c2, c3);
   data[i] = c0 * data[i - 0] + c1 * data[i - 1] + c2 * data[i - 2] + c3 * data[i - 3];
 }
-
-} // namespace tpc_fast_transformation
-} // namespace ali_tpc_common
+} // namespace gpu
+} // namespace o2
 
 #endif
