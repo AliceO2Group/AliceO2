@@ -18,6 +18,10 @@
 #include <cstddef>
 #endif
 
+namespace o2
+{
+namespace gpu
+{
 struct GPUOutputControl {
   enum OutputTypeStruct { AllocateInternal = 0,
                           UseExternalBuffer = 1,
@@ -32,5 +36,7 @@ struct GPUOutputControl {
   OutputTypeStruct OutputType = AllocateInternal; // How to perform the output
   char EndOfSpace = 0;                            // end of space flag
 };
+}
+} // namespace o2::gpu
 
 #endif

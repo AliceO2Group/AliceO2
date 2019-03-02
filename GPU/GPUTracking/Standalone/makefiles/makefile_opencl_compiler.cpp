@@ -31,8 +31,9 @@ int main(int argc, char** argv)
     } else if (strcmp(argv[i], "--") == 0) {
       add_option = true;
     } else if (strcmp(argv[i], "-output-file") == 0) {
-      if (++i >= argc)
+      if (++i >= argc) {
         quit("Output file name missing");
+      }
       output_file = argv[i];
     } else {
       fprintf(stderr, "%s\n", argv[i]);
@@ -42,18 +43,22 @@ int main(int argc, char** argv)
 
   cl_int ocl_error;
   cl_uint num_platforms;
-  if (clGetPlatformIDs(0, NULL, &num_platforms) != CL_SUCCESS)
+  if (clGetPlatformIDs(0, NULL, &num_platforms) != CL_SUCCESS) {
     quit("Error getting OpenCL Platform Count");
-  if (num_platforms == 0)
+  }
+  if (num_platforms == 0) {
     quit("No OpenCL Platform found");
+  }
   printf("%d OpenCL Platforms found\n", num_platforms);
 
   // Query platforms
   cl_platform_id* platforms = new cl_platform_id[num_platforms];
-  if (platforms == NULL)
+  if (platforms == NULL) {
     quit("Memory allocation error");
-  if (clGetPlatformIDs(num_platforms, platforms, NULL) != CL_SUCCESS)
+  }
+  if (clGetPlatformIDs(num_platforms, platforms, NULL) != CL_SUCCESS) {
     quit("Error getting OpenCL Platforms");
+  }
 
   cl_platform_id platform;
   bool found = false;
@@ -82,10 +87,12 @@ int main(int argc, char** argv)
 
   // Query devices
   cl_device_id* devices = new cl_device_id[pinfo.count];
-  if (devices == NULL)
+  if (devices == NULL) {
     quit("Memory allocation error");
-  if (clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, pinfo.count, devices, NULL) != CL_SUCCESS)
+  }
+  if (clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, pinfo.count, devices, NULL) != CL_SUCCESS) {
     quit("Error getting OpenCL devices");
+  }
 
   _makefiles_opencl_device_info dinfo;
   cl_device_type device_type;
@@ -109,8 +116,9 @@ int main(int argc, char** argv)
   }
 
   char** buffers = (char**)malloc(files.size() * sizeof(char*));
-  if (buffers == NULL)
+  if (buffers == NULL) {
     quit("Memory allocation error\n");
+  }
   for (unsigned int i = 0; i < files.size(); i++) {
     printf("Reading source file %s\n", files[i]);
     FILE* fp = fopen(files[i], "rb");
@@ -137,14 +145,16 @@ int main(int argc, char** argv)
   printf("Creating OpenCL Context\n");
   // Create OpenCL context
   cl_context context = clCreateContext(NULL, pinfo.count, devices, NULL, NULL, &ocl_error);
-  if (ocl_error != CL_SUCCESS)
+  if (ocl_error != CL_SUCCESS) {
     quit("Error creating OpenCL context");
+  }
 
   printf("Creating OpenCL Program Object\n");
   // Create OpenCL program object
   cl_program program = clCreateProgramWithSource(context, (cl_uint)files.size(), (const char**)buffers, NULL, &ocl_error);
-  if (ocl_error != CL_SUCCESS)
+  if (ocl_error != CL_SUCCESS) {
     quit("Error creating program object");
+  }
 
   printf("Compiling OpenCL Program\n");
   // Compile program
@@ -163,8 +173,9 @@ int main(int argc, char** argv)
         size_t log_size;
         clGetProgramBuildInfo(program, devices[i], CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
         char* build_log = (char*)malloc(log_size + 1);
-        if (build_log == NULL)
+        if (build_log == NULL) {
           quit("Memory allocation error");
+        }
         clGetProgramBuildInfo(program, devices[i], CL_PROGRAM_BUILD_LOG, log_size, build_log, NULL);
         fprintf(stderr, "Build Log (device %d):\n\n%s\n\n", i, build_log);
         free(build_log);
@@ -175,23 +186,27 @@ int main(int argc, char** argv)
     free(buffers[i]);
   }
   free(buffers);
-  if (ocl_error != CL_SUCCESS)
+  if (ocl_error != CL_SUCCESS) {
     return (1);
+  }
 
   printf("Obtaining program binaries\n");
   size_t* binary_sizes = (size_t*)malloc(pinfo.count * sizeof(size_t));
-  if (binary_sizes == NULL)
+  if (binary_sizes == NULL) {
     quit("Memory allocation error");
+  }
   clGetProgramInfo(program, CL_PROGRAM_BINARY_SIZES, pinfo.count * sizeof(size_t), binary_sizes, NULL);
   char** binary_buffers = (char**)malloc(pinfo.count * sizeof(char*));
-  if (binary_buffers == NULL)
+  if (binary_buffers == NULL) {
     quit("Memory allocation error");
+  }
   for (unsigned int i = 0; i < pinfo.count; i++) {
     printf("Binary size for device %d: %d\n", i, (int)binary_sizes[i]);
     binary_buffers[i] = (char*)malloc(binary_sizes[i]);
     memset(binary_buffers[i], 0, binary_sizes[i]);
-    if (binary_buffers[i] == NULL)
+    if (binary_buffers[i] == NULL) {
       quit("Memory allocation error");
+    }
   }
   clGetProgramInfo(program, CL_PROGRAM_BINARIES, pinfo.count * sizeof(char*), binary_buffers, NULL);
 
@@ -202,8 +217,9 @@ int main(int argc, char** argv)
   printf("Writing binaries to file (%s)\n", output_file);
   FILE* fp;
   fp = fopen(output_file, "w+b");
-  if (fp == NULL)
+  if (fp == NULL) {
     quit("Error opening output file\n");
+  }
   const char* magic_bytes = "QOCLPB";
   fwrite(magic_bytes, 1, strlen(magic_bytes) + 1, fp);
   fwrite(&pinfo, 1, sizeof(pinfo), fp);

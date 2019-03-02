@@ -52,7 +52,9 @@
 #include "TParticlePDG.h"
 #include "TPDGCode.h"
 
-AliHLTGPUDumpComponent::AliHLTGPUDumpComponent() : fSolenoidBz(0.f), fRec(nullptr), fChain(nullptr), fFastTransformManager(new ali_tpc_common::tpc_fast_transformation::TPCFastTransformManager), fCalib(nullptr), fRecParam(nullptr), fOfflineRecoParam(), fOrigTransform(nullptr), fIsMC(false)
+using namespace o2::gpu;
+
+AliHLTGPUDumpComponent::AliHLTGPUDumpComponent() : fSolenoidBz(0.f), fRec(nullptr), fChain(nullptr), fFastTransformManager(new TPCFastTransformManager), fCalib(nullptr), fRecParam(nullptr), fOfflineRecoParam(), fOrigTransform(nullptr), fIsMC(false)
 {
   fRec = GPUReconstruction::CreateInstance();
   fChain = fRec->AddChain<GPUChainTracking>();
@@ -91,39 +93,46 @@ int AliHLTGPUDumpComponent::DoInit(int argc, const char** argv)
   fSolenoidBz = GetBz();
   fIsMC = TVirtualMC::GetMC();
 
-  if (!AliGeomManager::GetGeometry())
+  if (!AliGeomManager::GetGeometry()) {
     AliGeomManager::LoadGeometry();
-  if (!AliGeomManager::GetGeometry())
+  }
+  if (!AliGeomManager::GetGeometry()) {
     HLTFatal("Can not initialise geometry");
+  }
 
   fCalib = AliTPCcalibDB::Instance();
-  if (!fCalib)
+  if (!fCalib) {
     HLTFatal("Calibration not found");
+  }
   fCalib->SetRun(GetRunNo());
   fCalib->UpdateRunInformations(GetRunNo());
 
   const AliMagF* field = (AliMagF*)TGeoGlobalMagField::Instance()->GetField();
   fCalib->SetExBField(field);
 
-  if (!fCalib->GetTransform())
+  if (!fCalib->GetTransform()) {
     HLTFatal("No TPC transformation found");
+  }
 
   AliGRPObject* pGRP = 0;
   AliCDBEntry* entry = AliCDBManager::Instance()->Get("GRP/GRP/Data");
-  if (!entry)
+  if (!entry) {
     HLTFatal("No GRP object found in data base");
+  }
   pGRP = dynamic_cast<AliGRPObject*>(entry->GetObject());
 
-  if (!pGRP)
+  if (!pGRP) {
     HLTFatal("Unknown format of the GRP object in data base");
+  }
 
   AliRunInfo runInfo(pGRP->GetLHCState(), pGRP->GetBeamType(), pGRP->GetBeamEnergy(), pGRP->GetRunType(), pGRP->GetDetectorMask());
   AliEventInfo evInfo;
   evInfo.SetEventType(AliRawEventHeaderBase::kPhysicsEvent);
 
   entry = AliCDBManager::Instance()->Get("TPC/Calib/RecoParam");
-  if (!entry)
+  if (!entry) {
     HLTFatal("No TPC reco param entry found in data base");
+  }
   TObject* recoParamObj = entry->GetObject();
   if (dynamic_cast<TObjArray*>(recoParamObj)) {
     TObjArray* copy = (TObjArray*)(static_cast<TObjArray*>(recoParamObj)->Clone());
@@ -137,8 +146,9 @@ int AliHLTGPUDumpComponent::DoInit(int argc, const char** argv)
 
   fOfflineRecoParam.SetEventSpecie(&runInfo, evInfo, 0);
   fRecParam = const_cast<AliTPCRecoParam*>(reinterpret_cast<const AliTPCRecoParam*>(fOfflineRecoParam.GetDetRecoParam(1)));
-  if (!fRecParam)
+  if (!fRecParam) {
     HLTFatal("No TPC Reco Param entry found for the given event specification");
+  }
   fCalib->GetTransform()->SetCurrentRecoParam(fRecParam);
 
   return 0;
@@ -198,8 +208,9 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
     clusterData[slice].clear();
     rawClusters[slice].clear();
     for (int patch = 0; patch < 6; patch++) {
-      if (clustersXYZ[slice][patch])
+      if (clustersXYZ[slice][patch]) {
         nClustersSliceTotal += clustersXYZ[slice][patch]->fCount;
+      }
     }
     GPUTPCClusterData cluster;
     for (int patch = 0; patch < 6; patch++) {
@@ -216,18 +227,21 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
         for (int ic = 0; ic < clXYZ.fCount; ic++) {
           const AliHLTTPCClusterXYZ& c = clXYZ.fClusters[ic];
           const AliHLTTPCRawCluster& cRaw = clRaw.fClusters[ic];
-          if (fabsf(c.GetZ()) > 300)
+          if (fabsf(c.GetZ()) > 300) {
             continue;
-          if (c.GetX() < 1.f)
+          }
+          if (c.GetX() < 1.f) {
             continue; // cluster xyz position was not calculated for whatever reason
+          }
           cluster.id = GPUTPCGeometry::CreateClusterID(slice, patch, ic);
           cluster.x = c.GetX();
           cluster.y = c.GetY();
           cluster.z = c.GetZ();
           cluster.row = firstRow + cRaw.GetPadRow();
           cluster.flags = cRaw.GetFlags();
-          if (cRaw.GetSigmaPad2() < kAlmost0 || cRaw.GetSigmaTime2() < kAlmost0)
+          if (cRaw.GetSigmaPad2() < kAlmost0 || cRaw.GetSigmaTime2() < kAlmost0) {
             cluster.flags |= GPUTPCGMMergedTrackHit::flagSingle;
+          }
           cluster.amp = cRaw.GetCharge();
 #ifdef GPUCA_FULL_CLUSTERDATA
           cluster.pad = cRaw.GetPad();
@@ -247,8 +261,9 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
     HLTDebug("Read %d->%d hits for slice %d", nClustersSliceTotal, (int)clusterData.size(), slice);
   }
 
-  if (nClustersTotal < 100)
+  if (nClustersTotal < 100) {
     return (0);
+  }
   fChain->ClearIOPointers();
 
   for (int i = 0; i < NSLICES; i++) {
@@ -267,12 +282,14 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       GPUTPCClusterData* pCluster = clusterData[iSlice].data();
       for (unsigned int iPatch = 0; iPatch < NPATCHES; iPatch++) {
-        if (clusterLabels[iSlice][iPatch] == NULL || clustersXYZ[iSlice][iPatch] == NULL || clusterLabels[iSlice][iPatch]->fCount != clustersXYZ[iSlice][iPatch]->fCount)
+        if (clusterLabels[iSlice][iPatch] == NULL || clustersXYZ[iSlice][iPatch] == NULL || clusterLabels[iSlice][iPatch]->fCount != clustersXYZ[iSlice][iPatch]->fCount) {
           continue;
+        }
         const AliHLTTPCClusterXYZData& clXYZ = *clustersXYZ[iSlice][iPatch];
         for (int ic = 0; ic < clXYZ.fCount; ic++) {
-          if (pCluster->id != GPUTPCGeometry::CreateClusterID(iSlice, iPatch, ic))
+          if (pCluster->id != GPUTPCGeometry::CreateClusterID(iSlice, iPatch, ic)) {
             continue;
+          }
           pCluster->id = labels.size();
           labels.push_back(clusterLabels[iSlice][iPatch]->fLabels[ic]);
           pCluster++;
@@ -330,14 +347,16 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
         TR->GetEvent(r);
         for (int i = 0; i < tpcRefs->GetEntriesFast(); i++) {
           AliTrackReference* tpcRef = (AliTrackReference*)tpcRefs->UncheckedAt(i);
-          if (tpcRef->DetectorId() != AliTrackReference::kTPC)
+          if (tpcRef->DetectorId() != AliTrackReference::kTPC) {
             continue;
+          }
           if (tpcRef->Label() < 0 || tpcRef->Label() >= nTracks) {
             HLTFatal("Invalid reference %d / %d", tpcRef->Label(), nTracks);
             continue;
           }
-          if (trackRefs[tpcRef->Label()] != NULL)
+          if (trackRefs[tpcRef->Label()] != NULL) {
             continue;
+          }
           trackRefs[tpcRef->Label()] = new AliTrackReference(*tpcRef);
         }
       }
@@ -347,10 +366,12 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
       for (int i = 0; i < nTracks; i++) {
         mcInfo[i].pid = -100;
         TParticle* particle = (TParticle*)stack->Particle(i);
-        if (particle == NULL)
+        if (particle == NULL) {
           continue;
-        if (particle->GetPDG() == NULL)
+        }
+        if (particle->GetPDG() == NULL) {
           continue;
+        }
 
         int charge = (int)particle->GetPDG()->Charge();
         int prim = stack->IsPhysicalPrimary(i);
@@ -362,16 +383,21 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
         mcInfo[i].genRadius = sqrt(particle->Vx() * particle->Vx() + particle->Vy() * particle->Vy() + particle->Vz() * particle->Vz());
 
         Int_t pid = -1;
-        if (TMath::Abs(particle->GetPdgCode()) == kElectron)
+        if (TMath::Abs(particle->GetPdgCode()) == kElectron) {
           pid = 0;
-        if (TMath::Abs(particle->GetPdgCode()) == kMuonMinus)
+        }
+        if (TMath::Abs(particle->GetPdgCode()) == kMuonMinus) {
           pid = 1;
-        if (TMath::Abs(particle->GetPdgCode()) == kPiPlus)
+        }
+        if (TMath::Abs(particle->GetPdgCode()) == kPiPlus) {
           pid = 2;
-        if (TMath::Abs(particle->GetPdgCode()) == kKPlus)
+        }
+        if (TMath::Abs(particle->GetPdgCode()) == kKPlus) {
           pid = 3;
-        if (TMath::Abs(particle->GetPdgCode()) == kProton)
+        }
+        if (TMath::Abs(particle->GetPdgCode()) == kProton) {
           pid = 4;
+        }
         mcInfo[i].pid = pid;
 
         AliTrackReference* ref = trackRefs[i];
@@ -386,8 +412,9 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 
         // if (ref) printf("Particle %d: Charge %d, Prim %d, PrimDaughter %d, Pt %f %f ref %p\n", i, charge, prim, hasPrimDaughter, ref->Pt(), particle->Pt(), ref);
       }
-      for (int i = 0; i < nTracks; i++)
+      for (int i = 0; i < nTracks; i++) {
         delete trackRefs[i];
+      }
 
       OK = true;
     } while (false);
@@ -419,10 +446,11 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   std::ofstream out;
 
   if (nEvent == 0) {
-    std::unique_ptr<ali_tpc_common::tpc_fast_transformation::TPCFastTransform> fFastTransformIRS(new ali_tpc_common::tpc_fast_transformation::TPCFastTransform);
+    std::unique_ptr<TPCFastTransform> fFastTransformIRS(new TPCFastTransform);
     long TimeStamp = GetTimeStamp();
-    if (fIsMC && !fRecParam->GetUseCorrectionMap())
+    if (fIsMC && !fRecParam->GetUseCorrectionMap()) {
       TimeStamp = 0;
+    }
     if (fFastTransformManager->create(*fFastTransformIRS, fCalib->GetTransform(), TimeStamp)) {
       HLTFatal("Initialisation of Fast Transformation failed with error %s", fFastTransformManager->getLastError());
     }

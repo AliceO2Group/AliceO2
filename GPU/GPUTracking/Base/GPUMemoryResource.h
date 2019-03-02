@@ -17,6 +17,10 @@
 #include "GPUCommonDef.h"
 #include "GPUProcessor.h"
 
+namespace o2
+{
+namespace gpu
+{
 class GPUMemoryResource
 {
   friend class GPUReconstruction;
@@ -66,5 +70,7 @@ class GPUMemoryResource
   size_t mSize;
   const char* mName;
 };
+}
+} // namespace o2::gpu
 
 #endif

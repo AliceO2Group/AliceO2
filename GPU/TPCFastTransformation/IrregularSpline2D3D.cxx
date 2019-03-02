@@ -19,10 +19,7 @@
 #include <iostream>
 #endif
 
-namespace ali_tpc_common
-{
-namespace tpc_fast_transformation
-{
+using namespace o2::gpu;
 
 IrregularSpline2D3D::IrregularSpline2D3D() : FlatObject(), mGridU(), mGridV()
 {
@@ -139,6 +136,3 @@ void IrregularSpline2D3D::Print() const
   mGridV.Print();
 #endif
 }
-
-} // namespace tpc_fast_transformation
-} // namespace ali_tpc_common

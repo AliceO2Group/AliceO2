@@ -29,7 +29,7 @@ class TRDGeometry;
 
 //Reduced flat version of TRD geometry class.
 //Contains all entries required for tracking on GPUs.
-class TRDGeometryFlat : public gpu_common::Base::FlatObject, public TRDGeometryBase
+class TRDGeometryFlat : public o2::gpu::FlatObject, public TRDGeometryBase
 {
  public:
   TRDGeometryFlat() = default;
@@ -40,7 +40,7 @@ class TRDGeometryFlat : public gpu_common::Base::FlatObject, public TRDGeometryB
   TRDGeometryFlat(const TRDGeometry& geo);
   ~TRDGeometryFlat() = default;
 
-  GPUd() const ali_tpc_common::Transform3D* getMatrixT2L(int det) const
+  GPUd() const o2::gpu::Transform3D* getMatrixT2L(int det) const
   {
     if (mMatrixIndirection[det] == -1)
       return nullptr;
@@ -54,7 +54,7 @@ class TRDGeometryFlat : public gpu_common::Base::FlatObject, public TRDGeometryB
   }
 
  private:
-  ali_tpc_common::Transform3D mMatrixCache[MAXMATRICES];
+  o2::gpu::Transform3D mMatrixCache[MAXMATRICES];
   short mMatrixIndirection[kNdet];
 };
 

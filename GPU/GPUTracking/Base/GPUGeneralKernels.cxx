@@ -12,6 +12,7 @@
 /// \author David Rohr
 
 #include "GPUGeneralKernels.h"
+using namespace o2::gpu;
 
 template <>
 GPUd() void GPUMemClean16::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, workerType& workers, GPUglobalref() void* ptr, unsigned long size)

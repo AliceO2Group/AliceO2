@@ -18,6 +18,8 @@
 #include "GPUTPCTracklet.h"
 #include "GPUCommonMath.h"
 
+using namespace o2::gpu;
+
 template <>
 GPUd() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & s, workerType& tracker)
 {
@@ -25,19 +27,19 @@ GPUd() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int iBl
 
   if (iThread == 0) {
     s.mNTracklets = *tracker.NTracklets();
-    s.fNThreadsTotal = nThreads * nBlocks;
+    s.mNThreadsTotal = nThreads * nBlocks;
     s.mItr0 = nThreads * iBlock;
   }
   GPUbarrier();
 
   GPUTPCHitId trackHits[GPUCA_ROW_COUNT - GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE];
 
-  for (int itr = s.mItr0 + iThread; itr < s.mNTracklets; itr += s.fNThreadsTotal) {
-
+  for (int itr = s.mItr0 + iThread; itr < s.mNTracklets; itr += s.mNThreadsTotal) {
     while (tracker.Tracklets()[itr].NHits() == 0) {
-      itr += s.fNThreadsTotal;
-      if (itr >= s.mNTracklets)
+      itr += s.mNThreadsTotal;
+      if (itr >= s.mNTracklets) {
         return;
+      }
     }
 
     GPUglobalref() MEM_GLOBAL(GPUTPCTracklet)& tracklet = tracker.Tracklets()[itr];
@@ -70,14 +72,15 @@ GPUd() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int iBl
         if (own || sharedOK) { // SG!!!
           gap = 0;
 #if GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
-          if (nHits < GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE)
+          if (nHits < GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE) {
             s.fHits[iThread][nHits].Set(irow, ih);
-          else
+          } else
 #endif // GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
             trackHits[nHits - GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE].Set(irow, ih);
           nHits++;
-          if (!own)
+          if (!own) {
             nShared++;
+          }
         }
       }
 
@@ -106,9 +109,8 @@ GPUd() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int iBl
               tracker.TrackHits()[nFirstTrackHit + jh] = s.fHits[iThread][jh];
             } else
 #endif // GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
-            {
+
               tracker.TrackHits()[nFirstTrackHit + jh] = trackHits[jh - GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE];
-            }
           }
         }
         nHits = 0;

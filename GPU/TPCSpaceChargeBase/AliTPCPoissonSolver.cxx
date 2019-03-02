@@ -1,17 +1,17 @@
 /**************************************************************************
- * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
- *                                                                        *
- * Author: The ALICE Off-line Project.                                    *
- * Contributors are mentioned in the code where appropriate.              *
- *                                                                        *
- * Permission to use, copy, modify and distribute this software and its   *
- * documentation strictly for non-commercial purposes is hereby granted   *
- * without fee, provided that the above copyright notice appears in all   *
- * copies and that both the copyright notice and this permission notice   *
- * appear in the supporting documentation. The authors make no claims     *
- * about the suitability of this software for any purpose. It is          *
- * provided "as is" without express or implied warranty.                  *
- **************************************************************************/
+* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+*                                                                        *
+* Author: The ALICE Off-line Project.                                    *
+* Contributors are mentioned in the code where appropriate.              *
+*                                                                        *
+* Permission to use, copy, modify and distribute this software and its   *
+* documentation strictly for non-commercial purposes is hereby granted   *
+* without fee, provided that the above copyright notice appears in all   *
+* copies and that both the copyright notice and this permission notice   *
+* appear in the supporting documentation. The authors make no claims     *
+* about the suitability of this software for any purpose. It is          *
+* provided "as is" without express or implied warranty.                  *
+**************************************************************************/
 
 /// \class AliTPCPoissonSolver
 /// \brief This class provides implementation of Poisson Eq
@@ -129,10 +129,11 @@ void AliTPCPoissonSolver::PoissonSolver3D(TMatrixD** matricesV, TMatrixD** matri
 {
   switch (fStrategy) {
     case kMultiGrid:
-      if (fMgParameters.isFull3D)
+      if (fMgParameters.isFull3D) {
         PoissonMultiGrid3D(matricesV, matricesCharge, nRRow, nZColumn, phiSlice, symmetry);
-      else
+      } else {
         PoissonMultiGrid3D2D(matricesV, matricesCharge, nRRow, nZColumn, phiSlice, symmetry);
+      }
       break;
     default:
       PoissonRelaxation3D(matricesV, matricesCharge, nRRow, nZColumn, phiSlice, maxIteration, symmetry);
@@ -224,19 +225,20 @@ void AliTPCPoissonSolver::PoissonRelaxation2D(TMatrixD& matrixV, TMatrixD& matri
     for (Int_t i = iOne; i < nRRow - 1; i += iOne) {
       Float_t radius = AliTPCPoissonSolver::fgkIFCRadius + iOne * gridSizeR;
       for (Int_t j = jOne; j < nZColumn - 1; j += jOne) {
-        if (iOne == 1 && jOne == 1)
+        if (iOne == 1 && jOne == 1) {
           sumChargeDensity(i, j) = matrixCharge(i, j);
-        else {
+        } else {
           // Add up all enclosed charge density contributions within 1/2 unit in all directions
           Float_t weight = 0.0;
           Float_t sum = 0.0;
           sumChargeDensity(i, j) = 0.0;
           for (Int_t ii = i - iOne / 2; ii <= i + iOne / 2; ii++) {
             for (Int_t jj = j - jOne / 2; jj <= j + jOne / 2; jj++) {
-              if (ii == i - iOne / 2 || ii == i + iOne / 2 || jj == j - jOne / 2 || jj == j + jOne / 2)
+              if (ii == i - iOne / 2 || ii == i + iOne / 2 || jj == j - jOne / 2 || jj == j + jOne / 2) {
                 weight = 0.5;
-              else
+              } else {
                 weight = 1.0;
+              }
               sumChargeDensity(i, j) += matrixCharge(ii, jj) * weight * radius;
               sum += weight * radius;
             }
@@ -276,20 +278,24 @@ void AliTPCPoissonSolver::PoissonRelaxation2D(TMatrixD& matrixV, TMatrixD& matri
           for (Int_t j = jOne; j < nZColumn - 1; j += jOne) {
             if (iOne > 1) {
               matrixV(i + iOne / 2, j) = (matrixV(i + iOne, j) + matrixV(i, j)) / 2;
-              if (i == iOne)
+              if (i == iOne) {
                 matrixV(i - iOne / 2, j) = (matrixV(0, j) + matrixV(iOne, j)) / 2;
+              }
             }
             if (jOne > 1) {
               matrixV(i, j + jOne / 2) = (matrixV(i, j + jOne) + matrixV(i, j)) / 2;
-              if (j == jOne)
+              if (j == jOne) {
                 matrixV(i, j - jOne / 2) = (matrixV(i, 0) + matrixV(i, jOne)) / 2;
+              }
             }
             if (iOne > 1 && jOne > 1) {
               matrixV(i + iOne / 2, j + jOne / 2) = (matrixV(i + iOne, j + jOne) + matrixV(i, j)) / 2;
-              if (i == iOne)
+              if (i == iOne) {
                 matrixV(i - iOne / 2, j - jOne / 2) = (matrixV(0, j - jOne) + matrixV(iOne, j)) / 2;
-              if (j == jOne)
+              }
+              if (j == jOne) {
                 matrixV(i - iOne / 2, j - jOne / 2) = (matrixV(i - iOne, 0) + matrixV(i, jOne)) / 2;
+              }
               // Note that this leaves a point at the upper left and lower right corners uninitialized.
               // -> Not a big deal.
             }
@@ -299,11 +305,13 @@ void AliTPCPoissonSolver::PoissonRelaxation2D(TMatrixD& matrixV, TMatrixD& matri
     }
 
     iOne = iOne / 2;
-    if (iOne < 1)
+    if (iOne < 1) {
       iOne = 1;
+    }
     jOne = jOne / 2;
-    if (jOne < 1)
+    if (jOne < 1) {
       jOne = 1;
+    }
     sumChargeDensity.Clear();
   }
 }
@@ -333,12 +341,14 @@ void AliTPCPoissonSolver::PoissonMultiGrid2D(TMatrixD& matrixV, TMatrixD& matrix
   Int_t nnCol;
 
   nnRow = nRRow;
-  while (nnRow >>= 1)
+  while (nnRow >>= 1) {
     nGridRow++;
+  }
 
   nnCol = nZColumn;
-  while (nnCol >>= 1)
+  while (nnCol >>= 1) {
     nGridCol++;
+  }
 
   //Check that number of nRRow and nZColumn is suitable for multi grid
   if (!IsPowerOfTwo(nRRow - 1)) {
@@ -558,8 +568,9 @@ void AliTPCPoissonSolver::PoissonRelaxation3D(TMatrixD** matricesV, TMatrixD** m
   ///// Test of Convergence
   TMatrixD* prevArrayV[phiSlice];
 
-  for (Int_t m = 0; m < phiSlice; m++)
+  for (Int_t m = 0; m < phiSlice; m++) {
     prevArrayV[m] = new TMatrixD(nRRow, nZColumn);
+  }
   /////
 
   // START the master loop and do the binary expansion
@@ -582,18 +593,19 @@ void AliTPCPoissonSolver::PoissonRelaxation3D(TMatrixD** matricesV, TMatrixD** m
       for (Int_t i = iOne; i < nRRow - 1; i += iOne) {
         Float_t radius = AliTPCPoissonSolver::fgkIFCRadius + i * gridSizeR;
         for (Int_t j = jOne; j < nZColumn - 1; j += jOne) {
-          if (iOne == 1 && jOne == 1)
+          if (iOne == 1 && jOne == 1) {
             sumChargeDensity(i, j) = matrixCharge(i, j);
-          else { // Add up all enclosed charge density contributions within 1/2 unit in all directions
+          } else { // Add up all enclosed charge density contributions within 1/2 unit in all directions
             Float_t weight = 0.0;
             Float_t sum = 0.0;
             sumChargeDensity(i, j) = 0.0;
             for (Int_t ii = i - iOne / 2; ii <= i + iOne / 2; ii++) {
               for (Int_t jj = j - jOne / 2; jj <= j + jOne / 2; jj++) {
-                if (ii == i - iOne / 2 || ii == i + iOne / 2 || jj == j - jOne / 2 || jj == j + jOne / 2)
+                if (ii == i - iOne / 2 || ii == i + iOne / 2 || jj == j - jOne / 2 || jj == j + jOne / 2) {
                   weight = 0.5;
-                else
+                } else {
                   weight = 1.0;
+                }
                 sumChargeDensity(i, j) += matrixCharge(ii, jj) * weight * radius;
                 sum += weight * radius;
               }
@@ -608,8 +620,9 @@ void AliTPCPoissonSolver::PoissonRelaxation3D(TMatrixD** matricesV, TMatrixD** m
     for (Int_t k = 1; k <= maxIteration; k++) {
       if (count == nLoop - 1) {
         //// Test of Convergence
-        for (Int_t m = 0; m < phiSlice; m++)
+        for (Int_t m = 0; m < phiSlice; m++) {
           (*prevArrayV[m]) = (*matricesV[m]);
+        }
         ////
       }
 
@@ -627,10 +640,12 @@ void AliTPCPoissonSolver::PoissonRelaxation3D(TMatrixD** matricesV, TMatrixD** m
         mMinus = m - 1;
         signMinus = 1;
         if (symmetry == 1) { // Reflection symmetry in phi (e.g. symmetry at sector boundaries, or half sectors, etc.)
-          if (mPlus > phiSlice - 1)
+          if (mPlus > phiSlice - 1) {
             mPlus = phiSlice - 2;
-          if (mMinus < 0)
+          }
+          if (mMinus < 0) {
             mMinus = 1;
+          }
         } else if (symmetry == -1) { // Anti-symmetry in phi
           if (mPlus > phiSlice - 1) {
             mPlus = phiSlice - 2;
@@ -641,10 +656,12 @@ void AliTPCPoissonSolver::PoissonRelaxation3D(TMatrixD** matricesV, TMatrixD** m
             signMinus = -1;
           }
         } else { // No Symmetries in phi, no boundaries, the calculation is continuous across all phi
-          if (mPlus > phiSlice - 1)
+          if (mPlus > phiSlice - 1) {
             mPlus = m + 1 - phiSlice;
-          if (mMinus < 0)
+          }
+          if (mMinus < 0) {
             mMinus = m - 1 + phiSlice;
+          }
         }
 
         TMatrixD& matrixV = *matricesV[m];
@@ -689,20 +706,24 @@ void AliTPCPoissonSolver::PoissonRelaxation3D(TMatrixD** matricesV, TMatrixD** m
 
               if (iOne > 1) {
                 matrixV(i + iOne / 2, j) = (matrixV(i + iOne, j) + matrixV(i, j)) / 2;
-                if (i == iOne)
+                if (i == iOne) {
                   matrixV(i - iOne / 2, j) = (matrixV(0, j) + matrixV(iOne, j)) / 2;
+                }
               }
               if (jOne > 1) {
                 matrixV(i, j + jOne / 2) = (matrixV(i, j + jOne) + matrixV(i, j)) / 2;
-                if (j == jOne)
+                if (j == jOne) {
                   matrixV(i, j - jOne / 2) = (matrixV(i, 0) + matrixV(i, jOne)) / 2;
+                }
               }
               if (iOne > 1 && jOne > 1) {
                 matrixV(i + iOne / 2, j + jOne / 2) = (matrixV(i + iOne, j + jOne) + matrixV(i, j)) / 2;
-                if (i == iOne)
+                if (i == iOne) {
                   matrixV(i - iOne / 2, j - jOne / 2) = (matrixV(0, j - jOne) + matrixV(iOne, j)) / 2;
-                if (j == jOne)
+                }
+                if (j == jOne) {
                   matrixV(i - iOne / 2, j - jOne / 2) = (matrixV(i - iOne, 0) + matrixV(i, jOne)) / 2;
+                }
                 // Note that this leaves a point at the upper left and lower right corners uninitialized. Not a big deal.
               }
             }
@@ -728,19 +749,22 @@ void AliTPCPoissonSolver::PoissonRelaxation3D(TMatrixD** matricesV, TMatrixD** m
     }
 
     iOne = iOne / 2;
-    if (iOne < 1)
+    if (iOne < 1) {
       iOne = 1;
+    }
     jOne = jOne / 2;
-    if (jOne < 1)
+    if (jOne < 1) {
       jOne = 1;
+    }
   }
 
   for (Int_t k = 0; k < phiSlice; k++) {
     matricesSumChargeDensity[k]->Delete();
   }
 
-  for (Int_t m = 0; m < phiSlice; m++)
+  for (Int_t m = 0; m < phiSlice; m++) {
     delete prevArrayV[m];
+  }
 }
 
 /// 3D - Solve Poisson's Equation in 3D by MultiGrid with constant phi slices
@@ -757,7 +781,7 @@ void AliTPCPoissonSolver::PoissonRelaxation3D(TMatrixD** matricesV, TMatrixD** m
 /// Algorithm for MultiGrid Full Cycle (FMG)
 /// - Relax on the coarsest grid
 /// - Do from coarsest to finest
-/// 	- Interpolate potential from coarse -> fine
+///     - Interpolate potential from coarse -> fine
 ///   - Do V-Cycle to the current coarse level to the coarsest
 ///   - Stop if converged
 ///
@@ -818,11 +842,13 @@ void AliTPCPoissonSolver::PoissonMultiGrid3D2D(TMatrixD** matricesV, TMatrixD** 
   Int_t nnCol;
 
   nnRow = nRRow;
-  while (nnRow >>= 1)
+  while (nnRow >>= 1) {
     nGridRow++;
+  }
   nnCol = nZColumn;
-  while (nnCol >>= 1)
+  while (nnCol >>= 1) {
     nGridCol++;
+  }
 
   Int_t nLoop = TMath::Max(nGridRow, nGridCol); // Calculate the number of nLoop for the binary expansion
   nLoop = (nLoop > fMgParameters.maxLoop) ? fMgParameters.maxLoop : nLoop;
@@ -995,7 +1021,7 @@ void AliTPCPoissonSolver::PoissonMultiGrid3D2D(TMatrixD** matricesV, TMatrixD** 
 ///  Algorithm for MultiGrid Full Cycle (FMG)
 /// - Relax on the coarsest grid
 /// - Do from coarsest to finest
-/// 	- Interpolate potential from coarse -> fine
+///     - Interpolate potential from coarse -> fine
 ///   - Do V-Cycle to the current coarse level to the coarsest
 ///   - Stop if converged
 ///
@@ -1058,12 +1084,14 @@ void AliTPCPoissonSolver::PoissonMultiGrid3D(TMatrixD** matricesV, TMatrixD** ma
   Int_t nnPhi;
 
   nnRow = nRRow;
-  while (nnRow >>= 1)
+  while (nnRow >>= 1) {
     nGridRow++;
+  }
 
   nnCol = nZColumn;
-  while (nnCol >>= 1)
+  while (nnCol >>= 1) {
     nGridCol++;
+  }
 
   nnPhi = phiSlice;
 
@@ -1296,9 +1324,10 @@ Int_t AliTPCPoissonSolver::IsPowerOfTwo(Int_t i) const
     j += (i & 1);
     i = (i >> 1);
   }
-  if (j == 1)
+  if (j == 1) {
     return (1); // True
-  return (0);   // False
+  }
+  return (0); // False
 }
 
 /// Relax3D
@@ -1350,10 +1379,12 @@ void AliTPCPoissonSolver::Relax3D(TMatrixD** matricesCurrentV, TMatrixD** matric
         signMinus = 1;
         // Reflection symmetry in phi (e.g. symmetry at sector boundaries, or half sectors, etc.)
         if (symmetry == 1) {
-          if (mPlus > phiSlice - 1)
+          if (mPlus > phiSlice - 1) {
             mPlus = phiSlice - 2;
-          if (mMinus < 0)
+          }
+          if (mMinus < 0) {
             mMinus = 1;
+          }
         }
         // Anti-symmetry in phi
         else if (symmetry == -1) {
@@ -1366,10 +1397,12 @@ void AliTPCPoissonSolver::Relax3D(TMatrixD** matricesCurrentV, TMatrixD** matric
             signMinus = -1;
           }
         } else { // No Symmetries in phi, no boundaries, the calculation is continuous across all phi
-          if (mPlus > phiSlice - 1)
+          if (mPlus > phiSlice - 1) {
             mPlus = m + 1 - phiSlice;
-          if (mMinus < 0)
+          }
+          if (mMinus < 0) {
             mMinus = m - 1 + phiSlice;
+          }
         }
         matrixV = matricesCurrentV[m];
         matrixVP = matricesCurrentV[mPlus];  // slice
@@ -1396,10 +1429,12 @@ void AliTPCPoissonSolver::Relax3D(TMatrixD** matricesCurrentV, TMatrixD** matric
 
       // Reflection symmetry in phi (e.g. symmetry at sector boundaries, or half sectors, etc.)
       if (symmetry == 1) {
-        if (mPlus > phiSlice - 1)
+        if (mPlus > phiSlice - 1) {
           mPlus = phiSlice - 2;
-        if (mMinus < 0)
+        }
+        if (mMinus < 0) {
           mMinus = 1;
+        }
       }
       // Anti-symmetry in phi
       else if (symmetry == -1) {
@@ -1412,10 +1447,12 @@ void AliTPCPoissonSolver::Relax3D(TMatrixD** matricesCurrentV, TMatrixD** matric
           signMinus = -1;
         }
       } else { // No Symmetries in phi, no boundaries, the calculation is continuous across all phi
-        if (mPlus > phiSlice - 1)
+        if (mPlus > phiSlice - 1) {
           mPlus = m + 1 - phiSlice;
-        if (mMinus < 0)
+        }
+        if (mMinus < 0) {
           mMinus = m - 1 + phiSlice;
+        }
       }
 
       matrixV = matricesCurrentV[m];
@@ -1534,10 +1571,12 @@ void AliTPCPoissonSolver::Residue3D(TMatrixD** residue, TMatrixD** matricesCurre
 
     // Reflection symmetry in phi (e.g. symmetry at sector boundaries, or half sectors, etc.)
     if (symmetry == 1) {
-      if (mPlus > phiSlice - 1)
+      if (mPlus > phiSlice - 1) {
         mPlus = phiSlice - 2;
-      if (mMinus < 0)
+      }
+      if (mMinus < 0) {
         mMinus = 1;
+      }
     }
     // Anti-symmetry in phi
     else if (symmetry == -1) {
@@ -1550,10 +1589,12 @@ void AliTPCPoissonSolver::Residue3D(TMatrixD** residue, TMatrixD** matricesCurre
         signMinus = -1;
       }
     } else { // No Symmetries in phi, no boundaries, the calculation is continuous across all phi
-      if (mPlus > phiSlice - 1)
+      if (mPlus > phiSlice - 1) {
         mPlus = m + 1 - phiSlice;
-      if (mMinus < 0)
+      }
+      if (mMinus < 0) {
         mMinus = m - 1 + phiSlice;
+      }
     }
 
     TMatrixD& arrayResidue = *residue[m];
@@ -1615,11 +1656,13 @@ void AliTPCPoissonSolver::Residue2D(TMatrixD& residue, TMatrixD& matricesCurrent
   }   // end nRRow
 
   //Boundary points.
-  for (Int_t i = 0; i < tnRRow; i++)
+  for (Int_t i = 0; i < tnRRow; i++) {
     residue(i, 0) = residue(i, tnZColumn - 1) = 0.0;
+  }
 
-  for (Int_t j = 0; j < tnZColumn; j++)
+  for (Int_t j = 0; j < tnZColumn; j++) {
     residue(0, j) = residue(tnRRow - 1, j) = 0.0;
+  }
 }
 
 /// Restrict2D
@@ -1740,10 +1783,12 @@ void AliTPCPoissonSolver::Restrict3D(TMatrixD** matricesCurrentCharge, TMatrixD*
       mPlus = mm + 1;
       mMinus = mm - 1;
 
-      if (mPlus > (oldPhiSlice)-1)
+      if (mPlus > (oldPhiSlice)-1) {
         mPlus = mm + 1 - (oldPhiSlice);
-      if (mMinus < 0)
+      }
+      if (mMinus < 0) {
         mMinus = mm - 1 + (oldPhiSlice);
+      }
 
       TMatrixD& arrayResidue = *residue[mm];
       TMatrixD& arrayResidueP = *residue[mPlus];
@@ -1914,10 +1959,12 @@ void AliTPCPoissonSolver::AddInterp3D(TMatrixD** matricesCurrentV, TMatrixD** ma
       mPlus = m + 1;
 
       // round
-      if (mmPlus > (oldPhiSlice)-1)
+      if (mmPlus > (oldPhiSlice)-1) {
         mmPlus = mm + 1 - (oldPhiSlice);
-      if (mPlus > (newPhiSlice)-1)
+      }
+      if (mPlus > (newPhiSlice)-1) {
         mPlus = m + 1 - (newPhiSlice);
+      }
 
       TMatrixD& fineV = *matricesCurrentV[m];
       TMatrixD& fineVP = *matricesCurrentV[mPlus];
@@ -2008,10 +2055,12 @@ void AliTPCPoissonSolver::Interp3D(TMatrixD** matricesCurrentV, TMatrixD** matri
       mPlus = m + 1;
 
       // round
-      if (mmPlus > (oldPhiSlice)-1)
+      if (mmPlus > (oldPhiSlice)-1) {
         mmPlus = mm + 1 - (oldPhiSlice);
-      if (mPlus > (newPhiSlice)-1)
+      }
+      if (mPlus > (newPhiSlice)-1) {
         mPlus = m + 1 - (newPhiSlice);
+      }
 
       TMatrixD& fineV = *matricesCurrentV[m];
       TMatrixD& fineVP = *matricesCurrentV[mPlus];
@@ -2762,8 +2811,9 @@ void AliTPCPoissonSolver::SetExactSolution(TMatrixD** exactSolution, const Int_t
   fMaxExact = 0.0;
   for (Int_t m = 0; m < fPhiSlices; m++) {
     maxAbs = TMath::Max(TMath::Abs((*fExactSolution[m]).Max()), TMath::Abs((*fExactSolution[m]).Min()));
-    if (maxAbs > fMaxExact)
+    if (maxAbs > fMaxExact) {
       fMaxExact = maxAbs;
+    }
   }
 }
 
@@ -2784,8 +2834,9 @@ Double_t AliTPCPoissonSolver::GetExactError(TMatrixD** matricesCurrentV, TMatrix
     for (Int_t m = 0; m < phiSlice; m++) {
       (*tempArrayV[m]) = (*fExactSolution[m]) - (*matricesCurrentV[m]);
       (*tempArrayV[m]) *= 1.0 / GetMaxExact();
-      if (tempArrayV[m]->E2Norm() > error)
+      if (tempArrayV[m]->E2Norm() > error) {
         error = tempArrayV[m]->E2Norm();
+      }
       //printf("%f\n",tempArrayV[m]->E2Norm();
     }
   }
@@ -2811,8 +2862,9 @@ Double_t
     // absolute
     (*prevArrayV[m]) = (*prevArrayV[m]) - (*matricesCurrentV[m]);
 
-    if (prevArrayV[m]->E2Norm() > error)
+    if (prevArrayV[m]->E2Norm() > error) {
       error = prevArrayV[m]->E2Norm();
+    }
   }
   return error;
 }

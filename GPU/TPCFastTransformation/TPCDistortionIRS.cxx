@@ -19,10 +19,7 @@
 #include <iostream>
 #endif
 
-namespace ali_tpc_common
-{
-namespace tpc_fast_transformation
-{
+using namespace o2::gpu;
 
 TPCDistortionIRS::TPCDistortionIRS()
   : FlatObject(), mConstructionCounterRows(0), mConstructionCounterScenarios(0), mConstructionRowInfos(nullptr), mConstructionScenarios(nullptr), mNumberOfRows(0), mNumberOfScenarios(0), mRowInfoPtr(nullptr), mScenarioPtr(nullptr), mScaleVtoSVsideA(0.f), mScaleVtoSVsideC(0.f), mScaleSVtoVsideA(0.f), mScaleSVtoVsideC(0.f), mTimeStamp(-1), mSplineData(nullptr), mSliceDataSizeBytes(0)
@@ -279,8 +276,9 @@ void TPCDistortionIRS::finishConstruction()
     for (int row = 0; row < mNumberOfRows; row++) {
       const IrregularSpline2D3D& spline = getSpline(slice, row);
       float* data = getSplineDataNonConst(slice, row);
-      for (int i = 0; i < 3 * spline.getNumberOfKnots(); i++)
+      for (int i = 0; i < 3 * spline.getNumberOfKnots(); i++) {
         data[i] = 0.f;
+      }
       spline.correctEdges(data);
     }
   }
@@ -345,6 +343,3 @@ void TPCDistortionIRS::Print() const
   }
 #endif
 }
-
-} // namespace tpc_fast_transformation
-} // namespace ali_tpc_common

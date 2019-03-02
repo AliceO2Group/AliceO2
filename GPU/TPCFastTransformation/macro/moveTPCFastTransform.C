@@ -21,7 +21,7 @@
 #include "TPCFastTransform.h"
 
 using namespace std;
-using namespace ali_tpc_common::tpc_fast_transformation;
+using namespace o2::gpu;
 
 int moveTPCFastTransform()
 {

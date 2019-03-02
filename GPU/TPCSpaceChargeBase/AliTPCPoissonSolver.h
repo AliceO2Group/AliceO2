@@ -2,7 +2,7 @@
 #define ALITPCPOISSONSOLVER_H
 
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
- * See cxx source for full Copyright notice                               */
+* See cxx source for full Copyright notice                               */
 
 /// \class AliTPCPoissonSolver
 /// \brief This class provides implementation of Poisson Eq
@@ -52,7 +52,7 @@ class AliTPCPoissonSolver : public TNamed
     kFullInterp = 1  ///< Full bi linear interpolation
   };
 
-  ///< Parameters choice for MultiGrid 	algorithm
+  ///< Parameters choice for MultiGrid    algorithm
   struct MGParameters {
     Bool_t isFull3D;         ///<  TRUE: full coarsening, FALSE: semi coarsening
     CycleType cycleType;     ///< cycleType follow  CycleType
@@ -105,10 +105,7 @@ class AliTPCPoissonSolver : public TNamed
   MGParameters fMgParameters;         ///< parameters multi grid
 
   void SetExactSolution(TMatrixD** exactSolution, const Int_t fPhiSlices);
-  void SetCycleType(AliTPCPoissonSolver::CycleType cycleType)
-  {
-    fMgParameters.cycleType = cycleType;
-  }
+  void SetCycleType(AliTPCPoissonSolver::CycleType cycleType) { fMgParameters.cycleType = cycleType; }
 
  private:
   AliTPCPoissonSolver(const AliTPCPoissonSolver&);            // not implemented

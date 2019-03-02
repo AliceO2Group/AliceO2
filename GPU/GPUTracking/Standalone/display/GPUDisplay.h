@@ -16,11 +16,22 @@
 
 #include "GPUDisplayConfig.h"
 #include "GPUDisplayBackend.h"
+
+namespace o2
+{
+namespace gpu
+{
 class GPUChainTracking;
 class GPUQA;
+}
+} // namespace o2::gpu
 
 #ifndef BUILD_EVENT_DISPLAY
 
+namespace o2
+{
+namespace gpu
+{
 class GPUDisplay
 {
  public:
@@ -42,6 +53,8 @@ class GPUDisplay
   void ExitGL() {}
   void ReSizeGLScene(int width, int height, bool init = false) {}
 };
+}
+} // namespace o2::gpu
 
 #else
 
@@ -54,6 +67,10 @@ class GPUDisplay
 
 #include "utils/timer.h"
 
+namespace o2
+{
+namespace gpu
+{
 class GPUTPCTracker;
 struct GPUParam;
 
@@ -361,6 +378,8 @@ class GPUDisplay
   vboList mGlDLGrid[NSLICES];
   vecpod<DrawArraysIndirectCommand> mCmdBuffer;
 };
+}
+} // namespace o2::gpu
 
 #endif
 #endif

@@ -27,6 +27,10 @@
 #include "GPUTPCTracklet.h"
 #include "GPUProcessor.h"
 
+namespace o2
+{
+namespace gpu
+{
 class GPUTPCSliceOutput;
 struct GPUTPCClusterData;
 MEM_CLASS_PRE()
@@ -140,7 +144,10 @@ class GPUTPCTracker : public GPUProcessor
   GPUhd() int ISlice() const { return mISlice; }
 
   GPUhd() MakeType(const MEM_LG(GPUTPCSliceData) &) Data() const { return mData; }
-  GPUhd() MakeType(MEM_LG(GPUTPCSliceData) &) Data() { return mData; }
+  GPUhd() MakeType(MEM_LG(GPUTPCSliceData) &) Data()
+  {
+    return mData;
+  }
 
   GPUhd() GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & Row(int rowIndex) const { return mData.Row(rowIndex); }
 
@@ -179,19 +186,20 @@ class GPUTPCTracker : public GPUProcessor
   GPUhd() int HitInputID(const MEM_TYPE(GPUTPCRow) & row, int hitIndex) const { return mData.ClusterDataIndex(row, hitIndex); }
 
   /**
-	 * The hit weight is used to determine whether a hit belongs to a certain tracklet or another one
-	 * competing for the same hit. The tracklet that has a higher weight wins. Comparison is done
-	 * using the the number of hits in the tracklet (the more hits it has the more it keeps). If
-	 * tracklets have the same number of hits then it doesn't matter who gets it, but it should be
-	 * only one. So a unique number (row index is good) is added in the least significant part of
-	 * the weight
-	 */
+ * The hit weight is used to determine whether a hit belongs to a certain tracklet or another one
+ * competing for the same hit. The tracklet that has a higher weight wins. Comparison is done
+ * using the the number of hits in the tracklet (the more hits it has the more it keeps). If
+ * tracklets have the same number of hits then it doesn't matter who gets it, but it should be
+ * only one. So a unique number (row index is good) is added in the least significant part of
+ * the weight
+ */
   GPUd() static int CalculateHitWeight(int NHits, float chi2, int)
   {
     const float chi2_suppress = 6.f;
     float weight = (((float)NHits * (chi2_suppress - chi2 / 500.f)) * (1e9f / chi2_suppress / 160.f));
-    if (weight < 0.f || weight > 2e9f)
+    if (weight < 0.f || weight > 2e9f) {
       return 0;
+    }
     return ((int)weight);
     // return( (NHits << 16) + num);
   }
@@ -221,8 +229,11 @@ class GPUTPCTracker : public GPUProcessor
 
   GPUhd() GPUglobalref() int* RowStartHitCountOffset() const { return (mRowStartHitCountOffset); }
   GPUhd() GPUglobalref() StructGPUParameters* GPUParameters() const { return (&mCommonMem->gpuParameters); }
-  GPUhd() MakeType(MEM_LG(StructGPUParametersConst) *) GPUParametersConst() { return (&fGPUParametersConst); }
-  GPUhd() MakeType(MEM_LG(const StructGPUParametersConst) *) GetGPUParametersConst() const { return (&fGPUParametersConst); }
+  GPUhd() MakeType(MEM_LG(StructGPUParametersConst) *) GPUParametersConst()
+  {
+    return (&mGPUParametersConst);
+  }
+  GPUhd() MakeType(MEM_LG(const StructGPUParametersConst) *) GetGPUParametersConst() const { return (&mGPUParametersConst); }
   GPUhd() void SetGPUTextureBase(const void* val) { mData.SetGPUTextureBase(val); }
 
   struct trackSortData {
@@ -245,7 +256,7 @@ class GPUTPCTracker : public GPUProcessor
   int mISlice; // Number of slice
 
   /** A pointer to the ClusterData object that the SliceData was created from. This can be used to
-	 * merge clusters from inside the SliceTracker code and recreate the SliceData. */
+ * merge clusters from inside the SliceTracker code and recreate the SliceData. */
   MEM_LG(GPUTPCSliceData)
   mData; // The SliceData object. It is used to encapsulate the storage in memory from the access
 
@@ -266,7 +277,7 @@ class GPUTPCTracker : public GPUProcessor
   GPUglobalref() char* mGPUTrackletTemp;             // Temp Memory for GPU Tracklet Constructor
 
   MEM_LG(StructGPUParametersConst)
-  fGPUParametersConst; // Parameters for GPU if this is a GPU tracker
+  mGPUParametersConst; // Parameters for GPU if this is a GPU tracker
 
   // event
   GPUglobalref() commonMemoryStruct* mCommonMem;          // common event memory
@@ -282,5 +293,7 @@ class GPUTPCTracker : public GPUProcessor
 
   static int StarthitSortComparison(const void* a, const void* b);
 };
+}
+} // namespace o2::gpu
 
 #endif // GPUTPCTRACKER_H

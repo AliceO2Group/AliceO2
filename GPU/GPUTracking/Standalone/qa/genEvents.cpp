@@ -39,6 +39,7 @@
 
 #include "../utils/qconfig.h"
 
+using namespace o2::gpu;
 using namespace std;
 
 int genEvents::GetSlice(double GlobalPhi)
@@ -46,10 +47,12 @@ int genEvents::GetSlice(double GlobalPhi)
   double phi = GlobalPhi;
   //  std::cout<<" GetSlice: phi = "<<phi<<std::endl;
 
-  if (phi >= mTwoPi)
+  if (phi >= mTwoPi) {
     phi -= mTwoPi;
-  if (phi < 0)
+  }
+  if (phi < 0) {
     phi += mTwoPi;
+  }
   return (int)(phi / mSliceDAngle);
 }
 
@@ -63,9 +66,9 @@ int genEvents::RecalculateSlice(GPUTPCGMPhysicalTrackModel& t, int& iSlice)
   //  std::cout<<" recalculate: phi = "<<phi<<std::endl;
   int dSlice = GetDSlice(phi);
 
-  if (dSlice == 0)
+  if (dSlice == 0) {
     return 0; // nothing to do
-
+  }
   //  std::cout<<" dSlice = "<<dSlice<<std::endl;
   double dAlpha = dSlice * mSliceDAngle;
   // rotate track on angle dAlpha
@@ -73,8 +76,9 @@ int genEvents::RecalculateSlice(GPUTPCGMPhysicalTrackModel& t, int& iSlice)
   t.Rotate(dAlpha);
 
   iSlice += dSlice;
-  if (iSlice >= 18)
+  if (iSlice >= 18) {
     iSlice -= 18;
+  }
   return 1;
 }
 
@@ -83,8 +87,9 @@ double genEvents::GetGaus(double sigma)
   double x = 0;
   do {
     x = gRandom->Gaus(0., sigma);
-    if (fabsf(x) <= 3.5 * sigma)
+    if (fabsf(x) <= 3.5 * sigma) {
       break;
+    }
   } while (1);
   return x;
 }
@@ -116,12 +121,15 @@ void genEvents::FinishEventGenerator()
     for (int i = 0; i < 3; i++) {
       c->cd(ipad++);
       int k = i;
-      if (i == 1)
+      if (i == 1) {
         k = 2;
-      if (i == 2)
+      }
+      if (i == 2) {
         k = 1;
-      if (tout)
+      }
+      if (tout) {
         mClusterError[k][j]->Write();
+      }
       gPad->SetLogy();
       mClusterError[k][j]->Draw();
       // delete mClusterError[i][j];
@@ -231,14 +239,15 @@ int genEvents::GenerateEvent(const GPUParam& sliceParam, char* filename)
         }
         // rotate track coordinate system to current sector
         int isNewSlice = RecalculateSlice(t, iSlice);
-        if (!isNewSlice)
+        if (!isNewSlice) {
           break;
-        else {
+        } else {
           std::cout << "track " << itr << ": new slice " << iSlice << " at row " << iRow << std::endl;
         }
       }
-      if (err)
+      if (err) {
         break;
+      }
       // std::cout<<" track "<<itr<<": Slice "<<iSlice<<" row "<<iRow<<" params :"<<std::endl;
       // t.Print();
       // track at row iRow, slice iSlice
@@ -291,9 +300,11 @@ int genEvents::GenerateEvent(const GPUParam& sliceParam, char* filename)
   for (int iSector = 0; iSector < (int)GPUChainTracking::NSLICES; iSector++) // HLT Sector numbering, sectors go from 0 to 35, all spanning all rows from 0 to 158.
   {
     int nNumberOfHits = 0;
-    for (unsigned int i = 0; i < vClusters.size(); i++)
-      if (vClusters[i].sector == iSector)
+    for (unsigned int i = 0; i < vClusters.size(); i++) {
+      if (vClusters[i].sector == iSector) {
         nNumberOfHits++;
+      }
+    }
     // For every sector we first have to fill the number of hits in this sector to the file
     mRec->mIOPtrs.nClusterData[iSector] = nNumberOfHits;
 

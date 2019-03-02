@@ -32,16 +32,20 @@
 
 #include "utils/bitfield.h"
 
-class GPUChain;
-
 namespace o2
 {
 namespace ITS
 {
 class TrackerTraits;
 class VertexerTraits;
-} // namespace ITS
-} // namespace o2
+}
+} // namespace o2::ITS
+
+namespace o2
+{
+namespace gpu
+{
+class GPUChain;
 
 class GPUReconstruction
 {
@@ -144,14 +148,16 @@ class GPUReconstruction
 
   RecoStepField& RecoSteps()
   {
-    if (mInitialized)
+    if (mInitialized) {
       throw std::runtime_error("Cannot change reco steps once initialized");
+    }
     return mRecoSteps;
   }
   RecoStepField& RecoStepsGPU()
   {
-    if (mInitialized)
+    if (mInitialized) {
       throw std::runtime_error("Cannot change reco steps once initialized");
+    }
     return mRecoStepsGPU;
   }
   RecoStepField GetRecoSteps() const { return mRecoSteps; }
@@ -289,11 +295,13 @@ inline short GPUReconstruction::RegisterMemoryAllocation(T* proc, void* (T::*set
       type |= GPUMemoryResource::MEMORY_HOST | GPUMemoryResource::MEMORY_GPU;
     }
   }
-  if (proc->mGPUProcessorType == GPUProcessor::PROCESSOR_TYPE_CPU)
+  if (proc->mGPUProcessorType == GPUProcessor::PROCESSOR_TYPE_CPU) {
     type &= ~GPUMemoryResource::MEMORY_GPU;
+  }
   mMemoryResources.emplace_back(proc, static_cast<void* (GPUProcessor::*)(void*)>(setPtr), (GPUMemoryResource::MemoryType)type, name);
-  if (mMemoryResources.size() == 32768)
+  if (mMemoryResources.size() == 32768) {
     throw std::bad_alloc();
+  }
   return mMemoryResources.size() - 1;
 }
 
@@ -309,33 +317,38 @@ template <class T>
 inline void GPUReconstruction::SetupGPUProcessor(T* proc, bool allocate)
 {
   static_assert(sizeof(T) > sizeof(GPUProcessor), "Need to setup derrived class");
-  if (allocate)
+  if (allocate) {
     proc->SetMaxData();
+  }
   if (proc->mDeviceProcessor) {
     std::memcpy((void*)proc->mDeviceProcessor, (const void*)proc, sizeof(*proc));
     proc->mDeviceProcessor->InitGPUProcessor((GPUReconstruction*)this, GPUProcessor::PROCESSOR_TYPE_DEVICE);
   }
-  if (allocate)
+  if (allocate) {
     AllocateRegisteredMemory(proc);
-  else
+  } else {
     ResetRegisteredMemoryPointers(proc);
+  }
 }
 
 template <class T>
 inline void GPUReconstruction::DumpData(FILE* fp, const T* const* entries, const unsigned int* num, InOutPointerType type)
 {
   int count;
-  if (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS)
+  if (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS) {
     count = NSLICES;
-  else if (type == CLUSTERS_NATIVE)
+  } else if (type == CLUSTERS_NATIVE) {
     count = NSLICES * GPUCA_ROW_COUNT;
-  else
+  } else {
     count = 1;
+  }
   unsigned int numTotal = 0;
-  for (int i = 0; i < count; i++)
+  for (int i = 0; i < count; i++) {
     numTotal += num[i];
-  if (numTotal == 0)
+  }
+  if (numTotal == 0) {
     return;
+  }
   fwrite(&type, sizeof(type), 1, fp);
   for (int i = 0; i < count; i++) {
     fwrite(&num[i], sizeof(num[i]), 1, fp);
@@ -348,8 +361,9 @@ inline void GPUReconstruction::DumpData(FILE* fp, const T* const* entries, const
 template <class T>
 inline size_t GPUReconstruction::ReadData(FILE* fp, const T** entries, unsigned int* num, std::unique_ptr<T[]>* mem, InOutPointerType type)
 {
-  if (feof(fp))
+  if (feof(fp)) {
     return 0;
+  }
   InOutPointerType inType;
   size_t r, pos = ftell(fp);
   r = fread(&inType, sizeof(inType), 1, fp);
@@ -359,23 +373,26 @@ inline size_t GPUReconstruction::ReadData(FILE* fp, const T** entries, unsigned 
   }
 
   int count;
-  if (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS)
+  if (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS) {
     count = NSLICES;
-  else if (type == CLUSTERS_NATIVE)
+  } else if (type == CLUSTERS_NATIVE) {
     count = NSLICES * GPUCA_ROW_COUNT;
-  else
+  } else {
     count = 1;
+  }
   size_t numTotal = 0;
   for (int i = 0; i < count; i++) {
     r = fread(&num[i], sizeof(num[i]), 1, fp);
     AllocateIOMemoryHelper(num[i], entries[i], mem[i]);
-    if (num[i])
+    if (num[i]) {
       r = fread(mem[i].get(), sizeof(*entries[i]), num[i], fp);
+    }
     numTotal += num[i];
   }
   (void)r;
-  if (mDeviceProcessingSettings.debugLevel >= 2)
+  if (mDeviceProcessingSettings.debugLevel >= 2) {
     printf("Read %d %s\n", (int)numTotal, IOTYPENAMES[type]);
+  }
   return numTotal;
 }
 
@@ -383,8 +400,9 @@ template <class T>
 inline void GPUReconstruction::DumpFlatObjectToFile(const T* obj, const char* file)
 {
   FILE* fp = fopen(file, "w+b");
-  if (fp == nullptr)
+  if (fp == nullptr) {
     return;
+  }
   size_t size[2] = { sizeof(*obj), obj->getFlatBufferSize() };
   fwrite(size, sizeof(size[0]), 2, fp);
   fwrite(obj, 1, size[0], fp);
@@ -396,8 +414,9 @@ template <class T>
 inline std::unique_ptr<T> GPUReconstruction::ReadFlatObjectFromFile(const char* file)
 {
   FILE* fp = fopen(file, "rb");
-  if (fp == nullptr)
+  if (fp == nullptr) {
     return nullptr;
+  }
   size_t size[2], r;
   r = fread(size, sizeof(size[0]), 2, fp);
   if (r == 0 || size[0] != sizeof(T)) {
@@ -409,8 +428,9 @@ inline std::unique_ptr<T> GPUReconstruction::ReadFlatObjectFromFile(const char* 
   r = fread((void*)retVal.get(), 1, size[0], fp);
   r = fread(buf, 1, size[1], fp);
   fclose(fp);
-  if (mDeviceProcessingSettings.debugLevel >= 2)
+  if (mDeviceProcessingSettings.debugLevel >= 2) {
     printf("Read %d bytes from %s\n", (int)r, file);
+  }
   retVal->clearInternalBufferPtr();
   retVal->setActualBufferAddress(buf);
   retVal->adoptInternalBuffer(buf);
@@ -421,8 +441,9 @@ template <class T>
 inline void GPUReconstruction::DumpStructToFile(const T* obj, const char* file)
 {
   FILE* fp = fopen(file, "w+b");
-  if (fp == nullptr)
+  if (fp == nullptr) {
     return;
+  }
   size_t size = sizeof(*obj);
   fwrite(&size, sizeof(size), 1, fp);
   fwrite(obj, 1, size, fp);
@@ -433,8 +454,9 @@ template <class T>
 inline std::unique_ptr<T> GPUReconstruction::ReadStructFromFile(const char* file)
 {
   FILE* fp = fopen(file, "rb");
-  if (fp == nullptr)
+  if (fp == nullptr) {
     return nullptr;
+  }
   size_t size, r;
   r = fread(&size, sizeof(size), 1, fp);
   if (r == 0 || size != sizeof(T)) {
@@ -444,8 +466,9 @@ inline std::unique_ptr<T> GPUReconstruction::ReadStructFromFile(const char* file
   std::unique_ptr<T> newObj(new T);
   r = fread(newObj.get(), 1, size, fp);
   fclose(fp);
-  if (mDeviceProcessingSettings.debugLevel >= 2)
+  if (mDeviceProcessingSettings.debugLevel >= 2) {
     printf("Read %d bytes from %s\n", (int)r, file);
+  }
   return std::move(newObj);
 }
 
@@ -453,8 +476,9 @@ template <class T>
 inline void GPUReconstruction::ReadStructFromFile(const char* file, T* obj)
 {
   FILE* fp = fopen(file, "rb");
-  if (fp == nullptr)
+  if (fp == nullptr) {
     return;
+  }
   size_t size, r;
   r = fread(&size, sizeof(size), 1, fp);
   if (r == 0) {
@@ -463,8 +487,11 @@ inline void GPUReconstruction::ReadStructFromFile(const char* file, T* obj)
   }
   r = fread(obj, 1, size, fp);
   fclose(fp);
-  if (mDeviceProcessingSettings.debugLevel >= 2)
+  if (mDeviceProcessingSettings.debugLevel >= 2) {
     printf("Read %d bytes from %s\n", (int)r, file);
+  }
 }
+}
+} // namespace o2::gpu
 
 #endif

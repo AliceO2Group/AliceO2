@@ -23,6 +23,8 @@
 #include <winbase.h>
 #include <windowsx.h>
 
+using namespace o2::gpu;
+
 HDC hDC = NULL;                                       // Private GDI Device Context
 HGLRC hRC = NULL;                                     // Permanent Rendering Context
 HWND hWnd = NULL;                                     // Holds Our Window Handle
@@ -46,13 +48,11 @@ void KillGLWindow() // Properly Kill The Window
 
   if (hRC) // Do We Have A Rendering Context?
   {
-    if (!wglMakeCurrent(NULL, NULL)) // Are We Able To Release The DC And RC Contexts?
-    {
+    if (!wglMakeCurrent(NULL, NULL)) { // Are We Able To Release The DC And RC Contexts?
       MessageBox(NULL, "Release Of DC And RC Failed.", "SHUTDOWN ERROR", MB_OK | MB_ICONINFORMATION);
     }
 
-    if (!wglDeleteContext(hRC)) // Are We Able To Delete The RC?
-    {
+    if (!wglDeleteContext(hRC)) { // Are We Able To Delete The RC?
       MessageBox(NULL, "Release Rendering Context Failed.", "SHUTDOWN ERROR", MB_OK | MB_ICONINFORMATION);
     }
     hRC = NULL; // Set RC To NULL
@@ -218,12 +218,15 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
 
 int GetKey(int key)
 {
-  if (key == 107 || key == 187)
+  if (key == 107 || key == 187) {
     return ('+');
-  if (key == 109 || key == 189)
+  }
+  if (key == 109 || key == 189) {
     return ('-');
-  if (key >= 'a' && key <= 'z')
+  }
+  if (key >= 'a' && key <= 'z') {
     key += 'A' - 'a';
+  }
 
   return (key);
 }
@@ -234,13 +237,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
   {
     case WM_ACTIVATE: // Watch For Window Activate Message
     {
-      if (!HIWORD(wParam)) // Check Minimization State
-      {
-        active = TRUE; // Program Is Active
+      if (!HIWORD(wParam)) { // Check Minimization State
+        active = TRUE;       // Program Is Active
       } else {
         active = FALSE; // Program Is No Longer Active
       }
-
       return 0; // Return To The Message Loop
     }
 
@@ -340,8 +341,9 @@ int GPUDisplayBackendWindows::OpenGLMain()
   // Ask The User Which Screen Mode They Prefer
   fullscreen = FALSE; // Windowed Mode
 
-  if (glewInit())
+  if (glewInit()) {
     return (-1);
+  }
   // Create Our OpenGL Window
   if (!CreateGLWindow(GL_WINDOW_NAME, INIT_WIDTH, INIT_HEIGHT, 32, fullscreen)) {
     return -1;
@@ -359,22 +361,19 @@ int GPUDisplayBackendWindows::OpenGLMain()
     {
       if (msg.message == WM_QUIT) // Have We Received A Quit Message?
       {
-        done = TRUE; // If So done=TRUE
-      } else         // If Not, Deal With Window Messages
-      {
+        done = TRUE;            // If So done=TRUE
+      } else {                  // If Not, Deal With Window Messages
         TranslateMessage(&msg); // Translate The Message
         DispatchMessage(&msg);  // Dispatch The Message
       }
-    } else // If There Are No Messages
-    {
+    } else { // If There Are No Messages
       // Draw The Scene.  Watch For ESC Key And Quit Messages From DrawGLScene()
       if (active) // Program Active?
       {
         if (mKeys[VK_ESCAPE]) // Was ESC Pressed?
         {
-          done = TRUE; // ESC Signalled A Quit
-        } else         // Not Time To Quit, Update Screen
-        {
+          done = TRUE;      // ESC Signalled A Quit
+        } else {            // Not Time To Quit, Update Screen
           DrawGLScene();    // Draw The Scene
           SwapBuffers(hDC); // Swap Buffers (Double Buffering)
         }

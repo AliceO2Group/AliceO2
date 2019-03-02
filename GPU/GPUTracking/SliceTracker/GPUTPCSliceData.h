@@ -22,6 +22,10 @@
 #include "GPUTPCGPUConfig.h"
 #include "GPUMemoryResource.h"
 
+namespace o2
+{
+namespace gpu
+{
 struct GPUTPCClusterData;
 class GPUTPCHit;
 
@@ -44,9 +48,9 @@ class GPUTPCSliceData : public GPUProcessor
   void InitializeRows(const MEM_LG2(GPUParam) & parameters);
 
   /**
-	 * (Re)Create the data that is tuned for optimal performance of the algorithm from the cluster
-	 * data.
-	 */
+ * (Re)Create the data that is tuned for optimal performance of the algorithm from the cluster
+ * data.
+ */
 
   void SetMaxData();
   void SetClusterData(const GPUTPCClusterData* data, int nClusters, int clusterIdOffset);
@@ -63,17 +67,17 @@ class GPUTPCSliceData : public GPUProcessor
   int InitFromClusterData();
 
   /**
-	 * Return the number of hits in this slice.
-	 */
+ * Return the number of hits in this slice.
+ */
   GPUhd() int NumberOfHits() const { return mNumberOfHits; }
   GPUhd() int NumberOfHitsPlusAlign() const { return mNumberOfHitsPlusAlign; }
   GPUhd() int ClusterIdOffset() const { return mClusterIdOffset; }
 
   /**
-	 * Access to the hit links.
-	 *
-	 * The links values give the hit index in the row above/below. Or -1 if there is no link.
-	 */
+ * Access to the hit links.
+ *
+ * The links values give the hit index in the row above/below. Or -1 if there is no link.
+ */
   MEM_TEMPLATE()
   GPUd() calink HitLinkUpData(const MEM_TYPE(GPUTPCRow) & row, const calink& hitIndex) const;
   MEM_TEMPLATE()
@@ -95,8 +99,8 @@ class GPUTPCSliceData : public GPUProcessor
   GPUd() void SetHitLinkDownData(const MEM_TYPE(GPUTPCRow) & row, const calink& hitIndex, const calink& value);
 
   /**
-	 * Return the y and z coordinate(s) of the given hit(s).
-	 */
+ * Return the y and z coordinate(s) of the given hit(s).
+ */
   MEM_TEMPLATE()
   GPUd() cahit HitDataY(const MEM_TYPE(GPUTPCRow) & row, const unsigned int& hitIndex) const;
   MEM_TEMPLATE()
@@ -105,37 +109,37 @@ class GPUTPCSliceData : public GPUProcessor
   GPUd() cahit2 HitData(const MEM_TYPE(GPUTPCRow) & row, const unsigned int& hitIndex) const;
 
   /**
-	 * For a given bin index, content tells how many hits there are in the preceding bins. This maps
-	 * directly to the hit index in the given row.
-	 *
-	 * \param binIndexes in the range 0 to row.Grid.N + row.Grid.Ny + 3.
-	 */
+ * For a given bin index, content tells how many hits there are in the preceding bins. This maps
+ * directly to the hit index in the given row.
+ *
+ * \param binIndexes in the range 0 to row.Grid.N + row.Grid.Ny + 3.
+ */
   MEM_TEMPLATE()
   GPUd() calink FirstHitInBin(const MEM_TYPE(GPUTPCRow) & row, calink binIndexes) const;
 
   /**
-	 * If the given weight is higher than what is currently stored replace with the new weight.
-	 */
+ * If the given weight is higher than what is currently stored replace with the new weight.
+ */
   MEM_TEMPLATE()
   GPUd() void MaximizeHitWeight(const MEM_TYPE(GPUTPCRow) & row, unsigned int hitIndex, int weight);
   MEM_TEMPLATE()
   GPUd() void SetHitWeight(const MEM_TYPE(GPUTPCRow) & row, unsigned int hitIndex, int weight);
 
   /**
-	 * Return the maximal weight the given hit got from one tracklet
-	 */
+ * Return the maximal weight the given hit got from one tracklet
+ */
   MEM_TEMPLATE()
   GPUd() int HitWeight(const MEM_TYPE(GPUTPCRow) & row, unsigned int hitIndex) const;
 
   /**
-	 * Returns the index in the original GPUTPCClusterData object of the given hit
-	 */
+ * Returns the index in the original GPUTPCClusterData object of the given hit
+ */
   MEM_TEMPLATE()
   GPUhd() int ClusterDataIndex(const MEM_TYPE(GPUTPCRow) & row, unsigned int hitIndex) const;
 
   /**
-	 * Return the row object for the given row index.
-	 */
+ * Return the row object for the given row index.
+ */
   GPUhdi() GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & Row(int rowIndex) const { return mRows[rowIndex]; }
   GPUhdi() GPUglobalref() MEM_GLOBAL(GPUTPCRow) * Rows() const { return mRows; }
 
@@ -158,10 +162,9 @@ class GPUTPCSliceData : public GPUProcessor
   }
 
  private:
-  GPUTPCSliceData(const GPUTPCSliceData&);
-  GPUTPCSliceData& operator=(const GPUTPCSliceData&);
-
 #ifndef GPUCA_GPUCODE
+  GPUTPCSliceData& operator=(const GPUTPCSliceData&) CON_DELETE; // ROOT 5 tries to use this if it is not private
+  GPUTPCSliceData(const GPUTPCSliceData&) CON_DELETE;            //
   void CreateGrid(GPUTPCRow* row, const float2* data, int ClusterDataHitNumberOffset);
   int PackHitData(GPUTPCRow* row, const GPUTPCHit* binSortedHits);
 #endif
@@ -190,9 +193,9 @@ class GPUTPCSliceData : public GPUProcessor
   GPUglobalref() int* mClusterDataIndex; // see ClusterDataIndex()
 
   /*
-	 * The size of the array is row.Grid.N + row.Grid.Ny + 3. The row.Grid.Ny + 3 is an optimization
-	 * to remove the need for bounds checking. The last values are the same as the entry at [N - 1].
-	 */
+ * The size of the array is row.Grid.N + row.Grid.Ny + 3. The row.Grid.Ny + 3 is an optimization
+ * to remove the need for bounds checking. The last values are the same as the entry at [N - 1].
+ */
   GPUglobalref() calink* mFirstHitInBin;       // see FirstHitInBin
   GPUglobalref() GPUAtomic(int) * mHitWeights; // the weight of the longest tracklet crossed the cluster
   GPUglobalref() const GPUTPCClusterData* mClusterData;
@@ -208,11 +211,17 @@ GPUdi() calink MEM_LG(GPUTPCSliceData)::HitLinkDownData(const MEM_TYPE(GPUTPCRow
 
 MEM_CLASS_PRE()
 MEM_TEMPLATE()
-GPUdi() void MEM_LG(GPUTPCSliceData)::SetHitLinkUpData(const MEM_TYPE(GPUTPCRow) & row, const calink& hitIndex, const calink& value) { mLinkUpData[row.mHitNumberOffset + hitIndex] = value; }
+GPUdi() void MEM_LG(GPUTPCSliceData)::SetHitLinkUpData(const MEM_TYPE(GPUTPCRow) & row, const calink& hitIndex, const calink& value)
+{
+  mLinkUpData[row.mHitNumberOffset + hitIndex] = value;
+}
 
 MEM_CLASS_PRE()
 MEM_TEMPLATE()
-GPUdi() void MEM_LG(GPUTPCSliceData)::SetHitLinkDownData(const MEM_TYPE(GPUTPCRow) & row, const calink& hitIndex, const calink& value) { mLinkDownData[row.mHitNumberOffset + hitIndex] = value; }
+GPUdi() void MEM_LG(GPUTPCSliceData)::SetHitLinkDownData(const MEM_TYPE(GPUTPCRow) & row, const calink& hitIndex, const calink& value)
+{
+  mLinkDownData[row.mHitNumberOffset + hitIndex] = value;
+}
 
 MEM_CLASS_PRE()
 MEM_TEMPLATE()
@@ -236,14 +245,22 @@ GPUhdi() int MEM_LG(GPUTPCSliceData)::ClusterDataIndex(const MEM_TYPE(GPUTPCRow)
 
 MEM_CLASS_PRE()
 MEM_TEMPLATE()
-GPUdi() void MEM_LG(GPUTPCSliceData)::MaximizeHitWeight(const MEM_TYPE(GPUTPCRow) & row, unsigned int hitIndex, int weight) { CAMath::AtomicMax(&mHitWeights[row.mHitNumberOffset + hitIndex], weight); }
+GPUdi() void MEM_LG(GPUTPCSliceData)::MaximizeHitWeight(const MEM_TYPE(GPUTPCRow) & row, unsigned int hitIndex, int weight)
+{
+  CAMath::AtomicMax(&mHitWeights[row.mHitNumberOffset + hitIndex], weight);
+}
 
 MEM_CLASS_PRE()
 MEM_TEMPLATE()
-GPUdi() void MEM_LG(GPUTPCSliceData)::SetHitWeight(const MEM_TYPE(GPUTPCRow) & row, unsigned int hitIndex, int weight) { mHitWeights[row.mHitNumberOffset + hitIndex] = weight; }
+GPUdi() void MEM_LG(GPUTPCSliceData)::SetHitWeight(const MEM_TYPE(GPUTPCRow) & row, unsigned int hitIndex, int weight)
+{
+  mHitWeights[row.mHitNumberOffset + hitIndex] = weight;
+}
 
 MEM_CLASS_PRE()
 MEM_TEMPLATE()
 GPUdi() int MEM_LG(GPUTPCSliceData)::HitWeight(const MEM_TYPE(GPUTPCRow) & row, unsigned int hitIndex) const { return mHitWeights[row.mHitNumberOffset + hitIndex]; }
+}
+} // namespace o2::gpu
 
 #endif // GPUTPCSLICEDATA_H

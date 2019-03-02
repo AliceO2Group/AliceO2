@@ -19,6 +19,10 @@
 #include "GPUReconstructionHelpers.h"
 #include "GPUChain.h"
 
+namespace o2
+{
+namespace gpu
+{
 #if !(defined(__CINT__) || defined(__ROOTCINT__) || defined(__CLING__) || defined(__ROOTCLING__) || defined(G__ROOT))
 extern template class GPUReconstructionKernels<GPUReconstructionCPUBackend>;
 #endif
@@ -64,5 +68,7 @@ class GPUReconstructionDeviceBase : public GPUReconstructionCPU
   GPUReconstructionHelpers::helperParam* mHelperParams = nullptr; // Control Struct for helper threads
   int mNSlaveThreads = 0;                                         // Number of slave threads currently active
 };
+}
+} // namespace o2::gpu
 
 #endif

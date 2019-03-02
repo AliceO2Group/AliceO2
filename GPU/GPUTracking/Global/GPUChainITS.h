@@ -24,9 +24,13 @@ class Road;
 class Cell;
 class TrackingFrameInfo;
 class TrackITS;
-} // namespace ITS
-} // namespace o2
+}
+} // namespace o2::ITS
 
+namespace o2
+{
+namespace gpu
+{
 class GPUChainITS : public GPUChain
 {
   friend class GPUReconstruction;
@@ -49,5 +53,7 @@ class GPUChainITS : public GPUChain
   std::unique_ptr<o2::ITS::TrackerTraits> mITSTrackerTraits;
   std::unique_ptr<o2::ITS::VertexerTraits> mITSVertexerTraits;
 };
+}
+} // namespace o2::gpu
 
 #endif

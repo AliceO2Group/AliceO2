@@ -15,15 +15,27 @@
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUTPCGMTrackParam.h"
 #include "GPUTRDDef.h"
+
+namespace o2
+{
+namespace gpu
+{
 template <typename T>
 class trackInterface;
 template <typename T>
 class propagatorInterface;
+} // namespace gpu
+} // namespace o2
 
 #ifdef GPUCA_ALIROOT_LIB // Interface for AliRoot, build only with AliRoot
 #include "AliExternalTrackParam.h"
 #include "AliHLTExternalTrackParam.h"
 #include "AliTrackerBase.h"
+
+namespace o2
+{
+namespace gpu
+{
 
 template <>
 class trackInterface<AliExternalTrackParam> : public AliExternalTrackParam
@@ -38,8 +50,14 @@ class trackInterface<AliExternalTrackParam> : public AliExternalTrackParam
     float paramTmp[5] = { param.fY, param.fZ, param.fSinPhi, param.fTgl, param.fq1Pt };
     Set(param.fX, param.fAlpha, paramTmp, param.fC);
   }
-  trackInterface<AliExternalTrackParam>(const GPUTPCGMMergedTrack& trk) : AliExternalTrackParam() { Set(trk.GetParam().GetX(), trk.GetAlpha(), trk.GetParam().GetPar(), trk.GetParam().GetCov()); }
-  trackInterface<AliExternalTrackParam>(const GPUTPCGMTrackParam::GPUTPCOuterParam& param) : AliExternalTrackParam() { Set(param.X, param.alpha, param.P, param.C); }
+  trackInterface<AliExternalTrackParam>(const GPUTPCGMMergedTrack& trk) : AliExternalTrackParam()
+  {
+    Set(trk.GetParam().GetX(), trk.GetAlpha(), trk.GetParam().GetPar(), trk.GetParam().GetCov());
+  }
+  trackInterface<AliExternalTrackParam>(const GPUTPCGMTrackParam::GPUTPCOuterParam& param) : AliExternalTrackParam()
+  {
+    Set(param.X, param.alpha, param.P, param.C);
+  }
 
   // parameter + covariance
   float getX() const { return GetX(); }
@@ -87,6 +105,8 @@ class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 
   trackInterface<AliExternalTrackParam>* mParam;
 };
+} // namespace gpu
+} // namespace o2
 
 #endif
 
@@ -98,6 +118,11 @@ class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 #include "GPUTPCGMMerger.h"
 #include "GPUParam.h"
 #include "GPUTPCDef.h"
+
+namespace o2
+{
+namespace gpu
+{
 
 template <>
 class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
@@ -235,5 +260,7 @@ class propagatorInterface<GPUTPCGMPropagator> : public GPUTPCGMPropagator
 
   trackInterface<GPUTPCGMTrackParam>* mTrack;
 };
+} // namespace gpu
+} // namespace o2
 
 #endif

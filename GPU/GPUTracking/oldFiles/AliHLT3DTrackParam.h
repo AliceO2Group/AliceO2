@@ -97,10 +97,7 @@ class AliHLT3DTrackParam : public TObject
 
   void TransportToDS(double Bz, double DS, double* T0 = 0);
 
-  void TransportToPoint(double Bz, const double xyz[3], double* T0 = 0)
-  {
-    TransportToDS(Bz, GetDStoPoint(Bz, xyz, T0), T0);
-  }
+  void TransportToPoint(double Bz, const double xyz[3], double* T0 = 0) { TransportToDS(Bz, GetDStoPoint(Bz, xyz, T0), T0); }
 
   void TransportToPoint(double Bz, double x, double y, double z, const double* T0 = 0)
   {

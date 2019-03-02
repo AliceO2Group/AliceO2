@@ -12,3 +12,4 @@
 /// \author David Rohr
 
 #include "GPUChain.h"
+using namespace o2::gpu;

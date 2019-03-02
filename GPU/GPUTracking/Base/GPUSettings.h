@@ -15,6 +15,11 @@
 #define GPUSETTINGS_H
 
 #include "GPUCommonMath.h"
+
+namespace o2
+{
+namespace gpu
+{
 class GPUDisplayBackend;
 
 class GPUSettings
@@ -110,5 +115,7 @@ struct GPUSettingsDeviceProcessing {
   bool trackletConstructorInPipeline; // Run tracklet constructor in pileline like the preceeding tasks instead of as one big block
   bool trackletSelectorInPipeline;    // Run tracklet selector in pipeline, requres also tracklet constructor in pipeline
 };
+}
+} // namespace o2::gpu
 
 #endif

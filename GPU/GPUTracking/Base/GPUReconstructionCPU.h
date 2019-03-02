@@ -32,6 +32,10 @@
 #include "GPUTRDTrackerGPU.h"
 #include "GPUITSFitterKernels.h"
 
+namespace o2
+{
+namespace gpu
+{
 namespace GPUReconstruction_krnlHelpers
 {
 template <class T, int I = 0>
@@ -81,6 +85,8 @@ class GPUReconstructionCPUBackend : public GPUReconstruction
   template <class T, int I = 0, typename... Args>
   int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args);
 };
+}
+} // namespace o2::gpu
 
 #include "GPUReconstructionKernels.h"
 #ifndef GPUCA_GPURECONSTRUCTIONCPU_IMPLEMENTATION
@@ -89,6 +95,10 @@ class GPUReconstructionCPUBackend : public GPUReconstruction
 #include "GPUReconstructionKernels.h"
 #endif
 
+namespace o2
+{
+namespace gpu
+{
 class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCPUBackend>
 {
   friend class GPUReconstruction;
@@ -110,24 +120,31 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   inline int runKernel(const krnlExec& x, HighResTimer* t = nullptr, const krnlRunRange& y = krnlRunRangeNone, const krnlEvent& z = krnlEvent(), const Args&... args)
 #endif
   {
-    if (mDeviceProcessingSettings.debugLevel >= 3)
+    if (mDeviceProcessingSettings.debugLevel >= 3) {
       printf("Running %s Stream %d (Range %d/%d)\n", typeid(S).name(), x.stream, y.start, y.num);
-    if (t && mDeviceProcessingSettings.debugLevel)
+    }
+    if (t && mDeviceProcessingSettings.debugLevel) {
       t->Start();
+    }
     if (IsGPU() && (mRecoStepsGPU & S::GetRecoStep()) != S::GetRecoStep()) {
-      if (mDeviceProcessingSettings.debugLevel >= 4)
+      if (mDeviceProcessingSettings.debugLevel >= 4) {
         printf("Running unsupported kernel on CPU: %s\n", typeid(S).name());
-      if (GPUReconstructionCPU::runKernelImpl(classArgument<S, I>(), x, y, z, args...))
+      }
+      if (GPUReconstructionCPU::runKernelImpl(classArgument<S, I>(), x, y, z, args...)) {
         return 1;
+      }
     } else {
-      if (runKernelImpl(classArgument<S, I>(), x, y, z, args...))
+      if (runKernelImpl(classArgument<S, I>(), x, y, z, args...)) {
         return 1;
+      }
     }
     if (mDeviceProcessingSettings.debugLevel) {
-      if (GPUDebug(typeid(S).name(), x.stream))
+      if (GPUDebug(typeid(S).name(), x.stream)) {
         throw std::runtime_error("kernel failure");
-      if (t)
+      }
+      if (t) {
         t->Stop();
+      }
     }
     return 0;
   }
@@ -213,5 +230,7 @@ inline void GPUReconstructionCPU::AddGPUEvents(T& events)
 {
   mEvents.emplace_back((void*)&events, sizeof(T) / sizeof(deviceEvent*));
 }
+}
+} // namespace o2::gpu
 
 #endif

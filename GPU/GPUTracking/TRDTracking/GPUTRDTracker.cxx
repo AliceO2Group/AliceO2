@@ -22,6 +22,8 @@
 #include "GPUMemoryResource.h"
 #include "GPUCommonMath.h"
 
+using namespace o2::gpu;
+
 class GPUTPCGMMerger;
 
 #ifdef GPUCA_ALIROOT_LIB

@@ -21,6 +21,8 @@
 #include <string.h>
 #include <iomanip>
 
+using namespace o2::gpu;
+
 void GPUTPCTracker::DumpOutput(FILE* out)
 {
   fprintf(out, "Slice %d\n", mISlice);
@@ -41,12 +43,14 @@ void GPUTPCTracker::DumpSliceData(std::ostream& out)
   // Dump Slice Input Data to File
   out << "Slice Data (Slice" << mISlice << "):" << std::endl;
   for (int i = 0; i < GPUCA_ROW_COUNT; i++) {
-    if (Row(i).NHits() == 0)
+    if (Row(i).NHits() == 0) {
       continue;
+    }
     out << "Row: " << i << std::endl;
     for (int j = 0; j < Row(i).NHits(); j++) {
-      if (j && j % 16 == 0)
+      if (j && j % 16 == 0) {
         out << std::endl;
+      }
       out << j << '-' << Data().HitDataY(Row(i), j) << '-' << Data().HitDataZ(Row(i), j) << ", ";
     }
     out << std::endl;
@@ -58,12 +62,14 @@ void GPUTPCTracker::DumpLinks(std::ostream& out)
   // Dump Links (after Neighbours Finder / Cleaner) to file
   out << "Hit Links(Slice" << mISlice << "):" << std::endl;
   for (int i = 0; i < GPUCA_ROW_COUNT; i++) {
-    if (Row(i).NHits() == 0)
+    if (Row(i).NHits() == 0) {
       continue;
+    }
     out << "Row: " << i << std::endl;
     for (int j = 0; j < Row(i).NHits(); j++) {
-      if (j && j % 32 == 0)
+      if (j && j % 32 == 0) {
         out << std::endl;
+      }
       out << HitLinkUpData(Row(i), j) << "/" << HitLinkDownData(Row(i), j) << ", ";
     }
     out << std::endl;
@@ -75,12 +81,14 @@ void GPUTPCTracker::DumpHitWeights(std::ostream& out)
   // dump hit weights to file
   out << "Hit Weights(Slice" << mISlice << "):" << std::endl;
   for (int i = 0; i < GPUCA_ROW_COUNT; i++) {
-    if (Row(i).NHits() == 0)
+    if (Row(i).NHits() == 0) {
       continue;
+    }
     out << "Row: " << i << ":" << std::endl;
     for (int j = 0; j < Row(i).NHits(); j++) {
-      if (j && j % 32 == 0)
+      if (j && j % 32 == 0) {
         out << std::endl;
+      }
       out << HitWeight(Row(i), j) << ", ";
     }
     out << std::endl;
@@ -93,8 +101,9 @@ int GPUTPCTracker::StarthitSortComparison(const void* a, const void* b)
   const GPUTPCHitId* aa = reinterpret_cast<const GPUTPCHitId*>(a);
   const GPUTPCHitId* bb = reinterpret_cast<const GPUTPCHitId*>(b);
 
-  if (aa->RowIndex() != bb->RowIndex())
+  if (aa->RowIndex() != bb->RowIndex()) {
     return (aa->RowIndex() - bb->RowIndex());
+  }
   return (aa->HitIndex() - bb->HitIndex());
 }
 
@@ -102,8 +111,9 @@ void GPUTPCTracker::DumpStartHits(std::ostream& out)
 {
   // sort start hits and dump to file
   out << "Start Hits: (Slice" << mISlice << ") (" << *NTracklets() << ")" << std::endl;
-  if (mRec->GetDeviceProcessingSettings().comparableDebutOutput)
+  if (mRec->GetDeviceProcessingSettings().comparableDebutOutput) {
     qsort(TrackletStartHits(), *NTracklets(), sizeof(GPUTPCHitId), StarthitSortComparison);
+  }
   for (int i = 0; i < *NTracklets(); i++) {
     out << TrackletStartHit(i).RowIndex() << "-" << TrackletStartHit(i).HitIndex() << std::endl;
   }
@@ -117,14 +127,16 @@ void GPUTPCTracker::DumpTrackHits(std::ostream& out)
   for (int k = 0; k < GPUCA_ROW_COUNT; k++) {
     for (int l = 0; l < Row(k).NHits(); l++) {
       for (int j = 0; j < *NTracks(); j++) {
-        if (Tracks()[j].NHits() == 0 || !Tracks()[j].Alive())
+        if (Tracks()[j].NHits() == 0 || !Tracks()[j].Alive()) {
           continue;
+        }
         if (TrackHits()[Tracks()[j].FirstHitID()].RowIndex() == k && TrackHits()[Tracks()[j].FirstHitID()].HitIndex() == l) {
           for (int i = 0; i < Tracks()[j].NHits(); i++) {
             out << TrackHits()[Tracks()[j].FirstHitID() + i].RowIndex() << "-" << TrackHits()[Tracks()[j].FirstHitID() + i].HitIndex() << ", ";
           }
-          if (!mRec->GetDeviceProcessingSettings().comparableDebutOutput)
+          if (!mRec->GetDeviceProcessingSettings().comparableDebutOutput) {
             out << "(Track: " << j << ")";
+          }
           out << std::endl;
         }
       }
@@ -136,10 +148,12 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
 {
   // dump tracklets to file
   int nTracklets = *NTracklets();
-  if (nTracklets < 0)
+  if (nTracklets < 0) {
     nTracklets = 0;
-  if (nTracklets > GPUCA_MAX_TRACKLETS)
+  }
+  if (nTracklets > GPUCA_MAX_TRACKLETS) {
     nTracklets = GPUCA_MAX_TRACKLETS;
+  }
   out << "Tracklets: (Slice" << mISlice << ") (" << nTracklets << ")" << std::endl;
   if (mRec->GetDeviceProcessingSettings().comparableDebutOutput) {
     GPUTPCHitId* tmpIds = new GPUTPCHitId[nTracklets];
@@ -180,9 +194,9 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
   for (int j = 0; j < nTracklets; j++) {
     out << "Tracklet " << std::setw(4) << j << " (Hits: " << std::setw(3) << Tracklets()[j].NHits() << ", Start: " << std::setw(3) << TrackletStartHit(j).RowIndex() << "-" << std::setw(3) << TrackletStartHit(j).HitIndex() << ", Rows: " << (Tracklets()[j].NHits() ? Tracklets()[j].FirstRow() : -1)
         << " - " << (Tracklets()[j].NHits() ? Tracklets()[j].LastRow() : -1) << ") ";
-    if (Tracklets()[j].NHits() == 0)
+    if (Tracklets()[j].NHits() == 0) {
       ;
-    else if (Tracklets()[j].LastRow() > Tracklets()[j].FirstRow() && (Tracklets()[j].FirstRow() >= GPUCA_ROW_COUNT || Tracklets()[j].LastRow() >= GPUCA_ROW_COUNT)) {
+    } else if (Tracklets()[j].LastRow() > Tracklets()[j].FirstRow() && (Tracklets()[j].FirstRow() >= GPUCA_ROW_COUNT || Tracklets()[j].LastRow() >= GPUCA_ROW_COUNT)) {
       printf("\nError: Tracklet %d First %d Last %d Hits %d", j, Tracklets()[j].FirstRow(), Tracklets()[j].LastRow(), Tracklets()[j].NHits());
       out << " (Error: Tracklet " << j << " First " << Tracklets()[j].FirstRow() << " Last " << Tracklets()[j].LastRow() << " Hits " << Tracklets()[j].NHits() << ") ";
       for (int i = 0; i < GPUCA_ROW_COUNT; i++) {
@@ -204,6 +218,7 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
         if (ih != CALINK_INVAL) {
           nHits++;
         }
+
 #ifdef EXTERN_ROW_HITS
         out << i << "-" << mTrackletRowHits[i * mCommonMem->nTracklets + j] << ", ";
 #else

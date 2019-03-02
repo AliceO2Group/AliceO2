@@ -16,6 +16,10 @@
 
 #include <mutex>
 
+namespace o2
+{
+namespace gpu
+{
 class GPUReconstructionDeviceBase;
 class GPUReconstructionHelpers
 {
@@ -39,5 +43,7 @@ class GPUReconstructionHelpers
     volatile char reset;
   };
 };
+}
+} // namespace o2::gpu
 
 #endif

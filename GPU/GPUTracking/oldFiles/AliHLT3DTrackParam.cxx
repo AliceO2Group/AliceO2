@@ -28,24 +28,27 @@ ClassImp(AliHLT3DTrackParam)
   //* Get DS = Path/Momentum to a certain space point for Bz field
 
   double q = fSignQ;
-  if (!T0)
+  if (!T0) {
     T0 = mParam;
-  else
+  } else {
     q = T0[6];
+  }
 
   const double kCLight = 0.000299792458;
   double bq = Bz * q * kCLight;
   double pt2 = T0[3] * T0[3] + T0[4] * T0[4];
-  if (pt2 < 1.e-4)
+  if (pt2 < 1.e-4) {
     return 0;
+  }
   double dx = xyz[0] - T0[0];
   double dy = xyz[1] - T0[1];
   double a = dx * T0[3] + dy * T0[4];
   double dS = 0;
-  if (TMath::Abs(bq) < 1.e-8)
+  if (TMath::Abs(bq) < 1.e-8) {
     dS = a / pt2;
-  else
+  } else {
     dS = TMath::ATan2(bq * a, pt2 + bq * (dy * T0[3] - dx * T0[4])) / bq;
+  }
   return dS;
 }
 
@@ -82,8 +85,7 @@ void AliHLT3DTrackParam::TransportToDS(double Bz, double DS, double* T0)
   double py = T0[4];
   double pz = T0[5];
 
-  double d[6] = { mParam[0] - T0[0], mParam[1] - T0[1], mParam[2] - T0[2],
-                  mParam[3] - T0[3], mParam[4] - T0[4], mParam[5] - T0[5] };
+  double d[6] = { mParam[0] - T0[0], mParam[1] - T0[1], mParam[2] - T0[2], mParam[3] - T0[3], mParam[4] - T0[4], mParam[5] - T0[5] };
 
   T0[0] = T0[0] + sB * px + cB * py;
   T0[1] = T0[1] - cB * px + sB * py;
@@ -92,46 +94,47 @@ void AliHLT3DTrackParam::TransportToDS(double Bz, double DS, double* T0)
   T0[4] = -s * px + c * py;
   T0[5] = T0[5];
 
-  double mJ[6][6] = { {
-                        1,
-                        0,
-                        0,
-                        sB,
-                        cB,
-                        0,
-                      }, // clang-format off
+  // clang-format off
+  double mJ[6][6] = { {1, 0, 0, sB, cB, 0, },
     {0, 1, 0,  -cB, sB,  0, },
     {0, 0, 1,    0,  0, DS, },
     {0, 0, 0,    c,  s,  0, },
     {0, 0, 0,   -s,  c,  0, },
-    {0, 0, 0,    0,  0,  1, }
-}; // clang-format on
+    {0, 0, 0,    0,  0,  1, }};
+  // clang-format on
 
   for (int i = 0; i < 6; i++) {
     mParam[i] = T0[i];
-    for (int j = 0; j < 6; j++)
+    for (int j = 0; j < 6; j++) {
       mParam[i] += mJ[i][j] * d[j];
+    }
   }
 
   double mA[6][6];
-  for (int k = 0, i = 0; i < 6; i++)
-    for (int j = 0; j <= i; j++, k++)
+  for (int k = 0, i = 0; i < 6; i++) {
+    for (int j = 0; j <= i; j++, k++) {
       mA[i][j] = mA[j][i] = fCov[k];
+    }
+  }
 
   double mJC[6][6];
-  for (int i = 0; i < 6; i++)
+  for (int i = 0; i < 6; i++) {
     for (int j = 0; j < 6; j++) {
       mJC[i][j] = 0;
-      for (int k = 0; k < 6; k++)
+      for (int k = 0; k < 6; k++) {
         mJC[i][j] += mJ[i][k] * mA[k][j];
+      }
     }
+  }
 
-  for (int k = 0, i = 0; i < 6; i++)
+  for (int k = 0, i = 0; i < 6; i++) {
     for (int j = 0; j <= i; j++, k++) {
       fCov[k] = 0;
-      for (int l = 0; l < 6; l++)
+      for (int l = 0; l < 6; l++) {
         fCov[k] += mJC[i][l] * mJ[j][l];
+      }
     }
+  }
 }
 
 //* Fit utilities
@@ -140,8 +143,9 @@ void AliHLT3DTrackParam::InitializeCovarianceMatrix()
 {
   //* Initialization of covariance matrix
 
-  for (int i = 0; i < 21; i++)
+  for (int i = 0; i < 21; i++) {
     fCov[i] = 0;
+  }
   fSignQ = 0;
   fCov[0] = fCov[2] = fCov[5] = 100.;
   fCov[9] = fCov[14] = fCov[20] = 10000.;
@@ -149,20 +153,21 @@ void AliHLT3DTrackParam::InitializeCovarianceMatrix()
   fNDF = -5;
 }
 
-void AliHLT3DTrackParam::GetGlueMatrix(const double xyz[3],
-                                       double G[6], const double* T0) const
+void AliHLT3DTrackParam::GetGlueMatrix(const double xyz[3], double G[6], const double* T0) const
 {
   //* !
 
-  if (!T0)
+  if (!T0) {
     T0 = mParam;
+  }
 
   double dx = xyz[0] - T0[0], dy = xyz[1] - T0[1], dz = xyz[2] - T0[2];
   double px2 = T0[3] * T0[3], py2 = T0[4] * T0[4], pz2 = T0[5] * T0[5];
   double s2 = (dx * dx + dy * dy + dz * dz);
   double p2 = px2 + py2 + pz2;
-  if (p2 > 1.e-4)
+  if (p2 > 1.e-4) {
     s2 /= p2;
+  }
   double x = T0[3] * s2;
   double xx = px2 * s2, xy = x * T0[4], xz = x * T0[5], yy = py2 * s2, yz = T0[4] * T0[5] * s2;
   G[0] = xx;
@@ -177,6 +182,7 @@ void AliHLT3DTrackParam::Filter(const double m[3], const double V[6], const doub
 {
   //* !
 
+  // clang-format off
   double
     c00 = fCov[0],
     c10 = fCov[1], c11 = fCov[2],
@@ -184,14 +190,11 @@ void AliHLT3DTrackParam::Filter(const double m[3], const double V[6], const doub
     c30 = fCov[6], c31 = fCov[7], c32 = fCov[8],
     c40 = fCov[10], c41 = fCov[11], c42 = fCov[12],
     c50 = fCov[15], c51 = fCov[16], c52 = fCov[17];
+  // clang-format on
 
-  double
-    z0 = m[0] - mParam[0],
-    z1 = m[1] - mParam[1],
-    z2 = m[2] - mParam[2];
+  double z0 = m[0] - mParam[0], z1 = m[1] - mParam[1], z2 = m[2] - mParam[2];
 
-  double mS[6] = { c00 + V[0] + G[0], c10 + V[1] + G[1], c11 + V[2] + G[2],
-                   c20 + V[3] + G[3], c21 + V[4] + G[4], c22 + V[5] + G[5] };
+  double mS[6] = { c00 + V[0] + G[0], c10 + V[1] + G[1], c11 + V[2] + G[2], c20 + V[3] + G[3], c21 + V[4] + G[4], c22 + V[5] + G[5] };
   double mSi[6];
   mSi[0] = mS[4] * mS[4] - mS[2] * mS[5];
   mSi[1] = mS[1] * mS[5] - mS[3] * mS[4];
@@ -276,22 +279,20 @@ void AliHLT3DTrackParam::Filter(const double m[3], const double V[6], const doub
   double pi = 1. / p;
   double qp = fSignQ * pi;
   double qp3 = qp * pi * pi;
-  double
-    c60 = qp3 * (c30 + c40 + c50),
-    c61 = qp3 * (c31 + c41 + c51),
-    c62 = qp3 * (c32 + c42 + c52);
+  double c60 = qp3 * (c30 + c40 + c50), c61 = qp3 * (c31 + c41 + c51), c62 = qp3 * (c32 + c42 + c52);
 
   k0 = c60 * mSi[0] + c61 * mSi[1] + c62 * mSi[3];
   k1 = c60 * mSi[1] + c61 * mSi[2] + c62 * mSi[4];
   k2 = c60 * mSi[3] + c61 * mSi[4] + c62 * mSi[5];
 
   qp += k0 * z0 + k1 * z1 + k2 * z2;
-  if (qp > 0)
+  if (qp > 0) {
     fSignQ = 1;
-  else if (qp < 0)
+  } else if (qp < 0) {
     fSignQ = -1;
-  else
+  } else {
     fSignQ = 0;
+  }
 }
 
 //* Other utilities
@@ -300,8 +301,9 @@ void AliHLT3DTrackParam::SetDirection(double Direction[3])
 {
   //* Change track direction
 
-  if (mParam[3] * Direction[0] + mParam[4] * Direction[1] + mParam[5] * Direction[2] >= 0)
+  if (mParam[3] * Direction[0] + mParam[4] * Direction[1] + mParam[5] * Direction[2] >= 0) {
     return;
+  }
 
   mParam[3] = -mParam[3];
   mParam[4] = -mParam[4];
@@ -333,33 +335,40 @@ void AliHLT3DTrackParam::RotateCoordinateSystem(double alpha)
   mParam[4] = -px * sA + py * cA;
   mParam[5] = mParam[5];
 
-  double mJ[6][6] = { { cA, sA, 0, 0, 0, 0 }, // clang-format off
+  // clang-format off
+  double mJ[6][6] = { { cA, sA, 0, 0, 0, 0 },
     { -sA, cA, 0,  0,  0,  0 },
     {  0, 0, 1,  0,  0,  0 },
     {  0, 0, 0, cA, sA,  0 },
     {  0, 0, 0, -sA, cA,  0 },
-    {  0, 0, 0,  0,  0,  1 }
-  }; // clang-format on
+    {  0, 0, 0,  0,  0,  1 }};
+  // clang-format on
 
   double mA[6][6];
-  for (int k = 0, i = 0; i < 6; i++)
-    for (int j = 0; j <= i; j++, k++)
+  for (int k = 0, i = 0; i < 6; i++) {
+    for (int j = 0; j <= i; j++, k++) {
       mA[i][j] = mA[j][i] = fCov[k];
+    }
+  }
 
   double mJC[6][6];
-  for (int i = 0; i < 6; i++)
+  for (int i = 0; i < 6; i++) {
     for (int j = 0; j < 6; j++) {
       mJC[i][j] = 0;
-      for (int k = 0; k < 6; k++)
+      for (int k = 0; k < 6; k++) {
         mJC[i][j] += mJ[i][k] * mA[k][j];
+      }
     }
+  }
 
-  for (int k = 0, i = 0; i < 6; i++)
+  for (int k = 0, i = 0; i < 6; i++) {
     for (int j = 0; j <= i; j++, k++) {
       fCov[k] = 0;
-      for (int l = 0; l < 6; l++)
+      for (int l = 0; l < 6; l++) {
         fCov[k] += mJC[i][l] * mJ[j][l];
+      }
     }
+  }
 }
 
 void AliHLT3DTrackParam::Get5Parameters(double alpha, double T[6], double C[15]) const
@@ -368,14 +377,12 @@ void AliHLT3DTrackParam::Get5Parameters(double alpha, double T[6], double C[15])
 
   AliHLT3DTrackParam t = *this;
   t.RotateCoordinateSystem(alpha);
-  double
-    x = t.mParam[0],
-    y = t.mParam[1], z = t.mParam[2],
-    px = t.mParam[3], py = t.mParam[4], pz = t.mParam[5], q = t.fSignQ;
+  double x = t.mParam[0], y = t.mParam[1], z = t.mParam[2], px = t.mParam[3], py = t.mParam[4], pz = t.mParam[5], q = t.fSignQ;
 
   double p2 = px * px + py * py + pz * pz;
-  if (p2 < 1.e-8)
+  if (p2 < 1.e-8) {
     p2 = 1;
+  }
   double n2 = 1. / p2;
   double n = sqrt(n2);
 
@@ -386,30 +393,37 @@ void AliHLT3DTrackParam::Get5Parameters(double alpha, double T[6], double C[15])
   T[3] = pz / px;
   T[4] = q * n;
 
-  double mJ[5][6] = { { -T[2], 1, 0, 0, 0, 0 }, // clang-format off
+  // clang-format off
+  double mJ[5][6] = { { -T[2], 1, 0, 0, 0, 0 },
     { -T[3], 0, 1,  0,  0,  0 },
     { 0, 0, 0,  -T[2] / px,  1. / px,  0 },
     { 0, 0, 0, -T[3] / px,  0,  1. / px },
-    { 0, 0, 0, -T[4]*n2*px, -T[4]*n2*py, -T[4]*n2*pz}
-  }; // clang-format on
+    { 0, 0, 0, -T[4]*n2*px, -T[4]*n2*py, -T[4]*n2*pz}};
+  // clang-format on
 
   double mA[6][6];
-  for (int k = 0, i = 0; i < 6; i++)
-    for (int j = 0; j <= i; j++, k++)
+  for (int k = 0, i = 0; i < 6; i++) {
+    for (int j = 0; j <= i; j++, k++) {
       mA[i][j] = mA[j][i] = t.fCov[k];
+    }
+  }
 
   double mJC[5][6];
-  for (int i = 0; i < 5; i++)
+  for (int i = 0; i < 5; i++) {
     for (int j = 0; j < 6; j++) {
       mJC[i][j] = 0;
-      for (int k = 0; k < 6; k++)
+      for (int k = 0; k < 6; k++) {
         mJC[i][j] += mJ[i][k] * mA[k][j];
+      }
     }
+  }
 
-  for (int k = 0, i = 0; i < 5; i++)
+  for (int k = 0, i = 0; i < 5; i++) {
     for (int j = 0; j <= i; j++, k++) {
       C[k] = 0;
-      for (int l = 0; l < 6; l++)
+      for (int l = 0; l < 6; l++) {
         C[k] += mJC[i][l] * mJ[j][l];
+      }
     }
+  }
 }

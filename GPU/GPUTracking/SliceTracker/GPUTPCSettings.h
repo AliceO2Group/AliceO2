@@ -63,6 +63,10 @@
 //#define GPUCA_MERGER_BY_MC_LABEL
 #define REPRODUCIBLE_CLUSTER_SORTING
 
+namespace o2
+{
+namespace gpu
+{
 #ifdef GPUCA_O2_LIB
 typedef unsigned int calink;
 typedef unsigned int cahit;
@@ -70,6 +74,8 @@ typedef unsigned int cahit;
 typedef unsigned int calink;
 typedef unsigned int cahit;
 #endif
+}
+} // namespace o2::gpu
 
 #ifdef GPUCA_GPUCODE
 #define GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP 6

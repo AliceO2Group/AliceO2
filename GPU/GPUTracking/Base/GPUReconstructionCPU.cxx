@@ -43,13 +43,16 @@
 #include <unistd.h>
 #endif
 
+using namespace o2::gpu;
+
 GPUReconstruction* GPUReconstruction::GPUReconstruction_Create_CPU(const GPUSettingsProcessing& cfg) { return new GPUReconstructionCPU(cfg); }
 
 template <class T, int I, typename... Args>
 int GPUReconstructionCPUBackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
 {
-  if (x.device == krnlDeviceType::Device)
+  if (x.device == krnlDeviceType::Device) {
     throw std::runtime_error("Cannot run device kernel on host");
+  }
   unsigned int num = y.num == 0 || y.num == -1 ? 1 : y.num;
   for (unsigned int k = 0; k < num; k++) {
     for (unsigned int iB = 0; iB < x.nBlocks; iB++) {
@@ -69,18 +72,23 @@ void GPUReconstructionCPU::TransferMemoryResourcesHelper(GPUProcessor* proc, int
   int exc = toGPU ? GPUMemoryResource::MEMORY_OUTPUT : GPUMemoryResource::MEMORY_INPUT;
   for (unsigned int i = 0; i < mMemoryResources.size(); i++) {
     GPUMemoryResource& res = mMemoryResources[i];
-    if (res.mPtr == nullptr)
+    if (res.mPtr == nullptr) {
       continue;
-    if (proc && res.mProcessor != proc)
+    }
+    if (proc && res.mProcessor != proc) {
       continue;
-    if (!(res.mType & GPUMemoryResource::MEMORY_GPU) || (res.mType & GPUMemoryResource::MEMORY_CUSTOM_TRANSFER))
+    }
+    if (!(res.mType & GPUMemoryResource::MEMORY_GPU) || (res.mType & GPUMemoryResource::MEMORY_CUSTOM_TRANSFER)) {
       continue;
-    if (!mDeviceProcessingSettings.keepAllMemory && !(all && !(res.mType & exc)) && !(res.mType & inc))
+    }
+    if (!mDeviceProcessingSettings.keepAllMemory && !(all && !(res.mType & exc)) && !(res.mType & inc)) {
       continue;
-    if (toGPU)
+    }
+    if (toGPU) {
       TransferMemoryResourceToGPU(&mMemoryResources[i], stream);
-    else
+    } else {
       TransferMemoryResourceToHost(&mMemoryResources[i], stream);
+    }
   }
 }
 
@@ -123,10 +131,11 @@ void GPUReconstructionCPU::SetThreadCounts() { mThreadCount = mBlockCount = mCon
 void GPUReconstructionCPU::SetThreadCounts(RecoStep step)
 {
   if (IsGPU() && mRecoSteps != mRecoStepsGPU) {
-    if (!(mRecoStepsGPU & step))
+    if (!(mRecoStepsGPU & step)) {
       GPUReconstructionCPU::SetThreadCounts();
-    else
+    } else {
       SetThreadCounts();
+    }
   }
 }
 
@@ -135,14 +144,16 @@ int GPUReconstructionCPU::RunStandalone()
   mStatNEvents++;
 
   if (mThreadId != GetThread()) {
-    if (mDeviceProcessingSettings.debugLevel >= 2)
+    if (mDeviceProcessingSettings.debugLevel >= 2) {
       GPUInfo("Thread changed, migrating context, Previous Thread: %d, New Thread: %d", mThreadId, GetThread());
+    }
     mThreadId = GetThread();
   }
 
   for (unsigned int i = 0; i < mChains.size(); i++) {
-    if (mChains[i]->RunStandalone())
+    if (mChains[i]->RunStandalone()) {
       return 1;
+    }
   }
 
   if (GetDeviceProcessingSettings().debugLevel >= 1) {
@@ -158,7 +169,8 @@ int GPUReconstructionCPU::RunStandalone()
 void GPUReconstructionCPU::ResetDeviceProcessorTypes()
 {
   for (unsigned int i = 0; i < mProcessors.size(); i++) {
-    if (mProcessors[i].proc->mDeviceProcessor)
+    if (mProcessors[i].proc->mDeviceProcessor) {
       mProcessors[i].proc->mDeviceProcessor->InitGPUProcessor(this, GPUProcessor::PROCESSOR_TYPE_DEVICE);
+    }
   }
 }

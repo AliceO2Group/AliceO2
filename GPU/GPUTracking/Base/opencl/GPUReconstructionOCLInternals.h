@@ -19,6 +19,10 @@
 #include <vector>
 #include <string>
 
+namespace o2
+{
+namespace gpu
+{
 static const char* opencl_error_string(int errorcode)
 {
   switch (errorcode) {
@@ -125,16 +129,18 @@ static const char* opencl_error_string(int errorcode)
 static int GPUFailedMsgAI(int error, const char* file, int line)
 {
   // Check for OPENCL Error and in the case of an error display the corresponding error string
-  if (error == CL_SUCCESS)
+  if (error == CL_SUCCESS) {
     return (0);
+  }
   printf("OCL Error: %d / %s (%s:%d)\n", error, opencl_error_string(error), file, line);
   return 1;
 }
 
 static void GPUFailedMsgA(const long long int error, const char* file, int line)
 {
-  if (GPUFailedMsgAI(error, file, line))
+  if (GPUFailedMsgAI(error, file, line)) {
     throw std::runtime_error("OpenCL Failure");
+  }
 }
 
 static inline int OCLsetKernelParameters_helper(cl_kernel& k, int i) { return 0; }
@@ -172,5 +178,7 @@ struct GPUReconstructionOCLInternals {
 };
 
 static_assert(std::is_convertible<cl_event, void*>::value, "OpenCL event type incompatible to deviceEvent");
+}
+} // namespace o2::gpu
 
 #endif

@@ -22,13 +22,21 @@
 #include <omp.h>
 #endif
 
+using namespace o2::gpu;
+
 #ifdef BUILD_EVENT_DISPLAY
 #include "GPUDisplayBackendGlfw.h"
 #else
 #include "GPUDisplayBackend.h"
+namespace o2
+{
+namespace gpu
+{
 class GPUDisplayBackendGlfw : public GPUDisplayBackend
 {
 };
+}
+} // namespace o2::gpu
 #endif
 
 #include "DataFormatsTPC/ClusterNative.h"
@@ -36,15 +44,13 @@ class GPUDisplayBackendGlfw : public GPUDisplayBackend
 
 GPUTPCO2Interface::GPUTPCO2Interface() = default;
 
-GPUTPCO2Interface::~GPUTPCO2Interface()
-{
-  Deinitialize();
-}
+GPUTPCO2Interface::~GPUTPCO2Interface() { Deinitialize(); }
 
 int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config, std::unique_ptr<TPCFastTransform>&& fastTrans)
 {
-  if (mInitialized)
+  if (mInitialized) {
     return (1);
+  }
   mConfig.reset(new GPUO2InterfaceConfiguration(config));
   mDumpEvents = mConfig->configInterface.dumpEvents;
   mContinuous = mConfig->configEvent.continuousMaxTimeBin != 0;
@@ -54,16 +60,18 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config, std
   mChain->mConfigQA = &mConfig->configQA;
   mRec->SetSettings(&mConfig->configEvent, &mConfig->configReconstruction, &mConfig->configDeviceProcessing);
   mChain->SetTPCFastTransform(std::move(fastTrans));
-  if (mRec->Init())
+  if (mRec->Init()) {
     return (1);
+  }
   mInitialized = true;
   return (0);
 }
 
 int GPUTPCO2Interface::Initialize(const char* options, std::unique_ptr<TPCFastTransform>&& fastTrans)
 {
-  if (mInitialized)
+  if (mInitialized) {
     return (1);
+  }
   float solenoidBz = -5.00668;
   float refX = 1000.;
   int nThreads = 1;
@@ -74,8 +82,9 @@ int GPUTPCO2Interface::Initialize(const char* options, std::unique_ptr<TPCFastTr
     printf("Received options %s\n", options);
     const char* optPtr = options;
     while (optPtr && *optPtr) {
-      while (*optPtr == ' ')
+      while (*optPtr == ' ') {
         optPtr++;
+      }
       const char* nextPtr = strstr(optPtr, " ");
       const int optLen = nextPtr ? nextPtr - optPtr : strlen(optPtr);
       if (strncmp(optPtr, "cont", optLen) == 0) {
@@ -117,13 +126,16 @@ int GPUTPCO2Interface::Initialize(const char* options, std::unique_ptr<TPCFastTr
 #ifdef GPUCA_HAVE_OPENMP
   omp_set_num_threads(nThreads);
 #else
-  if (nThreads != 1)
+  if (nThreads != 1) {
     printf("ERROR: Compiled without OpenMP. Cannot set number of threads!\n");
+  }
+
 #endif
   mRec.reset(GPUReconstruction::CreateInstance(useGPU ? gpuType : "CPU", true));
   mChain = mRec->AddChain<GPUChainTracking>();
-  if (mRec == nullptr)
+  if (mRec == nullptr) {
     return 1;
+  }
 
   GPUSettingsRec rec;
   GPUSettingsEvent ev;
@@ -145,8 +157,9 @@ int GPUTPCO2Interface::Initialize(const char* options, std::unique_ptr<TPCFastTr
 
   mRec->SetSettings(&ev, &rec, &devProc);
   mChain->SetTPCFastTransform(std::move(fastTrans));
-  if (mRec->Init())
+  if (mRec->Init()) {
     return 1;
+  }
 
   mInitialized = true;
   return (0);
@@ -163,8 +176,9 @@ void GPUTPCO2Interface::Deinitialize()
 
 int GPUTPCO2Interface::RunTracking(const o2::TPC::ClusterNativeAccessFullTPC* inputClusters, const GPUTPCGMMergedTrack*& outputTracks, int& nOutputTracks, const GPUTPCGMMergedTrackHit*& outputTrackClusters)
 {
-  if (!mInitialized)
+  if (!mInitialized) {
     return (1);
+  }
   static int nEvent = 0;
   if (mDumpEvents) {
     mChain->ClearIOPointers();
@@ -196,11 +210,10 @@ int GPUTPCO2Interface::RunTracking(const o2::TPC::ClusterNativeAccessFullTPC* in
 
 void GPUTPCO2Interface::GetClusterErrors2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
 {
-  if (!mInitialized)
+  if (!mInitialized) {
     return;
+  }
   mRec->GetParam().GetClusterErrors2(row, z, sinPhi, DzDs, ErrY2, ErrZ2);
 }
 
-void GPUTPCO2Interface::Cleanup()
-{
-}
+void GPUTPCO2Interface::Cleanup() {}

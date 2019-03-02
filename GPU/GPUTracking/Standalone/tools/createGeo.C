@@ -7,6 +7,8 @@
 #include "GPUReconstruction.h"
 #include "GPUChainTracking.h"
 
+using namespace o2::gpu;
+
 void createGeo()
 {
   o2::Base::GeometryManager::loadGeometry();

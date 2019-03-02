@@ -17,6 +17,10 @@
 #include "GPUTPCBaseTrackParam.h"
 #include "GPUTPCSliceOutCluster.h"
 
+namespace o2
+{
+namespace gpu
+{
 /**
  * @class GPUTPCSliceOutTrack
  * GPUTPCSliceOutTrack class is used to store TPC tracks,
@@ -47,7 +51,10 @@ class GPUTPCSliceOutTrack
   GPUhd() int LocalTrackId() const { return mLocalTrackId; }
   GPUhd() void SetLocalTrackId(int v) { mLocalTrackId = v; }
 
-  GPUhd() GPUTPCSliceOutTrack* NextTrack() { return (GPUTPCSliceOutTrack*)(((char*)this) + GetSize(mNClusters)); }
+  GPUhd() GPUTPCSliceOutTrack* NextTrack()
+  {
+    return (GPUTPCSliceOutTrack*)(((char*)this) + GetSize(mNClusters));
+  }
 
   GPUhd() const GPUTPCSliceOutTrack* GetNextTrack() const { return (GPUTPCSliceOutTrack*)(((char*)this) + GetSize(mNClusters)); }
 
@@ -57,5 +64,7 @@ class GPUTPCSliceOutTrack
   int mLocalTrackId;                  // See AliHLTPCCATrack.h
   GPUTPCSliceOutCluster mClusters[0]; //* track clusters
 };
+}
+} // namespace o2::gpu
 
 #endif

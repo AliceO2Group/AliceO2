@@ -15,7 +15,9 @@
 #include "GPUReconstruction.h"
 #include "GPUReconstructionDeviceBase.h"
 
-GPUProcessor::GPUProcessor() : mRec(NULL), mGPUProcessorType(PROCESSOR_TYPE_CPU), mDeviceProcessor(NULL), mCAParam(NULL), mAllocateAndInitializeLate(false) {}
+using namespace o2::gpu;
+
+GPUProcessor::GPUProcessor() : mRec(nullptr), mGPUProcessorType(PROCESSOR_TYPE_CPU), mDeviceProcessor(nullptr), mCAParam(nullptr), mAllocateAndInitializeLate(false) {}
 
 GPUProcessor::~GPUProcessor()
 {
@@ -28,8 +30,9 @@ void GPUProcessor::InitGPUProcessor(GPUReconstruction* rec, GPUProcessor::Proces
 {
   mRec = rec;
   mGPUProcessorType = type;
-  if (slaveProcessor)
+  if (slaveProcessor) {
     slaveProcessor->mDeviceProcessor = this;
+  }
   mCAParam = type == PROCESSOR_TYPE_DEVICE ? (reinterpret_cast<GPUReconstructionDeviceBase*>(rec))->DeviceParam() : &rec->GetParam();
 }
 

@@ -14,18 +14,22 @@
 #ifndef GPUITSFITTERKERNELS_H
 #define GPUITSFITTERKERNELS_H
 
-class GPUTPCGMPropagator;
-class GPUITSFitter;
-
 #include "GPUGeneralKernels.h"
 namespace o2
 {
 namespace ITS
 {
-class GPUITSTrack;
 struct TrackingFrameInfo;
-} // namespace ITS
-} // namespace o2
+}
+} // namespace o2::ITS
+
+namespace o2
+{
+namespace gpu
+{
+class GPUTPCGMPropagator;
+class GPUITSFitter;
+class GPUITSTrack;
 
 class GPUITSFitterKernel : public GPUKernelTemplate
 {
@@ -36,8 +40,10 @@ class GPUITSFitterKernel : public GPUKernelTemplate
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, workerType& workers);
 
  protected:
-  GPUd() static bool fitTrack(GPUITSFitter& Fitter, GPUTPCGMPropagator& prop, o2::ITS::GPUITSTrack& track, int start, int end, int step);
+  GPUd() static bool fitTrack(GPUITSFitter& Fitter, GPUTPCGMPropagator& prop, GPUITSTrack& track, int start, int end, int step);
 #endif
 };
+}
+} // namespace o2::gpu
 
 #endif

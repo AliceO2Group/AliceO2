@@ -14,6 +14,10 @@
 #ifndef GPUDISPLAYBACKEND_H
 #define GPUDISPLAYBACKEND_H
 
+namespace o2
+{
+namespace gpu
+{
 class GPUReconstruction;
 class GPUDisplay;
 
@@ -95,5 +99,7 @@ class GPUDisplayBackend
   int InitGL(bool initFailure = false);                                 // Callback to initialize the GL Display (to be called in StartDisplay)
   void ExitGL();                                                        // Callback to clean up the GL Display
 };
+}
+} // namespace o2::gpu
 
 #endif

@@ -14,6 +14,10 @@
 #ifndef GPUTPCGMMERGEDTRACKHIT_H
 #define GPUTPCGMMERGEDTRACKHIT_H
 
+namespace o2
+{
+namespace gpu
+{
 struct GPUTPCGMMergedTrackHit {
   float x, y, z;
   unsigned int num;
@@ -38,5 +42,7 @@ struct GPUTPCGMMergedTrackHit {
   float time;
 #endif
 };
+}
+} // namespace o2::gpu
 
 #endif

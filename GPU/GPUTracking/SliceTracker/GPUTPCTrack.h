@@ -17,6 +17,10 @@
 #include "GPUTPCBaseTrackParam.h"
 #include "GPUTPCDef.h"
 
+namespace o2
+{
+namespace gpu
+{
 /**
  * @class GPUTPCtrack
  *
@@ -32,7 +36,7 @@ class GPUTPCTrack
   GPUTPCTrack() : mAlive(0), mFirstHitID(0), mNHits(0), mLocalTrackId(-1), mParam()
   {
   }
-  ~GPUTPCTrack() {}
+  ~GPUTPCTrack() CON_DEFAULT;
 #endif //! GPUCA_GPUCODE
 
   GPUhd() char Alive() const
@@ -61,9 +65,8 @@ class GPUTPCTrack
   mParam; // track parameters
 
  private:
-  // void Dummy(); // to make rulechecker happy by having something in .cxx file
-
-  // ClassDef(GPUTPCTrack,1)
 };
+}
+} // namespace o2::gpu
 
 #endif // GPUTPCTRACK_H

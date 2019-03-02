@@ -16,6 +16,11 @@
 
 #include "GPUTPCDef.h"
 #include "GPUDataTypes.h"
+
+namespace o2
+{
+namespace gpu
+{
 MEM_CLASS_PRE()
 struct GPUConstantMem;
 
@@ -29,7 +34,10 @@ class GPUKernelTemplate
   typedef GPUconstantref() MEM_CONSTANT(GPUConstantMem) workerType;
   GPUhdi() static GPUDataTypes::RecoStep GetRecoStep() { return GPUCA_RECO_STEP::AllRecoSteps; }
   MEM_TEMPLATE()
-  GPUhdi() static workerType* Worker(MEM_TYPE(GPUConstantMem) & workers) { return &workers; }
+  GPUhdi() static workerType* Worker(MEM_TYPE(GPUConstantMem) & workers)
+  {
+    return &workers;
+  }
 #if (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && (!defined(__CINT__) && !defined(__ROOTCINT__))
   template <int iKernel, typename... Args>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, workerType& workers, Args... args)
@@ -51,5 +59,7 @@ class GPUMemClean16 : public GPUKernelTemplate
   template <int iKernel = 0>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, workerType& workers, GPUglobalref() void* ptr, unsigned long size);
 };
+}
+} // namespace o2::gpu
 
 #endif

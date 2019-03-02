@@ -17,21 +17,21 @@
 #include "GPUCommonDef.h"
 #include "AliHLTProcessor.h"
 
-class GPUReconstruction;
-class GPUChainTracking;
-class GPUTPCClusterData;
 class AliTPCcalibDB;
 class AliTPCRecoParam;
 #include "AliRecoParam.h"
 class AliTPCTransform;
-namespace ali_tpc_common
+namespace o2
 {
-namespace tpc_fast_transformation
+namespace gpu
 {
 class TPCFastTransform;
 class TPCFastTransformManager;
-} // namespace tpc_fast_transformation
-} // namespace ali_tpc_common
+class GPUReconstruction;
+class GPUChainTracking;
+class GPUTPCClusterData;
+}
+} // namespace o2::gpu
 
 class AliHLTGPUDumpComponent : public AliHLTProcessor
 {
@@ -60,9 +60,9 @@ class AliHLTGPUDumpComponent : public AliHLTProcessor
 
  private:
   float fSolenoidBz;
-  GPUReconstruction* fRec;
-  GPUChainTracking* fChain;
-  ali_tpc_common::tpc_fast_transformation::TPCFastTransformManager* fFastTransformManager;
+  o2::gpu::GPUReconstruction* fRec;
+  o2::gpu::GPUChainTracking* fChain;
+  o2::gpu::TPCFastTransformManager* fFastTransformManager;
   AliTPCcalibDB* fCalib;
   AliTPCRecoParam* fRecParam;
   AliRecoParam fOfflineRecoParam;

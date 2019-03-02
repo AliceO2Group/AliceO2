@@ -21,6 +21,13 @@
 #include <algorithm>
 #endif
 
+#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
+namespace o2
+{
+namespace gpu
+{
+#endif
+
 class GPUCommonMath
 {
  public:
@@ -265,5 +272,10 @@ GPUdi() void GPUCommonMath::AtomicMin(GPUglobalref() GPUAtomic(int) * addr, int 
 #endif
 
 #undef CHOICE
+
+#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
+}
+}
+#endif
 
 #endif // GPUCOMMONMATH_H

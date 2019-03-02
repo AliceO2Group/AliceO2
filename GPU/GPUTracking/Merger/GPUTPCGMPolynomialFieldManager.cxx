@@ -15,6 +15,8 @@
 #include "GPUTPCGMPolynomialField.h"
 #include <cmath>
 
+using namespace o2::gpu;
+
 int GPUTPCGMPolynomialFieldManager::GetPolynomialField(StoredField_t fieldType, float nominalFieldkG, GPUTPCGMPolynomialField& field)
 {
   //
@@ -202,7 +204,7 @@ int GPUTPCGMPolynomialFieldManager::GetPolynomialField(float nominalFieldkG, GPU
   return GetPolynomialField(type, nominalFieldkG, field);
 }
 
-/******************************************************************************************
+  /******************************************************************************************
  *
  *  the following code only works inside AliRoot framework with initialised magnetic field
  *
@@ -242,8 +244,9 @@ int GPUTPCGMPolynomialFieldManager::GetPolynomialField(GPUTPCGMPolynomialField& 
 
   AliMagF* fld = (AliMagF*)TGeoGlobalMagField::Instance()->GetField();
 
-  if (!fld)
+  if (!fld) {
     return -1;
+  }
 
   AliMagF::BMap_t mapType = fld->GetMapType();
 
@@ -275,8 +278,9 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTpc(AliMagF* inputFld, GPUTPCGMPolyn
     // fld = new AliMagF("Fit", "Fit", 1., 1., AliMagF::k2kG);
     fld = (AliMagF*)TGeoGlobalMagField::Instance()->GetField();
   }
-  if (!fld)
+  if (!fld) {
     return -1;
+  }
 
   const double sectorAngleShift = 10. / 180. * TMath::Pi();
   const double sectorAngle = 20. / 180. * TMath::Pi();
@@ -290,8 +294,9 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTpc(AliMagF* inputFld, GPUTPCGMPolyn
   double dA = 1. / rMax; // angular step == 1 cm at outer radius
   dA *= step;
   int nSectorParticles = (int)(sectorAngle / dA);
-  if (nSectorParticles < 1)
+  if (nSectorParticles < 1) {
     nSectorParticles = 1;
+  }
   dA = sectorAngle / nSectorParticles;
 
   double dZ = 1. * step; // step in z == 1 cm
@@ -361,8 +366,9 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTpc(AliMagF* inputFld, GPUTPCGMPolyn
 
   if (errX != 0 || errY != 0 || errZ != 0) {
     std::cout << "Fit of polynamial field failed!!!:  errX " << errX << " errY " << errY << " errZ " << errZ << std::endl;
-    if (fld != inputFld)
+    if (fld != inputFld) {
       delete fld;
+    }
     return -1;
   }
 
@@ -453,8 +459,9 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTrd(AliMagF* inputFld, GPUTPCGMPolyn
     // fld = new AliMagF("Fit", "Fit", 1., 1., AliMagF::k2kG);
     fld = (AliMagF*)TGeoGlobalMagField::Instance()->GetField();
   }
-  if (!fld)
+  if (!fld) {
     return -1;
+  }
 
   const double sectorAngle = AliTRDgeometry::GetAlpha();
   const double sectorAngleShift = sectorAngle / 2;
@@ -469,8 +476,9 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTrd(AliMagF* inputFld, GPUTPCGMPolyn
   double dA = 1. / rMax; // angular step == 1 cm at outer radius
   dA *= step;
   int nSectorParticles = (int)(sectorAngle / dA);
-  if (nSectorParticles < 1)
+  if (nSectorParticles < 1) {
     nSectorParticles = 1;
+  }
   dA = sectorAngle / nSectorParticles;
 
   double dZ = 1. * step; // step in z == 1 cm
@@ -535,8 +543,9 @@ int GPUTPCGMPolynomialFieldManager::FitFieldTrd(AliMagF* inputFld, GPUTPCGMPolyn
 
   if (errX != 0 || errY != 0 || errZ != 0) {
     std::cout << "Fit of polynamial field failed!!!" << std::endl;
-    if (fld != inputFld)
+    if (fld != inputFld) {
       delete fld;
+    }
     return -1;
   }
 
@@ -626,8 +635,9 @@ int GPUTPCGMPolynomialFieldManager::FitFieldIts(AliMagF* inputFld, GPUTPCGMPolyn
     // fld = new AliMagF("Fit", "Fit", 1., 1., AliMagF::k2kG);
     fld = (AliMagF*)TGeoGlobalMagField::Instance()->GetField();
   }
-  if (!fld)
+  if (!fld) {
     return -1;
+  }
 
   const double sectorAngleShift = 10. / 180. * TMath::Pi();
   const double sectorAngle = 20. / 180. * TMath::Pi();
@@ -643,8 +653,9 @@ int GPUTPCGMPolynomialFieldManager::FitFieldIts(AliMagF* inputFld, GPUTPCGMPolyn
   double dA = .1 / rMax; // angular step == 0.1 cm at the outer radius
   dA *= step;
   int nSectorParticles = (int)(sectorAngle / dA);
-  if (nSectorParticles < 1)
+  if (nSectorParticles < 1) {
     nSectorParticles = 1;
+  }
   dA = sectorAngle / nSectorParticles;
 
   double dX = .5 * step; // step in local x == 0.1 cm
@@ -718,8 +729,9 @@ int GPUTPCGMPolynomialFieldManager::FitFieldIts(AliMagF* inputFld, GPUTPCGMPolyn
 
   if (errX != 0 || errY != 0 || errZ != 0) {
     std::cout << "Fit of polynamial field failed!!!:  errX " << errX << " errY " << errY << " errZ " << errZ << std::endl;
-    if (fld != inputFld)
+    if (fld != inputFld) {
       delete fld;
+    }
     return -1;
   }
 

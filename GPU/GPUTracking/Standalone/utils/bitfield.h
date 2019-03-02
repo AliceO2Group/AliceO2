@@ -29,10 +29,11 @@ class bitfield
   bool operator!=(const T v) { return bits != (S)v; }
   bitfield& setBits(const bitfield v, bool w)
   {
-    if (w)
+    if (w) {
       bits |= v;
-    else
+    } else {
       bits &= ~v;
+    }
     return *this;
   }
   void set(S v) { bits = v; }

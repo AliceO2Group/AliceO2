@@ -25,9 +25,9 @@
 #include <Vc/SimdArray>
 #endif
 
-namespace ali_tpc_common
+namespace o2
 {
-namespace tpc_fast_transformation
+namespace gpu
 {
 
 ///
@@ -60,7 +60,7 @@ namespace tpc_fast_transformation
 ///  spline.getSpline( f, 0., 0. ); // == 3.5
 ///  spline.getSpline( f, 0.1, 0.32 ); // == some interpolated value
 ///
-class IrregularSpline2D3D : public gpu_common::Base::FlatObject
+class IrregularSpline2D3D : public FlatObject
 {
  public:
   /// _____________  Constructors / destructors __________________________
@@ -81,8 +81,8 @@ class IrregularSpline2D3D : public gpu_common::Base::FlatObject
 
   /// Memory alignment
 
-  using gpu_common::Base::FlatObject::getBufferAlignmentBytes;
-  using gpu_common::Base::FlatObject::getClassAlignmentBytes;
+  using FlatObject::getBufferAlignmentBytes;
+  using FlatObject::getClassAlignmentBytes;
 
   /// Construction interface
 
@@ -91,7 +91,7 @@ class IrregularSpline2D3D : public gpu_common::Base::FlatObject
 
   /// Making the data buffer external
 
-  using gpu_common::Base::FlatObject::releaseInternalBuffer;
+  using FlatObject::releaseInternalBuffer;
   void moveBufferTo(char* newBufferPtr);
 
   /// Moving the class with its external buffer to another location
@@ -356,8 +356,7 @@ inline void IrregularSpline2D3D::getSplineVec(const float* correctedData, float 
   getSpline(correctedData, u, v, x, y, z);
 #endif
 }
-
-} // namespace tpc_fast_transformation
-} // namespace ali_tpc_common
+} // namespace gpu
+} // namespace o2
 
 #endif

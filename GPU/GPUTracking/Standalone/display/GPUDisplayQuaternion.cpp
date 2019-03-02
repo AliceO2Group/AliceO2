@@ -13,6 +13,7 @@
 
 #include "GPUDisplay.h"
 #include <cmath>
+using namespace o2::gpu;
 
 void GPUDisplay::createQuaternionFromMatrix(float* v, const float* mat)
 {
@@ -31,12 +32,14 @@ void GPUDisplay::createQuaternionFromMatrix(float* v, const float* mat)
   } else {
     float S = sqrt(std::max(0.f, 1.0f + mat[10] - mat[0] - mat[5])) * 2;
     v[2] = 0.25 * S;
-    if (fabsf(S) < 0.001)
+    if (fabsf(S) < 0.001) {
       S = 1;
+    }
     v[0] = (mat[2] + mat[8]) / S;
     v[1] = (mat[9] + mat[6]) / S;
     v[3] = (mat[4] - mat[1]) / S;
   }
-  if (v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3] < 0.0001)
+  if (v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3] < 0.0001) {
     v[3] = 1;
+  }
 }

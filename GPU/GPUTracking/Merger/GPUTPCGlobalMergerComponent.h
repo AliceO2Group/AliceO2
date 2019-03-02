@@ -28,9 +28,15 @@
 #include "AliHLTComponentBenchmark.h"
 #include "GPUParam.h"
 
+namespace o2
+{
+namespace gpu
+{
 class GPUTPCGMMerger;
 class GPUReconstruction;
 class GPUChainTracking;
+}
+} // namespace o2::gpu
 
 /**
  * @class GPUTPCGlobalMergerComponent
@@ -42,45 +48,45 @@ class GPUTPCGlobalMergerComponent : public AliHLTProcessor
 {
  public:
   /**
-	 * Constructs a GPUTPCGlobalMergerComponent.
-	 */
+ * Constructs a GPUTPCGlobalMergerComponent.
+ */
   GPUTPCGlobalMergerComponent();
 
   /**
-	 * Destructs the GPUTPCGlobalMergerComponent
-	 */
+ * Destructs the GPUTPCGlobalMergerComponent
+ */
   virtual ~GPUTPCGlobalMergerComponent();
 
   // Public functions to implement AliHLTComponent's interface.
   // These functions are required for the registration process
 
   /**
-	 * @copydoc AliHLTComponent::GetComponentID
-	 */
+ * @copydoc AliHLTComponent::GetComponentID
+ */
   const char* GetComponentID();
 
   /**
-	 * @copydoc AliHLTComponent::GetInputDataTypes
-	 */
+ * @copydoc AliHLTComponent::GetInputDataTypes
+ */
   void GetInputDataTypes(AliHLTComponentDataTypeList& list);
   int GetOutputDataTypes(AliHLTComponentDataTypeList& tgtList);
 
   /**
-	 * @copydoc AliHLTComponent::GetOutputDataType
-	 */
+ * @copydoc AliHLTComponent::GetOutputDataType
+ */
   AliHLTComponentDataType GetOutputDataType();
 
   /**
-	 * @copydoc AliHLTComponent::GetOutputDataSize
-	 */
+ * @copydoc AliHLTComponent::GetOutputDataSize
+ */
   virtual void GetOutputDataSize(unsigned long& constBase, double& inputMultiplier);
 
   /**
-	 * @copydoc AliHLTComponent::Spawn
-	 */
+ * @copydoc AliHLTComponent::Spawn
+ */
   AliHLTComponent* Spawn();
 
-  static const GPUTPCGMMerger* GetCurrentMerger();
+  static const o2::gpu::GPUTPCGMMerger* GetCurrentMerger();
 
  protected:
   // Protected functions to implement AliHLTComponent's interface.
@@ -88,21 +94,21 @@ class GPUTPCGlobalMergerComponent : public AliHLTProcessor
   // capabilities of the component.
 
   /**
-	 * @copydoc AliHLTComponent::DoInit
-	 */
+ * @copydoc AliHLTComponent::DoInit
+ */
   int DoInit(int argc, const char** argv);
 
   /**
-	 * @copydoc AliHLTComponent::DoDeinit
-	 */
+ * @copydoc AliHLTComponent::DoDeinit
+ */
   int DoDeinit();
 
   /** reconfigure **/
   int Reconfigure(const char* cdbEntry, const char* chainId);
 
   /**
-	 * @copydoc @ref AliHLTProcessor::DoEvent
-	 */
+ * @copydoc @ref AliHLTProcessor::DoEvent
+ */
   int DoEvent(const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr, AliHLTUInt32_t& size, AliHLTComponentBlockDataList& outputBlocks);
 
   using AliHLTProcessor::DoEvent;
@@ -122,17 +128,17 @@ class GPUTPCGlobalMergerComponent : public AliHLTProcessor
 
   /** the global merger object */
 
-  double fSolenoidBz;                                           // magnetic field
-  double fClusterErrorCorrectionY;                              // correction for the cluster error during pre-fit
-  double fClusterErrorCorrectionZ;                              // correction for the cluster error during pre-fit
-  int fNWays;                                                   // Setting for merger
-  char fNWaysOuter;                                             // Store outer param after n-way fit
-  bool fNoClear;                                                // Do not clear memory after processing an event
-  static const GPUChainTracking* fgCurrentMergerReconstruction; // Pointer to current merger in case memory is not cleared after processing the event
-  AliHLTComponentBenchmark fBenchmark;                          // benchmark
-  GPUParam mParam;                                              // ca params
-  GPUReconstruction* fRec;                                      // GPUReconstruction
-  GPUChainTracking* fChain;
+  double fSolenoidBz;                                                    // magnetic field
+  double fClusterErrorCorrectionY;                                       // correction for the cluster error during pre-fit
+  double fClusterErrorCorrectionZ;                                       // correction for the cluster error during pre-fit
+  int fNWays;                                                            // Setting for merger
+  char fNWaysOuter;                                                      // Store outer param after n-way fit
+  bool fNoClear;                                                         // Do not clear memory after processing an event
+  static const o2::gpu::GPUChainTracking* fgCurrentMergerReconstruction; // Pointer to current merger in case memory is not cleared after processing the event
+  AliHLTComponentBenchmark fBenchmark;                                   // benchmark
+  o2::gpu::GPUParam mParam;                                              // ca params
+  o2::gpu::GPUReconstruction* fRec;                                      // GPUReconstruction
+  o2::gpu::GPUChainTracking* fChain;
 
   ClassDef(GPUTPCGlobalMergerComponent, 0)
 };

@@ -12,3 +12,4 @@
 /// \author Sergey Gorbunov, David Rohr
 
 #include "GPUTPCTrack.h"
+using namespace o2::gpu;

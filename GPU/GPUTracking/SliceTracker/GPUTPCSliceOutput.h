@@ -20,13 +20,17 @@
   #include <cstdlib>
   #ifndef GPUCA_GPUCODE
     #include "GPUTPCSliceOutTrack.h"
-  #else
-    class GPUTPCSliceOutTrack;
   #endif
 #elif defined(__OPENCL__) && !defined(__OPENCLCPP__)
   #define NULL 0
 #endif // clang-format on
 
+namespace o2
+{
+namespace gpu
+{
+
+class GPUTPCSliceOutTrack;
 struct GPUOutputControl;
 
 /**
@@ -83,12 +87,14 @@ class GPUTPCSliceOutput
   unsigned int mNTrackClusters; // total number of track clusters
   size_t mMemorySize;           // Amount of memory really used
 
-// Must be last element of this class, user has to make sure to allocate anough memory consecutive to class memory!
-// This way the whole Slice Output is one consecutive Memory Segment
+  // Must be last element of this class, user has to make sure to allocate anough memory consecutive to class memory!
+  // This way the whole Slice Output is one consecutive Memory Segment
 
 #ifndef GPUCA_GPUCODE
   GPUTPCSliceOutTrack mMemory[0]; // the memory where the pointers above point into
 #endif
 #endif
 };
+}
+} // namespace o2::gpu
 #endif

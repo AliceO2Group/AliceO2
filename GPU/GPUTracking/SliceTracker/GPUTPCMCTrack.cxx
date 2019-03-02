@@ -29,15 +29,18 @@ GPUTPCMCTrack::GPUTPCMCTrack(const TParticle* part) : fPDG(0), fP(0), fPt(0), mN
 {
   //* Constructor from TParticle
 
-  for (int i = 0; i < 7; i++)
+  for (int i = 0; i < 7; i++) {
     fPar[i] = 0;
-  for (int i = 0; i < 7; i++)
+  }
+  for (int i = 0; i < 7; i++) {
     fTPCPar[i] = 0;
+  }
   fP = 0;
   fPt = 0;
 
-  if (!part)
+  if (!part) {
     return;
+  }
   TLorentzVector mom, vtx;
   part->ProductionVertex(vtx);
   part->Momentum(mom);
@@ -54,8 +57,9 @@ GPUTPCMCTrack::GPUTPCMCTrack(const TParticle* part) : fPDG(0), fP(0), fPt(0), mN
   fPDG = part->GetPdgCode();
   if (CAMath::Abs(fPDG) < 100000) {
     TParticlePDG* pPDG = TDatabasePDG::Instance()->GetParticle(fPDG);
-    if (pPDG)
+    if (pPDG) {
       fPar[6] = pPDG->Charge() / 3.0 * pi;
+    }
   }
 }
 
@@ -63,8 +67,9 @@ void GPUTPCMCTrack::SetTPCPar(float X, float Y, float Z, float Px, float Py, flo
 {
   //* Set parameters at TPC entrance
 
-  for (int i = 0; i < 7; i++)
+  for (int i = 0; i < 7; i++) {
     fTPCPar[i] = 0;
+  }
 
   fTPCPar[0] = X;
   fTPCPar[1] = Y;
@@ -77,7 +82,8 @@ void GPUTPCMCTrack::SetTPCPar(float X, float Y, float Z, float Px, float Py, flo
   fTPCPar[6] = 0;
   if (CAMath::Abs(fPDG) < 100000) {
     TParticlePDG* pPDG = TDatabasePDG::Instance()->GetParticle(fPDG);
-    if (pPDG)
+    if (pPDG) {
       fTPCPar[6] = pPDG->Charge() / 3.0 * pi;
+    }
   }
 }

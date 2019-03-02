@@ -31,8 +31,8 @@ class TrackerTraitsCPU : public TrackerTraits
 class VertexerTraits
 {
 };
-} // namespace ITS
-} // namespace o2
+}
+} // namespace o2::ITS
 #endif
 
 #endif

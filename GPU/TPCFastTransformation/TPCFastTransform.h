@@ -20,9 +20,9 @@
 #include "TPCDistortionIRS.h"
 #include <cmath>
 
-namespace ali_tpc_common
+namespace o2
 {
-namespace tpc_fast_transformation
+namespace gpu
 {
 
 ///
@@ -54,7 +54,7 @@ namespace tpc_fast_transformation
 ///
 /// The class is flat C structure. No virtual methods, no ROOT types are used.
 
-class TPCFastTransform : public gpu_common::Base::FlatObject
+class TPCFastTransform : public FlatObject
 {
  public:
   /// The struct contains necessary info for TPC slice
@@ -100,7 +100,7 @@ class TPCFastTransform : public gpu_common::Base::FlatObject
 
   /// Making the data buffer external
 
-  using gpu_common::Base::FlatObject::releaseInternalBuffer;
+  using FlatObject::releaseInternalBuffer;
   void moveBufferTo(char* newBufferPtr);
 
   /// Moving the class with its external buffer to another location
@@ -265,8 +265,9 @@ inline void TPCFastTransform::setTPCrow(int iRow, float x, int nPads, float padW
 
 inline int TPCFastTransform::convPadTimeToUV(int slice, int row, float pad, float time, float& u, float& v, float vertexTime) const
 {
-  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows)
+  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows) {
     return -1;
+  }
 
   bool sideC = (slice >= NumberOfSlices / 2);
 
@@ -285,8 +286,9 @@ inline int TPCFastTransform::convPadTimeToUV(int slice, int row, float pad, floa
 
 inline int TPCFastTransform::convPadTimeToUVInTimeFrame(int slice, int row, float pad, float time, float& u, float& v, float maxTimeBin) const
 {
-  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows)
+  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows) {
     return -1;
+  }
 
   bool sideC = (slice >= NumberOfSlices / 2);
 
@@ -301,18 +303,20 @@ inline int TPCFastTransform::convPadTimeToUVInTimeFrame(int slice, int row, floa
 
   v = (time - maxTimeBin) * (mVdrift + mVdriftCorrY * yLab); // drift length cm
 
-  if (sideC)
+  if (sideC) {
     v += mTPCzLengthC;
-  else
+  } else {
     v += mTPCzLengthA;
+  }
 
   return 0;
 }
 
 inline int TPCFastTransform::convUVtoPadTime(int slice, int row, float u, float v, float& pad, float& time) const
 {
-  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows)
+  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows) {
     return -1;
+  }
 
   bool sideC = (slice >= NumberOfSlices / 2);
 
@@ -330,8 +334,9 @@ inline int TPCFastTransform::convUVtoPadTime(int slice, int row, float u, float 
 
 inline int TPCFastTransform::convUVtoYZ(int slice, int row, float x, float u, float v, float& y, float& z) const
 {
-  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows)
+  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows) {
     return -1;
+  }
 
   bool sideC = (slice >= NumberOfSlices / 2);
 
@@ -350,8 +355,9 @@ inline int TPCFastTransform::convUVtoYZ(int slice, int row, float x, float u, fl
 
 inline int TPCFastTransform::convYZtoUV(int slice, int row, float x, float y, float z, float& u, float& v) const
 {
-  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows)
+  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows) {
     return -1;
+  }
 
   bool sideC = (slice >= NumberOfSlices / 2);
 
@@ -369,8 +375,9 @@ inline int TPCFastTransform::convYZtoUV(int slice, int row, float x, float y, fl
 inline int TPCFastTransform::getTOFcorrection(int slice, int row, float x, float y, float z, float& dz) const
 {
   // calculate time of flight correction for  z coordinate
-  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows)
+  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows) {
     return -1;
+  }
   bool sideC = (slice >= NumberOfSlices / 2);
   float distZ = z - mPrimVtxZ;
   float dv = -sqrt(x * x + y * y + distZ * distZ) * mTOFcorr;
@@ -386,8 +393,9 @@ inline int TPCFastTransform::Transform(int slice, int row, float pad, float time
   /// taking calibration + alignment into account.
   ///
 
-  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows)
+  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows) {
     return -1;
+  }
 
   const RowInfo& rowInfo = getRowInfo(row);
   // const SliceInfo &sliceInfo = getSliceInfo( slice );
@@ -421,8 +429,9 @@ inline int TPCFastTransform::TransformInTimeFrame(int slice, int row, float pad,
   /// Distortions and Time-Of-Flight correction are not alpplied.
   ///
 
-  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows)
+  if (slice < 0 || slice >= NumberOfSlices || row < 0 || row >= mNumberOfRows) {
     return -1;
+  }
 
   const RowInfo& rowInfo = getRowInfo(row);
 
@@ -432,8 +441,7 @@ inline int TPCFastTransform::TransformInTimeFrame(int slice, int row, float pad,
   convUVtoYZ(slice, row, x, u, v, y, z);
   return 0;
 }
-
-} // namespace tpc_fast_transformation
-} // namespace ali_tpc_common
+} // namespace gpu
+} // namespace o2
 
 #endif

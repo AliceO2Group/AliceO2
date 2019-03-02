@@ -36,68 +36,99 @@ extern "C" int gl3wInit();
 #include "Framework/DebugGUI.h"
 #endif
 
+using namespace o2::gpu;
+
 static GPUDisplayBackendGlfw* me = nullptr;
 
 int GPUDisplayBackendGlfw::GetKey(int key)
 {
-  if (key == GLFW_KEY_KP_SUBTRACT)
+  if (key == GLFW_KEY_KP_SUBTRACT) {
     return ('-');
-  if (key == GLFW_KEY_KP_ADD)
+  }
+  if (key == GLFW_KEY_KP_ADD) {
     return ('+');
-  if (key == GLFW_KEY_LEFT_SHIFT || key == GLFW_KEY_RIGHT_SHIFT)
+  }
+  if (key == GLFW_KEY_LEFT_SHIFT || key == GLFW_KEY_RIGHT_SHIFT) {
     return (KEY_SHIFT);
-  if (key == GLFW_KEY_LEFT_ALT || key == GLFW_KEY_RIGHT_ALT)
+  }
+  if (key == GLFW_KEY_LEFT_ALT || key == GLFW_KEY_RIGHT_ALT) {
     return (KEY_ALT);
-  if (key == GLFW_KEY_LEFT_CONTROL || key == GLFW_KEY_RIGHT_CONTROL)
+  }
+  if (key == GLFW_KEY_LEFT_CONTROL || key == GLFW_KEY_RIGHT_CONTROL) {
     return (KEY_CTRL);
-  if (key == GLFW_KEY_UP)
+  }
+  if (key == GLFW_KEY_UP) {
     return (KEY_UP);
-  if (key == GLFW_KEY_DOWN)
+  }
+  if (key == GLFW_KEY_DOWN) {
     return (KEY_DOWN);
-  if (key == GLFW_KEY_LEFT)
+  }
+  if (key == GLFW_KEY_LEFT) {
     return (KEY_LEFT);
-  if (key == GLFW_KEY_RIGHT)
+  }
+  if (key == GLFW_KEY_RIGHT) {
     return (KEY_RIGHT);
-  if (key == GLFW_KEY_PAGE_UP)
+  }
+  if (key == GLFW_KEY_PAGE_UP) {
     return (KEY_PAGEUP);
-  if (key == GLFW_KEY_PAGE_DOWN)
+  }
+  if (key == GLFW_KEY_PAGE_DOWN) {
     return (KEY_PAGEDOWN);
-  if (key == GLFW_KEY_ESCAPE)
+  }
+  if (key == GLFW_KEY_ESCAPE) {
     return (KEY_ESCAPE);
-  if (key == GLFW_KEY_SPACE)
+  }
+  if (key == GLFW_KEY_SPACE) {
     return (KEY_SPACE);
-  if (key == GLFW_KEY_HOME)
+  }
+  if (key == GLFW_KEY_HOME) {
     return (KEY_HOME);
-  if (key == GLFW_KEY_END)
+  }
+  if (key == GLFW_KEY_END) {
     return (KEY_END);
-  if (key == GLFW_KEY_INSERT)
+  }
+  if (key == GLFW_KEY_INSERT) {
     return (KEY_INSERT);
-  if (key == GLFW_KEY_ENTER)
+  }
+  if (key == GLFW_KEY_ENTER) {
     return (KEY_ENTER);
-  if (key == GLFW_KEY_F1)
+  }
+  if (key == GLFW_KEY_F1) {
     return (KEY_F1);
-  if (key == GLFW_KEY_F2)
+  }
+  if (key == GLFW_KEY_F2) {
     return (KEY_F2);
-  if (key == GLFW_KEY_F3)
+  }
+  if (key == GLFW_KEY_F3) {
     return (KEY_F3);
-  if (key == GLFW_KEY_F4)
+  }
+  if (key == GLFW_KEY_F4) {
     return (KEY_F4);
-  if (key == GLFW_KEY_F5)
+  }
+  if (key == GLFW_KEY_F5) {
     return (KEY_F5);
-  if (key == GLFW_KEY_F6)
+  }
+  if (key == GLFW_KEY_F6) {
     return (KEY_F6);
-  if (key == GLFW_KEY_F7)
+  }
+  if (key == GLFW_KEY_F7) {
     return (KEY_F7);
-  if (key == GLFW_KEY_F8)
+  }
+  if (key == GLFW_KEY_F8) {
     return (KEY_F8);
-  if (key == GLFW_KEY_F9)
+  }
+  if (key == GLFW_KEY_F9) {
     return (KEY_F9);
-  if (key == GLFW_KEY_F10)
+  }
+  if (key == GLFW_KEY_F10) {
     return (KEY_F10);
-  if (key == GLFW_KEY_F11)
+  }
+  if (key == GLFW_KEY_F11) {
     return (KEY_F11);
-  if (key == GLFW_KEY_F12)
+  }
+  if (key == GLFW_KEY_F12) {
     return (KEY_F12);
+  }
   return (0);
 }
 
@@ -106,16 +137,18 @@ void GPUDisplayBackendGlfw::GetKey(int key, int scancode, int mods, int& keyOut,
   int specialKey = GetKey(key);
   const char* str = glfwGetKeyName(key, scancode);
   char localeKey = str ? str[0] : 0;
-  if ((mods & GLFW_MOD_SHIFT) && localeKey >= 'a' && localeKey <= 'z')
+  if ((mods & GLFW_MOD_SHIFT) && localeKey >= 'a' && localeKey <= 'z') {
     localeKey += 'A' - 'a';
+  }
   // printf("Key: key %d (%c) -> %d (%c) special %d (%c)\n", key, (char) key, (int) localeKey, localeKey, specialKey, (char) specialKey);
 
   if (specialKey) {
     keyOut = keyPressOut = specialKey;
   } else {
     keyOut = keyPressOut = localeKey;
-    if (keyPressOut >= 'a' && keyPressOut <= 'z')
+    if (keyPressOut >= 'a' && keyPressOut <= 'z') {
       keyPressOut += 'A' - 'a';
+    }
   }
 }
 
@@ -129,8 +162,9 @@ void GPUDisplayBackendGlfw::key_callback(GLFWwindow* window, int key, int scanco
     me->mKeys[keyPress] = true;
     me->mKeysShift[keyPress] = mods & GLFW_MOD_SHIFT;
   } else if (action == GLFW_RELEASE) {
-    if (me->mKeys[keyPress])
+    if (me->mKeys[keyPress]) {
       me->HandleKeyRelease(handleKey);
+    }
     me->mKeys[keyPress] = false;
     me->mKeysShift[keyPress] = false;
   }
@@ -183,8 +217,9 @@ int GPUDisplayBackendGlfw::OpenGLMain()
 {
   me = this;
 
-  if (!glfwInit())
+  if (!glfwInit()) {
     return (-1);
+  }
   glfwSetErrorCallback(error_callback);
 
   glfwWindowHint(GLFW_MAXIMIZED, 1);
@@ -212,17 +247,21 @@ int GPUDisplayBackendGlfw::OpenGLMain()
   //#ifdef GPUCA_O2_LIB //Use GL3W for O2, GLEW otherwise
   //	if (gl3wInit()) return(-1);
   //#else
-  if (glewInit())
+  if (glewInit()) {
     return (-1);
-//#endif
+  }
+    //#endif
 
 #ifdef GPUCA_O2_LIB
-  if (gl3wInit())
+  if (gl3wInit()) {
     return (-1); // Hack: We have to initialize gl3w as well, as the DebugGUI uses it.
+  }
 #endif
 
-  if (InitGL())
+  if (InitGL()) {
     return (1);
+  }
+
 #ifdef GPUCA_O2_LIB
   ImGui_ImplGlfwGL3_Init(mWindow, false);
 #endif
@@ -233,8 +272,9 @@ int GPUDisplayBackendGlfw::OpenGLMain()
 #else
   while (!glfwWindowShouldClose(mWindow)) {
     HandleSendKey();
-    if (DrawGLScene())
+    if (DrawGLScene()) {
       return (1);
+    }
     glfwSwapBuffers(mWindow);
     glfwPollEvents();
   }
@@ -256,18 +296,21 @@ int GPUDisplayBackendGlfw::OpenGLMain()
 void GPUDisplayBackendGlfw::DisplayExit()
 {
   pthread_mutex_lock(&mSemLockExit);
-  if (mGlfwRunning)
+  if (mGlfwRunning) {
     glfwSetWindowShouldClose(mWindow, true);
+  }
   pthread_mutex_unlock(&mSemLockExit);
-  while (mGlfwRunning)
+  while (mGlfwRunning) {
     usleep(10000);
+  }
 }
 
 void GPUDisplayBackendGlfw::OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton)
 {
 #ifdef GPUCA_O2_LIB
-  if (fromBotton)
+  if (fromBotton) {
     y = ImGui::GetWindowHeight() - y;
+  }
   y -= 20;
   ImGui::SetCursorPos(ImVec2(x, y));
   ImGui::TextColored(ImVec4(r, g, b, a), "%s", s);
@@ -290,10 +333,11 @@ void GPUDisplayBackendGlfw::SwitchFullscreen(bool set)
 
 void GPUDisplayBackendGlfw::ToggleMaximized(bool set)
 {
-  if (set)
+  if (set) {
     glfwMaximizeWindow(mWindow);
-  else
+  } else {
     glfwRestoreWindow(mWindow);
+  }
 }
 
 void GPUDisplayBackendGlfw::SetVSync(bool enable) { glfwSwapInterval(enable); }

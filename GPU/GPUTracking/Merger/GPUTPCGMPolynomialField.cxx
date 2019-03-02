@@ -12,6 +12,7 @@
 /// \author Sergey Gorbunov, David Rohr
 
 #include "GPUTPCGMPolynomialField.h"
+using namespace o2::gpu;
 
 #if defined(GPUCA_ALIROOT_LIB) & !defined(GPUCA_GPUCODE)
 
@@ -35,28 +36,31 @@ void GPUTPCGMPolynomialField::Print() const
   cout << " TpcBx[NTPCM] = { ";
   for (int i = 0; i < NTPCM; i++) {
     cout << mTpcBx[i];
-    if (i < NTPCM - 1)
+    if (i < NTPCM - 1) {
       cout << ", ";
-    else
+    } else {
       cout << " };" << endl;
+    }
   }
 
   cout << " TpcBy[NTPCM] = { ";
   for (int i = 0; i < NTPCM; i++) {
     cout << mTpcBy[i];
-    if (i < NTPCM - 1)
+    if (i < NTPCM - 1) {
       cout << ", ";
-    else
+    } else {
       cout << " };" << endl;
+    }
   }
 
   cout << " TpcBz[NTPCM] = { ";
   for (int i = 0; i < NTPCM; i++) {
     cout << mTpcBz[i];
-    if (i < NTPCM - 1)
+    if (i < NTPCM - 1) {
       cout << ", ";
-    else
+    } else {
       cout << " };" << endl;
+    }
   }
 
   cout << "TRD field: \n"
@@ -65,28 +69,31 @@ void GPUTPCGMPolynomialField::Print() const
   cout << " TrdBx[NTRDM] = { ";
   for (int i = 0; i < NTRDM; i++) {
     cout << mTrdBx[i];
-    if (i < NTRDM - 1)
+    if (i < NTRDM - 1) {
       cout << ", ";
-    else
+    } else {
       cout << " };" << endl;
+    }
   }
 
   cout << " TrdBy[NTRDM] = { ";
   for (int i = 0; i < NTRDM; i++) {
     cout << mTrdBy[i];
-    if (i < NTRDM - 1)
+    if (i < NTRDM - 1) {
       cout << ", ";
-    else
+    } else {
       cout << " };" << endl;
+    }
   }
 
   cout << " TrdBz[NTRDM] = { ";
   for (int i = 0; i < NTRDM; i++) {
     cout << mTrdBz[i];
-    if (i < NTRDM - 1)
+    if (i < NTRDM - 1) {
       cout << ", ";
-    else
+    } else {
       cout << " };" << endl;
+    }
   }
 
   cout << "ITS field: \n"
@@ -95,28 +102,31 @@ void GPUTPCGMPolynomialField::Print() const
   cout << " ItsBx[NITSM] = { ";
   for (int i = 0; i < NITSM; i++) {
     cout << mItsBx[i];
-    if (i < NITSM - 1)
+    if (i < NITSM - 1) {
       cout << ", ";
-    else
+    } else {
       cout << " };" << endl;
+    }
   }
 
   cout << " ItsBy[NITSM] = { ";
   for (int i = 0; i < NITSM; i++) {
     cout << mItsBy[i];
-    if (i < NITSM - 1)
+    if (i < NITSM - 1) {
       cout << ", ";
-    else
+    } else {
       cout << " };" << endl;
+    }
   }
 
   cout << " ItsBz[NITSM] = { ";
   for (int i = 0; i < NITSM; i++) {
     cout << mItsBz[i];
-    if (i < NITSM - 1)
+    if (i < NITSM - 1) {
       cout << ", ";
-    else
+    } else {
       cout << " };" << endl;
+    }
   }
 }
 

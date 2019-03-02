@@ -67,9 +67,8 @@ Cluster::Cluster(const int layerIndex, const float3& primaryVertex, const Cluste
 }
 
 TrackingFrameInfo::TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, std::array<float, 2>&& posTF,
-    std::array<float, 3>&& covTF)
-  : xCoordinate{ x }, yCoordinate{ y }, zCoordinate{ z },
-    xTrackingFrame{ xTF }, alphaTrackingFrame{ alpha }, positionTrackingFrame{ posTF }, covarianceTrackingFrame{ covTF }
+                                     std::array<float, 3>&& covTF)
+  : xCoordinate{ x }, yCoordinate{ y }, zCoordinate{ z }, xTrackingFrame{ xTF }, alphaTrackingFrame{ alpha }, positionTrackingFrame{ posTF }, covarianceTrackingFrame{ covTF }
 {
   // Nothing to do
 }

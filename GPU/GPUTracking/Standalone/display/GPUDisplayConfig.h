@@ -19,6 +19,12 @@
 #endif
 #include "utils/qconfig.h"
 
+namespace o2
+{
+namespace gpu
+{
 typedef structConfigGL GPUDisplayConfig;
+}
+} // namespace o2::gpu
 
 #endif

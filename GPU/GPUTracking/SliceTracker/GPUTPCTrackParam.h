@@ -18,6 +18,10 @@
 #include "GPUTPCDef.h"
 #include "GPUCommonMath.h"
 
+namespace o2
+{
+namespace gpu
+{
 class GPUTPCTrackLinearisation;
 
 /**
@@ -173,5 +177,7 @@ GPUd() MEM_CLASS_PRE() inline void MEM_LG(GPUTPCTrackParam)::InitParam()
   SetCov(14, 1000.f);
   SetZOffset(0);
 }
+}
+} // namespace o2::gpu
 
 #endif // GPUTPCTRACKPARAM_H

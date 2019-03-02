@@ -39,14 +39,9 @@
 
 #define DOUBLE 1
 
-GPUTPCGMOfflineFitter::GPUTPCGMOfflineFitter()
-  : fCAParam()
-{
-}
+GPUTPCGMOfflineFitter::GPUTPCGMOfflineFitter() : fCAParam() {}
 
-GPUTPCGMOfflineFitter::~GPUTPCGMOfflineFitter()
-{
-}
+GPUTPCGMOfflineFitter::~GPUTPCGMOfflineFitter() {}
 
 void GPUTPCGMOfflineFitter::Initialize(const GPUParam& hltParam, Long_t TimeStamp, bool isMC)
 {
@@ -72,7 +67,7 @@ void GPUTPCGMOfflineFitter::Initialize(const GPUParam& hltParam, Long_t TimeStam
   tpcRec->SetRecoParam(AliTPCcalibDB::Instance()->GetTransform()->GetCurrentRecoParam());
 
   //(this)->~AliTPCtracker();   //call the destructor explicitly
-  //new (this) AliTPCtracker(param); // call the constructor
+  // new (this) AliTPCtracker(param); // call the constructor
 
   AliTPCtracker::fSectors = AliTPCtracker::fInnerSec;
   // AliTPCReconstructor::ParseOptions(tracker);  : not important, it only set useHLTClusters flag
@@ -82,11 +77,11 @@ void GPUTPCGMOfflineFitter::Initialize(const GPUParam& hltParam, Long_t TimeStam
 
 void GPUTPCGMOfflineFitter::RefitTrack(GPUTPCGMMergedTrack& track, const GPUTPCGMPolynomialField* field, GPUTPCGMMergedTrackHit* clusters)
 {
-
   // copy of HLT RefitTrack() with calling of the offline fit utilities
 
-  if (!track.OK())
+  if (!track.OK()) {
     return;
+  }
 
   int nTrackHits = track.NClusters();
   cout << "call FitOffline .. " << endl;
@@ -96,8 +91,9 @@ void GPUTPCGMOfflineFitter::RefitTrack(GPUTPCGMMergedTrack& track, const GPUTPCG
   GPUTPCGMTrackParam t = track.Param();
   float Alpha = track.Alpha();
 
-  if (fabsf(t.QPt()) < 1.e-4)
+  if (fabsf(t.QPt()) < 1.e-4) {
     t.QPt() = 1.e-4;
+  }
 
   track.SetOK(ok);
   track.SetNClustersFitted(nTrackHits);
@@ -140,7 +136,6 @@ int GPUTPCGMOfflineFitter::CreateTPCclusterMI(const GPUTPCGMMergedTrackHit& h, A
 
 bool GPUTPCGMOfflineFitter::FitOffline(const GPUTPCGMPolynomialField* field, GPUTPCGMMergedTrack& gmtrack, GPUTPCGMMergedTrackHit* clusters, int& N)
 {
-
   const float maxSinPhi = GPUCA_MAX_SIN_PHI;
 
   int maxN = N;
@@ -167,14 +162,15 @@ bool GPUTPCGMOfflineFitter::FitOffline(const GPUTPCGMPolynomialField* field, GPU
   // find last leg
   int ihitStart = 0;
   for (int ihit = 0; ihit < maxN; ihit++) {
-    if (clusters[ihit].leg != clusters[ihitStart].leg)
+    if (clusters[ihit].leg != clusters[ihitStart].leg) {
       ihitStart = ihit;
+    }
   }
 
   for (int ihit = ihitStart; ihit < maxN; ihit++) {
-
-    if (clusters[ihit].fState < 0)
+    if (clusters[ihit].fState < 0) {
       continue; // hit is excluded from fit
+    }
     float xx = clusters[ihit].fX;
     float yy = clusters[ihit].fY;
     float zz = clusters[ihit].fZ;
@@ -182,8 +178,9 @@ bool GPUTPCGMOfflineFitter::FitOffline(const GPUTPCGMPolynomialField* field, GPU
     if (DOUBLE && ihit + 1 >= 0 && ihit + 1 < maxN && clusters[ihit].row == clusters[ihit + 1].row) {
       float count = 1.;
       do {
-        if (clusters[ihit].slice != clusters[ihit + 1].slice || clusters[ihit].leg != clusters[ihit + 1].leg || fabsf(clusters[ihit].fY - clusters[ihit + 1].fY) > 4. || fabsf(clusters[ihit].fZ - clusters[ihit + 1].fZ) > 4.)
+        if (clusters[ihit].slice != clusters[ihit + 1].slice || clusters[ihit].leg != clusters[ihit + 1].leg || fabsf(clusters[ihit].fY - clusters[ihit + 1].fY) > 4. || fabsf(clusters[ihit].fZ - clusters[ihit + 1].fZ) > 4.) {
           break;
+        }
         ihit += 1;
         xx += clusters[ihit].fX;
         yy += clusters[ihit].fY;
@@ -199,8 +196,9 @@ bool GPUTPCGMOfflineFitter::FitOffline(const GPUTPCGMPolynomialField* field, GPU
 
     AliTPCclusterMI cluster;
     Int_t tpcindex = CreateTPCclusterMI(clusters[ihit], cluster);
-    if (tpcindex < 0)
+    if (tpcindex < 0) {
       continue;
+    }
     Double_t sy2 = 0, sz2 = 0;
     AliTPCtracker::ErrY2Z2(&seed, &cluster, sy2, sz2);
     cluster.SetSigmaY2(sy2);
@@ -210,10 +208,11 @@ bool GPUTPCGMOfflineFitter::FitOffline(const GPUTPCGMPolynomialField* field, GPU
 
     Int_t iRow = clusters[ihit].row;
 
-    if (iRow < GPUTPCGeometry::GetNRowLow())
+    if (iRow < GPUTPCGeometry::GetNRowLow()) {
       AliTPCtracker::fSectors = AliTPCtracker::fInnerSec;
-    else
+    } else {
       AliTPCtracker::fSectors = AliTPCtracker::fOuterSec;
+    }
 
     seed.SetClusterIndex2(iRow, tpcindex);
     seed.SetClusterPointer(iRow, &cluster);
@@ -221,19 +220,19 @@ bool GPUTPCGMOfflineFitter::FitOffline(const GPUTPCGMPolynomialField* field, GPU
 
     int retVal;
     float threshold = 3. + (lastUpdateX >= 0 ? (fabsf(seed.GetX() - lastUpdateX) / 2) : 0.);
-    if (N > 2 && (fabsf(yy - seed.GetY()) > threshold || fabsf(zz - seed.GetZ()) > threshold))
+    if (N > 2 && (fabsf(yy - seed.GetY()) > threshold || fabsf(zz - seed.GetZ()) > threshold)) {
       retVal = 2;
-    else {
-
+    } else {
       Int_t err = !(AliTPCtracker::FollowToNext(seed, iRow));
 
       const int err2 = N > 0 && CAMath::Abs(seed.GetSnp()) >= maxSinForUpdate;
       if (err || err2) {
         if (markNonFittedClusters) {
-          if (N > 0 && (fabsf(yy - seed.GetY()) > 3 || fabsf(zz - seed.GetZ()) > 3))
+          if (N > 0 && (fabsf(yy - seed.GetY()) > 3 || fabsf(zz - seed.GetZ()) > 3)) {
             clusters[ihit].fState = -2;
-          else if (err && err >= -3)
+          } else if (err && err >= -3) {
             clusters[ihit].fState = -1;
+          }
         }
         continue;
       }
@@ -248,13 +247,14 @@ bool GPUTPCGMOfflineFitter::FitOffline(const GPUTPCGMPolynomialField* field, GPU
       covYYUpd = seed.GetCovariance()[0];
       ihitStart = ihit;
       N++;
-    } else if (retVal == 2) // cluster far away form the track
-    {
-      if (markNonFittedClusters)
+    } else if (retVal == 2) { // cluster far away form the track
+      if (markNonFittedClusters) {
         clusters[ihit].fState = -2;
-    } else
+      }
+    } else {
       break; // bad chi2 for the whole track, stop the fit
-  }          // end loop over clusters
+    }
+  } // end loop over clusters
 
   GPUTPCGMTrackParam t;
   t.SetExtParam(seed);
@@ -264,26 +264,27 @@ bool GPUTPCGMOfflineFitter::FitOffline(const GPUTPCGMPolynomialField* field, GPU
   t.ConstrainSinPhi();
 
   bool ok1 = N >= TRACKLET_SELECTOR_MIN_HITS(t.GetQPt()) && t.CheckNumericalQuality(covYYUpd);
-  if (!ok1)
+  if (!ok1) {
     return (false);
+  }
 
   //   const float kDeg2Rad = 3.1415926535897 / 180.f;
   const float kSectAngle = 2 * 3.1415926535897 / 18.f;
 
   if (fCAParam.GetTrackReferenceX() <= 500) {
-
     GPUTPCGMPropagator prop;
     //    prop.SetMaterial( kRadLen, kRho );
     prop.SetPolynomialField(field);
     prop.SetMaxSinPhi(maxSinPhi);
     prop.SetToyMCEventsFlag(fCAParam.ToyMCEventsFlag());
 
-    for (int k = 0; k < 3; k++) //max 3 attempts
+    for (int k = 0; k < 3; k++) // max 3 attempts
     {
       int err = prop.PropagateToXAlpha(fCAParam.GetTrackReferenceX(), Alpha, 0);
       t.ConstrainSinPhi();
-      if (fabsf(t.GetY()) <= t.GetX() * tan(kSectAngle / 2.f))
+      if (fabsf(t.GetY()) <= t.GetX() * tan(kSectAngle / 2.f)) {
         break;
+      }
       float dAngle = floor(atan2(t.GetY(), t.GetX()) / kDeg2Rad / 20.f + 0.5f) * kSectAngle;
       Alpha += dAngle;
       if (err || k == 2) {
@@ -296,10 +297,11 @@ bool GPUTPCGMOfflineFitter::FitOffline(const GPUTPCGMPolynomialField* field, GPU
     t.Rotate(dAngle);
     Alpha += dAngle;
   }
-  if (Alpha > 3.1415926535897)
+  if (Alpha > 3.1415926535897) {
     Alpha -= 2 * 3.1415926535897;
-  else if (Alpha <= -3.1415926535897)
+  } else if (Alpha <= -3.1415926535897) {
     Alpha += 2 * 3.1415926535897;
+  }
 
   gmtrack.Param() = t;
   gmtrack.Alpha() = Alpha;

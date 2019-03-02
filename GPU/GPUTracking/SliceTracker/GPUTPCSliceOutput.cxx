@@ -15,6 +15,8 @@
 #include "GPUTPCSliceOutput.h"
 #include "GPUCommonMath.h"
 
+using namespace o2::gpu;
+
 unsigned int GPUTPCSliceOutput::EstimateSize(unsigned int nOfTracks, unsigned int nOfTrackClusters)
 {
   // calculate the amount of memory [bytes] needed for the event
@@ -30,14 +32,15 @@ void GPUTPCSliceOutput::Allocate(GPUTPCSliceOutput*& ptrOutput, int nTracks, int
   if (outputControl->OutputType != GPUOutputControl::AllocateInternal) {
     if (outputControl->OutputMaxSize - outputControl->Offset < memsize) {
       outputControl->EndOfSpace = 1;
-      ptrOutput = NULL;
+      ptrOutput = nullptr;
       return;
     }
     ptrOutput = reinterpret_cast<GPUTPCSliceOutput*>(outputControl->OutputPtr + outputControl->Offset);
     outputControl->Offset += memsize;
   } else {
-    if (internalMemory)
+    if (internalMemory) {
       free(internalMemory);
+    }
     internalMemory = malloc(memsize);
     ptrOutput = reinterpret_cast<GPUTPCSliceOutput*>(internalMemory);
   }

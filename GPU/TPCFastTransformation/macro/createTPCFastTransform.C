@@ -10,7 +10,7 @@
  * .x initTPCcalibration.C("alien://Folder=/alice/data/2015/OCDB",246984,1)
  *  gSystem->Load("libAliTPCFastTransformation")
  * .L createTPCFastTransform.C++
- * ali_tpc_common::tpc_fast_transformation::TPCFastTransform fastTransform;
+ * o2::gpu::TPCFastTransform fastTransform;
  * createTPCFastTransform(fastTransform);
  *
  * </pre>
@@ -28,7 +28,7 @@
 #include "TPCFastTransformQA.h"
 
 using namespace std;
-using namespace ali_tpc_common::tpc_fast_transformation;
+using namespace o2::gpu;
 
 int createTPCFastTransform(TPCFastTransform& fastTransform)
 {
@@ -60,7 +60,7 @@ int createTPCFastTransform(TPCFastTransform& fastTransform)
 
   // qa
 
-  // ali_tpc_common::tpc_fast_transformation::TPCFastTransformQA qa;
+  // o2::gpu::TPCFastTransformQA qa;
   // qa.doQA( timeStamp );
 
   return 0;

@@ -1,17 +1,17 @@
 /**************************************************************************
- * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
- *                                                                        *
- * Author: The ALICE Off-line Project.                                    *
- * Contributors are mentioned in the code where appropriate.              *
- *                                                                        *
- * Permission to use, copy, modify and distribute this software and its   *
- * documentation strictly for non-commercial purposes is hereby granted   *
- * without fee, provided that the above copyright notice appears in all   *
- * copies and that both the copyright notice and this permission notice   *
- * appear in the supporting documentation. The authors make no claims     *
- * about the suitability of this software for any purpose. It is          *
- * provided "as is" without express or implied warranty.                  *
- **************************************************************************/
+* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+*                                                                        *
+* Author: The ALICE Off-line Project.                                    *
+* Contributors are mentioned in the code where appropriate.              *
+*                                                                        *
+* Permission to use, copy, modify and distribute this software and its   *
+* documentation strictly for non-commercial purposes is hereby granted   *
+* without fee, provided that the above copyright notice appears in all   *
+* copies and that both the copyright notice and this permission notice   *
+* appear in the supporting documentation. The authors make no claims     *
+* about the suitability of this software for any purpose. It is          *
+* provided "as is" without express or implied warranty.                  *
+**************************************************************************/
 
 /// \class AliTPCLookUpTable3DInterpolatorD
 /// \brief Wrap up look-up table for correction/distortion integral or derivative (electric field)
@@ -46,40 +46,40 @@ ClassImp(AliTPCLookUpTable3DInterpolatorD)
 /// \param zMax Double_t maximal value of Z
 
 /**
-AliTPCLookUpTable3DInterpolatorD::AliTPCLookUpTable3DInterpolatorD(Int_t nRRow, Double_t rMin, Double_t rMax,
+   AliTPCLookUpTable3DInterpolatorD::AliTPCLookUpTable3DInterpolatorD(Int_t nRRow, Double_t rMin, Double_t rMax,
                                                                    Int_t nPhiSlice,
                                                                    Double_t phiMin, Double_t phiMax, Int_t nZColumn,
                                                                    Double_t zMin, Double_t zMax) {
-  fOrder = 1;
-  fIsAllocatingLookUp = kTRUE;
+   fOrder = 1;
+   fIsAllocatingLookUp = kTRUE;
 
-  fNR = nRRow;
-  fNPhi = nPhiSlice;
-  fNZ = nZColumn;
+   fNR = nRRow;
+   fNPhi = nPhiSlice;
+   fNZ = nZColumn;
 
-  fLookUpR = new TMatrixD *[fNPhi];
-  fLookUpPhi = new TMatrixD *[fNPhi];
-  fLookUpZ = new TMatrixD *[fNPhi];
+   fLookUpR = new TMatrixD *[fNPhi];
+   fLookUpPhi = new TMatrixD *[fNPhi];
+   fLookUpZ = new TMatrixD *[fNPhi];
 
-  for (Int_t m = 0; m < fNPhi; m++) {
+   for (Int_t m = 0; m < fNPhi; m++) {
     fLookUpR[m] = new TMatrixD(fNR, fNZ);
     fLookUpPhi[m] = new TMatrixD(fNR, fNZ);
     fLookUpZ[m] = new TMatrixD(fNR, fNZ);
-  }
+   }
 
-  fRList = new Double_t[fNR];
-  fPhiList = new Double_t[fNPhi];
-  fZList = new Double_t[fNZ];
+   fRList = new Double_t[fNR];
+   fPhiList = new Double_t[fNPhi];
+   fZList = new Double_t[fNZ];
 
-  Double_t dR = (rMax - rMin) / fNR;
-  Double_t dPhi = (phiMax - phiMin) / fNPhi;
-  Double_t dZ = (zMax - zMin) / fNPhi;
+   Double_t dR = (rMax - rMin) / fNR;
+   Double_t dPhi = (phiMax - phiMin) / fNPhi;
+   Double_t dZ = (zMax - zMin) / fNPhi;
 
-  for (Int_t m = 0; m < fNPhi; m++) fPhiList[m] = phiMin + dPhi * m;
-  for (Int_t m = 0; m < fNR; m++) fRList[m] = rMin + dR * m;
-  for (Int_t m = 0; m < fNZ; m++) fZList[m] = zMin + dZ * m;
-}
-**/
+   for (Int_t m = 0; m < fNPhi; m++) fPhiList[m] = phiMin + dPhi * m;
+   for (Int_t m = 0; m < fNR; m++) fRList[m] = rMin + dR * m;
+   for (Int_t m = 0; m < fNZ; m++) fZList[m] = zMin + dZ * m;
+   }
+ **/
 
 /// Constructor
 ///

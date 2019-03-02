@@ -3,7 +3,6 @@
 
 class HighResTimer
 {
-
  public:
   HighResTimer() = default;
   ~HighResTimer() = default;

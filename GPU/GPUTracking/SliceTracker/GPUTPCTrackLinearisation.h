@@ -16,6 +16,10 @@
 
 #include "GPUTPCTrackParam.h"
 
+namespace o2
+{
+namespace gpu
+{
 /**
  * @class GPUTPCTrackLinearisation
  *
@@ -64,13 +68,15 @@ class GPUTPCTrackLinearisation
 
 GPUd() MEM_CLASS_PRE2() inline GPUTPCTrackLinearisation::GPUTPCTrackLinearisation(const MEM_LG2(GPUTPCTrackParam) & t) : mSinPhi(t.SinPhi()), mCosPhi(0), mDzDs(t.DzDs()), mQPt(t.QPt())
 {
-  if (mSinPhi > GPUCA_MAX_SIN_PHI)
+  if (mSinPhi > GPUCA_MAX_SIN_PHI) {
     mSinPhi = GPUCA_MAX_SIN_PHI;
-  else if (mSinPhi < -GPUCA_MAX_SIN_PHI)
+  } else if (mSinPhi < -GPUCA_MAX_SIN_PHI) {
     mSinPhi = -GPUCA_MAX_SIN_PHI;
+  }
   mCosPhi = CAMath::Sqrt(1 - mSinPhi * mSinPhi);
-  if (t.SignCosPhi() < 0)
+  if (t.SignCosPhi() < 0) {
     mCosPhi = -mCosPhi;
+  }
 }
 
 GPUd() inline void GPUTPCTrackLinearisation::Set(float SinPhi1, float CosPhi1, float DzDs1, float QPt1)
@@ -80,5 +86,7 @@ GPUd() inline void GPUTPCTrackLinearisation::Set(float SinPhi1, float CosPhi1, f
   SetDzDs(DzDs1);
   SetQPt(QPt1);
 }
+}
+} // namespace o2::gpu
 
 #endif // GPUTPCTRACKLINEARISATION_H

@@ -16,6 +16,7 @@
 #include "GPUTPCNeighboursFinder.h"
 #include "GPUTPCTracker.h"
 #include "GPUCommonMath.h"
+using namespace o2::gpu;
 
 template <>
 GPUd() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & s, workerType& tracker)
@@ -46,7 +47,7 @@ GPUd() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int
         s.mIRowUp = s.mIRow + 2;
         s.mIRowDn = s.mIRow - 2;
 
-// references to the rows above and below
+        // references to the rows above and below
 
 #ifdef GPUCA_GPUCODE
         GPUsharedref() const MEM_LOCAL(GPUTPCRow)& rowUp = s.mRowUp;
@@ -92,29 +93,33 @@ GPUd() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int
       }
     } else {
       /*#ifdef GPUCA_GPUCODE
-			      const GPUTPCRow &rowUp = s.mRowUp;
-			      const GPUTPCRow &rowDn = s.mRowDown;
-			#else
-			      const GPUTPCRow &rowUp = tracker.Row( s.mIRowUp );
-			      const GPUTPCRow &rowDn = tracker.Row( s.mIRowDn );
-			#endif
+                  const GPUTPCRow &rowUp = s.mRowUp;
+                  const GPUTPCRow &rowDn = s.mRowDown;
+       #else
+                  const GPUTPCRow &rowUp = tracker.Row( s.mIRowUp );
+                  const GPUTPCRow &rowDn = tracker.Row( s.mIRowDn );
+       #endif
 
-			    for ( unsigned int ih = iThread; ih < s.mGridUp.N() + s.mGridUp.Ny() + 2; ih += nThreads ) {
-			      s.mGridContentUp[ih] = tracker.FirstHitInBin( rowUp, ih );
-			    }
-			    for ( unsigned int ih = iThread; ih < s.mGridDn.N() + s.mGridDn.Ny() + 2; ih += nThreads ) {
-			      s.mGridContentDn[ih] = tracker.FirstHitInBin( rowDn, ih );
-			    }*/
+                for ( unsigned int ih = iThread; ih < s.mGridUp.N() + s.mGridUp.Ny() + 2; ih += nThreads ) {
+                  s.mGridContentUp[ih] = tracker.FirstHitInBin( rowUp, ih );
+                }
+                for ( unsigned int ih = iThread; ih < s.mGridDn.N() + s.mGridDn.Ny() + 2; ih += nThreads ) {
+                  s.mGridContentDn[ih] = tracker.FirstHitInBin( rowDn, ih );
+                }*/
     }
   }
   GPUbarrier();
 
 #ifdef GPUCA_GPUCODE
-  if ((iBlock <= 1) || (iBlock >= GPUCA_ROW_COUNT - 2))
+  if ((iBlock <= 1) || (iBlock >= GPUCA_ROW_COUNT - 2)) {
     return;
+  }
+
 #else
-  if ((s.mIRow <= 1) || (s.mIRow >= GPUCA_ROW_COUNT - 2))
+  if ((s.mIRow <= 1) || (s.mIRow >= GPUCA_ROW_COUNT - 2)) {
     return;
+  }
+
 #endif
 
   float chi2Cut = 3.f * 3.f * 4 * (s.mUpDx * s.mUpDx + s.mDnDx * s.mDnDx);
@@ -134,12 +139,10 @@ GPUd() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int
   const float stepZ = row.HstepZ();
 
   for (int ih = iThread; ih < s.mNHits; ih += nThreads) {
-
     int linkUp = -1;
     int linkDn = -1;
 
     if (s.mDnNHits > 0 && s.mUpNHits > 0) {
-
 // coordinates of the hit in the current row
 #if defined(GPUCA_TEXTURE_FETCH_NEIGHBORS)
       cahit2 tmpval = tex1Dfetch(gAliTexRefu2, ((char*)tracker.Data().HitData() - tracker.Data().GPUTextureBase()) / sizeof(cahit2) + row.HitNumberOffset() + ih);
@@ -152,11 +155,11 @@ GPUd() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int
 
 #if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
 #if defined(GPUCA_GPUCODE)
-      GPUsharedref() calink* neighUp = s.fB[iThread];
-      GPUsharedref() float2* yzUp = s.fA[iThread];
+      GPUsharedref() calink* neighUp = s.mB[iThread];
+      GPUsharedref() float2* yzUp = s.mA[iThread];
 #else
-      GPUsharedref() calink* neighUp = s.fB;
-      GPUsharedref() float2* yzUp = s.fA;
+      GPUsharedref() calink* neighUp = s.mB;
+      GPUsharedref() float2* yzUp = s.mA;
 #endif
 #if defined(GPUCA_GPUCODE) & GPUCA_MAXN > GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP
       calink neighUp2[GPUCA_MAXN - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP];
@@ -178,8 +181,10 @@ GPUd() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int
       do {
         GPUTPCHit h;
         int i = areaUp.GetNext(tracker, rowUp, tracker.Data(), &h);
-        if (i < 0)
+        if (i < 0) {
           break;
+        }
+
 #if defined(GPUCA_GPUCODE) & GPUCA_MAXN > GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP & GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
         if (nNeighUp >= GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP) {
           neighUp2[nNeighUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] = (calink)i;
@@ -197,7 +202,6 @@ GPUd() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int
       } while (1);
 
       if (nNeighUp > 0) {
-
         int bestDn = -1, bestUp = -1;
         float bestD = 1.e10f;
 
@@ -205,8 +209,9 @@ GPUd() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int
         do {
           GPUTPCHit h;
           int i = areaDn.GetNext(tracker, rowDn, tracker.Data(), &h);
-          if (i < 0)
+          if (i < 0) {
             break;
+          }
 
           nNeighDn++;
           float2 yzdn = CAMath::MakeFloat2(s.mUpDx * (h.Y() - y), s.mUpDx * (h.Z() - z));

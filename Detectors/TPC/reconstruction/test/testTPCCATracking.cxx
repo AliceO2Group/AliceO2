@@ -26,6 +26,8 @@
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUReconstruction.h"
 
+using namespace o2::gpu;
+
 #include <vector>
 #include <iostream>
 #include <iomanip>

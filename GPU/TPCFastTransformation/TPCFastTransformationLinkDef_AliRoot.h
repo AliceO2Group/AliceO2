@@ -17,6 +17,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-//#pragma link C++ class IrregularSpline1D+;
+//#pragma link C++ class o2::gpu::IrregularSpline1D+;
 
 #endif

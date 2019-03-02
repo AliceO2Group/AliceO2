@@ -14,6 +14,10 @@
 #ifndef GPUDATATYPES_H
 #define GPUDATATYPES_H
 
+namespace o2
+{
+namespace gpu
+{
 #if (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !(defined(__CINT__) || defined(__ROOTCINT__))
 #define ENUM_CLASS class
 #define ENUM_UINT : unsigned int
@@ -43,5 +47,7 @@ class GPUDataTypes
 
 #undef ENUM_CLASS
 #undef ENUM_UINT
+}
+} // namespace o2::gpu
 
 #endif

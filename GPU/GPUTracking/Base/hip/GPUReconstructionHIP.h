@@ -15,13 +15,18 @@
 #define GPURECONSTRUCTIONHIP_H
 
 #include "GPUReconstructionDeviceBase.h"
-struct GPUReconstructionHIPInternals;
 
 #ifdef _WIN32
-extern "C" __declspec(dllexport) GPUReconstruction* GPUReconstruction_Create_HIP(const GPUSettingsProcessing& cfg);
+extern "C" __declspec(dllexport) o2::gpu::GPUReconstruction* GPUReconstruction_Create_HIP(const o2::gpu::GPUSettingsProcessing& cfg);
 #else
-extern "C" GPUReconstruction* GPUReconstruction_Create_HIP(const GPUSettingsProcessing& cfg);
+extern "C" o2::gpu::GPUReconstruction* GPUReconstruction_Create_HIP(const o2::gpu::GPUSettingsProcessing& cfg);
 #endif
+
+namespace o2
+{
+namespace gpu
+{
+struct GPUReconstructionHIPInternals;
 
 class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
 {
@@ -55,5 +60,7 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
 };
 
 using GPUReconstructionHIP = GPUReconstructionKernels<GPUReconstructionHIPBackend>;
+}
+} // namespace o2::gpu
 
 #endif

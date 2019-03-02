@@ -14,14 +14,18 @@
 #include "GPUTPCGMPhysicalTrackModel.h"
 #include "GPUCommonMath.h"
 
+using namespace o2::gpu;
+
 GPUd() int GPUTPCGMPhysicalTrackModel::PropagateToXBzLight(float x, float Bz, float& dLp)
 {
   GPUTPCGMPhysicalTrackModel t = *this;
-  if (CAMath::Abs(x - t.X()) < 1.e-8f)
+  if (CAMath::Abs(x - t.X()) < 1.e-8f) {
     return 0;
+  }
   int err = t.PropagateToXBzLightNoUpdate(x, Bz, dLp);
-  if (err)
+  if (err) {
     return (err);
+  }
   t.UpdateValues();
   *this = t;
   return 0;
@@ -42,9 +46,9 @@ GPUd() int GPUTPCGMPhysicalTrackModel::PropagateToXBzLightNoUpdate(float x, floa
   float pye = mPy - dx * b; // extrapolated py
   float pxe2 = pt2 - pye * pye;
 
-  if (mPx < (1.f - GPUCA_MAX_SIN_PHI) || pxe2 < (1.f - GPUCA_MAX_SIN_PHI) * (1.f - GPUCA_MAX_SIN_PHI))
+  if (mPx < (1.f - GPUCA_MAX_SIN_PHI) || pxe2 < (1.f - GPUCA_MAX_SIN_PHI) * (1.f - GPUCA_MAX_SIN_PHI)) {
     return -1; // can not transport to x=x
-
+  }
   float pxe = CAMath::Sqrt(pxe2); // extrapolated px
   float pti = 1.f / CAMath::Sqrt(pt2);
 
@@ -143,10 +147,12 @@ GPUd() int GPUTPCGMPhysicalTrackModel::PropagateToXBxByBz(float x, float Bx, flo
 
   // transport in rotated coordinate system to X''=xe:
 
-  if (t.Px() < (1.f - GPUCA_MAX_SIN_PHI))
+  if (t.Px() < (1.f - GPUCA_MAX_SIN_PHI)) {
     t.Px() = 1.f - GPUCA_MAX_SIN_PHI;
-  if (t.PropagateToXBzLightNoUpdate(xe, bb, dLp) != 0)
+  }
+  if (t.PropagateToXBzLightNoUpdate(xe, bb, dLp) != 0) {
     return -1;
+  }
 
   // rotate coordinate system back to the original R{-1}==R{T}
   {
@@ -164,10 +170,12 @@ GPUd() int GPUTPCGMPhysicalTrackModel::PropagateToXBxByBz(float x, float Bx, flo
   // a small (hopefully) additional step to X=x. Perhaps it may be replaced by linear extrapolation.
 
   float ddLp = 0;
-  if (t.Px() < (1.f - GPUCA_MAX_SIN_PHI))
+  if (t.Px() < (1.f - GPUCA_MAX_SIN_PHI)) {
     t.Px() = 1.f - GPUCA_MAX_SIN_PHI;
-  if (t.PropagateToXBzLightNoUpdate(x, Bz, ddLp) != 0)
+  }
+  if (t.PropagateToXBzLightNoUpdate(x, Bz, ddLp) != 0) {
     return -1;
+  }
 
   dLp += ddLp;
 

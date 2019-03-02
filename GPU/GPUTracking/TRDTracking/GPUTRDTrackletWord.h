@@ -1,7 +1,7 @@
 #ifndef GPUTRDTRACKLETWORD_H
 #define GPUTRDTRACKLETWORD_H
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
- * See cxx source for full Copyright notice                               */
+* See cxx source for full Copyright notice                               */
 
 /* $Id: GPUTRDTrackletWord.h 27496 2008-07-22 08:35:45Z cblume $ */
 
@@ -12,10 +12,15 @@
 //
 //----------------------------------
 
+#include "GPUTPCDef.h"
+
 class AliTRDtrackletWord;
 class AliTRDtrackletMCM;
 
-#include "GPUTPCDef.h"
+namespace o2
+{
+namespace gpu
+{
 
 class GPUTRDTrackletWord
 {
@@ -63,5 +68,7 @@ class GPUTRDTrackletWord
   unsigned int mTrackletWord; // tracklet word: PID | Z | deflection length | Y
                               //          bits:   8   4            7          13
 };
+} // namespace gpu
+} // namespace o2
 
 #endif

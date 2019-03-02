@@ -1,7 +1,7 @@
 #ifndef GPUTRDTRACKER_H
 #define GPUTRDTRACKER_H
 /* Copyright(c) 2007-2009, ALICE Experiment at CERN, All rights reserved. *
- * See cxx source for full Copyright notice                               */
+* See cxx source for full Copyright notice                               */
 
 #include "GPUCommonDef.h"
 #include "GPUProcessor.h"
@@ -14,6 +14,14 @@
 #include <vector>
 #endif
 
+class AliExternalTrackParam;
+class AliMCEvent;
+
+namespace o2
+{
+namespace gpu
+{
+
 #ifdef GPUCA_ALIROOT_LIB
 #define TRD_GEOMETRY_CONST
 #else
@@ -22,8 +30,6 @@
 
 class GPUTRDTrackletWord;
 class GPUTRDGeometry;
-class AliExternalTrackParam;
-class AliMCEvent;
 class GPUTPCGMMerger;
 class GPUChainTracking;
 
@@ -183,5 +189,7 @@ class GPUTRDTracker : public GPUProcessor
   GPUTRDTrackerDebug* mDebug;              // debug output
   GPUChainTracking* mChainTracking;        // Tracking chain with access to input data / parameters
 };
+} // namespace gpu
+} // namespace o2
 
 #endif

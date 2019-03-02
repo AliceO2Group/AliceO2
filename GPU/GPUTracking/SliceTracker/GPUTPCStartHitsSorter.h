@@ -18,6 +18,11 @@
 #include "GPUTPCHitId.h"
 #include "GPUGeneralKernels.h"
 #include "GPUConstantMem.h"
+
+namespace o2
+{
+namespace gpu
+{
 MEM_CLASS_PRE()
 class GPUTPCTracker;
 
@@ -52,9 +57,14 @@ class GPUTPCStartHitsSorter
   typedef GPUconstantref() MEM_CONSTANT(GPUTPCTracker) workerType;
   GPUhdi() static GPUDataTypes::RecoStep GetRecoStep() { return GPUCA_RECO_STEP::TPCSliceTracking; }
   MEM_TEMPLATE()
-  GPUhdi() static workerType* Worker(MEM_TYPE(GPUConstantMem) & workers) { return workers.tpcTrackers; }
+  GPUhdi() static workerType* Worker(MEM_TYPE(GPUConstantMem) & workers)
+  {
+    return workers.tpcTrackers;
+  }
   template <int iKernel = 0>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & smem, workerType& tracker);
 };
+}
+} // namespace o2::gpu
 
 #endif // GPUTPCSTARTHITSSORTER_H

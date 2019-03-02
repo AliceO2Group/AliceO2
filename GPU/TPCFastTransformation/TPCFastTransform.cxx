@@ -19,10 +19,7 @@
 #include <iostream>
 #endif
 
-namespace ali_tpc_common
-{
-namespace tpc_fast_transformation
-{
+using namespace o2::gpu;
 
 TPCFastTransform::TPCFastTransform()
   : FlatObject(), mConstructionCounter(0), mConstructionRowInfoBuffer(nullptr), mNumberOfRows(0), mRowInfoPtr(nullptr), mTPCzLengthA(0.f), mTPCzLengthC(0.f), mTimeStamp(0), mDistortion(), mApplyDistortion(1), mT0(0.f), mVdrift(0.f), mVdriftCorrY(0.f), mLdriftCorr(0.f), mTOFcorr(0.f), mPrimVtxZ(0.f), mTPCalignmentZ(0.f)
@@ -220,6 +217,3 @@ void TPCFastTransform::Print() const
   mDistortion.Print();
 #endif
 }
-
-} // namespace tpc_fast_transformation
-} // namespace ali_tpc_common

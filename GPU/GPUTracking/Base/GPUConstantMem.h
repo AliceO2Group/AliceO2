@@ -22,6 +22,10 @@
 #include "GPUITSFitter.h"
 #include "GPUTRDTracker.h"
 #else
+namespace o2
+{
+namespace gpu
+{
 class GPUTPCGMMerger
 {
 };
@@ -32,8 +36,14 @@ class GPUTRDTracker
 {
   void SetMaxData() {}
 };
+}
+} // namespace o2::gpu
 #endif
 
+namespace o2
+{
+namespace gpu
+{
 MEM_CLASS_PRE()
 struct GPUConstantMem {
   MEM_LG(GPUParam)
@@ -44,5 +54,7 @@ struct GPUConstantMem {
   GPUTRDTracker trdTracker;
   GPUITSFitter itsFitter;
 };
+}
+} // namespace o2::gpu
 
 #endif

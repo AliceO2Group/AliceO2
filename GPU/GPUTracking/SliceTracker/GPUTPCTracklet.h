@@ -18,6 +18,10 @@
 #include "GPUTPCDef.h"
 #include "GPUTPCGPUConfig.h"
 
+namespace o2
+{
+namespace gpu
+{
 /**
  * @class GPUTPCTracklet
  *
@@ -70,5 +74,7 @@ class GPUTPCTracklet
 #endif                                  // EXTERN_ROW_HITS
   int mHitWeight;                       // Hit Weight of Tracklet
 };
+}
+} // namespace o2::gpu
 
 #endif // GPUTPCTRACKLET_H

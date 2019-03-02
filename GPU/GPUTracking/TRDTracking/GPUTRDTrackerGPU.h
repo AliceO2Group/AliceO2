@@ -3,6 +3,11 @@
 
 #include "GPUGeneralKernels.h"
 
+namespace o2
+{
+namespace gpu
+{
+
 class GPUTRDTrackerGPU : public GPUKernelTemplate
 {
  public:
@@ -12,5 +17,7 @@ class GPUTRDTrackerGPU : public GPUKernelTemplate
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, workerType& workers);
 #endif
 };
+} // namespace gpu
+} // namespace o2
 
 #endif

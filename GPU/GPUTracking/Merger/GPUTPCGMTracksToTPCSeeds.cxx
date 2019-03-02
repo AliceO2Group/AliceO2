@@ -21,17 +21,21 @@
 #include "TObjArray.h"
 #include "AliTPCclusterMI.h"
 
+using namespace o2::gpu;
+
 void GPUTPCGMTracksToTPCSeeds::CreateSeedsFromHLTTracks(TObjArray* seeds, AliTPCtracker* tpctracker)
 {
   const GPUTPCGMMerger* merger = GPUTPCGlobalMergerComponent::GetCurrentMerger();
-  if (merger == NULL)
+  if (merger == NULL) {
     return;
+  }
   seeds->Clear();
   int index = 0;
   for (int i = 0; i < merger->NOutputTracks(); i++) {
     const GPUTPCGMMergedTrack& track = merger->OutputTracks()[i];
-    if (!track.OK())
+    if (!track.OK()) {
       continue;
+    }
 
     AliTPCtrack tr;
     tr.Set(track.GetParam().GetX(), track.GetAlpha(), track.GetParam().GetPar(), track.GetParam().GetCov());
@@ -45,18 +49,22 @@ void GPUTPCGMTracksToTPCSeeds::CreateSeedsFromHLTTracks(TObjArray* seeds, AliTPC
     int lastleg = -1;
     for (int j = track.NClusters() - 1; j >= 0; j--) {
       const GPUTPCGMMergedTrackHit& cls = merger->Clusters()[track.FirstClusterRef() + j];
-      if (cls.state & GPUTPCGMMergedTrackHit::flagReject)
+      if (cls.state & GPUTPCGMMergedTrackHit::flagReject) {
         continue;
-      if (lastrow != -1 && (cls.row < lastrow || cls.leg != lastleg))
+      }
+      if (lastrow != -1 && (cls.row < lastrow || cls.leg != lastleg)) {
         break;
-      if (cls.row == lastrow)
+      }
+      if (cls.row == lastrow) {
         continue;
+      }
 
       AliTPCtrackerRow& row = tpctracker->GetRow(cls.slice % 18, cls.row);
       unsigned int clIndexOffline = 0;
       AliTPCclusterMI* clOffline = row.FindNearest2(cls.y, cls.z, 0.01f, 0.01f, clIndexOffline);
-      if (!clOffline)
+      if (!clOffline) {
         continue;
+      }
       clIndexOffline = row.GetIndex(clIndexOffline);
 
       clOffline->Use(10);
@@ -74,10 +82,12 @@ void GPUTPCGMTracksToTPCSeeds::CreateSeedsFromHLTTracks(TObjArray* seeds, AliTPC
     seed->SetChi2(track.GetParam().GetChi2());
 
     float alpha = seed->GetAlpha();
-    if (alpha >= 2 * M_PI)
+    if (alpha >= 2 * M_PI) {
       alpha -= 2. * M_PI;
-    if (alpha < 0)
+    }
+    if (alpha < 0) {
       alpha += 2. * M_PI;
+    }
     seed->SetRelativeSector(track.GetAlpha() / (M_PI / 9.f));
 
     seed->SetPoolID(tpctracker->GetLastSeedId());
@@ -95,13 +105,15 @@ void GPUTPCGMTracksToTPCSeeds::CreateSeedsFromHLTTracks(TObjArray* seeds, AliTPC
 void GPUTPCGMTracksToTPCSeeds::UpdateParamsOuter(TObjArray* seeds)
 {
   const GPUTPCGMMerger* merger = GPUTPCGlobalMergerComponent::GetCurrentMerger();
-  if (merger == NULL)
+  if (merger == NULL) {
     return;
+  }
   int index = 0;
   for (int i = 0; i < merger->NOutputTracks(); i++) {
     const GPUTPCGMMergedTrack& track = merger->OutputTracks()[i];
-    if (!track.OK())
+    if (!track.OK()) {
       continue;
+    }
     if (index > seeds->GetEntriesFast()) {
       printf("Invalid number of offline seeds\n");
       return;
@@ -115,13 +127,15 @@ void GPUTPCGMTracksToTPCSeeds::UpdateParamsOuter(TObjArray* seeds)
 void GPUTPCGMTracksToTPCSeeds::UpdateParamsInner(TObjArray* seeds)
 {
   const GPUTPCGMMerger* merger = GPUTPCGlobalMergerComponent::GetCurrentMerger();
-  if (merger == NULL)
+  if (merger == NULL) {
     return;
+  }
   int index = 0;
   for (int i = 0; i < merger->NOutputTracks(); i++) {
     const GPUTPCGMMergedTrack& track = merger->OutputTracks()[i];
-    if (!track.OK())
+    if (!track.OK()) {
       continue;
+    }
     if (index > seeds->GetEntriesFast()) {
       printf("Invalid number of offline seeds\n");
       return;

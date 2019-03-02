@@ -1,11 +1,11 @@
 /*
-#include "Riostream.h"
-#include "TFile.h"
-#include "TMath.h"
-#include "TCanvas.h"
-#include "TH1F.h"
-#include "AliHLTTPCGeometry.h"
-*/
+ #include "Riostream.h"
+ #include "TFile.h"
+ #include "TMath.h"
+ #include "TCanvas.h"
+ #include "TH1F.h"
+ #include "AliHLTTPCGeometry.h"
+ */
 const double kTwoPi = TMath::TwoPi(); // 2.*kPi;
 const double kSliceDAngle = kTwoPi / 18.;
 const double kSliceAngleOffset = kSliceDAngle / 2;
@@ -15,10 +15,12 @@ int GetSlice(double GlobalPhi)
   double phi = GlobalPhi;
   //  std::cout<<" GetSlice: phi = "<<phi<<std::endl;
 
-  if (phi >= kTwoPi)
+  if (phi >= kTwoPi) {
     phi -= kTwoPi;
-  if (phi < 0)
+  }
+  if (phi < 0) {
     phi += kTwoPi;
+  }
   return (int)(phi / kSliceDAngle);
 }
 
@@ -32,15 +34,16 @@ int RecalculateSlice(GPUTPCGMPhysicalTrackModel& t, AliExternalTrackParam& t0, i
   //  std::cout<<" recalculate: phi = "<<phi<<std::endl;
   int dSlice = GetDSlice(phi);
 
-  if (dSlice == 0)
+  if (dSlice == 0) {
     return 0; // nothing to do
-
+  }
   //  std::cout<<" dSlice = "<<dSlice<<std::endl;
   double dAlpha = dSlice * kSliceDAngle;
 
   iSlice += dSlice;
-  if (iSlice >= 18)
+  if (iSlice >= 18) {
     iSlice -= 18;
+  }
 
   // rotate track on angle dAlpha
   t.Rotate(dAlpha);
@@ -106,8 +109,9 @@ int checkPropagation()
       double alpha = GetSliceAngle(iSlice);
       double p[5] = { t.GetY(), t.GetZ(), t.GetSinPhi(), t.GetDzDs(), t.GetQPt() };
       double cv[15];
-      for (int i = 0; i < 15; i++)
+      for (int i = 0; i < 15; i++) {
         cv[i] = 0;
+      }
       t0 = AliExternalTrackParam(x0, alpha, p, cv);
     }
 
@@ -150,14 +154,15 @@ int checkPropagation()
         }
         // rotate track coordinate system to current sector
         int isNewSlice = RecalculateSlice(t, t0, iSlice);
-        if (!isNewSlice)
+        if (!isNewSlice) {
           break;
-        else {
+        } else {
           std::cout << "track " << itr << ": new slice " << iSlice << " at row " << iRow << std::endl;
         }
       }
-      if (err)
+      if (err) {
         break;
+      }
       // std::cout<<" track "<<itr<<": Slice "<<iSlice<<" row "<<iRow<<" params :"<<std::endl;
       // t.Print();
       // track at row iRow, slice iSlice
@@ -182,8 +187,9 @@ int checkPropagation()
   for (int i = 0; i < 3; i++) {
     c->cd(ipad++);
 
-    if (tout)
+    if (tout) {
       hDiff[i]->Write();
+    }
     gPad->SetLogy();
     hDiff[i]->Draw();
   }

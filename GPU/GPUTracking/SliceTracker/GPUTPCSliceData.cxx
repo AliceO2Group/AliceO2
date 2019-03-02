@@ -18,8 +18,10 @@
 #include "GPUTPCSliceData.h"
 #include "GPUReconstruction.h"
 #include <iostream>
-#include <string.h>
+#include <cstring>
 #include "utils/vecpod.h"
+
+using namespace o2::gpu;
 
 // calculates an approximation for 1/sqrt(x)
 // Google for 0x5f3759df :)
@@ -52,14 +54,18 @@ inline void GPUTPCSliceData::CreateGrid(GPUTPCRow* row, const float2* data, int 
   for (int i = ClusterDataHitNumberOffset; i < ClusterDataHitNumberOffset + row->mNHits; ++i) {
     const float y = data[i].x;
     const float z = data[i].y;
-    if (yMax < y)
+    if (yMax < y) {
       yMax = y;
-    if (yMin > y)
+    }
+    if (yMin > y) {
       yMin = y;
-    if (zMax < z)
+    }
+    if (zMax < z) {
       zMax = z;
-    if (zMin > z)
+    }
+    if (zMin > z) {
       zMin = z;
+    }
   }
 
   float dz = zMax - zMin;
@@ -171,8 +177,9 @@ void GPUTPCSliceData::RegisterMemoryAllocation()
 {
   mMemoryResInput = mRec->RegisterMemoryAllocation(this, &GPUTPCSliceData::SetPointersInput, GPUMemoryResource::MEMORY_INPUT, "SliceInput");
   mMemoryResScratch = mRec->RegisterMemoryAllocation(this, &GPUTPCSliceData::SetPointersScratch, GPUMemoryResource::MEMORY_SCRATCH, "SliceLinks");
-  if (!(mRec->GetRecoStepsGPU() & GPUReconstruction::RecoStep::TPCMerging))
+  if (!(mRec->GetRecoStepsGPU() & GPUReconstruction::RecoStep::TPCMerging)) {
     mMemoryResScratchHost = mRec->RegisterMemoryAllocation(this, &GPUTPCSliceData::SetPointersScratchHost, GPUMemoryResource::MEMORY_SCRATCH_HOST, "SliceIds");
+  }
   mMemoryResRows = mRec->RegisterMemoryAllocation(this, &GPUTPCSliceData::SetPointersRows, GPUMemoryResource::MEMORY_PERMANENT, "SliceRows");
 }
 
@@ -198,10 +205,12 @@ int GPUTPCSliceData::InitFromClusterData()
   for (int i = 0; i < mNumberOfHits; i++) {
     const int tmpRow = mClusterData[i].row;
     NumberOfClustersInRow[tmpRow]++;
-    if (tmpRow > mLastRow)
+    if (tmpRow > mLastRow) {
       mLastRow = tmpRow;
-    if (tmpRow < mFirstRow)
+    }
+    if (tmpRow < mFirstRow) {
       mFirstRow = tmpRow;
+    }
   }
   int tmpOffset = 0;
   for (int i = mFirstRow; i <= mLastRow; i++) {
@@ -224,16 +233,18 @@ int GPUTPCSliceData::InitFromClusterData()
       float2 tmp;
       tmp.x = mClusterData[i].y;
       tmp.y = mClusterData[i].z;
-      if (fabsf(tmp.y) > mMaxZ)
+      if (fabsf(tmp.y) > mMaxZ) {
         mMaxZ = fabsf(tmp.y);
+      }
       int tmpRow = mClusterData[i].row;
       int newIndex = RowOffset[tmpRow] + (RowsFilled[tmpRow])++;
       YZData[newIndex] = tmp;
       tmpHitIndex[newIndex] = i;
     }
   }
-  if (mFirstRow == GPUCA_ROW_COUNT)
+  if (mFirstRow == GPUCA_ROW_COUNT) {
     mFirstRow = 0;
+  }
 
   ////////////////////////////////////
   // 2. fill HitData and FirstHitInBin
@@ -308,7 +319,6 @@ int GPUTPCSliceData::InitFromClusterData()
     for (unsigned int bin = 0; bin < row.mGrid.N() + 3; ++bin) {
       filled[bin] = 0; // initialize filled[] to 0
     }
-
     for (int hitIndex = 0; hitIndex < row.mNHits; ++hitIndex) {
       const int globalHitIndex = RowOffset[rowIndex] + hitIndex;
       const calink bin = row.mGrid.GetBin(YZData[globalHitIndex].x, YZData[globalHitIndex].y);

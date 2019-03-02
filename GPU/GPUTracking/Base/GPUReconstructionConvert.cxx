@@ -16,6 +16,8 @@
 #include "GPUTPCClusterData.h"
 #include "ClusterNativeAccessExt.h"
 
+using namespace o2::gpu;
+
 void GPUReconstructionConvert::ConvertNativeToClusterData(ClusterNativeAccessExt* native, std::unique_ptr<GPUTPCClusterData[]>* clusters, unsigned int* nClusters, const TPCFastTransform* transform, int continuousMaxTimeBin)
 {
 #ifdef HAVE_O2HEADERS
@@ -33,10 +35,11 @@ void GPUReconstructionConvert::ConvertNativeToClusterData(ClusterNativeAccessExt
       for (unsigned int k = 0; k < native->nClusters[i][j]; k++) {
         const auto& cin = native->clusters[i][j][k];
         float x = 0, y = 0, z = 0;
-        if (continuousMaxTimeBin == 0)
+        if (continuousMaxTimeBin == 0) {
           transform->Transform(i, j, cin.getPad(), cin.getTime(), x, y, z);
-        else
+        } else {
           transform->TransformInTimeFrame(i, j, cin.getPad(), cin.getTime(), x, y, z, continuousMaxTimeBin);
+        }
         auto& cout = clusters[i].get()[nClSlice];
         cout.x = x;
         cout.y = y;

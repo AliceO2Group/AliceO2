@@ -17,6 +17,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-//#pragma link C++ class NonUniformSpline1D+;
+//#pragma link C++ class o2::gpu::NonUniformSpline1D+;
 
 #endif

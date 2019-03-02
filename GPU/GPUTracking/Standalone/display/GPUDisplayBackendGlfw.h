@@ -19,6 +19,10 @@
 
 struct GLFWwindow;
 
+namespace o2
+{
+namespace gpu
+{
 class GPUDisplayBackendGlfw : public GPUDisplayBackend
 {
  public:
@@ -56,5 +60,7 @@ class GPUDisplayBackendGlfw : public GPUDisplayBackend
   int mWindowWidth = INIT_WIDTH;
   int mWindowHeight = INIT_HEIGHT;
 };
+}
+} // namespace o2::gpu
 
 #endif

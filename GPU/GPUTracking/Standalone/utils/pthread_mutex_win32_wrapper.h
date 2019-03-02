@@ -31,11 +31,13 @@ static inline int pthread_mutex_lock(pthread_mutex_t* mutex)
 static inline int pthread_mutex_trylock(pthread_mutex_t* mutex)
 {
   DWORD retVal = WaitForSingleObject(*mutex, 0);
-  if (retVal == WAIT_TIMEOUT)
+  if (retVal == WAIT_TIMEOUT) {
     return (EBUSY);
+  }
   // printf("TRYLOCK %d\n", *mutex);
-  if (retVal != WAIT_FAILED)
+  if (retVal != WAIT_FAILED) {
     return (0);
+  }
   return (1);
 }
 
@@ -54,10 +56,12 @@ static inline int pthread_exit(void* ret) { ExitThread((DWORD)(size_t)ret); }
 static inline int pthread_join(pthread_t thread, void** retval)
 {
   static DWORD ExitCode;
-  while (GetExitCodeThread(thread, &ExitCode) == STILL_ACTIVE)
+  while (GetExitCodeThread(thread, &ExitCode) == STILL_ACTIVE) {
     Sleep(0);
-  if (retval != NULL)
+  }
+  if (retval != NULL) {
     *retval = (void*)&ExitCode;
+  }
   return (0);
 }
 
@@ -74,10 +78,12 @@ static inline int sem_wait(sem_t* sem) { return (WaitForSingleObject(*sem, INFIN
 static inline int sem_trywait(sem_t* sem)
 {
   DWORD retVal = WaitForSingleObject(*sem, 0);
-  if (retVal == WAIT_TIMEOUT)
+  if (retVal == WAIT_TIMEOUT) {
     return (EAGAIN);
-  if (retVal != WAIT_FAILED)
+  }
+  if (retVal != WAIT_FAILED) {
     return (0);
+  }
   return (-1);
 }
 
@@ -91,19 +97,19 @@ static inline int sem_post(sem_t* sem) { return (ReleaseSemaphore(*sem, 1, NULL)
             ULONG_PTR Reserved3[2];
             DWORD Reserved4;
             DWORD Reserved5;
-} RTL_BARRIER, *PRTL_BARRIER;
+   } RTL_BARRIER, *PRTL_BARRIER;
 
-typedef RTL_BARRIER SYNCHRONIZATION_BARRIER;
-typedef PRTL_BARRIER PSYNCHRONIZATION_BARRIER;
-typedef PRTL_BARRIER LPSYNCHRONIZATION_BARRIER;
+   typedef RTL_BARRIER SYNCHRONIZATION_BARRIER;
+   typedef PRTL_BARRIER PSYNCHRONIZATION_BARRIER;
+   typedef PRTL_BARRIER LPSYNCHRONIZATION_BARRIER;
 
-#define SYNCHRONIZATION_BARRIER_FLAGS_SPIN_ONLY  0x01
-#define SYNCHRONIZATION_BARRIER_FLAGS_BLOCK_ONLY 0x02
-#define SYNCHRONIZATION_BARRIER_FLAGS_NO_DELETE  0x04
+ #define SYNCHRONIZATION_BARRIER_FLAGS_SPIN_ONLY  0x01
+ #define SYNCHRONIZATION_BARRIER_FLAGS_BLOCK_ONLY 0x02
+ #define SYNCHRONIZATION_BARRIER_FLAGS_NO_DELETE  0x04
 
-BOOL WINAPI EnterSynchronizationBarrier(_Inout_ LPSYNCHRONIZATION_BARRIER lpBarrier, _In_ DWORD dwFlags);
-BOOL WINAPI InitializeSynchronizationBarrier(_Out_ LPSYNCHRONIZATION_BARRIER lpBarrier, _In_ LONG lTotalThreads, _In_ LONG lSpinCount);
-BOOL WINAPI DeleteSynchronizationBarrier(_Inout_ LPSYNCHRONIZATION_BARRIER lpBarrier);*/
+   BOOL WINAPI EnterSynchronizationBarrier(_Inout_ LPSYNCHRONIZATION_BARRIER lpBarrier, _In_ DWORD dwFlags);
+   BOOL WINAPI InitializeSynchronizationBarrier(_Out_ LPSYNCHRONIZATION_BARRIER lpBarrier, _In_ LONG lTotalThreads, _In_ LONG lSpinCount);
+   BOOL WINAPI DeleteSynchronizationBarrier(_Inout_ LPSYNCHRONIZATION_BARRIER lpBarrier);*/
 
 typedef SYNCHRONIZATION_BARRIER pthread_barrier_t;
 

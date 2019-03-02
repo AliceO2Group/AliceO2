@@ -20,6 +20,10 @@
 #include "GPUTPCGMPolynomialField.h"
 #include "GPUCommonMath.h"
 
+namespace o2
+{
+namespace gpu
+{
 class GPUTPCGMTrackParam;
 struct GPUParam;
 
@@ -60,8 +64,9 @@ class GPUTPCGMPropagator
   GPUd() void SetTrack(GPUTPCGMTrackParam* track, float Alpha);
   GPUd() void ResetT0()
   {
-    if (!mT)
+    if (!mT) {
       return;
+    }
     mT0.Set(*mT);
   }
 
@@ -77,12 +82,15 @@ class GPUTPCGMPropagator
   GPUd() float PredictChi2(float posY, float posZ, float err2Y, float err2Z) const;
   GPUd() int RejectCluster(float chiY, float chiZ, unsigned char clusterState)
   {
-    if (chiY > 9.f || chiZ > 9.f)
+    if (chiY > 9.f || chiZ > 9.f) {
       return 2;
-    if ((chiY > 6.25f || chiZ > 6.25f) && (clusterState & (GPUTPCGMMergedTrackHit::flagSplit | GPUTPCGMMergedTrackHit::flagShared)))
+    }
+    if ((chiY > 6.25f || chiZ > 6.25f) && (clusterState & (GPUTPCGMMergedTrackHit::flagSplit | GPUTPCGMMergedTrackHit::flagShared))) {
       return 2;
-    if ((chiY > 1.f || chiZ > 6.25f) && (clusterState & (GPUTPCGMMergedTrackHit::flagEdge | GPUTPCGMMergedTrackHit::flagSingle)))
+    }
+    if ((chiY > 1.f || chiZ > 6.25f) && (clusterState & (GPUTPCGMMergedTrackHit::flagEdge | GPUTPCGMMergedTrackHit::flagSingle))) {
       return 2;
+    }
     return 0;
   }
 
@@ -103,7 +111,10 @@ class GPUTPCGMPropagator
   GPUd() int GetPropagatedYZ(float x, float& projY, float& projZ);
   GPUd() bool GetFitInProjections() const { return mFitInProjections; }
 
-  GPUd() GPUTPCGMPhysicalTrackModel& Model() { return mT0; }
+  GPUd() GPUTPCGMPhysicalTrackModel& Model()
+  {
+    return mT0;
+  }
   GPUd() void CalculateMaterialCorrection();
   GPUd() void SetStatErrorCurCluster(GPUTPCGMMergedTrackHit* c) { mStatErrors.SetCurCluster(c); }
 
@@ -136,8 +147,9 @@ GPUd() inline void GPUTPCGMPropagator::SetMaterial(float radLen, float rho)
 GPUd() inline void GPUTPCGMPropagator::SetTrack(GPUTPCGMTrackParam* track, float Alpha)
 {
   mT = track;
-  if (!mT)
+  if (!mT) {
     return;
+  }
   mT0.Set(*mT);
   mAlpha = Alpha;
   CalculateMaterialCorrection();
@@ -151,10 +163,13 @@ GPUd() inline float GPUTPCGMPropagator::GetMirroredYModel() const
 
 GPUd() inline float GPUTPCGMPropagator::GetMirroredYTrack() const
 {
-  if (!mT)
+  if (!mT) {
     return -1.E10f;
+  }
   float Bz = GetBz(mAlpha, mT->GetX(), mT->GetY(), mT->GetZ());
   return mT->GetMirroredY(Bz);
 }
+}
+} // namespace o2::gpu
 
 #endif

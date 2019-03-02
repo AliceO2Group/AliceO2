@@ -16,6 +16,10 @@
 
 #include "GPUTPCDef.h"
 
+namespace o2
+{
+namespace gpu
+{
 class GPUTPCHit;
 class GPUTPCGrid;
 MEM_CLASS_PRE()
@@ -37,9 +41,9 @@ class GPUTPCHitArea
   GPUd() void Init(const MEM_TYPE(GPUTPCRow) & row, GPUglobalref() const MEM_GLOBAL(GPUTPCSliceData) & slice, float y, float z, float dy, float dz);
 
   /**
-	 * look up the next hit in the requested area.
-	 * Sets h to the coordinates and returns the index for the hit data
-	 */
+ * look up the next hit in the requested area.
+ * Sets h to the coordinates and returns the index for the hit data
+ */
   MEM_TEMPLATE()
   GPUd() int GetNext(GPUconstantref() const MEM_CONSTANT(GPUTPCTracker) & tracker, const MEM_TYPE(GPUTPCRow) & row, GPUglobalref() const MEM_GLOBAL(GPUTPCSliceData) & slice, GPUTPCHit* h);
 
@@ -76,5 +80,7 @@ class GPUTPCHitArea
   int mNy;        // Number of bins in Y direction
   int mHitOffset; // global hit offset XXX what's that?
 };
+}
+} // namespace o2::gpu
 
 #endif // GPUTPCHITAREA_H

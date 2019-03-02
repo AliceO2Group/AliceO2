@@ -16,6 +16,10 @@
 
 #include "GPUTPCDef.h"
 
+namespace o2
+{
+namespace gpu
+{
 /**
  * @class GPUTPCSliceOutCluster
  * GPUTPCSliceOutCluster class contains clusters which are assigned to slice tracks.
@@ -58,5 +62,7 @@ class GPUTPCSliceOutCluster
   float mTime;
 #endif
 };
+}
+} // namespace o2::gpu
 
 #endif

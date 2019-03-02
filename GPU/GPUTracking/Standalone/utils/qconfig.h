@@ -15,32 +15,36 @@
   else if (QCONFIG_COMPARE(optname, optnameshort))                                             \
   {                                                                                            \
     int retVal = qConfigType<type>::qAddOption(tmp.name, i, argv, argc, default, __VA_ARGS__); \
-    if (retVal)                                                                                \
+    if (retVal) {                                                                              \
       return (retVal);                                                                         \
+    }                                                                                          \
   }
 
 #define AddOptionSet(name, type, value, optname, optnameshort, ...)                                      \
   else if (QCONFIG_COMPARE(optname, optnameshort))                                                       \
   {                                                                                                      \
     int retVal = qConfigType<type>::qAddOption(tmp.name, i, nullptr, 0, value, __VA_ARGS__, set(value)); \
-    if (retVal)                                                                                          \
+    if (retVal) {                                                                                        \
       return (retVal);                                                                                   \
+    }                                                                                                    \
   }
 
 #define AddOptionVec(name, type, optname, optnameshort, ...)                             \
   else if (QCONFIG_COMPARE(optname, optnameshort))                                       \
   {                                                                                      \
     int retVal = qConfigType<type>::qAddOptionVec(tmp.name, i, argv, argc, __VA_ARGS__); \
-    if (retVal)                                                                          \
+    if (retVal) {                                                                        \
       return (retVal);                                                                   \
+    }                                                                                    \
   }
 
 #define AddOptionArray(name, type, count, default, optname, optnameshort, ...)                    \
   else if (QCONFIG_COMPARE(optname, optnameshort))                                                \
   {                                                                                               \
     int retVal = qConfigType<type>::qAddOptionArray(tmp.name, count, i, argv, argc, __VA_ARGS__); \
-    if (retVal)                                                                                   \
+    if (retVal) {                                                                                 \
       return (retVal);                                                                            \
+    }                                                                                             \
   }
 
 #define AddSubConfig(name, instance)
@@ -51,8 +55,9 @@
     constexpr const char preoptshort = 0; \
     name& tmp = instance;                 \
     bool tmpfound = true;                 \
-    if (found)                            \
-      ;
+    if (found) {                          \
+      ;                                   \
+    }
 
 #define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) \
   {                                                                                \
@@ -60,13 +65,15 @@
     constexpr const char preoptshort = preoptnameshort;                            \
     name& tmp = parent.instance;                                                   \
     bool tmpfound = true;                                                          \
-    if (found)                                                                     \
-      ;
+    if (found) {                                                                   \
+      ;                                                                            \
+    }
 
-#define EndConfig()      \
-  else tmpfound = false; \
-  if (tmpfound)          \
-    found = true;        \
+#define EndConfig()          \
+  else { tmpfound = false; } \
+  if (tmpfound) {            \
+    found = true;            \
+  }                          \
   }
 
 #define AddHelp(cmd, cmdshort)               \
@@ -88,8 +95,9 @@
 #define AddCommand(cmd, cmdshort, command, help) \
   else if (QCONFIG_COMPARE(cmd, cmdshort))       \
   {                                              \
-    if (command)                                 \
+    if (command) {                               \
       return (qcrCmd);                           \
+    }                                            \
   }
 
 #define AddShortcut(cmd, cmdshort, forward, help, ...)             \
@@ -109,8 +117,9 @@
 #define AddOptionArray(name, type, count, default, optname, optnameshort, ...) qConfigType<type>::qConfigHelpOption(qon_mxstr(name), qon_mxstr(type) "[" qon_mxstr(count) "]", NULL, optname, optnameshort, preopt, preoptshort, 2, __VA_ARGS__);
 #define AddSubConfig(name, instance)                       \
   printf("\t%s\n\n", qon_mxcat(qConfig_subconfig_, name)); \
-  if (followSub)                                           \
-    qConfigHelp(qon_mxstr(name), 2);
+  if (followSub) {                                         \
+    qConfigHelp(qon_mxstr(name), 2);                       \
+  }
 #define BeginConfig(name, instance)           \
   if (subConfig == NULL || *subConfig == 0) { \
     constexpr const char* preopt = "";        \

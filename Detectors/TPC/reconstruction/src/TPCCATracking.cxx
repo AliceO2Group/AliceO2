@@ -31,6 +31,7 @@
 // This class is only a wrapper for the actual tracking contained in the HLT O2 CA Tracking library.
 #include "GPUO2Interface.h"
 
+using namespace o2::gpu;
 using namespace o2::TPC;
 using namespace o2;
 using namespace o2::dataformats;

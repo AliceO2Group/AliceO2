@@ -25,17 +25,24 @@
 
 class TH1F;
 class TList;
+
+namespace o2
+{
+namespace gpu
+{
 class GPUTRDTracker;
 class GPUTRDGeometry;
+} // namespace gpu
+} // namespace o2
 
 class GPUTRDTrackerComponent : public AliHLTProcessor
 {
  public:
   /*
-	 * ---------------------------------------------------------------------------------
-	 *                            Constructor / Destructor
-	 * ---------------------------------------------------------------------------------
-	 */
+ * ---------------------------------------------------------------------------------
+ *                            Constructor / Destructor
+ * ---------------------------------------------------------------------------------
+ */
 
   /** constructor */
   GPUTRDTrackerComponent();
@@ -50,11 +57,11 @@ class GPUTRDTrackerComponent : public AliHLTProcessor
   virtual ~GPUTRDTrackerComponent();
 
   /*
-	 * ---------------------------------------------------------------------------------
-	 * Public functions to implement AliHLTComponent's interface.
-	 * These functions are required for the registration process
-	 * ---------------------------------------------------------------------------------
-	 */
+ * ---------------------------------------------------------------------------------
+ * Public functions to implement AliHLTComponent's interface.
+ * These functions are required for the registration process
+ * ---------------------------------------------------------------------------------
+ */
 
   /** interface function, see @ref AliHLTComponent for description */
   const char* GetComponentID();
@@ -78,12 +85,12 @@ class GPUTRDTrackerComponent : public AliHLTProcessor
 
  protected:
   /*
-	 * ---------------------------------------------------------------------------------
-	 * Protected functions to implement AliHLTComponent's interface.
-	 * These functions provide initialization as well as the actual processing
-	 * capabilities of the component.
-	 * ---------------------------------------------------------------------------------
-	 */
+ * ---------------------------------------------------------------------------------
+ * Protected functions to implement AliHLTComponent's interface.
+ * These functions provide initialization as well as the actual processing
+ * capabilities of the component.
+ * ---------------------------------------------------------------------------------
+ */
 
   // AliHLTComponent interface functions
 
@@ -103,26 +110,26 @@ class GPUTRDTrackerComponent : public AliHLTProcessor
 
  private:
   /*
-	 * ---------------------------------------------------------------------------------
-	 * Private functions to implement AliHLTComponent's interface.
-	 * These functions provide initialization as well as the actual processing
-	 * capabilities of the component.
-	 * ---------------------------------------------------------------------------------
-	 */
+ * ---------------------------------------------------------------------------------
+ * Private functions to implement AliHLTComponent's interface.
+ * These functions provide initialization as well as the actual processing
+ * capabilities of the component.
+ * ---------------------------------------------------------------------------------
+ */
 
   /*
-	 * ---------------------------------------------------------------------------------
-	 *                              Helper
-	 * ---------------------------------------------------------------------------------
-	 */
+ * ---------------------------------------------------------------------------------
+ *                              Helper
+ * ---------------------------------------------------------------------------------
+ */
 
   /*
-	 * ---------------------------------------------------------------------------------
-	 *                             Members - private
-	 * ---------------------------------------------------------------------------------
-	 */
-  GPUTRDTracker* fTracker; // the tracker itself
-  GPUTRDGeometry* fGeo;    // TRD geometry needed by the tracker
+ * ---------------------------------------------------------------------------------
+ *                             Members - private
+ * ---------------------------------------------------------------------------------
+ */
+  o2::gpu::GPUTRDTracker* fTracker; // the tracker itself
+  o2::gpu::GPUTRDGeometry* fGeo;    // TRD geometry needed by the tracker
 
   TList* fTrackList;
   bool fDebugTrackOutput;              // output GPUTRDTracks instead AliHLTExternalTrackParam

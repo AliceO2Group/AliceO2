@@ -18,6 +18,8 @@
 #include <cmath>
 #endif
 
+using namespace o2::gpu;
+
 bool GPUTPCGMSliceTrack::FilterErrors(const GPUParam& param, float maxSinPhi, float sinPhiMargin)
 {
   float lastX = mOrigTrack->Cluster(mOrigTrack->NClusters() - 1).GetX();
@@ -33,13 +35,15 @@ bool GPUTPCGMSliceTrack::FilterErrors(const GPUParam& param, float maxSinPhi, fl
   float kdx205 = 2.f + kdx * kdx * 0.5f;
 
   {
-    param.GetClusterErrors2(0, fZ, mSinPhi, mDzDs, mC0, mC2);
+    param.GetClusterErrors2(0, mZ, mSinPhi, mDzDs, mC0, mC2);
     float C0a, C2a;
-    param.GetClusterRMS2(0, fZ, mSinPhi, mDzDs, C0a, C2a);
-    if (C0a > mC0)
+    param.GetClusterRMS2(0, mZ, mSinPhi, mDzDs, C0a, C2a);
+    if (C0a > mC0) {
       mC0 = C0a;
-    if (C2a > mC2)
+    }
+    if (C2a > mC2) {
       mC2 = C2a;
+    }
 
     mC3 = 0;
     mC5 = 1;
@@ -51,21 +55,20 @@ bool GPUTPCGMSliceTrack::FilterErrors(const GPUParam& param, float maxSinPhi, fl
   }
 
   for (int iStep = 0; iStep < N; iStep++) {
-
     float err2Y, err2Z;
 
     { // transport block
-
       float ex = mCosPhi;
       float ey = mSinPhi;
       float ey1 = kdx + ey;
       if (fabsf(ey1) > maxSinPhi) {
-        if (ey1 > maxSinPhi && ey1 < maxSinPhi + sinPhiMargin)
+        if (ey1 > maxSinPhi && ey1 < maxSinPhi + sinPhiMargin) {
           ey1 = maxSinPhi - 0.01;
-        else if (ey1 > -maxSinPhi - sinPhiMargin)
+        } else if (ey1 > -maxSinPhi - sinPhiMargin) {
           ey1 = -maxSinPhi + 0.01;
-        else
+        } else {
           return 0;
+        }
       }
 
       float ss = ey + ey1;
@@ -90,21 +93,23 @@ bool GPUTPCGMSliceTrack::FilterErrors(const GPUParam& param, float maxSinPhi, fl
       float dz = dS * mDzDs;
       float ex1i = 1.f / ex1;
       {
-        param.GetClusterErrors2(0, fZ, mSinPhi, mDzDs, err2Y, err2Z);
+        param.GetClusterErrors2(0, mZ, mSinPhi, mDzDs, err2Y, err2Z);
         float C0a, C2a;
-        param.GetClusterRMS2(0, fZ, mSinPhi, mDzDs, C0a, C2a);
-        if (C0a > err2Y)
+        param.GetClusterRMS2(0, mZ, mSinPhi, mDzDs, C0a, C2a);
+        if (C0a > err2Y) {
           err2Y = C0a;
-        if (C2a > err2Z)
+        }
+        if (C2a > err2Z) {
           err2Z = C2a;
+        }
       }
 
       float hh = kdx205 * dxcci * ex1i;
       float h2 = hh * mSecPhi;
 
       mX += dx;
-      fY += dy;
-      fZ += dz;
+      mY += dy;
+      mZ += dz;
       mSinPhi = ey1;
       mCosPhi = ex1;
       mSecPhi = ex1i;
@@ -136,7 +141,6 @@ bool GPUTPCGMSliceTrack::FilterErrors(const GPUParam& param, float maxSinPhi, fl
 
       mC2 += dS * (c31 + n7);
       mC7 = n7;
-
     } // end transport block
 
     // Filter block
@@ -171,11 +175,12 @@ bool GPUTPCGMSliceTrack::FilterErrors(const GPUParam& param, float maxSinPhi, fl
 
   //* Check that the track parameters and covariance matrix are reasonable
 
-  bool ok = CAMath::Finite(mX) && CAMath::Finite(fY) && CAMath::Finite(fZ) && CAMath::Finite(mSinPhi) && CAMath::Finite(mDzDs) && CAMath::Finite(mQPt) && CAMath::Finite(mCosPhi) && CAMath::Finite(mSecPhi) && CAMath::Finite(mZOffset) && CAMath::Finite(mC0) && CAMath::Finite(mC2) &&
+  bool ok = CAMath::Finite(mX) && CAMath::Finite(mY) && CAMath::Finite(mZ) && CAMath::Finite(mSinPhi) && CAMath::Finite(mDzDs) && CAMath::Finite(mQPt) && CAMath::Finite(mCosPhi) && CAMath::Finite(mSecPhi) && CAMath::Finite(mZOffset) && CAMath::Finite(mC0) && CAMath::Finite(mC2) &&
             CAMath::Finite(mC3) && CAMath::Finite(mC5) && CAMath::Finite(mC7) && CAMath::Finite(mC9) && CAMath::Finite(mC10) && CAMath::Finite(mC12) && CAMath::Finite(mC14);
 
-  if (mC0 <= 0.f || mC2 <= 0.f || mC5 <= 0.f || mC9 <= 0.f || mC14 <= 0.f || mC0 > 5.f || mC2 > 5.f || mC5 > 2.f || mC9 > 2.f)
+  if (mC0 <= 0.f || mC2 <= 0.f || mC5 <= 0.f || mC9 <= 0.f || mC14 <= 0.f || mC0 > 5.f || mC2 > 5.f || mC5 > 2.f || mC9 > 2.f) {
     ok = 0;
+  }
 
   if (ok) {
     ok = ok && (mC3 * mC3 <= mC5 * mC0) && (mC7 * mC7 <= mC9 * mC2) && (mC10 * mC10 <= mC14 * mC0) && (mC12 * mC12 <= mC14 * mC5);
@@ -193,8 +198,9 @@ bool GPUTPCGMSliceTrack::TransportToX(float x, float Bz, GPUTPCGMBorderTrack& b,
   float dx = x - mX;
   float ey1 = k * dx + ey;
 
-  if (fabsf(ey1) > maxSinPhi)
+  if (fabsf(ey1) > maxSinPhi) {
     return 0;
+  }
 
   float ex1 = sqrt(1.f - ey1 * ey1);
   float dxBz = dx * Bz;
@@ -219,15 +225,16 @@ bool GPUTPCGMSliceTrack::TransportToX(float x, float Bz, GPUTPCGMBorderTrack& b,
 
   float dz = dS * mDzDs;
 
-  b.SetPar(0, fY + dy);
-  b.SetPar(1, fZ + dz);
+  b.SetPar(0, mY + dy);
+  b.SetPar(1, mZ + dz);
   b.SetPar(2, ey1);
   b.SetPar(3, mDzDs);
   b.SetPar(4, mQPt);
   b.SetZOffset(mZOffset);
 
-  if (!doCov)
+  if (!doCov) {
     return (1);
+  }
 
   float ex1i = 1.f / ex1;
   float hh = dxcci * ex1i * norm2;
@@ -251,8 +258,9 @@ bool GPUTPCGMSliceTrack::TransportToX(float x, float Bz, GPUTPCGMBorderTrack& b,
   {
     b.SetCov(0, CAMath::Max(mC0, mC0 + h2 * h2c22 + h4 * h4c44 + 2.f * (h2 * c20ph4c42 + h4 * c40))); // Do not decrease Y cov for matching!
     float C2tmp = dS * 2.f * c31;
-    if (C2tmp < 0)
+    if (C2tmp < 0) {
       C2tmp = 0;
+    }
     b.SetCov(1, mC2 + C2tmp + dS * dS * c33); // Incorrect formula, correct would be "dS * (c31 + n7)", but we need to make sure cov(Z) increases regardless of the direction of the propagation
   } else {
     b.SetCov(0, mC0 + h2 * h2c22 + h4 * h4c44 + 2.f * (h2 * c20ph4c42 + h4 * c40));
@@ -281,7 +289,7 @@ bool GPUTPCGMSliceTrack::TransportToXAlpha(float newX, float sinAlpha, float cos
   float c44 = mC14;
 
   float x, y;
-  float z = fZ;
+  float z = mZ;
   float sinPhi = mSinPhi;
   float cosPhi = mCosPhi;
   float secPhi = mSecPhi;
@@ -294,14 +302,15 @@ bool GPUTPCGMSliceTrack::TransportToXAlpha(float newX, float sinAlpha, float cos
     cosPhi = cP * cosAlpha + sP * sinAlpha;
     sinPhi = -cP * sinAlpha + sP * cosAlpha;
 
-    if (CAMath::Abs(sinPhi) > GPUCA_MAX_SIN_PHI || CAMath::Abs(cP) < 1.e-2)
+    if (CAMath::Abs(sinPhi) > GPUCA_MAX_SIN_PHI || CAMath::Abs(cP) < 1.e-2) {
       return 0;
+    }
 
     secPhi = 1. / cosPhi;
     float j0 = cP * secPhi;
     float j2 = cosPhi / cP;
-    x = mX * cosAlpha + fY * sinAlpha;
-    y = -mX * sinAlpha + fY * cosAlpha;
+    x = mX * cosAlpha + mY * sinAlpha;
+    y = -mX * sinAlpha + mY * cosAlpha;
 
     c00 *= j0 * j0;
     c40 *= j0;
@@ -327,8 +336,9 @@ bool GPUTPCGMSliceTrack::TransportToXAlpha(float newX, float sinAlpha, float cos
   float dx = newX - x;
   float ey1 = k * dx + ey;
 
-  if (fabsf(ey1) > maxSinPhi)
+  if (fabsf(ey1) > maxSinPhi) {
     return 0;
+  }
 
   float ex1 = sqrt(1.f - ey1 * ey1);
 

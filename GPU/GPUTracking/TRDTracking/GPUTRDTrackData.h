@@ -26,9 +26,11 @@ struct GPUTRDTrackDataRecord {
   int GetNTracklets() const
   {
     int n = 0;
-    for (int i = 0; i < 6; i++)
-      if (fAttachedTracklets[i] >= 0)
+    for (int i = 0; i < 6; i++) {
+      if (fAttachedTracklets[i] >= 0) {
         n++;
+      }
+    }
     return n;
   }
 };

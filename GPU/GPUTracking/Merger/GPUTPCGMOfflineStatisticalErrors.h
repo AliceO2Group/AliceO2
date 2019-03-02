@@ -14,8 +14,6 @@
 #ifndef GPUTPCGMOFFLINESTATISTICALERRORS
 #define GPUTPCGMOFFLINESTATISTICALERRORS
 
-struct GPUTPCGMMergedTrackHit;
-
 #if defined(GPUseStatError)
 #include "AliTPCcalibDB.h"
 #include "AliTPCclusterMI.h"
@@ -23,15 +21,24 @@ struct GPUTPCGMMergedTrackHit;
 #include "AliTPCTransform.h"
 #include "GPUTPCGMMergedTrackHit.h"
 #include "AliTPCReconstructor.h"
+#endif
 
+namespace o2
+{
+namespace gpu
+{
+struct GPUTPCGMMergedTrackHit;
+
+#if defined(GPUseStatError)
 struct GPUTPCGMOfflineStatisticalErrors {
   void SetCurCluster(GPUTPCGMMergedTrackHit* c) { mCurCluster = c; }
 
   void GetOfflineStatisticalErrors(float& err2Y, float& err2Z, float sinPhi, float dzds, unsigned char clusterState) const
   {
     float snp2 = sinPhi * sinPhi;
-    if (snp2 > 1. - 1e-6)
+    if (snp2 > 1. - 1e-6) {
       snp2 = 1. - 1e-6;
+    }
     float tgp2 = snp2 / (1.f - snp2);
     float tgp = sqrt(tgp2);
     double serry2 = 0, serrz2 = 0;
@@ -40,10 +47,12 @@ struct GPUTPCGMOfflineStatisticalErrors {
     cl.SetPad(mCurCluster->mPad);
     cl.SetTimeBin(mCurCluster->fTime);
     int type = 0;
-    if (clusterState & GPUTPCGMMergedTrackHit::flagSplit)
+    if (clusterState & GPUTPCGMMergedTrackHit::flagSplit) {
       type = 50;
-    if (clusterState & GPUTPCGMMergedTrackHit::flagEdge)
+    }
+    if (clusterState & GPUTPCGMMergedTrackHit::flagEdge) {
       type = -type - 3;
+    }
     cl.SetType(type);
     cl.SetSigmaY2(0.5);
     cl.SetSigmaZ2(0.5);
@@ -59,23 +68,23 @@ struct GPUTPCGMOfflineStatisticalErrors {
     }
     static AliTPCtracker trk;
     /*AliTPCRecoParam *par = const_cast<AliTPCRecoParam*>(AliTPCReconstructor::GetRecoParam()), *par2;
-		        AliTPCReconstructor rec;
-		        if (par == NULL)
-		        {
-		            par2 = new AliTPCRecoParam;
-		            par2->SetUseSectorAlignment(false);
-		            rec.SetRecoParam(par2);
-		        }*/
+                AliTPCReconstructor rec;
+                if (par == NULL)
+                {
+                    par2 = new AliTPCRecoParam;
+                    par2->SetUseSectorAlignment(false);
+                    rec.SetRecoParam(par2);
+                }*/
     // This needs AliTPCRecoParam::GetUseSectorAlignment(), so we should make sure that the RecoParam exists!
     // This is not true during HLT simulation by definition, so the above code should fix it, but it leads to non-understandable bug later on in TPC transformation.
     // Anyway, this is only a debugging class.
     // So in order to make this work, please temporarily outcomment any use of TPCRecoParam in AliTPCTracker::Transform (it is not needed here anyway...)
     trk.Transform(&cl);
     /*if (par == NULL)
-		        {
-		            delete par2;
-		            rec.SetRecoParam(NULL);
-		        }*/
+                {
+                    delete par2;
+                    rec.SetRecoParam(NULL);
+                }*/
 
     AliTPCcalibDB::Instance()->GetTransform()->ErrY2Z2Syst(&cl, tgp, dzds, serry2, serrz2);
 
@@ -93,5 +102,7 @@ struct GPUTPCGMOfflineStatisticalErrors {
   GPUd() void GetOfflineStatisticalErrors(float& /*err2Y*/, float& /*err2Z*/, float /*sinPhi*/, float /*dzds*/, unsigned char /*clusterState*/) const {}
 };
 #endif
+}
+} // namespace o2::gpu
 
 #endif

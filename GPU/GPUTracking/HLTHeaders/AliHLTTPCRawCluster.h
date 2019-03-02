@@ -17,8 +17,9 @@ struct AliHLTTPCRawCluster {
 
   AliHLTTPCRawCluster& operator=(const AliHLTTPCRawCluster& other)
   {
-    if (this == &other)
+    if (this == &other) {
       return *this;
+    }
     this->~AliHLTTPCRawCluster();
     new (this) AliHLTTPCRawCluster(other);
     return *this;

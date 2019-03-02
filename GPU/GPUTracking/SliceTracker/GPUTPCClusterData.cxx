@@ -12,3 +12,4 @@
 /// \author Matthias Kretz, Sergey Gorbunov, David Rohr
 
 #include "GPUTPCClusterData.h"
+using namespace o2::gpu;
