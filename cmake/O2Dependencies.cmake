@@ -2420,8 +2420,10 @@ o2_define_bucket(
     GPUCommon_bucket
 
     DEPENDENCIES
+    Core
 
     INCLUDE_DIRECTORIES
+    ${ROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/GPU/Common
 )
 

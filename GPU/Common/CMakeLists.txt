@@ -11,13 +11,16 @@ set(SRCS
 )
 
 set (HDRS
-	GPUCommonDef.h
-	GPUCommonDefGPU.h
+    FlatObject.h
+)
+
+set (HDRS2
+    GPUCommonDef.h
+    GPUCommonDefGPU.h
     GPUCommonMath.h
     GPUCommonFairLogger.h
     GPUCommonRtypes.h
     GPUCommonTransform3D.h
-	FlatObject.h
 )
 
 #Default cmake build script for AliRoot
@@ -38,15 +41,16 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
             ARCHIVE DESTINATION lib
             LIBRARY DESTINATION lib)
 
-    install(FILES ${HDRS} DESTINATION include)
+    install(FILES ${HDRS} ${HDRS2} DESTINATION include)
 endif()
 
 #Default cmake build script for O2
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     Set(HEADERS ${HDRS})
+    Set(LINKDEF GPUCommonLinkDef.h)
     Set(LIBRARY_NAME ${MODULE})
     set(BUCKET_NAME GPUCommon_bucket)
 
     O2_GENERATE_LIBRARY()
-    install(FILES ${HDRS} DESTINATION include/GPU)
+    install(FILES ${HDRS} ${HDRS2} DESTINATION include/GPU)
 endif()
