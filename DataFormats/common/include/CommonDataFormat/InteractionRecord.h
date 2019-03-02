@@ -16,14 +16,16 @@
 #include <Rtypes.h>
 #include <iosfwd>
 #include <cmath>
+#include <cstdint>
 #include "CommonConstants/LHCConstants.h"
 
 namespace o2
 {
 struct InteractionRecord {
-  double timeNS = 0.; ///< time in NANOSECONDS from start of run (orbit=0)
-  int bc = 0;         ///< bunch crossing ID of interaction
-  unsigned int orbit = 0; ///< LHC orbit
+  // information about bunch crossing and orbit
+
+  uint16_t bc = 0;    ///< bunch crossing ID of interaction
+  uint32_t orbit = 0; ///< LHC orbit
 
   InteractionRecord() = default;
 
@@ -32,14 +34,12 @@ struct InteractionRecord {
     setFromNS(tNS);
   }
 
-  InteractionRecord(int b, unsigned int orb) : bc(b), orbit(orb)
+  InteractionRecord(uint16_t b, uint32_t orb) : bc(b), orbit(orb)
   {
-    timeNS = bc2ns(bc, orbit);
   }
 
   void setFromNS(double ns)
   {
-    timeNS = ns;
     bc = ns2bc(ns, orbit);
   }
 
@@ -57,7 +57,28 @@ struct InteractionRecord {
 
   void print() const;
 
-  ClassDefNV(InteractionRecord, 2);
+  ClassDefNV(InteractionRecord, 3);
+};
+
+struct InteractionTimeRecord : public InteractionRecord {
+  double timeNS = 0.; ///< time in NANOSECONDS from start of run (orbit=0)
+
+  InteractionTimeRecord() = default;
+
+  InteractionTimeRecord(double tNS)
+  {
+    setFromNS(tNS);
+  }
+
+  void setFromNS(double ns)
+  {
+    timeNS = ns;
+    InteractionRecord::setFromNS(ns);
+  }
+
+  void print() const;
+
+  ClassDefNV(InteractionTimeRecord, 1);
 };
 }
 

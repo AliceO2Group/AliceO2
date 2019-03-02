@@ -47,10 +47,10 @@ class RunContext
   void setMaxNumberParts(int maxp) { mMaxPartNumber = maxp; }
   int getMaxNumberParts() const { return mMaxPartNumber; }
 
-  std::vector<o2::InteractionRecord>& getEventRecords() { return mEventRecords; }
+  std::vector<o2::InteractionTimeRecord>& getEventRecords() { return mEventRecords; }
   std::vector<std::vector<o2::steer::EventPart>>& getEventParts() { return mEventParts; }
 
-  const std::vector<o2::InteractionRecord>& getEventRecords() const { return mEventRecords; }
+  const std::vector<o2::InteractionTimeRecord>& getEventRecords() const { return mEventRecords; }
   const std::vector<std::vector<o2::steer::EventPart>>& getEventParts() const { return mEventParts; }
 
   o2::BunchFilling& getBunchFilling() { return mBCFilling; }
@@ -66,7 +66,7 @@ class RunContext
   int mMaxPartNumber = 0; // max number of parts in any given collision
   float mMuBC;            // probability of hadronic interaction per bunch
 
-  std::vector<o2::InteractionRecord> mEventRecords;
+  std::vector<o2::InteractionTimeRecord> mEventRecords;
   // for each collision we record the constituents (which shall not exceed mMaxPartNumber)
   std::vector<std::vector<o2::steer::EventPart>> mEventParts;
 
