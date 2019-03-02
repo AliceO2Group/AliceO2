@@ -30,8 +30,8 @@ class InteractionSampler
  public:
   static constexpr float Sec2NanoSec = 1.e9; // s->ns conversion
 
-  o2::InteractionRecord generateCollisionTime();
-  void generateCollisionTimes(std::vector<o2::InteractionRecord>& dest);
+  o2::InteractionTimeRecord generateCollisionTime();
+  void generateCollisionTimes(std::vector<o2::InteractionTimeRecord>& dest);
 
   void init();
 
@@ -74,7 +74,7 @@ class InteractionSampler
 };
 
 //_________________________________________________
-inline void InteractionSampler::generateCollisionTimes(std::vector<o2::InteractionRecord>& dest)
+inline void InteractionSampler::generateCollisionTimes(std::vector<o2::InteractionTimeRecord>& dest)
 {
   // fill vector with interaction records
   dest.clear();

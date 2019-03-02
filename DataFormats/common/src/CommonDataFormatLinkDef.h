@@ -34,6 +34,7 @@
 #pragma link C++ class o2::dataformats::RangeReference < o2::dataformats::EvIndex < int, int >, int > +;
 
 #pragma link C++ class o2::InteractionRecord + ;
+#pragma link C++ class o2::InteractionTimeRecord + ;
 #pragma link C++ class o2::BunchFilling + ;
 
 #endif

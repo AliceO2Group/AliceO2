@@ -72,7 +72,7 @@ void InteractionSampler::print() const
 }
 
 //_________________________________________________
-o2::InteractionRecord InteractionSampler::generateCollisionTime()
+o2::InteractionTimeRecord InteractionSampler::generateCollisionTime()
 {
   // generate single interaction record
   if (mIntRate < 0) {
@@ -82,13 +82,13 @@ o2::InteractionRecord InteractionSampler::generateCollisionTime()
   if (mIntBCCache < 1) {                   // do we still have interaction in current BC?
     mIntBCCache = simulateInteractingBC(); // decide which BC interacts and N collisions
   }
-  double timeInt = mTimeInBC.back() + o2::InteractionRecord::bc2ns(mBCCurrent, mOrbit);
+  double timeInt = mTimeInBC.back() + o2::InteractionTimeRecord::bc2ns(mBCCurrent, mOrbit);
   mTimeInBC.pop_back();
   mIntBCCache--;
 
-  o2::InteractionRecord tmp(timeInt);
+  o2::InteractionTimeRecord tmp(timeInt);
 
-  return o2::InteractionRecord(timeInt);
+  return o2::InteractionTimeRecord(timeInt);
 }
 
 //_________________________________________________
