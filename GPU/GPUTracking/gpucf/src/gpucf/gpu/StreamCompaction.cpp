@@ -142,7 +142,7 @@ int StreamCompaction::enqueue(
                 nativeScanDown,
                 cl::NDRange(scanUpWorkGroupSize),
                 workItems,
-                cl::NullRange,
+                cl::NDRange(scanUpWorkGroupSize),
                 nullptr,
                 addScanEvent());
 
