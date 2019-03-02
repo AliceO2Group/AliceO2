@@ -64,13 +64,13 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
   O2_GENERATE_LIBRARY()
   install(FILES ${HDRS} DESTINATION include/GPU)
 
-  set(TEST_SRCS
-    ctest/testTPCSpaceChargeBase.cxx
-  )
+#  set(TEST_SRCS
+#    ctest/testTPCSpaceChargeBase.cxx
+#  )
 
-  O2_GENERATE_TESTS(
-    MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-    BUCKET_NAME ${BUCKET_NAME}
-    TEST_SRCS ${TEST_SRCS}
-  )
+#  O2_GENERATE_TESTS(
+#    MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+#    BUCKET_NAME ${BUCKET_NAME}
+#    TEST_SRCS ${TEST_SRCS}
+# )
 endif()
