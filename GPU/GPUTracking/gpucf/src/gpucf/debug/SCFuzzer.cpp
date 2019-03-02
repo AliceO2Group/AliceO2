@@ -31,6 +31,7 @@ bool SCFuzzer::run(size_t runs)
     {
         10,
         100,
+        257,
         514,
     };
 
@@ -113,6 +114,8 @@ bool SCFuzzer::runTest(size_t N)
             true);
 
     auto dump = streamCompaction.getNewIdxDump();
+
+
     if (res != static_cast<int>(N))
     {
         log::Error() << "StreamCompaction: got " << res 
