@@ -18,6 +18,7 @@
 #include "ITSMFTReconstruction/PixelData.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "CommonDataFormat/InteractionRecord.h"
 #include <vector>
 
 namespace o2
@@ -45,10 +46,20 @@ class PixelReader
   {
     return nullptr;
   }
-
+  const o2::InteractionRecord& getInteractionRecord() const
+  {
+    return mInteractionRecord;
+  }
+  uint32_t getTrigger() const
+  {
+    return mTrigger;
+  }
   //
  protected:
   //
+  o2::InteractionRecord mInteractionRecord = {};
+  uint32_t mTrigger = 0;
+
   ClassDef(PixelReader, 1);
 };
 
