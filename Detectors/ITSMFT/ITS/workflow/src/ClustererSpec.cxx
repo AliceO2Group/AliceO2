@@ -74,6 +74,7 @@ void ClustererDPL::run(ProcessingContext& pc)
 
   o2::ITSMFT::DigitPixelReader reader;
   reader.setDigits(&digits);
+  reader.setROFRecords(&rofs);
   reader.setDigitsMCTruth(labels.get());
   reader.init();
 
