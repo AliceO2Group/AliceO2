@@ -776,12 +776,14 @@ o2_define_bucket(
     DEPENDENCIES
     itsmft_base_bucket
     data_format_itsmft_bucket
+    configuration_bucket
     Graf
     Gpad
     DetectorsBase
     SimulationDataFormat
     ITSMFTBase
     DataFormatsITSMFT
+    SimConfig
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
@@ -789,6 +791,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Common/Utils/include
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
+    ${CMAKE_SOURCE_DIR}/Common/SimConfig/include
 )
 
 o2_define_bucket(

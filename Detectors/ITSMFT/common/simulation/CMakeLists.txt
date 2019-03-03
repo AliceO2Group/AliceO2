@@ -22,6 +22,8 @@ set(HEADERS
     include/${MODULE_NAME}/AlpideChip.h
     include/${MODULE_NAME}/AlpideSignalTrapezoid.h
     include/${MODULE_NAME}/ClusterShape.h
+    include/${MODULE_NAME}/DPLDigitWriterParam.h
+    include/${MODULE_NAME}/DPLDigitizerParam.h
     )
 
 Set(LINKDEF src/ITSMFTSimulationLinkDef.h)

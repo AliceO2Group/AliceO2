@@ -22,6 +22,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTSimulation/Digitizer.h"
+#include "ITSMFTSimulation/DPLDigitizerParam.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "MFTBase/GeometryTGeo.h"
 #include <TGeoManager.h>
@@ -302,6 +303,20 @@ class ITSDPLDigitizerTask : public ITSMFTDPLDigitizerTask
   {
     mID = DETID;
     mOrigin = DETOR;
+
+    const auto& par = DPLDigitizerParam<0>::Instance();
+    par.writeINI("digitization.ini");
+    auto& digipar = mDigitizer.getParams();
+    //digipar.setContinuous( par.continuous );
+    digipar.setROFrameLength(par.roFrameLength); // RO frame in ns
+    digipar.setStrobeDelay(par.strobeDelay);     // Strobe delay wrt beginning of the RO frame, in ns
+    digipar.setStrobeLength(par.strobeLength);   // Strobe length in ns
+    // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
+    digipar.getSignalShape().setParameters(par.strobeFlatTop, par.strobeMaxRiseTime, par.strobeQRiseTime0);
+    digipar.setChargeThreshold(par.chargeThreshold); // charge threshold in electrons
+    digipar.setNoisePerPixel(par.noisePerPixel);     // noise level
+    digipar.setTimeOffset(par.timeOffset);
+    digipar.setNSimSteps(par.nSimSteps);
   }
 };
 

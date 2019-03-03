@@ -28,4 +28,10 @@
 
 #pragma link C++ class o2::ITSMFT::ClusterShape + ;
 
+#pragma link C++ class o2::ITSMFT::DPLDigitizerParam < 0> + ;
+#pragma link C++ class o2::ITSMFT::DPLDigitizerParam < 1> + ;
+
+#pragma link C++ class o2::ITSMFT::DPLDigitWriterParam < 0> + ;
+#pragma link C++ class o2::ITSMFT::DPLDigitWriterParam < 1> + ;
+
 #endif
