@@ -128,10 +128,12 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
     };
   } };
 
-  DataProcessorSpec ccdbBackend{ "internal-dpl-ccdb-backend",
-                                 {},
-                                 {},
-                                 fakeCallback };
+  DataProcessorSpec ccdbBackend{
+    "internal-dpl-ccdb-backend",
+    {},
+    {},
+    fakeCallback,
+  };
   DataProcessorSpec transientStore{ "internal-dpl-transient-store",
                                     {},
                                     {},
@@ -169,6 +171,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
 
   std::vector<ConcreteDataMatcher> requestedAODs;
   std::vector<ConcreteDataMatcher> providedAODs;
+  std::vector<ConcreteDataMatcher> requestedCCDBs;
+  std::vector<ConcreteDataMatcher> providedCCDBs;
 
   for (size_t wi = 0; wi < workflow.size(); ++wi) {
     auto& processor = workflow[wi];
@@ -179,6 +183,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
       processor.options.push_back(ConfigParamSpec{ "end-value-enumeration", VariantType::Int, -1, { "final value for the enumeration" } });
       processor.options.push_back(ConfigParamSpec{ "step-value-enumeration", VariantType::Int, 1, { "step between one value and the other" } });
     }
+    bool hasConditionOption = false;
     for (size_t ii = 0; ii < processor.inputs.size(); ++ii) {
       auto& input = processor.inputs[ii];
       switch (input.lifetime) {
@@ -191,7 +196,14 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
           auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
           timer.outputs.emplace_back(OutputSpec{ concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration });
         } break;
-        case Lifetime::Condition:
+        case Lifetime::Condition: {
+          auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
+          if (hasConditionOption == false) {
+            processor.options.emplace_back(ConfigParamSpec{ "condition-backend", VariantType::String, "http://localhost:8080", { "Url for CCDB" } }),
+              hasConditionOption = true;
+          }
+          requestedCCDBs.emplace_back(concrete);
+        } break;
         case Lifetime::QA:
         case Lifetime::Transient:
         case Lifetime::Timeframe:
@@ -210,6 +222,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
       if (concrete.origin == header::DataOrigin{ "AOD" }) {
         providedAODs.emplace_back(concrete);
       }
+      if (output.lifetime == Lifetime::Condition) {
+        providedCCDBs.push_back(concrete);
+      }
     }
   }
 
@@ -224,6 +239,17 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
                        concrete.subSpec,
                        Lifetime::Timeframe };
     aodReader.outputs.emplace_back(output);
+  }
+
+  for (auto concrete : requestedCCDBs) {
+    if (std::find(providedCCDBs.begin(), providedCCDBs.end(), concrete) != providedCCDBs.end()) {
+      continue;
+    }
+    OutputSpec output{ concrete.origin,
+                       concrete.description,
+                       concrete.subSpec,
+                       Lifetime::Condition };
+    ccdbBackend.outputs.emplace_back(output);
   }
 
   if (ccdbBackend.outputs.empty() == false) {

@@ -308,6 +308,7 @@ o2_define_bucket(
     AliceO2::Configuration
     InfoLogger_bucket
     AliceO2::Common
+    CURL::libcurl
 
     SYSTEMINCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Utilities/PCG/include
