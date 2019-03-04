@@ -68,9 +68,6 @@ class PCBSupport : public TNamed
   Double_t mPhi0;
   Double_t mPhi1;
   Double_t mT_delta; //Excess to remove to avoid coplanar surfaces that causes visualization glitches and overlaps
-  Double_t mOuterCut[5]; //Distance of external disk cuts (oposite to beam pipe)
-                         // this is the y origin on Guillamet's PDF blueprints
-
   Int_t mNumberOfBoxCuts[5]; // Number of box cuts in each PCB
   Double_t (*mBoxCuts[5])[4];// Box cuts on each PCB
   Int_t mNumberOfBoxAdd[5]; // Number of box added to each PCB
