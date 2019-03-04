@@ -164,7 +164,7 @@ void ConfigurableParam::updateFromString(std::string const& configstring)
 
   // Remove leading whitespace
   auto ltrim = [](std::string src) {
-    return src.erase(0, src.find_first_not_of(' ')); 
+    return src.erase(0, src.find_first_not_of(' '));
   };
 
   // Remove trailing whitespace
@@ -179,13 +179,13 @@ void ConfigurableParam::updateFromString(std::string const& configstring)
 
   // Split a given string on a delim character, return vector of tokens
   // If trim is true, then also remove leading/trailing whitespace of each token.
-  auto splitString = [trimSpace](const std::string& src, char delim, bool trim=false) {
-    std::stringstream ss(src); 
+  auto splitString = [trimSpace](const std::string& src, char delim, bool trim = false) {
+    std::stringstream ss(src);
     std::string token;
     std::vector<std::string> tokens;
 
     while (std::getline(ss, token, delim)) {
-      token = (trim? trimSpace(token): token);
+      token = (trim ? trimSpace(token) : token);
       if (!token.empty()) {
         tokens.push_back(std::move(token));
       }
@@ -213,10 +213,9 @@ void ConfigurableParam::updateFromString(std::string const& configstring)
     return pairs;
   };
 
-
   // Simple check that the string starts/ends with an open square bracket
   auto isArray = [](std::string& el) {
-    return (el.at(0) == '[') && (el.at(el.size()-1) == ']');
+    return (el.at(0) == '[') && (el.at(el.size() - 1) == ']');
   };
 
   // Does the given string key exist in the boost property tree?
@@ -233,8 +232,7 @@ void ConfigurableParam::updateFromString(std::string const& configstring)
       index++;
       std::string key = baseName + "[" + std::to_string(index) + "]";
       isFound = keyExists(key);
-    }
-    while(isFound);
+    } while (isFound);
 
     return index;
   };
@@ -246,7 +244,7 @@ void ConfigurableParam::updateFromString(std::string const& configstring)
 
   // Now split each key=value string into its <key, value> parts
   auto keyValues = getKeyValPairs(params);
-  
+
   // Take an array of param key/value pairs
   // and update the storage map for each of them by calling setValue.
   // For string/scalar types this is simple.
@@ -281,7 +279,7 @@ void ConfigurableParam::updateFromString(std::string const& configstring)
       // 2. Should not assume each array element - even if not complex - is correctly written. Validate.
       // 3. Validation should include finding same types as in provided defaults.
 
-      for (int i=0;i < elems.size(); ++i) {
+      for (int i = 0; i < elems.size(); ++i) {
         std::string indexKey = key + "[" + std::to_string(i) + "]";
         setValue(indexKey, elems[i]);
       }
@@ -302,50 +300,6 @@ void ConfigurableParam::updateFromString(std::string const& configstring)
     // get strings and scalars here.
     setValue(key, value);
   }
-
- /*
-  using Tokenizer = boost::tokenizer<boost::char_separator<char>>;
-  boost::char_separator<char> tokensep{ ";" };
-  boost::char_separator<char> keyvaluesep{ "=" };
-  Tokenizer tok{ configstring, tokensep };
-  for (const auto& t : tok) {
-    Tokenizer keyvaluetokenizer{ t, keyvaluesep };
-    std::string extractedkey;
-    std::string extractedvalue;
-    int counter = 0;
-    // TODO: make sure format is correct with a regular expression
-    for (const auto& ss : keyvaluetokenizer) {
-      auto s = ss;
-      if (s.front() != s.back() || (s.front() != '\'' && s.front() == '\"')) { // not a string
-        s.erase(std::remove(s.begin(), s.end(), ' '), s.end());                // remove all spaces
-      } else {                                                                 // a string
-        s.erase(0, s.find_first_not_of(' '));                                  // remove leading spaces
-        s.erase(s.find_last_not_of(' ') + 1);                                  // remove trailing spaces
-      }
-      if (counter == 1) {
-        extractedvalue = s;
-      }
-      if (counter == 0) {
-        extractedkey = s;
-      }
-      counter++;
-    }
-    // here we have key and value
-    // ... check whether such a key exists
-    auto optional = sPtree->get_optional<std::string>(extractedkey);
-    if (optional.is_initialized()) {
-      LOG(INFO) << "FOUND KEY ... and the current value is " << optional.get();
-
-      assert(sKeyToStorageMap->find(extractedkey) != sKeyToStorageMap->end());
-
-      setValue(extractedkey, extractedvalue);
-    } else {
-      LOG(FATAL) << "Configuration key " << extractedkey << " not valid ... (abort)";
-      continue;
-    }
-  }
-  */
-
 }
 
 void unsupp() { std::cerr << "currently unsupported\n"; }
