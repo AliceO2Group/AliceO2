@@ -45,7 +45,6 @@ class Support : public TNamed
   ~Support() override = default;
   TGeoVolumeAssembly* create(Int_t kHalf, Int_t disk);
 
-
  private:
   void initParameters();
   TGeoVolumeAssembly *mHalfDisk;

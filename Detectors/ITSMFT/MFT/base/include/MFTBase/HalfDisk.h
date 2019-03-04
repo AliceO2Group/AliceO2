@@ -40,14 +40,14 @@ namespace MFT
 {
 class PCBSupport;
 }
-}
+} // namespace o2
 namespace o2
 {
 namespace MFT
 {
 class HeatExchanger;
 }
-}
+} // namespace o2
 
 namespace o2
 {

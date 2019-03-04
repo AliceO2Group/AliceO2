@@ -46,39 +46,37 @@ class PCBSupport : public TNamed
   TGeoVolumeAssembly* create(Int_t kHalf, Int_t disk);
 
  private:
-
   void initParameters();
-  TGeoVolumeAssembly *mHalfDisk;
-  TGeoMedium *mPCBMediumCu;
-  TGeoMedium *mPCBMediumFR4;
-  TGeoBBox *mSomeBox;
-  TGeoTube *mSomeTube;
-  TGeoArb8 *mSomeArb;
+  TGeoVolumeAssembly* mHalfDisk;
+  TGeoMedium* mPCBMediumCu;
+  TGeoMedium* mPCBMediumFR4;
+  TGeoBBox* mSomeBox;
+  TGeoTube* mSomeTube;
+  TGeoArb8* mSomeArb;
 
-  TGeoSubtraction *mSomeSubtraction;
-  TGeoUnion *mSomeUnion;
-  TGeoTranslation *mSomeTranslation;
-  TGeoCompositeShape *mPCBCu;
-  TGeoCompositeShape *mPCBFR4;
+  TGeoSubtraction* mSomeSubtraction;
+  TGeoUnion* mSomeUnion;
+  TGeoTranslation* mSomeTranslation;
+  TGeoCompositeShape* mPCBCu;
+  TGeoCompositeShape* mPCBFR4;
 
-  Double_t mCuThickness; //Cu layer thickness
+  Double_t mCuThickness;  //Cu layer thickness
   Double_t mFR4Thickness; //FR4 layer thickness
-  Double_t mPCBRad[5]; // Radius of each PCB disk
-  Double_t mDiskGap; //gap between half disks
+  Double_t mPCBRad[5];    // Radius of each PCB disk
+  Double_t mDiskGap;      //gap between half disks
   Double_t mPhi0;
   Double_t mPhi1;
-  Double_t mT_delta; //Excess to remove to avoid coplanar surfaces that causes visualization glitches and overlaps
-  Int_t mNumberOfBoxCuts[5]; // Number of box cuts in each PCB
-  Double_t (*mBoxCuts[5])[4];// Box cuts on each PCB
-  Int_t mNumberOfBoxAdd[5]; // Number of box added to each PCB
-  Double_t (*mBoxAdd[5])[4];// Box added to each PCB
-  Int_t mNumberOfHoles[5]; // Number of Holes in each PCB
-  Double_t (*mHoles[5])[3];// Holes on each PCB
+  Double_t mT_delta;          //Excess to remove to avoid coplanar surfaces that causes visualization glitches and overlaps
+  Int_t mNumberOfBoxCuts[5];  // Number of box cuts in each PCB
+  Double_t (*mBoxCuts[5])[4]; // Box cuts on each PCB
+  Int_t mNumberOfBoxAdd[5];   // Number of box added to each PCB
+  Double_t (*mBoxAdd[5])[4];  // Box added to each PCB
+  Int_t mNumberOfHoles[5];    // Number of Holes in each PCB
+  Double_t (*mHoles[5])[3];   // Holes on each PCB
 
   ClassDefOverride(PCBSupport, 2);
-
 };
-}
-}
+} // namespace MFT
+} // namespace o2
 
 #endif

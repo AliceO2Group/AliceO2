@@ -20,34 +20,33 @@ using namespace o2::MFT;
 
 /// \cond CLASSIMP
 ClassImp(o2::MFT::Support)
-/// \endcond
+  /// \endcond
 
-//_____________________________________________________________________________
-Support::Support() :
-TNamed(),
-mHalfDisk(nullptr),
-mDiskGap(1.4),
-mSupRad{17.5,17.5,17.5,23.0,23.0},
-mSupThickness(.8),
-mPhi0(0.),
-mPhi1(180.),
-mT_delta(0.01),
-mOuterCut{15.5,15.5,16.9,20.5,21.9},
-mRaisedBoxHeight(0.305),
-mFixBoxHeight(1.41),
-mRad_M2(.156657/2.), // TODO: Check Radius of M2 holes
-mHeight_M2(.6/2), // Height of M2 holes on raised boxes
-mRad_D2_h(.2/2.),
-mHeight_D2_h(.4/2),
-mTwoHoles(2), // Number of D6.5 mm Holes in each halfDisk support
-mD65(.65/2.), //Radius
-mD6(.6/2.), // Radius
-mD8(.8/2.), // Radius
-mD3(.3/2.), // Radius
-mM3(.3/2.), // Radius   TODO: Verify this!
-mD45(.45/2.), // Radius
-mD2(.2/2.), // Radius
-mHeight_D2(.4/2.)
+  //_____________________________________________________________________________
+  Support::Support() : TNamed(),
+                       mHalfDisk(nullptr),
+                       mDiskGap(1.4),
+                       mSupRad{ 17.5, 17.5, 17.5, 23.0, 23.0 },
+                       mSupThickness(.8),
+                       mPhi0(0.),
+                       mPhi1(180.),
+                       mT_delta(0.01),
+                       mOuterCut{ 15.5, 15.5, 16.9, 20.5, 21.9 },
+                       mRaisedBoxHeight(0.305),
+                       mFixBoxHeight(1.41),
+                       mRad_M2(.156657 / 2.), // TODO: Check Radius of M2 holes
+                       mHeight_M2(.6 / 2),    // Height of M2 holes on raised boxes
+                       mRad_D2_h(.2 / 2.),
+                       mHeight_D2_h(.4 / 2),
+                       mTwoHoles(2),   // Number of D6.5 mm Holes in each halfDisk support
+                       mD65(.65 / 2.), //Radius
+                       mD6(.6 / 2.),   // Radius
+                       mD8(.8 / 2.),   // Radius
+                       mD3(.3 / 2.),   // Radius
+                       mM3(.3 / 2.),   // Radius   TODO: Verify this!
+                       mD45(.45 / 2.), // Radius
+                       mD2(.2 / 2.),   // Radius
+                       mHeight_D2(.4 / 2.)
 {
   // Support dimentions obtained from Meriadeg Guillamet's blueprints
   // from https://twiki.cern.ch/twiki/bin/viewauth/ALICE/MFTWP3
@@ -70,7 +69,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
   for(Int_t cut = 0 ; cut<mNumberOfBoxCuts[disk]; cut++){
     auto *boxName =  Form("BoxCut_%d_H%d_D%d",cut, half, disk);
     auto *boxCSName = Form("BoxCS_%d_H%d_D%d",cut, half, disk);
-    mSomeBox = new TGeoBBox(boxName,mBoxCuts[disk][cut][0],mBoxCuts[disk][cut][1],  mSupThickness/2.+mT_delta);
+    mSomeBox = new TGeoBBox(boxName, mBoxCuts[disk][cut][0], mBoxCuts[disk][cut][1], mSupThickness / 2. + mT_delta);
     mSomeTranslation = new TGeoTranslation(mBoxCuts[disk][cut][2],mBoxCuts[disk][cut][3], 0.);
     //The first subtraction needs a shape, the base tube
     if (cut ==0)  mSomeSubtraction = new TGeoSubtraction(base, mSomeBox, NULL,mSomeTranslation);
@@ -184,7 +183,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
 
   // ==== D6 H7 (6 mm diameter holes)
   //Info("Create",Form("Cutting 6 mm holes Support_H%d_D%d", half,disk),0,0);
-  mSomeTube = new TGeoTube(Form("D6tube_H%d_D%d", half, disk),0, mD6, mSupThickness/2.+mT_delta);
+  mSomeTube = new TGeoTube(Form("D6tube_H%d_D%d", half, disk), 0, mD6, mSupThickness / 2. + mT_delta);
   for(Int_t iHole=0 ; iHole<mTwoHoles; iHole++){
     mSomeTranslation = new TGeoTranslation(-mD6Holes[disk][iHole][0],
                                mOuterCut[disk]-mD6Holes[disk][iHole][1],
@@ -195,7 +194,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
 
   // ==== D8 H7 (8 mm diameter holes)
   //Info("Create",Form("Cutting 8 mm holes Support_H%d_D%d", half,disk),0,0);
- mSomeTube = new TGeoTube(Form("D8tube_H%d_D%d", half, disk),0, mD8, mSupThickness/2.+mRaisedBoxHeight+20*mT_delta);
+  mSomeTube = new TGeoTube(Form("D8tube_H%d_D%d", half, disk), 0, mD8, mSupThickness / 2. + mRaisedBoxHeight + 20 * mT_delta);
   for(Int_t iHole=0 ; iHole<mNumberOfD8_Holes[disk]; iHole++){
     mSomeTranslation = new TGeoTranslation(-mD8Holes[disk][iHole][0],
                                mOuterCut[disk]-mD8Holes[disk][iHole][1],
@@ -206,7 +205,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
 
   // ==== D3 H7 (3 mm diameter holes)
   //Info("Create",Form("Cutting 3 mm holes Support_H%d_D%d", half,disk),0,0);
-  mSomeTube = new TGeoTube(Form("D3tube_H%d_D%d", half, disk),0, mD3, mSupThickness/2.+mT_delta);
+  mSomeTube = new TGeoTube(Form("D3tube_H%d_D%d", half, disk), 0, mD3, mSupThickness / 2. + mT_delta);
   for(Int_t iHole=0 ; iHole<mTwoHoles; iHole++){
     mSomeTranslation = new TGeoTranslation(-mD3Holes[disk][iHole][0],
                                mOuterCut[disk]-mD3Holes[disk][iHole][1],
@@ -217,7 +216,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
 
   // ==== M3 H7 (?? mm diameter holes)
   //Info("Create",Form("Cutting M3 H7 holes Support_H%d_D%d", half,disk),0,0);
-  mSomeTube = new TGeoTube(Form("M3tube_H%d_D%d", half, disk),0, mM3, mSupThickness/2.+mT_delta);
+  mSomeTube = new TGeoTube(Form("M3tube_H%d_D%d", half, disk), 0, mM3, mSupThickness / 2. + mT_delta);
   for(Int_t iHole=0 ; iHole<mNumberOfM3Holes[disk]; iHole++){
     mSomeTranslation = new TGeoTranslation(-mM3Holes[disk][iHole][0],
                                mOuterCut[disk]-mM3Holes[disk][iHole][1],
@@ -228,7 +227,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
 
   // ==== D4.5 H9
   //Info("Create",Form("Cutting 4.5 mm holes Support_H%d_D%d", half,disk),0,0);
-  mSomeTube = new TGeoTube(Form("D45tube_H%d_D%d", half, disk),0, mD45, mSupThickness/2.+mT_delta);
+  mSomeTube = new TGeoTube(Form("D45tube_H%d_D%d", half, disk), 0, mD45, mSupThickness / 2. + mT_delta);
   for(Int_t iHole=0 ; iHole<mTwoHoles; iHole++){
     mSomeTranslation = new TGeoTranslation(-mD45Holes[disk][iHole][0],
                                mOuterCut[disk]-mD45Holes[disk][iHole][1],
@@ -253,8 +252,8 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
 
   auto *support_vol = new TGeoVolume(Form("Support_H%d_D%d",half,disk), mSomeCS, mSupportMedium);
 
-  auto *rot = new TGeoRotation("rot",0,0,180);
-  mHalfDisk->AddNode(support_vol, 0,rot);
+  auto* rot = new TGeoRotation("rot", 0, 0, 180);
+  mHalfDisk->AddNode(support_vol, 0, rot);
   return mHalfDisk;
 
 }
@@ -386,7 +385,7 @@ void Support::initParameters()
     {(13.9-11.4)/2.,(11.82-9.4)/2.,-(13.9+11.4)/2.,(11.82+9.4)/2.}, // RB0
     {(10.55-8.0)/2.,(14.83-12.4)/2.,-(10.55+8.0)/2.,(14.83+12.4)/2.}, // RB1
     {(7.15-2.9)/2.,(17.84-15.35)/2.,-(7.15+2.9)/2.,(17.84+15.35)/2.}, // RB2
-    {(2.05+2.55)/2.,(18.45-16.4)/2.,(2.05-2.55)/2.,(18.45+16.4)/2}, // RB3
+    {(2.05+2.55)/2.,(18.45-16.4)/2.,-(2.05-2.55)/2.,(18.45+16.4)/2}, // RB3
     {-(-4.75+2.9)/2.,(17.26-15.35)/2.,-(-4.75-2.9)/2.,(17.26+15.35)/2.}, // RB4
     {-(-7.65+4.75)/2.,(17.85-15.35)/2.,-(-7.65-4.75)/2.,(17.85+15.35)/2.}, // RB5
     {-(-11.05+8.0)/2.,(14.83-12.4)/2.,-(-11.05-8.0)/2.,(14.83+12.4)/2.}, // RB6

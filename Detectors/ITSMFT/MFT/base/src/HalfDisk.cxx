@@ -71,8 +71,8 @@ HalfDisk::HalfDisk(HalfDiskSegmentation* segmentation)
   mHalfDiskVolume->AddNode(supportVol,1);
 
   // Building PCB
-  TGeoVolumeAssembly * PCBVol = createPCBSupport();
-  mHalfDiskVolume->AddNode(PCBVol,1);
+  TGeoVolumeAssembly* PCBVol = createPCBSupport();
+  mHalfDiskVolume->AddNode(PCBVol, 1);
 
   // Building Front Face of the Half Disk
   createLadders();
@@ -119,10 +119,10 @@ TGeoVolumeAssembly * HalfDisk::createSupport()
 }
 
 //_____________________________________________________________________________
-TGeoVolumeAssembly * HalfDisk::createPCBSupport()
+TGeoVolumeAssembly* HalfDisk::createPCBSupport()
 {
 
-  Geometry * mftGeom = Geometry::instance();
+  Geometry* mftGeom = Geometry::instance();
 
   mPCBSupport = new PCBSupport();
 
@@ -130,7 +130,6 @@ TGeoVolumeAssembly * HalfDisk::createPCBSupport()
     mPCBSupport->create(mftGeom->getHalfID(GetUniqueID()), mftGeom->getDiskID(GetUniqueID()));
 
   return vol;
-
 }
 
 /// \brief Build Ladders on the Half-disk
