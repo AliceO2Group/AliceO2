@@ -202,13 +202,15 @@ class RawPixelReader : public PixelReader
     chipData.clear();
     chipData.setChipID(DummyChip);
     int emptyRUID = 0;
+    bool ignore = false;
 
     mRUEncode.bcData = bcData;
     for (int id = from; id < last; id++) {
       const auto& dig = digiVec[id];
       if (dig.getChipIndex() != curChipID) { // new chip data start
 
-        if (curChipID != DummyChip) { // since a new chip data start, convert digits of previously processed chip to Alpide format in the temp. buffer
+        // since a new chip data start, convert digits of previously processed chip to Alpide format in the temp. buffer
+        if (curChipID != DummyChip && !ignore) {
           convertChipData(mRUEncode, chipData);
         }
         curChipID = dig.getChipIndex();
@@ -216,31 +218,44 @@ class RawPixelReader : public PixelReader
 
         if (mRUEncode.chInfo.ru != mRUEncode.id) { // new RU data starts, flush the previous one
           if (mRUEncode.id != -1) {
-            for (; emptyRUID < mRUEncode.id; emptyRUID++) { // flush empty raw data for RUs w/o digits
-              flushEmptyRU(emptyRUID, mRUEncode.bcData, sink);
+            for (; emptyRUID < mRUEncode.id; emptyRUID++) {       // flush empty raw data for RUs w/o digits
+              if (emptyRUID >= ruSWMin && emptyRUID <= ruSWMax) { // do we want this RU?
+                flushEmptyRU(emptyRUID, mRUEncode.bcData, sink);
+              }
             }
             emptyRUID = mRUEncode.id + 1; // flushing of next empty RU will start from this one
-            flushRUData(mRUEncode, sink); // flush already converted RU data
+            if (!ignore) {
+              flushRUData(mRUEncode, sink); // flush already converted RU data
+            }
           }
           mRUEncode.id = mRUEncode.chInfo.ru; // and update with new RU identifier
           mRUEncode.type = mRUEncode.chInfo.ruType;
           mRUEncode.nChips = MAP.getNChipsOnRUType(mRUEncode.chInfo.ruType);
           mRUEncode.nCables = MAP.getNCablesOnRUType(mRUEncode.chInfo.ruType);
+          ignore = mRUEncode.id < ruSWMin || mRUEncode.id > ruSWMax;
         }
         chipData.setChipID(mRUEncode.chInfo.chOnRU->chipOnModuleHW); // HW chip ID in module
       }
-      chipData.getData().emplace_back(&dig); // add new digit to the container
+      if (!ignore) {                           // add only if the RU is not to be rejected
+        chipData.getData().emplace_back(&dig); // add new digit to the container
+      }
     }
-    convertChipData(mRUEncode, chipData); // finish what is left in the buffer
-
-    for (; emptyRUID < mRUEncode.id; emptyRUID++) { // flush empty raw data for RUs w/o digits
-      flushEmptyRU(emptyRUID, mRUEncode.bcData, sink);
+    if (!ignore) {
+      convertChipData(mRUEncode, chipData); // finish what is left in the buffer
     }
-    flushRUData(mRUEncode, sink);
-
+    for (; emptyRUID < mRUEncode.id; emptyRUID++) {       // flush empty raw data for RUs w/o digits
+      if (emptyRUID >= ruSWMin && emptyRUID <= ruSWMax) { // do we want this RU?
+        flushEmptyRU(emptyRUID, mRUEncode.bcData, sink);
+      }
+    }
+    if (!ignore) {
+      flushRUData(mRUEncode, sink);
+    }
     // flush empty raw data for RUs w/o digits
     for (emptyRUID = mRUEncode.chInfo.ru + 1; emptyRUID < MAP.getNRUs(); emptyRUID++) {
-      flushEmptyRU(emptyRUID, mRUEncode.bcData, sink);
+      if (emptyRUID >= ruSWMin && emptyRUID <= ruSWMax) { // do we want this RU?
+        flushEmptyRU(emptyRUID, mRUEncode.bcData, sink);
+      }
     }
 
     return last - from;
@@ -511,6 +526,11 @@ class RawPixelReader : public PixelReader
 
     int ruIDSW = MAP.RUHW2SW(rdh->feeId);
     LOG(INFO) << "Decoding RU:" << rdh->feeId << " swID: " << ruIDSW << " Orbit:" << rdh->triggerOrbit << " BC: " << rdh->triggerBC;
+
+    mInteractionRecord.bc = rdh->triggerBC;
+    mInteractionRecord.orbit = rdh->triggerOrbit;
+    mTrigger = rdh->triggerType;
+
     auto& currRU = mRUStat[ruIDSW];
     currRU.nPackets++;
     mRUDecode.ruInfo = MAP.getRUInfoSW(ruIDSW); // info on the stave being decoded
