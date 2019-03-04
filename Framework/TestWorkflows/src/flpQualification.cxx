@@ -42,20 +42,20 @@ DataProcessorSpec templateProcessor()
   return DataProcessorSpec{
     "some-processor",
     {
-      InputSpec{ "x", "TST", "A", 0, Lifetime::Timeframe },
+      InputSpec{ "binding", "TST" /* data source */, "proxy_output", 0 /* sub spec */, Lifetime::Timeframe },
     },
     {
-      OutputSpec{ "TST", "P", 0, Lifetime::Timeframe },
+      OutputSpec{ "TST", "processor_output", 0, Lifetime::Timeframe },
     },
-    // The producer is stateful, we use a static for the state in this
+    // The processor is stateful. We use a static for the state in this
     // particular case, but a Singleton or a captured new object would
-    // work as well.
+    // work as well. The state is hold in srand.
     AlgorithmSpec{ [](InitContext& setup) {
       srand(setup.services().get<ParallelContext>().index1D());
       return [](ProcessingContext& ctx) {
         // Create a single output.
         size_t index = ctx.services().get<ParallelContext>().index1D();
-        auto aData = ctx.outputs().make<int>(Output{ "TST", "P", index }, 1);
+        auto aData = ctx.outputs().make<int>(Output{ "TST", "processor_output", index }, 1);
         sleep(rand() % 5);
       };
     } }
@@ -78,35 +78,34 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   size_t stages = config.options().get<int>("3-layer-pipelining");
 
   // This is an example of how we can parallelize by subSpec.
-  // templatedProducer will be instanciated N times and the lambda function
+  // templatedProcessor will be instanciated N times and the lambda function
   // passed to the parallel statement will be applied to each one of the
   // instances in order to modify it. Parallel will also make sure the name of
-  // the instance is amended from "some-producer" to "some-producer-<index>".
+  // the instance is amended from "some-processor" to "some-processor-<index>".
   // This is to simulate processing of different input channels in parallel on
   // the FLP.
-  // FIXME: actually connect to Readout.
   WorkflowSpec workflow = parallel(templateProcessor(), jobs, [](DataProcessorSpec& spec, size_t index) {
     DataSpecUtils::updateMatchingSubspec(spec.inputs[0], index);
     spec.outputs[0].subSpec = index;
   });
 
-  /// The proxy is the component which is responsible to connect to readout and
-  /// extract the data from it. Depending on the configuration, it will
-  /// create as many outputs as the different subspecification / channels
-  /// which will be read by the readout.
+  // The proxy is the component which is responsible to connect to readout and
+  // extract the data from it. Depending on the configuration, it will
+  // create as many outputs as the different subspecification / channels
+  // which will be read by the readout.
+  // FIXME: actually connect to Readout.
   std::vector<OutputSpec> outputSpecs;
   for (size_t ssi = 0; ssi < jobs; ++ssi) {
-    outputSpecs.emplace_back("TST", "A", ssi);
+    outputSpecs.emplace_back("TST", "proxy_output", ssi);
   }
-
   DataProcessorSpec proxy{
     "proxy",
-    {},
+    {}, // no input
     outputSpecs,
     AlgorithmSpec{ [jobs](InitContext& initCtx) {
       return [jobs](ProcessingContext& ctx) {
         for (size_t ji = 0; ji < jobs; ++ji) {
-          ctx.outputs().make<int>(Output{ "TST", "A", ji }, 1);
+          ctx.outputs().make<int>(Output{ "TST", "proxy_output", ji }, 1);
         }
       };
     } }
@@ -118,15 +117,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   DataProcessorSpec timeParallelProcessor = timePipeline(
     DataProcessorSpec{
       "merger",
-      mergeInputs(InputSpec{ "x", "TST", "P" },
+      mergeInputs(InputSpec{ "binding", "TST", "processor_output" },
                   jobs,
                   [](InputSpec& input, size_t index) {
                     DataSpecUtils::updateMatchingSubspec(input, index);
                   }),
-      { OutputSpec{ { "out" }, "TST", "M" } },
+      { OutputSpec{ { "label" }, "TST", "merger_output" } },
       AlgorithmSpec{ [](InitContext& setup) {
         return [](ProcessingContext& ctx) {
-          ctx.outputs().make<int>(OutputRef("out", 0), 1);
+          ctx.outputs().make<int>(OutputRef("label", 0), 1);
         };
       } } },
     stages);
@@ -136,7 +135,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   // FIXME: actually connect to DataDistribution to push data somewhere else.
   DataProcessorSpec proxyOut{
     "proxyout",
-    { InputSpec{ "x", "TST", "M" } },
+    { InputSpec{ "binding", "TST", "merger_output" } },
     {},
     AlgorithmSpec{ [](InitContext& setup) {
       return [](ProcessingContext& ctx) {
