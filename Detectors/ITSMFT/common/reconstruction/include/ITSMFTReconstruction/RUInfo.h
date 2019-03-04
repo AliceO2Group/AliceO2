@@ -56,13 +56,12 @@ struct ChipInfo {
 
   std::uint16_t user = DUMMY16; // reserved for the user ?
   std::uint16_t id = DUMMY16;
-  std::uint16_t layer = DUMMY16;
   std::uint16_t ru = DUMMY16;     // RU sequential id
   std::uint16_t ruType = DUMMY16; // RU (or subBarrel) type
 
   void print() const;
 };
-}
-}
+} // namespace ITSMFT
+} // namespace o2
 
 #endif
