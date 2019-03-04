@@ -22,6 +22,7 @@
 #include "ITSMFTReconstruction/GBTWord.h"
 #include "DetectorsBase/Triggers.h"
 #include "ITSMFTReconstruction/PayLoadCont.h"
+#include "ITSMFTReconstruction/PayLoadSG.h"
 #include <TTree.h>
 #include <TStopwatch.h>
 #include <FairLogger.h>
@@ -147,7 +148,7 @@ struct RUEncodeData {
 };
 
 struct RUDecodeData {
-  std::array<o2::ITSMFT::PayLoadCont, MaxCablesPerRU> cableData;  // cable data in compressed ALPIDE format
+  std::array<PayLoadSG, MaxCablesPerRU> cableData;                // cable data in compressed ALPIDE format
   std::array<uint8_t, MaxCablesPerRU> cableHWID;                  // HW ID of cable whose data is in the corresponding slot of cableData
   std::array<o2::ITSMFT::ChipPixelData, MaxChipsPerRU> chipsData; // fully decoded data
 
@@ -163,7 +164,6 @@ struct RUDecodeData {
     }
     nCables = 0;
   }
-  ClassDefNV(RUDecodeData, 1);
 };
 
 /// Used both for encoding to and decoding from the alpide raw data format
@@ -187,7 +187,7 @@ class RawPixelReader : public PixelReader
   static constexpr bool getGBTWordSize() { return GBTWordSize; }
 
   int digits2raw(const std::vector<o2::ITSMFT::Digit>& digiVec, int from, int ndig, const o2::InteractionRecord& bcData,
-                 PayLoadCont& sink)
+                 PayLoadCont& sink, uint8_t ruSWMin = 0, uint8_t ruSWMax = 0xff)
   {
     // convert vector of digits to binary vector (no reset is applied)
     constexpr uint16_t DummyChip = 0xffff;
@@ -683,7 +683,8 @@ class RawPixelReader : public PixelReader
 
 #ifdef _RAW_READER_ERROR_CHECKS_
       // make sure the lane data starts with chip header or empty chip
-      if (!mCoder.isChipHeaderOrEmpty(*cableData.getPtr()) && cableData.getUnusedSize()) {
+      uint8_t h;
+      if (!cableData.current(h) || !mCoder.isChipHeaderOrEmpty(h)) {
         LOG(ERROR) << "FEE#" << decData.ruInfo->idHW << " cable " << icab << " data does not start with ChipHeader or ChipEmpty";
         currRU.errorCounts[RUStat::ErrCableDataHeadWrong]++;
       }

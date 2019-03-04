@@ -30,6 +30,7 @@ set(HEADERS
   include/${MODULE_NAME}/AlpideCoder.h
   include/${MODULE_NAME}/GBTWord.h
   include/${MODULE_NAME}/PayLoadCont.h
+  include/${MODULE_NAME}/PayLoadSG.h
   include/${MODULE_NAME}/RUInfo.h
 )
 Set(LINKDEF src/ITSMFTReconstructionLinkDef.h)

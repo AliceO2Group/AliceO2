@@ -131,6 +131,16 @@ class PayLoadCont
   ///< direct access to value at a given slot, w/o checking for overflow
   uint8_t& operator[](int i) { return mBuffer[i]; }
 
+  ///< read current character value from buffer w/o stepping forward
+  bool current(uint8_t& v) const
+  {
+    if (mPtr < mEnd) {
+      v = *mPtr;
+      return true;
+    }
+    return false;
+  }
+
   ///< read character value from buffer
   bool next(uint8_t& v)
   {
@@ -151,9 +161,6 @@ class PayLoadCont
     }
     return false;
   }
-
-  ///< step back by 1 byte, w/p checks
-  void stepBack() { mPtr--; }
 
   ///< move current pointer to the head
   void rewind() { mPtr = mBuffer.data(); }
