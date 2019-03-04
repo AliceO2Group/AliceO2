@@ -30,6 +30,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 #include "Framework/DataSpecUtils.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/ControlService.h"
+#include "Framework/ReadoutAdapter.h"
 
 #include "FairMQLogger.h"
 
@@ -42,7 +43,7 @@ DataProcessorSpec templateProcessor()
   return DataProcessorSpec{
     "some-processor",
     {
-      InputSpec{ "x", "TST", "A", 0, Lifetime::Timeframe },
+      InputSpec{ "x", "ITS", "RAWDATA", 0, Lifetime::Timeframe },
     },
     {
       OutputSpec{ "TST", "P", 0, Lifetime::Timeframe },
@@ -52,12 +53,14 @@ DataProcessorSpec templateProcessor()
     // work as well.
     AlgorithmSpec{ [](InitContext& setup) {
       srand(setup.services().get<ParallelContext>().index1D());
-      return [](ProcessingContext& ctx) {
+      return adaptStateless([](ParallelContext& parallelInfo, InputRecord& inputs, DataAllocator& outputs) {
+        auto values = inputs.get("x");
         // Create a single output.
-        size_t index = ctx.services().get<ParallelContext>().index1D();
-        auto aData = ctx.outputs().make<int>(Output{ "TST", "P", index }, 1);
+        size_t index = parallelInfo.index1D();
+        LOG(INFO) << reinterpret_cast<DataHeader const*>(values.header)->payloadSize;
+        auto aData = outputs.make<int>(Output{ "TST", "P", index }, 1);
         sleep(rand() % 5);
-      };
+      });
     } }
   };
 }
@@ -77,6 +80,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   size_t jobs = config.options().get<int>("2-layer-jobs");
   size_t stages = config.options().get<int>("3-layer-pipelining");
 
+  /// The proxy is the component which is responsible to connect to readout and
+  /// extract the data from it. Depending on the configuration, it will
+  /// create as many outputs as the different subspecification / channels
+  /// which will be read by the readout.
+  DataProcessorSpec readoutProxy = specifyExternalFairMQDeviceProxy(
+    "readout-proxy",
+    Outputs{ { "ITS", "RAWDATA" } },
+    "type=pair,method=connect,address=ipc:///tmp/readout-pipe-0,rateLogging=1",
+    readoutAdapter({ "ITS", "RAWDATA" }));
+
   // This is an example of how we can parallelize by subSpec.
   // templatedProducer will be instanciated N times and the lambda function
   // passed to the parallel statement will be applied to each one of the
@@ -85,32 +98,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   // This is to simulate processing of different input channels in parallel on
   // the FLP.
   // FIXME: actually connect to Readout.
-  WorkflowSpec workflow = parallel(templateProcessor(), jobs, [](DataProcessorSpec& spec, size_t index) {
+  auto dataParallelLayer = parallel(templateProcessor(), jobs, [](DataProcessorSpec& spec, size_t index) {
     DataSpecUtils::updateMatchingSubspec(spec.inputs[0], index);
     spec.outputs[0].subSpec = index;
   });
-
-  /// The proxy is the component which is responsible to connect to readout and
-  /// extract the data from it. Depending on the configuration, it will
-  /// create as many outputs as the different subspecification / channels
-  /// which will be read by the readout.
-  std::vector<OutputSpec> outputSpecs;
-  for (size_t ssi = 0; ssi < jobs; ++ssi) {
-    outputSpecs.emplace_back("TST", "A", ssi);
-  }
-
-  DataProcessorSpec proxy{
-    "proxy",
-    {},
-    outputSpecs,
-    AlgorithmSpec{ [jobs](InitContext& initCtx) {
-      return [jobs](ProcessingContext& ctx) {
-        for (size_t ji = 0; ji < jobs; ++ji) {
-          ctx.outputs().make<int>(Output{ "TST", "A", ji }, 1);
-        }
-      };
-    } }
-  };
 
   // This is a set of processor which will be able to process consistent
   // timeslices on the FLP. I.e. time units where all the channels are
@@ -144,7 +135,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     } }
   };
 
-  workflow.emplace_back(proxy);
+  WorkflowSpec workflow;
+  workflow.emplace_back(readoutProxy);
+  workflow.insert(workflow.end(), dataParallelLayer.begin(), dataParallelLayer.end());
   workflow.emplace_back(timeParallelProcessor);
   workflow.emplace_back(proxyOut);
 

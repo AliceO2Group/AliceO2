@@ -80,6 +80,7 @@ set(SRCS
     src/PaletteHelpers.cxx
     src/CommonDataProcessors.cxx
     src/RCombinedDS.cxx
+    src/ReadoutAdapter.cxx
     ${GUI_SOURCES}
     test/TestClasses.cxx
     src/Variant.cxx
