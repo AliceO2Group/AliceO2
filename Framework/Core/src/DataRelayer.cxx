@@ -131,14 +131,25 @@ void DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& ex
       auto& expirator = expirationHandlers[mDistinctRoutesIndex[ri]];
       auto timestamp = mTimesliceIndex.getTimesliceForSlot(slot);
       auto& part = mCache[ti * mDistinctRoutesIndex.size() + ri];
-      if (part.header == nullptr && part.payload == nullptr && expirator.checker && expirator.checker(timestamp.value)) {
-        assert(ti * mDistinctRoutesIndex.size() + ri < mCache.size());
-        assert(expirator.handler);
-        expirator.handler(services, part, timestamp.value);
-        mTimesliceIndex.markAsDirty(slot, true);
-        assert(part.header != nullptr);
-        assert(part.payload != nullptr);
+      if (part.header != nullptr) {
+        continue;
       }
+      if (part.payload != nullptr) {
+        continue;
+      }
+      if (!expirator.checker) {
+        continue;
+      }
+      if (expirator.checker(timestamp.value) == false) {
+        continue;
+      }
+
+      assert(ti * mDistinctRoutesIndex.size() + ri < mCache.size());
+      assert(expirator.handler);
+      expirator.handler(services, part, timestamp.value);
+      mTimesliceIndex.markAsDirty(slot, true);
+      assert(part.header != nullptr);
+      assert(part.payload != nullptr);
     }
   }
 }
