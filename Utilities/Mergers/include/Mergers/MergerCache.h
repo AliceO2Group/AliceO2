@@ -26,7 +26,7 @@
 
 namespace o2
 {
-namespace mergers
+namespace experimental::mergers
 {
 
 /// \brief Merger cache to store input objects before merging them.

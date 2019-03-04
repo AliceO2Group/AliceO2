@@ -17,7 +17,7 @@
 
 namespace o2
 {
-namespace mergers
+namespace experimental::mergers
 {
 
 //todo: consider storing raw header and payload (not sure if it is deleted by framework)

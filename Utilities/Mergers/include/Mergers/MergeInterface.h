@@ -22,7 +22,7 @@
 
 namespace o2
 {
-namespace mergers
+namespace experimental::mergers
 {
 
 /// \brief Interface allowing custom behaviour of Mergers components.

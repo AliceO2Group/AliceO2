@@ -20,7 +20,7 @@
 
 namespace o2
 {
-namespace mergers
+namespace experimental::mergers
 {
 
 MergerBuilder::MergerBuilder() : mName("INVALID"),

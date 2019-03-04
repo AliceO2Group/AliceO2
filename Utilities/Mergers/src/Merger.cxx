@@ -33,7 +33,7 @@ using namespace std::chrono;
 
 namespace o2
 {
-namespace mergers
+namespace experimental::mergers
 {
 
 Merger::Merger(MergerConfig config, header::DataHeader::SubSpecificationType subSpec)

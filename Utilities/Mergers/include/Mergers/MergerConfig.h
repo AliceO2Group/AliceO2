@@ -18,7 +18,7 @@
 
 namespace o2
 {
-namespace mergers
+namespace experimental::mergers
 {
 
 // This is a set of Mergers' options that user can choose from.

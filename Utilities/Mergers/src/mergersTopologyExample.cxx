@@ -23,7 +23,7 @@
 #include <random>
 
 using namespace o2::framework;
-using namespace o2::mergers;
+using namespace o2::experimental::mergers;
 
 void customize(std::vector<CompletionPolicy>& policies)
 {

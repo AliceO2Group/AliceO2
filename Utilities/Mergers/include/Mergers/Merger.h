@@ -28,7 +28,7 @@
 
 namespace o2
 {
-namespace mergers
+namespace experimental::mergers
 {
 
 /// \brief Merger data processor class.

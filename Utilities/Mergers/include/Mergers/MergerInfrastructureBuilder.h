@@ -24,7 +24,7 @@
 
 namespace o2
 {
-namespace mergers
+namespace experimental::mergers
 {
 
 /// \brief Builder class for Merger topologies

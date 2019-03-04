@@ -25,7 +25,7 @@
 
 namespace o2
 {
-namespace mergers
+namespace experimental::mergers
 {
 
 /// \brief A builder class to generate a DataProcessorSpec of one Merger

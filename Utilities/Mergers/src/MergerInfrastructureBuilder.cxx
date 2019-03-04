@@ -21,7 +21,7 @@
 
 namespace o2
 {
-namespace mergers
+namespace experimental::mergers
 {
 
 MergerInfrastructureBuilder::MergerInfrastructureBuilder() : mOutputSpec{ header::gDataOriginInvalid, header::gDataDescriptionInvalid }
