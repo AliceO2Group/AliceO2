@@ -32,6 +32,8 @@
 #pragma link C++ class o2::ITSMFT::GBTDataTrailer + ;
 #pragma link C++ class o2::ITSMFT::GBTData + ;
 #pragma link C++ class o2::ITSMFT::PayLoadCont + ;
+#pragma link C++ class o2::ITSMFT::PayLoadSG + ;
+#pragma link C++ class o2::ITSMFT::RUStat + ;
 
 #pragma link C++ class std::map<unsigned long, std::pair<o2::ITSMFT::ClusterTopology, unsigned long>> + ;
 
