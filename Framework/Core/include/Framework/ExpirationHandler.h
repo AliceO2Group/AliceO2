@@ -11,6 +11,7 @@
 #ifndef FRAMEWORK_EXPIRATIONHANDLER_H
 #define FRAMEWORK_EXPIRATIONHANDLER_H
 
+#include "Framework/Lifetime.h"
 #include <cstdint>
 #include <functional>
 
@@ -28,6 +29,7 @@ struct ExpirationHandler {
   using Checker = std::function<bool(uint64_t timestamp)>;
   using Handler = std::function<void(ServiceRegistry&, PartRef& expiredInput, uint64_t timestamp)>;
 
+  Lifetime lifetime;
   Creator creator;
   Checker checker;
   Handler handler;
