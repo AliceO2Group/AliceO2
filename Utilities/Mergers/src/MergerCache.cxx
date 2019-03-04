@@ -38,7 +38,9 @@ void MergerCache::init(const framework::InputRecord& inputs)
 
 void MergerCache::cacheInputRecord(const framework::InputRecord& inputs) //todo: rename to cacheObjects ?
 {
-  // todo: take care of collections' ownership
+  if (uninitialized()) {
+    init(inputs);
+  }
 
   bool shift = false;
   for (int i = 0; i < inputs.size(); ++i) {

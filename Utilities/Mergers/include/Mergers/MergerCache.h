@@ -50,8 +50,6 @@ class MergerCache
   /// \brief Default destructor.
   ~MergerCache() = default;
 
-  /// \brief Initializes the cache by seeing the size and contents of DPL's InputRecord
-  void init(const framework::InputRecord& inputs);
   /// \brief Stores input objects from InputRecord into the cache
   void cacheInputRecord(const framework::InputRecord& inputs);
 
@@ -75,6 +73,9 @@ class MergerCache
   size_t cachedInputs();
 
  private:
+  /// \brief Initializes the cache by seeing the size and contents of DPL's InputRecord
+  void init(const framework::InputRecord& inputs);
+
   static void deleteTCollections(TObject* obj);
 
   std::vector<CacheEntryQueue> mCache;

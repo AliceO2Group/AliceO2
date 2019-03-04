@@ -58,10 +58,6 @@ void Merger::init(framework::InitContext& ictx)
 
 void Merger::run(framework::ProcessingContext& ctx)
 {
-  if (mCache.uninitialized()) {
-    mCache.init(ctx.inputs());
-  }
-
   mCache.cacheInputRecord(ctx.inputs());
 
   if (shouldMergeCache(ctx)) {
