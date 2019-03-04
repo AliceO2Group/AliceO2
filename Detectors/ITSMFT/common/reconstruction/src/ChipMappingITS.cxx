@@ -13,6 +13,8 @@
 
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include <cassert>
+#include <sstream>
+#include <iomanip>
 
 using namespace o2::ITSMFT;
 
@@ -27,7 +29,9 @@ constexpr std::array<int, ChipMappingITS::NSubB> ChipMappingITS::NStavesSB;
 constexpr std::array<int, ChipMappingITS::NSubB> ChipMappingITS::NChipsPerStaveSB;
 constexpr std::array<int, ChipMappingITS::NSubB> ChipMappingITS::NChipsPerCableSB;
 constexpr std::array<int, ChipMappingITS::NSubB> ChipMappingITS::NChipsSB;
-constexpr std::array<int, ChipMappingITS::NLayers> ChipMappingITS::NStavesPerLr;
+constexpr std::array<int, ChipMappingITS::NLayers> ChipMappingITS::NStavesOnLr;
+constexpr std::array<int, ChipMappingITS::NLayers> ChipMappingITS::FirstStaveOnLr;
+
 constexpr std::array<uint8_t, ChipMappingITS::NLayers> ChipMappingITS::RUTypeLr;
 
 constexpr std::array<uint8_t, ChipMappingITS::NSubB> ChipMappingITS::GBTHeaderFlagSB;
@@ -88,7 +92,7 @@ ChipMappingITS::ChipMappingITS()
   uint32_t maxRUHW = 0;
   uint16_t chipCount = 0;
   for (int ilr = 0; ilr < NLayers; ilr++) {
-    for (int ist = 0; ist < NStavesPerLr[ilr]; ist++) {
+    for (int ist = 0; ist < NStavesOnLr[ilr]; ist++) {
       auto& sInfo = mStavesInfo[ctrStv];
       sInfo.idSW = ctrStv++;
       sInfo.idHW = sInfo.idSW; // at the moment assume 1 to 1 mapping
@@ -111,6 +115,7 @@ ChipMappingITS::ChipMappingITS()
   }
 }
 
+//______________________________________________
 void ChipMappingITS::print() const
 {
   int ctrChip = 0;
@@ -126,4 +131,48 @@ void ChipMappingITS::print() const
   for (int i = 0; i < NChipsPerStaveSB[OB]; i++) {
     mChipsInfo[ctrChip++].print();
   }
+}
+
+//______________________________________________
+void ChipMappingITS::expandChipInfoSW(int idSW, int& lay, int& sta, int& ssta, int& mod, int& chipInMod) const
+{
+  // convert SW chip ID to detailed info SW info
+  ChipInfo chi;
+  getChipInfoSW(idSW, chi);
+  const auto staveInfo = getRUInfoSW(chi.ru);
+  lay = staveInfo->layer;
+  sta = staveInfo->idSW;
+  mod = chi.chOnRU->moduleSW;
+  chipInMod = chi.chOnRU->chipOnModuleSW;
+  ssta = lay < 3 || (mod < (NModulesPerStaveSB[chi.ruType] >> 2)) ? 0 : 1;
+}
+
+//______________________________________________
+void ChipMappingITS::expandChipInfoHW(int idSW, int& lay, int& sta, int& ssta, int& mod, int& chipInMod) const
+{
+  // convert SW chip ID to detailed info HW info
+  ChipInfo chi;
+  getChipInfoSW(idSW, chi);
+  const auto staveInfo = getRUInfoSW(chi.ru);
+  lay = staveInfo->layer;
+  sta = staveInfo->idSW - getFirstStavesOnLr(lay);                                   // stave relative to layer
+  mod = lay < 3 ? 0 : 1 + (chi.chOnRU->moduleSW % NModulesAlongStaveSB[chi.ruType]); // module on the substave
+  ssta = chi.chOnRU->moduleSW / NModulesAlongStaveSB[chi.ruType];
+  chipInMod = chi.chOnRU->chipOnModuleHW;
+}
+
+//______________________________________________
+std::string ChipMappingITS::getChipNameHW(int idSW) const
+{
+  // convert global SW chip ID to name in HW conventions
+  int lay, sta, ssta, mod, cinmod;
+  expandChipInfoHW(idSW, lay, sta, ssta, mod, cinmod);
+  std::stringstream strs;
+  strs << 'L' << lay << '_' << std::setfill('0') << std::setw(2) << sta;
+  if (lay > 2) {
+    strs << (ssta ? 'U' : 'L') << "_M" << mod;
+  }
+  strs << "_C" << std::setfill('0') << std::setw(2) << cinmod;
+
+  return strs.str();
 }

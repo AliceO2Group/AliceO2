@@ -18,6 +18,7 @@
 #include <array>
 #include <cstdlib>
 #include <cstdint>
+#include <string>
 #include "ITSMFTReconstruction/RUInfo.h"
 
 namespace o2
@@ -40,9 +41,27 @@ class ChipMappingITS
   ///< total number of chips
   static constexpr int getNChips() { return NChipsSB[IB] + NChipsSB[MB] + NChipsSB[OB]; }
 
+  ///< number of staves on layer
+  static constexpr int getNStavesOnLr(int l) { return NStavesOnLr[l]; }
+
+  ///<  first staves of layer
+  static constexpr int getFirstStavesOnLr(int l) { return FirstStaveOnLr[l]; }
+
+  ///< numbes of chips per layer
+  static constexpr int getNChipsPerLr(int l) { return NStavesOnLr[l] * NChipsPerStaveSB[RUTypeLr[l]]; }
+
+  ///< expand SW chip ID to SW (continuous) id's for layer, stave, substave etc.
+  void expandChipInfoSW(int idSW, int& lay, int& sta, int& ssta, int& mod, int& chipInMod) const;
+
+  ///< expand SW chip ID to HW  id's for layer, stave, substave, module, chipOnModule
+  void expandChipInfoHW(int idSW, int& lay, int& sta, int& ssta, int& mod, int& chipInMod) const;
+
+  ///< convert global SW chip ID to name in HW conventions
+  std::string getChipNameHW(int idSW) const;
+
   void print() const;
 
-  /// < extract information about the chip properties on the stave of give type for the chip
+  /// < extract information about the chip properties on the stave of given type for the chip
   /// < with sequential ID SWID within the stave
   const ChipOnRUInfo* getChipOnRUInfo(int staveType, int chOnRUSW) const
   {
@@ -147,7 +166,7 @@ class ChipMappingITS
     for (int i = 0; i < NLayers; i++) {
       if (i >= lr)
         break;
-      sid += NStavesPerLr[i];
+      sid += NStavesOnLr[i];
     }
     return sid + ruOnLr;
   }
@@ -187,15 +206,18 @@ class ChipMappingITS
   static constexpr std::array<int, NSubB> NModulesPerStaveSB = { 1, 8, 14 };
 
   ///< number of staves per layer
-  static constexpr std::array<int, NLayers> NStavesPerLr = { 12, 16, 20, 24, 30, 42, 48 };
+  static constexpr std::array<int, NLayers> NStavesOnLr = { 12, 16, 20, 24, 30, 42, 48 };
+
+  ///< number of staves per layer
+  static constexpr std::array<int, NLayers> FirstStaveOnLr = { 0, 12, 28, 48, 72, 102, 144 };
 
   ///< RU types for each layer
   static constexpr std::array<uint8_t, NLayers> RUTypeLr = { IB, IB, IB, MB, MB, OB, OB };
 
   ///< number of staves per sub-barrel
-  static constexpr std::array<int, NSubB> NStavesSB = { NStavesPerLr[0] + NStavesPerLr[1] + NStavesPerLr[2],
-                                                        NStavesPerLr[3] + NStavesPerLr[4],
-                                                        NStavesPerLr[5] + NStavesPerLr[6] };
+  static constexpr std::array<int, NSubB> NStavesSB = { NStavesOnLr[0] + NStavesOnLr[1] + NStavesOnLr[2],
+                                                        NStavesOnLr[3] + NStavesOnLr[4],
+                                                        NStavesOnLr[5] + NStavesOnLr[6] };
   ///< number of chips per stave of sub-barrel
   static constexpr std::array<int, NSubB> NChipsPerStaveSB = { NModulesPerStaveSB[IB] * NChipsPerModuleSB[IB],
                                                                NModulesPerStaveSB[MB] * NChipsPerModuleSB[MB],
