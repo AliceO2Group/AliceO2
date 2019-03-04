@@ -101,7 +101,7 @@ class CalibTOF
   void doLHCPhaseCalib();                                                                                                                                                                        // calibrate with respect LHC phase
   void fillChannelCalibInput(std::vector<o2::dataformats::CalibInfoTOFshort>* calibinfotof, float offset, int ipad, TH1F* histo, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad); // we will fill the input for the channel-level calibration
   void fillChannelTimeSlewingCalib(float offset, int ipad, TH2F* histo, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad);                                                          // we will fill the input for the channel-time-slewing calibration
-  int doChannelCalibration(int ipad, TH1F* histo, TF1* func);                                                                                                                                    // calibrate single channel from histos --> return > 0 if prolematic
+  float doChannelCalibration(int ipad, TH1F* histo, TF1* func);                                                                                                                                    // calibrate single channel from histos --> return fraction of entries under the peak
   void resetChannelLevelHistos(TH1F* histoOffset[NPADSPERSTEP], TH2F* histoTimeSlewing, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad[NPADSPERSTEP]);                            // reset signle channel histos
 
   // objects needed for calibration
@@ -132,12 +132,6 @@ class CalibTOF
   // output calibration
   o2::dataformats::CalibLHCphaseTOF* mLHCphaseObj;            ///< LHCPhase to be written in the output
   o2::dataformats::CalibTimeSlewingParamTOF* mTimeSlewingObj; ///< Time Slewing object to be written in the output
-  int mNLHCphaseIntervals = 0;                                ///< Number of measurements for the LHCPhase
-  float mLHCphase[1000];                                      ///< outputt LHC phase in ps
-  float mLHCphaseErr[1000];                                   ///< outputt LHC phase in ps
-  int mLHCphaseStartInterval[1000];                           ///< timestamp from which the LHCphase measurement is valid
-  int mLHCphaseEndInterval[1000];                             ///< timestamp until which the LHCphase measurement is valid
-  int mNChannels = Geo::NCHANNELS;                            // needed to give the size to the branches of channels
   float mCalibChannelOffset[Geo::NCHANNELS];                  ///< output TOF channel offset in ps
   float mCalibChannelOffsetErr[Geo::NCHANNELS];               ///< output TOF channel offset in ps (negative error as flag for problematic channels)
 

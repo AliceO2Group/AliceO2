@@ -93,14 +93,7 @@ void CalibTOF::init()
     mTimeSlewingObj = new o2::dataformats::CalibTimeSlewingParamTOF();
     mOutputTree->Branch("mLHCphaseObj", &mLHCphaseObj);
     mOutputTree->Branch("mTimeSlewingObj", &mTimeSlewingObj);
-    mOutputTree->Branch("LHCphaseMeasurementInterval", &mNLHCphaseIntervals, "LHCphaseMeasurementInterval/I");
-    mOutputTree->Branch("LHCphase", mLHCphase, "LHCphase[LHCphaseMeasurementInterval]/F");
-    mOutputTree->Branch("LHCphaseErr", mLHCphaseErr, "LHCphaseErr[LHCphaseMeasurementInterval]/F");
-    mOutputTree->Branch("LHCphaseStartInterval", mLHCphaseStartInterval, "LHCphaseStartInterval[LHCphaseMeasurementInterval]/I");
-    mOutputTree->Branch("LHCphaseEndInterval", mLHCphaseEndInterval, "LHCphaseEndInterval[LHCphaseMeasurementInterval]/I");
-    mOutputTree->Branch("nChannels", &mNChannels, "nChannels/I");
-    mOutputTree->Branch("ChannelOffset", mCalibChannelOffset, "ChannelOffset[nChannels]/F");
-    mOutputTree->Branch("ChannelOffsetErr", mCalibChannelOffsetErr, "ChannelOffsetErr[nChannels]/F");
+
     //    LOG(INFO) << "Matched tracks will be stored in " << mOutputBranchName << " branch of tree "
     //              << mOutputTree->GetName();
   } else {
@@ -110,7 +103,7 @@ void CalibTOF::init()
   // booking the histogram of the LHCphase
   int nbinsLHCphase = TMath::Min(1000, int((mMaxTimestamp - mMinTimestamp) / 300) + 1);
   if (nbinsLHCphase < 1000)
-    mMaxTimestamp = mMinTimestamp + mNLHCphaseIntervals * 300; // we want that the last bin of the histogram is also large 300s; this we need to do only when we have less than 1000 bins, because in this case we will integrate over intervals that are larger than 300s anyway
+    mMaxTimestamp = mMinTimestamp + nbinsLHCphase * 300; // we want that the last bin of the histogram is also large 300s; this we need to do only when we have less than 1000 bins, because in this case we will integrate over intervals that are larger than 300s anyway
   mHistoLHCphase = new TH2F("hLHCphase", ";clock offset (ps); timestamp (s)", 1000, -24400, 24400, nbinsLHCphase, mMinTimestamp, mMaxTimestamp);
 
   mInitDone = true;
@@ -197,22 +190,23 @@ void CalibTOF::run(int flag, int sector)
 
       for (ipad = 0; ipad < NPADSPERSTEP; ipad++) {
         if (histoChOffsetTemp[ipad]->GetEntries() > 30) {
-          int isProblematic = doChannelCalibration(ipad, histoChOffsetTemp[ipad], funcChOffset);
+          float fractionUnderPeak = doChannelCalibration(ipad, histoChOffsetTemp[ipad], funcChOffset);
           mCalibChannelOffset[ich + ipad] = funcChOffset->GetParameter(1) + mInitialCalibChannelOffset[ich + ipad];
-          if (!isProblematic)
-            mCalibChannelOffsetErr[ich + ipad] = abs(funcChOffset->GetParError(1));
-          else { // problematic
-            mCalibChannelOffsetErr[ich + ipad] = -abs(funcChOffset->GetParError(1));
-            continue;
-          }
+
+	  int channelInSector =  (ipad + ich) % o2::tof::Geo::NPADSXSECTOR;
+	  
+	  mTimeSlewingObj->setFractionUnderPeak(sector, channelInSector, fractionUnderPeak);
+	  mTimeSlewingObj->setSigmaPeak(sector, channelInSector, funcChOffset->GetParameter(2));
+	  mTimeSlewingObj->setSigmaErrPeak(sector, channelInSector, funcChOffset->GetParError(2));
+
           // now fill 2D histo for time-slewing using current channel offset
 
           if (flag & kChannelTimeSlewing) {
             histoChTimeSlewingTemp->Reset();
             fillChannelTimeSlewingCalib(mCalibChannelOffset[ich + ipad], ipad, histoChTimeSlewingTemp, calibTimePad[ipad]); // we will fill the input for the channel-time-slewing calibration
 
-            histoChTimeSlewingTemp->SetName(Form("TimeSlewing_Sec%02d_Pad%04d", sector, (ipad + ich) % o2::tof::Geo::NPADSXSECTOR));
-            histoChTimeSlewingTemp->SetTitle(Form("Sector %02d (pad = %04d)", sector, (ipad + ich) % o2::tof::Geo::NPADSXSECTOR));
+            histoChTimeSlewingTemp->SetName(Form("TimeSlewing_Sec%02d_Pad%04d", sector, channelInSector));
+	    histoChTimeSlewingTemp->SetTitle(Form("Sector %02d (pad = %04d)", sector, channelInSector));
             TGraphErrors* gTimeVsTot = processSlewing(histoChTimeSlewingTemp, 1, funcChOffset);
 
             if (gTimeVsTot && gTimeVsTot->GetN()) {
@@ -339,12 +333,7 @@ void CalibTOF::doLHCPhaseCalib()
       continue;
 
     mLHCphaseObj->addLHCphase(mHistoLHCphase->GetYaxis()->GetBinLowEdge(ifit0), mFuncLHCphase->GetParameter(1));
-    mLHCphase[mNLHCphaseIntervals] = mFuncLHCphase->GetParameter(1);
-    mLHCphaseErr[mNLHCphaseIntervals] = mFuncLHCphase->GetParError(1);
-    mLHCphaseStartInterval[mNLHCphaseIntervals] = mHistoLHCphase->GetYaxis()->GetBinLowEdge(ifit0); // from when the interval
-    mLHCphaseEndInterval[mNLHCphaseIntervals] = mHistoLHCphase->GetYaxis()->GetBinUpEdge(ifit);
     ifit0 = ifit + 1;      // starting point for the next LHC interval
-    mNLHCphaseIntervals++; // how many intervals we have calibrated so far
   }
 }
 //______________________________________________
@@ -387,14 +376,23 @@ void CalibTOF::fillChannelTimeSlewingCalib(float offset, int ipad, TH2F* histo, 
 }
 //______________________________________________
 
-int CalibTOF::doChannelCalibration(int ipad, TH1F* histo, TF1* funcChOffset)
+float CalibTOF::doChannelCalibration(int ipad, TH1F* histo, TF1* funcChOffset)
 {
-
   // calibrate single channel from histos - offsets
 
   FitPeak(funcChOffset, histo, 500., 3., 2., "ChannelOffset");
 
-  return 0;
+  float mean = funcChOffset->GetParameter(1);
+  float sigma = funcChOffset->GetParameter(2);
+  float intmin = mean - 5 * sigma;
+  float intmax = mean + 5 * sigma;
+  int binmin = histo->FindBin(intmin);
+  int binmax = histo->FindBin(intmax);
+
+  float fraction = 0;
+  float integral = histo->Integral();
+  if (integral) fraction = histo->Integral(binmin, binmax)/integral;
+  return fraction;
 }
 //______________________________________________
 
