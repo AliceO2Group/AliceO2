@@ -85,7 +85,6 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
 
   //array of MCH hits for a given simulated event
   for (auto& hit : hits) {
-    int labelIndex = mTrackLabels.getIndexedSize();
     //index for this hit
     int detID = hit.GetDetectorID();
     int ndigits = processHit(hit, detID, mEventTime);
