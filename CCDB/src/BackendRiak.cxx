@@ -23,9 +23,7 @@
 using namespace o2::ccdb;
 using namespace std;
 
-BackendRiak::BackendRiak()
-{
-}
+BackendRiak::BackendRiak() = default;
 
 // Compression/decompression code taken from https://panthema.net/2007/0328-ZLibString.html
 

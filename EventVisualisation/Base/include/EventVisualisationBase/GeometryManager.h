@@ -42,9 +42,9 @@ class GeometryManager
     void drawDeep(TEveGeoShape *geomShape, Color_t color, Char_t transparency, Color_t lineColor);
   
     /// Default constructor
-    GeometryManager(){}
+    GeometryManager() = default;
     /// Default destructor
-    ~GeometryManager(){}
+    ~GeometryManager() = default;
     /// Deleted copy constructor
     GeometryManager(GeometryManager const&) = delete;
     /// Deleted assignment operator

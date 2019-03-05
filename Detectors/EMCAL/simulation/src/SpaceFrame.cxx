@@ -88,33 +88,7 @@ SpaceFrame::SpaceFrame()
   mEndBeamBeginRadius = mBeginRadius + mEndBeamRadThick;
 }
 
-SpaceFrame::SpaceFrame(const SpaceFrame& frame)
-  : mNumCross(frame.mNumCross),
-    mNumSubSets(frame.mNumSubSets),
-    mTotalHalfWidth(frame.mTotalHalfWidth),
-    mBeginPhi(frame.mBeginPhi),
-    mEndPhi(frame.mEndPhi),
-    mTotalPhi(frame.mTotalPhi),
-    mBeginRadius(frame.mBeginRadius),
-    mHalfFrameTrans(frame.mHalfFrameTrans),
-    mFlangeHeight(frame.mFlangeHeight),
-    mFlangeWidth(frame.mFlangeWidth),
-    mRibHeight(frame.mRibHeight),
-    mRibWidth(frame.mRibWidth),
-    mCrossBottomWidth(frame.mCrossBottomWidth),
-    mCrossTopWidth(frame.mCrossTopWidth),
-    mCrossBottomHeight(frame.mCrossBottomHeight),
-    mCrossBottomRadThick(frame.mCrossBottomRadThick),
-    mCrossBeamArcLength(frame.mCrossBeamArcLength),
-    mCrossBottomStartRadius(frame.mCrossBottomStartRadius),
-    mCrossTopHeight(frame.mCrossTopHeight),
-    mCrossTopRadThick(frame.mCrossTopRadThick),
-    mCrossTopStart(frame.mCrossTopStart),
-    mEndRadius(frame.mEndRadius),
-    mEndBeamRadThick(frame.mEndBeamRadThick),
-    mEndBeamBeginRadius(frame.mEndBeamBeginRadius)
-{
-}
+SpaceFrame::SpaceFrame(const SpaceFrame& frame) = default;
 
 void SpaceFrame::CreateGeometry()
 {

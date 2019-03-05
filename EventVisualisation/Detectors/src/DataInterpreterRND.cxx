@@ -29,14 +29,10 @@ using namespace std;
 
 namespace o2  {
 namespace EventVisualisation {
-  
-DataInterpreterRND::DataInterpreterRND()
-{
-}
 
-DataInterpreterRND::~DataInterpreterRND()
-{
-}
+DataInterpreterRND::DataInterpreterRND() = default;
+
+DataInterpreterRND::~DataInterpreterRND() = default;
 
 TEveElement* DataInterpreterRND::interpretDataForType(EDataType type)
 {

@@ -31,17 +31,7 @@ XmlHandler::XmlHandler(Int_t run) : TObject(), mRun(run), mStartIdRunRange(-1), 
   //
 }
 
-XmlHandler::XmlHandler(const XmlHandler &sh)
-  : TObject(sh),
-    mRun(sh.mRun),
-    mStartIdRunRange(sh.mStartIdRunRange),
-    mEndIdRunRange(sh.mEndIdRunRange),
-    mOCDBFolder(sh.mOCDBFolder)
-{
-  //
-  // XmlHandler copy constructor
-  //
-}
+XmlHandler::XmlHandler(const XmlHandler &) = default;
 
 XmlHandler &XmlHandler::operator=(const XmlHandler &sh)
 {
@@ -56,12 +46,7 @@ XmlHandler &XmlHandler::operator=(const XmlHandler &sh)
   return *this;
 }
 
-XmlHandler::~XmlHandler()
-{
-  //
-  // XmlHandler destructor
-  //
-}
+XmlHandler::~XmlHandler() = default;
 
 void XmlHandler::OnStartDocument()
 {

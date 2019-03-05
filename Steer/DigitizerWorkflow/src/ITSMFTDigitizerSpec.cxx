@@ -177,7 +177,7 @@ class ITSMFTDPLDigitizerTask
   }
 
  protected:
-  ITSMFTDPLDigitizerTask() {}
+  ITSMFTDPLDigitizerTask() = default;
 
   void processQED(double tMax)
   {

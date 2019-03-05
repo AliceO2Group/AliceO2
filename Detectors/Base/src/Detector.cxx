@@ -35,9 +35,7 @@ Detector::Detector(const char* name, Bool_t Active)
 {
 }
 
-Detector::Detector(const Detector& rhs) : FairDetector(rhs), mMapMaterial(rhs.mMapMaterial), mMapMedium(rhs.mMapMedium)
-{
-}
+Detector::Detector(const Detector& rhs) = default;
 
 Detector::~Detector() = default;
 

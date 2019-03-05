@@ -36,9 +36,7 @@ Dispatcher::Dispatcher(std::string name, const std::string reconfigurationSource
 {
 }
 
-Dispatcher::~Dispatcher()
-{
-}
+Dispatcher::~Dispatcher() = default;
 
 void Dispatcher::init(InitContext& ctx)
 {
