@@ -52,7 +52,7 @@ int AlpideCoder::encodeChip(PayLoadCont& buffer, const o2::ITSMFT::ChipPixelData
       addPixel(pix.getRow(), pix.getCol());
     }
     buffer.addFast(makeChipHeader(chipInModule, bc)); // chip header
-    for (int ir = NRegions; ir--;) {
+    for (int ir = 0; ir < NRegions; ir++) {
       nfound += procRegion(buffer, ir);
     }
     buffer.addFast(makeChipTrailer(roflags));
@@ -120,7 +120,7 @@ int AlpideCoder::procDoubleCol(PayLoadCont& buffer, short reg, short dcol)
 
   while ((ih < nHits)) {
     short addrE, addrW = hits[ih++]; // address of the reference hit
-    uint8_t mask = 0, npx = 0;
+    uint8_t mask = 0;
     short addrLim = addrW + HitMapSize + 1; // 1+address of furthest hit can be put in the map
     while ((ih < nHits && (addrE = hits[ih]) < addrLim)) {
       mask |= 0x1 << (addrE - addrW - 1);

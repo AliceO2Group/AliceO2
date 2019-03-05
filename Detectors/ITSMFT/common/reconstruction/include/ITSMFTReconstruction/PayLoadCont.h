@@ -42,7 +42,7 @@ class PayLoadCont
   ///< increase the buffer size
   void expand(int sz);
 
-  bool isEmpty() const { return mPtr == mEnd; }
+  bool isEmpty() const { return mPtr >= mEnd; }
 
   ///< make buffer empty w/o deallocating it
   void clear()
@@ -199,7 +199,7 @@ class PayLoadCont
 
   ClassDefNV(PayLoadCont, 1);
 };
-}
-}
+} // namespace ITSMFT
+} // namespace o2
 
 #endif

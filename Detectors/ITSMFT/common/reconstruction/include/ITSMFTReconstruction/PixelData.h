@@ -14,6 +14,7 @@
 #define ALICEO2_ITSMFT_PIXELDATA_H
 
 #include "ITSMFTBase/Digit.h"
+#include "CommonDataFormat/InteractionRecord.h"
 #include <vector>
 #include <utility>
 #include <cstdint>
@@ -90,21 +91,28 @@ class ChipPixelData
  public:
   ChipPixelData() = default;
   ~ChipPixelData() = default;
+  uint8_t getROFlags() const { return mROFlags; }
   uint16_t getChipID() const { return mChipID; }
   uint32_t getROFrame() const { return mROFrame; }
   uint32_t getStartID() const { return mStartID; }
   uint32_t getFirstUnmasked() const { return mFirstUnmasked; }
+  uint32_t getTrigger() const { return mTrigger; }
+  const o2::InteractionRecord& getInteractionRecord() const { return mInteractionRecord; }
+  void setInteractionRecord(const o2::InteractionRecord& r) { mInteractionRecord = r; }
   const std::vector<PixelData>& getData() const { return mPixels; }
   std::vector<PixelData>& getData() { return (std::vector<PixelData>&)mPixels; }
 
+  void setROFlags(uint8_t f = 0) { mROFlags = f; }
   void setChipID(uint16_t id) { mChipID = id; }
   void setROFrame(uint32_t r) { mROFrame = r; }
   void setStartID(uint32_t id) { mStartID = id; }
   void setFirstUnmasked(uint32_t n) { mFirstUnmasked = n; }
+  void setTrigger(uint32_t t) { mTrigger = t; }
 
   void clear()
   {
     mPixels.clear();
+    mROFlags = 0;
     mFirstUnmasked = 0;
   }
 
@@ -113,6 +121,9 @@ class ChipPixelData
     // swap content of two objects
     mPixels.swap(other.mPixels);
     std::swap(mROFrame, other.mROFrame);
+    std::swap(mROFlags, other.mROFlags);
+    std::swap(mTrigger, other.mTrigger);
+    std::swap(mInteractionRecord, other.mInteractionRecord);
     std::swap(mChipID, other.mChipID);
     // strictly speaking, swapping the data below is not needed
     std::swap(mStartID, other.mStartID);
@@ -152,10 +163,13 @@ class ChipPixelData
   void print() const;
 
  private:
-  uint16_t mChipID = 0;           // chip id within the detector
-  uint32_t mROFrame = 0;          // readout frame ID
-  uint32_t mFirstUnmasked = 0;    // first unmasked entry in the mPixels
-  uint32_t mStartID = 0;          // entry of the 1st pixel data in the whole detector data, for MCtruth access
+  uint8_t mROFlags = 0;                          // readout flags from the chip trailer
+  uint16_t mChipID = 0;                          // chip id within the detector
+  uint32_t mROFrame = 0;                         // readout frame ID
+  uint32_t mFirstUnmasked = 0;                   // first unmasked entry in the mPixels
+  uint32_t mStartID = 0;                         // entry of the 1st pixel data in the whole detector data, for MCtruth access
+  uint32_t mTrigger = 0;                         // trigger pattern
+  o2::InteractionRecord mInteractionRecord = {}; // interaction record
   std::vector<PixelData> mPixels; // vector of pixeld
 
   ClassDefNV(ChipPixelData, 1);

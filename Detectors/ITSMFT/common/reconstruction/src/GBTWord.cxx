@@ -35,7 +35,7 @@ void GBTWord::printB(bool padded) const
     uint8_t v = getByte(i);
     printf(" ");
     for (int j = 8; j--;) {
-      printf("%d", v & (0x1 << j) ? 1 : 0);
+      printf("%d", (v & (0x1 << j)) ? 1 : 0);
     }
   }
   printf("\n");

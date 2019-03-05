@@ -21,7 +21,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
-
+#include "DataFormatsParameters/GRPObject.h"
 #include "ITSMFTReconstruction/DigitPixelReader.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "ITSBase/GeometryTGeo.h"
@@ -43,6 +43,17 @@ void ClustererDPL::init(InitContext& ic)
   mClusterer->setGeometry(geom);
   mClusterer->setNChips(o2::ITSMFT::ChipMappingITS::getNChips());
 
+  auto filenameGRP = ic.options().get<std::string>("grp-file");
+  const auto grp = o2::parameters::GRPObject::loadFrom(filenameGRP.c_str());
+
+  if (grp) {
+    mClusterer->setContinuousReadOut(grp->isDetContinuousReadOut("ITS"));
+  } else {
+    LOG(ERROR) << "Cannot retrieve GRP from the " << filenameGRP.c_str() << " file !";
+    mState = 0;
+    return;
+  }
+
   auto filename = ic.options().get<std::string>("its-dictionary-file");
   mFile = std::make_unique<std::ifstream>(filename.c_str(), std::ios::in | std::ios::binary);
   if (mFile->good()) {
@@ -50,8 +61,9 @@ void ClustererDPL::init(InitContext& ic)
     LOG(INFO) << "ITSClusterer running with a provided dictionary: " << filename.c_str();
     mState = 1;
   } else {
-    LOG(WARNING) << "Cannot open the " << filename.c_str() << " file !";
+    LOG(ERROR) << "Cannot open the " << filename.c_str() << " file !";
     mState = 0;
+    return;
   }
 
   mClusterer->print();
@@ -117,7 +129,8 @@ DataProcessorSpec getClustererSpec()
       OutputSpec{ "ITS", "ITSClusterMC2ROF", 0, Lifetime::Timeframe } },
     AlgorithmSpec{ adaptFromTask<ClustererDPL>() },
     Options{
-      { "its-dictionary-file", VariantType::String, "complete_dictionary.bin", { "Name of the cluster-topology dictionary file" } } }
+      { "its-dictionary-file", VariantType::String, "complete_dictionary.bin", { "Name of the cluster-topology dictionary file" } },
+      { "grp-file", VariantType::String, "o2sim_grp.root", { "Name of the grp file" } } }
   };
 }
 

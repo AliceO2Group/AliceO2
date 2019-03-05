@@ -24,8 +24,8 @@ namespace o2
 struct InteractionRecord {
   // information about bunch crossing and orbit
 
-  uint16_t bc = 0;    ///< bunch crossing ID of interaction
-  uint32_t orbit = 0; ///< LHC orbit
+  uint16_t bc = 0xffff;        ///< bunch crossing ID of interaction
+  uint32_t orbit = 0xffffffff; ///< LHC orbit
 
   InteractionRecord() = default;
 
@@ -36,6 +36,11 @@ struct InteractionRecord {
 
   InteractionRecord(uint16_t b, uint32_t orb) : bc(b), orbit(orb)
   {
+  }
+
+  bool isDummy() const
+  {
+    return bc > o2::constants::lhc::LHCMaxBunches;
   }
 
   void setFromNS(double ns)
@@ -53,6 +58,21 @@ struct InteractionRecord {
     orb = ns > 0 ? ns / o2::constants::lhc::LHCOrbitNS : 0;
     ns -= orb * o2::constants::lhc::LHCOrbitNS;
     return std::round(ns / o2::constants::lhc::LHCBunchSpacingNS);
+  }
+
+  bool operator==(const InteractionRecord& other) const
+  {
+    return (orbit == other.orbit) && (bc == other.bc);
+  }
+
+  int differenceInBC(const InteractionRecord& other) const
+  {
+    // return differenc in bunch-crossings
+    int diffBC = int(bc) - other.bc;
+    if (orbit != other.orbit) {
+      diffBC += (int(orbit) - other.orbit) * o2::constants::lhc::LHCMaxBunches;
+    }
+    return diffBC;
   }
 
   void print() const;
