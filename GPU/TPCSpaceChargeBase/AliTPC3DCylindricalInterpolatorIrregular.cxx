@@ -45,6 +45,12 @@ ClassImp(AliTPC3DCylindricalInterpolatorIrregular)
   /// \param type
   AliTPC3DCylindricalInterpolatorIrregular::AliTPC3DCylindricalInterpolatorIrregular(
     Int_t nRRow, Int_t nZColumn, Int_t nPhiSlice, Int_t rStep, Int_t zStep, Int_t phiStep, Int_t type)
+  : fValue(nullptr),
+    fRList(nullptr),
+    fPhiList(nullptr),
+    fZList(nullptr),
+    fKDTreeIrregularPoints(nullptr),
+    fKDTreeIrregularRoot(nullptr)
 {
   fOrder = 1;
   fIsAllocatingLookUp = kFALSE;
@@ -72,6 +78,14 @@ ClassImp(AliTPC3DCylindricalInterpolatorIrregular)
 /// constructor
 ///
 AliTPC3DCylindricalInterpolatorIrregular::AliTPC3DCylindricalInterpolatorIrregular()
+  : fRBFWeightLookUp(nullptr),
+    fRBFWeight(nullptr),
+    fValue(nullptr),
+    fRList(nullptr),
+    fPhiList(nullptr),
+    fZList(nullptr),
+    fKDTreeIrregularPoints(nullptr),
+    fKDTreeIrregularRoot(nullptr)
 {
   fOrder = 1;
   fIsAllocatingLookUp = kFALSE;
@@ -84,15 +98,14 @@ AliTPC3DCylindricalInterpolatorIrregular::AliTPC3DCylindricalInterpolatorIrregul
 AliTPC3DCylindricalInterpolatorIrregular::~AliTPC3DCylindricalInterpolatorIrregular()
 {
 
-  if (fIsAllocatingLookUp) {
-    delete fValue;
-    delete fRList;
-    delete fPhiList;
-    delete fZList;
-  }
+  delete fValue;
+  delete fRList;
+  delete fPhiList;
+  delete fZList;
 
   if (fKDTreeIrregularPoints) {
     delete[] fKDTreeIrregularPoints;
+    delete fKDTreeIrregularRoot;
   }
   delete[] fRBFWeightLookUp;
   delete[] fRBFWeight;

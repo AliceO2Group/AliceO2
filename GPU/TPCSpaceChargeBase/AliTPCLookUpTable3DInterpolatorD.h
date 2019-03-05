@@ -66,9 +66,9 @@ class AliTPCLookUpTable3DInterpolatorD
   AliTPC3DCylindricalInterpolator* fInterpolatorPhi; ///->Interpolator for Phi component
   AliTPC3DCylindricalInterpolator* fInterpolatorZ;   ///-> Interpolator for Z component
 
-  Double_t* fRList;   //[fNR]List of R coordinate (regular grid)
-  Double_t* fPhiList; //[fNPhi]List of Phi coordinate (regular grid)
-  Double_t* fZList;   //[fNZ]List of Z coordinate (regular grid)
+  Double_t* fRList;   //[fNR] List of R coordinate (regular grid)
+  Double_t* fPhiList; //[fNPhi] List of Phi coordinate (regular grid)
+  Double_t* fZList;   //[fNZ] List of Z coordinate (regular grid)
 
   Bool_t fIsAllocatingLookUp; ///< flag for initialization of cubic spline
 

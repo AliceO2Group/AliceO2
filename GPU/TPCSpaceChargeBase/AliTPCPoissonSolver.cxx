@@ -45,7 +45,9 @@ Double_t AliTPCPoissonSolver::fgConvergenceError = 1e-3;
 /// constructor
 ///
 AliTPCPoissonSolver::AliTPCPoissonSolver()
-  : TNamed("poisson solver", "solver"), fStrategy(kRelaxation)
+  : TNamed("poisson solver", "solver"),
+    fStrategy(kRelaxation),
+    fExactSolution(nullptr)
 {
 
   // default strategy
@@ -54,15 +56,14 @@ AliTPCPoissonSolver::AliTPCPoissonSolver()
   fErrorConvergenceNorm2 = new TVectorD(fMgParameters.nMGCycle);
   fErrorConvergenceNormInf = new TVectorD(fMgParameters.nMGCycle);
   fError = new TVectorD(fMgParameters.nMGCycle);
-
-  //fExactSolution == NULL;
 }
 
 /// Constructor
 /// \param name name of the object
 /// \param title title of the object
 AliTPCPoissonSolver::AliTPCPoissonSolver(const char* name, const char* title)
-  : TNamed(name, title)
+  : TNamed(name, title),
+    fExactSolution(nullptr)
 {
   fExactPresent = kFALSE;
   fErrorConvergenceNorm2 = new TVectorD(fMgParameters.nMGCycle);
@@ -75,6 +76,7 @@ AliTPCPoissonSolver::AliTPCPoissonSolver(const char* name, const char* title)
 AliTPCPoissonSolver::~AliTPCPoissonSolver()
 {
   /// virtual destructor
+  delete[] fExactSolution;
   delete fErrorConvergenceNorm2;
   delete fErrorConvergenceNormInf;
   delete fError;

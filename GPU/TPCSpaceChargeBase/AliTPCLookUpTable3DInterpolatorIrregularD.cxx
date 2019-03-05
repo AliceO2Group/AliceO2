@@ -27,6 +27,15 @@ ClassImp(AliTPCLookUpTable3DInterpolatorIrregularD)
 
   /// constructor
   AliTPCLookUpTable3DInterpolatorIrregularD::AliTPCLookUpTable3DInterpolatorIrregularD()
+  : fMatricesRValue(nullptr),
+    fMatricesPhiValue(nullptr),
+    fMatricesZValue(nullptr),
+    fMatricesRPoint(nullptr),
+    fMatricesPhiPoint(nullptr),
+    fMatricesZPoint(nullptr),
+    fInterpolatorR(nullptr),
+    fInterpolatorPhi(nullptr),
+    fInterpolatorZ(nullptr)
 {
   fOrder = 1;
   fIsAllocatingLookUp = kFALSE;
@@ -92,23 +101,6 @@ AliTPCLookUpTable3DInterpolatorIrregularD::AliTPCLookUpTable3DInterpolatorIrregu
 /// destructor
 AliTPCLookUpTable3DInterpolatorIrregularD::~AliTPCLookUpTable3DInterpolatorIrregularD()
 {
-
-  if (fIsAllocatingLookUp) {
-    for (Int_t m = 0; m < fNPhi; m++) {
-      delete fMatricesRValue[m];
-      delete fMatricesPhiValue[m];
-      delete fMatricesZValue[m];
-      delete fMatricesRPoint[m];
-      delete fMatricesPhiPoint[m];
-      delete fMatricesZPoint[m];
-    }
-    delete fMatricesRValue;
-    delete fMatricesPhiValue;
-    delete fMatricesZValue;
-    delete fMatricesRPoint;
-    delete fMatricesPhiPoint;
-    delete fMatricesZPoint;
-  }
   delete fInterpolatorR;
   delete fInterpolatorZ;
   delete fInterpolatorPhi;

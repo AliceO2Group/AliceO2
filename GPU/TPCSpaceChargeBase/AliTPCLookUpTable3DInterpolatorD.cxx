@@ -28,6 +28,12 @@ ClassImp(AliTPCLookUpTable3DInterpolatorD)
 
   /// constructor
   AliTPCLookUpTable3DInterpolatorD::AliTPCLookUpTable3DInterpolatorD()
+  : fLookUpR(nullptr),
+    fLookUpPhi(nullptr),
+    fLookUpZ(nullptr),
+    fInterpolatorR(nullptr),
+    fInterpolatorPhi(nullptr),
+    fInterpolatorZ(nullptr)
 {
   fOrder = 1;
   fIsAllocatingLookUp = kFALSE;
@@ -143,21 +149,6 @@ AliTPCLookUpTable3DInterpolatorD::AliTPCLookUpTable3DInterpolatorD(
 /// destructor
 AliTPCLookUpTable3DInterpolatorD::~AliTPCLookUpTable3DInterpolatorD()
 {
-  if (fIsAllocatingLookUp) {
-    for (Int_t m = 0; m < fNPhi; m++) {
-      delete fLookUpR[m];
-      delete fLookUpPhi[m];
-      delete fLookUpZ[m];
-    }
-    delete fLookUpR;
-    delete fLookUpPhi;
-    delete fLookUpZ;
-
-    delete fRList;
-    delete fPhiList;
-    delete fZList;
-  }
-
   delete fInterpolatorR;
   delete fInterpolatorZ;
   delete fInterpolatorPhi;

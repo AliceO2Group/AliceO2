@@ -30,6 +30,10 @@ ClassImp(AliTPC3DCylindricalInterpolator)
   /// constructor
   ///
   AliTPC3DCylindricalInterpolator::AliTPC3DCylindricalInterpolator()
+  : fValue(nullptr),
+    fRList(nullptr),
+    fPhiList(nullptr),
+    fZList(nullptr)
 {
   fOrder = 1;
   fIsAllocatingLookUp = kFALSE;
@@ -40,12 +44,10 @@ ClassImp(AliTPC3DCylindricalInterpolator)
 ///
 AliTPC3DCylindricalInterpolator::~AliTPC3DCylindricalInterpolator()
 {
-  if (fIsAllocatingLookUp) {
-    delete fValue;
-    delete fRList;
-    delete fPhiList;
-    delete fZList;
-  }
+  delete fValue;
+  delete fRList;
+  delete fPhiList;
+  delete fZList;
   if (fIsInitCubic) {
     delete fSecondDerZ;
   }
