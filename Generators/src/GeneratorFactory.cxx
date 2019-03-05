@@ -148,37 +148,37 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
       auto ptr = (double*)gROOT->GetGlobal("momentumUnit")->GetAddress();
       tgen->setMomentumUnit(*ptr);
     } else {
-      LOG(FATAL) << "Mandatory global variable \'momentumUnit\' not defined";
+      LOG(FATAL) << "Mandatory global variable 'momentumUnit' not defined";
     }
     if (gROOT->GetGlobal("energyUnit")) {
       auto ptr = (double*)gROOT->GetGlobal("energyUnit")->GetAddress();
       tgen->setEnergyUnit(*ptr);
     } else {
-      LOG(FATAL) << "Mandatory global variable \'energyUnit\' not defined";
+      LOG(FATAL) << "Mandatory global variable 'energyUnit' not defined";
     }
     if (gROOT->GetGlobal("positionUnit")) {
       auto ptr = (double*)gROOT->GetGlobal("positionUnit")->GetAddress();
       tgen->setPositionUnit(*ptr);
     } else {
-      LOG(FATAL) << "Mandatory global variable \'positionUnit\' not defined";
+      LOG(FATAL) << "Mandatory global variable 'positionUnit' not defined";
     }
     if (gROOT->GetGlobal("timeUnit")) {
       auto ptr = (double*)gROOT->GetGlobal("timeUnit")->GetAddress();
       tgen->setMomentumUnit(*ptr);
     } else {
-      LOG(FATAL) << "Mandatory global variable \'timeUnit\' not defined";
+      LOG(FATAL) << "Mandatory global variable 'timeUnit' not defined";
     }
     /** retrieve TGenerator **/
     auto extgen_gfunc = extgen_func.substr(0, extgen_func.find_first_of('('));
     if (!gROOT->GetGlobalFunction(extgen_gfunc.c_str())) {
-      LOG(FATAL) << "Global function \'"
+      LOG(FATAL) << "Global function '"
                  << extgen_gfunc
-                 << "\' not defined";
+                 << "' not defined";
     }
     if (strcmp(gROOT->GetGlobalFunction(extgen_gfunc.c_str())->GetReturnTypeName(), "TGenerator*")) {
-      LOG(FATAL) << "Global function \'"
+      LOG(FATAL) << "Global function '"
                  << extgen_gfunc
-                 << "\' does not return a \'TGenerator*\' type";
+                 << "' does not return a 'TGenerator*' type";
     }
     gROOT->ProcessLine(Form("TGenerator *__extgen = dynamic_cast<TGenerator *>(%s);", extgen_func.c_str()));
     auto extgen_ptr = (TGenerator**)gROOT->GetGlobal("__extgen")->GetAddress();
