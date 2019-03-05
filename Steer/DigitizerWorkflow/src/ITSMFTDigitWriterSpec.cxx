@@ -94,7 +94,7 @@ class ITSMFTDPLDigitWriter
   }
 
  protected:
-  ITSMFTDPLDigitWriter() {}
+  ITSMFTDPLDigitWriter() = default;
   template <typename T>
   TBranch* getOrMakeBranch(TTree& tree, std::string brname, T* ptr)
   {

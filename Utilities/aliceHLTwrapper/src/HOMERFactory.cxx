@@ -85,15 +85,12 @@ HOMERFactory::HOMERFactory()
   // while providing the basic functionality to the component libraries
 }
 
-HOMERFactory::~HOMERFactory()
-{
-  // destructor
-  //
-  // the library load strategy has been changed in March 2013 in order to
-  // stabilize the runtime memory layout of AliRoot in an attemp to get control
-  // over memory corruptions
-  //  UnloadHOMERLibrary();
-}
+// destructor
+//
+// the library load strategy has been changed in March 2013 in order to
+// stabilize the runtime memory layout of AliRoot in an attemp to get control
+// over memory corruptions
+HOMERFactory::~HOMERFactory() = default;
 
 AliHLTHOMERReader* HOMERFactory::OpenReader(const char* hostname, unsigned short port )
 {

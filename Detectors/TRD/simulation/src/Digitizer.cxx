@@ -36,9 +36,7 @@ Digitizer::Digitizer()
   }
 }
 
-Digitizer::~Digitizer()
-{
-}
+Digitizer::~Digitizer() = default;
 
 void Digitizer::process(std::vector<o2::trd::HitType> const& hits, std::vector<o2::trd::Digit>& digits)
 {

@@ -21,12 +21,10 @@ using namespace std;
 
 namespace o2  {
 namespace EventVisualisation {
-  
-  
-MinimalisticTrack::MinimalisticTrack()
-{
-}
-  
+
+
+MinimalisticTrack::MinimalisticTrack() = default;
+
 MinimalisticTrack::MinimalisticTrack(
                                      int charge,
                                      double energy,

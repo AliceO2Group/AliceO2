@@ -57,7 +57,7 @@ class RawReader {
       uint64_t reserved_2() { return (reserved_2_w << 32) | (reserved_2_w >> 32);}
 
       /// Default constructor
-      Header() {};
+      Header() = default;
 
       /// Copy constructor
       Header(const Header& other) = default;// : dataType(h.dataType), reserved_01(h.reserved_01),

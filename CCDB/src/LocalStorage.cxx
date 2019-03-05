@@ -43,10 +43,7 @@ LocalStorage::LocalStorage(const char *baseDir) : mBaseDirectory(baseDir)
   mBaseFolder = mBaseDirectory;
 }
 
-LocalStorage::~LocalStorage()
-{
-  // destructor
-}
+LocalStorage::~LocalStorage() = default;
 
 Bool_t LocalStorage::filenameToId(const char *filename, IdRunRange &runRange, Int_t &version, Int_t &subVersion)
 {
@@ -1153,10 +1150,7 @@ LocalStorageParameters::LocalStorageParameters(const char *dbPath, const char *u
   setUri(TString("alien://") + uri);
 }
 
-LocalStorageParameters::~LocalStorageParameters()
-{
-  // destructor
-}
+LocalStorageParameters::~LocalStorageParameters() = default;
 
 StorageParameters *LocalStorageParameters::cloneParam() const
 {

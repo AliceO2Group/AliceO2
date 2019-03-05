@@ -77,12 +77,9 @@ Initializer::Initializer(EventManager::EDataSource defaultDataSource)
   // Later this will be triggered by button, and finally moved to configuration.
   MultiView::getInstance()->drawRandomEvent();
 }
- 
-Initializer::~Initializer()
-{
-  
-}
-  
+
+Initializer::~Initializer() = default;
+
 void Initializer::setupGeometry()
 {
   // read path to geometry files from config file

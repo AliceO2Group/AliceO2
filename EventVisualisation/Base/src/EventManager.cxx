@@ -43,9 +43,7 @@ mCurrentDataSourceType(SourceOffline)
 {
 }
 
-EventManager::~EventManager()
-{
-}
-  
+EventManager::~EventManager() = default;
+
 }
 }

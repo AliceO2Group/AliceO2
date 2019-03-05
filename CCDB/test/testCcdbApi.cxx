@@ -37,9 +37,7 @@ struct test_fixture {
     api.init("http://ccdb-test.cern.ch:8080");
   }
 
-  ~test_fixture()
-  {
-  }
+  ~test_fixture() = default;
 
   CcdbApi api;
   map<string, string> metadata;
