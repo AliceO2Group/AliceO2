@@ -71,7 +71,7 @@ ChipMappingITS::ChipMappingITS()
       auto& cInfo = mChipsInfo[ctrChip++];
       int hstave = i / (NChipsPerStaveSB[bid] / 2);
       cInfo.id = i;
-      cInfo.moduleSW = i / NChipsPerModuleSB[bid];                         // identification within the stav
+      cInfo.moduleSW = i / NChipsPerModuleSB[bid];                         // SW module ID (within the stave)
       cInfo.moduleHW = 1 + cInfo.moduleSW % (NModulesPerStaveSB[bid] / 2); // identification within the HS
 
       cInfo.chipOnModuleSW = i % NChipsPerModuleSB[bid];
@@ -82,8 +82,8 @@ ChipMappingITS::ChipMappingITS()
       cInfo.cableSW = (cInfo.moduleHW - 1) + connector * (NModulesPerStaveSB[bid] / 2);
       cInfo.chipOnCable = cInfo.chipOnModuleSW % (NChipsPerModuleSB[bid] / 2); // each cable serves half module
       mCableHW2SW[bid][cInfo.cableHW] = cInfo.cableSW;
-      if (cInfo.moduleHW == 1) { // numbering on MB and OB starts from 1!!!
-        mCableHWFirstChip[bid][cInfo.cableHW] = cInfo.chipOnModuleHW;
+      if (cInfo.chipOnCable == 0) {
+        mCableHWFirstChip[bid][cInfo.cableHW] = cInfo.moduleSW * NChipsPerModuleSB[bid];
       }
     }
   }

@@ -39,6 +39,8 @@ struct MFTModuleMappingData {
 class ChipMappingMFT
 {
  public:
+  static constexpr std::string_view getName() { return "MFT"; }
+
   // RS placeholder for methods to implement ----------->
 
   ///< total number of RUs
@@ -51,10 +53,10 @@ class ChipMappingMFT
   uint16_t RUSW2HW(uint16_t sw) const { return 0; }
 
   ///< get info on sw RU
-  const RUInfo* getRUInfoSW(int ruSW) const { return 0; }
+  const RUInfo* getRUInfoSW(int ruSW) const { return nullptr; }
 
   ///< get info on sw RU
-  const RUInfo* getRUInfoHW(int ruHW) const { return 0; }
+  const RUInfo* getRUInfoHW(int ruHW) const { return nullptr; }
 
   ///< get number of chips served by single cable on given RU type
   uint8_t getGBTHeaderRUType(int ruType, int cableHW) { return 0; }

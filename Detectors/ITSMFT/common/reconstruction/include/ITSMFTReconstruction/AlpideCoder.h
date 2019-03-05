@@ -102,7 +102,7 @@ class AlpideCoder
   //
   /// decode alpide data for the next non-empty chip from the buffer
   template <class T>
-  int decodeChip(ChipPixelData& chipData, T& buffer)
+  int decodeChip(ChipPixelData& chipData, T& buffer) const
   {
     // read record for single non-empty chip, updating on change module and cycle.
     // return number of records filled (>0), EOFFlag or Error
@@ -115,41 +115,41 @@ class AlpideCoder
     std::uint16_t rightColHits[NRows]; // buffer for the accumulation of hits in the right column
     std::uint16_t colDPrev = 0xffff;   // previously processed double column (to dected change of the double column)
 
-    mExpectInp = ExpectChipHeader | ExpectChipEmpty; // data must always start with chip header or chip empty flag
+    uint32_t expectInp = ExpectChipHeader | ExpectChipEmpty; // data must always start with chip header or chip empty flag
 
     while (buffer.next(dataC)) {
       //
       // ---------- chip info ?
       uint8_t dataCM = dataC & (~MaskChipID);
       //
-      if ((mExpectInp & ExpectChipEmpty) && dataCM == CHIPEMPTY) { // chip trailer was expected
-        chipData.setChipID(dataC & MaskChipID);                    // here we set the chip ID within the module
+      if ((expectInp & ExpectChipEmpty) && dataCM == CHIPEMPTY) { // chip trailer was expected
+        chipData.setChipID(dataC & MaskChipID);                   // here we set the chip ID within the module
         if (!buffer.next(timestamp)) {
           return unexpectedEOF("CHIP_EMPTY:Timestamp");
         }
-        mExpectInp = ExpectChipHeader | ExpectChipEmpty;
+        expectInp = ExpectChipHeader | ExpectChipEmpty;
         continue;
       }
 
-      if ((mExpectInp & ExpectChipHeader) && dataCM == CHIPHEADER) { // chip header was expected
-        chipData.setChipID(dataC & MaskChipID);                      // here we set the chip ID within the module
+      if ((expectInp & ExpectChipHeader) && dataCM == CHIPHEADER) { // chip header was expected
+        chipData.setChipID(dataC & MaskChipID);                     // here we set the chip ID within the module
         if (!buffer.next(timestamp)) {
           return unexpectedEOF("CHIP_HEADER");
         }
-        mExpectInp = ExpectRegion; // now expect region info
+        expectInp = ExpectRegion; // now expect region info
         continue;
       }
 
       // region info ?
-      if ((mExpectInp & ExpectRegion) && (dataC & REGION) == REGION) { // chip header was seen, or hit data read
+      if ((expectInp & ExpectRegion) && (dataC & REGION) == REGION) { // chip header was seen, or hit data read
         region = dataC & MaskRegion;
-        mExpectInp = ExpectData;
+        expectInp = ExpectData;
         continue;
       }
 
-      if ((mExpectInp & ExpectChipTrailer) && dataCM == CHIPTRAILER) { // chip trailer was expected
-        mExpectInp = ExpectChipHeader | ExpectChipEmpty;
-
+      if ((expectInp & ExpectChipTrailer) && dataCM == CHIPTRAILER) { // chip trailer was expected
+        expectInp = ExpectChipHeader | ExpectChipEmpty;
+        chipData.setROFlags(dataC & MaskROFlags);
         // in case there are entries in the "right" columns buffer, add them to the container
         if (nRightCHits) {
           colDPrev++;
@@ -161,7 +161,7 @@ class AlpideCoder
       }
 
       // hit info ?
-      if ((mExpectInp & ExpectData)) {
+      if ((expectInp & ExpectData)) {
         if (isData(dataC)) { // region header was seen, expect data
                              // note that here we are checking on the byte rather than the short, need complete to ushort
           dataS = dataC << 8;
@@ -221,7 +221,7 @@ class AlpideCoder
           LOG(ERROR) << "Expected DataShort or DataLong mask, got : " << dataS;
           return Error;
         }
-        mExpectInp = ExpectChipTrailer | ExpectData | ExpectRegion;
+        expectInp = ExpectChipTrailer | ExpectData | ExpectRegion;
         continue; // end of DATA(SHORT or LONG) processing
       }
 
@@ -360,8 +360,6 @@ class AlpideCoder
   // cluster map used for the ENCODING only
   std::vector<short> mFirstInRow;   //! entry of 1st pixel of each non-empty row in the mPix2Encode
   std::vector<PixLink> mPix2Encode; //! pool of links: fired pixel + index of the next one in the row
-  //
-  uint32_t mExpectInp = ExpectChipHeader | ExpectChipEmpty; //! type of input expected by reader
   //
   ClassDefNV(AlpideCoder, 1);
 };

@@ -105,8 +105,18 @@ class GBTDataHeader : public GBTWord
   uint32_t getPacketID() const { return mData64[0] & 0xffff; }
   uint32_t getLanes() const { return (mData64[0] >> 16) & LANESMask; }
 
-  void setPacketID(int id) { mData64[0] |= (id & 0xffff); }
-  void setLanes(int lanes) { mData64[0] |= (lanes & LANESMask) << 16; }
+  void setPacketID(int id)
+  {
+    const uint64_t mask = 0xffffffffffff0000;
+    mData64[0] &= mask;
+    mData64[0] |= (id & 0xffff);
+  }
+  void setLanes(int lanes)
+  {
+    constexpr uint64_t mask = ~(LANESMask << 16);
+    mData64[0] &= mask;
+    mData64[0] |= (lanes & LANESMask) << 16;
+  }
 
   void setByte(uint8_t v, int which) = delete;
 
@@ -147,8 +157,20 @@ class GBTDataTrailer : public GBTWord
   uint32_t getLanesTimeout() const { return (mData64[0] >> 32) & LANESMask; }
   uint8_t getPacketState() const { return mData8[8]; }
 
-  void setLanesStop(uint32_t lanes) { mData64[0] |= (lanes & LANESMask); }
-  void setLanesTimeout(uint32_t lanes) { mData64[0] |= (lanes & LANESMask) << 32; }
+  void setLanesStop(uint32_t lanes)
+  {
+    constexpr uint64_t mask = ~LANESMask;
+    mData64[0] &= mask;
+    mData64[0] |= (lanes & LANESMask);
+  }
+
+  void setLanesTimeout(uint32_t lanes)
+  {
+    constexpr uint64_t mask = ~(LANESMask << 32);
+    mData64[0] &= mask;
+    mData64[0] |= (lanes & LANESMask) << 32;
+  }
+
   void setPacketState(uint8_t v) { mData8[8] = v; }
 
   void setByte(uint8_t v, int which) = delete;

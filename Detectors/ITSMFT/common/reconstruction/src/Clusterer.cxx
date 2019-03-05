@@ -46,20 +46,20 @@ void Clusterer::process(PixelReader& reader, std::vector<Cluster>* fullClus,
   mTimer.Start(kFALSE);
 #endif
 
-  UInt_t prevROF = o2::ITSMFT::PixelData::DummyROF;
   mClustersCount = compClus ? compClus->size() : (fullClus ? fullClus->size() : 0);
 
   while ((mChipData = reader.getNextChipData(mChips))) { // read next chip data to corresponding
     // vector in the mChips and return the pointer on it
-
     mCurrROF = mChipData->getROFrame();
-    if (prevROF != mCurrROF && prevROF != o2::ITSMFT::PixelData::DummyROF) {
-      LOG(INFO) << "ITS: clusterizing new ROFrame " << mCurrROF << FairLogger::endl;
-      if (mClusTree) { // if necessary, flush existing data
+
+    if (!(mChipData->getInteractionRecord() == mCurrIR)) {
+      if (!mCurrIR.isDummy() && mClusTree) { // if necessary, flush existing data
+        LOG(INFO) << "ITS: clusterizing new ROFrame, Orbit :" << mChipData->getInteractionRecord().orbit
+                  << " BC: " << mChipData->getInteractionRecord().bc;
         flushClusters(fullClus, compClus, labelsCl);
       }
+      mCurrIR = mChipData->getInteractionRecord();
     }
-    prevROF = mCurrROF;
 
     mCurrChipID = mChipData->getChipID();
     // LOG(DEBUG) << "ITSClusterer got Chip " << mCurrChipID << " ROFrame " << mChipData->getROFrame()
@@ -70,7 +70,7 @@ void Clusterer::process(PixelReader& reader, std::vector<Cluster>* fullClus,
         mChipsOld.resize(mChips.size()); // expand buffer of previous ROF data
       }
       const auto& chipInPrevROF = mChipsOld[mCurrChipID];
-      if (chipInPrevROF.getROFrame() + 1 == mCurrROF) {
+      if (std::abs(mCurrIR.differenceInBC(chipInPrevROF.getInteractionRecord())) < mMaxBCSeparationToMask) {
         mChipData->maskFiredInSample(mChipsOld[mCurrChipID]);
       }
     }
@@ -90,7 +90,7 @@ void Clusterer::process(PixelReader& reader, std::vector<Cluster>* fullClus,
   }
 
   // if asked, flush last ROF
-  if (mClusTree && prevROF != o2::ITSMFT::PixelData::DummyROF) { // if necessary, flush existing data
+  if (mClusTree && !mCurrIR.isDummy() && mClusTree) { // if necessary, flush existing data
     flushClusters(fullClus, compClus, labelsCl);
   }
 
@@ -331,5 +331,6 @@ void Clusterer::clear()
 void Clusterer::print() const
 {
   // print settings
-  printf("Masking of overflow pixels: %s\n", mMaskOverflowPixels ? "ON" : "OFF");
+  printf("Masking of overflow pixels: %s for ROF separated by < %d BCs\n",
+         mMaskOverflowPixels ? "ON" : "OFF", mMaxBCSeparationToMask);
 }

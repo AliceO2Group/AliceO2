@@ -19,11 +19,13 @@ void ChipOnRUInfo::print() const
 {
   printf("ChonRu:%3d ModSW:%2d ChOnModSW:%2d CabSW:%3d| ChOnCab:%d | CabHW: ",
          id, moduleSW, chipOnModuleSW, cableSW, chipOnCable);
-  for (int i = 8; i--;)
-    printf("%d", cableHW & (0x1 << i) ? 1 : 0);
+  for (int i = 8; i--;) {
+    printf("%d", (cableHW & (0x1 << i)) ? 1 : 0);
+  }
   printf(" | ModHW ");
-  for (int i = 8; i--;)
-    printf("%d", moduleHW & (0x1 << i) ? 1 : 0);
+  for (int i = 8; i--;) {
+    printf("%d", (moduleHW & (0x1 << i)) ? 1 : 0);
+  }
   printf(" | ChOnModHW: %2d\n", chipOnModuleHW);
 }
 

@@ -68,8 +68,14 @@ class Clusterer
   // provide the common ITSMFT::GeometryTGeo to access matrices
   void setGeometry(const o2::ITSMFT::GeometryTGeo* gm) { mGeometry = gm; }
 
+  bool isContinuousReadOut() const { return mContinuousReadout; }
+  void setContinuousReadOut(bool v) { mContinuousReadout = v; }
+
   void setMaskOverflowPixels(bool v) { mMaskOverflowPixels = v; }
   bool isMaskOverflowPixels() const { return mMaskOverflowPixels; }
+
+  int getMaxBCSeparationToMask() const { return mMaxBCSeparationToMask; }
+  void setMaxBCSeparationToMask(int n) { mMaxBCSeparationToMask = n; }
 
   void setWantFullClusters(bool v) { mWantFullClusters = v; }
   void setWantCompactClusters(bool v) { mWantCompactClusters = v; }
@@ -181,8 +187,11 @@ class Clusterer
   }
 
   // clusterization options
+  bool mContinuousReadout = true;    ///< flag continuous readout
   bool mWantFullClusters = true;     ///< request production of full clusters with pattern and coordinates
   bool mWantCompactClusters = false; ///< request production of compact clusters with patternID and corner address
+
+  int mMaxBCSeparationToMask = 801; ///< mask continuosly fired pixels in frames separated by less than this amount of BCs
 
   // aux data for clusterization
   ChipPixelData* mChipData = nullptr; //! pointer on the current single chip data provided by the reader
@@ -200,7 +209,8 @@ class Clusterer
   int* mCurr; // pointer on the 1st row of currently processed mColumnsX
   int* mPrev; // pointer on the 1st row of previously processed mColumnsX
 
-  UInt_t mCurrROF = o2::ITSMFT::PixelData::DummyROF;         // current ROF
+  o2::InteractionRecord mCurrIR = { 0xffff, 0xffffffff };    // current IR
+  UInt_t mCurrROF = o2::ITSMFT::PixelData::DummyROF;         // current ROF // TODO should be eliminated
   UShort_t mCurrChipID = o2::ITSMFT::PixelData::DummyChipID; // current chipID
 
   // mPixels[].first is the index of the next pixel of the same precluster in the mPixels

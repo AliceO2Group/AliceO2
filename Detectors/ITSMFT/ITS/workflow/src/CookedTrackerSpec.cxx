@@ -111,7 +111,7 @@ DataProcessorSpec getCookedTrackerSpec()
       OutputSpec{ "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe } },
     AlgorithmSpec{ adaptFromTask<CookedTrackerDPL>() },
     Options{
-      { "grp-file", VariantType::String, "o2sim_grp.root", { "Name of the output file" } },
+      { "grp-file", VariantType::String, "o2sim_grp.root", { "Name of the grp file" } },
       { "nthreads", VariantType::Int, 1, { "Number of threads" } },
     }
   };

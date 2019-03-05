@@ -33,6 +33,10 @@ class ChipMappingITS
   ChipMappingITS();
   ~ChipMappingITS() = default;
 
+  static constexpr std::string_view getName() { return "ITS"; }
+
+  const std::vector<uint8_t>& getCableHWFirstChip(int s) const { return mCableHWFirstChip[s]; }
+
   static constexpr std::int16_t getRUDetectorField() { return 0x0; }
 
   ///< total number of RUs

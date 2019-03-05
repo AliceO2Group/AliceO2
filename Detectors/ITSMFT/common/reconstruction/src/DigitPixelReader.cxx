@@ -62,14 +62,16 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
     mInteractionRecord = rofRec.getBCData(); // update interaction record
   }
   chipData.clear();
-  chipData.setStartID(mIdDig - 1); // ??
+  chipData.setStartID(mIdDig - 1); // for the MC references
   chipData.setChipID(mLastDigit->getChipIndex());
   chipData.setROFrame(mLastDigit->getROFrame());
+  chipData.setInteractionRecord(mInteractionRecord);
+  chipData.setTrigger(mTrigger);
   chipData.getData().emplace_back(mLastDigit);
   mLastDigit = nullptr;
 
   for (; mIdDig < lim;) {
-    mLastDigit = &((*mDigits)[++mIdDig]);
+    mLastDigit = &((*mDigits)[mIdDig++]);
     if (mLastDigit->getChipIndex() != chipData.getChipID()) { // new chip starts
       return true;
     }
