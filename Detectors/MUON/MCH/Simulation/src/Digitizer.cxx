@@ -81,22 +81,26 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
 {
   digits.clear();
   mDigits.clear();
-  mMCTruthContainer.clear();
+  mTrackLabels.clear();
 
   //array of MCH hits for a given simulated event
   for (auto& hit : hits) {
-    int labelIndex = mMCTruthContainer.getIndexedSize();
     //index for this hit
     int detID = hit.GetDetectorID();
-    processHit(hit, detID, mEventTime, labelIndex);
+    int ndigits = processHit(hit, detID, mEventTime);
+    //TODO need one label per Digit
+    // can use nDigit output of processHit
     MCCompLabel label(hit.GetTrackID(), mEventID, mSrcID);
-    mMCTruthContainer.addElementRandomAccess(labelIndex, label);
-  } //loop over hits
+    for (int i = 0; i < ndigits; ++i) {
+      int digitIndex = mDigits.size() - ndigits + i;
+      mTrackLabels.addElementRandomAccess(digitIndex, label);
+    } //loop over digits to generate MCdigits
+  }   //loop over hits
 
   fillOutputContainer(digits);
 }
 //______________________________________________________________________
-int Digitizer::processHit(const Hit& hit, int detID, double event_time, int labelIndex)
+int Digitizer::processHit(const Hit& hit, int detID, double event_time)
 {
   Point3D<float> pos(hit.GetX(), hit.GetY(), hit.GetZ());
 
@@ -131,13 +135,15 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time, int labe
   //single pad as check
   int padidbendcent = 0;
   int padidnoncent = 0;
+  int ndigits = 0;
+
   bool padexists = seg.findPadPairByPosition(localX, localY, padidbendcent, padidnoncent);
   if (!padexists) {
     LOG(ERROR) << "Did not find  _any_ pad for localX,Y=" << localX << "," << localY;
     return 0;
   }
 
-  seg.forEachPadInArea(xMin, yMin, xMax, yMax, [&resp, &digits = this->mDigits, chargebend, chargenon, localX, localY, &seg, labelIndex ](int padid) {
+  seg.forEachPadInArea(xMin, yMin, xMax, yMax, [&resp, &digits = this->mDigits, chargebend, chargenon, localX, localY, &seg, &ndigits ](int padid) {
     auto dx = seg.padSizeX(padid) * 0.5;
     auto dy = seg.padSizeY(padid) * 0.5;
     auto xmin = (localX - seg.padPositionX(padid)) - dx;
@@ -151,9 +157,10 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time, int labe
       q *= chargenon;
     }
     auto signal = resp.response(q);
-    digits.emplace_back(padid, signal, labelIndex);
+    digits.emplace_back(padid, signal);
+    ++ndigits;
   });
-  return mDigits.size();
+  return ndigits;
 }
 
 //______________________________________________________________________
@@ -170,8 +177,8 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
   }
   mDigits.erase(itBeg, iter);
   mMCTruthOutputContainer.clear();
-  for (int index = 0; index < mMCTruthContainer.getIndexedSize(); ++index) {
-    mMCTruthOutputContainer.addElements(index, mMCTruthContainer.getLabels(index));
+  for (int index = 0; index < mTrackLabels.getIndexedSize(); ++index) {
+    mMCTruthOutputContainer.addElements(index, mTrackLabels.getLabels(index));
   }
 }
 //______________________________________________________________________
