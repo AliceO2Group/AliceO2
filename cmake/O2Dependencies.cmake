@@ -708,7 +708,7 @@ o2_define_bucket(
     Geom
     common_utils_bucket
     CommonUtils
-    
+
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -943,7 +943,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
     ${CMAKE_SOURCE_DIR}/Common/Utils/include
-   
+
     SYSTEMINCLUDE_DIRECTORIES
     ${Boost_INCLUDE_DIR}
     )
@@ -1602,7 +1602,7 @@ o2_define_bucket(
     SimulationDataFormat
     CommonDataFormat
     CommonUtils
-    
+
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
@@ -1755,7 +1755,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Detectors/PHOS/base/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
-   
+
 )
 
 o2_define_bucket(
@@ -1804,6 +1804,23 @@ o2_define_bucket(
 
     SYSTEMINCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
+)
+
+o2_define_bucket(
+    NAME
+    spacepoint_calib_bucket
+
+    DEPENDENCIES
+    root_base_bucket
+    fairroot_base_bucket
+    MathCore
+    Matrix
+    tpc_base_bucket
+    common_utils_bucket
+    common_math_bucket
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/TPC/calibration/SpacePoints/include
 )
 
 o2_define_bucket(
@@ -2046,7 +2063,7 @@ o2_define_bucket(
     mch_mapping_interface_bucket
     mch_mapping_impl3_bucket
     MCHMappingImpl3
-    
+
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include

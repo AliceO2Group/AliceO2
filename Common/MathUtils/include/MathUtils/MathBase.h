@@ -15,17 +15,23 @@
 /// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 
 #include <cmath>
+#include <numeric>
+#include <algorithm>
+#include <vector>
+#include <array>
 
 #include "Rtypes.h"
 #include "TLinearFitter.h"
 #include "TVectorD.h"
 #include "TMath.h"
 
+#include <fairlogger/Logger.h>
+
 namespace o2 {
 namespace mathUtils {
 namespace mathBase {
   /// fast fit of an array with ranges (histogram) with gaussian function
-  /// 
+  ///
   /// Fitting procedure:
   /// 1. Step - make logarithm
   /// 2. Linear  fit (parabola) - more robust, always converges, fast
@@ -60,33 +66,33 @@ namespace mathBase {
     T rms = TMath::RMS(nBins,arr);
     T max = TMath::MaxElement(nBins,arr);
     T binWidth = (xMax-xMin)/T(nBins);
-  
+
     Float_t meanCOG = 0;
     Float_t rms2COG = 0;
     Float_t sumCOG  = 0;
-  
+
     Float_t entries = 0;
     Int_t nfilled=0;
-  
+
     param.resize(4);
     param[0] = 0.;
     param[1] = 0.;
     param[2] = 0.;
     param[3] = 0.;
-  
+
     for (Int_t i=0; i<nBins; i++){
         entries+=arr[i];
         if (arr[i]>0) nfilled++;
     }
-  
+
     // TODO: Check why this is needed
     if (max<4) return -4;
     if (entries<12) return -4;
 
     if (rms<kTol) return -4;
-  
+
     param[3] = entries;
-  
+
     Int_t npoints=0;
     for (Int_t ibin=0;ibin<nBins; ibin++){
         Float_t entriesI = arr[ibin];
@@ -107,7 +113,7 @@ namespace mathBase {
         npoints++;
       }
     }
-    
+
     Double_t chi2 = 0;
     if (npoints>=3){
         if ( npoints == 3 ){
@@ -128,16 +134,16 @@ namespace mathBase {
         }
         if (TMath::Abs(par[1])<kTol) return -4;
         if (TMath::Abs(par[2])<kTol) return -4;
-  
+
         param[1] = T(par[1]/(-2.*par[2]));
         param[2] = T(1./TMath::Sqrt(TMath::Abs(-2.*par[2])));
         Double_t lnparam0 = par[0]+ par[1]* param[1] +  par[2]*param[1]*param[1];
         if ( lnparam0>307 ) return -4;
         param[0] = TMath::Exp(lnparam0);
-  
+
         return chi2;
     }
-  
+
     if (npoints == 2){
         //use center of gravity for 2 points
         meanCOG/=sumCOG;
@@ -155,7 +161,7 @@ namespace mathBase {
         chi2=-1.;
     }
     return chi2;
-  
+
   }
 
   /// struct for returning statistical parameters
@@ -187,7 +193,7 @@ namespace mathBase {
 
     StatisticsData data;
     // in case something went wrong the COG is the histogram lower limit
-    data.mCOG = xMin; 
+    data.mCOG = xMin;
 
     for (size_t ibin=0; ibin<nBins; ++ibin) {
       double entriesI = (double)arr[ibin];
@@ -236,7 +242,190 @@ namespace mathBase {
       auto max_it = max_element(v.begin(), v.begin()+n);
       med = R{(*max_it + med) / 2.0};
     }
-    return med;    
+    return med;
+  }
+
+  /// Fills the index vector with sorted indices of the input vector.
+  /// The input vector is not modified (similar to TMath::Sort()).
+  /// \param values Vector to be indexed
+  /// \param index Vector to hold the sorted indices (must have the same size as values)
+  template <typename T>
+  void SortData(std::vector<T> const& values, std::vector<size_t>& index)
+  {
+    if (values.size() != index.size()) {
+      LOG(error) << "Vector with values must have same size as vector for indices";
+      return;
+    }
+    std::iota(index.begin(), index.end(), static_cast<size_t>(0));
+    std::sort(index.begin(), index.end(), [&](size_t a, size_t b) { return values[a] < values[b]; });
+  }
+
+  /// LTM : Trimmed mean of unbinned array
+  ///
+  /// Robust statistic to estimate properties of the distribution
+  /// To handle binning error special treatment
+  /// for definition of unbinned data see:
+  ///     http://en.wikipedia.org/w/index.php?title=Trimmed_estimator&oldid=582847999
+  /// \param data Input vector (unsorted)
+  /// \param index Vector with indices of sorted input data
+  /// \param params Array with characteristics of distribution
+  /// \param fracKeep Fraction of data to be kept
+  /// \return Flag if successfull
+  /// Characteristics:
+  /// -# area
+  /// -# mean
+  /// -# rms
+  /// -# error estimate of mean
+  /// -# error estimate of RMS
+  /// -# first accepted element (of sorted array)
+  /// -# last accepted  element (of sorted array)
+  template <typename T>
+  bool LTMUnbinned(const std::vector<T>& data, std::vector<size_t>& index, std::array<float, 7>& params, float fracKeep)
+  {
+    int nPoints = data.size();
+    std::vector<float> w(2 * nPoints);
+    int nKeep = nPoints * fracKeep;
+    if (nKeep > nPoints) {
+      nKeep = nPoints;
+    }
+    if (nKeep < 2) {
+      return false;
+    }
+    // sort in increasing order
+    SortData(data, index);
+    // build cumulants
+    double sum1 = 0.0;
+    double sum2 = 0.0;
+    for (int i = 0; i < nPoints; i++) {
+      double x = data[index[i]];
+      sum1 += x;
+      sum2 += x * x;
+      w[i] = sum1;
+      w[i + nPoints] = sum2;
+    }
+    double maxRMS = sum2 + 1e6;
+    params[0] = nKeep;
+    int limI = nPoints - nKeep + 1; // lowest possible bin to accept
+    for (int i = 0; i < limI; i++) {
+      const int limJ = i + nKeep - 1; // highest accepted bin
+      sum1 = static_cast<double>(w[limJ]) - static_cast<double>(i ? w[i - 1] : 0.);
+      sum2 = static_cast<double>(w[nPoints + limJ]) - static_cast<double>(i ? w[nPoints + i - 1] : 0.);
+      const double mean = sum1 / nKeep;
+      const double rms2 = sum2 / nKeep - mean * mean;
+      if (rms2 > maxRMS) {
+        continue;
+      }
+      maxRMS = rms2;
+      params[1] = mean;
+      params[2] = rms2;
+      params[5] = i;
+      params[6] = limJ;
+    }
+    //
+    if (params[2] < 0) {
+      LOG(error) << "Rounding error: RMS = " << params[2] << " < 0";
+      return false;
+    }
+    params[2] = std::sqrt(params[2]);
+    params[3] = params[2] / std::sqrt(params[0]); // error on mean
+    params[4] = params[3] / std::sqrt(2.0);       // error on RMS
+    return true;
+  }
+
+  /// Rearranges the input vector in the order given by the index vector
+  /// \param data Input vector
+  /// \param index Index vector
+  template <typename T>
+  void Reorder(std::vector<T>& data, const std::vector<size_t>& index)
+  {
+    // rearange data in order given by index
+    if (data.size() != index.size()) {
+      LOG(error) << "Reordering not possible if number of elements in index container different from the data container";
+      return;
+    }
+    std::vector<T> tmp(data);
+    for (size_t i = 0; i < data.size(); ++i) {
+      data[i] = tmp[index[i]];
+    }
+  }
+
+  /// Compare this function to LTMUnbinned.
+  /// A target sigma of the distribution can be specified and it will be trimmed to match that target.
+  /// \param data Input vector (unsorted)
+  /// \param index Vector with indices of sorted input data
+  /// \param params Array with characteristics of distribution
+  /// \param fracKeepMin Minimum fraction to keep of the input data
+  /// \param sigTgt Target distribution sigma
+  /// \param sorted Flag if the data is already sorted
+  /// \return Flag if successfull
+  template <typename T>
+  bool LTMUnbinnedSig(const std::vector<T>& data, std::vector<size_t>& index, std::array<float, 7>& params, float fracKeepMin, float sigTgt, bool sorted = false)
+  {
+    int nPoints = data.size();
+    std::vector<float> w(2 * nPoints);
+
+    if (!sorted) {
+      // sort in increasing order
+      SortData(data, index);
+    } else {
+      // array is already sorted
+      for (int i = 0; i < nPoints; ++i) {
+        index[i] = i;
+      }
+    }
+    // build cumulants
+    double sum1 = 0.0;
+    double sum2 = 0.0;
+    for (int i = 0; i < nPoints; i++) {
+      double x = data[index[i]];
+      sum1 += x;
+      sum2 += x * x;
+      w[i] = sum1;
+      w[i + nPoints] = sum2;
+    }
+    int keepMax = nPoints;
+    int keepMin = fracKeepMin * nPoints;
+    if (keepMin > keepMax) {
+      keepMin = keepMax;
+    }
+    float sigTgt2 = sigTgt * sigTgt;
+    //
+    while (true) {
+      double maxRMS = sum2 + 1e6;
+      int keepN = (keepMax + keepMin) / 2;
+      if (keepN < 2) {
+        return false;
+      }
+      params[0] = keepN;
+      int limI = nPoints - keepN + 1;
+      for (int i = 0; i < limI; ++i) {
+        const int limJ = i + keepN - 1;
+        sum1 = w[limJ] - (i ? w[i - 1] : 0.);
+        sum2 = w[limJ + nPoints] - (i ? w[nPoints + i - 1] : 0.);
+        const double mean = sum1 / keepN;
+        const double rms2 = sum2 / keepN - mean * mean;
+        if (rms2 > maxRMS) {
+          continue;
+        }
+        maxRMS = rms2;
+        params[1] = mean;
+        params[2] = rms2;
+        params[5] = i;
+        params[6] = limJ;
+      }
+      if (maxRMS < sigTgt2) {
+        keepMin = keepN;
+      } else {
+        keepMax = keepN;
+      }
+      if (keepMin >= keepMax - 1) {
+        break;
+      }
+    }
+    params[2] = std::sqrt(params[2]);
+    params[3] = params[2] / std::sqrt(params[0]); // error on mean
+    params[4] = params[3] / std::sqrt(2.0);       // error on RMS
+    return true;
   }
 } // namespace mathBase
 } // namespace mathUtils
