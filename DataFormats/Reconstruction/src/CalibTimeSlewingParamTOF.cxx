@@ -123,11 +123,11 @@ CalibTimeSlewingParamTOF& CalibTimeSlewingParamTOF::operator+=(const CalibTimeSl
       for (auto obj = other.mTimeSlewing[i]->begin(); obj != other.mTimeSlewing[i]->end(); obj++)
         mTimeSlewing[i]->push_back(*obj);
 
-      for (int j = 0; j < NCHANNELXSECTOR; j++){
+      for (int j = 0; j < NCHANNELXSECTOR; j++) {
         mChannelStart[i][j] = other.mChannelStart[i][j];
-	mFractionUnderPeak[i][j] = other.mFractionUnderPeak[i][j];
-	mSigmaPeak[i][j] = other.mSigmaPeak[i][j];
-	mSigmaErrPeak[i][j] = other.mSigmaErrPeak[i][j];
+        mFractionUnderPeak[i][j] = other.mFractionUnderPeak[i][j];
+        mSigmaPeak[i][j] = other.mSigmaPeak[i][j];
+        mSigmaErrPeak[i][j] = other.mSigmaErrPeak[i][j];
       }
     }
   }
