@@ -467,31 +467,7 @@ inline float TrackResiduals::getDXI(int ix) const
 //_____________________________________________________
 inline float TrackResiduals::getX(int i) const
 {
-  if (mUniformBins[VoxX]) {
-    return param::MinX[0] + (i + 0.5) * mDX;
-  } else {
-    if (i < param::NRowsPerROC[0]) {
-      // we are in the IROC
-      return param::MinX[0] + i * param::RowDX[0];
-    } else if (i >= param::NRowsAccumulated[param::NROCTypes - 2]) {
-      // we are in the last OROC
-      return param::MinX[param::NROCTypes - 1] + (i - param::NRowsAccumulated[param::NROCTypes - 2]) * param::RowDX[param::NROCTypes - 1];
-    }
-#ifdef TPC_RUN2
-    else {
-      // we are in OROC1
-      return param::MinX[1] + (i - param::NRowsAccumulated[0]) * param::RowDX[1];
-    }
-#else
-    else if (i < param::NRowsAccumulated[2]) {
-      // OROC1
-      return param::MinX[1] + (i - param::NRowsAccumulated[0]) * param::RowDX[1];
-    } else {
-      // OROC2
-      return param::MinX[2] + (i - param::NRowsAccumulated[1]) * param::RowDX[2];
-    }
-#endif
-  }
+  return mUniformBins[VoxX] ? param::MinX[0] + (i + 0.5) * mDX : param::RowX[i];
 }
 
 //_____________________________________________________
