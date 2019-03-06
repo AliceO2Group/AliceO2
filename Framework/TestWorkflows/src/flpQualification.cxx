@@ -58,7 +58,6 @@ DataProcessorSpec templateProcessor()
         size_t index = parallelInfo.index1D();
         LOG(INFO) << reinterpret_cast<DataHeader const*>(values.header)->payloadSize;
         auto aData = outputs.make<int>(Output{ "TST", "P", index }, 1);
-        sleep(rand() % 5);
       });
     } }
   };
