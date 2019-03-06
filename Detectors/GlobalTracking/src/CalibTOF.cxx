@@ -193,11 +193,11 @@ void CalibTOF::run(int flag, int sector)
           float fractionUnderPeak = doChannelCalibration(ipad, histoChOffsetTemp[ipad], funcChOffset);
           mCalibChannelOffset[ich + ipad] = funcChOffset->GetParameter(1) + mInitialCalibChannelOffset[ich + ipad];
 
-	  int channelInSector =  (ipad + ich) % o2::tof::Geo::NPADSXSECTOR;
-	  
-	  mTimeSlewingObj->setFractionUnderPeak(sector, channelInSector, fractionUnderPeak);
-	  mTimeSlewingObj->setSigmaPeak(sector, channelInSector, funcChOffset->GetParameter(2));
-	  mTimeSlewingObj->setSigmaErrPeak(sector, channelInSector, funcChOffset->GetParError(2));
+          int channelInSector = (ipad + ich) % o2::tof::Geo::NPADSXSECTOR;
+
+          mTimeSlewingObj->setFractionUnderPeak(sector, channelInSector, fractionUnderPeak);
+          mTimeSlewingObj->setSigmaPeak(sector, channelInSector, funcChOffset->GetParameter(2));
+          mTimeSlewingObj->setSigmaErrPeak(sector, channelInSector, funcChOffset->GetParError(2));
 
           // now fill 2D histo for time-slewing using current channel offset
 
@@ -206,7 +206,7 @@ void CalibTOF::run(int flag, int sector)
             fillChannelTimeSlewingCalib(mCalibChannelOffset[ich + ipad], ipad, histoChTimeSlewingTemp, calibTimePad[ipad]); // we will fill the input for the channel-time-slewing calibration
 
             histoChTimeSlewingTemp->SetName(Form("TimeSlewing_Sec%02d_Pad%04d", sector, channelInSector));
-	    histoChTimeSlewingTemp->SetTitle(Form("Sector %02d (pad = %04d)", sector, channelInSector));
+            histoChTimeSlewingTemp->SetTitle(Form("Sector %02d (pad = %04d)", sector, channelInSector));
             TGraphErrors* gTimeVsTot = processSlewing(histoChTimeSlewingTemp, 1, funcChOffset);
 
             if (gTimeVsTot && gTimeVsTot->GetN()) {
@@ -333,7 +333,7 @@ void CalibTOF::doLHCPhaseCalib()
       continue;
 
     mLHCphaseObj->addLHCphase(mHistoLHCphase->GetYaxis()->GetBinLowEdge(ifit0), mFuncLHCphase->GetParameter(1));
-    ifit0 = ifit + 1;      // starting point for the next LHC interval
+    ifit0 = ifit + 1; // starting point for the next LHC interval
   }
 }
 //______________________________________________
@@ -391,7 +391,8 @@ float CalibTOF::doChannelCalibration(int ipad, TH1F* histo, TF1* funcChOffset)
 
   float fraction = 0;
   float integral = histo->Integral();
-  if (integral) fraction = histo->Integral(binmin, binmax)/integral;
+  if (integral)
+    fraction = histo->Integral(binmin, binmax) / integral;
   return fraction;
 }
 //______________________________________________

@@ -50,9 +50,9 @@ class CalibTimeSlewingParamTOF
   float getSigmaPeak(int sector, int channel) const { return mSigmaPeak[sector][channel]; }
   float getSigmaErrPeak(int sector, int channel) const { return mSigmaErrPeak[sector][channel]; }
 
-  void setFractionUnderPeak(int sector, int channel, float value) {mFractionUnderPeak[sector][channel] = value;}
-  void setSigmaPeak(int sector, int channel, float value) {mSigmaPeak[sector][channel] = value;}
-  void setSigmaErrPeak(int sector, int channel, float value) {mSigmaErrPeak[sector][channel] = value;}
+  void setFractionUnderPeak(int sector, int channel, float value) { mFractionUnderPeak[sector][channel] = value; }
+  void setSigmaPeak(int sector, int channel, float value) { mSigmaPeak[sector][channel] = value; }
+  void setSigmaErrPeak(int sector, int channel, float value) { mSigmaErrPeak[sector][channel] = value; }
 
   CalibTimeSlewingParamTOF& operator+=(const CalibTimeSlewingParamTOF& other);
 
@@ -80,10 +80,9 @@ class CalibTimeSlewingParamTOF
   std::vector<std::pair<float, float>> mTimeSlewingSec16; ///< timeslweing correction <tot,time> sector 16
   std::vector<std::pair<float, float>> mTimeSlewingSec17; ///< timeslweing correction <tot,time> sector 17
 
-  float mFractionUnderPeak[NSECTORS][NCHANNELXSECTOR];    ///< array with the fraction of entries below the peak
-  float mSigmaPeak[NSECTORS][NCHANNELXSECTOR];            ///< array with the sigma of the peak
-  float mSigmaErrPeak[NSECTORS][NCHANNELXSECTOR];            ///< array with the sigma of the peak
-
+  float mFractionUnderPeak[NSECTORS][NCHANNELXSECTOR]; ///< array with the fraction of entries below the peak
+  float mSigmaPeak[NSECTORS][NCHANNELXSECTOR];         ///< array with the sigma of the peak
+  float mSigmaErrPeak[NSECTORS][NCHANNELXSECTOR];      ///< array with the sigma of the peak
 
   //  ClassDefNV(CalibTimeSlewingParamTOF, 2); // class for TOF time slewing params
 };

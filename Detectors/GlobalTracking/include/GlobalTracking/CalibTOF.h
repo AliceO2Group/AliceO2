@@ -101,7 +101,7 @@ class CalibTOF
   void doLHCPhaseCalib();                                                                                                                                                                        // calibrate with respect LHC phase
   void fillChannelCalibInput(std::vector<o2::dataformats::CalibInfoTOFshort>* calibinfotof, float offset, int ipad, TH1F* histo, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad); // we will fill the input for the channel-level calibration
   void fillChannelTimeSlewingCalib(float offset, int ipad, TH2F* histo, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad);                                                          // we will fill the input for the channel-time-slewing calibration
-  float doChannelCalibration(int ipad, TH1F* histo, TF1* func);                                                                                                                                    // calibrate single channel from histos --> return fraction of entries under the peak
+  float doChannelCalibration(int ipad, TH1F* histo, TF1* func);                                                                                                                                  // calibrate single channel from histos --> return fraction of entries under the peak
   void resetChannelLevelHistos(TH1F* histoOffset[NPADSPERSTEP], TH2F* histoTimeSlewing, std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad[NPADSPERSTEP]);                            // reset signle channel histos
 
   // objects needed for calibration
