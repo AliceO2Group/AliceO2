@@ -98,7 +98,7 @@ class MCHDPLDigitizerTask
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < irecords.size(); ++collID) {
-
+      mDigitizer.setEventTime(irecords[collID].timeNS);
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {

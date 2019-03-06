@@ -87,7 +87,7 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
   for (auto& hit : hits) {
     //index for this hit
     int detID = hit.GetDetectorID();
-    int ndigits = processHit(hit, detID);
+    int ndigits = processHit(hit, detID, mEventTime);
     //TODO need one label per Digit
     // can use nDigit output of processHit
     MCCompLabel label(hit.GetTrackID(), mEventID, mSrcID);
@@ -100,7 +100,7 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
   fillOutputContainer(digits);
 }
 //______________________________________________________________________
-int Digitizer::processHit(const Hit& hit, int detID)
+int Digitizer::processHit(const Hit& hit, int detID, double event_time)
 {
   Point3D<float> pos(hit.GetX(), hit.GetY(), hit.GetZ());
 
@@ -108,7 +108,7 @@ int Digitizer::processHit(const Hit& hit, int detID)
 
   //convert energy to charge
   auto charge = resp.etocharge(hit.GetEnergyLoss());
-  auto time = hit.GetTime();
+  auto time = event_time + hit.GetTime();
 
   //transformation from global to local
   auto t = o2::mch::getTransformation(detID, *gGeoManager);
