@@ -65,13 +65,16 @@ class Digitizer
   const static int mNdE = 156;
   // digit per pad
   std::vector<Digit> mDigits;
-
+  //map to find back multiple digits per pad
+  std::multimap<int,int> mMultiple;
+  
   //MCLabel container (transient)
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mTrackLabels;
   //MCLabel container (output)
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthOutputContainer;
 
   int processHit(const Hit& hit, int detID, double event_time);
+  void mergeDigits(std::vector<Digit>& digits);
 };
 
 } // namespace mch
