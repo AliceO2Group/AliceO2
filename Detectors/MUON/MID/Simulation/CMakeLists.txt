@@ -9,6 +9,7 @@ set(SRCS
   src/ChamberResponseParams.cxx
   src/Detector.cxx
   src/Digitizer.cxx
+  src/DigitsMerger.cxx
   src/Geometry.cxx
   src/Hit.cxx
   src/Materials.cxx
@@ -24,6 +25,7 @@ set(HEADERS
   include/${MODULE_NAME}/ColumnDataMC.h
   include/${MODULE_NAME}/Detector.h
   include/${MODULE_NAME}/Digitizer.h
+  include/${MODULE_NAME}/DigitsMerger.h
   include/${MODULE_NAME}/Hit.h
   include/${MODULE_NAME}/MCLabel.h
   include/${MODULE_NAME}/Stepper.h
