@@ -111,7 +111,7 @@ class MCHDPLDigitizerTask
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found MCH " << hits.size() << " hits ";
 
         std::vector<o2::mch::Digit> digits;                        // digits which get filled
-        o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels; //TODO: not clear where and how this is filled!
+        o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels;
 
         mDigitizer.process(hits, digits);
         mDigitizer.provideMC(labels);
