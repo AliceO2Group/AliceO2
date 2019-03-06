@@ -53,7 +53,6 @@ class Digitizer
   int getEventID() const { return mEventID; }
 
  private:
-  int mReadoutWindowCurrent{ 0 };
   int mEventID = 0;
   int mSrcID = 0;
 
