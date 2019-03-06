@@ -61,9 +61,9 @@ class EventManager : public TEveEventManager, public TQObject
     /// Default destructor
     ~EventManager() final;
     /// Deleted copy constructor
-    EventManager(EventManager const&) = delete;
+    EventManager(EventManager const&) = delete; // NOLINT(modernize-use-equals-delete)
     /// Deleted assignemt operator
-    void operator=(EventManager const&) = delete;
+    void operator=(EventManager const&) = delete; // NOLINT(modernize-use-equals-delete)
 };
 
 }

@@ -92,6 +92,10 @@ public:
   MessageFormat();
   /// destructor
   ~MessageFormat();
+  // copy constructor prohibited
+  MessageFormat(const MessageFormat&) = delete;
+  // assignment operator prohibited
+  MessageFormat& operator=(const MessageFormat&) = delete;
 
   using DataHeader = o2::header::DataHeader;
   using HeartbeatFrameEnvelope = o2::header::HeartbeatFrameEnvelope;
@@ -186,11 +190,6 @@ public:
 protected:
 
 private:
-  // copy constructor prohibited
-  MessageFormat(const MessageFormat&);
-  // assignment operator prohibited
-  MessageFormat& operator=(const MessageFormat&);
-
   // single point to provide a target pointer, either by using a
   // provided callback function or in the internal buffer, which has
   // to be allocated completely in advance in order to ensure validity

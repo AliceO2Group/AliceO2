@@ -78,6 +78,10 @@ public:
   Component();
   /// destructor
   ~Component();
+  // copy constructor prohibited
+  Component(const Component&) = delete;
+  // assignment operator prohibited
+  Component& operator=(const Component&) = delete;
 
   /// get description of options
   static bpo::options_description GetOptionsDescription();
@@ -130,11 +134,6 @@ public:
 protected:
 
 private:
-  // copy constructor prohibited
-  Component(const Component&);
-  // assignment operator prohibited
-  Component& operator=(const Component&);
-
   /// output buffer to receive the data produced by component
   std::vector<uint8_t> mOutputBuffer;
 

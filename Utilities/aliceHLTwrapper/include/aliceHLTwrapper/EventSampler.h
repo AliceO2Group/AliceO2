@@ -48,6 +48,10 @@ public:
   EventSampler(int verbosity=0);
   /// destructor
   ~EventSampler() override;
+  // copy constructor prohibited
+  EventSampler(const EventSampler&) = delete;
+  // assignment operator prohibited
+  EventSampler& operator=(const EventSampler&) = delete;
 
   /// get description of options
   static bpo::options_description GetOptionsDescription();
@@ -84,11 +88,6 @@ public:
 protected:
 
 private:
-  // copy constructor prohibited
-  EventSampler(const EventSampler&);
-  // assignment operator prohibited
-  EventSampler& operator=(const EventSampler&);
-
   int mEventPeriod;          // event rate in us
   int mInitialDelay;         // initial delay in ms before sending first event
   int mNEvents;              // number of generated events

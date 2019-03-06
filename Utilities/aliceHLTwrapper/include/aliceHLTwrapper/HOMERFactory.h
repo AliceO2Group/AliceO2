@@ -84,6 +84,10 @@ class HOMERFactory {
   HOMERFactory();
   /** destructor */
   virtual ~HOMERFactory();
+  /** copy constructor prohibited */
+  HOMERFactory(const HOMERFactory&) = delete;
+  /** assignment operator prohibited */
+  HOMERFactory& operator=(const HOMERFactory&) = delete;
 
   /**
    * Open a homer reader working on a TCP port.
@@ -140,11 +144,6 @@ class HOMERFactory {
  protected:
 
  private:
-  /** copy constructor prohibited */
-  HOMERFactory(const HOMERFactory&);
-  /** assignment operator prohibited */
-  HOMERFactory& operator=(const HOMERFactory&);
-
   /**
    * Load the HOMER library.
    */

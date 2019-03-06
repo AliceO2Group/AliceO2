@@ -210,6 +210,10 @@ const homer_uint8 kHOMERBigEndianByteOrder    = 2;
 class AliHLTHOMERBlockDescriptor
     {
     public:
+      /** copy constructor prohibited */
+      AliHLTHOMERBlockDescriptor(const AliHLTHOMERBlockDescriptor&) = delete;
+      /** assignment operator prohibited */
+      AliHLTHOMERBlockDescriptor& operator=(const AliHLTHOMERBlockDescriptor&) = delete;
 
 	static unsigned GetHOMERBlockDescriptorSize()
 		{
@@ -377,10 +381,6 @@ class AliHLTHOMERBlockDescriptor
       void* fHeader; //! transient
 	
     private:
-      /** copy constructor prohibited */
-      AliHLTHOMERBlockDescriptor(const AliHLTHOMERBlockDescriptor&);
-      /** assignment operator prohibited */
-      AliHLTHOMERBlockDescriptor& operator=(const AliHLTHOMERBlockDescriptor&);
     };
 
 // the HOMERBlockDescriptor is used in the code

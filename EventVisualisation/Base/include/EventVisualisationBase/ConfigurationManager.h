@@ -42,9 +42,9 @@ private:
   /// Default destructor
   ~ConfigurationManager() = default;
   /// Deleted copy constructor
-  ConfigurationManager(ConfigurationManager const&) = delete;
+  ConfigurationManager(ConfigurationManager const&) = delete; // NOLINT(modernize-use-equals-delete)
   /// Deleted assignment operator
-  void operator=(ConfigurationManager const&) = delete;
+  void operator=(ConfigurationManager const&) = delete; // NOLINT(modernize-use-equals-delete)
 };
   
 #endif

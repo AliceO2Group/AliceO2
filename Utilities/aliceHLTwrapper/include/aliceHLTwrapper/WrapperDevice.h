@@ -52,6 +52,10 @@ public:
   WrapperDevice(int verbosity = 0);
   /// destructor
   ~WrapperDevice() override;
+  // copy constructor prohibited
+  WrapperDevice(const WrapperDevice&) = delete;
+  // assignment operator prohibited
+  WrapperDevice& operator=(const WrapperDevice&) = delete;
 
   /// get description of options
   static bpo::options_description GetOptionsDescription();
@@ -79,11 +83,6 @@ public:
 protected:
 
 private:
-  // copy constructor prohibited
-  WrapperDevice(const WrapperDevice&);
-  // assignment operator prohibited
-  WrapperDevice& operator=(const WrapperDevice&);
-
   /// create a new message with data buffer of specified size
   unsigned char* createMessageBuffer(unsigned size);
 

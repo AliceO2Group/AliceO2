@@ -148,7 +148,7 @@ class DetMatrixCacheIndirect : private DetMatrixCache
 
  protected:
   // before calling fillMatrixCache, detector implementation should set the size of the matrix cache
-  void setSize(int s) = delete;
+  void setSize(int s) = delete; // NOLINT(modernize-use-equals-delete)
   void setSize(int size, int sizeIndirect);
 
   void setMatrixT2L(const Mat3D& matrix, int sensID) { mT2L.setMatrix(matrix, getCacheHelper(sensID)); }

@@ -46,9 +46,9 @@ class GeometryManager
     /// Default destructor
     ~GeometryManager() = default;
     /// Deleted copy constructor
-    GeometryManager(GeometryManager const&) = delete;
+    GeometryManager(GeometryManager const&) = delete; // NOLINT(modernize-use-equals-delete)
     /// Deleted assignment operator
-    void operator=(GeometryManager const&)  = delete;
+    void operator=(GeometryManager const&)  = delete; // NOLINT(modernize-use-equals-delete)
 };
   
 }
