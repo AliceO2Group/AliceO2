@@ -31,7 +31,7 @@ class Digit : public DigitBase
  public:
   Digit() = default;
 
-  Digit(int pad, double adc);
+  Digit(double time, int pad, double adc);
   ~Digit() = default;
 
   int getPadID() const { return mPadID; }

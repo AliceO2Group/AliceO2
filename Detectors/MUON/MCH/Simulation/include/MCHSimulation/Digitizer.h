@@ -37,8 +37,6 @@ class Digitizer
 
   void init();
 
-  void setEventTime(double timeNS) { mEventTime = timeNS; }
-
   //process hits: fill digit vector with digits
   void process(const std::vector<Hit> hits, std::vector<Digit>& digits);
   void provideMC(o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer);
@@ -55,7 +53,6 @@ class Digitizer
   int getEventID() const { return mEventID; }
 
  private:
-  double mEventTime;
   int mReadoutWindowCurrent{ 0 };
   int mEventID = 0;
   int mSrcID = 0;
@@ -72,7 +69,7 @@ class Digitizer
   //MCLabel container (output)
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthOutputContainer;
 
-  int processHit(const Hit& hit, int detID, double event_time);
+  int processHit(const Hit& hit, int detID);
 };
 
 } // namespace mch

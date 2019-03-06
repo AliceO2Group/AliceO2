@@ -87,7 +87,7 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
   for (auto& hit : hits) {
     //index for this hit
     int detID = hit.GetDetectorID();
-    int ndigits = processHit(hit, detID, mEventTime);
+    int ndigits = processHit(hit, detID);
     //TODO need one label per Digit
     // can use nDigit output of processHit
     MCCompLabel label(hit.GetTrackID(), mEventID, mSrcID);
@@ -100,7 +100,7 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
   fillOutputContainer(digits);
 }
 //______________________________________________________________________
-int Digitizer::processHit(const Hit& hit, int detID, double event_time)
+int Digitizer::processHit(const Hit& hit, int detID)
 {
   Point3D<float> pos(hit.GetX(), hit.GetY(), hit.GetZ());
 
@@ -108,7 +108,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
 
   //convert energy to charge
   auto charge = resp.etocharge(hit.GetEnergyLoss());
-  auto time = hit.GetTime(); //to be used for pile-up
+  auto time = hit.GetTime();
 
   //transformation from global to local
   auto t = o2::mch::getTransformation(detID, *gGeoManager);
@@ -143,7 +143,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
     return 0;
   }
 
-  seg.forEachPadInArea(xMin, yMin, xMax, yMax, [&resp, &digits = this->mDigits, chargebend, chargenon, localX, localY, &seg, &ndigits ](int padid) {
+  seg.forEachPadInArea(xMin, yMin, xMax, yMax, [&resp, &digits = this->mDigits, chargebend, chargenon, localX, localY, &seg, &ndigits, time ](int padid) {
     auto dx = seg.padSizeX(padid) * 0.5;
     auto dy = seg.padSizeY(padid) * 0.5;
     auto xmin = (localX - seg.padPositionX(padid)) - dx;
@@ -157,7 +157,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
       q *= chargenon;
     }
     auto signal = resp.response(q);
-    digits.emplace_back(padid, signal);
+    digits.emplace_back(time, padid, signal);
     ++ndigits;
   });
   return ndigits;

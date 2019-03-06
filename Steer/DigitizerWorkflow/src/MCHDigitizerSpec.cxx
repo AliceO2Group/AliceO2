@@ -98,7 +98,6 @@ class MCHDPLDigitizerTask
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < irecords.size(); ++collID) {
-      mDigitizer.setEventTime(irecords[collID].timeNS);
 
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
@@ -120,6 +119,7 @@ class MCHDPLDigitizerTask
         for (auto& d : digits) {
           LOG(INFO) << "ADC " << d.getADC();
           LOG(INFO) << "PAD " << d.getPadID();
+	  LOG(INFO) << "TIME " << d.getTimeStamp();
         }
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
         labelAccum.mergeAtBack(labels);
