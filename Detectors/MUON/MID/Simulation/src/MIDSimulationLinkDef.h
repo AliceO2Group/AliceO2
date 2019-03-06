@@ -21,5 +21,7 @@
 #pragma link C++ class o2::Base::DetImpl < o2::mid::Detector > +;
 #pragma link C++ class o2::mid::Hit + ;
 #pragma link C++ class std::vector < o2::mid::Hit > +;
+#pragma link C++ class o2::mid::ColumnDataMC + ;
+#pragma link C++ class std::vector < o2::mid::ColumnDataMC > +;
 
 #endif

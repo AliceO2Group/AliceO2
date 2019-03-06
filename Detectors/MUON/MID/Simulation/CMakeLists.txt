@@ -19,6 +19,7 @@ set(HEADERS
   include/${MODULE_NAME}/ChamberHV.h
   include/${MODULE_NAME}/ChamberResponse.h
   include/${MODULE_NAME}/ChamberResponseParams.h
+  include/${MODULE_NAME}/ColumnDataMC.h
   include/${MODULE_NAME}/Detector.h
   include/${MODULE_NAME}/Hit.h
   include/${MODULE_NAME}/Stepper.h
