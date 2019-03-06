@@ -17,6 +17,7 @@
 #define _ALLOW_DEBUG_TREES_ // to allow debug and control tree output
 
 void run_match_tof(std::string path = "./", std::string outputfile = "o2match_tof.root",
+                   std::string outputfileCalib = "o2calib_tof.root",
                    std::string inputTracksTPCITS = "o2match_itstpc.root",
                    std::string inputTracksTPC = "tpctracks.root",
                    std::string inputClustersTOF = "tofclusters.root", std::string inputGeom = "O2geometry.root",
@@ -49,6 +50,9 @@ void run_match_tof(std::string path = "./", std::string outputfile = "o2match_to
   TFile outFile((path + outputfile).data(), "recreate");
   TTree outTree("matchTOF", "Matched TOF-tracks");
   matching.setOutputTree(&outTree);
+  TFile outFileCalib((path + outputfileCalib).data(), "recreate");
+  TTree outTreeCalib("calibTOF", "Calib TOF infos");
+  matching.setOutputTreeCalib(&outTreeCalib);
 
 #ifdef _ALLOW_DEBUG_TREES_
   matching.setDebugTreeFileName(path + matching.getDebugTreeFileName());
@@ -66,4 +70,7 @@ void run_match_tof(std::string path = "./", std::string outputfile = "o2match_to
   outFile.cd();
   outTree.Write();
   outFile.Close();
+  outFileCalib.cd();
+  outTreeCalib.Write();
+  outFileCalib.Close();
 }
