@@ -17,6 +17,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
 #include <iostream>
+#include <string>
 #include <FairLogger.h>
 #include <typeinfo>
 #include <cassert>
@@ -36,17 +37,23 @@ std::map<std::string, ConfigurableParam::EParamProvenance>* ConfigurableParam::s
 bool ConfigurableParam::sIsFullyInitialized = false;
 bool ConfigurableParam::sRegisterMode = true;
 
+// ------------------------------------------------------------------
+
 void ConfigurableParam::writeINI(std::string const& filename)
 {
   initPropertyTree(); // update the boost tree before writing
   boost::property_tree::write_ini(filename, *sPtree);
 }
 
+// ------------------------------------------------------------------
+
 void ConfigurableParam::writeJSON(std::string const& filename)
 {
   initPropertyTree(); // update the boost tree before writing
   boost::property_tree::write_json(filename, *sPtree);
 }
+
+// ------------------------------------------------------------------
 
 void ConfigurableParam::initPropertyTree()
 {
@@ -55,6 +62,8 @@ void ConfigurableParam::initPropertyTree()
     p->putKeyValues(sPtree);
   }
 }
+
+// ------------------------------------------------------------------
 
 void ConfigurableParam::printAllKeyValuePairs()
 {
@@ -67,6 +76,8 @@ void ConfigurableParam::printAllKeyValuePairs()
   }
   std::cout << "----\n";
 }
+
+// ------------------------------------------------------------------
 
 // evidently this could be a local file or an OCDB server
 // ... we need to generalize this ... but ok for demonstration purposes
@@ -82,6 +93,8 @@ void ConfigurableParam::toCCDB(std::string filename)
   file.Close();
 }
 
+// ------------------------------------------------------------------
+
 void ConfigurableParam::fromCCDB(std::string filename)
 {
   if (!sIsFullyInitialized) {
@@ -93,6 +106,8 @@ void ConfigurableParam::fromCCDB(std::string filename)
   }
   file.Close();
 }
+
+// ------------------------------------------------------------------
 
 ConfigurableParam::ConfigurableParam()
 {
@@ -113,6 +128,8 @@ ConfigurableParam::ConfigurableParam()
   }
 }
 
+// ------------------------------------------------------------------
+
 void ConfigurableParam::initialize()
 {
   initPropertyTree();
@@ -124,6 +141,8 @@ void ConfigurableParam::initialize()
   sIsFullyInitialized = true;
 }
 
+// ------------------------------------------------------------------
+
 void ConfigurableParam::printAllRegisteredParamNames()
 {
   for (auto p : *sRegisteredParamClasses) {
@@ -131,50 +150,155 @@ void ConfigurableParam::printAllRegisteredParamNames()
   }
 }
 
+// ------------------------------------------------------------------
+
 void ConfigurableParam::updateFromString(std::string const& configstring)
 {
   if (!sIsFullyInitialized) {
     initialize();
   }
-  using Tokenizer = boost::tokenizer<boost::char_separator<char>>;
-  boost::char_separator<char> tokensep{ "," };
-  boost::char_separator<char> keyvaluesep{ "=" };
-  Tokenizer tok{ configstring, tokensep };
-  for (const auto& t : tok) {
-    Tokenizer keyvaluetokenizer{ t, keyvaluesep };
-    std::string extractedkey;
-    std::string extractedvalue;
-    int counter = 0;
-    // TODO: make sure format is correct with a regular expression
-    for (const auto& ss : keyvaluetokenizer) {
-      auto s = ss;
-      if (s.front() != s.back() || (s.front() != '\'' && s.front() == '\"')) { // not a string
-        s.erase(std::remove(s.begin(), s.end(), ' '), s.end());                // remove all spaces
-      } else {                                                                 // a string
-        s.erase(0, s.find_first_not_of(' '));                                  // remove leading spaces
-        s.erase(s.find_last_not_of(' ') + 1);                                  // remove trailing spaces
+
+  // -----------------------------------------------
+  // Helper functions
+  // -----------------------------------------------
+
+  // Remove leading whitespace
+  auto ltrim = [](std::string src) {
+    return src.erase(0, src.find_first_not_of(' '));
+  };
+
+  // Remove trailing whitespace
+  auto rtrim = [](std::string src) {
+    return src.erase(src.find_last_not_of(' ') + 1);
+  };
+
+  // Remove leading/trailing whitespace
+  auto trimSpace = [ltrim, rtrim](std::string src) {
+    return ltrim(rtrim(src));
+  };
+
+  // Split a given string on a delim character, return vector of tokens
+  // If trim is true, then also remove leading/trailing whitespace of each token.
+  auto splitString = [trimSpace](const std::string& src, char delim, bool trim = false) {
+    std::stringstream ss(src);
+    std::string token;
+    std::vector<std::string> tokens;
+
+    while (std::getline(ss, token, delim)) {
+      token = (trim ? trimSpace(token) : token);
+      if (!token.empty()) {
+        tokens.push_back(std::move(token));
       }
-      if (counter == 1) {
-        extractedvalue = s;
-      }
-      if (counter == 0) {
-        extractedkey = s;
-      }
-      counter++;
     }
-    // here we have key and value
-    // ... check whether such a key exists
-    auto optional = sPtree->get_optional<std::string>(extractedkey);
-    if (optional.is_initialized()) {
-      LOG(INFO) << "FOUND KEY ... and the current value is " << optional.get();
 
-      assert(sKeyToStorageMap->find(extractedkey) != sKeyToStorageMap->end());
+    return tokens;
+  };
 
-      setValue(extractedkey, extractedvalue);
-    } else {
-      LOG(FATAL) << "Configuration key " << extractedkey << " not valid ... (abort)";
+  // Take a vector of strings with elements of form a=b, and
+  // return a vector of pairs with each pair of form <a, b>
+  auto getKeyValPairs = [trimSpace, splitString](std::vector<std::string>& tokens) {
+    std::vector<std::pair<std::string, std::string>> pairs;
+
+    for (auto& token : tokens) {
+      auto keyval = splitString(token, '=');
+      if (keyval.size() != 2) {
+        LOG(FATAL) << "Illegal command-line key/value string: " << token;
+        continue;
+      }
+
+      std::pair<std::string, std::string> pair = std::make_pair(keyval[0], trimSpace(keyval[1]));
+      pairs.push_back(pair);
+    }
+
+    return pairs;
+  };
+
+  // Simple check that the string starts/ends with an open square bracket
+  auto isArray = [](std::string& el) {
+    return (el.at(0) == '[') && (el.at(el.size() - 1) == ']');
+  };
+
+  // Does the given string key exist in the boost property tree?
+  auto keyExists = [](std::string key) {
+    return sPtree->get_optional<std::string>(key).is_initialized();
+  };
+
+  // Find the maximum index of a given key with array value.
+  // We store string keys for arrays as a[0]...a[size_of_array]
+  auto maxIndex = [keyExists](std::string baseName) {
+    bool isFound = true;
+    int index = -1;
+    do {
+      index++;
+      std::string key = baseName + "[" + std::to_string(index) + "]";
+      isFound = keyExists(key);
+    } while (isFound);
+
+    return index;
+  };
+
+  // ---- end of helper functions --------------------
+
+  // Command-line string is a ;-separated list of key=value params
+  auto params = splitString(configstring, ';', true);
+
+  // Now split each key=value string into its <key, value> parts
+  auto keyValues = getKeyValPairs(params);
+
+  // Take an array of param key/value pairs
+  // and update the storage map for each of them by calling setValue.
+  // For string/scalar types this is simple.
+  // For array values we need to iterate over each array element
+  // and call setValue on the element, using an appropriately constructed key.
+  for (auto& keyValue : keyValues) {
+    std::string key = keyValue.first;
+    std::string value = trimSpace(keyValue.second);
+
+    if (isArray(value)) {
+      // We need to check how big the array is, by increasing key[0], key[1],...
+      // and checking for this key in the sPtree until we no longer find a match.
+
+      // We remove the lead/trailing square bracket
+      value.erase(0, 1); // remove leading bracket
+      value.pop_back();  // remove trailing bracket
+
+      auto elems = splitString(value, ',', true);
+      /*
+      auto expectedLen = maxIndex(key);
+      int elemsLen = elems.size();
+
+      if (expectedLen != elemsLen) {
+        LOG(FATAL) << "Cannot configure " << key
+          << " with a different array size (expected length "
+          << expectedLen << ", found " << elemsLen << ")";
+        continue;
+      }
+      */
+      // TODO:
+      // 1. Should not assume each array element is a scalar/string. We may need to recurse.
+      // 2. Should not assume each array element - even if not complex - is correctly written. Validate.
+      // 3. Validation should include finding same types as in provided defaults.
+
+      for (int i = 0; i < elems.size(); ++i) {
+        std::string indexKey = key + "[" + std::to_string(i) + "]";
+        setValue(indexKey, elems[i]);
+      }
+
       continue;
     }
+
+    // Value is not an array, presume a string/scalar type
+    if (!keyExists(key)) {
+      LOG(FATAL) << "Inexistant ConfigurableParam key: " << key;
+      continue;
+    }
+
+    assert(sKeyToStorageMap->find(key) != sKeyToStorageMap->end());
+
+    // TODO: this will trap complex types like maps and structs.
+    // These need to be broken into their own cases, so that we only
+    // get strings and scalars here.
+    setValue(key, value);
   }
 }
 
