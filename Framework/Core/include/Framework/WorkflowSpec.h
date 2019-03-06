@@ -37,6 +37,44 @@ WorkflowSpec parallel(WorkflowSpec specs,
                       size_t maxIndex,
                       std::function<void(DataProcessorSpec&, size_t id)> amendCallback);
 
+/// create parallel pipelines of processors from a template sequence for a number of
+/// parallel sub specification IDs. The sub specifications are distributed among the
+/// pipelines.
+/// serves the case where each input id (subspec) corresponds to outputs amended with the
+/// same subspec. Two callback functions allow two configure the list of subspecs for the
+/// call.
+///
+/// Schematic workflow illustration:
+///            template pipeline                           parallel pipelines
+///                                                    ----       -----       ----
+///                                                   |  A0|---->|A0 B0|---->|B0   |
+///                                                   |    |     |   C0|---->|C0   |
+///                                                   |  A1|---->|A1 B1|---->|B1   |
+///                                                   |    |     |   C1|---->|C1   |
+///                                                    ----       -----       ----
+///
+///                                                    ----       -----       ----
+///       ----       ----       ----                  |  A2|---->|A2 B2|---->|B2   |
+///      |   A|---->|A  B|---->|B   |    becomes      |    |     |   C2|---->|C2   |
+///      |    |     |   C|---->|C   |    ======>      |  A3|---->|A3 B3|---->|B3   |
+///       ----       ----       ----                  |    |     |   C3|---->|C3   |
+///                                                    ----       -----       ----
+///                                                                 .
+///                                                                 .
+///                                                    ----       -----       ----
+///                                                   |  An|---->|An Bn|---->|Bn   |
+///                                                   |    |     |   Cn|---->|Cn   |
+///                                                    ----       -----       ----
+///
+/// @param specs               the template to be multiplied
+/// @param nPipelines          number of pipelines
+/// @param getNumberOfSubspecs callback function to return the number of subspecs
+/// @param getSubSpec          callback function to return the subspecs at index
+WorkflowSpec parallelPipeline(const WorkflowSpec& specs,
+                              size_t nPipelines,
+                              std::function<size_t()> getNumberOfSubspecs,
+                              std::function<size_t(size_t)> getSubSpec);
+
 /// The purpose of this helper is to duplicate an InputSpec @a original
 /// as many times as specified in maxIndex and to amend each instance
 /// by invoking amendCallback on them with their own @a id. This can be

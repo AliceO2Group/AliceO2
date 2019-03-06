@@ -425,7 +425,6 @@ There is also a few demonstrator available in particular:
 ## Interesting reads
 
 - [MillWheel: Fault-Tolerant Stream Processing at Internet Scale](https://research.google.com/pubs/pub41378.html) : paper about Google previous generation system for stream processing
-- [Concord](http://concord.io) : Similar (to the above) stream processing solution, OpenSource.
 
 ## Data Sampling
 

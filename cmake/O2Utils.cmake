@@ -405,12 +405,15 @@ endfunction(O2_FRAMEWORK_WORKFLOW)
 # arg TIMEOUT - the maximum number of attempts
 function(add_test_wrap)
   cmake_parse_arguments(PARSE_ARGV 0 "L"
-                        "DONT_FAIL_ON_TIMEOUT"
+                        "DONT_FAIL_ON_TIMEOUT;NON_FATAL"
                         "NAME;WORKING_DIRECTORY;MAX_ATTEMPTS;TIMEOUT"
                         "COMMAND;CONFIGURATIONS")
   if("${L_MAX_ATTEMPTS}" GREATER 1)
     # Warn only for tests where retry has been requested
     message(WARNING "Test ${L_NAME} will be retried max ${L_MAX_ATTEMPTS} times")
+  endif()
+  if(L_NON_FATAL)
+    message(WARNING "Failure of test ${L_NAME} will not be fatal")
   endif()
 
   if(NOT L_TIMEOUT)
@@ -424,6 +427,11 @@ function(add_test_wrap)
   else()
     set(L_DONT_FAIL_ON_TIMEOUT "")
   endif()
+  if(L_NON_FATAL)
+    set(L_NON_FATAL "--non-fatal")
+  else()
+    set(L_NON_FATAL "")
+  endif()
   math(EXPR CTEST_TIMEOUT "(20 + ${L_TIMEOUT}) * ${L_MAX_ATTEMPTS}")
 
   if(WIN32)
@@ -435,7 +443,7 @@ function(add_test_wrap)
     set_tests_properties(${L_NAME} PROPERTIES TIMEOUT ${L_TIMEOUT})
   else()
     add_test(NAME "${L_NAME}"
-             COMMAND "${CMAKE_BINARY_DIR}/tests-wrapper.sh" "--name" "${L_NAME}" "--max-attempts" "${L_MAX_ATTEMPTS}" "--timeout" "${L_TIMEOUT}" ${L_DONT_FAIL_ON_TIMEOUT} "--" ${L_COMMAND}
+             COMMAND "${CMAKE_BINARY_DIR}/tests-wrapper.sh" "--name" "${L_NAME}" "--max-attempts" "${L_MAX_ATTEMPTS}" "--timeout" "${L_TIMEOUT}" ${L_DONT_FAIL_ON_TIMEOUT} ${L_NON_FATAL} "--" ${L_COMMAND}
              WORKING_DIRECTORY "${L_WORKING_DIRECTORY}"
              CONFIGURATIONS "${L_CONFIGURATIONS}")
     set_tests_properties(${L_NAME} PROPERTIES TIMEOUT ${CTEST_TIMEOUT})

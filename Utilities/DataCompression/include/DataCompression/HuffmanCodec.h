@@ -58,7 +58,7 @@ class HuffmanNode
   HuffmanNode() : mLeft(), mRight(), mWeight(0.), mIndex(~uint16_t(0)), mCode(), mCodeLen(0) {}
   HuffmanNode(const HuffmanNode& other) = default;
   HuffmanNode& operator=(const HuffmanNode& other) = default;
-  ~HuffmanNode() {}
+  ~HuffmanNode() = default;
 
   HuffmanNode(double weight, uint16_t index = ~uint16_t(0))
     : mLeft(), mRight(), mWeight(weight), mIndex(index), mCode(), mCodeLen(0)
@@ -169,7 +169,7 @@ class HuffmanCodec
 
   HuffmanCodec() = delete; // forbidden
   HuffmanCodec(const model_type& model) : mCodingModel(model) {}
-  ~HuffmanCodec() {}
+  ~HuffmanCodec() = default;
 
   /// Encode a value and return Huffman code and code lenght
   /// @param v          value to be encoded
@@ -240,7 +240,7 @@ class HuffmanModel : public _BASE
 {
  public:
   HuffmanModel() : mAlphabet(), mLeaveNodes(), mTreeNodes() {}
-  ~HuffmanModel() {}
+  ~HuffmanModel() = default;
 
   using base_type = _BASE;
   using code_type = Rep;

@@ -142,10 +142,7 @@ void IdPath::InitPath()
   init();
 }
 
-IdPath::~IdPath()
-{
-  // destructor
-}
+IdPath::~IdPath() = default;
 
 Bool_t IdPath::isWord(const TString &str)
 {

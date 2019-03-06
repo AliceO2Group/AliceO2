@@ -56,7 +56,9 @@ struct LifetimeHelpers {
   /// @a prefix is the lookup prefix in CCDB.
   /// FIXME: actually implement the fetching
   /// FIXME: provide a way to customize the namespace from the ProcessingContext
-  static ExpirationHandler::Handler fetchFromCCDBCache(std::string const& prefix);
+  static ExpirationHandler::Handler fetchFromCCDBCache(ConcreteDataMatcher const& matcher,
+                                                       std::string const& prefix,
+                                                       std::string const& sourceChannel);
 
   /// Create an entry in the registry for histograms on the first
   /// FIXME: actually implement this

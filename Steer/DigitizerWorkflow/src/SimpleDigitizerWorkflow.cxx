@@ -13,6 +13,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/DeviceSpec.h"
+#include "Algorithm/RangeTokenizer.h"
 #include "SimReaderSpec.h"
 #include "CollisionTimePrinter.h"
 #include "DetectorsCommonDataFormats/DetID.h"
@@ -103,9 +104,10 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(
     ConfigParamSpec{ "tpc-lanes", VariantType::Int, defaultlanes, { laneshelp } });
 
-  std::string sectorshelp("Comma separated string of tpc sectors to treat. (Default is all)");
+  std::string sectorshelp("List of TPC sectors, comma separated ranges, e.g. 0-3,7,9-15");
+  std::string sectorDefault = "0-" + std::to_string(o2::TPC::Sector::MAXSECTOR - 1);
   workflowOptions.push_back(
-    ConfigParamSpec{ "tpc-sectors", VariantType::String, "all", { sectorshelp } });
+    ConfigParamSpec{ "tpc-sectors", VariantType::String, sectorDefault.c_str(), { sectorshelp } });
 
   std::string onlyhelp("Comma separated list of detectors to accept. Takes precedence over the skipDet option. (Default is none)");
   workflowOptions.push_back(
@@ -166,37 +168,6 @@ void initTPC()
   // by invoking this constructor we make sure that a common file will be created
   // in future we should take this from OCDB and just forward per message
   const static auto& ampl = o2::TPC::GEMAmplification::instance();
-}
-
-// ------------------------------------------------------------------
-
-void extractTPCSectors(std::vector<int>& sectors, ConfigContext const& configcontext)
-{
-  auto sectorsstring = configcontext.options().get<std::string>("tpc-sectors");
-  if (sectorsstring.compare("all") != 0) {
-    // we expect them to be , separated
-    std::stringstream ss(sectorsstring);
-    std::vector<std::string> stringtokens;
-    while (ss.good()) {
-      std::string substr;
-      getline(ss, substr, ',');
-      stringtokens.push_back(substr);
-    }
-    // now try to convert each token to int
-    for (auto& token : stringtokens) {
-      try {
-        auto s = std::stoi(token);
-        sectors.emplace_back(s);
-      } catch (std::invalid_argument e) {
-      }
-    }
-    return;
-  }
-
-  // all sectors otherwise by default
-  for (int s = 0; s < o2::TPC::Sector::MAXSECTOR; ++s) {
-    sectors.emplace_back(s);
-  }
 }
 
 // ------------------------------------------------------------------
@@ -356,11 +327,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // keeps track of which subchannels correspond to tpc channels
   auto tpclanes = std::make_shared<std::vector<int>>();
   // keeps track of which tpc sectors to process
-  auto tpcsectors = std::make_shared<std::vector<int>>();
+  std::vector<int> tpcsectors;
 
   if (isEnabled(o2::detectors::DetID::TPC)) {
-    extractTPCSectors(*tpcsectors.get(), configcontext);
-    auto lanes = getNumTPCLanes(*tpcsectors.get(), configcontext);
+    tpcsectors = o2::RangeTokenizer::tokenize<int>(configcontext.options().get<std::string>("tpc-sectors"));
+    auto lanes = getNumTPCLanes(tpcsectors, configcontext);
     detList.emplace_back(o2::detectors::DetID::TPC);
 
     for (int l = 0; l < lanes; ++l) {
@@ -375,7 +346,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       specs.emplace_back(o2::TPC::getTPCDigitRootWriterSpec(lanes));
     } else {
       // attach the TPC reco workflow
-      auto tpcRecoWorkflow = o2::TPC::RecoWorkflow::getWorkflow(true, lanes, "digitizer", tpcRecoOutputType.c_str());
+      auto tpcRecoWorkflow = o2::TPC::RecoWorkflow::getWorkflow(tpcsectors, true, lanes, "digitizer", tpcRecoOutputType.c_str());
       specs.insert(specs.end(), tpcRecoWorkflow.begin(), tpcRecoWorkflow.end());
     }
   }

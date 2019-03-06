@@ -23,7 +23,8 @@ A quickstart page can be found under [https://aliceo2group.github.io/](https://a
 In order to build and install O2 with aliBuild you can follow [this tutorial](http://alisw.github.io/alibuild/o2-tutorial.html).
 
 ### Issue tracking system
-We use JIRA to track issues. [Report a bug here](https://alice.its.cern.ch/jira/secure/CreateIssue.jspa?pid=11201&issuetype=1).
+We use JIRA to track issues. [Report a bug here](https://alice.its.cern.ch/jira/secure/CreateIssue.jspa?pid=11201&issuetype=1). 
+Add the JIRA issue key (e.g. `O2-XYZ`) to the PR title or in a commit message to have the PR/commit appear in the JIRA ticket. 
 
 ### Coding guidelines
 The Coding Guidelines are [here](https://github.com/AliceO2Group/CodingGuidelines).
@@ -44,52 +45,5 @@ The code organisation is described [here](doc/CodeOrganization.md).
 The build system (cmake) is described [here](doc/CMakeInstructions.md).
 
 ### Formatting
-The project uses `clang-format` to push for a common code formatting according
-the the `clang-format` configuration files in this repository. With an adiabatic
-approach, all changes have to follow the formatting rules. A tool script can be
-used to integrate the formatting into `git` and suggest formatting only for
-changed lines.
-
-##### Install `clang-format`
-Use alienv to load `clang` which includes `clang-format` : `alienv load Clang/latest`
-If Clang is not yet build, use alibuild : `aliBuild build --defaults o2 Clang`
-If you use your own clang installation, make sure you have at least version 3.9.
-
-##### Install `clang-format` git integration
-The `git-clang-format` Python script integrates `clang-format` into `git`.
-Put it somewhere in your path and ensure that it is executable, e.g.
-```bash
-cd $HOME
-mkdir -p bin
-cd bin
-wget llvm.org/svn/llvm-project/cfe/trunk/tools/clang-format/git-clang-format
-chmod u+x git-clang-format
-```
-
-Note: installation of the script will be added to build of AliceO2 software stack.
-
-##### Checking formatting
-Now, `git clang-format` will invoke `clang-format` on the changes in current files
-or a specific commit. E.g. for the last commit
-```
-git clang-format HEAD~1
-```
-
-Or for all commits done with respect to the remote branch state
-```
-git clang-format origin/dev
-```
-
-##### Checking files
-Show updated version of complete file :
-```
-clang-format -style=file SOURCEFILE
-```
-
-Directly apply the style to file :
-```
-clang-format -style=file -i SOURCEFILE
-```
-
-### Using an IDE
-A number of config files are available [here](https://github.com/AliceO2Group/CodingGuidelines) for various IDEs.
+Rules and instructions are available in the repository
+[CodingGuidelines](https://github.com/AliceO2Group/CodingGuidelines). 

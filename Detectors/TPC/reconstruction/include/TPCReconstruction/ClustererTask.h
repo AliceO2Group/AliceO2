@@ -59,9 +59,9 @@ class ClustererTask : public FairTask{
   void setContinuousReadout(bool isContinuous);
 
  private:
-  bool mIsContinuousReadout; ///< Switch for continuous readout
-  int mEventCount;           ///< Event counter
-  int mClusterSector;        ///< Sector to be processed
+  bool mIsContinuousReadout = true; ///< Switch for continuous readout
+  int mEventCount = 0;              ///< Event counter
+  int mClusterSector = -1;          ///< Sector to be processed
 
   std::unique_ptr<HwClusterer> mHwClusterer; ///< Hw Clusterfinder instance
 

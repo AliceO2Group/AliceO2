@@ -27,10 +27,7 @@ IdRunRange::IdRunRange(Int_t firstRun, Int_t lastRun) : mFirstRun(firstRun), mLa
   // constructor
 }
 
-IdRunRange::~IdRunRange()
-{
-  // destructor
-}
+IdRunRange::~IdRunRange() = default;
 
 Bool_t IdRunRange::isOverlappingWith(const IdRunRange &other) const
 {

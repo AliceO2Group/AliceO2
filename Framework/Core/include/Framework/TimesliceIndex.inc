@@ -104,29 +104,29 @@ inline data_matcher::VariableContext &TimesliceIndex::getVariablesForSlot(Timesl
   return mVariables[slot.index];
 }
 
-inline TimesliceSlot TimesliceIndex::replaceLRUWith(data_matcher::VariableContext& newContext)
+inline std::tuple<TimesliceIndex::ActionTaken, TimesliceSlot> TimesliceIndex::replaceLRUWith(data_matcher::VariableContext& newContext)
 {
   auto oldestSlot = findOldestSlot();
   if (TimesliceIndex::isValid(oldestSlot) == false) {
     mVariables[oldestSlot.index] = newContext;
-    return oldestSlot;
+    return std::make_tuple(ActionTaken::ReplaceUnused, oldestSlot);
   }
   auto oldTimestamp = std::get_if<uint64_t>(&mVariables[oldestSlot.index].get(0));
   if (oldTimestamp == nullptr) {
     mVariables[oldestSlot.index] = newContext;
-    return oldestSlot;
+    return std::make_tuple(ActionTaken::ReplaceUnused, oldestSlot);
   }
 
   auto newTimestamp = std::get_if<uint64_t>(&newContext.get(0));
   if (newTimestamp == nullptr) {
-    return {TimesliceSlot::INVALID};
+    return std::make_tuple(ActionTaken::DropInvalid, TimesliceSlot{TimesliceSlot::INVALID});
   }
 
   if (*newTimestamp > *oldTimestamp) {
     mVariables[oldestSlot.index] = newContext;
-    return oldestSlot;
+    return std::make_tuple(ActionTaken::ReplaceObsolete, oldestSlot);
   }
-  return {TimesliceSlot::INVALID};
+  return std::make_tuple(ActionTaken::DropObsolete, TimesliceSlot{TimesliceSlot::INVALID});
 }
 
 } // namespace framework

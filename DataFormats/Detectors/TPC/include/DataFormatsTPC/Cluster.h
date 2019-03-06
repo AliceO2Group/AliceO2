@@ -37,7 +37,7 @@ class Cluster : public ClusterTimeStamp
 {
  public:
   /// Default constructor
-  Cluster();
+  Cluster() = default;
 
   /// Constructor, initializing all values
   /// \param cru CRU
@@ -54,7 +54,7 @@ class Cluster : public ClusterTimeStamp
   ~Cluster() = default;
 
   /// Copy Constructor
-  Cluster(const Cluster& other);
+  Cluster(const Cluster& other) = default;
 
   /// Set parameters of cluster
   /// \param cru CRU
@@ -88,17 +88,15 @@ class Cluster : public ClusterTimeStamp
  private:
   friend class boost::serialization::access;
 
-  short mCRU;
-  short mRow;
-  float mQ;
-  float mQmax;
-  float mPadMean;
-  float mPadSigma;
+  short mCRU = -1;
+  short mRow = -1;
+  float mQ = -1;
+  float mQmax = -1;
+  float mPadMean = -1;
+  float mPadSigma = -1;
 
   ClassDefNV(Cluster, 1);
 };
-//________________________________________________________________________
-inline Cluster::Cluster() : Cluster(-1, -1, -1, -1, -1, -1, -1, -1) {}
 
 //________________________________________________________________________
 inline Cluster::Cluster(short cru, short row, float q, float qmax, float padmean, float padsigma, float timemean,
@@ -110,18 +108,6 @@ inline Cluster::Cluster(short cru, short row, float q, float qmax, float padmean
     mQmax(qmax),
     mPadMean(padmean),
     mPadSigma(padsigma)
-{
-}
-
-//________________________________________________________________________
-inline Cluster::Cluster(const Cluster& other)
-  : ClusterTimeStamp(other),
-    mCRU(other.mCRU),
-    mRow(other.mRow),
-    mQ(other.mQ),
-    mQmax(other.mQmax),
-    mPadMean(other.mPadMean),
-    mPadSigma(other.mPadSigma)
 {
 }
 

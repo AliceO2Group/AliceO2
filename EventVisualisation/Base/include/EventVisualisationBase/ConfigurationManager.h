@@ -38,9 +38,9 @@ public:
   
 private:
   /// Default constructor
-  ConfigurationManager(){};
+  ConfigurationManager() = default;
   /// Default destructor
-  ~ConfigurationManager(){};
+  ~ConfigurationManager() = default;
   /// Deleted copy constructor
   ConfigurationManager(ConfigurationManager const&) = delete;
   /// Deleted assignment operator

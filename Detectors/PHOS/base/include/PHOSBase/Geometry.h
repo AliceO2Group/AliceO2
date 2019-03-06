@@ -43,7 +43,7 @@ class Geometry
   ///
   /// Destructor.
   ///
-  ~Geometry() {}
+  ~Geometry() = default;
 
   ///
   /// Assign operator.

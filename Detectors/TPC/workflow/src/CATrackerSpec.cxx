@@ -22,6 +22,7 @@
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/ClusterGroupAttribute.h"
 #include "DataFormatsTPC/ClusterNative.h"
+#include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "TPCReconstruction/TPCCATracking.h"
 #include "TPCBase/Sector.h"
@@ -52,7 +53,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
     // the input comes in individual calls and we need to buffer until
     // data set is complete, have to think about a DPL feature to take
     // ownership of an input
-    std::array<std::vector<unsigned char>, NSectors> inputs;
+    std::array<std::vector<char>, NSectors> bufferedInputs;
     std::array<std::vector<MCLabelContainer>, NSectors> mcInputs;
     std::bitset<NSectors> validInputs = 0;
     std::bitset<NSectors> validMcInputs = 0;
@@ -128,12 +129,11 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       }
 
       auto& validInputs = processAttributes->validInputs;
-      auto& inputs = processAttributes->inputs;
       int operation = 0;
+      std::map<int, DataRef> datarefs;
       for (auto const& inputId : processAttributes->inputIds) {
         std::string inputLabel = "input" + std::to_string(inputId);
         auto ref = pc.inputs().get(inputLabel);
-        auto payploadSize = DataRefUtils::getPayloadSize(ref);
         auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(ref);
         if (sectorHeader == nullptr) {
           // FIXME: think about error policy
@@ -141,11 +141,15 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
           return;
         }
         const int& sector = sectorHeader->sector;
+        // check the current operation, this is used to either signal eod or noop
+        // FIXME: the noop is not needed any more once the lane configuration with one
+        // channel per sector is used
         if (sector < 0) {
           if (operation < 0 && operation != sector) {
             // we expect the same operation on all inputs
             LOG(ERROR) << "inconsistent lane operation, got " << sector << ", expecting " << operation;
           } else if (operation == 0) {
+            // store the operation
             operation = sector;
           }
           continue;
@@ -156,18 +160,9 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
           // multiple buffers need to be handled
           throw std::runtime_error("can only have one data set per sector");
         }
-        inputs[sector].resize(payploadSize);
-        std::copy(ref.payload, ref.payload + payploadSize, inputs[sector].begin());
-        validInputs.set(sector);
         activeSectors |= sectorHeader->activeSectors;
-        if (verbosity > 1) {
-          LOG(INFO) << "received " << *(ref.spec) << ", size " << inputs[sector].size() //
-                    << " for sector " << sector                                         //
-                    << std::endl                                                        //
-                    << "  input status:   " << validInputs                              //
-                    << std::endl                                                        //
-                    << "  active sectors: " << std::bitset<NSectors>(activeSectors);    //
-        }
+        validInputs.set(sector);
+        datarefs[sector] = ref;
       }
 
       if (operation == -1) {
@@ -182,15 +177,55 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
         processAttributes->readyToQuit = true;
         return;
       }
+      auto printInputLog = [&verbosity, &validInputs, &activeSectors](auto& r, const char* comment, auto& s) {
+        if (verbosity > 1) {
+          LOG(INFO) << comment << " " << *(r.spec) << ", size " << DataRefUtils::getPayloadSize(r) //
+                    << " for sector " << s                                                         //
+                    << std::endl                                                                   //
+                    << "  input status:   " << validInputs                                         //
+                    << std::endl                                                                   //
+                    << "  active sectors: " << std::bitset<NSectors>(activeSectors);               //
+        }
+      };
+      auto& bufferedInputs = processAttributes->bufferedInputs;
       if (activeSectors == 0 || (activeSectors & validInputs.to_ulong()) != activeSectors ||
           (processMC && (activeSectors & validMcInputs.to_ulong()) != activeSectors)) {
-        // not all sectors available
+        // not all sectors available, we have to buffer the inputs
+        for (auto const& refentry : datarefs) {
+          auto& sector = refentry.first;
+          auto& ref = refentry.second;
+          auto payploadSize = DataRefUtils::getPayloadSize(ref);
+          bufferedInputs[sector].resize(payploadSize);
+          std::copy(ref.payload, ref.payload + payploadSize, bufferedInputs[sector].begin());
+          printInputLog(ref, "buffering", sector);
+        }
+
         // not needed to send something, DPL will simply drop this timeslice, whenever the
         // data for all sectors is available, the output is sent in that time slice
         return;
       }
       assert(processMC == false || validMcInputs == validInputs);
+      std::array<gsl::span<const char>, NSectors> inputs;
+      auto inputStatus = validInputs;
+      for (auto const& refentry : datarefs) {
+        auto& sector = refentry.first;
+        auto& ref = refentry.second;
+        inputs[sector] = gsl::span(ref.payload, DataRefUtils::getPayloadSize(ref));
+        inputStatus.reset(sector);
+        printInputLog(ref, "received", sector);
+      }
+      if (inputStatus.any()) {
+        // some of the inputs have been buffered
+        for (size_t sector = 0; sector < inputStatus.size(); ++sector) {
+          if (inputStatus.test(sector)) {
+            inputs[sector] = gsl::span(&bufferedInputs[sector].front(), bufferedInputs[sector].size());
+          }
+        }
+      }
       if (verbosity > 0) {
+        if (inputStatus.any()) {
+          LOG(INFO) << "using buffered data for " << inputStatus.count() << " sector(s)";
+        }
         // make human readable information from the bitfield
         std::string bitInfo;
         auto nActiveBits = validInputs.count();
@@ -228,41 +263,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       }
       ClusterNativeAccessFullTPC clusterIndex;
       memset(&clusterIndex, 0, sizeof(clusterIndex));
-      for (size_t index = 0; index < NSectors; index++) {
-        if (!validInputs.test(index)) {
-          continue;
-        }
-        const auto& input = inputs[index];
-        auto mcIterator = mcInputs[index].begin();
-        parser->parse(&input.front(), input.size(),
-                      [](const typename ClusterGroupParser::HeaderType& h) {
-                        // check the header, but in this case there is no validity check
-                        return true;
-                      },
-                      [](const typename ClusterGroupParser::HeaderType& h) {
-                        // get the size of the frame including payload
-                        // and header and trailer size, e.g. payload size
-                        // from a header member
-                        return h.nClusters * sizeof(ClusterNative) + ClusterGroupParser::totalOffset;
-                      },
-                      [&](typename ClusterGroupParser::FrameInfo& frame) {
-                        int sector = frame.header->sector;
-                        int padrow = frame.header->globalPadRow;
-                        int nClusters = frame.header->nClusters;
-                        LOG(DEBUG) << "   sector " << std::setw(2) << std::setfill('0') << sector << "   padrow "
-                                   << std::setw(3) << std::setfill('0') << padrow << " clusters " << std::setw(3)
-                                   << std::setfill(' ') << nClusters;
-                        clusterIndex.clusters[sector][padrow] = reinterpret_cast<const ClusterNative*>(frame.payload);
-                        clusterIndex.nClusters[sector][padrow] = nClusters;
-                        assert(processMC == false || mcIterator != mcInputs[index].end());
-                        if (processMC && mcIterator != mcInputs[index].end()) {
-                          clusterIndex.clustersMCTruth[sector][padrow] = &(*mcIterator);
-                          ++mcIterator;
-                        }
-
-                        return true;
-                      });
-      }
+      ClusterNativeHelper::Reader::fillIndex(clusterIndex, inputs, mcInputs, [&validInputs](auto& index) { return validInputs.test(index); });
 
       std::vector<TrackTPC> tracks;
       MCLabelContainer tracksMCTruth;

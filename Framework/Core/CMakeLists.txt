@@ -21,6 +21,7 @@ endif()
 
 set(SRCS
     src/AODReaderHelpers.cxx
+    src/AnalysisHelpers.cxx
     src/BoostOptionsRetriever.cxx
     src/ConfigParamsHelper.cxx
     src/CompletionPolicy.cxx
@@ -79,6 +80,7 @@ set(SRCS
     src/PaletteHelpers.cxx
     src/CommonDataProcessors.cxx
     src/RCombinedDS.cxx
+    src/ReadoutAdapter.cxx
     ${GUI_SOURCES}
     test/TestClasses.cxx
     src/Variant.cxx
@@ -274,6 +276,7 @@ set(TEST_SRCS
       test/test_Variants.cxx
       test/test_WorkflowHelpers.cxx
       test/test_DeviceSpecHelpers.cxx
+      test/test_ParallelPipeline.cxx
    )
 
 set(BENCH_SRCS 

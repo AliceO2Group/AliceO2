@@ -33,75 +33,76 @@
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/Sector.h"
 
-namespace o2 {
-namespace TPC {
+namespace o2
+{
+namespace TPC
+{
 //   enum RocType {IROC=0, OROC=1};
 
 class ROC
 {
-  public:
-    enum
-    {
-        MaxROC = 72
-    };
+ public:
+  enum {
+    MaxROC = 72
+  };
 
-    /// default constructor
-    ROC() {}
+  /// default constructor
+  ROC() = default;
 
-    /// constructor
-    /// @param [in] roc readout chamber number
-    ROC(unsigned char roc) : mROC(roc % MaxROC) { ; }
+  /// constructor
+  /// @param [in] roc readout chamber number
+  ROC(unsigned char roc) : mROC(roc % MaxROC) { ; }
 
-    /// constructor from sector and ROC type
-    /// @param [in] sec sector
-    /// @param [in] type ROC type
-    ROC(const Sector &sec, const RocType type) : mROC(sec.getSector() + (type == RocType::OROC) * SECTORSPERSIDE) {}
+  /// constructor from sector and ROC type
+  /// @param [in] sec sector
+  /// @param [in] type ROC type
+  ROC(const Sector& sec, const RocType type) : mROC(sec.getSector() + (type == RocType::OROC) * 2 * SECTORSPERSIDE) {}
 
-    /// comparison operator
-    bool operator==(const ROC &other) { return mROC == other.mROC; }
+  /// comparison operator
+  bool operator==(const ROC& other) { return mROC == other.mROC; }
 
-    /// unequal operator
-    bool operator!=(const ROC &other) { return mROC != other.mROC; }
+  /// unequal operator
+  bool operator!=(const ROC& other) { return mROC != other.mROC; }
 
-    /// smaller operator
-    bool operator<(const ROC &other) { return mROC < other.mROC; }
+  /// smaller operator
+  bool operator<(const ROC& other) { return mROC < other.mROC; }
 
-    /// increment operator
-    /// This operator can be used to iterate over all ROCs e.g.
-    /// ROC r;
-    /// while (++r) { std::cout << "ROC: " << r.getRoc() << std::endl; }
-    bool operator++()
-    {
-      mLoop = ++mROC >= MaxROC;
-      mROC %= MaxROC;
-      return mLoop;
-    }
+  /// increment operator
+  /// This operator can be used to iterate over all ROCs e.g.
+  /// ROC r;
+  /// while (++r) { std::cout << "ROC: " << r.getRoc() << std::endl; }
+  bool operator++()
+  {
+    mLoop = ++mROC >= MaxROC;
+    mROC %= MaxROC;
+    return mLoop;
+  }
 
-    /// int return operator to use similar as integer
-    /// \return roc number
-    operator int() const { return int(mROC); }
+  /// int return operator to use similar as integer
+  /// \return roc number
+  operator int() const { return int(mROC); }
 
-    /// numerical ROC value
-    /// \return numerical ROC value
-    unsigned char getRoc() const { return mROC; }
+  /// numerical ROC value
+  /// \return numerical ROC value
+  unsigned char getRoc() const { return mROC; }
 
-    /// side of the ROC
-    /// \return side of the sector
-    Side side() const { return (mROC / SECTORSPERSIDE) % SIDES ? Side::C : Side::A; }
+  /// side of the ROC
+  /// \return side of the sector
+  Side side() const { return (mROC / SECTORSPERSIDE) % SIDES ? Side::C : Side::A; }
 
-    /// ROC type
-    /// \return ROC type
-    RocType rocType() const { return mROC < MaxROC / SIDES ? RocType::IROC : RocType::OROC; }
+  /// ROC type
+  /// \return ROC type
+  RocType rocType() const { return mROC < MaxROC / SIDES ? RocType::IROC : RocType::OROC; }
 
-    /// get sector
-    Sector getSector() const { return Sector(mROC); }
+  /// get sector
+  Sector getSector() const { return Sector(mROC); }
 
-    /// if increment operator went above MaxROC
-    bool looped() const { return mLoop; }
+  /// if increment operator went above MaxROC
+  bool looped() const { return mLoop; }
 
-  private:
-    unsigned char mROC{0};   ///< ROC representation 0-MaxROC-1
-    bool mLoop{false};       ///< if increment operator resulted in looping
+ private:
+  unsigned char mROC{ 0 }; ///< ROC representation 0-MaxROC-1
+  bool mLoop{ false };     ///< if increment operator resulted in looping
 };
 }
 }

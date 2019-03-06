@@ -287,7 +287,7 @@ V3Layer::V3Layer(Int_t lay, Bool_t turbo, Int_t debug)
   }
 }
 
-V3Layer::~V3Layer() {}
+V3Layer::~V3Layer() = default;
 
 void V3Layer::createLayer(TGeoVolume* motherVolume)
 {

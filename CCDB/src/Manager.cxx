@@ -1861,7 +1861,4 @@ StorageParameters::StorageParameters() : mType(), mURI()
   // constructor
 }
 
-StorageParameters::~StorageParameters()
-{
-  // destructor
-}
+StorageParameters::~StorageParameters() = default;

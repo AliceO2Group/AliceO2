@@ -44,9 +44,7 @@ Tracker::Tracker(o2::ITS::TrackerTraits* traits)
   mPrimaryVertexContext = mTraits->getPrimaryVertexContext();
 }
 
-Tracker::~Tracker()
-{
-}
+Tracker::~Tracker() = default;
 
 void Tracker::clustersToTracks(const ROframe& event, std::ostream& timeBenchmarkOutputStream)
 {

@@ -45,10 +45,46 @@ void TypedVectorAttach(const char* name, FairMQChannel& channel, FairMQParts& pa
 
 void O2MCApplicationBase::Stepping()
 {
+  mStepCounter++;
+  if (mCutParams.stepFiltering) {
+    // we can kill tracks here based on our
+    // custom detector specificities
+
+    float x, y, z;
+    fMC->TrackPosition(x, y, z);
+
+    if (z > mCutParams.ZmaxA) {
+      fMC->StopTrack();
+      return;
+    }
+    if (-z > mCutParams.ZmaxC) {
+      fMC->StopTrack();
+      return;
+    }
+  }
+
   // dispatch first to stepping function in FairRoot
   FairMCApplication::Stepping();
+}
 
-  // now the right place to put our specific step/filtering criteria:
+void O2MCApplicationBase::PreTrack()
+{
+  // dispatch first to function in FairRoot
+  FairMCApplication::PreTrack();
+}
+
+void O2MCApplicationBase::FinishEvent()
+{
+  // dispatch first to function in FairRoot
+  FairMCApplication::FinishEvent();
+  LOG(INFO) << "This event/chunk did " << mStepCounter << " steps";
+}
+
+void O2MCApplicationBase::BeginEvent()
+{
+  // dispatch first to function in FairRoot
+  FairMCApplication::BeginEvent();
+  mStepCounter = 0;
 }
 
 void O2MCApplication::initLate()

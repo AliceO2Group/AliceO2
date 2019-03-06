@@ -75,14 +75,14 @@ class DigitContainer
   void fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth, const Sector& sector, TimeBin eventTimeBin = 0, bool isContinuous = true, bool finalFlush = false);
 
  private:
-  TimeBin mFirstTimeBin;           ///< First time bin to consider
-  TimeBin mEffectiveTimeBin;       ///< Effective time bin of that digit
-  TimeBin mTmaxTriggered;          ///< Maximum time bin in case of triggered mode (hard cut at average drift speed with additional margin)
-  TimeBin mOffset;                 ///< Size of the container for one event
-  std::deque<DigitTime> mTimeBins; ///< Time bin Container for the ADC value
+  TimeBin mFirstTimeBin = 0;              ///< First time bin to consider
+  TimeBin mEffectiveTimeBin = 0;          ///< Effective time bin of that digit
+  TimeBin mTmaxTriggered = 0;             ///< Maximum time bin in case of triggered mode (hard cut at average drift speed with additional margin)
+  TimeBin mOffset = 600;                  ///< Size of the container for one event
+  std::deque<DigitTime> mTimeBins{ 600 }; ///< Time bin Container for the ADC value
 };
 
-inline DigitContainer::DigitContainer() : mFirstTimeBin(0), mEffectiveTimeBin(0), mTmaxTriggered(0), mOffset(600), mTimeBins(600)
+inline DigitContainer::DigitContainer()
 {
   const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
   mTmaxTriggered = detParam.getMaxTimeBinTriggered();

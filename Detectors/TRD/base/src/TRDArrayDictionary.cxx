@@ -35,13 +35,7 @@ TRDArrayDictionary::TRDArrayDictionary(int nrow, int ncol, int ntime)
 }
 
 //________________________________________________________________________________
-TRDArrayDictionary::TRDArrayDictionary(const TRDArrayDictionary& a)
-  : mNdet(a.mNdet), mNrow(a.mNrow), mNcol(a.mNcol), mNumberOfChannels(a.mNumberOfChannels), mNtime(a.mNtime), mNDdim(a.mNDdim), mFlag(a.mFlag), mDictionary(a.mDictionary)
-{
-  //
-  // TRDArrayDictionary copy constructor
-  //
-}
+TRDArrayDictionary::TRDArrayDictionary(const TRDArrayDictionary&) = default;
 
 //________________________________________________________________________________
 TRDArrayDictionary::~TRDArrayDictionary() = default;

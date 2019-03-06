@@ -24,71 +24,77 @@
 #ifndef AliceO2_TPC_PadPos_H
 #define AliceO2_TPC_PadPos_H
 
-namespace o2 {
-namespace TPC {
+namespace o2
+{
+namespace TPC
+{
 class PadPos
 {
-  public:
-    /// default constructor
-    PadPos() {}
+ public:
+  /// default constructor
+  PadPos() = default;
 
-    /// constructor
-    /// @param [in] row pad row
-    /// @param [in] pad pad in a row
-    PadPos(const unsigned char row, const unsigned char pad) : mRow(row), mPad(pad) {}
+  /// constructor
+  /// @param [in] row pad row
+  /// @param [in] pad pad in a row
+  PadPos(const unsigned char row, const unsigned char pad) : mRow(row), mPad(pad) {}
 
-    /// numeric row number
-    /// @return numeric row number
-    unsigned char getRow() const { return mRow; }
+  /// numeric row number
+  /// @return numeric row number
+  unsigned char getRow() const { return mRow; }
 
-    /// numeric pad number
-    /// @return numeric pad number
-    unsigned char getPad() const { return mPad; }
+  /// numeric pad number
+  /// @return numeric pad number
+  unsigned char getPad() const { return mPad; }
 
-    /// setter for row number
-    /// @param [in] row row number
-    void setRow(const unsigned char row) { mRow = row; }
+  /// setter for row number
+  /// @param [in] row row number
+  void setRow(const unsigned char row) { mRow = row; }
 
-    /// setter for pad number
-    /// @param [in] pad pad number
-    void setPad(const unsigned char pad) { mPad = pad; }
+  /// setter for pad number
+  /// @param [in] pad pad number
+  void setPad(const unsigned char pad) { mPad = pad; }
 
-    /// add row offset
-    /// @param [in] rowOffset row offset to add
-    void addRowOffset(const unsigned char rowOffset) { mRow += rowOffset; }
+  /// add row offset
+  /// @param [in] rowOffset row offset to add
+  void addRowOffset(const unsigned char rowOffset) { mRow += rowOffset; }
 
-    /// setter for row and pad number
-    /// @param [in] row row number
-    /// @param [in] pad pad number
-    void set(const unsigned char row, const unsigned char pad)
-    {
-      mRow = row;
-      mPad = pad;
+  /// setter for row and pad number
+  /// @param [in] row row number
+  /// @param [in] pad pad number
+  void set(const unsigned char row, const unsigned char pad)
+  {
+    mRow = row;
+    mPad = pad;
+  }
+
+  /// check if is valid
+  /// @return pad valid
+  bool isValid() const { return !(mRow == 255 && mPad == 255); }
+
+  /// equal operator
+  bool operator==(const PadPos& other) const { return (mRow == other.mRow) && (mPad == other.mPad); }
+
+  /// unequal operator
+  bool operator!=(const PadPos& other) const { return (mRow != other.mRow) || (mPad != other.mPad); }
+
+  /// smaller operator
+  bool operator<(const PadPos& other) const
+  {
+    if (mRow < other.mRow) {
+      return true;
     }
-
-    /// check if is valid
-    /// @return pad valid
-    bool isValid() const { return !(mRow == 255 && mPad == 255); }
-
-    /// equal operator
-    bool operator==(const PadPos &other) const { return (mRow == other.mRow) && (mPad == other.mPad); }
-
-    /// unequal operator
-    bool operator!=(const PadPos &other) const { return (mRow != other.mRow) || (mPad != other.mPad); }
-
-    /// smaller operator
-    bool operator<(const PadPos &other) const
-    {
-      if (mRow < other.mRow) { return true; }
-      if (mRow == other.mRow && mPad < other.mPad) { return true; }
-      return false;
+    if (mRow == other.mRow && mPad < other.mPad) {
+      return true;
     }
+    return false;
+  }
 
-  private:
-    unsigned char mRow{0};  ///< row number
-    unsigned char mPad{0};  ///< pad number in row
+ private:
+  unsigned char mRow{ 0 }; ///< row number
+  unsigned char mPad{ 0 }; ///< pad number in row
 };
-}
-}
+} // namespace TPC
+} // namespace o2
 
 #endif

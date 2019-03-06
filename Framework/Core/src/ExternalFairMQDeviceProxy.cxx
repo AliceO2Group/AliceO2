@@ -37,6 +37,10 @@ void broadcastMessage(FairMQDevice &device, o2::header::Stack &&headerStack, Fai
     if (strncmp(channel.data(), "from_", 5) != 0) {
       continue;
     }
+    /// FIXME: until we find a better way to avoid using fake input channels
+    if (strncmp(channel.data(), "from_internal-dpl-", 18) == 0) {
+      continue;
+    }
 
     // FIXME: this assumes there is only one output from here... This should
     //        really do the matchmaking between inputs and output channels.

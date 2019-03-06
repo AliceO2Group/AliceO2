@@ -42,6 +42,9 @@ class O2MCApplicationBase : public FairMCApplication
   ~O2MCApplicationBase() override = default;
 
   void Stepping() override;
+  void PreTrack() override;
+  void BeginEvent() override;
+  void FinishEvent() override;
 
   // specific implementation of our hard geometry limits
   double TrackingRmax() const override { return mCutParams.maxRTracking; }
@@ -49,6 +52,7 @@ class O2MCApplicationBase : public FairMCApplication
 
  protected:
   o2::conf::SimCutParams const& mCutParams; // reference to parameter system
+  unsigned long long mStepCounter{ 0 };
 
   ClassDefOverride(O2MCApplicationBase, 1)
 };
