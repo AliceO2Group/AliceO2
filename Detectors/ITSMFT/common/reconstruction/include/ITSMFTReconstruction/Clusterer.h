@@ -22,10 +22,13 @@
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTReconstruction/PixelReader.h"
 #include "ITSMFTReconstruction/PixelData.h"
 #include "ITSMFTReconstruction/LookUp.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "CommonDataFormat/EvIndex.h"
+#include "CommonDataFormat/InteractionRecord.h"
 #include "Rtypes.h"
 #include "TTree.h"
 
@@ -55,6 +58,9 @@ class Clusterer
   using Label = o2::MCCompLabel;
   using MCTruth = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
+  using EvIdx = o2::dataformats::EvIndex<int, int>;
+  using BCData = o2::InteractionRecord;
+
  public:
   Clusterer();
   ~Clusterer() = default;
@@ -63,7 +69,9 @@ class Clusterer
   Clusterer& operator=(const Clusterer&) = delete;
 
   void process(PixelReader& r, std::vector<Cluster>* fullClus,
-               std::vector<CompClusterExt>* compClus, MCTruth* labelsCl = nullptr);
+               std::vector<CompClusterExt>* compClus,
+               MCTruth* labelsCl = nullptr,
+               std::vector<o2::ITSMFT::ROFRecord>* vecROFRec = nullptr);
 
   // provide the common ITSMFT::GeometryTGeo to access matrices
   void setGeometry(const o2::ITSMFT::GeometryTGeo* gm) { mGeometry = gm; }
@@ -83,8 +91,7 @@ class Clusterer
   bool getWantFullClusters() const { return mWantFullClusters; }
   bool getWantCompactClusters() const { return mWantCompactClusters; }
 
-  UInt_t getCurrROF() const { return mCurrROF; }
-  UShort_t getCurrChipID() const { return mCurrChipID; }
+  UInt_t getCurrROF() const { return mROFRef.getROFrame(); }
 
   void print() const;
   void clear();
@@ -170,6 +177,7 @@ class Clusterer
 #ifdef _PERFORM_TIMING_
     mTimer.Stop();
 #endif
+
     mClusTree->Fill();
 #ifdef _PERFORM_TIMING_
     mTimer.Start(kFALSE);
@@ -209,9 +217,7 @@ class Clusterer
   int* mCurr; // pointer on the 1st row of currently processed mColumnsX
   int* mPrev; // pointer on the 1st row of previously processed mColumnsX
 
-  o2::InteractionRecord mCurrIR = { 0xffff, 0xffffffff };    // current IR
-  UInt_t mCurrROF = o2::ITSMFT::PixelData::DummyROF;         // current ROF // TODO should be eliminated
-  UShort_t mCurrChipID = o2::ITSMFT::PixelData::DummyChipID; // current chipID
+  o2::ITSMFT::ROFRecord mROFRef; // ROF reference
 
   // mPixels[].first is the index of the next pixel of the same precluster in the mPixels
   // mPixels[].second is the index of the referred pixel in the ChipPixelData (element of mChips)
@@ -224,7 +230,7 @@ class Clusterer
   bool mNoLeftColumn = true;                           ///< flag that there is no column on the left to check
   const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr; //! ITS OR MFT upgrade geometry
 
-  TTree* mClusTree = nullptr;                                      //! externally provided tree to write output (if needed)
+  TTree* mClusTree = nullptr;                                      //! externally provided tree to write clusters output (if needed)
   std::array<Label, Cluster::maxLabels> mLabelsBuff;               //! temporary buffer for building cluster labels
   std::array<PixelData, Cluster::kMaxPatternBits * 2> mPixArrBuff; //! temporary buffer for pattern calc.
 

@@ -110,6 +110,16 @@ void DigitPixelReader::openInput(const std::string inpName, o2::detectors::DetID
   }
   setROFRecords(mROFRecVecSelf);
 
+  if (!(mInputTreeMC2ROF = o2::utils::RootChain::load((detName + "DigitMC2ROF").c_str(), inpName))) {
+    LOG(FATAL) << "Failed to load MC2ROF records tree from " << inpName << FairLogger::endl;
+  }
+  mInputTreeMC2ROF->SetBranchAddress((detName + "DigitMC2ROF").c_str(), &mMC2ROFRecVecSelf);
+  if (!mMC2ROFRecVecSelf) {
+    LOG(FATAL) << "Failed to find " << (detName + "DigitMC2ROF").c_str() << " branch in the " << mInputTree->GetName()
+               << " from file " << inpName << FairLogger::endl;
+  }
+  setMC2ROFRecords(mMC2ROFRecVecSelf);
+
   mInputTree->SetBranchAddress((detName + "DigitMCTruth").data(), &mDigitsMCTruthSelf);
   setDigitsMCTruth(mDigitsMCTruthSelf);
 }
@@ -129,6 +139,9 @@ bool DigitPixelReader::readNextEntry()
     init();
     mInputTree->GetEntry(evID);
     mInputTreeROF->GetEntry(evID);
+    if (evID == 0) {
+      mInputTreeMC2ROF->GetEntry(0); // onle one entry is expected
+    }
     return true;
   } else {
     return false;

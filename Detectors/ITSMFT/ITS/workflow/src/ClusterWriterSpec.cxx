@@ -58,15 +58,27 @@ void ClusterWriter::run(ProcessingContext& pc)
             << rofs.size() << " RO frames and "
             << mc2rofs.size() << " MC events";
 
-  mFile->WriteObjectAny(&rofs, "std::vector<o2::ITSMFT::ROFRecord>", "ITSClusterROF");
-  mFile->WriteObjectAny(&mc2rofs, "std::vector<o2::ITSMFT::MC2ROFRecord>", "ITSClusterMC2ROF");
-
   TTree tree("o2sim", "Tree with ITS clusters");
   tree.Branch("ITSClusterComp", &compClusters);
   tree.Branch("ITSCluster", &clusters);
   tree.Branch("ITSClusterMCTruth", &plabels);
   tree.Fill();
   tree.Write();
+
+  // write ROFrecords vector to a tree
+  TTree treeROF("ITSClustersROF", "ROF records tree");
+  auto* rofsPtr = &rofs;
+  treeROF.Branch("ITSClustersROF", &rofsPtr);
+  treeROF.Fill();
+  treeROF.Write();
+
+  // write MC2ROFrecord vector (directly inherited from digits input) to a tree
+  TTree treeMC2ROF("ITSClustersMC2ROF", "MC -> ROF records tree");
+  auto* mc2rofsPtr = &mc2rofs;
+  treeMC2ROF.Branch("ITSClustersMC2ROF", &mc2rofsPtr);
+  treeMC2ROF.Fill();
+  treeMC2ROF.Write();
+
   mFile->Close();
 
   mState = 2;

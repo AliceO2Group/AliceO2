@@ -36,6 +36,16 @@ class DigitPixelReader : public PixelReader
   DigitPixelReader() = default;
   ~DigitPixelReader() override;
 
+  const std::vector<o2::ITSMFT::MC2ROFRecord>* getMC2ROFRecords() const
+  {
+    return mMC2ROFRecVec;
+  }
+
+  void setMC2ROFRecords(const std::vector<o2::ITSMFT::MC2ROFRecord>* a)
+  {
+    mMC2ROFRecVec = a;
+  }
+
   void setROFRecords(const std::vector<o2::ITSMFT::ROFRecord>* a)
   {
     mROFRecVec = a;
@@ -85,10 +95,12 @@ class DigitPixelReader : public PixelReader
   // fairroot the externally settable pointers must be const...
   std::vector<o2::ITSMFT::Digit>* mDigitsSelf = nullptr;
   std::vector<o2::ITSMFT::ROFRecord>* mROFRecVecSelf = nullptr;
+  std::vector<o2::ITSMFT::MC2ROFRecord>* mMC2ROFRecVecSelf = nullptr;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mDigitsMCTruthSelf = nullptr;
 
   const std::vector<o2::ITSMFT::Digit>* mDigits = nullptr;
   const std::vector<o2::ITSMFT::ROFRecord>* mROFRecVec = nullptr;
+  const std::vector<o2::ITSMFT::MC2ROFRecord>* mMC2ROFRecVec = nullptr;
 
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mDigitsMCTruth = nullptr;
   const Digit* mLastDigit = nullptr;
@@ -96,7 +108,8 @@ class DigitPixelReader : public PixelReader
   Int_t mIdROF = 0; // last ROFRecord slot read
 
   std::unique_ptr<TTree> mInputTree; // input tree for digits
-  std::unique_ptr<TTree> mInputTreeROF; // input tree for ROF references
+  std::unique_ptr<TTree> mInputTreeROF;    // input tree for ROF references
+  std::unique_ptr<TTree> mInputTreeMC2ROF; // input tree for MC2ROF references
 
   ClassDefOverride(DigitPixelReader, 1);
 };

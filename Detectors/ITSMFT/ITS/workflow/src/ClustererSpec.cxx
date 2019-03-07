@@ -87,6 +87,7 @@ void ClustererDPL::run(ProcessingContext& pc)
   o2::ITSMFT::DigitPixelReader reader;
   reader.setDigits(&digits);
   reader.setROFRecords(&rofs);
+  reader.setMC2ROFRecords(&mc2rofs);
   reader.setDigitsMCTruth(labels.get());
   reader.init();
 
@@ -96,7 +97,9 @@ void ClustererDPL::run(ProcessingContext& pc)
   std::vector<o2::ITSMFT::ROFRecord> clusterROframes;                  // To be filled in future
   std::vector<o2::ITSMFT::MC2ROFRecord>& clusterMC2ROframes = mc2rofs; // Simply, replicate it from digits ?
 
-  mClusterer->process(reader, &clusters, &compClusters, &clusterLabels);
+  mClusterer->process(reader, &clusters, &compClusters, &clusterLabels, &clusterROframes);
+  // TODO: in principle, after masking "overflow" pixels the MC2ROFRecord maxROF supposed to change, nominally to minROF
+  // -> consider recalculationg maxROF
 
   LOG(INFO) << "ITSClusterer pushed " << clusters.size() << " clusters, in "
             << clusterROframes.size() << " RO frames and "
