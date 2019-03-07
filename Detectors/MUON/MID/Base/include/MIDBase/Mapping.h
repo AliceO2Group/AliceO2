@@ -29,11 +29,6 @@ class Mapping
   Mapping();
   virtual ~Mapping() = default;
 
-  Mapping(const Mapping&) = delete;
-  Mapping& operator=(const Mapping&) = delete;
-  Mapping(Mapping&&) = delete;
-  Mapping& operator=(Mapping&&) = delete;
-
   /// Indexes required to define a strip in the detection element
   struct MpStripIndex {
     /// Check if Strip is Valid
@@ -56,6 +51,8 @@ class Mapping
   int getBoardId(int line, int column, int deId, bool warn = true) const;
   std::vector<MpStripIndex> getNeighbours(const Mapping::MpStripIndex& stripIndex, int cathode, int deId) const;
   bool isValid(int deId, int column, int cathode = 0, int line = 0, int strip = 0) const;
+
+  MpStripIndex nextStrip(const MpStripIndex& stripIndex, int cathode, int deId, bool descending = false) const;
 
  private:
   /// Structure of a column in a DE in the internal mapping
