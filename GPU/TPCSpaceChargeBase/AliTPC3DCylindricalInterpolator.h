@@ -1,17 +1,23 @@
-#ifndef AliTPC3DCylindricalInterpolator_H
-#define AliTPC3DCylindricalInterpolator_H
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
 
-/* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
-* See cxx source for full Copyright notice                               */
-
-/* $Id$ */
-
-/// \class AliTPC3DCylindricalInterpolator
+/// \file AliTPC3DCylindricalInterpolator.h
 /// \brief Interpolator for cylindrical coordinate
 ///        this class provides: cubic spline, quadratic and linear interpolation
 ///
 /// \author Rifki Sadikin <rifki.sadikin@cern.ch>, Indonesian Institute of Sciences
 /// \date Jan 5, 2016
+
+#ifndef AliTPC3DCylindricalInterpolator_H
+#define AliTPC3DCylindricalInterpolator_H
+
 
 #include <TMatrixD.h>
 
@@ -46,11 +52,11 @@ class AliTPC3DCylindricalInterpolator
   Int_t fNPhi;  ///< Grid size in direction of Phi
   Int_t fNZ;    ///< Grid size in direction of Z
 
-  Double_t* fValue;      //[fNR*fNPhi*fNZ] Description 3D for storing known values interpolation should be in size fNR*fNPhi*fNZ
-  Double_t* fRList;      //[fNR] coordinate in R (cm) (should be increasing)
-  Double_t* fPhiList;    //[fNPhi] coordinate in phiList (rad) (should be increasing) 0 <= < 2 pi (cyclic)
-  Double_t* fZList;      //[fNZ] coordinate in z list (cm) (should be increasing)
-  Double_t* fSecondDerZ; //[fNR*fNPhi*fNZ] store second derivative of cubic interpolation in z direction
+  Double_t* fValue = nullptr;      //[fNR*fNPhi*fNZ] Description 3D for storing known values interpolation should be in size fNR*fNPhi*fNZ
+  Double_t* fRList = nullptr;      //[fNR] coordinate in R (cm) (should be increasing)
+  Double_t* fPhiList = nullptr;    //[fNPhi] coordinate in phiList (rad) (should be increasing) 0 <= < 2 pi (cyclic)
+  Double_t* fZList = nullptr;      //[fNZ] coordinate in z list (cm) (should be increasing)
+  Double_t* fSecondDerZ = nullptr; //[fNR*fNPhi*fNZ] store second derivative of cubic interpolation in z direction
 
   Bool_t fIsAllocatingLookUp; ///< is allocating memory
   Bool_t fIsInitCubic;        ///< is cubic second derivative already been initialized

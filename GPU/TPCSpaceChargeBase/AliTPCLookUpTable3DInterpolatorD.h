@@ -1,15 +1,23 @@
-#ifndef AliTPCLookUpTable3DInterpolatorD_H
-#define AliTPCLookUpTable3DInterpolatorD_H
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
 
-/* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
-* See cxx source for full Copyright notice                               */
-
-/// \class AliTPCLookUpTable3DInterpolatorD
+/// \file AliTPCLookUpTable3DInterpolatorD.h
 /// \brief Wrap up look-up table for correction/distortion integral or derivative (electric field)
 ///        assume 3 components: r-component, phi-component and z-component
 ///
 /// \author Rifki Sadikin <rifki.sadikin@cern.ch>, Indonesian Institute of Sciences
 /// \date Mar 4, 2015
+
+#ifndef AliTPCLookUpTable3DInterpolatorD_H
+#define AliTPCLookUpTable3DInterpolatorD_H
+
 
 #include "TMatrixD.h"
 #include "AliTPC3DCylindricalInterpolator.h"
@@ -58,17 +66,17 @@ class AliTPCLookUpTable3DInterpolatorD
   Int_t fNPhi;  ///< number of grid in Phi
   Int_t fNZ;    ///< number of grid in Z
 
-  TMatrixD** fLookUpR;   ///< Array to store distortion following the drift
-  TMatrixD** fLookUpPhi; ///< Array to store distortion following the drift
-  TMatrixD** fLookUpZ;   ///< Array to store distortion following the drift
+  TMatrixD** fLookUpR = nullptr;   ///< Array to store distortion following the drift
+  TMatrixD** fLookUpPhi = nullptr; ///< Array to store distortion following the drift
+  TMatrixD** fLookUpZ = nullptr;   ///< Array to store distortion following the drift
 
-  AliTPC3DCylindricalInterpolator* fInterpolatorR;   ///->Interpolator for R component
-  AliTPC3DCylindricalInterpolator* fInterpolatorPhi; ///->Interpolator for Phi component
-  AliTPC3DCylindricalInterpolator* fInterpolatorZ;   ///-> Interpolator for Z component
+  AliTPC3DCylindricalInterpolator* fInterpolatorR = nullptr;   ///->Interpolator for R component
+  AliTPC3DCylindricalInterpolator* fInterpolatorPhi = nullptr; ///->Interpolator for Phi component
+  AliTPC3DCylindricalInterpolator* fInterpolatorZ = nullptr;   ///-> Interpolator for Z component
 
-  Double_t* fRList;   //[fNR] List of R coordinate (regular grid)
-  Double_t* fPhiList; //[fNPhi] List of Phi coordinate (regular grid)
-  Double_t* fZList;   //[fNZ] List of Z coordinate (regular grid)
+  Double_t* fRList = nullptr;   //[fNR] List of R coordinate (regular grid)
+  Double_t* fPhiList = nullptr; //[fNPhi] List of Phi coordinate (regular grid)
+  Double_t* fZList = nullptr;   //[fNZ] List of Z coordinate (regular grid)
 
   Bool_t fIsAllocatingLookUp; ///< flag for initialization of cubic spline
 

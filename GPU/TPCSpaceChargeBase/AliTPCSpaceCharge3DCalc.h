@@ -1,17 +1,23 @@
-#ifndef ALI_TPC_SPACECHARGE3D_CALC_H
-#define ALI_TPC_SPACECHARGE3D_CALC_H
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
 
-/* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
-* See cxx source for full Copyright notice                               */
-
-/* $Id$ */
-
-/// \class AliTPCSpaceCharge3DCalc
+/// \file AliTPCSpaceCharge3DCalc.h
 /// \brief This class provides distortion and correction map calculation with integration following electron drift
 /// TODO: validate distortion z by comparing with exisiting classes
 ///
 /// \author Rifki Sadikin <rifki.sadikin@cern.ch>, Indonesian Institute of Sciences
 /// \date Nov 20, 2017
+
+#ifndef ALI_TPC_SPACECHARGE3D_CALC_H
+#define ALI_TPC_SPACECHARGE3D_CALC_H
+
 
 #include "TF1.h"
 #include "TH3F.h"
@@ -122,7 +128,7 @@ class AliTPCSpaceCharge3DCalc
 
   void SetPoissonSolver(AliTPCPoissonSolver* poissonSolver)
   {
-    if (fPoissonSolver != NULL) {
+    if (fPoissonSolver != nullptr) {
       delete fPoissonSolver;
     }
     fPoissonSolver = poissonSolver;
@@ -238,14 +244,14 @@ class AliTPCSpaceCharge3DCalc
  private:
   static const Int_t kNMaxPhi = 360;
   Profile myProfile;
-  Int_t fNRRows;             ///< the maximum on row-slices so far ~ 2cm slicing
-  Int_t fNPhiSlices;         ///< the maximum of phi-slices so far = (8 per sector)
-  Int_t fNZColumns;          ///< the maximum on column-slices so  ~ 2cm slicing
-  Float_t fC0;               ///< coefficient C0 (compare Jim Thomas's notes for definitions)
-  Float_t fC1;               ///< coefficient C1 (compare Jim Thomas's notes for definitions)
-  Float_t fCorrectionFactor; ///< Space Charge Correction factor in comparison to initialized
+  Int_t fNRRows = 129;             ///< the maximum on row-slices so far ~ 2cm slicing
+  Int_t fNPhiSlices = 180;         ///< the maximum of phi-slices so far = (8 per sector)
+  Int_t fNZColumns = 129;          ///< the maximum on column-slices so  ~ 2cm slicing
+  Float_t fC0 = 0.f;               ///< coefficient C0 (compare Jim Thomas's notes for definitions)
+  Float_t fC1 = 0.f;               ///< coefficient C1 (compare Jim Thomas's notes for definitions)
+  Float_t fCorrectionFactor = 1.f; ///< Space Charge Correction factor in comparison to initialized
 
-  Bool_t fInitLookUp;                ///< flag to check if the Look Up table was created
+  Bool_t fInitLookUp = kFALSE;                ///< flag to check if the Look Up table was created
   Double_t* fListR;                  //[fNRRows] list of r-coordinate of grids
   Double_t* fListPhi;                //[fNPhiSlices] list of \f$ \phi\f$ -coordinate of grids
   Double_t* fListZ;                  //[fNZColumns]
@@ -254,11 +260,11 @@ class AliTPCSpaceCharge3DCalc
   Double_t* fListPotentialBoundaryA; //[fNRRows + fNNColumns] * 2 * fNPhiSlices
   Double_t* fListPotentialBoundaryC; //[fNRRows + fNNColumns] * 2 * fNPhiSlices
 
-  Int_t fCorrectionType;      ///> use regular or irregular grid method
-  Int_t fInterpolationOrder;  ///>  Order of interpolation (1-> tri linear, 2->Lagrange interpolation order 2, 3> cubic spline)
-  Int_t fIrregularGridSize;   ///>  Size of irregular grid cubes for interpolation (min 3)
-  Int_t fRBFKernelType;       ///>  RBF kernel type
-  Int_t fIntegrationStrategy; ///> Strategy for integration
+  Int_t fCorrectionType = 1;      ///> use regular or irregular grid method
+  Int_t fInterpolationOrder = 5;  ///>  Order of interpolation (1-> tri linear, 2->Lagrange interpolation order 2, 3> cubic spline)
+  Int_t fIrregularGridSize = 3;   ///>  Size of irregular grid cubes for interpolation (min 3)
+  Int_t fRBFKernelType = 0;       ///>  RBF kernel type
+  Int_t fIntegrationStrategy = 0; ///> Strategy for integration
 
   TMatrixD* fMatrixIntDistDrEzA[kNMaxPhi];    //[kNMaxPhi] Matrices for storing Global distortion  \f$ R \f$ direction for Side A
   TMatrixD* fMatrixIntDistDPhiREzA[kNMaxPhi]; //[kNMaxPhi] Matrices for storing Global \f$ \phi R \f$ Distortion for Side A

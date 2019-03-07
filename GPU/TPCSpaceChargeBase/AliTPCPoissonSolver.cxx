@@ -1,19 +1,14 @@
-/**************************************************************************
-* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
-*                                                                        *
-* Author: The ALICE Off-line Project.                                    *
-* Contributors are mentioned in the code where appropriate.              *
-*                                                                        *
-* Permission to use, copy, modify and distribute this software and its   *
-* documentation strictly for non-commercial purposes is hereby granted   *
-* without fee, provided that the above copyright notice appears in all   *
-* copies and that both the copyright notice and this permission notice   *
-* appear in the supporting documentation. The authors make no claims     *
-* about the suitability of this software for any purpose. It is          *
-* provided "as is" without express or implied warranty.                  *
-**************************************************************************/
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
 
-/// \class AliTPCPoissonSolver
+/// \file AliTPCPoissonSolver.cxx
 /// \brief This class provides implementation of Poisson Eq
 /// solver by MultiGrid Method
 ///
@@ -46,16 +41,12 @@ Double_t AliTPCPoissonSolver::fgConvergenceError = 1e-3;
 ///
 AliTPCPoissonSolver::AliTPCPoissonSolver()
   : TNamed("poisson solver", "solver"),
-    fStrategy(kRelaxation),
-    fExactSolution(nullptr)
-{
+  fErrorConvergenceNorm2{new TVectorD(fMgParameters.nMGCycle)},
+  fErrorConvergenceNormInf{new TVectorD(fMgParameters.nMGCycle)},
+  fError{new TVectorD(fMgParameters.nMGCycle)}
 
+{
   // default strategy
-  fStrategy = kMultiGrid;
-  fExactPresent = kFALSE;
-  fErrorConvergenceNorm2 = new TVectorD(fMgParameters.nMGCycle);
-  fErrorConvergenceNormInf = new TVectorD(fMgParameters.nMGCycle);
-  fError = new TVectorD(fMgParameters.nMGCycle);
 }
 
 /// Constructor
@@ -63,12 +54,10 @@ AliTPCPoissonSolver::AliTPCPoissonSolver()
 /// \param title title of the object
 AliTPCPoissonSolver::AliTPCPoissonSolver(const char* name, const char* title)
   : TNamed(name, title),
-    fExactSolution(nullptr)
+  fErrorConvergenceNorm2{new TVectorD(fMgParameters.nMGCycle)},
+  fErrorConvergenceNormInf{new TVectorD(fMgParameters.nMGCycle)},
+  fError{new TVectorD(fMgParameters.nMGCycle)}
 {
-  fExactPresent = kFALSE;
-  fErrorConvergenceNorm2 = new TVectorD(fMgParameters.nMGCycle);
-  fErrorConvergenceNormInf = new TVectorD(fMgParameters.nMGCycle);
-  fError = new TVectorD(fMgParameters.nMGCycle);
   /// constructor
 }
 
@@ -2200,10 +2189,10 @@ void AliTPCPoissonSolver::VCycle2D(const Int_t nRRow, const Int_t nZColumn, cons
   iOne = 1 << (gridFrom - 1);
   jOne = 1 << (gridFrom - 1);
 
-  matricesCurrentV = NULL;
-  matricesCurrentVC = NULL;
-  matricesCurrentCharge = NULL;
-  residue = NULL;
+  matricesCurrentV = nullptr;
+  matricesCurrentVC = nullptr;
+  matricesCurrentCharge = nullptr;
+  residue = nullptr;
 
   tnRRow = iOne == 1 ? nRRow : nRRow / iOne + 1;
   tnZColumn = jOne == 1 ? nZColumn : nZColumn / jOne + 1;
@@ -2483,10 +2472,10 @@ void AliTPCPoissonSolver::VCycle3D2D(const Int_t nRRow, const Int_t nZColumn, co
   TMatrixD** residue;
   Int_t iOne, jOne, tnRRow, tnZColumn, count;
 
-  matricesCurrentV = NULL;
-  matricesCurrentVC = NULL;
-  matricesCurrentCharge = NULL;
-  residue = NULL;
+  matricesCurrentV = nullptr;
+  matricesCurrentVC = nullptr;
+  matricesCurrentCharge = nullptr;
+  residue = nullptr;
 
   iOne = 1 << (gridFrom - 1);
   jOne = 1 << (gridFrom - 1);
@@ -2653,10 +2642,10 @@ void AliTPCPoissonSolver::VCycle3D(const Int_t nRRow, const Int_t nZColumn, cons
   TMatrixD** residue;
   Int_t iOne, jOne, kOne, tnRRow, tnZColumn, tPhiSlice, otPhiSlice, count, nnPhi;
 
-  matricesCurrentV = NULL;
-  matricesCurrentVC = NULL;
-  matricesCurrentCharge = NULL;
-  residue = NULL;
+  matricesCurrentV = nullptr;
+  matricesCurrentVC = nullptr;
+  matricesCurrentCharge = nullptr;
+  residue = nullptr;
 
   iOne = 1 << (gridFrom - 1);
   jOne = 1 << (gridFrom - 1);
@@ -2917,10 +2906,10 @@ void AliTPCPoissonSolver::VCycle3D2DGPU(
   TMatrixD** residue;
   Int_t iOne, jOne, tnRRow, tnZColumn, count;
 
-  matricesCurrentV = NULL;
-  matricesCurrentVC = NULL;
-  matricesCurrentCharge = NULL;
-  residue = NULL;
+  matricesCurrentV = nullptr;
+  matricesCurrentVC = nullptr;
+  matricesCurrentCharge = nullptr;
+  residue = nullptr;
 
   iOne = 1 << (gridFrom - 1);
   jOne = 1 << (gridFrom - 1);

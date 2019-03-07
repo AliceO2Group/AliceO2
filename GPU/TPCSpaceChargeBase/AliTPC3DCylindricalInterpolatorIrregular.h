@@ -1,17 +1,23 @@
-#ifndef AliTPC3DCylindricalInterpolatorIrregular_H
-#define AliTPC3DCylindricalInterpolatorIrregular_H
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
 
-/* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
-* See cxx source for full Copyright notice                               */
-
-/* $Id$ */
-
-/// \class AliTPC3DInterpolatorIrregular
+/// \file AliTPC3DInterpolatorIrregular.h
 /// \brief Irregular grid interpolator for cylindrical coordinate with r,phi,z different coordinates
 ///        RBF-based interpolation
 ///
 /// \author Rifki Sadikin <rifki.sadikin@cern.ch>, Indonesian Institute of Sciences
 /// \date Jan 5, 2016
+
+#ifndef AliTPC3DCylindricalInterpolatorIrregular_H
+#define AliTPC3DCylindricalInterpolatorIrregular_H
+
 
 #include "TMatrixD.h"
 
@@ -85,14 +91,14 @@ class AliTPC3DCylindricalInterpolatorIrregular
   Int_t fStepR;             ///< step in R direction for irregular grid
   Int_t fStepZ;             ///< step in Z direction for irregular grid
   Int_t fStepPhi;           ///< step in Phi direction for irregular grid
-  Int_t* fRBFWeightLookUp;  ///[numofpoints] weighted look up
+  Int_t* fRBFWeightLookUp = nullptr;  ///[numofpoints] weighted look up
 
   Double_t fRadiusRBF0;       ///< Radius RBF0
-  Double_t* fValue;           ///< 3D for storing known values interpolation should be in size fNR*fNPhi*fNZ
-  Double_t* fRList;           ///< coordinate in R (cm) (should be increasing) in 3D
-  Double_t* fPhiList;         ///< coordinate in phiList (rad) (should be increasing) 0 <= < 2 pi (cyclic) in 3D
-  Double_t* fZList;           ///< coordinate in z list (cm) (should be increasing) in 3D
-  Double_t* fRBFWeight;       ///< weight for RBF
+  Double_t* fValue = nullptr;           ///< 3D for storing known values interpolation should be in size fNR*fNPhi*fNZ
+  Double_t* fRList = nullptr;           ///< coordinate in R (cm) (should be increasing) in 3D
+  Double_t* fPhiList = nullptr;         ///< coordinate in phiList (rad) (should be increasing) 0 <= < 2 pi (cyclic) in 3D
+  Double_t* fZList = nullptr;           ///< coordinate in z list (cm) (should be increasing) in 3D
+  Double_t* fRBFWeight = nullptr;       ///< weight for RBF
   Bool_t fIsAllocatingLookUp; ///< is allocating memory?
 
   Double_t Interpolate3DTableCylIDW(Double_t r, Double_t z, Double_t phi, Int_t rIndex, Int_t zIndex, Int_t phiIndex,
@@ -125,8 +131,8 @@ class AliTPC3DCylindricalInterpolatorIrregular
                         Double_t radius0, Int_t kernelType, Double_t* weight);
   Double_t GetRadius0RBF(const Int_t rIndex, const Int_t phiIndex, const Int_t zIndex);
 
-  KDTreeNode* fKDTreeIrregularPoints; // to save tree as list
-  KDTreeNode* fKDTreeIrregularRoot;   // kdtree root
+  KDTreeNode* fKDTreeIrregularPoints = nullptr; // to save tree as list
+  KDTreeNode* fKDTreeIrregularRoot = nullptr;   // kdtree root
 
   void InitKDTree();
   KDTreeNode* MakeKDTree(KDTreeNode* tree, Int_t count, Int_t index, Int_t dimention);

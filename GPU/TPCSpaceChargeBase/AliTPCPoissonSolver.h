@@ -1,10 +1,14 @@
-#ifndef ALITPCPOISSONSOLVER_H
-#define ALITPCPOISSONSOLVER_H
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
 
-/* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
-* See cxx source for full Copyright notice                               */
-
-/// \class AliTPCPoissonSolver
+/// \file AliTPCPoissonSolver.h
 /// \brief This class provides implementation of Poisson Eq
 /// solver by MultiGrid Method
 ///
@@ -12,6 +16,11 @@
 ///
 /// \author Rifki Sadikin <rifki.sadikin@cern.ch>, Indonesian Institute of Sciences
 /// \date Nov 20, 2017
+
+#ifndef ALITPCPOISSONSOLVER_H
+#define ALITPCPOISSONSOLVER_H
+
+
 #include <TNamed.h>
 #include "TMatrixD.h"
 #include "TVectorD.h"
@@ -80,7 +89,7 @@ class AliTPCPoissonSolver : public TNamed
 
   AliTPCPoissonSolver();
   AliTPCPoissonSolver(const char* name, const char* title);
-  virtual ~AliTPCPoissonSolver();
+  ~AliTPCPoissonSolver() override;
 
   void PoissonSolver2D(TMatrixD& matrixV, TMatrixD& chargeDensity, Int_t nRRow, Int_t nZColumn, Int_t maxIterations);
   void PoissonSolver3D(TMatrixD** matricesV, TMatrixD** matricesChargeDensities, Int_t nRRow, Int_t nZColumn,
@@ -110,8 +119,9 @@ class AliTPCPoissonSolver : public TNamed
  private:
   AliTPCPoissonSolver(const AliTPCPoissonSolver&);            // not implemented
   AliTPCPoissonSolver& operator=(const AliTPCPoissonSolver&); // not implemented
-  StrategyType fStrategy;                                     ///< strategy used default multiGrid
-  TMatrixD** fExactSolution;                                  ///< Pointer to exact solution
+  StrategyType fStrategy = kMultiGrid;                                     ///< strategy used default multiGrid
+  TMatrixD** fExactSolution = nullptr;                                  ///< Pointer to exact solution
+  /// TODO: remove pointers?
   TVectorD* fErrorConvergenceNorm2;                           ///< for storing convergence error  norm2
   TVectorD* fErrorConvergenceNormInf;                         ///< for storing convergence error normInf
   TVectorD* fError;                                           ///< for storing error
@@ -194,7 +204,7 @@ class AliTPCPoissonSolver : public TNamed
   Double_t GetExactError(TMatrixD** currentMatricesV, TMatrixD** tempArrayV, const Int_t phiSlice);
   Double_t GetConvergenceError(TMatrixD** currentMatricesV, TMatrixD** prevArrayV, const Int_t phiSlice);
   Double_t fMaxExact;
-  Bool_t fExactPresent;
+  Bool_t fExactPresent = kFALSE;
   /// \cond CLASSIMP
   ClassDef(AliTPCPoissonSolver, 5);
   /// \endcond

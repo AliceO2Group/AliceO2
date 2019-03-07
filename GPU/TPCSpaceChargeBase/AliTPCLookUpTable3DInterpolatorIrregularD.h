@@ -1,14 +1,22 @@
-#ifndef AliTPCLookUpTable3DInterpolatorIrregularD_H
-#define AliTPCLookUpTable3DInterpolatorIrregularD_H
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
 
-/* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
-* See cxx source for full Copyright notice                               */
-
-/// \class AliTPCLookUpTable3DInterpolatorIrregularD
+/// \file AliTPCLookUpTable3DInterpolatorIrregularD.h
 /// \brief Wrap up look-up table with irregular grid
 ///
 /// \author Rifki Sadikin <rifki.sadikin@cern.ch>, Indonesian Institute of Sciences
 /// \date Mar 4, 2015
+
+#ifndef AliTPCLookUpTable3DInterpolatorIrregularD_H
+#define AliTPCLookUpTable3DInterpolatorIrregularD_H
+
 
 #include "TMatrixD.h"
 #include "AliTPC3DCylindricalInterpolatorIrregular.h"
@@ -73,17 +81,17 @@ class AliTPCLookUpTable3DInterpolatorIrregularD
   Int_t fNPhi;              ///< Number of grid in Phi
   Int_t fNZ;                ///< Number of grid in Z
 
-  TMatrixD** fMatricesRValue;   ///< Matrices to store r-component
-  TMatrixD** fMatricesPhiValue; ///< Matrices to store phi-component
-  TMatrixD** fMatricesZValue;   ///< Matrices to store z-component
+  TMatrixD** fMatricesRValue = nullptr;   ///< Matrices to store r-component
+  TMatrixD** fMatricesPhiValue = nullptr; ///< Matrices to store phi-component
+  TMatrixD** fMatricesZValue = nullptr;   ///< Matrices to store z-component
 
-  AliTPC3DCylindricalInterpolatorIrregular* fInterpolatorR;   ///-> Irregular interpolator for R-component
-  AliTPC3DCylindricalInterpolatorIrregular* fInterpolatorPhi; ///-> Irregular interpolator for Phi-component
-  AliTPC3DCylindricalInterpolatorIrregular* fInterpolatorZ;   ///-> Irregular interpolator for Z-component
+  AliTPC3DCylindricalInterpolatorIrregular* fInterpolatorR = nullptr;   ///-> Irregular interpolator for R-component
+  AliTPC3DCylindricalInterpolatorIrregular* fInterpolatorPhi = nullptr; ///-> Irregular interpolator for Phi-component
+  AliTPC3DCylindricalInterpolatorIrregular* fInterpolatorZ = nullptr;   ///-> Irregular interpolator for Z-component
 
-  TMatrixD** fMatricesRPoint;   ///< Matrices to store distorted point (r component)
-  TMatrixD** fMatricesPhiPoint; ///< Matrices to store distorted point (phi component)
-  TMatrixD** fMatricesZPoint;   ///< Matrices to store distorted point (z component)
+  TMatrixD** fMatricesRPoint = nullptr;   ///< Matrices to store distorted point (r component)
+  TMatrixD** fMatricesPhiPoint = nullptr; ///< Matrices to store distorted point (phi component)
+  TMatrixD** fMatricesZPoint = nullptr;   ///< Matrices to store distorted point (z component)
 
   Bool_t fIsAllocatingLookUp;
 

@@ -1,19 +1,14 @@
-/**************************************************************************
-* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
-*                                                                        *
-* Author: The ALICE Off-line Project.                                    *
-* Contributors are mentioned in the code where appropriate.              *
-*                                                                        *
-* Permission to use, copy, modify and distribute this software and its   *
-* documentation strictly for non-commercial purposes is hereby granted   *
-* without fee, provided that the above copyright notice appears in all   *
-* copies and that both the copyright notice and this permission notice   *
-* appear in the supporting documentation. The authors make no claims     *
-* about the suitability of this software for any purpose. It is          *
-* provided "as is" without express or implied warranty.                  *
-**************************************************************************/
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
 
-/// \class AliTPCLookUpTable3DInterpolatorD
+/// \file AliTPCLookUpTable3DInterpolatorD.cxx
 /// \brief Wrap up look-up table for correction/distortion integral or derivative (electric field)
 ///        assume 3 components: r-component, phi-component and z-component
 ///
@@ -28,12 +23,6 @@ ClassImp(AliTPCLookUpTable3DInterpolatorD)
 
   /// constructor
   AliTPCLookUpTable3DInterpolatorD::AliTPCLookUpTable3DInterpolatorD()
-  : fLookUpR(nullptr),
-    fLookUpPhi(nullptr),
-    fLookUpZ(nullptr),
-    fInterpolatorR(nullptr),
-    fInterpolatorPhi(nullptr),
-    fInterpolatorZ(nullptr)
 {
   fOrder = 1;
   fIsAllocatingLookUp = kFALSE;
