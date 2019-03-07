@@ -48,6 +48,12 @@ class ROFRecord
   ROFtype getROFrame() const { return mROFrame; }
   int getNROFEntries() const { return mNROFEntries; }
 
+  void clear()
+  {
+    mROFEntry.clear();
+    mNROFEntries = 0;
+    mBCData.clear();
+  }
   void print() const;
 
  private:

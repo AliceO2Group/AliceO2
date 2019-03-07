@@ -16,8 +16,6 @@
 #ifndef ALICEO2_MFT_CLUSTERERTASK_H_
 #define ALICEO2_MFT_CLUSTERERTASK_H_
 
-#include "FairTask.h"
-
 #include "MFTBase/GeometryTGeo.h"
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
 #include "ITSMFTReconstruction/PixelReader.h"
@@ -26,16 +24,24 @@
 #include "ITSMFTReconstruction/Clusterer.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include <memory>
 
 namespace o2
 {
+class MCCompLabel;
+namespace dataformats
+{
+template <typename T>
+class MCTruthContainer;
+}
+
 namespace MFT
 {
-class EventHeader;
-class ClustererTask : public FairTask
+
+class ClustererTask
 {
   using Clusterer = o2::ITSMFT::Clusterer;
   using Cluster = o2::ITSMFT::Cluster;
@@ -45,16 +51,16 @@ class ClustererTask : public FairTask
 
  public:
   ClustererTask(bool useMC = true, bool raw = false);
-  ~ClustererTask() override;
+  ~ClustererTask();
 
-  InitStatus Init() override;
-  void Exec(Option_t* option) override;
+  void Init();
   Clusterer& getClusterer() { return mClusterer; }
   void run(const std::string inpName, const std::string outName, bool entryPerROF = true);
   void setSelfManagedMode(bool v) { mSelfManagedMode = v; }
   bool isSelfManagedMode() const { return mSelfManagedMode; }
-  void attachFairManagerIO();
   o2::ITSMFT::PixelReader* getReader() const { return (o2::ITSMFT::PixelReader*)mReader; }
+
+  void loadDictionary(std::string fileName) { mClusterer.loadDictionary(fileName); }
 
  private:
   bool mSelfManagedMode = false;                                                      ///< manages itself input output
@@ -73,10 +79,13 @@ class ClustererTask : public FairTask
   std::vector<CompClusterExt> mCompClus;               //!< vector of compact clusters
   std::vector<CompClusterExt>* mCompClusPtr = nullptr; //!< vector of compact clusters pointer
 
+  std::vector<o2::ITSMFT::ROFRecord> mROFRecVec;               //!< vector of ROFRecord references
+  std::vector<o2::ITSMFT::ROFRecord>* mROFRecVecPtr = nullptr; //!< vector of ROFRecord references pointer
+
   MCTruth mClsLabels;                                        //! MC labels
   MCTruth* mClsLabelsPtr = nullptr;                          //! MC labels pointer (optional)
 
-  ClassDefOverride(ClustererTask, 1);
+  ClassDefNV(ClustererTask, 1);
 };
 }
 }

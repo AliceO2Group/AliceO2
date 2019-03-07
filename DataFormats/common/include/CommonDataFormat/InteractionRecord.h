@@ -38,6 +38,12 @@ struct InteractionRecord {
   {
   }
 
+  void clear()
+  {
+    bc = 0xffff;
+    orbit = 0xffffffff;
+  }
+
   bool isDummy() const
   {
     return bc > o2::constants::lhc::LHCMaxBunches;
@@ -94,6 +100,12 @@ struct InteractionTimeRecord : public InteractionRecord {
   {
     timeNS = ns;
     InteractionRecord::setFromNS(ns);
+  }
+
+  void clear()
+  {
+    InteractionRecord::clear();
+    timeNS = 0.;
   }
 
   void print() const;
