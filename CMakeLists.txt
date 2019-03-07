@@ -74,6 +74,10 @@ MARK_AS_ADVANCED(
     CMAKE_Fortran_FLAGS_COVERAGE
     CMAKE_LINK_FLAGS_COVERAGE)
 
+# filter out optimization flags from the global build flags, this is a feature of the build system
+# the flags will be set by cmake according to corresponding build type flags
+string(REGEX REPLACE "[-]O[0-9]" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+string(REGEX REPLACE "[-]O[0-9]" "" CMAKE_C_FLAGS ${CMAKE_C_FLAGS})
 
 #Check the compiler and set the compile and link flags
 IF (NOT CMAKE_BUILD_TYPE)
