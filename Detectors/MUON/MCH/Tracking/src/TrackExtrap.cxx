@@ -372,8 +372,8 @@ bool TrackExtrap::extrapToZRungekutta(TrackParam* trackParam, double zEnd)
   // sign of charge (sign of fInverseBendingMomentum if forward motion)
   // must be changed if backward extrapolation
   double chargeExtrap = forwardBackward * TMath::Sign(double(1.0), trackParam->getInverseBendingMomentum());
-  double v3[7], v3New[7];
-  double dZ, step;
+  double v3[7] = { 0. }, v3New[7] = { 0. };
+  double dZ(0.), step(0.);
   int stepNumber = 0;
 
   // Extrapolation loop (until within tolerance or the track turn around)
@@ -470,21 +470,21 @@ bool TrackExtrap::extrapOneStepRungekutta(double charge, double step, const doub
   ///  ******************************************************************
   /// </pre>
 
-  double h2, h4, f[4];
+  double h2(0.), h4(0.), f[4] = { 0. };
   double xyzt[3] = { FLT_MAX, FLT_MAX, FLT_MAX };
-  double a, b, c, ph, ph2;
-  double secxs[4], secys[4], seczs[4], hxp[3];
-  double g1, g2, g3, g4, g5, g6, ang2, dxt, dyt, dzt;
-  double est, at, bt, ct, cba;
-  double f1, f2, f3, f4, rho, tet, hnorm, hp, rho1, sint, cost;
+  double a(0.), b(0.), c(0.), ph(0.), ph2(0.);
+  double secxs[4] = { 0. }, secys[4] = { 0. }, seczs[4] = { 0. }, hxp[3] = { 0. };
+  double g1(0.), g2(0.), g3(0.), g4(0.), g5(0.), g6(0.), ang2(0.), dxt(0.), dyt(0.), dzt(0.);
+  double est(0.), at(0.), bt(0.), ct(0.), cba(0.);
+  double f1(0.), f2(0.), f3(0.), f4(0.), rho(0.), tet(0.), hnorm(0.), hp(0.), rho1(0.), sint(0.), cost(0.);
 
-  double x;
-  double y;
-  double z;
+  double x(0.);
+  double y(0.);
+  double z(0.);
 
-  double xt;
-  double yt;
-  double zt;
+  double xt(0.);
+  double yt(0.);
+  double zt(0.);
 
   double maxit = 1992;
   double maxcut = 11;
@@ -517,7 +517,7 @@ bool TrackExtrap::extrapOneStepRungekutta(double charge, double step, const doub
   double pinv = kec * charge / vect[6];
   double tl = 0.;
   double h = step;
-  double rest;
+  double rest(0.);
 
   do {
     rest = step - tl;
