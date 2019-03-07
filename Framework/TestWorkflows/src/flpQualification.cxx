@@ -88,7 +88,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   DataProcessorSpec readoutProxy = specifyExternalFairMQDeviceProxy(
     "readout-proxy",
     Outputs{ { "ITS", "RAWDATA" } },
-    "type=pair,method=connect,address=ipc:///tmp/readout-pipe-0,rateLogging=1",
+    "type=pair,method=connect,address=ipc:///tmp/readout-pipe-0,rateLogging=1,transport=shmem",
     readoutAdapter({ "ITS", "RAWDATA" }));
 
   // This is an example of how we can parallelize by subSpec.
