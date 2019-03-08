@@ -93,7 +93,7 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
     MCCompLabel label(hit.GetTrackID(), mEventID, mSrcID);
     for (int i = 0; i < ndigits; ++i) {
       int digitIndex = mDigits.size() - ndigits + i;
-      mTrackLabels.addElementRandomAccess(digitIndex, label);
+      mTrackLabels.emplace(mTrackLabels.begin() + digitIndex, label);
     } //loop over digits to generate MCdigits
   }   //loop over hits
   
@@ -182,39 +182,29 @@ void Digitizer::mergeDigits(std::vector<Digit>& digits){
       }
      
     std::pair<mMapit, mMapit> multiple = mMultiple.equal_range(digit.getPadID());
-    //loop over digits
     int count = 0;
+        //loop over entries with multiple occurence
     for (mMapit it = multiple.first; it != multiple.second; it++)
       {
 	if( count != 0)
 	  {
+	    //add ADC counts to first digit in vector with this Padnumber
+	    //ignores potential time off set between different signal
+	    //if signal threshold relevant potentially need to call response in a way as well
 	    digit.setADC(digit.getADC() + (digits.at(it->second)).getADC());
 	    forRemoval.emplace(it->second); 
 	  }
 	++count;
       }
-    //    for (auto itr = mMultiple.find(digit.getPadID()); itr != mMultiple.end(); itr++)
-    //  {
-    //	auto i = std::distance(mMultiple.find(digit.getPadID()), itr); 
-	//to do: need to jump over first iterator
-	//only works for "two"
-	//not yet correct since it give back the full thing (key (padID), element (digitIndex) )! not only the Element
-    //	if(i==1){
-    //	  digit.setADC(digit.getADC() + (digits.at(itr->second)).getADC());
-    //	  forRemoval.emplace_back(itr->second);
-    //	}
-	//to do: more than two overlapping pads
-    //  }
     ++iter;
   }
   int rmcounts=0;
   for(auto& index : forRemoval){
     digits.erase(digits.begin() + index - rmcounts);
+    // mTrackLabels, need other format(std::vector)
+    //    mTrackLabels.erase(digits.begin() + index - rmcounts);
     ++rmcounts;
-    //todo: remove MCTruthcontainer for mTrackLabels and use other format(std::vector)
-    //    mTrackLabels.erase(index);
-  }
-  
+  }  
   return;
 }
 //______________________________________________________________________
@@ -231,8 +221,8 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
   }
   mDigits.erase(itBeg, iter);
   mMCTruthOutputContainer.clear();
-  for (int index = 0; index < mTrackLabels.getIndexedSize(); ++index) {
-    mMCTruthOutputContainer.addElements(index, mTrackLabels.getLabels(index));
+  for (int index = 0; index < mTrackLabels.size(); ++index) {
+    mMCTruthOutputContainer.addElement(index, mTrackLabels.at(index));
   }
 }
 //______________________________________________________________________

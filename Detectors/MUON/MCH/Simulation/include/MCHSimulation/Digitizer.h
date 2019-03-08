@@ -69,7 +69,7 @@ class Digitizer
   std::multimap<int,int> mMultiple;
   
   //MCLabel container (transient)
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mTrackLabels;
+  std::vector<o2::MCCompLabel> mTrackLabels;
   //MCLabel container (output)
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthOutputContainer;
 
