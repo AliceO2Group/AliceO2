@@ -24,7 +24,7 @@ namespace utils
 // Code for trimming coming from https://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring
 
 /**
- * trim from start (in place)
+ * Trim from start (in place)
  * @param s
  */
 static inline void ltrim(std::string& s)
@@ -34,7 +34,7 @@ static inline void ltrim(std::string& s)
           }));
 }
 
-/** trim from end (in place)
+/** Trim from end (in place)
  *
  * @param s
  */
@@ -47,7 +47,7 @@ static inline void rtrim(std::string& s)
 }
 
 /**
- * trim from both ends (in place)
+ * Trim from both ends (in place)
  * @param s
  */
 static inline void trim(std::string& s)
@@ -56,14 +56,22 @@ static inline void trim(std::string& s)
   rtrim(s);
 }
 
-// trim from start (copying)
+/**
+ * Trim from start (copying)
+ * @param s
+ * @return
+ */
 static inline std::string ltrim_copy(std::string s)
 {
   ltrim(s);
   return s;
 }
 
-// trim from end (copying)
+/**
+ * Trim from end (copying)
+ * @param s
+ * @return
+ */
 static inline std::string rtrim_copy(std::string s)
 {
   rtrim(s);
