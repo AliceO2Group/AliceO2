@@ -146,9 +146,10 @@ class DetMatrixCacheIndirect : private DetMatrixCache
   int getIndirectSize() const { return mIndirectSize; }
   bool isMatrixAvailable(int sensID) const { return mIndirection[sensID] >= 0; }
 
+  void setSize(int s) = delete;
+
  protected:
   // before calling fillMatrixCache, detector implementation should set the size of the matrix cache
-  void setSize(int s) = delete;
   void setSize(int size, int sizeIndirect);
 
   void setMatrixT2L(const Mat3D& matrix, int sensID) { mT2L.setMatrix(matrix, getCacheHelper(sensID)); }
