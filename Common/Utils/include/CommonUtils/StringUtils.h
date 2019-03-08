@@ -27,20 +27,23 @@ namespace utils
  * trim from start (in place)
  * @param s
  */
-static inline void ltrim(std::string &s) {
+static inline void ltrim(std::string& s)
+{
   s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {
-    return !std::isspace(ch);
-  }));
+            return !std::isspace(ch);
+          }));
 }
 
 /** trim from end (in place)
  *
  * @param s
  */
-static inline void rtrim(std::string &s) {
+static inline void rtrim(std::string& s)
+{
   s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) {
-    return !std::isspace(ch);
-  }).base(), s.end());
+            return !std::isspace(ch);
+          }).base(),
+          s.end());
 }
 
 /**
