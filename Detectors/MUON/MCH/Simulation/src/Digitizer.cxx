@@ -96,8 +96,9 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
       mTrackLabels.addElementRandomAccess(digitIndex, label);
     } //loop over digits to generate MCdigits
   }   //loop over hits
-  //
   
+  //merge Digits
+  if(mMultiple.size() != 0) mergeDigits(digits);
   
   fillOutputContainer(digits);
 }
@@ -168,26 +169,48 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
 //______________________________________________________________________
 void Digitizer::mergeDigits(std::vector<Digit>& digits){
 
-  std::vector<int> forRemoval;
+  std::set<int> forRemoval;
+  typedef std::multimap<int, int>::iterator mMapit;
+  int iter = 0;
   for(auto& digit : digits){
-    //loop over digits
-    //retrieve detElem-id
-    digit.getPadID();
-    //int index2 =  mMultiple.find(digit.getPadID())->second;
-    for (auto itr = mMultiple.find(digit.getPadID()); itr != mMultiple.end(); itr++)
+    
+    //if digit already marked for removal
+    if(forRemoval.find(iter) != forRemoval.end() )
       {
-	//itr iterates over all multiple occurances
-	//to do need to jump over first iterator
+	++iter;
+	continue;
+      }
+     
+    std::pair<mMapit, mMapit> multiple = mMultiple.equal_range(digit.getPadID());
+    //loop over digits
+    int count = 0;
+    for (mMapit it = multiple.first; it != multiple.second; it++)
+      {
+	if( count != 0)
+	  {
+	    digit.setADC(digit.getADC() + (digits.at(it->second)).getADC());
+	    forRemoval.emplace(it->second); 
+	  }
+	++count;
+      }
+    //    for (auto itr = mMultiple.find(digit.getPadID()); itr != mMultiple.end(); itr++)
+    //  {
+    //	auto i = std::distance(mMultiple.find(digit.getPadID()), itr); 
+	//to do: need to jump over first iterator
 	//only works for "two"
 	//not yet correct since it give back the full thing (key (padID), element (digitIndex) )! not only the Element
-	digit.setADC(digit.getADC() + (digits.at(itr->second)).getADC());
-	forRemoval.emplace_back(itr->second);
+    //	if(i==1){
+    //	  digit.setADC(digit.getADC() + (digits.at(itr->second)).getADC());
+    //	  forRemoval.emplace_back(itr->second);
+    //	}
 	//to do: more than two overlapping pads
-      }   
+    //  }
+    ++iter;
   }
-
+  int rmcounts=0;
   for(auto& index : forRemoval){
-    digits.erase(digits.begin() + index);
+    digits.erase(digits.begin() + index - rmcounts);
+    ++rmcounts;
     //todo: remove MCTruthcontainer for mTrackLabels and use other format(std::vector)
     //    mTrackLabels.erase(index);
   }
