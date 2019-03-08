@@ -4,23 +4,27 @@
 
 /// \author R+Preghenella - October 2018
 
-double momentumUnit = 1.;        // [GeV/c]
-double energyUnit = 1.;          // [GeV/c]
-double positionUnit = 0.1;       // [cm]
-double timeUnit = 3.3356410e-12; // [s]
-
 R__LOAD_LIBRARY(libpythia6)
 
 void configure(TPythia6* py6, const char* params);
 
-TGenerator*
+FairGenerator*
   pythia6(double energy = 14000., const char* params = nullptr)
 {
+  // instance and configure Pythia6
   auto py6 = TPythia6::Instance();
   if (params)
     configure(py6, params);
   py6->Initialize("CMS", "p", "p", energy);
-  return py6;
+
+  // instance and configure TGenerator interface
+  auto tgen = new o2::eventgen::GeneratorTGenerator();
+  tgen->setMomentumUnit(1.);        // [GeV/c]
+  tgen->setEnergyUnit(1.);          // [GeV/c]
+  tgen->setPositionUnit(0.1);       // [cm]
+  tgen->setTimeUnit(3.3356410e-12); // [s]
+  tgen->setTGenerator(py6);
+  return tgen;
 }
 
 void configure(TPythia6* py6, const char* params)
