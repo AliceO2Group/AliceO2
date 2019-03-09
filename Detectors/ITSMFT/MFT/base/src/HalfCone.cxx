@@ -667,9 +667,9 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   combi_ir2_RL->RegisterYourself();
 
   ///////////////////////  shape for Rail L geom/////////
-  auTGeoShape* RL_1box = new TGeoBBox("RL_1box", x_RL_1box / 2, y_RL_1box / 2, z_RL_1box / 2);
-  auTGeoShape* RL_kneebox = new TGeoBBox("RL_kneebox", x_RL_kneebox / 2, y_RL_kneebox / 2, z_RL_kneebox / 2); //no_ used
-  auTGeoShape* qdi_box = new TGeoBBox("qdi_box", x_qdi_box / 2, y_qdi_box / 2, z_qdi_box / 2);
+  TGeoShape* RL_1box = new TGeoBBox("RL_1box", x_RL_1box / 2, y_RL_1box / 2, z_RL_1box / 2);
+  TGeoShape* RL_kneebox = new TGeoBBox("RL_kneebox", x_RL_kneebox / 2, y_RL_kneebox / 2, z_RL_kneebox / 2); //no_ used
+  TGeoShape* qdi_box = new TGeoBBox("qdi_box", x_qdi_box / 2, y_qdi_box / 2, z_qdi_box / 2);
 
   //E   auto *s_RL1hole=new TGeoTube("S_RL1HOLE",radin_RL1hole,radout_RL1hole,high_RL1hole/2);
   //-auto *s_irL_hole=new TGeoTube("S_irL_HOLE",radin_ir_railL,radout_ir_railL,high_ir_railL/2);
