@@ -213,9 +213,6 @@ class RawPixelReader : public PixelReader
   using Coder = o2::ITSMFT::AlpideCoder;
 
  public:
-  static constexpr bool isPadding128() { return Padding128Data; }
-  static constexpr bool getGBTWordSize() { return GBTWordSize; }
-
   RawPixelReader() = default;
   ~RawPixelReader() override
   {
@@ -223,6 +220,26 @@ class RawPixelReader : public PixelReader
     printf("RawPixelReader IO time: ");
     mSWIO.Print();
   }
+
+  /// do we interpred GBT words as padded to 128 bits?
+  bool isPadding128() const { return mPadding128; }
+
+  /// do we treat CRU pages as having max size?
+  bool isMaxPageImposed() const { return mImposeMaxPage; }
+
+  /// assumed GBT word size (accounting for eventual padding)
+  int getGBTWordSize() const { return mGBTWordSize; }
+
+  /// impose padding model for GBT words
+  void setPadding128(bool v)
+  {
+    mPadding128 = v;
+    mGBTWordSize = mPadding128 ? ITSMFT::GBTPaddedWordLength : o2::ITSMFT::GBTWordLength;
+    imposeMaxPage(mPadding128);
+  }
+
+  /// CRU pages are of max size of 8KB
+  void imposeMaxPage(bool v) { mImposeMaxPage = v; }
 
   ChipPixelData* getNextChipData(std::vector<ChipPixelData>& chipDataVec) override
   {
@@ -453,29 +470,30 @@ class RawPixelReader : public PixelReader
     o2::ITSMFT::GBTDataTrailer gbtTrailer;
 
     // max real payload words (accounting for GBT header and trailer) per packet
-    int maxGBTWordsPerPacket = (MaxGBTPacketBytes - rdh.headerSize) / GBTWordSize - 2;
+    // Note: for this estimate we use GBTPaddedWordLength rather than the actual mGBTWordSize
+    int maxGBTWordsPerPacket = (MaxGBTPacketBytes - rdh.headerSize) / o2::ITSMFT::GBTPaddedWordLength - 2;
 
     if (sink.getFreeCapacity() < 2 * MaxGBTPacketBytes) { // make sure there is enough capacity
       sink.expand(sink.getCapacity() + 10 * MaxGBTPacketBytes);
     }
 
-    rdh.blockLength = 0xffff;                                              //MaxGBTPacketBytes;      ITS does not fill it     // total packet size: always use max size ? in bits ?
-    rdh.memorySize = rdh.headerSize + (nGBTWordsNeeded + 2) * GBTWordSize; // update remaining size
+    rdh.blockLength = 0xffff;                                               //MaxGBTPacketBytes;      ITS does not fill it     // total packet size: always use max size ? in bits ?
+    rdh.memorySize = rdh.headerSize + (nGBTWordsNeeded + 2) * mGBTWordSize; // update remaining size
     if (rdh.memorySize > MaxGBTPacketBytes) {
       rdh.memorySize = MaxGBTPacketBytes;
     }
-    rdh.offsetToNext = MaxGBTPacketBytes; // save offset to next packet: always max size?
+    rdh.offsetToNext = mImposeMaxPage ? MaxGBTPacketBytes : rdh.memorySize;
     rdh.stop = 0;
 
     sink.addFast(reinterpret_cast<uint8_t*>(&rdh), rdh.headerSize); // write RDH for current packet
 
     gbtHeader.setPacketID(rdh.pageCnt);
-    sink.addFast(gbtHeader.getW8(), GBTWordSize); // write GBT header for current packet
+    sink.addFast(gbtHeader.getW8(), mGBTWordSize); // write GBT header for current packet
 
     if (mVerbose) {
       LOG(INFO) << "Flushing RU data";
       printRDH(rdh);
-      gbtHeader.printX(Padding128Data);
+      gbtHeader.printX(mPadding128);
     }
 
     int nGBTWordsInPacket = 0;
@@ -489,12 +507,12 @@ class RawPixelReader : public PixelReader
           int gbtWordStart = sink.getSize(); // beginning of the current GBT word in the sink
           sink.add(ruData.buffer.data() + start, nb);
           // fill the rest of the GBT word by 0
-          sink.add(zero16, GBTWordSize - nb);
+          sink.add(zero16, mGBTWordSize - nb);
           sink[gbtWordStart + 9] = MAP.getGBTHeaderRUType(ruData.type, ruData.cableHWID[icab]); // set cable flag
           start += nb;
           nGBTWordsNeeded--;
           if (mVerbose) {
-            ((GBTData*)(sink.data() + gbtWordStart))->printX(Padding128Data);
+            ((GBTData*)(sink.data() + gbtWordStart))->printX(mPadding128);
           }
           if (++nGBTWordsInPacket == maxGBTWordsPerPacket) { // check if new GBT packet must be created
             break;
@@ -504,26 +522,27 @@ class RawPixelReader : public PixelReader
 
       if (nGBTWordsNeeded && nGBTWordsInPacket >= maxGBTWordsPerPacket) {
         // more data to write, write trailer and add new GBT packet
-        sink.add(gbtTrailer.getW8(), GBTWordSize); // write GBT trailer for current packet
+        sink.add(gbtTrailer.getW8(), mGBTWordSize); // write GBT trailer for current packet
         if (mVerbose) {
-          gbtTrailer.printX(Padding128Data);
+          gbtTrailer.printX(mPadding128);
         }
-        rdh.pageCnt++;                                                         // flag new page
-        rdh.stop = nGBTWordsNeeded < maxGBTWordsPerPacket;                     // flag if this is the last packet of multi-packet
-        rdh.blockLength = 0xffff;                                              // (nGBTWordsNeeded % maxGBTWordsPerPacket + 2) * GBTWordSize; // record payload size
-        rdh.memorySize = rdh.headerSize + (nGBTWordsNeeded + 2) * GBTWordSize; // update remaining size
+        rdh.pageCnt++;                                     // flag new page
+        rdh.stop = nGBTWordsNeeded < maxGBTWordsPerPacket; // flag if this is the last packet of multi-packet
+        rdh.blockLength = 0xffff;                          // (nGBTWordsNeeded % maxGBTWordsPerPacket + 2) * mGBTWordSize; // record payload size
+                                                           // update remaining size, using padded GBT words (as CRU writes)
+        rdh.memorySize = rdh.headerSize + (nGBTWordsNeeded + 2) * o2::ITSMFT::GBTPaddedWordLength;
         if (rdh.memorySize > MaxGBTPacketBytes) {
           rdh.memorySize = MaxGBTPacketBytes;
         }
-        rdh.offsetToNext = MaxGBTPacketBytes;                       // save offset to next packet
+        rdh.offsetToNext = mImposeMaxPage ? MaxGBTPacketBytes : rdh.memorySize;
         sink.add(reinterpret_cast<uint8_t*>(&rdh), rdh.headerSize); // write RDH for new packet
         if (mVerbose) {
           printRDH(rdh);
         }
         gbtHeader.setPacketID(rdh.pageCnt);
-        sink.addFast(gbtHeader.getW8(), GBTWordSize); // write GBT header for current packet
+        sink.addFast(gbtHeader.getW8(), mGBTWordSize); // write GBT header for current packet
         if (mVerbose) {
-          gbtHeader.printX(Padding128Data);
+          gbtHeader.printX(mPadding128);
         }
         nGBTWordsInPacket = 0; // reset counter of words in the packet
       }
@@ -533,19 +552,20 @@ class RawPixelReader : public PixelReader
     gbtTrailer.setLanesStop(MAP.getCablesOnRUType(ruData.type));
     gbtTrailer.setPacketState(0x1 << GBTDataTrailer::PacketDone);
 
-    sink.add(gbtTrailer.getW8(), GBTWordSize); // write GBT trailer for the last packet
+    sink.add(gbtTrailer.getW8(), mGBTWordSize); // write GBT trailer for the last packet
     if (mVerbose) {
-      gbtTrailer.printX(Padding128Data);
+      gbtTrailer.printX(mPadding128);
     }
 
     // at the moment the GBT page must be aligned to MaxGBTPacketBytes, fill by 0s
-    while (nGBTWordsInPacket++ < maxGBTWordsPerPacket) {
-      sink.add(zero16, GBTWordSize);
-      if (mVerbose) {
-        ((GBTData*)zero16)->printX(Padding128Data);
+    if (mImposeMaxPage) {
+      while (nGBTWordsInPacket++ < maxGBTWordsPerPacket) {
+        sink.add(zero16, mGBTWordSize);
+        if (mVerbose) {
+          ((GBTData*)zero16)->printX(mPadding128);
+        }
       }
     }
-
     ruData.clear();
   }
 
@@ -555,23 +575,25 @@ class RawPixelReader : public PixelReader
     if (mIOFile) {
       loadInput(); // if needed, upload additional data to the buffer
     }
+
+    int res = 0;
     if (!mRawBuffer.isEmpty()) {
       bool aborted = false;
 
-      //      printf("Unused: %d Size: %d Offs: %d\n", mRawBuffer.getUnusedSize(),  mRawBuffer.getSize(), mRawBuffer.getOffset() );
+      //printf("Unused: %d Size: %d Offs: %d\n", mRawBuffer.getUnusedSize(),  mRawBuffer.getSize(), mRawBuffer.getOffset() );
       auto ptr = decodeRUData(mRawBuffer.getPtr(), aborted);
 
       if (!aborted) {
         mRawBuffer.setPtr(ptr);
+        res = 1; // success
         if (mRawBuffer.isEmpty()) {
           mRawBuffer.clear();
-          return 1;
         }
-      } else { // try to seek to the next RDH
+      } else { // try to seek to the next RDH, can be done only for 128b padded GBT words
         LOG(ERROR) << "Will seek the next RDH after aborting (unreliable!!)";
         auto ptrTail = mRawBuffer.getPtr() + mRawBuffer.getUnusedSize();
-        ptr += ((ptr - mRawBuffer.getPtr()) / GBTWordSize) * GBTWordSize; // jump to the next GBT word
-        while (ptr + GBTWordSize <= ptrTail) {
+        ptr += ((ptr - mRawBuffer.getPtr()) / mGBTWordSize) * mGBTWordSize; // jump to the next GBT word
+        while (ptr + mGBTWordSize <= ptrTail) {
           auto* rdh = reinterpret_cast<const o2::header::RAWDataHeader*>(ptr);
           if (isRDHHeuristic(rdh)) { // this heuristics is not reliable...
             LOG(WARNING) << "Assuming that found a new RDH";
@@ -579,17 +601,17 @@ class RawPixelReader : public PixelReader
             mRawBuffer.setPtr(ptr);
             break;
           }
-          ptr += GBTWordSize;
+          ptr += mGBTWordSize;
         }
         mRawBuffer.setPtr(ptr);
-        if (mRawBuffer.isEmpty()) {
-          mRawBuffer.clear();
-          return 0; // did not find new RDH
+        if (!mRawBuffer.isEmpty()) {
+          res = 1; // found a RDH condidate
+        } else {
+          mRawBuffer.clear(); // did not find new RDH
         }
-      }
-      return 1;
+      } // try to seek to the next ...
     }
-    return 0;
+    return res;
   }
 
   //_____________________________________
@@ -621,9 +643,9 @@ class RawPixelReader : public PixelReader
       LOG(ERROR) << "Page does not start with RDH";
       for (int i = 0; i < 4; i++) {
         auto gbtD = reinterpret_cast<const o2::ITSMFT::GBTData*>(raw + i * 16);
-        gbtD->printX(Padding128Data);
+        gbtD->printX(mPadding128);
       }
-      raw += GBTWordSize;
+      raw += mGBTWordSize;
       aborted = true;
       return raw;
     }
@@ -646,19 +668,19 @@ class RawPixelReader : public PixelReader
       mDecodingStat.nPagesProcessed++;
       mDecodingStat.nBytesProcessed += rdh->memorySize;
       raw += rdh->headerSize;
-      int nGBTWords = (rdh->memorySize - rdh->headerSize) / GBTWordSize - 2; // number of GBT words excluding header/trailer
-      auto gbtH = reinterpret_cast<const o2::ITSMFT::GBTDataHeader*>(raw);   // process GBT header
+      int nGBTWords = (rdh->memorySize - rdh->headerSize) / mGBTWordSize - 2; // number of GBT words excluding header/trailer
+      auto gbtH = reinterpret_cast<const o2::ITSMFT::GBTDataHeader*>(raw);    // process GBT header
 
 #ifdef _RAW_READER_ERROR_CHECKS_
       if (mVerbose) {
         printRDH(*rdh);
-        gbtH->printX(Padding128Data);
+        gbtH->printX(mPadding128);
         LOG(INFO) << "Expect " << nGBTWords << " GBT words";
       }
       if (!gbtH->isDataHeader()) {
-        gbtH->printX(Padding128Data);
+        gbtH->printX(mPadding128);
         LOG(ERROR) << "FEE#" << rdh->feeId << " GBT payload header was expected, abort page decoding";
-        gbtH->printX(Padding128Data);
+        gbtH->printX(mPadding128);
         currRU.errorCounts[RUDecodingStat::ErrMissingGBTHeader]++;
         aborted = true;
         return raw;
@@ -684,14 +706,14 @@ class RawPixelReader : public PixelReader
       }
 
 #endif
-      raw += GBTWordSize;
-      for (int iw = 0; iw < nGBTWords; iw++, raw += GBTWordSize) {
+      raw += mGBTWordSize;
+      for (int iw = 0; iw < nGBTWords; iw++, raw += mGBTWordSize) {
         auto gbtD = reinterpret_cast<const o2::ITSMFT::GBTData*>(raw);
         // TODO: need to clarify if the nGBTWords from the rdh->memorySize is reliable estimate of the real payload, at the moment this is not the case
 
         if (mVerbose) {
           printf("W%4d |", iw);
-          gbtD->printX(Padding128Data);
+          gbtD->printX(mPadding128);
         }
         if (gbtD->isDataTrailer()) {
           nGBTWords = iw;
@@ -717,12 +739,11 @@ class RawPixelReader : public PixelReader
 #ifdef _RAW_READER_ERROR_CHECKS_
 
       if (mVerbose) {
-        printRDH(*rdh);
-        gbtT->printX(Padding128Data);
+        gbtT->printX(mPadding128);
       }
 
       if (!gbtT->isDataTrailer()) {
-        gbtT->printX(Padding128Data);
+        gbtT->printX(mPadding128);
         LOG(ERROR) << "FEE#" << rdh->feeId << " GBT payload trailer was expected, abort page decoding NW" << nGBTWords;
         currRU.errorCounts[RUDecodingStat::ErrMissingGBTTrailer]++;
         aborted = true;
@@ -732,22 +753,26 @@ class RawPixelReader : public PixelReader
       currRU.lanesTimeOut |= gbtT->getLanesTimeout(); // register timeouts
       currRU.lanesStop |= gbtT->getLanesStop();       // register stops
 #endif
-      raw += GBTWordSize;
+      raw += mGBTWordSize;
       // we finished the GBT page, see if there is a continuation and if it belongs to the same multipacket
 
 #ifdef _RAW_READER_ERROR_CHECKS_
       // make sure we have only 0's till the end of the page
 
       // TODO: not clear if the block length is constantly 8KB or can change, at the moment assume it is
-      int nWLeft = (MaxGBTPacketBytes - rdh->headerSize) / GBTWordSize - (nGBTWords + 2);
+      int nWLeft = ((mImposeMaxPage ? MaxGBTPacketBytes : rdh->memorySize) - rdh->headerSize) / mGBTWordSize - (nGBTWords + 2);
+      if (mVerbose) {
+        LOG(INFO) << "Expect " << nWLeft << " 0-filled GBT words";
+      }
+
       for (int iw = 0; iw < nWLeft; iw++) {
         auto gbtD = reinterpret_cast<const o2::ITSMFT::GBTData*>(raw);
-        raw += GBTWordSize;
+        raw += mGBTWordSize;
         if (mVerbose) {
           printf("P%4d |", iw);
-          gbtD->printX(Padding128Data);
+          gbtD->printX(mPadding128);
         }
-        for (int ib = GBTWordSize; ib--;) {
+        for (int ib = mGBTWordSize; ib--;) {
           if (gbtD->getByte(ib)) {
             LOG(ERROR) << "FEE#" << rdh->feeId << " Non-0 data detected after payload trailer";
             currRU.errorCounts[RUDecodingStat::ErrGarbageAfterPayload]++;
@@ -765,12 +790,8 @@ class RawPixelReader : public PixelReader
       raw = ((uint8_t*)rdh) + rdh->offsetToNext; // jump to the next packet:
       auto rdhN = reinterpret_cast<const o2::header::RAWDataHeader*>(raw);
       // check if data of given RU are over, i.e. we the page counter was wrapped to 0 (should be enough!) or other RU/trigger started
-      if (rdhN->pageCnt == 0 || rdhN->feeId != rdh->feeId ||
-          rdhN->triggerOrbit != rdh->triggerOrbit ||
-          rdhN->triggerBC != rdh->triggerBC ||
-          rdhN->heartbeatOrbit != rdh->heartbeatOrbit ||
-          rdhN->heartbeatBC != rdh->heartbeatBC ||
-          rdhN->triggerType != rdh->triggerType) {
+      if (!isSameRUandTrigger(rdh, rdhN)) {
+
 #ifdef _RAW_READER_ERROR_CHECKS_
         // make sure all lane stops for finished page are received
         if (currRU.lanesActive != currRU.lanesStop) {
@@ -813,6 +834,284 @@ class RawPixelReader : public PixelReader
     decodeAlpideData(mRUDecode);
 
     return raw;
+  }
+
+  //_____________________________________
+  int skimNextRUData(PayLoadCont& outBuffer)
+  {
+    if (mIOFile) {
+      loadInput(); // if needed, upload additional data to the buffer
+    }
+
+    int res = 0;
+    if (!mRawBuffer.isEmpty()) {
+      bool aborted = false;
+
+      auto ptr = skimPaddedRUData(mRawBuffer.getPtr(), outBuffer, aborted);
+
+      if (!aborted) {
+        mRawBuffer.setPtr(ptr);
+        res = 1; // success
+        if (mRawBuffer.isEmpty()) {
+          mRawBuffer.clear();
+        }
+      } else { // try to seek to the next RDH, can be done only for 128b padded GBT words
+        LOG(ERROR) << "Will seek the next RDH after aborting (unreliable!!)";
+        auto ptrTail = mRawBuffer.getPtr() + mRawBuffer.getUnusedSize();
+        ptr += ((ptr - mRawBuffer.getPtr()) / mGBTWordSize) * mGBTWordSize; // jump to the next GBT word
+        while (ptr + mGBTWordSize <= ptrTail) {
+          auto* rdh = reinterpret_cast<const o2::header::RAWDataHeader*>(ptr);
+          if (isRDHHeuristic(rdh)) { // this heuristics is not reliable...
+            LOG(WARNING) << "Assuming that found a new RDH";
+            printRDH(*rdh);
+            mRawBuffer.setPtr(ptr);
+            break;
+          }
+          ptr += mGBTWordSize;
+        }
+        mRawBuffer.setPtr(ptr);
+        if (!mRawBuffer.isEmpty()) {
+          res = 1; // found a RDH condidate
+        } else {
+          mRawBuffer.clear(); // did not find new RDH
+        }
+      } // try to seek to the next ...
+    }
+    return res;
+  }
+
+  //_____________________________________
+  uint8_t* skimPaddedRUData(uint8_t* raw, PayLoadCont& outBuffer, bool& aborted)
+  {
+    /// Skim CRU data with 128b-padded GBT words and fixed 8KB pages to 80b-GBT words and
+    /// page size corresponding to real payload.
+
+    aborted = false;
+
+    // data must start by RDH
+    auto rdh = reinterpret_cast<const o2::header::RAWDataHeader*>(raw);
+#ifdef _RAW_READER_ERROR_CHECKS_
+    if (!isRDHHeuristic(rdh)) {
+      LOG(ERROR) << "Page does not start with RDH";
+      for (int i = 0; i < 4; i++) {
+        auto gbtD = reinterpret_cast<const o2::ITSMFT::GBTData*>(raw + i * 16);
+        gbtD->printX(mPadding128);
+      }
+      aborted = true;
+      return raw;
+    }
+#endif
+
+    int ruIDSW = MAP.RUHW2SW(rdh->feeId);
+    auto ruInfo = MAP.getRUInfoSW(ruIDSW);
+
+    mInteractionRecord.bc = rdh->triggerBC;
+    mInteractionRecord.orbit = rdh->triggerOrbit;
+    mTrigger = rdh->triggerType;
+
+    auto& currRU = mRUDecodingStat[ruIDSW];
+    currRU.nPackets++;
+    mDecodingStat.nRUsProcessed++;
+
+    int sizeAtEntry = outBuffer.getSize(); // save the size of outbuffer size at entry, in case of severe error we will need to rewind to it.
+
+    while (1) {
+      mDecodingStat.nPagesProcessed++;
+      mDecodingStat.nBytesProcessed += rdh->memorySize;
+      raw += rdh->headerSize;
+      // number of 128 b GBT words excluding header/trailer
+      int nGBTWords = (rdh->memorySize - rdh->headerSize) / o2::ITSMFT::GBTPaddedWordLength - 2;
+      auto gbtH = reinterpret_cast<const o2::ITSMFT::GBTDataHeader*>(raw); // process GBT header
+
+#ifdef _RAW_READER_ERROR_CHECKS_
+      if (mVerbose) {
+        printRDH(*rdh);
+        gbtH->printX(true);
+        LOG(INFO) << "Expect " << nGBTWords << " GBT words";
+      }
+      if (!gbtH->isDataHeader()) {
+        gbtH->printX(true);
+        LOG(ERROR) << "FEE#" << rdh->feeId << " GBT payload header was expected, abort page decoding";
+        gbtH->printX(true);
+        currRU.errorCounts[RUDecodingStat::ErrMissingGBTHeader]++;
+        aborted = true;
+        outBuffer.shrinkToSize(sizeAtEntry); // reset output buffer to initial state
+        return raw;
+      }
+      if (gbtH->getPacketID() != rdh->pageCnt) {
+        LOG(ERROR) << "FEE#" << rdh->feeId << " Different GBT header " << gbtH->getPacketID()
+                   << " and RDH page " << rdh->pageCnt << " counters";
+        currRU.errorCounts[RUDecodingStat::ErrRDHvsGBTHPageCnt]++;
+      }
+
+      if (currRU.lanesActive == currRU.lanesStop) { // all lanes received their stop, new page 0 expected
+        if (rdh->pageCnt) {                         // flag lanes of this FEE
+          LOG(ERROR) << "FEE#" << rdh->feeId << " Non-0 page counter (" << rdh->pageCnt << ") while all lanes were stopped";
+          currRU.errorCounts[RUDecodingStat::ErrNonZeroPageAfterStop]++;
+        }
+      }
+
+      currRU.lanesActive = gbtH->getLanes(); // TODO do we need to update this for every page?
+
+      if (!rdh->pageCnt) { // reset flags
+        currRU.lanesStop = 0;
+        currRU.lanesWithData = 0;
+      }
+
+#endif
+      // start writting skimmed data for this page, making sure the buffer has enough free slots
+      outBuffer.ensureFreeCapacity(8 * 1024);
+      auto rdhS = reinterpret_cast<o2::header::RAWDataHeader*>(outBuffer.getEnd()); // save RDH and make saved copy editable
+      outBuffer.addFast(reinterpret_cast<const uint8_t*>(rdh), rdh->headerSize);
+
+      outBuffer.addFast(reinterpret_cast<const uint8_t*>(gbtH), mGBTWordSize); // save gbt header w/o 128b padding
+
+      raw += o2::ITSMFT::GBTPaddedWordLength;
+      for (int iw = 0; iw < nGBTWords; iw++, raw += o2::ITSMFT::GBTPaddedWordLength) {
+        auto gbtD = reinterpret_cast<const o2::ITSMFT::GBTData*>(raw);
+        // TODO: need to clarify if the nGBTWords from the rdh->memorySize is reliable estimate of the real payload, at the moment this is not the case
+
+        if (mVerbose) {
+          printf("W%4d |", iw);
+          gbtD->printX(mPadding128);
+        }
+        if (gbtD->isDataTrailer()) {
+          nGBTWords = iw;
+          break; // this means that the nGBTWords estimate was wrong
+        }
+
+        int cableHW = gbtD->getCableID();
+        int cableSW = MAP.cableHW2SW(ruInfo->ruType, cableHW);
+
+        outBuffer.addFast(reinterpret_cast<const uint8_t*>(gbtD), mGBTWordSize); // save gbt word w/o 128b padding
+
+#ifdef _RAW_READER_ERROR_CHECKS_
+        currRU.lanesWithData |= 0x1 << cableSW;    // flag that the data was seen on this lane
+        if (currRU.lanesStop & (0x1 << cableSW)) { // make sure stopped lanes do not transmit the data
+          currRU.errorCounts[RUDecodingStat::ErrDataForStoppedLane]++;
+          LOG(ERROR) << "FEE#" << rdh->feeId << " Data received for stopped lane " << cableHW << " (sw:" << cableSW << ")";
+        }
+#endif
+
+      } // we are at the trailer, packet is over, check if there are more for the same ru
+
+      auto gbtT = reinterpret_cast<const o2::ITSMFT::GBTDataTrailer*>(raw); // process GBT trailer
+#ifdef _RAW_READER_ERROR_CHECKS_
+
+      if (mVerbose) {
+        gbtT->printX(true);
+      }
+
+      if (!gbtT->isDataTrailer()) {
+        gbtT->printX(true);
+        LOG(ERROR) << "FEE#" << rdh->feeId << " GBT payload trailer was expected, abort page decoding at NW" << nGBTWords;
+        currRU.errorCounts[RUDecodingStat::ErrMissingGBTTrailer]++;
+        aborted = true;
+        outBuffer.shrinkToSize(sizeAtEntry); // reset output buffer to initial state
+        return raw;
+      }
+
+      currRU.lanesTimeOut |= gbtT->getLanesTimeout(); // register timeouts
+      currRU.lanesStop |= gbtT->getLanesStop();       // register stops
+#endif
+
+      outBuffer.addFast(reinterpret_cast<const uint8_t*>(gbtT), mGBTWordSize); // save gbt trailer w/o 128b padding
+
+      raw += o2::ITSMFT::GBTPaddedWordLength;
+
+      // we finished the GBT page, register in the stored RDH the memory size and new offset
+      rdhS->memorySize = rdhS->headerSize + (2 + nGBTWords) * mGBTWordSize;
+      rdhS->offsetToNext = rdhS->memorySize;
+
+#ifdef _RAW_READER_ERROR_CHECKS_
+      // make sure we have only 0's till the end of the page
+
+      // TODO: not clear if the block length is constantly 8KB or can change, at the moment assume it is
+      int nWLeft = (MaxGBTPacketBytes - rdh->headerSize) / o2::ITSMFT::GBTPaddedWordLength - (nGBTWords + 2);
+      if (mVerbose) {
+        LOG(INFO) << "Expect " << nWLeft << " 0-filled GBT words";
+      }
+      for (int iw = 0; iw < nWLeft; iw++) {
+        auto gbtD = reinterpret_cast<const o2::ITSMFT::GBTData*>(raw);
+        raw += o2::ITSMFT::GBTPaddedWordLength;
+        if (mVerbose) {
+          printf("P%4d |", iw);
+          gbtD->printX(mPadding128);
+        }
+        for (int ib = o2::ITSMFT::GBTPaddedWordLength; ib--;) {
+          if (gbtD->getByte(ib)) {
+            LOG(ERROR) << "FEE#" << rdh->feeId << " Non-0 data detected after payload trailer";
+            currRU.errorCounts[RUDecodingStat::ErrGarbageAfterPayload]++;
+            nWLeft = 0; // do not continue the check
+            break;
+          }
+        }
+      }
+#endif
+
+      if (!rdh->offsetToNext) { // RS TODO: what the last page in memory will contain as offsetToNext, is it 0?
+        break;
+      }
+
+      raw = ((uint8_t*)rdh) + rdh->offsetToNext; // jump to the next packet:
+      auto rdhN = reinterpret_cast<const o2::header::RAWDataHeader*>(raw);
+      // check if data of given RU are over, i.e. we the page counter was wrapped to 0 (should be enough!) or other RU/trigger started
+      if (!isSameRUandTrigger(rdh, rdhN)) {
+
+#ifdef _RAW_READER_ERROR_CHECKS_
+        // make sure all lane stops for finished page are received
+        if (currRU.lanesActive != currRU.lanesStop) {
+          if (rdh->triggerType != o2::trigger::SOT) { // only SOT trigger allows unstopped lanes?
+            LOG(ERROR) << "FEE#" << rdh->feeId << " end of FEE data but not all lanes received stop";
+            currRU.errorCounts[RUDecodingStat::ErrUnstoppedLanes]++;
+          }
+        }
+
+        // make sure all active lanes (except those in time-out) have sent some data
+        if ((~currRU.lanesWithData & currRU.lanesActive) != currRU.lanesTimeOut) {
+          LOG(ERROR) << "FEE#" << rdh->feeId << " Lanes not in time-out but not sending data";
+          currRU.errorCounts[RUDecodingStat::ErrNoDataForActiveLane]++;
+        }
+
+        // accumulate packet states
+        currRU.packetStates[gbtT->getPacketState()]++;
+#endif
+
+        break;
+      }
+#ifdef _RAW_READER_ERROR_CHECKS_
+      // check if the page counter increases
+      if (rdhN->pageCnt != rdh->pageCnt + 1) {
+        LOG(ERROR) << "FEE#" << rdh->feeId << " Discontinuity in the RDH page counter of the same RU trigger: old "
+                   << rdh->pageCnt << " new: " << rdhN->pageCnt;
+        currRU.errorCounts[RUDecodingStat::ErrPageCounterDiscontinuity]++;
+      }
+#endif
+      rdh = rdhN;
+    }
+
+#ifdef _RAW_READER_ERROR_CHECKS_
+//    if (rdh->pageCnt && !rdh->stop) {
+//      LOG(WARNING) << "Last packet(" << rdh->pageCnt << ") of GBT multi-packet is reached w/o STOP set in the RDH";
+//    }
+#endif
+
+    return raw;
+  }
+
+  //_____________________________________
+  bool isSameRUandTrigger(const o2::header::RAWDataHeader* rdhOld, const o2::header::RAWDataHeader* rdhNew) const
+  {
+    /// check if the rdhNew is just a continuation of the data described by the rdhOld
+    if (rdhNew->pageCnt == 0 || rdhNew->feeId != rdhOld->feeId ||
+        rdhNew->triggerOrbit != rdhOld->triggerOrbit ||
+        rdhNew->triggerBC != rdhOld->triggerBC ||
+        rdhNew->heartbeatOrbit != rdhOld->heartbeatOrbit ||
+        rdhNew->heartbeatBC != rdhOld->heartbeatBC ||
+        rdhNew->triggerType != rdhOld->triggerType) {
+      return false;
+    }
+    return true;
   }
 
   //_____________________________________
@@ -966,10 +1265,10 @@ class RawPixelReader : public PixelReader
 
   static constexpr int RawBufferMargin = 5000000;                      // keep uploaded at least this amount
   static constexpr int RawBufferSize = 10000000 + 2 * RawBufferMargin; // size in MB
-  static constexpr bool Padding128Data = true;                         // is CRU payload supposed to be padded to 128 bits
-
+  bool mPadding128 = true;                                             // is payload padded to 128 bits
+  bool mImposeMaxPage = true;                                          // standard CRU data comes in 8KB pages
   // number of bytes the GBT word, including optional padding to 128 bits
-  static constexpr int GBTWordSize = Padding128Data ? ITSMFT::GBTPaddedWordLength : o2::ITSMFT::GBTWordLength;
+  int mGBTWordSize = mPadding128 ? o2::ITSMFT::GBTPaddedWordLength : o2::ITSMFT::GBTWordLength;
 
   ClassDefOverride(RawPixelReader, 1);
 };
@@ -979,9 +1278,6 @@ constexpr int RawPixelReader<Mapping>::RawBufferMargin;
 
 template <class Mapping>
 constexpr int RawPixelReader<Mapping>::RawBufferSize;
-
-template <class Mapping>
-constexpr bool RawPixelReader<Mapping>::Padding128Data;
 
 } // namespace ITSMFT
 } // namespace o2

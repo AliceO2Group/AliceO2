@@ -125,6 +125,12 @@ class PayLoadCont
     addFast(val);
   }
 
+  ///< shrink buffer to requested size, no check on over/under flow
+  void shrinkToSize(int sz)
+  {
+    mEnd = mPtr + sz;
+  }
+
   ///< direct const access to value at a given slot, w/o checking for overflow
   uint8_t operator[](int i) const { return mBuffer[i]; }
 
@@ -191,6 +197,9 @@ class PayLoadCont
   /// direct write access
   uint8_t* getPtr() { return mPtr; }
   void setPtr(uint8_t* ptr) { mPtr = ptr; }
+
+  uint8_t* getEnd() { return mEnd; }
+  void setEnd(uint8_t* ptr) { mEnd = ptr; }
 
  private:
   std::vector<uint8_t> mBuffer; //! continuons data buffer

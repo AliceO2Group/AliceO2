@@ -16,15 +16,20 @@
 
 // example of ITS raw data decoding
 // Data can be prepared from the MC digits using run_digi2raw_its.C
+// The padding parameter should be set to "true" for CRU data and to "false" for
+// the data obtained by the removing the 128 bit padding from GBT words
 
-void run_rawdecoding_its(std::string inpName = "rawits.bin", int verbose = 0)
+void run_rawdecoding_its(std::string inpName = "rawits.bin",
+                         bool padding = true,
+                         int verbose = 0)
 {
 
   o2::ITSMFT::RawPixelReader<o2::ITSMFT::ChipMappingITS> rawReader;
-  rawReader.openInput(inpName); // RS
+  rawReader.openInput(inpName);
+  rawReader.setPadding128(padding);
+  rawReader.setVerbosity(verbose);
 
   o2::ITSMFT::ChipPixelData chipData;
-  rawReader.setVerbosity(verbose);
   TStopwatch sw;
   sw.Start();
   int64_t countDig = 0, countChip = 0;
