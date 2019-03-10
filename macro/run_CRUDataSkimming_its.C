@@ -1,0 +1,62 @@
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include <TFile.h>
+#include <TStopwatch.h>
+#include <FairLogger.h>
+#include <fstream>
+#include <string>
+
+#include "ITSMFTReconstruction/ChipMappingITS.h"
+#include "ITSMFTReconstruction/GBTWord.h"
+#include "ITSMFTReconstruction/PayLoadCont.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
+#include "ITSMFTBase/Digit.h"
+#include "ITSMFTReconstruction/RawPixelReader.h"
+#endif
+
+// example of skimming of the CRU data with 128b-padded GBT words and fixed 8KB page
+// to 80b GBT words in the pages size corresponding to the real payload
+
+// Initial raw can be prepared from the MC digits using run_digi2raw_its.C
+
+void run_CRUDataSkimming_its(std::string inpName = "rawits.bin",
+                             std::string outName = "rawits_skimmed.bin",
+                             int verbose = 0)
+{
+
+  o2::ITSMFT::RawPixelReader<o2::ITSMFT::ChipMappingITS> rawReader;
+  rawReader.openInput(inpName);
+  rawReader.setPadding128(false);
+  rawReader.setVerbosity(verbose);
+
+  std::fstream outFile(outName, std::ios::out | std::ios::binary);
+  o2::ITSMFT::PayLoadCont outBuffer(1000000); // book 1 MB buffer
+
+  TStopwatch sw, swIO;
+  sw.Start();
+  swIO.Stop();
+
+  while (rawReader.skimNextRUData(outBuffer)) {
+    swIO.Start(false);
+    outFile.write((const char*)outBuffer.data(), outBuffer.getSize());
+    swIO.Stop();
+    outBuffer.clear();
+  }
+
+  outFile.close();
+  sw.Stop();
+
+  const auto& MAP = rawReader.getMapping();
+  for (int ir = 0; ir < MAP.getNRUs(); ir++) {
+    const auto& ruStat = rawReader.getRUDecodingStatSW(ir);
+    if (ruStat.nPackets) {
+      printf("\nStatistics for RU%3d (HWID:0x%4x)\n", ir, MAP.RUSW2HW(ir));
+      ruStat.print();
+    }
+  }
+
+  rawReader.getDecodingStat().print();
+  printf("Total time spent on skimming: ");
+  sw.Print();
+  printf("Time spent on writing output: ");
+  swIO.Print();
+}

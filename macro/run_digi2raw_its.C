@@ -65,6 +65,7 @@ void run_digi2raw_its(std::string outName = "rawits.bin",         // name of the
   ///-------< output
 
   o2::ITSMFT::RawPixelReader<o2::ITSMFT::ChipMappingITS> rawReader;
+  rawReader.setPadding128(true);
 
   int lastTreeID = -1;
   long offs = 0, nEntProc = 0;
