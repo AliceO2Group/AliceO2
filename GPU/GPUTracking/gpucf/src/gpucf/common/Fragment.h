@@ -37,6 +37,9 @@ namespace gpucf
          * The future of the last fragment is always zero.
          */
         size_t future;
+
+        Fragment(size_t);
+        Fragment(size_t, size_t, size_t, size_t);
     };
 
 } // namespace gpucf

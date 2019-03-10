@@ -2,9 +2,9 @@
 
 #include <gpucf/common/Timestamp.h>
 
-#include <CL/cl2.hpp>
+#include <nonstd/optional.hpp>
 
-#include <memory>
+#include <CL/cl2.hpp>
 
 
 namespace gpucf
@@ -23,7 +23,7 @@ public:
     Timestamp endMs() const;
 
 private:
-    std::unique_ptr<cl::Event> event;
+    nonstd::optional<cl::Event> event;
 
     Timestamp profilingInfo(cl_profiling_info) const;
 };

@@ -5,13 +5,13 @@ using namespace gpucf;
 
 
 Event::Event()
-    : event(new cl::Event)
+    : event(cl::Event())
 {
 }
 
 cl::Event *Event::get()
 {
-    return event.get();
+    return &event.value();
 }
 
 Timestamp Event::startMs() const

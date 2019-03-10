@@ -9,61 +9,97 @@
 using namespace gpucf;
 
 
-void StreamCompaction::setup(ClEnv &env, size_t digitNum)
+StreamCompaction::Worker::Worker(
+        cl::Program prg, 
+        cl::Device device, 
+        DeviceMemory mem)
+    : nativeScanUp(prg, "nativeScanUp")
+    , nativeScanTop(prg, "nativeScanTop")
+    , nativeScanDown(prg, "nativeScanDown")
+    , compactArr(prg, "compactArr")
+    , mem(mem)
 {
-    cl::Program scprg = env.buildFromSrc("streamCompaction.cl");  
-
-    nativeScanUp   = cl::Kernel(scprg, "nativeScanUp");
     nativeScanUp.getWorkGroupInfo(
-            env.getDevice(),
+            device,
             CL_KERNEL_WORK_GROUP_SIZE, 
             &scanUpWorkGroupSize);
 
     log::Debug() << "scanUpWorkGroupSize = " << scanUpWorkGroupSize;
 
-    nativeScanTop  = cl::Kernel(scprg, "nativeScanTop");
     nativeScanTop.getWorkGroupInfo(
-            env.getDevice(),
+            device,
             CL_KERNEL_WORK_GROUP_SIZE,
             &scanTopWorkGroupSize);
 
+    size_t scanDownWorkGroupSize;
+    nativeScanDown.getWorkGroupInfo(
+            device,
+            CL_KERNEL_WORK_GROUP_SIZE,
+            &scanDownWorkGroupSize);
+
+    ASSERT(scanDownWorkGroupSize == scanUpWorkGroupSize);
+
     log::Debug() << "scanTopWorkGroupSize = " << scanTopWorkGroupSize;
-
-    nativeScanDown = cl::Kernel(scprg, "nativeScanDown");
-    
-    compactArr = cl::Kernel(scprg, "compactArr");
-
-    context = env.getContext();
-
-    setDigitNum(digitNum);
 }
 
-void StreamCompaction::setDigitNum(size_t digitNum)
+
+void StreamCompaction::setup(ClEnv &env, size_t workernum, size_t digitnum)
 {
-    this->digitNum = digitNum;
+    prg = env.buildFromSrc("streamCompaction.cl");  
 
-    incrBufs.clear();
-    incrBufSizes.clear();
+    context = env.getContext();
+    device = env.getDevice();
 
-    size_t d = digitNum;
-    for (; d > scanTopWorkGroupSize; 
-           d = std::ceil(d / float(scanUpWorkGroupSize)) )
+    setDigitNum(digitnum, workernum);
+}
+
+void StreamCompaction::setDigitNum(size_t digitnum, size_t workernum)
+{
+    this->digitNum = digitnum;
+
+    mems = std::stack<DeviceMemory>();
+
+    cl::Kernel scanUp(*prg, "nativeScanUp");
+    size_t scanUpWorkGroupSize;
+    scanUp.getWorkGroupInfo(
+            device,
+            CL_KERNEL_WORK_GROUP_SIZE, 
+            &scanUpWorkGroupSize);
+
+    cl::Kernel scanTop(*prg, "nativeScanTop");
+    size_t scanTopWorkGroupSize;
+    scanTop.getWorkGroupInfo(
+            device,
+            CL_KERNEL_WORK_GROUP_SIZE,
+            &scanTopWorkGroupSize);
+
+    for (size_t i = 0; i < workernum; i++)
     {
-        incrBufs.emplace_back(
+        DeviceMemory mem;
+
+        size_t d = digitNum;
+        for (; d > scanTopWorkGroupSize; 
+               d = std::ceil(d / float(scanUpWorkGroupSize)) )
+        {
+            mem.incrBufs.emplace_back(
+                    context,
+                    CL_MEM_READ_WRITE,
+                    sizeof(cl_int) * d);
+            mem.incrBufSizes.push_back(d);
+        }
+
+        mem.incrBufs.emplace_back(
                 context,
                 CL_MEM_READ_WRITE,
                 sizeof(cl_int) * d);
-        incrBufSizes.push_back(d);
-    }
+        mem.incrBufSizes.push_back(d);
 
-    incrBufs.emplace_back(
-            context,
-            CL_MEM_READ_WRITE,
-            sizeof(cl_int) * d);
-    incrBufSizes.push_back(d);
+        mems.push(mem);
+    }
 }
 
-int StreamCompaction::enqueue(
+size_t StreamCompaction::Worker::run(
+        const Fragment &range,
         cl::CommandQueue queue,
         cl::Buffer digits,
         cl::Buffer digitsOut,
@@ -73,93 +109,116 @@ int StreamCompaction::enqueue(
     if (debug)
     {
         log::Info() << "StreamCompaction debug on";
-        sumsDump.clear();
     }
 
+    sumsDump.clear();
     scanEvents.clear();
 
-    ASSERT(!incrBufs.empty());
-    ASSERT(!incrBufSizes.empty());
-    ASSERT(incrBufs.size() == incrBufSizes.size());
+    ASSERT(!mem.incrBufs.empty());
+    ASSERT(!mem.incrBufSizes.empty());
+    ASSERT(mem.incrBufs.size() == mem.incrBufSizes.size());
+
+    size_t digitnum = range.backlog + range.items;
+    size_t offset = range.start;
 
     queue.enqueueCopyBuffer(
             predicate,
-            incrBufs.front(),
-            0,
-            0,
-            sizeof(cl_int) * digitNum,
+            mem.incrBufs.front(),
+            sizeof(cl_int) * offset,
+            sizeof(cl_int) * offset,
+            sizeof(cl_int) * digitnum,
             nullptr,
             addScanEvent());
 
+    std::vector<size_t> offsets;
+    std::vector<size_t> digitnums;
 
-    for (size_t i = 1; i < incrBufs.size(); i++)
+    size_t stepnum = this->stepnum(range);
+    DBG(stepnum);
+    ASSERT(stepnum <= mem.incrBufs.size());
+    for (size_t i = 1; i < stepnum; i++)
     {
-        nativeScanUp.setArg(0, incrBufs[i-1]);
-        nativeScanUp.setArg(1, incrBufs[i]);
+        digitnums.push_back(digitnum);
+        offsets.push_back(offset);
 
-        cl::NDRange workItems(incrBufSizes[i-1]);
+        ASSERT(mem.incrBufSizes[i-1] >= digitnum);
+
+        nativeScanUp.setArg(0, mem.incrBufs[i-1]);
+        nativeScanUp.setArg(1, mem.incrBufs[i]);
         queue.enqueueNDRangeKernel(
                 nativeScanUp,
-                cl::NullRange,
-                workItems,
+                cl::NDRange(offset),
+                cl::NDRange(digitnum),
                 cl::NDRange(scanUpWorkGroupSize),
                 nullptr,
                 addScanEvent());
 
         if (debug)
         {
-            dumpBuffer(queue, incrBufs[i-1], incrBufSizes[i-1]);
+            dumpBuffer(queue, mem.incrBufs[i-1], mem.incrBufSizes[i-1]);
         }
+
+        offset = 0;
+        digitnum /= scanUpWorkGroupSize;
     }
 
     if (debug)
     {
-        dumpBuffer(queue, incrBufs.back(), incrBufSizes.back());
+        dumpBuffer(queue, mem.incrBufs[stepnum-1], mem.incrBufSizes[stepnum-1]);
     }
 
-    nativeScanTop.setArg(0, incrBufs.back());
+    ASSERT(digitnum <= scanTopWorkGroupSize);
+
+    nativeScanTop.setArg(0, mem.incrBufs[stepnum-1]);
     queue.enqueueNDRangeKernel(
             nativeScanTop,
-            cl::NullRange,
-            cl::NDRange(scanTopWorkGroupSize),
+            cl::NDRange(offset),
+            cl::NDRange(digitnum),
             cl::NDRange(scanTopWorkGroupSize),
             nullptr,
             addScanEvent());
 
     if (debug)
     {
-        dumpBuffer(queue, incrBufs.back(), incrBufSizes.back());
+        dumpBuffer(queue, mem.incrBufs[stepnum-1], mem.incrBufSizes[stepnum-1]);
     }
 
-    for (size_t i = incrBufs.size()-1; i > 0; i--)
+    ASSERT(digitnums.size() == stepnum-1);
+    ASSERT(offsets.size() == stepnum-1);
+    for (size_t i = stepnum-1; i > 0; i--)
     {
-        nativeScanDown.setArg(0, incrBufs[i-1]);
-        nativeScanDown.setArg(1, incrBufs[i]);
+        offset = offsets[i-1];
+        digitnum = digitnums[i-1];
 
-        ASSERT(incrBufSizes[i-1] > scanUpWorkGroupSize);
-        cl::NDRange workItems(incrBufSizes[i-1] - scanUpWorkGroupSize);
+        ASSERT(digitnum > scanUpWorkGroupSize);
+
+        nativeScanDown.setArg(0, mem.incrBufs[i-1]);
+        nativeScanDown.setArg(1, mem.incrBufs[i]);
         queue.enqueueNDRangeKernel(
                 nativeScanDown,
-                cl::NDRange(scanUpWorkGroupSize),
-                workItems,
+                cl::NDRange(offset + scanUpWorkGroupSize),
+                cl::NDRange(digitnum - scanUpWorkGroupSize),
                 cl::NDRange(scanUpWorkGroupSize),
                 nullptr,
                 addScanEvent());
 
         if (debug)
         {
-            dumpBuffer(queue, incrBufs[i-1], incrBufSizes[i-1]);
+            dumpBuffer(queue, mem.incrBufs[i-1], mem.incrBufSizes[i-1]);
         }
     }
+
+    offset = offsets.front();
+    digitnum = digitnums.front();
 
     compactArr.setArg(0, digits);
     compactArr.setArg(1, digitsOut);
     compactArr.setArg(2, predicate);
-    compactArr.setArg(3, incrBufs.front());
+    compactArr.setArg(3, mem.incrBufs.front());
     queue.enqueueNDRangeKernel(
             compactArr,
-            cl::NullRange,
-            cl::NDRange(digitNum),
+            cl::NDRange(offset),
+            cl::NDRange(digitnum),
             cl::NullRange,
             nullptr,
             compactArrEv.get());
@@ -168,28 +227,43 @@ int StreamCompaction::enqueue(
 
     // Read the last element from index buffer to get the new number of digits
     queue.enqueueReadBuffer(
-            incrBufs.front(),
-            CL_TRUE, 
-            (digitNum-1) * sizeof(cl_int),
+            mem.incrBufs.front(),
+            CL_TRUE,
+            (range.start + digitnum-1) * sizeof(cl_int),
             sizeof(cl_int),
             &newDigitNum,
             nullptr,
-            addScanEvent());
+            readNewDigitNum.get());
+
 
     return newDigitNum;
 }
 
-std::vector<std::vector<int>> StreamCompaction::getNewIdxDump() const
+size_t StreamCompaction::Worker::stepnum(const Fragment &range) const
+{
+    size_t c = 0;
+    size_t itemnum = range.backlog + range.items;
+
+    while (itemnum > 0)
+    {
+        itemnum /= scanUpWorkGroupSize;
+        c++;
+    }
+
+    return c;
+}
+
+std::vector<std::vector<int>> StreamCompaction::Worker::getNewIdxDump() const
 {
     return sumsDump;
 }
 
-Step StreamCompaction::asStep(const std::string &name) const
+Step StreamCompaction::Worker::asStep(const std::string &name) const
 {
-    return {name, scanEvents.front().startMs(), compactArrEv.endMs()};
+    return {name, scanEvents.front().startMs(), readNewDigitNum.endMs()};
 }
 
-void StreamCompaction::dumpBuffer(
+void StreamCompaction::Worker::dumpBuffer(
         cl::CommandQueue queue,
         cl::Buffer buf,
         size_t size)
@@ -203,10 +277,22 @@ void StreamCompaction::dumpBuffer(
             sumsDump.back().data());
 }
 
-cl::Event *StreamCompaction::addScanEvent()
+cl::Event *StreamCompaction::Worker::addScanEvent()
 {
     scanEvents.emplace_back();
     return scanEvents.back().get();
 }
+
+StreamCompaction::Worker StreamCompaction::worker()
+{
+    ASSERT(!mems.empty());
+
+    DeviceMemory mem = mems.top();
+    mems.pop();
+
+    return Worker(*prg, device, mem);
+}
+
+
 
 // vim: set ts=4 sw=4 sts=4 expandtab:
