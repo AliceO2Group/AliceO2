@@ -35,23 +35,20 @@ optional<Fragment> DigitDivider::nextChunk(size_t padding)
         return nullopt;
     }
 
-    Fragment res;
-    res.start = start;
-
-    res.backlog = backlog;
-
     DBG(currTime());
     DBG(stepsPerChunk);
 
     size_t end = timeSliceEnd(currTime() + stepsPerChunk);
-    res.items = end - (start + backlog);
+    size_t items = end - (start + backlog);
 
 
     size_t paddedEnd = timeSliceEnd(currTime() + stepsPerChunk + padding);
-    res.future = paddedEnd - end;
+    size_t future = paddedEnd - end;
 
-    start = end;
-    backlog = res.future;
+    Fragment res(start, backlog, items, future);
+
+    start   = end;
+    backlog = future;
 
     return res;
 }

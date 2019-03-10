@@ -8,6 +8,7 @@ set(GPUCF_SRC
     "./common/Digit.cpp"
     "./common/DigitDivider.cpp"
     "./common/Event.cpp"
+    "./common/Fragment.cpp"
     "./common/log.cpp"
     "./common/Measurements.cpp"
     "./common/Object.cpp"

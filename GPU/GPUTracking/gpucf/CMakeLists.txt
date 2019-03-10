@@ -32,6 +32,6 @@ add_definitions(
 )
 
 include_directories(src)
-include_directories(external)
+include_directories(SYSTEM external)
 include_directories(cl)
 add_subdirectory(src)

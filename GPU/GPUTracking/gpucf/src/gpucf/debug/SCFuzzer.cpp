@@ -22,7 +22,7 @@ void SCFuzzer::setup(ClEnv &env)
     context = env.getContext();
     device  = env.getDevice();
 
-    streamCompaction.setup(env, 10);
+    streamCompaction.setup(env, 1, 10);
 }
 
 bool SCFuzzer::run(size_t runs)
@@ -67,7 +67,7 @@ bool SCFuzzer::repeatTest(size_t digitNum, size_t runs)
 
 bool SCFuzzer::runTest(size_t N)
 {
-    streamCompaction.setDigitNum(N);
+    streamCompaction.setDigitNum(1, N);
 
     std::vector<int> predicate(N);
     std::fill(predicate.begin(), predicate.end(), 1);
@@ -93,6 +93,8 @@ bool SCFuzzer::runTest(size_t N)
                     CL_MEM_READ_WRITE,
                     predicateBytes);
 
+    StreamCompaction::Worker worker = streamCompaction.worker();
+
     queue = cl::CommandQueue(context, device);
 
     cl_command_queue_properties info;
@@ -106,14 +108,16 @@ bool SCFuzzer::runTest(size_t N)
             predicateBytes,
             predicate.data());
 
-    int res = streamCompaction.enqueue(
+    Fragment all(N);
+    int res = worker.run(
+            all,
             queue,
             digitsInBuf,
             digitsOutBuf,
             predicateBuf,
             true);
 
-    auto dump = streamCompaction.getNewIdxDump();
+    auto dump = worker.getNewIdxDump();
 
 
     if (res != static_cast<int>(N))
