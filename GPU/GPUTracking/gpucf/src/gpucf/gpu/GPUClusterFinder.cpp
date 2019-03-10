@@ -13,6 +13,7 @@
 using namespace gpucf;
 
 using nonstd::optional;
+using nonstd::nullopt;
 
 
 const GPUClusterFinder::Config GPUClusterFinder::defaultConfig;
@@ -23,8 +24,10 @@ GPUClusterFinder::Worker::Worker(
         cl::Device  device,
         cl::Program program,
         DeviceMemory mem,
+        StreamCompaction::Worker streamCompaction,
         Worker *prev)
     : mem(mem)
+    , streamCompaction(streamCompaction)
 {
 
     log::Debug() << "create clustering queue.";
@@ -64,7 +67,7 @@ template<class DigitT>
 void GPUClusterFinder::Worker::run(
         const Fragment &range,
         nonstd::span<const DigitT> digits,
-        nonstd::span<Cluster> /* cluster */)
+        nonstd::span<Cluster> clusters)
 {
     if (prev)
     {
@@ -147,6 +150,104 @@ void GPUClusterFinder::Worker::run(
             local,
             nullptr,
             findingPeaks.get());
+
+
+    /*************************************************************************
+     * Compact peaks
+     ************************************************************************/
+
+    size_t clusternum = streamCompaction.run(
+            range,
+            clustering,
+            mem.digits,
+            mem.peaks,
+            mem.isPeak);
+
+    DBG(clusternum);
+    ASSERT(clusternum <= range.backlog + range.items);
+
+
+    /*************************************************************************
+     * Compute cluster
+     ************************************************************************/
+
+    if (clusternum > 0)
+    {
+        computeClusters.setArg(0, mem.chargeMap);
+        computeClusters.setArg(1, mem.peaks);
+        computeClusters.setArg(2, mem.globalToLocalRow);
+        computeClusters.setArg(3, mem.globalRowToCru);
+        computeClusters.setArg(4, mem.cluster);
+        clustering.enqueueNDRangeKernel(
+                computeClusters,
+                cl::NDRange(range.start),
+                cl::NDRange(clusternum),
+                local,
+                nullptr,
+                computingClusters.get());
+    }
+    
+    if (prev)
+    {
+        prev->computeClusters.set_value(*computingClusters.get());
+    }
+
+
+    /*************************************************************************
+     * Reset charge map
+     ************************************************************************/
+
+    if (next)
+    {
+        std::vector<cl::Event> ev = {next->computeClusters.get()};
+        clustering.enqueueBarrierWithWaitList(&ev);
+    }
+
+    resetChargeMap.setArg(0, mem.digits);
+    resetChargeMap.setArg(1, mem.chargeMap);
+    clustering.enqueueNDRangeKernel(
+            resetChargeMap,
+            cl::NDRange(range.start),
+            cl::NDRange(range.backlog + range.items),
+            local,
+            nullptr,
+            zeroChargeMap.get());
+
+
+    /*************************************************************************
+     * Copy cluster to host
+     ************************************************************************/
+
+    ASSERT(clusters.size() == digits.size());
+
+    log::Info() << "Copy results back...";
+
+    size_t clusterstart = (prev == nullopt) ? 0 : prev->clusters.get();
+
+    DBG(clusterstart);
+    DBG(clusternum);
+    DBG(clusters.size());
+    nonstd::span<Cluster> myCluster = clusters.subspan(clusterstart, clusternum);
+
+    if (clusternum > 0)
+    {
+        clustering.enqueueReadBuffer(
+                mem.cluster, 
+                CL_TRUE,
+                range.start * sizeof(Cluster),
+                clusternum  * sizeof(Cluster), 
+                myCluster.data(),
+                nullptr,
+                clustersToHost.get());
+    }
+
+    clusterend = clusterstart + clusternum;
+
+    if (next)
+    {
+        next->clusters.set_value(clusterend);
+    }
+
 }
 
 template<class DigitT>
@@ -170,86 +271,73 @@ void GPUClusterFinder::Worker::join()
     clustering.finish();
 }
 
-size_t GPUClusterFinder::computeAndReadClusters()
-{
-    Worker &worker = workers.front();
+/* size_t GPUClusterFinder::computeAndReadClusters() */
+/* { */
+/*     Worker &worker = workers.front(); */
 
 
     /*************************************************************************
      * Compact peaks
      ************************************************************************/
 
-    size_t clusterNum = streamCompaction.enqueue(
-            worker.clustering,
-            mem.digits,
-            mem.peaks,
-            mem.isPeak);
+/*     size_t clusterNum = streamCompaction.enqueue( */
+/*             worker.clustering, */
+/*             mem.digits, */
+/*             mem.peaks, */
+/*             mem.isPeak); */
 
-    /* log::Debug() << "Found " << clusterNum << " peaks"; */
+/*     /1* log::Debug() << "Found " << clusterNum << " peaks"; *1/ */
 
 
     /*************************************************************************
      * Compute cluster
      ************************************************************************/
 
-    cl::NDRange local(64);
+/*     cl::NDRange local(64); */
 
-    if (clusterNum > 0)
-    {
-        worker.computeClusters.setArg(0, mem.chargeMap);
-        worker.computeClusters.setArg(1, mem.peaks);
-        worker.computeClusters.setArg(2, mem.globalToLocalRow);
-        worker.computeClusters.setArg(3, mem.globalRowToCru);
-        worker.computeClusters.setArg(4, mem.cluster);
-        worker.clustering.enqueueNDRangeKernel(
-                worker.computeClusters,
-                cl::NullRange,
-                cl::NDRange(clusterNum),
-                local,
-                nullptr,
-                worker.computingClusters.get());
-    }
+/*     if (clusterNum > 0) */
+/*     { */
+/*         worker.computeClusters.setArg(0, mem.chargeMap); */
+/*         worker.computeClusters.setArg(1, mem.peaks); */
+/*         worker.computeClusters.setArg(2, mem.globalToLocalRow); */
+/*         worker.computeClusters.setArg(3, mem.globalRowToCru); */
+/*         worker.computeClusters.setArg(4, mem.cluster); */
+/*         worker.clustering.enqueueNDRangeKernel( */
+/*                 worker.computeClusters, */
+/*                 cl::NullRange, */
+/*                 cl::NDRange(clusterNum), */
+/*                 local, */
+/*                 nullptr, */
+/*                 worker.computingClusters.get()); */
+/*     } */
 
 
-    /*************************************************************************
-     * Reset charge map
-     ************************************************************************/
-
-    worker.resetChargeMap.setArg(0, mem.digits);
-    worker.resetChargeMap.setArg(1, mem.chargeMap);
-    worker.clustering.enqueueNDRangeKernel(
-            worker.resetChargeMap,
-            cl::NullRange,
-            digits.size(),
-            local,
-            nullptr,
-            worker.zeroChargeMap.get());
     
 
     /*************************************************************************
      * Copy cluster to host
      ************************************************************************/
 
-    ASSERT(clusters.size() == size_t(digits.size()));
+/*     ASSERT(clusters.size() == size_t(digits.size())); */
 
-    log::Info() << "Copy results back...";
+/*     log::Info() << "Copy results back..."; */
 
-    if (clusterNum > 0)
-    {
-        worker.clustering.enqueueReadBuffer(
-                mem.cluster, 
-                CL_TRUE, 
-                0, 
-                clusterNum * sizeof(Cluster), 
-                clusters.data(),
-                nullptr,
-                worker.clustersToHost.get());
-    }
+/*     if (clusterNum > 0) */
+/*     { */
+/*         worker.clustering.enqueueReadBuffer( */
+/*                 mem.cluster, */ 
+/*                 CL_TRUE, */ 
+/*                 0, */ 
+/*                 clusterNum * sizeof(Cluster), */ 
+/*                 clusters.data(), */
+/*                 nullptr, */
+/*                 worker.clustersToHost.get()); */
+/*     } */
 
-    worker.clustering.finish();
+/*     worker.clustering.finish(); */
 
-    return clusterNum;
-}
+/*     return clusterNum; */
+/* } */
 
 /* Lane GPUClusterFinder::Worker::finish() */
 /* { */
@@ -289,7 +377,7 @@ void GPUClusterFinder::setup(Config conf, ClEnv &env, nonstd::span<const Digit> 
 
     addDefines(env);
 
-    streamCompaction.setup(env, digits.size());
+    streamCompaction.setup(env, config.chunks, digits.size());
 
     context = env.getContext(); 
     device  = env.getDevice();
@@ -371,6 +459,7 @@ void GPUClusterFinder::setup(Config conf, ClEnv &env, nonstd::span<const Digit> 
                 device,
                 cfprg,
                 mem,
+                streamCompaction.worker(),
                 (i == 0) ? nullptr : &workers.back());
     }
 
@@ -457,7 +546,7 @@ GPUClusterFinder::Result GPUClusterFinder::run()
      * Compute clusters
      ************************************************************************/
 
-    size_t clusterNum = computeAndReadClusters();
+    size_t clusterNum = workers.back().clusterend;
 
     printClusters(clusters, 10);
 
@@ -546,20 +635,16 @@ void GPUClusterFinder::addDefines(ClEnv &env)
 
 Lane GPUClusterFinder::toLane(const Worker &p)
 {
-    bool first = (p.prev == nonstd::nullopt);
+    /* bool first = (p.prev == nonstd::nullopt); */
 
     return {
         {"digitsToDevice", p.digitsToDevice},
         {"fillChargeMap", p.fillingChargeMap},
         {"findPeaks", p.findingPeaks},
-        (first) ? streamCompaction.asStep("compactPeaks") 
-                : Step("compactPeaks", 0, 0),
-        (first) ? Step("computeCluster", p.computingClusters)
-                : Step("computeCluster", 0, 0),
-        (first) ? Step("resetChargeMap", p.zeroChargeMap)
-                : Step("resetChargeMap", 0, 0),
-        (first) ? Step("clusterToHost", p.clustersToHost)
-                : Step("clusterToHost", 0, 0),
+        p.streamCompaction.asStep("compactPeaks"),
+        Step("computeCluster", p.computingClusters),
+        {"resetChargeMap", p.zeroChargeMap},
+        {"clusterToHost", p.clustersToHost},
     };
 }
 

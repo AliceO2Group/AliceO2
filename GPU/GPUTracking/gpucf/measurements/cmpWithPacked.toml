@@ -4,6 +4,6 @@ input = [
 ]
 
 type   = "bar"
-out    = "out/cmpWidthPacked.pdf"
+out    = "out/cmpWithPacked.pdf"
 ylabel = "time [ms]"
 showLegend = true

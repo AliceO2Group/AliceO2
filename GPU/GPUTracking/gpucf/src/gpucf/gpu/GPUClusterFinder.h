@@ -104,14 +104,23 @@ private:
         cl::Kernel resetChargeMap;
 
         DeviceMemory mem;
+        StreamCompaction::Worker streamCompaction;
 
         cl::CommandQueue clustering;
         cl::CommandQueue cleanup;
 
         std::thread myThread;
 
+        size_t clusterend;
 
-        Worker(cl::Context, cl::Device, cl::Program, DeviceMemory, Worker *);
+
+        Worker(
+                cl::Context, 
+                cl::Device, 
+                cl::Program, 
+                DeviceMemory, 
+                StreamCompaction::Worker,
+                Worker *);
 
         template<class DigitT>
         void run(
