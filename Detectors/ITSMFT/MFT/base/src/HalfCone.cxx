@@ -119,7 +119,7 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   combi_2hole_mb0_b->RegisterYourself();
 
   // shape for cross_mb0
-  TGeoShape* box_mb0 = new TGeoBBox("box_mb0", x_boxmb0 / 2, y_boxmb0 / 2, z_boxmb0 / 2);
+  TGeoShape* box_mb0 = new TGeoBBox("Box_mb0", x_boxmb0 / 2, y_boxmb0 / 2, z_boxmb0 / 2);
   TGeoShape* hole1_mb0 = new TGeoTube("hole1_mb0", radin_1hmb0, radout_1hmb0, high_1hmb0 / 2);
   TGeoShape* hole2_mb0 = new TGeoTube("hole2_mb0", radin_2hmb0, radout_2hmb0, high_2hmb0 / 2);
 
