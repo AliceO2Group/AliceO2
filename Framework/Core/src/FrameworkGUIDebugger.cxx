@@ -546,7 +546,7 @@ void displayDeviceHistograms(gui::WorkspaceGUIState& state,
         ImGui::Columns(state.devices.size() + 1);
         ImGui::TextUnformatted("entry");
         ImGui::NextColumn();
-        ImVec2 textsize = ImGui::CalcTextSize("extry", NULL, true);
+        ImVec2 textsize = ImGui::CalcTextSize("extry", nullptr, true);
         float offset = 0.f;
         offset += std::max(100.f, textsize.x);
         for (size_t j = 0; j < state.devices.size(); ++j) {
@@ -554,7 +554,7 @@ void displayDeviceHistograms(gui::WorkspaceGUIState& state,
           const DeviceSpec& spec = devices[j];
 
           ImGui::SetColumnOffset(-1, offset);
-          textsize = ImGui::CalcTextSize(spec.name.c_str(), NULL, true);
+          textsize = ImGui::CalcTextSize(spec.name.c_str(), nullptr, true);
           offset += std::max(100.f, textsize.x);
           ImGui::TextUnformatted(spec.name.c_str());
           ImGui::NextColumn();
