@@ -62,7 +62,7 @@ class InteractionSampler
   float mIntRate = -1.;           ///< total interaction rate in Hz
   float mBCTimeRMS = 0.2;         ///< BC time spread in NANOSECONDS
   float mMuBC = -1.;              ///< interaction probability per BC
-  float mProbNoInteraction = 1.;  ///< probability of BC w/o interaction
+  float mProbInteraction = 1.;    ///< probability of non-0 interactions at per BC
   float mMuBCZTRed = 0;           ///< reduced mu for fast zero-truncated Poisson derivation
 
   o2::BunchFilling mBCFilling;  ///< patter of active BCs

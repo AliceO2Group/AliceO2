@@ -59,6 +59,14 @@ BOOST_AUTO_TEST_CASE(InteractionSampler)
     t = rec.timeNS;
   }
 
+  // make sure the IR corresponds to declared one
+  records.reserve((int)sampler1.getInteractionRate());
+  sampler1.generateCollisionTimes(records);
+  double dt = (records.back().timeNS - records.front().timeNS) * 1.e-9;
+  printf("\nGenerated %d collisions with time span %.3fs at IR=%e\n",
+         (int)records.size(), dt, sampler1.getInteractionRate());
+  BOOST_CHECK(std::abs(dt - 1.) < 0.1);
+
   // reconfigure w/o modifying BC filling but setting per bunch
   // mu (large -> lot of in-bunch pile-up)
   printf("\nResetting/testing sampler with same bunch filling but high mu\n");
