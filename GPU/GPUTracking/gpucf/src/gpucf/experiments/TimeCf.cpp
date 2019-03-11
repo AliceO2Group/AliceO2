@@ -39,6 +39,7 @@ void TimeCf::run(ClEnv &env)
         auto res = cf.run();
 
         measurements.add(res.profiling);
+        measurements.finishRun();
     }
 
     save(tgtFile, measurements);

@@ -35,7 +35,7 @@ public:
     struct Result
     {
         std::vector<Cluster> clusters;
-        Measurement profiling; 
+        std::vector<Step> profiling; 
     };
 
     static const Config defaultConfig;
@@ -172,7 +172,7 @@ private:
 
     void addDefines(ClEnv &);
 
-    Lane toLane(const Worker &);
+    std::vector<Step> toLane(size_t, const Worker &);
 
     size_t computeAndReadClusters();
 };

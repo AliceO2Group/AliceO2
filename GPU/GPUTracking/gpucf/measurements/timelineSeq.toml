@@ -1,0 +1,10 @@
+input = [
+    { file = "in/packedClusterFinder.json", label = "" }
+]
+
+type   = "timeline"
+out    = "out/timelineSeq.pdf"
+ylabel = "Queue"
+xlabel = "Time [ms]"
+
+showLegend = true

@@ -14,12 +14,22 @@ cl::Event *Event::get()
     return &event.value();
 }
 
-Timestamp Event::startMs() const
+Timestamp Event::queued() const
+{
+    return profilingInfo(CL_PROFILING_COMMAND_QUEUED);
+}
+
+Timestamp Event::submitted() const
+{
+    return profilingInfo(CL_PROFILING_COMMAND_SUBMIT);
+}
+
+Timestamp Event::start() const
 {
     return profilingInfo(CL_PROFILING_COMMAND_START);
 }
 
-Timestamp Event::endMs() const
+Timestamp Event::end() const
 {
     return profilingInfo(CL_PROFILING_COMMAND_END);
 }
