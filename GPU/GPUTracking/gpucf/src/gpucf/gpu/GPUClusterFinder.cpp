@@ -556,13 +556,15 @@ GPUClusterFinder::Result GPUClusterFinder::run()
 
     log::Info() << "Found " << result.size() << " clusters.";
 
-    std::vector<Lane> lanes;
-    for (const Worker &worker : workers)
+    std::vector<Step> steps;
+    for (size_t i = 0; i < workers.size(); i++)
     {
-        lanes.push_back(toLane(worker));    
+        std::vector<Step> lane = toLane(i, workers[i]); 
+
+        steps.insert(steps.end(), lane.begin(), lane.end());
     }
 
-    return Result{result, {0,0, lanes}};
+    return Result{result, steps};
 }
 
 
@@ -633,19 +635,26 @@ void GPUClusterFinder::addDefines(ClEnv &env)
 }
 
 
-Lane GPUClusterFinder::toLane(const Worker &p)
+std::vector<Step> GPUClusterFinder::toLane(size_t id, const Worker &p)
 {
     /* bool first = (p.prev == nonstd::nullopt); */
 
-    return {
+    std::vector<Step> steps = {
         {"digitsToDevice", p.digitsToDevice},
         {"fillChargeMap", p.fillingChargeMap},
         {"findPeaks", p.findingPeaks},
         p.streamCompaction.asStep("compactPeaks"),
-        Step("computeCluster", p.computingClusters),
+        {"computeCluster", p.computingClusters},
         {"resetChargeMap", p.zeroChargeMap},
         {"clusterToHost", p.clustersToHost},
     };
+
+    for (Step &step : steps)
+    {
+        step.lane = id;
+    }
+
+    return steps;
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

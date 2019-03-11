@@ -260,7 +260,9 @@ std::vector<std::vector<int>> StreamCompaction::Worker::getNewIdxDump() const
 
 Step StreamCompaction::Worker::asStep(const std::string &name) const
 {
-    return {name, scanEvents.front().startMs(), readNewDigitNum.endMs()};
+    Timestamp start = scanEvents.front().start();
+    Timestamp end   = readNewDigitNum.end();
+    return {name, start, start, start, end};
 }
 
 void StreamCompaction::Worker::dumpBuffer(

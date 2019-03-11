@@ -22,80 +22,61 @@ struct default_value_writer<Step>
         minijson::object_writer writer(stream, config);
 
         writer.write("name", step.name);
+        writer.write("queued", step.queued);
+        writer.write("submitted", step.submitted);
         writer.write("start", step.start);
         writer.write("end", step.end);
+        writer.write("lane", step.lane);
+        writer.write("run", step.run);
 
         writer.close();
     }
 };
-
-template<>
-struct default_value_writer<Measurement>
-{
-    void operator()(
-            std::ostream &stream, 
-            const Measurement &measurement,
-            writer_configuration config)
-    {
-        minijson::object_writer writer(stream, config);
-
-        writer.write("start", measurement.start);
-        writer.write("end", measurement.end);
-
-        {
-            minijson::array_writer lanesWriter = writer.nested_array("lanes");
-            /* const std::vector<Lane> &lanes = measurement.lanes; */
-            for (const std::vector<Step> &lane : measurement.lanes)
-            {
-                lanesWriter.write_array(lane.begin(), lane.end());
-            }
-
-            lanesWriter.close();
-        }
-
-        writer.close();
-    }
-};
-
-/* template<> */
-/* struct default_value_writer<Measurements> */
-/* { */
-/*     void operator()( */ 
-/*             std::ostream &stream, */
-/*             const Measurements &measurement, */
-/*             writer_configuration config) */
-/*     { */
-/*         minijson::object_writer writer(stream, config); */
-
-/*         const std::vector<Measurement> &runs = measurement.getRuns(); */
-/*         writer.write("runs", runs.begin(), runs.end()); */
-/*     } */
-/* }; */
 
 } // namespace minijson
 
 
-Step::Step(const std::string &myName, const Event &ev)
-    : Step(myName, ev.startMs(), ev.endMs())
+Step::Step(const std::string &name, const Event &ev)
+    : Step(name, ev.queued(), ev.submitted(), ev.start(), ev.end())
 {
 }
 
-Step::Step(const std::string &myName, Timestamp s, Timestamp e)
-    : name(myName)
-    , start(s)
-    , end(e)
+Step::Step(const std::string &name, 
+           Timestamp queued, 
+           Timestamp submitted,
+           Timestamp start,
+           Timestamp end)
+    : name(name)
+    , queued(queued)
+    , submitted(submitted)
+    , start(start)
+    , end(end)
 {
 }
 
 
-void Measurements::add(const Measurement &m)
+void Measurements::add(nonstd::span<const Step> steps)
 {
-    runs.push_back(m);
+    for (const Step &step : steps)
+    {
+        add(step);
+    }
 }
 
-const std::vector<Measurement> &Measurements::getRuns() const
+void Measurements::add(const Step &step)
 {
-    return runs;
+    steps.push_back(step);
+    steps.back().run = run;
+}
+
+const std::vector<Step> &Measurements::getSteps() const
+{
+    return steps;
+}
+
+void Measurements::finishRun()
+{
+    run++;
 }
 
 
@@ -105,8 +86,8 @@ std::ostream &gpucf::operator<<(std::ostream &os, const Measurements &m)
             os,
             minijson::writer_configuration().pretty_printing(true));
 
-    const std::vector<Measurement> &runs = m.getRuns();
-    writer.write_array("runs", runs.begin(), runs.end());
+    const std::vector<Step> &steps = m.getSteps();
+    writer.write_array("steps", steps.begin(), steps.end());
 
     writer.close();
 

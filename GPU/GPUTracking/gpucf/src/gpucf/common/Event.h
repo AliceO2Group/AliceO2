@@ -18,9 +18,10 @@ public:
 
     cl::Event *get();
 
-    Timestamp startMs() const;
-
-    Timestamp endMs() const;
+    Timestamp queued()    const;
+    Timestamp submitted() const;
+    Timestamp start()     const;
+    Timestamp end()       const;
 
 private:
     nonstd::optional<cl::Event> event;

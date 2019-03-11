@@ -8,11 +8,7 @@ tgtDir=$2
 measurementsDir='measurements'
 buildDir='build'
 
-plotFiles=( \
-    "clusterfinder.toml" \
-    "cmpWithPacked.toml" \
-    "timeline.toml" \
-)
+plotFiles=$(find $measurementsDir -name '*.toml')
 
 plotCmd='run/plot.py'
 
@@ -30,5 +26,5 @@ scp $remoteTgt:$tgtDir/$measurementsDir/in/* $measurementsDir/in
 
 for config in ${plotFiles[*]}
 do
-    $plotCmd $measurementsDir/$config
+    $plotCmd $config
 done

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import csv
+from collections import OrderedDict
 import json
 import os
 
@@ -8,6 +9,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import toml
+
+
+NS_TO_MS = 1000000
 
 
 def requireKey(dict_, key):
@@ -66,47 +70,25 @@ class Config:
         return os.path.join(self.baseDir, fname)
 
 
-class Lane:
+class Step:
 
-    def __init__(self, data):
-        self.orderedNames = []
+    def __init__(self, name, queued, submitted, start, end, lane, run):
 
-        self.data = {}
+        self.name = name
 
-        for step in data:
-            self.orderedNames.append(step["name"])
-            self.data[step["name"]] = (step["start"], step["end"])
+        self.queued = queued
+        self.submitted = submitted
+        self.start = start
+        self.end = end
 
-    def starts(self):
-        return [step[0] for step in self.flatten()]
+        self.lane = lane
+        self.run = run
 
-    def ends(self):
-        return [step[1] for step in self.flatten()]
-
-    def names(self):
-        return self.orderedNames
-
-    def flatten(self):
-        return [self.data[name] for name in self.orderedNames]
-
-    def step(self, name):
-        return self.data[name]
-
-    def begin(self):
-        return self.data[self.orderedNames[0]][0]
-
-class Run:
-
-    def __init__(self, data):
-        self.start = data["start"]
-        self.end   = data["end"]
-
-        self.lanes = [Lane(dct) for dct in data["lanes"]]
-
-    def begin(self):
-        begins = [lane.begin() for lane in self.lanes]
-
-        return min(begins)
+    def normalize(self, offset):
+        self.queued -= offset
+        self.submitted -= offset
+        self.start -= offset
+        self.end   -= offset
 
 
 class Measurements:
@@ -115,95 +97,82 @@ class Measurements:
         with open(fname, 'r') as datafile:
             dct = json.load(datafile)
 
-        self.data = dct["runs"]
+        self._steps = [ Step(**stepdct) for stepdct in dct["steps"] ]
 
-        self.runs = []
-
-        for rundct in dct["runs"]:
-            self.runs.append(Run(rundct))
-
+        self._normalize()
 
     def steps(self):
-        return [step["name"] for step in self.data[0]["lanes"][0]]
+        names = self._query(lambda s: s.name, unique=True)
 
-    def lanes(self):
-        return len(self.data[0]["lanes"])
+        return names
 
-    def frames(self, step):
+    def runs(self):
+        runIds = self._query(lambda s: s.run, unique=True)
 
-        run = 0
+        return runIds
 
-        lanes = self.runs[run].lanes
+    def frames(self, pred):
 
-        frames = []
+        startEnds = self._query(
+                lambda s: (s.start, s.end), 
+                pred);
 
-        for lane in lanes:
-            frames.append(lane.step(step))
-
-        starts = [step[0] for step in frames]
-        ends   = [step[1]  for step in frames]
-
+        starts = [step[0] for step in startEnds]
+        ends   = [step[1] for step in startEnds]
 
         starts = [x for x in starts if x > 0]
         ends = [x for x in ends if x > 0]
 
-        starts   = np.array(starts)
-        ends   = np.array(ends)
-
-        offset = self.runs[run].begin()
-        starts -= offset
-        ends   -= offset
+        starts = np.array(starts)
+        ends = np.array(ends)
 
         starts = np.array(starts, dtype=np.float64)
         ends = np.array(ends, dtype=np.float64)
 
-        starts /= 1000000.0
-        ends /= 1000000.0
+        starts /= NS_TO_MS
+        ends /= NS_TO_MS
 
         return (starts, ends)
 
-    def durations(self, lane=0):
+    def durations(self, pred):
 
-        steps = self.steps()
-
-        start = np.array([
-            [ self.data[run]["lanes"][lane][i]["start"] 
-                for run in range(len(self.runs)) ]
-            for i in range(len(steps))
-        ])
-
-        end = np.array([
-            [ self.data[run]["lanes"][lane][i]["end"] 
-                for run in range(len(self.runs)) ]
-            for i in range(len(steps))
-        ])
+        start, end = self.frames(pred)
 
         duration = end - start
 
-        duration = np.array(duration, dtype=np.float64)
-        duration /=  1000000
-
         return list(duration)
 
+    def _query(self, map_, pred=None, unique=False):
+        
+        if pred is not None:
+            filtered = [ step for step in self._steps if pred(step) ]
+        else:
+            filtered = self._steps
 
-def readCsv(fname):
-    labels = None
-    data   = None
+        res = [map_(step) for step in filtered]
 
-    with open(fname, 'r') as csvfile:
-        reader = csv.reader(csvfile)
-        isFirstRow = True
-        for row in reader:
-            if isFirstRow:
-                labels = row
-                isFirstRow = False
-                data = [[] for _ in range(len(labels))]
-            else:
-                for item, tgt in zip(row, data):
-                    tgt.append(float(item))
+        if unique:
+            return list(OrderedDict.fromkeys(res))
+        else:
+            return res
 
-    data = [np.array(x) for x in data]
-    return labels, data
+    def _normalize(self):
+
+        for run in self.runs():
+
+            print("run =", run)
+
+            stepsByRun = self._query(
+                lambda s: s, 
+                lambda s: s.run == run)
+
+            offset = np.min([s.queued for s in stepsByRun])
+
+            print("offset =", offset)
+
+            for step in stepsByRun:
+                step.normalize(offset)
+
 
 def split(data):
     maxs = np.array([np.max(col) for col in data])
@@ -211,6 +180,7 @@ def split(data):
     medians = np.array([np.median(col) for col in data])
 
     return maxs, mins, medians
+
 
 def bar(cnf):
     print("Creating barplot...")
@@ -237,10 +207,19 @@ def bar(cnf):
 
         measurements = Measurements(fname)
 
-        maxs, mins, medians = split(measurements.durations())
+        durations = np.array([
+                measurements.durations(lambda s: s.lane == 0 and s.name == step)
+                        for step in steps])
+
+        maxs, mins, medians = split(durations)
 
         maxs -= medians
         mins = medians - mins
+
+        print(barPositions)
+        print(medians)
+        print(mins)
+        print(maxs)
 
         plt.bar(barPositions,
                 medians, 
@@ -255,17 +234,6 @@ def bar(cnf):
     plt.margins(0.2)
     plt.subplots_adjust(bottom=0.2)
 
-    if cnf.ylabel is not None:
-        plt.ylabel(cnf.ylabel)
-
-    if cnf.xlabel is not None:
-        plt.label(cnf.xlabel)
-
-    if cnf.showLegend:
-        plt.legend()
-
-    plt.savefig(cnf.expand(cnf.out))
-
 
 def timeline(cnf):
     assert len(cnf.input) == 1
@@ -274,12 +242,33 @@ def timeline(cnf):
 
     steps = measurements.steps()
 
+    queuenum = None
+
     for step in steps:
-        start, end = measurements.frames(step)
+        start, end = measurements.frames(
+                lambda s: s.name == step and s.run == 4)
+
+        if queuenum is None:
+            queuenum = len(start)
+
+        print(step)
+        print(start)
+        print(end)
 
         plt.barh(range(len(start)), end-start, left=start, label=step)
 
+    assert queuenum is not None
 
+    plt.yticks(range(queuenum))
+
+def expandedTimeline(cnf):
+    assert len(cnf.input) == 1
+
+    measurements = Measurements(cnf.expand(cnf.input[0].file))
+
+
+
+def finalize(cnf):
     if cnf.ylabel is not None:
         plt.ylabel(cnf.ylabel)
 
@@ -287,10 +276,9 @@ def timeline(cnf):
         plt.xlabel(cnf.xlabel)
 
     if cnf.showLegend:
-        plt.legend()
+        plt.legend(loc='best')
 
     plt.savefig(cnf.expand(cnf.out))
-
 
 
 PLOTS = {
@@ -315,6 +303,8 @@ def main():
     config = Config(toml.load(args.config), os.path.dirname(args.config[0]))
 
     PLOTS[config.type](config)
+
+    finalize(config)
 
 
 if __name__ == '__main__':
