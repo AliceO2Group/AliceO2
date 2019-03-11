@@ -6,6 +6,7 @@
 #include <TParameter.h>
 #include <string>
 #include <FairLogger.h>
+#include <TStopwatch.h>
 
 #include "Field/MagneticField.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -63,6 +64,8 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparam
   pid_t pids[ninstance];
   int n = ninstance;
   /* Start children. */
+  TStopwatch timerTot;
+  timerTot.Start();
   if (!onlymerge) {
     for (int i = 0; i < n; ++i) {
       if ((pids[i] = fork()) < 0) {
@@ -81,7 +84,8 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparam
         if (i == 0)
           calib.run(o2::globaltracking::CalibTOF::kLHCphase);
         for (int sect = i; sect < 18; sect += ninstance)
-          calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, sect);
+          //calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, sect);
+          calib.run(o2::globaltracking::CalibTOF::kChannelOffset, sect);
         calib.fillOutput();
         outFile.cd();
         outTree.Write();
@@ -103,17 +107,25 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparam
     }
   }
 
+  timerTot.Stop();
+  Printf("Time to run the calibration was:");
+  timerTot.Print();
   printf("merge outputs\n");
 
   TFile outFile((path + outputfile).data(), "recreate");
   TTree outTree("calibrationTOF", "Calibration TOF params");
   calib.setOutputTree(&outTree);
   calib.init();
+  timerTot.Start(1);
   for (int i = 0; i < ninstance; ++i) {
     calib.merge((path + namefile.Data() + Form("_fork%i.root", i)).data());
   }
+  timerTot.Stop();
+  Printf("Time to run the merging was:");
+  timerTot.Print();
   outFile.cd();
   calib.fillOutput();
   outTree.Write();
   outFile.Close();
+
 }

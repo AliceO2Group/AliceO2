@@ -380,20 +380,23 @@ float CalibTOF::doChannelCalibration(int ipad, TH1F* histo, TF1* funcChOffset)
 {
   // calibrate single channel from histos - offsets
 
-  FitPeak(funcChOffset, histo, 500., 3., 2., "ChannelOffset");
+  float integral = histo->Integral();
+  if (!integral) return -1; // we skip directly the channels that were switched off online, the PHOS holes... 
 
+  int resfit = FitPeak(funcChOffset, histo, 500., 3., 2., "ChannelOffset");
+
+  if (resfit) return 0.; // fit was not good
+  
   float mean = funcChOffset->GetParameter(1);
   float sigma = funcChOffset->GetParameter(2);
   float intmin = mean - 5 * sigma;
   float intmax = mean + 5 * sigma;
   int binmin = histo->FindBin(intmin);
   int binmax = histo->FindBin(intmax);
+  if (binmin < 1) binmin = 1; // avoid to take the underflow bin (can happen in case the sigma is too large)
+  if (binmax > histo->GetNbinsX()) binmax = histo->GetNbinsX(); // avoid to take the overflow bin (can happen in case the sigma is too large)
 
-  float fraction = 0;
-  float integral = histo->Integral();
-  if (integral)
-    fraction = histo->Integral(binmin, binmax) / integral;
-  return fraction;
+  return histo->Integral(binmin, binmax) / integral;
 }
 //______________________________________________
 

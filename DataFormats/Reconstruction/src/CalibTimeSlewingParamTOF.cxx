@@ -44,9 +44,9 @@ CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF()
   for (int i = 0; i < NSECTORS; i++) {
     for (int j = 0; j < NCHANNELXSECTOR; j++) {
       mChannelStart[i][j] = -1;
-      mFractionUnderPeak[i][j] = 0.;
+      mFractionUnderPeak[i][j] = -1.;
       mSigmaPeak[i][j] = -1.;
-      mSigmaErrPeak[i][j] = 0.;
+      mSigmaErrPeak[i][j] = -1.;
     }
   }
 }
