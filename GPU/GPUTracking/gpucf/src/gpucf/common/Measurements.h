@@ -2,6 +2,8 @@
 
 #include <gpucf/common/Timestamp.h>
 
+#include <nonstd/span.hpp>
+
 #include <iosfwd>
 #include <string>
 #include <utility>
@@ -15,31 +17,33 @@ namespace gpucf
     struct Step
     {
         Step(const std::string &, const Event &);
-        Step(const std::string &, Timestamp, Timestamp);
+
+        Step(const std::string &, Timestamp, Timestamp, Timestamp, Timestamp);
 
         std::string name;
+        Timestamp queued;
+        Timestamp submitted;
         Timestamp start;
         Timestamp end;
-    };
-
-    using Lane = std::vector<Step>;
-
-    struct Measurement
-    {
-        Timestamp start;
-        Timestamp end;
-        std::vector<Lane> lanes; 
+        
+        size_t lane = 0;
+        size_t run  = 0;
     };
 
     class Measurements
     {
     public:
-        void add(const Measurement &);
+        void add(nonstd::span<const Step>);
+        void add(const Step &);
 
-        const std::vector<Measurement> &getRuns() const;
+        void finishRun();
+
+        const std::vector<Step> &getSteps() const;
 
     private:
-        std::vector<Measurement> runs;
+        std::vector<Step> steps;
+
+        size_t run = 0;
     };
 
     std::ostream &operator<<(std::ostream &, const Measurements &);
