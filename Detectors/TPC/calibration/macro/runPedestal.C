@@ -8,24 +8,33 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-void runPedestal(TString fileInfo, TString outputFileName="", Int_t nevents=100, Int_t adcMin=0, Int_t adcMax=1100)
+void runPedestal(TString fileInfo, TString outputFileName = "", Int_t nevents = 100, Int_t adcMin = 0, Int_t adcMax = 1100, Int_t numberTimeBins = 500, Int_t statisticsType = 0, uint32_t verbosity = 0, uint32_t debugLevel = 0)
 {
   using namespace o2::TPC;
-  CalibPedestal ped;//(PadSubset::Region);
+  CalibPedestal ped; //(PadSubset::Region);
   ped.setADCRange(adcMin, adcMax);
-  ped.setupContainers(fileInfo);
+  ped.setupContainers(fileInfo, verbosity, debugLevel);
+  ped.setStatisticsType(CalibPedestal::StatisticsType(statisticsType));
+  ped.setTimeBinRange(0, numberTimeBins);
 
-  ped.processEvent();
-  ped.resetData();
+  //ped.processEvent();
+  //ped.resetData();
 
+  CalibRawBase::ProcessStatus status = CalibRawBase::ProcessStatus::Ok;
   //while (ped.processEvent());
-  for (Int_t i=0; i<nevents; ++i) {
-    if (ped.processEvent() != CalibRawBase::ProcessStatus::Ok) break;
+  for (Int_t i = 0; i < nevents; ++i) {
+    status = ped.processEvent();
+    cout << "Processing event " << i << " with status " << int(status) << '\n';
+    if (status != CalibRawBase::ProcessStatus::Ok) {
+      break;
+    }
   }
   ped.analyse();
 
   cout << "Number of processed events: " << ped.getNumberOfProcessedEvents() << '\n';
-  if (outputFileName.IsNull()) outputFileName="Pedestals.root";
+  cout << "Status: " << int(status) << '\n';
+  if (outputFileName.IsNull())
+    outputFileName = "Pedestals.root";
   ped.dumpToFile(outputFileName.Data());
 
   //const CalDet<float>& calPedestal = ped.getPedestal();
@@ -45,6 +54,4 @@ void runPedestal(TString fileInfo, TString outputFileName="", Int_t nevents=100,
   //hNoise->Draw("colz");
 
   cout << "To display the pedestals run: root.exe $calibMacroDir/drawNoiseAndPedestal.C'(\"" << outputFileName << "\")'\n";
-
-
 }

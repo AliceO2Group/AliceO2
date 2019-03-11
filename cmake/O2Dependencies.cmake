@@ -1160,6 +1160,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/Reconstruction/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/Common/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Headers/include
     ${MS_GSL_INCLUDE_DIR}
 )
 
@@ -1203,6 +1204,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include
     ${CMAKE_SOURCE_DIR}/DataFormats/common/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Headers/include
     ${Vc_INCLUDE_DIR}
     ${Boost_INCLUDE_DIR}
 )
