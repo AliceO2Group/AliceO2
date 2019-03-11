@@ -52,8 +52,8 @@ void InteractionSampler::init()
     }
   }
   double muexp = TMath::Exp(-mMuBC);
-  mProbNoInteraction = 1. - muexp;
-  mMuBCZTRed = mMuBC * muexp / mProbNoInteraction;
+  mProbInteraction = 1. - muexp;
+  mMuBCZTRed = mMuBC * muexp / mProbInteraction;
   mBCCurrent = mBCMin + gRandom->Integer(mBCMax - mBCMin + 1);
   mIntBCCache = 0;
   mOrbit = 0;
@@ -75,8 +75,9 @@ void InteractionSampler::print() const
 o2::InteractionRecord InteractionSampler::generateCollisionTime()
 {
   // generate single interaction record
-  if (mIntRate < 0)
+  if (mIntRate < 0) {
     init();
+  }
 
   if (mIntBCCache < 1) {                   // do we still have interaction in current BC?
     mIntBCCache = simulateInteractingBC(); // decide which BC interacts and N collisions
@@ -93,14 +94,12 @@ o2::InteractionRecord InteractionSampler::generateCollisionTime()
 //_________________________________________________
 int InteractionSampler::simulateInteractingBC()
 {
-  // in order not to test random numbers for too many BC's with low mu,
-  // we estimate from very beginning how many BC's happen w/o interaction
   // Returns number of collisions assigned to selected BC
-  double prob = gRandom->Rndm();
-  while (prob > 0.) {  // skip BCs w/o interaction
+
+  do {
     nextCollidingBC(); // pick next interacting bunch
-    prob -= mProbNoInteraction;
-  }
+  } while (gRandom->Rndm() > mProbInteraction); // skip BCs w/o collisions
+
   // once BC is decided, enforce at least one interaction
   int ncoll = genPoissonZT();
   // assign random time withing a bunch
@@ -112,7 +111,7 @@ int InteractionSampler::simulateInteractingBC()
     mTimeInBC.push_back(tInBC);
   }
   if (ncoll > 1) { // sort in DECREASING time order (we are reading vector from the end)
-    std::sort(mTimeInBC.begin(), mTimeInBC.end(), [](const double a, const double b) { return a > b; });
+    std::sort(mTimeInBC.begin(), mTimeInBC.end(), [](const float a, const float b) { return a > b; });
   }
   return ncoll;
 }
