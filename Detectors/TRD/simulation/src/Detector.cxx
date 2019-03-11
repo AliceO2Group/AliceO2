@@ -80,14 +80,6 @@ void Detector::InitializeO2Detector()
 
 bool Detector::ProcessHits(FairVolume* v)
 {
-  // very rudimentatary hit creation
-  /* TODO: needs upgrade to the level of AliROOT
-
-    - Add primary ionization (fluka, geant?) see AliRoot
-    - Add TR
-
-  */
-
   // If not charged track or already stopped or disappeared, just return.
   if ((!fMC->TrackCharge()) || fMC->IsTrackDisappeared()) {
     return false;
@@ -126,35 +118,58 @@ bool Detector::ProcessHits(FairVolume* v)
   cIdSector[2] = 0;
   sector = atoi(cIdSector);
   // The detector number (0 – 539)
-  det = mGeom->getDetector(mGeom->getLayer(idChamber),
-                           mGeom->getStack(idChamber), sector);
+  det = mGeom->getDetector(mGeom->getLayer(idChamber), mGeom->getStack(idChamber), sector);
 
   // 0: InFlight 1: Entering 2: Exiting
   int trkStat = 0;
+  double xp, yp, zp, px, py, pz, etot;
+
+  o2::Data::Stack* stack = (o2::Data::Stack*)fMC->GetStack();
+
   // Special hits if track is entering
   if (drRegion && fMC->IsTrackEntering()) {
+    // Create a track reference at the entrance of each
+    // chamber that contains the momentum components of the particle
+    fMC->TrackMomentum(px, py, pz, etot);
+    fMC->TrackPosition(xp, yp, zp);
+    stack->addTrackReference(o2::TrackReference(xp, yp, zp, px, py, pz,
+                                                fMC->TrackLength(),
+                                                fMC->TrackTime(),
+                                                stack->GetCurrentTrackNumber(),
+                                                GetDetId()));
+    // Update track status
+    trkStat = 1;
     // Create the hits from TR photons if electron/positron is entering the drift volume
     const bool ele = (TMath::Abs(fMC->TrackPid()) == 11); // electron PDG code.
     if (mTRon && ele) {
       createTRhit(det);
     }
-    trkStat = 1;
   } else if (amRegion && fMC->IsTrackExiting()) {
+    // Create a track reference at the exit of each
+    // chamber that contains the momentum components of the particle
+    fMC->TrackMomentum(px, py, pz, etot);
+    fMC->TrackPosition(xp, yp, zp);
+    stack->addTrackReference(o2::TrackReference(xp, yp, zp, px, py, pz,
+                                                fMC->TrackLength(),
+                                                fMC->TrackTime(),
+                                                stack->GetCurrentTrackNumber(),
+                                                GetDetId()));
+    // Update track status
     trkStat = 2;
   }
 
   // Calculate the charge according to GEANT Edep
   // Create a new dEdx hit
-  const double enDep = TMath::Max(fMC->Edep(), 0.0) * 1.0e+9; // Energy in eV
+  const double enDep = TMath::Max(fMC->Edep(), 0.0) * 1.0e9; // Energy in eV
+  const int totalChargeDep = (int)(enDep / mWion);
+
   // Store those hits with enDep bigger than the ionization potential of the gas mixture for in-flight tracks
   // or store hits of tracks that are entering or exiting
-  if ((enDep > mWion) || trkStat) {
-    double x, y, z;
-    fMC->TrackPosition(x, y, z);
+  if (totalChargeDep || trkStat) {
+    fMC->TrackPosition(xp, yp, zp);
     double tof = fMC->TrackTime() * 1e6; // The time of flight in micro-seconds
-    o2::Data::Stack* stack = (o2::Data::Stack*)fMC->GetStack();
     const int trackID = stack->GetCurrentTrackNumber();
-    addHit(x, y, z, tof, enDep, trackID, det);
+    addHit(xp, yp, zp, tof, totalChargeDep, trackID, det);
     stack->addHit(GetDetId());
     return true;
   }
@@ -236,7 +251,8 @@ void Detector::createTRhit(int det)
     double tof = fMC->TrackTime() * 1e6;
     o2::Data::Stack* stack = (o2::Data::Stack*)fMC->GetStack();
     const int trackID = stack->GetCurrentTrackNumber();
-    addHit(x, y, z, tof, -energyeV, trackID, det);
+    const int totalChargeDep = -1 * (int)(energyeV / mWion); // Negative charge for tagging TR photon hits
+    addHit(x, y, z, tof, totalChargeDep, trackID, det);
     stack->addHit(GetDetId());
   }
 }
@@ -244,6 +260,15 @@ void Detector::createTRhit(int det)
 void Detector::Register()
 {
   FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, true);
+}
+
+void Detector::FinishEvent()
+{
+  // Sort hit vector by detector number before the End of the Event
+  std::sort(mHits->begin(), mHits->end(),
+            [](const HitType& a, const HitType& b) {
+              return a.GetDetectorID() < b.GetDetectorID();
+            });
 }
 
 // this is very problematic; we should do round robin or the clear needs

@@ -52,15 +52,10 @@ class Detector : public o2::Base::DetImpl<Detector>
 {
  public:
   Detector(Bool_t active = true);
-
   ~Detector() override;
-
   void InitializeO2Detector() override;
-
   bool ProcessHits(FairVolume* v = nullptr) override;
-
   void Register() override;
-
   std::vector<HitType>* getHits(int iColl) const
   {
     if (iColl == 0) {
@@ -68,13 +63,11 @@ class Detector : public o2::Base::DetImpl<Detector>
     }
     return nullptr;
   }
-
+  void FinishEvent() override;
   void Reset() override;
   void EndOfEvent() override;
-
   void createMaterials();
   void ConstructGeometry() override;
-
   /// Add alignable top volumes
   void addAlignableVolumes() const override;
 
@@ -87,7 +80,7 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   // addHit
   template <typename T>
-  void addHit(T x, T y, T z, T time, T energy, int trackId, int detId);
+  void addHit(T x, T y, T z, T tof, int charge, int trackId, int detId);
 
   // Create TR hits
   void createTRhit(int);
@@ -111,9 +104,9 @@ class Detector : public o2::Base::DetImpl<Detector>
 };
 
 template <typename T>
-void Detector::addHit(T x, T y, T z, T time, T energy, int trackId, int detId)
+void Detector::addHit(T x, T y, T z, T tof, int charge, int trackId, int detId)
 {
-  mHits->emplace_back(x, y, z, time, energy, trackId, detId);
+  mHits->emplace_back(x, y, z, tof, charge, trackId, detId);
 }
 
 } // namespace trd

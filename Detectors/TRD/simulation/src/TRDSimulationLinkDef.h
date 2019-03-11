@@ -17,5 +17,7 @@
 #pragma link C++ class o2::trd::Detector+;
 #pragma link C++ class o2::Base::DetImpl<o2::trd::Detector>+;
 #pragma link C++ class o2::trd::HitType+;
+#pragma link C++ class o2::trd::TRsim+;
+#pragma link C++ class o2::trd::Digitizer+;
 
 #endif
