@@ -111,28 +111,27 @@ class Measurements:
 
         return runIds
 
+    def fullFrames(self, pred):
+        filteredSteps = self._query(lambda s: s, pred)
+
+        queued    = np.array([s.queued    for s in filteredSteps], dtype=np.float64)
+        submitted = np.array([s.submitted for s in filteredSteps], dtype=np.float64)
+        starts    = np.array([s.start     for s in filteredSteps], dtype=np.float64)
+        ends      = np.array([s.end       for s in filteredSteps], dtype=np.float64)
+
+        queued    /= NS_TO_MS
+        submitted /= NS_TO_MS
+        starts    /= NS_TO_MS
+        ends      /= NS_TO_MS
+
+        return queued, submitted, starts, ends
+
+
     def frames(self, pred):
 
-        startEnds = self._query(
-                lambda s: (s.start, s.end), 
-                pred);
+        _, _, starts, ends = self.fullFrames(pred)
 
-        starts = [step[0] for step in startEnds]
-        ends   = [step[1] for step in startEnds]
-
-        starts = [x for x in starts if x > 0]
-        ends = [x for x in ends if x > 0]
-
-        starts = np.array(starts)
-        ends = np.array(ends)
-
-        starts = np.array(starts, dtype=np.float64)
-        ends = np.array(ends, dtype=np.float64)
-
-        starts /= NS_TO_MS
-        ends /= NS_TO_MS
-
-        return (starts, ends)
+        return starts, ends
 
     def durations(self, pred):
 
@@ -261,11 +260,27 @@ def timeline(cnf):
 
     plt.yticks(range(queuenum))
 
+
 def expandedTimeline(cnf):
     assert len(cnf.input) == 1
 
     measurements = Measurements(cnf.expand(cnf.input[0].file))
 
+    steps = measurements.steps()
+
+    for i, step in zip(range(len(steps)), steps):
+        queued, submitted, start, end = measurements.fullFrames(
+                lambda s: s.name == step and s.run == 4 and s.lane == 0)
+
+        plt.barh(i, submitted - queued, left=queued, color="#FF0000")
+        plt.barh(i, start - submitted, left=submitted, color="#00FF00")
+        plt.barh(i, end - start, left=start, color="#0000FF")
+
+    plt.yticks(range(len(steps)), steps)
+
+    plt.legend(["queue", "submitting", "running"])
+
+    plt.tight_layout()
 
 
 def finalize(cnf):
@@ -275,15 +290,16 @@ def finalize(cnf):
     if cnf.xlabel is not None:
         plt.xlabel(cnf.xlabel)
 
-    if cnf.showLegend:
-        plt.legend(loc='best')
+    # if cnf.showLegend:
+    #     plt.legend(loc='best')
 
     plt.savefig(cnf.expand(cnf.out))
 
 
 PLOTS = {
         "bar"      : bar,
-        "timeline" : timeline
+        "timeline" : timeline,
+        "expandedTimeline": expandedTimeline,
 }
 
 
