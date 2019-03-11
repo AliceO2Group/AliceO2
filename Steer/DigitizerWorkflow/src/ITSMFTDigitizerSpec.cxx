@@ -87,15 +87,9 @@ class ITSMFTDPLDigitizerTask
     geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::L2G)); // make sure L2G matrices are loaded
     mDigitizer.setGeometry(geom);
 
-    // defaults (TODO we need a way to pass particular configuration parameters)
-    mDigitizer.getParams().setContinuous(!triggeredMode);
-    mDigitizer.getParams().setROFrameLength(6000); // RO frame in ns
-    mDigitizer.getParams().setStrobeDelay(6000);   // Strobe delay wrt beginning of the RO frame, in ns
-    mDigitizer.getParams().setStrobeLength(100);   // Strobe length in ns
-    // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
-    mDigitizer.getParams().getSignalShape().setParameters(7500., 1100., 450.);
-    mDigitizer.getParams().setChargeThreshold(150); // charge threshold in electrons
-    mDigitizer.getParams().setNoisePerPixel(noise); // noise level
+    auto& digipar = mDigitizer.getParams();
+    digipar.setContinuous(!triggeredMode);
+    digipar.setNoisePerPixel(noise); // noise level
     // init digitizer
     mDigitizer.init();
   }
@@ -306,8 +300,8 @@ class ITSDPLDigitizerTask : public ITSMFTDPLDigitizerTask
 
     const auto& par = DPLDigitizerParam<0>::Instance();
     par.writeINI("digitization.ini");
+
     auto& digipar = mDigitizer.getParams();
-    //digipar.setContinuous( par.continuous );
     digipar.setROFrameLength(par.roFrameLength); // RO frame in ns
     digipar.setStrobeDelay(par.strobeDelay);     // Strobe delay wrt beginning of the RO frame, in ns
     digipar.setStrobeLength(par.strobeLength);   // Strobe length in ns
@@ -334,6 +328,20 @@ class MFTDPLDigitizerTask : public ITSMFTDPLDigitizerTask
   {
     mID = DETID;
     mOrigin = DETOR;
+
+    const auto& par = DPLDigitizerParam<1>::Instance();
+    par.writeINI("digitization.ini");
+
+    auto& digipar = mDigitizer.getParams();
+    digipar.setROFrameLength(par.roFrameLength); // RO frame in ns
+    digipar.setStrobeDelay(par.strobeDelay);     // Strobe delay wrt beginning of the RO frame, in ns
+    digipar.setStrobeLength(par.strobeLength);   // Strobe length in ns
+    // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
+    digipar.getSignalShape().setParameters(par.strobeFlatTop, par.strobeMaxRiseTime, par.strobeQRiseTime0);
+    digipar.setChargeThreshold(par.chargeThreshold); // charge threshold in electrons
+    digipar.setNoisePerPixel(par.noisePerPixel);     // noise level
+    digipar.setTimeOffset(par.timeOffset);
+    digipar.setNSimSteps(par.nSimSteps);
   }
 };
 
