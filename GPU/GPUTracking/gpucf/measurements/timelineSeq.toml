@@ -2,9 +2,8 @@ input = [
     { file = "in/packedClusterFinder.json", label = "" }
 ]
 
-type   = "timeline"
+type   = "expandedTimeline"
 out    = "out/timelineSeq.pdf"
-ylabel = "Queue"
+ylabel = "Steps"
 xlabel = "Time [ms]"
-
 showLegend = true
