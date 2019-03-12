@@ -1,3 +1,5 @@
+\page refTPCworkflow TPC workflow
+
 # DPL workflows for the TPC
 
 ## TPC reconstruction workflow

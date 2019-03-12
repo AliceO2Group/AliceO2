@@ -1,3 +1,5 @@
+\page refEventVisualisationBase EventVisualisation Base
+
 Example 1
 =========
 

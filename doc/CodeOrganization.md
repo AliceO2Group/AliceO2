@@ -1,3 +1,5 @@
+\page refdocCodeOrganization Code Organization
+
 Code organisation
 =================
 

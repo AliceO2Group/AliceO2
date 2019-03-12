@@ -1,3 +1,5 @@
+\page refSteer Package 'Steer'
+
 # ALICEO2 Steer
 
 This directory contains ALICE O2 specific customizations
@@ -8,3 +10,7 @@ a) quick prototyping of ideas without having to require immediate changes in Fai
    but with the idea to give back the changes some day
 b) adaptations to classes because some things are done differently than in FairRoot
    (MC truth handling, parameter handling etc)
+
+This package contains the following subpackages:
+
+\subpage refSteerDigitizerWorkflow

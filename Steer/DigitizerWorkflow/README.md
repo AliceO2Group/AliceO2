@@ -1,3 +1,5 @@
+\page refSteerDigitizerWorkflow Digitizer Workflow
+
 This is a short documention for the DPL-DigitizerWorkflow example
 
 # Status/Description of implementation

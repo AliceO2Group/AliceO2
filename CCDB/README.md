@@ -1,3 +1,5 @@
+\page refCCDB Package 'CCDB'
+
 ## CCDB API
 
 The CCDB API class (`CcdbApi`) is implemented using libcurl and gives

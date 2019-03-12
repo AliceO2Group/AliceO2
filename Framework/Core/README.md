@@ -1,3 +1,6 @@
+\page refFrameworkCore Core
+\subpage refFrameworkCoreCOOKBOOK Core COOKBOOK
+
 # Data Processing Layer in O2 Framework
 
 ## Status quo and motivation for an O2 Data Processing Layer
