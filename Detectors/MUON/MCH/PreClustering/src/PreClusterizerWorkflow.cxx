@@ -8,15 +8,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @author P. Pillot
-/// @brief A program to dump digits
+#include "Framework/runDataProcessing.h"
 
-#include <runFairMQDevice.h>
+#include "DigitSamplerSpec.h"
+#include "PreClusterFinderSpec.h"
+#include "PreClusterSinkSpec.h"
 
-#include "DumpDigits.h"
+using namespace o2::framework;
 
-namespace bpo = boost::program_options;
-
-void addCustomOptions(bpo::options_description& options) {}
-
-FairMQDevicePtr getDevice(const FairMQProgOptions& /*config*/) { return new o2::mch::DumpDigits(); }
+WorkflowSpec defineDataProcessing(ConfigContext const&)
+{
+  return WorkflowSpec{
+    o2::mch::getDigitSamplerSpec(),
+    o2::mch::getPreClusterFinderSpec(),
+    o2::mch::getPreClusterSinkSpec()
+  };
+}

@@ -8,18 +8,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @author P. Pillot
-/// @brief A program to preclusterize
+/// \file PreClusterFinderSpec.h
+/// \brief Definition of a data processor to run the preclusterizer
+///
+/// \author Philippe Pillot, Subatech
 
-#include <runFairMQDevice.h>
+#ifndef O2_MCH_PRECLUSTERFINDERSPEC_H_
+#define O2_MCH_PRECLUSTERFINDERSPEC_H_
 
-#include "PreClusterFinderDevice.h"
+#include "Framework/DataProcessorSpec.h"
 
-namespace bpo = boost::program_options;
-
-void addCustomOptions(bpo::options_description& options)
+namespace o2
 {
-  options.add_options()("binmapfile", bpo::value<std::string>(), "binary mapping file");
-}
+namespace mch
+{
 
-FairMQDevicePtr getDevice(const FairMQProgOptions& /*config*/) { return new o2::mch::PreClusterFinderDevice(); }
+o2::framework::DataProcessorSpec getPreClusterFinderSpec();
+
+} // end namespace mch
+} // end namespace o2
+
+#endif // O2_MCH_PRECLUSTERFINDERSPEC_H_
