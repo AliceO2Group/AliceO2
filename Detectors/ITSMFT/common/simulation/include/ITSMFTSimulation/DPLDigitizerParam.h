@@ -28,8 +28,8 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   bool continuous = true;          ///< flag for continuous simulation
   float noisePerPixel = 1.e-7;     ///< ALPIDE Noise per chip
   float roFrameLength = 6000.;     ///< length of RO frame in ns
-  float strobeDelay = 6000.;       ///< strobe start (in ns) wrt ROF start
-  float strobeLength = 100.;       ///< length of the strobe in ns (sig. over threshold checked in this window only)
+  float strobeDelay = 100.;        ///< strobe start (in ns) wrt ROF start
+  float strobeLength = 6000. - 100; ///< length of the strobe in ns (sig. over threshold checked in this window only)
   float strobeFlatTop = 7500.;     ///< strobe shape flat top
   float strobeMaxRiseTime = 1100.; ///< strobe max rise time
   float strobeQRiseTime0 = 450.;   ///< q @ which strobe rise time is 0
