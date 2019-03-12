@@ -17,6 +17,7 @@
 #include "SimReaderSpec.h"
 #include "CollisionTimePrinter.h"
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "SimConfig/ConfigurableParam.h"
 
 // for TPC
 #include "TPCDigitizerSpec.h"
@@ -121,6 +122,11 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::string tpcrthelp("Run TPC reco workflow to specified output type, currently supported: 'tracks'");
   workflowOptions.push_back(
     ConfigParamSpec{ "tpc-reco-type", VariantType::String, "", { tpcrthelp } });
+
+  // option allowing to set parameters
+  std::string keyvaluehelp("Semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...')");
+  workflowOptions.push_back(
+    ConfigParamSpec{ "configKeyValues", VariantType::String, "", { keyvaluehelp } });
 }
 
 // ------------------------------------------------------------------
@@ -279,6 +285,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // at the end. This places the processor at the beginning of the
   // workflow in the upper left corner of the GUI.
   WorkflowSpec specs(1);
+
+  // Update the (declared) parameters if changed from the command line
+  // Note: In the future this should be done only on a dedicated processor managing
+  // the parameters and then propagated automatically to all devices
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
+  // write the configuration used for the digitizer workflow
+  o2::conf::ConfigurableParam::writeINI("o2digitizerworkflow_configuration.ini");
 
   // First, read the GRP to detect which components need instantiations
   // (for the moment this assumes the file o2sim_grp.root to be in the current directory)
