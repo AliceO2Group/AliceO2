@@ -79,7 +79,7 @@ void Clusterer::process(PixelReader& reader, std::vector<Cluster>* fullClus,
     // LOG(DEBUG) << "ITSClusterer got Chip " << chipID << " ROFrame " << mChipData->getROFrame()
     //            << " Nhits " << mChipData->getData().size() << FairLogger::endl;
 
-    if (mMaskOverflowPixels) { // mask pixels fired from the previous ROF
+    if (mMaxBCSeparationToMask > 0) { // mask pixels fired from the previous ROF
       if (mChipsOld.size() < mChips.size()) {
         mChipsOld.resize(mChips.size()); // expand buffer of previous ROF data
       }
@@ -98,7 +98,7 @@ void Clusterer::process(PixelReader& reader, std::vector<Cluster>* fullClus,
       }
       finishChip(fullClus, compClus, reader.getDigitsMCTruth(), labelsCl);
     }
-    if (mMaskOverflowPixels) { // current chip data will be used in the next ROF to mask overflow pixels
+    if (mMaxBCSeparationToMask > 0) { // current chip data will be used in the next ROF to mask overflow pixels
       mChipsOld[chipID].swap(*mChipData);
     }
   }
@@ -352,6 +352,5 @@ void Clusterer::clear()
 void Clusterer::print() const
 {
   // print settings
-  printf("Masking of overflow pixels: %s for ROF separated by < %d BCs\n",
-         mMaskOverflowPixels ? "ON" : "OFF", mMaxBCSeparationToMask);
+  printf("Mask overflow pixels in strobes separated by < %d BCs\n", mMaxBCSeparationToMask);
 }

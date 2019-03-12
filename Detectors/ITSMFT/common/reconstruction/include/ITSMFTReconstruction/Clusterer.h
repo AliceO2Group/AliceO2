@@ -29,6 +29,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "CommonDataFormat/EvIndex.h"
 #include "CommonDataFormat/InteractionRecord.h"
+#include "CommonConstants/LHCConstants.h"
 #include "Rtypes.h"
 #include "TTree.h"
 
@@ -78,9 +79,6 @@ class Clusterer
 
   bool isContinuousReadOut() const { return mContinuousReadout; }
   void setContinuousReadOut(bool v) { mContinuousReadout = v; }
-
-  void setMaskOverflowPixels(bool v) { mMaskOverflowPixels = v; }
-  bool isMaskOverflowPixels() const { return mMaskOverflowPixels; }
 
   int getMaxBCSeparationToMask() const { return mMaxBCSeparationToMask; }
   void setMaxBCSeparationToMask(int n) { mMaxBCSeparationToMask = n; }
@@ -199,7 +197,8 @@ class Clusterer
   bool mWantFullClusters = true;     ///< request production of full clusters with pattern and coordinates
   bool mWantCompactClusters = false; ///< request production of compact clusters with patternID and corner address
 
-  int mMaxBCSeparationToMask = 801; ///< mask continuosly fired pixels in frames separated by less than this amount of BCs
+  ///< mask continuosly fired pixels in frames separated by less than this amount of BCs (fired from hit in prev. ROF)
+  int mMaxBCSeparationToMask = 6000. / o2::constants::lhc::LHCBunchSpacingNS + 10;
 
   // aux data for clusterization
   ChipPixelData* mChipData = nullptr; //! pointer on the current single chip data provided by the reader
@@ -209,7 +208,6 @@ class Clusterer
   std::vector<ChipPixelData> mChips;    // currently processed chips data
   std::vector<ChipPixelData> mChipsOld; // previously processed chips data (for masking)
 
-  bool mMaskOverflowPixels = true; ///< flag to mask oveflow pixels (fired from hit in prev. ROF)
   // buffers for entries in mPreClusterIndices in 2 columns, to avoid boundary checks, we reserve
   // extra elements in the beginning and the end
   int mColumn1[SegmentationAlpide::NRows + 2];
