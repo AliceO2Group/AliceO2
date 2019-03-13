@@ -21,6 +21,8 @@ namespace ITSMFT
 {
 template <int N>
 struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizerParam<N>> {
+  static_assert(N == 0 || N == 1, "only 0(ITS) or 1(MFT) are allowed");
+
   static constexpr std::string_view ParamName[2] = { "ITSDigitizerParam", "MFTDigitizerParam" };
 
   bool continuous = true;          ///< flag for continuous simulation
@@ -38,18 +40,12 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   int nSimSteps = 7;                      ///< number of steps in response simulation
   float energyToNElectrons = 1. / 3.6e-9; // conversion of eloss to Nelectrons
 
- private:
-  void sanityCheck()
-  {
-    static_assert(N == 0 || N == 1, "only 0(ITS) or 1(MFT) are allowed");
-  }
-
   // boilerplate stuff + make principal key
   O2ParamDef(DPLDigitizerParam, ParamName[N].data());
 };
 
 template <int N>
-O2ParamImpl(o2::ITSMFT::DPLDigitizerParam<N>);
+DPLDigitizerParam<N> DPLDigitizerParam<N>::sInstance;
 
 } // namespace ITSMFT
 } // namespace o2
