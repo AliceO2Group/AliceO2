@@ -122,9 +122,12 @@ bool Detector::ProcessHits(FairVolume* v)
 
   // 0: InFlight 1: Entering 2: Exiting
   int trkStat = 0;
-  double xp, yp, zp, px, py, pz, etot;
 
   o2::Data::Stack* stack = (o2::Data::Stack*)fMC->GetStack();
+  float xp, yp, zp;
+  float px, py, pz, etot;
+  float trackLength = fMC->TrackLength(); // Return the length of the current track from its origin (in cm)
+  float tof = fMC->TrackTime();           // Return the current time of flight of the track being transported (in s).
 
   // Special hits if track is entering
   if (drRegion && fMC->IsTrackEntering()) {
@@ -133,8 +136,8 @@ bool Detector::ProcessHits(FairVolume* v)
     fMC->TrackMomentum(px, py, pz, etot);
     fMC->TrackPosition(xp, yp, zp);
     stack->addTrackReference(o2::TrackReference(xp, yp, zp, px, py, pz,
-                                                fMC->TrackLength(),
-                                                fMC->TrackTime(),
+                                                trackLength,
+                                                tof,
                                                 stack->GetCurrentTrackNumber(),
                                                 GetDetId()));
     // Update track status
@@ -150,8 +153,8 @@ bool Detector::ProcessHits(FairVolume* v)
     fMC->TrackMomentum(px, py, pz, etot);
     fMC->TrackPosition(xp, yp, zp);
     stack->addTrackReference(o2::TrackReference(xp, yp, zp, px, py, pz,
-                                                fMC->TrackLength(),
-                                                fMC->TrackTime(),
+                                                trackLength,
+                                                tof,
                                                 stack->GetCurrentTrackNumber(),
                                                 GetDetId()));
     // Update track status
@@ -160,14 +163,14 @@ bool Detector::ProcessHits(FairVolume* v)
 
   // Calculate the charge according to GEANT Edep
   // Create a new dEdx hit
-  const double enDep = TMath::Max(fMC->Edep(), 0.0) * 1.0e9; // Energy in eV
-  const int totalChargeDep = (int)(enDep / mWion);
+  const float enDep = TMath::Max(fMC->Edep(), 0.0) * 1e9; // Energy in eV
+  const int totalChargeDep = (int)(enDep / mWion);        // Total charge
 
   // Store those hits with enDep bigger than the ionization potential of the gas mixture for in-flight tracks
   // or store hits of tracks that are entering or exiting
   if (totalChargeDep || trkStat) {
     fMC->TrackPosition(xp, yp, zp);
-    double tof = fMC->TrackTime() * 1e6; // The time of flight in micro-seconds
+    float tof = fMC->TrackTime() * 1e6; // The time of flight in micro-seconds
     const int trackID = stack->GetCurrentTrackNumber();
     addHit(xp, yp, zp, tof, totalChargeDep, trackID, det);
     stack->addHit(GetDetId());
@@ -189,7 +192,7 @@ void Detector::createTRhit(int det)
   // Maximum number of TR photons per track
   constexpr int mMaxNumberOfTRPhotons = 50; // Make this a class member?
 
-  double px, py, pz, etot;
+  float px, py, pz, etot;
   fMC->TrackMomentum(px, py, pz, etot);
   float pTot = TMath::Sqrt(px * px + py * py + pz * pz);
   std::vector<float> photonEnergyContainer;            // energy in keV
@@ -243,12 +246,12 @@ void Detector::createTRhit(int det)
     float xp, yp, zp;
     fMC->TrackPosition(xp, yp, zp);
     float invpTot = 1. / pTot;
-    double x = xp + px * invpTot * absLength;
-    double y = yp + py * invpTot * absLength;
-    double z = zp + pz * invpTot * absLength;
+    float x = xp + px * invpTot * absLength;
+    float y = yp + py * invpTot * absLength;
+    float z = zp + pz * invpTot * absLength;
 
     // Add the hit to the array. TR photon hits are marked by negative energy (and not by charge)
-    double tof = fMC->TrackTime() * 1e6;
+    float tof = fMC->TrackTime() * 1e6; // The time of flight in micro-seconds
     o2::Data::Stack* stack = (o2::Data::Stack*)fMC->GetStack();
     const int trackID = stack->GetCurrentTrackNumber();
     const int totalChargeDep = -1 * (int)(energyeV / mWion); // Negative charge for tagging TR photon hits
