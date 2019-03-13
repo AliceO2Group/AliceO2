@@ -17,7 +17,7 @@ set(BUCKET_NAME mch_preclustering_bucket)
 
 # Define application
 O2_GENERATE_EXECUTABLE(
-  EXE_NAME preclusterizer-workflow
+  EXE_NAME mch-preclusterizer-workflow
 
   SOURCES
   src/PreClusterizerWorkflow.cxx
