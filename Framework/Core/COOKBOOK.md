@@ -54,6 +54,18 @@ or the `lldb` equivalent:
 attach -pid <pid>
 ```
 
+In case you are building the DPL with the support for the debug GUI, you can
+also attach a debugger to the running process by clicking on the
+DataProcessorSpec you want to debug, which will show the Device inspector on
+the right, and there click on the "Attach debugger" button. By default this
+will start lldb in a Terminal.app window on mac, or GDB in an xterm elsewhere.
+You can customise this behavior by setting the environment variable
+`O2DPLDEBUG` to the command you want to run for the debugger and use the
+environment variable `O2DEBUGGEDPID` to get the PID of the DataProcessor
+currently selected. You can do this multiple times for all the devices you
+wish to debug, but remember that you will need to quit the debugger if you want
+DPL to exit.
+
 ### Debug GUI
 
 The demonstator also includes a simple GUI to help debugging problems:

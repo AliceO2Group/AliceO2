@@ -18,6 +18,7 @@
 
 #include "DebugGUI/imgui.h"
 #include <csignal>
+#include <cstdlib>
 
 namespace o2
 {
@@ -106,6 +107,21 @@ void displayDeviceInspector(DeviceSpec const& spec, DeviceInfo const& info, Devi
 {
   ImGui::Text("Name: %s", spec.name.c_str());
   ImGui::Text("Pid: %d", info.pid);
+
+  if (ImGui::Button("Attach debugger")) {
+    std::string pid = std::to_string(info.pid);
+    setenv("O2DEBUGGEDPID", pid.c_str(), 1);
+#ifdef __APPLE__
+    std::string defaultAppleDebugCommand =
+      "osascript -e 'tell application \"Terminal\" to activate'"
+      " -e 'tell application \"Terminal\" to do script \"lldb -p " +
+      pid + "\"'";
+    setenv("O2DPLDEBUG", defaultAppleDebugCommand.c_str(), 0);
+#else
+    setenv("O2DPLDEBUG", "xterm -hold -e gdb attach $O2DEBUGGEDPID", 0);
+#endif
+    system(getenv("O2DPLDEBUG"));
+  }
 
   deviceInfoTable(info, metrics);
   optionsTable(spec, control);
