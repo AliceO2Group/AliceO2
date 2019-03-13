@@ -16,11 +16,14 @@
 #include "Framework/InputSpec.h"
 #include "Framework/OutputSpec.h"
 #include "Framework/ControlService.h"
+#include "Framework/RawDeviceService.h"
 #include "Framework/SerializationMethods.h"
 #include "Headers/DataHeader.h"
 #include "TestClasses.h"
 #include "FairMQLogger.h"
+#include <fairmq/FairMQDevice.h>
 #include <vector>
+#include <chrono>
 
 using namespace o2::framework;
 
@@ -53,8 +56,8 @@ DataProcessorSpec getTimeoutSpec()
     static int counter = 0;
     pc.outputs().snapshot(Output{ "TEST", "TIMER", 0, Lifetime::Timeframe }, counter);
 
-    sleep(1);
-    if (counter++ > 10) {
+    // terminate if WaitFor was not interrupted
+    if (pc.services().get<RawDeviceService>().device()->WaitFor(std::chrono::seconds(1)) && (counter++ > 10)) {
       LOG(ERROR) << "Timeout reached, the workflow seems to be broken";
       pc.services().get<ControlService>().readyToQuit(true);
     }
