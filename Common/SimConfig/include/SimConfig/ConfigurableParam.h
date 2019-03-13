@@ -200,6 +200,8 @@ class ConfigurableParam
 #define O2ParamDef(classname, key)               \
  public:                                         \
   classname(TRootIOCtor*) {}                     \
+  classname(classname const&) = delete;          \
+                                                 \
  private:                                        \
   static constexpr char const* const sKey = key; \
   static classname sInstance;                    \

@@ -61,7 +61,7 @@ Bool_t PrimaryGenerator::Init()
   /** normal generation **/
 
   /** retrieve and set interaction diamond **/
-  auto diamond = InteractionDiamondParam::Instance();
+  auto& diamond = InteractionDiamondParam::Instance();
   setInteractionDiamond(diamond.position, diamond.width);
 
   /** base class init **/
