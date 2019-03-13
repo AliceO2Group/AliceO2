@@ -25,15 +25,6 @@ Digitizer::Digitizer()
   mGeom = new TRDGeometry();
   mSDigits = false;
 
-  // Get the Ionization energy
-  if (TRDCommonParam::Instance()->IsXenon()) {
-    setWion(23.53); // Ionization energy XeCO2 (85/15)
-  } else if (TRDCommonParam::Instance()->IsArgon()) {
-    setWion(27.21); // Ionization energy ArCO2 (82/18)
-  } else {
-    LOG(FATAL) << "Wrong gas mixture";
-    // add hard exit here!
-  }
 }
 
 Digitizer::~Digitizer() = default;
@@ -190,7 +181,7 @@ bool Digitizer::convertHits(const int det, const std::vector<o2::trd::HitType>& 
     pos[2] = hit.GetZ();
 
     const float eDep = hit.GetEnergyLoss();
-    const int qTotal = (int)eDep / mWion;
+    const int qTotal = (int)eDep; // Small kind of hack, this will be fixed later
 
     gGeoManager->SetCurrentPoint(pos);
     gGeoManager->FindNode();
