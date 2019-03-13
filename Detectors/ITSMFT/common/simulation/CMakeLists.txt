@@ -11,6 +11,7 @@ set(SRCS
     src/Digitizer.cxx
     src/AlpideSignalTrapezoid.cxx
     src/ClusterShape.cxx
+    src/DPLDigitizerParam.cxx
     )
 set(HEADERS
     include/${MODULE_NAME}/Hit.h
