@@ -170,7 +170,7 @@ bool Detector::ProcessHits(FairVolume* v)
   // or store hits of tracks that are entering or exiting
   if (totalChargeDep || trkStat) {
     fMC->TrackPosition(xp, yp, zp);
-    float tof = fMC->TrackTime() * 1e6; // The time of flight in micro-seconds
+    tof = tof * 1e6; // The time of flight in micro-seconds
     const int trackID = stack->GetCurrentTrackNumber();
     addHit(xp, yp, zp, tof, totalChargeDep, trackID, det);
     stack->addHit(GetDetId());
