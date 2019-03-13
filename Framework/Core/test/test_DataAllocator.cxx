@@ -96,11 +96,25 @@ DataProcessorSpec getSourceSpec()
     ASSERT_ERROR(cl != nullptr);
     o2::framework::ROOTSerialized<char, TClass> e(*((char*)&c), cl);
     pc.outputs().snapshot(Output{ "TST", "ROOTSERLZDVEC2", 0, Lifetime::Timeframe }, e);
+    // test the 'make' methods
+    pc.outputs().make<o2::test::TriviallyCopyable>(OutputRef{ "makesingle", 0 }) = a;
+    auto& multi = pc.outputs().make<o2::test::TriviallyCopyable>(OutputRef{ "makespan", 0 }, 3);
+    ASSERT_ERROR(multi.size() == 3);
+    for (auto& object : multi) {
+      object = a;
+    }
+    // test the adopt method
+    auto freefct = [](void* data, void* hint) {}; // simply ignore the cleanup for the test
+    static std::string teststring = "adoptchunk";
+    pc.outputs().adoptChunk(Output{ "TST", "ADOPTCHUNK", 0, Lifetime::Timeframe }, teststring.data(), teststring.length(), freefct, nullptr);
   };
 
   return DataProcessorSpec{ "source", // name of the processor
                             { InputSpec{ "timer", "TEST", "TIMER", 0, Lifetime::Timeframe } },
                             { OutputSpec{ "TST", "MESSAGEABLE", 0, Lifetime::Timeframe },
+                              OutputSpec{ { "makesingle" }, "TST", "MAKESINGLE", 0, Lifetime::Timeframe },
+                              OutputSpec{ { "makespan" }, "TST", "MAKESPAN", 0, Lifetime::Timeframe },
+                              OutputSpec{ "TST", "ADOPTCHUNK", 0, Lifetime::Timeframe },
                               OutputSpec{ "TST", "MSGBLEROOTSRLZ", 0, Lifetime::Timeframe },
                               OutputSpec{ "TST", "ROOTNONTOBJECT", 0, Lifetime::Timeframe },
                               OutputSpec{ "TST", "ROOTVECTOR", 0, Lifetime::Timeframe },
@@ -175,6 +189,18 @@ DataProcessorSpec getSinkSpec()
     const auto& data1 = *reinterpret_cast<const o2::test::TriviallyCopyable*>(rawchar);
     ASSERT_ERROR(data1 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
+    auto object7 = pc.inputs().get<o2::test::TriviallyCopyable>("input7");
+    ASSERT_ERROR(object1 == o2::test::TriviallyCopyable(42, 23, 0xdead));
+
+    auto objectspan8 = DataRefUtils::as<o2::test::TriviallyCopyable>(pc.inputs().get("input8"));
+    ASSERT_ERROR(objectspan8.size() == 3);
+    for (auto const& object8 : objectspan8) {
+      ASSERT_ERROR(object8 == o2::test::TriviallyCopyable(42, 23, 0xdead));
+    }
+
+    auto object9 = pc.inputs().get<std::string>("input9");
+    ASSERT_ERROR(object9 == "adoptchunk");
+
     pc.services().get<ControlService>().readyToQuit(true);
   };
 
@@ -184,7 +210,10 @@ DataProcessorSpec getSinkSpec()
                               InputSpec{ "input3", "TST", "ROOTNONTOBJECT", 0, Lifetime::Timeframe },
                               InputSpec{ "input4", "TST", "ROOTVECTOR", 0, Lifetime::Timeframe },
                               InputSpec{ "input5", "TST", "ROOTSERLZDVEC", 0, Lifetime::Timeframe },
-                              InputSpec{ "input6", "TST", "ROOTSERLZDVEC2", 0, Lifetime::Timeframe } },
+                              InputSpec{ "input6", "TST", "ROOTSERLZDVEC2", 0, Lifetime::Timeframe },
+                              InputSpec{ "input7", "TST", "MAKESINGLE", 0, Lifetime::Timeframe },
+                              InputSpec{ "input8", "TST", "MAKESPAN", 0, Lifetime::Timeframe },
+                              InputSpec{ "input9", "TST", "ADOPTCHUNK", 0, Lifetime::Timeframe } },
                             Outputs{},
                             AlgorithmSpec(processingFct) };
 }
