@@ -13,11 +13,209 @@
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ControlService.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/RawDeviceService.h"
+#include <FairMQDevice.h>
 #include <ROOT/RDataFrame.hxx>
 #include <TFile.h>
 
+#include <arrow/ipc/reader.h>
+#include <arrow/ipc/writer.h>
+#include <arrow/io/interfaces.h>
+#include <arrow/table.h>
+
 namespace o2::framework::readers
 {
+namespace
+{
+
+// Input stream that just reads from stdin.
+class FileStream : public arrow::io::InputStream
+{
+ public:
+  FileStream(FILE* stream) : mStream(stream)
+  {
+    set_mode(arrow::io::FileMode::READ);
+  }
+  ~FileStream() override {}
+
+  // FIXME: handle return code
+  arrow::Status Close() override { return arrow::Status::OK(); }
+  bool closed() const override { return false; }
+
+  arrow::Status Tell(int64_t* position) const override
+  {
+    *position = mPos;
+    return arrow::Status::OK();
+  }
+
+  arrow::Status Read(int64_t nbytes, int64_t* bytes_read, void* out) override
+  {
+    auto count = fread(out, nbytes, 1, mStream);
+    if (ferror(mStream) == 0) {
+      *bytes_read = nbytes;
+      mPos += nbytes;
+      LOG(INFO) << mPos;
+    } else {
+      *bytes_read = 0;
+    }
+    return arrow::Status::OK();
+  }
+
+  arrow::Status Read(int64_t nbytes, std::shared_ptr<arrow::Buffer>* out) override
+  {
+    std::shared_ptr<arrow::ResizableBuffer> buffer;
+    ARROW_RETURN_NOT_OK(AllocateResizableBuffer(nbytes, &buffer));
+    int64_t bytes_read;
+    ARROW_RETURN_NOT_OK(Read(nbytes, &bytes_read, buffer->mutable_data()));
+    ARROW_RETURN_NOT_OK(buffer->Resize(bytes_read, false));
+    buffer->ZeroPadding();
+    *out = buffer;
+    return arrow::Status::OK();
+  }
+
+ private:
+  FILE* mStream = nullptr;
+  int64_t mPos = 0;
+};
+
+} // anonymous namespace
+
+AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
+{
+  auto callback = AlgorithmSpec{ adaptStateful([](ConfigParamRegistry const& options,
+                                                  ControlService& control,
+                                                  DeviceSpec const& spec) {
+    std::vector<std::string> filenames;
+    auto filename = options.get<std::string>("esd-file");
+
+    if (filename.empty()) {
+      LOG(error) << "Option --esd-file did not provide a filename";
+      control.readyToQuit(true);
+      return adaptStateless([](RawDeviceService& service) {
+        service.device()->WaitFor(std::chrono::milliseconds(1000));
+      });
+    }
+
+    // If option starts with a @, we consider the file as text which contains a list of
+    // files.
+    if (filename.size() && filename[0] == '@') {
+      try {
+        filename.erase(0, 1);
+        std::ifstream filelist(filename);
+        while (std::getline(filelist, filename)) {
+          filenames.push_back(filename);
+        }
+      } catch (...) {
+        LOG(error) << "Unable to process file list: " << filename;
+      }
+    } else {
+      filenames.push_back(filename);
+    }
+
+    bool readTracks = false;
+    bool readTracksCov = false;
+    bool readTracksExtra = false;
+    bool readCalo = false;
+    bool readMuon = false;
+    bool readVZ = false;
+
+    // FIXME: bruteforce but effective.
+    for (auto& route : spec.outputs) {
+      if (route.matcher.origin != header::DataOrigin{ "RN2" }) {
+        continue;
+      }
+      auto description = route.matcher.description;
+      if (description == header::DataDescription{ "TRACKPAR" }) {
+        readTracks = true;
+      } else if (description == header::DataDescription{ "TRACKPARCOV" }) {
+        readTracksCov = true;
+      } else if (description == header::DataDescription{ "TRACKEXTRA" }) {
+        readTracksExtra = true;
+      } else if (description == header::DataDescription{ "CALO" }) {
+        readCalo = true;
+      } else if (description == header::DataDescription{ "MUON" }) {
+        readMuon = true;
+      } else if (description == header::DataDescription{ "VZERO" }) {
+        readVZ = true;
+      } else {
+        throw std::runtime_error(std::string("Unknown AOD type: ") + route.matcher.description.str);
+      }
+    }
+
+    auto counter = std::make_shared<int>(0);
+    return adaptStateless([readTracks,
+                           readTracksCov,
+                           readTracksExtra,
+                           readCalo,
+                           readMuon,
+                           readVZ,
+                           counter,
+                           filenames](DataAllocator& outputs, ControlService& ctrl, RawDeviceService& service) {
+      if (*counter >= filenames.size()) {
+        LOG(info) << "All input files processed";
+        ctrl.readyToQuit(false);
+        service.device()->WaitFor(std::chrono::milliseconds(1000));
+        return;
+      }
+      auto f = filenames[*counter];
+      setenv("O2RUN2CONVERTER", "run2ESD2Run3AOD", 0);
+      auto command = std::string(getenv("O2RUN2CONVERTER"));
+      FILE* pipe = popen((command + " " + f).c_str(), "r");
+      if (pipe == nullptr) {
+        LOG(ERROR) << "Unable to run converter: " << (command + " " + f).c_str() << f;
+        ctrl.readyToQuit(true);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        return;
+      }
+      *counter += 1;
+      auto input = std::make_shared<FileStream>(pipe);
+
+      /// We keep reading until the popen is not empty.
+      while ((feof(pipe) == false) && (ferror(pipe) == 0)) {
+        std::shared_ptr<arrow::RecordBatchReader> reader;
+        auto readerStatus = arrow::ipc::RecordBatchStreamReader::Open(input.get(), &reader);
+        if (readerStatus.ok() == false) {
+          break;
+        }
+
+        while (true) {
+          std::shared_ptr<arrow::RecordBatch> batch;
+          auto status = reader->ReadNext(&batch);
+          if (batch.get() == nullptr) {
+            LOG(INFO) << "End of batches reached";
+            break;
+          }
+          std::unordered_map<std::string, std::string> meta;
+          batch->schema()->metadata()->ToUnorderedMap(&meta);
+          LOG(INFO) << "description:" << meta["description"];
+          std::shared_ptr<arrow::ipc::RecordBatchWriter> writer;
+          if (meta["description"] == "TRACKPAR" && readTracks) {
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "TRACKPAR" }, batch->schema());
+          } else if (meta["description"] == "TRACKPARCOV" && readTracksCov) {
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "TRACKPARCOV" }, batch->schema());
+          } else if (meta["description"] == "TRACKEXTRA" && readTracksExtra) {
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "TRACKEXTRA" }, batch->schema());
+          } else if (meta["description"] == "CALO" && readCalo) {
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "CALO" }, batch->schema());
+          } else if (meta["description"] == "MUON" && readMuon) {
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "MUON" }, batch->schema());
+          } else if (meta["description"] == "VZEOR" && readVZ) {
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{ "RN2", "VZERO" }, batch->schema());
+          } else {
+            continue;
+          }
+          auto writeStatus = writer->WriteRecordBatch(*batch);
+          if (writeStatus.ok() == false) {
+            throw std::runtime_error("Error while writing record");
+          }
+        }
+      }
+      pclose(pipe);
+    });
+  }) };
+
+  return callback;
+}
 
 AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
 {
