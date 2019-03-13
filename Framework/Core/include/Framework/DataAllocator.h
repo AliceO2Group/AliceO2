@@ -88,12 +88,15 @@ class DataAllocator
   // In case an extra argument is provided, we consider this an array /
   // collection elements of that type
   template <typename T>
-  typename std::enable_if<is_messageable<T>::value == true, gsl::span<T>>::type
+  typename std::enable_if<is_messageable<T>::value == true, gsl::span<T>&>::type
     make(const Output& spec, size_t nElements)
   {
     auto size = nElements * sizeof(T);
-    DataChunk chunk = newChunk(spec, size);
-    return gsl::span<T>(reinterpret_cast<T*>(chunk.data), nElements);
+    std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+    auto context = mContextRegistry->get<MessageContext>();
+
+    FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodNone, size);
+    return context->add<MessageContext::SpanObject<T>>(std::move(headerMessage), channel, 0, nElements).get();
   }
 
   /// Use this in case you want to leave the creation
@@ -449,7 +452,7 @@ class DataAllocator
   /// OutputRef descriptors are expected to be passed as rvalue, i.e. a temporary object in the
   /// function call
   template <typename T, typename... Args>
-  auto make(OutputRef&& ref, Args&&... args)
+  auto& make(OutputRef&& ref, Args&&... args)
   {
     return make<T>(getOutputByBind(std::move(ref)), std::forward<Args>(args)...);
   }
