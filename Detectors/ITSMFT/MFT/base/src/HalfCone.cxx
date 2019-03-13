@@ -13,7 +13,7 @@
 /// \author sbest@pucp.pe, eric.endress@gmx.de, franck.manso@clermont.in2p3.fr
 
 /// Carlos csoncco@pucp.edu.pe
-/// \date 09/03/2019
+/// \date 13/03/2019
 
 #include "TGeoManager.h"
 #include "TGeoMatrix.h"
@@ -52,7 +52,7 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   auto* HalfConeVolume = new TGeoVolumeAssembly("HalfConeVolume");
 
   TGeoMedium* kMedAlu = gGeoManager->GetMedium("MFT_Alu$");
-  
+ 
   /////Rotation  ////
   TGeoRotation* rot1 = new TGeoRotation("rot1", 180, -180, 0);
 
@@ -118,10 +118,11 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   combi_2hole_mb0_b->SetName("combi_2hole_mb0_b");
   combi_2hole_mb0_b->RegisterYourself();
 
-  // shape for cross_mb0
-  TGeoShape* box_mb0 = new TGeoBBox("box_mb0", x_boxmb0 / 2, y_boxmb0 / 2, z_boxmb0 / 2);
-  TGeoShape* hole1_mb0 = new TGeoTube("hole1_mb0", radin_1hmb0, radout_1hmb0, high_1hmb0 / 2);
-  TGeoShape* hole2_mb0 = new TGeoTube("hole2_mb0", radin_2hmb0, radout_2hmb0, high_2hmb0 / 2);
+  // shape for cross_mb0..
+  //TGeoShape* box_mb0 = new TGeoBBox("s_box_mb0", x_boxmb0 / 2, y_boxmb0 / 2, z_boxmb0 / 2);
+  new TGeoBBox("box_mb0", x_boxmb0 / 2, y_boxmb0 / 2, z_boxmb0 / 2);
+  new TGeoTube("hole1_mb0", radin_1hmb0, radout_1hmb0, high_1hmb0 / 2);
+  new TGeoTube("hole2_mb0", radin_2hmb0, radout_2hmb0, high_2hmb0 / 2);
 
   ///composite shape for mb0
 
@@ -156,7 +157,7 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
 
   // shape for shape cross beam
 
-  TGeoShape* hole_cbeam = new TGeoTube("hole_cbeam", radin_hole_cbeam, radout_hole_cbeam, high_hole_cbeam / 2);
+  new TGeoTube("hole_cbeam", radin_hole_cbeam, radout_hole_cbeam, high_hole_cbeam / 2);
 
   /// composite shape for cross beam  (using the same box of mb0)
   auto* c_cbeam_Shape = new TGeoCompositeShape("c_cbeam_Shape", "box_mb0 - hole_cbeam:combi_hole_1cbeam - hole_cbeam:combi_hole_2cbeam");
@@ -224,16 +225,16 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
 
   /////// shape for framewor front
 
-  TGeoShape* box_up = new TGeoBBox("box_up", x_box_up / 2, y_box_up / 2, z_box_up / 2);
+  new TGeoBBox("box_up", x_box_up / 2, y_box_up / 2, z_box_up / 2);
 
-  TGeoShape* tub_up = new TGeoTube("tub_up", 0., dia_tub_up / 2, high_tub_up / 2); //
-  TGeoShape* seg_tub = new TGeoTubeSeg("seg_tub", radin_segtub, radout_segtub, high_segtub / 2, ang_in_segtub, ang_fin_segtub);
+  new TGeoTube("tub_up", 0., dia_tub_up / 2, high_tub_up / 2); //
+  new TGeoTubeSeg("seg_tub", radin_segtub, radout_segtub, high_segtub / 2, ang_in_segtub, ang_fin_segtub);
 
-  TGeoShape* boxB_down = new TGeoBBox("boxB_down", x_boxB_down / 2, y_boxB_down / 2, z_boxB_down / 2);
+  new TGeoBBox("boxB_down", x_boxB_down / 2, y_boxB_down / 2, z_boxB_down / 2);
 
-  TGeoShape* boxA_down = new TGeoBBox("boxA_down", x_boxA_down / 2, y_boxA_down / 2, z_boxA_down / 2);
+  new TGeoBBox("boxA_down", x_boxA_down / 2, y_boxA_down / 2, z_boxA_down / 2);
 
-  TGeoShape* tubdown = new TGeoTube("tubdown", 0., dia_tubdown / 2, high_tubdown / 2);
+  new TGeoTube("tubdown", 0., dia_tubdown / 2, high_tubdown / 2);
 
   //Composite shapes for Fra_front
   auto* fra_front_Shape_0 = new TGeoCompositeShape("fra_front_Shape_0", "box_up:tr1_up + seg_tub:combi_3b + boxB_down:tr3_box + boxA_down:tr_2_box");
@@ -408,26 +409,26 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   ///...................................... .....
   ///////// shape for base --
 
-  TGeoShape* disc = new TGeoTubeSeg("disc", radin_disc, radout_disc, high_disc / 2, ang_in_disc, ang_fin_disc);
+  new TGeoTubeSeg("disc", radin_disc, radout_disc, high_disc / 2, ang_in_disc, ang_fin_disc);
 
-  TGeoShape* box1 = new TGeoBBox("box1", x_1box / 2, y_1box / 2, z_1box / 2);
-  TGeoShape* box2 = new TGeoBBox("box2", x_2box / 2, y_2box / 2, z_2box / 2);
-  TGeoShape* box3 = new TGeoBBox("box3", x_3box / 2, y_3box / 2, z_3box / 2);
-  TGeoShape* labox1 = new TGeoBBox("labox1", x_labox / 2, y_labox / 2, z_labox / 2);
-  TGeoShape* labox2 = new TGeoBBox("labox2", x_2labox / 2, y_2labox / 2, z_2labox / 2);
-  TGeoShape* cbox = new TGeoBBox("cbox", xc_box / 2, yc_box / 2, zc_box / 2);
-  TGeoShape* tongbox = new TGeoBBox("tongbox", x_tong / 2, y_tong / 2, z_tong / 2);
+  new TGeoBBox("box1", x_1box / 2, y_1box / 2, z_1box / 2);
+  new TGeoBBox("box2", x_2box / 2, y_2box / 2, z_2box / 2);
+  new TGeoBBox("box3", x_3box / 2, y_3box / 2, z_3box / 2);
+  new TGeoBBox("labox1", x_labox / 2, y_labox / 2, z_labox / 2);
+  new TGeoBBox("labox2", x_2labox / 2, y_2labox / 2, z_2labox / 2);
+  new TGeoBBox("cbox", xc_box / 2, yc_box / 2, zc_box / 2);
+  new TGeoBBox("tongbox", x_tong / 2, y_tong / 2, z_tong / 2);
 
-  TGeoShape* seg_1hole = new TGeoTubeSeg("seg_1hole", radin_1hole, radout_1hole, high_1hole / 2, ang_in_1hole, ang_fin_1hole); //r_in,r_out,dZ,ang,ang
-  TGeoShape* s_seg_2hole = new TGeoTubeSeg("seg_2hole", radin_2hole, radout_2hole, high_2hole / 2, ang_in_2hole, ang_fin_2hole);
-  TGeoShape* seg_3hole = new TGeoTubeSeg("seg_3hole", radin_3hole, radout_3hole, high_3hole / 2, ang_in_3hole, ang_fin_3hole); // |u|
-  TGeoShape* seg_bord = new TGeoTubeSeg("seg_bord", radin_bord, radout_bord, high_bord / 2, ang_in_bord, ang_fin_bord);
+  new TGeoTubeSeg("seg_1hole", radin_1hole, radout_1hole, high_1hole / 2, ang_in_1hole, ang_fin_1hole); //r_in,r_out,dZ,ang,ang
+  new TGeoTubeSeg("seg_2hole", radin_2hole, radout_2hole, high_2hole / 2, ang_in_2hole, ang_fin_2hole);
+  new TGeoTubeSeg("seg_3hole", radin_3hole, radout_3hole, high_3hole / 2, ang_in_3hole, ang_fin_3hole); // |u|
+  new TGeoTubeSeg("seg_bord", radin_bord, radout_bord, high_bord / 2, ang_in_bord, ang_fin_bord);
 
-  TGeoShape* circ_hole1 = new TGeoTube("circ_hole1", radin_hole1, radout_hole1, high_hole1 / 2);
+  new TGeoTube("circ_hole1", radin_hole1, radout_hole1, high_hole1 / 2);
 
-  TGeoShape* circ_hole2 = new TGeoTube("circ_hole2", radin_hole2, radout_hole2, high_hole2 / 2);
+  new TGeoTube("circ_hole2", radin_hole2, radout_hole2, high_hole2 / 2);
 
-  TGeoShape* circ_holeB = new TGeoTube("circ_holeB", radin_holeB, radout_holeB, high_holeB / 2);
+  new TGeoTube("circ_holeB", radin_holeB, radout_holeB, high_holeB / 2);
 
   //// composite shape for base ----
 
@@ -519,17 +520,17 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   //////////////////////////////////////////////////////
 
   ///////// shape for midle
-  TGeoShape* midle_box = new TGeoBBox("midle_box", x_midle / 2, y_midle / 2, z_midle / 2);
+  new TGeoBBox("midle_box", x_midle / 2, y_midle / 2, z_midle / 2);
 
-  TGeoShape* midle_d1box = new TGeoBBox("midle_d1box", x_midle_d1box / 2, y_midle_d1box / 2, z_midle_d1box / 2);
+  new TGeoBBox("midle_d1box", x_midle_d1box / 2, y_midle_d1box / 2, z_midle_d1box / 2);
 
-  TGeoShape* midle_d2box = new TGeoBBox("midle_d2box", x_midle_d2box / 2, y_midle_d2box / 2, z_midle_d2box / 2);
+  new TGeoBBox("midle_d2box", x_midle_d2box / 2, y_midle_d2box / 2, z_midle_d2box / 2);
 
-  TGeoShape* arc_midle = new TGeoTubeSeg("arc_midle", radin_midle, radout_midle, high_midle / 2, ang_in_midle, ang_fin_midle);
+  new TGeoTubeSeg("arc_midle", radin_midle, radout_midle, high_midle / 2, ang_in_midle, ang_fin_midle);
 
-  TGeoShape* mid_1tubhole = new TGeoTube("mid_1tubhole", radin_mid_1hole, radout_mid_1hole, high_mid_1hole / 2);
+  new TGeoTube("mid_1tubhole", radin_mid_1hole, radout_mid_1hole, high_mid_1hole / 2);
 
-  TGeoShape* mid_2tubhole = new TGeoTube("mid_2tubhole", radin_mid_2hole, radout_mid_2hole, high_mid_2hole / 2);
+  new TGeoTube("mid_2tubhole", radin_mid_2hole, radout_mid_2hole, high_mid_2hole / 2);
 
   //////////////////////////////////////////composite shape for midle
 
@@ -626,7 +627,7 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   //////////////  knee small
 
   TGeoXtru* xtru3_RL = new TGeoXtru(2);
-  xtru3_RL->SetName("S_XTRU3_RL");
+  xtru3_RL->SetName("xtru3_RL");
 
   Double_t x_3RL[6] = { -0.75, 0.75, 0.75, 2.6487, 1.4997, -0.75 }; //vertices
   Double_t y_3RL[6] = { -1.75, -1.75, 1.203, 3.465, 4.4311, 1.75 };
@@ -667,16 +668,16 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   combi_ir2_RL->RegisterYourself();
 
   ///////////////////////  shape for Rail L geom/////////
-  TGeoShape* RL_1box = new TGeoBBox("RL_1box", x_RL_1box / 2, y_RL_1box / 2, z_RL_1box / 2);
-  TGeoShape* RL_kneebox = new TGeoBBox("RL_kneebox", x_RL_kneebox / 2, y_RL_kneebox / 2, z_RL_kneebox / 2); //no_ used
-  TGeoShape* qdi_box = new TGeoBBox("qdi_box", x_qdi_box / 2, y_qdi_box / 2, z_qdi_box / 2);
+  new TGeoBBox("RL_1box", x_RL_1box / 2, y_RL_1box / 2, z_RL_1box / 2);
+  new TGeoBBox("RL_kneebox", x_RL_kneebox / 2, y_RL_kneebox / 2, z_RL_kneebox / 2); //no_ used
+  new TGeoBBox("qdi_box", x_qdi_box / 2, y_qdi_box / 2, z_qdi_box / 2);
 
   //E   auto *s_RL1hole=new TGeoTube("S_RL1HOLE",radin_RL1hole,radout_RL1hole,high_RL1hole/2);
   //-auto *s_irL_hole=new TGeoTube("S_irL_HOLE",radin_ir_railL,radout_ir_railL,high_ir_railL/2);
 
   ////////////////////// composite shape for rail L //////////////////////
 
-  auto* RL_Shape_0 = new TGeoCompositeShape("RL_Shape_0", " S_XTRU3_RL:tr_vol3_RL + S_XTRU_RL1 + S_XTRU_RL2 + RL_1box:tr_RL_1box - qdi_box:combi_qdi"); //
+  auto* RL_Shape_0 = new TGeoCompositeShape("RL_Shape_0", " xtru3_RL:tr_vol3_RL + S_XTRU_RL1 + S_XTRU_RL2 + RL_1box:tr_RL_1box - qdi_box:combi_qdi"); //
 
   //////////////////////////////////////-------////////
 
@@ -784,7 +785,7 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   tr_sr_r->RegisterYourself();
 
   ///////////////////////  shape for rail R ////////
-  TGeoShape* RR_1box = new TGeoBBox("RR_1box", x_RR_1box / 2, y_RR_1box / 2, z_RR_1box / 2);
+  new TGeoBBox("RR_1box", x_RR_1box / 2, y_RR_1box / 2, z_RR_1box / 2);
 
   //E    auto *s_qdi_Rbox =new TGeoBBox("S_QDI_RBOX", x_qdi_Rbox/2,y_qdi_Rbox/2,z_qdi_Rbox/2);
 
@@ -895,10 +896,10 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   combi_hup_mb->RegisterYourself();
 
   /////////////////////// shape for rail MB  /////////
-  TGeoShape* mb_box = new TGeoBBox("mb_box", x_mb_box / 2, y_mb_box / 2, z_mb_box / 2);
-  TGeoShape* hole_1mbl = new TGeoTube("hole_1mbl", radin_1mb, radout_1mb, high_1mb / 2); //d3.5
-  TGeoShape* hole_2mbl = new TGeoTube("hole_2mbl", radin_2mb, radout_2mb, high_2mb / 2); //d3
-  TGeoShape* lat_box = new TGeoBBox("lat_box", x_lat_box / 2, y_lat_box / 2, z_lat_box / 2);
+  new TGeoBBox("mb_box", x_mb_box / 2, y_mb_box / 2, z_mb_box / 2);
+  new TGeoTube("hole_1mbl", radin_1mb, radout_1mb, high_1mb / 2); //d3.5
+  new TGeoTube("hole_2mbl", radin_2mb, radout_2mb, high_2mb / 2); //d3
+  new TGeoBBox("lat_box", x_lat_box / 2, y_lat_box / 2, z_lat_box / 2);
 
   ////////////////////// composite shape for rail_MB  R + L //////////////////////
 
