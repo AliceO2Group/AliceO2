@@ -65,17 +65,8 @@ DataAllocator::newChunk(const Output& spec, size_t size) {
                                                            o2::header::gSerializationMethodNone, //
                                                            size                                  //
                                                            );
-  FairMQMessagePtr payloadMessage = context->proxy().getDevice()->NewMessageFor(channel, 0, size);
-  auto dataPtr = payloadMessage->GetData();
-  auto dataSize = payloadMessage->GetSize();
-
-  FairMQParts parts;
-  parts.AddPart(std::move(headerMessage));
-  parts.AddPart(std::move(payloadMessage));
-  assert(parts.Size() == 2);
-  context->addPart(std::move(parts), channel);
-  assert(parts.Size() == 0);
-  return DataChunk{reinterpret_cast<char*>(dataPtr), dataSize};
+  auto& co = context->add<MessageContext::TrivialObject>(std::move(headerMessage), channel, 0, size);
+  return DataChunk{ reinterpret_cast<char*>(co.data()), size };
 }
 
 DataChunk
@@ -89,18 +80,10 @@ DataAllocator::adoptChunk(const Output& spec, char *buffer, size_t size, fairmq_
                                                            size                                  //
                                                            );
 
-  FairMQParts parts;
-
   // FIXME: how do we want to use subchannels? time based parallelism?
   auto context = mContextRegistry->get<MessageContext>();
-  FairMQMessagePtr payloadMessage = context->proxy().getDevice()->NewMessageFor(channel, 0, buffer, size, freefn, hint);
-  auto dataPtr = payloadMessage->GetData();
-  LOG(DEBUG) << "New payload at " << payloadMessage->GetData();
-  auto dataSize = payloadMessage->GetSize();
-  parts.AddPart(std::move(headerMessage));
-  parts.AddPart(std::move(payloadMessage));
-  context->addPart(std::move(parts), channel);
-  return DataChunk{reinterpret_cast<char *>(dataPtr), dataSize};
+  auto& co = context->add<MessageContext::TrivialObject>(std::move(headerMessage), channel, 0, buffer, size, freefn, hint);
+  return DataChunk{ reinterpret_cast<char*>(co.data()), size };
 }
 
 FairMQMessagePtr DataAllocator::headerMessageFromOutput(Output const& spec,                     //
@@ -130,16 +113,13 @@ void DataAllocator::addPartToContext(FairMQMessagePtr&& payloadMessage, const Ou
   // RootObjectContext, see DataProcessor::doSend
   auto headerMessage = headerMessageFromOutput(spec, channel, serializationMethod, 0);
 
-  FairMQParts parts;
-
   // FIXME: this is kind of ugly, we know that we can change the content of the
   // header message because we have just created it, but the API declares it const
   const DataHeader* cdh = o2::header::get<DataHeader*>(headerMessage->GetData());
   DataHeader* dh = const_cast<DataHeader*>(cdh);
   dh->payloadSize = payloadMessage->GetSize();
-  parts.AddPart(std::move(headerMessage));
-  parts.AddPart(std::move(payloadMessage));
-  mContextRegistry->get<MessageContext>()->addPart(std::move(parts), channel);
+  auto context = mContextRegistry->get<MessageContext>();
+  context->add<MessageContext::TrivialObject>(std::move(headerMessage), std::move(payloadMessage), channel);
 }
 
 void DataAllocator::adopt(const Output& spec, TObject* ptr)
