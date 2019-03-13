@@ -84,6 +84,7 @@ set(SRCS
     ${GUI_SOURCES}
     test/TestClasses.cxx
     src/Variant.cxx
+    src/MessageContext.cxx
    )
 
 set(HEADERS
