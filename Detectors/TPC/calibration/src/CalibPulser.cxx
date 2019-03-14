@@ -23,8 +23,8 @@
 #include "TPCCalibration/CalibPulser.h"
 
 using namespace o2::TPC;
-using o2::mathUtils::mathBase::StatisticsData;
-using o2::mathUtils::mathBase::getStatisticsData;
+using o2::math_utils::math_base::StatisticsData;
+using o2::math_utils::math_base::getStatisticsData;
 
 CalibPulser::CalibPulser(PadSubset padSubset)
   : mNbinsT0{200},
