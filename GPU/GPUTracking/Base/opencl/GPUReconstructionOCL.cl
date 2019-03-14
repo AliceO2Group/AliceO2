@@ -11,35 +11,37 @@
 /// \file GPUReconstructionOCL.cl
 /// \author David Rohr
 
+// clang-format off
 #define __OPENCL__
 #define GPUCA_GPUTYPE_RADEON
 #ifdef __OPENCLCPP__
-#pragma OPENCL EXTENSION cl_khr_fp64 : enable
-#ifdef __clang__
-#pragma OPENCL EXTENSION cl_clang_storage_class_specifiers : enable
-#define global __global
-#define local __local
-#define constant __constant
-#define private __private
-#include <clc/clc.h>
-#undef global
-#undef local
-#undef constant
-#undef private
-#else
-#include <opencl_def>
-#include <opencl_common>
-#include <opencl_math>
-#include <opencl_atomic>
-#include <opencl_memory>
-#include <opencl_work_item>
-#include <opencl_synchronization>
-#include <opencl_printf>
-#include <opencl_integer>
-using namespace cl;
+  #pragma OPENCL EXTENSION cl_khr_fp64 : enable
+  #ifdef __clang__
+    #pragma OPENCL EXTENSION cl_clang_storage_class_specifiers : enable
+    #define global __global
+    #define local __local
+    #define constant __constant
+    #define private __private
+    //#include <clc/clc.h> //Use -finclude-default-header instead! current clang libclc.h is incompatible to SPIR-V
+    #undef global
+    #undef local
+    #undef constant
+    #undef private
+  #else
+    #include <opencl_def>
+    #include <opencl_common>
+    #include <opencl_math>
+    #include <opencl_atomic>
+    #include <opencl_memory>
+    #include <opencl_work_item>
+    #include <opencl_synchronization>
+    #include <opencl_printf>
+    #include <opencl_integer>
+    using namespace cl;
+  #endif
+  #define M_PI 3.1415926535f
 #endif
-#define M_PI 3.1415926535f
-#endif
+// clang-format on
 
 // Disable assertions since they produce errors in GPU Code
 #ifdef assert
