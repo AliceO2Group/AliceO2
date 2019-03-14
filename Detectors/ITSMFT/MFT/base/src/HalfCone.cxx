@@ -11,8 +11,7 @@
 /// \file HalfCone.cxx
 /// \brief Class building geometry of one half of one MFT half-cone
 /// \author sbest@pucp.pe, eric.endress@gmx.de, franck.manso@clermont.in2p3.fr
-
-/// Carlos csoncco@pucp.edu.pe
+/// \Carlos csoncco@pucp.edu.pe
 /// \date 13/03/2019
 
 #include "TGeoManager.h"
@@ -48,14 +47,11 @@ HalfCone::~HalfCone() = default;
 //_____________________________________________________________________________
 TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
 {
-
   auto* HalfConeVolume = new TGeoVolumeAssembly("HalfConeVolume");
 
   TGeoMedium* kMedAlu = gGeoManager->GetMedium("MFT_Alu$");
- 
   /////Rotation  ////
   TGeoRotation* rot1 = new TGeoRotation("rot1", 180, -180, 0);
-
   rot1->RegisterYourself();
   TGeoRotation* rot2 = new TGeoRotation("rot2", 90, -90, 0);
   rot2->RegisterYourself();
@@ -1048,9 +1044,7 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   HalfConeVolume->AddNode(Fra_front, 4, c_final);
   HalfConeVolume->AddNode(midle, 5, c_final); //
   HalfConeVolume->AddNode(Half_3, 6, c_final);
-  ///     HalfConeVolume->AddNode(Half_3,8, new TGeoCombiTrans(0,0,0-0.5,rot_halfR)); //-0.675
-
-  ////////////
+  //// HalfConeVolume->AddNode(Half_3,8, new TGeoCombiTrans(0,0,0-0.5,rot_halfR)); //-0.675
 
   return HalfConeVolume;
 }
