@@ -175,7 +175,7 @@ bool Digitizer::getLabelLimits(int cathode, const ColumnDataMC& col, int& firstS
       }
     }
   }
-  return false;
+  return (firstStrip != invalid);
 }
 
 //______________________________________________________________________________
