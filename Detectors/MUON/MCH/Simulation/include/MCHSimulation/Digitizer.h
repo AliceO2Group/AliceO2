@@ -17,7 +17,6 @@
 #define O2_MCH_SIMULATION_MCHDIGITIZER_H_
 
 #include "MCHSimulation/Digit.h"
-#include "MCHSimulation/Detector.h"
 #include "MCHSimulation/Hit.h"
 
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -40,7 +39,8 @@ class Digitizer
   //process hits: fill digit vector with digits
   void process(const std::vector<Hit> hits, std::vector<Digit>& digits);
   void provideMC(o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer);
-
+  void mergeDigits(std::vector<Digit>& digits);
+  
   void fillOutputContainer(std::vector<Digit>& digits);
 
   void setEventTime(double timeNS) { mEventTime = timeNS; }
@@ -74,7 +74,7 @@ class Digitizer
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthOutputContainer;
 
   int processHit(const Hit& hit, int detID, double event_time);
-  void mergeDigits(std::vector<Digit>& digits);
+
 };
 
 } // namespace mch

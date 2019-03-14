@@ -15,8 +15,6 @@
 #include "MCHSimulation/Response.h"
 #include "TGeoManager.h"
 #include "TMath.h"
-#include "TProfile2D.h"
-#include "TRandom.h"
 #include <algorithm>
 #include <cassert>
 #include <fairlogger/Logger.h>
@@ -98,7 +96,7 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
   }   //loop over hits
   
   //merge Digits
-  if(mMultiple.size() != 0) mergeDigits(digits);
+  mergeDigits(digits);
   
   fillOutputContainer(digits);
 }
@@ -190,7 +188,6 @@ void Digitizer::mergeDigits(std::vector<Digit>& digits){
     mTrackLabels.erase(mTrackLabels.begin() + index - rmcounts);
     ++rmcounts;
   }  
-  return;
 }
 //______________________________________________________________________
 void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
@@ -241,4 +238,5 @@ void Digitizer::provideMC(o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mc
   }
 
   mMCTruthOutputContainer.clear();
+
 }
