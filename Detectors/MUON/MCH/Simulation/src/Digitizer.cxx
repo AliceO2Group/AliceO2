@@ -146,7 +146,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
     return 0;
   }
 
-  seg.forEachPadInArea(xMin, yMin, xMax, yMax, [&resp, &digits = this->mDigits, chargebend, chargenon, localX, localY, &seg, &ndigits, time, &multimap = this->mMultiple ](int padid) {
+  seg.forEachPadInArea(xMin, yMin, xMax, yMax, [&resp, &digits = this->mDigits, chargebend, chargenon, localX, localY, &seg, &ndigits, time](int padid) {
     auto dx = seg.padSizeX(padid) * 0.5;
     auto dy = seg.padSizeY(padid) * 0.5;
     auto xmin = (localX - seg.padPositionX(padid)) - dx;
@@ -161,8 +161,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
     }
     auto signal = resp.response(q);
     digits.emplace_back(time, padid, signal);
-    multimap.emplace(padid, digits.size());
-    ++ndigits;
+     ++ndigits;
   });
   return ndigits;
 }
@@ -172,37 +171,23 @@ void Digitizer::mergeDigits(std::vector<Digit>& digits){
   std::set<int> forRemoval;
   typedef std::multimap<int, int>::iterator mMapit;
   int iter = 0;
+  
   for(auto& digit : digits){
-    
-    //if digit already marked for removal
-    if(forRemoval.find(iter) != forRemoval.end() )
-      {
-	++iter;
-	continue;
-      }
-     
+    mMultiple.emplace(digit.getPadID(), iter);  
     std::pair<mMapit, mMapit> multiple = mMultiple.equal_range(digit.getPadID());
-    int count = 0;
-        //loop over entries with multiple occurence
-    for (mMapit it = multiple.first; it != multiple.second; it++)
-      {
-	if( count != 0)
-	  {
-	    //add ADC counts to first digit in vector with this Padnumber
-	    //ignores potential time off set between different signal
-	    //if signal threshold relevant potentially need to call response in a way as well
-	    digit.setADC(digit.getADC() + (digits.at(it->second)).getADC());
-	    forRemoval.emplace(it->second); 
-	  }
-	++count;
+
+    if(multiple.first != multiple.second)
+      { 
+	digits.at((multiple.first)->second).setADC((digits.at((multiple.first)->second)).getADC() + digits.at(iter).getADC());
+	forRemoval.emplace(iter);
       }
     ++iter;
   }
+  
   int rmcounts=0;
   for(auto& index : forRemoval){
     digits.erase(digits.begin() + index - rmcounts);
-    // mTrackLabels, need other format(std::vector)
-    //    mTrackLabels.erase(digits.begin() + index - rmcounts);
+    mTrackLabels.erase(mTrackLabels.begin() + index - rmcounts);
     ++rmcounts;
   }  
   return;
