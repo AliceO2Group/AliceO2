@@ -15,6 +15,8 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/ControlService.h"
+#include "Framework/RawDeviceService.h"
+#include "fairmq/FairMQDevice.h"
 #include "Headers/DataHeader.h"
 #include <algorithm>
 #include <list>
@@ -122,9 +124,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
     LOG(INFO) << "To be hidden / removed at some point.";
     // mark this dummy process as ready-to-quit
     ic.services().get<ControlService>().readyToQuit(false);
-    return [](ProcessingContext&) {
+    return [](ProcessingContext& pc) {
       // this callback is never called since there is no expiring input
-      std::this_thread::sleep_for(std::chrono::seconds(2));
+      pc.services().get<RawDeviceService>().device()->WaitFor(std::chrono::seconds(2));
     };
   } };
 
