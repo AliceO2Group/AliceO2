@@ -175,7 +175,7 @@ BOOST_DATA_TEST_CASE(MID_Digitizer, boost::unit_test::data::make(getDEList()), d
   std::vector<ColumnDataMC> digitStoreMC;
   o2::dataformats::MCTruthContainer<MCLabel> digitLabelsMC;
   SIMUL::digitizer.process(hits, digitStoreMC, digitLabelsMC);
-  // We check that we as many set of labels as digits
+  // We check that we have as many sets of labels as digits
   BOOST_TEST(digitStoreMC.size() == digitLabelsMC.getIndexedSize());
   for (size_t idig = 0; idig < digitLabelsMC.getIndexedSize(); ++idig) {
     auto labels = digitLabelsMC.getLabels(idig);
@@ -193,7 +193,7 @@ BOOST_DATA_TEST_CASE(MID_Digitizer, boost::unit_test::data::make(getDEList()), d
   SIMUL::digitsMerger.process(digitStoreMC, digitLabelsMC, digitStore, digitLabels);
   // The number of merged digits should be smaller than the number of input digits
   BOOST_TEST(digitStore.size() <= digitStoreMC.size());
-  // We check that we as many set of labels as digits
+  // We check that we have as many sets of labels as digits
   BOOST_TEST(digitStore.size() == digitLabels.getIndexedSize());
   // We check that we do not discard any label in the merging
   BOOST_TEST(digitLabels.getNElements() == digitLabelsMC.getNElements());
