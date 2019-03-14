@@ -20,6 +20,7 @@ set(HEADERS
    include/${MODULE_NAME}/TrackBlock.h
 )
 
+set(LINKDEF src/MCHBaseLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME mch_base_bucket)
 

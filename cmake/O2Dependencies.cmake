@@ -2095,11 +2095,10 @@ o2_define_bucket(
 
     DEPENDENCIES
     fairroot_base_bucket
-    aliceHLTwrapper
     MCHBase
+    Framework
 
     INCLUDE_DIRECTORIES
-    ${CMAKE_SOURCE_DIR}/Utilities/aliceHLTwrapper/include
     ${CMAKE_SOURCE_DIR}/Detectors/MUON/MCH/Base/include
 )
 
