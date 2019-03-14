@@ -171,13 +171,16 @@ void Digitizer::mergeDigits(std::vector<Digit>& digits){
   int iter = 0;
   
   for(auto& digit : digits){
-    mMultiple.emplace(digit.getPadID(), iter);  
-    std::pair<mMapit, mMapit> multiple = mMultiple.equal_range(digit.getPadID());
-
-    if(multiple.first != multiple.second)
-      { 
-	digits.at((multiple.first)->second).setADC((digits.at((multiple.first)->second)).getADC() + digits.at(iter).getADC());
-	forRemoval.emplace(iter);
+    int padid = digit.getPadID();
+    mMultiple.emplace(padid, iter);
+    if(mMultiple.count(padid) > 1)
+      {
+	std::pair<mMapit, mMapit> multiple = mMultiple.equal_range(padid);
+	if(multiple.first != multiple.second)
+	  {
+	    digits.at((multiple.first)->second).setADC((digits.at((multiple.first)->second)).getADC() + digits.at(iter).getADC());
+	    forRemoval.emplace(iter);
+	  }
       }
     ++iter;
   }
