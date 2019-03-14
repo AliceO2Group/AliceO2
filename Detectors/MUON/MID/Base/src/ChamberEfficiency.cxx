@@ -36,6 +36,9 @@ int ChamberEfficiency::typeToIdx(EffType type) const
     case EffType::BothPlanes:
       return 2;
   }
+
+  // This will never be reached, but it is needed to avoid compiler warnings
+  return -1;
 }
 
 //______________________________________________________________________________
