@@ -49,22 +49,3 @@ The build system (cmake) is described [here](doc/CMakeInstructions.md).
 ### Formatting
 Rules and instructions are available in the repository
 [CodingGuidelines](https://github.com/AliceO2Group/CodingGuidelines).
-
-<!--
-### Documentation pages
-- \subpage refdoc
-
-### Content
-- \subpage refAlgorithm
-- \subpage refCCDB
-- \subpage refCommon
-- \subpage refDataFormats
-- \subpage refDetectors
-- \subpage refEventVisualisation
-- \subpage refExamples
-- \subpage refFramework
-- \subpage refGenerators
-- \subpage refSteer
-- \subpage refTesting
-- \subpage refUtilities
--->
