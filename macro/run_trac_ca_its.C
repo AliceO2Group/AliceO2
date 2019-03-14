@@ -37,6 +37,7 @@
 #include "GPUReconstruction.h"
 #include "GPUChainTracking.h"
 #include "GPUChainITS.h"
+using namespace o2::gpu;
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 

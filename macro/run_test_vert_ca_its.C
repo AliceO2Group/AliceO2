@@ -39,7 +39,10 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
+#include "GPUO2Interface.h"
 #include "GPUReconstruction.h"
+#include "GPUChainITS.h"
+using namespace o2::gpu;
 
 R__LOAD_LIBRARY(libITStracking)
 // R__LOAD_LIBRARY(libTPCReconstruction)
@@ -126,7 +129,8 @@ int run_test_vert_ca_its(const int inspEvt = -1,
 
   // o2::ITS::Vertexer vertexer(GPUReconstruction::CreateInstance()->GetITSVerterTraits());
   GPUReconstruction* instance = GPUReconstruction::CreateInstance();
-  o2::ITS::VertexerTraits* traits = instance->GetITSVertexerTraits();
+  GPUChainITS* chainITS = instance->AddChain<GPUChainITS>();
+  o2::ITS::VertexerTraits* traits = chainITS->GetITSVertexerTraits();
   std::cout << "macro -> traits ptr -> " << traits << std::endl;
   // traits->dumpVertexerTraits();
 
