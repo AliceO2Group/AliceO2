@@ -54,6 +54,25 @@ class ChipMappingITS
   ///< numbes of chips per layer
   static constexpr int getNChipsPerLr(int l) { return NStavesOnLr[l] * NChipsPerStaveSB[RUTypeLr[l]]; }
 
+  ///< compose FEEid for given stave (ru) relative to layer and link, see documentation in the constructor
+  uint16_t composeFEEId(uint16_t lr, uint16_t ruOnLr, uint16_t link) const { return (lr << 12) + (link << 8) + (ruOnLr); }
+
+  ///< decompose FEEid to layer, stave (ru) relative to layer, link, see documentation in the constructor
+  void expandFEEId(uint16_t feeID, uint16_t& lr, uint16_t& ruOnLr, uint16_t& link) const
+  {
+    lr = feeID >> 12;
+    ruOnLr = feeID & 0x3f;
+    link = (feeID >> 8) & 0x3;
+  }
+
+  ///< modify linkID field in FEEId
+  uint16_t modifyLinkInFEEId(uint16_t feeID, uint16_t linkID) const
+  {
+    feeID &= ~(0x3 << 8);
+    feeID |= (0x3 & linkID) << 8;
+    return feeID;
+  }
+
   ///< expand SW chip ID to SW (continuous) id's for layer, stave, substave etc.
   void expandChipInfoSW(int idSW, int& lay, int& sta, int& ssta, int& mod, int& chipInMod) const;
 
@@ -103,10 +122,14 @@ class ChipMappingITS
   }
 
   ///< get SW id of the RU from RU HW id
-  uint8_t RUHW2SW(uint16_t hw) const { return mRUHW2SW[hw]; }
+  uint8_t FEEId2RUSW(uint16_t hw) const { return mFEEId2RUSW[hw]; }
 
-  ///< get HW id of the RU (software id of the RU)
-  uint16_t RUSW2HW(uint16_t sw) const { return mStavesInfo[sw].idHW; }
+  ///< get FEEId of the RU (software id of the RU), read via given link
+  uint16_t RUSW2FEEId(uint16_t sw, uint16_t linkID = 0) const
+  {
+    uint16_t feeID = mStavesInfo[sw].idHW; // this is valid for link 0 only
+    return linkID ? modifyLinkInFEEId(feeID, linkID) : feeID;
+  }
 
   ///< get layer of the RU (from the software id of the RU)
   uint16_t RUSW2Layer(uint16_t sw) const { return mStavesInfo[sw].layer; }
@@ -118,7 +141,7 @@ class ChipMappingITS
   const RUInfo* getRUInfoSW(int ruSW) const { return &mStavesInfo[ruSW]; }
 
   ///< get info on sw RU
-  const RUInfo* getRUInfoHW(int ruHW) const { return &mStavesInfo[RUHW2SW(ruHW)]; }
+  const RUInfo* getRUInfoFEEId(int feeID) const { return &mStavesInfo[FEEId2RUSW(feeID)]; }
 
   ///< get number of chips served by single cable on given RU type
   uint8_t getGBTHeaderRUType(int ruType, int cableHW) { return GBTHeaderFlagSB[ruType] + (cableHW & 0x1f); }
@@ -175,22 +198,9 @@ class ChipMappingITS
     return sid + ruOnLr;
   }
 
-  ///< assign HW ID to RU with given SW ID (sequential ID)
-  void assignRUHWID(uint16_t ruHWID, int idSW)
-  {
-    auto& ruInfo = mStavesInfo[idSW];
-    if (ruInfo.idHW != ruHWID) {
-      mRUHW2SW[ruInfo.idHW] = 0xff;            // disable old association
-      if (int(mRUHW2SW.size()) < ruHWID + 1) { // if needed, expand HW2SW LUT
-        mRUHW2SW.resize(ruHWID + 1, 0xff);
-      }
-      mRUHW2SW[ruHWID] = ruInfo.idSW;
-      ruInfo.idHW = ruHWID;
-    }
-  }
-
  private:
-  static constexpr int IB = 0, MB = 1, OB = 2, NSubB = 3, NLayers = 7; // sub-barrel types, their number, N layers
+  // sub-barrel types, their number, N layers, Max N GBT Links per RU
+  static constexpr int IB = 0, MB = 1, OB = 2, NSubB = 3, NLayers = 7, NLinks = 3;
 
   static constexpr std::array<uint8_t, NSubB> GBTHeaderFlagSB = { 0x1 << 5, 0x1 << 6, 0x1 << 6 }; // prefixes for data GBT header byte
 
@@ -258,7 +268,7 @@ class ChipMappingITS
 
   /// info per stave
   std::array<RUInfo, NStavesSB[IB] + NStavesSB[MB] + NStavesSB[OB]> mStavesInfo;
-  std::vector<uint8_t> mRUHW2SW; // HW RU ID -> SW ID conversion
+  std::vector<uint8_t> mFEEId2RUSW; // HW RU ID -> SW ID conversion
 
   // info on chips info within the stave
   std::array<ChipOnRUInfo, NChipsPerStaveSB[IB] + NChipsPerStaveSB[MB] + NChipsPerStaveSB[OB]> mChipsInfo;

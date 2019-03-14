@@ -46,17 +46,17 @@ class ChipMappingMFT
   ///< total number of RUs
   static constexpr int getNRUs() { return 0; }
 
-  ///< get SW id of the RU from RU HW id
-  uint8_t RUHW2SW(uint16_t hw) const { return 0; }
+  ///< get FEEId of the RU (software id of the RU), read via given link
+  uint8_t FEEId2RUSW(uint16_t hw) const { return 0; }
 
   ///< get HW id of the RU (software id of the RU)
-  uint16_t RUSW2HW(uint16_t sw) const { return 0; }
+  uint16_t RUSW2FEEId(uint16_t sw, uint16_t linkID = 0) const { return 0; }
 
   ///< get info on sw RU
   const RUInfo* getRUInfoSW(int ruSW) const { return nullptr; }
 
   ///< get info on sw RU
-  const RUInfo* getRUInfoHW(int ruHW) const { return nullptr; }
+  const RUInfo* getRUInfoFEEId(int feeID) const { return nullptr; }
 
   ///< get number of chips served by single cable on given RU type
   uint8_t getGBTHeaderRUType(int ruType, int cableHW) { return 0; }

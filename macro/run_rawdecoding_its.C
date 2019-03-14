@@ -46,7 +46,7 @@ void run_rawdecoding_its(std::string inpName = "rawits.bin",
   for (int ir = 0; ir < MAP.getNRUs(); ir++) {
     const auto& ruStat = rawReader.getRUDecodingStatSW(ir);
     if (ruStat.nPackets) {
-      printf("\nStatistics for RU%3d (HWID:0x%4x)\n", ir, MAP.RUSW2HW(ir));
+      printf("\nStatistics for RU%3d (HWID:0x%4x)\n", ir, MAP.RUSW2FEEId(ir, 0));
       ruStat.print();
     }
   }

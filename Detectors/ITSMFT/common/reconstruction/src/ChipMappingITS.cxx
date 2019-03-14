@@ -43,6 +43,31 @@ ChipMappingITS::ChipMappingITS()
 {
   // init chips info
 
+  /*
+    FEE ID field in RDH is 16-bit wide
+    Each RU has 10-bit DIPSWITCH, use bits 9:2 as an 8bit ID field to be mapped to FEE ID field in RDH
+
+    | Lr |Stave Count| Bin. pref | Range of Binary Addresses
+    |    |= RU Count | Stave addr| 
+    |----------------------------------------------------------
+    | L0 |   12      |b 0000xxxx | 0000_0000 : 0000_1011 (0 – 11)
+    | L1 |   16      |b 0001xxxx | 0001_0000 : 0001_1111 (0 – 15)
+    | L2 |   20      |b 001xxxxx | 001_00000 : 001_10011 (0 – 19)
+    | L3 |   24      |b 010xxxxx | 010_00000 : 010_10111 (0 – 23)
+    | L4 |   30      |b 011xxxxx | 011_00000 : 011_11101 (0 – 29)
+    | L5 |   42      |b 10xxxxxx | 10_000000 : 10_101001 (0 – 41)
+    | L6 |   48      |b 11xxxxxx | 11_000000 : 11_101111 (0 – 47)
+
+    FEEId format:
+    15|14   12|11    10 |9     8|7  6|5           0|
+     0| Layer | Reserve | Fiber | 00 | StaveNumber |
+
+   */
+
+  uint32_t maxRUHW = composeFEEId(NLayers - 1, NStavesOnLr[NLayers - 1], NLinks - 1); // Max possible FEE ID
+  assert(maxRUHW < 0xffff);
+  mFEEId2RUSW.resize(maxRUHW + 1, 0xff);
+
   // IB: single cable per chip
   int ctrChip = 0;
   mChipInfoEntrySB[IB] = ctrChip;
@@ -89,15 +114,17 @@ ChipMappingITS::ChipMappingITS()
   }
 
   int ctrStv = 0;
-  uint32_t maxRUHW = 0;
   uint16_t chipCount = 0;
   for (int ilr = 0; ilr < NLayers; ilr++) {
     for (int ist = 0; ist < NStavesOnLr[ilr]; ist++) {
       auto& sInfo = mStavesInfo[ctrStv];
       sInfo.idSW = ctrStv++;
-      sInfo.idHW = sInfo.idSW; // at the moment assume 1 to 1 mapping
-      if (sInfo.idHW > maxRUHW) {
-        maxRUHW = sInfo.idHW;
+
+      // map FEEIds (RU read out by at most 3 GBT links) to SW ID
+      sInfo.idHW = composeFEEId(ilr, ist, 0); // FEEId for link 0
+      mFEEId2RUSW[sInfo.idHW] = sInfo.idSW;
+      for (int lnk = 1; lnk < NLinks; lnk++) {
+        mFEEId2RUSW[composeFEEId(ilr, ist, lnk)] = sInfo.idSW;
       }
       sInfo.layer = ilr;
       sInfo.ruType = RUTypeLr[ilr];
@@ -107,12 +134,6 @@ ChipMappingITS::ChipMappingITS()
     }
   }
   assert(ctrStv == getNRUs());
-  assert(maxRUHW < 0xffff);
-  mRUHW2SW.resize(maxRUHW + 1, 0xff);
-  for (int i = 0; i < getNRUs(); i++) {
-    auto& sInfo = mStavesInfo[i];
-    mRUHW2SW[sInfo.idHW] = sInfo.idSW;
-  }
 }
 
 //______________________________________________
