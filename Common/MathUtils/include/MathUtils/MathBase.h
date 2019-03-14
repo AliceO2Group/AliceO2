@@ -28,8 +28,8 @@
 #include <fairlogger/Logger.h>
 
 namespace o2 {
-namespace mathUtils {
-namespace mathBase {
+namespace math_utils {
+namespace math_base {
   /// fast fit of an array with ranges (histogram) with gaussian function
   ///
   /// Fitting procedure:
@@ -427,7 +427,7 @@ namespace mathBase {
     params[4] = params[3] / std::sqrt(2.0);       // error on RMS
     return true;
   }
-} // namespace mathBase
-} // namespace mathUtils
+} // namespace math_base
+} // namespace math_utils
 } // namespace o2
 #endif
