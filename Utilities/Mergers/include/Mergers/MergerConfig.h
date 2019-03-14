@@ -82,7 +82,7 @@ struct MergerConfig {
   ConfigEntry<UnpackingMethod> unpackingMethod = { UnpackingMethod::NoUnpackingNeeded };
 };
 
-} // namespace mergers
+} // namespace experimental::mergers
 } // namespace o2
 
 #endif //ALICEO2_MERGERCONFIG_H

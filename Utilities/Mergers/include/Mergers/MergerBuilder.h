@@ -75,7 +75,7 @@ class MergerBuilder
   MergerConfig mConfig;
 };
 
-} // namespace mergers
+} // namespace experimental::mergers
 } // namespace o2
 
 #endif //ALICEO2_MERGERBUILDER_H

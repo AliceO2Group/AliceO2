@@ -22,7 +22,7 @@
 #include "Mergers/MergerInfrastructureBuilder.h"
 #include <iostream>
 
-using namespace o2::mergers;
+using namespace o2::experimental::mergers;
 
 BOOST_AUTO_TEST_CASE(InfrastructureBuilderUnconfigured)
 {

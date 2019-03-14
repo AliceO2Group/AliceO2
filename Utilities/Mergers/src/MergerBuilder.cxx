@@ -101,5 +101,5 @@ void MergerBuilder::customizeInfrastructure(std::vector<framework::CompletionPol
   policies.push_back(mergerConsumes);
 }
 
-} // namespace mergers
+} // namespace experimental::mergers
 } // namespace o2

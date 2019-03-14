@@ -71,7 +71,7 @@ class MergerInfrastructureBuilder
   MergerConfig mConfig;
 };
 
-} // namespace mergers
+} // namespace experimental::mergers
 } // namespace o2
 
 #endif //ALICEO2_INFRASTRUCTUREBUILDER_H

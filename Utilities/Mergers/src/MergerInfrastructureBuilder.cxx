@@ -181,5 +181,5 @@ void MergerInfrastructureBuilder::generateInfrastructure(framework::WorkflowSpec
   workflow.insert(std::end(workflow), std::begin(mergersInfrastructure), std::end(mergersInfrastructure));
 }
 
-} // namespace mergers
+} // namespace experimental::mergers
 } // namespace o2

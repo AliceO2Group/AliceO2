@@ -55,7 +55,7 @@ class MergeInterface
   ClassDef(MergeInterface, 1);
 };
 
-} // namespace mergers
+} // namespace experimental::mergers
 } // namespace o2
 
 #endif //ALICEO2_MERGEINTERFACE_H

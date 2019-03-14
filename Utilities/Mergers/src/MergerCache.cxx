@@ -144,5 +144,5 @@ void MergerCache::deleteTCollections(TObject* obj)
   }
 }
 
-} // namespace mergers
+} // namespace experimental::mergers
 } // namespace o2

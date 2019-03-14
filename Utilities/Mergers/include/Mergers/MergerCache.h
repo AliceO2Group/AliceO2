@@ -89,7 +89,7 @@ class MergerCache
   size_t mUpdatedInputs{ 0 };
 };
 
-} // namespace mergers
+} // namespace experimental::mergers
 } // namespace o2
 
 #endif //ALICEO2_MERGERCACHE_H

@@ -67,7 +67,7 @@ class Merger : public framework::Task
   MergerConfig mConfig;
 };
 
-} // namespace mergers
+} // namespace experimental::mergers
 } // namespace o2
 
 #endif //ALICEO2_MERGERS_H

@@ -276,5 +276,5 @@ bool Merger::shouldPublish(framework::ProcessingContext& ctx)
   }
 }
 
-} // namespace mergers
+} // namespace experimental::mergers
 } // namespace o2
