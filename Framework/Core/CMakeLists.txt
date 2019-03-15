@@ -280,6 +280,7 @@ set(TEST_SRCS
    )
 
 set(BENCH_SRCS 
+    test/benchmark_ContextRegistry.cxx
     test/benchmark_DataDescriptorMatcher.cxx
     test/benchmark_DataRelayer.cxx
     test/benchmark_DeviceMetricsInfo.cxx
