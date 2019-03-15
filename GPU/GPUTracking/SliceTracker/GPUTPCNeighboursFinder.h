@@ -20,7 +20,7 @@
 #include "GPUGeneralKernels.h"
 #include "GPUConstantMem.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -84,6 +84,6 @@ class GPUTPCNeighboursFinder
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & smem, workerType& tracker);
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif // GPUTPCNEIGHBOURSFINDER_H

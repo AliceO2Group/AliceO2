@@ -17,7 +17,7 @@
 #include "GPUTPCBaseTrackParam.h"
 #include "GPUTPCDef.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -67,6 +67,6 @@ class GPUTPCTrack
  private:
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif // GPUTPCTRACK_H

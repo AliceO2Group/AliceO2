@@ -43,7 +43,7 @@
 #include <unistd.h>
 #endif
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 GPUReconstruction* GPUReconstruction::GPUReconstruction_Create_CPU(const GPUSettingsProcessing& cfg) { return new GPUReconstructionCPU(cfg); }
 

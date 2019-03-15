@@ -20,7 +20,7 @@
 #include "TPCDistortionIRS.h"
 #include <cmath>
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -442,6 +442,6 @@ inline int TPCFastTransform::TransformInTimeFrame(int slice, int row, float pad,
   return 0;
 }
 } // namespace gpu
-} // namespace o2
+} // namespace GPUCA_NAMESPACE
 
 #endif

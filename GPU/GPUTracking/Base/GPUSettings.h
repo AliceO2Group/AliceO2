@@ -16,7 +16,7 @@
 
 #include "GPUCommonMath.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -116,6 +116,6 @@ struct GPUSettingsDeviceProcessing {
   bool trackletSelectorInPipeline;    // Run tracklet selector in pipeline, requres also tracklet constructor in pipeline
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

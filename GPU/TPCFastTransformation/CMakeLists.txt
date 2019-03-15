@@ -4,6 +4,7 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
 set(MODULE O2TPCFastTransformation)
 elseif(${ALIGPU_BUILD_TYPE} STREQUAL "ALIROOT")
 set(MODULE AliTPCFastTransformation)
+add_definitions(-DGPUCA_ALIROOT_LIB)
 endif()
 
 include_directories(.)

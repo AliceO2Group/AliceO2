@@ -17,7 +17,7 @@
 #include "GPUDisplayBackend.h"
 #include <pthread.h>
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -58,6 +58,6 @@ class GPUDisplayBackendGlut : public GPUDisplayBackend
   bool mFullScreen = false;
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

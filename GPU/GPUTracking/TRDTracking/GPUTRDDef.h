@@ -1,10 +1,11 @@
 #ifndef GPUTRDDEF_H
 #define GPUTRDDEF_H
 
+#include "GPUCommonDef.h"
 class AliExternalTrackParam;
 class AliTrackerBase;
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -54,6 +55,6 @@ typedef propagatorInterface<TRDBasePropagator> GPUTRDPropagator;
 #define Info(...)
 #endif
 } // namespace gpu
-} // namespace o2
+} // namespace GPUCA_NAMESPACE
 
 #endif

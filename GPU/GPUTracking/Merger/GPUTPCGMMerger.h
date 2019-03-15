@@ -28,7 +28,7 @@
 #include <iostream>
 #endif // GPUCA_GPUCODE
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -170,6 +170,6 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUChainTracking* mChainTracking; // Tracking chain with access to input data / parameters
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif // GPUTPCGMMERGER_H

@@ -41,7 +41,7 @@ class VertexerTraits;
 }
 } // namespace o2::ITS
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -492,6 +492,6 @@ inline void GPUReconstruction::ReadStructFromFile(const char* file, T* obj)
   }
 }
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

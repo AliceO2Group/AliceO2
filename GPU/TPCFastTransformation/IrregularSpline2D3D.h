@@ -25,7 +25,7 @@
 #include <Vc/SimdArray>
 #endif
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -357,6 +357,6 @@ inline void IrregularSpline2D3D::getSplineVec(const float* correctedData, float 
 #endif
 }
 } // namespace gpu
-} // namespace o2
+} // namespace GPUCA_NAMESPACE
 
 #endif

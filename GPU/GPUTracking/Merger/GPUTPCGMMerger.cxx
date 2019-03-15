@@ -47,7 +47,7 @@
 #include "AliHLTTPCClusterMCData.h"
 #endif
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 static constexpr int kMaxParts = 400;
 static constexpr int kMaxClusters = 1000;

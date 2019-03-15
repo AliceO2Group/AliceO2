@@ -14,17 +14,19 @@
 #ifndef GPUQACONFIG_H
 #define GPUQACONFIG_H
 
+#include "GPUCommonDef.h"
+
 #if !defined(GPUCA_STANDALONE)
 #define QCONFIG_CPP11_INIT
 #endif
 #include "utils/qconfig.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
 typedef structConfigQA GPUQAConfig;
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

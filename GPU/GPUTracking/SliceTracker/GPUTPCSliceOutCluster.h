@@ -16,7 +16,7 @@
 
 #include "GPUTPCDef.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -63,6 +63,6 @@ class GPUTPCSliceOutCluster
 #endif
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

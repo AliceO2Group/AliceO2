@@ -19,7 +19,7 @@
 #include "GPUCommonMath.h"
 //#include <algorithm>
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -133,6 +133,6 @@ class GPUTPCGMSliceTrack
   unsigned char mLeg;                                   // Leg of this track segment
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

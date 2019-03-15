@@ -18,7 +18,7 @@
 #include "GPUTPCDef.h"
 #include "GPUTPCGPUConfig.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -75,6 +75,6 @@ class GPUTPCTracklet
   int mHitWeight;                       // Hit Weight of Tracklet
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif // GPUTPCTRACKLET_H

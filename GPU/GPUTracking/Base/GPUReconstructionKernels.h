@@ -14,7 +14,7 @@
 #ifndef GPURECONSTRUCTIONKERNELS_H
 #define GPURECONSTRUCTIONKERNELS_H
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -52,6 +52,6 @@ class GPUReconstructionKernels : public T
 #undef GPUCA_KRNL
 #undef GPUCA_KRNL_CLASS
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

@@ -18,7 +18,7 @@
 #include "GPUTPCDef.h"
 #include "GPUCommonMath.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -178,6 +178,6 @@ GPUd() MEM_CLASS_PRE() inline void MEM_LG(GPUTPCTrackParam)::InitParam()
   SetZOffset(0);
 }
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif // GPUTPCTRACKPARAM_H

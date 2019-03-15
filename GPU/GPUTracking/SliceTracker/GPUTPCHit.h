@@ -16,7 +16,7 @@
 
 #include "GPUTPCDef.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -40,6 +40,6 @@ class GPUTPCHit
   float mY, mZ; // Y and Z position of the TPC cluster
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif // GPUTPCHIT_H

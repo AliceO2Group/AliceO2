@@ -16,7 +16,7 @@
 
 #include "GPUCommonDefGPU.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -98,6 +98,6 @@ class GPUTPCGMBorderTrack
   float mD[2];
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

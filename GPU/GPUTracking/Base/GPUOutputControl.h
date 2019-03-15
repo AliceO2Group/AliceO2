@@ -14,11 +14,12 @@
 #ifndef GPUOUTPUTCONTROL_H
 #define GPUOUTPUTCONTROL_H
 
+#include "GPUCommonDef.h"
 #ifndef GPUCA_GPUCODE
 #include <cstddef>
 #endif
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -37,6 +38,6 @@ struct GPUOutputControl {
   char EndOfSpace = 0;                            // end of space flag
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

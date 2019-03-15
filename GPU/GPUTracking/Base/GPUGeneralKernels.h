@@ -17,7 +17,7 @@
 #include "GPUTPCDef.h"
 #include "GPUDataTypes.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -60,6 +60,6 @@ class GPUMemClean16 : public GPUKernelTemplate
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, workerType& workers, GPUglobalref() void* ptr, unsigned long size);
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

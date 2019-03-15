@@ -18,7 +18,7 @@
 #include "GPUReconstructionHIPInternals.h"
 #include "GPUReconstructionIncludes.h"
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 __constant__ uint4 gGPUConstantMemBuffer[(sizeof(GPUConstantMem) + sizeof(uint4) - 1) / sizeof(uint4)];
 __constant__ char& gGPUConstantMemBufferChar = (char&)gGPUConstantMemBuffer;

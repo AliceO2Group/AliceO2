@@ -17,7 +17,7 @@
 #include "GPUTPCTracker.h"
 #include "GPUTPCSliceOutput.h"
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 #ifdef __CINT__
 typedef int cudaError_t

@@ -16,7 +16,7 @@
 #include "GPUReconstruction.h"
 #endif
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 template <>
 GPUd() void GPUTPCGMMergerTrackFit::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, workerType& merger)

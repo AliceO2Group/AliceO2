@@ -27,7 +27,7 @@ class TrackITS;
 }
 } // namespace o2::ITS
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -54,6 +54,6 @@ class GPUChainITS : public GPUChain
   std::unique_ptr<o2::ITS::VertexerTraits> mITSVertexerTraits;
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

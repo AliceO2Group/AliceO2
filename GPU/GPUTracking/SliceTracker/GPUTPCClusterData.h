@@ -16,7 +16,7 @@
 
 #include "GPUTPCDef.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -37,6 +37,6 @@ struct GPUTPCClusterData {
 #endif
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif // CLUSTERDATA_H

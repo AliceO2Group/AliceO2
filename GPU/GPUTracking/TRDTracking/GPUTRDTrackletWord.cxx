@@ -24,7 +24,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #include "GPUTRDTrackletWord.h"
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 #ifndef __OPENCL__
 #include <new>
 #endif

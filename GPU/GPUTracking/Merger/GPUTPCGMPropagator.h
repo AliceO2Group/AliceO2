@@ -20,7 +20,7 @@
 #include "GPUTPCGMPolynomialField.h"
 #include "GPUCommonMath.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -170,6 +170,6 @@ GPUd() inline float GPUTPCGMPropagator::GetMirroredYTrack() const
   return mT->GetMirroredY(Bz);
 }
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

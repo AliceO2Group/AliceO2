@@ -16,7 +16,7 @@
 
 #include <mutex>
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -44,6 +44,6 @@ class GPUReconstructionHelpers
   };
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

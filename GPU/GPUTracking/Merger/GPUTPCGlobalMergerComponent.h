@@ -28,7 +28,7 @@
 #include "AliHLTComponentBenchmark.h"
 #include "GPUParam.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -36,7 +36,7 @@ class GPUTPCGMMerger;
 class GPUReconstruction;
 class GPUChainTracking;
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 /**
  * @class GPUTPCGlobalMergerComponent
@@ -86,7 +86,7 @@ class GPUTPCGlobalMergerComponent : public AliHLTProcessor
  */
   AliHLTComponent* Spawn();
 
-  static const o2::gpu::GPUTPCGMMerger* GetCurrentMerger();
+  static const GPUCA_NAMESPACE::gpu::GPUTPCGMMerger* GetCurrentMerger();
 
  protected:
   // Protected functions to implement AliHLTComponent's interface.
@@ -134,11 +134,11 @@ class GPUTPCGlobalMergerComponent : public AliHLTProcessor
   int fNWays;                                                            // Setting for merger
   char fNWaysOuter;                                                      // Store outer param after n-way fit
   bool fNoClear;                                                         // Do not clear memory after processing an event
-  static const o2::gpu::GPUChainTracking* fgCurrentMergerReconstruction; // Pointer to current merger in case memory is not cleared after processing the event
+  static const GPUCA_NAMESPACE::gpu::GPUChainTracking* fgCurrentMergerReconstruction; // Pointer to current merger in case memory is not cleared after processing the event
   AliHLTComponentBenchmark fBenchmark;                                   // benchmark
-  o2::gpu::GPUParam mParam;                                              // ca params
-  o2::gpu::GPUReconstruction* fRec;                                      // GPUReconstruction
-  o2::gpu::GPUChainTracking* fChain;
+  GPUCA_NAMESPACE::gpu::GPUParam mParam;                                              // ca params
+  GPUCA_NAMESPACE::gpu::GPUReconstruction* fRec;                                      // GPUReconstruction
+  GPUCA_NAMESPACE::gpu::GPUChainTracking* fChain;
 
   ClassDef(GPUTPCGlobalMergerComponent, 0)
 };

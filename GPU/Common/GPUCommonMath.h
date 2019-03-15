@@ -22,7 +22,7 @@
 #endif
 
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {

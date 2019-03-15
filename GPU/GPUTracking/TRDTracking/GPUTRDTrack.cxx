@@ -1,7 +1,7 @@
 #include "GPUTRDTrack.h"
 #include "GPUTRDTrackData.h"
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 #ifdef GPUCA_ALIROOT_LIB
 #include "AliHLTExternalTrackParam.h"
@@ -190,7 +190,7 @@ GPUd() void GPUTRDTrack_t<T>::ConvertFrom(const GPUTRDTrackDataRecord& t)
   }
 }
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -202,4 +202,4 @@ template class GPUTRDTrack_t<trackInterface<AliExternalTrackParam>>;
 #endif
 template class GPUTRDTrack_t<trackInterface<GPUTPCGMTrackParam>>; // Always instatiate GPU track version
 } // namespace gpu
-} // namespace o2
+} // namespace GPUCA_NAMESPACE

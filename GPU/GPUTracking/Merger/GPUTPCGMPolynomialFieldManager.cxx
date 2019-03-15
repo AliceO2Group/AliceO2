@@ -15,7 +15,7 @@
 #include "GPUTPCGMPolynomialField.h"
 #include <cmath>
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 int GPUTPCGMPolynomialFieldManager::GetPolynomialField(StoredField_t fieldType, float nominalFieldkG, GPUTPCGMPolynomialField& field)
 {

@@ -16,7 +16,7 @@
 
 #include "GPUDisplayBackend.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -37,6 +37,6 @@ class GPUDisplayBackendWindows : public GPUDisplayBackend
   virtual int OpenGLMain();
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

@@ -14,7 +14,7 @@
 #ifndef GPUDATATYPES_H
 #define GPUDATATYPES_H
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -48,6 +48,6 @@ class GPUDataTypes
 #undef ENUM_CLASS
 #undef ENUM_UINT
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

@@ -23,7 +23,7 @@ struct TrackingFrameInfo;
 }
 } // namespace o2::ITS
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -44,6 +44,6 @@ class GPUITSFitterKernel : public GPUKernelTemplate
 #endif
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

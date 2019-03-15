@@ -17,7 +17,7 @@
 #include "GPUTPCGMTrackParam.h"
 #include "GPUTPCGMMergedTrackHit.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -112,6 +112,6 @@ class GPUTPCGMMergedTrack
   unsigned char mFlags;
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

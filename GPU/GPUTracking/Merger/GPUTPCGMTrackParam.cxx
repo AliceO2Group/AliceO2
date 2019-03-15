@@ -40,7 +40,7 @@
 #include <cstdlib>
 #endif
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 CADEBUG(int cadebug_nTracks = 0);
 

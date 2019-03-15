@@ -22,7 +22,7 @@
 #include <unistd.h>
 
 #include <pthread.h>
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 static GPUDisplayBackendGlut* me = nullptr;
 
 void GPUDisplayBackendGlut::displayFunc(void)

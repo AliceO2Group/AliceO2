@@ -16,7 +16,7 @@
 
 #include "GPUTPCDef.h"
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 #include "GPUTPCTrackParam.cxx"
 #include "GPUTPCTrack.cxx"

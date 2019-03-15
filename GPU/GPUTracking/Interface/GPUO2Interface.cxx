@@ -22,13 +22,13 @@
 #include <omp.h>
 #endif
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 #ifdef BUILD_EVENT_DISPLAY
 #include "GPUDisplayBackendGlfw.h"
 #else
 #include "GPUDisplayBackend.h"
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -36,7 +36,7 @@ class GPUDisplayBackendGlfw : public GPUDisplayBackend
 {
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 #endif
 
 #include "DataFormatsTPC/ClusterNative.h"

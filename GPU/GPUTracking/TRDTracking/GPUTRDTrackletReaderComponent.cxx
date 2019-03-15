@@ -35,7 +35,7 @@
 #include "AliLoader.h"
 #include "AliDataLoader.h"
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 ClassImp(GPUTRDTrackletReaderComponent)
 

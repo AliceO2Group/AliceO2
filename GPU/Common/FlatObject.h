@@ -29,7 +29,7 @@
 
 //#define GPUCA_GPUCODE // uncomment to test "GPU" mode
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -445,6 +445,6 @@ inline void FlatObject::setFutureBufferAddress(char* futureFlatBufferPtr)
   mFlatBufferContainer = nullptr;
 }
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

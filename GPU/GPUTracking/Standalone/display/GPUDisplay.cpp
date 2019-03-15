@@ -51,7 +51,7 @@
 #include "GPUTRDGeometry.h"
 #include "utils/qconfig.h"
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 #if !defined(GL_VERSION_4_5) || GL_VERSION_4_5 != 1
 #error Unsupported OpenGL version < 4.5

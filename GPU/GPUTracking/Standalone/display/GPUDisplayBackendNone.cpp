@@ -12,4 +12,4 @@
 /// \author David Rohr
 
 #include "GPUDisplayBackendNone.h"
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;

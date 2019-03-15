@@ -16,7 +16,7 @@
 
 #include <cuda.h>
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -47,6 +47,6 @@ static void GPUFailedMsgA(const long long int error, const char* file, int line)
 
 static_assert(std::is_convertible<cudaEvent_t, void*>::value, "CUDA event type incompatible to deviceEvent");
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

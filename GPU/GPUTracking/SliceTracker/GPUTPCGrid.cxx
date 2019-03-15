@@ -13,7 +13,7 @@
 
 #include "GPUTPCGrid.h"
 #include "GPUCommonMath.h"
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 #ifndef assert
 #include <cassert>

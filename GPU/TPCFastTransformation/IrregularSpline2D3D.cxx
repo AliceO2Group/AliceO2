@@ -19,7 +19,7 @@
 #include <iostream>
 #endif
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 IrregularSpline2D3D::IrregularSpline2D3D() : FlatObject(), mGridU(), mGridV()
 {

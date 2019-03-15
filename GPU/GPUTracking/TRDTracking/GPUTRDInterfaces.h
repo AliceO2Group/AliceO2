@@ -16,7 +16,7 @@
 #include "GPUTPCGMTrackParam.h"
 #include "GPUTRDDef.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -25,14 +25,14 @@ class trackInterface;
 template <typename T>
 class propagatorInterface;
 } // namespace gpu
-} // namespace o2
+} // namespace GPUCA_NAMESPACE
 
 #ifdef GPUCA_ALIROOT_LIB // Interface for AliRoot, build only with AliRoot
 #include "AliExternalTrackParam.h"
 #include "AliHLTExternalTrackParam.h"
 #include "AliTrackerBase.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -106,7 +106,7 @@ class propagatorInterface<AliTrackerBase> : public AliTrackerBase
   trackInterface<AliExternalTrackParam>* mParam;
 };
 } // namespace gpu
-} // namespace o2
+} // namespace GPUCA_NAMESPACE
 
 #endif
 
@@ -119,7 +119,7 @@ class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 #include "GPUParam.h"
 #include "GPUTPCDef.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -261,6 +261,6 @@ class propagatorInterface<GPUTPCGMPropagator> : public GPUTPCGMPropagator
   trackInterface<GPUTPCGMTrackParam>* mTrack;
 };
 } // namespace gpu
-} // namespace o2
+} // namespace GPUCA_NAMESPACE
 
 #endif

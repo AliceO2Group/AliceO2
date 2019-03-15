@@ -17,7 +17,7 @@
 class AliTRDtrackletWord;
 class AliTRDtrackletMCM;
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -69,6 +69,6 @@ class GPUTRDTrackletWord
                               //          bits:   8   4            7          13
 };
 } // namespace gpu
-} // namespace o2
+} // namespace GPUCA_NAMESPACE
 
 #endif

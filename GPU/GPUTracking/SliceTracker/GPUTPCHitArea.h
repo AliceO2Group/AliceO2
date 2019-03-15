@@ -16,7 +16,7 @@
 
 #include "GPUTPCDef.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -81,6 +81,6 @@ class GPUTPCHitArea
   int mHitOffset; // global hit offset XXX what's that?
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif // GPUTPCHITAREA_H

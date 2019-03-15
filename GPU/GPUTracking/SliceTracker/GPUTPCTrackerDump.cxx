@@ -21,7 +21,7 @@
 #include <string.h>
 #include <iomanip>
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 void GPUTPCTracker::DumpOutput(FILE* out)
 {

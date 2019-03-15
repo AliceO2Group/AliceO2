@@ -26,14 +26,14 @@
 class TH1F;
 class TList;
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
 class GPUTRDTracker;
 class GPUTRDGeometry;
 } // namespace gpu
-} // namespace o2
+} // namespace GPUCA_NAMESPACE
 
 class GPUTRDTrackerComponent : public AliHLTProcessor
 {
@@ -128,8 +128,8 @@ class GPUTRDTrackerComponent : public AliHLTProcessor
  *                             Members - private
  * ---------------------------------------------------------------------------------
  */
-  o2::gpu::GPUTRDTracker* fTracker; // the tracker itself
-  o2::gpu::GPUTRDGeometry* fGeo;    // TRD geometry needed by the tracker
+  GPUCA_NAMESPACE::gpu::GPUTRDTracker* fTracker; // the tracker itself
+  GPUCA_NAMESPACE::gpu::GPUTRDGeometry* fGeo;    // TRD geometry needed by the tracker
 
   TList* fTrackList;
   bool fDebugTrackOutput;              // output GPUTRDTracks instead AliHLTExternalTrackParam

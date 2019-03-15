@@ -17,7 +17,7 @@
 #include "GPUReconstructionOCLInternals.h"
 #include "GPUReconstructionIncludes.h"
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 #include <cstring>
 #include <unistd.h>

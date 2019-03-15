@@ -20,7 +20,7 @@
 #include "GPUTPCDef.h"
 #include "GPUSettings.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -86,6 +86,6 @@ struct GPUParam {
   float ParamS0Par[2][3][6]; // cluster error parameterization coeficients
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

@@ -19,7 +19,7 @@
 #include <TFile.h>
 #include <TNtuple.h>
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {

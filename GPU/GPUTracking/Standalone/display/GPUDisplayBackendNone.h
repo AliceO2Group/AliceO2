@@ -16,7 +16,7 @@
 
 #include "GPUDisplay.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -33,6 +33,6 @@ class GPUDisplayBackendNone : public GPUDisplayBackend
   virtual void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override {}
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

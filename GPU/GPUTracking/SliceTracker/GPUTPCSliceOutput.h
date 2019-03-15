@@ -25,7 +25,7 @@
   #define NULL 0
 #endif // clang-format on
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -96,5 +96,5 @@ class GPUTPCSliceOutput
 #endif
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 #endif

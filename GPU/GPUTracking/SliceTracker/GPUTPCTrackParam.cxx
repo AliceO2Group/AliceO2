@@ -14,7 +14,7 @@
 #include "GPUTPCTrackLinearisation.h"
 #include "GPUTPCTrackParam.h"
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 //
 // Circle in XY:

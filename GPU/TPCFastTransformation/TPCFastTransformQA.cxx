@@ -28,7 +28,7 @@
 #include <iostream>
 #include <iomanip>
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 using namespace std;
 
 TPCFastTransformQA::TPCFastTransformQA() {}

@@ -15,7 +15,7 @@
 #include "GPUTPCSliceOutput.h"
 #include "GPUCommonMath.h"
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 unsigned int GPUTPCSliceOutput::EstimateSize(unsigned int nOfTracks, unsigned int nOfTrackClusters)
 {

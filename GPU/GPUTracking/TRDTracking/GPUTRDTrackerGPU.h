@@ -3,7 +3,7 @@
 
 #include "GPUGeneralKernels.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -18,6 +18,6 @@ class GPUTRDTrackerGPU : public GPUKernelTemplate
 #endif
 };
 } // namespace gpu
-} // namespace o2
+} // namespace GPUCA_NAMESPACE
 
 #endif

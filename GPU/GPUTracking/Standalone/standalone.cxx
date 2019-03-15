@@ -66,7 +66,7 @@
 #include "GPUDisplayBackendGlut.h"
 #endif
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 //#define BROKEN_EVENTS
 

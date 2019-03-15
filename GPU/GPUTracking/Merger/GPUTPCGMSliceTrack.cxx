@@ -18,7 +18,7 @@
 #include <cmath>
 #endif
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 bool GPUTPCGMSliceTrack::FilterErrors(const GPUParam& param, float maxSinPhi, float sinPhiMargin)
 {

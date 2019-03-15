@@ -22,7 +22,7 @@
 #include "ITStracking/Cell.h"
 #include "CommonConstants/MathConstants.h"
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::ITS;
 using namespace o2;
 

@@ -13,7 +13,7 @@
 
 #include "GPUDisplay.h"
 #include <cmath>
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 void GPUDisplay::createQuaternionFromMatrix(float* v, const float* mat)
 {

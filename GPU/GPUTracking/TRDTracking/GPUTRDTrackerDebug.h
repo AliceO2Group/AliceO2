@@ -7,7 +7,7 @@
 #include "TTreeStream.h"
 #include "GPUTRDTrack.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -433,11 +433,11 @@ class GPUTRDTrackerDebug
   TTreeSRedirector* fStreamer;
 };
 } // namespace gpu
-} // namespace o2
+} // namespace GPUCA_NAMESPACE
 
 #else
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -481,7 +481,7 @@ class GPUTRDTrackerDebug
   GPUd() void Output() {}
 };
 } // namespace gpu
-} // namespace o2
+} // namespace GPUCA_NAMESPACE
 
 #endif
 #endif

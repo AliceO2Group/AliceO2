@@ -19,7 +19,7 @@
 #if (defined(GPUCA_ALIROOT_LIB) || defined(BUILD_QA)) && !defined(GPUCA_GPUCODE) && defined(EXTRACT_RESIDUALS)
 #include "cagpu/GPUTPCGPURootDump.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -51,11 +51,11 @@ struct GPUTPCClusterErrorStat {
 GPUTPCGPURootDump<TNtuple> GPUTPCClusterErrorStat::fTup("clusterres.root", "clusterres", "clusterres", "clX:clY:clZ:angle:trkX:trkY:trkZ:trkSinPhi:trkDzDs:trkQPt:trkSigmaY2:trkSigmaZ2:trkSigmaSinPhi2:trkSigmaDzDs2:trkSigmaQPt2");
 long long int GPUTPCClusterErrorStat::fCount = 0;
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #else
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -64,7 +64,7 @@ struct GPUTPCClusterErrorStat {
   GPUd() void Fill(float /*x*/, float /*y*/, float /*z*/, float /*alpha*/, float /*trkX*/, float* /*fP*/, float* /*fC*/, int /*ihit*/, int /*iWay*/) {}
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif
 

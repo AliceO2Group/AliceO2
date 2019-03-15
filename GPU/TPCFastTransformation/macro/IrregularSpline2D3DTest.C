@@ -53,7 +53,7 @@ float Fz(float u, float v) { return (u - .5) * (u - .5); }
 
 int IrregularSpline2D3DTest()
 {
-  using namespace o2::gpu;
+  using namespace GPUCA_NAMESPACE::gpu;
 
   gRandom->SetSeed(0);
   UInt_t seed = gRandom->Integer(100000); // 605

@@ -21,7 +21,7 @@
 #include <cstring>
 #include "utils/vecpod.h"
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 // calculates an approximation for 1/sqrt(x)
 // Google for 0x5f3759df :)

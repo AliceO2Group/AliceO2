@@ -35,7 +35,7 @@
 
 #include "utils/linux_helpers.h"
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 #ifdef HAVE_O2HEADERS
 #include "TRDBase/TRDGeometryFlat.h"

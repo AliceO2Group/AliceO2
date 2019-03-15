@@ -16,7 +16,7 @@
 
 #include "GPUTPCDef.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -285,6 +285,6 @@ GPUdi() float GPUTPCGMPolynomialField::GetFieldItsBz(float x, float y, float z) 
   return bz;
 }
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

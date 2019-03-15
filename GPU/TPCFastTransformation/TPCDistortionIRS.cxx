@@ -19,7 +19,7 @@
 #include <iostream>
 #endif
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 TPCDistortionIRS::TPCDistortionIRS()
   : FlatObject(), mConstructionCounterRows(0), mConstructionCounterScenarios(0), mConstructionRowInfos(nullptr), mConstructionScenarios(nullptr), mNumberOfRows(0), mNumberOfScenarios(0), mRowInfoPtr(nullptr), mScenarioPtr(nullptr), mScaleVtoSVsideA(0.f), mScaleVtoSVsideC(0.f), mScaleSVtoVsideA(0.f), mScaleSVtoVsideC(0.f), mTimeStamp(-1), mSplineData(nullptr), mSliceDataSizeBytes(0)

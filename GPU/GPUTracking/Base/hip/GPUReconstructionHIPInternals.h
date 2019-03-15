@@ -14,7 +14,7 @@
 #ifndef GPURECONSTRUCTIONHIPINTERNALS_H
 #define GPURECONSTRUCTIONHIPINTERNALS_H
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -44,6 +44,6 @@ static void GPUFailedMsgA(const long long int error, const char* file, int line)
 
 static_assert(std::is_convertible<hipEvent_t, void*>::value, "HIP event type incompatible to deviceEvent");
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

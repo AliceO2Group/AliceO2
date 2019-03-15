@@ -22,7 +22,7 @@
 #include "GPUTPCTrackletConstructor.h"
 #include "GPUCommonMath.h"
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 MEM_CLASS_PRE2()
 GPUd() void GPUTPCTrackletConstructor::InitTracklet(MEM_LG2(GPUTPCTrackParam) & tParam)

@@ -28,7 +28,7 @@ class Cell;
 }
 } // namespace o2::ITS
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -98,6 +98,6 @@ class GPUITSFitter : public GPUProcessor
   short mMemoryResMemory = -1;
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

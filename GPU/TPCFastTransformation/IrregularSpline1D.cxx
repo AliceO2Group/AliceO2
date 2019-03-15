@@ -21,7 +21,7 @@
 #include <iostream>
 #endif
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 IrregularSpline1D::IrregularSpline1D() : FlatObject(), mNumberOfKnots(0), mNumberOfAxisBins(0), mBin2KnotMapOffset(0)
 {

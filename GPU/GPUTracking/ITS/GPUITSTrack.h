@@ -16,7 +16,7 @@
 
 #include "GPUTPCGMTrackParam.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -28,6 +28,6 @@ class GPUITSTrack : public GPUTPCGMTrackParam
   int mClusters[7];
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

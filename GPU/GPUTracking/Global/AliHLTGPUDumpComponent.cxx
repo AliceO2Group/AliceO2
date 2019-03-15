@@ -52,7 +52,7 @@
 #include "TParticlePDG.h"
 #include "TPDGCode.h"
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 AliHLTGPUDumpComponent::AliHLTGPUDumpComponent() : fSolenoidBz(0.f), fRec(nullptr), fChain(nullptr), fFastTransformManager(new TPCFastTransformManager), fCalib(nullptr), fRecParam(nullptr), fOfflineRecoParam(), fOrigTransform(nullptr), fIsMC(false)
 {

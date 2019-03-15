@@ -12,7 +12,7 @@
 /// \author David Rohr
 
 #include "GPUDisplay.h"
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 const char* HelpText[] = {
   "[n] / [SPACE]                 Next event",

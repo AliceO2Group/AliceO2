@@ -7,7 +7,7 @@
 #include "GPUReconstruction.h"
 #include "GPUChainTracking.h"
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 void createGeo()
 {

@@ -14,7 +14,9 @@
 #ifndef GENEVENTS_H
 #define GENEVENTS_H
 
-namespace o2
+#include "GPUCommonDef.h"
+
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -73,6 +75,6 @@ class genEvents
 
 #endif
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

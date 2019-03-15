@@ -26,6 +26,7 @@
 #endif
 
 #include <memory>
+#include "GPUCommonDef.h"
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUTPCGMMergedTrackHit.h"
 namespace o2
@@ -37,7 +38,7 @@ struct ClusterNative;
 }
 } // namespace o2::TPC
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -53,8 +54,8 @@ class GPUTPCO2Interface
   GPUTPCO2Interface();
   ~GPUTPCO2Interface();
 
-  int Initialize(const GPUO2InterfaceConfiguration& config, std::unique_ptr<o2::gpu::TPCFastTransform>&& fastTrans);
-  int Initialize(const char* options, std::unique_ptr<o2::gpu::TPCFastTransform>&& fastTrans);
+  int Initialize(const GPUO2InterfaceConfiguration& config, std::unique_ptr<TPCFastTransform>&& fastTrans);
+  int Initialize(const char* options, std::unique_ptr<TPCFastTransform>&& fastTrans);
   void Deinitialize();
 
   int RunTracking(const o2::TPC::ClusterNativeAccessFullTPC* inputClusters, const GPUTPCGMMergedTrack*& outputTracks, int& nOutputTracks, const GPUTPCGMMergedTrackHit*& outputTrackClusters);
@@ -77,6 +78,6 @@ class GPUTPCO2Interface
   std::unique_ptr<GPUDisplayBackendGlfw> mDisplayBackend;
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

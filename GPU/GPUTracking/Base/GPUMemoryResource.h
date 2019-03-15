@@ -17,7 +17,7 @@
 #include "GPUCommonDef.h"
 #include "GPUProcessor.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -71,6 +71,6 @@ class GPUMemoryResource
   const char* mName;
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

@@ -22,7 +22,7 @@
 #include "GPUITSFitter.h"
 #include "GPUTRDTracker.h"
 #else
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -37,10 +37,10 @@ class GPUTRDTracker
   void SetMaxData() {}
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 #endif
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -55,6 +55,6 @@ struct GPUConstantMem {
   GPUITSFitter itsFitter;
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

@@ -29,7 +29,7 @@ typedef short int Color_t;
 
 #if !defined(BUILD_QA) || defined(GPUCA_GPUCODE)
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -54,14 +54,14 @@ class GPUQA
   static bool QAAvailable() { return false; }
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #else
 
 #include "GPUTPCSettings.h"
 #include <cmath>
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -235,7 +235,7 @@ class GPUQA
   int mMCTrackMin = -1, mMCTrackMax = -1;
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif
 #endif

@@ -23,7 +23,7 @@
 #include <winbase.h>
 #include <windowsx.h>
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 HDC hDC = NULL;                                       // Private GDI Device Context
 HGLRC hRC = NULL;                                     // Permanent Rendering Context

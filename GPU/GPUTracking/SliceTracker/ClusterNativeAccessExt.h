@@ -34,7 +34,7 @@ struct ClusterNativeAccessFullTPC {
 } // namespace o2::TPC
 #endif
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -42,6 +42,6 @@ struct ClusterNativeAccessExt : public o2::TPC::ClusterNativeAccessFullTPC {
   unsigned int clusterOffset[GPUCA_NSLICES][GPUCA_ROW_COUNT];
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

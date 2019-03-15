@@ -16,7 +16,7 @@
 
 #include "GPUTPCDef.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -75,6 +75,6 @@ class GPUTPCBaseTrackParam
   float mP[5]; // 'active' track parameters: Y, Z, SinPhi, DzDs, q/Pt
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

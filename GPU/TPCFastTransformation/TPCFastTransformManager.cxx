@@ -21,7 +21,7 @@
 #include "AliHLTTPCGeometry.h"
 #include "TPCFastTransform.h"
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 TPCFastTransformManager::TPCFastTransformManager() : mError(), mOrigTransform(nullptr) {}
 

@@ -30,7 +30,7 @@
 #include "GPUQAConfig.h"
 #include "TPCFastTransform.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -54,6 +54,6 @@ struct GPUO2InterfaceConfiguration {
   GPUInterfaceSettings configInterface;
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

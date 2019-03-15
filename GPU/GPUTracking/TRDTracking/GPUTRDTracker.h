@@ -17,7 +17,7 @@
 class AliExternalTrackParam;
 class AliMCEvent;
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -190,6 +190,6 @@ class GPUTRDTracker : public GPUProcessor
   GPUChainTracking* mChainTracking;        // Tracking chain with access to input data / parameters
 };
 } // namespace gpu
-} // namespace o2
+} // namespace GPUCA_NAMESPACE
 
 #endif

@@ -24,7 +24,7 @@
 
 class AliExternalTrackParam;
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -254,6 +254,6 @@ GPUd() inline float GPUTPCGMTrackParam::GetMirroredY(float Bz) const
   return GetY() - 2.f * sqrt(cosPhi2) / qptBz;
 }
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

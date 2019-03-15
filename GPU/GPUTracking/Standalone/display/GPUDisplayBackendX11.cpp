@@ -20,7 +20,7 @@
 #include <cstdlib>
 #include <cstring>
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 int GPUDisplayBackendX11::GetKey(int key)
 {

@@ -14,7 +14,7 @@
 #ifndef GPUTPCMCINFO_H
 #define GPUTPCMCINFO_H
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -32,6 +32,6 @@ struct GPUTPCMCInfo {
   float genRadius;
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

@@ -14,7 +14,7 @@
 #include "GPUDisplayBackend.h"
 #include "GPUDisplay.h"
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 void* GPUDisplayBackend::OpenGLWrapper(void* ptr)
 {

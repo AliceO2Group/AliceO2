@@ -39,7 +39,7 @@
 
 #include "../utils/qconfig.h"
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 using namespace std;
 
 int genEvents::GetSlice(double GlobalPhi)

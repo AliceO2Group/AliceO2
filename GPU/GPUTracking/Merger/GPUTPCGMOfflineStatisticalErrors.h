@@ -23,7 +23,7 @@
 #include "AliTPCReconstructor.h"
 #endif
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -103,6 +103,6 @@ struct GPUTPCGMOfflineStatisticalErrors {
 };
 #endif
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

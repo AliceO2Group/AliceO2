@@ -14,7 +14,9 @@
 #ifndef GPUTPCGMMERGEDTRACKHIT_H
 #define GPUTPCGMMERGEDTRACKHIT_H
 
-namespace o2
+#include "GPUCommonDef.h"
+
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -43,6 +45,6 @@ struct GPUTPCGMMergedTrackHit {
 #endif
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

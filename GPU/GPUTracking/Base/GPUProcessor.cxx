@@ -15,7 +15,7 @@
 #include "GPUReconstruction.h"
 #include "GPUReconstructionDeviceBase.h"
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 GPUProcessor::GPUProcessor() : mRec(nullptr), mGPUProcessorType(PROCESSOR_TYPE_CPU), mDeviceProcessor(nullptr), mCAParam(nullptr), mAllocateAndInitializeLate(false) {}
 

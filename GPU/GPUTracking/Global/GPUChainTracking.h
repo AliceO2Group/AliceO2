@@ -38,7 +38,7 @@ struct ClusterNative;
 }
 } // namespace o2::TPC
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -228,6 +228,6 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int HelperOutput(int iSlice, int threadId, GPUReconstructionHelpers::helperParam* par);
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

@@ -21,13 +21,13 @@
 class AliHLTExternalTrackParam;
 class AliHLTTPCRawCluster;
 class AliHLTTPCClusterXYZ;
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
 struct GPUParam;
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 class AliHLTTPCClusterStatComponent : public AliHLTProcessor, public AliOptionParser
 {
@@ -77,7 +77,7 @@ class AliHLTTPCClusterStatComponent : public AliHLTProcessor, public AliOptionPa
   /** assignment operator prohibited */
   AliHLTTPCClusterStatComponent& operator=(const AliHLTTPCClusterStatComponent&);
 
-  o2::gpu::GPUParam* mSliceParam;
+  GPUCA_NAMESPACE::gpu::GPUParam* mSliceParam;
 
   int fTotal, fEdge, fSplitPad, fSplitTime, fSplitPadTime, fSplitPadOrTime, fAssigned; //!
 

@@ -19,7 +19,7 @@
 #include <iostream>
 #endif
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 TPCFastTransform::TPCFastTransform()
   : FlatObject(), mConstructionCounter(0), mConstructionRowInfoBuffer(nullptr), mNumberOfRows(0), mRowInfoPtr(nullptr), mTPCzLengthA(0.f), mTPCzLengthC(0.f), mTimeStamp(0), mDistortion(), mApplyDistortion(1), mT0(0.f), mVdrift(0.f), mVdriftCorrY(0.f), mLdriftCorr(0.f), mTOFcorr(0.f), mPrimVtxZ(0.f), mTPCalignmentZ(0.f)

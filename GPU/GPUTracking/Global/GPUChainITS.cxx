@@ -16,7 +16,7 @@
 #include "DataFormatsITS/TrackITS.h"
 #include <algorithm>
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::ITS;
 
 GPUChainITS::~GPUChainITS()

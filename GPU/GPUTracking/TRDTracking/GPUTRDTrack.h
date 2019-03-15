@@ -11,18 +11,18 @@ class AliHLTExternalTrackParam;
 
 //_____________________________________________________________________________
 #if defined(__CINT__) || defined(__ROOTCINT__)
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
 template <typename T>
 class GPUTRDTrack_t;
 }
-} // namespace o2
+} // namespace GPUCA_NAMESPACE
 #else
 #include "GPUTRDInterfaces.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -90,7 +90,7 @@ class GPUTRDTrack_t : public T
   bool mIsStopped;                  // track ends in TRD
 };
 } // namespace gpu
-} // namespace o2
+} // namespace GPUCA_NAMESPACE
 
 #endif
 #endif

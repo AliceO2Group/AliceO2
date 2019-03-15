@@ -14,9 +14,9 @@
 #ifndef GPUCOMMONTRANSFORM3D_H
 #define GPUCOMMONTRANSFORM3D_H
 
-#include "GPUCommonDefGPU.h"
+#include "GPUCommonDef.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -79,6 +79,6 @@ class Transform3D
                                 kDZ = 11 };
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

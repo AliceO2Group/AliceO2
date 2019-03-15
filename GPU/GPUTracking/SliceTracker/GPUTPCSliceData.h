@@ -22,7 +22,7 @@
 #include "GPUTPCGPUConfig.h"
 #include "GPUMemoryResource.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -261,6 +261,6 @@ MEM_CLASS_PRE()
 MEM_TEMPLATE()
 GPUdi() int MEM_LG(GPUTPCSliceData)::HitWeight(const MEM_TYPE(GPUTPCRow) & row, unsigned int hitIndex) const { return mHitWeights[row.mHitNumberOffset + hitIndex]; }
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif // GPUTPCSLICEDATA_H

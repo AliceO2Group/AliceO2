@@ -15,7 +15,7 @@
 #define GPUTPCSETTINGS_H
 
 #if !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB) && !defined(GPUCA_O2_LIB)
-#error You are using the CA GPU tracking without defining the build type (O2/AliRoot/Standalone). If you are running ROOT macro, please include GPUO2Interface.h first!
+#error You are using the CA GPU tracking without defining the build type (O2/AliRoot/Standalone). If you are running a ROOT macro, please include GPUO2Interface.h first!
 #endif
 
 #if defined(GPUCA_ALIROOT_LIB) && defined(GPUCA_O2_LIB)
@@ -63,7 +63,7 @@
 //#define GPUCA_MERGER_BY_MC_LABEL
 #define REPRODUCIBLE_CLUSTER_SORTING
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -75,7 +75,7 @@ typedef unsigned int calink;
 typedef unsigned int cahit;
 #endif
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #ifdef GPUCA_GPUCODE
 #define GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP 6

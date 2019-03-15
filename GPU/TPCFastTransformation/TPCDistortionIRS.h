@@ -19,7 +19,7 @@
 #include "IrregularSpline2D3D.h"
 #include "FlatObject.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -222,6 +222,6 @@ inline int TPCDistortionIRS::getDistortion(int slice, int row, float u, float v,
   return 0;
 }
 } // namespace gpu
-} // namespace o2
+} // namespace GPUCA_NAMESPACE
 
 #endif

@@ -15,7 +15,7 @@
 #include "GPUTPCDef.h"
 #include "GPUCommonMath.h"
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 #if !defined(GPUCA_GPUCODE) && defined(GPUCA_ALIROOT_LIB)
 #include "AliTPCClusterParam.h"

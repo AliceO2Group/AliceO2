@@ -36,7 +36,7 @@
 #include <cstdlib>
 #include <cerrno>
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 using namespace std;
 
 // ROOT macro for the implementation of ROOT specific class methods

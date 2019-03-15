@@ -26,7 +26,7 @@
  *
  */
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -272,6 +272,6 @@ GPUdi() void GPUTPCGMPhysicalTrackModel::Rotate(float alpha)
   UpdateValues();
 }
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

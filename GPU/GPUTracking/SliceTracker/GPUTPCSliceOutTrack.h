@@ -17,7 +17,7 @@
 #include "GPUTPCBaseTrackParam.h"
 #include "GPUTPCSliceOutCluster.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -65,6 +65,6 @@ class GPUTPCSliceOutTrack
   GPUTPCSliceOutCluster mClusters[0]; //* track clusters
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

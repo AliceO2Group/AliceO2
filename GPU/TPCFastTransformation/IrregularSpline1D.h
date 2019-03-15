@@ -23,7 +23,7 @@
 #include <memory>
 #include <cstring>
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -390,6 +390,6 @@ inline void IrregularSpline1D::correctEdges(T* data) const
   data[i] = c0 * data[i - 0] + c1 * data[i - 1] + c2 * data[i - 2] + c3 * data[i - 3];
 }
 } // namespace gpu
-} // namespace o2
+} // namespace GPUCA_NAMESPACE
 
 #endif

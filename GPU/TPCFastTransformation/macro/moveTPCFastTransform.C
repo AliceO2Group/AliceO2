@@ -21,7 +21,7 @@
 #include "TPCFastTransform.h"
 
 using namespace std;
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 int moveTPCFastTransform()
 {

@@ -44,7 +44,7 @@
 #include "utils/qconfig.h"
 #include "utils/timer.h"
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 #define QA_DEBUG 0
 #define QA_TIMING 0

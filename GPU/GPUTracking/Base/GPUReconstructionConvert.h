@@ -15,9 +15,10 @@
 #define GPURECONSTRUCTIONCONVERT_H
 
 #include <memory>
+#include "GPUCommonDef.h"
 #include "GPUTPCSettings.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -32,6 +33,6 @@ class GPUReconstructionConvert
   static void ConvertNativeToClusterData(ClusterNativeAccessExt* native, std::unique_ptr<GPUTPCClusterData[]>* clusters, unsigned int* nClusters, const TPCFastTransform* transform, int continuousMaxTimeBin = 0);
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

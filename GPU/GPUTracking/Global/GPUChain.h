@@ -17,7 +17,7 @@
 #include "GPUReconstructionCPU.h"
 #include "GPUReconstructionHelpers.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {

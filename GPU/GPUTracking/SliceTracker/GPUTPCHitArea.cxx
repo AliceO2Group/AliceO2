@@ -15,7 +15,7 @@
 #include "GPUTPCHit.h"
 #include "GPUTPCHitArea.h"
 #include "GPUTPCTracker.h"
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 MEM_CLASS_PRE()
 class GPUTPCRow;

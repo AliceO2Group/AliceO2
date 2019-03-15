@@ -14,7 +14,7 @@
 #include "GPUTPCStartHitsSorter.h"
 #include "GPUTPCTracker.h"
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 template <>
 GPUd() void GPUTPCStartHitsSorter::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & s, workerType& tracker)

@@ -14,17 +14,19 @@
 #ifndef GPUDISPLAYCONFIG_H
 #define GPUDISPLAYCONFIG_H
 
+#include "GPUCommonDef.h"
+
 #if !defined(GPUCA_STANDALONE)
 #define QCONFIG_CPP11_INIT
 #endif
 #include "utils/qconfig.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
 typedef structConfigGL GPUDisplayConfig;
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

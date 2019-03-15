@@ -19,7 +19,7 @@
 #include "GPUReconstructionHelpers.h"
 #include "GPUChain.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -69,6 +69,6 @@ class GPUReconstructionDeviceBase : public GPUReconstructionCPU
   int mNSlaveThreads = 0;                                         // Number of slave threads currently active
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

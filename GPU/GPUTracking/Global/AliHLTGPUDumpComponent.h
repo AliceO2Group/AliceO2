@@ -21,7 +21,7 @@ class AliTPCcalibDB;
 class AliTPCRecoParam;
 #include "AliRecoParam.h"
 class AliTPCTransform;
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -31,7 +31,7 @@ class GPUReconstruction;
 class GPUChainTracking;
 class GPUTPCClusterData;
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 class AliHLTGPUDumpComponent : public AliHLTProcessor
 {
@@ -60,9 +60,9 @@ class AliHLTGPUDumpComponent : public AliHLTProcessor
 
  private:
   float fSolenoidBz;
-  o2::gpu::GPUReconstruction* fRec;
-  o2::gpu::GPUChainTracking* fChain;
-  o2::gpu::TPCFastTransformManager* fFastTransformManager;
+  GPUCA_NAMESPACE::gpu::GPUReconstruction* fRec;
+  GPUCA_NAMESPACE::gpu::GPUChainTracking* fChain;
+  GPUCA_NAMESPACE::gpu::TPCFastTransformManager* fFastTransformManager;
   AliTPCcalibDB* fCalib;
   AliTPCRecoParam* fRecParam;
   AliRecoParam fOfflineRecoParam;

@@ -23,7 +23,7 @@
 #include "TString.h"
 #include "AliTPCTransform.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -80,6 +80,6 @@ inline int TPCFastTransformManager::storeError(int code, const char* msg)
   return code;
 }
 } // namespace gpu
-} // namespace o2
+} // namespace GPUCA_NAMESPACE
 
 #endif

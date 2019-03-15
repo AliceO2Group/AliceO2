@@ -32,7 +32,7 @@
 #include "GPUTRDTrackerGPU.h"
 #include "GPUITSFitterKernels.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -86,7 +86,7 @@ class GPUReconstructionCPUBackend : public GPUReconstruction
   int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args);
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #include "GPUReconstructionKernels.h"
 #ifndef GPUCA_GPURECONSTRUCTIONCPU_IMPLEMENTATION
@@ -95,7 +95,7 @@ class GPUReconstructionCPUBackend : public GPUReconstruction
 #include "GPUReconstructionKernels.h"
 #endif
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -231,6 +231,6 @@ inline void GPUReconstructionCPU::AddGPUEvents(T& events)
   mEvents.emplace_back((void*)&events, sizeof(T) / sizeof(deviceEvent*));
 }
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

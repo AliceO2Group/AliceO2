@@ -17,18 +17,18 @@
 #include "GPUDisplayConfig.h"
 #include "GPUDisplayBackend.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
 class GPUChainTracking;
 class GPUQA;
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #ifndef BUILD_EVENT_DISPLAY
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -54,7 +54,7 @@ class GPUDisplay
   void ReSizeGLScene(int width, int height, bool init = false) {}
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #else
 
@@ -67,7 +67,7 @@ class GPUDisplay
 
 #include "utils/timer.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -379,7 +379,7 @@ class GPUDisplay
   vecpod<DrawArraysIndirectCommand> mCmdBuffer;
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif
 #endif

@@ -27,7 +27,7 @@
 #include "GPUTPCTracklet.h"
 #include "GPUProcessor.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -294,6 +294,6 @@ class GPUTPCTracker : public GPUProcessor
   static int StarthitSortComparison(const void* a, const void* b);
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif // GPUTPCTRACKER_H

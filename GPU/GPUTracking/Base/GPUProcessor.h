@@ -22,7 +22,7 @@
 #include <algorithm>
 #endif
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -131,6 +131,6 @@ class GPUProcessor
   bool mAllocateAndInitializeLate;
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

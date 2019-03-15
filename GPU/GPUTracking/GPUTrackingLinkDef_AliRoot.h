@@ -17,35 +17,35 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::gpu::GPUTPCTrack+;
-#pragma link C++ class o2::gpu::GPUTPCTracklet+;
-#pragma link C++ class o2::gpu::GPUTPCBaseTrackParam+;
-#pragma link C++ class o2::gpu::GPUTPCTrackParam+;
-#pragma link C++ class o2::gpu::GPUTPCRow+;
-#pragma link C++ class o2::gpu::GPUTPCGrid+;
-#pragma link C++ class o2::gpu::GPUTPCHitArea+;
+#pragma link C++ class AliGPU::gpu::GPUTPCTrack+;
+#pragma link C++ class AliGPU::gpu::GPUTPCTracklet+;
+#pragma link C++ class AliGPU::gpu::GPUTPCBaseTrackParam+;
+#pragma link C++ class AliGPU::gpu::GPUTPCTrackParam+;
+#pragma link C++ class AliGPU::gpu::GPUTPCRow+;
+#pragma link C++ class AliGPU::gpu::GPUTPCGrid+;
+#pragma link C++ class AliGPU::gpu::GPUTPCHitArea+;
 #pragma link C++ class GPUTPCTrackerComponent+;
-#pragma link C++ class o2::gpu::GPUTPCNeighboursFinder+;
-#pragma link C++ class o2::gpu::GPUTPCNeighboursCleaner+;
-#pragma link C++ class o2::gpu::GPUTPCStartHitsFinder+;
-#pragma link C++ class o2::gpu::GPUTPCTrackletConstructor+;
-#pragma link C++ class o2::gpu::GPUTPCTrackletSelector+;
+#pragma link C++ class AliGPU::gpu::GPUTPCNeighboursFinder+;
+#pragma link C++ class AliGPU::gpu::GPUTPCNeighboursCleaner+;
+#pragma link C++ class AliGPU::gpu::GPUTPCStartHitsFinder+;
+#pragma link C++ class AliGPU::gpu::GPUTPCTrackletConstructor+;
+#pragma link C++ class AliGPU::gpu::GPUTPCTrackletSelector+;
 #pragma link C++ class GPUTPCGlobalMergerComponent+;
-#pragma link C++ class o2::gpu::GPUTPCClusterData+;
-#pragma link C++ class o2::gpu::GPUTPCSliceData+;
-#pragma link C++ class o2::gpu::GPUTPCSliceOutput+;
-#pragma link C++ class o2::gpu::GPUTPCGMTrackParam+;
-#pragma link C++ class o2::gpu::GPUTPCGMSliceTrack+;
-#pragma link C++ class o2::gpu::GPUTPCGMPolynomialField+;
-#pragma link C++ class o2::gpu::GPUTPCGMPropagator+;
-#pragma link C++ class o2::gpu::GPUTPCGMPhysicalTrackModel+;
+#pragma link C++ class AliGPU::gpu::GPUTPCClusterData+;
+#pragma link C++ class AliGPU::gpu::GPUTPCSliceData+;
+#pragma link C++ class AliGPU::gpu::GPUTPCSliceOutput+;
+#pragma link C++ class AliGPU::gpu::GPUTPCGMTrackParam+;
+#pragma link C++ class AliGPU::gpu::GPUTPCGMSliceTrack+;
+#pragma link C++ class AliGPU::gpu::GPUTPCGMPolynomialField+;
+#pragma link C++ class AliGPU::gpu::GPUTPCGMPropagator+;
+#pragma link C++ class AliGPU::gpu::GPUTPCGMPhysicalTrackModel+;
 #pragma link C++ class GPUTPCGMPolynomialFieldManager+;
 #pragma link C++ class AliHLTTPCClusterStatComponent+;
 
-//#pragma link C++ class o2::gpu::GPUTRDTrack+; //Templated, should add linkdef for specialization, but with an ifdef for ROOT >= 6 only
-//#pragma link C++ class o2::gpu::GPUTRDTracker+;
+//#pragma link C++ class AliGPU::gpu::GPUTRDTrack+; //Templated, should add linkdef for specialization, but with an ifdef for ROOT >= 6 only
+//#pragma link C++ class AliGPU::gpu::GPUTRDTracker+;
 #pragma link C++ class GPUTRDTrackerComponent+;
-//#pragma link C++ class o2::gpu::GPUTRDTrackletWord+;
+//#pragma link C++ class AliGPU::gpu::GPUTRDTrackletWord+;
 #pragma link C++ class GPUTRDTrackletReaderComponent+;
 
 #endif

@@ -14,7 +14,9 @@
 #ifndef GPUDISPLAYBACKEND_H
 #define GPUDISPLAYBACKEND_H
 
-namespace o2
+#include "GPUCommonDef.h"
+
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -100,6 +102,6 @@ class GPUDisplayBackend
   void ExitGL();                                                        // Callback to clean up the GL Display
 };
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

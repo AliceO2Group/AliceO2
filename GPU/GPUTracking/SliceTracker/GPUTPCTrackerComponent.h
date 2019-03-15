@@ -18,11 +18,12 @@
 #define GPUCA_ALIROOT_LIB
 #endif
 
+#include "GPUCommonDef.h"
 #include "AliHLTProcessor.h"
 #include "AliHLTComponentBenchmark.h"
 #include "AliHLTAsyncMemberProcessor.h"
 
-namespace o2
+namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
@@ -30,7 +31,7 @@ class GPUTPCClusterData;
 class GPUReconstruction;
 class GPUChainTracking;
 }
-} // namespace o2::gpu
+} // namespace GPUCA_NAMESPACE::gpu
 
 /**
  * @class GPUTPCTrackerComponent
@@ -117,8 +118,8 @@ class GPUTPCTrackerComponent : public AliHLTProcessor
   int fGPUStuckProtection;             // Protect from stuck GPUs
   int fAsync;                          // Run tracking in async thread to catch GPU hangs....
   float fSearchWindowDZDR;             // See TPCCAParam
-  o2::gpu::GPUReconstruction* fRec;    // GPUReconstruction
-  o2::gpu::GPUChainTracking* fChain;
+  GPUCA_NAMESPACE::gpu::GPUReconstruction* fRec;    // GPUReconstruction
+  GPUCA_NAMESPACE::gpu::GPUChainTracking* fChain;
 
   /** set configuration parameters **/
   void SetDefaultConfiguration();

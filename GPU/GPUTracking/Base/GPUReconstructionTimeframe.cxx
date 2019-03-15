@@ -27,7 +27,7 @@
 
 #include "utils/qconfig.h"
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 static auto& config = configStandalone.configTF;
 

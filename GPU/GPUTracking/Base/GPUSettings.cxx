@@ -16,7 +16,7 @@
 #include "GPUDataTypes.h"
 #include <cstring>
 
-using namespace o2::gpu;
+using namespace GPUCA_NAMESPACE::gpu;
 
 void GPUSettingsRec::SetDefaults()
 {
