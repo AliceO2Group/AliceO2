@@ -13,6 +13,7 @@
 #include "Framework/InputRecord.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/PartRef.h"
+#include "Framework/CompilerBuiltins.h"
 
 #include <gsl/span>
 
@@ -44,7 +45,7 @@ CompletionPolicy CompletionPolicyHelpers::defineByName(std::string const&name, C
       return CompletionPolicy{"always-discard", matcher, callback };
       break;
   }
-  assert(false);
+  O2_BUILTIN_UNREACHABLE();
 }
 
 CompletionPolicy CompletionPolicyHelpers::consumeWhenAll() {

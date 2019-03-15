@@ -1,6 +1,8 @@
 #ifndef IMGUI_EXTRAS_H
 #define IMGUI_EXTRAS_H
 
+#include "Framework/CompilerBuiltins.h"
+
 #include "imgui.h"
 #include "imgui_internal.h"
 
@@ -269,7 +271,7 @@ static void PlotMultiEx(
         case ValueScale::LOG:
           return log(v);
       }
-      assert(false);
+      O2_BUILTIN_UNREACHABLE();
     };
 
     float hoveredBinPos = (float)(v_hovered) / (float)(item_count);
