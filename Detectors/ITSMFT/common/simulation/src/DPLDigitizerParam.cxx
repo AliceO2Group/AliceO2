@@ -16,7 +16,7 @@ namespace ITSMFT
 {
 // this makes sure that the constructor of the parameters is statically called
 // so that these params are part of the parameter database
-static auto& sDigitizerParam0 = o2::ITSMFT::DPLDigitizerParam<0>::Instance();
-static auto& sDigitizerParam1 = o2::ITSMFT::DPLDigitizerParam<1>::Instance();
+static auto& sDigitizerParamITS = o2::ITSMFT::DPLDigitizerParam<o2::detectors::DetID::ITS>::Instance();
+static auto& sDigitizerParamMFT = o2::ITSMFT::DPLDigitizerParam<o2::detectors::DetID::MFT>::Instance();
 } // namespace ITSMFT
 } // namespace o2

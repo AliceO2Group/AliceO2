@@ -11,7 +11,6 @@
 /// @brief  Processor spec for a ROOT file writer for ITSMFT digits
 
 #include "ITSMFTDigitWriterSpec.h"
-#include "ITSMFTSimulation/DPLDigitWriterParam.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
 #include "Framework/Task.h"
@@ -156,14 +155,6 @@ class ITSDPLDigitWriter : public ITSMFTDPLDigitWriter
     mID = DETID;
     mOrigin = DETOR;
     mFileName = "itsdigits.root"; // should be eventually set via config param
-    /*
-    // TODO: before using this param, we need to be sure that it can be parsed from the command line in the DPL
-    const auto& par = DPLDigitWriterParam<0>::Instance();
-    mFileName = par.file;
-    mTreeNameDig = par.treeDigits;
-    mTreeNameROF = par.treeROF;
-    mTreeNameMC2ROF = par.treeMC2ROF;
-    */
   }
 };
 
@@ -182,14 +173,6 @@ class MFTDPLDigitWriter : public ITSMFTDPLDigitWriter
     mID = DETID;
     mOrigin = DETOR;
     mFileName = "mftdigits.root"; // should be eventually set via config param
-    /*
-    // TODO: before using this param, we need to be sure that it can be parsed from the command line in the DPL
-    const auto& par = DPLDigitWriterParam<1>::Instance();
-    mFileName = par.file;
-    mTreeNameDig = par.treeDigits;
-    mTreeNameROF = par.treeROF;
-    mTreeNameMC2ROF = par.treeMC2ROF;
-    */
   }
 };
 
@@ -219,7 +202,7 @@ DataProcessorSpec getITSDigitWriterSpec()
     Options{
       { (detStrL + "-digit-outfile").c_str(), VariantType::String, (detStrL + "digits.root").c_str(), { "Name of the input file" } },
       { "treename", VariantType::String, "o2sim", { "Name of top-level TTree" } },
-    } // options eventually will be provided via o2::conf::ConfigurableParamHelper -> DPLDigitWriterParam
+    }
   };
 }
 
@@ -244,7 +227,7 @@ DataProcessorSpec getMFTDigitWriterSpec()
     Options{
       { (detStrL + "-digit-outfile").c_str(), VariantType::String, (detStrL + "digits.root").c_str(), { "Name of the input file" } },
       { "treename", VariantType::String, "o2sim", { "Name of top-level TTree" } },
-    } // options eventually will be provided via o2::conf::ConfigurableParamHelper -> DPLDigitWriterParam
+    }
   };
 }
 

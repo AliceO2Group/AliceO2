@@ -18,9 +18,10 @@
 // Use for RAW mode:
 // root -b -q run_clus_itsSA.C+\(\"o2clus_its.root\",\"dig.raw\"\) 2>&1 | tee clusSARAW.log
 
-void run_clus_mftSA(std::string outputfile,
-                    std::string inputfile,
-                    bool raw = false)
+void run_clus_mftSA(std::string outputfile, // output file name
+                    std::string inputfile,  // input file name (root or raw)
+                    bool raw = false,       // flag if this is raw data
+                    float strobe = 6000.)   // strobe length of ALPIDE readout
 {
   // Initialize logger
   FairLogger* logger = FairLogger::GetLogger();
@@ -34,7 +35,10 @@ void run_clus_mftSA(std::string outputfile,
   Bool_t useMCTruth = kTRUE;  // kFALSE if no comparison with MC needed
   Bool_t entryPerROF = kTRUE; // write single tree entry for every ROF. If false, just 1 entry will be saved
   o2::MFT::ClustererTask* clus = new o2::MFT::ClustererTask(useMCTruth, raw);
-  clus->getClusterer().setMaskOverflowPixels(true);  // set this to false to switch off masking
+
+  // Mask fired pixels separated by <= this number of BCs (for overflow pixels).
+  // In continuos mode strobe lenght should be used, in triggered one: signal shaping time (~7mus)
+  clus->getClusterer().setMaxBCSeparationToMask(strobe / o2::constants::lhc::LHCBunchSpacingNS + 10);
   clus->getClusterer().setWantFullClusters(true);    // require clusters with coordinates and full pattern
   clus->getClusterer().setWantCompactClusters(true); // require compact clusters with patternID
 

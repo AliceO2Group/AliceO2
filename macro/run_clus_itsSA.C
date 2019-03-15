@@ -3,6 +3,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "ITSReconstruction/ClustererTask.h"
 #include "ITSMFTReconstruction/Clusterer.h"
+#include "CommonConstants/LHCConstants.h"
 #include "FairLogger.h"
 #endif
 
@@ -21,7 +22,11 @@
 // Use of topology dictionary: flag withDicitonary -> true
 // A dictionary must be generated with the macro CheckTopologies.C
 
-void run_clus_itsSA(std::string outputfile, std::string inputfile, bool raw = false, bool withDictionary = false, std::string dictionaryfile = "complete_dictionary.bin")
+void run_clus_itsSA(std::string inputfile = "rawits.bin", // output file name
+                    std::string outputfile = "clr.root",  // input file name (root or raw)
+                    bool raw = true,                      // flag if this is raw data
+                    float strobe = 6000.,                 // strobe length of ALPIDE readout
+                    bool withDictionary = false, std::string dictionaryfile = "complete_dictionary.bin")
 {
   // Initialize logger
   FairLogger* logger = FairLogger::GetLogger();
@@ -38,7 +43,9 @@ void run_clus_itsSA(std::string outputfile, std::string inputfile, bool raw = fa
   if (withDictionary) {
     clus->loadDictionary(dictionaryfile.c_str());
   }
-  clus->getClusterer().setMaskOverflowPixels(true);  // set this to false to switch off masking
+  // Mask fired pixels separated by <= this number of BCs (for overflow pixels).
+  // In continuos mode strobe lenght should be used, in triggered one: signal shaping time (~7mus)
+  clus->getClusterer().setMaxBCSeparationToMask(strobe / o2::constants::lhc::LHCBunchSpacingNS + 10);
   clus->getClusterer().setWantFullClusters(true);    // require clusters with coordinates and full pattern
   clus->getClusterer().setWantCompactClusters(true); // require compact clusters with patternID
 
