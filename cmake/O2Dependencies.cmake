@@ -172,6 +172,7 @@ o2_define_bucket(
   glfw_bucket
 
   DEPENDENCIES
+  O2FrameworkFoundation_bucket
   ${GLFW_LIBRARIES}
 
   INCLUDE_DIRECTORIES
@@ -181,6 +182,9 @@ o2_define_bucket(
 o2_define_bucket(
   NAME
   headless_bucket
+
+  DEPENDENCIES
+  O2FrameworkFoundation_bucket
 )
 
 o2_define_bucket(
@@ -291,10 +295,19 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    O2FrameworkFoundation_bucket
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Framework/Foundation/include
+)
+
+o2_define_bucket(
+    NAME
     O2FrameworkCore_bucket
 
     DEPENDENCIES
     arrow_bucket
+    O2FrameworkFoundation_bucket
     O2DeviceApplication_bucket
     common_utils_bucket
     ROOTDataFrame
