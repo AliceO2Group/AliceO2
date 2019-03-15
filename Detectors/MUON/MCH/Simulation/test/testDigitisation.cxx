@@ -167,20 +167,27 @@ void Digitizer::provideMC(o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mc
   //Control and timing of merging 
   //no MC truth for the moment  
   double adcbefmerge = digits.at(0).getADC();
+  double adcbefmerge2 = digits.at(1).getADC();
+  int digitssize = digits.size();
   Timing_test(digits, digitizer);
-  BOOST_CHECK_CLOSE(digits.at(0).getADC(), adcbefmerge*2.2, adcbefmerge/10000.);
-  
+  BOOST_CHECK_CLOSE(digits.at(0).getADC(), adcbefmerge*3.0, adcbefmerge/10000.);
+  BOOST_CHECK_CLOSE(digits.at(1).getADC(), adcbefmerge2*3.0, adcbefmerge2/10000.);
+
+  BOOST_CHECK_CLOSE((float)digitssize, (float)digits.size(), 0.1);
 }//testing 
 
   void Timing_test(std::vector<Digit>& digits, Digitizer digitizer){
 
     //boost::timer::auto_cpu_timer t;
-    
-    std::cout << "digits.size() before adding " <<   digits.size() << std::endl;
-    digits.emplace_back(digits.at(0).getTimeStamp(), digits.at(0).getPadID(), digits.at(0).getADC() * 1.2);
-    std::cout << "digits.size() after adding " <<   digits.size() << std::endl;
+    auto timestamp0 = digits.at(0).getTimeStamp();
+    auto padid0 = digits.at(0).getPadID();
+    auto adc0 = digits.at(0).getADC();
+    digits.emplace_back(timestamp0, padid0, adc0);
+    digits.emplace_back(timestamp0, padid0, adc0);
+    digits.emplace_back(digits.at(1).getTimeStamp(), digits.at(1).getPadID(), digits.at(1).getADC());
+    digits.emplace_back(digits.at(1).getTimeStamp(), digits.at(1).getPadID(), digits.at(1).getADC());
+
     digitizer.mergeDigits(digits);
-    std::cout << "digits.size() after merging " <<   digits.size() << std::endl;
     return;
   }
   

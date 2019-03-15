@@ -167,30 +167,32 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
 void Digitizer::mergeDigits(std::vector<Digit>& digits){
 
   std::set<int> forRemoval;
+  
   typedef std::multimap<int, int>::iterator mMapit;
   int iter = 0;
-  
-  for(auto& digit : digits){
-    int padid = digit.getPadID();
-    mMultiple.emplace(padid, iter);
-    if(mMultiple.count(padid) > 1)
-      {
-	std::pair<mMapit, mMapit> multiple = mMultiple.equal_range(padid);
-	if(multiple.first != multiple.second)
-	  {
-	    digits.at((multiple.first)->second).setADC((digits.at((multiple.first)->second)).getADC() + digits.at(iter).getADC());
-	    forRemoval.emplace(iter);
-	  }
-      }
-    ++iter;
-  }
-  
-  int rmcounts=0;
-  for(auto& index : forRemoval){
+  for(auto& digit : digits)
+    {
+      int padid = digit.getPadID();
+      mMultiple.emplace(padid, iter);
+      if(mMultiple.count(padid) > 1)
+	{
+	  std::pair<mMapit, mMapit> multiple = mMultiple.equal_range(padid);
+	  if(multiple.first != multiple.second)
+	    {
+	      digits.at((multiple.first)->second).setADC((digits.at((multiple.first)->second)).getADC() + digits.at(iter).getADC());
+	      forRemoval.emplace(iter);
+	    }
+	}
+      ++iter;
+    }
+ 
+  int rmcounts = 0;
+  for(auto& index : forRemoval)
+    {
     digits.erase(digits.begin() + index - rmcounts);
     mTrackLabels.erase(mTrackLabels.begin() + index - rmcounts);
     ++rmcounts;
-  }  
+    } 
 }
 //______________________________________________________________________
 void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
