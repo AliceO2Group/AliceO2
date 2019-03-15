@@ -460,7 +460,7 @@ class RawPixelReader : public PixelReader
     // 4x128 bit, represented as 8 64-bit words
     o2::header::RAWDataHeader rdh;
     rdh.headerSize = 0x40; // 4*128 bits;
-    rdh.feeId = MAP.RUSW2HW(ruData.id);
+    rdh.feeId = MAP.RUSW2FEEId(ruData.id, 0); // write on link 0 always
     rdh.triggerOrbit = rdh.heartbeatOrbit = ruData.bcData.orbit;
     rdh.triggerBC = rdh.heartbeatBC = ruData.bcData.bc;
     rdh.triggerType = o2::trigger::PhT;
@@ -651,7 +651,7 @@ class RawPixelReader : public PixelReader
     }
 #endif
 
-    int ruIDSW = MAP.RUHW2SW(rdh->feeId);
+    int ruIDSW = MAP.FEEId2RUSW(rdh->feeId);
     //    LOG(INFO) << "Decoding RU:" << rdh->feeId << " swID: " << ruIDSW << " Orbit:" << rdh->triggerOrbit << " BC: " << rdh->triggerBC;
 
     mInteractionRecord.bc = rdh->triggerBC;
@@ -902,7 +902,7 @@ class RawPixelReader : public PixelReader
     }
 #endif
 
-    int ruIDSW = MAP.RUHW2SW(rdh->feeId);
+    int ruIDSW = MAP.FEEId2RUSW(rdh->feeId);
     auto ruInfo = MAP.getRUInfoSW(ruIDSW);
 
     mInteractionRecord.bc = rdh->triggerBC;
@@ -1232,7 +1232,7 @@ class RawPixelReader : public PixelReader
   const RUDecodingStat& getRUDecodingStatHW(uint16_t idHW) const
   {
     int idsw = 0xffff;
-    assert(idHW < mRUDecodingStat.size() && (idsw = MAP.RUHW2SW(idHW)) != 0xffff);
+    assert(idHW < mRUDecodingStat.size() && (idsw = MAP.FEEId2RUSW(idHW)) != 0xffff);
     return getRUDecodingStatSW(idsw);
   }
 
