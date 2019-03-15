@@ -100,6 +100,7 @@ constexpr float sizey = SegmentationAlpide::ActiveMatrixSizeRows;
 constexpr float sizex = SegmentationAlpide::ActiveMatrixSizeCols;
 constexpr float dy = SegmentationAlpide::PitchRow;
 constexpr float dx = SegmentationAlpide::PitchCol;
+constexpr float gap = 1e-4; // For a better visualization of pixels
 
 TEveElement* Data::getEveChipDigits(int chip, const std::vector<Digit>& digi)
 {
@@ -123,7 +124,7 @@ TEveElement* Data::getEveChipDigits(int chip, const std::vector<Digit>& digi)
     int row = d.getRow();
     int col = d.getColumn();
     int charge = d.getCharge();
-    qdigi->AddQuad(col * dx, row * dy, 0., dx, dy);
+    qdigi->AddQuad(col * dx + gap, row * dy + gap, 0., dx - 2 * gap, dy - 2 * gap);
     qdigi->QuadValue(charge);
   }
   qdigi->RefitPlex();
