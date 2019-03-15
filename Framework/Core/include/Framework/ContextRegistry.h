@@ -11,55 +11,63 @@
 #ifndef FRAMEWORK_CONTEXTREGISTRY_H
 #define FRAMEWORK_CONTEXTREGISTRY_H
 
-#include <array>
+#include <unordered_map>
+#include <typeinfo>
+#include <typeindex>
+#include <type_traits>
+#include <string>
+#include <stdexcept>
 
 namespace o2
 {
 namespace framework
 {
 
+/// @class ContextRegistry
+/// Instances are registered by pointer and are not owned by the registry
 /// Decouples getting the various contextes from the actual type
 /// of context, so that the DataAllocator does not need to know
-/// about the various serialization methods. Since there is only
-/// a few context types we support, this can be done in an ad hoc
-/// manner making sure each overload of ContextRegistry<T>::get()
-/// uses a different entry in ContextRegistry::contextes;
+/// about the various serialization methods.
 ///
-/// Right now we use:
-///
-/// MessageContext 0
-/// ROOTObjectContext 1
-/// StringContext 2
-/// ArrowContext 3
-/// RawContext 4
 class ContextRegistry
 {
  public:
-  ContextRegistry(std::array<void*, 5> contextes)
-    : mContextes{ contextes }
+  ContextRegistry();
+
+  template <typename... Types>
+  ContextRegistry(Types*... instances)
   {
+    set(std::forward<Types*>(instances)...);
   }
 
-  /// Default getter does nothing. Each Context needs
-  /// to override the get method and return a unique
-  /// entry in the mContextes.
-  template <class T, size_t S = sizeof(T)>
-  T* get()
+  template <typename T>
+  T* get() const
   {
-    static_assert(sizeof(T) == -1, "Unsupported backend");
+    void* instance = nullptr;
+    try {
+      instance = mRegistry.at(typeid(T).hash_code());
+    } catch (std::out_of_range&) {
+      throw std::out_of_range(std::string("Unsupported backend, no registered context '") + typeid(T).name() + "'");
+    }
+    return reinterpret_cast<T*>(instance);
   }
 
-  /// Default setter does nothing. Each Context needs
-  /// to override the set method and store the agreed
-  /// pointer in the right position.
-  template <class T, size_t S = sizeof(T)>
-  void set(T*)
+  template <typename T, typename... Types>
+  void set(T* instance, Types*... more)
   {
-    static_assert(sizeof(T) == -1, "Unsupported backend");
+    set(instance);
+    set(std::forward<Types*>(more)...);
+  }
+
+  template <typename T>
+  void set(T* instance)
+  {
+    static_assert(std::is_void<T>::value == false, "can not register a void object");
+    mRegistry[typeid(T).hash_code()] = instance;
   }
 
  private:
-  std::array<void*, 5> mContextes;
+  std::unordered_map<size_t, void*> mRegistry;
 };
 
 } // namespace framework

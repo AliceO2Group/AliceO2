@@ -10,7 +10,6 @@
 #ifndef FRAMEWORK_ARROWCONTEXT_H
 #define FRAMEWORK_ARROWCONTEXT_H
 
-#include "Framework/ContextRegistry.h"
 #include "Framework/FairMQDeviceProxy.h"
 #include "Framework/TableBuilder.h"
 #include <vector>
@@ -89,22 +88,6 @@ class ArrowContext
   FairMQDeviceProxy mProxy;
   Messages mMessages;
 };
-
-/// Helper to get the context from the registry.
-template <>
-inline ArrowContext*
-  ContextRegistry::get<ArrowContext>()
-{
-  return reinterpret_cast<ArrowContext*>(mContextes[3]);
-}
-
-/// Helper to set the context from the registry.
-template <>
-inline void
-  ContextRegistry::set<ArrowContext>(ArrowContext* context)
-{
-  mContextes[3] = context;
-}
 
 } // namespace framework
 } // namespace o2

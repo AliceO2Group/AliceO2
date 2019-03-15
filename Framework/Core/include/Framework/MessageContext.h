@@ -10,7 +10,6 @@
 #ifndef FRAMEWORK_MESSAGECONTEXT_H
 #define FRAMEWORK_MESSAGECONTEXT_H
 
-#include "Framework/ContextRegistry.h"
 #include "Framework/FairMQDeviceProxy.h"
 
 #include <fairmq/FairMQParts.h>
@@ -82,23 +81,6 @@ public:
   FairMQDeviceProxy mProxy;
   Messages mMessages;
 };
-
-/// Helper to get the context from the registry.
-template <>
-inline MessageContext*
-  ContextRegistry::get<MessageContext>()
-{
-  return reinterpret_cast<MessageContext*>(mContextes[0]);
-}
-
-/// Helper to set the context from the registry.
-template <>
-inline void
-  ContextRegistry::set<MessageContext>(MessageContext* context)
-{
-  mContextes[0] = context;
-}
-
 } // namespace framework
 } // namespace o2
 #endif // FRAMEWORK_MESSAGECONTEXT_H
