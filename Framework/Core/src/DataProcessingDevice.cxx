@@ -74,7 +74,7 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
     mStringContext{ FairMQDeviceProxy{ this } },
     mDataFrameContext{ FairMQDeviceProxy{ this } },
     mRawBufferContext{ FairMQDeviceProxy{ this } },
-    mContextRegistry{ { &mFairMQContext, &mRootContext, &mStringContext, &mDataFrameContext, &mRawBufferContext } },
+    mContextRegistry{ &mFairMQContext, &mRootContext, &mStringContext, &mDataFrameContext, &mRawBufferContext },
     mAllocator{ &mTimingInfo, &mContextRegistry, spec.outputs },
     mRelayer{ spec.completionPolicy, spec.inputs, spec.forwards, registry.get<Monitoring>(), registry.get<TimesliceIndex>() },
     mServiceRegistry{ registry },
@@ -288,23 +288,23 @@ bool DataProcessingDevice::tryDispatchComputation()
   std::vector<std::unique_ptr<FairMQMessage>> currentSetOfInputs;
 
   auto& allocator = mAllocator;
-  auto& context = mFairMQContext;
+  auto& context = *mContextRegistry.get<MessageContext>();
   auto& device = *this;
   auto& errorCallback = mError;
   auto& errorCount = mErrorCount;
   auto& forwards = mSpec.forwards;
   auto& inputsSchema = mSpec.inputs;
   auto& processingCount = mProcessingCount;
-  auto& rdfContext = mDataFrameContext;
+  auto& rdfContext = *mContextRegistry.get<ArrowContext>();
   auto& relayer = mRelayer;
-  auto& rootContext = mRootContext;
+  auto& rootContext = *mContextRegistry.get<RootObjectContext>();
   auto& serviceRegistry = mServiceRegistry;
   auto& statefulProcess = mStatefulProcess;
   auto& statelessProcess = mStatelessProcess;
-  auto& stringContext = mStringContext;
+  auto& stringContext = *mContextRegistry.get<StringContext>();
   auto& timingInfo = mTimingInfo;
   auto& timesliceIndex = mServiceRegistry.get<TimesliceIndex>();
-  auto& rawContext = mRawBufferContext;
+  auto& rawContext = *mContextRegistry.get<RawBufferContext>();
 
   // These duplicate references are created so that each function
   // does not need to know about the whole class state, but I can
