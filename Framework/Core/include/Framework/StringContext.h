@@ -30,11 +30,6 @@ namespace framework
 class StringContext
 {
  public:
-  StringContext(FairMQDeviceProxy proxy)
-    : mProxy{ proxy }
-  {
-  }
-
   struct MessageRef {
     std::unique_ptr<FairMQMessage> header;
     std::unique_ptr<std::string> payload;
@@ -87,23 +82,8 @@ class StringContext
  private:
   FairMQDeviceProxy mProxy;
   Messages mMessages;
+  REGISTER_CONTEXT(StringContext);
 };
-
-/// Helper to get the context from the registry.
-template <>
-inline StringContext*
-  ContextRegistry::get<StringContext>()
-{
-  return reinterpret_cast<StringContext*>(mContextes[2]);
-}
-
-/// Helper to set the context from the registry.
-template <>
-inline void
-  ContextRegistry::set<StringContext>(StringContext* context)
-{
-  mContextes[2] = context;
-}
 
 } // namespace framework
 } // namespace o2

@@ -11,7 +11,11 @@
 #ifndef FRAMEWORK_CONTEXTREGISTRY_H
 #define FRAMEWORK_CONTEXTREGISTRY_H
 
-#include <array>
+#include "Framework/FairMQDeviceProxy.h"
+#include "Framework/DataProcessor.h"
+
+#include <unordered_map>
+#include <functional>
 
 namespace o2
 {
@@ -25,42 +29,74 @@ namespace framework
 /// manner making sure each overload of ContextRegistry<T>::get()
 /// uses a different entry in ContextRegistry::contextes;
 ///
-/// Right now we use:
-///
-/// MessageContext 0
-/// ROOTObjectContext 1
-/// StringContext 2
-/// ArrowContext 3
-/// RawContext 4
 class ContextRegistry
 {
  public:
-  ContextRegistry(std::array<void*, 5> contextes)
-    : mContextes{ contextes }
+  /// Get a registered context by type. The only requirement
+  /// for a context is to have a static bool mRegistered
+  /// which needs to be initialised with REGISTER_CONTEXT
+  /// macro.
+  template <class T, size_t S = sizeof(T)>
+  static T* get()
   {
+    return reinterpret_cast<T*>(mContextes[&T::mRegistered]);
   }
 
-  /// Default getter does nothing. Each Context needs
-  /// to override the get method and return a unique
-  /// entry in the mContextes.
-  template <class T, size_t S = sizeof(T)>
-  T* get()
+  /// Default setter to register a given context in the registry.
+  /// Notice that since this is templated, Context could actually
+  /// overwrite it with their own version.
+  template <class T>
+  static void set(T* context)
   {
-    static_assert(sizeof(T) == -1, "Unsupported backend");
+    mContextes[&T::mRegistered] = context;
+    mCleaners[&T::mRegistered] = [context]() -> void { context->clear(); };
+    mSenders[&T::mRegistered] = [context](FairMQDevice& device) -> void { DataProcessor::doSend(device, *context); };
+    mInits[&T::mRegistered] = [context](FairMQDevice* device) -> void { context->mProxy.setDevice(device); };
   }
 
-  /// Default setter does nothing. Each Context needs
-  /// to override the set method and store the agreed
-  /// pointer in the right position.
-  template <class T, size_t S = sizeof(T)>
-  void set(T*)
+  template <class T>
+  static bool createInRegistry()
   {
-    static_assert(sizeof(T) == -1, "Unsupported backend");
+    /// We should probably use a unique_ptr<void> and keep track
+    /// of the deletion mechanism as well.
+    set<T>(new T());
+    return true;
+  }
+
+  /// Invoke this to clean all the registered Context
+  static void clear()
+  {
+    for (auto & [ _, cleaner ] : mCleaners) {
+      cleaner();
+    }
+  }
+
+  /// Invoke the sender callback on all the registered Context
+  static void send(FairMQDevice& device)
+  {
+    for (auto & [ _, sender ] : mSenders) {
+      sender(device);
+    }
+  }
+
+  /// Invoke the init callback on all the registered Context
+  static void init(FairMQDevice* device)
+  {
+    for (auto & [ _, init ] : mInits) {
+      init(device);
+    }
   }
 
  private:
-  std::array<void*, 5> mContextes;
+  static inline std::unordered_map<bool*, void*> mContextes = {};
+  static inline std::unordered_map<bool*, std::function<void(void)>> mCleaners = {};
+  static inline std::unordered_map<bool*, std::function<void(FairMQDevice&)>> mSenders = {};
+  static inline std::unordered_map<bool*, std::function<void(FairMQDevice*)>> mInits = {};
 };
+
+#define REGISTER_CONTEXT(CONTEXT) \
+  friend class ContextRegistry;   \
+  static inline bool mRegistered = ContextRegistry::createInRegistry<CONTEXT>();
 
 } // namespace framework
 } // namespace o2

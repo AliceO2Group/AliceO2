@@ -69,18 +69,14 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
     mStatelessProcess{ spec.algorithm.onProcess },
     mError{ spec.algorithm.onError },
     mConfigRegistry{ nullptr },
-    mFairMQContext{ FairMQDeviceProxy{ this } },
-    mRootContext{ FairMQDeviceProxy{ this } },
-    mStringContext{ FairMQDeviceProxy{ this } },
-    mDataFrameContext{ FairMQDeviceProxy{ this } },
-    mRawBufferContext{ FairMQDeviceProxy{ this } },
-    mContextRegistry{ { &mFairMQContext, &mRootContext, &mStringContext, &mDataFrameContext, &mRawBufferContext } },
+    mContextRegistry{},
     mAllocator{ &mTimingInfo, &mContextRegistry, spec.outputs },
     mRelayer{ spec.completionPolicy, spec.inputs, spec.forwards, registry.get<Monitoring>(), registry.get<TimesliceIndex>() },
     mServiceRegistry{ registry },
     mErrorCount{ 0 },
     mProcessingCount{ 0 }
 {
+  ContextRegistry::init(this);
 }
 
 /// This  takes care  of initialising  the device  from its  specification. In
@@ -288,23 +284,18 @@ bool DataProcessingDevice::tryDispatchComputation()
   std::vector<std::unique_ptr<FairMQMessage>> currentSetOfInputs;
 
   auto& allocator = mAllocator;
-  auto& context = mFairMQContext;
   auto& device = *this;
   auto& errorCallback = mError;
   auto& errorCount = mErrorCount;
   auto& forwards = mSpec.forwards;
   auto& inputsSchema = mSpec.inputs;
   auto& processingCount = mProcessingCount;
-  auto& rdfContext = mDataFrameContext;
   auto& relayer = mRelayer;
-  auto& rootContext = mRootContext;
   auto& serviceRegistry = mServiceRegistry;
   auto& statefulProcess = mStatefulProcess;
   auto& statelessProcess = mStatelessProcess;
-  auto& stringContext = mStringContext;
   auto& timingInfo = mTimingInfo;
   auto& timesliceIndex = mServiceRegistry.get<TimesliceIndex>();
-  auto& rawContext = mRawBufferContext;
 
   // These duplicate references are created so that each function
   // does not need to know about the whole class state, but I can
@@ -361,7 +352,7 @@ bool DataProcessingDevice::tryDispatchComputation()
   // PROCESSING:{START,END} is done so that we can trigger on begin / end of processing
   // in the GUI.
   auto dispatchProcessing = [&processingCount, &allocator, &statefulProcess, &statelessProcess, &monitoringService,
-                             &context, &rootContext, &stringContext, &rdfContext, &rawContext, &serviceRegistry, &device](TimesliceSlot slot, InputRecord& record) {
+                             &serviceRegistry, &device](TimesliceSlot slot, InputRecord& record) {
     if (statefulProcess) {
       LOG(DEBUG) << "PROCESSING:START:" << slot.index;
       monitoringService.send({ processingCount++, "dpl/stateful_process_count" });
@@ -381,11 +372,7 @@ bool DataProcessingDevice::tryDispatchComputation()
       LOG(DEBUG) << "PROCESSING:END:" << slot.index;
     }
 
-    DataProcessor::doSend(device, context);
-    DataProcessor::doSend(device, rootContext);
-    DataProcessor::doSend(device, stringContext);
-    DataProcessor::doSend(device, rdfContext);
-    DataProcessor::doSend(device, rawContext);
+    ContextRegistry::send(device);
   };
 
   // Error handling means printing the error and updating the metric
@@ -404,15 +391,11 @@ bool DataProcessingDevice::tryDispatchComputation()
   // propagates it to the various contextes (i.e. the actual entities which
   // create messages) because the messages need to have the timeslice id into
   // it.
-  auto prepareAllocatorForCurrentTimeSlice = [&timingInfo, &rootContext, &stringContext, &rdfContext, &rawContext, &context, &relayer, &timesliceIndex](TimesliceSlot i) {
+  auto prepareAllocatorForCurrentTimeSlice = [&timingInfo, &relayer, &timesliceIndex](TimesliceSlot i) {
     auto timeslice = timesliceIndex.getTimesliceForSlot(i);
     LOG(DEBUG) << "Timeslice for cacheline is " << timeslice.value;
     timingInfo.timeslice = timeslice.value;
-    rootContext.clear();
-    context.clear();
-    stringContext.clear();
-    rdfContext.clear();
-    rawContext.clear();
+    ContextRegistry::clear();
   };
 
   // This is how we do the forwarding, i.e. we push

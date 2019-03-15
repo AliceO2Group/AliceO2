@@ -29,11 +29,6 @@ namespace framework
 /// computation.
 class RootObjectContext {
 public:
- RootObjectContext(FairMQDeviceProxy proxy)
-   : mProxy{ proxy }
- {
- }
-
  struct MessageRef {
    std::unique_ptr<FairMQMessage> header;
    std::unique_ptr<TObject> payload;
@@ -86,23 +81,8 @@ public:
  private:
   FairMQDeviceProxy mProxy;
   Messages mMessages;
+  REGISTER_CONTEXT(RootObjectContext);
 };
-
-/// Helper to get the context from the registry.
-template <>
-inline RootObjectContext*
-  ContextRegistry::get<RootObjectContext>()
-{
-  return reinterpret_cast<RootObjectContext*>(mContextes[1]);
-}
-
-/// Helper to set the context from the registry.
-template <>
-inline void
-  ContextRegistry::set<RootObjectContext>(RootObjectContext* context)
-{
-  mContextes[1] = context;
-}
 
 } // namespace framework
 } // namespace o2

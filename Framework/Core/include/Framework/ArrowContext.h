@@ -31,11 +31,6 @@ namespace framework
 class ArrowContext
 {
  public:
-  ArrowContext(FairMQDeviceProxy proxy)
-    : mProxy{ proxy }
-  {
-  }
-
   struct MessageRef {
     std::unique_ptr<FairMQMessage> header;
     std::unique_ptr<TableBuilder> payload;
@@ -88,23 +83,9 @@ class ArrowContext
  private:
   FairMQDeviceProxy mProxy;
   Messages mMessages;
+
+  REGISTER_CONTEXT(ArrowContext);
 };
-
-/// Helper to get the context from the registry.
-template <>
-inline ArrowContext*
-  ContextRegistry::get<ArrowContext>()
-{
-  return reinterpret_cast<ArrowContext*>(mContextes[3]);
-}
-
-/// Helper to set the context from the registry.
-template <>
-inline void
-  ContextRegistry::set<ArrowContext>(ArrowContext* context)
-{
-  mContextes[3] = context;
-}
 
 } // namespace framework
 } // namespace o2

@@ -26,14 +26,16 @@ namespace framework
 class FairMQDeviceProxy
 {
 public:
-  FairMQDeviceProxy(FairMQDevice *device)
-  : mDevice{device}
-  {}
+ void setDevice(FairMQDevice* device)
+ {
+   mDevice = device;
+ }
 
-  /// To be used in DataAllocator.cxx to avoid reimplenting any device
-  /// API.
-  FairMQDevice *getDevice() {
-    return mDevice;
+ /// To be used in DataAllocator.cxx to avoid reimplenting any device
+ /// API.
+ FairMQDevice* getDevice()
+ {
+   return mDevice;
   }
 
   /// Looks like what we really need in the headers is just the transport.
@@ -42,7 +44,7 @@ public:
   std::unique_ptr<FairMQMessage> createMessage() const;
   std::unique_ptr<FairMQMessage> createMessage(const size_t size) const;
 private:
-  FairMQDevice* mDevice;
+ FairMQDevice* mDevice = nullptr;
 };
 
 } // namespace framework

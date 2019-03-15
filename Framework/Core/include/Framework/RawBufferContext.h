@@ -37,11 +37,6 @@ namespace framework
 class RawBufferContext
 {
  public:
-  RawBufferContext(FairMQDeviceProxy proxy)
-    : mProxy{ proxy }
-  {
-  }
-
   struct MessageRef {
     std::unique_ptr<FairMQMessage> header;
     char* payload;
@@ -99,23 +94,8 @@ class RawBufferContext
  private:
   FairMQDeviceProxy mProxy;
   Messages mMessages;
+  REGISTER_CONTEXT(RawBufferContext);
 };
-
-/// Helper to get the context from the registry.
-template <>
-inline RawBufferContext*
-  ContextRegistry::get<RawBufferContext>()
-{
-  return reinterpret_cast<RawBufferContext*>(mContextes[4]);
-}
-
-/// Helper to set the context from the registry.
-template <>
-inline void
-  ContextRegistry::set<RawBufferContext>(RawBufferContext* context)
-{
-  mContextes[4] = context;
-}
 
 } // namespace framework
 } // namespace o2

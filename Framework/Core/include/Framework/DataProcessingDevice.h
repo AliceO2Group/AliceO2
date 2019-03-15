@@ -61,11 +61,6 @@ class DataProcessingDevice : public FairMQDevice
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
   ServiceRegistry& mServiceRegistry;
   TimingInfo mTimingInfo;
-  MessageContext mFairMQContext;
-  RootObjectContext mRootContext;
-  StringContext mStringContext;
-  ArrowContext mDataFrameContext;
-  RawBufferContext mRawBufferContext;
   ContextRegistry mContextRegistry;
   DataAllocator mAllocator;
   DataRelayer mRelayer;
