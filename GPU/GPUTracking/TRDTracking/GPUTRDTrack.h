@@ -10,7 +10,7 @@ struct GPUTRDTrackDataRecord;
 class AliHLTExternalTrackParam;
 
 //_____________________________________________________________________________
-#if defined(__CINT__) || defined(__ROOTCINT__)
+#if (defined(__CINT__) || defined(__ROOTCINT__)) && !defined(__CLING__)
 namespace GPUCA_NAMESPACE
 {
 namespace gpu

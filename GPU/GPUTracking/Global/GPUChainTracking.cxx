@@ -63,6 +63,8 @@ GPUChainTracking::GPUChainTracking(GPUReconstruction* rec) : GPUChain(rec), mClu
   mFlatObjectsDevice.mChainTracking = this;
 }
 
+GPUChainTracking::~GPUChainTracking() = default;
+
 void GPUChainTracking::RegisterPermanentMemoryAndProcessors()
 {
   mFlatObjectsShadow.InitGPUProcessor(mRec, GPUProcessor::PROCESSOR_TYPE_SLAVE);

@@ -112,7 +112,6 @@ set(HDRS
     TRDTracking/GPUTRDTrackData.h
     TRDTracking/GPUTRDTrackPoint.h
     TRDTracking/GPUTRDTrackletLabels.h
-    Base/GPUConstantMem.h
     Base/GPUReconstructionIncludes.h
 )
 #Not processed by ROOT
@@ -125,6 +124,7 @@ set(HDRS2
     TRDTracking/GPUTRDInterfaces.h
     Standalone/display/GPUDisplayConfig.h
     Standalone/qa/GPUQAConfig.h
+    Base/GPUConstantMem.h
     Base/GPUReconstructionKernels.h
     Base/GPUReconstructionIncludesITS.h
     Base/GPUReconstructionHelpers.h
@@ -191,6 +191,12 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     )
     set (HDRS2 ${HDRS2}
         Interface/GPUO2InterfaceConfiguration.h
+        ITS/GPUITSTrack.h
+    )
+else() #Need at least the header installed, as it is part of constant memory
+    set (HDRS2 ${HDRS2}
+        ITS/GPUITSFitter.h
+        ITS/GPUITSFitterKernels.h
         ITS/GPUITSTrack.h
     )
 endif()

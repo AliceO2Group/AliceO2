@@ -64,7 +64,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   friend class GPUReconstruction;
 
  public:
-  virtual ~GPUChainTracking() override = default;
+  virtual ~GPUChainTracking() override;
   virtual void RegisterPermanentMemoryAndProcessors() override;
   virtual void RegisterGPUProcessors() override;
   virtual int Init() override;

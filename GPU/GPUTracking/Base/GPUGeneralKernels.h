@@ -38,7 +38,7 @@ class GPUKernelTemplate
   {
     return &workers;
   }
-#if (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && (!defined(__CINT__) && !defined(__ROOTCINT__))
+#if ((!defined(__OPENCL__) || defined(__OPENCLCPP__)) && (!(defined(__CINT__) || defined(__ROOTCINT__)) || defined(__CLING__)))
   template <int iKernel, typename... Args>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, workerType& workers, Args... args)
   {

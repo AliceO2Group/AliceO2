@@ -20,7 +20,6 @@
 #ifndef ALITPCPOISSONSOLVER_H
 #define ALITPCPOISSONSOLVER_H
 
-
 #include <TNamed.h>
 #include "TMatrixD.h"
 #include "TVectorD.h"
@@ -89,8 +88,11 @@ class AliTPCPoissonSolver : public TNamed
 
   AliTPCPoissonSolver();
   AliTPCPoissonSolver(const char* name, const char* title);
+#if (defined(__CINT__) || defined(__ROOTCINT__)) && !defined(__CLING__)
+  virtual ~AliTPCPoissonSolver();
+#else
   ~AliTPCPoissonSolver() override;
-
+#endif
   void PoissonSolver2D(TMatrixD& matrixV, TMatrixD& chargeDensity, Int_t nRRow, Int_t nZColumn, Int_t maxIterations);
   void PoissonSolver3D(TMatrixD** matricesV, TMatrixD** matricesChargeDensities, Int_t nRRow, Int_t nZColumn,
                        Int_t phiSlice, Int_t maxIterations, Int_t symmetry);

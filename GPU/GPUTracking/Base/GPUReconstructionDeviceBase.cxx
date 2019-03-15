@@ -19,9 +19,7 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-#ifdef __CINT__
-typedef int cudaError_t
-#elif defined(_WIN32)
+#if defined(_WIN32)
 #include "../utils/pthread_mutex_win32_wrapper.h"
 #else
 #include <cerrno>

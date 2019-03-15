@@ -18,7 +18,7 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-#if (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !(defined(__CINT__) || defined(__ROOTCINT__))
+#if (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && (!(defined(__CINT__) || defined(__ROOTCINT__)) || defined(__CLING__))
 #define ENUM_CLASS class
 #define ENUM_UINT : unsigned int
 #define GPUCA_RECO_STEP GPUDataTypes::RecoStep

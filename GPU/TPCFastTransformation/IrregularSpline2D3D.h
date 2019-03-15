@@ -20,7 +20,6 @@
 #include "FlatObject.h"
 
 #if !defined(__CINT__) && !defined(__ROOTCINT__) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_NO_VC)
-//&& !defined(__CLING__)
 #include <Vc/Vc>
 #include <Vc/SimdArray>
 #endif
@@ -323,7 +322,6 @@ inline void IrregularSpline2D3D::getSplineVec(const float* correctedData, float 
 // \param correctedData should be at least 128-bit aligned
 
 #if !defined(__CINT__) && !defined(__ROOTCINT__) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_NO_VC)
-  //&& !defined(__CLING__)
   const IrregularSpline1D& gridU = getGridU();
   const IrregularSpline1D& gridV = getGridV();
   int nu = gridU.getNumberOfKnots();
