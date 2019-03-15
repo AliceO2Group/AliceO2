@@ -7,6 +7,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include "Framework/CompilerBuiltins.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/MessageContext.h"
 #include "Framework/RootObjectContext.h"
@@ -186,7 +187,7 @@ Output DataAllocator::getOutputByBind(OutputRef&& ref)
     }
   }
   throw std::runtime_error("Unable to find OutputSpec with label " + ref.label);
-  assert(false);
+  O2_BUILTIN_UNREACHABLE();
 }
 
 }
