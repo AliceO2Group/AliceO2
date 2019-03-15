@@ -1402,14 +1402,12 @@ void MagneticWrapperChebyshev::saveData(const char* outfile) const
   fprintf(stream, "#\nEND SOLENOID\n");
 
   // TPCIntegral part
-  fprintf(stream, "# Set of Chebyshev parameterizations for ALICE magnetic field\nSTART %s\n", GetName());
   fprintf(stream, "START TPCINT\n#Number of pieces\n%d\n", mNumberOfParameterizationTPC);
   for (int ip = 0; ip < mNumberOfParameterizationTPC; ip++)
     getParameterTPCIntegral(ip)->saveData(stream);
   fprintf(stream, "#\nEND TPCINT\n");
 
   // TPCRatIntegral part
-  fprintf(stream, "# Set of Chebyshev parameterizations for ALICE magnetic field\nSTART %s\n", GetName());
   fprintf(stream, "START TPCRatINT\n#Number of pieces\n%d\n", mNumberOfParameterizationTPCRat);
   for (int ip = 0; ip < mNumberOfParameterizationTPCRat; ip++) {
     getParameterTPCRatIntegral(ip)->saveData(stream);
