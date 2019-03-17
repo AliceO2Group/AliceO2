@@ -11,12 +11,14 @@
 #ifndef FRAMEWORK_CONTEXTREGISTRY_H
 #define FRAMEWORK_CONTEXTREGISTRY_H
 
-#include <unordered_map>
 #include <typeinfo>
 #include <typeindex>
 #include <type_traits>
 #include <string>
 #include <stdexcept>
+#include <vector>
+#include <utility>
+#include <array>
 
 namespace o2
 {
@@ -44,12 +46,12 @@ class ContextRegistry
   T* get() const
   {
     void* instance = nullptr;
-    try {
-      instance = mRegistry.at(typeid(T).hash_code());
-    } catch (std::out_of_range&) {
-      throw std::out_of_range(std::string("Unsupported backend, no registered context '") + typeid(T).name() + "'");
+    for (size_t i = 0; i < mRegistryCount; ++i) {
+      if (mRegistryKey[i] == typeid(T*).hash_code()) {
+        return reinterpret_cast<T*>(mRegistryValue[i]);
+      }
     }
-    return reinterpret_cast<T*>(instance);
+    throw std::out_of_range(std::string("Unsupported backend, no registered context '") + typeid(T).name() + "'");
   }
 
   template <typename T, typename... Types>
@@ -63,11 +65,25 @@ class ContextRegistry
   void set(T* instance)
   {
     static_assert(std::is_void<T>::value == false, "can not register a void object");
-    mRegistry[typeid(T).hash_code()] = instance;
+    size_t i = 0;
+    for (i = 0; i < mRegistryCount; ++i) {
+      if (typeid(T*).hash_code() == mRegistryKey[i]) {
+        return;
+      }
+    }
+    if (i == MAX_REGISTRY_SIZE) {
+      throw std::runtime_error("Too many entries in ContextRegistry");
+    }
+    mRegistryCount = i + 1;
+    mRegistryKey[i] = typeid(T*).hash_code();
+    mRegistryValue[i] = instance;
   }
 
  private:
-  std::unordered_map<size_t, void*> mRegistry;
+  static constexpr size_t MAX_REGISTRY_SIZE = 8;
+  size_t mRegistryCount = 0;
+  std::array<size_t, MAX_REGISTRY_SIZE> mRegistryKey;
+  std::array<void*, MAX_REGISTRY_SIZE> mRegistryValue;
 };
 
 } // namespace framework

@@ -232,6 +232,7 @@ set(TEST_SRCS
       test/test_CallbackRegistry.cxx
       test/test_CallbackService.cxx
       test/test_ChannelSpecHelpers.cxx
+      test/test_ContextRegistry.cxx
       test/test_CustomGUISokol.cxx
       test/test_CustomGUIGL.cxx
       test/test_CompletionPolicy.cxx
