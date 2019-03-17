@@ -23,8 +23,8 @@ namespace gpu
 {
 class GPUChainTracking;
 class GPUQA;
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #ifndef BUILD_EVENT_DISPLAY
 
@@ -53,8 +53,8 @@ class GPUDisplay
   void ExitGL() {}
   void ReSizeGLScene(int width, int height, bool init = false) {}
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #else
 
@@ -196,14 +196,14 @@ class GPUDisplay
   class opengl_spline
   {
    public:
-    opengl_spline() : fa(), fb(), fc(), fd(), fx() {}
+    opengl_spline() : ma(), mb(), mc(), md(), mx() {}
     void create(const vecpod<float>& x, const vecpod<float>& y);
     float evaluate(float x);
-    void setVerbose() { fVerbose = true; }
+    void setVerbose() { mVerbose = true; }
 
    private:
-    vecpod<float> fa, fb, fc, fd, fx;
-    bool fVerbose = false;
+    vecpod<float> ma, mb, mc, md, mx;
+    bool mVerbose = false;
   };
 
   int DrawGLScene_internal(bool mixAnimation, float mAnimateTime);
@@ -378,8 +378,8 @@ class GPUDisplay
   vboList mGlDLGrid[NSLICES];
   vecpod<DrawArraysIndirectCommand> mCmdBuffer;
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif
 #endif

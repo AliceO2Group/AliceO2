@@ -74,8 +74,8 @@ typedef unsigned int cahit;
 typedef unsigned int calink;
 typedef unsigned int cahit;
 #endif
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #ifdef GPUCA_GPUCODE
 #define GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP 6

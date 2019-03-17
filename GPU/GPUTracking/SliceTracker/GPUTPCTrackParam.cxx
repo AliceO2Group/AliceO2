@@ -731,7 +731,7 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::CheckNumericalQuality() const
 MEM_CLASS_PRE()
 GPUd() void MEM_LG(GPUTPCTrackParam)::Print() const
 {
-//* print parameters
+  //* print parameters
 
 #if !defined(GPUCA_GPUCODE)
   std::cout << "track: x=" << GetX() << " c=" << GetSignCosPhi() << ", P= " << GetY() << " " << GetZ() << " " << GetSinPhi() << " " << GetDzDs() << " " << GetQPt() << std::endl;

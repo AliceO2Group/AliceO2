@@ -11,77 +11,77 @@
 /// \file GPUDisplayInterpolation.cpp
 /// \author David Rohr
 
-#include <stdio.h>
+#include <cstdio>
 #include "GPUDisplay.h"
 using namespace GPUCA_NAMESPACE::gpu;
 
 void GPUDisplay::opengl_spline::create(const vecpod<float>& x, const vecpod<float>& y)
 {
-  fa.clear();
-  fb.clear();
-  fc.clear();
-  fd.clear();
-  fx.clear();
+  ma.clear();
+  mb.clear();
+  mc.clear();
+  md.clear();
+  mx.clear();
   if (x.size() != y.size() || x.size() < 2) {
     return;
   }
   int k = x.size() - 1;
-  if (fVerbose) {
+  if (mVerbose) {
     for (unsigned int i = 0; i < x.size(); i++) {
       printf("Point %u: %f --> %f\n", i, x[i], y[i]);
     }
   }
-  fa.resize(k + 1);
-  fb.resize(k + 1);
-  fc.resize(k + 1);
-  fd.resize(k + 1);
-  fx.resize(k + 1);
+  ma.resize(k + 1);
+  mb.resize(k + 1);
+  mc.resize(k + 1);
+  md.resize(k + 1);
+  mx.resize(k + 1);
   vecpod<float> h(k + 1), alpha(k + 1), l(k + 1), mu(k + 1), z(k + 1);
   for (int i = 0; i <= k; i++) {
-    fa[i] = y[i];
+    ma[i] = y[i];
   }
   for (int i = 0; i < k; i++) {
     h[i] = x[i + 1] - x[i];
   }
   for (int i = 1; i < k; i++) {
-    alpha[i] = 3.f / h[i] * (fa[i + 1] - fa[i]) - 3.f / h[i - 1] * (fa[i] - fa[i - 1]);
+    alpha[i] = 3.f / h[i] * (ma[i + 1] - ma[i]) - 3.f / h[i - 1] * (ma[i] - ma[i - 1]);
   }
   l[0] = l[k] = 1;
-  mu[0] = z[0] = z[k] = fc[k] = 0;
+  mu[0] = z[0] = z[k] = mc[k] = 0;
   for (int i = 1; i < k; i++) {
     l[i] = 2.f * (x[i + 1] - x[i - 1]) - h[i - 1] * mu[i - 1];
     mu[i] = h[i] / l[i];
     z[i] = (alpha[i] - h[i - 1] * z[i - 1]) / l[i];
   }
   for (int i = k - 1; i >= 0; i--) {
-    fc[i] = z[i] - mu[i] * fc[i + 1];
-    fb[i] = (fa[i + 1] - fa[i]) / h[i] - h[i] / 3.f * (fc[i + 1] + 2.f * fc[i]);
-    fd[i] = (fc[i + 1] - fc[i]) / (3.f * h[i]);
+    mc[i] = z[i] - mu[i] * mc[i + 1];
+    mb[i] = (ma[i + 1] - ma[i]) / h[i] - h[i] / 3.f * (mc[i + 1] + 2.f * mc[i]);
+    md[i] = (mc[i + 1] - mc[i]) / (3.f * h[i]);
   }
   for (int i = 0; i <= k; i++) {
-    fx[i] = x[i];
+    mx[i] = x[i];
   }
 }
 
 float GPUDisplay::opengl_spline::evaluate(float x)
 {
   int base = 0;
-  const int k = fx.size() - 1;
+  const int k = mx.size() - 1;
   if (k < 0) {
     return (0);
   }
-  while (base < k - 1 && x > fx[base + 1]) {
+  while (base < k - 1 && x > mx[base + 1]) {
     base++;
   }
-  float retVal = fa[base];
-  x -= fx[base];
+  float retVal = ma[base];
+  x -= mx[base];
   const float xx = x;
-  retVal += fb[base] * x;
+  retVal += mb[base] * x;
   x *= xx;
-  retVal += fc[base] * x;
+  retVal += mc[base] * x;
   x *= xx;
-  retVal += fd[base] * x;
-  if (fVerbose) {
+  retVal += md[base] * x;
+  if (mVerbose) {
     printf("Evaluate: %f --> %f (basepoint %d)\n", xx, retVal, base);
   }
   return (retVal);

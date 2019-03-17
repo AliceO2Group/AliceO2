@@ -27,21 +27,20 @@ class GPUDisplayBackendGlfw : public GPUDisplayBackend
 {
  public:
   GPUDisplayBackendGlfw() = default;
-  virtual ~GPUDisplayBackendGlfw() = default;
+  ~GPUDisplayBackendGlfw() override = default;
 
-  virtual int StartDisplay() override;
-  virtual void DisplayExit() override;
-  virtual void SwitchFullscreen(bool set) override;
-  virtual void ToggleMaximized(bool set) override;
-  virtual void SetVSync(bool enable) override;
-  virtual void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
-  virtual bool EnableSendKey() override;
+  int StartDisplay() override;
+  void DisplayExit() override;
+  void SwitchFullscreen(bool set) override;
+  void ToggleMaximized(bool set) override;
+  void SetVSync(bool enable) override;
+  void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
+  bool EnableSendKey() override;
 
  private:
-  virtual int OpenGLMain() override;
+  int OpenGLMain() override;
   static void DisplayLoop();
 
-  static void GlfwLoopFunc(void);
   static void error_callback(int error, const char* description);
   static void key_callback(GLFWwindow* mWindow, int key, int scancode, int action, int mods);
   static void mouseButton_callback(GLFWwindow* mWindow, int button, int action, int mods);
@@ -60,7 +59,7 @@ class GPUDisplayBackendGlfw : public GPUDisplayBackend
   int mWindowWidth = INIT_WIDTH;
   int mWindowHeight = INIT_HEIGHT;
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

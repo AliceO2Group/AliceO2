@@ -35,7 +35,7 @@ class GPUTPCGMMergerTrackFit : public GPUKernelTemplate
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, workerType& merger);
 #endif
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

@@ -170,12 +170,12 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   }
 
   // Prepare everything for all slices
-  const AliHLTTPCClusterMCData* clusterLabels[NSLICES][NPATCHES] = { NULL };
-  const AliHLTTPCClusterXYZData* clustersXYZ[NSLICES][NPATCHES] = { NULL };
-  const AliHLTTPCRawClusterData* clustersRaw[NSLICES][NPATCHES] = { NULL };
+  const AliHLTTPCClusterMCData* clusterLabels[NSLICES][NPATCHES] = { nullptr };
+  const AliHLTTPCClusterXYZData* clustersXYZ[NSLICES][NPATCHES] = { nullptr };
+  const AliHLTTPCRawClusterData* clustersRaw[NSLICES][NPATCHES] = { nullptr };
   bool labelsPresent = false;
-  GPUTRDTrackletWord* TRDtracklets = NULL;
-  GPUTRDTrackletLabels* TRDtrackletsMC = NULL;
+  GPUTRDTrackletWord* TRDtracklets = nullptr;
+  GPUTRDTrackletLabels* TRDtrackletsMC = nullptr;
   int nTRDTrackletsTotal = 0;
   int nTRDTrackletsMCTotal = 0;
 
@@ -214,7 +214,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
     }
     GPUTPCClusterData cluster;
     for (int patch = 0; patch < 6; patch++) {
-      if (clustersXYZ[slice][patch] != NULL && clustersRaw[slice][patch] != NULL) {
+      if (clustersXYZ[slice][patch] != nullptr && clustersRaw[slice][patch] != nullptr) {
         const AliHLTTPCClusterXYZData& clXYZ = *clustersXYZ[slice][patch];
         const AliHLTTPCRawClusterData& clRaw = *clustersRaw[slice][patch];
 
@@ -282,7 +282,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       GPUTPCClusterData* pCluster = clusterData[iSlice].data();
       for (unsigned int iPatch = 0; iPatch < NPATCHES; iPatch++) {
-        if (clusterLabels[iSlice][iPatch] == NULL || clustersXYZ[iSlice][iPatch] == NULL || clusterLabels[iSlice][iPatch]->fCount != clustersXYZ[iSlice][iPatch]->fCount) {
+        if (clusterLabels[iSlice][iPatch] == nullptr || clustersXYZ[iSlice][iPatch] == nullptr || clusterLabels[iSlice][iPatch]->fCount != clustersXYZ[iSlice][iPatch]->fCount) {
           continue;
         }
         const AliHLTTPCClusterXYZData& clXYZ = *clustersXYZ[iSlice][iPatch];
@@ -310,7 +310,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
     bool OK = false;
     do {
       AliRunLoader* rl = AliRunLoader::Instance();
-      if (rl == NULL) {
+      if (rl == nullptr) {
         HLTFatal("error: RL");
         break;
       }
@@ -322,25 +322,25 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
       mcInfo.resize(nTracks);
 
       AliStack* stack = rl->Stack();
-      if (stack == NULL) {
+      if (stack == nullptr) {
         HLTFatal("error: stack");
         break;
       }
       TTree* TR = rl->TreeTR();
-      if (TR == NULL) {
+      if (TR == nullptr) {
         HLTFatal("error: TR");
         break;
       }
       TBranch* branch = TR->GetBranch("TrackReferences");
-      if (branch == NULL) {
+      if (branch == nullptr) {
         HLTFatal("error: branch");
         break;
       }
 
       int nPrimaries = stack->GetNprimary();
 
-      std::vector<AliTrackReference*> trackRefs(nTracks, NULL);
-      TClonesArray* tpcRefs = NULL;
+      std::vector<AliTrackReference*> trackRefs(nTracks, nullptr);
+      TClonesArray* tpcRefs = nullptr;
       branch->SetAddress(&tpcRefs);
       int nr = TR->GetEntries();
       for (int r = 0; r < nr; r++) {
@@ -354,7 +354,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
             HLTFatal("Invalid reference %d / %d", tpcRef->Label(), nTracks);
             continue;
           }
-          if (trackRefs[tpcRef->Label()] != NULL) {
+          if (trackRefs[tpcRef->Label()] != nullptr) {
             continue;
           }
           trackRefs[tpcRef->Label()] = new AliTrackReference(*tpcRef);
@@ -366,10 +366,10 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
       for (int i = 0; i < nTracks; i++) {
         mcInfo[i].pid = -100;
         TParticle* particle = (TParticle*)stack->Particle(i);
-        if (particle == NULL) {
+        if (particle == nullptr) {
           continue;
         }
-        if (particle->GetPDG() == NULL) {
+        if (particle->GetPDG() == nullptr) {
           continue;
         }
 

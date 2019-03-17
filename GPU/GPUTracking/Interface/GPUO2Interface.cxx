@@ -35,8 +35,8 @@ namespace gpu
 class GPUDisplayBackendGlfw : public GPUDisplayBackend
 {
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 #endif
 
 #include "DataFormatsTPC/ClusterNative.h"

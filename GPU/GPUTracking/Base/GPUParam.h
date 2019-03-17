@@ -57,8 +57,8 @@ struct GPUParam {
 
 #ifndef GPUCA_GPUCODE
   void SetDefaults(float solenoidBz);
-  void SetDefaults(const GPUSettingsEvent* e, const GPUSettingsRec* r = NULL, const GPUSettingsDeviceProcessing* p = NULL);
-  void UpdateEventSettings(const GPUSettingsEvent* e, const GPUSettingsDeviceProcessing* p = NULL);
+  void SetDefaults(const GPUSettingsEvent* e, const GPUSettingsRec* r = nullptr, const GPUSettingsDeviceProcessing* p = nullptr);
+  void UpdateEventSettings(const GPUSettingsEvent* e, const GPUSettingsDeviceProcessing* p = nullptr);
   void LoadClusterErrors(bool Print = 0);
 #endif
 
@@ -85,7 +85,7 @@ struct GPUParam {
   float ParamRMS0[2][3][4];  // cluster shape parameterization coeficients
   float ParamS0Par[2][3][6]; // cluster error parameterization coeficients
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

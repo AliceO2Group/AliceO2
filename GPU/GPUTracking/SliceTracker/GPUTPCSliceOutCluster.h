@@ -62,7 +62,7 @@ class GPUTPCSliceOutCluster
   float mTime;
 #endif
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

@@ -78,15 +78,15 @@ using namespace GPUReconstruction_krnlHelpers;
 class GPUReconstructionCPUBackend : public GPUReconstruction
 {
  public:
-  virtual ~GPUReconstructionCPUBackend() override = default;
+  ~GPUReconstructionCPUBackend() override = default;
 
  protected:
   GPUReconstructionCPUBackend(const GPUSettingsProcessing& cfg) : GPUReconstruction(cfg) {}
   template <class T, int I = 0, typename... Args>
   int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args);
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #include "GPUReconstructionKernels.h"
 #ifndef GPUCA_GPURECONSTRUCTIONCPU_IMPLEMENTATION
@@ -105,19 +105,19 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   friend class GPUChain;
 
  public:
-  virtual ~GPUReconstructionCPU() override = default;
+  ~GPUReconstructionCPU() override = default;
 
-#ifdef __APPLE__ // MacOS compiler BUG: clang seems broken and does not accept default parameters before parameter pack
+#ifdef __clang__ // BUG: clang seems broken and does not accept default parameters before parameter pack
   template <class S, int I = 0>
   inline int runKernel(const krnlExec& x, HighResTimer* t = nullptr, const krnlRunRange& y = krnlRunRangeNone)
   {
-    return runKernel<S, I>(x, t, y, krnlEvent());
+    return runKernel<S, I>(x, t, y, krnlEventNone);
   }
   template <class S, int I = 0, typename... Args>
   inline int runKernel(const krnlExec& x, HighResTimer* t, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
 #else
   template <class S, int I = 0, typename... Args>
-  inline int runKernel(const krnlExec& x, HighResTimer* t = nullptr, const krnlRunRange& y = krnlRunRangeNone, const krnlEvent& z = krnlEvent(), const Args&... args)
+  inline int runKernel(const krnlExec& x, HighResTimer* t = nullptr, const krnlRunRange& y = krnlRunRangeNone, const krnlEvent& z = krnlEventNone, const Args&... args)
 #endif
   {
     if (mDeviceProcessingSettings.debugLevel >= 3) {
@@ -164,7 +164,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   template <class T>
   void AddGPUEvents(T& events);
 
-  virtual int RunStandalone() override;
+  int RunStandalone() override;
 
  protected:
   struct GPUProcessorWorkers : public GPUProcessor {
@@ -194,8 +194,8 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
 
   virtual void SetThreadCounts();
 
-  virtual int InitDevice() override;
-  virtual int ExitDevice() override;
+  int InitDevice() override;
+  int ExitDevice() override;
   int GetThread();
 
   virtual int PrepareTextures() { return 0; }
@@ -230,7 +230,7 @@ inline void GPUReconstructionCPU::AddGPUEvents(T& events)
 {
   mEvents.emplace_back((void*)&events, sizeof(T) / sizeof(deviceEvent*));
 }
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

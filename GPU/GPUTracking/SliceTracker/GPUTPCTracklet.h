@@ -74,7 +74,7 @@ class GPUTPCTracklet
 #endif                                  // EXTERN_ROW_HITS
   int mHitWeight;                       // Hit Weight of Tracklet
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif // GPUTPCTRACKLET_H

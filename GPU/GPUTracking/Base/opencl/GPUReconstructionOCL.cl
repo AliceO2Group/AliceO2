@@ -14,6 +14,7 @@
 // clang-format off
 #define __OPENCL__
 #define GPUCA_GPUTYPE_RADEON
+
 #ifdef __OPENCLCPP__
   #pragma OPENCL EXTENSION cl_khr_fp64 : enable
   #ifdef __clang__
@@ -40,6 +41,9 @@
     using namespace cl;
   #endif
   #define M_PI 3.1415926535f
+#else
+  #define nullptr NULL
+  #define NULL (0x0)
 #endif
 // clang-format on
 

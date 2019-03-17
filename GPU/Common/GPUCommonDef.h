@@ -15,7 +15,7 @@
 #define GPUCOMMONDEF_H
 
 // clang-format off
-#if (defined(__CINT__) || defined(__ROOTCINT__)) && !defined(__CLING__)
+#if ((defined(__CINT__) || defined(__ROOTCINT__)) && !defined(__CLING__)) || (defined(__OPENCL__) && !defined(__OPENCLCPP__))
   #define CON_DELETE
   #define CON_DEFAULT
   #define CONSTEXPR const

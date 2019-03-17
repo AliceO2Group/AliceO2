@@ -121,10 +121,10 @@ class GPUTPCGMPropagator
  private:
   GPUd() static float ApproximateBetheBloch(float beta2);
 
-  const GPUTPCGMPolynomialField* mField = 0;
+  const GPUTPCGMPolynomialField* mField = nullptr;
   FieldRegion mFieldRegion = TPC;
 
-  GPUTPCGMTrackParam* mT = 0;
+  GPUTPCGMTrackParam* mT = nullptr;
   float mAlpha = 0; // rotation angle of the track coordinate system
   GPUTPCGMPhysicalTrackModel mT0;
   MaterialCorrection mMaterial;
@@ -169,7 +169,7 @@ GPUd() inline float GPUTPCGMPropagator::GetMirroredYTrack() const
   float Bz = GetBz(mAlpha, mT->GetX(), mT->GetY(), mT->GetZ());
   return mT->GetMirroredY(Bz);
 }
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

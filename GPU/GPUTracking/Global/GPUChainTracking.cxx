@@ -49,8 +49,8 @@ class TRDGeometryFlat
  public:
   void clearInternalBufferPtr() {}
 };
-}
-} // namespace o2::trd
+} // namespace trd
+} // namespace o2
 #endif
 using namespace o2::trd;
 

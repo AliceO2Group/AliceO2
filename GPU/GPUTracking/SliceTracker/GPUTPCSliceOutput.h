@@ -15,22 +15,19 @@
 #define GPUTPCSLICEOUTPUT_H
 
 #include "GPUTPCDef.h"
+#ifndef GPUCA_GPUCODE
+#include "GPUTPCSliceOutTrack.h" //Breaks OpenCL 1.2 since GPUTPCSliceOutput does not know the address space of the track
+#endif
 
-#if !defined(GPUCA_GPUCODE_DEVICE) // clang-format off
-  #include <cstdlib>
-  #ifndef GPUCA_GPUCODE
-    #include "GPUTPCSliceOutTrack.h"
-  #endif
-#elif defined(__OPENCL__) && !defined(__OPENCLCPP__)
-  #define NULL 0
-#endif // clang-format on
+#if !defined(__OPENCL__)
+#include <cstdlib>
+#endif
 
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
 
-class GPUTPCSliceOutTrack;
 struct GPUOutputControl;
 
 /**
@@ -59,7 +56,10 @@ class GPUTPCSliceOutput
   {
     return mMemory;
   }
-  GPUhd() GPUTPCSliceOutTrack* FirstTrack() { return mMemory; }
+  GPUhd() GPUTPCSliceOutTrack* FirstTrack()
+  {
+    return mMemory;
+  }
 #endif
   GPUhd() size_t Size() const
   {
@@ -74,11 +74,10 @@ class GPUTPCSliceOutput
   GPUhd() void SetNTrackClusters(unsigned int v) { mNTrackClusters = v; }
 
  private:
-  GPUTPCSliceOutput() : mNTracks(0), mNLocalTracks(0), mNTrackClusters(0), mMemorySize(0) {}
-
-  ~GPUTPCSliceOutput() {}
-  GPUTPCSliceOutput(const GPUTPCSliceOutput&);
-  GPUTPCSliceOutput& operator=(const GPUTPCSliceOutput&) { return *this; }
+  GPUTPCSliceOutput() CON_DELETE;                                    // NOLINT: Must be private or ROOT tries to use them!
+  ~GPUTPCSliceOutput() CON_DELETE;                                   // NOLINT
+  GPUTPCSliceOutput(const GPUTPCSliceOutput&) CON_DELETE;            // NOLINT
+  GPUTPCSliceOutput& operator=(const GPUTPCSliceOutput&) CON_DELETE; // NOLINT
 
   GPUh() void SetMemorySize(size_t val) { mMemorySize = val; }
 
@@ -87,14 +86,13 @@ class GPUTPCSliceOutput
   unsigned int mNTrackClusters; // total number of track clusters
   size_t mMemorySize;           // Amount of memory really used
 
-  // Must be last element of this class, user has to make sure to allocate anough memory consecutive to class memory!
-  // This way the whole Slice Output is one consecutive Memory Segment
-
+// Must be last element of this class, user has to make sure to allocate anough memory consecutive to class memory!
+// This way the whole Slice Output is one consecutive Memory Segment
 #ifndef GPUCA_GPUCODE
   GPUTPCSliceOutTrack mMemory[0]; // the memory where the pointers above point into
 #endif
 #endif
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 #endif

@@ -97,7 +97,7 @@ class GPUTPCGMBorderTrack
   float mC[5];
   float mD[2];
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

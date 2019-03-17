@@ -43,7 +43,7 @@ class GPUReconstructionHelpers
     volatile char reset;
   };
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

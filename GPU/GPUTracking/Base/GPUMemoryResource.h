@@ -70,7 +70,7 @@ class GPUMemoryResource
   size_t mSize;
   const char* mName;
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

@@ -46,7 +46,7 @@ static void GPUFailedMsgA(const long long int error, const char* file, int line)
 }
 
 static_assert(std::is_convertible<cudaEvent_t, void*>::value, "CUDA event type incompatible to deviceEvent");
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

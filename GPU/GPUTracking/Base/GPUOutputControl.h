@@ -37,7 +37,7 @@ struct GPUOutputControl {
   OutputTypeStruct OutputType = AllocateInternal; // How to perform the output
   char EndOfSpace = 0;                            // end of space flag
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

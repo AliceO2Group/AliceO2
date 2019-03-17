@@ -23,16 +23,16 @@ namespace gpu
 class GPUDisplayBackendNone : public GPUDisplayBackend
 {
   GPUDisplayBackendNone() = default;
-  virtual ~GPUDisplayBackendNone() = default;
+  ~GPUDisplayBackendNone() override = default;
 
-  virtual int StartDisplay() override { return 1; }
-  virtual void DisplayExit() override {}
-  virtual void SwitchFullscreen(bool set) override {}
-  virtual void ToggleMaximized(bool set) override {}
-  virtual void SetVSync(bool enable) override {}
-  virtual void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override {}
+  int StartDisplay() override { return 1; }
+  void DisplayExit() override {}
+  void SwitchFullscreen(bool set) override {}
+  void ToggleMaximized(bool set) override {}
+  void SetVSync(bool enable) override {}
+  void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override {}
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

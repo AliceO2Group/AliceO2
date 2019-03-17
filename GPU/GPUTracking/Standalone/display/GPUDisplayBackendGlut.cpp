@@ -279,7 +279,7 @@ void GPUDisplayBackendGlut::SetVSync(bool enable) {}
 int GPUDisplayBackendGlut::StartDisplay()
 {
   static pthread_t hThread;
-  if (pthread_create(&hThread, NULL, OpenGLWrapper, this)) {
+  if (pthread_create(&hThread, nullptr, OpenGLWrapper, this)) {
     printf("Coult not Create GL Thread...\n");
     return (1);
   }

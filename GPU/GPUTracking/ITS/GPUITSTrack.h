@@ -27,7 +27,7 @@ class GPUITSTrack : public GPUTPCGMTrackParam
   float mAlpha;
   int mClusters[7];
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

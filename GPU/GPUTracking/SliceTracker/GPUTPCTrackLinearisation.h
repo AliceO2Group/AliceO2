@@ -86,7 +86,7 @@ GPUd() inline void GPUTPCTrackLinearisation::Set(float SinPhi1, float CosPhi1, f
   SetDzDs(DzDs1);
   SetQPt(QPt1);
 }
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif // GPUTPCTRACKLINEARISATION_H

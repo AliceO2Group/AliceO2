@@ -23,7 +23,7 @@ namespace gpu
 {
 class GPUTPCGMPolynomialField;
 }
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace GPUCA_NAMESPACE
 
 /**
  * @class GPUTPCGMPolynomialFieldManager
@@ -38,7 +38,7 @@ class GPUTPCGMPolynomialFieldManager
                        k2kG,
                        k5kG }; // known fitted polynomial fields, stored in constants
 
-  GPUTPCGMPolynomialFieldManager() {}
+  GPUTPCGMPolynomialFieldManager() CON_DEFAULT;
 
   /* Get appropriate pre-calculated polynomial field for the given field value nominalFieldkG
  */

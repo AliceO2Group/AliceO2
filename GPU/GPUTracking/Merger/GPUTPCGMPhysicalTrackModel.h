@@ -271,7 +271,7 @@ GPUdi() void GPUTPCGMPhysicalTrackModel::Rotate(float alpha)
   RotateLight(alpha);
   UpdateValues();
 }
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

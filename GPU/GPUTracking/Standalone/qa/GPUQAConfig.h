@@ -27,6 +27,6 @@ namespace gpu
 {
 typedef structConfigQA GPUQAConfig;
 }
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

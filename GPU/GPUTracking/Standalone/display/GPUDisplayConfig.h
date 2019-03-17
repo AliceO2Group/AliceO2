@@ -27,6 +27,6 @@ namespace gpu
 {
 typedef structConfigGL GPUDisplayConfig;
 }
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

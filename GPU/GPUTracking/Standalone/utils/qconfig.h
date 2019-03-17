@@ -1,3 +1,16 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file qconfig.h
+/// \author David Rohr
+
 #include <vector>
 
 #define AddArrayDefaults(...) \
@@ -103,9 +116,9 @@
 #define AddShortcut(cmd, cmdshort, forward, help, ...)             \
   else if (QCONFIG_COMPARE(cmd, cmdshort))                         \
   {                                                                \
-    const char* options[] = { "", __VA_ARGS__, NULL };             \
+    const char* options[] = { "", __VA_ARGS__, nullptr };          \
     const int nOptions = sizeof(options) / sizeof(options[0]) - 1; \
-    qConfigParse(nOptions, options, NULL);                         \
+    qConfigParse(nOptions, options, nullptr);                      \
     thisoption = forward;                                          \
     goto repeat;                                                   \
   }
@@ -113,29 +126,29 @@
 #elif defined(QCONFIG_HELP)
 #define AddOption(name, type, default, optname, optnameshort, ...) qConfigType<type>::qConfigHelpOption(qon_mxstr(name), qon_mxstr(type), qon_mxstr(default), optname, optnameshort, preopt, preoptshort, 0, __VA_ARGS__);
 #define AddOptionSet(name, type, value, optname, optnameshort, ...) qConfigType<type>::qConfigHelpOption(qon_mxstr(name), qon_mxstr(type), qon_mxstr(value), optname, optnameshort, preopt, preoptshort, 1, __VA_ARGS__);
-#define AddOptionVec(name, type, optname, optnameshort, ...) qConfigType<type>::qConfigHelpOption(qon_mxstr(name), qon_mxstr(type), NULL, optname, optnameshort, preopt, preoptshort, 2, __VA_ARGS__);
-#define AddOptionArray(name, type, count, default, optname, optnameshort, ...) qConfigType<type>::qConfigHelpOption(qon_mxstr(name), qon_mxstr(type) "[" qon_mxstr(count) "]", NULL, optname, optnameshort, preopt, preoptshort, 2, __VA_ARGS__);
+#define AddOptionVec(name, type, optname, optnameshort, ...) qConfigType<type>::qConfigHelpOption(qon_mxstr(name), qon_mxstr(type), nullptr, optname, optnameshort, preopt, preoptshort, 2, __VA_ARGS__);
+#define AddOptionArray(name, type, count, default, optname, optnameshort, ...) qConfigType<type>::qConfigHelpOption(qon_mxstr(name), qon_mxstr(type) "[" qon_mxstr(count) "]", nullptr, optname, optnameshort, preopt, preoptshort, 2, __VA_ARGS__);
 #define AddSubConfig(name, instance)                       \
   printf("\t%s\n\n", qon_mxcat(qConfig_subconfig_, name)); \
   if (followSub) {                                         \
     qConfigHelp(qon_mxstr(name), 2);                       \
   }
-#define BeginConfig(name, instance)           \
-  if (subConfig == NULL || *subConfig == 0) { \
-    constexpr const char* preopt = "";        \
-    constexpr const char preoptshort = 0;     \
+#define BeginConfig(name, instance)              \
+  if (subConfig == nullptr || *subConfig == 0) { \
+    constexpr const char* preopt = "";           \
+    constexpr const char preoptshort = 0;        \
     printf("\n");
 #define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr)                                                                                                                        \
   const char* qon_mxcat(qConfig_subconfig_, name) = preoptnameshort == 0 ? (qon_mxstr(name) ": --" preoptname "\n\t\t" descr) : (qon_mxstr(name) ": -" qon_mxstr('a') " (--" preoptname ")\n\t\t" descr); \
-  if (subConfig == NULL || strcmp(subConfig, followSub == 2 ? qon_mxstr(name) : preoptname) == 0) {                                                                                                       \
+  if (subConfig == nullptr || strcmp(subConfig, followSub == 2 ? qon_mxstr(name) : preoptname) == 0) {                                                                                                    \
     constexpr const char* preopt = preoptname;                                                                                                                                                            \
     constexpr const char preoptshort = preoptnameshort;                                                                                                                                                   \
     printf("\n  %s: (--%s%s%c)\n", descr, preoptname, preoptnameshort == 0 ? "" : " or -", (int)preoptnameshort);
 #define EndConfig() }
-#define AddHelp(cmd, cmdshort) qConfigType<void*>::qConfigHelpOption("help", "help", NULL, cmd, cmdshort, preopt, preoptshort, 3, "Show usage information");
-#define AddHelpAll(cmd, cmdshort) qConfigType<void*>::qConfigHelpOption("help all", "help all", NULL, cmd, cmdshort, preopt, preoptshort, 3, "Show usage info including all subparameters");
-#define AddCommand(cmd, cmdshort, command, help) qConfigType<void*>::qConfigHelpOption("command", "command", NULL, cmd, cmdshort, preopt, preoptshort, 4, help);
-#define AddShortcut(cmd, cmdshort, forward, help, ...) qConfigType<void*>::qConfigHelpOption("shortcut", "shortcut", NULL, cmd, cmdshort, preopt, preoptshort, 4, help);
+#define AddHelp(cmd, cmdshort) qConfigType<void*>::qConfigHelpOption("help", "help", nullptr, cmd, cmdshort, preopt, preoptshort, 3, "Show usage information");
+#define AddHelpAll(cmd, cmdshort) qConfigType<void*>::qConfigHelpOption("help all", "help all", nullptr, cmd, cmdshort, preopt, preoptshort, 3, "Show usage info including all subparameters");
+#define AddCommand(cmd, cmdshort, command, help) qConfigType<void*>::qConfigHelpOption("command", "command", nullptr, cmd, cmdshort, preopt, preoptshort, 4, help);
+#define AddShortcut(cmd, cmdshort, forward, help, ...) qConfigType<void*>::qConfigHelpOption("shortcut", "shortcut", nullptr, cmd, cmdshort, preopt, preoptshort, 4, help);
 #define AddHelpText(text) printf("\n    " text ":\n");
 
 #elif defined(QCONFIG_PRINT)
@@ -194,7 +207,7 @@
 #define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr)
 #define EndConfig()
 #undef QCONFIG_EXTERNS
-extern int qConfigParse(int argc, const char** argv, const char* filename = NULL);
+extern int qConfigParse(int argc, const char** argv, const char* filename = nullptr);
 extern void qConfigPrint();
 namespace qConfig
 {

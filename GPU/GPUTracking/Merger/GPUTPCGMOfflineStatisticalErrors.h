@@ -69,7 +69,7 @@ struct GPUTPCGMOfflineStatisticalErrors {
     static AliTPCtracker trk;
     /*AliTPCRecoParam *par = const_cast<AliTPCRecoParam*>(AliTPCReconstructor::GetRecoParam()), *par2;
                 AliTPCReconstructor rec;
-                if (par == NULL)
+                if (par == nullptr)
                 {
                     par2 = new AliTPCRecoParam;
                     par2->SetUseSectorAlignment(false);
@@ -80,10 +80,10 @@ struct GPUTPCGMOfflineStatisticalErrors {
     // Anyway, this is only a debugging class.
     // So in order to make this work, please temporarily outcomment any use of TPCRecoParam in AliTPCTracker::Transform (it is not needed here anyway...)
     trk.Transform(&cl);
-    /*if (par == NULL)
+    /*if (par == nullptr)
                 {
                     delete par2;
-                    rec.SetRecoParam(NULL);
+                    rec.SetRecoParam(nullptr);
                 }*/
 
     AliTPCcalibDB::Instance()->GetTransform()->ErrY2Z2Syst(&cl, tgp, dzds, serry2, serrz2);
@@ -102,7 +102,7 @@ struct GPUTPCGMOfflineStatisticalErrors {
   GPUd() void GetOfflineStatisticalErrors(float& /*err2Y*/, float& /*err2Z*/, float /*sinPhi*/, float /*dzds*/, unsigned char /*clusterState*/) const {}
 };
 #endif
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

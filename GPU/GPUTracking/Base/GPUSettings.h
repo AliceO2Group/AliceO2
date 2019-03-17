@@ -115,7 +115,7 @@ struct GPUSettingsDeviceProcessing {
   bool trackletConstructorInPipeline; // Run tracklet constructor in pileline like the preceeding tasks instead of as one big block
   bool trackletSelectorInPipeline;    // Run tracklet selector in pipeline, requres also tracklet constructor in pipeline
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

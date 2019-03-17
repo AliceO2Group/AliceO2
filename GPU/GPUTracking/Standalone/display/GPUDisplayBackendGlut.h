@@ -25,17 +25,17 @@ class GPUDisplayBackendGlut : public GPUDisplayBackend
 {
  public:
   GPUDisplayBackendGlut() = default;
-  virtual ~GPUDisplayBackendGlut() = default;
+  ~GPUDisplayBackendGlut() override = default;
 
-  virtual int StartDisplay() override;
-  virtual void DisplayExit() override;
-  virtual void SwitchFullscreen(bool set) override;
-  virtual void ToggleMaximized(bool set) override;
-  virtual void SetVSync(bool enable) override;
-  virtual void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
+  int StartDisplay() override;
+  void DisplayExit() override;
+  void SwitchFullscreen(bool set) override;
+  void ToggleMaximized(bool set) override;
+  void SetVSync(bool enable) override;
+  void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
 
  private:
-  virtual int OpenGLMain() override;
+  int OpenGLMain() override;
 
   static void displayFunc(void);
   static void glutLoopFunc(void);
@@ -57,7 +57,7 @@ class GPUDisplayBackendGlut : public GPUDisplayBackend
   int mHeight = INIT_HEIGHT;
   bool mFullScreen = false;
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

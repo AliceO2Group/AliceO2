@@ -76,7 +76,7 @@ class GPUTPCRow
   // offset in GPUTPCSliceData::LinkUp/DownData/HitDataY/...
   unsigned int mFirstHitInBinOffset; // offset in Tracker::mRowData to find the FirstHitInBin
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif // GPUTPCROW_H

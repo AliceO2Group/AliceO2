@@ -55,7 +55,7 @@ class GPUProcessor
   const GPUReconstruction& GetRec() const { return *mRec; }
 
 #ifndef __OPENCL__
-  void InitGPUProcessor(GPUReconstruction* rec, ProcessorType type = PROCESSOR_TYPE_CPU, GPUProcessor* slaveProcessor = NULL);
+  void InitGPUProcessor(GPUReconstruction* rec, ProcessorType type = PROCESSOR_TYPE_CPU, GPUProcessor* slaveProcessor = nullptr);
   void Clear();
 
   // Helpers for memory allocation
@@ -130,7 +130,7 @@ class GPUProcessor
  private:
   bool mAllocateAndInitializeLate;
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

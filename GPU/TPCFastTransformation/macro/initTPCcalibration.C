@@ -13,7 +13,7 @@
  * </pre>
  *
  * Parameters: <br>
- * - uri       the OCDB URI. When ==NULL, AliCDBManager::Instance().IsDefaultStorageSet() should be 1
+ * - uri       the OCDB URI. When ==nullptr, AliCDBManager::Instance().IsDefaultStorageSet() should be 1
  * - runNumber run number
  * - isMC      initialize for Monte Carlo
  *

@@ -25,7 +25,7 @@ namespace TPC
 {
 struct ClusterNative;
 }
-} // namespace o2::TPC
+} // namespace o2
 
 namespace GPUCA_NAMESPACE
 {
@@ -72,7 +72,7 @@ class GPUReconstructionTimeframe
   std::vector<char> mEventUsed;
   std::vector<std::tuple<GPUChainTracking::InOutPointers, GPUChainTracking::InOutMemory, o2::TPC::ClusterNativeAccessFullTPC>> mShiftedEvents;
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

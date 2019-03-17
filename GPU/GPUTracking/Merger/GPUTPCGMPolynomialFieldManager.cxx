@@ -204,7 +204,7 @@ int GPUTPCGMPolynomialFieldManager::GetPolynomialField(float nominalFieldkG, GPU
   return GetPolynomialField(type, nominalFieldkG, field);
 }
 
-  /******************************************************************************************
+/******************************************************************************************
  *
  *  the following code only works inside AliRoot framework with initialised magnetic field
  *

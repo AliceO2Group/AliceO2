@@ -53,8 +53,8 @@ class GPUQA
   bool clusterRemovable(int cid, bool prot) const { return false; }
   static bool QAAvailable() { return false; }
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #else
 
@@ -234,8 +234,8 @@ class GPUQA
 
   int mMCTrackMin = -1, mMCTrackMax = -1;
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif
 #endif

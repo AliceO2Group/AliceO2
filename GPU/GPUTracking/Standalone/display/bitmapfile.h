@@ -1,27 +1,35 @@
-typedef unsigned int DWORD;
-typedef unsigned short WORD;
-typedef unsigned int LONG;
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file bitmapfile.h
+/// \author David Rohr
 
 struct BITMAPFILEHEADER {
-  WORD bfType;
-  DWORD bfSize;
-  WORD bfReserved1;
-  WORD bfReserved2;
-  DWORD bfOffBits;
+  unsigned short bfType;
+  unsigned int bfSize;
+  unsigned int bfReserved;
+  unsigned int bfOffBits;
 } __attribute__((packed));
 
 struct BITMAPINFOHEADER {
-  DWORD biSize;
-  LONG biWidth;
-  LONG biHeight;
-  WORD biPlanes;
-  WORD biBitCount;
-  DWORD biCompression;
-  DWORD biSizeImage;
-  LONG biXPelsPerMeter;
-  LONG biYPelsPerMeter;
-  DWORD biClrUsed;
-  DWORD biClrImportant;
+  unsigned int biSize;
+  unsigned int biWidth;
+  unsigned int biHeight;
+  unsigned short biPlanes;
+  unsigned short biBitCount;
+  unsigned int biCompression;
+  unsigned int biSizeImage;
+  unsigned int biXPelsPerMeter;
+  unsigned int biYPelsPerMeter;
+  unsigned int biClrUsed;
+  unsigned int biClrImportant;
 } __attribute__((packed));
 
 enum BI_Compression { BI_RGB = 0x0000,

@@ -31,31 +31,31 @@ struct GPUReconstructionOCLInternals;
 class GPUReconstructionOCLBackend : public GPUReconstructionDeviceBase
 {
  public:
-  virtual ~GPUReconstructionOCLBackend() override;
+  ~GPUReconstructionOCLBackend() override;
 
  protected:
   GPUReconstructionOCLBackend(const GPUSettingsProcessing& cfg);
 
-  virtual int InitDevice_Runtime() override;
-  virtual int ExitDevice_Runtime() override;
-  virtual void SetThreadCounts() override;
+  int InitDevice_Runtime() override;
+  int ExitDevice_Runtime() override;
+  void SetThreadCounts() override;
 
-  virtual void SynchronizeGPU() override;
-  virtual int DoStuckProtection(int stream, void* event) override;
-  virtual int GPUDebug(const char* state = "UNKNOWN", int stream = -1) override;
-  virtual void SynchronizeStream(int stream) override;
-  virtual void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) override;
-  virtual bool IsEventDone(deviceEvent* evList, int nEvents = 1) override;
+  void SynchronizeGPU() override;
+  int DoStuckProtection(int stream, void* event) override;
+  int GPUDebug(const char* state = "UNKNOWN", int stream = -1) override;
+  void SynchronizeStream(int stream) override;
+  void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) override;
+  bool IsEventDone(deviceEvent* evList, int nEvents = 1) override;
 
-  virtual void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) override;
-  virtual void TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, void* src, void* dst) override;
-  virtual void ReleaseEvent(deviceEvent* ev) override;
-  virtual void RecordMarker(deviceEvent* ev, int stream) override;
+  void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) override;
+  void TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, void* src, void* dst) override;
+  void ReleaseEvent(deviceEvent* ev) override;
+  void RecordMarker(deviceEvent* ev, int stream) override;
 
   template <class T, int I = 0, typename... Args>
   int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args);
 
-  virtual RecoStepField AvailableRecoSteps() override { return (RecoStep::TPCSliceTracking); }
+  RecoStepField AvailableRecoSteps() override { return (RecoStep::TPCSliceTracking); }
 
  private:
   template <class S, class T, int I = 0>
@@ -70,7 +70,7 @@ class GPUReconstructionOCLBackend : public GPUReconstructionDeviceBase
 };
 
 using GPUReconstructionOCL = GPUReconstructionKernels<GPUReconstructionOCLBackend>;
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

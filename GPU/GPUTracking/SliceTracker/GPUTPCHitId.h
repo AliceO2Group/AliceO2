@@ -28,7 +28,7 @@ class GPUTPCHitId
  private:
   int mId;
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif // GPUTPCHITID_H

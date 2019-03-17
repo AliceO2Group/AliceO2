@@ -74,7 +74,7 @@ class GPUTPCBaseTrackParam
   float mZOffset;
   float mP[5]; // 'active' track parameters: Y, Z, SinPhi, DzDs, q/Pt
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

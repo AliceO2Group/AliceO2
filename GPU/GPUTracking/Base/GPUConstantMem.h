@@ -36,8 +36,8 @@ class GPUTRDTracker
 {
   void SetMaxData() {}
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 #endif
 
 namespace GPUCA_NAMESPACE
@@ -54,7 +54,7 @@ struct GPUConstantMem {
   GPUTRDTracker trdTracker;
   GPUITSFitter itsFitter;
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

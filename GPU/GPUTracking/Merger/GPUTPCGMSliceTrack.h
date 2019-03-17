@@ -132,7 +132,7 @@ class GPUTPCGMSliceTrack
   int mGlobalTrackIds[2];                               // IDs of associated global tracks
   unsigned char mLeg;                                   // Leg of this track segment
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

@@ -548,7 +548,7 @@ int GPUReconstructionOCLBackend::GPUDebug(const char* state, int stream)
   return (0);
 }
 
-template <class T, int I = 0>
+template <class T, int I>
 int GPUReconstructionOCLBackend::FindKernel(int num)
 {
   std::string name("GPUTPCProcess_");
@@ -566,7 +566,7 @@ int GPUReconstructionOCLBackend::FindKernel(int num)
   return -1;
 }
 
-template <class S, class T, int I = 0>
+template <class S, class T, int I>
 S& GPUReconstructionOCLBackend::getKernelObject(int num)
 {
   static int krnl = FindKernel<T, I>(num);

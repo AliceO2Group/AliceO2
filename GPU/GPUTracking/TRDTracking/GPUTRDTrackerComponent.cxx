@@ -173,7 +173,7 @@ int GPUTRDTrackerComponent::DoInit(int argc, const char** argv)
   fBenchmark.SetTimer(0, "total");
   fBenchmark.SetTimer(1, "reco");
 
-  if (AliGeomManager::GetGeometry() == NULL) {
+  if (AliGeomManager::GetGeometry() == nullptr) {
     AliGeomManager::LoadGeometry();
   }
 
@@ -252,9 +252,9 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 
   int nBlocks = evtData.fBlockCnt;
 
-  AliHLTTracksData* tpcData = NULL;
-  AliHLTTracksData* itsData = NULL;
-  AliHLTTrackMCData* tpcDataMC = NULL;
+  AliHLTTracksData* tpcData = nullptr;
+  AliHLTTracksData* itsData = nullptr;
+  AliHLTTrackMCData* tpcDataMC = nullptr;
 
   std::vector<GPUTRDTrack> tracksTPC;
   std::vector<int> tracksTPCLab;
@@ -264,8 +264,8 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 
   int nTrackletsTotal = 0;
   int nTrackletsTotalMC = 0;
-  GPUTRDTrackletWord* tracklets = NULL;
-  GPUTRDTrackletLabels* trackletsMC = NULL;
+  GPUTRDTrackletWord* tracklets = nullptr;
+  GPUTRDTrackletLabels* trackletsMC = nullptr;
 
   for (int iBlock = 0; iBlock < nBlocks; iBlock++) {
     if (blocks[iBlock].fDataType == (kAliHLTDataTypeTrack | kAliHLTDataOriginITS) && fRequireITStrack) {
@@ -289,7 +289,7 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
     }
   }
 
-  if (tpcData == NULL) {
+  if (tpcData == nullptr) {
     HLTInfo("did not receive any TPC tracks. Skipping event");
     return 0;
   }
@@ -330,7 +330,7 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   AliHLTExternalTrackParam* currOutTrackTPC = tpcData->fTracklets;
   for (int iTrk = 0; iTrk < nTPCtracks; iTrk++) {
     // store TPC tracks (if required only the ones with >=2 ITS hits)
-    if (itsData != NULL && !itsAvail.at(currOutTrackTPC->fTrackID)) {
+    if (itsData != nullptr && !itsAvail.at(currOutTrackTPC->fTrackID)) {
       continue;
     }
     GPUTRDTrack t(*currOutTrackTPC);

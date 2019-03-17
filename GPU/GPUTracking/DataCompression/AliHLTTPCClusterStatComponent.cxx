@@ -44,7 +44,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 ClassImp(AliHLTTPCClusterStatComponent)
 
   AliHLTTPCClusterStatComponent::AliHLTTPCClusterStatComponent()
-  : AliHLTProcessor(), mSliceParam(NULL), fTotal(0), fEdge(0), fSplitPad(0), fSplitTime(0), fSplitPadTime(0), fSplitPadOrTime(0), fAssigned(0), fCompressionStudy(0), fPrintClusters(0), fPrintClustersScaled(0), fDumpClusters(0), fAggregate(0), fSort(0), fEvent(0)
+  : AliHLTProcessor(), mSliceParam(nullptr), fTotal(0), fEdge(0), fSplitPad(0), fSplitTime(0), fSplitPadTime(0), fSplitPadOrTime(0), fAssigned(0), fCompressionStudy(0), fPrintClusters(0), fPrintClustersScaled(0), fDumpClusters(0), fAggregate(0), fSort(0), fEvent(0)
 {
 }
 
@@ -99,7 +99,7 @@ int AliHLTTPCClusterStatComponent::DoInit(int argc, const char** argv)
   }
 
   if (fDumpClusters) {
-    if ((fp = fopen("clusters.dump", "w+b")) == NULL) {
+    if ((fp = fopen("clusters.dump", "w+b")) == nullptr) {
       return -1;
     }
   }
@@ -140,7 +140,7 @@ int AliHLTTPCClusterStatComponent::DoDeinit()
     fclose(fp);
   }
   delete mSliceParam;
-  mSliceParam = NULL;
+  mSliceParam = nullptr;
   return 0;
 }
 
@@ -259,7 +259,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
   memset(clustersTransformedArray, 0, NSLICES * NPATCHES * sizeof(void*));
   memset(clustersTrackIDArray, 0, NSLICES * NPATCHES * sizeof(void*));
 
-  AliHLTTracksData* tracks = NULL;
+  AliHLTTracksData* tracks = nullptr;
 
   float bz = GetBz();
 
@@ -301,7 +301,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
   }
 
   if (fCompressionStudy) {
-    if (tracks == NULL) {
+    if (tracks == nullptr) {
       HLTError("Tracks missing");
       return (0);
     }
@@ -489,11 +489,11 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
       AliHLTTPCClusterXYZData* clustersTransformed = clustersTransformedArray[is][ip];
       int firstRow = GPUTPCGeometry::GetFirstRow(ip);
 
-      if (clusters == NULL) {
+      if (clusters == nullptr) {
         HLTDebug("Clusters missing for slice %d patch %d\n", is, ip);
         continue;
       }
-      if (fCompressionStudy && (clustersTransformed == NULL || clusters->fCount != clustersTransformed->fCount)) {
+      if (fCompressionStudy && (clustersTransformed == nullptr || clusters->fCount != clustersTransformed->fCount)) {
         HLTError("Cluster cound not equal");
         continue;
       }

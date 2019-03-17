@@ -30,32 +30,32 @@ extern template class GPUReconstructionKernels<GPUReconstructionCPUBackend>;
 class GPUReconstructionDeviceBase : public GPUReconstructionCPU
 {
  public:
-  virtual ~GPUReconstructionDeviceBase() override;
+  ~GPUReconstructionDeviceBase() override;
 
   const GPUParam* DeviceParam() const { return &mDeviceConstantMem->param; }
-  virtual int GetMaxThreads() override;
+  int GetMaxThreads() override;
 
  protected:
   GPUReconstructionDeviceBase(const GPUSettingsProcessing& cfg);
 
-  virtual int InitDevice() override;
+  int InitDevice() override;
   virtual int InitDevice_Runtime() = 0;
-  virtual int ExitDevice() override;
+  int ExitDevice() override;
   virtual int ExitDevice_Runtime() = 0;
 
   virtual const GPUTPCTracker* CPUTracker(int iSlice) { return &workers()->tpcTrackers[iSlice]; }
 
-  virtual int GPUDebug(const char* state = "UNKNOWN", int stream = -1) override = 0;
-  virtual void TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, void* src, void* dst) override = 0;
-  virtual void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) override = 0;
+  int GPUDebug(const char* state = "UNKNOWN", int stream = -1) override = 0;
+  void TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, void* src, void* dst) override = 0;
+  void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) override = 0;
 
-  virtual int StartHelperThreads() override;
-  virtual int StopHelperThreads() override;
-  virtual void RunHelperThreads(int (GPUReconstructionHelpers::helperDelegateBase::*function)(int, int, GPUReconstructionHelpers::helperParam*), GPUReconstructionHelpers::helperDelegateBase* functionCls, int count) override;
-  virtual int HelperError(int iThread) const override { return mHelperParams[iThread].error; }
-  virtual int HelperDone(int iThread) const override { return mHelperParams[iThread].done; }
-  virtual void WaitForHelperThreads() override;
-  virtual void ResetHelperThreads(int helpers) override;
+  int StartHelperThreads() override;
+  int StopHelperThreads() override;
+  void RunHelperThreads(int (GPUReconstructionHelpers::helperDelegateBase::*function)(int, int, GPUReconstructionHelpers::helperParam*), GPUReconstructionHelpers::helperDelegateBase* functionCls, int count) override;
+  int HelperError(int iThread) const override { return mHelperParams[iThread].error; }
+  int HelperDone(int iThread) const override { return mHelperParams[iThread].done; }
+  void WaitForHelperThreads() override;
+  void ResetHelperThreads(int helpers) override;
   void ResetThisHelperThread(GPUReconstructionHelpers::helperParam* par);
 
   int GetGlobalLock(void*& pLock);
@@ -68,7 +68,7 @@ class GPUReconstructionDeviceBase : public GPUReconstructionCPU
   GPUReconstructionHelpers::helperParam* mHelperParams = nullptr; // Control Struct for helper threads
   int mNSlaveThreads = 0;                                         // Number of slave threads currently active
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

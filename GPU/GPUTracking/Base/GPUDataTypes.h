@@ -47,7 +47,7 @@ class GPUDataTypes
 
 #undef ENUM_CLASS
 #undef ENUM_UINT
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

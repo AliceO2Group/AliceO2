@@ -80,7 +80,7 @@ class GPUTPCHitArea
   int mNy;        // Number of bins in Y direction
   int mHitOffset; // global hit offset XXX what's that?
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif // GPUTPCHITAREA_H

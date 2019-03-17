@@ -31,7 +31,7 @@ struct GPUTPCMCInfo {
   float pZ;
   float genRadius;
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

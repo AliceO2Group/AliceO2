@@ -129,20 +129,20 @@ class GPUChain
   {
     mRec->ReadStructFromFile<T>(file, obj);
   }
-#ifdef __APPLE__ // MacOS compiler BUG: clang seems broken and does not accept default parameters before parameter pack
+#ifdef __clang__ // BUG: clang seems broken and does not accept default parameters before parameter pack
   template <class S, int I = 0>
   inline int runKernel(const krnlExec& x, HighResTimer* t = nullptr, const krnlRunRange& y = krnlRunRangeNone)
   {
     return mRec->runKernel<S, I>(x, t, y);
   }
   template <class S, int I = 0, typename... Args>
-  inline int runKernel(const krnlExec& x, HighResTimer* t, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
+  inline int runKernel(const krnlExec& x, HighResTimer* t, const krnlRunRange& y, const krnlEvent& z, Args&&... args)
 #else
   template <class S, int I = 0, typename... Args>
-  inline int runKernel(const krnlExec& x, HighResTimer* t = nullptr, const krnlRunRange& y = krnlRunRangeNone, const krnlEvent& z = krnlEvent(), const Args&... args)
+  inline int runKernel(const krnlExec& x, HighResTimer* t = nullptr, const krnlRunRange& y = krnlRunRangeNone, const krnlEvent& z = krnlEventNone, Args&&... args)
 #endif
   {
-    return mRec->runKernel<S, I, Args...>(x, t, y, z, args...);
+    return mRec->runKernel<S, I, Args...>(x, t, y, z, std::forward<Args>(args)...);
   }
   unsigned int BlockCount() const { return mRec->mBlockCount; }
   unsigned int ThreadCount() const { return mRec->mThreadCount; }
@@ -169,7 +169,7 @@ inline void GPUChain::RunHelperThreads(T function, GPUReconstructionHelpers::hel
 {
   mRec->RunHelperThreads((int (GPUReconstructionHelpers::helperDelegateBase::*)(int, int, GPUReconstructionHelpers::helperParam*))function, functionCls, count);
 }
-}
-} // namespace o2::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

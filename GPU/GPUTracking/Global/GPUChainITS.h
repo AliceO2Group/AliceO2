@@ -24,8 +24,8 @@ class Road;
 class Cell;
 class TrackingFrameInfo;
 class TrackITS;
-}
-} // namespace o2::ITS
+} // namespace ITS
+} // namespace o2
 
 namespace GPUCA_NAMESPACE
 {
@@ -36,12 +36,12 @@ class GPUChainITS : public GPUChain
   friend class GPUReconstruction;
 
  public:
-  virtual ~GPUChainITS() override;
-  virtual void RegisterPermanentMemoryAndProcessors() override;
-  virtual void RegisterGPUProcessors() override;
-  virtual int Init() override;
-  virtual int Finalize() override;
-  virtual int RunStandalone() override;
+  ~GPUChainITS() override;
+  void RegisterPermanentMemoryAndProcessors() override;
+  void RegisterGPUProcessors() override;
+  int Init() override;
+  int Finalize() override;
+  int RunStandalone() override;
 
   int RunITSTrackFit(std::vector<o2::ITS::Road>& roads, std::array<const o2::ITS::Cluster*, 7> clusters, std::array<const o2::ITS::Cell*, 5> cells, const std::array<std::vector<o2::ITS::TrackingFrameInfo>, 7>& tf, std::vector<o2::ITS::TrackITS>& tracks);
 
@@ -53,7 +53,7 @@ class GPUChainITS : public GPUChain
   std::unique_ptr<o2::ITS::TrackerTraits> mITSTrackerTraits;
   std::unique_ptr<o2::ITS::VertexerTraits> mITSVertexerTraits;
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

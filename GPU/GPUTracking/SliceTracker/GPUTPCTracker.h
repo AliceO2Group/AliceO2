@@ -293,7 +293,7 @@ class GPUTPCTracker : public GPUProcessor
 
   static int StarthitSortComparison(const void* a, const void* b);
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif // GPUTPCTRACKER_H

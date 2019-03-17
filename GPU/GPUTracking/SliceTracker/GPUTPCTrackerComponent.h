@@ -30,8 +30,8 @@ namespace gpu
 class GPUTPCClusterData;
 class GPUReconstruction;
 class GPUChainTracking;
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 /**
  * @class GPUTPCTrackerComponent
@@ -108,17 +108,17 @@ class GPUTPCTrackerComponent : public AliHLTProcessor
   double fClusterErrorCorrectionY; // correction for the cluster errors
   double fClusterErrorCorrectionZ; // correction for the cluster errors
 
-  AliHLTComponentBenchmark fBenchmark; // benchmarks
-  char fAllowGPU;                      //* Allow this tracker to run on GPU
-  int fGPUHelperThreads;               // Number of helper threads for GPU tracker, set to -1 to use default number
-  int fCPUTrackers;                    // Number of CPU trackers to run in addition to GPU tracker
-  char fGlobalTracking;                // Activate global tracking feature
-  int fGPUDeviceNum;                   // GPU Device to use, default -1 for auto detection
-  TString fGPUType;                    // GPU type to use "CUDA", "HIP", "OCL"
-  int fGPUStuckProtection;             // Protect from stuck GPUs
-  int fAsync;                          // Run tracking in async thread to catch GPU hangs....
-  float fSearchWindowDZDR;             // See TPCCAParam
-  GPUCA_NAMESPACE::gpu::GPUReconstruction* fRec;    // GPUReconstruction
+  AliHLTComponentBenchmark fBenchmark;           // benchmarks
+  char fAllowGPU;                                //* Allow this tracker to run on GPU
+  int fGPUHelperThreads;                         // Number of helper threads for GPU tracker, set to -1 to use default number
+  int fCPUTrackers;                              // Number of CPU trackers to run in addition to GPU tracker
+  char fGlobalTracking;                          // Activate global tracking feature
+  int fGPUDeviceNum;                             // GPU Device to use, default -1 for auto detection
+  TString fGPUType;                              // GPU type to use "CUDA", "HIP", "OCL"
+  int fGPUStuckProtection;                       // Protect from stuck GPUs
+  int fAsync;                                    // Run tracking in async thread to catch GPU hangs....
+  float fSearchWindowDZDR;                       // See TPCCAParam
+  GPUCA_NAMESPACE::gpu::GPUReconstruction* fRec; // GPUReconstruction
   GPUCA_NAMESPACE::gpu::GPUChainTracking* fChain;
 
   /** set configuration parameters **/

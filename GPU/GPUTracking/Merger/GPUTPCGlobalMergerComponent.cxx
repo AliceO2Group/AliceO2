@@ -224,7 +224,7 @@ int GPUTPCGlobalMergerComponent::ReadCDBEntry(const char* cdbEntry, const char* 
     chainId = 0;
   }
 
-  HLTInfo("configure from entry \"%s\"%s, chain id %s", cdbEntry, defaultNotify, (chainId != NULL && chainId[0] != 0) ? chainId : "<none>");
+  HLTInfo("configure from entry \"%s\"%s, chain id %s", cdbEntry, defaultNotify, (chainId != nullptr && chainId[0] != 0) ? chainId : "<none>");
   AliCDBEntry* pEntry = AliCDBManager::Instance()->Get(cdbEntry); //,GetRunNo());
 
   if (!pEntry) {
@@ -256,7 +256,7 @@ int GPUTPCGlobalMergerComponent::Configure(const char* cdbEntry, const char* cha
 
   //* read the default CDB entry
 
-  int iResult = ReadCDBEntry(NULL, chainId);
+  int iResult = ReadCDBEntry(nullptr, chainId);
   if (iResult) {
     return iResult;
   }
@@ -283,7 +283,7 @@ int GPUTPCGlobalMergerComponent::Configure(const char* cdbEntry, const char* cha
   }
 
   fRec = GPUReconstruction::CreateInstance("CPU", true);
-  if (fRec == NULL) {
+  if (fRec == nullptr) {
     return -EINVAL;
   }
   fChain = fRec->AddChain<GPUChainTracking>();
@@ -306,7 +306,7 @@ int GPUTPCGlobalMergerComponent::Configure(const char* cdbEntry, const char* cha
   fRec->SetSettings(&ev, &rec, &devProc);
   fChain->LoadClusterErrors();
   fRec->Init();
-  fChain->GetTPCMerger().OverrideSliceTracker(NULL);
+  fChain->GetTPCMerger().OverrideSliceTracker(nullptr);
 
   return 0;
 }
@@ -323,7 +323,7 @@ int GPUTPCGlobalMergerComponent::DoInit(int argc, const char** argv)
     arguments += argv[i];
   }
 
-  int retVal = Configure(NULL, NULL, arguments.Data());
+  int retVal = Configure(nullptr, nullptr, arguments.Data());
 
   return retVal;
 }
@@ -332,17 +332,17 @@ int GPUTPCGlobalMergerComponent::Reconfigure(const char* cdbEntry, const char* c
 {
   // Reconfigure the component from OCDB
 
-  return Configure(cdbEntry, chainId, NULL);
+  return Configure(cdbEntry, chainId, nullptr);
 }
 
 int GPUTPCGlobalMergerComponent::DoDeinit()
 {
   // see header file for class documentation
   if (fChain == fgCurrentMergerReconstruction) {
-    fgCurrentMergerReconstruction = NULL;
+    fgCurrentMergerReconstruction = nullptr;
   }
   delete fRec;
-  fRec = NULL;
+  fRec = nullptr;
 
   return 0;
 }

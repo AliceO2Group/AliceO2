@@ -53,7 +53,7 @@ struct GPUO2InterfaceConfiguration {
   GPUQAConfig configQA;
   GPUInterfaceSettings configInterface;
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

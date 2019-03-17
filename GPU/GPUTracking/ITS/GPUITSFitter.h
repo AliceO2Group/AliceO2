@@ -25,8 +25,8 @@ class Road;
 struct TrackingFrameInfo;
 struct Cluster;
 class Cell;
-}
-} // namespace o2::ITS
+} // namespace ITS
+} // namespace o2
 
 namespace GPUCA_NAMESPACE
 {
@@ -97,7 +97,7 @@ class GPUITSFitter : public GPUProcessor
   short mMemoryResTracks = -1;
   short mMemoryResMemory = -1;
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

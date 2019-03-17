@@ -108,8 +108,7 @@ inline void GPUDisplay::drawVertices(const vboList& v, const GLenum t)
 
   if (mUseMultiVBO) {
     CHKERR(glBindBuffer(GL_ARRAY_BUFFER, mVBOId[iSlice]));
-    CHKERR(glVertexPointer(3, GL_FLOAT, 0, 0));
-    ;
+    CHKERR(glVertexPointer(3, GL_FLOAT, 0, nullptr));
   }
 
   if (mUseGLIndirectDraw) {
@@ -415,7 +414,7 @@ void GPUDisplay::createFB_texture(GLuint& id, bool msaa, GLenum storage, GLenum 
   if (msaa) {
     CHKERR(glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, mDrawQualityMSAA, storage, mRenderwidth, mRenderheight, false));
   } else {
-    CHKERR(glTexImage2D(GL_TEXTURE_2D, 0, storage, mRenderwidth, mRenderheight, 0, storage, GL_UNSIGNED_BYTE, NULL));
+    CHKERR(glTexImage2D(GL_TEXTURE_2D, 0, storage, mRenderwidth, mRenderheight, 0, storage, GL_UNSIGNED_BYTE, nullptr));
     CHKERR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
     CHKERR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
   }
@@ -1671,7 +1670,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
   // Draw Event
   mNDrawCalls = 0;
   CHKERR(glEnableClientState(GL_VERTEX_ARRAY));
-  CHKERR(glVertexPointer(3, GL_FLOAT, 0, 0));
+  CHKERR(glVertexPointer(3, GL_FLOAT, 0, nullptr));
 
 #define LOOP_SLICE for (int iSlice = (mCfg.drawSlice == -1 ? 0 : mCfg.drawRelatedSlices ? (mCfg.drawSlice % 9) : mCfg.drawSlice); iSlice < NSLICES; iSlice += (mCfg.drawSlice == -1 ? 1 : mCfg.drawRelatedSlices ? 9 : NSLICES))
 #define LOOP_COLLISION for (int iCol = (mCfg.showCollision == -1 ? 0 : mCfg.showCollision); iCol < mNCollissions; iCol += (mCfg.showCollision == -1 ? 1 : mNCollissions))

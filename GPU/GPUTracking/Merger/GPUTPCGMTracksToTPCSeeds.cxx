@@ -26,7 +26,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 void GPUTPCGMTracksToTPCSeeds::CreateSeedsFromHLTTracks(TObjArray* seeds, AliTPCtracker* tpctracker)
 {
   const GPUTPCGMMerger* merger = GPUTPCGlobalMergerComponent::GetCurrentMerger();
-  if (merger == NULL) {
+  if (merger == nullptr) {
     return;
   }
   seeds->Clear();
@@ -41,7 +41,7 @@ void GPUTPCGMTracksToTPCSeeds::CreateSeedsFromHLTTracks(TObjArray* seeds, AliTPC
     tr.Set(track.GetParam().GetX(), track.GetAlpha(), track.GetParam().GetPar(), track.GetParam().GetCov());
     AliTPCseed* seed = new (tpctracker->NextFreeSeed()) AliTPCseed(tr);
     for (int j = 0; j < GPUCA_ROW_COUNT; j++) {
-      seed->SetClusterPointer(j, NULL);
+      seed->SetClusterPointer(j, nullptr);
       seed->SetClusterIndex(j, -1);
     }
     int ncls = 0;
@@ -105,7 +105,7 @@ void GPUTPCGMTracksToTPCSeeds::CreateSeedsFromHLTTracks(TObjArray* seeds, AliTPC
 void GPUTPCGMTracksToTPCSeeds::UpdateParamsOuter(TObjArray* seeds)
 {
   const GPUTPCGMMerger* merger = GPUTPCGlobalMergerComponent::GetCurrentMerger();
-  if (merger == NULL) {
+  if (merger == nullptr) {
     return;
   }
   int index = 0;
@@ -127,7 +127,7 @@ void GPUTPCGMTracksToTPCSeeds::UpdateParamsOuter(TObjArray* seeds)
 void GPUTPCGMTracksToTPCSeeds::UpdateParamsInner(TObjArray* seeds)
 {
   const GPUTPCGMMerger* merger = GPUTPCGlobalMergerComponent::GetCurrentMerger();
-  if (merger == NULL) {
+  if (merger == nullptr) {
     return;
   }
   int index = 0;

@@ -21,7 +21,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 template <>
 GPUd() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & s, workerType& tracker)
 {
-//* find neighbours
+  //* find neighbours
 
 #ifdef GPUCA_GPUCODE
   for (unsigned int i = iThread; i < sizeof(MEM_PLAIN(GPUTPCRow)) / sizeof(int); i += nThreads) {

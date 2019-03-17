@@ -121,7 +121,7 @@ void GPUDisplayBackendX11::GetKey(XEvent& event, int& keyOut, int& keyPressOut)
 {
   char tmpString[9];
   KeySym sym;
-  if (XLookupString(&event.xkey, tmpString, 8, &sym, NULL) == 0) {
+  if (XLookupString(&event.xkey, tmpString, 8, &sym, nullptr) == 0) {
     tmpString[0] = 0;
   }
   int specialKey = GetKey(sym);
@@ -159,7 +159,7 @@ void GPUDisplayBackendX11::OpenGLPrint(const char* s, float x, float y, float r,
 int GPUDisplayBackendX11::OpenGLMain()
 {
   XSetWindowAttributes windowAttributes;
-  XVisualInfo* visualInfo = NULL;
+  XVisualInfo* visualInfo = nullptr;
   XEvent event;
   Colormap colorMap;
   GLXContext glxContext;
@@ -167,9 +167,9 @@ int GPUDisplayBackendX11::OpenGLMain()
   int eventBase;
 
   // Open a connection to the X server
-  mDisplay = XOpenDisplay(NULL);
+  mDisplay = XOpenDisplay(nullptr);
 
-  if (mDisplay == NULL) {
+  if (mDisplay == nullptr) {
     fprintf(stderr, "glxsimple: %s\n", "could not open display");
     return (-1);
   }
@@ -181,7 +181,7 @@ int GPUDisplayBackendX11::OpenGLMain()
   }
 
   const char* glxExt = glXQueryExtensionsString(mDisplay, DefaultScreen(mDisplay));
-  if (strstr(glxExt, "GLX_EXT_swap_control") == NULL) {
+  if (strstr(glxExt, "GLX_EXT_swap_control") == nullptr) {
     fprintf(stderr, "No vsync support!\n");
     return (-1);
   }
@@ -195,7 +195,7 @@ int GPUDisplayBackendX11::OpenGLMain()
   GLXFBConfig fbconfig = 0;
   int fbcount;
   GLXFBConfig* fbc = glXChooseFBConfig(mDisplay, DefaultScreen(mDisplay), attribs, &fbcount);
-  if (fbc == NULL || fbcount == 0) {
+  if (fbc == nullptr || fbcount == 0) {
     fprintf(stderr, "Failed to get MSAA GLXFBConfig\n");
     return (-1);
   }
@@ -203,14 +203,14 @@ int GPUDisplayBackendX11::OpenGLMain()
   XFree(fbc);
   visualInfo = glXGetVisualFromFBConfig(mDisplay, fbconfig);
 
-  if (visualInfo == NULL) {
+  if (visualInfo == nullptr) {
     fprintf(stderr, "glxsimple: %s\n", "no RGB visual with depth buffer");
     return (-1);
   }
 
   // Create an OpenGL rendering context
-  glxContext = glXCreateContext(mDisplay, visualInfo, NULL, GL_TRUE);
-  if (glxContext == NULL) {
+  glxContext = glXCreateContext(mDisplay, visualInfo, nullptr, GL_TRUE);
+  if (glxContext == nullptr) {
     fprintf(stderr, "glxsimple: %s\n", "could not create rendering context");
     return (-1);
   }
@@ -224,7 +224,7 @@ int GPUDisplayBackendX11::OpenGLMain()
   // Create an X window with the selected visual
   mWindow = XCreateWindow(mDisplay, win, 50, 50, INIT_WIDTH, INIT_HEIGHT, // Position / Width and height of window
                           0, visualInfo->depth, InputOutput, visualInfo->visual, CWBorderPixel | CWColormap | CWEventMask, &windowAttributes);
-  XSetStandardProperties(mDisplay, mWindow, GL_WINDOW_NAME, GL_WINDOW_NAME, None, NULL, 0, NULL);
+  XSetStandardProperties(mDisplay, mWindow, GL_WINDOW_NAME, GL_WINDOW_NAME, None, nullptr, 0, nullptr);
   glXMakeCurrent(mDisplay, mWindow, glxContext);
   XMapWindow(mDisplay, mWindow);
 
@@ -263,7 +263,7 @@ int GPUDisplayBackendX11::OpenGLMain()
 
   // Enable vsync
   mGlXSwapIntervalEXT = (PFNGLXSWAPINTERVALEXTPROC)glXGetProcAddressARB((const GLubyte*)"glXSwapIntervalEXT");
-  if (mGlXSwapIntervalEXT == NULL) {
+  if (mGlXSwapIntervalEXT == nullptr) {
     fprintf(stderr, "Cannot enable vsync\n");
     return (-1);
   }
@@ -287,7 +287,7 @@ int GPUDisplayBackendX11::OpenGLMain()
       FD_SET(x11_fd, &in_fds);
       tv.tv_usec = 10000;
       tv.tv_sec = 0;
-      num_ready_fds = mMaxFPSRate || XPending(mDisplay) || select(x11_fd + 1, &in_fds, NULL, NULL, &tv);
+      num_ready_fds = mMaxFPSRate || XPending(mDisplay) || select(x11_fd + 1, &in_fds, nullptr, nullptr, &tv);
       if (num_ready_fds < 0) {
         fprintf(stderr, "Error\n");
       }
@@ -446,7 +446,7 @@ void GPUDisplayBackendX11::SetVSync(bool enable) { mGlXSwapIntervalEXT(mDisplay,
 int GPUDisplayBackendX11::StartDisplay()
 {
   static pthread_t hThread;
-  if (pthread_create(&hThread, NULL, OpenGLWrapper, this)) {
+  if (pthread_create(&hThread, nullptr, OpenGLWrapper, this)) {
     printf("Coult not Create GL Thread...\n");
     return (1);
   }

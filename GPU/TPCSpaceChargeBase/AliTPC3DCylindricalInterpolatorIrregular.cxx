@@ -1318,7 +1318,7 @@ AliTPC3DCylindricalInterpolatorIrregular::KDTreeNode* AliTPC3DCylindricalInterpo
   KDTreeNode* n;
 
   if (!count) {
-    return 0;
+    return nullptr;
   }
   if ((n = FindMedian(t, t + count, index))) {
     index = (index + 1) % dim;

@@ -158,9 +158,9 @@ static inline int OCLsetKernelParameters(cl_kernel& kernel, const Args&... args)
   return OCLsetKernelParameters_helper(kernel, 0, args...);
 }
 
-static inline int clExecuteKernelA(cl_command_queue queue, cl_kernel krnl, size_t local_size, size_t global_size, cl_event* pEvent, cl_event* wait = NULL, cl_int nWaitEvents = 1)
+static inline int clExecuteKernelA(cl_command_queue queue, cl_kernel krnl, size_t local_size, size_t global_size, cl_event* pEvent, cl_event* wait = nullptr, cl_int nWaitEvents = 1)
 {
-  GPUFailedMsg(clEnqueueNDRangeKernel(queue, krnl, 1, NULL, &global_size, &local_size, wait == NULL ? 0 : nWaitEvents, wait, pEvent));
+  GPUFailedMsg(clEnqueueNDRangeKernel(queue, krnl, 1, nullptr, &global_size, &local_size, wait == nullptr ? 0 : nWaitEvents, wait, pEvent));
   return 0;
 }
 
@@ -178,7 +178,7 @@ struct GPUReconstructionOCLInternals {
 };
 
 static_assert(std::is_convertible<cl_event, void*>::value, "OpenCL event type incompatible to deviceEvent");
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

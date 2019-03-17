@@ -38,8 +38,8 @@ namespace ITS
 {
 class TrackerTraits;
 class VertexerTraits;
-}
-} // namespace o2::ITS
+} // namespace ITS
+} // namespace o2
 
 namespace GPUCA_NAMESPACE
 {
@@ -491,7 +491,7 @@ inline void GPUReconstruction::ReadStructFromFile(const char* file, T* obj)
     printf("Read %d bytes from %s\n", (int)r, file);
   }
 }
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

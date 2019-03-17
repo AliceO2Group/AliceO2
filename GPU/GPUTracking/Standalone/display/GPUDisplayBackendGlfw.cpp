@@ -205,7 +205,7 @@ void GPUDisplayBackendGlfw::DisplayLoop()
   ImGui::SetNextWindowPos(ImVec2(0, 0));
   ImGui::SetNextWindowSize(ImVec2(me->mDisplayWidth, me->mDisplayHeight));
   ImGui::SetNextWindowBgAlpha(0.f);
-  ImGui::Begin("Console", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+  ImGui::Begin("Console", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
 #endif
   me->DrawGLScene();
 #ifdef GPUCA_O2_LIB
@@ -227,7 +227,7 @@ int GPUDisplayBackendGlfw::OpenGLMain()
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 0);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
-  mWindow = glfwCreateWindow(INIT_WIDTH, INIT_HEIGHT, GL_WINDOW_NAME, NULL, NULL);
+  mWindow = glfwCreateWindow(INIT_WIDTH, INIT_HEIGHT, GL_WINDOW_NAME, nullptr, nullptr);
   if (!mWindow) {
     glfwTerminate();
     return (-1);
@@ -250,7 +250,7 @@ int GPUDisplayBackendGlfw::OpenGLMain()
   if (glewInit()) {
     return (-1);
   }
-    //#endif
+  //#endif
 
 #ifdef GPUCA_O2_LIB
   if (gl3wInit()) {
@@ -327,7 +327,7 @@ void GPUDisplayBackendGlfw::SwitchFullscreen(bool set)
     const GLFWvidmode* mode = glfwGetVideoMode(primary);
     glfwSetWindowMonitor(mWindow, primary, 0, 0, mode->width, mode->height, mode->refreshRate);
   } else {
-    glfwSetWindowMonitor(mWindow, NULL, mWindowX, mWindowY, mWindowWidth, mWindowHeight, GLFW_DONT_CARE);
+    glfwSetWindowMonitor(mWindow, nullptr, mWindowX, mWindowY, mWindowWidth, mWindowHeight, GLFW_DONT_CARE);
   }
 }
 
@@ -345,7 +345,7 @@ void GPUDisplayBackendGlfw::SetVSync(bool enable) { glfwSwapInterval(enable); }
 int GPUDisplayBackendGlfw::StartDisplay()
 {
   static pthread_t hThread;
-  if (pthread_create(&hThread, NULL, OpenGLWrapper, this)) {
+  if (pthread_create(&hThread, nullptr, OpenGLWrapper, this)) {
     printf("Coult not Create GL Thread...\n");
     return (1);
   }

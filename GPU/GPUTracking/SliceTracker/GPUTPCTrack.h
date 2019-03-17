@@ -66,7 +66,7 @@ class GPUTPCTrack
 
  private:
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif // GPUTPCTRACK_H

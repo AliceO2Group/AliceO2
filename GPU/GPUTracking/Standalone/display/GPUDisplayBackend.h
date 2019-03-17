@@ -101,7 +101,7 @@ class GPUDisplayBackend
   int InitGL(bool initFailure = false);                                 // Callback to initialize the GL Display (to be called in StartDisplay)
   void ExitGL();                                                        // Callback to clean up the GL Display
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

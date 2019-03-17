@@ -92,7 +92,7 @@ class GPUTRDTracker : public GPUProcessor
 
   GPUhd() void SetGeometry(TRD_GEOMETRY_CONST GPUTRDGeometry* geo) { mGeo = geo; }
   void Reset();
-  GPUd() int LoadTracklet(const GPUTRDTrackletWord& tracklet, const int* labels = 0x0);
+  GPUd() int LoadTracklet(const GPUTRDTrackletWord& tracklet, const int* labels = nullptr);
   template <class T>
   GPUd() int LoadTrack(const T& trk, const int label = -1)
   {

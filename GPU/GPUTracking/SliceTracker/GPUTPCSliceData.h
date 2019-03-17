@@ -34,7 +34,7 @@ class GPUTPCSliceData : public GPUProcessor
 {
  public:
   GPUTPCSliceData()
-    : GPUProcessor(), mMemoryResInput(-1), mMemoryResScratch(-1), mMemoryResScratchHost(-1), mMemoryResRows(-1), mFirstRow(0), mLastRow(GPUCA_ROW_COUNT - 1), mNumberOfHits(0), mNumberOfHitsPlusAlign(0), mClusterIdOffset(0), mMaxZ(0.f), mGPUTextureBase(0), mRows(0), mLinkUpData(0), mLinkDownData(0), mClusterData(0)
+    : GPUProcessor(), mMemoryResInput(-1), mMemoryResScratch(-1), mMemoryResScratchHost(-1), mMemoryResRows(-1), mFirstRow(0), mLastRow(GPUCA_ROW_COUNT - 1), mNumberOfHits(0), mNumberOfHitsPlusAlign(0), mClusterIdOffset(0), mMaxZ(0.f), mGPUTextureBase(nullptr), mRows(nullptr), mLinkUpData(nullptr), mLinkDownData(nullptr), mClusterData(nullptr)
   {
   }
 
@@ -260,7 +260,7 @@ GPUdi() void MEM_LG(GPUTPCSliceData)::SetHitWeight(const MEM_TYPE(GPUTPCRow) & r
 MEM_CLASS_PRE()
 MEM_TEMPLATE()
 GPUdi() int MEM_LG(GPUTPCSliceData)::HitWeight(const MEM_TYPE(GPUTPCRow) & row, unsigned int hitIndex) const { return mHitWeights[row.mHitNumberOffset + hitIndex]; }
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif // GPUTPCSLICEDATA_H

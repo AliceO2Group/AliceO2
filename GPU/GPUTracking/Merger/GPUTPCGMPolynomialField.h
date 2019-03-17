@@ -284,7 +284,7 @@ GPUdi() float GPUTPCGMPolynomialField::GetFieldItsBz(float x, float y, float z) 
   }
   return bz;
 }
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

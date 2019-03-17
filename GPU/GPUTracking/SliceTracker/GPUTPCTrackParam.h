@@ -111,7 +111,7 @@ class GPUTPCTrackParam
   GPUd() bool TransportToX(float x, float Bz, float maxSinPhi = GPUCA_MAX_SIN_PHI);
   GPUd() bool TransportToXWithMaterial(float x, float Bz, float maxSinPhi = GPUCA_MAX_SIN_PHI);
 
-  GPUd() bool TransportToX(float x, GPUTPCTrackLinearisation& t0, float Bz, float maxSinPhi = GPUCA_MAX_SIN_PHI, float* DL = 0);
+  GPUd() bool TransportToX(float x, GPUTPCTrackLinearisation& t0, float Bz, float maxSinPhi = GPUCA_MAX_SIN_PHI, float* DL = nullptr);
 
   GPUd() bool TransportToX(float x, float sinPhi0, float cosPhi0, float Bz, float maxSinPhi = GPUCA_MAX_SIN_PHI);
 
@@ -177,7 +177,7 @@ GPUd() MEM_CLASS_PRE() inline void MEM_LG(GPUTPCTrackParam)::InitParam()
   SetCov(14, 1000.f);
   SetZOffset(0);
 }
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif // GPUTPCTRACKPARAM_H

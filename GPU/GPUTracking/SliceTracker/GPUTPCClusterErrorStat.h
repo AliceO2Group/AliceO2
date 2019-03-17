@@ -50,8 +50,8 @@ struct GPUTPCClusterErrorStat {
 
 GPUTPCGPURootDump<TNtuple> GPUTPCClusterErrorStat::fTup("clusterres.root", "clusterres", "clusterres", "clX:clY:clZ:angle:trkX:trkY:trkZ:trkSinPhi:trkDzDs:trkQPt:trkSigmaY2:trkSigmaZ2:trkSigmaSinPhi2:trkSigmaDzDs2:trkSigmaQPt2");
 long long int GPUTPCClusterErrorStat::fCount = 0;
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #else
 
@@ -63,8 +63,8 @@ struct GPUTPCClusterErrorStat {
   GPUd() GPUTPCClusterErrorStat(int /*maxN*/) {}
   GPUd() void Fill(float /*x*/, float /*y*/, float /*z*/, float /*alpha*/, float /*trkX*/, float* /*fP*/, float* /*fC*/, int /*ihit*/, int /*iWay*/) {}
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif
 

@@ -69,7 +69,7 @@ ClassImp(GPUTRDTrackletReaderComponent)
   }
 
   GPUTRDTrackletReaderComponent::GPUTRDTrackletReaderComponent()
-  : AliHLTProcessor(), fDebugLevel(0), fEventId(fgkInvalidEventId), fTrackletArray(NULL), fRawReaderMem(NULL), fRawReaderTrd(NULL)
+  : AliHLTProcessor(), fDebugLevel(0), fEventId(fgkInvalidEventId), fTrackletArray(nullptr), fRawReaderMem(nullptr), fRawReaderTrd(nullptr)
 {
   // constructor
 }
@@ -172,17 +172,17 @@ int GPUTRDTrackletReaderComponent::DoInit(int argc, const char** argv)
     if (fRawReaderTrd) {
       delete fRawReaderTrd;
     }
-    fRawReaderTrd = NULL;
+    fRawReaderTrd = nullptr;
 
     if (fRawReaderMem) {
       delete fRawReaderMem;
     }
-    fRawReaderMem = NULL;
+    fRawReaderMem = nullptr;
 
     if (fTrackletArray) {
       delete fTrackletArray;
     }
-    fTrackletArray = NULL;
+    fTrackletArray = nullptr;
   }
 
   vector<const char*> remainingArgs;
@@ -203,17 +203,17 @@ int GPUTRDTrackletReaderComponent::DoDeinit()
   if (fRawReaderTrd) {
     delete fRawReaderTrd;
   }
-  fRawReaderTrd = NULL;
+  fRawReaderTrd = nullptr;
 
   if (fRawReaderMem) {
     delete fRawReaderMem;
   }
-  fRawReaderMem = NULL;
+  fRawReaderMem = nullptr;
 
   if (fTrackletArray) {
     delete fTrackletArray;
   }
-  fTrackletArray = NULL;
+  fTrackletArray = nullptr;
 
   return 0;
 }
@@ -269,7 +269,7 @@ int GPUTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hltEv
     unsigned int sourceSectors = 0;
 
     // loop over all incoming TRD raw data blocks
-    for (const AliHLTComponentBlockData* pBlock = GetFirstInputBlock(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginTRD); pBlock != NULL && iResult >= 0; pBlock = GetNextInputBlock()) {
+    for (const AliHLTComponentBlockData* pBlock = GetFirstInputBlock(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginTRD); pBlock != nullptr && iResult >= 0; pBlock = GetNextInputBlock()) {
 
       int trdSector = -1;
 
@@ -320,7 +320,7 @@ int GPUTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hltEv
 
   { // loop over all incoming TRD MC tracklets data blocks
 
-    for (const TObject* iter = GetFirstInputObject(kAliHLTDataTypeAliTreeD | kAliHLTDataOriginTRD); iter != NULL; iter = GetNextInputObject()) {
+    for (const TObject* iter = GetFirstInputObject(kAliHLTDataTypeAliTreeD | kAliHLTDataOriginTRD); iter != nullptr; iter = GetNextInputObject()) {
       TTree* trackletTree = dynamic_cast<TTree*>(const_cast<TObject*>(iter));
       if (!trackletTree) {
         HLTFatal("No Tracklet Tree found");

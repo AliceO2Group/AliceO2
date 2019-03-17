@@ -426,7 +426,7 @@ GPUReconstruction* GPUReconstruction::CreateInstance(const GPUSettingsProcessing
     return nullptr;
   }
 
-  if (retVal == 0) {
+  if (retVal == nullptr) {
     if (cfg.forceDeviceType) {
       printf("Error: Could not load GPUReconstruction for specified device: %s (%u)\n", DEVICE_TYPE_NAMES[type], type);
     } else {

@@ -1,3 +1,16 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file threadserver.h
+/// \author David Rohr
+
 #ifndef THREADSERVER_H
 #define THREADSERVER_H
 
@@ -88,7 +101,7 @@ class qThreadCls
     XthreadParam.threadNum = threadNum;
     XthreadParam.pinCPU = pinCPU;
     pthread_t thr;
-    pthread_create(&thr, NULL, (void* (*)(void*)) & qThreadWrapperCls, &XthreadParam);
+    pthread_create(&thr, nullptr, (void* (*)(void*)) & qThreadWrapperCls, &XthreadParam);
     if (wait) {
       WaitForSpawn();
     }
@@ -140,8 +153,8 @@ void* qThreadCls<S, T>::qThreadWrapperCls(T* arg)
   (arg_A->pCls->*pFunc)(arg);
 
   arg_A->threadMutex[1].Unlock();
-  pthread_exit(NULL);
-  return (NULL);
+  pthread_exit(nullptr);
+  return (nullptr);
 }
 
 template <class S, class T>
@@ -150,17 +163,17 @@ class qThreadClsArray
  public:
   qThreadClsArray()
   {
-    pArray = NULL;
+    pArray = nullptr;
     nThreadsRunning = 0;
   }
-  qThreadClsArray(int n, S* pCls, void (S::*pFunc)(T*), int threadNumOffset = 0, int* pinCPU = NULL)
+  qThreadClsArray(int n, S* pCls, void (S::*pFunc)(T*), int threadNumOffset = 0, int* pinCPU = nullptr)
   {
-    pArray = NULL;
+    pArray = nullptr;
     nThreadsRunning = 0;
     SetNumberOfThreads(n, pCls, pFunc, threadNumOffset, pinCPU);
   }
 
-  void SetNumberOfThreads(int n, S* pCls, void (S::*pFunc)(T*), int threadNumOffset = 0, int* pinCPU = NULL)
+  void SetNumberOfThreads(int n, S* pCls, void (S::*pFunc)(T*), int threadNumOffset = 0, int* pinCPU = nullptr)
   {
     if (nThreadsRunning) {
       fprintf(STD_OUT, "Threads already started\n");
@@ -169,7 +182,7 @@ class qThreadClsArray
     pArray = new qThreadCls<S, T>[n];
     nThreadsRunning = n;
     for (int i = 0; i < n; i++) {
-      pArray[i].SpawnThread(pCls, pFunc, threadNumOffset + i, pinCPU == NULL ? -1 : pinCPU[i], false);
+      pArray[i].SpawnThread(pCls, pFunc, threadNumOffset + i, pinCPU == nullptr ? -1 : pinCPU[i], false);
     }
     for (int i = 0; i < n; i++) {
       pArray[i].WaitForSpawn();

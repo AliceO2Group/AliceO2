@@ -27,7 +27,7 @@ namespace trd
 {
 class TRDGeometryFlat;
 }
-} // namespace o2::trd
+} // namespace o2
 
 namespace o2
 {
@@ -35,8 +35,8 @@ namespace TPC
 {
 struct ClusterNativeAccessFullTPC;
 struct ClusterNative;
-}
-} // namespace o2::TPC
+} // namespace TPC
+} // namespace o2
 
 namespace GPUCA_NAMESPACE
 {
@@ -64,12 +64,12 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   friend class GPUReconstruction;
 
  public:
-  virtual ~GPUChainTracking() override;
-  virtual void RegisterPermanentMemoryAndProcessors() override;
-  virtual void RegisterGPUProcessors() override;
-  virtual int Init() override;
-  virtual int Finalize() override;
-  virtual int RunStandalone() override;
+  ~GPUChainTracking() override;
+  void RegisterPermanentMemoryAndProcessors() override;
+  void RegisterGPUProcessors() override;
+  int Init() override;
+  int Finalize() override;
+  int RunStandalone() override;
 
   // Structures for input and output data
   struct InOutPointers {
@@ -129,8 +129,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void DumpData(const char* filename);
   using GPUChain::ReadData;
   int ReadData(const char* filename);
-  virtual void DumpSettings(const char* dir = "") override;
-  virtual void ReadSettings(const char* dir = "") override;
+  void DumpSettings(const char* dir = "") override;
+  void ReadSettings(const char* dir = "") override;
 
   // Converter functions
   void ConvertNativeToClusterData();
@@ -227,7 +227,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int HelperReadEvent(int iSlice, int threadId, GPUReconstructionHelpers::helperParam* par);
   int HelperOutput(int iSlice, int threadId, GPUReconstructionHelpers::helperParam* par);
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

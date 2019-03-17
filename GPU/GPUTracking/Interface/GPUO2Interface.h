@@ -35,8 +35,8 @@ namespace TPC
 {
 struct ClusterNativeAccessFullTPC;
 struct ClusterNative;
-}
-} // namespace o2::TPC
+} // namespace TPC
+} // namespace o2
 
 namespace GPUCA_NAMESPACE
 {
@@ -77,7 +77,7 @@ class GPUTPCO2Interface
   std::unique_ptr<GPUO2InterfaceConfiguration> mConfig;
   std::unique_ptr<GPUDisplayBackendGlfw> mDisplayBackend;
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

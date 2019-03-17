@@ -63,7 +63,7 @@ class GPUTPCGrid
   float mStepYInv;  //* inverse bin size in Y
   float mStepZInv;  //* inverse bin size in Z
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif // GPUTPCGRID_H

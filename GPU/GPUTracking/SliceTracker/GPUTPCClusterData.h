@@ -36,7 +36,7 @@ struct GPUTPCClusterData {
   float sigmaTime2;
 #endif
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif // CLUSTERDATA_H

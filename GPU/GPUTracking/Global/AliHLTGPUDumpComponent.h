@@ -30,8 +30,8 @@ class TPCFastTransformManager;
 class GPUReconstruction;
 class GPUChainTracking;
 class GPUTPCClusterData;
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 class AliHLTGPUDumpComponent : public AliHLTProcessor
 {

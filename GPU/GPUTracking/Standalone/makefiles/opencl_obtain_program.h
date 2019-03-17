@@ -1,3 +1,16 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file opencl_obtain_program.h
+/// \author David Rohr
+
 #ifndef MAKEFILES_OPENCL_OBTAIN_PROGRAMH
 #define MAKEFILES_OPENCL_OBTAIN_PROGRAMH
 
@@ -28,9 +41,9 @@ static int _makefiles_opencl_obtain_program_helper(cl_context context, cl_uint n
   for (unsigned int i = 0; i < pinfo->count; i++) {
     char device_name[64], device_vendor[64];
     cl_uint nbits;
-    clGetDeviceInfo(devices[i], CL_DEVICE_NAME, 64, device_name, NULL);
-    clGetDeviceInfo(devices[i], CL_DEVICE_VENDOR, 64, device_vendor, NULL);
-    clGetDeviceInfo(devices[i], CL_DEVICE_ADDRESS_BITS, sizeof(nbits), &nbits, NULL);
+    clGetDeviceInfo(devices[i], CL_DEVICE_NAME, 64, device_name, nullptr);
+    clGetDeviceInfo(devices[i], CL_DEVICE_VENDOR, 64, device_vendor, nullptr);
+    clGetDeviceInfo(devices[i], CL_DEVICE_ADDRESS_BITS, sizeof(nbits), &nbits, nullptr);
     _makefiles_opencl_device_info* dinfo = (_makefiles_opencl_device_info*)current_ptr;
     if (strcmp(device_name, dinfo->device_name) != 0 || strcmp(device_vendor, dinfo->device_vendor) != 0) {
       printf("Device list is different to device list from opencl program (Device %d: '%s - %s' != '%s - %s')\n", i, device_vendor, device_name, dinfo->device_vendor, dinfo->device_name);
@@ -64,7 +77,7 @@ static int _makefiles_opencl_obtain_program_helper(cl_context context, cl_uint n
     }
   }
 
-  ocl_error = clBuildProgram(*program, num_devices, devices, "", NULL, NULL);
+  ocl_error = clBuildProgram(*program, num_devices, devices, "", nullptr, nullptr);
   if (ocl_error != CL_SUCCESS) {
     printf("Error building program\n");
     clReleaseProgram(*program);

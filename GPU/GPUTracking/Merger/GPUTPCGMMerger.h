@@ -169,7 +169,7 @@ class GPUTPCGMMerger : public GPUProcessor
   const GPUTPCTracker* mSliceTrackers;
   GPUChainTracking* mChainTracking; // Tracking chain with access to input data / parameters
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif // GPUTPCGMMERGER_H

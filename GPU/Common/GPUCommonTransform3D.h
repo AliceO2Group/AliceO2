@@ -78,7 +78,7 @@ class Transform3D
                                 kZZ = 10,
                                 kDZ = 11 };
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

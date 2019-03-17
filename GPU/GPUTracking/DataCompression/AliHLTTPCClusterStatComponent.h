@@ -27,7 +27,7 @@ namespace gpu
 {
 struct GPUParam;
 }
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace GPUCA_NAMESPACE
 
 class AliHLTTPCClusterStatComponent : public AliHLTProcessor, public AliOptionParser
 {

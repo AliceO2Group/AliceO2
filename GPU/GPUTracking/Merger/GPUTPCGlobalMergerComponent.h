@@ -35,8 +35,8 @@ namespace gpu
 class GPUTPCGMMerger;
 class GPUReconstruction;
 class GPUChainTracking;
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 /**
  * @class GPUTPCGlobalMergerComponent
@@ -128,14 +128,14 @@ class GPUTPCGlobalMergerComponent : public AliHLTProcessor
 
   /** the global merger object */
 
-  double fSolenoidBz;                                                    // magnetic field
-  double fClusterErrorCorrectionY;                                       // correction for the cluster error during pre-fit
-  double fClusterErrorCorrectionZ;                                       // correction for the cluster error during pre-fit
-  int fNWays;                                                            // Setting for merger
-  char fNWaysOuter;                                                      // Store outer param after n-way fit
-  bool fNoClear;                                                         // Do not clear memory after processing an event
+  double fSolenoidBz;                                                                 // magnetic field
+  double fClusterErrorCorrectionY;                                                    // correction for the cluster error during pre-fit
+  double fClusterErrorCorrectionZ;                                                    // correction for the cluster error during pre-fit
+  int fNWays;                                                                         // Setting for merger
+  char fNWaysOuter;                                                                   // Store outer param after n-way fit
+  bool fNoClear;                                                                      // Do not clear memory after processing an event
   static const GPUCA_NAMESPACE::gpu::GPUChainTracking* fgCurrentMergerReconstruction; // Pointer to current merger in case memory is not cleared after processing the event
-  AliHLTComponentBenchmark fBenchmark;                                   // benchmark
+  AliHLTComponentBenchmark fBenchmark;                                                // benchmark
   GPUCA_NAMESPACE::gpu::GPUParam mParam;                                              // ca params
   GPUCA_NAMESPACE::gpu::GPUReconstruction* fRec;                                      // GPUReconstruction
   GPUCA_NAMESPACE::gpu::GPUChainTracking* fChain;

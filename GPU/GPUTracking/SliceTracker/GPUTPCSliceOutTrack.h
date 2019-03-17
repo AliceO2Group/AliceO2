@@ -64,7 +64,7 @@ class GPUTPCSliceOutTrack
   int mLocalTrackId;                  // See AliHLTPCCATrack.h
   GPUTPCSliceOutCluster mClusters[0]; //* track clusters
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

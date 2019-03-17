@@ -28,17 +28,17 @@ class GPUDisplayBackendX11 : public GPUDisplayBackend
 {
  public:
   GPUDisplayBackendX11() = default;
-  virtual ~GPUDisplayBackendX11() = default;
+  ~GPUDisplayBackendX11() override = default;
 
-  virtual int StartDisplay() override;
-  virtual void DisplayExit() override;
-  virtual void SwitchFullscreen(bool set) override;
-  virtual void ToggleMaximized(bool set) override;
-  virtual void SetVSync(bool enable) override;
-  virtual void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
+  int StartDisplay() override;
+  void DisplayExit() override;
+  void SwitchFullscreen(bool set) override;
+  void ToggleMaximized(bool set) override;
+  void SetVSync(bool enable) override;
+  void OpenGLPrint(const char* s, float x, float y, float r, float g, float b, float a, bool fromBotton = true) override;
 
  private:
-  virtual int OpenGLMain();
+  int OpenGLMain() override;
   int GetKey(int key);
   void GetKey(XEvent& event, int& keyOut, int& keyPressOut);
 
@@ -47,12 +47,12 @@ class GPUDisplayBackendX11 : public GPUDisplayBackend
 
   GLuint mFontBase;
 
-  Display* mDisplay = NULL;
+  Display* mDisplay = nullptr;
   Window mWindow;
 
-  PFNGLXSWAPINTERVALEXTPROC mGlXSwapIntervalEXT = NULL;
+  PFNGLXSWAPINTERVALEXTPROC mGlXSwapIntervalEXT = nullptr;
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

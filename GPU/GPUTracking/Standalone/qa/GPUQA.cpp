@@ -186,7 +186,7 @@ void GPUQA::ChangePadTitleSize(TPad* p, float size)
 {
   p->Update();
   TPaveText* pt = (TPaveText*)(p->GetPrimitive("title"));
-  if (pt == NULL) {
+  if (pt == nullptr) {
     printf("Error changing title\n");
   } else {
     pt->SetTextSize(size);
@@ -1305,9 +1305,9 @@ template <class T>
 T* GPUQA::GetHist(T*& ee, std::vector<TFile*>& tin, int k, int nNewInput)
 {
   T* e = ee;
-  if ((mConfig.inputHistogramsOnly || k) && (e = dynamic_cast<T*>(tin[k - nNewInput]->Get(e->GetName()))) == NULL) {
+  if ((mConfig.inputHistogramsOnly || k) && (e = dynamic_cast<T*>(tin[k - nNewInput]->Get(e->GetName()))) == nullptr) {
     printf("Missing histogram in input %s: %s\n", mConfig.compareInputs[k - nNewInput], ee->GetName());
-    return (NULL);
+    return (nullptr);
   }
   ee = e;
   return (e);
@@ -1325,7 +1325,7 @@ int GPUQA::DrawQAHistograms()
   for (unsigned int i = 0; i < mConfig.compareInputs.size(); i++) {
     tin[i] = new TFile(mConfig.compareInputs[i]);
   }
-  TFile* tout = NULL;
+  TFile* tout = nullptr;
   if (mConfig.output) {
     tout = new TFile(mConfig.output, "RECREATE");
   }
@@ -1508,7 +1508,7 @@ int GPUQA::DrawQAHistograms()
                 mEff[3][j / 2][j % 2][i][0]->Write(); // Store also all histogram!
               }
             }
-          } else if (GetHist(e, tin, k, nNewInput) == NULL) {
+          } else if (GetHist(e, tin, k, nNewInput) == nullptr) {
             continue;
           }
           e->SetTitle(EFFICIENCY_TITLES[j]);
@@ -1654,7 +1654,7 @@ int GPUQA::DrawQAHistograms()
         for (int l = 0; l < 2; l++) {
           for (int k = 0; k < ConfigNumInputs; k++) {
             TH1F* e = dst[l];
-            if (GetHist(e, tin, k, nNewInput) == NULL) {
+            if (GetHist(e, tin, k, nNewInput) == nullptr) {
               continue;
             }
             if (nNewInput && k == 0 && ii != 5) {
@@ -1703,7 +1703,7 @@ int GPUQA::DrawQAHistograms()
                 }
                 e->Write();
               }
-            } else if (GetHist(e, tin, k, nNewInput) == NULL) {
+            } else if (GetHist(e, tin, k, nNewInput) == nullptr) {
               continue;
             }
             e->SetMaximum(tmpMax);
@@ -1773,7 +1773,7 @@ int GPUQA::DrawQAHistograms()
       float tmpMax = 0;
       for (int k = 0; k < ConfigNumInputs; k++) {
         TH1D* e = hist;
-        if (GetHist(e, tin, k, nNewInput) == NULL) {
+        if (GetHist(e, tin, k, nNewInput) == nullptr) {
           continue;
         }
         e->SetMaximum(-1111);
@@ -1784,7 +1784,7 @@ int GPUQA::DrawQAHistograms()
 
       for (int k = 0; k < ConfigNumInputs; k++) {
         TH1D* e = hist;
-        if (GetHist(e, tin, k, nNewInput) == NULL) {
+        if (GetHist(e, tin, k, nNewInput) == nullptr) {
           continue;
         }
         e->SetMaximum(tmpMax * 1.02);
@@ -1888,7 +1888,7 @@ int GPUQA::DrawQAHistograms()
     for (int l = 0; l <= CLUST_HIST_INT_SUM; l++) {
       for (int k = 0; k < ConfigNumInputs; k++) {
         TH1* e = mClusters[l ? (N_CLS_TYPE * N_CLS_HIST - 2) : (N_CLS_HIST - 1)];
-        if (GetHist(e, tin, k, nNewInput) == NULL) {
+        if (GetHist(e, tin, k, nNewInput) == nullptr) {
           continue;
         }
         e->SetMinimum(-1111);
@@ -1906,7 +1906,7 @@ int GPUQA::DrawQAHistograms()
       for (int k = 0; k < ConfigNumInputs; k++) {
         for (int i = 0; i < N_CLS_HIST; i++) {
           TH1* e = mClusters[l ? (2 * N_CLS_HIST - 1 + i) : i];
-          if (GetHist(e, tin, k, nNewInput) == NULL) {
+          if (GetHist(e, tin, k, nNewInput) == nullptr) {
             continue;
           }
           e->SetMaximum(tmpMax[l] * 1.02);
@@ -1924,7 +1924,7 @@ int GPUQA::DrawQAHistograms()
       for (int k = 0; k < ConfigNumInputs; k++) {
         for (int j = end - 1; j >= begin; j--) {
           TH1* e = mClusters[j];
-          if (GetHist(e, tin, k, nNewInput) == NULL) {
+          if (GetHist(e, tin, k, nNewInput) == nullptr) {
             continue;
           }
 
@@ -1974,7 +1974,7 @@ int GPUQA::DrawQAHistograms()
     float tmpMax = 0.;
     for (int k = 0; k < ConfigNumInputs; k++) {
       TH1F* e = mTracks;
-      if (GetHist(e, tin, k, nNewInput) == NULL) {
+      if (GetHist(e, tin, k, nNewInput) == nullptr) {
         continue;
       }
       e->SetMaximum(-1111);
@@ -1986,7 +1986,7 @@ int GPUQA::DrawQAHistograms()
     mPTracks->SetLogx();
     for (int k = 0; k < ConfigNumInputs; k++) {
       TH1F* e = mTracks;
-      if (GetHist(e, tin, k, nNewInput) == NULL) {
+      if (GetHist(e, tin, k, nNewInput) == nullptr) {
         continue;
       }
       if (tout && !mConfig.inputHistogramsOnly && k == 0) {
@@ -2014,7 +2014,7 @@ int GPUQA::DrawQAHistograms()
     tmpMax = 0.;
     for (int k = 0; k < ConfigNumInputs; k++) {
       TH1F* e = mNCl;
-      if (GetHist(e, tin, k, nNewInput) == NULL) {
+      if (GetHist(e, tin, k, nNewInput) == nullptr) {
         continue;
       }
       e->SetMaximum(-1111);
@@ -2025,7 +2025,7 @@ int GPUQA::DrawQAHistograms()
     mPNCl->cd();
     for (int k = 0; k < ConfigNumInputs; k++) {
       TH1F* e = mNCl;
-      if (GetHist(e, tin, k, nNewInput) == NULL) {
+      if (GetHist(e, tin, k, nNewInput) == nullptr) {
         continue;
       }
       if (tout && !mConfig.inputHistogramsOnly && k == 0) {

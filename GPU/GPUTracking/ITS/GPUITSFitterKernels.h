@@ -21,7 +21,7 @@ namespace ITS
 {
 struct TrackingFrameInfo;
 }
-} // namespace o2::ITS
+} // namespace o2
 
 namespace GPUCA_NAMESPACE
 {
@@ -43,7 +43,7 @@ class GPUITSFitterKernel : public GPUKernelTemplate
   GPUd() static bool fitTrack(GPUITSFitter& Fitter, GPUTPCGMPropagator& prop, GPUITSTrack& track, int start, int end, int step);
 #endif
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

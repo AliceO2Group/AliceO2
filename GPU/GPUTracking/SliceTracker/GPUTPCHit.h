@@ -39,7 +39,7 @@ class GPUTPCHit
  protected:
   float mY, mZ; // Y and Z position of the TPC cluster
 };
-}
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif // GPUTPCHIT_H
